@@ -16,6 +16,6 @@
 
 double fracmass_lpj(double fpc_low,double fpc_high,Individual& indiv);
 void leaf_phenology(Patch& patch,Climate& climate);
-void allometry(Individual& indiv);
+bool allometry(Individual& indiv); // void to bool - guess2008 - 080827
 void allocation_init(double bminit,double ltor,Individual& indiv);
 void growth(Stand& stand,Patch& patch);

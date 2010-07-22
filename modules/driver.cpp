@@ -37,6 +37,15 @@
 static long seed=12345678; // seed for random number generator (see randfrac)
 
 
+// guess2008
+extern int nyear_spinup; 
+	// allows access to the value declared guessio_cru.cpp
+ 
+// guess2008 - emdi
+extern bool emditest;
+	// Set in .ins file and read in guessio.cpp
+
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // RANDFRAC
 // Internal function for generating random numbers
@@ -74,7 +83,10 @@ double randfrac() {
 // May be called from input/output module to initialise stand Soiltype objects when
 // soil data supplied as LPJ soil code rather than soil physical parameter values
 
-void soilparameters(Soiltype& soiltype,int soilcode) {
+
+// guess2008 - emdi - pass pawc [mm] 
+//void soilparameters(Soiltype& soiltype,int soilcode) {
+void soilparameters(Soiltype& soiltype,int soilcode, double pawc) {
 
 	// DESCRIPTION
 	// Derivation of soil physical parameters given LPJ soil code
@@ -116,6 +128,12 @@ void soilparameters(Soiltype& soiltype,int soilcode) {
 	if (soilcode<1 || soilcode>9)
 		fail("soilparameters: invalid LPJ soil code (%d)",soilcode);
 
+	if (emditest && pawc > 0) {
+		// guess2008 - emdi
+		// Assume pawc applies to the whole 1.5m, so replace data[soilcode-1][1] with a scaled pawc
+		data[soilcode-1][1] = pawc / 300.0; // as pawc applies to the upper 30cm
+	}
+	
 	soiltype.perc_base=data[soilcode-1][0];
 	soiltype.perc_exp=PERC_EXP;
 	soiltype.awc[0]=SOILDEPTH_UPPER*data[soilcode-1][1];
@@ -123,6 +141,9 @@ void soilparameters(Soiltype& soiltype,int soilcode) {
 	soiltype.thermdiff_0=data[soilcode-1][2];
 	soiltype.thermdiff_15=data[soilcode-1][3];
 	soiltype.thermdiff_100=data[soilcode-1][4];
+
+	// guess2008 - override the default SOM years with 70-80% of the spin-up period
+	soiltype.updateSolveSOMvalues(nyear_spinup);
 }
 
 
@@ -465,7 +486,9 @@ void dailyaccounting_stand(Stand& stand,Pftlist& pftlist) {
 	const double W1DIV12=1.0/12.0;
 
 	int d,y,startyear;
-	int mtemp_last;
+
+	// guess2008 - changed this from an int to a double
+	double mtemp_last;
 
 	Climate& climate=stand.climate;
 
@@ -491,6 +514,7 @@ void dailyaccounting_stand(Stand& stand,Pftlist& pftlist) {
 		// In midwinter, reset GDD counter for summergreen phenology
 
 		climate.gdd5=0.0;
+		climate.ifsensechill=false; // guess2008 - CHILLDAYS
 	}
 
 	// Update GDD counters and chill day count
@@ -533,7 +557,7 @@ void dailyaccounting_stand(Stand& stand,Pftlist& pftlist) {
 	// Reset GDD and chill day counter if mean monthly temperature falls below base
 	// temperature
 
-	if (mtemp_last>=5.0 && climate.mtemp<5.0) {
+	if (mtemp_last>=5.0 && climate.mtemp<5.0 && climate.ifsensechill) { // guess2008 - CHILLDAYS
 		climate.gdd5=0.0;
 		climate.chilldays=0;
 	}
@@ -591,7 +615,7 @@ void dailyaccounting_patch(Patch& patch) {
 	// soil   = patch soil
 	// fluxes = current and accumulated C fluxes for patch
 
-	int p;
+	//int p;
 	Soil& soil=patch.soil;
 	Fluxes& fluxes=patch.fluxes;
 
@@ -624,15 +648,26 @@ void dailyaccounting_patch(Patch& patch) {
 
 	fluxes.dcflux_veg=0.0;
 	
-	// Store daily soil water
+	// Store daily soil water in upper layer
 	soil.dwcontupper[date.day]=soil.wcont[0];
+
+	// guess2008 - Store daily soil water in lower layer
+	soil.dwcontlower[date.day]=soil.wcont[1];
 
 	// On last day of month, calculate mean content of upper soil layer
 
 	if (date.islastday) {
 
 		soil.mwcontupper=mean(soil.dwcontupper+date.day-date.ndaymonth[date.month]+1,
-			date.ndaymonth[date.month]);		
+			date.ndaymonth[date.month]);
+		
+		// guess2008 - record water in lower layer too, and then update mwcont  
+		soil.mwcontlower=mean(soil.dwcontlower+date.day-date.ndaymonth[date.month]+1,
+			date.ndaymonth[date.month]);
+		
+		soil.mwcont[date.month][0] = soil.mwcontupper;
+		soil.mwcont[date.month][1] = soil.mwcontlower;
+
 	}
 
 	// Calculate soil temperatures

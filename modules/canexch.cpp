@@ -45,7 +45,8 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL CONSTANTS
 
-const double PRIESTLEY_TAYLOR=1.32;
+// guess2008 - moved to guess.h
+//const double PRIESTLEY_TAYLOR=1.32;
 	// Priestley-Taylor coefficient (conversion factor from equilibrium
 	// evapotranspiration to PET)
 
@@ -89,6 +90,9 @@ const double PRIESTLEY_TAYLOR=1.32;
 #endif
 
 // Alternative parameterisations of plant water uptake
+
+// guess2008 - drought/water uptake changes - added WR_SPECIESSPECIFIC option
+
 //   WR_WCONT = uptake rate coupled to water content and vertical root distribution
 //              (as in earlier versions of LPJ-GUESS and LPJF)
 //   WR_ROOTDIST = uptake rate independent of water content (to wilting point) but
@@ -97,11 +101,18 @@ const double PRIESTLEY_TAYLOR=1.32;
 //   WR_SMART = uptake rate independent of water content (to wilting point), fractional
 //              uptake from different layers according to layer water content for
 //              trees, according to prescribed root distribution for grasses
+//	 WR_SPECIESSPECIFIC = 
+
 // Comment out all but one of the following three lines:
+
+
+// guess2008 - drought/water uptake changes - added WR_SPECIESSPECIFIC option
 
 //#define WR_WCONT
 #define WR_ROOTDIST
 //#define WR_SMART
+//#define WR_SPECIESSPECIFIC
+
 
 #if defined(WR_WCONT) && defined(WR_ROOTDIST)
 #error Only one of WR_WCONT, WR_ROOTDIST and WR_SMART should be #defined
@@ -109,15 +120,18 @@ const double PRIESTLEY_TAYLOR=1.32;
 #error Only one of WR_WCONT, WR_ROOTDIST and WR_SMART should be #defined
 #elif defined(WR_ROOTDIST) && defined(WR_SMART)
 #error Only one of WR_WCONT, WR_ROOTDIST and WR_SMART should be #defined
-#elif !defined(WR_WCONT) && !defined(WR_ROOTDIST) && !defined(WR_SMART)
-#error One of WR_WCONT, WR_ROOTDIST and WR_SMART should be #defined
+#elif defined(WR_SPECIESSPECIFIC) && (defined(WR_SMART) || defined(WR_ROOTDIST) || defined(WR_WCONT)) // guess2008
+#error Only one of WR_SPECIESSPECIFIC, WR_WCONT, WR_ROOTDIST and WR_SMART should be #defined
+#elif !defined(WR_WCONT) && !defined(WR_ROOTDIST) && !defined(WR_SMART) && !defined(WR_SPECIESSPECIFIC)
+#error One of WR_WCONT, WR_SPECIESSPECIFIC, WR_ROOTDIST and WR_SMART should be #defined
 #endif
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL VARIABLES
 
-double ALPHAA;
+// guess2008 - removed
+//double ALPHAA;
 	// Replaces constant ALPHAA in function Photosynthesis (scaling factor for PAR
 	// absorption from leaf to plant projective area level, alias "twigloss")
 	// This variable must be given a value (should normally be in the range 0-1)
@@ -328,7 +342,8 @@ void fpar(Patch& patch) {
 		}
 
 		// Calculate LAI-weighted mean leaf-out fraction for vegetation
-		if (!negligible(plai))
+		// guess2008 - bugfix - was: if (!negligible(plai))
+		if (!negligible(plai_leafon))
 			phen_veg/=plai_leafon;
 		else
 			phen_veg=1.0;
@@ -669,8 +684,13 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 	//          (mm/m2/day)
 	// rd     = leaf respiration (kgC/m2/day)
 
+	// guess2008 - 080827 - changed to 0.6 from 0.5
+	// Lund - Apr/May 2010 - This value gives the best lobal figures
 	const double ALPHAA=0.5;
 		// scaling factor for PAR absorption from leaf to plant projective area level
+		// alias "twigloss"
+		// Should normally be in the range 0-1
+
 	const double CO2_CONV=1.0E-6;
 		// conversion factor for CO2 from ppmv to mole fraction
 	const double PO2=2.09E4; // O2 partial pressure (Pa)
@@ -1098,14 +1118,16 @@ void demand(Patch& patch) {
 	// Calculate transpirational demand on patch vegetated area basis
 	// Eqn 23, Haxeltine & Prentice 1996
 
-	if (!negligible(gp_patch)) {
+	// guess2008 - added fpc_total check
+	if (!negligible(gp_patch) && !negligible(patch.fpc_total)) {
 		gp_patch/=patch.fpc_total;
 		patch.demand=aet_monteith(patch.eet_net_veg,gp_patch);
 	}
 	else
 		patch.demand=0.0;
 
-	if (!negligible(gp_leafon_patch)) {
+	// guess2008 - added fpc_total check
+	if (!negligible(gp_leafon_patch) && !negligible(patch.fpc_total)) {
 		gp_leafon_patch/=patch.fpc_total;
 		patch.demand_leafon=aet_monteith(patch.eet_net_veg,gp_leafon_patch);
 	}
@@ -1118,9 +1140,11 @@ void demand(Patch& patch) {
 ///////////////////////////////////////////////////////////////////////////////////////
 // PLANT WATER UPTAKE
 
+// guess2008 - drought/water uptake changes
+// added species_drought_tolerance
 inline double water_uptake(double wcont[NSOILLAYER],double awc[NSOILLAYER],
 	double rootdist[NSOILLAYER],double& emax,double& fpc_rescale,
-	double fuptake[NSOILLAYER],bool ifsmart) {
+	double fuptake[NSOILLAYER],bool ifsmart, double species_drought_tolerance) {
 
 	// Returns plant water uptake (point scale, or mean for patch) as a fraction of
 	// maximum possible (daily basis)
@@ -1150,6 +1174,18 @@ inline double water_uptake(double wcont[NSOILLAYER],double awc[NSOILLAYER],
 	wr=0.0;
 	for (s=0;s<NSOILLAYER;s++) {
 		fuptake[s]=rootdist[s]*wcont[s]*fpc_rescale;
+		wr+=fuptake[s];
+	}
+
+// guess2008 - drought/water uptake changes - new option
+#elif defined(WR_SPECIESSPECIFIC)
+
+	// Uptake rate is species specific. Reduces to WR_WCONT if species_drought_tolerance = 0.5
+	// 
+	wr=0.0;
+	for (s=0;s<NSOILLAYER;s++) {
+		double max_rel_uptake = pow(wcont[s],2.0*0.1); // Limits C3 uptake
+		fuptake[s]=rootdist[s]*min(pow(wcont[s],2.0*species_drought_tolerance),max_rel_uptake)*fpc_rescale;
 		wr+=fuptake[s];
 	}
 
@@ -1250,8 +1286,20 @@ void aet_water_stress(Patch& patch) {
 		// (this then represents the average amount of water available over an
 		// individual's FPC, assuming individuals are equal in competition for water)
 
+		// ----------------------------------------
+		// guess2008 - drought/water uptake changes
+		double species_drought_tolerance = 0.5; 
+		// default, ensures that WR_SPECIESSPECIFIC gives identical results to WR_WCONT 
+		
+		if (ifspeciesspecificwateruptake) // override with species value (always <= 0.5)
+			species_drought_tolerance = pft.drought_tolerance;
+
+		// guess2008 - added pft.drought_tolerance as an argument.
 		wr=water_uptake(patch.soil.wcont,patch.soil.soiltype.awc,pft.rootdist,pft.emax,
-			patch.fpc_rescale,ppft.fuptake,pft.lifeform==TREE);
+			patch.fpc_rescale,ppft.fuptake,pft.lifeform==TREE,species_drought_tolerance);
+
+		// guess2008 - drought/water uptake changes
+		// ----------------------------------------
 
 		// Calculate supply (Eqn 24, Haxeltine & Prentice 1996)
 
@@ -1601,6 +1649,7 @@ void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 	// of net assimilation (function production above) as a proportion of rubisco
 	// capacity (Vmax).
 
+
 	// INPUT PARAMETERS
 	// gtemp_air  = respiration temperature response incorporating damping of Q10
 	//              response due to temperature acclimation (Eqn 11, Lloyd & Taylor
@@ -1619,7 +1668,9 @@ void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 	// resp       = sum of maintenance and growth respiration on grid cell area basis
 	//              (kgC/m2/day)
 
-	const double K=0.0548; // Parameter in respiration equations (Eqn (4) below)
+	// guess2008 - following a comment by Annett Wolf, the following parameter was changed: 
+	//const double K=0.0548; // guess2008 - Parameter in respiration equations (Eqn (4) below)
+	const double K=0.095218; // guess2008 - AW - NEW Parameter in respiration equations (Eqn (4) below)
 
 	double resp_sap;    // sapwood respiration (kg/m2/day)
 	double resp_root;   // root respiration (kg/m2/day)
@@ -1668,6 +1719,15 @@ void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 	// Let  
 	//  (4) k = 7.4e-7 * atomic_mass_C / atomic_mass_N * seconds_per_day
 	//        = 0.0548
+
+	// guess2008 - there is an ERROR here, spotted by Annett Wolf
+	// If we calculate the respiration at 20 degC using g(T) and compare it to 
+	// Sprugel's eqn 3, for 1 mole tissue N, say, we do NOT get the same result with this 
+	// k value. This is because g(T) = 1 at 10 degC, not 20 degC. Changing k from 0.0548 
+	// to 0.095218 gives exactly the same results as Sprugel at 20 degC. The scaling factor 
+	// 7.4e-7 used here is taken from Sprugel's eqn. (7), but they used f(T), not g(T), and 
+	// these are defined on different bases.
+
 	// from (3), (4)
 	//  (5) R = k * c_mass / cton * f(T)
 	// substituting ecosystem temperature response function g(T) for f(T) (Eqn B2),
@@ -1690,6 +1750,9 @@ void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 		// Growth respiration = 0.25 ( GPP - maintenance respiration)
 
 		resp_growth=(assim-resp_sap-resp_root)*0.25;
+		
+		// guess2008 - following a comment (060823) from Annett Wolf
+		if(resp_growth<0.0) resp_growth = 0.0;
 
 		// Total respiration is sum of maintenance and growth respiration
 
@@ -1704,6 +1767,9 @@ void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 		// Growth respiration (see above)
 
 		resp_growth=(assim-resp_root)*0.25;
+
+		// guess2008 - following a comment (060823) from Annett Wolf
+		if(resp_growth<0.0) resp_growth = 0.0;
 
 		// Total respiration (see above)
 
@@ -1791,12 +1857,20 @@ void npp(Patch& patch) {
 			// Update accumulated annual NPP and daily vegetation-atmosphere flux
 
 			indiv.anpp+=indiv.assim-indiv.resp;
-			patch.fluxes.dcflux_veg+=indiv.resp-indiv.assim;
+
+			// guess2008
+			if (indiv.alive) // Ben 2007-11-28	
+				patch.fluxes.dcflux_veg+=indiv.resp-indiv.assim;
 
 			// Monthly NPP and LAI
 
 			indiv.mnpp[date.month]+=indiv.assim-indiv.resp;
-			indiv.mlai[date.month]+=indiv.lai*indiv.phen_mean;
+			// guess2008 - changed indiv.phen_mean to indiv.phen here. mlai is always 0 otherwise 
+			indiv.mlai[date.month]+=indiv.lai*indiv.phen;
+
+			// guess2008
+			indiv.mgpp[date.month]+=indiv.assim;
+			indiv.mra[date.month]+=indiv.resp;
 
 			// On last day of month - convert monthly LAI from sum to mean
 
@@ -1881,12 +1955,18 @@ void npp(Patch& patch) {
 				// Update accumulated annual NPP and daily vegetation-atmosphere flux
 
 				indiv.anpp+=indiv.assim-indiv.resp;
-				patch.fluxes.dcflux_veg+=indiv.resp-indiv.assim;
+
+				// guess2008
+				if (indiv.alive) // Ben 2007-11-28	
+					patch.fluxes.dcflux_veg+=indiv.resp-indiv.assim;
 
 				// Monthly NPP and LAI
 
 				indiv.mnpp[date.month]=indiv.assim-indiv.resp;
 				indiv.mlai[date.month]=indiv.lai*indiv.phen_mean;
+				// guess2008
+				indiv.mgpp[date.month]+=indiv.assim;
+				indiv.mra[date.month]+=indiv.resp;
 
 				// Reinitialise for next month
 				indiv.assim=0.0;
@@ -2000,6 +2080,9 @@ void forest_floor_conditions(Patch& patch) {
 
 		if (date.islastday && date.islastmonth) {
 
+			// guess2008 - avoid negative ppft.anetps_ff
+			if(ppft.anetps_ff < 0.0) ppft.anetps_ff = 0.0;
+
 			if (ppft.anetps_ff>patch.stand.pft[p].anetps_ff_max)
 				patch.stand.pft[p].anetps_ff_max=ppft.anetps_ff;
 		}
@@ -2084,6 +2167,10 @@ void canopy_exchange(Patch& patch) {
 			for (m=0;m<12;m++) {
 				indiv.mnpp[m]=0.0;
 				indiv.mlai[m]=0.0;
+				// guess2008
+				indiv.mgpp[m]=0.0;
+				indiv.mra[m]=0.0;
+
 			}
 
 			vegetation.nextobj();

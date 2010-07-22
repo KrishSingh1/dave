@@ -36,7 +36,8 @@
 
 #include "guess.h"
 
-const double PRIESTLEY_TAYLOR=1.32;
+// guess2008 - moved to guess.h
+//const double PRIESTLEY_TAYLOR=1.32;
 	// Priestly-Taylor coefficient (conversion factor from equilibrium
 	// evapotranspiration to PET)
 // BLARP!
@@ -103,9 +104,18 @@ void snow(double prec,double temp,double& snowpack,double& rain,double& melt) {
 // HYDROLOGY
 // Internal function (do not call directly from framework)
 
+// guess2008 - DLE - old function signature:
+/*
 void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 	double perc_base,double perc_exp,double awc[NSOILLAYER],double fevap,
 	double wcont[NSOILLAYER],double& wcont_evap,double& runoff) {
+*/
+
+// guess2008 - DLE - new function signature. We now take awcont[] as an argument
+void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
+	double perc_base,double perc_exp,double awc[NSOILLAYER],double fevap,
+	double awcont[NSOILLAYER],double wcont[NSOILLAYER],double& wcont_evap,double& runoff,double snowpack) {
+
 
 	// DESCRIPTION
 	// Daily update of water content for each soil layer given snow melt, rainfall,
@@ -184,15 +194,23 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 	}
 
 	// Evaporation from soil surface
-
-	evap=pet*PRIESTLEY_TAYLOR*wcont_evap*fevap;
+	// evap=pet*PRIESTLEY_TAYLOR*wcont_evap*fevap;
+	// guess2008 - changed to wcont_evap**2 on Rita's and Dieter's advice, 
+	// and added the snowdepth restriction
+	if (snowpack < 10.0) // i.e. evap only if snow depth < 10mm
+		evap=pet*PRIESTLEY_TAYLOR*wcont_evap*wcont_evap*fevap;
+	else
+		evap = 0.0;
 
 	// Implement in- and outgoing fluxes to upper soil layer
 	// BLARP: water content can become negative, though apparently only very slightly
 	//    - quick fix implemented here, should be done better later
 
 	wcont[0]+=(rain+melt-aet_layer[0]-evap)/awc[0];
-	if (wcont[0]<0.0) wcont[0]=0.0;
+	//if (wcont[0]<0.0) wcont[0]=0.0;
+	if (wcont[0]!=0.0 && wcont[0] < 0.0001) // guess2008 - ML bugfix
+		wcont[0]=0.0;
+
 
 	// Surface runoff
 
@@ -259,7 +277,9 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 
 	if (influx>=0.1) {
 		perc_baseflow=BASEFLOW_FRAC*perc_base*pow(wcont[NSOILLAYER-1],perc_exp);
-		if (perc_baseflow>influx-runoff_surf) perc_baseflow=influx-runoff_surf;
+		// guess2008 - Adding "&& influx >= runoff_surf" guarantees nonnegative baseflow.
+		//if (perc_baseflow>influx-runoff_surf) perc_baseflow=influx-runoff_surf;
+		if (perc_baseflow>influx-runoff_surf && influx >= runoff_surf) perc_baseflow=influx-runoff_surf;
 
 		// Deduct from water content of bottom soil layer
 
@@ -271,6 +291,9 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 
 	runoff=runoff_surf+runoff_drain+runoff_baseflow;
 
+	if (runoff>2.0)
+		int test = 0;
+
 	patch.arunoff+=runoff;
 	patch.aaet+=aet_total;
 	patch.aevap+=evap;
@@ -278,6 +301,33 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 	patch.maet[date.month]+=aet_total;
 	patch.mevap[date.month]+=evap;
 	patch.mrunoff[date.month]+=runoff;
+
+
+	// guess2008 - DLE - update awcont
+	// Original algorithm by Thomas Hickler
+    for (s=0;s<NSOILLAYER;s++) {
+        
+		// Reset the awcont array on the first day of every year
+		if (date.day==0) {
+            awcont[s]=0.0;
+            if (s==0) patch.growingseasondays=0;
+        }
+
+		// If it's warm enough for growth, update awcont with this day's wcont
+        if (patch.stand.climate.temp>5.0) {
+            awcont[s]+=wcont[s];
+            if (s==0) patch.growingseasondays++;
+        }
+
+		// Do the averaging on the last day of every year
+        if (date.islastday && date.islastmonth)
+            awcont[s]/=(double)patch.growingseasondays;
+		
+		// In case it's never warm enough:
+		if (patch.growingseasondays<1)
+            awcont[s]=1.0;
+    }
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -324,9 +374,18 @@ void soilwater(Climate& climate,Patch& patch) {
 	// Fraction of grid cell subject to evaporation from soil surface is
 	// complement of summed vegetation projective cover (FPC)
 
+	// guess2008 - DLE - old function call:
+	/*
 	hydrology_lpjf(patch,climate.eet,rain,melt,soil.soiltype.perc_base,
 		soil.soiltype.perc_exp,soil.soiltype.awc,max(1.0-fpc_phen_total,0.0),
 		soil.wcont,soil.wcont_evap,soil.runoff);
+	*/
+
+	// guess2008 - DLE - added soil.awcont & soil.snowpack 
+	hydrology_lpjf(patch,climate.eet,rain,melt,soil.soiltype.perc_base,
+		soil.soiltype.perc_exp,soil.soiltype.awc,max(1.0-fpc_phen_total,0.0),
+		soil.awcont,soil.wcont,soil.wcont_evap,soil.runoff,soil.snowpack);
+
 }
 
 

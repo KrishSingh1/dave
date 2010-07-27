@@ -76,12 +76,14 @@ const int NSOILLAYER=2;
 const double SOILDEPTH_UPPER=500.0; // soil upper layer depth (mm)
 const double SOILDEPTH_LOWER=1000.0; // soil lower layer depth (mm)
 
-const int SOLVESOM_END=900;
+
+// guess2008 - these default SOM values have been reduced
+const int SOLVESOM_END=400;
 	// year at which to calculate equilibrium soil carbon
-const int SOLVESOM_BEGIN=700;
+const int SOLVESOM_BEGIN=350;
 	// year at which to begin documenting means for calculation of equilibrium
 	// soil carbon
-const double LAMBERTBEER_K=0.5;
+const double LAMBERTBEER_K=0.50;
 	// Lambert-Beer extinction coefficient (Prentice et al 1993; Monsi & Saeki 1953)
 const int NYEARGREFF=5;
 	// number of years to average growth efficiency over in function mortality
@@ -94,6 +96,12 @@ const int COLDEST_DAY_SHEMISPHERE=195;
 const int OUTPUT_MAXAGECLASS=2000;
 	// maximum number of age classes in age structure plots produced by function
 	// outannual
+
+	// guess2008 - moved definition here from duplicate definitions in both canexch.cpp 
+	// and soilwater.cpp
+const double PRIESTLEY_TAYLOR=1.32;
+	// Priestley-Taylor coefficient (conversion factor from equilibrium
+	// evapotranspiration to PET)
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -141,6 +149,18 @@ extern int estinterval; // establishment interval in cohort mode (years)
 extern int npft; // number of possible PFTs
 extern bool iffast; // whether to run in "fast" mode
 extern bool ifcdebt; // whether C debt (storage between years) permitted
+
+
+///////////////////////////////////////////////////////////////////////////////////////
+// guess2008 - additions
+extern bool ifsmoothgreffmort;		// whether to vary mort_greff smoothly with growth 
+									// efficiency (1) or to use the standard step-function (0)
+extern bool ifdroughtlimitedestab;	// whether establishment affected by growing season drought 
+extern bool ifrainonwetdaysonly;	// rain on wet days only (1, true), or a little every day 
+									// (0, false); 
+extern bool ifspeciesspecificwateruptake; // whether water uptake is species specific 
+
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -395,6 +415,9 @@ public:
 	int chilldays;
 		// number of days with temperatures <5 deg C (reset when temperatures fall
 		// below 5 deg C; maximum value 365)
+	bool ifsensechill;
+		// guess2008 - CHILLDAYS - true if chill day count may be reset by temperature fall below 5 deg C
+
 	double gtemp;
 		// respiration response to today's air temperature incorporating damping of Q10
 		// due to temperature acclimation (Lloyd & Taylor 1994)
@@ -455,6 +478,8 @@ public:
 		}
 		gdd5=0.0;
 		chilldays=0;
+		// guess2008
+		ifsensechill=true; // CHILLDAYS
 		atemp_mean=0.0;
 		last_gtemp=-1;
 		last_mgtemp=-1;
@@ -658,6 +683,10 @@ public:
 	double intc;
 		// interception coefficient (unitless)
 
+	// guess2008 - DLE - additions
+	double drought_tolerance;
+		// Drought tolerance level (0 = very -> 1 = not at all) (unitless)
+
 	// Sapling/regeneration characteristics (used only in population mode):
 	// for trees, on sapling individual basis (kgC); for grasses, on stand area basis,
 	// kgC/m2
@@ -686,6 +715,10 @@ public:
 		int y;
 		for (y=0;y<366;y++)
 			gdd0[y]=-1.0; // value<0 signifies "unknown"; see function phenology()
+
+		// guess2008 - DLE - additions
+		drought_tolerance=0.0; // Default, means that the PFT will never be limited by drought.
+
 	}
 
 	void initsla() {
@@ -852,6 +885,11 @@ public:
 	double mlai[12];
 		// monthly LAI (including phenology component)
 
+	double mgpp[12];
+		// monthly GPP-leafresp (kgC/m2/month)
+	double mra[12];
+		// monthly respiration
+
 	// Variables used by "fast" canopy exchange code (Ben Smith 2002-07)
 
 	double fpar_wstress;
@@ -889,6 +927,10 @@ public:
 	int nday_wstress; // number of water-stress days for month
 	bool ifwstress; // whether individual subject to water stress today
 
+	// guess2008
+	bool alive; // Ben 2007-11-28 - switched off for first year after Individual object created
+
+
 	// MEMBER FUNCTIONS
 
 public:
@@ -913,9 +955,27 @@ public:
 		fpar_wstress=0.0;
 		assim=0.0;
 	
+		// guess2008 - additional initialisation
+		age=0.0; // can cause problems otherwise
+		fpar=0.0;
+		aphen_raingreen=0;
+		demand=0.0;
+		supply=0.0;
+		intercep=0.0;
+		phen_mean=0.0;
+		temp_wstress = 0.0;
+		par_wstress = 0.0;
+		daylength_wstress = 0.0;
+		co2_wstress = 0.0; 
+		nday_wstress = 0; 
+		ifwstress = false;
+
+		// guess2008
+		alive = false;
+
 		int m;
 		for (m=0;m<12;m++) {
-			mnpp[m]=mlai[m]=0.0;
+			mnpp[m]=mlai[m]=mgpp[m]=mra[m]=0.0;
 		}
 
 	};
@@ -1001,6 +1061,14 @@ public:
 		solvesom_end=SOLVESOM_END;
 		solvesom_begin=SOLVESOM_BEGIN;
 	}
+
+	// guess2008 - override the default SOM years with 70-80% of the spin-up period length
+	void updateSolveSOMvalues(const int& nyrspinup) {
+		
+		solvesom_end=0.8*nyrspinup;
+		solvesom_begin=0.7*nyrspinup;
+
+	}
 };
 
 
@@ -1026,6 +1094,8 @@ public:
 	double wcont[NSOILLAYER];
 		// water content of soil layers [0=upper layer] as fraction of available water
 		// holding capacity;
+	double awcont[NSOILLAYER];
+		// guess2008 - DLE - the average wcont over the growing season, for each soil layer
 	double wcont_evap;
 		// water content of sublayer of upper soil layer for which evaporation from
 		// the bare soil surface is possible (fraction of available water holding
@@ -1075,6 +1145,19 @@ public:
 
 	double alag,exp_alag;
 
+
+	// guess2008 - 3 new soil water variables
+	double mwcont[12][NSOILLAYER];
+		// water content of soil layers [0=upper layer] as fraction of available water
+		// holding capacity;
+	double dwcontlower[365];
+		// daily water content in lower soil layer for each day of year
+	double mwcontlower;
+		// mean water content in lower soil layer for last month
+		// (valid only on last day of month following call to daily_accounting_patch)
+
+
+
 	// MEMBER FUNCTIONS
 
 public:
@@ -1099,7 +1182,23 @@ public:
 		snowpack=0.0;
 		last_gtemp=-1;
 		last_mgtemp=-1;
+
+
+		// guess2008 - extra initialisation
+		mwcontupper = 0.0;
+		mwcontlower = 0.0;
+		for (int mth = 0; mth < 12; mth++) {
+			mwcont[mth][0] = 0.0;
+			mwcont[mth][1] = 0.0;
+		}
+
+		for (int d=0; d<365; d++) {
+			dwcontupper[d] = 0.0;
+			dwcontlower[d] = 0.0;
+		}
+
 	}
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -1314,6 +1413,11 @@ public:
 	double fireprob;
 		// probability of fire this year
 
+	int growingseasondays;
+		// guess2008 - DLE - the number of days over which wcont is averaged for this 
+		// patch, i.e. those days for which temp > 5.0
+
+
 	// Variables used by new hydrology (Dieter Gerten 2002-07)
 
 	double intercep;
@@ -1367,6 +1471,10 @@ public:
 
 		age=0;
 		disturbed=false;
+		
+		// guess2008
+		growingseasondays=0;
+
 	}
 };
 
@@ -1460,6 +1568,11 @@ public:
 		// climate, insolation and CO2 for this stand
 	Soiltype soiltype;
 		// soil static parameters for this stand
+
+    // double awcont_stand_upper_avg;
+	// double awcont_stand_lower_avg; 
+		// guess2008 - will be needed if we want to output the soil water content in outannual 
+
 
 	// MEMBER FUNCTIONS
 

@@ -47,6 +47,13 @@ int npft; // number of possible PFTs
 bool iffast;
 bool ifcdebt;
 
+// guess2008 - additions
+bool ifsmoothgreffmort; 
+bool ifdroughtlimitedestab;			// whether establishment affected by growing season drought
+bool ifrainonwetdaysonly;			// rain on wet days only (1, true), or a little every day (0, false); 
+bool ifspeciesspecificwateruptake;	// water uptake is species specific 
+
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // THE FRAMEWORK
@@ -93,6 +100,7 @@ int framework(int argc,char* argv[]) {
 			// day of the simulation. Function getclimate returns false if last year
 			// has already been simulated for this stand
 
+
 			while (getclimate(stand)) {
 
 				// START OF LOOP THROUGH SIMULATION DAYS
@@ -137,6 +145,7 @@ int framework(int argc,char* argv[]) {
 					// End of loop through patches
 				}
 
+
 				if (date.islastday && date.islastmonth) {
 
 					// LAST DAY OF YEAR
@@ -168,6 +177,8 @@ int framework(int argc,char* argv[]) {
 			}
 		}
 		else dostand=false; // no more stands to simulate
+
+		int test = 0;
 
 		// End of loop through stands
 	}

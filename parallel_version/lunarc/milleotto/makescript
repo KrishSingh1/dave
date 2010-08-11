@@ -32,7 +32,7 @@ echo    'WALLTIME=12:00:00' >> $2
 echo    'EMAIL=almut.arneth@nateko.lu.se' >> $2
 echo    'INSFILE=guess.ins' >> $2
 echo    'GRIDLIST=gridlist.txt' >> $2
-echo    "OUTFILES='cmass.out anpp.out lai.out flux.out'" >> $2
+echo    "OUTFILES='cmass.out firert.out anpp.out lai.out cflux.out dens.out tot_runoff.out mgpp.out mra.out mrh.out cpool.out mnpp.out mlai.out mnee.out maet.out mpet.out mevap.out mintercep.out mrunoff.out mwcont_upper.out mwcont_lower.out'" >> $2
 echo >> $2
 echo    '#      Where:' >> $2
 echo    '#      NPROCESS = number of processes (nodes) in parallel job' >> $2

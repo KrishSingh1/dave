@@ -36,6 +36,9 @@
 //   templates for dynamic collection classes (list arrays of various types), argument
 //   processing for printf-style functions, timing functions and other utilities.
 
+#ifndef LPJ_GUESS_GUESS_H
+#define LPJ_GUESS_GUESS_H
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1599,6 +1602,7 @@ public:
 
 int framework(int argc,char* argv[]);
 
+#endif // LPJ_GUESS_GUESS_H
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES

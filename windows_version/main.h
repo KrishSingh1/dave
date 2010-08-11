@@ -10,6 +10,10 @@
 // The shell should call function dll_main, passing a GuessParam object containing run
 // time argument(s) for GUESS and pointers to the executable's own callback functions.
 
+#ifndef LPJ_GUESS_MAIN_H
+#define LPJ_GUESS_MAIN_H
+
+#include "guess.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GUESSPARAM
@@ -72,3 +76,5 @@ __declspec(dllexport) int dll_main(GuessParam param);
 __declspec(dllexport) void cleanup_print_string(xtring* pxtring);
 __declspec(dllexport) void cleanup_plot(PlotArgs* pplotargs);
 __declspec(dllexport) void abort_run();
+
+#endif // LPJ_GUESS_MAIN_H

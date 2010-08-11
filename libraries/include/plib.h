@@ -212,6 +212,9 @@
 //                                                                                   //
 ///////////////////////////////////////////////////////////////////////////////////////
 
+#ifndef PLIB_H
+#define PLIB_H
+
 class xtring;
 
 // PLIB LIBRARY FUNCTIONS
@@ -246,3 +249,5 @@ void plibabort();
 void plib_declarations(int id,xtring setname);
 void plib_callback(int callback);
 void plib_receivemessage(xtring text);
+
+#endif // PLIB_H

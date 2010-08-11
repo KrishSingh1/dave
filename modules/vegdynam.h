@@ -13,4 +13,11 @@
 // Module header files need normally contain only declarations of functions defined in
 // the module that are to be accessible to the calling framework or to other modules.
 
+#ifndef LPJ_GUESS_VEGDYNAM_H
+#define LPJ_GUESS_VEGDYNAM_H
+
+#include "guess.h"
+
 void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist);
+
+#endif // LPJ_GUESS_VEGDYNAM_H

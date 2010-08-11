@@ -11,16 +11,6 @@
 //  These components are documented separately by commenting in this header file     //
 //  and in the source code file gutil.cpp.                                           //
 //                                                                                   //
-//  IMPORTANT - PLEASE NOTE                                                          //
-//  Required headers: The following list of #includes for standard C/C++ libraries   //
-//    must appear before the #include for the present header file in any file using  //
-//    functionality from GUTIL                                                       //
-//                                                                                   //
-//    #include <stdio.h>                                                             //
-//    #include <stdlib.h>                                                            //
-//    #include <time.h>                                                              //
-//    #include <string.h>                                                            //
-//                                                                                   //
 //  This version dated 5 November 2004                                               //
 //  Update 13 September 2005 - new version of readfor() - see commenting             //
 //  FULL PORTABILITY VERSION: tested and should work in any Unix, Linux or Windows   //
@@ -29,6 +19,14 @@
 //  Enquiries to: Ben Smith, Lund University: ben.smith@nateko.lu.se                 //
 //                                                                                   //
 ///////////////////////////////////////////////////////////////////////////////////////
+
+#ifndef GUTIL_H
+#define GUTIL_H
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <string.h>
 
 void fail();
 
@@ -1719,3 +1717,4 @@ void formatf(xtring& output,char* format,va_list& v);
 
 bool fileexists(xtring& filename);
 
+#endif // GUTIL_H

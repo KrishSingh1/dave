@@ -11,6 +11,7 @@
 // Written by:            Ben Smith
 // Version dated:         2004-08-10
 
+#include "config.h"
 #include "guess.h"
 #include <stdarg.h>
 #include <X11/Xlib.h>

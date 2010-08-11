@@ -9,6 +9,7 @@
 // Written by:            Ben Smith
 // Version dated:         2002-09-22
 
+#include "config.h"
 #include "guess.h"
 #include <stdarg.h>
 

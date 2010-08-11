@@ -34,6 +34,10 @@
 // When porting between frameworks, the only change required should normally be in the
 // "#include" directive referring to the framework header file.
 
+#include "config.h"
+
+#ifdef USE_CRU
+
 #include "guessio.h"
 
 #include "driver.h"
@@ -2963,3 +2967,4 @@ bool searchcru(FILE*& incru,double dlon,double dlat,int& soilcode,
 
 */
 
+#endif // USE_CRU

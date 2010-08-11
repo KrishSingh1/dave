@@ -32,7 +32,12 @@
 // When porting between frameworks, the only change required should normally be in the
 // "#include" directive referring to the framework header file.
 
+#include "config.h"
+
+#ifdef USE_DEMO_IO
+
 #include "guessio.h"
+
 #include "driver.h"
 #include <plib.h>
 #include <stdio.h>
@@ -1445,3 +1450,4 @@ void termio() {
 	dprintf("\nModel run terminated\n");
 }
 
+#endif // USE_DEMO_IO

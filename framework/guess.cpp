@@ -9,7 +9,9 @@
 // Written by:            Ben Smith
 // Version dated:         2002-12-16
 
+#include "config.h"
 #include "guess.h"
+
 #include "guessio.h"
 #include "driver.h"
 #include "canexch.h"

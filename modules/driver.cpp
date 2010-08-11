@@ -31,6 +31,7 @@
 // When porting between frameworks, the only change required should normally be in the
 // "#include" directive referring to the framework header file.
 
+#include "config.h"
 #include "driver.h"
 
 

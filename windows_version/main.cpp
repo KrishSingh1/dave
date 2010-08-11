@@ -10,6 +10,7 @@
 // The shell should call function dll_main, passing a GuessParam object containing run
 // time argument(s) for GUESS and pointers to the executable's own callback functions.
 
+#include "config.h"
 #include "main.h"
 
 #include <process.h>

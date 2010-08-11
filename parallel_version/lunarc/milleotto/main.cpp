@@ -9,6 +9,7 @@
 // Written by:            Ben Smith, Lund University
 // Version dated:         2005-01-21
 
+#include "config.h"
 #include "guess.h"
 #include <stdarg.h>
 #include <unistd.h>

@@ -103,50 +103,40 @@ work_dir=$1
 function build {
     local build_path=$1
     local additional_source=$2
+    local target=""
+
+    if (( $single_machine == 0 )); then
+	target="pbs"
+    fi
 
     echo "Building in $build_path"
 
     rm -rf $build_path
     mkdir $build_path
 
-    # Copy the standard guess sources
-    cp ../framework/*.cpp ../framework/*.h $build_path
-    cp ../modules/*.cpp ../modules/*.h $build_path
-    
-    # Setting up which files to use for the I/O module is currently a bit
-    # messy, should be cleaner after some planned changes to the build
-    # system.
-    if (( $single_machine == 1 )); then
-	rm $build_path/guessio.cpp
-	cp ../cru/guessio/guessio_cru.cpp $build_path
-    else
-	cp ../cru/guessio/guessio_cru.cpp $build_path/guessio.cpp
-    fi
-    cp ../cru/guessio/*.h $build_path
-    
-    if (( $single_machine == 1 )); then
-	cp ../command_line_version/main.cpp \
-	    ../command_line_version/Makefile $build_path
-    else
-	cp ../parallel_version/simba/pbs/main.cpp \
-	    ../parallel_version/simba/pbs/Makefile $build_path
-    fi
+    source_dirs="framework modules cru libraries command_line_version parallel_version"
+    for source_dir in $source_dirs; do
+	cp -rf ../$source_dir $build_path
+    done
+    cp ../Makefile $build_path
 
-    # Additional source, if any
     if [ -n "$additional_source" ]; then
-	cp $additional_source/* $build_path
-    fi
-
-    if (( $single_machine == 0 )); then
-	cp makescript $build_path
+	cp -rf $additional_source/* $build_path
     fi
 
     pushd $build_path &> /dev/null
-    if ! $make_command &> /dev/null ; then
+    if ! $make_command $target ; then
 	error "Failed to build " $build_path "!"
 	exit 1
     fi
     popd &> /dev/null
+    
+    if (( $single_machine == 0 )); then
+	cp makescript $build_path
+	mv $build_path/output/guess_pbs $build_path/guess
+    else
+	mv $build_path/output/guess $build_path/guess
+    fi
 }
 
 # This function prepares the workspace for one of the benchmarks

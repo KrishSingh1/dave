@@ -125,7 +125,7 @@ function build {
     fi
 
     pushd $build_path &> /dev/null
-    if ! $make_command $target ; then
+    if ! $make_command $target &> /dev/null ; then
 	error "Failed to build " $build_path "!"
 	exit 1
     fi

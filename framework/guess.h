@@ -532,6 +532,13 @@ public:
 		// daily net carbon flux to vegetation (respiration-assimilation)
 		// NB: not implemented by canopy_exchange_monthly
 
+	// guess2008 - new C budget arrays
+	double mcflux_gpp[12];
+		// monthly GPP
+	double mcflux_ra[12];
+		// monthly Ra
+
+
 	// MEMBER FUNCTIONS
 
 public:
@@ -972,6 +979,9 @@ public:
 		co2_wstress = 0.0; 
 		nday_wstress = 0; 
 		ifwstress = false;
+
+		lai = 0.0;
+		lai_layer = 0.0;
 
 		// guess2008
 		alive = false;

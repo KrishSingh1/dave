@@ -645,6 +645,11 @@ void dailyaccounting_patch(Patch& patch) {
 		patch.mrunoff[date.month]=0.0;
 		patch.mintercep[date.month]=0.0;
 		patch.mpet[date.month]=0.0;
+
+		// guess2008 - reset month C budget arrays each month
+		fluxes.mcflux_gpp[date.month] = 0.0;
+		fluxes.mcflux_ra[date.month] = 0.0;
+
 	}
 
 	fluxes.dcflux_veg=0.0;

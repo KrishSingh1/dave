@@ -2674,6 +2674,11 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 				
 				mwcont_upper[m] += stand[p].soil.mwcont[m][0]/(double)npatch;
 				mwcont_lower[m] += stand[p].soil.mwcont[m][1]/(double)npatch;
+
+				// guess2008 - average across stands to get mgpp and mra here instead of below. 
+				mgpp[m] += stand[p].fluxes.mcflux_gpp[m]/(double)npatch; //ANDERS A TRENDY
+				mra[m] += stand[p].fluxes.mcflux_ra[m]/(double)npatch; //ANDERS A TRENDY
+
 			}
 
 
@@ -2689,10 +2694,10 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 				if (indiv.id!=-1 && indiv.alive) { 
 
 					for (m=0;m<12;m++) {
-						mnpp[m] += indiv.mnpp[m]/(double)npatch;
+						//mnpp[m] += indiv.mnpp[m]/(double)npatch;
 						mlai[m] += indiv.mlai[m]/(double)npatch;
-						mgpp[m] += indiv.mgpp[m]/(double)npatch;
-						mra[m] += indiv.mra[m]/(double)npatch;
+						//mgpp[m] += indiv.mgpp[m]/(double)npatch;
+						//mra[m] += indiv.mra[m]/(double)npatch;
 					}
 
 				} // alive?
@@ -2712,6 +2717,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		double testmlai = 0.0;
 
 		for (m=0;m<12;m++) {
+			mnpp[m] = mgpp[m]-mra[m];
 			mnee[m] = mnpp[m]-mrh[m];
 			testmnpp += mnpp[m];
 			testmlai += mlai[m]/12.0;
@@ -2777,11 +2783,11 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 		// Write fluxes to file
 
-		if (out_cflux) fprintf(out_cflux,"%8.3f%8.3f%8.4f%8.4f%10.5f\n",flux_veg,flux_soil,flux_fire,
+		if (out_cflux) fprintf(out_cflux,"%8.3f%8.3f%8.3f%8.3f%10.5f\n",flux_veg,flux_soil,flux_fire,
 			flux_est,flux_veg+flux_soil+flux_fire+flux_est);
 
 		// guess2008 - write carbon pools to a file
-		if (out_cpool) fprintf(out_cpool,"%8.3f%8.3f%8.4f%8.4f%10.3f\n",cmass_stand,c_litter,c_fast,
+		if (out_cpool) fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%10.4f\n",cmass_stand,c_litter,c_fast,
 			c_slow,cmass_stand+c_litter+c_fast+c_slow);
 
 

@@ -1873,6 +1873,8 @@ void npp(Patch& patch) {
 			// guess2008
 			indiv.mgpp[date.month]+=indiv.assim;
 			indiv.mra[date.month]+=indiv.resp;
+			patch.fluxes.mcflux_gpp[date.month]+=indiv.assim; // ANDERS A TRENDY
+			patch.fluxes.mcflux_ra[date.month]+=indiv.resp; // ANDERS A TRENDY
 
 			// On last day of month - convert monthly LAI from sum to mean
 
@@ -1966,9 +1968,14 @@ void npp(Patch& patch) {
 
 				indiv.mnpp[date.month]=indiv.assim-indiv.resp;
 				indiv.mlai[date.month]=indiv.lai*indiv.phen_mean;
+
 				// guess2008
 				indiv.mgpp[date.month]+=indiv.assim;
 				indiv.mra[date.month]+=indiv.resp;
+				patch.fluxes.mcflux_gpp[date.month]+=indiv.assim; // ANDERS A TRENDY
+				patch.fluxes.mcflux_ra[date.month]+=indiv.resp; // ANDERS A TRENDY
+
+
 
 				// Reinitialise for next month
 				indiv.assim=0.0;

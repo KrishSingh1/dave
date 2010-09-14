@@ -21,7 +21,7 @@
 
 void setseed(long init);
 double randfrac();
-void soilparameters(Soiltype& soiltype,int soilcode, double pawc); // guess2008 - emdi - new declaration
+void soilparameters(Soiltype& soiltype,int soilcode);
 void initsoildrivers(Stand& stand);
 void interp_climate(double mtemp[12],double mprec[12],double msun[12],
 	double dtemp[365],double dprec[365],double dsun[365]);

@@ -11,12 +11,22 @@
 #
 # The generated programs are placed in the 'output' directory, together with a
 # submit script for PBS execution.
+#
+# If invoked like 'make CFG=debug', the program is built with compiler settings
+# for debugging. The output is then placed under 'output_debug' instead.
 
 # Compiler to use
 CC = pgCC
 
 # Compiler options for C++ source files
-CXXFLAGS = -w -O2 -Mnobuiltin
+CXXFLAGS = -Mnobuiltin -w
+ifeq ($(CFG), debug)
+# Add debug symbols
+CXXFLAGS += -g
+else
+# Optimization
+CXXFLAGS += -O2
+endif
 
 # Link flags for the PBS version for Simba
 SIMBAPBSLINKFLAGS = -L/usr/lib/mpich/lib/shared -pgf90libs -lmpich
@@ -35,7 +45,11 @@ ifeq ($(IO), DEMO)
 endif
 
 # Where to place the results of the build
+ifeq ($(CFG), debug)
+OUTPUT = output_debug
+else
 OUTPUT = output
+endif
 DEPS = $(OUTPUT)/deps
 OBJS = $(OUTPUT)/objs
 

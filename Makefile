@@ -85,21 +85,17 @@ endif
 
 commandline : $(OUTPUT)/guess
 
-$(OUTPUT)/guess : $(DESTOBJFILES) $(COMMANDLINEMAIN) $(OUTPUT)
-	$(CC) -o $(OUTPUT)/guess $(CXXFLAGS) $(INCLUDES)  \
-		$(filter-out $(OUTPUT), $^)
+$(OUTPUT)/guess : $(DESTOBJFILES) $(COMMANDLINEMAIN)
+	$(CC) -o $(OUTPUT)/guess $(CXXFLAGS) $(INCLUDES) $^
 
 pbs : $(OUTPUT)/guess_pbs $(SUBMITSCRIPT)
 
-$(OUTPUT)/guess_pbs : $(DESTOBJFILES) $(SIMBAPBSMAIN) $(OUTPUT)
+$(OUTPUT)/guess_pbs : $(DESTOBJFILES) $(SIMBAPBSMAIN)
 	$(CC) $(SIMBAPBSLINKFLAGS) -o $(OUTPUT)/guess_pbs \
-		$(CXXFLAGS) $(INCLUDES) $(filter-out $(OUTPUT), $^)
+		$(CXXFLAGS) $(INCLUDES) $^
 
 $(SUBMITSCRIPT) : $(MAKESCRIPT)
 	sh $(MAKESCRIPT) $(OUTPUT)/guess_pbs $(SUBMITSCRIPT)
-
-$(OUTPUT) :
-	mkdir -p $(OUTPUT)
 
 # Pattern rule for building .o files from .cpp files
 $(OBJS)/%.o : %.cpp

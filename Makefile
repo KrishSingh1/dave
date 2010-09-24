@@ -32,8 +32,8 @@ endif
 SIMBAPBSLINKFLAGS = -L/usr/lib/mpich/lib/shared -pgf90libs -lmpich
 
 # Where to search for header files
-INCLUDES = -I./libraries/include -I./modules -I./framework -I./cru/guessio \
-		-I/usr/lib/mpich/include
+INCLUDES = -I./libraries/gutil -I./libraries/plib -I./modules -I./framework \
+		-I./cru/guessio -I/usr/lib/mpich/include
 
 # Descriptions of targets, paths and rules for building targets
 # (nothing to change past this point)
@@ -54,7 +54,7 @@ DEPS = $(OUTPUT)/deps
 OBJS = $(OUTPUT)/objs
 
 # Where to find source code
-SOURCE_PATH := framework libraries/source modules cru/guessio
+SOURCE_PATH := framework libraries/gutil libraries/plib modules cru/guessio
 
 # Object files used in all versions
 COMMONOBJFILES := $(foreach dir, $(SOURCE_PATH), \

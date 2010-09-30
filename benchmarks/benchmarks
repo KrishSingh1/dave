@@ -7,7 +7,7 @@
 #
 
 make_command="make -j2"
-bbox_command="/home/joe/svn/workspace/repo/util/trunk/bbox/bbox"
+bbox_command="bbox"
 
 # Prints a message to stderr
 function error {

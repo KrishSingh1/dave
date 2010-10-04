@@ -28,12 +28,9 @@ else
 CXXFLAGS += -O2
 endif
 
-# Link flags for the PBS version for Simba
-SIMBAPBSLINKFLAGS = -L/usr/lib/mpich/lib/shared -pgf90libs -lmpich
-
 # Where to search for header files
 INCLUDES = -I./libraries/gutil -I./libraries/plib -I./modules -I./framework \
-		-I./cru/guessio -I/usr/lib/mpich/include
+		-I./cru/guessio
 
 # Descriptions of targets, paths and rules for building targets
 # (nothing to change past this point)
@@ -63,11 +60,11 @@ COMMONOBJFILES := $(foreach dir, $(SOURCE_PATH), \
 # Same as COMMONOBJFILES but with the correct path in the output directory
 DESTOBJFILES := $(patsubst %.o, $(OBJS)/%.o, $(COMMONOBJFILES))
 
-# The object files with main() for each version
+# The object file with main(), kept separate from other objs for now to
+# allow for switching mains.
 COMMANDLINEMAIN = $(OBJS)/command_line_version/main.o
-SIMBAPBSMAIN = $(OBJS)/parallel_version/simba/pbs/main.o
 
-MAKESCRIPT = parallel_version/simba/pbs/makescript
+SUBMIT_TEMPLATE = parallel_version/simba/pbs/submit.m4
 
 SUBMITSCRIPT = $(OUTPUT)/submit.sh
 
@@ -88,14 +85,10 @@ commandline : $(OUTPUT)/guess
 $(OUTPUT)/guess : $(DESTOBJFILES) $(COMMANDLINEMAIN)
 	$(CC) -o $(OUTPUT)/guess $(CXXFLAGS) $(INCLUDES) $^
 
-pbs : $(OUTPUT)/guess_pbs $(SUBMITSCRIPT)
+pbs : $(SUBMITSCRIPT)
 
-$(OUTPUT)/guess_pbs : $(DESTOBJFILES) $(SIMBAPBSMAIN)
-	$(CC) $(SIMBAPBSLINKFLAGS) -o $(OUTPUT)/guess_pbs \
-		$(CXXFLAGS) $(INCLUDES) $^
-
-$(SUBMITSCRIPT) : $(MAKESCRIPT)
-	sh $(MAKESCRIPT) $(OUTPUT)/guess_pbs $(SUBMITSCRIPT)
+$(SUBMITSCRIPT) : $(SUBMIT_TEMPLATE)
+	m4 -DBINARY=$(realpath .)/$(OUTPUT)/guess -DDATE="$(shell date)" $(SUBMIT_TEMPLATE) > $(SUBMITSCRIPT)
 
 # Pattern rule for building .o files from .cpp files
 $(OBJS)/%.o : %.cpp

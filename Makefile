@@ -64,7 +64,11 @@ DESTOBJFILES := $(patsubst %.o, $(OBJS)/%.o, $(COMMONOBJFILES))
 # allow for switching mains.
 COMMANDLINEMAIN = $(OBJS)/command_line_version/main.o
 
-SUBMIT_TEMPLATE = parallel_version/simba/pbs/submit.m4
+ifeq ($(SYSTEM), milleotto)
+	SUBMIT_TEMPLATE = parallel_version/lunarc/milleotto/submit.m4
+else
+	SUBMIT_TEMPLATE = parallel_version/simba/pbs/submit.m4
+endif
 
 SUBMITSCRIPT = $(OUTPUT)/submit.sh
 

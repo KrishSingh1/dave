@@ -11,7 +11,7 @@
 // time argument(s) for GUESS and pointers to the executable's own callback functions.
 
 #include "config.h"
-#include "main.h"
+#include "dllmain.h"
 
 #include <process.h>
 #include <stdarg.h>

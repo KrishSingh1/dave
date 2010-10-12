@@ -6,6 +6,7 @@
 # script without arguments.
 #
 
+cmake_command="cmake -D CMAKE_CXX_COMPILER=pgCC"
 make_command="make -j2"
 bbox_command="bbox"
 
@@ -107,30 +108,28 @@ function build {
     echo "Building in $build_path"
 
     rm -rf $build_path
-    mkdir $build_path
+    mkdir -p $build_path/output
 
     source_dirs="framework modules cru libraries command_line_version parallel_version"
     for source_dir in $source_dirs; do
 	cp -rf ../$source_dir $build_path
     done
-    cp ../Makefile $build_path
+    cp ../CMakeLists.txt $build_path
 
     if [ -n "$additional_source" ]; then
 	cp -rf $additional_source/* $build_path
     fi
 
-    pushd $build_path &> /dev/null
+    pushd $build_path/output &> /dev/null
+    if ! $cmake_command .. &> /dev/null ; then
+	error "Failed to configure build " $build_path "!"
+	exit 1
+    fi
     if ! $make_command &> /dev/null ; then
 	error "Failed to build " $build_path "!"
 	exit 1
     fi
 
-    if (( $single_machine == 0 )); then
-	if ! $make_command pbs &> /dev/null ; then
-	    error "Failed to generate submit script!"
-	    exit 1
-	fi
-    fi
     popd &> /dev/null
 }
 

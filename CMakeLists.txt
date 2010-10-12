@@ -29,16 +29,19 @@ add_subdirectory(cru)
 add_subdirectory(libraries)
 
 # Add the command line program's target
-add_executable(guess ${guess_sources} ${gutil_sources} ${plib_sources} command_line_version/main.cpp)
+if (WIN32)
+  # Let the exe be called guesscmd so it doesn't collide with the dll target
+  set(guess_command_name "guesscmd")
+else()
+  # On Unix we don't have the dll so the command line binary can be called guess
+  set(guess_command_name "guess")
+endif()
+
+add_executable(${guess_command_name} ${guess_sources} ${gutil_sources} ${plib_sources} command_line_version/main.cpp)
 
 if (WIN32)
   # Create guess.dll (used with the graphical Windows shell)
-  add_library(guessdll SHARED ${guess_sources} ${gutil_sources} ${plib_sources} windows_version/dllmain.cpp)
-
-  # Rename the target file, we want it to be called guess.dll, 
-  # but we can't have two cmake targets called guess
-  set_target_properties(guessdll
-                        PROPERTIES OUTPUT_NAME guess)
+  add_library(guess SHARED ${guess_sources} ${gutil_sources} ${plib_sources} windows_version/dllmain.cpp)
 endif (WIN32)
 
 # The custom build rule for generating the PBS submit script from an m4 template
@@ -51,9 +54,9 @@ if (UNIX)
     set(submit_template ${guess_SOURCE_DIR}/parallel_version/simba/pbs/submit.m4)
   endif()
   
-  add_custom_command(TARGET guess
+  add_custom_command(TARGET ${guess_command_name}
                      POST_BUILD
-		     COMMAND m4 -DBINARY=${CMAKE_CURRENT_BINARY_DIR}/guess -DDATE="`date`" ${submit_template} > ${CMAKE_BINARY_DIR}/submit.sh
+		     COMMAND m4 -DBINARY=${CMAKE_CURRENT_BINARY_DIR}/${guess_command_name} -DDATE="`date`" ${submit_template} > ${CMAKE_BINARY_DIR}/submit.sh
 		     COMMENT "Generating submit script")
 endif (UNIX)
 

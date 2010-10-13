@@ -10,7 +10,7 @@ project(guess)
 
 # Compiler flags for building on UNIX
 if (UNIX)
-  list(APPEND CMAKE_CXX_FLAGS "-Mnobuiltin -w")
+  list(APPEND CMAKE_CXX_FLAGS "-w")
 endif()
 
 # The IO variable decides which IO module to use. Rather than editing

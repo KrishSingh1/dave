@@ -6,7 +6,7 @@
 # script without arguments.
 #
 
-cmake_command="cmake -D CMAKE_CXX_COMPILER=pgCC"
+cmake_command="cmake"
 make_command="make -j2"
 bbox_command="bbox"
 

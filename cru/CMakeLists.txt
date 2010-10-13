@@ -1,4 +1,4 @@
-file(GLOB headers "guessio/*.h")
-file(GLOB source  "guessio/*.cpp")
+set(headers guessio/cru_1901_2006.h guessio/cru_1901_2006misc.h)
+set(source  guessio/guessio_cru.cpp)
 
-set(guess_sources ${guess_sources} ${headers} ${source} PARENT_SCOPE)
+include(add_guess_sources)

@@ -1,4 +1,4 @@
-file(GLOB headers "*.h")
-file(GLOB source  "*.cpp")
+set(headers config.h guess.h)
+set(source  guess.cpp)
 
-set(guess_sources ${guess_sources} ${headers} ${source} PARENT_SCOPE)
+include(add_guess_sources)

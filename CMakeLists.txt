@@ -30,6 +30,10 @@ endif (UNIX)
 # Where the compiler should search for header files
 include_directories(${guess_SOURCE_DIR}/framework ${guess_SOURCE_DIR}/libraries/gutil ${guess_SOURCE_DIR}/libraries/plib ${guess_SOURCE_DIR}/modules)
 
+# Where to search for cmake modules
+# (used by cmake when the include() command is used in a cmake file)
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
 # The following directories contain source code and 
 # additional CMakeLists.txt files
 add_subdirectory(framework)
@@ -46,11 +50,11 @@ else()
   set(guess_command_name "guess")
 endif()
 
-add_executable(${guess_command_name} ${guess_sources} ${gutil_sources} ${plib_sources} command_line_version/main.cpp)
+add_executable(${guess_command_name} ${guess_sources} command_line_version/main.cpp)
 
 if (WIN32)
   # Create guess.dll (used with the graphical Windows shell)
-  add_library(guess SHARED ${guess_sources} ${gutil_sources} ${plib_sources} windows_version/dllmain.cpp)
+  add_library(guess SHARED ${guess_sources} windows_version/dllmain.cpp)
 endif (WIN32)
 
 # The custom build rule for generating the PBS submit script from an m4 template

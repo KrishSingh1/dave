@@ -1,4 +1,4 @@
-file(GLOB headers "*.h")
-file(GLOB source  "*.cpp")
+set(headers canexch.h driver.h growth.h guessio.h soilwater.h somdynam.h vegdynam.h)
+set(source  canexch.cpp driver.cpp growth.cpp guessio.cpp soilwater.cpp somdynam.cpp vegdynam.cpp)
 
-set(guess_sources ${guess_sources} ${headers} ${source} PARENT_SCOPE)
+include(add_guess_sources)

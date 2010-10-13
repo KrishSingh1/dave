@@ -13,10 +13,19 @@ if (UNIX)
   list(APPEND CMAKE_CXX_FLAGS "-w")
 endif()
 
-# The IO variable decides which IO module to use. Rather than editing
-# it here, you should pass it as a parameter to cmake, or edit it
-# in the graphical cmake tool (cmake-gui on Windows, ccmake on Unix).
+# The following are configuration variables for the build. 
+# Rather than editing them here, you should either edit them
+# in the graphical cmake tools (cmake-gui on Windows, ccmake
+# on Unix) or pass them in as parameters to cmake.
+
+# The IO variable decides which IO module to use. 
 set(IO "cru" CACHE STRING "The IO module to use (cru/demo)")
+
+if (UNIX)
+  # The SYSTEM variable is currently only used to choose which 
+  # submit.sh to generate (for submitting to PBS job queue)
+  set(SYSTEM "" CACHE STRING "System to build for (empty or milleotto)")
+endif (UNIX)
 
 # Where the compiler should search for header files
 include_directories(${guess_SOURCE_DIR}/framework ${guess_SOURCE_DIR}/libraries/gutil ${guess_SOURCE_DIR}/libraries/plib ${guess_SOURCE_DIR}/modules)
@@ -48,7 +57,7 @@ endif (WIN32)
 # The submit script is generated each time the command line binary is built.
 if (UNIX)
   # Choose template file depending on system
-  if (DEFINED SYSTEM AND SYSTEM STREQUAL "milleotto")
+  if (SYSTEM STREQUAL "milleotto")
     set(submit_template ${guess_SOURCE_DIR}/parallel_version/lunarc/milleotto/submit.m4)
   else()
     set(submit_template ${guess_SOURCE_DIR}/parallel_version/simba/pbs/submit.m4)

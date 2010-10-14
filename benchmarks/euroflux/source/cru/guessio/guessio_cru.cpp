@@ -43,6 +43,9 @@
 #include "driver.h"
 #include <plib.h>
 #include <stdio.h>
+#include <utility>
+#include <vector>
+#include <algorithm>
 
 
 // guess2008 - header file for the combined CRU data archives
@@ -147,6 +150,8 @@ Paramlist param;
 xtring title; // Title for this run
 // guess2008 - changed from nyear to nyear_spinup
 int nyear_spinup; // number of simulation years during spinup
+// guess2008 - new optional parameter
+int searchradius; // search radius to use when finding CRU data
 
 Pftlist* ppftlist; // pointer to PFT list
 Pft* ppft; // pointer to Pft object currently being assigned to
@@ -185,6 +190,7 @@ void initsettings() {
 	distinterval=1.0e10;
 	npatch=1;
 	vegmode=COHORT;
+	searchradius = 0;
 
 	// guess2008
 	//ifsmoothgreffmort=false;
@@ -313,6 +319,8 @@ void plib_declarations(int id,xtring setname) {
 			"Whether it rains on wet days only (1), or a little every day (0);");
 		declareitem("ifspeciesspecificwateruptake",&ifspeciesspecificwateruptake,1,CB_NONE,
 			"Whether or not there is species specific soil water uptake (0,1)");
+		declareitem("searchradius", &searchradius, 0, 100, 1, CB_NONE,
+			"If specified, CRU data will be searched for in a circle");
 
 		// guess2008 - euroflux - File for EUROFLUX output (mnee, maet, mgpp and msw)
 		declareitem("file_eurofluxmonthly",&file_eurofluxmonthly,300,CB_NONE,"EUROFLUX monthly output file");
@@ -1494,78 +1502,69 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 
 
 
-// guess2008 - emdi
-bool findnearestCRUdata(char* cruark,double& lon, double& lat, int& scode, 
-						double hist_mtemp1[NYEAR_HIST][12],double hist_mprec1[NYEAR_HIST][12],
-						double hist_msun1[NYEAR_HIST][12]) {
+// guess2008
+// Utility function that returns the CRU data from the nearest cell to (lon,lat) within
+// a given search radius
+bool findnearestCRUdata(int searchradius, char* cruark, double& lon, double& lat, 
+                        int& scode, double hist_mtemp1[NYEAR_HIST][12], 
+                        double hist_mprec1[NYEAR_HIST][12], 
+                        double hist_msun1[NYEAR_HIST][12]) {
 
-	// Quite possibly the ugliest function ever written...
-	// Return the CRU data from the nearest cell to (lon,lat) within 8 degrees
-
-	double newlon, newlat;
-	bool found = false;
-	int j = 1;
-	double dist;
-
-	do {
-
-		dist = j * 0.5; // degrees 
-
-		newlon = lon + dist;
-		newlat = lat;
-		found = searchcru(file_cru,newlon,newlat,scode,hist_mtemp1,hist_mprec1,hist_msun1); // E
-
-		if (!found) {
-			newlon = lon - dist;
-			found = searchcru(file_cru,newlon,newlat,scode,hist_mtemp1,hist_mprec1,hist_msun1); // W
-
-			if (!found) {
-				newlon = lon;
-				newlat = lat + dist;
-				found = searchcru(file_cru,newlon,newlat,scode,hist_mtemp1,hist_mprec1,hist_msun1); // N
+	// First try the exact coordinate
+	if (searchcru(cruark, lon, lat, scode, hist_mtemp1, hist_mprec1, hist_msun1)) {
+		return true;
+	}
 	
-				if (!found) {
-					newlat = lat - dist;
-					found = searchcru(file_cru,newlon,newlat,scode,hist_mtemp1,hist_mprec1,hist_msun1); // S
+	if (searchradius == 0) {
+		// Don't try to search
+		return false;
+	}
 
-					if (!found) {
-						newlat = lat - dist;
-						newlon = lon + dist;
-						found = searchcru(file_cru,newlon,newlat,scode,hist_mtemp1,hist_mprec1,hist_msun1); // SE
-					
-						if (!found) {
-							newlat = lat + dist;
-							newlon = lon + dist;
-							found = searchcru(file_cru,newlon,newlat,scode,hist_mtemp1,hist_mprec1,hist_msun1); // NE
-						
-							if (!found) {
-								newlat = lat + dist;
-								newlon = lon - dist;
-								found = searchcru(file_cru,newlon,newlat,scode,hist_mtemp1,hist_mprec1,hist_msun1); // NW
-	
-								if (!found) {
-									newlat = lat - dist;
-									newlon = lon - dist;
-									found = searchcru(file_cru,newlon,newlat,scode,hist_mtemp1,hist_mprec1,hist_msun1); // SW
-								
-								} // SW
-							} // NW
-						} // NE
-					} // SE
-				} // S
-			} // N
-		} // W
+	// Search all coordinates in a square around (lon, lat), but first go down to
+	// multiple of 0.5
+	double center_lon = floor(lon*2)/2;
+	double center_lat = floor(lat*2)/2;
 
-		j++;
+	// Enumerate all coordinates within the square, place them in a vector of
+	// pairs where the first element is distance from center to allow easy 
+	// sorting.
+	using std::pair;
+	using std::make_pair;
+	typedef pair<double, double> point;
+	std::vector<pair<double, point> > search_points;
 
-	} while(j <= 16 && found == false);
+	const double STEP = 0.5;
 
-	// New values to return
-	lon = newlon;
-	lat = newlat;
+	for (double y = center_lon-searchradius; y <= center_lon+searchradius; y += STEP) {
+		for (double x = center_lat-searchradius; x <= center_lat+searchradius; x += STEP) {
+			double xdist = x-center_lat;
+			double ydist = y-center_lon;
+			double dist = sqrt(xdist*xdist + ydist*ydist);
+			
+			if (dist <= searchradius) {
+				search_points.push_back(make_pair(dist, make_pair(y, x)));
+			}
+		}
+	}
 
-	return found;
+	// Sort by increasing distance
+	std::sort(search_points.begin(), search_points.end());
 
+	// Find closest coordinate which can be found in CRU
+	for (int i = 0; i < search_points.size(); i++) {
+		point search_point = search_points[i].second;
+		double search_lon = search_point.first;
+		double search_lat = search_point.second;
+
+		if (searchcru(cruark, search_lon, search_lat, scode, 
+		              hist_mtemp1, hist_mprec1, hist_msun1)) {
+			lon = search_lon;
+			lat = search_lat;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 
@@ -2114,21 +2113,14 @@ bool getstand(Stand& stand) {
 
 		// New code:
 
-		/*
-		gridfound=searchcru(file_cru,gridlist.getobj().lon,
-			gridlist.getobj().lat,soilcode,hist_mtemp,hist_mprec,hist_msun);
+		double lon = gridlist.getobj().lon;
+		double lat = gridlist.getobj().lat;
+		gridfound = findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode, 
+		                               hist_mtemp, hist_mprec, hist_msun);
 
 		if (gridfound) // Get more historical CRU data for this grid cell
-			gridfound= searchcru_misc(file_cru_misc,gridlist.getobj().lon,
-				gridlist.getobj().lat,elevation,hist_mfrs,hist_mwet,hist_mdtr);
-		*/
-
-		gridfound=searchcru(file_cru,gridlist.getobj().lon,
-			gridlist.getobj().lat,soilcode,hist_mtemp,hist_mprec,hist_msun);
-
-		if (gridfound) // Get more historical CRU data for this grid cell
-			gridfound= searchcru_misc(file_cru_misc,gridlist.getobj().lon,
-				gridlist.getobj().lat,elevation,hist_mfrs,hist_mwet,hist_mdtr);
+			gridfound = searchcru_misc(file_cru_misc, lon, lat, elevation, 
+			                           hist_mfrs, hist_mwet, hist_mdtr);
 
 
 
@@ -2369,12 +2361,14 @@ bool getstand(Stand& stand) {
 
 
 				// guess2008
-				gridfound=searchcru(file_cru,gridlist.getobj().lon,
-					gridlist.getobj().lat,soilcode,hist_mtemp,hist_mprec,hist_msun);
-
+				double lon = gridlist.getobj().lon;
+				double lat = gridlist.getobj().lat;
+				gridfound = findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
+				                               hist_mtemp, hist_mprec, hist_msun);
+				
 				if (gridfound) // Get more historical CRU data for this grid cell
-					gridfound= searchcru_misc(file_cru_misc,gridlist.getobj().lon,
-						gridlist.getobj().lat,elevation,hist_mfrs,hist_mwet,hist_mdtr);
+					gridfound = searchcru_misc(file_cru_misc, lon, lat, elevation,
+					                           hist_mfrs, hist_mwet, hist_mdtr);
 
 
 			}

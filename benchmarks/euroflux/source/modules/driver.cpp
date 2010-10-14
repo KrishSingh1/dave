@@ -31,7 +31,8 @@
 // When porting between frameworks, the only change required should normally be in the
 // "#include" directive referring to the framework header file.
 
-#include "guess.h"
+#include "config.h"
+#include "driver.h"
 
 
 static long seed=12345678; // seed for random number generator (see randfrac)
@@ -739,6 +740,7 @@ void dailyaccounting_patch(Patch& patch) {
 		// guess2008 - reset month C budget arrays each month
 		fluxes.mcflux_gpp[date.month] = 0.0;
 		fluxes.mcflux_ra[date.month] = 0.0;
+
 	}
 
 	fluxes.dcflux_veg=0.0;

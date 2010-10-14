@@ -36,6 +36,9 @@
 //   templates for dynamic collection classes (list arrays of various types), argument
 //   processing for printf-style functions, timing functions and other utilities.
 
+#ifndef LPJ_GUESS_GUESS_H
+#define LPJ_GUESS_GUESS_H
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,7 +78,7 @@ const int NSOILLAYER=2;
 	// number of soil layers modelled
 const double SOILDEPTH_UPPER=500.0; // soil upper layer depth (mm)
 const double SOILDEPTH_LOWER=1000.0; // soil lower layer depth (mm)
-//const double SOILDEPTH_LOWER=200.0; // soil lower layer depth (mm) - guess2008 - euroflux
+
 
 // guess2008 - these default SOM values have been reduced
 const int SOLVESOM_END=400;
@@ -517,6 +520,7 @@ public:
 			mtemp_min_20[year]=0.0;
 			mtemp_max_20[year]=0.0;
 		}
+		mtemp=0.0;
 		gdd5=0.0;
 		chilldays=0;
 		// guess2008
@@ -576,6 +580,7 @@ public:
 		// monthly GPP
 	double mcflux_ra[12];
 		// monthly Ra
+
 
 	// MEMBER FUNCTIONS
 
@@ -767,6 +772,9 @@ public:
 		// guess2008 - DLE - additions
 		drought_tolerance=0.0; // Default, means that the PFT will never be limited by drought.
 
+		k_allom1 = 10.0;
+		k_allom2 = 1.0;
+		k_allom3 = 0.1;
 	}
 
 	void initsla() {
@@ -1265,6 +1273,10 @@ struct Lookup_lambda_item {
 	double rd;
 	int year;
 	int day;
+
+	Lookup_lambda_item()
+			: adtmm(0.0), agd(0.0), rd(0.0), year(-1), day(0) {
+	}
 };
 
 
@@ -1275,11 +1287,6 @@ private:
 	int position;
 
 public:
-	void init() {
-		int i;
-		for (i=0;i<LOOKUP_LAMBDA_MAXITEM;i++)
-			data[i].year=-1.0;
-	}
 
 	void newsearch() {
 		position=0;
@@ -1413,6 +1420,8 @@ public:
 		litter_root=0.0;
 		litter_wood=0.0;
 		litter_repr=0.0;
+		nday_wstress=0;
+		wscal=0.0;
 		wscal_mean=0.0;
 		anetps_ff=0.0;
 		aphen=0.0;
@@ -1677,6 +1686,7 @@ public:
 
 int framework(int argc,char* argv[]);
 
+#endif // LPJ_GUESS_GUESS_H
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES

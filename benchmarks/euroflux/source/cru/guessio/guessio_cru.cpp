@@ -3355,7 +3355,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 			// guess2008 - euroflux - print cohort heights in year 2000
 			if (date.year==nyear_spinup+99) {
-					fprintf(out_speciesheights,"\n%9s",standpft.pft.name);
+					fprintf(out_speciesheights,"\n%9s", (char*)standpft.pft.name);
 					fprintf(out_speciesheights,"%s"," ");
 
 					double zeroheight = 0.0;

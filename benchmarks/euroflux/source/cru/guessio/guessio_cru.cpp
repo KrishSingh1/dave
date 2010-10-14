@@ -34,7 +34,12 @@
 // When porting between frameworks, the only change required should normally be in the
 // "#include" directive referring to the framework header file.
 
-#include "guess.h"
+#include "config.h"
+
+#ifdef USE_CRU
+
+#include "guessio.h"
+
 #include "driver.h"
 #include <plib.h>
 #include <stdio.h>
@@ -815,7 +820,6 @@ struct Coord {
 };
 
 
-
 ListArray_id<Coord> gridlist;
 	// Will maintain a list of Coord objectsc ontaining coordinates
 	// of the grid cells to simulate
@@ -1085,7 +1089,6 @@ FILE *out_mnpp,*out_mlai,*out_mgpp,*out_mra,*out_maet,*out_mpet,*out_mevap,*out_
 FILE *out_mnee,*out_mwcont_upper,*out_mwcont_lower; 
 FILE *out_firert;
 
-
 // guess2008 - euroflux - EUROFLUX output
 FILE *out_eurofluxmonthly, *out_eurofluxannual, *out_eurofluxstats,*out_speciesheights;
 
@@ -1138,7 +1141,6 @@ bool annual_output;
 // guess2008 - make file_cru and file_cru_misc global variables
 xtring file_cru;
 xtring file_cru_misc;
-
 
 
 
@@ -1470,6 +1472,10 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 
 				mdtr[y][m] = data.mdtr[y*12+m]*0.1;  // degC
 
+				/*
+				If vapour pressure is needed:
+				mvap[y][m] = data.mvap[y*12+m]*0.01;
+				*/
 			}
 		}
 
@@ -1780,6 +1786,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		}
 	}
 
+
 	fclose(in_grid);
 
 	// Read CO2 data from file
@@ -1927,8 +1934,8 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		out_firert=fopen(file_firert,"wa");
 		if (!out_firert) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_firert);
 	}
-	else out_firert=NULL;	
-
+	else out_firert=NULL;
+	
 
 	if (file_runoff!="") {
 		file_runoff = outputdirectory + file_runoff;
@@ -2410,7 +2417,6 @@ bool getstand(Stand& stand) {
 		//soilparameters(stand.soiltype,soilcode);
 		// guess2008 - euroflux - now give the soil depth too
 		soilparameters(stand.soiltype,soilcode,gridlist.getobj().soildepth);
-
 
 		// For Windows shell - clear graphical output
 		// (ignored on other platforms)
@@ -3139,7 +3145,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_mpet) fprintf(out_mpet,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
 		if (out_mevap) fprintf(out_mevap,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
 		if (out_mintercep) fprintf(out_mintercep,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-		if (out_mrunoff) fprintf(out_mrunoff,monthstr_long,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");		if (out_mrh) fprintf(out_mrh,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+		if (out_mrunoff) fprintf(out_mrunoff,monthstr_long,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+		if (out_mrh) fprintf(out_mrh,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
 		if (out_mnee) fprintf(out_mnee,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
 		if (out_mwcont_upper) fprintf(out_mwcont_upper,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
 		if (out_mwcont_lower) fprintf(out_mwcont_lower,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
@@ -3303,7 +3310,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 								if (c<OUTPUT_MAXAGECLASS)
 									standpft.densindiv_ageclass[c]+=indiv.densindiv;
 
-
 								// guess2008 - only count trees with a trunk above a certain diameter  
 								double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
 								if (diam>0.03 && pft.lifeform==TREE) {
@@ -3337,7 +3343,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			// guess2008 - euroflux
 			standpft.fpc_total/=(double)npatch;
 			standpft.heightindiv_total/=(double)npatch;
-
 
 			// Update stand totals
 
@@ -3412,11 +3417,11 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 			// guess2008 - average runoff across patches 
 			runoff_stand+=stand[p].arunoff/(double)npatch;
-
+			
 			// Fire return time
 			if (!iffire || stand[p].fireprob < 0.001)
 				firert_stand+=1000.0/(double)npatch; // Set a limit of 1000 years
-			else    
+			else	
 				firert_stand+=(1.0/stand[p].fireprob)/(double)npatch;
 
 
@@ -3436,6 +3441,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 				// guess2008 - average across stands to get mgpp and mra here instead of below. 
 				mgpp[m] += stand[p].fluxes.mcflux_gpp[m]/(double)npatch; //ANDERS A TRENDY
 				mra[m] += stand[p].fluxes.mcflux_ra[m]/(double)npatch; //ANDERS A TRENDY
+
 			}
 
 
@@ -3478,7 +3484,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			// guess2008 - get npp and nee from gpp and ra instead
 			mnpp[m] = mgpp[m]-mra[m];
 			mnee[m] = mnpp[m]-mrh[m];
-
 			testmnpp += mnpp[m];
 			testmlai += mlai[m]/12.0;
 		}
@@ -3790,3 +3795,4 @@ bool searchcru(FILE*& incru,double dlon,double dlat,int& soilcode,
 
 */
 
+#endif // USE_CRU

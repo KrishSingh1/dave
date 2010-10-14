@@ -160,6 +160,7 @@ xtring outputdirectory;
 xtring file_cmass,file_anpp,file_dens,file_lai,file_cflux,file_cpool,file_runoff;
 xtring file_mnpp,file_mlai,file_mgpp,file_mra,file_maet,file_mpet,file_mevap,file_mrunoff,file_mintercep,file_mrh;
 xtring file_mnee,file_mwcont_upper,file_mwcont_lower;
+xtring file_firert;
 
 
 // guess2008 - euroflux - Files for EUROFLUX output and stats
@@ -282,6 +283,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_dens",&file_dens,300,CB_NONE,"Tree density output file");
 		declareitem("file_cpool",&file_cpool,300,CB_NONE,"Soil C output file");
 		declareitem("file_runoff",&file_runoff,300,CB_NONE,"Runoff output file");
+		declareitem("file_firert",&file_firert,300,CB_NONE,"Fire retrun time output file");
 		// Monthly output variables
 		declareitem("file_mnpp",&file_mnpp,300,CB_NONE,"Monthly NPP output file");
 		declareitem("file_mlai",&file_mlai,300,CB_NONE,"Monthly LAI output file");
@@ -1086,6 +1088,7 @@ xtring file_co2;
 FILE *out_cmass,*out_anpp,*out_lai,*out_cflux,*out_cpool,*out_runoff,*out_dens;
 FILE *out_mnpp,*out_mlai,*out_mgpp,*out_mra,*out_maet,*out_mpet,*out_mevap,*out_mrunoff,*out_mintercep,*out_mrh;
 FILE *out_mnee,*out_mwcont_upper,*out_mwcont_lower; 
+FILE *out_firert;
 
 
 // guess2008 - euroflux - EUROFLUX output
@@ -2000,7 +2003,14 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		if (!out_cpool) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_cpool);
 	}
 	else out_cpool=NULL;
-	
+
+	if (file_firert!="") {
+		file_firert = outputdirectory + file_firert;
+		out_firert=fopen(file_firert,"wa");
+		if (!out_firert) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_firert);
+	}
+	else out_firert=NULL;	
+
 
 	if (file_runoff!="") {
 		file_runoff = outputdirectory + file_runoff;
@@ -3096,6 +3106,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	double cmass_stand,anpp_stand,lai_stand,runoff_stand,dens_stand; // guess2008 - added runoff & dens
 	double flux_veg,flux_soil,flux_fire,flux_est;
 	double c_litter,c_fast,c_slow; // guess2008 - output in cpool
+	double firert_stand;
 
 	// guess2008 - hold the monthly average across patches
 	double mnpp[12];
@@ -3160,6 +3171,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			"Fire","Est","NEE");
 		if (out_cpool) fprintf(out_cpool,lonlatyearstr_extended,"Lon","Lat","Year","VegC","LittC",
 			"SoilfC","SoilsC","Total");
+		if (out_firert) fprintf(out_firert,"%8s%8s%8s%8s\n","Lon","Lat","Year","FireRT");
 
 		if (out_mnpp) fprintf(out_mnpp,lonlatyearstr,"Lon","Lat","Year");
 		if (out_mlai) fprintf(out_mlai,lonlatyearstr,"Lon","Lat","Year");
@@ -3281,6 +3293,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		lai_stand=0.0;
 		runoff_stand=0.0; // guess2008
 		dens_stand=0.0; // guess2008
+		firert_stand=0.0; // guess2008
 
 		// Print longitude, latitude, year
 
@@ -3294,6 +3307,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_runoff) fprintf(out_runoff,lonlatyeardatastr,lon,lat,date.year); // guess2008
 		if (out_dens) fprintf(out_dens,lonlatyeardatastr,lon,lat,date.year); // guess2008
 		if (out_cpool) fprintf(out_cpool,lonlatyeardatastr,lon,lat,date.year);
+		if (out_firert) fprintf(out_firert,lonlatyeardatastr,lon,lat,date.year);
 
 
 		if (out_mnpp) fprintf(out_mnpp,lonlatyeardatastr,lon,lat,date.year);
@@ -3486,6 +3500,13 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			// guess2008 - average runoff across patches 
 			runoff_stand+=stand[p].arunoff/(double)npatch;
 
+			// Fire return time
+			if (!iffire || stand[p].fireprob < 0.001)
+				firert_stand+=1000.0/(double)npatch; // Set a limit of 1000 years
+			else    
+				firert_stand+=(1.0/stand[p].fireprob)/(double)npatch;
+
+
 			// Monthly output variables
 			
 			for (m=0;m<12;m++) {
@@ -3556,6 +3577,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_lai) fprintf(out_lai,"%8.4f\n",lai_stand);
 		if (out_runoff) fprintf(out_runoff,"%8.1f\n",runoff_stand); // guess2008
 		if (out_dens) fprintf(out_dens,"%8.4f\n",dens_stand); // guess2008
+		if (out_firert) fprintf(out_firert,"%8.1f\n",firert_stand); // guess2008
 
 		// Print monthly output variables
 		for (m=0;m<12;m++) {
@@ -3727,6 +3749,7 @@ void termio() {
 		if (out_runoff) fclose(out_runoff); // guess2008
 		if (out_dens) fclose(out_dens); // guess2008
 		if (out_cpool) fclose(out_cpool);
+		if (out_firert) fclose(out_firert);
 
 		if (out_mnpp) fclose(out_mnpp);
 		if (out_mlai) fclose(out_mlai);

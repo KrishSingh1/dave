@@ -797,11 +797,6 @@ struct Coord {
 	xtring descrip;
 
 
-	// guess2008 - emdi - PAWC in upper 30cm of soil, from EMDI
-	double pawc;			// mm of plant available water in the upper 30cm
-	double crulon, crulat;	// determined from the EMDI lon & lats
-
-
 	// guess2008 - euroflux
 	xtring desc2;
 	xtring ver;
@@ -1145,8 +1140,6 @@ xtring file_cru;
 xtring file_cru_misc;
 
 
-// guess2008 - emdi
-bool emditest;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -1707,18 +1700,11 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	file_cru=param["file_cru"].str;
 
 	
-	// guess2008 - emdi
-	emditest = param["emditest"].num;
-
-	// guess2008 - emdi
-	double pawc = 0.0;
-
 	ngridcell=0;
 	while (!eof) {
 		
 		// Read next record in file
 		//eof=!readfor(in_grid,"f,f,a",&dlon,&dlat,&descrip);
-		//eof=!readfor(in_grid,"f,f,f",&dlon,&dlat,&pawc); // guess2008 - emdi
 
 		//xtring space1, space2;
 		//eof=!readfor(in_grid,"f,f,a5,a1,a3,a1,a3,f,f,f,f,7i,f,i,i",&dlon,&dlat,&descrip,&space1,
@@ -1746,115 +1732,47 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		if (!eof && !(dlon==0.0 && dlat==0.0)) { // ignore blank lines at end (if any)
 			Coord& c=gridlist.createobj(); // add new coordinate to grid list
 
-			// guess2008 - emdi
-			double crulat, crulon;
-
-			if (!emditest) {
-
-				// Standard case, with no PAWC input and valid CRU coordinates
-				crulat = dlat;
-				crulon = dlon;
-
-				// guess2008 - euroflux
-				c.descrip=descrip;
-				c.desc2=desc2;
-				c.ver=ver;
-				c.tm=tempm;
-				c.tc=tempc;
-				c.pm=precipm;
-				c.pc=precipc;
+			// guess2008 - euroflux
+			c.descrip=descrip;
+			c.desc2=desc2;
+			c.ver=ver;
+			c.tm=tempm;
+			c.tc=tempc;
+			c.pm=precipm;
+			c.pc=precipc;
 				
-				for (int yr = 0; yr < NFLUXYEARS; yr++)
-					c.isfluxdata[yr] = isfluxdata[yr];
+			for (int yr = 0; yr < NFLUXYEARS; yr++)
+				c.isfluxdata[yr] = isfluxdata[yr];
 
-				c.soildepth = soildepth;
-				c.plantation_year = plantation_year;			
-				c.num_dominant_species = num_dominant_species;
+			c.soildepth = soildepth;
+			c.plantation_year = plantation_year;			
+			c.num_dominant_species = num_dominant_species;
 
-				int dsp;
+			int dsp;
 
-				/*
-				// First method, with extra rows for each species
+			/*
+			// First method, with extra rows for each species
 
-				// Now read num_dominant_species lines from the gridlist files
-				for (dsp = 0; dsp < num_dominant_species; dsp++) {
-					readfor(in_grid,"a;i",&c.dom_species[dsp],&c.dom_species_density[dsp]);
-				}
-
-				*/
-
-
-				// New - Now read num_dominant_species lines from the gridlist files
-				for (dsp = 0; dsp < num_dominant_species; dsp++) {
-					c.dom_species[dsp] = dom_spec[dsp];
-					c.dom_species_density[dsp]=dom_spec_dens[dsp];
-				}
-
-
-				for (dsp = num_dominant_species; dsp < 5; dsp++) {
-					c.dom_species[dsp] = "NONE";
-					c.dom_species_density[dsp] = 0;
-				}
-	
-
-
-			} else {
-
-				// EMDI tests only only
-
-				// guess2008 - emdi - Determine CRU cell corresponding to this EMDI coord
-				double ilon = (double)((int)(dlon));
-				double ilat = (double)((int)(dlat));
-
-				if (dlat - 0.5 < ilat) 
-					crulat = ilat;
-				else
-					crulat = ilat + 0.5;
-
-				if (dlon >= 0.0) {
-
-					if (dlon - 0.5 < ilon) 
-						crulon = ilon;
-					else
-						crulon = ilon + 0.5;
-
-				} else {
-
-					ilon -= 0.5;
-
-					if (dlon < ilon) 
-						crulon = ilon-0.5;
-					else
-						crulon = ilon;
-
-				}
-
-
-
-				// Check that this file is in the CRU .bin file
-				double hist_mtemp1[NYEAR_HIST][12];
-				double hist_mprec1[NYEAR_HIST][12];
-				double hist_msun1[NYEAR_HIST][12];
-				int soilcode = 1;			
-
-				bool isinCRU=searchcru(file_cru,crulon,
-					crulat,soilcode,hist_mtemp1,hist_mprec1,hist_msun1);
-
-				if (!isinCRU) 
-					isinCRU = findnearestCRUdata(file_cru,crulon,
-					crulat,soilcode,hist_mtemp1,hist_mprec1,hist_msun1);
-
-				if (!isinCRU) {
-					dprintf("\nNo CRU data for stand at (%g,%g)",dlat,dlon);
-				}
-
+			// Now read num_dominant_species lines from the gridlist files
+			for (dsp = 0; dsp < num_dominant_species; dsp++) {
+			readfor(in_grid,"a;i",&c.dom_species[dsp],&c.dom_species_density[dsp]);
 			}
 
-			// guess2008 - emdi
-			c.pawc = pawc;
-			c.crulat = crulat;
-			c.crulon = crulon;
+			*/
 
+
+			// New - Now read num_dominant_species lines from the gridlist files
+			for (dsp = 0; dsp < num_dominant_species; dsp++) {
+				c.dom_species[dsp] = dom_spec[dsp];
+				c.dom_species_density[dsp]=dom_spec_dens[dsp];
+			}
+
+
+			for (dsp = num_dominant_species; dsp < 5; dsp++) {
+				c.dom_species[dsp] = "NONE";
+				c.dom_species_density[dsp] = 0;
+			}
+	
 			c.lon=dlon;
 			c.lat=dlat;
 			//c.descrip=descrip; // guess2008 - emdi - don't need
@@ -2189,8 +2107,6 @@ bool getstand(Stand& stand) {
 
 		// New code:
 
-		// guess2008 - emdi - now use crulon/lat
-
 		/*
 		gridfound=searchcru(file_cru,gridlist.getobj().lon,
 			gridlist.getobj().lat,soilcode,hist_mtemp,hist_mprec,hist_msun);
@@ -2200,12 +2116,12 @@ bool getstand(Stand& stand) {
 				gridlist.getobj().lat,elevation,hist_mfrs,hist_mwet,hist_mdtr);
 		*/
 
-		gridfound=searchcru(file_cru,gridlist.getobj().crulon,
-			gridlist.getobj().crulat,soilcode,hist_mtemp,hist_mprec,hist_msun);
+		gridfound=searchcru(file_cru,gridlist.getobj().lon,
+			gridlist.getobj().lat,soilcode,hist_mtemp,hist_mprec,hist_msun);
 
 		if (gridfound) // Get more historical CRU data for this grid cell
-			gridfound= searchcru_misc(file_cru_misc,gridlist.getobj().crulon,
-				gridlist.getobj().crulat,elevation,hist_mfrs,hist_mwet,hist_mdtr);
+			gridfound= searchcru_misc(file_cru_misc,gridlist.getobj().lon,
+				gridlist.getobj().lat,elevation,hist_mfrs,hist_mwet,hist_mdtr);
 
 
 
@@ -2446,13 +2362,12 @@ bool getstand(Stand& stand) {
 
 
 				// guess2008
-				// guess2008 - emdi - use crulon/lat now
-				gridfound=searchcru(file_cru,gridlist.getobj().crulon,
-					gridlist.getobj().crulat,soilcode,hist_mtemp,hist_mprec,hist_msun);
+				gridfound=searchcru(file_cru,gridlist.getobj().lon,
+					gridlist.getobj().lat,soilcode,hist_mtemp,hist_mprec,hist_msun);
 
 				if (gridfound) // Get more historical CRU data for this grid cell
-					gridfound= searchcru_misc(file_cru_misc,gridlist.getobj().crulon,
-						gridlist.getobj().crulat,elevation,hist_mfrs,hist_mwet,hist_mdtr);
+					gridfound= searchcru_misc(file_cru_misc,gridlist.getobj().lon,
+						gridlist.getobj().lat,elevation,hist_mfrs,hist_mwet,hist_mdtr);
 
 
 			}
@@ -2492,9 +2407,7 @@ bool getstand(Stand& stand) {
 		stand.climate.instype=SUNSHINE;
 
 		// Tell framework the soil type of this grid cell
-		// guess2008 - emdi - pass pawc too.
 		//soilparameters(stand.soiltype,soilcode);
-		// soilparameters(stand.soiltype,soilcode,gridlist.getobj().pawc);
 		// guess2008 - euroflux - now give the soil depth too
 		soilparameters(stand.soiltype,soilcode,gridlist.getobj().soildepth);
 

@@ -110,7 +110,7 @@ function build {
     rm -rf $build_path
     mkdir -p $build_path/output
 
-    source_dirs="framework modules cru libraries command_line_version parallel_version"
+    source_dirs="framework modules cru libraries command_line_version parallel_version cmake"
     for source_dir in $source_dirs; do
 	cp -rf ../$source_dir $build_path
     done

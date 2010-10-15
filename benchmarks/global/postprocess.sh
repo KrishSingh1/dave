@@ -1,6 +1,5 @@
 #!/bin/bash
 tslice cflux.out -o cflux1990to2000.txt -f 589 -t 599 -lon 1 -lat 2 -y 3
-tslice tot_runoff.out -o tot_runoff1961to1990.txt -f 560 -t 589 -lon 1 -lat 2 -y 3
 aslice cflux1961to1990.txt -o cflux1961to1990_areaaverage.txt -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.25 0.25   
 aslice cflux1990to2000.txt -o cflux1990to2000_areaaverage.txt -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.25 0.25   
 aslice cpool1961to1990.txt -o cpool1961to1990_areaaverage.txt -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.25 0.25   

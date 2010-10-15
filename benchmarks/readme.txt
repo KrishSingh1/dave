@@ -65,12 +65,14 @@ mybenchmark
 `-- submit_vars.sh
 
 postprocess.sh is a bash script file containing post processing commands 
-specific for this benchmark, it will run after the common post processing
-which runs for all benchmarks. 
+specific for this benchmark. 
 
 If there is a directory named source, those files will be included in the 
 compilation. Additional source should be avoided when possible since it can 
-easily become a maintenance problem. 
+easily become a maintenance problem. The source files in this directory
+must follow exactly the same structure as in the regular source code. For
+instance if you want to replace modules/driver.cpp your replacement must
+be named driver.cpp and be placed in a directory named modules.
 
 If there is a file named submit_vars.sh it will be used to configure the PBS 
 jobs. The file can define the variables NPROCESS, WALLTIME, INSFILE, 
@@ -92,10 +94,11 @@ If a variable isn't defined it will be given a default value.
 
 Post processing
 ---------------
-The file common_postprocess.sh in this directory is a bash script containing
-commands that will run for each benchmark after the model completes. If you
-want to run additional commands for a specific benchmark, add those in a file
-called postprocess.sh in the benchmark's directory.
+Post processing commands that should be performed for a benchmark should be
+placed in the file postprocess.sh in the benchmark's directory. In order to
+avoid duplication, this script can call other scripts from the "postprocess"
+directory (in the "benchmarks" directory). The scripts under postprocess
+contain commands that can be useful in several of the benchmarks.
 
 
 

@@ -188,9 +188,8 @@ function submit_job {
 #!/bin/sh
 #PBS -N bm_${test_name}_pp
 cd $workspace
-PATH=$PATH sh $bm_root/common_postprocess.sh
 if [ -f $bm_root/$test_name/postprocess.sh ]; then
-    PATH=$PATH sh $bm_root/$test_name/postprocess.sh
+    PATH=$bm_root/postprocess:$PATH sh $bm_root/$test_name/postprocess.sh
 fi
 cd $bm_root
 echo '$test_name' >> progress.txt
@@ -210,9 +209,8 @@ function run_single_machine_model {
 
     pushd $workspace &> /dev/null
     nice ./guess guess.ins
-    nice sh $bm_root/common_postprocess.sh
     if [ -f $bm_root/$test_name/postprocess.sh ]; then
-	nice sh $bm_root/$test_name/postprocess.sh
+	nice PATH=$bm_root/postprocess:$PATH sh $bm_root/$test_name/postprocess.sh
     fi
     popd &> /dev/null
     echo '$test_name' >> $bm_root/progress.txt

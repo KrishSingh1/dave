@@ -184,7 +184,7 @@ function submit_job {
 	error "Failed to submit $test_name!"
     else
 	# Create the post processing job
-	qsub -W depend=afterok:$jobid <<EOF &> /dev/null
+	qsub -l walltime=5:00:00 -W depend=afterok:$jobid <<EOF &> /dev/null
 #!/bin/sh
 #PBS -N bm_${test_name}_pp
 cd $workspace

@@ -1745,21 +1745,21 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	if (file_cmass!="") {
 		file_cmass = outputdirectory + file_cmass;
-		out_cmass=fopen(file_cmass,"wa");
+		out_cmass=fopen(file_cmass,"w");
 		if (!out_cmass) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_cmass);
 	}
 	else out_cmass=NULL;
 
 	if (file_anpp!="") {
 		file_anpp = outputdirectory + file_anpp;
-		out_anpp=fopen(file_anpp,"wa");
+		out_anpp=fopen(file_anpp,"w");
 		if (!out_anpp) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_anpp);
 	}
 	else out_anpp=NULL;
 
 	if (file_dens!="") {
 		file_dens = outputdirectory + file_dens;
-		out_dens=fopen(file_dens,"wa");
+		out_dens=fopen(file_dens,"w");
 		if (!out_dens) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_dens);
 	}
 	else out_dens=NULL;
@@ -1767,28 +1767,28 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	if (file_lai!="") {
 		file_lai = outputdirectory + file_lai;
-		out_lai=fopen(file_lai,"wa");
+		out_lai=fopen(file_lai,"w");
 		if (!out_lai) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_lai);
 	}
 	else out_lai=NULL;
 
 	if (file_cflux!="") {
 		file_cflux = outputdirectory + file_cflux;
-		out_cflux=fopen(file_cflux,"wa");
+		out_cflux=fopen(file_cflux,"w");
 		if (!out_cflux) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_cflux);
 	}
 	else out_cflux=NULL;
 
 	if (file_cpool!="") {
 		file_cpool = outputdirectory + file_cpool;
-		out_cpool=fopen(file_cpool,"wa");
+		out_cpool=fopen(file_cpool,"w");
 		if (!out_cpool) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_cpool);
 	}
 	else out_cpool=NULL;
 
 	if (file_firert!="") {
 		file_firert = outputdirectory + file_firert;
-		out_firert=fopen(file_firert,"wa");
+		out_firert=fopen(file_firert,"w");
 		if (!out_firert) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_firert);
 	}
 	else out_firert=NULL;
@@ -1796,7 +1796,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	if (file_runoff!="") {
 		file_runoff = outputdirectory + file_runoff;
-		out_runoff=fopen(file_runoff,"wa");
+		out_runoff=fopen(file_runoff,"w");
 		if (!out_runoff) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_runoff);
 	}
 	else out_runoff=NULL;
@@ -1806,91 +1806,91 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	if (file_mnpp!="") {
 		file_mnpp = outputdirectory + file_mnpp;
-		out_mnpp=fopen(file_mnpp,"wa");
+		out_mnpp=fopen(file_mnpp,"w");
 		if (!out_mnpp) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mnpp);
 	}
 	else out_mnpp=NULL;
 
 	if (file_mlai!="") {
 		file_mlai = outputdirectory + file_mlai;
-		out_mlai=fopen(file_mlai,"wa");
+		out_mlai=fopen(file_mlai,"w");
 		if (!out_mlai) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mlai);
 	}
 	else out_mlai=NULL;
 
 	if (file_mgpp!="") {
 		file_mgpp = outputdirectory + file_mgpp;
-		out_mgpp=fopen(file_mgpp,"wa");
+		out_mgpp=fopen(file_mgpp,"w");
 		if (!out_mgpp) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mgpp);
 	}
 	else out_mgpp=NULL;
 
 	if (file_mra!="") {
 		file_mra = outputdirectory + file_mra;
-		out_mra=fopen(file_mra,"wa");
+		out_mra=fopen(file_mra,"w");
 		if (!out_mra) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mra);
 	}
 	else out_mra=NULL;
 
 	if (file_maet!="") {
 		file_maet = outputdirectory + file_maet;
-		out_maet=fopen(file_maet,"wa");
+		out_maet=fopen(file_maet,"w");
 		if (!out_maet) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_maet);
 	}
 	else out_maet=NULL;
 
 	if (file_mpet!="") {
 		file_mpet = outputdirectory + file_mpet;
-		out_mpet=fopen(file_mpet,"wa");
+		out_mpet=fopen(file_mpet,"w");
 		if (!out_mpet) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mpet);
 	}
 	else out_mpet=NULL;
 
 	if (file_mevap!="") {
 		file_mevap = outputdirectory + file_mevap;
-		out_mevap=fopen(file_mevap,"wa");
+		out_mevap=fopen(file_mevap,"w");
 		if (!out_mevap) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mevap);
 	}
 	else out_mevap=NULL;
 
 	if (file_mrunoff!="") {
 		file_mrunoff = outputdirectory + file_mrunoff;
-		out_mrunoff=fopen(file_mrunoff,"wa");
+		out_mrunoff=fopen(file_mrunoff,"w");
 		if (!out_mrunoff) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mrunoff);
 	}
 	else out_mrunoff=NULL;
 
 	if (file_mintercep!="") {
 		file_mintercep = outputdirectory + file_mintercep;
-		out_mintercep=fopen(file_mintercep,"wa");
+		out_mintercep=fopen(file_mintercep,"w");
 		if (!out_mintercep) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mintercep);
 	}
 	else out_mintercep=NULL;
 
 	if (file_mrh!="") {
 		file_mrh = outputdirectory + file_mrh;
-		out_mrh=fopen(file_mrh,"wa");
+		out_mrh=fopen(file_mrh,"w");
 		if (!out_mrh) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mrh);
 	}
 	else out_mrh=NULL;
 
 	if (file_mnee!="") {
 		file_mnee = outputdirectory + file_mnee;
-		out_mnee=fopen(file_mnee,"wa");
+		out_mnee=fopen(file_mnee,"w");
 		if (!out_mnee) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mnee);
 	}
 	else out_mnee=NULL;
 
 	if (file_mwcont_upper!="") {
 		file_mwcont_upper = outputdirectory + file_mwcont_upper;
-		out_mwcont_upper=fopen(file_mwcont_upper,"wa");
+		out_mwcont_upper=fopen(file_mwcont_upper,"w");
 		if (!out_mwcont_upper) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mwcont_upper);
 	}
 	else out_mwcont_upper=NULL;
 
 	if (file_mwcont_lower!="") {
 		file_mwcont_lower = outputdirectory + file_mwcont_lower;
-		out_mwcont_lower=fopen(file_mwcont_lower,"wa");
+		out_mwcont_lower=fopen(file_mwcont_lower,"w");
 		if (!out_mwcont_lower) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mwcont_lower);
 	}
 	else out_mwcont_lower=NULL;

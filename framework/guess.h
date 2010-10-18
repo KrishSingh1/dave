@@ -729,10 +729,6 @@ public:
 
 		// guess2008 - DLE - additions
 		drought_tolerance=0.0; // Default, means that the PFT will never be limited by drought.
-
-		k_allom1 = 10.0;
-		k_allom2 = 1.0;
-		k_allom3 = 0.1;
 	}
 
 	void initsla() {
@@ -1379,7 +1375,7 @@ public:
 		litter_wood=0.0;
 		litter_repr=0.0;
 		nday_wstress=0;
-		wscal=0.0;
+		wscal=1.0;
 		wscal_mean=0.0;
 		anetps_ff=0.0;
 		aphen=0.0;

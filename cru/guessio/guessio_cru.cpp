@@ -2472,10 +2472,12 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 									standpft.densindiv_ageclass[c]+=indiv.densindiv;
 
 								// guess2008 - only count trees with a trunk above a certain diameter  
-								double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
-								if (diam>0.03 && pft.lifeform==TREE) 
-									standpft.densindiv_total+=indiv.densindiv; // indiv/m2
-
+								if (pft.lifeform==TREE) {
+									double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
+									if (diam>0.03) {
+										standpft.densindiv_total+=indiv.densindiv; // indiv/m2
+									}
+								}
 							}
 						
 						}

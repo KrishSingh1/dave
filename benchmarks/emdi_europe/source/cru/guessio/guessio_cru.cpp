@@ -43,7 +43,7 @@
 #include "driver.h"
 #include <plib.h>
 #include <stdio.h>
-#include <map>
+#include <utility>
 #include <vector>
 #include <algorithm>
 
@@ -1496,8 +1496,10 @@ bool findnearestCRUdata(int searchradius, char* cruark, double& lon, double& lat
 	// Enumerate all coordinates within the square, place them in a vector of
 	// pairs where the first element is distance from center to allow easy 
 	// sorting.
-	typedef std::pair<double, double> point;
-	std::vector<std::pair<double, point> > search_points;
+	using std::pair;
+	using std::make_pair;
+	typedef pair<double, double> point;
+	std::vector<pair<double, point> > search_points;
 
 	const double STEP = 0.5;
 
@@ -1514,7 +1516,7 @@ bool findnearestCRUdata(int searchradius, char* cruark, double& lon, double& lat
 	}
 
 	// Sort by increasing distance
-	sort(search_points.begin(), search_points.end());
+	std::sort(search_points.begin(), search_points.end());
 
 	// Find closest coordinate which can be found in CRU
 	for (int i = 0; i < search_points.size(); i++) {

@@ -46,7 +46,7 @@
 #include <utility>
 #include <vector>
 #include <algorithm>
-
+#include "emdi.h"
 
 // guess2008 - header file for the combined CRU data archives
 // #include "cru.h" - CRU TS2.1
@@ -794,10 +794,8 @@ struct Coord {
 	double lat;
 	xtring descrip;
 
-
-	// guess2008 - emdi - PAWC in upper 30cm of soil, from EMDI
-	double pawc;			// mm of plant available water in the upper 30cm
 };
+
 
 ListArray_id<Coord> gridlist;
 	// Will maintain a list of Coord objectsc ontaining coordinates
@@ -1118,6 +1116,7 @@ bool annual_output;
 // guess2008 - make file_cru and file_cru_misc global variables
 xtring file_cru;
 xtring file_cru_misc;
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -1657,28 +1656,25 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	file_cru=param["file_cru"].str;
 
 	
-	// guess2008 - emdi
-	double pawc = 0.0;
-
 	ngridcell=0;
 	while (!eof) {
 		
 		// Read next record in file
-		//eof=!readfor(in_grid,"f,f,a",&dlon,&dlat,&descrip);
-		eof=!readfor(in_grid,"f,f,f",&dlon,&dlat,&pawc);
+		eof=!readfor(in_grid,"f,f,a",&dlon,&dlat,&descrip);
 
 		if (!eof && !(dlon==0.0 && dlat==0.0)) { // ignore blank lines at end (if any)
 			Coord& c=gridlist.createobj(); // add new coordinate to grid list
 
 			// guess2008 - emdi
-			c.pawc = pawc;
+			rememberPAWC(dlon, dlat, descrip);
 
 			c.lon=dlon;
 			c.lat=dlat;
-			//c.descrip=descrip; // guess2008 - emdi - don't need
+			c.descrip=descrip;
 			ngridcell++;
 		}
 	}
+
 
 	fclose(in_grid);
 
@@ -2045,9 +2041,10 @@ bool getstand(Stand& stand) {
 		stand.climate.instype=SUNSHINE;
 
 		// Tell framework the soil type of this grid cell
-		// guess2008 - emdi - pass pawc too.
-		//soilparameters(stand.soiltype,soilcode);
-		soilparameters(stand.soiltype,soilcode,gridlist.getobj().pawc);
+		soilparameters(stand.soiltype,soilcode);
+
+		// guess2008 - emdi - override awc with values from gridlist
+		overrideAWC(gridlist.getobj().lon, gridlist.getobj().lat, stand.soiltype);
 
 		// For Windows shell - clear graphical output
 		// (ignored on other platforms)
@@ -2485,10 +2482,12 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 									standpft.densindiv_ageclass[c]+=indiv.densindiv;
 
 								// guess2008 - only count trees with a trunk above a certain diameter  
-								double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
-								if (diam>0.03 && pft.lifeform==TREE) 
-									standpft.densindiv_total+=indiv.densindiv; // indiv/m2
-
+								if (pft.lifeform==TREE) {
+									double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
+									if (diam>0.03) {
+										standpft.densindiv_total+=indiv.densindiv; // indiv/m2
+									}
+								}
 							}
 						
 						}
@@ -2601,10 +2600,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 				if (indiv.id!=-1 && indiv.alive) { 
 
 					for (m=0;m<12;m++) {
-						//mnpp[m] += indiv.mnpp[m]/(double)npatch;
 						mlai[m] += indiv.mlai[m]/(double)npatch;
-						//mgpp[m] += indiv.mgpp[m]/(double)npatch;
-						//mra[m] += indiv.mra[m]/(double)npatch;
 					}
 
 				} // alive?

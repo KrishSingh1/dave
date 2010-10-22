@@ -71,6 +71,7 @@ void dprintf(xtring format,...) {
 
 	fprintf(stdout,"%s",(char*)output);
 	fprintf(logfile,"%s",(char*)output);
+	fflush(logfile);
 }
 
 

@@ -65,13 +65,15 @@ if [ -n "$submit_vars_file" ]; then
     source $submit_vars_file
 fi
 
+GRIDLIST_FILENAME=$(basename $GRIDLIST)
+
 # This function creates the gridlist files for each run by splitting
 # the original gridlist file into approximately equal parts.
 function split_gridlist {
     # Create empty gridlists first to make sure each run gets one
     for ((a=1; a <= NPROCESS ; a++)) 
     do
-      echo > run$a/$GRIDLIST
+      echo > run$a/$GRIDLIST_FILENAME
     done
 
     # Figure out suitable number of lines per gridlist, get the number of
@@ -87,7 +89,7 @@ function split_gridlist {
     local i=1
     for file in $files
     do
-      mv $file run$i/$GRIDLIST
+      mv $file run$i/$GRIDLIST_FILENAME
       i=$((i+1))
     done
 }
@@ -106,7 +108,7 @@ for ((a=1; a <= NPROCESS ; a++))
 do
   mkdir -p run$a
   cp $INSFILE run$a
-  cd run$a ; rm -f guess.log ; rm -f $GRIDLIST ; cd ..
+  cd run$a ; rm -f guess.log ; rm -f $GRIDLIST_FILENAME ; cd ..
   echo "echo '********** Last few lines of ./run${a}/guess.log: **********'" >> progress.sh
   echo "tail ./run${a}/guess.log" >> progress.sh
 done

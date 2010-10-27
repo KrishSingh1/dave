@@ -1095,7 +1095,7 @@ xtring file_co2;
 FILE *out_cmass,*out_anpp,*out_lai,*out_cflux,*out_cpool,*out_runoff,*out_dens;
 FILE *out_mnpp,*out_mlai,*out_mgpp,*out_mra,*out_maet,*out_mpet,*out_mevap,*out_mrunoff,*out_mintercep,*out_mrh;
 FILE *out_mnee,*out_mwcont_upper,*out_mwcont_lower; 
-FILE *out_firert;
+FILE *out_firert; 
 
 // guess2008 - euroflux - EUROFLUX output
 FILE *out_eurofluxmonthly, *out_eurofluxannual, *out_eurofluxstats,*out_speciesheights;
@@ -1332,6 +1332,224 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 
 */
 
+/*
+ * Called by the getstand function after reading CRU data.
+ * Adjusts climate data according to Euroflux data and reads in flux data
+ * to the stand.
+ */
+void euroflux_adjust_climate_read_flux_data(Stand& stand, Coord& coord, 
+														  double hist_mtemp[NYEAR_HIST][12], 
+														  double hist_mprec[NYEAR_HIST][12]) {
+	// guess2008 - euroflux - start of new code
+
+	// *** Step 1: adjust all CRU temp and precip data to site conditions
+
+	// Regression coefficients for this flux site, as read from the gridlist file
+	double tempm = coord.tm;
+	double tempc = coord.tc;
+	double precipm = coord.pm;
+	double precipc = coord.pc;
+
+	int y;
+	int m;
+
+	for (y=0;y<NYEAR_HIST;y++) {
+		for (m=0;m<12;m++) {
+
+			// Adjust CRU data to site conditions
+			hist_mtemp[y][m] = tempm * hist_mtemp[y][m] + tempc;
+			hist_mprec[y][m] = precipm * hist_mprec[y][m] + precipc;
+				
+			// Hack! Because negligible precipitation causes problems in the 
+			// prdaily function (infinite loops). 
+			if (hist_mprec[y][m] <= 1.0) hist_mprec[y][m] = 0.0;
+
+		}
+	}
+
+
+	// *** Step 2: copy management data for the site to the Stand class
+
+	stand.fluxdata.desc = coord.descrip;
+	stand.fluxdata.plantation_year = coord.plantation_year;
+	stand.fluxdata.num_dominant_species = coord.num_dominant_species;
+	//stand.fluxdata.num_other_species = coord.num_other_species;
+	//stand.fluxdata.dominant_density = coord.dominant_density;
+
+		
+	for (int sp = 0; sp < 5; sp++) {
+		stand.fluxdata.dom_species[sp] = coord.dom_species[sp];
+		stand.fluxdata.dom_species_density[sp] = coord.dom_species_density[sp];
+		//stand.fluxdata.oth_species[sp] = coord.oth_species[sp];
+	}
+
+
+	// *** Step 3: get actual temp and precip data for the site, as well as NEE and latent heat flux
+
+	// Create some strings 
+	xtring fluxdirectory=param["flux_dir"].str;
+	xtring fluxfilestart = "CEIP_EC_L4_m_";
+
+	// Could possible get rid of the ver string, and try to open both v1 and v2...
+	xtring fluxfileend = coord.ver;
+	fluxfileend += ".txt";
+
+	fluxdirectory += fluxfilestart;
+	fluxdirectory+=coord.descrip;
+	fluxdirectory+="_";
+	//datafile+=coord.descrip;
+	//datafile+="_";
+
+
+	// Backup data in case NEE_st values are all -9999.0
+	double NEE_or[NFLUXYEARS][12];
+	double GPP_or[NFLUXYEARS][12];
+
+	for (y=0;y<NFLUXYEARS;y++) {
+		for (m=0;m<12;m++) {
+			NEE_or[y][m] = MISSING_DATA;
+			GPP_or[y][m] = MISSING_DATA;
+		}
+	}
+
+
+	// Extend array if we go beyond 2002.
+	xtring fluxyears[NFLUXYEARS] = {"1996","1997","1998","1999","2000","2001","2002","2003","2004","2005","2006"};
+
+	int fyear = 0;
+
+	// Loop from 1996 to 2006
+	for (y=NYEAR_HIST-NFLUXYEARS;y<NYEAR_HIST;y++) {
+
+		// Is there flux data for this year? 
+		if (coord.isfluxdata[fyear] == 1) {
+				
+			// Determine the full file name for this site and year
+			xtring datafile = fluxdirectory;
+			datafile += fluxyears[fyear];
+			datafile += "_";
+			datafile += fluxfileend;
+
+			// test
+			//datafile = fluxdirectory + "testin.txt";
+
+			FILE* in_flux=fopen(datafile,"r");
+			if (!in_flux) fail("getstand: could not open %s for input",(char*)datafile);
+
+			bool eof = false;
+			xtring header;
+
+			// Read the header first. We don't use this.
+			eof=!readfor(in_flux,"a",&header);
+				
+			int month = 0;
+
+			// Latent heat of vapourisation [J/kg]
+			const double LATENT_HEAT_VAP = 2510400.0; 
+
+			// Seconds in a day
+			const double SECS_IN_DAY = 24.0 * 60.0 * 60.0; 
+
+			// Minimum quality required
+			const double MIN_OBS_FREQ = 0.5;
+
+			while (!eof) {
+		
+				bool useOriginalDataThisMonth = true; //_or data of filled data?
+
+				// Each file has 13 rows and 30 columns.
+				double sitedata[30];
+				eof=!readfor(in_flux,"f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f",
+								 &sitedata[0],&sitedata[1],&sitedata[2],&sitedata[3],&sitedata[4],&sitedata[5],&sitedata[6],
+								 &sitedata[7],&sitedata[8],&sitedata[9],&sitedata[10],&sitedata[11],&sitedata[12],&sitedata[13],
+								 &sitedata[14],&sitedata[15],&sitedata[16],&sitedata[17],&sitedata[18],&sitedata[19],&sitedata[20],
+								 &sitedata[21],&sitedata[22],&sitedata[23],&sitedata[24],&sitedata[25],&sitedata[26],&sitedata[27],
+								 &sitedata[28],&sitedata[29]);
+
+				if (!eof) {
+
+					// Read the relevant climate data from the site
+					double mth			= sitedata[0];	// Month (1-12)
+					double n_days		= sitedata[1];	// #days
+					double Ta_f			= sitedata[4];	// degC
+					double Ta_sqc		= sitedata[5];	// [0,1]
+					double precip		= sitedata[10]; // mm day-1
+
+					// Override the CRU data with the actual site climate data, where available.
+					if (Ta_f != MISSING_DATA && Ta_sqc >= MIN_OBS_FREQ) // Only data of sufficient quality is stored
+						hist_mtemp[y][month] = Ta_f;
+
+					if (precip != MISSING_DATA)
+						hist_mprec[y][month] = n_days*precip;
+						
+
+					// Now read the relevant soil and flux data from the site
+					double swc			= sitedata[11]; // %vol
+					double LE_f			= sitedata[14];	// W m-2 day-1
+					double LE_sqc		= sitedata[15]; // [0,1]
+					double NEE_st_fMDS	= sitedata[18];	// gC m-2 day-1
+					double NEE_st_fMDSsqc = sitedata[19];	// [0,1]
+					double GPP_st_MDS	= sitedata[20];	// gC m-2 day-1
+					double NEE_or_fMDS	= sitedata[21];	// gC m-2 day-1
+					double NEE_or_fMDSsqc = sitedata[22];	// [0,1]
+					double GPP_or_MDS	= sitedata[23];	// gC m-2 day-1
+
+
+					// Only AET data of sufficient quality is stored.
+					// Convert from W m-2 day-1 to mm month-1
+					if (LE_sqc >= MIN_OBS_FREQ)	
+						stand.fluxdata.fluxAET[fyear][month] = n_days * SECS_IN_DAY / LATENT_HEAT_VAP * LE_f;
+
+					// Only NEE_st data of sufficient quality is stored
+					if (NEE_st_fMDSsqc >= MIN_OBS_FREQ && NEE_st_fMDS != MISSING_DATA) {
+						useOriginalDataThisMonth = false; // No need replace this data with _or data	 
+						stand.fluxdata.fluxNEE[fyear][month] = n_days * NEE_st_fMDS;
+						stand.fluxdata.fluxGPP[fyear][month] = n_days * GPP_st_MDS;
+					}
+
+					// Back-up NEE_or data of sufficient quality
+					if (NEE_or_fMDSsqc >= MIN_OBS_FREQ && NEE_or_fMDS != MISSING_DATA) {							
+						NEE_or[fyear][month] = n_days * NEE_or_fMDS;
+						GPP_or[fyear][month] = n_days * GPP_or_MDS;
+					} else {
+						NEE_or[fyear][month] = MISSING_DATA;
+						GPP_or[fyear][month] = MISSING_DATA;
+					}
+
+						
+					// Replace bad data with original data?
+					if (useOriginalDataThisMonth) {
+						stand.fluxdata.fluxNEE[fyear][month] = NEE_or[fyear][month];
+						stand.fluxdata.fluxGPP[fyear][month] = GPP_or[fyear][month];
+					}
+				
+
+					stand.fluxdata.fluxSWC[fyear][month] = swc;
+				
+
+					month++;
+
+				} // if (!eof)
+
+			} // while (!eof)
+
+
+			fclose(in_flux);
+
+			// Error?
+			if (month != 12) {
+				fail("\nError: could not read the data from the following flux file:\n%s\n", 
+					  datafile);
+			}
+
+		} // isfluxdata
+			
+		fyear++;
+
+	} // for
+		
+	// guess2008 - euroflux - end of new code
+}
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -1711,19 +1929,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		// Read next record in file
 		//eof=!readfor(in_grid,"f,f,a",&dlon,&dlat,&descrip);
 
-		//xtring space1, space2;
-		//eof=!readfor(in_grid,"f,f,a5,a1,a3,a1,a3,f,f,f,f,7i,f,i,i",&dlon,&dlat,&descrip,&space1,
-		//	&desc2,&space2,&ver,&tempm,&tempc,&precipm,&precipc,
-		//	isfluxdata,&soildepth,&plantation_year,&num_dominant_species);
-
-		// NB: The 11 here is NFLUXYEARS
-		
-		// First method, with extra rows for each species
-		//eof=!readfor(in_grid,"f;f;a;a;a;f;f;f;f;11i;f;i;i",&dlon,&dlat,&descrip,
-		//	&desc2,&ver,&tempm,&tempc,&precipm,&precipc,
-		//	isfluxdata,&soildepth,&plantation_year,&num_dominant_species);
-
-
 		// New, local versions of these arrays
 		xtring dom_spec[5];
 		int dom_spec_dens[5];
@@ -1755,18 +1960,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 			int dsp;
 
-			/*
-			// First method, with extra rows for each species
-
 			// Now read num_dominant_species lines from the gridlist files
-			for (dsp = 0; dsp < num_dominant_species; dsp++) {
-			readfor(in_grid,"a;i",&c.dom_species[dsp],&c.dom_species_density[dsp]);
-			}
-
-			*/
-
-
-			// New - Now read num_dominant_species lines from the gridlist files
 			for (dsp = 0; dsp < num_dominant_species; dsp++) {
 				c.dom_species[dsp] = dom_spec[dsp];
 				c.dom_species_density[dsp]=dom_spec_dens[dsp];
@@ -1780,7 +1974,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	
 			c.lon=dlon;
 			c.lat=dlat;
-			//c.descrip=descrip; // guess2008 - emdi - don't need
+			c.descrip=descrip;
 			ngridcell++;
 		}
 	}
@@ -2122,224 +2316,6 @@ bool getstand(Stand& stand) {
 			gridfound = searchcru_misc(file_cru_misc, lon, lat, elevation, 
 			                           hist_mfrs, hist_mwet, hist_mdtr);
 
-
-
-		// guess2008 - euroflux - start of new code
-
-		// *** Step 1: adjust all CRU temp and precip data to site conditions
-
-		// Regression coefficients for this flux site, as read from the gridlist file
-		double tempm = gridlist.getobj().tm;
-		double tempc = gridlist.getobj().tc;
-		double precipm = gridlist.getobj().pm;
-		double precipc = gridlist.getobj().pc;
-
-		int y;
-		int m;
-
-		for (y=0;y<NYEAR_HIST;y++) {
-			for (m=0;m<12;m++) {
-
-				// Adjust CRU data to site conditions
-				hist_mtemp[y][m] = tempm * hist_mtemp[y][m] + tempc;
-				hist_mprec[y][m] = precipm * hist_mprec[y][m] + precipc;
-				
-				// Hack! Because negligible precipitation causes problems in the 
-				// prdaily function (infinite loops). 
-				if (hist_mprec[y][m] <= 1.0) hist_mprec[y][m] = 0.0;
-
-			}
-		}
-
-
-		// *** Step 2: copy management data for the site to the Stand class
-
-		stand.fluxdata.desc = gridlist.getobj().descrip;
-		stand.fluxdata.plantation_year = gridlist.getobj().plantation_year;
-		stand.fluxdata.num_dominant_species = gridlist.getobj().num_dominant_species;
-		//stand.fluxdata.num_other_species = gridlist.getobj().num_other_species;
-		//stand.fluxdata.dominant_density = gridlist.getobj().dominant_density;
-
-		
-		for (int sp = 0; sp < 5; sp++) {
-			stand.fluxdata.dom_species[sp] = gridlist.getobj().dom_species[sp];
-			stand.fluxdata.dom_species_density[sp] = gridlist.getobj().dom_species_density[sp];
-			//stand.fluxdata.oth_species[sp] = gridlist.getobj().oth_species[sp];
-		}
-
-
-		// *** Step 3: get actual temp and precip data for the site, as well as NEE and latent heat flux
-
-		// Create some strings 
-		xtring fluxdirectory=param["flux_dir"].str;
-		xtring fluxfilestart = "CEIP_EC_L4_m_";
-
-		// Could possible get rid of the ver string, and try to open both v1 and v2...
-		xtring fluxfileend = gridlist.getobj().ver;
-		fluxfileend += ".txt";
-
-		fluxdirectory += fluxfilestart;
-		fluxdirectory+=gridlist.getobj().descrip;
-		fluxdirectory+="_";
-		//datafile+=gridlist.getobj().descrip;
-		//datafile+="_";
-
-
-		// Backup data in case NEE_st values are all -9999.0
-		double NEE_or[NFLUXYEARS][12];
-		double GPP_or[NFLUXYEARS][12];
-
-		for (y=0;y<NFLUXYEARS;y++) {
-			for (m=0;m<12;m++) {
-				NEE_or[y][m] = MISSING_DATA;
-				GPP_or[y][m] = MISSING_DATA;
-			}
-		}
-
-
-		// Extend array if we go beyond 2002.
-		xtring fluxyears[NFLUXYEARS] = {"1996","1997","1998","1999","2000","2001","2002","2003","2004","2005","2006"};
-
-		int fyear = 0;
-
-		// Loop from 1996 to 2006
-		for (y=NYEAR_HIST-NFLUXYEARS;y<NYEAR_HIST;y++) {
-
-			// Is there flux data for this year? 
-			if (gridlist.getobj().isfluxdata[fyear] == 1) {
-				
-				// Determine the full file name for this site and year
-				xtring datafile = fluxdirectory;
-				datafile += fluxyears[fyear];
-				datafile += "_";
-				datafile += fluxfileend;
-
-				// test
-				//datafile = fluxdirectory + "testin.txt";
-
-				FILE* in_flux=fopen(datafile,"r");
-				if (!in_flux) fail("getstand: could not open %s for input",(char*)datafile);
-
-				bool eof = false;
-				xtring header;
-
-				// Read the header first. We don't use this.
-				eof=!readfor(in_flux,"a",&header);
-				
-				int month = 0;
-
-				// Latent heat of vapourisation [J/kg]
-				const double LATENT_HEAT_VAP = 2510400.0; 
-
-				// Seconds in a day
-				const double SECS_IN_DAY = 24.0 * 60.0 * 60.0; 
-
-				// Minimum quality required
-				const double MIN_OBS_FREQ = 0.5;
-
-				while (!eof) {
-		
-					bool useOriginalDataThisMonth = true; //_or data of filled data?
-
-					// Each file has 13 rows and 30 columns.
-					double sitedata[30];
-					eof=!readfor(in_flux,"f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f",
-						&sitedata[0],&sitedata[1],&sitedata[2],&sitedata[3],&sitedata[4],&sitedata[5],&sitedata[6],
-						&sitedata[7],&sitedata[8],&sitedata[9],&sitedata[10],&sitedata[11],&sitedata[12],&sitedata[13],
-						&sitedata[14],&sitedata[15],&sitedata[16],&sitedata[17],&sitedata[18],&sitedata[19],&sitedata[20],
-						&sitedata[21],&sitedata[22],&sitedata[23],&sitedata[24],&sitedata[25],&sitedata[26],&sitedata[27],
-						&sitedata[28],&sitedata[29]);
-
-					if (!eof) {
-
-						// Read the relevant climate data from the site
-						double mth			= sitedata[0];	// Month (1-12)
-						double n_days		= sitedata[1];	// #days
-						double Ta_f			= sitedata[4];	// degC
-						double Ta_sqc		= sitedata[5];	// [0,1]
-						double precip		= sitedata[10]; // mm day-1
-
-						// Override the CRU data with the actual site climate data, where available.
-						if (Ta_f != MISSING_DATA && Ta_sqc >= MIN_OBS_FREQ) // Only data of sufficient quality is stored
-							hist_mtemp[y][month] = Ta_f;
-
-						if (precip != MISSING_DATA)
-							hist_mprec[y][month] = n_days*precip;
-						
-
-						// Now read the relevant soil and flux data from the site
-						double swc			= sitedata[11]; // %vol
-						double LE_f			= sitedata[14];	// W m-2 day-1
-						double LE_sqc		= sitedata[15]; // [0,1]
-						double NEE_st_fMDS	= sitedata[18];	// gC m-2 day-1
-						double NEE_st_fMDSsqc = sitedata[19];	// [0,1]
-						double GPP_st_MDS	= sitedata[20];	// gC m-2 day-1
-						double NEE_or_fMDS	= sitedata[21];	// gC m-2 day-1
-						double NEE_or_fMDSsqc = sitedata[22];	// [0,1]
-						double GPP_or_MDS	= sitedata[23];	// gC m-2 day-1
-
-
-						// Only AET data of sufficient quality is stored.
-						// Convert from W m-2 day-1 to mm month-1
-						if (LE_sqc >= MIN_OBS_FREQ)	
-							stand.fluxdata.fluxAET[fyear][month] = n_days * SECS_IN_DAY / LATENT_HEAT_VAP * LE_f;
-
-						// Only NEE_st data of sufficient quality is stored
-						if (NEE_st_fMDSsqc >= MIN_OBS_FREQ && NEE_st_fMDS != MISSING_DATA) {
-							useOriginalDataThisMonth = false; // No need replace this data with _or data	 
-							stand.fluxdata.fluxNEE[fyear][month] = n_days * NEE_st_fMDS;
-							stand.fluxdata.fluxGPP[fyear][month] = n_days * GPP_st_MDS;
-						}
-
-						// Back-up NEE_or data of sufficient quality
-						if (NEE_or_fMDSsqc >= MIN_OBS_FREQ && NEE_or_fMDS != MISSING_DATA) {							
-							NEE_or[fyear][month] = n_days * NEE_or_fMDS;
-							GPP_or[fyear][month] = n_days * GPP_or_MDS;
-						} else {
-							NEE_or[fyear][month] = MISSING_DATA;
-							GPP_or[fyear][month] = MISSING_DATA;
-						}
-
-						
-						// Replace bad data with original data?
-						if (useOriginalDataThisMonth) {
-							stand.fluxdata.fluxNEE[fyear][month] = NEE_or[fyear][month];
-							stand.fluxdata.fluxGPP[fyear][month] = GPP_or[fyear][month];
-						}
-				
-
-						stand.fluxdata.fluxSWC[fyear][month] = swc;
-				
-
-						month++;
-
-					} // if (!eof)
-
-				} // while (!eof)
-
-
-				fclose(in_flux);
-
-				// Error?
-				if (month != 12) {
-					dprintf("\nError: could not read the data from the following flux file:\n");
-					dprintf("%s\n",datafile);
-					return false;
-				}
-
-			} // isfluxdata
-			
-			fyear++;
-
-		} // for
-		
-		// guess2008 - euroflux - end of new code
-
-
-
-
-
-
 		// Old code:
 		/*
 		// Load environmental data for this grid cell from CRU file
@@ -2348,9 +2324,6 @@ bool getstand(Stand& stand) {
 		*/
 
 
-		// guess2008 - euroflux - don't need this
-		/*
-
 		while (!gridfound) {
 
 			dprintf("\nError: could not find stand at (%g,%g) in CRU data file\n",
@@ -2358,25 +2331,26 @@ bool getstand(Stand& stand) {
 
 			gridlist.nextobj();
 			if (gridlist.isobj) {
-
-
-				// guess2008
 				double lon = gridlist.getobj().lon;
 				double lat = gridlist.getobj().lat;
 				gridfound = findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
 				                               hist_mtemp, hist_mprec, hist_msun);
-				
+			  
 				if (gridfound) // Get more historical CRU data for this grid cell
 					gridfound = searchcru_misc(file_cru_misc, lon, lat, elevation,
 					                           hist_mfrs, hist_mwet, hist_mdtr);
 
-
+				// Old code:
+				/*
+				gridfound=searchcru(in_cru,gridlist.getobj().lon,
+					gridlist.getobj().lat,soilcode,hist_mtemp,hist_mprec,hist_msun);
+				*/
 			}
 			else return false;
 		}
 
-		*/
-
+		euroflux_adjust_climate_read_flux_data(stand, gridlist.getobj(), 
+															hist_mtemp, hist_mprec);
 
 		// Build spinup data sets
 		spinup_mtemp.get_data_from(hist_mtemp);
@@ -3305,17 +3279,16 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 									standpft.densindiv_ageclass[c]+=indiv.densindiv;
 
 								// guess2008 - only count trees with a trunk above a certain diameter  
-								double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
-								if (diam>0.03 && pft.lifeform==TREE) {
+								if (pft.lifeform==TREE) {
+									double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
+									if (diam>0.03) {
+										standpft.densindiv_total+=indiv.densindiv; // indiv/m2
 
-									standpft.densindiv_total+=indiv.densindiv; // indiv/m2
-
-									// guess2008 - euroflux
-									if (date.year==nyear_spinup+99) 
-										standpft.heightindiv_total+=indiv.height * indiv.densindiv;
-
+										// guess2008 - euroflux
+										if (date.year==nyear_spinup+99) 
+											standpft.heightindiv_total+=indiv.height * indiv.densindiv;
+									}
 								} // tree?
-
 							} // cohort mode?
 						
 						}

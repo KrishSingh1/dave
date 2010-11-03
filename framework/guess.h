@@ -982,6 +982,7 @@ public:
 
 		lai = 0.0;
 		lai_layer = 0.0;
+		lai_indiv = 0.0;
 
 		// guess2008
 		alive = false;

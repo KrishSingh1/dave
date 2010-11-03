@@ -9,43 +9,25 @@
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
-
 !///////////////////////////////////////////////////////////////////////////////////////
-! Forcing Data & gridlists - Windows
+! Forcing Data & gridlists
 !
-
-! Gridlist - path to file containing list of 0.5 x 0.5 degree grid cells to simulate
-! You may need to specify the full pathname (including directory) here
-
-!	param "file_gridlist" (str "C:\guess2008\work\guess2008\gridlists\gridlist_smithetal.txt")
-!	param "file_gridlist" (str "C:\guess2008\work\guess2008\gridlists\gridlist_smithetal_short.txt")
-!	param "file_gridlist" (str "C:\guess2008_base_emdi\gridlists\gridlist_classAB_test.txt")
-!	param "file_gridlist" (str "C:\guess2008_base_emdi\gridlists\gridlist_classA.txt")
-
-! *** CRU TS 2.1 ***
-!	param "file_cru" (str "E:\CRU_TS_2p1\cru_1901_2002.bin")
-!	param "file_cru_misc" (str "E:\CRU_TS_2p1\cru_1901_2002_misc.bin")
-
-! *** CRU TS 3.0 ***
-!	param "file_cru" (str "E:\CRU_TS_3p0\cru_1901_2006.bin")
-!	param "file_cru_misc" (str "E:\CRU_TS_3p0\cru_1901_2006misc.bin")
 
 ! Atmospheric CO2 content (ppmv)
-!	param "file_co2" (str "C:\guessdata\co2\co2_1901-2006.txt")
-!///////////////////////////////////////////////////////////////////////////////////////
+! (used only by guessio.cpp)
+	param "co2" (num 340)
+
+      	param "file_gridlist" (str "gridlist.txt")
+
+	param "file_temp" (str "tmp30_21.grd")  !temperature
+	param "file_prec" (str "prc30_21.grd")  !precipitation
+	param "file_sun" (str "clo30_21.grd")   !sunshine
+
+! Path to LPJ soil code file
+! You may need to specify the full pathname (including directory) here
+	param "file_soil" (str "soils_lpj.dat")
 
 
-
-!///////////////////////////////////////////////////////////////////////////////////////
-! Forcing Data & gridlists - simba
-!
-
-     param "file_co2" (str "/home/paul/co2/co2_1901-2006.txt")
-     param "file_gridlist" (str "gridlist.txt")
-!	param "file_cru" (str "/home/paul/cru/cru_1901_2002.bin")
-!	param "file_cru_misc" (str "/home/paul/cru/cru_1901_2002_misc.bin")
-	param "file_cru" (str "/home/paul/cru/cru_1901_2006.bin")
-	param "file_cru_misc" (str "/home/paul/cru/cru_1901_2006misc.bin")
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -100,7 +82,7 @@ file_mwcont_lower "mwcont_lower.out"
 title 'LPJ-GUESS (guess2008) cohort mode - global pfts'
 
 vegmode "cohort"		! "cohort", "individual" or "population"
-nyear_spinup 500		! number of years to spin up the simulation for
+nyear 500			! number of years to run the model
 ifdailynpp 0			! whether to calculate NPP daily (1) or monthly (0)
 						! guess2008 - species version has 1
 ifdailydecomp 0			! whether to calculate soil respiration daily (1) or monthly (0)
@@ -127,10 +109,8 @@ ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficie
 ifdroughtlimitedestab 0			! whether establishment is limited by growing season drought
 								! guess2008 - species version has 1
 ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit every day (0)
-! guess2008 - eval - NB!!! To avoid inconsistencies, set ifrainonwetdaysonly = 0 when 
-! adjusting precip data for the EUROFLUX comparisons
 ifspeciesspecificwateruptake 0	! whether there is species specific water uptake (1) or not (0)
-								! guess2008 - species version has 1
+
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -138,9 +118,6 @@ ifspeciesspecificwateruptake 0	! whether there is species specific water uptake 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// EVALUATION OPTIONS & SWITCHES 
 !
-
-param "emditest" (num 0)	! Whether to run the EMDI NPP test (1) or not (0)
-
 
 !///////////////////////////////////////////////////////////////////////////////////////
 
@@ -321,12 +298,10 @@ group "tropical" (
 
 
 ! greff_min values below calibrated for the smooth (ifsmoothgreffmort 1) option 
-! From global version; values from orginal European version 
-! (submitted LPJ-GUESS and Natura 2000) after "!"
 group "shade_tolerant"
 (
 	est_max 0.05					
-	parff_min 350000	! 1250000			
+	parff_min 350000			
 	alphar 3.0          			
 	greff_min 0.04				
 	turnover_sap 0.05
@@ -348,8 +323,8 @@ group "shade_intolerant"
 	est_max 0.2					
 	parff_min 2500000 
 	alphar 10.0 
-	greff_min 0.08	! 0.1
-	turnover_sap 0.1	! 0.08 
+	greff_min 0.08
+	turnover_sap 0.1
 )
 
 

@@ -6,50 +6,35 @@
 !
 !// guess2008 updates
 !// 
+!// Parameter differences with Thomas Hickler's paper: 
+!//
+!// Hickler, T., Vohland, K., Feehan, J., Miller, P., Fronzek, S., Giesecke, T., Kuehn, I., Carter, T., Smith, B. &
+!// Sykes, M. Projecting tree species-based climate-driven changes in European potential natural vegetation
+!// with a generalized dynamic vegetation model. In press, Global Ecology & Biogeography.
+!//
+!// are commented with ! THdiff
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
 
+
 !///////////////////////////////////////////////////////////////////////////////////////
-! Forcing Data & gridlists - Windows
+! Forcing Data & gridlists
 !
-
-! Gridlist - path to file containing list of 0.5 x 0.5 degree grid cells to simulate
-! You may need to specify the full pathname (including directory) here
-
-!	param "file_gridlist" (str "C:\guess2008\work\guess2008\gridlists\gridlist_smithetal.txt")
-!	param "file_gridlist" (str "C:\guess2008\work\guess2008\gridlists\gridlist_smithetal_short.txt")
-!	param "file_gridlist" (str "C:\guess2008_base_emdi\gridlists\gridlist_classAB_test.txt")
-!	param "file_gridlist" (str "C:\guess2008_base_emdi\gridlists\gridlist_emdi_test.txt")
-!	param "file_gridlist" (str "C:\guess2008_base_emdi\gridlists\bial.txt")
-!	param "file_gridlist" (str "C:\guess2008_base_emdi\gridlists\roqu.txt")
-!	param "file_gridlist" (str "C:\guess2008_base_emdi\gridlists\meer.txt")
-
-
-! *** CRU TS 2.1 ***
-!	param "file_cru" (str "E:\CRU_TS_2p1\cru_1901_2002.bin")
-!	param "file_cru_misc" (str "E:\CRU_TS_2p1\cru_1901_2002_misc.bin")
-
-! *** CRU TS 3.0 ***
-!	param "file_cru" (str "E:\CRU_TS_3p0\cru_1901_2006.bin")
-!	param "file_cru_misc" (str "E:\CRU_TS_3p0\cru_1901_2006misc.bin")
 
 ! Atmospheric CO2 content (ppmv)
-!	param "file_co2" (str "C:\guessdata\co2\co2_1901-2006.txt")
-!///////////////////////////////////////////////////////////////////////////////////////
+! (used only by guessio.cpp)
+	param "co2" (num 340)
 
+      	param "file_gridlist" (str "gridlist.txt")
 
+	param "file_temp" (str "tmp30_21.grd")  !temperature
+	param "file_prec" (str "prc30_21.grd")  !precipitation
+	param "file_sun" (str "clo30_21.grd")   !sunshine
 
-!///////////////////////////////////////////////////////////////////////////////////////
-! Forcing Data & gridlists - simba
-!
-
-     param "file_co2" (str "/home/paul/co2/co2_1901-2006.txt")
-     param "file_gridlist" (str "gridlist.txt")
-	param "file_cru" (str "/home/paul/cru/cru_1901_2006.bin")
-	param "file_cru_misc" (str "/home/paul/cru/cru_1901_2006misc.bin")
-!///////////////////////////////////////////////////////////////////////////////////////
-
+! Path to LPJ soil code file
+! You may need to specify the full pathname (including directory) here
+	param "file_soil" (str "soils_lpj.dat")
 
 
 !///////////////////////////////////////////////////////////////////////////////////////
@@ -102,7 +87,7 @@ file_mwcont_lower "mwcont_lower.out"
 title 'LPJ-GUESS (guess2008) cohort mode'
 
 vegmode "cohort"      ! "cohort", "individual" or "population"
-nyear_spinup 500      ! number of years to spin up the simulation for
+nyear 500             ! number of years to run the model
 ifdailynpp 1          ! whether to calculate NPP daily (1) or monthly (0)
 ifdailydecomp 0       ! whether to calculate soil respiration daily (1) or monthly (0)
 ifcalcsla 1           ! whether to calculate SLA from leaf longevity
@@ -127,9 +112,8 @@ ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficie
 								! greff_min values below calibrated for the smooth (1) option 
 ifdroughtlimitedestab 1			! whether establishment is limited by growing season drought
 ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit every day (0)
-! guess2008 - eval - NB!!! To avoid inconsistencies, set ifrainonwetdaysonly = 0 when 
-! adjusting precip data for the EUROFLUX comparisons
 ifspeciesspecificwateruptake 1	! whether there is species specific water uptake (1) or not (0)
+
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -137,9 +121,6 @@ ifspeciesspecificwateruptake 1	! whether there is species specific water uptake 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// EVALUATION OPTIONS & SWITCHES 
 !
-
-param "emditest" (num 0)	! Whether to run the EMDI NPP test (1) or not (0)
-
 
 !///////////////////////////////////////////////////////////////////////////////////////
 
@@ -159,14 +140,15 @@ group "common" (
 	wscal_min 0.35
 )
 
+
 group "tree" (
 
 	! Parameters common to all trees
 
 	common
 	lifeform "tree"
-	crownarea_max 40	! PMxx: new default 27.3
-	turnover_root 0.7	! PMxx: new default
+	crownarea_max 40	
+	turnover_root 0.7
 	ltor_max 1
 	k_allom2 40 
 	k_allom3 0.67
@@ -180,7 +162,7 @@ group "tree" (
 	kest_bg 0.1
 	kest_pres 1
 	litterme 0.3
-	rootdist 0.6 0.4
+	rootdist 0.6 0.4 ! THdiff: TH often has 0.7 0.3 or 0.8 0.2 - see note below
 )
 
 group "Shrub"
@@ -188,7 +170,7 @@ group "Shrub"
 	common
 	lifeform "tree"
 	crownarea_max 10
-	turnover_root 0.7	! PMxx: new default
+	turnover_root 0.7
 	ltor_max 1
 	k_allom1 100
 	k_allom2 5
@@ -210,15 +192,15 @@ group "Shrub"
 group "needle_leaved"
 (
 	k_allom1 150
-	k_latosa 4000		! PMxx: new default
+	k_latosa 4000
 )
 
 group "broad_leaved"
 (
 	k_allom1 250 
-	k_latosa 5000		! PMxx: new default
+	k_latosa 5000
 	leaflong 0.5		! PMxx: new default
-    turnover_leaf 1		! PMxx: new default
+    	turnover_leaf 1		! PMxx: new default
 )
 
 group "grass" (
@@ -234,14 +216,14 @@ group "grass" (
 	litterme 0.2
 )
 
+
 ! greff_min values below calibrated for the smooth (ifsmoothgreffmort 1) option 
-! From global version; values from orginal European version 
-! (submitted LPJ-GUESS and Natura 2000) after "!"
+! Many THdiff values here
 group "shade_tolerant"
 (
 	est_max 0.05					
-	parff_min 350000	! 1250000			
-	alphar 3.0          			
+	parff_min 350000		! THdiff: 1250000			
+	alphar 3.0          	! THdiff: 2			
 	greff_min 0.04				
 	turnover_sap 0.05
 )
@@ -250,11 +232,11 @@ group "shade_tolerant"
 ! So far only trial values; not in global version
 group "intermediate_shade_tolerant"
 (
-	est_max 0.15					
+	est_max 0.15		! THdiff: 0.1			
 	parff_min 2000000			
-	alphar 7.0          			
-	greff_min 0.06				
-	turnover_sap 0.075 ! PMxx - bug! was 0.75
+	alphar 7.0          	! THdiff: 6			
+	greff_min 0.06		! THdiff: 0.08		
+	turnover_sap 0.075  	! THdiff: 0.065
 )
 
 
@@ -264,14 +246,14 @@ group "shade_intolerant"
 	est_max 0.2					
 	parff_min 2500000 
 	alphar 10.0 
-	greff_min 0.08		! 0.1
-	turnover_sap 0.1	! 0.08 
+	greff_min 0.08		! THdiff: 0.1
+	turnover_sap 0.1		! THdiff: 0.08 
 )
 
 
 group "boreal_tree"
 (
-	respcoeff 1.0
+	respcoeff 1.0		! THdiff: 2.0
 	pstemp_min -4
 	pstemp_low 10
 	pstemp_high 25
@@ -287,65 +269,42 @@ group "temperate_tree"
 	pstemp_max 38
 )
 
+
+!///////////////////////////////////////////////////////////////////////////////////////
+! PFTs and species follow
+!
+! THdiff notes:
+! 1. Thomas Hickler didn't give the values used for the tcmax_est and twmin_est parameters 
+! 2. rootdist is different for (z1 in brackets): Abi_alb (0.8), Bet_pen (0.8), Bet_pub (0.8), Car_bet (0.7), 
+!	 Cor_ave (0.7), Fag_syl (0.8), Fra_exc (0.8)
+
+
 pft "Abi_alb" (
 
 	include 1
 	tree
 	shade_tolerant
-	temperate_tree ! PMxx boreal_tree
+	temperate_tree
 	needle_leaved
-	! k_latosa 3000 ! PMxx
 	sla 9.3
 	gmin 0.3
 	phenology "evergreen"
-	leaflong 3
-	turnover_leaf 0.33
-	! PMxx turnover_root 0.7
+	leaflong 3			! THdiff: 4
+	turnover_leaf 0.33  ! THdiff: 0.25
 	phengdd5ramp 0
-	tcmin_surv -2 ! GS -4.5 ! Sykes96: -4.5
-	tcmin_est -2 ! GS 
-	tcmax_est 2 ! GS 
-	twmin_est 6 ! limit not implemented
-	gdd5min_est 1600 ! GS ! Sykes96: 1450
+	tcmin_surv -2		! from GS. THdiff: -4.5 ! Sykes96: -4.5
+	tcmin_est -2		! from GS. THdiff: -3.5 ! Sykes96: -4.5
+	tcmax_est 2			! from GS. THdiff: -2 
+	twmin_est 6			! limit not implemented
+	gdd5min_est 1600	! from GS ! THdiff: -1450 ! Sykes96: 1450
 	k_chilla 0
 	k_chillb 100
 	k_chillk 0.05
 	fireresist 0.1
 	intc 0.06
 	longevity 350
-	drought_tolerance 0.35 !0
+	drought_tolerance 0.35
 )
-
-
-pft "Aln_inc" (
-
-    include 0 
-    tree
-    intermediate_shade_tolerant
-    boreal_tree
-    broad_leaved
-    ! PMxx k_latosa 4000
-    sla 24.3
-    gmin 0.5
-    phenology "summergreen"
-    ! PMxx leaflong 0.5
-    ! PMxx turnover_leaf 1
-    ! PMxx turnover_root 0.7
-    phengdd5ramp 200
-    tcmin_surv -31
-    tcmin_est -30
-    tcmax_est -2.5  ! Sykes96
-    twmin_est 5
-    gdd5min_est 500	! Sykes96: 430
-    k_chilla 0
-    k_chillb 100 
-    k_chillk 0.05 
-    fireresist 0.2 ! was 0.1.see Tinner et al. 1999 (for Alnus glut.)
-    intc 0.02
-    longevity 200 ! Prentice & Helmisaari
-    drought_tolerance 0.43 !0
-)
-
 
 
 pft "BES" (
@@ -354,12 +313,10 @@ pft "BES" (
 
 	include 1 
 	shrub
-	! greff_min 0.03		! Annett
-	! turnover_sap 0.01	! Annett
 	boreal_tree
 	crownarea_max 3		
-	k_allom1 20			
-	k_allom2 5			
+	k_allom1 20			! THdiff: 250			
+	k_allom2 5			! THdiff: ?			
 	k_latosa 500
 	shade_intolerant	
 	rootdist 0.8 0.2
@@ -368,15 +325,14 @@ pft "BES" (
 	phenology "evergreen"
 	leaflong 2
 	turnover_leaf 0.5
-	! PMxx turnover_root 0.7
-	turnover_sap 0.05
+	turnover_sap 0.05   ! THdiff: 0.1 (shade intolerant value)
 	phengdd5ramp 0
-	tcmin_surv -1000 ! limit not implemented
-	tcmin_est -1000  ! limit not implemented
+	tcmin_surv -1000	! limit not implemented
+	tcmin_est -1000		! limit not implemented
 	tcmax_est -1.0
-	twmin_est -1000  ! limit not implemented
-	gdd5min_est 200 ! should possibly be lower, see Annetts values?
-	longevity 50 !? based on Annett's values but seems to be very low
+	twmin_est -1000		! limit not implemented
+	gdd5min_est 200		! THdiff: 300
+	longevity 50
 	k_chilla 0
 	k_chillb 100
 	k_chillk 0.05
@@ -393,55 +349,48 @@ pft "Bet_pen" (
 	shade_intolerant
 	temperate_tree
 	broad_leaved
-	! PMxx k_latosa 4000
 	sla 24.3
 	gmin 0.5
 	phenology "summergreen"
-	! PMxx leaflong 0.5
-	! PMxx turnover_leaf 1
-	! PMxx turnover_root 0.7
 	phengdd5ramp 200
 	tcmin_surv -30
 	tcmin_est -30
-	tcmax_est 7 ! GS ! was 10
-	twmin_est 5
-	gdd5min_est 700 ! Sykes96
+	tcmax_est 7			! THdiff: -
+	twmin_est 5			! THdiff: - 
+	gdd5min_est 700		! Sykes96
 	k_chilla 0
-	k_chillb 350 ! PMxx 500
-	k_chillk 0.05 ! PMxx 0.02
+	k_chillb 350		
+	k_chillk 0.05
 	fireresist 0.1
 	intc 0.02
 	longevity 200 
-	drought_tolerance 0.42 !0
+	drought_tolerance 0.42
 )
+
 
 pft "Bet_pub" (
 
 	include 1
 	tree
 	shade_intolerant
-	boreal_tree ! PMxx temperate_tree
+	boreal_tree 
 	broad_leaved
-	! PMxx k_latosa 4000
 	sla 24.3
 	gmin 0.5
 	phenology "summergreen"
-	! PMxx leaflong 0.5
-	! PMxx turnover_leaf 1
-	! PMxx turnover_root 0.7
 	phengdd5ramp 200
 	tcmin_surv -30
 	tcmin_est -30
-	tcmax_est 3 ! GS - was 10
-	twmin_est 5
-	gdd5min_est 350 ! PMxx Sykes96: 150
+	tcmax_est 3			! THdiff: -
+	twmin_est 5			! THdiff: -
+	gdd5min_est 350		! Sykes96: 150
 	k_chilla 0
-	k_chillb 350 ! PMxx 100 
+	k_chillb 350
 	k_chillk 0.05 
 	fireresist 0.1
 	intc 0.02
 	longevity 200
-	drought_tolerance 0.5 !0
+	drought_tolerance 0.5
 )
 
 
@@ -452,57 +401,52 @@ pft "Car_bet" (
 	intermediate_shade_tolerant
 	temperate_tree
 	broad_leaved
-	! PMxx k_latosa 4000
 	sla 24.3
 	gmin 0.5
 	phenology "summergreen"
-	! PMxx leaflong 0.5
-	! PMxx turnover_leaf 1
-	! PMxx turnover_root 0.7
 	phengdd5ramp 200
-	tcmin_surv -8 ! Sykes96
+	tcmin_surv -8		! Sykes96
 	tcmin_est -8
-	tcmax_est 5 ! Sykes96
-	twmin_est 5
-	gdd5min_est 1200 ! Sykes96: 1100
+	tcmax_est 5			! THdiff: -
+	twmin_est 5			! THdiff: -
+	gdd5min_est 1200	! Sykes96: 1100
 	k_chilla 0
-	k_chillb 600 ! PMxx Sykes96 1200 
-	k_chillk 0.05 ! PMxx Sykes96 0.0075 
+	k_chillb 600		! Sykes96 1200 
+	k_chillk 0.05		! Sykes96 0.0075 
 	fireresist 0.1
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.33
 )
 
+
 pft "Cor_ave" (
 
 	include 1
-	tree !shrub
-	crownarea_max 15 ! Not really a tree, and not a shrub either!
+	tree
+	crownarea_max 15
 	broad_leaved
 	intermediate_shade_tolerant
 	temperate_tree
-	k_latosa 4000 ! PMxx 3000
+	k_latosa 4000
 	sla 12
 	gmin 0.5
 	phenology "summergreen"
-	! PMxx leaflong 0.5
-	! PMxx turnover_leaf 1
-	! PMxx turnover_root 0.7
 	phengdd5ramp 200
-	tcmin_surv -11 ! Sykes96: -15
-	tcmin_est -11 ! Sykes96: -15
-	tcmax_est 7 ! was 10
-	twmin_est 5
-	gdd5min_est 800 ! Sykes96
+	tcmin_surv -11		! THdiff: -8 Sykes96: -15
+	tcmin_est -11		! THdiff: -7 Sykes96: -15
+	tcmax_est 7			! THdiff: -
+	twmin_est 5			! THdiff: -
+	gdd5min_est 800		! Sykes96
 	k_chilla 0
-	k_chillb 350 ! PMxx 450 
-	k_chillk 0.05 ! PMxx 0.02
+	k_chillb 350 
+	k_chillk 0.05
 	fireresist 0.1
 	intc 0.02
-	longevity 100 ! see silviculture book, was 430
+	longevity 100		! THdiff: 300 - see Savill's silviculture book
 	drought_tolerance 0.3
 )
+
 
 pft "Fag_syl" (
 
@@ -511,22 +455,18 @@ pft "Fag_syl" (
 	shade_tolerant
 	temperate_tree
 	broad_leaved
-	! PMxx k_latosa 4000
 	sla 24.3
 	gmin 0.5
 	phenology "summergreen"
-	! PMxx leaflong 0.5
-	! PMxx turnover_leaf 1
-	! PMxx turnover_root 0.7
 	phengdd5ramp 200
-	tcmin_surv -3.5 ! Sykes96
-	tcmin_est -3.5
-	tcmax_est 6
-	twmin_est 5 ! Sykes96
-	gdd5min_est 1500 ! Sykes96 990 (with greater chilling)
+	tcmin_surv -3.5		! Sykes96
+	tcmin_est -3.5		
+	tcmax_est 6			! THdiff: -
+	twmin_est 5			! THdiff: - Sykes96
+	gdd5min_est 1500	! Sykes96 990 (with greater chilling)
 	k_chilla 0
-	k_chillb 600 ! PMxx Sykes96 1150
-	k_chillk 0.05 ! PMxx Sykes96 0.0065
+	k_chillb 600		! Sykes96 1150
+	k_chillk 0.05		! Sykes96 0.0065
 	fireresist 0.1
 	intc 0.02
 	longevity 500
@@ -541,19 +481,15 @@ pft "Fra_exc" (
 	intermediate_shade_tolerant
 	temperate_tree
 	broad_leaved
-	! PMxx k_latosa 4000
 	sla 24.3
 	gmin 0.5
 	phenology "summergreen"
-	! PMxx leaflong 0.5
-	! PMxx turnover_leaf 1
-	! PMxx turnover_root 0.7
 	phengdd5ramp 200
-	tcmin_surv -16 ! Sykes96
-	tcmin_est -16 ! Sykes96
-	tcmax_est 6 ! Sykes96
-	twmin_est 5
-	gdd5min_est 1100 ! Sykes96 
+	tcmin_surv -16		! Sykes96
+	tcmin_est -16		! Sykes96
+	tcmax_est 6			! THdiff: - Sykes
+	twmin_est 5			! THdiff: -
+	gdd5min_est 1100	! Sykes96 
 	k_chilla 0
 	k_chillb 100 
 	k_chillk 0.05 
@@ -566,55 +502,54 @@ pft "Fra_exc" (
 
 pft "Jun_oxy" (
 
-	! TH values
+	! Thomas Hickler's values
 
 	include 1
-	tree
+	tree				! THdiff: - shrub
 	shade_intolerant
 	temperate_tree
 	needle_leaved
-	k_latosa 1500 ! ThomasH*1? lower end of range for 9 medit species
+	k_latosa 1500
 	crownarea_max 10
 	rootdist 0.5 0.5
 	sla 10
 	gmin 0.5
 	phenology "evergreen"
-	leaflong 1.5 ! TH 
-	turnover_leaf 0.6667 ! TH 
-	! PMxx turnover_root 0.7
+	leaflong 1.5
+	turnover_leaf 0.6667
 	phengdd5ramp 0
-	tcmin_surv 0		! ThomasH
-	tcmin_est 1			! ThomasH		
-	tcmax_est 1000		! 11
-	twmin_est -1000		! 21
-	gdd5min_est 2200	! ThomasH
+	tcmin_surv 0
+	tcmin_est 1			
+	tcmax_est 1000		 
+	twmin_est -1000		 
+	gdd5min_est 2200
 	k_chilla 0
 	k_chillb 100
 	k_chillk 0.05
-	fireresist 0.4 ! TH 
+	fireresist 0.4	
 	intc 0.02
-	longevity 200 ! TH 
+	longevity 200
 	drought_tolerance 0.01
 )
 
 
 pft "MRS" (
 
-	! TH: mediterranean raingreen low shrub*4: 
+	! Thomas Hickler's values
+	! Mediterranean raingreen low shrub: 
 	! Cistus, Rosmarinus, Genista, Lavandula, Erica
 
 	include 1
-	shrub
+	shrub				! THdiff: - has k_allom1 as 250
 	shade_intolerant
 	temperate_tree
-	k_latosa 1500 ! TH
+	k_latosa 1500		! ThomasH
 	rootdist 0.9 0.1
 	sla 10
 	gmin 0.5
 	phenology "raingreen"
 	leaflong 0.5 
 	turnover_leaf 1
-	! PMxx turnover_root 0.7
 	phengdd5ramp 0
 	tcmin_surv 0		! ThomasH
 	tcmin_est 1			! ThomasH		
@@ -624,9 +559,9 @@ pft "MRS" (
 	k_chilla 0
 	k_chillb 100
 	k_chillk 0.05
-	fireresist 0.3 ! TH 
+	fireresist 0.3		! TH 
 	intc 0.02
-	longevity 100 ! ?
+	longevity 100		!
 	drought_tolerance 0.01
 )
 
@@ -638,20 +573,18 @@ pft "Pic_abi" (
 	shade_tolerant
 	boreal_tree
 	needle_leaved
-	! PMxx k_latosa 3200
-	rootdist 0.8 0.2 ! PMxx 0.5 0.5
+	rootdist 0.8 0.2
 	sla 9.3
 	gmin 0.3
 	phenology "evergreen"
-	leaflong 3
-	turnover_leaf 0.33
-	! PMxx turnover_root 0.7
+	leaflong 3			! THdiff: 4	
+	turnover_leaf 0.33	! THdiff: 0.25
 	phengdd5ramp 0
 	tcmin_surv -30
 	tcmin_est -30
-	tcmax_est -1.5 ! Sykes96
-	twmin_est 5
-	gdd5min_est 600 ! Sykes96
+	tcmax_est -1.5		! Sykes96
+	twmin_est 5			! THdiff: -
+	gdd5min_est 600		! Sykes96
 	k_chilla 0
 	k_chillb 100
 	k_chillk 0.05
@@ -662,36 +595,35 @@ pft "Pic_abi" (
 )
 
 
-
-
 pft "Pic_sit" (
+
+	! Bjarki's values
 
 	include 0
 	tree
-	intermediate_shade_tolerant ! Savill book
+	intermediate_shade_tolerant ! Savill's silviculture book
 	boreal_tree
 	needle_leaved
-	k_latosa 4500 ! Waring et al 1980
-	rootdist 0.8 0.2 ! ThomasH	
+	k_latosa 4500				! Waring et al 1980
+	rootdist 0.8 0.2			! ThomasH	
 	sla 9.3
 	gmin 0.3
 	phenology "evergreen"
-	leaflong 4 ! 5 !?
-	turnover_leaf 0.25 ! 0.2 !?
-	! PMxx turnover_root 0.7
+	leaflong 4					! 5 !?
+	turnover_leaf 0.25			! 0.2 !?
 	phengdd5ramp 0
-	tcmin_surv -18  ! Bjarki
+	tcmin_surv -18				! Bjarki
 	tcmin_est -17   
-	tcmax_est 5.5 ! 100419 - was 9.5 in earlier runs. Bjarki from STASH
-	twmin_est -1000 ! 5
-	gdd5min_est 450 ! Bjarki
+	tcmax_est 5.5				! 100419 - was 9.5 in earlier runs. Bjarki from STASH
+	twmin_est -1000				! 5
+	gdd5min_est 450				! Bjarki
 	k_chilla 0
-	k_chillb 100  ! Bjarki
-	k_chillk 0.05 ! Bjarki
+	k_chillb 100				! Bjarki
+	k_chillk 0.05				! Bjarki
 	fireresist 0.1
 	intc 0.06
-	longevity 700 ! Bjarki
-	drought_tolerance 0.5 ! Bjarki
+	longevity 700				! Bjarki
+	drought_tolerance 0.5		! Bjarki
 
 	! wooddens 200 - Should be less dens than P. abies (Savill)
 	! turnover_sap 0.065 ! Bjarki 30% + abies!
@@ -706,110 +638,109 @@ pft "Pin_syl" (
 	intermediate_shade_tolerant
 	boreal_tree
 	needle_leaved
-	k_latosa 3000 ! PMxx 2700
-	k_allom1 150
+	k_latosa 3000		! THdiff: 2000 (but I find that this to be a huge disadvantage for Pinus s.)
 	sla 9.3
 	gmin 0.3
 	phenology "evergreen"
 	leaflong 2				
 	turnover_leaf 0.5
-	! PMxx turnover_root 0.7
 	phengdd5ramp 0
 	tcmin_surv -30
 	tcmin_est -30
-	tcmax_est -1.0	! Sykes96
-	twmin_est 5
-	gdd5min_est 500 ! Sykes96
+	tcmax_est -1.0		! Sykes96
+	twmin_est 5			! THdiff: -
+	gdd5min_est 500		! Sykes96
 	k_chilla 0
 	k_chillb 100
 	k_chillk 0.05
 	fireresist 0.2
 	intc 0.06
-	longevity 350
+	longevity 350		! THdiff: 500
 	drought_tolerance 0.25
 )
 
 
 pft "Pin_hal" (
 
+	! Thomas Hickler's values
+
 	include 1
 	tree
-	shade_intolerant ! TH intermediate_shade_tolerant
+	shade_intolerant
 	temperate_tree
 	needle_leaved
-	k_latosa 3000
-	k_allom1 150
+	k_latosa 3000		! THdiff: 2000 (but I find that this to be a huge disadvantage for Pinus h.)
 	sla 9.3
 	gmin 0.3
 	phenology "evergreen"
 	leaflong 2				
 	turnover_leaf 0.5
-	! PMxx turnover_root 0.7
 	phengdd5ramp 0
-	tcmin_surv 3		! TH
+	tcmin_surv 3		
 	tcmin_est 3
-	tcmax_est 9			!
+	tcmax_est 9			! THdiff -	
 	twmin_est 21		
-	gdd5min_est 3000	! TH
+	gdd5min_est 3000
 	k_chilla 0
 	k_chillb 100
 	k_chillk 0.05
 	fireresist 0.2
 	intc 0.06
 	longevity 350
-	drought_tolerance 0.05	! TH
+	drought_tolerance 0.05
 )
 
+
 pft "Pop_tre" (
+
+	! Not included in Thomas Hickler's paper
 
 	include 1
 	tree
 	shade_intolerant
 	temperate_tree
 	broad_leaved
-	! PMxx k_latosa 4000
-	rootdist 0.7 0.3 ! PMxx
+	rootdist 0.7 0.3
 	sla 24.3
 	gmin 0.5
 	phenology "summergreen"
-	! PMxx leaflong 0.5 
-	! PMxx turnover_leaf 1
-	! PMxx turnover_root 0.7
 	phengdd5ramp 200
-	tcmin_surv -31 ! Sykes
-	tcmin_est -30 ! Sykes
-	tcmax_est 6 ! ! Sykes96
+	tcmin_surv -31		! Sykes
+	tcmin_est -30		! Sykes
+	tcmax_est 6			! Sykes96
 	twmin_est -1000
-	gdd5min_est 500 ! Sykes96 400
+	gdd5min_est 500		! Sykes96 400
 	k_chilla 0
-	k_chillb 350 ! PMxx 100 
+	k_chillb 350 
 	k_chillk 0.05 
-	fireresist 0.2 ! Slightly higher to account for its ability to re-sprout
+	fireresist 0.2		! Slightly higher to account for its ability to re-sprout
 	intc 0.02
-	longevity 160 ! P&H
+	longevity 160		! Prentice & H.
 	drought_tolerance 0.4
 )
 
+
 pft "Que_coc" (
 
+	! Thomas Hickler's values
+
 	include 1
-	shrub
+	shrub				! THdiff: - has k_allom1 as 250
 	intermediate_shade_tolerant
 	temperate_tree
-	k_latosa 2500 ! PMxx 2200
-	rootdist 0.5 0.5 ! TH
+	k_latosa 2500
+	rootdist 0.5 0.5
 	sla 10
 	gmin 0.5
 	phenology "evergreen"
-	leaflong 1.5 ! TH
-	turnover_leaf 0.6667 ! TH
-	! PMxx turnover_root 0.7
+	leaflong 1.5
+	turnover_leaf 0.6667
 	phengdd5ramp 0
-	tcmin_surv 0 ! PMxx 3.5 
-	tcmin_est 0 ! PMxx 3.5		
+	tcmin_surv 0 
+	tcmin_est 0		
 	tcmax_est 11
 	twmin_est 21
-	gdd5min_est 2200 ! PMxx TH 3100
+	gdd5min_est 2200
 	k_chilla 0
 	k_chillb 100
 	k_chillk 0.05
@@ -819,6 +750,7 @@ pft "Que_coc" (
 	drought_tolerance 0.1
 )
 
+
 pft "Que_ile" (
 
 	include 1
@@ -827,61 +759,52 @@ pft "Que_ile" (
 	temperate_tree
 	broad_leaved
 	k_latosa 3000
-	rootdist 0.5 0.5 ! PMxx TH 
+	rootdist 0.5 0.5
 	sla 9.3
 	gmin 0.5
 	phenology "evergreen"
-	leaflong 2 ! TH
-	turnover_leaf 0.5 ! TH
-	! PMxx turnover_root 0.7
+	leaflong 2			
+	turnover_leaf 0.5
 	phengdd5ramp 0
-	tcmin_surv 3 ! GS -2 ! 5
-	tcmin_est 3 ! GS -2 ! 5		
-	tcmax_est 7 ! 10
-	twmin_est 5
-	gdd5min_est 1800 ! 2480 ! Sykes96
+	tcmin_surv 3		! THdiff: -2
+	tcmin_est 3 		! THdiff: -1
+	tcmax_est 7			! THdiff: -
+	twmin_est 5			! THdiff: -
+	gdd5min_est 1800
 	k_chilla 0
 	k_chillb 100
 	k_chillk 0.05
-	fireresist 0.3 ! PMxx TH 0.2
+	fireresist 0.3
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.1
-
-	!tcmin_surv -1 ! PaulM dec14, was 5
-	!tcmin_est 0 ! PaulM dec14, was 5		
-	!gdd5min_est 2000
 )
 
 
 pft "Que_pub" (
 	
-	! TH parameters
+	! Thomas Hickler's values
 
 	include 1
 	tree
 	intermediate_shade_tolerant
 	temperate_tree
 	broad_leaved
-	! PMxx k_latosa 4000
 	sla 24.3
 	gmin 0.5
 	phenology "summergreen"
-	! PMxx leaflong 0.5
-	! PMxx turnover_leaf 1
-	! PMxx turnover_root 0.7
 	phengdd5ramp 200
-	tcmin_surv -6  ! Sykes96
-	tcmin_est -5 
-	tcmax_est 6 ! Sykes96
-	twmin_est -1000
-	gdd5min_est 1900 ! Sykes96
+	tcmin_surv -6			! THdiff: -6
+	tcmin_est -5			! THdiff: -5
+	tcmax_est 6				! THdiff: -
+	twmin_est -1000			
+	gdd5min_est 1900		! Sykes96
 	k_chilla 0
 	k_chillb 100
 	k_chillk 0.05
 	fireresist 0.2
 	intc 0.02
-	longevity 500 ! ThomasH 350
+	longevity 500
 	drought_tolerance 0.2
 )
 
@@ -893,51 +816,45 @@ pft "Que_rob" (
 	intermediate_shade_tolerant
 	temperate_tree
 	broad_leaved
-	! PMxx k_latosa 4000
 	sla 24.3
 	gmin 0.5
 	phenology "summergreen"
-	! PMxx leaflong 0.5
-	! PMxx turnover_leaf 1
-	! PMxx turnover_root 0.7
 	phengdd5ramp 200
-	tcmin_surv -10	! Sykes96: -16
-	tcmin_est -9	! Sykes96: -16
-	tcmax_est 6 ! 10	
-	twmin_est 5
-	gdd5min_est 1100 ! Sykes96: 1100
+	tcmin_surv -10			! THdiff: -16, Sykes96: -16
+	tcmin_est -9			! THdiff: -15, Sykes96: -16
+	tcmax_est 6				! THdiff: -
+	twmin_est 5				! THdiff: -
+	gdd5min_est 1100	
 	k_chilla 0
 	k_chillb 100
 	k_chillk 0.05
 	fireresist 0.2
 	intc 0.02
-	longevity 500 ! TH 350
+	longevity 500
 	drought_tolerance 0.25
 )
 
+
 pft "Til_cor" (
+
 	include 1
 	tree
 	intermediate_shade_tolerant
 	temperate_tree
 	broad_leaved
-	! PMxx k_latosa 4000
-	rootdist 0.8 0.2 ! TH
+	rootdist 0.8 0.2
 	sla 24.3
 	gmin 0.5
 	phenology "summergreen"
-	! PMxx leaflong 0.5
-	! PMxx turnover_leaf 1
-	! PMxx turnover_root 0.7
 	phengdd5ramp 200
-	tcmin_surv -12 ! Sykes96: -18
-	tcmin_est -11 ! Sykes96: -18
-	tcmax_est 5
-	twmin_est 5
-	gdd5min_est 1100 ! Sykes96 has 830 (with higher chilling)
+	tcmin_surv -12			! THdiff: -18, Sykes96: -18
+	tcmin_est -11			! THdiff: -17
+	tcmax_est 5				! THdiff: -
+	twmin_est 5				! THdiff: -
+	gdd5min_est 1100		! THdiff: 1000, Sykes96 has 830 (with higher chilling)
 	k_chilla 0
-	k_chillb 600 ! PMxx 1250 
-	k_chillk 0.05 ! PMxx 0.0065 
+	k_chillb 600 
+	k_chillk 0.05
 	fireresist 0.1
 	intc 0.02
 	longevity 350
@@ -947,24 +864,22 @@ pft "Til_cor" (
 
 pft "Ulm_gla" (
 
+	! Not included in Thomas Hickler's paper
+
 	include 1
 	tree
 	intermediate_shade_tolerant
 	temperate_tree
 	broad_leaved
-	! PMxx k_latosa 4000
 	sla 24.3
 	gmin 0.5
 	phenology "summergreen"
-	! PMxx leaflong 0.5 ! PMxx 1
-	! PMxx turnover_leaf 1
-	! PMxx turnover_root 0.7
 	phengdd5ramp 200
-	tcmin_surv -10.5 ! Sykes96: -15
-	tcmin_est -9.5 ! Sykes96: -15
+	tcmin_surv -10.5		! Sykes96: -15
+	tcmin_est -9.5			! Sykes96: -15
 	tcmax_est 6
 	twmin_est 5
-	gdd5min_est 850 ! Sykes96
+	gdd5min_est 850			! Sykes96
 	k_chilla 0
 	k_chillb 100 
 	k_chillk 0.05 
@@ -973,6 +888,7 @@ pft "Ulm_gla" (
 	longevity 350
 	drought_tolerance 0.4
 )
+
 
 pft "C3_gr" (
 
@@ -985,22 +901,23 @@ pft "C3_gr" (
 	sla 32.4
 	leaflong 1
 	turnover_leaf 1
-	turnover_root 0.7 !
+	turnover_root 0.7
 	phengdd5ramp 100
 	pstemp_min -5
 	pstemp_low 10
 	pstemp_high 30
 	pstemp_max 45
-	tcmin_surv -1000  ! limit not implemented
-	tcmin_est -1000   ! limit not implemented
-	tcmax_est 1000    ! limit not implemented
-	twmin_est -1000   ! limit not implemented
-	gdd5min_est 0     ! limit not implemented
-	parff_min 2000000 ! Changed from 2500000 on April 10, 2006
-	fireresist 1.0 ! Changed from 0.5 on April 10, 2006
+	tcmin_surv -1000		! limit not implemented
+	tcmin_est -1000			! limit not implemented
+	tcmax_est 1000			! limit not implemented
+	twmin_est -1000			! limit not implemented
+	gdd5min_est 0			! limit not implemented
+	parff_min 2000000
+	fireresist 1.0			! THdiff 0.5 ! Changed from 0.5 on April 10, 2006
 	intc 0.01
-	drought_tolerance 0.01 !1
+	drought_tolerance 0.01
 )
+
 
 pft "C4_gr" (
 
@@ -1020,11 +937,16 @@ pft "C4_gr" (
 	pstemp_max 55
 	tcmin_surv 15.5
 	tcmin_est 15.5
-	tcmax_est 1000   ! limit not implemented
-	twmin_est -1000  ! limit not implemented  ! limit not implemented
-	gdd5min_est 0     ! limit not implemented
-	parff_min 1000000 ! ThomasH 2000000 ! Changed from 2500000 on April 10, 2006
-	fireresist 0.5 ! Changed from 0.5 on April 10, 2006
+	tcmax_est 1000			! limit not implemented
+	twmin_est -1000			! limit not implemented  ! limit not implemented
+	gdd5min_est 0			! limit not implemented
+	parff_min 1000000		! ThomasH 2000000 ! Changed from 2500000 on April 10, 2006
+	fireresist 0.5			
 	intc 0.01
 	drought_tolerance 0.01
 )
+
+
+! Reference: Savill's silviculture book:
+! The Silviculture of Trees used in British Forestry, Peter S. Savill 
+

@@ -613,6 +613,12 @@ public:
 		
 		return data[element(temp)];
 	}
+
+	// guess2008 - new destructor added
+	~LookupQ10() {
+		
+		delete[] data;
+	}
 };
 
 

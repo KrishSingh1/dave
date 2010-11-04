@@ -213,7 +213,7 @@ function run_single_machine_model {
 	PATH=$bm_root/postprocess:$PATH nice sh $bm_root/$test_name/postprocess.sh
     fi
     popd &> /dev/null
-    echo '$test_name' >> $bm_root/progress.txt
+    echo $test_name >> $bm_root/progress.txt
 }
 
 # This function takes care of everything that needs to be done 

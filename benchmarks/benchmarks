@@ -6,7 +6,7 @@
 # script without arguments.
 #
 
-cmake_command="cmake"
+cmake_command="cmake -D CMAKE_BUILD_TYPE=Release"
 make_command="make -j2"
 bbox_command="bbox"
 
@@ -210,7 +210,7 @@ function run_single_machine_model {
     pushd $workspace &> /dev/null
     nice ./guess guess.ins
     if [ -f $bm_root/$test_name/postprocess.sh ]; then
-	nice PATH=$bm_root/postprocess:$PATH sh $bm_root/$test_name/postprocess.sh
+	PATH=$bm_root/postprocess:$PATH nice sh $bm_root/$test_name/postprocess.sh
     fi
     popd &> /dev/null
     echo '$test_name' >> $bm_root/progress.txt

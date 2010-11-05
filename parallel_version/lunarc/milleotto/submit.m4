@@ -133,7 +133,7 @@ BINARY $INSFILE
 cp -pur * \$PBS_O_WORKDIR/run\\\$((PBS_VNODENUM+1))
 EOL
 chmod +x startguess.sh
-pbsdsh -o \$PBS_O_WORKDIR/startguess.sh
+pbsdsh \$PBS_O_WORKDIR/startguess.sh
 rm startguess.sh
 
 function append_files {

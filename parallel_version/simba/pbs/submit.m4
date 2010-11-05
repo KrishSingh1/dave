@@ -130,7 +130,7 @@ cd run\\\$((PBS_VNODENUM+1))
 BINARY $INSFILE
 EOL
 chmod +x startguess.sh
-pbsdsh -o \$PBS_O_WORKDIR/startguess.sh
+pbsdsh \$PBS_O_WORKDIR/startguess.sh
 
 rm startguess.sh
 

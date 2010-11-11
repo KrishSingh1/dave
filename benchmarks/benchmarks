@@ -191,6 +191,7 @@ cd $workspace
 if [ -f $bm_root/$test_name/postprocess.sh ]; then
     PATH=$bm_root/postprocess:$PATH sh $bm_root/$test_name/postprocess.sh
 fi
+ls | grep "^run[0-9]*$" | xargs rm -rf
 cd $bm_root
 echo '$test_name' >> progress.txt
 EOF
@@ -212,6 +213,7 @@ function run_single_machine_model {
     if [ -f $bm_root/$test_name/postprocess.sh ]; then
 	PATH=$bm_root/postprocess:$PATH nice sh $bm_root/$test_name/postprocess.sh
     fi
+    ls | grep "^run[0-9]*$" | xargs rm -rf
     popd &> /dev/null
     echo $test_name >> $bm_root/progress.txt
 }

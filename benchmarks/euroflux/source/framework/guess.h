@@ -194,8 +194,25 @@ struct EurofluxData {
 	double modelNEE[NFLUXYEARS][12];
 	double modelAET[NFLUXYEARS][12];
 	double modelGPP[NFLUXYEARS][12];
-};
 
+	EurofluxData() {
+		// initialise EUROFLUX arrays with missing values; 
+		for (int yr = 0; yr < NFLUXYEARS; yr++) {
+			for (int mth = 0; mth < 12; mth++) {
+				fluxNEE[yr][mth] = MISSING_DATA;
+				fluxAET[yr][mth] = MISSING_DATA;
+				fluxGPP[yr][mth] = MISSING_DATA;
+				fluxSWC[yr][mth] = MISSING_DATA;
+			}
+		}
+
+		// New initialisation
+		plantation_year = -1;
+		num_dominant_species = 0;
+		desc = ""; 
+
+	}
+};
 
 
 
@@ -332,10 +349,6 @@ public:
 		// true if last day of month, false otherwise
 	bool ismidday;
 		// true if middle day of month, false otherwise
-	int sim_year;
-		// guess2008 - euroflux - new int to keep track of the simulation year
-		// Needed for management etc.
-
 
 private:
 
@@ -354,9 +367,6 @@ public:
 			middaymonth[month]=dayct+data[month]/2;
 			dayct+=data[month];
 		}
-
-		// guess2008 - euroflux
-		sim_year = 0;
 	}
 	
 	void init(int nyearsim)	{
@@ -573,7 +583,6 @@ public:
 	double dcflux_veg;
 		// daily net carbon flux to vegetation (respiration-assimilation)
 		// NB: not implemented by canopy_exchange_monthly
-
 
 	// guess2008 - new C budget arrays
 	double mcflux_gpp[12];
@@ -1592,12 +1601,6 @@ public:
 		// FPC sum for this PFT as average for stand (used by some versions of
 		// guessio.cpp)
 
-	double heightindiv_total;
-		// guess2008 - euroflux - sum/mean across patches for density of (true) individuals (indiv/m2)
-		// (meaningful in cohort/individual mode only)
-
-
-
 	// MEMBER FUNCTIONS
 
 	Standpft(int i,Pft& p):id(i),pft(p) {
@@ -1606,7 +1609,6 @@ public:
 		
 		anetps_ff_max=0.0;
 		addtw=0.0;
-		heightindiv_total=0.0; // guess2008 - euroflux
 	}
 };
 
@@ -1641,7 +1643,6 @@ public:
 		// // guess2008 - euroflux - Holds EUROFLUX grid cell information
 
 
-
 	// MEMBER FUNCTIONS
 
 	Stand(Pftlist& pftlist):climate(*this) {
@@ -1658,22 +1659,6 @@ public:
 		}
 
 		for (p=0;p<npatch;p++) createobj(*this,pftlist,soiltype);
-
-		// guess2008 - euroflux - initialise EUROFLUX arrays with missing values; 
-		for (int yr = 0; yr < NFLUXYEARS; yr++) {
-			for (int mth = 0; mth < 12; mth++) {
-				fluxdata.fluxNEE[yr][mth] = MISSING_DATA;
-				fluxdata.fluxAET[yr][mth] = MISSING_DATA;
-				fluxdata.fluxGPP[yr][mth] = MISSING_DATA;
-				fluxdata.fluxSWC[yr][mth] = MISSING_DATA;
-			}
-		}
-
-		// New initialisation
-		fluxdata.plantation_year = -1;
-		fluxdata.num_dominant_species = 0;
-		fluxdata.desc = ""; 
-
 	}
 };
 

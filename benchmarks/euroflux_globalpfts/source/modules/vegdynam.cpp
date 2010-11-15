@@ -34,6 +34,7 @@
 #include "growth.h"
 #include "driver.h"
 
+extern int century_year; // defined in guessio_cru.cpp
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL VARIABLES
@@ -1437,7 +1438,7 @@ void disturbance(Patch& patch,double disturb_prob) {
 // VEGETATION DYNAMICS
 // Should be called by framework at the end of each simulation year, after vegetation,
 // climate and soil attributes have been updated
-
+/*
 void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 	// DESCRIPTION
@@ -1491,6 +1492,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 	patch.age++;
 }
+*/
 
 
 
@@ -1949,11 +1951,7 @@ void clearance(Patch& patch) {
 // Should be called by framework at the end of each simulation year, after vegetation,
 // climate and soil attributes have been updated
 
-// guess2008 - euroflux - eval - added century_year, as stored in the Date class
-// century_year = 0, when date.year < nyear, i.e. during spin up. 
-// century_year = 1, when date.year = nyear, i.e. 1901, 
-// century_year = 80, when date.year = nyear+79, i.e. 1980, etc.
-void vegetation_dynamics_euroflux(Stand& stand,Patch& patch,Pftlist& pftlist,int century_year) {
+void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 
 	// DESCRIPTION

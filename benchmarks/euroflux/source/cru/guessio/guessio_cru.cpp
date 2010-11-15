@@ -176,6 +176,12 @@ xtring file_firert;
 // guess2008 - euroflux - Files for EUROFLUX output and stats
 xtring file_eurofluxmonthly, file_eurofluxannual, file_eurofluxstats,file_speciesheights;
 
+// guess2008 - euroflux - new int to keep track of the simulation year
+// Needed for management etc., used in vegetation dynamics
+// century_year = 0, when date.year < nyear, i.e. during spin up. 
+// century_year = 1, when date.year = nyear, i.e. 1901, 
+// century_year = 80, when date.year = nyear+79, i.e. 1980, etc.
+int century_year;
 
 void initsettings() {
 
@@ -2492,14 +2498,14 @@ bool getclimate(Stand& stand) {
 			spinup_mdtr.nextyear();
 
 			// guess2008 - euroflux
-			date.sim_year = 0;
+			century_year = 0;
 
 		}
 		else if (date.year<nyear_spinup+NYEAR_HIST) {
 
 
 			// guess2008 - euroflux
-			date.sim_year++;
+			century_year++;
 
 			// Historical period
 
@@ -3233,7 +3239,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			standpft.densindiv_total = 0.0; // guess2008
 
 			// guess2008 - euroflux
-			standpft.heightindiv_total = 0.0; // guess2008 - euroflux
+			double heightindiv_total = 0.0; // guess2008 - euroflux
 			standpft.fpc_total=0.0;
 
 
@@ -3286,7 +3292,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 										// guess2008 - euroflux
 										if (date.year==nyear_spinup+99) 
-											standpft.heightindiv_total+=indiv.height * indiv.densindiv;
+											heightindiv_total+=indiv.height * indiv.densindiv;
 									}
 								} // tree?
 							} // cohort mode?
@@ -3309,7 +3315,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 			// guess2008 - euroflux
 			standpft.fpc_total/=(double)npatch;
-			standpft.heightindiv_total/=(double)npatch;
+			heightindiv_total/=(double)npatch;
 
 			// Update stand totals
 
@@ -3333,7 +3339,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 					double zeroheight = 0.0;
 					if (standpft.densindiv_total > 0.0)
-						fprintf(out_speciesheights,"%8.2f",standpft.heightindiv_total/standpft.densindiv_total);
+						fprintf(out_speciesheights,"%8.2f",heightindiv_total/standpft.densindiv_total);
 					else
 						fprintf(out_speciesheights,"%8.2f",zeroheight);
 			}

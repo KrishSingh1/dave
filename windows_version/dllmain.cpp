@@ -6,7 +6,10 @@
 // Source code file name: main.cpp
 // Written by:            Ben Smith
 // Version dated:         2001-09-05
-//
+
+// Updated:               2010-11-22
+// Joe?
+
 // The shell should call function dll_main, passing a GuessParam object containing run
 // time argument(s) for GUESS and pointers to the executable's own callback functions.
 

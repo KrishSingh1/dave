@@ -13,7 +13,9 @@
 // Source code file name: guessio.cpp
 // Written by:            Ben Smith
 // Version dated:         2003-07-22/2005-01-25
-//
+// Updated:               2010-11-22
+
+
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:
 //   (1) a "#include" directive naming the framework header file. The framework header
@@ -34,6 +36,7 @@
 // When porting between frameworks, the only change required should normally be in the
 // "#include" directive referring to the framework header file.
 
+// Joe?
 #include "config.h"
 
 #ifdef USE_DEMO_IO
@@ -174,14 +177,12 @@ void initsettings() {
 	npatch=1;
 	vegmode=COHORT;
 
-	// guess2008
-	//ifsmoothgreffmort=false;
-
 	// guess2008 - initialise filenames here
 	outputdirectory = "";
 	file_cmass=file_anpp=file_lai=file_cflux=file_dens=file_runoff="";
 	file_mnpp=file_mlai=file_maet=file_mpet=file_mevap=file_mrunoff=file_mintercep=file_mrh="";
 	file_mgpp=file_mra=file_mnee=file_mwcont_upper=file_mwcont_lower="";
+	file_cpool=file_firert="";
 
 }
 
@@ -286,7 +287,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_mwcont_upper",&file_mwcont_upper,300,CB_NONE,"Monthly wcont_upper output file");
 		declareitem("file_mwcont_lower",&file_mwcont_lower,300,CB_NONE,"Monthly wcont_lower output file");
 
-		// guess2008 - new options
+		// guess2008 - new input options
 		declareitem("ifsmoothgreffmort",&ifsmoothgreffmort,1,CB_NONE,
 			"Whether to vary mort_greff smoothly with growth efficiency (0,1)");
 		declareitem("ifdroughtlimitedestab",&ifdroughtlimitedestab,1,CB_NONE,
@@ -369,8 +370,6 @@ void plib_declarations(int id,xtring setname) {
 		// for the shrub allometries.
 		declareitem("k_allom2",&ppft->k_allom2,1.0,1.0e4,1,CB_NONE,
 			"Constant in allometry equations");
-		//declareitem("k_allom2",&ppft->k_allom2,1.0,1.0e4,1,CB_NONE,
-		//	"Constant in allometry equations");
 		declareitem("k_allom3",&ppft->k_allom3,0.1,1.0,1,CB_NONE,
 			"Constant in allometry equations");
 		declareitem("k_rp",&ppft->k_rp,1.0,2.0,1,CB_NONE,
@@ -422,7 +421,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("leaflong",&ppft->leaflong,0.1,100.0,1,CB_NONE,
 			"Leaf longevity (years)");
 		declareitem("intc",&ppft->intc,0.0,1.0,1,CB_NONE,"Interception coefficient");
-		
 		// guess2008 - DLE
 		declareitem("drought_tolerance",&ppft->drought_tolerance,0.0,1.0,1,CB_NONE,
 			"Drought tolerance level (0 = very -> 1 = not at all) (unitless)");
@@ -791,12 +789,7 @@ bool firstgrid; // whether simulating first grid cell in linked list
 // File names for temperature, precipitation, sunshine and soil code driver files
 xtring file_temp,file_prec,file_sun,file_soil;
 
-// Output file names ...
-// guess2008 - added runoff and dens
-// xtring file_cmass,file_anpp,file_lai,file_cflux,file_runoff,file_dens;
-
-// ... and streams
-// guess2008 - added runoff and dens
+// Open streams - guess2008
 FILE *out_cmass,*out_anpp,*out_lai,*out_cflux,*out_cpool,*out_runoff,*out_dens;
 FILE *out_mnpp,*out_mlai,*out_mgpp,*out_mra,*out_maet,*out_mpet,*out_mevap,*out_mrunoff,*out_mintercep,*out_mrh;
 FILE *out_mnee,*out_mwcont_upper,*out_mwcont_lower; 
@@ -1090,38 +1083,13 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	file_sun=param["file_sun"].str;
 	file_soil=param["file_soil"].str;
 
+	// guess2008
 	// Retrieve output file names as read from ins file
-	// guess2008 - added runoff and dens
-
-/*
-	file_cmass=param["file_cmass"].str;
-	file_anpp=param["file_anpp"].str;
-	file_lai=param["file_lai"].str;
-	file_cflux=param["file_cflux"].str;
-	file_runoff=param["file_runoff"].str;
-	file_dens=param["file_dens"].str;
-
-	// Open output files
-	// guess2008 - added runoff and dens
-
-	out_cmass=fopen(file_cmass,"w");
-	out_anpp=fopen(file_anpp,"w");
-	out_lai=fopen(file_lai,"w");
-	out_cflux=fopen(file_cflux,"w");
-	out_runoff=fopen(file_runoff,"w");
-	out_dens=fopen(file_dens,"w");
-
-	// guess2008 - added runoff and dens
-	if (!out_cmass || !out_anpp || !out_lai || !out_cflux || !out_runoff || !out_dens)
-		fail("initio: could not open file(s) for output");
-*/
-
 
 	// We MUST have an output directory
 	if (outputdirectory=="") {
 		fail("No output directory given in the .ins file!");
 	}
-
 
 	// *** ANNUAL OUTPUT VARIABLES ***
 
@@ -1145,7 +1113,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		if (!out_dens) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_dens);
 	}
 	else out_dens=NULL;
-
 
 	if (file_lai!="") {
 		file_lai = outputdirectory + file_lai;
@@ -1334,7 +1301,7 @@ bool getstand(Stand& stand) {
 	// guess2008 - elevation
 	int elevation;
 
-	// guess2008 - ML bugfix
+	// guess2008 - to ensure an identical random number sequence for each stand.
 	setseed(12345678);
 
 	if (firstgrid) {
@@ -1445,6 +1412,7 @@ bool getclimate(Stand& stand) {
 // OUTANNUAL
 // Called by the framework at the end of the last day of each simulation year
 
+// guess2008 - many changes to this output routine. 
 void outannual(Stand& stand,Pftlist& pftlist) {
 
 	// DESCRIPTION
@@ -1453,9 +1421,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	// provide any information to the framework.
 
 	int p,c,m,nclass;
-	double cmass_stand,anpp_stand,lai_stand,runoff_stand,dens_stand; // guess2008 - added runoff & dens
+	double cmass_stand,anpp_stand,lai_stand,runoff_stand,dens_stand;
 	double flux_veg,flux_soil,flux_fire,flux_est;
-	double c_litter,c_fast,c_slow; // guess2008 - output in cpool
+	double c_litter,c_fast,c_slow; 
 	double firert_stand; 
 
 	// guess2008 - hold the monthly average across patches
@@ -1486,25 +1454,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		// Open output files if annual output suppressed
 		// (otherwise they were already opened in function initio)
 
-		// guess2008 - added runoff and dens
-
-		/* guess2008 - outcommented
-		if (!annual_output) {
-			out_cmass=fopen(file_cmass,"w");
-			out_anpp=fopen(file_anpp,"w");
-			out_lai=fopen(file_lai,"w");
-			out_cflux=fopen(file_cflux,"w");
-			out_runoff=fopen(file_runoff,"w");
-			out_dens=fopen(file_dens,"w");
-
-			if (!out_cmass || !out_anpp || !out_lai || !out_cflux || !out_runoff || !out_dens)
-			fail("outannual: could not open file(s) for output");
-
-		}
-		*/
-
 		// Print column labels
-		// guess2008 - added runoff & dens
 		
 		const char* lonlatyearstr = "%8s%8s%8s"; // easier to change now.
 		const char* lonlatyearstr_extended = "%8s%8s%8s%8s%8s%8s%8s%10s\n";
@@ -1544,7 +1494,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			if (out_cmass) fprintf(out_cmass,"%8s",(char*)pft.name);
 			if (out_anpp) fprintf(out_anpp,"%8s",(char*)pft.name);
 			if (out_lai) fprintf(out_lai,"%8s",(char*)pft.name);
-			if (out_dens) fprintf(out_dens,"%8s",(char*)pft.name); // guess2008
+			if (out_dens) fprintf(out_dens,"%8s",(char*)pft.name);
 			pftlist.nextobj();
 		}
 
@@ -1553,8 +1503,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_cmass) fprintf(out_cmass,"%8s\n","Total");
 		if (out_anpp) fprintf(out_anpp,"%8s\n","Total");
 		if (out_lai) fprintf(out_lai,"%8s\n","Total");
-		if (out_runoff) fprintf(out_runoff,"%8s\n","Total"); // guess2008 - average runoff across patches
-		if (out_dens) fprintf(out_dens,"%8s\n","Total"); // guess2008
+		if (out_runoff) fprintf(out_runoff,"%8s\n","Total");
+		if (out_dens) fprintf(out_dens,"%8s\n","Total");
 
 
 		// guess2008
@@ -1573,20 +1523,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_mnee) fprintf(out_mnee,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
 		if (out_mwcont_upper) fprintf(out_mwcont_upper,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
 		if (out_mwcont_lower) fprintf(out_mwcont_lower,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-	
-
-		// Close files if annual output suppressed
-
-		/*
-		if (!annual_output) {
-			fclose(out_cmass);
-			fclose(out_anpp);
-			fclose(out_lai);
-			fclose(out_cflux);
-			fclose(out_runoff); // guess2008
-			fclose(out_dens); // guess2008
-		}
-		*/
 
 		firstgrid=false;
 	}
@@ -1597,40 +1533,26 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 		// Open output files in append mode if annual output suppressed
 
-		/*
-		if (!annual_output) {
-			out_cmass=fopen(file_cmass,"a");
-			out_anpp=fopen(file_anpp,"a");
-			out_lai=fopen(file_lai,"a");
-			out_cflux=fopen(file_cflux,"a");
-			out_runoff=fopen(file_runoff,"a"); // guess2008
-			out_dens=fopen(file_dens,"a"); // guess2008
-
-			if (!out_cmass || !out_anpp || !out_lai || !out_cflux || !out_runoff || !out_dens)
-				fail("outannual: could not open file(s) for output");			
-		}
-		*/
-
 		lon=gridlist.getobj().lon;
 		lat=gridlist.getobj().lat;
 
 		cmass_stand=0.0;
 		anpp_stand=0.0;
 		lai_stand=0.0;
-		runoff_stand=0.0; // guess2008
-		dens_stand=0.0; // guess2008
-		firert_stand=0.0; // guess2008
+		runoff_stand=0.0;
+		dens_stand=0.0;
+		firert_stand=0.0;
 
 		// Print longitude, latitude, year
 
 		// guess2008
-		const char* lonlatyeardatastr = "%8.1f%8.1f%8d"; // std CRU
+		const char* lonlatyeardatastr = "%8.1f%8.1f%8d"; // standard CRU
 		if (out_cmass) fprintf(out_cmass,lonlatyeardatastr,lon,lat,date.year);
 		if (out_anpp) fprintf(out_anpp,lonlatyeardatastr,lon,lat,date.year);
 		if (out_lai) fprintf(out_lai,lonlatyeardatastr,lon,lat,date.year);
 		if (out_cflux) fprintf(out_cflux,lonlatyeardatastr,lon,lat,date.year);
-		if (out_runoff) fprintf(out_runoff,lonlatyeardatastr,lon,lat,date.year); // guess2008
-		if (out_dens) fprintf(out_dens,lonlatyeardatastr,lon,lat,date.year); // guess2008
+		if (out_runoff) fprintf(out_runoff,lonlatyeardatastr,lon,lat,date.year);
+		if (out_dens) fprintf(out_dens,lonlatyeardatastr,lon,lat,date.year);
 		if (out_cpool) fprintf(out_cpool,lonlatyeardatastr,lon,lat,date.year);
 		if (out_firert) fprintf(out_firert,lonlatyeardatastr,lon,lat,date.year);
 
@@ -1667,7 +1589,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			standpft.cmass_total=0.0;
 			standpft.anpp_total=0.0;
 			standpft.lai_total=0.0;
-			standpft.densindiv_total = 0.0; // guess2008
+			standpft.densindiv_total = 0.0;
 
 			// Initialise age structure array
 
@@ -1688,8 +1610,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 					// guess2008 - alive check added
 					if (indiv.id!=-1 && indiv.alive) { 
 					
-						// (if not dead and has existed for at least one year)
-						// Ben 2007-11-28
+						// If it's not dead and has existed for at least one year.
 
 						if (indiv.pft.id==pft.id) {
 							standpft.cmass_total+=indiv.cmass_leaf+
@@ -1727,7 +1648,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			standpft.cmass_total/=(double)npatch;
 			standpft.anpp_total/=(double)npatch;
 			standpft.lai_total/=(double)npatch;
-			// guess2008 - calculate the average across patches of individuals of this pft per m2
 			standpft.densindiv_total/=(double)npatch;
 
 
@@ -1736,14 +1656,14 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			cmass_stand+=standpft.cmass_total;
 			anpp_stand+=standpft.anpp_total;
 			lai_stand+=standpft.lai_total;
-			dens_stand+=standpft.densindiv_total; // guess2008
+			dens_stand+=standpft.densindiv_total;
 		
 			// Print PFT sums to files
 
 			if (out_cmass) fprintf(out_cmass,"%8.3f",standpft.cmass_total);
 			if (out_anpp) fprintf(out_anpp,"%8.3f",standpft.anpp_total);
 			if (out_lai) fprintf(out_lai,"%8.4f",standpft.lai_total);
-			if (out_dens) fprintf(out_dens,"%8.4f",standpft.densindiv_total); // guess2008
+			if (out_dens) fprintf(out_dens,"%8.4f",standpft.densindiv_total);
 
 			// Graphical output every 10 years
 			// (Windows shell only - "plot" statements have no effect otherwise)
@@ -1782,10 +1702,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 				c_litter+=(pft.litter_leaf+pft.litter_root+pft.litter_wood+pft.litter_repr)/(double)npatch;
 			}
 
-			// guess2008 - average runoff across patches 
 			runoff_stand+=stand[p].arunoff/(double)npatch;
 			
-			// Fire return time
+			// Record the fire return time (years) 
 			if (!iffire || stand[p].fireprob < 0.001)
 				firert_stand+=1000.0/(double)npatch; // Set a limit of 1000 years
 			else	
@@ -1805,9 +1724,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 				mwcont_upper[m] += stand[p].soil.mwcont[m][0]/(double)npatch;
 				mwcont_lower[m] += stand[p].soil.mwcont[m][1]/(double)npatch;
 
-				// guess2008 - average across stands to get mgpp and mra here instead of below. 
-				mgpp[m] += stand[p].fluxes.mcflux_gpp[m]/(double)npatch; //ANDERS A TRENDY
-				mra[m] += stand[p].fluxes.mcflux_ra[m]/(double)npatch; //ANDERS A TRENDY
+				// guess2008 - average across stands to get mgpp and mra 
+				mgpp[m] += stand[p].fluxes.mcflux_gpp[m]/(double)npatch;
+				mra[m] += stand[p].fluxes.mcflux_ra[m]/(double)npatch;
 
 			}
 
@@ -1855,9 +1774,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_cmass) fprintf(out_cmass,"%8.3f\n",cmass_stand);
 		if (out_anpp) fprintf(out_anpp,"%8.3f\n",anpp_stand);
 		if (out_lai) fprintf(out_lai,"%8.4f\n",lai_stand);
-		if (out_runoff) fprintf(out_runoff,"%8.1f\n",runoff_stand); // guess2008
-		if (out_dens) fprintf(out_dens,"%8.4f\n",dens_stand); // guess2008
-		if (out_firert) fprintf(out_firert,"%8.1f\n",firert_stand); // guess2008
+		if (out_runoff) fprintf(out_runoff,"%8.1f\n",runoff_stand);
+		if (out_dens) fprintf(out_dens,"%8.4f\n",dens_stand);
+		if (out_firert) fprintf(out_firert,"%8.1f\n",firert_stand);
 
 		// Print monthly output variables
 		for (m=0;m<12;m++) {
@@ -1913,7 +1832,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_cflux) fprintf(out_cflux,"%8.3f%8.3f%8.3f%8.3f%10.5f\n",flux_veg,flux_soil,flux_fire,
 			flux_est,flux_veg+flux_soil+flux_fire+flux_est);
 
-		// guess2008 - write carbon pools to a file
+		// guess2008 - output carbon pools
 		if (out_cpool) fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%10.4f\n",cmass_stand,c_litter,c_fast,
 			c_slow,cmass_stand+c_litter+c_fast+c_slow);
 
@@ -1945,18 +1864,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			}
 		}
 
-		// Close files if annual output suppressed
-
-		/*
-		if (!annual_output) {
-			fclose(out_cmass);
-			fclose(out_anpp);
-			fclose(out_lai);
-			fclose(out_cflux);
-			fclose(out_runoff); // guess2008
-			fclose(out_dens); // guess2008
-		}
-		*/
 	}
 }
 
@@ -1977,8 +1884,8 @@ void termio() {
 		if (out_anpp) fclose(out_anpp);
 		if (out_lai) fclose(out_lai);
 		if (out_cflux) fclose(out_cflux);
-		if (out_runoff) fclose(out_runoff); // guess2008
-		if (out_dens) fclose(out_dens); // guess2008
+		if (out_runoff) fclose(out_runoff);
+		if (out_dens) fclose(out_dens);
 		if (out_cpool) fclose(out_cpool);
 		if (out_firert) fclose(out_firert);
 

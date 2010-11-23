@@ -13,7 +13,9 @@
 // Source code file name: guessio.cpp
 // Written by:            Ben Smith
 // Version dated:         2003-07-22/2005-01-25
-//
+// Updated:               2010-11-22
+
+
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:
 //   (1) a "#include" directive naming the framework header file. The framework header
@@ -48,9 +50,7 @@
 #include <algorithm>
 
 
-// guess2008 - header file for the combined CRU data archives
-// #include "cru.h" - CRU TS2.1
-// guess2008 - cru3p0
+// guess2008 - header file for the CRU TS 3.0 data archives
 #include "cru_1901_2006.h"
 #include "cru_1901_2006misc.h"
 
@@ -165,7 +165,6 @@ bool includepft;
 
 // guess2008 - Now declare the output file xtrings here
 // Output file names ...
-//xtring file_cmass,file_anpp,file_mnpp,file_lai,file_flux,file_soilw,file_aet,file_soilc,file_runoff;
 xtring outputdirectory;
 xtring file_cmass,file_anpp,file_dens,file_lai,file_cflux,file_cpool,file_runoff;
 xtring file_mnpp,file_mlai,file_mgpp,file_mra,file_maet,file_mpet,file_mevap,file_mrunoff,file_mintercep,file_mrh;
@@ -188,14 +187,12 @@ void initsettings() {
 	vegmode=COHORT;
 	searchradius = 0;
 
-	// guess2008
-	//ifsmoothgreffmort=false;
-
 	// guess2008 - initialise filenames here
 	outputdirectory = "";
 	file_cmass=file_anpp=file_lai=file_cflux=file_dens=file_runoff="";
 	file_mnpp=file_mlai=file_maet=file_mpet=file_mevap=file_mrunoff=file_mintercep=file_mrh="";
 	file_mgpp=file_mra=file_mnee=file_mwcont_upper=file_mwcont_lower="";
+	file_cpool=file_firert="";
 
 }
 
@@ -242,7 +239,8 @@ void plib_declarations(int id,xtring setname) {
 	case BLOCK_GLOBAL:
 
 		declareitem("title",&title,80,CB_NONE,"Title for run");
-		declareitem("nyear_spinup",&nyear_spinup,1,10000,1,CB_NONE,"Number of simulation years to spinup for"); // guess2008
+		// guess2008 - changed this input parameter name from nyear to nyear_spinup, which is more descriptive 
+		declareitem("nyear_spinup",&nyear_spinup,1,10000,1,CB_NONE,"Number of simulation years to spinup for");
 		declareitem("vegmode",&strparam,16,CB_VEGMODE,
 			"Vegetation mode (\"INDIVIDUAL\", \"COHORT\", \"POPULATION\")");
 		declareitem("ifdailynpp",&ifdailynpp,1,CB_NONE,
@@ -385,8 +383,6 @@ void plib_declarations(int id,xtring setname) {
 		// for the shrub allometries.
 		declareitem("k_allom2",&ppft->k_allom2,1.0,1.0e4,1,CB_NONE,
 			"Constant in allometry equations");
-		//declareitem("k_allom2",&ppft->k_allom2,1.0,1.0e4,1,CB_NONE,
-		//	"Constant in allometry equations");
 		declareitem("k_allom3",&ppft->k_allom3,0.1,1.0,1,CB_NONE,
 			"Constant in allometry equations");
 		declareitem("k_rp",&ppft->k_rp,1.0,2.0,1,CB_NONE,
@@ -885,7 +881,7 @@ public:
 		}
 	}
 
-	// guess2008 - NEW METHODS - 
+	// guess2008 - NEW METHODS 
 
 	void reset_clim() {
 		for (int ii = 0; ii < 12; ii++) dataclim[ii] = 0.0;
@@ -1001,7 +997,7 @@ public:
 
 	}
 
-	// guess2008 - END OF NEW METHODS - 
+	// guess2008 - END OF NEW METHODS
 
 
 	void detrend_data() {
@@ -1036,12 +1032,10 @@ public:
 };
 
 // Constants associated with historical climate data set
-// const int NYEAR_HIST=102; // guess2008 - CRU TS 2.1 has 102 years of data (1901-2002)
-	// number of years of historical climate in CRU and CO2 files (see below)
-// guess2008 - cru3p0
+
+// guess2008
 const int NYEAR_HIST=106; // guess2008 - CRU TS 3.0 has 106 years of data (1901-2006)
 	// number of years of historical climate in CRU and CO2 files (see below)
-
 const int FIRSTHISTYEAR=1901;
 	// calender year corresponding to first year in CRU climate data set
 const int NYEAR_SPINUP_DATA=30;
@@ -1055,12 +1049,8 @@ FILE *in_cru;
 // Full pathname of ASCII file containing annual CO2 values (read from ins file)
 xtring file_co2;
 
-// Output file names ...
-// guess2008 - added runoff and dens
-// xtring file_cmass,file_anpp,file_lai,file_cflux,file_runoff,file_dens;
 
-// ... and streams
-// guess2008 - added runoff and dens
+// Output streams
 FILE *out_cmass,*out_anpp,*out_lai,*out_cflux,*out_cpool,*out_runoff,*out_dens;
 FILE *out_mnpp,*out_mlai,*out_mgpp,*out_mra,*out_maet,*out_mpet,*out_mevap,*out_mrunoff,*out_mintercep,*out_mrh;
 FILE *out_mnee,*out_mwcont_upper,*out_mwcont_lower; 
@@ -1105,10 +1095,6 @@ Spinup_data spinup_mdtr(NYEAR_SPINUP_DATA);
 // Daily temperature, precipitation and sunshine for one year
 double dtemp[365],dprec[365],dsun[365];
 
-// guess2008 - no longer needed 
-// int nyear_spinup;
-	// number of years to spin up for (before moving over to historical data set)
-
 bool annual_output;
 	// whether output should occur each simulation year (true) or at end of simulation
 	// for each grid cell only (false)
@@ -1122,190 +1108,15 @@ xtring file_cru_misc;
 ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
 // 
-// guess2008 - new functions for reading CRU TS 2.1 binary files.
+// guess2008 - new functions for reading CRU TS 3.0 binary files.
 //
 ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-// SEARCHCRU
-// Determine temp, precip, sunshine & soilcode
-
-/*
-
-// guess2008 - cru3p0 - replace this CRU TS 2.1 version is replaced below
-bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
-	double mtemp[NYEAR_HIST][12],double mprec[NYEAR_HIST][12],
-	double msun[NYEAR_HIST][12]) {
-
-	// !!!! NEW VERSION OF THIS FUNCTION - guess2008 - NEW VERSION OF THIS FUNCTION !!!!
-	// Please note the new function signature. 
-
-	// Archive object. Definition in new header file, cru.h
-	Cru_1901_2002Archive ark; 
-
-	int target_ilon=dlon*10.0;
-	int target_ilat=dlat*10.0;
-	int this_ilon,this_ilat;
-	int y,m;
-
-	// Try block to catch any unexpected errors
-	try {
-
-		Cru_1901_2002 data; // struct to hold the data 
-
-		bool success = ark.open(cruark);
-
-		if (success) {
-			bool flag = ark.rewind();
-			if (!flag) { 
-				ark.close(); // I.e. we opened it but we couldn´t rewind
-				return false;
-			}
-		}
-		else
-			return false;
-
-
-		// The CRU archive index hold lons & lats as whole doubles * 10
-		data.lon = dlon * 10.0;
-		data.lat = dlat * 10.0;
-
-		// Read the CRU data into the data struct
-		success =ark.getindex(data);
-		if (!success) {
-			ark.close();
-			return false;
-		}
-
-		// Transfer the data from the data struct to the arrays. 
-		soilcode=(int)data.soilcode[0];
-
-		// TEST!!! Sand
-		// soilcode = 1;
-
-		for (y=0;y<NYEAR_HIST;y++) {
-			for (m=0;m<12;m++) {
-				mtemp[y][m] = data.mtemp[y*12+m]*0.1; // now degC
-				mprec[y][m] = data.mprec[y*12+m]*0.1; // mm (sum over month)
-				
-				// Hack! Because negligible precipitation causes problems in the 
-				// prdaily function (infinite loops). 
-				if (mprec[y][m] <= 1.0) mprec[y][m] = 0.0;
-				
-				msun[y][m]  = data.msun[y*12+m]*0.1;   // % sun 
-
-
-				// TEST!!! Drought
-				//mprec[y][m] *= 0.7
-
-			}
-		}
-
-
-		// Close the archive
-		ark.close();
-
-		return true;
-	
-	}
-	catch(...) {
-		// Unknown error.
-		return false;
-	}
-}
-
-
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-// SEARCHCRU_MISC
-// Determine elevation, frs frq, wet frq & DTR
-
-bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
-	double mfrs[NYEAR_HIST][12],double mwet[NYEAR_HIST][12],
-	double mdtr[NYEAR_HIST][12]) {
-	
-	// Please note the new function signature. 
-
-	// Archive object. Definition in new header file, cru.h
-	Cru_1901_2002_miscArchive ark; 
-
-	int y,m;
-
-	// Try block to catch any unexpected errors
-	try {
-
-		Cru_1901_2002_misc data; // struct to hold the data 
-
-		bool success = ark.open(cruark);
-
-		if (success) {
-			bool flag = ark.rewind();
-			if (!flag) { 
-				ark.close(); // I.e. we opened it but we couldn´t rewind
-				return false;
-			}
-		}
-		else
-			return false;
-
-
-		// The CRU archive index hold lons & lats as whole doubles * 10
-		data.lon = dlon * 10.0;
-		data.lat = dlat * 10.0;
-
-		// Read the CRU data into the data struct
-		success =ark.getindex(data);
-		if (!success) {
-			ark.close();
-			return false;
-		}
-
-		// Transfer the data from the data struct to the arrays.
-		// Note that the multipliers are NOT the same as in searchcru above!
-		elevation=(int)data.elv[0]; // km * 1000
-
-		for (y=0;y<NYEAR_HIST;y++) {
-			for (m=0;m<12;m++) {
-
-				// guess2008 - catch rounding errors 
-				mfrs[y][m] = data.mfrs[y*12+m]*0.01; // days
-				if (mfrs[y][m] < 0.1) 
-					mfrs[y][m] = 0.0; // Catches rounding errors
-
-				mwet[y][m] = data.mwet[y*12+m]*0.01; // days
-				if (mwet[y][m] <= 0.1) 
-					mwet[y][m] = 0.0; // Catches rounding errors
-
-				mdtr[y][m] = data.mdtr[y*12+m]*0.1;  // degC
-			}
-		}
-
-		// Close the archive
-		ark.close();
-
-		return true;
-	
-	}
-	catch(...) {
-		// Unknown error.
-		return false;
-	}
-}
-
-*** END OF CRU TS 2.1 FUNCTIONS ***
-
-*/
-
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // SEARCHCRU
 // Determine temp, precip, sunshine & soilcode
  
-// cru3p0
 bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 	double mtemp[NYEAR_HIST][12],double mprec[NYEAR_HIST][12],
 	double msun[NYEAR_HIST][12]) {
@@ -1314,17 +1125,17 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 	// Please note the new function signature. 
 
 	// Archive object. Definition in new header file, cru.h
-	Cru_1901_2006Archive ark; // cru3p0 - was 2002
+	Cru_1901_2006Archive ark;
 
 	int target_ilon=dlon*10.0;
 	int target_ilat=dlat*10.0;
-	//int this_ilon,this_ilat;
+
 	int y,m;
 
 	// Try block to catch any unexpected errors
 	try {
 
-		Cru_1901_2006 data; // struct to hold the data // cru3p0 - was 2002
+		Cru_1901_2006 data; // struct to hold the data
 
 		bool success = ark.open(cruark);
 
@@ -1359,8 +1170,8 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 				mtemp[y][m] = data.mtemp[y*12+m]*0.1; // now degC
 				mprec[y][m] = data.mprec[y*12+m]*0.1; // mm (sum over month)
 				
-				// Hack! Because negligible precipitation causes problems in the 
-				// prdaily function (infinite loops). 
+				// Limit very low precip amounts because negligible precipitation causes problems 
+				// in the prdaily function (infinite loops). 
 				if (mprec[y][m] <= 1.0) mprec[y][m] = 0.0;
 				
 				msun[y][m]  = data.msun[y*12+m]*0.1;   // % sun 
@@ -1387,8 +1198,6 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 ///////////////////////////////////////////////////////////////////////////////////////
 // SEARCHCRU_MISC
 // Determine elevation, frs frq, wet frq & DTR
-// Anders A
-// guess2008 - cru3p0
 
 bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 	double mfrs[NYEAR_HIST][12],double mwet[NYEAR_HIST][12],
@@ -1598,8 +1407,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	bool abort;
 	xtring insfilename;
 	xtring header;
-	// guess2008 - file_cru is now a global variable
-	// xtring file_cru; 
+ 
 
 	unixtime(header);
 	header=(xtring)"[LPJ-GUESS  "+header+"]\n\n";
@@ -1654,6 +1462,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	if (!in_grid) fail("initio: could not open %s for input",(char*)file_gridlist);
 
 	file_cru=param["file_cru"].str;
+	file_cru_misc=param["file_cru_misc"].str;
 
 	
 	ngridcell=0;
@@ -1678,57 +1487,13 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	// Read CO2 data from file
 	readco2();
 
-	// guess2008 - do not open the CRU files here. 
-	// This is done in the NEW searchcru(_misc) functions
-	// Old code:
-	/*
-	// Retrieve full pathname to CRU climate data file and open it
-	file_cru=param["file_cru"].str;
-	in_cru=fopen(file_cru,"rb");
-	if (!in_cru) fail("initio: could not open %s for input",(char*)file_cru);
-	*/
-	
-	// New code:
-	// Retrieve full pathname to CRU climate data files
-	//file_cru=param["file_cru"].str;
-	file_cru_misc=param["file_cru_misc"].str;
-
-
-	// guess2008 - no longer needed
-	// Number of years to spin up for (user "nyear" parameter)
-	// nyear_spinup=nyear;
 
 	// Remember whether to produce output each year or not
 	annual_output=param["annual_output"].num;
 
 
-
+	// guess2008
 	// Retrieve output file names as read from ins file
-	// guess2008 - added runoff and dens
-
-/*
-	file_cmass=param["file_cmass"].str;
-	file_anpp=param["file_anpp"].str;
-	file_lai=param["file_lai"].str;
-	file_cflux=param["file_cflux"].str;
-	file_runoff=param["file_runoff"].str;
-	file_dens=param["file_dens"].str;
-
-	// Open output files
-	// guess2008 - added runoff and dens
-
-	out_cmass=fopen(file_cmass,"w");
-	out_anpp=fopen(file_anpp,"w");
-	out_lai=fopen(file_lai,"w");
-	out_cflux=fopen(file_cflux,"w");
-	out_runoff=fopen(file_runoff,"w");
-	out_dens=fopen(file_dens,"w");
-
-	// guess2008 - added runoff and dens
-	if (!out_cmass || !out_anpp || !out_lai || !out_cflux || !out_runoff || !out_dens)
-		fail("initio: could not open file(s) for output");
-*/
-
 
 	// We MUST have an output directory
 	if (outputdirectory=="") {
@@ -1758,7 +1523,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		if (!out_dens) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_dens);
 	}
 	else out_dens=NULL;
-
 
 	if (file_lai!="") {
 		file_lai = outputdirectory + file_lai;
@@ -1950,7 +1714,7 @@ bool getstand(Stand& stand) {
 
 	bool gridfound;
 
-	// guess2008 - ML bugfix
+	// guess2008 - run with the same randon number sequence each time
 	setseed(12345678);
 
 	if (firstgrid) {
@@ -1975,13 +1739,6 @@ bool getstand(Stand& stand) {
 			gridfound = searchcru_misc(file_cru_misc, lon, lat, elevation, 
 			                           hist_mfrs, hist_mwet, hist_mdtr);
 
-		// Old code:
-		/*
-		// Load environmental data for this grid cell from CRU file
-		gridfound=searchcru(in_cru,gridlist.getobj().lon,
-			gridlist.getobj().lat,soilcode,hist_mtemp,hist_mprec,hist_msun);
-		*/
-
 
 		while (!gridfound) {
 
@@ -1999,11 +1756,6 @@ bool getstand(Stand& stand) {
 					gridfound = searchcru_misc(file_cru_misc, lon, lat, elevation,
 					                           hist_mfrs, hist_mwet, hist_mdtr);
 
-				// Old code:
-				/*
-				gridfound=searchcru(in_cru,gridlist.getobj().lon,
-					gridlist.getobj().lat,soilcode,hist_mtemp,hist_mprec,hist_msun);
-				*/
 			}
 			else return false;
 		}
@@ -2095,11 +1847,7 @@ bool getclimate(Stand& stand) {
 
 			int m;
 			double mtemp[12],mprec[12],msun[12];
-			// guess2008
 			double mfrs[12],mwet[12],mdtr[12];
-
-			// guess2008 - checksum - debugging
-			double total_mprec = 0.0;
 
 			for (m=0;m<12;m++) {
 				mtemp[m]=spinup_mtemp[m];
@@ -2107,7 +1855,6 @@ bool getclimate(Stand& stand) {
 				msun[m]=spinup_msun[m];
 
 				// guess2008
-				total_mprec += mprec[m];
 				mfrs[m]=spinup_mfrs[m];
 				mwet[m]=spinup_mwet[m];
 				mdtr[m]=spinup_mdtr[m];
@@ -2116,25 +1863,12 @@ bool getclimate(Stand& stand) {
 			// Interpolate monthly spinup data to quasi-daily values
 			interp_climate(mtemp,mprec,msun,dtemp,dprec,dsun);
 
-			// guess2008 - checksum - debugging
-			double total_dprec = 0.0;
-			for (dd = 0; dd < 365; dd++)
-				total_dprec += dprec[dd];
-
 			// guess2008 - only recalculate precipitation values using weather generator
 			// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
 			if (ifrainonwetdaysonly) { 
 				// (from Dieter Gerten 021121)
 				prdaily(mprec,dprec,mwet);
 			}
-
-			// guess2008 - to do - check for wet day bias. 
-
-			// guess2008 - checksum - debugging
-			double total_dprec_wet = 0.0;
-			for (dd = 0; dd < 365; dd++)
-				total_dprec_wet += dprec[dd];
-
 
 			spinup_mtemp.nextyear();
 			spinup_mprec.nextyear();
@@ -2162,10 +1896,6 @@ bool getclimate(Stand& stand) {
 				prdaily(hist_mprec[date.year-nyear_spinup],dprec,hist_mwet[date.year-nyear_spinup]);
 			}
 
-			// guess2008 - old precip code:
-			// Recalculate precipitation values using weather generator
-			// (from Dieter Gerten 021121)
-			// prdaily(hist_mprec[date.year-nyear_spinup],dprec,mwet);
 		}
 	}
 
@@ -2208,6 +1938,7 @@ bool getclimate(Stand& stand) {
 // OUTANNUAL
 // Called by the framework at the end of the last day of each simulation year
 
+// guess2008 - many changes to this output routine. 
 void outannual(Stand& stand,Pftlist& pftlist) {
 
 	// DESCRIPTION
@@ -2216,9 +1947,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	// provide any information to the framework.
 
 	int p,c,m,nclass;
-	double cmass_stand,anpp_stand,lai_stand,runoff_stand,dens_stand; // guess2008 - added runoff & dens
+	double cmass_stand,anpp_stand,lai_stand,runoff_stand,dens_stand;
 	double flux_veg,flux_soil,flux_fire,flux_est;
-	double c_litter,c_fast,c_slow; // guess2008 - output in cpool
+	double c_litter,c_fast,c_slow; 
 	double firert_stand; 
 
 	// guess2008 - hold the monthly average across patches
@@ -2245,26 +1976,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	if (date.year==0 && firstgrid) {
 
 		// Very first time only
-
-		// Open output files if annual output suppressed
-		// (otherwise they were already opened in function initio)
-
-		// guess2008 - added runoff and dens
-
-		/* guess2008 - outcommented
-		if (!annual_output) {
-			out_cmass=fopen(file_cmass,"w");
-			out_anpp=fopen(file_anpp,"w");
-			out_lai=fopen(file_lai,"w");
-			out_cflux=fopen(file_cflux,"w");
-			out_runoff=fopen(file_runoff,"w");
-			out_dens=fopen(file_dens,"w");
-
-			if (!out_cmass || !out_anpp || !out_lai || !out_cflux || !out_runoff || !out_dens)
-			fail("outannual: could not open file(s) for output");
-
-		}
-		*/
 
 		// Print column labels
 		// guess2008 - added runoff & dens
@@ -2307,7 +2018,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			if (out_cmass) fprintf(out_cmass,"%8s",(char*)pft.name);
 			if (out_anpp) fprintf(out_anpp,"%8s",(char*)pft.name);
 			if (out_lai) fprintf(out_lai,"%8s",(char*)pft.name);
-			if (out_dens) fprintf(out_dens,"%8s",(char*)pft.name); // guess2008
+			if (out_dens) fprintf(out_dens,"%8s",(char*)pft.name);
 			pftlist.nextobj();
 		}
 
@@ -2316,8 +2027,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_cmass) fprintf(out_cmass,"%8s\n","Total");
 		if (out_anpp) fprintf(out_anpp,"%8s\n","Total");
 		if (out_lai) fprintf(out_lai,"%8s\n","Total");
-		if (out_runoff) fprintf(out_runoff,"%8s\n","Total"); // guess2008 - average runoff across patches
-		if (out_dens) fprintf(out_dens,"%8s\n","Total"); // guess2008
+		if (out_runoff) fprintf(out_runoff,"%8s\n","Total");
+		if (out_dens) fprintf(out_dens,"%8s\n","Total");
 
 
 		// guess2008
@@ -2336,46 +2047,16 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_mnee) fprintf(out_mnee,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
 		if (out_mwcont_upper) fprintf(out_mwcont_upper,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
 		if (out_mwcont_lower) fprintf(out_mwcont_lower,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-	
-
-		// Close files if annual output suppressed
-
-		/*
-		if (!annual_output) {
-			fclose(out_cmass);
-			fclose(out_anpp);
-			fclose(out_lai);
-			fclose(out_cflux);
-			fclose(out_runoff); // guess2008
-			fclose(out_dens); // guess2008
-		}
-		*/
 
 		firstgrid=false;
 	}
 	
-	// guess2008
-	//if (date.year>=nyear_spinup+60 && date.year<nyear_spinup+90) {
+	// guess2008 - yearly output after spinup
+		
+	// If only yearly output between, say 1961 and 1990 is requred, use: 
+	//	if (date.year>=nyear_spinup+60 && date.year<nyear_spinup+90) {
+
 	if (date.year>=nyear_spinup) {
-	//if (annual_output || date.year==nyear_spinup-1) {
-
-		// Each year (if annual output), or last year of simulation
-
-		// Open output files in append mode if annual output suppressed
-
-		/*
-		if (!annual_output) {
-			out_cmass=fopen(file_cmass,"a");
-			out_anpp=fopen(file_anpp,"a");
-			out_lai=fopen(file_lai,"a");
-			out_cflux=fopen(file_cflux,"a");
-			out_runoff=fopen(file_runoff,"a"); // guess2008
-			out_dens=fopen(file_dens,"a"); // guess2008
-
-			if (!out_cmass || !out_anpp || !out_lai || !out_cflux || !out_runoff || !out_dens)
-				fail("outannual: could not open file(s) for output");			
-		}
-		*/
 
 		lon=gridlist.getobj().lon;
 		lat=gridlist.getobj().lat;
@@ -2383,9 +2064,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		cmass_stand=0.0;
 		anpp_stand=0.0;
 		lai_stand=0.0;
-		runoff_stand=0.0; // guess2008
-		dens_stand=0.0; // guess2008
-		firert_stand=0.0; // guess2008
+		runoff_stand=0.0;
+		dens_stand=0.0;
+		firert_stand=0.0;
 
 		// Print longitude, latitude, year
 
@@ -2395,8 +2076,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_anpp) fprintf(out_anpp,lonlatyeardatastr,lon,lat,date.year);
 		if (out_lai) fprintf(out_lai,lonlatyeardatastr,lon,lat,date.year);
 		if (out_cflux) fprintf(out_cflux,lonlatyeardatastr,lon,lat,date.year);
-		if (out_runoff) fprintf(out_runoff,lonlatyeardatastr,lon,lat,date.year); // guess2008
-		if (out_dens) fprintf(out_dens,lonlatyeardatastr,lon,lat,date.year); // guess2008
+		if (out_runoff) fprintf(out_runoff,lonlatyeardatastr,lon,lat,date.year);
+		if (out_dens) fprintf(out_dens,lonlatyeardatastr,lon,lat,date.year);
 		if (out_cpool) fprintf(out_cpool,lonlatyeardatastr,lon,lat,date.year);
 		if (out_firert) fprintf(out_firert,lonlatyeardatastr,lon,lat,date.year);
 
@@ -2433,7 +2114,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			standpft.cmass_total=0.0;
 			standpft.anpp_total=0.0;
 			standpft.lai_total=0.0;
-			standpft.densindiv_total = 0.0; // guess2008
+			standpft.densindiv_total = 0.0;
 
 			// Initialise age structure array
 
@@ -2454,9 +2135,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 					// guess2008 - alive check added
 					if (indiv.id!=-1 && indiv.alive) { 
 					
-						// (if not dead and has existed for at least one year)
-						// Ben 2007-11-28
-
 						if (indiv.pft.id==pft.id) {
 							standpft.cmass_total+=indiv.cmass_leaf+
 								indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
@@ -2493,7 +2171,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			standpft.cmass_total/=(double)npatch;
 			standpft.anpp_total/=(double)npatch;
 			standpft.lai_total/=(double)npatch;
-			// guess2008 - calculate the average across patches of individuals of this pft per m2
 			standpft.densindiv_total/=(double)npatch;
 
 
@@ -2502,14 +2179,14 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			cmass_stand+=standpft.cmass_total;
 			anpp_stand+=standpft.anpp_total;
 			lai_stand+=standpft.lai_total;
-			dens_stand+=standpft.densindiv_total; // guess2008
+			dens_stand+=standpft.densindiv_total;
 		
 			// Print PFT sums to files
 
 			if (out_cmass) fprintf(out_cmass,"%8.3f",standpft.cmass_total);
 			if (out_anpp) fprintf(out_anpp,"%8.3f",standpft.anpp_total);
 			if (out_lai) fprintf(out_lai,"%8.4f",standpft.lai_total);
-			if (out_dens) fprintf(out_dens,"%8.4f",standpft.densindiv_total); // guess2008
+			if (out_dens) fprintf(out_dens,"%8.4f",standpft.densindiv_total);
 
 			// Graphical output every 10 years
 			// (Windows shell only - "plot" statements have no effect otherwise)
@@ -2548,7 +2225,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 				c_litter+=(pft.litter_leaf+pft.litter_root+pft.litter_wood+pft.litter_repr)/(double)npatch;
 			}
 
-			// guess2008 - average runoff across patches 
 			runoff_stand+=stand[p].arunoff/(double)npatch;
 			
 			// Fire return time
@@ -2571,9 +2247,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 				mwcont_upper[m] += stand[p].soil.mwcont[m][0]/(double)npatch;
 				mwcont_lower[m] += stand[p].soil.mwcont[m][1]/(double)npatch;
 
-				// guess2008 - average across stands to get mgpp and mra here instead of below. 
-				mgpp[m] += stand[p].fluxes.mcflux_gpp[m]/(double)npatch; //ANDERS A TRENDY
-				mra[m] += stand[p].fluxes.mcflux_ra[m]/(double)npatch; //ANDERS A TRENDY
+				// guess2008 - average across stands to get mgpp and mra here. 
+				mgpp[m] += stand[p].fluxes.mcflux_gpp[m]/(double)npatch;
+				mra[m] += stand[p].fluxes.mcflux_ra[m]/(double)npatch;
 
 			}
 
@@ -2621,9 +2297,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_cmass) fprintf(out_cmass,"%8.3f\n",cmass_stand);
 		if (out_anpp) fprintf(out_anpp,"%8.3f\n",anpp_stand);
 		if (out_lai) fprintf(out_lai,"%8.4f\n",lai_stand);
-		if (out_runoff) fprintf(out_runoff,"%8.1f\n",runoff_stand); // guess2008
-		if (out_dens) fprintf(out_dens,"%8.4f\n",dens_stand); // guess2008
-		if (out_firert) fprintf(out_firert,"%8.1f\n",firert_stand); // guess2008
+		if (out_runoff) fprintf(out_runoff,"%8.1f\n",runoff_stand);
+		if (out_dens) fprintf(out_dens,"%8.4f\n",dens_stand);
+		if (out_firert) fprintf(out_firert,"%8.1f\n",firert_stand);
 
 		// Print monthly output variables
 		for (m=0;m<12;m++) {
@@ -2679,7 +2355,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_cflux) fprintf(out_cflux,"%8.3f%8.3f%8.3f%8.3f%10.5f\n",flux_veg,flux_soil,flux_fire,
 			flux_est,flux_veg+flux_soil+flux_fire+flux_est);
 
-		// guess2008 - write carbon pools to a file
+		// guess2008 - output carbon pools
 		if (out_cpool) fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%10.4f\n",cmass_stand,c_litter,c_fast,
 			c_slow,cmass_stand+c_litter+c_fast+c_slow);
 
@@ -2711,18 +2387,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			}
 		}
 
-		// Close files if annual output suppressed
-
-		/*
-		if (!annual_output) {
-			fclose(out_cmass);
-			fclose(out_anpp);
-			fclose(out_lai);
-			fclose(out_cflux);
-			fclose(out_runoff); // guess2008
-			fclose(out_dens); // guess2008
-		}
-		*/
 	}
 }
 
@@ -2743,8 +2407,8 @@ void termio() {
 		if (out_anpp) fclose(out_anpp);
 		if (out_lai) fclose(out_lai);
 		if (out_cflux) fclose(out_cflux);
-		if (out_runoff) fclose(out_runoff); // guess2008
-		if (out_dens) fclose(out_dens); // guess2008
+		if (out_runoff) fclose(out_runoff);
+		if (out_dens) fclose(out_dens);
 		if (out_cpool) fclose(out_cpool);
 		if (out_firert) fclose(out_firert);
 
@@ -2768,102 +2432,5 @@ void termio() {
 	gridlist.killall();
 }
 
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-// guess2008 - OLD CODE FOLLOWS
-
-/*
-short int binread(FILE* in) {
-
-	unsigned char hb,lb;
-
-	fread(&hb,sizeof(char),1,in);
-	fread(&lb,sizeof(char),1,in);
-
-	int result=hb*256+lb-32768;
-
-	return result;
-}
-
-
-bool searchcru(FILE*& incru,double dlon,double dlat,int& soilcode,
-	double mtemp[NYEAR_HIST][12],double mprec[NYEAR_HIST][12],
-	double msun[NYEAR_HIST][12]) {
-
-	// Iteratively searches for record (dlon,dlat) in
-	// binary CRU historical climate data file
-	// Returns false if specified grid cell not found, otherwise true
-
-	const long RECORD_LENGTH=sizeof(short int)*(3+NYEAR_HIST*12*3);
-	fseek(incru,0,SEEK_END);
-	const int NRECORD=ftell(incru)/RECORD_LENGTH; // Number of records in file
-
-	long nudge=0;
-	long direction=1;
-	long this_record=0;
-
-	int target_ilon=dlon*10.0;
-	int target_ilat=dlat*10.0;
-	int this_ilon,this_ilat;
-	int y,m;
-
-	bool not_done=true;
-
-	long offset=NRECORD/2+NRECORD%2;
-
-	rewind(incru);
-
-	while (not_done) {
-		this_record+=offset*direction;
-		if (this_record<NRECORD && this_record>=0)
-			fseek(incru,RECORD_LENGTH*offset*direction-nudge,SEEK_CUR);
-		else
-			fseek(incru,-nudge,SEEK_CUR);
-
-		if (offset==1) not_done=false;
-
-		this_ilon=binread(incru);
-		this_ilat=binread(incru);
-		nudge=4;
-
-		if (this_ilon<target_ilon) { // move file pointer forward
-			direction=1;
-		}
-		else if (this_ilon>target_ilon) {  // move file pointer backward
-			direction=-1;
-		}
-		else { // longitude found
-			if (this_ilat<target_ilat) { // move file pointer forward
-				direction=1;
-			}
-			else if (this_ilat>target_ilat) { // move file pointer backward
-				direction=-1;
-			}
-			else { // target cell found
-
-				soilcode=binread(incru);
-
-				for (y=0;y<NYEAR_HIST;y++) {
-					for (m=0;m<12;m++) {
-						mtemp[y][m]=(double)binread(incru)*0.1;
-						mprec[y][m]=(double)binread(incru);
-						msun[y][m]=(double)binread(incru);
-					}
-				}
-
-				return true;
-			}
-		}
-
-		offset=offset/2+offset%2;
-	}
-
-	// not found
-
-	return false;
-}
-
-*/
 
 #endif // USE_CRU

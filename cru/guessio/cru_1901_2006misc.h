@@ -3,6 +3,9 @@
 // Header file for input from a fast data archive
 // Created automatically by FastArchive on Wed Jun 17 08:40:17 2009
 //
+// Version dated:         2010-11-22
+//
+//
 // The following #includes should appear in your source code file:
 //
 //   #include <stdio.h>

@@ -9,7 +9,9 @@
 // Source code file name: growth.cpp
 // Written by:            Ben Smith
 // Version dated:         2002-12-16
-//
+// Updated:               2010-11-22
+
+
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:
 //   (1) a "#include" directive naming the framework header file. The framework header
@@ -243,7 +245,7 @@ void turnover_oecd(double turnover_leaf,double turnover_root,double turnover_sap
 	// (equal amount for each month)
 
 	// guess2008 - new (indiv.)alive boolean throughout. Also, only turnover from 'alive' 
-	// individuals is transferred to litter (Ben 2007-11-28)
+	// individuals is transferred to litter
 
 
 	double turnover = 0.0;
@@ -644,7 +646,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 				// Add killed roots (if any) to litter
 
-				// guess2008 - back to LPJF way in this case
+				// guess2008 - back to LPJF method in this case
 				// if (cmass_root_inc<0.0) litter_root_inc=-cmass_root_inc;
 				if (cmass_root_inc<0.0) {
 					cmass_leaf_inc = bminc;
@@ -704,7 +706,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// guess2008 - bugfix 
 			// litter_leaf_inc=-cmass_leaf_inc;
-			litter_leaf_inc=min(-cmass_leaf_inc, cmass_leaf);  // Mats bugfix 10-06-10
+			litter_leaf_inc=min(-cmass_leaf_inc, cmass_leaf);
 		}
 		else if (cmass_root_inc<0.0) {
 
@@ -717,7 +719,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// guess2008 - bugfix 
 			//litter_root_inc=-cmass_root_inc;
-			litter_root_inc=min(-cmass_root_inc, cmass_root);  // Mats bugfix 10-06-10
+			litter_root_inc=min(-cmass_root_inc, cmass_root);
 
 		}
 	}
@@ -760,12 +762,13 @@ void allocation_init(double bminit,double ltor,Individual& indiv) {
 // Should be called to update allometry, FPC and FPC increment whenever biomass values
 // for a vegetation individual change.
 
-// guess2008 - 080827 - return bool
 bool allometry(Individual& indiv) {
 
 	// DESCRIPTION
 	// Calculates tree allometry (height and crown area) and fractional projective
 	// given carbon biomass in various compartments for an individual.
+
+	// Returns true if the allometry is normal, otherwise false - guess2008
 
 	// TREE ALLOMETRY
 	// Trees aboveground allometry is modelled by a cylindrical stem comprising an
@@ -812,8 +815,9 @@ bool allometry(Individual& indiv) {
 	double diam; // stem diameter (m)
 	double fpc_new; // updated FPC
 
-	// guess2008 - max tree height allowed.
+	// guess2008 - max tree height allowed (metre).
 	const double HEIGHT_MAX = 150.0; 
+
 
 	if (indiv.pft.lifeform==TREE) {
 
@@ -821,8 +825,7 @@ bool allometry(Individual& indiv) {
 
 		// Height (Eqn 4)
 
-		// guess2008 - 080827 - Ben's new allometry check 
-		
+		// guess2008 - new allometry check 
 		if (!negligible(indiv.cmass_leaf)) {
 			indiv.height=indiv.cmass_sap/indiv.cmass_leaf/indiv.pft.sla*
 				indiv.pft.k_latosa/indiv.pft.wooddens;
@@ -838,30 +841,15 @@ bool allometry(Individual& indiv) {
 		else {
 			indiv.height=0.0;
 			diam=0.0;
-			return false; // guess2008 - bugfix
+			return false;
 		}
 
 
-		// guess2008 - 080827
-/*
-
-		if (!negligible(indiv.cmass_leaf)) 
-			indiv.height=indiv.cmass_sap/indiv.cmass_leaf/indiv.pft.sla*
-				indiv.pft.k_latosa/indiv.pft.wooddens;
-		else
-			indiv.height=0.0;
-
-
-		// Stem diameter (Eqn 5)
-		diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
-
-*/
-
-		// guess2008 - 080827 - extra check
+		// guess2008 - extra height check
 		if (indiv.height > HEIGHT_MAX) {
 			indiv.height=0.0;
 			diam = 0.0;
-			return false; // guess2008 - bugfix
+			return false;
 		}
 
 
@@ -915,7 +903,7 @@ bool allometry(Individual& indiv) {
 
 	}
 
-	// guess2008 - 080827
+	// guess2008 - new return value (was void)
 	return true;
 }
 
@@ -933,7 +921,7 @@ double fracmass_lpj(double fpc_low,double fpc_high,Individual& indiv) {
 	// reduction from fpc_high to fpc_low, assuming LPJ allometry (see function
 	// allometry)
 
-	// guess2008
+	// guess2008 - check
 	if (fpc_high < fpc_low)
 		fail("fracmass_lpj: fpc_high < fpc_low");
 
@@ -977,7 +965,7 @@ void growth(Stand& stand,Patch& patch) {
 	// patch or modelled area basis assumed to be given by 'anpp' member variable for
 	// each individual.
 
-	// guess2008 
+	// guess2008 - minimum carbon mass allowed (kgC/m2)
 	const double MINCMASS=1.0e-8;
 
 	const double CDEBT_PAYBACK_RATE=0.2;
@@ -995,7 +983,7 @@ void growth(Stand& stand,Patch& patch) {
 		// increment in sapwood C biomass following allocation, on individual basis
 		// (kgC)
 	double cmass_debt_inc = 0.0; 
-		// guess2008 - bugfix - added initialisation - // BLARP!
+		// guess2008 - bugfix - added initialisation
 	double cmass_heart_inc;
 		// increment in heartwood C biomass following allocation, on individual basis
 		// (kgC)
@@ -1051,7 +1039,6 @@ void growth(Stand& stand,Patch& patch) {
 
 			// guess2008 - added bminc check. Otherwise we get -ve litter_leaf for grasses when indiv.anpp < 0.
 			if (bminc >= 0 && (indiv.pft.phenology==RAINGREEN || indiv.pft.phenology==ANY)) {
-			//if (indiv.pft.phenology==RAINGREEN || indiv.pft.phenology==ANY) {
 
 				// Raingreen PFTs: reduce biomass increment to account for NPP
 				// allocated to extra leaves during the past year.
@@ -1067,14 +1054,13 @@ void growth(Stand& stand,Patch& patch) {
 
 				if (cmass_excess>bminc) cmass_excess=bminc;
 
-				// Transfer excess leaves to litter (only for 'alive' individuals - Ben 2007-11-28)
-				// guess2008
+				// Transfer excess leaves to litter
+				// guess2008 - only for 'alive' individuals
 				if (indiv.alive) patch.pft[indiv.pft.id].litter_leaf+=cmass_excess;
 
 				// Deduct from this year's C biomass increment
 				// guess2008 - bugfix - added alive check
 				if (indiv.alive) bminc-=cmass_excess;
-				// bminc-=cmass_excess;
 			}
 
 			// Tissue turnover and associated litter production
@@ -1087,8 +1073,8 @@ void growth(Stand& stand,Patch& patch) {
 			// Update stand record of reproduction by this PFT
 			stand.pft[indiv.pft.id].cmass_repr+=cmass_repr/(double)npatch;
 
-			// Transfer reproduction straight to litter (only for 'alive' individuals - Ben 2007-11-28)
-			// guess2008
+			// Transfer reproduction straight to litter
+			// guess2008 - only for 'alive' individuals
 			if (indiv.alive) patch.pft[indiv.pft.id].litter_repr+=cmass_repr;
 
 			if (indiv.pft.lifeform==TREE) {
@@ -1145,15 +1131,10 @@ void growth(Stand& stand,Patch& patch) {
 					// guess2008 - alive check
 					if (indiv.alive) {
 
-						// guess2008 - bugfix - catches small, negative values too
+						// guess2008 - catches small, negative values too
 						patch.pft[indiv.pft.id].litter_leaf+=indiv.cmass_leaf;
 						patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
 						patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap;
-
-						//patch.pft[indiv.pft.id].litter_leaf+=max(indiv.cmass_leaf,0.0);
-						//patch.pft[indiv.pft.id].litter_root+=max(indiv.cmass_root,0.0);
-						//patch.pft[indiv.pft.id].litter_wood+=max(indiv.cmass_sap,0.0);
-						// end bugfix
 
 						patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_heart-indiv.cmass_debt;
 					}
@@ -1166,7 +1147,7 @@ void growth(Stand& stand,Patch& patch) {
 
 				// GRASS GROWTH
 
-				// guess2008 - bugfix
+				// guess2008 - initial grass cmass
 				double indiv_mass_before=indiv.cmass_leaf+indiv.cmass_root;
 	
 				allocation(bminc,indiv.cmass_leaf,indiv.cmass_root,
@@ -1175,7 +1156,7 @@ void growth(Stand& stand,Patch& patch) {
 					litter_leaf_inc,litter_root_inc);
 
 				// Update carbon pools and litter (on area basis)
-				// (only litter in the case of 'alive' individuals - Ben 2007-11-28)
+				// only litter in the case of 'alive' individuals
 
 				indiv.cmass_leaf+=cmass_leaf_inc;
 				indiv.cmass_root+=cmass_root_inc;
@@ -1185,13 +1166,9 @@ void growth(Stand& stand,Patch& patch) {
 				double indiv_mass_after=indiv.cmass_leaf+indiv.cmass_root+litter_leaf_inc+litter_root_inc;
 				double indiv_cmass_diff=(indiv_mass_before+bminc-indiv_mass_after);		
 
-				// guess2008 - alive check
+				// guess2008 - alive check before ensuring C balance
 				if (indiv.alive) {
-
-					//patch.pft[indiv.pft.id].litter_leaf+=litter_leaf_inc;
-					//patch.pft[indiv.pft.id].litter_root+=litter_root_inc;
-		
-					// guess2008 - bugfix - to ensure C balance
+					
 					patch.pft[indiv.pft.id].litter_leaf+=litter_leaf_inc+indiv_cmass_diff/2;
 					patch.pft[indiv.pft.id].litter_root+=litter_root_inc+indiv_cmass_diff/2;
 	
@@ -1205,9 +1182,6 @@ void growth(Stand& stand,Patch& patch) {
 					// guess2008 - alive check
 					if (indiv.alive) {
 
-						// guess2008 - bugfix
-						//patch.pft[indiv.pft.id].litter_leaf+=max(indiv.cmass_leaf,0.0);
-						//patch.pft[indiv.pft.id].litter_root+=max(indiv.cmass_root,0.0);
 						patch.pft[indiv.pft.id].litter_leaf+=indiv.cmass_leaf;
 						patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
 						
@@ -1219,18 +1193,8 @@ void growth(Stand& stand,Patch& patch) {
 			}
 		}
 
-/*
-		if (!killed) {
-			
-			// Update allometry
-			allometry(indiv);
 
-			// ... on to next individual
-			vegetation.nextobj();
-		}
-*/
-
-		// guess2008 - 080827 - updated by Ben
+		// guess2008
 		if (!killed) {
 
 			if (!allometry(indiv)) {
@@ -1259,32 +1223,6 @@ void growth(Stand& stand,Patch& patch) {
 			}
 		}
 		
-
-		/* 
-
-		// guess2008 - 080827 - old version - before updates by Ben above.
-		if (!killed) {
-			
-			// Update allometry
-			allometry(indiv);
-
-			// guess2008
-			// If this individual was created last year, it has
-			// survived one year, so switch on the 'alive' flag
-			// and debit all carbon to establishment flux
-			// Ben 2007-11-28
-
-			if (!indiv.alive) {
-				patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
-					indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
-				indiv.alive=true;
-			}
-
-			// ... on to next individual
-			vegetation.nextobj();
-		}
-		
-		*/
 	}
 }
 

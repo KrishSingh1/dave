@@ -11,7 +11,9 @@
 // Source code file name: canexch.cpp
 // Written by:            Ben Smith
 // Version dated:         2002-12-16
-//
+// Updated:               2010-11-22
+
+
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module header files need normally contain only declarations of functions defined in
 // the module that are to be accessible to the calling framework or to other modules.

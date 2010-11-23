@@ -8,6 +8,8 @@
 // Source code file name: guess.cpp
 // Written by:            Ben Smith
 // Version dated:         2002-12-16
+// Updated:               2010-11-22
+
 
 #include "config.h"
 #include "guess.h"
@@ -49,8 +51,8 @@ int npft; // number of possible PFTs
 bool iffast;
 bool ifcdebt;
 
-// guess2008 - additions
-bool ifsmoothgreffmort; 
+// guess2008 - new inputs from the .ins file
+bool ifsmoothgreffmort;				// smooth growth efficiency mortality
 bool ifdroughtlimitedestab;			// whether establishment affected by growing season drought
 bool ifrainonwetdaysonly;			// rain on wet days only (1, true), or a little every day (0, false); 
 bool ifspeciesspecificwateruptake;	// water uptake is species specific 

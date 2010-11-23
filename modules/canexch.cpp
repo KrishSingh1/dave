@@ -17,7 +17,9 @@
 // Source code file name: canexch.cpp
 // Written by:            Ben Smith
 // Version dated:         2002-12-16/2005-01-25
-//
+// Updated:               2010-11-22
+
+
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:
 //   (1) a "#include" directive naming the framework header file. The framework header
@@ -47,10 +49,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL CONSTANTS
 
-// guess2008 - moved to guess.h
-//const double PRIESTLEY_TAYLOR=1.32;
-	// Priestley-Taylor coefficient (conversion factor from equilibrium
-	// evapotranspiration to PET)
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -103,13 +101,13 @@
 //   WR_SMART = uptake rate independent of water content (to wilting point), fractional
 //              uptake from different layers according to layer water content for
 //              trees, according to prescribed root distribution for grasses
-//	 WR_SPECIESSPECIFIC = 
+//	 WR_SPECIESSPECIFIC = uptake rate is species specific, with more drought tolerance species 
+//            = (lower species_drought_tolerance values) having greater relative uptake rates. 
 
 // Comment out all but one of the following three lines:
 
 
 // guess2008 - drought/water uptake changes - added WR_SPECIESSPECIFIC option
-
 //#define WR_WCONT
 #define WR_ROOTDIST
 //#define WR_SMART
@@ -131,14 +129,6 @@
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL VARIABLES
-
-// guess2008 - removed
-//double ALPHAA;
-	// Replaces constant ALPHAA in function Photosynthesis (scaling factor for PAR
-	// absorption from leaf to plant projective area level, alias "twigloss")
-	// This variable must be given a value (should normally be in the range 0-1)
-	// before photosynthesis is called. Currently it is assigned to in function
-	// production.
 
 
 
@@ -692,8 +682,8 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 	//          (mm/m2/day)
 	// rd     = leaf respiration (kgC/m2/day)
 
-	// guess2008 - 080827 - changed to 0.6 from 0.5
-	// Lund - Apr/May 2010 - This value gives the best lobal figures
+	// guess2008 - ALPHAA value chosen to give global carbon pool and flux values that 
+	// agree with published estimates.
 	const double ALPHAA=0.5;
 		// scaling factor for PAR absorption from leaf to plant projective area level
 		// alias "twigloss"
@@ -1148,8 +1138,6 @@ void demand(Patch& patch) {
 ///////////////////////////////////////////////////////////////////////////////////////
 // PLANT WATER UPTAKE
 
-// guess2008 - drought/water uptake changes
-// added species_drought_tolerance
 inline double water_uptake(double wcont[NSOILLAYER],double awc[NSOILLAYER],
 	double rootdist[NSOILLAYER],double& emax,double& fpc_rescale,
 	double fuptake[NSOILLAYER],bool ifsmart, double species_drought_tolerance) {
@@ -1167,6 +1155,10 @@ inline double water_uptake(double wcont[NSOILLAYER],double awc[NSOILLAYER],
 	//                 summed FPC overlap)
 	//   ifsmart     = whether plants can freely adapt root profile to distribution of
 	//                 available water among layers (required for "smart" mode)
+
+	// guess2008
+	// species_drought_tolerance = used only if the WR_SPECIESSPECIFIC option is specified.
+	
 
 	// OUTPUT PARAMETER:
 	//   fuptake     = fraction of total uptake originating from each layer
@@ -1188,11 +1180,13 @@ inline double water_uptake(double wcont[NSOILLAYER],double awc[NSOILLAYER],
 // guess2008 - drought/water uptake changes - new option
 #elif defined(WR_SPECIESSPECIFIC)
 
-	// Uptake rate is species specific. Reduces to WR_WCONT if species_drought_tolerance = 0.5
-	// 
+	// Uptake rate is species specific, with more drought tolerance species (lower species_drought_tolerance
+	// values) having greater relative uptake rates. 
+	// Reduces to WR_WCONT if species_drought_tolerance = 0.5
+	
 	wr=0.0;
 	for (s=0;s<NSOILLAYER;s++) {
-		double max_rel_uptake = pow(wcont[s],2.0*0.1); // Limits C3 uptake
+		double max_rel_uptake = pow(wcont[s],2.0*0.1); // Upper limit. Limits C3 grass uptake
 		fuptake[s]=rootdist[s]*min(pow(wcont[s],2.0*species_drought_tolerance),max_rel_uptake)*fpc_rescale;
 		wr+=fuptake[s];
 	}
@@ -1295,18 +1289,16 @@ void aet_water_stress(Patch& patch) {
 		// individual's FPC, assuming individuals are equal in competition for water)
 
 		// ----------------------------------------
-		// guess2008 - drought/water uptake changes
+		// guess2008 - specieds specific drought/water uptake changes
 		double species_drought_tolerance = 0.5; 
 		// default, ensures that WR_SPECIESSPECIFIC gives identical results to WR_WCONT 
 		
-		if (ifspeciesspecificwateruptake) // override with species value (always <= 0.5)
+		// override with species value (always <= 0.5) iff ifspeciesspecificwateruptake == 1
+		if (ifspeciesspecificwateruptake) 
 			species_drought_tolerance = pft.drought_tolerance;
 
-		// guess2008 - added pft.drought_tolerance as an argument.
 		wr=water_uptake(patch.soil.wcont,patch.soil.soiltype.awc,pft.rootdist,pft.emax,
 			patch.fpc_rescale,ppft.fuptake,pft.lifeform==TREE,species_drought_tolerance);
-
-		// guess2008 - drought/water uptake changes
 		// ----------------------------------------
 
 		// Calculate supply (Eqn 24, Haxeltine & Prentice 1996)
@@ -1676,9 +1668,10 @@ void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 	// resp       = sum of maintenance and growth respiration on grid cell area basis
 	//              (kgC/m2/day)
 
-	// guess2008 - following a comment by Annett Wolf, the following parameter was changed: 
-	//const double K=0.0548; // guess2008 - Parameter in respiration equations (Eqn (4) below)
-	const double K=0.095218; // guess2008 - AW - NEW Parameter in respiration equations (Eqn (4) below)
+	// guess2008 - following a comment by Annett Wolf, the following parameter value was changed: 
+	// const double K=0.0548; // OLD value
+	const double K=0.095218;  // NEW parameter value in respiration equations 
+	// See the comment after Eqn (4) below.
 
 	double resp_sap;    // sapwood respiration (kg/m2/day)
 	double resp_root;   // root respiration (kg/m2/day)
@@ -1759,7 +1752,8 @@ void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 
 		resp_growth=(assim-resp_sap-resp_root)*0.25;
 		
-		// guess2008 - following a comment (060823) from Annett Wolf
+		// guess2008 - disallow negative growth respiration 
+		// (following a comment (060823) from Annett Wolf)
 		if(resp_growth<0.0) resp_growth = 0.0;
 
 		// Total respiration is sum of maintenance and growth respiration
@@ -1776,7 +1770,8 @@ void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 
 		resp_growth=(assim-resp_root)*0.25;
 
-		// guess2008 - following a comment (060823) from Annett Wolf
+		// guess2008 - disallow negative growth respiration 
+		// (following a comment (060823) from Annett Wolf)
 		if(resp_growth<0.0) resp_growth = 0.0;
 
 		// Total respiration (see above)
@@ -1867,7 +1862,7 @@ void npp(Patch& patch) {
 			indiv.anpp+=indiv.assim-indiv.resp;
 
 			// guess2008
-			if (indiv.alive) // Ben 2007-11-28	
+			if (indiv.alive)
 				patch.fluxes.dcflux_veg+=indiv.resp-indiv.assim;
 
 			// Monthly NPP and LAI
@@ -1876,11 +1871,11 @@ void npp(Patch& patch) {
 			// guess2008 - changed indiv.phen_mean to indiv.phen here. mlai is always 0 otherwise 
 			indiv.mlai[date.month]+=indiv.lai*indiv.phen;
 
-			// guess2008
+			// guess2008 - update monthly arrays
 			indiv.mgpp[date.month]+=indiv.assim;
 			indiv.mra[date.month]+=indiv.resp;
-			patch.fluxes.mcflux_gpp[date.month]+=indiv.assim; // ANDERS A TRENDY
-			patch.fluxes.mcflux_ra[date.month]+=indiv.resp; // ANDERS A TRENDY
+			patch.fluxes.mcflux_gpp[date.month]+=indiv.assim;
+			patch.fluxes.mcflux_ra[date.month]+=indiv.resp;
 
 			// On last day of month - convert monthly LAI from sum to mean
 
@@ -1975,7 +1970,7 @@ void npp(Patch& patch) {
 				indiv.mnpp[date.month]=indiv.assim-indiv.resp;
 				indiv.mlai[date.month]=indiv.lai*indiv.phen_mean;
 
-				// guess2008
+				// guess2008 - update monthly arrays
 				indiv.mgpp[date.month]+=indiv.assim;
 				indiv.mra[date.month]+=indiv.resp;
 				patch.fluxes.mcflux_gpp[date.month]+=indiv.assim; // ANDERS A TRENDY
@@ -2182,7 +2177,8 @@ void canopy_exchange(Patch& patch) {
 			for (m=0;m<12;m++) {
 				indiv.mnpp[m]=0.0;
 				indiv.mlai[m]=0.0;
-				// guess2008
+
+				// guess2008 - initialise
 				indiv.mgpp[m]=0.0;
 				indiv.mra[m]=0.0;
 

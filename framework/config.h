@@ -12,6 +12,9 @@
 // This file may also contain non-model related code for working around platform
 // specific issues, such as non-standard conforming compilers.
 
+// Version dated:         2010-11-22
+
+
 #ifndef LPJ_GUESS_CONFIG_H
 #define LPJ_GUESS_CONFIG_H
 

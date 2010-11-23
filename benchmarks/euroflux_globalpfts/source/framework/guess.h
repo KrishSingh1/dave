@@ -10,7 +10,9 @@
 // Source code file name: guess.cpp
 // Written by:            Ben Smith
 // Version dated:         2002-12-16
-//
+// Updated:               2010-11-22
+
+
 // WHAT SHOULD THIS FILE CONTAIN?
 // Framework header files should contain:
 //   (1) definitions of all classes used by the framework and modules. Modules may
@@ -80,7 +82,7 @@ const double SOILDEPTH_UPPER=500.0; // soil upper layer depth (mm)
 const double SOILDEPTH_LOWER=1000.0; // soil lower layer depth (mm)
 
 
-// guess2008 - these default SOM values have been reduced
+	// guess2008 - new default SOM values
 const int SOLVESOM_END=400;
 	// year at which to calculate equilibrium soil carbon
 const int SOLVESOM_BEGIN=350;
@@ -100,8 +102,8 @@ const int OUTPUT_MAXAGECLASS=2000;
 	// maximum number of age classes in age structure plots produced by function
 	// outannual
 
-	// guess2008 - moved definition here from duplicate definitions in both canexch.cpp 
-	// and soilwater.cpp
+	// guess2008 - this is now a global, constant variable Previously, we had duplicate definitions in 
+	// both canexch.cpp and soilwater.cpp
 const double PRIESTLEY_TAYLOR=1.32;
 	// Priestley-Taylor coefficient (conversion factor from equilibrium
 	// evapotranspiration to PET)
@@ -162,13 +164,16 @@ extern bool ifcdebt; // whether C debt (storage between years) permitted
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
-// guess2008 - additions
-extern bool ifsmoothgreffmort;		// whether to vary mort_greff smoothly with growth 
-									// efficiency (1) or to use the standard step-function (0)
-extern bool ifdroughtlimitedestab;	// whether establishment affected by growing season drought 
-extern bool ifrainonwetdaysonly;	// rain on wet days only (1, true), or a little every day 
-									// (0, false); 
-extern bool ifspeciesspecificwateruptake; // whether water uptake is species specific 
+// guess2008 - new input variables, from the .ins file
+extern bool ifsmoothgreffmort;				
+	// whether to vary mort_greff smoothly with growth efficiency (1) or to use the standard 
+	// step-function (0)
+extern bool ifdroughtlimitedestab;			
+	// whether establishment is limited by growing season drought 
+extern bool ifrainonwetdaysonly;			
+	// rain on wet days only (1, true), or a little every day (0, false); 
+extern bool ifspeciesspecificwateruptake;	
+	// whether water uptake is species specific 
 
 
 
@@ -470,8 +475,8 @@ public:
 		// number of days with temperatures <5 deg C (reset when temperatures fall
 		// below 5 deg C; maximum value 365)
 	bool ifsensechill;
-		// guess2008 - CHILLDAYS - true if chill day count may be reset by temperature fall below 5 deg C
-
+		// guess2008 - CHILLDAYS - true if chill day count may be reset by temperature 
+		// fall below 5 deg C
 	double gtemp;
 		// respiration response to today's air temperature incorporating damping of Q10
 		// due to temperature acclimation (Lloyd & Taylor 1994)
@@ -533,8 +538,7 @@ public:
 		mtemp=0.0;
 		gdd5=0.0;
 		chilldays=0;
-		// guess2008
-		ifsensechill=true; // CHILLDAYS
+		ifsensechill=true; //  guess2008 - CHILLDAYS
 		atemp_mean=0.0;
 		last_gtemp=-1;
 		last_mgtemp=-1;
@@ -584,11 +588,11 @@ public:
 		// daily net carbon flux to vegetation (respiration-assimilation)
 		// NB: not implemented by canopy_exchange_monthly
 
-	// guess2008 - new C budget arrays
+	// guess2008 - new carbon budget arrays
 	double mcflux_gpp[12];
 		// monthly GPP
 	double mcflux_ra[12];
-		// monthly Ra
+		// monthly autotrophic respiration
 
 
 	// MEMBER FUNCTIONS
@@ -745,7 +749,7 @@ public:
 	double intc;
 		// interception coefficient (unitless)
 
-	// guess2008 - DLE - additions
+	// guess2008 - drought-limited establishment (DLE)
 	double drought_tolerance;
 		// Drought tolerance level (0 = very -> 1 = not at all) (unitless)
 
@@ -778,7 +782,7 @@ public:
 		for (y=0;y<366;y++)
 			gdd0[y]=-1.0; // value<0 signifies "unknown"; see function phenology()
 
-		// guess2008 - DLE - additions
+		// guess2008 - DLE
 		drought_tolerance=0.0; // Default, means that the PFT will never be limited by drought.
 	}
 
@@ -988,8 +992,9 @@ public:
 	int nday_wstress; // number of water-stress days for month
 	bool ifwstress; // whether individual subject to water stress today
 
-	// guess2008
-	bool alive; // Ben 2007-11-28 - switched off for first year after Individual object created
+	bool alive; 
+		// guess2008 - whether this individual is truly alive. Set to false for first year 
+		// after the Individual object is created, then true.
 
 
 	// MEMBER FUNCTIONS
@@ -1017,7 +1022,7 @@ public:
 		assim=0.0;
 	
 		// guess2008 - additional initialisation
-		age=0.0; // can cause problems otherwise
+		age=0.0;
 		fpar=0.0;
 		aphen_raingreen=0;
 		demand=0.0;
@@ -1030,12 +1035,9 @@ public:
 		co2_wstress = 0.0; 
 		nday_wstress = 0; 
 		ifwstress = false;
-
 		lai = 0.0;
 		lai_layer = 0.0;
 		lai_indiv = 0.0;
-
-		// guess2008
 		alive = false;
 
 		int m;
@@ -1481,7 +1483,7 @@ public:
 
 	int growingseasondays;
 		// guess2008 - DLE - the number of days over which wcont is averaged for this 
-		// patch, i.e. those days for which temp > 5.0
+		// patch, i.e. those days for which daily temp > 5.0 degC
 
 
 	// Variables used by new hydrology (Dieter Gerten 2002-07)
@@ -1538,7 +1540,7 @@ public:
 		age=0;
 		disturbed=false;
 		
-		// guess2008
+		// guess2008 - initialise
 		growingseasondays=0;
 
 	}
@@ -1635,9 +1637,6 @@ public:
 	Soiltype soiltype;
 		// soil static parameters for this stand
 
-    // double awcont_stand_upper_avg;
-	// double awcont_stand_lower_avg; 
-		// guess2008 - will be needed if we want to output the soil water content in outannual 
 
 	EurofluxData fluxdata;
 		// // guess2008 - euroflux - Holds EUROFLUX grid cell information

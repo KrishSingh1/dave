@@ -10,7 +10,9 @@
 // Source code file name: driver.cpp
 // Written by:            Ben Smith
 // Version dated:         2002-12-16
-//
+// Updated:               2010-11-22
+
+
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:
 //   (1) a "#include" directive naming the framework header file. The framework header
@@ -748,7 +750,7 @@ void dailyaccounting_patch(Patch& patch) {
 	// Store daily soil water in upper layer
 	soil.dwcontupper[date.day]=soil.wcont[0];
 
-	// guess2008 - Store daily soil water in lower layer
+	// Store daily soil water in lower layer - guess2008
 	soil.dwcontlower[date.day]=soil.wcont[1];
 
 	// On last day of month, calculate mean content of upper soil layer

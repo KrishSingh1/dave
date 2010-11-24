@@ -6,7 +6,7 @@
 //                        Includes modified code compatible with "fast" cohort/
 //                        individual mode - see canexch.cpp
 //                        Includes Dieter G:s latest updates 021121
-//                        Version compatible with LPJ-GUESS version guess030124
+//                        Version compatible with LPJ-GUESS version 2.1
 //                        (excludes PFT paramter twmax)
 //                        Updated 20050125: last line in output files ends in newline
 // Header file name:      guessio.h

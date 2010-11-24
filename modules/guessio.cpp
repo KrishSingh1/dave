@@ -6,7 +6,7 @@
 //                        Includes modified code compatible with "fast" cohort/
 //                        individual mode - see canexch.cpp
 //                        Includes Dieter G:s latest updates 021121
-//                        Version compatible with LPJ-GUESS version guess030124
+//                        Version compatible with LPJ-GUESS version 2.1
 //                        (excludes PFT paramter twmax)
 //                        Updated 20050125: last line in output files ends in newline
 // Header file name:      guessio.h
@@ -36,7 +36,11 @@
 // When porting between frameworks, the only change required should normally be in the
 // "#include" directive referring to the framework header file.
 
-// Joe?
+// ABOUT THIS I/O MODULE:
+// This is a demonstration I/O module. It is compatible with the input data files
+// distributed with LPJ-GUESS (in the data directory). Unlike the CRU I/O module
+// this I/O module does not use a spinup period.
+
 #include "config.h"
 
 #ifdef USE_DEMO_IO

@@ -1,7 +1,7 @@
-                        LPJ-GUESS Version 030124
-                        ========================
+                        LPJ-GUESS Version 2.1
+                        =====================
 
-                         PLEASE READ CAREFULLY
+                        PLEASE READ CAREFULLY
  
 This directory contains source code files and other files necessary to
 run a *demonstation version* of LPJ-GUESS:

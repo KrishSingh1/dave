@@ -9,6 +9,7 @@
 // Written by:            Ben Smith
 // Version dated:         2002-09-22
 
+#include "config.h"
 #include "guess.h"
 #include <stdarg.h>
 
@@ -70,6 +71,7 @@ void dprintf(xtring format,...) {
 
 	fprintf(stdout,"%s",(char*)output);
 	fprintf(logfile,"%s",(char*)output);
+	fflush(logfile);
 }
 
 

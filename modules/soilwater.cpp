@@ -13,7 +13,9 @@
 // Source code file name: soilwater.cpp
 // Written by:            Ben Smith
 // Version dated:         2003-01-20
-//
+// Updated:               2010-11-22
+
+
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:
 //   (1) a "#include" directive naming the framework header file. The framework header
@@ -34,12 +36,9 @@
 // When porting between frameworks, the only change required should normally be in the
 // "#include" directive referring to the framework header file.
 
-#include "guess.h"
+#include "config.h"
+#include "soilwater.h"
 
-const double PRIESTLEY_TAYLOR=1.32;
-	// Priestly-Taylor coefficient (conversion factor from equilibrium
-	// evapotranspiration to PET)
-// BLARP!
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL CONSTANT
@@ -105,12 +104,15 @@ void snow(double prec,double temp,double& snowpack,double& rain,double& melt) {
 
 void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 	double perc_base,double perc_exp,double awc[NSOILLAYER],double fevap,
-	double wcont[NSOILLAYER],double& wcont_evap,double& runoff) {
+	double awcont[NSOILLAYER],double wcont[NSOILLAYER],double& wcont_evap,double& runoff,double snowpack) {
+
 
 	// DESCRIPTION
 	// Daily update of water content for each soil layer given snow melt, rainfall,
 	// evapotranspiration from vegetation (AET) and percolation between layers;
 	// calculation of runoff
+
+	// guess2008 - DLE - new function signature. We now take awcont[] as an argument
 
 	// INPUT PARAMETERS
 	// pet        = potential evapotranspiration today (mm)
@@ -130,6 +132,8 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 	//              fraction of available water holding capacity (AWC)
 	// wcont_evap = water content of evaporation sublayer at top of upper soil layer
 	//              as fraction of available water holding capacity (AWC)
+	// awcont     = wcont averaged over the growing season - guess2008
+
 
 	// OUTPUT PARAMETER
 	// runoff     = total daily runoff from all soil layers (mm/day)
@@ -184,15 +188,23 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 	}
 
 	// Evaporation from soil surface
-
-	evap=pet*PRIESTLEY_TAYLOR*wcont_evap*fevap;
+	
+	// guess2008 - changed to wcont_evap**2, as in LPJ-mL 
+	// - see Bondeau et al. (2007),  Rost et al. (2008)
+	// Added the snowdepth restriction too.
+	if (snowpack < 10.0) // i.e. evap only if snow depth < 10mm
+		evap=pet*PRIESTLEY_TAYLOR*wcont_evap*wcont_evap*fevap;
+	else
+		evap = 0.0;
 
 	// Implement in- and outgoing fluxes to upper soil layer
 	// BLARP: water content can become negative, though apparently only very slightly
 	//    - quick fix implemented here, should be done better later
 
 	wcont[0]+=(rain+melt-aet_layer[0]-evap)/awc[0];
-	if (wcont[0]<0.0) wcont[0]=0.0;
+	if (wcont[0]!=0.0 && wcont[0] < 0.0001) // guess2008 - bugfix
+		wcont[0]=0.0;
+
 
 	// Surface runoff
 
@@ -259,7 +271,8 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 
 	if (influx>=0.1) {
 		perc_baseflow=BASEFLOW_FRAC*perc_base*pow(wcont[NSOILLAYER-1],perc_exp);
-		if (perc_baseflow>influx-runoff_surf) perc_baseflow=influx-runoff_surf;
+		// guess2008 - Added "&& influx >= runoff_surf" to guarantee nonnegative baseflow.
+		if (perc_baseflow>influx-runoff_surf && influx >= runoff_surf) perc_baseflow=influx-runoff_surf;
 
 		// Deduct from water content of bottom soil layer
 
@@ -271,6 +284,7 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 
 	runoff=runoff_surf+runoff_drain+runoff_baseflow;
 
+
 	patch.arunoff+=runoff;
 	patch.aaet+=aet_total;
 	patch.aevap+=evap;
@@ -278,6 +292,33 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 	patch.maet[date.month]+=aet_total;
 	patch.mevap[date.month]+=evap;
 	patch.mrunoff[date.month]+=runoff;
+
+
+	// guess2008 - DLE - update awcont
+	// Original algorithm by Thomas Hickler
+    for (s=0;s<NSOILLAYER;s++) {
+        
+		// Reset the awcont array on the first day of every year
+		if (date.day==0) {
+            awcont[s]=0.0;
+            if (s==0) patch.growingseasondays=0;
+        }
+
+		// If it's warm enough for growth, update awcont with this day's wcont
+        if (patch.stand.climate.temp>5.0) {
+            awcont[s]+=wcont[s];
+            if (s==0) patch.growingseasondays++;
+        }
+
+		// Do the averaging on the last day of every year
+        if (date.islastday && date.islastmonth)
+            awcont[s]/=(double)patch.growingseasondays;
+		
+		// In case it's never warm enough:
+		if (patch.growingseasondays<1)
+            awcont[s]=1.0;
+    }
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -324,9 +365,11 @@ void soilwater(Climate& climate,Patch& patch) {
 	// Fraction of grid cell subject to evaporation from soil surface is
 	// complement of summed vegetation projective cover (FPC)
 
+	// guess2008 - DLE - added soil.awcont & soil.snowpack to the function call
 	hydrology_lpjf(patch,climate.eet,rain,melt,soil.soiltype.perc_base,
 		soil.soiltype.perc_exp,soil.soiltype.awc,max(1.0-fpc_phen_total,0.0),
-		soil.wcont,soil.wcont_evap,soil.runoff);
+		soil.awcont,soil.wcont,soil.wcont_evap,soil.runoff,soil.snowpack);
+
 }
 
 
@@ -337,3 +380,15 @@ void soilwater(Climate& climate,Patch& patch) {
 //   model based on ecophysiological constraints, resource availability, and
 //   competition among plant functional types. Global Biogeochemical Cycles 10:
 //   693-709
+
+// guess2008 - new references:
+
+// BONDEAU, A., SMITH, P. C., ZAEHLE, S., SCHAPHOFF, S., LUCHT, W., CRAMER, W., GERTEN, D., 
+//   LOTZE-CAMPEN, H., MÜLLER, C., REICHSTEIN, M. and SMITH, B. (2007), 
+//   Modelling the role of agriculture for the 20th century global terrestrial carbon balance. 
+//   Global Change Biology, 13: 679–706. doi: 10.1111/j.1365-2486.2006.01305.x
+
+// Rost, S., D. Gerten, A. Bondeau, W. Luncht, J. Rohwer, and S. Schaphoff (2008), 
+//   Agricultural green and blue water consumption and its influence on the global 
+//   water system, Water Resour. Res., 44, W09405, doi:10.1029/2007WR006331
+

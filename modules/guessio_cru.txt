@@ -1,7 +1,2 @@
-<<<<<<< .working
 If you're looking for guessio_cru.cpp, it is located
 in guess030124/cru/guessio/guessio_cru.cpp
-=======
-If you're looking for guessio_cru.cpp, it is located
-in ../cru/guessio/guessio_cru.cpp
->>>>>>> .merge-right.r118

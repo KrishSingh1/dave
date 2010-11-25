@@ -1863,7 +1863,7 @@ void npp(Patch& patch) {
 
 			// guess2008
 			if (indiv.alive)
-			patch.fluxes.dcflux_veg+=indiv.resp-indiv.assim;
+				patch.fluxes.dcflux_veg+=indiv.resp-indiv.assim;
 
 			// Monthly NPP and LAI
 
@@ -1963,7 +1963,7 @@ void npp(Patch& patch) {
 
 				// guess2008
 				if (indiv.alive) // Ben 2007-11-28	
-				patch.fluxes.dcflux_veg+=indiv.resp-indiv.assim;
+					patch.fluxes.dcflux_veg+=indiv.resp-indiv.assim;
 
 				// Monthly NPP and LAI
 

@@ -287,7 +287,7 @@ void turnover_oecd(double turnover_leaf,double turnover_root,double turnover_sap
 			turnover=turnover_sap*cmass_sap;
 			cmass_sap-=turnover;
 			cmass_heart+=turnover;
-		}		
+		}	
 
 	}
 }
@@ -622,7 +622,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 				if (lifeform==TREE) {
 					cmass_sap_inc=-cmass_sap;
 					cmass_heart_inc=-cmass_sap_inc;
-		}
+				}
 
 				return;			
 			}
@@ -652,7 +652,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 					cmass_leaf_inc = bminc;
 					cmass_root_inc=(cmass_leaf_inc+cmass_leaf)/ltor-cmass_root; // Eqn (3)
 					litter_root_inc=-cmass_root_inc;
-			}
+				}
 
 			}
 			else {
@@ -830,8 +830,8 @@ bool allometry(Individual& indiv) {
 			indiv.height=indiv.cmass_sap/indiv.cmass_leaf/indiv.pft.sla*
 				indiv.pft.k_latosa/indiv.pft.wooddens;
 
-		// Stem diameter (Eqn 5)
-		diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
+			// Stem diameter (Eqn 5)
+			diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
 
 			// Stem volume
 			double vol=indiv.height*3.1415927*diam*diam*0.25;
@@ -890,14 +890,14 @@ bool allometry(Individual& indiv) {
 		// guess2008 - bugfix - added if 
 		if (!negligible(indiv.cmass_leaf)) {
 
-		// Grass "individual" LAI (Eqn 11)
-		indiv.lai_indiv=indiv.cmass_leaf*indiv.pft.sla;
+			// Grass "individual" LAI (Eqn 11)
+			indiv.lai_indiv=indiv.cmass_leaf*indiv.pft.sla;
 
-		// FPC (Eqn 10)
-		indiv.fpc=1.0-exp(-LAMBERTBEER_K*indiv.lai_indiv);
+			// FPC (Eqn 10)
+			indiv.fpc=1.0-exp(-LAMBERTBEER_K*indiv.lai_indiv);
 
-		// Stand-level LAI
-		indiv.lai=indiv.lai_indiv;
+			// Stand-level LAI
+			indiv.lai=indiv.lai_indiv;
 		} else
 			return false;
 
@@ -1114,8 +1114,8 @@ void growth(Stand& stand,Patch& patch) {
 
 				// guess2008
 				if (indiv.alive) {
-				patch.pft[indiv.pft.id].litter_leaf+=litter_leaf_inc*indiv.densindiv;
-				patch.pft[indiv.pft.id].litter_root+=litter_root_inc*indiv.densindiv;
+					patch.pft[indiv.pft.id].litter_leaf+=litter_leaf_inc*indiv.densindiv;
+					patch.pft[indiv.pft.id].litter_root+=litter_root_inc*indiv.densindiv;
 				}
 
 				// Update individual age
@@ -1136,7 +1136,7 @@ void growth(Stand& stand,Patch& patch) {
 						patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
 						patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap;
 
-					patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_heart-indiv.cmass_debt;
+						patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_heart-indiv.cmass_debt;
 					}
 
 					vegetation.killobj();
@@ -1218,10 +1218,10 @@ void growth(Stand& stand,Patch& patch) {
 					indiv.alive=true;
 				}
 			
-			// ... on to next individual
-			vegetation.nextobj();
+				// ... on to next individual
+				vegetation.nextobj();
+			}
 		}
-	}
 		
 	}
 }

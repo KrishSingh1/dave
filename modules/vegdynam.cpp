@@ -288,9 +288,9 @@ void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
 			// debited in function growth() if they survive the first year
 
 			if (indiv.alive) // guess2008 - alive check added
-			patch.fluxes.acflux_est-=(indiv.pft.regen.cmass_leaf+
-				indiv.pft.regen.cmass_root+indiv.pft.regen.cmass_sap+
-				indiv.pft.regen.cmass_heart)*est_pft;
+				patch.fluxes.acflux_est-=(indiv.pft.regen.cmass_leaf+
+					indiv.pft.regen.cmass_root+indiv.pft.regen.cmass_sap+
+					indiv.pft.regen.cmass_heart)*est_pft;
 
 			// Adjust average individual C biomass based on average biomass and density
 			// of the new saplings
@@ -312,8 +312,8 @@ void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
 			// Account for flux from atmosphere to grass regeneration
 
 			if (indiv.alive) // guess2008 - alive check added
-			patch.fluxes.acflux_est-=(indiv.pft.regen.cmass_leaf+
-				indiv.pft.regen.cmass_root)*est_pft;
+				patch.fluxes.acflux_est-=(indiv.pft.regen.cmass_leaf+
+					indiv.pft.regen.cmass_root)*est_pft;
 
 			// Add regeneration biomass to overall biomass
 
@@ -493,7 +493,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 					// if they survive the first year 
 
 					if (indiv.alive)
-					patch.fluxes.acflux_est-=bminit;
+						patch.fluxes.acflux_est-=bminit;
 				}
 			}
 			else if (pft.lifeform==TREE) {
@@ -620,8 +620,8 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 					// Account for C flux from atmosphere to vegetation
 					// guess2008
 					if (indiv.alive)
-					patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
-						indiv.cmass_sap;
+						patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
+							indiv.cmass_sap;
 				}
 			}
 		}
@@ -1159,10 +1159,10 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					mort_greff=KMORTGREFF/(1.0+pow((greff_mean/(indiv.pft.greff_min)),5.0));
 				else {
 					// Standard case, as in guess030124
-				if (greff_mean<indiv.pft.greff_min)
-					mort_greff=KMORTGREFF;
-				else
-					mort_greff=0.0;
+					if (greff_mean<indiv.pft.greff_min)
+						mort_greff=KMORTGREFF;
+					else
+						mort_greff=0.0;
 				}
 
 

@@ -1205,7 +1205,7 @@ public:
 		for (int mth = 0; mth < 12; mth++) {
 			mwcont[mth][0] = 0.0;
 			mwcont[mth][1] = 0.0;
-	}
+		}
 
 		for (int d=0; d<365; d++) {
 			dwcontupper[d] = 0.0;

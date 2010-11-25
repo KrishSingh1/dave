@@ -1616,27 +1616,27 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 					
 						// If it's not dead and has existed for at least one year.
 
-					if (indiv.pft.id==pft.id) {
-						standpft.cmass_total+=indiv.cmass_leaf+
-							indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
-						standpft.anpp_total+=indiv.anpp;
-						standpft.lai_total+=indiv.lai;
+						if (indiv.pft.id==pft.id) {
+							standpft.cmass_total+=indiv.cmass_leaf+
+								indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
+							standpft.anpp_total+=indiv.anpp;
+							standpft.lai_total+=indiv.lai;
 
-						if (vegmode==COHORT || vegmode==INDIVIDUAL) {
-						
-							// Age structure
+							if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 							
+								// Age structure
+								
 								c=(int)(indiv.age/estinterval); // guess2008
-							if (c<OUTPUT_MAXAGECLASS)
-								standpft.densindiv_ageclass[c]+=indiv.densindiv;
+								if (c<OUTPUT_MAXAGECLASS)
+									standpft.densindiv_ageclass[c]+=indiv.densindiv;
 
 								// guess2008 - only count trees with a trunk above a certain diameter  
 								if (pft.lifeform==TREE && indiv.age>0) {
 									double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
 									if (diam>0.03) {
 										standpft.densindiv_total+=indiv.densindiv; // indiv/m2
-						}
-					}
+									}
+								}
 							}
 						
 						}
@@ -1704,7 +1704,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			for (int q=0;q<npft;q++) {
 				Patchpft& pft=stand[p].pft[q];
 				c_litter+=(pft.litter_leaf+pft.litter_root+pft.litter_wood+pft.litter_repr)/(double)npatch;
-		}
+			}
 
 			runoff_stand+=stand[p].arunoff/(double)npatch;
 			
@@ -1784,7 +1784,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 		// Print monthly output variables
 		for (m=0;m<12;m++) {
-		
+			
 			if (out_mnpp) fprintf(out_mnpp,"%8.3f",mnpp[m]);
 			if (out_mlai) fprintf(out_mlai,"%8.3f",mlai[m]);
 			if (out_mgpp) fprintf(out_mgpp,"%8.3f",mgpp[m]);
@@ -1868,7 +1868,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			}
 		}
 
-		}
+	}
 }
 
 

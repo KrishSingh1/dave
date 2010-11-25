@@ -1176,8 +1176,8 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 				
 				msun[y][m]  = data.msun[y*12+m]*0.1;   // % sun 
 
-		}
 			}
+		}
 
 
 		// Close the archive
@@ -1185,7 +1185,7 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 
 		return true;
 	
-			}
+	}
 	catch(...) {
 		// Unknown error.
 		return false;
@@ -1243,7 +1243,7 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 		elevation=(int)data.elv[0]; // km * 1000
 
 		for (y=0;y<NYEAR_HIST;y++) { 
-					for (m=0;m<12;m++) {
+			for (m=0;m<12;m++) {
 
 				// guess2008 - catch rounding errors 
 				mfrs[y][m] = data.mfrs[y*12+m]*0.01; // days
@@ -1260,19 +1260,19 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 				If vapour pressure is needed:
 				mvap[y][m] = data.mvap[y*12+m]*0.01;
 				*/
-					}
-				}
+			}
+		}
 
 		// Close the archive
 		ark.close();
 
-				return true;
+		return true;
 	
-			}
+	}
 	catch(...) {
 		// Unknown error.
 		return false;
-		}
+	}
 }
 
 
@@ -1505,14 +1505,14 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	if (file_cmass!="") {
 		file_cmass = outputdirectory + file_cmass;
-	out_cmass=fopen(file_cmass,"w");
+		out_cmass=fopen(file_cmass,"w");
 		if (!out_cmass) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_cmass);
 	}
 	else out_cmass=NULL;
 
 	if (file_anpp!="") {
 		file_anpp = outputdirectory + file_anpp;
-	out_anpp=fopen(file_anpp,"w");
+		out_anpp=fopen(file_anpp,"w");
 		if (!out_anpp) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_anpp);
 	}
 	else out_anpp=NULL;
@@ -1526,7 +1526,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	if (file_lai!="") {
 		file_lai = outputdirectory + file_lai;
-	out_lai=fopen(file_lai,"w");
+		out_lai=fopen(file_lai,"w");
 		if (!out_lai) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_lai);
 	}
 	else out_lai=NULL;
@@ -1866,8 +1866,8 @@ bool getclimate(Stand& stand) {
 			// guess2008 - only recalculate precipitation values using weather generator
 			// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
 			if (ifrainonwetdaysonly) { 
-			// (from Dieter Gerten 021121)
-			prdaily(mprec,dprec,mwet);
+				// (from Dieter Gerten 021121)
+				prdaily(mprec,dprec,mwet);
 			}
 
 			spinup_mtemp.nextyear();
@@ -1892,7 +1892,7 @@ bool getclimate(Stand& stand) {
 			// guess2008 - only recalculate precipitation values using weather generator
 			// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
 			if (ifrainonwetdaysonly) { 
-			// (from Dieter Gerten 021121)
+				// (from Dieter Gerten 021121)
 				prdaily(hist_mprec[date.year-nyear_spinup],dprec,hist_mwet[date.year-nyear_spinup]);
 			}
 
@@ -2135,27 +2135,27 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 					// guess2008 - alive check added
 					if (indiv.id!=-1 && indiv.alive) { 
 					
-					if (indiv.pft.id==pft.id) {
-						standpft.cmass_total+=indiv.cmass_leaf+
-							indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
-						standpft.anpp_total+=indiv.anpp;
-						standpft.lai_total+=indiv.lai;
+						if (indiv.pft.id==pft.id) {
+							standpft.cmass_total+=indiv.cmass_leaf+
+								indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
+							standpft.anpp_total+=indiv.anpp;
+							standpft.lai_total+=indiv.lai;
 
-						if (vegmode==COHORT || vegmode==INDIVIDUAL) {
-						
-							// Age structure
+							if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 							
+								// Age structure
+								
 								c=(int)(indiv.age/estinterval); // guess2008
-							if (c<OUTPUT_MAXAGECLASS)
-								standpft.densindiv_ageclass[c]+=indiv.densindiv;
+								if (c<OUTPUT_MAXAGECLASS)
+									standpft.densindiv_ageclass[c]+=indiv.densindiv;
 
 								// guess2008 - only count trees with a trunk above a certain diameter  
 								if (pft.lifeform==TREE && indiv.age>0) {
 									double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
 									if (diam>0.03) {
 										standpft.densindiv_total+=indiv.densindiv; // indiv/m2
-						}
-					}
+									}
+								}
 							}
 						
 						}
@@ -2223,7 +2223,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			for (int q=0;q<npft;q++) {
 				Patchpft& pft=stand[p].pft[q];
 				c_litter+=(pft.litter_leaf+pft.litter_root+pft.litter_wood+pft.litter_repr)/(double)npatch;
-		}
+			}
 
 			runoff_stand+=stand[p].arunoff/(double)npatch;
 			
@@ -2303,7 +2303,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 		// Print monthly output variables
 		for (m=0;m<12;m++) {
-		
+			
 			if (out_mnpp) fprintf(out_mnpp,"%8.3f",mnpp[m]);
 			if (out_mlai) fprintf(out_mlai,"%8.3f",mlai[m]);
 			if (out_mgpp) fprintf(out_mgpp,"%8.3f",mgpp[m]);
@@ -2387,7 +2387,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			}
 		}
 
-		}
+	}
 }
 
 

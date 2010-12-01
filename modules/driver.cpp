@@ -845,8 +845,14 @@ void daylengthinsoleet(Climate& climate) {
 		else // include correction for albedo
 			rs_day=climate.insol*(1.0-BETA)*climate.daylength_save[date.day]*3600.0;
 
-		w=rs_day/2.0/(climate.u[date.day]*climate.hh[date.day]
-			+climate.v[date.day]*climate.sinehh[date.day])/K; // from Eqn 14
+		// guess2008 - special case for polar night
+		if (climate.sinehh[date.day]<0.001) {
+			w=0.0 ; // polar night
+		}
+		else {
+			w=rs_day/2.0/(climate.u[date.day]*climate.hh[date.day]
+				+climate.v[date.day]*climate.sinehh[date.day])/K; // from Eqn 14
+		}
 	}
 
 	//	CALCULATION OF DAILY EQUILIBRIUM EVAPOTRANSPIRATION

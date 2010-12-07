@@ -6,7 +6,9 @@
 // Source code file name: somdynam.cpp
 // Written by:            Ben Smith
 // Version dated:         2002-09-22
-//
+// Updated:               2010-11-22
+
+
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:
 //   (1) a "#include" directive naming the framework header file. The framework header
@@ -27,7 +29,9 @@
 // When porting between frameworks, the only change required should normally be in the
 // "#include" directive referring to the framework header file.
 
-#include "guess.h"
+#include "config.h"
+#include "somdynam.h"
+
 #include "driver.h"
 
 

@@ -1,7 +1,7 @@
-                        LPJ-GUESS Version 030124
-                        ========================
+                        LPJ-GUESS Version 2.1
+                        =====================
 
-                         PLEASE READ CAREFULLY
+                        PLEASE READ CAREFULLY
  
 This directory contains source code files and other files necessary to
 run a *demonstation version* of LPJ-GUESS:
@@ -14,8 +14,7 @@ Note that the concept of "plug and play" does not apply to LPJ-GUESS.
 It is the responsibility of each individual user to:
      - provide a C++ compiler. For installation under Windows a software
        development "platform" is also strongly recommended. Documentation
-       is available for Microsoft Visual C++ and Microsoft Developer Studio
-       Version 6 and its successor Visual Studio .NET.
+       is available for Microsoft Visual C++.
      - optain the appropriate climatic, atmospheric CO2 and soil data
        to drive the model for their particular study
      - provide source code to read their particular input data and
@@ -24,11 +23,13 @@ It is the responsibility of each individual user to:
        (data file names, model configuration settings, PFT parameter values
        etc) for the model runs
 Some technical advice regarding these matters can be found in the draft
-documentation located under ../reference. Additional help is available as
+documentation (reference/guessdoc.pdf). Additional help is available as
 commenting in model source code and header files.
 
-Technical help with installation of the demonstation versions is available
-in "readme" and other documentation files in the relevant subdirectories
+The model is compiled with the CMake build system. If it is not available
+on your system you can download it for free from www.cmake.org. You can
+find further information on how to compile the model with CMake in the
+draft documentation (reference/guessdoc.pdf).
 
 
 IMPORTANT: FTP-TRANSFERS FROM UNIX TO WINDOWS:
@@ -54,24 +55,20 @@ Structure of this directory:
        demonstration version compatible with the input data supplied in
        directory ../data. Most users will be able to write an input/output
        module customised to their own study by modifying the demonstration
-       version supplied. Further explanations in the technical manual.l
+       version supplied. Further explanations in the technical manual.
 
 ./libraries
-     - Source code, header files, Makefile (for installation under Unix),
-       Windows binary files (for installation under Windows) and header
-       files for the custom libraries gutil and plib, required by LPJ-GUESS.
-       Instructions in the "readme" file.
+     - Source code and header files for the custom libraries gutil and plib, 
+       required by LPJ-GUESS.
 
 ./command_line_version
      - Files required specifically to install LPJ-GUESS as a command-line
-       executable on Unix or Windows. Instructions in relevant "readme"
-       files
+       executable on Unix or Windows.
 
 ./windows_version
      - Files required specifically to install LPJ-GUESS as a dynamic link
        library (DLL) to run under the LPJ-GUESS Windows Shell. This is the
        recommended configuration for running the model under Windows.
-       Instructions in the "readme" and documentation files.
 
 ./data
      - Input data files for the demonstration version of LPJ-GUESS.
@@ -89,9 +86,9 @@ Structure of this directory:
 
 ./cru
      - Input/output module version for reading in CRU historical climate data
-       for 1901-1998 in custom binary format used by LPJ-GUESS. The data file
-       itself (GZIP-compressed) is located in directory cru at the same level
-       as guess030124.
+       for 1901-2006 in custom binary format used by LPJ-GUESS. The data 
+       files themselves (GZIP-compressed) are located in directory cru at the 
+       same level as this version of LPJ-GUESS was downloaded from.
        
        NOTE: The CRU data set is not in the public domain and should not be
        downloaded without specific permission. Note also that the file is
@@ -99,6 +96,5 @@ Structure of this directory:
        Direct enquiries to Ben Smith (e-mail below).
        
 
-Ben Smith
-benjamin.smith@nateko.lu.se
-2003-06-11
+Joe Lindstrom
+joe.lindstrom@nateko.lu.se

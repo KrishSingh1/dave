@@ -93,7 +93,7 @@ Structure of this directory:
        NOTE: The CRU data set is not in the public domain and should not be
        downloaded without specific permission. Note also that the file is
        very large and may take many hours to transfer.
-       Direct enquiries to Ben Smith (e-mail below).
+       Direct enquiries to Joe Lindstrom (e-mail below).
        
 
 Joe Lindstrom

@@ -57,19 +57,22 @@ if (WIN32)
   add_library(guess SHARED ${guess_sources} windows_version/dllmain.cpp)
 endif (WIN32)
 
-# The custom build rule for generating the PBS submit script from an m4 template
+# The custom build rule for generating the PBS submit script from a template.
 # The submit script is generated each time the command line binary is built.
 if (UNIX)
   # Choose template file depending on system
   if (SYSTEM STREQUAL "milleotto")
-    set(submit_template ${guess_SOURCE_DIR}/parallel_version/lunarc/milleotto/submit.m4)
+    set(submit_template ${guess_SOURCE_DIR}/parallel_version/lunarc/milleotto/submit.tmpl)
   else()
-    set(submit_template ${guess_SOURCE_DIR}/parallel_version/simba/pbs/submit.m4)
+    set(submit_template ${guess_SOURCE_DIR}/parallel_version/simba/pbs/submit.tmpl)
   endif()
   
+  # A sed command which exchanges each occurrence of BINARY and DATE in
+  # the template with appropriate path to the compiled binary and the
+  # current date.
   add_custom_command(TARGET ${guess_command_name}
                      POST_BUILD
-		     COMMAND m4 -DBINARY=${CMAKE_CURRENT_BINARY_DIR}/${guess_command_name} -DDATE="`date`" ${submit_template} > ${CMAKE_BINARY_DIR}/submit.sh
+		     COMMAND sed 's|BINARY|'${CMAKE_CURRENT_BINARY_DIR}/${guess_command_name}'|g\;s|DATE|'\"`date`\"'|g' ${submit_template} > ${CMAKE_BINARY_DIR}/submit.sh
 		     COMMENT "Generating submit script")
 endif (UNIX)
 

@@ -126,7 +126,13 @@ EOL
 chmod +x startguess.sh
 pbsdsh \$PBS_O_WORKDIR/startguess.sh
 rm startguess.sh
+EOF
 
+cat <<EOF > append.cmd
+#!/bin/bash
+#PBS -l nodes=1
+#PBS -l walltime=$WALLTIME
+cd \$PBS_O_WORKDIR
 function append_files {
     local number_of_jobs=\$1
     local file=\$2
@@ -146,5 +152,8 @@ do
 done
 EOF
 
-# Submit job
-qsub -N ${name:-"guess"} guess.cmd
+# Submit guess job
+append_dependency=$(qsub -N ${name:-"guess"} guess.cmd)
+
+# Submit append job
+qsub -W depend=afterok:$append_dependency -N ${name:-"guess"}"_append" append.cmd

@@ -1941,8 +1941,8 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 	// Calculate fire probability and volatilise litter
 	if (iffire && century_year<plantation_year /* guess2008 - eval */) {
 		fire(patch,fireprob);
-		patch.fireprob=fireprob;
 	}
+	patch.fireprob=fireprob;
 
 	if (vegmode==POPULATION) {
 

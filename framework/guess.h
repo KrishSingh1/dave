@@ -1491,6 +1491,7 @@ public:
 		// guess2008 - initialise
 		growingseasondays=0;
 
+		fireprob=0.0;
 	}
 };
 

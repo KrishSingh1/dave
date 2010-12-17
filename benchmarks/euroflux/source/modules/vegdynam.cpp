@@ -36,7 +36,11 @@
 #include "growth.h"
 #include "driver.h"
 
-extern int century_year; // defined in guessio_cru.cpp
+#include "euroflux.h"
+
+// these are defined in the euroflux version of guessio_cru.cpp
+extern int century_year;
+extern EurofluxData* current_stand_fluxdata;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL VARIABLES
@@ -1406,71 +1410,7 @@ void disturbance(Patch& patch,double disturb_prob) {
 }
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// VEGETATION DYNAMICS
-// Should be called by framework at the end of each simulation year, after vegetation,
-// climate and soil attributes have been updated
-/*
-void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
-
-	// DESCRIPTION
-	// Implementation of fire disturbance and population dynamics (establishment and
-	// mortality) at end of simulation year. Bioclimatic constraints to survival and
-	// establishment are imposed within mortality and establishment functions
-	// respectively.
-
-	double fireprob=0.0;
-		// probability of fire in this patch this year
-		// (in population mode: fraction of modelled area affected by fire this year)
-
-	// Calculate fire probability and volatilise litter
-	if (iffire) {
-		fire(patch,fireprob);
-		patch.fireprob=fireprob;
-	}
-
-	if (vegmode==POPULATION) {
-
-		// POPULATION MODE
-		
-		// Mortality
-		mortality_lpj(stand,patch,stand.climate,fireprob);
-
-		// Establishment
-		establishment_lpj(stand,patch,pftlist);
-
-	}
-	else {
-
-		// INDIVIDUAL AND COHORT MODES
-
-		// Patch-destroying disturbance
-
-		if (ifdisturb && patch.age) {
-			disturbance(patch,1.0/distinterval);
-			if (patch.disturbed) {
-				return; // no mortality or establishment this year
-			}
-
-		}
-
-		// Mortality
-		mortality_guess(stand,patch,stand.climate,fireprob);
-
-		// Establishment
-		establishment_guess(stand,patch,pftlist);
-
-	}
-
-	patch.age++;
-}
-*/
-
-
-
-
-
-// guess2008 - euroflux - new subroutine - called ONLY after century_year >= stand.fluxdata.plantation_year
+// guess2008 - euroflux - new subroutine - called ONLY after century_year >= current_stand_fluxdata->plantation_year
 
 void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, int century_year) {
 
@@ -1545,7 +1485,7 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 
 	// guess2008 - eval
 	bool isplantationyear = false;
-	if (stand.fluxdata.plantation_year == century_year) isplantationyear = true;
+	if (current_stand_fluxdata->plantation_year == century_year) isplantationyear = true;
 
 
 	// Obtain reference to Vegetation object
@@ -1568,9 +1508,9 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 
 	int nwoodypfts_estab=0;
 	if (isplantationyear) 
-		nwoodypfts_estab = stand.fluxdata.num_dominant_species;
+		nwoodypfts_estab = current_stand_fluxdata->num_dominant_species;
 	//else
-	//	nwoodypfts_estab = stand.fluxdata.num_other_species;
+	//	nwoodypfts_estab = current_stand_fluxdata->num_other_species;
 
 	
 	// Loop through PFTs
@@ -1603,18 +1543,18 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 		
 		// Is this PFT/species a dominant?
 		bool is_dominant_species = false; 		
-		for (int sp = 0; sp < stand.fluxdata.num_dominant_species; sp++) {
-			if (pft.name == stand.fluxdata.dom_species[sp]) {
+		for (int sp = 0; sp < current_stand_fluxdata->num_dominant_species; sp++) {
+			if (pft.name == current_stand_fluxdata->dom_species[sp]) {
 				is_dominant_species = true;
-				dominant_density = stand.fluxdata.dom_species_density[sp];
+				dominant_density = current_stand_fluxdata->dom_species_density[sp];
 			}
 		}
 
 		// Is this PFT/species a less dominant (other) species?
 		/*
 		bool is_other_species = false; 		
-		for (int op = 0; op < stand.fluxdata.num_other_species; op++) {
-			if (pft.name == stand.fluxdata.oth_species[op])
+		for (int op = 0; op < current_stand_fluxdata->num_other_species; op++) {
+			if (pft.name == current_stand_fluxdata->oth_species[op])
 				is_other_species = true;
 		}
 		*/
@@ -1754,7 +1694,7 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 				// Convert from trees/ha to trees/m2, then to num trees in this patch using patcharea 
 				if (isplantationyear && is_dominant_species)
 					nsapling= dominant_density/10000.0 * patcharea;
-					//nsapling= stand.fluxdata.dominant_density/10000.0 * patcharea;
+					//nsapling= current_stand_fluxdata->dominant_density/10000.0 * patcharea;
 
 
 				if (vegmode==COHORT) {
@@ -1936,13 +1876,13 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 		// probability of fire in this patch this year
 		// (in population mode: fraction of modelled area affected by fire this year)
 
-	int plantation_year = stand.fluxdata.plantation_year;
+	int plantation_year = current_stand_fluxdata->plantation_year;
 
 	// Calculate fire probability and volatilise litter
 	if (iffire && century_year<plantation_year /* guess2008 - eval */) {
 		fire(patch,fireprob);
-		patch.fireprob=fireprob;
 	}
+	patch.fireprob=fireprob;
 
 	if (vegmode==POPULATION) {
 

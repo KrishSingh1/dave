@@ -111,13 +111,14 @@ function build {
     mkdir -p $build_path/output
 
     source_dirs="framework modules cru libraries command_line_version parallel_version cmake"
-    for source_dir in $source_dirs; do
-	cp -rf ../$source_dir $build_path
-    done
+    # Copy with tar so we can exclude svn directories
+    (cd ..; tar cf - --exclude=".svn" $source_dirs) | (cd $build_path; tar xf -)
+
     cp ../CMakeLists.txt $build_path
 
     if [ -n "$additional_source" ]; then
-	cp -rf $additional_source/* $build_path
+	# Copy with tar so we can exclude svn directories
+	(cd $additional_source; tar cf - --exclude=".svn" *) | (cd $build_path; tar xf -)
     fi
 
     pushd $build_path/output &> /dev/null

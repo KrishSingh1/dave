@@ -1422,7 +1422,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 				abort=true;
 			}
 			else {
-				dprintf("Unknown option \"%s\"\n",insfilename);
+				dprintf("Unknown option \"%s\"\n",(char*)insfilename);
 				abort=true;
 			}
 		}

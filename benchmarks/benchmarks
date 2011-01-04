@@ -230,10 +230,10 @@ function run_benchmark {
 
     echo $test_name"..."
 
-    if [ -d $test_name/source ]; then
+    if [ -f $test_name/extra_source.txt ]; then
 	build_path=$work_dir/${test_name}_build
 	echo "Building $test_name model..."
-	build $build_path $test_name/source
+	build $build_path extra_source/$(cat $test_name/extra_source.txt)
     fi
 
     if (( $compile_only == 1 )); then

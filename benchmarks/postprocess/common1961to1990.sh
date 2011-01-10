@@ -20,7 +20,7 @@ tslice mintercep.out -o mintercep1961to1990.txt -f 560 -t 589 -lon 1 -lat 2 -y 3
 tslice mrunoff.out -o mrunoff1961to1990.txt -f 560 -t 589 -lon 1 -lat 2 -y 3
 tslice mwcont_upper.out -o mwcontupper1961to1990.txt -f 560 -t 589 -lon 1 -lat 2 -y 3
 tslice mwcont_lower.out -o mwcontlower1961to1990.txt -f 560 -t 589 -lon 1 -lat 2 -y 3
-gmapall lai1961to1990.txt
+gmapall lai1961to1990.txt -P lai_
 dominance lai1961to1990.txt lai1961to1990max.txt
-gmapall cmass1961to1990.txt
+gmapall cmass1961to1990.txt -P cmass_
 dominance cmass1961to1990.txt cmass1961to1990max.txt

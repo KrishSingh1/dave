@@ -134,7 +134,7 @@ public:
 // ENUM DECLARATIONS OF INTEGER CONSTANTS FOR PLIB INTERFACE
 
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM};
-enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_PHENOLOGY,CB_PATHWAY,
+enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_PATHWAY,	
 	CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM};
 
 
@@ -1265,7 +1265,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 
 
-
+/*
 ///////////////////////////////////////////////////////////////////////////////////////
 // GETSTAND
 // Called by the framework at the start of the simulation for a particular stand
@@ -1351,14 +1351,14 @@ bool getstand(Stand& stand) {
 
 	return false; // no more stands
 }
-
+*/
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GETCLIMATE
 // Called by the framework each simulation day before any process modelling is
 // performed for this day
 
-bool getclimate(Stand& stand) {
+bool getclimate(Gridcell& gridcell) {
 
 	// DESCRIPTION
 	// Obtains climate data (including atmospheric CO2 and insolation) for this day.
@@ -1470,8 +1470,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_dens) fprintf(out_dens,lonlatyearstr,"Lon","Lat","Year");
 		if (out_cflux) fprintf(out_cflux,lonlatyearstr_extended,"Lon","Lat","Year","Veg","Soil",
 			"Fire","Est","NEE");
-		if (out_cpool) fprintf(out_cpool,lonlatyearstr_extended,"Lon","Lat","Year","VegC","LittC",
-			"SoilfC","SoilsC","Total");
+		if (out_cpool) fprintf(out_cpool,lonlatyearstr_extended,"Lon","Lat","Year","VegC","LittC","SoilfC","SoilsC","Total");
 		if (out_firert) fprintf(out_firert,"%8s%8s%8s%8s\n","Lon","Lat","Year","FireRT");
 
 		if (out_mnpp) fprintf(out_mnpp,lonlatyearstr,"Lon","Lat","Year");

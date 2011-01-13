@@ -91,7 +91,7 @@ void leaf_phenology_pft(Pft& pft,Climate& climate,double wscal,double aphen,
 				phen=0.0;
 		
 		}
-		else if (pft.lifeform==GRASS || pft.lifeform==CROP) {
+		else if (pft.lifeform==GRASS) {
 
 			// Summergreen grasses have no maximum number of leaf-on days per
 			// growing season, and no chilling requirement
@@ -134,10 +134,11 @@ void leaf_phenology(Patch& patch,Climate& climate) {
 		Patchpft& pft=patch.pft.getobj();
 
 		// For this PFT ...
-		leaf_phenology_pft(pft.pft,climate,pft.wscal,pft.aphen,pft.phen);
+		if(patch.stand.pft[pft.id].active)
+			leaf_phenology_pft(pft.pft,climate,pft.wscal,pft.aphen,pft.phen);
 
 		// guess2008
-		if (pft.pft.lifeform==TREE && (pft.pft.phenology==SUMMERGREEN || pft.pft.phenology==ANY))
+		if (pft.pft.lifeform==TREE && (pft.pft.phenology==SUMMERGREEN || pft.pft.phenology==ANY) && patch.stand.pft[pft.id].active)
 			if (pft.phen<1.0) leafout=false; // CHILLDAYS
 
 		// Update annual leaf-on sum
@@ -251,7 +252,7 @@ void turnover_oecd(double turnover_leaf,double turnover_root,double turnover_sap
 	double turnover = 0.0;
 	int m;
 
-
+/*
 	if (lifeform==CROP) {
 
 		if (alive) litter_root+=cmass_root;
@@ -266,7 +267,7 @@ void turnover_oecd(double turnover_leaf,double turnover_root,double turnover_sap
 		for (m=0;m<12;m++) fluxes.mcflux_soil[m]+=turnover;
 	}
 	else {
-
+*/
 		// TREES AND GRASSES:
 
 		// Leaf turnover
@@ -289,7 +290,7 @@ void turnover_oecd(double turnover_leaf,double turnover_root,double turnover_sap
 			cmass_heart+=turnover;
 		}	
 
-	}
+//	}
 }
 
 
@@ -680,7 +681,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 			cmass_heart_inc=-cmass_sap_inc;
 		}
 	}
-	else if (lifeform==GRASS || lifeform==CROP) {
+	else if (lifeform==GRASS) {
 
 		// GRASS ALLOCATION
 		// Allocation attempts to distribute biomass increment (bminc) among leaf
@@ -696,10 +697,6 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 			// Negative allocation to leaves
 
 			cmass_root_inc=bminc;
-			cmass_leaf_inc=(cmass_root+cmass_root_inc)*ltor-cmass_leaf; // Eqn (3)
-
-			// Add killed leaves to litter
-
 			cmass_leaf_inc=(cmass_root+cmass_root_inc)*ltor-cmass_leaf; // Eqn (3)
 
 			// Add killed leaves to litter
@@ -883,7 +880,7 @@ bool allometry(Individual& indiv) {
 		// Stand-level LAI
 		indiv.lai=indiv.cmass_leaf*indiv.pft.sla;
 	}
-	else if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==CROP) {
+	else if (indiv.pft.lifeform==GRASS) {
 		
 		// GRASSES
 
@@ -932,7 +929,7 @@ double fracmass_lpj(double fpc_low,double fpc_high,Individual& indiv) {
 		// else
 		return fpc_low/fpc_high;
 	}
-	else if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==CROP) { // grass
+	else if (indiv.pft.lifeform==GRASS) { // grass
 
 		if (fpc_high>=1.0 || fpc_low>=1.0 || negligible(indiv.cmass_leaf)) return 1.0;
 
@@ -1071,7 +1068,7 @@ void growth(Stand& stand,Patch& patch) {
 				patch.pft[indiv.pft.id].litter_root,patch.fluxes,indiv.alive);
 
 			// Update stand record of reproduction by this PFT
-			stand.pft[indiv.pft.id].cmass_repr+=cmass_repr/(double)npatch;
+			stand.pft[indiv.pft.id].cmass_repr+=cmass_repr/(double)stand.nobj;
 
 			// Transfer reproduction straight to litter
 			// guess2008 - only for 'alive' individuals
@@ -1143,7 +1140,7 @@ void growth(Stand& stand,Patch& patch) {
 					killed=true;
 				}
 			}
-			else if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==CROP) {
+			else if (indiv.pft.lifeform==GRASS) {
 
 				// GRASS GROWTH
 
@@ -1163,15 +1160,16 @@ void growth(Stand& stand,Patch& patch) {
 
 				// guess2008 - bugfix - determine the (small) mass imbalance (kgC) for this individual. 
 				// This can arise in the event of numerical errors in the allocation routine.
-				double indiv_mass_after=indiv.cmass_leaf+indiv.cmass_root+litter_leaf_inc+litter_root_inc;
-				double indiv_cmass_diff=(indiv_mass_before+bminc-indiv_mass_after);		
+//				double indiv_mass_after=indiv.cmass_leaf+indiv.cmass_root+litter_leaf_inc+litter_root_inc;	//removed double fix
+//				double indiv_cmass_diff=(indiv_mass_before+bminc-indiv_mass_after);		
 
 				// guess2008 - alive check before ensuring C balance
 				if (indiv.alive) {
 					
-					patch.pft[indiv.pft.id].litter_leaf+=litter_leaf_inc+indiv_cmass_diff/2;
-					patch.pft[indiv.pft.id].litter_root+=litter_root_inc+indiv_cmass_diff/2;
-	
+//					patch.pft[indiv.pft.id].litter_leaf+=litter_leaf_inc+indiv_cmass_diff/2;
+//					patch.pft[indiv.pft.id].litter_root+=litter_root_inc+indiv_cmass_diff/2;
+					patch.pft[indiv.pft.id].litter_leaf+=litter_leaf_inc;
+					patch.pft[indiv.pft.id].litter_root+=litter_root_inc;
 				}
 
 				// Kill individual and transfer biomass to litter if either biomass

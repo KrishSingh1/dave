@@ -30,7 +30,7 @@
 
 Date date; // object describing timing stage of simulation
 vegmodetype vegmode; // vegetation mode (population, cohort or individual)
-int npatch; // number of patches in each stand (should always be 1 in population mode)
+int npatch; // number of patches in each stand (should always be 1 in population mode); cropland stands always have 1 patch
 double patcharea; // patch area (m2) (individual and cohort mode only)
 bool ifdailynpp; // whether NPP calculations performed daily (alt: monthly)
 bool ifdailydecomp;
@@ -57,6 +57,119 @@ bool ifdroughtlimitedestab;			// whether establishment affected by growing seaso
 bool ifrainonwetdaysonly;			// rain on wet days only (1, true), or a little every day (0, false); 
 bool ifspeciesspecificwateruptake;	// water uptake is species specific 
 
+//Landuse additions
+bool run_landcover;
+bool run[NLANDCOVERTYPES];
+bool lufrac_fixed;
+bool all_fracs_const;
+bool equal_landcover_area;
+//bool ifslowharvestpool;
+int lu_forc[NLANDCOVERTYPES]={0};
+
+void landcover_init(Gridcell& gridcell,Pftlist& pftlist)
+{
+	//Called if run_landcover is set.
+	landcovertype landcover;
+
+	getlandcover(gridcell,pftlist);	//Gets new gridcell.landcoverfrac from landcover input file(s).
+
+
+	for(int i=0;i<NLANDCOVERTYPES;i++)	//For all landcover types without subclasses
+	{
+//		if(i!=CROPLAND) // cropland subclasses turned off in this version
+		{
+			if(gridcell.landcoverfrac[i]>0.0)
+			{
+				if(run[i])
+				{
+					landcover=(landcovertype)i;
+					Stand& stand=gridcell.createobj(gridcell,landcover,pftlist);
+
+					pftlist.firstobj();
+					while (pftlist.isobj) 
+					{
+						Pft& pft=pftlist.getobj();
+						if(pft.landcover==i)
+						{
+							stand.pft[pft.id].active=true;
+						}
+						pftlist.nextobj();
+					}
+				}
+			}
+		}
+	}
+}
+
+Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i),gridcell(gc),landcover(landcoverX),frac(1.0) {
+
+		// Constructor: initialises reference member of climate and
+		// builds list array of Standpft objects
+		
+		int p;
+		int npatchL;
+
+		for(p=0;p<pftlist.nobj;p++)	// Changed to indexing to avoid changing pftlist.pthisitem.
+		{
+			pft.createobj(pftlist[p]);
+		}
+
+
+		if(landcover==CROPLAND || landcover==PASTURE || landcover==URBAN || landcover==PEATLAND)
+		{
+			npatchL=1;
+		}
+		else if(landcover==NATURAL || landcover==FOREST)
+			npatchL=npatch;
+
+		for (p=0;p<npatchL;p++)
+			createobj(*this,pftlist,gc.soiltype);
+
+		first_year=date.year;
+
+	}
+
+Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
+
+		anpp=0.0;
+		fpc=0.0;
+		densindiv=0.0;
+		cmass_leaf=0.0;
+		cmass_root=0.0;
+		cmass_sap=0.0;
+		cmass_heart=0.0;
+		cmass_debt=0.0;
+		wscal=1.0;
+		phen=0.0;
+		aphen=0.0;
+		deltafpc=0.0;
+		fpar_wstress=0.0;
+		assim=0.0;
+	
+		// guess2008 - additional initialisation
+		age=0.0;
+		fpar=0.0;
+		aphen_raingreen=0;
+		demand=0.0;
+		supply=0.0;
+		intercep=0.0;
+		phen_mean=0.0;
+		temp_wstress = 0.0;
+		par_wstress = 0.0;
+		daylength_wstress = 0.0;
+		co2_wstress = 0.0; 
+		nday_wstress = 0; 
+		ifwstress = false;
+		lai = 0.0;
+		lai_layer = 0.0;
+		lai_indiv = 0.0;
+		alive = false;
+
+		int m;
+		for (m=0;m<12;m++) {
+			mnpp[m]=mlai[m]=mgpp[m]=mra[m]=0.0;
+		}
+	};
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -67,7 +180,7 @@ bool ifspeciesspecificwateruptake;	// water uptake is species specific
 
 int framework(int argc,char* argv[]) {
 
-	bool dostand;
+	bool dogridcell;
 	int p;
 
 	// The one and only linked list of Pft objects	
@@ -77,95 +190,123 @@ int framework(int argc,char* argv[]) {
 	// settings and initialise input/output
 	initio(argc,argv,pftlist);
 
-	// Assume there is at least one stand to simulate
-	dostand=true;
+	if(run_landcover)
+	{
+		dprintf("\nLandcover version.\n");
+		if(run[URBAN])
+			dprintf("Urban stand simulated (landcover type %d)\n", URBAN);
+		if(run[CROPLAND])
+			dprintf("Crop stands simulated (landcover type %d)\n", CROPLAND);
+		if(run[PASTURE])
+			dprintf("Pasture stand simulated (landcover type %d)\n", PASTURE);
+		if(run[FOREST])
+			dprintf("Forest stand simulated (landcover type %d)\n", FOREST);
+		if(run[NATURAL])
+			dprintf("Natural stand simulated (landcover type %d)\n", NATURAL);
+		if(run[PEATLAND])
+			dprintf("Peatland stand simulated (landcover type %d)\n", PEATLAND);
+	}
 
-	while (dostand) {
+	// Assume there is at least one stand to simulate
+	dogridcell=true;
+
+	while (dogridcell) {
 
 		// START OF LOOP THROUGH STANDS
 
-		// Create and initialise a new Stand object for each grid cell / locality
-		Stand stand(pftlist);
+		// Create and initialise a new Gridcell object for each locality
+		Gridcell gridcell(pftlist);	
 
 		// Call input/output to obtain latitude and soil driver data for this stand.
-		// Function getstand returns false if no further stands remain to be simulated
+		// Function getgridcell returns false if no further stands remain to be simulated
 
-		if (getstand(stand)) {
+		if (getgridcell(gridcell)) {
 
 			// Initialise certain climate and soil drivers
-			stand.climate.initdrivers(stand.climate.lat);
-			initsoildrivers(stand);
+			gridcell.climate.initdrivers(gridcell.climate.lat);
 
 			// Initialise global variable date
 			// (argument nyear not used in this implementation)
 			date.init(1);
 
+			if(run_landcover)
+			{
+				//Read static landcover and cft fraction data from in ini-file and/or from data files for the spinup peroid and create stands.
+				landcover_init(gridcell,pftlist);
+			}
+			
 			// Call input/output to obtain climate, insolation and CO2 for this
 			// day of the simulation. Function getclimate returns false if last year
 			// has already been simulated for this stand
 
-
-			while (getclimate(stand)) {
+			while (getclimate(gridcell)) {
 
 				// START OF LOOP THROUGH SIMULATION DAYS
 
 				// Update daily climate drivers etc
-				dailyaccounting_stand(stand,pftlist);
+				dailyaccounting_gridcell(gridcell,pftlist);
 
 				// Calculate daylength, insolation and potential evapotranspiration
-				daylengthinsoleet(stand.climate);
+				daylengthinsoleet(gridcell.climate);
 
-				for (p=0;p<npatch;p++) {
+				gridcell.firstobj();
+				while (gridcell.isobj) //Loop through stands:
+				{
+					Stand& stand=gridcell.getobj();
 
-					// START OF LOOP THROUGH PATCHES
+					dailyaccounting_stand(stand,pftlist);
 
-					// Get reference to this patch
-					Patch& patch=stand[p];
+					stand.firstobj();
+					while (stand.isobj)
+					{
+						// START OF LOOP THROUGH PATCHES
 
-					// Update daily soil drivers including soil temperature
-					dailyaccounting_patch(patch);
+						// Get reference to this patch
+						Patch& patch=stand.getobj();
+						// Update daily soil drivers including soil temperature
+						dailyaccounting_patch(patch);
+						// Leaf phenology for PFTs and individuals
+						leaf_phenology(patch,gridcell.climate);
+						// Photosynthesis, respiration, evapotranspiration
+						canopy_exchange(patch);
+						// Soil water accounting, snow pack accounting
+						soilwater(gridcell.climate,patch);
+						// Soil organic matter and litter dynamics
+						som_dynamics(patch);
 
-					// Leaf phenology for PFTs and individuals
-					leaf_phenology(patch,stand.climate);
+						if (date.islastday && date.islastmonth) {
 
-					// Photosynthesis, respiration, evapotranspiration
-					canopy_exchange(patch);
+							// LAST DAY OF YEAR
+							// Tissue turnover, allocation to new biomass and reproduction,
+							// updated allometry
+							growth(stand,patch);
+						}
+						stand.nextobj();
+					}// End of loop through patches
 
-					// Soil water accounting, snow pack accounting
-					soilwater(stand.climate,patch);
-
-					// Soil organic matter and litter dynamics
-					som_dynamics(patch);
-
-					if (date.islastday && date.islastmonth) {
-
+					if (date.islastday && date.islastmonth)
+					{
 						// LAST DAY OF YEAR
-
-						// Tissue turnover, allocation to new biomass and reproduction,
-						// updated allometry
-						growth(stand,patch);
+						stand.firstobj();
+						while (stand.isobj) //Loop through Patches (ML)
+						{
+							// For each patch ...
+							Patch& patch=stand.getobj();
+							// Establishment, mortality and disturbance by fire
+							vegetation_dynamics(stand,patch,pftlist);
+							stand.nextobj();
+						}
 					}
 
-					// End of loop through patches
-				}
+					gridcell.nextobj();			
+				}	// End of loop through stands
 
-
-				if (date.islastday && date.islastmonth) {
-
+				if (date.islastday && date.islastmonth)
+				{
 					// LAST DAY OF YEAR
-
-					for (p=0;p<npatch;p++) {
-
-						// For each patch ...
-						Patch& patch=stand[p];
-
-						// Establishment, mortality and disturbance by fire
-						vegetation_dynamics(stand,patch,pftlist);
-					}
-
 					// Call input/output module to output results for end of year
 					// or end of simulation for this stand
-					outannual(stand,pftlist);
+					outannual(gridcell,pftlist);
 
 					// Check whether to abort
 					if (abort_request_received()) {
@@ -178,9 +319,9 @@ int framework(int argc,char* argv[]) {
 				date.next();
 
 				// End of loop through simulation days
-			}
-		}
-		else dostand=false; // no more stands to simulate
+			}//while (getclimate())
+		}//if getgridcell()
+		else dogridcell=false; // no more stands to simulate
 
 		int test = 0;
 

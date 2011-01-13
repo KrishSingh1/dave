@@ -142,7 +142,7 @@ void soilparameters(Soiltype& soiltype,int soilcode) {
 ///////////////////////////////////////////////////////////////////////////////////////
 // INITIALISE SOIL DRIVERS
 // Called by framework at start of simulation for a new stand
-
+/*	//removed 101207
 void initsoildrivers(Stand& stand) {
 
 	// DESCRIPTION
@@ -154,7 +154,7 @@ void initsoildrivers(Stand& stand) {
 		stand[p].soil.initdrivers();
 	}
 }
-
+*/
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // CLIMATE INTERPOLATION FROM MONTHLY TO QUASI-DAILY VALUES
@@ -408,7 +408,7 @@ void soiltemp(Climate& climate,Soil& soil) {
 	double day[]={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
 		16,17,18,19,20,21,22,23,24,25,26,27,28,29,30};
 
-	if (date.year==0 && date.month==0 && !date.islastday) {
+	if ((date.year==0 || date.year==soil.patch.stand.first_year) && date.month==0 && !date.islastday) {
 
 		// First month of simulation, use air temperature for soil temperature
 
@@ -465,7 +465,141 @@ inline double mean(double* array,int nitem) {
 	return sum/(double)nitem;
 }
 
+void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 
+	// DESCRIPTION
+	// Updates daily climate parameters including growing degree day sums and
+	// exponential temperature response term (gtemp, see below). Maintains monthly
+	// and longer term records of variation in climate variables. PFT-specific
+	// degree-day sums in excess of damaging temperatures are also calculated here.
+
+	const double W11DIV12=11.0/12.0;
+	const double W1DIV12=1.0/12.0;
+	int d,y,startyear;
+
+	// guess2008 - changed this from an int to a double
+	double mtemp_last;
+
+	Climate& climate=gridcell.climate;
+
+	// On first day of year ...
+
+	if (date.day==0) 
+	{
+		// ... reset annual GDD5 counter
+		climate.agdd5=0.0;
+
+		if (date.year==0) 
+		{
+			// First day of simulation - initialise running annual mean temperature and daily temperatures for the last month
+			for (d=0;d<31;d++)
+				climate.dtemp_31[d]=climate.temp;
+			climate.atemp_mean=climate.temp;
+		}
+	}
+	else if (climate.lat>=0.0 && date.day==COLDEST_DAY_NHEMISPHERE ||	// 14
+		climate.lat<0.0 && date.day==COLDEST_DAY_SHEMISPHERE)			// 195
+	{
+		// In midwinter, reset GDD counter for summergreen phenology
+		climate.gdd5=0.0;
+		climate.ifsensechill=false; // guess2008 - CHILLDAYS
+	}
+
+	// Update GDD counters and chill day count
+	climate.gdd5+=max(0.0,climate.temp-5.0);
+	climate.agdd5+=max(0.0,climate.temp-5.0);
+	if (climate.temp<5.0 && climate.chilldays<=365)
+		climate.chilldays++;
+
+///	if (run_landuse && run_crop)
+///		dailyaccounting_gridcell_crop(gridcell,pftlist);
+
+	// Save yesterday's mean temperature for the last month
+	mtemp_last=climate.mtemp;
+
+	// Update daily temperatures, and mean overall temperature, for last 31 days
+	climate.mtemp=climate.temp;
+	for (d=0;d<30;d++) 
+	{
+		climate.dtemp_31[d]=climate.dtemp_31[d+1];
+		climate.mtemp+=climate.dtemp_31[d];
+	}
+	climate.dtemp_31[30]=climate.temp;
+	climate.mtemp/=31.0;
+
+	// Reset GDD and chill day counter if mean monthly temperature falls below base
+	// temperature
+	if (mtemp_last>=5.0 && climate.mtemp<5.0 && climate.ifsensechill) 
+	{ // guess2008 - CHILLDAYS
+		climate.gdd5=0.0;
+		climate.chilldays=0;
+	}
+
+	// On last day of month ...
+
+	if (date.islastday) 
+	{
+		// Update mean temperature for the last 12 months
+		// atemp_mean_new = atemp_mean_old * (11/12) + mtemp * (1/12)
+		climate.atemp_mean=climate.atemp_mean*W11DIV12+climate.mtemp*W1DIV12;
+		
+		// Record minimum and maximum monthly temperatures
+		if (date.month==0) 
+		{
+			climate.mtemp_min=climate.mtemp;
+			climate.mtemp_max=climate.mtemp;
+		}
+		else 
+		{
+			if (climate.mtemp<climate.mtemp_min)
+				climate.mtemp_min=climate.mtemp;
+			if (climate.mtemp>climate.mtemp_max)
+				climate.mtemp_max=climate.mtemp;
+		}
+
+		// On 31 December update records of minimum monthly temperatures for the last
+		// 20 years and find mean of minimum monthly temperatures for the last 20 years
+		if (date.islastmonth) 
+		{
+			startyear=20-(int)min(19,date.year);
+			climate.mtemp_min20=climate.mtemp_min;
+			climate.mtemp_max20=climate.mtemp_max;
+			for (y=startyear;y<20;y++) 
+			{
+				climate.mtemp_min_20[y-1]=climate.mtemp_min_20[y];
+				climate.mtemp_min20+=climate.mtemp_min_20[y];
+				climate.mtemp_max_20[y-1]=climate.mtemp_max_20[y];
+				climate.mtemp_max20+=climate.mtemp_max_20[y];
+			}
+			climate.mtemp_min20/=(double)(21-startyear);
+			climate.mtemp_max20/=(double)(21-startyear);
+			climate.mtemp_min_20[19]=climate.mtemp_min;
+			climate.mtemp_max_20[19]=climate.mtemp_max;
+		}
+	}
+}
+
+void dailyaccounting_stand(Stand& stand,Pftlist& pftlist) 	//ML
+{		
+	// Loop through PFTs
+	pftlist.firstobj();
+	while (pftlist.isobj) 
+	{
+		Pft& pft=pftlist.getobj();
+		// For this PFT ...
+
+		// [BEGIN CEFAST0207]
+		// Flag used by evapotranspiration_fast in canopy exchange module ...
+		stand.pft[pft.id].have_phot=false;
+
+		// [END CEFAST0207]
+
+		// ... on to next PFT
+		pftlist.nextobj();
+	}
+}
+
+/*
 void dailyaccounting_stand(Stand& stand,Pftlist& pftlist) {
 
 	// DESCRIPTION
@@ -482,7 +616,7 @@ void dailyaccounting_stand(Stand& stand,Pftlist& pftlist) {
 	// guess2008 - changed this from an int to a double
 	double mtemp_last;
 
-	Climate& climate=stand.climate;
+	Climate& climate=stand.gridcell.climate;
 
 	// On first day of year ...
 
@@ -594,7 +728,7 @@ void dailyaccounting_stand(Stand& stand,Pftlist& pftlist) {
 		}
 	}
 }
-
+*/
 
 void dailyaccounting_patch(Patch& patch) {
 
@@ -613,12 +747,14 @@ void dailyaccounting_patch(Patch& patch) {
 
 	if (date.day==0) {
 
+//		if(!run_landcover)
+//		{
 		// Reset fluxes
-
-		fluxes.acflux_soil=0.0;
-		fluxes.acflux_veg=0.0;
-		fluxes.acflux_est=0.0;
-		fluxes.acflux_fire=0.0;
+			fluxes.acflux_soil=0.0;
+			fluxes.acflux_veg=0.0;
+			fluxes.acflux_est=0.0;
+			fluxes.acflux_fire=0.0;
+//		}	
 
 		patch.aaet=0.0;
 		patch.aevap=0.0;
@@ -644,6 +780,9 @@ void dailyaccounting_patch(Patch& patch) {
 	}
 
 	fluxes.dcflux_veg=0.0;
+
+//	if(run_landcover)
+//		dailyaccounting_patch_lu(patch, pftlist);
 	
 	// Store daily soil water in upper layer
 	soil.dwcontupper[date.day]=soil.wcont[0];
@@ -668,7 +807,7 @@ void dailyaccounting_patch(Patch& patch) {
 	}
 
 	// Calculate soil temperatures
-	soiltemp(patch.stand.climate,soil);
+	soiltemp(patch.stand.gridcell.climate,soil);
 
 	// On last day of month, calculate mean soil temperature for last month
 

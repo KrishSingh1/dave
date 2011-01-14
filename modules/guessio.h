@@ -22,7 +22,6 @@
 #include "guess.h"
 
 void initio(int argc,char* argv[],Pftlist& pftlist);
-//bool getstand(Stand& stand);
 bool getgridcell(Gridcell& gridcell);
 bool getclimate(Gridcell& gridcell);
 void getlandcover(Gridcell& gridcell,Pftlist& pftlist);

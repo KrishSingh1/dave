@@ -190,6 +190,17 @@ int framework(int argc,char* argv[]) {
 	// settings and initialise input/output
 	initio(argc,argv,pftlist);
 
+	pftlist.firstobj();
+	while(pftlist.isobj)
+	{
+		dprintf("pft n:o %d: %s",pftlist.getobj().id,(char*)pftlist.getobj().name);
+//		if(pftlist.getobj().landcover==CROPLAND)
+//			dprintf(", cftid %d",pftlist.getobj().cftid);			
+		dprintf("\n");
+		pftlist.nextobj();
+	}
+
+
 	if(run_landcover)
 	{
 		dprintf("\nLandcover version.\n");

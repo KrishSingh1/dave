@@ -23,8 +23,13 @@ It is the responsibility of each individual user to:
        (data file names, model configuration settings, PFT parameter values
        etc) for the model runs
 Some technical advice regarding these matters can be found in the draft
-documentation located under ../reference. Additional help is available as
+documentation (reference/guessdoc.pdf). Additional help is available as
 commenting in model source code and header files.
+
+The model is compiled with the CMake build system. If it is not available
+on your system you can download it for free from www.cmake.org. You can
+find further information on how to compile the model with CMake in the
+draft documentation (reference/guessdoc.pdf).
 
 
 IMPORTANT: FTP-TRANSFERS FROM UNIX TO WINDOWS:
@@ -91,5 +96,5 @@ Structure of this directory:
        Direct enquiries to Ben Smith (e-mail below).
        
 
-Ben Smith
-benjamin.smith@nateko.lu.se
+Joe Lindstrom
+joe.lindstrom@nateko.lu.se

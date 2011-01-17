@@ -48,7 +48,7 @@
 #include <utility>
 #include <vector>
 #include <algorithm>
-
+#include "euroflux.h"
 
 // guess2008 - header file for the CRU TS 3.0 data archives
 #include "cru_1901_2006.h"
@@ -181,6 +181,8 @@ xtring file_eurofluxmonthly, file_eurofluxannual, file_eurofluxstats,file_specie
 // century_year = 1, when date.year = nyear, i.e. 1901, 
 // century_year = 80, when date.year = nyear+79, i.e. 1980, etc.
 int century_year;
+
+EurofluxData* current_stand_fluxdata = 0;
 
 void initsettings() {
 
@@ -1353,19 +1355,21 @@ void euroflux_adjust_climate_read_flux_data(Stand& stand, Coord& coord,
 	}
 
 
-	// *** Step 2: copy management data for the site to the Stand class
+	// *** Step 2: copy management data for the site to the EurofluxData class
+	delete current_stand_fluxdata;
+	current_stand_fluxdata = new EurofluxData;
 
-	stand.fluxdata.desc = coord.descrip;
-	stand.fluxdata.plantation_year = coord.plantation_year;
-	stand.fluxdata.num_dominant_species = coord.num_dominant_species;
-	//stand.fluxdata.num_other_species = coord.num_other_species;
-	//stand.fluxdata.dominant_density = coord.dominant_density;
+	current_stand_fluxdata->desc = coord.descrip;
+	current_stand_fluxdata->plantation_year = coord.plantation_year;
+	current_stand_fluxdata->num_dominant_species = coord.num_dominant_species;
+	//current_stand_fluxdata->num_other_species = coord.num_other_species;
+	//current_stand_fluxdata->dominant_density = coord.dominant_density;
 
 		
 	for (int sp = 0; sp < 5; sp++) {
-		stand.fluxdata.dom_species[sp] = coord.dom_species[sp];
-		stand.fluxdata.dom_species_density[sp] = coord.dom_species_density[sp];
-		//stand.fluxdata.oth_species[sp] = coord.oth_species[sp];
+		current_stand_fluxdata->dom_species[sp] = coord.dom_species[sp];
+		current_stand_fluxdata->dom_species_density[sp] = coord.dom_species_density[sp];
+		//current_stand_fluxdata->oth_species[sp] = coord.oth_species[sp];
 	}
 
 
@@ -1483,13 +1487,13 @@ void euroflux_adjust_climate_read_flux_data(Stand& stand, Coord& coord,
 					// Only AET data of sufficient quality is stored.
 					// Convert from W m-2 day-1 to mm month-1
 					if (LE_sqc >= MIN_OBS_FREQ)	
-						stand.fluxdata.fluxAET[fyear][month] = n_days * SECS_IN_DAY / LATENT_HEAT_VAP * LE_f;
+						current_stand_fluxdata->fluxAET[fyear][month] = n_days * SECS_IN_DAY / LATENT_HEAT_VAP * LE_f;
 
 					// Only NEE_st data of sufficient quality is stored
 					if (NEE_st_fMDSsqc >= MIN_OBS_FREQ && NEE_st_fMDS != MISSING_DATA) {
 						useOriginalDataThisMonth = false; // No need replace this data with _or data	 
-						stand.fluxdata.fluxNEE[fyear][month] = n_days * NEE_st_fMDS;
-						stand.fluxdata.fluxGPP[fyear][month] = n_days * GPP_st_MDS;
+						current_stand_fluxdata->fluxNEE[fyear][month] = n_days * NEE_st_fMDS;
+						current_stand_fluxdata->fluxGPP[fyear][month] = n_days * GPP_st_MDS;
 					}
 
 					// Back-up NEE_or data of sufficient quality
@@ -1504,12 +1508,12 @@ void euroflux_adjust_climate_read_flux_data(Stand& stand, Coord& coord,
 						
 					// Replace bad data with original data?
 					if (useOriginalDataThisMonth) {
-						stand.fluxdata.fluxNEE[fyear][month] = NEE_or[fyear][month];
-						stand.fluxdata.fluxGPP[fyear][month] = GPP_or[fyear][month];
+						current_stand_fluxdata->fluxNEE[fyear][month] = NEE_or[fyear][month];
+						current_stand_fluxdata->fluxGPP[fyear][month] = GPP_or[fyear][month];
 					}
 				
 
-					stand.fluxdata.fluxSWC[fyear][month] = swc;
+					current_stand_fluxdata->fluxSWC[fyear][month] = swc;
 				
 
 					month++;
@@ -2337,50 +2341,50 @@ void calculateAnnualFluxSums(Stand& stand, const int yr,
 
 	for (mth = 0; mth < 12; mth++) {
 
-		if (stand.fluxdata.fluxNEE[yr][mth] != MISSING_DATA) {
+		if (current_stand_fluxdata->fluxNEE[yr][mth] != MISSING_DATA) {
 			
 			// Annual stats
 			yrNEE_obs++;
-			annNEE_obs += stand.fluxdata.fluxNEE[yr][mth];
-			annNEE_mod += stand.fluxdata.modelNEE[yr][mth];
+			annNEE_obs += current_stand_fluxdata->fluxNEE[yr][mth];
+			annNEE_mod += current_stand_fluxdata->modelNEE[yr][mth];
 			
 			// Summer (JJA) stats
 			if (mth >= 6 && mth <= 8) {
 				jjaNEE_obs++;
-				sumNEE_obs += stand.fluxdata.fluxNEE[yr][mth];
-				sumNEE_mod += stand.fluxdata.modelNEE[yr][mth];
+				sumNEE_obs += current_stand_fluxdata->fluxNEE[yr][mth];
+				sumNEE_mod += current_stand_fluxdata->modelNEE[yr][mth];
 			}
 
 		} // NEE
 
-		if (stand.fluxdata.fluxAET[yr][mth] != MISSING_DATA) {
+		if (current_stand_fluxdata->fluxAET[yr][mth] != MISSING_DATA) {
 
 			// Annual stats
 			yrAET_obs++;
-			annAET_obs += stand.fluxdata.fluxAET[yr][mth];
-			annAET_mod += stand.fluxdata.modelAET[yr][mth];
+			annAET_obs += current_stand_fluxdata->fluxAET[yr][mth];
+			annAET_mod += current_stand_fluxdata->modelAET[yr][mth];
 			
 			// Summer (JJA) stats
 			if (mth >= 6 && mth <= 8) {
 				jjaAET_obs++;
-				sumAET_obs += stand.fluxdata.fluxAET[yr][mth];
-				sumAET_mod += stand.fluxdata.modelAET[yr][mth];
+				sumAET_obs += current_stand_fluxdata->fluxAET[yr][mth];
+				sumAET_mod += current_stand_fluxdata->modelAET[yr][mth];
 			}
 
 		} // AET
 
-		if (stand.fluxdata.fluxGPP[yr][mth] != MISSING_DATA) {
+		if (current_stand_fluxdata->fluxGPP[yr][mth] != MISSING_DATA) {
 		
 			// Annual stats
 			yrGPP_obs++;
-			annGPP_obs += stand.fluxdata.fluxGPP[yr][mth];
-			annGPP_mod += stand.fluxdata.modelGPP[yr][mth];
+			annGPP_obs += current_stand_fluxdata->fluxGPP[yr][mth];
+			annGPP_mod += current_stand_fluxdata->modelGPP[yr][mth];
 			
 			// Summer (JJA) stats
 			if (mth >= 6 && mth <= 8) {
 				jjaGPP_obs++;
-				sumGPP_obs += stand.fluxdata.fluxGPP[yr][mth];
-				sumGPP_mod += stand.fluxdata.modelGPP[yr][mth];
+				sumGPP_obs += current_stand_fluxdata->fluxGPP[yr][mth];
+				sumGPP_mod += current_stand_fluxdata->modelGPP[yr][mth];
 			}
 		
 		} // GPP
@@ -2452,26 +2456,26 @@ void calculateEurofluxStats(Stand& stand, FILE* out_stats) {
 
 		for (int mth = 0; mth < 12; mth++) {
 
-			if (stand.fluxdata.fluxNEE[yr][mth] != MISSING_DATA) {
+			if (current_stand_fluxdata->fluxNEE[yr][mth] != MISSING_DATA) {
 				
 				// Overall stats
 				numNEE_obs++;
-				meanNEE_obs += stand.fluxdata.fluxNEE[yr][mth];
-				meanNEE_mod += stand.fluxdata.modelNEE[yr][mth];
+				meanNEE_obs += current_stand_fluxdata->fluxNEE[yr][mth];
+				meanNEE_mod += current_stand_fluxdata->modelNEE[yr][mth];
 	
 			} // NEE
 
-			if (stand.fluxdata.fluxAET[yr][mth] != MISSING_DATA) {
+			if (current_stand_fluxdata->fluxAET[yr][mth] != MISSING_DATA) {
 				numAET_obs++;
-				meanAET_obs += stand.fluxdata.fluxAET[yr][mth];
-				meanAET_mod += stand.fluxdata.modelAET[yr][mth];
+				meanAET_obs += current_stand_fluxdata->fluxAET[yr][mth];
+				meanAET_mod += current_stand_fluxdata->modelAET[yr][mth];
 
 			} // AET
 
-			if (stand.fluxdata.fluxGPP[yr][mth] != MISSING_DATA) {
+			if (current_stand_fluxdata->fluxGPP[yr][mth] != MISSING_DATA) {
 				numGPP_obs++;
-				meanGPP_obs += stand.fluxdata.fluxGPP[yr][mth];
-				meanGPP_mod += stand.fluxdata.modelGPP[yr][mth];
+				meanGPP_obs += current_stand_fluxdata->fluxGPP[yr][mth];
+				meanGPP_mod += current_stand_fluxdata->modelGPP[yr][mth];
 						
 			} // GPP
 
@@ -2548,50 +2552,50 @@ void calculateEurofluxStats(Stand& stand, FILE* out_stats) {
 		for (int mth = 0; mth < 12; mth++) {
 
 			// NEE stats
-			if (stand.fluxdata.fluxNEE[yr][mth] != MISSING_DATA) {
+			if (current_stand_fluxdata->fluxNEE[yr][mth] != MISSING_DATA) {
 				
-				NEE_obs_diff += stand.fluxdata.fluxNEE[yr][mth] - meanNEE_obs;
-				NEE_obs_sqdiff += (stand.fluxdata.fluxNEE[yr][mth] - meanNEE_obs) * (stand.fluxdata.fluxNEE[yr][mth] - meanNEE_obs);
+				NEE_obs_diff += current_stand_fluxdata->fluxNEE[yr][mth] - meanNEE_obs;
+				NEE_obs_sqdiff += (current_stand_fluxdata->fluxNEE[yr][mth] - meanNEE_obs) * (current_stand_fluxdata->fluxNEE[yr][mth] - meanNEE_obs);
 
-				NEE_mod_diff += stand.fluxdata.modelNEE[yr][mth] - meanNEE_mod;
-				NEE_mod_sqdiff += (stand.fluxdata.modelNEE[yr][mth] - meanNEE_mod) * (stand.fluxdata.modelNEE[yr][mth] - meanNEE_mod);
+				NEE_mod_diff += current_stand_fluxdata->modelNEE[yr][mth] - meanNEE_mod;
+				NEE_mod_sqdiff += (current_stand_fluxdata->modelNEE[yr][mth] - meanNEE_mod) * (current_stand_fluxdata->modelNEE[yr][mth] - meanNEE_mod);
 
-				NEE_obs_minus_mod += stand.fluxdata.fluxNEE[yr][mth] - stand.fluxdata.modelNEE[yr][mth];
-				NEE_obs_minus_mod_sq += (stand.fluxdata.fluxNEE[yr][mth] - stand.fluxdata.modelNEE[yr][mth]) * (stand.fluxdata.fluxNEE[yr][mth] - stand.fluxdata.modelNEE[yr][mth]);
+				NEE_obs_minus_mod += current_stand_fluxdata->fluxNEE[yr][mth] - current_stand_fluxdata->modelNEE[yr][mth];
+				NEE_obs_minus_mod_sq += (current_stand_fluxdata->fluxNEE[yr][mth] - current_stand_fluxdata->modelNEE[yr][mth]) * (current_stand_fluxdata->fluxNEE[yr][mth] - current_stand_fluxdata->modelNEE[yr][mth]);
 				
-				NEE_obs_diff_times_mod_diff += (stand.fluxdata.fluxNEE[yr][mth] - meanNEE_obs) * (stand.fluxdata.modelNEE[yr][mth] - meanNEE_mod);
+				NEE_obs_diff_times_mod_diff += (current_stand_fluxdata->fluxNEE[yr][mth] - meanNEE_obs) * (current_stand_fluxdata->modelNEE[yr][mth] - meanNEE_mod);
 
 			}
 
 			// AET stats
-			if (stand.fluxdata.fluxAET[yr][mth] != MISSING_DATA) {
+			if (current_stand_fluxdata->fluxAET[yr][mth] != MISSING_DATA) {
 
-				AET_obs_diff += stand.fluxdata.fluxAET[yr][mth] - meanAET_obs;
-				AET_obs_sqdiff += (stand.fluxdata.fluxAET[yr][mth] - meanAET_obs) * (stand.fluxdata.fluxAET[yr][mth] - meanAET_obs);
+				AET_obs_diff += current_stand_fluxdata->fluxAET[yr][mth] - meanAET_obs;
+				AET_obs_sqdiff += (current_stand_fluxdata->fluxAET[yr][mth] - meanAET_obs) * (current_stand_fluxdata->fluxAET[yr][mth] - meanAET_obs);
 
-				AET_mod_diff += stand.fluxdata.modelAET[yr][mth] - meanAET_mod;
-				AET_mod_sqdiff += (stand.fluxdata.modelAET[yr][mth] - meanAET_mod) * (stand.fluxdata.modelAET[yr][mth] - meanAET_mod);
+				AET_mod_diff += current_stand_fluxdata->modelAET[yr][mth] - meanAET_mod;
+				AET_mod_sqdiff += (current_stand_fluxdata->modelAET[yr][mth] - meanAET_mod) * (current_stand_fluxdata->modelAET[yr][mth] - meanAET_mod);
 
-				AET_obs_minus_mod += stand.fluxdata.fluxAET[yr][mth] - stand.fluxdata.modelAET[yr][mth];
-				AET_obs_minus_mod_sq += (stand.fluxdata.fluxAET[yr][mth] - stand.fluxdata.modelAET[yr][mth]) * (stand.fluxdata.fluxAET[yr][mth] - stand.fluxdata.modelAET[yr][mth]);
+				AET_obs_minus_mod += current_stand_fluxdata->fluxAET[yr][mth] - current_stand_fluxdata->modelAET[yr][mth];
+				AET_obs_minus_mod_sq += (current_stand_fluxdata->fluxAET[yr][mth] - current_stand_fluxdata->modelAET[yr][mth]) * (current_stand_fluxdata->fluxAET[yr][mth] - current_stand_fluxdata->modelAET[yr][mth]);
 
-				AET_obs_diff_times_mod_diff += (stand.fluxdata.fluxAET[yr][mth] - meanAET_obs) * (stand.fluxdata.modelAET[yr][mth] - meanAET_mod);
+				AET_obs_diff_times_mod_diff += (current_stand_fluxdata->fluxAET[yr][mth] - meanAET_obs) * (current_stand_fluxdata->modelAET[yr][mth] - meanAET_mod);
 
 			}
 			
 			// GPP stats
-			if (stand.fluxdata.fluxGPP[yr][mth] != MISSING_DATA) {
+			if (current_stand_fluxdata->fluxGPP[yr][mth] != MISSING_DATA) {
 
-				GPP_obs_diff += stand.fluxdata.fluxGPP[yr][mth] - meanGPP_obs;
-				GPP_obs_sqdiff += (stand.fluxdata.fluxGPP[yr][mth] - meanGPP_obs) * (stand.fluxdata.fluxGPP[yr][mth] - meanGPP_obs);
+				GPP_obs_diff += current_stand_fluxdata->fluxGPP[yr][mth] - meanGPP_obs;
+				GPP_obs_sqdiff += (current_stand_fluxdata->fluxGPP[yr][mth] - meanGPP_obs) * (current_stand_fluxdata->fluxGPP[yr][mth] - meanGPP_obs);
 
-				GPP_mod_diff += stand.fluxdata.modelGPP[yr][mth] - meanGPP_mod;
-				GPP_mod_sqdiff += (stand.fluxdata.modelGPP[yr][mth] - meanGPP_mod) * (stand.fluxdata.modelGPP[yr][mth] - meanGPP_mod);
+				GPP_mod_diff += current_stand_fluxdata->modelGPP[yr][mth] - meanGPP_mod;
+				GPP_mod_sqdiff += (current_stand_fluxdata->modelGPP[yr][mth] - meanGPP_mod) * (current_stand_fluxdata->modelGPP[yr][mth] - meanGPP_mod);
 
-				GPP_obs_minus_mod += stand.fluxdata.fluxGPP[yr][mth] - stand.fluxdata.modelGPP[yr][mth];
-				GPP_obs_minus_mod_sq += (stand.fluxdata.fluxGPP[yr][mth] - stand.fluxdata.modelGPP[yr][mth]) * (stand.fluxdata.fluxGPP[yr][mth] - stand.fluxdata.modelGPP[yr][mth]);
+				GPP_obs_minus_mod += current_stand_fluxdata->fluxGPP[yr][mth] - current_stand_fluxdata->modelGPP[yr][mth];
+				GPP_obs_minus_mod_sq += (current_stand_fluxdata->fluxGPP[yr][mth] - current_stand_fluxdata->modelGPP[yr][mth]) * (current_stand_fluxdata->fluxGPP[yr][mth] - current_stand_fluxdata->modelGPP[yr][mth]);
 
-				GPP_obs_diff_times_mod_diff += (stand.fluxdata.fluxGPP[yr][mth] - meanGPP_obs) * (stand.fluxdata.modelGPP[yr][mth] - meanGPP_mod);
+				GPP_obs_diff_times_mod_diff += (current_stand_fluxdata->fluxGPP[yr][mth] - meanGPP_obs) * (current_stand_fluxdata->modelGPP[yr][mth] - meanGPP_mod);
 
 			}
 		} // for mth
@@ -2610,9 +2614,9 @@ void calculateEurofluxStats(Stand& stand, FILE* out_stats) {
 		for (int mth = 0; mth < 12; mth++) {
 
 			// sd_NEE_sq
-			if (stand.fluxdata.fluxNEE[yr][mth] != MISSING_DATA) {		
-				sd_NEE_sq += (stand.fluxdata.fluxNEE[yr][mth] - stand.fluxdata.modelNEE[yr][mth] - m_NEE) *
-				(stand.fluxdata.fluxNEE[yr][mth] - stand.fluxdata.modelNEE[yr][mth] - m_NEE);
+			if (current_stand_fluxdata->fluxNEE[yr][mth] != MISSING_DATA) {		
+				sd_NEE_sq += (current_stand_fluxdata->fluxNEE[yr][mth] - current_stand_fluxdata->modelNEE[yr][mth] - m_NEE) *
+				(current_stand_fluxdata->fluxNEE[yr][mth] - current_stand_fluxdata->modelNEE[yr][mth] - m_NEE);
 			}
 
 		} // for mth
@@ -2634,9 +2638,9 @@ void calculateEurofluxStats(Stand& stand, FILE* out_stats) {
 		for (int mth = 0; mth < 12; mth++) {
 
 			// sd_AET_sq
-			if (stand.fluxdata.fluxAET[yr][mth] != MISSING_DATA) {		
-				sd_AET_sq += (stand.fluxdata.fluxAET[yr][mth] - stand.fluxdata.modelAET[yr][mth] - m_AET) *
-				(stand.fluxdata.fluxAET[yr][mth] - stand.fluxdata.modelAET[yr][mth] - m_AET);
+			if (current_stand_fluxdata->fluxAET[yr][mth] != MISSING_DATA) {		
+				sd_AET_sq += (current_stand_fluxdata->fluxAET[yr][mth] - current_stand_fluxdata->modelAET[yr][mth] - m_AET) *
+				(current_stand_fluxdata->fluxAET[yr][mth] - current_stand_fluxdata->modelAET[yr][mth] - m_AET);
 			}
 
 		} // for mth
@@ -2658,9 +2662,9 @@ void calculateEurofluxStats(Stand& stand, FILE* out_stats) {
 		for (int mth = 0; mth < 12; mth++) {
 
 			// sd_GPP_sq
-			if (stand.fluxdata.fluxGPP[yr][mth] != MISSING_DATA) {		
-				sd_GPP_sq += (stand.fluxdata.fluxGPP[yr][mth] - stand.fluxdata.modelGPP[yr][mth] - m_GPP) *
-				(stand.fluxdata.fluxGPP[yr][mth] - stand.fluxdata.modelGPP[yr][mth] - m_GPP);
+			if (current_stand_fluxdata->fluxGPP[yr][mth] != MISSING_DATA) {		
+				sd_GPP_sq += (current_stand_fluxdata->fluxGPP[yr][mth] - current_stand_fluxdata->modelGPP[yr][mth] - m_GPP) *
+				(current_stand_fluxdata->fluxGPP[yr][mth] - current_stand_fluxdata->modelGPP[yr][mth] - m_GPP);
 			}
 
 		} // for mth
@@ -2685,7 +2689,7 @@ void calculateEurofluxStats(Stand& stand, FILE* out_stats) {
 	*/
 
 
-	char* sitename = (char*)stand.fluxdata.desc;
+	char* sitename = (char*)current_stand_fluxdata->desc;
 
 	double ef = (NEE_obs_sqdiff - NEE_obs_minus_mod_sq)/NEE_obs_sqdiff; // Modelling Efficiency
 	double cd = NEE_obs_sqdiff/NEE_obs_minus_mod_sq; // Coefficient of determination
@@ -3192,14 +3196,14 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			if (out_eurofluxmonthly) fprintf(out_eurofluxmonthly,"%6.1f%6.1f%6d%6d",lon,lat,date.year,m+1);
 
 			if (out_eurofluxmonthly) fprintf(out_eurofluxmonthly,"%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f\n",
-				-1000.0*mnee[m],stand.fluxdata.fluxNEE[date.year-nyear_spinup-95][m],
-				maet[m],stand.fluxdata.fluxAET[date.year-nyear_spinup-95][m],
-				1000.0*mgpp[m],stand.fluxdata.fluxGPP[date.year-nyear_spinup-95][m]);
+				-1000.0*mnee[m],current_stand_fluxdata->fluxNEE[date.year-nyear_spinup-95][m],
+				maet[m],current_stand_fluxdata->fluxAET[date.year-nyear_spinup-95][m],
+				1000.0*mgpp[m],current_stand_fluxdata->fluxGPP[date.year-nyear_spinup-95][m]);
 
 			// Save modelled flux data
-			stand.fluxdata.modelNEE[date.year-nyear_spinup-95][m] = -1000.0*mnee[m];	// gC/m2/month
-			stand.fluxdata.modelAET[date.year-nyear_spinup-95][m] = maet[m];			// mm/month
-			stand.fluxdata.modelGPP[date.year-nyear_spinup-95][m] = 1000.0*mgpp[m];	// gC/m2/month
+			current_stand_fluxdata->modelNEE[date.year-nyear_spinup-95][m] = -1000.0*mnee[m];	// gC/m2/month
+			current_stand_fluxdata->modelAET[date.year-nyear_spinup-95][m] = maet[m];			// mm/month
+			current_stand_fluxdata->modelGPP[date.year-nyear_spinup-95][m] = 1000.0*mgpp[m];	// gC/m2/month
 
 		}
 

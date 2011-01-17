@@ -702,7 +702,7 @@ void plib_callback(int callback) {
 
 		if(ppft->landcover!=NATURAL)
 		{
-			if(!run_landcover || !run[ppft->landcover])		//Testa förenkling
+			if(!run_landcover || !run[ppft->landcover])
 				includepft=0;
 		}
 		else if(run_landcover && !run[NATURAL])

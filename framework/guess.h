@@ -72,8 +72,8 @@ typedef enum {NOVEGMODE,INDIVIDUAL,COHORT,POPULATION} vegmodetype;
 	// population over the modelled area (standard LPJ mode); (2) a cohort of
 	// individuals of a PFT that are roughly the same age; (3) an individual plant.
 
-//Landuse additions
-typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, NLANDCOVERTYPES} landcovertype;	// Landuse type of a stand. NLANDUSETYPES keeps count of number of items.
+/// Land cover type of a stand. NLANDCOVERTYPES keeps count of number of items.
+typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, NLANDCOVERTYPES} landcovertype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
@@ -1494,9 +1494,6 @@ public:
 	double anetps_ff_max;
 		// maximum value of anetpsff (potential annual net assimilation at forest
 		// floor) for this PFT in this stand so far in the simulation (kgC/m2/year)
-	double addtw;
-		// annual degree day sum above threshold damaging temperature (used in
-		// calculation of heat stess mortality; Sitch et al 2000, Eqn 55)
 	double gterm;
 		// term in calculation of potential canopy conductance (mm/s)
 	bool have_gterm;
@@ -1541,7 +1538,6 @@ public:
 		// Constructor: initialises various data members
 		
 		anetps_ff_max=0.0;
-		addtw=0.0;
 
 		if(run_landcover)
 			active=false;
@@ -1551,10 +1547,9 @@ public:
 };
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// STAND
-// Stores data for a stand, corresponding to a modelled area of a specific landcover type in a grid cell.
-// There may be several stands of the same landcover type (but with different settings).
+/// The stand class corresponds to a modelled area of a specific landcover type in a grid cell.
+/** There may be several stands of the same landcover type (but with different settings).
+ */
 class Stand : public ListArray_idin3<Patch,Stand,Pftlist,Soiltype> 
 {
 
@@ -1562,103 +1557,124 @@ public:
 
 	// MEMBER VARIABLES
 
-	ListArray_idin1<Standpft,Pft> pft;	// list array [0...npft-1] of Standpft (initialised in constructor)
+	/// list array [0...npft-1] of Standpft (initialised in constructor)
+	ListArray_idin1<Standpft,Pft> pft;
 
-	int id;					//ML
+	/// A number identifying this Stand within the grid cell
+	int id;
 
-	Gridcell& gridcell;		//reference to parent object
+	/// reference to parent object
+	Gridcell& gridcell;
 	
-	landcovertype landcover;// type of landcover (0 = URBAN, 1 = CROP, 2 = PASTURE, 3 = FOREST, 4 = NATURAL, 5 = PEATLAND); initialized in constructor
-	double frac;			// fraction of a stand relative to a landcover;	used by crop stands; initialized in constructor to 1, set in landuse_init() 
-	int first_year;			//090913 /ML needed to set patchpft.anetps_ff_est_initial
+	/// type of landcover 
+	/** \see landcovertype
+	 *  initialised in constructor
+	 */
+	landcovertype landcover;
+
+	/// fraction of a stand relative to a landcover
+	/** used by crop stands; initialized in constructor to 1, 
+	 *  set in landcover_init() 
+	 */
+	double frac;
+
+	/// needed to set patchpft.anetps_ff_est_initial
+	int first_year;
 
 
 	// MEMBER FUNCTIONS
-	Stand(int i, Gridcell& gc,landcovertype landcover,Pftlist& pftlist); 
 
+	/// Constructs a Stand
+	/** \param i         The id for the stand within the grid cell
+	 *  \param gc        The parent grid cell
+	 *  \param landcover The type of landcover to use for this stand
+	 *  \param pftlist   The list of PFTs
+	 */
+	Stand(int i, Gridcell& gc,landcovertype landcover,Pftlist& pftlist); 
 };
 
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// GRIDCELLPFT
-// State variables common to all individuals of a particular PFT in a GRIDCELL. 
-
+/// State variables common to all individuals of a particular PFT in a GRIDCELL.
 class Gridcellpft 
 {
 
 public:
 
-  // MEMBER VARIABLES
+	// MEMBER VARIABLES
 
+	/// A number identifying this object within its list array
 	int id;
+
+	/// A reference to the Pft object for this Gridcellpft
 	Pft& pft;
 
-	double addtw;		//Flyttat från Standpft /ML 090311 (används inte ?)
-		// annual degree day sum above threshold damaging temperature (used in
-		// calculation of heat stess mortality; Sitch et al 2000, Eqn 55)
+	/// annual degree day sum above threshold damaging temperature
+	/** used in calculation of heat stess mortality; Sitch et al 2000, Eqn 55
+	 */
+	double addtw;
 
-  // MEMBER FUNCTIONS
+	// MEMBER FUNCTIONS
 
-  Gridcellpft(int i,Pft& p):id(i),pft(p)
-  {
-    // Constructor: initialises various data members
-	
-	addtw=0.0;		//Flyttat från Standpft /ML 090311
-  }
+	/// Constructs a Gridcellpft object
+	/** \param i   The id for this object
+	 *  \param p   A reference to the Pft for this Gridcellpft
+	 */
+	Gridcellpft(int i,Pft& p):id(i),pft(p) {
+		addtw=0.0;
+	}
 };
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// GRIDCELL
-// Stores data for a gridcell, corresponding to a modelled locality or grid cell.
-// Member variables include an object of type Climate (holding climate, insolation and
-// CO2 data), a object of type Soiltype (holding soil static parameters) and a list
-// array of Stand objects. Soil objects (holding soil state variables) are associated
-// with patches, not gridcells. A separate Gridcell object must be declared for each modelled
-// locality or grid cell.
+/// The Gridcell class corresponds to a modelled locality or grid cell.
+/** Member variables include an object of type Climate (holding climate, insolation and
+ *  CO2 data), a object of type Soiltype (holding soil static parameters) and a list
+ *  array of Stand objects. Soil objects (holding soil state variables) are associated
+ *  with patches, not gridcells. A separate Gridcell object must be declared for each modelled
+ *  locality or grid cell.
+ */
 class Gridcell : public ListArray_idin3<Stand,Gridcell,landcovertype, Pftlist> //kolla upp vilka parametrar som behövs här !
 {
 
 public:
 
-  // MEMBER VARIABLES
+	// MEMBER VARIABLES
 
-	Climate climate;	//ML moved from Stand
-    // climate, insolation and CO2 for this gridcell
-	Soiltype soiltype;	//ML moved from Stand
-	// soil static parameters for this stand
-	double landcoverfrac[NLANDCOVERTYPES];	//NLANDCOVERTYPES sätts i denna fil, landcoverfrac läses in från lu inputfil eller från insfil i getlandcover()
-	double landcoverfrac_old[NLANDCOVERTYPES];
+	/// climate, insolation and CO2 for this grid cell
+	Climate climate;
+
+    /// soil static parameters for this grid cell
+	Soiltype soiltype;
+	
+	/// landcoverfrac läses in från lu inputfil eller från insfil i getlandcover()
+	double landcoverfrac[NLANDCOVERTYPES];
+//	double landcoverfrac_old[NLANDCOVERTYPES];
+
+	/// list array [0...npft-1] of Gridcellpft (initialised in constructor)
 	ListArray_idin1<Gridcellpft,Pft> pft;
-    // list array [0...npft-1] of Gridcellpft (initialised in constructor)
+    
 
-  // MEMBER FUNCTIONS
+	// MEMBER FUNCTIONS
 
-  Gridcell(Pftlist& pftlist):climate(*this)
-  {
+	/// Constructs a Gridcell object
+	/** \param pftlist    The list of plant functional types
+	 */
+	Gridcell(Pftlist& pftlist):climate(*this) {
+		landcovertype landcover;
 
-    // Constructor: initialises reference member of climate and
-    // builds list array of Gridcellpft objects
+		for(int p=0;p<pftlist.nobj;p++) {
+			Gridcellpft& gcpft=pft.createobj(pftlist[p]);
+		}		
 
-	landcovertype landcover;
+		memset(landcoverfrac, 0, sizeof(double)*NLANDCOVERTYPES);
+//		memset(landcoverfrac_old, 0, sizeof(double)*NLANDCOVERTYPES);
 
-    for(int p=0;p<pftlist.nobj;p++) 
-	{
-		Gridcellpft& gcpft=pft.createobj(pftlist[p]);
-    }		
-
-	memset(landcoverfrac, 0, sizeof(double)*NLANDCOVERTYPES);
-	memset(landcoverfrac_old, 0, sizeof(double)*NLANDCOVERTYPES);
-
-	if(!run_landcover)
-	{
-		landcover=NATURAL;
-		createobj(*this,landcover,pftlist);
-		landcoverfrac[NATURAL]=1.0;
+		if(!run_landcover) {
+			landcover=NATURAL;
+			createobj(*this,landcover,pftlist);
+			landcoverfrac[NATURAL]=1.0;
+		}
 	}
-  }
-
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////

@@ -192,7 +192,7 @@ void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
 
-		if(stand.pft[pft.id].active)	//standpft.active is set in landuse_init according to rules for each stand
+		if(stand.pft[pft.id].active)	//standpft.active is set in landcover_init according to rules for each stand
 		{
 
 		// Is this PFT already represented?

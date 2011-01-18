@@ -162,11 +162,11 @@ extern bool ifcdebt; // whether C debt (storage between years) permitted
 //Landuse additions
 extern bool run_landcover;
 extern bool run[NLANDCOVERTYPES];
-extern bool lufrac_fixed;
+extern bool lcfrac_fixed;
 extern bool all_fracs_const;
 extern bool equal_landcover_area;
 //extern bool ifslowharvestpool;
-extern int lu_forc[NLANDCOVERTYPES];
+extern int lc_fixed_frac[NLANDCOVERTYPES];
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // guess2008 - new input variables, from the .ins file

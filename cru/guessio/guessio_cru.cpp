@@ -319,14 +319,14 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("run_natural",&run[NATURAL],1,CB_NONE,"Whether natural vegetation is to be simulated");
 		declareitem("run_peatland",&run[PEATLAND],1,CB_NONE,"Whether peatland is to be simulated");
 //		declareitem("ifslowharvestpool",&ifslowharvestpool,1,CB_NONE,"Whether a slow harvested product pool is included");
-		declareitem("lufrac_fixed",&lufrac_fixed,1,CB_NONE,"Whether static LU fractions are enforced (0,1)");
+		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"Whether static landcover fractions are set in the ins-file (0,1)");
 		declareitem("equal_landcover_area",&equal_landcover_area,1,CB_NONE,"Whether enforced static landcover fractions are equal-sized stands of all included landcovers (0,1)");
-		declareitem("lu0",&lu_forc[0],0,100,1,CB_NONE,"% lu0");
-		declareitem("lu1",&lu_forc[1],0,100,1,CB_NONE,"% lu1");
-		declareitem("lu2",&lu_forc[2],0,100,1,CB_NONE,"% lu2");
-		declareitem("lu3",&lu_forc[3],0,100,1,CB_NONE,"% lu3");
-		declareitem("lu4",&lu_forc[4],0,100,1,CB_NONE,"% lu4");
-		declareitem("lu5",&lu_forc[5],0,100,1,CB_NONE,"% lu5");
+		declareitem("lc_fixed_urban",&lc_fixed_frac[URBAN],0,100,1,CB_NONE,"% lc_fixed_urban");
+		declareitem("lc_fixed_cropland",&lc_fixed_frac[CROPLAND],0,100,1,CB_NONE,"% lc_fixed_cropland");
+		declareitem("lc_fixed_pasture",&lc_fixed_frac[PASTURE],0,100,1,CB_NONE,"% lc_fixed_pasture");
+		declareitem("lc_fixed_forest",&lc_fixed_frac[FOREST],0,100,1,CB_NONE,"% lc_fixed_forest");
+		declareitem("lc_fixed_natural",&lc_fixed_frac[NATURAL],0,100,1,CB_NONE,"% lc_fixed_natural");
+		declareitem("lc_fixed_peatland",&lc_fixed_frac[PEATLAND],0,100,1,CB_NONE,"% lc_fixed_peatland");
 
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
@@ -581,14 +581,14 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifspeciesspecificwateruptake")) badins("ifspeciesspecificwateruptake");
 
 		//Landuse additions
-		if (!itemparsed("lufrac_fixed")) badins("lufrac_fixed");
+		if (!itemparsed("lcfrac_fixed")) badins("lcfrac_fixed");
 		if (!itemparsed("equal_landcover_area")) badins("equal_landcover_area");
-		if (!itemparsed("lu0")) badins("lu0");
-		if (!itemparsed("lu1")) badins("lu1");
-		if (!itemparsed("lu2")) badins("lu2");
-		if (!itemparsed("lu3")) badins("lu3");
-		if (!itemparsed("lu4")) badins("lu4");
-		if (!itemparsed("lu5")) badins("lu5");
+		if (!itemparsed("lc_fixed_urban")) badins("lc_fixed_urban");
+		if (!itemparsed("lc_fixed_cropland")) badins("lc_fixed_cropland");
+		if (!itemparsed("lc_fixed_pasture")) badins("lc_fixed_pasture");
+		if (!itemparsed("lc_fixed_forest")) badins("lc_fixed_forest");
+		if (!itemparsed("lc_fixed_natural")) badins("lc_fixed_natural");
+		if (!itemparsed("lc_fixed_peatland")) badins("lc_fixed_peatland");
 		if (!itemparsed("run_landcover")) badins("run_landcover");
 		if (!itemparsed("run_natural")) badins("run_natural");
 		if (!itemparsed("run_crop")) badins("run_crop");
@@ -1574,7 +1574,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
 
 		//Retrieve file names for landcover files and open them if static values from ins-file are not used !
-		if(!lufrac_fixed)	//This version does not support dynamic landcover fraction data
+		if(!lcfrac_fixed)	//This version does not support dynamic landcover fraction data
 		{
 			if(run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST])
 			{
@@ -1776,12 +1776,12 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	firstgrid=true;
 }
 
+///	Loads landcover area fraction data from file(s) for a gridcell.
 bool loadlandcover(Gridcell& gridcell, Coord c)	//Called from getgridcell() if run_landcover is true.
 {
 	bool LUerror=false;
 
-	//This version does not support dynamic landcover area fractions
-	if(!lufrac_fixed)// Landcover fraction data: read from land use fraction file; dynamic, so data for all years are loaded to LUdata object and 
+	if(!lcfrac_fixed)// Landcover fraction data: read from land use fraction file; dynamic, so data for all years are loaded to LUdata object and 
 	{			 	// transferred to gridcell.landcoverfrac each year in getlandcover()
 		if(run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST])
 		{
@@ -1953,16 +1953,13 @@ bool getgridcell(Gridcell& gridcell)
 	return false; // no more stands
 }
 
-
+///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
 void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 {
 	int i, year;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
 
-//dprintf("In getlandcover year %d\n", date.year);
-
-//Use values for first historic year during spinup period !
-	if(date.year<nyear_spinup)
+	if(date.year<nyear_spinup)					//Use values for first historic year during spinup period !
 		year=0;
 	else if(date.year>=nyear_spinup+NYEAR_LU)	//AR4 adaptation
 	{
@@ -1972,7 +1969,7 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 	else
 		year=date.year-nyear_spinup;
 
-	if(lufrac_fixed)	// If area fractions are set in the ini-file.
+	if(lcfrac_fixed)	// If area fractions are set in the ins-file.
 	{
 		if(date.year==0) // called by landcover_init
 		{
@@ -1996,9 +1993,9 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 				}
 				else
 				{
-					sum_tot+=gridcell.landcoverfrac[i]=(double)lu_forc[i]/100.0;				//count sum of all fractions (should be 1.0)
+					sum_tot+=gridcell.landcoverfrac[i]=(double)lc_fixed_frac[i]/100.0;					//count sum of all fractions (should be 1.0)
 
-					if(gridcell.landcoverfrac[i]<0.0 || gridcell.landcoverfrac[i]>1.0)			//discard unreasonable values
+					if(gridcell.landcoverfrac[i]<0.0 || gridcell.landcoverfrac[i]>1.0)					//discard unreasonable values
 					{
 						if(date.year==0)
 							dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
@@ -2006,7 +2003,7 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 						gridcell.landcoverfrac[i]=0.0;
 					}
 
-					sum_active+=gridcell.landcoverfrac[i]=run[i]*gridcell.landcoverfrac[i];		//101229: only set fractions that are active !
+					sum_active+=gridcell.landcoverfrac[i]=run[i]*gridcell.landcoverfrac[i];				//only set fractions that are active !
 				}
 			}
 			
@@ -2019,9 +2016,8 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 				for(i=0;i<NLANDCOVERTYPES;i++)
 					sum_active+=gridcell.landcoverfrac[i]/=sum_tot;
 			}
-//NB. These calculations are based on the assumption that the NATURAL type area is what's left after the other types are summed. 
-//If new landcover types are added which are subsets of the other landcover types, those should be treated not as landcover types, 
-//but contained within that perticular landcover type, similar to crop types within the CROPLAND landcover type.
+
+			//NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
 			if(sum_active!=1.0)		//if landcover types are turned off in the ini-file, always <=1.0 here
 			{
 				if(date.year==0)
@@ -2089,9 +2085,10 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 
 		if(run[PEATLAND])
 		{
-//			sum_active+=gridcell.landcoverfrac[PEATLAND]=Peatdata.Get(year,"PEATLAND");			//peatland fraction data is in separate file !
+//			sum_active+=gridcell.landcoverfrac[PEATLAND]=Peatdata.Get(year,"PEATLAND");			//peatland fraction data is currently in a separate file !
 		}
 
+		//NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
 		if(sum_active!=1.0)		//if landcover types are turned off in the ini-file, or if more landcover types are added in other input files, can be either less or more than 1.0
 		{
 			if(date.year==0)
@@ -2124,7 +2121,7 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 
 					for(int i=0;i<NLANDCOVERTYPES;i++)
 					{
-						gridcell.landcoverfrac[i]/=sum_active;	//fraction rescaled to unity sum
+						gridcell.landcoverfrac[i]/=sum_active;		//fraction rescaled to unity sum
 						if(run[i])
 							if(date.year==0)
 								dprintf("Landuse type %d fraction is %4.3f\n", i, gridcell.landcoverfrac[i]);
@@ -2136,13 +2133,12 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 //				if(date.year==0)
 //					dprintf("Rescaling landcover fractions !\n");
 //				for(int i=0;i<NLANDCOVERTYPES;i++)
-//					gridcell.landcoverfrac[i]/=sum_active;					// if NATURAL not simulated, rescale active fractions to 1.0
+//					gridcell.landcoverfrac[i]/=sum_active;						// if NATURAL not simulated, rescale active fractions to 1.0
 				if(date.year==0)
 					dprintf("Non-unity fraction sum retained.\n");				// OR let sum remain non-unity
 			}
 		}
 	}
-
 }
 
 

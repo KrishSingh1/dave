@@ -701,9 +701,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// Add killed leaves to litter
 
-			// guess2008 - bugfix 
-			// litter_leaf_inc=-cmass_leaf_inc;
-			litter_leaf_inc=min(-cmass_leaf_inc, cmass_leaf);
+			litter_leaf_inc=-cmass_leaf_inc;
 		}
 		else if (cmass_root_inc<0.0) {
 
@@ -714,10 +712,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// Add killed roots to litter
 
-			// guess2008 - bugfix 
-			//litter_root_inc=-cmass_root_inc;
-			litter_root_inc=min(-cmass_root_inc, cmass_root);
-
+			litter_root_inc=-cmass_root_inc;
 		}
 	}
 }
@@ -1158,18 +1153,12 @@ void growth(Stand& stand,Patch& patch) {
 				indiv.cmass_leaf+=cmass_leaf_inc;
 				indiv.cmass_root+=cmass_root_inc;
 
-				// guess2008 - bugfix - determine the (small) mass imbalance (kgC) for this individual. 
-				// This can arise in the event of numerical errors in the allocation routine.
-//				double indiv_mass_after=indiv.cmass_leaf+indiv.cmass_root+litter_leaf_inc+litter_root_inc;	//removed double fix
-//				double indiv_cmass_diff=(indiv_mass_before+bminc-indiv_mass_after);		
-
 				// guess2008 - alive check before ensuring C balance
 				if (indiv.alive) {
 					
-//					patch.pft[indiv.pft.id].litter_leaf+=litter_leaf_inc+indiv_cmass_diff/2;
-//					patch.pft[indiv.pft.id].litter_root+=litter_root_inc+indiv_cmass_diff/2;
 					patch.pft[indiv.pft.id].litter_leaf+=litter_leaf_inc;
 					patch.pft[indiv.pft.id].litter_root+=litter_root_inc;
+
 				}
 
 				// Kill individual and transfer biomass to litter if either biomass

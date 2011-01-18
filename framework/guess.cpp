@@ -60,23 +60,25 @@ bool ifspeciesspecificwateruptake;	// water uptake is species specific
 //Landuse additions
 bool run_landcover;
 bool run[NLANDCOVERTYPES];
-bool lufrac_fixed;
+bool lcfrac_fixed;
 bool all_fracs_const;
 bool equal_landcover_area;
 //bool ifslowharvestpool;
-int lu_forc[NLANDCOVERTYPES]={0};
+int lc_fixed_frac[NLANDCOVERTYPES]={0};
 
+///	Creates stands for landcovers present in the gridcell
+/**	Creates stands for landcovers present in the gridcell and sets the active pfts in standpft according to landcover-specific rules.
+*/
 void landcover_init(Gridcell& gridcell,Pftlist& pftlist)
 {
-	//Called if run_landcover is set.
 	landcovertype landcover;
 
-	getlandcover(gridcell,pftlist);	//Gets new gridcell.landcoverfrac from landcover input file(s).
+	getlandcover(gridcell,pftlist);		//Gets gridcell.landcoverfrac from landcover input file(s) or ins-file.
 
 
 	for(int i=0;i<NLANDCOVERTYPES;i++)	//For all landcover types without subclasses
 	{
-//		if(i!=CROPLAND) // cropland subclasses turned off in this version
+//		if(i!=CROPLAND)					// cropland subclasses turned off in this version
 		{
 			if(gridcell.landcoverfrac[i]>0.0)
 			{
@@ -109,7 +111,7 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i
 		int p;
 		int npatchL;
 
-		for(p=0;p<pftlist.nobj;p++)	// Changed to indexing to avoid changing pftlist.pthisitem.
+		for(p=0;p<pftlist.nobj;p++)
 		{
 			pft.createobj(pftlist[p]);
 		}
@@ -225,6 +227,10 @@ int framework(int argc,char* argv[]) {
 
 		// START OF LOOP THROUGH STANDS
 
+		// Initialise global variable date
+		// (argument nyear not used in this implementation)
+		date.init(1);
+
 		// Create and initialise a new Gridcell object for each locality
 		Gridcell gridcell(pftlist);	
 
@@ -236,13 +242,9 @@ int framework(int argc,char* argv[]) {
 			// Initialise certain climate and soil drivers
 			gridcell.climate.initdrivers(gridcell.climate.lat);
 
-			// Initialise global variable date
-			// (argument nyear not used in this implementation)
-			date.init(1);
-
 			if(run_landcover)
 			{
-				//Read static landcover and cft fraction data from in ini-file and/or from data files for the spinup peroid and create stands.
+				//Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
 				landcover_init(gridcell,pftlist);
 			}
 			
@@ -260,6 +262,14 @@ int framework(int argc,char* argv[]) {
 				// Calculate daylength, insolation and potential evapotranspiration
 				daylengthinsoleet(gridcell.climate);
 
+				// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
+//Dynamic landcover area fractions not supported in this version.
+/*				if(run_landcover && date.day==0)
+				{
+					if(date.year>=nyear_spinup)
+						landcover_dynamics(gridcell,pftlist);
+				}
+*/
 				gridcell.firstobj();
 				while (gridcell.isobj) //Loop through stands:
 				{

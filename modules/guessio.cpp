@@ -1857,10 +1857,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	// provide any information to the framework.
 
 	int p,c,m,nclass;
-//	double cmass_stand,anpp_stand,lai_stand,runoff_stand,dens_stand;
 	double flux_veg,flux_soil,flux_fire,flux_est;
 	double c_litter,c_fast,c_slow; 
-	double firert_stand; 
 
 	// guess2008 - hold the monthly average across patches
 	double mnpp[12];
@@ -1992,13 +1990,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		lon=gridlist.getobj().lon;
 		lat=gridlist.getobj().lat;
 
-/*		cmass_stand=0.0;
-		anpp_stand=0.0;
-		lai_stand=0.0;
-		runoff_stand=0.0;
-		dens_stand=0.0;
-		firert_stand=0.0;
-*/
 		// Print longitude, latitude, year
 
 		// guess2008
@@ -2050,6 +2041,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		double lai_max_gridcell=0.0;
 		double runoff_gridcell=0.0;
 		double dens_gridcell=0.0;
+		double firert_gridcell=0.0;
 
 		double standpft_cmass=0.0;
 		double standpft_anpp=0.0;
@@ -2223,9 +2215,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	
 				// Fire return time
 				if (!iffire || patch.fireprob < 0.001)
-					firert_stand+=1000.0/(double)stand.nobj; // Set a limit of 1000 years
+					firert_gridcell+=1000.0/(double)stand.nobj; // Set a limit of 1000 years
 				else	
-					firert_stand+=(1.0/patch.fireprob)/(double)stand.nobj;
+					firert_gridcell+=(1.0/patch.fireprob)/(double)stand.nobj;
 
 
 				// Monthly output variables
@@ -2292,7 +2284,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_lai) fprintf(out_lai,"%8.4f",lai_gridcell);
 		if (out_runoff) fprintf(out_runoff,"%8.1f",runoff_gridcell);
 		if (out_dens) fprintf(out_dens,"%8.4f",dens_gridcell);
-		if (out_firert) fprintf(out_firert,"%8.1f",firert_stand);
+		if (out_firert) fprintf(out_firert,"%8.1f",firert_gridcell);
 
 		if(run_landcover)
 		{
@@ -2315,6 +2307,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_lai) fprintf(out_lai,"\n");
 		if (out_runoff) fprintf(out_runoff,"\n");
 		if (out_dens) fprintf(out_dens, "\n");
+		if (out_firert) fprintf(out_firert, "\n");
 
 		// Print monthly output variables
 		for (m=0;m<12;m++) {

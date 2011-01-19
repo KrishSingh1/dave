@@ -2428,8 +2428,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		lai_stand=0.0;
 		runoff_stand=0.0;
 		dens_stand=0.0;
-		firert_stand=0.0;
 */
+		firert_stand=0.0;
+
 		// Print longitude, latitude, year
 
 		// guess2008
@@ -2478,7 +2479,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		double cmass_gridcell=0.0;
 		double anpp_gridcell=0.0;
 		double lai_gridcell=0.0;
-		double lai_max_gridcell=0.0;
 		double runoff_gridcell=0.0;
 		double dens_gridcell=0.0;
 
@@ -2746,6 +2746,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_lai) fprintf(out_lai,"\n");
 		if (out_runoff) fprintf(out_runoff,"\n");
 		if (out_dens) fprintf(out_dens, "\n");
+		if (out_firert) fprintf(out_firert, "\n");
 
 		// Print monthly output variables
 		for (m=0;m<12;m++) {

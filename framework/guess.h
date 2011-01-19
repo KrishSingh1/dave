@@ -159,13 +159,14 @@ extern int npft; // number of possible PFTs
 extern bool iffast; // whether to run in "fast" mode
 extern bool ifcdebt; // whether C debt (storage between years) permitted
 
-extern bool run_landcover;
-extern bool run[NLANDCOVERTYPES];
-extern bool lcfrac_fixed;
-extern bool all_fracs_const;
-extern bool equal_landcover_area;
+extern bool run_landcover;			// Whether other landcovers than natural vegetation are simulated.
+extern bool run[NLANDCOVERTYPES];	// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND).
+extern bool lcfrac_fixed;			// Whether landcover fractions are read from ins-file.
+extern int lc_fixed_frac[NLANDCOVERTYPES];	// Landcover fractions read from ins-file (% area).
+extern bool equal_landcover_area;	// Whether gridcell is divided into equal active landcover fractions
+extern bool all_fracs_const;		// Set to false by initio( ) if fraction input files have yearly data.
 //extern bool ifslowharvestpool;
-extern int lc_fixed_frac[NLANDCOVERTYPES];
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // guess2008 - new input variables, from the .ins file
@@ -732,9 +733,9 @@ public:
 //landcover additions:
 	landcovertype landcover;		// specifies type of landcover (0 = URBAN, 1 = CROP, 2 = PASTURE, 3 = FOREST, 4 = NATURAL, 5 = PEATLAND); initialized in constructor
 //	double res_outtake;
-	double harv_eff;
-	double turnover_harv_prod;
-	double harvest_slow_frac;
+	double harv_eff;				// Harvest efficiency.
+	double harvest_slow_frac;		// Fraction of harvested products that goes into patchpft.harvested_products_slow
+	double turnover_harv_prod;		// Yearly turnover fraction of patchpft.harvested_products_slow (goes to fluxes.acflux_harvest).
 	
 	// MEMBER FUNCTIONS
 

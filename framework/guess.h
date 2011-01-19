@@ -159,7 +159,6 @@ extern int npft; // number of possible PFTs
 extern bool iffast; // whether to run in "fast" mode
 extern bool ifcdebt; // whether C debt (storage between years) permitted
 
-//Landuse additions
 extern bool run_landcover;
 extern bool run[NLANDCOVERTYPES];
 extern bool lcfrac_fixed;

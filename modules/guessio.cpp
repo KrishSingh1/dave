@@ -301,8 +301,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifspeciesspecificwateruptake",&ifspeciesspecificwateruptake,1,CB_NONE,
 			"Whether or not there is species specific soil water uptake (0,1)");
 
-		//Landuse additions
-		declareitem("run_landcover",&run_landcover,1,CB_NONE,"Landuse version");
+		declareitem("run_landcover",&run_landcover,1,CB_NONE,"Landcover version");
 		declareitem("run_urban",&run[URBAN],1,CB_NONE,"Whether urban land is to be simulated");
 		declareitem("run_crop",&run[CROPLAND],1,CB_NONE,"Whether crop-land is to be simulated");
 		declareitem("run_pasture",&run[PASTURE],1,CB_NONE,"Whether pasture is to be simulated");
@@ -448,7 +447,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("drought_tolerance",&ppft->drought_tolerance,0.0,1.0,1,CB_NONE,
 			"Drought tolerance level (0 = very -> 1 = not at all) (unitless)");
 
-		//Landuse additions
 		declareitem("harv_eff",&ppft->harv_eff,0.0,1.0,1,CB_NONE,"");
 		declareitem("harvest_slow_frac",&ppft->harvest_slow_frac,0.0,1.0,1,CB_NONE,"");
 		declareitem("turnover_harv_prod",&ppft->turnover_harv_prod,0.0,1.0,1,CB_NONE,"harvested products turnover (fraction/year)");
@@ -570,7 +568,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifrainonwetdaysonly")) badins("ifrainonwetdaysonly");
 		if (!itemparsed("ifspeciesspecificwateruptake")) badins("ifspeciesspecificwateruptake");
 
-		//Landuse additions
 		if (!itemparsed("lcfrac_fixed")) badins("lcfrac_fixed");
 		if (!itemparsed("equal_landcover_area")) badins("equal_landcover_area");
 		if (!itemparsed("lc_fixed_urban")) badins("lc_fixed_urban");
@@ -631,7 +628,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("ltor_max")) badins("ltor_max");
 		if (!itemparsed("intc")) badins("intc");
 
-		//Landuse additions
 		if (!itemparsed("landcover")) badins("landcover");
 //		if (!itemparsed("turnover_harv_prod")) badins("turnover_harv_prod");
 //		if (!itemparsed("harvest_slow_frac")) badins("harvest_slow_frac");
@@ -687,7 +683,6 @@ void plib_callback(int callback) {
 		ppft->id=npft++;
 			// VERY IMPORTANT (cannot rely on internal id counter of collection class)
 
-		//Landuse addition
 		//	delete unused pft:s from pftlist
 
 		if(ppft->landcover!=NATURAL)
@@ -892,7 +887,6 @@ bool annual_output;
 	// whether output should occur each simulation year (true) or at end of simulation
 	// for each grid cell only (false)
 
-//Landuse:
 xtring file_lu, file_peat;
 //TimeDataD LUdata(LOCAL_YEARLY);	TimeDataD Input class not included in the code. May be obtained by Mats Lindeskog if you don't want to use your own input code.
 //TimeDataD Peatdata;
@@ -1159,7 +1153,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	// Remember whether to produce output each year or not
 	annual_output=param["annual_output"].num;
 
-//	Landuse additions:
 	if(run_landcover)
 	{
 		all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
@@ -1645,7 +1638,7 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 		if(sum_active!=1.0)		//if landcover types are turned off in the ini-file, or if more landcover types are added in other input files, can be either less or more than 1.0
 		{
 			if(date.year==0)
-				dprintf("Landuse fraction sum not 1.0 !\n");
+				dprintf("Landcover fraction sum not 1.0 !\n");
 
 			if(run[NATURAL])	//Transfer landcover areas not simulated to NATURAL fraction, if simulated.
 			{
@@ -1677,7 +1670,7 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 						gridcell.landcoverfrac[i]/=sum_active;		//fraction rescaled to unity sum
 						if(run[i])
 							if(date.year==0)
-								dprintf("Landuse type %d fraction is %4.3f\n", i, gridcell.landcoverfrac[i]);
+								dprintf("Landcover type %d fraction is %4.3f\n", i, gridcell.landcoverfrac[i]);
 					}
 				}
 			}

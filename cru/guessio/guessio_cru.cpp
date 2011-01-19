@@ -186,6 +186,7 @@ void initsettings() {
 	npatch=1;
 	vegmode=COHORT;
 	searchradius = 0;
+	run_landcover = false;
 
 	// guess2008 - initialise filenames here
 	outputdirectory = "";
@@ -581,21 +582,24 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifspeciesspecificwateruptake")) badins("ifspeciesspecificwateruptake");
 
 		//Landuse additions
-		if (!itemparsed("lcfrac_fixed")) badins("lcfrac_fixed");
-		if (!itemparsed("equal_landcover_area")) badins("equal_landcover_area");
-		if (!itemparsed("lc_fixed_urban")) badins("lc_fixed_urban");
-		if (!itemparsed("lc_fixed_cropland")) badins("lc_fixed_cropland");
-		if (!itemparsed("lc_fixed_pasture")) badins("lc_fixed_pasture");
-		if (!itemparsed("lc_fixed_forest")) badins("lc_fixed_forest");
-		if (!itemparsed("lc_fixed_natural")) badins("lc_fixed_natural");
-		if (!itemparsed("lc_fixed_peatland")) badins("lc_fixed_peatland");
 		if (!itemparsed("run_landcover")) badins("run_landcover");
-		if (!itemparsed("run_natural")) badins("run_natural");
-		if (!itemparsed("run_crop")) badins("run_crop");
-		if (!itemparsed("run_forest")) badins("run_forest");
-		if (!itemparsed("run_urban")) badins("run_urban");
-		if (!itemparsed("run_pasture")) badins("run_pasture");
-//		if (!itemparsed("ifslowharvestpool")) badins("ifslowharvestpool");
+
+		if (run_landcover) {
+			 if (!itemparsed("lcfrac_fixed")) badins("lcfrac_fixed");
+			 if (!itemparsed("equal_landcover_area")) badins("equal_landcover_area");
+			 if (!itemparsed("lc_fixed_urban")) badins("lc_fixed_urban");
+			 if (!itemparsed("lc_fixed_cropland")) badins("lc_fixed_cropland");
+			 if (!itemparsed("lc_fixed_pasture")) badins("lc_fixed_pasture");
+			 if (!itemparsed("lc_fixed_forest")) badins("lc_fixed_forest");
+			 if (!itemparsed("lc_fixed_natural")) badins("lc_fixed_natural");
+			 if (!itemparsed("lc_fixed_peatland")) badins("lc_fixed_peatland");
+			 if (!itemparsed("run_natural")) badins("run_natural");
+			 if (!itemparsed("run_crop")) badins("run_crop");
+			 if (!itemparsed("run_forest")) badins("run_forest");
+			 if (!itemparsed("run_urban")) badins("run_urban");
+			 if (!itemparsed("run_pasture")) badins("run_pasture");
+//			 if (!itemparsed("ifslowharvestpool")) badins("ifslowharvestpool");
+		}
 
 		if (!itemparsed("pft")) badins("pft");
 		if (vegmode==COHORT || vegmode==INDIVIDUAL) {

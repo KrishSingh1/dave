@@ -60,8 +60,6 @@ bool ifspeciesspecificwateruptake;	// water uptake is species specific
 bool run_landcover;					// Whether other landcovers than natural vegetation are simulated.
 bool run[NLANDCOVERTYPES];			// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND).
 bool lcfrac_fixed;					// Whether landcover fractions are read from ins-file.
-int lc_fixed_frac[NLANDCOVERTYPES]={0};// Landcover fractions read from ins-file (% area).
-bool equal_landcover_area;			// Whether gridcell is divided into equal active landcover fractions.
 bool all_fracs_const;				// Set to false by initio( ) if fraction input files have yearly data.
 //bool ifslowharvestpool;			
 

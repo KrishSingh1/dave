@@ -153,6 +153,12 @@ int nyear_spinup; // number of simulation years during spinup
 // guess2008 - new optional parameter
 int searchradius; // search radius to use when finding CRU data
 
+/// Landcover fractions read from ins-file (% area).
+int lc_fixed_frac[NLANDCOVERTYPES]={0};
+
+/// Whether gridcell is divided into equal active landcover fractions.
+bool equal_landcover_area;
+
 Pftlist* ppftlist; // pointer to PFT list
 Pft* ppft; // pointer to Pft object currently being assigned to
 

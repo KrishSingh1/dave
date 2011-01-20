@@ -162,8 +162,6 @@ extern bool ifcdebt; // whether C debt (storage between years) permitted
 extern bool run_landcover;			// Whether other landcovers than natural vegetation are simulated.
 extern bool run[NLANDCOVERTYPES];	// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND).
 extern bool lcfrac_fixed;			// Whether landcover fractions are read from ins-file.
-extern int lc_fixed_frac[NLANDCOVERTYPES];	// Landcover fractions read from ins-file (% area).
-extern bool equal_landcover_area;	// Whether gridcell is divided into equal active landcover fractions
 extern bool all_fracs_const;		// Set to false by initio( ) if fraction input files have yearly data.
 //extern bool ifslowharvestpool;
 
@@ -1647,7 +1645,10 @@ public:
     /// soil static parameters for this grid cell
 	Soiltype soiltype;
 	
-	/// landcoverfrac läses in från lu inputfil eller från insfil i getlandcover()
+	/// The fractions of the different land cover types. 
+	/** landcoverfrac is read in from land cover input file or from 
+	 *  instruction file in getlandcover().
+	 */
 	double landcoverfrac[NLANDCOVERTYPES];
 //	double landcoverfrac_old[NLANDCOVERTYPES];
 

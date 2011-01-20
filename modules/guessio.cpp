@@ -147,6 +147,12 @@ xtring title; // Title for this run
 int nyear; // number of simulation years
 int nyear_spinup = 500;
 
+/// Landcover fractions read from ins-file (% area).
+int lc_fixed_frac[NLANDCOVERTYPES]={0};
+
+/// Whether gridcell is divided into equal active landcover fractions.
+bool equal_landcover_area;
+
 Pftlist* ppftlist; // pointer to PFT list
 Pft* ppft; // pointer to Pft object currently being assigned to
 
@@ -159,7 +165,6 @@ bool includepft;
 
 // guess2008 - Now declare the output file xtrings here
 // Output file names ...
-//xtring file_cmass,file_anpp,file_mnpp,file_lai,file_flux,file_soilw,file_aet,file_soilc,file_runoff;
 xtring outputdirectory;
 xtring file_cmass,file_anpp,file_dens,file_lai,file_cflux,file_cpool,file_runoff;
 xtring file_mnpp,file_mlai,file_mgpp,file_mra,file_maet,file_mpet,file_mevap,file_mrunoff,file_mintercep,file_mrh;
@@ -180,6 +185,7 @@ void initsettings() {
 	distinterval=1.0e10;
 	npatch=1;
 	vegmode=COHORT;
+	run_landcover = false;
 
 	// guess2008 - initialise filenames here
 	outputdirectory = "";
@@ -291,7 +297,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_mwcont_upper",&file_mwcont_upper,300,CB_NONE,"Monthly wcont_upper output file");
 		declareitem("file_mwcont_lower",&file_mwcont_lower,300,CB_NONE,"Monthly wcont_lower output file");
 
-		// guess2008 - new input options
+		// guess2008 - new options
 		declareitem("ifsmoothgreffmort",&ifsmoothgreffmort,1,CB_NONE,
 			"Whether to vary mort_greff smoothly with growth efficiency (0,1)");
 		declareitem("ifdroughtlimitedestab",&ifdroughtlimitedestab,1,CB_NONE,
@@ -443,6 +449,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("leaflong",&ppft->leaflong,0.1,100.0,1,CB_NONE,
 			"Leaf longevity (years)");
 		declareitem("intc",&ppft->intc,0.0,1.0,1,CB_NONE,"Interception coefficient");
+		
 		// guess2008 - DLE
 		declareitem("drought_tolerance",&ppft->drought_tolerance,0.0,1.0,1,CB_NONE,
 			"Drought tolerance level (0 = very -> 1 = not at all) (unitless)");
@@ -568,21 +575,23 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifrainonwetdaysonly")) badins("ifrainonwetdaysonly");
 		if (!itemparsed("ifspeciesspecificwateruptake")) badins("ifspeciesspecificwateruptake");
 
-		if (!itemparsed("lcfrac_fixed")) badins("lcfrac_fixed");
-		if (!itemparsed("equal_landcover_area")) badins("equal_landcover_area");
-		if (!itemparsed("lc_fixed_urban")) badins("lc_fixed_urban");
-		if (!itemparsed("lc_fixed_cropland")) badins("lc_fixed_cropland");
-		if (!itemparsed("lc_fixed_pasture")) badins("lc_fixed_pasture");
-		if (!itemparsed("lc_fixed_forest")) badins("lc_fixed_forest");
-		if (!itemparsed("lc_fixed_natural")) badins("lc_fixed_natural");
-		if (!itemparsed("lc_fixed_peatland")) badins("lc_fixed_peatland");
 		if (!itemparsed("run_landcover")) badins("run_landcover");
-		if (!itemparsed("run_natural")) badins("run_natural");
-		if (!itemparsed("run_crop")) badins("run_crop");
-		if (!itemparsed("run_forest")) badins("run_forest");
-		if (!itemparsed("run_urban")) badins("run_urban");
-		if (!itemparsed("run_pasture")) badins("run_pasture");
-//		if (!itemparsed("ifslowharvestpool")) badins("ifslowharvestpool");
+		if (run_landcover) {
+			if (!itemparsed("lcfrac_fixed")) badins("lcfrac_fixed");
+			if (!itemparsed("equal_landcover_area")) badins("equal_landcover_area");
+			if (!itemparsed("lc_fixed_urban")) badins("lc_fixed_urban");
+			if (!itemparsed("lc_fixed_cropland")) badins("lc_fixed_cropland");
+			if (!itemparsed("lc_fixed_pasture")) badins("lc_fixed_pasture");
+			if (!itemparsed("lc_fixed_forest")) badins("lc_fixed_forest");
+			if (!itemparsed("lc_fixed_natural")) badins("lc_fixed_natural");
+			if (!itemparsed("lc_fixed_peatland")) badins("lc_fixed_peatland");
+			if (!itemparsed("run_natural")) badins("run_natural");
+			if (!itemparsed("run_crop")) badins("run_crop");
+			if (!itemparsed("run_forest")) badins("run_forest");
+			if (!itemparsed("run_urban")) badins("run_urban");
+			if (!itemparsed("run_pasture")) badins("run_pasture");
+//			if (!itemparsed("ifslowharvestpool")) badins("ifslowharvestpool");
+		}
 
 		if (!itemparsed("pft")) badins("pft");
 		if (vegmode==COHORT || vegmode==INDIVIDUAL) {
@@ -1076,6 +1085,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	xtring insfilename;
 	xtring header;
 
+
 	unixtime(header);
 	header=(xtring)"[LPJ-GUESS  "+header+"]\n\n";
 	dprintf((char*)header);
@@ -1200,6 +1210,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	if (outputdirectory=="") {
 		fail("No output directory given in the .ins file!");
 	}
+
 
 	// *** ANNUAL OUTPUT VARIABLES ***
 
@@ -1367,7 +1378,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	firstgrid=true;
 }
 
-
 ///	Loads landcover area fraction data from file(s) for a gridcell.
 bool loadlandcover(Gridcell& gridcell, Coord c)	//Called from getgridcell() if run_landcover is true.
 {
@@ -1465,7 +1475,7 @@ bool getgridcell(Gridcell& gridcell)
 			if(!LUerror)
 			{
 				readenv(c);
-				gridfound=true:
+				gridfound=true;
 			}
 			else
 				gridlist.nextobj();
@@ -1478,15 +1488,15 @@ bool getgridcell(Gridcell& gridcell)
 		else dprintf("\n");
 		
 		// Tell framework the latitude of this grid cell
-		stand.climate.lat=gridlist.getobj().lat;
+		gridcell.climate.lat=gridlist.getobj().lat;
 		
 		// The insolation data will be sent (in function getclimate, below)
 		// as percentage sunshine
 		
-		stand.climate.instype=SUNSHINE;
+		gridcell.climate.instype=SUNSHINE;
 
 		// Tell framework the soil type of this grid cell
-		soilparameters(stand.soiltype,soilcode);
+		soilparameters(gridcell.soiltype,soilcode);
 
 		// For Windows shell - clear graphical output
 		// (ignored on other platforms)
@@ -1617,12 +1627,12 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 				{
 					if(date.year==0)
 					{
-						dprintf("WARNING ! landcover fraction sum is %4.2f for year %d\n", sum_tot, year+FIRSTHISTYEAR);
-						dprintf("Rescaling landcover fractions year %d ! (sum is beyond 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
+						dprintf("WARNING ! landcover fraction sum is %4.2f for year %d\n", sum_tot, year);
+						dprintf("Rescaling landcover fractions year %d ! (sum is beyond 0.99-1.01)\n", date.year);
 					}
 				}
 				else				//added scaling to sum=1.0 (sum often !=1.0)
-					dprintf("Rescaling landcover fractions year %d ! (sum is within 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
+					dprintf("Rescaling landcover fractions year %d ! (sum is within 0.99-1.01)\n", date.year);
 
 				for(i=0;i<PEATLAND;i++)
 					sum_active+=gridcell.landcoverfrac[i]/=sum_tot;
@@ -1687,94 +1697,6 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 	}
 }
 
-
-/*
-///////////////////////////////////////////////////////////////////////////////////////
-// GETSTAND
-// Called by the framework at the start of the simulation for a particular stand
-
-bool getstand(Stand& stand) {
-
-	// DESCRIPTION
-	// Obtains latitude and soil static parameters for the next stand (grid cell) to
-	// simulate. The function should returns false if no stands remain to be simulated,
-	// otherwise true. Currently the following member variables of stand should be
-	// initialised: members lat and instype of member climate; the following members of
-	// member soiltype: awc[0], awc[1], perc_base, perc_exp, thermdiff_0, thermdiff_15,
-	// thermdiff_100. The soil parameters can be set indirectly based on an lpj soil
-	// code (Sitch et al 2000) by a call to function soilparameters in the driver
-	// module (driver.cpp):
-	//
-	// soilparameters(stand.soiltype,soilcode);
-	//
-	// If the model is to be driven by quasi-daily values of the climate variables
-	// derived from monthly means, this function may be the appropriate place to
-	// perform the required interpolations. The utility function interp_climate in
-	// driver.cpp may be called for this purpose:
-	//
-	// interp_climate(mtemp,mprec,msun,dtemp,dprec,dsun);
-	//
-	// This assumes the following arrays are declared, presumably at file scope:
-	//
-	// double mtemp[12]   monthly average temperature (deg C)
-	// double mprec[12]   monthly precipitation sum (mm)
-	// double msun[12]    monthly average sunshine (%)
-	// double dtemp[365]  daily interpolated temperature (deg C)
-	// double dprec[365]  daily interpolated rainfall (mm)
-	// double dsun[365]   daily interpolated sunshine (%)
-
-	// Select coordinates for next grid cell in linked list
-	
-	// guess2008 - elevation
-	int elevation;
-
-	// guess2008 - to ensure an identical random number sequence for each stand.
-	setseed(12345678);
-
-	if (firstgrid) {
-		gridlist.firstobj();
-	}
-	else gridlist.nextobj();
-
-	if (gridlist.isobj) {
-
-		// Retrieve coordinate of next grid cell from linked list
-		Coord& c=gridlist.getobj();
-
-		// Load environmental data for this grid cell from files
-		// (these will be the same for every year of the simulation, but must be sent
-		// anew to the framework each year in function getclimate, below)
-
-		readenv(c);
-
-		dprintf("\nCommencing simulation for stand at (%g,%g)",gridlist.getobj().lon,
-			gridlist.getobj().lat);
-		if (gridlist.getobj().descrip!="") dprintf(" (%s)\n",
-			(char*)gridlist.getobj().descrip);
-		else dprintf("\n");
-		
-		// Tell framework the latitude of this grid cell
-		stand.climate.lat=gridlist.getobj().lat;
-		
-		// The insolation data will be sent (in function getclimate, below)
-		// as percentage sunshine
-		
-		stand.climate.instype=SUNSHINE;
-
-		// Tell framework the soil type of this grid cell
-		soilparameters(stand.soiltype,soilcode);
-
-		// For Windows shell - clear graphical output
-		// (ignored on other platforms)
-		
-		clear_all_graphs();
-
-		return true; // simulate this stand
-	}
-
-	return false; // no more stands
-}
-*/
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GETCLIMATE
@@ -2031,7 +1953,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		double cmass_gridcell=0.0;
 		double anpp_gridcell=0.0;
 		double lai_gridcell=0.0;
-		double lai_max_gridcell=0.0;
 		double runoff_gridcell=0.0;
 		double dens_gridcell=0.0;
 		double firert_gridcell=0.0;
@@ -2394,6 +2315,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 	}
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // TERMIO

@@ -105,9 +105,6 @@ bool establish(Patch& patch,Climate& climate,Pft& pft) {
 	//   twmin_est   = minimum warmest month mean temperature
 	//   gdd5min_est = minimum growing degree day sum on 5 deg C base
 
-	//if (pft.name != "Pin_syl" && pft.name != "Pic_abi")
-	//	return false;
-
 	if (climate.mtemp_min20<pft.tcmin_est ||
 		climate.mtemp_min20>pft.tcmax_est ||
 		climate.mtemp_max<pft.twmin_est ||

@@ -1638,6 +1638,8 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 					sum_active+=gridcell.landcoverfrac[i]/=sum_tot;
 			}
 		}
+		else
+			gridcell.landcoverfrac[NATURAL]=0.0;
 
 		if(run[PEATLAND])
 		{

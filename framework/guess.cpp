@@ -206,12 +206,12 @@ int framework(int argc,char* argv[]) {
 			dprintf("Peatland stand simulated (landcover type %d)\n", PEATLAND);
 	}
 
-	// Assume there is at least one stand to simulate
+	// Assume there is at least one grid cell to simulate
 	dogridcell=true;
 
 	while (dogridcell) {
 
-		// START OF LOOP THROUGH STANDS
+		// START OF LOOP THROUGH GRID CELLS
 
 		// Initialise global variable date
 		// (argument nyear not used in this implementation)
@@ -220,8 +220,8 @@ int framework(int argc,char* argv[]) {
 		// Create and initialise a new Gridcell object for each locality
 		Gridcell gridcell(pftlist);	
 
-		// Call input/output to obtain latitude and soil driver data for this stand.
-		// Function getgridcell returns false if no further stands remain to be simulated
+		// Call input/output to obtain latitude and soil driver data for this grid cell.
+		// Function getgridcell returns false if no further grid cells remain to be simulated
 
 		if (getgridcell(gridcell)) {
 
@@ -235,7 +235,7 @@ int framework(int argc,char* argv[]) {
 			
 			// Call input/output to obtain climate, insolation and CO2 for this
 			// day of the simulation. Function getclimate returns false if last year
-			// has already been simulated for this stand
+			// has already been simulated for this grid cell
 
 			while (getclimate(gridcell)) {
 
@@ -310,7 +310,7 @@ int framework(int argc,char* argv[]) {
 				if (date.islastday && date.islastmonth) {
 					// LAST DAY OF YEAR
 					// Call input/output module to output results for end of year
-					// or end of simulation for this stand
+					// or end of simulation for this grid cell
 					outannual(gridcell,pftlist);
 
 					// Check whether to abort
@@ -326,11 +326,11 @@ int framework(int argc,char* argv[]) {
 				// End of loop through simulation days
 			}//while (getclimate())
 		}//if getgridcell()
-		else dogridcell=false; // no more stands to simulate
+		else dogridcell=false; // no more grid cells to simulate
 
 		int test = 0;
 
-		// End of loop through stands
+		// End of loop through grid cells
 	}
 
 	// Call to input/output module to perform any necessary clean up

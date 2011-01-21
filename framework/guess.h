@@ -1569,7 +1569,12 @@ public:
 	 */
 	double frac;
 
-	/// needed to set patchpft.anetps_ff_est_initial
+	/// The year when this stand was created.
+	/** Will typically be year zero unless running with dynamic
+	 *  land cover.
+	 *
+	 *  Needed to set patchpft.anetps_ff_est_initial 
+	 */
 	int first_year;
 
 

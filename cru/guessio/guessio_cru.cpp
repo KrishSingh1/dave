@@ -2359,12 +2359,12 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_dens) fprintf(out_dens,"%8s\n","Total");
 
 		if (run_landcover) {
-			xtring landcover_string[]={"\tUrban_sum", "\tCrop_sum", "\tPasture_sum", "\tForest_sum", "\tNatural_sum", "\tPeatland_sum"};
+			xtring landcover_string[]={"Urban_sum", "Crop_sum", "Pasture_sum", "Forest_sum", "Natural_sum", "Peatland_sum"};
 			for (int i=0; i<NLANDCOVERTYPES; i++) {
 				if(run[i]) {
-					if (out_cmass) fprintf(out_cmass,"%s",landcover_string[i]);
-					if (out_anpp) fprintf(out_anpp,"%s",landcover_string[i]);
-					if (out_lai) fprintf(out_lai,"%s",landcover_string[i]);
+					if (out_cmass) fprintf(out_cmass,"%13s",(char*)landcover_string[i]);
+					if (out_anpp) fprintf(out_anpp,"%13s",(char*)landcover_string[i]);
+					if (out_lai) fprintf(out_lai,"%13s",(char*)landcover_string[i]);
 				}
 			}
 		}
@@ -2707,13 +2707,13 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			for(int i=0;i<NLANDCOVERTYPES;i++) {
 				if(run[i]) {
 					if (out_cmass)
-						fprintf(out_cmass,"\t%8.3f", landcover_cmass[i]);
+						fprintf(out_cmass,"%13.3f", landcover_cmass[i]);
 					if (out_anpp) 
-						fprintf(out_anpp,"\t%8.3f", landcover_anpp[i]);
+						fprintf(out_anpp,"%13.3f", landcover_anpp[i]);
 					if (out_lai)
-						fprintf(out_lai,"\t%8.3f", landcover_lai[i]);
+						fprintf(out_lai,"%13.3f", landcover_lai[i]);
 					if (out_dens)
-						fprintf(out_dens,"\t%8.4f", landcover_densindiv_total[i]);
+						fprintf(out_dens,"%13.4f", landcover_densindiv_total[i]);
 				}
 			}
 		}

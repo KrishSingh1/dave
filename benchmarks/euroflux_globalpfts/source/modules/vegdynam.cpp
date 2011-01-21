@@ -199,8 +199,7 @@ void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
 
-		if(stand.pft[pft.id].active)	//standpft.active is set in landcover_init according to rules for each stand
-		{
+		if (stand.pft[pft.id].active) {	//standpft.active is set in landcover_init according to rules for each stand
 
 		// Is this PFT already represented?
 
@@ -435,8 +434,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 		// For this PFT ...
 
-		if(stand.pft[pft.id].active)
-		{
+		if (stand.pft[pft.id].active) {
 			if (patch.age==0) {
 				patch.pft[pft.id].anetps_ff_est=patch.pft[pft.id].anetps_ff;
 				patch.pft[pft.id].wscal_mean_est=patch.pft[pft.id].wscal_mean;

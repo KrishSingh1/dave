@@ -519,8 +519,7 @@ void plib_callback(int callback) {
 		else if (strparam.upper()=="PASTURE") ppft->landcover=PASTURE;
 		else if (strparam.upper()=="FOREST") ppft->landcover=FOREST;			
 		else if (strparam.upper()=="PEATLAND") ppft->landcover=PEATLAND;
-		else 
-		{
+		else {
 			sendmessage("Error",
 				"Unknown landcover type (valid types: \"URBAN\", \"CROPLAND\", \"PASTURE\", \"FOREST\", \"NATURAL\" or \"PEATLAND\")");
 			plibabort();
@@ -698,14 +697,12 @@ void plib_callback(int callback) {
 
 		//	delete unused pft:s from pftlist
 
-		if(ppft->landcover!=NATURAL)
-		{
-			if(!run_landcover || !run[ppft->landcover])
+		if (ppft->landcover!=NATURAL) {
+			if (!run_landcover || !run[ppft->landcover])
 				includepft=0;
 		}
-		else if(run_landcover && !run[NATURAL])
-		{
-			if(ppft->landcover==NATURAL)
+		else if (run_landcover && !run[NATURAL]) {
+			if (ppft->landcover==NATURAL)
 				includepft=0;
 		}
 
@@ -1569,15 +1566,13 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	// Remember whether to produce output each year or not
 	annual_output=param["annual_output"].num;
 
-	if(run_landcover)
-	{
+	if (run_landcover) {
 		all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
 
 		//Retrieve file names for landcover files and open them if static values from ins-file are not used !
-		if(!lcfrac_fixed)	//This version does not support dynamic landcover fraction data
-		{
-			if(run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST])
-			{
+		if (!lcfrac_fixed) {	//This version does not support dynamic landcover fraction data
+
+			if (run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST]) {
 				file_lu=param["file_lu"].str;
 /*
 				if(!LUdata.Open(file_lu))				//Open Bondeau area fraction file, returned false if problem
@@ -1587,8 +1582,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 */
 			}
 
-			if(run[PEATLAND])	//special case for peatland: separate fraction file
-			{
+			if (run[PEATLAND]) {	//special case for peatland: separate fraction file
 				file_peat=param["file_peat"].str;
 /*				
 				if(!Peatdata.Open(file_peat))			//Open peatland area fraction file, returned false if problem
@@ -1777,16 +1771,18 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 }
 
 ///	Loads landcover area fraction data from file(s) for a gridcell.
-bool loadlandcover(Gridcell& gridcell, Coord c)	//Called from getgridcell() if run_landcover is true.
-{
+/** Called from getgridcell() if run_landcover is true. 
+  */
+bool loadlandcover(Gridcell& gridcell, Coord c)	{
 	bool LUerror=false;
 
-	if(!lcfrac_fixed)// Landcover fraction data: read from land use fraction file; dynamic, so data for all years are loaded to LUdata object and 
-	{			 	// transferred to gridcell.landcoverfrac each year in getlandcover()
-		if(run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST])
-		{
+	if (!lcfrac_fixed) {
+		// Landcover fraction data: read from land use fraction file; dynamic, so data for all years are loaded to LUdata object and 
+		// transferred to gridcell.landcoverfrac each year in getlandcover()
+
+		if (run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST]) {
 /*					
-			if(!LUdata.Load(c))		//Load area fraction data from Bondeau input file to data object
+			if (!LUdata.Load(c))		//Load area fraction data from Bondeau input file to data object
 			{
 				dprintf("Problems with landcover fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;		// skip this stand
@@ -1794,8 +1790,7 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	//Called from getgridcell() if r
 */
 		}
 
-		if(run[PEATLAND] && !LUerror)
-		{
+		if (run[PEATLAND] && !LUerror) {
  /*
 			if(!Peatdata.Load(c))	//special case for peatland: separate fraction file
 			{
@@ -1809,12 +1804,13 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	//Called from getgridcell() if r
 	return LUerror;
 }
 
+/// Called by the framework at the start of the simulation for a particular grid cell
 bool getgridcell(Gridcell& gridcell) 
 {
 	// DESCRIPTION
-	// Obtains latitude and soil static parameters for the next stand (grid cell) to
-	// simulate. The function should returns false if no stands remain to be simulated,
-	// otherwise true. Currently the following member variables of stand should be
+	// Obtains latitude and soil static parameters for the next grid cell to
+	// simulate. The function should return false if no grid cells remain to be simulated,
+	// otherwise true. Currently the following member variables of Gridcell should be
 	// initialised: members lat and instype of member climate; the following members of
 	// member soiltype: awc[0], awc[1], perc_base, perc_exp, thermdiff_0, thermdiff_15,
 	// thermdiff_100. The soil parameters can be set indirectly based on an lpj soil
@@ -1873,17 +1869,16 @@ bool getgridcell(Gridcell& gridcell)
 			gridfound = searchcru_misc(file_cru_misc, lon, lat, elevation, 
 			                           hist_mfrs, hist_mwet, hist_mdtr);
 
-		if(run_landcover)
-		{
+		if (run_landcover) {
 			Coord& c=gridlist.getobj();
 			LUerror=loadlandcover(gridcell, c);
 		}
-		if(LUerror)
+		if (LUerror)
 			gridfound=false;
 
 		while (!gridfound) {
 
-			if(run_landcover && LUerror)
+			if (run_landcover && LUerror)
 				dprintf("\nError: could not find stand at (%g,%g) in landcover data file\n", gridlist.getobj().lon,gridlist.getobj().lat);
 			else
 				dprintf("\nError: could not find stand at (%g,%g) in CRU data file\n", gridlist.getobj().lon,gridlist.getobj().lat);
@@ -1899,12 +1894,11 @@ bool getgridcell(Gridcell& gridcell)
 					gridfound = searchcru_misc(file_cru_misc, lon, lat, elevation,
 					                           hist_mfrs, hist_mwet, hist_mdtr);
 
-				if(run_landcover)
-				{
+				if (run_landcover) {
 					Coord& c=gridlist.getobj();
 					LUerror=loadlandcover(gridcell, c);
 				}
-				if(LUerror)
+				if (LUerror)
 					gridfound=false;
 			}
 			else return false;
@@ -2147,15 +2141,11 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 }
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// GETCLIMATE
-// Called by the framework each simulation day before any process modelling is
-// performed for this day
-
+/// Called by the framework each simulation day before any process modelling is performed for this day
+/** Obtains climate data (including atmospheric CO2 and insolation) for this day. */
 bool getclimate(Gridcell& gridcell) {
 
 	// DESCRIPTION
-	// Obtains climate data (including atmospheric CO2 and insolation) for this day.
 	// The function should returns false if the simulation is complete for this stand,
 	// otherwise true. This will normally require querying the year and day member
 	// variables of the global class object date:
@@ -2278,11 +2268,7 @@ bool getclimate(Gridcell& gridcell) {
 }
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// OUTANNUAL
-// Called by the framework at the end of the last day of each simulation year
-
-// guess2008 - many changes to this output routine. 
+/// Called by the framework at the end of the last day of each simulation year
 void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 	// DESCRIPTION
@@ -2375,13 +2361,10 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_runoff) fprintf(out_runoff,"%8s\n","Total");
 		if (out_dens) fprintf(out_dens,"%8s\n","Total");
 
-		if(run_landcover)
-		{
+		if (run_landcover) {
 			xtring landcover_string[]={"\tUrban_sum", "\tCrop_sum", "\tPasture_sum", "\tForest_sum", "\tNatural_sum", "\tPeatland_sum"};
-			for(int i=0; i<NLANDCOVERTYPES; i++)
-			{
-				if(run[i])
-				{
+			for (int i=0; i<NLANDCOVERTYPES; i++) {
+				if(run[i]) {
 					if (out_cmass) fprintf(out_cmass,"%s",landcover_string[i]);
 					if (out_anpp) fprintf(out_anpp,"%s",landcover_string[i]);
 					if (out_lai) fprintf(out_lai,"%s",landcover_string[i]);
@@ -2501,8 +2484,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 			gridcell.firstobj();
 
-			while(gridcell.isobj) //Loop through Stands
-			{
+			// Loop through Stands
+			while (gridcell.isobj) {
 				Stand& stand=gridcell.getobj();
 
 				Standpft& standpft=stand.pft[pft.id];
@@ -2519,8 +2502,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 						standpft_densindiv_ageclass[c]=0.0;
 		
 				stand.firstobj();
-				while (stand.isobj) //Loop through Patches
-				{
+
+				// Loop through Patches
+				while (stand.isobj) {
 					Patch& patch=stand.getobj();
 					Vegetation& vegetation=patch.vegetation;
 
@@ -2624,12 +2608,14 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		// Sum C fluxes, dead C pools and runoff across patches
 
 		gridcell.firstobj();
-		while(gridcell.isobj) //Loop through Stands
-		{
+
+		// Loop through Stands
+		while (gridcell.isobj) {
 			Stand& stand=gridcell.getobj();
 			stand.firstobj();
-			while (stand.isobj) //Loop through Patches
-			{
+
+			//Loop through Patches
+			while (stand.isobj) {
 				Patch& patch=stand.getobj();
 
 				flux_veg+=patch.fluxes.acflux_veg*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
@@ -2721,11 +2707,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_dens) fprintf(out_dens,"%8.4f",dens_gridcell);
 		if (out_firert) fprintf(out_firert,"%8.1f",firert_gridcell);
 
-		if(run_landcover)
-		{
-			for(int i=0;i<NLANDCOVERTYPES;i++)
-				if(run[i])
-				{
+		if (run_landcover) {
+			for(int i=0;i<NLANDCOVERTYPES;i++) {
+				if(run[i]) {
 					if (out_cmass)
 						fprintf(out_cmass,"\t%8.3f", landcover_cmass[i]);
 					if (out_anpp) 
@@ -2735,6 +2719,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 					if (out_dens)
 						fprintf(out_dens,"\t%8.4f", landcover_densindiv_total[i]);
 				}
+			}
 		}
 
 		if (out_cmass) fprintf(out_cmass,"\n");

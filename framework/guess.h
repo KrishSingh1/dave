@@ -110,7 +110,6 @@ const double PRIESTLEY_TAYLOR=1.32;
 	// Priestley-Taylor coefficient (conversion factor from equilibrium
 	// evapotranspiration to PET)
 
-const int NCROPSTANDS_MAX=26;	//Maximal number of cropstands defined in input files and/or ini-file.
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FORWARD DECLARATIONS OF CLASSES DEFINED IN THIS FILE
@@ -122,7 +121,6 @@ class Stand;
 class Patch;
 class Vegetation;
 class Gridcell;
-class Gridcellpft;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES WITH EXTERNAL LINKAGE
@@ -159,10 +157,17 @@ extern int npft; // number of possible PFTs
 extern bool iffast; // whether to run in "fast" mode
 extern bool ifcdebt; // whether C debt (storage between years) permitted
 
-extern bool run_landcover;			// Whether other landcovers than natural vegetation are simulated.
-extern bool run[NLANDCOVERTYPES];	// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND).
-extern bool lcfrac_fixed;			// Whether landcover fractions are read from ins-file.
-extern bool all_fracs_const;		// Set to false by initio( ) if fraction input files have yearly data.
+/// Whether other landcovers than natural vegetation are simulated.
+extern bool run_landcover;
+
+/// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND).
+extern bool run[NLANDCOVERTYPES];
+
+/// Whether landcover fractions are read from ins-file.
+extern bool lcfrac_fixed;
+
+/// Set to false by initio( ) if fraction input files have yearly data.
+extern bool all_fracs_const;
 //extern bool ifslowharvestpool;
 
 
@@ -728,8 +733,10 @@ public:
 
 	// Variables used by new hydrology (Dieter Gerten 2002-07)
 
-//landcover additions:
-	landcovertype landcover;		// specifies type of landcover (0 = URBAN, 1 = CROP, 2 = PASTURE, 3 = FOREST, 4 = NATURAL, 5 = PEATLAND); initialized in constructor
+	/// specifies type of landcover
+	/** \see landcovertype */
+	landcovertype landcover;
+
 //	double res_outtake;
 	double harv_eff;				// Harvest efficiency.
 	double harvest_slow_frac;		// Fraction of harvested products that goes into patchpft.harvested_products_slow
@@ -1152,7 +1159,7 @@ public:
 	// MEMBER FUNCTIONS
 
 public:
-	// constructor (initialises member variable patch)
+	/// constructor (initialises member variable patch)
 	Soil(Patch& p,Soiltype& s):patch(p),soiltype(s) {
 			initdrivers();
 	}
@@ -1498,21 +1505,6 @@ public:
 	bool have_gterm;
 		// true if value of gterm available for this PFT today, otherwise false
 
-	// Variables used only by input/output module
-
-//	double cmass_total;
-		// sum/mean across patches for carbon biomass (kgC/m2)
-//	double anpp_total;
-		// sum/mean across patches for annual NPP (kgC/m2/year)
-//	double lai_total;
-		// sum/mean across patches for 'grid-cell' LAI
-//	double densindiv_total;
-		// sum/mean across patches for density of (true) individuals (indiv/m2)
-		// (meaningful in cohort/individual mode only)
-//	double densindiv_ageclass[OUTPUT_MAXAGECLASS];
-		// stem density by age class (cohort/individual mode only; used by function
-		// outannual)
-
 	// Variables used by "fast" canopy exchange code (Ben Smith 2002-07)
 
 	double gpterm;
@@ -1527,8 +1519,8 @@ public:
 		// FPC sum for this PFT as average for stand (used by some versions of
 		// guessio.cpp)
 
-	//Landcover additions:
-	bool active;	//Is this PFT allowed to grow in this stand ?
+	/// Is this PFT allowed to grow in this stand ?
+	bool active;
 
 	// MEMBER FUNCTIONS
 
@@ -1538,7 +1530,7 @@ public:
 		
 		anetps_ff_max=0.0;
 
-		if(run_landcover)
+		if (run_landcover)
 			active=false;
 		else
 			active=true;

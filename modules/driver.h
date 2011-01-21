@@ -24,7 +24,6 @@
 void setseed(long init);
 double randfrac();
 void soilparameters(Soiltype& soiltype,int soilcode);
-//void initsoildrivers(Stand& stand);
 void interp_climate(double mtemp[12],double mprec[12],double msun[12],
 	double dtemp[365],double dprec[365],double dsun[365]);
 void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12]);

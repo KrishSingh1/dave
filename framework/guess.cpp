@@ -57,45 +57,38 @@ bool ifdroughtlimitedestab;			// whether establishment affected by growing seaso
 bool ifrainonwetdaysonly;			// rain on wet days only (1, true), or a little every day (0, false); 
 bool ifspeciesspecificwateruptake;	// water uptake is species specific 
 
-bool run_landcover;					// Whether other landcovers than natural vegetation are simulated.
-bool run[NLANDCOVERTYPES];			// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND).
-bool lcfrac_fixed;					// Whether landcover fractions are read from ins-file.
-bool all_fracs_const;				// Set to false by initio( ) if fraction input files have yearly data.
+bool run_landcover;
+bool run[NLANDCOVERTYPES];
+bool lcfrac_fixed;
+bool all_fracs_const;
 //bool ifslowharvestpool;			
 
 
 ///	Creates stands for landcovers present in the gridcell
-void landcover_init(Gridcell& gridcell,Pftlist& pftlist)
-{
+void landcover_init(Gridcell& gridcell,Pftlist& pftlist) {
 	landcovertype landcover;
 
 	getlandcover(gridcell,pftlist);		//Gets gridcell.landcoverfrac from landcover input file(s) or ins-file.
 
 
-	for(int i=0;i<NLANDCOVERTYPES;i++)	//For all landcover types without subclasses
-	{
-//		if(i!=CROPLAND)					// cropland subclasses turned off in this version
-		{
-			if(gridcell.landcoverfrac[i]>0.0)
-			{
-				if(run[i])
-				{
+	for(int i=0;i<NLANDCOVERTYPES;i++) { //For all landcover types without subclasses
+//		if(i!=CROPLAND) {					// cropland subclasses turned off in this version
+			if(gridcell.landcoverfrac[i]>0.0) {
+				if(run[i]) {
 					landcover=(landcovertype)i;
 					Stand& stand=gridcell.createobj(gridcell,landcover,pftlist);
 
 					pftlist.firstobj();
-					while (pftlist.isobj) 
-					{
+					while (pftlist.isobj) {
 						Pft& pft=pftlist.getobj();
-						if(pft.landcover==i)
-						{
+						if(pft.landcover==i) {
 							stand.pft[pft.id].active=true;
 						}
 						pftlist.nextobj();
 					}
 				}
 			}
-		}
+//		}
 	}
 }
 
@@ -104,70 +97,69 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i
 		// Constructor: initialises reference member of climate and
 		// builds list array of Standpft objects
 		
-		int p;
-		int npatchL;
+	int p;
+	int npatchL;
 
-		for(p=0;p<pftlist.nobj;p++)
-		{
-			pft.createobj(pftlist[p]);
-		}
-
-
-		if(landcover==CROPLAND || landcover==PASTURE || landcover==URBAN || landcover==PEATLAND)
-		{
-			npatchL=1;
-		}
-		else if(landcover==NATURAL || landcover==FOREST)
-			npatchL=npatch;
-
-		for (p=0;p<npatchL;p++)
-			createobj(*this,pftlist,gc.soiltype);
-
-		first_year=date.year;
-
+	for(p=0;p<pftlist.nobj;p++) {
+		pft.createobj(pftlist[p]);
 	}
+
+
+	if(landcover==CROPLAND || landcover==PASTURE || landcover==URBAN || landcover==PEATLAND) {
+		npatchL=1;
+	}
+	else if(landcover==NATURAL || landcover==FOREST) {
+		npatchL=npatch;
+	}
+
+	for (p=0;p<npatchL;p++) {
+		createobj(*this,pftlist,gc.soiltype);
+	}
+
+	first_year=date.year;
+}
 
 Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 
-		anpp=0.0;
-		fpc=0.0;
-		densindiv=0.0;
-		cmass_leaf=0.0;
-		cmass_root=0.0;
-		cmass_sap=0.0;
-		cmass_heart=0.0;
-		cmass_debt=0.0;
-		wscal=1.0;
-		phen=0.0;
-		aphen=0.0;
-		deltafpc=0.0;
-		fpar_wstress=0.0;
-		assim=0.0;
-	
-		// guess2008 - additional initialisation
-		age=0.0;
-		fpar=0.0;
-		aphen_raingreen=0;
-		demand=0.0;
-		supply=0.0;
-		intercep=0.0;
-		phen_mean=0.0;
-		temp_wstress = 0.0;
-		par_wstress = 0.0;
-		daylength_wstress = 0.0;
-		co2_wstress = 0.0; 
-		nday_wstress = 0; 
-		ifwstress = false;
-		lai = 0.0;
-		lai_layer = 0.0;
-		lai_indiv = 0.0;
-		alive = false;
+	anpp=0.0;
+	fpc=0.0;
+	densindiv=0.0;
+	cmass_leaf=0.0;
+	cmass_root=0.0;
+	cmass_sap=0.0;
+	cmass_heart=0.0;
+	cmass_debt=0.0;
+	wscal=1.0;
+	phen=0.0;
+	aphen=0.0;
+	deltafpc=0.0;
+	fpar_wstress=0.0;
+	assim=0.0;
 
-		int m;
-		for (m=0;m<12;m++) {
-			mnpp[m]=mlai[m]=mgpp[m]=mra[m]=0.0;
-		}
-	};
+	// guess2008 - additional initialisation
+	age=0.0;
+	fpar=0.0;
+	aphen_raingreen=0;
+	demand=0.0;
+	supply=0.0;
+	intercep=0.0;
+	phen_mean=0.0;
+	temp_wstress = 0.0;
+	par_wstress = 0.0;
+	daylength_wstress = 0.0;
+	co2_wstress = 0.0; 
+	nday_wstress = 0; 
+	ifwstress = false;
+	lai = 0.0;
+	lai_layer = 0.0;
+	lai_indiv = 0.0;
+	alive = false;
+
+	int m;
+	for (m=0;m<12;m++) {
+		mnpp[m]=mlai[m]=mgpp[m]=mra[m]=0.0;
+	}
+}
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -189,8 +181,7 @@ int framework(int argc,char* argv[]) {
 	initio(argc,argv,pftlist);
 
 	pftlist.firstobj();
-	while(pftlist.isobj)
-	{
+	while(pftlist.isobj) {
 		dprintf("pft n:o %d: %s",pftlist.getobj().id,(char*)pftlist.getobj().name);
 //		if(pftlist.getobj().landcover==CROPLAND)
 //			dprintf(", cftid %d",pftlist.getobj().cftid);			
@@ -199,8 +190,7 @@ int framework(int argc,char* argv[]) {
 	}
 
 
-	if(run_landcover)
-	{
+	if(run_landcover) {
 		dprintf("\nLandcover version.\n");
 		if(run[URBAN])
 			dprintf("Urban stand simulated (landcover type %d)\n", URBAN);
@@ -238,8 +228,7 @@ int framework(int argc,char* argv[]) {
 			// Initialise certain climate and soil drivers
 			gridcell.climate.initdrivers(gridcell.climate.lat);
 
-			if(run_landcover)
-			{
+			if(run_landcover) {
 				//Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
 				landcover_init(gridcell,pftlist);
 			}
@@ -259,23 +248,23 @@ int framework(int argc,char* argv[]) {
 				daylengthinsoleet(gridcell.climate);
 
 				// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
-//Dynamic landcover area fractions not supported in this version.
-/*				if(run_landcover && date.day==0)
-				{
+				// Dynamic landcover area fractions not supported in this version.
+/*				if(run_landcover && date.day==0) {
 					if(date.year>=nyear_spinup)
 						landcover_dynamics(gridcell,pftlist);
 				}
 */
 				gridcell.firstobj();
-				while (gridcell.isobj) //Loop through stands:
-				{
+				while (gridcell.isobj) {
+
+					// START OF LOOP THROUGH STANDS
+
 					Stand& stand=gridcell.getobj();
 
 					dailyaccounting_stand(stand,pftlist);
 
 					stand.firstobj();
-					while (stand.isobj)
-					{
+					while (stand.isobj) {
 						// START OF LOOP THROUGH PATCHES
 
 						// Get reference to this patch
@@ -305,8 +294,8 @@ int framework(int argc,char* argv[]) {
 					{
 						// LAST DAY OF YEAR
 						stand.firstobj();
-						while (stand.isobj) //Loop through Patches (ML)
-						{
+						while (stand.isobj) {
+
 							// For each patch ...
 							Patch& patch=stand.getobj();
 							// Establishment, mortality and disturbance by fire
@@ -318,8 +307,7 @@ int framework(int argc,char* argv[]) {
 					gridcell.nextobj();			
 				}	// End of loop through stands
 
-				if (date.islastday && date.islastmonth)
-				{
+				if (date.islastday && date.islastmonth) {
 					// LAST DAY OF YEAR
 					// Call input/output module to output results for end of year
 					// or end of simulation for this stand

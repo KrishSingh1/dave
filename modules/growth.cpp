@@ -252,45 +252,25 @@ void turnover_oecd(double turnover_leaf,double turnover_root,double turnover_sap
 	double turnover = 0.0;
 	int m;
 
-/*
-	if (lifeform==CROP) {
+	// Leaf turnover
+	turnover=turnover_leaf*cmass_leaf;
+	cmass_leaf-=turnover;
+	if (alive) litter_leaf+=turnover;
 
-		if (alive) litter_root+=cmass_root;
-		cmass_root=0.0;
+	// Root turnover
+	turnover=turnover_root*cmass_root;
+	cmass_root-=turnover;
+	if (alive) litter_root+=turnover;
 
-		turnover=0.5*cmass_leaf;
-		fluxes.acflux_soil+=turnover;
-		if (alive) litter_leaf+=turnover;
-		cmass_leaf=0.0;
+	if (lifeform==TREE) {
 
-		turnover/=12.0;
-		for (m=0;m<12;m++) fluxes.mcflux_soil[m]+=turnover;
-	}
-	else {
-*/
-		// TREES AND GRASSES:
+		// TREES ONLY:
 
-		// Leaf turnover
-		turnover=turnover_leaf*cmass_leaf;
-		cmass_leaf-=turnover;
-		if (alive) litter_leaf+=turnover;
-
-		// Root turnover
-		turnover=turnover_root*cmass_root;
-		cmass_root-=turnover;
-		if (alive) litter_root+=turnover;
-
-		if (lifeform==TREE) {
-			
-			// TREES ONLY:
-
-			// Sapwood turnover by conversion to heartwood
-			turnover=turnover_sap*cmass_sap;
-			cmass_sap-=turnover;
-			cmass_heart+=turnover;
-		}	
-
-//	}
+		// Sapwood turnover by conversion to heartwood
+		turnover=turnover_sap*cmass_sap;
+		cmass_sap-=turnover;
+		cmass_heart+=turnover;
+	}	
 }
 
 

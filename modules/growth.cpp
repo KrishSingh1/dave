@@ -1153,11 +1153,16 @@ void growth(Stand& stand,Patch& patch) {
 				indiv.cmass_leaf+=cmass_leaf_inc;
 				indiv.cmass_root+=cmass_root_inc;
 
+				// guess2008 - bugfix - determine the (small) mass imbalance (kgC) for this individual. 
+				// This can arise in the event of numerical errors in the allocation routine.
+				double indiv_mass_after=indiv.cmass_leaf+indiv.cmass_root+litter_leaf_inc+litter_root_inc;
+				double indiv_cmass_diff=(indiv_mass_before+bminc-indiv_mass_after);		
+
 				// guess2008 - alive check before ensuring C balance
 				if (indiv.alive) {
 					
-					patch.pft[indiv.pft.id].litter_leaf+=litter_leaf_inc;
-					patch.pft[indiv.pft.id].litter_root+=litter_root_inc;
+					patch.pft[indiv.pft.id].litter_leaf+=litter_leaf_inc+indiv_cmass_diff/2;
+					patch.pft[indiv.pft.id].litter_root+=litter_root_inc+indiv_cmass_diff/2;			
 	
 				}
 

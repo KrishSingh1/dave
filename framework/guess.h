@@ -1563,12 +1563,6 @@ public:
 	 */
 	landcovertype landcover;
 
-	/// fraction of a stand relative to a landcover
-	/** used by crop stands; initialized in constructor to 1, 
-	 *  set in landcover_init() 
-	 */
-	double frac;
-
 	/// The year when this stand was created.
 	/** Will typically be year zero unless running with dynamic
 	 *  land cover.
@@ -1589,7 +1583,21 @@ public:
 	Stand(int i, Gridcell& gc,landcovertype landcover,Pftlist& pftlist); 
 
 	/// Gives the fraction of this Stand relative to the whole grid cell
-	double get_fraction_of_gridcell() const;
+	double get_gridcell_fraction() const;
+
+	/// Gives the fraction of this Stand relative to its land cover type
+	double get_landcover_fraction() const;
+
+	/// Set the fraction of this Stand relative to its land cover type
+	void set_landcover_fraction(double fraction);
+
+private:
+
+	/// Fraction of this stand relative to its landcover
+	/** used by crop stands; initialized in constructor to 1, 
+	 *  set in landcover_init() 
+	 */
+	double frac;
 };
 
 

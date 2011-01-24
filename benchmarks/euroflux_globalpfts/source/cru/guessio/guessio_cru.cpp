@@ -3367,10 +3367,10 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				heightindiv_total/=(double)stand.nobj;
 
 				//Update landcover totals
-				landcover_cmass[stand.landcover]+=standpft_cmass*stand.frac;
-				landcover_anpp[stand.landcover]+=standpft_anpp*stand.frac;
-				landcover_lai[stand.landcover]+=standpft_lai*stand.frac;
-				landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.frac;
+				landcover_cmass[stand.landcover]+=standpft_cmass*stand.get_landcover_fraction();
+				landcover_anpp[stand.landcover]+=standpft_anpp*stand.get_landcover_fraction();
+				landcover_lai[stand.landcover]+=standpft_lai*stand.get_landcover_fraction();
+				landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.get_landcover_fraction();
 
 				//Update pft totals
 				gcpft_cmass+=standpft_cmass;
@@ -3383,7 +3383,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 						gcpft_densindiv_ageclass[c]+=standpft_densindiv_ageclass[c];
 
 				// Update gridcell totals
-				double fraction_of_gridcell = stand.get_fraction_of_gridcell();
+				double fraction_of_gridcell = stand.get_gridcell_fraction();
 				cmass_gridcell+=standpft_cmass*fraction_of_gridcell;
 				anpp_gridcell+=standpft_anpp*fraction_of_gridcell;
 				lai_gridcell+=standpft_lai*fraction_of_gridcell;
@@ -3453,7 +3453,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			while (stand.isobj) {
 				Patch& patch=stand.getobj();
 
-				double to_gridcell_average = stand.get_fraction_of_gridcell()/(double)stand.nobj;
+				double to_gridcell_average = stand.get_gridcell_fraction()/(double)stand.nobj;
 
 				flux_veg+=patch.fluxes.acflux_veg*to_gridcell_average;
 				flux_soil+=patch.fluxes.acflux_soil*to_gridcell_average;

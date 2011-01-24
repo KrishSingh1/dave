@@ -2568,10 +2568,11 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 						gcpft_densindiv_ageclass[c]+=standpft_densindiv_ageclass[c];
 
 				// Update gridcell totals
-				cmass_gridcell+=standpft_cmass*stand.frac*gridcell.landcoverfrac[stand.landcover];
-				anpp_gridcell+=standpft_anpp*stand.frac*gridcell.landcoverfrac[stand.landcover];
-				lai_gridcell+=standpft_lai*stand.frac*gridcell.landcoverfrac[stand.landcover];
-				dens_gridcell+=standpft_densindiv_total*stand.frac*gridcell.landcoverfrac[stand.landcover];
+				double fraction_of_gridcell = stand.get_fraction_of_gridcell();
+				cmass_gridcell+=standpft_cmass*fraction_of_gridcell;
+				anpp_gridcell+=standpft_anpp*fraction_of_gridcell;
+				lai_gridcell+=standpft_lai*fraction_of_gridcell;
+				dens_gridcell+=standpft_densindiv_total*fraction_of_gridcell;
 			
 				// Graphical output every 10 years
 				// (Windows shell only - "plot" statements have no effect otherwise)
@@ -2618,21 +2619,23 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			while (stand.isobj) {
 				Patch& patch=stand.getobj();
 
-				flux_veg+=patch.fluxes.acflux_veg*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
-				flux_soil+=patch.fluxes.acflux_soil*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
-				flux_fire+=patch.fluxes.acflux_fire*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
-				flux_est+=patch.fluxes.acflux_est*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
+				double to_gridcell_average = stand.get_fraction_of_gridcell()/(double)stand.nobj;
 
-				c_fast+=patch.soil.cpool_fast*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
-				c_slow+=patch.soil.cpool_slow*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
+				flux_veg+=patch.fluxes.acflux_veg*to_gridcell_average;
+				flux_soil+=patch.fluxes.acflux_soil*to_gridcell_average;
+				flux_fire+=patch.fluxes.acflux_fire*to_gridcell_average;
+				flux_est+=patch.fluxes.acflux_est*to_gridcell_average;
+
+				c_fast+=patch.soil.cpool_fast*to_gridcell_average;
+				c_slow+=patch.soil.cpool_slow*to_gridcell_average;
 
 				// Sum all litter
 				for (int q=0;q<npft;q++) {
 					Patchpft& patchpft=patch.pft[q];
-					c_litter+=(patchpft.litter_leaf+patchpft.litter_root+patchpft.litter_wood+patchpft.litter_repr)*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
+					c_litter+=(patchpft.litter_leaf+patchpft.litter_root+patchpft.litter_wood+patchpft.litter_repr)*to_gridcell_average;
 				}
 
-				runoff_gridcell+=patch.arunoff*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
+				runoff_gridcell+=patch.arunoff*to_gridcell_average;
 	
 				// Fire return time
 				if (!iffire || patch.fireprob < 0.001)
@@ -2644,18 +2647,18 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				// Monthly output variables
 				
 				for (m=0;m<12;m++) {
-					maet[m] += patch.maet[m]*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
-					mpet[m] += patch.mpet[m]*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
-					mevap[m] += patch.mevap[m]*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
-					mintercep[m] += patch.mintercep[m]*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
-					mrunoff[m] += patch.mrunoff[m]*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
-					mrh[m] += patch.fluxes.mcflux_soil[m]*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
-					mwcont_upper[m] += patch.soil.mwcont[m][0]*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
-					mwcont_lower[m] += patch.soil.mwcont[m][1]*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
+					maet[m] += patch.maet[m]*to_gridcell_average;
+					mpet[m] += patch.mpet[m]*to_gridcell_average;
+					mevap[m] += patch.mevap[m]*to_gridcell_average;
+					mintercep[m] += patch.mintercep[m]*to_gridcell_average;
+					mrunoff[m] += patch.mrunoff[m]*to_gridcell_average;
+					mrh[m] += patch.fluxes.mcflux_soil[m]*to_gridcell_average;
+					mwcont_upper[m] += patch.soil.mwcont[m][0]*to_gridcell_average;
+					mwcont_lower[m] += patch.soil.mwcont[m][1]*to_gridcell_average;
 
 					// guess2008 - average across stands to get mgpp and mra here. 
-					mgpp[m] += patch.fluxes.mcflux_gpp[m]*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
-					mra[m] += patch.fluxes.mcflux_ra[m]*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
+					mgpp[m] += patch.fluxes.mcflux_gpp[m]*to_gridcell_average;
+					mra[m] += patch.fluxes.mcflux_ra[m]*to_gridcell_average;
 
 				}
 
@@ -2672,7 +2675,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 					if (indiv.id!=-1 && indiv.alive) { 
 
 						for (m=0;m<12;m++) {
-							mlai[m] += indiv.mlai[m]*stand.frac*gridcell.landcoverfrac[stand.landcover]/(double)stand.nobj;
+							mlai[m] += indiv.mlai[m]*to_gridcell_average;
 						}
 
 					} // alive?

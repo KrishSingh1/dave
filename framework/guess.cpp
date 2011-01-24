@@ -119,6 +119,10 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i
 	first_year=date.year;
 }
 
+double Stand::get_fraction_of_gridcell() const {
+	 return frac*gridcell.landcoverfrac[landcover];
+}
+
 Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 
 	anpp=0.0;

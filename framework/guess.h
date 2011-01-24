@@ -1587,6 +1587,9 @@ public:
 	 *  \param pftlist   The list of PFTs
 	 */
 	Stand(int i, Gridcell& gc,landcovertype landcover,Pftlist& pftlist); 
+
+	/// Gives the fraction of this Stand relative to the whole grid cell
+	double get_fraction_of_gridcell() const;
 };
 
 

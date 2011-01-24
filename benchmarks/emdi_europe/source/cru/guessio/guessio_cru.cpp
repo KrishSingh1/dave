@@ -153,6 +153,12 @@ int nyear_spinup; // number of simulation years during spinup
 // guess2008 - new optional parameter
 int searchradius; // search radius to use when finding CRU data
 
+/// Landcover fractions read from ins-file (% area).
+int lc_fixed_frac[NLANDCOVERTYPES]={0};
+
+/// Whether gridcell is divided into equal active landcover fractions.
+bool equal_landcover_area;
+
 Pftlist* ppftlist; // pointer to PFT list
 Pft* ppft; // pointer to Pft object currently being assigned to
 
@@ -2004,7 +2010,7 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 				}
 			}
 			
-			if(sum_tot!=1.0)		// Check input data, rescale if sum !=1.0
+			if(sum_tot<0.99 || sum_tot>1.01)	// Check input data, rescale if sum !=1.0
 			{
 				sum_active=0.0;		//reset sum of active landcover fractions
 				if(date.year==0)
@@ -2015,7 +2021,7 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 			}
 
 			//NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
-			if(sum_active!=1.0)		//if landcover types are turned off in the ini-file, always <=1.0 here
+			if(sum_active<0.99)	//if landcover types are turned off in the ini-file, always <=1.0 here
 			{
 				if(date.year==0)
 					dprintf("WARNING ! landcover active fraction sum is %4.2f.\n", sum_active);

@@ -386,13 +386,12 @@ public:
 };
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// CLIMATE
-// Stores all static and variable data relating to climate parameters, as well as 
-// latitude, atmospheric CO2 concentration and daylength for a stand (corresponding to
-// a modelled locality or grid cell). Includes a reference to the parent Stand object
-// (defined below). Initialised by a call to initdrivers.
-
+/// The Climate for a grid cell
+/** Stores all static and variable data relating to climate parameters, as well as 
+ *  latitude, atmospheric CO2 concentration and daylength for a grid cell. Includes 
+ *  a reference to the parent Gridcell object (defined below). Initialised by a 
+ *  call to initdrivers.
+ */
 class Climate {
 
 	// MEMBER VARIABLES
@@ -484,7 +483,7 @@ public:
 public:
 
 	Climate(Gridcell& gc):gridcell(gc) {};
-		// constructor function: initialises stand member
+		// constructor function: initialises gridcell member
 
 	void initdrivers(double latitude) {
 
@@ -1014,12 +1013,11 @@ public:
 };
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// SOILTYPE
-// Stores static parameters for soils and the snow pack. One Soiltype object is defined
-// for each stand. State variables for soils are held by objects of class Soil, of
-// which there is one for each patch (see below).
-
+/// Soiltype stores static parameters for soils and the snow pack. 
+/** One Soiltype object is defined for each stand. State variables for soils 
+ *  are held by objects of class Soil, of which there is one for each patch 
+ *  (see below).
+ */
 class Soiltype {
 
 	// MEMBER VARIABLES
@@ -1070,15 +1068,13 @@ public:
 };
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// SOIL
-// Stores state variables for soils and the snow pack. Initialised by a call to
-// initdrivers. One Soil object is defined for each patch. A reference to the parent
-// Patch object (defined below) is included as a member variable. Soil static
-// parameters are stored as objects of class Soiltype, of which there is one for each
-// stand. A reference to the Soiltype object holding the static parameters for this
-// soil is included as a member variable.
-
+/// Soil stores state variables for soils and the snow pack. 
+/** Initialised by a call to initdrivers. One Soil object is defined for each patch. 
+ *  A reference to the parent Patch object (defined below) is included as a member 
+ *  variable. Soil static parameters are stored as objects of class Soiltype, of which 
+ *  there is one for each grid cell. A reference to the Soiltype object holding the 
+ *  static parameters for this soil is included as a member variable.
+ */
 class Soil {
 
 	// MEMBER VARIABLES
@@ -1640,7 +1636,7 @@ public:
  *  with patches, not gridcells. A separate Gridcell object must be declared for each modelled
  *  locality or grid cell.
  */
-class Gridcell : public ListArray_idin3<Stand,Gridcell,landcovertype, Pftlist> //kolla upp vilka parametrar som behövs här !
+class Gridcell : public ListArray_idin3<Stand,Gridcell,landcovertype, Pftlist>
 {
 
 public:

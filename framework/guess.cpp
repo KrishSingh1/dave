@@ -21,7 +21,7 @@
 #include "somdynam.h"
 #include "growth.h"
 #include "vegdynam.h"
-
+#include "bvoc.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES WITH EXTERNAL LINKAGE
@@ -56,7 +56,8 @@ bool ifsmoothgreffmort;				// smooth growth efficiency mortality
 bool ifdroughtlimitedestab;			// whether establishment affected by growing season drought
 bool ifrainonwetdaysonly;			// rain on wet days only (1, true), or a little every day (0, false); 
 bool ifspeciesspecificwateruptake;	// water uptake is species specific 
-
+// bvoc
+bool ifbvoc; // BVOC calculations included
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -76,6 +77,11 @@ int framework(int argc,char* argv[]) {
 	// Call input/output module to obtain PFT static parameters and simulation
 	// settings and initialise input/output
 	initio(argc,argv,pftlist);
+
+	// bvoc
+	if(ifbvoc){
+	  initbvoc(pftlist);
+	}
 
 	// Assume there is at least one stand to simulate
 	dostand=true;

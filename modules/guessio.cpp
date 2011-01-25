@@ -165,7 +165,8 @@ xtring file_cmass,file_anpp,file_dens,file_lai,file_cflux,file_cpool,file_runoff
 xtring file_mnpp,file_mlai,file_mgpp,file_mra,file_maet,file_mpet,file_mevap,file_mrunoff,file_mintercep,file_mrh;
 xtring file_mnee,file_mwcont_upper,file_mwcont_lower;
 xtring file_firert;
-
+// bvoc
+xtring file_aiso,file_miso,file_amon,file_mmon;
 
 void initsettings() {
 
@@ -187,6 +188,8 @@ void initsettings() {
 	file_mnpp=file_mlai=file_maet=file_mpet=file_mevap=file_mrunoff=file_mintercep=file_mrh="";
 	file_mgpp=file_mra=file_mnee=file_mwcont_upper=file_mwcont_lower="";
 	file_cpool=file_firert="";
+	// bvoc
+	file_aiso=file_miso=file_amon=file_mmon="";
 
 }
 
@@ -290,6 +293,12 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_mnee",&file_mnee,300,CB_NONE,"Monthly NEE output file");
 		declareitem("file_mwcont_upper",&file_mwcont_upper,300,CB_NONE,"Monthly wcont_upper output file");
 		declareitem("file_mwcont_lower",&file_mwcont_lower,300,CB_NONE,"Monthly wcont_lower output file");
+		// bvoc
+		declareitem("file_aiso",&file_aiso,300,CB_NONE,"annual isoprene flux output file");
+		declareitem("file_miso",&file_miso,300,CB_NONE,"monthly isoprene flux output file");
+		declareitem("file_amon",&file_amon,300,CB_NONE,"annual monoterpene flux output file");
+		declareitem("file_mmon",&file_mmon,300,CB_NONE,"monthly monoterpene flux output file");
+
 
 		// guess2008 - new input options
 		declareitem("ifsmoothgreffmort",&ifsmoothgreffmort,1,CB_NONE,
@@ -300,6 +309,9 @@ void plib_declarations(int id,xtring setname) {
 			"Whether it rains on wet days only (1), or a little every day (0);");
 		declareitem("ifspeciesspecificwateruptake",&ifspeciesspecificwateruptake,1,CB_NONE,
 			"Whether or not there is species specific soil water uptake (0,1)");
+		// bvoc 
+		declareitem("ifbvoc",&ifbvoc,1,CB_NONE,
+			"Whether or not BVOC calculations are performed (0,1)");
 
 
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
@@ -428,7 +440,21 @@ void plib_declarations(int id,xtring setname) {
 		// guess2008 - DLE
 		declareitem("drought_tolerance",&ppft->drought_tolerance,0.0,1.0,1,CB_NONE,
 			"Drought tolerance level (0 = very -> 1 = not at all) (unitless)");
-
+		
+		// bvoc
+		if(ifbvoc){
+		  declareitem("ga",&ppft->ga,0.0,1.0,1,CB_NONE,
+			      "aerodynamic conductance (m/s)");
+		  declareitem("eps_iso",&ppft->eps_iso,0.,100.,1,CB_NONE,
+			      "isoprene emission capacity (ug C g-1 h-1)");
+		  declareitem("seas_iso",&ppft->seas_iso,1,CB_NONE,
+			      "whether (1) or not (0) isoprene emissions show seasonality");
+		  declareitem("eps_mon",&ppft->eps_mon,0.,100.,1,CB_NONE,
+			      "monoterpene emission capacity (ug C g-1 h-1)");
+		  declareitem("storfrac_mon",&ppft->storfrac_mon,0.,1.,1,CB_NONE,
+			      "fraction of monoterpene production that goes into storage pool (-)");
+		}
+		
 		callwhendone(CB_CHECKPFT);
 		
 		break;
@@ -532,7 +558,8 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifdroughtlimitedestab")) badins("ifdroughtlimitedestab");
 		if (!itemparsed("ifrainonwetdaysonly")) badins("ifrainonwetdaysonly");
 		if (!itemparsed("ifspeciesspecificwateruptake")) badins("ifspeciesspecificwateruptake");
-
+		// bvoc
+		if (!itemparsed("ifbvoc")) badins("ifbvoc");
 
 
 		if (!itemparsed("pft")) badins("pft");
@@ -581,6 +608,15 @@ void plib_callback(int callback) {
 
 		// guess2008 - DLE
 		if (!itemparsed("drought_tolerance")) badins("drought_tolerance");
+
+		// bvoc
+		if(ifbvoc){
+		  if (!itemparsed("ga")) badins("ga");
+		  if (!itemparsed("eps_iso")) badins("eps_iso");
+		  if (!itemparsed("seas_iso")) badins("seas_iso");
+		  if (!itemparsed("eps_mon")) badins("eps_mon");
+		  if (!itemparsed("storfrac_mon")) badins("storfrac_mon");
+		}
 
 		if (ppft->lifeform==TREE) {
 			if (!itemparsed("cton_sap")) badins("cton_sap");
@@ -798,7 +834,8 @@ FILE *out_cmass,*out_anpp,*out_lai,*out_cflux,*out_cpool,*out_runoff,*out_dens;
 FILE *out_mnpp,*out_mlai,*out_mgpp,*out_mra,*out_maet,*out_mpet,*out_mevap,*out_mrunoff,*out_mintercep,*out_mrh;
 FILE *out_mnee,*out_mwcont_upper,*out_mwcont_lower; 
 FILE *out_firert; 
-
+// bvoc
+FILE *out_aiso,*out_miso,*out_amon,*out_mmon;
 
 
 // Timers for keeping track of progress through the simulation
@@ -1154,6 +1191,22 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	}
 	else out_runoff=NULL;
 
+	// bvoc
+	if(file_aiso!=""){
+	  file_aiso=outputdirectory+file_aiso;
+	  out_aiso=fopen(file_aiso,"w");
+	  if(!out_aiso)fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_aiso);
+	}
+	else out_aiso=NULL;
+	
+	// bvoc
+	if(file_amon!=""){
+	  file_amon=outputdirectory+file_amon;
+	  out_amon=fopen(file_amon,"w");
+	  if(!out_amon)fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_amon);
+	}
+	else out_aiso=NULL;
+
 
 	// *** MONTHLY OUTPUT VARIABLES ***
 
@@ -1248,6 +1301,21 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	}
 	else out_mwcont_lower=NULL;
 
+	// bvoc
+	if(file_miso!=""){
+	  file_miso=outputdirectory+file_miso;
+	  out_miso=fopen(file_miso,"w");
+	  if(!out_miso)fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_miso);
+	}
+	else out_miso=NULL;
+
+	// bvoc
+	if(file_mmon!=""){
+	  file_mmon=outputdirectory+file_mmon;
+	  out_mmon=fopen(file_mmon,"w");
+	  if(!out_mmon)fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mmon);
+	}
+	else out_mmon=NULL;
 
 
 	// Set timers
@@ -1429,6 +1497,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	double flux_veg,flux_soil,flux_fire,flux_est;
 	double c_litter,c_fast,c_slow; 
 	double firert_stand; 
+	// bvoc
+	double aiso_stand,amon_stand;
 
 	// guess2008 - hold the monthly average across patches
 	double mnpp[12];
@@ -1444,7 +1514,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	double mnee[12];
 	double mwcont_upper[12];
 	double mwcont_lower[12];
-
+	// bvoc
+	double miso[12];
+	double mmon[12];
 
 	double lon,lat;
 
@@ -1487,7 +1559,12 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_mnee) fprintf(out_mnee,lonlatyearstr,"Lon","Lat","Year");
 		if (out_mwcont_upper) fprintf(out_mwcont_upper,lonlatyearstr,"Lon","Lat","Year");
 		if (out_mwcont_lower) fprintf(out_mwcont_lower,lonlatyearstr,"Lon","Lat","Year");
-		
+		// bvoc
+		if(out_aiso)fprintf(out_aiso,lonlatyearstr,"Lon","Lat","Year");
+		if(out_miso)fprintf(out_miso,lonlatyearstr,"Lon","Lat","Year");
+		if(out_amon)fprintf(out_amon,lonlatyearstr,"Lon","Lat","Year");
+		if(out_mmon)fprintf(out_mmon,lonlatyearstr,"Lon","Lat","Year");
+
 
 
 		// Loop through PFT's and print PFT names as column labels
@@ -1499,6 +1576,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			if (out_anpp) fprintf(out_anpp,"%8s",(char*)pft.name);
 			if (out_lai) fprintf(out_lai,"%8s",(char*)pft.name);
 			if (out_dens) fprintf(out_dens,"%8s",(char*)pft.name);
+			// bvoc
+			if(out_aiso)fprintf(out_aiso,"%8s",(char*)pft.name);
+			if(out_amon)fprintf(out_amon,"%8s",(char*)pft.name);
 			pftlist.nextobj();
 		}
 
@@ -1509,7 +1589,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_lai) fprintf(out_lai,"%8s\n","Total");
 		if (out_runoff) fprintf(out_runoff,"%8s\n","Total");
 		if (out_dens) fprintf(out_dens,"%8s\n","Total");
-
+		// bvoc
+		if(out_aiso)fprintf(out_aiso,"%8s\n","Total");
+		if(out_amon)fprintf(out_amon,"%8s\n","Total");
 
 		// guess2008
 		const char* monthstr = "%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s\n";
@@ -1527,7 +1609,10 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_mnee) fprintf(out_mnee,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
 		if (out_mwcont_upper) fprintf(out_mwcont_upper,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
 		if (out_mwcont_lower) fprintf(out_mwcont_lower,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-
+		// bvoc
+		if(out_miso)fprintf(out_miso,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+		if(out_mmon)fprintf(out_mmon,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+	
 		firstgrid=false;
 	}
 	
@@ -1546,6 +1631,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		runoff_stand=0.0;
 		dens_stand=0.0;
 		firert_stand=0.0;
+		// bvoc
+		aiso_stand=0.;
+		amon_stand=0.;
 
 		// Print longitude, latitude, year
 
@@ -1559,8 +1647,10 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_dens) fprintf(out_dens,lonlatyeardatastr,lon,lat,date.year);
 		if (out_cpool) fprintf(out_cpool,lonlatyeardatastr,lon,lat,date.year);
 		if (out_firert) fprintf(out_firert,lonlatyeardatastr,lon,lat,date.year);
-
-
+		// bvoc
+		if(out_aiso)fprintf(out_aiso,lonlatyeardatastr,lon,lat,date.year);
+		if(out_amon)fprintf(out_amon,lonlatyeardatastr,lon,lat,date.year);
+		
 		if (out_mnpp) fprintf(out_mnpp,lonlatyeardatastr,lon,lat,date.year);
 		if (out_mlai) fprintf(out_mlai,lonlatyeardatastr,lon,lat,date.year);
 		if (out_mgpp) fprintf(out_mgpp,lonlatyeardatastr,lon,lat,date.year);
@@ -1574,10 +1664,13 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_mnee) fprintf(out_mnee,lonlatyeardatastr,lon,lat,date.year);
 		if (out_mwcont_upper) fprintf(out_mwcont_upper,lonlatyeardatastr,lon,lat,date.year);
 		if (out_mwcont_lower) fprintf(out_mwcont_lower,lonlatyeardatastr,lon,lat,date.year);
+		// bvoc
+		if(out_miso)fprintf(out_miso,lonlatyeardatastr,lon,lat,date.year);
+		if(out_mmon)fprintf(out_mmon,lonlatyeardatastr,lon,lat,date.year);
 
 		// guess2008 - reset monthly average across patches each year
 		for (m=0;m<12;m++)
-			mnpp[m]=mlai[m]=mgpp[m]=mra[m]=maet[m]=mpet[m]=mevap[m]=mintercep[m]=mrunoff[m]=mrh[m]=mnee[m]=mwcont_upper[m]=mwcont_lower[m]=0.0;
+			mnpp[m]=mlai[m]=mgpp[m]=mra[m]=maet[m]=mpet[m]=mevap[m]=mintercep[m]=mrunoff[m]=mrh[m]=mnee[m]=mwcont_upper[m]=mwcont_lower[m]=miso[m]=mmon[m]=0.0;
 
 
 		// *** Loop through PFTs ***
@@ -1594,6 +1687,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			standpft.anpp_total=0.0;
 			standpft.lai_total=0.0;
 			standpft.densindiv_total = 0.0;
+			// bvoc
+			standpft.aiso_total=0.;
+			standpft.amon_total=0.;
 
 			// Initialise age structure array
 
@@ -1621,7 +1717,10 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 								indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
 							standpft.anpp_total+=indiv.anpp;
 							standpft.lai_total+=indiv.lai;
-
+							// bvoc
+							standpft.aiso_total+=indiv.aiso;
+							standpft.amon_total+=indiv.amon;
+							
 							if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 							
 								// Age structure
@@ -1653,7 +1752,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			standpft.anpp_total/=(double)npatch;
 			standpft.lai_total/=(double)npatch;
 			standpft.densindiv_total/=(double)npatch;
-
+			// bvoc
+			standpft.aiso_total/=(double)npatch;
+			standpft.amon_total/=(double)npatch;
 
 			// Update stand totals
 
@@ -1661,6 +1762,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			anpp_stand+=standpft.anpp_total;
 			lai_stand+=standpft.lai_total;
 			dens_stand+=standpft.densindiv_total;
+			// bvoc
+			aiso_stand+=standpft.aiso_total;
+			amon_stand+=standpft.amon_total;
 		
 			// Print PFT sums to files
 
@@ -1668,6 +1772,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			if (out_anpp) fprintf(out_anpp,"%8.3f",standpft.anpp_total);
 			if (out_lai) fprintf(out_lai,"%8.4f",standpft.lai_total);
 			if (out_dens) fprintf(out_dens,"%8.4f",standpft.densindiv_total);
+			// bvoc
+			if(out_aiso)fprintf(out_aiso,"%8.3f",standpft.aiso_total);
+			if(out_amon)fprintf(out_amon,"%8.3f",standpft.amon_total);
 
 			// Graphical output every 10 years
 			// (Windows shell only - "plot" statements have no effect otherwise)
@@ -1731,6 +1838,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 				// guess2008 - average across stands to get mgpp and mra 
 				mgpp[m] += stand[p].fluxes.mcflux_gpp[m]/(double)npatch;
 				mra[m] += stand[p].fluxes.mcflux_ra[m]/(double)npatch;
+				// bvoc
+				miso[m]+=stand[p].miso[m]/(double)npatch;
+				mmon[m]+=stand[p].mmon[m]/(double)npatch;
 
 			}
 
@@ -1781,6 +1891,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_runoff) fprintf(out_runoff,"%8.1f\n",runoff_stand);
 		if (out_dens) fprintf(out_dens,"%8.4f\n",dens_stand);
 		if (out_firert) fprintf(out_firert,"%8.1f\n",firert_stand);
+		// bvoc
+		if(out_aiso)fprintf(out_aiso,"%8.3f\n",aiso_stand);
+		if(out_amon)fprintf(out_amon,"%8.3f\n",amon_stand);
 
 		// Print monthly output variables
 		for (m=0;m<12;m++) {
@@ -1798,6 +1911,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			if (out_mnee) fprintf(out_mnee,"%8.3f",mnee[m]);
 			if (out_mwcont_upper) fprintf(out_mwcont_upper,"%8.3f",mwcont_upper[m]);
 			if (out_mwcont_lower) fprintf(out_mwcont_lower,"%8.3f",mwcont_lower[m]);
+			// bvoc
+			if(out_miso)fprintf(out_miso,"%8.3f",miso[m]);
+			if(out_mmon)fprintf(out_mmon,"%8.3f",mmon[m]);
 
 			if (m==11) {
 				if (out_mnpp) fprintf(out_mnpp,"\n");
@@ -1813,6 +1929,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 				if (out_mnee) fprintf(out_mnee,"\n");
 				if (out_mwcont_upper) fprintf(out_mwcont_upper,"\n");
 				if (out_mwcont_lower) fprintf(out_mwcont_lower,"\n");
+				// bvoc
+				if(out_miso)fprintf(out_miso,"\n");
+				if(out_mmon)fprintf(out_mmon,"\n");
 			}
 
 		}
@@ -1892,6 +2011,9 @@ void termio() {
 		if (out_dens) fclose(out_dens);
 		if (out_cpool) fclose(out_cpool);
 		if (out_firert) fclose(out_firert);
+		// bvoc
+		if(out_aiso)fclose(out_aiso);
+		if(out_amon)fclose(out_amon);
 
 		if (out_mnpp) fclose(out_mnpp);
 		if (out_mlai) fclose(out_mlai);
@@ -1906,6 +2028,9 @@ void termio() {
 		if (out_mnee) fclose(out_mnee);
 		if (out_mwcont_upper) fclose(out_mwcont_upper);
 		if (out_mwcont_lower) fclose(out_mwcont_lower);
+		// bvoc
+		if(out_miso)fclose(out_miso);
+		if(out_mmon)fclose(out_mmon);
 	}
 
 	// Clean up

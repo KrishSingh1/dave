@@ -167,7 +167,9 @@ extern bool ifrainonwetdaysonly;
 	// rain on wet days only (1, true), or a little every day (0, false); 
 extern bool ifspeciesspecificwateruptake;	
 	// whether water uptake is species specific 
-
+// bvoc
+extern bool ifbvoc; 
+        // whether BVOC calculations are included
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -464,6 +466,9 @@ public:
 	bool doneday[365];
 		// indicates whether saved values exist for this day
 
+	// bvoc
+	double dtr;
+
 	// MEMBER FUNCTIONS
 
 public:
@@ -700,6 +705,24 @@ public:
 	// guess2008 - drought-limited establishment (DLE)
 	double drought_tolerance;
 		// Drought tolerance level (0 = very -> 1 = not at all) (unitless)
+	
+	// bvoc
+	double ga; 
+	        // aerodynamic conductance (m s-1)
+	double eps_iso;
+ 	        // isoprene emission capacity (ug C g-1 h-1)
+	double Y_eps_iso;
+	        // fraction of electron transport to isoprene production under standard conditions (-)
+	bool seas_iso; 
+	        // whether (1) or not (1) isoprene emissions show a seasonality
+	double eps_mon;
+	        // monoterpene emission capacity (ug C g-1 h-1)
+	double Y_eps_mon;
+	        // fraction of electron transport to monoterpene production under standard conditions (-)
+	double storfrac_mon;
+	        // fraction of monoterpene production that goes into storage pool (-)
+	
+	
 
 	// Sapling/regeneration characteristics (used only in population mode):
 	// for trees, on sapling individual basis (kgC); for grasses, on stand area basis,
@@ -945,6 +968,27 @@ public:
 		// after the Individual object is created, then true.
 
 
+	// bvoc
+	double iso; // isoprene production (mg C m-2 d-1)
+	double mon; // monoterpene production (mg C m-2 d-1)
+	double diso[365]; // daily isoprene emission (mg C m-2 d-1)
+	double dmon[365]; // daily monoterpene emission (mg C m-2 d-1)
+	double aiso; // annual isoprene emission (mg C m-2 y-1)
+	double amon; // annual monoterpene emission (mg C m-2 y-1)
+	double adtmm; // leaf-level net daytime photosynthesis expressed in CO2
+                      //  diffusion units (mm/m2/day)
+	double pi_co2_opt; // non-water-stressed intercellular partial pressure of CO2 (Pa)
+	double gammastar;  // CO2 compensation point in partial pressure units (Pa)
+	double phi_pi; 	// factor accounting for effect of intercellular CO2 
+                        // concentration on C4 photosynthesis 
+	double lambda; // ratio of intercellular to ambient partial pressure of CO2
+	double apar; // amount of PAR absorbed at leaf level (J m-2 d-1)
+	double rd_g; // leaf respiration (gC/m2/day)
+	double monstor; // monoterpene storage pool (mg C m-2)
+	double dmonstor; // relative emission rate from monoterpene storage (d-1)
+	double leaftemp; // leaf temperature (C)
+	double fvocseas; // isoprene seasonality factor (-)
+
 	// MEMBER FUNCTIONS
 
 public:
@@ -993,6 +1037,11 @@ public:
 			mnpp[m]=mlai[m]=mgpp[m]=mra[m]=0.0;
 		}
 
+		// bvoc
+		monstor=0.;
+		aiso=0.;
+		amon=0.;
+		
 	};
 };
 
@@ -1470,6 +1519,12 @@ public:
 		// monthly runoff (mm/month)
 	double mpet[12];
 		// monthly PET (mm/month)
+	// bvoc
+	double miso[12];
+                // monthly isoprene flux (g C/m2/month)
+	double mmon[12];
+	        // monthly monoterpene flux (g C/m2/month)
+	
 
 	// MEMBER FUNCTIONS
 
@@ -1491,6 +1546,12 @@ public:
 		// guess2008 - initialise
 		growingseasondays=0;
 
+		// bvoc
+		int m;
+		for(m=0;m<12;m++){
+		  miso[m]=0.;
+		  mmon[m]=0.;
+		}
 	}
 };
 
@@ -1550,6 +1611,22 @@ public:
 	double fpc_total;
 		// FPC sum for this PFT as average for stand (used by some versions of
 		// guessio.cpp)
+	// bvoc
+	double aiso_total;
+		// sum/mean across patches for annual isoprene emissions (mgC/m2/year)
+	double amon_total;
+		// sum/mean across patches for annual monoterpene emissions (mgC/m2/year)
+	double rd_g_term; // leaf respiration (gC/m2/day)
+	double pi_co2_opt_term; // non-water-stressed intercellular partial pressure of CO2 (Pa)
+	double gammastar_term;  // CO2 compensation point in partial pressure units (Pa)
+	double apar_term; // amount of PAR absorbed at leaf level (J m-2 d-1)
+	double phi_pi_term; 	// factor accounting for effect of intercellular CO2 
+	                        // concentration on C4 photosynthesis 
+	double adtmm_term; // leaf-level net daytime photosynthesis expressed in CO2
+	                   //  diffusion units (mm/m2/day)
+	double lambda_term; // ratio of intercellular to ambient partial pressure of CO2
+	
+	
 
 	// MEMBER FUNCTIONS
 

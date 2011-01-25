@@ -218,6 +218,52 @@ void interp_climate(double mtemp[12],double mprec[12],double msun[12],
 	}
 }
 
+///////////////////////////////////////////////////////////////////////////////////////
+// CLIMATE INTERPOLATION FROM MONTHLY TO QUASI-DAILY VALUES
+// May be called from input/output module to generate daily climate values when raw
+// data are on monthly basis
+
+void interp_climate_misc(double mdtr[12],double ddtr[365]) {
+
+	// DESCRIPTION
+	// Interpolates monthly climate data in arrays mdtr to daily 
+	// values in arrays ddtr
+
+	// INPUT PARAMETERS
+	// mdtr = mean monthly diurnal temperature range for this year (deg C)
+
+	// OUTPUT PARAMETERS
+	// ddtr = mean daily diurnal temperature range for this year (deg C)
+
+	Date date; // Date object used for interpolation (local to this function)
+	double nday,dayct;
+	int thismonth,lastmonth,m;
+
+	date.init(1);
+
+	nday=(double)(date.middaymonth[0]-(date.middaymonth[11]-365));
+	thismonth=0;
+	lastmonth=11;
+	dayct=(double)(366-date.middaymonth[11]);
+
+	// Perform interpolations
+
+	while (date.year==0) {
+	  if (date.day==date.middaymonth[date.month]) {
+	    if (date.month==11) // December
+	      nday=(double)(date.middaymonth[0]+365-date.middaymonth[11]);
+	    else
+	      nday=(double)(date.middaymonth[date.nextmonth()]-
+			    date.middaymonth[date.month]);
+	    thismonth=date.nextmonth();
+	    lastmonth=date.month;
+	    dayct=0.0;
+	  }
+	  ddtr[date.day]=(mdtr[thismonth]-mdtr[lastmonth])/nday*dayct+mdtr[lastmonth];
+	  date.next();
+	  dayct++;
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 //  PRDAILY
@@ -636,6 +682,9 @@ void dailyaccounting_patch(Patch& patch) {
 		patch.mrunoff[date.month]=0.0;
 		patch.mintercep[date.month]=0.0;
 		patch.mpet[date.month]=0.0;
+		// bvoc
+		patch.miso[date.month]=0.;
+		patch.mmon[date.month]=0.;
 
 		// guess2008 - reset month C budget arrays each month
 		fluxes.mcflux_gpp[date.month] = 0.0;

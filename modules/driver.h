@@ -27,6 +27,7 @@ void soilparameters(Soiltype& soiltype,int soilcode);
 void initsoildrivers(Stand& stand);
 void interp_climate(double mtemp[12],double mprec[12],double msun[12],
 	double dtemp[365],double dprec[365],double dsun[365]);
+void interp_climate_misc(double mdtr[12],double ddtr[365]);
 void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12]);
 void dailyaccounting_stand(Stand& stand,Pftlist& pftlist);
 void dailyaccounting_patch(Patch& patch);

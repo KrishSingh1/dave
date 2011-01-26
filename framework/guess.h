@@ -467,7 +467,7 @@ public:
 		// indicates whether saved values exist for this day
 
 	// bvoc
-	double dtr;
+	double dtr; // diurnal temperature range (oC)
 
 	// MEMBER FUNCTIONS
 
@@ -988,6 +988,10 @@ public:
 	double dmonstor; // relative emission rate from monoterpene storage (d-1)
 	double leaftemp; // leaf temperature (C)
 	double fvocseas; // isoprene seasonality factor (-)
+	double dtr_wstress; // diurnal temperature range (oC)
+	double eet_wstress; // equilibrium evapotranspiration today (mm/day)
+	double agdd5_wstress; // total gdd5 (accumulated) for this year (reset 1 January)
+	double rad_wstress; // total daily net downward shortwave solar radiation today (J/m2/day)
 
 	// MEMBER FUNCTIONS
 
@@ -1041,7 +1045,10 @@ public:
 		monstor=0.;
 		aiso=0.;
 		amon=0.;
-		
+		dtr_wstress=0.;
+		eet_wstress=0.;
+		agdd5_wstress=0.;
+		rad_wstress=0.;		
 	};
 };
 

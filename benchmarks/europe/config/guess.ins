@@ -67,6 +67,8 @@ file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 file_firert "firert.out"
+file_aiso "aiso.out"
+file_amon "amon.out"
 
 ! Monthly outputs
 file_mnpp "mnpp.out"
@@ -82,6 +84,9 @@ file_mintercep "mintercep.out"
 file_mrunoff "mrunoff.out"
 file_mwcont_upper "mwcont_upper.out"
 file_mwcont_lower "mwcont_lower.out"
+file_miso "miso.out"
+file_mmon "mmon.out"
+
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -125,6 +130,7 @@ ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficie
 ifdroughtlimitedestab 1			! whether establishment is limited by growing season drought
 ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit every day (0)
 ifspeciesspecificwateruptake 1	! whether there is species specific water uptake (1) or not (0)
+ifbvoc 1              ! whether to include BVOC calculations (1) or not (0)
 
 !///////////////////////////////////////////////////////////////////////////////////////
 
@@ -205,6 +211,7 @@ group "needle_leaved"
 (
 	k_allom1 150
 	k_latosa 4000
+        ga 0.140
 )
 
 group "broad_leaved"
@@ -213,6 +220,7 @@ group "broad_leaved"
 	k_latosa 5000
 	leaflong 0.5		! PMxx: new default
     	turnover_leaf 1		! PMxx: new default
+        ga 0.040
 )
 
 group "grass" (
@@ -226,6 +234,7 @@ group "grass" (
 	cton_root 29
 	respcoeff 2.0 
 	litterme 0.2
+        ga 0.030
 )
 
 
@@ -316,6 +325,10 @@ pft "Abi_alb" (
 	intc 0.06
 	longevity 350
 	drought_tolerance 0.35
+        eps_iso 0.05            
+        seas_iso 0
+        eps_mon 1.8
+        storfrac_mon 0.5
 )
 
 
@@ -351,6 +364,11 @@ pft "BES" (
 	fireresist 0.1
 	intc 0.06
 	drought_tolerance 0.25
+        eps_iso 2.0
+        seas_iso 0
+        eps_mon 4.0
+        storfrac_mon 0.5
+        ga 0.040
 )
 
 
@@ -377,6 +395,10 @@ pft "Bet_pen" (
 	intc 0.02
 	longevity 200 
 	drought_tolerance 0.42
+        eps_iso 0.2
+        seas_iso 1
+        eps_mon 6.
+        storfrac_mon 0.
 )
 
 
@@ -403,6 +425,10 @@ pft "Bet_pub" (
 	intc 0.02
 	longevity 200
 	drought_tolerance 0.5
+        eps_iso 0.
+        seas_iso 1
+        eps_mon 1.0
+        storfrac_mon 0.
 )
 
 
@@ -429,6 +455,10 @@ pft "Car_bet" (
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.33
+        eps_iso 0.
+        seas_iso 1
+        eps_mon 0.08
+        storfrac_mon 0.
 )
 
 
@@ -457,6 +487,10 @@ pft "Cor_ave" (
 	intc 0.02
 	longevity 100		! THdiff: 300 - see Savill's silviculture book
 	drought_tolerance 0.3
+        eps_iso 0.
+        seas_iso 1
+        eps_mon 0.
+        storfrac_mon 0.
 )
 
 
@@ -483,6 +517,10 @@ pft "Fag_syl" (
 	intc 0.02
 	longevity 500
 	drought_tolerance 0.3
+        eps_iso 0.
+        seas_iso 1
+        eps_mon 10.
+        storfrac_mon 0.
 )
 
 
@@ -509,6 +547,10 @@ pft "Fra_exc" (
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.4
+        eps_iso 0.
+        seas_iso 1
+        eps_mon 0.
+        storfrac_mon 0.
 )
 
 
@@ -542,6 +584,10 @@ pft "Jun_oxy" (
 	intc 0.02
 	longevity 200
 	drought_tolerance 0.01
+        eps_iso 0.
+        seas_iso 0
+        eps_mon 2.0
+        storfrac_mon 0.5
 )
 
 
@@ -575,6 +621,11 @@ pft "MRS" (
 	intc 0.02
 	longevity 100		!
 	drought_tolerance 0.01
+        eps_iso 2.0
+        seas_iso 0
+        eps_mon 4.0
+        storfrac_mon 0.5
+        ga 0.040
 )
 
 
@@ -604,6 +655,10 @@ pft "Pic_abi" (
 	intc 0.06
 	longevity 500
 	drought_tolerance 0.43
+        eps_iso 0.5
+        seas_iso 0
+        eps_mon 6.0
+        storfrac_mon 0.5
 )
 
 
@@ -636,6 +691,10 @@ pft "Pic_sit" (
 	intc 0.06
 	longevity 700				! Bjarki
 	drought_tolerance 0.5		! Bjarki
+        eps_iso 0. ! to be determined
+        seas_iso 0
+        eps_mon 0. ! to be determined
+        storfrac_mon 0.5
 
 	! wooddens 200 - Should be less dens than P. abies (Savill)
 	! turnover_sap 0.065 ! Bjarki 30% + abies!
@@ -669,6 +728,10 @@ pft "Pin_syl" (
 	intc 0.06
 	longevity 350		! THdiff: 500
 	drought_tolerance 0.25
+        eps_iso 0.
+        seas_iso 0
+        eps_mon 4.0
+        storfrac_mon 0.5
 )
 
 
@@ -700,6 +763,10 @@ pft "Pin_hal" (
 	intc 0.06
 	longevity 350
 	drought_tolerance 0.05
+        eps_iso 0.
+        seas_iso 0
+        eps_mon 10.0
+        storfrac_mon 0.5
 )
 
 
@@ -729,6 +796,10 @@ pft "Pop_tre" (
 	intc 0.02
 	longevity 160		! Prentice & H.
 	drought_tolerance 0.4
+        eps_iso 20.
+        seas_iso 1
+        eps_mon 4.0
+        storfrac_mon 0.
 )
 
 
@@ -760,6 +831,11 @@ pft "Que_coc" (
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.1
+        eps_iso 0.1
+        seas_iso 0
+        eps_mon 10.0
+        storfrac_mon 0.
+        ga 0.040
 )
 
 
@@ -790,6 +866,10 @@ pft "Que_ile" (
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.1
+        eps_iso 0.05
+        seas_iso 0
+        eps_mon 16.0
+        storfrac_mon 0.
 )
 
 
@@ -818,6 +898,10 @@ pft "Que_pub" (
 	intc 0.02
 	longevity 500
 	drought_tolerance 0.2
+        eps_iso 50.0
+        seas_iso 1
+        eps_mon 0.
+        storfrac_mon 0.
 )
 
 
@@ -844,6 +928,10 @@ pft "Que_rob" (
 	intc 0.02
 	longevity 500
 	drought_tolerance 0.25
+        eps_iso 40.0
+        seas_iso 1
+        eps_mon 0.
+        storfrac_mon 0.
 )
 
 
@@ -871,6 +959,10 @@ pft "Til_cor" (
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.33
+        eps_iso 0.
+        seas_iso 1
+        eps_mon 0.
+        storfrac_mon 0.
 )
 
 
@@ -899,6 +991,10 @@ pft "Ulm_gla" (
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.4
+        eps_iso 0. ! to be determined
+        seas_iso 1
+        eps_mon 0. ! to be determined
+        storfrac_mon 0.
 )
 
 
@@ -928,6 +1024,10 @@ pft "C3_gr" (
 	fireresist 1.0			! THdiff 0.5 ! Changed from 0.5 on April 10, 2006
 	intc 0.01
 	drought_tolerance 0.01
+        eps_iso 0.
+        seas_iso 1
+        eps_mon 1.0
+        storfrac_mon 0.5
 )
 
 
@@ -956,6 +1056,10 @@ pft "C4_gr" (
 	fireresist 0.5			
 	intc 0.01
 	drought_tolerance 0.01
+        eps_iso 0.
+        seas_iso 1
+        eps_mon 1.0
+        storfrac_mon 0.5
 )
 
 

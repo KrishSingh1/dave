@@ -1336,6 +1336,7 @@ void aet_water_stress(Patch& patch) {
 			ppft.nday_wstress=0;
 			ppft.fpar_grass_wstress=0.0;
 			ppft.gcbase=0.0;
+
 		}
 
 		// Calculate effective water supply from plant roots
@@ -1429,6 +1430,11 @@ void aet_water_stress(Patch& patch) {
 			indiv.daylength_wstress=0.0;
 			indiv.co2_wstress=0.0;
 			indiv.nday_wstress=0;
+			// bvoc
+			indiv.dtr_wstress=0.;
+			indiv.eet_wstress=0.;
+			indiv.agdd5_wstress=0.;
+			indiv.rad_wstress=0.;
 		}
 
 		indiv.supply=ppft.supply;
@@ -1461,6 +1467,11 @@ void aet_water_stress(Patch& patch) {
 				indiv.daylength_wstress+=climate.daylength;
 				indiv.co2_wstress+=climate.co2;
 				indiv.nday_wstress++;
+				// bvoc
+				indiv.dtr_wstress+=climate.dtr;
+				indiv.eet_wstress+=climate.eet;
+				indiv.agdd5_wstress+=climate.agdd5;
+				indiv.rad_wstress+=climate.rad;
 			}
 		}
 		else {
@@ -1875,6 +1886,8 @@ void npp(Patch& patch) {
 
 	// bvoc
 	double rmonstor; // rate of change for monoterpene storage pool (mg C m-2 d-1)
+	double iso; // isoprene emission rate (mg C m-2 d-1)
+	double mon; // monoterpene emission rate (mg C m-2 d-1)
 
 	// Retrieve Vegetation, Stand and Climate objects for patch
 
@@ -2024,8 +2037,34 @@ void npp(Patch& patch) {
 			// Non-water-stressed photosynthesis - use daily value and scale to patch
 			// by FPAR
 
-			if (!indiv.ifwstress)
-				indiv.assim+=stand.pft[pft.id].assim_term*indiv.fpar;
+			if (!indiv.ifwstress){
+			  indiv.assim+=stand.pft[pft.id].assim_term*indiv.fpar;
+			  
+			  if(ifbvoc){
+			    indiv.rd_g=stand.pft[pft.id].rd_g_term;
+			    indiv.pi_co2_opt=stand.pft[pft.id].pi_co2_opt_term;
+			    indiv.gammastar=stand.pft[pft.id].gammastar_term;
+			    indiv.apar=stand.pft[pft.id].apar_term;
+			    indiv.phi_pi=stand.pft[pft.id].phi_pi_term;
+			    indiv.adtmm=stand.pft[pft.id].adtmm_term;
+			    indiv.lambda=stand.pft[pft.id].lambda_term;
+			    if(!negligible(climate.daylength)&&indiv.adtmm>0){
+			      bvoc(climate.daylength,climate.temp,climate.dtr,indiv.adtmm,
+				   climate.co2,indiv.lambda,climate.eet,climate.agdd5,
+				   indiv.rd_g,indiv.pi_co2_opt,indiv.gammastar,indiv.apar,
+				   climate.rad,indiv.phi_pi,indiv.lai*indiv.phen,pft,
+				   iso,mon,indiv.dmonstor,indiv.leaftemp,
+				   indiv.fvocseas);
+			      iso*=indiv.fpar;
+			      mon*=indiv.fpar;
+			      indiv.iso+=iso;
+			      indiv.mon+=mon;
+			      indiv.aiso+=iso;
+			      indiv.amon+=mon;
+			    }
+			  }
+			  
+			}
 
 			if (date.islastday) {
 
@@ -2048,17 +2087,54 @@ void npp(Patch& patch) {
 					indiv.par_wstress*=frac_wstress;
 					indiv.daylength_wstress*=frac_wstress;
 					indiv.co2_wstress*=frac_wstress;
+					// bvoc
+					indiv.dtr_wstress*=frac_wstress;
+					indiv.eet_wstress*=frac_wstress;
+					indiv.agdd5_wstress*=frac_wstress;
+					indiv.rad_wstress*=frac_wstress;
 
 					// Calculate mean water-stressed photosynthesis for water-stress
 					// days this month by simulataneous solution of light- and
 					// conductance-based equations for photosynthesis
 
-					assimilation_wstress(indiv.pft,ppft,indiv.co2_wstress,
-						indiv.temp_wstress,indiv.par_wstress,indiv.daylength_wstress,
-						indiv.fpar_wstress,indiv.fpc,assim);
+					if(!ifbvoc){
+					  assimilation_wstress(indiv.pft,ppft,indiv.co2_wstress,
+							       indiv.temp_wstress,indiv.par_wstress,indiv.daylength_wstress,
+							       indiv.fpar_wstress,indiv.fpc,assim);
+					}
+					else{
+					  assimilation_wstress_withbvoc(pft,ppft,indiv.co2_wstress,
+									indiv.temp_wstress,indiv.par_wstress,indiv.daylength_wstress,
+									indiv.fpar_wstress,indiv.fpc,assim,
+									indiv.rd_g,indiv.pi_co2_opt,indiv.gammastar,
+									indiv.apar,indiv.phi_pi,indiv.adtmm,indiv.lambda);
+					}
 
 					// Convert from mean to sum over water-stress-days
 					indiv.assim+=assim*(double)indiv.nday_wstress;
+					
+					// bvoc
+					if(ifbvoc){
+					  if(!negligible(indiv.daylength_wstress)&&indiv.adtmm>0){
+					    bvoc(indiv.daylength_wstress,indiv.temp_wstress,indiv.dtr_wstress,indiv.adtmm,
+						 indiv.co2_wstress,indiv.lambda,indiv.eet_wstress,indiv.agdd5_wstress,
+						 indiv.rd_g,indiv.pi_co2_opt,indiv.gammastar,indiv.apar,
+						 indiv.rad_wstress,indiv.phi_pi,indiv.lai*indiv.phen_mean,pft,
+						 iso,mon,indiv.dmonstor,indiv.leaftemp,indiv.fvocseas);
+					  }
+					  else{
+					    iso=0.;
+					    mon=0.;
+					    indiv.dmonstor=0.;
+					  }
+					  indiv.iso+=iso*(double)indiv.nday_wstress;
+					  rmonstor=-indiv.monstor*indiv.dmonstor+pft.storfrac_mon*mon;
+					  indiv.monstor+=rmonstor;
+					  indiv.mon+=((1.-pft.storfrac_mon)*mon+indiv.monstor*indiv.dmonstor)*(double)indiv.nday_wstress;
+					  indiv.aiso+=iso*(double)indiv.nday_wstress;
+					  indiv.amon+=((1.-pft.storfrac_mon)*mon+indiv.monstor*indiv.dmonstor)*(double)indiv.nday_wstress;
+					}
+					 
 				}
 
 				// Calculate respiration response to mean monthly air and soil temperature
@@ -2103,12 +2179,22 @@ void npp(Patch& patch) {
 				indiv.mra[date.month]+=indiv.resp;
 				patch.fluxes.mcflux_gpp[date.month]+=indiv.assim; // ANDERS A TRENDY
 				patch.fluxes.mcflux_ra[date.month]+=indiv.resp; // ANDERS A TRENDY
-
+				
+				// bvoc
+				if(ifbvoc){
+				  patch.miso[date.month]+=indiv.iso;
+				  patch.mmon[date.month]+=indiv.mon;
+				}
 
 
 				// Reinitialise for next month
 				indiv.assim=0.0;
 				indiv.fpar_wstress=0.0;
+				// bvoc
+				if(ifbvoc){
+				  indiv.iso=0.;
+				  indiv.mon=0.;
+				}
 			}
 		}
 

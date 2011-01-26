@@ -22,6 +22,7 @@
 #include "guess.h"
 
 void initio(int argc,char* argv[],Pftlist& pftlist);
+bool getndep(xtring filename,double lon,double lat,double &xandep1860,double &xandep1993,double &xandep2050);
 bool getstand(Stand& stand);
 bool getclimate(Stand& stand);
 void outannual(Stand& stand,Pftlist& pftlist);

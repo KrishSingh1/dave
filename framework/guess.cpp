@@ -51,6 +51,43 @@ int npft; // number of possible PFTs
 bool iffast;
 bool ifcdebt;
 
+// GUESSN
+bool ifcentury;
+	// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
+bool ifnlim;
+	// whether plant growth limited by available N
+int freenyears;
+	// number of years to allow spinup without N limitation
+bool iflimvmax;
+	// whether Vmax limited by leaf N content
+double nrelocfrac;
+	// fraction of N relocated by plants from roots and leaves
+bool ifvarycn;
+	// whether leaf and tissue C:N ratios are adjusted according to photosynthetic
+	// demand (i.e. Vmax)
+double cwdtransfer;
+	// Fraction of woody debris transferred to SOM each year
+double nmass_avail_max;
+	// max N:C ratio in the soil (should be 0.002 (Parton et al 1993, Fig. 4))
+bool ifleachn;
+	// whether to allow N leaching
+bool ifindiv_fuptake;
+	// whether to allow individual fractional N uptake
+bool leach_before_uptake;
+	// whether to allow leaching before vegetation N uptake
+bool ifnfix;
+	// whether to include an estimate for N fixation
+bool ifndepdata;
+	// whether N deposition data availabile from a file
+double andep;
+	// annual N deposition (used only if ifndepdata=false)
+double minndep;
+	// minimum annual N deposition
+bool ifdailysetntoc;
+	// if to use daily version of setntoc (set N:C ratio of som pools)
+
+// end GUESSN
+
 // guess2008 - new inputs from the .ins file
 bool ifsmoothgreffmort;				// smooth growth efficiency mortality
 bool ifdroughtlimitedestab;			// whether establishment affected by growing season drought

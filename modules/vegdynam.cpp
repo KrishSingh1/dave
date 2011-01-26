@@ -486,6 +486,18 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 					allometry(indiv);
 
+					// GUESSN
+					// Initialise N demand
+					indiv.ndemand=
+						indiv.cmass_leaf/indiv.pft.cton_leaf+
+						indiv.cmass_root/indiv.pft.cton_root;
+					// end GUESSN
+
+					// GUESSNFIX - should take this N from somewhere
+					// Deduct from soil avail N pool (may make it temporarily negative!)
+					if (date.year>freenyears)
+						patch.soil.nmass_avail-=indiv.ndemand;
+					// end GUESSN
 
 					// Account for C flux from atmosphere to vegetation
 					// guess2008 - flux is not debited for 'new' Individual
@@ -616,6 +628,21 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 					// Calculate initial allometry
 
 					allometry(indiv);
+
+					// GUESSN
+					// Initialise N demand
+					indiv.ndemand=
+						indiv.cmass_leaf/indiv.pft.cton_leaf+
+						indiv.cmass_root/indiv.pft.cton_root+
+						indiv.cmass_sap/indiv.pft.cton_sap+
+						indiv.cmass_heart/indiv.pft.cton_sap;
+					// end GUESSN
+
+					// GUESSNFIX - should take this N from somewhere
+					// Deduct from soil avail N pool (may make it temporarily negative!)
+					if (date.year>freenyears)
+						patch.soil.nmass_avail-=indiv.ndemand;
+					// end GUESSN
 					
 					// Account for C flux from atmosphere to vegetation
 					// guess2008
@@ -748,6 +775,18 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 			patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap+indiv.cmass_heart-
 				indiv.cmass_debt;
 
+			// GUESSN
+			patch.pft[indiv.pft.id].nmass_litter_leaf+=indiv.nmass_leaf;
+			patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nmass_root;
+			patch.pft[indiv.pft.id].nmass_litter_wood+=indiv.nmass_sap+indiv.nmass_heart;
+			
+			// Transfer N storage to wood N litter for now // GUESSNFIX EN
+			if (indiv.pft.lifeform == TREE)
+				patch.pft[indiv.pft.id].nmass_litter_wood+=indiv.nstore;//+indiv.EN_store;
+			else
+				patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nstore;//+indiv.EN_store;
+			// end GUESSN
+
 			vegetation.killobj();
 			killed=true;
 		}
@@ -810,6 +849,16 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 				(indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt);
 			patch.pft[indiv.pft.id].litter_root+=mort*indiv.cmass_root;
 
+			// GUESSN
+			patch.pft[indiv.pft.id].nmass_litter_leaf+=(mort-mort_fire)*indiv.nmass_leaf;
+			patch.pft[indiv.pft.id].nmass_litter_root+=mort*indiv.nmass_root;
+			patch.pft[indiv.pft.id].nmass_litter_wood+=(mort-mort_fire)*(indiv.nmass_sap+
+				indiv.nmass_heart);
+				
+			// Transfer N storage to wood N litter for now 	// GUESSNFIX EN
+			patch.pft[indiv.pft.id].nmass_litter_wood+=mort*(indiv.nstore);//+indiv.EN_store);
+			// end GUESSN
+
 			// Flux to atmosphere from burnt above-ground biomass
 
 			patch.fluxes.acflux_fire+=mort_fire*(indiv.cmass_leaf+indiv.cmass_sap+
@@ -824,6 +873,15 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 			indiv.cmass_sap*=1.0-mort;
 			indiv.cmass_debt*=1.0-mort;
 			indiv.cmass_heart*=1.0-mort;
+
+			// GUESSN
+			indiv.nmass_leaf*=1.0-mort;
+			indiv.nmass_root*=1.0-mort;
+			indiv.nmass_sap*=1.0-mort;
+			indiv.nmass_heart*=1.0-mort;
+			indiv.nstore*=1.0-mort;	
+			//indiv.EN_store*=1.0-mort; // GUESSNFIX
+			// end GUESSN
 		}
 		else if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==CROP) {
 			
@@ -859,6 +917,14 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 			patch.pft[indiv.pft.id].litter_leaf+=(mort-mort_fire)*indiv.cmass_leaf;
 			patch.pft[indiv.pft.id].litter_root+=mort*indiv.cmass_root;
 
+			// GUESSN
+			patch.pft[indiv.pft.id].nmass_litter_leaf+=(mort-mort_fire)*indiv.nmass_leaf;
+			patch.pft[indiv.pft.id].nmass_litter_root+=mort*indiv.nmass_root;
+
+			// Transfer N storage to root N litter for now 	// GUESSNFIX EN
+			patch.pft[indiv.pft.id].nmass_litter_root+=mort*(indiv.nstore);//+indiv.EN_store);
+			// end GUESSN
+
 			// Flux to atmosphere from burnt above-ground biomass
 
 			patch.fluxes.acflux_fire+=mort_fire*indiv.cmass_leaf;
@@ -868,6 +934,13 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 
 			indiv.cmass_leaf*=1.0-mort;
 			indiv.cmass_root*=1.0-mort;
+
+			// GUESSN
+			indiv.nmass_leaf*=1.0-mort;
+			indiv.nmass_root*=1.0-mort;
+			indiv.nstore*=1.0-mort;
+			//indiv.EN_store*=1.0-mort;	// GUESSNFIX EN
+			// end GUESSN
 
 		}
 
@@ -991,6 +1064,19 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					indiv.cmass_leaf*=indiv.pft.fireresist;
 					indiv.cmass_root*=indiv.pft.fireresist;
 
+					// GUESSN GAS should be N gas as well
+					//patch.fluxes.anflux_fire+=mort_fire*indiv.nmass_leaf;
+					patch.pft[indiv.pft.id].nmass_litter_root+=mort_fire*indiv.nmass_root;
+
+					// Transfer N storage to root N litter for now 	// GUESSNFIX EN
+					patch.pft[indiv.pft.id].nmass_litter_root+=mort_fire*(indiv.nstore);//+indiv.EN_store);
+
+					indiv.nmass_leaf*=indiv.pft.fireresist;
+					indiv.nmass_root*=indiv.pft.fireresist;
+					indiv.nstore*=indiv.pft.fireresist;
+					//indiv.EN_store*=indiv.pft.fireresist;	// GUESSNFIX EN
+					// end GUESSN
+
 					// Update allometry
 
 					allometry(indiv);
@@ -1044,6 +1130,28 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					indiv.cmass_debt*=frac_survive;
 					indiv.cmass_heart*=frac_survive;
 
+					// GUESSN
+
+					// should be N gas as well
+					//patch.fluxes.anflux_fire+=(1.0-frac_survive)*(indiv.nmass_leaf+
+					//	indiv.nmass_sap+indiv.nmass_heart);
+
+					// Transfer killed roots to litter
+					patch.pft[indiv.pft.id].nmass_litter_root+=(1.0-frac_survive)*indiv.nmass_root;
+
+					// Transfer N storage to wood N litter for now 	// GUESSNFIX EN
+					patch.pft[indiv.pft.id].nmass_litter_wood+=(1.0-frac_survive)*(indiv.nstore);//+indiv.EN_store);
+
+					// Reduce individual density and biomass on patch area basis
+					// to account for loss of killed individuals
+					indiv.nmass_leaf*=frac_survive;
+					indiv.nmass_root*=frac_survive;
+					indiv.nmass_sap*=frac_survive;
+					indiv.nmass_heart*=frac_survive;
+					indiv.nstore*=frac_survive;
+					//indiv.EN_store*=frac_survive;	// GUESSNFIX EN
+					// end GUESSN
+
 					// Remove this cohort completely if all individuals killed
 					// (in individual mode: removes individual if killed)
 
@@ -1080,6 +1188,18 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 			patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
 			patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap+indiv.cmass_heart-
 				indiv.cmass_debt;
+
+			// GUESSN
+			patch.pft[indiv.pft.id].nmass_litter_leaf+=indiv.nmass_leaf;
+			patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nmass_root;
+			patch.pft[indiv.pft.id].nmass_litter_wood+=indiv.nmass_sap+indiv.nmass_heart;
+				
+			// Transfer N storage to wood N litter for now // GUESSNFIX EN
+			if (indiv.pft.lifeform == TREE)
+				patch.pft[indiv.pft.id].nmass_litter_wood+=indiv.nstore;//+indiv.EN_store;
+			else
+				patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nstore;//+indiv.EN_store;
+			// end GUESSN
 
 			vegetation.killobj();
 			killed=true;
@@ -1215,6 +1335,16 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 				patch.pft[indiv.pft.id].litter_wood+=
 					(1.0-frac_survive)*(indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt);
 
+				// GUESSN
+				patch.pft[indiv.pft.id].nmass_litter_leaf+=(1.0-frac_survive)*indiv.nmass_leaf;
+				patch.pft[indiv.pft.id].nmass_litter_root+=(1.0-frac_survive)*indiv.nmass_root;
+				patch.pft[indiv.pft.id].nmass_litter_wood+=
+						(1.0-frac_survive)*(indiv.nmass_sap+indiv.nmass_heart);
+			
+				// Transfer N storage to wood N litter for now 	// GUESSNFIX EN
+				patch.pft[indiv.pft.id].nmass_litter_wood+=(1.0-frac_survive)*(indiv.nstore);//+indiv.EN_store);
+				// end GUESSN
+
 				// Reduce individual density and biomass on patch area basis
 				// to account for loss of killed individuals
 
@@ -1224,6 +1354,15 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 				indiv.cmass_sap*=frac_survive;
 				indiv.cmass_debt*=frac_survive;
 				indiv.cmass_heart*=frac_survive;
+
+				// GUESSN
+				indiv.nmass_leaf*=frac_survive;
+				indiv.nmass_root*=frac_survive;
+				indiv.nmass_sap*=frac_survive;
+				indiv.nmass_heart*=frac_survive;
+				//indiv.nstore*=frac_survive;
+				//indiv.EN_store*=frac_survive;	// GUESSN EN
+				// end GUESSN
 
 				// Remove this cohort completely if all individuals killed
 				// (in individual mode: removes individual if killed)
@@ -1360,6 +1499,15 @@ void fire(Patch& patch,double& fireprob) {
 		patch.pft[p].litter_leaf*=1.0-mort_fire;
 		patch.pft[p].litter_wood*=1.0-mort_fire;
 		patch.pft[p].litter_repr*=1.0-mort_fire;
+
+		// GUESSN
+		// N should be added to N gas
+		//patch.fluxes.anflux_fire+=mort_fire*(patch.pft[p].nmass_litter_leaf+
+		//	patch.pft[p].nmass_litter_wood);
+
+		patch.pft[p].nmass_litter_leaf*=1.0-mort_fire;
+		patch.pft[p].nmass_litter_wood*=1.0-mort_fire;
+		// end GUESSN
 	}
 }
 
@@ -1391,6 +1539,18 @@ void disturbance(Patch& patch,double disturb_prob) {
 			patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
 			patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap+indiv.cmass_heart
 				-indiv.cmass_debt;
+
+			// GUESSN
+			patch.pft[indiv.pft.id].nmass_litter_leaf+=indiv.nmass_leaf;
+			patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nmass_root;
+			patch.pft[indiv.pft.id].nmass_litter_wood+=indiv.nmass_sap+indiv.nmass_heart;
+
+			// Transfer N storage to wood N litter for now // GUESSNFIX EN
+			if (indiv.pft.lifeform == TREE)
+				patch.pft[indiv.pft.id].nmass_litter_wood+=indiv.nstore;//+indiv.EN_store;
+			else
+				patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nstore;//+indiv.EN_store;
+			// end GUESSN
 
 			vegetation.killobj();
 		}

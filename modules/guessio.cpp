@@ -166,6 +166,10 @@ xtring file_mnpp,file_mlai,file_mgpp,file_mra,file_maet,file_mpet,file_mevap,fil
 xtring file_mnee,file_mwcont_upper,file_mwcont_lower;
 xtring file_firert;
 
+// GUESSN
+xtring file_cton;
+// end GUESSN
+
 
 void initsettings() {
 
@@ -187,6 +191,10 @@ void initsettings() {
 	file_mnpp=file_mlai=file_maet=file_mpet=file_mevap=file_mrunoff=file_mintercep=file_mrh="";
 	file_mgpp=file_mra=file_mnee=file_mwcont_upper=file_mwcont_lower="";
 	file_cpool=file_firert="";
+
+	// GUESSN
+	file_cton="";
+	// end GUESSN
 
 }
 
@@ -276,6 +284,11 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_cpool",&file_cpool,300,CB_NONE,"Soil C output file");
 		declareitem("file_runoff",&file_runoff,300,CB_NONE,"Runoff output file");
 		declareitem("file_firert",&file_firert,300,CB_NONE,"Fire retrun time output file");
+		
+		// GUESSN
+		declareitem("file_cton",&file_cton,300,CB_NONE,"Mean leaf C:N output file");
+		// end GUESSN
+		
 		// Monthly output variables
 		declareitem("file_mnpp",&file_mnpp,300,CB_NONE,"Monthly NPP output file");
 		declareitem("file_mlai",&file_mlai,300,CB_NONE,"Monthly LAI output file");
@@ -799,6 +812,9 @@ FILE *out_mnpp,*out_mlai,*out_mgpp,*out_mra,*out_maet,*out_mpet,*out_mevap,*out_
 FILE *out_mnee,*out_mwcont_upper,*out_mwcont_lower; 
 FILE *out_firert; 
 
+// GUESSN
+FILE *out_cton;
+// end GUESSN
 
 
 // Timers for keeping track of progress through the simulation
@@ -1137,15 +1153,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		out_cpool=fopen(file_cpool,"w");
 		if (!out_cpool) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_cpool);
 	}
-	else out_cpool=NULL;
-
-	if (file_firert!="") {
-		file_firert = outputdirectory + file_firert;
-		out_firert=fopen(file_firert,"w");
-		if (!out_firert) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_firert);
-	}
-	else out_firert=NULL;
-	
+	else out_cpool=NULL;	
 
 	if (file_runoff!="") {
 		file_runoff = outputdirectory + file_runoff;
@@ -1154,6 +1162,21 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	}
 	else out_runoff=NULL;
 
+	if (file_firert!="") {
+		file_firert = outputdirectory + file_firert;
+		out_firert=fopen(file_firert,"w");
+		if (!out_firert) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_firert);
+	}
+	else out_firert=NULL;
+
+	// GUESSN
+	if (file_cton!="") {
+		file_cton = outputdirectory + file_cton;
+		out_cton=fopen(file_cton,"w");
+		if (!out_cton) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_cton);
+	}
+	else out_cton=NULL;
+	// end GUESSN
 
 	// *** MONTHLY OUTPUT VARIABLES ***
 
@@ -1488,6 +1511,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_mwcont_upper) fprintf(out_mwcont_upper,lonlatyearstr,"Lon","Lat","Year");
 		if (out_mwcont_lower) fprintf(out_mwcont_lower,lonlatyearstr,"Lon","Lat","Year");
 		
+		// GUESSN
+		if (out_cton) fprintf(out_cton,lonlatyearstr,"Lon","Lat","Year");
+		// end GUESSN
 
 
 		// Loop through PFT's and print PFT names as column labels
@@ -1499,6 +1525,11 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			if (out_anpp) fprintf(out_anpp,"%8s",(char*)pft.name);
 			if (out_lai) fprintf(out_lai,"%8s",(char*)pft.name);
 			if (out_dens) fprintf(out_dens,"%8s",(char*)pft.name);
+
+			// GUESSN
+			if (out_cton) fprintf(out_cton,"%8s",(char*)pft.name);
+			// end GUESSN
+
 			pftlist.nextobj();
 		}
 
@@ -1510,6 +1541,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_runoff) fprintf(out_runoff,"%8s\n","Total");
 		if (out_dens) fprintf(out_dens,"%8s\n","Total");
 
+		// GUESSN
+		if (out_cton) fprintf(out_cton,"\n");
+		// end GUESSN
 
 		// guess2008
 		const char* monthstr = "%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s\n";
@@ -1560,6 +1594,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_cpool) fprintf(out_cpool,lonlatyeardatastr,lon,lat,date.year);
 		if (out_firert) fprintf(out_firert,lonlatyeardatastr,lon,lat,date.year);
 
+		// GUESSN
+		if (out_cton) fprintf(out_cton,lonlatyeardatastr,lon,lat,date.year);
+		// end GUESSN
 
 		if (out_mnpp) fprintf(out_mnpp,lonlatyeardatastr,lon,lat,date.year);
 		if (out_mlai) fprintf(out_mlai,lonlatyeardatastr,lon,lat,date.year);
@@ -1595,6 +1632,13 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			standpft.lai_total=0.0;
 			standpft.densindiv_total = 0.0;
 
+			// GUESSN
+			standpft.cton_avr=0.0;
+
+			int nr_pft_indiv=0;
+				// number of individuals of this pft. Used for avr calculation
+			// end GUESSN
+
 			// Initialise age structure array
 
 			if (vegmode==COHORT || vegmode==INDIVIDUAL)
@@ -1621,6 +1665,11 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 								indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
 							standpft.anpp_total+=indiv.anpp;
 							standpft.lai_total+=indiv.lai;
+
+							// GUESSN
+							standpft.cton_avr+=indiv.cton_leaf_new;
+							nr_pft_indiv++;
+							// end GUESSN
 
 							if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 							
@@ -1654,6 +1703,12 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			standpft.lai_total/=(double)npatch;
 			standpft.densindiv_total/=(double)npatch;
 
+			// GUESSN
+			if (!negligible(nr_pft_indiv))
+				standpft.cton_avr/=(double)nr_pft_indiv;
+			else
+				standpft.cton_avr=0.0;
+			// end GUESSN
 
 			// Update stand totals
 
@@ -1668,6 +1723,10 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			if (out_anpp) fprintf(out_anpp,"%8.3f",standpft.anpp_total);
 			if (out_lai) fprintf(out_lai,"%8.4f",standpft.lai_total);
 			if (out_dens) fprintf(out_dens,"%8.4f",standpft.densindiv_total);
+
+			// GUESSN
+			if (out_cton) fprintf(out_cton,"%8.3f",standpft.cton_avr);
+			// end GUESSN
 
 			// Graphical output every 10 years
 			// (Windows shell only - "plot" statements have no effect otherwise)
@@ -1782,6 +1841,10 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_dens) fprintf(out_dens,"%8.4f\n",dens_stand);
 		if (out_firert) fprintf(out_firert,"%8.1f\n",firert_stand);
 
+		// GUESSN
+		if (out_cton) fprintf(out_cton,"\n");
+		// end GUESSN
+
 		// Print monthly output variables
 		for (m=0;m<12;m++) {
 			
@@ -1892,6 +1955,10 @@ void termio() {
 		if (out_dens) fclose(out_dens);
 		if (out_cpool) fclose(out_cpool);
 		if (out_firert) fclose(out_firert);
+
+		// GUESSN
+		if (out_cton) fclose(out_cton);
+		// end GUESSN
 
 		if (out_mnpp) fclose(out_mnpp);
 		if (out_mlai) fclose(out_mlai);

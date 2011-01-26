@@ -104,7 +104,8 @@ void snow(double prec,double temp,double& snowpack,double& rain,double& melt) {
 
 void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 	double perc_base,double perc_exp,double awc[NSOILLAYER],double fevap,
-	double awcont[NSOILLAYER],double wcont[NSOILLAYER],double& wcont_evap,double& runoff,double snowpack) {
+	double awcont[NSOILLAYER],double wcont[NSOILLAYER],double& wcont_evap,
+	double& runoff,double snowpack,double& dperc) {
 
 
 	// DESCRIPTION
@@ -133,7 +134,7 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 	// wcont_evap = water content of evaporation sublayer at top of upper soil layer
 	//              as fraction of available water holding capacity (AWC)
 	// awcont     = wcont averaged over the growing season - guess2008
-
+	// dperc      = daily percolation beyond bottom soil layer (mm) // GUESSN
 
 	// OUTPUT PARAMETER
 	// runoff     = total daily runoff from all soil layers (mm/day)
@@ -235,6 +236,10 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 
 	// Percolation and fluxes to and from lower soil layer(s)
 
+	// GUESSN: Save current water content (in mm) for tomorrow:
+	patch.soil.wcontmm_yesterday=wcont[0]*awc[0]+wcont[1]*awc[1];
+	// end GUESSN
+
 	// Transfer percolation between soil layers
 	// Excess water transferred to runoff
 	// Eqns 26, 27, 31, Haxeltine & Prentice 1996
@@ -267,6 +272,10 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 		if (wcont[s]<0.0) wcont[s]=0.0;
 	}
 
+	// GUESSN: save percolation from last (bottom) layer (needed by CENTURY)
+	dperc=perc;
+	// end GUESSN
+
 	// Baseflow runoff (Dieter Gerten 021216) (rain or snowmelt days only)
 
 	if (influx>=0.1) {
@@ -281,6 +290,10 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 		runoff_baseflow=perc_frac*awc[NSOILLAYER-1];
 	}
 	else runoff_baseflow=0.0;
+
+	// GUESSN: Export baseflow
+	patch.soil.dbaseflow=runoff_baseflow;
+	// end GUESSN
 
 	runoff=runoff_surf+runoff_drain+runoff_baseflow;
 
@@ -368,7 +381,8 @@ void soilwater(Climate& climate,Patch& patch) {
 	// guess2008 - DLE - added soil.awcont & soil.snowpack to the function call
 	hydrology_lpjf(patch,climate.eet,rain,melt,soil.soiltype.perc_base,
 		soil.soiltype.perc_exp,soil.soiltype.awc,max(1.0-fpc_phen_total,0.0),
-		soil.awcont,soil.wcont,soil.wcont_evap,soil.runoff,soil.snowpack);
+		soil.awcont,soil.wcont,soil.wcont_evap,soil.runoff,soil.snowpack,
+		soil.dperc);
 
 }
 

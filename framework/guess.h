@@ -72,6 +72,11 @@ typedef enum {NOVEGMODE,INDIVIDUAL,COHORT,POPULATION} vegmodetype;
 	// population over the modelled area (standard LPJ mode); (2) a cohort of
 	// individuals of a PFT that are roughly the same age; (3) an individual plant.
 
+// GUESSN
+typedef enum {SURFSTRUCT,SOILSTRUCT,ACTIVESOM,SURFMICRO,SURFMETA,SOILMETA,SLOWSOM,
+	PASSIVESOM,LEACHED} pooltype;
+	// CENTURY pool names
+// end GUESSN
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
@@ -101,6 +106,10 @@ const int COLDEST_DAY_SHEMISPHERE=195;
 const int OUTPUT_MAXAGECLASS=2000;
 	// maximum number of age classes in age structure plots produced by function
 	// outannual
+
+// GUESSN
+const int NSOMPOOL=9;	// number of CENTURY SOM pools
+// end GUESSN
 
 	// guess2008 - this is now a global, constant variable Previously, we had duplicate definitions in 
 	// both canexch.cpp and soilwater.cpp
@@ -154,6 +163,44 @@ extern int estinterval; // establishment interval in cohort mode (years)
 extern int npft; // number of possible PFTs
 extern bool iffast; // whether to run in "fast" mode
 extern bool ifcdebt; // whether C debt (storage between years) permitted
+
+// GUESSN
+
+extern bool ifcentury;
+	// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
+extern bool ifnlim;
+	// whether plant growth limited by available N
+extern int freenyears;
+	// number of years to allow spinup without N limitation
+extern bool iflimvmax;
+	// whether Vmax limited by leaf N content
+extern double nrelocfrac;
+	// fraction of N relocated by plants from roots and leaves
+extern bool ifvarycn;
+	// whether leaf and tissue C:N ratios are adjusted according to photosynthetic
+	// demand (i.e. Vmax)
+extern double cwdtransfer;
+	// fraction of woody debris transferred to SOM each year
+extern double nmass_avail_max;
+	// max N:C ratio in the soil (should be 0.002 (Parton et al 1993, Fig. 4))
+extern bool ifleachn;
+	// whether to allow N leaching
+extern bool ifindiv_fuptake;
+	// whether to allow individual fractional N uptake
+extern bool leach_before_uptake;
+	// whether to allow leaching before vegetation N uptake
+extern bool ifnfix;
+	// whether to include an estimate for N fixation
+extern bool ifndepdata;
+	// whether N deposition data availabile from a file
+extern double andep;
+	// annual N deposition (used only if ifndepdata=false)
+extern double minndep;
+	// minimum annual N deposition
+extern bool ifdailysetntoc;
+	// if to use daily version of setntoc (set N:C ratio of som pools)
+
+// end GUESSN
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -443,6 +490,17 @@ public:
 		// minimum monthly temperature for the last 12 months (deg C)
 	double atemp_mean;
 		// mean of monthly temperatures for the last 12 months (deg C)
+
+	// GUESSN
+	double andep_1860;
+		// annual nitrogen deposition (kgN/m2/year)
+	double andep_1993;
+		// annual nitrogen deposition (kgN/m2/year)
+	double andep_2050;
+		// annual nitrogen deposition (kgN/m2/year)
+	double andep;
+		// annual nitrogen deposition (kgN/m2/year)
+	// end GUESSN
 
 	// Monthly sums (converted to means) used by canopy exchange module
 
@@ -839,6 +897,18 @@ public:
 		// heartwood C biomass on modelled area basis (kgC/m2)
 	double cmass_debt;
 		// C "debt" (retrospective storage) (kgC/m2)
+
+	// GUESSN
+	double nmass_leaf;
+		// N content of leaves on patch area basis (kgN/m2)
+	double nmass_root;
+		// N content of roots on patch area basis (kgN/m2)
+	double nmass_sap;
+		// N content of sapwood on patch area basis (kgN/m2)
+	double nmass_heart;
+		// N content of heartwood on patch area basis (kgN/m2)
+	// end GUESSN
+
 	double fpc;
 		// foliar projective cover (FPC) under full leaf cover as fraction of modelled
 		// area
@@ -940,6 +1010,51 @@ public:
 	int nday_wstress; // number of water-stress days for month
 	bool ifwstress; // whether individual subject to water stress today
 
+	// GUESSN
+
+	double nstore;
+		// relocated N from leaves and roots and accumulated uptake from soil mineral N pool
+	double leafn;
+		// cumulative mean (calculated at end of each month) of daily leaf N (kgN/m2)
+		// (leaf N demand calculated from Vmax)
+	double leafn_max;
+		// largest monthly value of leafn for year
+	double leafn_mean;
+		// mean monthly value of leafn for year
+	double ndemand;
+		// annual N demand (used in growth)
+	double ndemand_uptake;
+		// annual N demand (used in vegetation_n_uptake)
+	double fuptake;
+		// fractional N uptake of indiv demand
+	double limfact_new;
+		// actual fractional N uptake of indiv N demand in Growth()
+	double na_fpar;
+		// leaf N associated with photosynthesis 
+	double assim_nowstress;
+		// saved assimilation in case it turns out to be a non-water-stress day
+	int nday_leafon;	
+		// Number of days with non-negligible phenology this month
+	double dassim[365];
+		// daily net assimilation (kgC/m2/yr) - used by SOM dynamics to distribute
+		// plant N uptake through the year
+	double aassim;
+		// annual sum of positive dassim (above) - used by SOM dynamics
+	double cton_leaf_new;
+		// C:N ratio for new biomass (leaf)
+	double cton_root_new;
+		// C:N ratio for new biomass (root)
+	double cton_sap_new;
+		// C:N ratio for new biomass (sap)
+	double cton_leaf_old;
+		// C:N ratio of old (current) biomass (leaf)
+	double cton_root_old;
+		// C:N ratio of old (current) biomass (root)
+	double cton_sap_old;
+		// C:N ratio of old (current) biomass (sap)
+	
+	// end GUESSN
+
 	bool alive; 
 		// guess2008 - whether this individual is truly alive. Set to false for first year 
 		// after the Individual object is created, then true.
@@ -968,6 +1083,17 @@ public:
 		deltafpc=0.0;
 		fpar_wstress=0.0;
 		assim=0.0;
+
+		// GUESSN
+		nmass_leaf=0.0;
+		nmass_root=0.0;
+		nmass_sap=0.0;
+		nmass_heart=0.0;
+
+		nstore=0.0;
+		fuptake = 1.0;
+
+		// end GUESSN
 	
 		// guess2008 - additional initialisation
 		age=0.0;
@@ -1065,6 +1191,16 @@ public:
 		// year at which to begin documenting means for calculation of equilibrium
 		// soil carbon
 
+	// GUESSN: For CENTURY ...
+	
+	double sand_frac;
+		// fraction of soil that is sand
+	double clay_frac;
+		// fraction of soil that is clay
+	double silt_frac;
+		// fraction of soil that is silt plus clay
+	// end GUESSN
+
 	// MEMBER FUNCTIONS
 
 public:
@@ -1075,6 +1211,12 @@ public:
 
 		solvesom_end=SOLVESOM_END;
 		solvesom_begin=SOLVESOM_BEGIN;
+
+		// GUESSN
+		sand_frac=0.3;
+		clay_frac=0.3;
+		silt_frac=0.2;
+		// end GUESSN
 	}
 
 	// guess2008 - override the default SOM years with 70-80% of the spin-up period length
@@ -1086,6 +1228,34 @@ public:
 	}
 };
 
+///////////////////////////////////////////////////////////////////////////////////////
+// CENTURY SOIL POOL (GUESSN)
+
+class Sompool {
+
+public:
+	double cmass;
+		// C mass in pool kgC/m2
+	double nmass;
+		// N mass in pool kgN/m2
+	double cdec; // (potential) decrease in C following decomposition today (kgC/m2)
+	double ndec; // (potential) decrease in N following decomposition today (kgN/m2)
+	double delta_cmass,delta_nmass;
+	double ligcfrac;
+	double frc;
+	double ntoc;
+
+	void init() {
+		
+		// Initialise pool
+		
+		cmass=0.0;
+		nmass=0.0;
+		ligcfrac=0.0;
+	};
+};
+
+// end GUESSN
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // SOIL
@@ -1171,6 +1341,31 @@ public:
 		// mean water content in lower soil layer for last month
 		// (valid only on last day of month following call to daily_accounting_patch)
 
+//////////////////////////////////////////////////////////////////////////////////
+// GUESSN: CENTURY SOM pools and other variables
+
+	Sompool sompool[NSOMPOOL];
+
+	double dperc;				// daily percolation (mm)
+	double dbaseflow;			// daily baseflow (mm)
+	double wcontmm_yesterday;	// ...
+
+	double nmin_daily[365];		// daily N mineralisation (kgN/m2)
+	double nimmob_daily[365];	// daily N immobilisation (kgN/m2)
+	double leachfrac_daily[365]; // fraction of excess mineral N leached each day;
+	double nmass_avail;			// soil mineral N pool (kgN/m2)
+
+	double nmin_annual;			// annual sum of N mineralisation
+	double nimmob_annual;		// annual sum of N immobilisation
+	double nleach_annual;		// annual leaching from available N pool
+	double ndep_annual;			// annual N deposition
+
+	double setntoc_nmass_avail;	// soil mineral N pool (kgN/m2) (used in daily setntoc)
+	double daily_minimmndep;	// sum of mineralization, immobilization and N deposition (used in daily setntoc)
+
+	double N_fix;				// total annual N fixation
+
+// end GUESSN
 
 
 	// MEMBER FUNCTIONS
@@ -1210,7 +1405,43 @@ public:
 		for (int d=0; d<365; d++) {
 			dwcontupper[d] = 0.0;
 			dwcontlower[d] = 0.0;
+
+			// GUESSN
+			nmin_daily[d]=0.0;	
+			nimmob_daily[d]=0.0;	
+			leachfrac_daily[d]=0.0;
+			// end GUESSN
 		}
+
+		/////////////////////////////////////////////////////
+		// GUESSN: Initialise CENTURY pools
+
+		for (int p=0;p<NSOMPOOL;p++)
+			sompool[p].init();
+
+		// Set initial CENTURY pool N:C ratios 
+		// Parton et al 1993, Fig 4
+
+		sompool[ACTIVESOM].ntoc=1.0/15.0;
+		sompool[SLOWSOM].ntoc=1.0/20.0;
+		sompool[PASSIVESOM].ntoc=1.0/10.0;
+		sompool[SURFMICRO].ntoc=1.0/20.0;
+
+		nmass_avail=0.0;
+
+		nmin_annual=0.0;			
+		nimmob_annual=0.0;		
+		nleach_annual=0.0;		
+		ndep_annual=0.0;
+
+		dperc=0.0;
+		dbaseflow=0.0;
+		wcontmm_yesterday=0.0;
+
+		setntoc_nmass_avail=0.0;
+		daily_minimmndep=0.0;	
+
+		// end GUESSN
 
 	}
 
@@ -1227,11 +1458,12 @@ struct Lookup_lambda_item {
 	double adtmm;
 	double agd;
 	double rd;
+	double nmass_term; // GUESSN
 	int year;
 	int day;
 
 	Lookup_lambda_item()
-			: adtmm(0.0), agd(0.0), rd(0.0), year(-1), day(0) {
+			: adtmm(0.0), agd(0.0), rd(0.0), nmass_term(0.0), year(-1), day(0) {
 	}
 };
 
@@ -1248,7 +1480,7 @@ public:
 		position=0;
 	}
 
-	bool getdata(int year,int day,double& adtmm,double& agd,double& rd) {
+	bool getdata(int year,int day,double& adtmm,double& agd,double& rd,double& nmass_term) {
 		if (position>=LOOKUP_LAMBDA_MAXITEM)
 			fail("class Lookup_lambda: exceeded dimension of lookup table");
 		Lookup_lambda_item& thisitem=data[position];
@@ -1256,13 +1488,14 @@ public:
 			adtmm=thisitem.adtmm;
 			agd=thisitem.agd;
 			rd=thisitem.rd;
+			nmass_term=thisitem.nmass_term;	// GUESSN
 			return true;
 		}
 		// else
 		return false;
 	}
 
-	void setdata(int year,int day,double adtmm,double agd,double rd) {
+	void setdata(int year,int day,double adtmm,double agd,double rd, double nmass_term) {
 		if (position>=LOOKUP_LAMBDA_MAXITEM)
 			fail("class Lookup_lambda: exceeded dimension of lookup table");
 		Lookup_lambda_item& thisitem=data[position];
@@ -1271,6 +1504,7 @@ public:
 		thisitem.adtmm=adtmm;
 		thisitem.agd=agd;
 		thisitem.rd=rd;
+		thisitem.nmass_term=nmass_term;	// GUESSN
 	}
 
 	bool increase() {
@@ -1366,6 +1600,14 @@ public:
 		// lookup table for values of lambda (parameter in photosynthesis calculations)
 		// today (see canexch.cpp)
 
+	// GUESSN:
+	double nmass_litter_leaf;
+	double nmass_litter_root;
+	double nmass_litter_wood;
+
+	double fuptake_pft;
+	// end GUESSN
+
 	// MEMBER FUNCTIONS:
 
 	Patchpft(int i,Pft& p):id(i),pft(p) {
@@ -1381,6 +1623,12 @@ public:
 		wscal_mean=0.0;
 		anetps_ff=0.0;
 		aphen=0.0;
+
+		// GUESSN
+		nmass_litter_leaf=0.0;
+		nmass_litter_root=0.0;
+		nmass_litter_wood=0.0;
+		// end GUESSN
 	}
 };
 
@@ -1471,6 +1719,13 @@ public:
 	double mpet[12];
 		// monthly PET (mm/month)
 
+	// GUESSN
+	double fuptake_patch;
+		// fractional N uptake of patch demand
+	bool nlim;
+		// if ndemand_patch in vegetation_n_uptake higher than nsupply_patch
+	// end GUESSN
+
 	// MEMBER FUNCTIONS
 
 	Patch(int i,Stand& s,Pftlist& pftlist,Soiltype& st):
@@ -1551,6 +1806,15 @@ public:
 	double fpc_total;
 		// FPC sum for this PFT as average for stand (used by some versions of
 		// guessio.cpp)
+
+	// GUESSN
+	double na;
+		// Leaf nitrogen associated with photosynthesis today, patch basis kgN/m2
+	double cton_avr;
+		// mean across patches for leaf C:N ratio
+	double nmass_total;
+		// sum/mean across patches for nitrogen biomass (kgN/m2)
+	// end GUESSN
 
 	// MEMBER FUNCTIONS
 

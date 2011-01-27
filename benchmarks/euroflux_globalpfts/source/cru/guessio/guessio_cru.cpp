@@ -348,7 +348,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("run_forest",&run[FOREST],1,CB_NONE,"Whether managed forest is to be simulated");
 		declareitem("run_natural",&run[NATURAL],1,CB_NONE,"Whether natural vegetation is to be simulated");
 		declareitem("run_peatland",&run[PEATLAND],1,CB_NONE,"Whether peatland is to be simulated");
-//		declareitem("ifslowharvestpool",&ifslowharvestpool,1,CB_NONE,"Whether a slow harvested product pool is included");
+		declareitem("ifslowharvestpool",&ifslowharvestpool,1,CB_NONE,"Whether a slow harvested product pool is included");
 		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"Whether static landcover fractions are set in the ins-file (0,1)");
 		declareitem("equal_landcover_area",&equal_landcover_area,1,CB_NONE,"Whether enforced static landcover fractions are equal-sized stands of all included landcovers (0,1)");
 		declareitem("lc_fixed_urban",&lc_fixed_frac[URBAN],0,100,1,CB_NONE,"% lc_fixed_urban");
@@ -491,6 +491,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("harv_eff",&ppft->harv_eff,0.0,1.0,1,CB_NONE,"");
 		declareitem("harvest_slow_frac",&ppft->harvest_slow_frac,0.0,1.0,1,CB_NONE,"");
 		declareitem("turnover_harv_prod",&ppft->turnover_harv_prod,0.0,1.0,1,CB_NONE,"harvested products turnover (fraction/year)");
+		declareitem("res_outtake",&ppft->res_outtake,0.0,1.0,1,CB_NONE,"´Fraction of residue outtake at harvest");
 
 		callwhendone(CB_CHECKPFT);
 		
@@ -623,7 +624,7 @@ void plib_callback(int callback) {
 			if (!itemparsed("run_forest")) badins("run_forest");
 			if (!itemparsed("run_urban")) badins("run_urban");
 			if (!itemparsed("run_pasture")) badins("run_pasture");
-//			if (!itemparsed("ifslowharvestpool")) badins("ifslowharvestpool");
+			if (!itemparsed("ifslowharvestpool")) badins("ifslowharvestpool");
 		}
 
 		if (!itemparsed("pft")) badins("pft");
@@ -670,10 +671,13 @@ void plib_callback(int callback) {
 		if (!itemparsed("ltor_max")) badins("ltor_max");
 		if (!itemparsed("intc")) badins("intc");
 
-		if (!itemparsed("landcover")) badins("landcover");
-//		if (!itemparsed("turnover_harv_prod")) badins("turnover_harv_prod");
-//		if (!itemparsed("harvest_slow_frac")) badins("harvest_slow_frac");
-//		if (!itemparsed("harv_eff")) badins("harv_eff");
+		if (run_landcover)
+		{
+			if (!itemparsed("landcover")) badins("landcover");
+			if (!itemparsed("turnover_harv_prod")) badins("turnover_harv_prod");
+			if (!itemparsed("harvest_slow_frac")) badins("harvest_slow_frac");
+			if (!itemparsed("harv_eff")) badins("harv_eff");
+		}
 
 		// guess2008 - DLE
 		if (!itemparsed("drought_tolerance")) badins("drought_tolerance");

@@ -235,8 +235,8 @@ void turnover(double turnover_leaf,double turnover_root,double turnover_sap,
 
 
 void turnover_oecd(double turnover_leaf,double turnover_root,double turnover_sap,
-	lifeformtype lifeform,double& cmass_leaf,double& cmass_root,double& cmass_sap,
-	double& cmass_heart,double& litter_leaf,double& litter_root,Fluxes& fluxes,bool alive) {
+	lifeformtype lifeform,landcovertype landcover,double& cmass_leaf,double& cmass_root,double& cmass_sap,
+	double& cmass_heart,double& litter_leaf,double& litter_root,Fluxes& fluxes,bool alive, Gridcell& gridcell) {
 
 	// DESCRIPTION
 	// Transfers carbon from leaves and roots to litter, and from sapwood to heartwood
@@ -250,15 +250,24 @@ void turnover_oecd(double turnover_leaf,double turnover_root,double turnover_sap
 
 
 	double turnover = 0.0;
-	int m;
+	double scale=1.0;
+
+	if(run_landcover && gridcell.LC_updated)
+	{
+		//scale harvest products of stands with increased area by (old area/new area) if landcover change has occurred:
+		scale=gridcell.landcoverfrac_old[landcover]/gridcell.landcoverfrac[landcover];
+
+		if(scale>=1.0)
+			scale=1.0;
+	}
 
 	// Leaf turnover
-	turnover=turnover_leaf*cmass_leaf;
+	turnover=turnover_leaf*cmass_leaf*scale;
 	cmass_leaf-=turnover;
 	if (alive) litter_leaf+=turnover;
 
 	// Root turnover
-	turnover=turnover_root*cmass_root;
+	turnover=turnover_root*cmass_root*scale;
 	cmass_root-=turnover;
 	if (alive) litter_root+=turnover;
 
@@ -267,7 +276,7 @@ void turnover_oecd(double turnover_leaf,double turnover_root,double turnover_sap
 		// TREES ONLY:
 
 		// Sapwood turnover by conversion to heartwood
-		turnover=turnover_sap*cmass_sap;
+		turnover=turnover_sap*cmass_sap*scale;
 		cmass_sap-=turnover;
 		cmass_heart+=turnover;
 	}	
@@ -982,6 +991,7 @@ void growth(Stand& stand,Patch& patch) {
 
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation=patch.vegetation;
+	Gridcell& gridcell=vegetation.patch.stand.gridcell;
 
 	// On first call to function growth this year (patch #0), initialise stand-PFT
 	// record of summed allocation to reproduction
@@ -1046,10 +1056,10 @@ void growth(Stand& stand,Patch& patch) {
 
 			// Tissue turnover and associated litter production
 			turnover_oecd(indiv.pft.turnover_leaf,indiv.pft.turnover_root,
-				indiv.pft.turnover_sap,indiv.pft.lifeform,indiv.cmass_leaf,
+				indiv.pft.turnover_sap,indiv.pft.lifeform,indiv.pft.landcover,indiv.cmass_leaf,
 				indiv.cmass_root,indiv.cmass_sap,indiv.cmass_heart,
 				patch.pft[indiv.pft.id].litter_leaf,
-				patch.pft[indiv.pft.id].litter_root,patch.fluxes,indiv.alive);
+				patch.pft[indiv.pft.id].litter_root,patch.fluxes,indiv.alive, gridcell);
 
 			// Update stand record of reproduction by this PFT
 			stand.pft[indiv.pft.id].cmass_repr+=cmass_repr/(double)stand.nobj;

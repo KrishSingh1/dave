@@ -168,8 +168,9 @@ extern bool lcfrac_fixed;
 
 /// Set to false by initio( ) if fraction input files have yearly data.
 extern bool all_fracs_const;
-//extern bool ifslowharvestpool;
 
+extern bool ifslowharvestpool; 	// If a slow harvested product pool is included in patchpft.
+extern int nyear_spinup; // number of spinup years (ML)	Moved to guess.cpp to be accessed globally.
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // guess2008 - new input variables, from the .ins file
@@ -539,6 +540,8 @@ public:
 		// annual carbon flux to atmosphere from soil respiration
 	double acflux_est;
 		// annual flux from atmosphere to vegetation associated with establishment
+	double acflux_harvest; 
+		// annual flux to atmosphere from consumed harvested products
 	double dcflux_soil;
 		// daily carbon flux to atmosphere from soil respiration
 		// NB: not implemented by som_dynamics_monthly
@@ -560,9 +563,15 @@ public:
 	// MEMBER FUNCTIONS
 
 public:
-
-	Fluxes(Patch& p):patch(p) {}
-		// constructor: initialises patch member
+	// constructor: initialises patch member
+	Fluxes(Patch& p):patch(p) {
+		acflux_veg=0.0;
+		acflux_fire=0.0;
+		acflux_soil=0.0;
+		acflux_est=0.0;
+		acflux_harvest=0.0;	
+	}
+		
 
 	double anee() {
 		
@@ -736,7 +745,7 @@ public:
 	/** \see landcovertype */
 	landcovertype landcover;
 
-//	double res_outtake;
+	double res_outtake;				// Fraction of residue outtake at harvest.
 	double harv_eff;				// Harvest efficiency.
 	double harvest_slow_frac;		// Fraction of harvested products that goes into patchpft.harvested_products_slow
 	double turnover_harv_prod;		// Yearly turnover fraction of patchpft.harvested_products_slow (goes to fluxes.acflux_harvest).
@@ -755,6 +764,10 @@ public:
 
 		// guess2008 - DLE
 		drought_tolerance=0.0; // Default, means that the PFT will never be limited by drought.
+
+		res_outtake=0.0;
+		harv_eff=0.0;
+		turnover_harv_prod=1.0;	// default 1 year turnover time
 	}
 
 	void initsla() {
@@ -1345,6 +1358,7 @@ public:
 	Lookup_lambda lookup_lambda;
 		// lookup table for values of lambda (parameter in photosynthesis calculations)
 		// today (see canexch.cpp)
+	double harvested_products_slow;	//carbon depository for long-lived products like wood
 
 
 	// MEMBER FUNCTIONS:
@@ -1362,6 +1376,7 @@ public:
 		wscal_mean=0.0;
 		anetps_ff=0.0;
 		aphen=0.0;
+		harvested_products_slow=0.0;
 	}
 };
 
@@ -1654,7 +1669,8 @@ public:
 	 *  instruction file in getlandcover().
 	 */
 	double landcoverfrac[NLANDCOVERTYPES];
-//	double landcoverfrac_old[NLANDCOVERTYPES];
+	double landcoverfrac_old[NLANDCOVERTYPES];
+	bool LC_updated;
 
 	/// list array [0...npft-1] of Gridcellpft (initialised in constructor)
 	ListArray_idin1<Gridcellpft,Pft> pft;
@@ -1667,13 +1683,14 @@ public:
 	 */
 	Gridcell(Pftlist& pftlist):climate(*this) {
 		landcovertype landcover;
+		LC_updated=false;
 
 		for(int p=0;p<pftlist.nobj;p++) {
 			Gridcellpft& gcpft=pft.createobj(pftlist[p]);
 		}		
 
 		memset(landcoverfrac, 0, sizeof(double)*NLANDCOVERTYPES);
-//		memset(landcoverfrac_old, 0, sizeof(double)*NLANDCOVERTYPES);
+		memset(landcoverfrac_old, 0, sizeof(double)*NLANDCOVERTYPES);
 
 		if(!run_landcover) {
 			landcover=NATURAL;

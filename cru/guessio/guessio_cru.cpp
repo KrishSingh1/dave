@@ -54,7 +54,8 @@
 #include "cru_1901_2006.h"
 #include "cru_1901_2006misc.h"
 
-
+//Test code for Joe 110127:
+int test_landcover_dynamics=true;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 //
@@ -149,7 +150,7 @@ Paramlist param;
 
 xtring title; // Title for this run
 // guess2008 - changed from nyear to nyear_spinup
-int nyear_spinup; // number of simulation years during spinup
+//int nyear_spinup; // number of simulation years during spinup			Turned into global variable.
 // guess2008 - new optional parameter
 int searchradius; // search radius to use when finding CRU data
 
@@ -324,7 +325,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("run_forest",&run[FOREST],1,CB_NONE,"Whether managed forest is to be simulated");
 		declareitem("run_natural",&run[NATURAL],1,CB_NONE,"Whether natural vegetation is to be simulated");
 		declareitem("run_peatland",&run[PEATLAND],1,CB_NONE,"Whether peatland is to be simulated");
-//		declareitem("ifslowharvestpool",&ifslowharvestpool,1,CB_NONE,"Whether a slow harvested product pool is included");
+		declareitem("ifslowharvestpool",&ifslowharvestpool,1,CB_NONE,"If a slow harvested product pool is included in patchpft.");
 		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"Whether static landcover fractions are set in the ins-file (0,1)");
 		declareitem("equal_landcover_area",&equal_landcover_area,1,CB_NONE,"Whether enforced static landcover fractions are equal-sized stands of all included landcovers (0,1)");
 		declareitem("lc_fixed_urban",&lc_fixed_frac[URBAN],0,100,1,CB_NONE,"% lc_fixed_urban");
@@ -467,6 +468,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("harv_eff",&ppft->harv_eff,0.0,1.0,1,CB_NONE,"");
 		declareitem("harvest_slow_frac",&ppft->harvest_slow_frac,0.0,1.0,1,CB_NONE,"");
 		declareitem("turnover_harv_prod",&ppft->turnover_harv_prod,0.0,1.0,1,CB_NONE,"harvested products turnover (fraction/year)");
+		declareitem("res_outtake",&ppft->res_outtake,0.0,1.0,1,CB_NONE,"´Fraction of residue outtake at harvest");
 
 		callwhendone(CB_CHECKPFT);
 		
@@ -599,7 +601,7 @@ void plib_callback(int callback) {
 			if (!itemparsed("run_forest")) badins("run_forest");
 			if (!itemparsed("run_urban")) badins("run_urban");
 			if (!itemparsed("run_pasture")) badins("run_pasture");
-//			if (!itemparsed("ifslowharvestpool")) badins("ifslowharvestpool");
+			if (!itemparsed("ifslowharvestpool")) badins("ifslowharvestpool");
 		}
 
 		if (!itemparsed("pft")) badins("pft");
@@ -646,10 +648,14 @@ void plib_callback(int callback) {
 		if (!itemparsed("ltor_max")) badins("ltor_max");
 		if (!itemparsed("intc")) badins("intc");
 
-		if (!itemparsed("landcover")) badins("landcover");
-//		if (!itemparsed("turnover_harv_prod")) badins("turnover_harv_prod");
-//		if (!itemparsed("harvest_slow_frac")) badins("harvest_slow_frac");
-//		if (!itemparsed("harv_eff")) badins("harv_eff");
+		if (run_landcover)
+		{
+			if (!itemparsed("landcover")) badins("landcover");
+			if (!itemparsed("turnover_harv_prod")) badins("turnover_harv_prod");
+			if (!itemparsed("harvest_slow_frac")) badins("harvest_slow_frac");
+			if (!itemparsed("harv_eff")) badins("harv_eff");
+			if (!itemparsed("res_outtake")) badins("res_outtake");
+		}
 
 		// guess2008 - DLE
 		if (!itemparsed("drought_tolerance")) badins("drought_tolerance");
@@ -703,6 +709,15 @@ void plib_callback(int callback) {
 
 		//	delete unused pft:s from pftlist
 
+//Test code for Joe 110127:
+if(test_landcover_dynamics)
+{
+	for(int i=0; i<NLANDCOVERTYPES;i++)
+		run[i]=false;
+	run[NATURAL]=true;
+	run[CROPLAND]=true;
+}
+//////////////////////////
 		if (ppft->landcover!=NATURAL) {
 			if (!run_landcover || !run[ppft->landcover])
 				includepft=0;
@@ -1177,9 +1192,14 @@ xtring file_cru;
 xtring file_cru_misc;
 
 //Landuse:
+
+//#define DYNAMIC_LANDCOVER_INPUT
+#if defined DYNAMIC_LANDCOVER_INPUT
+//TimeDataD input code may be put here
+TimeDataD LUdata(LOCAL_YEARLY);
+TimeDataD Peatdata;
+#endif
 xtring file_lu, file_peat;
-//TimeDataD LUdata(LOCAL_YEARLY);	TimeDataD Input class not included in the code. May be obtained by Mats Lindeskog if you don't want to use your own input code.
-//TimeDataD Peatdata;
 const int NYEAR_LU=103;	//only used to get LU data after historical period (after 2003) : only used in AR4-runs, but causes no harm otherwise
 //
 
@@ -1571,28 +1591,32 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	if (run_landcover) {
 		all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
-
+//Test code for Joe 110127:
+if(test_landcover_dynamics)
+	all_fracs_const=false;
+else
+/////////////////////////
 		//Retrieve file names for landcover files and open them if static values from ins-file are not used !
 		if (!lcfrac_fixed) {	//This version does not support dynamic landcover fraction data
 
 			if (run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST]) {
 				file_lu=param["file_lu"].str;
-/*
+#if defined DYNAMIC_LANDCOVER_INPUT
 				if(!LUdata.Open(file_lu))				//Open Bondeau area fraction file, returned false if problem
 					fail("initio: could not open %s for input",(char*)file_lu);
 				else if(LUdata.format==LOCAL_YEARLY)
 					all_fracs_const=false;				//Set all_fracs_const to false if yearly data
-*/
+#endif
 			}
 
 			if (run[PEATLAND]) {	//special case for peatland: separate fraction file
 				file_peat=param["file_peat"].str;
-/*				
+#if defined DYNAMIC_LANDCOVER_INPUT				
 				if(!Peatdata.Open(file_peat))			//Open peatland area fraction file, returned false if problem
 					fail("initio: could not open %s for input",(char*)file_peat);
 				else if(Peatdata.format==LOCAL_YEARLY)
 					all_fracs_const=false;				//Set all_fracs_const to false if yearly data
-*/
+#endif
 			}
 
 		}
@@ -1778,29 +1802,29 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
   */
 bool loadlandcover(Gridcell& gridcell, Coord c)	{
 	bool LUerror=false;
-
+if(!test_landcover_dynamics)//Test code for Joe 110127:
 	if (!lcfrac_fixed) {
 		// Landcover fraction data: read from land use fraction file; dynamic, so data for all years are loaded to LUdata object and 
 		// transferred to gridcell.landcoverfrac each year in getlandcover()
 
 		if (run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST]) {
-/*					
+#if defined DYNAMIC_LANDCOVER_INPUT					
 			if (!LUdata.Load(c))		//Load area fraction data from Bondeau input file to data object
 			{
 				dprintf("Problems with landcover fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;		// skip this stand
 			}
-*/
+#endif
 		}
 
 		if (run[PEATLAND] && !LUerror) {
- /*
+#if defined DYNAMIC_LANDCOVER_INPUT
 			if(!Peatdata.Load(c))	//special case for peatland: separate fraction file
 			{
 				dprintf("Problems with natural fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;	// skip this stand						
 			}
-*/
+#endif
 		}
 	}
 
@@ -2042,13 +2066,30 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 	}
 	else	//area fractions are read from input file(s);
 	{
+//Test code for Joe 110127:
+if(test_landcover_dynamics)
+{
+	if(date.year==0) 
+	{
+		gridcell.landcoverfrac[CROPLAND]=0.2;
+		gridcell.landcoverfrac[NATURAL]=1.0-gridcell.landcoverfrac[CROPLAND];
+	}
+	else if((date.year-nyear_spinup+1901)>1901 && (date.year-nyear_spinup)%10==0)
+	{
+		gridcell.landcoverfrac[CROPLAND]*=1.1;
+		gridcell.landcoverfrac[NATURAL]=1.0-gridcell.landcoverfrac[CROPLAND];
+	}
+}
+else {
+///////////////////////////
 		if(run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST])
 		{	
 
 			for(i=0;i<PEATLAND;i++)		//peatland fraction data is not in this file, otherwise i<NLANDCOVERTYPES.
 			{	
-//				sum_tot+=gridcell.landcoverfrac[i]=LUdata.Get(year,i);					//count sum of all fractions (should be 1.0)
-
+#if defined DYNAMIC_LANDCOVER_INPUT
+				sum_tot+=gridcell.landcoverfrac[i]=LUdata.Get(year,i);					//count sum of all fractions (should be 1.0)
+#endif
 				if(gridcell.landcoverfrac[i]<0.0 || gridcell.landcoverfrac[i]>1.0)			//discard unreasonable values
 				{		
 					if(date.year==0)
@@ -2084,7 +2125,9 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 
 		if(run[PEATLAND])
 		{
-//			sum_active+=gridcell.landcoverfrac[PEATLAND]=Peatdata.Get(year,"PEATLAND");			//peatland fraction data is currently in a separate file !
+#if defined DYNAMIC_LANDCOVER_INPUT
+			sum_active+=gridcell.landcoverfrac[PEATLAND]=Peatdata.Get(year,"PEATLAND");			//peatland fraction data is currently in a separate file !
+#endif
 		}
 
 		//NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
@@ -2137,6 +2180,7 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 					dprintf("Non-unity fraction sum retained.\n");				// OR let sum remain non-unity
 			}
 		}
+}//if(test_landcover_dynamics)
 	}
 }
 
@@ -2277,8 +2321,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	// provide any information to the framework.
 
 	int p,c,m,nclass;
-	double flux_veg,flux_soil,flux_fire,flux_est;
-	double c_litter,c_fast,c_slow; 
+	double flux_veg,flux_soil,flux_fire,flux_est,flux_harvest;
+	double c_litter,c_fast,c_slow,c_harv_slow; 
 
 	// guess2008 - hold the monthly average across patches
 	double mnpp[12];
@@ -2316,10 +2360,23 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_lai) fprintf(out_lai,lonlatyearstr,"Lon","Lat","Year");
 		if (out_runoff) fprintf(out_runoff,lonlatyearstr,"Lon","Lat","Year");
 		if (out_dens) fprintf(out_dens,lonlatyearstr,"Lon","Lat","Year");
-		if (out_cflux) fprintf(out_cflux,lonlatyearstr_extended,"Lon","Lat","Year","Veg","Soil",
-			"Fire","Est","NEE");
-		if (out_cpool) fprintf(out_cpool,lonlatyearstr_extended,"Lon","Lat","Year","VegC","LittC",
-			"SoilfC","SoilsC","Total");
+		if (out_cflux) {
+			if(run_landcover)
+				fprintf(out_cflux,"%8s%8s%8s%8s%8s%8s%8s%9s%10s\n","Lon","Lat","Year","Veg","Soil",
+					"Fire","Est","Harvest","NEE");
+			else
+				fprintf(out_cflux,lonlatyearstr_extended,"Lon","Lat","Year","Veg","Soil",
+					"Fire","Est","NEE");
+		}
+		if (out_cpool) {
+			if(run_landcover && ifslowharvestpool)
+				fprintf(out_cpool,"%8s%8s%8s%8s%8s%8s%8s%10s%10s\n","Lon","Lat","Year","VegC","LittC",
+					"SoilfC","SoilsC", "HarvSlowC","Total");
+			else
+				fprintf(out_cpool,lonlatyearstr_extended,"Lon","Lat","Year","VegC","LittC",
+					"SoilfC","SoilsC","Total");
+		}
+
 		if (out_firert) fprintf(out_firert,"%8s%8s%8s%8s\n","Lon","Lat","Year","FireRT");
 
 		if (out_mnpp) fprintf(out_mnpp,lonlatyearstr,"Lon","Lat","Year");
@@ -2400,7 +2457,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	// If only yearly output between, say 1961 and 1990 is requred, use: 
 	//	if (date.year>=nyear_spinup+60 && date.year<nyear_spinup+90) {
 
-	if (date.year>=nyear_spinup) {
+	if (date.year>=nyear_spinup) 
+	{
 
 		lon=gridlist.getobj().lon;
 		lat=gridlist.getobj().lat;
@@ -2597,10 +2655,10 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		} // *** End of PFT loop ***
 
 
-		flux_veg=flux_soil=flux_fire=flux_est=0.0;
+		flux_veg=flux_soil=flux_fire=flux_est=flux_harvest=0.0;
 
 		// guess2008 - carbon pools
-		c_litter=c_fast=c_slow=0.0;
+		c_litter=c_fast=c_slow=c_harv_slow=0.0;
 
 		// Sum C fluxes, dead C pools and runoff across patches
 
@@ -2621,6 +2679,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				flux_soil+=patch.fluxes.acflux_soil*to_gridcell_average;
 				flux_fire+=patch.fluxes.acflux_fire*to_gridcell_average;
 				flux_est+=patch.fluxes.acflux_est*to_gridcell_average;
+				flux_harvest+=patch.fluxes.acflux_harvest*to_gridcell_average;
 
 				c_fast+=patch.soil.cpool_fast*to_gridcell_average;
 				c_slow+=patch.soil.cpool_slow*to_gridcell_average;
@@ -2629,6 +2688,16 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				for (int q=0;q<npft;q++) {
 					Patchpft& patchpft=patch.pft[q];
 					c_litter+=(patchpft.litter_leaf+patchpft.litter_root+patchpft.litter_wood+patchpft.litter_repr)*to_gridcell_average;
+				}
+
+				//Sum slow pools of harvested products
+				if(run_landcover && ifslowharvestpool)
+				{
+					for (int q=0;q<npft;q++) 
+					{
+						Patchpft& patchpft=patch.pft[q];
+						c_harv_slow+=patchpft.harvested_products_slow*to_gridcell_average;
+					}
 				}
 
 				runoff_gridcell+=patch.arunoff*to_gridcell_average;
@@ -2784,12 +2853,27 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 		// Write fluxes to file
 
-		if (out_cflux) fprintf(out_cflux,"%8.3f%8.3f%8.3f%8.3f%10.5f\n",flux_veg,flux_soil,flux_fire,
-			flux_est,flux_veg+flux_soil+flux_fire+flux_est);
+		if (out_cflux) {		
+			if(run_landcover)
+				fprintf(out_cflux,"%8.3f%8.3f%8.3f%8.3f%9.3f%10.5f\n",flux_veg,flux_soil,flux_fire,
+					flux_est,flux_harvest,flux_veg+flux_soil+flux_fire+flux_est+flux_harvest);
+			else
+				fprintf(out_cflux,"%8.3f%8.3f%8.3f%8.3f%10.5f\n",flux_veg,flux_soil,flux_fire,
+					flux_est,flux_veg+flux_soil+flux_fire+flux_est);
+		}
+
+
 
 		// guess2008 - output carbon pools
-		if (out_cpool) fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%10.4f\n",cmass_gridcell,c_litter,c_fast,
-			c_slow,cmass_gridcell+c_litter+c_fast+c_slow);
+		if (out_cpool) {
+			if(run_landcover && ifslowharvestpool)
+				fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%10.3f%10.4f\n",cmass_gridcell,c_litter,c_fast,
+					c_slow,c_harv_slow,cmass_gridcell+c_litter+c_fast+c_slow+c_harv_slow);
+			else
+				fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%10.4f\n",cmass_gridcell,c_litter,c_fast,
+					c_slow,cmass_gridcell+c_litter+c_fast+c_slow);
+		}
+
 
 		// Output of age structure (Windows shell only - no effect otherwise)
 

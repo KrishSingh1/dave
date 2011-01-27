@@ -138,8 +138,6 @@ void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 	double cropfrac_sum_old=0.0;
 //	double cropstand_change[NCROPSTANDS_MAX]={0.0};
 
-	int cropprintinfo=2;
-
 	gridcell.LC_updated=false;
 
 /////////////////////////////////////////////////////////////

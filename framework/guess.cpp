@@ -76,7 +76,7 @@ void landcover_init(Gridcell& gridcell,Pftlist& pftlist) {
 				if(run[i]) {
 					landcover=(landcovertype)i;
 					Stand& stand=gridcell.createobj(gridcell,landcover,pftlist);
-dprintf("Stand %d, landcover type %d created year %d. Initial fraction = %f\n", stand.id, stand.landcover, date.year-nyear_spinup+1901, gridcell.landcoverfrac[i]);
+
 					pftlist.firstobj();
 					while (pftlist.isobj) {
 						Pft& pft=pftlist.getobj();
@@ -588,34 +588,6 @@ int framework(int argc,char* argv[]) {
 	// Call input/output module to obtain PFT static parameters and simulation
 	// settings and initialise input/output
 	initio(argc,argv,pftlist);
-
-	pftlist.firstobj();
-	while(pftlist.isobj)
-	{
-		dprintf("pft n:o %d: %s",pftlist.getobj().id,(char*)pftlist.getobj().name);
-//		if(pftlist.getobj().landcover==CROPLAND)
-//			dprintf(", cftid %d",pftlist.getobj().cftid);			
-		dprintf("\n");
-		pftlist.nextobj();
-	}
-
-	if(run_landcover)
-	{
-		dprintf("\nLandcover version.\n");
-		if(run[URBAN])
-			dprintf("Urban stand simulated (landcover type %d)\n", URBAN);
-		if(run[CROPLAND])
-			dprintf("Crop stands simulated (landcover type %d)\n", CROPLAND);
-		if(run[PASTURE])
-			dprintf("Pasture stand simulated (landcover type %d)\n", PASTURE);
-		if(run[FOREST])
-			dprintf("Forest stand simulated (landcover type %d)\n", FOREST);
-		if(run[NATURAL])
-			dprintf("Natural stand simulated (landcover type %d)\n", NATURAL);
-		if(run[PEATLAND])
-			dprintf("Peatland stand simulated (landcover type %d)\n", PEATLAND);
-	}
-	dprintf("npft=%d\n\n",npft);
 
 	// Assume there is at least one grid cell to simulate
 	dogridcell=true;

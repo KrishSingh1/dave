@@ -14,15 +14,22 @@
 // defined in the module that are to be accessible to the calling framework or 
 // to other modules.
 
+#ifndef LPJ_GUESS_BVOC_H
+#define LPJ_GUESS_BVOC_H
+
+#include "guess.h"
+
 void bvoc(double,double,double,double,double,double,double,double,
-	     double,double,double,double,double,double,double,Pft,
+	     double,double,double,double,double,double,double,const Pft&,
 	     double&,double&,double&,double&,double&);
 double dayT(double,double,double);
 double leafT(double,double,double,double,double,double,double,double,double,
 	     double);
 void isoprmonot1(double,double,double,double,double,
 		 double,double,double,double,
-		 Pft,double,double,
+		 const Pft&,double,double,
 		 double&,double&,double&);
 void initbvoc(Pftlist&);
-double vocseas(double&,double,double,double,Pft);
+double vocseas(double&,double,double,double,const Pft&);
+
+#endif // LPJ_GUESS_BVOC_H

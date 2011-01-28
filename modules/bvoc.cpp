@@ -30,10 +30,10 @@
 // should normally be in the "#include" directive referring to the framework 
 // header file.
 
-# include "guess.h"
-# include "canexch.h"
-# include "bvoc.h"
-# include "q10.h"
+#include "config.h"
+#include "bvoc.h"
+#include "canexch.h"
+#include "q10.h"
 
 
 // INITBVOC
@@ -206,7 +206,7 @@ double dayT(double temp, double daylength, double tempamp){
 
 void isoprmonot1(double co2, double agdd5, double temp, double daylength, 
 		 double rd_g, double pi_co2_opt, double gammastar,double apar, 
-		 double phi_pi, Pft pft,double fvocseas,double temprel,
+		 double phi_pi, const Pft& pft,double fvocseas,double temprel,
 		 double& dmonstor, double& iso, double& mon){
     
   // Calculation of isoprene and monoterpene emissions coupled to 
@@ -360,7 +360,7 @@ double leafT(double temp, double daylength, double adtmm, double co2,
 // called from VOCCALC
 
 double vocseas(double& f_season, double temp, double daylength, double agdd5, 
-	       Pft pft){
+	       const Pft& pft){
 
   // calculating the seasonality for VOCs (isoprene and monoterpene) for PFTs
   // TeBS, BNS, BBS and C3G. Revised version compared to Arneth et al. (2007). 
@@ -408,7 +408,7 @@ double vocseas(double& f_season, double temp, double daylength, double agdd5,
 void bvoc(double daylength, double temp, double tempamp, double adtmm, 
 	     double co2, double lambda, double eet, double agdd5, double rd_g, 
 	     double pi_co2_opt, double gammastar, double apar, double rs_day, 
-	     double phi_pi, double lai, Pft pft,
+	     double phi_pi, double lai, const Pft& pft,
 	     double& iso, double& mon, double& dmonstor, double& dleaftemp,
 	     double& fvocseas){
 

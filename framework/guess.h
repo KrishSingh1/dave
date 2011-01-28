@@ -1559,6 +1559,8 @@ public:
 		  miso[m]=0.;
 		  mmon[m]=0.;
 		}
+
+		fireprob=0.0;
 	}
 };
 

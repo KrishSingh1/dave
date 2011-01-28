@@ -1,19 +1,10 @@
-dnl       M4 template for the submit script
-dnl
-dnl       The submit script will look exactly like this file
-dnl       except that these comments are removed and the words
-dnl       BINARY and DATE will be replaced as appropriate.
-dnl
-dnl       The changecom command below makes sure keywords are
-dnl       replaced inside bash comments as well.
-changecom()dnl
 #!/bin/bash
 #
 # submit.sh
 #
 # Portable bash script to run LPJ-GUESS version:
 # BINARY
-# as a parallel job using PBS on Milleotto.
+# as a parallel job using PBS on Simba.
 #
 # Created automatically on DATE
 # 
@@ -125,17 +116,21 @@ cd \$PBS_O_WORKDIR
 
 cat<<EOL > startguess.sh
 #!/bin/sh
-cd \$PBS_O_LOCAL
-mkdir \\\$((PBS_VNODENUM+1))
-cd \\\$((PBS_VNODENUM+1))
-cp -pr \$PBS_O_WORKDIR/run\\\$((PBS_VNODENUM+1))/* .
+cd \$PBS_O_WORKDIR
+cd run\\\$((PBS_VNODENUM+1))
 BINARY $INSFILE
-cp -pur * \$PBS_O_WORKDIR/run\\\$((PBS_VNODENUM+1))
 EOL
 chmod +x startguess.sh
 pbsdsh \$PBS_O_WORKDIR/startguess.sh
-rm startguess.sh
 
+rm startguess.sh
+EOF
+
+cat <<EOF > append.cmd
+#!/bin/bash
+#PBS -l nodes=1
+#PBS -l walltime=$WALLTIME
+cd \$PBS_O_WORKDIR
 function append_files {
     local number_of_jobs=\$1
     local file=\$2
@@ -155,5 +150,8 @@ do
 done
 EOF
 
-# Submit job
-qsub -N ${name:-"guess"} guess.cmd
+# Submit guess job
+append_dependency=$(qsub -N ${name:-"guess"} guess.cmd)
+
+# Submit append job
+qsub -W depend=afterok:$append_dependency -N ${name:-"guess"}"_append" append.cmd

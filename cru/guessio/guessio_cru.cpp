@@ -716,6 +716,8 @@ if(test_landcover_dynamics)
 		run[i]=false;
 	run[NATURAL]=true;
 	run[CROPLAND]=true;
+
+	dprintf("Test of dynamic landcover guess version without input fraction files. Natural and cropland landcovers simulated with initial cropland fraction of 0.2 and 10 % increase every 10 years)\n");
 }
 //////////////////////////
 		if (ppft->landcover!=NATURAL) {

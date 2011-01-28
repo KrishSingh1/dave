@@ -30,7 +30,6 @@ void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12]);
 void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist);
 void dailyaccounting_stand(Stand& stand,Pftlist& pftlist);
 void dailyaccounting_patch(Patch& patch, Pftlist& pftlist);
-void dailyaccounting_patch_lu(Patch& patch, Pftlist& pftlist);
 void respiration_temperature_response(double temp,double& gtemp);
 void daylengthinsoleet(Climate& climate);
 void soiltemp(Climate& climate,Soil& soil);

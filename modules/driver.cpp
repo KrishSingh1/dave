@@ -570,7 +570,7 @@ void dailyaccounting_stand(Stand& stand,Pftlist& pftlist)
 	}
 }
 
-void dailyaccounting_patch_lu(Patch& patch, Pftlist& pftlist) 
+void dailyaccounting_patch_lc(Patch& patch, Pftlist& pftlist) 
 {
 	if(date.day==0)
 	{
@@ -578,11 +578,6 @@ void dailyaccounting_patch_lu(Patch& patch, Pftlist& pftlist)
 
 		if(!patch.stand.gridcell.LC_updated)	// NB. landcover_dynamics() is called before this function !
 		{
-		// Reset fluxes				
-			fluxes.acflux_soil=0.0;
-			fluxes.acflux_veg=0.0;
-			fluxes.acflux_est=0.0;
-			fluxes.acflux_fire=0.0;
 			fluxes.acflux_harvest=0.0;
 		}
 
@@ -620,14 +615,11 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist)
 
 	if (date.day==0) {
 
-		if(!run_landcover)
-		{
-			// Reset fluxes
-			fluxes.acflux_soil=0.0;
-			fluxes.acflux_veg=0.0;
-			fluxes.acflux_est=0.0;
-			fluxes.acflux_fire=0.0;
-		}	
+		// Reset fluxes
+		fluxes.acflux_soil=0.0;
+		fluxes.acflux_veg=0.0;
+		fluxes.acflux_est=0.0;
+		fluxes.acflux_fire=0.0;
 
 		patch.aaet=0.0;
 		patch.aevap=0.0;
@@ -655,7 +647,7 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist)
 	fluxes.dcflux_veg=0.0;
 
 	if(run_landcover)
-		dailyaccounting_patch_lu(patch, pftlist);
+		dailyaccounting_patch_lc(patch, pftlist);
 	
 	// Store daily soil water in upper layer
 	soil.dwcontupper[date.day]=soil.wcont[0];

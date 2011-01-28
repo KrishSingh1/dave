@@ -250,10 +250,6 @@ void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 		{
 			Patch& patch=stand.getobj();
 		
-			patch.fluxes.acflux_soil=0.0;
-			patch.fluxes.acflux_veg=0.0;
-			patch.fluxes.acflux_est=0.0;
-			patch.fluxes.acflux_fire=0.0;
 			patch.fluxes.acflux_harvest=0.0;
 
 			stand.nextobj();
@@ -374,7 +370,7 @@ void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 	{
 		for(int i=0;i<NLANDCOVERTYPES;i++)	//For all landcover types without subclasses
 		{
-			if(i!=CROPLAND)
+//			if(i!=CROPLAND)
 			{
 				if(run[i])
 				{
@@ -444,7 +440,7 @@ void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 			while(stand.isobj) //Loop through Patches
 			{
 				Patch& patch=stand.getobj();
-//addera litter C:
+//add litter C:
 				for (i=0;i<npft;i++) 
 				{
 					Patchpft& patchpft=patch.pft[i];

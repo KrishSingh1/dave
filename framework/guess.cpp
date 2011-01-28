@@ -72,8 +72,8 @@ void landcover_init(Gridcell& gridcell,Pftlist& pftlist) {
 
 	for(int i=0;i<NLANDCOVERTYPES;i++) { //For all landcover types without subclasses
 //		if(i!=CROPLAND) {					// cropland subclasses turned off in this version
-			if(gridcell.landcoverfrac[i]>0.0) {
-				if(run[i]) {
+			if(run[i]) {
+				if(gridcell.landcoverfrac[i]>0.0) {
 					landcover=(landcovertype)i;
 					Stand& stand=gridcell.createobj(gridcell,landcover,pftlist);
 

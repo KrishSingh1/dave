@@ -28,7 +28,7 @@ NPROCESS=15
 WALLTIME=150:00:00
 INSFILE=guess.ins
 GRIDLIST=gridlist.txt
-OUTFILES='cmass.out firert.out anpp.out lai.out cflux.out dens.out tot_runoff.out mgpp.out mra.out mrh.out cpool.out mnpp.out mlai.out mnee.out maet.out mpet.out mevap.out mintercep.out mrunoff.out mwcont_upper.out mwcont_lower.out'
+OUTFILES='cmass.out firert.out anpp.out lai.out cflux.out dens.out tot_runoff.out mgpp.out mra.out mrh.out cpool.out mnpp.out mlai.out mnee.out maet.out mpet.out mevap.out mintercep.out mrunoff.out mwcont_upper.out mwcont_lower.out aiso.out amon.out miso.out mmon.out'
 
 #      Where:
 #      NPROCESS = number of processes in parallel job

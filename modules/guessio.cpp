@@ -846,6 +846,8 @@ double co2; // atmospheric CO2 concentration (ppmv) (read from ins file)
 
 // Daily temperature, precipitation and sunshine for one year
 double dtemp[365],dprec[365],dsun[365];
+// bvoc
+double ddtr[365];
 
 double cpool_sum;
 	// sum of all C pools (including fireC) this/last year (for current gridcell)
@@ -913,6 +915,8 @@ void readenv(Coord coord) {
 
 	double mwet[12]={31,28,31,30,31,30,31,31,30,31,30,31}; // number of rain days per month
 
+	// bvoc
+	double mdtr[12]; // monthly mean diurnal temperature range (oC)
 
 	// Search for record for this grid cell in temperature file
 
@@ -928,6 +932,12 @@ void readenv(Coord coord) {
 		if (equal(coord.lon,dlon) && equal(coord.lat,dlat)) foundgrid=true;
 	}
 
+	// bvoc
+	for(m=0;m<12;m++){
+	  mdtr[12]=0.;
+	  dprintf("WARNING: No data available for dtr in sample data set!\nNo daytime temperature correction for BVOC calculations applied.");
+	}
+	
 	if (!foundgrid) fail("readenv: could not find record for (%g,%g) in %s",
 		coord.lon,coord.lat,(char*)file_temp);
 
@@ -995,6 +1005,9 @@ void readenv(Coord coord) {
 	// day in function getclimate, below)
 
 	interp_climate(mtemp,mprec,msun,dtemp,dprec,dsun);
+
+	// bvoc
+	interp_climate_misc(mdtr,ddtr);
 
 	// Recalculate precipitation values using weather generator
 	// (from Dieter Gerten 021121)
@@ -1456,6 +1469,9 @@ bool getclimate(Stand& stand) {
 	stand.climate.temp=dtemp[date.day];
 	stand.climate.prec=dprec[date.day];
 	stand.climate.insol=dsun[date.day];
+	
+	// bvoc
+	stand.climate.ddtr=ddtr[date.day];
 
 	// First day of year only ...
 

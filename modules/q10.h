@@ -1,3 +1,38 @@
+///////////////////////////////////////////////////////////////////////////////////////
+// MODULE HEADER FILE
+//
+// Module:                Q10 calculations for photosynthesis
+//                        *************************************************************
+//                        Calculations of Q10 values for photosynthesis, formerly
+//                        placed in canexch.cpp now moved to separate header file 
+//                        because of their application for BVOC calculations as well.
+// Header file name:      q10.h
+// Source code file name: voccalc.cpp / canexch.cpp
+// Written by:            Guy Schurgers (based on LPJ-GUESS 2.1 / Ben Smith)
+// Version dated:         2010-01-28
+
+
+// WHAT SHOULD THIS FILE CONTAIN?
+// Module source code files should contain, in this order:
+//   (1) a "#include" directive naming the framework header file. The framework header
+//       file should define all classes used as arguments to functions in the present
+//       module. It may also include declarations of global functions, constants and
+//       types, accessible throughout the model code;
+//   (2) other #includes, including header files for other modules accessed by the
+//       present one;
+//   (3) type definitions, constants and file scope global variables for use within
+//       the present module only;
+//   (4) declarations of functions defined in this file, if needed;
+//   (5) definitions of all functions. Functions that are to be accessible to other
+//       modules or to the calling framework should be declared in the module header
+//       file.
+//
+// PORTING MODULES BETWEEN FRAMEWORKS:
+// Modules should be structured so as to be fully portable between models (frameworks).
+// When porting between frameworks, the only change required should normally be in the
+// "#include" directive referring to the framework header file.
+
+
 // Constants required for Q10 lookup tables used by photosynthesis
 
 const double LOOKUPQ10_MINTEMP=-70;

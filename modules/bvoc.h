@@ -22,14 +22,6 @@
 void bvoc(double,double,double,double,double,double,double,double,
 	     double,double,double,double,double,double,double,const Pft&,
 	     double&,double&,double&,double&,double&);
-double dayT(double,double,double);
-double leafT(double,double,double,double,double,double,double,double,double,
-	     double);
-void isoprmonot1(double,double,double,double,double,
-		 double,double,double,double,
-		 const Pft&,double,double,
-		 double&,double&,double&);
 void initbvoc(Pftlist&);
-double vocseas(double&,double,double,double,const Pft&);
 
 #endif // LPJ_GUESS_BVOC_H

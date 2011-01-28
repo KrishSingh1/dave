@@ -999,7 +999,7 @@ void demand(Patch& patch) {
 
 				// Call photosynthesis with FPAR=1 and assuming stomates fully open
 				// (lambda = lambda_max)
-			  if(!bvoc){
+			  if(!ifbvoc){
 			    photosynthesis(climate.co2,climate.temp,climate.par,climate.daylength,
 					   1.0,pft.lambda_max,pft.pathway,pft.pstemp_min,pft.pstemp_low,
 					   pft.pstemp_high,pft.pstemp_max,pft.lambda_max,agd,adtmm,rd);

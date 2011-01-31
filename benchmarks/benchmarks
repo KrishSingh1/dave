@@ -174,12 +174,13 @@ function submit_job {
     local workspace=$work_dir/$test_name
     local bm_root=$PWD
     local submit_vars=$PWD/$test_name/submit_vars.sh
+    local insfile=$bm_root/$test_name/config/guess.ins
 
     pushd $workspace &> /dev/null
     if [ -f $submit_vars ]; then
-	jobid=$(sh submit.sh -n "bm_$test_name" -s $submit_vars 2> /dev/null)
+	jobid=$(sh submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars 2> /dev/null)
     else
-	jobid=$(sh submit.sh -n "bm_$test_name" 2> /dev/null)
+	jobid=$(sh submit.sh -i $insfile -n "bm_$test_name" 2> /dev/null)
     fi
     if (($? != 0)); then
 	error "Failed to submit $test_name!"
@@ -210,7 +211,7 @@ function run_single_machine_model {
     local bm_root=$PWD
 
     pushd $workspace &> /dev/null
-    nice ./guess guess.ins
+    nice ./guess $bm_root/$test_name/config/guess.ins
     if [ -f $bm_root/$test_name/postprocess.sh ]; then
 	PATH=$bm_root/postprocess:$PATH nice sh $bm_root/$test_name/postprocess.sh
     fi

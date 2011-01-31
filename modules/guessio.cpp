@@ -763,19 +763,8 @@ void printhelp() {
 //
 //   If the model is to be driven by quasi-daily values of the climate variables
 //   derived from monthly means, this function may be the appropriate place to
-//   perform the required interpolations. The utility function interp_climate in
-//   driver.cpp may be called for this purpose:
-//
-//   interp_climate(mtemp,mprec,msun,dtemp,dprec,dsun);
-//
-//   This assumes the following arrays are declared, presumably at file scope:
-//
-//   double mtemp[12]   monthly average temperature (deg C)
-//   double mprec[12]   monthly precipitation sum (mm)
-//   double msun[12]    monthly average sunshine (%)
-//   double dtemp[365]  daily interpolated temperature (deg C)
-//   double dprec[365]  daily interpolated rainfall (mm)
-//   double dsun[365]   daily interpolated sunshine (%)
+//   perform the required interpolations. The utility functions interp_monthly_means
+//   and interp_monthly_totals in driver.cpp may be called for this purpose.
 //
 // bool getclimate(Stand& stand)
 //   Obtains climate data (including atmospheric CO2 and insolation) for this day.
@@ -859,6 +848,15 @@ bool annual_output;
 	// whether output should occur each simulation year (true) or at end of simulation
 	// for each grid cell only (false)
 
+/// Interpolates monthly data to quasi-daily values.
+void interp_climate(double mtemp[12], double mprec[12], double msun[12], double mdtr[12],
+					double dtemp[365], double dprec[365], double dsun[365], double ddtr[365]) {
+	interp_monthly_means(mtemp, dtemp);
+	interp_monthly_totals(mprec, dprec);
+	interp_monthly_means(msun, dsun);
+	interp_monthly_means(mdtr, ddtr);
+}
+
 void readenv(Coord coord) {
 
 	// Searches for environmental data in driver temperature, precipitation,
@@ -932,10 +930,12 @@ void readenv(Coord coord) {
 		if (equal(coord.lon,dlon) && equal(coord.lat,dlat)) foundgrid=true;
 	}
 
-	// bvoc
-	for(m=0;m<12;m++){
-	  mdtr[12]=0.;
-	  dprintf("WARNING: No data available for dtr in sample data set!\nNo daytime temperature correction for BVOC calculations applied.");
+	for(int m=0;m<12;m++) {
+		mdtr[12]=0.;
+		// bvoc
+		if (ifbvoc) {
+			dprintf("WARNING: No data available for dtr in sample data set!\nNo daytime temperature correction for BVOC calculations applied.");
+		}
 	}
 	
 	if (!foundgrid) fail("readenv: could not find record for (%g,%g) in %s",
@@ -1004,10 +1004,7 @@ void readenv(Coord coord) {
 	// (relevant daily values will be sent to the framework each simulation
 	// day in function getclimate, below)
 
-	interp_climate(mtemp,mprec,msun,dtemp,dprec,dsun);
-
-	// bvoc
-	interp_climate_misc(mdtr,ddtr);
+	interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
 
 	// Recalculate precipitation values using weather generator
 	// (from Dieter Gerten 021121)
@@ -1367,19 +1364,8 @@ bool getstand(Stand& stand) {
 	//
 	// If the model is to be driven by quasi-daily values of the climate variables
 	// derived from monthly means, this function may be the appropriate place to
-	// perform the required interpolations. The utility function interp_climate in
-	// driver.cpp may be called for this purpose:
-	//
-	// interp_climate(mtemp,mprec,msun,dtemp,dprec,dsun);
-	//
-	// This assumes the following arrays are declared, presumably at file scope:
-	//
-	// double mtemp[12]   monthly average temperature (deg C)
-	// double mprec[12]   monthly precipitation sum (mm)
-	// double msun[12]    monthly average sunshine (%)
-	// double dtemp[365]  daily interpolated temperature (deg C)
-	// double dprec[365]  daily interpolated rainfall (mm)
-	// double dsun[365]   daily interpolated sunshine (%)
+	// perform the required interpolations. The utility functions interp_monthly_means
+	// and interp_monthly_totals in driver.cpp may be called for this purpose.
 
 	// Select coordinates for next grid cell in linked list
 	
@@ -1471,7 +1457,7 @@ bool getclimate(Stand& stand) {
 	stand.climate.insol=dsun[date.day];
 	
 	// bvoc
-	stand.climate.ddtr=ddtr[date.day];
+	stand.climate.dtr=ddtr[date.day];
 
 	// First day of year only ...
 

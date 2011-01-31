@@ -773,19 +773,8 @@ void printhelp() {
 //
 //   If the model is to be driven by quasi-daily values of the climate variables
 //   derived from monthly means, this function may be the appropriate place to
-//   perform the required interpolations. The utility function interp_climate in
-//   driver.cpp may be called for this purpose:
-//
-//   interp_climate(mtemp,mprec,msun,dtemp,dprec,dsun);
-//
-//   This assumes the following arrays are declared, presumably at file scope:
-//
-//   double mtemp[12]   monthly average temperature (deg C)
-//   double mprec[12]   monthly precipitation sum (mm)
-//   double msun[12]    monthly average sunshine (%)
-//   double dtemp[365]  daily interpolated temperature (deg C)
-//   double dprec[365]  daily interpolated rainfall (mm)
-//   double dsun[365]   daily interpolated sunshine (%)
+//   perform the required interpolations. The utility functions interp_monthly_means
+//   and interp_monthly_totals in driver.cpp may be called for this purpose.
 //
 // bool getclimate(Stand& stand)
 //   Obtains climate data (including atmospheric CO2 and insolation) for this day.
@@ -1410,6 +1399,14 @@ void readco2() {
 	fclose(in);
 }
 
+/// Interpolates monthly data to quasi-daily values.
+void interp_climate(double mtemp[12], double mprec[12], double msun[12], double mdtr[12],
+					double dtemp[365], double dprec[365], double dsun[365], double ddtr[365]) {
+	interp_monthly_means(mtemp, dtemp);
+	interp_monthly_totals(mprec, dprec);
+	interp_monthly_means(msun, dsun);
+	interp_monthly_means(mdtr, ddtr);
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // INITIO
@@ -1763,19 +1760,8 @@ bool getstand(Stand& stand) {
 	//
 	// If the model is to be driven by quasi-daily values of the climate variables
 	// derived from monthly means, this function may be the appropriate place to
-	// perform the required interpolations. The utility function interp_climate in
-	// driver.cpp may be called for this purpose:
-	//
-	// interp_climate(mtemp,mprec,msun,dtemp,dprec,dsun);
-	//
-	// This assumes the following arrays are declared, presumably at file scope:
-	//
-	// double mtemp[12]   monthly average temperature (deg C)
-	// double mprec[12]   monthly precipitation sum (mm)
-	// double msun[12]    monthly average sunshine (%)
-	// double dtemp[365]  daily interpolated temperature (deg C)
-	// double dprec[365]  daily interpolated rainfall (mm)
-	// double dsun[365]   daily interpolated sunshine (%)
+	// perform the required interpolations. The utility functions interp_monthly_means
+	// and interp_monthly_totals in driver.cpp may be called for this purpose.
 
 	// Select coordinates for next grid cell in linked list
 	
@@ -1932,11 +1918,7 @@ bool getclimate(Stand& stand) {
 			}
 
 			// Interpolate monthly spinup data to quasi-daily values
-			interp_climate(mtemp,mprec,msun,dtemp,dprec,dsun);
-			// bvoc
-			if(ifbvoc){
-			  interp_climate_misc(mdtr,ddtr);
-			}
+			interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
 
 			// guess2008 - only recalculate precipitation values using weather generator
 			// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
@@ -1962,11 +1944,8 @@ bool getclimate(Stand& stand) {
 			// Interpolate this year's monthly data to quasi-daily values
 			interp_climate(hist_mtemp[date.year-nyear_spinup],
 				       hist_mprec[date.year-nyear_spinup],hist_msun[date.year-nyear_spinup],
-				       dtemp,dprec,dsun);
-			// bvoc
-			if(ifbvoc){
-			  interp_climate_misc(hist_mdtr[date.year-nyear_spinup],ddtr);
-			}
+					   hist_mdtr[date.year-nyear_spinup],
+				       dtemp,dprec,dsun,ddtr);
 
 			// guess2008 - only recalculate precipitation values using weather generator
 			// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.

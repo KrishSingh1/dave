@@ -156,37 +156,18 @@ void initsoildrivers(Stand& stand) {
 }
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// CLIMATE INTERPOLATION FROM MONTHLY TO QUASI-DAILY VALUES
-// May be called from input/output module to generate daily climate values when raw
-// data are on monthly basis
-
-void interp_climate(double mtemp[12],double mprec[12],double msun[12],
-	double dtemp[365],double dprec[365],double dsun[365]) {
-
-	// DESCRIPTION
-	// Interpolates monthly climate data in arrays mtemp, mprec and msun to daily
-	// values in arrays dtemp, dprec and dsun
-
-	// INPUT PARAMETERS
-	// mtemp = mean monthly temperatures for this year (deg C)
-	// mprec = monthly precipitation totals for this year (mm)
-	// msun  = mean monthly percentage sunshine values for this year
-
-	// OUTPUT PARAMETERS
-	// dtemp = mean daily temperatures for this year (deg C)
-	// dprec = mean daily precipitation values for this year (mm)
-	// dsun  = mean daily percentage sunshine values for this year
+/// Climate interpolation from monthly means to quasi-daily values
+/** May be called from input/output module to generate daily climate values when 
+ *  raw data are on monthly basis.
+ *
+ *  \param mvals The monthly means
+ *  \param dvals The generated daily values
+ */
+void interp_monthly_means(double mvals[12], double dvals[365]) {
 
 	Date date; // Date object used for interpolation (local to this function)
 	double nday,dayct;
-	int thismonth,lastmonth,m;
-	double mprec_daily[12];
-
-	// Convert monthly precipitation from monthly totals to mean daily values
-
-	for (m=0;m<12;m++)
-		mprec_daily[m]=mprec[m]/(double)date.ndaymonth[m];
+	int thismonth,lastmonth;
 
 	date.init(1);
 
@@ -195,7 +176,7 @@ void interp_climate(double mtemp[12],double mprec[12],double msun[12],
 	lastmonth=11;
 	dayct=(double)(366-date.middaymonth[11]);
 
-	// Perform interpolations
+	// Perform interpolation
 
 	while (date.year==0) {
 		if (date.day==date.middaymonth[date.month]) {
@@ -208,61 +189,30 @@ void interp_climate(double mtemp[12],double mprec[12],double msun[12],
 			lastmonth=date.month;
 			dayct=0.0;
 		}
-		dtemp[date.day]=(mtemp[thismonth]-mtemp[lastmonth])/nday*dayct+
-			mtemp[lastmonth];
-		dsun[date.day]=(msun[thismonth]-msun[lastmonth])/nday*dayct+msun[lastmonth];
-		dprec[date.day]=(mprec_daily[thismonth]-mprec_daily[lastmonth])/nday*dayct+
-			mprec_daily[lastmonth];
+		dvals[date.day]=(mvals[thismonth]-mvals[lastmonth])/nday*dayct+
+			mvals[lastmonth];
 		date.next();
 		dayct++;
 	}
 }
 
-///////////////////////////////////////////////////////////////////////////////////////
-// CLIMATE INTERPOLATION FROM MONTHLY TO QUASI-DAILY VALUES
-// May be called from input/output module to generate daily climate values when raw
-// data are on monthly basis
+/// Climate interpolation from monthly totals to quasi-daily values
+/** May be called from input/output module to generate daily climate values when 
+ *  raw data are on monthly basis.
+ *
+ *  \param mvals The monthly totals
+ *  \param dvals The generated daily values
+ */
+void interp_monthly_totals(double mvals[12], double dvals[365]) {
+	// Local date object just used to get number of days for each month
+	Date date;
 
-void interp_climate_misc(double mdtr[12],double ddtr[365]) {
+	// Convert monthly totals to mean daily values
+	double mvals_daily[12];
+	for (int m = 0; m < 12; m++)
+		mvals_daily[m] = mvals[m]/(double)date.ndaymonth[m];
 
-	// DESCRIPTION
-	// Interpolates monthly climate data in arrays mdtr to daily 
-	// values in arrays ddtr
-
-	// INPUT PARAMETERS
-	// mdtr = mean monthly diurnal temperature range for this year (deg C)
-
-	// OUTPUT PARAMETERS
-	// ddtr = mean daily diurnal temperature range for this year (deg C)
-
-	Date date; // Date object used for interpolation (local to this function)
-	double nday,dayct;
-	int thismonth,lastmonth,m;
-
-	date.init(1);
-
-	nday=(double)(date.middaymonth[0]-(date.middaymonth[11]-365));
-	thismonth=0;
-	lastmonth=11;
-	dayct=(double)(366-date.middaymonth[11]);
-
-	// Perform interpolations
-
-	while (date.year==0) {
-	  if (date.day==date.middaymonth[date.month]) {
-	    if (date.month==11) // December
-	      nday=(double)(date.middaymonth[0]+365-date.middaymonth[11]);
-	    else
-	      nday=(double)(date.middaymonth[date.nextmonth()]-
-			    date.middaymonth[date.month]);
-	    thismonth=date.nextmonth();
-	    lastmonth=date.month;
-	    dayct=0.0;
-	  }
-	  ddtr[date.day]=(mdtr[thismonth]-mdtr[lastmonth])/nday*dayct+mdtr[lastmonth];
-	  date.next();
-	  dayct++;
-	}
+	interp_monthly_means(mvals_daily, dvals);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

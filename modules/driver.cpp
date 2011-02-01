@@ -633,8 +633,8 @@ void dailyaccounting_patch(Patch& patch) {
 		patch.mintercep[date.month]=0.0;
 		patch.mpet[date.month]=0.0;
 		// bvoc
-		patch.miso[date.month]=0.;
-		patch.mmon[date.month]=0.;
+		fluxes.miso[date.month]=0.;
+		fluxes.mmon[date.month]=0.;
 
 		// guess2008 - reset month C budget arrays each month
 		fluxes.mcflux_gpp[date.month] = 0.0;

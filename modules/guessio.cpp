@@ -1519,6 +1519,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	// bvoc
 	double miso[12];
 	double mmon[12];
+	double aiso_total;
+	double amon_total;
 
 	double lon,lat;
 
@@ -1690,8 +1692,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			standpft.lai_total=0.0;
 			standpft.densindiv_total = 0.0;
 			// bvoc
-			standpft.aiso_total=0.;
-			standpft.amon_total=0.;
+			aiso_total=0.;
+			amon_total=0.;
 
 			// Initialise age structure array
 
@@ -1720,8 +1722,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 							standpft.anpp_total+=indiv.anpp;
 							standpft.lai_total+=indiv.lai;
 							// bvoc
-							standpft.aiso_total+=indiv.aiso;
-							standpft.amon_total+=indiv.amon;
+							aiso_total+=indiv.aiso;
+							amon_total+=indiv.amon;
 							
 							if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 							
@@ -1755,8 +1757,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			standpft.lai_total/=(double)npatch;
 			standpft.densindiv_total/=(double)npatch;
 			// bvoc
-			standpft.aiso_total/=(double)npatch;
-			standpft.amon_total/=(double)npatch;
+			aiso_total/=(double)npatch;
+			amon_total/=(double)npatch;
 
 			// Update stand totals
 
@@ -1765,8 +1767,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			lai_stand+=standpft.lai_total;
 			dens_stand+=standpft.densindiv_total;
 			// bvoc
-			aiso_stand+=standpft.aiso_total;
-			amon_stand+=standpft.amon_total;
+			aiso_stand+=aiso_total;
+			amon_stand+=amon_total;
 		
 			// Print PFT sums to files
 
@@ -1775,8 +1777,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			if (out_lai) fprintf(out_lai,"%8.4f",standpft.lai_total);
 			if (out_dens) fprintf(out_dens,"%8.4f",standpft.densindiv_total);
 			// bvoc
-			if(out_aiso)fprintf(out_aiso,"%8.3f",standpft.aiso_total);
-			if(out_amon)fprintf(out_amon,"%8.3f",standpft.amon_total);
+			if(out_aiso)fprintf(out_aiso,"%8.3f",aiso_total);
+			if(out_amon)fprintf(out_amon,"%8.3f",amon_total);
 
 			// Graphical output every 10 years
 			// (Windows shell only - "plot" statements have no effect otherwise)
@@ -1841,8 +1843,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 				mgpp[m] += stand[p].fluxes.mcflux_gpp[m]/(double)npatch;
 				mra[m] += stand[p].fluxes.mcflux_ra[m]/(double)npatch;
 				// bvoc
-				miso[m]+=stand[p].miso[m]/(double)npatch;
-				mmon[m]+=stand[p].mmon[m]/(double)npatch;
+				miso[m]+=stand[p].fluxes.miso[m]/(double)npatch;
+				mmon[m]+=stand[p].fluxes.mmon[m]/(double)npatch;
 
 			}
 

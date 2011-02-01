@@ -546,6 +546,12 @@ public:
 		// monthly GPP
 	double mcflux_ra[12];
 		// monthly autotrophic respiration
+	// bvoc
+	double miso[12];
+                // monthly isoprene flux (g C/m2/month)
+	double mmon[12];
+	        // monthly monoterpene flux (g C/m2/month)
+
 
 
 	// MEMBER FUNCTIONS
@@ -562,6 +568,8 @@ public:
 
 		return acflux_veg+acflux_fire+acflux_soil+acflux_est;
 	}
+
+
 };
 
 
@@ -1526,11 +1534,6 @@ public:
 		// monthly runoff (mm/month)
 	double mpet[12];
 		// monthly PET (mm/month)
-	// bvoc
-	double miso[12];
-                // monthly isoprene flux (g C/m2/month)
-	double mmon[12];
-	        // monthly monoterpene flux (g C/m2/month)
 	
 
 	// MEMBER FUNCTIONS
@@ -1552,13 +1555,6 @@ public:
 		
 		// guess2008 - initialise
 		growingseasondays=0;
-
-		// bvoc
-		int m;
-		for(m=0;m<12;m++){
-		  miso[m]=0.;
-		  mmon[m]=0.;
-		}
 
 		fireprob=0.0;
 	}
@@ -1620,11 +1616,6 @@ public:
 	double fpc_total;
 		// FPC sum for this PFT as average for stand (used by some versions of
 		// guessio.cpp)
-	// bvoc
-	double aiso_total;
-		// sum/mean across patches for annual isoprene emissions (mgC/m2/year)
-	double amon_total;
-		// sum/mean across patches for annual monoterpene emissions (mgC/m2/year)
 	double rd_g_term; // leaf respiration (gC/m2/day)
 	double pi_co2_opt_term; // non-water-stressed intercellular partial pressure of CO2 (Pa)
 	double gammastar_term;  // CO2 compensation point in partial pressure units (Pa)

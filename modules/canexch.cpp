@@ -1935,8 +1935,8 @@ void npp(Patch& patch) {
 
 			// bvoc
 			if(ifbvoc){
-			  patch.miso[date.month]+=indiv.iso;
-			  patch.mmon[date.month]+=indiv.mon;
+			  patch.fluxes.miso[date.month]+=indiv.iso;
+			  patch.fluxes.mmon[date.month]+=indiv.mon;
 			}
 			
 			// On last day of month - convert monthly LAI from sum to mean
@@ -2103,8 +2103,8 @@ void npp(Patch& patch) {
 				
 				// bvoc
 				if(ifbvoc){
-				  patch.miso[date.month]+=indiv.iso;
-				  patch.mmon[date.month]+=indiv.mon;
+				  patch.fluxes.miso[date.month]+=indiv.iso;
+				  patch.fluxes.mmon[date.month]+=indiv.mon;
 				}
 
 
@@ -2316,12 +2316,13 @@ void canopy_exchange(Patch& patch) {
 				// guess2008 - initialise
 				indiv.mgpp[m]=0.0;
 				indiv.mra[m]=0.0;
-
+				
 			}
 
 			// bvoc
 			indiv.aiso=0.;
 			indiv.amon=0.;
+			
 
 			vegetation.nextobj();
 		}

@@ -181,11 +181,9 @@ void leaf_phenology(Patch& patch,Climate& climate) {
 // Internal function (do not call directly from framework)
 
 void turnover(double turnover_leaf,double turnover_root,double turnover_sap,
-	lifeformtype lifeform,double& cmass_leaf,double& cmass_root,double& cmass_sap,
-	double& cmass_heart,double& litter_leaf,double& litter_root,bool alive) {
+	lifeformtype lifeform,landcovertype landcover,double& cmass_leaf,double& cmass_root,double& cmass_sap,
+	double& cmass_heart,double& litter_leaf,double& litter_root, bool alive, Gridcell& gridcell) {
 
-	// guess2008 - new (indiv.)alive boolean throughout
-	
 	// DESCRIPTION
 	// Transfers carbon from leaves and roots to litter, and from sapwood to heartwood
 	// Only turnover from 'alive' individuals is transferred to litter (Ben 2007-11-28)
@@ -207,47 +205,6 @@ void turnover(double turnover_leaf,double turnover_root,double turnover_sap,
 	// litter_leaf   = new leaf litter (kgC/m2)
 	// litter_root   = new root litter (kgC/m2)
 	// cmass_heart   = heartwood C biomass (kgC/m2)
-
-	double turnover;
-
-	// TREES AND GRASSES:
-
-	// Leaf turnover
-	turnover=turnover_leaf*cmass_leaf;
-	cmass_leaf-=turnover;
-	if (alive) litter_leaf+=turnover;
-
-	// Root turnover
-	turnover=turnover_root*cmass_root;
-	cmass_root-=turnover;
-	if (alive) litter_root+=turnover;
-
-	if (lifeform==TREE) {
-		
-		// TREES ONLY:
-
-		// Sapwood turnover by conversion to heartwood
-		turnover=turnover_sap*cmass_sap;
-		cmass_sap-=turnover;
-		cmass_heart+=turnover;
-	}
-}
-
-
-void turnover_oecd(double turnover_leaf,double turnover_root,double turnover_sap,
-	lifeformtype lifeform,landcovertype landcover,double& cmass_leaf,double& cmass_root,double& cmass_sap,
-	double& cmass_heart,double& litter_leaf,double& litter_root,Fluxes& fluxes,bool alive, Gridcell& gridcell) {
-
-	// DESCRIPTION
-	// Transfers carbon from leaves and roots to litter, and from sapwood to heartwood
-	// Version for OECD experiment:
-	// For crops (specially labelled grass type) 50% of above-ground biomass transferred
-	// to litter, remainder stored as a flux to the atmosphere (i.e. increments Rh)
-	// (equal amount for each month)
-
-	// guess2008 - new (indiv.)alive boolean throughout. Also, only turnover from 'alive' 
-	// individuals is transferred to litter
-
 
 	double turnover = 0.0;
 	double scale=1.0;
@@ -1054,11 +1011,11 @@ void growth(Stand& stand,Patch& patch) {
 			}
 
 			// Tissue turnover and associated litter production
-			turnover_oecd(indiv.pft.turnover_leaf,indiv.pft.turnover_root,
+			turnover(indiv.pft.turnover_leaf,indiv.pft.turnover_root,
 				indiv.pft.turnover_sap,indiv.pft.lifeform,indiv.pft.landcover,indiv.cmass_leaf,
 				indiv.cmass_root,indiv.cmass_sap,indiv.cmass_heart,
 				patch.pft[indiv.pft.id].litter_leaf,
-				patch.pft[indiv.pft.id].litter_root,patch.fluxes,indiv.alive, gridcell);
+				patch.pft[indiv.pft.id].litter_root,indiv.alive, gridcell);
 
 			// Update stand record of reproduction by this PFT
 			stand.pft[indiv.pft.id].cmass_repr+=cmass_repr/(double)stand.nobj;

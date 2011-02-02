@@ -570,22 +570,17 @@ void dailyaccounting_stand(Stand& stand,Pftlist& pftlist)
 	}
 }
 
-void dailyaccounting_patch_lc(Patch& patch, Pftlist& pftlist) 
-{
-	if(date.day==0)
-	{
+void dailyaccounting_patch_lc(Patch& patch, Pftlist& pftlist) {
+	if(date.day==0) {
 		Fluxes& fluxes=patch.fluxes;
 
-		if(!patch.stand.gridcell.LC_updated)	// NB. landcover_dynamics() is called before this function !
-		{
+		if(!patch.stand.gridcell.LC_updated) {	// NB. landcover_dynamics() is called before this function !
 			fluxes.acflux_harvest=0.0;
 		}
 
-		if(ifslowharvestpool)
-		{
+		if(ifslowharvestpool) {
 			pftlist.firstobj();
-			while(pftlist.isobj) 
-			{
+			while(pftlist.isobj) {
 				Pft& pft=pftlist.getobj();
 				Patchpft& patchpft=patch.pft[pft.id];
 
@@ -598,8 +593,7 @@ void dailyaccounting_patch_lc(Patch& patch, Pftlist& pftlist)
 	}
 }
 
-void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) 
-{
+void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 	// DESCRIPTION
 	// Updates daily soil parameters including exponential temperature response terms
 	// (gtemp, see below). Maintains monthly and longer term records of variation in

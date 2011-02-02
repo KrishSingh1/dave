@@ -252,8 +252,7 @@ void turnover_oecd(double turnover_leaf,double turnover_root,double turnover_sap
 	double turnover = 0.0;
 	double scale=1.0;
 
-	if(run_landcover && gridcell.LC_updated)
-	{
+	if(run_landcover && gridcell.LC_updated) {
 		//scale harvest products of stands with increased area by (old area/new area) if landcover change has occurred:
 		scale=gridcell.landcoverfrac_old[landcover]/gridcell.landcoverfrac[landcover];
 

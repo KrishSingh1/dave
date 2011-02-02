@@ -54,9 +54,6 @@
 #include "cru_1901_2006.h"
 #include "cru_1901_2006misc.h"
 
-//Test code for Joe 110127:
-int test_landcover_dynamics=true;
-
 ///////////////////////////////////////////////////////////////////////////////////////
 //
 //                      SECTION: INPUT FROM INSTRUCTION SCRIPT
@@ -149,8 +146,6 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB
 Paramlist param;
 
 xtring title; // Title for this run
-// guess2008 - changed from nyear to nyear_spinup
-//int nyear_spinup; // number of simulation years during spinup			Turned into global variable.
 // guess2008 - new optional parameter
 int searchradius; // search radius to use when finding CRU data
 
@@ -709,15 +704,6 @@ void plib_callback(int callback) {
 
 		//	delete unused pft:s from pftlist
 
-//Test code for Joe 110127:
-if(test_landcover_dynamics)
-{
-	for(int i=0; i<NLANDCOVERTYPES;i++)
-		run[i]=false;
-	run[NATURAL]=true;
-	run[CROPLAND]=true;
-}
-//////////////////////////
 		if (ppft->landcover!=NATURAL) {
 			if (!run_landcover || !run[ppft->landcover])
 				includepft=0;
@@ -1591,11 +1577,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	if (run_landcover) {
 		all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
-//Test code for Joe 110127:
-if(test_landcover_dynamics)
-	all_fracs_const=false;
-else
-/////////////////////////
+
 		//Retrieve file names for landcover files and open them if static values from ins-file are not used !
 		if (!lcfrac_fixed) {	//This version does not support dynamic landcover fraction data
 
@@ -1802,7 +1784,7 @@ else
   */
 bool loadlandcover(Gridcell& gridcell, Coord c)	{
 	bool LUerror=false;
-if(!test_landcover_dynamics)//Test code for Joe 110127:
+
 	if (!lcfrac_fixed) {
 		// Landcover fraction data: read from land use fraction file; dynamic, so data for all years are loaded to LUdata object and 
 		// transferred to gridcell.landcoverfrac each year in getlandcover()
@@ -2066,22 +2048,6 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
 	}
 	else	//area fractions are read from input file(s);
 	{
-//Test code for Joe 110127:
-if(test_landcover_dynamics)
-{
-	if(date.year==0) 
-	{
-		gridcell.landcoverfrac[CROPLAND]=0.2;
-		gridcell.landcoverfrac[NATURAL]=1.0-gridcell.landcoverfrac[CROPLAND];
-	}
-	else if((date.year-nyear_spinup+1901)>1901 && (date.year-nyear_spinup)%10==0)
-	{
-		gridcell.landcoverfrac[CROPLAND]*=1.1;
-		gridcell.landcoverfrac[NATURAL]=1.0-gridcell.landcoverfrac[CROPLAND];
-	}
-}
-else {
-///////////////////////////
 		if(run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST])
 		{	
 
@@ -2180,7 +2146,6 @@ else {
 					dprintf("Non-unity fraction sum retained.\n");				// OR let sum remain non-unity
 			}
 		}
-}//if(test_landcover_dynamics)
 	}
 }
 
@@ -2457,8 +2422,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	// If only yearly output between, say 1961 and 1990 is requred, use: 
 	//	if (date.year>=nyear_spinup+60 && date.year<nyear_spinup+90) {
 
-	if (date.year>=nyear_spinup) 
-	{
+	if (date.year>=nyear_spinup) {
 
 		lon=gridlist.getobj().lon;
 		lat=gridlist.getobj().lat;

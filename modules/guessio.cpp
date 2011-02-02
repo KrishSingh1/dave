@@ -637,8 +637,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ltor_max")) badins("ltor_max");
 		if (!itemparsed("intc")) badins("intc");
 
-		if (run_landcover)
-		{
+		if (run_landcover) {
 			if (!itemparsed("landcover")) badins("landcover");
 			if (!itemparsed("turnover_harv_prod")) badins("turnover_harv_prod");
 			if (!itemparsed("harvest_slow_frac")) badins("harvest_slow_frac");

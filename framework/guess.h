@@ -563,7 +563,7 @@ public:
 	// MEMBER FUNCTIONS
 
 public:
-	// constructor: initialises patch member
+	/// constructor: initialises members
 	Fluxes(Patch& p):patch(p) {
 		acflux_veg=0.0;
 		acflux_fire=0.0;

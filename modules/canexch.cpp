@@ -1980,8 +1980,6 @@ void npp(Patch& patch) {
 			      mon*=indiv.fpar;
 			      indiv.iso+=iso;
 			      indiv.mon+=mon;
-			      indiv.aiso+=iso;
-			      indiv.amon+=mon;
 			    }
 			  }
 			  
@@ -2050,10 +2048,8 @@ void npp(Patch& patch) {
 					  }
 					  indiv.iso+=iso*(double)indiv.nday_wstress;
 					  rmonstor=-indiv.monstor*indiv.dmonstor+pft.storfrac_mon*mon;
-					  indiv.monstor+=rmonstor;
+					  indiv.monstor+=rmonstor*(double)indiv.nday_wstress;
 					  indiv.mon+=((1.-pft.storfrac_mon)*mon+indiv.monstor*indiv.dmonstor)*(double)indiv.nday_wstress;
-					  indiv.aiso+=iso*(double)indiv.nday_wstress;
-					  indiv.amon+=((1.-pft.storfrac_mon)*mon+indiv.monstor*indiv.dmonstor)*(double)indiv.nday_wstress;
 					}
 					 
 				}
@@ -2085,6 +2081,11 @@ void npp(Patch& patch) {
 				// Update accumulated annual NPP and daily vegetation-atmosphere flux
 
 				indiv.anpp+=indiv.assim-indiv.resp;
+				// bvoc
+				if(ifbvoc){
+				  indiv.aiso+=indiv.iso;
+				  indiv.amon+=indiv.mon;
+				}
 
 				// guess2008
 				if (indiv.alive) // Ben 2007-11-28	

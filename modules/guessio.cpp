@@ -38,8 +38,7 @@
 
 // ABOUT THIS I/O MODULE:
 // This is a demonstration I/O module. It is compatible with the input data files
-// distributed with LPJ-GUESS (in the data directory). Unlike the CRU I/O module
-// this I/O module does not use a spinup period.
+// distributed with LPJ-GUESS (in the data directory).
 
 #include "config.h"
 

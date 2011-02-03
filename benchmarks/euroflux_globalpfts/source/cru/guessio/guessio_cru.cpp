@@ -260,7 +260,6 @@ void plib_declarations(int id,xtring setname) {
 	case BLOCK_GLOBAL:
 
 		declareitem("title",&title,80,CB_NONE,"Title for run");
-		// guess2008 - changed this input parameter name from nyear to nyear_spinup, which is more descriptive 
 		declareitem("nyear_spinup",&nyear_spinup,1,10000,1,CB_NONE,"Number of simulation years to spinup for");
 		declareitem("vegmode",&strparam,16,CB_VEGMODE,
 			"Vegetation mode (\"INDIVIDUAL\", \"COHORT\", \"POPULATION\")");
@@ -484,9 +483,10 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("drought_tolerance",&ppft->drought_tolerance,0.0,1.0,1,CB_NONE,
 			"Drought tolerance level (0 = very -> 1 = not at all) (unitless)");
 
-		declareitem("harv_eff",&ppft->harv_eff,0.0,1.0,1,CB_NONE,"");
-		declareitem("harvest_slow_frac",&ppft->harvest_slow_frac,0.0,1.0,1,CB_NONE,"");
-		declareitem("turnover_harv_prod",&ppft->turnover_harv_prod,0.0,1.0,1,CB_NONE,"harvested products turnover (fraction/year)");
+		declareitem("harv_eff",&ppft->harv_eff,0.0,1.0,1,CB_NONE,"Harvest efficiency");
+		declareitem("harvest_slow_frac",&ppft->harvest_slow_frac,0.0,1.0,1,CB_NONE,
+			"Fraction of harvested products that goes into carbon depository for long-lived products like wood");
+		declareitem("turnover_harv_prod",&ppft->turnover_harv_prod,0.0,1.0,1,CB_NONE,"Harvested products turnover (fraction/year)");
 		declareitem("res_outtake",&ppft->res_outtake,0.0,1.0,1,CB_NONE,"´Fraction of residue outtake at harvest");
 
 		callwhendone(CB_CHECKPFT);
@@ -589,7 +589,7 @@ void plib_callback(int callback) {
 		break;
 	case CB_CHECKGLOBAL:
 		if (!itemparsed("title")) badins("title");
-		if (!itemparsed("nyear_spinup")) badins("nyear_spinup"); // guess2008
+		if (!itemparsed("nyear_spinup")) badins("nyear_spinup");
 		if (!itemparsed("vegmode")) badins("vegmode");
 		if (!itemparsed("ifdailynpp")) badins("ifdailynpp");
 		if (!itemparsed("ifdailydecomp")) badins("ifdailydecomp");
@@ -865,9 +865,9 @@ void printhelp() {
 //   will presumably be extracted from arrays containing the interpolated daily
 //   values (see function getstand):
 //
-//   stand.climate.temp=dtemp[date.day];
-//   stand.climate.prec=dprec[date.day];
-//   stand.climate.insol=dsun[date.day];
+//   gridcell.climate.temp=dtemp[date.day];
+//   gridcell.climate.prec=dprec[date.day];
+//   gridcell.climate.insol=dsun[date.day];
 //
 // void outannual(Stand& stand,Pftlist& pftlist)
 //   Called at the end of the last day of each simulation year to permit output of
@@ -2528,9 +2528,9 @@ bool getclimate(Gridcell& gridcell) {
 	// will presumably be extracted from arrays containing the interpolated daily
 	// values (see function getstand):
 	//
-	// stand.climate.temp=dtemp[date.day];
-	// stand.climate.prec=dprec[date.day];
-	// stand.climate.insol=dsun[date.day];
+	// gridcell.climate.temp=dtemp[date.day];
+	// gridcell.climate.prec=dprec[date.day];
+	// gridcell.climate.insol=dsun[date.day];
 
 	double progress;
 

@@ -1027,7 +1027,7 @@ public:
 
 
 /// Soiltype stores static parameters for soils and the snow pack. 
-/** One Soiltype object is defined for each stand. State variables for soils 
+/** One Soiltype object is defined for each Gridcell. State variables for soils 
  *  are held by objects of class Soil, of which there is one for each patch 
  *  (see below).
  */
@@ -1552,8 +1552,7 @@ public:
 /// The stand class corresponds to a modelled area of a specific landcover type in a grid cell.
 /** There may be several stands of the same landcover type (but with different settings).
  */
-class Stand : public ListArray_idin3<Patch,Stand,Pftlist,Soiltype> 
-{
+class Stand : public ListArray_idin3<Patch,Stand,Pftlist,Soiltype> {
 
 public:
 
@@ -1614,8 +1613,7 @@ private:
 
 
 /// State variables common to all individuals of a particular PFT in a GRIDCELL.
-class Gridcellpft 
-{
+class Gridcellpft {
 
 public:
 
@@ -1651,8 +1649,7 @@ public:
  *  with patches, not gridcells. A separate Gridcell object must be declared for each modelled
  *  locality or grid cell.
  */
-class Gridcell : public ListArray_idin3<Stand,Gridcell,landcovertype, Pftlist>
-{
+class Gridcell : public ListArray_idin3<Stand,Gridcell,landcovertype, Pftlist> {
 
 public:
 
@@ -1669,7 +1666,16 @@ public:
 	 *  instruction file in getlandcover().
 	 */
 	double landcoverfrac[NLANDCOVERTYPES];
+
+	/// The land cover fractions from the previous year
+	/** Used to keep track of the changes when running with dynamic
+	 *  land cover.
+	 */
 	double landcoverfrac_old[NLANDCOVERTYPES];
+
+	/// Whether the land cover fractions changed for this grid cell this year
+	/** \see landcover_dynamics
+	 */
 	bool LC_updated;
 
 	/// list array [0...npft-1] of Gridcellpft (initialised in constructor)

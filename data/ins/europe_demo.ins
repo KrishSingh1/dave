@@ -87,7 +87,8 @@ file_mwcont_lower "mwcont_lower.out"
 title 'LPJ-GUESS (guess2008) cohort mode'
 
 vegmode "cohort"      ! "cohort", "individual" or "population"
-nyear 500             ! number of years to run the model
+nyear 100             ! number of years to run the model after spinup (demo module only)
+nyear_spinup 500      ! number of years to spin up the simulation for
 ifdailynpp 1          ! whether to calculate NPP daily (1) or monthly (0)
 ifdailydecomp 0       ! whether to calculate soil respiration daily (1) or monthly (0)
 ifcalcsla 1           ! whether to calculate SLA from leaf longevity

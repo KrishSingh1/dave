@@ -144,8 +144,7 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB
 Paramlist param;
 
 xtring title; // Title for this run
-int nyear; // number of simulation years
-int nyear_spinup = 500;
+int nyear; // number of simulation years to run after spinup
 
 /// Landcover fractions read from ins-file (% area).
 int lc_fixed_frac[NLANDCOVERTYPES]={0};
@@ -239,7 +238,8 @@ void plib_declarations(int id,xtring setname) {
 	case BLOCK_GLOBAL:
 
 		declareitem("title",&title,80,CB_NONE,"Title for run");
-		declareitem("nyear",&nyear,1,10000,1,CB_NONE,"Number of simulation years");
+		declareitem("nyear",&nyear,1,10000,1,CB_NONE,"Number of simulation years to run after spinup");
+		declareitem("nyear_spinup",&nyear_spinup,1,10000,1,CB_NONE,"Number of simulation years to spinup for");
 		declareitem("vegmode",&strparam,16,CB_VEGMODE,
 			"Vegetation mode (\"INDIVIDUAL\", \"COHORT\", \"POPULATION\")");
 		declareitem("ifdailynpp",&ifdailynpp,1,CB_NONE,
@@ -560,6 +560,7 @@ void plib_callback(int callback) {
 	case CB_CHECKGLOBAL:
 		if (!itemparsed("title")) badins("title");
 		if (!itemparsed("nyear")) badins("nyear");
+		if (!itemparsed("nyear_spinup")) badins("nyear_spinup");
 		if (!itemparsed("vegmode")) badins("vegmode");
 		if (!itemparsed("ifdailynpp")) badins("ifdailynpp");
 		if (!itemparsed("ifdailydecomp")) badins("ifdailydecomp");
@@ -699,11 +700,11 @@ void plib_callback(int callback) {
 		//	delete unused pft:s from pftlist
 
 		if (ppft->landcover!=NATURAL) {
-			if(!run_landcover || !run[ppft->landcover])
+			if (!run_landcover || !run[ppft->landcover])
 				includepft=0;
 		}
 		else if (run_landcover && !run[NATURAL]) {
-			if(ppft->landcover==NATURAL)
+			if (ppft->landcover==NATURAL)
 				includepft=0;
 		}
 
@@ -835,9 +836,9 @@ void printhelp() {
 //   will presumably be extracted from arrays containing the interpolated daily
 //   values (see function getstand):
 //
-//   stand.climate.temp=dtemp[date.day];
-//   stand.climate.prec=dprec[date.day];
-//   stand.climate.insol=dsun[date.day];
+//   gridcell.climate.temp=dtemp[date.day];
+//   gridcell.climate.prec=dprec[date.day];
+//   gridcell.climate.insol=dsun[date.day];
 //
 // void outannual(Stand& stand,Pftlist& pftlist)
 //   Called at the end of the last day of each simulation year to permit output of
@@ -1747,13 +1748,13 @@ bool getclimate(Gridcell& gridcell) {
 	if (date.day==0) {
 
 		// Return false if last year was the last for the simulation
-		if (date.year==nyear) return false;
+		if (date.year==nyear_spinup+nyear) return false;
 
 		// Progress report to user and update timer
 
 		if (tmute.getprogress()>=1.0) {
-			progress=(double)(gridlist.getobj().id*nyear+date.year)/
-				(double)(ngridcell*nyear);
+			progress=(double)(gridlist.getobj().id*(nyear_spinup+nyear)
+				+date.year)/(double)(ngridcell*(nyear_spinup+nyear));
 			tprogress.setprogress(progress);
 			dprintf("%3d%% complete, %s elapsed, %s remaining\n",(int)(progress*100.0),
 				tprogress.elapsed.str,tprogress.remaining.str);
@@ -1801,9 +1802,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	if (date.year==0 && firstgrid) {
 
 		// Very first time only
-
-		// Open output files if annual output suppressed
-		// (otherwise they were already opened in function initio)
 
 		// Print column labels
 		// guess2008 - added runoff & dens
@@ -1908,11 +1906,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		firstgrid=false;
 	}
 	
-	if (true) {
-
-		// Each year (if annual output), or last year of simulation
-
-		// Open output files in append mode if annual output suppressed
+	// guess2008 - yearly output after spinup
+	
+	if (date.year>=nyear_spinup) {
 
 		lon=gridlist.getobj().lon;
 		lat=gridlist.getobj().lat;

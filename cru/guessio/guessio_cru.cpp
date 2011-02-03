@@ -242,7 +242,6 @@ void plib_declarations(int id,xtring setname) {
 	case BLOCK_GLOBAL:
 
 		declareitem("title",&title,80,CB_NONE,"Title for run");
-		// guess2008 - changed this input parameter name from nyear to nyear_spinup, which is more descriptive 
 		declareitem("nyear_spinup",&nyear_spinup,1,10000,1,CB_NONE,"Number of simulation years to spinup for");
 		declareitem("vegmode",&strparam,16,CB_VEGMODE,
 			"Vegetation mode (\"INDIVIDUAL\", \"COHORT\", \"POPULATION\")");
@@ -565,7 +564,7 @@ void plib_callback(int callback) {
 		break;
 	case CB_CHECKGLOBAL:
 		if (!itemparsed("title")) badins("title");
-		if (!itemparsed("nyear_spinup")) badins("nyear_spinup"); // guess2008
+		if (!itemparsed("nyear_spinup")) badins("nyear_spinup");
 		if (!itemparsed("vegmode")) badins("vegmode");
 		if (!itemparsed("ifdailynpp")) badins("ifdailynpp");
 		if (!itemparsed("ifdailydecomp")) badins("ifdailydecomp");
@@ -841,9 +840,9 @@ void printhelp() {
 //   will presumably be extracted from arrays containing the interpolated daily
 //   values (see function getstand):
 //
-//   stand.climate.temp=dtemp[date.day];
-//   stand.climate.prec=dprec[date.day];
-//   stand.climate.insol=dsun[date.day];
+//   gridcell.climate.temp=dtemp[date.day];
+//   gridcell.climate.prec=dprec[date.day];
+//   gridcell.climate.insol=dsun[date.day];
 //
 // void outannual(Stand& stand,Pftlist& pftlist)
 //   Called at the end of the last day of each simulation year to permit output of
@@ -2169,9 +2168,9 @@ bool getclimate(Gridcell& gridcell) {
 	// will presumably be extracted from arrays containing the interpolated daily
 	// values (see function getstand):
 	//
-	// stand.climate.temp=dtemp[date.day];
-	// stand.climate.prec=dprec[date.day];
-	// stand.climate.insol=dsun[date.day];
+	// gridcell.climate.temp=dtemp[date.day];
+	// gridcell.climate.prec=dprec[date.day];
+	// gridcell.climate.insol=dsun[date.day];
 
 	double progress;
 

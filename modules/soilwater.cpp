@@ -305,7 +305,7 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
         }
 
 		// If it's warm enough for growth, update awcont with this day's wcont
-        if (patch.stand.climate.temp>5.0) {
+        if (patch.stand.gridcell.climate.temp>5.0) {
             awcont[s]+=wcont[s];
             if (s==0) patch.growingseasondays++;
         }

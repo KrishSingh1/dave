@@ -87,7 +87,8 @@ file_mwcont_lower "mwcont_lower.out"
 title 'LPJ-GUESS (guess2008) cohort mode'
 
 vegmode "cohort"      ! "cohort", "individual" or "population"
-nyear 500             ! number of years to run the model
+nyear 100             ! number of years to run the model after spinup (demo module only)
+nyear_spinup 500      ! number of years to spin up the simulation for
 ifdailynpp 1          ! whether to calculate NPP daily (1) or monthly (0)
 ifdailydecomp 0       ! whether to calculate soil respiration daily (1) or monthly (0)
 ifcalcsla 1           ! whether to calculate SLA from leaf longevity
@@ -114,6 +115,26 @@ ifdroughtlimitedestab 1			! whether establishment is limited by growing season d
 ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit every day (0)
 ifspeciesspecificwateruptake 1	! whether there is species specific water uptake (1) or not (0)
 
+!!!!!!!!!!!! landcover parameters !!!!!!!!!!!!!!					
+
+run_landcover 0        ! whether to use (and change) landcover fractions (1) or not (0)						
+
+run_urban 0	      ! whether to simulate barren land (1) or not (0)	
+run_crop 1	      ! whether to simulate crop vegetation (1) or not (0)
+run_forest 0	      ! whether to simulate managed forest (1) or not (0)
+run_pasture 0	      ! whether to simulate pasture (1) or not (0)
+run_natural 1	      ! whether to simulate natural vegetation (1) or not (0)
+run_peatland 1	      ! whether to simulate peatland (1) or not (0)
+
+lcfrac_fixed 0        	! use landcover fractions (%) below (1) or read from input file (0)
+lc_fixed_urban 0   	! URBAN
+lc_fixed_cropland 50	! CROPLAND
+lc_fixed_pasture 0   	! PASTURE
+lc_fixed_forest 0   	! FOREST
+lc_fixed_natural 25 	! NATURAL
+lc_fixed_peatland 25 	! PEATLAND
+equal_landcover_area 0	! divide gridcell into equal active landcover fractions
+
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -138,6 +159,7 @@ group "common" (
 	emax 5
 	reprfrac 0.1
 	wscal_min 0.35
+	landcover "natural"
 )
 
 

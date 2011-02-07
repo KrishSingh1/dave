@@ -91,7 +91,7 @@ void leaf_phenology_pft(Pft& pft,Climate& climate,double wscal,double aphen,
 				phen=0.0;
 		
 		}
-		else if (pft.lifeform==GRASS || pft.lifeform==CROP) {
+		else if (pft.lifeform==GRASS) {
 
 			// Summergreen grasses have no maximum number of leaf-on days per
 			// growing season, and no chilling requirement
@@ -134,10 +134,11 @@ void leaf_phenology(Patch& patch,Climate& climate) {
 		Patchpft& pft=patch.pft.getobj();
 
 		// For this PFT ...
-		leaf_phenology_pft(pft.pft,climate,pft.wscal,pft.aphen,pft.phen);
+		if(patch.stand.pft[pft.id].active)
+			leaf_phenology_pft(pft.pft,climate,pft.wscal,pft.aphen,pft.phen);
 
 		// guess2008
-		if (pft.pft.lifeform==TREE && (pft.pft.phenology==SUMMERGREEN || pft.pft.phenology==ANY))
+		if (pft.pft.lifeform==TREE && (pft.pft.phenology==SUMMERGREEN || pft.pft.phenology==ANY) && patch.stand.pft[pft.id].active)
 			if (pft.phen<1.0) leafout=false; // CHILLDAYS
 
 		// Update annual leaf-on sum
@@ -180,11 +181,9 @@ void leaf_phenology(Patch& patch,Climate& climate) {
 // Internal function (do not call directly from framework)
 
 void turnover(double turnover_leaf,double turnover_root,double turnover_sap,
-	lifeformtype lifeform,double& cmass_leaf,double& cmass_root,double& cmass_sap,
-	double& cmass_heart,double& litter_leaf,double& litter_root,bool alive) {
+	lifeformtype lifeform,landcovertype landcover,double& cmass_leaf,double& cmass_root,double& cmass_sap,
+	double& cmass_heart,double& litter_leaf,double& litter_root, bool alive, Gridcell& gridcell) {
 
-	// guess2008 - new (indiv.)alive boolean throughout
-	
 	// DESCRIPTION
 	// Transfers carbon from leaves and roots to litter, and from sapwood to heartwood
 	// Only turnover from 'alive' individuals is transferred to litter (Ben 2007-11-28)
@@ -207,89 +206,36 @@ void turnover(double turnover_leaf,double turnover_root,double turnover_sap,
 	// litter_root   = new root litter (kgC/m2)
 	// cmass_heart   = heartwood C biomass (kgC/m2)
 
-	double turnover;
+	double turnover = 0.0;
+	double scale=1.0;
 
-	// TREES AND GRASSES:
+	if(run_landcover && gridcell.LC_updated) {
+		//scale harvest products of stands with increased area by (old area/new area) if landcover change has occurred:
+		scale=gridcell.landcoverfrac_old[landcover]/gridcell.landcoverfrac[landcover];
+
+		if(scale>=1.0)
+			scale=1.0;
+	}
 
 	// Leaf turnover
-	turnover=turnover_leaf*cmass_leaf;
+	turnover=turnover_leaf*cmass_leaf*scale;
 	cmass_leaf-=turnover;
 	if (alive) litter_leaf+=turnover;
 
 	// Root turnover
-	turnover=turnover_root*cmass_root;
+	turnover=turnover_root*cmass_root*scale;
 	cmass_root-=turnover;
 	if (alive) litter_root+=turnover;
 
 	if (lifeform==TREE) {
-		
+
 		// TREES ONLY:
 
 		// Sapwood turnover by conversion to heartwood
-		turnover=turnover_sap*cmass_sap;
+		turnover=turnover_sap*cmass_sap*scale;
 		cmass_sap-=turnover;
 		cmass_heart+=turnover;
-	}
-}
-
-
-void turnover_oecd(double turnover_leaf,double turnover_root,double turnover_sap,
-	lifeformtype lifeform,double& cmass_leaf,double& cmass_root,double& cmass_sap,
-	double& cmass_heart,double& litter_leaf,double& litter_root,Fluxes& fluxes,bool alive) {
-
-	// DESCRIPTION
-	// Transfers carbon from leaves and roots to litter, and from sapwood to heartwood
-	// Version for OECD experiment:
-	// For crops (specially labelled grass type) 50% of above-ground biomass transferred
-	// to litter, remainder stored as a flux to the atmosphere (i.e. increments Rh)
-	// (equal amount for each month)
-
-	// guess2008 - new (indiv.)alive boolean throughout. Also, only turnover from 'alive' 
-	// individuals is transferred to litter
-
-
-	double turnover = 0.0;
-	int m;
-
-
-	if (lifeform==CROP) {
-
-		if (alive) litter_root+=cmass_root;
-		cmass_root=0.0;
-
-		turnover=0.5*cmass_leaf;
-		fluxes.acflux_soil+=turnover;
-		if (alive) litter_leaf+=turnover;
-		cmass_leaf=0.0;
-
-		turnover/=12.0;
-		for (m=0;m<12;m++) fluxes.mcflux_soil[m]+=turnover;
-	}
-	else {
-
-		// TREES AND GRASSES:
-
-		// Leaf turnover
-		turnover=turnover_leaf*cmass_leaf;
-		cmass_leaf-=turnover;
-		if (alive) litter_leaf+=turnover;
-
-		// Root turnover
-		turnover=turnover_root*cmass_root;
-		cmass_root-=turnover;
-		if (alive) litter_root+=turnover;
-
-		if (lifeform==TREE) {
-			
-			// TREES ONLY:
-
-			// Sapwood turnover by conversion to heartwood
-			turnover=turnover_sap*cmass_sap;
-			cmass_sap-=turnover;
-			cmass_heart+=turnover;
-		}	
-
-	}
+	}	
 }
 
 
@@ -680,7 +626,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 			cmass_heart_inc=-cmass_sap_inc;
 		}
 	}
-	else if (lifeform==GRASS || lifeform==CROP) {
+	else if (lifeform==GRASS) {
 
 		// GRASS ALLOCATION
 		// Allocation attempts to distribute biomass increment (bminc) among leaf
@@ -883,7 +829,7 @@ bool allometry(Individual& indiv) {
 		// Stand-level LAI
 		indiv.lai=indiv.cmass_leaf*indiv.pft.sla;
 	}
-	else if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==CROP) {
+	else if (indiv.pft.lifeform==GRASS) {
 		
 		// GRASSES
 
@@ -932,7 +878,7 @@ double fracmass_lpj(double fpc_low,double fpc_high,Individual& indiv) {
 		// else
 		return fpc_low/fpc_high;
 	}
-	else if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==CROP) { // grass
+	else if (indiv.pft.lifeform==GRASS) { // grass
 
 		if (fpc_high>=1.0 || fpc_low>=1.0 || negligible(indiv.cmass_leaf)) return 1.0;
 
@@ -1001,6 +947,7 @@ void growth(Stand& stand,Patch& patch) {
 
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation=patch.vegetation;
+	Gridcell& gridcell=vegetation.patch.stand.gridcell;
 
 	// On first call to function growth this year (patch #0), initialise stand-PFT
 	// record of summed allocation to reproduction
@@ -1064,14 +1011,14 @@ void growth(Stand& stand,Patch& patch) {
 			}
 
 			// Tissue turnover and associated litter production
-			turnover_oecd(indiv.pft.turnover_leaf,indiv.pft.turnover_root,
-				indiv.pft.turnover_sap,indiv.pft.lifeform,indiv.cmass_leaf,
+			turnover(indiv.pft.turnover_leaf,indiv.pft.turnover_root,
+				indiv.pft.turnover_sap,indiv.pft.lifeform,indiv.pft.landcover,indiv.cmass_leaf,
 				indiv.cmass_root,indiv.cmass_sap,indiv.cmass_heart,
 				patch.pft[indiv.pft.id].litter_leaf,
-				patch.pft[indiv.pft.id].litter_root,patch.fluxes,indiv.alive);
+				patch.pft[indiv.pft.id].litter_root,indiv.alive, gridcell);
 
 			// Update stand record of reproduction by this PFT
-			stand.pft[indiv.pft.id].cmass_repr+=cmass_repr/(double)npatch;
+			stand.pft[indiv.pft.id].cmass_repr+=cmass_repr/(double)stand.nobj;
 
 			// Transfer reproduction straight to litter
 			// guess2008 - only for 'alive' individuals
@@ -1143,7 +1090,7 @@ void growth(Stand& stand,Patch& patch) {
 					killed=true;
 				}
 			}
-			else if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==CROP) {
+			else if (indiv.pft.lifeform==GRASS) {
 
 				// GRASS GROWTH
 
@@ -1168,10 +1115,10 @@ void growth(Stand& stand,Patch& patch) {
 
 				// guess2008 - alive check before ensuring C balance
 				if (indiv.alive) {
-					
+
 					patch.pft[indiv.pft.id].litter_leaf+=litter_leaf_inc+indiv_cmass_diff/2;
-					patch.pft[indiv.pft.id].litter_root+=litter_root_inc+indiv_cmass_diff/2;
-	
+					patch.pft[indiv.pft.id].litter_root+=litter_root_inc+indiv_cmass_diff/2;			
+
 				}
 
 				// Kill individual and transfer biomass to litter if either biomass

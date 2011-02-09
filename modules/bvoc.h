@@ -19,7 +19,7 @@
 
 #include "guess.h"
 
-void bvoc(double,double,double,double,double,double,double,double,
+void bvoc(double,double,double,double,double,double,double,double,int,
 	     double,double,double,double,double,double,double,const Pft&,
 	     double&,double&,double&,double&,double&);
 void initbvoc(Pftlist&);

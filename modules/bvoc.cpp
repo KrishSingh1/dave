@@ -359,12 +359,12 @@ double leafT(double temp, double daylength, double adtmm, double co2,
 // VOCSEAS
 // called from VOCCALC
 
-double vocseas(double& f_season, double temp, double daylength, double agdd5, 
-	       const Pft& pft){
+double vocseas(double& f_season, double temp, double daylength, int nday,
+	       double agdd5, const Pft& pft){
 
   // calculating the seasonality for VOCs (isoprene and monoterpene) for PFTs
-  // TeBS, BNS, BBS and C3G. Revised version compared to Arneth et al. (2007). 
-  // seasonality switch read in from .ins file
+  // Revised version compared to Arneth et al. (2007). 
+  // Seasonality switch pft.seas_iso read in from .ins file
 
   double vocgdd5ramp;
   double rdr=0.05;  // relative decay rate (d-1)
@@ -389,7 +389,7 @@ double vocseas(double& f_season, double temp, double daylength, double agdd5,
       }
     }
     else if(temp<tmin || daylength<dmin){
-      f_season=f_season*(1.-rdr);
+      f_season=f_season*pow((1.-rdr),((double)nday));
     }
     else{
       f_season=1.;
@@ -406,11 +406,11 @@ double vocseas(double& f_season, double temp, double daylength, double agdd5,
 // called from NPP
 
 void bvoc(double daylength, double temp, double tempamp, double adtmm, 
-	     double co2, double lambda, double eet, double agdd5, double rd_g, 
-	     double pi_co2_opt, double gammastar, double apar, double rs_day, 
-	     double phi_pi, double lai, const Pft& pft,
-	     double& iso, double& mon, double& dmonstor, double& dleaftemp,
-	     double& fvocseas){
+	  double co2, double lambda, double eet, double agdd5, int nday,
+	  double rd_g, double pi_co2_opt, double gammastar, double apar, 
+	  double rs_day, double phi_pi, double lai, const Pft& pft,
+	  double& iso, double& mon, double& dmonstor, double& dleaftemp,
+	  double& fvocseas){
 
   double temp_leaf_daytime; // leaf temperature during daytime (oC)
   double temp_leaf;         // leaf temperature (diurnal average) (oC)
@@ -423,7 +423,7 @@ void bvoc(double daylength, double temp, double tempamp, double adtmm,
   temp_leaf_daytime=leafT(temp_leaf_daytime,daylength,adtmm,co2,lambda,eet,pft.ga,rs_day,pft.gmin,lai);
   
   // calculate seasonality for VOC emissions, -
-  fvocseas=vocseas(fvocseas,temp,daylength,agdd5,pft);
+  fvocseas=vocseas(fvocseas,temp,daylength,nday,agdd5,pft);
 
   // determine temperature difference between leaf temperature and daytime 
   // temperature for output

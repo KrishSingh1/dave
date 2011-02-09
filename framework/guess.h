@@ -1053,6 +1053,7 @@ public:
 		monstor=0.;
 		aiso=0.;
 		amon=0.;
+		fvocseas=1.;
 		dtr_wstress=0.;
 		eet_wstress=0.;
 		agdd5_wstress=0.;

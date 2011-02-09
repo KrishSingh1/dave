@@ -1873,7 +1873,7 @@ void npp(Patch& patch) {
 			if(ifbvoc){
 			  if(!negligible(climate.daylength)&&indiv.adtmm>0){
 			    bvoc(climate.daylength,climate.temp,climate.dtr,indiv.adtmm,
-				 climate.co2,indiv.lambda,climate.eet,climate.agdd5,
+				 climate.co2,indiv.lambda,climate.eet,climate.agdd5,1,
 				 indiv.rd_g,indiv.pi_co2_opt,indiv.gammastar,indiv.apar,
 				 climate.rad,indiv.phi_pi,indiv.lai*indiv.phen,pft,
 				 indiv.iso,indiv.mon,indiv.dmonstor,indiv.leaftemp,
@@ -1971,7 +1971,7 @@ void npp(Patch& patch) {
 			    indiv.lambda=stand.pft[pft.id].lambda_term;
 			    if(!negligible(climate.daylength)&&indiv.adtmm>0){
 			      bvoc(climate.daylength,climate.temp,climate.dtr,indiv.adtmm,
-				   climate.co2,indiv.lambda,climate.eet,climate.agdd5,
+				   climate.co2,indiv.lambda,climate.eet,climate.agdd5,1,
 				   indiv.rd_g,indiv.pi_co2_opt,indiv.gammastar,indiv.apar,
 				   climate.rad,indiv.phi_pi,indiv.lai*indiv.phen,pft,
 				   iso,mon,indiv.dmonstor,indiv.leaftemp,
@@ -1979,7 +1979,9 @@ void npp(Patch& patch) {
 			      iso*=indiv.fpar;
 			      mon*=indiv.fpar;
 			      indiv.iso+=iso;
-			      indiv.mon+=mon;
+			      rmonstor=-indiv.monstor*indiv.dmonstor+pft.storfrac_mon*mon;
+			      indiv.monstor+=rmonstor;
+			      indiv.mon+=(1.-pft.storfrac_mon)*mon+indiv.monstor*indiv.dmonstor;
 			    }
 			  }
 			  
@@ -2036,10 +2038,12 @@ void npp(Patch& patch) {
 					if(ifbvoc){
 					  if(!negligible(indiv.daylength_wstress)&&indiv.adtmm>0){
 					    bvoc(indiv.daylength_wstress,indiv.temp_wstress,indiv.dtr_wstress,indiv.adtmm,
-						 indiv.co2_wstress,indiv.lambda,indiv.eet_wstress,indiv.agdd5_wstress,
+						 indiv.co2_wstress,indiv.lambda,indiv.eet_wstress,indiv.agdd5_wstress,indiv.nday_wstress,
 						 indiv.rd_g,indiv.pi_co2_opt,indiv.gammastar,indiv.apar,
 						 indiv.rad_wstress,indiv.phi_pi,indiv.lai*indiv.phen_mean,pft,
 						 iso,mon,indiv.dmonstor,indiv.leaftemp,indiv.fvocseas);
+					    iso*=indiv.fpar_wstress;
+					    mon*=indiv.fpar_wstress;
 					  }
 					  else{
 					    iso=0.;

@@ -1051,6 +1051,8 @@ public:
 
 		// bvoc
 		monstor=0.;
+		iso=0.;
+		mon=0.;
 		aiso=0.;
 		amon=0.;
 		fvocseas=1.;

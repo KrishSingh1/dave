@@ -1871,7 +1871,7 @@ void npp(Patch& patch) {
 			
 			// bvoc
 			if(ifbvoc){
-			  if(!negligible(climate.daylength)&&indiv.adtmm>0){
+			  if(!negligible(climate.daylength)&&indiv.adtmm>0.){
 			    bvoc(climate.daylength,climate.temp,climate.dtr,indiv.adtmm,
 				 climate.co2,indiv.lambda,climate.eet,climate.agdd5,1,
 				 indiv.rd_g,indiv.pi_co2_opt,indiv.gammastar,indiv.apar,
@@ -1969,7 +1969,7 @@ void npp(Patch& patch) {
 			    indiv.phi_pi=stand.pft[pft.id].phi_pi_term;
 			    indiv.adtmm=stand.pft[pft.id].adtmm_term;
 			    indiv.lambda=stand.pft[pft.id].lambda_term;
-			    if(!negligible(climate.daylength)&&indiv.adtmm>0){
+			    if(!negligible(climate.daylength)&&indiv.adtmm>0.){
 			      bvoc(climate.daylength,climate.temp,climate.dtr,indiv.adtmm,
 				   climate.co2,indiv.lambda,climate.eet,climate.agdd5,1,
 				   indiv.rd_g,indiv.pi_co2_opt,indiv.gammastar,indiv.apar,
@@ -2036,7 +2036,7 @@ void npp(Patch& patch) {
 					
 					// bvoc
 					if(ifbvoc){
-					  if(!negligible(indiv.daylength_wstress)&&indiv.adtmm>0){
+					  if(!negligible(indiv.daylength_wstress)&&indiv.adtmm>0.){
 					    bvoc(indiv.daylength_wstress,indiv.temp_wstress,indiv.dtr_wstress,indiv.adtmm,
 						 indiv.co2_wstress,indiv.lambda,indiv.eet_wstress,indiv.agdd5_wstress,indiv.nday_wstress,
 						 indiv.rd_g,indiv.pi_co2_opt,indiv.gammastar,indiv.apar,

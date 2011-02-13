@@ -22,9 +22,10 @@
 #include "guess.h"
 
 void initio(int argc,char* argv[],Pftlist& pftlist);
-bool getstand(Stand& stand);
-bool getclimate(Stand& stand);
-void outannual(Stand& stand,Pftlist& pftlist);
+bool getgridcell(Gridcell& gridcell);
+bool getclimate(Gridcell& gridcell);
+void getlandcover(Gridcell& gridcell,Pftlist& pftlist);
+void outannual(Gridcell& gridcell,Pftlist& pftlist);
 void termio();
 
 #endif // LPJ_GUESS_GUESSIO_H

@@ -87,47 +87,64 @@
 //
 ///////////////////////////////////////////////////////////////////////////////////////
 
-
-///////////////////////////////////////////////////////////////////////////////////////
-// CLASS PARAMLIST
-// Functionality for storing and retrieving custom "param" items from the instruction
-// script
-
+/// Represents one custom "param" item
 struct Paramtype {
 	xtring name;
 	xtring str;
 	double num;
 };
 
+/// List for the custom parameters
+/** Functionality for storing and retrieving custom "param" items from the instruction
+ *  script.
+ */
 class Paramlist : public ListArray<Paramtype> {
 
 public:
-	void addparam(xtring& name,xtring& value) {
-		Paramtype& p=createobj();
-		p.name=name.lower();
-		p.str=value;
+	/// Adds a parameter with a numeric value, overwriting if it already existed
+	void addparam(xtring name,xtring value) {
+		Paramtype* p = find(name);
+		if (p == 0) {
+			p = &createobj();
+	}
+		p->name=name.lower();
+		p->str=value;
 	}
 
-	void addparam(xtring& name,double value) {
-		Paramtype& p=createobj();
-		p.name=name.lower();
-		p.num=value;
+	/// Adds a parameter with a string value, overwriting if it already existed
+	void addparam(xtring name,double value) {
+		Paramtype* p = find(name);
+		if (p == 0) {
+			p = &createobj();
+	}
+		p->name=name.lower();
+		p->num=value;
 	}
 
+	/// Fetches a parameter from the list, aborts the program if it didn't exist
 	Paramtype& operator[](xtring name) {
-		name.lower();
+		Paramtype* param = find(name);
+		
+		if (param == 0) {
+			fail("Paramlist::operator[]: parameter \"%s\" not found",(char*)name);
+		}
+		
+		return *param;
+	}
+
+private:
+	/// Tries to find the parameter in the list
+	/** \returns 0 if it wasn't there. */
+	Paramtype* find(xtring name) {
+		name = name.lower();
 		firstobj();
 		while (isobj) {
 			Paramtype& p=getobj();
-			if (p.name==name) return p;
+			if (p.name==name) return &p;
 			nextobj();
 		}
-		fail("Paramlist::operator[]: parameter \"%s\" not found",(char*)name);
-
-		// This point cannot be reached in practice, but to satisfy more pedantic
-		// compilers ...
-
-		return getobj();
+		// nothing found
+		return 0;
 	}
 };
 

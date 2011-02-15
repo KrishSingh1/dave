@@ -754,6 +754,14 @@ void plib_callback(int callback) {
 				includepft=0;
 		}
 
+		// Special case to include Picea sitchensis so we can use the standard
+		// ins file with european species (where it's disabled).
+		// See also code in vegdynam.cpp (establish()) where Pic_sit is handled
+		// as a special case.
+		if (ppft->name == "Pic_sit") {
+			 includepft = true;
+		}
+
 		// If "include 0", remove this PFT from list, and set id to correct value
 
 		if (!includepft) {

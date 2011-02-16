@@ -675,6 +675,14 @@ void photosynthesis_withbvoc(double co2,double temp,double par,double daylength,
 		agd=0.0;
 		adtmm=0.0;
 		rd=0.0;
+
+		// bvoc
+		rd_g=0.;
+		pi_co2_opt=0.;
+		gammastar=0.;
+		apar=0.;
+		phi_pi=0.;		
+
 		return;
 	}
 
@@ -1594,9 +1602,10 @@ void assimilation_wstress_withbvoc(Pft& pft,Patchpft& ppft,double co2,double tem
 
 		if (!lookup_lambda.getdata(date.year,date.day,adt2,agd,rd)) {
 
-			photosynthesis(co2,temp,par,daylength,1.0,xmid,pft.pathway,pft.pstemp_min,
-				pft.pstemp_low,pft.pstemp_high,pft.pstemp_max,pft.lambda_max,agd,adt2,
-				rd);
+			photosynthesis_withbvoc(co2,temp,par,daylength,1.0,xmid,pft.pathway,pft.pstemp_min,
+						pft.pstemp_low,pft.pstemp_high,pft.pstemp_max,pft.lambda_max,agd,adt2,
+						rd,rd_g,pi_co2_opt,gammastar,apar,phi_pi);
+
 			
 			lookup_lambda.setdata(date.year,date.day,adt2,agd,rd);
 		}
@@ -1618,6 +1627,10 @@ void assimilation_wstress_withbvoc(Pft& pft,Patchpft& ppft,double co2,double tem
 	// respiration, including conversion from FPC to grid cell basis
 
 	assim=(agd-rd)*fpar;
+
+	// bvoc
+	adtmm=adt2;
+	lambda=xmid;
 }
 
 

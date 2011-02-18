@@ -24,7 +24,7 @@ set(IO "cru" CACHE STRING "The IO module to use (cru/demo)")
 if (UNIX)
   # The SYSTEM variable is currently only used to choose which 
   # submit.sh to generate (for submitting to PBS job queue)
-  set(SYSTEM "" CACHE STRING "System to build for (empty or milleotto)")
+  set(SYSTEM "" CACHE STRING "System to build for (empty, gimle or milleotto)")
 endif (UNIX)
 
 # Where the compiler should search for header files
@@ -63,6 +63,8 @@ if (UNIX)
   # Choose template file depending on system
   if (SYSTEM STREQUAL "milleotto")
     set(submit_template ${guess_SOURCE_DIR}/parallel_version/lunarc/milleotto/submit.tmpl)
+  elseif(SYSTEM STREQUAL "gimle")
+    set(submit_template ${guess_SOURCE_DIR}/parallel_version/slurm/submit.tmpl)
   else()
     set(submit_template ${guess_SOURCE_DIR}/parallel_version/simba/pbs/submit.tmpl)
   endif()

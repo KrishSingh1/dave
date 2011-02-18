@@ -1078,8 +1078,8 @@ public:
 	// guess2008 - override the default SOM years with 70-80% of the spin-up period length
 	void updateSolveSOMvalues(const int& nyrspinup) {
 		
-		solvesom_end=0.8*nyrspinup;
-		solvesom_begin=0.7*nyrspinup;
+		solvesom_end=static_cast<int>(0.8*nyrspinup);
+		solvesom_begin=static_cast<int>(0.7*nyrspinup);
 
 	}
 };
@@ -1695,7 +1695,7 @@ public:
 		landcovertype landcover;
 		LC_updated=false;
 
-		for(int p=0;p<pftlist.nobj;p++) {
+		for(unsigned int p=0;p<pftlist.nobj;p++) {
 			Gridcellpft& gcpft=pft.createobj(pftlist[p]);
 		}		
 

@@ -372,6 +372,66 @@ public:
 	}
 };
 
+/// This struct contains the result of a photosynthesis calculation.
+/** \see photosynthesis */  
+struct PhotosynthesisResult {
+	/// Constructs an empty result
+	PhotosynthesisResult() {
+		clear();
+	}
+
+	/// Clears all members
+	/** This is returned by the photosynthesis function when no photosynthesis
+	 *  takes place.
+	 */
+	void clear() {
+		agd_g      = 0.0;
+		adtmm      = 0.0;
+		rd_g       = 0.0;
+		pi_co2_opt = 0.0;
+		gammastar  = 0.0;
+		apar       = 0.0;
+		phi_pi     = 0.0;
+	}
+
+	/// gross daily photosynthesis (gC/m2/day)
+	double agd_g;
+
+	/// leaf-level net daytime photosynthesis 
+	/** expressed in CO2 diffusion units (mm/m2/day) */
+    double adtmm;
+
+	/// leaf respiration (gC/m2/day)
+	double rd_g;
+
+	/// non-water-stressed intercellular partial pressure of CO2 (Pa)
+	double pi_co2_opt;
+
+	/// CO2 compensation point in partial pressure units (Pa)
+    double gammastar;
+
+	/// amount of PAR absorbed at leaf level (J m-2 d-1)
+    double apar;
+
+	/// factor accounting for effect of intercellular CO2 concentration on C4 photosynthesis
+    double phi_pi;
+
+	/// gross daily photosynthesis (kgC/m2/day)
+    double agd() const {
+        return agd_g/1000.0;
+    }
+
+	/// leaf-level net daytime photosynthesis (kgC/m2/day)
+    double rd() const {
+        return rd_g/1000.0;
+    }
+
+	/// net C-assimilation (gross photosynthesis minus leaf respiration) (kgC/m2/day)
+    double net_assimilation() const {
+        return agd()-rd();
+    }
+};
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // CLIMATE
@@ -983,15 +1043,8 @@ public:
 	double dmon[365]; // daily monoterpene emission (mg C m-2 d-1)
 	double aiso; // annual isoprene emission (mg C m-2 y-1)
 	double amon; // annual monoterpene emission (mg C m-2 y-1)
-	double adtmm; // leaf-level net daytime photosynthesis expressed in CO2
-                      //  diffusion units (mm/m2/day)
-	double pi_co2_opt; // non-water-stressed intercellular partial pressure of CO2 (Pa)
-	double gammastar;  // CO2 compensation point in partial pressure units (Pa)
-	double phi_pi; 	// factor accounting for effect of intercellular CO2 
-                        // concentration on C4 photosynthesis 
 	double lambda; // ratio of intercellular to ambient partial pressure of CO2
-	double apar; // amount of PAR absorbed at leaf level (J m-2 d-1)
-	double rd_g; // leaf respiration (gC/m2/day)
+	PhotosynthesisResult photosynthesis;
 	double monstor; // monoterpene storage pool (mg C m-2)
 	double dmonstor; // relative emission rate from monoterpene storage (d-1)
 	double leaftemp; // leaf temperature (C)
@@ -1291,14 +1344,12 @@ public:
 const int LOOKUP_LAMBDA_MAXITEM=130;
 
 struct Lookup_lambda_item {
-	double adtmm;
-	double agd;
-	double rd;
+	PhotosynthesisResult photosynthesis;
 	int year;
 	int day;
 
 	Lookup_lambda_item()
-			: adtmm(0.0), agd(0.0), rd(0.0), year(-1), day(0) {
+			: photosynthesis(), year(-1), day(0) {
 	}
 };
 
@@ -1315,29 +1366,25 @@ public:
 		position=0;
 	}
 
-	bool getdata(int year,int day,double& adtmm,double& agd,double& rd) {
+	bool getdata(int year,int day,PhotosynthesisResult& photosynthesis) {
 		if (position>=LOOKUP_LAMBDA_MAXITEM)
 			fail("class Lookup_lambda: exceeded dimension of lookup table");
 		Lookup_lambda_item& thisitem=data[position];
 		if (thisitem.year==year && thisitem.day==day) {
-			adtmm=thisitem.adtmm;
-			agd=thisitem.agd;
-			rd=thisitem.rd;
+			photosynthesis = thisitem.photosynthesis;
 			return true;
 		}
 		// else
 		return false;
 	}
 
-	void setdata(int year,int day,double adtmm,double agd,double rd) {
+	void setdata(int year,int day, const PhotosynthesisResult& photosynthesis) {
 		if (position>=LOOKUP_LAMBDA_MAXITEM)
 			fail("class Lookup_lambda: exceeded dimension of lookup table");
 		Lookup_lambda_item& thisitem=data[position];
 		thisitem.year=year;
 		thisitem.day=day;
-		thisitem.adtmm=adtmm;
-		thisitem.agd=agd;
-		thisitem.rd=rd;
+		thisitem.photosynthesis = photosynthesis;
 	}
 
 	bool increase() {
@@ -1619,14 +1666,7 @@ public:
 	double fpc_total;
 		// FPC sum for this PFT as average for stand (used by some versions of
 		// guessio.cpp)
-	double rd_g_term; // leaf respiration (gC/m2/day)
-	double pi_co2_opt_term; // non-water-stressed intercellular partial pressure of CO2 (Pa)
-	double gammastar_term;  // CO2 compensation point in partial pressure units (Pa)
-	double apar_term; // amount of PAR absorbed at leaf level (J m-2 d-1)
-	double phi_pi_term; 	// factor accounting for effect of intercellular CO2 
-	                        // concentration on C4 photosynthesis 
-	double adtmm_term; // leaf-level net daytime photosynthesis expressed in CO2
-	                   //  diffusion units (mm/m2/day)
+	PhotosynthesisResult photosynthesis;
 	double lambda_term; // ratio of intercellular to ambient partial pressure of CO2
 	
 	

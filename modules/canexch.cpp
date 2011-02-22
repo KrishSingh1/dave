@@ -1484,9 +1484,12 @@ void assimilation_wstress(Pft& pft,Patchpft& ppft,double co2,double temp,double 
 	gcphot=ppft.gcbase*daylength*3600.0;
 
 	if (negligible(fpc) || negligible(fpar) || negligible(gcphot)) {
-		
 		// Return zero assimilation
 		phot_result.clear();
+
+		// lambda doesn't make sense here and shouldn't be used, but let's
+		// return something well defined at least
+		lambda = pft.lambda_max;
 		return;
 	}
 

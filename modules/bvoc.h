@@ -19,9 +19,9 @@
 
 #include "guess.h"
 
-void bvoc(double,double,double,double,double,double,double,double,int,
-	     double,double,double,double,double,double,double,const Pft&,
-	     double&,double&,double&,double&,double&);
+void bvoc(double,double,double,const PhotosynthesisResult&,double,double,
+          double,double,int,double,double,const Pft&,double&,double&,
+          double&,double&,double&);
 void initbvoc(Pftlist&);
 
 #endif // LPJ_GUESS_BVOC_H

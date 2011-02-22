@@ -1774,10 +1774,9 @@ void npp(Patch& patch) {
 			// bvoc
 			if(ifbvoc){
 			  if(!negligible(climate.daylength) && indiv.photosynthesis.adtmm > 0.){
-			    bvoc(climate.daylength,climate.temp,climate.dtr,indiv.photosynthesis.adtmm,
+			    bvoc(climate.daylength,climate.temp,climate.dtr,indiv.photosynthesis,
 				 climate.co2,indiv.lambda,climate.eet,climate.agdd5,1,
-				 indiv.photosynthesis.rd_g,indiv.photosynthesis.pi_co2_opt,indiv.photosynthesis.gammastar,indiv.photosynthesis.apar,
-				 climate.rad,indiv.photosynthesis.phi_pi,indiv.lai*indiv.phen,pft,
+				 climate.rad,indiv.lai*indiv.phen,pft,
 				 indiv.iso,indiv.mon,indiv.dmonstor,indiv.leaftemp,
 				 indiv.fvocseas);
 			    indiv.iso*=indiv.fpar;
@@ -1867,10 +1866,9 @@ void npp(Patch& patch) {
 				  indiv.photosynthesis = stand.pft[pft.id].photosynthesis;
 				  indiv.lambda=stand.pft[pft.id].lambda_term;
 				  if(!negligible(climate.daylength) && indiv.photosynthesis.adtmm > 0.0){
-					  bvoc(climate.daylength,climate.temp,climate.dtr,indiv.photosynthesis.adtmm,
+					  bvoc(climate.daylength,climate.temp,climate.dtr,indiv.photosynthesis,
 						  climate.co2,indiv.lambda,climate.eet,climate.agdd5,1,
-						  indiv.photosynthesis.rd_g,indiv.photosynthesis.pi_co2_opt,indiv.photosynthesis.gammastar,indiv.photosynthesis.apar,
-						  climate.rad,indiv.photosynthesis.phi_pi,indiv.lai*indiv.phen,pft,
+						  climate.rad,indiv.lai*indiv.phen,pft,
 						  iso,mon,indiv.dmonstor,indiv.leaftemp,
 						  indiv.fvocseas);
 					  iso*=indiv.fpar;
@@ -1925,10 +1923,9 @@ void npp(Patch& patch) {
 					// bvoc
 					if(ifbvoc){
 						if(!negligible(indiv.daylength_wstress) && indiv.photosynthesis.adtmm > 0.0){
-							bvoc(indiv.daylength_wstress,indiv.temp_wstress,indiv.dtr_wstress,indiv.photosynthesis.adtmm,
+							bvoc(indiv.daylength_wstress,indiv.temp_wstress,indiv.dtr_wstress,indiv.photosynthesis,
 								indiv.co2_wstress,indiv.lambda,indiv.eet_wstress,indiv.agdd5_wstress,indiv.nday_wstress,
-								indiv.photosynthesis.rd_g,indiv.photosynthesis.pi_co2_opt,indiv.photosynthesis.gammastar,indiv.photosynthesis.apar,
-								indiv.rad_wstress,indiv.photosynthesis.phi_pi,indiv.lai*indiv.phen_mean,pft,
+								indiv.rad_wstress,indiv.lai*indiv.phen_mean,pft,
 								iso,mon,indiv.dmonstor,indiv.leaftemp,indiv.fvocseas);
 							iso*=indiv.fpar_wstress;
 							mon*=indiv.fpar_wstress;

@@ -205,9 +205,9 @@ double dayT(double temp, double daylength, double tempamp){
 // called from VOCCALC
 
 void isoprmonot1(double co2, double agdd5, double temp, double daylength, 
-		 double rd_g, double pi_co2_opt, double gammastar,double apar, 
-		 double phi_pi, const Pft& pft,double fvocseas,double temprel,
-		 double& dmonstor, double& iso, double& mon){
+                 const PhotosynthesisResult& photosynthesis,
+                 const Pft& pft,double fvocseas,double temprel,
+                 double& dmonstor, double& iso, double& mon){
     
   // Calculation of isoprene and monoterpene emissions coupled to 
   // photosynthesis as described in Arneth et al. (2007) for isoprene and 
@@ -217,6 +217,12 @@ void isoprmonot1(double co2, double agdd5, double temp, double daylength,
   double pstemp_min=pft.pstemp_min;
   double pstemp_high=pft.pstemp_high;
   double pstemp_low=pft.pstemp_low;
+
+  double rd_g       = photosynthesis.rd_g;
+  double pi_co2_opt = photosynthesis.pi_co2_opt;
+  double gammastar  = photosynthesis.gammastar;
+  double apar       = photosynthesis.apar;
+  double phi_pi     = photosynthesis.phi_pi;
   
   double f_co2;
   double f_temp;
@@ -405,12 +411,12 @@ double vocseas(double& f_season, double temp, double daylength, int nday,
 // BVOC
 // called from NPP
 
-void bvoc(double daylength, double temp, double tempamp, double adtmm, 
-	  double co2, double lambda, double eet, double agdd5, int nday,
-	  double rd_g, double pi_co2_opt, double gammastar, double apar, 
-	  double rs_day, double phi_pi, double lai, const Pft& pft,
-	  double& iso, double& mon, double& dmonstor, double& dleaftemp,
-	  double& fvocseas){
+void bvoc(double daylength, double temp, double tempamp,
+     const PhotosynthesisResult& photosynthesis, 
+     double co2, double lambda, double eet, double agdd5, int nday,
+     double rs_day, double lai, const Pft& pft,
+     double& iso, double& mon, double& dmonstor, double& dleaftemp,
+     double& fvocseas){
 
   double temp_leaf_daytime; // leaf temperature during daytime (oC)
   double temp_leaf;         // leaf temperature (diurnal average) (oC)
@@ -419,8 +425,8 @@ void bvoc(double daylength, double temp, double tempamp, double adtmm,
   temp_leaf_daytime=dayT(temp,daylength,tempamp);
   
     // perform air temperature to leaf temperature correction
-  temp_leaf=leafT(temp,daylength,adtmm,co2,lambda,eet,pft.ga,rs_day,pft.gmin,lai);
-  temp_leaf_daytime=leafT(temp_leaf_daytime,daylength,adtmm,co2,lambda,eet,pft.ga,rs_day,pft.gmin,lai);
+  temp_leaf=leafT(temp,daylength,photosynthesis.adtmm,co2,lambda,eet,pft.ga,rs_day,pft.gmin,lai);
+  temp_leaf_daytime=leafT(temp_leaf_daytime,daylength,photosynthesis.adtmm,co2,lambda,eet,pft.ga,rs_day,pft.gmin,lai);
   
   // calculate seasonality for VOC emissions, -
   fvocseas=vocseas(fvocseas,temp,daylength,nday,agdd5,pft);
@@ -430,9 +436,9 @@ void bvoc(double daylength, double temp, double tempamp, double adtmm,
   dleaftemp=temp_leaf-temp;
   
   // calculate isoprene and monoterpene emissions, g C m-2 d-1
-  isoprmonot1(co2,agdd5,temp_leaf_daytime,daylength,rd_g,pi_co2_opt,gammastar,
-	      apar,phi_pi,pft,fvocseas,temp_leaf, 
-	      dmonstor,iso,mon);
+  isoprmonot1(co2,agdd5,temp_leaf_daytime,daylength,photosynthesis,
+              pft,fvocseas,temp_leaf, 
+              dmonstor,iso,mon);
   
   // convert from g C m-2 d-1 to mg C m-2 d-1
   iso=iso*1.e3;

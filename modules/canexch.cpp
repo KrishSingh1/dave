@@ -974,10 +974,7 @@ void demand(Patch& patch) {
 
 				standpft.have_phot=true;
 
-				// bvoc
-				if(ifbvoc){
-					standpft.lambda_term=pft.lambda_max;
-				}
+				standpft.lambda_term=pft.lambda_max;
 			}
 
 			// Calculate non-water-stressed canopy conductance assuming full leaf cover
@@ -1767,11 +1764,8 @@ void npp(Patch& patch) {
 				
 				indiv.assim=stand.pft[pft.id].assim_term*indiv.fpar;
 				
-				// bvoc
-				if(ifbvoc){
-					indiv.photosynthesis = stand.pft[pft.id].photosynthesis;
-					indiv.lambda=stand.pft[pft.id].lambda_term;
-				}
+				indiv.photosynthesis = stand.pft[pft.id].photosynthesis;
+				indiv.lambda=stand.pft[pft.id].lambda_term;
 			}
 			
 			// bvoc
@@ -1863,25 +1857,25 @@ void npp(Patch& patch) {
 			// by FPAR
 
 			if (!indiv.ifwstress){
-			  indiv.assim+=stand.pft[pft.id].assim_term*indiv.fpar;
-			  
-			  if(ifbvoc){
-				  indiv.photosynthesis = stand.pft[pft.id].photosynthesis;
-				  indiv.lambda=stand.pft[pft.id].lambda_term;
-				  if(!negligible(climate.daylength) && indiv.photosynthesis.adtmm > 0.0){
-					  bvoc(climate.daylength,climate.temp,climate.dtr,indiv.photosynthesis,
-						  climate.co2,indiv.lambda,climate.eet,climate.agdd5,1,
-						  climate.rad,indiv.lai*indiv.phen,pft,
-						  iso,mon,indiv.dmonstor,indiv.leaftemp,
-						  indiv.fvocseas);
-					  iso*=indiv.fpar;
-					  mon*=indiv.fpar;
-					  indiv.iso+=iso;
-					  rmonstor=-indiv.monstor*indiv.dmonstor+pft.storfrac_mon*mon;
-					  indiv.monstor+=rmonstor;
-					  indiv.mon+=(1.-pft.storfrac_mon)*mon+indiv.monstor*indiv.dmonstor;
-				  }
-			  }
+				 indiv.assim+=stand.pft[pft.id].assim_term*indiv.fpar;
+				 indiv.photosynthesis = stand.pft[pft.id].photosynthesis;
+				 indiv.lambda=stand.pft[pft.id].lambda_term;
+
+				 if(ifbvoc){
+					  if(!negligible(climate.daylength) && indiv.photosynthesis.adtmm > 0.0){
+							bvoc(climate.daylength,climate.temp,climate.dtr,indiv.photosynthesis,
+								  climate.co2,indiv.lambda,climate.eet,climate.agdd5,1,
+								  climate.rad,indiv.lai*indiv.phen,pft,
+								  iso,mon,indiv.dmonstor,indiv.leaftemp,
+								  indiv.fvocseas);
+							iso*=indiv.fpar;
+							mon*=indiv.fpar;
+							indiv.iso+=iso;
+							rmonstor=-indiv.monstor*indiv.dmonstor+pft.storfrac_mon*mon;
+							indiv.monstor+=rmonstor;
+							indiv.mon+=(1.-pft.storfrac_mon)*mon+indiv.monstor*indiv.dmonstor;
+					  }
+				 }
 			  
 			}
 

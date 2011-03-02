@@ -277,7 +277,7 @@ void fpar(Patch& patch) {
 	Vegetation& vegetation=patch.vegetation;
 
 	// And to Climate object
-	Climate& climate=patch.stand.climate;
+	Climate& climate=patch.stand.gridcell.climate;
 
 	if (vegmode==POPULATION) {
 		
@@ -325,7 +325,7 @@ void fpar(Patch& patch) {
 			if (indiv.height>height_veg) height_veg=indiv.height;
 			plai_leafon+=indiv.lai;
 			
-			if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==CROP) {
+			if (indiv.pft.lifeform==GRASS) {
 				plai_leafon_grass+=indiv.lai;
 				plai_grass+=indiv.lai*indiv.phen;
 			}
@@ -487,7 +487,7 @@ void fpar(Patch& patch) {
 
 			// For this individual ...
 
-			if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==CROP) {
+			if (indiv.pft.lifeform==GRASS) {
 
 				// Calculate minimum FPAR for growth of this grass
 
@@ -931,7 +931,7 @@ void demand(Patch& patch) {
 	// Retrieve Stand, Climate and Vegetation objects for this patch
 
 	Stand& stand=patch.stand;
-	Climate& climate=stand.climate;
+	Climate& climate=stand.gridcell.climate;
 	Vegetation& vegetation=patch.vegetation;
 
 	gp_patch=0.0;
@@ -1167,7 +1167,7 @@ void aet_water_stress(Patch& patch) {
 	double gcbase;
 
 	// Retrieve Climate object for patch
-	Climate& climate=patch.stand.climate;
+	Climate& climate=patch.stand.gridcell.climate;
 
 	// Calculate common point supply for each PFT in this patch
 
@@ -1681,7 +1681,7 @@ void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 
 		resp=resp_sap+resp_root+resp_growth;
 	}
-	else if (lifeform==GRASS || lifeform==CROP) {
+	else if (lifeform==GRASS) {
 
 		// Root respiration
 
@@ -1732,7 +1732,7 @@ void npp(Patch& patch) {
 
 	Vegetation& vegetation=patch.vegetation;
 	Stand& stand=patch.stand;
-	Climate& climate=stand.climate;
+	Climate& climate=stand.gridcell.climate;
 
 	// Loop through individuals
 
@@ -2034,7 +2034,7 @@ void forest_floor_conditions(Patch& patch) {
 	// Retrieve Stand and Climate objects for patch
 
 	Stand& stand=patch.stand;
-	Climate& climate=stand.climate;
+	Climate& climate=stand.gridcell.climate;
 
 	// Loop through PFTs
 
@@ -2173,7 +2173,7 @@ void canopy_exchange(Patch& patch) {
 	// Retrieve Vegetation and Climate objects for this patch
 
 	Vegetation& vegetation=patch.vegetation;
-	Climate& climate=patch.stand.climate;
+	Climate& climate=patch.stand.gridcell.climate;
 
 	double pet_s;
 		// potential evapotranspiration over non-vegetated parts of patch (mm,

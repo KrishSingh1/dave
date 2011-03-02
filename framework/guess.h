@@ -576,7 +576,8 @@ public:
 class Fluxes {
 
 	// MEMBER VARIABLES
-	// (all fluxes on stand area basis, kgC/m2)
+	// (all CO2 fluxes on stand area basis, kgC/m2 ;
+        // BVOC fluxes (isoprene and monoterpenes) in gC/m2)
 
 public:
 

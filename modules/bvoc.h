@@ -19,9 +19,12 @@
 
 #include "guess.h"
 
-void bvoc(double,double,double,const PhotosynthesisResult&,double,double,
-          double,double,int,double,double,const Pft&,double&,double&,
-          double&,double&,double&);
-void initbvoc(Pftlist&);
+void bvoc(double daylength, double temp, double tempamp,
+	  const PhotosynthesisResult& photosynthesis, 
+	  double co2, double lambda, double eet, double agdd5, int nday,
+	  double rs_day, double lai, const Pft& pft,
+	  double& iso, double& mon, double& dmonstor, double& dleaftemp,
+	  double& fvocseas);
+void initbvoc(Pftlist& pftlist);
 
 #endif // LPJ_GUESS_BVOC_H

@@ -1717,7 +1717,10 @@ void npp(Patch& patch) {
 	// assimilation wstress above). The latter uses the PFT-specific base value for
 	// conductance from function aet_water_stress (above).
 	// Plant respiration obtained by a call to function respiration (above).
-	
+        // Calculation of BVOC has been added. Isoprene and monoterpenes are calculated
+        // using parameters from photosynthesis in function bvoc(), calculation of 
+        // monoterpene addition to and release from storage is done here.
+
 	double assim; // leaf-level net assimilation today
 
 	// bvoc

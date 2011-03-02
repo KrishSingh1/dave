@@ -186,18 +186,18 @@ void initbvoc(Pftlist& pftlist){
 // called from BVOC
 
 double dayT(double temp, double daylength, double tempamp){	
-
-    // convert daily temperature to daytime temperature using the actual 
-    // amplitude the conversion assumes a perfect sine function for 
-    // temperature, with the maximum temperature reached at noon (derivation by
-    // Colin Prentice, checked)
-
-    double hdl;
-    double dtT;
-    
-    hdl=daylength*3.14/24.;
-    dtT=temp+(tempamp/2)*sin(hdl)/hdl;
-    return dtT; 
+  
+  // convert daily temperature to daytime temperature using the actual 
+  // amplitude the conversion assumes a perfect sine function for 
+  // temperature, with the maximum temperature reached at noon (derivation by
+  // Colin Prentice, checked)
+  
+  double hdl; // daylength expressed as fraction of PI (rad) 
+  double dtT; // daytime temperature (oC)
+  
+  hdl=daylength*3.14/24.;
+  dtT=temp+(tempamp/2)*sin(hdl)/hdl;
+  return dtT; 
 }
 
 
@@ -224,32 +224,37 @@ void isoprmonot1(double co2, double agdd5, double temp, double daylength,
   double apar       = photosynthesis.apar;
   double phi_pi     = photosynthesis.phi_pi;
   
-  double f_co2;
-  double f_temp;
-  double f_light;
-  double f_season;
-  double tscal;
-  double je_opt;
-  double J_opt;
-  double a_Y_opt;
-  double Y_mon_prod;
-  double Y_eps_eff_iso;
-  double Y_eps_eff_mon;
-  double prodstor; // monoterpene production stored in storage pool, 
-                   // g C m-2 d-1
-  double relstor;  // release from monoterpene storage pool, g C m-2 d-1
-  double tcstor;   // time coefficient of monoterpene storage, d
-  double f_temp_mstor;
+  double f_co2;         // CO2 scaling factor for BVOC production (-)
+  double f_temp;        // temperature scaling factor for BVOC production (-)
+  double f_season;      // seasonality scaling factor for isoprene production 
+                        // (-)
+  double tscal;         // temperature scaling coefficient
+  double je_opt;        // PAR-limited photosynthesis rate under optimum 
+                        // conditions (molC/m2/h)
+  double J_opt;         // photosynthetic electron transport (mol/m2/h)
+  double a_Y_opt;       // terpenoid electron transport (mol/m2/h)
+  double Y_eps_eff_iso; // effective electron fraction for isoprene production 
+                        // (-)
+  double Y_eps_eff_mon; // effective electron fraction for monoterpene 
+                        // production (-)
+  double prodstor;      // monoterpene production stored in storage pool
+                        // (g C m-2 d-1)
+  double relstor;       // release from monoterpene storage pool (g C m-2 d-1)
+  double tcstor;        // time coefficient of monoterpene storage (d)
+  double f_temp_mstor;  // temperature scaling factor for monoterpene storage 
+                        // release (-)
   
-  double co2stan=370.;
-  double Tstand=30.; // standard temperature (oC)
+  double co2stan=370.;  // standard atmospheric CO2 concentration (ppm)
+  double Tstand=30.;    // standard temperature (oC)
   
-  double tcstor_s=80.; // TC for monoterpene storage under standard T (30C), d
-  double tcstor_max=365.; 
-  double tcstor_min=2.;
+  double tcstor_s=80.;  // time constant for monoterpene storage under standard 
+                        // temperature (d)
+  double tcstor_max=365.;// maximum time constant for monoterpene storage (d)
+  double tcstor_min=2.; // minimum time constant for monoterpene storage (d)
   double q10_mstor=1.9; // Q10 value for monoterpene storage, -
-  double f_tempmax=2.3;
-  double epsT=0.1;
+  double f_tempmax=2.3; // maximum temperature scaling factor for BVOC 
+                        // production (-)
+  double epsT=0.1;      // temperature sensitivity of BVOC production (-)
   
   // CO2 scaling factor, -
   f_co2=co2stan/co2;
@@ -330,7 +335,7 @@ double leafT(double temp, double daylength, double adtmm, double co2,
   double rhoair=1.204;   // air density, kg m-3
   double cp=1010.;       // specific heat capacity of air, J kg-1 K-1
   
-  // canopy conductance for water vapour, mm s-1
+  // canopy conductance for water vapour (mm s-1)
   gc=gmin+adtmm/(daylength*3600.)*1.6/(co2*1.e-6*(1.-lambda));
   
   // transpiration, corrected for the fraction of the ground covered by 
@@ -344,7 +349,7 @@ double leafT(double temp, double daylength, double adtmm, double co2,
   // latent heat loss of the whole canopy (W m-2)
   lhloss=trans*lam*1.e3/18.;
   
-  // temperature increase, K
+  // temperature increase (oC)
   if(lai>1.e-2){
     delT=(rs_net-(lhloss/(1.-exp(-LAMBERTBEER_K*lai))))/
       (4*emiss_leaf*sigma*pow((temp+273.15),3.)+rhoair*cp*ga)*
@@ -354,7 +359,7 @@ double leafT(double temp, double daylength, double adtmm, double co2,
     delT=0.;
   }
 
-  // canopy temperature, oC
+  // canopy temperature, (oC)
   canopytemp=temp+delT;
   
   return canopytemp; 
@@ -372,10 +377,11 @@ double vocseas(double& f_season, double temp, double daylength, int nday,
   // Revised version compared to Arneth et al. (2007). 
   // Seasonality switch pft.seas_iso read in from .ins file
 
-  double vocgdd5ramp;
-  double rdr=0.05;  // relative decay rate (d-1)
-  double tmin=5.;
-  double dmin=11.;
+  double vocgdd5ramp; // GDD sum required for full expression of isoprene
+                      // synthase/isoprene production
+  double rdr=0.05;    // relative decay rate (d-1)
+  double tmin=5.;     // minimum temperature for end of growing season (oC)
+  double dmin=11.;    // minimum daylength for end of growing season (h)
 
   // required GDD sum for VOCs is assumed to be twice as large as for 
   // phenology
@@ -405,9 +411,6 @@ double vocseas(double& f_season, double temp, double daylength, int nday,
 }
 
 
-
-
-
 // BVOC
 // called from NPP
 
@@ -418,6 +421,21 @@ void bvoc(double daylength, double temp, double tempamp,
      double& iso, double& mon, double& dmonstor, double& dleaftemp,
      double& fvocseas){
 
+  // Calculation of isoprene and monoterpene production in leaves as a function
+  // of photosynthetis. Isoprene and monoterpenes are calculated from a
+  // standardized fraction of the total photosynthesis, which is adjusted as 
+  // a function of temperature, CO2 concentration and (for isoprene) 
+  // seasonality. 
+  // 
+  // Isoprene calculations following Arneth et al. (2007), monoterpene 
+  // calculations following Schurgers et al. (2009). Compared to the original
+  // publications, adjustments were made in the calculation of leaf 
+  // temperatures (which account now for longwave radiation as well, and 
+  // perform a weighted averaging over the whole canopy), and in the calculation
+  // of isoprene seasonality (which requires a GDD sum twice as large as
+  // required for phenology, and decreases with a relative rate at the end of
+  // the growing season).
+
   double temp_leaf_daytime; // leaf temperature during daytime (oC)
   double temp_leaf;         // leaf temperature (diurnal average) (oC)
    
@@ -425,8 +443,10 @@ void bvoc(double daylength, double temp, double tempamp,
   temp_leaf_daytime=dayT(temp,daylength,tempamp);
   
     // perform air temperature to leaf temperature correction
-  temp_leaf=leafT(temp,daylength,photosynthesis.adtmm,co2,lambda,eet,pft.ga,rs_day,pft.gmin,lai);
-  temp_leaf_daytime=leafT(temp_leaf_daytime,daylength,photosynthesis.adtmm,co2,lambda,eet,pft.ga,rs_day,pft.gmin,lai);
+  temp_leaf=leafT(temp,daylength,photosynthesis.adtmm,co2,lambda,eet,pft.ga,
+		  rs_day,pft.gmin,lai);
+  temp_leaf_daytime=leafT(temp_leaf_daytime,daylength,photosynthesis.adtmm,co2,
+			  lambda,eet,pft.ga,rs_day,pft.gmin,lai);
   
   // calculate seasonality for VOC emissions, -
   fvocseas=vocseas(fvocseas,temp,daylength,nday,agdd5,pft);
@@ -467,8 +487,7 @@ void bvoc(double daylength, double temp, double tempamp,
 //   of isoprene emission based on energetic requirements for isoprene 
 //   synthesisand leaf photosynthetic properties for Liquidambar and Quercus. 
 //   Plant, Cell and Environment, 22, 1319-1335.
-// Schurgers, G., Arneth, A., Holzinger, R., Goldstein, A., in prep. Process-
-//   based modelling of biogenic monoterpene emissions on local and global 
-//   scale: sensitivity to temperature and light. Atmospheric Chemistry and 
-//   Physics, 9, 3409-3423.
+// Schurgers, G., Arneth, A., Holzinger, R., Goldstein, A., 2009. Process-
+//   based modelling of biogenic monoterpene emissions combining production
+//   and release from storage. Atmospheric Chemistry and Physics, 9, 3409-3423.
 

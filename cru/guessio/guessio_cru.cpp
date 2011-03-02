@@ -796,6 +796,10 @@ void printhelp() {
 //   stand.climate.prec=dprec[date.day];
 //   stand.climate.insol=dsun[date.day];
 //
+//   Diurnal temperature range (dtr) added for calculation of leaf temperatures in 
+//   BVOC:
+//   stand.climate.dtr=ddtr[date.day]; 
+// 
 // void outannual(Stand& stand,Pftlist& pftlist)
 //   Called at the end of the last day of each simulation year to permit output of
 //   model results.
@@ -1887,6 +1891,10 @@ bool getclimate(Stand& stand) {
 	// stand.climate.temp=dtemp[date.day];
 	// stand.climate.prec=dprec[date.day];
 	// stand.climate.insol=dsun[date.day];
+        // 
+        // Diurnal temperature range (dtr) added for calculation of leaf temperatures in 
+        // BVOC:
+        // stand.climate.dtr=ddtr[date.day]; 
 
 	double progress;
 

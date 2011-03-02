@@ -2072,11 +2072,22 @@ void forest_floor_conditions(Patch& patch) {
 					1.0,pft.lambda_max,pft.pathway,pft.pstemp_min,pft.pstemp_low,
 					pft.pstemp_high,pft.pstemp_max,pft.lambda_max,agd,adtmm,rd);
 
+				// Eqn 21, Haxeltine & Prentice 1996
+				// NB: includes conversion of daylight from hours to seconds (*3600),
+				//     and CO2 from ppmv to mole fraction (*1.0e-6);
+				//     scalar multiplier = 1.6 / 1.0e-6 / 3600 = 444.4
+
+				stand.pft[pft.id].gpterm=444.4*adtmm/climate.co2/(1.0-pft.lambda_max)/
+					climate.daylength;
+
+
 				// Store net C-assimilation (gross photosynthesis minus leaf
 				// respiration); valid for all individuals of this PFT given today's
 				// climate and FPAR=1 assuming no water stress
 
 				stand.pft[pft.id].assim_term=agd-rd;
+
+				stand.pft[pft.id].have_phot=true;
 			}
 
 			// Calculate net assimilation at top of grass canopy (or at soil surface

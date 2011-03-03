@@ -835,7 +835,9 @@ void daylengthinsoleet(Climate& climate) {
 			+climate.v[date.day]*climate.sinehh[date.day])*K; // Eqn 14
 
 	}
-	else { // insolation provided as instantaneous downward shortwave radiation flux
+	else { // insolation provided as instantaneous downward shortwave radiation flux 
+		   // Replace climate.daylength_save[date.day] with 24 when using radiation data 
+		   // representing the average time period radiation.  
 
 		if (climate.instype==NETSWRAD) // net radiation known
 			rs_day=climate.insol*climate.daylength_save[date.day]*3600.0;

@@ -72,8 +72,8 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i
 		// Constructor: initialises reference member of climate and
 		// builds list array of Standpft objects
 		
-	int p;
-	int npatchL;
+	unsigned int p;
+	unsigned int npatchL;
 
 	for(p=0;p<pftlist.nobj;p++) {
 		pft.createobj(pftlist[p]);
@@ -170,7 +170,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 int framework(int argc,char* argv[]) {
 
 	bool dogridcell;
-	int p;
 
 	// The one and only linked list of Pft objects	
 	Pftlist pftlist;

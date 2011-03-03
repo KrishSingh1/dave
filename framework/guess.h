@@ -477,7 +477,11 @@ public:
 	double lat;
 		// latitude (degrees; +=north, -=south)
 	double insol;
-		// insolation today
+		// insolation today, see also instype
+		// When instype is NETSWRAD or SWRAD insol is assumed to be W/m2 during
+		// daylight hours. If input data is averaged over a 24 hour period, code
+		// dealing with this variable needs to be changed 
+		// (see function daylengthinsoleet).
 	insoltype instype;
 		// units in which insol expressed:
 		// SUNSHINE = percentage of full sunshine
@@ -532,7 +536,7 @@ public:
 	double daylength_mean;
 		// accumulated mean daylength for this month (h)
 
-	// Saved parameters used by function daylengthinsolpet
+	// Saved parameters used by function daylengthinsoleet
 
 	double sinelat;
 	double cosinelat;
@@ -1184,8 +1188,8 @@ public:
 	// guess2008 - override the default SOM years with 70-80% of the spin-up period length
 	void updateSolveSOMvalues(const int& nyrspinup) {
 		
-		solvesom_end=0.8*nyrspinup;
-		solvesom_begin=0.7*nyrspinup;
+		solvesom_end=static_cast<int>(0.8*nyrspinup);
+		solvesom_begin=static_cast<int>(0.7*nyrspinup);
 
 	}
 };
@@ -1800,7 +1804,7 @@ public:
 		landcovertype landcover;
 		LC_updated=false;
 
-		for(int p=0;p<pftlist.nobj;p++) {
+		for(unsigned int p=0;p<pftlist.nobj;p++) {
 			Gridcellpft& gcpft=pft.createobj(pftlist[p]);
 		}		
 

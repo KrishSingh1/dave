@@ -482,18 +482,16 @@ void plib_declarations(int id,xtring setname) {
 			"Drought tolerance level (0 = very -> 1 = not at all) (unitless)");
 		
 		// bvoc
-		if(ifbvoc){
-		  declareitem("ga",&ppft->ga,0.0,1.0,1,CB_NONE,
-			      "aerodynamic conductance (m/s)");
-		  declareitem("eps_iso",&ppft->eps_iso,0.,100.,1,CB_NONE,
-			      "isoprene emission capacity (ug C g-1 h-1)");
-		  declareitem("seas_iso",&ppft->seas_iso,1,CB_NONE,
-			      "whether (1) or not (0) isoprene emissions show seasonality");
-		  declareitem("eps_mon",&ppft->eps_mon,0.,100.,1,CB_NONE,
-			      "monoterpene emission capacity (ug C g-1 h-1)");
-		  declareitem("storfrac_mon",&ppft->storfrac_mon,0.,1.,1,CB_NONE,
-			      "fraction of monoterpene production that goes into storage pool (-)");
-		}
+		declareitem("ga",&ppft->ga,0.0,1.0,1,CB_NONE,
+			"aerodynamic conductance (m/s)");
+		declareitem("eps_iso",&ppft->eps_iso,0.,100.,1,CB_NONE,
+			"isoprene emission capacity (ug C g-1 h-1)");
+		declareitem("seas_iso",&ppft->seas_iso,1,CB_NONE,
+			"whether (1) or not (0) isoprene emissions show seasonality");
+		declareitem("eps_mon",&ppft->eps_mon,0.,100.,1,CB_NONE,
+			"monoterpene emission capacity (ug C g-1 h-1)");
+		declareitem("storfrac_mon",&ppft->storfrac_mon,0.,1.,1,CB_NONE,
+			"fraction of monoterpene production that goes into storage pool (-)");
 		
 		declareitem("harv_eff",&ppft->harv_eff,0.0,1.0,1,CB_NONE,"Harvest efficiency");
 		declareitem("harvest_slow_frac",&ppft->harvest_slow_frac,0.0,1.0,1,CB_NONE,

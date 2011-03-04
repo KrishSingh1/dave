@@ -2058,7 +2058,7 @@ void forest_floor_conditions(Patch& patch) {
 				climate.par,climate.daylength,patch.fpar_grass*ppft.phen,
 				1.0,photosynthesis,lambda);
 	
-			ppft.anetps_ff+=photosynthesis.net_assimilation()*patch.fpar_grass*ppft.phen;
+			ppft.anetps_ff+=photosynthesis.net_assimilation()*(patch.fpar_grass*ppft.phen);
 		}
 		else if (date.islastday && ppft.nday_wstress) {
 

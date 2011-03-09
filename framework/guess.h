@@ -1084,8 +1084,6 @@ public:
 	double dmon[365]; // daily monoterpene emission (mg C m-2 d-1)
 	double aiso; // annual isoprene emission (mg C m-2 y-1)
 	double amon; // annual monoterpene emission (mg C m-2 y-1)
-	double lambda; // ratio of intercellular to ambient partial pressure of CO2
-	PhotosynthesisResult photosynthesis;
 	double monstor; // monoterpene storage pool (mg C m-2)
 	double dmonstor; // relative emission rate from monoterpene storage (d-1)
 	double leaftemp; // leaf temperature (C)
@@ -1638,6 +1636,8 @@ public:
 	double fpc_total;
 		// FPC sum for this PFT as average for stand (used by some versions of
 		// guessio.cpp)
+
+	/// Photosynthesis values for this PFT under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;
 	double lambda_term; // ratio of intercellular to ambient partial pressure of CO2
 	

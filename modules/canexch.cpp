@@ -1750,6 +1750,8 @@ void npp(Patch& patch) {
 		if (ifdailynpp) {
 
 			// DAILY NPP MODE
+			PhotosynthesisResult indiv_phot;
+			double indiv_lambda;
 
 			if (indiv.ifwstress) {
 
@@ -1757,8 +1759,8 @@ void npp(Patch& patch) {
 				// of light- and conductance-based equations of photosynthesis
 			  
 				assimilation_wstress(pft,ppft,climate.co2,climate.temp,climate.par,
-					climate.daylength,indiv.fpar,indiv.fpc,indiv.photosynthesis, indiv.lambda);
-				indiv.assim = indiv.photosynthesis.net_assimilation()*indiv.fpar;
+					climate.daylength,indiv.fpar,indiv.fpc,indiv_phot, indiv_lambda);
+				indiv.assim = indiv_phot.net_assimilation()*indiv.fpar;
 			}
 			else {
 
@@ -1767,15 +1769,15 @@ void npp(Patch& patch) {
 				
 				indiv.assim=stand.pft[pft.id].assim_term*indiv.fpar;
 				
-				indiv.photosynthesis = stand.pft[pft.id].photosynthesis;
-				indiv.lambda=stand.pft[pft.id].lambda_term;
+				indiv_phot = stand.pft[pft.id].photosynthesis;
+				indiv_lambda=stand.pft[pft.id].lambda_term;
 			}
 			
 			// bvoc
 			if(ifbvoc){
-			  if(!negligible(climate.daylength) && indiv.photosynthesis.adtmm > 0.){
-			    bvoc(climate.daylength,climate.temp,climate.dtr,indiv.photosynthesis,
-				 climate.co2,indiv.lambda,climate.eet,climate.agdd5,1,
+			  if(!negligible(climate.daylength) && indiv_phot.adtmm > 0.){
+			    bvoc(climate.daylength,climate.temp,climate.dtr,indiv_phot,
+				 climate.co2,indiv_lambda,climate.eet,climate.agdd5,1,
 				 climate.rad,indiv.lai*indiv.phen,pft,
 				 indiv.iso,indiv.mon,indiv.dmonstor,indiv.leaftemp,
 				 indiv.fvocseas);
@@ -1861,23 +1863,22 @@ void npp(Patch& patch) {
 
 			if (!indiv.ifwstress){
 				 indiv.assim+=stand.pft[pft.id].assim_term*indiv.fpar;
-				 indiv.photosynthesis = stand.pft[pft.id].photosynthesis;
-				 indiv.lambda=stand.pft[pft.id].lambda_term;
 
 				 if(ifbvoc){
-					  if(!negligible(climate.daylength) && indiv.photosynthesis.adtmm > 0.0){
-							bvoc(climate.daylength,climate.temp,climate.dtr,indiv.photosynthesis,
-								  climate.co2,indiv.lambda,climate.eet,climate.agdd5,1,
-								  climate.rad,indiv.lai*indiv.phen,pft,
-								  iso,mon,indiv.dmonstor,indiv.leaftemp,
-								  indiv.fvocseas);
-							iso*=indiv.fpar;
-							mon*=indiv.fpar;
-							indiv.iso+=iso;
-							rmonstor=-indiv.monstor*indiv.dmonstor+pft.storfrac_mon*mon;
-							indiv.monstor+=rmonstor;
-							indiv.mon+=(1.-pft.storfrac_mon)*mon+indiv.monstor*indiv.dmonstor;
-					  }
+					 const PhotosynthesisResult& photosynthesis = stand.pft[pft.id].photosynthesis;
+					 if(!negligible(climate.daylength) && photosynthesis.adtmm > 0.0){
+						 bvoc(climate.daylength,climate.temp,climate.dtr,photosynthesis,
+							 climate.co2,stand.pft[pft.id].lambda_term,climate.eet,climate.agdd5,1,
+							 climate.rad,indiv.lai*indiv.phen,pft,
+							 iso,mon,indiv.dmonstor,indiv.leaftemp,
+							 indiv.fvocseas);
+						 iso*=indiv.fpar;
+						 mon*=indiv.fpar;
+						 indiv.iso+=iso;
+						 rmonstor=-indiv.monstor*indiv.dmonstor+pft.storfrac_mon*mon;
+						 indiv.monstor+=rmonstor;
+						 indiv.mon+=(1.-pft.storfrac_mon)*mon+indiv.monstor*indiv.dmonstor;
+					 }
 				 }
 			  
 			}
@@ -1912,19 +1913,20 @@ void npp(Patch& patch) {
 					// Calculate mean water-stressed photosynthesis for water-stress
 					// days this month by simulataneous solution of light- and
 					// conductance-based equations for photosynthesis
-
+					PhotosynthesisResult indiv_phot;
+					double indiv_lambda;
 					assimilation_wstress(indiv.pft,ppft,indiv.co2_wstress,
 						indiv.temp_wstress,indiv.par_wstress,indiv.daylength_wstress,
-						indiv.fpar_wstress,indiv.fpc,indiv.photosynthesis,indiv.lambda);
+						indiv.fpar_wstress,indiv.fpc,indiv_phot,indiv_lambda);
 
 					// Convert from mean to sum over water-stress-days
-					indiv.assim+=indiv.photosynthesis.net_assimilation()*indiv.fpar_wstress*(double)indiv.nday_wstress;
+					indiv.assim+=indiv_phot.net_assimilation()*indiv.fpar_wstress*(double)indiv.nday_wstress;
 					
 					// bvoc
 					if(ifbvoc){
-						if(!negligible(indiv.daylength_wstress) && indiv.photosynthesis.adtmm > 0.0){
-							bvoc(indiv.daylength_wstress,indiv.temp_wstress,indiv.dtr_wstress,indiv.photosynthesis,
-								indiv.co2_wstress,indiv.lambda,indiv.eet_wstress,indiv.agdd5_wstress,indiv.nday_wstress,
+						if(!negligible(indiv.daylength_wstress) && indiv_phot.adtmm > 0.0){
+							bvoc(indiv.daylength_wstress,indiv.temp_wstress,indiv.dtr_wstress,indiv_phot,
+								indiv.co2_wstress,indiv_lambda,indiv.eet_wstress,indiv.agdd5_wstress,indiv.nday_wstress,
 								indiv.rad_wstress,indiv.lai*indiv.phen_mean,pft,
 								iso,mon,indiv.dmonstor,indiv.leaftemp,indiv.fvocseas);
 							iso*=indiv.fpar_wstress;

@@ -1639,7 +1639,6 @@ public:
 
 	/// Photosynthesis values for this PFT under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;
-	double lambda_term; // ratio of intercellular to ambient partial pressure of CO2
 	
 	
 

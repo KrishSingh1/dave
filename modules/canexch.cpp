@@ -973,8 +973,6 @@ void demand(Patch& patch) {
 				standpft.assim_term = standpft.photosynthesis.net_assimilation();
 
 				standpft.have_phot=true;
-
-				standpft.lambda_term=pft.lambda_max;
 			}
 
 			// Calculate non-water-stressed canopy conductance assuming full leaf cover
@@ -1770,7 +1768,7 @@ void npp(Patch& patch) {
 				indiv.assim=stand.pft[pft.id].assim_term*indiv.fpar;
 				
 				indiv_phot = stand.pft[pft.id].photosynthesis;
-				indiv_lambda=stand.pft[pft.id].lambda_term;
+				indiv_lambda = pft.lambda_max;
 			}
 			
 			// bvoc
@@ -1868,7 +1866,7 @@ void npp(Patch& patch) {
 					 const PhotosynthesisResult& photosynthesis = stand.pft[pft.id].photosynthesis;
 					 if(!negligible(climate.daylength) && photosynthesis.adtmm > 0.0){
 						 bvoc(climate.daylength,climate.temp,climate.dtr,photosynthesis,
-							 climate.co2,stand.pft[pft.id].lambda_term,climate.eet,climate.agdd5,1,
+							 climate.co2,pft.lambda_max,climate.eet,climate.agdd5,1,
 							 climate.rad,indiv.lai*indiv.phen,pft,
 							 iso,mon,indiv.dmonstor,indiv.leaftemp,
 							 indiv.fvocseas);

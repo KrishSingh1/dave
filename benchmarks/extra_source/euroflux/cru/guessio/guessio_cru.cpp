@@ -3278,7 +3278,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_dens) fprintf(out_dens,"%8s\n","Total");
 		// bvoc
 		if(out_aiso)fprintf(out_aiso,"%10s","Total");
-		if(out_amon)fprintf(out_amon,"%8s","Total");
+		if(out_amon)fprintf(out_amon,"%10s","Total");
 
 		if (run_landcover) {
 			xtring landcover_string[]={"Urban_sum", "Crop_sum", "Pasture_sum", "Forest_sum", "Natural_sum", "Peatland_sum"};

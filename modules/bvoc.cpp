@@ -62,7 +62,6 @@ void initbvoc(Pftlist& pftlist){
   double Y_eps_iso;
   double Y_eps_mon;
   double rd_g_s;
-  double vm_s;
   double ko_s;
   double kc_s;
   double sigma_c3_s;
@@ -237,9 +236,6 @@ void isoprmonot1(double co2, double agdd5, double temp, double daylength,
                         // (-)
   double Y_eps_eff_mon; // effective electron fraction for monoterpene 
                         // production (-)
-  double prodstor;      // monoterpene production stored in storage pool
-                        // (g C m-2 d-1)
-  double relstor;       // release from monoterpene storage pool (g C m-2 d-1)
   double tcstor;        // time coefficient of monoterpene storage (d)
   double f_temp_mstor;  // temperature scaling factor for monoterpene storage 
                         // release (-)

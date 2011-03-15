@@ -130,6 +130,7 @@ cd \$PBS_O_WORKDIR
 
 cat<<EOL > startguess.sh
 #!/bin/sh
+umask 022
 cd \$PBS_O_WORKDIR
 cd run\\\$((PBS_VNODENUM+1))
 BINARY $INSFILE

@@ -1080,13 +1080,9 @@ public:
 	// bvoc
 	double iso; // isoprene production (mg C m-2 d-1)
 	double mon; // monoterpene production (mg C m-2 d-1)
-	double diso[365]; // daily isoprene emission (mg C m-2 d-1)
-	double dmon[365]; // daily monoterpene emission (mg C m-2 d-1)
 	double aiso; // annual isoprene emission (mg C m-2 y-1)
 	double amon; // annual monoterpene emission (mg C m-2 y-1)
 	double monstor; // monoterpene storage pool (mg C m-2)
-	double dmonstor; // relative emission rate from monoterpene storage (d-1)
-	double leaftemp; // leaf temperature (C)
 	double fvocseas; // isoprene seasonality factor (-)
 	double dtr_wstress; // diurnal temperature range (oC)
 	double eet_wstress; // equilibrium evapotranspiration today (mm/day)

@@ -1773,25 +1773,26 @@ void npp(Patch& patch) {
 			
 			// bvoc
 			if(ifbvoc){
-			  if(!negligible(climate.daylength) && indiv_phot.adtmm > 0.){
-			    bvoc(climate.daylength,climate.temp,climate.dtr,indiv_phot,
-				 climate.co2,indiv_lambda,climate.eet,climate.agdd5,1,
-				 climate.rad,indiv.lai*indiv.phen,pft,
-				 indiv.iso,indiv.mon,indiv.dmonstor,indiv.leaftemp,
-				 indiv.fvocseas);
-			    indiv.iso*=indiv.fpar;
-			    indiv.mon*=indiv.fpar;
-			  }
-			  else{
-			    indiv.iso=0.;
-			    indiv.mon=0.;
-			    indiv.dmonstor=0.;
-			  }
-			  rmonstor=-indiv.monstor*indiv.dmonstor+pft.storfrac_mon*indiv.mon;
-			  indiv.monstor+=rmonstor;
-			  indiv.mon=(1.-pft.storfrac_mon)*indiv.mon+indiv.monstor*indiv.dmonstor;
-			  indiv.aiso+=indiv.iso;
-			  indiv.amon+=indiv.mon;
+				double dmonstor = 0.0;
+				double leaftemp = 0.0;
+				if(!negligible(climate.daylength) && indiv_phot.adtmm > 0.){
+					bvoc(climate.daylength,climate.temp,climate.dtr,indiv_phot,
+						climate.co2,indiv_lambda,climate.eet,climate.agdd5,1,
+						climate.rad,indiv.lai*indiv.phen,pft,
+						indiv.iso,indiv.mon,dmonstor,leaftemp,
+						indiv.fvocseas);
+					indiv.iso*=indiv.fpar;
+					indiv.mon*=indiv.fpar;
+				}
+				else{
+					indiv.iso=0.;
+					indiv.mon=0.;
+				}
+				rmonstor=-indiv.monstor*dmonstor+pft.storfrac_mon*indiv.mon;
+				indiv.monstor+=rmonstor;
+				indiv.mon=(1.-pft.storfrac_mon)*indiv.mon+indiv.monstor*dmonstor;
+				indiv.aiso+=indiv.iso;
+				indiv.amon+=indiv.mon;
 			}
 				
 
@@ -1865,17 +1866,19 @@ void npp(Patch& patch) {
 				 if(ifbvoc){
 					 const PhotosynthesisResult& photosynthesis = stand.pft[pft.id].photosynthesis;
 					 if(!negligible(climate.daylength) && photosynthesis.adtmm > 0.0){
+						 double dmonstor = 0.0;
+						 double leaftemp = 0.0;
 						 bvoc(climate.daylength,climate.temp,climate.dtr,photosynthesis,
 							 climate.co2,pft.lambda_max,climate.eet,climate.agdd5,1,
 							 climate.rad,indiv.lai*indiv.phen,pft,
-							 iso,mon,indiv.dmonstor,indiv.leaftemp,
+							 iso,mon,dmonstor,leaftemp,
 							 indiv.fvocseas);
 						 iso*=indiv.fpar;
 						 mon*=indiv.fpar;
 						 indiv.iso+=iso;
-						 rmonstor=-indiv.monstor*indiv.dmonstor+pft.storfrac_mon*mon;
+						 rmonstor=-indiv.monstor*dmonstor+pft.storfrac_mon*mon;
 						 indiv.monstor+=rmonstor;
-						 indiv.mon+=(1.-pft.storfrac_mon)*mon+indiv.monstor*indiv.dmonstor;
+						 indiv.mon+=(1.-pft.storfrac_mon)*mon+indiv.monstor*dmonstor;
 					 }
 				 }
 			  
@@ -1922,23 +1925,24 @@ void npp(Patch& patch) {
 					
 					// bvoc
 					if(ifbvoc){
+						double dmonstor = 0.0;
+						double leaftemp = 0.0;
 						if(!negligible(indiv.daylength_wstress) && indiv_phot.adtmm > 0.0){
 							bvoc(indiv.daylength_wstress,indiv.temp_wstress,indiv.dtr_wstress,indiv_phot,
 								indiv.co2_wstress,indiv_lambda,indiv.eet_wstress,indiv.agdd5_wstress,indiv.nday_wstress,
 								indiv.rad_wstress,indiv.lai*indiv.phen_mean,pft,
-								iso,mon,indiv.dmonstor,indiv.leaftemp,indiv.fvocseas);
+								iso,mon,dmonstor,leaftemp,indiv.fvocseas);
 							iso*=indiv.fpar_wstress;
 							mon*=indiv.fpar_wstress;
 						}
 						else{
 							iso=0.;
 							mon=0.;
-							indiv.dmonstor=0.;
 						}
 						indiv.iso+=iso*(double)indiv.nday_wstress;
-						rmonstor=-indiv.monstor*indiv.dmonstor+pft.storfrac_mon*mon;
+						rmonstor=-indiv.monstor*dmonstor+pft.storfrac_mon*mon;
 						indiv.monstor+=rmonstor*(double)indiv.nday_wstress;
-						indiv.mon+=((1.-pft.storfrac_mon)*mon+indiv.monstor*indiv.dmonstor)*(double)indiv.nday_wstress;
+						indiv.mon+=((1.-pft.storfrac_mon)*mon+indiv.monstor*dmonstor)*(double)indiv.nday_wstress;
 					}
 					 
 				}

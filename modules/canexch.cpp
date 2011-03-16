@@ -44,10 +44,8 @@
 #include "canexch.h"
 
 #include "driver.h"
-
-// bvoc
-# include "q10.h"
-# include "bvoc.h"
+#include "q10.h"
+#include "bvoc.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL CONSTANTS
@@ -614,14 +612,11 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 
 	const double CO2_CONV=1.0E-6;
 		// conversion factor for CO2 from ppmv to mole fraction
-	//xxxx	const double PO2=2.09E4; // O2 partial pressure (Pa)
 	const double PATMOS=1.0E5; // atmospheric pressure (Pa)
 	const double LAMBDA_SC4=0.4;
 		// 'saturation' ratio of intercellular to ambient CO2 partial pressure for C4
 		// plants
-	//xxxx	const double ALPHA_C3=0.08;
 		// intrinsic quantum efficiency of CO2 uptake for C3 plants
-	//xxxx const double ALPHA_C4=0.053;
 		// intrinsic quantum efficiency of CO2 uptake for C4 plants
 	const double TMC3=45.0; // maximum temperature for C3 photosynthesis (deg C)
 	const double TMC4=55.0; // maximum temperature for C4 photosynthesis (deg C)
@@ -631,7 +626,6 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 		// leaf respiration as fraction of maximum rubisco capacity for C4 plants
 	const double THETA=0.7; // colimitation (shape) parameter
 	const double CMASS=12.0; // atomic mass of carbon
-	//xxxx const double CQ=4.6E-6;
 		// conversion factor for solar radiation at 550 nm from J/m2 to E/m2
 		// (E=mol quanta)
 

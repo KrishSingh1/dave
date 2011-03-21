@@ -22,7 +22,7 @@
 #include "growth.h"
 #include "vegdynam.h"
 #include "landcover.h"
-
+#include "bvoc.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES WITH EXTERNAL LINKAGE
@@ -57,6 +57,8 @@ bool ifsmoothgreffmort;				// smooth growth efficiency mortality
 bool ifdroughtlimitedestab;			// whether establishment affected by growing season drought
 bool ifrainonwetdaysonly;			// rain on wet days only (1, true), or a little every day (0, false); 
 bool ifspeciesspecificwateruptake;	// water uptake is species specific 
+// bvoc
+bool ifbvoc; // BVOC calculations included
 
 bool run_landcover;
 bool run[NLANDCOVERTYPES];
@@ -64,7 +66,6 @@ bool lcfrac_fixed;
 bool all_fracs_const;
 bool ifslowharvestpool;				// If a slow harvested product pool is included in patchpft.
 int nyear_spinup;		
-
 
 Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i),gridcell(gc),landcover(landcoverX),frac(1.0) {
 
@@ -145,6 +146,18 @@ Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 	for (m=0;m<12;m++) {
 		mnpp[m]=mlai[m]=mgpp[m]=mra[m]=0.0;
 	}
+
+	// bvoc
+	monstor=0.;
+	iso=0.;
+	mon=0.;
+	aiso=0.;
+	amon=0.;
+	fvocseas=1.;
+	dtr_wstress=0.;
+	eet_wstress=0.;
+	agdd5_wstress=0.;
+	rad_wstress=0.;		
 }
 
 
@@ -164,6 +177,11 @@ int framework(int argc,char* argv[]) {
 	// Call input/output module to obtain PFT static parameters and simulation
 	// settings and initialise input/output
 	initio(argc,argv,pftlist);
+
+	// bvoc
+	if(ifbvoc){
+	  initbvoc(pftlist);
+	}
 
 	// Assume there is at least one grid cell to simulate
 	dogridcell=true;
@@ -223,43 +241,43 @@ int framework(int argc,char* argv[]) {
 
 					stand.firstobj();
 					while (stand.isobj) {
-						// START OF LOOP THROUGH PATCHES
+					// START OF LOOP THROUGH PATCHES
 
-						// Get reference to this patch
+					// Get reference to this patch
 						Patch& patch=stand.getobj();
-						// Update daily soil drivers including soil temperature
+					// Update daily soil drivers including soil temperature
 						dailyaccounting_patch(patch,pftlist);
-						// Leaf phenology for PFTs and individuals
+					// Leaf phenology for PFTs and individuals
 						leaf_phenology(patch,gridcell.climate);
-						// Photosynthesis, respiration, evapotranspiration
-						canopy_exchange(patch);
-						// Soil water accounting, snow pack accounting
+					// Photosynthesis, respiration, evapotranspiration
+					canopy_exchange(patch);
+					// Soil water accounting, snow pack accounting
 						soilwater(gridcell.climate,patch);
-						// Soil organic matter and litter dynamics
-						som_dynamics(patch);
+					// Soil organic matter and litter dynamics
+					som_dynamics(patch);
 
-						if (date.islastday && date.islastmonth) {
+					if (date.islastday && date.islastmonth) {
 
-							// LAST DAY OF YEAR
-							// Tissue turnover, allocation to new biomass and reproduction,
-							// updated allometry
-							growth(stand,patch);
-						}
+						// LAST DAY OF YEAR
+						// Tissue turnover, allocation to new biomass and reproduction,
+						// updated allometry
+						growth(stand,patch);
+					}
 						stand.nextobj();
 					}// End of loop through patches
 
 					if (date.islastday && date.islastmonth)
 					{
-						// LAST DAY OF YEAR
+					// LAST DAY OF YEAR
 						stand.firstobj();
 						while (stand.isobj) {
 
-							// For each patch ...
+						// For each patch ...
 							Patch& patch=stand.getobj();
-							// Establishment, mortality and disturbance by fire
-							vegetation_dynamics(stand,patch,pftlist);
+						// Establishment, mortality and disturbance by fire
+						vegetation_dynamics(stand,patch,pftlist);
 							stand.nextobj();
-						}
+					}
 					}
 
 					gridcell.nextobj();			

@@ -188,7 +188,7 @@ xtring outputdirectory;
 xtring file_cmass,file_anpp,file_dens,file_lai,file_cflux,file_cpool,file_runoff;
 xtring file_mnpp,file_mlai,file_mgpp,file_mra,file_maet,file_mpet,file_mevap,file_mrunoff,file_mintercep,file_mrh;
 xtring file_mnee,file_mwcont_upper,file_mwcont_lower;
-xtring file_firert;
+xtring file_firert,file_speciesheights;
 
 
 void initsettings() {
@@ -212,7 +212,7 @@ void initsettings() {
 	file_cmass=file_anpp=file_lai=file_cflux=file_dens=file_runoff="";
 	file_mnpp=file_mlai=file_maet=file_mpet=file_mevap=file_mrunoff=file_mintercep=file_mrh="";
 	file_mgpp=file_mra=file_mnee=file_mwcont_upper=file_mwcont_lower="";
-	file_cpool=file_firert="";
+	file_cpool=file_firert=file_speciesheights="";
 
 }
 
@@ -302,6 +302,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_cpool",&file_cpool,300,CB_NONE,"Soil C output file");
 		declareitem("file_runoff",&file_runoff,300,CB_NONE,"Runoff output file");
 		declareitem("file_firert",&file_firert,300,CB_NONE,"Fire retrun time output file");
+		declareitem("file_speciesheights",&file_speciesheights,300,CB_NONE,"Mean species heights");
 		// Monthly output variables
 		declareitem("file_mnpp",&file_mnpp,300,CB_NONE,"Monthly NPP output file");
 		declareitem("file_mlai",&file_mlai,300,CB_NONE,"Monthly LAI output file");
@@ -1145,7 +1146,7 @@ xtring file_co2;
 FILE *out_cmass,*out_anpp,*out_lai,*out_cflux,*out_cpool,*out_runoff,*out_dens;
 FILE *out_mnpp,*out_mlai,*out_mgpp,*out_mra,*out_maet,*out_mpet,*out_mevap,*out_mrunoff,*out_mintercep,*out_mrh;
 FILE *out_mnee,*out_mwcont_upper,*out_mwcont_lower; 
-FILE *out_firert; 
+FILE *out_firert,*out_speciesheights; 
 
 
 
@@ -1684,6 +1685,12 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	}
 	else out_firert=NULL;
 	
+	if (file_speciesheights!="") {
+		file_speciesheights = outputdirectory + file_speciesheights;
+		out_speciesheights=fopen(file_speciesheights,"w");
+		if (!file_speciesheights) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_speciesheights);
+	}
+	else out_speciesheights=NULL;
 
 	if (file_runoff!="") {
 		file_runoff = outputdirectory + file_runoff;
@@ -2369,6 +2376,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		}
 
 		if (out_firert) fprintf(out_firert,"%8s%8s%8s%8s\n","Lon","Lat","Year","FireRT");
+		if (out_speciesheights) fprintf(out_speciesheights,lonlatyearstr,"Lon","Lat","Year");
 
 		if (out_mnpp) fprintf(out_mnpp,lonlatyearstr,"Lon","Lat","Year");
 		if (out_mlai) fprintf(out_mlai,lonlatyearstr,"Lon","Lat","Year");
@@ -2395,6 +2403,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			if (out_anpp) fprintf(out_anpp,"%8s",(char*)pft.name);
 			if (out_lai) fprintf(out_lai,"%8s",(char*)pft.name);
 			if (out_dens) fprintf(out_dens,"%8s",(char*)pft.name);
+			if (out_speciesheights) fprintf(out_speciesheights,"%8s",(char*)pft.name);
 			pftlist.nextobj();
 		}
 
@@ -2420,7 +2429,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_cmass) fprintf(out_cmass,"\n");
 		if (out_anpp) fprintf(out_anpp,"\n");
 		if (out_lai) fprintf(out_lai,"\n");
-
+		if (out_speciesheights) fprintf(out_speciesheights, "\n");
 
 
 		// guess2008
@@ -2466,7 +2475,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_dens) fprintf(out_dens,lonlatyeardatastr,lon,lat,date.year);
 		if (out_cpool) fprintf(out_cpool,lonlatyeardatastr,lon,lat,date.year);
 		if (out_firert) fprintf(out_firert,lonlatyeardatastr,lon,lat,date.year);
-
+		if (out_speciesheights) fprintf(out_speciesheights,lonlatyeardatastr,lon,lat,date.year);
 
 		if (out_mnpp) fprintf(out_mnpp,lonlatyeardatastr,lon,lat,date.year);
 		if (out_mlai) fprintf(out_mlai,lonlatyeardatastr,lon,lat,date.year);
@@ -2527,6 +2536,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			gcpft_lai=0.0;
 			gcpft_densindiv_total=0.0;		
 
+			double heightindiv_total = 0.0;
+
 			gridcell.firstobj();
 
 			// Loop through Stands
@@ -2579,6 +2590,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 										double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
 										if (diam>0.03) {
 											standpft_densindiv_total+=indiv.densindiv; // indiv/m2
+
+											heightindiv_total+=indiv.height * indiv.densindiv;
 										}
 									}
 								}
@@ -2595,6 +2608,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				standpft_anpp/=(double)stand.nobj;
 				standpft_lai/=(double)stand.nobj;
 				standpft_densindiv_total/=(double)stand.nobj;
+
+				heightindiv_total/=(double)stand.nobj;
 
 				//Update landcover totals
 				landcover_cmass[stand.landcover]+=standpft_cmass*stand.get_landcover_fraction();
@@ -2640,6 +2655,14 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 			if (out_anpp)
 				fprintf(out_anpp,"%8.3f",gcpft_anpp);
+
+			// print species heights
+			double height = 0.0;
+			if (gcpft_densindiv_total > 0.0)
+				height = heightindiv_total/gcpft_densindiv_total;
+				
+			if (out_speciesheights)
+				fprintf(out_speciesheights,"%8.2f",height);
 
 			pftlist.nextobj();
 		
@@ -2787,6 +2810,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_runoff) fprintf(out_runoff,"\n");
 		if (out_dens) fprintf(out_dens, "\n");
 		if (out_firert) fprintf(out_firert, "\n");
+		if (out_speciesheights) fprintf(out_speciesheights, "\n");
 
 		// Print monthly output variables
 		for (m=0;m<12;m++) {
@@ -2917,6 +2941,7 @@ void termio() {
 		if (out_dens) fclose(out_dens);
 		if (out_cpool) fclose(out_cpool);
 		if (out_firert) fclose(out_firert);
+		if (out_speciesheights) fclose(out_speciesheights);
 
 		if (out_mnpp) fclose(out_mnpp);
 		if (out_mlai) fclose(out_mlai);

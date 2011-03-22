@@ -188,11 +188,11 @@ xtring outputdirectory;
 xtring file_cmass,file_anpp,file_dens,file_lai,file_cflux,file_cpool,file_runoff;
 xtring file_mnpp,file_mlai,file_mgpp,file_mra,file_maet,file_mpet,file_mevap,file_mrunoff,file_mintercep,file_mrh;
 xtring file_mnee,file_mwcont_upper,file_mwcont_lower;
-xtring file_firert;
+xtring file_firert,file_speciesheights;
 
 
 // guess2008 - euroflux - Files for EUROFLUX output and stats
-xtring file_eurofluxmonthly, file_eurofluxannual, file_eurofluxstats,file_speciesheights;
+xtring file_eurofluxmonthly, file_eurofluxannual, file_eurofluxstats;
 
 // guess2008 - euroflux - new int to keep track of the simulation year
 // Needed for management etc., used in vegetation dynamics
@@ -224,14 +224,12 @@ void initsettings() {
 	file_cmass=file_anpp=file_lai=file_cflux=file_dens=file_runoff="";
 	file_mnpp=file_mlai=file_maet=file_mpet=file_mevap=file_mrunoff=file_mintercep=file_mrh="";
 	file_mgpp=file_mra=file_mnee=file_mwcont_upper=file_mwcont_lower="";
-	file_cpool=file_firert="";
+	file_cpool=file_firert=file_speciesheights="";
 
-	// guess2008 - euroflux
+	// euroflux
 	file_eurofluxmonthly="";
 	file_eurofluxannual="";
 	file_eurofluxstats="";
-	file_speciesheights="";
-
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -320,6 +318,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_cpool",&file_cpool,300,CB_NONE,"Soil C output file");
 		declareitem("file_runoff",&file_runoff,300,CB_NONE,"Runoff output file");
 		declareitem("file_firert",&file_firert,300,CB_NONE,"Fire retrun time output file");
+		declareitem("file_speciesheights",&file_speciesheights,300,CB_NONE,"Mean species heights");
 		// Monthly output variables
 		declareitem("file_mnpp",&file_mnpp,300,CB_NONE,"Monthly NPP output file");
 		declareitem("file_mlai",&file_mlai,300,CB_NONE,"Monthly LAI output file");
@@ -347,11 +346,10 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("searchradius", &searchradius, 0, 100, 1, CB_NONE,
 			"If specified, CRU data will be searched for in a circle");
 
-		// guess2008 - euroflux - File for EUROFLUX output (mnee, maet, mgpp and msw)
+		// euroflux - File for EUROFLUX output (mnee, maet, mgpp and msw)
 		declareitem("file_eurofluxmonthly",&file_eurofluxmonthly,300,CB_NONE,"EUROFLUX monthly output file");
 		declareitem("file_eurofluxannual",&file_eurofluxannual,300,CB_NONE,"EUROFLUX annual output file");
 		declareitem("file_eurofluxstats",&file_eurofluxstats,300,CB_NONE,"EUROFLUX Statistics output file");
-		declareitem("file_speciesheights",&file_speciesheights,300,CB_NONE,"Mean species heights in 2000");
 
 		declareitem("run_landcover",&run_landcover,1,CB_NONE,"Landcover version");
 		declareitem("run_urban",&run[URBAN],1,CB_NONE,"Whether urban land is to be simulated");
@@ -1193,10 +1191,10 @@ xtring file_co2;
 FILE *out_cmass,*out_anpp,*out_lai,*out_cflux,*out_cpool,*out_runoff,*out_dens;
 FILE *out_mnpp,*out_mlai,*out_mgpp,*out_mra,*out_maet,*out_mpet,*out_mevap,*out_mrunoff,*out_mintercep,*out_mrh;
 FILE *out_mnee,*out_mwcont_upper,*out_mwcont_lower; 
-FILE *out_firert; 
+FILE *out_firert,*out_speciesheights; 
 
-// guess2008 - euroflux - EUROFLUX output
-FILE *out_eurofluxmonthly, *out_eurofluxannual, *out_eurofluxstats,*out_speciesheights;
+// euroflux - EUROFLUX output
+FILE *out_eurofluxmonthly, *out_eurofluxannual, *out_eurofluxstats;
 
 
 // Timers for keeping track of progress through the simulation
@@ -1992,15 +1990,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	}
 	else out_eurofluxstats=NULL;
 
-	// guess2008 - euroflux
-	if (file_speciesheights!="") {
-		file_speciesheights = outputdirectory + file_speciesheights;
-		out_speciesheights=fopen(file_speciesheights,"w");
-		if (!file_speciesheights) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mwcont_lower);
-	}
-	else out_speciesheights=NULL;
-
-
 	if (file_anpp!="") {
 		file_anpp = outputdirectory + file_anpp;
 		out_anpp=fopen(file_anpp,"w");
@@ -2043,6 +2032,12 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	}
 	else out_firert=NULL;
 	
+	if (file_speciesheights!="") {
+		file_speciesheights = outputdirectory + file_speciesheights;
+		out_speciesheights=fopen(file_speciesheights,"w");
+		if (!file_speciesheights) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_speciesheights);
+	}
+	else out_speciesheights=NULL;
 
 	if (file_runoff!="") {
 		file_runoff = outputdirectory + file_runoff;
@@ -3158,6 +3153,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		}
 
 		if (out_firert) fprintf(out_firert,"%8s%8s%8s%8s\n","Lon","Lat","Year","FireRT");
+		if (out_speciesheights) fprintf(out_speciesheights,lonlatyearstr,"Lon","Lat","Year");
 
 		if (out_mnpp) fprintf(out_mnpp,lonlatyearstr,"Lon","Lat","Year");
 		if (out_mlai) fprintf(out_mlai,lonlatyearstr,"Lon","Lat","Year");
@@ -3172,9 +3168,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_mnee) fprintf(out_mnee,lonlatyearstr,"Lon","Lat","Year");
 		if (out_mwcont_upper) fprintf(out_mwcont_upper,lonlatyearstr,"Lon","Lat","Year");
 		if (out_mwcont_lower) fprintf(out_mwcont_lower,lonlatyearstr,"Lon","Lat","Year");
-			
-		// guess2008 - euroflux
-		if (out_speciesheights) fprintf(out_speciesheights,"%10s%8s","Species","Height");
+
+		// euroflux
 		if (out_eurofluxmonthly) fprintf(out_eurofluxmonthly,"%6s%6s%6s%6s","Lon","Lat","Year","Month");
 		if (out_eurofluxannual) fprintf(out_eurofluxannual,"%6s%6s%6s","Lon","Lat","Year");
 		
@@ -3189,6 +3184,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			if (out_anpp) fprintf(out_anpp,"%8s",(char*)pft.name);
 			if (out_lai) fprintf(out_lai,"%8s",(char*)pft.name);
 			if (out_dens) fprintf(out_dens,"%8s",(char*)pft.name);
+			if (out_speciesheights) fprintf(out_speciesheights,"%8s",(char*)pft.name);
 			pftlist.nextobj();
 		}
 
@@ -3214,7 +3210,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_cmass) fprintf(out_cmass,"\n");
 		if (out_anpp) fprintf(out_anpp,"\n");
 		if (out_lai) fprintf(out_lai,"\n");
-
+		if (out_speciesheights) fprintf(out_speciesheights, "\n");
 
 
 		// guess2008
@@ -3275,7 +3271,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_dens) fprintf(out_dens,lonlatyeardatastr,lon,lat,date.year);
 		if (out_cpool) fprintf(out_cpool,lonlatyeardatastr,lon,lat,date.year);
 		if (out_firert) fprintf(out_firert,lonlatyeardatastr,lon,lat,date.year);
-
+		if (out_speciesheights) fprintf(out_speciesheights,lonlatyeardatastr,lon,lat,date.year);
 
 		if (out_mnpp) fprintf(out_mnpp,lonlatyeardatastr,lon,lat,date.year);
 		if (out_mlai) fprintf(out_mlai,lonlatyeardatastr,lon,lat,date.year);
@@ -3391,8 +3387,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 										if (diam>0.03) {
 											standpft_densindiv_total+=indiv.densindiv; // indiv/m2
 
-											if (date.year==nyear_spinup+99)
-												 heightindiv_total+=indiv.height * indiv.densindiv;
+											heightindiv_total+=indiv.height * indiv.densindiv;
 										}
 									}
 								}
@@ -3410,7 +3405,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				standpft_lai/=(double)stand.nobj;
 				standpft_densindiv_total/=(double)stand.nobj;
 
-				// guess2008 - euroflux
 				heightindiv_total/=(double)stand.nobj;
 
 				//Update landcover totals
@@ -3459,27 +3453,17 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			if (out_anpp)
 				fprintf(out_anpp,"%8.3f",gcpft_anpp);
 
-			// guess2008 - euroflux - print cohort heights in year 2000
-			if (date.year==nyear_spinup+99) {
-					fprintf(out_speciesheights,"\n%9s", (char*)pft.name);
-					fprintf(out_speciesheights,"%s"," ");
-
-					double zeroheight = 0.0;
-					if (gcpft_densindiv_total > 0.0)
-						fprintf(out_speciesheights,"%8.2f",heightindiv_total/gcpft_densindiv_total);
-					else
-						fprintf(out_speciesheights,"%8.2f",zeroheight);
-			}
+			// print species heights
+			double height = 0.0;
+			if (gcpft_densindiv_total > 0.0)
+				height = heightindiv_total/gcpft_densindiv_total;
+				
+			if (out_speciesheights)
+				fprintf(out_speciesheights,"%8.2f",height);
 
 			pftlist.nextobj();
 		
 		} // *** End of PFT loop ***
-
-
-		// guess2008 - euroflux - print cohort heights in year 2000
-		if (date.year==nyear_spinup+99) {
-				fprintf(out_speciesheights,"\n");
-		}
 
 
 		flux_veg=flux_soil=flux_fire=flux_est=flux_harvest=0.0;
@@ -3624,6 +3608,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_runoff) fprintf(out_runoff,"\n");
 		if (out_dens) fprintf(out_dens, "\n");
 		if (out_firert) fprintf(out_firert, "\n");
+		if (out_speciesheights) fprintf(out_speciesheights, "\n");
 
 		// Print monthly output variables
 		for (m=0;m<12;m++) {
@@ -3803,6 +3788,7 @@ void termio() {
 		if (out_dens) fclose(out_dens);
 		if (out_cpool) fclose(out_cpool);
 		if (out_firert) fclose(out_firert);
+		if (out_speciesheights) fclose(out_speciesheights);
 
 		if (out_mnpp) fclose(out_mnpp);
 		if (out_mlai) fclose(out_mlai);
@@ -3818,8 +3804,7 @@ void termio() {
 		if (out_mwcont_upper) fclose(out_mwcont_upper);
 		if (out_mwcont_lower) fclose(out_mwcont_lower);
 
-		// guess2008 - euroflux
-		if (out_speciesheights) fclose(out_speciesheights);
+		// euroflux
 		if (out_eurofluxmonthly) fclose(out_eurofluxmonthly);
 		if (out_eurofluxannual) fclose(out_eurofluxannual);
 		if (out_eurofluxstats) fclose(out_eurofluxstats);

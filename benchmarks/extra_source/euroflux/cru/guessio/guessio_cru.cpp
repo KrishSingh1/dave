@@ -193,7 +193,8 @@ xtring file_firert,file_speciesheights;
 xtring file_aiso,file_miso,file_amon,file_mmon;
 
 // guess2008 - euroflux - Files for EUROFLUX output and stats
-xtring file_eurofluxmonthly, file_eurofluxannual, file_eurofluxstats;
+xtring file_eurofluxmonthly, file_eurofluxannual;
+xtring file_eurofluxstats_nee, file_eurofluxstats_aet, file_eurofluxstats_gpp;
 
 // guess2008 - euroflux - new int to keep track of the simulation year
 // Needed for management etc., used in vegetation dynamics
@@ -232,7 +233,9 @@ void initsettings() {
 	// euroflux
 	file_eurofluxmonthly="";
 	file_eurofluxannual="";
-	file_eurofluxstats="";
+	file_eurofluxstats_nee="";
+	file_eurofluxstats_aet="";
+	file_eurofluxstats_gpp="";
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -357,7 +360,9 @@ void plib_declarations(int id,xtring setname) {
 		// euroflux - File for EUROFLUX output (mnee, maet, mgpp and msw)
 		declareitem("file_eurofluxmonthly",&file_eurofluxmonthly,300,CB_NONE,"EUROFLUX monthly output file");
 		declareitem("file_eurofluxannual",&file_eurofluxannual,300,CB_NONE,"EUROFLUX annual output file");
-		declareitem("file_eurofluxstats",&file_eurofluxstats,300,CB_NONE,"EUROFLUX Statistics output file");
+		declareitem("file_eurofluxstats_nee",&file_eurofluxstats_nee,300,CB_NONE,"EUROFLUX NEE Statistics output file");
+		declareitem("file_eurofluxstats_aet",&file_eurofluxstats_aet,300,CB_NONE,"EUROFLUX AET Statistics output file");
+		declareitem("file_eurofluxstats_gpp",&file_eurofluxstats_gpp,300,CB_NONE,"EUROFLUX GPP Statistics output file");
 
 		// bvoc 
 		declareitem("ifbvoc",&ifbvoc,1,CB_NONE,
@@ -1224,7 +1229,8 @@ FILE *out_firert,*out_speciesheights;
 FILE *out_aiso,*out_miso,*out_amon,*out_mmon;
 
 // euroflux - EUROFLUX output
-FILE *out_eurofluxmonthly, *out_eurofluxannual, *out_eurofluxstats;
+FILE *out_eurofluxmonthly, *out_eurofluxannual;
+FILE *out_eurofluxstats_nee, *out_eurofluxstats_aet, *out_eurofluxstats_gpp;
 
 
 // Timers for keeping track of progress through the simulation
@@ -2007,7 +2013,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	else out_cmass=NULL;
 
 
-	// guess2008 - euroflux
+	// euroflux
 	if (file_eurofluxmonthly!="") {
 		file_eurofluxmonthly = outputdirectory + file_eurofluxmonthly;
 		out_eurofluxmonthly=fopen(file_eurofluxmonthly,"w");
@@ -2015,7 +2021,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	}
 	else out_eurofluxmonthly=NULL;	
 
-	// guess2008 - euroflux
+	// euroflux
 	if (file_eurofluxannual!="") {
 		file_eurofluxannual = outputdirectory + file_eurofluxannual;
 		out_eurofluxannual=fopen(file_eurofluxannual,"w");
@@ -2023,13 +2029,29 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	}
 	else out_eurofluxannual=NULL;	
 
-	// guess2008 - euroflux
-	if (file_eurofluxstats!="") {
-		file_eurofluxstats = outputdirectory + file_eurofluxstats;
-		out_eurofluxstats=fopen(file_eurofluxstats,"w");
-		if (!out_eurofluxstats) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_eurofluxstats);
+	// euroflux
+	if (file_eurofluxstats_nee!="") {
+		file_eurofluxstats_nee = outputdirectory + file_eurofluxstats_nee;
+		out_eurofluxstats_nee=fopen(file_eurofluxstats_nee,"w");
+		if (!out_eurofluxstats_nee) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_eurofluxstats_nee);
 	}
-	else out_eurofluxstats=NULL;
+	else out_eurofluxstats_nee=NULL;
+
+	// euroflux
+	if (file_eurofluxstats_aet!="") {
+		file_eurofluxstats_aet = outputdirectory + file_eurofluxstats_aet;
+		out_eurofluxstats_aet=fopen(file_eurofluxstats_aet,"w");
+		if (!out_eurofluxstats_aet) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_eurofluxstats_aet);
+	}
+	else out_eurofluxstats_aet=NULL;
+
+	// euroflux
+	if (file_eurofluxstats_gpp!="") {
+		file_eurofluxstats_gpp = outputdirectory + file_eurofluxstats_gpp;
+		out_eurofluxstats_gpp=fopen(file_eurofluxstats_gpp,"w");
+		if (!out_eurofluxstats_gpp) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_eurofluxstats_gpp);
+	}
+	else out_eurofluxstats_gpp=NULL;
 
 	if (file_anpp!="") {
 		file_anpp = outputdirectory + file_anpp;
@@ -2736,8 +2758,8 @@ bool getclimate(Gridcell& gridcell) {
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
-// calculateEurofluxStats - guess2008 - euroflux
-// Called by outannual at the end of the last day of the last simulation year
+// calculateAnnualFluxSums - euroflux
+// Called by outannual at the end of each flux year
 void calculateAnnualFluxSums(const int yr, 
 								double& annNEE_obs, double& annNEE_mod, double &sumNEE_obs, double& sumNEE_mod, 
 								double& annAET_obs, double& annAET_mod, double &sumAET_obs, double& sumAET_mod, 
@@ -2861,10 +2883,12 @@ void calculateAnnualFluxSums(const int yr,
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
-// calculateEurofluxStats - guess2008 - euroflux
+// calculateEurofluxStats - euroflux
 // Called by outannual at the end of the last day of the last simulation year
 
-void calculateEurofluxStats(FILE* out_stats) {
+void calculateEurofluxStats(FILE* out_stats_nee, 
+                            FILE* out_stats_aet, 
+                            FILE* out_stats_gpp) {
 
 	int yr, mth;
 
@@ -3109,45 +3133,54 @@ void calculateEurofluxStats(FILE* out_stats) {
 	// OUTPUT stats
 	// ***********************************************************************
 
+	static bool first_call = true;
 
-	// Create the file name for output 
-	/*
-	xtring fluxdirectory=outputdirectory;
-	xtring statsfilename = "EurofluxStats.txt";
-	xtring statsfile = fluxdirectory + statsfilename;
+	if (first_call) {
+		 first_call = false;
 
-	FILE* out_stats=fopen(statsfile,"a");
-	if (!out_stats) fail("calculateEurofluxStats: could not open %s for ouput",(char*)statsfile);
-	*/
+		 xtring title;
+		 title.printf("%10s%10s%10s%10s%10s%10s%10s%10s%10s%10s%10s%10s\n",
+		              "Site","N","<OBS>","<MOD>","M","R","R2","EF","CD","RMSE","RMSE_std","t");
 
+		 if (out_stats_nee) {
+			  fprintf(out_stats_nee, (char*)title);
+		 }
+		 if (out_stats_aet) {
+			  fprintf(out_stats_aet, (char*)title);
+		 }
+		 if (out_stats_gpp) {
+			  fprintf(out_stats_gpp, (char*)title);
+		 }
+	}
 
 	char* sitename = (char*)current_stand_fluxdata->desc;
 
 	double ef = (NEE_obs_sqdiff - NEE_obs_minus_mod_sq)/NEE_obs_sqdiff; // Modelling Efficiency
 	double cd = NEE_obs_sqdiff/NEE_obs_minus_mod_sq; // Coefficient of determination
 
-	fprintf(out_stats,"%10s%10s%10s%10s%10s%10s%10s%10s%10s%10s%10s%10s%10s\n","Site","Variable","N","<OBS>","<MOD>","M","R","R2","EF","CD","RMSE","RMSE_std","t");
-	fprintf(out_stats,"%10s%10s",sitename,"NEE");
-	fprintf(out_stats,"%10d%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f\n",numNEE_obs,meanNEE_obs,meanNEE_mod,m_NEE,
-		r_NEE,r_NEE*r_NEE,ef,cd,rmse_NEE,rmse_NEE_std,t_NEE);
+	if (out_stats_nee) {
+		 fprintf(out_stats_nee,"%10s",sitename);
+		 fprintf(out_stats_nee,"%10d%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f\n",numNEE_obs,meanNEE_obs,meanNEE_mod,m_NEE,
+					r_NEE,r_NEE*r_NEE,ef,cd,rmse_NEE,rmse_NEE_std,t_NEE);
+	}
 
 	ef = (AET_obs_sqdiff - AET_obs_minus_mod_sq)/AET_obs_sqdiff; // Modelling Efficiency
 	cd = AET_obs_sqdiff/AET_obs_minus_mod_sq; // Coefficient of determination
 
-	fprintf(out_stats,"%10s%10s",sitename,"AET");
-	fprintf(out_stats,"%10d%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f\n",numAET_obs,meanAET_obs,meanAET_mod,m_AET,
-		r_AET,r_AET*r_AET,ef,cd,rmse_AET,rmse_AET_std,t_AET);
+	if (out_stats_aet) {
+		 fprintf(out_stats_aet,"%10s",sitename);
+		 fprintf(out_stats_aet,"%10d%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f\n",numAET_obs,meanAET_obs,meanAET_mod,m_AET,
+					r_AET,r_AET*r_AET,ef,cd,rmse_AET,rmse_AET_std,t_AET);
+	}
 
 	ef = (GPP_obs_sqdiff - GPP_obs_minus_mod_sq)/GPP_obs_sqdiff; // Modelling Efficiency
 	cd = GPP_obs_sqdiff/GPP_obs_minus_mod_sq; // Coefficient of determination
 
-	fprintf(out_stats,"%10s%10s",sitename,"GPP");
-	fprintf(out_stats,"%10d%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f\n",numGPP_obs,meanGPP_obs,meanGPP_mod,m_GPP,
-		r_GPP,r_GPP*r_GPP,ef,cd,rmse_GPP,rmse_GPP_std,t_GPP);
-
-
-	// fclose(out_stats);
-
+	if (out_stats_gpp) {
+		 fprintf(out_stats_gpp,"%10s",sitename);
+		 fprintf(out_stats_gpp,"%10d%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f\n",numGPP_obs,meanGPP_obs,meanGPP_mod,m_GPP,
+					r_GPP,r_GPP*r_GPP,ef,cd,rmse_GPP,rmse_GPP_std,t_GPP);
+	}
 }
 
 
@@ -3896,8 +3929,10 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	}
 
 	// guess2008 - euroflux - output stats at the end of 2006
-	if (date.year==nyear_spinup+NYEAR_HIST-1 && out_eurofluxstats)
-		calculateEurofluxStats(out_eurofluxstats);
+	if (date.year==nyear_spinup+NYEAR_HIST-1)
+		 calculateEurofluxStats(out_eurofluxstats_nee, 
+		                        out_eurofluxstats_aet, 
+		                        out_eurofluxstats_gpp);
 
 }
 
@@ -3947,7 +3982,9 @@ void termio() {
 		// euroflux
 		if (out_eurofluxmonthly) fclose(out_eurofluxmonthly);
 		if (out_eurofluxannual) fclose(out_eurofluxannual);
-		if (out_eurofluxstats) fclose(out_eurofluxstats);
+		if (out_eurofluxstats_nee) fclose(out_eurofluxstats_nee);
+		if (out_eurofluxstats_aet) fclose(out_eurofluxstats_aet);
+		if (out_eurofluxstats_gpp) fclose(out_eurofluxstats_gpp);
 	}
 
 	// Clean up

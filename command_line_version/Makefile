@@ -64,11 +64,15 @@ somdynamo= somdynam.o
 somdynamc= somdynam.cpp
 somdynamh= somdynam.h
 
+bvoco= bvoc.o
+bvocc= bvoc.cpp
+bvoch= bvoc.h
+
 # List of target : dependency directives
 # NB: executable must be first target
 
-$(exe): $(maino) $(guessframeo) $(guessioo) $(drivero) $(canexcho) $(soilwatero) $(growtho) $(vegdynamo) $(somdynamo)
-	$(CC) $(eoptions) -o $(exe) $(maino) $(guessframeo) $(guessioo) $(drivero) $(canexcho) $(soilwatero) $(growtho) $(vegdynamo) $(somdynamo) $(libraries) 
+$(exe): $(maino) $(guessframeo) $(guessioo) $(drivero) $(canexcho) $(soilwatero) $(growtho) $(vegdynamo) $(somdynamo) $(bvoco)
+	$(CC) $(eoptions) -o $(exe) $(maino) $(guessframeo) $(guessioo) $(drivero) $(canexcho) $(soilwatero) $(growtho) $(vegdynamo) $(somdynamo) $(bvoco) $(libraries) 
 
 $(maino): $(mainc) $(guessframeh)
 	$(CC) $(options) -c $(mainc)
@@ -96,3 +100,6 @@ $(vegdynamo): $(vegdynamc) $(guessframeh) $(vegdynamh) $(growthh)
 
 $(somdynamo): $(somdynamc) $(guessframeh) $(somdynamh)
 	$(CC) $(options) -c $(somdynamc)
+
+$(bvoco): $(bvocc) $(bvoch)
+	$(CC) $(options) -c $(bvocc)

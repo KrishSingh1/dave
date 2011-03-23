@@ -193,7 +193,8 @@ xtring file_firert,file_speciesheights;
 xtring file_aiso,file_miso,file_amon,file_mmon;
 
 // guess2008 - euroflux - Files for EUROFLUX output and stats
-xtring file_eurofluxmonthly, file_eurofluxannual;
+xtring file_eurofluxannual;
+xtring file_eurofluxmonthly_nee, file_eurofluxmonthly_aet, file_eurofluxmonthly_gpp;
 xtring file_eurofluxstats_nee, file_eurofluxstats_aet, file_eurofluxstats_gpp;
 
 // guess2008 - euroflux - new int to keep track of the simulation year
@@ -231,7 +232,9 @@ void initsettings() {
 	file_aiso=file_miso=file_amon=file_mmon="";
 
 	// euroflux
-	file_eurofluxmonthly="";
+	file_eurofluxmonthly_nee="";
+	file_eurofluxmonthly_aet="";
+	file_eurofluxmonthly_gpp="";
 	file_eurofluxannual="";
 	file_eurofluxstats_nee="";
 	file_eurofluxstats_aet="";
@@ -357,8 +360,10 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("searchradius", &searchradius, 0, 100, 1, CB_NONE,
 			"If specified, CRU data will be searched for in a circle");
 
-		// euroflux - File for EUROFLUX output (mnee, maet, mgpp and msw)
-		declareitem("file_eurofluxmonthly",&file_eurofluxmonthly,300,CB_NONE,"EUROFLUX monthly output file");
+		// euroflux - Files for EUROFLUX output
+		declareitem("file_eurofluxmonthly_nee",&file_eurofluxmonthly_nee,300,CB_NONE,"EUROFLUX NEE monthly output file");
+		declareitem("file_eurofluxmonthly_aet",&file_eurofluxmonthly_aet,300,CB_NONE,"EUROFLUX AET monthly output file");
+		declareitem("file_eurofluxmonthly_gpp",&file_eurofluxmonthly_gpp,300,CB_NONE,"EUROFLUX GPP monthly output file");
 		declareitem("file_eurofluxannual",&file_eurofluxannual,300,CB_NONE,"EUROFLUX annual output file");
 		declareitem("file_eurofluxstats_nee",&file_eurofluxstats_nee,300,CB_NONE,"EUROFLUX NEE Statistics output file");
 		declareitem("file_eurofluxstats_aet",&file_eurofluxstats_aet,300,CB_NONE,"EUROFLUX AET Statistics output file");
@@ -1229,7 +1234,8 @@ FILE *out_firert,*out_speciesheights;
 FILE *out_aiso,*out_miso,*out_amon,*out_mmon;
 
 // euroflux - EUROFLUX output
-FILE *out_eurofluxmonthly, *out_eurofluxannual;
+FILE *out_eurofluxannual;
+FILE *out_eurofluxmonthly_nee, *out_eurofluxmonthly_aet, *out_eurofluxmonthly_gpp;
 FILE *out_eurofluxstats_nee, *out_eurofluxstats_aet, *out_eurofluxstats_gpp;
 
 
@@ -2014,12 +2020,28 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 
 	// euroflux
-	if (file_eurofluxmonthly!="") {
-		file_eurofluxmonthly = outputdirectory + file_eurofluxmonthly;
-		out_eurofluxmonthly=fopen(file_eurofluxmonthly,"w");
-		if (!out_eurofluxmonthly) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_eurofluxmonthly);
+	if (file_eurofluxmonthly_nee!="") {
+		file_eurofluxmonthly_nee = outputdirectory + file_eurofluxmonthly_nee;
+		out_eurofluxmonthly_nee=fopen(file_eurofluxmonthly_nee,"w");
+		if (!out_eurofluxmonthly_nee) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_eurofluxmonthly_nee);
 	}
-	else out_eurofluxmonthly=NULL;	
+	else out_eurofluxmonthly_nee=NULL;	
+
+	// euroflux
+	if (file_eurofluxmonthly_aet!="") {
+		file_eurofluxmonthly_aet = outputdirectory + file_eurofluxmonthly_aet;
+		out_eurofluxmonthly_aet=fopen(file_eurofluxmonthly_aet,"w");
+		if (!out_eurofluxmonthly_aet) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_eurofluxmonthly_aet);
+	}
+	else out_eurofluxmonthly_aet=NULL;	
+
+	// euroflux
+	if (file_eurofluxmonthly_gpp!="") {
+		file_eurofluxmonthly_gpp = outputdirectory + file_eurofluxmonthly_gpp;
+		out_eurofluxmonthly_gpp=fopen(file_eurofluxmonthly_gpp,"w");
+		if (!out_eurofluxmonthly_gpp) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_eurofluxmonthly_gpp);
+	}
+	else out_eurofluxmonthly_gpp=NULL;	
 
 	// euroflux
 	if (file_eurofluxannual!="") {
@@ -3278,7 +3300,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if(out_mmon)fprintf(out_mmon,lonlatyearstr,"Lon","Lat","Year");		
 
 		// euroflux
-		if (out_eurofluxmonthly) fprintf(out_eurofluxmonthly,"%6s%6s%6s%6s","Lon","Lat","Year","Month");
+		if (out_eurofluxmonthly_nee) fprintf(out_eurofluxmonthly_nee,lonlatyearstr,"Lon","Lat","Year");
+		if (out_eurofluxmonthly_aet) fprintf(out_eurofluxmonthly_aet,lonlatyearstr,"Lon","Lat","Year");
+		if (out_eurofluxmonthly_gpp) fprintf(out_eurofluxmonthly_gpp,lonlatyearstr,"Lon","Lat","Year");
 		if (out_eurofluxannual) fprintf(out_eurofluxannual,"%6s%6s%6s","Lon","Lat","Year");
 
 		// Loop through PFT's and print PFT names as column labels
@@ -3349,9 +3373,10 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if(out_miso)fprintf(out_miso,monthstr_long,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
 		if(out_mmon)fprintf(out_mmon,monthstr_long,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
 	
-		// guess2008 - euroflux - 3 output fields
-		if (out_eurofluxmonthly) fprintf(out_eurofluxmonthly,"%10s%10s%10s%10s%10s%10s","NEE_mod","NEE_obs","AET_mod","AET_obs","GPP_mod","GPP_obs");
-		if (out_eurofluxmonthly) fprintf(out_eurofluxmonthly,"\n");
+		// euroflux
+		if (out_eurofluxmonthly_nee) fprintf(out_eurofluxmonthly_nee,monthstr_long,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+		if (out_eurofluxmonthly_aet) fprintf(out_eurofluxmonthly_aet,monthstr_long,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+		if (out_eurofluxmonthly_gpp) fprintf(out_eurofluxmonthly_gpp,monthstr_long,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
 
 		// Annual averages
 		if (out_eurofluxannual) fprintf(out_eurofluxannual,"%10s%10s%10s%10s%10s%10s","NEE_mod","NEE_obs","AET_mod","AET_obs","GPP_mod","GPP_obs");
@@ -3409,6 +3434,11 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		// bvoc
 		if(out_miso)fprintf(out_miso,lonlatyeardatastr,lon,lat,date.year);
 		if(out_mmon)fprintf(out_mmon,lonlatyeardatastr,lon,lat,date.year);
+
+		// euroflux
+		if (out_eurofluxmonthly_nee) fprintf(out_eurofluxmonthly_nee, lonlatyeardatastr, lon, lat, date.year);
+		if (out_eurofluxmonthly_aet) fprintf(out_eurofluxmonthly_aet, lonlatyeardatastr, lon, lat, date.year);
+		if (out_eurofluxmonthly_gpp) fprintf(out_eurofluxmonthly_gpp, lonlatyeardatastr, lon, lat, date.year);
 
 		// guess2008 - reset monthly average across patches each year
 		for (m=0;m<12;m++)
@@ -3813,22 +3843,34 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		}
 
 
-		// guess2008 - euroflux
+		// euroflux
 		// Print monthly EUROFLUX data
 		for (m=0;m<12;m++) {
-			
-			if (out_eurofluxmonthly) fprintf(out_eurofluxmonthly,"%6.1f%6.1f%6d%6d",lon,lat,date.year,m+1);
 
-			if (out_eurofluxmonthly) fprintf(out_eurofluxmonthly,"%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f\n",
-				-1000.0*mnee[m],current_stand_fluxdata->fluxNEE[date.year-nyear_spinup-95][m],
-				maet[m],current_stand_fluxdata->fluxAET[date.year-nyear_spinup-95][m],
-				1000.0*mgpp[m],current_stand_fluxdata->fluxGPP[date.year-nyear_spinup-95][m]);
+			 int year = date.year-nyear_spinup-95;
+			 double flux_nee = current_stand_fluxdata->fluxNEE[year][m];
+			 double flux_aet = current_stand_fluxdata->fluxAET[year][m];
+			 double flux_gpp = current_stand_fluxdata->fluxGPP[year][m];
 
-			// Save modelled flux data
-			current_stand_fluxdata->modelNEE[date.year-nyear_spinup-95][m] = -1000.0*mnee[m];	// gC/m2/month
-			current_stand_fluxdata->modelAET[date.year-nyear_spinup-95][m] = maet[m];			// mm/month
-			current_stand_fluxdata->modelGPP[date.year-nyear_spinup-95][m] = 1000.0*mgpp[m];	// gC/m2/month
+			 // convert to the same units as our regular mnee, maet and mgpp files
+			 if (flux_nee != MISSING_DATA) {
+				  flux_nee *= -0.001;
+			 }
 
+			 if (flux_gpp != MISSING_DATA) {
+				  flux_gpp *= 0.001;
+			 }
+
+			 const char* format = (m == 11) ? "%10.3f\n" : "%10.3f";
+			 
+			 if (out_eurofluxmonthly_nee) fprintf(out_eurofluxmonthly_nee, format, flux_nee);
+			 if (out_eurofluxmonthly_aet) fprintf(out_eurofluxmonthly_aet, format, flux_aet);
+			 if (out_eurofluxmonthly_gpp) fprintf(out_eurofluxmonthly_gpp, format, flux_gpp);
+
+			 // Save modelled flux data
+			 current_stand_fluxdata->modelNEE[year][m] = -1000.0*mnee[m];  // gC/m2/month
+			 current_stand_fluxdata->modelAET[year][m] = maet[m];			   // mm/month
+			 current_stand_fluxdata->modelGPP[year][m] = 1000.0*mgpp[m];   // gC/m2/month
 		}
 
 
@@ -3980,7 +4022,9 @@ void termio() {
 		if(out_mmon)fclose(out_mmon);
 
 		// euroflux
-		if (out_eurofluxmonthly) fclose(out_eurofluxmonthly);
+		if (out_eurofluxmonthly_nee) fclose(out_eurofluxmonthly_nee);
+		if (out_eurofluxmonthly_aet) fclose(out_eurofluxmonthly_aet);
+		if (out_eurofluxmonthly_gpp) fclose(out_eurofluxmonthly_gpp);
 		if (out_eurofluxannual) fclose(out_eurofluxannual);
 		if (out_eurofluxstats_nee) fclose(out_eurofluxstats_nee);
 		if (out_eurofluxstats_aet) fclose(out_eurofluxstats_aet);

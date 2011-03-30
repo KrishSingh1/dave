@@ -26,7 +26,7 @@
 ! (used only by guessio.cpp)
 	param "co2" (num 340)
 
-      	param "file_gridlist" (str "gridlist.txt")
+	param "file_gridlist" (str "gridlist.txt")
 
 	param "file_temp" (str "tmp30_21.grd")  !temperature
 	param "file_prec" (str "prc30_21.grd")  !precipitation
@@ -104,7 +104,7 @@ patcharea 1000        ! patch area (m2)
 estinterval 5         ! years between establishment events in cohort mode
 ifdisturb 1           ! whether generic patch-destroying disturbances enabled
 distinterval 100      ! average return time for generic patch-destroying disturbances
-					  ! guess2008 - 200 for Europe, 100 globally
+					  ! Hickler et al. (2011) used 200
 ifbgestab 1           ! whether background establishment enabled
 ifsme 1               ! whether spatial mass effect enabled
 ifstochestab 1        ! whether establishment stochastic
@@ -221,7 +221,7 @@ group "needle_leaved"
 (
 	k_allom1 150
 	k_latosa 4000
-        ga 0.140
+	ga 0.140
 )
 
 group "broad_leaved"
@@ -229,8 +229,8 @@ group "broad_leaved"
 	k_allom1 250 
 	k_latosa 5000
 	leaflong 0.5		! PMxx: new default
-    	turnover_leaf 1		! PMxx: new default
-        ga 0.040
+	turnover_leaf 1		! PMxx: new default
+	ga 0.040
 )
 
 group "grass" (
@@ -244,7 +244,7 @@ group "grass" (
 	cton_root 29
 	respcoeff 2.0 
 	litterme 0.2
-        ga 0.030
+	ga 0.030
 )
 
 
@@ -317,7 +317,7 @@ pft "Abi_alb" (
 	shade_tolerant
 	temperate_tree
 	needle_leaved
-	sla 9.3
+!	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
 	leaflong 3			! THdiff: 4
@@ -335,10 +335,10 @@ pft "Abi_alb" (
 	intc 0.06
 	longevity 350
 	drought_tolerance 0.35
-        eps_iso 0.05            
-        seas_iso 0
-        eps_mon 1.8
-        storfrac_mon 0.5
+	eps_iso 0.05            
+	seas_iso 0
+	eps_mon 1.8
+	storfrac_mon 0.5
 )
 
 
@@ -355,7 +355,7 @@ pft "BES" (
 	k_latosa 500
 	shade_intolerant	
 	rootdist 0.8 0.2
-	sla 9.3
+!	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
 	leaflong 2
@@ -374,11 +374,11 @@ pft "BES" (
 	fireresist 0.1
 	intc 0.06
 	drought_tolerance 0.25
-        eps_iso 2.0
-        seas_iso 0
-        eps_mon 4.0
-        storfrac_mon 0.5
-        ga 0.040
+	eps_iso 2.0
+	seas_iso 0
+	eps_mon 4.0
+	storfrac_mon 0.5
+	ga 0.040
 )
 
 
@@ -389,7 +389,7 @@ pft "Bet_pen" (
 	shade_intolerant
 	temperate_tree
 	broad_leaved
-	sla 24.3
+!	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
 	phengdd5ramp 200
@@ -405,10 +405,10 @@ pft "Bet_pen" (
 	intc 0.02
 	longevity 200 
 	drought_tolerance 0.42
-        eps_iso 0.2
-        seas_iso 1
-        eps_mon 6.
-        storfrac_mon 0.
+	eps_iso 0.2
+	seas_iso 1
+	eps_mon 6.
+	storfrac_mon 0.
 )
 
 
@@ -419,7 +419,7 @@ pft "Bet_pub" (
 	shade_intolerant
 	boreal_tree 
 	broad_leaved
-	sla 24.3
+!	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
 	phengdd5ramp 200
@@ -435,10 +435,10 @@ pft "Bet_pub" (
 	intc 0.02
 	longevity 200
 	drought_tolerance 0.5
-        eps_iso 0.
-        seas_iso 1
-        eps_mon 1.0
-        storfrac_mon 0.
+	eps_iso 0.
+	seas_iso 1
+	eps_mon 1.0
+	storfrac_mon 0.
 )
 
 
@@ -449,7 +449,7 @@ pft "Car_bet" (
 	intermediate_shade_tolerant
 	temperate_tree
 	broad_leaved
-	sla 24.3
+!	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
 	phengdd5ramp 200
@@ -465,10 +465,10 @@ pft "Car_bet" (
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.33
-        eps_iso 0.
-        seas_iso 1
-        eps_mon 0.08
-        storfrac_mon 0.
+	eps_iso 0.
+	seas_iso 1
+	eps_mon 0.08
+	storfrac_mon 0.
 )
 
 
@@ -481,7 +481,7 @@ pft "Cor_ave" (
 	intermediate_shade_tolerant
 	temperate_tree
 	k_latosa 4000
-	sla 12
+!	sla 12				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
 	phengdd5ramp 200
@@ -497,10 +497,10 @@ pft "Cor_ave" (
 	intc 0.02
 	longevity 100		! THdiff: 300 - see Savill's silviculture book
 	drought_tolerance 0.3
-        eps_iso 0.
-        seas_iso 1
-        eps_mon 0.
-        storfrac_mon 0.
+	eps_iso 0.
+	seas_iso 1
+	eps_mon 0.
+	storfrac_mon 0.
 )
 
 
@@ -511,7 +511,7 @@ pft "Fag_syl" (
 	shade_tolerant
 	temperate_tree
 	broad_leaved
-	sla 24.3
+!	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
 	phengdd5ramp 200
@@ -527,10 +527,10 @@ pft "Fag_syl" (
 	intc 0.02
 	longevity 500
 	drought_tolerance 0.3
-        eps_iso 0.
-        seas_iso 1
-        eps_mon 10.
-        storfrac_mon 0.
+	eps_iso 0.
+	seas_iso 1
+	eps_mon 10.
+	storfrac_mon 0.
 )
 
 
@@ -541,7 +541,7 @@ pft "Fra_exc" (
 	intermediate_shade_tolerant
 	temperate_tree
 	broad_leaved
-	sla 24.3
+!	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
 	phengdd5ramp 200
@@ -557,10 +557,10 @@ pft "Fra_exc" (
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.4
-        eps_iso 0.
-        seas_iso 1
-        eps_mon 0.
-        storfrac_mon 0.
+	eps_iso 0.
+	seas_iso 1
+	eps_mon 0.
+	storfrac_mon 0.
 )
 
 
@@ -576,7 +576,7 @@ pft "Jun_oxy" (
 	k_latosa 1500
 	crownarea_max 10
 	rootdist 0.5 0.5
-	sla 10
+!	sla 10				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "evergreen"
 	leaflong 1.5
@@ -594,10 +594,10 @@ pft "Jun_oxy" (
 	intc 0.02
 	longevity 200
 	drought_tolerance 0.01
-        eps_iso 0.
-        seas_iso 0
-        eps_mon 2.0
-        storfrac_mon 0.5
+	eps_iso 0.
+	seas_iso 0
+	eps_mon 2.0
+	storfrac_mon 0.5
 )
 
 
@@ -613,7 +613,7 @@ pft "MRS" (
 	temperate_tree
 	k_latosa 1500		! ThomasH
 	rootdist 0.9 0.1
-	sla 10
+!	sla 10				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "raingreen"
 	leaflong 0.5 
@@ -631,11 +631,11 @@ pft "MRS" (
 	intc 0.02
 	longevity 100		!
 	drought_tolerance 0.01
-        eps_iso 2.0
-        seas_iso 0
-        eps_mon 4.0
-        storfrac_mon 0.5
-        ga 0.040
+	eps_iso 2.0
+	seas_iso 0
+	eps_mon 4.0
+	storfrac_mon 0.5
+	ga 0.040
 )
 
 
@@ -647,7 +647,7 @@ pft "Pic_abi" (
 	boreal_tree
 	needle_leaved
 	rootdist 0.8 0.2
-	sla 9.3
+!	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
 	leaflong 3			! THdiff: 4	
@@ -665,10 +665,10 @@ pft "Pic_abi" (
 	intc 0.06
 	longevity 500
 	drought_tolerance 0.43
-        eps_iso 0.5
-        seas_iso 0
-        eps_mon 6.0
-        storfrac_mon 0.5
+	eps_iso 0.5
+	seas_iso 0
+	eps_mon 6.0
+	storfrac_mon 0.5
 )
 
 
@@ -683,7 +683,7 @@ pft "Pic_sit" (
 	needle_leaved
 	k_latosa 4500				! Waring et al 1980
 	rootdist 0.8 0.2			! ThomasH	
-	sla 9.3
+!	sla 9.3						! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
 	leaflong 4					! 5 !?
@@ -701,10 +701,10 @@ pft "Pic_sit" (
 	intc 0.06
 	longevity 700				! Bjarki
 	drought_tolerance 0.5		! Bjarki
-        eps_iso 0. ! to be determined
-        seas_iso 0
-        eps_mon 0. ! to be determined
-        storfrac_mon 0.5
+	eps_iso 0.					! to be determined
+	seas_iso 0
+	eps_mon 0.					! to be determined
+	storfrac_mon 0.5
 
 	! wooddens 200 - Should be less dens than P. abies (Savill)
 	! turnover_sap 0.065 ! Bjarki 30% + abies!
@@ -720,7 +720,7 @@ pft "Pin_syl" (
 	boreal_tree
 	needle_leaved
 	k_latosa 3000		! THdiff: 2000 (but I find that this to be a huge disadvantage for Pinus s.)
-	sla 9.3
+!	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
 	leaflong 2				
@@ -738,10 +738,10 @@ pft "Pin_syl" (
 	intc 0.06
 	longevity 350		! THdiff: 500
 	drought_tolerance 0.25
-        eps_iso 0.
-        seas_iso 0
-        eps_mon 4.0
-        storfrac_mon 0.5
+	eps_iso 0.
+	seas_iso 0
+	eps_mon 4.0
+	storfrac_mon 0.5
 )
 
 
@@ -755,7 +755,7 @@ pft "Pin_hal" (
 	temperate_tree
 	needle_leaved
 	k_latosa 3000		! THdiff: 2000 (but I find that this to be a huge disadvantage for Pinus h.)
-	sla 9.3
+!	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
 	leaflong 2				
@@ -773,10 +773,10 @@ pft "Pin_hal" (
 	intc 0.06
 	longevity 350
 	drought_tolerance 0.05
-        eps_iso 0.
-        seas_iso 0
-        eps_mon 10.0
-        storfrac_mon 0.5
+	eps_iso 0.
+	seas_iso 0
+	eps_mon 10.0
+	storfrac_mon 0.5
 )
 
 
@@ -790,7 +790,7 @@ pft "Pop_tre" (
 	temperate_tree
 	broad_leaved
 	rootdist 0.7 0.3
-	sla 24.3
+!	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
 	phengdd5ramp 200
@@ -806,10 +806,10 @@ pft "Pop_tre" (
 	intc 0.02
 	longevity 160		! Prentice & H.
 	drought_tolerance 0.4
-        eps_iso 20.
-        seas_iso 1
-        eps_mon 4.0
-        storfrac_mon 0.
+	eps_iso 20.
+	seas_iso 1
+	eps_mon 4.0
+	storfrac_mon 0.
 )
 
 
@@ -823,7 +823,7 @@ pft "Que_coc" (
 	temperate_tree
 	k_latosa 2500
 	rootdist 0.5 0.5
-	sla 10
+!	sla 10				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "evergreen"
 	leaflong 1.5
@@ -841,11 +841,11 @@ pft "Que_coc" (
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.1
-        eps_iso 0.1
-        seas_iso 0
-        eps_mon 10.0
-        storfrac_mon 0.
-        ga 0.040
+	eps_iso 0.1
+	seas_iso 0
+	eps_mon 10.0
+	storfrac_mon 0.
+	ga 0.040
 )
 
 
@@ -858,7 +858,7 @@ pft "Que_ile" (
 	broad_leaved
 	k_latosa 3000
 	rootdist 0.5 0.5
-	sla 9.3
+!	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "evergreen"
 	leaflong 2			
@@ -876,10 +876,10 @@ pft "Que_ile" (
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.1
-        eps_iso 0.05
-        seas_iso 0
-        eps_mon 16.0
-        storfrac_mon 0.
+	eps_iso 0.05
+	seas_iso 0
+	eps_mon 16.0
+	storfrac_mon 0.
 )
 
 
@@ -892,7 +892,7 @@ pft "Que_pub" (
 	intermediate_shade_tolerant
 	temperate_tree
 	broad_leaved
-	sla 24.3
+!	sla 24.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
 	phengdd5ramp 200
@@ -908,10 +908,10 @@ pft "Que_pub" (
 	intc 0.02
 	longevity 500
 	drought_tolerance 0.2
-        eps_iso 50.0
-        seas_iso 1
-        eps_mon 0.
-        storfrac_mon 0.
+	eps_iso 50.0
+	seas_iso 1
+	eps_mon 0.
+	storfrac_mon 0.
 )
 
 
@@ -922,7 +922,7 @@ pft "Que_rob" (
 	intermediate_shade_tolerant
 	temperate_tree
 	broad_leaved
-	sla 24.3
+!	sla 24.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
 	phengdd5ramp 200
@@ -938,10 +938,10 @@ pft "Que_rob" (
 	intc 0.02
 	longevity 500
 	drought_tolerance 0.25
-        eps_iso 40.0
-        seas_iso 1
-        eps_mon 0.
-        storfrac_mon 0.
+	eps_iso 40.0
+	seas_iso 1
+	eps_mon 0.
+	storfrac_mon 0.
 )
 
 
@@ -953,7 +953,7 @@ pft "Til_cor" (
 	temperate_tree
 	broad_leaved
 	rootdist 0.8 0.2
-	sla 24.3
+!	sla 24.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
 	phengdd5ramp 200
@@ -969,10 +969,10 @@ pft "Til_cor" (
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.33
-        eps_iso 0.
-        seas_iso 1
-        eps_mon 0.
-        storfrac_mon 0.
+	eps_iso 0.
+	seas_iso 1
+	eps_mon 0.
+	storfrac_mon 0.
 )
 
 
@@ -985,7 +985,7 @@ pft "Ulm_gla" (
 	intermediate_shade_tolerant
 	temperate_tree
 	broad_leaved
-	sla 24.3
+!	sla 24.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
 	phengdd5ramp 200
@@ -1001,10 +1001,10 @@ pft "Ulm_gla" (
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.4
-        eps_iso 0. ! to be determined
-        seas_iso 1
-        eps_mon 0. ! to be determined
-        storfrac_mon 0.
+	eps_iso 0. ! to be determined
+	seas_iso 1
+	eps_mon 0. ! to be determined
+	storfrac_mon 0.
 )
 
 
@@ -1016,7 +1016,7 @@ pft "C3_gr" (
 	rootdist 0.9 0.1
 	gmin 0.5
 	phenology "any"
-	sla 32.4
+!	sla 32.4				! Not used if ifcalcsla is set
 	leaflong 1
 	turnover_leaf 1
 	turnover_root 0.7
@@ -1034,10 +1034,10 @@ pft "C3_gr" (
 	fireresist 1.0			! THdiff 0.5 ! Changed from 0.5 on April 10, 2006
 	intc 0.01
 	drought_tolerance 0.01
-        eps_iso 0.
-        seas_iso 1
-        eps_mon 1.0
-        storfrac_mon 0.5
+	eps_iso 0.
+	seas_iso 1
+	eps_mon 1.0
+	storfrac_mon 0.5
 )
 
 
@@ -1066,10 +1066,10 @@ pft "C4_gr" (
 	fireresist 0.5			
 	intc 0.01
 	drought_tolerance 0.01
-        eps_iso 0.
-        seas_iso 1
-        eps_mon 1.0
-        storfrac_mon 0.5
+	eps_iso 0.
+	seas_iso 1
+	eps_mon 1.0
+	storfrac_mon 0.5
 )
 
 

@@ -104,7 +104,7 @@ public:
 		Paramtype* p = find(name);
 		if (p == 0) {
 			p = &createobj();
-	}
+		}
 		p->name=name.lower();
 		p->str=value;
 	}
@@ -114,7 +114,7 @@ public:
 		Paramtype* p = find(name);
 		if (p == 0) {
 			p = &createobj();
-	}
+		}
 		p->name=name.lower();
 		p->num=value;
 	}
@@ -335,7 +335,6 @@ void plib_declarations(int id,xtring setname) {
 		// bvoc 
 		declareitem("ifbvoc",&ifbvoc,1,CB_NONE,
 			"Whether or not BVOC calculations are performed (0,1)");
-
 		declareitem("run_landcover",&run_landcover,1,CB_NONE,"Landcover version");
 		declareitem("run_urban",&run[URBAN],1,CB_NONE,"Whether urban land is to be simulated");
 		declareitem("run_crop",&run[CROPLAND],1,CB_NONE,"Whether crop-land is to be simulated");
@@ -1459,7 +1458,7 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	{
 
 		if (run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST]) {
 #if defined DYNAMIC_LANDCOVER_INPUT					
-			if(!LUdata.Load(c))		//Load area fraction data from Bondeau input file to data object
+			if (!LUdata.Load(c))		//Load area fraction data from Bondeau input file to data object
 			{
 				dprintf("Problems with landcover fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;		// skip this stand
@@ -1509,7 +1508,7 @@ bool getgridcell(Gridcell& gridcell)
 	bool gridfound=false;
 	bool LUerror=false;
 
-	// guess2008 - to ensure an identical random number sequence for each stand.
+	// to ensure an identical random number sequence for each gridcell.
 	setseed(12345678);
 
 	if (firstgrid) {
@@ -1799,7 +1798,7 @@ bool getclimate(Gridcell& gridcell) {
 	climate.temp=dtemp[date.day];
 	climate.prec=dprec[date.day];
 	climate.insol=dsun[date.day];
-	
+
 	// bvoc
 	climate.dtr=ddtr[date.day];
 

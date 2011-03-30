@@ -51,6 +51,7 @@
 #include <algorithm>
 #include "euroflux.h"
 
+
 // guess2008 - header file for the CRU TS 3.0 data archives
 #include "cru_1901_2006.h"
 #include "cru_1901_2006misc.h"
@@ -372,7 +373,7 @@ void plib_declarations(int id,xtring setname) {
 
 		// bvoc 
 		declareitem("ifbvoc",&ifbvoc,1,CB_NONE,
-			    "Whether or not BVOC calculations are performed (0,1)");
+			"Whether or not BVOC calculations are performed (0,1)");
 		declareitem("run_landcover",&run_landcover,1,CB_NONE,"Landcover version");
 		declareitem("run_urban",&run[URBAN],1,CB_NONE,"Whether urban land is to be simulated");
 		declareitem("run_crop",&run[CROPLAND],1,CB_NONE,"Whether crop-land is to be simulated");
@@ -389,7 +390,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("lc_fixed_forest",&lc_fixed_frac[FOREST],0,100,1,CB_NONE,"% lc_fixed_forest");
 		declareitem("lc_fixed_natural",&lc_fixed_frac[NATURAL],0,100,1,CB_NONE,"% lc_fixed_natural");
 		declareitem("lc_fixed_peatland",&lc_fixed_frac[PEATLAND],0,100,1,CB_NONE,"% lc_fixed_peatland");
-
 
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
@@ -718,7 +718,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("turnover_root")) badins("turnover_root");
 		if (!itemparsed("ltor_max")) badins("ltor_max");
 		if (!itemparsed("intc")) badins("intc");
-						
+
 		if (run_landcover)
 		{
 			if (!itemparsed("landcover")) badins("landcover");
@@ -730,7 +730,7 @@ void plib_callback(int callback) {
 
 		// guess2008 - DLE
 		if (!itemparsed("drought_tolerance")) badins("drought_tolerance");
-		
+
 		// bvoc
 		if(ifbvoc){
 		  if (!itemparsed("ga")) badins("ga");
@@ -930,7 +930,7 @@ void printhelp() {
 //   Diurnal temperature range (dtr) added for calculation of leaf temperatures in 
 //   BVOC:
 //   gridcell.climate.dtr=ddtr[date.day]; 
-// 
+//
 // void outannual(Stand& stand,Pftlist& pftlist)
 //   Called at the end of the last day of each simulation year to permit output of
 //   model results.
@@ -1342,7 +1342,7 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 		if (success) {
 			bool flag = ark.rewind();
 			if (!flag) { 
-				ark.close(); // I.e. we opened it but we couldn?t rewind
+				ark.close(); // I.e. we opened it but we couldn't rewind
 				return false;
 			}
 		}
@@ -1419,7 +1419,7 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 		if (success) {
 			bool flag = ark.rewind();
 			if (!flag) { 
-				ark.close(); // I.e. we opened it but we couldn?t rewind
+				ark.close(); // I.e. we opened it but we couldn't rewind
 				return false;
 			}
 		}
@@ -2003,7 +2003,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	bool abort;
 	xtring insfilename;
 	xtring header;
- 
+
 
 	unixtime(header);
 	header=(xtring)"[LPJ-GUESS  "+header+"]\n\n";
@@ -2139,7 +2139,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	// Read CO2 data from file
 	readco2();
 
-
 	// Remember whether to produce output each year or not
 	annual_output=param["annual_output"].num;
 
@@ -2259,7 +2258,7 @@ bool getgridcell(Gridcell& gridcell)
 	bool gridfound;
 	bool LUerror=false;
 
-	// guess2008 - run with the same randon number sequence each time
+	// to ensure an identical random number sequence for each gridcell.
 	setseed(12345678);
 
 	if (firstgrid) {
@@ -2651,7 +2650,7 @@ bool getclimate(Gridcell& gridcell) {
 
 			// Interpolate this year's monthly data to quasi-daily values
 			interp_climate(hist_mtemp[date.year-nyear_spinup],
-				       hist_mprec[date.year-nyear_spinup],hist_msun[date.year-nyear_spinup],
+				hist_mprec[date.year-nyear_spinup],hist_msun[date.year-nyear_spinup],
 					   hist_mdtr[date.year-nyear_spinup],
 				       dtemp,dprec,dsun,ddtr);
 
@@ -3181,7 +3180,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	//if (date.year>=nyear_spinup) { 
 	if (date.year>=nyear_spinup+NYEAR_HIST-NFLUXYEARS && date.year<=nyear_spinup+NYEAR_HIST-1) { // guess2008 - euroflux - flux years are 1996-2002
 
-
 		lon=gridlist.getobj().lon;
 		lat=gridlist.getobj().lat;
 
@@ -3362,8 +3360,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 					plot("lai",pft.name,date.year,gcpft_lai);
 				}
 				gridcell.nextobj();
-			} //End of loop through stands
-
+			}//End of loop through stands
 
 			// Print PFT sums to files
 

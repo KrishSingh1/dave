@@ -4,7 +4,7 @@
 #
 # Portable bash script to run LPJ-GUESS version:
 # BINARY
-# as a parallel job using PBS on Milleotto.
+# as a parallel job using PBS on Platon.
 #
 # Created automatically on DATE
 # 
@@ -15,7 +15,7 @@
 #   2. In an editor, set appropriate values for the variables NPROCESS,
 #      INSFILE, GRIDLIST and OUTFILES (NB: no space after the = sign):
 
-NPROCESS=15
+NPROCESS=16             # NB: Should be multiple of 8 on Platon!
 WALLTIME=150:00:00
 INSFILE=guess.ins
 GRIDLIST=gridlist.txt
@@ -62,6 +62,16 @@ fi
 # Override INSFILE with the ins-file parameter, if given
 if [ -n "$ins" ]; then
     INSFILE=$ins
+fi
+
+# Figure out how many _nodes_ we should request. On Platon the policy is
+# that whole nodes (with 8 cores) should be allocated, so we should request
+# nodes with the nodes=<x>:ppn=8 format.
+CORES_PER_NODE=8
+if [[ $((NPROCESS%CORES_PER_NODE)) == 0 ]]; then
+    nodes==$((NPROCESS/CORES_PER_NODE))
+else
+    nodes=$((NPROCESS/CORES_PER_NODE+1))
 fi
 
 # Convert INSFILE to an absolute path since we will be starting the
@@ -123,7 +133,7 @@ split_gridlist
 # Create PBS script to request place in queue
 cat <<EOF > guess.cmd
 #!/bin/bash
-#PBS -l nodes=$NPROCESS
+#PBS -l nodes=$nodes:ppn=CORES_PER_NODE
 #PBS -l walltime=$WALLTIME
 
 cd \$PBS_O_WORKDIR
@@ -131,21 +141,19 @@ cd \$PBS_O_WORKDIR
 cat<<EOL > startguess.sh
 #!/bin/sh
 umask 022
-cd \$PBS_O_LOCAL
-mkdir \\\$((PBS_VNODENUM+1))
-cd \\\$((PBS_VNODENUM+1))
-cp -pr \$PBS_O_WORKDIR/run\\\$((PBS_VNODENUM+1))/* .
+cd \$PBS_O_WORKDIR
+cd run\\\$((PBS_VNODENUM+1))
 BINARY $INSFILE
-cp -pur * \$PBS_O_WORKDIR/run\\\$((PBS_VNODENUM+1))
 EOL
 chmod +x startguess.sh
-pbsdsh \$PBS_O_WORKDIR/startguess.sh
+pbsdsh -c $NPROCESS \$PBS_O_WORKDIR/startguess.sh
+
 rm startguess.sh
 EOF
 
 cat <<EOF > append.cmd
 #!/bin/bash
-#PBS -l nodes=1
+#PBS -l nodes=1:ppn=1
 #PBS -l walltime=$WALLTIME
 cd \$PBS_O_WORKDIR
 function append_files {

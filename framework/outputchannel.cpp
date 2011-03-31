@@ -14,8 +14,8 @@
 namespace GuessOutput {
 
 ColumnDescriptor::ColumnDescriptor(const char* title, 
-											  int width, 
-											  int precision) 
+                                   int width, 
+                                   int precision) 
 		  : t(title),
 			 w(width),
 			 p(precision) {
@@ -34,12 +34,12 @@ int ColumnDescriptor::precision() const {
 }
 
 ColumnDescriptors::ColumnDescriptors(const std::vector<std::string>& titles,
-												 int width, 
-												 int precision) {
+                                     int width, 
+                                     int precision) {
 	 for (size_t i = 0; i < titles.size(); i++) {
 		  columns.push_back(ColumnDescriptor(titles[i].c_str(), 
-														 width, 
-														 precision));
+		                                     width, 
+		                                     precision));
 	 }
 }
 
@@ -60,7 +60,7 @@ const ColumnDescriptor& ColumnDescriptors::operator[](size_t i) const {
 }
 
 TableDescriptor::TableDescriptor(const char* name,
-											const ColumnDescriptors& columns)
+                                 const ColumnDescriptors& columns)
 		  : n(name),
 			 cols(columns) {
 }
@@ -107,7 +107,7 @@ void OutputChannel::add_value(const Table& table, double d) {
 	 const TableDescriptor& td = table_descriptors[table.id()];
 	 if (values[table.id()].size() == td.columns().size()) {
 		  fail("Added too many values to a row in table %s!", 
-				 td.name().c_str());
+		       td.name().c_str());
 	 }
 
 	 values[table.id()].push_back(d);
@@ -128,7 +128,7 @@ void OutputChannel::clear_current_row(const Table& table) {
 }
 
 FileOutputChannel::FileOutputChannel(const char* out_dir,
-												 int coords_precision)
+                                     int coords_precision)
 		  : output_directory(out_dir) {
 
 	 // calculate suitable width for the coords columns,
@@ -161,8 +161,8 @@ Table FileOutputChannel::create_table(const TableDescriptor& descriptor) {
 		  file = fopen(full_path.c_str(), "w");
 		  if (file == NULL) {
 				fail("Could not open %s for output\n"\
-					  "Close the file if it is open in another application",
-					  full_path.c_str());
+				     "Close the file if it is open in another application",
+				     full_path.c_str());
 		  }
 		  else {
 				table = OutputChannel::create_table(descriptor);
@@ -175,28 +175,28 @@ Table FileOutputChannel::create_table(const TableDescriptor& descriptor) {
 }
 
 void FileOutputChannel::finish_row(const Table& table, 
-											  double lon, 
-											  double lat,
-											  int year) {
+                                   double lon, 
+                                   double lat,
+                                   int year) {
 
 	 finish_row(table, lon, lat, year, -1, false);
 }
 
 void FileOutputChannel::finish_row(const Table& table, 
-											  double lon, 
-											  double lat,
-											  int year,
-											  int day) {
+                                   double lon, 
+                                   double lat,
+                                   int year,
+                                   int day) {
 
 	 finish_row(table, lon, lat, year, day, true);
 }
 
 void FileOutputChannel::finish_row(const Table& table, 
-											  double lon, 
-											  double lat,
-											  int year, 
-											  int day, 
-											  bool print_day) {
+                                   double lon, 
+                                   double lat,
+                                   int year, 
+                                   int day, 
+                                   bool print_day) {
 	 // do nothing for unused tables
 	 if (table.invalid()) {
 		  return;
@@ -278,9 +278,9 @@ const char* FileOutputChannel::format_header(const Table& table, int column) {
 }
 
 OutputRows::OutputRows(OutputChannel* output_channel, 
-							  double longitude, 
-							  double latitude, 
-							  int year)
+                       double longitude, 
+                       double latitude, 
+                       int year)
 		  : out(output_channel),
 			 lon(longitude),
 			 lat(latitude),

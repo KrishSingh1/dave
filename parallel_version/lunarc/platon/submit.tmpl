@@ -133,7 +133,7 @@ split_gridlist
 # Create PBS script to request place in queue
 cat <<EOF > guess.cmd
 #!/bin/bash
-#PBS -l nodes=$nodes:ppn=CORES_PER_NODE
+#PBS -l nodes=$nodes:ppn=$CORES_PER_NODE
 #PBS -l walltime=$WALLTIME
 
 cd \$PBS_O_WORKDIR

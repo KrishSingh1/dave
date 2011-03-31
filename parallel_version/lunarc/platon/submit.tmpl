@@ -69,7 +69,7 @@ fi
 # nodes with the nodes=<x>:ppn=8 format.
 CORES_PER_NODE=8
 if [[ $((NPROCESS%CORES_PER_NODE)) == 0 ]]; then
-    nodes==$((NPROCESS/CORES_PER_NODE))
+    nodes=$((NPROCESS/CORES_PER_NODE))
 else
     nodes=$((NPROCESS/CORES_PER_NODE+1))
 fi

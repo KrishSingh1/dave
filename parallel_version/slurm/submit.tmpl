@@ -19,7 +19,7 @@ NPROCESS=15
 WALLTIME=150:00:00
 INSFILE=guess.ins
 GRIDLIST=gridlist.txt
-OUTFILES='cmass.out firert.out anpp.out lai.out cflux.out dens.out tot_runoff.out mgpp.out mra.out mrh.out cpool.out mnpp.out mlai.out mnee.out maet.out mpet.out mevap.out mintercep.out mrunoff.out mwcont_upper.out mwcont_lower.out'
+OUTFILES='*.out'
 
 #      Where:
 #      NPROCESS = number of processes in parallel job
@@ -28,7 +28,7 @@ OUTFILES='cmass.out firert.out anpp.out lai.out cflux.out dens.out tot_runoff.ou
 #      GRIDLIST = path to gridlist file from run directory
 #      OUTFILES = list of LPJ-GUESS output files in single quotes,
 #                 and separated by spaces (filenames only, including
-#                 extension, no directory.)
+#                 extension, no directory.) Shell wildcards are allowed.
 #
 #   3. Run the script using the command:
 #        sh submit.sh
@@ -149,7 +149,12 @@ function append_files {
     done
 }
 
-for file in $OUTFILES
+pushd run1
+outfiles_unexpanded='$OUTFILES'
+outfiles_expanded=\$(cd run1; echo \$outfiles_unexpanded)
+popd
+
+for file in \$outfiles_expanded
 do
   append_files $NPROCESS \$file
 done

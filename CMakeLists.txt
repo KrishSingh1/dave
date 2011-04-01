@@ -30,8 +30,8 @@ set(IO "cru" CACHE STRING "The IO module to use (cru/demo)")
 
 if (UNIX)
   # The SYSTEM variable is currently only used to choose which 
-  # submit.sh to generate (for submitting to PBS job queue)
-  set(SYSTEM "" CACHE STRING "System to build for (empty, gimle or milleotto)")
+  # submit.sh to generate (for submitting to job queue)
+  set(SYSTEM "" CACHE STRING "System to build for (empty, gimle or platon)")
 endif (UNIX)
 
 # Where the compiler should search for header files
@@ -64,12 +64,12 @@ if (WIN32)
   add_library(guess SHARED ${guess_sources} windows_version/dllmain.cpp)
 endif (WIN32)
 
-# The custom build rule for generating the PBS submit script from a template.
+# The custom build rule for generating the submit script from a template.
 # The submit script is generated each time the command line binary is built.
 if (UNIX)
   # Choose template file depending on system
-  if (SYSTEM STREQUAL "milleotto")
-    set(submit_template ${guess_SOURCE_DIR}/parallel_version/lunarc/milleotto/submit.tmpl)
+  if (SYSTEM STREQUAL "platon")
+    set(submit_template ${guess_SOURCE_DIR}/parallel_version/lunarc/platon/submit.tmpl)
   elseif(SYSTEM STREQUAL "gimle")
     set(submit_template ${guess_SOURCE_DIR}/parallel_version/slurm/submit.tmpl)
   else()

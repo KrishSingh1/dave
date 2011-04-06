@@ -64,7 +64,7 @@ class Textfile:
 
         file = open(self.path, 'r')
         pre = htmlelement("pre", node)
-        htmltext(file.read, pre)
+        htmltext(file.read(), pre)
         
         return node
 

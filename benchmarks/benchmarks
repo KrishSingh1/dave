@@ -198,7 +198,7 @@ function submit_pp {
 #PBS -N bm_${test_name}_pp
 cd $workspace
 if [ -f $bm_root/$test_name/postprocess.sh ]; then
-    $bm_root/runpostprocessing $bm_root/$test_name/postprocess.sh $test_name
+    PATH=$PATH $bm_root/runpostprocessing $bm_root/$test_name/postprocess.sh $test_name
 fi
 ls | grep "^run[0-9]*$" | xargs rm -rf
 cd $bm_root

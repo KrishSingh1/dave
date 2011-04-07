@@ -97,12 +97,16 @@ class Report:
         self.parts = []
         self.description = ""
         self.title = ""
+        self.metadata = ""
 
     def setdescription(self, description):
         self.description = description
 
     def settitle(self, title):
         self.title = title;
+
+    def setmetadata(self, metadata):
+        self.metadata = metadata
 
     def addpart(self, part):
         self.parts.append(part)
@@ -131,6 +135,11 @@ class Report:
             cell.appendChild(part.tohtml())
             table.appendChild(cell)
 
+        htmlelement("hr", body)
+
+        meta = self._metadataelement()
+        body.appendChild(meta)
+
         return root
 
     def _createhtmldoc(self):
@@ -145,6 +154,15 @@ class Report:
         td = htmlelement("td", tr)
         td.setAttribute("bgcolor", color)
         return tr
+
+    def _metadataelement(self):
+        table = Element("table")
+        tr = htmlelement("tr", table)
+        td = htmlelement("td", tr)
+        htmlheader("h3", "Meta data", td)
+        pre = htmlelement("pre", td)
+        htmltext(self.metadata, pre)
+        return table
 
 # Error handling for XML parsing
 
@@ -240,6 +258,12 @@ if __name__ == "__main__":
         parsexml(xmldoc, report)
 
         report.settitle(sys.argv[2])
+
+        try:
+            metadata = open(sys.argv[3]).read()
+        except IOError,e:
+            metadata = ""
+        report.setmetadata(metadata)
     except XMLError,e:
         print >> sys.stderr, e
         sys.exit(1)

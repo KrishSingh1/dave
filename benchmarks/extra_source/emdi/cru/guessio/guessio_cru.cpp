@@ -1728,6 +1728,9 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	if (abort) fail("\nUsage: %s <instruction-script-filename> | -help",argv[0]);
 
+	// Print the title of this run
+	dprintf("\n\n------------------------------------\n%s\n------------------------------------\n",(char*)title);
+
 	///////////////////////////////////////////////////////////////////////////////////
 	// USER-SPECIFIC SECTION (Modify as necessary or supply own code)
 	//

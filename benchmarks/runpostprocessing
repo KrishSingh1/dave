@@ -31,13 +31,6 @@ function error {
     echo $1 >&2
 }
 
-# Function to check if convert is installed.
-# convert is a part of the ImageMagick package, and is used in this script
-# to resize images.
-function has_convert {
-    type -P convert &> /dev/null
-}
-
 ###############################################################################
 # Functions for reporting, creates the report.xml file
 ###############################################################################
@@ -67,12 +60,13 @@ function describe_benchmark {
 # that an image should be a part of the report and to give it a
 # description.
 function describe_image {
-    if has_convert ; then
-	convert $1 -resize '800x600>' report/$1
-    else
-	cp $1 report
+    mv $1 report
+
+    if [ "$3" == "embed" ]; then
+	embed="embed=\"1\""
     fi
-    print_string "<image src=\"$1\">$2</image>"
+
+    print_string "<image src=\"$1\" $embed>$2</image>"
 }
 
 # Function to be called from the post processing script to describe
@@ -97,19 +91,14 @@ function describe_images {
 # that a text file should be a part of the report and to give it a
 # description.
 function describe_textfile {
-    cp $1 report
+    mv $1 report
     print_string "<textfile src=\"$1\" description=\"$2\"/>"
 }
 
 # Export report functions which the post processing script should
 # have access to.
-export -f has_convert print_string describe_benchmark describe_image \
+export -f print_string describe_benchmark describe_image \
     describe_images describe_textfile
-
-if ! has_convert ; then
-    error "Couldn't find 'convert', ImageMagick not installed?"
-    error "Images will not be resized!"
-fi
 
 rm -rf report
 mkdir report

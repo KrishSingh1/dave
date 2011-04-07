@@ -38,16 +38,23 @@ def htmlheader(type, str, parent):
 class Image:
     """An image with a description"""
 
-    def __init__(self, path, description):
+    def __init__(self, path, description, embed):
         self.path = path
         self.description = description
+        self.embed = embed
 
     def tohtml(self):
         node = Element("div")
-        htmlheader("h3",self.description, node)
 
-        image = htmlelement("image", node)
-        image.setAttribute("src", self.path)
+        if self.embed:
+            htmlheader("h3",self.description, node)
+
+            image = htmlelement("image", node)
+            image.setAttribute("src", self.path)
+        else:
+            link = htmlelement("a", node)
+            link.setAttribute("href", self.path)
+            htmltext(self.description, link)
 
         return node
 
@@ -169,7 +176,14 @@ def parseimage(node):
                   len(node.childNodes) == 1 and \
                   hasattr(node.childNodes[0], "data"),
               "Bad image element")
-    return Image(node.getAttribute("src"), node.childNodes[0].data)
+
+    embed = False
+
+    if node.hasAttribute("embed") and \
+            node.getAttribute("embed") == "1":
+        embed = True
+
+    return Image(node.getAttribute("src"), node.childNodes[0].data, embed)
 
 def parsetextfile(node):
     xmlassert(node.hasAttribute("src") and \

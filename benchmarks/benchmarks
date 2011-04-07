@@ -315,6 +315,42 @@ function run_pp {
     fi
 }
 
+# This function prints out interesting information about this benchmarks
+# run to a text file in the root of the working directory.
+# Parameters:
+# $1 Absolute path to the working directory
+function meta_data {
+    file=$1/info.txt
+
+    echo "Started at: "`date` > $file
+    echo "Hostname:   "`hostname` >> $file
+    echo "User:       "`whoami` >> $file
+
+    echo >> $file
+
+    # Go up to parent directory and print out version control information
+    pushd .. &> /dev/null
+
+    if svn info &> /dev/null ; then
+	# Strip host name from svn URL
+	svn info | grep "^URL:" | sed 's|URL: svn://.*/svn/|VCS Path: |' >> $file
+	svn info | grep "^Revision:" >> $file
+	svn info | grep "^Last Changed Date:" >> $file
+
+	changes=$(svn st -q --non-interactive | grep -v "Performing status on external item" | grep -v "^$")
+
+	if [ -n "$changes" ]; then
+	    echo >> $file
+	    echo "Local modifications:" >> $file
+	    echo "$changes" >> $file
+	fi
+    else
+	echo "Version information missing" >> $file
+    fi
+
+    popd &> /dev/null
+}
+
 # Ok, let's start!
 
 # Create the progress.txt file, overwriting if it existed
@@ -326,6 +362,12 @@ mkdir -p $work_dir
 
 # Convert the work_dir variable to an absolute path if it isn't already
 work_dir=`cd $1; pwd`
+
+# Generate meta data about this run 
+# (such as time stamp and version control information).
+if (( $pp_only == 0 )); then
+    meta_data $work_dir
+fi
 
 # Build the model which will be used by benchmarks that don't have their own
 # special code. No need to build it if we're only doing post processing

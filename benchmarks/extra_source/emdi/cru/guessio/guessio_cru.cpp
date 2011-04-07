@@ -1225,10 +1225,6 @@ double dtemp[365],dprec[365],dsun[365];
 // Daily diurnal temperature range for one year
 double ddtr[365];
 
-bool annual_output;
-	// whether output should occur each simulation year (true) or at end of simulation
-	// for each grid cell only (false)
-
 // guess2008 - make file_cru and file_cru_misc global variables
 xtring file_cru;
 xtring file_cru_misc;
@@ -1779,9 +1775,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	// Read CO2 data from file
 	readco2();
-
-	// Remember whether to produce output each year or not
-	annual_output=param["annual_output"].num;
 
 	if (run_landcover) {
 		all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year

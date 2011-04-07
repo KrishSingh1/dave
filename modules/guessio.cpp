@@ -948,10 +948,6 @@ double cpool_sum;
 // LPJ soil code
 int soilcode;
 
-bool annual_output;
-	// whether output should occur each simulation year (true) or at end of simulation
-	// for each grid cell only (false)
-
 /// Interpolates monthly data to quasi-daily values.
 void interp_climate(double mtemp[12], double mprec[12], double msun[12], double mdtr[12],
 					double dtemp[365], double dprec[365], double dsun[365], double ddtr[365]) {
@@ -1381,9 +1377,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	// Retrieve specified CO2 value as read from ins file
 	co2=param["co2"].num;
-
-	// Remember whether to produce output each year or not
-	annual_output=param["annual_output"].num;
 
 	if (run_landcover) {
 		all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year

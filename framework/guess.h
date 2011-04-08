@@ -265,61 +265,50 @@ inline double min(double dval1,double dval2) {
 }
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// DATE
-// General purpose object for handling simulation timing. In general, frameworks should
-// use a single Date object for all simulation timing.
-//
-// Date provides the following functionality:
-//
-// Date()
-//   Constructor function called automatically when Date object is created (do not call
-//   explicitly). Initialises some member variables.
-//
-// void init(int nyearsim)
-//   Call to initialise date to day 0 of year 0 and set intended number of simulation
-//   years to nyearsim (used only to set islastyear flag - actual simulation may be
-//   longer or shorter than nyearsim)
-//
-// void next()
-//   Call at end of every simulation day to update member variables.
-//
-// int prevmonth()
-//   Returns index (0-11) of previous month (11 if currently month 0).
-//
-// int nextmonth()
-//   Returns index of next month (0 if currently month 11)
-//
-// Member variables of the class (see below) provide various kinds of calender and
-// timing information, assuming init has been called to initialise the object, and
-// next() has been called at the end of each simulation day.
-
+/// General purpose object for handling simulation timing. 
+/** In general, frameworks should use a single Date object for all simulation
+ *  timing.
+ *
+ *  Member variables of the class (see below) provide various kinds of calender
+ *  and timing information, assuming init has been called to initialise the 
+ *  object, and next() has been called at the end of each simulation day.
+ */
 class Date {
 
 	// MEMBER VARIABLES
 
 public:
 
+	/// number of days in each month (0=January - 11=December)
 	int ndaymonth[12];
-		// number of days in each month (0=January - 11=December)
+
+	/// julian day of year (0-364; 0=Jan 1)
 	int day;
-		// julian day of year (0-364; 0=Jan 1)
+
+	/// day of current month (0=first day)
 	int dayofmonth;
-		// day of current month (0=first day)
+
+	/// month number (0=January - 11=December)		
 	int month;
-		// month number (0=January - 11=December)
+
+	/// year since start of simulation (0=first simulation year)		
 	int year;
-		// year since start of simulation (0=first simulation year)
+
+	/// julian day for middle day of each month		
 	int middaymonth[12];
-		// julian day for middle day of each month
+
+	/// true if last year of simulation, false otherwise		
 	bool islastyear;
-		// true if last year of simulation, false otherwise
+
+	/// true if last month of year, false otherwise		
 	bool islastmonth;
-		// true if last month of year, false otherwise
+
+	/// true if last day of month, false otherwise		
 	bool islastday;
-		// true if last day of month, false otherwise
+
+	/// true if middle day of month, false otherwise		
 	bool ismidday;
-		// true if middle day of month, false otherwise
+
 
 private:
 
@@ -329,6 +318,8 @@ private:
 
 public:
 	
+	/// Constructor function called automatically when Date object is created
+	/** Do not call explicitly. Initialises some member variables. */
 	Date() {
 		const int data[]={31,28,31,30,31,30,31,31,30,31,30,31};
 		int month;
@@ -339,7 +330,13 @@ public:
 			dayct+=data[month];
 		}
 	}
-	
+
+	/// Initialises date to day 0 of year 0 and sets intended number of simulation years
+	/** Intended number of simulation years is only used to set islastyear flag,
+	 *  actual simulation may be longer or shorter.
+	 *
+	 *  \param nyearsim  Intended number of simulation years
+	 */
 	void init(int nyearsim)	{
 		nyear=nyearsim;
 		day=month=year=dayofmonth=0;
@@ -348,6 +345,7 @@ public:
 		else islastyear=false;
 	}
 
+	/// Call at end of every simulation day to update member variables.
 	void next() {
 		if (islastday) {
 			if (islastmonth) {
@@ -377,11 +375,13 @@ public:
 		}
 	}
 
+	// \returns index (0-11) of previous month (11 if currently month 0).
 	int prevmonth() {
 		if (month>0) return month-1;
 		return 11;
 	}
 
+	/// \returns index of next month (0 if currently month 11)
 	int nextmonth() {
 		if (month<11) return month+1;
 		return 0;

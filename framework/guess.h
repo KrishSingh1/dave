@@ -1,17 +1,14 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// FRAMEWORK HEADER FILE
-//
-// Framework:             LPJ-GUESS Combined Modular Framework
-//                        *************************************************************
-//                        "Fast" version, revised December 2002 by Ben Smith
-//                        Modified according to code changes by Dieter Gerten 021216
-//                        *************************************************************
-// Header file name:      guess.h
-// Source code file name: guess.cpp
-// Written by:            Ben Smith
-// Version dated:         2002-12-16
-// Updated:               2010-11-22
-
+/// \file guess.h
+/// \brief Framework header file, LPJ-GUESS Combined Modular Framework
+///
+/// "Fast" version, revised December 2002 by Ben Smith
+/// Modified according to code changes by Dieter Gerten 021216
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
 // Framework header files should contain:
@@ -23,6 +20,8 @@
 //   (3) a forward declaration of the framework function if this is not the main
 //       function.
 
+#ifndef LPJ_GUESS_GUESS_H
+#define LPJ_GUESS_GUESS_H
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // #INCLUDES FOR LIBRARY HEADER FILES
@@ -37,9 +36,6 @@
 //   objects of type xtring rather than simple arrays of type char. GUTIL also provides
 //   templates for dynamic collection classes (list arrays of various types), argument
 //   processing for printf-style functions, timing functions and other utilities.
-
-#ifndef LPJ_GUESS_GUESS_H
-#define LPJ_GUESS_GUESS_H
 
 #include <math.h>
 #include <stdio.h>

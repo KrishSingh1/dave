@@ -1,14 +1,13 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// MODULE SOURCE CODE FILE
-//
-// Module:                Vegetation dynamics and disturbance
-// Header file name:      vegdynam.h
-// Source code file name: vegdynam.cpp
-//                        Random number generator moved to driver.cpp
-// Written by:            Ben Smith
-// Version dated:         2002-11-22
-// Updated:               2010-11-22
-
+/// \file vegdynam.cpp
+/// \brief Vegetation dynamics and disturbance
+///
+/// Random number generator moved to driver.cpp
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:

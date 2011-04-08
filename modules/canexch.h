@@ -1,18 +1,19 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// MODULE HEADER FILE
-//
-// Module:                Vegetation-atmosphere exchange of H2O and CO2 via
-//                        production, respiration and evapotranspiration
-//                        *************************************************************
-//                        "Fast" version, revised December 2002 by Ben Smith
-//                        Modified according to code changes by Dieter Gerten 021216
-//                        *************************************************************
-// Header file name:      canexch.h
-// Source code file name: canexch.cpp
-// Written by:            Ben Smith
-// Version dated:         2002-12-16
-// Updated:               2010-11-22
-
+/// \file canexch.h
+/// \brief The canopy exchange module header file
+///
+/// Vegetation-atmosphere exchange of H2O and CO2 via
+/// production, respiration and evapotranspiration.
+///
+/// "Fast" version, revised December 2002 by Ben Smith
+/// Modified according to code changes by Dieter Gerten 021216
+/// Includes updated FPAR formulation in cohort/individual mode
+/// based on changes suggested by Soenke Zaehle
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module header files need normally contain only declarations of functions defined in

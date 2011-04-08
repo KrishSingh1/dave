@@ -1,15 +1,14 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// MODULE HEADER FILE
-//
-// Module:                Soil organic matter dynamics
-//                        Version adapted for analyses for joint conceptual paper for
-//                        OECD conference with Wolfgang Knorr & Jean-Luc Widlowski
-// Header file name:      somdynam.h
-// Source code file name: somdynam.cpp
-// Written by:            Ben Smith
-// Version dated:         2002-08-11
-// Updated:               2010-11-22
-
+/// \file somdynam.h
+/// \brief Soil organic matter dynamics
+///
+/// Version adapted for analyses for joint conceptual paper for
+/// OECD conference with Wolfgang Knorr & Jean-Luc Widlowski
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module header files need normally contain only declarations of functions defined in

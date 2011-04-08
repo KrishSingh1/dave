@@ -1,17 +1,16 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// MODULE SOURCE CODE FILE
-//
-// Module:                Environmental driver calculation/transformation
-//                        Includes modified code compatible with "fast" cohort/
-//                        individual mode - see canexch.cpp
-//                        cohort/individual mode - see canexch.cpp)
-//                        Includes weather generator and Dieter G:s latest updates
-// Header file name:      driver.h
-// Source code file name: driver.cpp
-// Written by:            Ben Smith
-// Version dated:         2002-12-16
-// Updated:               2010-11-22
-
+/// \file driver.cpp
+/// \brief Environmental driver calculation/transformation
+///
+/// Includes modified code compatible with "fast" cohort/
+/// individual mode - see canexch.cpp
+/// cohort/individual mode - see canexch.cpp)
+/// Includes weather generator and Dieter G:s latest updates
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:

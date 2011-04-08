@@ -1,16 +1,16 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// MODULE HEADER FILE
-//
-// Module:                Q10 calculations for photosynthesis
-//                        *************************************************************
-//                        Calculations of Q10 values for photosynthesis, formerly
-//                        placed in canexch.cpp now moved to separate header file 
-//                        because of their application for BVOC calculations as well.
-// Header file name:      q10.h
-// Source code file name: voccalc.cpp / canexch.cpp
-// Written by:            Guy Schurgers (based on LPJ-GUESS 2.1 / Ben Smith)
-// Version dated:         2010-01-28
-//
+/// \file q10.h
+/// \brief Q10 calculations for photosynthesis
+///
+/// Calculations of Q10 values for photosynthesis, formerly
+/// placed in canexch.cpp now moved to separate header file 
+/// because of their application for BVOC calculations as well.
+///
+/// \author Guy Schurgers (based on LPJ-GUESS 2.1 / Ben Smith)
+/// $Date: $
+///
+///////////////////////////////////////////////////////////////////////////////////////
+
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module header files need normally contain only declarations of functions 
 // defined in the module that are to be accessible to the calling framework or 

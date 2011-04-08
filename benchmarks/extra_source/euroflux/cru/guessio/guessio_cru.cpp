@@ -1,20 +1,22 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// MODULE SOURCE CODE FILE
-//
-// Module:                LPJ-GUESS input/output module with input from instruction
-//                        script
-//                        Includes modified code compatible with "fast" cohort/
-//                        individual mode - see canexch.cpp
-//                        Includes Dieter G:s latest updates 021121
-//                        Version compatible with LPJ-GUESS version 2.1
-//                        (excludes PFT paramter twmax)
-//                        Updated 20050125: last line in output files ends in newline
-// Header file name:      guessio.h
-// Source code file name: guessio.cpp
-// Written by:            Ben Smith
-// Version dated:         2003-07-22/2005-01-25
-// Updated:               2010-11-22
-
+/// \file guessio_cru.cpp
+/// \brief LPJ-GUESS input/output module with input from instruction script
+///
+/// This I/O module reads in CRU climate data in a customised binary format.
+/// The binary files contain CRU half-degree global historical climate data
+/// for 1901-2006.
+///
+/// Includes modified code compatible with "fast" cohort/
+/// individual mode - see canexch.cpp
+/// Includes Dieter G:s latest updates 021121
+/// Version compatible with LPJ-GUESS version 2.1
+/// (excludes PFT paramter twmax)
+/// Updated 20050125: last line in output files ends in newline
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:

@@ -918,9 +918,6 @@ void demand(Patch& patch) {
 	double gp_leafon_patch;
 		// non-water-stressed canopy conductance assuming full leaf cover, patch
 		// vegetated area basis (mm/s)
-	double gp_indiv;
-		// non-water-stressed canopy conductance for individual/cohort/population,
-		// FPC basis
 
 	// Retrieve Stand, Climate and Vegetation objects for this patch
 
@@ -979,6 +976,9 @@ void demand(Patch& patch) {
 
 
 #if defined(DEMAND_INDIV)
+			double gp_indiv;
+			// non-water-stressed canopy conductance for individual/cohort/population,
+			// FPC basis
 
 			if (!negligible(indiv.fpc*indiv.phen)) {
 

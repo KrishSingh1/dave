@@ -27,8 +27,9 @@ const double LOOKUPQ10_MAXTEMP=70;
 	// maximum temperature ever (deg C)
 const double LOOKUPQ10_PRECISION=0.01;
 	// rounding precision for temperature in Q10 lookup tables
-const int LOOKUPQ10_NDATA=(LOOKUPQ10_MAXTEMP-LOOKUPQ10_MINTEMP+1.0)/
-	LOOKUPQ10_PRECISION+0.5;
+const int LOOKUPQ10_NDATA=
+	static_cast<int>((LOOKUPQ10_MAXTEMP-LOOKUPQ10_MINTEMP+1.0)/
+		LOOKUPQ10_PRECISION+0.5);
 	// maximum number of values to store in each lookup table
 	
 
@@ -47,7 +48,7 @@ public:
 		if (temp<LOOKUPQ10_MINTEMP) temp=LOOKUPQ10_MINTEMP;
 		else if (temp>LOOKUPQ10_MAXTEMP) temp=LOOKUPQ10_MAXTEMP;
 
-		return (temp-LOOKUPQ10_MINTEMP)/LOOKUPQ10_PRECISION+0.5;
+		return static_cast<int>((temp-LOOKUPQ10_MINTEMP)/LOOKUPQ10_PRECISION+0.5);
 	}
 
 	LookupQ10(double q10,double base25) {

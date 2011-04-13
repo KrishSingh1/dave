@@ -5,11 +5,7 @@
 /// Version including evaporation from soil surface, based on work by Dieter Gerten, 
 /// Sibyll Schaphoff and Wolfgang Lucht, Potsdam
 ///
-/// Also includes modified code compatible with "fast" cohort/
-/// individual mode - see canexch.cpp
-/// Includes weather generator and Dieter G:s latest updates
 /// Includes baseflow runoff
-/// Note: error in runoff calculation corrected 030120
 ///
 /// \author Ben Smith
 /// $Date$

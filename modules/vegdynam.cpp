@@ -2,8 +2,6 @@
 /// \file vegdynam.cpp
 /// \brief Vegetation dynamics and disturbance
 ///
-/// Random number generator moved to driver.cpp
-///
 /// \author Ben Smith
 /// $Date$
 ///

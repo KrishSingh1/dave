@@ -5,9 +5,6 @@
 /// Vegetation C allocation, litter production, tissue turnover
 /// leaf phenology, allometry and growth.
 ///
-/// Version adapted for analyses for joint conceptual paper for
-/// OECD conference with Wolfgang Knorr & Jean-Luc Widlowski
-///
 /// \author Ben Smith
 /// $Date$
 ///

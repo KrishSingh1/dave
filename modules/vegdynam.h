@@ -2,9 +2,6 @@
 /// \file vegdynam.h
 /// \brief Vegetation dynamics and disturbance
 ///
-/// Version adapted for analyses for joint conceptual paper for
-/// OECD conference with Wolfgang Knorr & Jean-Luc Widlowski
-///
 /// \author Ben Smith
 /// $Date$
 ///

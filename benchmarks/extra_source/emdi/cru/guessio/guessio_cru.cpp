@@ -6,13 +6,6 @@
 /// The binary files contain CRU half-degree global historical climate data
 /// for 1901-2006.
 ///
-/// Includes modified code compatible with "fast" cohort/
-/// individual mode - see canexch.cpp
-/// Includes Dieter G:s latest updates 021121
-/// Version compatible with LPJ-GUESS version 2.1
-/// (excludes PFT paramter twmax)
-/// Updated 20050125: last line in output files ends in newline
-///
 /// \author Ben Smith
 /// $Date$
 ///

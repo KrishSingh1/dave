@@ -5,13 +5,6 @@
 /// This is a demonstration I/O module. It is compatible with the input data files
 /// distributed with LPJ-GUESS (in the data directory).
 ///
-/// Includes modified code compatible with "fast" cohort/
-/// individual mode - see canexch.cpp
-/// Includes Dieter G:s latest updates 021121
-/// Version compatible with LPJ-GUESS version 2.1
-/// (excludes PFT paramter twmax)
-/// Updated 20050125: last line in output files ends in newline
-///
 /// \author Ben Smith
 /// $Date$
 ///

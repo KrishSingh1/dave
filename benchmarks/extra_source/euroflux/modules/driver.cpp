@@ -2,11 +2,6 @@
 /// \file driver.cpp
 /// \brief Environmental driver calculation/transformation
 ///
-/// Includes modified code compatible with "fast" cohort/
-/// individual mode - see canexch.cpp
-/// cohort/individual mode - see canexch.cpp)
-/// Includes weather generator and Dieter G:s latest updates
-///
 /// \author Ben Smith
 /// $Date$
 ///

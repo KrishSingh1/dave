@@ -2,9 +2,6 @@
 /// \file somdynam.h
 /// \brief Soil organic matter dynamics
 ///
-/// Version adapted for analyses for joint conceptual paper for
-/// OECD conference with Wolfgang Knorr & Jean-Luc Widlowski
-///
 /// \author Ben Smith
 /// $Date$
 ///

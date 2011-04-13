@@ -2,23 +2,19 @@
 /// \file guess.h
 /// \brief Framework header file, LPJ-GUESS Combined Modular Framework
 ///
-/// "Fast" version, revised December 2002 by Ben Smith
-/// Modified according to code changes by Dieter Gerten 021216
+/// This header file contains:
+///  (1) definitions of all main classes used by the framework and modules. Modules may
+///      require classes to contain certain member variables and functions (see module
+///      source files for details).
+///  (2) other type, constant and function definitions to be accessible throughout the
+///      model code.
+///  (3) a forward declaration of the framework function if this is not the main
+///      function.
 ///
 /// \author Ben Smith
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
-
-// WHAT SHOULD THIS FILE CONTAIN?
-// Framework header files should contain:
-//   (1) definitions of all classes used by the framework and modules. Modules may
-//       require classes to contain certain member variables and functions (see module
-//       source files for details).
-//   (2) other type, constant and function definitions to be accessible throughout the
-//       model code.
-//   (3) a forward declaration of the framework function if this is not the main
-//       function.
 
 #ifndef LPJ_GUESS_GUESS_H
 #define LPJ_GUESS_GUESS_H

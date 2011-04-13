@@ -5,11 +5,6 @@
 /// Vegetation-atmosphere exchange of H2O and CO2 via
 /// production, respiration and evapotranspiration.
 ///
-/// "Fast" version, revised December 2002 by Ben Smith
-/// Modified according to code changes by Dieter Gerten 021216
-/// Includes updated FPAR formulation in cohort/individual mode
-/// based on changes suggested by Soenke Zaehle
-///
 /// \author Ben Smith
 /// $Date$
 ///

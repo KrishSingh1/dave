@@ -2,10 +2,6 @@
 /// \file driver.h
 /// \brief Environmental driver calculation/transformation
 ///
-/// Version adapted for analyses for joint conceptual paper for
-/// OECD conference with Wolfgang Knorr & Jean-Luc Widlowski
-/// Includes weather generator and Dieter G:s latest updates
-///
 /// \author Ben Smith
 /// $Date$
 ///

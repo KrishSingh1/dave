@@ -1855,7 +1855,7 @@ void vegetation_n_uptake(Patch& patch) {
 	dnfix=soil.N_fix/365.0;
 	dnmass_avail=soil.nmass_avail/365.0;
 
-	for (d=0;d<365;d++)	// Loop through days
+	for (int d=0;d<365;d++)	// Loop through days
 		nmass_avail[d]=dnmass_avail+dnfix+dndep+
 			soil.nmin_daily[d]-soil.nimmob_daily[d];
 
@@ -1893,7 +1893,7 @@ void vegetation_n_uptake(Patch& patch) {
 		
 		// Loop through days of year
 
-		for (d=0;d<365;d++) {
+		for (int d=0;d<365;d++) {
 
 			// Loop through individuals
 
@@ -1972,7 +1972,7 @@ void vegetation_n_uptake(Patch& patch) {
 
 		double nmass_sum=0.0;
 
-		for (d=0;d<365;d++) {
+		for (int d=0;d<365;d++) {
 			nmass_sum+=nmass_avail[d];
 			if (nmass_sum>0.0)  {
 				leachn=nmass_sum*soil.leachfrac_daily[d];
@@ -1991,7 +1991,7 @@ void vegetation_n_uptake(Patch& patch) {
 	// Return remaining N to soil store for next year
 
 	excessn=0.0;
-	for (d=0;d<365;d++)
+	for (int d=0;d<365;d++)
 		excessn+=nmass_avail[d];
 
 	// Should never be negative! (allow it for very small values for now ...)

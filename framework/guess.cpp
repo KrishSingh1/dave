@@ -73,9 +73,7 @@ bool ifleachn;
 	// whether to allow N leaching
 bool ifindiv_fuptake;
 	// whether to allow individual fractional N uptake
-bool leach_before_uptake;
-	// whether to allow leaching before vegetation N uptake
-bool ifnfix;
+int ifnfix;
 	// whether to include an estimate for N fixation
 bool ifndepdata;
 	// whether N deposition data availabile from a file
@@ -85,6 +83,12 @@ double minndep;
 	// minimum annual N deposition
 bool ifdailysetntoc;
 	// if to use daily version of setntoc (set N:C ratio of som pools)
+bool ifnstorage;
+	// if to use a N storage for each individual
+double max_nstorage;
+	// maximum N storage of individual (max_nstorage*(nmass_leaf+nmass_root+nmass_sap))
+double max_nstorage_uptake;
+	// maximum N storage uptake of individual ((max_nstorage_uptake+1)*ndemand)
 
 // end GUESSN
 

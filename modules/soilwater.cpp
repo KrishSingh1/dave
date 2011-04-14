@@ -273,7 +273,10 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 	}
 
 	// GUESSN: save percolation from last (bottom) layer (needed by CENTURY)
-	dperc=perc;
+	if (perc > 0.0)
+		dperc=perc;
+	else
+		dperc=0.0;
 	// end GUESSN
 
 	// Baseflow runoff (Dieter Gerten 021216) (rain or snowmelt days only)
@@ -291,8 +294,9 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 	}
 	else runoff_baseflow=0.0;
 
+
 	// GUESSN: Export baseflow
-	patch.soil.dbaseflow=runoff_baseflow;
+	patch.soil.dbaseflow=(runoff_baseflow+runoff_drain)*4.0;
 	// end GUESSN
 
 	runoff=runoff_surf+runoff_drain+runoff_baseflow;

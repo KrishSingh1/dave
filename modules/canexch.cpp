@@ -1880,7 +1880,6 @@ void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 	double respcoeff,double cton_sap,double cton_root,
 	double phen,double cmass_sap,double cmass_root,double assim,double& resp) {
 
-// GUESSNFIX - Should it differ between if there is N limitation activated or not?
 //void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 //	double respcoeff,double cton_sap,double cton_root,
 //	double phen,double nmass_sap,double nmass_root,double assim,double& resp) {
@@ -1903,13 +1902,11 @@ void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 	// gtemp_soil = as gtemp_air given soil temperature
 	// lifeform   = PFT life form class (TREE or GRASS)
 	// respcoeff  = PFT respiration coefficient
-	// cton_sap   = PFT sapwood C:N ratio	// GUESSNFIX
+	// cton_sap   = PFT sapwood C:N ratio	
 	// cton_root  = PFT root C:N ratio
 	// phen       = vegetation phenological state (fraction of potential leaf cover)
-	// cmass_sap  = sapwood C biomass on grid cell area basis (kgC/m2) // GUESSFIX
+	// cmass_sap  = sapwood C biomass on grid cell area basis (kgC/m2) 
 	// cmass_root = fine root C biomass on grid cell area basis (kgC/m2)
-	// nmass_sap  = sapwood N biomass on grid cell area basis (kgN/m2)  // GUESSN
-	// nmass_root = fine root N biomass on grid cell area basis (kgN/m2) // GUESSN
 	// assim      = net assimilation on grid cell area basis (kgC/m2/day)
 
 	// OUTPUT PARAMETER
@@ -1990,13 +1987,11 @@ void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 		// Sapwood respiration (Eqn 7)
 
 		resp_sap=respcoeff*K*cmass_sap/cton_sap*gtemp_air;
-		//resp_sap=respcoeff*K*nmass_sap*gtemp_air; // GUESSNFIX
 
 		// Root respiration (Eqn 7)
 		// Assumed that root phenology follows leaf phenology
 
 		resp_root=respcoeff*K*cmass_root/cton_root*gtemp_soil*phen;
-		//resp_root=respcoeff*K*nmass_root*gtemp_soil*phen; // GUESSN
 
 		// Growth respiration = 0.25 ( GPP - maintenance respiration)
 
@@ -2015,7 +2010,6 @@ void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 		// Root respiration
 
 		resp_root=respcoeff*K*cmass_root/cton_root*gtemp_soil*phen;
-		//resp_root=respcoeff*K*nmass_root*gtemp_soil*phen; // GUESSN
 
 		// Growth respiration (see above)
 
@@ -2158,11 +2152,6 @@ void npp(Patch& patch) {
 			respiration(climate.gtemp,patch.soil.gtemp,indiv.pft.lifeform,
 				indiv.pft.respcoeff,indiv.pft.cton_sap,indiv.pft.cton_root,
 				indiv.phen,indiv.cmass_sap,indiv.cmass_root,indiv.assim,indiv.resp);
-
-		// GUESSNFIX
-		//	respiration(climate.gtemp,patch.soil.gtemp,indiv.pft.lifeform,
-		//		indiv.pft.respcoeff,indiv.pft.cton_sap,indiv.pft.cton_root,
-		//		indiv.phen,indiv.nmass_sap,indiv.nmass_root,indiv.assim,indiv.resp);
 
 			// Update accumulated annual NPP and daily vegetation-atmosphere flux
 
@@ -2328,13 +2317,6 @@ void npp(Patch& patch) {
 				respiration(climate.mgtemp,patch.soil.mgtemp,indiv.pft.lifeform,
 					indiv.pft.respcoeff,indiv.pft.cton_sap,indiv.pft.cton_root,
 					indiv.phen_mean,indiv.cmass_sap,indiv.cmass_root,assim,indiv.resp);
-
-
-				// GUESSNFIX
-			//	respiration(climate.mgtemp,patch.soil.mgtemp,indiv.pft.lifeform,
-			//		indiv.pft.respcoeff,indiv.pft.cton_sap,indiv.pft.cton_root,
-			//		indiv.phen_mean,indiv.nmass_sap,indiv.nmass_root,assim,indiv.resp);
-
 
 				indiv.resp*=(double)date.ndaymonth[date.month];
 

@@ -73,7 +73,7 @@ typedef enum {NOVEGMODE,INDIVIDUAL,COHORT,POPULATION} vegmodetype;
 	// individuals of a PFT that are roughly the same age; (3) an individual plant.
 
 // GUESSN
-typedef enum {SURFSTRUCT,SOILSTRUCT,ACTIVESOM,SURFMICRO,SURFMETA,SOILMETA,SLOWSOM,
+typedef enum {SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SOILMETA,SLOWSOM,	
 	PASSIVESOM,LEACHED} pooltype;
 	// CENTURY pool names
 // end GUESSN
@@ -103,12 +103,12 @@ const int COLDEST_DAY_NHEMISPHERE=14;
 const int COLDEST_DAY_SHEMISPHERE=195;
 	// day at which to start counting GDD's and leaf-on days for summergreen phenology
 	// in S hemisphere (July 15)
-const int OUTPUT_MAXAGECLASS=2000;
+const int OUTPUT_MAXAGECLASS=40;
 	// maximum number of age classes in age structure plots produced by function
 	// outannual
 
 // GUESSN
-const int NSOMPOOL=9;	// number of CENTURY SOM pools
+const int NSOMPOOL=10;	// number of CENTURY SOM pools
 // end GUESSN
 
 	// guess2008 - this is now a global, constant variable Previously, we had duplicate definitions in 
@@ -187,9 +187,7 @@ extern bool ifleachn;
 	// whether to allow N leaching
 extern bool ifindiv_fuptake;
 	// whether to allow individual fractional N uptake
-extern bool leach_before_uptake;
-	// whether to allow leaching before vegetation N uptake
-extern bool ifnfix;
+extern int ifnfix;
 	// whether to include an estimate for N fixation
 extern bool ifndepdata;
 	// whether N deposition data availabile from a file
@@ -199,9 +197,13 @@ extern double minndep;
 	// minimum annual N deposition
 extern bool ifdailysetntoc;
 	// if to use daily version of setntoc (set N:C ratio of som pools)
-
+extern bool ifnstorage;
+	// if to use a N storage for each individual
+extern double max_nstorage;
+	// maximum N storage of individual (max_nstorage*(nmass_leaf+nmass_root+nmass_sap))
+extern double max_nstorage_uptake;
+	// maximum N storage uptake of individual ((max_nstorage_uptake+1)*ndemand)
 // end GUESSN
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // guess2008 - new input variables, from the .ins file
@@ -907,6 +909,8 @@ public:
 		// N content of sapwood on patch area basis (kgN/m2)
 	double nmass_heart;
 		// N content of heartwood on patch area basis (kgN/m2)
+	double nmass_store;
+		// N content of storage on patch area basis (kgN/m2)
 	// end GUESSN
 
 	double fpc;
@@ -1027,6 +1031,12 @@ public:
 		// annual N demand (used in vegetation_n_uptake)
 	double fuptake;
 		// fractional N uptake of indiv demand
+	double fuptake_hist[5];
+		// fractional N uptake of indiv demand for the last five years
+	double fuptake_avr;
+		// historical fuptake of the last five years
+	double nstorage_uptake;
+		// fraction extra N uptake to storage pool
 	double limfact_new;
 		// actual fractional N uptake of indiv N demand in Growth()
 	double na_fpar;
@@ -1089,9 +1099,15 @@ public:
 		nmass_root=0.0;
 		nmass_sap=0.0;
 		nmass_heart=0.0;
+		nmass_store=0.0;
 
 		nstore=0.0;
-		fuptake = 1.0;
+		fuptake=1.0;
+		fuptake_avr=1.0;
+		nstorage_uptake=0.0;
+
+		for (int j=0;j<5;j++)
+			fuptake_hist[j]=0.0;
 
 		// end GUESSN
 	
@@ -1185,6 +1201,10 @@ public:
 		// thermal diffusivity at 15% WHC (mm2/s)
 	double thermdiff_100;
 		// thermal diffusivity at 100% WHC (mm2/s)
+	double wp[2];
+		// wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
+	double f_FC[2];
+		// ratio between saturation capacity and field capacity. Cosby et al 1984
 	int solvesom_end;
 		// year at which to calculate equilibrium soil carbon
 	int solvesom_begin;
@@ -1422,7 +1442,7 @@ public:
 		// Set initial CENTURY pool N:C ratios 
 		// Parton et al 1993, Fig 4
 
-		sompool[ACTIVESOM].ntoc=1.0/15.0;
+		sompool[SOILMICRO].ntoc=1.0/15.0;
 		sompool[SLOWSOM].ntoc=1.0/20.0;
 		sompool[PASSIVESOM].ntoc=1.0/10.0;
 		sompool[SURFMICRO].ntoc=1.0/20.0;
@@ -1600,12 +1620,21 @@ public:
 		// lookup table for values of lambda (parameter in photosynthesis calculations)
 		// today (see canexch.cpp)
 
-	// GUESSN:
+	double nsapling_yearly;
+	int no_cohorts; // no cohorts used for averaging greffmort for monitoring
+	double greff_mort_fraction;
+
+	// GUESSN
 	double nmass_litter_leaf;
 	double nmass_litter_root;
 	double nmass_litter_wood;
 
 	double fuptake_pft;
+		// sum/mean across patches for nitrogen limitation
+	double nmass_root_pft;
+		// sum/mean across patches for nitrogen root biomass (kgN/m2)
+	double crownarea_pft;
+		// sum/mean across patches for crown area
 	// end GUESSN
 
 	// MEMBER FUNCTIONS:
@@ -1724,6 +1753,8 @@ public:
 		// fractional N uptake of patch demand
 	bool nlim;
 		// if ndemand_patch in vegetation_n_uptake higher than nsupply_patch
+	double new_est_ndemand;
+		// last years N demand for new establishments
 	// end GUESSN
 
 	// MEMBER FUNCTIONS
@@ -1792,6 +1823,10 @@ public:
 	double densindiv_ageclass[OUTPUT_MAXAGECLASS];
 		// stem density by age class (cohort/individual mode only; used by function
 		// outannual)
+	double greff_mort_total;
+		// sum/mean across patches for saplings per PFT
+	double nsapling_total;
+		// sum/mean across patches for saplings per PFT
 
 	// Variables used by "fast" canopy exchange code (Ben Smith 2002-07)
 
@@ -1812,8 +1847,14 @@ public:
 		// Leaf nitrogen associated with photosynthesis today, patch basis kgN/m2
 	double cton_avr;
 		// mean across patches for leaf C:N ratio
+	double nlim;
+		// N limitation for growth
 	double nmass_total;
 		// sum/mean across patches for nitrogen biomass (kgN/m2)
+	double nmass_root_total;
+		// sum/mean across patches for nitrogen root biomass (kgN/m2)
+	double crownarea_total;
+		// sum/mean across patches for crown area
 	// end GUESSN
 
 	// MEMBER FUNCTIONS
@@ -1880,6 +1921,9 @@ int framework(int argc,char* argv[]);
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
 //
+// Cosby, B. J., Hornberger, C. M., Clapp, R. B., & Ginn, T. R. 1984 A statistical exploration
+//   of the relationships of soil moisture characteristic to the physical properties of soil.
+//   Water Resources Research, 20: 682-690.
 // LPJF refers to the original FORTRAN implementation of LPJ as described by Sitch
 //   et al 2000
 // Fulton, MR 1991 Adult recruitment rate as a function of juvenile growth in size-

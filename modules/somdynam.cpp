@@ -1855,9 +1855,9 @@ void vegetation_n_uptake(Patch& patch) {
 	dnfix=soil.N_fix/365.0;
 	dnmass_avail=soil.nmass_avail/365.0;
 
-	for (int d=0;d<365;d++)	// Loop through days
-		nmass_avail[d]=dnmass_avail+dnfix+dndep+
-			soil.nmin_daily[d]-soil.nimmob_daily[d];
+	for (int day=0;day<365;day++)	// Loop through days
+		nmass_avail[day]=dnmass_avail+dnfix+dndep+
+			soil.nmin_daily[day]-soil.nimmob_daily[day];
 
 	// Rescale demand to not exceed supply (Eqn 4)
 
@@ -1991,8 +1991,8 @@ void vegetation_n_uptake(Patch& patch) {
 	// Return remaining N to soil store for next year
 
 	excessn=0.0;
-	for (int d=0;d<365;d++)
-		excessn+=nmass_avail[d];
+	for (int days=0;days<365;days++)
+		excessn+=nmass_avail[days];
 
 	// Should never be negative! (allow it for very small values for now ...)
 	if (excessn<-EPS)

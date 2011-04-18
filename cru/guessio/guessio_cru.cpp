@@ -2229,7 +2229,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	double firert_stand; 
 
 	// GUESSN
-	double nmass_stand,andep_stand,centuryc,centuryn,n_litter,densindiv_ageclass_stand,nleach_stand;
+	double nmass_stand,nlim_stand,andep_stand,centuryc,centuryn,n_litter,densindiv_ageclass_stand,nleach_stand;
 	double stand_ageclass[OUTPUT_MAXAGECLASS];
 	// end GUESSN
 
@@ -2339,12 +2339,12 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_dens) fprintf(out_dens,"%8s\n","Total");
 
 		// GUESSN
-		if (out_cton) fprintf(out_cton,"\n");
-		if (out_nlim) fprintf(out_nlim,"\n");
+		if (out_cton) fprintf(out_cton,"%8s\n","Soil");
+		if (out_nlim) fprintf(out_nlim,"%8s\n","Total");
 		if (out_nmass) fprintf(out_nmass,"%8s\n","Total");
-		if (out_andep) fprintf(out_andep,"%8s\n","Total(kgN/ha/yr)");
-		if (out_nleach) fprintf(out_nleach,"%8s\n","Total(kgN/ha/yr)");
-		if (out_age) fprintf(out_age,"%8s\n"," Total(indiv/ha)");
+		if (out_andep) fprintf(out_andep,"%8s\n","Total");	//(kgN/ha/yr)
+		if (out_nleach) fprintf(out_nleach,"%8s\n","Total");	//(kgN/ha/yr)
+		if (out_age) fprintf(out_age,"%8s\n","Total");	//(indiv/ha)
 		// end GUESSN
 
 		// guess2008
@@ -2386,6 +2386,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 		// GUESSN
 		nmass_stand=0.0;
+		nlim_stand=0.0;
 		nleach_stand=0.0;
 		andep_stand=0.0;
 		densindiv_ageclass_stand=0.0;
@@ -2633,10 +2634,11 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			// GUESSN
 			andep_stand+=stand[p].soil.ndep_annual/(double)npatch*10000.0; // convert from m2 to ha
 			nleach_stand+=stand[p].soil.nleach_annual/(double)npatch*10000.0;
+			nlim_stand+=stand[p].fuptake_patch/(double)npatch;
 			
 			for (int r=0;r<NSOMPOOL;r++) {
-				centuryc+=stand[p].soil.sompool[r].cmass;
-				centuryn+=stand[p].soil.sompool[r].nmass;
+				centuryc+=stand[p].soil.sompool[r].cmass/(double)npatch;
+				centuryn+=stand[p].soil.sompool[r].nmass/(double)npatch;
 			}
 			// end GUESSN
 
@@ -2724,8 +2726,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_firert) fprintf(out_firert,"%8.1f\n",firert_stand);
 
 		// GUESSN
-		if (out_cton) fprintf(out_cton,"\n");
-		if (out_nlim) fprintf(out_nlim,"\n");
+		if (out_nlim) fprintf(out_nlim,"%8.3f\n",nlim_stand);
 		if (out_nmass) fprintf(out_nmass,"%8.3f\n",nmass_stand);
 		if (out_nleach) fprintf(out_nleach,"%8.3f\n",nleach_stand);
 		if (out_andep) fprintf(out_andep,"%8.3f\n",andep_stand);
@@ -2802,8 +2803,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 		// GUESSN
 		if (out_npool && ifcentury)
-				fprintf(out_npool,"%8.3f%8.3f%8.3f%10.4f\n",nmass_stand,n_litter,
+				fprintf(out_npool,"%8.3f%8.3f%8.3f%10.3f\n",nmass_stand,n_litter,
 					centuryn,nmass_stand+n_litter+centuryn);
+		if (out_cton) fprintf(out_cton,"%8.3f\n",(cmass_stand+c_litter+centuryc)/(nmass_stand+n_litter+centuryn));
 		// end GUESSN
 
 		// Output of age structure (Windows shell only - no effect otherwise)

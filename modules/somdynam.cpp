@@ -843,7 +843,7 @@ void transfer_litter(Patch& patch,Soil& soil) {
 			ligcmass_old=soil.sompool[SURFSTRUCT].cmass*soil.sompool[SURFSTRUCT].ligcfrac;
 
 			if (pft.litter_wood < 0.0)
-				dprintf("Negative litter wood %g \n",pft.litter_wood);
+				dprintf("Year %d Negative litter wood %g \n",date.year,pft.litter_wood);
 
 			// Add to structural pool and update lignin fraction in pool
 			soil.sompool[SURFSTRUCT].cmass+=pft.litter_wood*cwdtransfer;

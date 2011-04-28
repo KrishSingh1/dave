@@ -2381,7 +2381,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		// end GUESSN
 
 		// GUESSN allometry
-		if (out_allometry) fprintf(out_allometry,"\n");
+		if (out_allometry) fprintf(out_allometry,"%8s\n","pH");
 		// end GUESSN
 
 		// guess2008
@@ -2807,8 +2807,16 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_age) fprintf(out_age,"%9.1f\n",densindiv_ageclass_stand);
 		// end GUESSN
 
+		double pH_est = 3810.0/(762.0+
+			(hist_mprec[date.year-nyear_spinup][0]+hist_mprec[date.year-nyear_spinup][1]+
+			hist_mprec[date.year-nyear_spinup][2]+hist_mprec[date.year-nyear_spinup][3]+
+			hist_mprec[date.year-nyear_spinup][4]+hist_mprec[date.year-nyear_spinup][5]+
+			hist_mprec[date.year-nyear_spinup][6]+hist_mprec[date.year-nyear_spinup][7]+
+			hist_mprec[date.year-nyear_spinup][8]+hist_mprec[date.year-nyear_spinup][9]+
+			hist_mprec[date.year-nyear_spinup][10]+hist_mprec[date.year-nyear_spinup][11]))+3.8;
+
 		// GUESSN allometry
-		if (out_allometry) fprintf(out_allometry,"\n");
+		if (out_allometry) fprintf(out_allometry,"%8.2f\n",pH_est);
 
 		// Print monthly output variables
 		for (m=0;m<12;m++) {

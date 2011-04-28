@@ -175,6 +175,10 @@ xtring file_firert;
 xtring file_cton,file_nmass,file_andep,file_npool,file_nleach,file_age,file_nlim;
 // end GUESSN
 
+// GUESSN allometry
+xtring file_allometry;
+// end GUESSN
+
 void initsettings() {
 
 	// Initialises global settings
@@ -199,6 +203,10 @@ void initsettings() {
 
 	// GUESSN
 	file_cton=file_nmass=file_andep=file_npool=file_nleach=file_age=file_nlim="";
+	// end GUESSN
+
+	// GUESSN allometry
+	file_allometry="";
 	// end GUESSN
 }
 
@@ -337,6 +345,10 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_age",&file_age,300,CB_NONE,"Age structure output file");
 		declareitem("file_nlim",&file_nlim,300,CB_NONE,"Mean N limitation output file");
 		// end GUESSN
+
+		// GUESSN allometry
+		declareitem("file_allometry",&file_allometry,300,CB_NONE,"Allometry output file");
+		// GUESSN
 		
 		// Monthly output variables
 		declareitem("file_mnpp",&file_mnpp,300,CB_NONE,"Monthly NPP output file");
@@ -1140,6 +1152,10 @@ xtring file_ndep;
 FILE *out_cton,*out_nmass, *out_andep, *out_npool, *out_nleach, *out_age, *out_nlim;
 // end GUESSN
 
+// GUESSN allometry
+FILE *out_allometry;
+// end GUESSN
+
 // Timers for keeping track of progress through the simulation
 Timer tprogress,tmute;
 const int MUTESEC=20; // minimum number of sec to wait between progress messages
@@ -1703,7 +1719,16 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		out_nlim=fopen(file_nlim,"w");
 		if (!out_nlim) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_nlim);
 	}
-	else out_cton=NULL;
+	else out_nlim=NULL;
+	// end GUESSN
+
+	// GUESSN allometry
+	if (file_allometry!="") {
+		file_allometry = outputdirectory + file_allometry;
+		out_allometry=fopen(file_allometry,"w");
+		if (!out_allometry) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_allometry);
+	}
+	else out_allometry=NULL;
 	// end GUESSN
 
 	// *** MONTHLY OUTPUT VARIABLES ***
@@ -1975,17 +2000,17 @@ bool getstand(Stand& stand) {
 			fail("Grid cell not found in %s",(char*)file_ndep);
 		}
 		else {
-			dprintf("\nN deposition for longitude (%g) and latitude (%g) is\n1860: (%g) 1993: (%g) and 2050: (%g) kgN/ha/yr\n",
-				gridlist.getobj().lon,gridlist.getobj().lat,stand.climate.andep_1860*10000.0,
-					stand.climate.andep_1993*10000.0,stand.climate.andep_2050*10000.0);
+		//	dprintf("N deposition for longitude (%g) and latitude (%g) is\n1860: (%g) 1993: (%g) and 2050: (%g) kgN/ha/yr\n",
+		//		gridlist.getobj().lon,gridlist.getobj().lat,stand.climate.andep_1860*10000.0,
+		//			stand.climate.andep_1993*10000.0,stand.climate.andep_2050*10000.0);
 		}
 		// end GUESSN
 
 		dprintf("\nCommencing simulation for stand at (%g,%g)",gridlist.getobj().lon,
 			gridlist.getobj().lat);
-		if (gridlist.getobj().descrip!="") dprintf(" (%s)\n",
+		if (gridlist.getobj().descrip!="") dprintf(" (%s)\n\n",
 			(char*)gridlist.getobj().descrip);
-		else dprintf("\n");
+		else dprintf("\n\n");
 		
 		// Tell framework the latitude of this grid cell
 		stand.climate.lat=gridlist.getobj().lat;
@@ -2104,7 +2129,7 @@ bool getclimate(Stand& stand) {
 			spinup_mwet.nextyear();
 			spinup_mdtr.nextyear();
 			
-			if (!(date.year%100) && date.day==0) {
+			/*if (!(date.year%100) && date.day==0) {
 
 				dprintf("\nClimate for year %d\n",date.year+1);
 				dprintf("\n        Jan   Feb   Mar   Apr   May   Jun   Jul   Aug   Sep   Oct   Nov   Dec\n");
@@ -2117,7 +2142,7 @@ bool getclimate(Stand& stand) {
 				dprintf("Sun  %6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f\n",
 					msun[0],msun[1],msun[2],msun[3],msun[4],msun[5],
 					msun[6],msun[7],msun[8],msun[9],msun[10],msun[11]);
-			}
+			}*/
 		}
 		else if (date.year<nyear_spinup+NYEAR_HIST) {
 
@@ -2135,7 +2160,7 @@ bool getclimate(Stand& stand) {
 				prdaily(hist_mprec[date.year-nyear_spinup],dprec,hist_mwet[date.year-nyear_spinup]);
 			}
 
-			if (!(date.year%20) && date.day==0) {
+			/*if (!(date.year%20) && date.day==0) {
 
 				dprintf("\nClimate for year %d\n",date.year+1);
 				dprintf("\n        Jan   Feb   Mar   Apr   May   Jun   Jul   Aug   Sep   Oct   Nov   Dec\n");
@@ -2160,7 +2185,7 @@ bool getclimate(Stand& stand) {
 					hist_msun[date.year-nyear_spinup][6],hist_msun[date.year-nyear_spinup][7],
 					hist_msun[date.year-nyear_spinup][8],hist_msun[date.year-nyear_spinup][9],
 					hist_msun[date.year-nyear_spinup][10],hist_msun[date.year-nyear_spinup][11]);
-			}
+			}*/
 
 		}
 	}
@@ -2180,8 +2205,8 @@ bool getclimate(Stand& stand) {
 		stand.climate.andep_2050,date.year,nyear_spinup,FIRSTHISTYEAR);
 	// end GUESSN
 
-	if (!(date.year%20) && date.day==0 && date.year>=nyear_spinup ||!(date.year%100) && date.day==0 && date.year<nyear_spinup) 
-		dprintf("CO2  %6.0f         Ndep %7.3f (kgN/ha/yr)\n",stand.climate.co2,stand.climate.andep*10000.0);
+	//if (!(date.year%20) && date.day==0 && date.year>=nyear_spinup ||!(date.year%100) && date.day==0 && date.year<nyear_spinup) 
+	//	dprintf("CO2  %6.0f         Ndep %7.3f (kgN/ha/yr)\n",stand.climate.co2,stand.climate.andep*10000.0);
 
 	stand.climate.temp=dtemp[date.day];
 	stand.climate.prec=dprec[date.day];
@@ -2308,6 +2333,10 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_age) fprintf(out_age,lonlatyearstr,"Lon","Lat","Year");
 		// end GUESSN
 
+		// GUESSN allometry
+		if (out_allometry) fprintf(out_allometry,lonlatyearstr,"Lon","Lat","Year");
+		// end GUESSN
+
 		// Loop through PFT's and print PFT names as column labels
 
 		pftlist.firstobj();
@@ -2322,6 +2351,10 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			if (out_cton) fprintf(out_cton,"%8s",(char*)pft.name);
 			if (out_nlim) fprintf(out_nlim,"%8s",(char*)pft.name);
 			if (out_nmass) fprintf(out_nmass,"%8s",(char*)pft.name);
+			// end GUESSN
+
+			// GUESSN allometry
+			if (out_allometry && pft.lifeform==TREE) fprintf(out_allometry,"%8s%8s%8s%8s%8s%8s%8s%8s%8s",(char*)pft.name,"N","Mfol","Mfroot","Mwood","Mactive","M","H","D");
 			// end GUESSN
 
 			pftlist.nextobj();
@@ -2345,6 +2378,10 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_andep) fprintf(out_andep,"%8s\n","Total");	//(kgN/ha/yr)
 		if (out_nleach) fprintf(out_nleach,"%8s\n","Total");	//(kgN/ha/yr)
 		if (out_age) fprintf(out_age,"%8s\n","Total");	//(indiv/ha)
+		// end GUESSN
+
+		// GUESSN allometry
+		if (out_allometry) fprintf(out_allometry,"\n");
 		// end GUESSN
 
 		// guess2008
@@ -2372,7 +2409,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	// If only yearly output between, say 1961 and 1990 is requred, use: 
 	//	if (date.year>=nyear_spinup+60 && date.year<nyear_spinup+90) {
 
-	if (date.year>=nyear_spinup) {
+	if (date.year>=nyear_spinup+70) {
 
 		lon=gridlist.getobj().lon;
 		lat=gridlist.getobj().lat;
@@ -2416,6 +2453,10 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_npool && ifcentury) fprintf(out_npool,lonlatyeardatastr,lon,lat,date.year);
 		if (out_nleach) fprintf(out_nleach,lonlatyeardatastr,lon,lat,date.year);
 		if (out_age) fprintf(out_age,lonlatyeardatastr,lon,lat,date.year);
+		// end GUESSN
+
+		// GUESSN allometry
+		if (out_allometry) fprintf(out_allometry,lonlatyeardatastr,lon,lat,date.year);
 		// end GUESSN
 
 		if (out_mnpp) fprintf(out_mnpp,lonlatyeardatastr,lon,lat,date.year);
@@ -2465,6 +2506,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 				// number of individuals of this pft. Used for avr calculation
 			// end GUESSN
 
+			// GUESSN allometry
+			double allometry[] = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+
 			// Initialise age structure array
 
 			if (vegmode==COHORT || vegmode==INDIVIDUAL)
@@ -2511,6 +2555,18 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 							// end GUESSN
 
 							if (vegmode==COHORT || vegmode==INDIVIDUAL) {
+
+								// GUESSN allometry
+								if (indiv.height > 5.0) {
+								allometry[0]+=indiv.densindiv;
+								allometry[1]+=indiv.cmass_leaf*indiv.densindiv;
+								allometry[2]+=indiv.cmass_root*indiv.densindiv;
+								allometry[3]+=(indiv.cmass_sap+indiv.cmass_heart)*indiv.densindiv;
+								allometry[4]+=(indiv.cmass_leaf+indiv.cmass_root)*indiv.densindiv;
+								allometry[5]+=(indiv.cmass_sap+indiv.cmass_heart+indiv.cmass_leaf+indiv.cmass_root)*indiv.densindiv;
+								allometry[6]+=indiv.height*indiv.densindiv;
+								allometry[7]+=(pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3))*indiv.densindiv;
+								}// end GUESSN
 							
 								// Age structure
 								
@@ -2586,6 +2642,19 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			if (out_nlim) fprintf(out_nlim,"%8.3f",standpft.nlim);
 			if (out_nmass) fprintf(out_nmass,"%8.3f",standpft.nmass_total);
 			// end GUESSN
+			
+			// GUESSN allometry
+			if (out_allometry && pft.lifeform==TREE)
+				if (allometry[0]>0.0)
+					fprintf(out_allometry,"%8s%8.1f%8.4f%8.4f%8.4f%8.4f%8.4f%8.2f%8.3f",
+					(char*)standpft.pft.name,allometry[0]*10000.0,allometry[1]/allometry[0],
+					allometry[2]/allometry[0],allometry[3]/allometry[0],allometry[4]/allometry[0],
+					allometry[5]/allometry[0],allometry[6]/allometry[0],allometry[7]/allometry[0]);
+				else
+					fprintf(out_allometry,"%8s%8.1f%8.1f%8.1f%8.1f%8.1f%8.1f%8.1f%8.1f",
+					(char*)standpft.pft.name,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0);
+
+			// end GUESSN
 
 			// Graphical output every 10 years
 			// (Windows shell only - "plot" statements have no effect otherwise)
@@ -2637,8 +2706,10 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			nlim_stand+=stand[p].fuptake_patch/(double)npatch;
 			
 			for (int r=0;r<NSOMPOOL;r++) {
-				centuryc+=stand[p].soil.sompool[r].cmass/(double)npatch;
-				centuryn+=stand[p].soil.sompool[r].nmass/(double)npatch;
+				if (stand[p].soil.sompool[r].nmass > 0.0) {
+					centuryc+=stand[p].soil.sompool[r].cmass/(double)npatch;
+					centuryn+=stand[p].soil.sompool[r].nmass/(double)npatch;
+				}
 			}
 			// end GUESSN
 
@@ -2736,6 +2807,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_age) fprintf(out_age,"%9.1f\n",densindiv_ageclass_stand);
 		// end GUESSN
 
+		// GUESSN allometry
+		if (out_allometry) fprintf(out_allometry,"\n");
+
 		// Print monthly output variables
 		for (m=0;m<12;m++) {
 			
@@ -2805,7 +2879,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_npool && ifcentury)
 				fprintf(out_npool,"%8.3f%8.3f%8.3f%10.3f\n",nmass_stand,n_litter,
 					centuryn,nmass_stand+n_litter+centuryn);
-		if (out_cton) fprintf(out_cton,"%8.3f\n",(cmass_stand+c_litter+centuryc)/(nmass_stand+n_litter+centuryn));
+		if (out_cton) fprintf(out_cton,"%8.3f\n",centuryc/centuryn);
 		// end GUESSN
 
 		// Output of age structure (Windows shell only - no effect otherwise)
@@ -2868,6 +2942,10 @@ void termio() {
 		if (out_npool && ifcentury) fclose(out_npool);
 		if (out_nleach) fclose(out_nleach);
 		if (out_age) fclose(out_age);
+		// end GUESSN
+
+		// GUESSN allometry
+		if (out_allometry) fclose(out_allometry);
 		// end GUESSN
 
 		if (out_mnpp) fclose(out_mnpp);

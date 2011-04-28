@@ -839,7 +839,7 @@ void transfer_litter(Patch& patch,Soil& soil) {
 			// Assume wood litter structural only (following
 			// Friend et al 1997) and use C:N ratio for sapwood
 
-			ligcmass_new=max(0.0,pft.litter_wood*cwdtransfer)*LIGCFRAC_WOOD;
+			/*ligcmass_new=max(0.0,pft.litter_wood*cwdtransfer)*LIGCFRAC_WOOD;
 			ligcmass_old=soil.sompool[SURFSTRUCT].cmass*soil.sompool[SURFSTRUCT].ligcfrac;
 
 			if (pft.litter_wood < 0.0)
@@ -858,7 +858,30 @@ void transfer_litter(Patch& patch,Soil& soil) {
 		
 			// Update vegetation
 			pft.litter_wood*=(1.0-cwdtransfer);
-			pft.nmass_litter_wood*=(1.0-cwdtransfer);
+			pft.nmass_litter_wood*=(1.0-cwdtransfer);*/
+
+			double nlim_fact = patch.fuptake_patch*0.5;	// GUESSNFIX
+
+			ligcmass_new=max(0.0,pft.litter_wood*cwdtransfer*nlim_fact)*LIGCFRAC_WOOD;
+			ligcmass_old=soil.sompool[SURFSTRUCT].cmass*soil.sompool[SURFSTRUCT].ligcfrac;
+
+			if (pft.litter_wood < 0.0)
+				dprintf("Year %d Negative litter wood %g \n",date.year,pft.litter_wood);
+
+			// Add to structural pool and update lignin fraction in pool
+			soil.sompool[SURFSTRUCT].cmass+=pft.litter_wood*cwdtransfer*nlim_fact;
+			soil.sompool[SURFSTRUCT].nmass+=pft.nmass_litter_wood*cwdtransfer*nlim_fact;
+			if (negligible(soil.sompool[SURFSTRUCT].cmass))
+				soil.sompool[SURFSTRUCT].ligcfrac=0.0;
+			else {
+				double ligcfrac=(ligcmass_new+ligcmass_old)/
+					soil.sompool[SURFSTRUCT].cmass;
+				soil.sompool[SURFSTRUCT].ligcfrac=ligcfrac;
+			}
+		
+			// Update vegetation
+			pft.litter_wood*=(1.0-cwdtransfer*nlim_fact);
+			pft.nmass_litter_wood*=(1.0-cwdtransfer*nlim_fact);
 		}		
 
 		patch.pft.nextobj();
@@ -1995,9 +2018,9 @@ void vegetation_n_uptake(Patch& patch) {
 		excessn+=nmass_avail[days];
 
 	// Should never be negative! (allow it for very small values for now ...)
-	if (excessn<-EPS)
-		dprintf("Year %d vegetation_n_uptake: patch %d Unexpected NEGATIVE value (%g) for annual excess mineral N before leach (%g)\n",
-			date.year,patch.id,excessn,nsupply_patch-ndemand_patch*fuptake);
+	//if (excessn<-EPS)
+	//	dprintf("Year %d vegetation_n_uptake: patch %d Unexpected NEGATIVE value (%g) for annual excess mineral N before leach (%g)\n",
+	//		date.year,patch.id,excessn,nsupply_patch-ndemand_patch*fuptake);
 
 	soil.nmass_avail=excessn;
 }

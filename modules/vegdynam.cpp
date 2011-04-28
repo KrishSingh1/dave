@@ -800,6 +800,9 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 				patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nstore+indiv.nmass_store;
 			// end GUESSN
 
+		//	if (indiv.height > 10.0)
+		//		dprintf("Year %d KILLED bioclimatic pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
+
 			vegetation.killobj();
 			killed=true;
 		}
@@ -961,6 +964,9 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 
 		if (negligible(indiv.densindiv)) {
 	
+	//		if (indiv.height > 10.0)
+	//			dprintf("Year %d KILLED dens pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
+
 			vegetation.killobj();
 			killed=true;
 		}
@@ -1155,7 +1161,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob,
 					indiv.cmass_debt*=frac_survive;
 					indiv.cmass_heart*=frac_survive;
 
-					// GUESSN
+					// GUESSNFIX
 
 					// should be N gas as well
 					//patch.fluxes.anflux_fire+=(1.0-frac_survive)*(indiv.nmass_leaf+
@@ -1181,6 +1187,9 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob,
 					// (in individual mode: removes individual if killed)
 
 					if (negligible(indiv.densindiv)) {
+
+		//				if (indiv.height > 10.0)
+		//					dprintf("Year %d KILLED dens fire pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
 
 						vegetation.killobj();
 						killed=true;
@@ -1226,6 +1235,9 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob,
 			else
 				patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nstore+indiv.nmass_store;
 			// end GUESSN
+
+		//	if (indiv.height > 10.0)
+		//		dprintf("Year %d KILLED bioclimatic pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
 
 			vegetation.killobj();
 			killed=true;
@@ -1377,6 +1389,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob,
 				// Reduce individual density and biomass on patch area basis
 				// to account for loss of killed individuals
 
+				
 				indiv.densindiv*=frac_survive;
 				indiv.cmass_leaf*=frac_survive;
 				indiv.cmass_root*=frac_survive;
@@ -1396,8 +1409,14 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob,
 				// Remove this cohort completely if all individuals killed
 				// (in individual mode: removes individual if killed)
 
+				if (date.year > 1290 && date.year < 312 && indiv.pft.name == "TrBE" && indiv.height > 25.0)
+					dprintf("Year %d NOT KILLED dens mort pft %s height %g dens %g mort_greff %g greff_mean %g anpp %g leaf %g mort %g\n",
+						date.year,(char*)indiv.pft.name,indiv.height,indiv.densindiv,mort_greff,greff_mean,indiv.anpp,indiv.cmass_leaf,mort);
+
 				if (negligible(indiv.densindiv)) {
 
+			//		if (indiv.height > 10.0)
+			//			dprintf("Year %d KILLED dens mort pft %s height %g dens %g mort %g\n",date.year,(char*)indiv.pft.name,indiv.height,indiv.densindiv,mort);
 					vegetation.killobj();
 					killed=true;
 				}
@@ -1581,6 +1600,9 @@ void disturbance(Patch& patch,double disturb_prob) {
 			else
 				patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nstore+indiv.nmass_store;
 			// end GUESSN
+
+		//	if (indiv.height > 10.0)
+		//		dprintf("Year %d KILLED dist pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
 
 			vegetation.killobj();
 		}

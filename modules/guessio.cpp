@@ -1324,11 +1324,11 @@ bool getstand(Stand& stand) {
 
 		readenv(c);
 
-		dprintf("\nCommencing simulation for stand at (%g,%g)",gridlist.getobj().lon,
+		dprintf("Commencing simulation for stand at (%g,%g)",gridlist.getobj().lon,
 			gridlist.getobj().lat);
-		if (gridlist.getobj().descrip!="") dprintf(" (%s)\n",
+		if (gridlist.getobj().descrip!="") dprintf(" (%s)\n\n",
 			(char*)gridlist.getobj().descrip);
-		else dprintf("\n");
+		else dprintf("\n\n");
 		
 		// Tell framework the latitude of this grid cell
 		stand.climate.lat=gridlist.getobj().lat;

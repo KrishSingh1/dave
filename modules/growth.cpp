@@ -2235,6 +2235,9 @@ void growth(Stand& stand,Patch& patch) {
 						// end GUESSN
 					}
 
+		//			if (indiv.height > 10.0)
+		//				dprintf("Year %d KILLED mincmass pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
+
 					vegetation.killobj();
 					killed=true;
 				}
@@ -2378,6 +2381,9 @@ void growth(Stand& stand,Patch& patch) {
 						// end GUESSN
 					}
 
+		//			if (indiv.height > 10.0)
+		//				dprintf("Year %d KILLED mincmass pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
+
 					vegetation.killobj();
 					killed=true;
 				}
@@ -2407,6 +2413,9 @@ void growth(Stand& stand,Patch& patch) {
 					patch.pft[indiv.pft.id].nmass_litter_root+=max(indiv.nstore,0.0)+max(indiv.nmass_store,0.0);
 					// end GUESSN
 				}
+
+		//		if (indiv.height > 10.0)
+		//			dprintf("Year %d KILLED allometry pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
 
 				vegetation.killobj();
 				killed=true;

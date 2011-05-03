@@ -30,8 +30,15 @@
 // All versions of Microsoft's compiler
 #ifdef _MSC_VER
 
+// 'this' : used in base member initializer list
+#pragma warning (disable: 4355)
+// long name
+#pragma warning (disable: 4786)
+
+#endif
+
 // min and max functions for MS Visual C++ 6.0
-#if _MSC_VER == 1200
+#if defined(_MSC_VER) && _MSC_VER == 1200
 template <class T> inline T max(const T& a, const T& b) {
     return (a > b) ? a : b;
 }
@@ -39,12 +46,10 @@ template <class T> inline T max(const T& a, const T& b) {
 template <class T> inline T min(const T& a, const T& b) {
     return (a < b) ? a : b;
 } 
-#endif
-// 'this' : used in base member initializer list
-#pragma warning (disable: 4355)
-// long name
-#pragma warning (disable: 4786)
-
+#else
+#include <algorithm>
+using std::min
+using std::max
 #endif
 
 #endif // LPJ_GUESS_CONFIG_H

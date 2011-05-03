@@ -81,7 +81,7 @@ int randpoisson(double expectation) {
 		p=exp(-r*r/2.0);
 	} while (randfrac()>p);
 
-	return max(0,(int)(r*sqrt(expectation)+expectation+0.5));
+	return max(0, (int)(r*sqrt(expectation)+expectation+0.5));
 }
 
 
@@ -1097,14 +1097,14 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 
 				// Calculate 5 year mean growth efficiency
 
-				greff_mean=greff;
-				startyear=NYEARGREFF-min(NYEARGREFF-1,indiv.age-1);
+				greff_mean = greff;
+				startyear = NYEARGREFF - min(NYEARGREFF-1, (int)indiv.age-1);
 				for (y=startyear;y<NYEARGREFF;y++) {
 					greff_mean+=indiv.greff_5[y];
 					indiv.greff_5[y-1]=indiv.greff_5[y];
 				}
 				indiv.greff_5[NYEARGREFF-1]=greff;
-				greff_mean/=(double)min(NYEARGREFF,indiv.age);
+				greff_mean /= min((double)NYEARGREFF, indiv.age);
 
 				// BACKGROUND MORTALITY
 				//

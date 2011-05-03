@@ -39,6 +39,7 @@
 #include <string.h>
 #include <time.h>
 #include <gutil.h>
+#include <cmath>
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -216,44 +217,13 @@ bool abort_request_received();
 // Small inline ("macro") functions, accessible throughout the code
 
 inline bool negligible(double dval) {
-
-	// Returns true if dval < EPSILON, otherwise false
-
-	const double EPSILON=1.0e-30;
-	if (dval>EPSILON) return false;
-	if (dval<0.0 && dval<-EPSILON) return false;
-	return true;
+	// Returns true if |dval| < EPSILON, otherwise false
+	return fabs(dval) < 1.0e-30;
 }
 
 inline bool equal(double dval1,double dval2) {
-
 	// Returns true if |dval1-dval2| < EPSILON, otherwise false
-
-	const double EPSILON=1.0e-30;
-	if (dval1==dval2) return true;
-	if (dval1>dval2) {
-		if (dval1-dval2<EPSILON) return true;
-	}
-	else {
-		if (dval2-dval1<EPSILON) return true;
-	}
-	return false;
-}
-
-inline double max(double dval1,double dval2) {
-
-	// Returns the larger of dval1 and dval2
-
-	if (dval1>dval2) return dval1;
-	return dval2;
-}
-
-inline double min(double dval1,double dval2) {
-
-	// Returns the smaller of dval1 and dval2
-
-	if (dval1<dval2) return dval1;
-	return dval2;
+	return negligible(dval1 - dval2);
 }
 
 

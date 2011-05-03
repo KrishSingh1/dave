@@ -28,10 +28,22 @@
 // Compiler specific checks, for instance for disabling specific warnings
 
 // All versions of Microsoft's compiler
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 
+// min and max functions for MS Visual C++ 6.0
+#if _MSC_VER == 1200
+template <class T> inline T max(const T& a, const T& b) {
+    return (a > b) ? a : b;
+}
+
+template <class T> inline T min(const T& a, const T& b) {
+    return (a < b) ? a : b;
+} 
+#endif
 // 'this' : used in base member initializer list
-#pragma warning (disable : 4355)
+#pragma warning (disable: 4355)
+// long name
+#pragma warning (disable: 4786)
 
 #endif
 

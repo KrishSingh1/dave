@@ -17,13 +17,13 @@
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GUESSPARAM
-// One object of this class should be passed to function dll_main when called from 
+// One object of this class should be passed to function dll_main when called from
 // the shell. It contains the run time argument for guess (corresponding to the single
 // command line argument when GUESS is run as a command line/console application), and
 // pointers to callback functions in the executable file.
 
 struct PlotArgs {
-	
+
 	// Data buffer object to store arguments to "plot" message
 
 	xtring window_name;
@@ -52,7 +52,7 @@ struct GuessParam {
 
 	xtring* poutput;
 	PlotArgs* pplotargs;
-	
+
 	// POINTERS TO CALLBACK FUNCTIONS
 
 	MessagePrintString* message_print_string;

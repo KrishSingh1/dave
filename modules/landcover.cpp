@@ -37,7 +37,7 @@ void landcover_init(Gridcell& gridcell,Pftlist& pftlist) {
 }
 
 void harvest_natural(double& cmass_leaf,double& cmass_root,double& cmass_sap,double& cmass_heart,double& cmass_debt,
-	double& litter_leaf,double& litter_root,double& litter_wood,double& acflux_harvest,double& harvested_products_slow,Individual& indiv) 
+	double& litter_leaf,double& litter_root,double& litter_wood,double& acflux_harvest,double& harvested_products_slow,Individual& indiv)
 {
 	double harvest=0.0;
 	double residue_outtake=0.0;
@@ -75,10 +75,10 @@ void harvest_natural(double& cmass_leaf,double& cmass_root,double& cmass_sap,dou
 
 void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 {	// Called first day of the year if run_landcover is set.
-	int i;	
+	int i;
 	landcovertype landcover;
 	double landcoverfrac_change[NLANDCOVERTYPES]={0.0};
-//	double cropfrac_change[NCROPSTANDS_MAX]={0.0};	
+//	double cropfrac_change[NCROPSTANDS_MAX]={0.0};
 	double cropfrac_sum_old=0.0;
 //	double cropstand_change[NCROPSTANDS_MAX]={0.0};
 
@@ -95,7 +95,7 @@ void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 
 //Get new gridcell.landcoverfrac and/or gridcell.cftfrac from LUdata and CFTdata.
 	if(!all_fracs_const)
-		getlandcover(gridcell,pftlist);	
+		getlandcover(gridcell,pftlist);
 	else return;
 
 	double changeLC=0.0;
@@ -193,7 +193,7 @@ void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 		while(stand.isobj) //Loop through Patches
 		{
 			Patch& patch=stand.getobj();
-		
+
 			patch.fluxes.acflux_harvest=0.0;
 
 			stand.nextobj();
@@ -202,14 +202,14 @@ void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 //		if(stand.landcover!=CROPLAND && landcoverfrac_change[stand.landcover]<0.0 || stand.landcover==CROPLAND && cropstand_change[stand.cftid]<0.0)
 		if(landcoverfrac_change[stand.landcover]<0.0)
 		{
-//			if(stand.landcover!=CROPLAND)														
+//			if(stand.landcover!=CROPLAND)
 			{
 				scale=-landcoverfrac_change[stand.landcover]/receiving_fraction/(double)stand.nobj;
 			}
 /*			else if(stand.landcover==CROPLAND)
 			{
 				scale=-cropstand_change[stand.cftid]/receiving_fraction/(double)stand.nobj;
-			}	
+			}
 */
 			stand.firstobj();
 			while(stand.isobj) //Loop through Patches
@@ -253,7 +253,7 @@ void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 /*					if(indiv.pft.landcover==CROPLAND)
 						harvest_crop(cmass_plant_cp,cmass_leaf_cp,cmass_root_cp,cmass_ho_cp,cmass_agpool_cp,
 						litter_leaf_cp,litter_root_cp,acflux_harvest_cp,harvested_products_slow_cp,indiv);
-					else if(patch.stand.landcover!=CROPLAND)												
+					else if(patch.stand.landcover!=CROPLAND)
 */						harvest_natural(cmass_leaf_cp,cmass_root_cp,cmass_sap_cp,cmass_heart_cp,cmass_debt_cp,	//kolla vad som händer här, både för träd och gräs !
 						litter_leaf_cp,litter_root_cp,litter_wood_cp,acflux_harvest_cp,harvested_products_slow_cp,indiv);
 
@@ -309,7 +309,7 @@ void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Create and kill stands:
 
-// landcover dynamics (from updated landcoverfrac):	
+// landcover dynamics (from updated landcoverfrac):
 	if(!lcfrac_fixed && changeLC>0.0)
 	{
 		for(int i=0;i<NLANDCOVERTYPES;i++)	//For all landcover types without subclasses
@@ -324,7 +324,7 @@ void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 						Stand& stand=gridcell.createobj(gridcell,landcover,pftlist);
 
 						pftlist.firstobj();
-						while (pftlist.isobj) 
+						while (pftlist.isobj)
 						{
 							Pft& pft=pftlist.getobj();
 							if(pft.landcover==i)
@@ -366,7 +366,7 @@ void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 		{
 			double old_frac, added_frac, new_frac;
 
-//			if(stand.landcover!=CROPLAND)					
+//			if(stand.landcover!=CROPLAND)
 			{
 				old_frac=gridcell.landcoverfrac_old[stand.landcover];
 				added_frac=landcoverfrac_change[stand.landcover];
@@ -377,7 +377,7 @@ void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 				old_frac=gridcell.landcoverfrac_old[CROPLAND]*gridcell.cftfrac_old[stand.cftid];
 				added_frac=cropstand_change[stand.cftid];
 				new_frac=gridcell.landcoverfrac[CROPLAND]*gridcell.cftfrac[stand.cftid];
-			}	
+			}
 */
 #ifdef cropLUchangeCtransfer
 			stand.firstobj();
@@ -385,7 +385,7 @@ void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 			{
 				Patch& patch=stand.getobj();
 //add litter C:
-				for (i=0;i<npft;i++) 
+				for (i=0;i<npft;i++)
 				{
 					Patchpft& patchpft=patch.pft[i];
 

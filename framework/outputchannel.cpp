@@ -13,9 +13,9 @@
 
 namespace GuessOutput {
 
-ColumnDescriptor::ColumnDescriptor(const char* title, 
-                                   int width, 
-                                   int precision) 
+ColumnDescriptor::ColumnDescriptor(const char* title,
+                                   int width,
+                                   int precision)
 		  : t(title),
 			 w(width),
 			 p(precision) {
@@ -34,11 +34,11 @@ int ColumnDescriptor::precision() const {
 }
 
 ColumnDescriptors::ColumnDescriptors(const std::vector<std::string>& titles,
-                                     int width, 
+                                     int width,
                                      int precision) {
 	 for (size_t i = 0; i < titles.size(); i++) {
-		  columns.push_back(ColumnDescriptor(titles[i].c_str(), 
-		                                     width, 
+		  columns.push_back(ColumnDescriptor(titles[i].c_str(),
+		                                     width,
 		                                     precision));
 	 }
 }
@@ -77,7 +77,7 @@ Table::Table()
 		  : identifier(-1) {
 }
 
-Table::Table(int id) 
+Table::Table(int id)
 		  : identifier(id) {
 }
 
@@ -106,19 +106,19 @@ void OutputChannel::add_value(const Table& table, double d) {
 	 // make sure this row isn't already full
 	 const TableDescriptor& td = table_descriptors[table.id()];
 	 if (values[table.id()].size() == td.columns().size()) {
-		  fail("Added too many values to a row in table %s!", 
+		  fail("Added too many values to a row in table %s!",
 		       td.name().c_str());
 	 }
 
 	 values[table.id()].push_back(d);
 }
 
-const TableDescriptor& 
+const TableDescriptor&
 OutputChannel::get_table_descriptor(const Table& table) const {
 	 return table_descriptors[table.id()];
 }
 
-const std::vector<double> 
+const std::vector<double>
 OutputChannel::get_current_row(const Table& table) const {
 	 return values[table.id()];
 }
@@ -132,7 +132,7 @@ FileOutputChannel::FileOutputChannel(const char* out_dir,
 		  : output_directory(out_dir) {
 
 	 // calculate suitable width for the coords columns,
-	 // longitudes take at most 4 characters (-180) before the decimal 
+	 // longitudes take at most 4 characters (-180) before the decimal
 	 // point, add the decimal point, coords_precision and a little margin:
 	 const int LON_MAX_LEN = 4;
 	 const int MARGIN = 2;
@@ -174,16 +174,16 @@ Table FileOutputChannel::create_table(const TableDescriptor& descriptor) {
 	 return table;
 }
 
-void FileOutputChannel::finish_row(const Table& table, 
-                                   double lon, 
+void FileOutputChannel::finish_row(const Table& table,
+                                   double lon,
                                    double lat,
                                    int year) {
 
 	 finish_row(table, lon, lat, year, -1, false);
 }
 
-void FileOutputChannel::finish_row(const Table& table, 
-                                   double lon, 
+void FileOutputChannel::finish_row(const Table& table,
+                                   double lon,
                                    double lat,
                                    int year,
                                    int day) {
@@ -191,11 +191,11 @@ void FileOutputChannel::finish_row(const Table& table,
 	 finish_row(table, lon, lat, year, day, true);
 }
 
-void FileOutputChannel::finish_row(const Table& table, 
-                                   double lon, 
+void FileOutputChannel::finish_row(const Table& table,
+                                   double lon,
                                    double lat,
-                                   int year, 
-                                   int day, 
+                                   int year,
+                                   int day,
                                    bool print_day) {
 	 // do nothing for unused tables
 	 if (table.invalid()) {
@@ -274,12 +274,12 @@ const char* FileOutputChannel::format_header(const Table& table, int column) {
 	 sprintf(format, "%%%ds", cd.width());
 	 sprintf(buf, format, cd.title().c_str());
 
-	 return buf;	 
+	 return buf;
 }
 
-OutputRows::OutputRows(OutputChannel* output_channel, 
-                       double longitude, 
-                       double latitude, 
+OutputRows::OutputRows(OutputChannel* output_channel,
+                       double longitude,
+                       double latitude,
                        int year)
 		  : out(output_channel),
 			 lon(longitude),
@@ -288,10 +288,10 @@ OutputRows::OutputRows(OutputChannel* output_channel,
 			 d(-1) {
 }
 
-OutputRows::OutputRows(OutputChannel* output_channel, 
-							  double longitude, 
-							  double latitude, 
-							  int year, 
+OutputRows::OutputRows(OutputChannel* output_channel,
+							  double longitude,
+							  double latitude,
+							  int year,
 							  int day)
 		  : out(output_channel),
 			 lon(longitude),
@@ -326,7 +326,7 @@ void OutputRows::add_value(const Table& table,double d) {
 		  used_tables.resize(id+1);
 	 }
 	 used_tables[id] = true;
-	 
+
 	 // send the value to the output channel
 	 out->add_value(table, d);
 }

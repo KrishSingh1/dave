@@ -59,7 +59,7 @@
 //            printf("Loaded record: lon=%g, lat=%g\n",data.lon,data.lat);
 //      }
 //   }
-//   
+//
 //   // Look for a record with lon=-1800, lat=-900:
 //
 //   data.lon=-1800;

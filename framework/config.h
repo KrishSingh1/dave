@@ -45,7 +45,7 @@ template <class T> inline T max(const T& a, const T& b) {
 
 template <class T> inline T min(const T& a, const T& b) {
     return (a < b) ? a : b;
-} 
+}
 #else
 #include <algorithm>
 using std::min

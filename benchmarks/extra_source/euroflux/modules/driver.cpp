@@ -35,9 +35,9 @@ static long seed=12345678; // seed for random number generator (see randfrac)
 
 
 // guess2008
-extern int nyear_spinup; 
+extern int nyear_spinup;
 	// allows access to the value declared guessio_cru.cpp
- 
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // RANDFRAC
@@ -143,13 +143,13 @@ void soilparameters(Soiltype& soiltype,int soilcode,double soildepth) {
 
 	// guess2008 - euroflux - implement new soil depth. Must be > 25cm
 	//soiltype.awc[0]=SOILDEPTH_UPPER*(data[soilcode-1][1]+0.5*0.103); // As before
-	//soiltype.awc[1]=min((soildepth-SOILDEPTH_UPPER),SOILDEPTH_LOWER)*(data[soilcode-1][1]+0.5*0.103); // 
+	//soiltype.awc[1]=min((soildepth-SOILDEPTH_UPPER),SOILDEPTH_LOWER)*(data[soilcode-1][1]+0.5*0.103); //
 	if (soildepth >= 600.0) {
 		soiltype.awc[0]=SOILDEPTH_UPPER*(data[soilcode-1][1]); // 50cm, as before
-		soiltype.awc[1]=min((soildepth-SOILDEPTH_UPPER),SOILDEPTH_LOWER)*(data[soilcode-1][1]); // 
+		soiltype.awc[1]=min((soildepth-SOILDEPTH_UPPER),SOILDEPTH_LOWER)*(data[soilcode-1][1]); //
 	} else {
 		soiltype.awc[0]=SOILDEPTH_UPPER*(data[soilcode-1][1])/2.0; // 25cm
-		soiltype.awc[1]=min((soildepth-SOILDEPTH_UPPER/2.0),SOILDEPTH_LOWER)*(data[soilcode-1][1]); // 	
+		soiltype.awc[1]=min((soildepth-SOILDEPTH_UPPER/2.0),SOILDEPTH_LOWER)*(data[soilcode-1][1]); //
 	}
 
 	soiltype.thermdiff_0=data[soilcode-1][2];
@@ -163,7 +163,7 @@ void soilparameters(Soiltype& soiltype,int soilcode,double soildepth) {
 
 
 /// Climate interpolation from monthly means to quasi-daily values
-/** May be called from input/output module to generate daily climate values when 
+/** May be called from input/output module to generate daily climate values when
  *  raw data are on monthly basis.
  *
  *  \param mvals The monthly means
@@ -203,7 +203,7 @@ void interp_monthly_means(double mvals[12], double dvals[365]) {
 }
 
 /// Climate interpolation from monthly totals to quasi-daily values
-/** May be called from input/output module to generate daily climate values when 
+/** May be called from input/output module to generate daily climate values when
  *  raw data are on monthly basis.
  *
  *  \param mvals The monthly totals
@@ -267,7 +267,7 @@ void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12]) {
 			prob_rain=mval_wet[m]/(double)date.ndaymonth[m];
 
 			mprec=mval_prec[m]/mval_wet[m];
-			
+
 			dy_hold=dy;
 
 			while (negligible(mprec_sum)) {
@@ -275,7 +275,7 @@ void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12]) {
 				dy=dy_hold;
 
 				for (d=0;d<date.ndaymonth[m];d++) {
-				
+
 					// Transitional probabilities (Geng et al 1986)
 
 					if (dy==0) { // first day of year only
@@ -357,7 +357,7 @@ void soiltemp(Climate& climate,Soil& soil) {
 	// Soil temperatures are assumed to follow surface temperatures according to an
 	// annual sinusoidal cycle with damped oscillation about a common mean, and a
 	// temporal lag.
-	
+
 	// For a sinusoidal cycle, soil temperature at depth z and time t from beginning
 	// of cycle given by (Carslaw & Jaeger 1959; Eqn 52; Jury et al 1991):
 	//
@@ -535,7 +535,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 		// Update mean temperature for the last 12 months
 		// atemp_mean_new = atemp_mean_old * (11/12) + mtemp * (1/12)
 		climate.atemp_mean=climate.atemp_mean*W11DIV12+climate.mtemp*W1DIV12;
-		
+
 		// Record minimum and maximum monthly temperatures
 		if (date.month==0) {
 			climate.mtemp_min=climate.mtemp;
@@ -571,7 +571,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 }
 
 void dailyaccounting_stand(Stand& stand,Pftlist& pftlist)
-{		
+{
 	// Loop through PFTs
 	pftlist.firstobj();
 	while (pftlist.isobj) {
@@ -664,7 +664,7 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 
 	if(run_landcover)
 		dailyaccounting_patch_lc(patch, pftlist);
-	
+
 	// Store daily soil water in upper layer
 	soil.dwcontupper[date.day]=soil.wcont[0];
 
@@ -677,11 +677,11 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 
 		soil.mwcontupper=mean(soil.dwcontupper+date.day-date.ndaymonth[date.month]+1,
 			date.ndaymonth[date.month]);
-		
-		// guess2008 - record water in lower layer too, and then update mwcont  
+
+		// guess2008 - record water in lower layer too, and then update mwcont
 		soil.mwcontlower=mean(soil.dwcontlower+date.day-date.ndaymonth[date.month]+1,
 			date.ndaymonth[date.month]);
-		
+
 		soil.mwcont[date.month][0] = soil.mwcontupper;
 		soil.mwcont[date.month][1] = soil.mwcontlower;
 
@@ -730,7 +730,7 @@ void respiration_temperature_response(double temp,double& gtemp) {
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // DAYLENGTH, INSOLATION AND POTENTIAL EVAPOTRANSPIRATION
-// Called by framework each simulation day following update of daily air temperature 
+// Called by framework each simulation day following update of daily air temperature
 // and before canopy exchange processes
 
 void daylengthinsoleet(Climate& climate) {
@@ -814,7 +814,7 @@ void daylengthinsoleet(Climate& climate) {
 	//	Define
 	//	 (9) u = sin(lat) * sin(delta)
 	//	(10) v = cos(lat) * cos(delta)
-	//	Thus 
+	//	Thus
 	//	(11) hh = acos (-u/v)
 	//	To obtain the daily net downward short-wave radiation sum, integrate
 	//	equation (6) from -hh to hh with respect to h,
@@ -852,7 +852,7 @@ void daylengthinsoleet(Climate& climate) {
 	}
 
 	if (climate.instype==SUNSHINE) { // insolation provided as percentage sunshine
-		
+
 		w=(C+D*climate.insol/100.0)*(1.0-BETA)*climate.qo[date.day]; // Eqn 13
 		rs_day=2.0*w*(climate.u[date.day]*climate.hh[date.day]
 			+climate.v[date.day]*climate.sinehh[date.day])*K; // Eqn 14

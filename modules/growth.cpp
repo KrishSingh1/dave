@@ -84,13 +84,13 @@ void leaf_phenology_pft(Pft& pft,Climate& climate,double wscal,double aphen,
 			if (pft.gdd0[climate.chilldays]<0.0)
 				pft.gdd0[climate.chilldays]=pft.k_chilla+
 					pft.k_chillb*exp(-pft.k_chillk*(double)climate.chilldays);
-			
+
 			if (climate.gdd5>pft.gdd0[climate.chilldays] && aphen<APHEN_MAX)
 				phen=min(1.0,
 					(climate.gdd5-pft.gdd0[climate.chilldays])/pft.phengdd5ramp);
 			else
 				phen=0.0;
-		
+
 		}
 		else if (pft.lifeform==GRASS) {
 
@@ -100,7 +100,7 @@ void leaf_phenology_pft(Pft& pft,Climate& climate,double wscal,double aphen,
 			phen=min(1.0,climate.gdd5/pft.phengdd5ramp);
 		}
 	}
-	
+
 	if (raingreen) {
 
 		// Raingreen phenology based on water stress threshold
@@ -236,7 +236,7 @@ void turnover(double turnover_leaf,double turnover_root,double turnover_sap,
 		turnover=turnover_sap*cmass_sap*scale;
 		cmass_sap-=turnover;
 		cmass_heart+=turnover;
-	}	
+	}
 }
 
 
@@ -340,7 +340,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	// cmass_sap_inc   = increment (may be negative) in sapwood C biomass following
 	//                   allocation (kgC)
 	// cmass_heart_inc = increment in heartwood C biomass following allocation (kgC)
-	// litter_leaf_inc = increment in leaf litter following allocation, on individual 
+	// litter_leaf_inc = increment in leaf litter following allocation, on individual
 	//                   basis (kgC)
 	// litter_root_inc = increment in root litter following allocation, on individual
 	//                   basis (kgC)
@@ -363,7 +363,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	//   (6) diam_new = 2 * [ ( cmass_sap + cmass_sap_inc + cmass_heart )
 	//         / wooddens / height_new / PI ]**(1/2)
 	// From (4), (6) and (5),
-	//   (7) height_new**(1+2/k_allom3) = 
+	//   (7) height_new**(1+2/k_allom3) =
 	//         k_allom2**(2/k_allom3) * 4 * [cmass_sap + bminc - cmass_leaf_inc
 	//         - (cmass_leaf + cmass_leaf_inc) / ltor + cmass_root + cmass_heart]
 	//         / wooddens / PI
@@ -423,7 +423,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	cmass_root_inc=0.0; // guess2008 - initialise
 
 	if (ltor<1.0e-10) {
-		
+
 		// No leaf production possible - put all biomass into roots
 		// (Individual will die next time period)
 
@@ -571,7 +571,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 					cmass_heart_inc=-cmass_sap_inc;
 				}
 
-				return;			
+				return;
 			}
 
 		}
@@ -651,7 +651,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// Add killed leaves to litter
 
-			// guess2008 - bugfix 
+			// guess2008 - bugfix
 			// litter_leaf_inc=-cmass_leaf_inc;
 			litter_leaf_inc=min(-cmass_leaf_inc, cmass_leaf);
 		}
@@ -664,7 +664,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// Add killed roots to litter
 
-			// guess2008 - bugfix 
+			// guess2008 - bugfix
 			//litter_root_inc=-cmass_root_inc;
 			litter_root_inc=min(-cmass_root_inc, cmass_root);
 
@@ -697,7 +697,7 @@ void allocation_init(double bminit,double ltor,Individual& indiv) {
 
 	indiv.cmass_leaf=cmass_leaf_ind*indiv.densindiv;
 	indiv.cmass_root=cmass_root_ind*indiv.densindiv;
-	
+
 	if (indiv.pft.lifeform==TREE)
 		indiv.cmass_sap=cmass_sap_ind*indiv.densindiv;
 }
@@ -763,7 +763,7 @@ bool allometry(Individual& indiv) {
 	double fpc_new; // updated FPC
 
 	// guess2008 - max tree height allowed (metre).
-	const double HEIGHT_MAX = 150.0; 
+	const double HEIGHT_MAX = 150.0;
 
 
 	if (indiv.pft.lifeform==TREE) {
@@ -772,7 +772,7 @@ bool allometry(Individual& indiv) {
 
 		// Height (Eqn 4)
 
-		// guess2008 - new allometry check 
+		// guess2008 - new allometry check
 		if (!negligible(indiv.cmass_leaf)) {
 			indiv.height=indiv.cmass_sap/indiv.cmass_leaf/indiv.pft.sla*
 				indiv.pft.k_latosa/indiv.pft.wooddens;
@@ -809,18 +809,18 @@ bool allometry(Individual& indiv) {
 			// Individual LAI (Eqn 9)
 			indiv.lai_indiv=indiv.cmass_leaf/indiv.densindiv*
 				indiv.pft.sla/indiv.crownarea;
-			
+
 			// FPC (Eqn 8)
-			
+
 			fpc_new=indiv.crownarea*indiv.densindiv*
 				(1.0-exp(-LAMBERTBEER_K*indiv.lai_indiv));
-				
+
 			// Increment deltafpc
 			indiv.deltafpc+=fpc_new-indiv.fpc;
 			indiv.fpc=fpc_new;
 		}
 		else {
-			indiv.lai_indiv=0.0;	
+			indiv.lai_indiv=0.0;
 			indiv.fpc=0.0;
 		}
 
@@ -831,10 +831,10 @@ bool allometry(Individual& indiv) {
 		indiv.lai=indiv.cmass_leaf*indiv.pft.sla;
 	}
 	else if (indiv.pft.lifeform==GRASS) {
-		
+
 		// GRASSES
 
-		// guess2008 - bugfix - added if 
+		// guess2008 - bugfix - added if
 		if (!negligible(indiv.cmass_leaf)) {
 
 			// Grass "individual" LAI (Eqn 11)
@@ -929,7 +929,7 @@ void growth(Stand& stand,Patch& patch) {
 	double cmass_sap_inc;
 		// increment in sapwood C biomass following allocation, on individual basis
 		// (kgC)
-	double cmass_debt_inc = 0.0; 
+	double cmass_debt_inc = 0.0;
 		// guess2008 - bugfix - added initialisation
 	double cmass_heart_inc;
 		// increment in heartwood C biomass following allocation, on individual basis
@@ -978,7 +978,7 @@ void growth(Stand& stand,Patch& patch) {
 
 		if (negligible(indiv.densindiv))
 			fail("growth: negligible densindiv for %s",(char*)indiv.pft.name);
-		
+
 		else {
 
 			// Allocation to reproduction
@@ -1073,7 +1073,7 @@ void growth(Stand& stand,Patch& patch) {
 				// Kill individual and transfer biomass to litter if any biomass
 				// compartment negative
 
-				if (indiv.cmass_leaf<MINCMASS || indiv.cmass_root<MINCMASS || 
+				if (indiv.cmass_leaf<MINCMASS || indiv.cmass_root<MINCMASS ||
 					indiv.cmass_sap<MINCMASS) {
 
 					// guess2008 - alive check
@@ -1097,7 +1097,7 @@ void growth(Stand& stand,Patch& patch) {
 
 				// guess2008 - initial grass cmass
 				double indiv_mass_before=indiv.cmass_leaf+indiv.cmass_root;
-	
+
 				allocation(bminc,indiv.cmass_leaf,indiv.cmass_root,
 					0.0,0.0,0.0,indiv.ltor,0.0,0.0,0.0,GRASS,0.0,
 					0.0,0.0,cmass_leaf_inc,cmass_root_inc,dval,dval,dval,
@@ -1109,16 +1109,16 @@ void growth(Stand& stand,Patch& patch) {
 				indiv.cmass_leaf+=cmass_leaf_inc;
 				indiv.cmass_root+=cmass_root_inc;
 
-				// guess2008 - bugfix - determine the (small) mass imbalance (kgC) for this individual. 
+				// guess2008 - bugfix - determine the (small) mass imbalance (kgC) for this individual.
 				// This can arise in the event of numerical errors in the allocation routine.
 				double indiv_mass_after=indiv.cmass_leaf+indiv.cmass_root+litter_leaf_inc+litter_root_inc;
-				double indiv_cmass_diff=(indiv_mass_before+bminc-indiv_mass_after);		
+				double indiv_cmass_diff=(indiv_mass_before+bminc-indiv_mass_after);
 
 				// guess2008 - alive check before ensuring C balance
 				if (indiv.alive) {
 
 					patch.pft[indiv.pft.id].litter_leaf+=litter_leaf_inc+indiv_cmass_diff/2;
-					patch.pft[indiv.pft.id].litter_root+=litter_root_inc+indiv_cmass_diff/2;			
+					patch.pft[indiv.pft.id].litter_root+=litter_root_inc+indiv_cmass_diff/2;
 
 				}
 
@@ -1132,7 +1132,7 @@ void growth(Stand& stand,Patch& patch) {
 
 						patch.pft[indiv.pft.id].litter_leaf+=indiv.cmass_leaf;
 						patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
-						
+
 					}
 
 					vegetation.killobj();
@@ -1165,12 +1165,12 @@ void growth(Stand& stand,Patch& patch) {
 						indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
 					indiv.alive=true;
 				}
-			
+
 				// ... on to next individual
 				vegetation.nextobj();
 			}
 		}
-		
+
 	}
 }
 
@@ -1204,5 +1204,5 @@ void growth(Stand& stand,Patch& patch) {
 //   Journal of Biogeography 23: 209-233.
 // Waring, RH Schroeder, PE & Oren, R (1982) Application of the pipe model theory
 //   to predict canopy leaf area. Canadian Journal of Forest Research 12:
-//   556-560  
+//   556-560
 // Zeide, B (1993) Primary unit of the tree crown. Ecology 74: 1598-1602.

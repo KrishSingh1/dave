@@ -40,7 +40,7 @@
 // ample moisture (Meentemeyer 1978; Foley 1995)
 
 static const double TAU_LITTER=2.85; // Thonicke, Sitch, pers comm, 26/11/01
-static const double TAU_SOILFAST=33.0; 
+static const double TAU_SOILFAST=33.0;
 static const double TAU_SOILSLOW=1000.0;
 
 static const double FASTFRAC=0.985;
@@ -266,7 +266,7 @@ void som_dynamics(Patch& patch) {
 		// Loop through PFTs
 
 		for (p=0;p<npft;p++) {
-			
+
 			// For this PFT ...
 
 			decomp_litter+=(patch.pft[p].litter_leaf+
@@ -312,7 +312,7 @@ void som_dynamics(Patch& patch) {
 		else
 			patch.fluxes.mcflux_soil[date.month]=cflux;
 
-		// Reduce SOM pools 
+		// Reduce SOM pools
 		soil.cpool_fast*=fr_soilfast;
 		soil.cpool_slow*=fr_soilslow;
 

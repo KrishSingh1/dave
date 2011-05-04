@@ -63,7 +63,7 @@ int randpoisson(double expectation) {
 	if (expectation<=100) {
 
 		// For expected values up to 100, calculate a true Poisson number
-	
+
 		p=exp(-expectation);
 		q=p;
 		r=randfrac();
@@ -108,7 +108,7 @@ bool establish(Patch& patch,Climate& climate,Pft& pft) {
 	//   gdd5min_est = minimum growing degree day sum on 5 deg C base
 
 	// guess2008 - euroflux
-	// Hack! Restrict Picea sitchensis establishment everywhere but Scotland. 
+	// Hack! Restrict Picea sitchensis establishment everywhere but Scotland.
 	if (pft.name == "Pic_sit" && climate.lat != 56.5)
 		return false;
 
@@ -122,7 +122,7 @@ bool establish(Patch& patch,Climate& climate,Pft& pft) {
 
 	// guess2008 - DLE - new drought limited establishment
     if (ifdroughtlimitedestab) {
-		// Compare this PFT's/species' drought_tolerance with the average wcont over the 
+		// Compare this PFT's/species' drought_tolerance with the average wcont over the
 		// growing season, in this patch. Higher drought_tolerance values (set in the .ins file)
 		// lead to greater restrictions on establishment.
         if (pft.drought_tolerance>patch.soil.awcont[0]) {
@@ -244,7 +244,7 @@ void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
 		// For this individual ...
 
 		if (indiv.pft.lifeform==TREE) {
-			if (establish(patch,stand.gridcell.climate,indiv.pft)) ntree_est++;	
+			if (establish(patch,stand.gridcell.climate,indiv.pft)) ntree_est++;
 			fpc_tree+=indiv.fpc;
 		}
 		else if (indiv.pft.lifeform==GRASS) {
@@ -267,7 +267,7 @@ void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
-		
+
 		// For this individual ...
 
 		Individual& indiv=vegetation.getobj();
@@ -291,7 +291,7 @@ void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
 			// (flux is downward and therefore negative)
 
 			// guess2008
-			// flux is not debited for 'new' Individual objects - their carbon is 
+			// flux is not debited for 'new' Individual objects - their carbon is
 			// debited in function growth() if they survive the first year
 
 			if (indiv.alive) // guess2008 - alive check added
@@ -309,7 +309,7 @@ void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
 		}
 		else if (indiv.pft.lifeform==GRASS &&
 			establish(patch,stand.gridcell.climate,indiv.pft)) {
-			
+
 			// ESTABLISHMENT OF GRASSES
 			// Grasses establish throughout unoccupied regions of the grid cell
 			// Overall establishment partitioned equally among establishing PFTs
@@ -443,7 +443,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 			}
 			else {
 				patch.pft[pft.id].anetps_ff_est+=patch.pft[pft.id].anetps_ff;
-				patch.pft[pft.id].wscal_mean_est+=patch.pft[pft.id].wscal_mean;					
+				patch.pft[pft.id].wscal_mean_est+=patch.pft[pft.id].wscal_mean;
 			}
 
 			if (establish(patch,stand.gridcell.climate,pft)) {
@@ -471,7 +471,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 						indiv.crownarea=1.0; // (value not used)
 						indiv.densindiv=1.0;
 						indiv.fpc=1.0;
-					
+
 						// Initial grass biomass proportional to potential forest floor
 						// net assimilation this year on patch area basis
 
@@ -498,7 +498,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 						// Account for C flux from atmosphere to vegetation
 						// guess2008 - flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()
-						// if they survive the first year 
+						// if they survive the first year
 
 						if (indiv.alive)
 							patch.fluxes.acflux_est-=bminit;
@@ -509,7 +509,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 					// ESTABLISHMENT OF NEW TREE SAPLINGS
 
 					if (patch.age==0)
-						
+
 						// First simulation year - initialising patch
 						// Eqn 1
 
@@ -624,7 +624,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 						// Calculate initial allometry
 
 						allometry(indiv);
-						
+
 						// Account for C flux from atmosphere to vegetation
 						// guess2008
 						if (indiv.alive)
@@ -664,7 +664,7 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 	// This function assumes each Individual object represents the average individual
 	// of a PFT population, and that there is (at most) one Individual object per PFT
 	// per modelled area (stand and patch).
-	
+
 	// For tree PFTs, the fraction of the population killed is given by:
 	//
 	//   (1) mort = min ( mort_greff + mort_shade + mort_fire, 1)
@@ -681,7 +681,7 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 	// Grasses are subject to shading and fire mortality only
 
 	// References: Sitch et al 2001, Smith et al 2001, Thonicke et al 2001
-	
+
 	// INPUT PARAMETER
 	// fireprob = fraction of modelled area affected by fire
 
@@ -835,7 +835,7 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 			indiv.cmass_heart*=1.0-mort;
 		}
 		else if (indiv.pft.lifeform==GRASS) {
-			
+
 			// GRASS MORTALITY
 
 			// Shading mortality: grasses can persist only on regions not occupied
@@ -847,7 +847,7 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 			}
 			else
 				mort_shade=0.0;
-		
+
 			if (mort_shade>0.0) {
 				mort_shade=mort_shade;
 			}
@@ -1005,14 +1005,14 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					allometry(indiv);
 				}
 				else {
-					
+
 					// TREE PFT
 
 					if (ifstochmort) {
 
 						// Impose stochastic mortality
 						// Each individual in cohort dies with probability 'mort_fire'
-						
+
 						// Number of individuals represented by 'indiv'
 						// (round up to be on the safe side)
 
@@ -1099,9 +1099,9 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 
 				// Calculate this year's growth efficiency
 				// Eqn 31, Smith et al 2001
-				
+
 				if (!negligible(indiv.cmass_leaf))
-					greff=max(indiv.anpp,0.0)/indiv.cmass_leaf/indiv.pft.sla; 
+					greff=max(indiv.anpp,0.0)/indiv.cmass_leaf/indiv.pft.sla;
 				else
 					greff=0.0;
 
@@ -1164,7 +1164,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 				// Smith et al 2001; c.f. Pacala et al 1993, Eqn 5
 
 				// guess2008 - introduce a smoothly-varying mort_greff - 5 is the exponent in the global validation
-				if (ifsmoothgreffmort) 
+				if (ifsmoothgreffmort)
 					mort_greff=KMORTGREFF/(1.0+pow((greff_mean/(indiv.pft.greff_min)),5.0));
 				else {
 					// Standard case, as in guess030124
@@ -1175,11 +1175,11 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 				}
 
 
-				// Increase growth efficiency mortality if summed crown area within 
+				// Increase growth efficiency mortality if summed crown area within
 				// cohort exceeds 1 (to ensure self-thinning for shade-tolerant PFTs)
 
 				if (vegmode==COHORT) {
-					
+
 					if (indiv.crownarea*indiv.densindiv>1.0)
 						mort_greff=max((indiv.crownarea*indiv.densindiv-1.0)/
 							(indiv.crownarea*indiv.densindiv),mort_greff);
@@ -1190,7 +1190,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 				mort=mort_min+mort_greff-mort_min*mort_greff;
 
 
-				// guess2008 - added safety check 
+				// guess2008 - added safety check
 				if (mort > 1.0 || mort < 0.0)
 					fail("error in mortality_guess: bad mort value");
 
@@ -1381,7 +1381,7 @@ void fire(Patch& patch,double& fireprob) {
 void disturbance(Patch& patch,double disturb_prob) {
 
 	// DESCRIPTION
-	// Destroys all biomass in a patch with a certain stochastic probability. 
+	// Destroys all biomass in a patch with a certain stochastic probability.
 	// Biomass enters the litter, which is not affected by the disturbance.
 	// NB: cohort and individual mode only
 
@@ -1509,12 +1509,12 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 	*/
 
 	int nwoodypfts_estab=0;
-	if (isplantationyear) 
+	if (isplantationyear)
 		nwoodypfts_estab = current_stand_fluxdata->num_dominant_species;
 	//else
 	//	nwoodypfts_estab = current_stand_fluxdata->num_other_species;
 
-	
+
 	// Loop through PFTs
 
 	pftlist.firstobj();
@@ -1535,7 +1535,7 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 			 }
 			 else {
 				  patch.pft[pft.id].anetps_ff_est+=patch.pft[pft.id].anetps_ff;
-				  patch.pft[pft.id].wscal_mean_est+=patch.pft[pft.id].wscal_mean;					
+				  patch.pft[pft.id].wscal_mean_est+=patch.pft[pft.id].wscal_mean;
 			 }
 
 
@@ -1543,9 +1543,9 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 			 // guess2008 - euroflux - eval
 
 			 int dominant_density = 0;
-		
+
 			 // Is this PFT/species a dominant?
-			 bool is_dominant_species = false; 		
+			 bool is_dominant_species = false;
 			 for (int sp = 0; sp < current_stand_fluxdata->num_dominant_species; sp++) {
 				  if (pft.name == current_stand_fluxdata->dom_species[sp]) {
 						is_dominant_species = true;
@@ -1555,7 +1555,7 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 
 			 // Is this PFT/species a less dominant (other) species?
 			 /*
-				bool is_other_species = false; 		
+				bool is_other_species = false;
 				for (int op = 0; op < current_stand_fluxdata->num_other_species; op++) {
 				if (pft.name == current_stand_fluxdata->oth_species[op])
 				is_other_species = true;
@@ -1569,8 +1569,8 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 			 // Grasses always allowed to establish
 			 // Planted species can only establish during the plantation year, with a fixed density
 			 // NO CLIMATIC LIMITATIONS ON ESTABLISHMENT
-		
-			
+
+
 			 if (pft.lifeform==GRASS || (isplantationyear && is_dominant_species) /*|| (!isplantationyear && is_other_species)*/) {
 
 
@@ -1597,7 +1597,7 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 							 indiv.crownarea=1.0; // (value not used)
 							 indiv.densindiv=1.0;
 							 indiv.fpc=1.0;
-					
+
 							 // Initial grass biomass proportional to potential forest floor
 							 // net assimilation this year on patch area basis
 
@@ -1625,10 +1625,10 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 
 
 							 // Account for C flux from atmosphere to vegetation
-							 // guess2008 
+							 // guess2008
 							 // Ben 2007-11-28: flux is not debited for 'new' Individual
 							 // objects - their carbon is debited in function growth()
-							 // if they survive the first year 
+							 // if they survive the first year
 
 							 if (indiv.alive)
 								  patch.fluxes.acflux_est-=bminit;
@@ -1642,7 +1642,7 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 						// nsapling defined directly below
 
 						if (patch.age==0)
-					
+
 							 // First simulation year - initialising patch
 							 // Eqn 1
 
@@ -1694,7 +1694,7 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 
 
 						// guess2008 - euroflux - eval - override the above for dominant species
-						// Convert from trees/ha to trees/m2, then to num trees in this patch using patcharea 
+						// Convert from trees/ha to trees/m2, then to num trees in this patch using patcharea
 						if (isplantationyear && is_dominant_species)
 							 nsapling= dominant_density/10000.0 * patcharea;
 						//nsapling= current_stand_fluxdata->dominant_density/10000.0 * patcharea;
@@ -1768,7 +1768,7 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 							 // Calculate initial allometry
 
 							 allometry(indiv);
-					
+
 							 // Account for C flux from atmosphere to vegetation
 							 // guess2008
 							 // Ben 2007-11-28: flux is not debited for 'new' Individual
@@ -1814,7 +1814,7 @@ void clearance(Patch& patch) {
 
 	Vegetation& vegetation=patch.vegetation;
 
-	// 70% of the patch vegetation is removed. 
+	// 70% of the patch vegetation is removed.
 	const double FRACTION_REMAINING = 0.3;
 
 	vegetation.firstobj();
@@ -1823,20 +1823,20 @@ void clearance(Patch& patch) {
 
 		// guess2008 - alive check
 		if (indiv.alive) {
-		
+
 			if (indiv.pft.lifeform==GRASS) {
 
 				patch.pft[indiv.pft.id].litter_leaf+=FRACTION_REMAINING*max(indiv.cmass_leaf,0.0);
 				patch.pft[indiv.pft.id].litter_root+=FRACTION_REMAINING*max(indiv.cmass_root,0.0);
 
 			} else {
-			
+
 				// TREES
 
 				patch.pft[indiv.pft.id].litter_leaf+=FRACTION_REMAINING*max(indiv.cmass_leaf,0.0);
 				patch.pft[indiv.pft.id].litter_root+=max(indiv.cmass_root,0.0);
 				patch.pft[indiv.pft.id].litter_wood+=FRACTION_REMAINING*max(indiv.cmass_sap,0.0);
-				patch.pft[indiv.pft.id].litter_wood+=FRACTION_REMAINING*(indiv.cmass_heart-indiv.cmass_debt);		
+				patch.pft[indiv.pft.id].litter_wood+=FRACTION_REMAINING*(indiv.cmass_heart-indiv.cmass_debt);
 
 				/*
 				//patch.pft[indiv.pft.id].litter_leaf+=indiv.cmass_leaf;
@@ -1892,7 +1892,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 	if (vegmode==POPULATION) {
 
 		// POPULATION MODE
-		
+
 		// Mortality
 		mortality_lpj(stand,patch,stand.gridcell.climate,fireprob);
 
@@ -1916,7 +1916,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 		}
 
 
-		// guess2008 - eval - euroflux - clear the patch of natural vegetation during the 
+		// guess2008 - eval - euroflux - clear the patch of natural vegetation during the
 		// plantation year. Should we leave the C3 grasses????
 		if (century_year==plantation_year)
 			clearance(patch);
@@ -1931,23 +1931,23 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 		// Mortality
 		mortality_guess(stand,patch,stand.gridcell.climate,fireprob);
-		
+
 		*/
 
 
 		if (century_year<plantation_year /* guess2008 - euroflux - eval */)
 			mortality_guess(stand,patch,stand.gridcell.climate,fireprob);
 
-		/*		
+		/*
 		// guess2008 - euroflux - eval
 		if (century_year>=plantation_year) {
 			fireprob = 0.0;
-			mortality_guess(stand,patch,stand.gridcell.climate,fireprob);		
+			mortality_guess(stand,patch,stand.gridcell.climate,fireprob);
 		}
 		*/
 
 		// guess2008 - eval - euroflux
-		// New establishment. 
+		// New establishment.
 
 		/*
 
@@ -1955,7 +1955,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 		// Establishment
 		establishment_guess(stand,patch,pftlist);
-		
+
 		*/
 
 		if (century_year<plantation_year /* guess2008 - euroflux - eval */)

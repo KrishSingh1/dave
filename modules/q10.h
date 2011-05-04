@@ -3,7 +3,7 @@
 /// \brief Q10 calculations for photosynthesis
 ///
 /// Calculations of Q10 values for photosynthesis, formerly
-/// placed in canexch.cpp now moved to separate header file 
+/// placed in canexch.cpp now moved to separate header file
 /// because of their application for BVOC calculations as well.
 ///
 /// \author Guy Schurgers (based on LPJ-GUESS 2.1 / Ben Smith)
@@ -12,8 +12,8 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
-// Module header files need normally contain only declarations of functions 
-// defined in the module that are to be accessible to the calling framework or 
+// Module header files need normally contain only declarations of functions
+// defined in the module that are to be accessible to the calling framework or
 // to other modules.
 
 #ifndef LPJ_GUESS_Q10_H
@@ -31,7 +31,7 @@ const int LOOKUPQ10_NDATA=
 	static_cast<int>((LOOKUPQ10_MAXTEMP-LOOKUPQ10_MINTEMP+1.0)/
 		LOOKUPQ10_PRECISION+0.5);
 	// maximum number of values to store in each lookup table
-	
+
 
 // Definition of Q10 lookup table class
 
@@ -52,9 +52,9 @@ public:
 	}
 
 	LookupQ10(double q10,double base25) {
-		
+
 		// Constructor (initialises lookup table)
-		
+
 		double temp;
 
 		data=new double[LOOKUPQ10_NDATA];
@@ -68,16 +68,16 @@ public:
 	}
 
 	double& operator[](double& temp) {
-		
+
 		// "Array element" operator (returns temperature-adjusted value
 		// based on Q10 and 25-degree base value)
-		
+
 		return data[element(temp)];
 	}
 
 	// guess2008 - new destructor added
 	~LookupQ10() {
-		
+
 		delete[] data;
 	}
 };

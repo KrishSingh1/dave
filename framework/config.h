@@ -39,17 +39,21 @@
 
 // min and max functions for MS Visual C++ 6.0
 #if defined(_MSC_VER) && _MSC_VER == 1200
+namespace std {
 template <class T> inline T max(const T& a, const T& b) {
     return (a > b) ? a : b;
 }
 
 template <class T> inline T min(const T& a, const T& b) {
     return (a < b) ? a : b;
-} 
+}
+}
 #else
+// modern compilers define min and max in <algorithm>
 #include <algorithm>
-using std::min
-using std::max
 #endif
+
+using std::min;
+using std::max;
 
 #endif // LPJ_GUESS_CONFIG_H

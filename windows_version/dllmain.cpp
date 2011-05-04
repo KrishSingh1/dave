@@ -60,7 +60,7 @@ void fail(xtring format,...) {
 	message_print_string(pbuf);
 
 	if (logfile) fprintf(logfile,"%s\n",(char*)output);
-
+	
 	message_finished();
 
 	_endthread();
@@ -94,7 +94,7 @@ void plot(xtring window_name,xtring series_name,double x,double y) {
 	pplotargs->x=x;
 	pplotargs->y=y;
 	pplotargs->rescale=true;
-
+	
 	message_plot(pplotargs);
 }
 

@@ -12,7 +12,7 @@
 
 #include <gutil.h>
 
-// guess2008 - euroflux
+// guess2008 - euroflux 
 /// The value used for missing data in the EUROFLUX files.
 const double MISSING_DATA = -9999.0;
 
@@ -22,13 +22,13 @@ const int NFLUXYEARS=11;
 /// Type for storing EUROFLUX grid cell information
 struct EurofluxData {
 
-	xtring desc;
+	xtring desc; 
 
 	int plantation_year;
 	int num_dominant_species;
 	xtring dom_species[5];
 	int dom_species_density[5];
-
+	
 	// Flux data for a site
 	double fluxNEE[NFLUXYEARS][12];
 	double fluxAET[NFLUXYEARS][12];
@@ -41,7 +41,7 @@ struct EurofluxData {
 	double modelGPP[NFLUXYEARS][12];
 
 	EurofluxData() {
-		// initialise EUROFLUX arrays with missing values;
+		// initialise EUROFLUX arrays with missing values; 
 		for (int yr = 0; yr < NFLUXYEARS; yr++) {
 			for (int mth = 0; mth < 12; mth++) {
 				fluxNEE[yr][mth] = MISSING_DATA;
@@ -54,7 +54,7 @@ struct EurofluxData {
 		// New initialisation
 		plantation_year = -1;
 		num_dominant_species = 0;
-		desc = "";
+		desc = ""; 
 
 	}
 };

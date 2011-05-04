@@ -20,7 +20,7 @@ void setseed(long init);
 double randfrac();
 //void soilparameters(Soiltype& soiltype,int soilcode); // guess2008
 // guess2008 - euroflux
-void soilparameters(Soiltype& soiltype,int soilcode,double soildepth);
+void soilparameters(Soiltype& soiltype,int soilcode,double soildepth); 
 void interp_monthly_means(double mvals[12], double dvals[365]);
 void interp_monthly_totals(double mvals[12], double dvals[365]);
 void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12]);

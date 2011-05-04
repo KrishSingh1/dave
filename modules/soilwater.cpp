@@ -2,7 +2,7 @@
 /// \file soilwater.cpp
 /// \brief Soil hydrology and snow
 ///
-/// Version including evaporation from soil surface, based on work by Dieter Gerten,
+/// Version including evaporation from soil surface, based on work by Dieter Gerten, 
 /// Sibyll Schaphoff and Wolfgang Lucht, Potsdam
 ///
 /// Includes baseflow runoff
@@ -55,7 +55,7 @@ void snow(double prec,double temp,double& snowpack,double& rain,double& melt) {
 	// INPUT PARAMETERS
 	// prec = precipitation today (mm)
 	// temp = air temperature today (deg C)
-
+	
 	// INPUT AND OUTPUT PARAMETER
 	// snowpack = stored snow (rainfall mm equivalents)
 
@@ -184,8 +184,8 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 	}
 
 	// Evaporation from soil surface
-
-	// guess2008 - changed to wcont_evap**2, as in LPJ-mL
+	
+	// guess2008 - changed to wcont_evap**2, as in LPJ-mL 
 	// - see Bondeau et al. (2007),  Rost et al. (2008)
 	// Added the snowdepth restriction too.
 	if (snowpack < 10.0) // i.e. evap only if snow depth < 10mm
@@ -248,7 +248,7 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 			perc=0.0;
 
 		perc_frac=min(perc/awc[s-1],wcont[s-1]);
-
+		
 		wcont[s-1]-=perc_frac;
 		wcont[s]+=perc_frac*awc[s-1]/awc[s];
 		if (wcont[s]>1.0) {
@@ -293,7 +293,7 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 	// guess2008 - DLE - update awcont
 	// Original algorithm by Thomas Hickler
     for (s=0;s<NSOILLAYER;s++) {
-
+        
 		// Reset the awcont array on the first day of every year
 		if (date.day==0) {
             awcont[s]=0.0;
@@ -309,7 +309,7 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 		// Do the averaging on the last day of every year
         if (date.islastday && date.islastmonth)
             awcont[s]/=(double)patch.growingseasondays;
-
+		
 		// In case it's never warm enough:
 		if (patch.growingseasondays<1)
             awcont[s]=1.0;
@@ -379,12 +379,12 @@ void soilwater(Climate& climate,Patch& patch) {
 
 // guess2008 - new references:
 
-// BONDEAU, A., SMITH, P. C., ZAEHLE, S., SCHAPHOFF, S., LUCHT, W., CRAMER, W., GERTEN, D.,
-//   LOTZE-CAMPEN, H., MÜLLER, C., REICHSTEIN, M. and SMITH, B. (2007),
-//   Modelling the role of agriculture for the 20th century global terrestrial carbon balance.
+// BONDEAU, A., SMITH, P. C., ZAEHLE, S., SCHAPHOFF, S., LUCHT, W., CRAMER, W., GERTEN, D., 
+//   LOTZE-CAMPEN, H., MÜLLER, C., REICHSTEIN, M. and SMITH, B. (2007), 
+//   Modelling the role of agriculture for the 20th century global terrestrial carbon balance. 
 //   Global Change Biology, 13: 679–706. doi: 10.1111/j.1365-2486.2006.01305.x
 
-// Rost, S., D. Gerten, A. Bondeau, W. Luncht, J. Rohwer, and S. Schaphoff (2008),
-//   Agricultural green and blue water consumption and its influence on the global
+// Rost, S., D. Gerten, A. Bondeau, W. Luncht, J. Rohwer, and S. Schaphoff (2008), 
+//   Agricultural green and blue water consumption and its influence on the global 
 //   water system, Water Resour. Res., 44, W09405, doi:10.1029/2007WR006331
 

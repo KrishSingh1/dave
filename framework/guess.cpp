@@ -51,8 +51,8 @@ bool ifcdebt;
 // guess2008 - new inputs from the .ins file
 bool ifsmoothgreffmort;				// smooth growth efficiency mortality
 bool ifdroughtlimitedestab;			// whether establishment affected by growing season drought
-bool ifrainonwetdaysonly;			// rain on wet days only (1, true), or a little every day (0, false);
-bool ifspeciesspecificwateruptake;	// water uptake is species specific
+bool ifrainonwetdaysonly;			// rain on wet days only (1, true), or a little every day (0, false); 
+bool ifspeciesspecificwateruptake;	// water uptake is species specific 
 // bvoc
 bool ifbvoc; // BVOC calculations included
 
@@ -61,13 +61,13 @@ bool run[NLANDCOVERTYPES];
 bool lcfrac_fixed;
 bool all_fracs_const;
 bool ifslowharvestpool;				// If a slow harvested product pool is included in patchpft.
-int nyear_spinup;
+int nyear_spinup;		
 
 Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i),gridcell(gc),landcover(landcoverX),frac(1.0) {
 
 		// Constructor: initialises reference member of climate and
 		// builds list array of Standpft objects
-
+		
 	unsigned int p;
 	unsigned int npatchL;
 
@@ -130,8 +130,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 	temp_wstress = 0.0;
 	par_wstress = 0.0;
 	daylength_wstress = 0.0;
-	co2_wstress = 0.0;
-	nday_wstress = 0;
+	co2_wstress = 0.0; 
+	nday_wstress = 0; 
 	ifwstress = false;
 	lai = 0.0;
 	lai_layer = 0.0;
@@ -153,7 +153,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 	dtr_wstress=0.;
 	eet_wstress=0.;
 	agdd5_wstress=0.;
-	rad_wstress=0.;
+	rad_wstress=0.;		
 }
 
 
@@ -167,7 +167,7 @@ int framework(int argc,char* argv[]) {
 
 	bool dogridcell;
 
-	// The one and only linked list of Pft objects
+	// The one and only linked list of Pft objects	
 	Pftlist pftlist;
 
 	// Call input/output module to obtain PFT static parameters and simulation
@@ -191,7 +191,7 @@ int framework(int argc,char* argv[]) {
 		date.init(1);
 
 		// Create and initialise a new Gridcell object for each locality
-		Gridcell gridcell(pftlist);
+		Gridcell gridcell(pftlist);	
 
 		// Call input/output to obtain latitude and soil driver data for this grid cell.
 		// Function getgridcell returns false if no further grid cells remain to be simulated
@@ -205,7 +205,7 @@ int framework(int argc,char* argv[]) {
 				//Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
 				landcover_init(gridcell,pftlist);
 			}
-
+			
 			// Call input/output to obtain climate, insolation and CO2 for this
 			// day of the simulation. Function getclimate returns false if last year
 			// has already been simulated for this grid cell
@@ -253,7 +253,7 @@ int framework(int argc,char* argv[]) {
 						som_dynamics(patch);
 
 						if (date.islastday && date.islastmonth) {
-
+							
 							// LAST DAY OF YEAR
 							// Tissue turnover, allocation to new biomass and reproduction,
 							// updated allometry
@@ -266,7 +266,7 @@ int framework(int argc,char* argv[]) {
 						// LAST DAY OF YEAR
 						stand.firstobj();
 						while (stand.isobj) {
-
+							
 							// For each patch ...
 							Patch& patch=stand.getobj();
 							// Establishment, mortality and disturbance by fire
@@ -275,7 +275,7 @@ int framework(int argc,char* argv[]) {
 						}
 					}
 
-					gridcell.nextobj();
+					gridcell.nextobj();			
 				}	// End of loop through stands
 
 				if (date.islastday && date.islastmonth) {

@@ -2,7 +2,7 @@
 /// \file soilwater.h
 /// \brief Soil hydrology and snow
 ///
-/// Version including evaporation from soil surface, based on work by Dieter Gerten,
+/// Version including evaporation from soil surface, based on work by Dieter Gerten, 
 /// Sibyll Schaphoff and Wolfgang Lucht, Potsdam
 ///
 /// \author Ben Smith

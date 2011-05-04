@@ -47,8 +47,8 @@ public:
 	 ColumnDescriptors() {}
 
 	 /// Creates a ColumnDescriptors where all columns have the same format
-	 ColumnDescriptors(const std::vector<std::string>& titles,
-	                   int width,
+	 ColumnDescriptors(const std::vector<std::string>& titles, 
+	                   int width, 
 	                   int precision);
 
 	 /// Add a ColumnDescriptor to the end of the list
@@ -73,12 +73,12 @@ private:
 class TableDescriptor {
 public:
 	 /// Creates a TableDescriptor
-	 TableDescriptor(const char* name,
+	 TableDescriptor(const char* name, 
 	                 const ColumnDescriptors& columns);
 
 	 /// Get the name of the table
 	 const std::string& name() const;
-
+	 
 	 /// Get the column descriptors
 	 const ColumnDescriptors& columns() const;
 
@@ -126,11 +126,11 @@ public:
 	 virtual void add_value(const Table& table, double d);
 
 	 /// Finalizes the output of one row, annual output
-	 virtual void finish_row(const Table& table, double lon, double lat,
+	 virtual void finish_row(const Table& table, double lon, double lat, 
 	                         int year) = 0;
 
 	 /// Finalizes the output of one row, daily output
-	 virtual void finish_row(const Table& table, double lon, double lat,
+	 virtual void finish_row(const Table& table, double lon, double lat, 
 	                         int year, int day) = 0;
 
 protected:
@@ -169,12 +169,12 @@ public:
 
 	 /// Prints the values of the current row to the file
 	 /** \see OutputChannel::finish_row */
-	 void finish_row(const Table& table, double lon, double lat,
+	 void finish_row(const Table& table, double lon, double lat, 
 	                 int year);
 
 	 /// Prints the values of the current row to the file
 	 /** \see OutputChannel::finish_row */
-	 void finish_row(const Table& table, double lon, double lat,
+	 void finish_row(const Table& table, double lon, double lat, 
 	                 int year, int day);
 
 private:
@@ -200,7 +200,7 @@ private:
 };
 
 /// A convenience class for managing the output of one row to multiple tables.
-/** At the end of the life time of an object of this class, finish_row is
+/** At the end of the life time of an object of this class, finish_row is 
  *  called for all tables that have gotten values.
  */
 class OutputRows {

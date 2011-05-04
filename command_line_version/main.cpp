@@ -47,7 +47,7 @@ void fail(xtring format,...) {
 
 	fprintf(stdout,"%s\n",(char*)output);
 	fprintf(logfile,"%s\n",(char*)output);
-
+	
 	exit(99);
 }
 
@@ -94,7 +94,7 @@ void clear_all_graphs() {
 bool abort_request_received() {
 
 	// Can't do anything here
-
+	
 	return false;
 }
 

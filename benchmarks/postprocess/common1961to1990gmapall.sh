@@ -8,7 +8,7 @@
 # Render the maps in scalar mode, giving each file an lai or
 # cmass prefix.
 gmapall lai1961to1990.txt -P lai_ -s $@
-describe_images *.jpg "LAI For All PFTs/Species (1961-90 average). Units: m2 m-2" 
+describe_images "LAI For All PFTs/Species (1961-90 average). Units: m2 m-2"  lai_*.jpg
 
 gmapall cmass1961to1990.txt -P cmass_ -s $@
-describe_images *.jpg "CMASS For All PFTs/Species (1961-90 average). Units: kgC m-2" 
+describe_images "CMASS For All PFTs/Species (1961-90 average). Units: kgC m-2" cmass_*.jpg

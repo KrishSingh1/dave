@@ -1818,9 +1818,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	// the simulation of each stand or grid cell. This function does not have to
 	// provide any information to the framework.
 
-	int p,c,m,nclass;
-	double flux_veg,flux_soil,flux_fire,flux_est,flux_harvest;
-	double c_litter,c_fast,c_slow,c_harv_slow; 
+	int c, m, nclass;
+	double flux_veg, flux_soil, flux_fire, flux_est, flux_harvest;
+	double c_litter, c_fast, c_slow, c_harv_slow; 
 
 	// guess2008 - hold the monthly average across patches
 	double mnpp[12];

@@ -54,7 +54,8 @@
 #include "cru_1901_2006.h"
 #include "cru_1901_2006misc.h"
 
-
+// header file for reading binary data archive of global nitrogen deposition
+#include "GlobalNdep.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 //
@@ -1839,13 +1840,23 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 
 // GUESSN
+/// Retrieves nitrogen deposition for a particular grid cell
+/** The values are either taken from the andep parameter in the instruction
+ *  file, or from a binary archive file.
+ *
+ *  The binary archive has nitrogen deposition in gN/m2/year for the years
+ *  1860, 1993 and 2050 (Galloway et. al., 2004).
+ *
+ *  Returned values will not be smaller than minndep (ins file parameter).
+ *
+ *  \param  filename    The file name of the binary archive
+ *  \param  lon         Longitude
+ *  \param  lat         Latitude
+ *  \param  xandep1860  Nitrogen deposition for 1860 (kgN/m2/year)
+ *  \param  xandep1993  Nitrogen deposition for 1993 (kgN/m2/year)
+ *  \param  xandep2050  Nitrogen deposition for 2050 (kgN/m2/year)
+ */
 bool getndep(xtring filename,double lon,double lat,double &xandep1860,double &xandep1993,double &xandep2050) {
-
-	// Retrieves nitrogen deposition for a particular grid cell
-	// File has format <lon> <lat> <val-1860> <val-1993> <val-2050>
-	// where <val-?> is nitrogen deposition in gN/m2/year in the specific years (Galloway et. al., 2004)
-
-	double rlon,rlat,rval1860,rval1993,rval2050;
 
 	if (!ifndepdata) {
 		xandep1860=andep;
@@ -1854,39 +1865,31 @@ bool getndep(xtring filename,double lon,double lat,double &xandep1860,double &xa
 		return true;
 	}
 
-	FILE* in=fopen(filename,"rt");
-	if (!in) fail("Could not open %s for input",(char*)filename);
-
-	while (!feof(in)) {
-
-		readfor(in,"f,f,f,f,f",&rlon,&rlat,&rval1860,&rval1993,&rval2050);
-		if (!feof(in)) {
-			if (rlon==lon && rlat==lat) {
-				if (rval1860*0.001 >= minndep)
-					xandep1860=rval1860*0.001; // Convert from gN to kgN
-				else
-					xandep1860=minndep;
-
-				if (rval1993*0.001 >= minndep)
-					xandep1993=rval1993*0.001; // Convert from gN to kgN
-				else
-					xandep1993=minndep;
-
-				if (rval2050*0.001 >= minndep)
-					xandep2050=rval2050*0.001; // Convert from gN to kgN
-				else
-					xandep2050=minndep;
-
-				fclose(in);
-				return true;
-			}
-		}
+	GlobalNdepArchive ark;
+	if (!ark.open(filename)) {
+		 fail("Could not open %s for input",(char*)filename);
+		 return false;
 	}
 
-	// Not 
+	GlobalNdep rec;
+	rec.longitude = lon;
+	rec.latitude = lat;
+	
+	if (!ark.getindex(rec)) {
+		 // The coordinate wasn't found in the archive
+		 ark.close();
+		 return false;
+	}
+	else {
+		 // Found the record, get the values
+		 // Convert from gN to kgN, don't allow values smaller than minndep
+		 xandep1860 = max(minndep, rec.ndep1860[0]*0.001);
+		 xandep1993 = max(minndep, rec.ndep1993[0]*0.001);
+		 xandep2050 = max(minndep, rec.ndep2050[0]*0.001);
 
-	fclose(in);
-	return false;
+		 ark.close();
+		 return true;
+	}
 }
 // end GUESSN
 

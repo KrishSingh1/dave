@@ -1162,7 +1162,7 @@ void growth(Stand& stand,Patch& patch) {
 				if (indiv.alive) {
 					
 					patch.pft[indiv.pft.id].litter_leaf+=litter_leaf_inc+indiv_cmass_diff/2;
-					patch.pft[indiv.pft.id].litter_root+=litter_root_inc+indiv_cmass_diff/2;			
+					patch.pft[indiv.pft.id].litter_root+=litter_root_inc+indiv_cmass_diff/2;
 	
 				}
 

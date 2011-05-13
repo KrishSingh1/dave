@@ -23,4 +23,14 @@
 #define USE_CRU
 #endif
 
+// Compiler specific checks, for instance for disabling specific warnings
+
+// All versions of Microsoft's compiler
+#if defined(_MSC_VER)
+
+// 'this' : used in base member initializer list
+#pragma warning (disable : 4355)
+
+#endif
+
 #endif // LPJ_GUESS_CONFIG_H

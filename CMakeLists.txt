@@ -13,6 +13,13 @@ if (UNIX)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w")
 endif()
 
+# Compiler flags for building on Windows
+if (WIN32)
+  # Disable warnings about using secure functions like sprintf_s instead of
+  # regular sprintf etc.
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D _CRT_SECURE_NO_WARNINGS")
+endif()
+
 # The following are configuration variables for the build. 
 # Rather than editing them here, you should either edit them
 # in the graphical cmake tools (cmake-gui on Windows, ccmake
@@ -23,8 +30,8 @@ set(IO "cru" CACHE STRING "The IO module to use (cru/demo)")
 
 if (UNIX)
   # The SYSTEM variable is currently only used to choose which 
-  # submit.sh to generate (for submitting to PBS job queue)
-  set(SYSTEM "" CACHE STRING "System to build for (empty or milleotto)")
+  # submit.sh to generate (for submitting to job queue)
+  set(SYSTEM "" CACHE STRING "System to build for (empty, gimle or platon)")
 endif (UNIX)
 
 # Where the compiler should search for header files
@@ -57,12 +64,14 @@ if (WIN32)
   add_library(guess SHARED ${guess_sources} windows_version/dllmain.cpp)
 endif (WIN32)
 
-# The custom build rule for generating the PBS submit script from a template.
+# The custom build rule for generating the submit script from a template.
 # The submit script is generated each time the command line binary is built.
 if (UNIX)
   # Choose template file depending on system
-  if (SYSTEM STREQUAL "milleotto")
-    set(submit_template ${guess_SOURCE_DIR}/parallel_version/lunarc/milleotto/submit.tmpl)
+  if (SYSTEM STREQUAL "platon")
+    set(submit_template ${guess_SOURCE_DIR}/parallel_version/lunarc/platon/submit.tmpl)
+  elseif(SYSTEM STREQUAL "gimle")
+    set(submit_template ${guess_SOURCE_DIR}/parallel_version/slurm/submit.tmpl)
   else()
     set(submit_template ${guess_SOURCE_DIR}/parallel_version/simba/pbs/submit.tmpl)
   endif()

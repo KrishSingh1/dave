@@ -107,7 +107,7 @@ group "grass" (
 	ga 0.030
 )
 
-group "broadleaved" (
+group "broad_leaved" (
 
 	! Parameters common to all broadleaved trees
 
@@ -118,7 +118,7 @@ group "broadleaved" (
 	ga 0.040
 )
 
-group "needleleaved" (
+group "needle_leaved" (
 
 	! Parameters common to all needleleaved trees
 
@@ -147,28 +147,6 @@ group "summergreen" (
 	turnover_leaf 1
 )
 
-group "boreal" (
-
-	! Parameters common to all boreal trees
-
-	pstemp_min -4
-	pstemp_low 10
-	pstemp_high 25
-	pstemp_max 38
-	respcoeff 1.0
-)
-
-group "temperate" (
-
-	! Parameters common to all temperate trees
-
-	pstemp_min -2
-	pstemp_low 15
-	pstemp_high 25
-	pstemp_max 38
-	respcoeff 1.0
-)
-
 group "tropical" (
 
 	! Parameters common to all tropical trees
@@ -183,33 +161,6 @@ group "tropical" (
 	pstemp_high 30
 	pstemp_max 55
 	respcoeff 0.15
-)
-
-! greff_min values below calibrated for the smooth (ifsmoothgreffmort 1) option
-group "shade_tolerant" (
-	est_max 0.05
-	parff_min 350000
-	alphar 3.0
-	greff_min 0.04
-	turnover_sap 0.05
-)
-
-! So far only trial values; not used in this global version
-group "intermediate_shade_tolerant" (
-	est_max 0.15
-	parff_min 2000000
-	alphar 7.0
-	greff_min 0.06
-	turnover_sap 0.075
-)
-
-! From global version; values from orginal European version after "!"
-group "shade_intolerant" (
-	est_max 0.2
-	parff_min 2500000
-	alphar 10.0
-	greff_min 0.08
-	turnover_sap 0.1
 )
 
 import "global_pfts.ins"

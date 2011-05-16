@@ -5,11 +5,12 @@
 !// Ben Smith, 2003-09-26
 !
 !// guess2008 updates
-!// 
+!//
 !///////////////////////////////////////////////////////////////////////////////////////
 
 import "core.ins"
 
+title 'LPJ-GUESS (guess2008) cohort mode - global pfts'
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR PFTS
@@ -23,8 +24,8 @@ group "common" (
 	emax 5
 	reprfrac 0.1
 	wscal_min 0.35
-	drought_tolerance 0.0001	
-	! default value - ensures that this has little effect even if  
+	drought_tolerance 0.0001
+	! default value - ensures that this has little effect even if
 	! ifdroughtlimitedestab is turned on
 	landcover "natural"
 
@@ -36,15 +37,15 @@ group "tree" (
 
 	common
 	lifeform "tree"
-	crownarea_max 50	
+	crownarea_max 50
 	ltor_max 1
 	turnover_root 0.7
-	rootdist 0.6 0.4	
-	k_allom2 60		
+	rootdist 0.6 0.4
+	k_allom2 60
 	k_allom3 0.67
 	k_rp 1.6
 	wooddens 200
-	cton_leaf 29			
+	cton_leaf 29
 	cton_root 29
 	cton_sap 330
 	pathway "c3"
@@ -58,9 +59,10 @@ group "tree" (
 	litterme 0.3
 )
 
-group "Shrub"
-(	
+group "shrub" (
+
 	! Unchanged from species version
+
 	common
 	lifeform "tree"
 	crownarea_max 10
@@ -82,7 +84,6 @@ group "Shrub"
 	longevity 100
 )
 
-
 group "grass" (
 
 	! Parameters common to all grasses
@@ -100,13 +101,11 @@ group "grass" (
 	cton_leaf 29
 	cton_root 29
 	litterme 0.2
-	parff_min 1000000		! 2500000 i guess2008	
+	parff_min 1000000		! 2500000 i guess2008
 	fireresist 0.5			! 1.0 hos Thomas
 	intc 0.01
 	ga 0.030
-
 )
-
 
 group "broadleaved" (
 
@@ -183,36 +182,34 @@ group "tropical" (
 	pstemp_low 25
 	pstemp_high 30
 	pstemp_max 55
-	respcoeff 0.15	
+	respcoeff 0.15
 )
 
-
-! greff_min values below calibrated for the smooth (ifsmoothgreffmort 1) option 
-group "shade_tolerant"
-(
-	est_max 0.05					
-	parff_min 350000			
-	alphar 3.0          			
-	greff_min 0.04				
+! greff_min values below calibrated for the smooth (ifsmoothgreffmort 1) option
+group "shade_tolerant" (
+	est_max 0.05
+	parff_min 350000
+	alphar 3.0
+	greff_min 0.04
 	turnover_sap 0.05
 )
 
 ! So far only trial values; not used in this global version
-group "intermediate_shade_tolerant"
-(
-	est_max 0.15					
-	parff_min 2000000			
-	alphar 7.0          			
-	greff_min 0.06				
+group "intermediate_shade_tolerant" (
+	est_max 0.15
+	parff_min 2000000
+	alphar 7.0
+	greff_min 0.06
 	turnover_sap 0.075
 )
 
 ! From global version; values from orginal European version after "!"
-group "shade_intolerant" 
-(
-	est_max 0.2					
-	parff_min 2500000 
-	alphar 10.0 
+group "shade_intolerant" (
+	est_max 0.2
+	parff_min 2500000
+	alphar 10.0
 	greff_min 0.08
 	turnover_sap 0.1
 )
+
+import "global_pfts.ins"

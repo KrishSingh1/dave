@@ -2,10 +2,9 @@
 ! PFTs and species follow
 !
 ! THdiff notes:
-! 1. Thomas Hickler didn't give the values used for the tcmax_est and twmin_est parameters 
-! 2. rootdist is different for (z1 in brackets): Abi_alb (0.8), Bet_pen (0.8), Bet_pub (0.8), Car_bet (0.7), 
+! 1. Thomas Hickler didn't give the values used for the tcmax_est and twmin_est parameters
+! 2. rootdist is different for (z1 in brackets): Abi_alb (0.8), Bet_pen (0.8), Bet_pub (0.8), Car_bet (0.7),
 !	 Cor_ave (0.7), Fag_syl (0.8), Fra_exc (0.8)
-
 
 pft "Abi_alb" (
 
@@ -22,7 +21,7 @@ pft "Abi_alb" (
 	phengdd5ramp 0
 	tcmin_surv -2		! from GS. THdiff: -4.5 ! Sykes96: -4.5
 	tcmin_est -2		! from GS. THdiff: -3.5 ! Sykes96: -4.5
-	tcmax_est 2			! from GS. THdiff: -2 
+	tcmax_est 2			! from GS. THdiff: -2
 	twmin_est 6			! limit not implemented
 	gdd5min_est 1600	! from GS ! THdiff: -1450 ! Sykes96: 1450
 	k_chilla 0
@@ -32,32 +31,31 @@ pft "Abi_alb" (
 	intc 0.06
 	longevity 350
 	drought_tolerance 0.35
-	eps_iso 0.05            
+	eps_iso 0.05
 	seas_iso 0
 	eps_mon 1.8
 	storfrac_mon 0.5
 )
 
-
 pft "BES" (
 
 	! boreal evergreen shrub
 
-	include 1 
+	include 1
 	shrub
 	boreal_tree
-	crownarea_max 3		
-	k_allom1 20			! THdiff: 250			
-	k_allom2 5			! THdiff: ?			
+	crownarea_max 3
+	k_allom1 20			! THdiff: 250
+	k_allom2 5			! THdiff: ?
 	k_latosa 500
-	shade_intolerant	
+	shade_intolerant
 	rootdist 0.8 0.2
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
 	leaflong 2
 	turnover_leaf 0.5
-	turnover_sap 0.05   ! THdiff: 0.1 (shade intolerant value)
+	turnover_sap 0.05	! THdiff: 0.1 (shade intolerant value)
 	phengdd5ramp 0
 	tcmin_surv -1000	! limit not implemented
 	tcmin_est -1000		! limit not implemented
@@ -78,7 +76,6 @@ pft "BES" (
 	ga 0.040
 )
 
-
 pft "Bet_pen" (
 
 	include 1
@@ -93,14 +90,14 @@ pft "Bet_pen" (
 	tcmin_surv -30
 	tcmin_est -30
 	tcmax_est 7			! THdiff: -
-	twmin_est 5			! THdiff: - 
+	twmin_est 5			! THdiff: -
 	gdd5min_est 700		! Sykes96
 	k_chilla 0
-	k_chillb 350		
+	k_chillb 350
 	k_chillk 0.05
 	fireresist 0.1
 	intc 0.02
-	longevity 200 
+	longevity 200
 	drought_tolerance 0.42
 	eps_iso 0.2
 	seas_iso 1
@@ -108,13 +105,12 @@ pft "Bet_pen" (
 	storfrac_mon 0.
 )
 
-
 pft "Bet_pub" (
 
 	include 1
 	tree
 	shade_intolerant
-	boreal_tree 
+	boreal_tree
 	broad_leaved
 !	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
@@ -127,7 +123,7 @@ pft "Bet_pub" (
 	gdd5min_est 350		! Sykes96: 150
 	k_chilla 0
 	k_chillb 350
-	k_chillk 0.05 
+	k_chillk 0.05
 	fireresist 0.1
 	intc 0.02
 	longevity 200
@@ -137,7 +133,6 @@ pft "Bet_pub" (
 	eps_mon 1.0
 	storfrac_mon 0.
 )
-
 
 pft "Car_bet" (
 
@@ -156,8 +151,8 @@ pft "Car_bet" (
 	twmin_est 5			! THdiff: -
 	gdd5min_est 1200	! Sykes96: 1100
 	k_chilla 0
-	k_chillb 600		! Sykes96 1200 
-	k_chillk 0.05		! Sykes96 0.0075 
+	k_chillb 600		! Sykes96 1200
+	k_chillk 0.05		! Sykes96 0.0075
 	fireresist 0.1
 	intc 0.02
 	longevity 350
@@ -167,7 +162,6 @@ pft "Car_bet" (
 	eps_mon 0.08
 	storfrac_mon 0.
 )
-
 
 pft "Cor_ave" (
 
@@ -188,7 +182,7 @@ pft "Cor_ave" (
 	twmin_est 5			! THdiff: -
 	gdd5min_est 800		! Sykes96
 	k_chilla 0
-	k_chillb 350 
+	k_chillb 350
 	k_chillk 0.05
 	fireresist 0.1
 	intc 0.02
@@ -199,7 +193,6 @@ pft "Cor_ave" (
 	eps_mon 0.
 	storfrac_mon 0.
 )
-
 
 pft "Fag_syl" (
 
@@ -213,7 +206,7 @@ pft "Fag_syl" (
 	phenology "summergreen"
 	phengdd5ramp 200
 	tcmin_surv -3.5		! Sykes96
-	tcmin_est -3.5		
+	tcmin_est -3.5
 	tcmax_est 6			! THdiff: -
 	twmin_est 5			! THdiff: - Sykes96
 	gdd5min_est 1500	! Sykes96 990 (with greater chilling)
@@ -230,7 +223,6 @@ pft "Fag_syl" (
 	storfrac_mon 0.
 )
 
-
 pft "Fra_exc" (
 
 	include 1
@@ -246,10 +238,10 @@ pft "Fra_exc" (
 	tcmin_est -16		! Sykes96
 	tcmax_est 6			! THdiff: - Sykes
 	twmin_est 5			! THdiff: -
-	gdd5min_est 1100	! Sykes96 
+	gdd5min_est 1100	! Sykes96
 	k_chilla 0
-	k_chillb 100 
-	k_chillk 0.05 
+	k_chillb 100
+	k_chillk 0.05
 	fireresist 0.1
 	intc 0.02
 	longevity 350
@@ -259,7 +251,6 @@ pft "Fra_exc" (
 	eps_mon 0.
 	storfrac_mon 0.
 )
-
 
 pft "Jun_oxy" (
 
@@ -280,14 +271,14 @@ pft "Jun_oxy" (
 	turnover_leaf 0.6667
 	phengdd5ramp 0
 	tcmin_surv 0
-	tcmin_est 1			
-	tcmax_est 1000		 
-	twmin_est -1000		 
+	tcmin_est 1
+	tcmax_est 1000
+	twmin_est -1000
 	gdd5min_est 2200
 	k_chilla 0
 	k_chillb 100
 	k_chillk 0.05
-	fireresist 0.4	
+	fireresist 0.4
 	intc 0.02
 	longevity 200
 	drought_tolerance 0.01
@@ -297,11 +288,10 @@ pft "Jun_oxy" (
 	storfrac_mon 0.5
 )
 
-
 pft "MRS" (
 
 	! Thomas Hickler's values
-	! Mediterranean raingreen low shrub: 
+	! Mediterranean raingreen low shrub:
 	! Cistus, Rosmarinus, Genista, Lavandula, Erica
 
 	include 1
@@ -313,18 +303,18 @@ pft "MRS" (
 !	sla 10				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "raingreen"
-	leaflong 0.5 
+	leaflong 0.5
 	turnover_leaf 1
 	phengdd5ramp 0
 	tcmin_surv 0		! ThomasH
-	tcmin_est 1			! ThomasH		
+	tcmin_est 1			! ThomasH
 	tcmax_est 1000		! 11
 	twmin_est -1000		! 21
 	gdd5min_est 2200	! ThomasH
 	k_chilla 0
 	k_chillb 100
 	k_chillk 0.05
-	fireresist 0.3		! TH 
+	fireresist 0.3		! TH
 	intc 0.02
 	longevity 100		!
 	drought_tolerance 0.01
@@ -334,7 +324,6 @@ pft "MRS" (
 	storfrac_mon 0.5
 	ga 0.040
 )
-
 
 pft "Pic_abi" (
 
@@ -347,7 +336,7 @@ pft "Pic_abi" (
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
-	leaflong 3			! THdiff: 4	
+	leaflong 3			! THdiff: 4
 	turnover_leaf 0.33	! THdiff: 0.25
 	phengdd5ramp 0
 	tcmin_surv -30
@@ -368,7 +357,6 @@ pft "Pic_abi" (
 	storfrac_mon 0.5
 )
 
-
 pft "Pic_sit" (
 
 	! Bjarki's values
@@ -379,7 +367,7 @@ pft "Pic_sit" (
 	boreal_tree
 	needle_leaved
 	k_latosa 4500				! Waring et al 1980
-	rootdist 0.8 0.2			! ThomasH	
+	rootdist 0.8 0.2			! ThomasH
 !	sla 9.3						! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
@@ -387,7 +375,7 @@ pft "Pic_sit" (
 	turnover_leaf 0.25			! 0.2 !?
 	phengdd5ramp 0
 	tcmin_surv -18				! Bjarki
-	tcmin_est -17   
+	tcmin_est -17
 	tcmax_est 5.5				! 100419 - was 9.5 in earlier runs. Bjarki from STASH
 	twmin_est -1000				! 5
 	gdd5min_est 450				! Bjarki
@@ -408,7 +396,6 @@ pft "Pic_sit" (
 )
 
 
-
 pft "Pin_syl" (
 
 	include 1
@@ -420,7 +407,7 @@ pft "Pin_syl" (
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
-	leaflong 2				
+	leaflong 2
 	turnover_leaf 0.5
 	phengdd5ramp 0
 	tcmin_surv -30
@@ -441,7 +428,6 @@ pft "Pin_syl" (
 	storfrac_mon 0.5
 )
 
-
 pft "Pin_hal" (
 
 	! Thomas Hickler's values
@@ -455,13 +441,13 @@ pft "Pin_hal" (
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
-	leaflong 2				
+	leaflong 2
 	turnover_leaf 0.5
 	phengdd5ramp 0
-	tcmin_surv 3		
+	tcmin_surv 3
 	tcmin_est 3
-	tcmax_est 9			! THdiff -	
-	twmin_est 21		
+	tcmax_est 9			! THdiff -
+	twmin_est 21
 	gdd5min_est 3000
 	k_chilla 0
 	k_chillb 100
@@ -475,7 +461,6 @@ pft "Pin_hal" (
 	eps_mon 10.0
 	storfrac_mon 0.5
 )
-
 
 pft "Pop_tre" (
 
@@ -497,8 +482,8 @@ pft "Pop_tre" (
 	twmin_est -1000
 	gdd5min_est 500		! Sykes96 400
 	k_chilla 0
-	k_chillb 350 
-	k_chillk 0.05 
+	k_chillb 350
+	k_chillk 0.05
 	fireresist 0.2		! Slightly higher to account for its ability to re-sprout
 	intc 0.02
 	longevity 160		! Prentice & H.
@@ -508,7 +493,6 @@ pft "Pop_tre" (
 	eps_mon 4.0
 	storfrac_mon 0.
 )
-
 
 pft "Que_coc" (
 
@@ -526,8 +510,8 @@ pft "Que_coc" (
 	leaflong 1.5
 	turnover_leaf 0.6667
 	phengdd5ramp 0
-	tcmin_surv 0 
-	tcmin_est 0		
+	tcmin_surv 0
+	tcmin_est 0
 	tcmax_est 11
 	twmin_est 21
 	gdd5min_est 2200
@@ -545,7 +529,6 @@ pft "Que_coc" (
 	ga 0.040
 )
 
-
 pft "Que_ile" (
 
 	include 1
@@ -558,7 +541,7 @@ pft "Que_ile" (
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "evergreen"
-	leaflong 2			
+	leaflong 2
 	turnover_leaf 0.5
 	phengdd5ramp 0
 	tcmin_surv 3		! THdiff: -2
@@ -581,7 +564,7 @@ pft "Que_ile" (
 
 
 pft "Que_pub" (
-	
+
 	! Thomas Hickler's values
 
 	include 1
@@ -596,7 +579,7 @@ pft "Que_pub" (
 	tcmin_surv -6			! THdiff: -6
 	tcmin_est -5			! THdiff: -5
 	tcmax_est 6				! THdiff: -
-	twmin_est -1000			
+	twmin_est -1000
 	gdd5min_est 1900		! Sykes96
 	k_chilla 0
 	k_chillb 100
@@ -610,7 +593,6 @@ pft "Que_pub" (
 	eps_mon 0.
 	storfrac_mon 0.
 )
-
 
 pft "Que_rob" (
 
@@ -627,7 +609,7 @@ pft "Que_rob" (
 	tcmin_est -9			! THdiff: -15, Sykes96: -16
 	tcmax_est 6				! THdiff: -
 	twmin_est 5				! THdiff: -
-	gdd5min_est 1100	
+	gdd5min_est 1100
 	k_chilla 0
 	k_chillb 100
 	k_chillk 0.05
@@ -640,7 +622,6 @@ pft "Que_rob" (
 	eps_mon 0.
 	storfrac_mon 0.
 )
-
 
 pft "Til_cor" (
 
@@ -660,7 +641,7 @@ pft "Til_cor" (
 	twmin_est 5				! THdiff: -
 	gdd5min_est 1100		! THdiff: 1000, Sykes96 has 830 (with higher chilling)
 	k_chilla 0
-	k_chillb 600 
+	k_chillb 600
 	k_chillk 0.05
 	fireresist 0.1
 	intc 0.02
@@ -692,8 +673,8 @@ pft "Ulm_gla" (
 	twmin_est 5
 	gdd5min_est 850			! Sykes96
 	k_chilla 0
-	k_chillb 100 
-	k_chillk 0.05 
+	k_chillb 100
+	k_chillk 0.05
 	fireresist 0.1
 	intc 0.02
 	longevity 350
@@ -703,7 +684,6 @@ pft "Ulm_gla" (
 	eps_mon 0. ! to be determined
 	storfrac_mon 0.
 )
-
 
 pft "C3_gr" (
 
@@ -737,7 +717,6 @@ pft "C3_gr" (
 	storfrac_mon 0.5
 )
 
-
 pft "C4_gr" (
 
 	include 0
@@ -760,7 +739,7 @@ pft "C4_gr" (
 	twmin_est -1000			! limit not implemented  ! limit not implemented
 	gdd5min_est 0			! limit not implemented
 	parff_min 1000000		! ThomasH 2000000 ! Changed from 2500000 on April 10, 2006
-	fireresist 0.5			
+	fireresist 0.5
 	intc 0.01
 	drought_tolerance 0.01
 	eps_iso 0.
@@ -769,7 +748,5 @@ pft "C4_gr" (
 	storfrac_mon 0.5
 )
 
-
 ! Reference: Savill's silviculture book:
-! The Silviculture of Trees used in British Forestry, Peter S. Savill 
-
+! The Silviculture of Trees used in British Forestry, Peter S. Savill

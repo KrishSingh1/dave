@@ -5,8 +5,8 @@
 !// Ben Smith, 2003-09-26
 !
 !// guess2008 updates
-!// 
-!// Parameter differences with Thomas Hickler's paper: 
+!//
+!// Parameter differences with Thomas Hickler's paper:
 !//
 !// Hickler, T., Vohland, K., Feehan, J., Miller, P., Fronzek, S., Giesecke, T., Kuehn, I., Carter, T., Smith, B. &
 !// Sykes, M. Projecting tree species-based climate-driven changes in European potential natural vegetation
@@ -17,10 +17,10 @@
 
 import "core.ins"
 
-!// RUN PARAMETERS AND OPTIONS 
-ifdailynpp 1          ! whether to calculate NPP daily (1) or monthly (0)
-					! guess2008 - species version has 1
-npatch 25             ! number of replicate patches to simulate
+!// RUN PARAMETERS AND OPTIONS
+ifdailynpp 1					! whether to calculate NPP daily (1) or monthly (0)
+								! guess2008 - species version has 1
+npatch 25						! number of replicate patches to simulate
 ! guess2008 - additions
 ifdroughtlimitedestab 1			! whether establishment is limited by growing season drought
 ifspeciesspecificwateruptake 1	! whether there is species specific water uptake (1) or not (0)
@@ -40,17 +40,16 @@ group "common" (
 	landcover "natural"
 )
 
-
 group "tree" (
 
 	! Parameters common to all trees
 
 	common
 	lifeform "tree"
-	crownarea_max 40	
+	crownarea_max 40
 	turnover_root 0.7
 	ltor_max 1
-	k_allom2 40 
+	k_allom2 40
 	k_allom3 0.67
 	k_rp 1.6
 	wooddens 200
@@ -65,8 +64,7 @@ group "tree" (
 	rootdist 0.6 0.4 ! THdiff: TH often has 0.7 0.3 or 0.8 0.2 - see note below
 )
 
-group "Shrub"
-(
+group "shrub" (
 	common
 	lifeform "tree"
 	crownarea_max 10
@@ -89,16 +87,14 @@ group "Shrub"
 	longevity 100
 )
 
-group "needle_leaved"
-(
+group "needle_leaved" (
 	k_allom1 150
 	k_latosa 4000
 	ga 0.140
 )
 
-group "broad_leaved"
-(
-	k_allom1 250 
+group "broad_leaved" (
+	k_allom1 250
 	k_latosa 5000
 	leaflong 0.5		! PMxx: new default
 	turnover_leaf 1		! PMxx: new default
@@ -114,60 +110,53 @@ group "grass" (
 	ltor_max 0.5
 	cton_leaf 29
 	cton_root 29
-	respcoeff 2.0 
+	respcoeff 2.0
 	litterme 0.2
 	ga 0.030
 )
 
-
-! greff_min values below calibrated for the smooth (ifsmoothgreffmort 1) option 
+! greff_min values below calibrated for the smooth (ifsmoothgreffmort 1) option
 ! Many THdiff values here
-group "shade_tolerant"
-(
-	est_max 0.05					
-	parff_min 350000		! THdiff: 1250000			
-	alphar 3.0          	! THdiff: 2			
-	greff_min 0.04				
+group "shade_tolerant" (
+	est_max 0.05
+	parff_min 350000		! THdiff: 1250000
+	alphar 3.0          	! THdiff: 2
+	greff_min 0.04
 	turnover_sap 0.05
 )
 
-
 ! So far only trial values; not in global version
-group "intermediate_shade_tolerant"
-(
-	est_max 0.15		! THdiff: 0.1			
-	parff_min 2000000			
-	alphar 7.0          	! THdiff: 6			
-	greff_min 0.06		! THdiff: 0.08		
-	turnover_sap 0.075  	! THdiff: 0.065
+group "intermediate_shade_tolerant" (
+	est_max 0.15			! THdiff: 0.1
+	parff_min 2000000
+	alphar 7.0				! THdiff: 6
+	greff_min 0.06			! THdiff: 0.08
+	turnover_sap 0.075		! THdiff: 0.065
 )
-
 
 ! From global version; values from orginal European version after "!"
-group "shade_intolerant" 
-(
-	est_max 0.2					
-	parff_min 2500000 
-	alphar 10.0 
-	greff_min 0.08		! THdiff: 0.1
-	turnover_sap 0.1		! THdiff: 0.08 
+group "shade_intolerant" (
+	est_max 0.2
+	parff_min 2500000
+	alphar 10.0
+	greff_min 0.08			! THdiff: 0.1
+	turnover_sap 0.1		! THdiff: 0.08
 )
 
-
-group "boreal_tree"
-(
-	respcoeff 1.0		! THdiff: 2.0
+group "boreal_tree" (
+	respcoeff 1.0			! THdiff: 2.0
 	pstemp_min -4
 	pstemp_low 10
 	pstemp_high 25
 	pstemp_max 38
 )
 
-group "temperate_tree"
-(
+group "temperate_tree" (
 	respcoeff 1.0
 	pstemp_min -2
 	pstemp_low 15
 	pstemp_high 25
 	pstemp_max 38
 )
+
+import "europe_pfts.ins"

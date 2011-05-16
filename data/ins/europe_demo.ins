@@ -3,116 +3,14 @@
 !// European Species
 !//
 !// Ben Smith, 2003-09-26
-!
-!// guess2008 updates
 !//
-!// Parameter differences with Thomas Hickler's paper:
-!//
-!// Hickler, T., Vohland, K., Feehan, J., Miller, P., Fronzek, S., Giesecke, T., Kuehn, I., Carter, T., Smith, B. &
-!// Sykes, M. Projecting tree species-based climate-driven changes in European potential natural vegetation
-!// with a generalized dynamic vegetation model. In press, Global Ecology & Biogeography.
-!//
-!// are commented with ! THdiff
 !///////////////////////////////////////////////////////////////////////////////////////
 
 import "core.ins"
+import "demo.ins"
+import "europe_pfts.ins"
 
-!// RUN PARAMETERS AND OPTIONS
 ifdailynpp 1					! whether to calculate NPP daily (1) or monthly (0)
-								! guess2008 - species version has 1
 npatch 25						! number of replicate patches to simulate
-! guess2008 - additions
 ifdroughtlimitedestab 1			! whether establishment is limited by growing season drought
 ifspeciesspecificwateruptake 1	! whether there is species specific water uptake (1) or not (0)
-
-!///////////////////////////////////////////////////////////////////////////////////////
-!// PARAMETERS FOR PFTS
-!// Run GUESS with -help option for list of keywords and their meanings
-
-group "common" (
-
-	! Parameters common to all PFTs
-
-	lambda_max 0.8
-	emax 5
-	reprfrac 0.1
-	wscal_min 0.35
-	landcover "natural"
-)
-
-group "tree" (
-
-	! Parameters common to all trees
-
-	common
-	lifeform "tree"
-	crownarea_max 40
-	turnover_root 0.7
-	ltor_max 1
-	k_allom2 40
-	k_allom3 0.67
-	k_rp 1.6
-	wooddens 200
-	cton_leaf 29
-	cton_root 29
-	cton_sap 330
-	pathway "c3"
-	kest_repr 200
-	kest_bg 0.1
-	kest_pres 1
-	litterme 0.3
-	rootdist 0.6 0.4 ! THdiff: TH often has 0.7 0.3 or 0.8 0.2 - see note below
-)
-
-group "shrub" (
-	common
-	lifeform "tree"
-	crownarea_max 10
-	turnover_root 0.7
-	ltor_max 1
-	k_allom1 100
-	k_allom2 5
-	k_allom3 0.67
-	k_rp 1.6
-	wooddens 250
-	cton_leaf 29
-	cton_root 29
-	cton_sap 330
-	pathway "c3"
-	kest_repr 20
-	kest_bg 0.1
-	kest_pres 1
-	litterme 0.3
-	rootdist 0.6 0.4
-	longevity 100
-)
-
-group "grass" (
-
-	! Parameters common to all grasses
-
-	common
-	lifeform "grass"
-	ltor_max 0.5
-	cton_leaf 29
-	cton_root 29
-	respcoeff 2.0
-	litterme 0.2
-	ga 0.030
-)
-
-group "broad_leaved" (
-	k_allom1 250
-	k_latosa 5000
-	leaflong 0.5		! PMxx: new default
-	turnover_leaf 1		! PMxx: new default
-	ga 0.040
-)
-
-group "needle_leaved" (
-	k_allom1 150
-	k_latosa 4000
-	ga 0.140
-)
-
-import "europe_pfts.ins"

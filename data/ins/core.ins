@@ -1,23 +1,4 @@
 !///////////////////////////////////////////////////////////////////////////////////////
-! Forcing Data & gridlists
-!
-! Atmospheric CO2 content (ppmv)
-! (used only by guessio.cpp)
-	param "co2" (num 340)
-
-	param "file_gridlist" (str "gridlist.txt")
-
-	param "file_temp" (str "tmp30_21.grd")	!temperature
-	param "file_prec" (str "prc30_21.grd")	!precipitation
-	param "file_sun" (str "clo30_21.grd")	!sunshine
-
-! Path to LPJ soil code file
-! You may need to specify the full pathname (including directory) here
-	param "file_soil" (str "soils_lpj.dat")
-!///////////////////////////////////////////////////////////////////////////////////////
-
-
-!///////////////////////////////////////////////////////////////////////////////////////
 ! Output files
 !
 ! guess2008 - New predefined outputs. Procedure adapted from Ben's LPJ-GUESS Education
@@ -64,7 +45,6 @@ file_mwcont_lower "mwcont_lower.out"
 title 'LPJ-GUESS (guess2008) cohort mode'
 
 vegmode "cohort"		! "cohort", "individual" or "population"
-!nyear 100				! number of years to run the model after spinup (demo module only)
 nyear_spinup 500		! number of years to spin up the simulation for
 ifdailynpp 0			! whether to calculate NPP daily (1) or monthly (0)
 						! guess2008 - species version has 1
@@ -112,56 +92,3 @@ lc_fixed_forest 0		! FOREST
 lc_fixed_natural 25		! NATURAL
 lc_fixed_peatland 25	! PEATLAND
 equal_landcover_area 0	! divide gridcell into equal active landcover fractions
-
-!//////////////////////////////////////////////////////////////////////////////
-! Common groups
-
-group "temperate_tree" (
-
-	! Parameters common to all temperate trees
-
-	pstemp_min -2
-	pstemp_low 15
-	pstemp_high 25
-	pstemp_max 38
-	respcoeff 1.0
-)
-
-group "boreal_tree" (
-
-	! Parameters common to all boreal trees
-
-	pstemp_min -4
-	pstemp_low 10
-	pstemp_high 25
-	pstemp_max 38
-	respcoeff 1.0			! THdiff: 2.0
-)
-
-! greff_min values below calibrated for the smooth (ifsmoothgreffmort 1) option
-! Many THdiff values here
-group "shade_tolerant" (
-	est_max 0.05
-	parff_min 350000		! THdiff: 1250000
-	alphar 3.0				! THdiff: 2
-	greff_min 0.04
-	turnover_sap 0.05
-)
-
-! So far only trial values; not in global version
-group "intermediate_shade_tolerant" (
-	est_max 0.15			! THdiff: 0.1
-	parff_min 2000000
-	alphar 7.0				! THdiff: 6
-	greff_min 0.06			! THdiff: 0.08
-	turnover_sap 0.075		! THdiff: 0.065
-)
-
-! From global version; values from orginal European version after "!"
-group "shade_intolerant" (
-	est_max 0.2
-	parff_min 2500000
-	alphar 10.0
-	greff_min 0.08			! THdiff: 0.1
-	turnover_sap 0.1		! THdiff: 0.08
-)

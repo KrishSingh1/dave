@@ -15,140 +15,15 @@
 !// are commented with ! THdiff
 !///////////////////////////////////////////////////////////////////////////////////////
 
+import "core.ins"
 
-
-
-!///////////////////////////////////////////////////////////////////////////////////////
-! Forcing Data & gridlists
-!
-
-! Atmospheric CO2 content (ppmv)
-! (used only by guessio.cpp)
-	param "co2" (num 340)
-
-	param "file_gridlist" (str "gridlist.txt")
-
-	param "file_temp" (str "tmp30_21.grd")  !temperature
-	param "file_prec" (str "prc30_21.grd")  !precipitation
-	param "file_sun" (str "clo30_21.grd")   !sunshine
-
-! Path to LPJ soil code file
-! You may need to specify the full pathname (including directory) here
-	param "file_soil" (str "soils_lpj.dat")
-
-
-!///////////////////////////////////////////////////////////////////////////////////////
-! Output files
-!
-
-! guess2008 - New predefined outputs. Procedure adapted from Ben's LPJ-GUESS Education
-! outputdirectory is mandatory
-outputdirectory "./"
-
-! Prefined yearly output
-! These files may be outcommented if their output is not required. 
-file_cmass "cmass.out"
-file_anpp "anpp.out"
-file_lai "lai.out"
-file_cflux "cflux.out"
-file_dens "dens.out"
-file_runoff "tot_runoff.out"
-file_cpool "cpool.out"
-file_firert "firert.out"
-!file_aiso "aiso.out"
-!file_amon "amon.out"
-
-! Monthly outputs
-file_mnpp "mnpp.out"
-file_mlai "mlai.out"
-file_mrh "mrh.out"
-file_mgpp "mgpp.out"
-file_mra "mra.out"
-file_mnee "mnee.out"
-file_maet "maet.out"
-file_mpet "mpet.out"
-file_mevap "mevap.out"
-file_mintercep "mintercep.out"
-file_mrunoff "mrunoff.out"
-file_mwcont_upper "mwcont_upper.out"
-file_mwcont_lower "mwcont_lower.out"
-!file_miso "miso.out"
-!file_mmon "mmon.out"
-
-!///////////////////////////////////////////////////////////////////////////////////////
-
-
-
-!///////////////////////////////////////////////////////////////////////////////////////
 !// RUN PARAMETERS AND OPTIONS 
-!
-
-! Settings recognised by Plib
-! Run GUESS with -help option for list of keywords and their meanings
-
-title 'LPJ-GUESS (guess2008) cohort mode'
-
-vegmode "cohort"      ! "cohort", "individual" or "population"
-!nyear 100            ! number of years to run the model after spinup (demo module only)
-nyear_spinup 500      ! number of years to spin up the simulation for
 ifdailynpp 1          ! whether to calculate NPP daily (1) or monthly (0)
-ifdailydecomp 0       ! whether to calculate soil respiration daily (1) or monthly (0)
-ifcalcsla 1           ! whether to calculate SLA from leaf longevity
-                      ! (PFT-specific value can be specified in this file instead)
-iffire 1              ! whether to implement fire (1) or not (0)
+					! guess2008 - species version has 1
 npatch 25             ! number of replicate patches to simulate
-patcharea 1000        ! patch area (m2)
-estinterval 5         ! years between establishment events in cohort mode
-ifdisturb 1           ! whether generic patch-destroying disturbances enabled
-distinterval 100      ! average return time for generic patch-destroying disturbances
-					  ! Hickler et al. (2011) used 200
-ifbgestab 1           ! whether background establishment enabled
-ifsme 1               ! whether spatial mass effect enabled
-ifstochestab 1        ! whether establishment stochastic
-ifstochmort 1         ! whether mortality stochastic
-ifcdebt 1             ! whether to allow vegetation C storage (1) or not (0)
-
-
 ! guess2008 - additions
-ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1) 
-								! or to use the standard step-function (0)
-								! greff_min values below calibrated for the smooth (1) option 
 ifdroughtlimitedestab 1			! whether establishment is limited by growing season drought
-ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit every day (0)
 ifspeciesspecificwateruptake 1	! whether there is species specific water uptake (1) or not (0)
-ifbvoc 0              ! whether to include BVOC calculations (1) or not (0)
-
-!!!!!!!!!!!! landcover parameters !!!!!!!!!!!!!!					
-
-run_landcover 0        ! whether to use (and change) landcover fractions (1) or not (0)						
-
-run_urban 0	      ! whether to simulate barren land (1) or not (0)	
-run_crop 1	      ! whether to simulate crop vegetation (1) or not (0)
-run_forest 0	      ! whether to simulate managed forest (1) or not (0)
-run_pasture 0	      ! whether to simulate pasture (1) or not (0)
-run_natural 1	      ! whether to simulate natural vegetation (1) or not (0)
-run_peatland 1	      ! whether to simulate peatland (1) or not (0)
-
-lcfrac_fixed 0        	! use landcover fractions (%) below (1) or read from input file (0)
-lc_fixed_urban 0   	! URBAN
-lc_fixed_cropland 50	! CROPLAND
-lc_fixed_pasture 0   	! PASTURE
-lc_fixed_forest 0   	! FOREST
-lc_fixed_natural 25 	! NATURAL
-lc_fixed_peatland 25 	! PEATLAND
-equal_landcover_area 0	! divide gridcell into equal active landcover fractions
-
-!///////////////////////////////////////////////////////////////////////////////////////
-
-
-
-!///////////////////////////////////////////////////////////////////////////////////////
-!// EVALUATION OPTIONS & SWITCHES 
-!
-
-!///////////////////////////////////////////////////////////////////////////////////////
-
-
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR PFTS

@@ -1487,9 +1487,6 @@ bool getgridcell(Gridcell& gridcell)
 	// and interp_monthly_totals in driver.cpp may be called for this purpose.
 
 	// Select coordinates for next grid cell in linked list
-	
-	// guess2008 - elevation
-	int elevation;
 
 	bool gridfound=false;
 	bool LUerror=false;

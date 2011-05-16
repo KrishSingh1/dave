@@ -1,16 +1,14 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// MODULE HEADER FILE
-//
-// Module:                Vegetation C allocation, litter production, tissue turnover
-//                        leaf phenology, allometry and growth
-//                        Version adapted for analyses for joint conceptual paper for
-//                        OECD conference with Wolfgang Knorr & Jean-Luc Widlowski
-// Header file name:      growth.h
-// Source code file name: growth.cpp
-// Written by:            Ben Smith
-// Version dated:         2002-08-11
-// Updated:               2010-11-22
-
+/// \file growth.h
+/// \brief The growth module header file
+///
+/// Vegetation C allocation, litter production, tissue turnover
+/// leaf phenology, allometry and growth.
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module header files need normally contain only declarations of functions defined in

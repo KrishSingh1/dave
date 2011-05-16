@@ -1,14 +1,14 @@
-//////////////////////////////////////////////////////////////////////////////
-// MODULE SOURCE CODE FILE
-//
-// Module:                Calculation of VOC production and emission by 
-//                        vegetation 
-//                        *****************************************************
-// Header file name:      bvoc.h
-// Source code file name: bvoc.cpp 
-// Written by:            Guy Schurgers (using Almut's previous attempts) 
-// Version dated:         December 2010
-//
+///////////////////////////////////////////////////////////////////////////////////////
+/// \file bvoc.cpp
+/// \brief The BVOC module
+///
+/// Calculation of VOC production and emission by vegetation.
+///
+/// \author Guy Schurgers (using Almut's previous attempts) 
+/// $Date: $
+///
+///////////////////////////////////////////////////////////////////////////////////////
+
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:
 //   (1) a "#include" directive naming the framework header file. The framework

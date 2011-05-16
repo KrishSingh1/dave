@@ -1,20 +1,15 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// MODULE SOURCE CODE FILE
-//
-// Module:                LPJ-GUESS input/output module with input from instruction
-//                        script
-//                        Includes modified code compatible with "fast" cohort/
-//                        individual mode - see canexch.cpp
-//                        Includes Dieter G:s latest updates 021121
-//                        Version compatible with LPJ-GUESS version 2.1
-//                        (excludes PFT paramter twmax)
-//                        Updated 20050125: last line in output files ends in newline
-// Header file name:      guessio.h
-// Source code file name: guessio.cpp
-// Written by:            Ben Smith
-// Version dated:         2003-07-22/2005-01-25
-// Updated:               2010-11-22
-
+/// \file guessio_cru.cpp
+/// \brief LPJ-GUESS input/output module with input from instruction script
+///
+/// This I/O module reads in CRU climate data in a customised binary format.
+/// The binary files contain CRU half-degree global historical climate data
+/// for 1901-2006.
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:
@@ -1224,10 +1219,6 @@ double dtemp[365],dprec[365],dsun[365];
 // Daily diurnal temperature range for one year
 double ddtr[365];
 
-bool annual_output;
-	// whether output should occur each simulation year (true) or at end of simulation
-	// for each grid cell only (false)
-
 // guess2008 - make file_cru and file_cru_misc global variables
 xtring file_cru;
 xtring file_cru_misc;
@@ -1731,6 +1722,9 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	if (abort) fail("\nUsage: %s <instruction-script-filename> | -help",argv[0]);
 
+	// Print the title of this run
+	dprintf("\n\n------------------------------------\n%s\n------------------------------------\n",(char*)title);
+
 	///////////////////////////////////////////////////////////////////////////////////
 	// USER-SPECIFIC SECTION (Modify as necessary or supply own code)
 	//
@@ -1775,9 +1769,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	// Read CO2 data from file
 	readco2();
-
-	// Remember whether to produce output each year or not
-	annual_output=param["annual_output"].num;
 
 	if (run_landcover) {
 		all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
@@ -2223,7 +2214,6 @@ bool getclimate(Gridcell& gridcell) {
 
 	// guess2008 - changed name from mwet to mwet_all
 	double mwet_all[12]={31,28,31,30,31,30,31,31,30,31,30,31}; // number of rain days per month
-	int dd;
 	Climate& climate=gridcell.climate;
 
 	if (date.day==0) {
@@ -2336,9 +2326,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	// the simulation of each stand or grid cell. This function does not have to
 	// provide any information to the framework.
 
-	int p,c,m,nclass;
-	double flux_veg,flux_soil,flux_fire,flux_est,flux_harvest;
-	double c_litter,c_fast,c_slow,c_harv_slow; 
+	int c, m, nclass;
+	double flux_veg, flux_soil, flux_fire, flux_est, flux_harvest;
+	double c_litter, c_fast, c_slow, c_harv_slow; 
 
 	// guess2008 - hold the monthly average across patches
 	double mnpp[12];

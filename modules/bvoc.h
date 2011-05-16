@@ -1,14 +1,14 @@
-///////////////////////////////////////////////////////////////////////////////
-// MODULE HEADER FILE
-//
-// Module:                Calculation of VOC production and emission by 
-//                        vegetation 
-//                        *****************************************************
-// Header file name:      voccalc.h
-// Source code file name: voccalc.cpp
-// Written by:            Guy Schurgers (using Almut's previous attempts) 
-// Version dated:         August 2006
-//
+///////////////////////////////////////////////////////////////////////////////////////
+/// \file bvoc.h
+/// \brief The BVOC module header file
+///
+/// Calculation of VOC production and emission by vegetation.
+///
+/// \author Guy Schurgers (using Almut's previous attempts)
+/// $Date: $
+///
+///////////////////////////////////////////////////////////////////////////////////////
+
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module header files need normally contain only declarations of functions 
 // defined in the module that are to be accessible to the calling framework or 

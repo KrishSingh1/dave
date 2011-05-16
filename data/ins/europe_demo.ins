@@ -10,6 +10,8 @@ import "core.ins"
 import "demo.ins"
 import "europe_pfts.ins"
 
+param "file_gridlist" (str "data/gridlist/gridlist_geb.txt")
+
 ifdailynpp 1					! whether to calculate NPP daily (1) or monthly (0)
 npatch 25						! number of replicate patches to simulate
 ifdroughtlimitedestab 1			! whether establishment is limited by growing season drought

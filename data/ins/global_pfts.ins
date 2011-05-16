@@ -1,0 +1,255 @@
+﻿pft "BNE" (
+
+	! Boreal needleleaved evergreen tree
+
+	include 1
+	tree
+	needleleaved
+	shade_tolerant
+	evergreen
+	boreal
+	leaflong 3
+	turnover_leaf 0.33
+	tcmin_surv -31
+	tcmin_est -30
+	tcmax_est -1
+	twmin_est 5
+	gdd5min_est 500
+	longevity 500
+	fireresist 0.3
+	eps_iso 8.0
+	seas_iso 0
+	eps_mon 4.8
+	storfrac_mon 0.5
+)
+
+
+pft "BINE" (
+
+	! Boreal needleleaved evergreen tree
+
+	include 1
+	tree
+	needleleaved
+	shade_intolerant
+	evergreen
+	boreal
+	leaflong 3
+	turnover_leaf 0.33
+	tcmin_surv -31
+	tcmin_est -30
+	tcmax_est -1
+	twmin_est 5
+	gdd5min_est 500
+	longevity 500
+	fireresist 0.3
+	eps_iso 8.0
+	seas_iso 0
+	eps_mon 4.8
+	storfrac_mon 0.5
+)
+
+
+pft "BNS" (
+
+	! Boreal needleleaved summergreen tree
+
+	include 1
+	tree
+	needleleaved
+	shade_intolerant
+	summergreen
+	boreal
+	tcmin_surv -1000  ! no limit
+	tcmin_est -1000   ! no limit
+	tcmax_est -2
+	twmin_est -1000   ! no limit
+	twminusc 43       ! AA from TH 03-11 added this
+	gdd5min_est 500
+	longevity 300
+	fireresist 0.3
+	eps_iso 8.0
+	seas_iso 1
+	eps_mon 4.8
+	storfrac_mon 0.5
+)
+
+pft "TeBS" (
+
+	! Shade-tolerant temperate broadleaved summergreen tree
+
+	include 1
+	tree
+	broadleaved
+	shade_tolerant
+	summergreen
+	temperate
+	tcmin_surv -14
+	tcmin_est -13
+	tcmax_est 6
+	twmin_est 5
+	gdd5min_est 1100
+	longevity 400
+	fireresist 0.1
+	eps_iso 45.0
+	seas_iso 1
+	eps_mon 1.6
+	storfrac_mon 0.
+)
+
+pft "IBS" (
+
+	! Shade-intolerant broadleaved summergreen tree
+
+	include 1
+	tree
+	broadleaved
+	shade_intolerant
+	summergreen
+	boreal
+	tcmin_surv -30
+	tcmin_est -30
+	tcmax_est 7
+	twmin_est -1000  !no limit
+	gdd5min_est 350 !from TH 2010-03-10 AA
+	longevity 300 !from TH 2010-04-07 was 300 AA
+	fireresist 0.1
+	eps_iso 45.0
+	seas_iso 1
+	eps_mon 1.6
+	storfrac_mon 0.
+)
+
+pft "TeBE" (
+
+	! Temperate broadleaved evergreen tree
+
+	include 1
+	tree
+	broadleaved
+	shade_tolerant
+	evergreen
+	temperate
+	leaflong 3
+	turnover_leaf 0.33
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 10
+	twmin_est 5
+	gdd5min_est 2000
+	longevity 300 !from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 1.6
+	storfrac_mon 0.
+)
+
+pft "TrBE" (
+
+	! Tropical broadleaved evergreen tree
+
+	include 1
+	tree
+	broadleaved
+	shade_tolerant
+	evergreen
+	tropical
+	leaflong 2
+	turnover_leaf 0.5
+	longevity 500   !from Thomas H 2010-03-30 new 500 instead of 600 2010-04-07
+	fireresist 0.1
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.8
+	storfrac_mon 0.
+)
+
+
+pft "TrIBE" (
+
+	! Tropical broadleaved evergreen tree
+
+	include 1
+	tree
+	broadleaved
+	shade_intolerant
+	evergreen
+	tropical
+	leaflong 2
+	turnover_leaf 0.5
+	longevity 200
+	fireresist 0.1
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.8
+	storfrac_mon 0.
+
+)
+
+
+pft "TrBR" (
+
+	! Tropical broadleaved raingreen tree
+
+	include 1
+	tree
+	broadleaved
+	shade_intolerant
+	tropical
+	phenology "raingreen"
+	leaflong 0.5
+	turnover_leaf 1
+	longevity 400    ! from Thomas h 2010-03-30
+	fireresist 0.3
+	eps_iso 45.0
+	seas_iso 0
+	eps_mon 2.4
+	storfrac_mon 0.
+)
+
+pft "C3G" (
+
+	! Cool (C3) grass
+
+	include 1
+	grass
+	pathway "c3"
+	respcoeff 1.0
+	pstemp_min -5
+	pstemp_low 10
+	pstemp_high 30
+	pstemp_max 45
+	tcmin_surv -1000	!no limit
+	tcmin_est -1000 	!no limit
+	tcmax_est 1000  	!no limit
+	twmin_est -1000 	!no limit
+	gdd5min_est 0   	!no limit
+	eps_iso 16.0
+	seas_iso 1
+	eps_mon 1.6
+	storfrac_mon 0.5
+)
+
+pft "C4G" (
+
+	! Warm (C3) grass
+
+	include 1
+	grass
+	pathway "c4"
+	respcoeff 0.15
+	pstemp_min 6
+	pstemp_low 20
+	pstemp_high 45
+	pstemp_max 55
+	tcmin_surv 15.5
+	tcmin_est 15.5
+	tcmax_est 1000  !no limit
+	twmin_est -1000 !no limit
+	gdd5min_est 0   !no limit
+	eps_iso 8.0
+	seas_iso 0
+	eps_mon 2.4
+	storfrac_mon 0.5
+)

@@ -260,7 +260,7 @@ private:
 		return 0;
 	}
 
-	bool initialise(char* filename) {
+	bool initialise(const char* filename) {
 
 		int i;
 		unsigned char* pheader;
@@ -310,7 +310,7 @@ public:
 		if (pfile) fclose(pfile);
 	}
 
-	bool open(char* filename) {
+	bool open(const char* filename) {
 		return initialise(filename);
 	}
 

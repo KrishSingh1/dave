@@ -8,11 +8,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(guess)
 
-# Compiler flags for building on UNIX
-if (UNIX)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w")
-endif()
-
 # Compiler flags for building with Microsoft Visual C++
 if (MSVC)
   # Disable warnings about using secure functions like sprintf_s instead of

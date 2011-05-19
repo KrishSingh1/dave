@@ -253,6 +253,11 @@ void plib_declarations(int id,xtring setname) {
 
 	case BLOCK_GLOBAL:
 
+		// FACE David
+		declareitem("FACE_ring",&FACE_ring,1,2,1,CB_NONE,"Which FACE ring to simulated");
+		declareitem("FACE_DUKE_or_OAK",&ifduke,0,1,1,CB_NONE,"Which FACE site to simulated");
+		declareitem("Has_FACE_clim",&has_FACE_clim,0,1,1,CB_NONE,"Using FACE clim data");		
+
 		declareitem("title",&title,80,CB_NONE,"Title for run");
 		// guess2008 - changed this input parameter name from nyear to nyear_spinup, which is more descriptive 
 		declareitem("nyear_spinup",&nyear_spinup,1,10000,1,CB_NONE,"Number of simulation years to spinup for");
@@ -295,6 +300,8 @@ void plib_declarations(int id,xtring setname) {
 			"Fractional N relocation from shed leaves & roots");
 		declareitem("ifvarycn",&ifvarycn,1,CB_NONE,
 			"Whether leaf and tissue C:N adjusted depending on Vmax");
+		declareitem("ifnlimvarycn",&ifnlimvarycn,1,CB_NONE,
+			"Whether leaf and tissue C:N adjusted depending on N limitation");
 		declareitem("ifnfix",&ifnfix,0,3,1,CB_NONE,
 			"Whether to include an estimate for N fixation");
 		declareitem("andep",&andep,0.0,100.0,1,CB_NONE,
@@ -433,6 +440,16 @@ void plib_declarations(int id,xtring setname) {
 			"Fine root C:N mass ratio");
 		declareitem("cton_sap",&ppft->cton_sap,1.0,1.0e4,1,CB_NONE,
 			"Sapwood C:N mass ratio");
+
+		// GUESSN
+		declareitem("cton_leaf_min",&ppft->cton_leaf_min,1.0,1.0e4,1,CB_NONE,
+			"Min Leaf C:N mass ratio");
+		declareitem("cton_leaf_max",&ppft->cton_leaf_max,1.0,1.0e4,1,CB_NONE,
+			"Max Leaf C:N mass ratio");
+		declareitem("cton_leaf_avr",&ppft->cton_leaf_avr,1.0,1.0e4,1,CB_NONE,
+			"Average Leaf C:N mass ratio");
+		// end GUESSN
+
 		declareitem("reprfrac",&ppft->reprfrac,0.0,1.0,1,CB_NONE,
 			"Fraction of NPP allocated to reproduction");
 		declareitem("turnover_leaf",&ppft->turnover_leaf,0.0,1.0,1,CB_NONE,
@@ -603,11 +620,17 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcalcsla")) badins("ifcalcsla");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
 
+		// FACE David
+		if (!itemparsed("FACE_ring")) badins("FACE_ring");
+		if (!itemparsed("FACE_DUKE_or_OAK")) badins("FACE_DUKE_or_OAK");
+		if (!itemparsed("Has_FACE_clim")) badins("Has_FACE_clim");
+
 		// GUESSN
 
 		if (!itemparsed("iflimvmax")) badins("iflimvmax");
 		if (!itemparsed("nrelocfrac")) badins("nrelocfrac");
 		if (!itemparsed("ifvarycn")) badins("ifvarycn");
+		if (!itemparsed("ifnlimvarycn")) badins("ifnlimvarycn");
 		if (!itemparsed("ifnfix")) badins("ifnfix");
 		if (!itemparsed("andep")) badins("andep");
 		if (!itemparsed("minndep")) badins("minndep");
@@ -674,6 +697,13 @@ void plib_callback(int callback) {
 		if (!itemparsed("sla") && !ifcalcsla) badins("sla");
 		if (!itemparsed("cton_leaf")) badins("cton_leaf");
 		if (!itemparsed("cton_root")) badins("cton_root");
+
+		// GUESSN
+		if (!itemparsed("cton_leaf_min")) badins("cton_leaf_min");
+		if (!itemparsed("cton_leaf_max")) badins("cton_leaf_max");
+		if (!itemparsed("cton_leaf_avr")) badins("cton_leaf_avr");
+		// end GUESSN
+
 		if (!itemparsed("reprfrac")) badins("reprfrac");
 		if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
 		if (!itemparsed("turnover_root")) badins("turnover_root");
@@ -1134,6 +1164,10 @@ const int NYEAR_SPINUP_DATA=30;
 	// (not to be confused with the number of years to spinup model for, which
 	// is read from the ins file)
 
+// FACE DAVID climate dataset NYEAR_SCENARIO_FACE
+const int NYEAR_SCENARIO_FACE=11;	// ORNL
+//const int NYEAR_SCENARIO_FACE=12;	// Duke
+
 // Stream pointer to binary CRU historical climate data file (read from ins file)
 FILE *in_cru;
 
@@ -1164,11 +1198,22 @@ const int MUTESEC=20; // minimum number of sec to wait between progress messages
 // CO2 data for each year of historical data set
 double co2[NYEAR_HIST];
 
+// FACE DAVID climate CO2 data for each day of the FACE scenario
+double dco2_FACE[NYEAR_SCENARIO_FACE][365];
+
 // Monthly temperature, precipitation and sunshine data for current grid cell
 // and historical period
 double hist_mtemp[NYEAR_HIST][12];
 double hist_mprec[NYEAR_HIST][12];
 double hist_msun[NYEAR_HIST][12];
+
+// FACE DAVID climate Daily temperature, precipitation and sunshine data for FACE scenario 
+double dtemp_FACE[NYEAR_SCENARIO_FACE][365];
+double dprecip_FACE[NYEAR_SCENARIO_FACE][365];
+double dsun_FACE[NYEAR_SCENARIO_FACE][365];
+
+// FACE DAVID climate Yearly ndep data for FACE scenario 
+double yndep_FACE[NYEAR_NDEP];	// inputdata ranges from 1750-2007
 
 // guess2008
 // Monthly frost days, precipitation days and DTR data for current grid cell
@@ -1202,6 +1247,109 @@ bool annual_output;
 xtring file_cru;
 xtring file_cru_misc;
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// 
+// FACE DAVID climate Reads in climate data for sceanrio period from temp, sun, precip and CO2 scenario files
+//
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void read_FACE_clim(double FACE_dtemp[NYEAR_SCENARIO_FACE][365],double FACE_dprec[NYEAR_SCENARIO_FACE][365],
+	double FACE_dsun[NYEAR_SCENARIO_FACE][365],double FACE_dco2[NYEAR_SCENARIO_FACE][365], 
+	double FACE_yndep[NYEAR_NDEP],int NYEAR_SCENARIO_FACE,int NYEAR_NDEP)
+{
+	xtring filename_FACE;
+	FILE* file_FACE_met;
+	FILE* file_FACE_ndep;
+
+	if (ifduke)
+	{
+		filename_FACE=param["met_face_duke"].str;
+		file_FACE_met=fopen(filename_FACE,"rt");
+
+		if (!file_FACE_met) 
+			fail("FACE: could not open file %s for input",(char*)filename_FACE);
+
+		filename_FACE=param["ndep_face_duke"].str;
+		file_FACE_ndep=fopen(filename_FACE,"rt");
+
+		if (!file_FACE_ndep) 
+			fail("FACE: could not open file %s for input",(char*)filename_FACE);
+
+		double met_duke[15];
+		double ndep_duke[3];
+
+		for (int year = 0; year < NYEAR_SCENARIO_FACE; year++)  // go through the years of data
+		{
+			for (int day = 0; day < 365; day++)
+			{
+				readfor(file_FACE_met, "15f", met_duke);				// read data
+
+				FACE_dsun[year][day] = met_duke[1] / 4.56 * 1000000;	// val_duke is in umol/m2/day, dsun should be in J/m2/day 1.8umol/m2/day == 1J/m2/day
+																		// http://www.hydro.co.nz/1_information/1_light_info/info_light.html
+																		// Thomas got 4.56 from meeting in Santa Barbara!!! Better value
+				FACE_dtemp[year][day] = met_duke[2];
+				FACE_dprec[year][day] = met_duke[5];
+
+				if (FACE_ring == 2)		// David co2 elevated concentration 
+					FACE_dco2[year][day] = met_duke[8];
+				else					// David co2 ambient concentration
+					FACE_dco2[year][day] = met_duke[7];
+			}
+		}
+
+		for (year = 0; year < NYEAR_NDEP; year++)
+		{
+			readfor(file_FACE_ndep, "3f", ndep_duke);
+
+			FACE_yndep[year] = ndep_duke[1];	// Two different columns in the input file with ndep data (1,2)
+		}
+	}
+	else // ORNL
+	{
+		filename_FACE=param["met_face_oak"].str;
+		file_FACE_met=fopen(filename_FACE,"rt");
+
+		if (!file_FACE_met) 
+			fail("FACE: could not open file %s for input",(char*)filename_FACE);
+
+		filename_FACE=param["ndep_face_oak"].str;
+		file_FACE_ndep=fopen(filename_FACE,"rt");
+
+		if (!file_FACE_ndep) 
+			fail("FACE: could not open file %s for input",(char*)filename_FACE);
+
+		double met_oak[11];
+		double ndep_oak[3];
+
+		for (int year = 0; year < NYEAR_SCENARIO_FACE; year++)  // go through the years of data
+		{
+			for (int day = 0; day < 365; day++)
+			{
+				readfor(file_FACE_met, "11f", met_oak);				// read data
+
+				FACE_dsun[year][day] = met_oak[2] / 4.56 * 1000000;	// val_duke is in mol/m2/day, dsun should be in J/m2/day 1.8umol/m2/day == 1J/m2/day
+																	// http://www.hydro.co.nz/1_information/1_light_info/info_light.html
+																	// Thomas got 4.56 from meeting in Santa Barbara!!! Better value
+				FACE_dtemp[year][day] = met_oak[3];
+				FACE_dprec[year][day] = met_oak[10];
+				if (FACE_ring == 2)	// David co2 elevated concentration 
+					FACE_dco2[year][day] = (met_oak[6] + met_oak[7])/2.0;	// average of ring 1 and 2
+				else				// David co2 ambient concentration 
+					FACE_dco2[year][day] = (met_oak[8] + met_oak[9])/2.0;	// average of ring 4 and 5
+			}
+		}
+
+		for (year = 0; year < NYEAR_NDEP; year++)
+		{
+			readfor(file_FACE_ndep, "3f", ndep_oak);
+
+			FACE_yndep[year] = ndep_oak[1];	// Two different columns in the input file with ndep data (1,2)
+		}
+	}
+}
+//----------------------------------------------------------------------------------------------
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -1962,6 +2110,11 @@ bool getstand(Stand& stand) {
 			                           hist_mfrs, hist_mwet, hist_mdtr);
 
 
+		// FACE DAVID climate Reading met data
+		if (has_FACE_clim)		
+			read_FACE_clim(dtemp_FACE,dprecip_FACE,dsun_FACE,dco2_FACE,yndep_FACE,NYEAR_SCENARIO_FACE,NYEAR_NDEP);
+
+
 		while (!gridfound) {
 
 			dprintf("\nError: could not find stand at (%g,%g) in CRU data file\n",
@@ -2022,6 +2175,9 @@ bool getstand(Stand& stand) {
 		// as percentage sunshine
 		
 		stand.climate.instype=SUNSHINE;
+
+		if (has_FACE_clim) 
+			soilcode = 4; // FACE climate soilcode
 
 		// Tell framework the soil type of this grid cell
 		soilparameters(stand.soiltype,soilcode);
@@ -2211,9 +2367,112 @@ bool getclimate(Stand& stand) {
 	//if (!(date.year%20) && date.day==0 && date.year>=nyear_spinup ||!(date.year%100) && date.day==0 && date.year<nyear_spinup) 
 	//	dprintf("CO2  %6.0f         Ndep %7.3f (kgN/ha/yr)\n",stand.climate.co2,stand.climate.andep*10000.0);
 
-	stand.climate.temp=dtemp[date.day];
-	stand.climate.prec=dprec[date.day];
-	stand.climate.insol=dsun[date.day];
+		///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	//
+	// FACE DAVID climate - Using Duke or ORNL data set instead. This code 
+	//				just writes over old climate data
+	//
+	///////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+
+
+
+	if (has_FACE_clim && (SOILDEPTH_LOWER != 100.0 || SOILDEPTH_UPPER != 400.0 || NYEAR_SCENARIO_FACE != 12) && ifduke)
+		fail("DUKE input data is wrong!!!\n");
+
+	if (has_FACE_clim && (SOILDEPTH_LOWER != 1500.0 || SOILDEPTH_UPPER != 500.0 || NYEAR_SCENARIO_FACE != 11) && !ifduke)
+		fail("ORNL input data is wrong!!!\n");
+
+	if (!has_FACE_clim && (SOILDEPTH_LOWER != 1000.0 || SOILDEPTH_UPPER != 500.0))
+		fail("wrong soil depths!!!\n");
+
+	FYEAR_SCENARIO_FACE = nyear_spinup+NYEAR_HIST-NYEAR_SCENARIO_FACE; 
+	// Calculates which year we should start with the data so we end the simulation with the right order
+
+	if (has_FACE_clim && date.year >= FYEAR_SCENARIO_FACE) //Last years the data is in the right order. 
+	{
+		stand.climate.instype=SUNSHINE;
+		//stand.climate.instype=NETSWRAD;
+
+		// Which year in the data set this year represent
+		int scenario_year = date.year-FYEAR_SCENARIO_FACE;
+	
+		stand.climate.temp=dtemp_FACE[scenario_year][date.day]; // Temperature
+		stand.climate.prec=dprecip_FACE[scenario_year][date.day];// Precipitation
+		stand.climate.par=dsun_FACE[scenario_year][date.day];	// Photosynthetically-active radiation
+		stand.climate.co2=dco2_FACE[scenario_year][date.day];	// CO2
+
+
+		// Nitrogen deposition
+		if (date.day == 0)
+			stand.climate.andep=yndep_FACE[scenario_year+NYEAR_NDEP-NYEAR_SCENARIO_FACE] / 10000.0;  // from ha to m2
+
+		//stand.climate.temp=dtemp[date.day];	// used when comparing clim data to cru data
+		//stand.climate.prec=dprec[date.day];	// used when comparing clim data to cru data
+		stand.climate.insol=dsun[date.day];
+
+	}	
+	else if (has_FACE_clim) // Just uses the clim data over and over again.
+	{
+		stand.climate.instype=SUNSHINE;
+		//stand.climate.instype=NETSWRAD;
+
+		// Which year in the data set this year represent
+		int scenario_year;
+
+		if (!ifduke){
+
+			scenario_year = (date.year+6)%(NYEAR_SCENARIO_FACE);
+
+			if (scenario_year == 7 || scenario_year == 0){
+				scenario_year=2;
+			}
+		}
+
+		if (ifduke){
+
+			scenario_year = (date.year+6)%(NYEAR_SCENARIO_FACE);
+
+			if (scenario_year == 4 || scenario_year == 3 || scenario_year == 9 || scenario_year == 7){
+				scenario_year=2;
+			}
+		}
+
+		stand.climate.temp=dtemp_FACE[scenario_year][date.day];
+		stand.climate.prec=dprecip_FACE[scenario_year][date.day];	
+		stand.climate.par=dsun_FACE[scenario_year][date.day];
+
+		if(date.year < FYEAR_SCENARIO_FACE - 97)			
+			stand.climate.co2=co2[0];
+		else
+			stand.climate.co2=co2[97+date.year-FYEAR_SCENARIO_FACE];
+
+		// Nitrogen deposition
+		if (date.day == 0)
+		{
+			if (date.year < nyear_spinup+NYEAR_HIST-NYEAR_NDEP)
+				stand.climate.andep=yndep_FACE[0] / 10000;	// from ha to m2
+			
+			else 
+				stand.climate.andep=yndep_FACE[date.year-(nyear_spinup+NYEAR_HIST-NYEAR_NDEP)] / 10000.0;	// from ha to m2
+		}
+
+		//stand.climate.temp=dtemp[date.day];	// used when comparing clim data to cru data
+		//stand.climate.prec=dprec[date.day];	// used when comparing clim data to cru data
+		stand.climate.insol=dsun[date.day];
+		
+	}
+
+	///////////////////////////////////////////////////////////////////////////////
+	/////////////////////////// End FACE climate //////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+
+	else {
+		stand.climate.temp=dtemp[date.day];
+		stand.climate.prec=dprec[date.day];
+		stand.climate.insol=dsun[date.day];
+	}
 
 	// First day of year only ...
 
@@ -2375,7 +2634,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_dens) fprintf(out_dens,"%8s\n","Total");
 
 		// GUESSN
-		if (out_cton) fprintf(out_cton,"%8s\n","Soil");
+		if (out_cton) fprintf(out_cton,"%8s%8s\n","Soil","pH");
 		if (out_nlim) fprintf(out_nlim,"%8s\n","Total");
 		if (out_nmass) fprintf(out_nmass,"%8s\n","Total");
 		if (out_andep) fprintf(out_andep,"%8s\n","Total");	//(kgN/ha/yr)
@@ -2412,7 +2671,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	// If only yearly output between, say 1961 and 1990 is requred, use: 
 	//	if (date.year>=nyear_spinup+60 && date.year<nyear_spinup+90) {
 
-	if (date.year>=nyear_spinup+70) {
+	if (date.year>=nyear_spinup) {
 
 		lon=gridlist.getobj().lon;
 		lat=gridlist.getobj().lat;
@@ -2668,7 +2927,12 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 				plot("anpp",pft.name,date.year,stand.pft[pft.id].anpp_total);
 				plot("lai",pft.name,date.year,stand.pft[pft.id].lai_total);
 				plot("pft N limitation",pft.name,date.year,standpft.nlim);
+				plot("C:N ratios pft",pft.name,date.year,standpft.cton_avr);
 			//}
+
+				// FACE DAVID
+				if (date.year > 2069)
+					plot("anpp sss",pft.name,date.year,stand.pft[pft.id].anpp_total);
 			
 			// if (!(date.year%10)) {
 				if (pft.lifeform==TREE && vegmode==COHORT || pft.lifeform==TREE && vegmode==INDIVIDUAL) {
@@ -2677,6 +2941,28 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 				    plot("no_saplings/patch",pft.name,date.year,stand.pft[pft.id].nsapling_total);
 				}
 			//}
+
+				// FACE DAVID 
+				double ORNL_amb[10] = {800.0,850.0,1000.0,1025.0,900.0,975.0,800.0,775.0,625.0,650.0};
+				double ORNL_ele[10] = {1025.0,1000.0,1200.0,1300.0,1200.0,1125.0,1080.0,875.0,700.0,700.0};
+				double Duke_amb[10] = {1020.0,1248.0,1330.0,1121.0,718.0,1046.0,1142.0,996.0,0.0,0.0};
+				double Duke_ele[10] = {1315.0,1615.0,1711.0,1435.0,1017.0,1424.0,1537.0,1367.0,0.0,0.0};
+
+				if (date.year >= 2096 && has_FACE_clim) { 
+					plot("anpp output",pft.name,date.year,stand.pft[pft.id].anpp_total);
+					if (!ifduke) {
+						if (FACE_ring == 1)
+							plot("anpp output","Real Amb",date.year,ORNL_amb[date.year-2096]/1000.0);
+						else 
+							plot("anpp output","Real Ele",date.year,ORNL_ele[date.year-2096]/1000.0);
+					}
+					else {
+						if (FACE_ring == 1)
+							plot("anpp output","Real Amb",date.year,Duke_amb[date.year-2096]/1000.0);
+						else 
+							plot("anpp output","Real Ele",date.year,Duke_ele[date.year-2096]/1000.0);
+					}
+				}
 
 			pftlist.nextobj();
 		
@@ -2719,6 +3005,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			// Sum all litter
 			for (int q=0;q<npft;q++) {
 				Patchpft& pft=stand[p].pft[q];
+
 				c_litter+=(pft.litter_leaf+pft.litter_root+pft.litter_wood+pft.litter_repr)/(double)npatch;
 				n_litter+=(pft.nmass_litter_leaf+pft.nmass_litter_root+pft.nmass_litter_wood)/(double)npatch;
 			}
@@ -2890,7 +3177,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_npool && ifcentury)
 				fprintf(out_npool,"%8.3f%8.3f%8.3f%10.3f\n",nmass_stand,n_litter,
 					centuryn,nmass_stand+n_litter+centuryn);
-		if (out_cton) fprintf(out_cton,"%8.3f\n",centuryc/centuryn);
+		if (out_cton) fprintf(out_cton,"%8.3f%8.3f\n",centuryc/centuryn,pH_est);
 		// end GUESSN
 
 		// Output of age structure (Windows shell only - no effect otherwise)

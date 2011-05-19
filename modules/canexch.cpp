@@ -723,7 +723,7 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 		// (E=mol quanta)
 
 	// GUESSN
-	const double M=25.0; // corresponds to parameter p in Eqn 28, Haxeltine & Prentice 1996a
+	const double M=25.0; // corresponds to parameter p in Eqn 28, Haxeltine & Prentice 1996b
 	// end GUESSN
 
 	double tscal; // temperature scaling coefficient
@@ -1766,10 +1766,6 @@ void assimilation_wstress(Pft& pft,Patchpft& ppft,double co2,double temp,double 
 	// GUESSN: Calculate correct value of nmass_term
 
 	na_fpar=na*fpar;
-
-	if (na_fpar < 0.0 || na_fpar > 0.05)
-		dprintf("Year %d Day %d %d na_fpar %g\n",
-			date.year,date.day,1,na_fpar);
 }
 
 // GUESSN
@@ -2106,11 +2102,6 @@ void npp(Patch& patch) {
 
 					indiv.assim=indiv.assim_nowstress;
 					na_fpar=indiv.na_fpar;
-
-					if (na_fpar <= 0.0 || na_fpar > 0.05)
-						dprintf("Year %d Day %d %d na_fpar %g\n",
-							date.year,date.day,2,na_fpar);
-
 				}
 				else {
 
@@ -2128,8 +2119,22 @@ void npp(Patch& patch) {
 
 			// Calculate leaf nitrogen today on patch area basis
 
+			// GUESSNFIX
+		/*	if (date.year == 7 && indiv.pft.name=="IBS" && indiv.id==3) {
+				plot("na","na",date.day,na_fpar);//stand.pft[pft.id].na);
+				plot("phen","phen",date.day,indiv.phen);
+				if (!negligible(indiv.phen)){
+					plot("cmass_leaf","leaf",date.day,indiv.cmass_leaf*N0*indiv.phen);
+					plot("leafn","leafn",date.day,na_fpar+N0*indiv.cmass_leaf*indiv.phen);
+				}
+				else {
+					plot("cmass_leaf","leaf",date.day,0.0);
+					plot("leafn","leafn",date.day,0.0);
+				}
+			}*/
+
 			if (!negligible(indiv.phen)) {
-				leafn=na_fpar+N0*indiv.cmass_leaf; // (N0 is defined near top of canexch.cpp)
+				leafn=na_fpar+N0*indiv.cmass_leaf; // GUESSNFIX
 				indiv.leafn+=leafn;
 			}
 			// end GUESSN
@@ -2237,7 +2242,7 @@ void npp(Patch& patch) {
 
 				if (!negligible(indiv.phen)) {
 
-					leafn=na_fpar+N0*indiv.cmass_leaf; // (N0 is defined near top of canexch.cpp
+					leafn=na_fpar+N0*indiv.cmass_leaf*indiv.phen; // GUESSNFIX
 					
 					indiv.leafn+=leafn;
 				}
@@ -2290,7 +2295,7 @@ void npp(Patch& patch) {
 					indiv.assim+=assim*(double)indiv.nday_wstress;
 
 					// GUESSN: Calculate leaf N today
-					leafn=na_fpar+N0*indiv.cmass_leaf;
+					leafn=na_fpar+N0*indiv.cmass_leaf*indiv.phen_mean;	// GUESSNFIX
 
 					indiv.leafn+=leafn*(double)indiv.nday_wstress;
 					// end GUESSN

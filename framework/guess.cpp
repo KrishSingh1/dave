@@ -65,6 +65,8 @@ double nrelocfrac;
 bool ifvarycn;
 	// whether leaf and tissue C:N ratios are adjusted according to photosynthetic
 	// demand (i.e. Vmax)
+bool ifnlimvarycn;
+	// whether leaf and tissue C:N ratios are adjusted according to N limitation
 double cwdtransfer;
 	// Fraction of woody debris transferred to SOM each year
 double nmass_avail_max;
@@ -76,7 +78,7 @@ bool ifindiv_fuptake;
 int ifnfix;
 	// whether to include an estimate for N fixation
 bool ifndepdata;
-	// whether N deposition data availabile from a file
+	// whether N deposition data available from a file
 double andep;
 	// annual N deposition (used only if ifndepdata=false)
 double minndep;
@@ -98,7 +100,11 @@ bool ifdroughtlimitedestab;			// whether establishment affected by growing seaso
 bool ifrainonwetdaysonly;			// rain on wet days only (1, true), or a little every day (0, false); 
 bool ifspeciesspecificwateruptake;	// water uptake is species specific 
 
-
+// FACE David
+int FYEAR_SCENARIO_FACE;
+int FACE_ring;
+int ifduke;
+int has_FACE_clim;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // THE FRAMEWORK
@@ -192,6 +198,17 @@ int framework(int argc,char* argv[]) {
 
 
 				if (date.islastday && date.islastmonth) {
+
+					// FACE DAVID
+					// FACE plantation
+					if (!ifduke) {
+						stand.plantyear=2081; // 2073 should be 2087=1988
+						stand.distyear2=1950;
+					}
+					else {
+						stand.plantyear=2074; // should be 2082 (i.e. 1983), but forest needs more time to grow 2074
+						stand.distyear2=1950;
+					}
 
 					// LAST DAY OF YEAR
 

@@ -949,7 +949,11 @@ void daylengthinsoleet(Climate& climate) {
 	// Calculate PAR from radiation
 	// Eqn A1, Haxeltine & Prentice 1996
 
-	climate.par=rs_day*FRADPAR;
+	// FACE DAVID climate 
+	if(has_FACE_clim)		// Has par as inputdata! 
+		climate.rad = climate.par / FRADPAR;	// Calculates Rad backwards with the help of FRADPAR
+	else
+		climate.par=rs_day*FRADPAR;
 }
 
 

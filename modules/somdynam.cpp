@@ -351,7 +351,8 @@ void setntoc(Soil& soil,double fac,pooltype pool,double cton_max,double cton_min
 	}
 }
 
-void decayrates(Soil& soil,double temp_soil,double wcont_soil) {
+// void decayrates(Soil& soil,double temp_soil,double wcont_soil) {
+void decayrates(Soil& soil,double temp_soil,double wcont_soil,double net_nmass) {	// GUESSNFIX wood
 
 	// Calculates CENTURY instantaneous decay rates given soil temperature, water
 	// content of upper soil layer
@@ -362,7 +363,12 @@ void decayrates(Soil& soil,double temp_soil,double wcont_soil) {
 
 	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
-	const double K_MAX[]={6.8e-3,1.3e-2,3.0e-2,4.4e-4,1.9e-2,2.7e-2,5.1e-2,1.3e-3,6.8e-6};	// GUESSN ForCent
+	//const double K_MAX[]={6.8e-3,1.3e-2,3.0e-2,4.4e-4,1.9e-2,2.7e-2,5.1e-2,1.3e-3,6.8e-6};	// GUESSN ForCent
+
+	// Maximum exponential decay constants for each SOM pool (daily basis)
+	// (Parton et al 2010, Figure 2)
+	// plus Kirschbaum et al 2001 coarse woody debris  decay	
+	const double K_MAX[]={6.8e-3,1.3e-2,3.0e-2,4.4e-4,1.9e-2,2.7e-2,3.3e-3,5.1e-2,1.3e-3,6.8e-6};	// GUESSN ForCent + Kirschbaum
 
 	// Modifier for effect of soil texture
 	// Eqn 5, Parton et al 1993:
@@ -371,6 +377,7 @@ void decayrates(Soil& soil,double temp_soil,double wcont_soil) {
 
 	double temp_mod;
 	double moist_mod;
+	double nmass_mod;	// GUESSN
 	double wfps;
 	double k;
 	int p;
@@ -402,6 +409,14 @@ void decayrates(Soil& soil,double temp_soil,double wcont_soil) {
 	else
 		moist_mod=0.000371*wfps*wfps-0.0748*wfps+4.13;
 
+	
+	// GUESSNFIX wood
+	// N limitation modifier for decomposition
+	if (ifnlim)
+		nmass_mod=max(1.0-exp(-pow(max((net_nmass+2.0e-5)/(2.0e-5),0.0),4.0)),0.5);
+	else
+		nmass_mod=1.0;
+
 	for (p=0;p<NSOMPOOL;p++) {
 
 		// Calculate decay constant (annual basis)
@@ -416,6 +431,10 @@ void decayrates(Soil& soil,double temp_soil,double wcont_soil) {
 			k*=exp(-3.0*soil.sompool[p].ligcfrac);
 		else if (p==SOILMICRO)
 			k*=texture_mod;
+
+		// GUESSNFIX wood
+		if (p==SURFCWD || p==SOILSTRUCT || p==SURFSTRUCT || p==SOILMETA || p==SURFMETA)
+			k*=nmass_mod;
 
 		// Calculate fraction of C pool remaining after today's decomposition
 
@@ -516,9 +535,9 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 
 		if (date.day == 0)
 			soil.setntoc_nmass_avail = soil.nmass_avail; 
-
-		// Update "daily" nmass available 
-		soil.setntoc_nmass_avail += soil.daily_minimmndep;
+		else
+			// Update "daily" nmass available 
+			soil.setntoc_nmass_avail += soil.daily_minimmndep;
 		
 		// Loop through individuals
 
@@ -584,7 +603,8 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 		// Calculate potential fraction remaining following decay today for all pools
 		// (assumes no N limitation)
 
-		decayrates(soil,soil.temp,soil.wcont[0]);
+		//decayrates(soil,soil.temp,soil.wcont[0]);
+		decayrates(soil,soil.temp,soil.wcont[0],soil.daily_minimmndep); // GUESSNFIX wood
 
 	}
 	else if (date.islastday) {
@@ -594,7 +614,8 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 		// Calculate potential fraction remaining following decay today for all pools
 		// (assumes no N limitation)
 
-		decayrates(soil,soil.temp,soil.mwcontupper);
+		//decayrates(soil,soil.temp,soil.mwcontupper);
+		decayrates(soil,soil.temp,soil.mwcontupper,soil.daily_minimmndep);	// GUESSNFIX wood
 
 		// Convert fractional scalars from daily to monthly basis
 
@@ -618,7 +639,7 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 	// Donor pool SURFACE STRUCTURAL
 
 	transferdecomp(soil,SURFSTRUCT,SURFMICRO,1.0-soil.sompool[SURFSTRUCT].ligcfrac,
-		0.6,respsum,nmin_actual,nimmob);
+		0.6,respsum,nmin_actual,nimmob);	// 
 
 	transferdecomp(soil,SURFSTRUCT,SURFHUMUS,soil.sompool[SURFSTRUCT].ligcfrac,0.3,
 		respsum,nmin_actual,nimmob);
@@ -638,6 +659,14 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 	// Donor pool SOIL METABOLIC
 
 	transferdecomp(soil,SOILMETA,SOILMICRO,1.0,0.55,respsum,nmin_actual,nimmob);
+
+	// Donor pool SURFACE COARSE WOODY DEBRIS
+
+	transferdecomp(soil,SURFCWD,SURFMICRO,1.0-soil.sompool[SURFCWD].ligcfrac,	// GUESSNFIX wood
+		0.76,respsum,nmin_actual,nimmob);					// 0.55
+
+	transferdecomp(soil,SURFCWD,SURFHUMUS,soil.sompool[SURFCWD].ligcfrac,0.76, // 0.3	// GUESSNFIX wood
+		respsum,nmin_actual,nimmob);
 	
 	// Donor pool SURFACE MICROBE
 
@@ -836,58 +865,43 @@ void transfer_litter(Patch& patch,Soil& soil) {
 		// WOOD
 
 		if (pft.pft.lifeform==TREE && !negligible(pft.litter_wood)) {
-			// Assume wood litter structural only (following
-			// Friend et al 1997) and use C:N ratio for sapwood
+			// Woody debris enters a woody litter pool as described in
+			// Kirschbaum and Paul (2002).
 
-			/*ligcmass_new=max(0.0,pft.litter_wood*cwdtransfer)*LIGCFRAC_WOOD;
-			ligcmass_old=soil.sompool[SURFSTRUCT].cmass*soil.sompool[SURFSTRUCT].ligcfrac;
+			// Coarse woody debris
 
-			if (pft.litter_wood < 0.0)
-				dprintf("Year %d Negative litter wood %g \n",date.year,pft.litter_wood);
+			double nmass_mod;
+			if (ifnlim)
+				nmass_mod = min(patch.fuptake_patch*1.0,1.0);	// GUESSNFIX wood
+			else
+				nmass_mod = 1.0;
 
-			// Add to structural pool and update lignin fraction in pool
-			soil.sompool[SURFSTRUCT].cmass+=pft.litter_wood*cwdtransfer;
-			soil.sompool[SURFSTRUCT].nmass+=pft.nmass_litter_wood*cwdtransfer;
-			if (negligible(soil.sompool[SURFSTRUCT].cmass))
-				soil.sompool[SURFSTRUCT].ligcfrac=0.0;
-			else {
-				double ligcfrac=(ligcmass_new+ligcmass_old)/
-					soil.sompool[SURFSTRUCT].cmass;
-				soil.sompool[SURFSTRUCT].ligcfrac=ligcfrac;
-			}
-		
-			// Update vegetation
-			pft.litter_wood*=(1.0-cwdtransfer);
-			pft.nmass_litter_wood*=(1.0-cwdtransfer);*/
-
-			double nlim_fact = patch.fuptake_patch*0.5;	// GUESSNFIX
-
-			ligcmass_new=max(0.0,pft.litter_wood*cwdtransfer*nlim_fact)*LIGCFRAC_WOOD;
-			ligcmass_old=soil.sompool[SURFSTRUCT].cmass*soil.sompool[SURFSTRUCT].ligcfrac;
+			ligcmass_new=max(0.0,pft.litter_wood*cwdtransfer*nmass_mod)*LIGCFRAC_WOOD;
+			ligcmass_old=soil.sompool[SURFCWD].cmass*soil.sompool[SURFCWD].ligcfrac;
 
 			if (pft.litter_wood < 0.0)
 				dprintf("Year %d Negative litter wood %g \n",date.year,pft.litter_wood);
 
 			// Add to structural pool and update lignin fraction in pool
-			soil.sompool[SURFSTRUCT].cmass+=pft.litter_wood*cwdtransfer*nlim_fact;
-			soil.sompool[SURFSTRUCT].nmass+=pft.nmass_litter_wood*cwdtransfer*nlim_fact;
-			if (negligible(soil.sompool[SURFSTRUCT].cmass))
-				soil.sompool[SURFSTRUCT].ligcfrac=0.0;
+			soil.sompool[SURFCWD].cmass+=pft.litter_wood*cwdtransfer*nmass_mod;
+			soil.sompool[SURFCWD].nmass+=pft.nmass_litter_wood*cwdtransfer*nmass_mod;
+			if (negligible(soil.sompool[SURFCWD].cmass))
+				soil.sompool[SURFCWD].ligcfrac=0.0;
 			else {
 				double ligcfrac=(ligcmass_new+ligcmass_old)/
-					soil.sompool[SURFSTRUCT].cmass;
-				soil.sompool[SURFSTRUCT].ligcfrac=ligcfrac;
+					soil.sompool[SURFCWD].cmass;
+				soil.sompool[SURFCWD].ligcfrac=ligcfrac;
 			}
 		
 			// Update vegetation
-			pft.litter_wood*=(1.0-cwdtransfer*nlim_fact);
-			pft.nmass_litter_wood*=(1.0-cwdtransfer*nlim_fact);
+			pft.litter_wood*=(1.0-cwdtransfer*nmass_mod);
+			pft.nmass_litter_wood*=(1.0-cwdtransfer*nmass_mod);
 		}		
 
 		patch.pft.nextobj();
 	}
 
-	// Set N:C ratio of surface microbial pool based on C:N ratio of litter for this PFT
+	// Set N:C ratio of surface microbial pool based on C:N ratio of litter from all PFTs
 	// Parton et al 1993 Fig 4
 	if (!negligible(litter_cmass))
 		setntoc(soil,litter_nmass/(litter_cmass*2.0),SURFMICRO,20.0,10.0,0,0.02);
@@ -1533,6 +1547,14 @@ double this_years_ndemand(double cmass_leaf,double cmass_root,double cmass_sap,d
 //////////////////////////////////////////////////////////////////////////////////
 // GUESSN Calculates individual fuptake based on nmass_root and crownarea
 //
+
+double nitrogen_uptake_strength(const Individual& indiv) {
+      const double min_crownarea = 0.1;
+      const double crownarea_power = 0.5;
+
+      return indiv.nmass_root/(max(min_crownarea,pow(indiv.crownarea,crownarea_power))*indiv.densindiv);
+}
+
 void indiv_fuptake(Vegetation& vegetation, double nsupply_patch, double fuptake) {
 
 	double GRASS_part = 0.05;			// Grass should at least get 5% of total available N
@@ -1540,8 +1562,6 @@ void indiv_fuptake(Vegetation& vegetation, double nsupply_patch, double fuptake)
 	bool GRASS_100 = false;				// if grass gets what it demands from its part of the total N supply 
 	bool not_more_grass = false;		// keeping track of if GRASS can compite with TREEs for more N than what is
 										// espacially assigned for GRASS (GRASS_part)
-	double min_crownarea = 0.1;
-	double crownarea_power = 0.5;
 	double grass_uptake_decider = 0.0;
 	double total_uptake_decider = 0.0;
 	double temp_nsupply_patch = nsupply_patch;
@@ -1556,7 +1576,7 @@ void indiv_fuptake(Vegetation& vegetation, double nsupply_patch, double fuptake)
 
 		if (indiv.pft.lifeform == GRASS && !negligible(indiv.ndemand_uptake)) {
 			GRASS_ndemand += indiv.ndemand_uptake;
-			grass_uptake_decider += indiv.nmass_root/(max(min_crownarea,pow(indiv.crownarea,crownarea_power))*indiv.densindiv);
+			grass_uptake_decider += nitrogen_uptake_strength(indiv);
 		}
 		vegetation.nextobj();
 	}
@@ -1583,13 +1603,13 @@ void indiv_fuptake(Vegetation& vegetation, double nsupply_patch, double fuptake)
 			// set uptake to meet demand
 			indiv.fuptake = 1.0;
 			// and subtract uptake strength as it will be added further down
-			total_uptake_decider -= indiv.nmass_root/(max(min_crownarea,pow(indiv.crownarea,crownarea_power))*indiv.densindiv);
+			total_uptake_decider -= nitrogen_uptake_strength(indiv);
 		}
 		
 		// TREE
 		// Sum up uptake strengths
 		if (!negligible(indiv.ndemand_uptake))
-			total_uptake_decider += indiv.nmass_root/(max(min_crownarea,pow(indiv.crownarea,crownarea_power))*indiv.densindiv);
+			total_uptake_decider += nitrogen_uptake_strength(indiv);
 
 		vegetation.nextobj();
 	}
@@ -1644,7 +1664,8 @@ void indiv_fuptake(Vegetation& vegetation, double nsupply_patch, double fuptake)
 			if (indiv.pft.lifeform == GRASS && not_more_grass && indiv.fuptake != 1.0) {
 				if (!negligible(indiv.ndemand_uptake)) {
 
-					indiv.fuptake = GRASS_part*nsupply_patch*(indiv.nmass_root/(max(min_crownarea,pow(indiv.crownarea,crownarea_power))*indiv.densindiv)/grass_uptake_decider)/indiv.ndemand_uptake;
+					indiv.fuptake = GRASS_part*nsupply_patch*(nitrogen_uptake_strength(indiv)
+						/grass_uptake_decider)/indiv.ndemand_uptake;
 					if (indiv.fuptake > 1.0)
 						indiv.fuptake = 1.0;
 				}
@@ -1659,7 +1680,7 @@ void indiv_fuptake(Vegetation& vegetation, double nsupply_patch, double fuptake)
 				if (indiv.fuptake != 1.0) {
 
 					// if indiv has the strenght to take up more than N demand
-					if (ratio_uptake * indiv.nmass_root/(max(min_crownarea,pow(indiv.crownarea,crownarea_power))*indiv.densindiv) > indiv.ndemand_uptake && !negligible(indiv.ndemand_uptake)){
+					if (ratio_uptake * nitrogen_uptake_strength(indiv) > indiv.ndemand_uptake && !negligible(indiv.ndemand_uptake)){
 						
 						indiv.fuptake = 1.0;
 						
@@ -1667,7 +1688,7 @@ void indiv_fuptake(Vegetation& vegetation, double nsupply_patch, double fuptake)
 						temp_nsupply_patch -= indiv.ndemand_uptake;
 
 						// and take away this indiv uptake strength from total
-						total_uptake_decider -= indiv.nmass_root/(max(min_crownarea,pow(indiv.crownarea,crownarea_power))*indiv.densindiv);
+						total_uptake_decider -= nitrogen_uptake_strength(indiv);
 
 						// and redo indiv fuptake calc for the rest of the indiv as this indiv probably could
 						// take up more than its N demand -> more available for the rest of the indiv
@@ -1675,7 +1696,7 @@ void indiv_fuptake(Vegetation& vegetation, double nsupply_patch, double fuptake)
 					}
 					// normal N limited uptake (0.0 < fuptake < 1.0)
 					else if (indiv.ndemand_uptake > 0.0)
-						indiv.fuptake = (ratio_uptake * indiv.nmass_root/(max(min_crownarea,pow(indiv.crownarea,crownarea_power))*indiv.densindiv)) / indiv.ndemand_uptake;
+						indiv.fuptake = (ratio_uptake * nitrogen_uptake_strength(indiv)) / indiv.ndemand_uptake;
 					else
 						indiv.fuptake = 0.0;
 				}
@@ -1835,17 +1856,35 @@ void vegetation_n_uptake(Patch& patch) {
 	soil.ndep_annual=patch.stand.climate.andep;
 
 	// N fixation
+	double soil_N_fix, cwd_N_fix;
+
 	if (ifnfix==1)
-		soil.N_fix = max(0.00000102*patch.aaet+0.0000524,0.0);	
+		soil_N_fix = max(0.00000102*patch.aaet+0.0000524,0.0);	
 			// Conservative N fixation (Cleveland 1999 fig. 1)
 	else if (ifnfix==2)
-		soil.N_fix = max(0.00000234*patch.aaet-0.0000172,0.0);
+		soil_N_fix = max(0.00000234*patch.aaet-0.0000172,0.0);
 			// Central N fixation (Cleveland 1999 fig. 1)
 	else if (ifnfix==3)
-		soil.N_fix = max(0.00000367*patch.aaet-0.0000754,0.0);
+		soil_N_fix = max(0.00000367*patch.aaet-0.0000754,0.0);
 			// Upper N fixation (Cleveland 1999 fig. 1)
 	else
-		soil.N_fix = 0.0;
+		soil_N_fix = 0.0;
+
+	// Coarse Woody Debris N fixation	// GUESSNFIX wood
+	double cwd_litter = 0.0;
+
+	for (int q=0;q<npft;q++) {
+		Patchpft& pft=patch.stand[patch.id].pft[q];
+
+		cwd_litter+=pft.litter_wood;
+	}
+
+	cwd_litter+=patch.soil.sompool[SURFCWD].cmass;
+
+	// CWD N Fixation (Brunner and Kimmins 2003)
+	cwd_N_fix=max(0.0000165*cwd_litter,0.0);
+
+	soil.N_fix=soil_N_fix+cwd_N_fix;
 
 	// N mineralisation and immobilisation
 	soil.nmin_annual=0.0;
@@ -1861,7 +1900,8 @@ void vegetation_n_uptake(Patch& patch) {
 		+soil.nmin_annual-soil.nimmob_annual;
 
 	if (patch.id==0){// && !(date.year%5)){
-		plot("N fixation (kgN/ha/yr)","Nfix",date.year,soil.N_fix*1000.0);
+		plot("N fixation (kgN/ha/yr)","Soil N fix",date.year,soil_N_fix*1000.0);
+		plot("N fixation (kgN/ha/yr)","CWD N fix",date.year,cwd_N_fix*1000.0);
 		//plot("N deposition (kgN/ha/yr)","Ndep",date.year,soil.ndep_annual*1000.0);
 		plot("N min-immob (kgN/ha/yr)","N",date.year,(soil.nmin_annual-soil.nimmob_annual)*1000.0);
 		//plot("mineral N avail (kgN/ha/yr)","N",date.year,soil.nmass_avail*1000.0);
@@ -2150,24 +2190,25 @@ void som_dynamics_century(Patch& patch) {
 		
 		plot("century C","surfstruct",date.year,soil.sompool[SURFSTRUCT].cmass);
 		plot("century C","surfmeta",date.year,soil.sompool[SURFMETA].cmass);
-		plot("century C","soilstruct",date.year,soil.sompool[SOILSTRUCT].cmass);
-		plot("century C","soilmeta",date.year,soil.sompool[SOILMETA].cmass);
+		plot("century C","surfcwd",date.year,soil.sompool[SURFCWD].cmass);
 		plot("century C","surfmicro",date.year,soil.sompool[SURFMICRO].cmass);
+		plot("century C","soilstruct",date.year,soil.sompool[SOILSTRUCT].cmass);
+		plot("century C","soilmeta",date.year,soil.sompool[SOILMETA].cmass);		
+		plot("century C","soilmicro",date.year,soil.sompool[SOILMICRO].cmass);
 		plot("century C","humussom",date.year,soil.sompool[SURFHUMUS].cmass);
-		plot("century C","soilmicro",date.year,soil.sompool[SOILMICRO].cmass);		
 		plot("century C","slowsom",date.year,soil.sompool[SLOWSOM].cmass);
 		plot("century C","passivesom",date.year,soil.sompool[PASSIVESOM].cmass); 
-		 
+ 
 		plot("century N","surfstruct",date.year,soil.sompool[SURFSTRUCT].nmass);
 		plot("century N","surfmeta",date.year,soil.sompool[SURFMETA].nmass);
+		plot("century N","surfcwd",date.year,soil.sompool[SURFCWD].nmass);
+		plot("century N","surfmicro",date.year,soil.sompool[SURFMICRO].nmass);
 		plot("century N","soilstruct",date.year,soil.sompool[SOILSTRUCT].nmass);
 		plot("century N","soilmeta",date.year,soil.sompool[SOILMETA].nmass);
-		plot("century N","surfmicro",date.year,soil.sompool[SURFMICRO].nmass);
-		plot("century N","humussom",date.year,soil.sompool[SURFHUMUS].nmass);
 		plot("century N","soilmicro",date.year,soil.sompool[SOILMICRO].nmass);
+		plot("century N","humussom",date.year,soil.sompool[SURFHUMUS].nmass);
 		plot("century N","slowsom",date.year,soil.sompool[SLOWSOM].nmass);
 		plot("century N","passivesom",date.year,soil.sompool[PASSIVESOM].nmass);
-
 	}
 
 }
@@ -2184,6 +2225,9 @@ void som_dynamics(Patch& patch) {
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
 //
+// Brunner, A. and J. P. Kimmins (2003). "Nitrogen fixation in coarse woody debris of Thuja 
+//   plicata and Tsuga heterophylla forests on northern Vancouver Island." Canadian Journal 
+//   of Forest Research-Revue Canadienne De Recherche Forestiere 33(9): 1670-1682.
 // Cosby, B. J., Hornberger, C. M., Clapp, R. B., & Ginn, T. R. 1984 A statistical exploration
 //   of the relationships of soil moisture characteristic to the physical properties of soil.
 //   Water Resources Research, 20: 682-690.
@@ -2191,6 +2235,8 @@ void som_dynamics(Patch& patch) {
 //   in natural ecosystems. GBC 13: 623-645
 // Foley J A 1995 An equilibrium model of the terrestrial carbon budget
 //   Tellus (1995), 47B, 310-319
+// Kirschbaum, M. U. F. and K. I. Paul (2002). "Modelling C and N dynamics in forest soils 
+//   with a modified version of the CENTURY model." Soil Biology & Biochemistry 34(3): 341-354.
 // Meentemeyer, V. (1978) Macroclimate and lignin control of litter decomposition
 //   rates. Ecology 59: 465-472.
 // Parton (2010) ForCent model development and testing using the Enriched Background 

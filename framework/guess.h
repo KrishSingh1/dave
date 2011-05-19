@@ -73,9 +73,9 @@ typedef enum {NOVEGMODE,INDIVIDUAL,COHORT,POPULATION} vegmodetype;
 	// individuals of a PFT that are roughly the same age; (3) an individual plant.
 
 // GUESSN
-typedef enum {SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SOILMETA,SLOWSOM,	
-	PASSIVESOM,LEACHED} pooltype;
-	// CENTURY pool names
+typedef enum {SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SURFCWD,
+	SOILMETA,SLOWSOM,PASSIVESOM,LEACHED,NSOMPOOL} pooltype;	// GUESSNFIX wood
+	// CENTURY pool names, NSOMPOOL number of SOM pools 
 // end GUESSN
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -83,6 +83,16 @@ typedef enum {SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SOILM
 
 const int NSOILLAYER=2;
 	// number of soil layers modelled
+
+// FACE DAVID ORNL
+//const double SOILDEPTH_UPPER=500.0; // soil upper layer depth (mm)
+//const double SOILDEPTH_LOWER=1500.0;// soil lower layer depth (mm)
+
+// FACE DAVID Duke
+//const double SOILDEPTH_UPPER=400.0; // soil upper layer depth (mm)
+//const double SOILDEPTH_LOWER=100.0; // soil lower layer depth (mm)
+
+// NORMAL VALUES
 const double SOILDEPTH_UPPER=500.0; // soil upper layer depth (mm)
 const double SOILDEPTH_LOWER=1000.0; // soil lower layer depth (mm)
 
@@ -107,9 +117,13 @@ const int OUTPUT_MAXAGECLASS=40;
 	// maximum number of age classes in age structure plots produced by function
 	// outannual
 
-// GUESSN
-const int NSOMPOOL=10;	// number of CENTURY SOM pools
-// end GUESSN
+// FACE DAVID climate David
+const int NYEAR_NDEP = 258;			// Number of years with ndep data
+const double KgTOg = 1000;			// Convert kg to g
+const bool ifplantation=true; // not used yet
+const bool ifdisturb_init=true; // disturbance during spin up to help trees establishing in
+	// competition with grasses
+const int distyear=1000;
 
 	// guess2008 - this is now a global, constant variable Previously, we had duplicate definitions in 
 	// both canexch.cpp and soilwater.cpp
@@ -165,7 +179,6 @@ extern bool iffast; // whether to run in "fast" mode
 extern bool ifcdebt; // whether C debt (storage between years) permitted
 
 // GUESSN
-
 extern bool ifcentury;
 	// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
 extern bool ifnlim;
@@ -179,6 +192,8 @@ extern double nrelocfrac;
 extern bool ifvarycn;
 	// whether leaf and tissue C:N ratios are adjusted according to photosynthetic
 	// demand (i.e. Vmax)
+extern bool ifnlimvarycn;
+	// whether leaf and tissue C:N ratios are adjusted according to N limitation
 extern double cwdtransfer;
 	// fraction of woody debris transferred to SOM each year
 extern double nmass_avail_max;
@@ -190,7 +205,7 @@ extern bool ifindiv_fuptake;
 extern int ifnfix;
 	// whether to include an estimate for N fixation
 extern bool ifndepdata;
-	// whether N deposition data availabile from a file
+	// whether N deposition data available from a file
 extern double andep;
 	// annual N deposition (used only if ifndepdata=false)
 extern double minndep;
@@ -204,6 +219,12 @@ extern double max_nstorage;
 extern double max_nstorage_uptake;
 	// maximum N storage uptake of individual ((max_nstorage_uptake+1)*ndemand)
 // end GUESSN
+
+// FACE David
+extern int FYEAR_SCENARIO_FACE;
+extern int FACE_ring;				// Which FACE ring examined
+extern int ifduke;					// Duke or Oak Ridge
+extern int has_FACE_clim;			// If we are using FACE clim data
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // guess2008 - new input variables, from the .ins file
@@ -673,6 +694,14 @@ public:
 		// fine root C:N mass ratio
 	double cton_sap;
 		// sapwood C:N mass ratio
+	// GUESSN
+	double cton_leaf_min;
+		// minimum leaf C:N mass ratio
+	double cton_leaf_max;
+		// maximum leaf C:N mass ratio
+	double cton_leaf_avr;
+		// average leaf C:N mass ratio
+	// end GUESSN
 	double reprfrac;
 		// fraction of NPP allocated to reproduction
 	double turnover_leaf;
@@ -1657,6 +1686,7 @@ public:
 		nmass_litter_leaf=0.0;
 		nmass_litter_root=0.0;
 		nmass_litter_wood=0.0;
+		
 		// end GUESSN
 	}
 };
@@ -1892,6 +1922,11 @@ public:
 		// soil static parameters for this stand
 
 	// MEMBER FUNCTIONS
+
+	// FACE DAVID Thomas plantation general
+	int plantyear; // year of plantation of FACE forest
+	int distyear2; // cutting natural forest to be replaced by grassland: 1700 for Duke, Oak Ridge unclear, was also field
+	// Thomas2 this year's ndemand: checking, see grwoth.cpp
 
 	Stand(Pftlist& pftlist):climate(*this) {
 		

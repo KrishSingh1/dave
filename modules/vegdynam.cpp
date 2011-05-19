@@ -126,6 +126,10 @@ bool establish(Patch& patch,Climate& climate,Pft& pft) {
         }
     }
 
+	// FACE DAVID
+	if (has_FACE_clim && pft.lifeform==TREE && date.year>patch.stand.distyear2 && date.year<patch.stand.plantyear)
+		return false;
+		// Cutting natural forest, replaced by pasture or field, as happened at the sites
 
 	// else
 
@@ -405,6 +409,15 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 	int i;
 	patch.new_est_ndemand=0.0;
 
+	// FACE DAVID Thomas plantation cohort mode; not used
+	double no_trees_planted;
+
+	if (!ifduke) // then ORNL
+		no_trees_planted=380.0;
+	else
+		no_trees_planted=170.0;
+	// end FACE
+
 	// Obtain reference to Vegetation object
 
 	Vegetation& vegetation=patch.vegetation;
@@ -476,8 +489,14 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 					bminit=SAPSIZE*patch.pft[pft.id].anetps_ff;	
 
-					if (ifnlim)
-						bminit*=0.5;// GUESSNFIX
+					// GUESSN grass gets at least 5% of available N. When established
+					// they shouldn't been able to get more!
+					double bminit_n_lim=indiv.pft.cton_leaf_avr*(patch.soil.nmass_avail+
+						patch.soil.ndep_annual+patch.soil.N_fix+
+						patch.soil.nmin_annual-patch.soil.nimmob_annual)*0.05;
+
+					if (ifnlim)// GUESSNFIX
+						bminit=min(bminit,bminit_n_lim);
 
 					// BLARP! OECD
 					if (ifdisturb && patch.disturbed)
@@ -573,6 +592,31 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 				if (ifstochestab || vegmode==INDIVIDUAL) nsapling=randpoisson(est);
 				else nsapling=est;
+
+				// FACE DAVID
+				if (has_FACE_clim && date.year<=distyear && ifdisturb_init)
+					nsapling=0.0; // speeding up things for spin up
+
+				// FACE DAVID Thomas4
+				if (has_FACE_clim && ifplantation) {
+					if (date.year>=stand.plantyear) {
+						if (ifduke) {
+							if (pft.name=="TeINE" && date.year==stand.plantyear+1) 
+								nsapling=no_trees_planted;
+							else if (pft.name=="TeINE" || pft.name=="TeBE" || date.year<stand.plantyear+4)	//stand.plantyear+3) // FACE plantation
+								nsapling=0.0;
+							else	// Thomas plantation new
+								nsapling*=20.0;
+						}
+						else { // Oak Ridge
+							if (pft.name=="IBS" && date.year==stand.plantyear+1)
+								nsapling=no_trees_planted;
+							else if (date.year<date.year<stand.plantyear+3)// was ??? >stand.plantyear)	// FACE plantation
+								nsapling=0.0;
+						}
+					}
+				}
+				// end FACE
 
 				patch.pft[pft.id].nsapling_yearly+=nsapling;
 
@@ -785,13 +829,14 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 
 			patch.pft[indiv.pft.id].litter_leaf+=indiv.cmass_leaf;
 			patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
-			patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap+indiv.cmass_heart-
-				indiv.cmass_debt;
+			patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
 
 			// GUESSN
 			patch.pft[indiv.pft.id].nmass_litter_leaf+=indiv.nmass_leaf;
 			patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nmass_root;
 			patch.pft[indiv.pft.id].nmass_litter_wood+=indiv.nmass_sap+indiv.nmass_heart;
+			
+
 			
 			// Transfer N storage to wood N litter for now 
 			if (indiv.pft.lifeform == TREE)
@@ -800,8 +845,8 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 				patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nstore+indiv.nmass_store;
 			// end GUESSN
 
-		//	if (indiv.height > 10.0)
-		//		dprintf("Year %d KILLED bioclimatic pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
+//			if (indiv.height > 10.0 && date.year > 560)
+//				dprintf("Year %d KILLED bioclimatic pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
 
 			vegetation.killobj();
 			killed=true;
@@ -964,8 +1009,8 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 
 		if (negligible(indiv.densindiv)) {
 	
-	//		if (indiv.height > 10.0)
-	//			dprintf("Year %d KILLED dens pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
+//			if (indiv.height > 10.0 && date.year > 560)
+//				dprintf("Year %d KILLED dens pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
 
 			vegetation.killobj();
 			killed=true;
@@ -1188,8 +1233,8 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob,
 
 					if (negligible(indiv.densindiv)) {
 
-		//				if (indiv.height > 10.0)
-		//					dprintf("Year %d KILLED dens fire pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
+//						if (indiv.height > 10.0 && date.year > 560)
+//							dprintf("Year %d KILLED dens fire pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
 
 						vegetation.killobj();
 						killed=true;
@@ -1222,7 +1267,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob,
 			patch.pft[indiv.pft.id].litter_leaf+=indiv.cmass_leaf;
 			patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
 			patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap+indiv.cmass_heart-
-				indiv.cmass_debt;
+					indiv.cmass_debt;
 
 			// GUESSN
 			patch.pft[indiv.pft.id].nmass_litter_leaf+=indiv.nmass_leaf;
@@ -1236,8 +1281,8 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob,
 				patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nstore+indiv.nmass_store;
 			// end GUESSN
 
-		//	if (indiv.height > 10.0)
-		//		dprintf("Year %d KILLED bioclimatic pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
+//			if (indiv.height > 10.0 && date.year > 560)
+//				dprintf("Year %d KILLED bioclimatic pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
 
 			vegetation.killobj();
 			killed=true;
@@ -1308,6 +1353,8 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob,
 				mort_min=min(1.0,KMORTBG_LNF*(KMORTBG_Q+1)/indiv.pft.longevity*
 					pow(indiv.age/indiv.pft.longevity,KMORTBG_Q));
 
+				//mort_min=0.0; // GUESSNFIX
+
 
 				// Growth suppression mortality
 				// Smith et al 2001; c.f. Pacala et al 1993, Eqn 5
@@ -1376,11 +1423,12 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob,
 				patch.pft[indiv.pft.id].litter_wood+=
 					(1.0-frac_survive)*(indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt);
 
+
 				// GUESSN
 				patch.pft[indiv.pft.id].nmass_litter_leaf+=(1.0-frac_survive)*indiv.nmass_leaf;
 				patch.pft[indiv.pft.id].nmass_litter_root+=(1.0-frac_survive)*indiv.nmass_root;
 				patch.pft[indiv.pft.id].nmass_litter_wood+=
-						(1.0-frac_survive)*(indiv.nmass_sap+indiv.nmass_heart);
+					(1.0-frac_survive)*(indiv.nmass_sap+indiv.nmass_heart);
 			
 				// Transfer N storage to wood N litter for now 	
 				patch.pft[indiv.pft.id].nmass_litter_wood+=(1.0-frac_survive)*(indiv.nstore+indiv.nmass_store);
@@ -1415,8 +1463,8 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob,
 
 				if (negligible(indiv.densindiv)) {
 
-			//		if (indiv.height > 10.0)
-			//			dprintf("Year %d KILLED dens mort pft %s height %g dens %g mort %g\n",date.year,(char*)indiv.pft.name,indiv.height,indiv.densindiv,mort);
+//					if (indiv.height > 10.0 && date.year > 560)
+//						dprintf("Year %d KILLED dens mort pft %s height %g dens %g mort %g\n",date.year,(char*)indiv.pft.name,indiv.height,indiv.densindiv,mort);
 					vegetation.killobj();
 					killed=true;
 				}
@@ -1539,7 +1587,6 @@ void fire(Patch& patch,double& fireprob) {
 		mort_fire=fireprob*(1.0-patch.pft[p].pft.fireresist);
 
 		// Calculate flux from burnt litter
-
 		patch.fluxes.acflux_fire+=mort_fire*(patch.pft[p].litter_leaf+
 			patch.pft[p].litter_wood+patch.pft[p].litter_repr);
 
@@ -1549,7 +1596,7 @@ void fire(Patch& patch,double& fireprob) {
 		patch.pft[p].litter_wood*=1.0-mort_fire;
 		patch.pft[p].litter_repr*=1.0-mort_fire;
 
-		// GUESSN
+		// GUESSN fix
 		// N should be added to N gas
 		//patch.fluxes.anflux_fire+=mort_fire*(patch.pft[p].nmass_litter_leaf+
 		//	patch.pft[p].nmass_litter_wood);
@@ -1586,8 +1633,8 @@ void disturbance(Patch& patch,double disturb_prob) {
 
 			patch.pft[indiv.pft.id].litter_leaf+=indiv.cmass_leaf;
 			patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
-			patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap+indiv.cmass_heart
-				-indiv.cmass_debt;
+			patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap+indiv.cmass_heart-
+					indiv.cmass_debt;
 
 			// GUESSN
 			patch.pft[indiv.pft.id].nmass_litter_leaf+=indiv.nmass_leaf;
@@ -1601,8 +1648,8 @@ void disturbance(Patch& patch,double disturb_prob) {
 				patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nstore+indiv.nmass_store;
 			// end GUESSN
 
-		//	if (indiv.height > 10.0)
-		//		dprintf("Year %d KILLED dist pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
+//			if (indiv.height > 10.0 && date.year > 560)
+//				dprintf("Year %d KILLED dist pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
 
 			vegetation.killobj();
 		}
@@ -1662,6 +1709,28 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 			}
 
 		}
+
+		// FACE Thomas plantation cohort mode
+		if (has_FACE_clim && date.year==stand.plantyear && ifplantation) {
+			disturbance(patch,1.0);
+			if (patch.disturbed) {
+				return; // no mortality or establishment this year
+			}
+		}
+		// help the trees establishing in competition with grasses
+		if (has_FACE_clim && date.year==distyear && ifdisturb_init) {
+			disturbance(patch,1.0);
+			if (patch.disturbed) {
+				return; // no mortality or establishment this year
+			}
+		}
+		if (has_FACE_clim && date.year==stand.distyear2 && ifdisturb_init) { // when trees were felled at the sites, replaced by pasture or cropland
+			disturbance(patch,1.0);
+			if (patch.disturbed) {
+				return; // no mortality or establishment this year
+			}
+		}
+		// end FACE
 
 		// Mortality
 		mortality_guess(stand,patch,stand.climate,fireprob,pftlist);

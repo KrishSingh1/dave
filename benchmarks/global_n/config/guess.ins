@@ -23,8 +23,22 @@
 	param "file_cru_misc" (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006misc.bin")
 
 ! N deposition (blank string to use constant value andep instead -- see below)
-	param "file_ndep" (str "/home/david/data/Global_Ndep_0.5_degree.txt")
+	param "file_ndep" (str "/home/joe/GlobalNdep.bin")
 	!param "file_ndep" (str "")
+
+!///////////////////////////////////////////////////////////////////////////////////////
+! FACE
+	
+! DUKE
+	!param "file_gridlist" (str "\home\david\data\FACE\gridlist_face_Duke.txt")
+	param "met_face_duke" (str "\home\david\data\FACE\Daily_Duke_Met_data_96-07_Soenke.txt")
+	param "ndep_face_duke" (str "\home\david\data\FACE\Yearly_Duke_N_dep_7.txt")
+	!param "ndep_face_duke" (str "\home\david\data\FACE\Yearly_Duke_N_dep_13.7.txt")
+
+! OAK
+	!param "file_gridlist" (str "\home\david\data\FACE\gridlist_face_Oak.txt")
+	param "met_face_oak" (str "\home\david\data\FACE\Daily_ORNL_Met_data_98-08_Soenke.txt")
+	param "ndep_face_oak" (str "\home\david\data\FACE\Yearly_ORNL_N_dep.txt")
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -126,6 +140,7 @@ ifcdebt 1				! whether to allow vegetation C storage (1) or not (0)
 ifcentury 1				! whether to use CENTURY SOM dynamics (mandatory for N cycling)
 ifnlim 1				! whether plant growth limited by available N (if 0 then also iflimvmax most be 0)
 ifvarycn 1				! whether leaf and tissue C:N linearly scale with Vmax
+ifnlimvarycn 1			! whether leaf and tissue C:N linearly scale with N limitation
 iflimvmax 0			    ! whether Vmax limited by leaf N content
 ifindiv_fuptake 1		! whether to allow individual fractional N uptake
 freenyears 50			! number of years to spin up without N limitation
@@ -143,6 +158,11 @@ max_nstorage 0.2		! maximum N storage of individual
 max_nstorage_uptake 0.2	! maximum N storage uptake of individual
 
 ! end GUESSN
+
+!FACE DAVID
+FACE_ring 2				! To use average ambient or elevated CO2 at FACE sites (amb 1, ele 2) 
+FACE_DUKE_or_OAK 0		! Which FACE site that will be examined (Oak 0, Duke 1)
+Has_FACE_clim 0			! If we are using FACE clim data
 
 ! guess2008 - additions
 ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1) 
@@ -228,6 +248,9 @@ group "Shrub"
 	cton_leaf 29
 	cton_root 29
 	cton_sap 330
+	cton_leaf_min 16
+	cton_leaf_avr 25
+	cton_leaf_max 45
 	pathway "c3"
 	kest_repr 20
 	kest_bg 0.1
@@ -254,6 +277,9 @@ group "grass" (
 	turnover_root 0.7		! 0.5 hos guess2008
 	cton_leaf 29
 	cton_root 29
+	cton_leaf_min 16
+	cton_leaf_avr 25
+	cton_leaf_max 45
 	litterme 0.2
 	parff_min 1000000		! 2500000 i guess2008	
 	fireresist 0.5			! 1.0 hos Thomas
@@ -270,6 +296,9 @@ group "broadleaved" (
 	k_latosa 6000
 	gmin 0.5
 	intc 0.02
+	cton_leaf_min 16
+	cton_leaf_avr 25
+	cton_leaf_max 45
 )
 
 group "needleleaved" (
@@ -280,6 +309,9 @@ group "needleleaved" (
 	k_latosa 5000
 	gmin 0.3
 	intc 0.06
+	cton_leaf_min 28
+	cton_leaf_avr 42
+	cton_leaf_max 75
 )
 
 group "evergreen" (
@@ -491,6 +523,29 @@ pft "TeBE" (
 	twmin_est 5
 	gdd5min_est 2000
 	longevity 300 !from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+)
+
+! Thomas: include new PFT needle-leaved temperate tree FACE
+pft "TeINE" (
+
+	! Temperate broadleaved evergreen tree
+
+	include 0
+	tree
+	needleleaved
+	shade_intolerant
+	evergreen
+	temperate
+	rootdist 0.9 0.1
+	leaflong 1.5			
+	turnover_leaf 0.67	
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 10
+	twmin_est 5
+	gdd5min_est 2000
+	longevity 350
 	fireresist 0.3
 )
 

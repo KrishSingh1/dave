@@ -1941,6 +1941,20 @@ void growth(Stand& stand,Patch& patch) {
 			else
 				indiv.cton_leaf_new=indiv.pft.cton_leaf;
 
+			if (ifnlimvarycn && date.year>freenyears && ifnlim) { // GUESSNFIX
+
+				double nalloc_scalar = 1.0;
+				double diff_to_min_n_conc = 1.0/indiv.cton_leaf_new-1.0/indiv.pft.cton_leaf_max;
+				double change_in_N_conc = diff_to_min_n_conc * max((1.0-(indiv.fuptake + indiv.fuptake_avr)/2.0),0.0);
+				indiv.cton_leaf_new=1.0/((1.0/indiv.cton_leaf_new)-change_in_N_conc);
+
+				if (indiv.cton_leaf_new > indiv.pft.cton_leaf_max)
+					indiv.cton_leaf_new = indiv.pft.cton_leaf_max;
+				else if (indiv.cton_leaf_new < indiv.pft.cton_leaf_min)
+					indiv.cton_leaf_new = indiv.pft.cton_leaf_min;
+			}
+
+
 			indiv.cton_root_new=
 				indiv.cton_leaf_new*(indiv.pft.cton_root/indiv.pft.cton_leaf);
 	
@@ -1968,14 +1982,27 @@ void growth(Stand& stand,Patch& patch) {
 		else
 			indiv.cton_sap_old=indiv.pft.cton_sap;
 
+		// FACE DAVID
+		if (date.year > 2080 && date.year < 2100) {
+			plot("C:N ratio Leaf",indiv.pft.name,date.year,indiv.cton_leaf_new);
+			plot("C:N ratio Root",indiv.pft.name,date.year,indiv.cton_root_new);
+			if (indiv.pft.lifeform == TREE)
+				plot("C:N ratio Sap",indiv.pft.name,date.year,indiv.cton_sap_new);
+		}
+
 		// end GUESSN
 
 		indiv.deltafpc=0.0;
 
 		killed=false;
 
-		// Set leaf:root mass ratio based on water stress parameter
-		indiv.ltor=indiv.wscal_mean*indiv.pft.ltor_max;
+		// N stress scalar for leaf to root allocation // GUESSNFIX
+		//double nscal = (1.0/indiv.cton_leaf_new+1.0/indiv.pft.cton_leaf_avr)/(2.0/indiv.pft.cton_leaf_avr);
+		double nscal =(1.0/indiv.cton_leaf_new)/(1.0/indiv.pft.cton_leaf_avr);
+
+		// Set leaf:root mass ratio based on water stress parameter 
+		// or N stress scalar
+		indiv.ltor=min(indiv.wscal_mean,nscal)*indiv.pft.ltor_max;
 
 		if (negligible(indiv.densindiv))
 			fail("growth: negligible densindiv for %s",(char*)indiv.pft.name);
@@ -2200,7 +2227,7 @@ void growth(Stand& stand,Patch& patch) {
 					// the other 50% going into heartwood
 					if (cmass_sap_inc<0.0)
 						patch.pft[indiv.pft.id].nmass_litter_wood+=cmass_heart_inc*indiv.densindiv/
-							indiv.cton_sap_new*(1.0-nrelocfrac);		
+							indiv.cton_sap_new*(1.0-nrelocfrac);
 					// end GUESSN
 				}
 
@@ -2220,23 +2247,24 @@ void growth(Stand& stand,Patch& patch) {
 						// guess2008 - catches small, negative values too
 						patch.pft[indiv.pft.id].litter_leaf+=indiv.cmass_leaf;
 						patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
-						patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap;
 
-						patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_heart-indiv.cmass_debt;
+						patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap+
+							indiv.cmass_heart-indiv.cmass_debt;
 					
 						// GUESSN
 						patch.pft[indiv.pft.id].nmass_litter_leaf+=max(indiv.nmass_leaf,0.0);
 						patch.pft[indiv.pft.id].nmass_litter_root+=max(indiv.nmass_root,0.0);
-						patch.pft[indiv.pft.id].nmass_litter_wood+=max(indiv.nmass_sap,0.0);
-						patch.pft[indiv.pft.id].nmass_litter_wood+=max(indiv.nmass_heart,0.0);
+
+						patch.pft[indiv.pft.id].nmass_litter_wood+=max(indiv.nmass_sap,0.0)+
+							max(indiv.nmass_heart,0.0);
 						
 						// Transfer N storage to wood N litter for now
 						patch.pft[indiv.pft.id].nmass_litter_wood+=max(indiv.nstore,0.0)+max(indiv.nmass_store,0.0);
 						// end GUESSN
 					}
 
-		//			if (indiv.height > 10.0)
-		//				dprintf("Year %d KILLED mincmass pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
+			//		if (indiv.height > 10.0 && date.year > 560)
+			//			dprintf("Year %d KILLED mincmass pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
 
 					vegetation.killobj();
 					killed=true;
@@ -2381,8 +2409,8 @@ void growth(Stand& stand,Patch& patch) {
 						// end GUESSN
 					}
 
-		//			if (indiv.height > 10.0)
-		//				dprintf("Year %d KILLED mincmass pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
+//					if (indiv.height > 10.0 && date.year > 560)
+//						dprintf("Year %d KILLED mincmass pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
 
 					vegetation.killobj();
 					killed=true;
@@ -2400,22 +2428,24 @@ void growth(Stand& stand,Patch& patch) {
 				if (indiv.alive) {
 					patch.pft[indiv.pft.id].litter_leaf+=max(indiv.cmass_leaf,0.0);
 					patch.pft[indiv.pft.id].litter_root+=max(indiv.cmass_root,0.0);
-					patch.pft[indiv.pft.id].litter_wood+=max(indiv.cmass_sap,0.0);
-					patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_heart-indiv.cmass_debt;
+
+					patch.pft[indiv.pft.id].litter_wood+=max(indiv.cmass_sap,0.0)+
+						indiv.cmass_heart-indiv.cmass_debt;
 
 					// GUESSN
 					patch.pft[indiv.pft.id].nmass_litter_leaf+=max(indiv.nmass_leaf,0.0);
 					patch.pft[indiv.pft.id].nmass_litter_root+=max(indiv.nmass_root,0.0);
-					patch.pft[indiv.pft.id].nmass_litter_wood+=max(indiv.nmass_sap,0.0);
-					patch.pft[indiv.pft.id].nmass_litter_wood+=max(indiv.nmass_heart,0.0);
+
+					patch.pft[indiv.pft.id].nmass_litter_wood+=max(indiv.nmass_sap,0.0)+
+						max(indiv.nmass_heart,0.0);
 					
 					// Transfer N storage to root N litter for now
 					patch.pft[indiv.pft.id].nmass_litter_root+=max(indiv.nstore,0.0)+max(indiv.nmass_store,0.0);
 					// end GUESSN
 				}
 
-		//		if (indiv.height > 10.0)
-		//			dprintf("Year %d KILLED allometry pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
+//				if (indiv.height > 10.0 && date.year > 560)
+//					dprintf("Year %d KILLED allometry pft %s height %g\n",date.year,(char*)indiv.pft.name,indiv.height);
 
 				vegetation.killobj();
 				killed=true;
@@ -2450,6 +2480,10 @@ void growth(Stand& stand,Patch& patch) {
 					indiv.nstore=0.0;	
 				}
 				// end GUESSN
+
+				// FACE DAVID plots
+				if (date.year == 2091 && indiv.pft.name == "IBS" && !ifduke)
+					dprintf("Year %d pft %s HEIGHT %g should be %g\n",date.year,(char*)indiv.pft.name,indiv.height,12.0);
 			
 				// ... on to next individual
 				vegetation.nextobj();

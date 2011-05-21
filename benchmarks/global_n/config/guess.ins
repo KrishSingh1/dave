@@ -77,10 +77,10 @@ file_firert "firert.out"
 ! GUESSN
 file_cton "cton.out"
 file_nmass "nmass.out"
-file_andep "andep.out"
+!file_andep "andep.out"
 file_npool "npool.out"
 file_nleach "nleach.out"
-file_age "age.out"
+!file_age "age.out"
 file_nlim "nlim.out"
 
 ! Monthly outputs
@@ -121,7 +121,7 @@ ifdailydecomp 1			! whether to calculate soil respiration daily (1) or monthly (
 ifcalcsla 1				! whether to calculate SLA from leaf longevity
 						! (PFT-specific value can be specified in this file instead)
 iffire 0				! whether to implement fire (1) or not (0)
-npatch 1				! number of replicate patches to simulate
+npatch 10				! number of replicate patches to simulate
 patcharea 1000			! patch area (m2)
 estinterval 5			! years between establishment events in cohort mode
 ifdisturb 0				! whether generic patch-destroying disturbances enabled

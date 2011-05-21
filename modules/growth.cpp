@@ -1047,8 +1047,23 @@ void allocation_nlim(Patch& patch, Pft& pft,double nmass,double cton_leaf,double
 	litter_root_inc=0.0;
 	cmass_root_inc=0.0; // guess2008 - initialise
 
-	if (ltor<1.0e-10) 
-		fail("allocation_nlim: ltor=%g",ltor);
+	if (ltor<1.0e-10) {
+		
+		// No leaf production possible - put all biomass into roots
+		// (Individual will die next time period)
+
+		cmass_leaf_inc=0.0;
+		cmass_root_inc=bminc;
+
+		if (pft.lifeform==TREE) {
+			cmass_sap_inc=-cmass_sap;
+			cmass_heart_inc=-cmass_sap_inc;
+		}
+
+		dprintf("Year %d ltor %g No leaf production possible\n",date.year,ltor);
+
+		return;
+	}
 
 	if (pft.lifeform==TREE) {
 

@@ -1255,7 +1255,7 @@ xtring file_cru_misc;
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void read_FACE_clim(double FACE_dtemp[NYEAR_SCENARIO_FACE][365],double FACE_dprec[NYEAR_SCENARIO_FACE][365],
+/*void read_FACE_clim(double FACE_dtemp[NYEAR_SCENARIO_FACE][365],double FACE_dprec[NYEAR_SCENARIO_FACE][365],
 	double FACE_dsun[NYEAR_SCENARIO_FACE][365],double FACE_dco2[NYEAR_SCENARIO_FACE][365], 
 	double FACE_yndep[NYEAR_NDEP],int NYEAR_SCENARIO_FACE,int NYEAR_NDEP)
 {
@@ -1348,7 +1348,7 @@ void read_FACE_clim(double FACE_dtemp[NYEAR_SCENARIO_FACE][365],double FACE_dpre
 			FACE_yndep[year] = ndep_oak[1];	// Two different columns in the input file with ndep data (1,2)
 		}
 	}
-}
+}*/
 //----------------------------------------------------------------------------------------------
 
 
@@ -2111,8 +2111,8 @@ bool getstand(Stand& stand) {
 
 
 		// FACE DAVID climate Reading met data
-		if (has_FACE_clim)		
-			read_FACE_clim(dtemp_FACE,dprecip_FACE,dsun_FACE,dco2_FACE,yndep_FACE,NYEAR_SCENARIO_FACE,NYEAR_NDEP);
+	//	if (has_FACE_clim)		
+	//		read_FACE_clim(dtemp_FACE,dprecip_FACE,dsun_FACE,dco2_FACE,yndep_FACE,NYEAR_SCENARIO_FACE,NYEAR_NDEP);
 
 
 		while (!gridfound) {

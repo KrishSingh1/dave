@@ -234,6 +234,8 @@ def parsepart(node):
         raise XMLError("Bad element (" + tag + ")")
 
 def parsexml(xml, report):
+    report.settitle(xml.getAttribute("title"))
+
     for node in xml.childNodes:
         if node.nodeType == xml.ELEMENT_NODE:
             tag = node.tagName
@@ -257,10 +259,8 @@ if __name__ == "__main__":
         # Traverse the DOM tree and create our internal representation
         parsexml(xmldoc, report)
 
-        report.settitle(sys.argv[2])
-
         try:
-            metadata = open(sys.argv[3]).read()
+            metadata = open(sys.argv[2]).read()
         except IOError,e:
             metadata = ""
         report.setmetadata(metadata)

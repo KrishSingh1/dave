@@ -42,7 +42,7 @@ function print_string {
 
 # Start the root node in the XML report
 function print_report_header {
-    print_string "<report>"
+    print_string "<report title=\""$bm_name"\">"
 }
 
 # Finish the root node in the XML report
@@ -111,4 +111,4 @@ print_report_footer
 
 # Convert the XML file to HTML
 cd report
-$(dirname $0)/report2html report.xml $bm_name ../../info.txt > index.html
+$(dirname $0)/report2html report.xml ../../info.txt > index.html

@@ -7,6 +7,28 @@ as generated in the post processing step of a benchmark, into HTML.
 from xml.dom import minidom
 from xml.dom.minidom import Element, Text
 import sys
+import subprocess
+
+# This will be set to True if invoked with -p
+printer_friendly=False
+
+class ResizeFail:
+    """This is thrown when resizing of an image fails"""
+    pass
+
+def resizeimage(path):
+    """Calls the ImageMagick program convert to resize the image
+    to something that isn't too big"""
+
+    print >> sys.stderr, "Resizing " + path
+
+    newpath = "resized_" + path
+    try:
+        subprocess.call(['convert', path, '-resize', '800x600>', newpath])
+    except:
+        raise ResizeFail
+
+    return newpath
 
 # Some help functions for generating HTML DOM nodes
 
@@ -39,14 +61,19 @@ class Image:
     """An image with a description"""
 
     def __init__(self, path, description, embed):
-        self.path = path
+        
+        if printer_friendly:
+            self.path = resizeimage(path)
+        else:
+            self.path = path
+
         self.description = description
         self.embed = embed
 
     def tohtml(self):
         node = Element("div")
 
-        if self.embed:
+        if self.embed or printer_friendly:
             htmlheader("h3",self.description, node)
 
             image = htmlelement("image", node)
@@ -248,6 +275,13 @@ def parsexml(xml, report):
 # Start the program
 
 if __name__ == "__main__":
+
+    # Check if we should do a printer friendly report
+    # (all images embedded and resized if they are too big)
+    if sys.argv.count("-p") > 0:
+        printer_friendly = True
+        sys.argv.remove("-p")
+
     # Create the internal representation of the report
     report = Report()
 
@@ -268,11 +302,14 @@ if __name__ == "__main__":
         print >> sys.stderr, e
         sys.exit(1)
     except IOError,e:
-        print "I/O error: " + e.strerror
-        print "File: " + e.filename
+        print >> sys.stderr, "I/O error: " + e.strerror
+        print >> sys.stderr, "File: " + e.filename
+        sys.exit(1)
+    except ResizeFail,e:
+        print >> sys.stderr, "Failed to resize, ImageMagick not installed?"
         sys.exit(1)
     except:
-        print "Unexpected error:", sys.exc_info()[0]
+        print >> sys.stderr, "Unexpected error:", sys.exc_info()[0]
         sys.exit(1)
 
     # Serialize to HTML

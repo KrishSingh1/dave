@@ -716,7 +716,6 @@ void daylengthinsoleet(Climate& climate) {
 	// climate = stand climate
 
 	const double QOO=1360.0;
-	const double PI=3.1415927;
 	const double BETA=0.17;
 	const double A=107.0;
 	const double B=0.2;

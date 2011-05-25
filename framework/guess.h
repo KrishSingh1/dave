@@ -33,14 +33,20 @@
 //   templates for dynamic collection classes (list arrays of various types), argument
 //   processing for printf-style functions, timing functions and other utilities.
 
-#include <math.h>
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <gutil.h>
-#include <cmath>
 
+#ifndef M_PI
+double const PI = 4 * atan(1);
+#else
+double const PI = M_PI;
+#undef M_PI
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL ENUMERATED TYPE DEFINITIONS

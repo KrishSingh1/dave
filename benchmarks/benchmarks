@@ -12,7 +12,7 @@ bbox_command="bbox"
 
 # Prints a message to stderr
 function error {
-    echo $1 >&2
+    echo "$1" >&2
 }
 
 # A function which attempts to find out whether PBS is installed
@@ -30,6 +30,9 @@ function print_usage_and_exit {
     error "-s   Single machine mode, don't use PBS"
     error "-c   Compile only, don't run the tests"
     error "-p   Post processing only"
+    error "-r   Generate printer friendly report"
+    error "     (does nothing else and is run as a regular process,"
+    error "      in other words, not submitted as a batch job)"
     error "-i   Include only the specified tests"
     error "-x   Exclude the specified tests"
     error
@@ -62,9 +65,10 @@ function includes {
 single_machine=0
 compile_only=0
 pp_only=0
+printer_friendly=0
 
 # Handle the -s, -c, -i and -x options
-while getopts ":scpi:x:" opt; do
+while getopts ":scpri:x:" opt; do
     case $opt in
 	i  ) inclusive=$OPTARG
 	     inclusive_flag=1 ;;
@@ -73,6 +77,7 @@ while getopts ":scpi:x:" opt; do
 	s  ) single_machine=1 ;;
 	c  ) compile_only=1 ;;
 	p  ) pp_only=1 ;;
+	r  ) printer_friendly=1 ;;
 	\? ) print_usage_and_exit ;;
     esac
 done
@@ -90,8 +95,13 @@ if (( $single_machine == 0 )); then
     fi
 fi
 
-if (( $compile_only == 1 && pp_only == 1 )); then
+if (( $compile_only == 1 && $pp_only == 1 )); then
     error "-c and -p can't be used at the same time!"
+    exit 1
+fi
+
+if (( $printer_friendly == 1 && ( $compile_only == 1 || $pp_only == 1) )); then
+    error "-r can't be combined with -c or -p!"
     exit 1
 fi
 
@@ -362,6 +372,11 @@ mkdir -p $work_dir
 
 # Convert the work_dir variable to an absolute path if it isn't already
 work_dir=`cd $1; pwd`
+
+if (( $printer_friendly == 1 )); then
+    ./printerfriendly $work_dir
+    exit 0
+fi
 
 # Generate meta data about this run 
 # (such as time stamp and version control information).

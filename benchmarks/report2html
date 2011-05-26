@@ -16,15 +16,16 @@ class ResizeFail:
     """This is thrown when resizing of an image fails"""
     pass
 
-def resizeimage(path):
+def resizeimage(path, small):
     """Calls the ImageMagick program convert to resize the image
     to something that isn't too big"""
 
     print >> sys.stderr, "Resizing " + path
 
     newpath = "resized_" + path
+    format = '520x390>' if small else '800x600>'
     try:
-        subprocess.call(['convert', path, '-resize', '800x600>', newpath])
+        subprocess.call(['convert', path, '-resize', format, newpath])
     except:
         raise ResizeFail
 
@@ -62,22 +63,23 @@ class Image:
 
     def __init__(self, path, description, embed):
         
-        if printer_friendly:
-            self.path = resizeimage(path)
-        else:
-            self.path = path
+        self.path = path
 
         self.description = description
         self.embed = embed
 
-    def tohtml(self):
+    def tohtml(self, ingroup):
         node = Element("div")
 
-        if self.embed or printer_friendly:
-            htmlheader("h3",self.description, node)
+        if printer_friendly:
+            self.path = resizeimage(self.path, ingroup)
 
+        if self.embed or printer_friendly:
             image = htmlelement("image", node)
             image.setAttribute("src", self.path)
+            htmlelement("br", node)
+            htmltext(self.description, node)
+
         else:
             link = htmlelement("a", node)
             link.setAttribute("href", self.path)
@@ -92,7 +94,7 @@ class Textfile:
         self.path = path
         self.description = description
 
-    def tohtml(self):
+    def tohtml(self, ingroup):
         node = Element("div")
         htmlheader("h3", self.description, node)
 
@@ -109,11 +111,11 @@ class Group:
         self.parts = parts
         self.description = description
 
-    def tohtml(self):
+    def tohtml(self, ingroup):
         node = Element("div")
         htmlheader("h2", self.description, node)
         for part in self.parts:
-            node.appendChild(part.tohtml())
+            node.appendChild(part.tohtml(True))
 
         return node
 
@@ -159,7 +161,7 @@ class Report:
         for part in self.parts:
             cell = self._tablecell(colors[c%len(colors)])
             c+=1
-            cell.appendChild(part.tohtml())
+            cell.appendChild(part.tohtml(False))
             table.appendChild(cell)
 
         htmlelement("hr", body)

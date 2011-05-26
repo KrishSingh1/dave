@@ -22,7 +22,7 @@ function print_usage_and_exit {
     echo "Usage: $0 <filename> [-P prefix] [extra gmap options]"
     echo ""
     echo "Any extra options supplied will be sent to gmap (see the gmap "
-    echo "documentation). Don't send -lon, -lat, -i or -o since gmapall takes"
+    echo "documentation). Don't send -lon, -lat, -i, -t or -o since gmapall takes"
     echo "care of those."
     exit 1
 }

@@ -23,7 +23,10 @@ def resizeimage(path, small):
     print >> sys.stderr, "Resizing " + path
 
     newpath = "resized_" + path
-    format = '520x390>' if small else '800x600>'
+    if small:
+        format = '480x360>' 
+    else:
+        format = '800x600>'
     try:
         subprocess.call(['convert', path, '-resize', format, newpath])
     except:
@@ -79,6 +82,8 @@ class Image:
             image.setAttribute("src", self.path)
             htmlelement("br", node)
             htmltext(self.description, node)
+            htmlelement("br", node)
+            htmlelement("br", node)
 
         else:
             link = htmlelement("a", node)

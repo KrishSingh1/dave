@@ -986,32 +986,6 @@ private:
 	double dataclim[12];
 
 
-	void regress(double* x,double* y,int n,double& a,double& b) {
-
-		// Performs a linear regression of array y on array x (n values)
-		// returning parameters a and b in the fitted model: y=a+bx
-		// (Used by function soiltemp)
-		// Source: Press et al 1986, Sect 14.2
-
-		int i;
-		double sx,sy,sxx,sxy,delta;
-
-		sx=0.0;
-		sy=0.0;
-		sxx=0.0;
-		sxy=0.0;
-		for (i=0;i<n;i++) {
-			sx+=x[i];
-			sy+=y[i];
-			sxx+=x[i]*x[i];
-			sxy+=x[i]*y[i];
-		}
-		delta=(double)n*sxx-sx*sx;
-		a=(sxx*sy-sx*sxy)/delta;
-		b=((double)n*sxy-sx*sy)/delta;
-	}
-
-
 public:
 	Spinup_data(int nyear_loc) {
 		nyear=nyear_loc;

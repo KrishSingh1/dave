@@ -33,20 +33,12 @@
 //   templates for dynamic collection classes (list arrays of various types), argument
 //   processing for printf-style functions, timing functions and other utilities.
 
-#define _USE_MATH_DEFINES
-#include <cmath>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <gutil.h>
-
-#ifndef M_PI
-double const PI = 4 * atan(1);
-#else
-double const PI = M_PI;
-#undef M_PI
-#endif
+#include "guessmath.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL ENUMERATED TYPE DEFINITIONS
@@ -216,22 +208,6 @@ void clear_all_graphs();
 bool abort_request_received();
 	// May be called by framework to respond to abort request from Windows shell
 	// (returns true if shell has sent an abort request, otherwise false)
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-// GLOBAL FUNCTION DEFINITIONS
-// Small inline ("macro") functions, accessible throughout the code
-
-inline bool negligible(double dval) {
-	// Returns true if |dval| < EPSILON, otherwise false
-	return fabs(dval) < 1.0e-30;
-}
-
-inline bool equal(double dval1,double dval2) {
-	// Returns true if |dval1-dval2| < EPSILON, otherwise false
-	return negligible(dval1 - dval2);
-}
-
 
 /// General purpose object for handling simulation timing. 
 /** In general, frameworks should use a single Date object for all simulation

@@ -91,5 +91,8 @@ endif(IO STREQUAL "demo")
 if (UNIX)
    # pgCC 6 doesn't seem to recognize -rdynamic, so remove it
    # (we shouldn't need it anyway)
-   list(REMOVE_ITEM CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "-rdynamic")
+   # It seems the CMake developers have fixed this in newer versions
+   # (sometime after 2.8)
+   SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
+   SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 endif(UNIX)

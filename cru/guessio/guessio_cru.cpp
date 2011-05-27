@@ -1231,8 +1231,8 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 	// Archive object. Definition in new header file, cru.h
 	Cru_1901_2006Archive ark;
 
-	int target_ilon=dlon*10.0;
-	int target_ilat=dlat*10.0;
+	int target_ilon=(int)(dlon*10.0);
+	int target_ilat=(int)(dlat*10.0);
 
 	int y,m;
 
@@ -1431,7 +1431,7 @@ bool findnearestCRUdata(int searchradius, char* cruark, double& lon, double& lat
 	std::sort(search_points.begin(), search_points.end());
 
 	// Find closest coordinate which can be found in CRU
-	for (int i = 0; i < search_points.size(); i++) {
+	for (unsigned int i = 0; i < search_points.size(); i++) {
 		point search_point = search_points[i].second;
 		double search_lon = search_point.first;
 		double search_lat = search_point.second;

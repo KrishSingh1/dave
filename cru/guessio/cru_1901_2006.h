@@ -212,7 +212,7 @@ private:
 
 	void bitify(unsigned char buf[4],double fval,double offset,double scalar) {
 
-		long ival=(fval-offset)/scalar+0.5;
+		long ival = (long)((fval-offset)/scalar + 0.5);
 		buf[0]=ival/0x1000000;
 		ival-=buf[0]*0x1000000;
 		buf[1]=ival/0x10000;

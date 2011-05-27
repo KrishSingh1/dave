@@ -1032,7 +1032,7 @@ void readenv(Coord coord) {
 	}
 
 	for(int m=0;m<12;m++) {
-		mdtr[12]=0.;
+		mdtr[m]=0.;
 		// bvoc
 		if (ifbvoc) {
 			dprintf("WARNING: No data available for dtr in sample data set!\nNo daytime temperature correction for BVOC calculations applied.");

@@ -1,13 +1,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// MODULE SOURCE CODE FILE
-//
-// Module:                Soil organic matter dynamics
-// Header file name:      somdynam.h
-// Source code file name: somdynam.cpp
-// Written by:            Ben Smith
-// Version dated:         2002-09-22
-// Updated:               2010-11-22
-
+/// \file somdynam.cpp
+/// \brief Soil organic matter dynamics
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:

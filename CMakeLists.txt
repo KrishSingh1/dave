@@ -63,35 +63,22 @@ endif (WIN32)
 # The submit script is generated each time the command line binary is built.
 if (UNIX)
   # Choose template file depending on system
-  if (SYSTEM STREQUAL "platon")
-    set(submit_template ${guess_SOURCE_DIR}/parallel_version/platon.tmpl)
-  elseif(SYSTEM STREQUAL "gimle")
-    set(submit_template ${guess_SOURCE_DIR}/parallel_version/gimle.tmpl)
-  else()
-    set(submit_template ${guess_SOURCE_DIR}/parallel_version/simba.tmpl)
-  endif()
-  
+  if (SYSTEM STREQUAL "")
+    set(SYSTEM "simba")
+  endif(SYSTEM STREQUAL "")
+  set(submit_template ${guess_SOURCE_DIR}/parallel_version/${SYSTEM}.tmpl)
+
   # A sed command which exchanges each occurrence of BINARY and DATE in
   # the template with appropriate path to the compiled binary and the
   # current date.
   add_custom_command(TARGET ${guess_command_name}
                      POST_BUILD
-		     COMMAND sed 's|BINARY|'${CMAKE_CURRENT_BINARY_DIR}/${guess_command_name}'|g\;s|DATE|'\"`date`\"'|g' ${submit_template} > ${CMAKE_BINARY_DIR}/submit.sh
-		     COMMENT "Generating submit script")
+             COMMAND sed 's|BINARY|'${CMAKE_CURRENT_BINARY_DIR}/${guess_command_name}'|g\;s|DATE|'\"`date`\"'|g' ${submit_template} > ${CMAKE_BINARY_DIR}/submit.sh
+             COMMENT "Generating submit script")
 endif (UNIX)
 
-if (IO STREQUAL "demo")
-  # Define the USE_DEMO_IO macro when compiling all sources
-  set_property(
-    DIRECTORY
-    PROPERTY COMPILE_DEFINITIONS USE_DEMO_IO
-    )
-elseif(IO STREQUAL "cru")
-  set_property(
-    DIRECTORY
-    PROPERTY COMPILE_DEFINITIONS USE_CRU_IO
-    )
-endif()
+string(TOUPPER ${IO} IO)
+add_definitions(-DUSE_${IO}_IO)
 
 if (UNIX)
    # pgCC 6 doesn't seem to recognize -rdynamic, so remove it

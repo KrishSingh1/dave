@@ -33,7 +33,7 @@
 
 #include "config.h"
 
-#ifdef USE_CRU
+#ifdef USE_CRU_IO
 
 #include "guessio.h"
 
@@ -2796,4 +2796,4 @@ void termio() {
 }
 
 
-#endif // USE_CRU
+#endif // USE_CRU_IO

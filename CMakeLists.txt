@@ -86,7 +86,12 @@ if (IO STREQUAL "demo")
     DIRECTORY
     PROPERTY COMPILE_DEFINITIONS USE_DEMO_IO
     )
-endif(IO STREQUAL "demo")
+elseif(IO STREQUAL "cru")
+  set_property(
+    DIRECTORY
+    PROPERTY COMPILE_DEFINITIONS USE_CRU_IO
+    )
+endif()
 
 if (UNIX)
    # pgCC 6 doesn't seem to recognize -rdynamic, so remove it

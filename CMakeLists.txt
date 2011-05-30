@@ -64,11 +64,11 @@ endif (WIN32)
 if (UNIX)
   # Choose template file depending on system
   if (SYSTEM STREQUAL "platon")
-    set(submit_template ${guess_SOURCE_DIR}/parallel_version/lunarc/platon/submit.tmpl)
+    set(submit_template ${guess_SOURCE_DIR}/parallel_version/platon.tmpl)
   elseif(SYSTEM STREQUAL "gimle")
-    set(submit_template ${guess_SOURCE_DIR}/parallel_version/slurm/submit.tmpl)
+    set(submit_template ${guess_SOURCE_DIR}/parallel_version/gimle.tmpl)
   else()
-    set(submit_template ${guess_SOURCE_DIR}/parallel_version/simba/pbs/submit.tmpl)
+    set(submit_template ${guess_SOURCE_DIR}/parallel_version/simba.tmpl)
   endif()
   
   # A sed command which exchanges each occurrence of BINARY and DATE in

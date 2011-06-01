@@ -39,6 +39,9 @@
 	!param "file_gridlist" (str "\home\david\data\FACE\gridlist_face_Oak.txt")
 	param "met_face_oak" (str "\home\david\data\FACE\Daily_ORNL_Met_data_98-08_Soenke.txt")
 	param "ndep_face_oak" (str "\home\david\data\FACE\Yearly_ORNL_N_dep.txt")
+
+! CANIF files
+	param "met_canif" (str "str "\home\david\data\CANIF\CANIF_met.txt") 
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -77,10 +80,9 @@ file_firert "firert.out"
 ! GUESSN
 file_cton "cton.out"
 file_nmass "nmass.out"
-!file_andep "andep.out"
+file_nsources "nsources.out"
 file_npool "npool.out"
 file_nleach "nleach.out"
-!file_age "age.out"
 file_nlim "nlim.out"
 
 ! Monthly outputs
@@ -163,6 +165,9 @@ max_nstorage_uptake 0.2	! maximum N storage uptake of individual
 FACE_ring 2				! To use average ambient or elevated CO2 at FACE sites (amb 1, ele 2) 
 FACE_DUKE_or_OAK 0		! Which FACE site that will be examined (Oak 0, Duke 1)
 Has_FACE_clim 0			! If we are using FACE clim data
+
+!CANIF David
+Has_CANIF_clim 0		! If we are using CANIF clim data
 
 ! guess2008 - additions
 ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1) 

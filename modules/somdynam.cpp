@@ -412,9 +412,9 @@ void decayrates(Soil& soil,double temp_soil,double wcont_soil,double net_nmass) 
 	
 	// GUESSNFIX wood
 	// N limitation modifier for decomposition
-	if (ifnlim)
-		nmass_mod=max(1.0-exp(-pow(max((net_nmass+2.0e-5)/(2.0e-5),0.0),4.0)),0.5);
-	else
+	//if (ifnlim)
+	//	nmass_mod=max(1.0-exp(-pow(max((net_nmass+2.0e-5)/(2.0e-5),0.0),4.0)),0.5);
+	//else
 		nmass_mod=1.0;
 
 	for (p=0;p<NSOMPOOL;p++) {
@@ -872,7 +872,7 @@ void transfer_litter(Patch& patch,Soil& soil) {
 
 			double nmass_mod;
 			if (ifnlim)
-				nmass_mod = min(patch.fuptake_patch*1.0,1.0);	// GUESSNFIX wood
+				nmass_mod = min(pow(patch.fuptake_patch,0.7),1.0);	// GUESSNFIX wood
 			else
 				nmass_mod = 1.0;
 
@@ -1550,9 +1550,9 @@ double this_years_ndemand(double cmass_leaf,double cmass_root,double cmass_sap,d
 
 double nitrogen_uptake_strength(const Individual& indiv) {
       const double min_crownarea = 0.1;
-      const double crownarea_power = 0.5;
+      const double crownarea_power = 0.2;
 
-      return indiv.nmass_root/(max(min_crownarea,pow(indiv.crownarea,crownarea_power))*indiv.densindiv);
+      return indiv.nmass_root;///(max(min_crownarea,pow(indiv.crownarea,crownarea_power)));//*indiv.densindiv;
 }
 
 void indiv_fuptake(Vegetation& vegetation, double nsupply_patch, double fuptake) {
@@ -1608,8 +1608,10 @@ void indiv_fuptake(Vegetation& vegetation, double nsupply_patch, double fuptake)
 		
 		// TREE
 		// Sum up uptake strengths
-		if (!negligible(indiv.ndemand_uptake))
-			total_uptake_decider += nitrogen_uptake_strength(indiv);
+		if (!negligible(indiv.ndemand_uptake)) {
+			double checkk=nitrogen_uptake_strength(indiv);
+			total_uptake_decider += checkk;
+		}
 
 		vegetation.nextobj();
 	}
@@ -1856,19 +1858,17 @@ void vegetation_n_uptake(Patch& patch) {
 	soil.ndep_annual=patch.stand.climate.andep;
 
 	// N fixation
-	double soil_N_fix, cwd_N_fix;
-
 	if (ifnfix==1)
-		soil_N_fix = max(0.00000102*patch.aaet+0.0000524,0.0);	
+		soil.N_fix = max(0.00000102*patch.aaet+0.0000524,0.0);	
 			// Conservative N fixation (Cleveland 1999 fig. 1)
 	else if (ifnfix==2)
-		soil_N_fix = max(0.00000234*patch.aaet-0.0000172,0.0);
+		soil.N_fix = max(0.00000234*patch.aaet-0.0000172,0.0);
 			// Central N fixation (Cleveland 1999 fig. 1)
 	else if (ifnfix==3)
-		soil_N_fix = max(0.00000367*patch.aaet-0.0000754,0.0);
+		soil.N_fix = max(0.00000367*patch.aaet-0.0000754,0.0);
 			// Upper N fixation (Cleveland 1999 fig. 1)
 	else
-		soil_N_fix = 0.0;
+		soil.N_fix = 0.0;
 
 	// Coarse Woody Debris N fixation	// GUESSNFIX wood
 	double cwd_litter = 0.0;
@@ -1882,9 +1882,9 @@ void vegetation_n_uptake(Patch& patch) {
 	cwd_litter+=patch.soil.sompool[SURFCWD].cmass;
 
 	// CWD N Fixation (Brunner and Kimmins 2003)
-	cwd_N_fix=max(0.0000165*cwd_litter,0.0);
+	soil.cwd_N_fix=max(0.0000165*cwd_litter,0.0);
 
-	soil.N_fix=soil_N_fix+cwd_N_fix;
+	//soil.N_fix+=soil.cwd_N_fix;
 
 	// N mineralisation and immobilisation
 	soil.nmin_annual=0.0;
@@ -1900,14 +1900,14 @@ void vegetation_n_uptake(Patch& patch) {
 		+soil.nmin_annual-soil.nimmob_annual;
 
 	if (patch.id==0){// && !(date.year%5)){
-		plot("N fixation (kgN/ha/yr)","Soil N fix",date.year,soil_N_fix*1000.0);
-		plot("N fixation (kgN/ha/yr)","CWD N fix",date.year,cwd_N_fix*1000.0);
-		//plot("N deposition (kgN/ha/yr)","Ndep",date.year,soil.ndep_annual*1000.0);
-		plot("N min-immob (kgN/ha/yr)","N",date.year,(soil.nmin_annual-soil.nimmob_annual)*1000.0);
-		//plot("mineral N avail (kgN/ha/yr)","N",date.year,soil.nmass_avail*1000.0);
-		plot("N demand/supply (kgN/ha/yr)","N supply",date.year,nsupply_patch*1000.0);
-		plot("N demand/supply (kgN/ha/yr)","N demand",date.year,ndemand_patch*1000.0);
-		//plot("new establishment N demand (kgN/ha/yr)","N demand",date.year,patch.new_est_ndemand*1000.0);
+		plot("N fixation (kgN/ha/yr)","Soil N fix",date.year,soil.N_fix*10000.0);
+		plot("N fixation (kgN/ha/yr)","CWD N fix",date.year,soil.cwd_N_fix*10000.0);
+		//plot("N deposition (kgN/ha/yr)","Ndep",date.year,soil.ndep_annual*10000.0);
+		plot("N min-immob (kgN/ha/yr)","N",date.year,(soil.nmin_annual-soil.nimmob_annual)*10000.0);
+		//plot("mineral N avail (kgN/ha/yr)","N",date.year,soil.nmass_avail*10000.0);
+		plot("N demand/supply (kgN/ha/yr)","N supply",date.year,nsupply_patch*10000.0);
+		plot("N demand/supply (kgN/ha/yr)","N demand",date.year,ndemand_patch*10000.0);
+		//plot("new establishment N demand (kgN/ha/yr)","N demand",date.year,patch.new_est_ndemand*10000.0);
 	}
 
 	// DAILY N SUPPLY

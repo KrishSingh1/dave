@@ -387,14 +387,10 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 	// establishment disabled, a cohort representing exactly 'est' individuals (may be
 	// not-integral) is established.
 
-	double SAPSIZE;
+	double SAPSIZE=0.1;
 
-	if (!ifnlim)
-		SAPSIZE=0.1;
-	else
-		SAPSIZE=0.025;	//GUESSNFIX
-		// coefficient in calculation of initial sapling size and initial
-		// grass biomass (see comment above)
+	// coefficient in calculation of initial sapling size and initial
+	// grass biomass (see comment above)
 
 	bool present; // whether PFT already present in this patch
 	double c; // constant in equation for number of new saplings (Eqn 5)
@@ -476,6 +472,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 				if (!present) {
 
+
 					// ... if not, add it
 
 					Individual& indiv=vegetation.createobj(pft,vegetation);
@@ -489,18 +486,24 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 					bminit=SAPSIZE*patch.pft[pft.id].anetps_ff;	
 
+					// CANIF David
+					if (has_CANIF_clim) {
+						if (date.year>=stand.plantyear-10 && date.year<=stand.plantyear+10)
+							bminit=0.0;
+					}
+
 					// GUESSN grass gets at least 5% of available N. When established
 					// they shouldn't been able to get more!
 					double bminit_n_lim=indiv.pft.cton_leaf_avr*(patch.soil.nmass_avail+
 						patch.soil.ndep_annual+patch.soil.N_fix+
 						patch.soil.nmin_annual-patch.soil.nimmob_annual)*0.05;
 
-					if (ifnlim)// GUESSNFIX
-						bminit=min(bminit,bminit_n_lim);
-
 					// BLARP! OECD
 					if (ifdisturb && patch.disturbed)
 						bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est_initial;
+
+					if (ifnlim)// GUESSNFIX
+						bminit=min(bminit,bminit_n_lim);
 
 					// Initial leaf to fine root biomass ratio based on
 					// hypothetical value of water stress parameter
@@ -611,12 +614,46 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 						else { // Oak Ridge
 							if (pft.name=="IBS" && date.year==stand.plantyear+1)
 								nsapling=no_trees_planted;
-							else if (date.year<date.year<stand.plantyear+3)// was ??? >stand.plantyear)	// FACE plantation
+							else if (date.year<stand.plantyear+3)// was ??? >stand.plantyear)	// FACE plantation
 								nsapling=0.0;
 						}
 					}
 				}
 				// end FACE
+
+				if (WSITE==6 && pft.name=="Pic_abi" && date.year>=stand.plantyear)
+					int sch = 0;
+
+				// CANIF David
+				if (has_CANIF_clim) {
+					if (date.year>=stand.plantyear-10 && date.year<=stand.plantyear+10) {
+						if (WSITE==2 || WSITE==3 || WSITE==4) {	// Beech
+							if (pft.name=="Fag_syl" && date.year>=stand.plantyear && date.year<=stand.plantyear) 
+								nsapling=nsapling;
+							else if (date.year>=stand.plantyear-10 && date.year<=stand.plantyear+10)
+								nsapling=0.0;
+						}
+						else if (WSITE==0) {	// Beech
+							if ((pft.name=="Pic_abi" || pft.name=="Bet_pen" || pft.name=="Pin_syl") && date.year>=stand.plantyear && date.year<=stand.plantyear) 
+								nsapling=nsapling;
+							else if (date.year>=stand.plantyear-10 && date.year<=stand.plantyear+10)
+								nsapling=0.0;
+						}
+						else { // Spruce
+							if (pft.name=="Pic_abi" && date.year>=stand.plantyear && date.year<=stand.plantyear) {
+								nsapling=nsapling;
+								if (WSITE==6 && date.year==stand.plantyear)
+									nsapling=230.0;
+									//	Sko	no_trees_planted=230.0;	//trees/1000m2
+							}
+							else if (date.year>=stand.plantyear-10 && date.year<=stand.plantyear+10)
+								nsapling=0.0;
+						}
+						if (WSITE > 3 && date.year==stand.plantyear && WSITE!=6)	// Planted
+							nsapling*=40.0;
+					}
+				}
+				
 
 				patch.pft[pft.id].nsapling_yearly+=nsapling;
 
@@ -691,7 +728,8 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 						indiv.cmass_leaf/indiv.pft.cton_leaf+
 						indiv.cmass_root/indiv.pft.cton_root+
 						indiv.cmass_sap/indiv.pft.cton_sap+
-						indiv.cmass_heart/indiv.pft.cton_sap;
+						indiv.cmass_heart/indiv.pft.cton_sap+
+						indiv.nmass_store;
 
 					patch.new_est_ndemand+=indiv.ndemand;	
 
@@ -1353,9 +1391,6 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob,
 				mort_min=min(1.0,KMORTBG_LNF*(KMORTBG_Q+1)/indiv.pft.longevity*
 					pow(indiv.age/indiv.pft.longevity,KMORTBG_Q));
 
-				//mort_min=0.0; // GUESSNFIX
-
-
 				// Growth suppression mortality
 				// Smith et al 2001; c.f. Pacala et al 1993, Eqn 5
 
@@ -1707,7 +1742,6 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 			if (patch.disturbed) {
 				return; // no mortality or establishment this year
 			}
-
 		}
 
 		// FACE Thomas plantation cohort mode
@@ -1731,6 +1765,14 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 			}
 		}
 		// end FACE
+
+		// CANIF David
+		if (has_CANIF_clim && date.year==stand.plantyear-10) {
+			disturbance(patch,1.0);
+			if (patch.disturbed) {
+				return; // no mortality or establishment this year
+			}
+		}
 
 		// Mortality
 		mortality_guess(stand,patch,stand.climate,fireprob,pftlist);

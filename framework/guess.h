@@ -74,7 +74,7 @@ typedef enum {NOVEGMODE,INDIVIDUAL,COHORT,POPULATION} vegmodetype;
 
 // GUESSN
 typedef enum {SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SURFCWD,
-	SOILMETA,SLOWSOM,PASSIVESOM,LEACHED,NSOMPOOL} pooltype;	// GUESSNFIX wood
+	SOILMETA,SLOWSOM,PASSIVESOM,LEACHED,NSOMPOOL} pooltype;	
 	// CENTURY pool names, NSOMPOOL number of SOM pools 
 // end GUESSN
 
@@ -225,6 +225,10 @@ extern int FYEAR_SCENARIO_FACE;
 extern int FACE_ring;				// Which FACE ring examined
 extern int ifduke;					// Duke or Oak Ridge
 extern int has_FACE_clim;			// If we are using FACE clim data
+
+// CANIF David
+extern int has_CANIF_clim;			// If we are using CANIF clim data
+extern int WSITE;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // guess2008 - new input variables, from the .ins file
@@ -1413,6 +1417,7 @@ public:
 	double daily_minimmndep;	// sum of mineralization, immobilization and N deposition (used in daily setntoc)
 
 	double N_fix;				// total annual N fixation
+	double cwd_N_fix;			// total annual N fixation in Coarse Woody Debrise
 
 // end GUESSN
 
@@ -1881,10 +1886,6 @@ public:
 		// N limitation for growth
 	double nmass_total;
 		// sum/mean across patches for nitrogen biomass (kgN/m2)
-	double nmass_root_total;
-		// sum/mean across patches for nitrogen root biomass (kgN/m2)
-	double crownarea_total;
-		// sum/mean across patches for crown area
 	// end GUESSN
 
 	// MEMBER FUNCTIONS

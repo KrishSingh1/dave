@@ -106,6 +106,10 @@ int FACE_ring;
 int ifduke;
 int has_FACE_clim;
 
+// CANIF David
+int has_CANIF_clim;
+int WSITE;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // THE FRAMEWORK
 // The 'mission control' of the model, responsible for maintaining the primary model
@@ -201,14 +205,15 @@ int framework(int argc,char* argv[]) {
 
 					// FACE DAVID
 					// FACE plantation
-					if (!ifduke) {
-						stand.plantyear=2081; // 2073 should be 2087=1988
-						stand.distyear2=1950;
-					}
-					else {
-						stand.plantyear=2074; // should be 2082 (i.e. 1983), but forest needs more time to grow 2074
-						stand.distyear2=1950;
-					}
+					if (has_FACE_clim)
+						if (!ifduke) {
+							stand.plantyear=2081; // 2073 should be 2087=1988
+							stand.distyear2=1950;
+						}
+						else {
+							stand.plantyear=2074; // should be 2082 (i.e. 1983), but forest needs more time to grow 2074
+							stand.distyear2=1950;
+						}
 
 					// LAST DAY OF YEAR
 

@@ -694,10 +694,12 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 
 	// guess2008 - ALPHAA value chosen to give global carbon pool and flux values that 
 	// agree with published estimates.
-	const double ALPHAA=0.5;
+	const double ALPHAA=0.55;	//=0.5;// GUESSNFIX
 		// scaling factor for PAR absorption from leaf to plant projective area level
 		// alias "twigloss"
 		// Should normally be in the range 0-1
+	if (ALPHAA != 0.5 && date.year == 0 && date.day == 0)	// GUESSNFIX
+		dprintf("ALPHAA is changed! New value is %g\n",ALPHAA);
 
 	const double CO2_CONV=1.0E-6;
 		// conversion factor for CO2 from ppmv to mole fraction
@@ -2119,22 +2121,8 @@ void npp(Patch& patch) {
 
 			// Calculate leaf nitrogen today on patch area basis
 
-			// GUESSNFIX
-		/*	if (date.year == 7 && indiv.pft.name=="IBS" && indiv.id==3) {
-				plot("na","na",date.day,na_fpar);//stand.pft[pft.id].na);
-				plot("phen","phen",date.day,indiv.phen);
-				if (!negligible(indiv.phen)){
-					plot("cmass_leaf","leaf",date.day,indiv.cmass_leaf*N0*indiv.phen);
-					plot("leafn","leafn",date.day,na_fpar+N0*indiv.cmass_leaf*indiv.phen);
-				}
-				else {
-					plot("cmass_leaf","leaf",date.day,0.0);
-					plot("leafn","leafn",date.day,0.0);
-				}
-			}*/
-
 			if (!negligible(indiv.phen)) {
-				leafn=na_fpar+N0*indiv.cmass_leaf; // GUESSNFIX
+				leafn=na_fpar+N0*indiv.cmass_leaf*indiv.phen; // GUESSNFIX
 				indiv.leafn+=leafn;
 			}
 			// end GUESSN

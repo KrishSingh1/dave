@@ -1747,7 +1747,6 @@ bool allometry(Individual& indiv) {
 			return false;
 		}
 
-
 		// Crown area (Eqn 6)
 		indiv.crownarea=min(indiv.pft.k_allom1*pow(diam,indiv.pft.k_rp),
 			indiv.pft.crownarea_max);
@@ -1944,7 +1943,7 @@ void growth(Stand& stand,Patch& patch) {
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
 
-		// For this individual ...
+		// For this individual .
 
 		// GUESSN
 		// C:N ratio for new and current biomass

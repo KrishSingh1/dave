@@ -29,12 +29,20 @@ if (UNIX)
   set(SYSTEM "" CACHE STRING "System to build for (empty, gimle or platon)")
 endif (UNIX)
 
-# Where the compiler should search for header files
-include_directories(${guess_SOURCE_DIR}/framework ${guess_SOURCE_DIR}/libraries/gutil ${guess_SOURCE_DIR}/libraries/plib ${guess_SOURCE_DIR}/modules)
-
 # Where to search for cmake modules
 # (used by cmake when the include() command is used in a cmake file)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
+# NetCDF - look for libraries and include files, and use them if found
+find_package(NetCDF)
+
+if (NETCDF_FOUND)
+  include_directories(${NETCDF_INCLUDE_DIRS})
+  set(LIBS ${LIBS} ${NETCDF_LIBRARIES})
+endif()
+
+# Where the compiler should search for header files
+include_directories(${guess_SOURCE_DIR}/framework ${guess_SOURCE_DIR}/libraries/gutil ${guess_SOURCE_DIR}/libraries/plib ${guess_SOURCE_DIR}/modules)
 
 # The following directories contain source code and 
 # additional CMakeLists.txt files
@@ -52,11 +60,18 @@ else()
   set(guess_command_name "guess")
 endif()
 
+# Specify the executable to build, and which sources to build it from
 add_executable(${guess_command_name} ${guess_sources} command_line_version/main.cpp)
+
+# Specify libraries to link to the executable
+target_link_libraries(${guess_command_name} ${LIBS})
 
 if (WIN32)
   # Create guess.dll (used with the graphical Windows shell)
   add_library(guess SHARED ${guess_sources} windows_version/dllmain.cpp)
+
+  # Specify libraries to link to the dll
+  target_link_libraries(guess ${LIBS})
 endif (WIN32)
 
 # The custom build rule for generating the submit script from a template.

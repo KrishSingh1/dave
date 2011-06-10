@@ -159,10 +159,10 @@ function append_files {
     done
 }
 
-pushd run1
+pushd run1 &> /dev/null
 outfiles_unexpanded='$OUTFILES'
-outfiles_expanded=\$(cd run1; echo \$outfiles_unexpanded)
-popd
+outfiles_expanded=\$(echo \$outfiles_unexpanded)
+popd &> /dev/null
 
 for file in \$outfiles_expanded
 do

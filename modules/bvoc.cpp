@@ -5,7 +5,7 @@
 /// Calculation of VOC production and emission by vegetation.
 ///
 /// \author Guy Schurgers (using Almut's previous attempts) 
-/// $Date: $
+/// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 

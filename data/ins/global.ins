@@ -113,17 +113,6 @@ equal_landcover_area 0	! divide gridcell into equal active landcover fractions
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
-
-!///////////////////////////////////////////////////////////////////////////////////////
-!// EVALUATION OPTIONS & SWITCHES 
-!
-
-!///////////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
 !///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR PFTS
 !// Run GUESS with -help option for list of keywords and their meanings
@@ -171,8 +160,7 @@ group "tree" (
 	litterme 0.3
 )
 
-group "Shrub"
-(	
+group "shrub" (	
 	! Unchanged from species version
 	common
 	lifeform "tree"
@@ -301,8 +289,7 @@ group "tropical" (
 
 
 ! greff_min values below calibrated for the smooth (ifsmoothgreffmort 1) option 
-group "shade_tolerant"
-(
+group "shade_tolerant" (
 	est_max 0.05					
 	parff_min 350000			
 	alphar 3.0          			
@@ -311,8 +298,7 @@ group "shade_tolerant"
 )
 
 ! So far only trial values; not used in this global version
-group "intermediate_shade_tolerant"
-(
+group "intermediate_shade_tolerant" (
 	est_max 0.15					
 	parff_min 2000000			
 	alphar 7.0          			
@@ -321,8 +307,7 @@ group "intermediate_shade_tolerant"
 )
 
 ! From global version; values from orginal European version after "!"
-group "shade_intolerant" 
-(
+group "shade_intolerant" (
 	est_max 0.2					
 	parff_min 2500000 
 	alphar 10.0 

@@ -119,15 +119,6 @@ equal_landcover_area 0	! divide gridcell into equal active landcover fractions
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
-
-!///////////////////////////////////////////////////////////////////////////////////////
-!// EVALUATION OPTIONS & SWITCHES 
-!
-
-!///////////////////////////////////////////////////////////////////////////////////////
-
-
-
 !///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR PFTS
 !// Run GUESS with -help option for list of keywords and their meanings
@@ -168,8 +159,7 @@ group "tree" (
 	rootdist 0.6 0.4 ! THdiff: TH often has 0.7 0.3 or 0.8 0.2 - see note below
 )
 
-group "Shrub"
-(
+group "shrub" (
 	common
 	lifeform "tree"
 	crownarea_max 10
@@ -192,15 +182,13 @@ group "Shrub"
 	longevity 100
 )
 
-group "needle_leaved"
-(
+group "needle_leaved" (
 	k_allom1 150
 	k_latosa 4000
 	ga 0.140
 )
 
-group "broad_leaved"
-(
+group "broad_leaved" (
 	k_allom1 250 
 	k_latosa 5000
 	leaflong 0.5		! PMxx: new default
@@ -225,8 +213,7 @@ group "grass" (
 
 ! greff_min values below calibrated for the smooth (ifsmoothgreffmort 1) option 
 ! Many THdiff values here
-group "shade_tolerant"
-(
+group "shade_tolerant" (
 	est_max 0.05					
 	parff_min 350000		! THdiff: 1250000			
 	alphar 3.0          	! THdiff: 2			
@@ -236,8 +223,7 @@ group "shade_tolerant"
 
 
 ! So far only trial values; not in global version
-group "intermediate_shade_tolerant"
-(
+group "intermediate_shade_tolerant" (
 	est_max 0.15		! THdiff: 0.1			
 	parff_min 2000000			
 	alphar 7.0          	! THdiff: 6			
@@ -247,8 +233,7 @@ group "intermediate_shade_tolerant"
 
 
 ! From global version; values from orginal European version after "!"
-group "shade_intolerant" 
-(
+group "shade_intolerant" (
 	est_max 0.2					
 	parff_min 2500000 
 	alphar 10.0 
@@ -257,8 +242,7 @@ group "shade_intolerant"
 )
 
 
-group "boreal_tree"
-(
+group "boreal_tree" (
 	respcoeff 1.0		! THdiff: 2.0
 	pstemp_min -4
 	pstemp_low 10
@@ -266,8 +250,7 @@ group "boreal_tree"
 	pstemp_max 38
 )
 
-group "temperate_tree"
-(
+group "temperate_tree" (
 	respcoeff 1.0
 	pstemp_min -2
 	pstemp_low 15

@@ -497,7 +497,7 @@ void plib_declarations(int id,xtring setname) {
 	case BLOCK_PARAM:
 
 		paramname=setname;
-		declareitem("str",&strparam,80,CB_STRPARAM,
+		declareitem("str",&strparam,300,CB_STRPARAM,
 			"String value for custom parameter");
 		declareitem("num",&numparam,-1.0e38,1.0e38,1,CB_NUMPARAM,
 			"Numerical value for custom parameter");

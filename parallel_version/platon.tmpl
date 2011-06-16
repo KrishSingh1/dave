@@ -138,11 +138,17 @@ cat <<EOF > guess.cmd
 
 cd \$PBS_O_WORKDIR
 
+# If there's a script for setting up files on local disk, run it
+if [ -f setup_local.sh ]; then
+    pbsdsh -u env PBS_O_LOCAL=\$PBS_O_LOCAL \$PBS_O_WORKDIR/setup_local.sh
+fi
+
 cat<<EOL > startguess.sh
 #!/bin/sh
 umask 022
 cd \$PBS_O_WORKDIR
 cd run\\\$((PBS_VNODENUM+1))
+rm local ; ln -s \$PBS_O_LOCAL local
 BINARY $INSFILE
 EOL
 chmod +x startguess.sh

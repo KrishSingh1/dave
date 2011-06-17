@@ -34,7 +34,7 @@ endif (UNIX)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 # NetCDF - look for libraries and include files, and use them if found
-find_package(NetCDF)
+find_package(NetCDF QUIET)
 
 if (NETCDF_FOUND)
   include_directories(${NETCDF_INCLUDE_DIRS})

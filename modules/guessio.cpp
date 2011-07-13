@@ -956,9 +956,34 @@ TimeDataD Peatdata;
 #endif
 xtring file_lu, file_peat;
 const int NYEAR_LU=103;	//only used to get LU data after historical period (after 2003) : only used in AR4-runs, but causes no harm otherwise
-//
 
-void readenv(Coord coord) {
+void read_from_file(Coord coord, xtring fname, const char* format,
+										double monthly[12], bool soil=false) {
+	double dlon, dlat;
+	int elev;
+	FILE* in = fopen(fname, "r");
+	if (!in) {
+		fail("readenv: could not open %s for input", (char*)fname);
+	}
+
+	bool foundgrid = false;
+	while (!feof(in) && !foundgrid) {
+		if (!soil) {
+			readfor(in, format, &dlon, &dlat, &elev, monthly);
+		} else {
+			readfor(in, format, &dlon, &dlat, &soilcode);
+		}
+		foundgrid = equal(coord.lon, dlon) && equal(coord.lat, dlat);
+	}
+
+	fclose(in);
+	if (!foundgrid) {
+		fail("readenv: could not find record for (%g,%g) in %s",
+										coord.lon, coord.lat, (char*)fname);
+	}
+}
+
+bool readenv(Coord coord) {
 
 	// Searches for environmental data in driver temperature, precipitation,
 	// sunshine and soil code files for the grid cell whose coordinates are given by
@@ -1004,113 +1029,34 @@ void readenv(Coord coord) {
 	//                    soilparameters in driver module)
 	// The fields in each record are separated by spaces
 
-	FILE* in;
-	bool foundgrid;
-	double dlon,dlat;
-	int elev;
-	double mtemp[12]; // monthly mean temperature (deg C)
-	double mprec[12]; // monthly precipitation sum (mm)
-	double msun[12]; // monthly mean percentage sunshine values
+	double mtemp[12];		// monthly mean temperature (deg C)
+	double mprec[12];		// monthly precipitation sum (mm)
+	double msun[12];		// monthly mean percentage sunshine values
 
 	double mwet[12]={31,28,31,30,31,30,31,31,30,31,30,31}; // number of rain days per month
 
-	// bvoc
-	double mdtr[12]; // monthly mean diurnal temperature range (oC)
-
-	// Search for record for this grid cell in temperature file
-
-	in=fopen(file_temp,"r");
-	if (!in) fail("readenv: could not open %s for input",(char*)file_temp);
-
-	foundgrid=false;
-	while (!feof(in) && !foundgrid) {
-
-		// Read next record in file
-		readfor(in,"f6.2,f5.2,i4,12f4.1",&dlon,&dlat,&elev,mtemp);
-		
-		if (equal(coord.lon,dlon) && equal(coord.lat,dlat)) foundgrid=true;
-	}
-
-	for(int m=0;m<12;m++) {
-		mdtr[m]=0.;
-		// bvoc
+	double mdtr[12];		// monthly mean diurnal temperature range (oC)
+	for(int m=0; m<12; m++) {
+		mdtr[m] = 0.;
 		if (ifbvoc) {
 			dprintf("WARNING: No data available for dtr in sample data set!\nNo daytime temperature correction for BVOC calculations applied.");
 		}
 	}
-	
-	if (!foundgrid) fail("readenv: could not find record for (%g,%g) in %s",
-		coord.lon,coord.lat,(char*)file_temp);
 
-	fclose(in);
-
-	// Search for record for this grid cell in precipitation file
-
-	in=fopen(file_prec,"r");
-	if (!in) fail("readenv: could not open %s for input",(char*)file_prec);
-
-	foundgrid=false;
-	while (!feof(in) && !foundgrid) {
-
-		// Read next record in file
-		readfor(in,"f6.2,f5.2,i4,12f4",&dlon,&dlat,&elev,mprec);
-		
-		if (equal(coord.lon,dlon) && equal(coord.lat,dlat)) foundgrid=true;
-	}
-
-	if (!foundgrid) fail("readenv: could not find record for (%g,%g) in %s",
-		coord.lon,coord.lat,(char*)file_prec);
-
-	fclose(in);
-
-	// Search for record for this grid cell in sunshine file
-
-	in=fopen(file_sun,"r");
-	if (!in) fail("readenv: could not open %s for input",(char*)file_sun);
-
-	foundgrid=false;
-	while (!feof(in) && !foundgrid) {
-
-		// Read next record in file
-		readfor(in,"f6.2,f5.2,i4,12f3",&dlon,&dlat,&elev,msun);
-		
-		if (equal(coord.lon,dlon) && equal(coord.lat,dlat)) foundgrid=true;
-	}
-
-	if (!foundgrid) fail("readenv: could not find record for (%g,%g) in %s",
-		coord.lon,coord.lat,(char*)file_sun);
-
-	fclose(in);
-
-	// Search for record for this grid cell in soil code file
-
-	in=fopen(file_soil,"r");
-	if (!in) fail("readenv: could not open %s for input",(char*)file_soil);
-
-	foundgrid=false;
-	while (!feof(in) && !foundgrid) {
-
-		// Read next record in file
-		readfor(in,"f,f,i",&dlon,&dlat,&soilcode);
-		
-		if (equal(coord.lon,dlon) && equal(coord.lat,dlat)) foundgrid=true;
-	}
-
-	if (!foundgrid) fail("readenv: could not find record for (%g,%g) in %s",
-		coord.lon,coord.lat,(char*)file_soil);
-
-	fclose(in);
+	read_from_file(coord, file_temp, "f6.2,f5.2,i4,12f4.1", mtemp);
+	read_from_file(coord, file_prec, "f6.2,f5.2,i4,12f4", mprec);
+	read_from_file(coord, file_sun, "f6.2,f5.2,i4,12f3", msun);
+	read_from_file(coord, file_soil, "f,f,i", msun, true);	// msun is not used here: just dummy
 
 	// Interpolate monthly values for environmental drivers to daily values
 	// (relevant daily values will be sent to the framework each simulation
 	// day in function getclimate, below)
-
-	interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
+	interp_climate(mtemp, mprec, msun, mdtr, dtemp, dprec, dsun, ddtr);
 
 	// Recalculate precipitation values using weather generator
 	// (from Dieter Gerten 021121)
-
-	prdaily(mprec,dprec,mwet);
+	prdaily(mprec, dprec, mwet);
+	return true;
 }
 
 
@@ -1467,9 +1413,8 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	{
 }
 
 /// Called by the framework at the start of the simulation for a particular grid cell
-bool getgridcell(Gridcell& gridcell) 
-{
-	// DESCRIPTION
+bool getgridcell(Gridcell& gridcell) {
+
 	// Obtains latitude and soil static parameters for the next grid cell to
 	// simulate. The function should return false if no grid cells remain to be simulated,
 	// otherwise true. Currently the following member variables of Gridcell should be
@@ -1487,9 +1432,8 @@ bool getgridcell(Gridcell& gridcell)
 	// and interp_monthly_totals in driver.cpp may be called for this purpose.
 
 	// Select coordinates for next grid cell in linked list
-
-	bool gridfound=false;
-	bool LUerror=false;
+	bool gridfound = false;
+	bool LUerror = false;
 
 	// to ensure an identical random number sequence for each gridcell.
 	setseed(12345678);
@@ -1501,25 +1445,23 @@ bool getgridcell(Gridcell& gridcell)
 
 	if (gridlist.isobj) {
 
-		while(!gridfound)
-		{
+		while(!gridfound) {
 
 			// Retrieve coordinate of next grid cell from linked list
-			Coord& c=gridlist.getobj();
+			Coord& c = gridlist.getobj();
 
 			// Load environmental data for this grid cell from files
 			// (these will be the same for every year of the simulation, but must be sent
 			// anew to the framework each year in function getclimate, below)
 
-			if(run_landcover)
-				LUerror=loadlandcover(gridcell, c);
-
-			if (!LUerror) {
-				readenv(c);
-				gridfound=true;
+			if(run_landcover) {
+				LUerror = loadlandcover(gridcell, c);
 			}
-			else
+			if (!LUerror) {
+				gridfound = readenv(c);
+			} else {
 				gridlist.nextobj();
+			}
 		}
 
 		dprintf("\nCommencing simulation for stand at (%g,%g)",gridlist.getobj().lon,
@@ -1551,8 +1493,7 @@ bool getgridcell(Gridcell& gridcell)
 }
 
 ///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
-void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
-{
+void getlandcover(Gridcell& gridcell,Pftlist& pftlist) {
 	int i, year;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
 
@@ -2289,13 +2230,10 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 void termio() {
 
-	// DESCRIPTION
 	// Performs memory deallocation, closing of files or other "cleanup" functions.
-
 	delete output_channel;
 
 	// Clean up
-
 	gridlist.killall();
 }
 

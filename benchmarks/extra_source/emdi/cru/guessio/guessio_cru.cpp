@@ -1198,6 +1198,15 @@ double ddtr[365];
 xtring file_cru;
 xtring file_cru_misc;
 
+/// Interpolates monthly data to quasi-daily values.
+void interp_climate(double mtemp[12], double mprec[12], double msun[12], double mdtr[12],
+					double dtemp[365], double dprec[365], double dsun[365], double ddtr[365]) {
+	interp_monthly_means(mtemp, dtemp);
+	interp_monthly_totals(mprec, dprec);
+	interp_monthly_means(msun, dsun);
+	interp_monthly_means(mdtr, ddtr);
+}
+
 //Landuse:
 
 //#define DYNAMIC_LANDCOVER_INPUT
@@ -1381,8 +1390,6 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 }
 
 
-
-
 // guess2008
 // Utility function that returns the CRU data from the nearest cell to (lon,lat) within
 // a given search radius
@@ -1448,9 +1455,6 @@ bool findnearestCRUdata(int searchradius, char* cruark, double& lon, double& lat
 	return false;
 }
 
-
-
-
 void readco2() {
 
 	// Reads in atmospheric CO2 concentrations for historical period
@@ -1474,16 +1478,6 @@ void readco2() {
 
 	fclose(in);
 }
-
-/// Interpolates monthly data to quasi-daily values.
-void interp_climate(double mtemp[12], double mprec[12], double msun[12], double mdtr[12],
-					double dtemp[365], double dprec[365], double dsun[365], double ddtr[365]) {
-	interp_monthly_means(mtemp, dtemp);
-	interp_monthly_totals(mprec, dprec);
-	interp_monthly_means(msun, dsun);
-	interp_monthly_means(mdtr, ddtr);
-}
-
 /// Help function to define_output_tables, creates one output table
 void create_output_table(Table& table, const char* file, const ColumnDescriptors& columns) {
 	 table = output_channel->create_table(TableDescriptor(file, columns));
@@ -1971,8 +1965,7 @@ bool getgridcell(Gridcell& gridcell)
 }
 
 ///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
-void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
-{
+void getlandcover(Gridcell& gridcell,Pftlist& pftlist) {
 	int i, year;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
 
@@ -2785,15 +2778,11 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 void termio() {
 
-	// DESCRIPTION
 	// Performs memory deallocation, closing of files or other "cleanup" functions.
-
 	delete output_channel;
 
 	// Clean up
-
 	gridlist.killall();
 }
-
 
 #endif // USE_CRU_IO

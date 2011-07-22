@@ -1197,8 +1197,6 @@ double ddtr[365];
 xtring file_cru;
 xtring file_cru_misc;
 
-//Landuse:
-
 /// Interpolates monthly data to quasi-daily values.
 void interp_climate(double mtemp[12], double mprec[12], double msun[12], double mdtr[12],
 					double dtemp[365], double dprec[365], double dsun[365], double ddtr[365]) {
@@ -1208,6 +1206,7 @@ void interp_climate(double mtemp[12], double mprec[12], double msun[12], double 
 	interp_monthly_means(mdtr, ddtr);
 }
 
+//Landuse:
 
 //#define DYNAMIC_LANDCOVER_INPUT
 #if defined DYNAMIC_LANDCOVER_INPUT

@@ -947,6 +947,7 @@ void interp_climate(double mtemp[12], double mprec[12], double msun[12], double 
 	interp_monthly_means(mdtr, ddtr);
 }
 
+//Landuse:
 
 //#define DYNAMIC_LANDCOVER_INPUT
 #if defined DYNAMIC_LANDCOVER_INPUT

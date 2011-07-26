@@ -5,7 +5,7 @@
 /// Calculation of VOC production and emission by vegetation.
 ///
 /// \author Guy Schurgers (using Almut's previous attempts) 
-/// $Date: $
+/// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -194,7 +194,7 @@ double dayT(double temp, double daylength, double tempamp){
   double hdl; // daylength expressed as fraction of PI (rad) 
   double dtT; // daytime temperature (oC)
   
-  hdl=daylength*3.14/24.;
+  hdl=daylength*PI/24.;
   dtT=temp+(tempamp/2)*sin(hdl)/hdl;
   return dtT; 
 }

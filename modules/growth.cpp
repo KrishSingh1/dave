@@ -408,7 +408,6 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	const int JMAX=40; // maximum number of iterations (in numerical methods)
 	const double XACC=0.0001; // threshold x-axis precision of allocation solution
 	const double YACC=1.0e-10; // threshold y-axis precision of allocation solution
-	const double PI=3.14159265;
 	const double CDEBT_MAXLOAN_DEFICIT=0.8; // maximum loan as a fraction of deficit
 	const double CDEBT_MAXLOAN_MASS=0.2; // maximum loan as a fraction of (sapwood-cdebt)
 
@@ -781,7 +780,7 @@ bool allometry(Individual& indiv) {
 			diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
 
 			// Stem volume
-			double vol=indiv.height*3.1415927*diam*diam*0.25;
+			double vol=indiv.height*PI*diam*diam*0.25;
 			if (indiv.age && (indiv.cmass_heart+indiv.cmass_sap)/indiv.densindiv/vol<indiv.pft.wooddens*0.9)
 				return false;
 		}

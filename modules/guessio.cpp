@@ -142,7 +142,7 @@ private:
 
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM};
 enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_PATHWAY,	
-	CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM};
+	CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE};
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -280,6 +280,8 @@ void plib_declarations(int id,xtring setname) {
 			"Number of patches simulated");
 		declareitem("patcharea",&patcharea,1.0,1.0e4,1,CB_NONE,
 			"Patch area (m2)");
+		declareitem("wateruptake", &strparam, 20, CB_WATERUPTAKE, 
+			"Water uptake mode (\"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
 
 		// guess2008
 		// Annual output variables
@@ -531,6 +533,16 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
+	case CB_WATERUPTAKE:
+		if (strparam.upper() == "WCONT") wateruptake = WR_WCONT;
+		else if (strparam.upper() == "ROOTDIST") wateruptake = WR_ROOTDIST;
+		else if (strparam.upper() == "SMART") wateruptake = WR_SMART;
+		else if (strparam.upper() == "SPECIESSPECIFIC") wateruptake = WR_SPECIESSPECIFIC;
+		else {
+			sendmessage("Error",
+				"Unknown water uptake mode (valid types: \"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
+		}
+		break;
 	case CB_LIFEFORM:
 		if (strparam.upper()=="TREE") ppft->lifeform=TREE;
 		else if (strparam.upper()=="GRASS") ppft->lifeform=GRASS;
@@ -598,7 +610,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("iffire")) badins("iffire");
 		if (!itemparsed("ifcalcsla")) badins("ifcalcsla");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
-
+		if (!itemparsed("wateruptake")) badins("wateruptake");
 
 		// guess2008
 		if (!itemparsed("outputdirectory")) badins("outputdirectory");

@@ -66,6 +66,11 @@ typedef enum {NOVEGMODE,INDIVIDUAL,COHORT,POPULATION} vegmodetype;
 /// Land cover type of a stand. NLANDCOVERTYPES keeps count of number of items.
 typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, NLANDCOVERTYPES} landcovertype;
 
+/// Water uptake parameterisations
+/** \see water_uptake in canexch.cpp
+  */
+typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptaketype;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
 
@@ -147,6 +152,9 @@ extern int estinterval; // establishment interval in cohort mode (years)
 extern int npft; // number of possible PFTs
 extern bool iffast; // whether to run in "fast" mode
 extern bool ifcdebt; // whether C debt (storage between years) permitted
+
+/// Water uptake parameterisation
+extern wateruptaketype wateruptake;
 
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;

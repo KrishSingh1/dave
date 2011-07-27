@@ -56,6 +56,8 @@ bool ifspeciesspecificwateruptake;	// water uptake is species specific
 // bvoc
 bool ifbvoc; // BVOC calculations included
 
+wateruptaketype wateruptake;
+
 bool run_landcover;
 bool run[NLANDCOVERTYPES];
 bool lcfrac_fixed;

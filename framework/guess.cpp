@@ -52,7 +52,6 @@ bool ifcdebt;
 bool ifsmoothgreffmort;				// smooth growth efficiency mortality
 bool ifdroughtlimitedestab;			// whether establishment affected by growing season drought
 bool ifrainonwetdaysonly;			// rain on wet days only (1, true), or a little every day (0, false); 
-bool ifspeciesspecificwateruptake;	// water uptake is species specific 
 // bvoc
 bool ifbvoc; // BVOC calculations included
 

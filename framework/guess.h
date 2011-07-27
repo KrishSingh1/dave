@@ -180,8 +180,6 @@ extern bool ifdroughtlimitedestab;
 	// whether establishment is limited by growing season drought 
 extern bool ifrainonwetdaysonly;			
 	// rain on wet days only (1, true), or a little every day (0, false); 
-extern bool ifspeciesspecificwateruptake;	
-	// whether water uptake is species specific 
 // bvoc
 extern bool ifbvoc; 
         // whether BVOC calculations are included

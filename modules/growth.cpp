@@ -957,10 +957,6 @@ void growth(Stand& stand,Patch& patch) {
 			stand.pft[p].cmass_repr=0.0;
 
 	// Loop through individuals
-
-	if (date.year > 152)
-		int test = 0;
-
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();

@@ -510,7 +510,6 @@ public:
 		// Initialises certain member variables
 		// Should be called before Climate object is applied to a new grid cell
 
-		const double DEGTORAD=0.01745329;
 		int day,year;
 
 		for (year=0;year<20;year++) {

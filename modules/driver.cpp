@@ -684,7 +684,6 @@ void daylengthinsoleet(Climate& climate) {
 	const double C=0.25;
 	const double D=0.5;
 	const double K=13750.98708;
-	const double DEGTORAD=0.01745329;
 	const double FRADPAR=0.5;
 		// fraction of net incident shortwave radiation that is photosynthetically
 		// active (PAR)

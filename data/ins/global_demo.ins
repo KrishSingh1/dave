@@ -17,7 +17,7 @@
 ! (used only by guessio.cpp)
 	param "co2" (num 340)
 
-	param "file_gridlist" (str "gridlist.txt")
+      	param "file_gridlist" (str "gridlist.txt")
 
 	param "file_temp" (str "tmp30_21.grd")  !temperature
 	param "file_prec" (str "prc30_21.grd")  !precipitation
@@ -50,8 +50,6 @@ file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 file_firert "firert.out"
-!file_aiso "aiso.out"
-!file_amon "amon.out"
 
 ! Monthly outputs
 file_mnpp "mnpp.out"
@@ -67,8 +65,6 @@ file_mintercep "mintercep.out"
 file_mrunoff "mrunoff.out"
 file_mwcont_upper "mwcont_upper.out"
 file_mwcont_lower "mwcont_lower.out"
-!file_miso "miso.out"
-!file_mmon "mmon.out"
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -86,7 +82,7 @@ file_mwcont_lower "mwcont_lower.out"
 title 'LPJ-GUESS (guess2008) cohort mode - global pfts'
 
 vegmode "cohort"		! "cohort", "individual" or "population"
-!nyear 100			! number of years to run the model after spinup (demo module only)
+nyear 100				! number of years to run the model after spinup (demo module only)
 nyear_spinup 500		! number of years to spin up the simulation for
 ifdailynpp 0			! whether to calculate NPP daily (1) or monthly (0)
 						! guess2008 - species version has 1
@@ -99,7 +95,7 @@ patcharea 1000			! patch area (m2)
 estinterval 5			! years between establishment events in cohort mode
 ifdisturb 1				! whether generic patch-destroying disturbances enabled
 distinterval 100		! average return time for generic patch-destroying disturbances
-						! Hickler et al. (2011) used 200
+						! guess2008 - 200 for Europe, 100 globally
 ifbgestab 1				! whether background establishment enabled
 ifsme 1					! whether spatial mass effect enabled
 ifstochestab 1			! whether establishment stochastic
@@ -115,7 +111,6 @@ ifdroughtlimitedestab 0			! whether establishment is limited by growing season d
 								! guess2008 - species version has 1
 ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit every day (0)
 ifspeciesspecificwateruptake 0	! whether there is species specific water uptake (1) or not (0)
-ifbvoc 0                     ! whether to include BVOC calculations (1) or not (0)
 
 !!!!!!!!!!!! landcover parameters !!!!!!!!!!!!!!					
 
@@ -243,7 +238,6 @@ group "grass" (
 	parff_min 1000000		! 2500000 i guess2008	
 	fireresist 0.5			! 1.0 hos Thomas
 	intc 0.01
-	ga 0.030
 
 )
 
@@ -256,7 +250,6 @@ group "broadleaved" (
 	k_latosa 6000
 	gmin 0.5
 	intc 0.02
-	ga 0.040
 )
 
 group "needleleaved" (
@@ -267,7 +260,6 @@ group "needleleaved" (
 	k_latosa 5000
 	gmin 0.3
 	intc 0.06
-	ga 0.140
 )
 
 group "evergreen" (
@@ -378,10 +370,6 @@ pft "BNE" (
 	gdd5min_est 500
 	longevity 500
 	fireresist 0.3
-	eps_iso 8.0
-	seas_iso 0
-	eps_mon 4.8
-	storfrac_mon 0.5
 )
 
 
@@ -404,10 +392,6 @@ pft "BINE" (
 	gdd5min_est 500
 	longevity 500
 	fireresist 0.3
-	eps_iso 8.0
-	seas_iso 0
-	eps_mon 4.8
-	storfrac_mon 0.5
 )
 
 
@@ -429,10 +413,6 @@ pft "BNS" (
 	gdd5min_est 500
 	longevity 300
 	fireresist 0.3
-	eps_iso 8.0
-	seas_iso 1
-	eps_mon 4.8
-	storfrac_mon 0.5
 )
 
 pft "TeBS" (
@@ -452,10 +432,6 @@ pft "TeBS" (
 	gdd5min_est 1100
 	longevity 400
 	fireresist 0.1
-	eps_iso 45.0
-	seas_iso 1
-	eps_mon 1.6
-	storfrac_mon 0.
 )
 
 pft "IBS" (
@@ -475,10 +451,6 @@ pft "IBS" (
 	gdd5min_est 350 !from TH 2010-03-10 AA
 	longevity 300 !from TH 2010-04-07 was 300 AA
 	fireresist 0.1
-	eps_iso 45.0
-	seas_iso 1
-	eps_mon 1.6
-	storfrac_mon 0.
 )
 
 pft "TeBE" (
@@ -500,10 +472,6 @@ pft "TeBE" (
 	gdd5min_est 2000
 	longevity 300 !from TH 2010-04-07 was 350 AA
 	fireresist 0.3
-	eps_iso 24.0
-	seas_iso 0
-	eps_mon 1.6
-	storfrac_mon 0.
 )
 
 pft "TrBE" (
@@ -520,10 +488,6 @@ pft "TrBE" (
 	turnover_leaf 0.5
 	longevity 500   !from Thomas H 2010-03-30 new 500 instead of 600 2010-04-07
 	fireresist 0.1
-	eps_iso 24.0
-	seas_iso 0
-	eps_mon 0.8
-	storfrac_mon 0.
 )
 
 
@@ -541,11 +505,6 @@ pft "TrIBE" (
 	turnover_leaf 0.5
 	longevity 200
 	fireresist 0.1
-	eps_iso 24.0
-	seas_iso 0
-	eps_mon 0.8
-	storfrac_mon 0.
-
 )
 
 
@@ -563,10 +522,6 @@ pft "TrBR" (
 	turnover_leaf 1
 	longevity 400    ! from Thomas h 2010-03-30
 	fireresist 0.3
-	eps_iso 45.0
-	seas_iso 0
-	eps_mon 2.4
-	storfrac_mon 0.
 )
 
 pft "C3G" (
@@ -586,10 +541,6 @@ pft "C3G" (
 	tcmax_est 1000  	!no limit
 	twmin_est -1000 	!no limit
 	gdd5min_est 0   	!no limit
-	eps_iso 16.0
-	seas_iso 1
-	eps_mon 1.6
-	storfrac_mon 0.5
 )
 
 pft "C4G" (
@@ -609,9 +560,5 @@ pft "C4G" (
 	tcmax_est 1000  !no limit
 	twmin_est -1000 !no limit
 	gdd5min_est 0   !no limit
-	eps_iso 8.0
-	seas_iso 0
-	eps_mon 2.4
-	storfrac_mon 0.5
 )
 

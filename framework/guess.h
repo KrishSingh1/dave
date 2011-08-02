@@ -183,9 +183,7 @@ extern bool ifrainonwetdaysonly;
 	// rain on wet days only (1, true), or a little every day (0, false); 
 extern bool ifspeciesspecificwateruptake;	
 	// whether water uptake is species specific 
-// bvoc
-extern bool ifbvoc; 
-        // whether BVOC calculations are included
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -388,66 +386,6 @@ public:
 	}
 };
 
-/// This struct contains the result of a photosynthesis calculation.
-/** \see photosynthesis */  
-struct PhotosynthesisResult {
-	/// Constructs an empty result
-	PhotosynthesisResult() {
-		clear();
-	}
-
-	/// Clears all members
-	/** This is returned by the photosynthesis function when no photosynthesis
-	 *  takes place.
-	 */
-	void clear() {
-		agd_g      = 0.0;
-		adtmm      = 0.0;
-		rd_g       = 0.0;
-		pi_co2_opt = 0.0;
-		gammastar  = 0.0;
-		apar       = 0.0;
-		phi_pi     = 0.0;
-	}
-
-	/// gross daily photosynthesis (gC/m2/day)
-	double agd_g;
-
-	/// leaf-level net daytime photosynthesis 
-	/** expressed in CO2 diffusion units (mm/m2/day) */
-    double adtmm;
-
-	/// leaf respiration (gC/m2/day)
-	double rd_g;
-
-	/// non-water-stressed intercellular partial pressure of CO2 (Pa)
-	double pi_co2_opt;
-
-	/// CO2 compensation point in partial pressure units (Pa)
-    double gammastar;
-
-	/// amount of PAR absorbed at leaf level (J m-2 d-1)
-    double apar;
-
-	/// factor accounting for effect of intercellular CO2 concentration on C4 photosynthesis
-    double phi_pi;
-
-	/// gross daily photosynthesis (kgC/m2/day)
-    double agd() const {
-        return agd_g/1000.0;
-    }
-
-	/// leaf-level net daytime photosynthesis (kgC/m2/day)
-    double rd() const {
-        return rd_g/1000.0;
-    }
-
-	/// net C-assimilation (gross photosynthesis minus leaf respiration) (kgC/m2/day)
-    double net_assimilation() const {
-        return agd()-rd();
-    }
-};
-
 
 /// The Climate for a grid cell
 /** Stores all static and variable data relating to climate parameters, as well as 
@@ -477,11 +415,7 @@ public:
 	double lat;
 		// latitude (degrees; +=north, -=south)
 	double insol;
-		// insolation today, see also instype
-		// When instype is NETSWRAD or SWRAD insol is assumed to be W/m2 during
-		// daylight hours. If input data is averaged over a 24 hour period, code
-		// dealing with this variable needs to be changed 
-		// (see function daylengthinsoleet).
+		// insolation today
 	insoltype instype;
 		// units in which insol expressed:
 		// SUNSHINE = percentage of full sunshine
@@ -536,7 +470,7 @@ public:
 	double daylength_mean;
 		// accumulated mean daylength for this month (h)
 
-	// Saved parameters used by function daylengthinsoleet
+	// Saved parameters used by function daylengthinsolpet
 
 	double sinelat;
 	double cosinelat;
@@ -544,9 +478,6 @@ public:
 	double daylength_save[365];
 	bool doneday[365];
 		// indicates whether saved values exist for this day
-
-	// bvoc
-	double dtr; // diurnal temperature range (oC)
 
 	// MEMBER FUNCTIONS
 
@@ -595,8 +526,7 @@ public:
 class Fluxes {
 
 	// MEMBER VARIABLES
-	// (all CO2 fluxes on stand area basis, kgC/m2 ;
-        // BVOC fluxes (isoprene and monoterpenes) in gC/m2)
+	// (all fluxes on stand area basis, kgC/m2)
 
 public:
 
@@ -628,12 +558,6 @@ public:
 		// monthly GPP
 	double mcflux_ra[12];
 		// monthly autotrophic respiration
-	// bvoc
-	double miso[12];
-                // monthly isoprene flux (g C/m2/month)
-	double mmon[12];
-	        // monthly monoterpene flux (g C/m2/month)
-
 
 
 	// MEMBER FUNCTIONS
@@ -656,8 +580,6 @@ public:
 
 		return acflux_veg+acflux_fire+acflux_soil+acflux_est;
 	}
-
-
 };
 
 
@@ -801,24 +723,6 @@ public:
 	// guess2008 - drought-limited establishment (DLE)
 	double drought_tolerance;
 		// Drought tolerance level (0 = very -> 1 = not at all) (unitless)
-	
-	// bvoc
-	double ga; 
-	        // aerodynamic conductance (m s-1)
-	double eps_iso;
- 	        // isoprene emission capacity (ug C g-1 h-1)
-	double Y_eps_iso;
-	        // fraction of electron transport to isoprene production under standard conditions (-)
-	bool seas_iso; 
-	        // whether (1) or not (1) isoprene emissions show a seasonality
-	double eps_mon;
-	        // monoterpene emission capacity (ug C g-1 h-1)
-	double Y_eps_mon;
-	        // fraction of electron transport to monoterpene production under standard conditions (-)
-	double storfrac_mon;
-	        // fraction of monoterpene production that goes into storage pool (-)
-	
-	
 
 	// Sapling/regeneration characteristics (used only in population mode):
 	// for trees, on sapling individual basis (kgC); for grasses, on stand area basis,
@@ -1077,18 +981,6 @@ public:
 		// after the Individual object is created, then true.
 
 
-	// bvoc
-	double iso; // isoprene production (mg C m-2 d-1)
-	double mon; // monoterpene production (mg C m-2 d-1)
-	double aiso; // annual isoprene emission (mg C m-2 y-1)
-	double amon; // annual monoterpene emission (mg C m-2 y-1)
-	double monstor; // monoterpene storage pool (mg C m-2)
-	double fvocseas; // isoprene seasonality factor (-)
-	double dtr_wstress; // diurnal temperature range (oC)
-	double eet_wstress; // equilibrium evapotranspiration today (mm/day)
-	double agdd5_wstress; // total gdd5 (accumulated) for this year (reset 1 January)
-	double rad_wstress; // total daily net downward shortwave solar radiation today (J/m2/day)
-
 	// MEMBER FUNCTIONS
 
 public:
@@ -1182,8 +1074,8 @@ public:
 	// guess2008 - override the default SOM years with 70-80% of the spin-up period length
 	void updateSolveSOMvalues(const int& nyrspinup) {
 		
-		solvesom_end=static_cast<int>(0.8*nyrspinup);
-		solvesom_begin=static_cast<int>(0.7*nyrspinup);
+		solvesom_end=0.8*nyrspinup;
+		solvesom_begin=0.7*nyrspinup;
 
 	}
 };
@@ -1325,12 +1217,14 @@ public:
 const int LOOKUP_LAMBDA_MAXITEM=130;
 
 struct Lookup_lambda_item {
-	PhotosynthesisResult photosynthesis;
+	double adtmm;
+	double agd;
+	double rd;
 	int year;
 	int day;
 
 	Lookup_lambda_item()
-			: photosynthesis(), year(-1), day(0) {
+			: adtmm(0.0), agd(0.0), rd(0.0), year(-1), day(0) {
 	}
 };
 
@@ -1347,25 +1241,29 @@ public:
 		position=0;
 	}
 
-	bool getdata(int year,int day,PhotosynthesisResult& photosynthesis) {
+	bool getdata(int year,int day,double& adtmm,double& agd,double& rd) {
 		if (position>=LOOKUP_LAMBDA_MAXITEM)
 			fail("class Lookup_lambda: exceeded dimension of lookup table");
 		Lookup_lambda_item& thisitem=data[position];
 		if (thisitem.year==year && thisitem.day==day) {
-			photosynthesis = thisitem.photosynthesis;
+			adtmm=thisitem.adtmm;
+			agd=thisitem.agd;
+			rd=thisitem.rd;
 			return true;
 		}
 		// else
 		return false;
 	}
 
-	void setdata(int year,int day, const PhotosynthesisResult& photosynthesis) {
+	void setdata(int year,int day,double adtmm,double agd,double rd) {
 		if (position>=LOOKUP_LAMBDA_MAXITEM)
 			fail("class Lookup_lambda: exceeded dimension of lookup table");
 		Lookup_lambda_item& thisitem=data[position];
 		thisitem.year=year;
 		thisitem.day=day;
-		thisitem.photosynthesis = photosynthesis;
+		thisitem.adtmm=adtmm;
+		thisitem.agd=agd;
+		thisitem.rd=rd;
 	}
 
 	bool increase() {
@@ -1568,7 +1466,6 @@ public:
 		// monthly runoff (mm/month)
 	double mpet[12];
 		// monthly PET (mm/month)
-	
 
 	// MEMBER FUNCTIONS
 
@@ -1632,11 +1529,6 @@ public:
 	double fpc_total;
 		// FPC sum for this PFT as average for stand (used by some versions of
 		// guessio.cpp)
-
-	/// Photosynthesis values for this PFT under non-water-stress conditions
-	PhotosynthesisResult photosynthesis;
-	
-	
 
 	/// Is this PFT allowed to grow in this stand ?
 	bool active;
@@ -1799,7 +1691,7 @@ public:
 		landcovertype landcover;
 		LC_updated=false;
 
-		for(unsigned int p=0;p<pftlist.nobj;p++) {
+		for(int p=0;p<pftlist.nobj;p++) {
 			Gridcellpft& gcpft=pft.createobj(pftlist[p]);
 		}		
 

@@ -19,7 +19,7 @@ NPROCESS=15
 WALLTIME=150:00:00
 INSFILE=guess.ins
 GRIDLIST=gridlist.txt
-OUTFILES='*.out'
+OUTFILES='cmass.out firert.out anpp.out lai.out cflux.out dens.out tot_runoff.out mgpp.out mra.out mrh.out cpool.out mnpp.out mlai.out mnee.out maet.out mpet.out mevap.out mintercep.out mrunoff.out mwcont_upper.out mwcont_lower.out'
 
 #      Where:
 #      NPROCESS = number of processes in parallel job
@@ -28,29 +28,26 @@ OUTFILES='*.out'
 #      GRIDLIST = path to gridlist file from run directory
 #      OUTFILES = list of LPJ-GUESS output files in single quotes,
 #                 and separated by spaces (filenames only, including
-#                 extension, no directory.) Shell wildcards are allowed.
+#                 extension, no directory.)
 #
 #   3. Run the script using the command:
 #        sh submit.sh
 #      or:
-#        sh submit.sh [-n <name>] [-s <file>] [-i <ins-file>]
+#        sh submit.sh [-n <name>] [-s <file>]
 #
-#      All arguments are optional and interpreted as:
+#      Both arguments are optional and interpreted as:
 #      name     = the name of the job (shown in PBS queue)
 #      file     = filename of a file which can override the variables
 #                 above
-#      ins-file = instruction file to use, overrides the INSFILE
-#                 variable above
 #
 # Nothing to change past here
 ########################################################################
 
 # Handle the command line arguments
-while getopts ":n:s:i:" opt; do
+while getopts ":n:s:" opt; do
     case $opt in
 	n ) name=$OPTARG ;;
 	s ) submit_vars_file=$OPTARG ;;
-	i ) ins=$OPTARG ;;
     esac
 done
 
@@ -58,18 +55,6 @@ done
 if [ -n "$submit_vars_file" ]; then
     source $submit_vars_file
 fi
-
-# Override INSFILE with the ins-file parameter, if given
-if [ -n "$ins" ]; then
-    INSFILE=$ins
-fi
-
-# Convert INSFILE to an absolute path since we will be starting the
-# guess instances from different directories.
-# Please note when porting this script: readlink may not be available
-# on non-Linux systems. Also, using absolute path names means the
-# instruction file needs to be in a place accessible from the nodes.
-INSFILE=$(readlink -f "$INSFILE")
 
 GRIDLIST_FILENAME=$(basename $GRIDLIST)
 
@@ -113,6 +98,7 @@ echo >> progress.sh
 for ((a=1; a <= NPROCESS ; a++))
 do
   mkdir -p run$a
+  cp $INSFILE run$a
   cd run$a ; rm -f guess.log ; rm -f $GRIDLIST_FILENAME ; cd ..
   echo "echo '********** Last few lines of ./run${a}/guess.log: **********'" >> progress.sh
   echo "tail ./run${a}/guess.log" >> progress.sh
@@ -130,7 +116,6 @@ cd \$PBS_O_WORKDIR
 
 cat<<EOL > startguess.sh
 #!/bin/sh
-umask 022
 cd \$PBS_O_WORKDIR
 cd run\\\$((PBS_VNODENUM+1))
 BINARY $INSFILE
@@ -159,12 +144,7 @@ function append_files {
     done
 }
 
-pushd run1
-outfiles_unexpanded='$OUTFILES'
-outfiles_expanded=\$(cd run1; echo \$outfiles_unexpanded)
-popd
-
-for file in \$outfiles_expanded
+for file in $OUTFILES
 do
   append_files $NPROCESS \$file
 done

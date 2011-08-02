@@ -43,14 +43,12 @@
 #include "guessio.h"
 
 #include "driver.h"
-#include "outputchannel.h"
 #include <plib.h>
 #include <stdio.h>
 #include <utility>
 #include <vector>
 #include <algorithm>
 #include "euroflux.h"
-
 
 // guess2008 - header file for the CRU TS 3.0 data archives
 #include "cru_1901_2006.h"
@@ -89,64 +87,47 @@
 //
 ///////////////////////////////////////////////////////////////////////////////////////
 
-/// Represents one custom "param" item
+
+///////////////////////////////////////////////////////////////////////////////////////
+// CLASS PARAMLIST
+// Functionality for storing and retrieving custom "param" items from the instruction
+// script
+
 struct Paramtype {
 	xtring name;
 	xtring str;
 	double num;
 };
 
-/// List for the custom parameters
-/** Functionality for storing and retrieving custom "param" items from the instruction
- *  script.
- */
 class Paramlist : public ListArray<Paramtype> {
 
 public:
-	/// Adds a parameter with a numeric value, overwriting if it already existed
-	void addparam(xtring name,xtring value) {
-		Paramtype* p = find(name);
-		if (p == 0) {
-			p = &createobj();
-		}
-		p->name=name.lower();
-		p->str=value;
+	void addparam(xtring& name,xtring& value) {
+		Paramtype& p=createobj();
+		p.name=name.lower();
+		p.str=value;
 	}
 
-	/// Adds a parameter with a string value, overwriting if it already existed
-	void addparam(xtring name,double value) {
-		Paramtype* p = find(name);
-		if (p == 0) {
-			p = &createobj();
-		}
-		p->name=name.lower();
-		p->num=value;
+	void addparam(xtring& name,double value) {
+		Paramtype& p=createobj();
+		p.name=name.lower();
+		p.num=value;
 	}
 
-	/// Fetches a parameter from the list, aborts the program if it didn't exist
 	Paramtype& operator[](xtring name) {
-		Paramtype* param = find(name);
-		
-		if (param == 0) {
-			fail("Paramlist::operator[]: parameter \"%s\" not found",(char*)name);
-		}
-		
-		return *param;
-	}
-
-private:
-	/// Tries to find the parameter in the list
-	/** \returns 0 if it wasn't there. */
-	Paramtype* find(xtring name) {
-		name = name.lower();
+		name.lower();
 		firstobj();
 		while (isobj) {
 			Paramtype& p=getobj();
-			if (p.name==name) return &p;
+			if (p.name==name) return p;
 			nextobj();
 		}
-		// nothing found
-		return 0;
+		fail("Paramlist::operator[]: parameter \"%s\" not found",(char*)name);
+
+		// This point cannot be reached in practice, but to satisfy more pedantic
+		// compilers ...
+
+		return getobj();
 	}
 };
 
@@ -190,14 +171,11 @@ xtring outputdirectory;
 xtring file_cmass,file_anpp,file_dens,file_lai,file_cflux,file_cpool,file_runoff;
 xtring file_mnpp,file_mlai,file_mgpp,file_mra,file_maet,file_mpet,file_mevap,file_mrunoff,file_mintercep,file_mrh;
 xtring file_mnee,file_mwcont_upper,file_mwcont_lower;
-xtring file_firert,file_speciesheights;
-// bvoc
-xtring file_aiso,file_miso,file_amon,file_mmon;
+xtring file_firert;
+
 
 // guess2008 - euroflux - Files for EUROFLUX output and stats
-xtring file_eurofluxannual;
-xtring file_eurofluxmonthly_nee, file_eurofluxmonthly_aet, file_eurofluxmonthly_gpp;
-xtring file_eurofluxstats_nee, file_eurofluxstats_aet, file_eurofluxstats_gpp;
+xtring file_eurofluxmonthly, file_eurofluxannual, file_eurofluxstats,file_speciesheights;
 
 // guess2008 - euroflux - new int to keep track of the simulation year
 // Needed for management etc., used in vegetation dynamics
@@ -229,18 +207,14 @@ void initsettings() {
 	file_cmass=file_anpp=file_lai=file_cflux=file_dens=file_runoff="";
 	file_mnpp=file_mlai=file_maet=file_mpet=file_mevap=file_mrunoff=file_mintercep=file_mrh="";
 	file_mgpp=file_mra=file_mnee=file_mwcont_upper=file_mwcont_lower="";
-	file_cpool=file_firert=file_speciesheights="";
-	// bvoc
-	file_aiso=file_miso=file_amon=file_mmon="";
+	file_cpool=file_firert="";
 
-	// euroflux
-	file_eurofluxmonthly_nee="";
-	file_eurofluxmonthly_aet="";
-	file_eurofluxmonthly_gpp="";
+	// guess2008 - euroflux
+	file_eurofluxmonthly="";
 	file_eurofluxannual="";
-	file_eurofluxstats_nee="";
-	file_eurofluxstats_aet="";
-	file_eurofluxstats_gpp="";
+	file_eurofluxstats="";
+	file_speciesheights="";
+
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -329,7 +303,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_cpool",&file_cpool,300,CB_NONE,"Soil C output file");
 		declareitem("file_runoff",&file_runoff,300,CB_NONE,"Runoff output file");
 		declareitem("file_firert",&file_firert,300,CB_NONE,"Fire retrun time output file");
-		declareitem("file_speciesheights",&file_speciesheights,300,CB_NONE,"Mean species heights");
 		// Monthly output variables
 		declareitem("file_mnpp",&file_mnpp,300,CB_NONE,"Monthly NPP output file");
 		declareitem("file_mlai",&file_mlai,300,CB_NONE,"Monthly LAI output file");
@@ -344,11 +317,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_mnee",&file_mnee,300,CB_NONE,"Monthly NEE output file");
 		declareitem("file_mwcont_upper",&file_mwcont_upper,300,CB_NONE,"Monthly wcont_upper output file");
 		declareitem("file_mwcont_lower",&file_mwcont_lower,300,CB_NONE,"Monthly wcont_lower output file");
-		// bvoc
-		declareitem("file_aiso",&file_aiso,300,CB_NONE,"annual isoprene flux output file");
-		declareitem("file_miso",&file_miso,300,CB_NONE,"monthly isoprene flux output file");
-		declareitem("file_amon",&file_amon,300,CB_NONE,"annual monoterpene flux output file");
-		declareitem("file_mmon",&file_mmon,300,CB_NONE,"monthly monoterpene flux output file");
 
 		// guess2008 - new options
 		declareitem("ifsmoothgreffmort",&ifsmoothgreffmort,1,CB_NONE,
@@ -362,18 +330,12 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("searchradius", &searchradius, 0, 100, 1, CB_NONE,
 			"If specified, CRU data will be searched for in a circle");
 
-		// euroflux - Files for EUROFLUX output
-		declareitem("file_eurofluxmonthly_nee",&file_eurofluxmonthly_nee,300,CB_NONE,"EUROFLUX NEE monthly output file");
-		declareitem("file_eurofluxmonthly_aet",&file_eurofluxmonthly_aet,300,CB_NONE,"EUROFLUX AET monthly output file");
-		declareitem("file_eurofluxmonthly_gpp",&file_eurofluxmonthly_gpp,300,CB_NONE,"EUROFLUX GPP monthly output file");
+		// guess2008 - euroflux - File for EUROFLUX output (mnee, maet, mgpp and msw)
+		declareitem("file_eurofluxmonthly",&file_eurofluxmonthly,300,CB_NONE,"EUROFLUX monthly output file");
 		declareitem("file_eurofluxannual",&file_eurofluxannual,300,CB_NONE,"EUROFLUX annual output file");
-		declareitem("file_eurofluxstats_nee",&file_eurofluxstats_nee,300,CB_NONE,"EUROFLUX NEE Statistics output file");
-		declareitem("file_eurofluxstats_aet",&file_eurofluxstats_aet,300,CB_NONE,"EUROFLUX AET Statistics output file");
-		declareitem("file_eurofluxstats_gpp",&file_eurofluxstats_gpp,300,CB_NONE,"EUROFLUX GPP Statistics output file");
+		declareitem("file_eurofluxstats",&file_eurofluxstats,300,CB_NONE,"EUROFLUX Statistics output file");
+		declareitem("file_speciesheights",&file_speciesheights,300,CB_NONE,"Mean species heights in 2000");
 
-		// bvoc 
-		declareitem("ifbvoc",&ifbvoc,1,CB_NONE,
-			"Whether or not BVOC calculations are performed (0,1)");
 		declareitem("run_landcover",&run_landcover,1,CB_NONE,"Landcover version");
 		declareitem("run_urban",&run[URBAN],1,CB_NONE,"Whether urban land is to be simulated");
 		declareitem("run_crop",&run[CROPLAND],1,CB_NONE,"Whether crop-land is to be simulated");
@@ -520,19 +482,7 @@ void plib_declarations(int id,xtring setname) {
 		// guess2008 - DLE
 		declareitem("drought_tolerance",&ppft->drought_tolerance,0.0,1.0,1,CB_NONE,
 			"Drought tolerance level (0 = very -> 1 = not at all) (unitless)");
-		
-		// bvoc
-		declareitem("ga",&ppft->ga,0.0,1.0,1,CB_NONE,
-			"aerodynamic conductance (m/s)");
-		declareitem("eps_iso",&ppft->eps_iso,0.,100.,1,CB_NONE,
-			"isoprene emission capacity (ug C g-1 h-1)");
-		declareitem("seas_iso",&ppft->seas_iso,1,CB_NONE,
-			"whether (1) or not (0) isoprene emissions show seasonality");
-		declareitem("eps_mon",&ppft->eps_mon,0.,100.,1,CB_NONE,
-			"monoterpene emission capacity (ug C g-1 h-1)");
-		declareitem("storfrac_mon",&ppft->storfrac_mon,0.,1.,1,CB_NONE,
-			"fraction of monoterpene production that goes into storage pool (-)");
-		
+
 		declareitem("harv_eff",&ppft->harv_eff,0.0,1.0,1,CB_NONE,"Harvest efficiency");
 		declareitem("harvest_slow_frac",&ppft->harvest_slow_frac,0.0,1.0,1,CB_NONE,
 			"Fraction of harvested products that goes into carbon depository for long-lived products like wood");
@@ -654,8 +604,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifdroughtlimitedestab")) badins("ifdroughtlimitedestab");
 		if (!itemparsed("ifrainonwetdaysonly")) badins("ifrainonwetdaysonly");
 		if (!itemparsed("ifspeciesspecificwateruptake")) badins("ifspeciesspecificwateruptake");
-		// bvoc
-		if (!itemparsed("ifbvoc")) badins("ifbvoc");
 
 		if (!itemparsed("run_landcover")) badins("run_landcover");
 		if (run_landcover) {
@@ -731,15 +679,6 @@ void plib_callback(int callback) {
 		// guess2008 - DLE
 		if (!itemparsed("drought_tolerance")) badins("drought_tolerance");
 
-		// bvoc
-		if(ifbvoc){
-		  if (!itemparsed("ga")) badins("ga");
-		  if (!itemparsed("eps_iso")) badins("eps_iso");
-		  if (!itemparsed("seas_iso")) badins("seas_iso");
-		  if (!itemparsed("eps_mon")) badins("eps_mon");
-		  if (!itemparsed("storfrac_mon")) badins("storfrac_mon");
-		}
-
 		if (ppft->lifeform==TREE) {
 			if (!itemparsed("cton_sap")) badins("cton_sap");
 			if (!itemparsed("turnover_sap")) badins("turnover_sap");
@@ -796,14 +735,6 @@ void plib_callback(int callback) {
 		else if (run_landcover && !run[NATURAL]) {
 			if (ppft->landcover==NATURAL)
 				includepft=0;
-		}
-
-		// Special case to include Picea sitchensis so we can use the standard
-		// ins file with european species (where it's disabled).
-		// See also code in vegdynam.cpp (establish()) where Pic_sit is handled
-		// as a special case.
-		if (ppft->name == "Pic_sit") {
-			 includepft = true;
 		}
 
 		// If "include 0", remove this PFT from list, and set id to correct value
@@ -904,8 +835,19 @@ void printhelp() {
 //
 //   If the model is to be driven by quasi-daily values of the climate variables
 //   derived from monthly means, this function may be the appropriate place to
-//   perform the required interpolations. The utility functions interp_monthly_means
-//   and interp_monthly_totals in driver.cpp may be called for this purpose.
+//   perform the required interpolations. The utility function interp_climate in
+//   driver.cpp may be called for this purpose:
+//
+//   interp_climate(mtemp,mprec,msun,dtemp,dprec,dsun);
+//
+//   This assumes the following arrays are declared, presumably at file scope:
+//
+//   double mtemp[12]   monthly average temperature (deg C)
+//   double mprec[12]   monthly precipitation sum (mm)
+//   double msun[12]    monthly average sunshine (%)
+//   double dtemp[365]  daily interpolated temperature (deg C)
+//   double dprec[365]  daily interpolated rainfall (mm)
+//   double dsun[365]   daily interpolated sunshine (%)
 //
 // bool getclimate(Stand& stand)
 //   Obtains climate data (including atmospheric CO2 and insolation) for this day.
@@ -926,10 +868,6 @@ void printhelp() {
 //   gridcell.climate.temp=dtemp[date.day];
 //   gridcell.climate.prec=dprec[date.day];
 //   gridcell.climate.insol=dsun[date.day];
-//
-//   Diurnal temperature range (dtr) added for calculation of leaf temperatures in 
-//   BVOC:
-//   gridcell.climate.dtr=ddtr[date.day]; 
 //
 // void outannual(Stand& stand,Pftlist& pftlist)
 //   Called at the end of the last day of each simulation year to permit output of
@@ -1226,24 +1164,15 @@ FILE *in_cru;
 xtring file_co2;
 
 
-using namespace GuessOutput;
+// Output streams
+FILE *out_cmass,*out_anpp,*out_lai,*out_cflux,*out_cpool,*out_runoff,*out_dens;
+FILE *out_mnpp,*out_mlai,*out_mgpp,*out_mra,*out_maet,*out_mpet,*out_mevap,*out_mrunoff,*out_mintercep,*out_mrh;
+FILE *out_mnee,*out_mwcont_upper,*out_mwcont_lower; 
+FILE *out_firert; 
 
-/// The output channel through which all output is sent
-OutputChannel* output_channel;
+// guess2008 - euroflux - EUROFLUX output
+FILE *out_eurofluxmonthly, *out_eurofluxannual, *out_eurofluxstats,*out_speciesheights;
 
-// Output tables
-Table out_cmass, out_anpp, out_dens, out_lai, out_cflux, out_cpool, out_firert, out_runoff, out_speciesheights;
-
-Table out_mnpp, out_mlai, out_mgpp, out_mra, out_maet, out_mpet, out_mevap, out_mrunoff, out_mintercep;
-Table out_mrh, out_mnee, out_mwcont_upper, out_mwcont_lower;
-
-// bvoc
-Table out_aiso, out_miso, out_amon, out_mmon;
-
-// euroflux - EUROFLUX output
-Table out_eurofluxannual;
-Table out_eurofluxmonthly_nee, out_eurofluxmonthly_aet, out_eurofluxmonthly_gpp;
-Table out_eurofluxstats_nee, out_eurofluxstats_aet, out_eurofluxstats_gpp;
 
 // Timers for keeping track of progress through the simulation
 Timer tprogress,tmute;
@@ -1281,9 +1210,6 @@ Spinup_data spinup_mdtr(NYEAR_SPINUP_DATA);
 
 // Daily temperature, precipitation and sunshine for one year
 double dtemp[365],dprec[365],dsun[365];
-// bvoc
-// Daily diurnal temperature range for one year
-double ddtr[365];
 
 bool annual_output;
 	// whether output should occur each simulation year (true) or at end of simulation
@@ -1342,7 +1268,7 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 		if (success) {
 			bool flag = ark.rewind();
 			if (!flag) { 
-				ark.close(); // I.e. we opened it but we couldn't rewind
+				ark.close(); // I.e. we opened it but we couldn?t rewind
 				return false;
 			}
 		}
@@ -1419,7 +1345,7 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 		if (success) {
 			bool flag = ark.rewind();
 			if (!flag) { 
-				ark.close(); // I.e. we opened it but we couldn't rewind
+				ark.close(); // I.e. we opened it but we couldn?t rewind
 				return false;
 			}
 		}
@@ -1792,180 +1718,6 @@ void readco2() {
 	fclose(in);
 }
 
-/// Interpolates monthly data to quasi-daily values.
-void interp_climate(double mtemp[12], double mprec[12], double msun[12], double mdtr[12],
-					double dtemp[365], double dprec[365], double dsun[365], double ddtr[365]) {
-	interp_monthly_means(mtemp, dtemp);
-	interp_monthly_totals(mprec, dprec);
-	interp_monthly_means(msun, dsun);
-	interp_monthly_means(mdtr, ddtr);
-}
-
-/// Help function to define_output_tables, creates one output table
-void create_output_table(Table& table, const char* file, const ColumnDescriptors& columns) {
-	 table = output_channel->create_table(TableDescriptor(file, columns));
-}
-
-/// Defines all output tables
-/** This function specifies all columns in all output tables, their names,
- *  column widths and precision.
- *
- *  For each table a TableDescriptor object is created which is then sent to
- *  the output channel to create the table.
- */
-void define_output_tables(Pftlist& pftlist) {
-	// create a vector with the pft names
-	std::vector<std::string> pfts;
-
-	pftlist.firstobj();
-	while (pftlist.isobj) {
-		 Pft& pft=pftlist.getobj();
-
-		 pfts.push_back((char*)pft.name);
-
-		 pftlist.nextobj();
-	}
-
-	// create a vector with the landcover column titles
-	std::vector<std::string> landcovers;
-
-	if (run_landcover) {
-		 const char* landcover_string[]={"Urban_sum", "Crop_sum", "Pasture_sum", "Forest_sum", "Natural_sum", "Peatland_sum"};
-		 for (int i=0; i<NLANDCOVERTYPES; i++) {
-			  if(run[i]) {
-					landcovers.push_back(landcover_string[i]);
-			  }
-		 }
-	}
-
-	// Create the month columns
-	ColumnDescriptors month_columns;
-	ColumnDescriptors month_columns_wide;
-	xtring months[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
-	for (int i = 0; i < 12; i++) {
-		 month_columns      += ColumnDescriptor(months[i], 8,  3);
-		 month_columns_wide += ColumnDescriptor(months[i], 10, 3);
-	}
-
-	// Create the columns for each output file
-
-	// CMASS
-	ColumnDescriptors cmass_columns;
-	cmass_columns += ColumnDescriptors(pfts, 8, 3);
-	cmass_columns += ColumnDescriptor("Total", 8, 3);
-	cmass_columns += ColumnDescriptors(landcovers, 13, 3);
-
-	// ANPP
-	ColumnDescriptors anpp_columns = cmass_columns;
-
-	// DENS
-	ColumnDescriptors dens_columns;
-	dens_columns += ColumnDescriptors(pfts, 8, 4);
-	dens_columns += ColumnDescriptor("Total", 8, 4);
-	dens_columns += ColumnDescriptors(landcovers, 13, 4);
-
-	// LAI
-	ColumnDescriptors lai_columns = dens_columns;
-
-	// CFLUX
-	ColumnDescriptors cflux_columns;
-	cflux_columns += ColumnDescriptor("Veg",     8, 3);
-	cflux_columns += ColumnDescriptor("Soil",    8, 3);
-	cflux_columns += ColumnDescriptor("Fire",    8, 3);
-	cflux_columns += ColumnDescriptor("Est",     8, 3);
-	if (run_landcover) {
-		 cflux_columns += ColumnDescriptor("Harvest", 9, 3);
-	}
-	cflux_columns += ColumnDescriptor("NEE",    10, 5);
-
-	// CPOOL
-	ColumnDescriptors cpool_columns;
-	cpool_columns += ColumnDescriptor("VegC",   8, 3);
-	cpool_columns += ColumnDescriptor("LittC",  8, 3);
-	cpool_columns += ColumnDescriptor("SoilfC", 8, 3);
-	cpool_columns += ColumnDescriptor("SoilsC", 8, 3);
-	if (run_landcover && ifslowharvestpool) {
-		 cpool_columns += ColumnDescriptor("HarvSlowC", 10, 3);
-	}
-	cpool_columns += ColumnDescriptor("Total", 10, 4);
-
-	// FIRERT
-	ColumnDescriptors firert_columns;
-	firert_columns += ColumnDescriptor("FireRT", 8, 1);
-
-	// RUNOFF
-	ColumnDescriptors runoff_columns;
-	runoff_columns += ColumnDescriptor("Total", 8, 1);
-
-	// SPECIESHEIGHTS
-	ColumnDescriptors speciesheights_columns;
-	speciesheights_columns += ColumnDescriptors(pfts, 8, 2);
-
-	// AISO
-	ColumnDescriptors aiso_columns;
-	aiso_columns += ColumnDescriptors(pfts, 10, 3);
-	aiso_columns += ColumnDescriptor("Total", 10, 3);
-	aiso_columns += ColumnDescriptors(landcovers, 13, 3);
-
-	// AMON
-	ColumnDescriptors amon_columns = aiso_columns;
-
-	// *** ANNUAL OUTPUT VARIABLES ***
-
-	create_output_table(out_cmass,          file_cmass,          cmass_columns);
-	create_output_table(out_anpp,           file_anpp,           anpp_columns);
-	create_output_table(out_dens,           file_dens,           dens_columns);
-	create_output_table(out_lai,            file_lai,            lai_columns);
-	create_output_table(out_cflux,          file_cflux,          cflux_columns);
-	create_output_table(out_cpool,          file_cpool,          cpool_columns);
-	create_output_table(out_firert,         file_firert,         firert_columns);
-	create_output_table(out_runoff,         file_runoff,         runoff_columns);
-	create_output_table(out_speciesheights, file_speciesheights, speciesheights_columns);
-	create_output_table(out_aiso,           file_aiso,           aiso_columns);
-	create_output_table(out_amon,           file_amon,           amon_columns);
-
-	// *** MONTHLY OUTPUT VARIABLES ***
-
-	create_output_table(out_mnpp,         file_mnpp,         month_columns);
-	create_output_table(out_mlai,         file_mlai,         month_columns);
-	create_output_table(out_mgpp,         file_mgpp,         month_columns);
-	create_output_table(out_mra,          file_mra,          month_columns);
-	create_output_table(out_maet,         file_maet,         month_columns);
-	create_output_table(out_mpet,         file_mpet,         month_columns);
-	create_output_table(out_mevap,        file_mevap,        month_columns);
-	create_output_table(out_mrunoff,      file_mrunoff,      month_columns_wide);
-	create_output_table(out_mintercep,    file_mintercep,    month_columns);
-	create_output_table(out_mrh,          file_mrh,          month_columns);
-	create_output_table(out_mnee,         file_mnee,         month_columns);
-	create_output_table(out_mwcont_upper, file_mwcont_upper, month_columns);
-	create_output_table(out_mwcont_lower, file_mwcont_lower, month_columns);
-	create_output_table(out_miso,         file_miso,         month_columns_wide);
-	create_output_table(out_mmon,         file_mmon,         month_columns_wide);
-
-	// euroflux
-	ColumnDescriptors eurofluxannual_columns;
-	xtring eurofluxannual_str[] = { "NEE_mod","NEE_obs","AET_mod","AET_obs","GPP_mod","GPP_obs",         // annual
-											  "sNEE_mod","sNEE_obs","sAET_mod","sAET_obs","sGPP_mod","sGPP_obs" }; // summer
-	for (int i = 0; i < 12; i++) {
-		 eurofluxannual_columns += ColumnDescriptor(eurofluxannual_str[i], 10, 2);
-	}
-
-	ColumnDescriptors eurofluxstats_columns;
-	xtring eurofluxstats_str[] = { "<OBS>","<MOD>","M","R","R2","EF","CD","RMSE","RMSE_std","t" };
-
-	eurofluxstats_columns += ColumnDescriptor("N", 10, 0);
-	for (int i = 0; i < 10; i++) {
-		 eurofluxstats_columns += ColumnDescriptor(eurofluxstats_str[i], 10, 2);
-	}
-
-	create_output_table(out_eurofluxannual, file_eurofluxannual, eurofluxannual_columns);
-	create_output_table(out_eurofluxmonthly_nee, file_eurofluxmonthly_nee, month_columns_wide);
-	create_output_table(out_eurofluxmonthly_aet, file_eurofluxmonthly_aet, month_columns_wide);
-	create_output_table(out_eurofluxmonthly_gpp, file_eurofluxmonthly_gpp, month_columns_wide);
-	create_output_table(out_eurofluxstats_nee, file_eurofluxstats_nee, eurofluxstats_columns);
-	create_output_table(out_eurofluxstats_aet, file_eurofluxstats_aet, eurofluxstats_columns);
-	create_output_table(out_eurofluxstats_gpp, file_eurofluxstats_gpp, eurofluxstats_columns);
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // INITIO
@@ -2003,7 +1755,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	bool abort;
 	xtring insfilename;
 	xtring header;
-
+ 
 
 	unixtime(header);
 	header=(xtring)"[LPJ-GUESS  "+header+"]\n\n";
@@ -2018,7 +1770,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 				abort=true;
 			}
 			else {
-				dprintf("Unknown option \"%s\"\n",(char*)insfilename);
+				dprintf("Unknown option \"%s\"\n",insfilename);
 				abort=true;
 			}
 		}
@@ -2081,7 +1833,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	while (!eof) {
 		
 		// Read next record in file
-		//eof=!readfor(in_grid,"f,f,a#",&dlon,&dlat,&descrip);
+		//eof=!readfor(in_grid,"f,f,a",&dlon,&dlat,&descrip);
 
 		// New, local versions of these arrays
 		xtring dom_spec[5];
@@ -2139,6 +1891,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	// Read CO2 data from file
 	readco2();
 
+
 	// Remember whether to produce output each year or not
 	annual_output=param["annual_output"].num;
 
@@ -2171,18 +1924,203 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		}
 	}
 
+	// guess2008
+	// Retrieve output file names as read from ins file
+
 	// We MUST have an output directory
 	if (outputdirectory=="") {
 		fail("No output directory given in the .ins file!");
 	}
 
-	// Create the output channel
-	const int COORDINATES_PRECISION = 2; // decimal places for coords in output
-	output_channel = new FileOutputChannel((char*)outputdirectory,
-														COORDINATES_PRECISION);
 
-	// Define all output tables and their formats
-	define_output_tables(pftlist);
+	// *** ANNUAL OUTPUT VARIABLES ***
+
+	if (file_cmass!="") {
+		file_cmass = outputdirectory + file_cmass;
+		out_cmass=fopen(file_cmass,"w");
+		if (!out_cmass) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_cmass);
+	}
+	else out_cmass=NULL;
+
+
+	// guess2008 - euroflux
+	if (file_eurofluxmonthly!="") {
+		file_eurofluxmonthly = outputdirectory + file_eurofluxmonthly;
+		out_eurofluxmonthly=fopen(file_eurofluxmonthly,"w");
+		if (!out_eurofluxmonthly) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_eurofluxmonthly);
+	}
+	else out_eurofluxmonthly=NULL;	
+
+	// guess2008 - euroflux
+	if (file_eurofluxannual!="") {
+		file_eurofluxannual = outputdirectory + file_eurofluxannual;
+		out_eurofluxannual=fopen(file_eurofluxannual,"w");
+		if (!out_eurofluxannual) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_eurofluxannual);
+	}
+	else out_eurofluxannual=NULL;	
+
+	// guess2008 - euroflux
+	if (file_eurofluxstats!="") {
+		file_eurofluxstats = outputdirectory + file_eurofluxstats;
+		out_eurofluxstats=fopen(file_eurofluxstats,"w");
+		if (!out_eurofluxstats) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_eurofluxstats);
+	}
+	else out_eurofluxstats=NULL;
+
+	// guess2008 - euroflux
+	if (file_speciesheights!="") {
+		file_speciesheights = outputdirectory + file_speciesheights;
+		out_speciesheights=fopen(file_speciesheights,"w");
+		if (!file_speciesheights) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mwcont_lower);
+	}
+	else out_speciesheights=NULL;
+
+
+	if (file_anpp!="") {
+		file_anpp = outputdirectory + file_anpp;
+		out_anpp=fopen(file_anpp,"w");
+		if (!out_anpp) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_anpp);
+	}
+	else out_anpp=NULL;
+
+	if (file_dens!="") {
+		file_dens = outputdirectory + file_dens;
+		out_dens=fopen(file_dens,"w");
+		if (!out_dens) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_dens);
+	}
+	else out_dens=NULL;
+
+	if (file_lai!="") {
+		file_lai = outputdirectory + file_lai;
+		out_lai=fopen(file_lai,"w");
+		if (!out_lai) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_lai);
+	}
+	else out_lai=NULL;
+
+	if (file_cflux!="") {
+		file_cflux = outputdirectory + file_cflux;
+		out_cflux=fopen(file_cflux,"w");
+		if (!out_cflux) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_cflux);
+	}
+	else out_cflux=NULL;
+
+	if (file_cpool!="") {
+		file_cpool = outputdirectory + file_cpool;
+		out_cpool=fopen(file_cpool,"w");
+		if (!out_cpool) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_cpool);
+	}
+	else out_cpool=NULL;
+
+	if (file_firert!="") {
+		file_firert = outputdirectory + file_firert;
+		out_firert=fopen(file_firert,"w");
+		if (!out_firert) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_firert);
+	}
+	else out_firert=NULL;
+	
+
+	if (file_runoff!="") {
+		file_runoff = outputdirectory + file_runoff;
+		out_runoff=fopen(file_runoff,"w");
+		if (!out_runoff) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_runoff);
+	}
+	else out_runoff=NULL;
+
+
+	// *** MONTHLY OUTPUT VARIABLES ***
+
+	if (file_mnpp!="") {
+		file_mnpp = outputdirectory + file_mnpp;
+		out_mnpp=fopen(file_mnpp,"w");
+		if (!out_mnpp) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mnpp);
+	}
+	else out_mnpp=NULL;
+
+	if (file_mlai!="") {
+		file_mlai = outputdirectory + file_mlai;
+		out_mlai=fopen(file_mlai,"w");
+		if (!out_mlai) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mlai);
+	}
+	else out_mlai=NULL;
+
+	if (file_mgpp!="") {
+		file_mgpp = outputdirectory + file_mgpp;
+		out_mgpp=fopen(file_mgpp,"w");
+		if (!out_mgpp) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mgpp);
+	}
+	else out_mgpp=NULL;
+
+	if (file_mra!="") {
+		file_mra = outputdirectory + file_mra;
+		out_mra=fopen(file_mra,"w");
+		if (!out_mra) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mra);
+	}
+	else out_mra=NULL;
+
+	if (file_maet!="") {
+		file_maet = outputdirectory + file_maet;
+		out_maet=fopen(file_maet,"w");
+		if (!out_maet) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_maet);
+	}
+	else out_maet=NULL;
+
+	if (file_mpet!="") {
+		file_mpet = outputdirectory + file_mpet;
+		out_mpet=fopen(file_mpet,"w");
+		if (!out_mpet) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mpet);
+	}
+	else out_mpet=NULL;
+
+	if (file_mevap!="") {
+		file_mevap = outputdirectory + file_mevap;
+		out_mevap=fopen(file_mevap,"w");
+		if (!out_mevap) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mevap);
+	}
+	else out_mevap=NULL;
+
+	if (file_mrunoff!="") {
+		file_mrunoff = outputdirectory + file_mrunoff;
+		out_mrunoff=fopen(file_mrunoff,"w");
+		if (!out_mrunoff) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mrunoff);
+	}
+	else out_mrunoff=NULL;
+
+	if (file_mintercep!="") {
+		file_mintercep = outputdirectory + file_mintercep;
+		out_mintercep=fopen(file_mintercep,"w");
+		if (!out_mintercep) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mintercep);
+	}
+	else out_mintercep=NULL;
+
+	if (file_mrh!="") {
+		file_mrh = outputdirectory + file_mrh;
+		out_mrh=fopen(file_mrh,"w");
+		if (!out_mrh) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mrh);
+	}
+	else out_mrh=NULL;
+
+	if (file_mnee!="") {
+		file_mnee = outputdirectory + file_mnee;
+		out_mnee=fopen(file_mnee,"w");
+		if (!out_mnee) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mnee);
+	}
+	else out_mnee=NULL;
+
+	if (file_mwcont_upper!="") {
+		file_mwcont_upper = outputdirectory + file_mwcont_upper;
+		out_mwcont_upper=fopen(file_mwcont_upper,"w");
+		if (!out_mwcont_upper) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mwcont_upper);
+	}
+	else out_mwcont_upper=NULL;
+
+	if (file_mwcont_lower!="") {
+		file_mwcont_lower = outputdirectory + file_mwcont_lower;
+		out_mwcont_lower=fopen(file_mwcont_lower,"w");
+		if (!out_mwcont_lower) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mwcont_lower);
+	}
+	else out_mwcont_lower=NULL;
+
+
 
 	// Set timers
 	tprogress.init();
@@ -2246,8 +2184,19 @@ bool getgridcell(Gridcell& gridcell)
 	//
 	// If the model is to be driven by quasi-daily values of the climate variables
 	// derived from monthly means, this function may be the appropriate place to
-	// perform the required interpolations. The utility functions interp_monthly_means
-	// and interp_monthly_totals in driver.cpp may be called for this purpose.
+	// perform the required interpolations. The utility function interp_climate in
+	// driver.cpp may be called for this purpose:
+	//
+	// interp_climate(mtemp,mprec,msun,dtemp,dprec,dsun);
+	//
+	// This assumes the following arrays are declared, presumably at file scope:
+	//
+	// double mtemp[12]   monthly average temperature (deg C)
+	// double mprec[12]   monthly precipitation sum (mm)
+	// double msun[12]    monthly average sunshine (%)
+	// double dtemp[365]  daily interpolated temperature (deg C)
+	// double dprec[365]  daily interpolated rainfall (mm)
+	// double dsun[365]   daily interpolated sunshine (%)
 
 	// Select coordinates for next grid cell in linked list
 	
@@ -2258,7 +2207,7 @@ bool getgridcell(Gridcell& gridcell)
 	bool gridfound;
 	bool LUerror=false;
 
-	// to ensure an identical random number sequence for each gridcell.
+	// guess2008 - run with the same randon number sequence each time
 	setseed(12345678);
 
 	if (firstgrid) {
@@ -2582,10 +2531,6 @@ bool getclimate(Gridcell& gridcell) {
 	// gridcell.climate.temp=dtemp[date.day];
 	// gridcell.climate.prec=dprec[date.day];
 	// gridcell.climate.insol=dsun[date.day];
-	// 
-	// Diurnal temperature range (dtr) added for calculation of leaf temperatures in 
-	// BVOC:
-	// gridcell.climate.dtr=ddtr[date.day]; 
 
 	double progress;
 
@@ -2618,7 +2563,7 @@ bool getclimate(Gridcell& gridcell) {
 			}
 
 			// Interpolate monthly spinup data to quasi-daily values
-			interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
+			interp_climate(mtemp,mprec,msun,dtemp,dprec,dsun);
 
 			// guess2008 - only recalculate precipitation values using weather generator
 			// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
@@ -2651,8 +2596,7 @@ bool getclimate(Gridcell& gridcell) {
 			// Interpolate this year's monthly data to quasi-daily values
 			interp_climate(hist_mtemp[date.year-nyear_spinup],
 				hist_mprec[date.year-nyear_spinup],hist_msun[date.year-nyear_spinup],
-					   hist_mdtr[date.year-nyear_spinup],
-				       dtemp,dprec,dsun,ddtr);
+				dtemp,dprec,dsun);
 
 			// guess2008 - only recalculate precipitation values using weather generator
 			// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
@@ -2675,11 +2619,6 @@ bool getclimate(Gridcell& gridcell) {
 	climate.temp=dtemp[date.day];
 	climate.prec=dprec[date.day];
 	climate.insol=dsun[date.day];
-
-	// bvoc
-	if(ifbvoc){
-	  climate.dtr=ddtr[date.day];
-	}
 
 	// First day of year only ...
 
@@ -2705,9 +2644,12 @@ bool getclimate(Gridcell& gridcell) {
 
 
 
+
+
+
 ///////////////////////////////////////////////////////////////////////////////////////
-// calculateAnnualFluxSums - euroflux
-// Called by outannual at the end of each flux year
+// calculateEurofluxStats - guess2008 - euroflux
+// Called by outannual at the end of the last day of the last simulation year
 void calculateAnnualFluxSums(const int yr, 
 								double& annNEE_obs, double& annNEE_mod, double &sumNEE_obs, double& sumNEE_mod, 
 								double& annAET_obs, double& annAET_mod, double &sumAET_obs, double& sumAET_mod, 
@@ -2831,12 +2773,10 @@ void calculateAnnualFluxSums(const int yr,
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
-// calculateEurofluxStats - euroflux
+// calculateEurofluxStats - guess2008 - euroflux
 // Called by outannual at the end of the last day of the last simulation year
 
-void calculateEurofluxStats(Table out_stats_nee, 
-                            Table out_stats_aet, 
-                            Table out_stats_gpp) {
+void calculateEurofluxStats(FILE* out_stats) {
 
 	int yr, mth;
 
@@ -3080,55 +3020,46 @@ void calculateEurofluxStats(Table out_stats_nee,
 
 	// OUTPUT stats
 	// ***********************************************************************
-	double lon = gridlist.getobj().lon;
-	double lat = gridlist.getobj().lat;
 
-	OutputRows out(output_channel, lon, lat, date.year);
+
+	// Create the file name for output 
+	/*
+	xtring fluxdirectory=outputdirectory;
+	xtring statsfilename = "EurofluxStats.txt";
+	xtring statsfile = fluxdirectory + statsfilename;
+
+	FILE* out_stats=fopen(statsfile,"a");
+	if (!out_stats) fail("calculateEurofluxStats: could not open %s for ouput",(char*)statsfile);
+	*/
+
+
+	char* sitename = (char*)current_stand_fluxdata->desc;
 
 	double ef = (NEE_obs_sqdiff - NEE_obs_minus_mod_sq)/NEE_obs_sqdiff; // Modelling Efficiency
 	double cd = NEE_obs_sqdiff/NEE_obs_minus_mod_sq; // Coefficient of determination
 
-	out.add_value(out_stats_nee, numNEE_obs);
-	out.add_value(out_stats_nee, meanNEE_obs);
-	out.add_value(out_stats_nee, meanNEE_mod);
-	out.add_value(out_stats_nee, m_NEE);
-	out.add_value(out_stats_nee, r_NEE);
-	out.add_value(out_stats_nee, r_NEE*r_NEE);
-	out.add_value(out_stats_nee, ef);
-	out.add_value(out_stats_nee, cd);
-	out.add_value(out_stats_nee, rmse_NEE);
-	out.add_value(out_stats_nee, rmse_NEE_std);
-	out.add_value(out_stats_nee, t_NEE);
-	
+	fprintf(out_stats,"%10s%10s%10s%10s%10s%10s%10s%10s%10s%10s%10s%10s%10s\n","Site","Variable","N","<OBS>","<MOD>","M","R","R2","EF","CD","RMSE","RMSE_std","t");
+	fprintf(out_stats,"%10s%10s",sitename,"NEE");
+	fprintf(out_stats,"%10d%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f\n",numNEE_obs,meanNEE_obs,meanNEE_mod,m_NEE,
+		r_NEE,r_NEE*r_NEE,ef,cd,rmse_NEE,rmse_NEE_std,t_NEE);
+
 	ef = (AET_obs_sqdiff - AET_obs_minus_mod_sq)/AET_obs_sqdiff; // Modelling Efficiency
 	cd = AET_obs_sqdiff/AET_obs_minus_mod_sq; // Coefficient of determination
 
-	out.add_value(out_stats_aet, numAET_obs);
-	out.add_value(out_stats_aet, meanAET_obs);
-	out.add_value(out_stats_aet, meanAET_mod);
-	out.add_value(out_stats_aet, m_AET);
-	out.add_value(out_stats_aet, r_AET);
-	out.add_value(out_stats_aet, r_AET*r_AET);
-	out.add_value(out_stats_aet, ef);
-	out.add_value(out_stats_aet, cd);
-	out.add_value(out_stats_aet, rmse_AET);
-	out.add_value(out_stats_aet, rmse_AET_std);
-	out.add_value(out_stats_aet, t_AET);
+	fprintf(out_stats,"%10s%10s",sitename,"AET");
+	fprintf(out_stats,"%10d%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f\n",numAET_obs,meanAET_obs,meanAET_mod,m_AET,
+		r_AET,r_AET*r_AET,ef,cd,rmse_AET,rmse_AET_std,t_AET);
 
 	ef = (GPP_obs_sqdiff - GPP_obs_minus_mod_sq)/GPP_obs_sqdiff; // Modelling Efficiency
 	cd = GPP_obs_sqdiff/GPP_obs_minus_mod_sq; // Coefficient of determination
 
-	out.add_value(out_stats_gpp, numGPP_obs);
-	out.add_value(out_stats_gpp, meanGPP_obs);
-	out.add_value(out_stats_gpp, meanGPP_mod);
-	out.add_value(out_stats_gpp, m_GPP);
-	out.add_value(out_stats_gpp, r_GPP);
-	out.add_value(out_stats_gpp, r_GPP*r_GPP);
-	out.add_value(out_stats_gpp, ef);
-	out.add_value(out_stats_gpp, cd);
-	out.add_value(out_stats_gpp, rmse_GPP);
-	out.add_value(out_stats_gpp, rmse_GPP_std);
-	out.add_value(out_stats_gpp, t_GPP);
+	fprintf(out_stats,"%10s%10s",sitename,"GPP");
+	fprintf(out_stats,"%10d%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f\n",numGPP_obs,meanGPP_obs,meanGPP_mod,m_GPP,
+		r_GPP,r_GPP*r_GPP,ef,cd,rmse_GPP,rmse_GPP_std,t_GPP);
+
+
+	// fclose(out_stats);
+
 }
 
 
@@ -3159,9 +3090,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	double mnee[12];
 	double mwcont_upper[12];
 	double mwcont_lower[12];
-	// bvoc
-	double miso[12];
-	double mmon[12];
+
 
 	double lon,lat;
 
@@ -3169,6 +3098,130 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		nclass=min(date.year/estinterval+1,OUTPUT_MAXAGECLASS);
 
 	if (date.year==0 && firstgrid) {
+
+		// Very first time only
+
+		// Print column labels
+		// guess2008 - added runoff & dens
+		
+		// guess2008 - emdi
+		const char* lonlatyearstr = "%8s%8s%8s"; // easier to change now.
+		const char* lonlatyearstr_extended = "%8s%8s%8s%8s%8s%8s%8s%10s\n";
+		//const char* lonlatyearstr = "%6s%6s%6s"; // easier to change now. // std CRU
+		//const char* lonlatyearstr_extended = "%6s%6s%6s%8s%8s%8s%8s%8s\n"; // std CRU
+
+		if (out_cmass) fprintf(out_cmass,lonlatyearstr,"Lon","Lat","Year");
+		if (out_anpp) fprintf(out_anpp,lonlatyearstr,"Lon","Lat","Year");
+		if (out_lai) fprintf(out_lai,lonlatyearstr,"Lon","Lat","Year");
+		if (out_runoff) fprintf(out_runoff,lonlatyearstr,"Lon","Lat","Year");
+		if (out_dens) fprintf(out_dens,lonlatyearstr,"Lon","Lat","Year");
+		if (out_cflux) {
+			if(run_landcover)
+				fprintf(out_cflux,"%8s%8s%8s%8s%8s%8s%8s%9s%10s\n","Lon","Lat","Year","Veg","Soil",
+					"Fire","Est","Harvest","NEE");
+			else
+				fprintf(out_cflux,lonlatyearstr_extended,"Lon","Lat","Year","Veg","Soil",
+					"Fire","Est","NEE");
+		}
+		if (out_cpool) {
+			if(run_landcover && ifslowharvestpool)
+				fprintf(out_cpool,"%8s%8s%8s%8s%8s%8s%8s%10s%10s\n","Lon","Lat","Year","VegC","LittC",
+					"SoilfC","SoilsC", "HarvSlowC","Total");
+			else
+				fprintf(out_cpool,lonlatyearstr_extended,"Lon","Lat","Year","VegC","LittC",
+					"SoilfC","SoilsC","Total");
+		}
+
+		if (out_firert) fprintf(out_firert,"%8s%8s%8s%8s\n","Lon","Lat","Year","FireRT");
+
+		if (out_mnpp) fprintf(out_mnpp,lonlatyearstr,"Lon","Lat","Year");
+		if (out_mlai) fprintf(out_mlai,lonlatyearstr,"Lon","Lat","Year");
+		if (out_mgpp) fprintf(out_mgpp,lonlatyearstr,"Lon","Lat","Year");
+		if (out_mra) fprintf(out_mra,lonlatyearstr,"Lon","Lat","Year");
+		if (out_maet) fprintf(out_maet,lonlatyearstr,"Lon","Lat","Year");
+		if (out_mpet) fprintf(out_mpet,lonlatyearstr,"Lon","Lat","Year");
+		if (out_mevap) fprintf(out_mevap,lonlatyearstr,"Lon","Lat","Year");
+		if (out_mintercep) fprintf(out_mintercep,lonlatyearstr,"Lon","Lat","Year");
+		if (out_mrunoff) fprintf(out_mrunoff,lonlatyearstr,"Lon","Lat","Year");
+		if (out_mrh) fprintf(out_mrh,lonlatyearstr,"Lon","Lat","Year");
+		if (out_mnee) fprintf(out_mnee,lonlatyearstr,"Lon","Lat","Year");
+		if (out_mwcont_upper) fprintf(out_mwcont_upper,lonlatyearstr,"Lon","Lat","Year");
+		if (out_mwcont_lower) fprintf(out_mwcont_lower,lonlatyearstr,"Lon","Lat","Year");
+			
+		// guess2008 - euroflux
+		if (out_speciesheights) fprintf(out_speciesheights,"%10s%8s","Species","Height");
+		if (out_eurofluxmonthly) fprintf(out_eurofluxmonthly,"%6s%6s%6s%6s","Lon","Lat","Year","Month");
+		if (out_eurofluxannual) fprintf(out_eurofluxannual,"%6s%6s%6s","Lon","Lat","Year");
+		
+
+
+		// Loop through PFT's and print PFT names as column labels
+
+		pftlist.firstobj();
+		while (pftlist.isobj) {
+			Pft& pft=pftlist.getobj();
+			if (out_cmass) fprintf(out_cmass,"%8s",(char*)pft.name);
+			if (out_anpp) fprintf(out_anpp,"%8s",(char*)pft.name);
+			if (out_lai) fprintf(out_lai,"%8s",(char*)pft.name);
+			if (out_dens) fprintf(out_dens,"%8s",(char*)pft.name);
+			pftlist.nextobj();
+		}
+
+		// Print labels for "Total" columns
+
+		if (out_cmass) fprintf(out_cmass,"%8s","Total");
+		if (out_anpp) fprintf(out_anpp,"%8s","Total");
+		if (out_lai) fprintf(out_lai,"%8s","Total");
+		if (out_runoff) fprintf(out_runoff,"%8s\n","Total");
+		if (out_dens) fprintf(out_dens,"%8s\n","Total");
+
+		if (run_landcover) {
+			xtring landcover_string[]={"Urban_sum", "Crop_sum", "Pasture_sum", "Forest_sum", "Natural_sum", "Peatland_sum"};
+			for (int i=0; i<NLANDCOVERTYPES; i++) {
+				if(run[i]) {
+					if (out_cmass) fprintf(out_cmass,"%13s",(char*)landcover_string[i]);
+					if (out_anpp) fprintf(out_anpp,"%13s",(char*)landcover_string[i]);
+					if (out_lai) fprintf(out_lai,"%13s",(char*)landcover_string[i]);
+				}
+			}
+		}
+
+		if (out_cmass) fprintf(out_cmass,"\n");
+		if (out_anpp) fprintf(out_anpp,"\n");
+		if (out_lai) fprintf(out_lai,"\n");
+
+
+
+		// guess2008
+		const char* monthstr = "%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s\n";
+		const char* monthstr_long = "%10s%10s%10s%10s%10s%10s%10s%10s%10s%10s%10s%10s\n";
+		if (out_mnpp) fprintf(out_mnpp,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");		
+		if (out_mlai) fprintf(out_mlai,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+		if (out_mgpp) fprintf(out_mgpp,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");		
+		if (out_mra) fprintf(out_mra,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+		if (out_maet) fprintf(out_maet,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+		if (out_mpet) fprintf(out_mpet,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+		if (out_mevap) fprintf(out_mevap,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+		if (out_mintercep) fprintf(out_mintercep,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+		if (out_mrunoff) fprintf(out_mrunoff,monthstr_long,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+		if (out_mrh) fprintf(out_mrh,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+		if (out_mnee) fprintf(out_mnee,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+		if (out_mwcont_upper) fprintf(out_mwcont_upper,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+		if (out_mwcont_lower) fprintf(out_mwcont_lower,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
+	
+		// guess2008 - euroflux - 3 output fields
+		if (out_eurofluxmonthly) fprintf(out_eurofluxmonthly,"%10s%10s%10s%10s%10s%10s","NEE_mod","NEE_obs","AET_mod","AET_obs","GPP_mod","GPP_obs");
+		if (out_eurofluxmonthly) fprintf(out_eurofluxmonthly,"\n");
+
+		// Annual averages
+		if (out_eurofluxannual) fprintf(out_eurofluxannual,"%10s%10s%10s%10s%10s%10s","NEE_mod","NEE_obs","AET_mod","AET_obs","GPP_mod","GPP_obs");
+		// Summer averages
+		if (out_eurofluxannual) fprintf(out_eurofluxannual,"%10s%10s%10s%10s%10s%10s","sNEE_mod","sNEE_obs","sAET_mod","sAET_obs","sGPP_mod","sGPP_obs");
+		if (out_eurofluxannual) fprintf(out_eurofluxannual,"\n");
+
+
+
+
 		firstgrid=false;
 	}
 	
@@ -3180,16 +3233,42 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	//if (date.year>=nyear_spinup) { 
 	if (date.year>=nyear_spinup+NYEAR_HIST-NFLUXYEARS && date.year<=nyear_spinup+NYEAR_HIST-1) { // guess2008 - euroflux - flux years are 1996-2002
 
+
 		lon=gridlist.getobj().lon;
 		lat=gridlist.getobj().lat;
 
-		// The OutputRows object manages the next row of output for each
-		// output table
-		OutputRows out(output_channel, lon, lat, date.year);
+		// Print longitude, latitude, year
+
+		// guess2008
+		// const char* lonlatyeardatastr = "%6.1f%6.1f%6d"; //std CRU
+		const char* lonlatyeardatastr = "%8.2f%8.2f%8d"; // guess2008 - emdi
+		if (out_cmass) fprintf(out_cmass,lonlatyeardatastr,lon,lat,date.year);
+		if (out_anpp) fprintf(out_anpp,lonlatyeardatastr,lon,lat,date.year);
+		if (out_lai) fprintf(out_lai,lonlatyeardatastr,lon,lat,date.year);
+		if (out_cflux) fprintf(out_cflux,lonlatyeardatastr,lon,lat,date.year);
+		if (out_runoff) fprintf(out_runoff,lonlatyeardatastr,lon,lat,date.year);
+		if (out_dens) fprintf(out_dens,lonlatyeardatastr,lon,lat,date.year);
+		if (out_cpool) fprintf(out_cpool,lonlatyeardatastr,lon,lat,date.year);
+		if (out_firert) fprintf(out_firert,lonlatyeardatastr,lon,lat,date.year);
+
+
+		if (out_mnpp) fprintf(out_mnpp,lonlatyeardatastr,lon,lat,date.year);
+		if (out_mlai) fprintf(out_mlai,lonlatyeardatastr,lon,lat,date.year);
+		if (out_mgpp) fprintf(out_mgpp,lonlatyeardatastr,lon,lat,date.year);
+		if (out_mra) fprintf(out_mra,lonlatyeardatastr,lon,lat,date.year);
+		if (out_maet) fprintf(out_maet,lonlatyeardatastr,lon,lat,date.year);
+		if (out_mpet) fprintf(out_mpet,lonlatyeardatastr,lon,lat,date.year);
+		if (out_mevap) fprintf(out_mevap,lonlatyeardatastr,lon,lat,date.year);
+		if (out_mintercep) fprintf(out_mintercep,lonlatyeardatastr,lon,lat,date.year);
+		if (out_mrunoff) fprintf(out_mrunoff,lonlatyeardatastr,lon,lat,date.year);
+		if (out_mrh) fprintf(out_mrh,lonlatyeardatastr,lon,lat,date.year);
+		if (out_mnee) fprintf(out_mnee,lonlatyeardatastr,lon,lat,date.year);
+		if (out_mwcont_upper) fprintf(out_mwcont_upper,lonlatyeardatastr,lon,lat,date.year);
+		if (out_mwcont_lower) fprintf(out_mwcont_lower,lonlatyeardatastr,lon,lat,date.year);
 
 		// guess2008 - reset monthly average across patches each year
 		for (m=0;m<12;m++)
-			mnpp[m]=mlai[m]=mgpp[m]=mra[m]=maet[m]=mpet[m]=mevap[m]=mintercep[m]=mrunoff[m]=mrh[m]=mnee[m]=mwcont_upper[m]=mwcont_lower[m]=miso[m]=mmon[m]=0.0;
+			mnpp[m]=mlai[m]=mgpp[m]=mra[m]=maet[m]=mpet[m]=mevap[m]=mintercep[m]=mrunoff[m]=mrh[m]=mnee[m]=mwcont_upper[m]=mwcont_lower[m]=0.0;
 
 
 
@@ -3197,16 +3276,12 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		double landcover_anpp[NLANDCOVERTYPES]={0.0};
 		double landcover_lai[NLANDCOVERTYPES]={0.0};
 		double landcover_densindiv_total[NLANDCOVERTYPES]={0.0};
-		double landcover_aiso[NLANDCOVERTYPES]={0.0};
-		double landcover_amon[NLANDCOVERTYPES]={0.0};
 
 		double gcpft_cmass=0.0;
 		double gcpft_anpp=0.0;
 		double gcpft_lai=0.0;
 		double gcpft_densindiv_total=0.0;
 		double gcpft_densindiv_ageclass[OUTPUT_MAXAGECLASS]={0.0};
-		double gcpft_aiso=0.0;
-		double gcpft_amon=0.0;
 
 		double cmass_gridcell=0.0;
 		double anpp_gridcell=0.0;
@@ -3214,16 +3289,12 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		double runoff_gridcell=0.0;
 		double dens_gridcell=0.0;
 		double firert_gridcell=0.0;
-		double aiso_gridcell=0.0;
-		double amon_gridcell=0.0;
 
 		double standpft_cmass=0.0;
 		double standpft_anpp=0.0;
 		double standpft_lai=0.0;
 		double standpft_densindiv_total=0.0;
 		double standpft_densindiv_ageclass[OUTPUT_MAXAGECLASS]={0.0};
-		double standpft_aiso=0.0;
-		double standpft_amon=0.0;
 
 
 		// *** Loop through PFTs ***
@@ -3234,13 +3305,11 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			Pft& pft=pftlist.getobj();
 			Gridcellpft& gridcellpft=gridcell.pft[pft.id];
 
-			// Sum C biomass, NPP, LAI and BVOC fluxes across patches and PFTs		
+			// Sum C biomass, NPP and LAI across patches and PFTs		
 			gcpft_cmass=0.0;
 			gcpft_anpp=0.0;
 			gcpft_lai=0.0;
 			gcpft_densindiv_total=0.0;		
-			gcpft_aiso=0.0;
-			gcpft_amon=0.0;
 
 			double heightindiv_total = 0.0;
 
@@ -3251,13 +3320,11 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				Stand& stand=gridcell.getobj();
 
 				Standpft& standpft=stand.pft[pft.id];
-				// Sum C biomass, NPP, LAI and BVOC fluxes across patches and PFTs
+				// Sum C biomass, NPP and LAI across patches and PFTs
 				standpft_cmass=0.0;
 				standpft_anpp=0.0;
 				standpft_lai=0.0;
 				standpft_densindiv_total = 0.0;
-				standpft_aiso=0.0;
-				standpft_amon=0.0;
 
 				// Initialise age structure array
 
@@ -3284,8 +3351,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 									indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
 								standpft_anpp+=indiv.anpp;
 								standpft_lai+=indiv.lai;
-								standpft_aiso+=indiv.aiso;
-								standpft_amon+=indiv.amon;
 
 								if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 									
@@ -3301,7 +3366,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 										if (diam>0.03) {
 											standpft_densindiv_total+=indiv.densindiv; // indiv/m2
 
-											heightindiv_total+=indiv.height * indiv.densindiv;
+											if (date.year==nyear_spinup+99)
+												 heightindiv_total+=indiv.height * indiv.densindiv;
 										}
 									}
 								}
@@ -3318,9 +3384,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				standpft_anpp/=(double)stand.nobj;
 				standpft_lai/=(double)stand.nobj;
 				standpft_densindiv_total/=(double)stand.nobj;
-				standpft_aiso/=(double)stand.nobj;
-				standpft_amon/=(double)stand.nobj;
 
+				// guess2008 - euroflux
 				heightindiv_total/=(double)stand.nobj;
 
 				//Update landcover totals
@@ -3328,16 +3393,12 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				landcover_anpp[stand.landcover]+=standpft_anpp*stand.get_landcover_fraction();
 				landcover_lai[stand.landcover]+=standpft_lai*stand.get_landcover_fraction();
 				landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.get_landcover_fraction();
-				landcover_aiso[stand.landcover]+=standpft_aiso*stand.get_landcover_fraction();
-				landcover_amon[stand.landcover]+=standpft_amon*stand.get_landcover_fraction();
 
 				//Update pft totals
 				gcpft_cmass+=standpft_cmass;
 				gcpft_anpp+=standpft_anpp;
 				gcpft_lai+=standpft_lai;
 				gcpft_densindiv_total+=standpft_densindiv_total;
-				gcpft_aiso+=standpft_aiso;
-				gcpft_amon+=standpft_amon;
 
 				if (vegmode==COHORT || vegmode==INDIVIDUAL)
 					for (c=0;c<nclass;c++)
@@ -3349,8 +3410,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				anpp_gridcell+=standpft_anpp*fraction_of_gridcell;
 				lai_gridcell+=standpft_lai*fraction_of_gridcell;
 				dens_gridcell+=standpft_densindiv_total*fraction_of_gridcell;
-				aiso_gridcell+=standpft_aiso*fraction_of_gridcell;
-				amon_gridcell+=standpft_amon*fraction_of_gridcell;
 			
 				// Graphical output every 10 years
 				// (Windows shell only - "plot" statements have no effect otherwise)
@@ -3360,28 +3419,42 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 					plot("lai",pft.name,date.year,gcpft_lai);
 				}
 				gridcell.nextobj();
-			}//End of loop through stands
+			} //End of loop through stands
+
 
 			// Print PFT sums to files
+			if (out_lai)
+				fprintf(out_lai,"%8.4f",gcpft_lai);
 
-			out.add_value(out_cmass, gcpft_cmass);
-			out.add_value(out_anpp,  gcpft_anpp);
-			out.add_value(out_dens,  gcpft_densindiv_total);
-			out.add_value(out_lai,   gcpft_lai);
+			if (out_dens) fprintf(out_dens,"%8.4f",gcpft_densindiv_total);
 
-			// print species heights
-			double height = 0.0;
-			if (gcpft_densindiv_total > 0.0)
-				height = heightindiv_total/gcpft_densindiv_total;
-			
-			out.add_value(out_speciesheights, height);
+			if (out_cmass)
+				fprintf(out_cmass,"%8.3f",gcpft_cmass);
 
-			out.add_value(out_aiso, gcpft_aiso);
-			out.add_value(out_amon, gcpft_amon);
+			if (out_anpp)
+				fprintf(out_anpp,"%8.3f",gcpft_anpp);
+
+			// guess2008 - euroflux - print cohort heights in year 2000
+			if (date.year==nyear_spinup+99) {
+					fprintf(out_speciesheights,"\n%9s", (char*)pft.name);
+					fprintf(out_speciesheights,"%s"," ");
+
+					double zeroheight = 0.0;
+					if (gcpft_densindiv_total > 0.0)
+						fprintf(out_speciesheights,"%8.2f",heightindiv_total/gcpft_densindiv_total);
+					else
+						fprintf(out_speciesheights,"%8.2f",zeroheight);
+			}
 
 			pftlist.nextobj();
 		
 		} // *** End of PFT loop ***
+
+
+		// guess2008 - euroflux - print cohort heights in year 2000
+		if (date.year==nyear_spinup+99) {
+				fprintf(out_speciesheights,"\n");
+		}
 
 
 		flux_veg=flux_soil=flux_fire=flux_est=flux_harvest=0.0;
@@ -3453,9 +3526,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 					// guess2008 - average across stands to get mgpp and mra here. 
 					mgpp[m] += patch.fluxes.mcflux_gpp[m]*to_gridcell_average;
 					mra[m] += patch.fluxes.mcflux_ra[m]*to_gridcell_average;
-					// bvoc
-					miso[m]+=patch.fluxes.miso[m]*to_gridcell_average;
-					mmon[m]+=patch.fluxes.mmon[m]*to_gridcell_average;
+
 				}
 
 
@@ -3491,6 +3562,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		double testmlai = 0.0;
 
 		for (m=0;m<12;m++) {
+			// guess2008 - get npp and nee from gpp and ra instead
 			mnpp[m] = mgpp[m]-mra[m];
 			mnee[m] = mnpp[m]-mrh[m];
 			testmnpp += mnpp[m];
@@ -3499,80 +3571,95 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 		// Print gridcell totals to files
 
-		out.add_value(out_cmass,  cmass_gridcell);
-		out.add_value(out_anpp,   anpp_gridcell);
-		out.add_value(out_dens,   dens_gridcell);
-		out.add_value(out_lai,    lai_gridcell);
-		out.add_value(out_firert, firert_gridcell);
-		out.add_value(out_runoff, runoff_gridcell);
-		out.add_value(out_aiso,   aiso_gridcell);
-		out.add_value(out_amon,   amon_gridcell);
+		if (out_cmass) fprintf(out_cmass,"%8.3f",cmass_gridcell);
+		if (out_anpp) fprintf(out_anpp,"%8.3f",anpp_gridcell);
+		if (out_lai) fprintf(out_lai,"%8.4f",lai_gridcell);
+		if (out_runoff) fprintf(out_runoff,"%8.1f",runoff_gridcell);
+		if (out_dens) fprintf(out_dens,"%8.4f",dens_gridcell);
+		if (out_firert) fprintf(out_firert,"%8.1f",firert_gridcell);
 
 		if (run_landcover) {
 			for(int i=0;i<NLANDCOVERTYPES;i++) {
 				if(run[i]) {
-					out.add_value(out_cmass, landcover_cmass[i]);
-					out.add_value(out_anpp,  landcover_anpp[i]);
-					out.add_value(out_dens,  landcover_densindiv_total[i]);
-					out.add_value(out_lai,   landcover_lai[i]);
-					out.add_value(out_aiso,  landcover_aiso[i]);
-					out.add_value(out_amon,  landcover_amon[i]);
+					if (out_cmass)
+						fprintf(out_cmass,"%13.3f", landcover_cmass[i]);
+					if (out_anpp) 
+						fprintf(out_anpp,"%13.3f", landcover_anpp[i]);
+					if (out_lai)
+						fprintf(out_lai,"%13.3f", landcover_lai[i]);
+					if (out_dens)
+						fprintf(out_dens,"%13.4f", landcover_densindiv_total[i]);
 				}
 			}
 		}
 
+		if (out_cmass) fprintf(out_cmass,"\n");
+		if (out_anpp) fprintf(out_anpp,"\n");
+		if (out_lai) fprintf(out_lai,"\n");
+		if (out_runoff) fprintf(out_runoff,"\n");
+		if (out_dens) fprintf(out_dens, "\n");
+		if (out_firert) fprintf(out_firert, "\n");
+
 		// Print monthly output variables
 		for (m=0;m<12;m++) {
-			 out.add_value(out_mnpp,         mnpp[m]);
-			 out.add_value(out_mlai,         mlai[m]);
-			 out.add_value(out_mgpp,         mgpp[m]);
-			 out.add_value(out_mra,          mra[m]);
-			 out.add_value(out_maet,         maet[m]);
-			 out.add_value(out_mpet,         mpet[m]);
-			 out.add_value(out_mevap,        mevap[m]);
-			 out.add_value(out_mrunoff,      mrunoff[m]);
-			 out.add_value(out_mintercep,    mintercep[m]);
-			 out.add_value(out_mrh,          mrh[m]);
-			 out.add_value(out_mnee,         mnee[m]);
-			 out.add_value(out_mwcont_upper, mwcont_upper[m]);
-			 out.add_value(out_mwcont_lower, mwcont_lower[m]);
-			 out.add_value(out_miso,         miso[m]);
-			 out.add_value(out_mmon,         mmon[m]);
+			
+			if (out_mnpp) fprintf(out_mnpp,"%8.3f",mnpp[m]);
+			if (out_mlai) fprintf(out_mlai,"%8.3f",mlai[m]);
+			if (out_mgpp) fprintf(out_mgpp,"%8.3f",mgpp[m]);
+			if (out_mra) fprintf(out_mra,"%8.3f",mra[m]);
+			if (out_maet) fprintf(out_maet,"%8.3f",maet[m]);
+			if (out_mpet) fprintf(out_mpet,"%8.3f",mpet[m]);
+			if (out_mevap) fprintf(out_mevap,"%8.3f",mevap[m]);
+			if (out_mintercep) fprintf(out_mintercep,"%8.3f",mintercep[m]);
+			if (out_mrunoff) fprintf(out_mrunoff,"%10.3f",mrunoff[m]);
+			if (out_mrh) fprintf(out_mrh,"%8.3f",mrh[m]);
+			if (out_mnee) fprintf(out_mnee,"%8.3f",mnee[m]);
+			if (out_mwcont_upper) fprintf(out_mwcont_upper,"%8.3f",mwcont_upper[m]);
+			if (out_mwcont_lower) fprintf(out_mwcont_lower,"%8.3f",mwcont_lower[m]);
+
+			if (m==11) {
+				if (out_mnpp) fprintf(out_mnpp,"\n");
+				if (out_mlai) fprintf(out_mlai,"\n");
+				if (out_mgpp) fprintf(out_mgpp,"\n");
+				if (out_mra) fprintf(out_mra,"\n");
+				if (out_maet) fprintf(out_maet,"\n");
+				if (out_mpet) fprintf(out_mpet,"\n");
+				if (out_mevap) fprintf(out_mevap,"\n");
+				if (out_mintercep) fprintf(out_mintercep,"\n");
+				if (out_mrunoff) fprintf(out_mrunoff,"\n");
+				if (out_mrh) fprintf(out_mrh,"\n");
+				if (out_mnee) fprintf(out_mnee,"\n");
+				if (out_mwcont_upper) fprintf(out_mwcont_upper,"\n");
+				if (out_mwcont_lower) fprintf(out_mwcont_lower,"\n");
+			}
+
 		}
 
 
-		// euroflux
+		// guess2008 - euroflux
 		// Print monthly EUROFLUX data
 		for (m=0;m<12;m++) {
+			
+			if (out_eurofluxmonthly) fprintf(out_eurofluxmonthly,"%6.1f%6.1f%6d%6d",lon,lat,date.year,m+1);
 
-			 int year = date.year-nyear_spinup-95;
-			 double flux_nee = current_stand_fluxdata->fluxNEE[year][m];
-			 double flux_aet = current_stand_fluxdata->fluxAET[year][m];
-			 double flux_gpp = current_stand_fluxdata->fluxGPP[year][m];
+			if (out_eurofluxmonthly) fprintf(out_eurofluxmonthly,"%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f\n",
+				-1000.0*mnee[m],current_stand_fluxdata->fluxNEE[date.year-nyear_spinup-95][m],
+				maet[m],current_stand_fluxdata->fluxAET[date.year-nyear_spinup-95][m],
+				1000.0*mgpp[m],current_stand_fluxdata->fluxGPP[date.year-nyear_spinup-95][m]);
 
-			 // convert to the same units as our regular mnee, maet and mgpp files
-			 if (flux_nee != MISSING_DATA) {
-				  flux_nee *= -0.001;
-			 }
+			// Save modelled flux data
+			current_stand_fluxdata->modelNEE[date.year-nyear_spinup-95][m] = -1000.0*mnee[m];	// gC/m2/month
+			current_stand_fluxdata->modelAET[date.year-nyear_spinup-95][m] = maet[m];			// mm/month
+			current_stand_fluxdata->modelGPP[date.year-nyear_spinup-95][m] = 1000.0*mgpp[m];	// gC/m2/month
 
-			 if (flux_gpp != MISSING_DATA) {
-				  flux_gpp *= 0.001;
-			 }
-
-			 out.add_value(out_eurofluxmonthly_nee, flux_nee);
-			 out.add_value(out_eurofluxmonthly_aet, flux_aet);
-			 out.add_value(out_eurofluxmonthly_gpp, flux_gpp);
-
-			 // Save modelled flux data
-			 current_stand_fluxdata->modelNEE[year][m] = -1000.0*mnee[m];  // gC/m2/month
-			 current_stand_fluxdata->modelAET[year][m] = maet[m];			   // mm/month
-			 current_stand_fluxdata->modelGPP[year][m] = 1000.0*mgpp[m];   // gC/m2/month
 		}
 
 
 		// guess2008 - euroflux
 		// Calculate and print yearly EUROFLUX data
 			
+		if (out_eurofluxannual) fprintf(out_eurofluxannual,"%6.1f%6.1f%6d",lon,lat,date.year);
+		
 		// Variables for annual and summer stats
 		double annNEE_obs, annNEE_mod, sumNEE_obs, sumNEE_mod;
 		double annAET_obs, annAET_mod, sumAET_obs, sumAET_mod;
@@ -3583,20 +3670,13 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 								annAET_obs, annAET_mod, sumAET_obs, sumAET_mod, 
 								annGPP_obs, annGPP_mod, sumGPP_obs, sumGPP_mod);
 
-		// annual
-		out.add_value(out_eurofluxannual, annNEE_mod);
-		out.add_value(out_eurofluxannual, annNEE_obs);
-		out.add_value(out_eurofluxannual, annAET_mod);
-		out.add_value(out_eurofluxannual, annAET_obs);
-		out.add_value(out_eurofluxannual, annGPP_mod);
-		out.add_value(out_eurofluxannual, annGPP_obs);
-		// summer
-		out.add_value(out_eurofluxannual, sumNEE_mod);
-		out.add_value(out_eurofluxannual, sumNEE_obs);
-		out.add_value(out_eurofluxannual, sumAET_mod);
-		out.add_value(out_eurofluxannual, sumAET_obs);
-		out.add_value(out_eurofluxannual, sumGPP_mod);
-		out.add_value(out_eurofluxannual, sumGPP_obs);
+
+		if (out_eurofluxannual) fprintf(out_eurofluxannual,
+				"%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f%10.2f\n",
+				annNEE_mod,annNEE_obs,annAET_mod,annAET_obs,annGPP_mod,annGPP_obs,  // annual
+				sumNEE_mod,sumNEE_obs,sumAET_mod,sumAET_obs,sumGPP_mod,sumGPP_obs); // summer
+
+
 
 
 
@@ -3620,27 +3700,27 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 		// Write fluxes to file
 
-		out.add_value(out_cflux, flux_veg);
-		out.add_value(out_cflux, flux_soil);
-		out.add_value(out_cflux, flux_fire);
-		out.add_value(out_cflux, flux_est);
-		if (run_landcover) {
-			 out.add_value(out_cflux, flux_harvest);
+		if (out_cflux) {		
+			if(run_landcover)
+				fprintf(out_cflux,"%8.3f%8.3f%8.3f%8.3f%9.3f%10.5f\n",flux_veg,flux_soil,flux_fire,
+					flux_est,flux_harvest,flux_veg+flux_soil+flux_fire+flux_est+flux_harvest);
+			else
+				fprintf(out_cflux,"%8.3f%8.3f%8.3f%8.3f%10.5f\n",flux_veg,flux_soil,flux_fire,
+					flux_est,flux_veg+flux_soil+flux_fire+flux_est);
 		}
-		out.add_value(out_cflux, flux_veg+flux_soil+flux_fire+flux_est+flux_harvest);
+
+
 
 		// guess2008 - output carbon pools
-		out.add_value(out_cpool, cmass_gridcell);
-		out.add_value(out_cpool, c_litter);
-		out.add_value(out_cpool, c_fast);
-		out.add_value(out_cpool, c_slow);
-		if (run_landcover && ifslowharvestpool) {
-			 out.add_value(out_cpool, c_harv_slow);
-			 out.add_value(out_cpool, cmass_gridcell+c_litter+c_fast+c_slow+c_harv_slow);
+		if (out_cpool) {
+			if(run_landcover && ifslowharvestpool)
+				fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%10.3f%10.4f\n",cmass_gridcell,c_litter,c_fast,
+					c_slow,c_harv_slow,cmass_gridcell+c_litter+c_fast+c_slow+c_harv_slow);
+			else
+				fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%10.4f\n",cmass_gridcell,c_litter,c_fast,
+					c_slow,cmass_gridcell+c_litter+c_fast+c_slow);
 		}
-		else {
-			 out.add_value(out_cpool, cmass_gridcell+c_litter+c_fast+c_slow);
-		}
+
 
 		// Output of age structure (Windows shell only - no effect otherwise)
 
@@ -3672,10 +3752,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	}
 
 	// guess2008 - euroflux - output stats at the end of 2006
-	if (date.year==nyear_spinup+NYEAR_HIST-1)
-		 calculateEurofluxStats(out_eurofluxstats_nee, 
-		                        out_eurofluxstats_aet, 
-		                        out_eurofluxstats_gpp);
+	if (date.year==nyear_spinup+NYEAR_HIST-1 && out_eurofluxstats)
+		calculateEurofluxStats(out_eurofluxstats);
 
 }
 
@@ -3689,7 +3767,40 @@ void termio() {
 	// DESCRIPTION
 	// Performs memory deallocation, closing of files or other "cleanup" functions.
 
-	delete output_channel;
+	// Close output files if open
+
+	if (annual_output) {
+		if (out_cmass) fclose(out_cmass);
+		if (out_anpp) fclose(out_anpp);
+		if (out_lai) fclose(out_lai);
+		if (out_cflux) fclose(out_cflux);
+		if (out_runoff) fclose(out_runoff);
+		if (out_dens) fclose(out_dens);
+		if (out_cpool) fclose(out_cpool);
+		if (out_firert) fclose(out_firert);
+
+		if (out_mnpp) fclose(out_mnpp);
+		if (out_mlai) fclose(out_mlai);
+		if (out_mgpp) fclose(out_mgpp);
+		if (out_mra) fclose(out_mra);
+		if (out_maet) fclose(out_maet);
+		if (out_mpet) fclose(out_mpet);
+		if (out_mevap) fclose(out_mevap);
+		if (out_mrunoff) fclose(out_mrunoff);
+		if (out_mintercep) fclose(out_mintercep);
+		if (out_mrh) fclose(out_mrh);
+		if (out_mnee) fclose(out_mnee);
+		if (out_mwcont_upper) fclose(out_mwcont_upper);
+		if (out_mwcont_lower) fclose(out_mwcont_lower);
+
+		// guess2008 - euroflux
+		if (out_speciesheights) fclose(out_speciesheights);
+		if (out_eurofluxmonthly) fclose(out_eurofluxmonthly);
+		if (out_eurofluxannual) fclose(out_eurofluxannual);
+		if (out_eurofluxstats) fclose(out_eurofluxstats);
+
+
+	}
 
 	// Clean up
 

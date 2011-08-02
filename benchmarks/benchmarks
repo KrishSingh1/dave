@@ -111,14 +111,13 @@ function build {
     mkdir -p $build_path/output
 
     source_dirs="framework modules cru libraries command_line_version parallel_version cmake"
-    # Copy with tar so we can exclude svn directories
-    (cd ..; tar cf - --exclude=".svn" $source_dirs) | (cd $build_path; tar xf -)
-
+    for source_dir in $source_dirs; do
+	cp -rf ../$source_dir $build_path
+    done
     cp ../CMakeLists.txt $build_path
 
     if [ -n "$additional_source" ]; then
-	# Copy with tar so we can exclude svn directories
-	(cd $additional_source; tar cf - --exclude=".svn" *) | (cd $build_path; tar xf -)
+	cp -rf $additional_source/* $build_path
     fi
 
     pushd $build_path/output &> /dev/null
@@ -174,13 +173,12 @@ function submit_job {
     local workspace=$work_dir/$test_name
     local bm_root=$PWD
     local submit_vars=$PWD/$test_name/submit_vars.sh
-    local insfile=$bm_root/$test_name/config/guess.ins
 
     pushd $workspace &> /dev/null
     if [ -f $submit_vars ]; then
-	jobid=$(sh submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars 2> /dev/null)
+	jobid=$(sh submit.sh -n "bm_$test_name" -s $submit_vars 2> /dev/null)
     else
-	jobid=$(sh submit.sh -i $insfile -n "bm_$test_name" 2> /dev/null)
+	jobid=$(sh submit.sh -n "bm_$test_name" 2> /dev/null)
     fi
     if (($? != 0)); then
 	error "Failed to submit $test_name!"
@@ -211,7 +209,7 @@ function run_single_machine_model {
     local bm_root=$PWD
 
     pushd $workspace &> /dev/null
-    nice ./guess $bm_root/$test_name/config/guess.ins
+    nice ./guess guess.ins
     if [ -f $bm_root/$test_name/postprocess.sh ]; then
 	PATH=$bm_root/postprocess:$PATH nice sh $bm_root/$test_name/postprocess.sh
     fi
@@ -231,10 +229,10 @@ function run_benchmark {
 
     echo $test_name"..."
 
-    if [ -f $test_name/extra_source.txt ]; then
+    if [ -d $test_name/source ]; then
 	build_path=$work_dir/${test_name}_build
 	echo "Building $test_name model..."
-	build $build_path extra_source/$(cat $test_name/extra_source.txt)
+	build $build_path $test_name/source
     fi
 
     if (( $compile_only == 1 )); then

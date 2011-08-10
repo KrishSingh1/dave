@@ -1,24 +1,14 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// MODULE SOURCE CODE FILE
-//
-// Module:                Vegetation-atmosphere exchange of H2O and CO2 via
-//                        production, respiration and evapotranspiration
-//                        *************************************************************
-//                        "Fast" version, revised December 2002 by Ben Smith
-//                        Modified according to code changes by Dieter Gerten 021216
-//                        Includes updated FPAR formulation in cohort/individual mode
-//                        based on changes suggested by Soenke Zaehle
-//                        *************************************************************
-//                        Corrected error in forest_floor_conditions(): wstress sums
-//                        in Patchpft were not converted to means, 2005-01-25
-//                        * 2005-03-01: Corrected problem caused by optimisation in pgCC
-//                        that resulted in zero FPC for grasses (see function fpar)
-// Header file name:      canexch.h
-// Source code file name: canexch.cpp
-// Written by:            Ben Smith
-// Version dated:         2002-12-16/2005-01-25
-// Updated:               2010-11-22
-
+/// \file canexch.cpp
+/// \brief The canopy exchange module
+///
+/// Vegetation-atmosphere exchange of H2O and CO2 via
+/// production, respiration and evapotranspiration.
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:
@@ -918,9 +908,6 @@ void demand(Patch& patch) {
 	double gp_leafon_patch;
 		// non-water-stressed canopy conductance assuming full leaf cover, patch
 		// vegetated area basis (mm/s)
-	double gp_indiv;
-		// non-water-stressed canopy conductance for individual/cohort/population,
-		// FPC basis
 
 	// Retrieve Stand, Climate and Vegetation objects for this patch
 
@@ -979,6 +966,9 @@ void demand(Patch& patch) {
 
 
 #if defined(DEMAND_INDIV)
+			double gp_indiv;
+			// non-water-stressed canopy conductance for individual/cohort/population,
+			// FPC basis
 
 			if (!negligible(indiv.fpc*indiv.phen)) {
 

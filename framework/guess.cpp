@@ -1,15 +1,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// FRAMEWORK SOURCE CODE FILE
-//
-// Framework:             LPJ-GUESS Combined Modular Framework
-//                        Includes modified code compatible with "fast" cohort/
-//                        individual mode - see canexch.cpp
-// Header file name:      guess.h
-// Source code file name: guess.cpp
-// Written by:            Ben Smith
-// Version dated:         2002-12-16
-// Updated:               2010-11-22
-
+/// \file guess.cpp
+/// \brief LPJ-GUESS Combined Modular Framework
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
 #include "guess.h"
@@ -225,7 +221,7 @@ int framework(int argc,char* argv[]) {
 				daylengthinsoleet(gridcell.climate);
 
 				if(run_landcover && date.day==0) {
-				// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
+					// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
 					if(date.year>=nyear_spinup)
 						landcover_dynamics(gridcell,pftlist);
 				}
@@ -241,43 +237,42 @@ int framework(int argc,char* argv[]) {
 
 					stand.firstobj();
 					while (stand.isobj) {
-					// START OF LOOP THROUGH PATCHES
+						// START OF LOOP THROUGH PATCHES
 
-					// Get reference to this patch
+						// Get reference to this patch
 						Patch& patch=stand.getobj();
-					// Update daily soil drivers including soil temperature
+						// Update daily soil drivers including soil temperature
 						dailyaccounting_patch(patch,pftlist);
-					// Leaf phenology for PFTs and individuals
+						// Leaf phenology for PFTs and individuals
 						leaf_phenology(patch,gridcell.climate);
-					// Photosynthesis, respiration, evapotranspiration
-					canopy_exchange(patch);
-					// Soil water accounting, snow pack accounting
+						// Photosynthesis, respiration, evapotranspiration
+						canopy_exchange(patch);
+						// Soil water accounting, snow pack accounting
 						soilwater(gridcell.climate,patch);
-					// Soil organic matter and litter dynamics
-					som_dynamics(patch);
+						// Soil organic matter and litter dynamics
+						som_dynamics(patch);
 
-					if (date.islastday && date.islastmonth) {
-
-						// LAST DAY OF YEAR
-						// Tissue turnover, allocation to new biomass and reproduction,
-						// updated allometry
-						growth(stand,patch);
-					}
+						if (date.islastday && date.islastmonth) {
+							
+							// LAST DAY OF YEAR
+							// Tissue turnover, allocation to new biomass and reproduction,
+							// updated allometry
+							growth(stand,patch);
+						}
 						stand.nextobj();
 					}// End of loop through patches
 
-					if (date.islastday && date.islastmonth)
-					{
-					// LAST DAY OF YEAR
+					if (date.islastday && date.islastmonth) {
+						// LAST DAY OF YEAR
 						stand.firstobj();
 						while (stand.isobj) {
-
-						// For each patch ...
+							
+							// For each patch ...
 							Patch& patch=stand.getobj();
-						// Establishment, mortality and disturbance by fire
-						vegetation_dynamics(stand,patch,pftlist);
+							// Establishment, mortality and disturbance by fire
+							vegetation_dynamics(stand,patch,pftlist);
 							stand.nextobj();
-					}
+						}
 					}
 
 					gridcell.nextobj();			

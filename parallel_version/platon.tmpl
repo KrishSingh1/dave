@@ -4,7 +4,7 @@
 #
 # Portable bash script to run LPJ-GUESS version:
 # BINARY
-# as a parallel job using SLURM.
+# as a parallel job using PBS on Platon.
 #
 # Created automatically on DATE
 # 
@@ -15,11 +15,11 @@
 #   2. In an editor, set appropriate values for the variables NPROCESS,
 #      INSFILE, GRIDLIST and OUTFILES (NB: no space after the = sign):
 
-NPROCESS=15
+NPROCESS=16             # NB: Should be multiple of 8 on Platon!
 WALLTIME=150:00:00
 INSFILE=guess.ins
 GRIDLIST=gridlist.txt
-OUTFILES='cmass.out firert.out anpp.out lai.out cflux.out dens.out tot_runoff.out mgpp.out mra.out mrh.out cpool.out mnpp.out mlai.out mnee.out maet.out mpet.out mevap.out mintercep.out mrunoff.out mwcont_upper.out mwcont_lower.out'
+OUTFILES='*.out'
 
 #      Where:
 #      NPROCESS = number of processes in parallel job
@@ -28,7 +28,7 @@ OUTFILES='cmass.out firert.out anpp.out lai.out cflux.out dens.out tot_runoff.ou
 #      GRIDLIST = path to gridlist file from run directory
 #      OUTFILES = list of LPJ-GUESS output files in single quotes,
 #                 and separated by spaces (filenames only, including
-#                 extension, no directory.)
+#                 extension, no directory.) Shell wildcards are allowed.
 #
 #   3. Run the script using the command:
 #        sh submit.sh
@@ -62,6 +62,16 @@ fi
 # Override INSFILE with the ins-file parameter, if given
 if [ -n "$ins" ]; then
     INSFILE=$ins
+fi
+
+# Figure out how many _nodes_ we should request. On Platon the policy is
+# that whole nodes (with 8 cores) should be allocated, so we should request
+# nodes with the nodes=<x>:ppn=8 format.
+CORES_PER_NODE=8
+if [[ $((NPROCESS%CORES_PER_NODE)) == 0 ]]; then
+    nodes=$((NPROCESS/CORES_PER_NODE))
+else
+    nodes=$((NPROCESS/CORES_PER_NODE+1))
 fi
 
 # Convert INSFILE to an absolute path since we will be starting the
@@ -120,22 +130,38 @@ done
 
 split_gridlist
 
-# Create SLURM script to request place in queue
+# Create PBS script to request place in queue
 cat <<EOF > guess.cmd
 #!/bin/bash
-#SBATCH -n $NPROCESS
-#SBATCH --time=$WALLTIME
+#PBS -l nodes=$nodes:ppn=$CORES_PER_NODE
+#PBS -l walltime=$WALLTIME
+
+cd \$PBS_O_WORKDIR
+
+# If there's a script for setting up files on local disk, run it
+if [ -f setup_local.sh ]; then
+    pbsdsh -u env PBS_O_LOCAL=\$PBS_O_LOCAL \$PBS_O_WORKDIR/setup_local.sh
+fi
 
 cat<<EOL > startguess.sh
 #!/bin/sh
-cd run\\\$((SLURM_PROCID+1))
+umask 022
+cd \$PBS_O_WORKDIR
+cd run\\\$((PBS_VNODENUM+1))
+rm local ; ln -s \$PBS_O_LOCAL local
 BINARY $INSFILE
 EOL
 chmod +x startguess.sh
-srun ./startguess.sh
+pbsdsh -c $NPROCESS \$PBS_O_WORKDIR/startguess.sh
 
 rm startguess.sh
+EOF
 
+cat <<EOF > append.cmd
+#!/bin/bash
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=$WALLTIME
+cd \$PBS_O_WORKDIR
 function append_files {
     local number_of_jobs=\$1
     local file=\$2
@@ -149,11 +175,19 @@ function append_files {
     done
 }
 
-for file in $OUTFILES
+pushd run1 &> /dev/null
+outfiles_unexpanded='$OUTFILES'
+outfiles_expanded=\$(echo \$outfiles_unexpanded)
+popd &> /dev/null
+
+for file in \$outfiles_expanded
 do
   append_files $NPROCESS \$file
 done
 EOF
 
-# Submit job
-sbatch -J ${name:-"guess"} guess.cmd
+# Submit guess job
+append_dependency=$(qsub -N ${name:-"guess"} guess.cmd)
+
+# Submit append job
+qsub -W depend=afterok:$append_dependency -N ${name:-"guess"}"_append" append.cmd

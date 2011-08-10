@@ -15,6 +15,22 @@ tests are submitted to a PBS batch queue. This has been tested on Simba
 (ENES own cluster), but it should be possible to adapt the scripts for any
 system with PBS installed.
 
+Dependencies
+------------
+The post processing scripts which are run after each finished simulation 
+currently depend on the following software:
+
+ - guess_utilities
+ - gnuplot
+ - ImageMagick (only needed if printer friendly reports are to be generated)
+
+They are only needed for the post processing. If missing, the simulations will
+still run but the post processing will fail. 
+
+guess_utilities can be found at the LPJ-GUESS download page, or in the version 
+control repository. The others are standard Unix software packages, and are
+often installed by default.
+
 Basic usage
 -----------
 The benchmarks script should be run from this directory. When starting it you
@@ -103,4 +119,4 @@ contain commands that can be useful in several of the benchmarks.
 
 Joe Lindström
 joe.lindstrom@nateko.lu.se
-2010-08-03
+2011-06-10

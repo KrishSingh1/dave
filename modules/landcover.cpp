@@ -2,7 +2,7 @@
 /// \file landcover.cpp
 /// \brief Functions handling landcover aspects, such as creating or resizing Stands
 ///
-/// $Date: $
+/// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -75,8 +75,7 @@ void harvest_natural(double& cmass_leaf,double& cmass_root,double& cmass_sap,dou
 
 void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 {	// Called first day of the year if run_landcover is set.
-	bool present;
-	int i, j;	
+	int i;	
 	landcovertype landcover;
 	double landcoverfrac_change[NLANDCOVERTYPES]={0.0};
 //	double cropfrac_change[NCROPSTANDS_MAX]={0.0};	

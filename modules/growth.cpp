@@ -1,16 +1,17 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// MODULE SOURCE CODE FILE
-//
-// Module:                Vegetation C allocation, litter production, tissue turnover
-//                        leaf phenology, allometry and growth
-//                        (includes updated FPC formulation as required for "fast"
-//                        cohort/individual mode - see canexch.cpp)
-// Header file name:      growth.h
-// Source code file name: growth.cpp
-// Written by:            Ben Smith
-// Version dated:         2002-12-16
-// Updated:               2010-11-22
-
+/// \file growth.cpp
+/// \brief The growth module
+///
+/// Vegetation C allocation, litter production, tissue turnover
+/// leaf phenology, allometry and growth
+///
+/// (includes updated FPC formulation as required for "fast"
+/// cohort/individual mode - see canexch.cpp)
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:
@@ -407,7 +408,6 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	const int JMAX=40; // maximum number of iterations (in numerical methods)
 	const double XACC=0.0001; // threshold x-axis precision of allocation solution
 	const double YACC=1.0e-10; // threshold y-axis precision of allocation solution
-	const double PI=3.14159265;
 	const double CDEBT_MAXLOAN_DEFICIT=0.8; // maximum loan as a fraction of deficit
 	const double CDEBT_MAXLOAN_MASS=0.2; // maximum loan as a fraction of (sapwood-cdebt)
 
@@ -780,7 +780,7 @@ bool allometry(Individual& indiv) {
 			diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
 
 			// Stem volume
-			double vol=indiv.height*3.1415927*diam*diam*0.25;
+			double vol=indiv.height*PI*diam*diam*0.25;
 			if (indiv.age && (indiv.cmass_heart+indiv.cmass_sap)/indiv.densindiv/vol<indiv.pft.wooddens*0.9)
 				return false;
 		}

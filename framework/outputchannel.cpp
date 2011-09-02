@@ -224,8 +224,8 @@ void FileOutputChannel::finish_row(const Table& table,
 
 		  // print each column title
 		  int nbr_cols = get_table_descriptor(table).columns().size();
-		  for (size_t i = 0; i < nbr_cols; i++) {
-				fprintf(file, format_header(table, i));
+		  for (int i = 0; i < nbr_cols; i++) {
+				fputs(format_header(table, i), file);
 		  }
 		  fprintf(file, "\n");
 
@@ -322,7 +322,7 @@ void OutputRows::add_value(const Table& table,double d) {
 	 int id = table.id();
 
 	 // remember that this table has gotten a value
-	 if (id >= used_tables.size()) {
+	 if (id >= static_cast<int>(used_tables.size())) {
 		  used_tables.resize(id+1);
 	 }
 	 used_tables[id] = true;

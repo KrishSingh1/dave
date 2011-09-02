@@ -1,16 +1,16 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// MODULE HEADER FILE
-//
-// Module:                Q10 calculations for photosynthesis
-//                        *************************************************************
-//                        Calculations of Q10 values for photosynthesis, formerly
-//                        placed in canexch.cpp now moved to separate header file 
-//                        because of their application for BVOC calculations as well.
-// Header file name:      q10.h
-// Source code file name: voccalc.cpp / canexch.cpp
-// Written by:            Guy Schurgers (based on LPJ-GUESS 2.1 / Ben Smith)
-// Version dated:         2010-01-28
-//
+/// \file q10.h
+/// \brief Q10 calculations for photosynthesis
+///
+/// Calculations of Q10 values for photosynthesis, formerly
+/// placed in canexch.cpp now moved to separate header file 
+/// because of their application for BVOC calculations as well.
+///
+/// \author Guy Schurgers (based on LPJ-GUESS 2.1 / Ben Smith)
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
+
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module header files need normally contain only declarations of functions 
 // defined in the module that are to be accessible to the calling framework or 
@@ -27,8 +27,9 @@ const double LOOKUPQ10_MAXTEMP=70;
 	// maximum temperature ever (deg C)
 const double LOOKUPQ10_PRECISION=0.01;
 	// rounding precision for temperature in Q10 lookup tables
-const int LOOKUPQ10_NDATA=(LOOKUPQ10_MAXTEMP-LOOKUPQ10_MINTEMP+1.0)/
-	LOOKUPQ10_PRECISION+0.5;
+const int LOOKUPQ10_NDATA=
+	static_cast<int>((LOOKUPQ10_MAXTEMP-LOOKUPQ10_MINTEMP+1.0)/
+		LOOKUPQ10_PRECISION+0.5);
 	// maximum number of values to store in each lookup table
 	
 
@@ -47,7 +48,7 @@ public:
 		if (temp<LOOKUPQ10_MINTEMP) temp=LOOKUPQ10_MINTEMP;
 		else if (temp>LOOKUPQ10_MAXTEMP) temp=LOOKUPQ10_MAXTEMP;
 
-		return (temp-LOOKUPQ10_MINTEMP)/LOOKUPQ10_PRECISION+0.5;
+		return static_cast<int>((temp-LOOKUPQ10_MINTEMP)/LOOKUPQ10_PRECISION+0.5);
 	}
 
 	LookupQ10(double q10,double base25) {

@@ -4,7 +4,7 @@
 #
 # Portable bash script to run LPJ-GUESS version:
 # BINARY
-# as a parallel job using SLURM.
+# as a parallel job using PBS on Simba.
 #
 # Created automatically on DATE
 # 
@@ -120,22 +120,32 @@ done
 
 split_gridlist
 
-# Create SLURM script to request place in queue
+# Create PBS script to request place in queue
 cat <<EOF > guess.cmd
 #!/bin/bash
-#SBATCH -n $NPROCESS
-#SBATCH --time=$WALLTIME
+#PBS -l nodes=$NPROCESS
+#PBS -l walltime=$WALLTIME
+
+cd \$PBS_O_WORKDIR
 
 cat<<EOL > startguess.sh
 #!/bin/sh
-cd run\\\$((SLURM_PROCID+1))
+umask 022
+cd \$PBS_O_WORKDIR
+cd run\\\$((PBS_VNODENUM+1))
 BINARY $INSFILE
 EOL
 chmod +x startguess.sh
-srun ./startguess.sh
+pbsdsh \$PBS_O_WORKDIR/startguess.sh
 
 rm startguess.sh
+EOF
 
+cat <<EOF > append.cmd
+#!/bin/bash
+#PBS -l nodes=1
+#PBS -l walltime=$WALLTIME
+cd \$PBS_O_WORKDIR
 function append_files {
     local number_of_jobs=\$1
     local file=\$2
@@ -149,10 +159,10 @@ function append_files {
     done
 }
 
-pushd run1
+pushd run1 &> /dev/null
 outfiles_unexpanded='$OUTFILES'
-outfiles_expanded=\$(cd run1; echo \$outfiles_unexpanded)
-popd
+outfiles_expanded=\$(echo \$outfiles_unexpanded)
+popd &> /dev/null
 
 for file in \$outfiles_expanded
 do
@@ -160,5 +170,8 @@ do
 done
 EOF
 
-# Submit job
-sbatch -J ${name:-"guess"} guess.cmd
+# Submit guess job
+append_dependency=$(qsub -N ${name:-"guess"} guess.cmd)
+
+# Submit append job
+qsub -W depend=afterok:$append_dependency -N ${name:-"guess"}"_append" append.cmd

@@ -1,13 +1,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// MODULE SOURCE CODE FILE
-//
-// Module:                Main module for command line version of LPJ-GUESS
-//                        Version adapted for analyses for joint conceptual paper for
-//                        OECD conference with Wolfgang Knorr & Jean-Luc Widlowski
-// Header file name:      main.h
-// Source code file name: main.cpp
-// Written by:            Ben Smith
-// Version dated:         2002-09-22
+/// \file main.cpp
+/// \brief Main module for command line version of LPJ-GUESS
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
 #include "guess.h"

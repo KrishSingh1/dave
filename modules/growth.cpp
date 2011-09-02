@@ -646,7 +646,13 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// Add killed leaves to litter
 
-			litter_leaf_inc=-cmass_leaf_inc;
+			cmass_leaf_inc=(cmass_root+cmass_root_inc)*ltor-cmass_leaf; // Eqn (3)
+
+			// Add killed leaves to litter
+
+			// guess2008 - bugfix 
+			// litter_leaf_inc=-cmass_leaf_inc;
+			litter_leaf_inc=min(-cmass_leaf_inc, cmass_leaf);
 		}
 		else if (cmass_root_inc<0.0) {
 
@@ -657,7 +663,9 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// Add killed roots to litter
 
-			litter_root_inc=-cmass_root_inc;
+			// guess2008 - bugfix 
+			//litter_root_inc=-cmass_root_inc;
+			litter_root_inc=min(-cmass_root_inc, cmass_root);
 
 		}
 	}

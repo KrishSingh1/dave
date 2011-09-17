@@ -216,7 +216,6 @@ extern bool ifnstorage;
 	// if to use a N storage for each individual
 extern bool ifndemand_new_est;
 	// if to use N limitation on new establishment 
-extern double full_growth_frac;
 // end GUESSN
 
 // FACE David

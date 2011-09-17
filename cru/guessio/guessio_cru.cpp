@@ -335,8 +335,6 @@ void plib_declarations(int id,xtring setname) {
 			"If to use a N storage for each individual");
 		declareitem("ifndemand_new_est",&ifndemand_new_est,1,CB_NONE,
 			"N limitation of new establishment");
-		declareitem("full_growth_frac",&full_growth_frac,0.0,1.0,1,CB_NONE,
-			"full_growth_frac");
 		// end GUESSN
 
 		// guess2008
@@ -660,7 +658,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("nmass_avail_max")) badins("nmass_avail_max");
 		if (!itemparsed("ifnstorage")) badins("ifnstorage");
 		if (!itemparsed("ifndemand_new_est")) badins("ifndemand_new_est");
-		if (!itemparsed("full_growth_frac")) badins("full_growth_frac");
 
 		// end GUESSN
 

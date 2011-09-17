@@ -129,7 +129,7 @@ ifdailydecomp 1			! whether to calculate soil respiration daily (1) or monthly (
 ifcalcsla 1				! whether to calculate SLA from leaf longevity
 						! (PFT-specific value can be specified in this file instead)
 iffire 0				! whether to implement fire (1) or not (0)
-npatch 1				! number of replicate patches to simulate
+npatch 5				! number of replicate patches to simulate
 patcharea 1000			! patch area (m2)
 estinterval 5			! years between establishment events in cohort mode
 ifdisturb 1				! whether generic patch-destroying disturbances enabled
@@ -168,7 +168,7 @@ ifndemand_new_est 1		! if new est has to compite for N
 
 !FACE DAVID
 FACE_ring 2				! To use average ambient or elevated CO2 at FACE sites (amb 1, ele 2) 
-FACE_DUKE_or_OAK 0		! Which FACE site that will be examined (Oak 0, Duke 1)
+FACE_DUKE_or_OAK 1		! Which FACE site that will be examined (Oak 0, Duke 1)
 Has_FACE_clim 0			! If we are using FACE clim data
 
 !CANIF David
@@ -229,9 +229,6 @@ group "tree" (
 	k_allom3 0.67
 	k_rp 1.6
 	wooddens 200
-	cton_leaf 29			
-	cton_root 29
-	cton_sap 330
 	pathway "c3"
 	respcoeff 1.0	! utkommenterad hos Thomas !
 	kest_repr 200 	! 200
@@ -255,12 +252,6 @@ group "Shrub"
 	k_allom3 0.67
 	k_rp 1.6
 	wooddens 250
-	cton_leaf 29
-	cton_root 29
-	cton_sap 330
-	cton_leaf_min 16
-	cton_leaf_avr 25
-	cton_leaf_max 45
 	pathway "c3"
 	kest_repr 20
 	kest_bg 0.1
@@ -285,16 +276,15 @@ group "grass" (
 	leaflong 1				! Leaf longevity (years)
 	turnover_leaf 1
 	turnover_root 0.7		! 0.5 hos guess2008
-	cton_leaf 29
-	cton_root 29
 	cton_leaf_min 16
 	cton_leaf_avr 25
 	cton_leaf_max 45
+	cton_root_avr 25 
+	n_reserve 0.30
 	litterme 0.2
 	parff_min 1000000		! 2500000 i guess2008	
 	fireresist 0.5			! 1.0 hos Thomas
 	intc 0.01
-
 )
 
 
@@ -309,6 +299,8 @@ group "broadleaved" (
 	cton_leaf_min 16
 	cton_leaf_avr 25
 	cton_leaf_max 45
+	cton_root_avr 25 
+	cton_sap_avr 172 !285 old value, new value from Friend 1997
 )
 
 group "needleleaved" (
@@ -322,6 +314,8 @@ group "needleleaved" (
 	cton_leaf_min 28
 	cton_leaf_avr 42
 	cton_leaf_max 75
+	cton_root_avr 42 
+	cton_sap_avr 290 !480 old value, new value from Friend 1997
 )
 
 group "evergreen" (
@@ -330,6 +324,7 @@ group "evergreen" (
 
 	phenology "evergreen"
 	phengdd5ramp 0
+	n_reserve 0.05
 )
 
 group "summergreen" (
@@ -340,6 +335,7 @@ group "summergreen" (
 	phengdd5ramp 200
 	leaflong 0.5
 	turnover_leaf 1
+	n_reserve 0.15
 )
 
 group "boreal" (
@@ -377,7 +373,7 @@ group "tropical" (
 	pstemp_low 25
 	pstemp_high 30
 	pstemp_max 55
-	respcoeff 0.15	
+	respcoeff 0.15	!0.15	
 )
 
 
@@ -477,6 +473,27 @@ pft "BNS" (
 	fireresist 0.3
 )
 
+pft "TeNE" (	! CANIF TREE
+
+	! Temperate needleleaved evergreen tree
+
+	include 0
+	tree
+	needleleaved
+	shade_tolerant
+	evergreen
+	temperate
+	leaflong 3
+	turnover_leaf 0.33
+	tcmin_surv -31
+	tcmin_est -30
+	tcmax_est -1
+	twmin_est 5
+	gdd5min_est 500
+	longevity 500
+	fireresist 0.3
+)
+
 pft "TeBS" (
 
 	! Shade-tolerant temperate broadleaved summergreen tree
@@ -491,7 +508,7 @@ pft "TeBS" (
 	tcmin_est -13
 	tcmax_est 6
 	twmin_est 5
-	gdd5min_est 1100
+	gdd5min_est 1100	
 	longevity 400
 	fireresist 0.1
 )
@@ -536,7 +553,7 @@ pft "TeBE" (
 	fireresist 0.3
 )
 
-! Thomas: include new PFT needle-leaved temperate tree FACE
+! Thomas: include new PFT needle-leaved temperate tree
 pft "TeINE" (
 
 	! Temperate broadleaved evergreen tree
@@ -548,8 +565,8 @@ pft "TeINE" (
 	evergreen
 	temperate
 	rootdist 0.9 0.1
-	leaflong 1.5			
-	turnover_leaf 0.67	
+	leaflong 1.5			!3		!1.3 ! 1.5 is the correct value
+	turnover_leaf 0.67		!0.33	!0.7 ! 0.67
 	tcmin_surv -1
 	tcmin_est 0
 	tcmax_est 10
@@ -607,6 +624,7 @@ pft "TrBR" (
 	turnover_leaf 1
 	longevity 400    ! from Thomas h 2010-03-30
 	fireresist 0.3
+	n_reserve 0.15
 )
 
 pft "C3G" (
@@ -646,4 +664,3 @@ pft "C4G" (
 	twmin_est -1000 !no limit
 	gdd5min_est 0   !no limit
 )
-

@@ -2845,7 +2845,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	// If only yearly output between, say 1961 and 1990 is requred, use: 
 	//	if (date.year>=nyear_spinup+60 && date.year<nyear_spinup+90) {
 
-		if (date.year>=nyear_spinup) {
+		if (date.year>=nyear_spinup+80) {
 
 		lon=gridlist.getobj().lon;
 		lat=gridlist.getobj().lat;

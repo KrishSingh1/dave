@@ -335,7 +335,6 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 		if (patch.growingseasondays<1)
             awcont[s]=1.0;
     }
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

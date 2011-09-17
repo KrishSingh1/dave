@@ -123,7 +123,7 @@ const double KgTOg = 1000;			// Convert kg to g
 const bool ifplantation=true; // not used yet
 const bool ifdisturb_init=true; // disturbance during spin up to help trees establishing in
 	// competition with grasses
-const int distyear=1000;
+const int distyear=50;
 
 	// guess2008 - this is now a global, constant variable Previously, we had duplicate definitions in 
 	// both canexch.cpp and soilwater.cpp
@@ -200,7 +200,7 @@ extern double nmass_avail_max;
 	// max N:C ratio in the soil (should be 0.002 (Parton et al 1993, Fig. 4))
 extern bool ifleachn;
 	// whether to allow N leaching
-extern bool ifindiv_fuptake;
+extern bool ifindiv_fnuptake;
 	// whether to allow individual fractional N uptake
 extern int ifnfix;
 	// whether to include an estimate for N fixation
@@ -214,10 +214,9 @@ extern bool ifdailysetntoc;
 	// if to use daily version of setntoc (set N:C ratio of som pools)
 extern bool ifnstorage;
 	// if to use a N storage for each individual
-extern double max_nstorage;
-	// maximum N storage of individual (max_nstorage*(nmass_leaf+nmass_root+nmass_sap))
-extern double max_nstorage_uptake;
-	// maximum N storage uptake of individual ((max_nstorage_uptake+1)*ndemand)
+extern bool ifndemand_new_est;
+	// if to use N limitation on new establishment 
+extern double full_growth_frac;
 // end GUESSN
 
 // FACE David
@@ -626,7 +625,8 @@ public:
 		// monthly GPP
 	double mcflux_ra[12];
 		// monthly autotrophic respiration
-
+	double dcflux_gpp[365];
+		// daily GPP
 
 	// MEMBER FUNCTIONS
 
@@ -692,12 +692,6 @@ public:
 		// maximum evapotranspiration rate (mm/day)
 	double respcoeff;
 		// maintenance respiration coefficient (0-1)
-	double cton_leaf;
-		// leaf C:N mass ratio
-	double cton_root;
-		// fine root C:N mass ratio
-	double cton_sap;
-		// sapwood C:N mass ratio
 	// GUESSN
 	double cton_leaf_min;
 		// minimum leaf C:N mass ratio
@@ -705,6 +699,12 @@ public:
 		// maximum leaf C:N mass ratio
 	double cton_leaf_avr;
 		// average leaf C:N mass ratio
+	double cton_root_avr;
+		// average fine root C:N mass ratio
+	double cton_sap_avr;
+		// average sapwood C:N mass ratio
+	double n_reserve;
+		// N storage organ in relation to sapwood carbon
 	// end GUESSN
 	double reprfrac;
 		// fraction of NPP allocated to reproduction
@@ -942,7 +942,7 @@ public:
 		// N content of sapwood on patch area basis (kgN/m2)
 	double nmass_heart;
 		// N content of heartwood on patch area basis (kgN/m2)
-	double nmass_store;
+	double nmass_reserve;
 		// N content of storage on patch area basis (kgN/m2)
 	// end GUESSN
 
@@ -1062,16 +1062,15 @@ public:
 		// annual N demand (used in growth)
 	double ndemand_uptake;
 		// annual N demand (used in vegetation_n_uptake)
-	double fuptake;
+	double fnuptake;
 		// fractional N uptake of indiv demand
-	double fuptake_hist[5];
-		// fractional N uptake of indiv demand for the last five years
-	double fuptake_avr;
-		// historical fuptake of the last five years
-	double nstorage_uptake;
-		// fraction extra N uptake to storage pool
-	double limfact_new;
-		// actual fractional N uptake of indiv N demand in Growth()
+	double n_reserve_uptake;
+		// fraction extra N uptake to reserve pool
+	double max_n_reserve;
+		// maximum size of N reserve
+	double max_n_reserve_old;
+	double limnfact;
+		// actual fractional N available to indiv N demand in Growth()
 	double na_fpar;
 		// leaf N associated with photosynthesis 
 	double assim_nowstress;
@@ -1083,6 +1082,10 @@ public:
 		// plant N uptake through the year
 	double aassim;
 		// annual sum of positive dassim (above) - used by SOM dynamics
+	double vmax_lim[365];
+		// daily N limitation to vmax
+	double nopt;
+		// N limitation on vmax
 	double cton_leaf_new;
 		// C:N ratio for new biomass (leaf)
 	double cton_root_new;
@@ -1095,6 +1098,13 @@ public:
 		// C:N ratio of old (current) biomass (root)
 	double cton_sap_old;
 		// C:N ratio of old (current) biomass (sap)
+	double cton_leaf_opt;
+		// optimal (photosynthesis) C:N ratio for new biomass (leaf) 
+
+	double dnupnpp;	// Daily N uptake variables	guessnfix 
+	double nstore_daily;
+	double bminc_leaf_frac;	
+	double bminc_root_frac;
 	
 	// end GUESSN
 
@@ -1126,21 +1136,19 @@ public:
 		deltafpc=0.0;
 		fpar_wstress=0.0;
 		assim=0.0;
+		assim_nowstress=0.0;
 
 		// GUESSN
 		nmass_leaf=0.0;
 		nmass_root=0.0;
 		nmass_sap=0.0;
 		nmass_heart=0.0;
-		nmass_store=0.0;
+		nmass_reserve=0.0;
 
 		nstore=0.0;
-		fuptake=1.0;
-		fuptake_avr=1.0;
-		nstorage_uptake=0.0;
-
-		for (int j=0;j<5;j++)
-			fuptake_hist[j]=0.0;
+		fnuptake=1.0;
+		n_reserve_uptake=0.0;
+		max_n_reserve=0.0;
 
 		// end GUESSN
 	
@@ -1167,7 +1175,10 @@ public:
 		for (m=0;m<12;m++) {
 			mnpp[m]=mlai[m]=mgpp[m]=mra[m]=0.0;
 		}
-
+		int d;
+		for (d=0;d<365;d++) {
+			dassim[d]=vmax_lim[d]=0.0;
+		}
 	};
 };
 
@@ -1417,7 +1428,9 @@ public:
 	double daily_minimmndep;	// sum of mineralization, immobilization and N deposition (used in daily setntoc)
 
 	double N_fix;				// total annual N fixation
-	double cwd_N_fix;			// total annual N fixation in Coarse Woody Debrise
+
+	double nmass_avail_daily;	// soil mineral N pool (kgN/m2) (used when trying to do daily N uptake)
+	double daily_leaching[365];	// daily N uptake leaching 
 
 // end GUESSN
 
@@ -1487,6 +1500,7 @@ public:
 		nimmob_annual=0.0;		
 		nleach_annual=0.0;		
 		ndep_annual=0.0;
+		N_fix=0.0;
 
 		dperc=0.0;
 		dbaseflow=0.0;
@@ -1494,6 +1508,8 @@ public:
 
 		setntoc_nmass_avail=0.0;
 		daily_minimmndep=0.0;	
+
+		nmass_avail_daily=0.0;
 
 		// end GUESSN
 
@@ -1665,10 +1681,12 @@ public:
 
 	double fuptake_pft;
 		// sum/mean across patches for nitrogen limitation
-	double nmass_root_pft;
-		// sum/mean across patches for nitrogen root biomass (kgN/m2)
 	double crownarea_pft;
 		// sum/mean across patches for crown area
+	double nstore_est;
+		// N store for establishment
+	double nsapling_nuptake;
+		// number of saplings of this PFT established in vegetation_n_uptake() (cohort mode)
 	// end GUESSN
 
 	// MEMBER FUNCTIONS:
@@ -1691,6 +1709,10 @@ public:
 		nmass_litter_leaf=0.0;
 		nmass_litter_root=0.0;
 		nmass_litter_wood=0.0;
+
+		nsapling_nuptake=0.0;
+
+		nstore_est=0.0;
 		
 		// end GUESSN
 	}
@@ -1784,12 +1806,16 @@ public:
 		// monthly PET (mm/month)
 
 	// GUESSN
-	double fuptake_patch;
+	double fnuptake;
 		// fractional N uptake of patch demand
-	bool nlim;
-		// if ndemand_patch in vegetation_n_uptake higher than nsupply_patch
+	double ndemand;
+		// yearly N demand
+	double nsupply;
+		// yearly N supply
 	double new_est_ndemand;
 		// last years N demand for new establishments
+	double est_ndemand;
+		// cumulative N demand for new establishments
 	// end GUESSN
 
 	// MEMBER FUNCTIONS
@@ -1813,6 +1839,7 @@ public:
 		growingseasondays=0;
 
 		fireprob=0.0;
+		est_ndemand=0.0;
 	}
 };
 
@@ -1880,12 +1907,19 @@ public:
 	// GUESSN
 	double na;
 		// Leaf nitrogen associated with photosynthesis today, patch basis kgN/m2
-	double cton_avr;
+	double cton_leaf_avr;
 		// mean across patches for leaf C:N ratio
-	double nlim;
-		// N limitation for growth
+	double vmaxnlim_avr;
+		// N limitation on vm
 	double nmass_total;
 		// sum/mean across patches for nitrogen biomass (kgN/m2)
+	double nuptake_total;
+		// sum across patches for nitrogen uptake (kgN/m2)
+	double anppn_total;
+		// sum across patches for nitrogen ANPP usage (kgN/m2)
+	double cmass_repr_nuptake;
+		// net C allocated to reproduction for this PFT in all patches of this stand
+		// this year (kgC/m2)
 	// end GUESSN
 
 	// MEMBER FUNCTIONS

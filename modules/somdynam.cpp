@@ -33,6 +33,7 @@
 #include "somdynam.h"
 
 #include "driver.h"
+#include "growth.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -330,6 +331,185 @@ void som_dynamics_lpj(Patch& patch) {
 	}
 }
 
+//////////////////////////////////////////////////////////////////////////////////
+// GUESSN Calculates individual fuptake based on surface of fine root
+//	Roots are cone formed with height == radie. 
+// V = PI * r^3 / 3
+// A = (2^1/2 + 1) * PI * r^2
+// -> A = const * cmass_root^2/3 
+
+double nitrogen_uptake_strength(const Individual& indiv) {
+	if (indiv.pft.lifeform == TREE)
+		return pow(indiv.cmass_root,2.0/3.0);
+	if (indiv.pft.lifeform == GRASS)
+		return pow(indiv.cmass_root*0.7,2.0/3.0);
+}
+
+void indiv_fnuptake(Vegetation& vegetation, double nsupply_patch, double ndemand_patch, double fnuptake) {
+
+	double GRASS_part = 0.05;			// Grass should at least get 5% of total available N
+	double GRASS_ndemand = 0.0;			// Grass total N demand
+	bool GRASS_100 = false;				// if grass gets what it demands from its part of the total N supply 
+	bool not_more_grass = false;		// keeping track of if GRASS can compite with TREEs for more N than what is
+										// espacially assigned for GRASS (GRASS_part)
+	double grass_uptake_decider = 0.0;
+	double total_uptake_decider = 0.0;
+	double temp_nsupply_patch = nsupply_patch;
+	double ratio_uptake;				// how much N taken up per uptake strength
+	bool full_uptake = true;			// if indiv.fuptake should be updated
+
+	// GRASS
+	// determine strength and demand of grasses
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv=vegetation.getobj();
+
+		if (indiv.pft.lifeform == GRASS && !negligible(indiv.ndemand_uptake)) {
+			GRASS_ndemand += indiv.ndemand_uptake;
+			grass_uptake_decider += nitrogen_uptake_strength(indiv);
+		}
+		vegetation.nextobj();
+	}
+
+	// GRASS
+	// Does grass get enough N from its part of the total
+	if (GRASS_ndemand < GRASS_part*nsupply_patch) 
+		GRASS_100 = true;
+	else 
+		GRASS_100 = false;
+
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv=vegetation.getobj();
+
+		indiv.fnuptake = fnuptake;
+
+		// GRASS
+		if (indiv.pft.lifeform == GRASS && GRASS_100 && !negligible(indiv.ndemand_uptake)) {
+
+			// when grass part of total N is enough, then subtract it from total
+			temp_nsupply_patch-=indiv.ndemand_uptake;
+			// set uptake to meet demand
+			indiv.fnuptake = 1.0;
+			// and subtract uptake strength as it will be added further down
+			total_uptake_decider -= nitrogen_uptake_strength(indiv);
+		}
+
+		
+		// TREE
+		// Sum up uptake strengths
+		if (!negligible(indiv.ndemand_uptake)) {
+			double checkk=nitrogen_uptake_strength(indiv);
+			total_uptake_decider += checkk;
+		}
+
+		vegetation.nextobj();
+	}
+	
+	// Loop through indiv and decide their fuptake
+	while (full_uptake){
+
+		full_uptake = false;	
+		
+		// restore N supply and uptake decider if not_more_grass == true
+		// (which can happen after the first round if there is a full_uptake)
+		// so that it can be calculated if they might be able to take up more 
+		// than just the GRASS part
+		if (not_more_grass) {
+			temp_nsupply_patch += GRASS_part*nsupply_patch;
+			total_uptake_decider += grass_uptake_decider;
+			not_more_grass=false;
+		}
+
+		// decide how much N that will be taken up by each uptake strength 
+		if (total_uptake_decider > 0.0 && temp_nsupply_patch > 0.0)
+			ratio_uptake = temp_nsupply_patch / total_uptake_decider;
+		else
+			ratio_uptake = 0.0;
+
+		// GRASS
+		// Grass part of avail N is not enough
+		if (!GRASS_100 && !not_more_grass) {
+
+			// See if grass can't get more than the 5%
+			if (GRASS_part*nsupply_patch>ratio_uptake*grass_uptake_decider) {
+
+				not_more_grass=true;
+				// then grass takes GRASS_part of total N supply
+				temp_nsupply_patch -= GRASS_part*nsupply_patch;
+				// and GRASS strength is subtracted from totaluptake strength
+				total_uptake_decider -= grass_uptake_decider;
+				// and a new ratio uptake is calculated for TREEs 
+				ratio_uptake = temp_nsupply_patch / total_uptake_decider; 
+			}
+			else {
+				// GRASS can compite for more than 5%
+				not_more_grass=false;
+			}
+		}
+
+		vegetation.firstobj();
+		while (vegetation.isobj && !full_uptake) {
+			Individual& indiv=vegetation.getobj();
+
+			// if lifeform is GRASS and they can't compite with TREEs for more than their part of the total N supply
+			if (indiv.pft.lifeform == GRASS && not_more_grass && indiv.fnuptake != 1.0) {
+				if (!negligible(indiv.ndemand_uptake)) {
+
+					indiv.fnuptake = GRASS_part*nsupply_patch*(nitrogen_uptake_strength(indiv)
+						/grass_uptake_decider)/indiv.ndemand_uptake;
+					if (indiv.fnuptake > 1.0)
+						indiv.fnuptake = 1.0;
+				}
+				else
+					indiv.fnuptake = 0.0;
+			}
+
+			// if lifeform is TREE and GRASS if it can compete with TREEs
+			else {
+
+				// if fuptake does't meet its N demand, then calculate a new value for fuptake
+				if (indiv.fnuptake != 1.0) {
+
+					// if indiv has the strenght to take up more than N demand
+					if (ratio_uptake * nitrogen_uptake_strength(indiv) > indiv.ndemand_uptake && !negligible(indiv.ndemand_uptake)){
+						
+						indiv.fnuptake = 1.0;
+						
+						// subtract N demand from N supply
+						temp_nsupply_patch -= indiv.ndemand_uptake;
+
+						// and take away this indiv uptake strength from total
+						total_uptake_decider -= nitrogen_uptake_strength(indiv);
+
+						// and redo indiv fuptake calc for the rest of the indiv as this indiv probably could
+						// take up more than its N demand -> more available for the rest of the indiv
+						full_uptake = true;
+					}
+					// normal N limited uptake (0.0 < fuptake < 1.0)
+					else if (indiv.ndemand_uptake > 0.0)
+						indiv.fnuptake = (ratio_uptake * nitrogen_uptake_strength(indiv)) / indiv.ndemand_uptake;
+					else
+						indiv.fnuptake = 0.0;
+				}
+			}
+
+			vegetation.nextobj();
+		}
+	}
+
+	double nuptake_t=0.0;
+	vegetation.firstobj();
+	while (vegetation.isobj && !full_uptake) {
+		Individual& indiv=vegetation.getobj();
+			
+		nuptake_t+=indiv.ndemand_uptake*indiv.fnuptake;
+
+		vegetation.nextobj();
+	}
+}
+// end GUESSN
+
 /////////////////////////////////////////////////
 // CENTURY SOM DYNAMICS
 
@@ -351,8 +531,7 @@ void setntoc(Soil& soil,double fac,pooltype pool,double cton_max,double cton_min
 	}
 }
 
-// void decayrates(Soil& soil,double temp_soil,double wcont_soil) {
-void decayrates(Soil& soil,double temp_soil,double wcont_soil,double net_nmass) {	// GUESSNFIX wood
+void decayrates(Soil& soil,double temp_soil,double wcont_soil) {
 
 	// Calculates CENTURY instantaneous decay rates given soil temperature, water
 	// content of upper soil layer
@@ -377,7 +556,6 @@ void decayrates(Soil& soil,double temp_soil,double wcont_soil,double net_nmass) 
 
 	double temp_mod;
 	double moist_mod;
-	double nmass_mod;	// GUESSN
 	double wfps;
 	double k;
 	int p;
@@ -409,14 +587,6 @@ void decayrates(Soil& soil,double temp_soil,double wcont_soil,double net_nmass) 
 	else
 		moist_mod=0.000371*wfps*wfps-0.0748*wfps+4.13;
 
-	
-	// GUESSNFIX wood
-	// N limitation modifier for decomposition
-	//if (ifnlim)
-	//	nmass_mod=max(1.0-exp(-pow(max((net_nmass+2.0e-5)/(2.0e-5),0.0),4.0)),0.5);
-	//else
-		nmass_mod=1.0;
-
 	for (p=0;p<NSOMPOOL;p++) {
 
 		// Calculate decay constant (annual basis)
@@ -431,10 +601,6 @@ void decayrates(Soil& soil,double temp_soil,double wcont_soil,double net_nmass) 
 			k*=exp(-3.0*soil.sompool[p].ligcfrac);
 		else if (p==SOILMICRO)
 			k*=texture_mod;
-
-		// GUESSNFIX wood
-		if (p==SURFCWD || p==SOILSTRUCT || p==SURFSTRUCT || p==SOILMETA || p==SURFMETA)
-			k*=nmass_mod;
 
 		// Calculate fraction of C pool remaining after today's decomposition
 
@@ -481,6 +647,92 @@ void transferdecomp(Soil& soil,pooltype donor,pooltype receiver,
 	// Decrease N mineralisation sum relative to donor pool
 	soil.sompool[donor].ndec-=ninc;	
 }
+
+/*	GUESSNFIX DAILY N UPTAKE
+
+void dailyNuptake(Patch& patch, Soil& soil) {
+
+	// Daily N uptake
+	// Based on Zaehle 2009 SM
+	double Umax=5.14;	// Max N uptake per unit fine root mass
+						// Corresponds to Vmax eq 8 Zaehle 2009 SM (kg N kg-1 C day-1)
+	double kNmin=0.05;	// Rate of N uptake not associated with Michaelis-Menten Kinetics (dimensionless)
+	double KNmin=0.85;	// Half saturation concentration of fine root uptake (kg N m-2)
+	double ctonfact;
+	double T0=0.0;
+	double Tref=20.0;
+	double Tmax=30.0;
+	double Tfact;
+	double sumofdailyuptake=0.0;
+	double max_uptake;
+	double ndemand_patch=0.0;
+
+	// Update "daily" nmass available 
+	soil.nmass_avail_daily += soil.daily_minimmndep;
+		
+	Tfact=max((soil.temp-T0)*(2.0*Tmax-T0-soil.temp)/((Tref-T0)*(2.0*Tmax-T0-Tref)),0.0);
+
+	// Loop through individuals
+		
+	Vegetation& vegetation = patch.vegetation;
+	vegetation.firstobj();
+	while (vegetation.isobj) 
+	{
+		Individual& indiv=vegetation.getobj();
+
+		// For this individual ...
+
+		if (date.day == 0) {
+			indiv.dnupnpp=0.0;
+			indiv.nstore_daily=0.0;
+		}
+
+		indiv.dnupnpp+=(indiv.assim-indiv.resp)*indiv.bminc_leaf_frac;
+
+		if (indiv.nstore_daily>0.0 && indiv.dnupnpp>0.0)
+			ctonfact=max(((indiv.nstore_daily*indiv.leaf_plantN)/(indiv.dnupnpp*indiv.bminc_leaf_frac)-1.0/indiv.pft.cton_leaf_min)/(1.0/indiv.pft.cton_leaf_max-1.0/indiv.pft.cton_leaf_min),0.0);
+		else if (indiv.dnupnpp>0.0)
+			ctonfact=ctonfact=max(((indiv.dnupnpp*indiv.leaf_plantC/indiv.pft.cton_leaf_avr*indiv.leaf_plantN)/(indiv.dnupnpp*indiv.leaf_plantC)-1.0/indiv.pft.cton_leaf_min)/(1.0/indiv.pft.cton_leaf_max-1.0/indiv.pft.cton_leaf_min),0.0);
+		else
+			ctonfact=0.0;
+
+		// TAKE UP TO MUCH N FIRST TIME OF THE YEAR -> JUMP IN ctonfact from >1 to very low ALL THE TIME... Have to change it! Check leaching
+
+		max_uptake = max(1.2*indiv.dnupnpp*indiv.leaf_plantC/indiv.pft.cton_leaf_min-indiv.nstore_daily*indiv.leaf_plantN,0.0);
+
+		indiv.ndemand_uptake=min((Umax*max(soil.nmass_avail_daily*1000.0,0.0)*
+				(kNmin+1.0/(max(soil.nmass_avail_daily*1000.0,0.0)+KNmin))*
+				Tfact*ctonfact*indiv.cmass_root*indiv.densindiv)/1000.0,max_uptake);
+
+		ndemand_patch+=indiv.ndemand_uptake;
+
+		vegetation.nextobj();
+	}
+
+	indiv_fnuptake(vegetation,soil.nmass_avail_daily,ndemand_patch,0.5);
+
+
+
+	vegetation.firstobj();
+	while (vegetation.isobj) 
+	{
+		Individual& indiv=vegetation.getobj();
+
+		indiv.nstore_daily+=indiv.ndemand_uptake*indiv.fnuptake;
+		sumofdailyuptake+=indiv.ndemand_uptake*indiv.fnuptake;
+
+		vegetation.nextobj();
+	}
+
+	soil.nmass_avail_daily-=sumofdailyuptake;
+
+	if (!negligible(soil.nmass_avail_daily > 0.0)) {// Leaching
+		double leaching=soil.nmass_avail_daily*(soil.dperc/18.0*(0.2+0.7*soil.soiltype.sand_frac));
+		soil.nmass_avail_daily-=leaching;
+		soil.daily_leaching[date.day]=leaching;
+	}
+
+}*/
 
 // GUESSN
 void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {	
@@ -533,6 +785,8 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 							
 		// First day of year
 
+//		dailyNuptake(patch,soil);
+
 		if (date.day == 0)
 			soil.setntoc_nmass_avail = soil.nmass_avail; 
 		else
@@ -559,7 +813,8 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 					//reference value of the C:N ratio for plant production
 
 				N_demand += NPPp/ref_cton;
-			}		
+			}			
+
 			vegetation.nextobj();
 		}
 
@@ -602,9 +857,7 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 
 		// Calculate potential fraction remaining following decay today for all pools
 		// (assumes no N limitation)
-
-		//decayrates(soil,soil.temp,soil.wcont[0]);
-		decayrates(soil,soil.temp,soil.wcont[0],soil.daily_minimmndep); // GUESSNFIX wood
+		decayrates(soil,soil.temp,soil.wcont[0]); 
 
 	}
 	else if (date.islastday) {
@@ -613,9 +866,7 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 
 		// Calculate potential fraction remaining following decay today for all pools
 		// (assumes no N limitation)
-
-		//decayrates(soil,soil.temp,soil.mwcontupper);
-		decayrates(soil,soil.temp,soil.mwcontupper,soil.daily_minimmndep);	// GUESSNFIX wood
+		decayrates(soil,soil.temp,soil.mwcontupper);	// GUESSN
 
 		// Convert fractional scalars from daily to monthly basis
 
@@ -627,97 +878,161 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 
 	// Calculate decomposition in all pools assuming these decay rates
 
-	for (p=0;p<NSOMPOOL;p++) {
-		soil.sompool[p].cdec=soil.sompool[p].cmass*(1.0-soil.sompool[p].frc);
-		soil.sompool[p].ndec=soil.sompool[p].nmass*(1.0-soil.sompool[p].frc); 
-		soil.sompool[p].delta_cmass=-soil.sompool[p].cdec;
-		soil.sompool[p].delta_nmass=-soil.sompool[p].ndec;
+	// Save delta C and N mass
+
+	bool net_mineralization=false;
+	int times=0;
+	double decay_rates=1.0;
+	double net_before;
+	double struct_decomp;
+
+	double delta_cmass[NSOMPOOL];
+	double delta_nmass[NSOMPOOL];
+
+	for (p=0;p<NSOMPOOL;p++) { 
+		delta_cmass[p]=soil.sompool[p].delta_cmass;
+		delta_nmass[p]=soil.sompool[p].delta_nmass;
 	}
 
-	// Partition potential decomposition among receiver pools
+	while(!net_mineralization && times<2) {
 
-	// Donor pool SURFACE STRUCTURAL
+		respsum=0.0;
+		nmin_actual=0.0;
+		nimmob=0.0;
 
-	transferdecomp(soil,SURFSTRUCT,SURFMICRO,1.0-soil.sompool[SURFSTRUCT].ligcfrac,
-		0.6,respsum,nmin_actual,nimmob);	// 
+		// Calculate decomposition in all pools assuming these decay rates
+		for (p=0;p<NSOMPOOL;p++) {
+			if (p != SURFSTRUCT && p != SOILSTRUCT && p != SURFCWD) {
+				soil.sompool[p].cdec=soil.sompool[p].cmass*(1.0-soil.sompool[p].frc);
+				soil.sompool[p].ndec=soil.sompool[p].nmass*(1.0-soil.sompool[p].frc);
+			}
+			else {
+				soil.sompool[p].cdec=soil.sompool[p].cmass*(1.0-soil.sompool[p].frc)*decay_rates;
+				soil.sompool[p].ndec=soil.sompool[p].nmass*(1.0-soil.sompool[p].frc)*decay_rates;
+			}
+			soil.sompool[p].delta_cmass=delta_cmass[p];
+			soil.sompool[p].delta_nmass=delta_nmass[p];
+			soil.sompool[p].delta_cmass=-soil.sompool[p].cdec;
+			soil.sompool[p].delta_nmass=-soil.sompool[p].ndec;
+		}
 
-	transferdecomp(soil,SURFSTRUCT,SURFHUMUS,soil.sompool[SURFSTRUCT].ligcfrac,0.3,
-		respsum,nmin_actual,nimmob);
+		// Partition potential decomposition among receiver pools
 
-	// Donor pool SURFACE METABOLIC
+		// Donor pool SURFACE STRUCTURAL
 
-	transferdecomp(soil,SURFMETA,SURFMICRO,1.0,0.6,respsum,nmin_actual,nimmob);
+		transferdecomp(soil,SURFSTRUCT,SURFMICRO,1.0-soil.sompool[SURFSTRUCT].ligcfrac,
+			0.6,respsum,nmin_actual,nimmob);	
 
-	// Donor pool SOIL STRUCTURAL
+		transferdecomp(soil,SURFSTRUCT,SURFHUMUS,soil.sompool[SURFSTRUCT].ligcfrac,0.3,
+			respsum,nmin_actual,nimmob);
 
-	transferdecomp(soil,SOILSTRUCT,SOILMICRO,1.0-soil.sompool[SOILSTRUCT].ligcfrac,
-		0.55,respsum,nmin_actual,nimmob);
+		struct_decomp = nmin_actual-nimmob;
 
-	transferdecomp(soil,SOILSTRUCT,SLOWSOM,soil.sompool[SOILSTRUCT].ligcfrac,0.3,
-		respsum,nmin_actual,nimmob);
+		// Donor pool SURFACE METABOLIC
 
-	// Donor pool SOIL METABOLIC
+		transferdecomp(soil,SURFMETA,SURFMICRO,1.0,0.6,respsum,nmin_actual,nimmob);
 
-	transferdecomp(soil,SOILMETA,SOILMICRO,1.0,0.55,respsum,nmin_actual,nimmob);
+		// Donor pool SOIL STRUCTURAL
 
-	// Donor pool SURFACE COARSE WOODY DEBRIS
+		net_before = nmin_actual-nimmob;
 
-	transferdecomp(soil,SURFCWD,SURFMICRO,1.0-soil.sompool[SURFCWD].ligcfrac,	// GUESSNFIX wood
-		0.76,respsum,nmin_actual,nimmob);					// 0.55
+		transferdecomp(soil,SOILSTRUCT,SOILMICRO,1.0-soil.sompool[SOILSTRUCT].ligcfrac,
+			0.55,respsum,nmin_actual,nimmob);
 
-	transferdecomp(soil,SURFCWD,SURFHUMUS,soil.sompool[SURFCWD].ligcfrac,0.76, // 0.3	// GUESSNFIX wood
-		respsum,nmin_actual,nimmob);
+		transferdecomp(soil,SOILSTRUCT,SLOWSOM,soil.sompool[SOILSTRUCT].ligcfrac,0.3,
+			respsum,nmin_actual,nimmob);
+
+		struct_decomp += (nmin_actual-nimmob)-net_before;
+
+		// Donor pool SOIL METABOLIC
+
+		transferdecomp(soil,SOILMETA,SOILMICRO,1.0,0.55,respsum,nmin_actual,nimmob);
+
+		// Donor pool SURFACE COARSE WOODY DEBRIS
+
+		net_before = nmin_actual-nimmob;
+
+		transferdecomp(soil,SURFCWD,SURFMICRO,1.0-soil.sompool[SURFCWD].ligcfrac,	
+			0.76,respsum,nmin_actual,nimmob);
+
+		transferdecomp(soil,SURFCWD,SURFHUMUS,soil.sompool[SURFCWD].ligcfrac,0.76,
+			respsum,nmin_actual,nimmob);
+
+		struct_decomp += (nmin_actual-nimmob)-net_before;
 	
-	// Donor pool SURFACE MICROBE
+		// Donor pool SURFACE MICROBE
 
-	transferdecomp(soil,SURFMICRO,SURFHUMUS,1.0,0.6,respsum,nmin_actual,nimmob);
+		transferdecomp(soil,SURFMICRO,SURFHUMUS,1.0,0.6,respsum,nmin_actual,nimmob);
 
-	// Donor pool SURFACE HUMUS
+		// Donor pool SURFACE HUMUS
 
-	transferdecomp(soil,SURFHUMUS,SLOWSOM,1.0,0.6,respsum,nmin_actual,nimmob);
+		transferdecomp(soil,SURFHUMUS,SLOWSOM,1.0,0.6,respsum,nmin_actual,nimmob);
 
-	// Donor pool SLOW SOM
+		// Donor pool SLOW SOM
 	
-	// First work out partitioning coefficients (Fig 1, Parton et al 1993)
+		// First work out partitioning coefficients (Fig 1, Parton et al 1993)
 
-	csp=0.003-0.009*soil.soiltype.clay_frac;
-	respfrac=0.55;
-	csa=1.0-csp-respfrac;
+		csp=0.003-0.009*soil.soiltype.clay_frac;
+		respfrac=0.55;
+		csa=1.0-csp-respfrac;
 
-	transferdecomp(soil,SLOWSOM,SOILMICRO,csa,0.0,respsum,nmin_actual,nimmob);
+		transferdecomp(soil,SLOWSOM,SOILMICRO,csa,0.0,respsum,nmin_actual,nimmob);
 
-	transferdecomp(soil,SLOWSOM,PASSIVESOM,csp,0.0,respsum,nmin_actual,nimmob);
+		transferdecomp(soil,SLOWSOM,PASSIVESOM,csp,0.0,respsum,nmin_actual,nimmob);
 
-	// Account for respiration flux
-	// N associated with this respiration is mineralised (Parton et al 1993, p 791)
-	respsum+=respfrac*soil.sompool[SLOWSOM].cdec;
+		// Account for respiration flux
+		// N associated with this respiration is mineralised (Parton et al 1993, p 791)
+		respsum+=respfrac*soil.sompool[SLOWSOM].cdec;
 
-	if(!negligible(soil.sompool[SLOWSOM].cmass))
-		nmin_actual+=respfrac*soil.sompool[SLOWSOM].cdec*soil.sompool[SLOWSOM].nmass/soil.sompool[SLOWSOM].cmass;	
+		if(!negligible(soil.sompool[SLOWSOM].cmass))
+			nmin_actual+=respfrac*soil.sompool[SLOWSOM].cdec*soil.sompool[SLOWSOM].nmass/soil.sompool[SLOWSOM].cmass;	
 
-	// Donor pool SOIL MICROBE
+		// Donor pool SOIL MICROBE
 
-	// Fraction lost to microbial respiration (F_t, Parton et al 1993 Eqn 7)
-	respfrac=max(0.0,0.85-0.68*(soil.soiltype.clay_frac+soil.soiltype.silt_frac));
+		// Fraction lost to microbial respiration (F_t, Parton et al 1993 Eqn 7)
+		respfrac=max(0.0,0.85-0.68*(soil.soiltype.clay_frac+soil.soiltype.silt_frac));
 
-	// Fraction entering passive SOM pool (Parton et al 1993, Eqn 9)
-	cap=0.003+0.032*soil.soiltype.clay_frac;
+		// Fraction entering passive SOM pool (Parton et al 1993, Eqn 9)
+		cap=0.003+0.032*soil.soiltype.clay_frac;
 
-	transferdecomp(soil,SOILMICRO,PASSIVESOM,cap,0.0,respsum,nmin_actual,nimmob);
+		transferdecomp(soil,SOILMICRO,PASSIVESOM,cap,0.0,respsum,nmin_actual,nimmob);
 
-	transferdecomp(soil,SOILMICRO,SLOWSOM,max(0.0,1.0-respfrac-cap),0.0,respsum,
-		nmin_actual,nimmob);
+		transferdecomp(soil,SOILMICRO,SLOWSOM,max(0.0,1.0-respfrac-cap),0.0,respsum,
+			nmin_actual,nimmob);
 
-	// Account for respiration flux
-	// N associated with this respiration is mineralised (Parton et al 1993, p 791)
-	respsum+=respfrac*soil.sompool[SOILMICRO].cdec;
+		// Account for respiration flux
+		// N associated with this respiration is mineralised (Parton et al 1993, p 791)
+		respsum+=respfrac*soil.sompool[SOILMICRO].cdec;
 
-	if(!negligible(soil.sompool[SLOWSOM].cmass))
-		nmin_actual+=respfrac*soil.sompool[SOILMICRO].cdec*soil.sompool[SOILMICRO].nmass/soil.sompool[SOILMICRO].cmass;
+		if(!negligible(soil.sompool[SLOWSOM].cmass))
+			nmin_actual+=respfrac*soil.sompool[SOILMICRO].cdec*soil.sompool[SOILMICRO].nmass/soil.sompool[SOILMICRO].cmass;
 
-	// Donor pool PASSIVE SOM
+		// Donor pool PASSIVE SOM
 
-	transferdecomp(soil,PASSIVESOM,SOILMICRO,1.0,0.55,respsum,nmin_actual,nimmob);
+		transferdecomp(soil,PASSIVESOM,SOILMICRO,1.0,0.55,respsum,nmin_actual,nimmob);
+
+		// Estimate daily soil mineral N pool after decomposition
+		// (negative value = immobilisation) 
+
+//		double daily_nmass = (soil.ndep_annual + soil.nmass_avail + soil.N_fix)/365.0 + nmin_actual-nimmob;
+		double daily_nmass = nmin_actual-nimmob;
+
+		if (daily_nmass >= 0.0 || nmin_actual-nimmob >= 0.0) {
+
+			net_mineralization = true;
+		}
+		else {
+
+			if (struct_decomp < daily_nmass)
+				decay_rates = (struct_decomp-daily_nmass)/struct_decomp;
+			else if (struct_decomp < 0.0)
+				decay_rates = 0.0;
+
+			net_mineralization = false;
+		}
+
+		times++;
+	}
 
 	// Update pool sizes
 
@@ -730,7 +1045,7 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 	}
 
 	// calculate the daily result of min, imm, and ndep
-	soil.daily_minimmndep = nmin_actual-nimmob+soil.ndep_annual/365.0;
+	soil.daily_minimmndep = nmin_actual-nimmob+(soil.ndep_annual+soil.N_fix)/365.0;
 
 	// Transfer respiration sum to fluxes
 
@@ -791,7 +1106,7 @@ void transfer_litter(Patch& patch,Soil& soil) {
 
 		// Leaf litter lignin:N ratio
 		if (negligible(litter_leaf_n))
-			lton=LIGCFRAC_LEAF*pft.pft.cton_leaf/(1.0-nrelocfrac);
+			lton=LIGCFRAC_LEAF*pft.pft.cton_leaf_avr/(1.0-nrelocfrac);
 		else
 			lton=LIGCFRAC_LEAF*pft.litter_leaf/litter_leaf_n;
 
@@ -834,7 +1149,7 @@ void transfer_litter(Patch& patch,Soil& soil) {
 
 		// Root litter lignin:N ratio
 		if (negligible(pft.litter_root))
-			lton=LIGCFRAC_ROOT*pft.pft.cton_root/(1-nrelocfrac);
+			lton=LIGCFRAC_ROOT*pft.pft.cton_root_avr/(1-nrelocfrac);
 		else
 			lton=LIGCFRAC_ROOT*pft.litter_root/pft.nmass_litter_root;
 
@@ -870,21 +1185,15 @@ void transfer_litter(Patch& patch,Soil& soil) {
 
 			// Coarse woody debris
 
-			double nmass_mod;
-			if (ifnlim)
-				nmass_mod = min(pow(patch.fuptake_patch,0.7),1.0);	// GUESSNFIX wood
-			else
-				nmass_mod = 1.0;
-
-			ligcmass_new=max(0.0,pft.litter_wood*cwdtransfer*nmass_mod)*LIGCFRAC_WOOD;
+			ligcmass_new=max(0.0,pft.litter_wood*cwdtransfer)*LIGCFRAC_WOOD;
 			ligcmass_old=soil.sompool[SURFCWD].cmass*soil.sompool[SURFCWD].ligcfrac;
 
 			if (pft.litter_wood < 0.0)
-				dprintf("Year %d Negative litter wood %g \n",date.year,pft.litter_wood);
+				dprintf("Year %d pft %s Negative litter wood %g \n",date.year,(char*)pft.pft.name,pft.litter_wood);
 
 			// Add to structural pool and update lignin fraction in pool
-			soil.sompool[SURFCWD].cmass+=pft.litter_wood*cwdtransfer*nmass_mod;
-			soil.sompool[SURFCWD].nmass+=pft.nmass_litter_wood*cwdtransfer*nmass_mod;
+			soil.sompool[SURFCWD].cmass+=pft.litter_wood*cwdtransfer;
+			soil.sompool[SURFCWD].nmass+=pft.nmass_litter_wood*cwdtransfer;
 			if (negligible(soil.sompool[SURFCWD].cmass))
 				soil.sompool[SURFCWD].ligcfrac=0.0;
 			else {
@@ -894,8 +1203,8 @@ void transfer_litter(Patch& patch,Soil& soil) {
 			}
 		
 			// Update vegetation
-			pft.litter_wood*=(1.0-cwdtransfer*nmass_mod);
-			pft.nmass_litter_wood*=(1.0-cwdtransfer*nmass_mod);
+			pft.litter_wood*=(1.0-cwdtransfer);
+			pft.nmass_litter_wood*=(1.0-cwdtransfer);
 		}		
 
 		patch.pft.nextobj();
@@ -943,7 +1252,8 @@ void leaching(Soil& soil) {
 
 void turnover_oecd_ndemand(double turnover_leaf,double turnover_root,double turnover_sap,lifeformtype lifeform,
 		double& cmass_leaf,double& cmass_root,double& cmass_sap,double& cmass_heart,
-		double& nmass_leaf,double& nmass_root,double& nmass_sap,double& nstore_turnover,bool alive) {
+		double& nmass_leaf,double& nmass_root,double& nmass_sap,double& nmass_heart,
+		double& nstore_turnover,bool alive) {
 
 	// DESCRIPTION
 	// Transfers carbon from leaves and roots to litter, and from sapwood to heartwood
@@ -992,6 +1302,7 @@ void turnover_oecd_ndemand(double turnover_leaf,double turnover_root,double turn
 
 		turnover=turnover_sap*nmass_sap;
 		nmass_sap-=turnover;
+		nmass_heart+=turnover*(1.0-nrelocfrac);
 		nstore_turnover+=turnover*nrelocfrac;	
 	}
 }
@@ -1199,7 +1510,7 @@ void allocation_ndemand(double bminc,double cmass_leaf,double cmass_root,double 
 		else cmass_debt_inc=0.0;
 
 		if (cmass_root_inc_min>=0.0 && cmass_leaf_inc_min>=0.0 &&
-			cmass_root_inc_min+cmass_leaf_inc_min<=bminc || bminc<=0.0) {
+			cmass_root_inc_min+cmass_leaf_inc_min<=bminc){// || bminc<=0.0) {
 
 			// Normal allocation (positive increment to all living C compartments)
 			// NOTE: includes allocation of zero or negative NPP, c.f. LPJF
@@ -1279,6 +1590,13 @@ void allocation_ndemand(double bminc,double cmass_leaf,double cmass_root,double 
 			cmass_root_inc=(cmass_leaf_inc+cmass_leaf)/ltor-cmass_root; // Eqn (3)
 			cmass_sap_inc=bminc-cmass_leaf_inc-cmass_root_inc; // Eqn (1)
 
+			if (cmass_sap_inc < 0.0) {
+				if (cmass_sap_inc>(cmass_leaf_inc+cmass_leaf)*wooddens*height*sla/k_latosa-cmass_sap)
+					cmass_sap_inc=(cmass_leaf_inc+cmass_leaf)*wooddens*height*sla/k_latosa-cmass_sap;
+
+				cmass_heart_inc=-cmass_sap_inc;
+			}
+
 			// guess2008 - extra check - abnormal allocation can still happen if ltor is very small
 			if ((cmass_root_inc > 50 || cmass_root_inc < -50) && ltor < 0.0001) {
 				cmass_leaf_inc=0.0;
@@ -1291,47 +1609,61 @@ void allocation_ndemand(double bminc,double cmass_leaf,double cmass_root,double 
 
 				return;			
 			}
-
-			// Convert killed sapwood to heartwood
-			if(cmass_sap_inc<0.0)	
-				if (-cmass_sap_inc > cmass_sap)
-					cmass_heart_inc += cmass_sap;
-				else
-					cmass_heart_inc =- cmass_sap_inc;
 		}
 		else {
 
-			// Abnormal allocation: reduction in some biomass compartment(s) to
-			// satisfy allometry
+			// Abnormal allocation: negativ bminc
 
-			// Attempt to distribute this year's production among leaves and roots only
-			// Eqn (3)
+			if (bminc < 0) {
+				
+				// Min leaf inc is larger than 
+				cmass_leaf_inc=(bminc-cmass_leaf/ltor+cmass_root)/(1.0+1.0/ltor);
+				cmass_root_inc=bminc-cmass_leaf_inc;
 
-			cmass_leaf_inc=(bminc-cmass_leaf/ltor+cmass_root)/(1.0+1.0/ltor);
-
-			if (cmass_leaf_inc>0.0) {
-
-				// Positive allocation to leaves
-
-				cmass_root_inc=bminc-cmass_leaf_inc; // Eqn (1)
-
-				// Add killed roots (if any) to litter
-
-				// guess2008 - back to LPJF way in this case
-				// if (cmass_root_inc<0.0) litter_root_inc=-cmass_root_inc;
-				if (cmass_root_inc<0.0) {
-					cmass_leaf_inc = bminc;
-					cmass_root_inc=(cmass_leaf_inc+cmass_leaf)/ltor-cmass_root; // Eqn (3)
+				if (cmass_leaf_inc>0.0) {
+					cmass_leaf_inc=0.0;
+					cmass_root_inc=(cmass_leaf_inc+cmass_leaf)/ltor-cmass_root;
 				}
 
+				if (cmass_root_inc>0.0) {
+					cmass_root_inc=0.0;
+					cmass_leaf_inc=(cmass_root+cmass_root_inc)*ltor-cmass_leaf;
+				}
 			}
 			else {
 
-				// Negative or zero allocation to leaves
-				// Eqns (1), (3)
+				// Abnormal allocation: reduction in some biomass compartment(s) to
+				// satisfy allometry
 
-				cmass_root_inc=bminc;
-				cmass_leaf_inc=(cmass_root+cmass_root_inc)*ltor-cmass_leaf;
+				// Attempt to distribute this year's production among leaves and roots only
+				// Eqn (3)
+
+				cmass_leaf_inc=(bminc-cmass_leaf/ltor+cmass_root)/(1.0+1.0/ltor);
+
+				if (cmass_leaf_inc>0.0) {
+
+					// Positive allocation to leaves
+
+					cmass_root_inc=bminc-cmass_leaf_inc; // Eqn (1)
+
+					// Add killed roots (if any) to litter
+
+					// guess2008 - back to LPJF way in this case
+					// if (cmass_root_inc<0.0) litter_root_inc=-cmass_root_inc;
+					if (cmass_root_inc<0.0) {
+						cmass_leaf_inc = bminc;
+						cmass_root_inc=(cmass_leaf_inc+cmass_leaf)/ltor-cmass_root; // Eqn (3)
+					}
+
+				}
+				else {
+
+					// Negative or zero allocation to leaves
+					// Eqns (1), (3)
+
+					cmass_root_inc=bminc;
+					cmass_leaf_inc=(cmass_root+cmass_root_inc)*ltor-cmass_leaf;
+				}
 			}
 
 			// Calculate increase in sapwood mass (which must be negative)
@@ -1377,13 +1709,15 @@ void allocation_ndemand(double bminc,double cmass_leaf,double cmass_root,double 
 }
 
 // GUESSN
-double this_years_ndemand(double cmass_leaf,double cmass_root,double cmass_sap,double cmass_heart,double cmass_debt,
+void this_years_ndemand(double cmass_leaf,double cmass_root,double cmass_sap,double cmass_heart,double cmass_debt,
 		double nmass_leaf,double nmass_root,double nmass_sap,double nmass_heart,double leafn_mean,
-		double cton_leaf,double cton_root,double cton_sap,double anpp,double reprfrac,double wscal_mean,double ltor_max,
-		double height,double sla,double wooddens,double k_latosa,double k_allom2,double k_allom3,
-		phenologytype phenology,double aphen_raingreen, double leaflong,
-		double turnover_leaf,double turnover_root,double turnover_sap,
-		double nstore,double densindiv,bool alive,lifeformtype lifeform) {
+			double& cton_leaf_opt,double& cton_leaf_new,double cton_leaf_min,double cton_leaf_avr,double cton_leaf_max,
+			double cton_root_avr,double cton_sap_avr,double& bminc_leaf_frac,double& bminc_root_frac,
+			double anpp,double reprfrac,double wscal_mean,double ltor_max,
+			double densindiv,double height,double sla,double wooddens,double k_latosa,double k_allom2,double k_allom3,
+			lifeformtype lifeform,phenologytype phenology,double aphen_raingreen,double leaflong,
+			double turnover_leaf,double turnover_root,double turnover_sap,
+			double nstore,double& ndemand_uptake,bool alive) {
 
 	// DESCRIPTION
 	// Calculates this year's N demand by doing a fake growth with tissue turnover
@@ -1396,11 +1730,8 @@ double this_years_ndemand(double cmass_leaf,double cmass_root,double cmass_sap,d
 	double CDEBT_PAYBACK_RATE=0.2;
 	double cmass_payback;
 	double cmass_excess;
-
-	double ndemand_uptake=0.0;	// This individuals year N demand
  
 	double nstore_turnover=0.0;	// N retranslocated in turnover
-	double ndemand_new_cton;		// N demand/gained from change in cton ratio
 	double raingreen_ndemand=0.0;
 
 	// Thomas this year's ndemand: declaration
@@ -1408,42 +1739,17 @@ double this_years_ndemand(double cmass_leaf,double cmass_root,double cmass_sap,d
 	double dval;
 
 	// present N mass
-	double before=nmass_leaf+nmass_root+nmass_sap+nmass_heart;
-	double after;
+	double nbudget_before,nbudget_after;
 
 	// C:N ratios
-	double cton_leaf_new,cton_root_new,cton_sap_new,cton_sap_old;
+	double cton_root_new,cton_sap_new;
 
 	// Increases
 	double cmass_leaf_inc,cmass_root_inc,cmass_sap_inc,cmass_heart_inc;
 	double cmass_debt_inc;
-	double litter_leaf_inc,litter_root_inc;
 
+	double nscal;
 	double ltor;
-	
-	// C:N ratio for new and current biomass		
-	if (ifvarycn) {
-		if (!negligible(leafn_mean) && !negligible(cmass_leaf))
-			cton_leaf_new=cmass_leaf/leafn_mean; 
-				// actual mean leafN based on Vmax from photosynthesis
-		else
-			cton_leaf_new=cton_leaf;
-
-		cton_root_new=
-			cton_leaf_new*(cton_root/cton_leaf);
-		cton_sap_new=
-			cton_leaf_new*(cton_sap/cton_leaf);
-	}
-	else {
-		cton_leaf_new=cton_leaf;
-		cton_root_new=cton_root;
-		cton_sap_new=cton_sap;
-	}
-
-	if (!negligible(nmass_sap))
-			cton_sap_old=cmass_sap/nmass_sap;
-		else
-			cton_sap_old=cton_sap;
 
 	// reproduction
 	if (anpp>=0.0) 
@@ -1451,6 +1757,7 @@ double this_years_ndemand(double cmass_leaf,double cmass_root,double cmass_sap,d
 	else
 		bminc=anpp;
 
+	// Determine N demand of extra raingreen leaf
 	if (bminc >= 0 && phenology==RAINGREEN) {
 
 		// Raingreen PFTs: reduce biomass increment to account for NPP
@@ -1474,24 +1781,52 @@ double this_years_ndemand(double cmass_leaf,double cmass_root,double cmass_sap,d
 		}
 	}
 
-	// Set leaf:root mass ratio based on water stress parameter
-	ltor=wscal_mean*ltor_max;
+	// N stress scalar for leaf to root allocation (based on Zaehle 2010 SM eq 19)
+	nscal = min(1.0,(nmass_leaf/cmass_leaf)/(1.0/cton_leaf_avr));
 
+	// Set leaf:root mass ratio based on water stress parameter 
+	// or N stress scalar 
+	ltor=min(wscal_mean,nscal)*ltor_max;
+
+	// Determine N retranslocated during turnover
 	turnover_oecd_ndemand(turnover_leaf,turnover_root,turnover_sap,lifeform,
 						cmass_leaf,cmass_root,cmass_sap,cmass_heart,
-						nmass_leaf,nmass_root,nmass_sap,nstore_turnover,alive);
-	
-	// ndemand_new_cton is the amount of N demanded after update of the cton ratios
-	ndemand_new_cton = (cmass_leaf/cton_leaf_new-nmass_leaf)+	
-		(cmass_root/cton_root_new-nmass_root);
-	
-	if (lifeform == TREE)
-		ndemand_new_cton += (cmass_sap/cton_sap_new-nmass_sap); 	
+						nmass_leaf,nmass_root,nmass_sap,nmass_heart,nstore_turnover,alive);	
 
 	// N demand not associated with growth
-	ndemand_uptake -= nstore_turnover - ndemand_new_cton - raingreen_ndemand;
+	ndemand_uptake = raingreen_ndemand - nstore_turnover;
+
+	// C:N ratio for new and current biomass		
+	if (ifvarycn && date.year>freenyears && ifnlim) {
+
+		if (!negligible(leafn_mean) && !negligible(cmass_leaf))
+			cton_leaf_new=cmass_leaf/leafn_mean; 
+				// actual mean leafN based on Vmax from photosynthesis
+		else
+			cton_leaf_new=cton_leaf_avr;
+
+		if (date.year<=freenyears)
+			cton_leaf_new=cton_leaf_avr;
+
+		cton_leaf_opt=cton_leaf_new;
+
+		// C:N ratio can't be outside of pft min max range
+		cton_leaf_new=min(cton_leaf_max,max(cton_leaf_min,cton_leaf_new));
+
+		cton_root_new=
+			cton_leaf_new*(cton_root_avr/cton_leaf_avr);
+		cton_sap_new=
+			cton_leaf_new*(cton_sap_avr/cton_leaf_avr);
+	}
+	else {
+		cton_leaf_new=cton_leaf_avr;
+		cton_root_new=cton_root_avr;
+		cton_sap_new=cton_sap_avr;
+	}
 
 	if (lifeform==TREE) { 
+
+		nbudget_before=nmass_leaf+nmass_root+nmass_sap+nmass_heart;
 
 		// pay back part of cdebt
 		if (ifcdebt && bminc>0.0) {
@@ -1509,247 +1844,404 @@ double this_years_ndemand(double cmass_leaf,double cmass_root,double cmass_sap,d
 			cmass_heart_inc);
 
 		// Calculate N needed for this new biomass
-		double nmass_inc =	
-			(max(0.0,cmass_leaf_inc)*densindiv/cton_leaf_new +
-			max(0.0,cmass_root_inc)*densindiv/cton_root_new +
-			max(0.0,cmass_sap_inc)*densindiv/cton_sap_new);
+		ndemand_uptake+=
+			max(0.0,cmass_leaf_inc)*densindiv/cton_leaf_new+
+			max(0.0,cmass_root_inc)*densindiv/cton_root_new+
+			max(0.0,cmass_sap_inc)*densindiv/cton_sap_new;
+		
+		// Calculate fractions of new biomass that goes to leaf and root
+		if (!negligible(max(0.0,cmass_leaf_inc)) && !negligible(max(0.0,cmass_root_inc)) && !negligible(max(0.0,cmass_sap_inc))) {
+			bminc_leaf_frac=max(0.0,max(0.0,cmass_leaf_inc)/(max(0.0,cmass_leaf_inc)+max(0.0,cmass_root_inc)+max(0.0,cmass_sap_inc)));
+			bminc_root_frac=max(0.0,max(0.0,cmass_root_inc)/(max(0.0,cmass_leaf_inc)+max(0.0,cmass_root_inc)+max(0.0,cmass_sap_inc)));
+		}
 
-		ndemand_uptake += nmass_inc;
+		nbudget_after = nmass_leaf+cmass_leaf_inc*densindiv/cton_leaf_new+
+				nmass_root+cmass_root_inc*densindiv/cton_root_new+
+				nmass_sap+cmass_sap_inc*densindiv/cton_sap_new+
+				nmass_heart+cmass_heart_inc*densindiv/cton_sap_new*nrelocfrac;
 
-		if (ndemand_uptake<0.0)
-			ndemand_uptake=0.0;
-
-		after = (cmass_leaf+cmass_leaf_inc*densindiv)/cton_leaf+(cmass_root+cmass_root_inc*densindiv)/cton_root+
-						(cmass_sap+cmass_sap_inc*densindiv)/cton_sap+nmass_heart+cmass_heart_inc*densindiv/cton_sap*nrelocfrac;
-
-		return ndemand_uptake;
+		// No negative N demand
+		ndemand_uptake=max(ndemand_uptake,0.0);
 	}
 	else {
+
+		nbudget_before=nmass_leaf+nmass_root;
+
 		allocation_ndemand(bminc,cmass_leaf,cmass_root,
 			0.0,0.0,0.0,ltor,0.0,0.0,0.0,GRASS,0.0,
 			0.0,0.0,cmass_leaf_inc,cmass_root_inc,dval,dval,dval);
 
-		double nmass_inc =
-			(max(0.0,cmass_leaf_inc)*densindiv/cton_leaf_new+
-			max(0.0,cmass_root_inc)*densindiv/cton_root_new);
+		// Calculate N needed for this new biomass
+		ndemand_uptake+=
+			max(0.0,cmass_leaf_inc)*densindiv/cton_leaf_new+
+			max(0.0,cmass_root_inc)*densindiv/cton_root_new;
 
-		ndemand_uptake += nmass_inc;
+		nbudget_after = nmass_leaf+cmass_leaf_inc*densindiv/cton_leaf_new+
+				nmass_root+cmass_root_inc*densindiv/cton_root_new;
 
-		if (ndemand_uptake<0.0)
-			ndemand_uptake=0.0;
+		// Calculate fractions of new biomass that goes to leaf and root
+		if (!negligible(max(0.0,cmass_leaf_inc)) && !negligible(max(0.0,cmass_root_inc))) {
+			bminc_leaf_frac=max(0.0,max(0.0,cmass_leaf_inc)/(max(0.0,cmass_leaf_inc)+max(0.0,cmass_root_inc)));
+			bminc_root_frac=max(0.0,max(0.0,cmass_root_inc)/(max(0.0,cmass_leaf_inc)+max(0.0,cmass_root_inc)));
+		}
 
-		return ndemand_uptake;
+		// No negative N demand
+		ndemand_uptake=max(ndemand_uptake,0.0);
 	}
 }
 
 // end GUESSN
 
-//////////////////////////////////////////////////////////////////////////////////
-// GUESSN Calculates individual fuptake based on nmass_root and crownarea
-//
+///////////////////////////////////////////////////////////////////////////////////////
+// BIOCLIMATIC LIMITS ON ESTABLISHMENT AND SURVIVAL
+// Internal functions (do not call directly from framework)
 
-double nitrogen_uptake_strength(const Individual& indiv) {
-      const double min_crownarea = 0.1;
-      const double crownarea_power = 0.2;
+bool establish_som(Patch& patch,Climate& climate,Pft& pft) {
 
-      return indiv.nmass_root;///(max(min_crownarea,pow(indiv.crownarea,crownarea_power)));//*indiv.densindiv;
+	// DESCRIPTION
+	// Determines whether specified PFT is within its bioclimatic limits for
+	// establishment in a given patch and climate. Returns true if PFT can establish
+	// under specified conditions, false otherwise
+
+	// The following limits are implemented:
+	//   tcmin_est   = minimum coldest month mean temperature for the last 20 years
+	//   tcmax_est   = maximum coldest month mean temperature for the last 20 years
+	//   twmin_est   = minimum warmest month mean temperature
+	//   gdd5min_est = minimum growing degree day sum on 5 deg C base
+
+	//if (pft.name != "Pin_syl" && pft.name != "Pic_abi")
+	//	return false;
+
+	if (climate.mtemp_min20<pft.tcmin_est ||
+		climate.mtemp_min20>pft.tcmax_est ||
+		climate.mtemp_max<pft.twmin_est ||
+		climate.agdd5<pft.gdd5min_est) return false;
+
+	if (vegmode!=POPULATION && patch.par_grass_mean<pft.parff_min) return false;
+
+
+	// guess2008 - DLE - new drought limited establishment
+    if (ifdroughtlimitedestab) {
+		// Compare this PFT's/species' drought_tolerance with the average wcont over the 
+		// growing season, in this patch. Higher drought_tolerance values (set in the .ins file)
+		// lead to greater restrictions on establishment.
+        if (pft.drought_tolerance>patch.soil.awcont[0]) {
+           return false;
+        }
+    }
+
+	// FACE DAVID
+	if (has_FACE_clim && pft.lifeform==TREE && date.year>=patch.stand.distyear2 && date.year<patch.stand.plantyear && !ifduke)
+		return false;
+		// Cutting natural forest, replaced by pasture or field, as happened at the sites
+
+	if (has_FACE_clim && pft.lifeform==TREE && date.year>=patch.stand.distyear2 && date.year<patch.stand.plantyear-45 && ifduke)
+		return false;
+		// Cutting natural forest, replaced by pasture or field, as happened at the sites
+
+	// else
+
+	return true;
 }
 
-void indiv_fuptake(Vegetation& vegetation, double nsupply_patch, double fuptake) {
-
-	double GRASS_part = 0.05;			// Grass should at least get 5% of total available N
-	double GRASS_ndemand = 0.0;			// Grass total N demand
-	bool GRASS_100 = false;				// if grass gets what it demands from its part of the total N supply 
-	bool not_more_grass = false;		// keeping track of if GRASS can compite with TREEs for more N than what is
-										// espacially assigned for GRASS (GRASS_part)
-	double grass_uptake_decider = 0.0;
-	double total_uptake_decider = 0.0;
-	double temp_nsupply_patch = nsupply_patch;
-	double ratio_uptake;				// how much N taken up per uptake strength
-	bool full_uptake = true;			// if indiv.fuptake should be updated
-
-	// GRASS
-	// determine strength and demand of grasses
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv=vegetation.getobj();
-
-		if (indiv.pft.lifeform == GRASS && !negligible(indiv.ndemand_uptake)) {
-			GRASS_ndemand += indiv.ndemand_uptake;
-			grass_uptake_decider += nitrogen_uptake_strength(indiv);
-		}
-		vegetation.nextobj();
-	}
-
-	// GRASS
-	// Does grass get enough N from its part of the total
-	if (GRASS_ndemand < GRASS_part*nsupply_patch) 
-		GRASS_100 = true;
-	else 
-		GRASS_100 = false;
+///////////////////////////////////////////////////////////////////////////////////////
+// RANDPOISSON
+// Internal functions for generating random numbers
 
 
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv=vegetation.getobj();
+int randpoisson_som(double expectation) {
 
-		indiv.fuptake = fuptake;
+	// DESCRIPTION
+	// Returns a random integer drawn from the Poisson distribution with specified
+	// expectation (for computational reasons, the Gaussian normal distribution is
+	// used as an approximation of the Poisson distribution for expected values >100)
 
-		// GRASS
-		if (indiv.pft.lifeform == GRASS && GRASS_100 && !negligible(indiv.ndemand_uptake)) {
+	double p,q,r;
+	int n;
 
-			// when grass part of total N is enough, then subtract it from total
-			temp_nsupply_patch-=indiv.ndemand_uptake;
-			// set uptake to meet demand
-			indiv.fuptake = 1.0;
-			// and subtract uptake strength as it will be added further down
-			total_uptake_decider -= nitrogen_uptake_strength(indiv);
-		}
-		
-		// TREE
-		// Sum up uptake strengths
-		if (!negligible(indiv.ndemand_uptake)) {
-			double checkk=nitrogen_uptake_strength(indiv);
-			total_uptake_decider += checkk;
-		}
+	if (expectation<=100) {
 
-		vegetation.nextobj();
-	}
+		// For expected values up to 100, calculate a true Poisson number
 	
-	// Loop through indiv and decide their fuptake
-	while (full_uptake){
+		p=exp(-expectation);
+		q=p;
+		r=randfrac();
 
-		full_uptake = false;	
-		
-		// restore N supply and uptake decider if not_more_grass == true
-		// (which can happen after the first round if there is a full_uptake)
-		// so that it can be calculated if they might be able to take up more 
-		// than just the GRASS part
-		if (not_more_grass) {
-			temp_nsupply_patch += GRASS_part*nsupply_patch;
-			total_uptake_decider += grass_uptake_decider;
-			not_more_grass=false;
+		n=0;
+		while (q<r) {
+			n++;
+			p*=expectation/(double)n;
+			q+=p;
 		}
-
-		// decide how much N that will be taken up by each uptake strength 
-		if (total_uptake_decider > 0.0 && temp_nsupply_patch > 0.0)
-			ratio_uptake = temp_nsupply_patch / total_uptake_decider;
-		else
-			ratio_uptake = 0.0;
-
-		// GRASS
-		// Grass part of avail N is not enough
-		if (!GRASS_100 && !not_more_grass) {
-
-			// See if grass can't get more than the 5%
-			if (GRASS_part*nsupply_patch>ratio_uptake*grass_uptake_decider) {
-
-				not_more_grass=true;
-				// then grass takes GRASS_part of total N supply
-				temp_nsupply_patch -= GRASS_part*nsupply_patch;
-				// and GRASS strength is subtracted from totaluptake strength
-				total_uptake_decider -= grass_uptake_decider;
-				// and a new ratio uptake is calculated for TREEs 
-				ratio_uptake = temp_nsupply_patch / total_uptake_decider; 
-			}
-			else {
-				// GRASS can compite for more than 5%
-				not_more_grass=false;
-			}
-		}
-
-		vegetation.firstobj();
-		while (vegetation.isobj && !full_uptake) {
-			Individual& indiv=vegetation.getobj();
-
-			// if lifeform is GRASS and they can't compite with TREEs for more than their part of the total N supply
-			if (indiv.pft.lifeform == GRASS && not_more_grass && indiv.fuptake != 1.0) {
-				if (!negligible(indiv.ndemand_uptake)) {
-
-					indiv.fuptake = GRASS_part*nsupply_patch*(nitrogen_uptake_strength(indiv)
-						/grass_uptake_decider)/indiv.ndemand_uptake;
-					if (indiv.fuptake > 1.0)
-						indiv.fuptake = 1.0;
-				}
-				else
-					indiv.fuptake = 0.0;
-			}
-
-			// if lifeform is TREE and GRASS if it can compete with TREEs
-			else {
-
-				// if fuptake does't meet its N demand, then calculate a new value for fuptake
-				if (indiv.fuptake != 1.0) {
-
-					// if indiv has the strenght to take up more than N demand
-					if (ratio_uptake * nitrogen_uptake_strength(indiv) > indiv.ndemand_uptake && !negligible(indiv.ndemand_uptake)){
-						
-						indiv.fuptake = 1.0;
-						
-						// subtract N demand from N supply
-						temp_nsupply_patch -= indiv.ndemand_uptake;
-
-						// and take away this indiv uptake strength from total
-						total_uptake_decider -= nitrogen_uptake_strength(indiv);
-
-						// and redo indiv fuptake calc for the rest of the indiv as this indiv probably could
-						// take up more than its N demand -> more available for the rest of the indiv
-						full_uptake = true;
-					}
-					// normal N limited uptake (0.0 < fuptake < 1.0)
-					else if (indiv.ndemand_uptake > 0.0)
-						indiv.fuptake = (ratio_uptake * nitrogen_uptake_strength(indiv)) / indiv.ndemand_uptake;
-					else
-						indiv.fuptake = 0.0;
-				}
-			}
-
-			vegetation.nextobj();
-		}
+		return n;
 	}
 
-	// Check so that N uptake matches available N 
+	// For higher expected values than 100, approximate the Poisson distribution
+	// by the Gaussian normal distribution with mean equal to the expected value,
+	// and standard deviation the square root of this value
 
-	double EPS = 1.0e-15;
-	double check_N_uptake = 0.0;
+	do {
+		r=randfrac()*8.0-4.0;
+		p=exp(-r*r/2.0);
+	} while (randfrac()>p);
 
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv=vegetation.getobj();
-		
-		check_N_uptake += indiv.fuptake*indiv.ndemand_uptake;
-
-		// Individual fuptake average over 5 years
-		if (indiv.alive) {
-			int years = 0;
-			indiv.fuptake_avr=0.0;
-
-			for (int i=0;i<5;i++){
-				if (indiv.fuptake_hist[i]>0.0) {
-					indiv.fuptake_avr+=indiv.fuptake_hist[i];
-					years++;
-				}
-				if (i < 4)
-					indiv.fuptake_hist[i]=indiv.fuptake_hist[i+1];
-				else
-					indiv.fuptake_hist[i]=indiv.fuptake*(1.0+indiv.nstorage_uptake);
-			}
-			indiv.fuptake_avr/=(double)years;
-		}
-		else {
-			indiv.fuptake_avr=indiv.fuptake*(1.0+indiv.nstorage_uptake);
-			indiv.fuptake_hist[4]=indiv.fuptake*(1.0+indiv.nstorage_uptake);
-		}
-
-		vegetation.nextobj();
-	}
+	return max(0,(int)(r*sqrt(expectation)+expectation+0.5));
 }
-// end GUESSN
+
+// GUESSN
+void ndemand_new_est(Patch& patch,Pftlist& pftlist,double& patch_ndemand) {
+
+	// Creating new indiv which will determine new establishments ability to 
+	// take up N in competion with existing individuals. Killed after
+	// N is taken up.
+	// Same code as in establishment_guess()
+
+	double bminit,ltor,est,c,kest_bg,nsapling,newindiv;
+	double SAPSIZE=0.1;
+
+	if (!patch.id) {
+
+		for (int pf=0;pf<npft;pf++)
+			patch.stand.pft[pf].cmass_repr_nuptake=0.0;
+
+		for (int p=0;p<npatch;p++) {
+
+			// START OF LOOP THROUGH PATCHES
+
+			// Get reference to this patch
+			Patch& patch_temp=patch.stand[p];				
+
+			Vegetation& vegetation_temp=patch_temp.vegetation;
+
+			vegetation_temp.firstobj();
+			while (vegetation_temp.isobj) {
+				Individual& indiv=vegetation_temp.getobj();
+
+				patch.stand.pft[indiv.pft.id].cmass_repr_nuptake+=(max(0.0,indiv.anpp)*indiv.pft.reprfrac)/(double)npatch;
+				vegetation_temp.nextobj();
+			}	
+		}
+	}
+
+	Vegetation& vegetation=patch.vegetation;
+
+	// guess2008 - determine the number of woody PFTs that can establish
+	// Thomas Hickler
+	int nwoodypfts_estab=0;
+	pftlist.firstobj();
+	while (pftlist.isobj) {
+		Pft& pft=pftlist.getobj();
+		if (establish_som(patch,patch.stand.climate,pft) && pft.lifeform==TREE)
+			nwoodypfts_estab++;
+		pftlist.nextobj();
+	}
+
+	// Loop through PFTs
+
+	pftlist.firstobj();
+	while (pftlist.isobj) {
+		Pft& pft=pftlist.getobj();
+
+		if (establish_som(patch,patch.stand.climate,pft)) {
+
+			if (pft.lifeform==GRASS || pft.lifeform==CROP) {
+
+				// ESTABLISHMENT OF GRASSES
+
+				Individual& indiv=vegetation.createobj(pft,vegetation);
+				indiv.height=0.0;
+				indiv.crownarea=1.0; // (value not used)
+				indiv.densindiv=1.0;
+				indiv.fpc=1.0;
+				indiv.age=-9999;
+					
+				// Initial grass biomass proportional to potential forest floor
+				// net assimilation this year on patch area basis
+
+				bminit=SAPSIZE*patch.pft[pft.id].anetps_ff;	
+
+				// Veiko -> makes no difference
+				bminit*=0.3;
+
+				// GUESSN grass gets at least 5% of available N. When established
+				// they shouldn't been able to get more!
+				double bminit_n_lim=indiv.pft.cton_leaf_avr*(patch.soil.nmass_avail+
+					patch.soil.ndep_annual+patch.soil.N_fix+
+					patch.soil.nmin_annual-patch.soil.nimmob_annual)*0.05;
+
+				if (ifnlim && date.year>freenyears)
+					bminit=min(bminit,bminit_n_lim);
+
+				// Initial leaf to fine root biomass ratio based on
+				// hypothetical value of water stress parameter
+
+				ltor=patch.pft[pft.id].wscal_mean*pft.ltor_max;
+
+				// Allocate initial biomass
+
+				allocation_init(bminit,ltor,indiv);
+
+				// Calculate initial allometry
+
+				allometry(indiv);
+
+				indiv.cton_leaf_new=indiv.pft.cton_leaf_avr;
+				indiv.cton_root_new=indiv.pft.cton_root_avr;
+
+				indiv.max_n_reserve = indiv.pft.n_reserve*indiv.cmass_root/indiv.pft.cton_leaf_avr;
+
+				// GUESSN
+				// Initialise N demand
+				indiv.ndemand_uptake=
+					indiv.cmass_leaf/indiv.pft.cton_leaf_avr+
+					indiv.cmass_root/indiv.pft.cton_root_avr;
+
+				if (indiv.ndemand_uptake>0.0) {
+					indiv.aassim=365.0;
+					for (int d=0;d<365;d++) 
+						indiv.dassim[d]=1.0;	// Could be phen or something realistic
+				}
+
+				patch_ndemand+=indiv.ndemand_uptake;
+			}
+			else if (pft.lifeform==TREE) {
+
+				// ESTABLISHMENT OF NEW TREE SAPLINGS
+
+				double anetps_ff = patch.pft[pft.id].anetps_ff;
+
+				if (patch.age==0)
+					
+					// First simulation year - initialising patch
+					// Eqn 1
+
+					est=pft.est_max*patcharea;
+
+				else {
+
+					// Every year except year 1
+					// Eqns 5, 6
+
+					if (anetps_ff>0.0 && !negligible(anetps_ff)) {
+
+						c=exp(pft.alphar-pft.alphar/anetps_ff*
+							patch.stand.pft[pft.id].anetps_ff_max)*pft.est_max*patcharea;
+					}
+					else
+						c=0.0;
+
+					// Background establishment enabled?
+
+					if (ifbgestab)
+						kest_bg=pft.kest_bg;
+					else
+						kest_bg=0.0;
+
+					// Spatial mass effect enabled?
+					// Eqns 2, 3, 4
+
+					if (ifsme)
+						est=c*(pft.kest_repr*patch.stand.pft[pft.id].cmass_repr_nuptake+kest_bg);
+					else if (!negligible(patch.stand.pft[pft.id].cmass_repr))
+						est=c*(pft.kest_pres+kest_bg);
+					else
+						est=c*kest_bg;
+				}
+
+				// guess2008 - scale est by the number of woody PFTs/species that can establish
+				// Otherwise, simply adding more PFTs or species would increase est
+				est*=3.0/double(nwoodypfts_estab);
+
+				// Have a value for expected number of new saplings (est)
+				// Actual number of new saplings drawn from the Poisson distribution
+				// (except cohort mode with stochastic establishment disabled)
+
+				if (ifstochestab || vegmode==INDIVIDUAL) nsapling=randpoisson_som(est);
+				else nsapling=est;
+
+				patch.pft[pft.id].nsapling_nuptake=nsapling;
+
+				if (vegmode==COHORT)
+					newindiv=!negligible(nsapling);
+							// round down to 0 if nsapling very small
+				else if (vegmode==INDIVIDUAL)
+					newindiv=(int)(nsapling+0.5); // round up to be on the safe side
+
+				// Now create 'newindiv' new Individual objects
+
+				for (int i=0;i<newindiv;i++) {
+
+					// Create average individual for a new cohort (cohort mode)
+					// or an actual individual (individual mode)
+
+					Individual& indiv=vegetation.createobj(pft,vegetation);
+
+					if (vegmode==COHORT)
+						indiv.densindiv=nsapling/patcharea;
+					else if (vegmode==INDIVIDUAL)
+						indiv.densindiv=1.0/patcharea;
+
+					indiv.age=-9999;
+
+					// Initial biomass proportional to potential forest floor net
+					// assimilation for this PFT in this patch
+
+					bminit=SAPSIZE*anetps_ff;
+
+					// Veiko -> makes no difference
+					bminit*=0.3;
+
+					// Initial leaf to fine root biomass ratio based on hypothetical
+					// value of water stress parameter
+
+					ltor=patch.pft[pft.id].wscal_mean*pft.ltor_max;
+
+					// Allocate initial biomass
+
+					allocation_init(bminit,ltor,indiv);
+
+					// Calculate initial allometry
+
+					allometry(indiv);
+
+					indiv.cton_leaf_new=indiv.pft.cton_leaf_avr;
+					indiv.cton_root_new=indiv.pft.cton_root_avr;
+					indiv.cton_sap_new=indiv.pft.cton_sap_avr;
+
+					indiv.max_n_reserve = indiv.pft.n_reserve*indiv.cmass_sap/indiv.pft.cton_leaf_avr;
+
+					// GUESSN
+					// Initialise N demand
+					indiv.ndemand_uptake=(
+						indiv.cmass_leaf/indiv.pft.cton_leaf_avr+
+						indiv.cmass_root/indiv.pft.cton_root_avr+
+						indiv.cmass_sap/(indiv.pft.cton_sap_avr/indiv.pft.cton_leaf_avr*indiv.pft.cton_leaf_avr)+
+						indiv.cmass_heart/(indiv.pft.cton_sap_avr/indiv.pft.cton_leaf_avr*indiv.pft.cton_leaf_avr)+
+						indiv.nmass_reserve);
+
+					if (indiv.ndemand_uptake>0.0) {
+						indiv.aassim=365.0;
+						for (int d=0;d<365;d++) 
+							indiv.dassim[d]=1.0;	// Could be phen or something realistic
+					}
+
+					patch_ndemand+=indiv.ndemand_uptake;
+				}
+			}
+		}
+
+		// ... on to next PFT
+
+		pftlist.nextobj();
+	}
+
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // GUESSN VEGETATION N UPTAKE
 ///////////////////////////////////////////////////////////////////////////////
-void vegetation_n_uptake(Patch& patch) {
+void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 
 	// Daily vegetation uptake of mineral N
 	// Partitioned among individuals according to this year's N demand
@@ -1775,7 +2267,7 @@ void vegetation_n_uptake(Patch& patch) {
 	// Actual N uptake for each day and individual given by:
 	//     (3)  nuptake_day = ndemand_day*fuptake
 	//     where
-	//     (4)  fuptake = min(nsupply_patch/ndemand_patch,1.0)
+	//     (4)  fuptake = min(patch.nsupply/patch.ndemand,1.0)
 	//	   there is also an option for individual fuptake 
 	//
 	// N deposition and leaching of mineral N are also performed by this function
@@ -1792,61 +2284,15 @@ void vegetation_n_uptake(Patch& patch) {
 
 	const double EPS=1e-12;
 
-	double ndemand_patch,nsupply_patch,fuptake,fuptake_avr=0.0;
 	double dndep,dnmass_avail,dnfix,ndemand_day,nuptake_day;
-	double leachn,fleach,excessn;
+	double leachn,excessn;
 	double nmass_avail[365]; // daily soil N pool
+	double ndemand=0.0;
 
 	Vegetation& vegetation=patch.vegetation;
 	Soil& soil=patch.soil;
 
-	ndemand_patch=0.0;
-
-	// ANNUAL N DEMAND FOR PATCH
-
-	// Loop through individuals
-
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv=vegetation.getobj();
-
-		indiv.ndemand_uptake = this_years_ndemand(indiv.cmass_leaf,indiv.cmass_root,indiv.cmass_sap,indiv.cmass_heart,
-			indiv.cmass_debt,indiv.nmass_leaf,indiv.nmass_root,indiv.nmass_sap,indiv.nmass_heart,indiv.leafn_mean,
-			indiv.pft.cton_leaf,indiv.pft.cton_root,indiv.pft.cton_sap,indiv.anpp,indiv.pft.reprfrac,indiv.wscal_mean,indiv.pft.ltor_max,
-			indiv.height,indiv.pft.sla,indiv.pft.wooddens,indiv.pft.k_latosa,indiv.pft.k_allom2,indiv.pft.k_allom3,
-			indiv.pft.phenology,indiv.aphen_raingreen,indiv.pft.leaflong,
-			indiv.pft.turnover_leaf,indiv.pft.turnover_root,indiv.pft.turnover_sap,
-			indiv.nstore,indiv.densindiv,indiv.alive,indiv.pft.lifeform);
-
-		//	If to use longterm N storage within an individual
-		if (ifnstorage && date.year > freenyears){
-			// if N storage is larger than what can be stored then don't store more
-			if (indiv.nmass_store > max_nstorage*(indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap))
-				indiv.nstorage_uptake=0.0;
-			// fill up storage to max
-			else if (max_nstorage*(indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap)-indiv.nmass_store < max_nstorage_uptake*indiv.ndemand_uptake)
-				indiv.nstorage_uptake=(max_nstorage*(indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap)-indiv.nmass_store)/indiv.ndemand_uptake;
-			// store as much as possible 
-			else
-				indiv.nstorage_uptake=max_nstorage_uptake;
-
-			indiv.ndemand_uptake*=(1.0+indiv.nstorage_uptake);
-		}
-
-		// Sum assimilation over period of positive assimilation
-
-		indiv.aassim=0.0;
-		for (int d=0;d<365;d++)
-			if (indiv.dassim[d]>0.0) indiv.aassim+=indiv.dassim[d];
-
-		if (!negligible(indiv.aassim)) 
-			ndemand_patch+=indiv.ndemand_uptake;
-
-		// Check that individual's N store is zero (N in excess of demand should have
-		// been returned to soil following allocation last year)
-
-		 vegetation.nextobj();
-	}
+	patch.ndemand=0.0;										
 
 	// ANNUAL N SUPPLY
 	// Potential N supply is remaining pool from last year
@@ -1870,22 +2316,6 @@ void vegetation_n_uptake(Patch& patch) {
 	else
 		soil.N_fix = 0.0;
 
-	// Coarse Woody Debris N fixation	// GUESSNFIX wood
-	double cwd_litter = 0.0;
-
-	for (int q=0;q<npft;q++) {
-		Patchpft& pft=patch.stand[patch.id].pft[q];
-
-		cwd_litter+=pft.litter_wood;
-	}
-
-	cwd_litter+=patch.soil.sompool[SURFCWD].cmass;
-
-	// CWD N Fixation (Brunner and Kimmins 2003)
-	soil.cwd_N_fix=max(0.0000165*cwd_litter,0.0);
-
-	//soil.N_fix+=soil.cwd_N_fix;
-
 	// N mineralisation and immobilisation
 	soil.nmin_annual=0.0;
 	soil.nimmob_annual=0.0;
@@ -1896,19 +2326,8 @@ void vegetation_n_uptake(Patch& patch) {
 	}
 
 	// Total N supply in patch
-	nsupply_patch=soil.nmass_avail+soil.ndep_annual+soil.N_fix+
+	patch.nsupply=soil.nmass_avail+soil.ndep_annual+soil.N_fix+
 		+soil.nmin_annual-soil.nimmob_annual;
-
-	if (patch.id==0){// && !(date.year%5)){
-		plot("N fixation (kgN/ha/yr)","Soil N fix",date.year,soil.N_fix*10000.0);
-		plot("N fixation (kgN/ha/yr)","CWD N fix",date.year,soil.cwd_N_fix*10000.0);
-		//plot("N deposition (kgN/ha/yr)","Ndep",date.year,soil.ndep_annual*10000.0);
-		plot("N min-immob (kgN/ha/yr)","N",date.year,(soil.nmin_annual-soil.nimmob_annual)*10000.0);
-		//plot("mineral N avail (kgN/ha/yr)","N",date.year,soil.nmass_avail*10000.0);
-		plot("N demand/supply (kgN/ha/yr)","N supply",date.year,nsupply_patch*10000.0);
-		plot("N demand/supply (kgN/ha/yr)","N demand",date.year,ndemand_patch*10000.0);
-		//plot("new establishment N demand (kgN/ha/yr)","N demand",date.year,patch.new_est_ndemand*10000.0);
-	}
 
 	// DAILY N SUPPLY
 
@@ -1922,37 +2341,82 @@ void vegetation_n_uptake(Patch& patch) {
 		nmass_avail[day]=dnmass_avail+dnfix+dndep+
 			soil.nmin_daily[day]-soil.nimmob_daily[day];
 
+	// ANNUAL N DEMAND FOR PATCH
+
+	// Loop through individuals
+
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv=vegetation.getobj();
+
+		this_years_ndemand(indiv.cmass_leaf,indiv.cmass_root,indiv.cmass_sap,indiv.cmass_heart,indiv.cmass_debt,
+			indiv.nmass_leaf,indiv.nmass_root,indiv.nmass_sap,indiv.nmass_heart,indiv.leafn_mean,
+			indiv.cton_leaf_opt,indiv.cton_leaf_new,indiv.pft.cton_leaf_min,indiv.pft.cton_leaf_avr,indiv.pft.cton_leaf_max,
+			indiv.pft.cton_root_avr,indiv.pft.cton_sap_avr,indiv.bminc_leaf_frac,indiv.bminc_root_frac,
+			indiv.anpp,indiv.pft.reprfrac,indiv.wscal_mean,indiv.pft.ltor_max,
+			indiv.densindiv,indiv.height,indiv.pft.sla,indiv.pft.wooddens,indiv.pft.k_latosa,indiv.pft.k_allom2,indiv.pft.k_allom3,
+			indiv.pft.lifeform,indiv.pft.phenology,indiv.aphen_raingreen,indiv.pft.leaflong,
+			indiv.pft.turnover_leaf,indiv.pft.turnover_root,indiv.pft.turnover_sap,
+			indiv.nstore,indiv.ndemand_uptake,indiv.alive);
+
+		//	If to store N in reserve within an individual
+		if (ifnstorage && date.year > freenyears && !negligible(indiv.ndemand)){
+
+			double max_n_reserve_uptake;
+
+			max_n_reserve_uptake = min(1.0,max(0.0,(indiv.max_n_reserve-indiv.nmass_reserve)/indiv.ndemand_uptake));
+			//max_n_reserve_uptake = 0.2;
+
+			// if N storage is larger than what can be stored then don't store more
+			if (indiv.nmass_reserve > indiv.max_n_reserve)
+				indiv.n_reserve_uptake=0.0;
+			// fill up storage to max
+			else if (indiv.max_n_reserve-indiv.nmass_reserve < max_n_reserve_uptake*indiv.ndemand_uptake)
+				indiv.n_reserve_uptake=(indiv.max_n_reserve-indiv.nmass_reserve)/indiv.ndemand_uptake;
+			// store as much as possible 
+			else
+				indiv.n_reserve_uptake=max_n_reserve_uptake;
+
+			indiv.ndemand_uptake*=(1.0+indiv.n_reserve_uptake);
+		}
+
+		// Sum assimilation over period of positive assimilation
+
+		indiv.aassim=0.0;
+		for (int d=0;d<365;d++) 
+			if (indiv.dassim[d]>0.0) indiv.aassim+=indiv.dassim[d];
+		
+		if (!negligible(indiv.aassim)) 
+			patch.ndemand+=indiv.ndemand_uptake;
+
+		 vegetation.nextobj();
+	}
+
+	// Create individuals that determines amount of N that each indiv has for establishment
+	if (date.year>=freenyears && ifndemand_new_est)
+		ndemand_new_est(patch,pftlist,patch.ndemand);
+
 	// Rescale demand to not exceed supply (Eqn 4)
 
-	if (nsupply_patch<=0.0) {
-		fuptake=0.0;
-		patch.nlim=false; 
-	}
-	else if (ndemand_patch>nsupply_patch) 
-	{
-		fuptake=nsupply_patch/ndemand_patch;
-		patch.nlim=true;	
-	}
+	if (patch.nsupply<=0.0) 
+		patch.fnuptake=0.0; 
+	else if (patch.ndemand>patch.nsupply) 
+		patch.fnuptake=patch.nsupply/patch.ndemand;	
 	else 
-	{	
-		fuptake=1.0;
-		patch.nlim=false;
-	}
-
-	patch.fuptake_patch=fuptake;
+		patch.fnuptake=1.0;
 
 	// Plot yearly patch N limitation
-	if (patch.id==0 && !(date.year%5))
-		plot("fuptake","fuptake",date.year,fuptake);
+	if (patch.id==0 && date.year > 2050)// && !(date.year%5))
+		plot("fnuptake","fnuptake",date.year,patch.fnuptake);
 
-	// Individual fuptake
-	if (ifindiv_fuptake && patch.nlim) 
-		indiv_fuptake(vegetation,nsupply_patch,fuptake);
+	// Individual fnuptake
+	if (ifindiv_fnuptake && patch.fnuptake < 1.0) 
+		indiv_fnuptake(vegetation,patch.nsupply,patch.ndemand,patch.fnuptake);
 
 	// VEGETATION N UPTAKE
 	// Uptake in excess of daily supply permitted
 
-	if (!negligible(ndemand_patch)) { // (some vegetation N uptake this year)
+	if (!negligible(patch.ndemand)) { // (some vegetation N uptake this year)
 		
 		// Loop through days of year
 
@@ -1964,17 +2428,17 @@ void vegetation_n_uptake(Patch& patch) {
 			while (vegetation.isobj) {
 				Individual& indiv=vegetation.getobj();
 
-				if (!ifindiv_fuptake || !patch.nlim)
-					indiv.fuptake = fuptake;
+				if (!ifindiv_fnuptake || patch.fnuptake==1.0)
+					indiv.fnuptake = patch.fnuptake;
 				
-				if (!negligible(indiv.aassim) && indiv.dassim[d]>0.0) {
+				if ((!negligible(indiv.aassim) && indiv.dassim[d]>0.0)) {
 
 					// Daily N demand by this individual (Eqn 1)
 					
 					ndemand_day=indiv.dassim[d]/indiv.aassim*indiv.ndemand_uptake;
 
 					// Daily N uptake by this individual (Eqn 3)
-					nuptake_day=ndemand_day*indiv.fuptake;
+					nuptake_day=ndemand_day*indiv.fnuptake;
 
 					// Add to individual's nitrogen stores
 					indiv.nstore+=nuptake_day;
@@ -1989,36 +2453,18 @@ void vegetation_n_uptake(Patch& patch) {
 		}
 	}
 
-	// LONG-TERM N STORAGE USAGE/STORING
-	if (ifnstorage && date.year > freenyears) {
+	// Store N uptake by establishment individuals
+	if (date.year>=freenyears) {
 		vegetation.firstobj();
 		while (vegetation.isobj) {
 			Individual& indiv=vegetation.getobj();
-			
-			// if n uptake is larger than N demand (can save N)
-			if (indiv.nstore > indiv.ndemand_uptake/(1.0+indiv.nstorage_uptake)) {
-					indiv.nmass_store+=indiv.nstore-indiv.ndemand_uptake/(1.0+indiv.nstorage_uptake);
-					indiv.nstore-=indiv.nstore-indiv.ndemand_uptake/(1.0+indiv.nstorage_uptake);
+
+			if (indiv.age == -9999) {
+				patch.pft[indiv.pft.id].nstore_est+=indiv.nstore;
+				vegetation.killobj();
 			}
-
-			// how this year compares to the average of the last five years
-			double diff = indiv.fuptake*(1.0+indiv.nstorage_uptake) - indiv.fuptake_avr;
-
-			if (diff > 0.0 && indiv.fuptake_avr < 1.0) { // Save some N as this year is better than the average (50%)
-				if (indiv.fuptake*(1.0+indiv.nstorage_uptake) > 1.0)
-					diff -= (indiv.fuptake*(1.0+indiv.nstorage_uptake)-1.0);
-
-				indiv.nmass_store += indiv.nstore*0.5*diff;
-				indiv.nstore -= indiv.nstore*0.5*diff;
-			}
-			else if (diff < 0.0 && !negligible(indiv.nmass_store) && indiv.fuptake*(1.0+indiv.nstorage_uptake) < 1.0){	
-				// Try to fill up nstore with 70% of the difference from the average with N from nmass_store
-				indiv.nstore += min(0.7,(indiv.ndemand_uptake*-diff)/indiv.nmass_store)*indiv.nmass_store;
-				indiv.nmass_store -= min(0.7,(indiv.ndemand_uptake*-diff)/indiv.nmass_store)*indiv.nmass_store;
-			}
-
-			// ... on to next individual
-			vegetation.nextobj();
+			else
+				vegetation.nextobj();	// ... on to next individual
 		}
 	}
 
@@ -2028,7 +2474,7 @@ void vegetation_n_uptake(Patch& patch) {
 
 	soil.nleach_annual=0.0;
 
-	excessn=nsupply_patch-ndemand_patch*fuptake;
+	excessn=patch.nsupply-patch.ndemand*patch.fnuptake;
 	double save_excessn=excessn;
 
 	if (excessn>0.0) {
@@ -2050,6 +2496,7 @@ void vegetation_n_uptake(Patch& patch) {
 		}	
 	}
 
+
 	// EXCESS MINERAL N
 	// Return remaining N to soil store for next year
 
@@ -2058,9 +2505,9 @@ void vegetation_n_uptake(Patch& patch) {
 		excessn+=nmass_avail[days];
 
 	// Should never be negative! (allow it for very small values for now ...)
-	//if (excessn<-EPS)
-	//	dprintf("Year %d vegetation_n_uptake: patch %d Unexpected NEGATIVE value (%g) for annual excess mineral N before leach (%g)\n",
-	//		date.year,patch.id,excessn,nsupply_patch-ndemand_patch*fuptake);
+	if (excessn<-EPS)
+		dprintf("Year %d vegetation_n_uptake: patch %d Unexpected NEGATIVE value (%g) for annual excess mineral N before leach (%g)\n",
+			date.year,patch.id,excessn,patch.nsupply-patch.ndemand*patch.fnuptake);
 
 	soil.nmass_avail=excessn;
 }
@@ -2072,17 +2519,17 @@ void vegetation_n_uptake(Patch& patch) {
 double old_total=0.0;
 double old_vegn=0.0;
 double old_vegstore=0.0;
-double old_vegnmass_store=0.0;
+double old_vegnmass_reserve=0.0;
 double old_centuryn=0.0;
 double old_nmass_avail=0.0;
 double old_littern=0.0;
 double old_leachn=0.0;
 
-void som_dynamics_century(Patch& patch) {
+void som_dynamics_century(Patch& patch,Pftlist& pftlist) {
 
-	double vegn,centuryn,littern,totaln,vegstore;
+	double vegn,centuryn,littern,vegstore;
 	double sumassim;
-	double vegnmass_store;	
+	double vegnmass_reserve;	
 	int p;
 
 	if (date.day==0) { // First day of year only
@@ -2096,14 +2543,14 @@ void som_dynamics_century(Patch& patch) {
 
 			vegn=0.0;
 			vegstore=0.0;
-			vegnmass_store=0.0;	
+			vegnmass_reserve=0.0;	
 			vegetation.firstobj();
 			while (vegetation.isobj) {
 				Individual& indiv=vegetation.getobj();
 				if (indiv.alive) {	
 					vegn+=indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+indiv.nmass_heart;
 					vegstore+=indiv.nstore;
-					vegnmass_store+=indiv.nmass_store; 
+					vegnmass_reserve+=indiv.nmass_reserve; 
 				}
 
 				vegetation.nextobj();
@@ -2128,9 +2575,9 @@ void som_dynamics_century(Patch& patch) {
 			// Thomas monitoring
 			if (date.year>500) {
 
-				plot("Total N","vegn",date.year,vegn);
+		/*		plot("Total N","vegn",date.year,vegn);
 				plot("Total N","vegstore",date.year,vegstore);
-				plot("Total N","vegnmass_store",date.year,vegnmass_store);
+				plot("Total N","vegnmass_reserve",date.year,vegnmass_reserve);
 				plot("Total N","SOM",date.year,centuryn);
 				plot("Total N","mineral N",date.year,soil.nmass_avail);
 			//	plot("Actual mineral N after excessn","mineral N",date.year,soil.nmass_avail);
@@ -2138,21 +2585,21 @@ void som_dynamics_century(Patch& patch) {
 				plot("Total N","litter N",date.year,littern);
 				plot("Total N","leached N",date.year,soil.sompool[LEACHED].nmass);
 				plot("Total N","total",date.year,
-					(vegn+vegstore+vegnmass_store+centuryn+soil.nmass_avail+littern+soil.sompool[LEACHED].nmass));
+					(vegn+vegstore+vegnmass_reserve+centuryn+soil.nmass_avail+littern+soil.sompool[LEACHED].nmass));*/
 
-				plot("deltaN","vegn",date.year,vegn-old_vegn);
+			/*	plot("deltaN","vegn",date.year,vegn-old_vegn);
 				plot("deltaN","vegstore",date.year,vegstore-old_vegstore);
-				plot("deltaN","vegnmass_store",date.year,vegnmass_store-old_vegnmass_store);
+				plot("deltaN","vegnmass_reserve",date.year,vegnmass_reserve-old_vegnmass_reserve);
 				plot("deltaN","SOM",date.year,centuryn-old_centuryn);
 				plot("deltaN","mineral N",date.year,soil.nmass_avail-old_nmass_avail);
 				plot("deltaN","litter N",date.year,littern-old_littern);
 				plot("deltaN","leached N",date.year,soil.sompool[LEACHED].nmass-old_leachn);
-				plot("deltaN","total",date.year,(vegn+centuryn+soil.nmass_avail+vegstore+littern+soil.sompool[LEACHED].nmass)-old_total);
+				plot("deltaN","total",date.year,(vegn+centuryn+soil.nmass_avail+vegstore+littern+soil.sompool[LEACHED].nmass)-old_total);*/
 			}
 
 			old_vegn=vegn;
 			old_vegstore=vegstore;
-			old_vegnmass_store=vegnmass_store;
+			old_vegnmass_reserve=vegnmass_reserve;
 			old_centuryn=centuryn;
 			old_nmass_avail=soil.nmass_avail;
 			old_littern=littern;
@@ -2182,7 +2629,7 @@ void som_dynamics_century(Patch& patch) {
 		// Distribute plant N uptake and leaching of mineral nitrogen throughout the past year
 		// Calculate mineral N pool at end of year
 		
-		vegetation_n_uptake(patch);	
+		vegetation_n_uptake(patch,pftlist);	
 	}
 
 	Soil& soil=patch.soil;
@@ -2214,11 +2661,11 @@ void som_dynamics_century(Patch& patch) {
 }
 // end GUESSN
 
-void som_dynamics(Patch& patch) {
+void som_dynamics(Patch& patch,Pftlist& pftlist) {
 
 	// Choose between CENTURY or standard LPJ SOM dynamics
 
-	if (ifcentury) som_dynamics_century(patch);
+	if (ifcentury) som_dynamics_century(patch,pftlist);
 	else som_dynamics_lpj(patch);
 }
 

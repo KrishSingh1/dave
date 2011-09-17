@@ -20,6 +20,6 @@
 
 #include "guess.h"
 
-void som_dynamics(Patch& patch);
+void som_dynamics(Patch& patch,Pftlist& pftlist);
 
 #endif // LPJ_GUESS_SOMDYNAM_H

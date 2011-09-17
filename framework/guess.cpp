@@ -73,7 +73,7 @@ double nmass_avail_max;
 	// max N:C ratio in the soil (should be 0.002 (Parton et al 1993, Fig. 4))
 bool ifleachn;
 	// whether to allow N leaching
-bool ifindiv_fuptake;
+bool ifindiv_fnuptake;
 	// whether to allow individual fractional N uptake
 int ifnfix;
 	// whether to include an estimate for N fixation
@@ -87,10 +87,9 @@ bool ifdailysetntoc;
 	// if to use daily version of setntoc (set N:C ratio of som pools)
 bool ifnstorage;
 	// if to use a N storage for each individual
-double max_nstorage;
-	// maximum N storage of individual (max_nstorage*(nmass_leaf+nmass_root+nmass_sap))
-double max_nstorage_uptake;
-	// maximum N storage uptake of individual ((max_nstorage_uptake+1)*ndemand)
+bool ifndemand_new_est;
+	// if to use N limitation on new establishment 
+double full_growth_frac;
 
 // end GUESSN
 
@@ -186,7 +185,7 @@ int framework(int argc,char* argv[]) {
 					soilwater(stand.climate,patch);
 
 					// Soil organic matter and litter dynamics
-					som_dynamics(patch);
+					som_dynamics(patch,pftlist);
 
 					if (date.islastday && date.islastmonth) {
 
@@ -207,12 +206,12 @@ int framework(int argc,char* argv[]) {
 					// FACE plantation
 					if (has_FACE_clim)
 						if (!ifduke) {
-							stand.plantyear=2081; // 2073 should be 2087=1988
-							stand.distyear2=1950;
+							stand.plantyear=2073; // 2073 should be 2087=1988
+							stand.distyear2=stand.plantyear-70;
 						}
 						else {
 							stand.plantyear=2074; // should be 2082 (i.e. 1983), but forest needs more time to grow 2074
-							stand.distyear2=1950;
+							stand.distyear2=stand.plantyear-200;
 						}
 
 					// LAST DAY OF YEAR

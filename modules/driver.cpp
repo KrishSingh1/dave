@@ -632,6 +632,9 @@ void dailyaccounting_patch(Patch& patch) {
 		patch.arunoff=0.0;
 		patch.aintercep=0.0;
 		patch.apet=0.0;
+
+		for (int d=0;d<365;d++)
+			fluxes.dcflux_gpp[d] = 0.0;
 	}
 
 	if (date.dayofmonth==0) {

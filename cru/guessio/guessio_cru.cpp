@@ -1740,15 +1740,18 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		if (insfilename[0]=='-') {
 			if (insfilename.lower()=="-help") {
 				printhelp();
+				dprintf("1.1\n");
 				abort=true;
 			}
 			else {
 				dprintf("Unknown option \"%s\"\n",insfilename);
+				dprintf("1.2\n");
 				abort=true;
 			}
 		}
 		else if (!fileexists(insfilename)) {
 			dprintf("Error: could not open %s for input\n",(char*)insfilename);
+			dprintf("1.3\n");
 			abort=true;
 		}
 
@@ -1756,8 +1759,10 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		// Call to readins() returns false if file could not be opened for reading
 		// or contained errors (including missing parameters)
 
-		else if (!readins(insfilename,pftlist))
+		else if (!readins(insfilename,pftlist)){
+			dprintf("1.4\n");
 			abort=true;
+		}
 	}
 	else abort=true;
 

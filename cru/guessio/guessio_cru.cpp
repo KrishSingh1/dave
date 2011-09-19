@@ -1732,27 +1732,21 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	header=(xtring)"[LPJ-GUESS  "+header+"]\n\n";
 	dprintf((char*)header);
 
-	dprintf("1\n");
-
 	abort=false;
 	if (argc>1) {
 		insfilename=argv[1];
-		dprintf("1.0 %s\n",(char*)insfilename);
 		if (insfilename[0]=='-') {
 			if (insfilename.lower()=="-help") {
 				printhelp();
-				dprintf("1.1\n");
 				abort=true;
 			}
 			else {
 				dprintf("Unknown option \"%s\"\n",insfilename);
-				dprintf("1.2\n");
 				abort=true;
 			}
 		}
 		else if (!fileexists(insfilename)) {
 			dprintf("Error: could not open %s for input\n",(char*)insfilename);
-			dprintf("1.3\n");
 			abort=true;
 		}
 
@@ -1761,21 +1755,15 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		// or contained errors (including missing parameters)
 
 		else if (!readins(insfilename,pftlist)){
-			dprintf("1.4\n");
 			abort=true;
 		}
-
-		dprintf("1.41\n");
 	}
 	else {
-		dprintf("1.01\n");
 		abort=true;
 	}
 
-	if (abort) {
-		dprintf("1.42\n");
-		fail("\nUsage: %s <instruction-script-filename> | -help",argv[0]);
-	}
+	if (abort) fail("\nUsage: %s <instruction-script-filename> | -help",argv[0]);
+
 
 	///////////////////////////////////////////////////////////////////////////////////
 	// USER-SPECIFIC SECTION (Modify as necessary or supply own code)
@@ -1783,8 +1771,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	// Reads list of grid cells and (optional) description text from grid list file
 	// This file should consist of any number of one-line records in the format:
 	//   <longitude> <latitude> [<description>]
-
-	dprintf("1.5\n");
 
 	double dlon,dlat;
 	bool eof=false;
@@ -1797,23 +1783,15 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	FILE* in_grid=fopen(file_gridlist,"r");
 	if (!in_grid) fail("initio: could not open %s for input",(char*)file_gridlist);
-
-	dprintf("1.6\n");
 	
 	ngridcell=0;
 	while (!eof) {
-
-		dprintf("2\n");
 		
 		// Read next record in file
 		eof=!readfor(in_grid,"f,f,a",&dlon,&dlat,&descrip);
 
-		dprintf("3 %g %g %s\n",dlon,dlat,(char*)descrip);
-
 		if (!eof && !(dlon==0.0 && dlat==0.0)) { // ignore blank lines at end (if any)
 			Coord& c=gridlist.createobj(); // add new coordinate to grid list
-
-			dprintf("4\n");
 
 			c.lon=dlon;
 			c.lat=dlat;
@@ -1839,8 +1817,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		if (!in_ndep)
 			fail("initio: could not open %s for input",(char*)file_ndep);
 
-		dprintf("5\n");
-
 		fclose(in_ndep);
 		ifndepdata=true;
 	}
@@ -1861,9 +1837,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	// *** ANNUAL OUTPUT VARIABLES ***
 
 	if (file_cmass!="") {
-
-		dprintf("6\n");
-
 		file_cmass = outputdirectory + file_cmass;
 		out_cmass=fopen(file_cmass,"w");
 		if (!out_cmass) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_cmass);

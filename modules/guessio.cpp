@@ -1054,7 +1054,8 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	xtring file_gridlist=param["file_gridlist"].str;
 
 	FILE* in_grid=fopen(file_gridlist,"r");
-	if (!in_grid) fail("initio: could not open %s for input",(char*)file_gridlist);
+	if (!in_grid) 
+		fail("initio: could not open %s for input",(char*)file_gridlist);
 	
 	ngridcell=0;
 	while (!eof) {

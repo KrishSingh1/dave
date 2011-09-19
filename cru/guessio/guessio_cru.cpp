@@ -1279,7 +1279,7 @@ xtring file_cru_misc;
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/*void read_FACE_clim(double FACE_dtemp[NYEAR_SCENARIO_FACE][365],double FACE_dprec[NYEAR_SCENARIO_FACE][365],
+void read_FACE_clim(double FACE_dtemp[NYEAR_SCENARIO_FACE][365],double FACE_dprec[NYEAR_SCENARIO_FACE][365],
 	double FACE_dsun[NYEAR_SCENARIO_FACE][365],double FACE_dco2[NYEAR_SCENARIO_FACE][365], 
 	double FACE_yndep[NYEAR_NDEP],int NYEAR_SCENARIO_FACE,int NYEAR_NDEP)
 {
@@ -1420,7 +1420,7 @@ void read_CANIF_clim(double CANIF_dtemp[NSITES][MAXNYEAR_SCENARIO_CANIF][365],
 		}
 	}
 	
-}*/
+}
 //----------------------------------------------------------------------------------------------
 
 
@@ -1779,23 +1779,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	FILE* in_grid=fopen(file_gridlist,"r");
 	if (!in_grid) fail("initio: could not open %s for input",(char*)file_gridlist);
-
-	file_cru=param["file_cru"].str;
-	file_cru_misc=param["file_cru_misc"].str;
-
-	// GUESSN
-	file_ndep=param["file_ndep"].str;
-	if (file_ndep=="")
-		ifndepdata=false;
-	else {
-		FILE* in_ndep=fopen(file_ndep,"rt");
-		if (!in_ndep)
-			fail("initio: could not open %s for input",(char*)file_ndep);
-
-		fclose(in_ndep);
-		ifndepdata=true;
-	}
-	// end GUESSN
 	
 	ngridcell=0;
 	while (!eof) {
@@ -1813,16 +1796,30 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		}
 	}
 
-
 	fclose(in_grid);
 
 	// Read CO2 data from file
 	readco2();
 
+	file_cru=param["file_cru"].str;
+	file_cru_misc=param["file_cru_misc"].str;
+
+		// GUESSN
+	file_ndep=param["file_ndep"].str;
+	if (file_ndep=="")
+		ifndepdata=false;
+	else {
+		FILE* in_ndep=fopen(file_ndep,"rt");
+		if (!in_ndep)
+			fail("initio: could not open %s for input",(char*)file_ndep);
+
+		fclose(in_ndep);
+		ifndepdata=true;
+	}
+	// end GUESSN
 
 	// Remember whether to produce output each year or not
 	annual_output=param["annual_output"].num;
-
 
 	// guess2008
 	// Retrieve output file names as read from ins file
@@ -2205,7 +2202,7 @@ bool getstand(Stand& stand) {
 
 
 		// FACE DAVID climate Reading met data
-/*		if (has_FACE_clim)		
+		if (has_FACE_clim)		
 			read_FACE_clim(dtemp_FACE,dprecip_FACE,dsun_FACE,dco2_FACE,yndep_FACE,NYEAR_SCENARIO_FACE,NYEAR_NDEP);
 
 		// CANIF DAVID climate Reading met data
@@ -2213,7 +2210,7 @@ bool getstand(Stand& stand) {
 			read_CANIF_clim(dtemp_CANIF,dprecip_CANIF,dsun_CANIF,lonlatyearsndep,NSITES,lon,lat);
 			stand.plantyear=(nyear_spinup+NYEAR_HIST-lonlatyearsndep[WSITE][4]);
 			dprintf("Plant year %d \n",stand.plantyear);
-		}*/
+		}
 
 		while (!gridfound) {
 

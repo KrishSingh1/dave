@@ -1764,10 +1764,18 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 			dprintf("1.4\n");
 			abort=true;
 		}
-	}
-	else abort=true;
 
-	if (abort) fail("\nUsage: %s <instruction-script-filename> | -help",argv[0]);
+		dprintf("1.41\n");
+	}
+	else {
+		dprintf("1.01\n");
+		abort=true;
+	}
+
+	if (abort) {
+		dprintf("1.42\n");
+		fail("\nUsage: %s <instruction-script-filename> | -help",argv[0]);
+	}
 
 	///////////////////////////////////////////////////////////////////////////////////
 	// USER-SPECIFIC SECTION (Modify as necessary or supply own code)

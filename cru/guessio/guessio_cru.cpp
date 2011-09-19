@@ -1732,6 +1732,8 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	header=(xtring)"[LPJ-GUESS  "+header+"]\n\n";
 	dprintf((char*)header);
 
+	dprintf("1\n");
+
 	abort=false;
 	if (argc>1) {
 		insfilename=argv[1];
@@ -1782,12 +1784,18 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	
 	ngridcell=0;
 	while (!eof) {
+
+		dprintf("2\n");
 		
 		// Read next record in file
 		eof=!readfor(in_grid,"f,f,a",&dlon,&dlat,&descrip);
 
+		dprintf("3 %g %g %s\n",dlon,dlat,(char*)descrip);
+
 		if (!eof && !(dlon==0.0 && dlat==0.0)) { // ignore blank lines at end (if any)
 			Coord& c=gridlist.createobj(); // add new coordinate to grid list
+
+			dprintf("4\n");
 
 			c.lon=dlon;
 			c.lat=dlat;
@@ -1813,6 +1821,8 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		if (!in_ndep)
 			fail("initio: could not open %s for input",(char*)file_ndep);
 
+		dprintf("5\n");
+
 		fclose(in_ndep);
 		ifndepdata=true;
 	}
@@ -1833,6 +1843,9 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	// *** ANNUAL OUTPUT VARIABLES ***
 
 	if (file_cmass!="") {
+
+		dprintf("6\n");
+
 		file_cmass = outputdirectory + file_cmass;
 		out_cmass=fopen(file_cmass,"w");
 		if (!out_cmass) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_cmass);

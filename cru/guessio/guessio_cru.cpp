@@ -1737,6 +1737,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	abort=false;
 	if (argc>1) {
 		insfilename=argv[1];
+		dprintf("1.0\n");
 		if (insfilename[0]=='-') {
 			if (insfilename.lower()=="-help") {
 				printhelp();
@@ -1775,6 +1776,8 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	// This file should consist of any number of one-line records in the format:
 	//   <longitude> <latitude> [<description>]
 
+	dprintf("1.5\n");
+
 	double dlon,dlat;
 	bool eof=false;
 	xtring descrip;
@@ -1786,6 +1789,8 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	FILE* in_grid=fopen(file_gridlist,"r");
 	if (!in_grid) fail("initio: could not open %s for input",(char*)file_gridlist);
+
+	dprintf("1.6\n");
 	
 	ngridcell=0;
 	while (!eof) {

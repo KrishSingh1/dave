@@ -1737,7 +1737,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	abort=false;
 	if (argc>1) {
 		insfilename=argv[1];
-		dprintf("1.0\n");
+		dprintf("1.0 %s\n",(char*)insfilename);
 		if (insfilename[0]=='-') {
 			if (insfilename.lower()=="-help") {
 				printhelp();

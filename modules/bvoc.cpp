@@ -73,7 +73,7 @@ void initbvoc(Pftlist& pftlist){
 
   double fpar_s=1.;
   double Cfrac=0.5; // mass fraction of C in leaves
-  double frabs_Q=0.42; // fraction of light absorbed in the first canopy layer
+  double frabs_Q=0.35; // fraction of light absorbed in the first canopy layer
                       // (for standard measurements), 25% to 35% (Almut)
 
   dprintf("\nInitialising VOC calculations\n");

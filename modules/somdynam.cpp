@@ -339,10 +339,7 @@ void som_dynamics_lpj(Patch& patch) {
 // -> A = const * cmass_root^2/3 
 
 double nitrogen_uptake_strength(const Individual& indiv) {
-	if (indiv.pft.lifeform == TREE)
-		return pow(indiv.cmass_root,2.0/3.0);
-	if (indiv.pft.lifeform == GRASS)
-		return pow(indiv.cmass_root*0.7,2.0/3.0);
+	return pow(indiv.cmass_root,2.0/3.0);
 }
 
 void indiv_fnuptake(Vegetation& vegetation, double nsupply_patch, double ndemand_patch, double fnuptake) {
@@ -1211,7 +1208,7 @@ void transfer_litter(Patch& patch,Soil& soil) {
 	}
 
 	// Set N:C ratio of surface microbial pool based on C:N ratio of litter from all PFTs
-	// Parton et al 1993 Fig 4
+	// Parton et al 1993 Fig 4. Dry mass litter == cmass litter * 2
 	if (!negligible(litter_cmass))
 		setntoc(soil,litter_nmass/(litter_cmass*2.0),SURFMICRO,20.0,10.0,0,0.02);
 }
@@ -1782,19 +1779,11 @@ void this_years_ndemand(double cmass_leaf,double cmass_root,double cmass_sap,dou
 	}
 
 	// N stress scalar for leaf to root allocation (based on Zaehle 2010 SM eq 19)
-	nscal = min(1.0,(nmass_leaf/cmass_leaf)/(1.0/cton_leaf_avr));
+	nscal = min(1.0,cton_leaf_avr/(cmass_leaf/nmass_leaf));
 
 	// Set leaf:root mass ratio based on water stress parameter 
 	// or N stress scalar 
 	ltor=min(wscal_mean,nscal)*ltor_max;
-
-	// Determine N retranslocated during turnover
-	turnover_oecd_ndemand(turnover_leaf,turnover_root,turnover_sap,lifeform,
-						cmass_leaf,cmass_root,cmass_sap,cmass_heart,
-						nmass_leaf,nmass_root,nmass_sap,nmass_heart,nstore_turnover,alive);	
-
-	// N demand not associated with growth
-	ndemand_uptake = raingreen_ndemand - nstore_turnover;
 
 	// C:N ratio for new and current biomass		
 	if (ifvarycn && date.year>freenyears && ifnlim) {
@@ -1823,6 +1812,14 @@ void this_years_ndemand(double cmass_leaf,double cmass_root,double cmass_sap,dou
 		cton_root_new=cton_root_avr;
 		cton_sap_new=cton_sap_avr;
 	}
+
+	// Determine N retranslocated during turnover
+	turnover_oecd_ndemand(turnover_leaf,turnover_root,turnover_sap,lifeform,
+						cmass_leaf,cmass_root,cmass_sap,cmass_heart,
+						nmass_leaf,nmass_root,nmass_sap,nmass_heart,nstore_turnover,alive);	
+
+	// N demand not associated with growth
+	ndemand_uptake = raingreen_ndemand - nstore_turnover;
 
 	if (lifeform==TREE) { 
 
@@ -2234,7 +2231,6 @@ void ndemand_new_est(Patch& patch,Pftlist& pftlist,double& patch_ndemand) {
 
 		pftlist.nextobj();
 	}
-
 }
 
 
@@ -2365,7 +2361,6 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 			double max_n_reserve_uptake;
 
 			max_n_reserve_uptake = min(1.0,max(0.0,(indiv.max_n_reserve-indiv.nmass_reserve)/indiv.ndemand_uptake));
-			//max_n_reserve_uptake = 0.2;
 
 			// if N storage is larger than what can be stored then don't store more
 			if (indiv.nmass_reserve > indiv.max_n_reserve)

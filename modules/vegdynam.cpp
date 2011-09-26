@@ -701,8 +701,8 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 						}
 						else if (WSITE==0) {	// Beech
 							if (pft.name=="BNE" && date.year==stand.plantyear) 
-								nsapling=300.0;	
-							else if (date.year>=stand.plantyear-10 && date.year<=stand.plantyear+40)
+								nsapling=0.0;	
+							else if (date.year>=stand.plantyear-10 && date.year<=stand.plantyear+10)
 								nsapling=0.0;
 						}
 						else { // Spruce
@@ -1274,7 +1274,6 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob,
 		Pft& pft=pftlist.getobj();
 		patch.pft[pft.id].no_cohorts=0;
 		patch.pft[pft.id].greff_mort_fraction=0.0;
-		patch.pft[pft.id].crownarea_pft=0.0;
 		pftlist.nextobj();
 	}
 
@@ -1554,7 +1553,6 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob,
 
 				patch.pft[indiv.pft.id].greff_mort_fraction+=mort_greff;
 				patch.pft[indiv.pft.id].no_cohorts++;
-				patch.pft[indiv.pft.id].crownarea_pft+=indiv.crownarea;
 
 				// guess2008 - added safety check 
 				if (mort > 1.0 || mort < 0.0)
@@ -1759,7 +1757,7 @@ void fire(Patch& patch,double& fireprob) {
 		patch.pft[p].litter_wood*=1.0-mort_fire;
 		patch.pft[p].litter_repr*=1.0-mort_fire;
 
-		// GUESSN fix
+		// GUESSNFIX
 		// N should be added to N gas
 		//patch.fluxes.anflux_fire+=mort_fire*(patch.pft[p].nmass_litter_leaf+
 		//	patch.pft[p].nmass_litter_wood);

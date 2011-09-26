@@ -1678,10 +1678,6 @@ public:
 	double nmass_litter_root;
 	double nmass_litter_wood;
 
-	double fuptake_pft;
-		// sum/mean across patches for nitrogen limitation
-	double crownarea_pft;
-		// sum/mean across patches for crown area
 	double nstore_est;
 		// N store for establishment
 	double nsapling_nuptake;
@@ -1906,16 +1902,6 @@ public:
 	// GUESSN
 	double na;
 		// Leaf nitrogen associated with photosynthesis today, patch basis kgN/m2
-	double cton_leaf_avr;
-		// mean across patches for leaf C:N ratio
-	double vmaxnlim_avr;
-		// N limitation on vm
-	double nmass_total;
-		// sum/mean across patches for nitrogen biomass (kgN/m2)
-	double nuptake_total;
-		// sum across patches for nitrogen uptake (kgN/m2)
-	double anppn_total;
-		// sum across patches for nitrogen ANPP usage (kgN/m2)
 	double cmass_repr_nuptake;
 		// net C allocated to reproduction for this PFT in all patches of this stand
 		// this year (kgC/m2)

@@ -296,7 +296,7 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 
 
 	// GUESSN: Export baseflow
-	patch.soil.dbaseflow=(runoff_baseflow+runoff_drain)*4.0;
+	patch.soil.dbaseflow=runoff_baseflow+runoff_drain;
 	// end GUESSN
 
 	runoff=runoff_surf+runoff_drain+runoff_baseflow;

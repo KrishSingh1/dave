@@ -1796,7 +1796,7 @@ void growth(Stand& stand,Patch& patch) {
 
 		// N stress scalar for leaf to root allocation (adopted from Zaehle 2010 SM eq 19) 		
 		if (ifnlim && date.year>freenyears)
-			nscal = min(1.0,(indiv.nmass_leaf/indiv.cmass_leaf)/(1.0/indiv.pft.cton_leaf_avr));
+			nscal = min(1.0,indiv.pft.cton_leaf_avr/(indiv.cmass_leaf/indiv.nmass_leaf));
 		else
 			nscal = 1.0;
 
@@ -1912,8 +1912,7 @@ void growth(Stand& stand,Patch& patch) {
 						cton_leaf_full_growth=indiv.cton_leaf_new;	
 
 					// Determine C:N of new tissue
-					indiv.cton_leaf_new=1.0/(1.0/indiv.cton_leaf_opt-((1.0/indiv.cton_leaf_opt-1.0/cton_leaf_full_growth)
-							/(1.0/indiv.cton_leaf_opt))*(1.0/indiv.cton_leaf_opt)*indiv.nopt);
+					indiv.cton_leaf_new=1.0/(1.0/indiv.cton_leaf_opt-(1.0/indiv.cton_leaf_opt-1.0/cton_leaf_full_growth)*indiv.nopt);
 
 					// C:N ratio can't be outside of pft min max range and not lower than the optimal value
 					indiv.cton_leaf_new=min(indiv.pft.cton_leaf_max,max(indiv.pft.cton_leaf_min,max(indiv.cton_leaf_opt,indiv.cton_leaf_new)));
@@ -1981,9 +1980,6 @@ void growth(Stand& stand,Patch& patch) {
 				double bminc_real=cmass_leaf_inc*indiv.densindiv+
 					cmass_root_inc*indiv.densindiv+
 					max(cmass_sap_inc,0.0)*indiv.densindiv;
-
-				if (cmass_leaf_inc/indiv.densindiv < indiv.pft.k_latosa*(indiv.cmass_sap+cmass_sap_inc)/indiv.densindiv/(indiv.pft.wooddens*indiv.height*indiv.pft.sla)-indiv.cmass_leaf/indiv.densindiv)
-					int sch = 0;
 
 			//	if (bminc_real>bminc+1.0e-8)
 			//		dprintf("Year %d BMINC %g real %g sap_inc %g\n",

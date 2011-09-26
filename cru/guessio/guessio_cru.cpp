@@ -300,7 +300,6 @@ void plib_declarations(int id,xtring setname) {
 			"Patch area (m2)");
 
 		// GUESSN
-
 		declareitem("iflimvmax",&iflimvmax,1,CB_NONE,
 			"Whether Vmax limited by actual leaf N");
 		declareitem("nrelocfrac",&nrelocfrac,0.0,1.0,1,CB_NONE,
@@ -363,7 +362,7 @@ void plib_declarations(int id,xtring setname) {
 
 		// GUESSN allometry
 		declareitem("file_allometry",&file_allometry,300,CB_NONE,"Allometry output file");
-		// GUESSN
+		// end GUESSN
 		
 		// Monthly output variables
 		declareitem("file_mnpp",&file_mnpp,300,CB_NONE,"Monthly NPP output file");
@@ -639,7 +638,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("Has_CANIF_clim")) badins("Has_CANIF_clim");
 
 		// GUESSN
-
 		if (!itemparsed("iflimvmax")) badins("iflimvmax");
 		if (!itemparsed("nrelocfrac")) badins("nrelocfrac");
 		if (!itemparsed("ifvarycn")) badins("ifvarycn");
@@ -658,9 +656,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("nmass_avail_max")) badins("nmass_avail_max");
 		if (!itemparsed("ifnstorage")) badins("ifnstorage");
 		if (!itemparsed("ifndemand_new_est")) badins("ifndemand_new_est");
-
 		// end GUESSN
-
 
 		// guess2008
 		if (!itemparsed("outputdirectory")) badins("outputdirectory");
@@ -1808,7 +1804,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	file_cru=param["file_cru"].str;
 	file_cru_misc=param["file_cru_misc"].str;
 
-		// GUESSN
+	// GUESSN
 	file_ndep=param["file_ndep"].str;
 	if (file_ndep=="")
 		ifndepdata=false;
@@ -2316,7 +2312,6 @@ double thisyearsndep(double ndep_1860, double ndep_1993, double ndep_2050, int y
 		hist_year -= (years_shift + lonlatyearsndep[WSITE][3] - 1993);
 	}
 		
-
 	if (hist_year <= 1860)
 		return ndep_1860;
 	else if (hist_year <= 1993)
@@ -2704,6 +2699,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 	double dgpp[365];
 
+	double treeheight_stand[15];
+
 
 	double lon,lat;
 
@@ -2846,7 +2843,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	// If only yearly output between, say 1961 and 1990 is requred, use: 
 	//	if (date.year>=nyear_spinup+60 && date.year<nyear_spinup+90) {
 
-		if (date.year>=nyear_spinup+80) {
+	if (date.year>=nyear_spinup+90) {
 
 		lon=gridlist.getobj().lon;
 		lat=gridlist.getobj().lat;
@@ -2868,6 +2865,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		densindiv_ageclass_stand=0.0;
 		for (c=0;c<nclass;c++)
 			stand_ageclass[c]=0.0;
+		for (int h=0;h<15;h++)
+			treeheight_stand[h]=0.0;
 		
 		// end GUESSN
 
@@ -2940,14 +2939,13 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			standpft.nsapling_total=0.0;
 
 			// GUESSN
-			standpft.cton_leaf_avr=0.0;
-			standpft.nmass_total=0.0;
-			standpft.nuptake_total=0.0;
-			standpft.anppn_total=0.0;
-			standpft.vmaxnlim_avr=0.0;
+			double cton_leaf_avr=0.0;	// mean across patches for leaf C:N ratio
+			double nmass_total=0.0;		// sum/mean across patches for nitrogen biomass (kgN/m2)
+			double nuptake_total=0.0;	// sum across patches for nitrogen uptake (kgN/m2)
+			double anppn_total=0.0;		// sum across patches for nitrogen ANPP usage (kgN/m2)
+			double vmaxnlim_avr=0.0;	// N limitation on vm		
 
-			double nr_pft_indiv=0.0;
-				// number of individuals of this pft. Used for avr calculation
+			double nr_pft_indiv=0.0;	// number of individuals of this pft. Used for avr calculation
 			// end GUESSN
 
 			// GUESSN allometry
@@ -2987,14 +2985,14 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 							standpft.lai_total+=indiv.lai;
 
 							// GUESSN
-							standpft.cton_leaf_avr+=indiv.cmass_leaf/indiv.nmass_leaf*indiv.densindiv;
-							standpft.vmaxnlim_avr+=indiv.nopt*indiv.densindiv;
+							cton_leaf_avr+=indiv.cmass_leaf/indiv.nmass_leaf*indiv.densindiv;
+							vmaxnlim_avr+=indiv.nopt*indiv.densindiv;
 							vmaxnlim_stand+=indiv.nopt*indiv.densindiv;
 							nr_pft_indiv+=indiv.densindiv;
 							total_dens+=indiv.densindiv;
-							standpft.nuptake_total+=indiv.fnuptake*indiv.ndemand_uptake;
-							standpft.anppn_total+=indiv.ndemand;
-							standpft.nmass_total+=indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+
+							nuptake_total+=indiv.fnuptake*indiv.ndemand_uptake;
+							anppn_total+=indiv.ndemand;
+							nmass_total+=indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+
 								indiv.nmass_heart+indiv.nmass_reserve;
 							// end GUESSN
 
@@ -3004,6 +3002,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 								double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
 
 								if (diam>0.03 && pft.lifeform==TREE) {
+
+								//	if (has_CANIF_clim && indiv.age > date.year - stand.plantyear - 10) {
 									// Number of individuals
 									allometry[0]+=indiv.densindiv*10000.0;	
 								
@@ -3032,6 +3032,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 							
 									// Accumulated diameter of these individuals
 									allometry[7]+=(pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3))*indiv.densindiv*10000.0;
+
+								//	}
 								}// end GUESSN
 							
 								// Age structure
@@ -3043,6 +3045,17 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 								// guess2008 - only count trees with a trunk above a certain diameter  
 								if (diam>0.03 && pft.lifeform==TREE)
 									standpft.densindiv_total+=indiv.densindiv; // indiv/m2
+
+								// Tree Height
+								int he=15;
+								while (he) {
+									if (indiv.height > he*5) {
+										treeheight_stand[he]+=indiv.densindiv;
+										he=0;
+									}
+									else
+										he--;
+								}
 							}
 						
 						}
@@ -3060,18 +3073,18 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			standpft.densindiv_total/=(double)npatch;
 			standpft.greff_mort_total/=(double)npatch;
 			standpft.nsapling_total/=(double)npatch;
-			standpft.nuptake_total/=(double)npatch;
-			standpft.anppn_total/=(double)npatch;
+			nuptake_total/=(double)npatch;
+			anppn_total/=(double)npatch;
 
 			if (!negligible(nr_pft_indiv)) {
-				standpft.cton_leaf_avr/=nr_pft_indiv;
-				standpft.vmaxnlim_avr/=nr_pft_indiv;
+				cton_leaf_avr/=nr_pft_indiv;
+				vmaxnlim_avr/=nr_pft_indiv;
 			}
 			else {
-				standpft.cton_leaf_avr=0.0;
-				standpft.vmaxnlim_avr=0.0;
+				cton_leaf_avr=0.0;
+				vmaxnlim_avr=0.0;
 			}
-			standpft.nmass_total/=(double)npatch;
+			nmass_total/=(double)npatch;
 			for (c=0;c<nclass;c++) {
 				standpft.densindiv_ageclass[c]/=(double)npatch;
 				stand_ageclass[c]+=standpft.densindiv_ageclass[c];
@@ -3080,6 +3093,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 			for (int all=0;all<8;all++)
 				allometry[all]/=(double)npatch;
+
+			for (int hei=0;hei<15;hei++)
+				treeheight_stand[hei]/=(double)npatch;
 			// end GUESSN
 
 			// Update stand totals
@@ -3090,9 +3106,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			dens_stand+=standpft.densindiv_total;
 
 			// GUESSN
-			nmass_stand+=standpft.nmass_total;
-			nuptake_stand+=standpft.nuptake_total;
-			anppn_stand+=standpft.anppn_total;
+			nmass_stand+=nmass_total;
+			nuptake_stand+=nuptake_total;
+			anppn_stand+=anppn_total;
 			// end GUESSN
 		
 			// Print PFT sums to files
@@ -3103,11 +3119,11 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			if (out_dens) fprintf(out_dens,"%8.4f",standpft.densindiv_total);
 
 			// GUESSN
-			if (out_cton) fprintf(out_cton,"%8.3f",standpft.cton_leaf_avr);
-			if (out_nmass) fprintf(out_nmass,"%8.3f",standpft.nmass_total);
-			if (out_nuptake) fprintf(out_nuptake,"%9.5f",standpft.nuptake_total);
-			if (out_anppn) fprintf(out_anppn,"%9.5f",standpft.anppn_total);
-			if (out_vmaxnlim) fprintf(out_vmaxnlim,"%8.3f",standpft.vmaxnlim_avr);
+			if (out_cton) fprintf(out_cton,"%8.3f",cton_leaf_avr);
+			if (out_nmass) fprintf(out_nmass,"%8.3f",nmass_total);
+			if (out_nuptake) fprintf(out_nuptake,"%9.5f",nuptake_total);
+			if (out_anppn) fprintf(out_anppn,"%9.5f",anppn_total);
+			if (out_vmaxnlim) fprintf(out_vmaxnlim,"%8.3f",vmaxnlim_avr);
 			// end GUESSN
 			
 			// GUESSN allometry
@@ -3122,7 +3138,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 					(char*)standpft.pft.id,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0);
 
 			if (has_CANIF_clim && date.year-100 >= nyear_spinup && (((WSITE==2 || WSITE==3 || WSITE==4) && pft.name == "TeBS") || (WSITE==0 && pft.name=="BNE") || ((WSITE==1 || WSITE==5 || WSITE==6 || WSITE==7) && pft.name=="TeNE")))
-				dprintf("Year %d height %g dens %g anpp %g C:N %g\n",date.year,allometry[6]/allometry[0],allometry[0],standpft.anpp_total,standpft.cton_leaf_avr);
+				dprintf("Year %d height %g dens %g anpp %g C:N %g\n",date.year,allometry[6]/allometry[0],allometry[0],standpft.anpp_total,cton_leaf_avr);
 
 			// end GUESSN
 
@@ -3134,9 +3150,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 				plot("cmass",pft.name,date.year,stand.pft[pft.id].cmass_total);
 				plot("anpp",pft.name,date.year,stand.pft[pft.id].anpp_total);
 				plot("lai",pft.name,date.year,stand.pft[pft.id].lai_total);
-				plot("pft Vmax N limitation",pft.name,date.year,standpft.vmaxnlim_avr);
-				if (standpft.cton_leaf_avr>10.0)
-					plot("C:N ratios pft",pft.name,date.year,standpft.cton_leaf_avr);
+				plot("pft Vmax N limitation",pft.name,date.year,vmaxnlim_avr);
+				if (cton_leaf_avr>0.0)
+					plot("C:N ratios pft",pft.name,date.year,cton_leaf_avr);
 			//}
 
 			
@@ -3149,26 +3165,26 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			//}
 
 				// FACE DAVID 
-				double ORNL_amb[10] = {800.0,850.0,1000.0,1025.0,900.0,975.0,800.0,775.0,625.0,650.0};
-				double ORNL_ele[10] = {1025.0,1000.0,1200.0,1300.0,1200.0,1125.0,1080.0,875.0,700.0,700.0};
-				double Duke_amb[10] = {1020.0,1248.0,1330.0,1121.0,718.0,1046.0,1142.0,996.0,0.0,0.0};
-				double Duke_ele[10] = {1315.0,1615.0,1711.0,1435.0,1017.0,1424.0,1537.0,1367.0,0.0,0.0};
+			double ORNL_amb[10] = {800.0,850.0,1000.0,1025.0,900.0,975.0,800.0,775.0,625.0,650.0};
+			double ORNL_ele[10] = {1025.0,1000.0,1200.0,1300.0,1200.0,1125.0,1080.0,875.0,700.0,700.0};
+			double Duke_amb[10] = {1020.0,1248.0,1330.0,1121.0,718.0,1046.0,1142.0,996.0,0.0,0.0};
+			double Duke_ele[10] = {1315.0,1615.0,1711.0,1435.0,1017.0,1424.0,1537.0,1367.0,0.0,0.0};
 
-				if (date.year >= 2096 && has_FACE_clim) { 
-					plot("anpp output",pft.name,date.year,stand.pft[pft.id].anpp_total);
-					if (!ifduke) {
-						if (FACE_ring == 1)
-							plot("anpp output","Real Amb",date.year,ORNL_amb[date.year-2096]/1000.0);
-						else 
-							plot("anpp output","Real Ele",date.year,ORNL_ele[date.year-2096]/1000.0);
-					}
-					else {
-						if (FACE_ring == 1)
-							plot("anpp output","Real Amb",date.year,Duke_amb[date.year-2096]/1000.0);
-						else 
-							plot("anpp output","Real Ele",date.year,Duke_ele[date.year-2096]/1000.0);
-					}
+			if (date.year >= 2096 && has_FACE_clim) { 
+				plot("anpp output",pft.name,date.year,stand.pft[pft.id].anpp_total);
+				if (!ifduke) {
+					if (FACE_ring == 1)
+						plot("anpp output","Real Amb",date.year,ORNL_amb[date.year-2096]/1000.0);
+					else 
+						plot("anpp output","Real Ele",date.year,ORNL_ele[date.year-2096]/1000.0);
 				}
+				else {
+					if (FACE_ring == 1)
+						plot("anpp output","Real Amb",date.year,Duke_amb[date.year-2096]/1000.0);
+					else 
+						plot("anpp output","Real Ele",date.year,Duke_ele[date.year-2096]/1000.0);
+				}
+			}
 
 			pftlist.nextobj();
 		

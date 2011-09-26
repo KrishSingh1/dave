@@ -19,7 +19,8 @@
 
 #include "guess.h"
 
-void canopy_exchange(Patch& patch);
+void interception(Patch& patch, Climate& climate);
+void canopy_exchange(Patch& patch, Climate& climate);
 
 // Constants for photosynthesis calculations
 const double CQ=4.6E-6;      // conversion factor for solar radiation at 550

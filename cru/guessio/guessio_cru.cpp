@@ -1275,7 +1275,7 @@ xtring file_cru_misc;
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/*void read_FACE_clim(double FACE_dtemp[NYEAR_SCENARIO_FACE][365],double FACE_dprec[NYEAR_SCENARIO_FACE][365],
+void read_FACE_clim(double FACE_dtemp[NYEAR_SCENARIO_FACE][365],double FACE_dprec[NYEAR_SCENARIO_FACE][365],
 	double FACE_dsun[NYEAR_SCENARIO_FACE][365],double FACE_dco2[NYEAR_SCENARIO_FACE][365], 
 	double FACE_yndep[NYEAR_NDEP],int NYEAR_SCENARIO_FACE,int NYEAR_NDEP)
 {
@@ -1416,7 +1416,7 @@ void read_CANIF_clim(double CANIF_dtemp[NSITES][MAXNYEAR_SCENARIO_CANIF][365],
 		}
 	}
 	
-}*/
+}
 //----------------------------------------------------------------------------------------------
 
 
@@ -2202,7 +2202,7 @@ bool getstand(Stand& stand) {
 
 
 		// FACE DAVID climate Reading met data
-	/*	if (has_FACE_clim)		
+		if (has_FACE_clim)		
 			read_FACE_clim(dtemp_FACE,dprecip_FACE,dsun_FACE,dco2_FACE,yndep_FACE,NYEAR_SCENARIO_FACE,NYEAR_NDEP);
 
 		// CANIF DAVID climate Reading met data
@@ -2210,7 +2210,7 @@ bool getstand(Stand& stand) {
 			read_CANIF_clim(dtemp_CANIF,dprecip_CANIF,dsun_CANIF,lonlatyearsndep,NSITES,lon,lat);
 			stand.plantyear=(nyear_spinup+NYEAR_HIST-lonlatyearsndep[WSITE][4]);
 			dprintf("Plant year %d \n",stand.plantyear);
-		}*/
+		}
 
 		while (!gridfound) {
 
@@ -2675,7 +2675,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	double firert_stand; 
 
 	// GUESSN
-	double nmass_stand,n_litter,densindiv_ageclass_stand,nleach_stand,nuptake_stand,anppn_stand;
+	double nmass_stand,n_litter,densindiv_ageclass_stand,n_min_leach_stand,n_org_leach_stand,nuptake_stand,anppn_stand;
 	double andep_stand,anmin_stand,animm_stand,anfix_stand,nsupply_stand,ndemand_stand,vmaxnlim_stand,total_dens;
 	double surfsoillitterc,surfsoillittern,cwdc,cwdn,microc,micron,humusc,humusn,centuryc,centuryn;
 
@@ -2789,7 +2789,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			// end GUESSN
 
 			// GUESSN allometry
-			if (out_allometry && pft.lifeform==TREE) fprintf(out_allometry,"%8s%8s%8s%8s%10s%8s%10s%8s%8s",(char*)pft.name,"N","Mfol","Mfroot","Mwood","Mactive","M","H","D");
+			if (out_allometry && pft.lifeform==TREE) fprintf(out_allometry,"%8s%8s%8s%8s%10s%8s%10s%10s%10s",(char*)pft.name,"N","Mfol","Mfroot","Mwood","Mactive","M","H","D");
 			// end GUESSN
 
 			pftlist.nextobj();
@@ -2809,7 +2809,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		// GUESSN
 		if (out_cton) fprintf(out_cton,"\n");
 		if (out_nmass) fprintf(out_nmass,"%8s\n","Total");
-		if (out_nleach) fprintf(out_nleach,"%8s\n","Total");	//(kgN/ha/yr)
+		if (out_nleach) fprintf(out_nleach,"%8s%8s%8s\n","Min","Org","Total");	//(kgN/ha/yr)
 		if (out_age) fprintf(out_age,"%8s\n","Total");	//(indiv/ha)
 		if (out_nuptake) fprintf(out_nuptake,"%9s\n","Total");
 		if (out_anppn) fprintf(out_anppn,"%9s\n","Total");
@@ -2843,7 +2843,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	// If only yearly output between, say 1961 and 1990 is requred, use: 
 	//	if (date.year>=nyear_spinup+60 && date.year<nyear_spinup+90) {
 
-	if (date.year>=nyear_spinup+90) {
+	if (date.year>=nyear_spinup) {
 
 		lon=gridlist.getobj().lon;
 		lat=gridlist.getobj().lat;
@@ -2861,7 +2861,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		total_dens=0.0;
 		nuptake_stand=0.0;
 		anppn_stand=0.0;
-		nleach_stand=0.0;
+		n_min_leach_stand=n_org_leach_stand=0.0;
 		densindiv_ageclass_stand=0.0;
 		for (c=0;c<nclass;c++)
 			stand_ageclass[c]=0.0;
@@ -3129,12 +3129,12 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			// GUESSN allometry
 			if (out_allometry && pft.lifeform==TREE)
 				if (allometry[0]>0.0)
-					fprintf(out_allometry,"%8d%8.0f%8.4f%8.4f%10.2f%8.4f%10.2f%8.2f%8.3f",
+					fprintf(out_allometry,"%8d%8.0f%8.4f%8.4f%10.2f%8.4f%10.2f%10.2f%10.3f",
 					standpft.pft.id,allometry[0],allometry[1]/allometry[0],
 					allometry[2]/allometry[0],allometry[3]/allometry[0],allometry[4]/allometry[0],
 					allometry[5]/allometry[0],allometry[6]/allometry[0],allometry[7]/allometry[0]);
 				else
-					fprintf(out_allometry,"%8d%8.0f%8.1f%8.1f%10.1f%8.1f%10.1f%8.1f%8.1f",
+					fprintf(out_allometry,"%8d%8.0f%8.1f%8.1f%10.1f%8.1f%10.1f%10.1f%10.1f",
 					(char*)standpft.pft.id,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0);
 
 			if (has_CANIF_clim && date.year-100 >= nyear_spinup && (((WSITE==2 || WSITE==3 || WSITE==4) && pft.name == "TeBS") || (WSITE==0 && pft.name=="BNE") || ((WSITE==1 || WSITE==5 || WSITE==6 || WSITE==7) && pft.name=="TeNE")))
@@ -3213,11 +3213,12 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			c_slow+=stand[p].soil.cpool_slow/(double)npatch;
 
 			// GUESSN
-			andep_stand+=stand[p].soil.ndep_annual/(double)npatch*10000.0; // convert from m2 to ha
-			anmin_stand+=stand[p].soil.nmin_annual/(double)npatch*10000.0; // convert from m2 to ha
+			andep_stand+=stand[p].soil.ndep_annual/(double)npatch*10000.0;	// convert from m2 to ha
+			anmin_stand+=stand[p].soil.nmin_annual/(double)npatch*10000.0;	// convert from m2 to ha
 			animm_stand+=stand[p].soil.nimmob_annual/(double)npatch*10000.0; // convert from m2 to ha
-			anfix_stand+=stand[p].soil.N_fix/(double)npatch*10000.0; // convert from m2 to ha
-			nleach_stand+=stand[p].soil.nleach_annual/(double)npatch*10000.0;	// convert from m2 to ha
+			anfix_stand+=stand[p].soil.N_fix/(double)npatch*10000.0;		// convert from m2 to ha
+			n_min_leach_stand+=stand[p].soil.n_min_leach_annual/(double)npatch*10000.0;	// convert from m2 to ha
+			n_org_leach_stand+=stand[p].soil.n_org_leach_annual/(double)npatch*10000.0;	// convert from m2 to ha
 			nsupply_stand+=stand[p].nsupply/(double)npatch*10000.0;			// convert from m2 to ha
 			ndemand_stand+=stand[p].ndemand/(double)npatch*10000.0;			// convert from m2 to ha
 			
@@ -3348,7 +3349,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		// GUESSN
 		if (out_cton) fprintf(out_cton,"\n");
 		if (out_nmass) fprintf(out_nmass,"%8.3f\n",nmass_stand);
-		if (out_nleach) fprintf(out_nleach,"%8.3f\n",nleach_stand);
+		if (out_nleach) fprintf(out_nleach,"%8.3f%8.3f%8.3f\n",n_min_leach_stand,n_org_leach_stand,n_min_leach_stand+n_org_leach_stand);
 		if (out_nsources) fprintf(out_nsources,"%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f\n",
 			andep_stand,anmin_stand,animm_stand,anmin_stand-animm_stand,
 			anfix_stand,andep_stand+anmin_stand-animm_stand+anfix_stand,ndemand_stand);

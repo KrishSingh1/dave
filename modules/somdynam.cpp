@@ -755,7 +755,7 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 		if (date.year==0) 
 			nmin_balance=0.0;
 		else 
-			nmin_balance=soil.nmin_annual+soil.ndep_annual-soil.nimmob_annual-soil.nleach_annual;
+			nmin_balance=soil.nmin_annual+soil.ndep_annual-soil.nimmob_annual-soil.n_min_leach_annual;
 
 		/*// DayCent values 
 		setntoc(soil,nmin_balance,SLOWSOM,20.0,12.0,0.0,nmass_avail_max);
@@ -1221,6 +1221,9 @@ void leaching(Soil& soil) {
 
 	double leachfrac;
 
+	if (date.day == 0)
+		soil.n_org_leach_annual=0.0;
+
 	// Leaching of organics from active pool (Parton et al 1993, Eqn 8)
 
 	if (ifleachn)
@@ -1230,6 +1233,8 @@ void leaching(Soil& soil) {
 
 	soil.sompool[LEACHED].cmass+=soil.sompool[SOILMICRO].cmass*leachfrac;
 	soil.sompool[LEACHED].nmass+=soil.sompool[SOILMICRO].nmass*leachfrac;
+
+	soil.n_org_leach_annual+=soil.sompool[SOILMICRO].nmass*leachfrac;
 	
 	soil.sompool[SOILMICRO].cmass*=(1.0-leachfrac);
 	soil.sompool[SOILMICRO].nmass*=(1.0-leachfrac);
@@ -2467,7 +2472,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 	// Allowed on days with residual N following vegetation uptake
 	// Daily leaching fractions were pre-computed by function leaching() above
 
-	soil.nleach_annual=0.0;
+	soil.n_min_leach_annual=0.0;
 
 	excessn=patch.nsupply-patch.ndemand*patch.fnuptake;
 	double save_excessn=excessn;
@@ -2481,10 +2486,10 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 			if (nmass_sum>0.0)  {
 				leachn=nmass_sum*soil.leachfrac_daily[d];
 
-				if (soil.nleach_annual+leachn <= excessn) {
+				if (soil.n_min_leach_annual+leachn <= excessn) {
 					nmass_sum-=leachn;
 					soil.sompool[LEACHED].nmass+=leachn;
-					soil.nleach_annual+=leachn;
+					soil.n_min_leach_annual+=leachn;
 					nmass_avail[d]-=leachn;
 				}
 			}
@@ -2576,7 +2581,7 @@ void som_dynamics_century(Patch& patch,Pftlist& pftlist) {
 				plot("Total N","SOM",date.year,centuryn);
 				plot("Total N","mineral N",date.year,soil.nmass_avail);
 			//	plot("Actual mineral N after excessn","mineral N",date.year,soil.nmass_avail);
-			//	plot("Actual leached N after excessn","leached N",date.year,soil.nleach_annual);
+			//	plot("Actual leached N after excessn","leached N",date.year,soil.n_min_leach_annual);
 				plot("Total N","litter N",date.year,littern);
 				plot("Total N","leached N",date.year,soil.sompool[LEACHED].nmass);
 				plot("Total N","total",date.year,

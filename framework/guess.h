@@ -1420,7 +1420,8 @@ public:
 
 	double nmin_annual;			// annual sum of N mineralisation
 	double nimmob_annual;		// annual sum of N immobilisation
-	double nleach_annual;		// annual leaching from available N pool
+	double n_min_leach_annual;	// annual leaching from available N pool
+	double n_org_leach_annual;	// annual leaching of organics from active N pool
 	double ndep_annual;			// annual N deposition
 
 	double setntoc_nmass_avail;	// soil mineral N pool (kgN/m2) (used in daily setntoc)
@@ -1497,7 +1498,8 @@ public:
 
 		nmin_annual=0.0;			
 		nimmob_annual=0.0;		
-		nleach_annual=0.0;		
+		n_min_leach_annual=0.0;
+		n_org_leach_annual=0.0;
 		ndep_annual=0.0;
 		N_fix=0.0;
 

@@ -248,7 +248,7 @@ void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12]) {
 
 	for (m=0;m<12;m++) {
 
-		if (negligible(mval_prec[m])) {
+		if (mval_prec[m] < 0.1) {
 
 			// Special case if no rainfall expected for month
 

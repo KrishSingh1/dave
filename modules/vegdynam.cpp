@@ -686,9 +686,9 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 								if (WSITE==2)
 									nsapling=280.0; //320
 								if (WSITE==3)
-									nsapling=80.0;	//100
+									nsapling=75.0;	//100
 								if (WSITE==4)
-									nsapling=90.0; //105
+									nsapling=120.0; //90
 							}
 							else {
 								if (WSITE==2 && date.year>=stand.plantyear-10 && date.year<=stand.plantyear+20)	// 120
@@ -701,7 +701,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 						}
 						else if (WSITE==0) {	// Beech
 							if (pft.name=="BNE" && date.year==stand.plantyear) 
-								nsapling=0.0;	
+								nsapling=70.0;	
 							else if (date.year>=stand.plantyear-10 && date.year<=stand.plantyear+10)
 								nsapling=0.0;
 						}
@@ -723,7 +723,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 									nsapling=0.0;
 								if (WSITE==6 && date.year>=stand.plantyear-10 && date.year<=stand.plantyear+20)
 									nsapling=0.0;
-								if (WSITE==7 && date.year>=stand.plantyear-10 && date.year<=stand.plantyear+20)	// 140
+								if (WSITE==7 && date.year>=stand.plantyear-10 && date.year<=stand.plantyear+20)	
 									nsapling=0.0;
 							}
 						}

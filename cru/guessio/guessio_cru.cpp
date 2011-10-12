@@ -179,7 +179,7 @@ xtring file_cton,file_nmass,file_nsources,file_npool,file_nleach,file_age,file_n
 // end GUESSN
 
 // GUESSN allometry
-xtring file_allometry;
+xtring file_allometry,file_canopyh;
 // end GUESSN
 
 void initsettings() {
@@ -211,7 +211,7 @@ void initsettings() {
 	// end GUESSN
 
 	// GUESSN allometry
-	file_allometry="";
+	file_allometry=file_canopyh="";
 	// end GUESSN
 }
 
@@ -362,6 +362,7 @@ void plib_declarations(int id,xtring setname) {
 
 		// GUESSN allometry
 		declareitem("file_allometry",&file_allometry,300,CB_NONE,"Allometry output file");
+		declareitem("file_canopyh",&file_canopyh,300,CB_NONE,"Canopy height output file");
 		// end GUESSN
 		
 		// Monthly output variables
@@ -1202,7 +1203,7 @@ FILE *out_cton,*out_nmass, *out_nsources, *out_npool, *out_nleach, *out_age, *ou
 // end GUESSN
 
 // GUESSN allometry
-FILE *out_allometry;
+FILE *out_allometry, *out_canopyh;
 // end GUESSN
 
 // Timers for keeping track of progress through the simulation
@@ -1275,7 +1276,7 @@ xtring file_cru_misc;
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void read_FACE_clim(double FACE_dtemp[NYEAR_SCENARIO_FACE][365],double FACE_dprec[NYEAR_SCENARIO_FACE][365],
+/*void read_FACE_clim(double FACE_dtemp[NYEAR_SCENARIO_FACE][365],double FACE_dprec[NYEAR_SCENARIO_FACE][365],
 	double FACE_dsun[NYEAR_SCENARIO_FACE][365],double FACE_dco2[NYEAR_SCENARIO_FACE][365], 
 	double FACE_yndep[NYEAR_NDEP],int NYEAR_SCENARIO_FACE,int NYEAR_NDEP)
 {
@@ -1416,7 +1417,7 @@ void read_CANIF_clim(double CANIF_dtemp[NSITES][MAXNYEAR_SCENARIO_CANIF][365],
 		}
 	}
 	
-}
+}*/
 //----------------------------------------------------------------------------------------------
 
 
@@ -1961,6 +1962,13 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		if (!out_allometry) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_allometry);
 	}
 	else out_allometry=NULL;
+
+	if (file_canopyh!="") {
+		file_canopyh = outputdirectory + file_canopyh;
+		out_canopyh=fopen(file_canopyh,"w");
+		if (!out_canopyh) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_canopyh);
+	}
+	else out_canopyh=NULL;
 	// end GUESSN
 
 	// *** MONTHLY OUTPUT VARIABLES ***
@@ -2202,7 +2210,7 @@ bool getstand(Stand& stand) {
 
 
 		// FACE DAVID climate Reading met data
-		if (has_FACE_clim)		
+	/*	if (has_FACE_clim)		
 			read_FACE_clim(dtemp_FACE,dprecip_FACE,dsun_FACE,dco2_FACE,yndep_FACE,NYEAR_SCENARIO_FACE,NYEAR_NDEP);
 
 		// CANIF DAVID climate Reading met data
@@ -2210,7 +2218,7 @@ bool getstand(Stand& stand) {
 			read_CANIF_clim(dtemp_CANIF,dprecip_CANIF,dsun_CANIF,lonlatyearsndep,NSITES,lon,lat);
 			stand.plantyear=(nyear_spinup+NYEAR_HIST-lonlatyearsndep[WSITE][4]);
 			dprintf("Plant year %d \n",stand.plantyear);
-		}
+		}*/
 
 		while (!gridfound) {
 
@@ -2655,6 +2663,72 @@ bool getclimate(Stand& stand) {
 	return true;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////
+// Canopy Height
+//
+double canopy_height(Stand& stand) {
+
+	// DESCRIPTION
+	// Determines canopy height from the top 100
+	// tallest trees in each patch (Nakai 2010). 
+
+	double accumulated_canopy_height=0.0;
+
+	for (int p=0;p<npatch;p++) {
+
+		double tree_height[10];
+		double dens[10];
+
+		for (int k=0;k<10;k++) {
+			tree_height[k]=0.0;	//indiv.height
+			dens[k]=0.0;		//indiv.densindiv
+		}
+
+		Patch& patch=stand[p];
+		Vegetation& vegetation=patch.vegetation;
+
+		vegetation.firstobj();
+		while (vegetation.isobj) {
+			Individual& indiv=vegetation.getobj();
+
+			if (indiv.height > tree_height[9]) {
+				for (int i=0;i<10;i++){
+					if (indiv.height > tree_height[i]) {
+						for (int j=8;j>=i;j--) {
+							tree_height[j+1]=tree_height[j];
+							dens[j+1]=dens[j];
+						}
+						tree_height[i]=indiv.height;
+						dens[i]=indiv.densindiv;
+
+						i=10;
+					}
+				}
+			}
+
+			vegetation.nextobj();
+		}
+
+		double tree_height_patch=0.0;
+		double density_patch=0.0;
+		int l=0;
+
+		while (density_patch<0.1 && l<10){
+
+			if (density_patch+dens[l]>0.1)
+				dens[l]=0.1-density_patch;
+
+			tree_height_patch+=tree_height[l]*dens[l];
+			density_patch+=dens[l];
+			l++;
+		}
+
+		if (!negligible(density_patch))
+			accumulated_canopy_height+=tree_height_patch/density_patch;
+	}
+	return accumulated_canopy_height/(double)npatch;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // OUTANNUAL
@@ -2699,7 +2773,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 	double dgpp[365];
 
-	double treeheight_stand[15];
+	double canopyheight_stand;
 
 
 	double lon,lat;
@@ -2768,6 +2842,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 		// GUESSN allometry
 		if (out_allometry) fprintf(out_allometry,lonlatyearstr,"Lon","Lat","Year");
+		if (out_canopyh) fprintf(out_canopyh,lonlatyearstr,"Lon","Lat","Year");
 		// end GUESSN
 
 		// Loop through PFT's and print PFT names as column labels
@@ -2789,7 +2864,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			// end GUESSN
 
 			// GUESSN allometry
-			if (out_allometry && pft.lifeform==TREE) fprintf(out_allometry,"%8s%8s%8s%8s%10s%8s%10s%10s%10s",(char*)pft.name,"N","Mfol","Mfroot","Mwood","Mactive","M","H","D");
+			if (out_allometry && pft.lifeform==TREE) fprintf(out_allometry,"%8s%8s%8s%8s%8s%8s%8s%10s%8s%10s%10s%10s",(char*)pft.name,"N","Mfol","Mstem","Mcroot","Mfroot","Mroot","Mwood","Mactive","M","H","D");
 			// end GUESSN
 
 			pftlist.nextobj();
@@ -2814,7 +2889,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_nuptake) fprintf(out_nuptake,"%9s\n","Total");
 		if (out_anppn) fprintf(out_anppn,"%9s\n","Total");
 		if (out_vmaxnlim) fprintf(out_vmaxnlim,"%8s\n","Total");
-		if (out_allometry) fprintf(out_allometry,"\n");	//(indiv/ha)out_vmaxnlim
+		if (out_allometry) fprintf(out_allometry,"\n");	
+		if (out_canopyh) fprintf(out_canopyh,"%8s\n","Height");
 		// end GUESSN
 
 		// guess2008
@@ -2865,8 +2941,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		densindiv_ageclass_stand=0.0;
 		for (c=0;c<nclass;c++)
 			stand_ageclass[c]=0.0;
-		for (int h=0;h<15;h++)
-			treeheight_stand[h]=0.0;
 		
 		// end GUESSN
 
@@ -2897,6 +2971,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 		// GUESSN allometry
 		if (out_allometry) fprintf(out_allometry,lonlatyeardatastr,lon,lat,date.year);
+		if (out_canopyh) fprintf(out_canopyh,lonlatyeardatastr,lon,lat,date.year);
 		// end GUESSN
 
 		if (out_mnpp) fprintf(out_mnpp,lonlatyeardatastr,lon,lat,date.year);
@@ -2920,6 +2995,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 		for (int d=0;d<365;d++)
 			dgpp[d]=0.0;
+
+		if (out_canopyh)
+			canopyheight_stand=canopy_height(stand);
 
 		// *** Loop through PFTs ***
 
@@ -2949,7 +3027,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			// end GUESSN
 
 			// GUESSN allometry
-			double allometry[] = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+			double allometry[] = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
 
 			// Initialise age structure array
 
@@ -3003,7 +3081,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 								if (diam>0.03 && pft.lifeform==TREE) {
 
-								//	if (has_CANIF_clim && indiv.age > date.year - stand.plantyear - 10) {
+									if ((has_CANIF_clim && indiv.height > 10.0) || !has_CANIF_clim) {
 									// Number of individuals
 									allometry[0]+=indiv.densindiv*10000.0;	
 								
@@ -3011,29 +3089,41 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 									allometry[1]+=(indiv.cmass_leaf/indiv.densindiv)*	// Leaf mass for one indiv
 										(indiv.densindiv*10000.0);						// Number of individuals
 								
+									// Total stem C mass for these individuals (0.75 from Wolf 2011)
+									allometry[2]+=(indiv.cmass_sap+indiv.cmass_heart)*0.75/indiv.densindiv*	// Leaf mass for one indiv
+										(indiv.densindiv*10000.0);
+
+									// Total coarse root C mass for these individuals (0.25 from Wolf 2011)
+									allometry[3]+=(indiv.cmass_sap+indiv.cmass_heart)*0.25/indiv.densindiv*	// Leaf mass for one indiv
+										(indiv.densindiv*10000.0);
+
 									// Total fine root C mass
-									allometry[2]+=(indiv.cmass_root/indiv.densindiv)*	
+									allometry[4]+=(indiv.cmass_root/indiv.densindiv)*	
+										(indiv.densindiv*10000.0);
+
+									// Total total root C mass for these individuals 
+									allometry[5]+=((indiv.cmass_sap+indiv.cmass_heart)*0.25+indiv.cmass_root)/indiv.densindiv*	// Leaf mass for one indiv
 										(indiv.densindiv*10000.0);
 								
 									// Total wood C mass
-									allometry[3]+=((indiv.cmass_sap+indiv.cmass_heart)/indiv.densindiv)*	
+									allometry[6]+=((indiv.cmass_sap+indiv.cmass_heart)/indiv.densindiv)*	
 										(indiv.densindiv*10000.0);
 								
 									// Total active C mass
-									allometry[4]+=((indiv.cmass_leaf+indiv.cmass_root)/indiv.densindiv)*	
+									allometry[7]+=((indiv.cmass_leaf+indiv.cmass_root)/indiv.densindiv)*	
 										(indiv.densindiv*10000.0);
 								
 									// Total C mass
-									allometry[5]+=((indiv.cmass_sap+indiv.cmass_heart+indiv.cmass_leaf+indiv.cmass_root)/indiv.densindiv)*
+									allometry[8]+=((indiv.cmass_sap+indiv.cmass_heart+indiv.cmass_leaf+indiv.cmass_root)/indiv.densindiv)*
 										(indiv.densindiv*10000.0);
 								
 									// Accumulated height of these individuals
-									allometry[6]+=indiv.height*indiv.densindiv*10000.0;	
+									allometry[9]+=indiv.height*indiv.densindiv*10000.0;	
 							
 									// Accumulated diameter of these individuals
-									allometry[7]+=(pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3))*indiv.densindiv*10000.0;
+									allometry[10]+=(pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3))*indiv.densindiv*10000.0;
 
-								//	}
+									}
 								}// end GUESSN
 							
 								// Age structure
@@ -3045,17 +3135,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 								// guess2008 - only count trees with a trunk above a certain diameter  
 								if (diam>0.03 && pft.lifeform==TREE)
 									standpft.densindiv_total+=indiv.densindiv; // indiv/m2
-
-								// Tree Height
-								int he=15;
-								while (he) {
-									if (indiv.height > he*5) {
-										treeheight_stand[he]+=indiv.densindiv;
-										he=0;
-									}
-									else
-										he--;
-								}
 							}
 						
 						}
@@ -3093,9 +3172,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 			for (int all=0;all<8;all++)
 				allometry[all]/=(double)npatch;
-
-			for (int hei=0;hei<15;hei++)
-				treeheight_stand[hei]/=(double)npatch;
 			// end GUESSN
 
 			// Update stand totals
@@ -3129,13 +3205,14 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			// GUESSN allometry
 			if (out_allometry && pft.lifeform==TREE)
 				if (allometry[0]>0.0)
-					fprintf(out_allometry,"%8d%8.0f%8.4f%8.4f%10.2f%8.4f%10.2f%10.2f%10.3f",
+					fprintf(out_allometry,"%8d%8.0f%8.2f%8.2f%8.2f%8.2f%8.2f%10.2f%8.2f%10.2f%10.2f%10.3f",
 					standpft.pft.id,allometry[0],allometry[1]/allometry[0],
 					allometry[2]/allometry[0],allometry[3]/allometry[0],allometry[4]/allometry[0],
-					allometry[5]/allometry[0],allometry[6]/allometry[0],allometry[7]/allometry[0]);
+					allometry[5]/allometry[0],allometry[6]/allometry[0],allometry[7]/allometry[0],
+					allometry[8]/allometry[0],allometry[9]/allometry[0],allometry[10]/allometry[0]);
 				else
-					fprintf(out_allometry,"%8d%8.0f%8.1f%8.1f%10.1f%8.1f%10.1f%10.1f%10.1f",
-					(char*)standpft.pft.id,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0);
+					fprintf(out_allometry,"%8d%8.0f%8.0f%8.0f%8.0f%8.0f%8.0f%10.0f%8.0f%10.0f%10.0f%10.0f",
+					(char*)standpft.pft.id,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0);
 
 			if (has_CANIF_clim && date.year-100 >= nyear_spinup && (((WSITE==2 || WSITE==3 || WSITE==4) && pft.name == "TeBS") || (WSITE==0 && pft.name=="BNE") || ((WSITE==1 || WSITE==5 || WSITE==6 || WSITE==7) && pft.name=="TeNE")))
 				dprintf("Year %d height %g dens %g anpp %g C:N %g\n",date.year,allometry[6]/allometry[0],allometry[0],standpft.anpp_total,cton_leaf_avr);
@@ -3364,6 +3441,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 		// GUESSN allometry
 		if (out_allometry) fprintf(out_allometry,"\n");
+		if (out_canopyh) fprintf(out_canopyh,"%8.1f\n",canopyheight_stand);
 
 		// Print monthly output variables
 		for (m=0;m<12;m++) {
@@ -3518,6 +3596,7 @@ void termio() {
 
 		// GUESSN allometry
 		if (out_allometry) fclose(out_allometry);
+		if (out_canopyh) fclose(out_canopyh);
 		// end GUESSN
 
 		if (out_mnpp) fclose(out_mnpp);
@@ -3549,6 +3628,9 @@ void termio() {
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
 // Galloway, J. N., F. J. Dentener, D. G. Capone, E. W. Boyer, R. W. Howarth, S. P. Seitzinger,
-// G. P. Asner, C. Cleveland, P. Green, E. Holland, D. M. Karl, A. F. Michaels, J. H. Porter, 
-// A. Townsend, and C. Vörösmarty. 2004.
-// Nitrogen Cycles: Past, Present and Future. Biogeochemistry 70: 153-226.
+//   G. P. Asner, C. Cleveland, P. Green, E. Holland, D. M. Karl, A. F. Michaels, J. H. Porter, 
+//   A. Townsend, and C. Vörösmarty. 2004.
+//   Nitrogen Cycles: Past, Present and Future. Biogeochemistry 70: 153-226.
+// Nakai, T., Sumida, A., Kodama, Y., Hara, T., Ohta, T. (2010). A comparison between
+//   various definitions of forest stand height and aerodynamic canopy height.
+//   Agricultural and Forest Meteorology, 150(9), 1225-1233

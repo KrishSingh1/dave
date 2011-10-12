@@ -1852,9 +1852,9 @@ void this_years_ndemand(double cmass_leaf,double cmass_root,double cmass_sap,dou
 			max(0.0,cmass_sap_inc)*densindiv/cton_sap_new;
 		
 		// Calculate fractions of new biomass that goes to leaf and root
-		if (!negligible(max(0.0,cmass_leaf_inc)) && !negligible(max(0.0,cmass_root_inc)) && !negligible(max(0.0,cmass_sap_inc))) {
-			bminc_leaf_frac=max(0.0,max(0.0,cmass_leaf_inc)/(max(0.0,cmass_leaf_inc)+max(0.0,cmass_root_inc)+max(0.0,cmass_sap_inc)));
-			bminc_root_frac=max(0.0,max(0.0,cmass_root_inc)/(max(0.0,cmass_leaf_inc)+max(0.0,cmass_root_inc)+max(0.0,cmass_sap_inc)));
+		if (cmass_leaf_inc>0.0 && cmass_root_inc>0.0) {
+			bminc_leaf_frac=cmass_leaf_inc/(cmass_leaf_inc+cmass_root_inc+max(0.0,cmass_sap_inc));
+			bminc_root_frac=cmass_root_inc/(cmass_leaf_inc+cmass_root_inc+max(0.0,cmass_sap_inc));
 		}
 
 		nbudget_after = nmass_leaf+cmass_leaf_inc*densindiv/cton_leaf_new+

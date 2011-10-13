@@ -2919,7 +2919,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	// If only yearly output between, say 1961 and 1990 is requred, use: 
 	//	if (date.year>=nyear_spinup+60 && date.year<nyear_spinup+90) {
 
-	if (date.year>=nyear_spinup) {
+	if (date.year>=nyear_spinup+80) {
 
 		lon=gridlist.getobj().lon;
 		lat=gridlist.getobj().lat;
@@ -3081,7 +3081,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 								if (diam>0.03 && pft.lifeform==TREE) {
 
-									if ((has_CANIF_clim && indiv.height > 10.0) || !has_CANIF_clim) {
 									// Number of individuals
 									allometry[0]+=indiv.densindiv*10000.0;	
 								
@@ -3123,7 +3122,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 									// Accumulated diameter of these individuals
 									allometry[10]+=(pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3))*indiv.densindiv*10000.0;
 
-									}
 								}// end GUESSN
 							
 								// Age structure
@@ -3170,7 +3168,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 				densindiv_ageclass_stand+=standpft.densindiv_ageclass[c];
 			}
 
-			for (int all=0;all<8;all++)
+			for (int all=0;all<11;all++)
 				allometry[all]/=(double)npatch;
 			// end GUESSN
 
@@ -3215,7 +3213,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 					(char*)standpft.pft.id,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0);
 
 			if (has_CANIF_clim && date.year-100 >= nyear_spinup && (((WSITE==2 || WSITE==3 || WSITE==4) && pft.name == "TeBS") || (WSITE==0 && pft.name=="BNE") || ((WSITE==1 || WSITE==5 || WSITE==6 || WSITE==7) && pft.name=="TeNE")))
-				dprintf("Year %d height %g dens %g anpp %g C:N %g\n",date.year,allometry[6]/allometry[0],allometry[0],standpft.anpp_total,cton_leaf_avr);
+				dprintf("Year %d height %g dens %g anpp %g C:N %g\n",date.year,allometry[9]/allometry[0],allometry[0],standpft.anpp_total,cton_leaf_avr);
 
 			// end GUESSN
 

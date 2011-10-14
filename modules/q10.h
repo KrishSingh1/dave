@@ -29,13 +29,21 @@ const double Q10_PRECISION = 0.01;	// rounding precision for temperature
 const int Q10_NDATA = static_cast<int>((Q10_MAXTEMP-Q10_MINTEMP)/Q10_PRECISION + 1.5);
 	// maximum number of values to store in each lookup table
 
-// Definition of Q10 lookup table class
+/// Q10 lookup table class
+/** Stores pre-calculated temperature-adjusted values based on Q10 and
+ *  a 25-degree base value.
+ */
 class LookupQ10 {
 
 private:
+	/// The temperature-adjusted values
 	std::vector<double> data;
 
 public:
+	/// Creates a lookup table
+	/** \param q10    The Q10 to be used for the table
+	 *  \param base25 Base value for 25 degrees C
+	 */
 	LookupQ10(double q10, double base25) : data(Q10_NDATA) {
 
 		for (int i=0; i<Q10_NDATA; i++) {
@@ -43,11 +51,11 @@ public:
 		}
 	}
 
+	/// "Array element" operator
+	/** \param temp  Temperature (deg C)
+	 *  \returns     Temperature-adjusted value based on Q10 and 25-degree base value 
+	 */
 	double& operator[](double& temp) {
-
-		// "Array element" operator (returns temperature-adjusted value
-		// based on Q10 and 25-degree base value)
-
 		// Element number corresponding to a particular temperature
 		if (temp < Q10_MINTEMP) {
 			temp = Q10_MINTEMP;
@@ -62,8 +70,15 @@ public:
 
 };
 
+// Lookup tables for parameters with Q10 temperature responses
+
+/// lookup table for Q10 temperature response of Michaelis constant for O2
 extern LookupQ10 lookup_tau;
+
+/// lookup table for Q10 temperature response of Michaelis constant for CO2
 extern LookupQ10 lookup_ko;
+
+/// lookup table for Q10 temperature response of CO2/O2 specificity ratio
 extern LookupQ10 lookup_kc;
 
 #endif // LPJ_GUESS_Q10_H

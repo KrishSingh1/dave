@@ -21,17 +21,34 @@
 
 void canopy_exchange(Patch& patch);
 
-/// Constants for photosynthesis calculations
-const double CQ = 4.6e-6;		// conversion factor for solar radiation at 550
-								// nm from J/m2 to mol_quanta/m2 (E=mol quanta); mol J-1
-const double ALPHA_C3 = 0.08;	// intrinsic quantum efficiency of CO2 uptake
-const double ALPHA_C4 = 0.053;	// for C3 and C4 plants
-const double PO2 = 2.09e4;		// O2 partial pressure (Pa)
-const double THETA = 0.7;		// colimitation (shape) parameter
-const double LAMBDA_SC4 = 0.4;	// 'saturation' ratio of intercellular to ambient
-								// CO2 partial pressure for C4 plants
-const double BC3 = 0.015;		// leaf respiration as fraction of maximum rubisco
-const double BC4 = 0.02;		// capacity for C3 and C4 plants
+
+// Constants for photosynthesis calculations
+
+/// conversion factor for solar radiation at 550 nm from J/m2 to mol_quanta/m2 (E=mol quanta); mol J-1
+const double CQ = 4.6e-6;
+
+/// intrinsic quantum efficiency of CO2 uptake, C3 plants
+const double ALPHA_C3 = 0.08;
+
+/// intrinsic quantum efficiency of CO2 uptake, C4 plants
+const double ALPHA_C4 = 0.053;
+
+/// O2 partial pressure (Pa)
+const double PO2 = 2.09e4;
+
+/// colimitation (shape) parameter
+const double THETA = 0.7;
+
+/// 'saturation' ratio of intercellular to ambient CO2 partial pressure for C4 plants
+const double LAMBDA_SC4 = 0.4;
+
+/// leaf respiration as fraction of maximum rubisco, C3 plants
+const double BC3 = 0.015;
+
+/// leaf respiration as fraction of maximum rubisco, C4 plants
+const double BC4 = 0.02;
+
+
 
 /// Lambert-Beer extinction law (Prentice et al 1993; Monsi & Saeki 1953)
 inline double lambertbeer(double lai) {

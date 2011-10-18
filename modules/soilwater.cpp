@@ -37,7 +37,7 @@
 
 double rain_melt;							// rainfall and snowmelt today (mm)
 double max_rain_melt;						// upper limit for percolation (mm)
-bool ifpercolate;							// whether to percolate today
+bool percolate;							// whether to percolate today
 
 void snow(double prec, double temp, double& snowpack, double& rain_melt) {
 
@@ -74,17 +74,14 @@ void snow(double prec, double temp, double& snowpack, double& rain_melt) {
 }
 
 void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double perc_base,
-	double perc_exp, double awc[NSOILLAYER], double fevap, double awcont[NSOILLAYER],
-	double wcont[NSOILLAYER], double& wcont_evap, double& runoff, double snowpack) {
+	double perc_exp, double awc[NSOILLAYER], double fevap, double snowpack,
+	double awcont[NSOILLAYER], double wcont[NSOILLAYER], double& wcont_evap, double& runoff) {
 
 	// Daily update of water content for each soil layer given snow melt, rainfall,
 	// evapotranspiration from vegetation (AET) and percolation between layers;
 	// calculation of runoff
 
-	// guess2008 - DLE - new function signature. We now take awcont[] as an argument
-
 	// INPUT PARAMETERS
-	// pet        = potential evapotranspiration today (mm)
 	// rain_melt  = inward water flux to soil today (rain + snowmelt) (mm)
 	// perc_base  = coefficient in percolation calculation (K in Eqn 31, Haxeltine
 	//              & Prentice 1996)
@@ -94,6 +91,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	//              layers (mm rainfall) [0=upper layer]
 	// fevap      = fraction of modelled area (grid cell or patch) subject to
 	//              evaporation from soil surface
+	// snowpack   = depth of snow (mm)
 
 	// INPUT AND OUTPUT PARAMETERS
 	// wcont      = array containing water content of soil layers [0=upper layer] as
@@ -186,7 +184,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 
 	// Percolation from evaporation layer
 	double perc = 0.0;
-	if (ifpercolate) {
+	if (percolate) {
 		perc = min(SOILDEPTH_EVAP/SOILDEPTH_UPPER*perc_base*pow(wcont_evap,perc_exp),
 													max_rain_melt);
 	}
@@ -205,7 +203,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 		// Percolation
 		// Allow only on days with rain or snowmelt (Dieter Gerten, 021216)
 
-		if (ifpercolate) {
+		if (percolate) {
 			perc = min(perc_base*pow(wcont[s-1],perc_exp), max_rain_melt);
 		} else {
 			perc=0.0;
@@ -230,7 +228,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 
 	// Baseflow runoff (Dieter Gerten 021216) (rain or snowmelt days only)
 	double runoff_baseflow = 0.0;
-	if (ifpercolate) {
+	if (percolate) {
 		double perc_baseflow=BASEFLOW_FRAC*perc_base*pow(wcont[NSOILLAYER-1],perc_exp);
 		// guess2008 - Added "&& rain_melt >= runoff_surf" to guarantee nonnegative baseflow.
 		if (perc_baseflow > rain_melt - runoff_surf && rain_melt >= runoff_surf) {
@@ -285,15 +283,21 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	}
 }
 
+/// Derive and re-distribute available rain-melt for today
+/** Function to be called after interception and before canopy_exchange
+ *  Calculate snowmelt
+ *  If there's any rain-melt available, refill top layer, leaving any excessive
+ *  rainmelt to be re-distributed later in hydrology_lpjf
+ */
 void hydrology_light(Patch& patch, Climate& climate) {
 
 	// Update snowpack and derive actual water input to soil, taking into account
 	// interception and snowmelt
 	Soil& soil = patch.soil;
 	snow(climate.prec - patch.intercep, climate.temp, soil.snowpack, rain_melt);
-	ifpercolate = rain_melt >= 0.1;
+	percolate = rain_melt >= 0.1;
 	max_rain_melt = rain_melt;
-	if (ifpercolate) {
+	if (percolate) {
 		soil.wcont[0] += rain_melt / soil.soiltype.awc[0];
 		if (soil.wcont[0] > 1) {
 			rain_melt = (soil.wcont[0] - 1) * soil.soiltype.awc[0];
@@ -335,7 +339,7 @@ void soilwater(Patch& patch, Climate& climate) {
 
 	hydrology_lpjf(patch, climate, rain_melt, soil.soiltype.perc_base,
 		soil.soiltype.perc_exp, soil.soiltype.awc, max(1.0-fpc_phen_total,0.0),
-		soil.awcont, soil.wcont, soil.wcont_evap, soil.runoff, soil.snowpack);
+		soil.snowpack, soil.awcont, soil.wcont, soil.wcont_evap, soil.runoff);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

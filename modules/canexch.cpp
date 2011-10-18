@@ -544,17 +544,6 @@ void fpar(Patch& patch) {
 // PHOTOSYNTHESIS
 // Internal function (do not call directly from framework)
 
-
-// Lookup tables for parameters with Q10 temperature responses
-
-LookupQ10 lookup_ko(Q10KO,KO25);
-	// lookup table for Q10 temperature response of Michaelis constant for O2
-LookupQ10 lookup_kc(Q10KC,KC25);
-	// lookup table for Q10 temperature response of Michaelis constant for CO2
-LookupQ10 lookup_tau(Q10TAU,TAU25);
-	// lookup table for Q10 temperature response of CO2/O2 specificity ratio
-
-
 void photosynthesis(double co2,double temp,double par,double daylength,
 		    double fpar,double lambda,pathwaytype pathway,double pstemp_min,
 		    double pstemp_low,double pstemp_high,double pstemp_max,double lambda_max,
@@ -827,74 +816,6 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 
 	adtmm=adt/CMASS*8.314*tk/PATMOS*1000.0;
 }
-
-///////////////////////////////////////////////////////////////////////////////////////
-// CONVECTIVE BOUNDARY LAYER
-// Generic Monteith (1995) or Huntingford & Monteith (1998) CBL parameterisation
-
-#if defined(AET_MONTEITH_EXPONENTIAL)
-
-// Empirical parameters (exponential parameterisation)
-const double ALPHAM=1.4;
-const double GM=5.0;
-
-#elif defined(AET_MONTEITH_HYPERBOLIC)
-
-// Empirical parameters (hyperbolic parameterisation)
-const double ALPHAM=1.391;
-const double GM=3.26;
-
-#endif
-
-inline double aet_monteith(double& eet,double& gc) {
-
-	// Returns AET given equilibrium evapotranspiration and
-	// canopy conductance
-
-#if defined(AET_MONTEITH_EXPONENTIAL)
-
-	// Exponential version of function
-
-	if (negligible(gc)) return 0.0;
-	else return eet*ALPHAM*(1.0-exp(-gc/GM));
-
-#elif defined(AET_MONTEITH_HYPERBOLIC)
-
-	// Hyperbolic version of function
-
-	return eet*ALPHAM*gc/(gc+GM);
-
-#endif
-
-}
-
-
-inline double gc_monteith(double& aet,double& eet) {
-
-	// Returns canopy conductance given AET and equilibrium evapotranspiration
-
-#if defined(AET_MONTEITH_EXPONENTIAL)
-
-	// Exponential version of function
-
-	double t;
-
-	if (negligible(eet)) return 0.0;
-	t=aet/eet/ALPHAM;
-	if (t>=1.0) fail("gc_monteith: invalid value for aet/eet/ALPHAM");
-
-	return -GM*log(1.0-aet/eet/ALPHAM);
-
-#elif defined(AET_MONTEITH_HYPERBOLIC)
-
-	// Hyperbolic version of function
-
-	return (aet*GM)/(eet*ALPHAM-aet);
-
-#endif
-
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // TRANSPIRATIVE DEMAND AND NON-WATER-STRESSED PHOTOSYNTHESIS

@@ -22,11 +22,86 @@
 void interception(Patch& patch, Climate& climate);
 void canopy_exchange(Patch& patch, Climate& climate);
 
+
 // Constants for photosynthesis calculations
-const double CQ=4.6E-6;      // conversion factor for solar radiation at 550
-                             // nm from J/m2 to mol_quanta/m2 (E=mol quanta); mol J-1
-const double ALPHA_C3=0.08;  // intrinsic quantum efficiency of CO2 uptake for C3 plants     
-const double ALPHA_C4=0.053; // intrinsic quantum efficiency of CO2 uptake for C4 plants                                                
-const double PO2=2.09E4;     // O2 partial pressure (Pa)
+
+/// conversion factor for solar radiation at 550 nm from J/m2 to mol_quanta/m2 (E=mol quanta); mol J-1
+const double CQ = 4.6e-6;
+
+/// intrinsic quantum efficiency of CO2 uptake, C3 plants
+const double ALPHA_C3 = 0.08;
+
+/// intrinsic quantum efficiency of CO2 uptake, C4 plants
+const double ALPHA_C4 = 0.053;
+
+/// O2 partial pressure (Pa)
+const double PO2 = 2.09e4;
+
+/// colimitation (shape) parameter
+const double THETA = 0.7;
+
+/// 'saturation' ratio of intercellular to ambient CO2 partial pressure for C4 plants
+const double LAMBDA_SC4 = 0.4;
+
+/// leaf respiration as fraction of maximum rubisco, C3 plants
+const double BC3 = 0.015;
+
+/// leaf respiration as fraction of maximum rubisco, C4 plants
+const double BC4 = 0.02;
+
+
+
+/// Lambert-Beer extinction law (Prentice et al 1993; Monsi & Saeki 1953)
+inline double lambertbeer(double lai) {
+	return exp(-.5 * lai);
+}
+
+/// Alternative parameterisations of the convective boundary layer
+/**
+ *	AET_MONTEITH_HYPERBOLIC = hyperbolic parameterisation (Huntington & Monteith 1998)
+ *	AET_MONTEITH_EXPONENTIAL = exponential parameterisation (Monteith 1995)
+ *	aet_monteith		Returns AET given equilibrium evapotranspiration and canopy conductance
+ *	gc_monteith			Returns canopy conductance given AET and equilibrium evapotranspiration
+ */
+
+// Comment out one of the following two lines:
+#define AET_MONTEITH_HYPERBOLIC
+//#define AET_MONTEITH_EXPONENTIAL
+
+// Check:
+#if defined(AET_MONTEITH_HYPERBOLIC) && defined(AET_MONTEITH_EXPONENTIAL)
+#error Only one of AET_MONTEITH_HYPERBOLIC and AET_MONTEITH_EXPONENTIAL should be #defined
+#elif !defined(AET_MONTEITH_HYPERBOLIC) && !defined(AET_MONTEITH_EXPONENTIAL)
+#error One of AET_MONTEITH_HYPERBOLIC and AET_MONTEITH_EXPONENTIAL must be #defined
+#endif
+
+#if defined(AET_MONTEITH_EXPONENTIAL)
+
+const double ALPHAM = 1.4;
+const double GM = 5.0;
+
+inline double aet_monteith(double& eet, double& gc) {
+	return negligible(gc) ? 0.0 : eet*ALPHAM*(1.0-exp(-gc/GM));
+}
+
+inline double gc_monteith(double& aet, double& eet) {
+	if (negligible(eet)) return 0.0;
+	double t = aet/eet/ALPHAM;
+	if (t >= 1.0) fail("gc_monteith: invalid value for aet/eet/ALPHAM");
+	return -GM * log(1.0 - t);
+}
+#elif defined(AET_MONTEITH_HYPERBOLIC)
+
+const double ALPHAM = 1.391;
+const double GM = 3.26;
+
+inline double aet_monteith(double& eet, double& gc) {
+	return eet*ALPHAM*gc/(gc+GM);
+}
+
+inline double gc_monteith(double& aet, double& eet) {
+	return (aet*GM) / (eet*ALPHAM-aet);
+}
+#endif
 
 #endif // LPJ_GUESS_CANEXCH_H

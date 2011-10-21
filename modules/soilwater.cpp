@@ -35,10 +35,6 @@
 #include "config.h"
 #include "soilwater.h"
 
-double rain_melt;							// rainfall and snowmelt today (mm)
-double max_rain_melt;						// upper limit for percolation (mm)
-bool percolate;							// whether to percolate today
-
 void snow(double prec, double temp, double& snowpack, double& rain_melt) {
 
 	// Daily calculation of snowfall and rainfall from precipitation and snow melt from
@@ -74,8 +70,9 @@ void snow(double prec, double temp, double& snowpack, double& rain_melt) {
 }
 
 void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double perc_base,
-	double perc_exp, double awc[NSOILLAYER], double fevap, double snowpack,
-	double awcont[NSOILLAYER], double wcont[NSOILLAYER], double& wcont_evap, double& runoff) {
+		double perc_exp, double awc[NSOILLAYER], double fevap, double snowpack,
+		bool percolate, double max_rain_melt, double awcont[NSOILLAYER],
+		double wcont[NSOILLAYER], double& wcont_evap, double& runoff) {
 
 	// Daily update of water content for each soil layer given snow melt, rainfall,
 	// evapotranspiration from vegetation (AET) and percolation between layers;
@@ -291,19 +288,17 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
  */
 void hydrology_light(Patch& patch, Climate& climate) {
 
-	// Update snowpack and derive actual water input to soil, taking into account
-	// interception and snowmelt
 	Soil& soil = patch.soil;
-	snow(climate.prec - patch.intercep, climate.temp, soil.snowpack, rain_melt);
-	percolate = rain_melt >= 0.1;
-	max_rain_melt = rain_melt;
-	if (percolate) {
-		soil.wcont[0] += rain_melt / soil.soiltype.awc[0];
+	snow(climate.prec - patch.intercep, climate.temp, soil.snowpack, soil.rain_melt);
+	soil.percolate = soil.rain_melt >= 0.1;
+	soil.max_rain_melt = soil.rain_melt;
+	if (soil.percolate) {
+		soil.wcont[0] += soil.rain_melt / soil.soiltype.awc[0];
 		if (soil.wcont[0] > 1) {
-			rain_melt = (soil.wcont[0] - 1) * soil.soiltype.awc[0];
+			soil.rain_melt = (soil.wcont[0] - 1) * soil.soiltype.awc[0];
 			soil.wcont[0] = 1;
 		} else {
-			rain_melt = 0;			
+			soil.rain_melt = 0;			
 		}
 		soil.wcont_evap = soil.wcont[0];
 	}
@@ -337,9 +332,10 @@ void soilwater(Patch& patch, Climate& climate) {
 
 	Soil& soil = patch.soil;
 
-	hydrology_lpjf(patch, climate, rain_melt, soil.soiltype.perc_base,
-		soil.soiltype.perc_exp, soil.soiltype.awc, max(1.0-fpc_phen_total,0.0),
-		soil.snowpack, soil.awcont, soil.wcont, soil.wcont_evap, soil.runoff);
+	hydrology_lpjf(patch, climate, soil.rain_melt, soil.soiltype.perc_base,
+			soil.soiltype.perc_exp, soil.soiltype.awc, max(1.0-fpc_phen_total,0.0),
+			soil.snowpack, soil.percolate, soil.max_rain_melt, soil.awcont, soil.wcont,
+			soil.wcont_evap, soil.runoff);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

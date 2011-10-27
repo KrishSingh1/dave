@@ -179,7 +179,7 @@ xtring file_cton,file_nmass,file_nsources,file_npool,file_nleach,file_age,file_n
 // end GUESSN
 
 // GUESSN allometry
-xtring file_allometry,file_canopyh;
+xtring file_allometry,file_canopyh,file_allometry_ind;
 // end GUESSN
 
 void initsettings() {
@@ -211,7 +211,7 @@ void initsettings() {
 	// end GUESSN
 
 	// GUESSN allometry
-	file_allometry=file_canopyh="";
+	file_allometry=file_canopyh=file_allometry_ind="";
 	// end GUESSN
 }
 
@@ -363,6 +363,7 @@ void plib_declarations(int id,xtring setname) {
 		// GUESSN allometry
 		declareitem("file_allometry",&file_allometry,300,CB_NONE,"Allometry output file");
 		declareitem("file_canopyh",&file_canopyh,300,CB_NONE,"Canopy height output file");
+		declareitem("file_allometry_ind",&file_allometry_ind,300,CB_NONE,"Individual Allometry output file");
 		// end GUESSN
 		
 		// Monthly output variables
@@ -1203,7 +1204,7 @@ FILE *out_cton,*out_nmass, *out_nsources, *out_npool, *out_nleach, *out_age, *ou
 // end GUESSN
 
 // GUESSN allometry
-FILE *out_allometry, *out_canopyh;
+FILE *out_allometry, *out_canopyh, *out_allometry_ind;
 // end GUESSN
 
 // Timers for keeping track of progress through the simulation
@@ -1276,7 +1277,7 @@ xtring file_cru_misc;
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/*void read_FACE_clim(double FACE_dtemp[NYEAR_SCENARIO_FACE][365],double FACE_dprec[NYEAR_SCENARIO_FACE][365],
+void read_FACE_clim(double FACE_dtemp[NYEAR_SCENARIO_FACE][365],double FACE_dprec[NYEAR_SCENARIO_FACE][365],
 	double FACE_dsun[NYEAR_SCENARIO_FACE][365],double FACE_dco2[NYEAR_SCENARIO_FACE][365], 
 	double FACE_yndep[NYEAR_NDEP],int NYEAR_SCENARIO_FACE,int NYEAR_NDEP)
 {
@@ -1417,7 +1418,7 @@ void read_CANIF_clim(double CANIF_dtemp[NSITES][MAXNYEAR_SCENARIO_CANIF][365],
 		}
 	}
 	
-}*/
+}
 //----------------------------------------------------------------------------------------------
 
 
@@ -1963,6 +1964,14 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	}
 	else out_allometry=NULL;
 
+	if (file_allometry_ind!="") {
+		file_allometry_ind = outputdirectory + file_allometry_ind;
+		out_allometry_ind=fopen(file_allometry_ind,"w");
+		if (!out_allometry_ind) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_allometry_ind);
+	}
+	else out_allometry_ind=NULL;
+	
+
 	if (file_canopyh!="") {
 		file_canopyh = outputdirectory + file_canopyh;
 		out_canopyh=fopen(file_canopyh,"w");
@@ -2210,7 +2219,7 @@ bool getstand(Stand& stand) {
 
 
 		// FACE DAVID climate Reading met data
-	/*	if (has_FACE_clim)		
+		if (has_FACE_clim)		
 			read_FACE_clim(dtemp_FACE,dprecip_FACE,dsun_FACE,dco2_FACE,yndep_FACE,NYEAR_SCENARIO_FACE,NYEAR_NDEP);
 
 		// CANIF DAVID climate Reading met data
@@ -2218,7 +2227,7 @@ bool getstand(Stand& stand) {
 			read_CANIF_clim(dtemp_CANIF,dprecip_CANIF,dsun_CANIF,lonlatyearsndep,NSITES,lon,lat);
 			stand.plantyear=(nyear_spinup+NYEAR_HIST-lonlatyearsndep[WSITE][4]);
 			dprintf("Plant year %d \n",stand.plantyear);
-		}*/
+		}
 
 		while (!gridfound) {
 
@@ -2843,7 +2852,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		// GUESSN allometry
 		if (out_allometry) fprintf(out_allometry,lonlatyearstr,"Lon","Lat","Year");
 		if (out_canopyh) fprintf(out_canopyh,lonlatyearstr,"Lon","Lat","Year");
-		// end GUESSN
+		if (out_allometry_ind) fprintf(out_allometry_ind,lonlatyearstr,"Lon","Lat","Year");
+		if (out_allometry_ind) fprintf(out_allometry_ind,"%8s%8s%8s%8s%8s%8s%8s%10s%8s%10s%10s%10s%10s\n","PFT","N","Mfol","Mstem","Mcroot","Mfroot","Mroot","Mwood","Mactive","M","H","D","CWD");
+		// end GUESSN 
 
 		// Loop through PFT's and print PFT names as column labels
 
@@ -2864,7 +2875,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			// end GUESSN
 
 			// GUESSN allometry
-			if (out_allometry && pft.lifeform==TREE) fprintf(out_allometry,"%8s%8s%8s%8s%8s%8s%8s%10s%8s%10s%10s%10s",(char*)pft.name,"N","Mfol","Mstem","Mcroot","Mfroot","Mroot","Mwood","Mactive","M","H","D");
+			if (out_allometry && pft.lifeform==TREE) fprintf(out_allometry,"%8s%8s%8s%8s%8s%8s%8s%10s%8s%10s%10s%10s%10s",(char*)pft.name,"N","Mfol","Mstem","Mcroot","Mfroot","Mroot","Mwood","Mactive","M","H","D","CWD");
 			// end GUESSN
 
 			pftlist.nextobj();
@@ -2919,7 +2930,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	// If only yearly output between, say 1961 and 1990 is requred, use: 
 	//	if (date.year>=nyear_spinup+60 && date.year<nyear_spinup+90) {
 
-	if (date.year>=nyear_spinup+80) {
+	if (date.year>=nyear_spinup) {
 
 		lon=gridlist.getobj().lon;
 		lat=gridlist.getobj().lat;
@@ -3027,7 +3038,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			// end GUESSN
 
 			// GUESSN allometry
-			double allometry[] = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+			double allometry[] = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+			double allometry_ind[] = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
 
 			// Initialise age structure array
 
@@ -3083,45 +3095,71 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 									// Number of individuals
 									allometry[0]+=indiv.densindiv*10000.0;	
+									allometry_ind[0]=indiv.densindiv*10000.0;
 								
 									// Total leaf C mass for these individuals
 									allometry[1]+=(indiv.cmass_leaf/indiv.densindiv)*	// Leaf mass for one indiv
 										(indiv.densindiv*10000.0);						// Number of individuals
+									allometry_ind[1]=(indiv.cmass_leaf/indiv.densindiv)*	
+										(indiv.densindiv*10000.0);						
 								
 									// Total stem C mass for these individuals (0.75 from Wolf 2011)
 									allometry[2]+=(indiv.cmass_sap+indiv.cmass_heart)*0.75/indiv.densindiv*	// Leaf mass for one indiv
+										(indiv.densindiv*10000.0);
+									allometry_ind[2]=(indiv.cmass_sap+indiv.cmass_heart)*0.75/indiv.densindiv*	// Leaf mass for one indiv
 										(indiv.densindiv*10000.0);
 
 									// Total coarse root C mass for these individuals (0.25 from Wolf 2011)
 									allometry[3]+=(indiv.cmass_sap+indiv.cmass_heart)*0.25/indiv.densindiv*	// Leaf mass for one indiv
 										(indiv.densindiv*10000.0);
+									allometry_ind[3]=(indiv.cmass_sap+indiv.cmass_heart)*0.25/indiv.densindiv*	// Leaf mass for one indiv
+										(indiv.densindiv*10000.0);
 
 									// Total fine root C mass
 									allometry[4]+=(indiv.cmass_root/indiv.densindiv)*	
+										(indiv.densindiv*10000.0);
+									allometry_ind[4]=(indiv.cmass_root/indiv.densindiv)*	
 										(indiv.densindiv*10000.0);
 
 									// Total total root C mass for these individuals 
 									allometry[5]+=((indiv.cmass_sap+indiv.cmass_heart)*0.25+indiv.cmass_root)/indiv.densindiv*	// Leaf mass for one indiv
 										(indiv.densindiv*10000.0);
+									allometry_ind[5]=((indiv.cmass_sap+indiv.cmass_heart)*0.25+indiv.cmass_root)/indiv.densindiv*	// Leaf mass for one indiv
+										(indiv.densindiv*10000.0);
 								
 									// Total wood C mass
 									allometry[6]+=((indiv.cmass_sap+indiv.cmass_heart)/indiv.densindiv)*	
+										(indiv.densindiv*10000.0);
+									allometry_ind[6]=((indiv.cmass_sap+indiv.cmass_heart)/indiv.densindiv)*	
 										(indiv.densindiv*10000.0);
 								
 									// Total active C mass
 									allometry[7]+=((indiv.cmass_leaf+indiv.cmass_root)/indiv.densindiv)*	
 										(indiv.densindiv*10000.0);
+									allometry_ind[7]=((indiv.cmass_leaf+indiv.cmass_root)/indiv.densindiv)*	
+										(indiv.densindiv*10000.0);
 								
 									// Total C mass
 									allometry[8]+=((indiv.cmass_sap+indiv.cmass_heart+indiv.cmass_leaf+indiv.cmass_root)/indiv.densindiv)*
 										(indiv.densindiv*10000.0);
+									allometry_ind[8]=((indiv.cmass_sap+indiv.cmass_heart+indiv.cmass_leaf+indiv.cmass_root)/indiv.densindiv)*
+										(indiv.densindiv*10000.0);
 								
 									// Accumulated height of these individuals
 									allometry[9]+=indiv.height*indiv.densindiv*10000.0;	
+									allometry_ind[9]=indiv.height*indiv.densindiv*10000.0;	
 							
 									// Accumulated diameter of these individuals
 									allometry[10]+=(pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3))*indiv.densindiv*10000.0;
+									allometry_ind[10]=(pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3))*indiv.densindiv*10000.0;
 
+									if (out_allometry_ind && date.year == nyear_spinup+105)
+										fprintf(out_allometry_ind,"%8.1f%8.1f%8d%8d%8.0f%8.2f%8.2f%8.2f%8.2f%8.2f%10.2f%8.2f%10.2f%10.2f%10.3f%10.3f\n",
+											lon,lat,date.year,standpft.pft.id,allometry_ind[0],allometry_ind[1]/allometry_ind[0],
+											allometry_ind[2]/allometry_ind[0],allometry_ind[3]/allometry_ind[0],allometry_ind[4]/allometry_ind[0],
+											allometry_ind[5]/allometry_ind[0],allometry_ind[6]/allometry_ind[0],allometry_ind[7]/allometry_ind[0],
+											allometry_ind[8]/allometry_ind[0],allometry_ind[9]/allometry_ind[0],allometry_ind[10]/allometry_ind[0],allometry_ind[11]/allometry_ind[0]);
+				
 								}// end GUESSN
 							
 								// Age structure
@@ -3142,7 +3180,11 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 					vegetation.nextobj();
 				}
+
+				allometry[11]+=patchpft.litter_wood*10000.0*cwdtransfer/(double)npatch;
 			} // end of patch loop
+
+			
 
 			standpft.cmass_total/=(double)npatch;
 			standpft.anpp_total/=(double)npatch;
@@ -3203,14 +3245,14 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			// GUESSN allometry
 			if (out_allometry && pft.lifeform==TREE)
 				if (allometry[0]>0.0)
-					fprintf(out_allometry,"%8d%8.0f%8.2f%8.2f%8.2f%8.2f%8.2f%10.2f%8.2f%10.2f%10.2f%10.3f",
+					fprintf(out_allometry,"%8d%8.0f%8.2f%8.2f%8.2f%8.2f%8.2f%10.2f%8.2f%10.2f%10.2f%10.3f%10.3f",
 					standpft.pft.id,allometry[0],allometry[1]/allometry[0],
 					allometry[2]/allometry[0],allometry[3]/allometry[0],allometry[4]/allometry[0],
 					allometry[5]/allometry[0],allometry[6]/allometry[0],allometry[7]/allometry[0],
-					allometry[8]/allometry[0],allometry[9]/allometry[0],allometry[10]/allometry[0]);
+					allometry[8]/allometry[0],allometry[9]/allometry[0],allometry[10]/allometry[0],allometry[11]/allometry[0]);
 				else
-					fprintf(out_allometry,"%8d%8.0f%8.0f%8.0f%8.0f%8.0f%8.0f%10.0f%8.0f%10.0f%10.0f%10.0f",
-					(char*)standpft.pft.id,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0);
+					fprintf(out_allometry,"%8d%8.0f%8.0f%8.0f%8.0f%8.0f%8.0f%10.0f%8.0f%10.0f%10.0f%10.0f%10.0f",
+					(char*)standpft.pft.id,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0);
 
 			if (has_CANIF_clim && date.year-100 >= nyear_spinup && (((WSITE==2 || WSITE==3 || WSITE==4) && pft.name == "TeBS") || (WSITE==0 && pft.name=="BNE") || ((WSITE==1 || WSITE==5 || WSITE==6 || WSITE==7) && pft.name=="TeNE")))
 				dprintf("Year %d height %g dens %g anpp %g C:N %g\n",date.year,allometry[9]/allometry[0],allometry[0],standpft.anpp_total,cton_leaf_avr);
@@ -3595,6 +3637,7 @@ void termio() {
 		// GUESSN allometry
 		if (out_allometry) fclose(out_allometry);
 		if (out_canopyh) fclose(out_canopyh);
+		if (out_allometry_ind) fclose(out_allometry_ind);
 		// end GUESSN
 
 		if (out_mnpp) fclose(out_mnpp);

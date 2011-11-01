@@ -1050,6 +1050,11 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 	fluxes.mcflux_soil[date.month]+=respsum;
 	fluxes.acflux_soil+=respsum;
 
+	soil.FACE_out[22][date.day]=respsum*1000.0;
+	soil.FACE_out[23][date.day]=respsum*1000.0;
+	soil.FACE_out[66][date.day]=nmin_actual*1000.0;
+	soil.FACE_out[67][date.day]=nimmob*1000.0;
+
 	// Store daily mineralisation and immobilisation to permit calculation of daily
 	// mineral nitrogen balance at end of year
 
@@ -1235,6 +1240,7 @@ void leaching(Soil& soil) {
 	soil.sompool[LEACHED].nmass+=soil.sompool[SOILMICRO].nmass*leachfrac;
 
 	soil.n_org_leach_annual+=soil.sompool[SOILMICRO].nmass*leachfrac;
+	soil.FACE_out[69][date.day]=soil.sompool[SOILMICRO].nmass*leachfrac*1000.0;
 	
 	soil.sompool[SOILMICRO].cmass*=(1.0-leachfrac);
 	soil.sompool[SOILMICRO].nmass*=(1.0-leachfrac);
@@ -2304,6 +2310,10 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 	// N deposition
 	soil.ndep_annual=patch.stand.climate.andep;
 
+	// FACE OUT
+	for (int dd=0;dd<365;dd++)
+		soil.FACE_out[10][dd]=soil.ndep_annual/365.0*1000.0;
+
 	// N fixation
 	if (ifnfix==1)
 		soil.N_fix = max(0.00000102*patch.aaet+0.0000524,0.0);	
@@ -2316,6 +2326,9 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 			// Upper N fixation (Cleveland 1999 fig. 1)
 	else
 		soil.N_fix = 0.0;
+
+	for (int g=0;g<365;g++)
+		soil.FACE_out[61][g]=soil.N_fix/365.0*1000.0;
 
 	// N mineralisation and immobilisation
 	soil.nmin_annual=0.0;
@@ -2440,12 +2453,17 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 					// Daily N uptake by this individual (Eqn 3)
 					nuptake_day=ndemand_day*indiv.fnuptake;
 
+					indiv.FACE_out[65][d]=ndemand_day*indiv.fnuptake*1000.0;	// FACE OUT	
+
 					// Add to individual's nitrogen stores
 					indiv.nstore+=nuptake_day;
 					
 					// Deduct from soil N pool (negative result allowed)
 					nmass_avail[d]-=nuptake_day;
 				}
+				else
+					indiv.FACE_out[65][d]=0.0;	// FACE OUT
+
 
 				// ... on to next individual
 				vegetation.nextobj();
@@ -2491,6 +2509,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 					soil.sompool[LEACHED].nmass+=leachn;
 					soil.n_min_leach_annual+=leachn;
 					nmass_avail[d]-=leachn;
+					soil.FACE_out[69][d]+=leachn*1000.0; // FACE OUT
 				}
 			}
 		}	
@@ -2658,6 +2677,30 @@ void som_dynamics_century(Patch& patch,Pftlist& pftlist) {
 		plot("century N","passivesom",date.year,soil.sompool[PASSIVESOM].nmass);
 	}
 
+	// FACE OUT
+	soil.FACE_out[40][date.day]=0.0;
+	soil.FACE_out[58][date.day]=0.0;
+	soil.FACE_out[59][date.day]=0.0;
+	soil.FACE_out[60][date.day]=0.0;
+	
+	for (p=0;p<NSOMPOOL;p++) 
+	{
+
+		if (date.year > 100)
+			int sch = 0;
+		if (p == 2 || p == 4) {
+			soil.FACE_out[60][date.day] += soil.sompool[p].nmass*1000.0;		// N in Organic Form (N mass in pool kgC/m2)
+		}
+		else {
+			if(p != 0 && p != 1 &&p != 5 && p != 6 && p != 7 && p != NSOMPOOL-1)
+				soil.FACE_out[59][date.day] += soil.sompool[p].nmass*1000.0;	// N in Mineral Form (N mass in pool kgC/m2)
+		}
+		
+		if(p != 0 && p != 1 &&p != 5 && p != 6 && p != 7 && p != NSOMPOOL-1) {
+			soil.FACE_out[40][date.day] += soil.sompool[p].cmass*1000.0;		// C Soil (C mass in pool kgC/m2)
+			soil.FACE_out[58][date.day] += soil.sompool[p].nmass*1000.0;		// N Soil Total (N mass in pool kgC/m2)	
+		}
+	}
 }
 // end GUESSN
 

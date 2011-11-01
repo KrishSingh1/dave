@@ -182,6 +182,9 @@ xtring file_cton,file_nmass,file_nsources,file_npool,file_nleach,file_age,file_n
 xtring file_allometry,file_canopyh,file_allometry_ind;
 // end GUESSN
 
+// FACE OUT
+xtring file_face;
+
 void initsettings() {
 
 	// Initialises global settings
@@ -213,6 +216,10 @@ void initsettings() {
 	// GUESSN allometry
 	file_allometry=file_canopyh=file_allometry_ind="";
 	// end GUESSN
+
+	// FACE OUT
+	file_face="";
+	// end FACE OUT
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -365,6 +372,10 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_canopyh",&file_canopyh,300,CB_NONE,"Canopy height output file");
 		declareitem("file_allometry_ind",&file_allometry_ind,300,CB_NONE,"Individual Allometry output file");
 		// end GUESSN
+
+		// FACE OUT
+		declareitem("file_face",&file_face,300,CB_NONE,"FACE output file");
+		// end FACE OUT
 		
 		// Monthly output variables
 		declareitem("file_mnpp",&file_mnpp,300,CB_NONE,"Monthly NPP output file");
@@ -1207,6 +1218,10 @@ FILE *out_cton,*out_nmass, *out_nsources, *out_npool, *out_nleach, *out_age, *ou
 FILE *out_allometry, *out_canopyh, *out_allometry_ind;
 // end GUESSN
 
+// FACE OUT
+FILE *out_face;
+// end FACE OUT
+
 // Timers for keeping track of progress through the simulation
 Timer tprogress,tmute;
 const int MUTESEC=20; // minimum number of sec to wait between progress messages
@@ -1979,6 +1994,15 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	}
 	else out_canopyh=NULL;
 	// end GUESSN
+
+	// FACE OUT
+	if (file_face!="") {
+		file_face = outputdirectory + file_face;
+		out_face=fopen(file_face,"w");
+		if (!out_face) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_face);
+	}
+	else out_face=NULL;
+	// end FACE OUT
 
 	// *** MONTHLY OUTPUT VARIABLES ***
 
@@ -2856,6 +2880,19 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_allometry_ind) fprintf(out_allometry_ind,"%8s%8s%8s%8s%8s%8s%8s%10s%8s%10s%10s%10s%10s\n","PFT","N","Mfol","Mstem","Mcroot","Mfroot","Mroot","Mwood","Mactive","M","H","D","CWD");
 		// end GUESSN 
 
+		// FACE OUT
+		if (out_face) {
+			for (int u=1;u<76;u++)
+				fprintf(out_face,"%14.0d",u);
+		}
+
+		if (out_face) fprintf(out_face,"\n%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s",
+			"YEAR","DOY","CO2","PPT","PAR","AT","ST","VPD","SW","NDEP*","NEP","GPP","NPP","CEX","CVOC","RECO","RAUTO","RLEAF","RWOOD","RROOT","RGROW","RHET","RSOIL","ET","T");
+		if (out_face) fprintf(out_face,"%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s",
+			"E","INT","RO","DRAIN","LE","SH","CL","CW*","CCR","CFR*","TNC","CLIT*","CRLIT*","CDW","CSOIL","GL*","GW*","GCR","GR*","CLLFALL*","CRLIN*","CWIN*","LAI","LMA**","NCAN");
+		if (out_face) fprintf(out_face,"%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s\n",
+			"NWOOD*","NCR","NFR*","NSTOR*","NLIT*","NRLIT*","NDW","NSOIL","NPOOLM","NPOOLO","NFIX*","NLITIN*","NWLIN*","NRLIN*","NUP","NGMIN","NMIN","NVOL","NLEACH","NGL*","NGW*","NGCR","NGR*","APAR","GS");
+
 		// Loop through PFT's and print PFT names as column labels
 
 		pftlist.firstobj();
@@ -3060,6 +3097,52 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 					standpft.greff_mort_total+=patch.pft[pft.id].greff_mort_fraction/(patch.pft[pft.id].no_cohorts);
 				}
 
+				// FACE OUT
+				if (out_face && pft.id==0){	
+
+					for (int d=0;d<365;d++) {
+
+						patch.soil.FACE_out[37][d] = 0.0;	// C Litter Aboveground
+						patch.soil.FACE_out[55][d] = 0.0;	// N Litter Aboveground				
+
+						patch.soil.FACE_out[45][d] = 0.0;	// C Leaf Litterfall					
+						patch.soil.FACE_out[47][d] = 0.0;	// C Wood/branch Input
+
+						patch.soil.FACE_out[62][d] = 0.0;	// N Leaf Litterfall
+						patch.soil.FACE_out[63][d] = 0.0;	// N Wood/brch litterfall
+					
+						patch.soil.FACE_out[38][d] = 0.0;	// C Litter Belowground	
+						patch.soil.FACE_out[46][d] = 0.0;	// C Root Litter Input
+
+						patch.soil.FACE_out[56][d] = 0.0;	// N Litter Belowground
+						patch.soil.FACE_out[64][d] = 0.0;	// N Root Litter Input
+
+						patch.soil.FACE_out[17][d] = 0.0;	// Total Resp Autotrophic
+						patch.soil.FACE_out[12][d] = 0.0;	// Total GPP
+					}
+				}
+				if (out_face) {
+					for (int d=0;d<365;d++) {
+						patch.soil.FACE_out[24][d] = patch.soil.FACE_out[25][d] + patch.soil.FACE_out[26][d];	// Calculate Evapotranspiration = Transpiration + Evaporation
+					
+						patch.soil.FACE_out[37][d] += (patchpft.litter_leaf + patchpft.litter_wood)*cwdtransfer*1000.0/365.0;				// C Litter Aboveground
+						patch.soil.FACE_out[55][d] += (patchpft.nmass_litter_leaf + patchpft.nmass_litter_wood)*cwdtransfer*1000.0/365.0;	// N Litter Aboveground				
+
+						patch.soil.FACE_out[45][d] += patchpft.litter_leaf*cwdtransfer*1000.0/365.0;		// C Leaf Litterfall					
+						patch.soil.FACE_out[47][d] += patchpft.litter_wood*cwdtransfer*1000.0/365.0;		// C Wood/branch Input
+
+						patch.soil.FACE_out[62][d] += patchpft.nmass_litter_leaf*cwdtransfer*1000.0/365.0;	// N Leaf Litterfall
+						patch.soil.FACE_out[63][d] += patchpft.nmass_litter_wood*cwdtransfer*1000.0/365.0;	// N Wood/brch litterfall
+					
+						patch.soil.FACE_out[38][d] += patchpft.litter_root*cwdtransfer*1000.0/365.0;		// C Litter Belowground	
+						patch.soil.FACE_out[46][d] += patchpft.litter_root*cwdtransfer*1000.0/365.0;		// C Root Litter Input
+
+						patch.soil.FACE_out[56][d] += patchpft.nmass_litter_root*cwdtransfer*1000.0/365.0;	// N Litter Belowground
+						patch.soil.FACE_out[64][d] += patchpft.nmass_litter_root*cwdtransfer*1000.0/365.0;	// N Root Litter Input
+					}
+				}
+				// end FACE OUT
+
 				vegetation.firstobj();
 				while (vegetation.isobj) {
 					Individual& indiv=vegetation.getobj();
@@ -3068,6 +3151,14 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 					if (indiv.id!=-1 && indiv.alive) { 
 					
 						if (indiv.pft.id==pft.id) {
+
+							// FACE OUT
+							if (out_face) {
+								for (int d=0;d<365;d++) {
+									patch.soil.FACE_out[17][d]+=indiv.FACE_out[17][d];	// Calculate Resp Ecosystem = Resp Autotrophic + Resp Heterotrophic
+									patch.soil.FACE_out[12][d]+=indiv.FACE_out[12][d];	// Calculate NEP = GPP - Resp Ecosystem
+								}
+							}
 
 							standpft.cmass_total+=indiv.cmass_leaf+
 								indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
@@ -3287,25 +3378,99 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			double Duke_amb[10] = {1020.0,1248.0,1330.0,1121.0,718.0,1046.0,1142.0,996.0,0.0,0.0};
 			double Duke_ele[10] = {1315.0,1615.0,1711.0,1435.0,1017.0,1424.0,1537.0,1367.0,0.0,0.0};
 
-			if (date.year >= 2096 && has_FACE_clim) { 
+			if (date.year >= 596 && has_FACE_clim) { 
 				plot("anpp output",pft.name,date.year,stand.pft[pft.id].anpp_total);
 				if (!ifduke) {
 					if (FACE_ring == 1)
-						plot("anpp output","Real Amb",date.year,ORNL_amb[date.year-2096]/1000.0);
+						plot("anpp output","Real Amb",date.year,ORNL_amb[date.year-596]/1000.0);
 					else 
-						plot("anpp output","Real Ele",date.year,ORNL_ele[date.year-2096]/1000.0);
+						plot("anpp output","Real Ele",date.year,ORNL_ele[date.year-596]/1000.0);
 				}
 				else {
 					if (FACE_ring == 1)
-						plot("anpp output","Real Amb",date.year,Duke_amb[date.year-2096]/1000.0);
+						plot("anpp output","Real Amb",date.year,Duke_amb[date.year-596]/1000.0);
 					else 
-						plot("anpp output","Real Ele",date.year,Duke_ele[date.year-2096]/1000.0);
+						plot("anpp output","Real Ele",date.year,Duke_ele[date.year-596]/1000.0);
 				}
 			}
 
 			pftlist.nextobj();
 		
 		} // *** End of PFT loop ***
+
+		// FACE OUT
+		double FYEAR_SCENARIO_FACE = nyear_spinup+NYEAR_HIST-NYEAR_SCENARIO_FACE; 
+		// Calculates which year we should start with the data so we end the simulation with the right order
+
+		if (out_face && date.year >= FYEAR_SCENARIO_FACE) {//Last years the data is in the right order.
+			for (int d=0;d<365;d++){
+
+				double out_put[77];
+				bool has;
+
+				int nr_indiv=0;
+			
+				for(int e=0;e<77;e++)
+					out_put[e]=0.0;
+
+				for (p=0;p<npatch;p++) {
+
+					has=false;
+
+					Patch& patch=stand[p];
+					Vegetation& vegetation=patch.vegetation;
+
+					patch.soil.FACE_out[16][d]=patch.soil.FACE_out[17][d]+patch.soil.FACE_out[22][d];	// Calculate Resp Ecosystem = Resp Autotrophic + Resp Heterotrophic
+					patch.soil.FACE_out[11][d]=patch.soil.FACE_out[12][d]-patch.soil.FACE_out[16][d];	// Calculate NEP = GPP - Resp Ecosystem
+
+					vegetation.firstobj();
+					while (vegetation.isobj) {
+						Individual& indiv=vegetation.getobj();
+
+						if (indiv.age > 0 || indiv.pft.lifeform == GRASS) {
+							for(int data=1;data<77;data++) {
+								if(data==1 || data==2 || data==3 || data==4 || data==5 || data==6 || data==7 || data==9 || data==10 || data==11 || data==16 || data==22 || data==23 || data==24 || data==25 || data==26 || data==28 || data==29 || data==37 || data==38 || data==40 || data==45 || data==46 || data==47 || data==55 || data==56 || data==58 || data==59 || data==60 || data==61 || data==62 || data==63 || data==64 || data==66 || data==67 || data==69) {
+								
+									if(!has)
+										out_put[data]+=patch.soil.FACE_out[data][d]/(double)npatch;
+								}
+								else {
+									//if (indiv.age > date.year-patch.stand.plantyear-5) {
+									if (true) {
+
+										if(indiv.FACE_out[data][d] != -9999.0)
+											out_put[data]+=indiv.FACE_out[data][d]/(double)npatch;
+										else
+											out_put[data]=indiv.FACE_out[data][d];
+
+										if (data==49)
+											nr_indiv++;
+
+										if (data==32 && d<20)
+											dprintf("Year %d day %d CL %g sum %g pft %s\n",date.year,d,indiv.FACE_out[data][d],out_put[data],(char*)indiv.pft.name);
+
+									//	if (data==49 && d==1 && indiv.age > date.year-patch.stand.plantyear-5)
+									//		dprintf("Year %d LIMITATION %g vmaxlim %g reserve %g\n",(int)indiv.FACE_out[1][d],indiv.limnfact,indiv.nopt,indiv.nmass_reserve);
+									}
+								}
+							}
+							has=true;
+						}
+
+						vegetation.nextobj();
+					}
+				}
+
+				for (int r=1;r<76;r++)
+					if (r==49)
+						fprintf(out_face,"%14.6f",out_put[r]/(double)nr_indiv);
+					else
+						fprintf(out_face,"%14.6f",out_put[r]);
+
+				fprintf(out_face,"\n");
+			}
+		}
+		// end FACE OUT
 
 
 		flux_veg=flux_soil=flux_fire=flux_est=0.0;
@@ -3639,6 +3804,10 @@ void termio() {
 		if (out_canopyh) fclose(out_canopyh);
 		if (out_allometry_ind) fclose(out_allometry_ind);
 		// end GUESSN
+
+		// FACE OUT
+		if (out_face) fclose(out_face);
+		// end FACE OUT
 
 		if (out_mnpp) fclose(out_mnpp);
 		if (out_mlai) fclose(out_mlai);

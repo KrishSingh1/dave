@@ -103,7 +103,7 @@ void snow(double prec,double temp,double& snowpack,double& rain,double& melt) {
 // Internal function (do not call directly from framework)
 
 void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
-	double perc_base,double perc_exp,double awc[NSOILLAYER],double fevap,
+	double perc_base,double perc_exp,double awc[NSOILLAYER],double wp[NSOILLAYER],double fevap,
 	double awcont[NSOILLAYER],double wcont[NSOILLAYER],double& wcont_evap,
 	double& runoff,double snowpack,double& dperc) {
 
@@ -176,6 +176,8 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 
 	// Sum AET for across all vegetation individuals
 
+	patch.soil.FACE_out[25][date.day]=0.0; // Transpiration (total AET (mm))
+
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
@@ -184,6 +186,8 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 			aet=patch.pft[indiv.pft.id].fuptake[s]*indiv.aet;
 			aet_layer[s]+=aet;
 			aet_total+=aet;
+
+			patch.soil.FACE_out[25][date.day]+=aet; // Transpiration (total AET (mm))
 		}
 		vegetation.nextobj();
 	}
@@ -197,6 +201,8 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 		evap=pet*PRIESTLEY_TAYLOR*wcont_evap*wcont_evap*fevap;
 	else
 		evap = 0.0;
+
+	patch.soil.FACE_out[26][date.day]=evap; // Evaporation (evaporation from soil surface (mm))
 
 	// Implement in- and outgoing fluxes to upper soil layer
 	// BLARP: water content can become negative, though apparently only very slightly
@@ -301,6 +307,10 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 
 	runoff=runoff_surf+runoff_drain+runoff_baseflow;
 
+	// FACE OUT
+	patch.soil.FACE_out[9][date.day] = wcont[0]*awc[0]+wp[0]+wcont[1]*awc[1]+wp[1];				// Surface Soil Water Duke (soil moisture calculated as m3/m3 (volumetric) including PWP)
+	patch.soil.FACE_out[28][date.day] = runoff_surf;						// Runoff (runoff from upper soil layer (mm)) 
+	patch.soil.FACE_out[29][date.day] = runoff_drain + runoff_baseflow;	// Drainage (runoff (drainage) from lower soil layers (mm) + base flow (mm))
 
 	patch.arunoff+=runoff;
 	patch.aaet+=aet_total;
@@ -383,7 +393,7 @@ void soilwater(Climate& climate,Patch& patch) {
 
 	// guess2008 - DLE - added soil.awcont & soil.snowpack to the function call
 	hydrology_lpjf(patch,climate.eet,rain,melt,soil.soiltype.perc_base,
-		soil.soiltype.perc_exp,soil.soiltype.awc,max(1.0-fpc_phen_total,0.0),
+		soil.soiltype.perc_exp,soil.soiltype.awc,soil.soiltype.wp,max(1.0-fpc_phen_total,0.0),
 		soil.awcont,soil.wcont,soil.wcont_evap,soil.runoff,soil.snowpack,
 		soil.dperc);
 

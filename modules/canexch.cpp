@@ -648,7 +648,7 @@ LookupQ10 lookup_tau(Q10TAU,TAU25);
 void photosynthesis(double co2,double temp,double par,double daylength,
 	double fpar,double lambda,pathwaytype pathway,double pstemp_min,
 	double pstemp_low,double pstemp_high,double pstemp_max,double lambda_max,
-	double& agd,double& adtmm,double& rd,double& na,bool ifnlimvmax,double& vmax_lim) {
+	double& agd,double& adtmm,double& rd,double& na,bool ifnlimvmax,double& vmax_lim,double& indiv_apar) {	// FACE OUT apar
 
 	// DESCRIPTION
 	// Calculation of total daily gross photosynthesis and leaf-level net daytime
@@ -788,6 +788,9 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 	// Eqn 4, Haxeltine & Prentice 1996a
 
 	apar=par*fpar*ALPHAA;
+
+	// FACE OUT
+	indiv_apar=apar;
 
 	// Calculate temperature-inhibition coefficient
 	// This function (tscal) is mathematically identical to function tstress in LPJF.
@@ -997,7 +1000,7 @@ void photosynthesis_limvmax(double co2,double temp,double par,double daylength,
 	double fpar,double fpc,double lambda,pathwaytype pathway,double pstemp_min,
 	double pstemp_low,double pstemp_high,double pstemp_max,double lambda_max,
 	double cmass_leaf,double nmass_leaf,
-	double& agd,double& adtmm,double& rd,double& na,double& vmax_lim) {
+	double& agd,double& adtmm,double& rd,double& na,double& vmax_lim,double& apar) {
 
 	// Call this version of photosynthesis if Vmax is to be limited by actual
 	// leaf nitrogen. Performs calculations on an individual FPC basis but returns
@@ -1022,11 +1025,17 @@ void photosynthesis_limvmax(double co2,double temp,double par,double daylength,
 
 	// FPAR on FPC basis
 
+	if (date.year>200)
+		int sch = 0;
+
 	fpar_fpc=fpar/fpc;
+
+	if (fpar_fpc>1.0)
+		int sch = 0;
 
 	photosynthesis(co2,temp,par*fpar_fpc,daylength,
 		1.0,lambda,pathway,pstemp_min,pstemp_low,pstemp_high,pstemp_max,
-		lambda_max,agd,adtmm,rd,na_send,true,vmax_lim);
+		lambda_max,agd,adtmm,rd,na_send,true,vmax_lim,apar);
 
 	// Convert results back to patch basis
 
@@ -1167,7 +1176,7 @@ void demand(Patch& patch) {
 					indiv.fpar_leafon,indiv.fpc,pft.lambda_max,pft.pathway,pft.pstemp_min,
 					pft.pstemp_low,pft.pstemp_high,pft.pstemp_max,pft.lambda_max,
 					indiv.cmass_leaf,indiv.nmass_leaf,
-					agd,adtmm,rd,indiv.na_fpar,indiv.vmax_lim[date.day]);
+					agd,adtmm,rd,indiv.na_fpar,indiv.vmax_lim[date.day],indiv.apar);
 
 				indiv.gp_leafon=444.4*adtmm/climate.co2/(1.0-pft.lambda_max)/
 						climate.daylength+pft.gmin*indiv.fpc;
@@ -1175,7 +1184,8 @@ void demand(Patch& patch) {
 				// Save assimilation in case this turns out to be a non-water-stress day
 
 				indiv.assim_nowstress=(agd-rd)*indiv.phen;
-
+				indiv.adtmm_term=adtmm; // GC
+				
 			}
 			else {
 				if (!stand.pft[pft.id].have_phot) {
@@ -1186,7 +1196,7 @@ void demand(Patch& patch) {
 					photosynthesis(climate.co2,climate.temp,climate.par,climate.daylength,
 						1.0,pft.lambda_max,pft.pathway,pft.pstemp_min,pft.pstemp_low,
 						pft.pstemp_high,pft.pstemp_max,pft.lambda_max,agd,adtmm,rd,
-						stand.pft[pft.id].na,false,vmax_lim);
+						stand.pft[pft.id].na,false,vmax_lim,indiv.apar);
 
 					// Eqn 21, Haxeltine & Prentice 1996
 					// NB: includes conversion of daylight from hours to seconds (*3600),
@@ -1201,6 +1211,7 @@ void demand(Patch& patch) {
 					// climate and FPAR=1 assuming no water stress
 
 					stand.pft[pft.id].assim_term=agd-rd;
+					stand.pft[pft.id].adtmm_term=adtmm; // GC
 
 					stand.pft[pft.id].have_phot=true;
 				}
@@ -1214,6 +1225,9 @@ void demand(Patch& patch) {
 					pft.gmin*indiv.fpc;
 			}
 			// end GUESSN
+
+			// FACE OUT
+			indiv.FACE_out[18][date.day]=rd*1000.0;	// Leaf respiration (kg C m-2 day-1)
 
 
 #if defined(DEMAND_INDIV)
@@ -1651,7 +1665,8 @@ void water_scalar(Patch& patch) {
 // Internal function (do not call directly from framework)
 
 void assimilation_wstress(Pft& pft,Patchpft& ppft,double co2,double temp,double par,
-	double daylength,double fpar,double fpc,double& assim,double& na_fpar) {
+	double daylength,double fpar,double fpc,double& assim,double& na_fpar,double& apar,
+	double& adtmm_last_save,double& lambda_last_save) {	 // GC
 
 	// GUESSN: this is the standard version, without N-limitation of Vmax
 
@@ -1753,7 +1768,7 @@ void assimilation_wstress(Pft& pft,Patchpft& ppft,double co2,double temp,double 
 
 			photosynthesis(co2,temp,par,daylength,1.0,xmid,pft.pathway,pft.pstemp_min,
 				pft.pstemp_low,pft.pstemp_high,pft.pstemp_max,pft.lambda_max,agd,adt2,
-				rd,na,false,vmax_lim);
+				rd,na,false,vmax_lim,apar);
 			
 			lookup_lambda.setdata(date.year,date.day,adt2,agd,rd,na);	// GUESSN
 		}
@@ -1779,6 +1794,10 @@ void assimilation_wstress(Pft& pft,Patchpft& ppft,double co2,double temp,double 
 	// GUESSN: Calculate correct value of nmass_term
 
 	na_fpar=na*fpar;
+
+	// GC
+	adtmm_last_save=adt2*fpar;
+	lambda_last_save=xmid;
 }
 
 // GUESSN
@@ -1788,7 +1807,8 @@ void assimilation_wstress(Pft& pft,Patchpft& ppft,double co2,double temp,double 
 
 void assimilation_wstress_limvmax(Pft& pft,Patchpft& ppft,double co2,double temp,double par,
 	double daylength,double fpar,double fpc,double cmass_leaf,double nmass_leaf,
-	double& assim,double& na_fpar,double& vmax_lim) {
+	double& assim,double& na_fpar,double& vmax_lim,double& apar,
+	double& adtmm_last_save,double& lambda_last_save) {	 // GC
 
 	// Version to call if Vmax reduced under leaf-level N limitation
 
@@ -1861,7 +1881,7 @@ void assimilation_wstress_limvmax(Pft& pft,Patchpft& ppft,double co2,double temp
 
 		photosynthesis_limvmax(co2,temp,par,daylength,fpar,fpc,xmid,pft.pathway,pft.pstemp_min,
 				pft.pstemp_low,pft.pstemp_high,pft.pstemp_max,pft.lambda_max,cmass_leaf,nmass_leaf,
-				agd,adt2,rd,na_fpar,vmax_lim);
+				agd,adt2,rd,na_fpar,vmax_lim,apar);
 			
 		// Evaluate fmid at the point lambda=xmid
 		// fmid will be an increasing function of xmid, with a solution
@@ -1876,6 +1896,10 @@ void assimilation_wstress_limvmax(Pft& pft,Patchpft& ppft,double co2,double temp
 	// respiration, including conversion from FPC to grid cell basis
 
 	assim=agd-rd;
+
+	// GC
+	adtmm_last_save=adt2*fpar;
+	lambda_last_save=xmid;
 }
 
 // end GUESSN
@@ -1887,7 +1911,8 @@ void assimilation_wstress_limvmax(Pft& pft,Patchpft& ppft,double co2,double temp
 
 void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 	double respcoeff,double cton_sap,double cton_root,
-	double phen,double cmass_sap,double cmass_root,double assim,double& resp) {
+	double phen,double cmass_sap,double cmass_root,double assim,double& resp,
+	double& resp_sap, double& resp_root, double& resp_growth) {	// FACE OUT
 
 //void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 //	double respcoeff,double cton_sap,double cton_root,
@@ -1927,9 +1952,9 @@ void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 	const double K=0.095218;  // NEW parameter value in respiration equations 
 	// See the comment after Eqn (4) below.
 
-	double resp_sap;    // sapwood respiration (kg/m2/day)
-	double resp_root;   // root respiration (kg/m2/day)
-	double resp_growth; // growth respiration (kg/m2/day)
+//	double resp_sap;    // sapwood respiration (kg/m2/day)	// FACE OUT
+//	double resp_root;   // root respiration (kg/m2/day)		// FACE OUT
+//	double resp_growth; // growth respiration (kg/m2/day)	// FACE OUT
 
 	// Calculation of maintenance respiration components for each living tissue:
 	//
@@ -2056,6 +2081,9 @@ void npp(Patch& patch) {
 	double na_fpar;
 	// end GUESSN
 
+		// GC
+	double adtmm,lambda;
+
 	// Retrieve Vegetation, Stand and Climate objects for patch
 
 	Vegetation& vegetation=patch.vegetation;
@@ -2095,13 +2123,17 @@ void npp(Patch& patch) {
 					
 					assimilation_wstress_limvmax(pft,ppft,climate.co2,climate.temp,
 						climate.par,climate.daylength,indiv.fpar,indiv.fpc,
-						indiv.nmass_leaf,indiv.cmass_leaf,indiv.assim,na_fpar,indiv.vmax_lim[date.day]);
+						indiv.nmass_leaf,indiv.cmass_leaf,indiv.assim,na_fpar,indiv.vmax_lim[date.day],indiv.apar,adtmm,lambda);	// GC
 				}
 				else {
 
 					assimilation_wstress(pft,ppft,climate.co2,climate.temp,climate.par,
-						climate.daylength,indiv.fpar,indiv.fpc,indiv.assim,na_fpar);
+						climate.daylength,indiv.fpar,indiv.fpc,indiv.assim,na_fpar,indiv.apar,adtmm,lambda);	// GC
 				}
+
+				// GC
+				indiv.gc_sum=444.4*adtmm/climate.co2/(1.0-lambda)/
+						climate.daylength;
 			}
 			else {
 
@@ -2115,6 +2147,10 @@ void npp(Patch& patch) {
 
 					indiv.assim=indiv.assim_nowstress;
 					na_fpar=indiv.na_fpar;
+
+					// GC
+					indiv.gc_sum=444.4*indiv.adtmm_term*indiv.fpar/
+						climate.co2/(1.0-indiv.pft.lambda_max)/climate.daylength;
 				}
 				else {
 
@@ -2127,8 +2163,19 @@ void npp(Patch& patch) {
 					// Calculate leaf N today
 
 					na_fpar=stand.pft[pft.id].na*indiv.fpar;
+
+					// GC
+					indiv.gc_sum=444.4*stand.pft[pft.id].adtmm_term*indiv.fpar/
+						climate.co2/(1.0-indiv.pft.lambda_max)/climate.daylength;
 				}
 			}
+
+			// GC: add gmin
+			indiv.gc_sum+=indiv.pft.gmin;
+			// convert from FPC to grid cell basis
+			indiv.gc_sum*=indiv.fpc;
+			// Finished: gc_sum is now canopy conductance in mm/s
+			// for this individual on patch basis
 
 			// Calculate leaf nitrogen today on patch area basis
 
@@ -2152,10 +2199,14 @@ void npp(Patch& patch) {
 			}
 
 			// Calculate autotrophic respiration
+			
+			// FACE OUT
+			double resp_sap,resp_root,resp_growth;
 
 			respiration(climate.gtemp,patch.soil.gtemp,indiv.pft.lifeform,
 				indiv.pft.respcoeff,indiv.cmass_sap/indiv.nmass_sap,indiv.cmass_root/indiv.nmass_root,
-				indiv.phen,indiv.cmass_sap,indiv.cmass_root,indiv.assim,indiv.resp);
+				indiv.phen,indiv.cmass_sap,indiv.cmass_root,indiv.assim,indiv.resp,
+				resp_sap,resp_root,resp_growth);
 
 			// Update accumulated annual NPP and daily vegetation-atmosphere flux
 
@@ -2166,11 +2217,35 @@ void npp(Patch& patch) {
 			if (indiv.alive)
 				patch.fluxes.dcflux_veg+=indiv.resp-indiv.assim;
 
+			// FACE OUT
+			patch.soil.FACE_out[1][date.day]=date.year+1401+1;
+			patch.soil.FACE_out[2][date.day]=date.day+1;
+			patch.soil.FACE_out[3][date.day]=stand.climate.co2;
+			patch.soil.FACE_out[4][date.day]=stand.climate.prec;
+			patch.soil.FACE_out[5][date.day]=stand.climate.par*4.56/1000000.0;
+			patch.soil.FACE_out[6][date.day]=stand.climate.temp;
+			patch.soil.FACE_out[7][date.day]=patch.soil.temp;
+			indiv.FACE_out[12][date.day]=indiv.assim*1000.0;				// GPP daily net assimilation (GPP-leaf respiration) on modelled area basis (kgC/m2/day)
+			indiv.FACE_out[17][date.day]=indiv.resp*1000.0;				// Resp Autotrophic (sapwood, root and growth respiration (kg/m2/day))
+																		// daily maintenance respiration (not including leaf respiration) and growth
+																		// respiration on modelled area basis (kgC/m2/day)
+			indiv.FACE_out[19][date.day] = resp_sap*1000.0;				// Resp Wood (maint) (sapwood respiration (kg/m2/day))
+			indiv.FACE_out[20][date.day] = resp_root*1000.0;				// Resp Fine Root (maint) (root respiration (kg/m2/day))
+			indiv.FACE_out[21][date.day] = resp_growth*1000.0;				// Resp growth (growth respiration (kg/m2/day))
+			indiv.FACE_out[27][date.day] = indiv.intercep;			// Individual interception (mm/day)
+			indiv.FACE_out[74][date.day] = indiv.apar*4.56/1000000.0;	// fractional absorption at leaf level (APAR) Divided by 1000000 to get the unit MJ/m2/day, multiplied with 4.56 to get it in mol
+			indiv.FACE_out[75][date.day] = indiv.gc_sum;				// Canopy conductans;
+			// end FACE OUT
+
 			// Monthly NPP and LAI
 
 			indiv.mnpp[date.month]+=indiv.assim-indiv.resp;
 			// guess2008 - changed indiv.phen_mean to indiv.phen here. mlai is always 0 otherwise 
 			indiv.mlai[date.month]+=indiv.lai*indiv.phen;
+
+			// GC
+			indiv.mgc[date.month]+=indiv.gc_sum;
+			indiv.dgc[date.day]=indiv.gc_sum;
 
 			// guess2008 - update monthly arrays
 			indiv.mgpp[date.month]+=indiv.assim;
@@ -2227,11 +2302,19 @@ void npp(Patch& patch) {
 
 					indiv.assim+=indiv.assim_nowstress;
 					na_fpar=indiv.na_fpar;
+
+					// GC
+					indiv.gc_sum+=444.4*indiv.adtmm_term*indiv.fpar/
+						climate.co2/(1.0-indiv.pft.lambda_max)/climate.daylength;
 				}
 				else {
 
 					indiv.assim+=stand.pft[pft.id].assim_term*indiv.fpar;
 					na_fpar=stand.pft[pft.id].na*indiv.fpar;
+
+					// GC
+					indiv.gc_sum+=444.4*stand.pft[pft.id].adtmm_term*indiv.fpar/
+						climate.co2/(1.0-indiv.pft.lambda_max)/climate.daylength;
 				}
 
 				// Calculate leaf nitrogen today on patch area basis
@@ -2277,13 +2360,13 @@ void npp(Patch& patch) {
 						 assimilation_wstress_limvmax(pft,ppft,indiv.co2_wstress,
 							indiv.temp_wstress,indiv.par_wstress,indiv.daylength_wstress,
 							indiv.fpar_wstress,indiv.fpc,indiv.nmass_leaf,indiv.cmass_leaf,
-							assim,na_fpar,indiv.vmax_lim[date.day]);
+							assim,na_fpar,indiv.vmax_lim[date.day],indiv.apar,adtmm,lambda);	// GC
 					 }
 					 else {
 
 						assimilation_wstress(indiv.pft,ppft,indiv.co2_wstress,
 							indiv.temp_wstress,indiv.par_wstress,indiv.daylength_wstress,
-							indiv.fpar_wstress,indiv.fpc,assim,na_fpar);
+							indiv.fpar_wstress,indiv.fpc,assim,na_fpar,indiv.apar,adtmm,lambda);	// GC
 					 }
 					 // end GUESSN
 
@@ -2295,7 +2378,21 @@ void npp(Patch& patch) {
 
 					indiv.leafn+=leafn*(double)indiv.nday_wstress;
 					// end GUESSN
+
+					// GC
+					indiv.gc_sum+=444.4*adtmm/climate.co2/(1.0-lambda)/
+						climate.daylength*(double)indiv.nday_wstress;
 				}
+
+				// GC: convert from sum to average for month
+				indiv.gc_sum/=(double)date.ndaymonth[date.month];
+				// add gmin
+				indiv.gc_sum+=indiv.pft.gmin;
+				// convert from FPC to grid cell basis
+				indiv.gc_sum*=indiv.fpc;
+				// Finished: gc_sum is now canopy conductance in mm/s as a monthly
+				// average for this individual on patch basis
+
 
 				// Calculate respiration response to mean monthly air and soil temperature
 				// (if not already known for this month)
@@ -2315,9 +2412,12 @@ void npp(Patch& patch) {
 				assim=indiv.assim/(double)date.ndaymonth[date.month];
 					// average daily assimilation for this month
 
+				// FACE OUT
+				double resp_sap,resp_root,resp_growth;
+
 				respiration(climate.mgtemp,patch.soil.mgtemp,indiv.pft.lifeform,
 					indiv.pft.respcoeff,indiv.cmass_sap/indiv.nmass_sap,indiv.cmass_root/indiv.nmass_root,
-					indiv.phen_mean,indiv.cmass_sap,indiv.cmass_root,assim,indiv.resp);
+					indiv.phen_mean,indiv.cmass_sap,indiv.cmass_root,assim,indiv.resp,resp_sap,resp_root,resp_growth);
 
 				indiv.resp*=(double)date.ndaymonth[date.month];
 
@@ -2341,6 +2441,9 @@ void npp(Patch& patch) {
 				indiv.mnpp[date.month]=indiv.assim-indiv.resp;
 				indiv.mlai[date.month]=indiv.lai*indiv.phen_mean;
 
+				// GC
+				indiv.mgc[date.month]=indiv.gc_sum;
+
 				// guess2008 - update monthly arrays
 				indiv.mgpp[date.month]+=indiv.assim;
 				indiv.mra[date.month]+=indiv.resp;
@@ -2362,6 +2465,9 @@ void npp(Patch& patch) {
 				indiv.fpar_wstress=0.0;
 				indiv.leafn=0.0; // GUESSN
 				indiv.nday_leafon=0; // GUESSN
+
+				// GC
+				indiv.gc_sum=0.0;
 			}
 		}
 
@@ -2395,6 +2501,8 @@ void forest_floor_conditions(Patch& patch) {
 	int p;
 	double na; // GUESSN
 	double vmax_lim; // GUESSN
+	double apar; // FACE OUT not used
+	double lambda;	// GC
 
 	// Retrieve Stand and Climate objects for patch
 
@@ -2422,13 +2530,13 @@ void forest_floor_conditions(Patch& patch) {
 			
 				assimilation_wstress_limvmax(ppft.pft,ppft,climate.co2,climate.temp,climate.par,
 					climate.daylength,patch.fpar_grass*ppft.phen,1.0,	
-					1.0/ppft.pft.cton_leaf_avr,ppft.pft.cton_leaf_avr,netps_ff,na,vmax_lim);	
+					1.0/ppft.pft.cton_leaf_avr,ppft.pft.cton_leaf_avr,netps_ff,na,vmax_lim,apar,adtmm,lambda);	// GC	
 			}
 			else {
 				 
 				assimilation_wstress(ppft.pft,ppft,climate.co2,climate.temp,
 					climate.par,climate.daylength,patch.fpar_grass*ppft.phen,
-					1.0,netps_ff,na);
+					1.0,netps_ff,na,apar,adtmm,lambda);	// GC
 			}
 			// end GUESSN
 	
@@ -2449,12 +2557,12 @@ void forest_floor_conditions(Patch& patch) {
 			
 				assimilation_wstress_limvmax(ppft.pft,ppft,climate.co2,climate.temp,climate.par,
 					climate.daylength,patch.fpar_grass*ppft.phen,1.0,	
-					1.0/ppft.pft.cton_leaf_avr,ppft.pft.cton_leaf_avr,netps_ff,na,vmax_lim);	
+					1.0/ppft.pft.cton_leaf_avr,ppft.pft.cton_leaf_avr,netps_ff,na,vmax_lim,apar,adtmm,lambda);	// GC		
 			}
 			else {
 				assimilation_wstress(ppft.pft,ppft,ppft.co2_wstress,
 					ppft.temp_wstress,ppft.par_wstress,ppft.daylength_wstress,
-					ppft.fpar_grass_wstress,1.0,netps_ff,na);
+					ppft.fpar_grass_wstress,1.0,netps_ff,na,apar,adtmm,lambda);	// GC
 			}
 			// end GUESSN
 			
@@ -2473,7 +2581,7 @@ void forest_floor_conditions(Patch& patch) {
 				photosynthesis_limvmax(climate.co2,climate.temp,climate.par,climate.daylength,
 					patch.fpar_grass*ppft.phen,1.0,pft.lambda_max,pft.pathway,pft.pstemp_min,
 					pft.pstemp_low,pft.pstemp_high,pft.pstemp_max,pft.lambda_max,
-					1.0,1.0/ppft.pft.cton_leaf_avr,agd,adtmm,rd,na,vmax_lim);		
+					1.0,1.0/ppft.pft.cton_leaf_avr,agd,adtmm,rd,na,vmax_lim,apar);	// FACE OUT apar	
 
 				ppft.anetps_ff+=agd-rd;
 			}
@@ -2485,7 +2593,7 @@ void forest_floor_conditions(Patch& patch) {
 
 					photosynthesis(climate.co2,climate.temp,climate.par,climate.daylength,
 						1.0,pft.lambda_max,pft.pathway,pft.pstemp_min,pft.pstemp_low,
-						pft.pstemp_high,pft.pstemp_max,pft.lambda_max,agd,adtmm,rd,na,false,vmax_lim);
+						pft.pstemp_high,pft.pstemp_max,pft.lambda_max,agd,adtmm,rd,na,false,vmax_lim,apar);
 
 					// Store net C-assimilation (gross photosynthesis minus leaf
 					// respiration); valid for all individuals of this PFT given today's
@@ -2602,6 +2710,9 @@ void canopy_exchange(Patch& patch) {
 			for (m=0;m<12;m++) {
 				indiv.mnpp[m]=0.0;
 				indiv.mlai[m]=0.0;
+
+				// GC
+				indiv.mgc[m]=0.0;
 
 				// guess2008 - initialise
 				indiv.mgpp[m]=0.0;

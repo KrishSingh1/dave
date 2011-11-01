@@ -506,7 +506,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 					// FACE DAVID Thomas4
 					if (has_FACE_clim && ifplantation) {
-						if (date.year>=stand.plantyear-5 && date.year<=stand.plantyear+5) 
+						if (date.year>=stand.plantyear-1 && date.year<=stand.plantyear+10) 
 							bminit=0.0;
 					}
 

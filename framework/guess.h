@@ -89,12 +89,12 @@ const int NSOILLAYER=2;
 //const double SOILDEPTH_LOWER=1500.0;// soil lower layer depth (mm)
 
 // FACE DAVID Duke
-//const double SOILDEPTH_UPPER=400.0; // soil upper layer depth (mm)
-//const double SOILDEPTH_LOWER=100.0; // soil lower layer depth (mm)
+const double SOILDEPTH_UPPER=400.0; // soil upper layer depth (mm)
+const double SOILDEPTH_LOWER=100.0; // soil lower layer depth (mm)
 
 // NORMAL VALUES
-const double SOILDEPTH_UPPER=500.0; // soil upper layer depth (mm)
-const double SOILDEPTH_LOWER=1000.0; // soil lower layer depth (mm)
+//const double SOILDEPTH_UPPER=500.0; // soil upper layer depth (mm)
+//const double SOILDEPTH_LOWER=1000.0; // soil lower layer depth (mm)
 
 
 	// guess2008 - new default SOM values
@@ -1107,6 +1107,96 @@ public:
 	
 	// end GUESSN
 
+	// FACE OUTPUT
+
+	// GC
+	double gc_sum; // accumulated canopy conductance on individual FPC basis (mm/s)
+	double dgc[365];
+	double mgc[12];
+	double adtmm_term; // GC
+
+	double apar;
+	double FACE_out[77][365];
+
+		// 0 - empty space to keep numbering easier 
+		// 1 - YEAR
+		// 2 - Day
+		// 3 - CO2
+		// 4 - Precipitation
+		// 5 - PAR
+		// 6 - Air Temp Canopy
+		// 7 - Soil Temp 10 cm
+		// 8 - Vapor Pres Def
+		// 9 - Surface Soil Water
+		// 10 - N Deposition
+		// 11 - NEP
+		// 12 - GPP
+		// 13 - NPP
+		// 14 - C Exudation
+		// 15 - C VOC Flux
+		// 16 - Resp Ecosystem
+		// 17 - Resp Autotrophic
+		// 18 - Resp Leaves
+		// 19 - Resp Wood
+		// 20 - Resp Fine Root
+		// 21 - Resp Growth
+		// 22 - Resp Heterotrophic
+		// 23 - Resp Soil
+		// 24 - Evapotranspiration
+		// 25 - Transpiration
+		// 26 - Evaporation
+		// 27 - Interception
+		// 28 - Runoff
+		// 29 - Drainage
+		// 30 - Latent Energy
+		// 31 - Sensible Heat
+		// 32 - C Leaf Mass
+		// 33 - C Wood Mass
+		// 34 - C Coarse Root Mass
+		// 35 - C Fine Root Mass
+		// 36 - C Storage as TNC
+		// 37 - C Litter Aboveground
+		// 38 - C Litter Belowground
+		// 39 - C Dead Wood
+		// 40 - C Soil
+		// 41 - C Leaf Growth
+		// 42 - C Wood Growth
+		// 43 - C Coarse Root Growth
+		// 44 - C Fine Root Growth
+		// 45 - C Leaf Litterfall
+		// 46 - C Root Litterfall
+		// 47 - C Wood/Branch Inputs
+		// 48 - LAI Projected
+		// 49 - Canopy Leaf Mass/Area
+		// 50 - N Mass Leaf
+		// 51 - N Mass Wood
+		// 52 - N Mass Coarse Root
+		// 53 - N Mass Fine Root
+		// 54 - N Storage
+		// 55 - N Litter Aboveground
+		// 56 - N Litter Belowground
+		// 57 - N Dead Wood
+		// 58 - N Soil Total
+		// 59 - N in Mineral Form
+		// 60 - N in Organic Form
+		// 61 - N Fixation
+		// 62 - N Leaf Litterfall
+		// 63 - N Wood/Branch Litterfall
+		// 64 - N Root Litter Input
+		// 65 - N Biomass Uptake
+		// 66 - N Gross Mineralisation
+		// 67 - N Net Mineralisation
+		// 68 - N Volatilization
+		// 69 - N Leaching
+		// 70 - N Leaf growth
+		// 71 - N Wood Growth
+		// 72 - N CR Growth
+		// 73 - N Fine Root Growth
+		// 74 - N Uptake
+		// 75 - GC 
+		// 76 - APAR fraction of PAR absorbed at leaf level
+	// end FACE OUTPUT
+
 	bool alive; 
 		// guess2008 - whether this individual is truly alive. Set to false for first year 
 		// after the Individual object is created, then true.
@@ -1178,6 +1268,17 @@ public:
 		for (d=0;d<365;d++) {
 			dassim[d]=vmax_lim[d]=0.0;
 		}
+
+		// FACE_OUT
+
+		// GC
+		gc_sum=0.0;
+
+		int k,l;
+		for (k=0;k<77;k++)
+			for (l=0;l<365;l++)
+				FACE_out[k][l]=-9999.0;
+
 	};
 };
 
@@ -1434,6 +1535,8 @@ public:
 
 // end GUESSN
 
+	double FACE_out[77][365];	// FACE_OUT
+
 
 	// MEMBER FUNCTIONS
 
@@ -1513,6 +1616,12 @@ public:
 		nmass_avail_daily=0.0;
 
 		// end GUESSN
+
+		int k,l;
+
+		for (k=0;k<76;k++)
+			for (l=0;l<365;l++)
+				FACE_out[k][l]=0.0;
 
 	}
 
@@ -1907,6 +2016,8 @@ public:
 	double cmass_repr_nuptake;
 		// net C allocated to reproduction for this PFT in all patches of this stand
 		// this year (kgC/m2)
+
+	double adtmm_term; // GC
 	// end GUESSN
 
 	// MEMBER FUNCTIONS

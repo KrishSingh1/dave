@@ -117,8 +117,8 @@ void soilparameters(Soiltype& soiltype,int soilcode) {
 		{   5.0, 0.110,   0.2, 0.800,   0.4,	0.074,	3.2},    // 1	Coarse
 		{   4.0, 0.150,   0.2, 0.650,   0.4,	0.184,	2.5},    // 2	Medium
 		{   3.0, 0.120,   0.2, 0.500,   0.4,	0.274,	3.6},    // 3	Fine
-		{   4.5, 0.300,   0.2, 0.725,   0.4,	0.125,	1.8},   // 4	Medium-coarse	// FACE Thomas the PWP is 0.125 m3/m3, and saturation is at .54 m3/m3 -> So 1 should be 0.415
-		// NORMAL {   4.5, 0.130,   0.2, 0.725,   0.4,	0.129,	2.85},   // 4	Medium-coarse
+		//{   4.5, 0.300,   0.2, 0.725,   0.4,	0.125,	1.8},	 // 4	Medium-coarse	// FACE Thomas the PWP is 0.125 m3/m3, and saturation is at .54 m3/m3 -> So 1 should be 0.415
+		{   4.5, 0.130,   0.2, 0.725,   0.4,	0.129,	2.85},   // 4	Medium-coarse
 		{   4.0, 0.115,   0.2, 0.650,   0.4,	0.174,	3.4},    // 5	Fine-coarse
 		{   3.5, 0.135,   0.2, 0.575,   0.4,	0.229,	3.05},   // 6	Fine-medium
 		{   4.0, 0.127,   0.2, 0.650,   0.4,	0.177,	3.1},    // 7	Fine-medium-coarse

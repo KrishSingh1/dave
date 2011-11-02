@@ -3218,7 +3218,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 									allometry[10]+=(pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3))*indiv.densindiv*10000.0;
 									allometry_ind[10]=(pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3))*indiv.densindiv*10000.0;
 
-									if (out_allometry_ind && date.year == nyear_spinup+105)
+									if (out_allometry_ind && date.year == nyear_spinup+105 && p==0)
 										fprintf(out_allometry_ind,"%8.1f%8.1f%8d%8d%8.0f%8.2f%8.2f%8.2f%8.2f%8.2f%10.2f%8.2f%10.2f%10.2f%10.3f%10.3f\n",
 											lon,lat,date.year,standpft.pft.id,allometry_ind[0],allometry_ind[1]/allometry_ind[0],
 											allometry_ind[2]/allometry_ind[0],allometry_ind[3]/allometry_ind[0],allometry_ind[4]/allometry_ind[0],

@@ -74,7 +74,6 @@ file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 file_firert "firert.out"
-!file_age "age.out"
 file_allometry "allometry.out"
 file_canopyh "canopyheight.out"
 
@@ -102,8 +101,6 @@ file_mintercep "mintercep.out"
 file_mrunoff "mrunoff.out"
 file_mwcont_upper "mwcont_upper.out"
 file_mwcont_lower "mwcont_lower.out"
-
-!file_dgpp "dgpp.out"
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -128,7 +125,7 @@ ifdailydecomp 1			! whether to calculate soil respiration daily (1) or monthly (
 ifcalcsla 1				! whether to calculate SLA from leaf longevity
 						! (PFT-specific value can be specified in this file instead)
 iffire 0				! whether to implement fire (1) or not (0)
-npatch 20				! number of replicate patches to simulate
+npatch 5				! number of replicate patches to simulate
 patcharea 1000			! patch area (m2)
 estinterval 5			! years between establishment events in cohort mode
 ifdisturb 1				! whether generic patch-destroying disturbances enabled
@@ -146,27 +143,18 @@ ifcdebt 1				! whether to allow vegetation C storage (1) or not (0)
 
 ifcentury 1				! whether to use CENTURY SOM dynamics (mandatory for N cycling)
 ifnlim 1				! whether plant growth limited by available N
-ifvarycn 1				! whether leaf and tissue C:N linearly scale with Vmax
-ifnlimvarycn 1			! whether leaf and tissue C:N linearly scale with N limitation
-iflimvmax 1			    ! whether Vmax limited by leaf N content
 ifindiv_fnuptake 1		! whether to allow individual fractional N uptake
-freenyears 50			! number of years to spin up without N limitation
-ifdailysetntoc 1		! whether to use daily version of setntoc (set N:C ratio of som pools)
+freenyears 50			! number of years to spin up without N limitation (needed to build up a N pool)
 ifleachn 1				! whether to allow N leaching
 ifnfix 1				! whether to include an estimate for N fixation (1=conservative,2=Central,3=Upper)
-cwdtransfer 0.05		! fraction of woody debris transferred to SOM each year (0.05)
-nmass_avail_max 0.002	! max N:C ratio in the soil (should be 0.002 (Parton et al 1993, Fig. 4))
+cwdtransfer 0.05		! fraction of woody debris transferred to SOM each year (0.05))
 nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
-andep 0.0003			! default annual N deposition kgN/m2/yr (if file_andep not provided)
-						! (pre-industrial N depostion 2 kgN/ha/year = 0.0002)
-minndep 0.000008		! minimum allowed N deposition (usually pre-ind)
-ifnstorage 1			! wheter to use a N storage for each individual  
-ifndemand_new_est 1		! if new est has to compite for N
+ifndemand_new_est 1		! whether new est has to compite for N
 
 ! end GUESSN
 
 !FACE DAVID
-FACE_ring 2				! To use average ambient or elevated CO2 at FACE sites (amb 1, ele 2) 
+FACE_ring 1				! To use average ambient or elevated CO2 at FACE sites (amb 1, ele 2) 
 FACE_DUKE_or_OAK 1		! Which FACE site that will be examined (Oak 0, Duke 1)
 Has_FACE_clim 0			! If we are using FACE clim data
 

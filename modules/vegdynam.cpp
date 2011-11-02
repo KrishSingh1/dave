@@ -541,7 +541,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 						indiv.cmass_leaf/indiv.pft.cton_leaf_avr+
 						indiv.cmass_root/indiv.pft.cton_root_avr;
 
-					if (date.year>=freenyears && ((!has_FACE_clim && !has_CANIF_clim) || (date.year < stand.plantyear && date.year >= stand.plantyear+estinterval))) {
+					if (ifnlim && date.year>=freenyears && ((!has_FACE_clim && !has_CANIF_clim) || (date.year < stand.plantyear && date.year >= stand.plantyear+estinterval))) {
 						if (ifndemand_new_est){
 							if (!patch.disturbed) {
 								double frac_est=min(1.0,patch.pft[pft.id].nstore_est/indiv.ndemand);
@@ -818,9 +818,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 						indiv.cmass_heart/indiv.pft.cton_sap_avr+
 						indiv.nmass_reserve;
 
-					double test=patch.pft[pft.id].nstore_est/indiv.ndemand;
-
-					if (date.year>=freenyears && ((!has_FACE_clim && !has_CANIF_clim) || (date.year < stand.plantyear && date.year >= stand.plantyear+estinterval))) {
+					if (ifnlim && date.year>=freenyears && ((!has_FACE_clim && !has_CANIF_clim) || (date.year < stand.plantyear && date.year >= stand.plantyear+estinterval))) {
 						if (ifndemand_new_est) {
 							if (!patch.disturbed)
 								indiv.densindiv*=min(1.0,patch.pft[pft.id].nstore_est/indiv.ndemand);

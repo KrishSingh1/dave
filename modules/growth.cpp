@@ -171,15 +171,9 @@ void leaf_phenology(Patch& patch,Climate& climate) {
 		// For this individual ...
 		indiv.phen=patch.pft[indiv.pft.id].phen;
 
-		
-
 		indiv.FACE_out[32][date.day] = indiv.cmass_leaf*indiv.phen*1000.0;	// C Leaf Mass (leaf C biomass on modelled area basis (kgC/m2))
 		indiv.FACE_out[50][date.day] = indiv.nmass_leaf*indiv.phen*1000.0;	// N Leaf Mass (N content of leaves on patch area basis (kgN/m2))
 		indiv.FACE_out[48][date.day] = indiv.lai*indiv.phen;		// LAI Projected  (patch-level lai for this individual or cohort
-
-
-		if (date.year == 605 && date.day >= 0 && date.day <= 16 && indiv.pft.name == "C3G")
-			dprintf("Year %d Day %d cmass %g phen %g\n",date.year,date.day,indiv.cmass_leaf,indiv.phen);
 
 		// Update annual leaf-day sum (raingreen PFTs)
 		if (date.day==0) indiv.aphen_raingreen=0;
@@ -1891,49 +1885,46 @@ void growth(Stand& stand,Patch& patch) {
 
 
 			// C:N ratio for new and current biomass
-			if (ifvarycn && ifnlim && date.year>freenyears) {	
+			if (ifnlim && date.year>freenyears) {	
 
-				if (ifnlimvarycn) { 
+				// Determining optimal N use
+				indiv.nopt=0.0;
+				double agpp=0.0;
 
-					// Determining optimal N use
-					indiv.nopt=0.0;
-					double agpp=0.0;
-
-					for (int d=0;d<365;d++) {
-						indiv.nopt+=indiv.vmax_lim[d]*indiv.dassim[d];
-						agpp+=indiv.dassim[d];
-					}
-
-					if (!negligible(agpp))
-						indiv.nopt/=agpp;
-					else
-						indiv.nopt=0.0;
-
-					// A simple allocation with fractions of biomass going to leafs, roots and sap 
-					// of an allocation without any N limitation (allocation fractions from this_years_ndemand())
-					// to determine C:N ratio of leafs that will result in no N limitation
-
-					if (bminc > 0.0 && indiv.ndemand_uptake > 0.0) {
-						double A;
-						if (indiv.pft.lifeform == TREE) {
-							A=bminc*(indiv.bminc_leaf_frac+indiv.bminc_root_frac*indiv.pft.cton_leaf_avr/indiv.pft.cton_root_avr+
-								(1.0-indiv.bminc_leaf_frac-indiv.bminc_root_frac)*indiv.pft.cton_leaf_avr/indiv.pft.cton_sap_avr);
-						}
-						else {
-							A=bminc*(indiv.bminc_leaf_frac+indiv.bminc_root_frac*indiv.pft.cton_leaf_avr/indiv.pft.cton_root_avr);
-						}
-						cton_leaf_full_growth=A/indiv.nstore;
-					}
-					else
-						cton_leaf_full_growth=indiv.cton_leaf_new;	
-
-					// Determine C:N of new tissue
-					indiv.cton_leaf_new=1.0/(1.0/indiv.cton_leaf_opt-(1.0/indiv.cton_leaf_opt-1.0/cton_leaf_full_growth)*indiv.nopt);
-
-					// C:N ratio can't be outside of pft min max range and not lower than the optimal value
-					indiv.cton_leaf_new=min(indiv.pft.cton_leaf_max,max(indiv.pft.cton_leaf_min,max(indiv.cton_leaf_opt,indiv.cton_leaf_new)));
+				for (int d=0;d<365;d++) {
+					indiv.nopt+=indiv.vmax_lim[d]*indiv.dassim[d];
+					agpp+=indiv.dassim[d];
 				}
 
+				if (!negligible(agpp))
+					indiv.nopt/=agpp;
+				else
+					indiv.nopt=0.0;
+
+				// A simple allocation with fractions of biomass going to leafs, roots and sap 
+				// of an allocation without any N limitation (allocation fractions from this_years_ndemand())
+				// to determine C:N ratio of leafs that will result in no N limitation
+
+				if (bminc > 0.0 && indiv.ndemand_uptake > 0.0) {
+					double A;
+					if (indiv.pft.lifeform == TREE) {
+						A=bminc*(indiv.bminc_leaf_frac+indiv.bminc_root_frac*indiv.pft.cton_leaf_avr/indiv.pft.cton_root_avr+
+							(1.0-indiv.bminc_leaf_frac-indiv.bminc_root_frac)*indiv.pft.cton_leaf_avr/indiv.pft.cton_sap_avr);
+					}
+					else {
+						A=bminc*(indiv.bminc_leaf_frac+indiv.bminc_root_frac*indiv.pft.cton_leaf_avr/indiv.pft.cton_root_avr);
+					}
+					cton_leaf_full_growth=A/indiv.nstore;
+				}
+				else
+					cton_leaf_full_growth=indiv.cton_leaf_new;	
+
+				// Determine C:N of new tissue
+				indiv.cton_leaf_new=1.0/(1.0/indiv.cton_leaf_opt-(1.0/indiv.cton_leaf_opt-1.0/cton_leaf_full_growth)*indiv.nopt);
+
+				// C:N ratio can't be outside of pft min max range and not lower than the optimal value
+				indiv.cton_leaf_new=min(indiv.pft.cton_leaf_max,max(indiv.pft.cton_leaf_min,max(indiv.cton_leaf_opt,indiv.cton_leaf_new)));
+				
 				indiv.cton_root_new=
 					indiv.cton_leaf_new*(indiv.pft.cton_root_avr/indiv.pft.cton_leaf_avr);
 		
@@ -2463,8 +2454,8 @@ void growth(Stand& stand,Patch& patch) {
 							date.year,(char*)indiv.pft.name,indiv.id,which_allocation,indiv.max_n_reserve,indiv.max_n_reserve_old,
 							indiv.nmass_reserve,indiv.nstore,indiv.limnfact,indiv.n_reserve_uptake);
 
-					// If longterm N storage within an individual is used
-					if (ifnstorage && date.year > freenyears) {
+					// individual longterm N storage
+					if (date.year > freenyears) {
 
 						// check if max nmass storage pool will be exceeded with the addition of nstore
 						if (indiv.max_n_reserve<indiv.nmass_reserve) {

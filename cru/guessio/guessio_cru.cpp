@@ -307,19 +307,10 @@ void plib_declarations(int id,xtring setname) {
 			"Patch area (m2)");
 
 		// GUESSN
-		declareitem("iflimvmax",&iflimvmax,1,CB_NONE,
-			"Whether Vmax limited by actual leaf N");
 		declareitem("nrelocfrac",&nrelocfrac,0.0,1.0,1,CB_NONE,
 			"Fractional N relocation from shed leaves & roots");
-		declareitem("ifvarycn",&ifvarycn,1,CB_NONE,
-			"Whether leaf and tissue C:N adjusted depending on Vmax");
-		declareitem("ifnlimvarycn",&ifnlimvarycn,1,CB_NONE,
-			"Whether leaf and tissue C:N adjusted depending on N limitation");
 		declareitem("ifnfix",&ifnfix,0,3,1,CB_NONE,
 			"Whether to include an estimate for N fixation");
-		declareitem("andep",&andep,0.0,100.0,1,CB_NONE,
-			"Annual N deposition kgN/m2 (if not read from file)");
-		declareitem("minndep",&minndep,0.0,0.001,1,CB_NONE,"Minimum N dep");
 
 		declareitem("ifcentury",&ifcentury,1,CB_NONE,
 			"Whether to use CENTURY SOM dynamics (default standard LPJ)");
@@ -327,18 +318,12 @@ void plib_declarations(int id,xtring setname) {
 			"Whether plant growth limited by available N");
 		declareitem("freenyears",&freenyears,0,1000,1,CB_NONE,
 			"Number of years to spinup without N limitation");
-		declareitem("ifdailysetntoc",&ifdailysetntoc,1,CB_NONE,
-			"If to use daily version of setntoc (set N:C ratio of som pools)");
 		declareitem("ifleachn",&ifleachn,1,CB_NONE,
 			"Whether to allow N leaching");
 		declareitem("ifindiv_fnuptake",&ifindiv_fnuptake,1,CB_NONE,
 			"Whether to allow individual fractional N uptake");
 		declareitem("cwdtransfer",&cwdtransfer,0.0,1.0,1,CB_NONE,
 			"Fraction of woody debris transferred to SOM each year");
-		declareitem("nmass_avail_max",&nmass_avail_max,0.0,0.1,1,CB_NONE,
-			"Max N:C ratio in the soil (should be 0.002 (Parton et al 1993, Fig. 4))");
-		declareitem("ifnstorage",&ifnstorage,1,CB_NONE,
-			"If to use a N storage for each individual");
 		declareitem("ifndemand_new_est",&ifndemand_new_est,1,CB_NONE,
 			"N limitation of new establishment");
 		// end GUESSN
@@ -651,23 +636,15 @@ void plib_callback(int callback) {
 		if (!itemparsed("Has_CANIF_clim")) badins("Has_CANIF_clim");
 
 		// GUESSN
-		if (!itemparsed("iflimvmax")) badins("iflimvmax");
 		if (!itemparsed("nrelocfrac")) badins("nrelocfrac");
-		if (!itemparsed("ifvarycn")) badins("ifvarycn");
-		if (!itemparsed("ifnlimvarycn")) badins("ifnlimvarycn");
 		if (!itemparsed("ifnfix")) badins("ifnfix");
-		if (!itemparsed("andep")) badins("andep");
-		if (!itemparsed("minndep")) badins("minndep");
 
 		if (!itemparsed("ifcentury")) badins("ifcentury");
 		if (!itemparsed("ifnlim")) badins("ifnlim");
 		if (!itemparsed("freenyears")) badins("freenyears");
-		if (!itemparsed("ifdailysetntoc")) badins("ifdailysetntoc");
 		if (!itemparsed("ifleachn")) badins("ifleachn");
 		if (!itemparsed("ifindiv_fnuptake")) badins("ifindiv_fnuptake");
 		if (!itemparsed("cwdtransfer")) badins("cwdtransfer");
-		if (!itemparsed("nmass_avail_max")) badins("nmass_avail_max");
-		if (!itemparsed("ifnstorage")) badins("ifnstorage");
 		if (!itemparsed("ifndemand_new_est")) badins("ifndemand_new_est");
 		// end GUESSN
 
@@ -2127,7 +2104,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
  *  The binary archive has nitrogen deposition in gN/m2/year for the years
  *  1860, 1993 and 2050 (Galloway et. al., 2004).
  *
- *  Returned values will not be smaller than minndep (ins file parameter).
+ *  Returned values will not be smaller than minndep.
  *
  *  \param  filename    The file name of the binary archive
  *  \param  lon         Longitude
@@ -2138,10 +2115,12 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
  */
 bool getndep(xtring filename,double lon,double lat,double &xandep1860,double &xandep1993,double &xandep2050) {
 
+	double minndep = 0.00001;
+
 	if (!ifndepdata) {
-		xandep1860=andep;
-		xandep1993=andep;
-		xandep2050=andep;
+		xandep1860=0.0002;	// use pre-industrial N depostion 2 kgN/ha/year
+		xandep1993=0.0002;	// use pre-industrial N depostion 2 kgN/ha/year
+		xandep2050=0.0002;	// use pre-industrial N depostion 2 kgN/ha/year
 		return true;
 	}
 
@@ -2292,11 +2271,6 @@ bool getstand(Stand& stand) {
 			stand.climate.andep_1993,stand.climate.andep_2050)) {
 
 			fail("Grid cell not found in %s",(char*)file_ndep);
-		}
-		else {
-		//	dprintf("N deposition for longitude (%g) and latitude (%g) is\n1860: (%g) 1993: (%g) and 2050: (%g) kgN/ha/yr\n",
-		//		gridlist.getobj().lon,gridlist.getobj().lat,stand.climate.andep_1860*10000.0,
-		//			stand.climate.andep_1993*10000.0,stand.climate.andep_2050*10000.0);
 		}
 		// end GUESSN
 
@@ -3445,12 +3419,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 										if (data==49)
 											nr_indiv++;
-
-										if (data==32 && d<20)
-											dprintf("Year %d day %d CL %g sum %g pft %s\n",date.year,d,indiv.FACE_out[data][d],out_put[data],(char*)indiv.pft.name);
-
-									//	if (data==49 && d==1 && indiv.age > date.year-patch.stand.plantyear-5)
-									//		dprintf("Year %d LIMITATION %g vmaxlim %g reserve %g\n",(int)indiv.FACE_out[1][d],indiv.limnfact,indiv.nopt,indiv.nmass_reserve);
 									}
 								}
 							}

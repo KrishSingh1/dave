@@ -58,19 +58,10 @@ bool ifnlim;
 	// whether plant growth limited by available N
 int freenyears;
 	// number of years to allow spinup without N limitation
-bool iflimvmax;
-	// whether Vmax limited by leaf N content
 double nrelocfrac;
 	// fraction of N relocated by plants from roots and leaves
-bool ifvarycn;
-	// whether leaf and tissue C:N ratios are adjusted according to photosynthetic
-	// demand (i.e. Vmax)
-bool ifnlimvarycn;
-	// whether leaf and tissue C:N ratios are adjusted according to N limitation
 double cwdtransfer;
 	// Fraction of woody debris transferred to SOM each year
-double nmass_avail_max;
-	// max N:C ratio in the soil (should be 0.002 (Parton et al 1993, Fig. 4))
 bool ifleachn;
 	// whether to allow N leaching
 bool ifindiv_fnuptake;
@@ -79,14 +70,6 @@ int ifnfix;
 	// whether to include an estimate for N fixation
 bool ifndepdata;
 	// whether N deposition data available from a file
-double andep;
-	// annual N deposition (used only if ifndepdata=false)
-double minndep;
-	// minimum annual N deposition
-bool ifdailysetntoc;
-	// if to use daily version of setntoc (set N:C ratio of som pools)
-bool ifnstorage;
-	// if to use a N storage for each individual
 bool ifndemand_new_est;
 	// if to use N limitation on new establishment 
 

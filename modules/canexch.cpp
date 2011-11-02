@@ -1167,7 +1167,7 @@ void demand(Patch& patch) {
 		if (!negligible(climate.daylength)) {
 
 			// GUESSN
-			if (iflimvmax && ifnlim) {
+			if (ifnlim) {
 
 				// Call photosynthesis with actual FPAR assuming stomates fully open
 				// (lambda = lambda_max)
@@ -2119,7 +2119,7 @@ void npp(Patch& patch) {
 				// of light- and conductance-based equations of photosynthesis
 
 				// GUESSN
-				if (iflimvmax && ifnlim) {
+				if (ifnlim) {
 					
 					assimilation_wstress_limvmax(pft,ppft,climate.co2,climate.temp,
 						climate.par,climate.daylength,indiv.fpar,indiv.fpc,
@@ -2140,7 +2140,7 @@ void npp(Patch& patch) {
 				// Non-water-stress day 
 				
 				// GUESSN
-				if (iflimvmax && ifnlim) {
+				if (ifnlim) {
 				
 					// Assimilation as calculated in function demand
 					// (assuming no water stress)
@@ -2295,7 +2295,7 @@ void npp(Patch& patch) {
 			if (!indiv.ifwstress) {
 
 				// GUESSN
-				if (iflimvmax && ifnlim) {
+				if (ifnlim) {
 
 					// Assimilation as calculated in function demand
 					// (assuming no water stress)
@@ -2355,7 +2355,7 @@ void npp(Patch& patch) {
 					// conductance-based equations for photosynthesis
 
 					// GUESSN
-					 if (iflimvmax && ifnlim) {
+					 if (ifnlim) {
 					
 						 assimilation_wstress_limvmax(pft,ppft,indiv.co2_wstress,
 							indiv.temp_wstress,indiv.par_wstress,indiv.daylength_wstress,
@@ -2526,7 +2526,7 @@ void forest_floor_conditions(Patch& patch) {
 			// Daily mode
 
 			// GUESSN
-			if (iflimvmax && ifnlim) {
+			if (ifnlim) {
 			
 				assimilation_wstress_limvmax(ppft.pft,ppft,climate.co2,climate.temp,climate.par,
 					climate.daylength,patch.fpar_grass*ppft.phen,1.0,	
@@ -2553,7 +2553,7 @@ void forest_floor_conditions(Patch& patch) {
 			ppft.co2_wstress/=(double)ppft.nday_wstress;
 
 			// GUESSN
-			if (iflimvmax && ifnlim) {
+			if (ifnlim) {
 			
 				assimilation_wstress_limvmax(ppft.pft,ppft,climate.co2,climate.temp,climate.par,
 					climate.daylength,patch.fpar_grass*ppft.phen,1.0,	
@@ -2576,7 +2576,7 @@ void forest_floor_conditions(Patch& patch) {
 			Pft& pft=patch.pft[p].pft;
 
 			// GUESSN
-			if (iflimvmax && ifnlim) {
+			if (ifnlim) {
 			
 				photosynthesis_limvmax(climate.co2,climate.temp,climate.par,climate.daylength,
 					patch.fpar_grass*ppft.phen,1.0,pft.lambda_max,pft.pathway,pft.pstemp_min,

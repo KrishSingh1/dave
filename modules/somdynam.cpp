@@ -744,111 +744,74 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 	double nimmob=0.0;		// N immobilisation
 	double nmin_balance;
 	double N_demand;
+	const double nmass_avail_max=0.002;	//(Parton et al 1993, Fig. 4)
 
-	if (date.day==0 && (!ifdailysetntoc || !ifdailydecomp)) {
+	// Instead of using the soil.nmass_avail at day==0, nmass_avail is
+	// "updated" each day depending on mineralization, immobilization
+	// N deposition, and plant uptake (no N limitation and a reference C:N ratio). 
+	// Then ntoc ratios is calculated each day
+						
+//	dailyNuptake(patch,soil);
 
-		// First day of year
-
-		// Set N:C ratios for active, passive and SOM pools based on mean mineral N pool for past year
-		// (Parton et al 1993, Fig 4)
-
-		if (date.year==0) 
-			nmin_balance=0.0;
-		else 
-			nmin_balance=soil.nmin_annual+soil.ndep_annual-soil.nimmob_annual-soil.n_min_leach_annual;
-
-		/*// DayCent values 
-		setntoc(soil,nmin_balance,SLOWSOM,20.0,12.0,0.0,nmass_avail_max);
+	// First day of year
+	if (date.day == 0)
+		soil.setntoc_nmass_avail = soil.nmass_avail; 
+	else
+		// Update "daily" nmass available 
+		soil.setntoc_nmass_avail += soil.daily_minimmndep;
 		
-		setntoc(soil,nmin_balance,PASSIVESOM,10.0,7.0,0.0,nmass_avail_max);
+	// Loop through individuals
 
-		setntoc(soil,nmin_balance,SOILMICRO,15.0,3.0,0.0,nmass_avail_max);*/
-
-		// ForCent values
-		setntoc(soil,nmin_balance,SLOWSOM,30.0,15,0.0,nmass_avail_max);
+	N_demand = 0.0;
 		
-		setntoc(soil,nmin_balance,PASSIVESOM,10.0,6.0,0.0,nmass_avail_max);
+	Vegetation& vegetation = patch.vegetation;
+	vegetation.firstobj();
+	while (vegetation.isobj) 
+	{
+		Individual& indiv=vegetation.getobj();
 
-		setntoc(soil,nmin_balance,SOILMICRO,15.0,6.0,0.0,nmass_avail_max);
+		// For this individual ...
 
-		setntoc(soil,nmin_balance,SURFHUMUS,30.0,15,0.0,nmass_avail_max);
-	}
-	else if(ifdailysetntoc)	
-	{		
-		// Instead of using the soil.nmass_avail at day==0, nmass_avail is
-		// "updated" each day depending on mineralization, immobilization
-		// N deposition, and plant uptake (no N limitation). 
-		// Then ntoc ratios is calculated each day
-							
-		// First day of year
+		double NPPp;
+		NPPp = indiv.assim-indiv.resp;
 
-//		dailyNuptake(patch,soil);
+		if (NPPp > 0.0) {
+			double ref_cton = (indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap)/(indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap);
+				//reference value of the C:N ratio for plant production
 
-		if (date.day == 0)
-			soil.setntoc_nmass_avail = soil.nmass_avail; 
-		else
-			// Update "daily" nmass available 
-			soil.setntoc_nmass_avail += soil.daily_minimmndep;
-		
-		// Loop through individuals
+			N_demand += NPPp/ref_cton;
+		}			
 
-		N_demand = 0.0;
-		
-		Vegetation& vegetation = patch.vegetation;
-		vegetation.firstobj();
-		while (vegetation.isobj) 
-		{
-			Individual& indiv=vegetation.getobj();
-
-			// For this individual ...
-
-			double NPPp;
-			NPPp = indiv.assim-indiv.resp;
-
-			if (NPPp > 0.0) {
-				double ref_cton = (indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap)/(indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap);
-					//reference value of the C:N ratio for plant production
-
-				N_demand += NPPp/ref_cton;
-			}			
-
-			vegetation.nextobj();
-		}
-
-		double N_availability = max(0.0,soil.setntoc_nmass_avail);
-		double N_uptake = min(N_demand,N_availability);
-		N_uptake = max(0.0,N_uptake);
-
-		soil.setntoc_nmass_avail-=N_uptake;
-
-		if (soil.setntoc_nmass_avail > 0.0) {// Leaching
-			double leaching=soil.setntoc_nmass_avail*(soil.dperc/18.0*(0.2+0.7*soil.soiltype.sand_frac));
-			soil.setntoc_nmass_avail-=leaching;
-		}
-
-		// Set N:C ratios for active, passive and SOM pools based on mean mineral N pool for past year
-		// (Parton et al 1993, Fig 4)
-
-		nmin_balance = soil.setntoc_nmass_avail;
-
-		/*// DayCent values 
-		setntoc(soil,nmin_balance,SLOWSOM,20.0,12.0,0.0,nmass_avail_max);
-		
-		setntoc(soil,nmin_balance,PASSIVESOM,10.0,7.0,0.0,nmass_avail_max);
-
-		setntoc(soil,nmin_balance,SOILMICRO,15.0,3.0,0.0,nmass_avail_max);*/
-
-		// ForCent values
-		setntoc(soil,nmin_balance,SLOWSOM,30.0,15,0.0,nmass_avail_max);
-		
-		setntoc(soil,nmin_balance,PASSIVESOM,10.0,6.0,0.0,nmass_avail_max);
-
-		setntoc(soil,nmin_balance,SOILMICRO,15.0,6.0,0.0,nmass_avail_max);
-
-		setntoc(soil,nmin_balance,SURFHUMUS,30.0,15,0.0,nmass_avail_max);
+		vegetation.nextobj();
 	}
 
-	if (ifdailydecomp) {
+	double N_availability = max(0.0,soil.setntoc_nmass_avail);
+	double N_uptake = min(N_demand,N_availability);
+	N_uptake = max(0.0,N_uptake);
+
+	soil.setntoc_nmass_avail-=N_uptake;
+
+	// Leaching
+	if (soil.setntoc_nmass_avail > 0.0) {
+		double leaching=soil.setntoc_nmass_avail*(soil.dperc/18.0*(0.2+0.7*soil.soiltype.sand_frac));
+		soil.setntoc_nmass_avail-=leaching;
+	}
+
+	// Set N:C ratios for humus, soil microbial, passive and slow pool based on estimated mineral N pool
+	// (Parton et al 1993, Fig 4)
+
+	nmin_balance = soil.setntoc_nmass_avail;
+
+	// ForCent values
+	setntoc(soil,nmin_balance,SLOWSOM,30.0,15,0.0,nmass_avail_max);
+		
+	setntoc(soil,nmin_balance,PASSIVESOM,10.0,6.0,0.0,nmass_avail_max);
+
+	setntoc(soil,nmin_balance,SOILMICRO,15.0,6.0,0.0,nmass_avail_max);
+
+	setntoc(soil,nmin_balance,SURFHUMUS,30.0,15,0.0,nmass_avail_max);
+
+	if (ifdailydecomp || ifnlim) {
 
 		// DAILY MODE
 
@@ -1797,7 +1760,7 @@ void this_years_ndemand(double cmass_leaf,double cmass_root,double cmass_sap,dou
 	ltor=min(wscal_mean,nscal)*ltor_max;
 
 	// C:N ratio for new and current biomass		
-	if (ifvarycn && date.year>freenyears && ifnlim) {
+	if (date.year>freenyears && ifnlim) {
 
 		if (!negligible(leafn_mean) && !negligible(cmass_leaf))
 			cton_leaf_new=cmass_leaf/leafn_mean; 
@@ -2373,8 +2336,8 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 			indiv.pft.turnover_leaf,indiv.pft.turnover_root,indiv.pft.turnover_sap,
 			indiv.nstore,indiv.ndemand_uptake,indiv.alive);
 
-		//	If to store N in reserve within an individual
-		if (ifnstorage && date.year > freenyears && !negligible(indiv.ndemand)){
+		//	store N in individual reserve
+		if (date.year > freenyears && !negligible(indiv.ndemand)){
 
 			double max_n_reserve_uptake;
 

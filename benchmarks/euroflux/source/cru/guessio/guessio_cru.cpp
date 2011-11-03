@@ -2055,6 +2055,16 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		// Read next record in file
 		eof=!readfor(in_grid,"f,f,a",&dlon,&dlat,&descrip);
 
+		// New, local versions of these arrays EUROFLUX
+		xtring dom_spec[5];
+		int dom_spec_dens[5];
+		
+		// EUROFLUX
+		eof=!readfor(in_grid,"f;f;a;a;a;f;f;f;f;11i;f;i;i;5a;i;i;i;i;i",&dlon,&dlat,&descrip,
+			&desc2,&ver,&tempm,&tempc,&precipm,&precipc,
+			isfluxdata,&soildepth,&plantation_year,&num_dominant_species,dom_spec,
+			&dom_spec_dens[0],&dom_spec_dens[1],&dom_spec_dens[2],&dom_spec_dens[3],&dom_spec_dens[4]);
+
 		if (!eof && !(dlon==0.0 && dlat==0.0)) { // ignore blank lines at end (if any)
 			Coord& c=gridlist.createobj(); // add new coordinate to grid list
 

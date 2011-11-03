@@ -126,6 +126,9 @@ void soilparameters(Soiltype& soiltype,int soilcode) {
 		{   0.2, 0.100,   0.2, 0.500,   0.4,	0.100,	2.5 }    // 9	Vertisols (values not know for wp)
 	};
 
+	if ((data[3][1] == 0.3 && !has_FACE_clim) || (data[3][1] != 0.3 && has_FACE_clim))
+		fail("WRONG SOIL CODE!!!!\n");
+
 	if (soilcode<1 || soilcode>9)
 		fail("soilparameters: invalid LPJ soil code (%d)",soilcode);
 

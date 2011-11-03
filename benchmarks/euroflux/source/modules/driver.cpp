@@ -44,10 +44,6 @@ static long seed=12345678; // seed for random number generator (see randfrac)
 extern int nyear_spinup; 
 	// allows access to the value declared guessio_cru.cpp
  
-// guess2008 - emdi
-extern bool emditest;
-	// Set in .ins file and read in guessio.cpp
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // RANDFRAC
@@ -87,10 +83,7 @@ double randfrac() {
 // soil data supplied as LPJ soil code rather than soil physical parameter values
 
 
-/*
-// guess2008 - emdi - pass pawc [mm] 
-//void soilparameters(Soiltype& soiltype,int soilcode) {
-void soilparameters(Soiltype& soiltype,int soilcode, double pawc) {
+*/void soilparameters(Soiltype& soiltype,int soilcode) {
 
 	// DESCRIPTION
 	// Derivation of soil physical parameters given LPJ soil code
@@ -103,7 +96,7 @@ void soilparameters(Soiltype& soiltype,int soilcode, double pawc) {
 		// (Eqn 31, Haxeltine & Prentice 1996)
 		// Changed from 4 to 2 (Sitch, Thonicke, pers comm 26/11/01)
 
-	double data[9][5]= {
+	double data[9][7]= {
 
 		//    0  empirical parameter in percolation equation (k1) (mm/day)
 		//    1  volumetric water holding capacity at field capacity minus vol water
@@ -114,29 +107,31 @@ void soilparameters(Soiltype& soiltype,int soilcode, double pawc) {
 		//    4  thermal diffusivity at field capacity (100% WHC)
 		//       Thermal diffusivities follow van Duin (1963),
 		//       Jury et al (1991), Fig 5.11.
+		//    5  wilting point as fraction of depth (calculation method described in 
+		//       Prentice et al 1992)
+		//    6  calculated ratio between saturation capacity and field capacity 
 
-		//    0      1      2      3      4   soilcode
-		//  ------------------------------------------
+		//    0      1      2      3      4      5      6      soilcode
+		//  -----------------------------------------------------------
 
-		{   5.0, 0.110,   0.2, 0.800,   0.4 },   // 1
-		{   4.0, 0.150,   0.2, 0.650,   0.4 },   // 2
-		{   3.0, 0.120,   0.2, 0.500,   0.4 },   // 3
-		{   4.5, 0.130,   0.2, 0.725,   0.4 },   // 4
-		{   4.0, 0.115,   0.2, 0.650,   0.4 },   // 5
-		{   3.5, 0.135,   0.2, 0.575,   0.4 },   // 6
-		{   4.0, 0.127,   0.2, 0.650,   0.4 },   // 7
-		{   9.0, 0.300,   0.1, 0.100,   0.1 },   // 8
-		{   0.2, 0.100,   0.2, 0.500,   0.4 }    // 9
+		{   5.0, 0.110,   0.2, 0.800,   0.4,	0.074,	3.2},    // 1	Coarse
+		{   4.0, 0.150,   0.2, 0.650,   0.4,	0.184,	2.5},    // 2	Medium
+		{   3.0, 0.120,   0.2, 0.500,   0.4,	0.274,	3.6},    // 3	Fine
+		//{   4.5, 0.300,   0.2, 0.725,   0.4,	0.125,	1.8},	 // 4	Medium-coarse	// FACE Thomas the PWP is 0.125 m3/m3, and saturation is at .54 m3/m3 -> So 1 should be 0.415
+		{   4.5, 0.130,   0.2, 0.725,   0.4,	0.129,	2.85},   // 4	Medium-coarse
+		{   4.0, 0.115,   0.2, 0.650,   0.4,	0.174,	3.4},    // 5	Fine-coarse
+		{   3.5, 0.135,   0.2, 0.575,   0.4,	0.229,	3.05},   // 6	Fine-medium
+		{   4.0, 0.127,   0.2, 0.650,   0.4,	0.177,	3.1},    // 7	Fine-medium-coarse
+		{   9.0, 0.300,   0.1, 0.100,   0.1,	0.300,	2.5},    // 8	Organic (values not know for wp)
+		{   0.2, 0.100,   0.2, 0.500,   0.4,	0.100,	2.5 }    // 9	Vertisols (values not know for wp)
 	};
+
+	if ((data[3][1] == 0.3 && !has_FACE_clim) || (data[3][1] != 0.3 && has_FACE_clim))
+		fail("WRONG SOIL CODE!!!!\n");
 
 	if (soilcode<1 || soilcode>9)
 		fail("soilparameters: invalid LPJ soil code (%d)",soilcode);
 
-	if (emditest && pawc > 0) {
-		// guess2008 - emdi
-		// Assume pawc applies to the whole 1.5m, so replace data[soilcode-1][1] with a scaled pawc
-		data[soilcode-1][1] = pawc / 300.0; // as pawc applies to the upper 30cm
-	}
 	
 	soiltype.perc_base=data[soilcode-1][0];
 	soiltype.perc_exp=PERC_EXP;
@@ -145,15 +140,14 @@ void soilparameters(Soiltype& soiltype,int soilcode, double pawc) {
 	soiltype.thermdiff_0=data[soilcode-1][2];
 	soiltype.thermdiff_15=data[soilcode-1][3];
 	soiltype.thermdiff_100=data[soilcode-1][4];
+	soiltype.wp[0]=SOILDEPTH_UPPER*data[soilcode-1][5];
+	soiltype.wp[1]=SOILDEPTH_LOWER*data[soilcode-1][5];
+	soiltype.f_FC[0]=data[soilcode-1][6];
+	soiltype.f_FC[1]=data[soilcode-1][6];
 
 	// guess2008 - override the default SOM years with 70-80% of the spin-up period
 	soiltype.updateSolveSOMvalues(nyear_spinup);
-}
-
-
-*/
-
-
+}*/
 
 // guess2008 - euroflux - version with soil depth input
 void soilparameters(Soiltype& soiltype,int soilcode,double soildepth) {
@@ -169,7 +163,7 @@ void soilparameters(Soiltype& soiltype,int soilcode,double soildepth) {
 		// (Eqn 31, Haxeltine & Prentice 1996)
 		// Changed from 4 to 2 (Sitch, Thonicke, pers comm 26/11/01)
 
-	double data[9][5]= {
+	double data[9][7]= {
 
 		//    0  empirical parameter in percolation equation (k1) (mm/day)
 		//    1  volumetric water holding capacity at field capacity minus vol water
@@ -184,15 +178,15 @@ void soilparameters(Soiltype& soiltype,int soilcode,double soildepth) {
 		//    0      1      2      3      4   soilcode
 		//  ------------------------------------------
 
-		{   5.0, 0.110,   0.2, 0.800,   0.4 },   // 1
-		{   4.0, 0.150,   0.2, 0.650,   0.4 },   // 2
-		{   3.0, 0.120,   0.2, 0.500,   0.4 },   // 3
-		{   4.5, 0.130,   0.2, 0.725,   0.4 },   // 4
-		{   4.0, 0.115,   0.2, 0.650,   0.4 },   // 5
-		{   3.5, 0.135,   0.2, 0.575,   0.4 },   // 6
-		{   4.0, 0.127,   0.2, 0.650,   0.4 },   // 7
-		{   9.0, 0.300,   0.1, 0.100,   0.1 },   // 8
-		{   0.2, 0.100,   0.2, 0.500,   0.4 }    // 9
+		{   5.0, 0.110,   0.2, 0.800,   0.4 ,	0.074,	3.2},    // 1	Coarse
+		{   4.0, 0.150,   0.2, 0.650,   0.4 ,	0.184,	2.5},    // 2	Medium
+		{   3.0, 0.120,   0.2, 0.500,   0.4 ,	0.274,	3.6},    // 3	Fine
+		{   4.5, 0.130,   0.2, 0.725,   0.4 ,	0.129,	2.85},   // 4	Medium-coarse
+		{   4.0, 0.115,   0.2, 0.650,   0.4 ,	0.174,	3.4},    // 5	Fine-coarse
+		{   3.5, 0.135,   0.2, 0.575,   0.4 ,	0.229,	3.05},   // 6	Fine-medium
+		{   4.0, 0.127,   0.2, 0.650,   0.4 ,	0.177,	3.1},    // 7	Fine-medium-coarse
+		{   9.0, 0.300,   0.1, 0.100,   0.1 ,	0.300,	2.5},    // 8	Organic (values not know for wp)
+		{   0.2, 0.100,   0.2, 0.500,   0.4 ,	0.100,	2.5 }    // 9	Vertisols (values not know for wp)
 	};
 
 
@@ -234,11 +228,16 @@ void soilparameters(Soiltype& soiltype,int soilcode,double soildepth) {
 	soiltype.thermdiff_0=data[soilcode-1][2];
 	soiltype.thermdiff_15=data[soilcode-1][3];
 	soiltype.thermdiff_100=data[soilcode-1][4];
+	soiltype.wp[0]=SOILDEPTH_UPPER*data[soilcode-1][5];
+	soiltype.wp[1]=SOILDEPTH_LOWER*data[soilcode-1][5];
+	soiltype.f_FC[0]=data[soilcode-1][6];
+	soiltype.f_FC[1]=data[soilcode-1][6];
 
 	// guess2008 - override the default SOM years with 70-80% of the spin-up period
 	soiltype.updateSolveSOMvalues(nyear_spinup);
 
 }
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -727,6 +726,9 @@ void dailyaccounting_patch(Patch& patch) {
 		patch.arunoff=0.0;
 		patch.aintercep=0.0;
 		patch.apet=0.0;
+
+		for (int d=0;d<365;d++)
+			fluxes.dcflux_gpp[d] = 0.0;
 	}
 
 	if (date.dayofmonth==0) {
@@ -737,7 +739,7 @@ void dailyaccounting_patch(Patch& patch) {
 		patch.mevap[date.month]=0.0;
 		patch.mrunoff[date.month]=0.0;
 		patch.mintercep[date.month]=0.0;
-		patch.mpet[date.month]=0.0; 
+		patch.mpet[date.month]=0.0;
 
 		// guess2008 - reset month C budget arrays each month
 		fluxes.mcflux_gpp[date.month] = 0.0;
@@ -1044,7 +1046,11 @@ void daylengthinsoleet(Climate& climate) {
 	// Calculate PAR from radiation
 	// Eqn A1, Haxeltine & Prentice 1996
 
-	climate.par=rs_day*FRADPAR;
+	// FACE DAVID climate 
+	if(has_FACE_clim)		// Has par as inputdata! 
+		climate.rad = climate.par / FRADPAR;	// Calculates Rad backwards with the help of FRADPAR
+	else
+		climate.par=rs_day*FRADPAR;
 }
 
 
@@ -1080,3 +1086,4 @@ void daylengthinsoleet(Climate& climate) {
 // van Duin, RHA 1963 The influence of soil management on the temperature
 //   wave near the surface. Tech Bull 29 Inst for Land and Water Management
 //   Research, Wageningen, Netherlands
+

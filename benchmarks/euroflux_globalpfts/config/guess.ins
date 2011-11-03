@@ -17,26 +17,41 @@
 ! Gridlist - path to file containing list of 0.5 x 0.5 degree grid cells to simulate
 ! You may need to specify the full pathname (including directory) here
 
-!	param "file_gridlist" (str "FULLPATH\gridlist.txt")
+	param "file_co2" (str "/data/benchmark_data/2010_11_22/co2/co2_1901-2006.txt")
+      param "file_gridlist" (str "gridlist.txt")
+	param "file_cru" (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006.bin")
+	param "file_cru_misc" (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006misc.bin")
 
-! *** CRU TS 3.0 ***
-!	param "file_cru" (str "FULLPATH\cru_1901_2006.bin")
-!	param "file_cru_misc" (str "FULLPATH\cru_1901_2006misc.bin")
+! N deposition (blank string to use constant value andep instead -- see below)
+	param "file_ndep" (str "/home/joe/GlobalNdep.bin")
+	!param "file_ndep" (str "")
 
-! Atmospheric CO2 content (ppmv)
-!	param "file_co2" (str "FULLPATH\co2_1901-2006.txt")
 !///////////////////////////////////////////////////////////////////////////////////////
 
+! FACE
+	
+! DUKE
+	!param "file_gridlist" (str "\home\david\data\FACE\gridlist_face_Duke.txt")
+	param "met_face_duke" (str "\home\david\data\FACE\Daily_Duke_Met_data_96-07_Soenke.txt")
+	param "ndep_face_duke" (str "\home\david\data\FACE\Yearly_Duke_N_dep_7.txt")
+	!param "ndep_face_duke" (str "\home\david\data\FACE\Yearly_Duke_N_dep_13.7.txt")
 
+! OAK
+	!param "file_gridlist" (str "\home\david\data\FACE\gridlist_face_Oak.txt")
+	param "met_face_oak" (str "\home\david\data\FACE\Daily_ORNL_Met_data_98-08_Soenke.txt")
+	param "ndep_face_oak" (str "\home\david\data\FACE\Yearly_ORNL_N_dep.txt")
+
+! CANIF files
+	param "met_canif" (str "\home\david\data\CANIF\CANIF_met.txt") 
 
 !///////////////////////////////////////////////////////////////////////////////////////
 ! Forcing Data & gridlists - simba
 !
 
-      param "file_co2" (str "/data/benchmark_data/2010_11_22/co2/co2_1901-2006.txt")
-      param "file_gridlist" (str "gridlist.txt")
-	param "file_cru" (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006.bin")
-	param "file_cru_misc" (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006misc.bin")
+!	param "file_co2" (str "/data/benchmark_data/2010_11_22/co2/co2_1901-2006.txt")
+!	param "file_gridlist" (str "gridlist.txt")
+!	param "file_cru" (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006.bin")
+!	param "file_cru_misc" (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006misc.bin")
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -59,6 +74,18 @@ file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 file_firert "firert.out"
+file_allometry_ind "allometry_ind.out"
+file_canopyh "canopyheight.out"
+
+! GUESSN
+file_anppn "anppn.out"
+file_cton "cton.out"
+file_nmass "nmass.out"
+file_nsources "nsources.out"
+file_npool "npool.out"
+file_nleach "nleach.out"
+file_nuptake "nuptake.out"
+file_vmaxnlim "vmaxnlim.out"
 
 ! Monthly outputs
 file_mnpp "mnpp.out"
@@ -123,6 +150,29 @@ ifstochestab 1			! whether establishment stochastic
 ifstochmort 1			! whether mortality stochastic
 ifcdebt 1				! whether to allow vegetation C storage (1) or not (0)
 
+!///////////////////////////////////////////////////////////////////////////////
+! PROCESS SETTINGS SPECIFIC TO GUESSN
+!///////////////////////////////////////////////////////////////////////////////
+
+ifcentury 1				! whether to use CENTURY SOM dynamics (mandatory for N cycling)
+ifnlim 1				! whether plant growth limited by available N
+ifindiv_fnuptake 1		! whether to allow individual fractional N uptake
+freenyears 50			! number of years to spin up without N limitation (needed to build up a N pool)
+ifleachn 1				! whether to allow N leaching
+ifnfix 1				! whether to include an estimate for N fixation (1=conservative,2=Central,3=Upper)
+cwdtransfer 0.05		! fraction of woody debris transferred to SOM each year (0.05))
+nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
+ifndemand_new_est 1		! whether new est has to compite for N
+
+! end GUESSN
+
+!FACE DAVID
+FACE_ring 1				! To use average ambient or elevated CO2 at FACE sites (amb 1, ele 2) 
+FACE_DUKE_or_OAK 1		! Which FACE site that will be examined (Oak 0, Duke 1)
+Has_FACE_clim 0			! If we are using FACE clim data
+
+!CANIF David
+Has_CANIF_clim 0		! If we are using CANIF clim data
 
 ! guess2008 - additions
 ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1) 
@@ -179,9 +229,6 @@ group "tree" (
 	k_allom3 0.67
 	k_rp 1.6
 	wooddens 200
-	cton_leaf 29			
-	cton_root 29
-	cton_sap 330
 	pathway "c3"
 	respcoeff 1.0	! utkommenterad hos Thomas !
 	kest_repr 200 	! 200
@@ -205,9 +252,6 @@ group "Shrub"
 	k_allom3 0.67
 	k_rp 1.6
 	wooddens 250
-	cton_leaf 29
-	cton_root 29
-	cton_sap 330
 	pathway "c3"
 	kest_repr 20
 	kest_bg 0.1
@@ -232,13 +276,15 @@ group "grass" (
 	leaflong 1				! Leaf longevity (years)
 	turnover_leaf 1
 	turnover_root 0.7		! 0.5 hos guess2008
-	cton_leaf 29
-	cton_root 29
+	cton_leaf_min 16
+	cton_leaf_avr 25
+	cton_leaf_max 45
+	cton_root_avr 25 
+	n_reserve 0.30
 	litterme 0.2
 	parff_min 1000000		! 2500000 i guess2008	
 	fireresist 0.5			! 1.0 hos Thomas
 	intc 0.01
-
 )
 
 
@@ -250,6 +296,11 @@ group "broadleaved" (
 	k_latosa 6000
 	gmin 0.5
 	intc 0.02
+	cton_leaf_min 16
+	cton_leaf_avr 25
+	cton_leaf_max 45
+	cton_root_avr 25 
+	cton_sap_avr 172 !285 old value, new value from Friend 1997
 )
 
 group "needleleaved" (
@@ -260,6 +311,11 @@ group "needleleaved" (
 	k_latosa 5000
 	gmin 0.3
 	intc 0.06
+	cton_leaf_min 28
+	cton_leaf_avr 42
+	cton_leaf_max 75
+	cton_root_avr 42 
+	cton_sap_avr 290 !480 old value, new value from Friend 1997
 )
 
 group "evergreen" (
@@ -268,6 +324,7 @@ group "evergreen" (
 
 	phenology "evergreen"
 	phengdd5ramp 0
+	n_reserve 0.05
 )
 
 group "summergreen" (
@@ -278,6 +335,7 @@ group "summergreen" (
 	phengdd5ramp 200
 	leaflong 0.5
 	turnover_leaf 1
+	n_reserve 0.15
 )
 
 group "boreal" (
@@ -315,7 +373,7 @@ group "tropical" (
 	pstemp_low 25
 	pstemp_high 30
 	pstemp_max 55
-	respcoeff 0.15	
+	respcoeff 0.15	!0.15	
 )
 
 
@@ -415,6 +473,27 @@ pft "BNS" (
 	fireresist 0.3
 )
 
+pft "TeNE" (	! CANIF TREE
+
+	! Temperate needleleaved evergreen tree
+
+	include 0
+	tree
+	needleleaved
+	shade_tolerant
+	evergreen
+	temperate
+	leaflong 3
+	turnover_leaf 0.33
+	tcmin_surv -31
+	tcmin_est -30
+	tcmax_est -1
+	twmin_est 5
+	gdd5min_est 500
+	longevity 500
+	fireresist 0.3
+)
+
 pft "TeBS" (
 
 	! Shade-tolerant temperate broadleaved summergreen tree
@@ -429,7 +508,7 @@ pft "TeBS" (
 	tcmin_est -13
 	tcmax_est 6
 	twmin_est 5
-	gdd5min_est 1100
+	gdd5min_est 1100	
 	longevity 400
 	fireresist 0.1
 )
@@ -471,6 +550,29 @@ pft "TeBE" (
 	twmin_est 5
 	gdd5min_est 2000
 	longevity 300 !from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+)
+
+! Thomas: include new PFT needle-leaved temperate tree
+pft "TeINE" (
+
+	! Temperate broadleaved evergreen tree
+
+	include 0
+	tree
+	needleleaved
+	shade_intolerant
+	evergreen
+	temperate
+	rootdist 0.9 0.1
+	leaflong 1.5			!3		!1.3 ! 1.5 is the correct value
+	turnover_leaf 0.67		!0.33	!0.7 ! 0.67
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 10
+	twmin_est 5
+	gdd5min_est 2000
+	longevity 350
 	fireresist 0.3
 )
 
@@ -522,6 +624,7 @@ pft "TrBR" (
 	turnover_leaf 1
 	longevity 400    ! from Thomas h 2010-03-30
 	fireresist 0.3
+	n_reserve 0.15
 )
 
 pft "C3G" (
@@ -561,4 +664,5 @@ pft "C4G" (
 	twmin_est -1000 !no limit
 	gdd5min_est 0   !no limit
 )
+
 

@@ -121,7 +121,7 @@ function build {
     fi
 
     pushd $build_path/output &> /dev/null
-    if ! $cmake_command .. ; then
+    if ! $cmake_command .. &> /dev/null; then
 	error "Failed to configure build " $build_path "!"
 	exit 1
     fi

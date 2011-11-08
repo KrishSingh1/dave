@@ -83,7 +83,7 @@ double randfrac() {
 // soil data supplied as LPJ soil code rather than soil physical parameter values
 
 
-*/void soilparameters(Soiltype& soiltype,int soilcode) {
+/*void soilparameters(Soiltype& soiltype,int soilcode) {
 
 	// DESCRIPTION
 	// Derivation of soil physical parameters given LPJ soil code

@@ -1903,7 +1903,9 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 	int newindiv; // number of new Individual objects to add to vegetation for this PFT
 	double kest_bg;
 	int i;
+	bool est_year; // On establishment year reset establishment N store
 
+	patch.new_est_ndemand=0.0;
 
 	// guess2008 - eval
 	bool isplantationyear = false;
@@ -2025,9 +2027,21 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 
 					bminit=SAPSIZE*patch.pft[pft.id].anetps_ff;
 
+					// GUESSN grass gets at least 5% of available N. When established
+					// they shouldn't been able to get more!
+					double bminit_n_lim=indiv.pft.cton_leaf_avr*(patch.soil.nmass_avail+
+						patch.soil.ndep_annual+patch.soil.N_fix+
+						patch.soil.nmin_annual-patch.soil.nimmob_annual)*0.05;
+
 					// BLARP! OECD
 					if (ifdisturb && patch.disturbed)
 						bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est_initial;
+
+					// Veiko -> makes no difference
+					bminit*=0.3;
+
+					if (ifnlim && date.year>freenyears)
+						bminit=min(bminit,bminit_n_lim);
 
 					// Initial leaf to fine root biomass ratio based on
 					// hypothetical value of water stress parameter
@@ -2042,6 +2056,45 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 
 					allometry(indiv);
 
+					indiv.cton_leaf_new=indiv.pft.cton_leaf_avr;
+					indiv.cton_root_new=indiv.pft.cton_root_avr;
+
+					// GUESSN
+					// Initialise N demand
+					indiv.ndemand=
+						indiv.cmass_leaf/indiv.pft.cton_leaf_avr+
+						indiv.cmass_root/indiv.pft.cton_root_avr;
+
+					if (ifnlim && date.year>=freenyears && ((!has_FACE_clim && !has_CANIF_clim) || (date.year < stand.plantyear && date.year >= stand.plantyear+estinterval))) {
+						if (ifndemand_new_est){
+							if (!patch.disturbed) {
+								double frac_est=min(1.0,patch.pft[pft.id].nstore_est/indiv.ndemand);
+								indiv.cmass_leaf*=frac_est;
+								indiv.nmass_leaf*=frac_est;
+								indiv.cmass_root*=frac_est;
+								indiv.nmass_root*=frac_est;
+								patch.pft[pft.id].nstore_est-=min(patch.pft[pft.id].nstore_est,indiv.ndemand);
+
+								if (patch.pft[pft.id].nstore_est>0.0) {
+									patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;
+									patch.pft[pft.id].nstore_est=0.0;
+								}
+							}
+						}
+						else 
+							patch.new_est_ndemand+=indiv.ndemand;
+					}
+
+					indiv.max_n_reserve = indiv.pft.n_reserve*indiv.cmass_root/indiv.pft.cton_leaf_avr;
+
+					if (!negligible(max(0.0,indiv.cmass_leaf)) && !negligible(max(0.0,indiv.cmass_root))) {
+						indiv.bminc_leaf_frac=indiv.cmass_leaf/(indiv.cmass_leaf+indiv.cmass_root);
+						indiv.bminc_root_frac=1.0-indiv.bminc_leaf_frac;
+					}
+					else {
+						indiv.bminc_leaf_frac=1.0/3.0;
+						indiv.bminc_root_frac=1.0-indiv.bminc_leaf_frac;
+					}
 
 					// Account for C flux from atmosphere to vegetation
 					// guess2008 
@@ -2051,6 +2104,14 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 
 					if (indiv.alive)
 						patch.fluxes.acflux_est-=bminit;
+				}
+				else {
+					if (ifndemand_new_est) {
+						if (patch.pft[pft.id].nstore_est>0.0) {
+							patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;
+							patch.pft[pft.id].nstore_est=0.0;
+						}
+					}
 				}
 			}
 			else if (pft.lifeform==TREE) {
@@ -2099,10 +2160,14 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 						est=c*kest_bg;
 				}
 
+				// GUESSN
+				// scale est by the limiting N uptake factor
+				if (ifnlim && date.year>freenyears && !ifndemand_new_est)
+					est*=max(pow(patch.fnuptake,4.0),0.05);
+				// end GUESSN
 
 				// guess2008 - scale est by the number of woody PFTs/species that can establish
 				est*=3.0/double(nwoodypfts_estab);
-
 
 				// Have a value for expected number of new saplings (est)
 				// Actual number of new saplings drawn from the Poisson distribution
@@ -2175,6 +2240,9 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 
 					bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est;
 
+					// Veiko -> makes no difference
+					bminit*=0.3;
+
 					// Initial leaf to fine root biomass ratio based on hypothetical
 					// value of water stress parameter
 
@@ -2187,6 +2255,58 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 					// Calculate initial allometry
 
 					allometry(indiv);
+
+					indiv.cton_leaf_new=indiv.pft.cton_leaf_avr;
+					indiv.cton_root_new=indiv.pft.cton_root_avr;
+					indiv.cton_sap_new=indiv.pft.cton_sap_avr;
+
+					// GUESSN
+					// Initialise N demand
+					indiv.ndemand=
+						indiv.cmass_leaf/indiv.pft.cton_leaf_avr+
+						indiv.cmass_root/indiv.pft.cton_leaf_avr+
+						indiv.cmass_sap/indiv.pft.cton_sap_avr+
+						indiv.cmass_heart/indiv.pft.cton_sap_avr+
+						indiv.nmass_reserve;
+
+					if (ifnlim && date.year>=freenyears && ((!has_FACE_clim && !has_CANIF_clim) || (date.year < stand.plantyear && date.year >= stand.plantyear+estinterval))) {
+						if (ifndemand_new_est) {
+							if (!patch.disturbed)
+								indiv.densindiv*=min(1.0,patch.pft[pft.id].nstore_est/indiv.ndemand);
+						}
+						else 
+							patch.new_est_ndemand+=indiv.ndemand;	
+					}
+
+					indiv.max_n_reserve = indiv.pft.n_reserve*indiv.cmass_sap/indiv.pft.cton_leaf_avr;
+					
+					indiv.bminc_leaf_frac=indiv.cmass_leaf/(indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap);
+					indiv.bminc_root_frac=indiv.cmass_root/(indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap);
+
+					if (ifndemand_new_est && !patch.disturbed){// && indiv.densindiv>0.0005) {
+						int den=((int)(indiv.densindiv*1000.0));
+						indiv.densindiv = (double)((int)(indiv.densindiv*1000.0))/1000.0;
+						
+						if (indiv.densindiv)
+							patch.pft[pft.id].nstore_est-=min(patch.pft[pft.id].nstore_est,indiv.ndemand);
+					
+						// Account for C flux from atmosphere to vegetation
+						// guess2008
+						if (indiv.alive && indiv.densindiv)
+							patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
+								indiv.cmass_sap;
+					}
+					else {
+						// Account for C flux from atmosphere to vegetation
+						// guess2008
+						if (indiv.alive && indiv.densindiv)
+							patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
+								indiv.cmass_sap;
+					}
+
+					if (!indiv.densindiv)
+						vegetation.killobj();
+
 					
 					// Account for C flux from atmosphere to vegetation
 					// guess2008
@@ -2197,6 +2317,15 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 					if (indiv.alive)
 						patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
 							indiv.cmass_sap;
+					if (!indiv.densindiv)
+						vegetation.killobj();
+				}
+
+				if (est_year && ifndemand_new_est) {
+					if (patch.pft[pft.id].nstore_est>0.0) {
+						patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;
+						patch.pft[pft.id].nstore_est=0.0;
+					}
 				}
 			}
 		}
@@ -2213,6 +2342,23 @@ void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, 
 
 		pftlist.nextobj();
 	}
+
+	// GUESSN
+
+	if (!ifndemand_new_est) {
+
+		patch.est_ndemand+=patch.new_est_ndemand;
+
+		// should take this N from somewhere
+		// Deduct from soil avail N pool (may make it temporarily negative!)
+		if (date.year>freenyears) {
+			patch.soil.nmass_avail-=patch.est_ndemand/(double)estinterval;
+			patch.est_ndemand-=patch.est_ndemand/(double)estinterval;
+		}
+		else
+			patch.est_ndemand=0.0;
+	}
+	// end GUESSN
 }
 
 

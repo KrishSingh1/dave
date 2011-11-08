@@ -1021,6 +1021,9 @@ void photosynthesis_limvmax(double co2,double temp,double par,double daylength,
 
 	na_send=(nmass_leaf-N0*cmass_leaf)/fpc;
 
+	// Friend 1997	ALLOMETRY
+	// na_send=(1.0-max(0.1,indiv.pft.Ao-71.4*(nmass_leaf/cmass_leaf*1.0/indiv.pft.sla)))*nmass_leaf/fpc;
+
 	if (na_send<0.0) na_send=0.0;
 
 	// FPAR on FPC basis

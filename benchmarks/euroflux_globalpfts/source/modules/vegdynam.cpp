@@ -2517,7 +2517,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 		// guess2008 - eval - euroflux - clear the patch of natural vegetation during the 
 		// plantation year. Should we leave the C3 grasses????
-		if (century_year==current_stand_fluxdata->plantation_yearr)
+		if (century_year==current_stand_fluxdata->plantation_year)
 			clearance(patch);
 
 

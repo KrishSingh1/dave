@@ -2517,7 +2517,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 		// guess2008 - eval - euroflux - clear the patch of natural vegetation during the 
 		// plantation year. Should we leave the C3 grasses????
-		if (century_year==plantation_year)
+		if (century_year==current_stand_fluxdata->plantation_year)
 			clearance(patch);
 
 
@@ -2534,12 +2534,12 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 		*/
 
 
-		if (century_year<plantation_year /* guess2008 - euroflux - eval */)
+		if (century_year<current_stand_fluxdata->plantation_year /* guess2008 - euroflux - eval */)
 			mortality_guess(stand,patch,stand.climate,fireprob,pftlist);
 
 		/*		
 		// guess2008 - euroflux - eval
-		if (century_year>=plantation_year) {
+		if (century_year>=current_stand_fluxdata->plantation_year) {
 			fireprob = 0.0;
 			mortality_guess(stand,patch,stand.climate,fireprob,pftlist);		
 		}
@@ -2557,10 +2557,10 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 		
 		*/
 
-		if (century_year<plantation_year /* guess2008 - euroflux - eval */)
+		if (century_year<current_stand_fluxdata->plantation_year /* guess2008 - euroflux - eval */)
 			establishment_guess(stand,patch,pftlist);
 
-		if (century_year>=plantation_year /* guess2008 - euroflux - eval */)
+		if (century_year>=current_stand_fluxdata->plantation_year /* guess2008 - euroflux - eval */)
 			establishment_guess_plantation(stand,patch,pftlist,century_year);
 	}
 

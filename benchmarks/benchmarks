@@ -125,7 +125,7 @@ function build {
 	error "Failed to configure build " $build_path "!"
 	exit 1
     fi
-    if ! $make_command &> /dev/null ; then
+    if ! $make_command ; then
 	error "Failed to build " $build_path "!"
 	exit 1
     fi

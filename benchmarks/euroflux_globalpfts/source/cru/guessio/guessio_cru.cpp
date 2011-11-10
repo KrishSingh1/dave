@@ -4364,8 +4364,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 				mra[m] += stand[p].fluxes.mcflux_ra[m]/(double)npatch;
 
 				dprintf(" fluxes mgpp %g mra %g\n",
-					stand[p].fluxes.mcflux_gpp[m]/(double)npatch),
-					stand[p].fluxes.mcflux_ra[m]/(double)npatch);
+					stand[p].fluxes.mcflux_gpp[m],
+					stand[p].fluxes.mcflux_ra[m]);
 
 			}
 

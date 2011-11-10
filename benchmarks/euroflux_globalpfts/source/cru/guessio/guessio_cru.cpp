@@ -4347,6 +4347,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			// Monthly output variables
 			
 			for (m=0;m<12;m++) {
+				dprintf("Year %d Month %d mgpp %g mra %g",date.year,m,mgpp[m],mra[m]);
+
 				maet[m] += stand[p].maet[m]/(double)npatch;
 				mpet[m] += stand[p].mpet[m]/(double)npatch;
 				mevap[m] += stand[p].mevap[m]/(double)npatch;
@@ -4361,9 +4363,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 				mgpp[m] += stand[p].fluxes.mcflux_gpp[m]/(double)npatch;
 				mra[m] += stand[p].fluxes.mcflux_ra[m]/(double)npatch;
 
-				dprintf("Year %d Month %d mgpp %g mra %g fluxes mgpp %g mra %g\n",
-					date.year,m,mgpp[m],mra[m],stand[p].fluxes.mcflux_gpp[m]/(double)npatch),
-					stand[p].fluxes.mcflux_ra[m]/(double)npatch;
+				dprintf(" fluxes mgpp %g mra %g\n",
+					stand[p].fluxes.mcflux_gpp[m]/(double)npatch),
+					stand[p].fluxes.mcflux_ra[m]/(double)npatch);
 
 			}
 

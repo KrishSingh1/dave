@@ -219,17 +219,19 @@ void soilparameters(Soiltype& soiltype,int soilcode,double soildepth) {
 	//soiltype.awc[1]=min((soildepth-SOILDEPTH_UPPER),SOILDEPTH_LOWER)*(data[soilcode-1][1]+0.5*0.103); // 
 	if (soildepth >= 600.0) {
 		soiltype.awc[0]=SOILDEPTH_UPPER*(data[soilcode-1][1]); // 50cm, as before
-		soiltype.awc[1]=min((soildepth-SOILDEPTH_UPPER),SOILDEPTH_LOWER)*(data[soilcode-1][1]); // 
+		soiltype.awc[1]=min((soildepth-SOILDEPTH_UPPER),SOILDEPTH_LOWER)*(data[soilcode-1][1]); //
+		soiltype.wp[0]=SOILDEPTH_UPPER*data[soilcode-1][5];
+		soiltype.wp[1]=min((soildepth-SOILDEPTH_UPPER),SOILDEPTH_LOWER)*data[soilcode-1][5];
 	} else {
 		soiltype.awc[0]=SOILDEPTH_UPPER*(data[soilcode-1][1])/2.0; // 25cm
 		soiltype.awc[1]=min((soildepth-SOILDEPTH_UPPER/2.0),SOILDEPTH_LOWER)*(data[soilcode-1][1]); // 	
+		soiltype.wp[0]=SOILDEPTH_UPPER*data[soilcode-1][5]/2.0;
+		soiltype.wp[1]=min((soildepth-SOILDEPTH_UPPER/2.0),SOILDEPTH_LOWER)*data[soilcode-1][5];
 	}
 
 	soiltype.thermdiff_0=data[soilcode-1][2];
 	soiltype.thermdiff_15=data[soilcode-1][3];
 	soiltype.thermdiff_100=data[soilcode-1][4];
-	soiltype.wp[0]=SOILDEPTH_UPPER*data[soilcode-1][5];
-	soiltype.wp[1]=SOILDEPTH_LOWER*data[soilcode-1][5];
 	soiltype.f_FC[0]=data[soilcode-1][6];
 	soiltype.f_FC[1]=data[soilcode-1][6];
 

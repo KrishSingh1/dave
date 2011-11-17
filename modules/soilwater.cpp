@@ -286,7 +286,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
  *  If there's any rain-melt available, refill top layer, leaving any excessive
  *  rainmelt to be re-distributed later in hydrology_lpjf
  */
-void hydrology_light(Patch& patch, Climate& climate) {
+void initial_infiltration(Patch& patch, Climate& climate) {
 
 	Soil& soil = patch.soil;
 	snow(climate.prec - patch.intercep, climate.temp, soil.snowpack, soil.rain_melt);

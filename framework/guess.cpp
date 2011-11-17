@@ -247,7 +247,7 @@ int framework(int argc,char* argv[]) {
 						leaf_phenology(patch,gridcell.climate);
 						// Interception
 						interception(patch, gridcell.climate);
-						hydrology_light(patch, gridcell.climate);
+						initial_infiltration(patch, gridcell.climate);
 						// Photosynthesis, respiration, evapotranspiration
 						canopy_exchange(patch, gridcell.climate);
 						// Soil water accounting, snow pack accounting

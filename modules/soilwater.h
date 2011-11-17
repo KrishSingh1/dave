@@ -18,7 +18,7 @@
 #define LPJ_GUESS_SOILWATER_H
 
 #include "guess.h"
-void hydrology_light(Patch& patch, Climate& climate);
+void initial_infiltration(Patch& patch, Climate& climate);
 void soilwater(Patch& patch, Climate& climate);
 
 #endif // LPJ_GUESS_SOILWATER_H

@@ -977,6 +977,9 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 //		double daily_nmass = (soil.ndep_annual + soil.nmass_avail + soil.N_fix)/365.0 + nmin_actual-nimmob;
 		double daily_nmass = nmin_actual-nimmob;
 
+		if (date.year == 303 && date.day == 17)
+			int sch = 0;
+
 		if (daily_nmass >= 0.0 || nmin_actual-nimmob >= 0.0) {
 
 			net_mineralization = true;
@@ -1003,6 +1006,7 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 		soil.sompool[p].nmass+=soil.sompool[p].delta_nmass;
 		nnmass+=soil.sompool[p].delta_nmass;
 	}
+
 
 	// calculate the daily result of min, imm, and ndep
 	soil.daily_minimmndep = nmin_actual-nimmob+(soil.ndep_annual+soil.N_fix)/365.0;
@@ -1071,9 +1075,9 @@ void transfer_litter(Patch& patch,Soil& soil) {
 
 		// Leaf litter lignin:N ratio
 		if (negligible(litter_leaf_n))
-			lton=LIGCFRAC_LEAF*pft.pft.cton_leaf_avr/(1.0-nrelocfrac);
+			lton=max(0.0,LIGCFRAC_LEAF*pft.pft.cton_leaf_avr/(1.0-nrelocfrac));
 		else
-			lton=LIGCFRAC_LEAF*pft.litter_leaf/litter_leaf_n;
+			lton=max(0.0,LIGCFRAC_LEAF*pft.litter_leaf/litter_leaf_n);
 
 		// Metabolic litter fraction for leaf litter (Fm, Parton et al 1993, Eqn 1:
 		// NB: incorrect/out-of-date intercept and slope given in Eqn 1; values used in
@@ -1083,9 +1087,7 @@ void transfer_litter(Patch& patch,Soil& soil) {
 		ligcmass_old=soil.sompool[SURFSTRUCT].cmass*soil.sompool[SURFSTRUCT].ligcfrac;
 
 		if (fm < 0.0 || fm > 1.0)
-			dprintf("Year %d LEAF fm %g\n",date.year,fm);
-		if (litter_leaf_n < 0.0)
-			dprintf("Year %d LEAF litter_leaf_n %g\n",date.year,litter_leaf_n);
+			dprintf("Year %d LEAF fm %g pft %s\n",date.year,fm,(char*)pft.pft.name);
 
 		// Add to pools
 		soil.sompool[SURFSTRUCT].cmass+=pft.litter_leaf*(1.0-fm);
@@ -1113,16 +1115,16 @@ void transfer_litter(Patch& patch,Soil& soil) {
 		// Calculate inputs to soil structural and metabolic litter
 
 		// Root litter lignin:N ratio
-		if (negligible(pft.litter_root))
-			lton=LIGCFRAC_ROOT*pft.pft.cton_root_avr/(1-nrelocfrac);
+		if (negligible(pft.nmass_litter_root))
+			lton=max(0.0,LIGCFRAC_ROOT*pft.pft.cton_root_avr/(1-nrelocfrac));
 		else
-			lton=LIGCFRAC_ROOT*pft.litter_root/pft.nmass_litter_root;
+			lton=max(0.0,LIGCFRAC_ROOT*pft.litter_root/pft.nmass_litter_root);
 
 		// Metabolic litter fraction for root litter (Fm, Parton et al 1993, Eqn 1)
 		fm=max(0.0,0.85-lton*0.013);
 
 		if (fm < 0.0 || fm > 1.0)
-			dprintf("Year %d ROOT fm %g\n",date.year,fm);
+			dprintf("Year %d ROOT fm %g pft %s\n",date.year,fm,(char*)pft.pft.name);
 
 		ligcmass_new=pft.litter_root*(1.0-fm)*LIGCFRAC_ROOT;
 		ligcmass_old=soil.sompool[SOILSTRUCT].cmass*soil.sompool[SOILSTRUCT].ligcfrac;
@@ -1170,7 +1172,7 @@ void transfer_litter(Patch& patch,Soil& soil) {
 			// Update vegetation
 			pft.litter_wood*=(1.0-cwdtransfer);
 			pft.nmass_litter_wood*=(1.0-cwdtransfer);
-		}		
+		}
 
 		patch.pft.nextobj();
 	}
@@ -2308,8 +2310,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 
 	// DAILY N SUPPLY
 
-	// Daily N deposition (distributed evenly through the year and doubled to 
-	// account for NH4 deposition)
+	// Daily N deposition (distributed evenly through the year)
 	dndep=soil.ndep_annual/365.0;
 	dnfix=soil.N_fix/365.0;
 	dnmass_avail=soil.nmass_avail/365.0;
@@ -2386,7 +2387,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 		plot("fnuptake","fnuptake",date.year,patch.fnuptake);
 
 	// Individual fnuptake
-	if (ifindiv_fnuptake && patch.fnuptake < 1.0) 
+	if (ifindiv_fnuptake && patch.fnuptake < 1.0 && patch.fnuptake != 0.0)
 		indiv_fnuptake(vegetation,patch.nsupply,patch.ndemand,patch.fnuptake);
 
 	// VEGETATION N UPTAKE
@@ -2404,7 +2405,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 			while (vegetation.isobj) {
 				Individual& indiv=vegetation.getobj();
 
-				if (!ifindiv_fnuptake || patch.fnuptake==1.0)
+				if (!ifindiv_fnuptake || patch.fnuptake==1.0 || patch.fnuptake==0.0)
 					indiv.fnuptake = patch.fnuptake;
 				
 				if ((!negligible(indiv.aassim) && indiv.dassim[d]>0.0)) {
@@ -2648,9 +2649,6 @@ void som_dynamics_century(Patch& patch,Pftlist& pftlist) {
 	
 	for (p=0;p<NSOMPOOL;p++) 
 	{
-
-		if (date.year > 100)
-			int sch = 0;
 		if (p == 2 || p == 4) {
 			soil.FACE_out[60][date.day] += soil.sompool[p].nmass*1000.0;		// N in Organic Form (N mass in pool kgC/m2)
 		}

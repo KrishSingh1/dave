@@ -408,7 +408,6 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 	double kest_bg;
 	int i;
 	bool est_year; // On establishment year reset establishment N store
-	
 
 	// FACE DAVID Thomas plantation cohort mode; not used
 	double no_trees_planted;
@@ -550,6 +549,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 								indiv.cmass_root*=frac_est;
 								indiv.nmass_root*=frac_est;
 								patch.pft[pft.id].nstore_est-=min(patch.pft[pft.id].nstore_est,indiv.ndemand);
+								bminit*=frac_est;
 
 								if (patch.pft[pft.id].nstore_est>0.0) {
 									patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;

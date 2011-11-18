@@ -201,6 +201,10 @@ extern bool ifndemand_new_est;
 	// if to use N limitation on new establishment 
 // end GUESSN
 
+// Close N budget - sch = 0
+extern double Total_N_500;
+extern double Added_N_from_500;
+
 // FACE David
 extern int FYEAR_SCENARIO_FACE;
 extern int FACE_ring;				// Which FACE ring examined
@@ -1900,6 +1904,9 @@ public:
 	double ndemand;
 		// yearly N demand
 	double nsupply;
+		// yearly N supply
+	// DAVID soil
+	double nsupply_soil;
 		// yearly N supply
 	double new_est_ndemand;
 		// last years N demand for new establishments

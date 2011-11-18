@@ -1028,13 +1028,7 @@ void photosynthesis_limvmax(double co2,double temp,double par,double daylength,
 
 	// FPAR on FPC basis
 
-	if (date.year>200)
-		int sch = 0;
-
 	fpar_fpc=fpar/fpc;
-
-	if (fpar_fpc>1.0)
-		int sch = 0;
 
 	photosynthesis(co2,temp,par*fpar_fpc,daylength,
 		1.0,lambda,pathway,pstemp_min,pstemp_low,pstemp_high,pstemp_max,
@@ -1169,6 +1163,8 @@ void demand(Patch& patch) {
 
 		if (!negligible(climate.daylength)) {
 
+//			ifnlim=false;
+
 			// GUESSN
 			if (ifnlim) {
 
@@ -1228,6 +1224,8 @@ void demand(Patch& patch) {
 					pft.gmin*indiv.fpc;
 			}
 			// end GUESSN
+
+//			ifnlim=true;
 
 			// FACE OUT
 			indiv.FACE_out[18][date.day]=rd*1000.0;	// Leaf respiration (kg C m-2 day-1)
@@ -2095,6 +2093,8 @@ void npp(Patch& patch) {
 
 	// Loop through individuals
 
+//	ifnlim=false;
+
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
@@ -2109,7 +2109,7 @@ void npp(Patch& patch) {
 		// GUESSN: Phenology
 		if (!negligible(indiv.phen)) 
 			indiv.nday_leafon++;
-		// end GUESSN
+		// end GUESSN		
 
 		if (ifdailynpp) {
 
@@ -2477,6 +2477,8 @@ void npp(Patch& patch) {
 		vegetation.nextobj();
 	}
 
+//	ifnlim=true;
+
 	// Update annual and monthly vegetation-atmosphere flux
 
 	patch.fluxes.acflux_veg+=patch.fluxes.dcflux_veg;
@@ -2513,6 +2515,8 @@ void forest_floor_conditions(Patch& patch) {
 	Climate& climate=stand.climate;
 
 	// Loop through PFTs
+
+//	ifnlim=false;
 
 	for (p=0;p<npft;p++) {
 
@@ -2626,6 +2630,8 @@ void forest_floor_conditions(Patch& patch) {
 				patch.stand.pft[p].anetps_ff_max=ppft.anetps_ff;
 		}
 	}
+
+//	ifnlim=true;
 }
 
 

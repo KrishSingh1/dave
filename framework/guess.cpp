@@ -75,6 +75,10 @@ bool ifndemand_new_est;
 
 // end GUESSN
 
+// sch = 0
+double Total_N_500;
+double Added_N_from_500;
+
 // guess2008 - new inputs from the .ins file
 bool ifsmoothgreffmort;				// smooth growth efficiency mortality
 bool ifdroughtlimitedestab;			// whether establishment affected by growing season drought

@@ -698,8 +698,6 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 		// scaling factor for PAR absorption from leaf to plant projective area level
 		// alias "twigloss"
 		// Should normally be in the range 0-1
-//	if (ALPHAA != 0.5 && date.year == 0 && date.day == 0)	// GUESSNFIX
-//		dprintf("ALPHAA is changed! New value is %g\n",ALPHAA);
 
 	const double CO2_CONV=1.0E-6;
 		// conversion factor for CO2 from ppmv to mole fraction
@@ -1163,8 +1161,6 @@ void demand(Patch& patch) {
 
 		if (!negligible(climate.daylength)) {
 
-//			ifnlim=false;
-
 			// GUESSN
 			if (ifnlim) {
 
@@ -1224,8 +1220,6 @@ void demand(Patch& patch) {
 					pft.gmin*indiv.fpc;
 			}
 			// end GUESSN
-
-//			ifnlim=true;
 
 			// FACE OUT
 			indiv.FACE_out[18][date.day]=rd*1000.0;	// Leaf respiration (kg C m-2 day-1)
@@ -2093,8 +2087,6 @@ void npp(Patch& patch) {
 
 	// Loop through individuals
 
-//	ifnlim=false;
-
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
@@ -2477,8 +2469,6 @@ void npp(Patch& patch) {
 		vegetation.nextobj();
 	}
 
-//	ifnlim=true;
-
 	// Update annual and monthly vegetation-atmosphere flux
 
 	patch.fluxes.acflux_veg+=patch.fluxes.dcflux_veg;
@@ -2515,8 +2505,6 @@ void forest_floor_conditions(Patch& patch) {
 	Climate& climate=stand.climate;
 
 	// Loop through PFTs
-
-//	ifnlim=false;
 
 	for (p=0;p<npft;p++) {
 
@@ -2630,8 +2618,6 @@ void forest_floor_conditions(Patch& patch) {
 				patch.stand.pft[p].anetps_ff_max=ppft.anetps_ff;
 		}
 	}
-
-//	ifnlim=true;
 }
 
 

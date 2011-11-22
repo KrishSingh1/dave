@@ -17,7 +17,7 @@
 ! (used only by guessio.cpp)
 	param "co2" (num 340)
 
-      	param "file_gridlist" (str "gridlist.txt")
+      param "file_gridlist" (str "gridlist.txt")
 
 	param "file_temp" (str "tmp30_21.grd")  !temperature
 	param "file_prec" (str "prc30_21.grd")  !precipitation
@@ -26,6 +26,13 @@
 ! Path to LPJ soil code file
 ! You may need to specify the full pathname (including directory) here
 	param "file_soil" (str "soils_lpj.dat")
+
+! Atmospheric CO2 content (ppmv)
+	param "file_co2" (str "co2_1901-2006.txt")
+
+! N deposition (blank string to use constant value andep instead -- see below)
+	param "file_ndep" (str "GlobalNdep.bin")
+	!param "file_ndep" (str "")
 
 
 !///////////////////////////////////////////////////////////////////////////////////////
@@ -38,7 +45,7 @@
 
 ! guess2008 - New predefined outputs. Procedure adapted from Ben's LPJ-GUESS Education
 ! outputdirectory is mandatory
-outputdirectory "./"
+outputdirectory "C:\MyLPJ\Output\"
 
 ! Prefined yearly output
 ! These files may be outcommented if their output is not required. 
@@ -50,6 +57,22 @@ file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 file_firert "firert.out"
+!file_age "age.out"
+!file_allometry "allometry.out"
+file_canopyh "canopyheight.out"
+file_allometry_ind "allometry_ind.out"
+
+!file_face "FACE.out"
+
+! GUESSN
+file_anppn "anppn.out"
+file_cton "cton.out"
+file_nmass "nmass.out"
+file_nsources "nsources.out"
+file_npool "npool.out"
+file_nleach "nleach.out"
+file_nuptake "nuptake.out"
+file_vmaxnlim "vmaxnlim.out"
 
 ! Monthly outputs
 file_mnpp "mnpp.out"
@@ -65,6 +88,8 @@ file_mintercep "mintercep.out"
 file_mrunoff "mrunoff.out"
 file_mwcont_upper "mwcont_upper.out"
 file_mwcont_lower "mwcont_lower.out"
+
+!file_dgpp "dgpp.out"
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -82,14 +107,14 @@ file_mwcont_lower "mwcont_lower.out"
 title 'LPJ-GUESS (guess2008) cohort mode - global pfts'
 
 vegmode "cohort"		! "cohort", "individual" or "population"
-nyear 500			! number of years to run the model
-ifdailynpp 0			! whether to calculate NPP daily (1) or monthly (0)
+nyear_spinup 500		! number of years to spin up the simulation for
+ifdailynpp 1			! whether to calculate NPP daily (1) or monthly (0)
 						! guess2008 - species version has 1
-ifdailydecomp 0			! whether to calculate soil respiration daily (1) or monthly (0)
+ifdailydecomp 1			! whether to calculate soil respiration daily (1) or monthly (0)
 ifcalcsla 1				! whether to calculate SLA from leaf longevity
 						! (PFT-specific value can be specified in this file instead)
-iffire 1				! whether to implement fire (1) or not (0)
-npatch 5				! number of replicate patches to simulate
+iffire 0				! whether to implement fire (1) or not (0)
+npatch 10				! number of replicate patches to simulate
 patcharea 1000			! patch area (m2)
 estinterval 5			! years between establishment events in cohort mode
 ifdisturb 1				! whether generic patch-destroying disturbances enabled
@@ -101,6 +126,29 @@ ifstochestab 1			! whether establishment stochastic
 ifstochmort 1			! whether mortality stochastic
 ifcdebt 1				! whether to allow vegetation C storage (1) or not (0)
 
+!///////////////////////////////////////////////////////////////////////////////
+! PROCESS SETTINGS SPECIFIC TO GUESSN
+!///////////////////////////////////////////////////////////////////////////////
+
+ifcentury 1				! whether to use CENTURY SOM dynamics (mandatory for N cycling)
+ifnlim 1				! whether plant growth limited by available N
+ifindiv_fnuptake 1		! whether to allow individual fractional N uptake
+freenyears 50			! number of years to spin up without N limitation (needed to build up a N pool)
+ifleachn 1				! whether to allow N leaching
+ifnfix 1				! whether to include an estimate for N fixation (1=conservative,2=Central,3=Upper)
+cwdtransfer 1.0			! fraction of woody debris transferred to SOM each year (0.05))
+nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
+ifndemand_new_est 1		! whether new est has to compite for N
+
+! end GUESSN
+
+!FACE DAVID
+FACE_ring 2				! To use average ambient or elevated CO2 at FACE sites (amb 1, ele 2) 
+FACE_DUKE_or_OAK 1		! Which FACE site that will be examined (Oak 0, Duke 1)
+Has_FACE_clim 0			! If we are using FACE clim data
+
+!CANIF David
+Has_CANIF_clim 0		! If we are using CANIF clim data
 
 ! guess2008 - additions
 ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1) 
@@ -157,9 +205,6 @@ group "tree" (
 	k_allom3 0.67
 	k_rp 1.6
 	wooddens 200
-	cton_leaf 29			
-	cton_root 29
-	cton_sap 330
 	pathway "c3"
 	respcoeff 1.0	! utkommenterad hos Thomas !
 	kest_repr 200 	! 200
@@ -183,9 +228,11 @@ group "Shrub"
 	k_allom3 0.67
 	k_rp 1.6
 	wooddens 250
-	cton_leaf 29
-	cton_root 29
-	cton_sap 330
+	cton_leaf_min 16		! GUESSN
+	cton_leaf_avr 25		! GUESSN
+	cton_leaf_max 45		! GUESSN
+	cton_root_avr 25 		! GUESSN
+	cton_sap_avr 172		! GUESSN !285 old value, new value from Friend 1997
 	pathway "c3"
 	kest_repr 20
 	kest_bg 0.1
@@ -193,6 +240,7 @@ group "Shrub"
 	litterme 0.3
 	rootdist 0.6 0.4
 	longevity 100
+	!sla 40
 )
 
 
@@ -210,13 +258,16 @@ group "grass" (
 	leaflong 1				! Leaf longevity (years)
 	turnover_leaf 1
 	turnover_root 0.7		! 0.5 hos guess2008
-	cton_leaf 29
-	cton_root 29
+	cton_leaf_min 16		! GUESSN
+	cton_leaf_avr 25		! GUESSN
+	cton_leaf_max 45		! GUESSN
+	cton_root_avr 25 		! GUESSN
+	n_reserve 0.30			! GUESSN
 	litterme 0.2
 	parff_min 1000000		! 2500000 i guess2008	
 	fireresist 0.5			! 1.0 hos Thomas
 	intc 0.01
-
+	!sla 40	! FACE
 )
 
 
@@ -228,6 +279,12 @@ group "broadleaved" (
 	k_latosa 6000
 	gmin 0.5
 	intc 0.02
+	cton_leaf_min 16		! GUESSN
+	cton_leaf_avr 25		! GUESSN
+	cton_leaf_max 45		! GUESSN
+	cton_root_avr 25 		! GUESSN
+	cton_sap_avr 172		! GUESSN !285 old value, new value from Friend 1997
+	!sla 28 ! FACE Norby 28 first change 25 standard 40
 )
 
 group "needleleaved" (
@@ -238,6 +295,12 @@ group "needleleaved" (
 	k_latosa 5000
 	gmin 0.3
 	intc 0.06
+	cton_leaf_min 28		! GUESSN
+	cton_leaf_avr 42		! GUESSN
+	cton_leaf_max 75		! GUESSN
+	cton_root_avr 42 		! GUESSN
+	cton_sap_avr 290		! GUESSN !480 old value, new value from Friend 1997
+	!sla 20	! FACE 
 )
 
 group "evergreen" (
@@ -246,6 +309,7 @@ group "evergreen" (
 
 	phenology "evergreen"
 	phengdd5ramp 0
+	n_reserve 0.05			! GUESSN
 )
 
 group "summergreen" (
@@ -256,6 +320,7 @@ group "summergreen" (
 	phengdd5ramp 200
 	leaflong 0.5
 	turnover_leaf 1
+	n_reserve 0.15			! GUESSN
 )
 
 group "boreal" (
@@ -293,7 +358,7 @@ group "tropical" (
 	pstemp_low 25
 	pstemp_high 30
 	pstemp_max 55
-	respcoeff 0.15	
+	respcoeff 0.15	!0.15	
 )
 
 
@@ -393,6 +458,27 @@ pft "BNS" (
 	fireresist 0.3
 )
 
+pft "TeNE" (	! CANIF TREE
+
+	! Temperate needleleaved evergreen tree
+
+	include 0
+	tree
+	needleleaved
+	shade_tolerant
+	evergreen
+	temperate
+	leaflong 3
+	turnover_leaf 0.33
+	tcmin_surv -31
+	tcmin_est -30
+	tcmax_est -1
+	twmin_est 5
+	gdd5min_est 500
+	longevity 500
+	fireresist 0.3
+)
+
 pft "TeBS" (
 
 	! Shade-tolerant temperate broadleaved summergreen tree
@@ -407,7 +493,7 @@ pft "TeBS" (
 	tcmin_est -13
 	tcmax_est 6
 	twmin_est 5
-	gdd5min_est 1100
+	gdd5min_est 1100	
 	longevity 400
 	fireresist 0.1
 )
@@ -449,6 +535,30 @@ pft "TeBE" (
 	twmin_est 5
 	gdd5min_est 2000
 	longevity 300 !from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+)
+
+! Thomas: FACE include new PFT needle-leaved temperate tree
+pft "TeINE" (
+
+	! Temperate broadleaved evergreen tree
+
+	include 0
+	tree
+	needleleaved
+	shade_intolerant
+	evergreen
+	temperate
+	!sla 9
+	rootdist 0.9 0.1
+	leaflong 1.5			!3		!1.3 ! 1.5 is the correct value
+	turnover_leaf 0.67		!0.33	!0.7 ! 0.67
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 10
+	twmin_est 5
+	gdd5min_est 2000
+	longevity 350
 	fireresist 0.3
 )
 
@@ -500,6 +610,7 @@ pft "TrBR" (
 	turnover_leaf 1
 	longevity 400    ! from Thomas h 2010-03-30
 	fireresist 0.3
+	n_reserve 0.15			! GUESSN
 )
 
 pft "C3G" (

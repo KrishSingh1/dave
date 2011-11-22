@@ -3941,8 +3941,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 							// GUESSN
 							cton_leaf_avr+=indiv.cmass_leaf/indiv.nmass_leaf*indiv.densindiv;
-							vmaxnlim_avr+=indiv.nopt*indiv.densindiv;
-							vmaxnlim_stand+=indiv.nopt*indiv.densindiv;
+							vmaxnlim_avr+=indiv.avmaxnlim*indiv.densindiv;
+							vmaxnlim_stand+=indiv.avmaxnlim*indiv.densindiv;
 							nr_pft_indiv+=indiv.densindiv;
 							total_dens+=indiv.densindiv;
 							nuptake_total+=indiv.fnuptake*indiv.ndemand_uptake;

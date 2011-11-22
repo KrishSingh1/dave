@@ -417,7 +417,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 	bool est_year; // On establishment year reset establishment N store
 	
 
-	// FACE DAVID Thomas plantation cohort mode; not used
+	// FACE DAVID 
 	double no_trees_planted;
 
 	if (!ifduke) // then ORNL
@@ -511,7 +511,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 					// Veiko -> makes no difference
 					bminit*=0.3;
 
-					// FACE DAVID Thomas4
+					// FACE DAVID
 					if (has_FACE_clim && ifplantation) {
 						if (date.year>=stand.plantyear-1 && date.year<=stand.plantyear+10) 
 							bminit=0.0;
@@ -664,7 +664,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 				if (has_FACE_clim && date.year<=distyear && ifdisturb_init)
 					nsapling=0.0; // speeding up things for spin up
 
-				// FACE DAVID Thomas4
+				// FACE DAVID
 				if (has_FACE_clim && ifplantation) {
 					if (date.year>=stand.plantyear) {
 						if (ifduke) {

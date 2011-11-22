@@ -2500,7 +2500,7 @@ bool getclimate(Stand& stand) {
 
 
 
-	if (has_FACE_clim && (SOILDEPTH_LOWER != 100.0 || SOILDEPTH_UPPER != 400.0 || NYEAR_SCENARIO_FACE != 12) && ifduke)
+	if (has_FACE_clim && (SOILDEPTH_LOWER != 250.0 || SOILDEPTH_UPPER != 500.0 || NYEAR_SCENARIO_FACE != 12) && ifduke)
 		fail("DUKE input data is wrong!!!\n");
 
 	if (has_FACE_clim && (SOILDEPTH_LOWER != 1500.0 || SOILDEPTH_UPPER != 500.0 || NYEAR_SCENARIO_FACE != 11) && !ifduke)
@@ -2941,7 +2941,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	// If only yearly output between, say 1961 and 1990 is requred, use: 
 	//	if (date.year>=nyear_spinup+60 && date.year<nyear_spinup+90) {
 
-	if (date.year>=nyear_spinup) {
+	if (date.year>=100){//nyear_spinup) {
 
 		lon=gridlist.getobj().lon;
 		lat=gridlist.getobj().lat;
@@ -3023,6 +3023,10 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 		// *** Loop through PFTs ***
 
+		double nmass_indiv=0.0;			// GUESSN N budget
+		double nmass_sompools=0.0;		// GUESSN N budget	
+		double nmass_litterpools=0.0;	// GUESSN N budget
+
 		pftlist.firstobj();
 		while (pftlist.isobj) {
 			
@@ -3046,6 +3050,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			double vmaxnlim_avr=0.0;	// N limitation on vm		
 
 			double nr_pft_indiv=0.0;	// number of individuals of this pft. Used for avr calculation
+			
 			// end GUESSN
 
 			// GUESSN allometry
@@ -3126,6 +3131,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 					
 						if (indiv.pft.id==pft.id) {
 
+							nmass_indiv+=(indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+		// GUESSN N budget
+								indiv.nmass_heart+indiv.nmass_reserve+indiv.nstore)/(double)npatch;
+
 							// FACE OUT
 							if (out_face) {
 								for (int d=0;d<365;d++) {
@@ -3141,8 +3149,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 							// GUESSN
 							cton_leaf_avr+=indiv.cmass_leaf/indiv.nmass_leaf*indiv.densindiv;
-							vmaxnlim_avr+=indiv.nopt*indiv.densindiv;
-							vmaxnlim_stand+=indiv.nopt*indiv.densindiv;
+							vmaxnlim_avr+=indiv.avmaxnlim*indiv.densindiv;
+							vmaxnlim_stand+=indiv.avmaxnlim*indiv.densindiv;
 							nr_pft_indiv+=indiv.densindiv;
 							total_dens+=indiv.densindiv;
 							nuptake_total+=indiv.fnuptake*indiv.ndemand_uptake;
@@ -3346,7 +3354,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 				}
 			//}
 
-				// FACE DAVID 
+			// FACE DAVID 
 			double ORNL_amb[10] = {800.0,850.0,1000.0,1025.0,900.0,975.0,800.0,775.0,625.0,650.0};
 			double ORNL_ele[10] = {1025.0,1000.0,1200.0,1300.0,1200.0,1125.0,1080.0,875.0,700.0,700.0};
 			double Duke_amb[10] = {1020.0,1248.0,1330.0,1121.0,718.0,1046.0,1142.0,996.0,0.0,0.0};
@@ -3494,8 +3502,12 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 						centuryc+=stand[p].soil.sompool[r].cmass/(double)npatch;
 						centuryn+=stand[p].soil.sompool[r].nmass/(double)npatch;
 					}
+
+					nmass_sompools+=stand[p].soil.sompool[r].nmass/(double)npatch;	// GUESSN N budget
 				}
 			}
+
+			nmass_sompools+=stand[p].soil.nmass_avail;	// GUESSN N budget
 			// end GUESSN
 
 
@@ -3506,6 +3518,9 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 				c_litter+=(pft.litter_leaf+pft.litter_root+pft.litter_wood+pft.litter_repr)/(double)npatch;
 				n_litter+=(pft.nmass_litter_leaf+pft.nmass_litter_root+pft.nmass_litter_wood)/(double)npatch;
+
+				// GUESSN N budget
+				nmass_litterpools+=(pft.nmass_litter_leaf+pft.nmass_litter_root+pft.nmass_litter_wood+pft.nstore_est)/(double)npatch;	
 			}
 
 			runoff_stand+=stand[p].arunoff/(double)npatch;
@@ -3567,6 +3582,25 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 		} // patch loop
 
+		// GUESSN N budget
+		if (date.year == 500){
+			Total_N_500=nmass_indiv+nmass_sompools+nmass_litterpools;	
+			Total_C_500=cmass_stand+c_litter+surfsoillitterc+cwdc+microc+humusc+centuryc;
+		}
+
+		if (date.year > 500) {
+
+			double C_pool=cmass_stand+c_litter+surfsoillitterc+cwdc+microc+humusc+centuryc;
+		
+			Total_C_500-=flux_veg+flux_soil+flux_fire+flux_est;
+
+			if (date.year == 605) { 
+			//	dprintf("Year %d Cmass %g should be %g diff %g \n",date.year,C_pool,Total_C_500,C_pool-Total_C_500);
+
+			//	dprintf("Year %d N500 %g added %g should %g tot %g diff %g\n",date.year,Total_N_500,Added_N_from_500,
+			//		Total_N_500+Added_N_from_500,nmass_indiv+nmass_sompools+nmass_litterpools,Total_N_500+Added_N_from_500-(nmass_indiv+nmass_sompools+nmass_litterpools));
+			}
+		}
 
 
 		// In contrast to annual NEE, monthly NEE does not include fire 

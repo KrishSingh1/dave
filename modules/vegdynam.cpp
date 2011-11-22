@@ -419,11 +419,11 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 	// end FACE
 
 	patch.new_est_ndemand=0.0;
+	double nonlimdens;	// No N limitation indiv density
 
 	// Obtain reference to Vegetation object
 
 	Vegetation& vegetation=patch.vegetation;
-
 
 	// guess2008 - determine the number of woody PFTs that can establish
 	// Thomas Hickler
@@ -533,6 +533,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 					indiv.cton_leaf_new=indiv.pft.cton_leaf_avr;
 					indiv.cton_root_new=indiv.pft.cton_root_avr;
+					indiv.cton_leaf_opt=indiv.pft.cton_leaf_avr;
 
 					// GUESSN
 					// Initialise N demand
@@ -542,19 +543,17 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 					if (ifnlim && date.year>=freenyears && ((!has_FACE_clim && !has_CANIF_clim) || (date.year < stand.plantyear && date.year >= stand.plantyear+estinterval))) {
 						if (ifndemand_new_est){
-							if (!patch.disturbed) {
-								double frac_est=min(1.0,patch.pft[pft.id].nstore_est/indiv.ndemand);
-								indiv.cmass_leaf*=frac_est;
-								indiv.nmass_leaf*=frac_est;
-								indiv.cmass_root*=frac_est;
-								indiv.nmass_root*=frac_est;
-								patch.pft[pft.id].nstore_est-=min(patch.pft[pft.id].nstore_est,indiv.ndemand);
-								bminit*=frac_est;
+							double frac_est=min(1.0,patch.pft[pft.id].nstore_est/indiv.ndemand);
+							indiv.cmass_leaf*=frac_est;
+							indiv.nmass_leaf*=frac_est;
+							indiv.cmass_root*=frac_est;
+							indiv.nmass_root*=frac_est;
+							patch.pft[pft.id].nstore_est-=min(patch.pft[pft.id].nstore_est,indiv.ndemand);
+							bminit*=frac_est;
 
-								if (patch.pft[pft.id].nstore_est>0.0) {
-									patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;
-									patch.pft[pft.id].nstore_est=0.0;
-								}
+							if (patch.pft[pft.id].nstore_est>0.0) {
+								patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;
+								patch.pft[pft.id].nstore_est=0.0;
 							}
 						}
 						else 
@@ -657,7 +656,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 				if (has_FACE_clim && date.year<=distyear && ifdisturb_init)
 					nsapling=0.0; // speeding up things for spin up
 
-				// FACE DAVID Thomas4
+				// FACE DAVID 
 				if (has_FACE_clim && ifplantation) {
 					if (date.year>=stand.plantyear) {
 						if (ifduke) {
@@ -808,6 +807,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 					indiv.cton_leaf_new=indiv.pft.cton_leaf_avr;
 					indiv.cton_root_new=indiv.pft.cton_root_avr;
 					indiv.cton_sap_new=indiv.pft.cton_sap_avr;
+					indiv.cton_leaf_opt=indiv.pft.cton_leaf_avr;
 
 					// GUESSN
 					// Initialise N demand
@@ -820,24 +820,32 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 					if (ifnlim && date.year>=freenyears && ((!has_FACE_clim && !has_CANIF_clim) || (date.year < stand.plantyear && date.year >= stand.plantyear+estinterval))) {
 						if (ifndemand_new_est) {
-							if (!patch.disturbed)
+							//if (!patch.disturbed) {
+								nonlimdens=indiv.densindiv;
 								indiv.densindiv*=min(1.0,patch.pft[pft.id].nstore_est/indiv.ndemand);
+							//}
 						}
 						else 
 							patch.new_est_ndemand+=indiv.ndemand;	
-					}
+					}					
 
-					indiv.max_n_reserve = indiv.pft.n_reserve*indiv.cmass_sap/indiv.pft.cton_leaf_avr;
-					
-					indiv.bminc_leaf_frac=indiv.cmass_leaf/(indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap);
-					indiv.bminc_root_frac=indiv.cmass_root/(indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap);
+					if (ifndemand_new_est && !patch.disturbed){
 
-					if (ifndemand_new_est && !patch.disturbed){// && indiv.densindiv>0.0005) {
-						int den=((int)(indiv.densindiv*1000.0));
-						indiv.densindiv = (double)((int)(indiv.densindiv*1000.0))/1000.0;
-						
-						if (indiv.densindiv)
-							patch.pft[pft.id].nstore_est-=min(patch.pft[pft.id].nstore_est,indiv.ndemand);
+						indiv.densindiv = ((double)((int)(indiv.densindiv*1000.0)))/1000.0;
+
+						if (indiv.densindiv<nonlimdens) {
+							double densfrac=indiv.densindiv/nonlimdens;
+							indiv.cmass_leaf*=densfrac;
+							indiv.cmass_root*=densfrac;
+							indiv.cmass_sap*=densfrac;
+							indiv.nmass_leaf*=densfrac;
+							indiv.nmass_root*=densfrac;
+							indiv.nmass_sap*=densfrac;
+						}
+
+						double nstore_est=patch.pft[pft.id].nstore_est;
+
+						patch.pft[pft.id].nstore_est-=min(nstore_est,indiv.ndemand*indiv.densindiv/nonlimdens);
 					
 						// Account for C flux from atmosphere to vegetation
 						// guess2008
@@ -853,7 +861,12 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 								indiv.cmass_sap;
 					}
 
-					if (!indiv.densindiv)
+					indiv.max_n_reserve = indiv.pft.n_reserve*indiv.cmass_sap/indiv.pft.cton_leaf_avr;
+					
+					indiv.bminc_leaf_frac=indiv.cmass_leaf/(indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap);
+					indiv.bminc_root_frac=indiv.cmass_root/(indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap);
+
+					if (indiv.densindiv == 0.0)
 						vegetation.killobj();
 				}
 
@@ -1272,6 +1285,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob,
 		Pft& pft=pftlist.getobj();
 		patch.pft[pft.id].no_cohorts=0;
 		patch.pft[pft.id].greff_mort_fraction=0.0;
+
 		pftlist.nextobj();
 	}
 

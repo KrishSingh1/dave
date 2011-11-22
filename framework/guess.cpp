@@ -75,8 +75,9 @@ bool ifndemand_new_est;
 
 // end GUESSN
 
-// sch = 0
+// N budget check
 double Total_N_500;
+double Total_C_500;
 double Added_N_from_500;
 
 // guess2008 - new inputs from the .ins file
@@ -188,7 +189,6 @@ int framework(int argc,char* argv[]) {
 
 				if (date.islastday && date.islastmonth) {
 
-					// FACE DAVID
 					// FACE plantation
 					if (has_FACE_clim)
 						if (!ifduke) {

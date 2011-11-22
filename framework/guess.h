@@ -89,8 +89,8 @@ const int NSOILLAYER=2;
 //const double SOILDEPTH_LOWER=1500.0;// soil lower layer depth (mm)
 
 // FACE DAVID Duke
-//const double SOILDEPTH_UPPER=400.0; // soil upper layer depth (mm)
-//const double SOILDEPTH_LOWER=100.0; // soil lower layer depth (mm)
+//const double SOILDEPTH_UPPER=500.0; // soil upper layer depth (mm)
+//const double SOILDEPTH_LOWER=250.0; // soil lower layer depth (mm)
 
 // NORMAL VALUES
 const double SOILDEPTH_UPPER=500.0; // soil upper layer depth (mm)
@@ -201,8 +201,9 @@ extern bool ifndemand_new_est;
 	// if to use N limitation on new establishment 
 // end GUESSN
 
-// Close N budget - sch = 0
+// N budget check
 extern double Total_N_500;
+extern double Total_C_500;
 extern double Added_N_from_500;
 
 // FACE David
@@ -1070,7 +1071,7 @@ public:
 		// annual sum of positive dassim (above) - used by SOM dynamics
 	double vmax_lim[365];
 		// daily N limitation to vmax
-	double nopt;
+	double avmaxnlim;
 		// N limitation on vmax
 	double cton_leaf_new;
 		// C:N ratio for new biomass (leaf)
@@ -1086,6 +1087,8 @@ public:
 		// C:N ratio of old (current) biomass (sap)
 	double cton_leaf_opt;
 		// optimal (photosynthesis) C:N ratio for new biomass (leaf) 
+	double cton_growth;
+		// total growth C:N ratio
 
 	double dnupnpp;	// Daily N uptake variables	guessnfix 
 	double nstore_daily;
@@ -1904,9 +1907,6 @@ public:
 	double ndemand;
 		// yearly N demand
 	double nsupply;
-		// yearly N supply
-	// DAVID soil
-	double nsupply_soil;
 		// yearly N supply
 	double new_est_ndemand;
 		// last years N demand for new establishments

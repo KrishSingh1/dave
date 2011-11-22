@@ -344,16 +344,20 @@ double nitrogen_uptake_strength(const Individual& indiv) {
 
 void indiv_fnuptake(Vegetation& vegetation, double nsupply_patch, double ndemand_patch, double fnuptake) {
 
+	// Determining indvidual N uptake as a fraction of its N demand. Grasses should get at least 5% and no
+	// individual should get more than 100% of its N demand. 
+
 	double GRASS_part = 0.05;			// Grass should at least get 5% of total available N
 	double GRASS_ndemand = 0.0;			// Grass total N demand
-	bool GRASS_100 = false;				// if grass gets what it demands from its part of the total N supply 
-	bool not_more_grass = false;		// keeping track of if GRASS can compite with TREEs for more N than what is
+	bool GRASS_100 = false;				// If grass gets what it demands from its part of the total N supply 
+	bool not_more_grass = false;		// Keeping track of if GRASS can compite with TREEs for more N than what is
 										// espacially assigned for GRASS (GRASS_part)
-	double grass_uptake_decider = 0.0;
-	double total_uptake_decider = 0.0;
+	double grass_uptake_decider = 0.0;	// Total uptake strength of grasses
+	double total_uptake_decider = 0.0;	// Total uptake strength
 	double temp_nsupply_patch = nsupply_patch;
-	double ratio_uptake;				// how much N taken up per uptake strength
-	bool full_uptake = true;			// if indiv.fuptake should be updated
+	double ratio_uptake;				// How much N taken up per uptake strength
+	bool full_uptake = true;			// If indiv.fuptake should be updated as an individual got more than 100% of its 
+										// N demand
 
 	// GRASS
 	// determine strength and demand of grasses
@@ -391,13 +395,11 @@ void indiv_fnuptake(Vegetation& vegetation, double nsupply_patch, double ndemand
 			// and subtract uptake strength as it will be added further down
 			total_uptake_decider -= nitrogen_uptake_strength(indiv);
 		}
-
 		
 		// TREE
 		// Sum up uptake strengths
 		if (!negligible(indiv.ndemand_uptake)) {
-			double checkk=nitrogen_uptake_strength(indiv);
-			total_uptake_decider += checkk;
+			total_uptake_decider += nitrogen_uptake_strength(indiv);
 		}
 
 		vegetation.nextobj();
@@ -409,7 +411,7 @@ void indiv_fnuptake(Vegetation& vegetation, double nsupply_patch, double ndemand
 		full_uptake = false;	
 		
 		// restore N supply and uptake decider if not_more_grass == true
-		// (which can happen after the first round if there is a full_uptake)
+		// (which can happen if there is a full_uptake)
 		// so that it can be calculated if they might be able to take up more 
 		// than just the GRASS part
 		if (not_more_grass) {
@@ -494,16 +496,6 @@ void indiv_fnuptake(Vegetation& vegetation, double nsupply_patch, double ndemand
 			vegetation.nextobj();
 		}
 	}
-
-	double nuptake_t=0.0;
-	vegetation.firstobj();
-	while (vegetation.isobj && !full_uptake) {
-		Individual& indiv=vegetation.getobj();
-			
-		nuptake_t+=indiv.ndemand_uptake*indiv.fnuptake;
-
-		vegetation.nextobj();
-	}
 }
 // end GUESSN
 
@@ -534,17 +526,9 @@ void decayrates(Soil& soil,double temp_soil,double wcont_soil) {
 	// content of upper soil layer
 
 	// Maximum exponential decay constants for each SOM pool (daily basis)
-	// (Parton et al 1993, Eqn 2-4, K_I/365)
-	//const double K_MAX[]={1.1e-2,1.3e-2,2.0e-2,1.6e-2,4.1e-2,5.1e-2,5.5e-4,1.2e-5}; // GUESSN DayCent
-
-	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
-	//const double K_MAX[]={6.8e-3,1.3e-2,3.0e-2,4.4e-4,1.9e-2,2.7e-2,5.1e-2,1.3e-3,6.8e-6};	// GUESSN ForCent
-
-	// Maximum exponential decay constants for each SOM pool (daily basis)
-	// (Parton et al 2010, Figure 2)
-	// plus Kirschbaum et al 2001 coarse woody debris  decay	
-	const double K_MAX[]={6.8e-3,1.3e-2,3.0e-2,4.4e-4,1.9e-2,2.7e-2,3.3e-3,5.1e-2,1.3e-3,6.8e-6};	// GUESSN ForCent + Kirschbaum
+	// plus Kirschbaum et al 2001 coarse woody debris decay	
+	const double K_MAX[]={6.8e-3,1.3e-2,3.0e-2,4.4e-4,1.9e-2,2.7e-2,3.3e-3,5.1e-2,1.3e-3,6.8e-6};
 
 	// Modifier for effect of soil texture
 	// Eqn 5, Parton et al 1993:
@@ -650,9 +634,9 @@ void transferdecomp(Soil& soil,pooltype donor,pooltype receiver,
 void dailyNuptake(Patch& patch, Soil& soil) {
 
 	// Daily N uptake
-	// Based on Zaehle 2009 SM
+	// Based on Zaehle 2010 SM
 	double Umax=5.14;	// Max N uptake per unit fine root mass
-						// Corresponds to Vmax eq 8 Zaehle 2009 SM (kg N kg-1 C day-1)
+						// Corresponds to Vmax eq 8 Zaehle 2010 SM (kg N kg-1 C day-1)
 	double kNmin=0.05;	// Rate of N uptake not associated with Michaelis-Menten Kinetics (dimensionless)
 	double KNmin=0.85;	// Half saturation concentration of fine root uptake (kg N m-2)
 	double ctonfact;
@@ -746,10 +730,11 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 	double N_demand;
 	const double nmass_avail_max=0.002;	//(Parton et al 1993, Fig. 4)
 
-	// Instead of using the soil.nmass_avail at day==0, nmass_avail is
-	// "updated" each day depending on mineralization, immobilization
-	// N deposition, and plant uptake (no N limitation and a reference C:N ratio). 
-	// Then ntoc ratios is calculated each day
+	////////////////////////////////////////////////////////////////////////////////
+	// Instead of using the soil.nmass_avail at day==0 as in Parton et al 1993,
+	// nmass_avail is "updated" each day depending on mineralization, immobilization
+	// N deposition, and plant uptake (no N limitation and with last years
+	// growth C:N ratio). Then ntoc ratios is calculated each day
 						
 //	dailyNuptake(patch,soil);
 
@@ -772,15 +757,10 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 
 		// For this individual ...
 
-		double NPPp;
-		NPPp = indiv.assim-indiv.resp;
+		double NPPp = indiv.assim-indiv.resp;
 
-		if (NPPp > 0.0) {
-			double ref_cton = (indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap)/(indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap);
-				//reference value of the C:N ratio for plant production
-
-			N_demand += NPPp/ref_cton;
-		}			
+		if (NPPp > 0.0)
+			N_demand += NPPp/indiv.cton_growth;			
 
 		vegetation.nextobj();
 	}
@@ -796,6 +776,7 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 		double leaching=soil.setntoc_nmass_avail*(soil.dperc/18.0*(0.2+0.7*soil.soiltype.sand_frac));
 		soil.setntoc_nmass_avail-=leaching;
 	}
+	////////////////////////////////////////////////////////////////////////////////////////
 
 	// Set N:C ratios for humus, soil microbial, passive and slow pool based on estimated mineral N pool
 	// (Parton et al 1993, Fig 4)
@@ -854,6 +835,8 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 		delta_nmass[p]=soil.sompool[p].delta_nmass;
 	}
 
+	// If net mineralization is negative then SURFSTRUCT, SOILSTRUCT and SURFCWD
+	// pools decau rates are decreased to get an positive net mineralization 
 	while(!net_mineralization && times<2) {
 
 		respsum=0.0;
@@ -974,13 +957,9 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 		// Estimate daily soil mineral N pool after decomposition
 		// (negative value = immobilisation) 
 
-//		double daily_nmass = (soil.ndep_annual + soil.nmass_avail + soil.N_fix)/365.0 + nmin_actual-nimmob;
 		double daily_nmass = nmin_actual-nimmob;
 
-		if (date.year == 303 && date.day == 17)
-			int sch = 0;
-
-		if (daily_nmass >= 0.0 || nmin_actual-nimmob >= 0.0) {
+		if (daily_nmass >= 0.0) {
 
 			net_mineralization = true;
 		}
@@ -1006,7 +985,6 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 		soil.sompool[p].nmass+=soil.sompool[p].delta_nmass;
 		nnmass+=soil.sompool[p].delta_nmass;
 	}
-
 
 	// calculate the daily result of min, imm, and ndep
 	soil.daily_minimmndep = nmin_actual-nimmob+(soil.ndep_annual+soil.N_fix)/365.0;
@@ -1248,8 +1226,7 @@ void turnover_oecd_ndemand(double turnover_leaf,double turnover_root,double turn
 
 	turnover=turnover_leaf*nmass_leaf;
 	nmass_leaf-=turnover;
-	if (alive) 
-		nstore_turnover+=turnover*nrelocfrac;	
+	nstore_turnover+=turnover*nrelocfrac;	
 
 	// Root turnover
 	turnover=turnover_root*cmass_root;
@@ -1257,8 +1234,7 @@ void turnover_oecd_ndemand(double turnover_leaf,double turnover_root,double turn
 
 	turnover=turnover_root*nmass_root;
 	nmass_root-=turnover;
-	if (alive) 
-		nstore_turnover+=turnover*nrelocfrac;	
+	nstore_turnover+=turnover*nrelocfrac;	
 
 	if (lifeform==TREE) {
 			
@@ -1563,13 +1539,6 @@ void allocation_ndemand(double bminc,double cmass_leaf,double cmass_root,double 
 			cmass_root_inc=(cmass_leaf_inc+cmass_leaf)/ltor-cmass_root; // Eqn (3)
 			cmass_sap_inc=bminc-cmass_leaf_inc-cmass_root_inc; // Eqn (1)
 
-			if (cmass_sap_inc < 0.0) {
-				if (cmass_sap_inc>(cmass_leaf_inc+cmass_leaf)*wooddens*height*sla/k_latosa-cmass_sap)
-					cmass_sap_inc=(cmass_leaf_inc+cmass_leaf)*wooddens*height*sla/k_latosa-cmass_sap;
-
-				cmass_heart_inc=-cmass_sap_inc;
-			}
-
 			// guess2008 - extra check - abnormal allocation can still happen if ltor is very small
 			if ((cmass_root_inc > 50 || cmass_root_inc < -50) && ltor < 0.0001) {
 				cmass_leaf_inc=0.0;
@@ -1647,10 +1616,7 @@ void allocation_ndemand(double bminc,double cmass_leaf,double cmass_root,double 
 
 			// Convert killed sapwood to heartwood
 			if(cmass_sap_inc<0.0)	
-				if (-cmass_sap_inc > cmass_sap)
-					cmass_heart_inc += cmass_sap;
-				else
-					cmass_heart_inc =- cmass_sap_inc;
+				cmass_heart_inc=-cmass_sap_inc;;
 		}
 	}
 	else if (lifeform==GRASS || lifeform==CROP) {
@@ -1710,9 +1676,6 @@ void this_years_ndemand(double cmass_leaf,double cmass_root,double cmass_sap,dou
 	// Thomas this year's ndemand: declaration
 	double bminc;
 	double dval;
-
-	// present N mass
-	double nbudget_before,nbudget_after;
 
 	// C:N ratios
 	double cton_root_new,cton_sap_new;
@@ -1799,8 +1762,6 @@ void this_years_ndemand(double cmass_leaf,double cmass_root,double cmass_sap,dou
 
 	if (lifeform==TREE) { 
 
-		nbudget_before=nmass_leaf+nmass_root+nmass_sap+nmass_heart;
-
 		// pay back part of cdebt
 		if (ifcdebt && bminc>0.0) {
 			cmass_payback=min(cmass_debt*CDEBT_PAYBACK_RATE,bminc);
@@ -1828,17 +1789,10 @@ void this_years_ndemand(double cmass_leaf,double cmass_root,double cmass_sap,dou
 			bminc_root_frac=cmass_root_inc/(cmass_leaf_inc+cmass_root_inc+max(0.0,cmass_sap_inc));
 		}
 
-		nbudget_after = nmass_leaf+cmass_leaf_inc*densindiv/cton_leaf_new+
-				nmass_root+cmass_root_inc*densindiv/cton_root_new+
-				nmass_sap+cmass_sap_inc*densindiv/cton_sap_new+
-				nmass_heart+cmass_heart_inc*densindiv/cton_sap_new*nrelocfrac;
-
 		// No negative N demand
 		ndemand_uptake=max(ndemand_uptake,0.0);
 	}
 	else {
-
-		nbudget_before=nmass_leaf+nmass_root;
 
 		allocation_ndemand(bminc,cmass_leaf,cmass_root,
 			0.0,0.0,0.0,ltor,0.0,0.0,0.0,GRASS,0.0,
@@ -1848,9 +1802,6 @@ void this_years_ndemand(double cmass_leaf,double cmass_root,double cmass_sap,dou
 		ndemand_uptake+=
 			max(0.0,cmass_leaf_inc)*densindiv/cton_leaf_new+
 			max(0.0,cmass_root_inc)*densindiv/cton_root_new;
-
-		nbudget_after = nmass_leaf+cmass_leaf_inc*densindiv/cton_leaf_new+
-				nmass_root+cmass_root_inc*densindiv/cton_root_new;
 
 		// Calculate fractions of new biomass that goes to leaf and root
 		if (!negligible(max(0.0,cmass_leaf_inc)) && !negligible(max(0.0,cmass_root_inc))) {
@@ -2229,9 +2180,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 	//							without any N limitation
 	//
 	//	 If Extra Nitrogen (EN) is used (ifstoreextran == true), then eq(1) looks like this
-	//     (1)  ndemand_day = dassim/aassim*ndemand_indiv*(1+EN_actual_uptake)
-	//          where
-	//			EN_actual_uptake = the extra nitrogen that will be stored
+	//     (1)  ndemand_day = dassim/aassim*ndemand_indiv
 	//
 	//	 For patch:
 	//          ndemand_patch_day = sum of ndemand_day over all individuals
@@ -2239,12 +2188,11 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 	// Actual N uptake for each day and individual given by:
 	//     (3)  nuptake_day = ndemand_day*fuptake
 	//     where
-	//     (4)  fuptake = min(patch.nsupply/patch.ndemand,1.0)
-	//	   there is also an option for individual fuptake 
+	//     (4)  fnuptake = min(patch.nsupply/patch.ndemand,1.0)
+	//	   or fnuptake is determined per individual 
 	//
 	// N deposition and leaching of mineral N are also performed by this function
 	// Leaching of organic N is done separately by function leaching() above
-	// Uptake to / usage of extra N storage is also done by this function
 	//
 	// N fixation is done on patch basis using Cleveland 1999 approach
 	// Conservative N fixation
@@ -2264,7 +2212,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 	Vegetation& vegetation=patch.vegetation;
 	Soil& soil=patch.soil;
 
-	patch.ndemand=0.0;										
+	patch.ndemand=0.0;	
 
 	// ANNUAL N SUPPLY
 	// Potential N supply is remaining pool from last year
@@ -2291,6 +2239,14 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 			// Upper N fixation (Cleveland 1999 fig. 1)
 	else
 		soil.N_fix = 0.0;
+
+	// N budget
+	if (date.year > 500){
+		if (date.year == 501)
+			Added_N_from_500=soil.N_fix+soil.ndep_annual;
+		else
+			Added_N_from_500+=soil.N_fix+soil.ndep_annual;
+	}
 
 	for (int g=0;g<365;g++)
 		soil.FACE_out[61][g]=soil.N_fix/365.0*1000.0;
@@ -2382,10 +2338,6 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 	else 
 		patch.fnuptake=1.0;
 
-	// Plot yearly patch N limitation
-	if (patch.id==0 && date.year > 2050)// && !(date.year%5))
-		plot("fnuptake","fnuptake",date.year,patch.fnuptake);
-
 	// Individual fnuptake
 	if (ifindiv_fnuptake && patch.fnuptake < 1.0 && patch.fnuptake != 0.0)
 		indiv_fnuptake(vegetation,patch.nsupply,patch.ndemand,patch.fnuptake);
@@ -2435,7 +2387,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 		}
 	}
 
-	// Store N uptake by establishment individuals
+	// Store N uptake by establishment individuals and then kill them
 	if (date.year>=freenyears) {
 		vegetation.firstobj();
 		while (vegetation.isobj) {
@@ -2445,7 +2397,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 				patch.pft[indiv.pft.id].nstore_est+=indiv.nstore;
 				vegetation.killobj();
 			}
-			else
+			else				
 				vegetation.nextobj();	// ... on to next individual
 		}
 	}
@@ -2511,8 +2463,7 @@ double old_leachn=0.0;
 void som_dynamics_century(Patch& patch,Pftlist& pftlist) {
 
 	double vegn,centuryn,littern,vegstore;
-	double sumassim;
-	double vegnmass_reserve;	
+	double vegnmass_reserve;
 	int p;
 
 	if (date.day==0) { // First day of year only
@@ -2526,7 +2477,7 @@ void som_dynamics_century(Patch& patch,Pftlist& pftlist) {
 
 			vegn=0.0;
 			vegstore=0.0;
-			vegnmass_reserve=0.0;	
+			vegnmass_reserve=0.0;
 			vegetation.firstobj();
 			while (vegetation.isobj) {
 				Individual& indiv=vegetation.getobj();
@@ -2686,9 +2637,14 @@ void som_dynamics(Patch& patch,Pftlist& pftlist) {
 //   in natural ecosystems. GBC 13: 623-645
 // Foley J A 1995 An equilibrium model of the terrestrial carbon budget
 //   Tellus (1995), 47B, 310-319
+// Friend, A. D., Stevens, A. K., Knox, R. G. & Cannell, M. G. R. 1997. A process-based, 
+//   terrestrial biosphere model of ecosystem dynamics (Hybrid v3.0). Ecological Modelling, 95, 249-287.
 // Kirschbaum, M. U. F. and K. I. Paul (2002). "Modelling C and N dynamics in forest soils 
 //   with a modified version of the CENTURY model." Soil Biology & Biochemistry 34(3): 341-354.
 // Meentemeyer, V. (1978) Macroclimate and lignin control of litter decomposition
 //   rates. Ecology 59: 465-472.
 // Parton (2010) ForCent model development and testing using the Enriched Background 
 //	 Isotope Study experiment JoGR 115: 
+// Zaehle, S. & Friend, A. D. 2010. Carbon and nitrogen cycle dynamics in the O-CN land surface 
+//   model: 1. Model description, site-scale evaluation, and sensitivity to parameter estimates. 
+//   Global Biogeochemical Cycles, 24.

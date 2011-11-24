@@ -1580,7 +1580,10 @@ public:
 	/// Photosynthesis values for this PFT under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;
 	
-	
+	// NPP CONSISTENCY
+	double anpp;
+	double aiso;
+	double amon;	
 
 	/// Is this PFT allowed to grow in this stand ?
 	bool active;

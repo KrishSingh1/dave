@@ -266,9 +266,13 @@ int framework(int argc,char* argv[]) {
 						// LAST DAY OF YEAR
 						stand.firstobj();
 						while (stand.isobj) {
-							
+
 							// For each patch ...
 							Patch& patch=stand.getobj();
+
+						        // NPP CONSISTENCY
+						        calcannualflux(stand,patch,pftlist);
+
 							// Establishment, mortality and disturbance by fire
 							vegetation_dynamics(stand,patch,pftlist);
 							stand.nextobj();

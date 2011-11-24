@@ -23,4 +23,7 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist);
 void outannual(Gridcell& gridcell,Pftlist& pftlist);
 void termio();
 
+// NPP CONSISTENCY
+void calcannualflux(Stand& stand,Patch& patch,Pftlist& pftlist);
+
 #endif // LPJ_GUESS_GUESSIO_H

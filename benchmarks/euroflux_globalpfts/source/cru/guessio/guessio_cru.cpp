@@ -50,13 +50,9 @@
 #include <algorithm>
 #include "euroflux.h"
 
-
 // guess2008 - header file for the CRU TS 3.0 data archives
 #include "cru_1901_2006.h"
 #include "cru_1901_2006misc.h"
-
-// header file for reading binary data archive of global nitrogen deposition
-#include "GlobalNdep.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 //
@@ -140,7 +136,7 @@ public:
 // ENUM DECLARATIONS OF INTEGER CONSTANTS FOR PLIB INTERFACE
 
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM};
-enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_PHENOLOGY,CB_PATHWAY,
+enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_PATHWAY,	
 	CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM};
 
 
@@ -150,10 +146,14 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_PHENOLOGY,CB_PATHWAY,
 Paramlist param;
 
 xtring title; // Title for this run
-// guess2008 - changed from nyear to nyear_spinup
-int nyear_spinup; // number of simulation years during spinup
 // guess2008 - new optional parameter
 int searchradius; // search radius to use when finding CRU data
+
+/// Landcover fractions read from ins-file (% area).
+int lc_fixed_frac[NLANDCOVERTYPES]={0};
+
+/// Whether gridcell is divided into equal active landcover fractions.
+bool equal_landcover_area;
 
 Pftlist* ppftlist; // pointer to PFT list
 Pft* ppft; // pointer to Pft object currently being assigned to
@@ -173,21 +173,9 @@ xtring file_mnpp,file_mlai,file_mgpp,file_mra,file_maet,file_mpet,file_mevap,fil
 xtring file_mnee,file_mwcont_upper,file_mwcont_lower;
 xtring file_firert;
 
+
 // guess2008 - euroflux - Files for EUROFLUX output and stats
 xtring file_eurofluxmonthly, file_eurofluxannual, file_eurofluxstats,file_speciesheights;
-
-xtring file_dgpp;
-
-// GUESSN
-xtring file_cton,file_nmass,file_nsources,file_npool,file_nleach,file_age,file_nuptake,file_anppn,file_vmaxnlim;
-// end GUESSN
-
-// GUESSN allometry
-xtring file_allometry,file_canopyh,file_allometry_ind;
-// end GUESSN
-
-// FACE OUT
-xtring file_face;
 
 // guess2008 - euroflux - new int to keep track of the simulation year
 // Needed for management etc., used in vegetation dynamics
@@ -212,6 +200,7 @@ void initsettings() {
 	npatch=1;
 	vegmode=COHORT;
 	searchradius = 0;
+	run_landcover = false;
 
 	// guess2008 - initialise filenames here
 	outputdirectory = "";
@@ -220,25 +209,12 @@ void initsettings() {
 	file_mgpp=file_mra=file_mnee=file_mwcont_upper=file_mwcont_lower="";
 	file_cpool=file_firert="";
 
-	file_dgpp="";
-
-	// GUESSN
-	file_cton=file_nmass=file_nsources=file_npool=file_nleach=file_age=file_nuptake=file_anppn=file_vmaxnlim="";
-	// end GUESSN
-
-	// GUESSN allometry
-	file_allometry=file_canopyh=file_allometry_ind="";
-	// end GUESSN
-
-	// FACE OUT
-	file_face="";
-	// end FACE OUT
-
 	// guess2008 - euroflux
 	file_eurofluxmonthly="";
 	file_eurofluxannual="";
 	file_eurofluxstats="";
 	file_speciesheights="";
+
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -283,16 +259,7 @@ void plib_declarations(int id,xtring setname) {
 
 	case BLOCK_GLOBAL:
 
-		// FACE David
-		declareitem("FACE_ring",&FACE_ring,1,2,1,CB_NONE,"Which FACE ring to simulated");
-		declareitem("FACE_DUKE_or_OAK",&ifduke,0,1,1,CB_NONE,"Which FACE site to simulated");
-		declareitem("Has_FACE_clim",&has_FACE_clim,0,1,1,CB_NONE,"Using FACE clim data");
-		
-		// CANIF David
-		declareitem("Has_CANIF_clim",&has_CANIF_clim,0,1,1,CB_NONE,"Using CANIF clim data");
-
 		declareitem("title",&title,80,CB_NONE,"Title for run");
-		// guess2008 - changed this input parameter name from nyear to nyear_spinup, which is more descriptive 
 		declareitem("nyear_spinup",&nyear_spinup,1,10000,1,CB_NONE,"Number of simulation years to spinup for");
 		declareitem("vegmode",&strparam,16,CB_VEGMODE,
 			"Vegetation mode (\"INDIVIDUAL\", \"COHORT\", \"POPULATION\")");
@@ -325,28 +292,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("patcharea",&patcharea,1.0,1.0e4,1,CB_NONE,
 			"Patch area (m2)");
 
-		// GUESSN
-		declareitem("nrelocfrac",&nrelocfrac,0.0,1.0,1,CB_NONE,
-			"Fractional N relocation from shed leaves & roots");
-		declareitem("ifnfix",&ifnfix,0,3,1,CB_NONE,
-			"Whether to include an estimate for N fixation");
-
-		declareitem("ifcentury",&ifcentury,1,CB_NONE,
-			"Whether to use CENTURY SOM dynamics (default standard LPJ)");
-		declareitem("ifnlim",&ifnlim,1,CB_NONE,
-			"Whether plant growth limited by available N");
-		declareitem("freenyears",&freenyears,0,1000,1,CB_NONE,
-			"Number of years to spinup without N limitation");
-		declareitem("ifleachn",&ifleachn,1,CB_NONE,
-			"Whether to allow N leaching");
-		declareitem("ifindiv_fnuptake",&ifindiv_fnuptake,1,CB_NONE,
-			"Whether to allow individual fractional N uptake");
-		declareitem("cwdtransfer",&cwdtransfer,0.0,1.0,1,CB_NONE,
-			"Fraction of woody debris transferred to SOM each year");
-		declareitem("ifndemand_new_est",&ifndemand_new_est,1,CB_NONE,
-			"N limitation of new establishment");
-		// end GUESSN
-
 		// guess2008
 		// Annual output variables
 		declareitem("outputdirectory",&outputdirectory,300,CB_NONE,"Directory for the output files");
@@ -358,29 +303,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_cpool",&file_cpool,300,CB_NONE,"Soil C output file");
 		declareitem("file_runoff",&file_runoff,300,CB_NONE,"Runoff output file");
 		declareitem("file_firert",&file_firert,300,CB_NONE,"Fire retrun time output file");
-		
-		// GUESSN
-		declareitem("file_cton",&file_cton,300,CB_NONE,"Mean leaf C:N output file");
-		declareitem("file_nmass",&file_nmass,300,CB_NONE,"N biomass output file");
-		declareitem("file_nsources",&file_nsources,300,CB_NONE,"annual N sources output file");
-		declareitem("file_npool",&file_npool,300,CB_NONE,"Soil N output file");
-		declareitem("file_nleach",&file_nleach,300,CB_NONE,"Leached mineral N output file");
-		declareitem("file_age",&file_age,300,CB_NONE,"Age structure output file");
-		declareitem("file_nuptake",&file_nuptake,300,CB_NONE,"annual N uptake output file");
-		declareitem("file_anppn",&file_anppn,300,CB_NONE,"annual N usage output file");
-		declareitem("file_vmaxnlim",&file_vmaxnlim,300,CB_NONE,"annual N limitation on vm output file");
-		// end GUESSN
-
-		// GUESSN allometry
-		declareitem("file_allometry",&file_allometry,300,CB_NONE,"Allometry output file");
-		declareitem("file_canopyh",&file_canopyh,300,CB_NONE,"Canopy height output file");
-		declareitem("file_allometry_ind",&file_allometry_ind,300,CB_NONE,"Individual Allometry output file");
-		// end GUESSN
-
-		// FACE OUT
-		declareitem("file_face",&file_face,300,CB_NONE,"FACE output file");
-		// end FACE OUT
-		
 		// Monthly output variables
 		declareitem("file_mnpp",&file_mnpp,300,CB_NONE,"Monthly NPP output file");
 		declareitem("file_mlai",&file_mlai,300,CB_NONE,"Monthly LAI output file");
@@ -395,8 +317,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_mnee",&file_mnee,300,CB_NONE,"Monthly NEE output file");
 		declareitem("file_mwcont_upper",&file_mwcont_upper,300,CB_NONE,"Monthly wcont_upper output file");
 		declareitem("file_mwcont_lower",&file_mwcont_lower,300,CB_NONE,"Monthly wcont_lower output file");
-
-		declareitem("file_dgpp",&file_dgpp,300,CB_NONE,"Daily GPP output file");
 
 		// guess2008 - new options
 		declareitem("ifsmoothgreffmort",&ifsmoothgreffmort,1,CB_NONE,
@@ -415,6 +335,23 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_eurofluxannual",&file_eurofluxannual,300,CB_NONE,"EUROFLUX annual output file");
 		declareitem("file_eurofluxstats",&file_eurofluxstats,300,CB_NONE,"EUROFLUX Statistics output file");
 		declareitem("file_speciesheights",&file_speciesheights,300,CB_NONE,"Mean species heights in 2000");
+
+		declareitem("run_landcover",&run_landcover,1,CB_NONE,"Landcover version");
+		declareitem("run_urban",&run[URBAN],1,CB_NONE,"Whether urban land is to be simulated");
+		declareitem("run_crop",&run[CROPLAND],1,CB_NONE,"Whether crop-land is to be simulated");
+		declareitem("run_pasture",&run[PASTURE],1,CB_NONE,"Whether pasture is to be simulated");
+		declareitem("run_forest",&run[FOREST],1,CB_NONE,"Whether managed forest is to be simulated");
+		declareitem("run_natural",&run[NATURAL],1,CB_NONE,"Whether natural vegetation is to be simulated");
+		declareitem("run_peatland",&run[PEATLAND],1,CB_NONE,"Whether peatland is to be simulated");
+		declareitem("ifslowharvestpool",&ifslowharvestpool,1,CB_NONE,"If a slow harvested product pool is included in patchpft.");
+		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"Whether static landcover fractions are set in the ins-file (0,1)");
+		declareitem("equal_landcover_area",&equal_landcover_area,1,CB_NONE,"Whether enforced static landcover fractions are equal-sized stands of all included landcovers (0,1)");
+		declareitem("lc_fixed_urban",&lc_fixed_frac[URBAN],0,100,1,CB_NONE,"% lc_fixed_urban");
+		declareitem("lc_fixed_cropland",&lc_fixed_frac[CROPLAND],0,100,1,CB_NONE,"% lc_fixed_cropland");
+		declareitem("lc_fixed_pasture",&lc_fixed_frac[PASTURE],0,100,1,CB_NONE,"% lc_fixed_pasture");
+		declareitem("lc_fixed_forest",&lc_fixed_frac[FOREST],0,100,1,CB_NONE,"% lc_fixed_forest");
+		declareitem("lc_fixed_natural",&lc_fixed_frac[NATURAL],0,100,1,CB_NONE,"% lc_fixed_natural");
+		declareitem("lc_fixed_peatland",&lc_fixed_frac[PEATLAND],0,100,1,CB_NONE,"% lc_fixed_peatland");
 
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
@@ -437,6 +374,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("include",&includepft,1,CB_NONE,"Include PFT in analysis");
 		declareitem("lifeform",&strparam,16,CB_LIFEFORM,
 			"Lifeform (\"TREE\" or \"GRASS\")");
+		declareitem("landcover",&strparam,16,CB_LANDCOVER,
+			"Landcovertype (\"URBAN\", \"CROP\", \"PASTURE\", \"FOREST\", \"NATURAL\" or \"PEATLAND\")");
 		declareitem("phenology",&strparam,16,CB_PHENOLOGY,
 			"Phenology (\"EVERGREEN\", \"SUMMERGREEN\", \"RAINGREEN\" or \"ANY\")");
 		declareitem("phengdd5ramp",&ppft->phengdd5ramp,0.0,1000.0,1,CB_NONE,
@@ -464,23 +403,12 @@ void plib_declarations(int id,xtring setname) {
 		// guess2008 - increased the upper limit to possible respcoeff values (was 1.2)
 		declareitem("respcoeff",&ppft->respcoeff,0.0,3,1,CB_NONE,
 			"Respiration coefficient (0-1)");
-		
-
-		// GUESSN
-		declareitem("cton_leaf_min",&ppft->cton_leaf_min,1.0,1.0e4,1,CB_NONE,
-			"Min Leaf C:N mass ratio");
-		declareitem("cton_leaf_max",&ppft->cton_leaf_max,1.0,1.0e4,1,CB_NONE,
-			"Max Leaf C:N mass ratio");
-		declareitem("cton_leaf_avr",&ppft->cton_leaf_avr,1.0,1.0e4,1,CB_NONE,
-			"Average Leaf C:N mass ratio");
-		declareitem("cton_root_avr",&ppft->cton_root_avr,1.0,1.0e4,1,CB_NONE,
-			"Average Fine root C:N mass ratio");
-		declareitem("cton_sap_avr",&ppft->cton_sap_avr,1.0,1.0e4,1,CB_NONE,
-			"Average Sapwood C:N mass ratio");
-		declareitem("n_reserve",&ppft->n_reserve,0.0,1.0,1,CB_NONE,
-			"N storage organ in relation to sapwood carbon");
-		// end GUESSN
-
+		declareitem("cton_leaf",&ppft->cton_leaf,1.0,1.0e4,1,CB_NONE,
+			"Leaf C:N mass ratio");
+		declareitem("cton_root",&ppft->cton_root,1.0,1.0e4,1,CB_NONE,
+			"Fine root C:N mass ratio");
+		declareitem("cton_sap",&ppft->cton_sap,1.0,1.0e4,1,CB_NONE,
+			"Sapwood C:N mass ratio");
 		declareitem("reprfrac",&ppft->reprfrac,0.0,1.0,1,CB_NONE,
 			"Fraction of NPP allocated to reproduction");
 		declareitem("turnover_leaf",&ppft->turnover_leaf,0.0,1.0,1,CB_NONE,
@@ -555,6 +483,12 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("drought_tolerance",&ppft->drought_tolerance,0.0,1.0,1,CB_NONE,
 			"Drought tolerance level (0 = very -> 1 = not at all) (unitless)");
 
+		declareitem("harv_eff",&ppft->harv_eff,0.0,1.0,1,CB_NONE,"Harvest efficiency");
+		declareitem("harvest_slow_frac",&ppft->harvest_slow_frac,0.0,1.0,1,CB_NONE,
+			"Fraction of harvested products that goes into carbon depository for long-lived products like wood");
+		declareitem("turnover_harv_prod",&ppft->turnover_harv_prod,0.0,1.0,1,CB_NONE,"Harvested products turnover (fraction/year)");
+		declareitem("res_outtake",&ppft->res_outtake,0.0,1.0,1,CB_NONE,"´Fraction of residue outtake at harvest");
+
 		callwhendone(CB_CHECKPFT);
 		
 		break;
@@ -599,10 +533,22 @@ void plib_callback(int callback) {
 	case CB_LIFEFORM:
 		if (strparam.upper()=="TREE") ppft->lifeform=TREE;
 		else if (strparam.upper()=="GRASS") ppft->lifeform=GRASS;
-		else if (strparam.upper()=="CROP") ppft->lifeform=CROP;
 		else {
 			sendmessage("Error",
 				"Unknown lifeform type (valid types: \"TREE\", \"GRASS\")");
+			plibabort();
+		}
+		break;
+	case CB_LANDCOVER:
+		if (strparam.upper()=="NATURAL") ppft->landcover=NATURAL;
+		else if (strparam.upper()=="URBAN") ppft->landcover=URBAN;
+		else if (strparam.upper()=="CROPLAND") ppft->landcover=CROPLAND;
+		else if (strparam.upper()=="PASTURE") ppft->landcover=PASTURE;
+		else if (strparam.upper()=="FOREST") ppft->landcover=FOREST;			
+		else if (strparam.upper()=="PEATLAND") ppft->landcover=PEATLAND;
+		else {
+			sendmessage("Error",
+				"Unknown landcover type (valid types: \"URBAN\", \"CROPLAND\", \"PASTURE\", \"FOREST\", \"NATURAL\" or \"PEATLAND\")");
 			plibabort();
 		}
 		break;
@@ -643,7 +589,7 @@ void plib_callback(int callback) {
 		break;
 	case CB_CHECKGLOBAL:
 		if (!itemparsed("title")) badins("title");
-		if (!itemparsed("nyear_spinup")) badins("nyear_spinup"); // guess2008
+		if (!itemparsed("nyear_spinup")) badins("nyear_spinup");
 		if (!itemparsed("vegmode")) badins("vegmode");
 		if (!itemparsed("ifdailynpp")) badins("ifdailynpp");
 		if (!itemparsed("ifdailydecomp")) badins("ifdailydecomp");
@@ -651,26 +597,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcalcsla")) badins("ifcalcsla");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
 
-		// FACE David
-		if (!itemparsed("FACE_ring")) badins("FACE_ring");
-		if (!itemparsed("FACE_DUKE_or_OAK")) badins("FACE_DUKE_or_OAK");
-		if (!itemparsed("Has_FACE_clim")) badins("Has_FACE_clim");
-
-		// CANIF David
-		if (!itemparsed("Has_CANIF_clim")) badins("Has_CANIF_clim");
-
-		// GUESSN
-		if (!itemparsed("nrelocfrac")) badins("nrelocfrac");
-		if (!itemparsed("ifnfix")) badins("ifnfix");
-
-		if (!itemparsed("ifcentury")) badins("ifcentury");
-		if (!itemparsed("ifnlim")) badins("ifnlim");
-		if (!itemparsed("freenyears")) badins("freenyears");
-		if (!itemparsed("ifleachn")) badins("ifleachn");
-		if (!itemparsed("ifindiv_fnuptake")) badins("ifindiv_fnuptake");
-		if (!itemparsed("cwdtransfer")) badins("cwdtransfer");
-		if (!itemparsed("ifndemand_new_est")) badins("ifndemand_new_est");
-		// end GUESSN
 
 		// guess2008
 		if (!itemparsed("outputdirectory")) badins("outputdirectory");
@@ -679,7 +605,23 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifrainonwetdaysonly")) badins("ifrainonwetdaysonly");
 		if (!itemparsed("ifspeciesspecificwateruptake")) badins("ifspeciesspecificwateruptake");
 
-
+		if (!itemparsed("run_landcover")) badins("run_landcover");
+		if (run_landcover) {
+			if (!itemparsed("lcfrac_fixed")) badins("lcfrac_fixed");
+			if (!itemparsed("equal_landcover_area")) badins("equal_landcover_area");
+			if (!itemparsed("lc_fixed_urban")) badins("lc_fixed_urban");
+			if (!itemparsed("lc_fixed_cropland")) badins("lc_fixed_cropland");
+			if (!itemparsed("lc_fixed_pasture")) badins("lc_fixed_pasture");
+			if (!itemparsed("lc_fixed_forest")) badins("lc_fixed_forest");
+			if (!itemparsed("lc_fixed_natural")) badins("lc_fixed_natural");
+			if (!itemparsed("lc_fixed_peatland")) badins("lc_fixed_peatland");
+			if (!itemparsed("run_natural")) badins("run_natural");
+			if (!itemparsed("run_crop")) badins("run_crop");
+			if (!itemparsed("run_forest")) badins("run_forest");
+			if (!itemparsed("run_urban")) badins("run_urban");
+			if (!itemparsed("run_pasture")) badins("run_pasture");
+			if (!itemparsed("ifslowharvestpool")) badins("ifslowharvestpool");
+		}
 
 		if (!itemparsed("pft")) badins("pft");
 		if (vegmode==COHORT || vegmode==INDIVIDUAL) {
@@ -717,26 +659,28 @@ void plib_callback(int callback) {
 		if (!itemparsed("emax")) badins("emax");
 		if (!itemparsed("respcoeff")) badins("respcoeff");
 		if (!itemparsed("sla") && !ifcalcsla) badins("sla");
-
-		// GUESSN
-		if (!itemparsed("cton_leaf_min")) badins("cton_leaf_min");
-		if (!itemparsed("cton_leaf_max")) badins("cton_leaf_max");
-		if (!itemparsed("cton_leaf_avr")) badins("cton_leaf_avr");
-		if (!itemparsed("cton_root_avr")) badins("cton_root_avr");
-		if (!itemparsed("n_reserve")) badins("n_reserve");
-		// end GUESSN
-
+		if (!itemparsed("cton_leaf")) badins("cton_leaf");
+		if (!itemparsed("cton_root")) badins("cton_root");
 		if (!itemparsed("reprfrac")) badins("reprfrac");
 		if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
 		if (!itemparsed("turnover_root")) badins("turnover_root");
 		if (!itemparsed("ltor_max")) badins("ltor_max");
 		if (!itemparsed("intc")) badins("intc");
 
+		if (run_landcover)
+		{
+			if (!itemparsed("landcover")) badins("landcover");
+			if (!itemparsed("turnover_harv_prod")) badins("turnover_harv_prod");
+			if (!itemparsed("harvest_slow_frac")) badins("harvest_slow_frac");
+			if (!itemparsed("harv_eff")) badins("harv_eff");
+			if (!itemparsed("res_outtake")) badins("res_outtake");
+		}
+
 		// guess2008 - DLE
 		if (!itemparsed("drought_tolerance")) badins("drought_tolerance");
 
 		if (ppft->lifeform==TREE) {
-			if (!itemparsed("cton_sap_avr")) badins("cton_sap_avr");
+			if (!itemparsed("cton_sap")) badins("cton_sap");
 			if (!itemparsed("turnover_sap")) badins("turnover_sap");
 			if (!itemparsed("wooddens")) badins("wooddens");
 			if (!itemparsed("crownarea_max")) badins("crownarea_max");
@@ -781,6 +725,17 @@ void plib_callback(int callback) {
 
 		ppft->id=npft++;
 			// VERY IMPORTANT (cannot rely on internal id counter of collection class)
+
+		//	delete unused pft:s from pftlist
+
+		if (ppft->landcover!=NATURAL) {
+			if (!run_landcover || !run[ppft->landcover])
+				includepft=0;
+		}
+		else if (run_landcover && !run[NATURAL]) {
+			if (ppft->landcover==NATURAL)
+				includepft=0;
+		}
 
 		// If "include 0", remove this PFT from list, and set id to correct value
 
@@ -910,9 +865,9 @@ void printhelp() {
 //   will presumably be extracted from arrays containing the interpolated daily
 //   values (see function getstand):
 //
-//   stand.climate.temp=dtemp[date.day];
-//   stand.climate.prec=dprec[date.day];
-//   stand.climate.insol=dsun[date.day];
+//   gridcell.climate.temp=dtemp[date.day];
+//   gridcell.climate.prec=dprec[date.day];
+//   gridcell.climate.insol=dsun[date.day];
 //
 // void outannual(Stand& stand,Pftlist& pftlist)
 //   Called at the end of the last day of each simulation year to permit output of
@@ -933,6 +888,7 @@ struct Coord {
 	double lat;
 	xtring descrip;
 
+
 	// guess2008 - euroflux
 	xtring desc2;
 	xtring ver;
@@ -948,7 +904,6 @@ struct Coord {
 	int num_dominant_species;
 	xtring dom_species[5];
 	int dom_species_density[5];
-
 };
 
 
@@ -1202,19 +1157,12 @@ const int NYEAR_SPINUP_DATA=30;
 	// (not to be confused with the number of years to spinup model for, which
 	// is read from the ins file)
 
-// FACE DAVID climate dataset NYEAR_SCENARIO_FACE
-//const int NYEAR_SCENARIO_FACE=11;	// ORNL
-const int NYEAR_SCENARIO_FACE=12;	// Duke
-
-// CANIF DAVID max years with climate data
-const int MAXNYEAR_SCENARIO_CANIF=8;
-const int NSITES=8;
-
 // Stream pointer to binary CRU historical climate data file (read from ins file)
 FILE *in_cru;
 
 // Full pathname of ASCII file containing annual CO2 values (read from ins file)
 xtring file_co2;
+
 
 // Output streams
 FILE *out_cmass,*out_anpp,*out_lai,*out_cflux,*out_cpool,*out_runoff,*out_dens;
@@ -1222,25 +1170,9 @@ FILE *out_mnpp,*out_mlai,*out_mgpp,*out_mra,*out_maet,*out_mpet,*out_mevap,*out_
 FILE *out_mnee,*out_mwcont_upper,*out_mwcont_lower; 
 FILE *out_firert; 
 
-FILE *out_dgpp;
-
-// GUESSN
-// Full pathname of ASCII file containing annual N deposition values (read from ins file)
-xtring file_ndep;
-
-FILE *out_cton,*out_nmass, *out_nsources, *out_npool, *out_nleach, *out_age, *out_nuptake, *out_anppn, *out_vmaxnlim;
-// end GUESSN
-
-// GUESSN allometry
-FILE *out_allometry, *out_canopyh, *out_allometry_ind;
-// end GUESSN
-
-// FACE OUT
-FILE *out_face;
-// end FACE OUT
-
 // guess2008 - euroflux - EUROFLUX output
 FILE *out_eurofluxmonthly, *out_eurofluxannual, *out_eurofluxstats,*out_speciesheights;
+
 
 // Timers for keeping track of progress through the simulation
 Timer tprogress,tmute;
@@ -1249,28 +1181,11 @@ const int MUTESEC=20; // minimum number of sec to wait between progress messages
 // CO2 data for each year of historical data set
 double co2[NYEAR_HIST];
 
-// FACE DAVID climate CO2 data for each day of the FACE scenario
-double dco2_FACE[NYEAR_SCENARIO_FACE][365];
-
 // Monthly temperature, precipitation and sunshine data for current grid cell
 // and historical period
 double hist_mtemp[NYEAR_HIST][12];
 double hist_mprec[NYEAR_HIST][12];
 double hist_msun[NYEAR_HIST][12];
-
-// FACE DAVID climate Daily temperature, precipitation and sunshine data for FACE scenario 
-double dtemp_FACE[NYEAR_SCENARIO_FACE][365];
-double dprecip_FACE[NYEAR_SCENARIO_FACE][365];
-double dsun_FACE[NYEAR_SCENARIO_FACE][365];
-
-// FACE DAVID climate Yearly ndep data for FACE scenario 
-double yndep_FACE[NYEAR_NDEP];	// inputdata ranges from 1750-2007
-
-// CANIF DAVID climate Daily temperature, precipitation, sunshine and N dep data for CANIF scenarios
-double dtemp_CANIF[NSITES][MAXNYEAR_SCENARIO_CANIF][365];
-double dprecip_CANIF[NSITES][MAXNYEAR_SCENARIO_CANIF][365];
-double dsun_CANIF[NSITES][MAXNYEAR_SCENARIO_CANIF][365];
-double lonlatyearsndep[NSITES][6];
 
 // guess2008
 // Monthly frost days, precipitation days and DTR data for current grid cell
@@ -1304,158 +1219,17 @@ bool annual_output;
 xtring file_cru;
 xtring file_cru_misc;
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// 
-// FACE DAVID climate Reads in climate data for sceanrio period from temp, sun, precip and CO2 scenario files
+//Landuse:
+
+//#define DYNAMIC_LANDCOVER_INPUT
+#if defined DYNAMIC_LANDCOVER_INPUT
+//TimeDataD input code may be put here
+TimeDataD LUdata(LOCAL_YEARLY);
+TimeDataD Peatdata;
+#endif
+xtring file_lu, file_peat;
+const int NYEAR_LU=103;	//only used to get LU data after historical period (after 2003) : only used in AR4-runs, but causes no harm otherwise
 //
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/*void read_FACE_clim(double FACE_dtemp[NYEAR_SCENARIO_FACE][365],double FACE_dprec[NYEAR_SCENARIO_FACE][365],
-	double FACE_dsun[NYEAR_SCENARIO_FACE][365],double FACE_dco2[NYEAR_SCENARIO_FACE][365], 
-	double FACE_yndep[NYEAR_NDEP],int NYEAR_SCENARIO_FACE,int NYEAR_NDEP)
-{
-	xtring filename_FACE;
-	FILE* file_FACE_met;
-	FILE* file_FACE_ndep;
-
-	if (ifduke)
-	{
-		filename_FACE=param["met_face_duke"].str;
-		file_FACE_met=fopen(filename_FACE,"rt");
-
-		if (!file_FACE_met) 
-			fail("FACE: could not open file %s for input",(char*)filename_FACE);
-
-		filename_FACE=param["ndep_face_duke"].str;
-		file_FACE_ndep=fopen(filename_FACE,"rt");
-
-		if (!file_FACE_ndep) 
-			fail("FACE: could not open file %s for input",(char*)filename_FACE);
-
-		double met_duke[15];
-		double ndep_duke[3];
-
-		for (int year = 0; year < NYEAR_SCENARIO_FACE; year++)  // go through the years of data
-		{
-			for (int day = 0; day < 365; day++)
-			{
-				readfor(file_FACE_met, "15f", met_duke);				// read data
-
-				FACE_dsun[year][day] = met_duke[1] / 4.56 * 1000000;	// val_duke is in umol/m2/day, dsun should be in J/m2/day 1.8umol/m2/day == 1J/m2/day
-																		// http://www.hydro.co.nz/1_information/1_light_info/info_light.html
-																		// Thomas got 4.56 from meeting in Santa Barbara!!! Better value
-				FACE_dtemp[year][day] = met_duke[2];
-				FACE_dprec[year][day] = met_duke[5];
-
-				if (FACE_ring == 2)		// David co2 elevated concentration 
-					FACE_dco2[year][day] = met_duke[8];
-				else					// David co2 ambient concentration
-					FACE_dco2[year][day] = met_duke[7];
-			}
-		}
-
-		for (year = 0; year < NYEAR_NDEP; year++)
-		{
-			readfor(file_FACE_ndep, "3f", ndep_duke);
-
-			FACE_yndep[year] = ndep_duke[1];	// Two different columns in the input file with ndep data (1,2)
-		}
-	}
-	else // ORNL
-	{
-		filename_FACE=param["met_face_oak"].str;
-		file_FACE_met=fopen(filename_FACE,"rt");
-
-		if (!file_FACE_met) 
-			fail("FACE: could not open file %s for input",(char*)filename_FACE);
-
-		filename_FACE=param["ndep_face_oak"].str;
-		file_FACE_ndep=fopen(filename_FACE,"rt");
-
-		if (!file_FACE_ndep) 
-			fail("FACE: could not open file %s for input",(char*)filename_FACE);
-
-		double met_oak[11];
-		double ndep_oak[3];
-
-		for (int year = 0; year < NYEAR_SCENARIO_FACE; year++)  // go through the years of data
-		{
-			for (int day = 0; day < 365; day++)
-			{
-				readfor(file_FACE_met, "11f", met_oak);				// read data
-
-				FACE_dsun[year][day] = met_oak[2] / 4.56 * 1000000;	// val_duke is in mol/m2/day, dsun should be in J/m2/day 1.8umol/m2/day == 1J/m2/day
-																	// http://www.hydro.co.nz/1_information/1_light_info/info_light.html
-																	// Thomas got 4.56 from meeting in Santa Barbara!!! Better value
-				FACE_dtemp[year][day] = met_oak[3];
-				FACE_dprec[year][day] = met_oak[10];
-				if (FACE_ring == 2)	// David co2 elevated concentration 
-					FACE_dco2[year][day] = (met_oak[6] + met_oak[7])/2.0;	// average of ring 1 and 2
-				else				// David co2 ambient concentration 
-					FACE_dco2[year][day] = (met_oak[8] + met_oak[9])/2.0;	// average of ring 4 and 5
-			}
-		}
-
-		for (year = 0; year < NYEAR_NDEP; year++)
-		{
-			readfor(file_FACE_ndep, "3f", ndep_oak);
-
-			FACE_yndep[year] = ndep_oak[1];	// Two different columns in the input file with ndep data (1,2)
-		}
-	}
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// 
-// FACE DAVID climate Reads in climate data for sceanrio period from temp, sun, precip and CO2 scenario files
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void read_CANIF_clim(double CANIF_dtemp[NSITES][MAXNYEAR_SCENARIO_CANIF][365],
-	double CANIF_dprec[NSITES][MAXNYEAR_SCENARIO_CANIF][365],
-	double CANIF_dsun[NSITES][MAXNYEAR_SCENARIO_CANIF][365],
-	double lonlatyearsndep[NSITES][6],int NSITES,
-	double lon,double lat)
-{
-	xtring filename_CANIF;
-	FILE* file_CANIF_met;
-	
-	filename_CANIF=param["met_canif"].str;
-	file_CANIF_met=fopen(filename_CANIF,"rt");
-
-	if (!file_CANIF_met) 
-		fail("CANIF: could not open file %s for input",(char*)filename_CANIF);
-
-	double met_canif[5];
-
-	for (int site_lonlat = 0; site_lonlat < NSITES; site_lonlat++) {
-		readfor(file_CANIF_met, "6f", lonlatyearsndep[site_lonlat]);
-		if (lonlatyearsndep[site_lonlat][0]==lon && lonlatyearsndep[site_lonlat][1]==lat)
-			WSITE = site_lonlat;
-	}
-
-	for (int site = 0; site < NSITES; site++)  // go through the site data
-	{
-		for (int year = 0; year < lonlatyearsndep[site][2];year++)
-		{
-			for (int day = 0; day < 365; day++)
-			{
-				readfor(file_CANIF_met, "5f", met_canif);				// read data
-
-				CANIF_dsun[site][year][day] = met_canif[2];	
-				CANIF_dtemp[site][year][day] = met_canif[3];
-				CANIF_dprec[site][year][day] = met_canif[4];
-			}
-		}
-	}
-	
-}*/
-//----------------------------------------------------------------------------------------------
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -1494,7 +1268,7 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 		if (success) {
 			bool flag = ark.rewind();
 			if (!flag) { 
-				ark.close(); // I.e. we opened it but we couldn´t rewind
+				ark.close(); // I.e. we opened it but we couldn?t rewind
 				return false;
 			}
 		}
@@ -1571,7 +1345,7 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 		if (success) {
 			bool flag = ark.rewind();
 			if (!flag) { 
-				ark.close(); // I.e. we opened it but we couldn´t rewind
+				ark.close(); // I.e. we opened it but we couldn?t rewind
 				return false;
 			}
 		}
@@ -1627,12 +1401,15 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 	}
 }
 
+
+
+
 /*
  * Called by the getstand function after reading CRU data.
  * Adjusts climate data according to Euroflux data and reads in flux data
  * to the stand.
  */
-void euroflux_adjust_climate_read_flux_data(Stand& stand, Coord& coord, 
+void euroflux_adjust_climate_read_flux_data(Coord& coord, 
 														  double hist_mtemp[NYEAR_HIST][12], 
 														  double hist_mprec[NYEAR_HIST][12]) {
 	// guess2008 - euroflux - start of new code
@@ -1849,7 +1626,6 @@ void euroflux_adjust_climate_read_flux_data(Stand& stand, Coord& coord,
 }
 
 
-
 // guess2008
 // Utility function that returns the CRU data from the nearest cell to (lon,lat) within
 // a given search radius
@@ -2007,16 +1783,12 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		// Call to readins() returns false if file could not be opened for reading
 		// or contained errors (including missing parameters)
 
-		else if (!readins(insfilename,pftlist)){
+		else if (!readins(insfilename,pftlist))
 			abort=true;
-		}
 	}
-	else {
-		abort=true;
-	}
+	else abort=true;
 
 	if (abort) fail("\nUsage: %s <instruction-script-filename> | -help",argv[0]);
-
 
 	///////////////////////////////////////////////////////////////////////////////////
 	// USER-SPECIFIC SECTION (Modify as necessary or supply own code)
@@ -2028,6 +1800,8 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	double dlon,dlat;
 	bool eof=false;
 	xtring descrip;
+
+
 
 	// guess2008 - euroflux
 	xtring desc2;
@@ -2041,6 +1815,8 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	int plantation_year;
 	int num_dominant_species;
 
+
+
 	// Read list of grid coordinates and store in global Coord object 'gridlist'
 
 	// Retrieve name of grid list file as read from ins file
@@ -2048,22 +1824,26 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	FILE* in_grid=fopen(file_gridlist,"r");
 	if (!in_grid) fail("initio: could not open %s for input",(char*)file_gridlist);
+
+	file_cru=param["file_cru"].str;
+	file_cru_misc=param["file_cru_misc"].str;
+
 	
 	ngridcell=0;
 	while (!eof) {
 		
 		// Read next record in file
-		eof=!readfor(in_grid,"f,f,a",&dlon,&dlat,&descrip);
+		//eof=!readfor(in_grid,"f,f,a",&dlon,&dlat,&descrip);
 
-		// New, local versions of these arrays EUROFLUX
+		// New, local versions of these arrays
 		xtring dom_spec[5];
 		int dom_spec_dens[5];
-		
-		// EUROFLUX
+
 		eof=!readfor(in_grid,"f;f;a;a;a;f;f;f;f;11i;f;i;i;5a;i;i;i;i;i",&dlon,&dlat,&descrip,
 			&desc2,&ver,&tempm,&tempc,&precipm,&precipc,
 			isfluxdata,&soildepth,&plantation_year,&num_dominant_species,dom_spec,
 			&dom_spec_dens[0],&dom_spec_dens[1],&dom_spec_dens[2],&dom_spec_dens[3],&dom_spec_dens[4]);
+
 
 		if (!eof && !(dlon==0.0 && dlat==0.0)) { // ignore blank lines at end (if any)
 			Coord& c=gridlist.createobj(); // add new coordinate to grid list
@@ -2097,7 +1877,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 				c.dom_species[dsp] = "NONE";
 				c.dom_species_density[dsp] = 0;
 			}
-
+	
 			c.lon=dlon;
 			c.lat=dlat;
 			c.descrip=descrip;
@@ -2105,30 +1885,44 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		}
 	}
 
+
 	fclose(in_grid);
 
 	// Read CO2 data from file
 	readco2();
 
-	file_cru=param["file_cru"].str;
-	file_cru_misc=param["file_cru_misc"].str;
-
-	// GUESSN
-	file_ndep=param["file_ndep"].str;
-	if (file_ndep=="")
-		ifndepdata=false;
-	else {
-		FILE* in_ndep=fopen(file_ndep,"rt");
-		if (!in_ndep)
-			fail("initio: could not open %s for input",(char*)file_ndep);
-
-		fclose(in_ndep);
-		ifndepdata=true;
-	}
-	// end GUESSN
 
 	// Remember whether to produce output each year or not
 	annual_output=param["annual_output"].num;
+
+	if (run_landcover) {
+		all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
+
+		//Retrieve file names for landcover files and open them if static values from ins-file are not used !
+		if (!lcfrac_fixed) {	//This version does not support dynamic landcover fraction data
+
+			if (run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST]) {
+				file_lu=param["file_lu"].str;
+#if defined DYNAMIC_LANDCOVER_INPUT
+				if(!LUdata.Open(file_lu))				//Open Bondeau area fraction file, returned false if problem
+					fail("initio: could not open %s for input",(char*)file_lu);
+				else if(LUdata.format==LOCAL_YEARLY)
+					all_fracs_const=false;				//Set all_fracs_const to false if yearly data
+#endif
+			}
+
+			if (run[PEATLAND]) {	//special case for peatland: separate fraction file
+				file_peat=param["file_peat"].str;
+#if defined DYNAMIC_LANDCOVER_INPUT				
+				if(!Peatdata.Open(file_peat))			//Open peatland area fraction file, returned false if problem
+					fail("initio: could not open %s for input",(char*)file_peat);
+				else if(Peatdata.format==LOCAL_YEARLY)
+					all_fracs_const=false;				//Set all_fracs_const to false if yearly data
+#endif
+			}
+
+		}
+	}
 
 	// guess2008
 	// Retrieve output file names as read from ins file
@@ -2147,6 +1941,40 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		if (!out_cmass) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_cmass);
 	}
 	else out_cmass=NULL;
+
+
+	// guess2008 - euroflux
+	if (file_eurofluxmonthly!="") {
+		file_eurofluxmonthly = outputdirectory + file_eurofluxmonthly;
+		out_eurofluxmonthly=fopen(file_eurofluxmonthly,"w");
+		if (!out_eurofluxmonthly) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_eurofluxmonthly);
+	}
+	else out_eurofluxmonthly=NULL;	
+
+	// guess2008 - euroflux
+	if (file_eurofluxannual!="") {
+		file_eurofluxannual = outputdirectory + file_eurofluxannual;
+		out_eurofluxannual=fopen(file_eurofluxannual,"w");
+		if (!out_eurofluxannual) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_eurofluxannual);
+	}
+	else out_eurofluxannual=NULL;	
+
+	// guess2008 - euroflux
+	if (file_eurofluxstats!="") {
+		file_eurofluxstats = outputdirectory + file_eurofluxstats;
+		out_eurofluxstats=fopen(file_eurofluxstats,"w");
+		if (!out_eurofluxstats) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_eurofluxstats);
+	}
+	else out_eurofluxstats=NULL;
+
+	// guess2008 - euroflux
+	if (file_speciesheights!="") {
+		file_speciesheights = outputdirectory + file_speciesheights;
+		out_speciesheights=fopen(file_speciesheights,"w");
+		if (!file_speciesheights) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mwcont_lower);
+	}
+	else out_speciesheights=NULL;
+
 
 	if (file_anpp!="") {
 		file_anpp = outputdirectory + file_anpp;
@@ -2197,136 +2025,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		if (!out_runoff) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_runoff);
 	}
 	else out_runoff=NULL;
-
-	// GUESSN
-	if (file_cton!="") {
-		file_cton = outputdirectory + file_cton;
-		out_cton=fopen(file_cton,"w");
-		if (!out_cton) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_cton);
-	}
-	else out_cton=NULL;
-
-	if (file_nmass!="") {
-		file_nmass = outputdirectory + file_nmass;
-		out_nmass=fopen(file_nmass,"w");
-		if (!out_nmass) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_nmass);
-	}
-	else out_nmass=NULL;
-
-	if (file_nsources!="") {
-		file_nsources = outputdirectory + file_nsources;
-		out_nsources=fopen(file_nsources,"w");
-		if (!out_nsources) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_nsources);
-	}
-	else out_nsources=NULL;
-
-	if (file_npool!="" && ifcentury) {
-		file_npool = outputdirectory + file_npool;
-		out_npool=fopen(file_npool,"w");
-		if (!out_npool) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_npool);
-	}
-	else out_npool=NULL;
-	
-	if (file_nleach!="" && ifcentury) {
-		file_nleach = outputdirectory + file_nleach;
-		out_nleach=fopen(file_nleach,"w");
-		if (!out_nleach) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_nleach);
-	}
-	else out_nleach=NULL;
-
-	if (file_age!="") {
-		file_age = outputdirectory + file_age;
-		out_age=fopen(file_age,"w");
-		if (!out_age) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_age);
-	}
-	else out_age=NULL;
-
-	if (file_nuptake!="") {
-		file_nuptake = outputdirectory + file_nuptake;
-		out_nuptake=fopen(file_nuptake,"w");
-		if (!out_nuptake) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_nuptake);
-	}
-	else out_nuptake=NULL;
-
-	if (file_anppn!="") {
-		file_anppn = outputdirectory + file_anppn;
-		out_anppn=fopen(file_anppn,"w");
-		if (!out_anppn) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_anppn);
-	}
-	else out_anppn=NULL;
-
-	if (file_vmaxnlim!="") {
-		file_vmaxnlim = outputdirectory + file_vmaxnlim;
-		out_vmaxnlim=fopen(file_vmaxnlim,"w");
-		if (!out_vmaxnlim) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_vmaxnlim);
-	}
-	else out_vmaxnlim=NULL;
-	// end GUESSN
-
-	// GUESSN allometry
-	if (file_allometry!="") {
-		file_allometry = outputdirectory + file_allometry;
-		out_allometry=fopen(file_allometry,"w");
-		if (!out_allometry) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_allometry);
-	}
-	else out_allometry=NULL;
-
-	if (file_allometry_ind!="") {
-		file_allometry_ind = outputdirectory + file_allometry_ind;
-		out_allometry_ind=fopen(file_allometry_ind,"w");
-		if (!out_allometry_ind) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_allometry_ind);
-	}
-	else out_allometry_ind=NULL;
-	
-
-	if (file_canopyh!="") {
-		file_canopyh = outputdirectory + file_canopyh;
-		out_canopyh=fopen(file_canopyh,"w");
-		if (!out_canopyh) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_canopyh);
-	}
-	else out_canopyh=NULL;
-	// end GUESSN
-
-	// FACE OUT
-	if (file_face!="") {
-		file_face = outputdirectory + file_face;
-		out_face=fopen(file_face,"w");
-		if (!out_face) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_face);
-	}
-	else out_face=NULL;
-	// end FACE OUT
-
-	// guess2008 - euroflux
-	if (file_eurofluxmonthly!="") {
-		file_eurofluxmonthly = outputdirectory + file_eurofluxmonthly;
-		out_eurofluxmonthly=fopen(file_eurofluxmonthly,"w");
-		if (!out_eurofluxmonthly) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_eurofluxmonthly);
-	}
-	else out_eurofluxmonthly=NULL;	
-
-	// guess2008 - euroflux
-	if (file_eurofluxannual!="") {
-		file_eurofluxannual = outputdirectory + file_eurofluxannual;
-		out_eurofluxannual=fopen(file_eurofluxannual,"w");
-		if (!out_eurofluxannual) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_eurofluxannual);
-	}
-	else out_eurofluxannual=NULL;	
-
-	// guess2008 - euroflux
-	if (file_eurofluxstats!="") {
-		file_eurofluxstats = outputdirectory + file_eurofluxstats;
-		out_eurofluxstats=fopen(file_eurofluxstats,"w");
-		if (!out_eurofluxstats) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_eurofluxstats);
-	}
-	else out_eurofluxstats=NULL;
-
-	// guess2008 - euroflux
-	if (file_speciesheights!="") {
-		file_speciesheights = outputdirectory + file_speciesheights;
-		out_speciesheights=fopen(file_speciesheights,"w");
-		if (!file_speciesheights) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mwcont_lower);
-	}
-	else out_speciesheights=NULL;
 
 
 	// *** MONTHLY OUTPUT VARIABLES ***
@@ -2422,14 +2120,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	}
 	else out_mwcont_lower=NULL;
 
-	// Daily output
-	if (file_dgpp!="") {
-		file_dgpp = outputdirectory + file_dgpp;
-		out_dgpp=fopen(file_dgpp,"w");
-		if (!out_dgpp) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_dgpp);
-	}
-	else out_dgpp=NULL;
-
 
 
 	// Set timers
@@ -2443,74 +2133,47 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	firstgrid=true;
 }
 
+///	Loads landcover area fraction data from file(s) for a gridcell.
+/** Called from getgridcell() if run_landcover is true. 
+  */
+bool loadlandcover(Gridcell& gridcell, Coord c)	{
+	bool LUerror=false;
 
-// GUESSN
-/// Retrieves nitrogen deposition for a particular grid cell
-/** The values are either taken from the andep parameter in the instruction
- *  file, or from a binary archive file.
- *
- *  The binary archive has nitrogen deposition in gN/m2/year for the years
- *  1860, 1993 and 2050 (Galloway et. al., 2004).
- *
- *  Returned values will not be smaller than minndep.
- *
- *  \param  filename    The file name of the binary archive
- *  \param  lon         Longitude
- *  \param  lat         Latitude
- *  \param  xandep1860  Nitrogen deposition for 1860 (kgN/m2/year)
- *  \param  xandep1993  Nitrogen deposition for 1993 (kgN/m2/year)
- *  \param  xandep2050  Nitrogen deposition for 2050 (kgN/m2/year)
- */
-bool getndep(xtring filename,double lon,double lat,double &xandep1860,double &xandep1993,double &xandep2050) {
+	if (!lcfrac_fixed) {
+		// Landcover fraction data: read from land use fraction file; dynamic, so data for all years are loaded to LUdata object and 
+		// transferred to gridcell.landcoverfrac each year in getlandcover()
 
-	double minndep = 0.00001;
+		if (run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST]) {
+#if defined DYNAMIC_LANDCOVER_INPUT					
+			if (!LUdata.Load(c))		//Load area fraction data from Bondeau input file to data object
+			{
+				dprintf("Problems with landcover fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
+				LUerror=true;		// skip this stand
+			}
+#endif
+		}
 
-	if (!ifndepdata) {
-		xandep1860=0.0002;	// use pre-industrial N depostion 2 kgN/ha/year
-		xandep1993=0.0002;	// use pre-industrial N depostion 2 kgN/ha/year
-		xandep2050=0.0002;	// use pre-industrial N depostion 2 kgN/ha/year
-		return true;
+		if (run[PEATLAND] && !LUerror) {
+#if defined DYNAMIC_LANDCOVER_INPUT
+			if(!Peatdata.Load(c))	//special case for peatland: separate fraction file
+			{
+				dprintf("Problems with natural fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
+				LUerror=true;	// skip this stand						
+			}
+#endif
+		}
 	}
 
-	GlobalNdepArchive ark;
-	if (!ark.open(filename)) {
-		 fail("Could not open %s for input",(char*)filename);
-		 return false;
-	}
-
-	GlobalNdep rec;
-	rec.longitude = lon;
-	rec.latitude = lat;
-	
-	if (!ark.getindex(rec)) {
-		 // The coordinate wasn't found in the archive
-		 ark.close();
-		 return false;
-	}
-	else {
-		 // Found the record, get the values
-		 // Convert from gN to kgN, don't allow values smaller than minndep
-		 xandep1860 = max(minndep, rec.ndep1860[0]*0.001);
-		 xandep1993 = max(minndep, rec.ndep1993[0]*0.001);
-		 xandep2050 = max(minndep, rec.ndep2050[0]*0.001);
-
-		 ark.close();
-		 return true;
-	}
+	return LUerror;
 }
-// end GUESSN
 
-
-///////////////////////////////////////////////////////////////////////////////////////
-// GETSTAND
-// Called by the framework at the start of the simulation for a particular stand
-
-bool getstand(Stand& stand) {
-
+/// Called by the framework at the start of the simulation for a particular grid cell
+bool getgridcell(Gridcell& gridcell) 
+{
 	// DESCRIPTION
-	// Obtains latitude and soil static parameters for the next stand (grid cell) to
-	// simulate. The function should returns false if no stands remain to be simulated,
-	// otherwise true. Currently the following member variables of stand should be
+	// Obtains latitude and soil static parameters for the next grid cell to
+	// simulate. The function should return false if no grid cells remain to be simulated,
+	// otherwise true. Currently the following member variables of Gridcell should be
 	// initialised: members lat and instype of member climate; the following members of
 	// member soiltype: awc[0], awc[1], perc_base, perc_exp, thermdiff_0, thermdiff_15,
 	// thermdiff_100. The soil parameters can be set indirectly based on an lpj soil
@@ -2542,6 +2205,7 @@ bool getstand(Stand& stand) {
 	int elevation;
 
 	bool gridfound;
+	bool LUerror=false;
 
 	// guess2008 - run with the same randon number sequence each time
 	setseed(12345678);
@@ -2568,22 +2232,19 @@ bool getstand(Stand& stand) {
 			gridfound = searchcru_misc(file_cru_misc, lon, lat, elevation, 
 			                           hist_mfrs, hist_mwet, hist_mdtr);
 
-
-		// FACE DAVID climate Reading met data
-	/*	if (has_FACE_clim)		
-			read_FACE_clim(dtemp_FACE,dprecip_FACE,dsun_FACE,dco2_FACE,yndep_FACE,NYEAR_SCENARIO_FACE,NYEAR_NDEP);
-
-		// CANIF DAVID climate Reading met data
-		if (has_CANIF_clim)	{
-			read_CANIF_clim(dtemp_CANIF,dprecip_CANIF,dsun_CANIF,lonlatyearsndep,NSITES,lon,lat);
-			stand.plantyear=(nyear_spinup+NYEAR_HIST-lonlatyearsndep[WSITE][4]);
-			dprintf("Plant year %d \n",stand.plantyear);
-		}*/
+		if (run_landcover) {
+			Coord& c=gridlist.getobj();
+			LUerror=loadlandcover(gridcell, c);
+		}
+		if (LUerror)
+			gridfound=false;
 
 		while (!gridfound) {
 
-			dprintf("\nError: could not find stand at (%g,%g) in CRU data file\n",
-				gridlist.getobj().lon,gridlist.getobj().lat);
+			if (run_landcover && LUerror)
+				dprintf("\nError: could not find stand at (%g,%g) in landcover data file\n", gridlist.getobj().lon,gridlist.getobj().lat);
+			else
+				dprintf("\nError: could not find stand at (%g,%g) in CRU data file\n", gridlist.getobj().lon,gridlist.getobj().lat);
 
 			gridlist.nextobj();
 			if (gridlist.isobj) {
@@ -2596,11 +2257,17 @@ bool getstand(Stand& stand) {
 					gridfound = searchcru_misc(file_cru_misc, lon, lat, elevation,
 					                           hist_mfrs, hist_mwet, hist_mdtr);
 
+				if (run_landcover) {
+					Coord& c=gridlist.getobj();
+					LUerror=loadlandcover(gridcell, c);
+				}
+				if (LUerror)
+					gridfound=false;
 			}
 			else return false;
 		}
 
-		euroflux_adjust_climate_read_flux_data(stand, gridlist.getobj(), 
+		euroflux_adjust_climate_read_flux_data(gridlist.getobj(), 
 															hist_mtemp, hist_mprec);
 
 		// Build spinup data sets
@@ -2617,39 +2284,25 @@ bool getstand(Stand& stand) {
 		spinup_mdtr.get_data_from(hist_mdtr);
 		spinup_mdtr.detrend_data();
 
-		// GUESSN
-		if (!getndep(file_ndep,lon,lat,stand.climate.andep_1860,
-			stand.climate.andep_1993,stand.climate.andep_2050)) {
-
-			fail("Grid cell not found in %s",(char*)file_ndep);
-		}
-		// end GUESSN
-
-		// CANIF David
-		if (has_CANIF_clim)
-			stand.climate.andep_1993=lonlatyearsndep[WSITE][5];
 
 		dprintf("\nCommencing simulation for stand at (%g,%g)",gridlist.getobj().lon,
 			gridlist.getobj().lat);
-		if (gridlist.getobj().descrip!="") dprintf(" (%s)\n\n",
+		if (gridlist.getobj().descrip!="") dprintf(" (%s)\n",
 			(char*)gridlist.getobj().descrip);
-		else dprintf("\n\n");
+		else dprintf("\n");
 		
 		// Tell framework the latitude of this grid cell
-		stand.climate.lat=gridlist.getobj().lat;
+		gridcell.climate.lat=gridlist.getobj().lat;
 		
 		// The insolation data will be sent (in function getclimate, below)
 		// as percentage sunshine
 		
-		stand.climate.instype=SUNSHINE;
-
-		if (has_FACE_clim) 
-			soilcode = 4; // FACE climate soilcode
+		gridcell.climate.instype=SUNSHINE;
 
 		// Tell framework the soil type of this grid cell
-		//soilparameters(stand.soiltype,soilcode);
+		//soilparameters(gridcell.soiltype,soilcode);
 		// guess2008 - euroflux - now give the soil depth too
-		soilparameters(stand.soiltype,soilcode,gridlist.getobj().soildepth);
+		soilparameters(gridcell.soiltype,soilcode,gridlist.getobj().soildepth);
 
 		// For Windows shell - clear graphical output
 		// (ignored on other platforms)
@@ -2662,41 +2315,205 @@ bool getstand(Stand& stand) {
 	return false; // no more stands
 }
 
-///////////////////////////////////////////////////////////////////////////////////////
-// THISYEARSNDEP
-// Called by getclimate(). Calculates this years N deposition from three known values.
-// needs to be redone
+///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
+void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
+{
+	int i, year;
+	double sum=0.0, sum_tot=0.0, sum_active=0.0;
 
-double thisyearsndep(double ndep_1860, double ndep_1993, double ndep_2050, int year, int nyears_spin, int firsthistyear) {
-
-	if (ndep_1860 == ndep_1993)
-		return ndep_1860;
-
-	int hist_year = firsthistyear - (nyears_spin - year);
-
-	// CANIF David
-	if(has_CANIF_clim) {
-		double years_shift=(FIRSTHISTYEAR+NYEAR_HIST)-(lonlatyearsndep[WSITE][3]+lonlatyearsndep[WSITE][2]);
-		hist_year -= (years_shift + lonlatyearsndep[WSITE][3] - 1993);
+	if(date.year<nyear_spinup)					//Use values for first historic year during spinup period !
+		year=0;
+	else if(date.year>=nyear_spinup+NYEAR_LU)	//AR4 adaptation
+	{
+//		dprintf("setting LU data for scenario period\n");
+		year=NYEAR_LU-1;
 	}
-		
-	if (hist_year <= 1860)
-		return ndep_1860;
-	else if (hist_year <= 1993)
-		return ndep_1860+(hist_year-1860)*((ndep_1993-ndep_1860)/133.0);
 	else
-		return ndep_1993+(hist_year-1993)*((ndep_2050-ndep_1993)/57.0);
+		year=date.year-nyear_spinup;
+
+	if(lcfrac_fixed)	// If area fractions are set in the ins-file.
+	{
+		if(date.year==0) // called by landcover_init
+		{
+			int nactive_landcovertypes=0;
+
+			if(equal_landcover_area)
+			{
+				for(int i=0;i<NLANDCOVERTYPES;i++)
+				{
+					if(run[i])
+						nactive_landcovertypes++;
+				}
+			}
+
+			for(int i=0;i<NLANDCOVERTYPES;i++)
+			{
+				if(equal_landcover_area)
+				{
+					sum_active+=gridcell.landcoverfrac[i]=1.0*run[i]/(double)nactive_landcovertypes;	// only set fractions that are active !
+					sum_tot=sum_active;
+				}
+				else
+				{
+					sum_tot+=gridcell.landcoverfrac[i]=(double)lc_fixed_frac[i]/100.0;					//count sum of all fractions (should be 1.0)
+
+					if(gridcell.landcoverfrac[i]<0.0 || gridcell.landcoverfrac[i]>1.0)					//discard unreasonable values
+					{
+						if(date.year==0)
+							dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
+						sum_tot-=gridcell.landcoverfrac[i];
+						gridcell.landcoverfrac[i]=0.0;
+					}
+
+					sum_active+=gridcell.landcoverfrac[i]=run[i]*gridcell.landcoverfrac[i];				//only set fractions that are active !
+				}
+			}
+			
+			if(sum_tot<0.99 || sum_tot>1.01)	// Check input data, rescale if sum !=1.0
+			{
+				sum_active=0.0;		//reset sum of active landcover fractions
+				if(date.year==0)
+					dprintf("WARNING ! landcover fixed fraction sum is %4.2f, rescaling landcover fractions !\n", sum_tot);
+
+				for(i=0;i<NLANDCOVERTYPES;i++)
+					sum_active+=gridcell.landcoverfrac[i]/=sum_tot;
+			}
+
+			//NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
+			if(sum_active<0.99)	//if landcover types are turned off in the ini-file, always <=1.0 here
+			{
+				if(date.year==0)
+					dprintf("WARNING ! landcover active fraction sum is %4.2f.\n", sum_active);
+
+				if(run[NATURAL])	//Transfer landcover areas not simulated to NATURAL fraction, if simulated.
+				{
+					if(date.year==0)
+						dprintf("Inactive fractions (%4.2f) transferred to NATURAL fraction.\n", 1.0-sum_active);
+
+					gridcell.landcoverfrac[NATURAL]+=1.0-sum_active;	// difference 1.0-(sum of active landcover fractions) are added to the natural fraction
+				}
+				else
+				{
+/*					if(date.year==0)
+						dprintf("Rescaling landcover fractions !\n");
+					for(int i=0;i<NLANDCOVERTYPES;i++)
+						gridcell.landcoverfrac[i]/=sum_active;			// if NATURAL not simulated, rescale active fractions to 1.0
+*/					if(date.year==0)
+						dprintf("Non-unity fraction sum retained.\n");				// OR let sum remain non-unity
+				}
+																	
+			}
+		}
+	}
+	else	//area fractions are read from input file(s);
+	{
+		if(run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST])
+		{	
+
+			for(i=0;i<PEATLAND;i++)		//peatland fraction data is not in this file, otherwise i<NLANDCOVERTYPES.
+			{	
+#if defined DYNAMIC_LANDCOVER_INPUT
+				sum_tot+=gridcell.landcoverfrac[i]=LUdata.Get(year,i);					//count sum of all fractions (should be 1.0)
+#endif
+				if(gridcell.landcoverfrac[i]<0.0 || gridcell.landcoverfrac[i]>1.0)			//discard unreasonable values
+				{		
+					if(date.year==0)
+						dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
+					sum_tot-=gridcell.landcoverfrac[i];
+					gridcell.landcoverfrac[i]=0.0;
+				}
+
+				sum_active+=gridcell.landcoverfrac[i]=run[i]*gridcell.landcoverfrac[i];
+			}
+
+			if(sum_tot!=1.0)		// Check input data, rescale if sum !=1.0
+			{
+				sum_active=0.0;		//reset sum of active landcover fractions
+
+				if(sum_tot<0.99 || sum_tot>1.01)
+				{
+					if(date.year==0)
+					{
+						dprintf("WARNING ! landcover fraction sum is %4.2f for year %d\n", sum_tot, year+FIRSTHISTYEAR);
+						dprintf("Rescaling landcover fractions year %d ! (sum is beyond 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
+					}
+				}
+				else				//added scaling to sum=1.0 (sum often !=1.0)
+					dprintf("Rescaling landcover fractions year %d ! (sum is within 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
+
+				for(i=0;i<PEATLAND;i++)
+					sum_active+=gridcell.landcoverfrac[i]/=sum_tot;
+			}
+		}
+		else
+			gridcell.landcoverfrac[NATURAL]=0.0;
+
+		if(run[PEATLAND])
+		{
+#if defined DYNAMIC_LANDCOVER_INPUT
+			sum_active+=gridcell.landcoverfrac[PEATLAND]=Peatdata.Get(year,"PEATLAND");			//peatland fraction data is currently in a separate file !
+#endif
+		}
+
+		//NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
+		if(sum_active!=1.0)		//if landcover types are turned off in the ini-file, or if more landcover types are added in other input files, can be either less or more than 1.0
+		{
+			if(date.year==0)
+				dprintf("Landcover fraction sum not 1.0 !\n");
+
+			if(run[NATURAL])	//Transfer landcover areas not simulated to NATURAL fraction, if simulated.
+			{
+				if(date.year==0)
+				{
+					if(sum_active<1.0)
+						dprintf("Inactive fractions (%4.3f) transferred to NATURAL fraction.\n", 1.0-sum_active);
+					else
+						dprintf("New landcover type fraction (%4.3f) subtracted from NATURAL fraction (%4.3f).\n", sum_active-1.0, gridcell.landcoverfrac[NATURAL]);
+				}
+
+				gridcell.landcoverfrac[NATURAL]+=1.0-sum_active;	// difference (can be negative) 1.0-(sum of active landcover fractions) are added to the natural fraction
+				
+				if(date.year==0)
+					dprintf("New NATURAL fraction is %4.3f.\n", gridcell.landcoverfrac[NATURAL]);
+
+				sum_active=1.0;		//sum_active should now be 1.0
+
+				if(gridcell.landcoverfrac[NATURAL]<0.0)	//If new landcover type fraction is bigger than the natural fraction (something wrong in the distribution of input file area fractions)
+				{										
+					if(date.year==0)
+						dprintf("New landcover type fraction is bigger than NATURAL fraction, rescaling landcover fractions !.\n");
+
+					sum_active-=gridcell.landcoverfrac[NATURAL];	//fraction not possible to transfer moved back to sum_active, which will now be >1.0 again
+					gridcell.landcoverfrac[NATURAL]=0.0;
+
+					for(int i=0;i<NLANDCOVERTYPES;i++)
+					{
+						gridcell.landcoverfrac[i]/=sum_active;		//fraction rescaled to unity sum
+						if(run[i])
+							if(date.year==0)
+								dprintf("Landcover type %d fraction is %4.3f\n", i, gridcell.landcoverfrac[i]);
+					}
+				}
+			}
+			else
+			{
+//				if(date.year==0)
+//					dprintf("Rescaling landcover fractions !\n");
+//				for(int i=0;i<NLANDCOVERTYPES;i++)
+//					gridcell.landcoverfrac[i]/=sum_active;						// if NATURAL not simulated, rescale active fractions to 1.0
+				if(date.year==0)
+					dprintf("Non-unity fraction sum retained.\n");				// OR let sum remain non-unity
+			}
+		}
+	}
 }
 
-///////////////////////////////////////////////////////////////////////////////////////
-// GETCLIMATE
-// Called by the framework each simulation day before any process modelling is
-// performed for this day
 
-bool getclimate(Stand& stand) {
+/// Called by the framework each simulation day before any process modelling is performed for this day
+/** Obtains climate data (including atmospheric CO2 and insolation) for this day. */
+bool getclimate(Gridcell& gridcell) {
 
 	// DESCRIPTION
-	// Obtains climate data (including atmospheric CO2 and insolation) for this day.
 	// The function should returns false if the simulation is complete for this stand,
 	// otherwise true. This will normally require querying the year and day member
 	// variables of the global class object date:
@@ -2711,15 +2528,16 @@ bool getclimate(Stand& stand) {
 	// will presumably be extracted from arrays containing the interpolated daily
 	// values (see function getstand):
 	//
-	// stand.climate.temp=dtemp[date.day];
-	// stand.climate.prec=dprec[date.day];
-	// stand.climate.insol=dsun[date.day];
+	// gridcell.climate.temp=dtemp[date.day];
+	// gridcell.climate.prec=dprec[date.day];
+	// gridcell.climate.insol=dsun[date.day];
 
 	double progress;
 
 	// guess2008 - changed name from mwet to mwet_all
 	double mwet_all[12]={31,28,31,30,31,30,31,31,30,31,30,31}; // number of rain days per month
 	int dd;
+	Climate& climate=gridcell.climate;
 
 	if (date.day==0) {
 
@@ -2765,23 +2583,10 @@ bool getclimate(Stand& stand) {
 
 			// guess2008 - euroflux
 			century_year = 0;
-			
-			/*if (!(date.year%100) && date.day==0) {
 
-				dprintf("\nClimate for year %d\n",date.year+1);
-				dprintf("\n        Jan   Feb   Mar   Apr   May   Jun   Jul   Aug   Sep   Oct   Nov   Dec\n");
-				dprintf("Temp %6.1f%6.1f%6.1f%6.1f%6.1f%6.1f%6.1f%6.1f%6.1f%6.1f%6.1f%6.1f\n",
-					mtemp[0],mtemp[1],mtemp[2],mtemp[3],mtemp[4],mtemp[5],
-					mtemp[6],mtemp[7],mtemp[8],mtemp[9],mtemp[10],mtemp[11]);
-				dprintf("Prec %6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f\n",
-					mprec[0],mprec[1],mprec[2],mprec[3],mprec[4],mprec[5],
-					mprec[6],mprec[7],mprec[8],mprec[9],mprec[10],mprec[11]);
-				dprintf("Sun  %6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f\n",
-					msun[0],msun[1],msun[2],msun[3],msun[4],msun[5],
-					msun[6],msun[7],msun[8],msun[9],msun[10],msun[11]);
-			}*/
 		}
 		else if (date.year<nyear_spinup+NYEAR_HIST) {
+
 
 			// guess2008 - euroflux
 			century_year++;
@@ -2800,212 +2605,20 @@ bool getclimate(Stand& stand) {
 				prdaily(hist_mprec[date.year-nyear_spinup],dprec,hist_mwet[date.year-nyear_spinup]);
 			}
 
-			/*if (!(date.year%20) && date.day==0) {
-
-				dprintf("\nClimate for year %d\n",date.year+1);
-				dprintf("\n        Jan   Feb   Mar   Apr   May   Jun   Jul   Aug   Sep   Oct   Nov   Dec\n");
-				dprintf("Temp %6.1f%6.1f%6.1f%6.1f%6.1f%6.1f%6.1f%6.1f%6.1f%6.1f%6.1f%6.1f\n",
-					hist_mtemp[date.year-nyear_spinup][0],hist_mtemp[date.year-nyear_spinup][1],
-					hist_mtemp[date.year-nyear_spinup][2],hist_mtemp[date.year-nyear_spinup][3],
-					hist_mtemp[date.year-nyear_spinup][4],hist_mtemp[date.year-nyear_spinup][5],
-					hist_mtemp[date.year-nyear_spinup][6],hist_mtemp[date.year-nyear_spinup][7],
-					hist_mtemp[date.year-nyear_spinup][8],hist_mtemp[date.year-nyear_spinup][9],
-					hist_mtemp[date.year-nyear_spinup][10],hist_mtemp[date.year-nyear_spinup][11]);
-				dprintf("Prec %6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f\n",
-					hist_mprec[date.year-nyear_spinup][0],hist_mprec[date.year-nyear_spinup][1],
-					hist_mprec[date.year-nyear_spinup][2],hist_mprec[date.year-nyear_spinup][3],
-					hist_mprec[date.year-nyear_spinup][4],hist_mprec[date.year-nyear_spinup][5],
-					hist_mprec[date.year-nyear_spinup][6],hist_mprec[date.year-nyear_spinup][7],
-					hist_mprec[date.year-nyear_spinup][8],hist_mprec[date.year-nyear_spinup][9],
-					hist_mprec[date.year-nyear_spinup][10],hist_mprec[date.year-nyear_spinup][11]);
-				dprintf("Sun  %6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f%6.0f\n",
-					hist_msun[date.year-nyear_spinup][0],hist_msun[date.year-nyear_spinup][1],
-					hist_msun[date.year-nyear_spinup][2],hist_msun[date.year-nyear_spinup][3],
-					hist_msun[date.year-nyear_spinup][4],hist_msun[date.year-nyear_spinup][5],
-					hist_msun[date.year-nyear_spinup][6],hist_msun[date.year-nyear_spinup][7],
-					hist_msun[date.year-nyear_spinup][8],hist_msun[date.year-nyear_spinup][9],
-					hist_msun[date.year-nyear_spinup][10],hist_msun[date.year-nyear_spinup][11]);
-			}*/
-
 		}
 	}
+
 
 	// Send environmental values for today to framework
 
 	if (date.year<nyear_spinup)
-		stand.climate.co2=co2[0];
+		climate.co2=co2[0];
 	else if (date.year<nyear_spinup+NYEAR_HIST)
-		stand.climate.co2=co2[date.year-nyear_spinup];
+		climate.co2=co2[date.year-nyear_spinup];
 
-//	if (date.year > nyear_spinup+NYEAR_HIST-10)
-//		stand.climate.co2=550;
-
-	// GUESSN calculate annual N deposition value
-	stand.climate.andep=thisyearsndep(stand.climate.andep_1860,stand.climate.andep_1993,
-		stand.climate.andep_2050,date.year,nyear_spinup,FIRSTHISTYEAR);
-	// end GUESSN
-
-	//if (!(date.year%20) && date.day==0 && date.year>=nyear_spinup ||!(date.year%100) && date.day==0 && date.year<nyear_spinup) 
-	//	dprintf("CO2  %6.0f         Ndep %7.3f (kgN/ha/yr)\n",stand.climate.co2,stand.climate.andep*10000.0);
-
-		///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-	//
-	// FACE DAVID climate - Using Duke or ORNL data set instead. This code 
-	//				just writes over old climate data
-	//
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-
-
-
-	if (has_FACE_clim && (SOILDEPTH_LOWER != 100.0 || SOILDEPTH_UPPER != 400.0 || NYEAR_SCENARIO_FACE != 12) && ifduke)
-		fail("DUKE input data is wrong!!!\n");
-
-	if (has_FACE_clim && (SOILDEPTH_LOWER != 1500.0 || SOILDEPTH_UPPER != 500.0 || NYEAR_SCENARIO_FACE != 11) && !ifduke)
-		fail("ORNL input data is wrong!!!\n");
-
-	if (!has_FACE_clim && (SOILDEPTH_LOWER != 1000.0 || SOILDEPTH_UPPER != 500.0))
-		fail("wrong soil depths!!!\n");
-
-	FYEAR_SCENARIO_FACE = nyear_spinup+NYEAR_HIST-NYEAR_SCENARIO_FACE; 
-	// Calculates which year we should start with the data so we end the simulation with the right order
-
-	if (has_FACE_clim && date.year >= FYEAR_SCENARIO_FACE) //Last years the data is in the right order. 
-	{
-		stand.climate.instype=SUNSHINE;
-		//stand.climate.instype=NETSWRAD;
-
-		// Which year in the data set this year represent
-		int scenario_year = date.year-FYEAR_SCENARIO_FACE;
-	
-		stand.climate.temp=dtemp_FACE[scenario_year][date.day]; // Temperature
-		stand.climate.prec=dprecip_FACE[scenario_year][date.day];// Precipitation
-		stand.climate.par=dsun_FACE[scenario_year][date.day];	// Photosynthetically-active radiation
-		stand.climate.co2=dco2_FACE[scenario_year][date.day];	// CO2
-
-
-		// Nitrogen deposition
-		if (date.day == 0)
-			stand.climate.andep=yndep_FACE[scenario_year+NYEAR_NDEP-NYEAR_SCENARIO_FACE] / 10000.0;  // from ha to m2
-
-		//stand.climate.temp=dtemp[date.day];	// used when comparing clim data to cru data
-		//stand.climate.prec=dprec[date.day];	// used when comparing clim data to cru data
-		stand.climate.insol=dsun[date.day];
-
-	}	
-	else if (has_FACE_clim) // Just uses the clim data over and over again.
-	{
-		stand.climate.instype=SUNSHINE;
-		//stand.climate.instype=NETSWRAD;
-
-		// Which year in the data set this year represent
-		int scenario_year;
-
-		if (!ifduke){
-
-			scenario_year = (date.year+6)%(NYEAR_SCENARIO_FACE);
-
-			if (scenario_year == 7 || scenario_year == 0){
-				scenario_year=2;
-			}
-		}
-
-		if (ifduke){
-
-			scenario_year = (date.year+6)%(NYEAR_SCENARIO_FACE);
-
-			if (scenario_year == 4 || scenario_year == 3 || scenario_year == 9 || scenario_year == 7){
-				scenario_year=2;
-			}
-		}
-
-		stand.climate.temp=dtemp_FACE[scenario_year][date.day];
-		stand.climate.prec=dprecip_FACE[scenario_year][date.day];	
-		stand.climate.par=dsun_FACE[scenario_year][date.day];
-
-		if(date.year < FYEAR_SCENARIO_FACE - 97)			
-			stand.climate.co2=co2[0];
-		else
-			stand.climate.co2=co2[97+date.year-FYEAR_SCENARIO_FACE];
-
-		// Nitrogen deposition
-		if (date.day == 0)
-		{
-			if (date.year < nyear_spinup+NYEAR_HIST-NYEAR_NDEP)
-				stand.climate.andep=yndep_FACE[0] / 10000;	// from ha to m2
-			
-			else 
-				stand.climate.andep=yndep_FACE[date.year-(nyear_spinup+NYEAR_HIST-NYEAR_NDEP)] / 10000.0;	// from ha to m2
-		}
-
-		//stand.climate.temp=dtemp[date.day];	// used when comparing clim data to cru data
-		//stand.climate.prec=dprec[date.day];	// used when comparing clim data to cru data
-		stand.climate.insol=dsun[date.day];
-		
-	}
-
-	///////////////////////////////////////////////////////////////////////////////
-	/////////////////////////// End FACE climate //////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-
-	else {
-		stand.climate.temp=dtemp[date.day];
-		stand.climate.prec=dprec[date.day];
-		stand.climate.insol=dsun[date.day];
-	}
-
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////// CANIF climate ///////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-
-
-	FYEAR_SCENARIO_FACE = nyear_spinup+NYEAR_HIST-lonlatyearsndep[WSITE][2];
-
-	double years_shift=(FIRSTHISTYEAR+NYEAR_HIST)-(lonlatyearsndep[WSITE][3]+lonlatyearsndep[WSITE][2]);
-
-	if (has_CANIF_clim && date.year >= FYEAR_SCENARIO_FACE) //Last years the data is in the right order. 
-	{
-		stand.climate.instype=SUNSHINE;
-		//stand.climate.instype=NETSWRAD;
-
-		// Which year in the data set this year represent
-		int scenario_year = date.year-FYEAR_SCENARIO_FACE;
-	
-		stand.climate.temp=dtemp_CANIF[WSITE][scenario_year][date.day]; // Temperature
-		stand.climate.prec=dprecip_CANIF[WSITE][scenario_year][date.day];// Precipitation
-		stand.climate.par=dsun_CANIF[WSITE][scenario_year][date.day];	// Photosynthetically-active radiation
-
-		if (date.year<nyear_spinup)
-			stand.climate.co2=co2[0];
-		else if (date.year<nyear_spinup+NYEAR_HIST)
-			stand.climate.co2=co2[date.year-nyear_spinup];
-
-		stand.climate.insol=dsun[date.day];
-
-	}	
-	else if (has_CANIF_clim) // Just uses the clim data over and over again.
-	{
-		stand.climate.instype=SUNSHINE;
-		//stand.climate.instype=NETSWRAD;
-
-		int NSYR = (int)lonlatyearsndep[WSITE][2];
-
-		// Which year in the data set this year represent
-		int scenario_year = (date.year)%(NSYR);
-
-		stand.climate.temp=dtemp_CANIF[WSITE][scenario_year][date.day]; // Temperature
-		stand.climate.prec=dprecip_CANIF[WSITE][scenario_year][date.day];// Precipitation
-		stand.climate.par=dsun_CANIF[WSITE][scenario_year][date.day];	// Photosynthetically-active radiation
-
-		if (date.year<(nyear_spinup+years_shift))
-			stand.climate.co2=co2[0];
-		else if (date.year<(nyear_spinup+NYEAR_HIST+years_shift))
-			stand.climate.co2=co2[date.year-nyear_spinup];
-
-		stand.climate.insol=dsun[date.day];
-		
-	}
+	climate.temp=dtemp[date.day];
+	climate.prec=dprec[date.day];
+	climate.insol=dsun[date.day];
 
 	// First day of year only ...
 
@@ -3029,10 +2642,15 @@ bool getclimate(Stand& stand) {
 	return true;
 }
 
+
+
+
+
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // calculateEurofluxStats - guess2008 - euroflux
 // Called by outannual at the end of the last day of the last simulation year
-void calculateAnnualFluxSums(Stand& stand, const int yr, 
+void calculateAnnualFluxSums(const int yr, 
 								double& annNEE_obs, double& annNEE_mod, double &sumNEE_obs, double& sumNEE_mod, 
 								double& annAET_obs, double& annAET_mod, double &sumAET_obs, double& sumAET_mod, 
 								double& annGPP_obs, double& annGPP_mod, double &sumGPP_obs, double& sumGPP_mod) {
@@ -3158,7 +2776,7 @@ void calculateAnnualFluxSums(Stand& stand, const int yr,
 // calculateEurofluxStats - guess2008 - euroflux
 // Called by outannual at the end of the last day of the last simulation year
 
-void calculateEurofluxStats(Stand& stand, FILE* out_stats) {
+void calculateEurofluxStats(FILE* out_stats) {
 
 	int yr, mth;
 
@@ -3445,79 +3063,9 @@ void calculateEurofluxStats(Stand& stand, FILE* out_stats) {
 }
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// Canopy Height
-//
-double canopy_height(Stand& stand) {
 
-	// DESCRIPTION
-	// Determines canopy height from the top 100
-	// tallest trees in each patch (Nakai 2010). 
-
-	double accumulated_canopy_height=0.0;
-
-	for (int p=0;p<npatch;p++) {
-
-		double tree_height[10];
-		double dens[10];
-
-		for (int k=0;k<10;k++) {
-			tree_height[k]=0.0;	//indiv.height
-			dens[k]=0.0;		//indiv.densindiv
-		}
-
-		Patch& patch=stand[p];
-		Vegetation& vegetation=patch.vegetation;
-
-		vegetation.firstobj();
-		while (vegetation.isobj) {
-			Individual& indiv=vegetation.getobj();
-
-			if (indiv.height > tree_height[9]) {
-				for (int i=0;i<10;i++){
-					if (indiv.height > tree_height[i]) {
-						for (int j=8;j>=i;j--) {
-							tree_height[j+1]=tree_height[j];
-							dens[j+1]=dens[j];
-						}
-						tree_height[i]=indiv.height;
-						dens[i]=indiv.densindiv;
-
-						i=10;
-					}
-				}
-			}
-
-			vegetation.nextobj();
-		}
-
-		double tree_height_patch=0.0;
-		double density_patch=0.0;
-		int l=0;
-
-		while (density_patch<0.1 && l<10){
-
-			if (density_patch+dens[l]>0.1)
-				dens[l]=0.1-density_patch;
-
-			tree_height_patch+=tree_height[l]*dens[l];
-			density_patch+=dens[l];
-			l++;
-		}
-
-		if (!negligible(density_patch))
-			accumulated_canopy_height+=tree_height_patch/density_patch;
-	}
-	return accumulated_canopy_height/(double)npatch;
-}
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-// OUTANNUAL
-// Called by the framework at the end of the last day of each simulation year
-
-// guess2008 - many changes to this output routine. 
-void outannual(Stand& stand,Pftlist& pftlist) {
+/// Called by the framework at the end of the last day of each simulation year
+void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 	// DESCRIPTION
 	// Output of simulation results at the end of each year, or for specific years in
@@ -3525,18 +3073,8 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	// provide any information to the framework.
 
 	int p,c,m,nclass;
-	double cmass_stand,anpp_stand,lai_stand,runoff_stand,dens_stand;
-	double flux_veg,flux_soil,flux_fire,flux_est;
-	double c_litter,c_fast,c_slow; 
-	double firert_stand; 
-
-	// GUESSN
-	double nmass_stand,n_litter,densindiv_ageclass_stand,n_min_leach_stand,n_org_leach_stand,nuptake_stand,anppn_stand;
-	double andep_stand,anmin_stand,animm_stand,anfix_stand,nsupply_stand,ndemand_stand,vmaxnlim_stand,total_dens;
-	double surfsoillitterc,surfsoillittern,cwdc,cwdn,microc,micron,humusc,humusn,centuryc,centuryn;
-
-	double stand_ageclass[OUTPUT_MAXAGECLASS];
-	// end GUESSN
+	double flux_veg,flux_soil,flux_fire,flux_est,flux_harvest;
+	double c_litter,c_fast,c_slow,c_harv_slow; 
 
 	// guess2008 - hold the monthly average across patches
 	double mnpp[12];
@@ -3553,10 +3091,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	double mwcont_upper[12];
 	double mwcont_lower[12];
 
-	double dgpp[365];
-
-	double canopyheight_stand;
-
 
 	double lon,lat;
 
@@ -3570,24 +3104,33 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		// Print column labels
 		// guess2008 - added runoff & dens
 		
+		// guess2008 - emdi
 		const char* lonlatyearstr = "%8s%8s%8s"; // easier to change now.
 		const char* lonlatyearstr_extended = "%8s%8s%8s%8s%8s%8s%8s%10s\n";
+		//const char* lonlatyearstr = "%6s%6s%6s"; // easier to change now. // std CRU
+		//const char* lonlatyearstr_extended = "%6s%6s%6s%8s%8s%8s%8s%8s\n"; // std CRU
 
 		if (out_cmass) fprintf(out_cmass,lonlatyearstr,"Lon","Lat","Year");
 		if (out_anpp) fprintf(out_anpp,lonlatyearstr,"Lon","Lat","Year");
 		if (out_lai) fprintf(out_lai,lonlatyearstr,"Lon","Lat","Year");
 		if (out_runoff) fprintf(out_runoff,lonlatyearstr,"Lon","Lat","Year");
 		if (out_dens) fprintf(out_dens,lonlatyearstr,"Lon","Lat","Year");
-		if (out_cflux) fprintf(out_cflux,lonlatyearstr_extended,"Lon","Lat","Year","Veg","Soil",
-			"Fire","Est","NEE");
-		if (out_cpool) 
-			if (!ifcentury)
+		if (out_cflux) {
+			if(run_landcover)
+				fprintf(out_cflux,"%8s%8s%8s%8s%8s%8s%8s%9s%10s\n","Lon","Lat","Year","Veg","Soil",
+					"Fire","Est","Harvest","NEE");
+			else
+				fprintf(out_cflux,lonlatyearstr_extended,"Lon","Lat","Year","Veg","Soil",
+					"Fire","Est","NEE");
+		}
+		if (out_cpool) {
+			if(run_landcover && ifslowharvestpool)
+				fprintf(out_cpool,"%8s%8s%8s%8s%8s%8s%8s%10s%10s\n","Lon","Lat","Year","VegC","LittC",
+					"SoilfC","SoilsC", "HarvSlowC","Total");
+			else
 				fprintf(out_cpool,lonlatyearstr_extended,"Lon","Lat","Year","VegC","LittC",
 					"SoilfC","SoilsC","Total");
-			else // GUESSN
-				fprintf(out_cpool,"%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s%10s\n","Lon","Lat","Year","VegC","LittVC",
-			"LittSC","CwdC","MicroC","HumusC","SoilC","Total");
-			// end GUESSN
+		}
 
 		if (out_firert) fprintf(out_firert,"%8s%8s%8s%8s\n","Lon","Lat","Year","FireRT");
 
@@ -3604,49 +3147,12 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_mnee) fprintf(out_mnee,lonlatyearstr,"Lon","Lat","Year");
 		if (out_mwcont_upper) fprintf(out_mwcont_upper,lonlatyearstr,"Lon","Lat","Year");
 		if (out_mwcont_lower) fprintf(out_mwcont_lower,lonlatyearstr,"Lon","Lat","Year");
-
-		if (out_dgpp) fprintf(out_dgpp,"%8s%8s%8s%8s%9s\n","Lon","Lat","Year","Day","GPP");
-		
-		// GUESSN
-		if (out_cton) fprintf(out_cton,lonlatyearstr,"Lon","Lat","Year");
-		if (out_nmass) fprintf(out_nmass,lonlatyearstr,"Lon","Lat","Year");
-		if (out_nsources) fprintf(out_nsources,"%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s\n","Lon","Lat","Year","dep","min",
-				"imm","min-imm","fix","Total","Ndemand");
-		if (out_npool && ifcentury) 
-			fprintf(out_npool,"%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s%10s\n","Lon","Lat","Year","VegN","LittVN",
-			"LittSN","CwdN","MicroN","HumusN","SoilN","Total");
-		if (out_nleach) fprintf(out_nleach,lonlatyearstr,"Lon","Lat","Year");
-		if (out_age) fprintf(out_age,lonlatyearstr,"Lon","Lat","Year");
-		if (out_nuptake) fprintf(out_nuptake,lonlatyearstr,"Lon","Lat","Year");
-		if (out_anppn) fprintf(out_anppn,lonlatyearstr,"Lon","Lat","Year");
-		if (out_vmaxnlim) fprintf(out_vmaxnlim,lonlatyearstr,"Lon","Lat","Year");
-		// end GUESSN
-
-		// GUESSN allometry
-		if (out_allometry) fprintf(out_allometry,lonlatyearstr,"Lon","Lat","Year");
-		if (out_canopyh) fprintf(out_canopyh,lonlatyearstr,"Lon","Lat","Year");
-		if (out_allometry_ind) fprintf(out_allometry_ind,lonlatyearstr,"Lon","Lat","Year");
-		if (out_allometry_ind) fprintf(out_allometry_ind,"%8s%8s%8s%8s%8s%8s%8s%10s%8s%10s%10s%10s%10s\n","PFT","N","Mfol","Mstem","Mcroot","Mfroot","Mroot","Mwood","Mactive","M","H","D","CWD");
-		// end GUESSN 
-
-		// FACE OUT
-		if (out_face) {
-			for (int u=1;u<76;u++)
-				fprintf(out_face,"%14.0d",u);
-		}
-
-		if (out_face) fprintf(out_face,"\n%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s",
-			"YEAR","DOY","CO2","PPT","PAR","AT","ST","VPD","SW","NDEP*","NEP","GPP","NPP","CEX","CVOC","RECO","RAUTO","RLEAF","RWOOD","RROOT","RGROW","RHET","RSOIL","ET","T");
-		if (out_face) fprintf(out_face,"%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s",
-			"E","INT","RO","DRAIN","LE","SH","CL","CW*","CCR","CFR*","TNC","CLIT*","CRLIT*","CDW","CSOIL","GL*","GW*","GCR","GR*","CLLFALL*","CRLIN*","CWIN*","LAI","LMA**","NCAN");
-		if (out_face) fprintf(out_face,"%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s%14s\n",
-			"NWOOD*","NCR","NFR*","NSTOR*","NLIT*","NRLIT*","NDW","NSOIL","NPOOLM","NPOOLO","NFIX*","NLITIN*","NWLIN*","NRLIN*","NUP","NGMIN","NMIN","NVOL","NLEACH","NGL*","NGW*","NGCR","NGR*","APAR","GS");
-
-
+			
 		// guess2008 - euroflux
 		if (out_speciesheights) fprintf(out_speciesheights,"%10s%8s","Species","Height");
 		if (out_eurofluxmonthly) fprintf(out_eurofluxmonthly,"%6s%6s%6s%6s","Lon","Lat","Year","Month");
 		if (out_eurofluxannual) fprintf(out_eurofluxannual,"%6s%6s%6s","Lon","Lat","Year");
+		
 
 
 		// Loop through PFT's and print PFT names as column labels
@@ -3658,44 +3164,33 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			if (out_anpp) fprintf(out_anpp,"%8s",(char*)pft.name);
 			if (out_lai) fprintf(out_lai,"%8s",(char*)pft.name);
 			if (out_dens) fprintf(out_dens,"%8s",(char*)pft.name);
-
-			// GUESSN
-			if (out_cton) fprintf(out_cton,"%8s",(char*)pft.name);
-			if (out_nmass) fprintf(out_nmass,"%8s",(char*)pft.name);
-			if (out_nuptake) fprintf(out_nuptake,"%9s",(char*)pft.name);
-			if (out_anppn) fprintf(out_anppn,"%9s",(char*)pft.name);
-			if (out_vmaxnlim) fprintf(out_vmaxnlim,"%8s",(char*)pft.name);
-			// end GUESSN
-
-			// GUESSN allometry
-			if (out_allometry && pft.lifeform==TREE) fprintf(out_allometry,"%8s%8s%8s%8s%8s%8s%8s%10s%8s%10s%10s%10s%10s",(char*)pft.name,"N","Mfol","Mstem","Mcroot","Mfroot","Mroot","Mwood","Mactive","M","H","D","CWD");
-			// end GUESSN
-
 			pftlist.nextobj();
 		}
 
-		for(c=0;c<OUTPUT_MAXAGECLASS;c++)
-			if (out_age) fprintf(out_age,"%7.1f ",(double)(c*estinterval+estinterval/2.0));
-
 		// Print labels for "Total" columns
 
-		if (out_cmass) fprintf(out_cmass,"%8s\n","Total");
-		if (out_anpp) fprintf(out_anpp,"%8s\n","Total");
-		if (out_lai) fprintf(out_lai,"%8s\n","Total");
+		if (out_cmass) fprintf(out_cmass,"%8s","Total");
+		if (out_anpp) fprintf(out_anpp,"%8s","Total");
+		if (out_lai) fprintf(out_lai,"%8s","Total");
 		if (out_runoff) fprintf(out_runoff,"%8s\n","Total");
 		if (out_dens) fprintf(out_dens,"%8s\n","Total");
 
-		// GUESSN
-		if (out_cton) fprintf(out_cton,"\n");
-		if (out_nmass) fprintf(out_nmass,"%8s\n","Total");
-		if (out_nleach) fprintf(out_nleach,"%8s%8s%8s\n","Min","Org","Total");	//(kgN/ha/yr)
-		if (out_age) fprintf(out_age,"%8s\n","Total");	//(indiv/ha)
-		if (out_nuptake) fprintf(out_nuptake,"%9s\n","Total");
-		if (out_anppn) fprintf(out_anppn,"%9s\n","Total");
-		if (out_vmaxnlim) fprintf(out_vmaxnlim,"%8s\n","Total");
-		if (out_allometry) fprintf(out_allometry,"\n");	
-		if (out_canopyh) fprintf(out_canopyh,"%8s\n","Height");
-		// end GUESSN
+		if (run_landcover) {
+			xtring landcover_string[]={"Urban_sum", "Crop_sum", "Pasture_sum", "Forest_sum", "Natural_sum", "Peatland_sum"};
+			for (int i=0; i<NLANDCOVERTYPES; i++) {
+				if(run[i]) {
+					if (out_cmass) fprintf(out_cmass,"%13s",(char*)landcover_string[i]);
+					if (out_anpp) fprintf(out_anpp,"%13s",(char*)landcover_string[i]);
+					if (out_lai) fprintf(out_lai,"%13s",(char*)landcover_string[i]);
+				}
+			}
+		}
+
+		if (out_cmass) fprintf(out_cmass,"\n");
+		if (out_anpp) fprintf(out_anpp,"\n");
+		if (out_lai) fprintf(out_lai,"\n");
+
+
 
 		// guess2008
 		const char* monthstr = "%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s\n";
@@ -3713,7 +3208,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_mnee) fprintf(out_mnee,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
 		if (out_mwcont_upper) fprintf(out_mwcont_upper,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
 		if (out_mwcont_lower) fprintf(out_mwcont_lower,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-
+	
 		// guess2008 - euroflux - 3 output fields
 		if (out_eurofluxmonthly) fprintf(out_eurofluxmonthly,"%10s%10s%10s%10s%10s%10s","NEE_mod","NEE_obs","AET_mod","AET_obs","GPP_mod","GPP_obs");
 		if (out_eurofluxmonthly) fprintf(out_eurofluxmonthly,"\n");
@@ -3724,8 +3219,10 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_eurofluxannual) fprintf(out_eurofluxannual,"%10s%10s%10s%10s%10s%10s","sNEE_mod","sNEE_obs","sAET_mod","sAET_obs","sGPP_mod","sGPP_obs");
 		if (out_eurofluxannual) fprintf(out_eurofluxannual,"\n");
 
-		firstgrid=false;
 
+
+
+		firstgrid=false;
 	}
 	
 	// guess2008 - yearly output after spinup
@@ -3736,33 +3233,15 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 	//if (date.year>=nyear_spinup) { 
 	if (date.year>=nyear_spinup+NYEAR_HIST-NFLUXYEARS && date.year<=nyear_spinup+NYEAR_HIST-1) { // guess2008 - euroflux - flux years are 1996-2002
 
+
 		lon=gridlist.getobj().lon;
 		lat=gridlist.getobj().lat;
-
-		cmass_stand=0.0;
-		anpp_stand=0.0;
-		lai_stand=0.0;
-		runoff_stand=0.0;
-		dens_stand=0.0;
-		firert_stand=0.0;
-
-		// GUESSN
-		nmass_stand=0.0;
-		vmaxnlim_stand=0.0;
-		total_dens=0.0;
-		nuptake_stand=0.0;
-		anppn_stand=0.0;
-		n_min_leach_stand=n_org_leach_stand=0.0;
-		densindiv_ageclass_stand=0.0;
-		for (c=0;c<nclass;c++)
-			stand_ageclass[c]=0.0;
-		
-		// end GUESSN
 
 		// Print longitude, latitude, year
 
 		// guess2008
-		const char* lonlatyeardatastr = "%8.1f%8.1f%8d"; // std CRU
+		// const char* lonlatyeardatastr = "%6.1f%6.1f%6d"; //std CRU
+		const char* lonlatyeardatastr = "%8.2f%8.2f%8d"; // guess2008 - emdi
 		if (out_cmass) fprintf(out_cmass,lonlatyeardatastr,lon,lat,date.year);
 		if (out_anpp) fprintf(out_anpp,lonlatyeardatastr,lon,lat,date.year);
 		if (out_lai) fprintf(out_lai,lonlatyeardatastr,lon,lat,date.year);
@@ -3772,22 +3251,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		if (out_cpool) fprintf(out_cpool,lonlatyeardatastr,lon,lat,date.year);
 		if (out_firert) fprintf(out_firert,lonlatyeardatastr,lon,lat,date.year);
 
-		// GUESSN
-		if (out_cton) fprintf(out_cton,lonlatyeardatastr,lon,lat,date.year);
-		if (out_nmass) fprintf(out_nmass,lonlatyeardatastr,lon,lat,date.year);
-		if (out_nsources) fprintf(out_nsources,lonlatyeardatastr,lon,lat,date.year);
-		if (out_npool && ifcentury) fprintf(out_npool,lonlatyeardatastr,lon,lat,date.year);
-		if (out_nleach) fprintf(out_nleach,lonlatyeardatastr,lon,lat,date.year);
-		if (out_age) fprintf(out_age,lonlatyeardatastr,lon,lat,date.year);
-		if (out_nuptake) fprintf(out_nuptake,lonlatyeardatastr,lon,lat,date.year);
-		if (out_anppn) fprintf(out_anppn,lonlatyeardatastr,lon,lat,date.year);
-		if (out_vmaxnlim) fprintf(out_vmaxnlim,lonlatyeardatastr,lon,lat,date.year);
-		// end GUESSN
-
-		// GUESSN allometry
-		if (out_allometry) fprintf(out_allometry,lonlatyeardatastr,lon,lat,date.year);
-		if (out_canopyh) fprintf(out_canopyh,lonlatyeardatastr,lon,lat,date.year);
-		// end GUESSN
 
 		if (out_mnpp) fprintf(out_mnpp,lonlatyeardatastr,lon,lat,date.year);
 		if (out_mlai) fprintf(out_mlai,lonlatyeardatastr,lon,lat,date.year);
@@ -3808,11 +3271,31 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 			mnpp[m]=mlai[m]=mgpp[m]=mra[m]=maet[m]=mpet[m]=mevap[m]=mintercep[m]=mrunoff[m]=mrh[m]=mnee[m]=mwcont_upper[m]=mwcont_lower[m]=0.0;
 
 
-		for (int d=0;d<365;d++)
-			dgpp[d]=0.0;
 
-		if (out_canopyh)
-			canopyheight_stand=canopy_height(stand);
+		double landcover_cmass[NLANDCOVERTYPES]={0.0};
+		double landcover_anpp[NLANDCOVERTYPES]={0.0};
+		double landcover_lai[NLANDCOVERTYPES]={0.0};
+		double landcover_densindiv_total[NLANDCOVERTYPES]={0.0};
+
+		double gcpft_cmass=0.0;
+		double gcpft_anpp=0.0;
+		double gcpft_lai=0.0;
+		double gcpft_densindiv_total=0.0;
+		double gcpft_densindiv_ageclass[OUTPUT_MAXAGECLASS]={0.0};
+
+		double cmass_gridcell=0.0;
+		double anpp_gridcell=0.0;
+		double lai_gridcell=0.0;
+		double runoff_gridcell=0.0;
+		double dens_gridcell=0.0;
+		double firert_gridcell=0.0;
+
+		double standpft_cmass=0.0;
+		double standpft_anpp=0.0;
+		double standpft_lai=0.0;
+		double standpft_densindiv_total=0.0;
+		double standpft_densindiv_ageclass[OUTPUT_MAXAGECLASS]={0.0};
+
 
 		// *** Loop through PFTs ***
 
@@ -3820,446 +3303,152 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		while (pftlist.isobj) {
 			
 			Pft& pft=pftlist.getobj();
-			Standpft& standpft=stand.pft[pft.id];
+			Gridcellpft& gridcellpft=gridcell.pft[pft.id];
 
-			// Sum C biomass, NPP and LAI across patches and PFTs
-			
-			standpft.cmass_total=0.0;
-			standpft.anpp_total=0.0;
-			standpft.lai_total=0.0;
-			standpft.densindiv_total = 0.0;
-			standpft.greff_mort_total=0.0;
-			standpft.nsapling_total=0.0;
+			// Sum C biomass, NPP and LAI across patches and PFTs		
+			gcpft_cmass=0.0;
+			gcpft_anpp=0.0;
+			gcpft_lai=0.0;
+			gcpft_densindiv_total=0.0;		
 
-			// guess2008 - euroflux
-			double heightindiv_total = 0.0; // guess2008 - euroflux
-			standpft.fpc_total=0.0;
+			double heightindiv_total = 0.0;
 
-			// GUESSN
-			double cton_leaf_avr=0.0;	// mean across patches for leaf C:N ratio
-			double nmass_total=0.0;		// sum/mean across patches for nitrogen biomass (kgN/m2)
-			double nuptake_total=0.0;	// sum across patches for nitrogen uptake (kgN/m2)
-			double anppn_total=0.0;		// sum across patches for nitrogen ANPP usage (kgN/m2)
-			double vmaxnlim_avr=0.0;	// N limitation on vm		
+			gridcell.firstobj();
 
-			double nr_pft_indiv=0.0;	// number of individuals of this pft. Used for avr calculation
-			// end GUESSN
+			// Loop through Stands
+			while (gridcell.isobj) {
+				Stand& stand=gridcell.getobj();
 
-			// GUESSN allometry
-			double allometry[] = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
-			double allometry_ind[] = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
+				Standpft& standpft=stand.pft[pft.id];
+				// Sum C biomass, NPP and LAI across patches and PFTs
+				standpft_cmass=0.0;
+				standpft_anpp=0.0;
+				standpft_lai=0.0;
+				standpft_densindiv_total = 0.0;
 
-			// Initialise age structure array
+				// Initialise age structure array
 
-			if (vegmode==COHORT || vegmode==INDIVIDUAL)
-				for (c=0;c<nclass;c++)
-					standpft.densindiv_ageclass[c]=0.0;
-	
-			for (p=0;p<npatch;p++) {
-
-				Patch& patch=stand[p];
-				Vegetation& vegetation=patch.vegetation;
-				Patchpft& patchpft=patch.pft[pft.id];
-
-				standpft.nsapling_total+=patch.pft[pft.id].nsapling_yearly;
-				
-				if (patch.pft[pft.id].no_cohorts) {
-
-					standpft.greff_mort_total+=patch.pft[pft.id].greff_mort_fraction/(patch.pft[pft.id].no_cohorts);
-				}
-
-				// FACE OUT
-				if (out_face && pft.id==0){	
-
-					for (int d=0;d<365;d++) {
-
-						patch.soil.FACE_out[37][d] = 0.0;	// C Litter Aboveground
-						patch.soil.FACE_out[55][d] = 0.0;	// N Litter Aboveground				
-
-						patch.soil.FACE_out[45][d] = 0.0;	// C Leaf Litterfall					
-						patch.soil.FACE_out[47][d] = 0.0;	// C Wood/branch Input
-
-						patch.soil.FACE_out[62][d] = 0.0;	// N Leaf Litterfall
-						patch.soil.FACE_out[63][d] = 0.0;	// N Wood/brch litterfall
-					
-						patch.soil.FACE_out[38][d] = 0.0;	// C Litter Belowground	
-						patch.soil.FACE_out[46][d] = 0.0;	// C Root Litter Input
-
-						patch.soil.FACE_out[56][d] = 0.0;	// N Litter Belowground
-						patch.soil.FACE_out[64][d] = 0.0;	// N Root Litter Input
-
-						patch.soil.FACE_out[17][d] = 0.0;	// Total Resp Autotrophic
-						patch.soil.FACE_out[12][d] = 0.0;	// Total GPP
-					}
-				}
-				if (out_face) {
-					for (int d=0;d<365;d++) {
-						patch.soil.FACE_out[24][d] = patch.soil.FACE_out[25][d] + patch.soil.FACE_out[26][d];	// Calculate Evapotranspiration = Transpiration + Evaporation
-					
-						patch.soil.FACE_out[37][d] += (patchpft.litter_leaf + patchpft.litter_wood)*cwdtransfer*1000.0/365.0;				// C Litter Aboveground
-						patch.soil.FACE_out[55][d] += (patchpft.nmass_litter_leaf + patchpft.nmass_litter_wood)*cwdtransfer*1000.0/365.0;	// N Litter Aboveground				
-
-						patch.soil.FACE_out[45][d] += patchpft.litter_leaf*cwdtransfer*1000.0/365.0;		// C Leaf Litterfall					
-						patch.soil.FACE_out[47][d] += patchpft.litter_wood*cwdtransfer*1000.0/365.0;		// C Wood/branch Input
-
-						patch.soil.FACE_out[62][d] += patchpft.nmass_litter_leaf*cwdtransfer*1000.0/365.0;	// N Leaf Litterfall
-						patch.soil.FACE_out[63][d] += patchpft.nmass_litter_wood*cwdtransfer*1000.0/365.0;	// N Wood/brch litterfall
-					
-						patch.soil.FACE_out[38][d] += patchpft.litter_root*cwdtransfer*1000.0/365.0;		// C Litter Belowground	
-						patch.soil.FACE_out[46][d] += patchpft.litter_root*cwdtransfer*1000.0/365.0;		// C Root Litter Input
-
-						patch.soil.FACE_out[56][d] += patchpft.nmass_litter_root*cwdtransfer*1000.0/365.0;	// N Litter Belowground
-						patch.soil.FACE_out[64][d] += patchpft.nmass_litter_root*cwdtransfer*1000.0/365.0;	// N Root Litter Input
-					}
-				}
-				// end FACE OUT
-
-				vegetation.firstobj();
-				while (vegetation.isobj) {
-					Individual& indiv=vegetation.getobj();
-					
-					// guess2008 - alive check added
-					if (indiv.id!=-1 && indiv.alive) { 
-					
-						if (indiv.pft.id==pft.id) {
-
-							// FACE OUT
-							if (out_face) {
-								for (int d=0;d<365;d++) {
-									patch.soil.FACE_out[17][d]+=indiv.FACE_out[17][d];	// Calculate Resp Ecosystem = Resp Autotrophic + Resp Heterotrophic
-									patch.soil.FACE_out[12][d]+=indiv.FACE_out[12][d];	// Calculate NEP = GPP - Resp Ecosystem
-								}
-							}
-
-							standpft.cmass_total+=indiv.cmass_leaf+
-								indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
-							standpft.anpp_total+=indiv.anpp;
-							standpft.lai_total+=indiv.lai;
-
-							// guess2008 - euroflux
-							standpft.fpc_total+=indiv.fpc;
-
-							// GUESSN
-							cton_leaf_avr+=indiv.cmass_leaf/indiv.nmass_leaf*indiv.densindiv;
-							vmaxnlim_avr+=indiv.avmaxnlim*indiv.densindiv;
-							vmaxnlim_stand+=indiv.avmaxnlim*indiv.densindiv;
-							nr_pft_indiv+=indiv.densindiv;
-							total_dens+=indiv.densindiv;
-							nuptake_total+=indiv.fnuptake*indiv.ndemand_uptake;
-							anppn_total+=indiv.ndemand;
-							nmass_total+=indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+
-								indiv.nmass_heart+indiv.nmass_reserve;
-							// end GUESSN
-
-							if (vegmode==COHORT || vegmode==INDIVIDUAL) {
-
-								// GUESSN allometry - only count trees with a trunk above a certain diameter 
-								double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
-
-								if (diam>0.03 && pft.lifeform==TREE) {
-
-									// Number of individuals
-									allometry[0]+=indiv.densindiv*10000.0;	
-									allometry_ind[0]=indiv.densindiv*10000.0;
-								
-									// Total leaf C mass for these individuals
-									allometry[1]+=(indiv.cmass_leaf/indiv.densindiv)*	// Leaf mass for one indiv
-										(indiv.densindiv*10000.0);						// Number of individuals
-									allometry_ind[1]=(indiv.cmass_leaf/indiv.densindiv)*	
-										(indiv.densindiv*10000.0);						
-								
-									// Total stem C mass for these individuals (0.75 from Wolf 2011)
-									allometry[2]+=(indiv.cmass_sap+indiv.cmass_heart)*0.75/indiv.densindiv*	// Leaf mass for one indiv
-										(indiv.densindiv*10000.0);
-									allometry_ind[2]=(indiv.cmass_sap+indiv.cmass_heart)*0.75/indiv.densindiv*	// Leaf mass for one indiv
-										(indiv.densindiv*10000.0);
-
-									// Total coarse root C mass for these individuals (0.25 from Wolf 2011)
-									allometry[3]+=(indiv.cmass_sap+indiv.cmass_heart)*0.25/indiv.densindiv*	// Leaf mass for one indiv
-										(indiv.densindiv*10000.0);
-									allometry_ind[3]=(indiv.cmass_sap+indiv.cmass_heart)*0.25/indiv.densindiv*	// Leaf mass for one indiv
-										(indiv.densindiv*10000.0);
-
-									// Total fine root C mass
-									allometry[4]+=(indiv.cmass_root/indiv.densindiv)*	
-										(indiv.densindiv*10000.0);
-									allometry_ind[4]=(indiv.cmass_root/indiv.densindiv)*	
-										(indiv.densindiv*10000.0);
-
-									// Total total root C mass for these individuals 
-									allometry[5]+=((indiv.cmass_sap+indiv.cmass_heart)*0.25+indiv.cmass_root)/indiv.densindiv*	// Leaf mass for one indiv
-										(indiv.densindiv*10000.0);
-									allometry_ind[5]=((indiv.cmass_sap+indiv.cmass_heart)*0.25+indiv.cmass_root)/indiv.densindiv*	// Leaf mass for one indiv
-										(indiv.densindiv*10000.0);
-								
-									// Total wood C mass
-									allometry[6]+=((indiv.cmass_sap+indiv.cmass_heart)/indiv.densindiv)*	
-										(indiv.densindiv*10000.0);
-									allometry_ind[6]=((indiv.cmass_sap+indiv.cmass_heart)/indiv.densindiv)*	
-										(indiv.densindiv*10000.0);
-								
-									// Total active C mass
-									allometry[7]+=((indiv.cmass_leaf+indiv.cmass_root)/indiv.densindiv)*	
-										(indiv.densindiv*10000.0);
-									allometry_ind[7]=((indiv.cmass_leaf+indiv.cmass_root)/indiv.densindiv)*	
-										(indiv.densindiv*10000.0);
-								
-									// Total C mass
-									allometry[8]+=((indiv.cmass_sap+indiv.cmass_heart+indiv.cmass_leaf+indiv.cmass_root)/indiv.densindiv)*
-										(indiv.densindiv*10000.0);
-									allometry_ind[8]=((indiv.cmass_sap+indiv.cmass_heart+indiv.cmass_leaf+indiv.cmass_root)/indiv.densindiv)*
-										(indiv.densindiv*10000.0);
-								
-									// Accumulated height of these individuals
-									allometry[9]+=indiv.height*indiv.densindiv*10000.0;	
-									allometry_ind[9]=indiv.height*indiv.densindiv*10000.0;	
-							
-									// Accumulated diameter of these individuals
-									allometry[10]+=(pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3))*indiv.densindiv*10000.0;
-									allometry_ind[10]=(pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3))*indiv.densindiv*10000.0;
-
-									if (out_allometry_ind && date.year == nyear_spinup+105 && p==0)
-										fprintf(out_allometry_ind,"%8.1f%8.1f%8d%8d%8.0f%8.2f%8.2f%8.2f%8.2f%8.2f%10.2f%8.2f%10.2f%10.2f%10.3f%10.3f\n",
-											lon,lat,date.year,standpft.pft.id,allometry_ind[0],allometry_ind[1]/allometry_ind[0],
-											allometry_ind[2]/allometry_ind[0],allometry_ind[3]/allometry_ind[0],allometry_ind[4]/allometry_ind[0],
-											allometry_ind[5]/allometry_ind[0],allometry_ind[6]/allometry_ind[0],allometry_ind[7]/allometry_ind[0],
-											allometry_ind[8]/allometry_ind[0],allometry_ind[9]/allometry_ind[0],allometry_ind[10]/allometry_ind[0],allometry_ind[11]/allometry_ind[0]);
-				
-								}// end GUESSN
-							
-								// Age structure
-								
-								c=(int)(indiv.age/estinterval); // guess2008
-								if (c<OUTPUT_MAXAGECLASS && indiv.pft.lifeform == TREE)
-									standpft.densindiv_ageclass[c]+=indiv.densindiv*10000.0;
-
-								// guess2008 - only count trees with a trunk above a certain diameter  
-								if (diam>0.03 && pft.lifeform==TREE) {
-									standpft.densindiv_total+=indiv.densindiv; // indiv/m2
-
-									// guess2008 - euroflux
-									if (date.year==nyear_spinup+99) 
-										heightindiv_total+=indiv.height * indiv.densindiv;
-								}
-							}
-						
-						}
-
-					} // alive
-
-
-					vegetation.nextobj();
-				}
-
-				allometry[11]+=patchpft.litter_wood*10000.0*cwdtransfer/(double)npatch;
-			} // end of patch loop
-
-			
-
-			standpft.cmass_total/=(double)npatch;
-			standpft.anpp_total/=(double)npatch;
-			standpft.lai_total/=(double)npatch;
-			standpft.densindiv_total/=(double)npatch;
-			standpft.greff_mort_total/=(double)npatch;
-			standpft.nsapling_total/=(double)npatch;
-			nuptake_total/=(double)npatch;
-			anppn_total/=(double)npatch;
-
-			// guess2008 - euroflux
-			standpft.fpc_total/=(double)npatch;
-			heightindiv_total/=(double)npatch;
-
-			if (!negligible(nr_pft_indiv)) {
-				cton_leaf_avr/=nr_pft_indiv;
-				vmaxnlim_avr/=nr_pft_indiv;
-			}
-			else {
-				cton_leaf_avr=0.0;
-				vmaxnlim_avr=0.0;
-			}
-			nmass_total/=(double)npatch;
-			for (c=0;c<nclass;c++) {
-				standpft.densindiv_ageclass[c]/=(double)npatch;
-				stand_ageclass[c]+=standpft.densindiv_ageclass[c];
-				densindiv_ageclass_stand+=standpft.densindiv_ageclass[c];
-			}
-
-			for (int all=0;all<11;all++)
-				allometry[all]/=(double)npatch;
-			// end GUESSN
-
-			// Update stand totals
-
-			cmass_stand+=standpft.cmass_total;
-			anpp_stand+=standpft.anpp_total;
-			lai_stand+=standpft.lai_total;
-			dens_stand+=standpft.densindiv_total;
-
-			// GUESSN
-			nmass_stand+=nmass_total;
-			nuptake_stand+=nuptake_total;
-			anppn_stand+=anppn_total;
-			// end GUESSN
+				if (vegmode==COHORT || vegmode==INDIVIDUAL)
+					for (c=0;c<nclass;c++)
+						standpft_densindiv_ageclass[c]=0.0;
 		
+				stand.firstobj();
+
+				// Loop through Patches
+				while (stand.isobj) {
+					Patch& patch=stand.getobj();
+					Vegetation& vegetation=patch.vegetation;
+
+					vegetation.firstobj();
+					while (vegetation.isobj) {
+						Individual& indiv=vegetation.getobj();
+							
+						// guess2008 - alive check added
+						if (indiv.id!=-1 && indiv.alive) { 
+							
+							if (indiv.pft.id==pft.id) {
+								standpft_cmass+=indiv.cmass_leaf+
+									indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
+								standpft_anpp+=indiv.anpp;
+								standpft_lai+=indiv.lai;
+
+								if (vegmode==COHORT || vegmode==INDIVIDUAL) {
+									
+									// Age structure
+									
+									c=(int)(indiv.age/estinterval); // guess2008
+									if (c<OUTPUT_MAXAGECLASS)
+										standpft_densindiv_ageclass[c]+=indiv.densindiv;
+
+									// guess2008 - only count trees with a trunk above a certain diameter  
+									if (pft.lifeform==TREE && indiv.age>0) {
+										double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
+										if (diam>0.03) {
+											standpft_densindiv_total+=indiv.densindiv; // indiv/m2
+
+											if (date.year==nyear_spinup+99)
+												 heightindiv_total+=indiv.height * indiv.densindiv;
+										}
+									}
+								}
+							
+							}
+
+						} // alive?
+						vegetation.nextobj();
+					}
+					stand.nextobj();
+				} // end of patch loop
+
+				standpft_cmass/=(double)stand.nobj;
+				standpft_anpp/=(double)stand.nobj;
+				standpft_lai/=(double)stand.nobj;
+				standpft_densindiv_total/=(double)stand.nobj;
+
+				// guess2008 - euroflux
+				heightindiv_total/=(double)stand.nobj;
+
+				//Update landcover totals
+				landcover_cmass[stand.landcover]+=standpft_cmass*stand.get_landcover_fraction();
+				landcover_anpp[stand.landcover]+=standpft_anpp*stand.get_landcover_fraction();
+				landcover_lai[stand.landcover]+=standpft_lai*stand.get_landcover_fraction();
+				landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.get_landcover_fraction();
+
+				//Update pft totals
+				gcpft_cmass+=standpft_cmass;
+				gcpft_anpp+=standpft_anpp;
+				gcpft_lai+=standpft_lai;
+				gcpft_densindiv_total+=standpft_densindiv_total;
+
+				if (vegmode==COHORT || vegmode==INDIVIDUAL)
+					for (c=0;c<nclass;c++)
+						gcpft_densindiv_ageclass[c]+=standpft_densindiv_ageclass[c];
+
+				// Update gridcell totals
+				double fraction_of_gridcell = stand.get_gridcell_fraction();
+				cmass_gridcell+=standpft_cmass*fraction_of_gridcell;
+				anpp_gridcell+=standpft_anpp*fraction_of_gridcell;
+				lai_gridcell+=standpft_lai*fraction_of_gridcell;
+				dens_gridcell+=standpft_densindiv_total*fraction_of_gridcell;
+			
+				// Graphical output every 10 years
+				// (Windows shell only - "plot" statements have no effect otherwise)
+				if (!(date.year%10)) {
+					plot("cmass",pft.name,date.year,gcpft_cmass);
+					plot("anpp",pft.name,date.year,gcpft_anpp);
+					plot("lai",pft.name,date.year,gcpft_lai);
+				}
+				gridcell.nextobj();
+			} //End of loop through stands
+
+
 			// Print PFT sums to files
+			if (out_lai)
+				fprintf(out_lai,"%8.4f",gcpft_lai);
 
-			if (out_cmass) fprintf(out_cmass,"%8.3f",standpft.cmass_total);
-			if (out_anpp) fprintf(out_anpp,"%8.3f",standpft.anpp_total);
-			if (out_lai) fprintf(out_lai,"%8.4f",standpft.lai_total);
-			if (out_dens) fprintf(out_dens,"%8.4f",standpft.densindiv_total);
+			if (out_dens) fprintf(out_dens,"%8.4f",gcpft_densindiv_total);
 
-			// GUESSN
-			if (out_cton) fprintf(out_cton,"%8.3f",cton_leaf_avr);
-			if (out_nmass) fprintf(out_nmass,"%8.3f",nmass_total);
-			if (out_nuptake) fprintf(out_nuptake,"%9.5f",nuptake_total);
-			if (out_anppn) fprintf(out_anppn,"%9.5f",anppn_total);
-			if (out_vmaxnlim) fprintf(out_vmaxnlim,"%8.3f",vmaxnlim_avr);
-			// end GUESSN
+			if (out_cmass)
+				fprintf(out_cmass,"%8.3f",gcpft_cmass);
+
+			if (out_anpp)
+				fprintf(out_anpp,"%8.3f",gcpft_anpp);
 
 			// guess2008 - euroflux - print cohort heights in year 2000
 			if (date.year==nyear_spinup+99) {
-					fprintf(out_speciesheights,"\n%9s", (char*)standpft.pft.name);
+					fprintf(out_speciesheights,"\n%9s", (char*)pft.name);
 					fprintf(out_speciesheights,"%s"," ");
 
 					double zeroheight = 0.0;
-					if (standpft.densindiv_total > 0.0)
-						fprintf(out_speciesheights,"%8.2f",heightindiv_total/standpft.densindiv_total);
+					if (gcpft_densindiv_total > 0.0)
+						fprintf(out_speciesheights,"%8.2f",heightindiv_total/gcpft_densindiv_total);
 					else
 						fprintf(out_speciesheights,"%8.2f",zeroheight);
-			}
-			
-			// GUESSN allometry
-			if (out_allometry && pft.lifeform==TREE)
-				if (allometry[0]>0.0)
-					fprintf(out_allometry,"%8d%8.0f%8.2f%8.2f%8.2f%8.2f%8.2f%10.2f%8.2f%10.2f%10.2f%10.3f%10.3f",
-					standpft.pft.id,allometry[0],allometry[1]/allometry[0],
-					allometry[2]/allometry[0],allometry[3]/allometry[0],allometry[4]/allometry[0],
-					allometry[5]/allometry[0],allometry[6]/allometry[0],allometry[7]/allometry[0],
-					allometry[8]/allometry[0],allometry[9]/allometry[0],allometry[10]/allometry[0],allometry[11]/allometry[0]);
-				else
-					fprintf(out_allometry,"%8d%8.0f%8.0f%8.0f%8.0f%8.0f%8.0f%10.0f%8.0f%10.0f%10.0f%10.0f%10.0f",
-					(char*)standpft.pft.id,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0);
-
-			if (has_CANIF_clim && date.year-100 >= nyear_spinup && (((WSITE==2 || WSITE==3 || WSITE==4) && pft.name == "TeBS") || (WSITE==0 && pft.name=="BNE") || ((WSITE==1 || WSITE==5 || WSITE==6 || WSITE==7) && pft.name=="TeNE")))
-				dprintf("Year %d height %g dens %g anpp %g C:N %g\n",date.year,allometry[9]/allometry[0],allometry[0],standpft.anpp_total,cton_leaf_avr);
-
-			// end GUESSN
-
-			// Graphical output every 10 years
-			// (Windows shell only - "plot" statements have no effect otherwise)
-			
-
-			//if (!(date.year%10)) {
-				plot("cmass",pft.name,date.year,stand.pft[pft.id].cmass_total);
-				plot("anpp",pft.name,date.year,stand.pft[pft.id].anpp_total);
-				plot("lai",pft.name,date.year,stand.pft[pft.id].lai_total);
-				plot("pft Vmax N limitation",pft.name,date.year,vmaxnlim_avr);
-				if (cton_leaf_avr>0.0)
-					plot("C:N ratios pft",pft.name,date.year,cton_leaf_avr);
-			//}
-
-			
-			// if (!(date.year%10)) {
-				if (pft.lifeform==TREE && vegmode==COHORT || pft.lifeform==TREE && vegmode==INDIVIDUAL) {
-					plot("growth_efficiency_mort;averaged all cohorts",pft.name,date.year,stand.pft[pft.id].greff_mort_total);
-					plot("tree_density/ha2",pft.name,date.year,standpft.densindiv_total*10000.0);
-				    plot("no_saplings/patch",pft.name,date.year,stand.pft[pft.id].nsapling_total);
-				}
-			//}
-
-				// FACE DAVID 
-			double ORNL_amb[10] = {800.0,850.0,1000.0,1025.0,900.0,975.0,800.0,775.0,625.0,650.0};
-			double ORNL_ele[10] = {1025.0,1000.0,1200.0,1300.0,1200.0,1125.0,1080.0,875.0,700.0,700.0};
-			double Duke_amb[10] = {1020.0,1248.0,1330.0,1121.0,718.0,1046.0,1142.0,996.0,0.0,0.0};
-			double Duke_ele[10] = {1315.0,1615.0,1711.0,1435.0,1017.0,1424.0,1537.0,1367.0,0.0,0.0};
-
-			if (date.year >= 596 && has_FACE_clim) { 
-				plot("anpp output",pft.name,date.year,stand.pft[pft.id].anpp_total);
-				if (!ifduke) {
-					if (FACE_ring == 1)
-						plot("anpp output","Real Amb",date.year,ORNL_amb[date.year-596]/1000.0);
-					else 
-						plot("anpp output","Real Ele",date.year,ORNL_ele[date.year-596]/1000.0);
-				}
-				else {
-					if (FACE_ring == 1)
-						plot("anpp output","Real Amb",date.year,Duke_amb[date.year-596]/1000.0);
-					else 
-						plot("anpp output","Real Ele",date.year,Duke_ele[date.year-596]/1000.0);
-				}
 			}
 
 			pftlist.nextobj();
 		
 		} // *** End of PFT loop ***
-
-		// FACE OUT
-		double FYEAR_SCENARIO_FACE = nyear_spinup+NYEAR_HIST-NYEAR_SCENARIO_FACE; 
-		// Calculates which year we should start with the data so we end the simulation with the right order
-
-		if (out_face && date.year >= FYEAR_SCENARIO_FACE) {//Last years the data is in the right order.
-			for (int d=0;d<365;d++){
-
-				double out_put[77];
-				bool has;
-
-				int nr_indiv=0;
-			
-				for(int e=0;e<77;e++)
-					out_put[e]=0.0;
-
-				for (p=0;p<npatch;p++) {
-
-					has=false;
-
-					Patch& patch=stand[p];
-					Vegetation& vegetation=patch.vegetation;
-
-					patch.soil.FACE_out[16][d]=patch.soil.FACE_out[17][d]+patch.soil.FACE_out[22][d];	// Calculate Resp Ecosystem = Resp Autotrophic + Resp Heterotrophic
-					patch.soil.FACE_out[11][d]=patch.soil.FACE_out[12][d]-patch.soil.FACE_out[16][d];	// Calculate NEP = GPP - Resp Ecosystem
-
-					vegetation.firstobj();
-					while (vegetation.isobj) {
-						Individual& indiv=vegetation.getobj();
-
-						if (indiv.age > 0 || indiv.pft.lifeform == GRASS) {
-							for(int data=1;data<77;data++) {
-								if(data==1 || data==2 || data==3 || data==4 || data==5 || data==6 || data==7 || data==9 || data==10 || data==11 || data==16 || data==22 || data==23 || data==24 || data==25 || data==26 || data==28 || data==29 || data==37 || data==38 || data==40 || data==45 || data==46 || data==47 || data==55 || data==56 || data==58 || data==59 || data==60 || data==61 || data==62 || data==63 || data==64 || data==66 || data==67 || data==69) {
-								
-									if(!has)
-										out_put[data]+=patch.soil.FACE_out[data][d]/(double)npatch;
-								}
-								else {
-									//if (indiv.age > date.year-patch.stand.plantyear-5) {
-									if (true) {
-
-										if(indiv.FACE_out[data][d] != -9999.0)
-											out_put[data]+=indiv.FACE_out[data][d]/(double)npatch;
-										else
-											out_put[data]=indiv.FACE_out[data][d];
-
-										if (data==49)
-											nr_indiv++;
-									}
-								}
-							}
-							has=true;
-						}
-
-						vegetation.nextobj();
-					}
-				}
-
-				for (int r=1;r<76;r++)
-					if (r==49)
-						fprintf(out_face,"%14.6f",out_put[r]/(double)nr_indiv);
-					else
-						fprintf(out_face,"%14.6f",out_put[r]);
-
-				fprintf(out_face,"\n");
-			}
-		}
-		// end FACE OUT
 
 
 		// guess2008 - euroflux - print cohort heights in year 2000
@@ -4268,138 +3457,103 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		}
 
 
-		flux_veg=flux_soil=flux_fire=flux_est=0.0;
+		flux_veg=flux_soil=flux_fire=flux_est=flux_harvest=0.0;
 
 		// guess2008 - carbon pools
-		c_litter=c_fast=c_slow=0.0;
-
-		// GUESSN
-		surfsoillitterc=surfsoillittern=cwdc=cwdn=microc=micron=humusc=humusn=centuryc=centuryn=n_litter=0.0;
-		andep_stand=anmin_stand=animm_stand=anfix_stand=nsupply_stand=ndemand_stand=0.0;
-		// end GUESSN
+		c_litter=c_fast=c_slow=c_harv_slow=0.0;
 
 		// Sum C fluxes, dead C pools and runoff across patches
 
-		for (p=0;p<npatch;p++) {
-			flux_veg+=stand[p].fluxes.acflux_veg/(double)npatch;
-			flux_soil+=stand[p].fluxes.acflux_soil/(double)npatch;
-			flux_fire+=stand[p].fluxes.acflux_fire/(double)npatch;
-			flux_est+=stand[p].fluxes.acflux_est/(double)npatch;
+		gridcell.firstobj();
 
-			c_fast+=stand[p].soil.cpool_fast/(double)npatch;
-			c_slow+=stand[p].soil.cpool_slow/(double)npatch;
+		// Loop through Stands
+		while (gridcell.isobj) {
+			Stand& stand=gridcell.getobj();
+			stand.firstobj();
 
-			// GUESSN
-			andep_stand+=stand[p].soil.ndep_annual/(double)npatch*10000.0;	// convert from m2 to ha
-			anmin_stand+=stand[p].soil.nmin_annual/(double)npatch*10000.0;	// convert from m2 to ha
-			animm_stand+=stand[p].soil.nimmob_annual/(double)npatch*10000.0; // convert from m2 to ha
-			anfix_stand+=stand[p].soil.N_fix/(double)npatch*10000.0;		// convert from m2 to ha
-			n_min_leach_stand+=stand[p].soil.n_min_leach_annual/(double)npatch*10000.0;	// convert from m2 to ha
-			n_org_leach_stand+=stand[p].soil.n_org_leach_annual/(double)npatch*10000.0;	// convert from m2 to ha
-			nsupply_stand+=stand[p].nsupply/(double)npatch*10000.0;			// convert from m2 to ha
-			ndemand_stand+=stand[p].ndemand/(double)npatch*10000.0;			// convert from m2 to ha
-			
-			for (int r=0;r<NSOMPOOL;r++) {
-				if (stand[p].soil.sompool[r].nmass > 0.0) {
-					if(r==SURFMETA||r==SURFSTRUCT||r==SOILMETA||r==SOILSTRUCT){
-						surfsoillitterc+=stand[p].soil.sompool[r].cmass/(double)npatch;
-						surfsoillittern+=stand[p].soil.sompool[r].nmass/(double)npatch;
-					}
-					else if (r==SURFCWD) {
-						cwdc+=stand[p].soil.sompool[r].cmass/(double)npatch;
-						cwdn+=stand[p].soil.sompool[r].nmass/(double)npatch;
-					}
-					else if (r==SURFMICRO||r==SOILMICRO) {
-						microc+=stand[p].soil.sompool[r].cmass/(double)npatch;
-						micron+=stand[p].soil.sompool[r].nmass/(double)npatch;
-					}
-					else if (r==SURFHUMUS){
-						humusc+=stand[p].soil.sompool[r].cmass/(double)npatch;
-						humusn+=stand[p].soil.sompool[r].nmass/(double)npatch;
-					}
-					else {
-						centuryc+=stand[p].soil.sompool[r].cmass/(double)npatch;
-						centuryn+=stand[p].soil.sompool[r].nmass/(double)npatch;
+			//Loop through Patches
+			while (stand.isobj) {
+				Patch& patch=stand.getobj();
+
+				double to_gridcell_average = stand.get_gridcell_fraction()/(double)stand.nobj;
+
+				flux_veg+=patch.fluxes.acflux_veg*to_gridcell_average;
+				flux_soil+=patch.fluxes.acflux_soil*to_gridcell_average;
+				flux_fire+=patch.fluxes.acflux_fire*to_gridcell_average;
+				flux_est+=patch.fluxes.acflux_est*to_gridcell_average;
+				flux_harvest+=patch.fluxes.acflux_harvest*to_gridcell_average;
+
+				c_fast+=patch.soil.cpool_fast*to_gridcell_average;
+				c_slow+=patch.soil.cpool_slow*to_gridcell_average;
+
+				// Sum all litter
+				for (int q=0;q<npft;q++) {
+					Patchpft& patchpft=patch.pft[q];
+					c_litter+=(patchpft.litter_leaf+patchpft.litter_root+patchpft.litter_wood+patchpft.litter_repr)*to_gridcell_average;
+				}
+
+				//Sum slow pools of harvested products
+				if(run_landcover && ifslowharvestpool)
+				{
+					for (int q=0;q<npft;q++) 
+					{
+						Patchpft& patchpft=patch.pft[q];
+						c_harv_slow+=patchpft.harvested_products_slow*to_gridcell_average;
 					}
 				}
-			}
-			// end GUESSN
+
+				runoff_gridcell+=patch.arunoff*to_gridcell_average;
+	
+				// Fire return time
+				if (!iffire || patch.fireprob < 0.001)
+					firert_gridcell+=1000.0/(double)stand.nobj; // Set a limit of 1000 years
+				else	
+					firert_gridcell+=(1.0/patch.fireprob)/(double)stand.nobj;
 
 
-
-			// Sum all litter
-			for (int q=0;q<npft;q++) {
-				Patchpft& pft=stand[p].pft[q];
-
-				c_litter+=(pft.litter_leaf+pft.litter_root+pft.litter_wood+pft.litter_repr)/(double)npatch;
-				n_litter+=(pft.nmass_litter_leaf+pft.nmass_litter_root+pft.nmass_litter_wood)/(double)npatch;
-			}
-
-			runoff_stand+=stand[p].arunoff/(double)npatch;
-			
-			// Fire return time
-			if (!iffire || stand[p].fireprob < 0.001)
-				firert_stand+=1000.0/(double)npatch; // Set a limit of 1000 years
-			else	
-				firert_stand+=(1.0/stand[p].fireprob)/(double)npatch;
-
-
-			// Monthly output variables
-			
-			for (m=0;m<12;m++) {
-				dprintf("Year %d Month %d mgpp %g mra %g",date.year,m,mgpp[m],mra[m]);
-
-				maet[m] += stand[p].maet[m]/(double)npatch;
-				mpet[m] += stand[p].mpet[m]/(double)npatch;
-				mevap[m] += stand[p].mevap[m]/(double)npatch;
-				mintercep[m] += stand[p].mintercep[m]/(double)npatch;
-				mrunoff[m] += stand[p].mrunoff[m]/(double)npatch;
-				mrh[m] += stand[p].fluxes.mcflux_soil[m]/(double)npatch;
+				// Monthly output variables
 				
-				mwcont_upper[m] += stand[p].soil.mwcont[m][0]/(double)npatch;
-				mwcont_lower[m] += stand[p].soil.mwcont[m][1]/(double)npatch;
+				for (m=0;m<12;m++) {
+					maet[m] += patch.maet[m]*to_gridcell_average;
+					mpet[m] += patch.mpet[m]*to_gridcell_average;
+					mevap[m] += patch.mevap[m]*to_gridcell_average;
+					mintercep[m] += patch.mintercep[m]*to_gridcell_average;
+					mrunoff[m] += patch.mrunoff[m]*to_gridcell_average;
+					mrh[m] += patch.fluxes.mcflux_soil[m]*to_gridcell_average;
+					mwcont_upper[m] += patch.soil.mwcont[m][0]*to_gridcell_average;
+					mwcont_lower[m] += patch.soil.mwcont[m][1]*to_gridcell_average;
 
-				// guess2008 - average across stands to get mgpp and mra here. 
-				mgpp[m] += stand[p].fluxes.mcflux_gpp[m]/(double)npatch;
-				mra[m] += stand[p].fluxes.mcflux_ra[m]/(double)npatch;
+					// guess2008 - average across stands to get mgpp and mra here. 
+					mgpp[m] += patch.fluxes.mcflux_gpp[m]*to_gridcell_average;
+					mra[m] += patch.fluxes.mcflux_ra[m]*to_gridcell_average;
 
-				dprintf(" fluxes mgpp %g mra %g\n",
-					stand[p].fluxes.mcflux_gpp[m],
-					stand[p].fluxes.mcflux_ra[m]);
-
-			}
-
-			for (int ddddd=0;ddddd<365;ddddd++){
-				dgpp[ddddd] += stand[p].fluxes.dcflux_gpp[ddddd]/(double)npatch;
-			}
-
+				}
 
 
+				// Calculate monthly NPP and LAI
 
-			// Calculate monthly NPP and LAI
+				Vegetation& vegetation=patch.vegetation;
 
-			Vegetation& vegetation=stand[p].vegetation;
+				vegetation.firstobj();
+				while (vegetation.isobj) {
+					Individual& indiv=vegetation.getobj();
+					
+					// guess2008 - alive check added
+					if (indiv.id!=-1 && indiv.alive) { 
 
-			vegetation.firstobj();
-			while (vegetation.isobj) {
-				Individual& indiv=vegetation.getobj();
-				
-				// guess2008 - alive check added
-				if (indiv.id!=-1 && indiv.alive) { 
+						for (m=0;m<12;m++) {
+							mlai[m] += indiv.mlai[m]*to_gridcell_average;
+						}
 
-					for (m=0;m<12;m++) {
-						mlai[m] += indiv.mlai[m]/(double)npatch;
-					}
+					} // alive?
 
-				} // alive?
+					vegetation.nextobj();
 
-				vegetation.nextobj();
-
-			} // while/vegetation loop
-
-
-		} // patch loop
-
+				} // while/vegetation loop
+				stand.nextobj();
+			} // patch loop
+			gridcell.nextobj();
+		} // stand loop
 
 
 		// In contrast to annual NEE, monthly NEE does not include fire 
@@ -4408,46 +3562,43 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		double testmlai = 0.0;
 
 		for (m=0;m<12;m++) {
+			// guess2008 - get npp and nee from gpp and ra instead
 			mnpp[m] = mgpp[m]-mra[m];
 			mnee[m] = mnpp[m]-mrh[m];
 			testmnpp += mnpp[m];
 			testmlai += mlai[m]/12.0;
 		}
 
-		// GUESSN 
-		if (!negligible(total_dens))
-			vmaxnlim_stand/=total_dens;
-		else
-			vmaxnlim_stand=0.0;
+		// Print gridcell totals to files
 
-		// Print stand totals to files
+		if (out_cmass) fprintf(out_cmass,"%8.3f",cmass_gridcell);
+		if (out_anpp) fprintf(out_anpp,"%8.3f",anpp_gridcell);
+		if (out_lai) fprintf(out_lai,"%8.4f",lai_gridcell);
+		if (out_runoff) fprintf(out_runoff,"%8.1f",runoff_gridcell);
+		if (out_dens) fprintf(out_dens,"%8.4f",dens_gridcell);
+		if (out_firert) fprintf(out_firert,"%8.1f",firert_gridcell);
 
-		if (out_cmass) fprintf(out_cmass,"%8.3f\n",cmass_stand);
-		if (out_anpp) fprintf(out_anpp,"%8.3f\n",anpp_stand);
-		if (out_lai) fprintf(out_lai,"%8.4f\n",lai_stand);
-		if (out_runoff) fprintf(out_runoff,"%8.1f\n",runoff_stand);
-		if (out_dens) fprintf(out_dens,"%8.4f\n",dens_stand);
-		if (out_firert) fprintf(out_firert,"%8.1f\n",firert_stand);
+		if (run_landcover) {
+			for(int i=0;i<NLANDCOVERTYPES;i++) {
+				if(run[i]) {
+					if (out_cmass)
+						fprintf(out_cmass,"%13.3f", landcover_cmass[i]);
+					if (out_anpp) 
+						fprintf(out_anpp,"%13.3f", landcover_anpp[i]);
+					if (out_lai)
+						fprintf(out_lai,"%13.3f", landcover_lai[i]);
+					if (out_dens)
+						fprintf(out_dens,"%13.4f", landcover_densindiv_total[i]);
+				}
+			}
+		}
 
-		// GUESSN
-		if (out_cton) fprintf(out_cton,"\n");
-		if (out_nmass) fprintf(out_nmass,"%8.3f\n",nmass_stand);
-		if (out_nleach) fprintf(out_nleach,"%8.3f%8.3f%8.3f\n",n_min_leach_stand,n_org_leach_stand,n_min_leach_stand+n_org_leach_stand);
-		if (out_nsources) fprintf(out_nsources,"%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f\n",
-			andep_stand,anmin_stand,animm_stand,anmin_stand-animm_stand,
-			anfix_stand,andep_stand+anmin_stand-animm_stand+anfix_stand,ndemand_stand);
-		if (out_nuptake) fprintf(out_nuptake,"%9.5f\n",nuptake_stand);
-		if (out_anppn) fprintf(out_anppn,"%9.5f\n",anppn_stand);
-		if (out_vmaxnlim) fprintf(out_vmaxnlim,"%8.3f\n",vmaxnlim_stand);
-
-		for (c=0;c<nclass;c++)
-			if (out_age) fprintf(out_age,"%8.1f",stand_ageclass[c]);
-		if (out_age) fprintf(out_age,"%9.1f\n",densindiv_ageclass_stand);
-		// end GUESSN
-
-		// GUESSN allometry
-		if (out_allometry) fprintf(out_allometry,"\n");
-		if (out_canopyh) fprintf(out_canopyh,"%8.1f\n",canopyheight_stand);
+		if (out_cmass) fprintf(out_cmass,"\n");
+		if (out_anpp) fprintf(out_anpp,"\n");
+		if (out_lai) fprintf(out_lai,"\n");
+		if (out_runoff) fprintf(out_runoff,"\n");
+		if (out_dens) fprintf(out_dens, "\n");
+		if (out_firert) fprintf(out_firert, "\n");
 
 		// Print monthly output variables
 		for (m=0;m<12;m++) {
@@ -4484,11 +3635,6 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 		}
 
-		for (int dddd=0;dddd<365;dddd++) {
-
-			if (out_dgpp) fprintf(out_dgpp,"%8.1f%8.1f%8d%8d%9.5f\n",lon,lat,date.year,dddd,dgpp[dddd]);//lon,lat,date.year,dddd);
-
-		}
 
 		// guess2008 - euroflux
 		// Print monthly EUROFLUX data
@@ -4519,7 +3665,7 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 		double annAET_obs, annAET_mod, sumAET_obs, sumAET_mod;
 		double annGPP_obs, annGPP_mod, sumGPP_obs, sumGPP_mod;
 
-		calculateAnnualFluxSums(stand, date.year-nyear_spinup-95, 
+		calculateAnnualFluxSums(date.year-nyear_spinup-95, 
 								annNEE_obs, annNEE_mod, sumNEE_obs, sumNEE_mod, 
 								annAET_obs, annAET_mod, sumAET_obs, sumAET_mod, 
 								annGPP_obs, annGPP_mod, sumGPP_obs, sumGPP_mod);
@@ -4533,49 +3679,48 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 
 
+
 		// Graphical output every 10 years
 		// (Windows shell only - no effect otherwise)
 
 		if (!(date.year%10)) {
-		//	plot("fluxes","flux_veg",date.year,flux_veg);
-		//	plot("fluxes","flux_soil",date.year,flux_soil);
-		//	plot("fluxes","flux_fire",date.year,flux_fire);
-		//	plot("fluxes","flux_est",date.year,flux_est);
-		//	plot("fluxes","NEE",date.year,flux_veg+flux_soil+flux_fire+flux_est);
-			if (!ifcentury) { // GUESSN
+			gridcell.firstobj();
+			if(gridcell.isobj)	//Fixed bug here if no stands were present.
+			{
+				Stand& stand=gridcell.getobj();
+				plot("fluxes","flux_veg",date.year,flux_veg);
+				plot("fluxes","flux_soil",date.year,flux_soil);
+				plot("fluxes","flux_fire",date.year,flux_fire);
+				plot("fluxes","flux_est",date.year,flux_est);
+				plot("fluxes","NEE",date.year,flux_veg+flux_soil+flux_fire+flux_est);
 				plot("soilc","slow",date.year,stand[0].soil.cpool_slow);
 				plot("soilc","fast",date.year,stand[0].soil.cpool_fast);
 			}
 		}
 
-		plot("N fixation (kgN/ha/yr)","Soil N fix",date.year,anfix_stand);
-		plot("N min-immob (kgN/ha/yr)","N",date.year,anmin_stand-animm_stand);
-		
-		plot("N demand/supply (kgN/ha/yr)","N supply",date.year,nsupply_stand);
-		plot("N demand/supply (kgN/ha/yr)","N demand",date.year,ndemand_stand);
-
-
 		// Write fluxes to file
 
-		if (out_cflux) fprintf(out_cflux,"%8.3f%8.3f%8.3f%8.3f%10.5f\n",flux_veg,flux_soil,flux_fire,
-			flux_est,flux_veg+flux_soil+flux_fire+flux_est);
+		if (out_cflux) {		
+			if(run_landcover)
+				fprintf(out_cflux,"%8.3f%8.3f%8.3f%8.3f%9.3f%10.5f\n",flux_veg,flux_soil,flux_fire,
+					flux_est,flux_harvest,flux_veg+flux_soil+flux_fire+flux_est+flux_harvest);
+			else
+				fprintf(out_cflux,"%8.3f%8.3f%8.3f%8.3f%10.5f\n",flux_veg,flux_soil,flux_fire,
+					flux_est,flux_veg+flux_soil+flux_fire+flux_est);
+		}
+
+
 
 		// guess2008 - output carbon pools
-		if (out_cpool)
-			if (!ifcentury)
-				fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%10.4f\n",cmass_stand,c_litter,c_fast,
-					c_slow,cmass_stand+c_litter+c_fast+c_slow);
+		if (out_cpool) {
+			if(run_landcover && ifslowharvestpool)
+				fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%10.3f%10.4f\n",cmass_gridcell,c_litter,c_fast,
+					c_slow,c_harv_slow,cmass_gridcell+c_litter+c_fast+c_slow+c_harv_slow);
 			else
-				fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%10.3f\n",cmass_stand,c_litter,
-					surfsoillitterc,cwdc,microc,humusc,centuryc,
-					cmass_stand+c_litter+surfsoillitterc+cwdc+microc+humusc+centuryc);
+				fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%10.4f\n",cmass_gridcell,c_litter,c_fast,
+					c_slow,cmass_gridcell+c_litter+c_fast+c_slow);
+		}
 
-		// GUESSN
-		if (out_npool && ifcentury)
-				fprintf(out_npool,"%8.3f%8.3f%8.4f%8.4f%8.4f%8.3f%8.3f%10.3f\n",nmass_stand,n_litter,
-					surfsoillittern,cwdn,micron,humusn,centuryn,
-					nmass_stand+n_litter+surfsoillittern+cwdn+micron+humusn+centuryn);
-		// end GUESSN
 
 		// Output of age structure (Windows shell only - no effect otherwise)
 
@@ -4591,23 +3736,25 @@ void outannual(Stand& stand,Pftlist& pftlist) {
 
 					if (pft.lifeform==TREE) {
 
-						Standpft& standpft=stand.pft[pft.id];
+						Gridcellpft& gridcellpft=gridcell.pft[pft.id];
 
 						for (c=0;c<nclass;c++)
 							plot("age_structure",pft.name,
 								c*estinterval+estinterval/2,
-								standpft.densindiv_ageclass[c]);
+								gcpft_densindiv_ageclass[c]/(double)npatch);
 					}
 					
 					pftlist.nextobj();
 				}
 			}
 		}
+
 	}
 
 	// guess2008 - euroflux - output stats at the end of 2006
 	if (date.year==nyear_spinup+NYEAR_HIST-1 && out_eurofluxstats)
-		calculateEurofluxStats(stand,out_eurofluxstats);
+		calculateEurofluxStats(out_eurofluxstats);
+
 }
 
 
@@ -4632,28 +3779,6 @@ void termio() {
 		if (out_cpool) fclose(out_cpool);
 		if (out_firert) fclose(out_firert);
 
-		// GUESSN
-		if (out_cton) fclose(out_cton);
-		if (out_nmass) fclose(out_nmass);
-		if (out_nsources) fclose(out_nsources);
-		if (out_npool && ifcentury) fclose(out_npool);
-		if (out_nleach) fclose(out_nleach);
-		if (out_age) fclose(out_age);
-		if (out_nuptake) fclose(out_nuptake);
-		if (out_anppn) fclose(out_anppn);
-		if (out_vmaxnlim) fclose(out_vmaxnlim);
-		// end GUESSN
-
-		// GUESSN allometry
-		if (out_allometry) fclose(out_allometry);
-		if (out_canopyh) fclose(out_canopyh);
-		if (out_allometry_ind) fclose(out_allometry_ind);
-		// end GUESSN
-
-		// FACE OUT
-		if (out_face) fclose(out_face);
-		// end FACE OUT
-
 		if (out_mnpp) fclose(out_mnpp);
 		if (out_mlai) fclose(out_mlai);
 		if (out_mgpp) fclose(out_mgpp);
@@ -4668,13 +3793,13 @@ void termio() {
 		if (out_mwcont_upper) fclose(out_mwcont_upper);
 		if (out_mwcont_lower) fclose(out_mwcont_lower);
 
-		if (out_dgpp) fclose(out_dgpp);
-
 		// guess2008 - euroflux
 		if (out_speciesheights) fclose(out_speciesheights);
 		if (out_eurofluxmonthly) fclose(out_eurofluxmonthly);
 		if (out_eurofluxannual) fclose(out_eurofluxannual);
 		if (out_eurofluxstats) fclose(out_eurofluxstats);
+
+
 	}
 
 	// Clean up
@@ -4684,16 +3809,3 @@ void termio() {
 
 
 #endif // USE_CRU
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-// REFERENCES
-// Galloway, J. N., F. J. Dentener, D. G. Capone, E. W. Boyer, R. W. Howarth, S. P. Seitzinger,
-//   G. P. Asner, C. Cleveland, P. Green, E. Holland, D. M. Karl, A. F. Michaels, J. H. Porter, 
-//   A. Townsend, and C. Vörösmarty. 2004.
-//   Nitrogen Cycles: Past, Present and Future. Biogeochemistry 70: 153-226.
-// Nakai, T., Sumida, A., Kodama, Y., Hara, T., Ohta, T. (2010). A comparison between
-//   various definitions of forest stand height and aerodynamic canopy height.
-//   Agricultural and Forest Meteorology, 150(9), 1225-1233
-
-

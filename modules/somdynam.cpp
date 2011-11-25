@@ -995,10 +995,6 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 	fluxes.mcflux_soil[date.month]+=respsum;
 	fluxes.acflux_soil+=respsum;
 
-	soil.FACE_out[22][date.day]=respsum*1000.0;
-	soil.FACE_out[23][date.day]=respsum*1000.0;
-	soil.FACE_out[66][date.day]=nmin_actual*1000.0;
-	soil.FACE_out[67][date.day]=nimmob*1000.0;
 
 	// Store daily mineralisation and immobilisation to permit calculation of daily
 	// mineral nitrogen balance at end of year
@@ -1183,7 +1179,6 @@ void leaching(Soil& soil) {
 	soil.sompool[LEACHED].nmass+=soil.sompool[SOILMICRO].nmass*leachfrac;
 
 	soil.n_org_leach_annual+=soil.sompool[SOILMICRO].nmass*leachfrac;
-	soil.FACE_out[69][date.day]=soil.sompool[SOILMICRO].nmass*leachfrac*1000.0;
 	
 	soil.sompool[SOILMICRO].cmass*=(1.0-leachfrac);
 	soil.sompool[SOILMICRO].nmass*=(1.0-leachfrac);
@@ -1619,7 +1614,7 @@ void allocation_ndemand(double bminc,double cmass_leaf,double cmass_root,double 
 				cmass_heart_inc=-cmass_sap_inc;;
 		}
 	}
-	else if (lifeform==GRASS || lifeform==CROP) {
+	else if (lifeform==GRASS) {
 
 		// GRASS ALLOCATION
 		// Allocation attempts to distribute biomass increment (bminc) among leaf
@@ -1853,18 +1848,6 @@ bool establish_som(Patch& patch,Climate& climate,Pft& pft) {
            return false;
         }
     }
-
-	// FACE DAVID
-	if (has_FACE_clim && pft.lifeform==TREE && date.year>=patch.stand.distyear2 && date.year<patch.stand.plantyear && !ifduke)
-		return false;
-		// Cutting natural forest, replaced by pasture or field, as happened at the sites
-
-	if (has_FACE_clim && pft.lifeform==TREE && date.year>=patch.stand.distyear2 && date.year<patch.stand.plantyear-45 && ifduke)
-		return false;
-		// Cutting natural forest, replaced by pasture or field, as happened at the sites
-
-	// else
-
 	return true;
 }
 
@@ -1955,7 +1938,7 @@ void ndemand_new_est(Patch& patch,Pftlist& pftlist,double& patch_ndemand) {
 	pftlist.firstobj();
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
-		if (establish_som(patch,patch.stand.climate,pft) && pft.lifeform==TREE)
+		if (establish_som(patch,patch.stand.gridcell.climate,pft) && pft.lifeform==TREE)
 			nwoodypfts_estab++;
 		pftlist.nextobj();
 	}
@@ -1966,9 +1949,9 @@ void ndemand_new_est(Patch& patch,Pftlist& pftlist,double& patch_ndemand) {
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
 
-		if (establish_som(patch,patch.stand.climate,pft)) {
+		if (establish_som(patch,patch.stand.gridcell.climate,pft)) {
 
-			if (pft.lifeform==GRASS || pft.lifeform==CROP) {
+			if (pft.lifeform==GRASS) {
 
 				// ESTABLISHMENT OF GRASSES
 
@@ -2221,11 +2204,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 	// PLUS sum of daily mineralisation MINUS sum of daily immobilisation
 
 	// N deposition
-	soil.ndep_annual=patch.stand.climate.andep;
-
-	// FACE OUT
-	for (int dd=0;dd<365;dd++)
-		soil.FACE_out[10][dd]=soil.ndep_annual/365.0*1000.0;
+	soil.ndep_annual=patch.stand.gridcell.climate.andep;
 
 	// N fixation
 	if (ifnfix==1)
@@ -2247,9 +2226,6 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 		else
 			Added_N_from_500+=soil.N_fix+soil.ndep_annual;
 	}
-
-	for (int g=0;g<365;g++)
-		soil.FACE_out[61][g]=soil.N_fix/365.0*1000.0;
 
 	// N mineralisation and immobilisation
 	soil.nmin_annual=0.0;
@@ -2369,16 +2345,12 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 					// Daily N uptake by this individual (Eqn 3)
 					nuptake_day=ndemand_day*indiv.fnuptake;
 
-					indiv.FACE_out[65][d]=ndemand_day*indiv.fnuptake*1000.0;	// FACE OUT	
-
 					// Add to individual's nitrogen stores
 					indiv.nstore+=nuptake_day;
 					
 					// Deduct from soil N pool (negative result allowed)
 					nmass_avail[d]-=nuptake_day;
 				}
-				else
-					indiv.FACE_out[65][d]=0.0;	// FACE OUT
 
 
 				// ... on to next individual
@@ -2425,7 +2397,6 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 					soil.sompool[LEACHED].nmass+=leachn;
 					soil.n_min_leach_annual+=leachn;
 					nmass_avail[d]-=leachn;
-					soil.FACE_out[69][d]+=leachn*1000.0; // FACE OUT
 				}
 			}
 		}	
@@ -2506,30 +2477,6 @@ void som_dynamics_century(Patch& patch,Pftlist& pftlist) {
 
 				patch.pft.nextobj();
 			}
-			// Thomas monitoring
-			if (date.year>500) {
-
-		/*		plot("Total N","vegn",date.year,vegn);
-				plot("Total N","vegstore",date.year,vegstore);
-				plot("Total N","vegnmass_reserve",date.year,vegnmass_reserve);
-				plot("Total N","SOM",date.year,centuryn);
-				plot("Total N","mineral N",date.year,soil.nmass_avail);
-			//	plot("Actual mineral N after excessn","mineral N",date.year,soil.nmass_avail);
-			//	plot("Actual leached N after excessn","leached N",date.year,soil.n_min_leach_annual);
-				plot("Total N","litter N",date.year,littern);
-				plot("Total N","leached N",date.year,soil.sompool[LEACHED].nmass);
-				plot("Total N","total",date.year,
-					(vegn+vegstore+vegnmass_reserve+centuryn+soil.nmass_avail+littern+soil.sompool[LEACHED].nmass));*/
-
-			/*	plot("deltaN","vegn",date.year,vegn-old_vegn);
-				plot("deltaN","vegstore",date.year,vegstore-old_vegstore);
-				plot("deltaN","vegnmass_reserve",date.year,vegnmass_reserve-old_vegnmass_reserve);
-				plot("deltaN","SOM",date.year,centuryn-old_centuryn);
-				plot("deltaN","mineral N",date.year,soil.nmass_avail-old_nmass_avail);
-				plot("deltaN","litter N",date.year,littern-old_littern);
-				plot("deltaN","leached N",date.year,soil.sompool[LEACHED].nmass-old_leachn);
-				plot("deltaN","total",date.year,(vegn+centuryn+soil.nmass_avail+vegstore+littern+soil.sompool[LEACHED].nmass)-old_total);*/
-			}
 
 			old_vegn=vegn;
 			old_vegstore=vegstore;
@@ -2592,27 +2539,6 @@ void som_dynamics_century(Patch& patch,Pftlist& pftlist) {
 		plot("century N","passivesom",date.year,soil.sompool[PASSIVESOM].nmass);
 	}
 
-	// FACE OUT
-	soil.FACE_out[40][date.day]=0.0;
-	soil.FACE_out[58][date.day]=0.0;
-	soil.FACE_out[59][date.day]=0.0;
-	soil.FACE_out[60][date.day]=0.0;
-	
-	for (p=0;p<NSOMPOOL;p++) 
-	{
-		if (p == 2 || p == 4) {
-			soil.FACE_out[60][date.day] += soil.sompool[p].nmass*1000.0;		// N in Organic Form (N mass in pool kgC/m2)
-		}
-		else {
-			if(p != 0 && p != 1 &&p != 5 && p != 6 && p != 7 && p != NSOMPOOL-1)
-				soil.FACE_out[59][date.day] += soil.sompool[p].nmass*1000.0;	// N in Mineral Form (N mass in pool kgC/m2)
-		}
-		
-		if(p != 0 && p != 1 &&p != 5 && p != 6 && p != 7 && p != NSOMPOOL-1) {
-			soil.FACE_out[40][date.day] += soil.sompool[p].cmass*1000.0;		// C Soil (C mass in pool kgC/m2)
-			soil.FACE_out[58][date.day] += soil.sompool[p].nmass*1000.0;		// N Soil Total (N mass in pool kgC/m2)	
-		}
-	}
 }
 // end GUESSN
 

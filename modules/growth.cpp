@@ -91,7 +91,7 @@ void leaf_phenology_pft(Pft& pft,Climate& climate,double wscal,double aphen,
 				phen=0.0;
 		
 		}
-		else if (pft.lifeform==GRASS || pft.lifeform==CROP) {
+		else if (pft.lifeform==GRASS) {
 
 			// Summergreen grasses have no maximum number of leaf-on days per
 			// growing season, and no chilling requirement
@@ -134,12 +134,13 @@ void leaf_phenology(Patch& patch,Climate& climate) {
 		Patchpft& pft=patch.pft.getobj();
 
 		// For this PFT ...
-		leaf_phenology_pft(pft.pft,climate,pft.wscal,pft.aphen,pft.phen);
+		if(patch.stand.pft[pft.id].active)
+		{
+			leaf_phenology_pft(pft.pft,climate,pft.wscal,pft.aphen,pft.phen);
 
-		// guess2008
-		if (pft.pft.lifeform==TREE && (pft.pft.phenology==SUMMERGREEN || pft.pft.phenology==ANY))
-			if (pft.phen<1.0) leafout=false; // CHILLDAYS
-
+			if (pft.pft.lifeform==TREE && (pft.pft.phenology==SUMMERGREEN || pft.pft.phenology==ANY))
+				if (pft.phen<1.0) leafout=false; // CHILLDAYS
+		}
 		// Update annual leaf-on sum
 		if (climate.lat>=0.0 && date.day==COLDEST_DAY_NHEMISPHERE ||
 			climate.lat<0.0 && date.day==COLDEST_DAY_SHEMISPHERE) pft.aphen=0.0;
@@ -150,7 +151,7 @@ void leaf_phenology(Patch& patch,Climate& climate) {
 	}
 
 
-	// guess2008
+
 	if (leafout) climate.ifsensechill=true; // CHILLDAYS
 
 
@@ -164,10 +165,6 @@ void leaf_phenology(Patch& patch,Climate& climate) {
 
 		// For this individual ...
 		indiv.phen=patch.pft[indiv.pft.id].phen;
-
-		indiv.FACE_out[32][date.day] = indiv.cmass_leaf*indiv.phen*1000.0;	// C Leaf Mass (leaf C biomass on modelled area basis (kgC/m2))
-		indiv.FACE_out[50][date.day] = indiv.nmass_leaf*indiv.phen*1000.0;	// N Leaf Mass (N content of leaves on patch area basis (kgN/m2))
-		indiv.FACE_out[48][date.day] = indiv.lai*indiv.phen;		// LAI Projected  (patch-level lai for this individual or cohort
 
 		// Update annual leaf-day sum (raingreen PFTs)
 		if (date.day==0) indiv.aphen_raingreen=0;
@@ -185,64 +182,12 @@ void leaf_phenology(Patch& patch,Climate& climate) {
 
 void turnover(double turnover_leaf,double turnover_root,double turnover_sap,
 	lifeformtype lifeform,double& cmass_leaf,double& cmass_root,double& cmass_sap,
-	double& cmass_heart,double& litter_leaf,double& litter_root,bool alive) {
-
-	// guess2008 - new (indiv.)alive boolean throughout
-	
-	// DESCRIPTION
-	// Transfers carbon from leaves and roots to litter, and from sapwood to heartwood
-	// Only turnover from 'alive' individuals is transferred to litter (Ben 2007-11-28)
-
-	// INPUT PARAMETERS
-	// turnover_leaf = leaf turnover per time period as a proportion of leaf C biomass
-	// turnover_root = root turnover per time period as a proportion of root C biomass
-	// turnover_sap  = sapwood turnover to heartwood per time period as a proportion of
-	//                 sapwood C biomass
-	// lifeform      = PFT life form class (TREE or GRASS)
-	// alive         = signifies new Individual object if false (see vegdynam.cpp)
-
-	// INPUT AND OUTPUT PARAMETERS
-	// cmass_leaf    = leaf C biomass (kgC/m2)
-	// cmass_root    = fine root C biomass (kgC/m2)
-	// cmass_sap     = sapwood C biomass (kgC/m2)
-
-	// OUTPUT PARAMETERS
-	// litter_leaf   = new leaf litter (kgC/m2)
-	// litter_root   = new root litter (kgC/m2)
-	// cmass_heart   = heartwood C biomass (kgC/m2)
-
-	double turnover;
-
-	// TREES AND GRASSES:
-
-	// Leaf turnover
-	turnover=turnover_leaf*cmass_leaf;
-	cmass_leaf-=turnover;
-	if (alive) litter_leaf+=turnover;
-
-	// Root turnover
-	turnover=turnover_root*cmass_root;
-	cmass_root-=turnover;
-	if (alive) litter_root+=turnover;
-
-	if (lifeform==TREE) {
-		
-		// TREES ONLY:
-
-		// Sapwood turnover by conversion to heartwood
-		turnover=turnover_sap*cmass_sap;
-		cmass_sap-=turnover;
-		cmass_heart+=turnover;
-	}
-}
-
-
-void turnover_oecd(double turnover_leaf,double turnover_root,double turnover_sap,
-	lifeformtype lifeform,double& cmass_leaf,double& cmass_root,double& cmass_sap,
 	double& cmass_heart,double& nmass_leaf,double& nmass_root,double& nmass_sap,
 	double& nmass_heart,double& litter_leaf,double& litter_root,
 	double& nmass_litter_leaf,double& nmass_litter_root,
-	double& nstore,Fluxes& fluxes,bool alive,double& nmass_avail) {
+	double& nstore,Fluxes& fluxes,bool alive,double& nmass_avail,
+	landcovertype landcover, Gridcell& gridcell) {
+
 
 	// DESCRIPTION
 	// Transfers carbon from leaves and roots to litter, and from sapwood to heartwood
@@ -256,93 +201,76 @@ void turnover_oecd(double turnover_leaf,double turnover_root,double turnover_sap
 
 
 	double turnover = 0.0;
-	int m;
+	double scale=1.0;
 
-	if (lifeform==CROP) {
+	if(run_landcover && gridcell.LC_updated) {
+		//scale harvest products of stands with increased area by (old area/new area) if landcover change has occurred:
+		scale=gridcell.landcoverfrac_old[landcover]/gridcell.landcoverfrac[landcover];
+		dprintf("På fel plats\n");
+		if(scale>=1.0)
+			scale=1.0;
+	}
 
-		if (alive) litter_root+=cmass_root;
-		cmass_root=0.0;
+	// TREES AND GRASSES:
 
-		turnover=0.5*cmass_leaf;
-		fluxes.acflux_soil+=turnover;
-		if (alive) litter_leaf+=turnover;
-		cmass_leaf=0.0;
-
-		turnover/=12.0;
-		for (m=0;m<12;m++) fluxes.mcflux_soil[m]+=turnover;
-
-		// GUESSN
-		if (alive) {	
-												
-			nmass_litter_leaf+=nmass_leaf;
-			nmass_litter_root+=nmass_root;
-
-			nmass_leaf=0.0;
-			nmass_root=0.0;
-		}
-		// end GUESSN
+	// Leaf turnover
+	turnover=turnover_leaf*cmass_leaf*scale;
+	cmass_leaf-=turnover;
+	if (alive) litter_leaf+=turnover;
+	
+	// GUESSN
+	turnover=turnover_leaf*nmass_leaf*scale;
+	nmass_leaf-=turnover;
+	if (alive) {
+		nmass_litter_leaf+=turnover*(1.0-nrelocfrac);
+		nstore+=turnover*nrelocfrac;
 	}
 	else {
-
-		// TREES AND GRASSES:
-
-		// Leaf turnover
-		turnover=turnover_leaf*cmass_leaf;
-		cmass_leaf-=turnover;
-		if (alive) litter_leaf+=turnover;
-
-		// GUESSN
-		turnover=turnover_leaf*nmass_leaf;
-		nmass_leaf-=turnover;
-		if (alive) {
-			nmass_litter_leaf+=turnover*(1.0-nrelocfrac);
-			nstore+=turnover*nrelocfrac;
-		}
-		else {
-			nmass_avail+=turnover*(1.0-nrelocfrac);	// N has to go somewhere even when alive == 0
-			nstore+=turnover*nrelocfrac;
-		}
-		// end GUESSN
-
-		// Root turnover
-		turnover=turnover_root*cmass_root;
-		cmass_root-=turnover;
-		if (alive) litter_root+=turnover;
-
-		// GUESSN
-		turnover=turnover_root*nmass_root;
-		nmass_root-=turnover;
-		if (alive) {
-			nmass_litter_root+=turnover*(1.0-nrelocfrac);
-			nstore+=turnover*nrelocfrac;
-		}
-		else {
-			nmass_avail+=turnover*(1.0-nrelocfrac);	// N has to go somewhere even when alive == 0
-			nstore+=turnover*nrelocfrac;
-		}
-		// end GUESSN
-
-		if (lifeform==TREE) {
-			
-			// TREES ONLY:
-
-			// Sapwood turnover by conversion to heartwood
-			turnover=turnover_sap*cmass_sap;
-			cmass_sap-=turnover;
-			cmass_heart+=turnover;
-
-			// GUESSN
-			// NB: assumes N is translocated from sapwood prior to conversion to
-			//     heartwood and that this is the same fraction that is conserved
-			//     in conjunction with leaf and root shedding
-			
-			turnover=turnover_sap*nmass_sap;
-			nmass_sap-=turnover;
-			nmass_heart+=turnover*(1.0-nrelocfrac);
-			nstore+=turnover*nrelocfrac;
-			// end GUESSN
-		}	
+		nmass_avail+=turnover*(1.0-nrelocfrac);	// N has to go somewhere even when alive == 0
+		nstore+=turnover*nrelocfrac;
 	}
+	// end GUESSN
+
+	// Root turnover
+	turnover=turnover_root*cmass_root*scale;
+	cmass_root-=turnover;
+	if (alive) litter_root+=turnover;
+
+	// GUESSN
+	turnover=turnover_root*nmass_root*scale;
+	nmass_root-=turnover;
+	if (alive) {
+		nmass_litter_root+=turnover*(1.0-nrelocfrac);
+		nstore+=turnover*nrelocfrac;
+	}
+	else {
+		nmass_avail+=turnover*(1.0-nrelocfrac);	// N has to go somewhere even when alive == 0
+		nstore+=turnover*nrelocfrac;
+	}
+	// end GUESSN
+
+
+
+	if (lifeform==TREE) {
+		
+		// TREES ONLY:
+		// Sapwood turnover by conversion to heartwood
+		turnover=turnover_sap*cmass_sap*scale;
+		cmass_sap-=turnover;
+		cmass_heart+=turnover;
+
+		// GUESSN
+		// NB: assumes N is translocated from sapwood prior to conversion to
+		//     heartwood and that this is the same fraction that is conserved
+		//     in conjunction with leaf and root shedding
+		
+		turnover=turnover_sap*nmass_sap*scale;
+		nmass_sap-=turnover;
+		nmass_heart+=turnover*(1.0-nrelocfrac);
+		nstore+=turnover*nrelocfrac;
+		// end GUESSN
+	}	
+	
 }
 
 
@@ -758,7 +686,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 				cmass_heart_inc=-cmass_sap_inc;
 		}
 	}
-	else if (lifeform==GRASS || lifeform==CROP) {
+	else if (lifeform==GRASS) {
 
 		// GRASS ALLOCATION
 		// Allocation attempts to distribute biomass increment (bminc) among leaf
@@ -858,6 +786,9 @@ void allocation_init(double bminit,double ltor,Individual& indiv) {
 		indiv.cton_growth=(indiv.cmass_leaf+indiv.cmass_root)/
 			(indiv.nmass_leaf+indiv.nmass_root);
 		// end GUESSN
+	if(date.year<10){
+		dprintf("Year: %d\tPft: %s\tCmass: %g\tBmass: %g\tLtor: %g\n",date.year,(char*)indiv.pft.name,indiv.cmass_leaf,bminit,ltor);
+	}
 }
 
 // GUESSN
@@ -920,7 +851,7 @@ double f_nlim(double& cmass_leaf_inc,
 // end GUESSN
 
 // GUESSN - Allocation with N constraint
-void allocation_nlim(Pft pft,double nstore,double cton_leaf,double cton_root,double cton_sap,
+void allocation_nlim(Pft& pft,double nstore,double cton_leaf,double cton_root,double cton_sap,
 	double bminc,double cmass_leaf,double cmass_root,double cmass_sap,double cmass_heart,
 	double ltor,double height,
 	double& cmass_leaf_inc,double& cmass_root_inc,double& cmass_sap_inc,
@@ -1523,7 +1454,7 @@ void allocation_nlim(Pft pft,double nstore,double cton_leaf,double cton_root,dou
 				date.year,(char*)pft.name,which_allocation,cmass_leaf_inc+cmass_root_inc+cmass_sap_inc,bminc,
 				cmass_leaf_inc+cmass_root_inc+cmass_sap_inc-bminc,cmass_root+cmass_leaf+cmass_sap,cmass_sap_inc);
 	}
-	else if (pft.lifeform==GRASS || pft.lifeform==CROP) {
+	else if (pft.lifeform==GRASS) {
 
 		// GRASS ALLOCATION
 		// Allocation attempts to distribute available nitrogen (nmass) among leaf
@@ -1736,7 +1667,7 @@ bool allometry(Individual& indiv) {
 		// Stand-level LAI
 		indiv.lai=indiv.cmass_leaf*indiv.pft.sla;
 	}
-	else if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==CROP) {
+	else if (indiv.pft.lifeform==GRASS) {
 		
 		// GRASSES
 
@@ -1787,7 +1718,7 @@ double fracmass_lpj(double fpc_low,double fpc_high,Individual& indiv) {
 		// else
 		return fpc_low/fpc_high;
 	}
-	else if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==CROP) { // grass
+	else if (indiv.pft.lifeform==GRASS) { // grass
 
 		if (fpc_high>=1.0 || fpc_low>=1.0 || negligible(indiv.cmass_leaf)) return 1.0;
 
@@ -1883,6 +1814,7 @@ void growth(Stand& stand,Patch& patch) {
 
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation=patch.vegetation;
+	Gridcell& gridcell=vegetation.patch.stand.gridcell;
 
 	// On first call to function growth this year (patch #0), initialise stand-PFT
 	// record of summed allocation to reproduction
@@ -1896,7 +1828,8 @@ void growth(Stand& stand,Patch& patch) {
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
-
+		//if(date.year>550 && date.year<557)
+		//	dprintf("Year: %d\tid: %d\tleaf: %g\n",date.year,indiv.id,indiv.cmass_leaf);
 		// For this individual 
 
 		// GUESSN
@@ -1966,7 +1899,8 @@ void growth(Stand& stand,Patch& patch) {
 			}
 
 			// Tissue turnover and associated litter production
-			turnover_oecd(indiv.pft.turnover_leaf,indiv.pft.turnover_root,
+
+			turnover(indiv.pft.turnover_leaf,indiv.pft.turnover_root,
 				indiv.pft.turnover_sap,indiv.pft.lifeform,
 				indiv.cmass_leaf,indiv.cmass_root,indiv.cmass_sap,indiv.cmass_heart,
 				indiv.nmass_leaf,indiv.nmass_root,indiv.nmass_sap,indiv.nmass_heart,
@@ -1974,10 +1908,11 @@ void growth(Stand& stand,Patch& patch) {
 				patch.pft[indiv.pft.id].litter_root,
 				patch.pft[indiv.pft.id].nmass_litter_leaf,
 				patch.pft[indiv.pft.id].nmass_litter_root,
-				indiv.nstore,patch.fluxes,indiv.alive,patch.soil.nmass_avail);
+				indiv.nstore,patch.fluxes,indiv.alive,patch.soil.nmass_avail,
+				indiv.pft.landcover, gridcell);
 
 			// Update stand record of reproduction by this PFT
-			stand.pft[indiv.pft.id].cmass_repr+=cmass_repr/(double)npatch;
+			stand.pft[indiv.pft.id].cmass_repr+=cmass_repr/(double)stand.nobj;
 
 			// Transfer reproduction straight to litter
 			// guess2008 - only for 'alive' individuals
@@ -2152,8 +2087,6 @@ void growth(Stand& stand,Patch& patch) {
 						}
 					}	
 
-					indiv.FACE_out[0][0]=(1.0-bminc_dec/agpp);
-
 					// Update annual npp
 					// NB: this is important because it affects growth efficiency and
 					//     therefore mortality and litter fluxes (in vegdynam.cpp).
@@ -2224,28 +2157,6 @@ void growth(Stand& stand,Patch& patch) {
 				// Heartwood
 				indiv.nmass_heart-=min(0.0,nmass_sap_inc)*nrelocfrac;
 
-				for (int i=0;i<365;i++) {
-
-					if (indiv.FACE_out[0][0]!=-9999.0)
-						indiv.FACE_out[12][i]*=max(0.0,min(1.0,indiv.FACE_out[0][0]));						// GPP update due to N limitation
-
-					indiv.FACE_out[13][i]=indiv.FACE_out[12][i]-indiv.FACE_out[17][i];						// NPP
-					indiv.FACE_out[33][i]=(indiv.cmass_sap + indiv.cmass_heart)*1000.0;						// C Wood Mass										
-					indiv.FACE_out[35][i]=indiv.cmass_root*1000.0;											// C Fine Root Mass
-						
-					indiv.FACE_out[41][i]=cmass_leaf_inc*indiv.densindiv/365.0*1000.0;						// C Leaf Growth
-					indiv.FACE_out[42][i]=(cmass_sap_inc+cmass_heart_inc)*indiv.densindiv/365.0*1000.0;		// C Wood Growth
-					indiv.FACE_out[44][i]=cmass_root_inc*indiv.densindiv/365.0*1000.0;						// C Fine Root Growth
-
-					indiv.FACE_out[51][i]=(indiv.nmass_sap+indiv.nmass_heart)*1000.0;						// N Wood Mass
-					indiv.FACE_out[53][i]=indiv.nmass_root*1000.0;											// N Fine Root Mass
-					
-					indiv.FACE_out[70][i]=cmass_leaf_inc*indiv.densindiv/indiv.cton_leaf_new/365.0*1000.0;	// C Leaf Growth
-					indiv.FACE_out[71][i]=nmass_sap_inc/365.0*1000.0;										// N Wood Growth
-					indiv.FACE_out[73][i]=cmass_root_inc*indiv.densindiv/indiv.cton_root_new/365.0*1000.0;	// N Fine Root Growth
-
-					indiv.FACE_out[49][i]=1.0/indiv.pft.sla*1000.0;
-				}
 
 				// C debt
 				indiv.cmass_debt+=cmass_debt_inc*indiv.densindiv;
@@ -2329,7 +2240,7 @@ void growth(Stand& stand,Patch& patch) {
 					killed=true;
 				}
 			}
-			else if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==CROP) {
+			else if (indiv.pft.lifeform==GRASS) {
 
 				// GRASS GROWTH
 
@@ -2409,7 +2320,7 @@ void growth(Stand& stand,Patch& patch) {
 						}
 					}	
 
-					indiv.FACE_out[0][0]=(1.0-bminc_dec/agpp);
+
 
 					// Temporary: save biomass increment as new npp
 					// NB: this is important because it affects growth efficiency and
@@ -2469,28 +2380,6 @@ void growth(Stand& stand,Patch& patch) {
 					indiv.bminc_root_frac=max(0.0,max(0.0,cmass_root_inc)/(max(0.0,cmass_leaf_inc)+max(0.0,cmass_root_inc)));
 				}
 
-				for (int i=0;i<365;i++) {
-
-					if (indiv.FACE_out[0][0]!=-9999.0)
-						indiv.FACE_out[12][i]*=indiv.FACE_out[0][0];										// GPP update due to N limitation
-
-					indiv.FACE_out[13][i]=indiv.FACE_out[12][i]-indiv.FACE_out[17][i];						// NPP
-					indiv.FACE_out[33][i]=0.0;						// C Wood Mass										
-					indiv.FACE_out[35][i]=indiv.cmass_root*1000.0;											// C Fine Root Mass
-						
-					indiv.FACE_out[41][i]=cmass_leaf_inc*indiv.densindiv/365.0*1000.0;						// C Leaf Growth
-					indiv.FACE_out[42][i]=0.0;		// C Wood Growth
-					indiv.FACE_out[44][i]=cmass_root_inc*indiv.densindiv/365.0*1000.0;						// C Fine Root Growth
-
-					indiv.FACE_out[51][i]=0.0;						// N Wood Mass
-					indiv.FACE_out[53][i]=indiv.nmass_root*1000.0;											// N Fine Root Mass
-					
-					indiv.FACE_out[70][i]=cmass_leaf_inc*indiv.densindiv/indiv.cton_leaf_new/365.0*1000.0;	// C Leaf Growth
-					indiv.FACE_out[71][i]=0.0;	// N Wood Growth
-					indiv.FACE_out[73][i]=cmass_root_inc*indiv.densindiv/indiv.cton_root_new/365.0*1000.0;	// N Fine Root Growth
-
-					indiv.FACE_out[49][i]=1.0/indiv.pft.sla*1000.0;
-				}
 
 				// guess2008 - bugfix - determine the (small) mass imbalance (kgC) for this individual. 
 				// This can arise in the event of numerical errors in the allocation routine.
@@ -2499,10 +2388,11 @@ void growth(Stand& stand,Patch& patch) {
 
 				// guess2008 - alive check before ensuring C balance
 				if (indiv.alive) {
-					
+
+
 					patch.pft[indiv.pft.id].litter_leaf+=litter_leaf_inc+indiv_cmass_diff/2.0;
 					patch.pft[indiv.pft.id].litter_root+=litter_root_inc+indiv_cmass_diff/2.0;
-	
+
 					// GUESSN
 					patch.pft[indiv.pft.id].nmass_litter_leaf+=litter_leaf_inc*indiv.densindiv/
 						indiv.cton_leaf_old*(1.0-nrelocfrac);
@@ -2633,16 +2523,9 @@ void growth(Stand& stand,Patch& patch) {
 					}
 				}
 
-				// FACE OUT
-				for (int k=0;k<365;k++)
-					indiv.FACE_out[54][k]=indiv.nmass_reserve*1000.0;	// N Store
 		
 				// end GUESSN
 
-				// FACE DAVID plots
-				if (date.year == 594 && has_FACE_clim && indiv.age > date.year-patch.stand.plantyear-5)
-					dprintf("Year %d pft %s HEIGHT %g should be %g\n",date.year,(char*)indiv.pft.name,indiv.height,12.0);
-			
 				// ... on to next individual
 				vegetation.nextobj();
 			}

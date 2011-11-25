@@ -82,73 +82,6 @@ double randfrac() {
 // May be called from input/output module to initialise stand Soiltype objects when
 // soil data supplied as LPJ soil code rather than soil physical parameter values
 
-
-/*void soilparameters(Soiltype& soiltype,int soilcode) {
-
-	// DESCRIPTION
-	// Derivation of soil physical parameters given LPJ soil code
-
-	// INPUT AND OUTPUT PARAMETER
-	// soil = patch soil
-
-	const double PERC_EXP=2.0;
-		// exponent in percolation equation [k2; LPJF]
-		// (Eqn 31, Haxeltine & Prentice 1996)
-		// Changed from 4 to 2 (Sitch, Thonicke, pers comm 26/11/01)
-
-	double data[9][7]= {
-
-		//    0  empirical parameter in percolation equation (k1) (mm/day)
-		//    1  volumetric water holding capacity at field capacity minus vol water
-		//       holding capacity at wilting point (Hmax), as fraction of soil layer
-		//       depth
-		//    2  thermal diffusivity (mm2/s) at wilting point (0% WHC)
-		//    3  thermal diffusivity (mm2/s) at 15% WHC
-		//    4  thermal diffusivity at field capacity (100% WHC)
-		//       Thermal diffusivities follow van Duin (1963),
-		//       Jury et al (1991), Fig 5.11.
-		//    5  wilting point as fraction of depth (calculation method described in 
-		//       Prentice et al 1992)
-		//    6  calculated ratio between saturation capacity and field capacity 
-
-		//    0      1      2      3      4      5      6      soilcode
-		//  -----------------------------------------------------------
-
-		{   5.0, 0.110,   0.2, 0.800,   0.4,	0.074,	3.2},    // 1	Coarse
-		{   4.0, 0.150,   0.2, 0.650,   0.4,	0.184,	2.5},    // 2	Medium
-		{   3.0, 0.120,   0.2, 0.500,   0.4,	0.274,	3.6},    // 3	Fine
-		//{   4.5, 0.300,   0.2, 0.725,   0.4,	0.125,	1.8},	 // 4	Medium-coarse	// FACE Thomas the PWP is 0.125 m3/m3, and saturation is at .54 m3/m3 -> So 1 should be 0.415
-		{   4.5, 0.130,   0.2, 0.725,   0.4,	0.129,	2.85},   // 4	Medium-coarse
-		{   4.0, 0.115,   0.2, 0.650,   0.4,	0.174,	3.4},    // 5	Fine-coarse
-		{   3.5, 0.135,   0.2, 0.575,   0.4,	0.229,	3.05},   // 6	Fine-medium
-		{   4.0, 0.127,   0.2, 0.650,   0.4,	0.177,	3.1},    // 7	Fine-medium-coarse
-		{   9.0, 0.300,   0.1, 0.100,   0.1,	0.300,	2.5},    // 8	Organic (values not know for wp)
-		{   0.2, 0.100,   0.2, 0.500,   0.4,	0.100,	2.5 }    // 9	Vertisols (values not know for wp)
-	};
-
-	if ((data[3][1] == 0.3 && !has_FACE_clim) || (data[3][1] != 0.3 && has_FACE_clim))
-		fail("WRONG SOIL CODE!!!!\n");
-
-	if (soilcode<1 || soilcode>9)
-		fail("soilparameters: invalid LPJ soil code (%d)",soilcode);
-
-	
-	soiltype.perc_base=data[soilcode-1][0];
-	soiltype.perc_exp=PERC_EXP;
-	soiltype.awc[0]=SOILDEPTH_UPPER*data[soilcode-1][1];
-	soiltype.awc[1]=SOILDEPTH_LOWER*data[soilcode-1][1];
-	soiltype.thermdiff_0=data[soilcode-1][2];
-	soiltype.thermdiff_15=data[soilcode-1][3];
-	soiltype.thermdiff_100=data[soilcode-1][4];
-	soiltype.wp[0]=SOILDEPTH_UPPER*data[soilcode-1][5];
-	soiltype.wp[1]=SOILDEPTH_LOWER*data[soilcode-1][5];
-	soiltype.f_FC[0]=data[soilcode-1][6];
-	soiltype.f_FC[1]=data[soilcode-1][6];
-
-	// guess2008 - override the default SOM years with 70-80% of the spin-up period
-	soiltype.updateSolveSOMvalues(nyear_spinup);
-}*/
-
 // guess2008 - euroflux - version with soil depth input
 void soilparameters(Soiltype& soiltype,int soilcode,double soildepth) {
 
@@ -163,7 +96,7 @@ void soilparameters(Soiltype& soiltype,int soilcode,double soildepth) {
 		// (Eqn 31, Haxeltine & Prentice 1996)
 		// Changed from 4 to 2 (Sitch, Thonicke, pers comm 26/11/01)
 
-	double data[9][7]= {
+	double data[9][5]= {
 
 		//    0  empirical parameter in percolation equation (k1) (mm/day)
 		//    1  volumetric water holding capacity at field capacity minus vol water
@@ -178,15 +111,15 @@ void soilparameters(Soiltype& soiltype,int soilcode,double soildepth) {
 		//    0      1      2      3      4   soilcode
 		//  ------------------------------------------
 
-		{   5.0, 0.110,   0.2, 0.800,   0.4 ,	0.074,	3.2},    // 1	Coarse
-		{   4.0, 0.150,   0.2, 0.650,   0.4 ,	0.184,	2.5},    // 2	Medium
-		{   3.0, 0.120,   0.2, 0.500,   0.4 ,	0.274,	3.6},    // 3	Fine
-		{   4.5, 0.130,   0.2, 0.725,   0.4 ,	0.129,	2.85},   // 4	Medium-coarse
-		{   4.0, 0.115,   0.2, 0.650,   0.4 ,	0.174,	3.4},    // 5	Fine-coarse
-		{   3.5, 0.135,   0.2, 0.575,   0.4 ,	0.229,	3.05},   // 6	Fine-medium
-		{   4.0, 0.127,   0.2, 0.650,   0.4 ,	0.177,	3.1},    // 7	Fine-medium-coarse
-		{   9.0, 0.300,   0.1, 0.100,   0.1 ,	0.300,	2.5},    // 8	Organic (values not know for wp)
-		{   0.2, 0.100,   0.2, 0.500,   0.4 ,	0.100,	2.5 }    // 9	Vertisols (values not know for wp)
+		{   5.0, 0.110,   0.2, 0.800,   0.4 },   // 1
+		{   4.0, 0.150,   0.2, 0.650,   0.4 },   // 2
+		{   3.0, 0.120,   0.2, 0.500,   0.4 },   // 3
+		{   4.5, 0.130,   0.2, 0.725,   0.4 },   // 4
+		{   4.0, 0.115,   0.2, 0.650,   0.4 },   // 5
+		{   3.5, 0.135,   0.2, 0.575,   0.4 },   // 6
+		{   4.0, 0.127,   0.2, 0.650,   0.4 },   // 7
+		{   9.0, 0.300,   0.1, 0.100,   0.1 },   // 8
+		{   0.2, 0.100,   0.2, 0.500,   0.4 }    // 9
 	};
 
 
@@ -219,43 +152,19 @@ void soilparameters(Soiltype& soiltype,int soilcode,double soildepth) {
 	//soiltype.awc[1]=min((soildepth-SOILDEPTH_UPPER),SOILDEPTH_LOWER)*(data[soilcode-1][1]+0.5*0.103); // 
 	if (soildepth >= 600.0) {
 		soiltype.awc[0]=SOILDEPTH_UPPER*(data[soilcode-1][1]); // 50cm, as before
-		soiltype.awc[1]=min((soildepth-SOILDEPTH_UPPER),SOILDEPTH_LOWER)*(data[soilcode-1][1]); //
-		soiltype.wp[0]=SOILDEPTH_UPPER*data[soilcode-1][5];
-		soiltype.wp[1]=min((soildepth-SOILDEPTH_UPPER),SOILDEPTH_LOWER)*data[soilcode-1][5];
+		soiltype.awc[1]=min((soildepth-SOILDEPTH_UPPER),SOILDEPTH_LOWER)*(data[soilcode-1][1]); // 
 	} else {
 		soiltype.awc[0]=SOILDEPTH_UPPER*(data[soilcode-1][1])/2.0; // 25cm
 		soiltype.awc[1]=min((soildepth-SOILDEPTH_UPPER/2.0),SOILDEPTH_LOWER)*(data[soilcode-1][1]); // 	
-		soiltype.wp[0]=SOILDEPTH_UPPER*data[soilcode-1][5]/2.0;
-		soiltype.wp[1]=min((soildepth-SOILDEPTH_UPPER/2.0),SOILDEPTH_LOWER)*data[soilcode-1][5];
 	}
 
 	soiltype.thermdiff_0=data[soilcode-1][2];
 	soiltype.thermdiff_15=data[soilcode-1][3];
 	soiltype.thermdiff_100=data[soilcode-1][4];
-	soiltype.f_FC[0]=data[soilcode-1][6];
-	soiltype.f_FC[1]=data[soilcode-1][6];
 
 	// guess2008 - override the default SOM years with 70-80% of the spin-up period
 	soiltype.updateSolveSOMvalues(nyear_spinup);
 
-}
-
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-// INITIALISE SOIL DRIVERS
-// Called by framework at start of simulation for a new stand
-
-void initsoildrivers(Stand& stand) {
-
-	// DESCRIPTION
-	// Initialises state variables maintained by patch Soil objects
-
-	int p;
-
-	for (p=0;p<npatch;p++) {
-		stand[p].soil.initdrivers();
-	}
 }
 
 
@@ -511,7 +420,7 @@ void soiltemp(Climate& climate,Soil& soil) {
 	double day[]={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
 		16,17,18,19,20,21,22,23,24,25,26,27,28,29,30};
 
-	if (date.year==0 && date.month==0 && !date.islastday) {
+	if ((date.year==0 || date.year==soil.patch.stand.first_year) && date.month==0 && !date.islastday) {
 
 		// First month of simulation, use air temperature for soil temperature
 
@@ -552,10 +461,6 @@ void soiltemp(Climate& climate,Soil& soil) {
 }
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// DAILY ACCOUNTING
-// Called each simulation day before any other driver or process functions
-
 inline double mean(double* array,int nitem) {
 
 	// Returns arithmetic mean of 'nitem' values in 'array'
@@ -568,8 +473,8 @@ inline double mean(double* array,int nitem) {
 	return sum/(double)nitem;
 }
 
-
-void dailyaccounting_stand(Stand& stand,Pftlist& pftlist) {
+/// Called each simulation day before any other driver or process functions
+void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 
 	// DESCRIPTION
 	// Updates daily climate parameters including growing degree day sums and
@@ -579,51 +484,108 @@ void dailyaccounting_stand(Stand& stand,Pftlist& pftlist) {
 
 	const double W11DIV12=11.0/12.0;
 	const double W1DIV12=1.0/12.0;
-
 	int d,y,startyear;
 
 	// guess2008 - changed this from an int to a double
 	double mtemp_last;
 
-	Climate& climate=stand.climate;
+	Climate& climate=gridcell.climate;
 
 	// On first day of year ...
 
 	if (date.day==0) {
-
 		// ... reset annual GDD5 counter
 		climate.agdd5=0.0;
 
 		if (date.year==0) {
-
-			// First day of simulation - initialise running annual mean temperature
-			// and daily temperatures for the last month
-
-			for (d=0;d<31;d++) climate.dtemp_31[d]=climate.temp;
+			// First day of simulation - initialise running annual mean temperature and daily temperatures for the last month
+			for (d=0;d<31;d++)
+				climate.dtemp_31[d]=climate.temp;
 			climate.atemp_mean=climate.temp;
 		}
 	}
 	else if (climate.lat>=0.0 && date.day==COLDEST_DAY_NHEMISPHERE ||
 		climate.lat<0.0 && date.day==COLDEST_DAY_SHEMISPHERE) {
-
 		// In midwinter, reset GDD counter for summergreen phenology
-
 		climate.gdd5=0.0;
 		climate.ifsensechill=false; // guess2008 - CHILLDAYS
 	}
 
 	// Update GDD counters and chill day count
-
 	climate.gdd5+=max(0.0,climate.temp-5.0);
 	climate.agdd5+=max(0.0,climate.temp-5.0);
-	if (climate.temp<5.0 && climate.chilldays<=365) climate.chilldays++;
+	if (climate.temp<5.0 && climate.chilldays<=365)
+		climate.chilldays++;
 
+///	if (run_landuse && run_crop)
+///		dailyaccounting_gridcell_crop(gridcell,pftlist);
+
+	// Save yesterday's mean temperature for the last month
+	mtemp_last=climate.mtemp;
+
+	// Update daily temperatures, and mean overall temperature, for last 31 days
+	climate.mtemp=climate.temp;
+	for (d=0;d<30;d++) {
+		climate.dtemp_31[d]=climate.dtemp_31[d+1];
+		climate.mtemp+=climate.dtemp_31[d];
+	}
+	climate.dtemp_31[30]=climate.temp;
+	climate.mtemp/=31.0;
+
+	// Reset GDD and chill day counter if mean monthly temperature falls below base
+	// temperature
+	if (mtemp_last>=5.0 && climate.mtemp<5.0 && climate.ifsensechill) { // guess2008 - CHILLDAYS
+		climate.gdd5=0.0;
+		climate.chilldays=0;
+	}
+
+	// On last day of month ...
+
+	if (date.islastday) {
+		// Update mean temperature for the last 12 months
+		// atemp_mean_new = atemp_mean_old * (11/12) + mtemp * (1/12)
+		climate.atemp_mean=climate.atemp_mean*W11DIV12+climate.mtemp*W1DIV12;
+		
+		// Record minimum and maximum monthly temperatures
+		if (date.month==0) {
+			climate.mtemp_min=climate.mtemp;
+			climate.mtemp_max=climate.mtemp;
+		}
+		else {
+			if (climate.mtemp<climate.mtemp_min)
+				climate.mtemp_min=climate.mtemp;
+			if (climate.mtemp>climate.mtemp_max)
+				climate.mtemp_max=climate.mtemp;
+		}
+
+		// On 31 December update records of minimum monthly temperatures for the last
+		// 20 years and find mean of minimum monthly temperatures for the last 20 years
+		if (date.islastmonth) {
+			startyear=20-(int)min(19,date.year);
+			climate.mtemp_min20=climate.mtemp_min;
+			climate.mtemp_max20=climate.mtemp_max;
+
+			for (y=startyear;y<20;y++) {
+				climate.mtemp_min_20[y-1]=climate.mtemp_min_20[y];
+				climate.mtemp_min20+=climate.mtemp_min_20[y];
+				climate.mtemp_max_20[y-1]=climate.mtemp_max_20[y];
+				climate.mtemp_max20+=climate.mtemp_max_20[y];
+			}
+
+			climate.mtemp_min20/=(double)(21-startyear);
+			climate.mtemp_max20/=(double)(21-startyear);
+			climate.mtemp_min_20[19]=climate.mtemp_min;
+			climate.mtemp_max_20[19]=climate.mtemp_max;
+		}
+	}
+}
+
+void dailyaccounting_stand(Stand& stand,Pftlist& pftlist)
+{		
 	// Loop through PFTs
-
 	pftlist.firstobj();
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
-
 		// For this PFT ...
 
 		// [BEGIN CEFAST0207]
@@ -635,72 +597,32 @@ void dailyaccounting_stand(Stand& stand,Pftlist& pftlist) {
 		// ... on to next PFT
 		pftlist.nextobj();
 	}
+}
 
-	// Save yesterday's mean temperature for the last month
-	mtemp_last=climate.mtemp;
+void dailyaccounting_patch_lc(Patch& patch, Pftlist& pftlist) {
+	if(date.day==0) {
+		Fluxes& fluxes=patch.fluxes;
 
-	// Update daily temperatures, and mean overall temperature, for last 31 days
-
-	climate.mtemp=climate.temp;
-	for (d=0;d<30;d++) {
-		climate.dtemp_31[d]=climate.dtemp_31[d+1];
-		climate.mtemp+=climate.dtemp_31[d];
-	}
-	climate.dtemp_31[30]=climate.temp;
-	climate.mtemp/=31.0;
-
-	// Reset GDD and chill day counter if mean monthly temperature falls below base
-	// temperature
-
-	if (mtemp_last>=5.0 && climate.mtemp<5.0 && climate.ifsensechill) { // guess2008 - CHILLDAYS
-		climate.gdd5=0.0;
-		climate.chilldays=0;
-	}
-
-	// On last day of month ...
-
-	if (date.islastday) {
-
-		// Update mean temperature for the last 12 months
-		// atemp_mean_new = atemp_mean_old * (11/12) + mtemp * (1/12)
-
-		climate.atemp_mean=climate.atemp_mean*W11DIV12+climate.mtemp*W1DIV12;
-		
-		// Record minimum and maximum monthly temperatures
-
-		if (date.month==0) {
-			climate.mtemp_min=climate.mtemp;
-			climate.mtemp_max=climate.mtemp;
-		}
-		else {
-			if (climate.mtemp<climate.mtemp_min) climate.mtemp_min=climate.mtemp;
-			if (climate.mtemp>climate.mtemp_max) climate.mtemp_max=climate.mtemp;
+		if(!patch.stand.gridcell.LC_updated) {	// NB. landcover_dynamics() is called before this function !
+			fluxes.acflux_harvest=0.0;
 		}
 
-		// On 31 December update records of minimum monthly temperatures for the last
-		// 20 years and find minimum monthly temperature for the last 20 years
+		if(ifslowharvestpool) {
+			pftlist.firstobj();
+			while(pftlist.isobj) {
+				Pft& pft=pftlist.getobj();
+				Patchpft& patchpft=patch.pft[pft.id];
 
-		if (date.islastmonth) {
-			startyear=20-min(19,date.year);
-			climate.mtemp_min20=climate.mtemp_min;
-			climate.mtemp_max20=climate.mtemp_max;
-			for (y=startyear;y<20;y++) {
-				climate.mtemp_min_20[y-1]=climate.mtemp_min_20[y];
-				climate.mtemp_min20+=climate.mtemp_min_20[y];
-				climate.mtemp_max_20[y-1]=climate.mtemp_max_20[y];
-				climate.mtemp_max20+=climate.mtemp_max_20[y];
+				fluxes.acflux_harvest+=patchpft.harvested_products_slow*pft.turnover_harv_prod;
+				patchpft.harvested_products_slow=patchpft.harvested_products_slow*(1-pft.turnover_harv_prod);
+
+				pftlist.nextobj();
 			}
-			climate.mtemp_min20/=(double)(21-startyear);
-			climate.mtemp_max20/=(double)(21-startyear);
-			climate.mtemp_min_20[19]=climate.mtemp_min;
-			climate.mtemp_max_20[19]=climate.mtemp_max;
 		}
 	}
 }
 
-
-void dailyaccounting_patch(Patch& patch) {
-
+void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 	// DESCRIPTION
 	// Updates daily soil parameters including exponential temperature response terms
 	// (gtemp, see below). Maintains monthly and longer term records of variation in
@@ -717,7 +639,6 @@ void dailyaccounting_patch(Patch& patch) {
 	if (date.day==0) {
 
 		// Reset fluxes
-
 		fluxes.acflux_soil=0.0;
 		fluxes.acflux_veg=0.0;
 		fluxes.acflux_est=0.0;
@@ -728,9 +649,6 @@ void dailyaccounting_patch(Patch& patch) {
 		patch.arunoff=0.0;
 		patch.aintercep=0.0;
 		patch.apet=0.0;
-
-		for (int d=0;d<365;d++)
-			fluxes.dcflux_gpp[d] = 0.0;
 	}
 
 	if (date.dayofmonth==0) {
@@ -741,7 +659,7 @@ void dailyaccounting_patch(Patch& patch) {
 		patch.mevap[date.month]=0.0;
 		patch.mrunoff[date.month]=0.0;
 		patch.mintercep[date.month]=0.0;
-		patch.mpet[date.month]=0.0;
+		patch.mpet[date.month]=0.0; 
 
 		// guess2008 - reset month C budget arrays each month
 		fluxes.mcflux_gpp[date.month] = 0.0;
@@ -750,6 +668,9 @@ void dailyaccounting_patch(Patch& patch) {
 	}
 
 	fluxes.dcflux_veg=0.0;
+
+	if(run_landcover)
+		dailyaccounting_patch_lc(patch, pftlist);
 	
 	// Store daily soil water in upper layer
 	soil.dwcontupper[date.day]=soil.wcont[0];
@@ -774,7 +695,7 @@ void dailyaccounting_patch(Patch& patch) {
 	}
 
 	// Calculate soil temperatures
-	soiltemp(patch.stand.climate,soil);
+	soiltemp(patch.stand.gridcell.climate,soil);
 
 	// On last day of month, calculate mean soil temperature for last month
 
@@ -1048,11 +969,7 @@ void daylengthinsoleet(Climate& climate) {
 	// Calculate PAR from radiation
 	// Eqn A1, Haxeltine & Prentice 1996
 
-	// FACE DAVID climate 
-	if(has_FACE_clim)		// Has par as inputdata! 
-		climate.rad = climate.par / FRADPAR;	// Calculates Rad backwards with the help of FRADPAR
-	else
-		climate.par=rs_day*FRADPAR;
+	climate.par=rs_day*FRADPAR;
 }
 
 
@@ -1088,5 +1005,3 @@ void daylengthinsoleet(Climate& climate) {
 // van Duin, RHA 1963 The influence of soil management on the temperature
 //   wave near the surface. Tech Bull 29 Inst for Land and Water Management
 //   Research, Wageningen, Netherlands
-
-

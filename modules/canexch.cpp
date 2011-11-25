@@ -283,7 +283,7 @@ void fpar(Patch& patch) {
 	Vegetation& vegetation=patch.vegetation;
 
 	// And to Climate object
-	Climate& climate=patch.stand.climate;
+	Climate& climate=patch.stand.gridcell.climate;
 
 	if (vegmode==POPULATION) {
 		
@@ -331,7 +331,7 @@ void fpar(Patch& patch) {
 			if (indiv.height>height_veg) height_veg=indiv.height;
 			plai_leafon+=indiv.lai;
 			
-			if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==CROP) {
+			if (indiv.pft.lifeform==GRASS) {
 				plai_leafon_grass+=indiv.lai;
 				plai_grass+=indiv.lai*indiv.phen;
 			}
@@ -493,7 +493,7 @@ void fpar(Patch& patch) {
 
 			// For this individual ...
 
-			if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==CROP) {
+			if (indiv.pft.lifeform==GRASS) {
 
 				// Calculate minimum FPAR for growth of this grass
 
@@ -648,7 +648,7 @@ LookupQ10 lookup_tau(Q10TAU,TAU25);
 void photosynthesis(double co2,double temp,double par,double daylength,
 	double fpar,double lambda,pathwaytype pathway,double pstemp_min,
 	double pstemp_low,double pstemp_high,double pstemp_max,double lambda_max,
-	double& agd,double& adtmm,double& rd,double& na,bool ifnlimvmax,double& vmax_lim,double& indiv_apar) {	// FACE OUT apar
+	double& agd,double& adtmm,double& rd,double& na,bool ifnlimvmax,double& vmax_lim,double& indiv_apar) {
 
 	// DESCRIPTION
 	// Calculation of total daily gross photosynthesis and leaf-level net daytime
@@ -787,7 +787,6 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 
 	apar=par*fpar*ALPHAA;
 
-	// FACE OUT
 	indiv_apar=apar;
 
 	// Calculate temperature-inhibition coefficient
@@ -1141,7 +1140,7 @@ void demand(Patch& patch) {
 	// Retrieve Stand, Climate and Vegetation objects for this patch
 
 	Stand& stand=patch.stand;
-	Climate& climate=stand.climate;
+	Climate& climate=stand.gridcell.climate;
 	Vegetation& vegetation=patch.vegetation;
 
 	gp_patch=0.0;
@@ -1220,9 +1219,6 @@ void demand(Patch& patch) {
 					pft.gmin*indiv.fpc;
 			}
 			// end GUESSN
-
-			// FACE OUT
-			indiv.FACE_out[18][date.day]=rd*1000.0;	// Leaf respiration (kg C m-2 day-1)
 
 
 #if defined(DEMAND_INDIV)
@@ -1407,7 +1403,7 @@ void aet_water_stress(Patch& patch) {
 	double gcbase;
 
 	// Retrieve Climate object for patch
-	Climate& climate=patch.stand.climate;
+	Climate& climate=patch.stand.gridcell.climate;
 
 	// Calculate common point supply for each PFT in this patch
 
@@ -1907,11 +1903,7 @@ void assimilation_wstress_limvmax(Pft& pft,Patchpft& ppft,double co2,double temp
 void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 	double respcoeff,double cton_sap,double cton_root,
 	double phen,double cmass_sap,double cmass_root,double assim,double& resp,
-	double& resp_sap, double& resp_root, double& resp_growth) {	// FACE OUT
-
-//void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
-//	double respcoeff,double cton_sap,double cton_root,
-//	double phen,double nmass_sap,double nmass_root,double assim,double& resp) {
+	double& resp_sap, double& resp_root, double& resp_growth) {	
 
 	// DESCRIPTION
 	// Calculation of daily maintenance and growth respiration for individual with
@@ -1941,15 +1933,15 @@ void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 	// OUTPUT PARAMETER
 	// resp       = sum of maintenance and growth respiration on grid cell area basis
 	//              (kgC/m2/day)
-
+	//	resp_sap = sapwood respiration (kg/m2/day)	
+	//	resp_root = root respiration (kg/m2/day)	
+	//	resp_growth = growth respiration (kg/m2/day)	
 	// guess2008 - following a comment by Annett Wolf, the following parameter value was changed: 
 	// const double K=0.0548; // OLD value
 	const double K=0.095218;  // NEW parameter value in respiration equations 
 	// See the comment after Eqn (4) below.
 
-//	double resp_sap;    // sapwood respiration (kg/m2/day)	// FACE OUT
-//	double resp_root;   // root respiration (kg/m2/day)		// FACE OUT
-//	double resp_growth; // growth respiration (kg/m2/day)	// FACE OUT
+
 
 	// Calculation of maintenance respiration components for each living tissue:
 	//
@@ -2034,7 +2026,7 @@ void respiration(double gtemp_air,double gtemp_soil,lifeformtype lifeform,
 
 		resp=resp_sap+resp_root+resp_growth;
 	}
-	else if (lifeform==GRASS || lifeform==CROP) {
+	else if (lifeform==GRASS) {
 
 		// Root respiration
 
@@ -2083,7 +2075,7 @@ void npp(Patch& patch) {
 
 	Vegetation& vegetation=patch.vegetation;
 	Stand& stand=patch.stand;
-	Climate& climate=stand.climate;
+	Climate& climate=stand.gridcell.climate;
 
 	// Loop through individuals
 
@@ -2195,7 +2187,7 @@ void npp(Patch& patch) {
 
 			// Calculate autotrophic respiration
 			
-			// FACE OUT
+
 			double resp_sap,resp_root,resp_growth;
 
 			respiration(climate.gtemp,patch.soil.gtemp,indiv.pft.lifeform,
@@ -2211,26 +2203,6 @@ void npp(Patch& patch) {
 			// guess2008
 			if (indiv.alive)
 				patch.fluxes.dcflux_veg+=indiv.resp-indiv.assim;
-
-			// FACE OUT
-			patch.soil.FACE_out[1][date.day]=date.year+1401+1;
-			patch.soil.FACE_out[2][date.day]=date.day+1;
-			patch.soil.FACE_out[3][date.day]=stand.climate.co2;
-			patch.soil.FACE_out[4][date.day]=stand.climate.prec;
-			patch.soil.FACE_out[5][date.day]=stand.climate.par*4.56/1000000.0;
-			patch.soil.FACE_out[6][date.day]=stand.climate.temp;
-			patch.soil.FACE_out[7][date.day]=patch.soil.temp;
-			indiv.FACE_out[12][date.day]=indiv.assim*1000.0;				// GPP daily net assimilation (GPP-leaf respiration) on modelled area basis (kgC/m2/day)
-			indiv.FACE_out[17][date.day]=indiv.resp*1000.0;				// Resp Autotrophic (sapwood, root and growth respiration (kg/m2/day))
-																		// daily maintenance respiration (not including leaf respiration) and growth
-																		// respiration on modelled area basis (kgC/m2/day)
-			indiv.FACE_out[19][date.day] = resp_sap*1000.0;				// Resp Wood (maint) (sapwood respiration (kg/m2/day))
-			indiv.FACE_out[20][date.day] = resp_root*1000.0;				// Resp Fine Root (maint) (root respiration (kg/m2/day))
-			indiv.FACE_out[21][date.day] = resp_growth*1000.0;				// Resp growth (growth respiration (kg/m2/day))
-			indiv.FACE_out[27][date.day] = indiv.intercep;			// Individual interception (mm/day)
-			indiv.FACE_out[74][date.day] = indiv.apar*4.56/1000000.0;	// fractional absorption at leaf level (APAR) Divided by 1000000 to get the unit MJ/m2/day, multiplied with 4.56 to get it in mol
-			indiv.FACE_out[75][date.day] = indiv.gc_sum;				// Canopy conductans;
-			// end FACE OUT
 
 			// Monthly NPP and LAI
 
@@ -2407,7 +2379,6 @@ void npp(Patch& patch) {
 				assim=indiv.assim/(double)date.ndaymonth[date.month];
 					// average daily assimilation for this month
 
-				// FACE OUT
 				double resp_sap,resp_root,resp_growth;
 
 				respiration(climate.mgtemp,patch.soil.mgtemp,indiv.pft.lifeform,
@@ -2496,13 +2467,13 @@ void forest_floor_conditions(Patch& patch) {
 	int p;
 	double na; // GUESSN
 	double vmax_lim; // GUESSN
-	double apar; // FACE OUT not used
+	double apar;
 	double lambda;	// GC
 
 	// Retrieve Stand and Climate objects for patch
 
 	Stand& stand=patch.stand;
-	Climate& climate=stand.climate;
+	Climate& climate=stand.gridcell.climate;
 
 	// Loop through PFTs
 
@@ -2576,7 +2547,7 @@ void forest_floor_conditions(Patch& patch) {
 				photosynthesis_limvmax(climate.co2,climate.temp,climate.par,climate.daylength,
 					patch.fpar_grass*ppft.phen,1.0,pft.lambda_max,pft.pathway,pft.pstemp_min,
 					pft.pstemp_low,pft.pstemp_high,pft.pstemp_max,pft.lambda_max,
-					1.0,1.0/ppft.pft.cton_leaf_avr,agd,adtmm,rd,na,vmax_lim,apar);	// FACE OUT apar	
+					1.0,1.0/ppft.pft.cton_leaf_avr,agd,adtmm,rd,na,vmax_lim,apar);
 
 				ppft.anetps_ff+=agd-rd;
 			}
@@ -2672,7 +2643,7 @@ void canopy_exchange(Patch& patch) {
 	// Retrieve Vegetation and Climate objects for this patch
 
 	Vegetation& vegetation=patch.vegetation;
-	Climate& climate=patch.stand.climate;
+	Climate& climate=patch.stand.gridcell.climate;
 
 	double pet_s;
 		// potential evapotranspiration over non-vegetated parts of patch (mm,

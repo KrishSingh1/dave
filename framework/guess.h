@@ -52,7 +52,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL ENUMERATED TYPE DEFINITIONS
 
-typedef enum {NOLIFEFORM,TREE,GRASS,CROP} lifeformtype;
+typedef enum {NOLIFEFORM,TREE,GRASS} lifeformtype;
 	// Life form class for PFTs (trees, grasses)
 
 typedef enum {NOPHENOLOGY,EVERGREEN,RAINGREEN,SUMMERGREEN,ANY} phenologytype;
@@ -73,26 +73,24 @@ typedef enum {NOVEGMODE,INDIVIDUAL,COHORT,POPULATION} vegmodetype;
 	// individuals of a PFT that are roughly the same age; (3) an individual plant.
 
 // GUESSN
+// CENTURY pool names, NSOMPOOL number of SOM pools
 typedef enum {SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SURFCWD,
 	SOILMETA,SLOWSOM,PASSIVESOM,LEACHED,NSOMPOOL} pooltype;	
-	// CENTURY pool names, NSOMPOOL number of SOM pools 
 // end GUESSN
+
+/// Land cover type of a stand. NLANDCOVERTYPES keeps count of number of items.
+typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, NLANDCOVERTYPES} landcovertype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
 
+// number of soil layers modelled
 const int NSOILLAYER=2;
-	// number of soil layers modelled
 
-// FACE DAVID ORNL
-//const double SOILDEPTH_UPPER=500.0; // soil upper layer depth (mm)
-//const double SOILDEPTH_LOWER=1500.0;// soil lower layer depth (mm)
 
-// FACE DAVID Duke
-//const double SOILDEPTH_UPPER=500.0; // soil upper layer depth (mm)
-//const double SOILDEPTH_LOWER=250.0; // soil lower layer depth (mm)
 
-// NORMAL VALUES
+
+// SOIL DEPTH VALUES
 const double SOILDEPTH_UPPER=500.0; // soil upper layer depth (mm)
 const double SOILDEPTH_LOWER=1000.0; // soil lower layer depth (mm)
 
@@ -117,14 +115,6 @@ const int OUTPUT_MAXAGECLASS=40;
 	// maximum number of age classes in age structure plots produced by function
 	// outannual
 
-// FACE DAVID climate David
-const int NYEAR_NDEP = 258;			// Number of years with ndep data
-const double KgTOg = 1000;			// Convert kg to g
-const bool ifplantation=true; // not used yet
-const bool ifdisturb_init=true; // disturbance during spin up to help trees establishing in
-	// competition with grasses
-const int distyear=50;
-
 	// guess2008 - this is now a global, constant variable Previously, we had duplicate definitions in 
 	// both canexch.cpp and soilwater.cpp
 const double PRIESTLEY_TAYLOR=1.32;
@@ -141,7 +131,7 @@ class Date;
 class Stand;
 class Patch;
 class Vegetation;
-
+class Gridcell;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES WITH EXTERNAL LINKAGE
@@ -178,6 +168,7 @@ extern int npft; // number of possible PFTs
 extern bool iffast; // whether to run in "fast" mode
 extern bool ifcdebt; // whether C debt (storage between years) permitted
 
+
 // GUESSN
 extern bool ifcentury;
 	// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
@@ -201,20 +192,26 @@ extern bool ifndemand_new_est;
 	// if to use N limitation on new establishment 
 // end GUESSN
 
+/// Whether other landcovers than natural vegetation are simulated.
+extern bool run_landcover;
+
 // N budget check
 extern double Total_N_500;
 extern double Total_C_500;
 extern double Added_N_from_500;
 
-// FACE David
-extern int FYEAR_SCENARIO_FACE;
-extern int FACE_ring;				// Which FACE ring examined
-extern int ifduke;					// Duke or Oak Ridge
-extern int has_FACE_clim;			// If we are using FACE clim data
 
-// CANIF David
-extern int has_CANIF_clim;			// If we are using CANIF clim data
-extern int WSITE;
+/// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND).
+extern bool run[NLANDCOVERTYPES];
+
+/// Whether landcover fractions are read from ins-file.
+extern bool lcfrac_fixed;
+
+/// Set to false by initio( ) if fraction input files have yearly data.
+extern bool all_fracs_const;
+
+extern bool ifslowharvestpool; 	// If a slow harvested product pool is included in patchpft.
+extern int nyear_spinup; // number of spinup years (ML)	Moved to guess.cpp to be accessed globally.
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // guess2008 - new input variables, from the .ins file
@@ -430,21 +427,21 @@ public:
 	}
 };
 
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // CLIMATE
+// The Climate for a grid cell
 // Stores all static and variable data relating to climate parameters, as well as 
-// latitude, atmospheric CO2 concentration and daylength for a stand (corresponding to
-// a modelled locality or grid cell). Includes a reference to the parent Stand object
-// (defined below). Initialised by a call to initdrivers.
+//  latitude, atmospheric CO2 concentration and daylength for a grid cell. Includes 
+//  a reference to the parent Gridcell object (defined below). Initialised by a 
+//  call to initdrivers.
 
 class Climate {
 
 	// MEMBER VARIABLES
 
 public:
-	Stand& stand;
-		// reference to parent Stand object
+	Gridcell& gridcell;
+		// reference to parent Gridcell object
 	double temp;
 		// mean air temperature today (deg C)
 	double rad;
@@ -539,8 +536,8 @@ public:
 
 public:
 
-	Climate(Stand& s):stand(s) {};
-		// constructor function: initialises stand member
+	Climate(Gridcell& gc):gridcell(gc) {};
+		// constructor function: initialises gridcell member
 
 	void initdrivers(double latitude) {
 
@@ -596,6 +593,8 @@ public:
 		// annual carbon flux to atmosphere from soil respiration
 	double acflux_est;
 		// annual flux from atmosphere to vegetation associated with establishment
+	double acflux_harvest; 
+		// annual flux to atmosphere from consumed harvested products
 	double dcflux_soil;
 		// daily carbon flux to atmosphere from soil respiration
 		// NB: not implemented by som_dynamics_monthly
@@ -618,9 +617,15 @@ public:
 	// MEMBER FUNCTIONS
 
 public:
-
-	Fluxes(Patch& p):patch(p) {}
-		// constructor: initialises patch member
+	/// constructor: initialises members
+	Fluxes(Patch& p):patch(p) {
+		acflux_veg=0.0;
+		acflux_fire=0.0;
+		acflux_soil=0.0;
+		acflux_est=0.0;
+		acflux_harvest=0.0;	
+	}
+		
 
 	double anee() {
 		
@@ -797,6 +802,15 @@ public:
 	} regen;
 
 	// Variables used by new hydrology (Dieter Gerten 2002-07)
+
+	/// specifies type of landcover
+	/** see landcovertype */
+	landcovertype landcover;
+
+	double res_outtake;				// Fraction of residue outtake at harvest.
+	double harv_eff;				// Harvest efficiency.
+	double harvest_slow_frac;		// Fraction of harvested products that goes into patchpft.harvested_products_slow
+	double turnover_harv_prod;		// Yearly turnover fraction of patchpft.harvested_products_slow (goes to fluxes.acflux_harvest).
 	
 	// MEMBER FUNCTIONS
 
@@ -812,6 +826,10 @@ public:
 
 		// guess2008 - DLE
 		drought_tolerance=0.0; // Default, means that the PFT will never be limited by drought.
+
+		res_outtake=0.0;
+		harv_eff=0.0;
+		turnover_harv_prod=1.0;	// default 1 year turnover time
 	}
 
 	void initsla() {
@@ -848,7 +866,7 @@ public:
 
 			regen.cmass_heart=SAPLINGHW*regen.cmass_sap;
 		}
-		else if (lifeform==GRASS || lifeform==CROP) {
+		else if (lifeform==GRASS) {
 
 			// Grass regeneration characteristics
 
@@ -1097,7 +1115,6 @@ public:
 	
 	// end GUESSN
 
-	// FACE OUTPUT
 
 	// GC
 	double gc_sum; // accumulated canopy conductance on individual FPC basis (mm/s)
@@ -1106,86 +1123,7 @@ public:
 	double adtmm_term; // GC
 
 	double apar;
-	double FACE_out[77][365];
-
-		// 0 - empty space to keep numbering easier 
-		// 1 - YEAR
-		// 2 - Day
-		// 3 - CO2
-		// 4 - Precipitation
-		// 5 - PAR
-		// 6 - Air Temp Canopy
-		// 7 - Soil Temp 10 cm
-		// 8 - Vapor Pres Def
-		// 9 - Surface Soil Water
-		// 10 - N Deposition
-		// 11 - NEP
-		// 12 - GPP
-		// 13 - NPP
-		// 14 - C Exudation
-		// 15 - C VOC Flux
-		// 16 - Resp Ecosystem
-		// 17 - Resp Autotrophic
-		// 18 - Resp Leaves
-		// 19 - Resp Wood
-		// 20 - Resp Fine Root
-		// 21 - Resp Growth
-		// 22 - Resp Heterotrophic
-		// 23 - Resp Soil
-		// 24 - Evapotranspiration
-		// 25 - Transpiration
-		// 26 - Evaporation
-		// 27 - Interception
-		// 28 - Runoff
-		// 29 - Drainage
-		// 30 - Latent Energy
-		// 31 - Sensible Heat
-		// 32 - C Leaf Mass
-		// 33 - C Wood Mass
-		// 34 - C Coarse Root Mass
-		// 35 - C Fine Root Mass
-		// 36 - C Storage as TNC
-		// 37 - C Litter Aboveground
-		// 38 - C Litter Belowground
-		// 39 - C Dead Wood
-		// 40 - C Soil
-		// 41 - C Leaf Growth
-		// 42 - C Wood Growth
-		// 43 - C Coarse Root Growth
-		// 44 - C Fine Root Growth
-		// 45 - C Leaf Litterfall
-		// 46 - C Root Litterfall
-		// 47 - C Wood/Branch Inputs
-		// 48 - LAI Projected
-		// 49 - Canopy Leaf Mass/Area
-		// 50 - N Mass Leaf
-		// 51 - N Mass Wood
-		// 52 - N Mass Coarse Root
-		// 53 - N Mass Fine Root
-		// 54 - N Storage
-		// 55 - N Litter Aboveground
-		// 56 - N Litter Belowground
-		// 57 - N Dead Wood
-		// 58 - N Soil Total
-		// 59 - N in Mineral Form
-		// 60 - N in Organic Form
-		// 61 - N Fixation
-		// 62 - N Leaf Litterfall
-		// 63 - N Wood/Branch Litterfall
-		// 64 - N Root Litter Input
-		// 65 - N Biomass Uptake
-		// 66 - N Gross Mineralisation
-		// 67 - N Net Mineralisation
-		// 68 - N Volatilization
-		// 69 - N Leaching
-		// 70 - N Leaf growth
-		// 71 - N Wood Growth
-		// 72 - N CR Growth
-		// 73 - N Fine Root Growth
-		// 74 - N Uptake
-		// 75 - GC 
-		// 76 - APAR fraction of PAR absorbed at leaf level
-	// end FACE OUTPUT
+	
 
 	bool alive; 
 		// guess2008 - whether this individual is truly alive. Set to false for first year 
@@ -1199,77 +1137,9 @@ public:
 	// Constructor function for objects of class Individual
 	// Initialisation of certain member variables
 
-	Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 
-		anpp=0.0;
-		fpc=0.0;
-		densindiv=0.0;
-		cmass_leaf=0.0;
-		cmass_root=0.0;
-		cmass_sap=0.0;
-		cmass_heart=0.0;
-		cmass_debt=0.0;
-		wscal=1.0;
-		phen=0.0;
-		aphen=0.0;
-		deltafpc=0.0;
-		fpar_wstress=0.0;
-		assim=0.0;
-		assim_nowstress=0.0;
+	Individual(int i,Pft& p,Vegetation& v);
 
-		// GUESSN
-		nmass_leaf=0.0;
-		nmass_root=0.0;
-		nmass_sap=0.0;
-		nmass_heart=0.0;
-		nmass_reserve=0.0;
-
-		nstore=0.0;
-		fnuptake=1.0;
-		n_reserve_uptake=0.0;
-		max_n_reserve=0.0;
-
-		// end GUESSN
-	
-		// guess2008 - additional initialisation
-		age=0.0;
-		fpar=0.0;
-		aphen_raingreen=0;
-		demand=0.0;
-		supply=0.0;
-		intercep=0.0;
-		phen_mean=0.0;
-		temp_wstress = 0.0;
-		par_wstress = 0.0;
-		daylength_wstress = 0.0;
-		co2_wstress = 0.0; 
-		nday_wstress = 0; 
-		ifwstress = false;
-		lai = 0.0;
-		lai_layer = 0.0;
-		lai_indiv = 0.0;
-		alive = false;
-
-		int m;
-		for (m=0;m<12;m++) {
-			mnpp[m]=mlai[m]=mgpp[m]=mra[m]=0.0;
-		}
-		int d;
-		for (d=0;d<365;d++) {
-			dassim[d]=vmax_lim[d]=0.0;
-		}
-
-		// FACE_OUT
-
-		// GC
-		gc_sum=0.0;
-
-		int k,l;
-		for (k=0;k<77;k++)
-			for (l=0;l<365;l++)
-				FACE_out[k][l]=-9999.0;
-
-	};
 };
 
 
@@ -1306,12 +1176,12 @@ public:
 		// constructor (initialises member variable patch)
 };
 
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // SOILTYPE
-// Stores static parameters for soils and the snow pack. One Soiltype object is defined
-// for each stand. State variables for soils are held by objects of class Soil, of
-// which there is one for each patch (see below).
+// Soiltype stores static parameters for soils and the snow pack. 
+// One Soiltype object is defined for each Gridcell. State variables for soils 
+//  are held by objects of class Soil, of which there is one for each patch 
+//  (see below).
 
 class Soiltype {
 
@@ -1525,15 +1395,14 @@ public:
 
 // end GUESSN
 
-	double FACE_out[77][365];	// FACE_OUT
-
 
 	// MEMBER FUNCTIONS
 
 public:
-
-	Soil(Patch& p,Soiltype& s):patch(p),soiltype(s) {}
-		// constructor (initialises member variable patch)
+	/// constructor (initialises member variable patch)
+	Soil(Patch& p,Soiltype& s):patch(p),soiltype(s) {
+			initdrivers();
+	}
 
 	void initdrivers() {
 
@@ -1607,11 +1476,6 @@ public:
 
 		// end GUESSN
 
-		int k,l;
-
-		for (k=0;k<76;k++)
-			for (l=0;l<365;l++)
-				FACE_out[k][l]=0.0;
 
 	}
 
@@ -1769,10 +1633,9 @@ public:
 	Lookup_lambda lookup_lambda;
 		// lookup table for values of lambda (parameter in photosynthesis calculations)
 		// today (see canexch.cpp)
+	double harvested_products_slow;	//carbon depository for long-lived products like wood
 
 	double nsapling_yearly;
-	int no_cohorts; // no cohorts used for averaging greffmort for monitoring
-	double greff_mort_fraction;
 
 	// GUESSN
 	double nmass_litter_leaf;
@@ -1784,6 +1647,7 @@ public:
 	double nsapling_nuptake;
 		// number of saplings of this PFT established in vegetation_n_uptake() (cohort mode)
 	// end GUESSN
+
 
 	// MEMBER FUNCTIONS:
 
@@ -1801,6 +1665,7 @@ public:
 		anetps_ff=0.0;
 		aphen=0.0;
 
+
 		// GUESSN
 		nmass_litter_leaf=0.0;
 		nmass_litter_root=0.0;
@@ -1811,6 +1676,9 @@ public:
 		nstore_est=0.0;
 		
 		// end GUESSN
+
+		harvested_products_slow=0.0;
+
 	}
 };
 
@@ -1959,13 +1827,11 @@ public:
 	double anetps_ff_max;
 		// maximum value of anetpsff (potential annual net assimilation at forest
 		// floor) for this PFT in this stand so far in the simulation (kgC/m2/year)
-	double addtw;
-		// annual degree day sum above threshold damaging temperature (used in
-		// calculation of heat stess mortality; Sitch et al 2000, Eqn 55)
 	double gterm;
 		// term in calculation of potential canopy conductance (mm/s)
 	bool have_gterm;
 		// true if value of gterm available for this PFT today, otherwise false
+
 
 	// Variables used only by input/output module
 
@@ -2010,6 +1876,9 @@ public:
 	double adtmm_term; // GC
 	// end GUESSN
 
+	/// Is this PFT allowed to grow in this stand ?
+	bool active;
+
 	// MEMBER FUNCTIONS
 
 	Standpft(int i,Pft& p):id(i),pft(p) {
@@ -2017,19 +1886,18 @@ public:
 		// Constructor: initialises various data members
 		
 		anetps_ff_max=0.0;
-		addtw=0.0;
+
+		if (run_landcover)
+			active=false;
+		else
+			active=true;
 	}
 };
 
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // STAND
-// Stores data for a stand, corresponding to a modelled locality or grid cell.
-// Member variables include an object of type Climate (holding climate, insolation and
-// CO2 data), a object of type Soiltype (holding soil static parameters) and a list
-// array of Patch objects. Soil objects (holding soil state variables) are associated
-// with patches, not stands. A separate Stand object must be declared for each modelled
-// locality or grid cell.
+// The stand class corresponds to a modelled area of a specific landcover type in a grid cell.
+// there may be several stands of the same landcover type (but with different settings).
 
 class Stand : public ListArray_idin3<Patch,Stand,Pftlist,Soiltype> {
 
@@ -2037,37 +1905,157 @@ public:
 
 	// MEMBER VARIABLES
 
+	/// list array [0...npft-1] of Standpft (initialised in constructor)
 	ListArray_idin1<Standpft,Pft> pft;
-		// list array [0...npft-1] of Standpft (initialised in constructor)
-	Climate climate;
-		// climate, insolation and CO2 for this stand
-	Soiltype soiltype;
-		// soil static parameters for this stand
+
+	/// A number identifying this Stand within the grid cell
+	int id;
+
+	/// reference to parent object
+	Gridcell& gridcell;
+	
+	/// type of landcover 
+	/** \see landcovertype
+	 *  initialised in constructor
+	 */
+	landcovertype landcover;
+
+	/// The year when this stand was created.
+	/** Will typically be year zero unless running with dynamic
+	 *  land cover.
+	 *
+	 *  Needed to set patchpft.anetps_ff_est_initial 
+	 */
+	int first_year;
+
 
 	// MEMBER FUNCTIONS
 
-	// FACE DAVID Thomas plantation general
-	int plantyear; // year of plantation of FACE forest
-	int distyear2; // cutting natural forest to be replaced by grassland: 1700 for Duke, Oak Ridge unclear, was also field
-	// Thomas2 this year's ndemand: checking, see grwoth.cpp
+	/// Constructs a Stand
+	/** \param i         The id for the stand within the grid cell
+	 *  \param gc        The parent grid cell
+	 *  \param landcover The type of landcover to use for this stand
+	 *  \param pftlist   The list of PFTs
+	 */
+	Stand(int i, Gridcell& gc,landcovertype landcover,Pftlist& pftlist); 
 
-	Stand(Pftlist& pftlist):climate(*this) {
-		
-		// Constructor: initialises reference member of climate and
-		// builds list array of Standpft objects
-		
-		int p;
+	/// Gives the fraction of this Stand relative to the whole grid cell
+	double get_gridcell_fraction() const;
 
-		pftlist.firstobj();
-		while (pftlist.isobj) {
-			pft.createobj(pftlist.getobj());
-			pftlist.nextobj();
-		}
+	/// Gives the fraction of this Stand relative to its land cover type
+	double get_landcover_fraction() const;
 
-		for (p=0;p<npatch;p++) createobj(*this,pftlist,soiltype);
+	/// Set the fraction of this Stand relative to its land cover type
+	void set_landcover_fraction(double fraction);
+
+private:
+
+	/// Fraction of this stand relative to its landcover
+	/** used by crop stands; initialized in constructor to 1, 
+	 *  set in landcover_init() 
+	 */
+	double frac;
+};
+
+
+
+/// State variables common to all individuals of a particular PFT in a GRIDCELL.
+class Gridcellpft {
+
+public:
+
+	// MEMBER VARIABLES
+
+	/// A number identifying this object within its list array
+	int id;
+
+	/// A reference to the Pft object for this Gridcellpft
+	Pft& pft;
+
+	/// annual degree day sum above threshold damaging temperature
+	/** used in calculation of heat stess mortality; Sitch et al 2000, Eqn 55
+	 */
+	double addtw;
+
+	// MEMBER FUNCTIONS
+
+	/// Constructs a Gridcellpft object
+	/** \param i   The id for this object
+	 *  \param p   A reference to the Pft for this Gridcellpft
+	 */
+	Gridcellpft(int i,Pft& p):id(i),pft(p) {
+		addtw=0.0;
 	}
 };
 
+
+/// The Gridcell class corresponds to a modelled locality or grid cell.
+/** Member variables include an object of type Climate (holding climate, insolation and
+ *  CO2 data), a object of type Soiltype (holding soil static parameters) and a list
+ *  array of Stand objects. Soil objects (holding soil state variables) are associated
+ *  with patches, not gridcells. A separate Gridcell object must be declared for each modelled
+ *  locality or grid cell.
+ */
+class Gridcell : public ListArray_idin3<Stand,Gridcell,landcovertype, Pftlist> {
+
+public:
+
+	// MEMBER VARIABLES
+
+	/// climate, insolation and CO2 for this grid cell
+	Climate climate;
+
+    /// soil static parameters for this grid cell
+	Soiltype soiltype;
+	
+	/// The fractions of the different land cover types. 
+	/** landcoverfrac is read in from land cover input file or from 
+	 *  instruction file in getlandcover().
+	 */
+	double landcoverfrac[NLANDCOVERTYPES];
+
+	/// The land cover fractions from the previous year
+	/** Used to keep track of the changes when running with dynamic
+	 *  land cover.
+	 */
+	double landcoverfrac_old[NLANDCOVERTYPES];
+
+	/// Whether the land cover fractions changed for this grid cell this year
+	/** \see landcover_dynamics
+	 */
+	bool LC_updated;
+
+	/// list array [0...npft-1] of Gridcellpft (initialised in constructor)
+	ListArray_idin1<Gridcellpft,Pft> pft;
+    
+
+	// MEMBER FUNCTIONS
+
+
+
+
+	/// Constructs a Gridcell object
+	/** \param pftlist    The list of plant functional types
+	 */
+	Gridcell(Pftlist& pftlist):climate(*this) {
+		landcovertype landcover;
+		LC_updated=false;
+
+
+		for(int p=0;p<pftlist.nobj;p++) {
+			Gridcellpft& gcpft=pft.createobj(pftlist[p]);
+		}		
+
+		memset(landcoverfrac, 0, sizeof(double)*NLANDCOVERTYPES);
+		memset(landcoverfrac_old, 0, sizeof(double)*NLANDCOVERTYPES);
+
+		if(!run_landcover) {
+			landcover=NATURAL;
+			createobj(*this,landcover,pftlist);
+			landcoverfrac[NATURAL]=1.0;
+		}
+	}
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FRAMEWORK FUNCTION DECLARATION

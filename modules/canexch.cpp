@@ -1737,11 +1737,13 @@ void npp(Patch& patch) {
 			// guess2008 - update monthly arrays
 			indiv.mgpp[date.month]+=indiv.assim;
 			indiv.mra[date.month]+=indiv.resp;
-			patch.fluxes.mcflux_gpp[date.month]+=indiv.assim;
-			patch.fluxes.mcflux_ra[date.month]+=indiv.resp;
+			if(indiv.alive){
+			  patch.fluxes.mcflux_gpp[date.month]+=indiv.assim;
+			  patch.fluxes.mcflux_ra[date.month]+=indiv.resp;
+			}
 
 			// bvoc
-			if(ifbvoc){
+			if(ifbvoc&&indiv.alive){
 			  patch.fluxes.miso[date.month]+=indiv.iso;
 			  patch.fluxes.mmon[date.month]+=indiv.mon;
 			}
@@ -1897,11 +1899,13 @@ void npp(Patch& patch) {
 				// guess2008 - update monthly arrays
 				indiv.mgpp[date.month]+=indiv.assim;
 				indiv.mra[date.month]+=indiv.resp;
-				patch.fluxes.mcflux_gpp[date.month]+=indiv.assim; // ANDERS A TRENDY
-				patch.fluxes.mcflux_ra[date.month]+=indiv.resp; // ANDERS A TRENDY
-				
+				if(indiv.alive){
+				  patch.fluxes.mcflux_gpp[date.month]+=indiv.assim; // ANDERS A TRENDY
+				  patch.fluxes.mcflux_ra[date.month]+=indiv.resp; // ANDERS A TRENDY
+				}
+
 				// bvoc
-				if(ifbvoc){
+				if(ifbvoc&&indiv.alive){
 				  patch.fluxes.miso[date.month]+=indiv.iso;
 				  patch.fluxes.mmon[date.month]+=indiv.mon;
 				}

@@ -786,9 +786,6 @@ void allocation_init(double bminit,double ltor,Individual& indiv) {
 		indiv.cton_growth=(indiv.cmass_leaf+indiv.cmass_root)/
 			(indiv.nmass_leaf+indiv.nmass_root);
 		// end GUESSN
-	if(date.year<10){
-		dprintf("Year: %d\tPft: %s\tCmass: %g\tBmass: %g\tLtor: %g\n",date.year,(char*)indiv.pft.name,indiv.cmass_leaf,bminit,ltor);
-	}
 }
 
 // GUESSN
@@ -1828,8 +1825,6 @@ void growth(Stand& stand,Patch& patch) {
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
-		//if(date.year>550 && date.year<557)
-		//	dprintf("Year: %d\tid: %d\tleaf: %g\n",date.year,indiv.id,indiv.cmass_leaf);
 		// For this individual 
 
 		// GUESSN

@@ -1642,6 +1642,8 @@ public:
 	double nmass_litter_root;
 	double nmass_litter_wood;
 
+	double harvested_products_slow_nmass;	//nitrogen depository for long-lived products like wood
+
 	double nstore_est;
 		// N store for establishment
 	double nsapling_nuptake;
@@ -1678,6 +1680,7 @@ public:
 		// end GUESSN
 
 		harvested_products_slow=0.0;
+		harvested_products_slow_nmass=0.0;
 
 	}
 };

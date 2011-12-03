@@ -2324,7 +2324,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 					c_slow,cmass_gridcell+c_litter+c_fast+c_slow);
 		}
 
-
 		// Output of age structure (Windows shell only - no effect otherwise)
 
 		if (vegmode==COHORT || vegmode==INDIVIDUAL) {

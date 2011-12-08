@@ -176,6 +176,11 @@ void interception(Patch& patch,Climate& climate) {
 	// Calculate net EET for vegetated parts of patch (deducting loss to interception)
 
 	patch.eet_net_veg=max(climate.eet-patch.intercep,0.0);
+
+	// Interception accounting for patch
+	patch.aintercep+=patch.intercep;
+	patch.mintercep[date.month]+=patch.intercep;
+
 }
 
 
@@ -2047,7 +2052,7 @@ void forest_floor_conditions(Patch& patch) {
 // update of leaf phenology and soil temperature and prior to update of soil water.
 
 
-void canopy_exchange(Patch& patch) {
+void canopy_exchange(Patch& patch, Climate& climate) {
 
 	// DESCRIPTION
 	// Vegetation-atmosphere exchange of CO2 and water including calculations
@@ -2092,7 +2097,6 @@ void canopy_exchange(Patch& patch) {
 	// Retrieve Vegetation and Climate objects for this patch
 
 	Vegetation& vegetation=patch.vegetation;
-	Climate& climate=patch.stand.gridcell.climate;
 
 	double pet_s;
 		// potential evapotranspiration over non-vegetated parts of patch (mm,
@@ -2151,11 +2155,6 @@ void canopy_exchange(Patch& patch) {
 	water_scalar(patch);
 	npp(patch);
 	forest_floor_conditions(patch);
-
-	// Interception for patch
-
-	patch.aintercep+=patch.intercep;
-	patch.mintercep[date.month]+=patch.intercep;
 
 	// Potential evapotranspiration for patch
 

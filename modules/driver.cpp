@@ -437,6 +437,10 @@ void soiltemp(Climate& climate,Soil& soil) {
 		temp_lag=a+b*(30.0-soil.alag*LAG_CONV);
 		soil.temp=climate.atemp_mean+soil.exp_alag*(temp_lag-climate.atemp_mean);
 			// Eqn 2
+
+		for(int lyr=0;lyr<NSOILLAYER;lyr++) {
+			soil.temp_lyr[lyr]=soil.temp;
+		}
 	}
 }
 
@@ -606,6 +610,33 @@ void dailyaccounting_patch_lc(Patch& patch, Pftlist& pftlist) {
 	}
 }
 
+// GUESSN
+/// Set soil layer pH 
+/** The values are either taken from the top pH value, bottom pH value
+ *  or a weighted average depending on where the layer is situated 
+ *	compared to the top layer.
+ */
+void setsoilpH(Soil& soil, Soiltype& soiltype) {
+	
+	double top_soildepth=300.0;
+	double soildepth=0.0;
+
+	for (int lyr=0;lyr<NSOILLAYER;lyr++) {
+		soildepth+=soil.Dz[lyr];
+
+		if (soildepth<=top_soildepth) {
+			soil.pH[lyr]=soiltype.pH_top;
+		}
+		else if (soildepth>top_soildepth && soildepth-soil.Dz[lyr]<top_soildepth) {
+			double bot_frac=(soildepth-top_soildepth)/soil.Dz[lyr];
+			soil.pH[lyr]=bot_frac*soiltype.pH_bot+(1.0-bot_frac)*soiltype.pH_top;
+		}
+		else {
+			soil.pH[lyr]=soiltype.pH_bot;
+		}
+	}
+}
+
 void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 	// DESCRIPTION
 	// Updates daily soil parameters including exponential temperature response terms
@@ -616,9 +647,12 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 	// soil   = patch soil
 	// fluxes = current and accumulated C fluxes for patch
 
-	//int p;
 	Soil& soil=patch.soil;
 	Fluxes& fluxes=patch.fluxes;
+
+	// Set soil layers pH
+	if (date.year==0 && date.day==0)
+		setsoilpH(soil,patch.stand.gridcell.soiltype);
 
 	if (date.day==0) {
 
@@ -627,6 +661,12 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 		fluxes.acflux_veg=0.0;
 		fluxes.acflux_est=0.0;
 		fluxes.acflux_fire=0.0;
+
+		// GUESSN
+		fluxes.aNH3=0.0;
+		fluxes.aNO=0.0;
+		fluxes.aN2O=0.0;
+		fluxes.aN2=0.0;
 
 		patch.aaet=0.0;
 		patch.aevap=0.0;

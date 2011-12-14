@@ -1751,6 +1751,81 @@ void flush_litter_repr(Patch& patch) {
 	}
 }
 
+void determine_cton_ratios(Individual& indiv, double bminc) {
+
+	// C:N ratio for new and current biomass
+
+	double cton_leaf_full_growth;
+
+	if (ifnlim && date.year>freenyears) {	
+
+		// Determining annual N limitation on vmax
+		indiv.avmaxnlim=0.0;
+		double agpp=0.0;
+
+		for (int d=0;d<365;d++) {
+			indiv.avmaxnlim+=indiv.vmax_lim[d]*indiv.dassim[d];
+			agpp+=indiv.dassim[d];
+		}
+
+		if (!negligible(agpp))
+			indiv.avmaxnlim/=agpp;
+		else
+			indiv.avmaxnlim=0.0;
+
+		// A simple allocation with fractions of biomass going to leafs, roots and sap 
+		// determined from the ndemand allocation without any N limitation (this_years_ndemand())
+		// to determine C:N ratio of leafs that will result in no N limitation
+
+		if (bminc > 0.0 && indiv.ndemand_uptake_annual > 0.0) {
+			double A;
+			if (indiv.pft.lifeform == TREE) {
+				A=bminc*(indiv.bminc_leaf_frac+indiv.bminc_root_frac*indiv.pft.cton_leaf_avr/indiv.pft.cton_root_avr+
+					(1.0-indiv.bminc_leaf_frac-indiv.bminc_root_frac)*indiv.pft.cton_leaf_avr/indiv.pft.cton_sap_avr);
+			}
+			else {
+				A=bminc*(indiv.bminc_leaf_frac+indiv.bminc_root_frac*indiv.pft.cton_leaf_avr/indiv.pft.cton_root_avr);
+			}
+			cton_leaf_full_growth=A/indiv.nstore;
+		}
+		else
+			cton_leaf_full_growth=indiv.cton_leaf_new;	
+
+		// Determine C:N of new tissue
+		indiv.cton_leaf_new=1.0/(1.0/indiv.cton_leaf_opt-(1.0/indiv.cton_leaf_opt-1.0/cton_leaf_full_growth)*indiv.avmaxnlim);
+
+		// C:N ratio can't be outside of pft min max range and not lower than the optimal value
+		indiv.cton_leaf_new=min(indiv.pft.cton_leaf_max,max(indiv.pft.cton_leaf_min,max(indiv.cton_leaf_opt,indiv.cton_leaf_new)));
+				
+		indiv.cton_root_new=
+			indiv.cton_leaf_new*(indiv.pft.cton_root_avr/indiv.pft.cton_leaf_avr);
+		
+		indiv.cton_sap_new=
+			indiv.cton_leaf_new*(indiv.pft.cton_sap_avr/indiv.pft.cton_leaf_avr);
+	}
+	else {
+		indiv.cton_leaf_new=indiv.pft.cton_leaf_avr;
+		indiv.cton_root_new=indiv.pft.cton_root_avr;
+		indiv.cton_sap_new=indiv.pft.cton_sap_avr;
+	}
+
+	if (!negligible(indiv.nmass_leaf))
+		indiv.cton_leaf_old=indiv.cmass_leaf/indiv.nmass_leaf;
+	else
+		indiv.cton_leaf_old=indiv.pft.cton_leaf_avr;
+		
+	if (!negligible(indiv.nmass_root))
+		indiv.cton_root_old=indiv.cmass_root/indiv.nmass_root;
+	else
+		indiv.cton_root_old=indiv.pft.cton_root_avr;
+
+	if (!negligible(indiv.nmass_sap))
+		indiv.cton_sap_old=indiv.cmass_sap/indiv.nmass_sap;
+	else
+		indiv.cton_sap_old=indiv.pft.cton_sap_avr;
+	// end GUESSN
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GROWTH
@@ -1842,6 +1917,15 @@ void growth(Stand& stand,Patch& patch) {
 		// or N stress scalar 
 		indiv.ltor=min(indiv.wscal_mean,nscal)*indiv.pft.ltor_max;
 
+		// Set optimal leaf C:N ratio
+		if (ifnlim && date.year>freenyears) {	
+			if (!negligible(indiv.leafn_mean) && !negligible(indiv.cmass_leaf))
+				indiv.cton_leaf_opt=indiv.cmass_leaf/indiv.leafn_mean; 
+				// actual mean leafN based on Vmax from photosynthesis
+			else
+				indiv.cton_leaf_opt=indiv.pft.cton_leaf_avr;
+		}
+
 		indiv.deltafpc=0.0;
 
 		killed=false;
@@ -1914,76 +1998,6 @@ void growth(Stand& stand,Patch& patch) {
 			if (indiv.alive) 
 				patch.pft[indiv.pft.id].litter_repr+=cmass_repr;
 
-			// C:N ratio for new and current biomass
-			if (ifnlim && date.year>freenyears) {	
-
-				// Determining annual N limitation on vmax
-				indiv.avmaxnlim=0.0;
-				double agpp=0.0;
-
-				for (int d=0;d<365;d++) {
-					indiv.avmaxnlim+=indiv.vmax_lim[d]*indiv.dassim[d];
-					agpp+=indiv.dassim[d];
-				}
-
-				if (!negligible(agpp))
-					indiv.avmaxnlim/=agpp;
-				else
-					indiv.avmaxnlim=0.0;
-
-				// A simple allocation with fractions of biomass going to leafs, roots and sap 
-				// determined from the ndemand allocation without any N limitation (this_years_ndemand())
-				// to determine C:N ratio of leafs that will result in no N limitation
-
-				if (bminc > 0.0 && indiv.ndemand_uptake > 0.0) {
-					double A;
-					if (indiv.pft.lifeform == TREE) {
-						A=bminc*(indiv.bminc_leaf_frac+indiv.bminc_root_frac*indiv.pft.cton_leaf_avr/indiv.pft.cton_root_avr+
-							(1.0-indiv.bminc_leaf_frac-indiv.bminc_root_frac)*indiv.pft.cton_leaf_avr/indiv.pft.cton_sap_avr);
-					}
-					else {
-						A=bminc*(indiv.bminc_leaf_frac+indiv.bminc_root_frac*indiv.pft.cton_leaf_avr/indiv.pft.cton_root_avr);
-					}
-					cton_leaf_full_growth=A/indiv.nstore;
-				}
-				else
-					cton_leaf_full_growth=indiv.cton_leaf_new;	
-
-				// Determine C:N of new tissue
-				indiv.cton_leaf_new=1.0/(1.0/indiv.cton_leaf_opt-(1.0/indiv.cton_leaf_opt-1.0/cton_leaf_full_growth)*indiv.avmaxnlim);
-
-				// C:N ratio can't be outside of pft min max range and not lower than the optimal value
-				indiv.cton_leaf_new=min(indiv.pft.cton_leaf_max,max(indiv.pft.cton_leaf_min,max(indiv.cton_leaf_opt,indiv.cton_leaf_new)));
-				
-				indiv.cton_root_new=
-					indiv.cton_leaf_new*(indiv.pft.cton_root_avr/indiv.pft.cton_leaf_avr);
-		
-				indiv.cton_sap_new=
-					indiv.cton_leaf_new*(indiv.pft.cton_sap_avr/indiv.pft.cton_leaf_avr);
-			}
-			else {
-				indiv.cton_leaf_new=indiv.pft.cton_leaf_avr;
-				indiv.cton_root_new=indiv.pft.cton_root_avr;
-				indiv.cton_sap_new=indiv.pft.cton_sap_avr;
-			}
-
-			if (!negligible(indiv.nmass_leaf))
-				indiv.cton_leaf_old=indiv.cmass_leaf/indiv.nmass_leaf;
-			else
-				indiv.cton_leaf_old=indiv.pft.cton_leaf_avr;
-		
-			if (!negligible(indiv.nmass_root))
-				indiv.cton_root_old=indiv.cmass_root/indiv.nmass_root;
-			else
-				indiv.cton_root_old=indiv.pft.cton_root_avr;
-
-			if (!negligible(indiv.nmass_sap))
-				indiv.cton_sap_old=indiv.cmass_sap/indiv.nmass_sap;
-			else
-				indiv.cton_sap_old=indiv.pft.cton_sap_avr;
-			// end GUESSN
-
-
 			if (indiv.pft.lifeform==TREE) {
 
 				// TREE GROWTH
@@ -2010,6 +2024,13 @@ void growth(Stand& stand,Patch& patch) {
 					cmass_leaf_inc,cmass_root_inc,cmass_sap_inc,cmass_debt_inc,
 					cmass_heart_inc,
 					litter_leaf_inc,litter_root_inc,which_allocation,bminc_pos);
+
+				if (!negligible(max(0.0,cmass_leaf_inc)) && !negligible(max(0.0,cmass_root_inc))) {
+					indiv.bminc_leaf_frac=cmass_leaf_inc/(cmass_leaf_inc+cmass_root_inc+max(0.0,cmass_sap_inc));
+					indiv.bminc_root_frac=cmass_root_inc/(cmass_leaf_inc+cmass_root_inc+max(0.0,cmass_sap_inc));
+				}
+
+				determine_cton_ratios(indiv,bminc);
 
 				indiv.ndemand=
 					max(0.0,cmass_leaf_inc)*indiv.densindiv/indiv.cton_leaf_new+
@@ -2186,7 +2207,7 @@ void growth(Stand& stand,Patch& patch) {
 					// end GUESSN
 				}
 				else {	// GUESSN return N to soil so N budget is preserved
-					patch.soil.nmass_avail+=litter_leaf_inc*indiv.densindiv/indiv.cton_leaf_old+
+					patch.soil.NH4[0]+=litter_leaf_inc*indiv.densindiv/indiv.cton_leaf_old+
 						litter_root_inc*indiv.densindiv/indiv.cton_root_old-
 						min(0.0,nmass_sap_inc)*(1.0-nrelocfrac); // nrelocfrac gone to heartwood above
 					// end GUESSN
@@ -2224,7 +2245,7 @@ void growth(Stand& stand,Patch& patch) {
 						// end GUESSN
 					} 
 					else {	// GUESSN return N to soil so N budget is preserved
-						patch.soil.nmass_avail+=max(indiv.nmass_leaf,0.0)+max(indiv.nmass_root,0.0)+max(indiv.nmass_sap,0.0)+
+						patch.soil.NH4[0]+=max(indiv.nmass_leaf,0.0)+max(indiv.nmass_root,0.0)+max(indiv.nmass_sap,0.0)+
 							max(indiv.nmass_heart,0.0)+max(indiv.nstore,0.0)+max(indiv.nmass_reserve,0.0);
 						// end GUESSN
 					}
@@ -2248,6 +2269,12 @@ void growth(Stand& stand,Patch& patch) {
 					litter_leaf_inc,litter_root_inc,which_allocation,bminc_pos);
 
 				// GUESSN 
+				if (!negligible(max(0.0,cmass_leaf_inc)) && !negligible(max(0.0,cmass_root_inc))) {
+					indiv.bminc_leaf_frac=cmass_leaf_inc/(cmass_leaf_inc+cmass_root_inc);
+					indiv.bminc_root_frac=cmass_root_inc/(cmass_leaf_inc+cmass_root_inc);
+				}
+
+				determine_cton_ratios(indiv,bminc);
 				// Calculate N needed for this new biomass
 
 				indiv.ndemand=
@@ -2399,7 +2426,7 @@ void growth(Stand& stand,Patch& patch) {
 					// end GUESSN
 				}
 				else {	// GUESSN return N to soil so N budget is preserved
-					patch.soil.nmass_avail+=litter_leaf_inc/indiv.cton_leaf_old+litter_root_inc/indiv.cton_root_old;
+					patch.soil.NH4[0]+=litter_leaf_inc/indiv.cton_leaf_old+litter_root_inc/indiv.cton_root_old;
 					// end GUESSN
 				}
 
@@ -2423,7 +2450,7 @@ void growth(Stand& stand,Patch& patch) {
 						// end GUESSN
 					} 
 					else {	// GUESSN return N to soil so N budget is preserved
-						patch.soil.nmass_avail+=max(indiv.nmass_leaf,0.0)+max(indiv.nmass_root,0.0)+
+						patch.soil.NH4[0]+=max(indiv.nmass_leaf,0.0)+max(indiv.nmass_root,0.0)+
 							max(indiv.nstore,0.0)+max(indiv.nmass_reserve,0.0);
 						// end GUESSN
 					}
@@ -2463,7 +2490,7 @@ void growth(Stand& stand,Patch& patch) {
 					// end GUESSN
 				}
 				else {	// GUESSN return N to soil so N budget is preserved
-					patch.soil.nmass_avail+=max(indiv.nmass_leaf,0.0)+max(indiv.nmass_root,0.0)+max(indiv.nmass_sap,0.0)+
+					patch.soil.NH4[0]+=max(indiv.nmass_leaf,0.0)+max(indiv.nmass_root,0.0)+max(indiv.nmass_sap,0.0)+
 						max(indiv.nmass_heart,0.0)+max(indiv.nstore,0.0)+max(indiv.nmass_reserve,0.0);
 					// end GUESSN
 				}
@@ -2503,7 +2530,7 @@ void growth(Stand& stand,Patch& patch) {
 						}
 					}
 					// Give the rest back to the soil
-					patch.soil.nmass_avail+=indiv.nstore;
+					patch.soil.NH4[0]+=indiv.nstore;	// DAVID soil
 					indiv.nstore=0.0;	
 				}
 				else if (indiv.nstore<0.0 && indiv.nmass_reserve>0.0) {

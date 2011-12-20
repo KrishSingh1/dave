@@ -75,7 +75,7 @@ typedef enum {NOVEGMODE,INDIVIDUAL,COHORT,POPULATION} vegmodetype;
 // GUESSN
 // CENTURY pool names, NSOMPOOL number of SOM pools
 typedef enum {SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SURFCWD,
-	SOILCWD,SOILMETA,SLOWSOM,PASSIVESOM,LEACHED,NSOMPOOL} pooltype;	
+	SOILMETA,SLOWSOM,PASSIVESOM,LEACHED,NSOMPOOL} pooltype;	
 // end GUESSN
 
 /// Land cover type of a stand. NLANDCOVERTYPES keeps count of number of items.
@@ -188,12 +188,9 @@ extern int ifnfix;
 	// whether to include an estimate for N fixation
 extern bool ifndepdata;
 	// whether N deposition data available from a file
-extern bool ifsoilpHdata;
-	// whether soil pH data available from a file
 extern bool ifndemand_new_est;
 	// if to use N limitation on new establishment 
-extern bool ifdividN;
-	// DAVID soil // end GUESSN
+// end GUESSN
 
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;
@@ -513,8 +510,6 @@ public:
 		// annual nitrogen deposition (kgN/m2/year)
 	double andep;
 		// annual nitrogen deposition (kgN/m2/year)
-	double dndep[365];
-		// daily nitrogen deposition (kgN/m2/day)
 	// end GUESSN
 
 	// Monthly sums (converted to means) used by canopy exchange module
@@ -619,29 +614,6 @@ public:
 	double dcflux_gpp[365];
 		// daily GPP
 
-	// GUESSN
-
-	double dNH3[365];
-		// daily NH3 flux to atmosphere from top soil layer
-	double dNO[365];
-		// daily NO flux to atmosphere from top soil layer
-	double dN2O[365];
-		// daily N2O flux to atmosphere from top soil layer
-	double dN2[365];
-		// daily N2 flux to atmosphere from top soil layer
-
-	double aNH3;
-		// annaul NH3 flux to atmosphere from top soil layer
-	double aNO;
-		// annaul NO flux to atmosphere from top soil layer
-	double aN2O;
-		// annaul N2O flux to atmosphere from top soil layer
-	double aN2;
-		// annaul N2 flux to atmosphere from top soil layer
-
-
-	// end GUESSN
-
 	// MEMBER FUNCTIONS
 
 public:
@@ -652,18 +624,6 @@ public:
 		acflux_soil=0.0;
 		acflux_est=0.0;
 		acflux_harvest=0.0;	
-
-		aNH3=0.0;
-		aNO=0.0;
-		aN2O=0.0;
-		aN2=0.0;
-
-		for (int d=0;d<365;d++) {
-			dNH3[d]=0.0;
-			dNO[d]=0.0;
-			dN2O[d]=0.0;
-			dN2[d]=0.0;
-		}
 	}
 		
 
@@ -1106,13 +1066,9 @@ public:
 	double ndemand;
 		// annual N demand (used in growth)
 	double ndemand_uptake;
-		// daily N demand (used in vegetation_n_uptake_daily)
-	double ndemand_uptake_annual;
-		// annual N demand (used in vegetation_n_uptake_daily)
+		// annual N demand (used in vegetation_n_uptake)
 	double fnuptake;
 		// fractional N uptake of indiv demand
-	double nuptake_annual;
-		// annual N uptake
 	double n_reserve_uptake;
 		// fraction extra N uptake to reserve pool
 	double max_n_reserve;
@@ -1267,11 +1223,6 @@ public:
 		// fraction of soil that is clay
 	double silt_frac;
 		// fraction of soil that is silt plus clay
-
-	double pH_top;
-		// soil ph for the top 30 cm
-	double pH_bot;
-		// soil pH below 30 cm
 	// end GUESSN
 
 	// MEMBER FUNCTIONS
@@ -1325,8 +1276,6 @@ public:
 		cmass=0.0;
 		nmass=0.0;
 		ligcfrac=0.0;
-		delta_cmass=0.0;
-		delta_nmass=0.0;
 	};
 };
 
@@ -1419,56 +1368,27 @@ public:
 //////////////////////////////////////////////////////////////////////////////////
 // GUESSN: CENTURY SOM pools and other variables
 
-	Sompool sompool[NSOMPOOL][NSOILLAYER];
+	Sompool sompool[NSOMPOOL];
 
-	double dperc[NSOILLAYER];	// daily percolation (mm)
+	double dperc;				// daily percolation (mm)
 	double dbaseflow;			// daily baseflow (mm)
 	double wcontmm_yesterday;	// ...
 
 	double nmin_daily[365];		// daily N mineralisation (kgN/m2)
 	double nimmob_daily[365];	// daily N immobilisation (kgN/m2)
-	double leachfrac_daily[NSOILLAYER]; // fraction of excess mineral N leached each day;
+	double leachfrac_daily[365]; // fraction of excess mineral N leached each day;
 	double nmass_avail;			// soil mineral N pool (kgN/m2)
 
-	// DAVID soil
-	double NH4[NSOILLAYER];
-		// available NH4 concentration in each SOM layer [kg NH4-N layer-1]
-	double NO3[NSOILLAYER];
-		// available NO3 concentration in each SOM layer [kg NO3-N layer-1]
-	double NO2[NSOILLAYER];
-		// available NO2 concentration in each SOM layer [kg NO2-N layer-1]
-	double NH4_daily[NSOILLAYER][365];
-		// daily avaiable NH4 concentration in each SOM layer [kg NO3-N layer-1]
-	double NO3_daily[NSOILLAYER][365];
-		// daily avaiable NO3 concentration in each SOM layer [kg NO3-N layer-1]
-	double NO[NSOILLAYER];
-		// available NO concentration in each SOM layer [kg NO-N layer-1]
-	double N2O[NSOILLAYER];
-		// available N2O concentration in each SOM layer [kg N2O-N layer-1]
-	double N2[NSOILLAYER];
-		// available N2 concentration in each SOM layer [kg N2-N layer-1]
-
-	double Dz[NSOILLAYER];
-		// soil layer depth [mm]
-	double pH[NSOILLAYER];
-		// soil pH for each layer
-	double temp_lyr[NSOILLAYER];
-		// soil temperature (deg C)
-	double wfps[NSOILLAYER];
-		// water filed pore spaces 
-	double lca[NSOILLAYER];
-		// labile carbon available
-
-	double nmin_annual;			// annual sum of N mineralization
+	double nmin_annual;			// annual sum of N mineralisation
 	double nimmob_annual;		// annual sum of N immobilisation
 	double n_min_leach_annual;	// annual leaching from available N pool
 	double n_org_leach_annual;	// annual leaching of organics from active N pool
 	double ndep_annual;			// annual N deposition
-	double ndep_daily[365];		// daily N deposition
+
+	double setntoc_nmass_avail;	// soil mineral N pool (kgN/m2) (used in daily setntoc)
+	double daily_minimmndep;	// sum of mineralization, immobilization and N deposition (used in daily setntoc)
 
 	double N_fix;				// total annual N fixation
-	double nfix_annual;			// total annual N fixation
-	double nfix_daily[365];		// daily N fixation
 
 	double nmass_avail_daily;	// soil mineral N pool (kgN/m2) (used when trying to do daily N uptake)
 	double daily_leaching[365];	// daily N uptake leaching 
@@ -1502,6 +1422,7 @@ public:
 		last_gtemp=-1;
 		last_mgtemp=-1;
 
+
 		// guess2008 - extra initialisation
 		mwcontupper = 0.0;
 		mwcontlower = 0.0;
@@ -1517,44 +1438,24 @@ public:
 			// GUESSN
 			nmin_daily[d]=0.0;	
 			nimmob_daily[d]=0.0;	
+			leachfrac_daily[d]=0.0;
 			// end GUESSN
 		}
 
 		/////////////////////////////////////////////////////
 		// GUESSN: Initialise CENTURY pools
 
-		// DAVID soil
-		for (int s=0;s<NSOILLAYER;s++){
-			for (int p=0;p<NSOMPOOL;p++)
-				sompool[p][s].init();
+		for (int p=0;p<NSOMPOOL;p++)
+			sompool[p].init();
 
-			// Set initial CENTURY pool N:C ratios 
-			// Parton et al 1993, Fig 4
+		// Set initial CENTURY pool N:C ratios 
+		// Parton et al 1993, Fig 4
 
-			sompool[SOILMICRO][s].ntoc=1.0/15.0;
-			sompool[SLOWSOM][s].ntoc=1.0/20.0;
-			sompool[PASSIVESOM][s].ntoc=1.0/10.0;
-			sompool[SURFMICRO][s].ntoc=1.0/20.0;
-		
-			NH4[s] = 0.0;
-			NO3[s] = 0.0;
+		sompool[SOILMICRO].ntoc=1.0/15.0;
+		sompool[SLOWSOM].ntoc=1.0/20.0;
+		sompool[PASSIVESOM].ntoc=1.0/10.0;
+		sompool[SURFMICRO].ntoc=1.0/20.0;
 
-			NO2[s] = 0.0;
-			NO[s] = 0.0;
-			N2O[s] = 0.0;
-			N2[s] = 0.0;
-
-			wcont[s]=0.0;
-			dperc[s]=0.0;
-			leachfrac_daily[s]=0.0;
-			temp_lyr[s]=0.0;
-			wfps[s]=0.0;
-			lca[s]=0.0;
-		}	
-
-		Dz[0]=SOILDEPTH_UPPER;
-		Dz[1]=SOILDEPTH_LOWER;
-		
 		nmass_avail=0.0;
 
 		nmin_annual=0.0;			
@@ -1564,14 +1465,18 @@ public:
 		ndep_annual=0.0;
 		N_fix=0.0;
 
+		dperc=0.0;
 		dbaseflow=0.0;
-		wcontmm_yesterday=0.0;	
+		wcontmm_yesterday=0.0;
+
+		setntoc_nmass_avail=0.0;
+		daily_minimmndep=0.0;	
 
 		nmass_avail_daily=0.0;
 
-
-
 		// end GUESSN
+
+
 	}
 
 };
@@ -1867,19 +1772,12 @@ public:
 	double mpet[12];
 		// monthly PET (mm/month)
 
-	double daet;
-		// daily AET (mm/day)
-
 	// GUESSN
 	double fnuptake;
 		// fractional N uptake of patch demand
 	double ndemand;
 		// yearly N demand
-	double ndemand_soil;	// DAVID soil
 	double nsupply;
-		// yearly N supply
-	// DAVID soil
-	double nsupply_soil;
 		// yearly N supply
 	double new_est_ndemand;
 		// last years N demand for new establishments
@@ -1909,8 +1807,6 @@ public:
 
 		fireprob=0.0;
 		est_ndemand=0.0;
-
-		daet=0.0;
 	}
 };
 

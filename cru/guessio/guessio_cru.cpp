@@ -56,7 +56,6 @@
 
 // header file for reading binary data archive of global nitrogen deposition
 #include "GlobalNdep.h"
-#include "GlobalSoilpH.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 //
@@ -180,7 +179,7 @@ xtring file_firert;
 xtring file_dgpp;
 
 // GUESSN
-xtring file_cton,file_nmass,file_nsources,file_npool,file_nleach,file_nuptake,file_anppn,file_vmaxnlim,file_nflux;
+xtring file_cton,file_nmass,file_nsources,file_npool,file_nleach,file_nuptake,file_anppn,file_vmaxnlim;
 // end GUESSN
 
 // GUESSN allometry
@@ -213,7 +212,7 @@ void initsettings() {
 	file_dgpp="";
 
 	// GUESSN
-	file_cton=file_nmass=file_nsources=file_npool=file_nleach=file_nuptake=file_anppn=file_vmaxnlim=file_nflux="";
+	file_cton=file_nmass=file_nsources=file_npool=file_nleach=file_nuptake=file_anppn=file_vmaxnlim="";
 	// end GUESSN
 
 	// GUESSN allometry
@@ -341,7 +340,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_nuptake",&file_nuptake,300,CB_NONE,"annual N uptake output file");
 		declareitem("file_anppn",&file_anppn,300,CB_NONE,"annual N usage output file");
 		declareitem("file_vmaxnlim",&file_vmaxnlim,300,CB_NONE,"annual N limitation on vm output file");
-		declareitem("file_nflux",&file_nflux,300,CB_NONE,"annual N fluxes output file");
 		// end GUESSN
 
 		// GUESSN allometry
@@ -1232,10 +1230,8 @@ FILE *out_dgpp;
 // GUESSN
 // Full pathname of ASCII file containing annual N deposition values (read from ins file)
 xtring file_ndep;
-// Full pathname of ASCII file containing soil pH values (read from ins file)
-xtring file_soilph;
 
-FILE *out_cton,*out_nmass, *out_nsources, *out_npool, *out_nleach, *out_nuptake, *out_anppn, *out_vmaxnlim, *out_nflux;
+FILE *out_cton,*out_nmass, *out_nsources, *out_npool, *out_nleach, *out_nuptake, *out_anppn, *out_vmaxnlim;
 // end GUESSN
 
 // GUESSN allometry
@@ -1693,18 +1689,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		fclose(in_ndep);
 		ifndepdata=true;
 	}
-
-	file_soilph=param["file_soilph"].str;
-	if (file_soilph=="")
-		ifsoilpHdata=false;
-	else {
-		FILE* in_soilph=fopen(file_soilph,"rt");
-		if (!in_soilph)
-			fail("initio: could not open %s for input",(char*)file_soilph);
-
-		fclose(in_soilph);
-		ifsoilpHdata=true;
-	}
 	// end GUESSN
 
 	// Remember whether to produce output each year or not
@@ -1865,13 +1849,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		if (!out_vmaxnlim) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_vmaxnlim);
 	}
 	else out_vmaxnlim=NULL;
-
-	if (file_nflux!="") {
-		file_nflux = outputdirectory + file_nflux;
-		out_nflux=fopen(file_nflux,"w");
-		if (!out_nflux) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_nflux);
-	}
-	else out_nflux=NULL;
 	// end GUESSN
 
 	// GUESSN allometry
@@ -2062,11 +2039,13 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	{
  *  \param  filename    The file name of the binary archive
  *  \param  lon         Longitude
  *  \param  lat         Latitude
- *  \param  andep1860  Nitrogen deposition for 1860 (kgN/m2/year)
- *  \param  andep1993  Nitrogen deposition for 1993 (kgN/m2/year)
- *  \param  andep2050  Nitrogen deposition for 2050 (kgN/m2/year)
+ *  \param  xandep1860  Nitrogen deposition for 1860 (kgN/m2/year)
+ *  \param  xandep1993  Nitrogen deposition for 1993 (kgN/m2/year)
+ *  \param  xandep2050  Nitrogen deposition for 2050 (kgN/m2/year)
  */
 bool getndep(xtring filename,double lon,double lat,Climate& climate) {
+
+
 
 	double minndep = 0.00001;
 
@@ -2101,59 +2080,6 @@ bool getndep(xtring filename,double lon,double lat,Climate& climate) {
 
 		 ark.close();
 		 return true;
-	}
-}
-// end GUESSN
-
-// GUESSN
-/// Retrieves soil pH for a particular grid cell
-/** The values are either taken from the pH parameter in the instruction
- *  file, or from a binary archive file.
- *
- *  The binary archive has pH for the top 30 cm and then a second value from 30-100 cm
- *  (Batjes NH 2005).
- *
- *  \param  filename    The file name of the binary archive
- *  \param  lon         Longitude
- *  \param  lat         Latitude
- *  \param  pH_top		pH for top 30 cm
- *  \param  pH_bot		pH below 30 cm
- */
-bool getsoilpH(xtring filename,double lon,double lat,Soiltype& soiltype) {
-
-
-
-	double minpH = 3.0;
-
-	if (!ifsoilpHdata) {
-		soiltype.pH_top=6.0;	
-		soiltype.pH_bot=6.0;	
-		return true;
-	}
-
-	GlobalSoilpHArchive ark;
-	if (!ark.open(filename)) {
-		fail("Could not open %s for input",(char*)filename);
-		return false;
-	}
-
-	GlobalSoilpH rec;
-	rec.longitude = lon;
-	rec.latitude = lat;
-	
-	if (!ark.getindex(rec)) {
-		// The coordinate wasn't found in the archive
-		ark.close();
-		return false;
-	}
-	else {
-		// Found the record, get the values
-		// Convert from gN to kgN, don't allow values smaller than minndep
-		soiltype.pH_top = max(minpH, rec.pH[0]);
-		soiltype.pH_bot = max(minpH, rec.pH[1]);
-
-		ark.close();
-		return true;
 	}
 }
 // end GUESSN
@@ -2280,13 +2206,7 @@ bool getgridcell(Gridcell& gridcell) {
 		if (!getndep(file_ndep,lon,lat,gridcell.climate)) {
 
 			fail("Grid cell not found in %s",(char*)file_ndep);
-		}		
-
-		if (!getsoilpH(file_soilph,lon,lat,gridcell.soiltype)) {
-
-			fail("Grid cell not found in %s",(char*)file_soilph);
 		}
-
 		// end GUESSN
 
 		dprintf("\nCommencing simulation for stand at (%g,%g)",gridlist.getobj().lon,
@@ -2324,36 +2244,19 @@ bool getgridcell(Gridcell& gridcell) {
 // Called by getclimate(). Calculates this years N deposition from three known values.
 // needs to be redone
 
-void thisyearsndep(Climate& climate,int year,int nyears_spin,int firsthistyear) {
+double thisyearsndep(double ndep_1860, double ndep_1993, double ndep_2050, int year, int nyears_spin, int firsthistyear) {
 
-	int d;
-	if (climate.andep_1860 == climate.andep_1993) {
-		climate.andep=climate.andep_1860;
-		for(d=0;d<365;d++) {
-			climate.dndep[d]=climate.andep_1860/365.0;
-		}
-	}
+	if (ndep_1860 == ndep_1993)
+		return ndep_1860;
 
 	int hist_year = firsthistyear - (nyears_spin - year);
 
-	if (hist_year <= 1860) {
-		climate.andep=climate.andep_1860;
-		for(d=0;d<365;d++) {
-			climate.dndep[d]=climate.andep_1860/365.0;
-		}
-	}
-	else if (hist_year <= 1993) {
-		climate.andep=climate.andep_1860+((double)hist_year-1860.0)*((climate.andep_1993-climate.andep_1860)/133.0);
-		for(d=0;d<365;d++) {
-			climate.dndep[d]=(climate.andep_1860+((double)hist_year-1860.0)*((climate.andep_1993-climate.andep_1860)/133.0))/365.0;
-		}
-	}
-	else {
-		climate.andep=climate.andep_1993+((double)hist_year-1993.0)*((climate.andep_2050-climate.andep_1993)/57.0);
-		for(d=0;d<365;d++) {
-			climate.dndep[d]=(climate.andep_1993+((double)hist_year-1993.0)*((climate.andep_2050-climate.andep_1993)/57.0))/365.0;
-		}
-	}
+	if (hist_year <= 1860)
+		return ndep_1860;
+	else if (hist_year <= 1993)
+		return ndep_1860+(hist_year-1860)*((ndep_1993-ndep_1860)/133.0);
+	else
+		return ndep_1993+(hist_year-1993)*((ndep_2050-ndep_1993)/57.0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -2654,7 +2557,8 @@ bool getclimate(Gridcell& gridcell) {
 		climate.co2=co2[date.year-nyear_spinup];
 
 	// GUESSN calculate annual N deposition value
-	thisyearsndep(climate,date.year,nyear_spinup,FIRSTHISTYEAR);
+	climate.andep=thisyearsndep(climate.andep_1860,climate.andep_1993,
+		climate.andep_2050,date.year,nyear_spinup,FIRSTHISTYEAR);
 	// end GUESSN
 
 	climate.temp=dtemp[date.day];
@@ -2763,7 +2667,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	int p,c,m,nclass;
 	double flux_veg,flux_soil,flux_fire,flux_est,flux_harvest;
 	double c_litter,c_fast,c_slow,c_harv_slow;
-	double flux_NH3,flux_NO,flux_N2O,flux_N2;
 
 	// GUESSN
 	double surfsoillitterc,surfsoillittern,cwdc,cwdn,microc,micron,humusc,humusn,centuryc,centuryn,n_harv_slow;
@@ -2860,7 +2763,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_anppn) fprintf(out_anppn,lonlatyearstr,"Lon","Lat","Year");
 		if (out_vmaxnlim) fprintf(out_vmaxnlim,lonlatyearstr,"Lon","Lat","Year");
 		if (out_canopyh) fprintf(out_canopyh,lonlatyearstr,"Lon","Lat","Year");
-		if (out_nflux) fprintf(out_nflux,"%8s%8s%8s%8s%8s%8s%8s%8s\n","Lon","Lat","Year","NH3","NO","N2O","N2","Total");
 		// end GUESSN
 
 		// Loop through PFT's and print PFT names as column labels
@@ -2970,7 +2872,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_anppn) fprintf(out_anppn,lonlatyeardatastr,lon,lat,date.year);
 		if (out_vmaxnlim) fprintf(out_vmaxnlim,lonlatyeardatastr,lon,lat,date.year);
 		if (out_canopyh) fprintf(out_canopyh,lonlatyeardatastr,lon,lat,date.year);
-		if (out_nflux) fprintf(out_nflux,lonlatyeardatastr,lon,lat,date.year);
 		// end GUESSN
 
 		if (out_mnpp) fprintf(out_mnpp,lonlatyeardatastr,lon,lat,date.year);
@@ -3150,7 +3051,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 								standpft_cmass_leaf+=indiv.cmass_leaf*indiv.densindiv;
 								standpft_nmass_leaf+=indiv.nmass_leaf*indiv.densindiv;
 								standpft_vmaxnlim+=indiv.avmaxnlim*indiv.cmass_leaf*indiv.densindiv;
-								standpft_nuptake+=indiv.nuptake_annual;
+								standpft_nuptake+=indiv.fnuptake*indiv.ndemand_uptake;
 								standpft_anppn+=indiv.ndemand;
 								standpft_nmass+=indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+
 									indiv.nmass_heart+indiv.nmass_reserve;
@@ -3294,7 +3195,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		surfsoillitterc=surfsoillittern=cwdc=cwdn=microc=micron=humusc=humusn=centuryc=centuryn=n_litter=n_harv_slow=0.0;
 		andep_gridcell=anmin_gridcell=animm_gridcell=anfix_gridcell=nsupply_gridcell=ndemand_gridcell=0.0;
 		n_org_leach_gridcell=n_min_leach_gridcell=0.0;
-		flux_NH3=flux_NO=flux_N2O=flux_N2=0.0;
 
 		// end GUESSN
 
@@ -3321,11 +3221,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 				c_fast+=patch.soil.cpool_fast*to_gridcell_average;
 				c_slow+=patch.soil.cpool_slow*to_gridcell_average;
-
-				flux_NH3+=patch.fluxes.aNH3*to_gridcell_average*10000.0;	// convert from m2 to ha;
-				flux_NO+=patch.fluxes.aNO*to_gridcell_average*10000.0;		// convert from m2 to ha;
-				flux_N2O+=patch.fluxes.aN2O*to_gridcell_average*10000.0;	// convert from m2 to ha;
-				flux_N2+=patch.fluxes.aN2*to_gridcell_average*10000.0;		// convert from m2 to ha;
 
 				// Sum all litter
 				for (int q=0;q<npft;q++) {
@@ -3357,35 +3252,33 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				andep_gridcell+=patch.soil.ndep_annual/(double)stand.nobj*10000.0;	// convert from m2 to ha
 				anmin_gridcell+=patch.soil.nmin_annual/(double)stand.nobj*10000.0;	// convert from m2 to ha
 				animm_gridcell+=patch.soil.nimmob_annual/(double)stand.nobj*10000.0; // convert from m2 to ha
-				anfix_gridcell+=patch.soil.nfix_annual/(double)stand.nobj*10000.0;		// convert from m2 to ha
+				anfix_gridcell+=patch.soil.N_fix/(double)stand.nobj*10000.0;		// convert from m2 to ha
 				n_min_leach_gridcell+=patch.soil.n_min_leach_annual/(double)stand.nobj*10000.0;	// convert from m2 to ha
 				n_org_leach_gridcell+=patch.soil.n_org_leach_annual/(double)stand.nobj*10000.0;	// convert from m2 to ha
 				nsupply_gridcell+=patch.nsupply/(double)stand.nobj*10000.0;			// convert from m2 to ha
 				ndemand_gridcell+=patch.ndemand/(double)stand.nobj*10000.0;			// convert from m2 to ha
 
-				for (int lyr=0;lyr<NSOILLAYER;lyr++) {
-					for (int r=0;r<NSOMPOOL;r++) {
-						if (patch.soil.sompool[r][lyr].nmass > 0.0) {
-							if(r==SURFMETA||r==SURFSTRUCT||r==SOILMETA||r==SOILSTRUCT){
-								surfsoillitterc+=patch.soil.sompool[r][lyr].cmass/(double)stand.nobj;
-								surfsoillittern+=patch.soil.sompool[r][lyr].nmass/(double)stand.nobj;
-							}
-							else if (r==SURFCWD) {
-								cwdc+=patch.soil.sompool[r][lyr].cmass/(double)stand.nobj;
-								cwdn+=patch.soil.sompool[r][lyr].nmass/(double)stand.nobj;
-							}
-							else if (r==SURFMICRO||r==SOILMICRO) {
-								microc+=patch.soil.sompool[r][lyr].cmass/(double)stand.nobj;
-								micron+=patch.soil.sompool[r][lyr].nmass/(double)stand.nobj;
-							}
-							else if (r==SURFHUMUS){
-								humusc+=patch.soil.sompool[r][lyr].cmass/(double)stand.nobj;
-								humusn+=patch.soil.sompool[r][lyr].nmass/(double)stand.nobj;
-							}
-							else {
-								centuryc+=patch.soil.sompool[r][lyr].cmass/(double)stand.nobj;
-								centuryn+=patch.soil.sompool[r][lyr].nmass/(double)stand.nobj;
-							}
+				for (int r=0;r<NSOMPOOL;r++) {
+					if (patch.soil.sompool[r].nmass > 0.0) {
+						if(r==SURFMETA||r==SURFSTRUCT||r==SOILMETA||r==SOILSTRUCT){
+							surfsoillitterc+=patch.soil.sompool[r].cmass/(double)stand.nobj;
+							surfsoillittern+=patch.soil.sompool[r].nmass/(double)stand.nobj;
+						}
+						else if (r==SURFCWD) {
+							cwdc+=patch.soil.sompool[r].cmass/(double)stand.nobj;
+							cwdn+=patch.soil.sompool[r].nmass/(double)stand.nobj;
+						}
+						else if (r==SURFMICRO||r==SOILMICRO) {
+							microc+=patch.soil.sompool[r].cmass/(double)stand.nobj;
+							micron+=patch.soil.sompool[r].nmass/(double)stand.nobj;
+						}
+						else if (r==SURFHUMUS){
+							humusc+=patch.soil.sompool[r].cmass/(double)stand.nobj;
+							humusn+=patch.soil.sompool[r].nmass/(double)stand.nobj;
+						}
+						else {
+							centuryc+=patch.soil.sompool[r].cmass/(double)stand.nobj;
+							centuryn+=patch.soil.sompool[r].nmass/(double)stand.nobj;
 						}
 					}
 				}
@@ -3475,8 +3368,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			anmin_gridcell-animm_gridcell,andep_gridcell+anmin_gridcell-animm_gridcell+anfix_gridcell,ndemand_gridcell);
 		if (out_nleach)	fprintf(out_nleach,"%8.3f%8.3f%8.3f\n",n_min_leach_gridcell,n_org_leach_gridcell,
 			n_min_leach_gridcell+n_org_leach_gridcell);
-		if (out_nflux)	fprintf(out_nflux,"%8.4f%8.4f%8.4f%8.4f%8.4f\n",flux_NH3,flux_NO,flux_N2O,flux_N2,
-			flux_NH3+flux_NO+flux_N2O+flux_N2);
+
 		// end GUESSN
 
 		if (run_landcover) {
@@ -3526,7 +3418,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_canopyh) fprintf(out_canopyh,"\n");
 		if (out_nuptake) fprintf(out_nuptake, "\n");
 		//end GUESSN
-
 		// Print monthly output variables
 		for (m=0;m<12;m++) {
 
@@ -3582,16 +3473,11 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 					plot("soilc","fast",date.year,stand[0].soil.cpool_fast);
 				}
 
-				plot("N fixation [kgN/ha/yr]","Soil N fix",date.year,anfix_gridcell);
-				plot("N min-immob [kgN/ha/yr]","N",date.year,anmin_gridcell-animm_gridcell);
+				plot("N fixation (kgN/ha/yr)","Soil N fix",date.year,anfix_gridcell);
+				plot("N min-immob (kgN/ha/yr)","N",date.year,anmin_gridcell-animm_gridcell);
 
-				plot("N demand/supply [kgN/ha/yr]","N supply",date.year,nsupply_gridcell);
-				plot("N demand/supply [kgN/ha/yr]","N demand",date.year,ndemand_gridcell);
-
-				plot("N fluxes [kgN/ha/yr]","NH3",date.year,flux_NH3);
-				plot("N fluxes [kgN/ha/yr]","NO",date.year,flux_NO);
-				plot("N fluxes [kgN/ha/yr]","N2O",date.year,flux_N2O);
-				plot("N fluxes [kgN/ha/yr]","N2",date.year,flux_N2);
+				plot("N demand/supply (kgN/ha/yr)","N supply",date.year,nsupply_gridcell);
+				plot("N demand/supply (kgN/ha/yr)","N demand",date.year,ndemand_gridcell);
 				//end GUESSN
 			}
 		}
@@ -3620,8 +3506,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				else
 					fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%10.4f\n",cmass_gridcell,c_litter,c_fast,
 						c_slow,cmass_gridcell+c_litter+c_fast+c_slow);
-			}
-			else{
+			}else{
 				if(run_landcover && ifslowharvestpool)
 					fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%10.3f\n",cmass_gridcell,c_litter,
 						surfsoillitterc,cwdc,microc,humusc,centuryc,c_harv_slow,
@@ -3676,13 +3561,22 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 									}
 								}
 							}
+
+
+
 							pftlist.nextobj();
 						}
+
+
 					}
+
+
+
 					gridcell.nextobj();
 				}
 			}
 		}
+
 	}
 }
 
@@ -3731,7 +3625,6 @@ void termio() {
 		if (out_anppn) fclose(out_anppn);
 		if (out_vmaxnlim) fclose(out_vmaxnlim);
 		if (out_canopyh) fclose(out_canopyh);
-		if (out_nflux) fclose(out_nflux);
 		// end GUESSN
 	}
 
@@ -3747,8 +3640,6 @@ void termio() {
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
-// Batjes NH 2005. ISRIC-WISE global data set of derived soil properties on a 0.5 by 0.5 
-//	 degree grid (Version 3.0). Report 2005/08, ISRIC - World Soil Information, Wageningen 
 // Galloway, J. N., F. J. Dentener, D. G. Capone, E. W. Boyer, R. W. Howarth, S. P. Seitzinger,
 //   G. P. Asner, C. Cleveland, P. Green, E. Holland, D. M. Karl, A. F. Michaels, J. H. Porter, 
 //   A. Townsend, and C. V�r�smarty. 2004.

@@ -483,11 +483,10 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 						// GUESSN grass gets at least 5% of available N. When established
 						// they shouldn't been able to get more!
-						double nmass_avail=0.0;
-						for (int lyr=0;lyr<NSOILLAYER;lyr++) {
-							nmass_avail+=patch.soil.NH4[lyr]+patch.soil.NO3[lyr];
-						}
-						double bminit_n_lim=indiv.pft.cton_leaf_avr*nmass_avail*0.05;
+						double bminit_n_lim=indiv.pft.cton_leaf_avr*(patch.soil.nmass_avail+
+								patch.soil.ndep_annual+patch.soil.N_fix+
+								patch.soil.nmin_annual-patch.soil.nimmob_annual)*0.05;
+
 
 						if (ifdisturb && patch.disturbed)
 							bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est_initial;
@@ -534,7 +533,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 								bminit*=frac_est;
 
 								if (patch.pft[pft.id].nstore_est>0.0) {
-									patch.soil.NH4[0]+=patch.pft[pft.id].nstore_est;
+									patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;
 									patch.pft[pft.id].nstore_est=0.0;
 								}
 							}
@@ -565,7 +564,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 					else {
 						if (ifndemand_new_est) {
 							if (patch.pft[pft.id].nstore_est>0.0) {
-								patch.soil.NH4[0]+=patch.pft[pft.id].nstore_est;
+								patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;
 								patch.pft[pft.id].nstore_est=0.0;
 							}
 						}
@@ -617,8 +616,8 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 					// GUESSN
 					// scale est by the limiting N uptake factor
-					//if (ifnlim && date.year>freenyears && !ifndemand_new_est)
-					//	est*=max(pow(patch.fnuptake,4.0),0.05);
+					if (ifnlim && date.year>freenyears && !ifndemand_new_est)
+						est*=max(pow(patch.fnuptake,4.0),0.05);
 					// end GUESSN
 
 					// guess2008 - scale est by the number of woody PFTs/species that can establish
@@ -788,7 +787,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 					if (est_year && ifndemand_new_est) {
 						if (patch.pft[pft.id].nstore_est>0.0) {
-							patch.soil.NH4[0]+=patch.pft[pft.id].nstore_est;
+							patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;
 							patch.pft[pft.id].nstore_est=0.0;
 						}
 					}
@@ -816,7 +815,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 		// should take this N from somewhere
 		// Deduct from soil avail N pool (may make it temporarily negative!)
 		if (date.year>freenyears) {
-			patch.soil.NH4[0]-=patch.est_ndemand/(double)estinterval;
+			patch.soil.nmass_avail-=patch.est_ndemand/(double)estinterval;
 			patch.est_ndemand-=patch.est_ndemand/(double)estinterval;
 		}
 		else

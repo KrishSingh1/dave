@@ -22,6 +22,8 @@
 #include "guess.h"
 
 void initio(int argc,char* argv[],Pftlist& pftlist);
+bool getndep(xtring filename,double lon,double lat,Climate& climate);
+//bool getstand(Stand& stand);
 bool getgridcell(Gridcell& gridcell);
 bool getclimate(Gridcell& gridcell);
 void getlandcover(Gridcell& gridcell,Pftlist& pftlist);

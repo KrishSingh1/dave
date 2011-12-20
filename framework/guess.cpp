@@ -71,19 +71,15 @@ int ifnfix;
 	// whether to include an estimate for N fixation
 bool ifndepdata;
 	// whether N deposition data available from a file
-bool ifsoilpHdata;
-	// whether soil pH data available from a file
 bool ifndemand_new_est;
 	// if to use N limitation on new establishment 
-bool ifdividN=false;
-	// DAVID soil
 
 // end GUESSN
 
 // N budget check
 double Total_N_500;
 double Total_C_500;
-double Added_N_from_500=0.0;
+double Added_N_from_500;
 
 // guess2008 - new inputs from the .ins file
 bool ifsmoothgreffmort;				// smooth growth efficiency mortality
@@ -165,7 +161,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 
 	nstore=0.0;
 	fnuptake=1.0;
-	nuptake_annual=0.0;
 	n_reserve_uptake=0.0;
 	max_n_reserve=0.0;
 
@@ -292,7 +287,7 @@ int framework(int argc,char* argv[]) {
 						// Soil water accounting, snow pack accounting
 						soilwater(gridcell.climate,patch);
 						// Soil organic matter and litter dynamics
-						som_dynamics(patch,gridcell.climate,pftlist);
+						som_dynamics(patch,pftlist);
 
 
 						if (date.islastday && date.islastmonth) {

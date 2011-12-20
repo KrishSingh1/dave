@@ -103,10 +103,9 @@ void snow(double prec,double temp,double& snowpack,double& rain,double& melt) {
 // Internal function (do not call directly from framework)
 
 void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
-	double perc_base,double perc_exp,double awc[NSOILLAYER],double wp[NSOILLAYER],
-	double f_FC[NSOILLAYER],double fevap,
+	double perc_base,double perc_exp,double awc[NSOILLAYER],double wp[NSOILLAYER],double fevap,
 	double awcont[NSOILLAYER],double wcont[NSOILLAYER],double& wcont_evap,
-	double& runoff,double snowpack,double dperc[NSOILLAYER], double wfps[NSOILLAYER]) {
+	double& runoff,double snowpack,double& dperc) {
 
 
 	// DESCRIPTION
@@ -249,46 +248,23 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 
 	runoff_drain=0.0;
 
-	for (s=0;s<NSOILLAYER;s++) {
+	for (s=1;s<NSOILLAYER;s++) {
 
 		// Percolation
 		// Allow only on days with rain or snowmelt (Dieter Gerten, 021216)
 
-		if (influx>=0.1) {
-			if (s==0)
-				perc=min(perc_base*pow(wcont[s],perc_exp),influx);
-			else
-				perc=perc_base*pow(wcont[s],perc_exp);
-		}
-		else {
+		if (influx>=0.1)
+			perc=min(perc_base*pow(wcont[s-1],perc_exp),influx);
+		else
 			perc=0.0;
-		}
 
-		perc_frac=min(perc/awc[s],wcont[s]);
+		perc_frac=min(perc/awc[s-1],wcont[s-1]);
 		
-		wcont[s]-=perc_frac;
-
-		dperc[s]=perc_frac*awc[s];
-
-		if (s+1==NSOILLAYER){
-
-			if (perc_frac>0.0)
-				int sch = 0;
-
-			runoff_drain+=perc_frac*awc[s];
-			if (wcont[s]>1.0) {
-				runoff_drain+=(wcont[s]-1.0)*awc[s];
-				dperc[s]+=(wcont[s]-1.0)*awc[s];
-				wcont[s]=1.0;
-			}
-		}
-		else {
-			wcont[s+1]+=perc_frac*awc[s]/awc[s+1];
-			if (wcont[s]>1.0) {
-				runoff_drain+=(wcont[s]-1.0)*awc[s];
-				dperc[s]=(wcont[s]-1.0)*awc[s];
-				wcont[s]=1.0;
-			}
+		wcont[s-1]-=perc_frac;
+		wcont[s]+=perc_frac*awc[s-1]/awc[s];
+		if (wcont[s]>1.0) {
+			runoff_drain+=(wcont[s]-1.0)*awc[s];
+			wcont[s]=1.0;
 		}
 
 		// Deduct AET from this soil layer
@@ -298,7 +274,12 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 		if (wcont[s]<0.0) wcont[s]=0.0;
 	}
 
-	
+	// GUESSN: save percolation from last (bottom) layer (needed by CENTURY)
+	if (perc > 0.0)
+		dperc=perc;
+	else
+		dperc=0.0;
+	// end GUESSN
 
 	// Baseflow runoff (Dieter Gerten 021216) (rain or snowmelt days only)
 
@@ -315,13 +296,6 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 	}
 	else runoff_baseflow=0.0;
 
-	// Updated
-	// water holding capacity at wilting point (wp) and ratio between saturation capacity and field capacity (f_FC) 
-	// is calculated with the help of Cosby et al 1984;
-	for (s=0;s<NSOILLAYER;s++) {
-		wfps[s]=(wcont[s]*awc[s]+wp[s])*100.0/(f_FC[s]*awc[s]);
-	}
-
 
 	// GUESSN: Export baseflow
 	patch.soil.dbaseflow=runoff_baseflow+runoff_drain;
@@ -336,8 +310,6 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 	patch.maet[date.month]+=aet_total;
 	patch.mevap[date.month]+=evap;
 	patch.mrunoff[date.month]+=runoff;
-
-	patch.daet=aet_total;
 
 
 	// guess2008 - DLE - update awcont
@@ -412,9 +384,9 @@ void soilwater(Climate& climate,Patch& patch) {
 
 	// guess2008 - DLE - added soil.awcont & soil.snowpack to the function call
 	hydrology_lpjf(patch,climate.eet,rain,melt,soil.soiltype.perc_base,
-		soil.soiltype.perc_exp,soil.soiltype.awc,soil.soiltype.wp,soil.soiltype.f_FC,
-		max(1.0-fpc_phen_total,0.0),soil.awcont,soil.wcont,soil.wcont_evap,
-		soil.runoff,soil.snowpack,soil.dperc,soil.wfps);
+		soil.soiltype.perc_exp,soil.soiltype.awc,soil.soiltype.wp,max(1.0-fpc_phen_total,0.0),
+		soil.awcont,soil.wcont,soil.wcont_evap,soil.runoff,soil.snowpack,
+		soil.dperc);
 
 }
 

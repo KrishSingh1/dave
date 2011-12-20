@@ -319,6 +319,16 @@ void plib_declarations(int id,xtring setname) {
 			"N limitation of new establishment");
 		// end GUESSN
 
+		// SENS
+		declareitem("sens_cton_needle",&sens_cton_needle,0.5,2.0,1,CB_NONE,
+			"Needleleaved C:N min change");
+		declareitem("sens_cton_broad",&sens_cton_broad,0.5,2.0,1,CB_NONE,
+			"Broadleaved C:N min change");
+		declareitem("sens_cton_vmax",&sens_cton_vmax,0.5,2.0,1,CB_NONE,
+			"vmax N limitation effect on leaf C:N");
+		declareitem("sens_decayrate",&sens_decayrate,0.5,2.0,1,CB_NONE,
+			"Change decay rates constant of som pools");
+
 		// guess2008
 		// Annual output variables
 		declareitem("outputdirectory",&outputdirectory,300,CB_NONE,"Directory for the output files");
@@ -662,6 +672,12 @@ void plib_callback(int callback) {
 		if (!itemparsed("cwdtransfer")) badins("cwdtransfer");
 		if (!itemparsed("ifndemand_new_est")) badins("ifndemand_new_est");
 		// end GUESSN
+	
+		// SENS
+		if (!itemparsed("sens_cton_needle")) badins("sens_cton_needle");
+		if (!itemparsed("sens_cton_broad")) badins("sens_cton_broad");
+		if (!itemparsed("sens_decayrate")) badins("sens_decayrate");
+		if (!itemparsed("sens_cton_vmax")) badins("sens_cton_vmax");
 
 		// guess2008
 		if (!itemparsed("outputdirectory")) badins("outputdirectory");

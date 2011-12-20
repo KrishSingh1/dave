@@ -191,6 +191,15 @@ extern bool ifndepdata;
 extern bool ifndemand_new_est;
 	// if to use N limitation on new establishment 
 // end GUESSN
+// SENS
+extern double sens_cton_needle;
+	// Needleleaved C:N min change
+extern double sens_cton_broad;
+	// Broadleaved C:N min change
+extern double sens_decayrate;
+	// Change decay rates constant of som pools
+extern double sens_cton_vmax;
+	// Changes vmax N limitation effect on leaf C:N
 
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;
@@ -839,6 +848,12 @@ public:
 		// m2/kgC)
 
 		sla=0.2*exp(6.15-0.46*log(leaflong*12.0));
+
+		// SENS
+		if (cton_leaf_min == 28.0)
+			cton_leaf_min*=sens_cton_needle;
+		else
+			cton_leaf_min*=sens_cton_broad;
 	}
 
 	void initregen() {

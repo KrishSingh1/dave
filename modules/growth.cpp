@@ -1931,6 +1931,9 @@ void growth(Stand& stand,Patch& patch) {
 				else
 					indiv.avmaxnlim=0.0;
 
+				// SENS
+				indiv.avmaxnlim*=sens_cton_vmax;
+
 				// A simple allocation with fractions of biomass going to leafs, roots and sap 
 				// determined from the ndemand allocation without any N limitation (this_years_ndemand())
 				// to determine C:N ratio of leafs that will result in no N limitation

@@ -528,7 +528,7 @@ void decayrates(Soil& soil,double temp_soil,double wcont_soil) {
 	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
 	// plus Kirschbaum et al 2001 coarse woody debris decay	
-	const double K_MAX[]={6.8e-3,1.3e-2,3.0e-2,4.4e-4,1.9e-2,2.7e-2,3.3e-3,5.1e-2,1.3e-3,6.8e-6};
+	const double K_MAX[]={9.2e-3,1.8e-2,4.0e-2,4.8e-4,2.6e-2,3.7e-2,2.2e-3,6.8e-2,1.7e-3,6.9e-5};
 
 	// Modifier for effect of soil texture
 	// Eqn 5, Parton et al 1993:
@@ -582,6 +582,9 @@ void decayrates(Soil& soil,double temp_soil,double wcont_soil) {
 			k*=exp(-3.0*soil.sompool[p].ligcfrac);
 		else if (p==SOILMICRO)
 			k*=texture_mod;
+
+		// SENS
+		k*=sens_decayrate;
 
 		// Calculate fraction of C pool remaining after today's decomposition
 

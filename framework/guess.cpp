@@ -73,8 +73,17 @@ bool ifndepdata;
 	// whether N deposition data available from a file
 bool ifndemand_new_est;
 	// if to use N limitation on new establishment 
-
 // end GUESSN
+
+// SENS
+double sens_cton_needle;
+	// Needleleaved C:N min change
+double sens_cton_broad;
+	// Broadleaved C:N min change
+double sens_decayrate;
+	// Changes decay rates constant of som pools
+double sens_cton_vmax;
+	// Changes vmax N limitation effect on leaf C:N
 
 // N budget check
 double Total_N_500;

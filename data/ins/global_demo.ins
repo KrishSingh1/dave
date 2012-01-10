@@ -31,7 +31,7 @@
 	param "file_co2" (str "co2_1901-2006.txt")
 
 ! N deposition (blank string to use constant value andep instead -- see below)
-	param "file_ndep" (str "GlobalNdep.bin")
+	param "file_ndep" (str "GlobalNitrogenDeposition.bin")
 	!param "file_ndep" (str "")
 
 
@@ -60,7 +60,7 @@ file_firert "firert.out"
 !file_age "age.out"
 !file_allometry "allometry.out"
 file_canopyh "canopyheight.out"
-file_allometry_ind "allometry_ind.out"
+!file_allometry_ind "allometry_ind.out"
 
 
 
@@ -88,8 +88,6 @@ file_mintercep "mintercep.out"
 file_mrunoff "mrunoff.out"
 file_mwcont_upper "mwcont_upper.out"
 file_mwcont_lower "mwcont_lower.out"
-
-!file_dgpp "dgpp.out"
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -143,6 +141,11 @@ ifndemand_new_est 1		! whether new est has to compite for N
 
 ! end GUESSN
 
+! SENS
+sens_cton_needle 1.0	! frac change to cton_leaf for needleleaved pfts
+sens_cton_broad 1.0		! frac change to cton_leaf for broadleaved pfts
+sens_decayrate 1.0		! frac change to decayrates
+sens_cton_vmax 1.0		! frac change to avmaxnlim
 
 ! guess2008 - additions
 ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1) 

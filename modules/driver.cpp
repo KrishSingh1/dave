@@ -109,28 +109,26 @@ void soilparameters(Soiltype& soiltype,int soilcode) {
 		//       Jury et al (1991), Fig 5.11.
 		//    5  wilting point as fraction of depth (calculation method described in 
 		//       Prentice et al 1992)
-		//    6  calculated ratio between saturation capacity and field capacity 
+		//    6  saturation capacity  
+		//    7  saturated hydraulic conductivity (Ks) (mm/h) following Cosby (1984)
 
-		//    0      1      2      3      4      5      6      soilcode
-		//  -----------------------------------------------------------
+		//    0      1      2      3      4      5      6      7      soilcode
+		//  ------------------------------------------------------------------
 
-		{   5.0, 0.110,   0.2, 0.800,   0.4,	0.074,	3.2},    // 1	Coarse
-		{   4.0, 0.150,   0.2, 0.650,   0.4,	0.184,	2.5},    // 2	Medium
-		{   3.0, 0.120,   0.2, 0.500,   0.4,	0.274,	3.6},    // 3	Fine
-		{   4.5, 0.130,   0.2, 0.725,   0.4,	0.129,	2.85},   // 4	Medium-coarse
-		{   4.0, 0.115,   0.2, 0.650,   0.4,	0.174,	3.4},    // 5	Fine-coarse
-		{   3.5, 0.135,   0.2, 0.575,   0.4,	0.229,	3.05},   // 6	Fine-medium
-		{   4.0, 0.127,   0.2, 0.650,   0.4,	0.177,	3.1},    // 7	Fine-medium-coarse
-		{   9.0, 0.300,   0.1, 0.100,   0.1,	0.300,	2.5},    // 8	Organic (values not know for wp)
-		{   0.2, 0.100,   0.2, 0.500,   0.4,	0.100,	2.5 }    // 9	Vertisols (values not know for wp)
+		{   5.0, 0.110,   0.2, 0.800,   0.4,	0.074,	0.395},    // 1	Coarse		
+		{   4.0, 0.150,   0.2, 0.650,   0.4,	0.184,	0.439},    // 2	Medium		
+		{   3.0, 0.120,   0.2, 0.500,   0.4,	0.274,	0.454},    // 3	Fine
+		{   4.5, 0.130,   0.2, 0.725,   0.4,	0.129,	0.417},    // 4	Medium-coarse
+		{   4.0, 0.115,   0.2, 0.650,   0.4,	0.174,	0.425},    // 5	Fine-coarse
+		{   3.5, 0.135,   0.2, 0.575,   0.4,	0.229,	0.447},    // 6	Fine-medium 
+		{   4.0, 0.127,   0.2, 0.650,   0.4,	0.177,	0.430},    // 7	Fine-medium-coarse
+		{   9.0, 0.300,   0.1, 0.100,   0.1,	0.200,	0.600},    // 8	Organic (values not know for wp)
+		{   0.2, 0.100,   0.2, 0.500,   0.4,	0.100,	0.250}     // 9	Vertisols (values not know for wp)
 	};
-
-
 
 	if (soilcode<1 || soilcode>9)
 		fail("soilparameters: invalid LPJ soil code (%d)",soilcode);
 
-	
 	soiltype.perc_base=data[soilcode-1][0];
 	soiltype.perc_exp=PERC_EXP;
 	soiltype.awc[0]=SOILDEPTH_UPPER*data[soilcode-1][1];
@@ -140,8 +138,8 @@ void soilparameters(Soiltype& soiltype,int soilcode) {
 	soiltype.thermdiff_100=data[soilcode-1][4];
 	soiltype.wp[0]=SOILDEPTH_UPPER*data[soilcode-1][5];
 	soiltype.wp[1]=SOILDEPTH_LOWER*data[soilcode-1][5];
-	soiltype.f_FC[0]=data[soilcode-1][6];
-	soiltype.f_FC[1]=data[soilcode-1][6];
+	soiltype.wsats[0]=SOILDEPTH_UPPER*data[soilcode-1][6];
+	soiltype.wsats[1]=SOILDEPTH_LOWER*data[soilcode-1][6];
 
 	// guess2008 - override the default SOM years with 70-80% of the spin-up period
 	soiltype.updateSolveSOMvalues(nyear_spinup);

@@ -55,7 +55,7 @@
 #include "cru_1901_2006misc.h"
 
 // header file for reading binary data archive of global nitrogen deposition
-#include "GlobalNdep.h"
+#include "GlobalNitrogenDeposition.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 //
@@ -2040,8 +2040,6 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	{
 	return LUerror;
 }
 
-
-
 // GUESSN
 /// Retrieves nitrogen deposition for a particular grid cell
 /** The values are either taken from the andep parameter in the instruction
@@ -2055,30 +2053,33 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	{
  *  \param  filename    The file name of the binary archive
  *  \param  lon         Longitude
  *  \param  lat         Latitude
- *  \param  xandep1860  Nitrogen deposition for 1860 (kgN/m2/year)
- *  \param  xandep1993  Nitrogen deposition for 1993 (kgN/m2/year)
- *  \param  xandep2050  Nitrogen deposition for 2050 (kgN/m2/year)
  */
 bool getndep(xtring filename,double lon,double lat,Climate& climate) {
 
+	double years[]={1855,1865,1875,1885,1895,1905,1915,1925,1935,1945,1955,1965,1975,1985,1995,2005};
 
-
-	double minndep = 0.00001;
+	for (int y=0;y<16;y++)
+		climate.ndep_years[y]=years[y];
 
 	if (!ifndepdata) {
-		climate.andep_1860=0.0002;	// use pre-industrial N depostion 2 kgN/ha/year
-		climate.andep_1993=0.0002;	// use pre-industrial N depostion 2 kgN/ha/year
-		climate.andep_2050=0.0002;	// use pre-industrial N depostion 2 kgN/ha/year
+		double dailyndep=0.00005/365.0;	// use pre-industrial N depostion 2 kgN/ha/year
+
+		for (int dd=0;dd<192;dd++) {
+			climate.NHxDryDep[dd]=dailyndep;	// use pre-industrial N depostion 2 kgN/ha/year
+			climate.NHxWetDep[dd]=dailyndep;	// use pre-industrial N depostion 2 kgN/ha/year
+			climate.NOyDryDep[dd]=dailyndep;	// use pre-industrial N depostion 2 kgN/ha/year
+			climate.NOyWetDep[dd]=dailyndep;	// use pre-industrial N depostion 2 kgN/ha/year
+		}
 		return true;
 	}
 
-	GlobalNdepArchive ark;
+	GlobalNitrogenDepositionArchive ark;
 	if (!ark.open(filename)) {
 		 fail("Could not open %s for input",(char*)filename);
 		 return false;
 	}
 
-	GlobalNdep rec;
+	GlobalNitrogenDeposition rec;
 	rec.longitude = lon;
 	rec.latitude = lat;
 	
@@ -2089,13 +2090,15 @@ bool getndep(xtring filename,double lon,double lat,Climate& climate) {
 	}
 	else {
 		 // Found the record, get the values
-		 // Convert from gN to kgN, don't allow values smaller than minndep
-		climate.andep_1860 = max(minndep, rec.ndep1860[0]*0.001);
-		climate.andep_1993 = max(minndep, rec.ndep1993[0]*0.001);
-		climate.andep_2050 = max(minndep, rec.ndep2050[0]*0.001);
+		for (int i=0;i<192;i++) {
+			climate.NHxDryDep[i]=rec.NHxDry[i];
+			climate.NHxWetDep[i]=rec.NHxWet[i];	
+			climate.NOyDryDep[i]=rec.NOyDry[i];	
+			climate.NOyWetDep[i]=rec.NOyWet[i];	
+		}
 
-		 ark.close();
-		 return true;
+		ark.close();
+		return true;
 	}
 }
 // end GUESSN
@@ -2260,7 +2263,7 @@ bool getgridcell(Gridcell& gridcell) {
 // Called by getclimate(). Calculates this years N deposition from three known values.
 // needs to be redone
 
-double thisyearsndep(double ndep_1860, double ndep_1993, double ndep_2050, int year, int nyears_spin, int firsthistyear) {
+/*double thisyearsndep(double ndep_1860, double ndep_1993, double ndep_2050, int year, int nyears_spin, int firsthistyear) {
 
 	if (ndep_1860 == ndep_1993)
 		return ndep_1860;
@@ -2273,6 +2276,63 @@ double thisyearsndep(double ndep_1860, double ndep_1993, double ndep_2050, int y
 		return ndep_1860+(hist_year-1860)*((ndep_1993-ndep_1860)/133.0);
 	else
 		return ndep_1993+(hist_year-1993)*((ndep_2050-ndep_1993)/57.0);
+}*/
+
+void thisyearsndep(Climate& climate,int year,int nyears_spin,int firsthistyear) {
+
+	int d,m,dm,interyear[2];
+	double dNHD,dNHW,dNOD,dNOW;
+	double convert=0.0000001; // converting from gN ha-1 to kgN m-2
+	int hist_year = firsthistyear - (nyears_spin - year);
+
+	int y=0;
+	bool found=false;
+	while (!found) {
+
+		if (hist_year<=climate.ndep_years[0]) {
+			interyear[0]=0;
+			interyear[1]=0;
+			found=true;
+		}
+		else if (hist_year<=climate.ndep_years[y]) {
+			interyear[0]=y-1;
+			interyear[1]=y;
+			found=true;
+		}
+		else if (hist_year>climate.ndep_years[15]) {
+			interyear[0]=14;
+			interyear[1]=15;
+			found=true;
+		}
+		y++;
+	}
+
+	d=0;
+	for (m=0;m<12;m++){
+
+		dNHD=climate.NHxDryDep[12*interyear[0]+m]+((double)(hist_year-climate.ndep_years[interyear[0]]))/10.0*
+			(climate.NHxDryDep[12*interyear[1]+m]-climate.NHxDryDep[12*interyear[0]+m]);
+		dNHW=climate.NHxWetDep[12*interyear[0]+m]+((double)(hist_year-climate.ndep_years[interyear[0]]))/10.0*
+			(climate.NHxWetDep[12*interyear[1]+m]-climate.NHxWetDep[12*interyear[0]+m]);
+		dNOD=climate.NOyDryDep[12*interyear[0]+m]+((double)(hist_year-climate.ndep_years[interyear[0]]))/10.0*
+			(climate.NOyDryDep[12*interyear[1]+m]-climate.NOyDryDep[12*interyear[0]+m]);
+		dNOW=climate.NOyWetDep[12*interyear[0]+m]+((double)(hist_year-climate.ndep_years[interyear[0]]))/10.0*
+			(climate.NOyWetDep[12*interyear[1]+m]-climate.NOyWetDep[12*interyear[0]+m]);
+
+		for (dm=0;dm<date.ndaymonth[m];dm++) {
+			climate.dNHxDryDep[d]=dNHD*convert;
+			climate.dNOyDryDep[d]=dNOD*convert;
+			climate.dNHxWetDep[d]=dNHW*convert;
+			climate.dNOyWetDep[d]=dNOW*convert;
+
+			d++;
+		}
+	}
+
+	climate.andep=0.0;
+	for (d=0;d<365;d++) {
+		climate.andep+=climate.dNHxDryDep[d]+climate.dNOyDryDep[d]+climate.dNHxWetDep[d]+climate.dNOyWetDep[d];
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -2573,8 +2633,7 @@ bool getclimate(Gridcell& gridcell) {
 		climate.co2=co2[date.year-nyear_spinup];
 
 	// GUESSN calculate annual N deposition value
-	climate.andep=thisyearsndep(climate.andep_1860,climate.andep_1993,
-		climate.andep_2050,date.year,nyear_spinup,FIRSTHISTYEAR);
+	thisyearsndep(climate,date.year,nyear_spinup,FIRSTHISTYEAR);
 	// end GUESSN
 
 	climate.temp=dtemp[date.day];

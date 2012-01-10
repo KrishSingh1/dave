@@ -511,14 +511,28 @@ public:
 		// mean of monthly temperatures for the last 12 months (deg C)
 
 	// GUESSN
-	double andep_1860;
-		// annual nitrogen deposition (kgN/m2/year)
-	double andep_1993;
-		// annual nitrogen deposition (kgN/m2/year)
-	double andep_2050;
-		// annual nitrogen deposition (kgN/m2/year)
+	// annual nitrogen deposition (kgN/m2/year)
 	double andep;
-		// annual nitrogen deposition (kgN/m2/year)
+	// daily NHx dry deposition (kgN/m2/day)
+	double dNHxDryDep[365];	
+	// daily NHx wet deposition (kgN/m2/day)
+	double dNHxWetDep[365];
+	// daily NOy dry deposition (kgN/m2/day)
+	double dNOyDryDep[365];
+	// daily NOy wet deposition (kgN/m2/day)
+	double dNOyWetDep[365];
+		
+	
+	// Years with N deposition data
+	double ndep_years[16];
+	// Monthly data on daily dry NHx deposition in 10 year interval from 1855 to 2005 (gN/ha/day)
+	double NHxDryDep[192];	// 12 months * 16 years == 192
+	// Monthly data on daily wet NHx deposition in 10 year interval from 1855 to 2005 (gN/ha/day)
+	double NHxWetDep[192];
+	// Monthly data on daily dry NOy deposition in 10 year interval from 1855 to 2005 (gN/ha/day)
+	double NOyDryDep[192];
+	// Monthly data on daily wet NOy deposition in 10 year interval from 1855 to 2005 (gN/ha/day)
+	double NOyWetDep[192];
 	// end GUESSN
 
 	// Monthly sums (converted to means) used by canopy exchange module
@@ -1222,8 +1236,8 @@ public:
 		// thermal diffusivity at 100% WHC (mm2/s)
 	double wp[2];
 		// wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
-	double f_FC[2];
-		// ratio between saturation capacity and field capacity. Cosby et al 1984
+	double wsats[2];
+		// saturation point. Cosby et al 1984
 	int solvesom_end;
 		// year at which to calculate equilibrium soil carbon
 	int solvesom_begin;

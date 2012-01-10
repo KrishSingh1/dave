@@ -560,7 +560,7 @@ void decayrates(Soil& soil,double temp_soil,double wcont_soil) {
 	// Updated
 	// water holding capacity at wilting point (wp) and ratio between saturation capacity and field capacity (f_FC) 
 	// is calculated with the help of Cosby et al 1984;
-	wfps=(wcont_soil*soil.soiltype.awc[0]+soil.soiltype.wp[0])*100.0/(soil.soiltype.f_FC[0]*soil.soiltype.awc[0]);
+	wfps=(wcont_soil*soil.soiltype.awc[0]+soil.soiltype.wp[0])*100.0/soil.soiltype.wsats[0];
 			
 
 	if (wfps<60.0)
@@ -2165,9 +2165,6 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 	//          ndemand_indiv = this year's N demand for growth by this individual 
 	//							without any N limitation
 	//
-	//	 If Extra Nitrogen (EN) is used (ifstoreextran == true), then eq(1) looks like this
-	//     (1)  ndemand_day = dassim/aassim*ndemand_indiv
-	//
 	//	 For patch:
 	//          ndemand_patch_day = sum of ndemand_day over all individuals
 	//                        
@@ -2184,7 +2181,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 	// Conservative N fixation
 	//			N_fix (kgN/ha/yr) = 0.102*ET(cm/yr)+0.524
 	//			N_fix (kgN/m2/yr) = (0.102*patch.aaet/10.0+0.524)/10000.0 
-	//		(5)	N_fix = 0.00000102*patch.aaet-0.0000524
+	//		(5)	N_fix = 0.00000102*patch.aaet+0.0000524
 	//
 	// To be called on last day of year following SOM dynamics
 

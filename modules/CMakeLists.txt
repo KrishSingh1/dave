@@ -22,6 +22,7 @@ set(source
   landcover.cpp 
   vegdynam.cpp 
   bvoc.cpp 
+  q10.cpp
   globalco2file.cpp
   )
 

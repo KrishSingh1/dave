@@ -139,6 +139,11 @@ void interception(Patch& patch,Climate& climate) {
 	// Calculate net EET for vegetated parts of patch (deducting loss to interception)
 
 	patch.eet_net_veg=max(climate.eet-patch.intercep,0.0);
+
+	// Interception accounting for patch
+	patch.aintercep+=patch.intercep;
+	patch.mintercep[date.month]+=patch.intercep;
+
 }
 
 
@@ -502,17 +507,6 @@ void fpar(Patch& patch) {
 // PHOTOSYNTHESIS
 // Internal function (do not call directly from framework)
 
-
-// Lookup tables for parameters with Q10 temperature responses
-
-LookupQ10 lookup_ko(Q10KO,KO25);
-	// lookup table for Q10 temperature response of Michaelis constant for O2
-LookupQ10 lookup_kc(Q10KC,KC25);
-	// lookup table for Q10 temperature response of Michaelis constant for CO2
-LookupQ10 lookup_tau(Q10TAU,TAU25);
-	// lookup table for Q10 temperature response of CO2/O2 specificity ratio
-
-
 void photosynthesis(double co2,double temp,double par,double daylength,
 		    double fpar,double lambda,pathwaytype pathway,double pstemp_min,
 		    double pstemp_low,double pstemp_high,double pstemp_max,double lambda_max,
@@ -785,74 +779,6 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 
 	adtmm=adt/CMASS*8.314*tk/PATMOS*1000.0;
 }
-
-///////////////////////////////////////////////////////////////////////////////////////
-// CONVECTIVE BOUNDARY LAYER
-// Generic Monteith (1995) or Huntingford & Monteith (1998) CBL parameterisation
-
-#if defined(AET_MONTEITH_EXPONENTIAL)
-
-// Empirical parameters (exponential parameterisation)
-const double ALPHAM=1.4;
-const double GM=5.0;
-
-#elif defined(AET_MONTEITH_HYPERBOLIC)
-
-// Empirical parameters (hyperbolic parameterisation)
-const double ALPHAM=1.391;
-const double GM=3.26;
-
-#endif
-
-inline double aet_monteith(double& eet,double& gc) {
-
-	// Returns AET given equilibrium evapotranspiration and
-	// canopy conductance
-
-#if defined(AET_MONTEITH_EXPONENTIAL)
-
-	// Exponential version of function
-
-	if (negligible(gc)) return 0.0;
-	else return eet*ALPHAM*(1.0-exp(-gc/GM));
-
-#elif defined(AET_MONTEITH_HYPERBOLIC)
-
-	// Hyperbolic version of function
-
-	return eet*ALPHAM*gc/(gc+GM);
-
-#endif
-
-}
-
-
-inline double gc_monteith(double& aet,double& eet) {
-
-	// Returns canopy conductance given AET and equilibrium evapotranspiration
-
-#if defined(AET_MONTEITH_EXPONENTIAL)
-
-	// Exponential version of function
-
-	double t;
-
-	if (negligible(eet)) return 0.0;
-	t=aet/eet/ALPHAM;
-	if (t>=1.0) fail("gc_monteith: invalid value for aet/eet/ALPHAM");
-
-	return -GM*log(1.0-aet/eet/ALPHAM);
-
-#elif defined(AET_MONTEITH_HYPERBOLIC)
-
-	// Hyperbolic version of function
-
-	return (aet*GM)/(eet*ALPHAM-aet);
-
-#endif
-
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // TRANSPIRATIVE DEMAND AND NON-WATER-STRESSED PHOTOSYNTHESIS
@@ -2051,16 +1977,26 @@ void forest_floor_conditions(Patch& patch) {
 
 				// Call photosynthesis with FPAR=1 and assuming stomates fully open
 				// (lambda = lambda_max)
-				PhotosynthesisResult result;
 				photosynthesis(climate.co2,climate.temp,climate.par,climate.daylength,
 					       1.0,pft.lambda_max,pft.pathway,pft.pstemp_min,pft.pstemp_low,
-					       pft.pstemp_high,pft.pstemp_max,pft.lambda_max,result);
+					       pft.pstemp_high,pft.pstemp_max,pft.lambda_max,stand.pft[p].photosynthesis);
 						
+				// Eqn 21, Haxeltine & Prentice 1996
+				// NB: includes conversion of daylight from hours to seconds (*3600),
+				//     and CO2 from ppmv to mole fraction (*1.0e-6);
+				//     scalar multiplier = 1.6 / 1.0e-6 / 3600 = 444.4
+
+				stand.pft[pft.id].gpterm=444.4*stand.pft[p].photosynthesis.adtmm/climate.co2/(1.0-pft.lambda_max)/
+					climate.daylength;
+
+
 				// Store net C-assimilation (gross photosynthesis minus leaf
 				// respiration); valid for all individuals of this PFT given today's
 				// climate and FPAR=1 assuming no water stress
 
-				stand.pft[pft.id].assim_term=result.net_assimilation();
+				stand.pft[pft.id].assim_term=stand.pft[p].photosynthesis.net_assimilation();
+
+				stand.pft[pft.id].have_phot=true;
 			}
 
 			// Calculate net assimilation at top of grass canopy (or at soil surface
@@ -2090,7 +2026,7 @@ void forest_floor_conditions(Patch& patch) {
 // update of leaf phenology and soil temperature and prior to update of soil water.
 
 
-void canopy_exchange(Patch& patch) {
+void canopy_exchange(Patch& patch, Climate& climate) {
 
 	// DESCRIPTION
 	// Vegetation-atmosphere exchange of CO2 and water including calculations
@@ -2135,7 +2071,6 @@ void canopy_exchange(Patch& patch) {
 	// Retrieve Vegetation and Climate objects for this patch
 
 	Vegetation& vegetation=patch.vegetation;
-	Climate& climate=patch.stand.gridcell.climate;
 
 	double pet_s;
 		// potential evapotranspiration over non-vegetated parts of patch (mm,
@@ -2194,11 +2129,6 @@ void canopy_exchange(Patch& patch) {
 	water_scalar(patch);
 	npp(patch);
 	forest_floor_conditions(patch);
-
-	// Interception for patch
-
-	patch.aintercep+=patch.intercep;
-	patch.mintercep[date.month]+=patch.intercep;
 
 	// Potential evapotranspiration for patch
 

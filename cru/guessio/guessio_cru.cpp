@@ -44,6 +44,7 @@
 #include <utility>
 #include <vector>
 #include <algorithm>
+#include "globalco2file.h"
 
 
 // guess2008 - header file for the CRU TS 3.0 data archives
@@ -1166,8 +1167,13 @@ Table out_aiso, out_miso, out_amon, out_mmon;
 Timer tprogress,tmute;
 const int MUTESEC=20; // minimum number of sec to wait between progress messages
 
-// CO2 data for each year of historical data set
-double co2[NYEAR_HIST];
+/// Yearly CO2 data read from file
+/**
+ * This object is indexed with calendar years, so to get co2 value for
+ * year 1990, use co2[1990]. See documentation for GlobalCO2File for
+ * more information.
+ */
+GlobalCO2File co2;
 
 // Monthly temperature, precipitation and sunshine data for current grid cell
 // and historical period
@@ -1463,29 +1469,6 @@ bool findnearestCRUdata(int searchradius, char* cruark, double& lon, double& lat
 	return false;
 }
 
-void readco2() {
-
-	// Reads in atmospheric CO2 concentrations for historical period
-	// from ascii text file with records in format: <year> <co2-value>
-
-	int year,calender_year;
-
-	// Retrieve name of CO2 file from ins file
-	xtring filename=param["file_co2"].str;
-
-	FILE* in=fopen(filename,"rt");
-	if (!in) fail("readco2: could not open CO2 file %s for input",
-		(char*)filename);
-
-	for (year=0;year<NYEAR_HIST;year++) {
-		readfor(in,"i,f",&calender_year,&co2[year]);
-		if (calender_year!=FIRSTHISTYEAR+year)
-			fail("readco2: %s, line %d - incorrect year specified",
-				(char*)filename,year+1);
-	}
-
-	fclose(in);
-}
 /// Help function to define_output_tables, creates one output table
 void create_output_table(Table& table, const char* file, const ColumnDescriptors& columns) {
 	 table = output_channel->create_table(TableDescriptor(file, columns));
@@ -1745,7 +1728,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	fclose(in_grid);
 
 	// Read CO2 data from file
-	readco2();
+	co2.load_file(param["file_co2"].str);
 
 	if (run_landcover) {
 		all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
@@ -2258,10 +2241,7 @@ bool getclimate(Gridcell& gridcell) {
 
 	// Send environmental values for today to framework
 
-	if (date.year<nyear_spinup)
-		climate.co2=co2[0];
-	else if (date.year<nyear_spinup+NYEAR_HIST)
-		climate.co2=co2[date.year-nyear_spinup];
+	climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
 
 	climate.temp=dtemp[date.day];
 	climate.prec=dprec[date.day];

@@ -245,10 +245,13 @@ int framework(int argc,char* argv[]) {
 						dailyaccounting_patch(patch,pftlist);
 						// Leaf phenology for PFTs and individuals
 						leaf_phenology(patch,gridcell.climate);
+						// Interception
+						interception(patch, gridcell.climate);
+						initial_infiltration(patch, gridcell.climate);
 						// Photosynthesis, respiration, evapotranspiration
-						canopy_exchange(patch);
+						canopy_exchange(patch, gridcell.climate);
 						// Soil water accounting, snow pack accounting
-						soilwater(gridcell.climate,patch);
+						soilwater(patch, gridcell.climate);
 						// Soil organic matter and litter dynamics
 						som_dynamics(patch);
 

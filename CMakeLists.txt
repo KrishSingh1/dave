@@ -103,3 +103,12 @@ if (UNIX)
    SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
    SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
 endif(UNIX)
+
+if (UNIX)
+  # Set default build type to Release on Unix
+  if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING
+      "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
+      FORCE)
+  endif(NOT CMAKE_BUILD_TYPE)
+endif(UNIX)

@@ -2106,15 +2106,10 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 
 		// In contrast to annual NEE, monthly NEE does not include fire 
-		// or establishment fluxes 
-		double testmnpp = 0.0;
-		double testmlai = 0.0;
-
+		// or establishment fluxes
 		for (m=0;m<12;m++) {
 			mnpp[m] = mgpp[m]-mra[m];
 			mnee[m] = mnpp[m]-mrh[m];
-			testmnpp += mnpp[m];
-			testmlai += mlai[m]/12.0;
 		}
 
 		// Print gridcell totals to files

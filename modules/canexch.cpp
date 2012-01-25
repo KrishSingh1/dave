@@ -41,7 +41,6 @@
 // FILE SCOPE GLOBAL CONSTANTS
 
 
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // PROCESS SWITCHES
 // This module contains alternative formulations for several processes. Each of a set
@@ -64,22 +63,6 @@
 #elif !defined(DEMAND_PATCH) && !defined(DEMAND_INDIV)
 #error One of DEMAND_PATCH and DEMAND_INDIV must be #defined
 #endif
-
-// Alternative parameterisations of the convective boundary layer
-//   AET_MONTEITH_HYPERBOLIC = hyperbolic parameterisation (Huntington & Monteith 1998)
-//   AET_MONTEITH_EXPONENTIAL = exponential parameterisation (Monteith 1995)
-// Comment out one of the following two lines:
-
-#define AET_MONTEITH_HYPERBOLIC
-//#define AET_MONTEITH_EXPONENTIAL
-
-// Check:
-#if defined(AET_MONTEITH_HYPERBOLIC) && defined(AET_MONTEITH_EXPONENTIAL)
-#error Only one of AET_MONTEITH_HYPERBOLIC and AET_MONTEITH_EXPONENTIAL should be #defined
-#elif !defined(AET_MONTEITH_HYPERBOLIC) && !defined(AET_MONTEITH_EXPONENTIAL)
-#error One of AET_MONTEITH_HYPERBOLIC and AET_MONTEITH_EXPONENTIAL must be #defined
-#endif
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL VARIABLES

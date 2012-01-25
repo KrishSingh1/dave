@@ -1765,10 +1765,6 @@ public:
 	}
 };
 
-///////////////////////////////////////////////////////////////////////////////////////
-// FRAMEWORK FUNCTION DECLARATION
-
-int framework(int argc,char* argv[]);
 
 #endif // LPJ_GUESS_GUESS_H
 

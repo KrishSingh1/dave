@@ -923,7 +923,6 @@ ListArray_id<Coord> gridlist;
 	// of the grid cells to simulate
 
 int ngridcell; // the number of grid cells to simulate
-bool firstgrid; // whether simulating first grid cell in linked list
 
 class Spinup_data {
 
@@ -1778,9 +1777,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	tprogress.settimer();
 	tmute.settimer(MUTESEC);
-
-	// Start at first object in linked list of grid cell coordinates ...
-	firstgrid=true;
 }
 
 ///	Loads landcover area fraction data from file(s) for a gridcell.
@@ -1849,8 +1845,16 @@ bool getgridcell(Gridcell& gridcell)
 	// to ensure an identical random number sequence for each gridcell.
 	setseed(12345678);
 
-	if (firstgrid) {
+	// Make sure we use the first gridcell in the first call to this function,
+	// and then step through the gridlist in subsequent calls.
+	static bool first_call = true;
+
+	if (first_call) {
 		gridlist.firstobj();
+
+		// Note that first_call is static, so this assignment is remembered
+		// across function calls.
+		first_call = false;
 	}
 	else gridlist.nextobj();
 
@@ -2308,10 +2312,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 	if (vegmode==COHORT)
 		nclass=min(date.year/estinterval+1,OUTPUT_MAXAGECLASS);
-
-	if (date.year==0 && firstgrid) {
-		firstgrid=false;
-	}
 	
 	// guess2008 - yearly output after spinup
 		

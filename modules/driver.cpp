@@ -572,6 +572,18 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 		patch.arunoff=0.0;
 		patch.aintercep=0.0;
 		patch.apet=0.0;
+		
+		// Calculate total FPC
+		patch.fpc_total = 0;
+		Vegetation& vegetation = patch.vegetation;
+		vegetation.firstobj();
+		while (vegetation.isobj) {
+			patch.fpc_total += vegetation.getobj().fpc;		// indiv.fpc
+			vegetation.nextobj();
+		}
+		// Calculate rescaling factor to account for overlap between populations/
+		// cohorts/individuals (i.e. total FPC > 1)
+		patch.fpc_rescale = 1.0 / max(patch.fpc_total, 1.0);
 	}
 
 	if (date.dayofmonth==0) {

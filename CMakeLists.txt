@@ -26,7 +26,7 @@ set(IO "cru" CACHE STRING "The IO module to use (cru/demo)")
 if (UNIX)
   # The SYSTEM variable is currently only used to choose which 
   # submit.sh to generate (for submitting to job queue)
-  set(SYSTEM "" CACHE STRING "System to build for (empty, gimle or platon)")
+  set(SYSTEM "" CACHE STRING "System to build for (empty (=simba), gimle, platon or multicore)")
 endif (UNIX)
 
 # Where to search for cmake modules

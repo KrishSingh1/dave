@@ -3,7 +3,7 @@
 /// \brief The "shell" is the model's interface to the world
 ///
 /// \author Joe Lindström
-/// $Date: 2011-07-26 13:45:04 +0200 (Tue, 26 Jul 2011) $
+/// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 

@@ -80,6 +80,8 @@ double GlobalCO2File::operator[](int year) const {
 				 "Tried to get CO2 value after last year in file\n"\
 				 "Last year: %d, tried to get CO2 for: %d",
 				 first_year+co2.size()-1, year);
+
+		  return 0.0; // to avoid compiler warning
 	 }
 	 else {
 		  return co2[year-first_year];

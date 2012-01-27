@@ -2247,6 +2247,10 @@ bool getclimate(Gridcell& gridcell) {
 			}
 
 		}
+		else {
+			// Return false if last year was the last for the simulation
+			return false;
+		}
 	}
 
 
@@ -2266,9 +2270,6 @@ bool getclimate(Gridcell& gridcell) {
 	// First day of year only ...
 
 	if (date.day==0) {
-
-		// Return false if last year was the last for the simulation
-		if (date.year==nyear_spinup+NYEAR_HIST) return false;
 
 		// Progress report to user and update timer
 

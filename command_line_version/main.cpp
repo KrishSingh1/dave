@@ -10,7 +10,7 @@
 #include "config.h"
 #include "guess.h"
 #include "framework.h"
-#include <stdarg.h>
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // LOG FILE
@@ -20,84 +20,6 @@
 xtring file_log="guess.log";
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// FILE SCOPE GLOBAL VARIABLES
-
-FILE* logfile;
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-// GLOBAL FUNCTIONS
-// These functions are declared in the framework header file and are (therefore)
-// accessible throughout the model code
-
-void fail(xtring format,...) {
-
-	// printf-style function accessible throughout the model code.
-	// Sends text to stdio (screen) and log file, then terminates program
-
-	va_list v;
-	va_start(v,format);
-
-	xtring output;
-	formatf(output,format,v);
-
-	// Produce output
-	// (comment out one or both of these if output to the screen and/or log file
-	// is not required)
-
-	fprintf(stdout,"%s\n",(char*)output);
-	fprintf(logfile,"%s\n",(char*)output);
-	
-	exit(99);
-}
-
-
-void dprintf(xtring format,...) {
-
-	// printf-style function accessible throughout the model code.
-	// Sends text to stdio (screen) and log file.
-
-	va_list v;
-	va_start(v,format);
-
-	xtring output;
-	formatf(output,format,v);
-
-	// Produce output
-	// (comment out one or both of these if output to the screen and/or log file
-	// is not required)
-
-	fprintf(stdout,"%s",(char*)output);
-	fprintf(logfile,"%s",(char*)output);
-	fflush(logfile);
-}
-
-
-void plot(xtring window_name,xtring series_name,double x,double y) {
-
-	// Can't do anything here
-}
-
-
-void resetwindow(xtring window_name) {
-
-	// Can't do anything here
-}
-
-
-void clear_all_graphs() {
-
-	// Can't do anything here
-}
-
-
-bool abort_request_received() {
-
-	// Can't do anything here
-	
-	return false;
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // MAIN
@@ -105,15 +27,8 @@ bool abort_request_received() {
 
 int main(int argc,char* argv[]) {
 
-	// Open log file if possible
-	// (comment out if log file output not desired - you will have to comment
-	// out the corresponding fprintf's in functions dprintf and fail above also)
-
-	logfile=fopen(file_log,"wt");
-	if (!logfile) {
-		printf("main: could not open log file %s for output",(char*)file_log);
-		exit(99);
-	}
+	// Set our shell for the model to communicate with the world
+	set_shell(new CommandLineShell(file_log));
 
 	// Call the framework
 	framework(argc,argv);

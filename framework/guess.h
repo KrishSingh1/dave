@@ -38,6 +38,7 @@
 #include <string.h>
 #include <time.h>
 #include <gutil.h>
+#include "shell.h"
 #include "guessmath.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -185,35 +186,6 @@ extern bool ifbvoc;
         // whether BVOC calculations are included
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// GLOBAL FUNCTION DECLARATIONS
-// These functions are defined in the framework source file or main module (if
-// a separate main module is implemented), and are accessible throughout the code
-
-void dprintf(xtring format,...);
-	// a printf-style function for text output to the screen and/or a log file. To
-	// maintain portability of the modular code, please use this function for general
-	// output instead of the standard C++ printf function
-void fail(xtring format,...);
-	// a printf-style function that sends output to the screen and/or a log file, then
-    // terminates execution.
-void plot(xtring window_name,xtring series_name,double x,double y);
-	// adds data point (x,y) to series 'series_name' of line graph 'window_name'. If
-	// the series and/or line graph do not yet exist, they are created. Functional only
-	// when the framework is built as a DLL and linked to the LPJ-GUESS Windows Shell
-	// (the function may still be called in other implementations, but will have no
-	// effect).
-void resetwindow(xtring window_name);
-	// 'forgets' series and data for line graph 'window_name' created using function
-	// plot (above). Functional only when the framework is built as a DLL and
-	// linked to the LPJ-GUESS Windows Shell.
-void clear_all_graphs();
-	// 'forgets' series and data for all currently-defined line graphs created using
-	// function plot (above). Functional only when the framework is built as a DLL and
-	// linked to the LPJ-GUESS Windows Shell.
-bool abort_request_received();
-	// May be called by framework to respond to abort request from Windows shell
-	// (returns true if shell has sent an abort request, otherwise false)
 
 /// General purpose object for handling simulation timing. 
 /** In general, frameworks should use a single Date object for all simulation

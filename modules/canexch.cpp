@@ -2135,7 +2135,6 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 
 	// Canopy exchange processes
 
-	interception(patch,climate);
 	fpar(patch);
 	demand(patch);
 	aet_water_stress(patch);

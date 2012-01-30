@@ -23,6 +23,9 @@ endif()
 # The IO variable decides which IO module to use. 
 set(IO "cru" CACHE STRING "The IO module to use (cru/demo)")
 
+# A variable controlling whether or not to include unit tests
+set(UNIT_TESTS "OFF" CACHE BOOL "Whether to include unit tests")
+
 if (UNIX)
   # The SYSTEM variable is currently only used to choose which 
   # submit.sh to generate (for submitting to job queue)
@@ -50,6 +53,7 @@ add_subdirectory(framework)
 add_subdirectory(modules)
 add_subdirectory(cru)
 add_subdirectory(libraries)
+add_subdirectory(tests)
 
 # Add the command line program's target
 if (WIN32)
@@ -62,6 +66,11 @@ endif()
 
 # Specify the executable to build, and which sources to build it from
 add_executable(${guess_command_name} ${guess_sources} command_line_version/main.cpp)
+
+# Rule for building the unit test binary
+if (UNIT_TESTS)
+  add_executable(runtests ${guess_sources} ${test_sources})
+endif()
 
 # Specify libraries to link to the executable
 target_link_libraries(${guess_command_name} ${LIBS})
@@ -91,6 +100,14 @@ if (UNIX)
              COMMAND sed 's|BINARY|'${CMAKE_CURRENT_BINARY_DIR}/${guess_command_name}'|g\;s|DATE|'\"`date`\"'|g' ${submit_template} > ${CMAKE_BINARY_DIR}/submit.sh
              COMMENT "Generating submit script")
 endif (UNIX)
+
+# Rule for running unit tests automatically
+if (UNIT_TESTS)
+  add_custom_command(TARGET runtests 
+    POST_BUILD 
+    COMMAND runtests 
+    COMMENT "Running tests")
+endif()
 
 string(TOUPPER ${IO} IO)
 add_definitions(-DUSE_${IO}_IO)

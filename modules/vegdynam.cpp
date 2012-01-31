@@ -186,8 +186,7 @@ void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
 
-		if (stand.pft[pft.id].active)
-		{	//standpft.active is set in landcover_init according to rules for each stand
+		if (stand.pft[pft.id].active) {	//standpft.active is set in landcover_init according to rules for each stand
 
 		// Is this PFT already represented?
 
@@ -425,8 +424,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 		// For this PFT ..
 
-		if (stand.pft[pft.id].active)
-		{
+		if (stand.pft[pft.id].active) {
 			if (patch.age==0) {
 				patch.pft[pft.id].anetps_ff_est=patch.pft[pft.id].anetps_ff;
 				patch.pft[pft.id].wscal_mean_est=patch.pft[pft.id].wscal_mean;
@@ -767,8 +765,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 								patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
 								indiv.cmass_sap;
 						}
-						else 
-						{
+						else {
 							// Account for C flux from atmosphere to vegetation
 							// guess2008
 							if (indiv.alive && indiv.densindiv)
@@ -800,10 +797,9 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 				patch.pft[pft.id].wscal_mean_est=0.0;
 				patch.pft[pft.id].anetps_ff_est=0.0;
 			}
-
-			// ... on to next PFT
-
 		}
+		// ... on to next PFT
+
 		pftlist.nextobj();
 	}
 	// GUESSN

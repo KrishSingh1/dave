@@ -436,14 +436,13 @@ public:
 	}
 };
 
-///////////////////////////////////////////////////////////////////////////////////////
-// CLIMATE
-// The Climate for a grid cell
-// Stores all static and variable data relating to climate parameters, as well as 
-//  latitude, atmospheric CO2 concentration and daylength for a grid cell. Includes 
-//  a reference to the parent Gridcell object (defined below). Initialised by a 
-//  call to initdrivers.
 
+/// The Climate for a grid cell
+/** Stores all static and variable data relating to climate parameters, as well as 
+ *  latitude, atmospheric CO2 concentration and daylength for a grid cell. Includes 
+ *  a reference to the parent Gridcell object (defined below). Initialised by a 
+ *  call to initdrivers.
+ */
 class Climate {
 
 	// MEMBER VARIABLES
@@ -827,7 +826,7 @@ public:
 	// Variables used by new hydrology (Dieter Gerten 2002-07)
 
 	/// specifies type of landcover
-	/** see landcovertype */
+	/** \see landcovertype */
 	landcovertype landcover;
 
 	double res_outtake;				// Fraction of residue outtake at harvest.
@@ -1205,13 +1204,12 @@ public:
 		// constructor (initialises member variable patch)
 };
 
-///////////////////////////////////////////////////////////////////////////////////////
-// SOILTYPE
-// Soiltype stores static parameters for soils and the snow pack. 
-// One Soiltype object is defined for each Gridcell. State variables for soils 
-//  are held by objects of class Soil, of which there is one for each patch 
-//  (see below).
 
+/// Soiltype stores static parameters for soils and the snow pack. 
+/** One Soiltype object is defined for each Gridcell. State variables for soils 
+ *  are held by objects of class Soil, of which there is one for each patch 
+ *  (see below).
+ */
 class Soiltype {
 
 	// MEMBER VARIABLES
@@ -1310,15 +1308,15 @@ public:
 
 // end GUESSN
 
-///////////////////////////////////////////////////////////////////////////////////////
-// SOIL
-// Stores state variables for soils and the snow pack. Initialised by a call to
-// initdrivers. One Soil object is defined for each patch. A reference to the parent
-// Patch object (defined below) is included as a member variable. Soil static
-// parameters are stored as objects of class Soiltype, of which there is one for each
-// stand. A reference to the Soiltype object holding the static parameters for this
-// soil is included as a member variable.
 
+
+/// Soil stores state variables for soils and the snow pack. 
+/** Initialised by a call to initdrivers. One Soil object is defined for each patch. 
+ *  A reference to the parent Patch object (defined below) is included as a member 
+ *  variable. Soil static parameters are stored as objects of class Soiltype, of which 
+ *  there is one for each grid cell. A reference to the Soiltype object holding the 
+ *  static parameters for this soil is included as a member variable.
+ */
 class Soil {
 
 	// MEMBER VARIABLES
@@ -1867,18 +1865,6 @@ public:
 
 	// Variables used only by input/output module
 
-	double cmass_total;
-		// sum/mean across patches for carbon biomass (kgC/m2)
-	double anpp_total;
-		// sum/mean across patches for annual NPP (kgC/m2/year)
-	double lai_total;
-		// sum/mean across patches for 'grid-cell' LAI
-	double densindiv_total;
-		// sum/mean across patches for density of (true) individuals (indiv/m2)
-		// (meaningful in cohort/individual mode only)
-	double densindiv_ageclass[OUTPUT_MAXAGECLASS];
-		// stem density by age class (cohort/individual mode only; used by function
-		// outannual)
 	double greff_mort_total;
 		// sum/mean across patches for saplings per PFT
 	double nsapling_total;
@@ -1926,11 +1912,10 @@ public:
 	}
 };
 
-///////////////////////////////////////////////////////////////////////////////////////
-// STAND
-// The stand class corresponds to a modelled area of a specific landcover type in a grid cell.
-// there may be several stands of the same landcover type (but with different settings).
 
+/// The stand class corresponds to a modelled area of a specific landcover type in a grid cell.
+/** There may be several stands of the same landcover type (but with different settings).
+ */
 class Stand : public ListArray_idin3<Patch,Stand,Pftlist,Soiltype> {
 
 public:

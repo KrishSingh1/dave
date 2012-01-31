@@ -188,17 +188,27 @@ void turnover(double turnover_leaf,double turnover_root,double turnover_sap,
 	double& nstore,Fluxes& fluxes,bool alive,double& nmass_avail,
 	landcovertype landcover, Gridcell& gridcell) {
 
-
 	// DESCRIPTION
 	// Transfers carbon from leaves and roots to litter, and from sapwood to heartwood
-	// Version for OECD experiment:
-	// For crops (specially labelled grass type) 50% of above-ground biomass transferred
-	// to litter, remainder stored as a flux to the atmosphere (i.e. increments Rh)
-	// (equal amount for each month)
+	// Only turnover from 'alive' individuals is transferred to litter (Ben 2007-11-28)
 
-	// guess2008 - new (indiv.)alive boolean throughout. Also, only turnover from 'alive' 
-	// individuals is transferred to litter
+	// INPUT PARAMETERS
+	// turnover_leaf = leaf turnover per time period as a proportion of leaf C biomass
+	// turnover_root = root turnover per time period as a proportion of root C biomass
+	// turnover_sap  = sapwood turnover to heartwood per time period as a proportion of
+	//                 sapwood C biomass
+	// lifeform      = PFT life form class (TREE or GRASS)
+	// alive         = signifies new Individual object if false (see vegdynam.cpp)
 
+	// INPUT AND OUTPUT PARAMETERS
+	// cmass_leaf    = leaf C biomass (kgC/m2)
+	// cmass_root    = fine root C biomass (kgC/m2)
+	// cmass_sap     = sapwood C biomass (kgC/m2)
+
+	// OUTPUT PARAMETERS
+	// litter_leaf   = new leaf litter (kgC/m2)
+	// litter_root   = new root litter (kgC/m2)
+	// cmass_heart   = heartwood C biomass (kgC/m2)
 
 	double turnover = 0.0;
 	double scale=1.0;
@@ -206,7 +216,7 @@ void turnover(double turnover_leaf,double turnover_root,double turnover_sap,
 	if(run_landcover && gridcell.LC_updated) {
 		//scale harvest products of stands with increased area by (old area/new area) if landcover change has occurred:
 		scale=gridcell.landcoverfrac_old[landcover]/gridcell.landcoverfrac[landcover];
-		dprintf("På fel plats\n");
+
 		if(scale>=1.0)
 			scale=1.0;
 	}
@@ -249,11 +259,10 @@ void turnover(double turnover_leaf,double turnover_root,double turnover_sap,
 	}
 	// end GUESSN
 
-
-
 	if (lifeform==TREE) {
-		
+
 		// TREES ONLY:
+
 		// Sapwood turnover by conversion to heartwood
 		turnover=turnover_sap*cmass_sap*scale;
 		cmass_sap-=turnover;

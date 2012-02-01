@@ -1673,7 +1673,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	while (!eof) {
 		
 		// Read next record in file
-		eof=!readfor(in_grid,"f,f,a",&dlon,&dlat,&descrip);
+		eof=!readfor(in_grid,"f,f,a#",&dlon,&dlat,&descrip);
 
 		if (!eof && !(dlon==0.0 && dlat==0.0)) { // ignore blank lines at end (if any)
 			Coord& c=gridlist.createobj(); // add new coordinate to grid list

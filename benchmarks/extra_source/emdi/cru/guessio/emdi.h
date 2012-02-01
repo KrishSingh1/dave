@@ -4,13 +4,18 @@
 #include <gutil.h>
 #include <map>
 #include <utility>
+#include <sstream>
 
 namespace {
 std::map<std::pair<double, double>, double> pawcPerGridCell;
 }
 
 void rememberPAWC(double dlon, double dlat, xtring pawc) {
-	pawcPerGridCell[std::make_pair(dlon, dlat)] = pawc.num();
+	std::istringstream is((char*)pawc);
+	double first_number_in_string;
+	is >> first_number_in_string;
+
+	pawcPerGridCell[std::make_pair(dlon, dlat)] = first_number_in_string;
 }
 
 void overrideAWC(double lon, double lat, Soiltype& soiltype) {

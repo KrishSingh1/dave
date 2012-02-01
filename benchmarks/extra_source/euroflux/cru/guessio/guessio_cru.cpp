@@ -1770,7 +1770,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 				abort=true;
 			}
 			else {
-				dprintf("Unknown option \"%s\"\n",insfilename);
+				dprintf("Unknown option \"%s\"\n",(char*)insfilename);
 				abort=true;
 			}
 		}
@@ -1833,7 +1833,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	while (!eof) {
 		
 		// Read next record in file
-		//eof=!readfor(in_grid,"f,f,a",&dlon,&dlat,&descrip);
+		//eof=!readfor(in_grid,"f,f,a#",&dlon,&dlat,&descrip);
 
 		// New, local versions of these arrays
 		xtring dom_spec[5];

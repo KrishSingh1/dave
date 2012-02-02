@@ -102,18 +102,19 @@ void soilparameters(Soiltype& soiltype,int soilcode) {
 		//       Thermal diffusivities follow van Duin (1963),
 		//       Jury et al (1991), Fig 5.11.
 
-		//    0      1      2      3      4   soilcode
-		//  ------------------------------------------
 
-		{   5.0, 0.110,   0.2, 0.800,   0.4 },   // 1
-		{   4.0, 0.150,   0.2, 0.650,   0.4 },   // 2
-		{   3.0, 0.120,   0.2, 0.500,   0.4 },   // 3
-		{   4.5, 0.130,   0.2, 0.725,   0.4 },   // 4
-		{   4.0, 0.115,   0.2, 0.650,   0.4 },   // 5
-		{   3.5, 0.135,   0.2, 0.575,   0.4 },   // 6
-		{   4.0, 0.127,   0.2, 0.650,   0.4 },   // 7
-		{   9.0, 0.300,   0.1, 0.100,   0.1 },   // 8
-		{   0.2, 0.100,   0.2, 0.500,   0.4 }    // 9
+		//    0      1      2      3      4   soilcode		texture
+		//  -------------------------------------------------------
+
+		{   5.0, 0.110,   0.2, 0.800,   0.4 },   // 1		coarse
+		{   4.0, 0.150,   0.2, 0.650,   0.4 },   // 2		medium
+		{   3.0, 0.120,   0.2, 0.500,   0.4 },   // 3		fine
+		{   4.5, 0.130,   0.2, 0.725,   0.4 },   // 4		medium-coarse
+		{   4.0, 0.115,   0.2, 0.650,   0.4 },   // 5		fine-coarse
+		{   3.5, 0.135,   0.2, 0.575,   0.4 },   // 6		fine-medium
+		{   4.0, 0.127,   0.2, 0.650,   0.4 },   // 7		fine-medium-coarse
+		{   9.0, 0.300,   0.1, 0.100,   0.1 },   // 8		organic
+		{   0.2, 0.100,   0.2, 0.500,   0.4 }    // 9		vertisols
 	};
 
 	if (soilcode<1 || soilcode>9)
@@ -584,11 +585,9 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 	if(run_landcover)
 		dailyaccounting_patch_lc(patch, pftlist);
 	
-	// Store daily soil water in upper layer
-	soil.dwcontupper[date.day]=soil.wcont[0];
-
-	// Store daily soil water in lower layer - guess2008
-	soil.dwcontlower[date.day]=soil.wcont[1];
+	// Store daily soil water in both layers
+	soil.dwcontupper[date.day] = soil.wcont[0];
+	soil.dwcontlower[date.day] = soil.wcont[1];
 
 	// On last day of month, calculate mean content of upper soil layer
 
@@ -641,12 +640,12 @@ void respiration_temperature_response(double temp,double& gtemp) {
 	// OUTPUT PARAMETER
 	// gtemp = respiration temperature response
 
-	if (temp>=-40.0)
-		gtemp=exp(308.56*(1.0/56.02-1.0/(temp+46.02))); // NB: temperature in deg C
-	else
-		gtemp=0.0;
+	if (temp >= -40.0) {
+		gtemp = exp(308.56 * (1.0/56.02 - 1.0/(temp+46.02)));
+	} else {
+		gtemp = 0.0;
+	}
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // DAYLENGTH, INSOLATION AND POTENTIAL EVAPOTRANSPIRATION

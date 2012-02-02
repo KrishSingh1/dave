@@ -778,7 +778,7 @@ void photosynthesis_nowstress(Stand& stand, Climate& climate) {
 					       1.0, pft.lambda_max, pft.pathway, pft.pstemp_min, pft.pstemp_low,
 					       pft.pstemp_high, pft.pstemp_max, pft.lambda_max, spft.photosynthesis);
 
-	   // Eqn 21, Haxeltine & Prentice 1996
+		// Eqn 21, Haxeltine & Prentice 1996
 		// NB: includes conversion of daylight from hours to seconds (*3600),
 		//     and CO2 from ppmv to mole fraction (*1.0e-6);
 		//     scalar multiplier = 1.6 / 1.0e-6 / 3600 = 444.4

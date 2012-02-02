@@ -101,17 +101,16 @@ void leaf_phenology_pft(Pft& pft,Climate& climate,double wscal,double aphen,
 			phen=min(1.0,climate.gdd5/pft.phengdd5ramp);
 		}
 	}
-	
-	if (raingreen) {
+
+	if (raingreen && wscal < pft.wscal_min) {
 
 		// Raingreen phenology based on water stress threshold
-
-		if (wscal<pft.wscal_min) phen=0.0;
+		phen = 0.0;
 	}
 }
 
 
-void leaf_phenology(Patch& patch,Climate& climate) {
+void leaf_phenology(Patch& patch, Climate& climate) {
 
 	// DESCRIPTION
 	// Updates leaf phenological status (fractional leaf-out) for Patch PFT objects and
@@ -146,15 +145,16 @@ void leaf_phenology(Patch& patch,Climate& climate) {
 		// Update annual leaf-on sum
 		if (climate.lat>=0.0 && date.day==COLDEST_DAY_NHEMISPHERE ||
 			climate.lat<0.0 && date.day==COLDEST_DAY_SHEMISPHERE) pft.aphen=0.0;
-		pft.aphen+=pft.phen;
+		pft.aphen += pft.phen;
 
 		// ... on to next PFT
 		patch.pft.nextobj();
 	}
 
 
-	// guess2008
-	if (leafout) climate.ifsensechill=true; // CHILLDAYS
+	if (leafout) {
+		climate.ifsensechill = true; // CHILLDAYS
+	}
 
 
 	// Copy PFT-specific phenological status to individuals of each PFT
@@ -595,8 +595,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 					litter_root_inc=-cmass_root_inc;
 				}
 
-			}
-			else {
+			} else {
 
 				// Negative or zero allocation to leaves
 				// Eqns (1), (3)

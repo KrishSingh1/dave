@@ -1666,20 +1666,6 @@ void npp(Patch& patch) {
 				indiv.aiso+=indiv.iso;
 				indiv.amon+=indiv.mon;
 			}
-				
-
-			// Calculate respiration response to air and soil temperature
-			// (if not already known for this day)
-
-			if (climate.last_gtemp!=date.day) {
-				respiration_temperature_response(climate.temp,climate.gtemp);
-				climate.last_gtemp=date.day;
-			}
-
-			if (patch.soil.last_gtemp!=date.day) {
-				respiration_temperature_response(patch.soil.temp,patch.soil.gtemp);
-				patch.soil.last_gtemp=date.day;
-			}
 
 			// Calculate autotrophic respiration
 

@@ -440,6 +440,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 	if (climate.temp<5.0 && climate.chilldays<=365)
 		climate.chilldays++;
 
+	respiration_temperature_response(climate.temp, climate.gtemp);
+
 ///	if (run_landuse && run_crop)
 ///		dailyaccounting_gridcell_crop(gridcell,pftlist);
 
@@ -606,6 +608,7 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 
 	// Calculate soil temperatures
 	soiltemp(patch.stand.gridcell.climate,soil);
+	respiration_temperature_response(soil.temp, soil.gtemp);
 
 	// On last day of month, calculate mean soil temperature for last month
 
@@ -618,7 +621,7 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // RESPIRATION TEMPERATURE RESPONSE
-// Called by canopy exchange and soil organic matter dynamics module to calculate
+// Called by dailyaccounting_patch and dailyaccounting_gridcell to calculate
 // response of respiration to temperature
 
 void respiration_temperature_response(double temp,double& gtemp) {

@@ -429,8 +429,6 @@ public:
 	double gtemp;
 		// respiration response to today's air temperature incorporating damping of Q10
 		// due to temperature acclimation (Lloyd & Taylor 1994)
-	int last_gtemp;
-		// the last day (0-364) for which gtemp was calculated
 	double mgtemp;
 		// gtemp (see above) calculated for this month's average temperature
 	int last_mgtemp;
@@ -491,7 +489,6 @@ public:
 		chilldays=0;
 		ifsensechill=true; //  guess2008 - CHILLDAYS
 		atemp_mean=0.0;
-		last_gtemp=-1;
 		last_mgtemp=-1;
 
 		lat=latitude;
@@ -1155,8 +1152,6 @@ public:
 		// respiration response to today's soil temperature at 0.25 m depth
 		// incorporating damping of Q10 due to temperature acclimation (Lloyd & Taylor
 		// 1994)
-	int last_gtemp;
-		// the last day (0-364) for which gtemp was calculated
 	double mgtemp;
 		// gtemp (see above) calculated for this month's average temperature
 	int last_mgtemp;
@@ -1217,7 +1212,6 @@ public:
 		wcont[1]=0.0;
 		wcont_evap=0.0;
 		snowpack=0.0;
-		last_gtemp=-1;
 		last_mgtemp=-1;
 
 

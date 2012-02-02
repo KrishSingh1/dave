@@ -563,19 +563,13 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// guess2008 - extra check - abnormal allocation can still happen if ltor is very small
 			if ((cmass_root_inc > 50 || cmass_root_inc < -50) && ltor < 0.0001) {
-				cmass_leaf_inc=0.0;
-				cmass_root_inc=bminc;
-
-				if (lifeform==TREE) {
-					cmass_sap_inc=-cmass_sap;
-					cmass_heart_inc=-cmass_sap_inc;
-				}
-
-				return;			
+				cmass_leaf_inc = 0.0;
+				cmass_root_inc = bminc;
+				cmass_sap_inc = -cmass_sap;
+				cmass_heart_inc = -cmass_sap_inc;
 			}
 
-		}
-		else {
+		} else {
 
 			// Abnormal allocation: reduction in some biomass compartment(s) to
 			// satisfy allometry

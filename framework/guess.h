@@ -1548,8 +1548,6 @@ public:
 	double assim_term;
 		// non-FPAR-weighted leaf-level net photosynthesis value for PFT under non-
 		// water-stress conditions (kgC/m2/day)
-	bool have_phot;
-		// whether gpterm and assim_term values are valid today
 	double fpc_total;
 		// FPC sum for this PFT as average for stand (used by some versions of
 		// guessio.cpp)

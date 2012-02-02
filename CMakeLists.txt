@@ -53,7 +53,10 @@ add_subdirectory(framework)
 add_subdirectory(modules)
 add_subdirectory(cru)
 add_subdirectory(libraries)
-add_subdirectory(tests)
+
+if (UNIT_TESTS)
+  add_subdirectory(tests)
+endif()
 
 # Add the command line program's target
 if (WIN32)

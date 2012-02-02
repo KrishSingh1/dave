@@ -87,8 +87,6 @@ const int SOLVESOM_END=400;
 const int SOLVESOM_BEGIN=350;
 	// year at which to begin documenting means for calculation of equilibrium
 	// soil carbon
-const double LAMBERTBEER_K=0.50;
-	// Lambert-Beer extinction coefficient (Prentice et al 1993; Monsi & Saeki 1953)
 const int NYEARGREFF=5;
 	// number of years to average growth efficiency over in function mortality
 const int COLDEST_DAY_NHEMISPHERE=14;

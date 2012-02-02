@@ -352,8 +352,8 @@ void fpar(Patch& patch) {
 			// Calculate FPAR at bottom of this layer
 			// Eqn 27, Prentice et al 1993
 
-			fpar_layer_bottom=exp(-LAMBERTBEER_K*plai);
-			fpar_leafon_layer_bottom=exp(-LAMBERTBEER_K*plai_leafon);
+			fpar_layer_bottom = lambertbeer(plai);
+			fpar_leafon_layer_bottom = lambertbeer(plai_leafon);
 
 			// Total PAR uptake in this layer
 
@@ -395,21 +395,21 @@ void fpar(Patch& patch) {
 		}
 
 		// FPAR reaching grass canopy
-		fpar_grass=exp(-LAMBERTBEER_K*plai);
-		fpar_leafon_grass=exp(-LAMBERTBEER_K*plai_leafon);
+		fpar_grass = lambertbeer(plai);
+		fpar_leafon_grass = lambertbeer(plai_leafon);
 
 		// Add grass LAI to calculate PAR reaching forest floor
 		// BLARP: Order changed Ben 050301 to overcome optimisation bug in pgCC
 
 		//plai+=plai_grass;
-		fpar_ff=exp(-LAMBERTBEER_K*(plai+plai_grass));
+		fpar_ff = lambertbeer(plai+plai_grass);
 		plai+=plai_grass;
 
 		// Save this
 		patch.fpar_ff=fpar_ff;
 
 		plai_leafon+=plai_leafon_grass;
-		fpar_leafon_ff=exp(-LAMBERTBEER_K*plai_leafon);
+		fpar_leafon_ff = lambertbeer(plai_leafon);
 
 		// FPAR for grass PFTs is difference between relative PAR at top of grass canopy
 		// canopy and at forest floor, or lower if FPAR at forest floor below threshold

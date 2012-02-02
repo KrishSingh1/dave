@@ -1529,13 +1529,6 @@ public:
 	double anetps_ff_max;
 		// maximum value of anetpsff (potential annual net assimilation at forest
 		// floor) for this PFT in this stand so far in the simulation (kgC/m2/year)
-	double gterm;
-		// term in calculation of potential canopy conductance (mm/s)
-	bool have_gterm;
-		// true if value of gterm available for this PFT today, otherwise false
-
-	// Variables used by "fast" canopy exchange code (Ben Smith 2002-07)
-
 	double gpterm;
 		// non-FPAR-weighted value for canopy conductance component associated with
 		// photosynthesis for PFT under non-water-stress conditions (mm/s)
@@ -1548,10 +1541,8 @@ public:
 
 	/// Photosynthesis values for this PFT under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;
-	
-	
 
-	/// Is this PFT allowed to grow in this stand ?
+	/// Is this PFT allowed to grow in this stand?
 	bool active;
 
 	// MEMBER FUNCTIONS
@@ -1559,13 +1550,8 @@ public:
 	Standpft(int i,Pft& p):id(i),pft(p) {
 		
 		// Constructor: initialises various data members
-		
-		anetps_ff_max=0.0;
-
-		if (run_landcover)
-			active=false;
-		else
-			active=true;
+		anetps_ff_max = 0.0;
+		active = !run_landcover;
 	}
 };
 

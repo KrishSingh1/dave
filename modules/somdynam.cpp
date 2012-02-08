@@ -568,7 +568,7 @@ void decayrates(Soil& soil,double temp_soil,double wcont_soil) {
 	else
 		moist_mod=0.000371*wfps*wfps-0.0748*wfps+4.13;
 
-	for (p=0;p<NSOMPOOL;p++) {
+	for (p=0;p<NSOMPOOL-1;p++) {
 
 		// Calculate decay constant (annual basis)
 		// (dC_I/dt / C_I; Parton et al 1993, Eqns 2-4)
@@ -1129,15 +1129,15 @@ void transfer_litter(Patch& patch,Soil& soil) {
 
 			// Coarse woody debris
 
-			ligcmass_new=max(0.0,pft.litter_wood*cwdtransfer)*LIGCFRAC_WOOD;
+			ligcmass_new=max(0.0,pft.litter_wood)*LIGCFRAC_WOOD;
 			ligcmass_old=soil.sompool[SURFCWD].cmass*soil.sompool[SURFCWD].ligcfrac;
 
 			if (pft.litter_wood < 0.0)
 				dprintf("Year %d pft %s Negative litter wood %g \n",date.year,(char*)pft.pft.name,pft.litter_wood);
 
 			// Add to structural pool and update lignin fraction in pool
-			soil.sompool[SURFCWD].cmass+=pft.litter_wood*cwdtransfer;
-			soil.sompool[SURFCWD].nmass+=pft.nmass_litter_wood*cwdtransfer;
+			soil.sompool[SURFCWD].cmass+=pft.litter_wood;
+			soil.sompool[SURFCWD].nmass+=pft.nmass_litter_wood;
 			if (negligible(soil.sompool[SURFCWD].cmass))
 				soil.sompool[SURFCWD].ligcfrac=0.0;
 			else {
@@ -1147,8 +1147,8 @@ void transfer_litter(Patch& patch,Soil& soil) {
 			}
 		
 			// Update vegetation
-			pft.litter_wood*=(1.0-cwdtransfer);
-			pft.nmass_litter_wood*=(1.0-cwdtransfer);
+			pft.litter_wood=0.0;
+			pft.nmass_litter_wood=0.0;
 		}
 
 		patch.pft.nextobj();
@@ -2206,6 +2206,9 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 	// N deposition
 	soil.ndep_annual=patch.stand.gridcell.climate.andep;
 
+//	if (date.year > 500)
+//		dprintf("Year %d andep %g\n",date.year,soil.ndep_annual);
+
 	// N fixation
 	if (ifnfix==1)
 		soil.N_fix = max(0.00000102*patch.aaet+0.0000524,0.0);	
@@ -2302,7 +2305,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 	}
 
 	// Create individuals that determines amount of N that each indiv has for establishment
-	if (date.year>=freenyears && ifndemand_new_est)
+	if (date.year>=freenyears)
 		ndemand_new_est(patch,pftlist,patch.ndemand);
 
 	// Rescale demand to not exceed supply (Eqn 4)
@@ -2315,7 +2318,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 		patch.fnuptake=1.0;
 
 	// Individual fnuptake
-	if (ifindiv_fnuptake && patch.fnuptake < 1.0 && patch.fnuptake != 0.0)
+	if (ifindiv_fnuptake && patch.fnuptake < 1.0 && patch.fnuptake > 0.0)
 		indiv_fnuptake(vegetation,patch.nsupply,patch.ndemand,patch.fnuptake);
 
 	// VEGETATION N UPTAKE

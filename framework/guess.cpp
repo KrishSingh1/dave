@@ -61,8 +61,6 @@ int freenyears;
 	// number of years to allow spinup without N limitation
 double nrelocfrac;
 	// fraction of N relocated by plants from roots and leaves
-double cwdtransfer;
-	// Fraction of woody debris transferred to SOM each year
 bool ifleachn;
 	// whether to allow N leaching
 bool ifindiv_fnuptake;
@@ -71,9 +69,13 @@ int ifnfix;
 	// whether to include an estimate for N fixation
 bool ifndepdata;
 	// whether N deposition data available from a file
-bool ifndemand_new_est;
-	// if to use N limitation on new establishment 
 // end GUESSN
+
+// CMIP5
+bool ifcmip5;
+bool ifndepdata_cmip5;
+bool iflandusesimple;
+bool iflandusechange;
 
 // SENS
 double sens_cton_needle;
@@ -172,6 +174,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 	fnuptake=1.0;
 	n_reserve_uptake=0.0;
 	max_n_reserve=0.0;
+
+	frac_agpp=1.0;
 
 	// end GUESSN
 

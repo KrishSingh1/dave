@@ -178,8 +178,6 @@ extern int freenyears;
 	// number of years to allow spinup without N limitation
 extern double nrelocfrac;
 	// fraction of N relocated by plants from roots and leaves
-extern double cwdtransfer;
-	// fraction of woody debris transferred to SOM each year
 extern bool ifleachn;
 	// whether to allow N leaching
 extern bool ifindiv_fnuptake;
@@ -188,9 +186,14 @@ extern int ifnfix;
 	// whether to include an estimate for N fixation
 extern bool ifndepdata;
 	// whether N deposition data available from a file
-extern bool ifndemand_new_est;
-	// if to use N limitation on new establishment 
 // end GUESSN
+
+// CMIP5
+extern bool ifcmip5;
+extern bool iflandusesimple;
+extern bool iflandusechange;
+extern bool ifndepdata_cmip5;
+
 // SENS
 extern double sens_cton_needle;
 	// Needleleaved C:N min change
@@ -538,6 +541,18 @@ public:
 	double NOyWetDep[192];
 	// end GUESSN
 
+	// CMIP5
+	// Years with N deposition data
+	double ndep_years_cmip5[11];
+	// Monthly data on daily dry NHx deposition in 10 year interval from 2005 to 2105 (gN/ha/day)
+	double NHxDryDep_cmip5[132];	// 12 months * 16 years == 192
+	// Monthly data on daily wet NHx deposition in 10 year interval from 2005 to 2105 (gN/ha/day)
+	double NHxWetDep_cmip5[132];
+	// Monthly data on daily dry NOy deposition in 10 year interval from 2005 to 2105 (gN/ha/day)
+	double NOyDryDep_cmip5[132];
+	// Monthly data on daily wet NOy deposition in 10 year interval from 2005 to 2105 (gN/ha/day)
+	double NOyWetDep_cmip5[132];
+
 	// Monthly sums (converted to means) used by canopy exchange module
 
 	double temp_mean;
@@ -557,6 +572,9 @@ public:
 	double daylength_save[365];
 	bool doneday[365];
 		// indicates whether saved values exist for this day
+
+	// CMIP5
+	double frluse;
 
 	// MEMBER FUNCTIONS
 
@@ -589,6 +607,9 @@ public:
 		for (day=0;day<365;day++) doneday[day]=false;
 		sinelat=sin(lat*DEGTORAD);
 		cosinelat=cos(lat*DEGTORAD);
+
+		// CMIP5
+		frluse=1.0;
 	}
 };
 
@@ -1144,7 +1165,7 @@ public:
 	double nstore_daily;
 	double bminc_leaf_frac;	
 	double bminc_root_frac;
-	
+	double frac_agpp;
 	// end GUESSN
 
 
@@ -1810,10 +1831,6 @@ public:
 		// yearly N demand
 	double nsupply;
 		// yearly N supply
-	double new_est_ndemand;
-		// last years N demand for new establishments
-	double est_ndemand;
-		// cumulative N demand for new establishments
 	// end GUESSN
 
 	// MEMBER FUNCTIONS
@@ -1837,7 +1854,6 @@ public:
 		growingseasondays=0;
 
 		fireprob=0.0;
-		est_ndemand=0.0;
 	}
 };
 

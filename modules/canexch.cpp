@@ -2187,14 +2187,13 @@ void npp(Patch& patch) {
 
 			// Calculate autotrophic respiration
 			
-
 			double resp_sap,resp_root,resp_growth;
 
 			respiration(climate.gtemp,patch.soil.gtemp,indiv.pft.lifeform,
 				indiv.pft.respcoeff,indiv.cmass_sap/indiv.nmass_sap,indiv.cmass_root/indiv.nmass_root,
-				indiv.phen,indiv.cmass_sap,indiv.cmass_root,indiv.assim,indiv.resp,
+				indiv.phen,indiv.cmass_sap,indiv.cmass_root,indiv.assim*indiv.frac_agpp,indiv.resp,
 				resp_sap,resp_root,resp_growth);
-
+				
 			// Update accumulated annual NPP and daily vegetation-atmosphere flux
 
 			indiv.dassim[date.day]=indiv.assim;	// GUESSN
@@ -2383,7 +2382,7 @@ void npp(Patch& patch) {
 
 				respiration(climate.mgtemp,patch.soil.mgtemp,indiv.pft.lifeform,
 					indiv.pft.respcoeff,indiv.cmass_sap/indiv.nmass_sap,indiv.cmass_root/indiv.nmass_root,
-					indiv.phen_mean,indiv.cmass_sap,indiv.cmass_root,assim,indiv.resp,resp_sap,resp_root,resp_growth);
+					indiv.phen_mean,indiv.cmass_sap,indiv.cmass_root,assim*indiv.frac_agpp,indiv.resp,resp_sap,resp_root,resp_growth);
 
 				indiv.resp*=(double)date.ndaymonth[date.month];
 

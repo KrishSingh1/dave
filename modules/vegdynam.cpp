@@ -398,7 +398,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 	int i;
 	bool est_year; // On establishment year reset establishment N store
 
-	patch.new_est_ndemand=0.0;
+
 	double nonlimdens;	// No N limitation indiv density
 
 	// Obtain reference to Vegetation object
@@ -521,22 +521,20 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 								indiv.cmass_root/indiv.pft.cton_root_avr;
 
 						if (ifnlim && date.year>=freenyears) {
-							if (ifndemand_new_est){
-								double frac_est=min(1.0,patch.pft[pft.id].nstore_est/indiv.ndemand);
-								indiv.cmass_leaf*=frac_est;
-								indiv.nmass_leaf*=frac_est;
-								indiv.cmass_root*=frac_est;
-								indiv.nmass_root*=frac_est;
-								patch.pft[pft.id].nstore_est-=min(patch.pft[pft.id].nstore_est,indiv.ndemand);
-								bminit*=frac_est;
+							double frac_est=min(1.0,patch.pft[pft.id].nstore_est/indiv.ndemand);
+							indiv.cmass_leaf*=frac_est;
+							indiv.nmass_leaf*=frac_est;
+							indiv.cmass_root*=frac_est;
+							indiv.nmass_root*=frac_est;
+							patch.pft[pft.id].nstore_est-=min(patch.pft[pft.id].nstore_est,indiv.ndemand);
+							bminit*=frac_est;
 
-								if (patch.pft[pft.id].nstore_est>0.0) {
-									patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;
-									patch.pft[pft.id].nstore_est=0.0;
-								}
+							//dprintf("Year %d pft %s est frac %g\n",date.year,(char*)indiv.pft.name,frac_est);
+
+							if (patch.pft[pft.id].nstore_est>0.0) {
+								patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;
+								patch.pft[pft.id].nstore_est=0.0;
 							}
-							else 
-								patch.new_est_ndemand+=indiv.ndemand;
 						}
 
 						indiv.max_n_reserve = indiv.pft.n_reserve*indiv.cmass_root/indiv.pft.cton_leaf_avr;
@@ -560,11 +558,9 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 							patch.fluxes.acflux_est-=bminit;
 					}
 					else {
-						if (ifndemand_new_est) {
-							if (patch.pft[pft.id].nstore_est>0.0) {
-								patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;
-								patch.pft[pft.id].nstore_est=0.0;
-							}
+						if (patch.pft[pft.id].nstore_est>0.0) {
+							patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;
+							patch.pft[pft.id].nstore_est=0.0;
 						}
 					}
 
@@ -612,12 +608,6 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 							est=c*kest_bg;
 					}
 
-					// GUESSN
-					// scale est by the limiting N uptake factor
-					if (ifnlim && date.year>freenyears && !ifndemand_new_est)
-						est*=max(pow(patch.fnuptake,4.0),0.05);
-					// end GUESSN
-
 					// guess2008 - scale est by the number of woody PFTs/species that can establish
 					// Otherwise, simply adding more PFTs or species would increase est
 					est*=3.0/double(nwoodypfts_estab);
@@ -629,7 +619,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 					if (ifstochestab || vegmode==INDIVIDUAL) nsapling=randpoisson(est);
 					else nsapling=est;
 
-					if (ifndemand_new_est && date.year>freenyears && !patch.disturbed)
+					if (date.year>freenyears && !patch.disturbed)
 						nsapling=patch.pft[pft.id].nsapling_nuptake;
 
 
@@ -730,20 +720,15 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 								indiv.cmass_heart/indiv.pft.cton_sap_avr+
 								indiv.nmass_reserve;
 
-						if (ifnlim && date.year>=freenyears) {
-							if (ifndemand_new_est) {
-								//if (!patch.disturbed) {
-								nonlimdens=indiv.densindiv;
-								indiv.densindiv*=min(1.0,patch.pft[pft.id].nstore_est/indiv.ndemand);
-								//}
-							}
-							else 
-								patch.new_est_ndemand+=indiv.ndemand;	
-						}					
+						if (ifnlim && date.year>=freenyears && !patch.disturbed) {
 
-						if (ifndemand_new_est && !patch.disturbed){
+							nonlimdens=indiv.densindiv;
+
+							indiv.densindiv *= min(1.0,patch.pft[pft.id].nstore_est/indiv.ndemand);
 
 							indiv.densindiv = ((double)((int)(indiv.densindiv*1000.0)))/1000.0;
+
+							//dprintf("Year %d pft %s est frac %g dens %g\n",date.year,(char*)indiv.pft.name,indiv.densindiv/nonlimdens,indiv.densindiv);
 
 							if (indiv.densindiv<nonlimdens) {
 								double densfrac=indiv.densindiv/nonlimdens;
@@ -758,20 +743,13 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 							double nstore_est=patch.pft[pft.id].nstore_est;
 
 							patch.pft[pft.id].nstore_est-=min(nstore_est,indiv.ndemand*indiv.densindiv/nonlimdens);
+						}
 
-							// Account for C flux from atmosphere to vegetation
-							// guess2008
-							if (indiv.alive && indiv.densindiv)
-								patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
-								indiv.cmass_sap;
-						}
-						else {
-							// Account for C flux from atmosphere to vegetation
-							// guess2008
-							if (indiv.alive && indiv.densindiv)
-								patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
-								indiv.cmass_sap;
-						}
+						// Account for C flux from atmosphere to vegetation
+						// guess2008
+						if (indiv.alive && indiv.densindiv)
+							patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
+							indiv.cmass_sap;
 
 						indiv.max_n_reserve = indiv.pft.n_reserve*indiv.cmass_sap/indiv.pft.cton_leaf_avr;
 
@@ -782,7 +760,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 							vegetation.killobj();
 					}
 
-					if (est_year && ifndemand_new_est) {
+					if (est_year) {
 						if (patch.pft[pft.id].nstore_est>0.0) {
 							patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;
 							patch.pft[pft.id].nstore_est=0.0;
@@ -802,23 +780,6 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 		pftlist.nextobj();
 	}
-	// GUESSN
-
-	if (!ifndemand_new_est) {
-
-		patch.est_ndemand+=patch.new_est_ndemand;
-
-		// should take this N from somewhere
-		// Deduct from soil avail N pool (may make it temporarily negative!)
-		if (date.year>freenyears) {
-			patch.soil.nmass_avail-=patch.est_ndemand/(double)estinterval;
-			patch.est_ndemand-=patch.est_ndemand/(double)estinterval;
-		}
-		else
-			patch.est_ndemand=0.0;
-	}
-	// end GUESSN
-
 }
 
 

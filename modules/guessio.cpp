@@ -1997,7 +1997,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				standpft_cmass=0.0;
 				standpft_anpp=0.0;
 				standpft_lai=0.0;
-				standpft_densindiv_total = 0.0;
+				standpft_densindiv_total=0.0;
 
 				// Initialise age structure array
 

@@ -1977,6 +1977,7 @@ void growth(Stand& stand,Patch& patch) {
 				indiv.cton_leaf_new=indiv.pft.cton_leaf_avr;
 				indiv.cton_root_new=indiv.pft.cton_root_avr;
 				indiv.cton_sap_new=indiv.pft.cton_sap_avr;
+				indiv.avmaxnlim=1.0;
 			}
 
 			if (!negligible(indiv.nmass_leaf))
@@ -2032,7 +2033,7 @@ void growth(Stand& stand,Patch& patch) {
 				// (NB: this overwrites the alternative factor calculated in canexch.cpp, but this
 				// one is better!)
 
-				if ((indiv.nstore+1.0e-14<indiv.ndemand || indiv.nstore < 0.0) && !negligible(indiv.ndemand)) {
+				if (ifnlim && (indiv.nstore+1.0e-14<indiv.ndemand || indiv.nstore < 0.0) && !negligible(indiv.ndemand)) {
 					if (indiv.nstore<0.0) {
 						indiv.limnfact=0.0;
 					}
@@ -2099,6 +2100,7 @@ void growth(Stand& stand,Patch& patch) {
 					//     therefore mortality and litter fluxes (in vegdynam.cpp).
 					bminc-=bminc_dec;
 					indiv.anpp-=bminc_dec;
+					indiv.frac_agpp=(agpp-bminc_dec)/agpp;
 				}
 
 				if (date.year <= freenyears)
@@ -2270,7 +2272,7 @@ void growth(Stand& stand,Patch& patch) {
 				// (NB: this overwrites the alternative factor calculated in canexch.cpp, but this
 				// one is better!)
 
-				if ((indiv.nstore+1.0e-14<indiv.ndemand || indiv.nstore < 0.0) && !negligible(indiv.ndemand)) {
+				if (ifnlim && (indiv.nstore+1.0e-14<indiv.ndemand || indiv.nstore < 0.0) && !negligible(indiv.ndemand)) {
 					if (indiv.nstore<0.0)	
 						indiv.limnfact=0.0;
 					else {

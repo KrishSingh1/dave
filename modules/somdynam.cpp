@@ -2343,7 +2343,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 			while (vegetation.isobj) {
 				Individual& indiv=vegetation.getobj();
 
-				if (date.day==0)
+				if (d==0)
 					indiv.nuptake=0.0;
 
 				if (!ifindiv_fnuptake || patch.fnuptake==1.0 || patch.fnuptake==0.0)

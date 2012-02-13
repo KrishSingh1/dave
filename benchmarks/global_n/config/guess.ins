@@ -23,14 +23,12 @@
 	param "file_cru_misc" (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006misc.bin")
 
 ! N deposition (blank string to use constant value andep instead -- see below)
-	param "file_ndep" (str "/home/david/ndep/GlobalNitrogenDeposition.bin")
+	param "file_ndep" (str "/home/david/ndep/GlobalNitrogenDeposition")
 
 ! CMIP5 -climate data
 	param "path_cmip5hist" (str "/home/anders/CMIP5/climate_data/mpi_esm_lr_hist_r1i1p1/") ! only paths, bin file name is always the same
 	param "path_cmip5scen" (str "/home/anders/CMIP5/climate_data/")
  	param "path_cmip5_co2" (str "/home/anders/CMIP5/co2/")
-	param "file_ndep_cmip5" (str "/home/david/ndep/GlobalNitrogenDeposition")
-
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !///////////////////////////////////////////////////////////////////////////////////////
@@ -41,13 +39,12 @@
 !	param "file_gridlist" (str "gridlist.txt")
 !	param "file_cru" (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006.bin")
 !	param "file_cru_misc" (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006misc.bin")
-!	param "file_ndep" (str "/home/david/ndep/GlobalNitrogenDeposition.bin")
+!	param "file_ndep" (str "/home/david/ndep/GlobalNitrogenDeposition")
 
 ! CMIP5 -climate data
 !	param "path_cmip5hist" (str "/home/anders/CMIP5/climate_data/mpi_esm_lr_hist_r1i1p1/") ! only paths, bin file name is always the same
 !	param "path_cmip5scen" (str "/home/anders/CMIP5/climate_data/")
 ! 	param "path_cmip5_co2" (str "/home/anders/CMIP5/co2/")
-!	param "file_ndep_cmip5" (str "/home/david/ndep/GlobalNitrogenDeposition")
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -189,7 +186,7 @@ param "correctionmethod" (str "c3")
 
 param "gcm" (str "bjarki")		!Will be added to the outfile name
 
-param "rcp" (str "85")			!26 45 60 85 !!! HAVE 45 and 85
+param "rcp" (str "55")			!26 45 60 85 !!! HAVE 45 and 85
 
 !!!!!!!!!!!! landcover parameters !!!!!!!!!!!!!!					
 

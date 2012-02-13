@@ -2200,9 +2200,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 	double ndemand=0.0;
 
 	Vegetation& vegetation=patch.vegetation;
-	Soil& soil=patch.soil;
-
-	patch.ndemand=0.0;	
+	Soil& soil=patch.soil;	
 
 	// ANNUAL N SUPPLY
 	// Potential N supply is remaining pool from last year
@@ -2264,6 +2262,8 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 	// ANNUAL N DEMAND FOR PATCH
 
 	// Loop through individuals
+
+	patch.ndemand=0.0;
 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
@@ -2343,6 +2343,9 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 			while (vegetation.isobj) {
 				Individual& indiv=vegetation.getobj();
 
+				if (date.day==0)
+					indiv.nuptake=0.0;
+
 				if (!ifindiv_fnuptake || patch.fnuptake==1.0 || patch.fnuptake==0.0)
 					indiv.fnuptake = patch.fnuptake;
 				
@@ -2357,6 +2360,9 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 
 					// Add to individual's nitrogen stores
 					indiv.nstore+=nuptake_day;
+					
+					// Add to yearly N uptake
+					indiv.nuptake+=nuptake_day;
 					
 					// Deduct from soil N pool (negative result allowed)
 					nmass_avail[d]-=nuptake_day;

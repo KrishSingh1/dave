@@ -4924,7 +4924,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 								standpft_nmass_leaf+=indiv.nmass_leaf*indiv.densindiv;
 								standpft_vmaxnlim+=indiv.avmaxnlim*indiv.cmass_leaf*indiv.densindiv;
 								standpft_anpp_no_nlim+=indiv.anpp/indiv.limnfact;
-								standpft_nuptake+=min(1.0,max(0.0,indiv.fnuptake))*max(0.0,indiv.ndemand_uptake);
+								standpft_nuptake+=indiv.nuptake;
 								standpft_anppn+=indiv.ndemand;
 								standpft_nmass+=indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+
 									indiv.nmass_heart+indiv.nmass_reserve;

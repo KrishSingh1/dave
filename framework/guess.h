@@ -1077,6 +1077,8 @@ public:
 
 	double nstore;
 		// relocated N from leaves and roots and accumulated uptake from soil mineral N pool
+	double nuptake;
+		// accumulated uptake from soil mineral N pool
 	double leafn;
 		// cumulative mean (calculated at end of each month) of daily leaf N (kgN/m2)
 		// (leaf N demand calculated from Vmax)
@@ -1086,6 +1088,8 @@ public:
 		// mean monthly value of leafn for year
 	double ndemand;
 		// annual N demand (used in growth)
+	double ndemand_no_nlim;
+		// annual N demand under no N limitation (calculated in growth, used in guessio_cru)
 	double ndemand_uptake;
 		// annual N demand (used in vegetation_n_uptake)
 	double fnuptake;

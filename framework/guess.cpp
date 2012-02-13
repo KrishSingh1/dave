@@ -170,6 +170,9 @@ Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 	nmass_reserve=0.0;
 
 	nstore=0.0;
+	nuptake=0.0;
+	ndemand=0.0;
+	ndemand_no_nlim=0.0;
 	fnuptake=1.0;
 	n_reserve_uptake=0.0;
 	max_n_reserve=0.0;

@@ -1299,6 +1299,16 @@ double hist_mfrs[NYEAR_HIST][12];
 double hist_mwet[NYEAR_HIST][12];
 double hist_mdtr[NYEAR_HIST][12];
 
+// GUESSN
+// Monthly data on daily dry NHx deposition (kgN/m2/day)
+double NHxDryDep[NYEAR_HIST][12];
+// Monthly data on daily wet NHx deposition (kgN/m2/day)
+double NHxWetDep[NYEAR_HIST][12];
+// Monthly data on daily dry NOy deposition (kgN/m2/day)
+double NOyDryDep[NYEAR_HIST][12];
+// Monthly data on daily wet NOy deposition (kgN/m2/day)
+double NOyWetDep[NYEAR_HIST][12];
+
 // CMIP5 - land use input
 double hist_frluse[NYEAR_HIST];
 
@@ -1332,7 +1342,6 @@ xtring correctionmethod;
 xtring gcm;
 xtring rcp;
 xtring path_cmip5_co2;
-xtring file_ndep_cmip5;
 
 // Spinup data sets for current grid cell
 Spinup_data spinup_mtemp(NYEAR_SPINUP_DATA);
@@ -1881,6 +1890,7 @@ bool searchcmip5scen(char* cmip5scenark,double dlon,double dlat,
 // Create scenario and historical temp, precip and shortwave radiation  //AA cmip5
 
 void makeCMIP5data(double cmip5temp[NYEAR_CMIP5][12],double cmip5prec[NYEAR_CMIP5][12], double cmip5swrad[NYEAR_CMIP5][12],
+				   double NHxW[NYEAR_CMIP5][12],double NHxD[NYEAR_CMIP5][12],double NOyW[NYEAR_CMIP5][12],double NOyD[NYEAR_CMIP5][12],
 				   double ctemp_cmip5[12], double cprec_cmip5[12],double cswrad_cmip5[12],
 				   double ctemp_cru[12], double cprec_cru[12],double csun_cru[12],double cswrad_cru[12], double cwet_cru_1901_1930[12], double cwet_cru_1961_1990[12],
 				   double crutemp[NYEAR_CRU][12],double cruprec[NYEAR_CRU][12],double crusun[NYEAR_CRU][12], double cruwet[NYEAR_CRU][12], double cruswrad[NYEAR_CRU][12],
@@ -2562,9 +2572,232 @@ void makeCMIP5data(double cmip5temp[NYEAR_CMIP5][12],double cmip5prec[NYEAR_CMIP
 
 	}
 
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	// correctmonthly
+	// Creates CMIP5 historical and scenario data. 
+	// The correction is based on the monthly difference / ratio
+	// between the 1961-1990 climatologies between CRU and CMIP5 historical.
+	// c8: correct annual and seasonal offset (c3) and keeping temperature and CO2 at pre industrial level (1861-1870).
+	// c9: correct annual and seasonal offset (c3) and keeping temperature and N deposition at pre industrial level (1861-1870).
+	// c10: correct annual and seasonal offset (c3) and keeping CO2 and N deposition at pre industrial level (1861-1870). 
+	else if (correctionmethod=="c8" || correctionmethod=="c9" || correctionmethod=="c10") {
+		
+		//printf("in correctmonthly\n");
+		for (y = 0; y < NYEAR_CMIP5; y++) 
+		{  
+			for (m = 0; m < 12; m++) 
+			{
+				temp[y][m]=cmip5temp[y][m]-ctemp_cmip5[m]+ctemp_cru[m];
+				
+				if (cprec_cmip5[m] <= 5 || cprec_cru[m] ==0) // divide by zero fix, also solves problem with low climatology precip/swrad
+					prec[y][m]=cmip5prec[y][m]-cprec_cmip5[m]+cprec_cru[m];
+				else
+					prec[y][m]=(cmip5prec[y][m]/cprec_cmip5[m])*cprec_cru[m];
+
+				if (cswrad_cmip5[m] == 0 || cswrad_cru[m] ==0)
+					sun[y][m]=cmip5swrad[y][m]-cswrad_cmip5[m]+cswrad_cru[m];
+				else	
+					sun[y][m]=(cmip5swrad[y][m]/cswrad_cmip5[m])*cswrad_cru[m];
+
+				// Limit very low precip amounts because negligible precipitation causes problems 
+				// in the prdaily function (infinite loops). 
+				if (prec[y][m] <= 1.0) prec[y][m] = 0.0;
+				if (sun[y][m] <= 0.0) sun[y][m] = 0.0;
+			}
+		}
+
+		if (correctionmethod=="c9" || correctionmethod=="c10" ) {
+
+			// Create pre industrial N deposition data for 1871-2100 using detrended 1861-1870 N deposition
+
+			const int n=10;
+			double x[n], ndepNHxWy[n], ndepNHxDy[n], ndepNOyWy[n], ndepNOyDy[n];
+			double a_ndepNHxW, b_ndepNHxW, a_ndepNHxD, b_ndepNHxD, a_ndepNOyW, b_ndepNOyW, a_ndepNOyD, b_ndepNOyD;
+			double anom_ndepNHxW, anom_ndepNHxD, anom_ndepNOyW, anom_ndepNOyD;
+		
+			// create vectors for regression
+			for (y=0;y<n;y++) {
+
+				x[y]=(double)y+11.0;
+			
+				ndepNHxWy[y]=0.0;
+				ndepNHxDy[y]=0.0;
+				ndepNOyWy[y]=0.0;
+				ndepNOyDy[y]=0.0;
+
+				for (m = 0; m < 12; m++) {
+
+					// 1861 == year 11
+					
+					ndepNHxWy[y]+=NHxW[11+y][m]/12.0;
+					ndepNHxDy[y]+=NHxD[11+y][m]/12.0;
+					ndepNOyWy[y]+=NOyW[11+y][m]/12.0;
+					ndepNOyDy[y]+=NOyD[11+y][m]/12.0;
+				}	
+			}
+		
+			// regress data to remove trend
+			regress_data(x,ndepNHxWy,n,a_ndepNHxW,b_ndepNHxW);
+			regress_data(x,ndepNHxDy,n,a_ndepNHxD,b_ndepNHxD);
+			regress_data(x,ndepNOyWy,n,a_ndepNOyW,b_ndepNOyW);
+			regress_data(x,ndepNOyDy,n,a_ndepNOyD,b_ndepNOyD);
+
+			// remove trend and fill 1871-2100 with detrended pre industrial data
+			for (y=21;y<NYEAR_CMIP5;y++) {
+
+				anom_ndepNHxW=(double)(y%10)*b_ndepNHxW;
+				anom_ndepNHxD=(double)(y%10)*b_ndepNHxD;
+				anom_ndepNOyW=(double)(y%10)*b_ndepNOyW;
+				anom_ndepNOyD=(double)(y%10)*b_ndepNOyD;
+			
+				for (m = 0; m < 12; m++) {
+
+					NHxW[y][m]=NHxW[11+y%10][m]-anom_ndepNHxW;
+					NHxD[y][m]=NHxD[11+y%10][m]-anom_ndepNHxD;
+					NOyW[y][m]=NOyW[11+y%10][m]-anom_ndepNOyW;
+					NOyD[y][m]=NOyD[11+y%10][m]-anom_ndepNOyD;
+				}
+			}
+		}
+
+		if (correctionmethod=="c8" || correctionmethod=="c10") {
 	
-	else
-		fail("\nNot valid correctionmethod choice\n");
+			// Create pre industrial CO2 data for 1871-2100 using detrended 1861-1870 CO2
+
+			const int n=10;
+			double x[n], co2y[n];
+			double a_co2, b_co2;
+			double anom_co2;
+		
+			// create vectors for regression
+			for (y=0;y<n;y++) {
+
+				x[y]=(double)y+11.0;
+				
+				co2y[y]=co2[y+11];
+			}
+		
+			// regress data to remove trend
+			regress_data(x,co2y,n,a_co2,b_co2);
+
+			// remove trend and fill 1871-2100 with detrended pre industrial data
+			for (y=21;y<NYEAR_CMIP5;y++) {
+
+				anom_co2=(double)(y%10)*b_co2;
+
+				co2[y]=co2[11+y%10]-anom_co2;
+			}
+		}
+		
+		if (correctionmethod=="c8" || correctionmethod=="c9") {
+	
+			// Create pre industrial temperature data for 1871-2100 using detrended 1861-1870 temperature
+
+			const int n=10;
+			double x[n], tempy[n];
+			double a_temp, b_temp;
+			double anom_temp;
+		
+			// create vectors for regression
+			for (y=0;y<n;y++) {
+
+				x[y]=(double)y+11.0;
+			
+				tempy[y]=0.0;
+
+				for (m = 0; m < 12; m++) {
+
+					// 1861 == year 11
+					tempy[y]+=temp[11+y][m]/12;
+				}	
+			}
+		
+			// regress data to remove trend
+			regress_data(x,tempy,n,a_temp,b_temp);
+
+			// remove trend and fill 1871-2100 with detrended pre industrial data
+			for (y=21;y<NYEAR_CMIP5;y++) {
+
+				anom_temp=(double)(y%10)*b_temp;
+			
+				for (m = 0; m < 12; m++) {
+
+					temp[y][m]=temp[11+y%10][m]-anom_temp;
+				}
+			}
+		}
+
+	}
+	////////////////////////////////////////////////////////////////////////////////////////////////////
+	// correctmonthly
+	// Creates CMIP5 historical and scenario data. 
+	// The correction is based on the monthly difference / ratio
+	// between the 1961-1990 climatologies between CRU and CMIP5 historical.
+	// c8: correct annual and seasonal offset (c3) and keeping temperature and CO2 at pre industrial level (1861-1870).
+	// c9: correct annual and seasonal offset (c3) and keeping temperature and N deposition at pre industrial level (1861-1870).
+	// c10: correct annual and seasonal offset (c3) and keeping CO2 and N deposition at pre industrial level (1861-1870). 
+	else if (correctionmethod=="c11") {
+		
+		//printf("in correctmonthly\n");
+		for (y = 0; y < NYEAR_CMIP5; y++) 
+		{  
+			for (m = 0; m < 12; m++) 
+			{
+				temp[y][m]=cmip5temp[y][m]-ctemp_cmip5[m]+ctemp_cru[m];
+				
+				if (cprec_cmip5[m] <= 5 || cprec_cru[m] ==0) // divide by zero fix, also solves problem with low climatology precip/swrad
+					prec[y][m]=cmip5prec[y][m]-cprec_cmip5[m]+cprec_cru[m];
+				else
+					prec[y][m]=(cmip5prec[y][m]/cprec_cmip5[m])*cprec_cru[m];
+
+				if (cswrad_cmip5[m] == 0 || cswrad_cru[m] ==0)
+					sun[y][m]=cmip5swrad[y][m]-cswrad_cmip5[m]+cswrad_cru[m];
+				else	
+					sun[y][m]=(cmip5swrad[y][m]/cswrad_cmip5[m])*cswrad_cru[m];
+
+				// Limit very low precip amounts because negligible precipitation causes problems 
+				// in the prdaily function (infinite loops). 
+				if (prec[y][m] <= 1.0) prec[y][m] = 0.0;
+				if (sun[y][m] <= 0.0) sun[y][m] = 0.0;
+			}
+		}
+	
+		// Create pre industrial temperature data for 1871-2100 using detrended 1861-1870 temperature
+
+		const int n=10;
+		double x[n], tempy[n];
+		double a_temp, b_temp;
+		double anom_temp;
+		
+		// create vectors for regression
+		for (y=0;y<n;y++) {
+
+			x[y]=(double)y+11.0;
+			
+			tempy[y]=0.0;
+
+			for (m = 0; m < 12; m++) {
+
+				// 1861 == year 11
+				tempy[y]+=temp[11+y][m]/12;
+			}	
+		}
+		
+		// regress data to remove trend
+		regress_data(x,tempy,n,a_temp,b_temp);
+
+		// remove trend and fill 1871-2100 with detrended pre industrial data
+		for (y=21;y<NYEAR_CMIP5;y++) {
+
+			anom_temp=(double)(y%10)*b_temp;
+			
+			for (m = 0; m < 12; m++) {
+
+				temp[y][m]=temp[11+y%10][m]-anom_temp;
+			}
+		}
+	}
+	else fail("\nNot valid correctionmethod choice\n");
 
 	///////////////////////////////////////////////////////////////////////////////////////////
 	// Create mwet ranging CMIP5 period, all years are set to 1961-1990 climatology
@@ -2601,13 +2834,13 @@ void readco2_cmip5() {
 	else fail("CO2 file not valid");
 
 	FILE* in=fopen(filename,"rt");
-	if (!in) fail("readco2: could not open CO2 file %s for input",
+	if (!in) fail("readco2: 111 could not open CO2 file %s for input",
 		(char*)filename);
 
 	for (year=0;year<NYEAR_HIST;year++) {
 		readfor(in,"i,f",&calender_year,&co2[year]);
 		if (calender_year!=FIRSTHISTYEAR+year)
-			fail("readco2: %s, line %d - incorrect year specified",
+			fail("readco2: 222 %s, line %d - incorrect year specified",
 				(char*)filename,year+1);
 	}
 
@@ -2866,13 +3099,13 @@ void readco2() {
 	xtring filename=param["file_co2"].str;
 
 	FILE* in=fopen(filename,"rt");
-	if (!in) fail("readco2: could not open CO2 file %s for input",
+	if (!in) fail("readco2: 333 could not open CO2 file %s for input",
 		(char*)filename);
 
 	for (year=0;year<NYEAR_CRU;year++) {
 		readfor(in,"i,f",&calender_year,&co2[year]);
 		if (calender_year!=FIRSTHISTYEAR+year)
-			fail("readco2: %s, line %d - incorrect year specified",
+			fail("readco2: 444 %s, line %d - incorrect year specified",
 				(char*)filename,year+1);
 	}
 
@@ -3028,9 +3261,10 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	if (file_ndep=="")
 		ifndepdata=false;
 	else {
-		FILE* in_ndep=fopen(file_ndep,"rt");
+		xtring file_ndep_hist=file_ndep+".bin";
+		FILE* in_ndep=fopen(file_ndep_hist,"rt");
 		if (!in_ndep)
-			fail("initio: could not open %s for input",(char*)file_ndep);
+			fail("initio: could not open %s for input",(char*)file_ndep_hist);
 
 		fclose(in_ndep);
 		ifndepdata=true;
@@ -3038,14 +3272,12 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	// end GUESSN
 
 	// CMIP5
-	file_ndep_cmip5=param["file_ndep_cmip5"].str;
-	if (file_ndep_cmip5=="")
-		ifndepdata_cmip5=false;
-	else {
+	if (ifcmip5) {
+		xtring file_ndep_cmip5;
 		if (rcp=="45")
-			file_ndep_cmip5+="RCP45.bin";
+			file_ndep_cmip5=file_ndep+"RCP45.bin";
 		else if (rcp=="85")
-			file_ndep_cmip5+="RCP85.bin";
+			file_ndep_cmip5=file_ndep+"RCP85.bin";
 		else fail("N dep file not valid");
 
 		FILE* in_ndep=fopen(file_ndep_cmip5,"rt");
@@ -3053,7 +3285,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 			fail("initio: could not open %s for input",(char*)file_ndep_cmip5);
 
 		fclose(in_ndep);
-		ifndepdata_cmip5=true;
 	}
 
 	// Remember whether to produce output each year or not
@@ -3410,26 +3641,31 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	{
  */
 bool getndep(xtring filename,double lon,double lat,Climate& climate) {
 
-	double years[]={1855,1865,1875,1885,1895,1905,1915,1925,1935,1945,1955,1965,1975,1985,1995,2005};
-
-	for (int y=0;y<16;y++)
-		climate.ndep_years[y]=years[y];
+	int y,m;
+	double dval;
+	double dailyndep=2000.0/(4.0*365.0);	// pre-industrial N depostion [gN ha-1] (2 kgN/ha/year)
+	double convert=0.0000001;				// converting from gN ha-1 to kgN m-2
+	double NHxWetDep_10[26][12]={0.0};
+	double NHxDryDep_10[26][12]={0.0};
+	double NOyWetDep_10[26][12]={0.0};
+	double NOyDryDep_10[26][12]={0.0};
 
 	if (!ifndepdata) {
-		double dailyndep=0.00005/365.0;	// use pre-industrial N depostion 2 kgN/ha/year
-
-		for (int dd=0;dd<192;dd++) {
-			climate.NHxDryDep[dd]=dailyndep;	// use pre-industrial N depostion 2 kgN/ha/year
-			climate.NHxWetDep[dd]=dailyndep;	// use pre-industrial N depostion 2 kgN/ha/year
-			climate.NOyDryDep[dd]=dailyndep;	// use pre-industrial N depostion 2 kgN/ha/year
-			climate.NOyWetDep[dd]=dailyndep;	// use pre-industrial N depostion 2 kgN/ha/year
+		for (y=0;y<16;y++) {
+			for (m=0;m<12;m++) {
+				NHxDryDep_10[y][m]=dailyndep;	
+				NHxWetDep_10[y][m]=dailyndep;	
+				NOyDryDep_10[y][m]=dailyndep;	
+				NOyWetDep_10[y][m]=dailyndep;	
+			}
 		}
-		return true;
 	}
 
+	xtring historic_filename=filename+".bin";
+
 	GlobalNitrogenDepositionArchive ark;
-	if (!ark.open(filename)) {
-		 fail("Could not open %s for input",(char*)filename);
+	if (!ark.open(historic_filename)) {
+		 fail("Could not open %s for input",(char*)historic_filename);
 		 return false;
 	}
 
@@ -3444,138 +3680,170 @@ bool getndep(xtring filename,double lon,double lat,Climate& climate) {
 	}
 	else {
 		 // Found the record, get the values
-		for (int i=0;i<192;i++) {
-			climate.NHxDryDep[i]=rec.NHxDry[i];
-			climate.NHxWetDep[i]=rec.NHxWet[i];	
-			climate.NOyDryDep[i]=rec.NOyDry[i];	
-			climate.NOyWetDep[i]=rec.NOyWet[i];	
+		for (y=0;y<16;y++) {
+			for (m=0;m<12;m++) {
+				NHxDryDep_10[y][m]=rec.NHxDry[y*12+m];
+				NHxWetDep_10[y][m]=rec.NHxWet[y*12+m];	
+				NOyDryDep_10[y][m]=rec.NOyDry[y*12+m];	
+				NOyWetDep_10[y][m]=rec.NOyWet[y*12+m];
+			}
 		}
 
 		ark.close();
-		return true;
 	}
-}
-// end GUESSN
 
-// GUESSN
-/// Retrieves nitrogen deposition for a particular gridcell
-/** The values are either taken from the andep parameter in the instruction
- *  file, or from a binary archive file.
- *
- *  The binary archive has nitrogen deposition in gN/m2 on a monthly timestep
- *  for 11 years (Galloway et. al., 2004).
- *
- *  Returned values will not be smaller than minndep.
- *
- *  \param  filename    The file name of the binary archive
- *  \param  lon         Longitude
- *  \param  lat         Latitude
- */
-bool getndep_cmip5(xtring filename,double lon,double lat,Climate& climate) {
+	if (ifcmip5) {
 
-	double years[]={2005,2015,2025,2035,2045,2055,2065,2075,2085,2095,2105};
-
-	for (int y=0;y<11;y++)
-		climate.ndep_years_cmip5[y]=years[y];
-
-	if (!ifndepdata) {
-		double dailyndep=0.00005/365.0;	// use pre-industrial N depostion 2 kgN/ha/year
-
-		for (int dd=0;dd<132;dd++) {
-			climate.NHxDryDep_cmip5[dd]=dailyndep;	// use pre-industrial N depostion 2 kgN/ha/year
-			climate.NHxWetDep_cmip5[dd]=dailyndep;	// use pre-industrial N depostion 2 kgN/ha/year
-			climate.NOyDryDep_cmip5[dd]=dailyndep;	// use pre-industrial N depostion 2 kgN/ha/year
-			climate.NOyWetDep_cmip5[dd]=dailyndep;	// use pre-industrial N depostion 2 kgN/ha/year
+		if (!ifndepdata) {
+			for (y=16;y<26;y++) {
+				for (m=0;m<12;m++) {
+					NHxDryDep_10[y][m]=dailyndep;	// use pre-industrial N depostion 2 kgN/ha/year
+					NHxWetDep_10[y][m]=dailyndep;	// use pre-industrial N depostion 2 kgN/ha/year
+					NOyDryDep_10[y][m]=dailyndep;	// use pre-industrial N depostion 2 kgN/ha/year
+					NOyWetDep_10[y][m]=dailyndep;	// use pre-industrial N depostion 2 kgN/ha/year
+				}
+			}
 		}
-	}
-	else {
+		else {
 
-		if (rcp=="45") {
+			if (rcp=="45") {
 
-			GlobalNitrogenDepositionRCP45Archive ark;
-			if (!ark.open(filename)) {
-				 fail("Could not open %s for input",(char*)filename);
-				 return false;
-			}
+				xtring scenario_filename=filename+"RCP45.bin";
 
-			GlobalNitrogenDepositionRCP45 rec;
-			rec.longitude = lon;
-			rec.latitude = lat;
-
-			if (!ark.getindex(rec)) {
-				 // The coordinate wasn't found in the archive
-				 ark.close();
-				 return false;
-			}
-			else {
-				 // Found the record, get the values
-				for (int i=0;i<132;i++) {
-					climate.NHxDryDep_cmip5[i]=rec.NHxDry[i];
-					climate.NHxWetDep_cmip5[i]=rec.NHxWet[i];	
-					climate.NOyDryDep_cmip5[i]=rec.NOyDry[i];	
-					climate.NOyWetDep_cmip5[i]=rec.NOyWet[i];	
+				GlobalNitrogenDepositionRCP45Archive ark_sce;
+				if (!ark_sce.open(scenario_filename)) {
+					 fail("Could not open %s for input",(char*)scenario_filename);
+					 return false;
 				}
 
-				ark.close();
-			}
-		}
-		else if (rcp=="85") {
+				GlobalNitrogenDepositionRCP45 rec_sce;
 
-			GlobalNitrogenDepositionRCP85Archive ark;
-			if (!ark.open(filename)) {
-				 fail("Could not open %s for input",(char*)filename);
-				 return false;
-			}
+				rec_sce.longitude = lon;
+				rec_sce.latitude = lat;
 
-			GlobalNitrogenDepositionRCP85 rec;
-			rec.longitude = lon;
-			rec.latitude = lat;
-
-			if (!ark.getindex(rec)) {
-				 // The coordinate wasn't found in the archive
-				 ark.close();
-				 return false;
+				if (!ark_sce.getindex(rec_sce)) {
+					 // The coordinate wasn't found in the archive
+					 ark_sce.close();
+					 return false;
+				}
+				else {
+					// Found the record, get the values
+					for (y=15;y<26;y++) {
+						for (m=0;m<12;m++) {
+							if (y==15) { // Scenario and hist data has the same year -> avr
+								dval=(NHxDryDep_10[y][m]+rec_sce.NHxDry[(y-15)*12+m])/2.0;
+								NHxDryDep_10[y][m]=dval;
+								
+								dval=(NHxWetDep_10[y][m]+rec_sce.NHxWet[(y-15)*12+m])/2.0;
+								NHxWetDep_10[y][m]=dval;
+								
+								dval=(NOyDryDep_10[y][m]+rec_sce.NOyDry[(y-15)*12+m])/2.0;
+								NOyDryDep_10[y][m]=dval;
+								
+								dval=(NOyWetDep_10[y][m]=rec_sce.NOyWet[(y-15)*12+m])/2.0;
+								NOyWetDep_10[y][m]=dval;
+							}
+							else {
+								NHxDryDep_10[y][m]=rec_sce.NHxDry[(y-15)*12+m];
+								NHxWetDep_10[y][m]=rec_sce.NHxWet[(y-15)*12+m];	
+								NOyDryDep_10[y][m]=rec_sce.NOyDry[(y-15)*12+m];	
+								NOyWetDep_10[y][m]=rec_sce.NOyWet[(y-15)*12+m];
+							}
+						}
+					}
+					ark_sce.close();
+				}
 			}
-			else {
-				 // Found the record, get the values
-				for (int i=0;i<132;i++) {
-					climate.NHxDryDep_cmip5[i]=rec.NHxDry[i];
-					climate.NHxWetDep_cmip5[i]=rec.NHxWet[i];	
-					climate.NOyDryDep_cmip5[i]=rec.NOyDry[i];	
-					climate.NOyWetDep_cmip5[i]=rec.NOyWet[i];	
+			else if (rcp=="85") {
+
+				xtring scenario_filename=filename+"RCP85.bin";
+
+				GlobalNitrogenDepositionRCP85Archive ark_sce;
+				if (!ark_sce.open(scenario_filename)) {
+					 fail("Could not open %s for input",(char*)scenario_filename);
+					 return false;
 				}
 
-				ark.close();
-			}
+				GlobalNitrogenDepositionRCP85 rec_sce;
+
+				rec_sce.longitude = lon;
+				rec_sce.latitude = lat;
+
+				if (!ark_sce.getindex(rec_sce)) {
+					 // The coordinate wasn't found in the archive
+					 ark_sce.close();
+					 return false;
+				}
+				else {
+					// Found the record, get the values
+					for (y=15;y<26;y++) {
+						for (m=0;m<12;m++) {
+							if (y==15) { // Scenario and hist data has the same year -> avr
+								dval=(NHxDryDep_10[y][m]+rec_sce.NHxDry[(y-15)*12+m])/2.0;
+								NHxDryDep_10[y][m]=dval;
+								
+								dval=(NHxWetDep_10[y][m]+rec_sce.NHxWet[(y-15)*12+m])/2.0;
+								NHxWetDep_10[y][m]=dval;
+								
+								dval=(NOyDryDep_10[y][m]+rec_sce.NOyDry[(y-15)*12+m])/2.0;
+								NOyDryDep_10[y][m]=dval;
+								
+								dval=(NOyWetDep_10[y][m]=rec_sce.NOyWet[(y-15)*12+m])/2.0;
+								NOyWetDep_10[y][m]=dval;
+							}
+							else {
+								NHxDryDep_10[y][m]=rec_sce.NHxDry[(y-15)*12+m];
+								NHxWetDep_10[y][m]=rec_sce.NHxWet[(y-15)*12+m];	
+								NOyDryDep_10[y][m]=rec_sce.NOyDry[(y-15)*12+m];	
+								NOyWetDep_10[y][m]=rec_sce.NOyWet[(y-15)*12+m];
+							}
+						}
+					}
+					ark_sce.close();
+				}
+			}			
 		}
-		else fail("CMIP5 scenario is not valid");
 	}
 
-	// Calculate averages for year 2005
-	double dval;
-	for (int m=0;m<12;m++) {
-		dval=(climate.NHxDryDep_cmip5[m]+climate.NHxDryDep[180+m])/2.0;
-		climate.NHxDryDep_cmip5[m]=dval;
-		climate.NHxDryDep[180+m]=dval;
+	// interpolate to all hist and scenario years
 
-		dval=(climate.NHxWetDep_cmip5[m]+climate.NHxWetDep[180+m])/2.0;
-		climate.NHxWetDep_cmip5[m]=dval;
-		climate.NHxWetDep[180+m]=dval;
+	int years[]={5,15,25,35,45,55,65,75,85,95,105,115,125,135,145,155,165,175,185,195,205,215,225,235,245,255};
+	int interyear[2]={0.0};
+	int yy=0;
 
-		dval=(climate.NOyDryDep_cmip5[m]+climate.NOyDryDep[180+m])/2.0;
-		climate.NOyDryDep_cmip5[m]=dval;
-		climate.NOyDryDep[180+m]=dval;
+	for (y=0;y<NYEAR_HIST;y++) {
 
-		dval=(climate.NOyWetDep_cmip5[m]+climate.NOyWetDep[180+m])/2.0;
-		climate.NOyWetDep_cmip5[m]=dval;
-		climate.NOyWetDep[180+m]=dval;
+		bool found=false;
+		while (!found){
+			if (y<=years[0]){
+				interyear[0]=0;
+				interyear[1]=0;
+				found=true;
+			}
+			else if (y<=years[yy]){
+				interyear[0]=yy-1;
+				interyear[1]=yy;
+				found=true;
+			}
+			else
+				yy++;
+		}
+
+		for (m=0;m<12;m++){
+
+			NHxWetDep[y][m]=(NHxWetDep_10[interyear[0]][m]+((double)(y-years[interyear[0]]))/10.0*
+									(NHxWetDep_10[interyear[1]][m]-NHxWetDep_10[interyear[0]][m]))*convert;
+			NHxDryDep[y][m]=(NHxDryDep_10[interyear[0]][m]+((double)(y-years[interyear[0]]))/10.0*
+									(NHxDryDep_10[interyear[1]][m]-NHxDryDep_10[interyear[0]][m]))*convert;
+			NOyWetDep[y][m]=(NOyWetDep_10[interyear[0]][m]+((double)(y-years[interyear[0]]))/10.0*
+									(NOyWetDep_10[interyear[1]][m]-NOyWetDep_10[interyear[0]][m]))*convert;
+			NOyDryDep[y][m]=(NOyDryDep_10[interyear[0]][m]+((double)(y-years[interyear[0]]))/10.0*
+									(NOyDryDep_10[interyear[1]][m]-NOyDryDep_10[interyear[0]][m]))*convert;
+		}
 	}
-
 	return true;
-
 }
 // end GUESSN
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GETGRIDCELL
@@ -3637,6 +3905,13 @@ bool getgridcell(Gridcell& gridcell) {
 
 		double lon = gridlist.getobj().lon;
 		double lat = gridlist.getobj().lat;
+
+		// GUESSN
+		if (!getndep(file_ndep,lon,lat,gridcell.climate)) {
+
+			fail("Grid cell not found in %s",(char*)file_ndep);
+		}
+		// end GUESSN
 
 		if (!ifcmip5) {
 			gridfound = findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode, 
@@ -3730,12 +4005,13 @@ bool getgridcell(Gridcell& gridcell) {
 			createclimatology_cmip5(mtemp_cmip5, mprec_cmip5, mswrad_cmip5, clim_mtemp_cmip5, clim_mprec_cmip5, clim_swrad_cmip5);
 
 			makeCMIP5data(mtemp_cmip5,mprec_cmip5,mswrad_cmip5, 
+				NHxWetDep,NHxDryDep,NOyWetDep,NOyDryDep,
 				clim_mtemp_cmip5, clim_mprec_cmip5, clim_swrad_cmip5,
 				clim_mtemp_cru,clim_mprec_cru,clim_msun_cru,clim_swrad_cru, clim_mwet_cru_1901_1930, clim_mwet_cru_1961_1990,
 				mtemp_cru,mprec_cru,msun_cru, mwet_cru, mswrad_cru,
 				hist_mtemp,hist_mprec,hist_msun, hist_mwet);
 			// hist_* is now the new data created of CRU and CMIP5
-		}
+		}		   
 
 		// Build spinup data sets
 		spinup_mtemp.get_data_from(hist_mtemp);
@@ -3750,21 +4026,6 @@ bool getgridcell(Gridcell& gridcell) {
 		spinup_mwet.get_data_from(hist_mwet);
 		spinup_mdtr.get_data_from(hist_mdtr);
 		spinup_mdtr.detrend_data();
-
-		// GUESSN
-		if (!getndep(file_ndep,lon,lat,gridcell.climate)) {
-
-			fail("Grid cell not found in %s",(char*)file_ndep);
-		}
-		// end GUESSN
-
-		// CMIP5
-		if (ifcmip5) {
-			if (!getndep_cmip5(file_ndep_cmip5,lon,lat,gridcell.climate)) {
-
-				fail("Grid cell not found in %s",(char*)file_ndep_cmip5);
-			}
-		}
 
 		dprintf("\nCommencing simulation for stand at (%g,%g)",gridlist.getobj().lon,
 			gridlist.getobj().lat);
@@ -3797,154 +4058,6 @@ bool getgridcell(Gridcell& gridcell) {
 	}
 
 	return false; // no more stands
-}
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-// THISYEARSNDEP
-// Called by getclimate(). Calculates this years N deposition
-
-void thisyearsndep(Climate& climate,int year,int nyears_spin,int firsthistyear) {
-
-	int d,m,dm,interyear[2];
-	double dNHD,dNHW,dNOD,dNOW;
-	double convert=0.0000001; // converting from gN ha-1 to kgN m-2
-	int hist_year = firsthistyear - (nyears_spin - year);
-
-	int y=0;
-	bool found=false;
-	while (!found) {
-
-		if (hist_year<=climate.ndep_years[0]) {
-			interyear[0]=0;
-			interyear[1]=0;
-			found=true;
-		}
-		else if (hist_year<=climate.ndep_years[y]) {
-			interyear[0]=y-1;
-			interyear[1]=y;
-			found=true;
-		}
-		else if (hist_year>climate.ndep_years[15]) {
-			interyear[0]=15;
-			interyear[1]=15;
-			found=true;
-		}
-		y++;
-	}
-
-	d=0;
-	for (m=0;m<12;m++){
-
-		dNHD=climate.NHxDryDep[12*interyear[0]+m]+((double)(hist_year-climate.ndep_years[interyear[0]]))/10.0*
-			(climate.NHxDryDep[12*interyear[1]+m]-climate.NHxDryDep[12*interyear[0]+m]);
-		dNHW=climate.NHxWetDep[12*interyear[0]+m]+((double)(hist_year-climate.ndep_years[interyear[0]]))/10.0*
-			(climate.NHxWetDep[12*interyear[1]+m]-climate.NHxWetDep[12*interyear[0]+m]);
-		dNOD=climate.NOyDryDep[12*interyear[0]+m]+((double)(hist_year-climate.ndep_years[interyear[0]]))/10.0*
-			(climate.NOyDryDep[12*interyear[1]+m]-climate.NOyDryDep[12*interyear[0]+m]);
-		dNOW=climate.NOyWetDep[12*interyear[0]+m]+((double)(hist_year-climate.ndep_years[interyear[0]]))/10.0*
-			(climate.NOyWetDep[12*interyear[1]+m]-climate.NOyWetDep[12*interyear[0]+m]);
-
-		for (dm=0;dm<date.ndaymonth[m];dm++) {
-			climate.dNHxDryDep[d]=dNHD*convert;
-			climate.dNOyDryDep[d]=dNOD*convert;
-			climate.dNHxWetDep[d]=dNHW*convert;
-			climate.dNOyWetDep[d]=dNOW*convert;
-
-			d++;
-		}
-	}
-
-	climate.andep=0.0;
-	for (d=0;d<365;d++) {
-		climate.andep+=climate.dNHxDryDep[d]+climate.dNOyDryDep[d]+climate.dNHxWetDep[d]+climate.dNOyWetDep[d];
-	}
-}
-
-///////////////////////////////////////////////////////////////////////////////////////
-// CMIP5
-//
-// THISYEARSNDEP_CMIP5
-// Called by getclimate(). Calculates this years N deposition 
-
-void thisyearsndep_cmip5(Climate& climate,int year,int nyears_spin,int firsthistyear) {
-
-	int d,m,dm,interyear[2];
-	double dNHD,dNHW,dNOD,dNOW;
-	double convert=0.0000001; // converting from gN ha-1 to kgN m-2
-	int hist_year = firsthistyear - (nyears_spin - year);
-
-	int y=0;
-	int y_cmip5=1;
-	bool found=false;
-	while (!found) {
-
-		if (hist_year<=climate.ndep_years[0]) {
-			interyear[0]=0;
-			interyear[1]=0;
-			found=true;
-		}
-		else if (hist_year<=climate.ndep_years[y]) {
-			interyear[0]=y-1;
-			interyear[1]=y;
-			found=true;
-		}
-		else if (hist_year>climate.ndep_years[15]) {
-			if (hist_year<=climate.ndep_years_cmip5[y_cmip5]){ 
-				interyear[0]=y_cmip5-1;
-				interyear[1]=y_cmip5;
-				found=true;
-			}
-			else if (hist_year>climate.ndep_years_cmip5[10]){
-				interyear[0]=10;
-				interyear[1]=10;
-			}
-			y_cmip5++;
-		}
-		else 
-			y++;
-	}
-
-	d=0;
-	for (m=0;m<12;m++){
-
-		if (ifcmip5 && hist_year>climate.ndep_years[15]) {
-
-			dNHD=climate.NHxDryDep_cmip5[12*interyear[0]+m]+((double)(hist_year-climate.ndep_years_cmip5[interyear[0]]))/10.0*
-				(climate.NHxDryDep_cmip5[12*interyear[1]+m]-climate.NHxDryDep_cmip5[12*interyear[0]+m]);
-			dNHW=climate.NHxWetDep_cmip5[12*interyear[0]+m]+((double)(hist_year-climate.ndep_years_cmip5[interyear[0]]))/10.0*
-				(climate.NHxWetDep_cmip5[12*interyear[1]+m]-climate.NHxWetDep_cmip5[12*interyear[0]+m]);
-			dNOD=climate.NOyDryDep_cmip5[12*interyear[0]+m]+((double)(hist_year-climate.ndep_years_cmip5[interyear[0]]))/10.0*
-				(climate.NOyDryDep_cmip5[12*interyear[1]+m]-climate.NOyDryDep_cmip5[12*interyear[0]+m]);
-			dNOW=climate.NOyWetDep_cmip5[12*interyear[0]+m]+((double)(hist_year-climate.ndep_years_cmip5[interyear[0]]))/10.0*
-				(climate.NOyWetDep_cmip5[12*interyear[1]+m]-climate.NOyWetDep_cmip5[12*interyear[0]+m]);
-		}
-		else {
-
-			dNHD=climate.NHxDryDep[12*interyear[0]+m]+((double)(hist_year-climate.ndep_years[interyear[0]]))/10.0*
-				(climate.NHxDryDep[12*interyear[1]+m]-climate.NHxDryDep[12*interyear[0]+m]);
-			dNHW=climate.NHxWetDep[12*interyear[0]+m]+((double)(hist_year-climate.ndep_years[interyear[0]]))/10.0*
-				(climate.NHxWetDep[12*interyear[1]+m]-climate.NHxWetDep[12*interyear[0]+m]);
-			dNOD=climate.NOyDryDep[12*interyear[0]+m]+((double)(hist_year-climate.ndep_years[interyear[0]]))/10.0*
-				(climate.NOyDryDep[12*interyear[1]+m]-climate.NOyDryDep[12*interyear[0]+m]);
-			dNOW=climate.NOyWetDep[12*interyear[0]+m]+((double)(hist_year-climate.ndep_years[interyear[0]]))/10.0*
-				(climate.NOyWetDep[12*interyear[1]+m]-climate.NOyWetDep[12*interyear[0]+m]);
-		}
-
-		for (dm=0;dm<date.ndaymonth[m];dm++) {
-			climate.dNHxDryDep[d]=dNHD*convert;
-			climate.dNOyDryDep[d]=dNOD*convert;
-			climate.dNHxWetDep[d]=dNHW*convert;
-			climate.dNOyWetDep[d]=dNOW*convert;
-
-			d++;
-		}
-	}
-
-	climate.andep=0.0;
-	for (d=0;d<365;d++) {
-		climate.andep+=climate.dNHxDryDep[d]+climate.dNOyDryDep[d]+climate.dNHxWetDep[d]+climate.dNOyWetDep[d];
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -4176,7 +4289,7 @@ bool getclimate(Gridcell& gridcell) {
 
 	if (date.day==0) {
 
-		// First day of year ...
+		// First day of year ..
 		
 		if (date.year<nyear_spinup) {
 
@@ -4239,9 +4352,6 @@ bool getclimate(Gridcell& gridcell) {
 				climate.co2=co2[0];
 			else if (date.year<nyear_spinup+NYEAR_HIST)
 				climate.co2=co2[date.year-nyear_spinup];
-
-			// GUESSN calculate annual N deposition value
-			thisyearsndep(climate,date.year,nyear_spinup,FIRSTHISTYEAR);
 		}
 		else {
 			// CMIP5 - land use input
@@ -4255,10 +4365,32 @@ bool getclimate(Gridcell& gridcell) {
 				if(iflandusesimple)
 				  climate.frluse=hist_frluse[date.year-nyear_spinup];
 			}
-		
-			// CMIP5
-			// GUESSN calculate annual N deposition value
-			thisyearsndep_cmip5(climate,date.year,nyear_spinup,FIRSTHISTYEAR);
+		}
+
+		climate.andep=0.0;
+		int m;
+		if (date.year<nyear_spinup){
+			for (m=0;m<12;m++) {
+				climate.andep+=(NHxDryDep[0][m]+NOyDryDep[0][m]+
+					NHxWetDep[0][m]+NOyWetDep[0][m])*date.ndaymonth[m];
+			}
+		}
+		else {
+			dd=0;
+			for (m=0;m<12;m++) {
+				climate.andep+=(NHxDryDep[date.year-nyear_spinup][m]+
+					NOyDryDep[date.year-nyear_spinup][m]+
+					NHxWetDep[date.year-nyear_spinup][m]+
+					NOyWetDep[date.year-nyear_spinup][m])*date.ndaymonth[m];
+
+				for (int dm=0;dm<date.ndaymonth[m];dm++) {
+					climate.dndep[dd]=(NHxDryDep[date.year-nyear_spinup][m]+
+						NOyDryDep[date.year-nyear_spinup][m]+
+						NHxWetDep[date.year-nyear_spinup][m]+
+						NOyWetDep[date.year-nyear_spinup][m]);
+					dd++;
+				}
+			}
 		}
 	}
 
@@ -4395,7 +4527,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	double mnee[12];
 	double mwcont_upper[12];
 	double mwcont_lower[12];
-
+	
+	// DGPP
+	double dgpp[365][20];
 
 	double lon,lat;
 
@@ -4459,6 +4593,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_mwcont_upper) fprintf(out_mwcont_upper,lonlatyearstr,"Lon","Lat","Year");
 		if (out_mwcont_lower) fprintf(out_mwcont_lower,lonlatyearstr,"Lon","Lat","Year");
 
+		// DGPP
+		if (out_dgpp) fprintf(out_dgpp,"%8s%8s%8s%8s","Lon","Lat","Year","Day");
+
 		// GUESSN
 		if (out_cton) fprintf(out_cton,lonlatyearstr,"Lon","Lat","Year");
 		if (out_nmass) fprintf(out_nmass,lonlatyearstr,"Lon","Lat","Year");
@@ -4492,6 +4629,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			if (out_vmaxnlim) fprintf(out_vmaxnlim,"%8s",(char*)pft.name);
 			if (out_nlim) fprintf(out_nlim,"%8s",(char*)pft.name);
 			// end GUESSN
+			
+			// DGPP
+			if (out_dgpp) fprintf(out_dgpp,"%9s",(char*)pft.name);
 			pftlist.nextobj();
 		}
 
@@ -4502,6 +4642,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_lai) fprintf(out_lai,"%8s","Total");
 		if (out_runoff) fprintf(out_runoff,"%8s\n","Total");
 		if (out_dens) fprintf(out_dens,"%8s\n","Total");
+
+		// DGPP
+		if (out_dgpp) fprintf(out_dgpp,"%9s%9s%9s\n","Total","Temp","N_dep");
 
 		//TODO Fix these for landcover
 		// GUESSN
@@ -4604,6 +4747,10 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		// guess2008 - reset monthly average across patches each year
 		for (m=0;m<12;m++)
 			mnpp[m]=mlai[m]=mgpp[m]=mra[m]=maet[m]=mpet[m]=mevap[m]=mintercep[m]=mrunoff[m]=mrh[m]=mnee[m]=mwcont_upper[m]=mwcont_lower[m]=0.0;
+
+		for (int day=0;day<365;day++)
+			for (int ppfftt=0;ppfftt<20;ppfftt++)
+				dgpp[day][ppfftt]=0.0;
 
 		double landcover_cmass[NLANDCOVERTYPES]={0.0};
 		double landcover_anpp[NLANDCOVERTYPES]={0.0};
@@ -4716,6 +4863,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 			// end GUESSN
 
+			for (int day=0;day<365;day++)
+				dgpp[day][pft.id]=0.0;
+
 			gridcell.firstobj();
 
 			// Loop through Stands
@@ -4780,6 +4930,11 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 									indiv.nmass_heart+indiv.nmass_reserve;
 								// end GUESSN
 
+								// DGPP
+								if (date.year>595)
+									for (int day=0;day<365;day++)
+										dgpp[day][pft.id]+=indiv.dassim[day]*indiv.limnfact;
+
 								if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 
 									// Age structure
@@ -4833,6 +4988,11 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 					standpft_vmaxnlim/=standpft_cmass_leaf;
 				
 				// end GUESSN
+
+				// DGPP
+				if (date.year>595)
+					for (int day=0;day<365;day++)
+						dgpp[day][pft.id]/=(double)stand.nobj;
 
 				//Update landcover totals
 				landcover_cmass[stand.landcover]+=standpft_cmass*stand.get_landcover_fraction();
@@ -4919,6 +5079,31 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 		} // *** End of PFT loop ***
 
+		if (date.year > 595) {
+			for (int day=0;day<365;day++) {
+
+				if (out_dgpp) fprintf(out_dgpp,lonlatyeardatastr,lon,lat,date.year+FIRSTHISTYEAR-nyear_spinup);
+				int dateday=day+1;
+				if (out_dgpp) fprintf(out_dgpp,"%9.0d",dateday);
+
+				double total_dgpp=0.0;
+
+				pftlist.firstobj();
+				while (pftlist.isobj) {
+
+					Pft& pft=pftlist.getobj();
+	
+					if (out_dgpp)	fprintf(out_dgpp,"%9.5f",dgpp[day][pft.id]);
+
+					total_dgpp+=dgpp[day][pft.id];
+	
+					pftlist.nextobj();
+
+				} // *** End of PFT loop ***
+
+				if (out_dgpp)	fprintf(out_dgpp,"%9.5f%9.3f%9.5f\n",total_dgpp,dtemp[day],gridcell.climate.dndep[day]*10000.0);
+			}
+		}
 
 		flux_veg=flux_soil=flux_fire=flux_est=flux_harvest=0.0;
 
@@ -5010,10 +5195,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 							humusc+=patch.soil.sompool[r].cmass/(double)stand.nobj;
 							humusn+=patch.soil.sompool[r].nmass/(double)stand.nobj;
 						}
-						else {
-							centuryc+=patch.soil.sompool[r].cmass/(double)stand.nobj;
-							centuryn+=patch.soil.sompool[r].nmass/(double)stand.nobj;
-						}
+						
+						centuryc+=patch.soil.sompool[r].cmass/(double)stand.nobj;
+						centuryn+=patch.soil.sompool[r].nmass/(double)stand.nobj;
 					}
 				}
 				// end GUESSN
@@ -5215,7 +5399,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 					plot("soilc","fast",date.year,stand[0].soil.cpool_fast);
 				}
 				else {
-					plot("N fixation (kgN/ha/yr)","Soil N fix",date.year,anfix_gridcell);
+					plot("N addition (kgN/ha/yr)","Soil N fix",date.year,anfix_gridcell);
+					plot("N addition (kgN/ha/yr)","N deposition",date.year,andep_gridcell);
 					plot("N min-immob (kgN/ha/yr)","N",date.year,anmin_gridcell-animm_gridcell);
 
 					plot("N demand/supply (kgN/ha/yr)","N supply",date.year,nsupply_gridcell);
@@ -5253,12 +5438,12 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			else{
 				if(run_landcover && ifslowharvestpool)
 					fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%10.3f\n",cmass_gridcell,c_litter,
-						surfsoillitterc,cwdc,microc,humusc,c_litter+surfsoillitterc+cwdc+microc+humusc+centuryc,c_harv_slow,
-						cmass_gridcell+c_litter+surfsoillitterc+cwdc+microc+humusc+centuryc+c_harv_slow);
+						surfsoillitterc,cwdc,microc,humusc,c_litter+centuryc,c_harv_slow,
+						cmass_gridcell+c_litter+centuryc+c_harv_slow);
 				else // GUESSN
 					fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%10.3f\n",cmass_gridcell,c_litter,
-						surfsoillitterc,cwdc,microc,humusc,c_litter+surfsoillitterc+cwdc+microc+humusc+centuryc,
-						cmass_gridcell+c_litter+surfsoillitterc+cwdc+microc+humusc+centuryc);
+						surfsoillitterc,cwdc,microc,humusc,c_litter+centuryc,
+						cmass_gridcell+c_litter+centuryc);
 			}
 		}
 
@@ -5266,13 +5451,13 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_npool && ifcentury) {
 			if(run_landcover && ifslowharvestpool) {
 					fprintf(out_npool,"%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%10.3f\n",nmass_gridcell,n_litter,
-					surfsoillittern,cwdn,micron,humusn,n_litter+surfsoillittern+cwdn+micron+humusn+centuryn,n_harv_slow,
-					nmass_gridcell+n_litter+surfsoillittern+cwdn+micron+humusn+centuryn+n_harv_slow);
+					surfsoillittern,cwdn,micron,humusn,n_litter+centuryn,n_harv_slow,
+					nmass_gridcell+n_litter+centuryn+n_harv_slow);
 			}
 			else {
 				fprintf(out_npool,"%8.3f%8.3f%8.4f%8.4f%8.4f%8.3f%8.3f%10.3f\n",nmass_gridcell,n_litter,
-					surfsoillittern,cwdn,micron,humusn,n_litter+surfsoillittern+cwdn+micron+humusn+centuryn,
-					nmass_gridcell+n_litter+surfsoillittern+cwdn+micron+humusn+centuryn);
+					surfsoillittern,cwdn,micron,humusn,n_litter+centuryn,
+					nmass_gridcell+n_litter+centuryn);
 			}
 		}
 		// end GUESSN
@@ -5363,6 +5548,9 @@ void termio() {
 		if (out_nlim) fclose(out_nlim);
 		if (out_canopyh) fclose(out_canopyh);
 		// end GUESSN
+
+		// DGPP
+		if (out_dgpp) fclose(out_dgpp);
 	}
 
 	// Clean up

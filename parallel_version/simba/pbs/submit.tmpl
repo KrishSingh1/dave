@@ -15,8 +15,8 @@
 #   2. In an editor, set appropriate values for the variables NPROCESS,
 #      INSFILE, GRIDLIST and OUTFILES (NB: no space after the = sign):
 
-NPROCESS=15
-WALLTIME=150:00:00
+NPROCESS=2
+WALLTIME=1:00:00
 INSFILE=guess.ins
 GRIDLIST=gridlist.txt
 OUTFILES='cmass.out firert.out anpp.out lai.out cflux.out dens.out tot_runoff.out mgpp.out mra.out mrh.out cpool.out mnpp.out mlai.out mnee.out maet.out mpet.out mevap.out mintercep.out mrunoff.out mwcont_upper.out mwcont_lower.out'
@@ -162,6 +162,9 @@ for file in $OUTFILES
 do
   append_files $NPROCESS \$file
 done
+
+rm -rf run*
+gzip *.out
 EOF
 
 # Submit guess job

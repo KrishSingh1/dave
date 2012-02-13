@@ -1927,7 +1927,9 @@ void ndemand_new_est(Patch& patch,Pftlist& pftlist,double& patch_ndemand) {
 			while (vegetation_temp.isobj) {
 				Individual& indiv=vegetation_temp.getobj();
 
-				patch.stand.pft[indiv.pft.id].cmass_repr_nuptake+=(max(0.0,indiv.anpp)*indiv.pft.reprfrac)/(double)npatch;
+				double anpp=max(indiv.anpp,0.0);
+
+				patch.stand.pft[indiv.pft.id].cmass_repr_nuptake+=(anpp*indiv.pft.reprfrac)/(double)npatch;
 				vegetation_temp.nextobj();
 			}	
 		}
@@ -2049,6 +2051,11 @@ void ndemand_new_est(Patch& patch,Pftlist& pftlist,double& patch_ndemand) {
 
 					// Spatial mass effect enabled?
 					// Eqns 2, 3, 4
+
+					double aaa=c;
+					double bbb=pft.kest_repr;
+					double ccc=patch.stand.pft[pft.id].cmass_repr_nuptake;
+					double ddd=kest_bg;
 
 					if (ifsme)
 						est=c*(pft.kest_repr*patch.stand.pft[pft.id].cmass_repr_nuptake+kest_bg);

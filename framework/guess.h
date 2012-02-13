@@ -192,7 +192,6 @@ extern bool ifndepdata;
 extern bool ifcmip5;
 extern bool iflandusesimple;
 extern bool iflandusechange;
-extern bool ifndepdata_cmip5;
 
 // SENS
 extern double sens_cton_needle;
@@ -519,39 +518,8 @@ public:
 	// GUESSN
 	// annual nitrogen deposition (kgN/m2/year)
 	double andep;
-	// daily NHx dry deposition (kgN/m2/day)
-	double dNHxDryDep[365];	
-	// daily NHx wet deposition (kgN/m2/day)
-	double dNHxWetDep[365];
-	// daily NOy dry deposition (kgN/m2/day)
-	double dNOyDryDep[365];
-	// daily NOy wet deposition (kgN/m2/day)
-	double dNOyWetDep[365];
-		
-	
-	// Years with N deposition data
-	double ndep_years[16];
-	// Monthly data on daily dry NHx deposition in 10 year interval from 1855 to 2005 (gN/ha/day)
-	double NHxDryDep[192];	// 12 months * 16 years == 192
-	// Monthly data on daily wet NHx deposition in 10 year interval from 1855 to 2005 (gN/ha/day)
-	double NHxWetDep[192];
-	// Monthly data on daily dry NOy deposition in 10 year interval from 1855 to 2005 (gN/ha/day)
-	double NOyDryDep[192];
-	// Monthly data on daily wet NOy deposition in 10 year interval from 1855 to 2005 (gN/ha/day)
-	double NOyWetDep[192];
+	double dndep[365];
 	// end GUESSN
-
-	// CMIP5
-	// Years with N deposition data
-	double ndep_years_cmip5[11];
-	// Monthly data on daily dry NHx deposition in 10 year interval from 2005 to 2105 (gN/ha/day)
-	double NHxDryDep_cmip5[132];	// 12 months * 16 years == 192
-	// Monthly data on daily wet NHx deposition in 10 year interval from 2005 to 2105 (gN/ha/day)
-	double NHxWetDep_cmip5[132];
-	// Monthly data on daily dry NOy deposition in 10 year interval from 2005 to 2105 (gN/ha/day)
-	double NOyDryDep_cmip5[132];
-	// Monthly data on daily wet NOy deposition in 10 year interval from 2005 to 2105 (gN/ha/day)
-	double NOyWetDep_cmip5[132];
 
 	// Monthly sums (converted to means) used by canopy exchange module
 

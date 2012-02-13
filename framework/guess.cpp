@@ -73,7 +73,6 @@ bool ifndepdata;
 
 // CMIP5
 bool ifcmip5;
-bool ifndepdata_cmip5;
 bool iflandusesimple;
 bool iflandusechange;
 
@@ -299,7 +298,7 @@ int framework(int argc,char* argv[]) {
 						canopy_exchange(patch);
 						// Soil water accounting, snow pack accounting
 						soilwater(gridcell.climate,patch);
-						// Soil organic matter and litter dynamics
+						// Soil organic matter and litter dynamics						
 						som_dynamics(patch,pftlist);
 
 

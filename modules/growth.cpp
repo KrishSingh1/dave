@@ -478,7 +478,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 			cmass_heart_inc=-cmass_sap_inc;
 		}
 
-		dprintf("Year %d ltor %g No leaf production possible\n",date.year,ltor);
+		dprintf("Year %d 111 ltor %g No leaf production possible\n",date.year,ltor);
 
 		return;
 	}
@@ -1000,7 +1000,7 @@ void allocation_nlim(Pft& pft,double nstore,double cton_leaf,double cton_root,do
 			cmass_heart_inc=-cmass_sap_inc;
 		}
 
-		dprintf("Year %d ltor %g No leaf production possible\n",date.year,ltor);
+		dprintf("Year %d 222 ltor %g No leaf production possible\n",date.year,ltor);
 
 		return;
 	}

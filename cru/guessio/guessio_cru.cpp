@@ -3237,9 +3237,9 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	file_cmip5scen=param["path_cmip5scen"].str;
 
 	if (rcp=="45")
-		file_cmip5scen+="mpi_esm_lr_rcp45_r1i1p1\\";
+		file_cmip5scen+="mpi_esm_lr_rcp45_r1i1p1/";
 	else if (rcp=="85")
-		file_cmip5scen+="mpi_esm_lr_rcp85_r1i1p1\\";
+		file_cmip5scen+="mpi_esm_lr_rcp85_r1i1p1/";
 	else fail("CMIP5 scenario file not valid");
 
 	file_cmip5hist+="cmip5_hist.bin";

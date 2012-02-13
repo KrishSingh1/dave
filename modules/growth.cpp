@@ -2270,6 +2270,8 @@ void growth(Stand& stand,Patch& patch) {
 						max(0.0,cmass_leaf_inc)*indiv.densindiv/indiv.cton_leaf_new+
 						max(0.0,cmass_root_inc)*indiv.densindiv/indiv.cton_root_new;
 
+				indiv.ndemand_no_nlim=indiv.ndemand;
+
 				// Compute limitation factor based on balance between individual N demand and supply
 				// (NB: this overwrites the alternative factor calculated in canexch.cpp, but this
 				// one is better!)

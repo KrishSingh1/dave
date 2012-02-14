@@ -871,7 +871,6 @@ void demand(Patch& patch) {
 			// special case if daylength=0
 			
 			indiv.gp_leafon=0.0;
-			stand.pft[pft.id].assim_term=0.0;
 		}
 
 		// Increment patch sums of non-water-stressed gp by individual value

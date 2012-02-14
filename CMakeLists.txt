@@ -24,7 +24,11 @@ endif()
 set(IO "cru" CACHE STRING "The IO module to use (cru/demo)")
 
 # A variable controlling whether or not to include unit tests
-set(UNIT_TESTS "OFF" CACHE BOOL "Whether to include unit tests")
+# Unit tests are disabled in old VS 6.0, since CATCH doesn't compile in such 
+# an old compiler.
+if (NOT MSVC_VERSION EQUAL "1200")
+  set(UNIT_TESTS "OFF" CACHE BOOL "Whether to include unit tests")
+endif()
 
 if (UNIX)
   # The SYSTEM variable is currently only used to choose which 

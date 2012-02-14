@@ -72,7 +72,7 @@ bool abort_request_received() {
 
 
 void set_shell(Shell* s) {
-	current_shell.reset(s);
+	current_shell = std::auto_ptr<Shell>(s);
 }
 
 

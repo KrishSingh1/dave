@@ -1300,6 +1300,9 @@ public:
 		cmass=0.0;
 		nmass=0.0;
 		ligcfrac=0.0;
+		delta_cmass=0.0;
+		delta_nmass=0.0;
+		frc=0.0;
 	};
 };
 

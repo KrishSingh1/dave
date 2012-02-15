@@ -830,6 +830,9 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 	double net_before;
 	double struct_decomp;
 
+	if (date.year == 94)
+		int sch = 0;
+
 	double delta_cmass[NSOMPOOL];
 	double delta_nmass[NSOMPOOL];
 
@@ -987,6 +990,12 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 		soil.sompool[p].cmass+=soil.sompool[p].delta_cmass;
 		soil.sompool[p].nmass+=soil.sompool[p].delta_nmass;
 		nnmass+=soil.sompool[p].delta_nmass;
+
+		double aaa=soil.sompool[p].nmass;
+		double bbb=soil.sompool[p].delta_nmass;
+
+		if (soil.sompool[p].nmass<0.0)
+			int sch = 0;
 	}
 
 	// calculate the daily result of min, imm, and ndep
@@ -1035,6 +1044,9 @@ void transfer_litter(Patch& patch,Soil& soil) {
 
 	double litter_nmass = 0.0;	
 	double litter_cmass = 0.0;	
+
+	if (date.year == 93)
+		int sch = 0;
 
 	patch.pft.firstobj();
 	while (patch.pft.isobj) {

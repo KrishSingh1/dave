@@ -894,8 +894,6 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 			patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nmass_root;
 			patch.pft[indiv.pft.id].nmass_litter_wood+=indiv.nmass_sap+indiv.nmass_heart;
 			
-
-			
 			// Transfer N storage to wood N litter for now 
 			if (indiv.pft.lifeform == TREE)
 				patch.pft[indiv.pft.id].nmass_litter_wood+=indiv.nstore+indiv.nmass_reserve;
@@ -1469,6 +1467,10 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 				// Transfer N storage to wood N litter for now 	
 				patch.pft[indiv.pft.id].nmass_litter_wood+=(1.0-frac_survive)*(indiv.nstore+indiv.nmass_reserve);
 				// end GUESSN
+
+				if (patch.pft[indiv.pft.id].nmass_litter_wood < 0.0)
+					dprintf("Year %d 666 sap %g heart %g nstore %g nreserve %g\n",
+						date.year,indiv.nmass_sap,indiv.nmass_heart,indiv.nstore,indiv.nmass_reserve);	// sch = 0;
 
 				// Reduce individual density and biomass on patch area basis
 				// to account for loss of killed individuals

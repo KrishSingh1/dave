@@ -2105,7 +2105,7 @@ void growth(Stand& stand,Patch& patch) {
 					indiv.frac_agpp=(agpp-bminc_dec)/agpp;
 				}
 
-				if (date.year <= freenyears)
+				if (date.year <= freenyears || !ifnlim)
 					indiv.nstore=0.0;
 				else 
 					indiv.nstore-=indiv.ndemand;
@@ -2167,6 +2167,9 @@ void growth(Stand& stand,Patch& patch) {
 
 				// Heartwood
 				indiv.nmass_heart-=min(0.0,nmass_sap_inc)*nrelocfrac;
+
+				if (indiv.nmass_sap < 0.0 || indiv.nmass_heart < 0.0)
+					int sch = 0;
 
 
 				// C debt
@@ -2238,6 +2241,9 @@ void growth(Stand& stand,Patch& patch) {
 						// Transfer N storage to wood N litter for now
 						patch.pft[indiv.pft.id].nmass_litter_wood+=max(indiv.nstore,0.0)+max(indiv.nmass_reserve,0.0);
 						// end GUESSN
+
+						if (indiv.nmass_sap<0.0 || indiv.nmass_heart<0.0 || indiv.nstore<0.0 || indiv.nmass_reserve<0.0)
+							dprintf("Year %d 111 negative\n",date.year);	// sch = 0;
 					} 
 					else {	// GUESSN return N to soil so N budget is preserved
 						patch.soil.nmass_avail+=max(indiv.nmass_leaf,0.0)+max(indiv.nmass_root,0.0)+max(indiv.nmass_sap,0.0)+
@@ -2343,7 +2349,7 @@ void growth(Stand& stand,Patch& patch) {
 					indiv.anpp-=bminc_dec; 
 				}
 
-				if (date.year <= freenyears)
+				if (date.year <= freenyears || !ifnlim)
 					indiv.nstore=0.0;
 				else 
 					indiv.nstore-=indiv.ndemand;
@@ -2479,6 +2485,9 @@ void growth(Stand& stand,Patch& patch) {
 					// Transfer N storage to root N litter for now
 					patch.pft[indiv.pft.id].nmass_litter_root+=max(indiv.nstore,0.0)+max(indiv.nmass_reserve,0.0);
 					// end GUESSN
+
+					if (indiv.nmass_sap<0.0 || indiv.nmass_heart<0.0 || indiv.nstore<0.0 || indiv.nmass_reserve<0.0)
+							dprintf("Year %d 111 negative\n",date.year);	// sch = 0;
 				}
 				else {	// GUESSN return N to soil so N budget is preserved
 					patch.soil.nmass_avail+=max(indiv.nmass_leaf,0.0)+max(indiv.nmass_root,0.0)+max(indiv.nmass_sap,0.0)+

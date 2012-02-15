@@ -12,6 +12,7 @@
 
 #include "config.h"
 #include "dllmain.h"
+#include "framework.h"
 
 #include <process.h>
 #include <stdarg.h>
@@ -24,10 +25,10 @@
 xtring file_log="guess.log";
 
 
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL VARIABLES
 
-FILE* logfile=false;
 bool waiting;
 bool ifabort;
 xtring* poutput;
@@ -39,88 +40,78 @@ MessageResetwindow* message_resetwindow;
 MessageClearGraphs* message_clear_graphs;
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// GLOBAL FUNCTIONS
-// These functions are declared in the framework header file and are (therefore)
-// accessible throughout the model code
+class WindowsShell : public Shell {
+public:
+	WindowsShell(const char* logfile_path) {
+		// Open log file if possible
+		logfile=fopen(logfile_path,"wt");
+	}
 
-void fail(xtring format,...) {
+	~WindowsShell() {
+		if (logfile) {
+			fclose(logfile);
+		}
+	}
 
-	// printf-style function accessible throughout the model code.
-	// Sends text to Windows shell and log file, then terminates program
+	/// Sends a message to the user somehow and terminates the program
+	void fail(const char* message) {
+		log_message(xtring(message)+"\n");
 
-	xtring output;
-	va_list v;
-	va_start(v,format);
-	formatf(output,format,v);
+		message_finished();
 
-	xtring* pbuf=new xtring;
-	*pbuf=output;
-	*pbuf+="\n";
-	message_print_string(pbuf);
+		_endthread();
+	}
 
-	if (logfile) fprintf(logfile,"%s\n",(char*)output);
+	/// Sends a message to the user somehow
+	void log_message(const char* message) {
+		xtring* pbuf=new xtring;
+		*pbuf=message;
+		message_print_string(pbuf);
+
+		if (logfile) {
+			fprintf(logfile,"%s",(char*)message);
+			fflush(logfile);
+		}
+	}
+
+	/// Adds data point (x,y) to series 'series_name' of line graph 'window_name'.
+	void plot(const char* window_name, 
+	          const char* series_name, 
+	          double x, 
+			  double y) {
+		PlotArgs* pplotargs=new PlotArgs;
+
+		pplotargs->window_name=window_name;
+		pplotargs->series_name=series_name;
+		pplotargs->x=x;
+		pplotargs->y=y;
+		pplotargs->rescale=true;
 	
-	message_finished();
+		message_plot(pplotargs);
+	}
 
-	_endthread();
-}
+	/// 'Forgets' series and data for line graph 'window_name'.
+	void resetwindow(const char* window_name) {
+		xtring* pxtring=new xtring;
+		*pxtring=window_name;
+		message_resetwindow(pxtring);
+	}
 
+	/// 'Forgets' series and data for all currently-defined line graphs.
+	void clear_all_graphs() {
+		waiting=true;
+		message_clear_graphs();
+	}
 
-void dprintf(xtring format,...) {
+	/// May be called by framework to respond to abort request from the user.
+	bool abort_request_received() {
+		return ifabort;
+	}
 
-	// printf-style function accessible throughout the model code.
-	// Sends text to Windows shell and log file.
+private:
+	FILE* logfile;
+};
 
-	xtring output;
-	va_list v;
-	va_start(v,format);
-	formatf(output,format,v);
-
-	xtring* pbuf=new xtring;
-	*pbuf=output;
-	message_print_string(pbuf);
-
-	if (logfile) fprintf(logfile,"%s",(char*)output);
-}
-
-
-void plot(xtring window_name,xtring series_name,double x,double y) {
-
-	PlotArgs* pplotargs=new PlotArgs;
-
-	pplotargs->window_name=window_name;
-	pplotargs->series_name=series_name;
-	pplotargs->x=x;
-	pplotargs->y=y;
-	pplotargs->rescale=true;
-	
-	message_plot(pplotargs);
-}
-
-
-void resetwindow(xtring window_name) {
-
-	xtring* pxtring=new xtring;
-	*pxtring=window_name;
-	message_resetwindow(pxtring);
-}
-
-
-void clear_all_graphs() {
-
-	waiting=true;
-	message_clear_graphs();
-}
-
-
-bool abort_request_received() {
-
-	// May be called by framework to respond to abort request from Windows shell
-	// (returns true if shell has sent an abort request, otherwise false)
-
-	return ifabort;
-}
 
 
 __declspec(dllexport) void cleanup_print_string(xtring* pxtring) {
@@ -159,8 +150,7 @@ __declspec(dllexport) int dll_main(GuessParam param) {
 
 	ifabort=false;
 
-	// Open log file if possible
-	if (!logfile) logfile=fopen(file_log,"wt");
+	set_shell(new WindowsShell(file_log));
 
 	// Call the framework
 	framework(param.argc,param.argv);

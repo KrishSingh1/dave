@@ -923,7 +923,6 @@ ListArray_id<Coord> gridlist;
 	// of the grid cells to simulate
 
 int ngridcell; // the number of grid cells to simulate
-bool firstgrid; // whether simulating first grid cell in linked list
 
 class Spinup_data {
 
@@ -1778,9 +1777,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	tprogress.settimer();
 	tmute.settimer(MUTESEC);
-
-	// Start at first object in linked list of grid cell coordinates ...
-	firstgrid=true;
 }
 
 ///	Loads landcover area fraction data from file(s) for a gridcell.
@@ -1849,8 +1845,16 @@ bool getgridcell(Gridcell& gridcell)
 	// to ensure an identical random number sequence for each gridcell.
 	setseed(12345678);
 
-	if (firstgrid) {
+	// Make sure we use the first gridcell in the first call to this function,
+	// and then step through the gridlist in subsequent calls.
+	static bool first_call = true;
+
+	if (first_call) {
 		gridlist.firstobj();
+
+		// Note that first_call is static, so this assignment is remembered
+		// across function calls.
+		first_call = false;
 	}
 	else gridlist.nextobj();
 
@@ -2236,6 +2240,10 @@ bool getclimate(Gridcell& gridcell) {
 			}
 
 		}
+		else {
+			// Return false if last year was the last for the simulation
+			return false;
+		}
 	}
 
 
@@ -2255,9 +2263,6 @@ bool getclimate(Gridcell& gridcell) {
 	// First day of year only ...
 
 	if (date.day==0) {
-
-		// Return false if last year was the last for the simulation
-		if (date.year==nyear_spinup+NYEAR_HIST) return false;
 
 		// Progress report to user and update timer
 
@@ -2308,10 +2313,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 	if (vegmode==COHORT)
 		nclass=min(date.year/estinterval+1,OUTPUT_MAXAGECLASS);
-
-	if (date.year==0 && firstgrid) {
-		firstgrid=false;
-	}
 	
 	// guess2008 - yearly output after spinup
 		
@@ -2626,15 +2627,10 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 
 		// In contrast to annual NEE, monthly NEE does not include fire 
-		// or establishment fluxes 
-		double testmnpp = 0.0;
-		double testmlai = 0.0;
-
+		// or establishment fluxes
 		for (m=0;m<12;m++) {
 			mnpp[m] = mgpp[m]-mra[m];
 			mnee[m] = mnpp[m]-mrh[m];
-			testmnpp += mnpp[m];
-			testmlai += mlai[m]/12.0;
 		}
 
 		// Print gridcell totals to files

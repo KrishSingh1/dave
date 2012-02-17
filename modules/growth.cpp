@@ -169,7 +169,7 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 		indiv.phen=patch.pft[indiv.pft.id].phen;
 
 		// Update annual leaf-day sum (raingreen PFTs)
-		if (date.day==0) indiv.aphen_raingreen=0;
+		if (date.isyearstart) indiv.aphen_raingreen=0;
 		indiv.aphen_raingreen+=(indiv.phen!=0.0);
 
 		// ... on to next individual

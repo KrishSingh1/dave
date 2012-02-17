@@ -1742,7 +1742,7 @@ bool getclimate(Gridcell& gridcell) {
 
 	// First day of year only ...
 
-	if (date.day==0) {
+	if (date.isyearstart) {
 
 		// Return false if last year was the last for the simulation
 		if (date.year==nyear_spinup+nyear) return false;

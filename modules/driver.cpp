@@ -140,36 +140,31 @@ void soilparameters(Soiltype& soiltype,int soilcode) {
  *
  *  \param mvals The monthly means
  *  \param dvals The generated daily values
+ *  This function is NOT to be used with diurnal version of the model!
  */
 void interp_monthly_means(double mvals[12], double dvals[365]) {
 
 	Date date; // Date object used for interpolation (local to this function)
-	double nday,dayct;
-	int thismonth,lastmonth;
+	date.init();
 
-	date.init(1);
-
-	nday=(double)(date.middaymonth[0]-(date.middaymonth[11]-365));
-	thismonth=0;
-	lastmonth=11;
-	dayct=(double)(366-date.middaymonth[11]);
+	int thismonth = 0;
+	int lastmonth = 11;
+	int nday = date.middaymonth[thismonth] - date.middaymonth[lastmonth] + 365;
+	int dayct = 366 - date.middaymonth[lastmonth];
 
 	// Perform interpolation
 
-	while (date.year==0) {
-		if (date.day==date.middaymonth[date.month]) {
-			if (date.month==11) // December
-				nday=(double)(date.middaymonth[0]+365-date.middaymonth[11]);
-			else
-				nday=(double)(date.middaymonth[date.nextmonth()]-
-					date.middaymonth[date.month]);
-			thismonth=date.nextmonth();
-			lastmonth=date.month;
-			dayct=0.0;
+	while (date.year == 0) {
+		if (date.ismidday) {
+			thismonth = date.month == 11 ? 0 : date.month + 1;
+			lastmonth = date.month;
+			nday = date.middaymonth[thismonth] - date.middaymonth[lastmonth] +
+												(thismonth ? 0 : 365);
+			dayct = 0;
 		}
-		dvals[date.day]=(mvals[thismonth]-mvals[lastmonth])/nday*dayct+
-			mvals[lastmonth];
-		date.next();
+		dvals[date.day] = (mvals[thismonth] - mvals[lastmonth]) / (double)nday *
+							(double)dayct + mvals[lastmonth];
+		date++;
 		dayct++;
 	}
 }
@@ -356,7 +351,7 @@ void soiltemp(Climate& climate,Soil& soil) {
 	double day[]={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
 		16,17,18,19,20,21,22,23,24,25,26,27,28,29,30};
 
-	if ((date.year==0 || date.year==soil.patch.stand.first_year) && date.month==0 && !date.islastday) {
+	if ((date.year==0 || date.year==soil.patch.stand.first_year) && date.month==0 && !date.ismonthend) {
 
 		// First month of simulation, use air temperature for soil temperature
 
@@ -364,7 +359,7 @@ void soiltemp(Climate& climate,Soil& soil) {
 	}
 	else {
 
-		if (date.islastday) {
+		if (date.ismonthend) {
 
 			// Linearly interpolate soil thermal diffusivity given mean
 			// soil water content
@@ -417,7 +412,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 
 	// On first day of year ...
 
-	if (date.day==0) {
+	if (date.isyearstart) {
 		// ... reset annual GDD5 counter
 		climate.agdd5=0.0;
 
@@ -467,7 +462,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 
 	// On last day of month ...
 
-	if (date.islastday) {
+	if (date.ismonthend) {
 		// Update mean temperature for the last 12 months
 		// atemp_mean_new = atemp_mean_old * (11/12) + mtemp * (1/12)
 		climate.atemp_mean=climate.atemp_mean*W11DIV12+climate.mtemp*W1DIV12;
@@ -486,7 +481,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 
 		// On 31 December update records of minimum monthly temperatures for the last
 		// 20 years and find mean of minimum monthly temperatures for the last 20 years
-		if (date.islastmonth) {
+		if (date.isyearend) {
 			startyear=20-(int)min(19,date.year);
 			climate.mtemp_min20=climate.mtemp_min;
 			climate.mtemp_max20=climate.mtemp_max;
@@ -510,7 +505,7 @@ void dailyaccounting_stand(Stand& stand, Pftlist& pftlist) {
 }
 
 void dailyaccounting_patch_lc(Patch& patch, Pftlist& pftlist) {
-	if(date.day==0) {
+	if(date.isyearstart) {
 		Fluxes& fluxes=patch.fluxes;
 
 		if(!patch.stand.gridcell.LC_updated) {	// NB. landcover_dynamics() is called before this function !
@@ -546,7 +541,7 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 	Soil& soil=patch.soil;
 	Fluxes& fluxes=patch.fluxes;
 
-	if (date.day==0) {
+	if (date.isyearstart) {
 
 		// Reset fluxes
 		fluxes.acflux_soil=0.0;
@@ -561,7 +556,7 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 		patch.apet=0.0;
 	}
 
-	if (date.dayofmonth==0) {
+	if (date.ismonthstart) {
 
 		fluxes.mcflux_veg[date.month]=0.0;
 
@@ -582,18 +577,18 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 
 	fluxes.dcflux_veg=0.0;
 
-	if(run_landcover)
+	if (run_landcover) {
 		dailyaccounting_patch_lc(patch, pftlist);
-	
+	}
 	// Store daily soil water in both layers
 	soil.dwcontupper[date.day] = soil.wcont[0];
 	soil.dwcontlower[date.day] = soil.wcont[1];
 
 	// On last day of month, calculate mean content of upper soil layer
 
-	if (date.islastday) {
+	if (date.ismonthend) {
 
-		soil.mwcontupper=mean(soil.dwcontupper+date.day-date.ndaymonth[date.month]+1,
+		soil.mwcontupper = mean(soil.dwcontupper+date.day-date.ndaymonth[date.month]+1,
 			date.ndaymonth[date.month]);
 		
 		// guess2008 - record water in lower layer too, and then update mwcont  
@@ -610,11 +605,10 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 	respiration_temperature_response(soil.temp, soil.gtemp);
 
 	// On last day of month, calculate mean soil temperature for last month
-
-	soil.dtemp[date.dayofmonth]=soil.temp;
-
-	if (date.islastday)
-		soil.mtemp=mean(soil.dtemp,date.ndaymonth[date.month]);
+	soil.dtemp[date.dayofmonth] = soil.temp;
+	if (date.ismonthend) {
+		soil.mtemp = mean(soil.dtemp, date.ndaymonth[date.month]);
+	}
 }
 
 
@@ -623,7 +617,7 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 // Called by dailyaccounting_patch and dailyaccounting_gridcell to calculate
 // response of respiration to temperature
 
-void respiration_temperature_response(double temp,double& gtemp) {
+void respiration_temperature_response(double temp, double& gtemp) {
 
 	// DESCRIPTION
 	// Calculates g(T), response of respiration rate to temperature (T), based on

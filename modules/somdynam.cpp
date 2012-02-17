@@ -211,7 +211,7 @@ void som_dynamics(Patch& patch) {
 			soil.k_soilslow_mean+=k_soilslow;
 		}
 	}
-	else if (date.islastday) {
+	else if (date.ismonthend) {
 
 		// "MONTHLY" MODE (last day of month only)
 
@@ -249,7 +249,7 @@ void som_dynamics(Patch& patch) {
 	// and transfer correct proportions of litter decomposition to fast and slow
 	// SOM pools
 
-	if (ifdailydecomp || date.islastday) {
+	if (ifdailydecomp || date.ismonthend) {
 
 		// Reduce individual litter pools and calculate total litter decomposition
 		// for today/this month
@@ -297,7 +297,7 @@ void som_dynamics(Patch& patch) {
 		// Monthly C flux
 
 		if (ifdailydecomp) {
-			if (date.dayofmonth==0)
+			if (date.ismonthstart)
 				patch.fluxes.mcflux_soil[date.month]=cflux;
 			else
 				patch.fluxes.mcflux_soil[date.month]+=cflux;
@@ -315,7 +315,7 @@ void som_dynamics(Patch& patch) {
 
 		// Solve SOM pool sizes at end of year given by soil.solvesom_end
 
-		if (date.year==soil.soiltype.solvesom_end && date.islastmonth && date.islastday)
+		if (date.year==soil.soiltype.solvesom_end && date.isyearend)
 			equilsom(soil);
 	}
 }

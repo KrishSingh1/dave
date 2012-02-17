@@ -2548,7 +2548,7 @@ bool getclimate(Gridcell& gridcell) {
 	double mwet_all[12]={31,28,31,30,31,30,31,31,30,31,30,31}; // number of rain days per month
 	Climate& climate=gridcell.climate;
 
-	if (date.day==0) {
+	if (date.isyearstart) {
 
 		// First day of year ...
 		
@@ -2638,7 +2638,7 @@ bool getclimate(Gridcell& gridcell) {
 
 	// First day of year only ...
 
-	if (date.day==0) {
+	if (date.isyearstart) {
 
 		// Progress report to user and update timer
 

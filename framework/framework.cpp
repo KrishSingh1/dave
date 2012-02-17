@@ -27,143 +27,121 @@ int framework(int argc,char* argv[]) {
 	// primary model data structures and containing all explicit loops through 
 	// space (grid cells/stands) and time (days and years).
 
-	bool dogridcell;
-
 	// The one and only linked list of Pft objects	
 	Pftlist pftlist;
 
 	// Call input/output module to obtain PFT static parameters and simulation
 	// settings and initialise input/output
-	initio(argc,argv,pftlist);
+	initio(argc, argv, pftlist);
 
-	// bvoc
-	if(ifbvoc){
+	if (ifbvoc) {
 	  initbvoc(pftlist);
 	}
 
 	// Assume there is at least one grid cell to simulate
-	dogridcell=true;
-
-	while (dogridcell) {
-
-		// START OF LOOP THROUGH GRID CELLS
-
-		// Initialise global variable date
-		// (argument nyear not used in this implementation)
-		date.init(1);
+	while (true) {
 
 		// Create and initialise a new Gridcell object for each locality
-		Gridcell gridcell(pftlist);	
+		Gridcell gridcell(pftlist);
 
 		// Call input/output to obtain latitude and soil driver data for this grid cell.
 		// Function getgridcell returns false if no further grid cells remain to be simulated
+		if (!getgridcell(gridcell)) {
+			break;
+		}
+		date.init();
 
-		if (getgridcell(gridcell)) {
+		// Initialise certain climate and soil drivers
+		gridcell.climate.initdrivers(gridcell.climate.lat);
 
-			// Initialise certain climate and soil drivers
-			gridcell.climate.initdrivers(gridcell.climate.lat);
+		if(run_landcover) {
+			//Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
+			landcover_init(gridcell,pftlist);
+		}
 
-			if(run_landcover) {
-				//Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
-				landcover_init(gridcell,pftlist);
+		// Call input/output to obtain climate, insolation and CO2 for this
+		// day of the simulation. Function getclimate returns false if last year
+		// has already been simulated for this grid cell
+		while (getclimate(gridcell)) {
+
+			// Update daily climate drivers etc
+			dailyaccounting_gridcell(gridcell, pftlist);
+
+			// Calculate daylength, insolation and potential evapotranspiration
+			daylengthinsoleet(gridcell.climate);
+
+			// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
+			if(run_landcover && date.isyearstart && date.year>=nyear_spinup) {
+				landcover_dynamics(gridcell, pftlist);
 			}
-			
-			// Call input/output to obtain climate, insolation and CO2 for this
-			// day of the simulation. Function getclimate returns false if last year
-			// has already been simulated for this grid cell
 
-			while (getclimate(gridcell)) {
+			gridcell.firstobj();
+			while (gridcell.isobj) {
 
-				// START OF LOOP THROUGH SIMULATION DAYS
+				// START OF LOOP THROUGH STANDS
 
-				// Update daily climate drivers etc
-				dailyaccounting_gridcell(gridcell,pftlist);
+				Stand& stand = gridcell.getobj();
 
-				// Calculate daylength, insolation and potential evapotranspiration
-				daylengthinsoleet(gridcell.climate);
+				stand.firstobj();
+				while (stand.isobj) {
+					// START OF LOOP THROUGH PATCHES
 
-				if(run_landcover && date.day==0) {
-					// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
-					if(date.year>=nyear_spinup)
-						landcover_dynamics(gridcell,pftlist);
-				}
+					// Get reference to this patch
+					Patch& patch = stand.getobj();
+					// Update daily soil drivers including soil temperature
+					dailyaccounting_patch(patch, pftlist);
+					// Leaf phenology for PFTs and individuals
+					leaf_phenology(patch, gridcell.climate);
+					// Precepitation interception
+					interception(patch, gridcell.climate);
+					initial_infiltration(patch, gridcell.climate);
+					// Photosynthesis, respiration, evapotranspiration
+					canopy_exchange(patch, gridcell.climate);
+					// Soil water accounting, snow pack accounting
+					soilwater(patch, gridcell.climate);
+					// Soil organic matter and litter dynamics
+					som_dynamics(patch);
 
-				gridcell.firstobj();
-				while (gridcell.isobj) {
+					if (date.isyearend) {
 
-					// START OF LOOP THROUGH STANDS
+						// LAST DAY OF YEAR
+						// Tissue turnover, allocation to new biomass and reproduction,
+						// updated allometry
+						growth(stand,patch);
+					}
+					stand.nextobj();
+				}// End of loop through patches
 
-					Stand& stand=gridcell.getobj();
-
-					dailyaccounting_stand(stand,pftlist);
-
+				if (date.isyearend) {
+					// LAST DAY OF YEAR
 					stand.firstobj();
 					while (stand.isobj) {
-						// START OF LOOP THROUGH PATCHES
 
-						// Get reference to this patch
+						// For each patch ...
 						Patch& patch=stand.getobj();
-						// Update daily soil drivers including soil temperature
-						dailyaccounting_patch(patch,pftlist);
-						// Leaf phenology for PFTs and individuals
-						leaf_phenology(patch,gridcell.climate);
-						// Interception
-						interception(patch, gridcell.climate);
-						initial_infiltration(patch, gridcell.climate);
-						// Photosynthesis, respiration, evapotranspiration
-						canopy_exchange(patch, gridcell.climate);
-						// Soil water accounting, snow pack accounting
-						soilwater(patch, gridcell.climate);
-						// Soil organic matter and litter dynamics
-						som_dynamics(patch);
-
-						if (date.islastday && date.islastmonth) {
-							
-							// LAST DAY OF YEAR
-							// Tissue turnover, allocation to new biomass and reproduction,
-							// updated allometry
-							growth(stand,patch);
-						}
+						// Establishment, mortality and disturbance by fire
+						vegetation_dynamics(stand,patch,pftlist);
 						stand.nextobj();
-					}// End of loop through patches
-
-					if (date.islastday && date.islastmonth) {
-						// LAST DAY OF YEAR
-						stand.firstobj();
-						while (stand.isobj) {
-							
-							// For each patch ...
-							Patch& patch=stand.getobj();
-							// Establishment, mortality and disturbance by fire
-							vegetation_dynamics(stand,patch,pftlist);
-							stand.nextobj();
-						}
-					}
-
-					gridcell.nextobj();			
-				}	// End of loop through stands
-
-				if (date.islastday && date.islastmonth) {
-					// LAST DAY OF YEAR
-					// Call input/output module to output results for end of year
-					// or end of simulation for this grid cell
-					outannual(gridcell,pftlist);
-
-					// Check whether to abort
-					if (abort_request_received()) {
-						termio();
-						return 99;
 					}
 				}
 
-				// Advance timer to next simulation day
-				date.next();
+				gridcell.nextobj();
+			}	// End of loop through stands
 
-				// End of loop through simulation days
-			}//while (getclimate())
-		}//if getgridcell()
-		else dogridcell=false; // no more grid cells to simulate
-		
+			if (date.isyearend) {
+				// LAST DAY OF YEAR
+				// Call input/output module to output results for end of year
+				// or end of simulation for this grid cell
+				outannual(gridcell,pftlist);
+
+				// Check whether to abort
+				if (abort_request_received()) {
+					termio();
+					return 99;
+				}
+			}
+			date++;
+		}
 	}		// End of loop through grid cells
 
 	// Call to input/output module to perform any necessary clean up

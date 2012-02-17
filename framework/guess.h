@@ -202,109 +202,128 @@ public:
 	/// number of days in each month (0=January - 11=December)
 	int ndaymonth[12];
 
+	/// number of subdaily periods
+	int subdaily;
+
 	/// julian day of year (0-364; 0=Jan 1)
 	int day;
 
 	/// day of current month (0=first day)
 	int dayofmonth;
 
-	/// month number (0=January - 11=December)		
+	/// month number (0=January - 11=December)
 	int month;
 
-	/// year since start of simulation (0=first simulation year)		
+	/// year since start of simulation (0=first simulation year)
 	int year;
 
-	/// julian day for middle day of each month		
+	/// julian day for middle day of each month
 	int middaymonth[12];
 
-	/// true if last year of simulation, false otherwise		
-	bool islastyear;
-
-	/// true if last month of year, false otherwise		
-	bool islastmonth;
-
-	/// true if last day of month, false otherwise		
-	bool islastday;
-
-	/// true if middle day of month, false otherwise		
+	/// true if middle day of month, false otherwise
 	bool ismidday;
 
+	/// true at the start of the year
+	bool isyearstart;
+
+	/// true at the end of the year
+	bool isyearend;
+
+	/// true at the start of the month
+	bool ismonthstart;
+
+	///true at the end of the month
+	bool ismonthend;
+
+	/// true at the start of the day
+	bool isdaystart;
+
+	/// true at the end of the day
+	bool isdayend;
 
 private:
+	/// universal constants
+	static const int min2day = 1440;
+	static const int day2year = 365;
+	static const int month2year = 12;
 
-	int nyear;
+	/// number of minutes in an subdaily increment
+	int inc;
+
+	/// minutes of the day in increments
+	int minutes;
 
 	// MEMBER FUNCTIONS
-
 public:
-	
+
 	/// Constructor function called automatically when Date object is created
 	/** Do not call explicitly. Initialises some member variables. */
 	Date() {
+		set_inc(min2day);
 		const int data[]={31,28,31,30,31,30,31,31,30,31,30,31};
-		int month;
-		int dayct=0;
-		for (month=0;month<12;month++) {
-			ndaymonth[month]=data[month];
-			middaymonth[month]=dayct+data[month]/2;
-			dayct+=data[month];
+		int dayct = 0;
+		for (int month=0; month<month2year; month++) {
+			ndaymonth[month] = data[month];
+			middaymonth[month] = dayct + data[month]/2;
+			dayct += data[month];
 		}
 	}
 
-	/// Initialises date to day 0 of year 0 and sets intended number of simulation years
-	/** Intended number of simulation years is only used to set islastyear flag,
-	 *  actual simulation may be longer or shorter.
-	 *
-	 *  \param nyearsim  Intended number of simulation years
-	 */
-	void init(int nyearsim)	{
-		nyear=nyearsim;
-		day=month=year=dayofmonth=0;
-		islastmonth=islastday=ismidday=false;
-		if (nyear==1) islastyear=true;
-		else islastyear=false;
+	/// Resets all parameters to the beginning of a year
+	void init(int y=0) {
+		year = y;
+		day = month = dayofmonth = minutes = 0;
+		ismidday = isyearend = ismonthend = false;
+		isyearstart = ismonthstart = isdaystart = true;
+	}
+
+	/// Set the value of the time increment in minutes, defaults to 1440
+	void set_inc(int input, int max_intervals=1) {
+		if (inc == input) {
+			return;
+		}
+		div_t q = div(min2day, input);
+		if (q.rem) {
+			fail("bad value for date increment: should be a factor of 1440\n");
+		} else if (q.quot > max_intervals) {
+			fail("Minimum duration of the averaging period for this data set is "
+					"%s min", min2day/max_intervals);
+		}
+		inc = input;
+		isdayend = inc == min2day;
+		subdaily = q.quot;
 	}
 
 	/// Call at end of every simulation day to update member variables.
-	void next() {
-		if (islastday) {
-			if (islastmonth) {
-				dayofmonth=0;
-				day=0;
-				month=0;
-				year++;
-				if (year==nyear-1) islastyear=true;
-				islastmonth=false;
-			}
-			else {
+	Date& operator++() {
+		isdaystart = isdayend;
+		ismonthstart = ismonthend;
+		isyearstart = isyearend;
+		if (isyearstart) {
+			init(++year);
+		} else {
+			if (isdaystart) {
 				day++;
-				dayofmonth=0;
-				month++;
-				if (month==11) islastmonth=true;
+				minutes = 0;
+				if (ismonthstart) {
+					dayofmonth = 0;
+					month++;
+				} else {
+					dayofmonth++;
+					ismidday = day == middaymonth[month];
+				}
+			} else {
+				minutes += inc;
 			}
-			islastday=false;
+			isdayend = minutes == min2day - inc;
+			ismonthend = isdayend && dayofmonth == ndaymonth[month] - 1;
+			isyearend = ismonthend && month == month2year - 1;
 		}
-		else {
-			day++;
-			dayofmonth++;
-			if (dayofmonth==ndaymonth[month]/2) ismidday=true;
-			else {
-				ismidday=false;
-				if (dayofmonth==ndaymonth[month]-1) islastday=true;
-			}
-		}
+		return *this;
 	}
 
-	// \returns index (0-11) of previous month (11 if currently month 0).
-	int prevmonth() {
-		if (month>0) return month-1;
-		return 11;
-	}
-
-	/// \returns index of next month (0 if currently month 11)
-	int nextmonth() {
-		if (month<11) return month+1;
-		return 0;
+	void operator++(int) {
+		operator++();
 	}
 };
 
@@ -1063,7 +1082,7 @@ public:
 
 	double awc_frac;
 		// available water holding capacity as fraction of soil volume
-	double awc[2];
+	double awc[NSOILLAYER];
 		// available water holding capacity of soil layers [0=upper layer] (mm)
 	double perc_base;
 		// coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice

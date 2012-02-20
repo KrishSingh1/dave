@@ -467,7 +467,7 @@ void fpar(Patch& patch) {
 		patch.fpar_grass=fpar_grass;
 		par_grass=fpar_grass*climate.par;
 
-		if (date.isyearstart) {
+		if (date.day==0) {
 			patch.par_grass_mean=0.0;
 			patch.nday_growingseason=0;
 		}
@@ -479,7 +479,7 @@ void fpar(Patch& patch) {
 
 		// Convert from sum to mean on last day of year
 
-		if (date.isyearend && patch.nday_growingseason) {
+		if (date.islastday && date.islastmonth && patch.nday_growingseason) {
 			patch.par_grass_mean/=(double)patch.nday_growingseason;
 		}
 	}
@@ -1057,7 +1057,7 @@ void aet_water_stress(Patch& patch) {
 		Pft& pft=ppft.pft;
 
 		if (ifdailynpp) ppft.gcbase=0.0;
-		else if (date.ismonthstart) {
+		else if (date.dayofmonth==0) {
 
 			// On first day of month, monthly mode, initialise cumulative
 			// environmental drivers and counter for water-stress days
@@ -1130,7 +1130,7 @@ void aet_water_stress(Patch& patch) {
 
 		// On last day of month ...
 
-		if (date.ismonthend && !ifdailynpp && ppft.nday_wstress)
+		if (date.islastday && !ifdailynpp && ppft.nday_wstress)
 			ppft.gcbase/=(double)ppft.nday_wstress;
 	}
 
@@ -1147,7 +1147,7 @@ void aet_water_stress(Patch& patch) {
 
 		// Initialise on first day of month
 
-		if (!ifdailynpp && date.ismonthstart) {
+		if (!ifdailynpp && date.dayofmonth==0) {
 
 			indiv.fpar_wstress=0.0;
 			indiv.temp_wstress=0.0;
@@ -1254,15 +1254,14 @@ void water_scalar(Patch& patch) {
 
 		// Update annual mean water scalar
 
-		if (date.isyearstart) {
-			ppft.wscal_mean = ppft.wscal;
-		} else {
-			ppft.wscal_mean+= ppft.wscal;
-		}
+		if (date.day==0)
+			ppft.wscal_mean=ppft.wscal;
+		else
+			ppft.wscal_mean+=ppft.wscal;
+
 		// Convert from sum to mean on last day of year
-		if (date.isyearend) {
-			ppft.wscal_mean/=365.0;
-		}
+		if (date.islastday && date.islastmonth) ppft.wscal_mean/=365.0;
+
 	}
 
 	// Calculate individual water scalars
@@ -1283,15 +1282,13 @@ void water_scalar(Patch& patch) {
 			indiv.wscal=1.0;
 #endif
 
-		if (date.isyearstart) {
-			indiv.wscal_mean = indiv.wscal;
-		} else {
-			indiv.wscal_mean+= indiv.wscal;
-		}
+		if (date.day==0)
+			indiv.wscal_mean=indiv.wscal;
+		else
+			indiv.wscal_mean+=indiv.wscal;
 		
-		if (date.isyearend) {
-			indiv.wscal_mean /=365.0;
-		}
+		if (date.islastday && date.islastmonth)
+			indiv.wscal_mean/=365.0;
 
 		vegetation.nextobj();
 	}
@@ -1703,9 +1700,8 @@ void npp(Patch& patch) {
 			
 			// On last day of month - convert monthly LAI from sum to mean
 
-			if (date.ismonthend) {
+			if (date.islastday)
 				indiv.mlai[date.month]/=(double)date.ndaymonth[date.month];
-			}
 		}
 		else {
 
@@ -1713,11 +1709,11 @@ void npp(Patch& patch) {
 
 			// Accumulate fractional leaf cover for month
 
-			if (date.ismonthstart) {
-				indiv.phen_mean = indiv.phen;
-			} else {
-				indiv.phen_mean+= indiv.phen;
-			}
+			if (date.dayofmonth==0)
+				indiv.phen_mean=indiv.phen;
+			else
+				indiv.phen_mean+=indiv.phen;
+
 			// Non-water-stressed photosynthesis - use daily value and scale to patch
 			// by FPAR
 
@@ -1745,7 +1741,7 @@ void npp(Patch& patch) {
 			  
 			}
 
-			if (date.ismonthend) {
+			if (date.islastday) {
 
 				// On last day of month
 
@@ -1909,9 +1905,7 @@ void forest_floor_conditions(Patch& patch) {
 		Patchpft& ppft=patch.pft[p];
 
 		// Initialise net photosynthesis sum on first day of year
-		if (date.isyearstart) {
-			ppft.anetps_ff = 0;
-		}
+		if (date.day==0) ppft.anetps_ff=0.0;
 
 		// WATER-STRESSED ASSIMILATION
 
@@ -1927,7 +1921,7 @@ void forest_floor_conditions(Patch& patch) {
 	
 			ppft.anetps_ff+=photosynthesis.net_assimilation()*(patch.fpar_grass*ppft.phen);
 		}
-		else if (date.ismonthend && ppft.nday_wstress) {
+		else if (date.islastday && ppft.nday_wstress) {
 
 			// Monthly mode
 			
@@ -1959,7 +1953,7 @@ void forest_floor_conditions(Patch& patch) {
 
 		// On last day of year ...
 
-		if (date.isyearend) {
+		if (date.islastday && date.islastmonth) {
 
 			// guess2008 - avoid negative ppft.anetps_ff
 			if(ppft.anetps_ff < 0.0) ppft.anetps_ff = 0.0;
@@ -2030,7 +2024,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		// total potential evapotranspiration for patch
 	int m;
 
-	if (date.isyearstart) {
+	if (date.day==0) {
 		
 		// On first day of year ...
 

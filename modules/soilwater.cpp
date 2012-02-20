@@ -254,7 +254,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	for (s=0; s<NSOILLAYER; s++) {
 
 		// Reset the awcont array on the first day of every year
-		if (date.isyearstart) {
+		if (date.day == 0) {
 			awcont[s] = 0.0;
 			if (s == 0) {
 				patch.growingseasondays = 0;
@@ -270,7 +270,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 		}
 
 		// Do the averaging on the last day of every year
-		if (date.isyearend) {
+		if (date.islastday && date.islastmonth) {
 			awcont[s] /= (double)patch.growingseasondays;
 		}
 		// In case it's never warm enough:
@@ -288,8 +288,6 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
  */
 void initial_infiltration(Patch& patch, Climate& climate) {
 
-	// Update snowpack and derive actual water input to soil, taking into account
-	// interception and snowmelt
 	Soil& soil = patch.soil;
 	snow(climate.prec - patch.intercep, climate.temp, soil.snowpack, soil.rain_melt);
 	soil.percolate = soil.rain_melt >= 0.1;

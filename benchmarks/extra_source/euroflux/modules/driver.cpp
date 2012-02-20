@@ -173,26 +173,32 @@ void soilparameters(Soiltype& soiltype,int soilcode,double soildepth) {
 void interp_monthly_means(double mvals[12], double dvals[365]) {
 
 	Date date; // Date object used for interpolation (local to this function)
-	date.init();
+	double nday,dayct;
+	int thismonth,lastmonth;
 
-	int thismonth = 0;
-	int lastmonth = 11;
-	int nday = date.middaymonth[thismonth] - date.middaymonth[lastmonth] + 365;
-	int dayct = 366 - date.middaymonth[lastmonth];
+	date.init(1);
+
+	nday=(double)(date.middaymonth[0]-(date.middaymonth[11]-365));
+	thismonth=0;
+	lastmonth=11;
+	dayct=(double)(366-date.middaymonth[11]);
 
 	// Perform interpolation
 
-	while (date.year == 0) {
-		if (date.ismidday) {
-			thismonth = date.month == 11 ? 0 : date.month + 1;
-			lastmonth = date.month;
-			nday = date.middaymonth[thismonth] - date.middaymonth[lastmonth] +
-												(thismonth ? 0 : 365);
-			dayct = 0;
+	while (date.year==0) {
+		if (date.day==date.middaymonth[date.month]) {
+			if (date.month==11) // December
+				nday=(double)(date.middaymonth[0]+365-date.middaymonth[11]);
+			else
+				nday=(double)(date.middaymonth[date.nextmonth()]-
+					date.middaymonth[date.month]);
+			thismonth=date.nextmonth();
+			lastmonth=date.month;
+			dayct=0.0;
 		}
-		dvals[date.day] = (mvals[thismonth] - mvals[lastmonth]) / (double)nday *
-							(double)dayct + mvals[lastmonth];
-		date++;
+		dvals[date.day]=(mvals[thismonth]-mvals[lastmonth])/nday*dayct+
+			mvals[lastmonth];
+		date.next();
 		dayct++;
 	}
 }
@@ -440,7 +446,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 
 	// On first day of year ...
 
-	if (date.isyearstart) {
+	if (date.day==0) {
 		// ... reset annual GDD5 counter
 		climate.agdd5=0.0;
 
@@ -533,7 +539,7 @@ void dailyaccounting_stand(Stand& stand, Pftlist& pftlist) {
 }
 
 void dailyaccounting_patch_lc(Patch& patch, Pftlist& pftlist) {
-	if(date.isyearstart) {
+	if(date.day==0) {
 		Fluxes& fluxes=patch.fluxes;
 
 		if(!patch.stand.gridcell.LC_updated) {	// NB. landcover_dynamics() is called before this function !
@@ -569,7 +575,7 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 	Soil& soil=patch.soil;
 	Fluxes& fluxes=patch.fluxes;
 
-	if (date.isyearstart) {
+	if (date.day==0) {
 
 		// Reset fluxes
 		fluxes.acflux_soil=0.0;
@@ -584,7 +590,7 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 		patch.apet=0.0;
 	}
 
-	if (date.ismonthstart) {
+	if (date.dayofmonth==0) {
 
 		fluxes.mcflux_veg[date.month]=0.0;
 

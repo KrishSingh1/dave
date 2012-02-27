@@ -23,10 +23,17 @@ endif()
 # The IO variable decides which IO module to use. 
 set(IO "cru" CACHE STRING "The IO module to use (cru/demo)")
 
+# A variable controlling whether or not to include unit tests
+# Unit tests are disabled in old VS 6.0, since CATCH doesn't compile in such 
+# an old compiler.
+if (NOT MSVC_VERSION EQUAL "1200")
+  set(UNIT_TESTS "OFF" CACHE BOOL "Whether to include unit tests")
+endif()
+
 if (UNIX)
   # The SYSTEM variable is currently only used to choose which 
   # submit.sh to generate (for submitting to job queue)
-  set(SYSTEM "" CACHE STRING "System to build for (empty, gimle or platon)")
+  set(SYSTEM "" CACHE STRING "System to build for (empty (=simba), gimle, platon or multicore)")
 endif (UNIX)
 
 # Where to search for cmake modules
@@ -51,6 +58,10 @@ add_subdirectory(modules)
 add_subdirectory(cru)
 add_subdirectory(libraries)
 
+if (UNIT_TESTS)
+  add_subdirectory(tests)
+endif()
+
 # Add the command line program's target
 if (WIN32)
   # Let the exe be called guesscmd so it doesn't collide with the dll target
@@ -62,6 +73,11 @@ endif()
 
 # Specify the executable to build, and which sources to build it from
 add_executable(${guess_command_name} ${guess_sources} command_line_version/main.cpp)
+
+# Rule for building the unit test binary
+if (UNIT_TESTS)
+  add_executable(runtests ${guess_sources} ${test_sources})
+endif()
 
 # Specify libraries to link to the executable
 target_link_libraries(${guess_command_name} ${LIBS})
@@ -92,6 +108,14 @@ if (UNIX)
              COMMENT "Generating submit script")
 endif (UNIX)
 
+# Rule for running unit tests automatically
+if (UNIT_TESTS)
+  add_custom_command(TARGET runtests 
+    POST_BUILD 
+    COMMAND runtests 
+    COMMENT "Running tests")
+endif()
+
 string(TOUPPER ${IO} IO)
 add_definitions(-DUSE_${IO}_IO)
 
@@ -102,4 +126,13 @@ if (UNIX)
    # (sometime after 2.8)
    SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
    SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+endif(UNIX)
+
+if (UNIX)
+  # Set default build type to Release on Unix
+  if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING
+      "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
+      FORCE)
+  endif(NOT CMAKE_BUILD_TYPE)
 endif(UNIX)

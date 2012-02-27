@@ -105,7 +105,7 @@ mkdir report
 print_report_header
 
 # Run the post processing script
-PATH=$pp_common_dir:$PATH sh $pp_script
+PATH=$pp_common_dir:$PATH bash $pp_script
 
 print_report_footer
 

@@ -38,6 +38,7 @@
 #include <string.h>
 #include <time.h>
 #include <gutil.h>
+#include <vector>
 #include "shell.h"
 #include "guessmath.h"
 
@@ -1232,12 +1233,11 @@ public:
 
 };
 
-///////////////////////////////////////////////////////////////////////////////////////
-// CLASS LOOKUP_LAMBDA
-// Lookup table for photosynthesis parameters (required for "fast" version of canopy
-// exchange code; see canexch.cpp)
-
-const int LOOKUP_LAMBDA_MAXITEM=130;
+/// Lookup table for photosynthesis parameters
+/** \see canexch.cpp::assimilation_wstress
+ */
+const int MAXTRIES = 6;
+		// maximum number of iterations towards a solution in bisection method
 
 struct Lookup_lambda_item {
 	PhotosynthesisResult photosynthesis;
@@ -1253,46 +1253,38 @@ struct Lookup_lambda_item {
 class Lookup_lambda {
 
 private:
-	Lookup_lambda_item data[LOOKUP_LAMBDA_MAXITEM];
+	std::vector<Lookup_lambda_item> data;
 	int position;
 
 public:
+	Lookup_lambda(): data((int)pow(2., MAXTRIES+1)) {}
 
 	void newsearch() {
-		position=0;
+		position = 0;
 	}
 
 	bool getdata(int year,int day,PhotosynthesisResult& photosynthesis) {
-		if (position>=LOOKUP_LAMBDA_MAXITEM)
-			fail("class Lookup_lambda: exceeded dimension of lookup table");
-		Lookup_lambda_item& thisitem=data[position];
+		Lookup_lambda_item& thisitem = data[position];
 		if (thisitem.year==year && thisitem.day==day) {
 			photosynthesis = thisitem.photosynthesis;
 			return true;
 		}
-		// else
 		return false;
 	}
 
 	void setdata(int year,int day, const PhotosynthesisResult& photosynthesis) {
-		if (position>=LOOKUP_LAMBDA_MAXITEM)
-			fail("class Lookup_lambda: exceeded dimension of lookup table");
-		Lookup_lambda_item& thisitem=data[position];
-		thisitem.year=year;
-		thisitem.day=day;
+		Lookup_lambda_item& thisitem = data[position];
+		thisitem.year = year;
+		thisitem.day = day;
 		thisitem.photosynthesis = photosynthesis;
 	}
 
-	bool increase() {
-		position+=position+1;
-		if (position>=LOOKUP_LAMBDA_MAXITEM) return false;
-		return true;
+	void increase() {
+		position += position + 1;
 	}
 
-	bool decrease() {
-		position+=position+2;
-		if (position>=LOOKUP_LAMBDA_MAXITEM) return false;
-		return true;
+	void decrease() {
+		position += position + 2;
 	}
 };
 

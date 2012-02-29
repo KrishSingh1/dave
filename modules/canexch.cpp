@@ -1329,8 +1329,6 @@ void assimilation_wstress(Pft& pft,Patchpft& ppft,double co2,double temp,double 
 	// lambda      = the lambda found by the bisection method (see above)
 
 	const double EPS=0.1; // minimum precision of solution in bisection method
-	const int MAXTRIES=6;
-		// maximum number of iterations towards a solution in bisection method
 
 	double gcphot;
 		// canopy conductance component associated with photosynthesis on FPC basis

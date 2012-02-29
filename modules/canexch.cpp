@@ -1964,12 +1964,38 @@ void forest_floor_conditions(Patch& patch) {
 	}
 }
 
+/// Initiate required variables for the module
+void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
+
+	if (date.day == 0) {
+		vegetation.firstobj();
+		while (vegetation.isobj) {
+			Individual& indiv = vegetation.getobj();
+
+			indiv.anpp = 0.0;
+ 			for (int m=0; m<12; m++) {
+				indiv.mnpp[m] = 0.0;
+				indiv.mlai[m] = 0.0;
+				indiv.mgpp[m] = 0.0;
+				indiv.mra[m] = 0.0;
+			}
+
+			indiv.aiso = 0.0;
+			indiv.amon = 0.0;
+
+			vegetation.nextobj();
+		}
+	}
+
+	if (!patch.id) {
+		photosynthesis_nowstress(patch.stand, climate);
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // CANOPY EXCHANGE
 // Should be called each simulation day for each modelled area or patch, following
 // update of leaf phenology and soil temperature and prior to update of soil water.
-
 
 void canopy_exchange(Patch& patch, Climate& climate) {
 
@@ -2014,50 +2040,11 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 	//        area in cohort/individual mode)
 
 	// Retrieve Vegetation and Climate objects for this patch
+	Vegetation& vegetation = patch.vegetation;
 
-	Vegetation& vegetation=patch.vegetation;
-
-	double pet_s;
-		// potential evapotranspiration over non-vegetated parts of patch (mm,
-		// patch basis)
-	double pet_patch;
-		// total potential evapotranspiration for patch
-	int m;
-
-	if (date.day==0) {
-		
-		// On first day of year ...
-
-		vegetation.firstobj();
-		while (vegetation.isobj) {
-			Individual& indiv=vegetation.getobj();
-
-			indiv.anpp=0.0;
- 
-			for (m=0;m<12;m++) {
-				indiv.mnpp[m]=0.0;
-				indiv.mlai[m]=0.0;
-
-				// guess2008 - initialise
-				indiv.mgpp[m]=0.0;
-				indiv.mra[m]=0.0;
-				
-			}
-
-			// bvoc
-			indiv.aiso=0.;
-			indiv.amon=0.;
-
-			vegetation.nextobj();
-		}
-	}
-	
-	if (!patch.id) {
-		photosynthesis_nowstress(patch.stand, climate);
-	}
+	init_canexch(patch, climate, vegetation);
 
 	// Canopy exchange processes
-
 	fpar(patch);
 	demand(patch);
 	aet_water_stress(patch);
@@ -2066,11 +2053,13 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 	forest_floor_conditions(patch);
 
 	// Potential evapotranspiration for patch
-
-	pet_s=climate.eet*PRIESTLEY_TAYLOR*max(1.0-patch.fpc_total,0.0);
-	pet_patch=pet_s+patch.demand*patch.fpc_total+patch.intercep;
-	patch.apet+=pet_patch;
-	patch.mpet[date.month]+=pet_patch;
+	double pet_s = climate.eet * PRIESTLEY_TAYLOR * max(1.0-patch.fpc_total, 0.0);
+		// potential evapotranspiration over non-vegetated parts of patch (mm,
+		// patch basis)
+	double pet_patch = pet_s + patch.demand*patch.fpc_total + patch.intercep;
+		// total potential evapotranspiration for patch
+	patch.apet += pet_patch;
+	patch.mpet[date.month] += pet_patch;
 }
 
 

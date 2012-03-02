@@ -1245,9 +1245,9 @@ const int NYEAR_CRU=106;
 const int FIRSTHISTYEAR_CRU=1901;
 
 // guess2008
-const int NYEAR_HIST=NYEAR_CRU; // guess2008 - CRU TS 3.0 has 106 years of data (1901-2006)
+const int NYEAR_HIST=NYEAR_CMIP5; // guess2008 - CRU TS 3.0 has 106 years of data (1901-2006)
 	// number of years of historical climate in CRU and CO2 files (see below)
-const int FIRSTHISTYEAR=FIRSTHISTYEAR_CRU;
+const int FIRSTHISTYEAR=FIRSTHISTYEAR_CMIP5;
 	// calender year corresponding to first year in CRU climate data set
 const int NYEAR_SPINUP_DATA=30;
 	// number of years to use for temperature-detrended spinup data set
@@ -5450,12 +5450,12 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		// GUESSN
 		if (out_npool && ifcentury) {
 			if(run_landcover && ifslowharvestpool) {
-					fprintf(out_npool,"%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%10.3f\n",nmass_gridcell,n_litter,
+					fprintf(out_npool,"%8.4f%8.4f%8.4f%8.4f%8.4f%8.4f%8.4f%8.4f%10.4f\n",nmass_gridcell,n_litter,
 					surfsoillittern,cwdn,micron,humusn,n_litter+centuryn,n_harv_slow,
 					nmass_gridcell+n_litter+centuryn+n_harv_slow);
 			}
 			else {
-				fprintf(out_npool,"%8.3f%8.3f%8.4f%8.4f%8.4f%8.3f%8.3f%10.3f\n",nmass_gridcell,n_litter,
+				fprintf(out_npool,"%8.4f%8.4f%8.4f%8.4f%8.4f%8.4f%8.4f%10.4f\n",nmass_gridcell,n_litter,
 					surfsoillittern,cwdn,micron,humusn,n_litter+centuryn,
 					nmass_gridcell+n_litter+centuryn);
 			}

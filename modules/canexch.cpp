@@ -694,7 +694,7 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 
 	// guess2008 - ALPHAA value chosen to give global carbon pool and flux values that 
 	// agree with published estimates.
-	const double ALPHAA=0.7;
+	const double ALPHAA=0.5;
 		// scaling factor for PAR absorption from leaf to plant projective area level
 		// alias "twigloss"
 		// Should normally be in the range 0-1

@@ -2439,9 +2439,9 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 		excessn+=nmass_avail[days];
 
 	// Should never be negative! (allow it for very small values for now ...)
-	if (excessn<-EPS && date.year > freenyears)
+/*	if (excessn<-EPS && date.year > freenyears && ifnlim)
 		dprintf("Year %d vegetation_n_uptake: patch %d Unexpected NEGATIVE value (%g) for annual excess mineral N before leach (%g)\n",
-			date.year,patch.id,excessn,patch.nsupply-patch.ndemand*patch.fnuptake);
+			date.year,patch.id,excessn,patch.nsupply-patch.ndemand*patch.fnuptake);*/
 
 	soil.nmass_avail=excessn;
 }

@@ -529,6 +529,8 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 							patch.pft[pft.id].nstore_est-=min(patch.pft[pft.id].nstore_est,indiv.ndemand);
 							bminit*=frac_est;
 
+							dprintf("Year %d fracest %g\n",date.year,frac_est);
+
 							//dprintf("Year %d pft %s est frac %g\n",date.year,(char*)indiv.pft.name,frac_est);
 
 							if (patch.pft[pft.id].nstore_est>0.0) {
@@ -739,6 +741,8 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 								indiv.nmass_root*=densfrac;
 								indiv.nmass_sap*=densfrac;
 							}
+
+							dprintf("Year %d densindiv %g\n",date.year,indiv.densindiv);
 
 							double nstore_est=patch.pft[pft.id].nstore_est;
 

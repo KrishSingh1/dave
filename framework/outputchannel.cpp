@@ -225,7 +225,7 @@ void FileOutputChannel::finish_row(const Table& table,
 		  // print each column title
 		  int nbr_cols = get_table_descriptor(table).columns().size();
 		  for (int i = 0; i < nbr_cols; i++) {
-				fprintf(file, format_header(table, i));
+				fputs(format_header(table, i), file);
 		  }
 		  fprintf(file, "\n");
 

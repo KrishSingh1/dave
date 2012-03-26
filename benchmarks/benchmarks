@@ -233,10 +233,13 @@ function submit_job {
     else
 	jobid=$(sh submit.sh -i $insfile -n "bm_$test_name" 2> /dev/null)
     fi
+
+    local submit_exit_status=$?
+
     popd &> /dev/null
 
-    if (($? != 0)); then
-	error "Failed to submit $test_name!"
+    if (($submit_exit_status != 0)); then
+	error "Failed to submit $test_name! Try manually for more information."
     else
 	submit_pp $test_name $jobid
     fi

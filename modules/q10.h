@@ -3,97 +3,82 @@
 /// \brief Q10 calculations for photosynthesis
 ///
 /// Calculations of Q10 values for photosynthesis, formerly
-/// placed in canexch.cpp now moved to separate header file 
+/// placed in canexch.cpp now moved to separate header file
 /// because of their application for BVOC calculations as well.
 ///
 /// \author Guy Schurgers (based on LPJ-GUESS 2.1 / Ben Smith)
-/// $Date: $
+/// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
-// Module header files need normally contain only declarations of functions 
-// defined in the module that are to be accessible to the calling framework or 
+// Module header files need normally contain only declarations of functions
+// defined in the module that are to be accessible to the calling framework or
 // to other modules.
 
 #ifndef LPJ_GUESS_Q10_H
 #define LPJ_GUESS_Q10_H
 
+#include "guessmath.h"
+#include <vector>
+
 // Constants required for Q10 lookup tables used by photosynthesis
-
-const double LOOKUPQ10_MINTEMP=-70;
-	// minimum temperature ever (deg C)
-const double LOOKUPQ10_MAXTEMP=70;
-	// maximum temperature ever (deg C)
-const double LOOKUPQ10_PRECISION=0.01;
-	// rounding precision for temperature in Q10 lookup tables
-const int LOOKUPQ10_NDATA=
-	static_cast<int>((LOOKUPQ10_MAXTEMP-LOOKUPQ10_MINTEMP+1.0)/
-		LOOKUPQ10_PRECISION+0.5);
+const double Q10_MINTEMP = -70;	// minimum temperature ever (deg C)
+const double Q10_MAXTEMP = 70;	// maximum temperature ever (deg C)
+const double Q10_PRECISION = 0.01;	// rounding precision for temperature
+const int Q10_NDATA = static_cast<int>((Q10_MAXTEMP-Q10_MINTEMP)/Q10_PRECISION + 1.5);
 	// maximum number of values to store in each lookup table
-	
 
-// Definition of Q10 lookup table class
-
+/// Q10 lookup table class
+/** Stores pre-calculated temperature-adjusted values based on Q10 and
+ *  a 25-degree base value.
+ */
 class LookupQ10 {
 
 private:
-	double* data;
+	/// The temperature-adjusted values
+	std::vector<double> data;
 
 public:
-	inline int element(double& temp) {
+	/// Creates a lookup table
+	/** \param q10    The Q10 to be used for the table
+	 *  \param base25 Base value for 25 degrees C
+	 */
+	LookupQ10(double q10, double base25) : data(Q10_NDATA) {
 
-		// Returns element number corresponding to a particular temperature
-
-		if (temp<LOOKUPQ10_MINTEMP) temp=LOOKUPQ10_MINTEMP;
-		else if (temp>LOOKUPQ10_MAXTEMP) temp=LOOKUPQ10_MAXTEMP;
-
-		return static_cast<int>((temp-LOOKUPQ10_MINTEMP)/LOOKUPQ10_PRECISION+0.5);
-	}
-
-	LookupQ10(double q10,double base25) {
-		
-		// Constructor (initialises lookup table)
-		
-		double temp;
-
-		data=new double[LOOKUPQ10_NDATA];
-		if (!data) fail("LookupQ10: out of memory creating array");
-
-		for (temp=LOOKUPQ10_MINTEMP;temp<=LOOKUPQ10_MAXTEMP;
-			temp+=LOOKUPQ10_PRECISION) {
-
-			data[element(temp)]=base25*pow(q10,(temp-25.0)/10.0);
+		for (int i=0; i<Q10_NDATA; i++) {
+			data[i] = base25 * pow(q10, (Q10_MINTEMP + i*Q10_PRECISION - 25.0) / 10.0);
 		}
 	}
 
+	/// "Array element" operator
+	/** \param temp  Temperature (deg C)
+	 *  \returns     Temperature-adjusted value based on Q10 and 25-degree base value 
+	 */
 	double& operator[](double& temp) {
-		
-		// "Array element" operator (returns temperature-adjusted value
-		// based on Q10 and 25-degree base value)
-		
-		return data[element(temp)];
+		// Element number corresponding to a particular temperature
+		if (temp < Q10_MINTEMP) {
+			temp = Q10_MINTEMP;
+		} else if (temp > Q10_MAXTEMP) {
+			temp = Q10_MAXTEMP;
+		}
+
+		int i = static_cast<int>((temp-Q10_MINTEMP)/Q10_PRECISION+0.5);
+
+		return data[i];
 	}
 
-	// guess2008 - new destructor added
-	~LookupQ10() {
-		
-		delete[] data;
-	}
 };
 
+// Lookup tables for parameters with Q10 temperature responses
 
-// Constants for parameters with Q10 temperature responses used in photosynthesis
-// calculations
+/// lookup table for Q10 temperature response of Michaelis constant for O2
+extern LookupQ10 lookup_tau;
 
-const double Q10KO=1.2;
-	// Q10 for temperature dependency of Michaelis constant for O2 (ko)
-const double Q10KC=2.1;
-	// Q10 for temperature dependency of Michaelis constant for CO2 (kc)
-const double Q10TAU=0.57;
-	// Q10 for temperature dependency of CO2/O2 specificity ratio (tau)
-const double KO25=3.0E4; // value of ko at 25 deg C (Pa)
-const double KC25=30.0; // value of kc at 25 deg C (Pa)
-const double TAU25=2600.0; // value of tau at 25 deg C
+/// lookup table for Q10 temperature response of Michaelis constant for CO2
+extern LookupQ10 lookup_ko;
+
+/// lookup table for Q10 temperature response of CO2/O2 specificity ratio
+extern LookupQ10 lookup_kc;
 
 #endif // LPJ_GUESS_Q10_H

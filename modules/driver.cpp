@@ -102,18 +102,19 @@ void soilparameters(Soiltype& soiltype,int soilcode) {
 		//       Thermal diffusivities follow van Duin (1963),
 		//       Jury et al (1991), Fig 5.11.
 
-		//    0      1      2      3      4   soilcode
-		//  ------------------------------------------
 
-		{   5.0, 0.110,   0.2, 0.800,   0.4 },   // 1
-		{   4.0, 0.150,   0.2, 0.650,   0.4 },   // 2
-		{   3.0, 0.120,   0.2, 0.500,   0.4 },   // 3
-		{   4.5, 0.130,   0.2, 0.725,   0.4 },   // 4
-		{   4.0, 0.115,   0.2, 0.650,   0.4 },   // 5
-		{   3.5, 0.135,   0.2, 0.575,   0.4 },   // 6
-		{   4.0, 0.127,   0.2, 0.650,   0.4 },   // 7
-		{   9.0, 0.300,   0.1, 0.100,   0.1 },   // 8
-		{   0.2, 0.100,   0.2, 0.500,   0.4 }    // 9
+		//    0      1      2      3      4   soilcode		texture
+		//  -------------------------------------------------------
+
+		{   5.0, 0.110,   0.2, 0.800,   0.4 },   // 1		coarse
+		{   4.0, 0.150,   0.2, 0.650,   0.4 },   // 2		medium
+		{   3.0, 0.120,   0.2, 0.500,   0.4 },   // 3		fine
+		{   4.5, 0.130,   0.2, 0.725,   0.4 },   // 4		medium-coarse
+		{   4.0, 0.115,   0.2, 0.650,   0.4 },   // 5		fine-coarse
+		{   3.5, 0.135,   0.2, 0.575,   0.4 },   // 6		fine-medium
+		{   4.0, 0.127,   0.2, 0.650,   0.4 },   // 7		fine-medium-coarse
+		{   9.0, 0.300,   0.1, 0.100,   0.1 },   // 8		organic
+		{   0.2, 0.100,   0.2, 0.500,   0.4 }    // 9		vertisols
 	};
 
 	if (soilcode<1 || soilcode>9)
@@ -219,7 +220,7 @@ void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12]) {
 
 	for (m=0;m<12;m++) {
 
-		if (negligible(mval_prec[m])) {
+		if (mval_prec[m] < 0.1) {
 
 			// Special case if no rainfall expected for month
 
@@ -294,32 +295,6 @@ void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12]) {
 //  SOIL TEMPERATURES
 //  Call each simulation day following update of daily air temperature prior to canopy
 //  exchange and SOM dynamics
-
-inline void regress(double* x,double* y,int n,double& a,double& b) {
-
-	// Performs a linear regression of array y on array x (n values)
-	// returning parameters a and b in the fitted model: y=a+bx
-	// (Used by function soiltemp)
-	// Source: Press et al 1986, Sect 14.2
-
-	int i;
-	double sx,sy,sxx,sxy,delta;
-
-	sx=0.0;
-	sy=0.0;
-	sxx=0.0;
-	sxy=0.0;
-	for (i=0;i<n;i++) {
-		sx+=x[i];
-		sy+=y[i];
-		sxx+=x[i]*x[i];
-		sxy+=x[i]*y[i];
-	}
-	delta=(double)n*sxx-sx*sx;
-	a=(sxx*sy-sx*sxy)/delta;
-	b=((double)n*sxy-sx*sy)/delta;
-}
-
 
 void soiltemp(Climate& climate,Soil& soil) {
 
@@ -422,18 +397,6 @@ void soiltemp(Climate& climate,Soil& soil) {
 }
 
 
-inline double mean(double* array,int nitem) {
-
-	// Returns arithmetic mean of 'nitem' values in 'array'
-	// (Used by function soiltemp)
-
-	double sum=0.0;
-	int i;
-
-	for (i=0;i<nitem;sum+=array[i++]);
-	return sum/(double)nitem;
-}
-
 /// Called each simulation day before any other driver or process functions
 void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 
@@ -477,6 +440,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 	climate.agdd5+=max(0.0,climate.temp-5.0);
 	if (climate.temp<5.0 && climate.chilldays<=365)
 		climate.chilldays++;
+
+	respiration_temperature_response(climate.temp, climate.gtemp);
 
 ///	if (run_landuse && run_crop)
 ///		dailyaccounting_gridcell_crop(gridcell,pftlist);
@@ -541,23 +506,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 	}
 }
 
-void dailyaccounting_stand(Stand& stand,Pftlist& pftlist)
-{		
-	// Loop through PFTs
-	pftlist.firstobj();
-	while (pftlist.isobj) {
-		Pft& pft=pftlist.getobj();
-		// For this PFT ...
-
-		// [BEGIN CEFAST0207]
-		// Flag used by evapotranspiration_fast in canopy exchange module ...
-		stand.pft[pft.id].have_phot=false;
-
-		// [END CEFAST0207]
-
-		// ... on to next PFT
-		pftlist.nextobj();
-	}
+void dailyaccounting_stand(Stand& stand, Pftlist& pftlist) {
 }
 
 void dailyaccounting_patch_lc(Patch& patch, Pftlist& pftlist) {
@@ -610,6 +559,18 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 		patch.arunoff=0.0;
 		patch.aintercep=0.0;
 		patch.apet=0.0;
+		
+		// Calculate total FPC
+		patch.fpc_total = 0;
+		Vegetation& vegetation = patch.vegetation;
+		vegetation.firstobj();
+		while (vegetation.isobj) {
+			patch.fpc_total += vegetation.getobj().fpc;		// indiv.fpc
+			vegetation.nextobj();
+		}
+		// Calculate rescaling factor to account for overlap between populations/
+		// cohorts/individuals (i.e. total FPC > 1)
+		patch.fpc_rescale = 1.0 / max(patch.fpc_total, 1.0);
 	}
 
 	if (date.dayofmonth==0) {
@@ -636,11 +597,9 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 	if(run_landcover)
 		dailyaccounting_patch_lc(patch, pftlist);
 	
-	// Store daily soil water in upper layer
-	soil.dwcontupper[date.day]=soil.wcont[0];
-
-	// Store daily soil water in lower layer - guess2008
-	soil.dwcontlower[date.day]=soil.wcont[1];
+	// Store daily soil water in both layers
+	soil.dwcontupper[date.day] = soil.wcont[0];
+	soil.dwcontlower[date.day] = soil.wcont[1];
 
 	// On last day of month, calculate mean content of upper soil layer
 
@@ -660,6 +619,7 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 
 	// Calculate soil temperatures
 	soiltemp(patch.stand.gridcell.climate,soil);
+	respiration_temperature_response(soil.temp, soil.gtemp);
 
 	// On last day of month, calculate mean soil temperature for last month
 
@@ -672,7 +632,7 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // RESPIRATION TEMPERATURE RESPONSE
-// Called by canopy exchange and soil organic matter dynamics module to calculate
+// Called by dailyaccounting_patch and dailyaccounting_gridcell to calculate
 // response of respiration to temperature
 
 void respiration_temperature_response(double temp,double& gtemp) {
@@ -692,12 +652,12 @@ void respiration_temperature_response(double temp,double& gtemp) {
 	// OUTPUT PARAMETER
 	// gtemp = respiration temperature response
 
-	if (temp>=-40.0)
-		gtemp=exp(308.56*(1.0/56.02-1.0/(temp+46.02))); // NB: temperature in deg C
-	else
-		gtemp=0.0;
+	if (temp >= -40.0) {
+		gtemp = exp(308.56 * (1.0/56.02 - 1.0/(temp+46.02)));
+	} else {
+		gtemp = 0.0;
+	}
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // DAYLENGTH, INSOLATION AND POTENTIAL EVAPOTRANSPIRATION
@@ -716,14 +676,12 @@ void daylengthinsoleet(Climate& climate) {
 	// climate = stand climate
 
 	const double QOO=1360.0;
-	const double PI=3.1415927;
 	const double BETA=0.17;
 	const double A=107.0;
 	const double B=0.2;
 	const double C=0.25;
 	const double D=0.5;
 	const double K=13750.98708;
-	const double DEGTORAD=0.01745329;
 	const double FRADPAR=0.5;
 		// fraction of net incident shortwave radiation that is photosynthetically
 		// active (PAR)

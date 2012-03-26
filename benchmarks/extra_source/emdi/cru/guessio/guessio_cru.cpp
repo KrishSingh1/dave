@@ -33,7 +33,7 @@
 
 #include "config.h"
 
-#ifdef USE_CRU
+#ifdef USE_CRU_IO
 
 #include "guessio.h"
 
@@ -44,6 +44,7 @@
 #include <utility>
 #include <vector>
 #include <algorithm>
+#include "globalco2file.h"
 #include "emdi.h"
 
 
@@ -151,7 +152,7 @@ private:
 
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM};
 enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_PATHWAY,	
-	CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM};
+	CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE};
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -290,6 +291,8 @@ void plib_declarations(int id,xtring setname) {
 			"Number of patches simulated");
 		declareitem("patcharea",&patcharea,1.0,1.0e4,1,CB_NONE,
 			"Patch area (m2)");
+		declareitem("wateruptake", &strparam, 20, CB_WATERUPTAKE, 
+			"Water uptake mode (\"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
 
 		// guess2008
 		// Annual output variables
@@ -330,8 +333,6 @@ void plib_declarations(int id,xtring setname) {
 			"Whether establishment drought limited (0,1)");
 		declareitem("ifrainonwetdaysonly",&ifrainonwetdaysonly,1,CB_NONE,
 			"Whether it rains on wet days only (1), or a little every day (0);");
-		declareitem("ifspeciesspecificwateruptake",&ifspeciesspecificwateruptake,1,CB_NONE,
-			"Whether or not there is species specific soil water uptake (0,1)");
 		declareitem("searchradius", &searchradius, 0, 100, 1, CB_NONE,
 			"If specified, CRU data will be searched for in a circle");
 
@@ -501,7 +502,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("harvest_slow_frac",&ppft->harvest_slow_frac,0.0,1.0,1,CB_NONE,
 			"Fraction of harvested products that goes into carbon depository for long-lived products like wood");
 		declareitem("turnover_harv_prod",&ppft->turnover_harv_prod,0.0,1.0,1,CB_NONE,"Harvested products turnover (fraction/year)");
-		declareitem("res_outtake",&ppft->res_outtake,0.0,1.0,1,CB_NONE,"´Fraction of residue outtake at harvest");
+		declareitem("res_outtake",&ppft->res_outtake,0.0,1.0,1,CB_NONE,"Fraction of residue outtake at harvest");
 
 		callwhendone(CB_CHECKPFT);
 		
@@ -510,7 +511,7 @@ void plib_declarations(int id,xtring setname) {
 	case BLOCK_PARAM:
 
 		paramname=setname;
-		declareitem("str",&strparam,80,CB_STRPARAM,
+		declareitem("str",&strparam,300,CB_STRPARAM,
 			"String value for custom parameter");
 		declareitem("num",&numparam,-1.0e38,1.0e38,1,CB_NUMPARAM,
 			"Numerical value for custom parameter");
@@ -542,6 +543,16 @@ void plib_callback(int callback) {
 			sendmessage("Error",
 				"Unknown vegetation mode (valid types: \"INDIVIDUAL\",\"COHORT\", \"POPULATION\")");
 			plibabort();
+		}
+		break;
+	case CB_WATERUPTAKE:
+		if (strparam.upper() == "WCONT") wateruptake = WR_WCONT;
+		else if (strparam.upper() == "ROOTDIST") wateruptake = WR_ROOTDIST;
+		else if (strparam.upper() == "SMART") wateruptake = WR_SMART;
+		else if (strparam.upper() == "SPECIESSPECIFIC") wateruptake = WR_SPECIESSPECIFIC;
+		else {
+			sendmessage("Error",
+				"Unknown water uptake mode (valid types: \"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
 		}
 		break;
 	case CB_LIFEFORM:
@@ -610,14 +621,13 @@ void plib_callback(int callback) {
 		if (!itemparsed("iffire")) badins("iffire");
 		if (!itemparsed("ifcalcsla")) badins("ifcalcsla");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
-
+		if (!itemparsed("wateruptake")) badins("wateruptake");
 
 		// guess2008
 		if (!itemparsed("outputdirectory")) badins("outputdirectory");
 		if (!itemparsed("ifsmoothgreffmort")) badins("ifsmoothgreffmort");
 		if (!itemparsed("ifdroughtlimitedestab")) badins("ifdroughtlimitedestab");
 		if (!itemparsed("ifrainonwetdaysonly")) badins("ifrainonwetdaysonly");
-		if (!itemparsed("ifspeciesspecificwateruptake")) badins("ifspeciesspecificwateruptake");
 		// bvoc
 		if (!itemparsed("ifbvoc")) badins("ifbvoc");
 
@@ -914,7 +924,6 @@ ListArray_id<Coord> gridlist;
 	// of the grid cells to simulate
 
 int ngridcell; // the number of grid cells to simulate
-bool firstgrid; // whether simulating first grid cell in linked list
 
 class Spinup_data {
 
@@ -929,32 +938,6 @@ private:
 
 	// guess2008 - this array holds the climatology for the spinup period
 	double dataclim[12];
-
-
-	void regress(double* x,double* y,int n,double& a,double& b) {
-
-		// Performs a linear regression of array y on array x (n values)
-		// returning parameters a and b in the fitted model: y=a+bx
-		// (Used by function soiltemp)
-		// Source: Press et al 1986, Sect 14.2
-
-		int i;
-		double sx,sy,sxx,sxy,delta;
-
-		sx=0.0;
-		sy=0.0;
-		sxx=0.0;
-		sxy=0.0;
-		for (i=0;i<n;i++) {
-			sx+=x[i];
-			sy+=y[i];
-			sxx+=x[i]*x[i];
-			sxy+=x[i]*y[i];
-		}
-		delta=(double)n*sxx-sx*sx;
-		a=(sxx*sy-sx*sxy)/delta;
-		b=((double)n*sxy-sx*sy)/delta;
-	}
 
 
 public:
@@ -1184,8 +1167,13 @@ Table out_aiso, out_miso, out_amon, out_mmon;
 Timer tprogress,tmute;
 const int MUTESEC=20; // minimum number of sec to wait between progress messages
 
-// CO2 data for each year of historical data set
-double co2[NYEAR_HIST];
+/// Yearly CO2 data read from file
+/**
+ * This object is indexed with calendar years, so to get co2 value for
+ * year 1990, use co2[1990]. See documentation for GlobalCO2File for
+ * more information.
+ */
+GlobalCO2File co2;
 
 // Monthly temperature, precipitation and sunshine data for current grid cell
 // and historical period
@@ -1224,6 +1212,15 @@ double ddtr[365];
 xtring file_cru;
 xtring file_cru_misc;
 
+/// Interpolates monthly data to quasi-daily values.
+void interp_climate(double mtemp[12], double mprec[12], double msun[12], double mdtr[12],
+					double dtemp[365], double dprec[365], double dsun[365], double ddtr[365]) {
+	interp_monthly_means(mtemp, dtemp);
+	interp_monthly_totals(mprec, dprec);
+	interp_monthly_means(msun, dsun);
+	interp_monthly_means(mdtr, ddtr);
+}
+
 //Landuse:
 
 //#define DYNAMIC_LANDCOVER_INPUT
@@ -1258,8 +1255,8 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 	// Archive object. Definition in new header file, cru.h
 	Cru_1901_2006Archive ark;
 
-	int target_ilon=dlon*10.0;
-	int target_ilat=dlat*10.0;
+	int target_ilon=(int)(dlon*10.0);
+	int target_ilat=(int)(dlat*10.0);
 
 	int y,m;
 
@@ -1407,8 +1404,6 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 }
 
 
-
-
 // guess2008
 // Utility function that returns the CRU data from the nearest cell to (lon,lat) within
 // a given search radius
@@ -1458,7 +1453,7 @@ bool findnearestCRUdata(int searchradius, char* cruark, double& lon, double& lat
 	std::sort(search_points.begin(), search_points.end());
 
 	// Find closest coordinate which can be found in CRU
-	for (int i = 0; i < search_points.size(); i++) {
+	for (unsigned int i = 0; i < search_points.size(); i++) {
 		point search_point = search_points[i].second;
 		double search_lon = search_point.first;
 		double search_lat = search_point.second;
@@ -1472,42 +1467,6 @@ bool findnearestCRUdata(int searchradius, char* cruark, double& lon, double& lat
 	}
 
 	return false;
-}
-
-
-
-
-void readco2() {
-
-	// Reads in atmospheric CO2 concentrations for historical period
-	// from ascii text file with records in format: <year> <co2-value>
-
-	int year,calender_year;
-
-	// Retrieve name of CO2 file from ins file
-	xtring filename=param["file_co2"].str;
-
-	FILE* in=fopen(filename,"rt");
-	if (!in) fail("readco2: could not open CO2 file %s for input",
-		(char*)filename);
-
-	for (year=0;year<NYEAR_HIST;year++) {
-		readfor(in,"i,f",&calender_year,&co2[year]);
-		if (calender_year!=FIRSTHISTYEAR+year)
-			fail("readco2: %s, line %d - incorrect year specified",
-				(char*)filename,year+1);
-	}
-
-	fclose(in);
-}
-
-/// Interpolates monthly data to quasi-daily values.
-void interp_climate(double mtemp[12], double mprec[12], double msun[12], double mdtr[12],
-					double dtemp[365], double dprec[365], double dsun[365], double ddtr[365]) {
-	interp_monthly_means(mtemp, dtemp);
-	interp_monthly_totals(mprec, dprec);
-	interp_monthly_means(msun, dsun);
-	interp_monthly_means(mdtr, ddtr);
 }
 
 /// Help function to define_output_tables, creates one output table
@@ -1772,7 +1731,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	fclose(in_grid);
 
 	// Read CO2 data from file
-	readco2();
+	co2.load_file(param["file_co2"].str);
 
 	if (run_landcover) {
 		all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
@@ -1822,9 +1781,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	tprogress.settimer();
 	tmute.settimer(MUTESEC);
-
-	// Start at first object in linked list of grid cell coordinates ...
-	firstgrid=true;
 }
 
 ///	Loads landcover area fraction data from file(s) for a gridcell.
@@ -1893,8 +1849,16 @@ bool getgridcell(Gridcell& gridcell)
 	// to ensure an identical random number sequence for each gridcell.
 	setseed(12345678);
 
-	if (firstgrid) {
+	// Make sure we use the first gridcell in the first call to this function,
+	// and then step through the gridlist in subsequent calls.
+	static bool first_call = true;
+
+	if (first_call) {
 		gridlist.firstobj();
+
+		// Note that first_call is static, so this assignment is remembered
+		// across function calls.
+		first_call = false;
 	}
 	else gridlist.nextobj();
 
@@ -1997,8 +1961,7 @@ bool getgridcell(Gridcell& gridcell)
 }
 
 ///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
-void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
-{
+void getlandcover(Gridcell& gridcell,Pftlist& pftlist) {
 	int i, year;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
 
@@ -2284,15 +2247,16 @@ bool getclimate(Gridcell& gridcell) {
 			}
 
 		}
+		else {
+			// Return false if last year was the last for the simulation
+			return false;
+		}
 	}
 
 
 	// Send environmental values for today to framework
 
-	if (date.year<nyear_spinup)
-		climate.co2=co2[0];
-	else if (date.year<nyear_spinup+NYEAR_HIST)
-		climate.co2=co2[date.year-nyear_spinup];
+	climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
 
 	climate.temp=dtemp[date.day];
 	climate.prec=dprec[date.day];
@@ -2306,9 +2270,6 @@ bool getclimate(Gridcell& gridcell) {
 	// First day of year only ...
 
 	if (date.day==0) {
-
-		// Return false if last year was the last for the simulation
-		if (date.year==nyear_spinup+NYEAR_HIST) return false;
 
 		// Progress report to user and update timer
 
@@ -2359,10 +2320,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 	if (vegmode==COHORT)
 		nclass=min(date.year/estinterval+1,OUTPUT_MAXAGECLASS);
-
-	if (date.year==0 && firstgrid) {
-		firstgrid=false;
-	}
 	
 	// guess2008 - yearly output after spinup
 		
@@ -2677,15 +2634,10 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 
 		// In contrast to annual NEE, monthly NEE does not include fire 
-		// or establishment fluxes 
-		double testmnpp = 0.0;
-		double testmlai = 0.0;
-
+		// or establishment fluxes
 		for (m=0;m<12;m++) {
 			mnpp[m] = mgpp[m]-mra[m];
 			mnee[m] = mnpp[m]-mrh[m];
-			testmnpp += mnpp[m];
-			testmlai += mlai[m]/12.0;
 		}
 
 		// Print gridcell totals to files
@@ -2811,15 +2763,11 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 void termio() {
 
-	// DESCRIPTION
 	// Performs memory deallocation, closing of files or other "cleanup" functions.
-
 	delete output_channel;
 
 	// Clean up
-
 	gridlist.killall();
 }
 
-
-#endif // USE_CRU
+#endif // USE_CRU_IO

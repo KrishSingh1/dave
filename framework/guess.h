@@ -1262,7 +1262,9 @@ private:
 
 public:
 	/// Maximum number of iterations towards a solution in bisection method
-	static const int MAXTRIES = 6;
+	/** Should be static const int, but is an enum for backwards compatibility
+	 *  with old compilers (e.g. VC6) */
+	enum { MAXTRIES = 6 };
 
 	Lookup_lambda(): data((int)pow(2., MAXTRIES+1)) {}
 

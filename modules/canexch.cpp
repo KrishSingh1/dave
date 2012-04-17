@@ -1376,7 +1376,7 @@ void assimilation_wstress(Pft& pft,Patchpft& ppft,double co2,double temp,double 
 
 	lookup_lambda.newsearch();
 
-	while (fabs(fmid)>EPS && b<=MAXTRIES) {
+	while (fabs(fmid)>EPS && b<=Lookup_lambda::MAXTRIES) {
 
 		b++;
 		dx*=0.5;

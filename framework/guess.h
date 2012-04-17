@@ -1233,12 +1233,13 @@ public:
 
 };
 
-/// Lookup table for photosynthesis parameters
-/** \see canexch.cpp::assimilation_wstress
- */
-const int MAXTRIES = 6;
-		// maximum number of iterations towards a solution in bisection method
 
+/// One item in the Lookup_lambda table
+/** Each entry in the table holds photosynthesis values for a given lambda,
+ *  we also store year and day to make sure we don't reuse items calculated
+ *  for a previous day.
+ *
+ *  \see Lookup_lambda */
 struct Lookup_lambda_item {
 	PhotosynthesisResult photosynthesis;
 	int year;
@@ -1250,6 +1251,9 @@ struct Lookup_lambda_item {
 };
 
 
+/// Lookup table for photosynthesis parameters
+/** \see canexch.cpp::assimilation_wstress
+ */
 class Lookup_lambda {
 
 private:
@@ -1257,6 +1261,9 @@ private:
 	int position;
 
 public:
+	/// Maximum number of iterations towards a solution in bisection method
+	static const int MAXTRIES = 6;
+
 	Lookup_lambda(): data((int)pow(2., MAXTRIES+1)) {}
 
 	void newsearch() {

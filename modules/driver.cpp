@@ -631,9 +631,6 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 		patch.arunoff=0.0;
 		patch.aintercep=0.0;
 		patch.apet=0.0;
-
-		for (int d=0;d<365;d++)
-			fluxes.dcflux_gpp[d] = 0.0;
 	}
 
 	if (date.dayofmonth==0) {
@@ -955,7 +952,6 @@ void daylengthinsoleet(Climate& climate) {
 
 	// Calculate PAR from radiation
 	// Eqn A1, Haxeltine & Prentice 1996
-
 
 	climate.par=rs_day*FRADPAR;
 }

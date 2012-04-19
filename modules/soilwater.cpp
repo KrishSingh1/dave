@@ -176,7 +176,6 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 
 	// Sum AET for across all vegetation individuals
 
-
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
@@ -185,7 +184,6 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 			aet=patch.pft[indiv.pft.id].fuptake[s]*indiv.aet;
 			aet_layer[s]+=aet;
 			aet_total+=aet;
-
 		}
 		vegetation.nextobj();
 	}
@@ -207,7 +205,6 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 	wcont[0]+=(rain+melt-aet_layer[0]-evap)/awc[0];
 	if (wcont[0]!=0.0 && wcont[0] < 0.0001) // guess2008 - bugfix
 		wcont[0]=0.0;
-
 
 	// Surface runoff
 
@@ -274,13 +271,6 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 		if (wcont[s]<0.0) wcont[s]=0.0;
 	}
 
-	// GUESSN: save percolation from last (bottom) layer (needed by CENTURY)
-	if (perc > 0.0)
-		dperc=perc;
-	else
-		dperc=0.0;
-	// end GUESSN
-
 	// Baseflow runoff (Dieter Gerten 021216) (rain or snowmelt days only)
 
 	if (influx>=0.1) {
@@ -296,9 +286,15 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 	}
 	else runoff_baseflow=0.0;
 
+	// GUESSN: save percolation from last (bottom) layer (needed by CENTURY)
+	if (influx > 0.0)
+		dperc=perc_frac*awc[NSOILLAYER-1];
+	else
+		dperc=0.0;
+	// end GUESSN
 
 	// GUESSN: Export baseflow
-	patch.soil.dbaseflow=runoff_baseflow+runoff_drain;
+	patch.soil.dbaseflow=runoff_baseflow+runoff_drain;	// used for mineral nitrogen leaching
 	// end GUESSN
 
 	runoff=runoff_surf+runoff_drain+runoff_baseflow;

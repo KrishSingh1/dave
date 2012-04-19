@@ -193,7 +193,7 @@ extern bool ifcmip5;
 extern bool iflandusesimple;
 extern bool iflandusechange;
 
-// SENS
+// SENS	// sch = 0
 extern double sens_cton_needle;
 	// Needleleaved C:N min change
 extern double sens_cton_broad;
@@ -202,6 +202,8 @@ extern double sens_decayrate;
 	// Change decay rates constant of som pools
 extern double sens_cton_vmax;
 	// Changes vmax N limitation effect on leaf C:N
+extern double sens_org_leach;
+	// Change amount of organic leaching
 
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;
@@ -210,6 +212,12 @@ extern bool run_landcover;
 extern double Total_N_500;
 extern double Total_C_500;
 extern double Added_N_from_500;
+
+// Amsterdam	// sch = 0
+extern int distyear[77];
+extern int pft_amst[77];
+extern int amst_site;
+extern bool ifamst;
 
 
 /// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND).
@@ -610,7 +618,7 @@ public:
 		// annual flux from atmosphere to vegetation associated with establishment
 	double acflux_harvest; 
 		// annual flux to atmosphere from consumed harvested products
-	double dcflux_soil;
+	double dcflux_soil[365];
 		// daily carbon flux to atmosphere from soil respiration
 		// NB: not implemented by som_dynamics_monthly
 	double mcflux_soil[12];
@@ -626,8 +634,6 @@ public:
 		// monthly GPP
 	double mcflux_ra[12];
 		// monthly autotrophic respiration
-	double dcflux_gpp[365];
-		// daily GPP
 
 	// MEMBER FUNCTIONS
 
@@ -639,6 +645,9 @@ public:
 		acflux_soil=0.0;
 		acflux_est=0.0;
 		acflux_harvest=0.0;	
+
+		for (int d=0;d<365;d++)
+			dcflux_soil[365]=0;
 	}
 		
 
@@ -712,6 +721,9 @@ public:
 		// average sapwood C:N mass ratio
 	double n_reserve;
 		// N storage organ in relation to sapwood carbon
+	double nf;
+		// scalar to adopt Haxetine fraction of leaf N allocated to photosynthetic compounds
+		// to different pft types
 	// end GUESSN
 	double reprfrac;
 		// fraction of NPP allocated to reproduction
@@ -1092,6 +1104,7 @@ public:
 		// annual N demand under no N limitation (calculated in growth, used in guessio_cru)
 	double ndemand_uptake;
 		// annual N demand (used in vegetation_n_uptake)
+	double raingreen_ndemand;	// sch
 	double fnuptake;
 		// fractional N uptake of indiv demand
 	double n_reserve_uptake;
@@ -1110,6 +1123,11 @@ public:
 	double dassim[365];
 		// daily net assimilation (kgC/m2/yr) - used by SOM dynamics to distribute
 		// plant N uptake through the year
+	double dresp[365];	// AMSTERDAM	sch = 0
+	double dnpp[365];
+	double dlai[365];
+	double dleafN[365];
+
 	double aassim;
 		// annual sum of positive dassim (above) - used by SOM dynamics
 	double vmax_lim[365];
@@ -1133,7 +1151,6 @@ public:
 	double cton_growth;
 		// total growth C:N ratio
 
-	double dnupnpp;	// Daily N uptake variables	guessnfix 
 	double nstore_daily;
 	double bminc_leaf_frac;	
 	double bminc_root_frac;
@@ -1145,15 +1162,13 @@ public:
 	double gc_sum; // accumulated canopy conductance on individual FPC basis (mm/s)
 	double dgc[365];
 	double mgc[12];
-	double adtmm_term; // GC
+	double adtmm_term;
 
 	double apar;
-	
 
 	bool alive; 
 		// guess2008 - whether this individual is truly alive. Set to false for first year 
 		// after the Individual object is created, then true.
-
 
 	// MEMBER FUNCTIONS
 
@@ -1162,11 +1177,9 @@ public:
 	// Constructor function for objects of class Individual
 	// Initialisation of certain member variables
 
-
 	Individual(int i,Pft& p,Vegetation& v);
 
 };
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // VEGETATION
@@ -1200,7 +1213,6 @@ public:
 	Vegetation(Patch& p):patch(p) {};
 		// constructor (initialises member variable patch)
 };
-
 
 /// Soiltype stores static parameters for soils and the snow pack. 
 /** One Soiltype object is defined for each Gridcell. State variables for soils 
@@ -1404,6 +1416,7 @@ public:
 	double nmin_daily[365];		// daily N mineralisation (kgN/m2)
 	double nimmob_daily[365];	// daily N immobilisation (kgN/m2)
 	double leachfrac_daily[365]; // fraction of excess mineral N leached each day;
+	double org_leachfrac;		// fraction of decayed substrate from the soil microbial pool
 	double nmass_avail;			// soil mineral N pool (kgN/m2)
 
 	double nmin_annual;			// annual sum of N mineralisation
@@ -1415,13 +1428,12 @@ public:
 	double setntoc_nmass_avail;	// soil mineral N pool (kgN/m2) (used in daily setntoc)
 	double daily_minimmndep;	// sum of mineralization, immobilization and N deposition (used in daily setntoc)
 
-	double N_fix;				// total annual N fixation
+	double nfix;				// total annual N fixation
 
 	double nmass_avail_daily;	// soil mineral N pool (kgN/m2) (used when trying to do daily N uptake)
 	double daily_leaching[365];	// daily N uptake leaching 
 
 // end GUESSN
-
 
 	// MEMBER FUNCTIONS
 
@@ -1448,7 +1460,6 @@ public:
 		snowpack=0.0;
 		last_gtemp=-1;
 		last_mgtemp=-1;
-
 
 		// guess2008 - extra initialisation
 		mwcontupper = 0.0;
@@ -1484,13 +1495,14 @@ public:
 		sompool[SURFMICRO].ntoc=1.0/20.0;
 
 		nmass_avail=0.0;
+		org_leachfrac=0.0;
 
 		nmin_annual=0.0;			
 		nimmob_annual=0.0;		
 		n_min_leach_annual=0.0;
 		n_org_leach_annual=0.0;
 		ndep_annual=0.0;
-		N_fix=0.0;
+		nfix=0.0;
 
 		dperc=0.0;
 		dbaseflow=0.0;
@@ -1502,10 +1514,7 @@ public:
 		nmass_avail_daily=0.0;
 
 		// end GUESSN
-
-
 	}
-
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -1527,7 +1536,6 @@ struct Lookup_lambda_item {
 			: adtmm(0.0), agd(0.0), rd(0.0), nmass_term(0.0), year(-1), day(0) {
 	}
 };
-
 
 class Lookup_lambda {
 
@@ -1580,7 +1588,6 @@ public:
 		return true;
 	}
 };
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // PATCHPFT
@@ -1675,8 +1682,8 @@ public:
 		// N store for establishment
 	double nsapling_nuptake;
 		// number of saplings of this PFT established in vegetation_n_uptake() (cohort mode)
+	double dphen[365];	// AMSTERDAM
 	// end GUESSN
-
 
 	// MEMBER FUNCTIONS:
 
@@ -1709,6 +1716,8 @@ public:
 		harvested_products_slow=0.0;
 		harvested_products_slow_nmass=0.0;
 
+		for (int d=0;d<365;d++)
+			dphen[d]=0.0;
 	}
 };
 
@@ -1856,7 +1865,6 @@ public:
 		// term in calculation of potential canopy conductance (mm/s)
 	bool have_gterm;
 		// true if value of gterm available for this PFT today, otherwise false
-
 
 	// Variables used only by input/output module
 
@@ -2040,11 +2048,7 @@ public:
 	/// list array [0...npft-1] of Gridcellpft (initialised in constructor)
 	ListArray_idin1<Gridcellpft,Pft> pft;
     
-
 	// MEMBER FUNCTIONS
-
-
-
 
 	/// Constructs a Gridcell object
 	/** \param pftlist    The list of plant functional types

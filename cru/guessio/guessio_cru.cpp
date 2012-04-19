@@ -428,10 +428,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
 		callwhendone(CB_CHECKGLOBAL);
 
-		// AMSTERDAM
-		declareitem("ifamst",&ifamst,1,CB_NONE,
-			    "Amsterdam data set");
-
 		break;
 	
 	case BLOCK_PFT:
@@ -731,8 +727,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcmip5")) badins("ifcmip5");
 		if (!itemparsed("iflandusesimple")) badins("iflandusesimple");
 		if (!itemparsed("iflandusechange")) badins("iflandusechange");
-
-		if (!itemparsed("ifamst")) badins("ifamst");
 
 		if (!itemparsed("pft")) badins("pft");
 		if (vegmode==COHORT || vegmode==INDIVIDUAL) {
@@ -1357,9 +1351,6 @@ xtring correctionmethod;
 xtring gcm;
 xtring rcp;
 xtring path_cmip5_co2;
-
-// Amsterdam
-xtring path_amsterdam;
 
 // Spinup data sets for current grid cell
 Spinup_data spinup_mtemp(NYEAR_SPINUP_DATA);
@@ -2792,28 +2783,6 @@ void readco2_cmip5() {
 	fclose(in);
 }
 
-// AMSTERDAM	// sch = 0
-void read_amsterdam() {
-
-	// Reads distyear and pft for Amstersam sites
-
-	int sites;
-	// Retrieve name of file from ins file
-	xtring filename=path_amsterdam;
-
-	FILE* in=fopen(filename,"rt");
-	if (!in) fail("amsterdam: could not open file %s for input",
-		(char*)filename);
-
-	for (sites=0;sites<77;sites++) {
-		readfor(in,"i,i",&distyear[sites],&pft_amst[sites]);
-
-		distyear[sites]=NYEAR_CRU+nyear_spinup-distyear[sites];
-	}
-
-	fclose(in);
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
 // 
@@ -3213,13 +3182,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		readco2_cmip5();
 	}
 
-	// Amsterdam	// sch = 0
-/*	if (ifamst) {
-		path_amsterdam=param["path_amsterdam"].str;
-
-		read_amsterdam();
-	}*/
-
 	// GUESSN
 	file_ndep=param["file_ndep"].str;
 	if (file_ndep=="")
@@ -3532,35 +3494,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		if (!out_mwcont_lower) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mwcont_lower);
 	}
 	else out_mwcont_lower=NULL;
-
-	// Daily output	AMSTERDAM // sch = 0
-	if (file_dgpp!="") {
-		file_dgpp = outputdirectory + file_dgpp;
-		out_dgpp=fopen(file_dgpp,"w");
-		if (!out_dgpp) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_dgpp);
-	}
-	else out_dgpp=NULL;
-
-	if (file_dlai!="") {
-		file_dlai = outputdirectory + file_dlai;
-		out_dlai=fopen(file_dlai,"w");
-		if (!out_dlai) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_dlai);
-	}
-	else out_dlai=NULL;
-
-	if (file_dleafN!="") {
-		file_dleafN = outputdirectory + file_dleafN;
-		out_dleafN=fopen(file_dleafN,"w");
-		if (!out_dleafN) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_dleafN);
-	}
-	else out_dleafN=NULL;
-
-	if (file_dresp!="") {
-		file_dresp = outputdirectory + file_dresp;
-		out_dresp=fopen(file_dresp,"w");
-		if (!out_dresp) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_dresp);
-	}
-	else out_dresp=NULL;
 
 	// Set timers
 	tprogress.init();
@@ -4509,14 +4442,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	double mnee[12];
 	double mwcont_upper[12];
 	double mwcont_lower[12];
-	
-	// AMSTERDAM sch = 0
-	const int nr_pfts = 30;
-	double dgpp[365][nr_pfts];
-	double dlai[365][nr_pfts];
-	double dleafN[365][nr_pfts];
-	double dresp[365][nr_pfts];
-	double dNEE[365];
 
 	double lon,lat;
 
@@ -4580,12 +4505,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_mwcont_upper) fprintf(out_mwcont_upper,lonlatyearstr,"Lon","Lat","Year");
 		if (out_mwcont_lower) fprintf(out_mwcont_lower,lonlatyearstr,"Lon","Lat","Year");
 
-		// AMSTERDAM
-		if (out_dgpp) fprintf(out_dgpp,"%8s%8s%8s%8s","Lon","Lat","Year","Day");
-		if (out_dlai) fprintf(out_dlai,"%8s%8s%8s%8s","Lon","Lat","Year","Day");
-		if (out_dleafN) fprintf(out_dleafN,"%8s%8s%8s%8s","Lon","Lat","Year","Day");
-		if (out_dresp) fprintf(out_dresp,"%8s%8s%8s%8s","Lon","Lat","Year","Day");
-
 		// GUESSN
 		if (out_cton) fprintf(out_cton,lonlatyearstr,"Lon","Lat","Year");
 		if (out_nmass) fprintf(out_nmass,lonlatyearstr,"Lon","Lat","Year");
@@ -4635,12 +4554,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_lai) fprintf(out_lai,"%8s","Total");
 		if (out_runoff) fprintf(out_runoff,"%8s\n","Total");
 		if (out_dens) fprintf(out_dens,"%8s\n","Total");
-
-		// AMSTERDAM sch = 0
-		if (out_dgpp) fprintf(out_dgpp,"%9s%9s%9s%9s\n","Total","Temp","N_dep","NEE");
-		if (out_dlai) fprintf(out_dlai,"%9s\n","Total");
-		if (out_dleafN) fprintf(out_dleafN,"%9s\n","Total");
-		if (out_dresp) fprintf(out_dresp,"%9s\n","Total");
 
 		//TODO Fix these for landcover
 		// GUESSN
@@ -4692,11 +4605,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 	// guess2008 - yearly output after spinup
 
-	dprintf("Year %d\n",date.year);
-
-	if (date.year == 600)
-		int sch = 0;
-
 	if (date.year>=nyear_spinup) {
 
 		lon=gridlist.getobj().lon;
@@ -4745,10 +4653,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		// guess2008 - reset monthly average across patches each year
 		for (m=0;m<12;m++)
 			mnpp[m]=mlai[m]=mgpp[m]=mra[m]=maet[m]=mpet[m]=mevap[m]=mintercep[m]=mrunoff[m]=mrh[m]=mnee[m]=mwcont_upper[m]=mwcont_lower[m]=0.0;
-
-		for (int day=0;day<365;day++)
-			for (int ppfftt=0;ppfftt<nr_pfts;ppfftt++)
-				dgpp[day][ppfftt]=dlai[day][ppfftt]=dleafN[day][ppfftt]=dresp[day][ppfftt]=0.0;
 
 		double landcover_cmass[NLANDCOVERTYPES]={0.0};
 		double landcover_anpp[NLANDCOVERTYPES]={0.0};
@@ -4838,9 +4742,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		double nmass_sompools=0.0;		// GUESSN N budget
 		double nmass_litterpools=0.0;	// GUESSN N budget
 
-		for (int dd=0;dd<365;dd++)	// AMSTERDAM
-			dNEE[dd]=0.0;
-
 		pftlist.firstobj();
 		while (pftlist.isobj) {
 
@@ -4863,13 +4764,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			gcpft_nlim=0.0;
 
 			// end GUESSN
-
-			for (int day=0;day<365;day++) {
-				dgpp[day][pft.id]=0.0;
-				dlai[day][pft.id]=0.0;
-				dleafN[day][pft.id]=0.0;
-				dresp[day][pft.id]=0.0;
-			}
 
 			gridcell.firstobj();
 
@@ -4935,17 +4829,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 									indiv.nmass_heart+indiv.nmass_reserve;
 								// end GUESSN
 
-								// AMSTERDAM
-								if (date.year>595) {
-									for (int day=0;day<365;day++){
-										dgpp[day][pft.id]+=indiv.dassim[day];
-										dlai[day][pft.id]+=indiv.dlai[day];
-										dleafN[day][pft.id]+=indiv.dleafN[day];
-										dresp[day][pft.id]+=indiv.dresp[day];
-										dNEE[day]+=indiv.dresp[day]-indiv.dassim[day];
-									}
-								}
-
 								if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 
 									// Age structure
@@ -4969,9 +4852,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 					}
 					stand.nextobj();
 				} // end of patch loop
-
-				if (date.year == 600 && pft.name == "Ulm_gla")
-					int sch = 0;
 
 				standpft_cmass/=(double)stand.nobj;
 				standpft_anpp/=(double)stand.nobj;
@@ -5001,18 +4881,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 					standpft_vmaxnlim/=standpft_cmass_leaf;
 				
 				// end GUESSN
-
-				// AMSTERDAM
-				if (date.year>595) {
-					for (int day=0;day<365;day++) {
-						dgpp[day][pft.id]/=(double)stand.nobj;
-						dlai[day][pft.id]/=(double)stand.nobj;
-						dleafN[day][pft.id]/=(double)stand.nobj;
-						dresp[day][pft.id]/=(double)stand.nobj;
-						if (pft.id == 0)
-							dNEE[day]/=(double)stand.nobj;
-					}
-				}
 
 				//Update landcover totals
 				landcover_cmass[stand.landcover]+=standpft_cmass*stand.get_landcover_fraction();
@@ -5098,72 +4966,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			pftlist.nextobj();
 
 		} // *** End of PFT loop ***
-
-
-		// AMSTERDAM sch = 0
-
-		if (date.year > 595) {
-
-			gridcell.firstobj();
-			// Loop through Stands
-			while (gridcell.isobj) {
-				Stand& stand=gridcell.getobj();
-				stand.firstobj();
-
-				//Loop through Patches
-				while (stand.isobj) {
-					Patch& patch=stand.getobj();
-
-					for (int ddd=0;ddd<365;ddd++) 
-						dNEE[ddd]+=patch.fluxes.dcflux_soil[ddd]/(double)stand.nobj;
-
-					stand.nextobj();
-				} // patch loop
-				gridcell.nextobj();
-			} // stand loop
-		
-			for (int day=0;day<365;day++) {
-
-				if (out_dgpp) fprintf(out_dgpp,lonlatyeardatastr,lon,lat,date.year+FIRSTHISTYEAR-nyear_spinup);
-				if (out_dlai) fprintf(out_dlai,lonlatyeardatastr,lon,lat,date.year+FIRSTHISTYEAR-nyear_spinup);
-				if (out_dleafN) fprintf(out_dleafN,lonlatyeardatastr,lon,lat,date.year+FIRSTHISTYEAR-nyear_spinup);
-				if (out_dresp) fprintf(out_dresp,lonlatyeardatastr,lon,lat,date.year+FIRSTHISTYEAR-nyear_spinup);
-				int dateday=day+1;
-				if (out_dgpp) fprintf(out_dgpp,"%9.0d",dateday);
-				if (out_dlai) fprintf(out_dlai,"%9.0d",dateday);
-				if (out_dleafN) fprintf(out_dleafN,"%9.0d",dateday);
-				if (out_dresp) fprintf(out_dresp,"%9.0d",dateday);
-
-				double total_dgpp=0.0;
-				double total_dlai=0.0;
-				double total_dleafN=0.0;
-				double total_dresp=0.0;
-
-				pftlist.firstobj();
-				while (pftlist.isobj) {
-
-					Pft& pft=pftlist.getobj();
-	
-					if (out_dgpp)	fprintf(out_dgpp,"%9.5f",dgpp[day][pft.id]);
-					if (out_dlai)	fprintf(out_dlai,"%9.5f",dlai[day][pft.id]);
-					if (out_dleafN)	fprintf(out_dleafN,"%9.5f",dleafN[day][pft.id]);
-					if (out_dresp)	fprintf(out_dresp,"%9.5f",dresp[day][pft.id]);
-
-					total_dgpp+=dgpp[day][pft.id];
-					total_dlai+=dlai[day][pft.id];
-					total_dleafN+=dleafN[day][pft.id];
-					total_dresp+=dresp[day][pft.id];
-	
-					pftlist.nextobj();
-
-				} // *** End of PFT loop ***
-
-				if (out_dgpp)	fprintf(out_dgpp,"%9.5f%9.3f%9.5f%9.5f\n",total_dgpp,dtemp[day],gridcell.climate.dndep[day]*10000.0,dNEE[day]);
-				if (out_dlai)	fprintf(out_dlai,"%9.5f\n",total_dlai);
-				if (out_dleafN)	fprintf(out_dleafN,"%9.5f\n",total_dleafN);
-				if (out_dresp)	fprintf(out_dresp,"%9.5f\n",total_dresp);
-			}
-		}
 
 		flux_veg=flux_soil=flux_fire=flux_est=flux_harvest=0.0;
 
@@ -5603,12 +5405,6 @@ void termio() {
 		if (out_nlim) fclose(out_nlim);
 		if (out_canopyh) fclose(out_canopyh);
 		// end GUESSN
-
-		// AMSTERDAM
-		if (out_dgpp) fclose(out_dgpp);
-		if (out_dlai) fclose(out_dlai);
-		if (out_dleafN) fclose(out_dleafN);
-		if (out_dresp) fclose(out_dresp);
 	}
 
 	// Clean up

@@ -1636,9 +1636,6 @@ void this_years_ndemand(double cmass_leaf,double cmass_root,double cmass_sap,dou
 	else
 		bminc=anpp;
 
-	if (date.year > freenyears && phenology==RAINGREEN)
-		int sch = 0;
-
 	// Determine N demand of extra raingreen leaf
 	if (bminc >= 0 && phenology==RAINGREEN) {
 

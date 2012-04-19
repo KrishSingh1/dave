@@ -93,12 +93,6 @@ double Total_N_500;
 double Total_C_500;
 double Added_N_from_500;
 
-// Amsterdam	// sch = 0
-int distyear[77];
-int pft_amst[77];
-int amst_site=-1;
-bool ifamst;
-
 // guess2008 - new inputs from the .ins file
 bool ifsmoothgreffmort;				// smooth growth efficiency mortality
 bool ifdroughtlimitedestab;			// whether establishment affected by growing season drought
@@ -215,7 +209,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 	}
 	int d;
 	for (d=0;d<365;d++) {
-		dassim[d]=vmax_lim[d]=dgc[d]=dresp[d]=dnpp[d]=dlai[d]=dleafN[d]=0.0;
+		dassim[d]=vmax_lim[d]=dgc[d]=0.0;
 	}
 
 	// GC
@@ -244,15 +238,6 @@ int framework(int argc,char* argv[]) {
 	dogridcell=true;
 
 	while (dogridcell) {
-
-		// AMSTERDAM	// sch = 0
-/*		if (ifamst) {
-			amst_site++;
-
-			dprintf("Distyear %d Pft %d\n",distyear[amst_site],pft_amst[amst_site]);
-		}
-		else
-			amst_site=0;*/
 
 		// START OF LOOP THROUGH GRID CELLS
 

@@ -2092,12 +2092,6 @@ void growth(Stand& stand,Patch& patch) {
 							patch.fluxes.mcflux_gpp[month]-=gpp_dec;
 							patch.fluxes.acflux_veg+=gpp_dec;
 						}
-					}	
-
-					for (int day=0;day<365;day++) {	// AMSTERDAM sch = 0
-						int decrease=indiv.dassim[day]*bminc_dec/agpp;
-						indiv.dassim[day]-=decrease;
-						indiv.dnpp[day]-=decrease;
 					}
 
 					// Update annual npp

@@ -2186,9 +2186,6 @@ void npp(Patch& patch) {
 			indiv.dassim[date.day]=indiv.assim;	// GUESSN
 			indiv.anpp+=indiv.assim-indiv.resp;
 
-			indiv.dnpp[date.day]=indiv.assim-indiv.resp;	// AMSTERDAM	sch = 0
-			indiv.dresp[date.day]=indiv.resp;				// AMSTERDAM sch = 0
-
 			// guess2008
 			if (indiv.alive)
 				patch.fluxes.dcflux_veg+=indiv.resp-indiv.assim;
@@ -2198,8 +2195,6 @@ void npp(Patch& patch) {
 			indiv.mnpp[date.month]+=indiv.assim-indiv.resp;
 			// guess2008 - changed indiv.phen_mean to indiv.phen here. mlai is always 0 otherwise 
 			indiv.mlai[date.month]+=indiv.lai*indiv.phen;		
-			indiv.dlai[date.day]=indiv.lai*indiv.phen;	// AMSTERDAM		sch = 0
-			indiv.dleafN[date.day]=indiv.nmass_leaf*indiv.phen;	// AMSTERDAM	sch = 0
 
 			indiv.mgc[date.month]+=indiv.gc_sum;
 			indiv.dgc[date.day]=indiv.gc_sum;

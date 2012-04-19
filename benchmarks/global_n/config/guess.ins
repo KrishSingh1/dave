@@ -140,7 +140,7 @@ ifcdebt 1				! whether to allow vegetation C storage (1) or not (0)
 ifcentury 1				! whether to use CENTURY SOM dynamics (mandatory for N cycling)
 ifnlim 1				! whether plant growth limited by available N
 ifindiv_fnuptake 1		! whether to allow individual fractional N uptake
-freenyears 50			! number of years to spin up without N limitation (needed to build up a N pool)
+freenyears 200			! number of years to spin up without N limitation (needed to build up a N pool)
 ifleachn 1				! whether to allow N leaching
 ifnfix 1				! whether to include an estimate for N fixation (1=conservative,2=Central,3=Upper)
 nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
@@ -164,7 +164,7 @@ ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit
 ifspeciesspecificwateruptake 0	! whether there is species specific water uptake (1) or not (0)
 
 ! CMIP5
-ifcmip5 1				! Use CMIP5 climate data instead of CRU
+ifcmip5 0				! Use CMIP5 climate data instead of CRU
 
 ! CMIP5 - land use input
 iflandusesimple 0                       ! whether to use a simple land use representation (1) or not (0)
@@ -207,6 +207,7 @@ lc_fixed_forest 0   	! FOREST
 lc_fixed_natural 25 	! NATURAL
 lc_fixed_peatland 25 	! PEATLAND
 equal_landcover_area 0	! divide gridcell into equal active landcover fractions
+
 
 !///////////////////////////////////////////////////////////////////////////////////////
 
@@ -283,6 +284,7 @@ group "Shrub" (
 	cton_leaf_max 45		! GUESSN
 	cton_root_avr 25 		! GUESSN
 	cton_sap_avr 172		! GUESSN !285 old value, new value from Friend 1997
+	nf 1.2					! DUESSN Friend 1997/Zaehle 2009
 	pathway "c3"
 	kest_repr 20
 	kest_bg 0.1
@@ -312,6 +314,7 @@ group "grass" (
 	cton_leaf_max 45		! GUESSN
 	cton_root_avr 25 		! GUESSN
 	n_reserve 0.30			! GUESSN
+	nf 1.2					! DUESSN Friend 1997/Zaehle 2009
 	litterme 0.2
 	parff_min 1000000		! 2500000 i guess2008	
 	fireresist 0.5			! 1.0 hos Thomas
@@ -333,6 +336,7 @@ group "broadleaved" (
 	cton_leaf_max 45		! GUESSN
 	cton_root_avr 25 		! GUESSN
 	cton_sap_avr 172		! GUESSN !285 old value, new value from Friend 1997
+	nf 1.2					! GUESSN Friend 1997/Zaehle 2009
 
 )
 
@@ -349,6 +353,7 @@ group "needleleaved" (
 	cton_leaf_max 75		! GUESSN
 	cton_root_avr 42 		! GUESSN
 	cton_sap_avr 290		! GUESSN !480 old value, new value from Friend 1997
+	nf 0.8					! GUESSN Friend 1997/Zaehle 2009
 
 )
 
@@ -441,8 +446,6 @@ group "shade_intolerant"
 	turnover_sap 0.1
 )
 
-
-
 pft "BNE" (
 
 	! Boreal needleleaved evergreen tree
@@ -505,27 +508,28 @@ pft "BNS" (
 	gdd5min_est 500
 	longevity 300
 	fireresist 0.3
+	nf 1.2					! DUESSN Friend 1997/Zaehle 2009
 )
 
-pft "TeNE" (	! CANIF TREE
+pft "TeNE" (
 
 	! Temperate needleleaved evergreen tree
 
-	include 0
+	include 1
 	tree
 	needleleaved
-	shade_tolerant
+	shade_intolerant ! cf Jun_oxy, Pin_hal in europe.ins
 	evergreen
 	temperate
 	leaflong 3
 	turnover_leaf 0.33
-	tcmin_surv -31
-	tcmin_est -30
-	tcmax_est -1
-	twmin_est 5
-	gdd5min_est 500
-	longevity 500
-	fireresist 0.3
+	tcmin_surv -2 ! As in Sitch et al. (2003), a little lower than TeBE
+	tcmin_est -2 ! As in Sitch et al. (2003), a little lower than TeBE
+	tcmax_est 10 ! Hickler et al. (2012) have 9 degC for Pin_hal
+	twmin_est 5  ! low, since Hickler et al. (2012) have -1000 for Jun_oxy
+	gdd5min_est 2000 !(Stefans value 900)2000 ! As TeBE, a little lower than Jun_oxy, Pin_hal in europe.ins
+	longevity 300  ! Hickler et al. (2012) have 350 for Pin_hal
+	fireresist 0.3 ! Hickler et al. (2012) have 0.2 for Pin_hal and 0.4 for Jun_oxy
 )
 
 pft "TeBS" (
@@ -585,6 +589,7 @@ pft "TeBE" (
 	gdd5min_est 2000
 	longevity 300 !from TH 2010-04-07 was 350 AA
 	fireresist 0.3
+	nf 0.88					! DUESSN Friend 1997/Zaehle 2009
 )
 
 
@@ -602,6 +607,7 @@ pft "TrBE" (
 	turnover_leaf 0.5
 	longevity 500   !from Thomas H 2010-03-30 new 500 instead of 600 2010-04-07
 	fireresist 0.1
+	nf 0.88					! DUESSN Friend 1997/Zaehle 2009
 )
 
 
@@ -619,6 +625,7 @@ pft "TrIBE" (
 	turnover_leaf 0.5
 	longevity 200
 	fireresist 0.1
+	nf 0.88					! DUESSN Friend 1997/Zaehle 2009
 )
 
 
@@ -675,4 +682,5 @@ pft "C4G" (
 	tcmax_est 1000  !no limit
 	twmin_est -1000 !no limit
 	gdd5min_est 0   !no limit
+	nf 0.88			! DUESSN Friend 1997/Zaehle 2009
 )

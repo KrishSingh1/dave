@@ -606,38 +606,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 					else nsapling=est;
 
 					if (date.year>freenyears && !patch.disturbed)
-						nsapling=patch.pft[pft.id].nsapling_nuptake;// FACE Thomas4
-			
-					// AMSTERDAM	sch = 0
-/*					if (ifamst){
-					if (date.year >= distyear[amst_site]+1 && date.year <= distyear[amst_site]+11) {
-
-						xtring amst_tmp;
-						if(pft_amst[amst_site] == 1)
-							amst_tmp="BNE";
-						else if(pft_amst[amst_site] == 2)
-							amst_tmp="TeNE";
-						else if(pft_amst[amst_site] == 3)
-							amst_tmp="IBS";
-						else if(pft_amst[amst_site] == 4)
-							amst_tmp="TeBS";
-						else if(pft_amst[amst_site] == 5)
-							amst_tmp="TeBE";
-						else if(pft_amst[amst_site] == 6)
-							amst_tmp="TrBE";
-						else if(pft_amst[amst_site] == 7)
-							amst_tmp="MF";
-						else
-							amst_tmp="";
-
-						if (pft.name==amst_tmp && date.year == distyear[amst_site]+1) {
-							nsapling=500;
-							dprintf("YEEEEEEE!!!!! %s\n",(char*)pft.name);
-						}
-						else if (amst_tmp!="MF")
-							nsapling=0.0;
-					}
-					}*/
+						nsapling=patch.pft[pft.id].nsapling_nuptake;
 
 					patch.pft[pft.id].nsapling_yearly+=nsapling;
 
@@ -728,7 +697,6 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 								indiv.cmass_heart/indiv.pft.cton_sap_avr+
 								indiv.nmass_reserve;
 
-						// AMSTERDAM
 						if (ifnlim && date.year>=freenyears && !patch.disturbed) {
 
 							nonlimdens=indiv.densindiv;
@@ -1736,44 +1704,12 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 		// INDIVIDUAL AND COHORT MODES
 
-		// AMSTERDAM
-
-//		if (!ifamst) {
-
 		if (ifdisturb && patch.age) {
 			disturbance(patch,1.0/distinterval);
 			if (patch.disturbed) {
 				return; // no mortality or establishment this year
 			}
 		}
-/*		}
-		else {
-
-		if (date.year < distyear[amst_site]) {
-		// Patch-destroying disturbance
-
-		if (ifdisturb && patch.age) {
-			disturbance(patch,1.0/distinterval);
-			if (patch.disturbed) {
-				return; // no mortality or establishment this year
-			}
-		}
-		}
-		else if (date.year == distyear[amst_site]) {
-
-			disturbance(patch,1.0);
-			if (patch.disturbed) {
-				return; // no mortality or establishment this year
-			}
-		}
-		}*/
-
-/*		if (date.year == 300){	// sch = 0
-			disturbance(patch,1.0);
-			if (patch.disturbed) {
-				return; // no mortality or establishment this year
-			}
-		}*/
 
 		// Mortality
 

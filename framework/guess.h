@@ -193,7 +193,7 @@ extern bool ifcmip5;
 extern bool iflandusesimple;
 extern bool iflandusechange;
 
-// SENS	// sch = 0
+// SENS
 extern double sens_cton_needle;
 	// Needleleaved C:N min change
 extern double sens_cton_broad;
@@ -212,13 +212,6 @@ extern bool run_landcover;
 extern double Total_N_500;
 extern double Total_C_500;
 extern double Added_N_from_500;
-
-// Amsterdam	// sch = 0
-extern int distyear[77];
-extern int pft_amst[77];
-extern int amst_site;
-extern bool ifamst;
-
 
 /// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND).
 extern bool run[NLANDCOVERTYPES];
@@ -1123,11 +1116,6 @@ public:
 	double dassim[365];
 		// daily net assimilation (kgC/m2/yr) - used by SOM dynamics to distribute
 		// plant N uptake through the year
-	double dresp[365];	// AMSTERDAM	sch = 0
-	double dnpp[365];
-	double dlai[365];
-	double dleafN[365];
-
 	double aassim;
 		// annual sum of positive dassim (above) - used by SOM dynamics
 	double vmax_lim[365];
@@ -1682,7 +1670,6 @@ public:
 		// N store for establishment
 	double nsapling_nuptake;
 		// number of saplings of this PFT established in vegetation_n_uptake() (cohort mode)
-	double dphen[365];	// AMSTERDAM
 	// end GUESSN
 
 	// MEMBER FUNCTIONS:
@@ -1715,9 +1702,6 @@ public:
 
 		harvested_products_slow=0.0;
 		harvested_products_slow_nmass=0.0;
-
-		for (int d=0;d<365;d++)
-			dphen[d]=0.0;
 	}
 };
 

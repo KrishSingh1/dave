@@ -9,32 +9,42 @@
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
+
 !///////////////////////////////////////////////////////////////////////////////////////
-! Forcing Data & gridlists
+! Forcing Data & gridlists - Windows
 !
 
-! Atmospheric CO2 content (ppmv)
-! (used only by guessio.cpp)
-	param "co2" (num 340)
-
-      param "file_gridlist" (str "gridlist.txt")
-
-	param "file_temp" (str "tmp30_21.grd")  !temperature
-	param "file_prec" (str "prc30_21.grd")  !precipitation
-	param "file_sun" (str "clo30_21.grd")   !sunshine
-
-! Path to LPJ soil code file
+! Gridlist - path to file containing list of 0.5 x 0.5 degree grid cells to simulate
 ! You may need to specify the full pathname (including directory) here
-	param "file_soil" (str "soils_lpj.dat")
 
-! Atmospheric CO2 content (ppmv)
-	param "file_co2" (str "co2_1901-2006.txt")
+	param "file_co2" (str "/data/benchmark_data/2010_11_22/co2/co2_1901-2006.txt")
+      param "file_gridlist" (str "gridlist.txt")
+	param "file_cru" (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006.bin")
+	param "file_cru_misc" (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006misc.bin")
 
 ! N deposition (blank string to use constant value andep instead -- see below)
-	param "file_ndep" (str "GlobalNitrogenDeposition.bin")
-	!param "file_ndep" (str "")
+	param "file_ndep" (str "/home/david/ndep/GlobalNitrogenDeposition")
 
+! CMIP5 -climate data
+	param "path_cmip5hist" (str "/home/anders/CMIP5/climate_data/mpi_esm_lr_hist_r1i1p1/") ! only paths, bin file name is always the same
+	param "path_cmip5scen" (str "/home/anders/CMIP5/climate_data/")
+ 	param "path_cmip5_co2" (str "/home/anders/CMIP5/co2/")
 
+!///////////////////////////////////////////////////////////////////////////////////////
+!///////////////////////////////////////////////////////////////////////////////////////
+! Forcing Data & gridlists - simba
+!
+
+!	param "file_co2" (str "/data/benchmark_data/2010_11_22/co2/co2_1901-2006.txt")
+!	param "file_gridlist" (str "gridlist.txt")
+!	param "file_cru" (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006.bin")
+!	param "file_cru_misc" (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006misc.bin")
+!	param "file_ndep" (str "/home/david/ndep/GlobalNitrogenDeposition")
+
+! CMIP5 -climate data
+!	param "path_cmip5hist" (str "/home/anders/CMIP5/climate_data/mpi_esm_lr_hist_r1i1p1/") ! only paths, bin file name is always the same
+!	param "path_cmip5scen" (str "/home/anders/CMIP5/climate_data/")
+! 	param "path_cmip5_co2" (str "/home/anders/CMIP5/co2/")
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -45,7 +55,7 @@
 
 ! guess2008 - New predefined outputs. Procedure adapted from Ben's LPJ-GUESS Education
 ! outputdirectory is mandatory
-outputdirectory ""
+outputdirectory "./"
 
 ! Prefined yearly output
 ! These files may be outcommented if their output is not required. 
@@ -57,12 +67,9 @@ file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 file_firert "firert.out"
-!file_age "age.out"
 !file_allometry "allometry.out"
 file_canopyh "canopyheight.out"
 !file_allometry_ind "allometry_ind.out"
-
-
 
 ! GUESSN
 file_anppn "anppn.out"
@@ -72,22 +79,24 @@ file_nsources "nsources.out"
 file_npool "npool.out"
 file_nleach "nleach.out"
 file_nuptake "nuptake.out"
+file_nlim "nlim.out"
 file_vmaxnlim "vmaxnlim.out"
 
 ! Monthly outputs
-file_mnpp "mnpp.out"
-file_mlai "mlai.out"
-file_mrh "mrh.out"
-file_mgpp "mgpp.out"
-file_mra "mra.out"
-file_mnee "mnee.out"
-file_maet "maet.out"
-file_mpet "mpet.out"
-file_mevap "mevap.out"
-file_mintercep "mintercep.out"
-file_mrunoff "mrunoff.out"
-file_mwcont_upper "mwcont_upper.out"
-file_mwcont_lower "mwcont_lower.out"
+!file_mnpp "mnpp.out"
+!file_mlai "mlai.out"
+!file_mrh "mrh.out"
+!file_mgpp "mgpp.out"
+!file_mra "mra.out"
+!file_mnee "mnee.out"
+!file_maet "maet.out"
+!file_mpet "mpet.out"
+!file_mevap "mevap.out"
+!file_mintercep "mintercep.out"
+!file_mrunoff "mrunoff.out"
+!file_mwcont_upper "mwcont_upper.out"
+!file_mwcont_lower "mwcont_lower.out"
+
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -104,23 +113,22 @@ file_mwcont_lower "mwcont_lower.out"
 
 title 'LPJ-GUESS (guess2008) cohort mode - global pfts'
 
-vegmode "cohort"		! "cohort", "individual" or "population"
-nyear 100				! number of years to run the model after spinup (demo module only)
-nyear_spinup 500		! number of years to spin up the simulation for
+vegmode "cohort"			! "cohort", "individual" or "population"
+nyear_spinup 500			! number of years to spin up the simulation for
 ifdailynpp 1			! whether to calculate NPP daily (1) or monthly (0)
-						! guess2008 - species version has 1
+					! guess2008 - species version has 1
 ifdailydecomp 1			! whether to calculate soil respiration daily (1) or monthly (0)
 ifcalcsla 1				! whether to calculate SLA from leaf longevity
-						! (PFT-specific value can be specified in this file instead)
+					! (PFT-specific value can be specified in this file instead)
 iffire 0				! whether to implement fire (1) or not (0)
-npatch 10				! number of replicate patches to simulate
+npatch 5				! number of replicate patches to simulate
 patcharea 1000			! patch area (m2)
 estinterval 5			! years between establishment events in cohort mode
 ifdisturb 1				! whether generic patch-destroying disturbances enabled
-distinterval 100		! average return time for generic patch-destroying disturbances
-						! guess2008 - 200 for Europe, 100 globally
+distinterval 100			! average return time for generic patch-destroying disturbances
+					! guess2008 - 200 for Europe, 100 globally
 ifbgestab 1				! whether background establishment enabled
-ifsme 1					! whether spatial mass effect enabled
+ifsme 1				! whether spatial mass effect enabled
 ifstochestab 1			! whether establishment stochastic
 ifstochmort 1			! whether mortality stochastic
 ifcdebt 1				! whether to allow vegetation C storage (1) or not (0)
@@ -130,14 +138,12 @@ ifcdebt 1				! whether to allow vegetation C storage (1) or not (0)
 !///////////////////////////////////////////////////////////////////////////////
 
 ifcentury 1				! whether to use CENTURY SOM dynamics (mandatory for N cycling)
-ifnlim 1				! whether plant growth limited by available N
+ifnlim 0				! whether plant growth limited by available N
 ifindiv_fnuptake 1		! whether to allow individual fractional N uptake
-freenyears 50			! number of years to spin up without N limitation (needed to build up a N pool)
+freenyears 200			! number of years to spin up without N limitation (needed to build up a N pool)
 ifleachn 1				! whether to allow N leaching
 ifnfix 1				! whether to include an estimate for N fixation (1=conservative,2=Central,3=Upper)
-cwdtransfer 1.0			! fraction of woody debris transferred to SOM each year (0.05))
 nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
-ifndemand_new_est 1		! whether new est has to compite for N
 
 ! end GUESSN
 
@@ -146,6 +152,7 @@ sens_cton_needle 1.0	! frac change to cton_leaf for needleleaved pfts
 sens_cton_broad 1.0		! frac change to cton_leaf for broadleaved pfts
 sens_decayrate 1.0		! frac change to decayrates
 sens_cton_vmax 1.0		! frac change to avmaxnlim
+sens_org_leach 1.0		! frac change to amount of organic leaching
 
 ! guess2008 - additions
 ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1) 
@@ -155,6 +162,31 @@ ifdroughtlimitedestab 0			! whether establishment is limited by growing season d
 								! guess2008 - species version has 1
 ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit every day (0)
 ifspeciesspecificwateruptake 0	! whether there is species specific water uptake (1) or not (0)
+
+! CMIP5
+ifcmip5 0				! Use CMIP5 climate data instead of CRU
+
+! CMIP5 - land use input
+iflandusesimple 0                       ! whether to use a simple land use representation (1) or not (0)
+iflandusechange 0                       ! whether land use is static (0) or dynamic (1) 
+
+! CMIP5 - climate data correction
+param "correctionmethod" (str "c3") 	
+					!c1: use raw cmip5 data. 
+					!c2: correct annual offset.
+					!c3: correct annual and seasonal offset.
+					!c4: merge cru and cmip5 data at 2006, cru 1850-2005, cmip5 c3 data for 2006-2100
+					!c5: cru var cmip5 trend, cru data 1850-2005, cmip5 trend + cru 61-90 var 2006-2085
+					!c6: same as above, but now with seasonality change from cmip5
+					!c7: CRU data only, cru cloudiness instead of shortwave radiation, ends 2005
+					!c8: correct annual and seasonal offset (c3) and keeping temperature and CO2 at pre industrial level (1861-1870).
+					!c9: correct annual and seasonal offset (c3) and keeping temperature and N deposition at pre industrial level (1861-1870).
+					!c10: correct annual and seasonal offset (c3) and keeping CO2 and N deposition at pre industrial level (1861-1870).
+					!c11: correct annual and seasonal offset (c3) and keeping temperature at pre industrial level (1861-1870).
+
+param "gcm" (str "bjarki")		!Will be added to the outfile name
+
+param "rcp" (str "85")			!26 45 60 85 !!! HAVE 45 and 85
 
 !!!!!!!!!!!! landcover parameters !!!!!!!!!!!!!!					
 
@@ -175,6 +207,7 @@ lc_fixed_forest 0   	! FOREST
 lc_fixed_natural 25 	! NATURAL
 lc_fixed_peatland 25 	! PEATLAND
 equal_landcover_area 0	! divide gridcell into equal active landcover fractions
+
 
 !///////////////////////////////////////////////////////////////////////////////////////
 
@@ -234,8 +267,8 @@ group "tree" (
 	litterme 0.3
 )
 
-group "Shrub"
-(	
+group "Shrub" (
+	
 	! Unchanged from species version
 	common
 	lifeform "tree"
@@ -251,6 +284,7 @@ group "Shrub"
 	cton_leaf_max 45		! GUESSN
 	cton_root_avr 25 		! GUESSN
 	cton_sap_avr 172		! GUESSN !285 old value, new value from Friend 1997
+	nf 1.2					! DUESSN Friend 1997/Zaehle 2009
 	pathway "c3"
 	kest_repr 20
 	kest_bg 0.1
@@ -258,7 +292,6 @@ group "Shrub"
 	litterme 0.3
 	rootdist 0.6 0.4
 	longevity 100
-	!sla 40
 )
 
 
@@ -281,6 +314,7 @@ group "grass" (
 	cton_leaf_max 45		! GUESSN
 	cton_root_avr 25 		! GUESSN
 	n_reserve 0.30			! GUESSN
+	nf 1.2					! DUESSN Friend 1997/Zaehle 2009
 	litterme 0.2
 	parff_min 1000000		! 2500000 i guess2008	
 	fireresist 0.5			! 1.0 hos Thomas
@@ -302,6 +336,7 @@ group "broadleaved" (
 	cton_leaf_max 45		! GUESSN
 	cton_root_avr 25 		! GUESSN
 	cton_sap_avr 172		! GUESSN !285 old value, new value from Friend 1997
+	nf 1.2					! GUESSN Friend 1997/Zaehle 2009
 
 )
 
@@ -318,6 +353,7 @@ group "needleleaved" (
 	cton_leaf_max 75		! GUESSN
 	cton_root_avr 42 		! GUESSN
 	cton_sap_avr 290		! GUESSN !480 old value, new value from Friend 1997
+	nf 0.8					! GUESSN Friend 1997/Zaehle 2009
 
 )
 
@@ -410,8 +446,6 @@ group "shade_intolerant"
 	turnover_sap 0.1
 )
 
-
-
 pft "BNE" (
 
 	! Boreal needleleaved evergreen tree
@@ -474,27 +508,28 @@ pft "BNS" (
 	gdd5min_est 500
 	longevity 300
 	fireresist 0.3
+	nf 1.2					! DUESSN Friend 1997/Zaehle 2009
 )
 
-pft "TeNE" (	! CANIF TREE
+pft "TeNE" (
 
 	! Temperate needleleaved evergreen tree
 
-	include 0
+	include 1
 	tree
 	needleleaved
-	shade_tolerant
+	shade_intolerant ! cf Jun_oxy, Pin_hal in europe.ins
 	evergreen
 	temperate
 	leaflong 3
 	turnover_leaf 0.33
-	tcmin_surv -31
-	tcmin_est -30
-	tcmax_est -1
-	twmin_est 5
-	gdd5min_est 500
-	longevity 500
-	fireresist 0.3
+	tcmin_surv -2 ! As in Sitch et al. (2003), a little lower than TeBE
+	tcmin_est -2 ! As in Sitch et al. (2003), a little lower than TeBE
+	tcmax_est 10 ! Hickler et al. (2012) have 9 degC for Pin_hal
+	twmin_est 5  ! low, since Hickler et al. (2012) have -1000 for Jun_oxy
+	gdd5min_est 2000 !(Stefans value 900)2000 ! As TeBE, a little lower than Jun_oxy, Pin_hal in europe.ins
+	longevity 300  ! Hickler et al. (2012) have 350 for Pin_hal
+	fireresist 0.3 ! Hickler et al. (2012) have 0.2 for Pin_hal and 0.4 for Jun_oxy
 )
 
 pft "TeBS" (
@@ -554,6 +589,7 @@ pft "TeBE" (
 	gdd5min_est 2000
 	longevity 300 !from TH 2010-04-07 was 350 AA
 	fireresist 0.3
+	nf 0.88					! DUESSN Friend 1997/Zaehle 2009
 )
 
 
@@ -571,6 +607,7 @@ pft "TrBE" (
 	turnover_leaf 0.5
 	longevity 500   !from Thomas H 2010-03-30 new 500 instead of 600 2010-04-07
 	fireresist 0.1
+	nf 0.88					! DUESSN Friend 1997/Zaehle 2009
 )
 
 
@@ -588,6 +625,7 @@ pft "TrIBE" (
 	turnover_leaf 0.5
 	longevity 200
 	fireresist 0.1
+	nf 0.88					! DUESSN Friend 1997/Zaehle 2009
 )
 
 
@@ -644,5 +682,6 @@ pft "C4G" (
 	tcmax_est 1000  !no limit
 	twmin_est -1000 !no limit
 	gdd5min_est 0   !no limit
+	nf 0.88			! DUESSN Friend 1997/Zaehle 2009
 )
 

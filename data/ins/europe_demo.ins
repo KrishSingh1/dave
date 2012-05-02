@@ -11,42 +11,22 @@
 
 
 !///////////////////////////////////////////////////////////////////////////////////////
-! Forcing Data & gridlists - Windows
+! Forcing Data & gridlists
 !
 
-! Gridlist - path to file containing list of 0.5 x 0.5 degree grid cells to simulate
+! Atmospheric CO2 content (ppmv)
+! (used only by guessio.cpp)
+        param "co2" (num 340)
+
+        param "file_gridlist" (str "gridlist.txt")
+
+        param "file_temp" (str "tmp30_21.grd")  !temperature
+        param "file_prec" (str "prc30_21.grd")  !precipitation
+        param "file_sun" (str "clo30_21.grd")   !sunshine
+
+! Path to LPJ soil code file
 ! You may need to specify the full pathname (including directory) here
-
-	param "file_co2" (str "/data/benchmark_data/2010_11_22/co2/co2_1901-2006.txt")
-      param "file_gridlist" (str "gridlist.txt")
-	param "file_cru" (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006.bin")
-	param "file_cru_misc" (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006misc.bin")
-
-! N deposition (blank string to use constant value andep instead -- see below)
-	param "file_ndep" (str "/home/david/ndep/GlobalNitrogenDeposition")
-
-! CMIP5 -climate data
-	param "path_cmip5hist" (str "/home/anders/CMIP5/climate_data/mpi_esm_lr_hist_r1i1p1/") ! only paths, bin file name is always the same
-	param "path_cmip5scen" (str "/home/anders/CMIP5/climate_data/")
- 	param "path_cmip5_co2" (str "/home/anders/CMIP5/co2/")
-
-!///////////////////////////////////////////////////////////////////////////////////////
-!///////////////////////////////////////////////////////////////////////////////////////
-! Forcing Data & gridlists - simba
-!
-
-!	param "file_co2" (str "/data/benchmark_data/2010_11_22/co2/co2_1901-2006.txt")
-!	param "file_gridlist" (str "gridlist.txt")
-!	param "file_cru" (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006.bin")
-!	param "file_cru_misc" (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006misc.bin")
-!	param "file_ndep" (str "/home/david/ndep/GlobalNitrogenDeposition")
-
-! CMIP5 -climate data
-!	param "path_cmip5hist" (str "/home/anders/CMIP5/climate_data/mpi_esm_lr_hist_r1i1p1/") ! only paths, bin file name is always the same
-!	param "path_cmip5scen" (str "/home/anders/CMIP5/climate_data/")
-! 	param "path_cmip5_co2" (str "/home/anders/CMIP5/co2/")
-!///////////////////////////////////////////////////////////////////////////////////////
-
+        param "file_soil" (str "soils_lpj.dat")
 
 
 !///////////////////////////////////////////////////////////////////////////////////////

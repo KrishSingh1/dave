@@ -4,5 +4,13 @@ param "file_co2"      (str "/data/benchmark_data/2010_11_22/co2/co2_1901-2006.tx
 param "file_cru"      (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006.bin")
 param "file_cru_misc" (str "/data/benchmark_data/2010_11_22/cru/cru_1901_2006misc.bin")
 
+! N deposition (blank string to use constant value andep instead)
+param "file_ndep"     (str "/home/david/ndep/GlobalNitrogenDeposition")
+
 ! Location of EUROFLUX data
 param "flux_dir"      (str "/data/benchmark_data/2010_11_22/euroflux/")
+
+! CMIP5 -climate data
+param "path_cmip5hist" (str "/home/anders/CMIP5/climate_data/mpi_esm_lr_hist_r1i1p1/") ! only paths, bin file name is always the same
+param "path_cmip5scen" (str "/home/anders/CMIP5/climate_data/")
+param "path_cmip5_co2" (str "/home/anders/CMIP5/co2/")

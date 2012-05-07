@@ -1271,9 +1271,9 @@ const int NYEAR_CRU=106;
 const int FIRSTHISTYEAR_CRU=1901;
 
 // guess2008
-const int NYEAR_HIST=NYEAR_CRU; // guess2008 - CRU TS 3.0 has 106 years of data (1901-2006)
+const int NYEAR_HIST=NYEAR_CMIP5; // guess2008 - CRU TS 3.0 has 106 years of data (1901-2006)
 	// number of years of historical climate in CRU and CO2 files (see below)
-const int FIRSTHISTYEAR=FIRSTHISTYEAR_CRU;
+const int FIRSTHISTYEAR=FIRSTHISTYEAR_CMIP5;
 	// calender year corresponding to first year in CRU climate data set
 const int NYEAR_SPINUP_DATA=30;
 	// number of years to use for temperature-detrended spinup data set
@@ -1744,7 +1744,7 @@ bool searchcmip5hist(char* cmip5histark,double dlon,double dlat,
 		if (success) {
 			bool flag = ark.rewind();
 			if (!flag) { 
-				ark.close(); // I.e. we opened it but we couldn´t rewind
+				ark.close(); // I.e. we opened it but we couldnt rewind
 				return false;
 			}
 		}
@@ -1823,7 +1823,7 @@ bool searchcmip5scen(char* cmip5scenark,double dlon,double dlat,
 		if (success) {
 			bool flag = ark.rewind();
 			if (!flag) { 
-				ark.close(); // I.e. we opened it but we couldn´t rewind
+				ark.close(); // I.e. we opened it but we couldnt rewind
 				return false;
 			}
 		}
@@ -3841,7 +3841,7 @@ bool getgridcell(Gridcell& gridcell) {
 		// GUESSN
 		if (!getndep(file_ndep,lon,lat,gridcell.climate)) {
 
-			fail("Grid cell not found in %s",(char*)file_ndep);
+			fail("Grid cell Lat %g Long %g not found in %s",lat,lon,(char*)file_ndep);
 		}
 		// end GUESSN
 
@@ -4536,6 +4536,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_vmaxnlim) fprintf(out_vmaxnlim,lonlatyearstr,"Lon","Lat","Year");
 		if (out_nlim) fprintf(out_nlim,lonlatyearstr,"Lon","Lat","Year");
 		if (out_canopyh) fprintf(out_canopyh,lonlatyearstr,"Lon","Lat","Year");
+		if (out_allometry_ind) fprintf(out_allometry_ind,"%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s\n",
+			"Lon","Lat","Year","PFT","Age","N","Mfol","Mstem","Mcroot","Mfroot","Mroot","Mwood","Mactive","M","H","D");
 		// end GUESSN
 
 		// Loop through PFT's and print PFT names as column labels
@@ -4845,6 +4847,28 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 								standpft_nmass+=indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+
 									indiv.nmass_heart+indiv.nmass_reserve;
 								// end GUESSN
+
+								// WOLF
+								if (out_allometry_ind && date.year == 605 && pft.lifeform==TREE && indiv.age>0)	 {
+
+									int angio;
+									if (pft.id < 4)
+										angio = 1;
+									else
+										angio = 2;
+
+									fprintf(out_allometry_ind,"%9.1f%9.1f%9.0d%9.0d%9.0f%9.0f%9.3f%9.2f%9.2f%9.3f%9.2f%9.2f%9.3f%9.2f%9.3f%9.3f\n",
+										lon,lat,date.year,angio,indiv.age,indiv.densindiv*10000.0/(double)stand.nobj,										// N
+										indiv.cmass_leaf/indiv.densindiv,														// Mfol
+										(indiv.cmass_sap+indiv.cmass_heart)*0.75/indiv.densindiv,								// Mstem
+										(indiv.cmass_sap+indiv.cmass_heart)*0.25/indiv.densindiv,								// Mcroot
+										indiv.cmass_root/indiv.densindiv,														// Mfroot
+										((indiv.cmass_sap+indiv.cmass_heart)*0.25+indiv.cmass_root)/indiv.densindiv,			// Mroot
+										(indiv.cmass_sap+indiv.cmass_heart)/indiv.densindiv,									// Mwood
+										(indiv.cmass_leaf+indiv.cmass_root)/indiv.densindiv,									// Mactive
+										(indiv.cmass_sap+indiv.cmass_heart+indiv.cmass_leaf+indiv.cmass_root)/indiv.densindiv,	// M
+										indiv.height,pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3));				// Height, Diameter
+								}
 
 								if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 
@@ -5421,6 +5445,7 @@ void termio() {
 		if (out_vmaxnlim) fclose(out_vmaxnlim);
 		if (out_nlim) fclose(out_nlim);
 		if (out_canopyh) fclose(out_canopyh);
+		if (out_allometry_ind) fclose(out_allometry_ind);
 		// end GUESSN
 	}
 

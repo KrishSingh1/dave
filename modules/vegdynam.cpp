@@ -1235,7 +1235,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					patch.pft[indiv.pft.id].nmass_litter_root+=(1.0-frac_survive)*indiv.nmass_root;
 
 					// Transfer N storage to wood N litter for now
-					patch.pft[indiv.pft.id].nmass_litter_wood+=(1.0-frac_survive)*(indiv.nstore+indiv.nmass_reserve);
+					patch.pft[indiv.pft.id].nmass_litter_root+=(1.0-frac_survive)*(indiv.nstore+indiv.nmass_reserve);
 
 					// Reduce individual density and biomass on patch area basis
 					// to account for loss of killed individuals

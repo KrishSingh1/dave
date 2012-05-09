@@ -126,13 +126,6 @@ nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
 
 ! end GUESSN
 
-! SENS
-sens_cton_needle 1.0	! frac change to cton_leaf for needleleaved pfts
-sens_cton_broad 1.0		! frac change to cton_leaf for broadleaved pfts
-sens_decayrate 1.0		! frac change to decayrates
-sens_cton_vmax 1.0		! frac change to avmaxnlim
-sens_org_leach 1.0		! frac change to amount of organic leaching
-
 ! guess2008 - additions
 ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1) 
 								! or to use the standard step-function (0)  
@@ -263,7 +256,7 @@ group "Shrub" (
 	cton_leaf_max 45		! GUESSN
 	cton_root_avr 25 		! GUESSN
 	cton_sap_avr 172		! GUESSN !285 old value, new value from Friend 1997
-	nf 1.2					! DUESSN Friend 1997/Zaehle 2009
+	a0 0.67					! DUESSN Friend 1997
 	pathway "c3"
 	kest_repr 20
 	kest_bg 0.1
@@ -293,7 +286,7 @@ group "grass" (
 	cton_leaf_max 45		! GUESSN
 	cton_root_avr 25 		! GUESSN
 	n_reserve 0.30			! GUESSN
-	nf 1.2					! DUESSN Friend 1997/Zaehle 2009
+	a0 0.67					! DUESSN Friend 1997
 	litterme 0.2
 	parff_min 1000000		! 2500000 i guess2008	
 	fireresist 0.5			! 1.0 hos Thomas
@@ -315,7 +308,7 @@ group "broadleaved" (
 	cton_leaf_max 45		! GUESSN
 	cton_root_avr 25 		! GUESSN
 	cton_sap_avr 172		! GUESSN !285 old value, new value from Friend 1997
-	nf 1.2					! GUESSN Friend 1997/Zaehle 2009
+	a0 0.67					! GUESSN Friend 1997
 
 )
 
@@ -332,7 +325,7 @@ group "needleleaved" (
 	cton_leaf_max 75		! GUESSN
 	cton_root_avr 42 		! GUESSN
 	cton_sap_avr 290		! GUESSN !480 old value, new value from Friend 1997
-	nf 0.8					! GUESSN Friend 1997/Zaehle 2009
+	a0 0.83					! GUESSN Friend 1997/Zaehle 2009
 
 )
 
@@ -487,7 +480,7 @@ pft "BNS" (
 	gdd5min_est 500
 	longevity 300
 	fireresist 0.3
-	nf 1.2					! DUESSN Friend 1997/Zaehle 2009
+	a0 0.67					! DUESSN Friend 1997/Zaehle 2009
 )
 
 pft "TeNE" (
@@ -568,7 +561,7 @@ pft "TeBE" (
 	gdd5min_est 2000
 	longevity 300 !from TH 2010-04-07 was 350 AA
 	fireresist 0.3
-	nf 0.88					! DUESSN Friend 1997/Zaehle 2009
+	a0 0.76					! DUESSN Friend 1997/Zaehle 2009
 )
 
 
@@ -586,7 +579,7 @@ pft "TrBE" (
 	turnover_leaf 0.5
 	longevity 500   !from Thomas H 2010-03-30 new 500 instead of 600 2010-04-07
 	fireresist 0.1
-	nf 0.88					! DUESSN Friend 1997/Zaehle 2009
+	a0 0.76					! DUESSN Friend 1997/Zaehle 2009
 )
 
 
@@ -604,7 +597,7 @@ pft "TrIBE" (
 	turnover_leaf 0.5
 	longevity 200
 	fireresist 0.1
-	nf 0.88					! DUESSN Friend 1997/Zaehle 2009
+	a0 0.76					! DUESSN Friend 1997/Zaehle 2009
 )
 
 
@@ -661,6 +654,6 @@ pft "C4G" (
 	tcmax_est 1000  !no limit
 	twmin_est -1000 !no limit
 	gdd5min_est 0   !no limit
-	nf 0.88			! DUESSN Friend 1997/Zaehle 2009
+	a0 0.78			! DUESSN Friend 1997/Zaehle 2009
 )
 

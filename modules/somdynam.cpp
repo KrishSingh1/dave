@@ -659,9 +659,6 @@ void decayrates(Soil& soil,double temp_soil,double wcont_soil) {
 		else if (p==SOILMICRO)
 			k*=texture_mod;
 
-		// SENS	
-		k*=sens_decayrate;	// sch = 0
-
 		// Calculate fraction of C pool remaining after today's decomposition
 
 		soil.sompool[p].frc=exp(-k);	
@@ -881,7 +878,7 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 		respfrac=max(0.0,0.85-0.68*(soil.soiltype.clay_frac+soil.soiltype.silt_frac));
 
 		// Fraction lost to organic leaching (C_AL, Parton et al 1993 Eqn 8)
-		leachfrac=soil.dperc*0.1/18.0*(0.01+0.04*soil.soiltype.sand_frac)*sens_org_leach;
+		leachfrac=soil.dperc*0.1/18.0*(0.01+0.04*soil.soiltype.sand_frac);
 
 		// Fraction entering passive SOM pool (Parton et al 1993, Eqn 9)
 		cap=0.003+0.032*soil.soiltype.clay_frac;
@@ -1134,8 +1131,9 @@ void leaching(Soil& soil) {
 	// Assume this affects daily mineral N excess after vegetation uptake
 	// in proportion to baseflow as a fraction of total soil water
 
-	//if (!negligible(soil.wcontmm_yesterday) && ifleachn) 
-	//	soil.leachfrac_daily[date.day]=soil.dbaseflow/soil.wcontmm_yesterday;
+	/*if (!negligible(soil.wcontmm_yesterday) && ifleachn) 
+		soil.leachfrac_daily[date.day]=soil.dbaseflow/soil.wcontmm_yesterday;*/
+	
 	if (!negligible(soil.dperc) && ifleachn) 
 		// using Parton et al. eqn. 13 
 		soil.leachfrac_daily[date.day]=soil.dperc/18.0*(0.2+0.7*soil.soiltype.sand_frac);		
@@ -2187,7 +2185,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 
 	// Total N supply in patch
 	patch.nsupply=soil.nmass_avail+soil.ndep_annual+soil.nfix+
-		+soil.nmin_annual-soil.nimmob_annual;
+		soil.nmin_annual-soil.nimmob_annual;
 
 	// DAILY N SUPPLY
 
@@ -2377,7 +2375,10 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 		dprintf("Year %d vegetation_n_uptake: patch %d Unexpected NEGATIVE value (%g) for annual excess mineral N before leach (%g)\n",
 			date.year,patch.id,excessn,patch.nsupply-patch.ndemand*patch.fnuptake);
 
-	soil.nmass_avail=excessn;
+	if (date.year > freenyears)
+		soil.nmass_avail=excessn;
+	else
+		soil.nmass_avail=0.0;
 }
 // end GUESSN
 

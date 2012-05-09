@@ -127,13 +127,6 @@ nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
 
 ! end GUESSN
 
-! SENS
-sens_cton_needle 1.0	! frac change to cton_leaf for needleleaved pfts
-sens_cton_broad 1.0		! frac change to cton_leaf for broadleaved pfts
-sens_decayrate 1.0		! frac change to decayrates
-sens_cton_vmax 1.0		! frac change to avmaxnlim
-sens_org_leach 1.0		! frac change to amount of organic leaching
-
 ! guess2008 - additions
 ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1) 
 								! or to use the standard step-function (0)  
@@ -303,7 +296,7 @@ group "grass" (
 	cton_leaf_max 45		! GUESSN
 	cton_root_avr 25 		! GUESSN
 	n_reserve 0.30		! GUESSN
-	nf 1.2
+	a0 0.67
 	respcoeff 2.0 
 	litterme 0.2
 )
@@ -397,7 +390,7 @@ pft "Abi_alb" (
 	longevity 350
 	drought_tolerance 0.35
 	n_reserve 0.05			! GUESSN
-	nf 0.8
+	a0 0.83
 )
 
 
@@ -434,7 +427,7 @@ pft "BES" (
 	intc 0.06
 	drought_tolerance 0.25
 	n_reserve 0.05			! GUESSN
-	nf 0.8
+	a0 0.83
 )
 
 
@@ -462,7 +455,7 @@ pft "Bet_pen" (
 	longevity 200 
 	drought_tolerance 0.42
 	n_reserve 0.15			! GUESSN
-	nf 1.2
+	a0 0.67
 )
 
 
@@ -490,7 +483,7 @@ pft "Bet_pub" (
 	longevity 200
 	drought_tolerance 0.5
 	n_reserve 0.15			! GUESSN
-	nf 1.2
+	a0 0.67
 )
 
 
@@ -518,7 +511,7 @@ pft "Car_bet" (
 	longevity 350
 	drought_tolerance 0.33
 	n_reserve 0.15			! GUESSN
-	nf 1.2
+	a0 0.67
 )
 
 
@@ -548,7 +541,7 @@ pft "Cor_ave" (
 	longevity 100		! THdiff: 300 - see Savill's silviculture book
 	drought_tolerance 0.3
 	n_reserve 0.15			! GUESSN
-	nf 1.2
+	a0 0.67
 )
 
 
@@ -576,7 +569,7 @@ pft "Fag_syl" (
 	longevity 500
 	drought_tolerance 0.3
 	n_reserve 0.15			! GUESSN
-	nf 1.2
+	a0 0.67
 )
 
 
@@ -604,7 +597,7 @@ pft "Fra_exc" (
 	longevity 350
 	drought_tolerance 0.4
 	n_reserve 0.15			! GUESSN
-	nf 1.2
+	a0 0.67
 )
 
 
@@ -639,7 +632,7 @@ pft "Jun_oxy" (
 	longevity 200
 	drought_tolerance 0.01
 	n_reserve 0.05			! GUESSN
-	nf 0.8
+	a0 0.83
 )
 
 
@@ -674,7 +667,7 @@ pft "MRS" (
 	longevity 100		!
 	drought_tolerance 0.01
 	n_reserve 0.15			! GUESSN
-	nf 1.2
+	a0 0.67
 )
 
 
@@ -705,7 +698,7 @@ pft "Pic_abi" (
 	longevity 500
 	drought_tolerance 0.43
 	n_reserve 0.05			! GUESSN
-	nf 0.8
+	a0 0.83
 )
 
 
@@ -739,7 +732,7 @@ pft "Pic_sit" (
 	longevity 700				! Bjarki
 	drought_tolerance 0.5		! Bjarki
 	n_reserve 0.05			! GUESSN
-	nf 0.8
+	a0 0.83
 
 	! wooddens 200 - Should be less dens than P. abies (Savill)
 	! turnover_sap 0.065 ! Bjarki 30% + abies!
@@ -774,7 +767,7 @@ pft "Pin_syl" (
 	longevity 350		! THdiff: 500
 	drought_tolerance 0.25
 	n_reserve 0.05			! GUESSN
-	nf 0.8
+	a0 0.83
 )
 
 
@@ -807,7 +800,7 @@ pft "Pin_hal" (
 	longevity 350
 	drought_tolerance 0.05
 	n_reserve 0.05			! GUESSN
-	nf 0.8
+	a0 0.83
 )
 
 
@@ -838,7 +831,7 @@ pft "Pop_tre" (
 	longevity 160		! Prentice & H.
 	drought_tolerance 0.4
 	n_reserve 0.15			! GUESSN
-	nf 1.2
+	a0 0.67
 )
 
 
@@ -871,7 +864,7 @@ pft "Que_coc" (
 	longevity 350
 	drought_tolerance 0.1
 	n_reserve 0.05			! GUESSN
-	nf 0.88
+	a0 0.78
 )
 
 
@@ -903,7 +896,7 @@ pft "Que_ile" (
 	longevity 350
 	drought_tolerance 0.1
 	n_reserve 0.05			! GUESSN
-	nf 0.8
+	a0 0.83
 )
 
 
@@ -933,7 +926,7 @@ pft "Que_pub" (
 	longevity 500
 	drought_tolerance 0.2
 	n_reserve 0.15			! GUESSN
-	nf 1.2
+	a0 0.67
 )
 
 
@@ -961,7 +954,7 @@ pft "Que_rob" (
 	longevity 500
 	drought_tolerance 0.25
 	n_reserve 0.15			! GUESSN
-	nf 1.2
+	a0 0.67
 )
 
 
@@ -990,7 +983,7 @@ pft "Til_cor" (
 	longevity 350
 	drought_tolerance 0.33
 	n_reserve 0.15			! GUESSN
-	nf 1.2
+	a0 0.67
 )
 
 
@@ -1020,7 +1013,7 @@ pft "Ulm_gla" (
 	longevity 350
 	drought_tolerance 0.4
 	n_reserve 0.15			! GUESSN
-	nf 1.2
+	a0 0.67
 )
 
 
@@ -1079,7 +1072,7 @@ pft "C4_gr" (
 	fireresist 0.5			
 	intc 0.01
 	drought_tolerance 0.01
-	nf 0.88
+	a0 0.78
 )
 
 

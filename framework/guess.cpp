@@ -76,18 +76,6 @@ bool ifcmip5;
 bool iflandusesimple;
 bool iflandusechange;
 
-// SENS
-double sens_cton_needle;
-	// Needleleaved C:N min change
-double sens_cton_broad;
-	// Broadleaved C:N min change
-double sens_decayrate;
-	// Changes decay rates constant of som pools
-double sens_cton_vmax;
-	// Changes vmax N limitation effect on leaf C:N
-double sens_org_leach;
-	// Change amount of organic leaching	
-
 // N budget check
 double Total_N_500;
 double Total_C_500;

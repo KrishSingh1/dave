@@ -517,8 +517,6 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 							patch.pft[pft.id].nstore_est-=min(patch.pft[pft.id].nstore_est,indiv.ndemand);
 							bminit*=frac_est;
 
-							//dprintf("Year %d pft %s est frac %g\n",date.year,(char*)indiv.pft.name,frac_est);
-
 							if (patch.pft[pft.id].nstore_est>0.0) {
 								patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;
 								patch.pft[pft.id].nstore_est=0.0;
@@ -704,8 +702,6 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 							indiv.densindiv *= min(1.0,patch.pft[pft.id].nstore_est/indiv.ndemand);
 
 							indiv.densindiv = ((double)((int)(indiv.densindiv*1000.0)))/1000.0;
-
-							//dprintf("Year %d pft %s est frac %g dens %g\n",date.year,(char*)indiv.pft.name,indiv.densindiv/nonlimdens,indiv.densindiv);
 
 							if (indiv.densindiv<nonlimdens) {
 								double densfrac=indiv.densindiv/nonlimdens;

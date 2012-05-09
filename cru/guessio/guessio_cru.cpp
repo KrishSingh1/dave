@@ -341,18 +341,6 @@ void plib_declarations(int id,xtring setname) {
 			"Whether to allow individual fractional N uptake");
 		// end GUESSN
 
-		// SENS
-		declareitem("sens_cton_needle",&sens_cton_needle,0.5,2.0,1,CB_NONE,
-			"Needleleaved C:N min change");
-		declareitem("sens_cton_broad",&sens_cton_broad,0.5,2.0,1,CB_NONE,
-			"Broadleaved C:N min change");
-		declareitem("sens_cton_vmax",&sens_cton_vmax,0.5,2.0,1,CB_NONE,
-			"vmax N limitation effect on leaf C:N");
-		declareitem("sens_decayrate",&sens_decayrate,0.0,100.0,1,CB_NONE,
-			"Change decay rates constant of som pools");
-		declareitem("sens_org_leach",&sens_org_leach,0.0,100.0,1,CB_NONE,
-			"Change amount of organic leaching");
-
 		// guess2008
 		// Annual output variables
 		declareitem("outputdirectory",&outputdirectory,300,CB_NONE,"Directory for the output files");
@@ -505,8 +493,8 @@ void plib_declarations(int id,xtring setname) {
 			"Average Sapwood C:N mass ratio");
 		declareitem("n_reserve",&ppft->n_reserve,0.0,1.0,1,CB_NONE,
 			"N storage organ in relation to sapwood carbon");
-		declareitem("nf",&ppft->nf,0.0,2.0,1,CB_NONE,
-			"Scalar to adopt Haxetine fraction of leaf N allocated to photosynthetic compounds to different pft types");
+		declareitem("a0",&ppft->a0,0.0,2.0,1,CB_NONE,
+			"Intercept parameter in the relation between leaf N not associated with photosynthesis and total leaf N");
 		// end GUESSN
 
 		declareitem("reprfrac",&ppft->reprfrac,0.0,1.0,1,CB_NONE,
@@ -707,13 +695,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifleachn")) badins("ifleachn");
 		if (!itemparsed("ifindiv_fnuptake")) badins("ifindiv_fnuptake");
 		// end GUESSN
-	
-		// SENS
-		if (!itemparsed("sens_cton_needle")) badins("sens_cton_needle");
-		if (!itemparsed("sens_cton_broad")) badins("sens_cton_broad");
-		if (!itemparsed("sens_decayrate")) badins("sens_decayrate");
-		if (!itemparsed("sens_cton_vmax")) badins("sens_cton_vmax");
-		if (!itemparsed("sens_org_leach")) badins("sens_org_leach");
 
 		// guess2008
 		if (!itemparsed("outputdirectory")) badins("outputdirectory");
@@ -788,7 +769,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("cton_leaf_avr")) badins("cton_leaf_avr");
 		if (!itemparsed("cton_root_avr")) badins("cton_root_avr");
 		if (!itemparsed("n_reserve")) badins("n_reserve");
-		if (!itemparsed("nf")) badins("nf");
+		if (!itemparsed("a0")) badins("a0");
 		// end GUESSN
 
 		if (!itemparsed("reprfrac")) badins("reprfrac");
@@ -4908,7 +4889,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				if (standpft_anpp_no_nlim>0.0 && standpft_anpp>0.0)
 					standpft_nlim=standpft_anpp/standpft_anpp_no_nlim;
 				else
-					standpft_nlim=0.0;
+					standpft_nlim=1.0;
 				
 				gcpft_cmass_leaf+=standpft_cmass_leaf;
 				gcpft_nmass_leaf+=standpft_nmass_leaf;

@@ -193,18 +193,6 @@ extern bool ifcmip5;
 extern bool iflandusesimple;
 extern bool iflandusechange;
 
-// SENS
-extern double sens_cton_needle;
-	// Needleleaved C:N min change
-extern double sens_cton_broad;
-	// Broadleaved C:N min change
-extern double sens_decayrate;
-	// Change decay rates constant of som pools
-extern double sens_cton_vmax;
-	// Changes vmax N limitation effect on leaf C:N
-extern double sens_org_leach;
-	// Change amount of organic leaching
-
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;
 
@@ -714,9 +702,9 @@ public:
 		// average sapwood C:N mass ratio
 	double n_reserve;
 		// N storage organ in relation to sapwood carbon
-	double nf;
-		// scalar to adopt Haxetine fraction of leaf N allocated to photosynthetic compounds
-		// to different pft types
+	double a0;
+		// Intercept parameter in the relation between leaf N not associated with photosynthesis and total leaf N 
+		// (leaf nitrogen content expressed on a leaf area basis) Friend et al. 1997
 	// end GUESSN
 	double reprfrac;
 		// fraction of NPP allocated to reproduction
@@ -859,12 +847,6 @@ public:
 		// m2/kgC)
 
 		sla=0.2*exp(6.15-0.46*log(leaflong*12.0));
-
-		// SENS
-		if (cton_leaf_min == 28.0)
-			cton_leaf_min*=sens_cton_needle;
-		else
-			cton_leaf_min*=sens_cton_broad;
 	}
 
 	void initregen() {
@@ -1145,14 +1127,11 @@ public:
 	double frac_agpp;
 	// end GUESSN
 
-
 	// GC
 	double gc_sum; // accumulated canopy conductance on individual FPC basis (mm/s)
 	double dgc[365];
 	double mgc[12];
 	double adtmm_term;
-
-	double apar;
 
 	bool alive; 
 		// guess2008 - whether this individual is truly alive. Set to false for first year 

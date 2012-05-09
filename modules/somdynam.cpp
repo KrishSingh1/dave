@@ -359,7 +359,7 @@ void indiv_fnuptake(Vegetation& vegetation, double& nsupply_patch, double fnupta
 	bool full_uptake = true;			// If indiv.fuptake should be updated as an individual got more than 100% of its 
 										// N demand
 
-	// Raingreen	// sch
+	// Raingreen
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
@@ -659,8 +659,8 @@ void decayrates(Soil& soil,double temp_soil,double wcont_soil) {
 		else if (p==SOILMICRO)
 			k*=texture_mod;
 
-		// SENS	sch = 0
-		k*=sens_decayrate;
+		// SENS	
+		k*=sens_decayrate;	// sch = 0
 
 		// Calculate fraction of C pool remaining after today's decomposition
 
@@ -2225,7 +2225,10 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 
 			double max_n_reserve_uptake;
 
-			max_n_reserve_uptake = min(1.0,max(0.0,(indiv.max_n_reserve-indiv.nmass_reserve)/indiv.ndemand_uptake));
+			if (!negligible(indiv.ndemand_uptake))
+				max_n_reserve_uptake = min(1.0,max(0.0,(indiv.max_n_reserve-indiv.nmass_reserve)/indiv.ndemand_uptake));
+			else
+				max_n_reserve_uptake = 0.0;
 
 			// if N storage is larger than what can be stored then don't store more
 			if (indiv.nmass_reserve > indiv.max_n_reserve)
@@ -2240,11 +2243,11 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 			indiv.ndemand_uptake*=(1.0+indiv.n_reserve_uptake);
 		}
 
-		// Sum assimilation over period of positive assimilation
+		// Sum nitrogen demand of individuals with positive assimilation
 
 		indiv.aassim=0.0;
-		for (int d=0;d<365;d++) 
-			if (indiv.dassim[d]>0.0) indiv.aassim+=indiv.dassim[d];
+		for (int d=0;d<365;d++)
+			indiv.aassim+=max(0.0,indiv.dassim[d]);
 		
 		if (!negligible(indiv.aassim)) 
 			patch.ndemand+=indiv.ndemand_uptake;

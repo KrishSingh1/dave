@@ -1114,7 +1114,7 @@ public:
 	int nday_leafon;	
 		// Number of days with non-negligible phenology this month
 	double dassim[365];
-		// daily net assimilation (kgC/m2/yr) - used by SOM dynamics to distribute
+		// daily net assimilation (kgC/m2/day) - used by SOM dynamics to distribute
 		// plant N uptake through the year
 	double aassim;
 		// annual sum of positive dassim (above) - used by SOM dynamics

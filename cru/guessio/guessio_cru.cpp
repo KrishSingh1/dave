@@ -1271,9 +1271,9 @@ const int NYEAR_CRU=106;
 const int FIRSTHISTYEAR_CRU=1901;
 
 // guess2008
-const int NYEAR_HIST=NYEAR_CMIP5; // guess2008 - CRU TS 3.0 has 106 years of data (1901-2006)
+const int NYEAR_HIST=NYEAR_CRU; // guess2008 - CRU TS 3.0 has 106 years of data (1901-2006)
 	// number of years of historical climate in CRU and CO2 files (see below)
-const int FIRSTHISTYEAR=FIRSTHISTYEAR_CMIP5;
+const int FIRSTHISTYEAR=FIRSTHISTYEAR_CRU;
 	// calender year corresponding to first year in CRU climate data set
 const int NYEAR_SPINUP_DATA=30;
 	// number of years to use for temperature-detrended spinup data set
@@ -4905,8 +4905,10 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				standpft_nmass/=(double)stand.nobj;
 				standpft_anpp_no_nlim/=(double)stand.nobj;
 
-				if (!negligible(standpft_anpp_no_nlim))
+				if (standpft_anpp_no_nlim>0.0 && standpft_anpp>0.0)
 					standpft_nlim=standpft_anpp/standpft_anpp_no_nlim;
+				else
+					standpft_nlim=0.0;
 				
 				gcpft_cmass_leaf+=standpft_cmass_leaf;
 				gcpft_nmass_leaf+=standpft_nmass_leaf;

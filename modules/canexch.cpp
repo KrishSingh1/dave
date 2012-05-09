@@ -694,7 +694,11 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 
 	// guess2008 - ALPHAA value chosen to give global carbon pool and flux values that 
 	// agree with published estimates.
-	const double ALPHAA=0.7;
+	double ALPHAA;
+	if (!ifnlim || date.year < freenyears)
+		ALPHAA=0.5;
+	else
+		ALPHAA=0.7;
 		// scaling factor for PAR absorption from leaf to plant projective area level
 		// alias "twigloss"
 		// Should normally be in the range 0-1
@@ -2157,7 +2161,7 @@ void npp(Patch& patch) {
 			// Calculate leaf nitrogen today on patch area basis
 
 			if (!negligible(indiv.phen)) {
-				leafn=na_fpar+N0*indiv.cmass_leaf*indiv.phen;
+				leafn=na_fpar/indiv.pft.nf+N0*indiv.cmass_leaf*indiv.phen;
 				indiv.leafn+=leafn;
 			}
 			// end GUESSN
@@ -2205,26 +2209,40 @@ void npp(Patch& patch) {
 			patch.fluxes.mcflux_gpp[date.month]+=indiv.assim;
 			patch.fluxes.mcflux_ra[date.month]+=indiv.resp;
 
+			// Determining annual N limitation on vmax
+			if (!negligible(indiv.phen)) 
+				indiv.avmaxnlim+=indiv.vmax_lim[date.day];
+
+			if (date.islastday && date.islastmonth) {
+				if (indiv.nday_leafon!=0.0)
+					indiv.avmaxnlim/=(double)indiv.nday_leafon;
+				else
+					indiv.avmaxnlim=0.0;
+
+				// SENS
+				indiv.avmaxnlim*=sens_cton_vmax;	// sch = 0
+			}
+
 			// On last day of month - convert monthly LAI from sum to mean
 
 			if (date.islastday) {
 				indiv.mlai[date.month]/=(double)date.ndaymonth[date.month];
 
-				// GUESSN: Monthly leaf N
+				if (date.islastmonth) {
+					if (indiv.nday_leafon!=0.0) 
+						indiv.leafn/=(double)indiv.nday_leafon;
+					else
+						indiv.leafn=0.0;
 
-				if (indiv.nday_leafon!=0.0) 
-					indiv.leafn/=(double)indiv.nday_leafon;
-				else
+					if (indiv.leafn>indiv.leafn_max)
+						indiv.leafn_max=indiv.leafn;
+
+					indiv.leafn_mean=indiv.leafn;
+
+					// Reset leaf-on-day counter for following year
+					indiv.nday_leafon=0;
 					indiv.leafn=0.0;
-
-				if (indiv.leafn>indiv.leafn_max)
-					indiv.leafn_max=indiv.leafn;
-
-				indiv.leafn_mean+=indiv.leafn/12.0;
-
-				// Reset leaf-on-day counter for following month
-				indiv.nday_leafon=0;
-
+				}
 				// end GUESSN
 			}
 		}
@@ -2269,8 +2287,7 @@ void npp(Patch& patch) {
 
 				if (!negligible(indiv.phen)) {
 
-					leafn=na_fpar+N0*indiv.cmass_leaf*indiv.phen;
-					
+					leafn=na_fpar/indiv.pft.nf+N0*indiv.cmass_leaf*indiv.phen;
 					indiv.leafn+=leafn;
 				}
 				// end GUESSN
@@ -2322,7 +2339,7 @@ void npp(Patch& patch) {
 					indiv.assim+=assim*(double)indiv.nday_wstress;
 
 					// GUESSN: Calculate leaf N today
-					leafn=na_fpar+N0*indiv.cmass_leaf*indiv.phen_mean;
+					leafn=na_fpar/indiv.pft.nf+N0*indiv.cmass_leaf*indiv.phen_mean;
 
 					indiv.leafn+=leafn*(double)indiv.nday_wstress;
 					// end GUESSN
@@ -2370,8 +2387,12 @@ void npp(Patch& patch) {
 				// GUESSN
 				// Distribute monthly assimilation through all days of this month
 				// (required by SOM dynamics to distribute annual N uptake at end of year)
+				int daynr=0;
+				for (int m=0;m<date.month;m++)
+					daynr+=date.ndaymonth[m];
+
 				for (int d=0;d<date.ndaymonth[date.month];d++)
-					indiv.dassim[date.day]=assim;
+					indiv.dassim[daynr+d]=assim;
 				// end GUESSN
 
 				indiv.anpp+=indiv.assim-indiv.resp;
@@ -2647,6 +2668,7 @@ void canopy_exchange(Patch& patch) {
 			indiv.leafn_max=0.0;
 			indiv.leafn_mean=0.0;
 			indiv.nday_leafon=0;
+			indiv.avmaxnlim=0.0;
 			// end GUESSN
  
 			for (m=0;m<12;m++) {

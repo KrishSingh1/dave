@@ -764,7 +764,7 @@ void allocation_init(double bminit,double ltor,Individual& indiv) {
 	double cmass_leaf_ind;
 	double cmass_root_ind;
 	double cmass_sap_ind;
-	int which_allocation;
+	int which_allocation=0;
 	bool bval;
 
 	allocation(bminit,0.0,0.0,0.0,0.0,0.0,ltor,0.0,indiv.pft.sla,indiv.pft.wooddens,
@@ -1807,7 +1807,7 @@ void growth(Stand& stand,Patch& patch) {
 	double cmass_payback;
 	int p;
 	bool killed;
-	int which_allocation;	// which allocation that is used
+	int which_allocation=0;	// which allocation that is used
 
 	// GUESSN
 	double raingreen_ndemand;
@@ -1938,23 +1938,6 @@ void growth(Stand& stand,Patch& patch) {
 
 			// C:N ratio for new biomass
 			if (ifnlim && date.year>freenyears) {	
-
-				// Determining annual N limitation on vmax
-				indiv.avmaxnlim=0.0;
-				double agpp=0.0;
-
-				for (int d=0;d<365;d++) {
-					indiv.avmaxnlim+=indiv.vmax_lim[d]*indiv.dassim[d];
-					agpp+=indiv.dassim[d];
-				}
-
-				if (!negligible(agpp))
-					indiv.avmaxnlim/=agpp;
-				else
-					indiv.avmaxnlim=0.0;
-
-				// SENS
-				indiv.avmaxnlim*=sens_cton_vmax;	// sch = 0
 
 				// A simple allocation with fractions of biomass going to leafs, roots and sap 
 				// determined from the ndemand allocation without any N limitation (this_years_ndemand())

@@ -47,6 +47,8 @@ file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 file_firert "firert.out"
+!file_aiso "aiso.out"
+!file_amon "amon.out"
 !file_allometry "allometry.out"
 file_canopyh "canopyheight.out"
 !file_allometry_ind "allometry_ind.out"
@@ -76,6 +78,9 @@ file_vmaxnlim "vmaxnlim.out"
 !file_mrunoff "mrunoff.out"
 !file_mwcont_upper "mwcont_upper.out"
 !file_mwcont_lower "mwcont_lower.out"
+
+!file_miso "miso.out"
+!file_mmon "mmon.out"
 
 !///////////////////////////////////////////////////////////////////////////////////////
 
@@ -135,6 +140,7 @@ ifdroughtlimitedestab 0			! whether establishment is limited by growing season d
 								! guess2008 - species version has 1
 ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit every day (0)
 ifspeciesspecificwateruptake 0	! whether there is species specific water uptake (1) or not (0)
+ifbvoc 0              ! whether to include BVOC calculations (1) or not (0)
 
 ! CMIP5
 ifcmip5 0				! Use CMIP5 climate data instead of CRU
@@ -264,6 +270,7 @@ group "needle_leaved"
 (
 	k_allom1 150
 	k_latosa 4000
+        ga 0.140
 	cton_leaf_min 28		! GUESSN
 	cton_leaf_avr 42		! GUESSN
 	cton_leaf_max 75		! GUESSN
@@ -277,6 +284,7 @@ group "broad_leaved"
 	k_latosa 5000
 	leaflong 0.5		! PMxx: new default
     	turnover_leaf 1		! PMxx: new default
+        ga 0.040
 	cton_leaf_min 16		! GUESSN
 	cton_leaf_avr 25		! GUESSN
 	cton_leaf_max 45		! GUESSN
@@ -299,6 +307,7 @@ group "grass" (
 	a0 0.67
 	respcoeff 2.0 
 	litterme 0.2
+        ga 0.030
 )
 
 
@@ -389,6 +398,11 @@ pft "Abi_alb" (
 	intc 0.06
 	longevity 350
 	drought_tolerance 0.35
+        eps_iso 0.05            
+        seas_iso 0
+        eps_mon 1.8
+        storfrac_mon 0.5
+
 	n_reserve 0.05			! GUESSN
 	a0 0.83
 )
@@ -426,6 +440,12 @@ pft "BES" (
 	fireresist 0.1
 	intc 0.06
 	drought_tolerance 0.25
+        eps_iso 2.0
+        seas_iso 0
+        eps_mon 4.0
+        storfrac_mon 0.5
+        ga 0.040
+
 	n_reserve 0.05			! GUESSN
 	a0 0.83
 )
@@ -454,6 +474,11 @@ pft "Bet_pen" (
 	intc 0.02
 	longevity 200 
 	drought_tolerance 0.42
+        eps_iso 0.2
+        seas_iso 1
+        eps_mon 6.
+        storfrac_mon 0.
+
 	n_reserve 0.15			! GUESSN
 	a0 0.67
 )
@@ -482,6 +507,11 @@ pft "Bet_pub" (
 	intc 0.02
 	longevity 200
 	drought_tolerance 0.5
+        eps_iso 0.
+        seas_iso 1
+        eps_mon 1.0
+        storfrac_mon 0.
+
 	n_reserve 0.15			! GUESSN
 	a0 0.67
 )
@@ -510,6 +540,11 @@ pft "Car_bet" (
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.33
+        eps_iso 0.
+        seas_iso 1
+        eps_mon 0.08
+        storfrac_mon 0.
+
 	n_reserve 0.15			! GUESSN
 	a0 0.67
 )
@@ -540,6 +575,11 @@ pft "Cor_ave" (
 	intc 0.02
 	longevity 100		! THdiff: 300 - see Savill's silviculture book
 	drought_tolerance 0.3
+        eps_iso 0.
+        seas_iso 1
+        eps_mon 0.
+        storfrac_mon 0.
+
 	n_reserve 0.15			! GUESSN
 	a0 0.67
 )
@@ -568,6 +608,11 @@ pft "Fag_syl" (
 	intc 0.02
 	longevity 500
 	drought_tolerance 0.3
+        eps_iso 0.
+        seas_iso 1
+        eps_mon 10.
+        storfrac_mon 0.
+
 	n_reserve 0.15			! GUESSN
 	a0 0.67
 )
@@ -596,6 +641,11 @@ pft "Fra_exc" (
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.4
+        eps_iso 0.
+        seas_iso 1
+        eps_mon 0.
+        storfrac_mon 0.
+
 	n_reserve 0.15			! GUESSN
 	a0 0.67
 )
@@ -631,6 +681,11 @@ pft "Jun_oxy" (
 	intc 0.02
 	longevity 200
 	drought_tolerance 0.01
+        eps_iso 0.
+        seas_iso 0
+        eps_mon 2.0
+        storfrac_mon 0.5
+
 	n_reserve 0.05			! GUESSN
 	a0 0.83
 )
@@ -666,6 +721,12 @@ pft "MRS" (
 	intc 0.02
 	longevity 100		!
 	drought_tolerance 0.01
+        eps_iso 2.0
+        seas_iso 0
+        eps_mon 4.0
+        storfrac_mon 0.5
+        ga 0.040
+
 	n_reserve 0.15			! GUESSN
 	a0 0.67
 )
@@ -697,6 +758,11 @@ pft "Pic_abi" (
 	intc 0.06
 	longevity 500
 	drought_tolerance 0.43
+        eps_iso 0.5
+        seas_iso 0
+        eps_mon 6.0
+        storfrac_mon 0.5
+
 	n_reserve 0.05			! GUESSN
 	a0 0.83
 )
@@ -731,6 +797,11 @@ pft "Pic_sit" (
 	intc 0.06
 	longevity 700				! Bjarki
 	drought_tolerance 0.5		! Bjarki
+        eps_iso 0. ! to be determined
+        seas_iso 0
+        eps_mon 0. ! to be determined
+        storfrac_mon 0.5
+
 	n_reserve 0.05			! GUESSN
 	a0 0.83
 
@@ -766,6 +837,11 @@ pft "Pin_syl" (
 	intc 0.06
 	longevity 350		! THdiff: 500
 	drought_tolerance 0.25
+        eps_iso 0.
+        seas_iso 0
+        eps_mon 4.0
+        storfrac_mon 0.5
+
 	n_reserve 0.05			! GUESSN
 	a0 0.83
 )
@@ -799,6 +875,11 @@ pft "Pin_hal" (
 	intc 0.06
 	longevity 350
 	drought_tolerance 0.05
+        eps_iso 0.
+        seas_iso 0
+        eps_mon 10.0
+        storfrac_mon 0.5
+
 	n_reserve 0.05			! GUESSN
 	a0 0.83
 )
@@ -830,6 +911,11 @@ pft "Pop_tre" (
 	intc 0.02
 	longevity 160		! Prentice & H.
 	drought_tolerance 0.4
+        eps_iso 20.
+        seas_iso 1
+        eps_mon 4.0
+        storfrac_mon 0.
+
 	n_reserve 0.15			! GUESSN
 	a0 0.67
 )
@@ -863,6 +949,12 @@ pft "Que_coc" (
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.1
+        eps_iso 0.1
+        seas_iso 0
+        eps_mon 10.0
+        storfrac_mon 0.
+        ga 0.040
+
 	n_reserve 0.05			! GUESSN
 	a0 0.78
 )
@@ -895,6 +987,11 @@ pft "Que_ile" (
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.1
+        eps_iso 0.05
+        seas_iso 0
+        eps_mon 16.0
+        storfrac_mon 0.
+
 	n_reserve 0.05			! GUESSN
 	a0 0.83
 )
@@ -925,6 +1022,11 @@ pft "Que_pub" (
 	intc 0.02
 	longevity 500
 	drought_tolerance 0.2
+        eps_iso 50.0
+        seas_iso 1
+        eps_mon 0.
+        storfrac_mon 0.
+
 	n_reserve 0.15			! GUESSN
 	a0 0.67
 )
@@ -953,6 +1055,11 @@ pft "Que_rob" (
 	intc 0.02
 	longevity 500
 	drought_tolerance 0.25
+        eps_iso 40.0
+        seas_iso 1
+        eps_mon 0.
+        storfrac_mon 0.
+
 	n_reserve 0.15			! GUESSN
 	a0 0.67
 )
@@ -982,6 +1089,11 @@ pft "Til_cor" (
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.33
+        eps_iso 0.
+        seas_iso 1
+        eps_mon 0.
+        storfrac_mon 0.
+
 	n_reserve 0.15			! GUESSN
 	a0 0.67
 )
@@ -1012,6 +1124,11 @@ pft "Ulm_gla" (
 	intc 0.02
 	longevity 350
 	drought_tolerance 0.4
+        eps_iso 0. ! to be determined
+        seas_iso 1
+        eps_mon 0. ! to be determined
+        storfrac_mon 0.
+
 	n_reserve 0.15			! GUESSN
 	a0 0.67
 )
@@ -1043,6 +1160,10 @@ pft "C3_gr" (
 	fireresist 1.0			! THdiff 0.5 ! Changed from 0.5 on April 10, 2006
 	intc 0.01
 	drought_tolerance 0.01
+        eps_iso 0.
+        seas_iso 1
+        eps_mon 1.0
+        storfrac_mon 0.5
 )
 
 
@@ -1072,6 +1193,11 @@ pft "C4_gr" (
 	fireresist 0.5			
 	intc 0.01
 	drought_tolerance 0.01
+        eps_iso 0.
+        seas_iso 1
+        eps_mon 1.0
+        storfrac_mon 0.5
+
 	a0 0.78
 )
 

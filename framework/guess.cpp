@@ -22,7 +22,7 @@
 #include "growth.h"
 #include "vegdynam.h"
 #include "landcover.h"
-
+#include "bvoc.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES WITH EXTERNAL LINKAGE
@@ -86,6 +86,8 @@ bool ifsmoothgreffmort;				// smooth growth efficiency mortality
 bool ifdroughtlimitedestab;			// whether establishment affected by growing season drought
 bool ifrainonwetdaysonly;			// rain on wet days only (1, true), or a little every day (0, false); 
 bool ifspeciesspecificwateruptake;	// water uptake is species specific 
+// bvoc
+bool ifbvoc; // BVOC calculations included
 
 bool run_landcover;
 bool run[NLANDCOVERTYPES];
@@ -93,7 +95,6 @@ bool lcfrac_fixed;
 bool all_fracs_const;
 bool ifslowharvestpool;				// If a slow harvested product pool is included in patchpft.
 int nyear_spinup;		
-
 
 Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i),gridcell(gc),landcover(landcoverX),frac(1.0) {
 
@@ -195,6 +196,20 @@ Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 	for (m=0;m<12;m++) {
 		mnpp[m]=mlai[m]=mgpp[m]=mra[m]=mgc[m]=0.0;
 	}
+
+	// bvoc
+	monstor=0.;
+	iso=0.;
+	mon=0.;
+	aiso=0.;
+	amon=0.;
+	fvocseas=1.;
+	dtr_wstress=0.;
+	eet_wstress=0.;
+	agdd5_wstress=0.;
+	rad_wstress=0.;		
+
+	// GUESSN
 	int d;
 	for (d=0;d<365;d++) {
 		dassim[d]=vmax_lim[d]=dgc[d]=0.0;
@@ -220,6 +235,11 @@ int framework(int argc,char* argv[]) {
 	// Call input/output module to obtain PFT static parameters and simulation
 	// settings and initialise input/output
 	initio(argc,argv,pftlist);
+
+	// bvoc
+	if(ifbvoc){
+	  initbvoc(pftlist);
+	}
 
 	// Assume there is at least one grid cell to simulate
 	dogridcell=true;

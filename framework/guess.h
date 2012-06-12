@@ -1366,6 +1366,9 @@ public:
 	double fpar_grass_wstress;
 		// mean FPAR at top of grass canopy for days with water stress for this PFT
 		// in this patch
+	double gpterm_wstress;
+		// cumulative mean non-FPAR-weighted value for canopy conductance component
+		// associated with photosynthesis for water stress (mm/s)
 	double supply;
 		// evapotranspirational "supply" function for this PFT today (mm/day)
 	double supply_leafon;

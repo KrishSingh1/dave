@@ -2462,14 +2462,14 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 					stand.nextobj();
 				} // end of patch loop
 
-				standpft_cmass/=(double)stand.nobj;
-				standpft_anpp/=(double)stand.nobj;
-				standpft_lai/=(double)stand.nobj;
-				standpft_densindiv_total/=(double)stand.nobj;
-				standpft_aiso/=(double)stand.nobj;
-				standpft_amon/=(double)stand.nobj;
+				standpft_cmass/=(double)stand.npatch();
+				standpft_anpp/=(double)stand.npatch();
+				standpft_lai/=(double)stand.npatch();
+				standpft_densindiv_total/=(double)stand.npatch();
+				standpft_aiso/=(double)stand.npatch();
+				standpft_amon/=(double)stand.npatch();
 
-				heightindiv_total/=(double)stand.nobj;
+				heightindiv_total/=(double)stand.npatch();
 
 				//Update landcover totals
 				landcover_cmass[stand.landcover]+=standpft_cmass*stand.get_landcover_fraction();
@@ -2550,7 +2550,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			while (stand.isobj) {
 				Patch& patch=stand.getobj();
 
-				double to_gridcell_average = stand.get_gridcell_fraction()/(double)stand.nobj;
+				double to_gridcell_average = stand.get_gridcell_fraction()/(double)stand.npatch();
 
 				flux_veg+=patch.fluxes.acflux_veg*to_gridcell_average;
 				flux_soil+=patch.fluxes.acflux_soil*to_gridcell_average;
@@ -2581,9 +2581,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	
 				// Fire return time
 				if (!iffire || patch.fireprob < 0.001)
-					firert_gridcell+=1000.0/(double)stand.nobj; // Set a limit of 1000 years
+					firert_gridcell+=1000.0/(double)stand.npatch(); // Set a limit of 1000 years
 				else	
-					firert_gridcell+=(1.0/patch.fireprob)/(double)stand.nobj;
+					firert_gridcell+=(1.0/patch.fireprob)/(double)stand.npatch();
 
 
 				// Monthly output variables

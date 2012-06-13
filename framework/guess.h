@@ -1637,6 +1637,9 @@ public:
 	/// Set the fraction of this Stand relative to its land cover type
 	void set_landcover_fraction(double fraction);
 
+	/// Returns the number of patches in this Stand
+	unsigned int npatch() const { return nobj; }
+
 private:
 
 	/// Fraction of this stand relative to its landcover

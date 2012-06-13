@@ -72,7 +72,7 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i
 		npatchL=1;
 	}
 	else if(landcover==NATURAL || landcover==FOREST) {
-		npatchL=npatch;
+		npatchL=::npatch; // use the global variable npatch (not Stand::npatch)
 	}
 
 	for (p=0;p<npatchL;p++) {

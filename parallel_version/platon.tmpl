@@ -148,7 +148,10 @@ cat<<EOL > startguess.sh
 umask 022
 cd \$PBS_O_WORKDIR
 cd run\\\$((PBS_VNODENUM+1))
-rm local ; ln -s \$PBS_O_LOCAL local
+if [ -f local ]; then
+   rm local
+fi
+ln -s \$PBS_O_LOCAL local
 BINARY $INSFILE
 EOL
 chmod +x startguess.sh

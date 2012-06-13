@@ -45,14 +45,14 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL ENUMERATED TYPE DEFINITIONS
 
+/// Life form class for PFTs (trees, grasses)
 typedef enum {NOLIFEFORM,TREE,GRASS} lifeformtype;
-	// Life form class for PFTs (trees, grasses)
 
+/// Phenology class for PFTs
 typedef enum {NOPHENOLOGY,EVERGREEN,RAINGREEN,SUMMERGREEN,ANY} phenologytype;
-	// Phenology class for PFTs
 
+/// Biochemical pathway for photosynthesis (C3 or C4)
 typedef enum {NOPATHWAY,C3,C4} pathwaytype;
-	// Biochemical pathway for photosynthesis (C3 or C4)
 
 /// Units for insolation driving data
 /** Insolation can be expressed as:
@@ -82,11 +82,14 @@ typedef enum {
 	SWRAD_TS
 } insoltype;
 
+/// Vegetation 'mode', i.e. what each Individual object represents
+/** Can be one of: 
+ *  1. The average characteristics of all individuals comprising a PFT
+ *     population over the modelled area (standard LPJ mode)
+ *  2. A cohort of individuals of a PFT that are roughly the same age
+ *  3. An individual plant
+ */
 typedef enum {NOVEGMODE,INDIVIDUAL,COHORT,POPULATION} vegmodetype;
-	// Vegetation 'mode', i.e. what each Individual (see below) object represents;
-	// either: (1) the average characteristics of all individuals comprising a PFT
-	// population over the modelled area (standard LPJ mode); (2) a cohort of
-	// individuals of a PFT that are roughly the same age; (3) an individual plant.
 
 /// Land cover type of a stand. NLANDCOVERTYPES keeps count of number of items.
 typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, NLANDCOVERTYPES} landcovertype;

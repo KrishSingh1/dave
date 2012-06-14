@@ -1976,14 +1976,14 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist) {
 
 			if(equal_landcover_area)
 			{
-				for(int i=0;i<NLANDCOVERTYPES;i++)
+				for(i=0;i<NLANDCOVERTYPES;i++)
 				{
 					if(run[i])
 						nactive_landcovertypes++;
 				}
 			}
 
-			for(int i=0;i<NLANDCOVERTYPES;i++)
+			for(i=0;i<NLANDCOVERTYPES;i++)
 			{
 				if(equal_landcover_area)
 				{
@@ -2033,7 +2033,7 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist) {
 				{
 /*					if(date.year==0)
 						dprintf("Rescaling landcover fractions !\n");
-					for(int i=0;i<NLANDCOVERTYPES;i++)
+					for(i=0;i<NLANDCOVERTYPES;i++)
 						gridcell.landcoverfrac[i]/=sum_active;			// if NATURAL not simulated, rescale active fractions to 1.0
 */					if(date.year==0)
 						dprintf("Non-unity fraction sum retained.\n");				// OR let sum remain non-unity
@@ -2123,7 +2123,7 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist) {
 					sum_active-=gridcell.landcoverfrac[NATURAL];	//fraction not possible to transfer moved back to sum_active, which will now be >1.0 again
 					gridcell.landcoverfrac[NATURAL]=0.0;
 
-					for(int i=0;i<NLANDCOVERTYPES;i++)
+					for(i=0;i<NLANDCOVERTYPES;i++)
 					{
 						gridcell.landcoverfrac[i]/=sum_active;		//fraction rescaled to unity sum
 						if(run[i])
@@ -2136,7 +2136,7 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist) {
 			{
 //				if(date.year==0)
 //					dprintf("Rescaling landcover fractions !\n");
-//				for(int i=0;i<NLANDCOVERTYPES;i++)
+//				for(i=0;i<NLANDCOVERTYPES;i++)
 //					gridcell.landcoverfrac[i]/=sum_active;						// if NATURAL not simulated, rescale active fractions to 1.0
 				if(date.year==0)
 					dprintf("Non-unity fraction sum retained.\n");				// OR let sum remain non-unity

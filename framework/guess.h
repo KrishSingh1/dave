@@ -1517,7 +1517,7 @@ public:
 	// MEMBER FUNCTIONS
 
 	Patch(int i,Stand& s,Pftlist& pftlist,Soiltype& st):
-		id(i),stand(s),fluxes(*this),vegetation(*this),soil(*this,st) {
+		id(i),stand(s),vegetation(*this),soil(*this,st),fluxes(*this) {
 		
 		// Constructor: initialises various members and builds list array
 		// of Patchpft objects.
@@ -1731,7 +1731,7 @@ public:
 		LC_updated=false;
 
 		for(unsigned int p=0;p<pftlist.nobj;p++) {
-			Gridcellpft& gcpft=pft.createobj(pftlist[p]);
+			pft.createobj(pftlist[p]);
 		}		
 
 		memset(landcoverfrac, 0, sizeof(double)*NLANDCOVERTYPES);

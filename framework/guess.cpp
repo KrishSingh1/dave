@@ -94,7 +94,7 @@ void Stand::set_landcover_fraction(double fraction) {
 	frac = fraction;
 }
 
-Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
+Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	anpp=0.0;
 	fpc=0.0;

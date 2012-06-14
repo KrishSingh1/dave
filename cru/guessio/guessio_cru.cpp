@@ -855,26 +855,26 @@ void printhelp() {
 //   command-line argument, resulting in output of a brief description of the
 //   keywords recognised in the ins file, instead of a model run.
 //
-// bool getstand(Stand& stand)
-//   Obtains latitude and soil static parameters for the next stand (grid cell) to
-//   simulate. The function should returns false if no stands remain to be simulated,
-//   otherwise true. Currently the following member variables of stand should be
+// bool getgridcell(Gridcell& gridcell)
+//   Obtains latitude and soil static parameters for the next grid cell to
+//   simulate. The function should return false if no grid cells remain to be simulated,
+//   otherwise true. Currently the following member variables of gridcell should be
 //   initialised: members lat and instype of member climate; the following members of
 //   member soiltype: awc[0], awc[1], perc_base, perc_exp, thermdiff_0, thermdiff_15,
 //   thermdiff_100. The soil parameters can be set indirectly based on an lpj soil
 //   code (Sitch et al 2000) by a call to function soilparameters in the driver
 //   module (driver.cpp):
 //
-//   soilparameters(stand.soiltype,soilcode);
+//   soilparameters(gridcell.soiltype,soilcode);
 //
 //   If the model is to be driven by quasi-daily values of the climate variables
 //   derived from monthly means, this function may be the appropriate place to
 //   perform the required interpolations. The utility functions interp_monthly_means
 //   and interp_monthly_totals in driver.cpp may be called for this purpose.
 //
-// bool getclimate(Stand& stand)
+// bool getclimate(Gridcell& gridcell)
 //   Obtains climate data (including atmospheric CO2 and insolation) for this day.
-//   The function should returns false if the simulation is complete for this stand,
+//   The function should returns false if the simulation is complete for this grid cell,
 //   otherwise true. This will normally require querying the year and day member
 //   variables of the global class object date:
 //
@@ -882,11 +882,11 @@ void printhelp() {
 //   // else
 //   return true;
 //
-//   Currently the following member variables of the climate member of stand must be
+//   Currently the following member variables of the climate member of gridcell must be
 //   initialised: co2, temp, prec, insol. If the model is to be driven by quasi-daily
 //   values of the climate variables derived from monthly means, this day's values
 //   will presumably be extracted from arrays containing the interpolated daily
-//   values (see function getstand):
+//   values (see function getgridcell):
 //
 //   gridcell.climate.temp=dtemp[date.day];
 //   gridcell.climate.prec=dprec[date.day];
@@ -896,12 +896,12 @@ void printhelp() {
 //   BVOC:
 //   gridcell.climate.dtr=ddtr[date.day]; 
 //
-// void outannual(Stand& stand,Pftlist& pftlist)
+// void outannual(Gridcell& gridcell,Pftlist& pftlist)
 //   Called at the end of the last day of each simulation year to permit output of
 //   model results.
 //
 // termio()
-//   Called after simulation is complete for all stands to allow memory deallocation,
+//   Called after simulation is complete for all gridcells to allow memory deallocation,
 //   closing of files or other cleanup functions.
 //
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -1826,7 +1826,7 @@ bool getgridcell(Gridcell& gridcell)
 	// code (Sitch et al 2000) by a call to function soilparameters in the driver
 	// module (driver.cpp):
 	//
-	// soilparameters(stand.soiltype,soilcode);
+	// soilparameters(gridcell.soiltype,soilcode);
 	//
 	// If the model is to be driven by quasi-daily values of the climate variables
 	// derived from monthly means, this function may be the appropriate place to
@@ -2151,7 +2151,7 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist) {
 bool getclimate(Gridcell& gridcell) {
 
 	// DESCRIPTION
-	// The function should returns false if the simulation is complete for this stand,
+	// The function should returns false if the simulation is complete for this grid cell,
 	// otherwise true. This will normally require querying the year and day member
 	// variables of the global class object date:
 	//
@@ -2159,11 +2159,11 @@ bool getclimate(Gridcell& gridcell) {
 	// // else
 	// return true;
 	//
-	// Currently the following member variables of the climate member of stand must be
+	// Currently the following member variables of the climate member of gridcell must be
 	// initialised: co2, temp, prec, insol. If the model is to be driven by quasi-daily
 	// values of the climate variables derived from monthly means, this day's values
 	// will presumably be extracted from arrays containing the interpolated daily
-	// values (see function getstand):
+	// values (see function getgridcell):
 	//
 	// gridcell.climate.temp=dtemp[date.day];
 	// gridcell.climate.prec=dprec[date.day];

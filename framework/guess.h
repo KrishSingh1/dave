@@ -1743,6 +1743,24 @@ public:
 			landcoverfrac[NATURAL]=1.0;
 		}
 	}
+
+	/// Longitude for this grid cell
+	double get_lon() const;
+
+	/// Latitude for this grid cell
+	double get_lat() const;
+
+	/// Set longitude and latitude for this grid cell
+	double set_coordinates(double longitude, double latitude);
+
+private:
+
+	/// Longitude for this grid cell
+	double lon;
+
+	/// Latitude for this grid cell
+	double lat;
+
 };
 
 

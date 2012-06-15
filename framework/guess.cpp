@@ -55,6 +55,11 @@ bool all_fracs_const;
 bool ifslowharvestpool;				// If a slow harvested product pool is included in patchpft.
 int nyear_spinup;		
 
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Stand member functions
+////////////////////////////////////////////////////////////////////////////////
+
 Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i),gridcell(gc),landcover(landcoverX),frac(1.0) {
 
 		// Constructor: initialises reference member of climate and
@@ -93,6 +98,11 @@ double Stand::get_landcover_fraction() const {
 void Stand::set_landcover_fraction(double fraction) {
 	frac = fraction;
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Individual member functions
+////////////////////////////////////////////////////////////////////////////////
 
 Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
@@ -146,4 +156,22 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	eet_wstress=0.;
 	agdd5_wstress=0.;
 	rad_wstress=0.;		
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Gridcell member functions
+////////////////////////////////////////////////////////////////////////////////
+
+double Gridcell::get_lon() const {
+	return lon;
+}
+
+double Gridcell::get_lat() const {
+	return lat;
+}
+
+double Gridcell::set_coordinates(double longitude, double latitude) {
+	lon = longitude;
+	lat = latitude;
 }

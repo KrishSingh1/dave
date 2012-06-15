@@ -896,10 +896,10 @@ void printhelp() {
 //   keywords recognised in the ins file, instead of a model run.
 //
 // bool getgridcell(Gridcell& gridcell)
-//   Obtains latitude and soil static parameters for the next grid cell to
+//   Obtains coordinates and soil static parameters for the next grid cell to
 //   simulate. The function should return false if no grid cells remain to be simulated,
 //   otherwise true. Currently the following member variables of gridcell should be
-//   initialised: members lat and instype of member climate; the following members of
+//   initialised: longitude, latitude and climate.instype; the following members of
 //   member soiltype: awc[0], awc[1], perc_base, perc_exp, thermdiff_0, thermdiff_15,
 //   thermdiff_100. The soil parameters can be set indirectly based on an lpj soil
 //   code (Sitch et al 2000) by a call to function soilparameters in the driver
@@ -2178,13 +2178,13 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	{
 }
 
 /// Called by the framework at the start of the simulation for a particular grid cell
-bool getgridcell(Gridcell& gridcell) 
+bool getgridcell(Gridcell& gridcell)
 {
 	// DESCRIPTION
-	// Obtains latitude and soil static parameters for the next grid cell to
+	// Obtains coordinates and soil static parameters for the next grid cell to
 	// simulate. The function should return false if no grid cells remain to be simulated,
 	// otherwise true. Currently the following member variables of Gridcell should be
-	// initialised: members lat and instype of member climate; the following members of
+	// initialised: longitude, latitude and climate.instype; the following members of
 	// member soiltype: awc[0], awc[1], perc_base, perc_exp, thermdiff_0, thermdiff_15,
 	// thermdiff_100. The soil parameters can be set indirectly based on an lpj soil
 	// code (Sitch et al 2000) by a call to function soilparameters in the driver
@@ -2298,8 +2298,8 @@ bool getgridcell(Gridcell& gridcell)
 			(char*)gridlist.getobj().descrip);
 		else dprintf("\n");
 		
-		// Tell framework the latitude of this grid cell
-		gridcell.climate.lat=gridlist.getobj().lat;
+		// Tell framework the coordinates of this grid cell
+		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
 		
 		// The insolation data will be sent (in function getclimate, below)
 		// as percentage sunshine
@@ -3115,8 +3115,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	double miso[12];
 	double mmon[12];
 
-	double lon,lat;
-
 	if (vegmode==COHORT)
 		nclass=min(date.year/estinterval+1,OUTPUT_MAXAGECLASS);
 	
@@ -3128,8 +3126,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	//if (date.year>=nyear_spinup) { 
 	if (date.year>=nyear_spinup+NYEAR_HIST-NFLUXYEARS && date.year<=nyear_spinup+NYEAR_HIST-1) { // guess2008 - euroflux - flux years are 1996-2002
 
-		lon=gridlist.getobj().lon;
-		lat=gridlist.getobj().lat;
+		double lon = gridcell.get_lon();
+		double lat = gridcell.get_lat();
 
 		// The OutputRows object manages the next row of output for each
 		// output table

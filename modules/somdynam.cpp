@@ -1666,7 +1666,7 @@ void this_years_ndemand(double cmass_leaf,double cmass_root,double cmass_sap,dou
 	ltor=min(wscal_mean,nscal)*ltor_max;
 
 	// C:N ratio for new and current biomass		
-	if (date.year>freenyears && ifnlim) {
+	if (ifnlim && date.year>freenyears) {
 
 		if (!negligible(leafn_mean) && !negligible(cmass_leaf))
 			cton_leaf_new=cmass_leaf/leafn_mean; 
@@ -2371,7 +2371,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 		excessn+=nmass_avail[days];
 
 	// Should never be negative! (allow it for very small values for now ...)
-	if (excessn<-EPS && date.year > freenyears && ifnlim)
+	if (excessn<-EPS && ifnlim && date.year>freenyears)
 		dprintf("Year %d vegetation_n_uptake: patch %d Unexpected NEGATIVE value (%g) for annual excess mineral N before leach (%g)\n",
 			date.year,patch.id,excessn,patch.nsupply-patch.ndemand*patch.fnuptake);
 

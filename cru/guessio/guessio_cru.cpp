@@ -209,7 +209,7 @@ xtring file_aiso,file_miso,file_amon,file_mmon;
 xtring file_dgpp,file_dlai,file_dleafN,file_dresp;
 
 // GUESSN
-xtring file_cton,file_nmass,file_nsources,file_npool,file_nleach,file_nuptake,file_anppn,file_vmaxnlim,file_nlim;
+xtring file_cton,file_nmass,file_nsources,file_npool,file_nleach,file_nuptake,file_anppn,file_vmaxnlim,file_nlim,file_nflux;
 // end GUESSN
 
 // GUESSN allometry
@@ -244,7 +244,7 @@ void initsettings() {
 	file_dgpp="";
 
 	// GUESSN
-	file_cton=file_nmass=file_nsources=file_npool=file_nleach=file_nuptake=file_anppn=file_vmaxnlim=file_nlim="";
+	file_cton=file_nmass=file_nsources=file_npool=file_nleach=file_nuptake=file_anppn=file_vmaxnlim=file_nlim=file_nflux="";
 	// end GUESSN
 
 	// GUESSN allometry
@@ -368,6 +368,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_anppn",&file_anppn,300,CB_NONE,"annual N usage output file");
 		declareitem("file_vmaxnlim",&file_vmaxnlim,300,CB_NONE,"annual N limitation on vm output file");
 		declareitem("file_nlim",&file_nlim,300,CB_NONE,"annual N limitation on growth output file");
+		declareitem("file_nflux",&file_nflux,300,CB_NONE,"annual N fluxes output file");
 		// end GUESSN
 
 		// GUESSN allometry
@@ -1281,9 +1282,9 @@ const int NYEAR_CRU=106;
 const int FIRSTHISTYEAR_CRU=1901;
 
 // guess2008
-const int NYEAR_HIST=NYEAR_CRU; // guess2008 - CRU TS 3.0 has 106 years of data (1901-2006)
+const int NYEAR_HIST=NYEAR_CMIP5; // guess2008 - CRU TS 3.0 has 106 years of data (1901-2006)
 	// number of years of historical climate in CRU and CO2 files (see below)
-const int FIRSTHISTYEAR=FIRSTHISTYEAR_CRU;
+const int FIRSTHISTYEAR=FIRSTHISTYEAR_CMIP5;
 	// calender year corresponding to first year in CRU climate data set
 const int NYEAR_SPINUP_DATA=30;
 	// number of years to use for temperature-detrended spinup data set
@@ -1310,7 +1311,7 @@ FILE *out_dgpp,*out_dlai, *out_dleafN, *out_dresp;
 // Full pathname of ASCII file containing annual N deposition values (read from ins file)
 xtring file_ndep;
 
-FILE *out_cton,*out_nmass, *out_nsources, *out_npool, *out_nleach, *out_nuptake, *out_anppn, *out_vmaxnlim, *out_nlim;
+FILE *out_cton,*out_nmass, *out_nsources, *out_npool, *out_nleach, *out_nuptake, *out_anppn, *out_vmaxnlim, *out_nlim, *out_nflux;
 // end GUESSN
 
 // GUESSN allometry
@@ -3430,6 +3431,13 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		if (!out_nlim) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_nlim);
 	}
 	else out_nlim=NULL;
+
+	if (file_nflux!="") {
+		file_nflux = outputdirectory + file_nflux;
+		out_nflux=fopen(file_nflux,"w");
+		if (!out_nflux) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_nflux);
+	}
+	else out_cflux=NULL;
 	// end GUESSN
 
 	// GUESSN allometry
@@ -4497,6 +4505,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 	// GUESSN
 	double surfsoillitterc,surfsoillittern,cwdc,cwdn,microc,micron,humusc,humusn,centuryc,centuryn,n_harv_slow;
+	double flux_nh3,flux_no,flux_no2,flux_n2o;
 	// end GUESSN
 
 	// guess2008 - hold the monthly average across patches
@@ -4597,6 +4606,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_anppn) fprintf(out_anppn,lonlatyearstr,"Lon","Lat","Year");
 		if (out_vmaxnlim) fprintf(out_vmaxnlim,lonlatyearstr,"Lon","Lat","Year");
 		if (out_nlim) fprintf(out_nlim,lonlatyearstr,"Lon","Lat","Year");
+		if (out_nflux) fprintf(out_nflux,"%8s%8s%8s%10s%10s%10s%10s%10s\n","Lon","Lat","Year","NH3","NO","NO2","N2O","Total");
 		if (out_canopyh) fprintf(out_canopyh,lonlatyearstr,"Lon","Lat","Year");
 		if (out_allometry_ind) fprintf(out_allometry_ind,"%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s\n",
 			"Lon","Lat","Year","PFT","Age","N","Mfol","Mstem","Mcroot","Mfroot","Mroot","Mwood","Mactive","M","H","D");
@@ -4646,7 +4656,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		// GUESSN
 		if (out_cton) fprintf(out_cton,"%8s\n","Total");
 		if (out_nmass) fprintf(out_nmass,"%8s\n","Total");
-		if (out_nleach) fprintf(out_nleach,"%8s%8s%8s\n","Min","Org","Total");	//(kgN/ha/yr)
+		if (out_nleach) fprintf(out_nleach,"%8s%8s%8s%8s%8s%8s\n","Min","Org","Total","Temp","Prec","Insol");	//(kgN/ha/yr)
 		if (out_nuptake) fprintf(out_nuptake,"%9s\n","Total");
 		if (out_anppn) fprintf(out_anppn,"%9s\n","Total");
 		if (out_vmaxnlim) fprintf(out_vmaxnlim,"%8s\n","Total");
@@ -4730,6 +4740,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_anppn) fprintf(out_anppn,lonlatyeardatastr,lon,lat,date.year);
 		if (out_vmaxnlim) fprintf(out_vmaxnlim,lonlatyeardatastr,lon,lat,date.year);
 		if (out_nlim) fprintf(out_nlim,lonlatyeardatastr,lon,lat,date.year);
+		if (out_nflux) fprintf(out_nflux,lonlatyeardatastr,lon,lat,date.year);
 		if (out_canopyh) fprintf(out_canopyh,lonlatyeardatastr,lon,lat,date.year);
 		// end GUESSN
 
@@ -5129,6 +5140,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		surfsoillitterc=surfsoillittern=cwdc=cwdn=microc=micron=humusc=humusn=centuryc=centuryn=n_litter=n_harv_slow=0.0;
 		andep_gridcell=anmin_gridcell=animm_gridcell=anfix_gridcell=nsupply_gridcell=ndemand_gridcell=0.0;
 		n_org_leach_gridcell=n_min_leach_gridcell=0.0;
+		flux_nh3=flux_no=flux_no2=flux_n2o=0.0;
 
 		// end GUESSN
 
@@ -5153,6 +5165,12 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				flux_est+=patch.fluxes.acflux_est*to_gridcell_average;
 				flux_harvest+=patch.fluxes.acflux_harvest*to_gridcell_average;
 
+				// GUESSN
+				flux_nh3+=patch.fluxes.aNH3_fire*to_gridcell_average;
+				flux_no+=patch.fluxes.aNO_fire*to_gridcell_average;
+				flux_no2+=patch.fluxes.aNO2_fire*to_gridcell_average;
+				flux_n2o+=patch.fluxes.aN2O_fire*to_gridcell_average;			
+				
 				c_fast+=patch.soil.cpool_fast*to_gridcell_average;
 				c_slow+=patch.soil.cpool_slow*to_gridcell_average;
 
@@ -5308,8 +5326,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_nsources) fprintf(out_nsources,"%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f\n",
 			andep_gridcell,anfix_gridcell,andep_gridcell+anfix_gridcell,anmin_gridcell,animm_gridcell,
 			anmin_gridcell-animm_gridcell,andep_gridcell+anmin_gridcell-animm_gridcell+anfix_gridcell,ndemand_gridcell);
-		if (out_nleach)	fprintf(out_nleach,"%8.3f%8.3f%8.3f\n",n_min_leach_gridcell,n_org_leach_gridcell,
-			n_min_leach_gridcell+n_org_leach_gridcell);
+		if (out_nleach)	fprintf(out_nleach,"%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f\n",n_min_leach_gridcell,n_org_leach_gridcell,
+			n_min_leach_gridcell+n_org_leach_gridcell,gridcell.climate.atemp_mean,gridcell.climate.aprec,gridcell.climate.asun);
 
 		// end GUESSN
 
@@ -5489,6 +5507,10 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 					nmass_gridcell+n_litter+centuryn);
 			}
 		}
+
+		if (out_nflux) 
+			fprintf(out_nflux,"%10.5f%10.5f%10.5f%10.5f%10.5f\n",
+				flux_nh3,flux_no,flux_no2,flux_n2o,flux_nh3+flux_no+flux_no2+flux_n2o);
 		// end GUESSN
 
 		// Output of age structure (Windows shell only - no effect otherwise)
@@ -5579,6 +5601,7 @@ void termio() {
 		if (out_anppn) fclose(out_anppn);
 		if (out_vmaxnlim) fclose(out_vmaxnlim);
 		if (out_nlim) fclose(out_nlim);
+		if (out_nflux) fclose(out_nflux);
 		if (out_canopyh) fclose(out_canopyh);
 		if (out_allometry_ind) fclose(out_allometry_ind);
 		// end GUESSN

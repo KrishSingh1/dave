@@ -572,6 +572,9 @@ public:
 	double atemp_mean;
 		// mean of monthly temperatures for the last 12 months (deg C)
 
+	double aprec;
+	double asun;
+
 	// GUESSN
 	// annual nitrogen deposition (kgN/m2/year)
 	double andep;
@@ -630,6 +633,9 @@ public:
 		atemp_mean=0.0;
 		last_gtemp=-1;
 		last_mgtemp=-1;
+
+		aprec=0.0;
+		asun=0.0;
 
 		lat=latitude;
 		for (day=0;day<365;day++) doneday[day]=false;
@@ -693,6 +699,17 @@ public:
 	double mmon[12];
 	        // monthly monoterpene flux (g C/m2/month)
 
+	// GUESSN
+	// annaul NH3 flux to atmosphere from fire
+	double aNH3_fire;
+	// annaul NO flux to atmosphere from fire	
+	double aNO_fire;
+	// annaul NO flux to atmosphere from fire
+	double aNO2_fire;
+	// annaul N2O flux to atmosphere from fire	
+	double aN2O_fire;
+	// emssion ratios from fire (NH3, NO, NO2, N2O)
+	double firenratio[4];
 
 	// MEMBER FUNCTIONS
 
@@ -707,8 +724,17 @@ public:
 
 		for (int d=0;d<365;d++)
 			dcflux_soil[365]=0;
-	}
-		
+
+		const double data[]={0.014,0.531,0.379,0.076};	// Delmas et al. 1995
+			
+		for (int n=0;n<4;n++)
+			firenratio[n]=data[n];
+
+		aNH3_fire=0.0;
+		aNO_fire=0.0;
+		aNO2_fire=0.0;
+		aN2O_fire=0.0;
+	}		
 
 	double anee() {
 		
@@ -1958,11 +1984,7 @@ public:
 	/// Photosynthesis values for this PFT under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;
 	
-	
-
 	// GUESSN
-	double na;  // sch = 0
-		// Leaf nitrogen associated with photosynthesis today, patch basis kgN/m2
 	double cmass_repr_nuptake;
 		// net C allocated to reproduction for this PFT in all patches of this stand
 		// this year (kgC/m2)
@@ -2158,6 +2180,9 @@ int framework(int argc,char* argv[]);
 // Cosby, B. J., Hornberger, C. M., Clapp, R. B., & Ginn, T. R. 1984 A statistical exploration
 //   of the relationships of soil moisture characteristic to the physical properties of soil.
 //   Water Resources Research, 20: 682-690.
+// Delmas, R., Lacaux, J.P., Menaut, J.C., Abbadie, L., Le Roux, X., Helaa, G., Lobert, J., 1995. 
+//   Nitrogen compound emission from biomass burning in tropical African Savanna FOS/DECAFE 1991 
+//   experiment. Journal of Atmospheric Chemistry 22, 175–193.
 // LPJF refers to the original FORTRAN implementation of LPJ as described by Sitch
 //   et al 2000
 // Fulton, MR 1991 Adult recruitment rate as a function of juvenile growth in size-

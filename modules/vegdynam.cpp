@@ -945,13 +945,23 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 				indiv.nmass_heart);
 				
 			// Transfer N storage to wood N litter for now 	
-			patch.pft[indiv.pft.id].nmass_litter_wood+=mort*(indiv.nstore+indiv.nmass_reserve);
+			patch.pft[indiv.pft.id].nmass_litter_wood+=(mort-mort_fire)*(indiv.nstore+indiv.nmass_reserve);
 			// end GUESSN
 
 			// Flux to atmosphere from burnt above-ground biomass
 
 			patch.fluxes.acflux_fire+=mort_fire*(indiv.cmass_leaf+indiv.cmass_sap+
 				indiv.cmass_heart-indiv.cmass_debt);
+
+			// GUESSN
+			patch.fluxes.aNH3_fire+=mort_fire*patch.fluxes.firenratio[0]*(indiv.nmass_leaf+indiv.nmass_sap+
+				indiv.nmass_heart+indiv.nstore+indiv.nmass_reserve);
+			patch.fluxes.aNO_fire+=mort_fire*patch.fluxes.firenratio[1]*(indiv.nmass_leaf+indiv.nmass_sap+
+				indiv.nmass_heart+indiv.nstore+indiv.nmass_reserve);
+			patch.fluxes.aNO2_fire+=mort_fire*patch.fluxes.firenratio[2]*(indiv.nmass_leaf+indiv.nmass_sap+
+				indiv.nmass_heart+indiv.nstore+indiv.nmass_reserve);
+			patch.fluxes.aN2O_fire+=mort_fire*patch.fluxes.firenratio[3]*(indiv.nmass_leaf+indiv.nmass_sap+
+				indiv.nmass_heart+indiv.nstore+indiv.nmass_reserve);
 
 			// Reduce population density and C biomass on modelled area basis
 			// to account for loss of killed individuals
@@ -1017,6 +1027,12 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 			// Flux to atmosphere from burnt above-ground biomass
 
 			patch.fluxes.acflux_fire+=mort_fire*indiv.cmass_leaf;
+
+			// GUESSN
+			patch.fluxes.aNH3_fire+=mort_fire*patch.fluxes.firenratio[0]*indiv.nmass_leaf;
+			patch.fluxes.aNO_fire+=mort_fire*patch.fluxes.firenratio[1]*indiv.nmass_leaf;
+			patch.fluxes.aNO2_fire+=mort_fire*patch.fluxes.firenratio[2]*indiv.nmass_leaf;
+			patch.fluxes.aN2O_fire+=mort_fire*patch.fluxes.firenratio[3]*indiv.nmass_leaf;
 
 			// Reduce C biomass on modelled area basis to account for biomass lost
 			// through mortality
@@ -1155,12 +1171,16 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					indiv.cmass_leaf*=indiv.pft.fireresist;
 					indiv.cmass_root*=indiv.pft.fireresist;
 
-					// GUESSN GAS should be N gas as well
-					//patch.fluxes.anflux_fire+=mort_fire*indiv.nmass_leaf;
+					// GUESSN 
 					patch.pft[indiv.pft.id].nmass_litter_root+=mort_fire*indiv.nmass_root;
 
-					// Transfer N storage to root N litter for now 	
+					// Transfer N storage to root N litter 	
 					patch.pft[indiv.pft.id].nmass_litter_root+=mort_fire*(indiv.nstore+indiv.nmass_reserve);
+
+					patch.fluxes.aNH3_fire+=mort_fire*patch.fluxes.firenratio[0]*indiv.nmass_leaf;
+					patch.fluxes.aNO_fire+=mort_fire*patch.fluxes.firenratio[1]*indiv.nmass_leaf;
+					patch.fluxes.aNO2_fire+=mort_fire*patch.fluxes.firenratio[2]*indiv.nmass_leaf;
+					patch.fluxes.aN2O_fire+=mort_fire*patch.fluxes.firenratio[3]*indiv.nmass_leaf;
 
 					indiv.nmass_leaf*=indiv.pft.fireresist;
 					indiv.nmass_root*=indiv.pft.fireresist;
@@ -1221,17 +1241,20 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					indiv.cmass_debt*=frac_survive;
 					indiv.cmass_heart*=frac_survive;
 
-					// GUESSNFIX
-
-					// should be N gas as well
-					//patch.fluxes.anflux_fire+=(1.0-frac_survive)*(indiv.nmass_leaf+
-					//	indiv.nmass_sap+indiv.nmass_heart);
+					// GUESSN
 
 					// Transfer killed roots to litter
 					patch.pft[indiv.pft.id].nmass_litter_root+=(1.0-frac_survive)*indiv.nmass_root;
 
-					// Transfer N storage to wood N litter for now
-					patch.pft[indiv.pft.id].nmass_litter_root+=(1.0-frac_survive)*(indiv.nstore+indiv.nmass_reserve);
+					// Calculate flux from biomass to atmosphere due to fire
+					patch.fluxes.aNH3_fire+=(1.0-frac_survive)*patch.fluxes.firenratio[0]*(indiv.nmass_leaf+indiv.nmass_sap+
+						indiv.nmass_heart+indiv.nstore+indiv.nmass_reserve);
+					patch.fluxes.aNO_fire+=(1.0-frac_survive)*patch.fluxes.firenratio[1]*(indiv.nmass_leaf+indiv.nmass_sap+
+						indiv.nmass_heart+indiv.nstore+indiv.nmass_reserve);
+					patch.fluxes.aNO2_fire+=(1.0-frac_survive)*patch.fluxes.firenratio[2]*(indiv.nmass_leaf+indiv.nmass_sap+
+						indiv.nmass_heart+indiv.nstore+indiv.nmass_reserve);
+					patch.fluxes.aN2O_fire+=(1.0-frac_survive)*patch.fluxes.firenratio[3]*(indiv.nmass_leaf+indiv.nmass_sap+
+						indiv.nmass_heart+indiv.nstore+indiv.nmass_reserve);
 
 					// Reduce individual density and biomass on patch area basis
 					// to account for loss of killed individuals
@@ -1593,10 +1616,11 @@ void fire(Patch& patch,double& fireprob) {
 		patch.pft[p].litter_wood*=1.0-mort_fire;
 		patch.pft[p].litter_repr*=1.0-mort_fire;
 
-		// GUESSNFIX
-		// N should be added to N gas
-		//patch.fluxes.anflux_fire+=mort_fire*(patch.pft[p].nmass_litter_leaf+
-		//	patch.pft[p].nmass_litter_wood);
+		// GUESSN
+		patch.fluxes.aNH3_fire+=mort_fire*patch.fluxes.firenratio[0]*(patch.pft[p].nmass_litter_leaf+patch.pft[p].nmass_litter_wood);
+		patch.fluxes.aNO_fire+=mort_fire*patch.fluxes.firenratio[1]*(patch.pft[p].nmass_litter_leaf+patch.pft[p].nmass_litter_wood);
+		patch.fluxes.aNO2_fire+=mort_fire*patch.fluxes.firenratio[2]*(patch.pft[p].nmass_litter_leaf+patch.pft[p].nmass_litter_wood);
+		patch.fluxes.aN2O_fire+=mort_fire*patch.fluxes.firenratio[3]*(patch.pft[p].nmass_litter_leaf+patch.pft[p].nmass_litter_wood);
 
 		patch.pft[p].nmass_litter_leaf*=1.0-mort_fire;
 		patch.pft[p].nmass_litter_wood*=1.0-mort_fire;

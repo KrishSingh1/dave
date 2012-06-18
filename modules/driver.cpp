@@ -474,6 +474,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 	if (date.day==0) {
 		// ... reset annual GDD5 counter
 		climate.agdd5=0.0;
+		climate.aprec=0.0;
+		climate.asun=0.0;
 
 		if (date.year==0) {
 			// First day of simulation - initialise running annual mean temperature and daily temperatures for the last month
@@ -488,6 +490,9 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 		climate.gdd5=0.0;
 		climate.ifsensechill=false; // guess2008 - CHILLDAYS
 	}
+
+	climate.aprec+=climate.prec/365.0;
+	climate.asun+=climate.par/36500000.0;
 
 	// Update GDD counters and chill day count
 	climate.gdd5+=max(0.0,climate.temp-5.0);
@@ -621,6 +626,11 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 		fluxes.acflux_veg=0.0;
 		fluxes.acflux_est=0.0;
 		fluxes.acflux_fire=0.0;
+
+		fluxes.aNH3_fire=0.0;
+		fluxes.aNO_fire=0.0;
+		fluxes.aNO2_fire=0.0;
+		fluxes.aN2O_fire=0.0;
 
 		patch.aaet=0.0;
 		patch.aevap=0.0;
@@ -844,7 +854,6 @@ void daylengthinsoleet(Climate& climate) {
 		w=(C+D*climate.insol/100.0)*(1.0-BETA)*climate.qo[date.day]; // Eqn 13
 		rs_day=2.0*w*(climate.u[date.day]*climate.hh[date.day]
 			+climate.v[date.day]*climate.sinehh[date.day])*K; // Eqn 14
-
 	}
 	else { // insolation provided as instantaneous downward shortwave radiation flux 
 		   // Replace climate.daylength_save[date.day] with 24 when using radiation data 
@@ -853,7 +862,8 @@ void daylengthinsoleet(Climate& climate) {
 		if (climate.instype==NETSWRAD) // net radiation known
 			rs_day=climate.insol*climate.daylength_save[date.day]*3600.0;
 		else // include correction for albedo
-			rs_day=climate.insol*(1.0-BETA)*climate.daylength_save[date.day]*3600.0;
+			//rs_day=climate.insol*(1.0-BETA)*climate.daylength_save[date.day]*3600.0;
+			rs_day=climate.insol*(1.0-BETA)*24.0*3600;
 
 		// guess2008 - special case for polar night
 		if (climate.sinehh[date.day]<0.001) {

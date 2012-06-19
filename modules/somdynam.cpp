@@ -958,7 +958,7 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 	if (date.day == 0)
 		soil.n_org_leach_annual=0.0;
 
-	soil.n_org_leach_annual+=leachsum_cmass;
+	soil.n_org_leach_annual+=leachsum_nmass;
 
 	// Store daily mineralisation and immobilisation to permit calculation of daily
 	// mineral nitrogen balance at end of year

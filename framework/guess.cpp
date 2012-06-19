@@ -171,7 +171,7 @@ double Gridcell::get_lat() const {
 	return lat;
 }
 
-double Gridcell::set_coordinates(double longitude, double latitude) {
+void Gridcell::set_coordinates(double longitude, double latitude) {
 	lon = longitude;
 	lat = latitude;
 }

@@ -1751,7 +1751,7 @@ public:
 	double get_lat() const;
 
 	/// Set longitude and latitude for this grid cell
-	double set_coordinates(double longitude, double latitude);
+	void set_coordinates(double longitude, double latitude);
 
 private:
 

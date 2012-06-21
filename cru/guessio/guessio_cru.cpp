@@ -43,6 +43,7 @@
 #include "guessio.h"
 
 #include "driver.h"
+#include "outputchannel.h"
 #include <plib.h>
 #include <stdio.h>
 #include <utility>
@@ -202,7 +203,7 @@ xtring outputdirectory;
 xtring file_cmass,file_anpp,file_dens,file_lai,file_cflux,file_cpool,file_runoff;
 xtring file_mnpp,file_mlai,file_mgpp,file_mra,file_maet,file_mpet,file_mevap,file_mrunoff,file_mintercep,file_mrh;
 xtring file_mnee,file_mwcont_upper,file_mwcont_lower;
-xtring file_firert;
+xtring file_firert,file_speciesheights;
 // bvoc
 xtring file_aiso,file_miso,file_amon,file_mmon;
 
@@ -237,7 +238,7 @@ void initsettings() {
 	file_cmass=file_anpp=file_lai=file_cflux=file_dens=file_runoff="";
 	file_mnpp=file_mlai=file_maet=file_mpet=file_mevap=file_mrunoff=file_mintercep=file_mrh="";
 	file_mgpp=file_mra=file_mnee=file_mwcont_upper=file_mwcont_lower="";
-	file_cpool=file_firert="";
+	file_cpool=file_firert=file_speciesheights="";
 	// bvoc
 	file_aiso=file_miso=file_amon=file_mmon="";
 
@@ -378,6 +379,8 @@ void plib_declarations(int id,xtring setname) {
 		// end GUESSN
 
 		
+		declareitem("file_speciesheights",&file_speciesheights,300,CB_NONE,"Mean species heights");
+
 		// Monthly output variables
 		declareitem("file_mnpp",&file_mnpp,300,CB_NONE,"Monthly NPP output file");
 		declareitem("file_mlai",&file_mlai,300,CB_NONE,"Monthly LAI output file");
@@ -417,7 +420,7 @@ void plib_declarations(int id,xtring setname) {
 
 		// bvoc 
 		declareitem("ifbvoc",&ifbvoc,1,CB_NONE,
-			    "Whether or not BVOC calculations are performed (0,1)");
+			"Whether or not BVOC calculations are performed (0,1)");
 		declareitem("run_landcover",&run_landcover,1,CB_NONE,"Landcover version");
 		declareitem("run_urban",&run[URBAN],1,CB_NONE,"Whether urban land is to be simulated");
 		declareitem("run_crop",&run[CROPLAND],1,CB_NONE,"Whether crop-land is to be simulated");
@@ -1009,7 +1012,7 @@ void printhelp() {
 //   Diurnal temperature range (dtr) added for calculation of leaf temperatures in 
 //   BVOC:
 //   gridcell.climate.dtr=ddtr[date.day]; 
-// 
+//
 // void outannual(Stand& stand,Pftlist& pftlist)
 //   Called at the end of the last day of each simulation year to permit output of
 //   model results.
@@ -1297,26 +1300,32 @@ FILE *in_cru;
 // Full pathname of ASCII file containing annual CO2 values (read from ins file)
 xtring file_co2;
 
-// Output streams
-FILE *out_cmass,*out_anpp,*out_lai,*out_cflux,*out_cpool,*out_runoff,*out_dens;
-FILE *out_mnpp,*out_mlai,*out_mgpp,*out_mra,*out_maet,*out_mpet,*out_mevap,*out_mrunoff,*out_mintercep,*out_mrh;
-FILE *out_mnee,*out_mwcont_upper,*out_mwcont_lower; 
-FILE *out_firert; 
-// bvoc
-FILE *out_aiso,*out_miso,*out_amon,*out_mmon;
+using namespace GuessOutput;
 
-FILE *out_dgpp,*out_dlai, *out_dleafN, *out_dresp;
+/// The output channel through which all output is sent
+OutputChannel* output_channel;
 
 // GUESSN
 // Full pathname of ASCII file containing annual N deposition values (read from ins file)
 xtring file_ndep;
-
-FILE *out_cton,*out_nmass, *out_nsources, *out_npool, *out_nleach, *out_nuptake, *out_anppn, *out_vmaxnlim, *out_nlim, *out_nflux;
 // end GUESSN
+
+// Output tables
+Table out_cmass, out_anpp, out_dens, out_lai, out_cflux, out_cpool, out_firert, out_runoff, out_speciesheights;
+
+Table out_mnpp, out_mlai, out_mgpp, out_mra, out_maet, out_mpet, out_mevap, out_mrunoff, out_mintercep;
+Table out_mrh, out_mnee, out_mwcont_upper, out_mwcont_lower;
+
+// bvoc
+Table out_aiso, out_miso, out_amon, out_mmon;
+
+// GUESSN
+Table out_cton, out_nmass, out_nsources, out_npool, out_nleach, out_nuptake, out_anppn, out_vmaxnlim, out_nlim, out_nflux;
 
 // GUESSN allometry
-FILE *out_allometry, *out_canopyh, *out_allometry_ind;
+Table out_canopyh, out_allometry_ind;
 // end GUESSN
+
 
 // Timers for keeping track of progress through the simulation
 Timer tprogress,tmute;
@@ -2853,7 +2862,7 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 		if (success) {
 			bool flag = ark.rewind();
 			if (!flag) { 
-				ark.close(); // I.e. we opened it but we couldn?t rewind
+				ark.close(); // I.e. we opened it but we couldn't rewind
 				return false;
 			}
 		}
@@ -2926,7 +2935,7 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 		if (success) {
 			bool flag = ark.rewind();
 			if (!flag) { 
-				ark.close(); // I.e. we opened it but we couldn?t rewind
+				ark.close(); // I.e. we opened it but we couldn't rewind
 				return false;
 			}
 		}
@@ -3079,6 +3088,285 @@ void interp_climate(double mtemp[12], double mprec[12], double msun[12], double 
 	interp_monthly_means(mdtr, ddtr);
 }
 
+/// Help function to define_output_tables, creates one output table
+void create_output_table(Table& table, const char* file, const ColumnDescriptors& columns) {
+	 table = output_channel->create_table(TableDescriptor(file, columns));
+}
+
+/// Defines all output tables
+/** This function specifies all columns in all output tables, their names,
+ *  column widths and precision.
+ *
+ *  For each table a TableDescriptor object is created which is then sent to
+ *  the output channel to create the table.
+ */
+void define_output_tables(Pftlist& pftlist) {
+	// create a vector with the pft names
+	std::vector<std::string> pfts;
+
+	pftlist.firstobj();
+	while (pftlist.isobj) {
+		 Pft& pft=pftlist.getobj();
+
+		 pfts.push_back((char*)pft.name);
+
+		 pftlist.nextobj();
+	}
+
+	// create a vector with the landcover column titles
+	std::vector<std::string> landcovers;
+
+	if (run_landcover) {
+		 const char* landcover_string[]={"Urban_sum", "Crop_sum", "Pasture_sum", "Forest_sum", "Natural_sum", "Peatland_sum"};
+		 for (int i=0; i<NLANDCOVERTYPES; i++) {
+			  if(run[i]) {
+					landcovers.push_back(landcover_string[i]);
+			  }
+		 }
+	}
+
+	// Create the month columns
+	ColumnDescriptors month_columns;
+	ColumnDescriptors month_columns_wide;
+	xtring months[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+	for (int i = 0; i < 12; i++) {
+		 month_columns      += ColumnDescriptor(months[i], 8,  3);
+		 month_columns_wide += ColumnDescriptor(months[i], 10, 3);
+	}
+
+	// Create the columns for each output file
+
+	// CMASS
+	ColumnDescriptors cmass_columns;
+	cmass_columns += ColumnDescriptors(pfts, 8, 3);
+	cmass_columns += ColumnDescriptor("Total", 8, 3);
+	cmass_columns += ColumnDescriptors(landcovers, 13, 3);
+
+	// ANPP
+	ColumnDescriptors anpp_columns = cmass_columns;
+
+	// DENS
+	ColumnDescriptors dens_columns;
+	dens_columns += ColumnDescriptors(pfts, 8, 4);
+	dens_columns += ColumnDescriptor("Total", 8, 4);
+	dens_columns += ColumnDescriptors(landcovers, 13, 4);
+
+	// LAI
+	ColumnDescriptors lai_columns = dens_columns;
+
+	// CFLUX
+	ColumnDescriptors cflux_columns;
+	cflux_columns += ColumnDescriptor("Veg",     8, 3);
+	cflux_columns += ColumnDescriptor("Soil",    8, 3);
+	cflux_columns += ColumnDescriptor("Fire",    8, 3);
+	cflux_columns += ColumnDescriptor("Est",     8, 3);
+	if (run_landcover) {
+		 cflux_columns += ColumnDescriptor("Harvest", 9, 3);
+	}
+	cflux_columns += ColumnDescriptor("NEE",    10, 5);
+
+	// CPOOL
+	ColumnDescriptors cpool_columns;
+	cpool_columns += ColumnDescriptor("VegC",   8, 3);
+
+	if (!ifcentury) {
+		cpool_columns += ColumnDescriptor("LittC",  8, 3);
+		cpool_columns += ColumnDescriptor("SoilfC", 8, 3);
+		cpool_columns += ColumnDescriptor("SoilsC", 8, 3);
+	}
+	else {
+		cpool_columns += ColumnDescriptor("LittVC", 8, 3);
+		cpool_columns += ColumnDescriptor("LittSC", 8, 3);
+		cpool_columns += ColumnDescriptor("CwdC",   8, 3);
+		cpool_columns += ColumnDescriptor("MicroC", 8, 3);
+		cpool_columns += ColumnDescriptor("HumusC", 8, 3);
+		cpool_columns += ColumnDescriptor("SoilC",  8, 3);
+	}
+	if (run_landcover && ifslowharvestpool) {
+		 cpool_columns += ColumnDescriptor("HarvSlowC", 10, 3);
+	}
+	cpool_columns += ColumnDescriptor("Total", 10, 3);
+
+	// FIRERT
+	ColumnDescriptors firert_columns;
+	firert_columns += ColumnDescriptor("FireRT", 8, 1);
+
+	// RUNOFF
+	ColumnDescriptors runoff_columns;
+	runoff_columns += ColumnDescriptor("Total", 8, 1);
+
+	// SPECIESHEIGHTS
+	ColumnDescriptors speciesheights_columns;
+	speciesheights_columns += ColumnDescriptors(pfts, 8, 2);
+
+	// AISO
+	ColumnDescriptors aiso_columns;
+	aiso_columns += ColumnDescriptors(pfts, 10, 3);
+	aiso_columns += ColumnDescriptor("Total", 10, 3);
+	aiso_columns += ColumnDescriptors(landcovers, 13, 3);
+
+	// AMON
+	ColumnDescriptors amon_columns = aiso_columns;
+
+
+
+	// GUESSN
+
+	//TODO Fix these for landcover
+
+	// CTON
+	ColumnDescriptors cton_columns;
+	cton_columns += ColumnDescriptors(pfts, 8, 3);
+	cton_columns += ColumnDescriptor("Total", 8, 4);
+	cton_columns += ColumnDescriptors(landcovers, 13, 3);
+
+	// NMASS
+	ColumnDescriptors nmass_columns;
+	nmass_columns += ColumnDescriptors(pfts, 8, 3);
+	nmass_columns += ColumnDescriptor("Total", 8, 3);
+	nmass_columns += ColumnDescriptors(landcovers, 13, 3);
+
+	// NSOURCES
+	ColumnDescriptors nsources_columns;
+	nsources_columns += ColumnDescriptor("dep",     8, 3);
+	nsources_columns += ColumnDescriptor("fix",     8, 3);
+	nsources_columns += ColumnDescriptor("input",   8, 3);
+	nsources_columns += ColumnDescriptor("min",     8, 3);
+	nsources_columns += ColumnDescriptor("imm",     8, 3);
+	nsources_columns += ColumnDescriptor("min-imm", 8, 3);
+	nsources_columns += ColumnDescriptor("Total",   8, 3);
+	nsources_columns += ColumnDescriptor("Ndemand", 8, 3);
+
+	// NPOOL
+	ColumnDescriptors npool_columns;
+	npool_columns += ColumnDescriptor("VegN",   8, 4);
+	npool_columns += ColumnDescriptor("LittVN", 8, 4);
+	npool_columns += ColumnDescriptor("LittSN", 8, 4);
+	npool_columns += ColumnDescriptor("CwdN",   8, 4);
+	npool_columns += ColumnDescriptor("MicroN", 8, 4);
+	npool_columns += ColumnDescriptor("HumusN", 8, 4);
+	npool_columns += ColumnDescriptor("SoilN",  8, 4);
+
+	if (run_landcover && ifslowharvestpool) {
+		npool_columns += ColumnDescriptor("HarvSlowN", 8, 4);
+	}
+
+	npool_columns += ColumnDescriptor("Total", 10, 4);
+
+	// NLEACH
+	ColumnDescriptors nleach_columns;
+	nleach_columns += ColumnDescriptor("Min",   8, 3);
+	nleach_columns += ColumnDescriptor("Org",   8, 3);
+	nleach_columns += ColumnDescriptor("Total", 8, 3);
+	nleach_columns += ColumnDescriptor("Temp",  8, 3);
+	nleach_columns += ColumnDescriptor("Prec",  8, 3);
+	nleach_columns += ColumnDescriptor("Insol", 8, 3);
+
+	// NUPTAKE
+	ColumnDescriptors nuptake_columns;
+	nuptake_columns += ColumnDescriptors(pfts, 9, 5);
+	nuptake_columns += ColumnDescriptor("Total", 9, 5);
+	nuptake_columns += ColumnDescriptors(landcovers, 13, 4);
+
+	// ANPPN
+	ColumnDescriptors anppn_columns;
+	anppn_columns += ColumnDescriptors(pfts, 9, 5);
+	anppn_columns += ColumnDescriptor("Total", 8, 3);
+	anppn_columns += ColumnDescriptors(landcovers, 13, 3);
+
+	// VMAXNLIM
+	ColumnDescriptors vmaxnlim_columns;
+	vmaxnlim_columns += ColumnDescriptors(pfts, 8, 3);
+	vmaxnlim_columns += ColumnDescriptor("Total", 8, 3);
+	vmaxnlim_columns += ColumnDescriptors(landcovers, 13, 4);
+
+	// NLIM
+	ColumnDescriptors nlim_columns;
+	nlim_columns += ColumnDescriptors(pfts, 8, 3);
+	nlim_columns += ColumnDescriptor("Total", 8, 3);
+	nlim_columns += ColumnDescriptors(landcovers, 13, 4);
+
+	// NFLUX
+	ColumnDescriptors nflux_columns;
+	nflux_columns += ColumnDescriptor("NH3",   10, 5);
+	nflux_columns += ColumnDescriptor("NO",    10, 5);
+	nflux_columns += ColumnDescriptor("NO2",   10, 5);
+	nflux_columns += ColumnDescriptor("N2O",   10, 5);
+	nflux_columns += ColumnDescriptor("Total", 10, 5);
+
+	// CANOPYH
+	ColumnDescriptors canopyh_columns;
+	canopyh_columns += ColumnDescriptor("Height", 8, 1);
+
+	// ALLOMETRY_IND
+	ColumnDescriptors allometry_ind_columns;
+	allometry_ind_columns += ColumnDescriptor("PFT",     9, 0);
+	allometry_ind_columns += ColumnDescriptor("Age",     9, 0);
+	allometry_ind_columns += ColumnDescriptor("N",       9, 0);
+	allometry_ind_columns += ColumnDescriptor("Mfol",    9, 3);
+	allometry_ind_columns += ColumnDescriptor("Mstem",   9, 2);
+	allometry_ind_columns += ColumnDescriptor("Mcroot",  9, 2);
+	allometry_ind_columns += ColumnDescriptor("Mfroot",  9, 3);
+	allometry_ind_columns += ColumnDescriptor("Mroot",   9, 2);
+	allometry_ind_columns += ColumnDescriptor("Mwood",   9, 2);
+	allometry_ind_columns += ColumnDescriptor("Mactive", 9, 3);
+	allometry_ind_columns += ColumnDescriptor("M",       9, 2);
+	allometry_ind_columns += ColumnDescriptor("H",       9, 3);
+	allometry_ind_columns += ColumnDescriptor("D",       9, 3);
+
+	// end GUESSN
+
+
+
+	// *** ANNUAL OUTPUT VARIABLES ***
+
+	create_output_table(out_cmass,          file_cmass,          cmass_columns);
+	create_output_table(out_anpp,           file_anpp,           anpp_columns);
+	create_output_table(out_dens,           file_dens,           dens_columns);
+	create_output_table(out_lai,            file_lai,            lai_columns);
+	create_output_table(out_cflux,          file_cflux,          cflux_columns);
+	create_output_table(out_cpool,          file_cpool,          cpool_columns);
+	create_output_table(out_firert,         file_firert,         firert_columns);
+	create_output_table(out_runoff,         file_runoff,         runoff_columns);
+	create_output_table(out_speciesheights, file_speciesheights, speciesheights_columns);
+	create_output_table(out_aiso,           file_aiso,           aiso_columns);
+	create_output_table(out_amon,           file_amon,           amon_columns);
+
+	// GUESSN
+	create_output_table(out_cton,           file_cton,           cton_columns);
+	create_output_table(out_nmass,          file_nmass,          nmass_columns);
+	create_output_table(out_nsources,       file_nsources,       nsources_columns);
+	create_output_table(out_npool,          file_npool,          npool_columns);
+	create_output_table(out_nleach,         file_nleach,         nleach_columns);
+	create_output_table(out_nuptake,        file_nuptake,        nuptake_columns);
+	create_output_table(out_anppn,          file_anppn,          anppn_columns);
+	create_output_table(out_vmaxnlim,       file_vmaxnlim,       vmaxnlim_columns);
+	create_output_table(out_nlim,           file_nlim,           nlim_columns);
+	create_output_table(out_nflux,          file_nflux,          nflux_columns);
+	create_output_table(out_canopyh,        file_canopyh,        canopyh_columns);
+	create_output_table(out_allometry_ind,  file_allometry_ind,  allometry_ind_columns);
+
+	// end GUESSN
+
+	// *** MONTHLY OUTPUT VARIABLES ***
+
+	create_output_table(out_mnpp,         file_mnpp,         month_columns);
+	create_output_table(out_mlai,         file_mlai,         month_columns);
+	create_output_table(out_mgpp,         file_mgpp,         month_columns);
+	create_output_table(out_mra,          file_mra,          month_columns);
+	create_output_table(out_maet,         file_maet,         month_columns);
+	create_output_table(out_mpet,         file_mpet,         month_columns);
+	create_output_table(out_mevap,        file_mevap,        month_columns);
+	create_output_table(out_mrunoff,      file_mrunoff,      month_columns_wide);
+	create_output_table(out_mintercep,    file_mintercep,    month_columns);
+	create_output_table(out_mrh,          file_mrh,          month_columns);
+	create_output_table(out_mnee,         file_mnee,         month_columns);
+	create_output_table(out_mwcont_upper, file_mwcont_upper, month_columns);
+	create_output_table(out_mwcont_lower, file_mwcont_lower, month_columns);
+	create_output_table(out_miso,         file_miso,         month_columns_wide);
+	create_output_table(out_mmon,         file_mmon,         month_columns_wide);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // INITIO
 // Called by the framework at the start of the model run
@@ -3115,7 +3403,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	bool abort;
 	xtring insfilename;
 	xtring header;
- 
+
 
 	unixtime(header);
 	header=(xtring)"[LPJ-GUESS  "+header+"]\n\n";
@@ -3286,294 +3574,18 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		}
 	}
 
-	// guess2008
-	// Retrieve output file names as read from ins file
-
 	// We MUST have an output directory
 	if (outputdirectory=="") {
 		fail("No output directory given in the .ins file!");
 	}
 
-	// *** ANNUAL OUTPUT VARIABLES ***
+	// Create the output channel
+	const int COORDINATES_PRECISION = 1; // decimal places for coords in output
+	output_channel = new FileOutputChannel((char*)outputdirectory,
+														COORDINATES_PRECISION);
 
-	if (file_cmass!="") {
-		file_cmass = outputdirectory + file_cmass;
-		out_cmass=fopen(file_cmass,"w");
-		if (!out_cmass) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_cmass);
-	}
-	else out_cmass=NULL;
-
-	if (file_anpp!="") {
-		file_anpp = outputdirectory + file_anpp;
-		out_anpp=fopen(file_anpp,"w");
-		if (!out_anpp) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_anpp);
-	}
-	else out_anpp=NULL;
-
-	if (file_dens!="") {
-		file_dens = outputdirectory + file_dens;
-		out_dens=fopen(file_dens,"w");
-		if (!out_dens) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_dens);
-	}
-	else out_dens=NULL;
-
-	if (file_lai!="") {
-		file_lai = outputdirectory + file_lai;
-		out_lai=fopen(file_lai,"w");
-		if (!out_lai) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_lai);
-	}
-	else out_lai=NULL;
-
-	if (file_cflux!="") {
-		file_cflux = outputdirectory + file_cflux;
-		out_cflux=fopen(file_cflux,"w");
-		if (!out_cflux) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_cflux);
-	}
-	else out_cflux=NULL;
-
-	if (file_cpool!="") {
-		file_cpool = outputdirectory + file_cpool;
-		out_cpool=fopen(file_cpool,"w");
-		if (!out_cpool) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_cpool);
-	}
-	else out_cpool=NULL;
-
-	if (file_firert!="") {
-		file_firert = outputdirectory + file_firert;
-		out_firert=fopen(file_firert,"w");
-		if (!out_firert) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_firert);
-	}
-	else out_firert=NULL;
-	
-
-	if (file_runoff!="") {
-		file_runoff = outputdirectory + file_runoff;
-		out_runoff=fopen(file_runoff,"w");
-		if (!out_runoff) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_runoff);
-	}
-	else out_runoff=NULL;
-
-	// bvoc
-	if(file_aiso!=""){
-	  file_aiso=outputdirectory+file_aiso;
-	  out_aiso=fopen(file_aiso,"w");
-	  if(!out_aiso)fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_aiso);
-	}
-	else out_aiso=NULL;
-	// bvoc
-	if(file_amon!=""){
-	  file_amon=outputdirectory+file_amon;
-	  out_amon=fopen(file_amon,"w");
-	  if(!out_amon)fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_amon);
-	}
-	else out_amon=NULL;
-
-	// GUESSN
-	if (file_cton!="") {
-		file_cton = outputdirectory + file_cton;
-		out_cton=fopen(file_cton,"w");
-		if (!out_cton) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_cton);
-	}
-	else out_cton=NULL;
-
-	if (file_nmass!="") {
-		file_nmass = outputdirectory + file_nmass;
-		out_nmass=fopen(file_nmass,"w");
-		if (!out_nmass) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_nmass);
-	}
-	else out_nmass=NULL;
-
-	if (file_nsources!="") {
-		file_nsources = outputdirectory + file_nsources;
-		out_nsources=fopen(file_nsources,"w");
-		if (!out_nsources) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_nsources);
-	}
-	else out_nsources=NULL;
-
-	if (file_npool!="" && ifcentury) {
-		file_npool = outputdirectory + file_npool;
-		out_npool=fopen(file_npool,"w");
-		if (!out_npool) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_npool);
-	}
-	else out_npool=NULL;
-	
-	if (file_nleach!="" && ifcentury) {
-		file_nleach = outputdirectory + file_nleach;
-		out_nleach=fopen(file_nleach,"w");
-		if (!out_nleach) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_nleach);
-	}
-	else out_nleach=NULL;
-
-	if (file_nuptake!="") {
-		file_nuptake = outputdirectory + file_nuptake;
-		out_nuptake=fopen(file_nuptake,"w");
-		if (!out_nuptake) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_nuptake);
-	}
-	else out_nuptake=NULL;
-
-	if (file_anppn!="") {
-		file_anppn = outputdirectory + file_anppn;
-		out_anppn=fopen(file_anppn,"w");
-		if (!out_anppn) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_anppn);
-	}
-	else out_anppn=NULL;
-
-	if (file_vmaxnlim!="") {
-		file_vmaxnlim = outputdirectory + file_vmaxnlim;
-		out_vmaxnlim=fopen(file_vmaxnlim,"w");
-		if (!out_vmaxnlim) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_vmaxnlim);
-	}
-	else out_vmaxnlim=NULL;
-
-	if (file_nlim!="") {
-		file_nlim = outputdirectory + file_nlim;
-		out_nlim=fopen(file_nlim,"w");
-		if (!out_nlim) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_nlim);
-	}
-	else out_nlim=NULL;
-
-	if (file_nflux!="") {
-		file_nflux = outputdirectory + file_nflux;
-		out_nflux=fopen(file_nflux,"w");
-		if (!out_nflux) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_nflux);
-	}
-	else out_cflux=NULL;
-	// end GUESSN
-
-	// GUESSN allometry
-	if (file_allometry!="") {
-		file_allometry = outputdirectory + file_allometry;
-		out_allometry=fopen(file_allometry,"w");
-		if (!out_allometry) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_allometry);
-	}
-	else out_allometry=NULL;
-
-	if (file_allometry_ind!="") {
-		file_allometry_ind = outputdirectory + file_allometry_ind;
-		out_allometry_ind=fopen(file_allometry_ind,"w");
-		if (!out_allometry_ind) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_allometry_ind);
-	}
-	else out_allometry_ind=NULL;
-	
-
-	if (file_canopyh!="") {
-		file_canopyh = outputdirectory + file_canopyh;
-		out_canopyh=fopen(file_canopyh,"w");
-		if (!out_canopyh) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_canopyh);
-	}
-	else out_canopyh=NULL;
-	// end GUESSN
-
-
-	// *** MONTHLY OUTPUT VARIABLES ***
-
-	if (file_mnpp!="") {
-		file_mnpp = outputdirectory + file_mnpp;
-		out_mnpp=fopen(file_mnpp,"w");
-		if (!out_mnpp) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mnpp);
-	}
-	else out_mnpp=NULL;
-
-	if (file_mlai!="") {
-		file_mlai = outputdirectory + file_mlai;
-		out_mlai=fopen(file_mlai,"w");
-		if (!out_mlai) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mlai);
-	}
-	else out_mlai=NULL;
-
-	if (file_mgpp!="") {
-		file_mgpp = outputdirectory + file_mgpp;
-		out_mgpp=fopen(file_mgpp,"w");
-		if (!out_mgpp) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mgpp);
-	}
-	else out_mgpp=NULL;
-
-	if (file_mra!="") {
-		file_mra = outputdirectory + file_mra;
-		out_mra=fopen(file_mra,"w");
-		if (!out_mra) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mra);
-	}
-	else out_mra=NULL;
-
-	if (file_maet!="") {
-		file_maet = outputdirectory + file_maet;
-		out_maet=fopen(file_maet,"w");
-		if (!out_maet) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_maet);
-	}
-	else out_maet=NULL;
-
-	if (file_mpet!="") {
-		file_mpet = outputdirectory + file_mpet;
-		out_mpet=fopen(file_mpet,"w");
-		if (!out_mpet) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mpet);
-	}
-	else out_mpet=NULL;
-
-	if (file_mevap!="") {
-		file_mevap = outputdirectory + file_mevap;
-		out_mevap=fopen(file_mevap,"w");
-		if (!out_mevap) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mevap);
-	}
-	else out_mevap=NULL;
-
-	if (file_mrunoff!="") {
-		file_mrunoff = outputdirectory + file_mrunoff;
-		out_mrunoff=fopen(file_mrunoff,"w");
-		if (!out_mrunoff) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mrunoff);
-	}
-	else out_mrunoff=NULL;
-
-	if (file_mintercep!="") {
-		file_mintercep = outputdirectory + file_mintercep;
-		out_mintercep=fopen(file_mintercep,"w");
-		if (!out_mintercep) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mintercep);
-	}
-	else out_mintercep=NULL;
-
-	if (file_mrh!="") {
-		file_mrh = outputdirectory + file_mrh;
-		out_mrh=fopen(file_mrh,"w");
-		if (!out_mrh) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mrh);
-	}
-	else out_mrh=NULL;
-
-	if (file_mnee!="") {
-		file_mnee = outputdirectory + file_mnee;
-		out_mnee=fopen(file_mnee,"w");
-		if (!out_mnee) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mnee);
-	}
-	else out_mnee=NULL;
-
-	if (file_mwcont_upper!="") {
-		file_mwcont_upper = outputdirectory + file_mwcont_upper;
-		out_mwcont_upper=fopen(file_mwcont_upper,"w");
-		if (!out_mwcont_upper) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mwcont_upper);
-	}
-	else out_mwcont_upper=NULL;
-
-	if (file_mwcont_lower!="") {
-		file_mwcont_lower = outputdirectory + file_mwcont_lower;
-		out_mwcont_lower=fopen(file_mwcont_lower,"w");
-		if (!out_mwcont_lower) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mwcont_lower);
-	}
-	else out_mwcont_lower=NULL;
-
-	// bvoc
-	if(file_miso!=""){
-	  file_miso=outputdirectory+file_miso;
-	  out_miso=fopen(file_miso,"w");
-	  if(!out_miso)fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_miso);
-	}
-	else out_miso=NULL;
-
-	// bvoc
-	if(file_mmon!=""){
-	  file_mmon=outputdirectory+file_mmon;
-	  out_mmon=fopen(file_mmon,"w");
-	  if(!out_mmon)fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_mmon);
-	}
-	else out_mmon=NULL;
-
+	// Define all output tables and their formats
+	define_output_tables(pftlist);
 
 	// Set timers
 	tprogress.init();
@@ -3871,7 +3883,7 @@ bool getgridcell(Gridcell& gridcell) {
 	bool gridfound;
 	bool LUerror=false;
 
-	// guess2008 - run with the same randon number sequence each time
+	// to ensure an identical random number sequence for each gridcell.
 	setseed(12345678);
 
 	if (firstgrid) {
@@ -3938,7 +3950,7 @@ bool getgridcell(Gridcell& gridcell) {
 						gridfound=false;
 				}
 				else return false;
-			}
+				}
 		}
 		else {	// CMIP5
 
@@ -4532,178 +4544,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		nclass=min(date.year/estinterval+1,OUTPUT_MAXAGECLASS);
 
 	if (date.year==0 && firstgrid) {
-
-		// Very first time only
-
-		// Print column labels
-		// guess2008 - added runoff & dens
-
-		const char* lonlatyearstr = "%8s%8s%8s"; // easier to change now.
-		const char* lonlatyearstr_extended = "%8s%8s%8s%8s%8s%8s%8s%10s\n";
-
-		if (out_cmass) fprintf(out_cmass,lonlatyearstr,"Lon","Lat","Year");
-		if (out_anpp) fprintf(out_anpp,lonlatyearstr,"Lon","Lat","Year");
-		if (out_lai) fprintf(out_lai,lonlatyearstr,"Lon","Lat","Year");
-		if (out_runoff) fprintf(out_runoff,lonlatyearstr,"Lon","Lat","Year");
-		if (out_dens) fprintf(out_dens,lonlatyearstr,"Lon","Lat","Year");
-		if (out_cflux) {
-			if(run_landcover)
-				fprintf(out_cflux,"%8s%8s%8s%8s%8s%8s%8s%9s%10s\n","Lon","Lat","Year","Veg","Soil",
-					"Fire","Est","Harvest","NEE");
-			else
-				fprintf(out_cflux,lonlatyearstr_extended,"Lon","Lat","Year","Veg","Soil",
-					"Fire","Est","NEE");
-		}
-		if (out_cpool) {
-			if (!ifcentury){
-				if(run_landcover && ifslowharvestpool)
-					fprintf(out_cpool,"%8s%8s%8s%8s%8s%8s%8s%10s%10s\n","Lon","Lat","Year","VegC","LittC",
-						"SoilfC","SoilsC", "HarvSlowC","Total");
-				else
-					fprintf(out_cpool,lonlatyearstr_extended,"Lon","Lat","Year","VegC","LittC",
-						"SoilfC","SoilsC","Total");
-			}else{
-				if(run_landcover && ifslowharvestpool)
-					fprintf(out_cpool,"%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s%10s\n","Lon","Lat","Year","VegC","LittVC",
-						"LittSC","CwdC","MicroC","HumusC","SoilC","HarvSlowC","Total");
-				else // GUESSN
-					fprintf(out_cpool,"%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s%10s\n","Lon","Lat","Year","VegC","LittVC",
-						"LittSC","CwdC","MicroC","HumusC","SoilC","Total");
-			}
-		}
-
-		if (out_firert) fprintf(out_firert,"%8s%8s%8s%8s\n","Lon","Lat","Year","FireRT");
-
-		if (out_mnpp) fprintf(out_mnpp,lonlatyearstr,"Lon","Lat","Year");
-		if (out_mlai) fprintf(out_mlai,lonlatyearstr,"Lon","Lat","Year");
-		if (out_mgpp) fprintf(out_mgpp,lonlatyearstr,"Lon","Lat","Year");
-		if (out_mra) fprintf(out_mra,lonlatyearstr,"Lon","Lat","Year");
-		if (out_maet) fprintf(out_maet,lonlatyearstr,"Lon","Lat","Year");
-		if (out_mpet) fprintf(out_mpet,lonlatyearstr,"Lon","Lat","Year");
-		if (out_mevap) fprintf(out_mevap,lonlatyearstr,"Lon","Lat","Year");
-		if (out_mintercep) fprintf(out_mintercep,lonlatyearstr,"Lon","Lat","Year");
-		if (out_mrunoff) fprintf(out_mrunoff,lonlatyearstr,"Lon","Lat","Year");
-		if (out_mrh) fprintf(out_mrh,lonlatyearstr,"Lon","Lat","Year");
-		if (out_mnee) fprintf(out_mnee,lonlatyearstr,"Lon","Lat","Year");
-		if (out_mwcont_upper) fprintf(out_mwcont_upper,lonlatyearstr,"Lon","Lat","Year");
-		if (out_mwcont_lower) fprintf(out_mwcont_lower,lonlatyearstr,"Lon","Lat","Year");
-		// bvoc
-		if(out_aiso)fprintf(out_aiso,lonlatyearstr,"Lon","Lat","Year");
-		if(out_miso)fprintf(out_miso,lonlatyearstr,"Lon","Lat","Year");
-		if(out_amon)fprintf(out_amon,lonlatyearstr,"Lon","Lat","Year");
-		if(out_mmon)fprintf(out_mmon,lonlatyearstr,"Lon","Lat","Year");		
-
-		// GUESSN
-		if (out_cton) fprintf(out_cton,lonlatyearstr,"Lon","Lat","Year");
-		if (out_nmass) fprintf(out_nmass,lonlatyearstr,"Lon","Lat","Year");
-		if (out_nsources) fprintf(out_nsources,"%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s\n","Lon","Lat","Year","dep","fix","input","min",
-				"imm","min-imm","Total","Ndemand");
-		if (out_npool && ifcentury)
-			fprintf(out_npool,"%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s%10s\n","Lon","Lat","Year","VegN","LittVN",
-			"LittSN","CwdN","MicroN","HumusN","SoilN","Total");
-		if (out_nleach) fprintf(out_nleach,lonlatyearstr,"Lon","Lat","Year");
-		if (out_nuptake) fprintf(out_nuptake,lonlatyearstr,"Lon","Lat","Year");
-		if (out_anppn) fprintf(out_anppn,lonlatyearstr,"Lon","Lat","Year");
-		if (out_vmaxnlim) fprintf(out_vmaxnlim,lonlatyearstr,"Lon","Lat","Year");
-		if (out_nlim) fprintf(out_nlim,lonlatyearstr,"Lon","Lat","Year");
-		if (out_nflux) fprintf(out_nflux,"%8s%8s%8s%10s%10s%10s%10s%10s\n","Lon","Lat","Year","NH3","NO","NO2","N2O","Total");
-		if (out_canopyh) fprintf(out_canopyh,lonlatyearstr,"Lon","Lat","Year");
-		if (out_allometry_ind) fprintf(out_allometry_ind,"%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s%9s\n",
-			"Lon","Lat","Year","PFT","Age","N","Mfol","Mstem","Mcroot","Mfroot","Mroot","Mwood","Mactive","M","H","D");
-		// end GUESSN
-
-		// Loop through PFT's and print PFT names as column labels
-
-		pftlist.firstobj();
-		while (pftlist.isobj) {
-			Pft& pft=pftlist.getobj();
-			if (out_cmass) fprintf(out_cmass,"%8s",(char*)pft.name);
-			if (out_anpp) fprintf(out_anpp,"%8s",(char*)pft.name);
-			if (out_lai) fprintf(out_lai,"%8s",(char*)pft.name);
-			if (out_dens) fprintf(out_dens,"%8s",(char*)pft.name);
-			// bvoc
-			if(out_aiso)fprintf(out_aiso,"%10s",(char*)pft.name);
-			if(out_amon)fprintf(out_amon,"%10s",(char*)pft.name);
-			// GUESSN
-			if (out_cton) fprintf(out_cton,"%8s",(char*)pft.name);
-			if (out_nmass) fprintf(out_nmass,"%8s",(char*)pft.name);
-			if (out_nuptake) fprintf(out_nuptake,"%9s",(char*)pft.name);
-			if (out_anppn) fprintf(out_anppn,"%9s",(char*)pft.name);
-			if (out_vmaxnlim) fprintf(out_vmaxnlim,"%8s",(char*)pft.name);
-			if (out_nlim) fprintf(out_nlim,"%8s",(char*)pft.name);
-			// end GUESSN
-			
-			// DGPP
-			if (out_dgpp) fprintf(out_dgpp,"%9s",(char*)pft.name);
-			if (out_dlai) fprintf(out_dlai,"%9s",(char*)pft.name);
-			if (out_dleafN) fprintf(out_dleafN,"%9s",(char*)pft.name);
-			if (out_dresp) fprintf(out_dresp,"%9s",(char*)pft.name);
-			pftlist.nextobj();
-		}
-
-		// Print labels for "Total" columns
-
-		if (out_cmass) fprintf(out_cmass,"%8s","Total");
-		if (out_anpp) fprintf(out_anpp,"%8s","Total");
-		if (out_lai) fprintf(out_lai,"%8s","Total");
-		if (out_runoff) fprintf(out_runoff,"%8s\n","Total");
-		if (out_dens) fprintf(out_dens,"%8s\n","Total");
-		// bvoc
-		if(out_aiso)fprintf(out_aiso,"%10s","Total");
-		if(out_amon)fprintf(out_amon,"%10s","Total");
-
-		//TODO Fix these for landcover
-		// GUESSN
-		if (out_cton) fprintf(out_cton,"%8s\n","Total");
-		if (out_nmass) fprintf(out_nmass,"%8s\n","Total");
-		if (out_nleach) fprintf(out_nleach,"%8s%8s%8s%8s%8s%8s\n","Min","Org","Total","Temp","Prec","Insol");	//(kgN/ha/yr)
-		if (out_nuptake) fprintf(out_nuptake,"%9s\n","Total");
-		if (out_anppn) fprintf(out_anppn,"%9s\n","Total");
-		if (out_vmaxnlim) fprintf(out_vmaxnlim,"%8s\n","Total");
-		if (out_nlim) fprintf(out_nlim,"%8s\n","Total");
-		if (out_allometry) fprintf(out_allometry,"\n");
-		if (out_canopyh) fprintf(out_canopyh,"%8s\n","Height");
-		// end GUESSN
-
-		if (run_landcover) {
-			xtring landcover_string[]={"Urban_sum", "Crop_sum", "Pasture_sum", "Forest_sum", "Natural_sum", "Peatland_sum"};
-			for (int i=0; i<NLANDCOVERTYPES; i++) {
-				if(run[i]) {
-					if (out_cmass) fprintf(out_cmass,"%13s",(char*)landcover_string[i]);
-					if (out_anpp) fprintf(out_anpp,"%13s",(char*)landcover_string[i]);
-					if (out_lai) fprintf(out_lai,"%13s",(char*)landcover_string[i]);
-					if (out_aiso) fprintf(out_aiso,"%13s",(char*)landcover_string[i]);
-					if (out_amon) fprintf(out_amon,"%13s",(char*)landcover_string[i]);
-				}
-			}
-		}
-
-		if (out_cmass) fprintf(out_cmass,"\n");
-		if (out_anpp) fprintf(out_anpp,"\n");
-		if (out_lai) fprintf(out_lai,"\n");
-		if (out_aiso) fprintf(out_aiso,"\n");
-		if (out_amon) fprintf(out_amon,"\n");
-
-		// guess2008
-		const char* monthstr = "%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s%8s\n";
-		const char* monthstr_long = "%10s%10s%10s%10s%10s%10s%10s%10s%10s%10s%10s%10s\n";
-		if (out_mnpp) fprintf(out_mnpp,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-		if (out_mlai) fprintf(out_mlai,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-		if (out_mgpp) fprintf(out_mgpp,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-		if (out_mra) fprintf(out_mra,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-		if (out_maet) fprintf(out_maet,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-		if (out_mpet) fprintf(out_mpet,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-		if (out_mevap) fprintf(out_mevap,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-		if (out_mintercep) fprintf(out_mintercep,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-		if (out_mrunoff) fprintf(out_mrunoff,monthstr_long,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-		if (out_mrh) fprintf(out_mrh,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-		if (out_mnee) fprintf(out_mnee,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-		if (out_mwcont_upper) fprintf(out_mwcont_upper,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-		if (out_mwcont_lower) fprintf(out_mwcont_lower,monthstr,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-		// bvoc
-		if(out_miso)fprintf(out_miso,monthstr_long,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-		if(out_mmon)fprintf(out_mmon,monthstr_long,"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
-
 		firstgrid=false;
 	}
 
@@ -4714,52 +4554,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		lon=gridlist.getobj().lon;
 		lat=gridlist.getobj().lat;
 
-		// Print longitude, latitude, year
-
-		// guess2008
-		const char* lonlatyeardatastr = "%8.1f%8.1f%8d"; // std CRU
-		if (out_cmass) fprintf(out_cmass,lonlatyeardatastr,lon,lat,date.year);
-		if (out_anpp) fprintf(out_anpp,lonlatyeardatastr,lon,lat,date.year);
-		if (out_lai) fprintf(out_lai,lonlatyeardatastr,lon,lat,date.year);
-		if (out_cflux) fprintf(out_cflux,lonlatyeardatastr,lon,lat,date.year);
-		if (out_runoff) fprintf(out_runoff,lonlatyeardatastr,lon,lat,date.year);
-		if (out_dens) fprintf(out_dens,lonlatyeardatastr,lon,lat,date.year);
-		if (out_cpool) fprintf(out_cpool,lonlatyeardatastr,lon,lat,date.year);
-		if (out_firert) fprintf(out_firert,lonlatyeardatastr,lon,lat,date.year);
-		// bvoc
-		if(out_aiso)fprintf(out_aiso,lonlatyeardatastr,lon,lat,date.year);
-		if(out_amon)fprintf(out_amon,lonlatyeardatastr,lon,lat,date.year);
-
-		// GUESSN
-		if (out_cton) fprintf(out_cton,lonlatyeardatastr,lon,lat,date.year);
-		if (out_nmass) fprintf(out_nmass,lonlatyeardatastr,lon,lat,date.year);
-		if (out_nsources) fprintf(out_nsources,lonlatyeardatastr,lon,lat,date.year);
-		if (out_npool && ifcentury) fprintf(out_npool,lonlatyeardatastr,lon,lat,date.year);
-		if (out_nleach) fprintf(out_nleach,lonlatyeardatastr,lon,lat,date.year);
-		if (out_nuptake) fprintf(out_nuptake,lonlatyeardatastr,lon,lat,date.year);
-		if (out_anppn) fprintf(out_anppn,lonlatyeardatastr,lon,lat,date.year);
-		if (out_vmaxnlim) fprintf(out_vmaxnlim,lonlatyeardatastr,lon,lat,date.year);
-		if (out_nlim) fprintf(out_nlim,lonlatyeardatastr,lon,lat,date.year);
-		if (out_nflux) fprintf(out_nflux,lonlatyeardatastr,lon,lat,date.year);
-		if (out_canopyh) fprintf(out_canopyh,lonlatyeardatastr,lon,lat,date.year);
-		// end GUESSN
-
-		if (out_mnpp) fprintf(out_mnpp,lonlatyeardatastr,lon,lat,date.year);
-		if (out_mlai) fprintf(out_mlai,lonlatyeardatastr,lon,lat,date.year);
-		if (out_mgpp) fprintf(out_mgpp,lonlatyeardatastr,lon,lat,date.year);
-		if (out_mra) fprintf(out_mra,lonlatyeardatastr,lon,lat,date.year);
-		if (out_maet) fprintf(out_maet,lonlatyeardatastr,lon,lat,date.year);
-		if (out_mpet) fprintf(out_mpet,lonlatyeardatastr,lon,lat,date.year);
-		if (out_mevap) fprintf(out_mevap,lonlatyeardatastr,lon,lat,date.year);
-		if (out_mintercep) fprintf(out_mintercep,lonlatyeardatastr,lon,lat,date.year);
-		if (out_mrunoff) fprintf(out_mrunoff,lonlatyeardatastr,lon,lat,date.year);
-		if (out_mrh) fprintf(out_mrh,lonlatyeardatastr,lon,lat,date.year);
-		if (out_mnee) fprintf(out_mnee,lonlatyeardatastr,lon,lat,date.year);
-		if (out_mwcont_upper) fprintf(out_mwcont_upper,lonlatyeardatastr,lon,lat,date.year);
-		if (out_mwcont_lower) fprintf(out_mwcont_lower,lonlatyeardatastr,lon,lat,date.year);
-		// bvoc
-		if(out_miso)fprintf(out_miso,lonlatyeardatastr,lon,lat,date.year);
-		if(out_mmon)fprintf(out_mmon,lonlatyeardatastr,lon,lat,date.year);
+		// The OutputRows object manages the next row of output for each
+		// output table
+		OutputRows out(output_channel, lon, lat, date.year);
 
 		// guess2008 - reset monthly average across patches each year
 		for (m=0;m<12;m++)
@@ -4887,6 +4684,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 			// end GUESSN
 
+			double heightindiv_total = 0.0;
+
 			gridcell.firstobj();
 
 			// Loop through Stands
@@ -4956,7 +4755,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 								// end GUESSN
 
 								// WOLF
-								if (out_allometry_ind && date.year == 605 && pft.lifeform==TREE && indiv.age>0)	 {
+								if (date.year == 605 && pft.lifeform==TREE && indiv.age>0) {
 
 									int angio;
 									if (pft.id < 4)
@@ -4964,17 +4763,23 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 									else
 										angio = 2;
 
-									fprintf(out_allometry_ind,"%9.1f%9.1f%9.0d%9.0d%9.0f%9.0f%9.3f%9.2f%9.2f%9.3f%9.2f%9.2f%9.3f%9.2f%9.3f%9.3f\n",
-										lon,lat,date.year,angio,indiv.age,indiv.densindiv*10000.0/(double)stand.nobj,										// N
-										indiv.cmass_leaf/indiv.densindiv,														// Mfol
-										(indiv.cmass_sap+indiv.cmass_heart)*0.75/indiv.densindiv,								// Mstem
-										(indiv.cmass_sap+indiv.cmass_heart)*0.25/indiv.densindiv,								// Mcroot
-										indiv.cmass_root/indiv.densindiv,														// Mfroot
-										((indiv.cmass_sap+indiv.cmass_heart)*0.25+indiv.cmass_root)/indiv.densindiv,			// Mroot
-										(indiv.cmass_sap+indiv.cmass_heart)/indiv.densindiv,									// Mwood
-										(indiv.cmass_leaf+indiv.cmass_root)/indiv.densindiv,									// Mactive
-										(indiv.cmass_sap+indiv.cmass_heart+indiv.cmass_leaf+indiv.cmass_root)/indiv.densindiv,	// M
-										indiv.height,pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3));				// Height, Diameter
+									output_channel->add_value(out_allometry_ind, angio);
+									output_channel->add_value(out_allometry_ind, indiv.age);
+									output_channel->add_value(out_allometry_ind, indiv.densindiv*10000.0/(double)stand.nobj);                         // N
+									output_channel->add_value(out_allometry_ind, indiv.cmass_leaf/indiv.densindiv);                                   // Mfol
+									output_channel->add_value(out_allometry_ind, (indiv.cmass_sap+indiv.cmass_heart)*0.75/indiv.densindiv);           // Mstem
+									output_channel->add_value(out_allometry_ind, (indiv.cmass_sap+indiv.cmass_heart)*0.25/indiv.densindiv);	          // Mcroot
+									output_channel->add_value(out_allometry_ind, indiv.cmass_root/indiv.densindiv);                                   // Mfroot
+									output_channel->add_value(out_allometry_ind, 
+									                          ((indiv.cmass_sap+indiv.cmass_heart)*0.25+indiv.cmass_root)/indiv.densindiv);           // Mroot
+									output_channel->add_value(out_allometry_ind, (indiv.cmass_sap+indiv.cmass_heart)/indiv.densindiv);                // Mwood
+									output_channel->add_value(out_allometry_ind, (indiv.cmass_leaf+indiv.cmass_root)/indiv.densindiv);		          // Mactive
+									output_channel->add_value(out_allometry_ind, 
+									                          (indiv.cmass_sap+indiv.cmass_heart+indiv.cmass_leaf+indiv.cmass_root)/indiv.densindiv); // M
+									output_channel->add_value(out_allometry_ind, indiv.height);                                                       // Height
+									output_channel->add_value(out_allometry_ind, pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3));        // Diameter
+
+									output_channel->finish_row(out_allometry_ind, lon, lat, date.year);
 								}
 
 								if (vegmode==COHORT || vegmode==INDIVIDUAL) {
@@ -4990,6 +4795,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 										double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
 										if (diam>0.03) {
 											standpft_densindiv_total+=indiv.densindiv; // indiv/m2
+
+											heightindiv_total+=indiv.height * indiv.densindiv;
 										}
 									}
 								}
@@ -5033,6 +4840,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 					standpft_vmaxnlim/=standpft_cmass_leaf;
 				
 				// end GUESSN
+
+				heightindiv_total/=(double)stand.nobj;
 
 				//Update landcover totals
 				landcover_cmass[stand.landcover]+=standpft_cmass*stand.get_landcover_fraction();
@@ -5080,9 +4889,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				anppn_gridcell+=standpft_anppn*fraction_of_gridcell;
 				anpp_no_nlim_gridcell+=standpft_anpp_no_nlim*fraction_of_gridcell;
 
-				if (out_canopyh)
+				if (!out_canopyh.invalid()) {
 					canopyheight_gridcell=canopy_height(stand);
-				
+				}
 
 				// Graphical output every 10 years
 				// (Windows shell only - "plot" statements have no effect otherwise)
@@ -5100,10 +4909,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			}//End of loop through stands
 
 			// Print PFT sums to files
-			if (out_lai)	fprintf(out_lai,"%8.4f",gcpft_lai);
-			if (out_dens)	fprintf(out_dens,"%8.4f",gcpft_densindiv_total);
-			if (out_cmass)	fprintf(out_cmass,"%8.3f",gcpft_cmass);
-			if (out_anpp)	fprintf(out_anpp,"%8.3f",gcpft_anpp);
 
 			// GUESSN
 			double gcpft_cton_leaf=0.0;
@@ -5112,20 +4917,28 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				gcpft_vmaxnlim/=gcpft_cmass_leaf;
 			}
 			
-			if (out_cton)		fprintf(out_cton,"%8.3f",gcpft_cton_leaf);
-			if (out_vmaxnlim)	fprintf(out_vmaxnlim,"%8.3f",gcpft_vmaxnlim);
-			if (out_nlim)	fprintf(out_nlim,"%8.3f",gcpft_nlim);
-			if (out_nmass)		fprintf(out_nmass,"%8.3f",gcpft_nmass);
-			if (out_nuptake)	fprintf(out_nuptake,"%9.5f",gcpft_nuptake);
-			if (out_anppn)		fprintf(out_anppn,"%9.5f",gcpft_anppn);
-			
+			out.add_value(out_cton,     gcpft_cton_leaf);
+			out.add_value(out_vmaxnlim, gcpft_vmaxnlim);
+			out.add_value(out_nlim,     gcpft_nlim);
+			out.add_value(out_nmass,    gcpft_nmass);
+			out.add_value(out_nuptake,  gcpft_nuptake);
+			out.add_value(out_anppn,    gcpft_anppn);
 			// end GUESSN
 
-			if (out_aiso)
-				fprintf(out_aiso,"%10.3f",gcpft_aiso);
+			out.add_value(out_cmass, gcpft_cmass);
+			out.add_value(out_anpp,  gcpft_anpp);
+			out.add_value(out_dens,  gcpft_densindiv_total);
+			out.add_value(out_lai,   gcpft_lai);
 
-			if (out_amon)
-				fprintf(out_amon,"%10.3f",gcpft_amon);
+			// print species heights
+			double height = 0.0;
+			if (gcpft_densindiv_total > 0.0)
+				height = heightindiv_total/gcpft_densindiv_total;
+			
+			out.add_value(out_speciesheights, height);
+
+			out.add_value(out_aiso, gcpft_aiso);
+			out.add_value(out_amon, gcpft_amon);
 
 			pftlist.nextobj();
 
@@ -5302,131 +5115,92 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			vmaxnlim_gridcell/=cmass_leaf_gridcell;
 		}
 
-		if (out_cmass) fprintf(out_cmass,"%8.3f",cmass_gridcell);
-		if (out_anpp) fprintf(out_anpp,"%8.3f",anpp_gridcell);
-		if (out_lai) fprintf(out_lai,"%8.4f",lai_gridcell);
-		if (out_runoff) fprintf(out_runoff,"%8.1f",runoff_gridcell);
-		if (out_dens) fprintf(out_dens,"%8.4f",dens_gridcell);
-		if (out_firert) fprintf(out_firert,"%8.1f",firert_gridcell);
-		if (out_aiso) fprintf(out_aiso,"%10.3f",aiso_gridcell);
-		if (out_amon) fprintf(out_amon,"%10.3f",amon_gridcell);
+		out.add_value(out_cmass,  cmass_gridcell);
+		out.add_value(out_anpp,   anpp_gridcell);
+		out.add_value(out_dens,   dens_gridcell);
+		out.add_value(out_lai,    lai_gridcell);
+		out.add_value(out_firert, firert_gridcell);
+		out.add_value(out_runoff, runoff_gridcell);
+		out.add_value(out_aiso,   aiso_gridcell);
+		out.add_value(out_amon,   amon_gridcell);
 
 		//GUESSN
 		double nlim_grid=0.0;
 		if (!negligible(anpp_no_nlim_gridcell))
 			nlim_grid=anpp_gridcell/anpp_no_nlim_gridcell;
 
-		if (out_nmass) fprintf(out_nmass,"%8.3f",nmass_gridcell);
-		if (out_anppn) fprintf(out_anppn,"%8.3f",anppn_gridcell);
-		if (out_cton) fprintf(out_cton,"%8.4f",cton_leaf_gridcell);
-		if (out_vmaxnlim) fprintf(out_vmaxnlim,"%8.3f",vmaxnlim_gridcell);
-		if (out_nlim) fprintf(out_nlim,"%8.3f",nlim_grid);
-		if (out_canopyh) fprintf(out_canopyh,"%8.1f",canopyheight_gridcell);
-		if (out_nuptake) fprintf(out_nuptake,"%9.5f",nuptake_gridcell);
-		if (out_nsources) fprintf(out_nsources,"%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f\n",
-			andep_gridcell,anfix_gridcell,andep_gridcell+anfix_gridcell,anmin_gridcell,animm_gridcell,
-			anmin_gridcell-animm_gridcell,andep_gridcell+anmin_gridcell-animm_gridcell+anfix_gridcell,ndemand_gridcell);
-		if (out_nleach)	fprintf(out_nleach,"%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f\n",n_min_leach_gridcell,n_org_leach_gridcell,
-			n_min_leach_gridcell+n_org_leach_gridcell,gridcell.climate.atemp_mean,gridcell.climate.aprec,gridcell.climate.asun);
+		out.add_value(out_nmass,     nmass_gridcell);
+		out.add_value(out_anppn,     anppn_gridcell);
+		out.add_value(out_cton,      cton_leaf_gridcell);
+		out.add_value(out_vmaxnlim,  vmaxnlim_gridcell);
+		out.add_value(out_nlim,      nlim_grid);
+		out.add_value(out_canopyh,   canopyheight_gridcell);
+		out.add_value(out_nuptake,   nuptake_gridcell);
+
+		out.add_value(out_nsources,	andep_gridcell);
+		out.add_value(out_nsources, anfix_gridcell);
+		out.add_value(out_nsources, andep_gridcell+anfix_gridcell);
+		out.add_value(out_nsources, anmin_gridcell);
+		out.add_value(out_nsources, animm_gridcell);
+		out.add_value(out_nsources, anmin_gridcell-animm_gridcell);
+		out.add_value(out_nsources, andep_gridcell+anmin_gridcell-animm_gridcell+anfix_gridcell);
+		out.add_value(out_nsources, ndemand_gridcell);
+
+		out.add_value(out_nleach, n_min_leach_gridcell);
+		out.add_value(out_nleach, n_org_leach_gridcell);
+		out.add_value(out_nleach, n_min_leach_gridcell+n_org_leach_gridcell);
+		out.add_value(out_nleach, gridcell.climate.atemp_mean);
+		out.add_value(out_nleach, gridcell.climate.aprec);
+		out.add_value(out_nleach, gridcell.climate.asun);
 
 		// end GUESSN
 
 		if (run_landcover) {
 			for(int i=0;i<NLANDCOVERTYPES;i++) {
 				if(run[i]) {
-					if (out_cmass)
-						fprintf(out_cmass,"%13.3f", landcover_cmass[i]);
-					if (out_anpp)
-						fprintf(out_anpp,"%13.3f", landcover_anpp[i]);
-					if (out_lai)
-						fprintf(out_lai,"%13.3f", landcover_lai[i]);
-					if (out_dens)
-						fprintf(out_dens,"%13.4f", landcover_densindiv_total[i]);
-					if (out_aiso) 
-						fprintf(out_aiso,"%13.3f", landcover_aiso[i]);
-					if (out_amon) 
-						fprintf(out_amon,"%13.3f", landcover_amon[i]);
+					out.add_value(out_cmass, landcover_cmass[i]);
+					out.add_value(out_anpp,  landcover_anpp[i]);
+					out.add_value(out_dens,  landcover_densindiv_total[i]);
+					out.add_value(out_lai,   landcover_lai[i]);
+					out.add_value(out_aiso,  landcover_aiso[i]);
+					out.add_value(out_amon,  landcover_amon[i]);
+
 					//GUESSN
-					if (out_nmass)
-						fprintf(out_nmass,"%13.3f", landcover_nmass[i]);
-					if (out_anppn)
-						fprintf(out_anppn,"%13.3f", landcover_anppn[i]);
+					out.add_value(out_nmass, landcover_nmass[i]);
+					out.add_value(out_anppn, landcover_anppn[i]);
 
 					double landcover_cton_leaf=0.0;
 					if (landcover_cmass_leaf[i]>0.0) {
 						landcover_cton_leaf=landcover_cmass_leaf[i]/landcover_nmass_leaf[i];
 						landcover_vmaxnlim[i]/=landcover_cmass_leaf[i];
 					}
-					if (out_cton)
-						fprintf(out_cton,"%13.3f", landcover_cton_leaf);
-					if (out_vmaxnlim)
-						fprintf(out_vmaxnlim,"%13.4f", landcover_vmaxnlim[i]);
-					if (out_nlim)
-						fprintf(out_nlim,"%13.4f", landcover_nlim[i]);
-					if (out_nuptake)
-						fprintf(out_nuptake,"%13.4f", landcover_nuptake[i]);
+
+					out.add_value(out_cton, landcover_cton_leaf);
+					out.add_value(out_vmaxnlim, landcover_vmaxnlim[i]);
+					out.add_value(out_nlim, landcover_nlim[i]);
+					out.add_value(out_nuptake, landcover_nuptake[i]);
 					// end GUESSN
 				}
 			}
 		}
 
-		if (out_cmass) fprintf(out_cmass,"\n");
-		if (out_anpp) fprintf(out_anpp,"\n");
-		if (out_lai) fprintf(out_lai,"\n");
-		if (out_runoff) fprintf(out_runoff,"\n");
-		if (out_dens) fprintf(out_dens, "\n");
-		if (out_firert) fprintf(out_firert, "\n");
-		if (out_aiso) fprintf(out_aiso,"\n");
-		if (out_amon) fprintf(out_amon,"\n");
-
-		//GUESSN
-		if (out_nmass) fprintf(out_nmass,"\n");
-		if (out_anppn) fprintf(out_anppn,"\n");
-		if (out_cton) fprintf(out_cton,"\n");
-		if (out_vmaxnlim) fprintf(out_vmaxnlim,"\n");
-		if (out_nlim) fprintf(out_nlim,"\n");
-		if (out_canopyh) fprintf(out_canopyh,"\n");
-		if (out_nuptake) fprintf(out_nuptake, "\n");
-		//end GUESSN
 		// Print monthly output variables
 		for (m=0;m<12;m++) {
-
-			if (out_mnpp) fprintf(out_mnpp,"%8.3f",mnpp[m]);
-			if (out_mlai) fprintf(out_mlai,"%8.3f",mlai[m]);
-			if (out_mgpp) fprintf(out_mgpp,"%8.3f",mgpp[m]);
-			if (out_mra) fprintf(out_mra,"%8.3f",mra[m]);
-			if (out_maet) fprintf(out_maet,"%8.3f",maet[m]);
-			if (out_mpet) fprintf(out_mpet,"%8.3f",mpet[m]);
-			if (out_mevap) fprintf(out_mevap,"%8.3f",mevap[m]);
-			if (out_mintercep) fprintf(out_mintercep,"%8.3f",mintercep[m]);
-			if (out_mrunoff) fprintf(out_mrunoff,"%10.3f",mrunoff[m]);
-			if (out_mrh) fprintf(out_mrh,"%8.3f",mrh[m]);
-			if (out_mnee) fprintf(out_mnee,"%8.3f",mnee[m]);
-			if (out_mwcont_upper) fprintf(out_mwcont_upper,"%8.3f",mwcont_upper[m]);
-			if (out_mwcont_lower) fprintf(out_mwcont_lower,"%8.3f",mwcont_lower[m]);
-			// bvoc
-			if(out_miso)fprintf(out_miso,"%10.3f",miso[m]);
-			if(out_mmon)fprintf(out_mmon,"%10.3f",mmon[m]);
-
-			if (m==11) {
-				if (out_mnpp) fprintf(out_mnpp,"\n");
-				if (out_mlai) fprintf(out_mlai,"\n");
-				if (out_mgpp) fprintf(out_mgpp,"\n");
-				if (out_mra) fprintf(out_mra,"\n");
-				if (out_maet) fprintf(out_maet,"\n");
-				if (out_mpet) fprintf(out_mpet,"\n");
-				if (out_mevap) fprintf(out_mevap,"\n");
-				if (out_mintercep) fprintf(out_mintercep,"\n");
-				if (out_mrunoff) fprintf(out_mrunoff,"\n");
-				if (out_mrh) fprintf(out_mrh,"\n");
-				if (out_mnee) fprintf(out_mnee,"\n");
-				if (out_mwcont_upper) fprintf(out_mwcont_upper,"\n");
-				if (out_mwcont_lower) fprintf(out_mwcont_lower,"\n");
-				// bvoc
-				if(out_miso)fprintf(out_miso,"\n");
-				if(out_mmon)fprintf(out_mmon,"\n");
-			}
-
+			 out.add_value(out_mnpp,         mnpp[m]);
+			 out.add_value(out_mlai,         mlai[m]);
+			 out.add_value(out_mgpp,         mgpp[m]);
+			 out.add_value(out_mra,          mra[m]);
+			 out.add_value(out_maet,         maet[m]);
+			 out.add_value(out_mpet,         mpet[m]);
+			 out.add_value(out_mevap,        mevap[m]);
+			 out.add_value(out_mrunoff,      mrunoff[m]);
+			 out.add_value(out_mintercep,    mintercep[m]);
+			 out.add_value(out_mrh,          mrh[m]);
+			 out.add_value(out_mnee,         mnee[m]);
+			 out.add_value(out_mwcont_upper, mwcont_upper[m]);
+			 out.add_value(out_mwcont_lower, mwcont_lower[m]);
+			 out.add_value(out_miso,         miso[m]);
+			 out.add_value(out_mmon,         mmon[m]);
 		}
 
 		// Graphical output every 10 years
@@ -5461,56 +5235,75 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 		// Write fluxes to file
 
-		if (out_cflux) {
-			if(run_landcover)
-				fprintf(out_cflux,"%8.3f%8.3f%8.3f%8.3f%9.3f%10.5f\n",flux_veg,flux_soil,flux_fire,
-					flux_est,flux_harvest,flux_veg+flux_soil+flux_fire+flux_est+flux_harvest);
-			else
-				fprintf(out_cflux,"%8.3f%8.3f%8.3f%8.3f%10.5f\n",flux_veg,flux_soil,flux_fire,
-					flux_est,flux_veg+flux_soil+flux_fire+flux_est);
+		out.add_value(out_cflux, flux_veg);
+		out.add_value(out_cflux, flux_soil);
+		out.add_value(out_cflux, flux_fire);
+		out.add_value(out_cflux, flux_est);
+		if (run_landcover) {
+			 out.add_value(out_cflux, flux_harvest);
+		}
+		out.add_value(out_cflux, flux_veg+flux_soil+flux_fire+flux_est+flux_harvest);
+
+		out.add_value(out_cpool, cmass_gridcell);
+		out.add_value(out_cpool, c_litter);
+		if (!ifcentury) {
+			out.add_value(out_cpool, c_fast);
+			out.add_value(out_cpool, c_slow);
+		}
+		else {
+			out.add_value(out_cpool, surfsoillitterc);
+			out.add_value(out_cpool, cwdc);
+			out.add_value(out_cpool, microc);
+			out.add_value(out_cpool, humusc);
+			out.add_value(out_cpool, c_litter+centuryc);
+		}
+		
+		if (run_landcover && ifslowharvestpool) {
+			out.add_value(out_cpool, c_harv_slow);
 		}
 
-		// guess2008 - output carbon pools
+		// Calculate total cpool, starting with cmass and litter...
+		double cpool_total = cmass_gridcell + c_litter;
 
-
-		if (out_cpool) {
-			if (!ifcentury){
-				if(run_landcover && ifslowharvestpool)
-					fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%10.3f%10.4f\n",cmass_gridcell,c_litter,c_fast,
-						c_slow,c_harv_slow,cmass_gridcell+c_litter+c_fast+c_slow+c_harv_slow);
-				else
-					fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%10.4f\n",cmass_gridcell,c_litter,c_fast,
-						c_slow,cmass_gridcell+c_litter+c_fast+c_slow);
-			}
-			else{
-				if(run_landcover && ifslowharvestpool)
-					fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%10.3f\n",cmass_gridcell,c_litter,
-						surfsoillitterc,cwdc,microc,humusc,c_litter+centuryc,c_harv_slow,
-						cmass_gridcell+c_litter+centuryc+c_harv_slow);
-				else // GUESSN
-					fprintf(out_cpool,"%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%8.3f%10.3f\n",cmass_gridcell,c_litter,
-						surfsoillitterc,cwdc,microc,humusc,c_litter+centuryc,
-						cmass_gridcell+c_litter+centuryc);
-			}
+		// Add SOM pools
+		if (!ifcentury) {
+			cpool_total += c_fast + c_slow;
 		}
+		else {
+			cpool_total += centuryc;
+		}
+
+		// Add slow harvest pool if needed
+		if (run_landcover && ifslowharvestpool) {
+			cpool_total += c_harv_slow;
+		}
+
+		out.add_value(out_cpool, cpool_total);
 
 		// GUESSN
-		if (out_npool && ifcentury) {
+		if (ifcentury) {
+			out.add_value(out_npool, nmass_gridcell);
+			out.add_value(out_npool, n_litter);
+			out.add_value(out_npool, surfsoillittern);
+			out.add_value(out_npool, cwdn);
+			out.add_value(out_npool, micron);
+			out.add_value(out_npool, humusn);
+			out.add_value(out_npool, n_litter+centuryn);
+
 			if(run_landcover && ifslowharvestpool) {
-					fprintf(out_npool,"%8.4f%8.4f%8.4f%8.4f%8.4f%8.4f%8.4f%8.4f%10.4f\n",nmass_gridcell,n_litter,
-					surfsoillittern,cwdn,micron,humusn,n_litter+centuryn,n_harv_slow,
-					nmass_gridcell+n_litter+centuryn+n_harv_slow);
+				out.add_value(out_npool, n_harv_slow);
+				out.add_value(out_npool, nmass_gridcell+n_litter+centuryn+n_harv_slow);
 			}
 			else {
-				fprintf(out_npool,"%8.4f%8.4f%8.4f%8.4f%8.4f%8.4f%8.4f%10.4f\n",nmass_gridcell,n_litter,
-					surfsoillittern,cwdn,micron,humusn,n_litter+centuryn,
-					nmass_gridcell+n_litter+centuryn);
+				out.add_value(out_npool, nmass_gridcell+n_litter+centuryn);
 			}
 		}
 
-		if (out_nflux) 
-			fprintf(out_nflux,"%10.5f%10.5f%10.5f%10.5f%10.5f\n",
-				flux_nh3,flux_no,flux_no2,flux_n2o,flux_nh3+flux_no+flux_no2+flux_n2o);
+		out.add_value(out_nflux, flux_nh3);
+		out.add_value(out_nflux, flux_no);
+		out.add_value(out_nflux, flux_no2);
+		out.add_value(out_nflux, flux_n2o);
+		out.add_value(out_nflux, flux_nh3+flux_no+flux_no2+flux_n2o);
 		// end GUESSN
 
 		// Output of age structure (Windows shell only - no effect otherwise)
@@ -5541,6 +5334,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 								}
 							}
 							pftlist.nextobj();
+
 						}
 					}
 					gridcell.nextobj();
@@ -5560,52 +5354,7 @@ void termio() {
 	// DESCRIPTION
 	// Performs memory deallocation, closing of files or other "cleanup" functions.
 
-	// Close output files if open
-
-	if (annual_output) {
-		if (out_cmass) fclose(out_cmass);
-		if (out_anpp) fclose(out_anpp);
-		if (out_lai) fclose(out_lai);
-		if (out_cflux) fclose(out_cflux);
-		if (out_runoff) fclose(out_runoff);
-		if (out_dens) fclose(out_dens);
-		if (out_cpool) fclose(out_cpool);
-		if (out_firert) fclose(out_firert);
-		// bvoc
-		if(out_aiso)fclose(out_aiso);
-		if(out_amon)fclose(out_amon);
-
-		if (out_mnpp) fclose(out_mnpp);
-		if (out_mlai) fclose(out_mlai);
-		if (out_mgpp) fclose(out_mgpp);
-		if (out_mra) fclose(out_mra);
-		if (out_maet) fclose(out_maet);
-		if (out_mpet) fclose(out_mpet);
-		if (out_mevap) fclose(out_mevap);
-		if (out_mrunoff) fclose(out_mrunoff);
-		if (out_mintercep) fclose(out_mintercep);
-		if (out_mrh) fclose(out_mrh);
-		if (out_mnee) fclose(out_mnee);
-		if (out_mwcont_upper) fclose(out_mwcont_upper);
-		if (out_mwcont_lower) fclose(out_mwcont_lower);
-		// bvoc
-		if(out_miso)fclose(out_miso);
-		if(out_mmon)fclose(out_mmon);
-		// GUESSN
-		if (out_cton) fclose(out_cton);
-		if (out_nmass) fclose(out_nmass);
-		if (out_nsources) fclose(out_nsources);
-		if (out_npool && ifcentury) fclose(out_npool);
-		if (out_nleach) fclose(out_nleach);
-		if (out_nuptake) fclose(out_nuptake);
-		if (out_anppn) fclose(out_anppn);
-		if (out_vmaxnlim) fclose(out_vmaxnlim);
-		if (out_nlim) fclose(out_nlim);
-		if (out_nflux) fclose(out_nflux);
-		if (out_canopyh) fclose(out_canopyh);
-		if (out_allometry_ind) fclose(out_allometry_ind);
-		// end GUESSN
-	}
+	delete output_channel;
 
 	// Clean up
 

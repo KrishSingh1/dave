@@ -283,7 +283,7 @@ int framework(int argc,char* argv[]) {
 				daylengthinsoleet(gridcell.climate);
 
 				if(run_landcover && date.day==0) {
-				// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
+					// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
 					if(date.year>=nyear_spinup)
 						landcover_dynamics(gridcell,pftlist);
 				}
@@ -314,7 +314,6 @@ int framework(int argc,char* argv[]) {
 						// Soil organic matter and litter dynamics						
 						som_dynamics(patch,pftlist);
 
-
 						if (date.islastday && date.islastmonth) {
 
 							// LAST DAY OF YEAR
@@ -325,12 +324,11 @@ int framework(int argc,char* argv[]) {
 						stand.nextobj();
 					}// End of loop through patches
 
-					if (date.islastday && date.islastmonth)
-					{
+					if (date.islastday && date.islastmonth) {
 						// LAST DAY OF YEAR
 						stand.firstobj();
 						while (stand.isobj) {
-
+							
 							// For each patch ...
 							Patch& patch=stand.getobj();
 							// Establishment, mortality and disturbance by fire

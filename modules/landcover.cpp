@@ -2,7 +2,7 @@
 /// \file landcover.cpp
 /// \brief Functions handling landcover aspects, such as creating or resizing Stands
 ///
-/// $Date: $
+/// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 

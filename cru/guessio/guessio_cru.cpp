@@ -66,7 +66,9 @@
 //#endif
 #include "cmip5_hist.h"
 #include "cmip5_scen.h"
+#include "GlobalNitrogenDepositionRCP26.h"
 #include "GlobalNitrogenDepositionRCP45.h"
+#include "GlobalNitrogenDepositionRCP60.h"
 #include "GlobalNitrogenDepositionRCP85.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -3288,11 +3290,12 @@ void define_output_tables(Pftlist& pftlist) {
 
 	// NFLUX
 	ColumnDescriptors nflux_columns;
-	nflux_columns += ColumnDescriptor("NH3",   10, 5);
-	nflux_columns += ColumnDescriptor("NO",    10, 5);
-	nflux_columns += ColumnDescriptor("NO2",   10, 5);
-	nflux_columns += ColumnDescriptor("N2O",   10, 5);
-	nflux_columns += ColumnDescriptor("Total", 10, 5);
+	nflux_columns += ColumnDescriptor("NH3",   10, 6);
+	nflux_columns += ColumnDescriptor("NO",    10, 6);
+	nflux_columns += ColumnDescriptor("NO2",   10, 6);
+	nflux_columns += ColumnDescriptor("N2O",   10, 6);
+	nflux_columns += ColumnDescriptor("Total", 10, 6);
+	nflux_columns += ColumnDescriptor("Nconc", 10, 4);
 
 	// CANOPYH
 	ColumnDescriptors canopyh_columns;
@@ -3713,7 +3716,55 @@ bool getndep(xtring filename,double lon,double lat,Climate& climate) {
 		}
 		else {
 
-			if (rcp=="45") {
+			if (rcp=="26") {
+
+				xtring scenario_filename=filename+"RCP26.bin";
+
+				GlobalNitrogenDepositionRCP26Archive ark_sce;
+				if (!ark_sce.open(scenario_filename)) {
+					 fail("Could not open %s for input",(char*)scenario_filename);
+					 return false;
+				}
+
+				GlobalNitrogenDepositionRCP26 rec_sce;
+
+				rec_sce.longitude = lon;
+				rec_sce.latitude = lat;
+
+				if (!ark_sce.getindex(rec_sce)) {
+					 // The coordinate wasn't found in the archive
+					 ark_sce.close();
+					 return false;
+				}
+				else {
+					// Found the record, get the values
+					for (y=15;y<26;y++) {
+						for (m=0;m<12;m++) {
+							if (y==15) { // Scenario and hist data has the same year -> avr
+								dval=(NHxDryDep_10[y][m]+rec_sce.NHxDry[(y-15)*12+m])/2.0;
+								NHxDryDep_10[y][m]=dval;
+								
+								dval=(NHxWetDep_10[y][m]+rec_sce.NHxWet[(y-15)*12+m])/2.0;
+								NHxWetDep_10[y][m]=dval;
+								
+								dval=(NOyDryDep_10[y][m]+rec_sce.NOyDry[(y-15)*12+m])/2.0;
+								NOyDryDep_10[y][m]=dval;
+								
+								dval=(NOyWetDep_10[y][m]=rec_sce.NOyWet[(y-15)*12+m])/2.0;
+								NOyWetDep_10[y][m]=dval;
+							}
+							else {
+								NHxDryDep_10[y][m]=rec_sce.NHxDry[(y-15)*12+m];
+								NHxWetDep_10[y][m]=rec_sce.NHxWet[(y-15)*12+m];	
+								NOyDryDep_10[y][m]=rec_sce.NOyDry[(y-15)*12+m];	
+								NOyWetDep_10[y][m]=rec_sce.NOyWet[(y-15)*12+m];
+							}
+						}
+					}
+					ark_sce.close();
+				}
+			}
+			else if (rcp=="45") {
 
 				xtring scenario_filename=filename+"RCP45.bin";
 
@@ -3724,6 +3775,54 @@ bool getndep(xtring filename,double lon,double lat,Climate& climate) {
 				}
 
 				GlobalNitrogenDepositionRCP45 rec_sce;
+
+				rec_sce.longitude = lon;
+				rec_sce.latitude = lat;
+
+				if (!ark_sce.getindex(rec_sce)) {
+					 // The coordinate wasn't found in the archive
+					 ark_sce.close();
+					 return false;
+				}
+				else {
+					// Found the record, get the values
+					for (y=15;y<26;y++) {
+						for (m=0;m<12;m++) {
+							if (y==15) { // Scenario and hist data has the same year -> avr
+								dval=(NHxDryDep_10[y][m]+rec_sce.NHxDry[(y-15)*12+m])/2.0;
+								NHxDryDep_10[y][m]=dval;
+								
+								dval=(NHxWetDep_10[y][m]+rec_sce.NHxWet[(y-15)*12+m])/2.0;
+								NHxWetDep_10[y][m]=dval;
+								
+								dval=(NOyDryDep_10[y][m]+rec_sce.NOyDry[(y-15)*12+m])/2.0;
+								NOyDryDep_10[y][m]=dval;
+								
+								dval=(NOyWetDep_10[y][m]=rec_sce.NOyWet[(y-15)*12+m])/2.0;
+								NOyWetDep_10[y][m]=dval;
+							}
+							else {
+								NHxDryDep_10[y][m]=rec_sce.NHxDry[(y-15)*12+m];
+								NHxWetDep_10[y][m]=rec_sce.NHxWet[(y-15)*12+m];	
+								NOyDryDep_10[y][m]=rec_sce.NOyDry[(y-15)*12+m];	
+								NOyWetDep_10[y][m]=rec_sce.NOyWet[(y-15)*12+m];
+							}
+						}
+					}
+					ark_sce.close();
+				}
+			}
+			else if (rcp=="60") {
+
+				xtring scenario_filename=filename+"RCP60.bin";
+
+				GlobalNitrogenDepositionRCP60Archive ark_sce;
+				if (!ark_sce.open(scenario_filename)) {
+					 fail("Could not open %s for input",(char*)scenario_filename);
+					 return false;
+				}
+
+				GlobalNitrogenDepositionRCP60 rec_sce;
 
 				rec_sce.longitude = lon;
 				rec_sce.latitude = lat;
@@ -3808,7 +3907,7 @@ bool getndep(xtring filename,double lon,double lat,Climate& climate) {
 					}
 					ark_sce.close();
 				}
-			}			
+			}	
 		}
 	}
 
@@ -4517,7 +4616,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 	// GUESSN
 	double surfsoillitterc,surfsoillittern,cwdc,cwdn,microc,micron,humusc,humusn,centuryc,centuryn,n_harv_slow;
-	double flux_nh3,flux_no,flux_no2,flux_n2o;
+	double flux_nh3,flux_no,flux_no2,flux_n2o,flux_ntot,flux_nconc;
 	// end GUESSN
 
 	// guess2008 - hold the monthly average across patches
@@ -4953,7 +5052,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		surfsoillitterc=surfsoillittern=cwdc=cwdn=microc=micron=humusc=humusn=centuryc=centuryn=n_litter=n_harv_slow=0.0;
 		andep_gridcell=anmin_gridcell=animm_gridcell=anfix_gridcell=nsupply_gridcell=ndemand_gridcell=0.0;
 		n_org_leach_gridcell=n_min_leach_gridcell=0.0;
-		flux_nh3=flux_no=flux_no2=flux_n2o=0.0;
+		flux_nh3=flux_no=flux_no2=flux_n2o=flux_ntot=0.0;
 
 		// end GUESSN
 
@@ -4982,7 +5081,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				flux_nh3+=patch.fluxes.aNH3_fire*to_gridcell_average;
 				flux_no+=patch.fluxes.aNO_fire*to_gridcell_average;
 				flux_no2+=patch.fluxes.aNO2_fire*to_gridcell_average;
-				flux_n2o+=patch.fluxes.aN2O_fire*to_gridcell_average;			
+				flux_n2o+=patch.fluxes.aN2O_fire*to_gridcell_average;	
+				flux_ntot+=(patch.fluxes.aNH3_fire+patch.fluxes.aNO_fire+patch.fluxes.aNO2_fire+
+					patch.fluxes.aN2O_fire)*to_gridcell_average;
 				
 				c_fast+=patch.soil.cpool_fast*to_gridcell_average;
 				c_slow+=patch.soil.cpool_slow*to_gridcell_average;
@@ -5114,6 +5215,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			cton_leaf_gridcell=cmass_leaf_gridcell/nmass_leaf_gridcell;
 			vmaxnlim_gridcell/=cmass_leaf_gridcell;
 		}
+		flux_nconc=(flux_fire>0.0) ? flux_ntot/flux_fire : 0.0;
 
 		out.add_value(out_cmass,  cmass_gridcell);
 		out.add_value(out_anpp,   anpp_gridcell);
@@ -5303,7 +5405,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		out.add_value(out_nflux, flux_no);
 		out.add_value(out_nflux, flux_no2);
 		out.add_value(out_nflux, flux_n2o);
-		out.add_value(out_nflux, flux_nh3+flux_no+flux_no2+flux_n2o);
+		out.add_value(out_nflux, flux_ntot);
+		out.add_value(out_nflux, flux_nconc);
 		// end GUESSN
 
 		// Output of age structure (Windows shell only - no effect otherwise)

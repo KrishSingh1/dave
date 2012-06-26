@@ -1,14 +1,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// MODULE SOURCE CODE FILE
-//
-// Module:                Vegetation dynamics and disturbance
-// Header file name:      vegdynam.h
-// Source code file name: vegdynam.cpp
-//                        Random number generator moved to driver.cpp
-// Written by:            Ben Smith
-// Version dated:         2002-11-22
-// Updated:               2010-11-22
-
+/// \file vegdynam.cpp
+/// \brief Vegetation dynamics and disturbance
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:
@@ -89,7 +86,7 @@ int randpoisson(double expectation) {
 		p=exp(-r*r/2.0);
 	} while (randfrac()>p);
 
-	return max(0,(int)(r*sqrt(expectation)+expectation+0.5));
+	return max(0, (int)(r*sqrt(expectation)+expectation+0.5));
 }
 
 
@@ -1110,14 +1107,14 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 
 				// Calculate 5 year mean growth efficiency
 
-				greff_mean=greff;
-				startyear=NYEARGREFF-min(NYEARGREFF-1,indiv.age-1);
+				greff_mean = greff;
+				startyear = NYEARGREFF - min(NYEARGREFF-1, (int)indiv.age-1);
 				for (y=startyear;y<NYEARGREFF;y++) {
 					greff_mean+=indiv.greff_5[y];
 					indiv.greff_5[y-1]=indiv.greff_5[y];
 				}
 				indiv.greff_5[NYEARGREFF-1]=greff;
-				greff_mean/=(double)min(NYEARGREFF,indiv.age);
+				greff_mean /= min((double)NYEARGREFF, indiv.age);
 
 				// BACKGROUND MORTALITY
 				//

@@ -1,16 +1,17 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// MODULE SOURCE CODE FILE
-//
-// Module:                Vegetation C allocation, litter production, tissue turnover
-//                        leaf phenology, allometry and growth
-//                        (includes updated FPC formulation as required for "fast"
-//                        cohort/individual mode - see canexch.cpp)
-// Header file name:      growth.h
-// Source code file name: growth.cpp
-// Written by:            Ben Smith
-// Version dated:         2002-12-16
-// Updated:               2010-11-22
-
+/// \file growth.cpp
+/// \brief The growth module
+///
+/// Vegetation C allocation, litter production, tissue turnover
+/// leaf phenology, allometry and growth
+///
+/// (includes updated FPC formulation as required for "fast"
+/// cohort/individual mode - see canexch.cpp)
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:

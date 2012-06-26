@@ -12,7 +12,7 @@ bbox_command="bbox"
 
 # Prints a message to stderr
 function error {
-    echo $1 >&2
+    echo "$1" >&2
 }
 
 # A function which attempts to find out whether PBS is installed
@@ -29,6 +29,10 @@ function print_usage_and_exit {
     error "======="
     error "-s   Single machine mode, don't use PBS"
     error "-c   Compile only, don't run the tests"
+    error "-p   Post processing only"
+    error "-r   Generate printer friendly report"
+    error "     (does nothing else and is run as a regular process,"
+    error "      in other words, not submitted as a batch job)"
     error "-i   Include only the specified tests"
     error "-x   Exclude the specified tests"
     error
@@ -60,9 +64,11 @@ function includes {
 
 single_machine=0
 compile_only=0
+pp_only=0
+printer_friendly=0
 
 # Handle the -s, -c, -i and -x options
-while getopts ":sci:x:" opt; do
+while getopts ":scpri:x:" opt; do
     case $opt in
 	i  ) inclusive=$OPTARG
 	     inclusive_flag=1 ;;
@@ -70,6 +76,8 @@ while getopts ":sci:x:" opt; do
 	     exclusive_flag=1 ;;
 	s  ) single_machine=1 ;;
 	c  ) compile_only=1 ;;
+	p  ) pp_only=1 ;;
+	r  ) printer_friendly=1 ;;
 	\? ) print_usage_and_exit ;;
     esac
 done
@@ -85,6 +93,16 @@ if (( $single_machine == 0 )); then
 	error "benchmarks on the local machine with the -s option."
 	exit 1
     fi
+fi
+
+if (( $compile_only == 1 && $pp_only == 1 )); then
+    error "-c and -p can't be used at the same time!"
+    exit 1
+fi
+
+if (( $printer_friendly == 1 && ( $compile_only == 1 || $pp_only == 1) )); then
+    error "-r can't be combined with -c or -p!"
+    exit 1
 fi
 
 # Throw away the options getopts handled
@@ -166,6 +184,39 @@ function setup_workspace {
     fi
 }
 
+# This function submits the post processing job.
+# Parameters:
+# $1  The name of the benchmark
+# $2  Job-id of the actual benchmark job (for dependency)
+#     Don't supply if running only the post processing
+function submit_pp {
+    local test_name=$1
+    local workspace=$work_dir/$test_name
+    local bm_root=$PWD
+
+    # Construct argument for qsub for dependency if there is one
+    if [ -n "$2" ]; then
+	dependency="-W depend=afterok:$jobid"
+    else
+	dependency=""
+    fi
+
+    pushd $workspace &> /dev/null
+    # Create the post processing job
+    qsub -l walltime=5:00:00 $dependency <<EOF &> /dev/null
+#!/bin/sh
+#PBS -N bm_${test_name}_pp
+cd $workspace
+if [ -f $bm_root/$test_name/postprocess.sh ]; then
+    PATH=$PATH $bm_root/runpostprocessing $bm_root/$test_name/postprocess.sh $test_name
+fi
+ls | grep "^run[0-9]*$" | xargs rm -rf
+cd $bm_root
+echo '$test_name' >> progress.txt
+EOF
+    popd &> /dev/null    
+}
+
 # This function submits a benchmark as a PBS job
 # Parameters:
 # $1  The name of the benchmark
@@ -182,23 +233,32 @@ function submit_job {
     else
 	jobid=$(sh submit.sh -i $insfile -n "bm_$test_name" 2> /dev/null)
     fi
+    popd &> /dev/null
+
     if (($? != 0)); then
 	error "Failed to submit $test_name!"
     else
-	# Create the post processing job
-	qsub -l walltime=5:00:00 -W depend=afterok:$jobid <<EOF &> /dev/null
-#!/bin/sh
-#PBS -N bm_${test_name}_pp
-cd $workspace
-if [ -f $bm_root/$test_name/postprocess.sh ]; then
-    PATH=$bm_root/postprocess:$PATH sh $bm_root/$test_name/postprocess.sh
-fi
-ls | grep "^run[0-9]*$" | xargs rm -rf
-cd $bm_root
-echo '$test_name' >> progress.txt
-EOF
+	submit_pp $test_name $jobid
     fi
+}
+
+# This function runs the post processing as a regular process
+# (not using PBS)
+# Parameters:
+# $1 The name of the benchmark
+function run_single_machine_pp {
+    local test_name=$1
+    local workspace=$work_dir/$test_name
+    local bm_root=$PWD
+
+    pushd $workspace &> /dev/null
+    if [ -f $bm_root/$test_name/postprocess.sh ]; then
+	nice $bm_root/runpostprocessing $bm_root/$test_name/postprocess.sh $test_name
+    fi
+    ls | grep "^run[0-9]*$" | xargs rm -rf
     popd &> /dev/null
+
+    echo $test_name >> $bm_root/progress.txt
 }
 
 # This function runs a benchmark as a regular process
@@ -212,17 +272,14 @@ function run_single_machine_model {
 
     pushd $workspace &> /dev/null
     nice ./guess $bm_root/$test_name/config/guess.ins
-    if [ -f $bm_root/$test_name/postprocess.sh ]; then
-	PATH=$bm_root/postprocess:$PATH nice sh $bm_root/$test_name/postprocess.sh
-    fi
-    ls | grep "^run[0-9]*$" | xargs rm -rf
     popd &> /dev/null
-    echo $test_name >> $bm_root/progress.txt
+
+    run_single_machine_pp $test_name
 }
 
 # This function takes care of everything that needs to be done 
-# for a benchmark: building, setting up the workspace and
-# submitting the job.
+# for a benchmark: building, setting up the workspace,
+# submitting the model job and submitting the post processing job.
 # Parameters:
 # $1  The test name
 function run_benchmark {
@@ -250,6 +307,60 @@ function run_benchmark {
     fi
 }
 
+# This function runs just the post processing for one benchmark.
+# Parameters:
+# $1 The test name
+function run_pp {
+    local test_name=$1
+    local workspace=$work_dir/$test_name
+
+    if [ -d $workspace ]; then
+	if (( $single_machine == 1 )); then
+	    run_single_machine_pp $test_name
+	else
+	    submit_pp $test_name
+	fi
+    else
+	echo "$workspace doesn't exist, skipping!"
+    fi
+}
+
+# This function prints out interesting information about this benchmarks
+# run to a text file in the root of the working directory.
+# Parameters:
+# $1 Absolute path to the working directory
+function meta_data {
+    file=$1/info.txt
+
+    echo "Started at: "`date` > $file
+    echo "Hostname:   "`hostname` >> $file
+    echo "User:       "`whoami` >> $file
+
+    echo >> $file
+
+    # Go up to parent directory and print out version control information
+    pushd .. &> /dev/null
+
+    if svn info &> /dev/null ; then
+	# Strip host name from svn URL
+	svn info | grep "^URL:" | sed 's|URL: svn://.*/svn/|VCS Path: |' >> $file
+	svn info | grep "^Revision:" >> $file
+	svn info | grep "^Last Changed Date:" >> $file
+
+	changes=$(svn st -q --non-interactive | grep -v "Performing status on external item" | grep -v "^$")
+
+	if [ -n "$changes" ]; then
+	    echo >> $file
+	    echo "Local modifications:" >> $file
+	    echo "$changes" >> $file
+	fi
+    else
+	echo "Version information missing" >> $file
+    fi
+
+    popd &> /dev/null
+}
+
 # Ok, let's start!
 
 # Create the progress.txt file, overwriting if it existed
@@ -262,10 +373,24 @@ mkdir -p $work_dir
 # Convert the work_dir variable to an absolute path if it isn't already
 work_dir=`cd $1; pwd`
 
+if (( $printer_friendly == 1 )); then
+    ./printerfriendly $work_dir
+    exit 0
+fi
+
+# Generate meta data about this run 
+# (such as time stamp and version control information).
+if (( $pp_only == 0 )); then
+    meta_data $work_dir
+fi
+
 # Build the model which will be used by benchmarks that don't have their own
-# special code.
-echo "Building standard model..."
-build $work_dir/standard_build
+# special code. No need to build it if we're only doing post processing
+# however.
+if (( $pp_only == 0 )); then
+    echo "Building standard model..."
+    build $work_dir/standard_build
+fi
 
 # Find all sub directories
 subdirs=($(find . -mindepth 1 -maxdepth 1 -type d))
@@ -299,7 +424,11 @@ done
 # Call run_benchmark for each test
 for test_name in "${test_names[@]}"
 do
-  run_benchmark $test_name
+  if (( $pp_only == 1 )); then
+      run_pp $test_name
+  else
+      run_benchmark $test_name
+  fi
 done
 
 if (( $compile_only == 1 )); then

@@ -16,7 +16,7 @@
 #      INSFILE, GRIDLIST and OUTFILES (NB: no space after the = sign):
 
 NPROCESS=15
-WALLTIME=150:00:00
+WALLTIME=300:00:00
 INSFILE=guess.ins
 GRIDLIST=gridlist.txt
 OUTFILES='*.out'
@@ -168,6 +168,10 @@ for file in \$outfiles_expanded
 do
   append_files $NPROCESS \$file
 done
+
+rm -rf run*
+#gzip *.out
+
 EOF
 
 # Submit guess job

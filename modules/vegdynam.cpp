@@ -1513,7 +1513,6 @@ void fire(Patch& patch,double& fireprob) {
 	// fireprob = probability of fire in this patch this year
 	//            (in population mode: fraction of modelled area affected by fire)
 
-	const double PI=3.14159265;
 	const double MINFUEL=0.2;
 		// Minimum total aboveground litter required for fire (kgC/m2)
 	double litter_ag;

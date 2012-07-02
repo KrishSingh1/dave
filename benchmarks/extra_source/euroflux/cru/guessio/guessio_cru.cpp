@@ -33,7 +33,7 @@
 
 #include "config.h"
 
-#ifdef USE_CRU
+#ifdef USE_CRU_IO
 
 #include "guessio.h"
 
@@ -532,7 +532,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("harvest_slow_frac",&ppft->harvest_slow_frac,0.0,1.0,1,CB_NONE,
 			"Fraction of harvested products that goes into carbon depository for long-lived products like wood");
 		declareitem("turnover_harv_prod",&ppft->turnover_harv_prod,0.0,1.0,1,CB_NONE,"Harvested products turnover (fraction/year)");
-		declareitem("res_outtake",&ppft->res_outtake,0.0,1.0,1,CB_NONE,"´Fraction of residue outtake at harvest");
+		declareitem("res_outtake",&ppft->res_outtake,0.0,1.0,1,CB_NONE,"Fraction of residue outtake at harvest");
 
 		callwhendone(CB_CHECKPFT);
 		
@@ -541,7 +541,7 @@ void plib_declarations(int id,xtring setname) {
 	case BLOCK_PARAM:
 
 		paramname=setname;
-		declareitem("str",&strparam,80,CB_STRPARAM,
+		declareitem("str",&strparam,300,CB_STRPARAM,
 			"String value for custom parameter");
 		declareitem("num",&numparam,-1.0e38,1.0e38,1,CB_NUMPARAM,
 			"Numerical value for custom parameter");
@@ -986,32 +986,6 @@ private:
 	double dataclim[12];
 
 
-	void regress(double* x,double* y,int n,double& a,double& b) {
-
-		// Performs a linear regression of array y on array x (n values)
-		// returning parameters a and b in the fitted model: y=a+bx
-		// (Used by function soiltemp)
-		// Source: Press et al 1986, Sect 14.2
-
-		int i;
-		double sx,sy,sxx,sxy,delta;
-
-		sx=0.0;
-		sy=0.0;
-		sxx=0.0;
-		sxy=0.0;
-		for (i=0;i<n;i++) {
-			sx+=x[i];
-			sy+=y[i];
-			sxx+=x[i]*x[i];
-			sxy+=x[i]*y[i];
-		}
-		delta=(double)n*sxx-sx*sx;
-		a=(sxx*sy-sx*sxy)/delta;
-		b=((double)n*sxy-sx*sy)/delta;
-	}
-
-
 public:
 	Spinup_data(int nyear_loc) {
 		nyear=nyear_loc;
@@ -1284,6 +1258,15 @@ double ddtr[365];
 xtring file_cru;
 xtring file_cru_misc;
 
+/// Interpolates monthly data to quasi-daily values.
+void interp_climate(double mtemp[12], double mprec[12], double msun[12], double mdtr[12],
+					double dtemp[365], double dprec[365], double dsun[365], double ddtr[365]) {
+	interp_monthly_means(mtemp, dtemp);
+	interp_monthly_totals(mprec, dprec);
+	interp_monthly_means(msun, dsun);
+	interp_monthly_means(mdtr, ddtr);
+}
+
 //Landuse:
 
 //#define DYNAMIC_LANDCOVER_INPUT
@@ -1318,8 +1301,8 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 	// Archive object. Definition in new header file, cru.h
 	Cru_1901_2006Archive ark;
 
-	int target_ilon=dlon*10.0;
-	int target_ilat=dlat*10.0;
+	int target_ilon=(int)(dlon*10.0);
+	int target_ilat=(int)(dlat*10.0);
 
 	int y,m;
 
@@ -1465,7 +1448,6 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 		return false;
 	}
 }
-
 
 
 
@@ -1740,7 +1722,7 @@ bool findnearestCRUdata(int searchradius, char* cruark, double& lon, double& lat
 	std::sort(search_points.begin(), search_points.end());
 
 	// Find closest coordinate which can be found in CRU
-	for (int i = 0; i < search_points.size(); i++) {
+	for (unsigned int i = 0; i < search_points.size(); i++) {
 		point search_point = search_points[i].second;
 		double search_lon = search_point.first;
 		double search_lat = search_point.second;
@@ -1755,9 +1737,6 @@ bool findnearestCRUdata(int searchradius, char* cruark, double& lon, double& lat
 
 	return false;
 }
-
-
-
 
 void readco2() {
 
@@ -1782,16 +1761,6 @@ void readco2() {
 
 	fclose(in);
 }
-
-/// Interpolates monthly data to quasi-daily values.
-void interp_climate(double mtemp[12], double mprec[12], double msun[12], double mdtr[12],
-					double dtemp[365], double dprec[365], double dsun[365], double ddtr[365]) {
-	interp_monthly_means(mtemp, dtemp);
-	interp_monthly_totals(mprec, dprec);
-	interp_monthly_means(msun, dsun);
-	interp_monthly_means(mdtr, ddtr);
-}
-
 /// Help function to define_output_tables, creates one output table
 void create_output_table(Table& table, const char* file, const ColumnDescriptors& columns) {
 	 table = output_channel->create_table(TableDescriptor(file, columns));
@@ -2358,8 +2327,7 @@ bool getgridcell(Gridcell& gridcell)
 }
 
 ///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
-void getlandcover(Gridcell& gridcell,Pftlist& pftlist)
-{
+void getlandcover(Gridcell& gridcell,Pftlist& pftlist) {
 	int i, year;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
 
@@ -3676,15 +3644,11 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 void termio() {
 
-	// DESCRIPTION
 	// Performs memory deallocation, closing of files or other "cleanup" functions.
-
 	delete output_channel;
 
 	// Clean up
-
 	gridlist.killall();
 }
 
-
-#endif // USE_CRU
+#endif // USE_CRU_IO

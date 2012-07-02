@@ -302,32 +302,6 @@ void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12]) {
 //  Call each simulation day following update of daily air temperature prior to canopy
 //  exchange and SOM dynamics
 
-inline void regress(double* x,double* y,int n,double& a,double& b) {
-
-	// Performs a linear regression of array y on array x (n values)
-	// returning parameters a and b in the fitted model: y=a+bx
-	// (Used by function soiltemp)
-	// Source: Press et al 1986, Sect 14.2
-
-	int i;
-	double sx,sy,sxx,sxy,delta;
-
-	sx=0.0;
-	sy=0.0;
-	sxx=0.0;
-	sxy=0.0;
-	for (i=0;i<n;i++) {
-		sx+=x[i];
-		sy+=y[i];
-		sxx+=x[i]*x[i];
-		sxy+=x[i]*y[i];
-	}
-	delta=(double)n*sxx-sx*sx;
-	a=(sxx*sy-sx*sxy)/delta;
-	b=((double)n*sxy-sx*sy)/delta;
-}
-
-
 void soiltemp(Climate& climate,Soil& soil) {
 
 	// DESCRIPTION
@@ -428,22 +402,6 @@ void soiltemp(Climate& climate,Soil& soil) {
 	}
 }
 
-
-///////////////////////////////////////////////////////////////////////////////////////
-// DAILY ACCOUNTING
-// Called each simulation day before any other driver or process functions
-
-inline double mean(double* array,int nitem) {
-
-	// Returns arithmetic mean of 'nitem' values in 'array'
-	// (Used by function soiltemp)
-
-	double sum=0.0;
-	int i;
-
-	for (i=0;i<nitem;sum+=array[i++]);
-	return sum/(double)nitem;
-}
 
 /// Called each simulation day before any other driver or process functions
 void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
@@ -737,7 +695,6 @@ void daylengthinsoleet(Climate& climate) {
 	// climate = stand climate
 
 	const double QOO=1360.0;
-	const double PI=3.1415927;
 	const double BETA=0.17;
 	const double A=107.0;
 	const double B=0.2;

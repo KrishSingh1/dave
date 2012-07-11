@@ -70,15 +70,4 @@ public:
 
 };
 
-// Lookup tables for parameters with Q10 temperature responses
-
-/// lookup table for Q10 temperature response of Michaelis constant for O2
-extern LookupQ10 lookup_tau;
-
-/// lookup table for Q10 temperature response of Michaelis constant for CO2
-extern LookupQ10 lookup_ko;
-
-/// lookup table for Q10 temperature response of CO2/O2 specificity ratio
-extern LookupQ10 lookup_kc;
-
 #endif // LPJ_GUESS_Q10_H

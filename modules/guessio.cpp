@@ -41,7 +41,6 @@
 #include <plib.h>
 #include <stdio.h>
 
-
 ///////////////////////////////////////////////////////////////////////////////////////
 //
 //                      SECTION: INPUT FROM INSTRUCTION SCRIPT
@@ -862,11 +861,11 @@ void printhelp() {
 //
 // bool getclimate(Gridcell& gridcell)
 //   Obtains climate data (including atmospheric CO2 and insolation) for this day.
-//   The function should returns false if the simulation is complete for this grid cell,
+//   The function should return false if the simulation is complete for this grid cell,
 //   otherwise true. This will normally require querying the year and day member
 //   variables of the global class object date:
 //
-//   if (date.day==0 && date.year==nyear) return false; // guess2008
+//   if (date.day==0 && date.year==nyear) return false;
 //   // else
 //   return true;
 //
@@ -883,6 +882,14 @@ void printhelp() {
 //   Diurnal temperature range (dtr) added for calculation of leaf temperatures in 
 //   BVOC:
 //   gridcell.climate.dtr=ddtr[date.day]; 
+//
+//   If model is run in diurnal mode, which requires appropriate climate forcing data, 
+//   additional members of the climate must be initialised: temps, insols. Both of the
+//   variables must be of type std::vector. The length of these vectors should be equal
+//   to value of date.subdaily which also needs to be set either in getclimate or 
+//   getgridcell functions. date.subdaily is a number of sub-daily period in a single 
+//   day. Irrespective of the BVOC settings, climate.dtr variable is not required in 
+//   diurnal mode.
 //
 // void outannual(Gridcell& gridcell,Pftlist& pftlist)
 //   Called at the end of the last day of each simulation year to permit output of
@@ -1724,7 +1731,15 @@ bool getclimate(Gridcell& gridcell) {
 	// 
 	// Diurnal temperature range (dtr) added for calculation of leaf temperatures in 
 	// BVOC:
-	// gridcell.climate.dtr=ddtr[date.day]; 
+	// gridcell.climate.dtr=ddtr[date.day];
+	//
+	// If model is run in diurnal mode, which requires appropriate climate forcing data, 
+	// additional members of the climate must be initialised: temps, insols. Both of the
+	// variables must be of type std::vector. The length of these vectors should be equal
+	// to value of date.subdaily which also needs to be set either in getclimate or 
+	// getgridcell functions. date.subdaily is a number of sub-daily period in a single 
+	// day. Irrespective of the BVOC settings, climate.dtr variable is not required in 
+	// diurnal mode.
 
 	double progress;
 

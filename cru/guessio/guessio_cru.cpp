@@ -513,6 +513,8 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("reprfrac",&ppft->reprfrac,0.0,1.0,1,CB_NONE,
 			"Fraction of NPP allocated to reproduction");
+		declareitem("reprCN",&ppft->reprCN,1.0,1.0e4,1,CB_NONE,
+			"Reproduction CN ratio");
 		declareitem("turnover_leaf",&ppft->turnover_leaf,0.0,1.0,1,CB_NONE,
 			"Leaf turnover (fraction/year)");
 		declareitem("turnover_root",&ppft->turnover_root,0.0,1.0,1,CB_NONE,
@@ -801,6 +803,7 @@ void plib_callback(int callback) {
 		// end GUESSN
 
 		if (!itemparsed("reprfrac")) badins("reprfrac");
+		if (!itemparsed("reprCN")) badins("reprCN");
 		if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
 		if (!itemparsed("turnover_root")) badins("turnover_root");
 		if (!itemparsed("ltor_max")) badins("ltor_max");
@@ -3412,7 +3415,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	if (abort) fail("\nUsage: %s <instruction-script-filename> | -help",argv[0]);
 
 	// Print the title of this run
-	dprintf("\n\n------------------------------------\n%s\n------------------------------------\n",(char*)title);
+	dprintf("\n\n-----------------------------------------------\n%s\n-----------------------------------------------\n",(char*)title);
 
 	///////////////////////////////////////////////////////////////////////////////////
 	// USER-SPECIFIC SECTION (Modify as necessary or supply own code)
@@ -3463,8 +3466,12 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	file_cmip5hist=param["path_cmip5hist"].str;
 	file_cmip5scen=param["path_cmip5scen"].str;
 
-	if (rcp=="45")
+	if (rcp=="26")
+		file_cmip5scen+="mpi_esm_lr_rcp26_r1i1p1/";
+	else if (rcp=="45")
 		file_cmip5scen+="mpi_esm_lr_rcp45_r1i1p1/";
+	else if (rcp=="60")
+		file_cmip5scen+="mpi_esm_lr_rcp60_r1i1p1/";
 	else if (rcp=="85")
 		file_cmip5scen+="mpi_esm_lr_rcp85_r1i1p1/";
 	else fail("CMIP5 scenario file not valid");
@@ -3501,8 +3508,12 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	// CMIP5
 	if (ifcmip5) {
 		xtring file_ndep_cmip5;
-		if (rcp=="45")
+		if (rcp=="26")
+			file_ndep_cmip5=file_ndep+"RCP26.bin";
+		else if (rcp=="45")
 			file_ndep_cmip5=file_ndep+"RCP45.bin";
+		else if (rcp=="60")
+			file_ndep_cmip5=file_ndep+"RCP60.bin";
 		else if (rcp=="85")
 			file_ndep_cmip5=file_ndep+"RCP85.bin";
 		else fail("N dep file not valid");
@@ -4723,6 +4734,11 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		double nmass_sompools=0.0;		// GUESSN N budget
 		double nmass_litterpools=0.0;	// GUESSN N budget
 
+		if (date.year == 500)
+			Total_N_500=0.0;
+		
+		double Total_N_present=0.0;
+
 		pftlist.firstobj();
 		while (pftlist.isobj) {
 
@@ -4828,7 +4844,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 										angio = 2;
 
 									output_channel->add_value(out_allometry_ind, angio);
-									output_channel->add_value(out_allometry_ind, indiv.age);
+									output_channel->add_value(out_allometry_ind, indiv.age);														  // Age
 									output_channel->add_value(out_allometry_ind, indiv.densindiv*10000.0/(double)stand.nobj);                         // N
 									output_channel->add_value(out_allometry_ind, indiv.cmass_leaf/indiv.densindiv);                                   // Mfol
 									output_channel->add_value(out_allometry_ind, (indiv.cmass_sap+indiv.cmass_heart)*0.75/indiv.densindiv);           // Mstem
@@ -4845,6 +4861,12 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 									output_channel->finish_row(out_allometry_ind, lon, lat, date.year);
 								}
+
+								if (date.year == 500)
+									Total_N_500+=indiv.nstore+indiv.nmass_reserve+indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+indiv.nmass_heart;
+
+								Total_N_present+=indiv.nstore+indiv.nmass_reserve+indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+indiv.nmass_heart;
+
 
 								if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 
@@ -4869,6 +4891,14 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 						} // alive?
 						vegetation.nextobj();
 					}
+
+					if (patch.pft[pft.id].pft.name == pft.name) {
+						if (date.year == 500)
+							Total_N_500+=patch.pft[pft.id].nstore_est;
+			
+						Total_N_present+=patch.pft[pft.id].nstore_est;;
+					}
+
 					stand.nextobj();
 				} // end of patch loop
 
@@ -4888,7 +4918,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				if (standpft_anpp_no_nlim>0.0 && standpft_anpp>0.0)
 					standpft_nlim=standpft_anpp/standpft_anpp_no_nlim;
 				else
-					standpft_nlim=1.0;
+					standpft_nlim=0.0;
 				
 				gcpft_cmass_leaf+=standpft_cmass_leaf;
 				gcpft_nmass_leaf+=standpft_nmass_leaf;
@@ -5111,7 +5141,17 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 						centuryc+=patch.soil.sompool[r].cmass/(double)stand.nobj;
 						centuryn+=patch.soil.sompool[r].nmass/(double)stand.nobj;
 					}
+
+					if (date.year == 500)
+						Total_N_500+=patch.soil.sompool[r].nmass;
+
+					Total_N_present+=patch.soil.sompool[r].nmass;
 				}
+
+				if (date.year == 500)
+					Total_N_500+=patch.soil.nmass_avail+n_litter;
+
+				Total_N_present+=patch.soil.nmass_avail+n_litter;
 				// end GUESSN
 
 				// Monthly output variables
@@ -5159,6 +5199,12 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			} // patch loop
 			gridcell.nextobj();
 		} // stand loop
+
+		Total_N_present+=flux_ntot;
+
+		//if (date.year > nyear_spinup)
+		//	dprintf("Year %d %d %g %d+added %g Present %g Diff %g\n",
+		//		date.year,nyear_spinup,Total_N_500,nyear_spinup,Total_N_500+Added_N_from_500,Total_N_present,Total_N_500+Added_N_from_500-Total_N_present);
 
 
 		// In contrast to annual NEE, monthly NEE does not include fire

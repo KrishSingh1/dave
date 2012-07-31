@@ -231,10 +231,6 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 
 	// Percolation and fluxes to and from lower soil layer(s)
 
-	// GUESSN: Save current water content (in mm) for tomorrow:
-	patch.soil.wcontmm_yesterday=wcont[0]*awc[0]+wcont[1]*awc[1];
-	// end GUESSN
-
 	// Transfer percolation between soil layers
 	// Excess water transferred to runoff
 	// Eqns 26, 27, 31, Haxeltine & Prentice 1996
@@ -287,10 +283,6 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 		dperc=perc_frac*awc[NSOILLAYER-1];
 	else
 		dperc=0.0;
-	// end GUESSN
-
-	// GUESSN: Export baseflow
-	patch.soil.dbaseflow=runoff_baseflow+runoff_drain;	// used for mineral nitrogen leaching
 	// end GUESSN
 
 	runoff=runoff_surf+runoff_drain+runoff_baseflow;

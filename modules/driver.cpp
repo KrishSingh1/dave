@@ -583,6 +583,7 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 		fluxes.aNO_fire=0.0;
 		fluxes.aNO2_fire=0.0;
 		fluxes.aN2O_fire=0.0;
+		fluxes.aNrepr=0.0;
 
 		patch.aaet=0.0;
 		patch.aevap=0.0;

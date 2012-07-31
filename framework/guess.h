@@ -191,6 +191,7 @@ extern bool run_landcover;
 extern double Total_N_500;
 extern double Total_C_500;
 extern double Added_N_from_500;
+extern double somfluxnerror;
 
 /// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND).
 extern bool run[NLANDCOVERTYPES];
@@ -654,6 +655,8 @@ public:
 	double aN2O_fire;
 	// emssion ratios from fire (NH3, NO, NO2, N2O)
 	double firenratio[4];
+	// Reproduction N is return to atmosphere
+	double aNrepr;
 
 	// MEMBER FUNCTIONS
 
@@ -678,6 +681,7 @@ public:
 		aNO_fire=0.0;
 		aNO2_fire=0.0;
 		aN2O_fire=0.0;
+		aNrepr=0.0;
 	}		
 
 	double anee() {
@@ -758,6 +762,8 @@ public:
 	// end GUESSN
 	double reprfrac;
 		// fraction of NPP allocated to reproduction
+	double reprCN;
+		// reproduction C:N ratio
 	double turnover_leaf;
 		// annual leaf turnover as a proportion of leaf C biomass
 	double turnover_root;
@@ -1324,8 +1330,8 @@ public:
 		solvesom_begin=SOLVESOM_BEGIN;
 
 		// GUESSN
-		sand_frac=0.3;
-		clay_frac=0.3;
+		sand_frac=0.4;
+		clay_frac=0.4;
 		silt_frac=0.2;
 		// end GUESSN
 	}
@@ -1356,6 +1362,12 @@ public:
 	double frc;
 	double ntoc;
 
+	// Fire
+	double litterme;
+		// soil litter moisture flammability threshold (fraction of AWC)
+	double fireresist;
+		// soil litter fire resistance (0-1)
+
 	void init() {
 		
 		// Initialise pool
@@ -1366,6 +1378,8 @@ public:
 		delta_cmass=0.0;
 		delta_nmass=0.0;
 		frc=0.0;
+		litterme=0.0;
+		fireresist=0.0;
 	};
 };
 
@@ -1444,7 +1458,6 @@ public:
 
 	double alag,exp_alag;
 
-
 	// guess2008 - 3 new soil water variables
 	double mwcont[12][NSOILLAYER];
 		// water content of soil layers [0=upper layer] as fraction of available water
@@ -1461,8 +1474,6 @@ public:
 	Sompool sompool[NSOMPOOL];
 
 	double dperc;				// daily percolation (mm)
-	double dbaseflow;			// daily baseflow (mm)
-	double wcontmm_yesterday;	// ...
 
 	double nmin_daily[365];		// daily N mineralisation (kgN/m2)
 	double nimmob_daily[365];	// daily N immobilisation (kgN/m2)
@@ -1476,7 +1487,7 @@ public:
 	double n_org_leach_annual;	// annual leaching of organics from active N pool
 	double ndep_annual;			// annual N deposition
 
-	double setntoc_nmass_avail;	// soil mineral N pool (kgN/m2) (used in daily setntoc)
+	double nmin_balance;		// soil mineral N pool (kgN/m2) (used somfluxes() to determine C:N ratios for SOM pools and decay rates)
 	double daily_minimmndep;	// sum of mineralization, immobilization and N deposition (used in daily setntoc)
 
 	double nfix;				// total annual N fixation
@@ -1556,10 +1567,8 @@ public:
 		nfix=0.0;
 
 		dperc=0.0;
-		dbaseflow=0.0;
-		wcontmm_yesterday=0.0;
 
-		setntoc_nmass_avail=0.0;
+		nmin_balance=0.0;
 		daily_minimmndep=0.0;	
 
 		nmass_avail_daily=0.0;
@@ -1679,6 +1688,9 @@ public:
 	double litter_repr;
 		// litter derived from allocation to reproduction for PFT on modelled area
 		// basis (kgC/m2)
+	double nlitter_repr;
+		// litter derived from allocation to reproduction for PFT on modelled area
+		// basis (kgN/m2)
 
 	// Variables used by "fast" canopy exchange code (Ben Smith 2002-07)
 
@@ -1896,6 +1908,9 @@ public:
 	double cmass_repr;
 		// net C allocated to reproduction for this PFT in all patches of this stand
 		// this year (kgC/m2)
+	double nmass_repr;
+		// net N allocated to reproduction for this PFT in all patches of this stand
+		// this year (kgN/m2)
 	double anetps_ff_max;
 		// maximum value of anetpsff (potential annual net assimilation at forest
 		// floor) for this PFT in this stand so far in the simulation (kgC/m2/year)

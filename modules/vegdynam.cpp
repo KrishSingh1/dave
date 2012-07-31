@@ -401,6 +401,18 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 	Vegetation& vegetation=patch.vegetation;
 
+	// Nitrogen check
+
+	double Nbefore=0.0;
+	double Nafter=0.0;
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv=vegetation.getobj();
+		Nbefore+=indiv.nstore+indiv.nmass_reserve+indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+indiv.nmass_heart;
+		// ... on to next individual
+		vegetation.nextobj();
+	}
+
 	// guess2008 - determine the number of woody PFTs that can establish
 	// Thomas Hickler
 	int nwoodypfts_estab=0;
@@ -409,8 +421,14 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 		Pft& pft=pftlist.getobj();
 		if (establish(patch,stand.gridcell.climate,pft) && pft.lifeform==TREE)
 			nwoodypfts_estab++;
+
+		// N check
+		Nbefore+=patch.pft[pft.id].nstore_est;
 		pftlist.nextobj();
 	}
+
+	// N check
+	Nbefore+=patch.soil.nmass_avail;
 
 	// Loop through PFTs
 
@@ -465,14 +483,11 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 						// Initial grass biomass proportional to potential forest floor
 						// net assimilation this year on patch area basis
 
-
 						bminit=SAPSIZE*patch.pft[pft.id].anetps_ff;	
 
 						// GUESSN grass gets at least 5% of available N. When established
 						// they shouldn't been able to get more!
-						double bminit_n_lim=indiv.pft.cton_leaf_avr*(patch.soil.nmass_avail+
-								patch.soil.ndep_annual+patch.soil.nfix+
-								patch.soil.nmin_annual-patch.soil.nimmob_annual)*0.05;
+						double bminit_n_lim=indiv.pft.cton_leaf_avr*patch.nsupply*0.05;
 
 						if (ifdisturb && patch.disturbed)
 							bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est_initial;
@@ -600,7 +615,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 					if (ifstochestab || vegmode==INDIVIDUAL) nsapling=randpoisson(est);
 					else nsapling=est;
 
-					if (date.year>freenyears && !patch.disturbed)
+					if (date.year>freenyears)
 						nsapling=patch.pft[pft.id].nsapling_nuptake;
 
 					patch.pft[pft.id].nsapling_yearly+=nsapling;
@@ -686,13 +701,10 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 						// GUESSN
 						// Initialise N demand
 						indiv.ndemand=
-								indiv.cmass_leaf/indiv.pft.cton_leaf_avr+
-								indiv.cmass_root/indiv.pft.cton_leaf_avr+
-								indiv.cmass_sap/indiv.pft.cton_sap_avr+
-								indiv.cmass_heart/indiv.pft.cton_sap_avr+
-								indiv.nmass_reserve;
+								indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+
+								indiv.nmass_heart+indiv.nmass_reserve;
 
-						if (ifnlim && date.year>=freenyears && !patch.disturbed) {
+						if (ifnlim && date.year>=freenyears){
 
 							nonlimdens=indiv.densindiv;
 
@@ -750,6 +762,27 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 		pftlist.nextobj();
 	}
+
+	// N check
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv=vegetation.getobj();
+		Nafter+=indiv.nstore+indiv.nmass_reserve+indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+indiv.nmass_heart;
+		// ... on to next individual
+		vegetation.nextobj();
+	}
+	pftlist.firstobj();
+	while (pftlist.isobj) {
+		Pft& pft=pftlist.getobj();
+		
+		Nafter+=patch.pft[pft.id].nstore_est;
+		pftlist.nextobj();
+	}
+
+	Nafter+=patch.soil.nmass_avail;
+
+	if (date.year > freenyears && (Nbefore-Nafter < -1.0e-15 || Nbefore-Nafter > 1.0e-15))
+		dprintf("Year %d EST id %d before %g after %g diff %g\n",date.year,patch.id,Nbefore,Nafter,Nbefore-Nafter);
 }
 
 
@@ -1571,9 +1604,11 @@ void fire(Patch& patch,double& fireprob) {
 			patch.pft[p].litter_repr)*patch.pft[p].pft.litterme/litter_ag;
 	}
 
+
 	// GUESSN Soil litter
-	me_mean+=(patch.soil.sompool[SURFSTRUCT].cmass+patch.soil.sompool[SURFMETA].cmass+
-		patch.soil.sompool[SURFCWD].cmass)*litterme_soil/litter_ag;
+	me_mean+=(patch.soil.sompool[SURFSTRUCT].cmass*patch.soil.sompool[SURFSTRUCT].litterme+
+		patch.soil.sompool[SURFMETA].cmass*patch.soil.sompool[SURFMETA].litterme+
+		patch.soil.sompool[SURFCWD].cmass*patch.soil.sompool[SURFCWD].litterme)/litter_ag;
 
 	// Calculate length of fire season in days
 	// Eqn 2, 4, Thonicke et al 2001
@@ -1632,30 +1667,43 @@ void fire(Patch& patch,double& fireprob) {
 		// end GUESSN
 	}
 
+
+
 	// GUESSN Soil litter
-	double soil_mort_fire=fireprob*(1.0-fireresist_soil);
+	double mort_fire_struct=fireprob*(1.0-patch.soil.sompool[SURFSTRUCT].fireresist);
+	double mort_fire_meta=fireprob*(1.0-patch.soil.sompool[SURFMETA].fireresist);
+	double mort_fire_cwd=fireprob*(1.0-patch.soil.sompool[SURFCWD].fireresist);
 
 	// Calculate flux from burnt soil litter
-	patch.fluxes.acflux_fire+=soil_mort_fire*(patch.soil.sompool[SURFSTRUCT].cmass+
-		patch.soil.sompool[SURFMETA].cmass+patch.soil.sompool[SURFCWD].cmass);
+	patch.fluxes.acflux_fire+=patch.soil.sompool[SURFSTRUCT].cmass*mort_fire_struct+
+		patch.soil.sompool[SURFMETA].cmass*mort_fire_meta+
+		patch.soil.sompool[SURFCWD].cmass*mort_fire_cwd;
 
 	// Account for burnt above ground litter
-	patch.soil.sompool[SURFSTRUCT].cmass*=1.0-soil_mort_fire;
-	patch.soil.sompool[SURFMETA].cmass*=1.0-soil_mort_fire;
-	patch.soil.sompool[SURFCWD].cmass*=1.0-soil_mort_fire;
+	patch.soil.sompool[SURFSTRUCT].cmass*=1.0-mort_fire_struct;
+	patch.soil.sompool[SURFMETA].cmass*=1.0-mort_fire_meta;
+	patch.soil.sompool[SURFCWD].cmass*=1.0-mort_fire_cwd;
 
-	patch.fluxes.aNH3_fire+=soil_mort_fire*patch.fluxes.firenratio[1]*
-		(patch.soil.sompool[SURFSTRUCT].nmass+patch.soil.sompool[SURFMETA].nmass+patch.soil.sompool[SURFCWD].nmass);
-	patch.fluxes.aNO_fire+=soil_mort_fire*patch.fluxes.firenratio[1]*
-		(patch.soil.sompool[SURFSTRUCT].nmass+patch.soil.sompool[SURFMETA].nmass+patch.soil.sompool[SURFCWD].nmass);
-	patch.fluxes.aNO2_fire+=soil_mort_fire*patch.fluxes.firenratio[2]*
-		(patch.soil.sompool[SURFSTRUCT].nmass+patch.soil.sompool[SURFMETA].nmass+patch.soil.sompool[SURFCWD].nmass);
-	patch.fluxes.aN2O_fire+=soil_mort_fire*patch.fluxes.firenratio[3]*
-		(patch.soil.sompool[SURFSTRUCT].nmass+patch.soil.sompool[SURFMETA].nmass+patch.soil.sompool[SURFCWD].nmass);
+	patch.fluxes.aNH3_fire+=patch.fluxes.firenratio[1]*
+		(patch.soil.sompool[SURFSTRUCT].nmass*mort_fire_struct+
+		patch.soil.sompool[SURFMETA].nmass*mort_fire_meta+
+		patch.soil.sompool[SURFCWD].nmass*mort_fire_cwd);
+	patch.fluxes.aNO_fire+=patch.fluxes.firenratio[1]*
+		(patch.soil.sompool[SURFSTRUCT].nmass*mort_fire_struct+
+		patch.soil.sompool[SURFMETA].nmass*mort_fire_meta+
+		patch.soil.sompool[SURFCWD].nmass*mort_fire_cwd);
+	patch.fluxes.aNO2_fire+=patch.fluxes.firenratio[2]*
+		(patch.soil.sompool[SURFSTRUCT].nmass*mort_fire_struct+
+		patch.soil.sompool[SURFMETA].nmass*mort_fire_meta+
+		patch.soil.sompool[SURFCWD].nmass*mort_fire_cwd);
+	patch.fluxes.aN2O_fire+=patch.fluxes.firenratio[3]*
+		(patch.soil.sompool[SURFSTRUCT].nmass*mort_fire_struct+
+		patch.soil.sompool[SURFMETA].nmass*mort_fire_meta+
+		patch.soil.sompool[SURFCWD].nmass*mort_fire_cwd);
 
-	patch.soil.sompool[SURFSTRUCT].nmass*=1.0-soil_mort_fire;
-	patch.soil.sompool[SURFMETA].nmass*=1.0-soil_mort_fire;
-	patch.soil.sompool[SURFCWD].nmass*=1.0-soil_mort_fire;
+	patch.soil.sompool[SURFSTRUCT].nmass*=1.0-mort_fire_struct;
+	patch.soil.sompool[SURFMETA].nmass*=1.0-mort_fire_meta;
+	patch.soil.sompool[SURFCWD].nmass*=1.0-mort_fire_cwd;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

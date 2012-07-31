@@ -285,7 +285,7 @@ void turnover(double turnover_leaf,double turnover_root,double turnover_sap,
 // REPRODUCTION
 // Internal function (do not call directly from framework)
 
-void reproduction(double reprfrac,double npp,double& bminc,double& cmass_repr) {
+void reproduction(double reprfrac,double reprCN,double npp,double& bminc,double& cmass_repr,double& nmass_repr,double& nstore) {
 
 	// DESCRIPTION
 	// Allocation of net primary production (NPP) to reproduction and calculation of
@@ -293,6 +293,7 @@ void reproduction(double reprfrac,double npp,double& bminc,double& cmass_repr) {
 
 	// INPUT PARAMETERS
 	// reprfrac = fraction of NPP for this time period allocated to reproduction
+	// reprCN   = reproduction C:N ratio
 	// npp      = NPP (i.e. assimilation minus maintenance and growth respiration) for
 	//            this time period (kgC/m2)
 
@@ -303,12 +304,19 @@ void reproduction(double reprfrac,double npp,double& bminc,double& cmass_repr) {
 	if (npp>=0.0) {
 		cmass_repr=npp*reprfrac;
 		bminc=npp-cmass_repr;
+
+		/*nmass_repr=cmass_repr/reprCN;
+		if(nmass_repr>nstore)
+			nmass_repr=nstore;
+
+		nstore-=nmass_repr;*/
 		return;
 	}
 
 	// Negative NPP - no reproduction cost
 
 	cmass_repr=0.0;
+	nmass_repr=0.0;
 	bminc=npp;
 }
 
@@ -1754,6 +1762,8 @@ void flush_litter_repr(Patch& patch) {
 		for (int d=0;d<365;d++)
 			patch.fluxes.dcflux_soil[d]+=pft.litter_repr/365.0;
 
+		//patch.fluxes.aNrepr+=pft.nlitter_repr;
+
 		patch.pft.nextobj();
 	}
 }
@@ -1784,6 +1794,8 @@ void growth(Stand& stand,Patch& patch) {
 		// new biomass) for this time period on modelled area basis (kgC/m2)
 	double cmass_repr;
 		// C allocated to reproduction this time period on modelled area basis (kgC/m2)
+	double nmass_repr;
+		// N allocated to reproduction this time period on modelled area basis (kgN/m2)
 	double cmass_leaf_inc;
 		// increment in leaf C biomass following allocation, on individual basis (kgC)
 	double cmass_root_inc;
@@ -1814,6 +1826,7 @@ void growth(Stand& stand,Patch& patch) {
 	double nscal;
 	double cton_leaf_full_growth;
 	bool bminc_pos;
+	double nmass_before,nmass_after;
 	// end GUESSN
 
 	// Obtain reference to Vegetation object for this patch
@@ -1833,6 +1846,10 @@ void growth(Stand& stand,Patch& patch) {
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
 		// For this individual 
+
+		nmass_before=indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+indiv.nmass_heart+indiv.nstore+indiv.nmass_reserve;
+		nmass_before+=patch.pft[indiv.pft.id].nmass_litter_leaf+patch.pft[indiv.pft.id].nmass_litter_root+patch.pft[indiv.pft.id].nmass_litter_wood;
+		nmass_before+=patch.soil.nmass_avail;
 
 		// GUESSN
 
@@ -1855,7 +1872,6 @@ void growth(Stand& stand,Patch& patch) {
 
 		if (negligible(indiv.densindiv))
 			fail("growth: negligible densindiv for %s",(char*)indiv.pft.name);
-		
 		else {
 
 			// GUESSN
@@ -1879,7 +1895,7 @@ void growth(Stand& stand,Patch& patch) {
 
 			// Allocation to reproduction
 
-			reproduction(indiv.pft.reprfrac,indiv.anpp,bminc,cmass_repr);
+			reproduction(indiv.pft.reprfrac,indiv.pft.reprCN/indiv.fnuptake,indiv.anpp,bminc,cmass_repr,nmass_repr,indiv.nstore);
 
 			// guess2008 - added bminc check. Otherwise we get -ve litter_leaf for grasses when indiv.anpp < 0.
 			if (bminc >= 0 && (indiv.pft.phenology==RAINGREEN || indiv.pft.phenology==ANY)) {
@@ -1930,11 +1946,14 @@ void growth(Stand& stand,Patch& patch) {
 
 			// Update stand record of reproduction by this PFT
 			stand.pft[indiv.pft.id].cmass_repr+=cmass_repr/(double)stand.nobj;
+			stand.pft[indiv.pft.id].nmass_repr+=nmass_repr/(double)stand.nobj;
 
 			// Transfer reproduction straight to litter
 			// guess2008 - only for 'alive' individuals
 			if (indiv.alive) 
 				patch.pft[indiv.pft.id].litter_repr+=cmass_repr;
+
+			//patch.pft[indiv.pft.id].nlitter_repr+=nmass_repr;
 
 			// C:N ratio for new biomass
 			if (ifnlim && date.year>freenyears) {	
@@ -2188,6 +2207,11 @@ void growth(Stand& stand,Patch& patch) {
 					// end GUESSN
 				}
 
+				// N check
+				nmass_after=indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+indiv.nmass_heart+indiv.nstore+indiv.nmass_reserve;
+				nmass_after+=patch.pft[indiv.pft.id].nmass_litter_leaf+patch.pft[indiv.pft.id].nmass_litter_root+patch.pft[indiv.pft.id].nmass_litter_wood;
+				nmass_after+=patch.soil.nmass_avail;
+
 				// Update individual age
 
 				indiv.age++;
@@ -2401,6 +2425,10 @@ void growth(Stand& stand,Patch& patch) {
 					// end GUESSN
 				}
 
+				nmass_after=indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+indiv.nmass_heart+indiv.nstore+indiv.nmass_reserve;
+				nmass_after+=patch.pft[indiv.pft.id].nmass_litter_leaf+patch.pft[indiv.pft.id].nmass_litter_root+patch.pft[indiv.pft.id].nmass_litter_wood;
+				nmass_after+=patch.soil.nmass_avail;
+
 				// Kill individual and transfer biomass to litter if either biomass
 				// compartment negative
 
@@ -2433,6 +2461,9 @@ void growth(Stand& stand,Patch& patch) {
 				}
 			}
 		}
+
+		if (date.year > freenyears && (nmass_before-nmass_after > 1.0e-15 || nmass_before-nmass_after < -1.0e-15))
+			dprintf("Year %d pft %s GROWTH %g\n",date.year,(char*)indiv.pft.name,nmass_before-nmass_after);
 
 		// guess2008
 		if (!killed) {

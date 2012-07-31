@@ -76,6 +76,7 @@ bool iflandusechange;
 double Total_N_500;
 double Total_C_500;
 double Added_N_from_500;
+double somfluxnerror;
 
 // guess2008 - new inputs from the .ins file
 bool ifsmoothgreffmort;				// smooth growth efficiency mortality

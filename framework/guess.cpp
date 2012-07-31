@@ -96,9 +96,7 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i
 
 	first_year=date.year;
 	natural_frac_change=0.0;
-#if defined RANDFRAC_PER_STAND
 	seed=12345678;
-#endif
 }
 
 double Stand::get_gridcell_fraction() const {

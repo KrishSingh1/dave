@@ -48,11 +48,7 @@ int individ=0; // running id code for new individuals (see establishment)
 // Internal functions for generating random numbers
 
 
-#if defined RANDFRAC_PER_STAND
 int randpoisson(double expectation, long& seed) {
-#else
-int randpoisson(double expectation) {
-#endif
 
 	// DESCRIPTION
 	// Returns a random integer drawn from the Poisson distribution with specified
@@ -68,11 +64,7 @@ int randpoisson(double expectation) {
 	
 		p=exp(-expectation);
 		q=p;
-#if defined RANDFRAC_PER_STAND
 		r=randfrac(seed);
-#else
-		r=randfrac();
-#endif
 
 		n=0;
 		while (q<r) {
@@ -86,17 +78,12 @@ int randpoisson(double expectation) {
 	// For higher expected values than 100, approximate the Poisson distribution
 	// by the Gaussian normal distribution with mean equal to the expected value,
 	// and standard deviation the square root of this value
-#if defined RANDFRAC_PER_STAND
+
 	do {
 		r=randfrac(seed)*8.0-4.0;
 		p=exp(-r*r/2.0);
 	} while (randfrac(seed)>p);
-#else
-	do {
-		r=randfrac()*8.0-4.0;
-		p=exp(-r*r/2.0);
-	} while (randfrac()>p);
-#endif
+
 	return max(0,(int)(r*sqrt(expectation)+expectation+0.5));
 }
 
@@ -563,11 +550,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 					// Actual number of new saplings drawn from the Poisson distribution
 					// (except cohort mode with stochastic establishment disabled)
 
-#if defined RANDFRAC_PER_STAND
 					if (ifstochestab || vegmode==INDIVIDUAL) nsapling=randpoisson(est, stand.seed);
-#else
-					if (ifstochestab || vegmode==INDIVIDUAL) nsapling=randpoisson(est);
-#endif
 					else nsapling=est;
 
 					if (vegmode==COHORT) {
@@ -982,11 +965,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 
 		// Impose fire in this patch with probability 'fireprob'
 
-#if defined RANDFRAC_PER_STAND
 		if (randfrac(stand.seed)<fireprob) {
-#else
-		if (randfrac()<fireprob) {
-#endif
 
 			// Loop through individuals
 
@@ -1034,11 +1013,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 						nindiv_prev=nindiv;
 
 						for (i=0;i<nindiv_prev;i++)
-#if defined RANDFRAC_PER_STAND
 							if (randfrac(stand.seed)>indiv.pft.fireresist) nindiv--;
-#else
-							if (randfrac()>indiv.pft.fireresist) nindiv--;
-#endif
 
 						if (nindiv_prev)
 							frac_survive=(double)nindiv/(double)nindiv_prev;
@@ -1221,11 +1196,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					nindiv_prev=nindiv;
 
 					for (i=0;i<nindiv_prev;i++)
-#if defined RANDFRAC_PER_STAND
 						if (randfrac(stand.seed)<mort) nindiv--;
-#else
-						if (randfrac()<mort) nindiv--;
-#endif
 
 					if (nindiv_prev)
 						frac_survive=(double)nindiv/(double)nindiv_prev;
@@ -1410,11 +1381,8 @@ void disturbance(Patch& patch,double disturb_prob) {
 	// INPUT PARAMETER
 	// disturb_prob = the probability of a disturbance this year
 
-#if defined RANDFRAC_PER_STAND
 	if (randfrac(patch.stand.seed)<disturb_prob) {
-#else
-	if (randfrac()<disturb_prob) {
-#endif
+
 		Vegetation& vegetation=patch.vegetation;
 
 		vegetation.firstobj();

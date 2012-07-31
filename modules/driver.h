@@ -22,11 +22,7 @@
 #include "guess.h"
 
 void setseed(long init);
-#if defined RANDFRAC_PER_STAND
 double randfrac(long& seed);
-#else
-double randfrac();
-#endif
 void soilparameters(Soiltype& soiltype,int soilcode);
 void interp_climate(double mtemp[12],double mprec[12],double msun[12],
 	double dtemp[365],double dprec[365],double dsun[365]);

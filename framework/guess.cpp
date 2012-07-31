@@ -63,6 +63,7 @@ bool run[NLANDCOVERTYPES];
 bool lcfrac_fixed;
 bool all_fracs_const;
 bool ifslowharvestpool;				// If a slow harvested product pool is included in patchpft.
+bool ifintercropgrass;
 int nyear_spinup;		
 
 
@@ -78,6 +79,9 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i
 		pft.createobj(pftlist[p]);
 	}
 
+#ifdef PRINT_MULTIPLE_NATURAL_STANDS
+	dprintf("Stand N:o %d, (landcover:%d) created year %d.\n", id,landcover, ::date.year);
+#endif
 
 	if(landcover==CROPLAND || landcover==PASTURE || landcover==URBAN || landcover==PEATLAND) {
 		npatchL=1;
@@ -91,17 +95,21 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i
 	}
 
 	first_year=date.year;
+	natural_frac_change=0.0;
 }
 
 double Stand::get_gridcell_fraction() const {
-	return frac*gridcell.landcoverfrac[landcover];
-}
-
-double Stand::get_landcover_fraction() const {
 	return frac;
 }
 
-void Stand::set_landcover_fraction(double fraction) {
+double Stand::get_landcover_fraction() const {
+	if(gridcell.landcoverfrac[landcover])
+		return frac/gridcell.landcoverfrac[landcover];
+	else
+		return 0.0;
+}
+
+void Stand::set_gridcell_fraction(double fraction) {
 	frac = fraction;
 }
 

@@ -2062,11 +2062,22 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.get_landcover_fraction();
 
 				//Update pft totals
-				gcpft_cmass+=standpft_cmass;
-				gcpft_anpp+=standpft_anpp;
-				gcpft_lai+=standpft_lai;
-				gcpft_densindiv_total+=standpft_densindiv_total;
-
+#if defined multiple_natural_stands
+				if(pft.landcover==NATURAL && gridcell.landcoverfrac[stand.landcover]!=0.0)	//Natural landcover can now contain several stands.
+				{
+					gcpft_cmass+=standpft_cmass*stand.get_gridcell_fraction()/gridcell.landcoverfrac[stand.landcover];
+					gcpft_anpp+=standpft_anpp*stand.get_gridcell_fraction()/gridcell.landcoverfrac[stand.landcover];
+					gcpft_lai+=standpft_lai*stand.get_gridcell_fraction()/gridcell.landcoverfrac[stand.landcover];
+					gcpft_densindiv_total+=standpft_densindiv_total*stand.get_gridcell_fraction()/gridcell.landcoverfrac[stand.landcover];
+				}
+				else
+#endif
+				{
+					gcpft_cmass+=standpft_cmass;
+					gcpft_anpp+=standpft_anpp;
+					gcpft_lai+=standpft_lai;
+					gcpft_densindiv_total+=standpft_densindiv_total;
+				}
 				if (vegmode==COHORT || vegmode==INDIVIDUAL)
 					for (c=0;c<nclass;c++)
 						gcpft_densindiv_ageclass[c]+=standpft_densindiv_ageclass[c];

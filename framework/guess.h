@@ -41,6 +41,15 @@
 #ifndef LPJ_GUESS_GUESS_H
 #define LPJ_GUESS_GUESS_H
 
+//#define MATS_TEST
+#define DYNAMIC_LANDCOVER_INPUT
+
+#define multiple_natural_stands
+#define PRINT_MULTIPLE_NATURAL_STANDS
+#define cropLUchangeCtransfer
+
+const bool SUPPRESSLARGEOUTPUT=false;
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,7 +64,7 @@
 typedef enum {NOLIFEFORM,TREE,GRASS} lifeformtype;
 	// Life form class for PFTs (trees, grasses)
 
-typedef enum {NOPHENOLOGY,EVERGREEN,RAINGREEN,SUMMERGREEN,ANY} phenologytype;
+typedef enum {NOPHENOLOGY,EVERGREEN,RAINGREEN,SUMMERGREEN,CROPGREEN,ANY} phenologytype;
 	// Phenology class for PFTs
 
 typedef enum {NOPATHWAY,C3,C4} pathwaytype;
@@ -74,6 +83,8 @@ typedef enum {NOVEGMODE,INDIVIDUAL,COHORT,POPULATION} vegmodetype;
 
 /// Land cover type of a stand. NLANDCOVERTYPES keeps count of number of items.
 typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, NLANDCOVERTYPES} landcovertype;
+typedef enum {RAINFED, IRRIGATED} hydrologytype;	// Culture form class for PFTs (rainfed, irrigated)
+typedef enum {NOINTERCROP, NATURALGRASS} intercroptype;	// Intercrop form class for PFTs (none, grass)
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
@@ -170,6 +181,7 @@ extern bool lcfrac_fixed;
 extern bool all_fracs_const;
 
 extern bool ifslowharvestpool; 	// If a slow harvested product pool is included in patchpft.
+extern bool ifintercropgrass;
 extern int nyear_spinup; // number of spinup years (ML)	Moved to guess.cpp to be accessed globally.
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -604,7 +616,7 @@ public:
 	lifeformtype lifeform;
 		// life form (tree or grass)
 	phenologytype phenology;
-		// leaf phenology (raingreen, summergreen, evergreen, rain+summergreen)
+		// leaf phenology (NOPHENOLOGY,EVERGREEN,RAINGREEN,SUMMERGREEN,CROPGREEN, ANY)
 	double phengdd5ramp;
 		// growing degree sum on 5 degree base required for full leaf cover
 	double wscal_min;
@@ -744,11 +756,15 @@ public:
 	/// specifies type of landcover
 	/** \see landcovertype */
 	landcovertype landcover;
+	hydrologytype hydrology;	// hydrology (RAINFED,IRRIGATED)
+	intercroptype intercrop;	// intercrop (NOINTERCROP,NATURALGRASS)
 
 	double res_outtake;				// Fraction of residue outtake at harvest.
 	double harv_eff;				// Harvest efficiency.
 	double harvest_slow_frac;		// Fraction of harvested products that goes into patchpft.harvested_products_slow
 	double turnover_harv_prod;		// Yearly turnover fraction of patchpft.harvested_products_slow (goes to fluxes.acflux_harvest).
+
+	bool isintercropgrass;
 	
 	// MEMBER FUNCTIONS
 
@@ -768,6 +784,8 @@ public:
 		res_outtake=0.0;
 		harv_eff=0.0;
 		turnover_harv_prod=1.0;	// default 1 year turnover time
+
+		isintercropgrass=false;
 	}
 
 	void initsla() {
@@ -1573,6 +1591,9 @@ public:
 	 */
 	landcovertype landcover;
 
+	//fraction removed from natural stand when converted to other landcover type
+	double natural_frac_change;	
+
 	/// The year when this stand was created.
 	/** Will typically be year zero unless running with dynamic
 	 *  land cover.
@@ -1598,12 +1619,12 @@ public:
 	/// Gives the fraction of this Stand relative to its land cover type
 	double get_landcover_fraction() const;
 
-	/// Set the fraction of this Stand relative to its land cover type
-	void set_landcover_fraction(double fraction);
+	/// Set the fraction of this Stand relative to the gridcell
+	void set_gridcell_fraction(double fraction);
 
 private:
 
-	/// Fraction of this stand relative to its landcover
+	/// Fraction of this stand relative to the gridcell
 	/** used by crop stands; initialized in constructor to 1, 
 	 *  set in landcover_init() 
 	 */

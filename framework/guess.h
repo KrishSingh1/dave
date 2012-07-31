@@ -47,6 +47,7 @@
 #define multiple_natural_stands
 #define PRINT_MULTIPLE_NATURAL_STANDS
 #define cropLUchangeCtransfer
+#define RANDFRAC_PER_STAND	//REMOVES LATERAL EFFECT ON RANDOM NUMBER GENERATION BETWEEN STANDS
 
 const bool SUPPRESSLARGEOUTPUT=false;
 
@@ -1581,6 +1582,10 @@ public:
 
 	/// A number identifying this Stand within the grid cell
 	int id;
+
+#if defined RANDFRAC_PER_STAND
+	long seed;
+#endif
 
 	/// reference to parent object
 	Gridcell& gridcell;

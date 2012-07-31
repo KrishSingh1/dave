@@ -54,7 +54,11 @@ void setseed(long init) {
 	seed=init;
 }
 
+#if defined RANDFRAC_PER_STAND
+double randfrac(long& seed) {
+#else
 double randfrac() {
+#endif
 
 	// DESCRIPTION
 	// Returns a random floating-point number in the range 0-1.
@@ -272,10 +276,18 @@ void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12]) {
 					// Determine wet days randomly and use Krysanova/Cramer estimates of
 					// parameter values (c1,c2) for an exponential distribution
 
+#if defined RANDFRAC_PER_STAND
+					if (randfrac(seed)>prob)
+#else
 					if (randfrac()>prob)
+#endif
 						dval_prec[dy]=0.0;
 					else {
+#if defined RANDFRAC_PER_STAND
+						double x=randfrac(seed);
+#else
 						double x=randfrac();
+#endif
 						dval_prec[dy]=pow(-log(x),c2)*mprec*c1;
 						if (dval_prec[dy]<0.1) dval_prec[dy]=0.0;
 					}

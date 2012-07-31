@@ -152,7 +152,8 @@ void leaf_phenology(Patch& patch,Climate& climate) {
 
 
 	// guess2008
-	if (leafout) climate.ifsensechill=true; // CHILLDAYS
+	if(patch.stand.landcover==NATURAL)
+		if (leafout) climate.ifsensechill=true; // CHILLDAYS
 
 
 	// Copy PFT-specific phenological status to individuals of each PFT

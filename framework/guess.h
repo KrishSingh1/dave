@@ -445,6 +445,7 @@ public:
 	double gdd5;
 		// accumulated growing degree day sum on 5 degree base (reset when temperatures
 		// fall below 5 deg C)
+	double gdd5_pasture;
 	double agdd5; // total gdd5 (accumulated) for this year (reset 1 January)
 	int chilldays;
 		// number of days with temperatures <5 deg C (reset when temperatures fall
@@ -512,6 +513,7 @@ public:
 		}
 		mtemp=0.0;
 		gdd5=0.0;
+		gdd5_pasture=0.0;
 		chilldays=0;
 		ifsensechill=true; //  guess2008 - CHILLDAYS
 		atemp_mean=0.0;

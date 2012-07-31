@@ -479,12 +479,14 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 		climate.lat<0.0 && date.day==COLDEST_DAY_SHEMISPHERE) {
 		// In midwinter, reset GDD counter for summergreen phenology
 		climate.gdd5=0.0;
+		climate.gdd5_pasture=0.0;
 		climate.ifsensechill=false; // guess2008 - CHILLDAYS
 	}
 
 	// Update GDD counters and chill day count
 	climate.gdd5+=max(0.0,climate.temp-5.0);
 	climate.agdd5+=max(0.0,climate.temp-5.0);
+	climate.gdd5_pasture+=max(0.0,climate.temp-5.0);
 	if (climate.temp<5.0 && climate.chilldays<=365)
 		climate.chilldays++;
 
@@ -509,6 +511,9 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 		climate.gdd5=0.0;
 		climate.chilldays=0;
 	}
+
+	if (mtemp_last>=5.0 && climate.mtemp<5.0) 
+		climate.gdd5_pasture=0.0;
 
 	// On last day of month ...
 

@@ -96,7 +96,10 @@ void leaf_phenology_pft(Pft& pft,Climate& climate,double wscal,double aphen,
 			// Summergreen grasses have no maximum number of leaf-on days per
 			// growing season, and no chilling requirement
 
-			phen=min(1.0,climate.gdd5/pft.phengdd5ramp);
+			if(pft.landcover==NATURAL)
+				phen=min(1.0,climate.gdd5/pft.phengdd5ramp);
+			else
+				phen=min(1.0,climate.gdd5_pasture/pft.phengdd5ramp);
 		}
 	}
 	

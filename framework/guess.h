@@ -1488,9 +1488,8 @@ public:
 	double ndep_annual;			// annual N deposition
 
 	double nmin_balance;		// soil mineral N pool (kgN/m2) (used somfluxes() to determine C:N ratios for SOM pools and decay rates)
-	double daily_minimmndep;	// sum of mineralization, immobilization and N deposition (used in daily setntoc)
 
-	double nfix;				// total annual N fixation
+	double anfix;				// total annual N fixation
 
 	double nmass_avail_daily;	// soil mineral N pool (kgN/m2) (used when trying to do daily N uptake)
 	double daily_leaching[365];	// daily N uptake leaching 
@@ -1564,12 +1563,11 @@ public:
 		n_min_leach_annual=0.0;
 		n_org_leach_annual=0.0;
 		ndep_annual=0.0;
-		nfix=0.0;
+		anfix=0.0;
 
 		dperc=0.0;
 
-		nmin_balance=0.0;
-		daily_minimmndep=0.0;	
+		nmin_balance=0.0;	
 
 		nmass_avail_daily=0.0;
 

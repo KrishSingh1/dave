@@ -1259,9 +1259,9 @@ const int NYEAR_CRU=106;
 const int FIRSTHISTYEAR_CRU=1901;
 
 // guess2008
-const int NYEAR_HIST=NYEAR_CMIP5; // guess2008 - CRU TS 3.0 has 106 years of data (1901-2006)
+const int NYEAR_HIST=NYEAR_CRU; // guess2008 - CRU TS 3.0 has 106 years of data (1901-2006)
 	// number of years of historical climate in CRU and CO2 files (see below)
-const int FIRSTHISTYEAR=FIRSTHISTYEAR_CMIP5;
+const int FIRSTHISTYEAR=FIRSTHISTYEAR_CRU;
 	// calender year corresponding to first year in CRU climate data set
 const int NYEAR_SPINUP_DATA=30;
 	// number of years to use for temperature-detrended spinup data set
@@ -1558,7 +1558,7 @@ void calculate_swrad(double msun[NYEAR_CRU][12], double lon, double lat, double 
 	const double FRADPAR=0.5;
 	
 
-	double dummy1[1][12], dummy2[1][12], ddummy1[365], ddummy2[365], dsun[365];
+	double dummy1[1][12], dummy2[1][12];//, ddummy1[365], ddummy2[365], dsun[365];
 	for (y=0; y<NYEAR_CRU; y++)
 	{
 		for (m=0; m<12; m++)
@@ -1579,7 +1579,7 @@ void calculate_swrad(double msun[NYEAR_CRU][12], double lon, double lat, double 
 	double v[365];
 	double hh[365];
 	double sinehh[365];
-	double daylength_save;
+	//double daylength_save;
 
 	for (int year = 0; year < NYEAR_CRU; year++) 
 	{
@@ -1603,7 +1603,7 @@ void calculate_swrad(double msun[NYEAR_CRU][12], double lon, double lat, double 
 
 		for (m = 0; m < 12; m++) 
 		{
-			for (int nday=day_start_month[m]; nday<day_start_month[m+1]; nday++) //(int nday=0; nday<=365; nday++)
+			for (int nday=(int)day_start_month[m]; nday<(int)day_start_month[m+1]; nday++) //(int nday=0; nday<=365; nday++)
 			{
 				if (year==0)
 				{
@@ -1656,7 +1656,7 @@ void createclimatology_cru(double mtemp[NYEAR_CRU][12],double mprec[NYEAR_CRU][1
 					   double cwet_1901_1930[12], double cwet_1961_1990[12]) 
 {
 
-	int i, y ,m;
+	int y ,m;
 
 	for (m = 0; m < 12; m++) 
 	{
@@ -1697,9 +1697,9 @@ void createclimatology_cmip5(double mtemp[NYEAR_HIST][12],double mprec[NYEAR_HIS
 					   double mswrad[NYEAR_HIST][12], double ctemp[12],double cprec[12],
 					   double cswrad[12]) 
 {
-	int i, y;
+	int m, y;
 	
-	for (int m = 0; m < 12; m++) 
+	for (m = 0; m < 12; m++) 
 	{
 		ctemp[m] = 0.0; 
 		cprec[m] = 0.0;  
@@ -1708,7 +1708,7 @@ void createclimatology_cmip5(double mtemp[NYEAR_HIST][12],double mprec[NYEAR_HIS
 
 	for (y=111;y<141;y++) //1961-1990
 	{
-		for (int m = 0; m < 12; m++) 
+		for (m = 0; m < 12; m++) 
 		{
 			ctemp[m] += mtemp[y][m] / 30.0; 
 			cprec[m]+= mprec[y][m] / 30.0;
@@ -2024,9 +2024,9 @@ void makeCMIP5data(double cmip5temp[NYEAR_CMIP5][12],double cmip5prec[NYEAR_CMIP
 		//printf("in merge at 2006\n");
 		// Calculate swrad from cloudiness
 		const int n=30;;
-		double x[n], tempy[n], precy[n], swrady[n];
-		double a_temp, b_temp, a_prec, b_prec, a_swrad, b_swrad;
-		double anom_temp, anom_prec, anom_swrad;
+		double x[n], tempy[n]; //, swrady[n], precy[n]; 
+		double a_temp, b_temp;//, a_prec, b_prec, a_swrad, b_swrad;
+		double anom_temp;//, anom_prec, anom_swrad;
 		
 		//debug
 		/*for(y=0;y<NYEAR_CRU;y++)
@@ -2229,7 +2229,7 @@ void makeCMIP5data(double cmip5temp[NYEAR_CMIP5][12],double cmip5prec[NYEAR_CMIP
 		double no_temp[NYEAR_CMIP5], no_prec[NYEAR_CMIP5],no_swrad[NYEAR_CMIP5]; //no offset cmip5 climate
 		double av_temp[NYEAR_CMIP5], av_prec[NYEAR_CMIP5],av_swrad[NYEAR_CMIP5]; // yearly moving average cmip5 climate
 		double cruanom_temp[30][12], cruanom_prec[30][12],cruanom_swrad[30][12]; // cru 61-90 anomalies
-		double trend_temp, trend_prec, trend_swrad;
+		double trend_temp;//, trend_prec, trend_swrad;
 		double average_prec=0.0, average_swrad=0.0;		
 		
 		if (correctionmethod=="c5")
@@ -4443,12 +4443,24 @@ bool getclimate(Gridcell& gridcell) {
 			}
 		}
 
+		// FACE
+		//if (date.year > nyear_spinup+NYEAR_HIST-10)
+		//	climate.co2=550.0;
+
 		climate.andep=0.0;
 		int m;
 		if (date.year<nyear_spinup){
+			dd=0;
 			for (m=0;m<12;m++) {
 				climate.andep+=(NHxDryDep[0][m]+NOyDryDep[0][m]+
 					NHxWetDep[0][m]+NOyWetDep[0][m])*date.ndaymonth[m];
+
+				for (int dm=0;dm<date.ndaymonth[m];dm++) {
+					climate.dndep[dd]=(NHxDryDep[0][m]+
+						NOyDryDep[0][m]+NHxWetDep[0][m]+
+						NOyWetDep[0][m]);
+					dd++;
+				}
 			}
 		}
 		else {
@@ -4707,16 +4719,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		double standpft_nlim=0.0;
 		double standpft_anpp_no_nlim=0.0;
 
-		double surfsoillitterc=0.0;
-		double surfsoillittern=0.0;
-		double cwdc=0.0;
-		double cwdn=0.0;
-		double microc=0.0;
-		double micron=0.0;
-		double humusc=0.0;
-		double humusn=0.0;
-		double centuryc=0.0;
-		double centuryn=0.0;
+		surfsoillitterc,surfsoillittern,cwdc,cwdn,microc,micron,humusc,humusn,centuryc,centuryn=0.0;
 		double n_litter=0.0;
 		double andep_gridcell=0.0;
 		double anmin_gridcell=0.0;
@@ -5113,14 +5116,14 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				andep_gridcell+=patch.soil.ndep_annual/(double)stand.nobj*10000.0;	// convert from m2 to ha
 				anmin_gridcell+=patch.soil.nmin_annual/(double)stand.nobj*10000.0;	// convert from m2 to ha
 				animm_gridcell+=patch.soil.nimmob_annual/(double)stand.nobj*10000.0; // convert from m2 to ha
-				anfix_gridcell+=patch.soil.nfix/(double)stand.nobj*10000.0;		// convert from m2 to ha
+				anfix_gridcell+=patch.soil.anfix/(double)stand.nobj*10000.0;		// convert from m2 to ha
 				n_min_leach_gridcell+=patch.soil.n_min_leach_annual/(double)stand.nobj*10000.0;	// convert from m2 to ha
 				n_org_leach_gridcell+=patch.soil.n_org_leach_annual/(double)stand.nobj*10000.0;	// convert from m2 to ha
 				nsupply_gridcell+=patch.nsupply/(double)stand.nobj*10000.0;			// convert from m2 to ha
 				ndemand_gridcell+=patch.ndemand/(double)stand.nobj*10000.0;			// convert from m2 to ha
 
 				for (int r=0;r<NSOMPOOL;r++) {
-					if (patch.soil.sompool[r].nmass > 0.0) {
+					if (patch.soil.sompool[r].nmass > 0.0 && r<NSOMPOOL-1) {
 						if(r==SURFMETA||r==SURFSTRUCT||r==SOILMETA||r==SOILSTRUCT){
 							surfsoillitterc+=patch.soil.sompool[r].cmass/(double)stand.nobj;
 							surfsoillittern+=patch.soil.sompool[r].nmass/(double)stand.nobj;
@@ -5129,17 +5132,20 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 							cwdc+=patch.soil.sompool[r].cmass/(double)stand.nobj;
 							cwdn+=patch.soil.sompool[r].nmass/(double)stand.nobj;
 						}
-						else if (r==SURFMICRO||r==SOILMICRO) {
-							microc+=patch.soil.sompool[r].cmass/(double)stand.nobj;
-							micron+=patch.soil.sompool[r].nmass/(double)stand.nobj;
+						else {
+							if (r==SURFMICRO||r==SOILMICRO) {
+								microc+=patch.soil.sompool[r].cmass/(double)stand.nobj;
+								micron+=patch.soil.sompool[r].nmass/(double)stand.nobj;
+							} 
+
+							if (r==SURFHUMUS){
+								humusc+=patch.soil.sompool[r].cmass/(double)stand.nobj;
+								humusn+=patch.soil.sompool[r].nmass/(double)stand.nobj;
+							}
+							
+							centuryc+=patch.soil.sompool[r].cmass/(double)stand.nobj;
+							centuryn+=patch.soil.sompool[r].nmass/(double)stand.nobj;
 						}
-						else if (r==SURFHUMUS){
-							humusc+=patch.soil.sompool[r].cmass/(double)stand.nobj;
-							humusn+=patch.soil.sompool[r].nmass/(double)stand.nobj;
-						}
-						
-						centuryc+=patch.soil.sompool[r].cmass/(double)stand.nobj;
-						centuryn+=patch.soil.sompool[r].nmass/(double)stand.nobj;
 					}
 
 					if (date.year == 500)
@@ -5202,9 +5208,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 		Total_N_present+=flux_ntot;
 
-		//if (date.year > nyear_spinup)
-		//	dprintf("Year %d %d %g %d+added %g Present %g Diff %g\n",
-		//		date.year,nyear_spinup,Total_N_500,nyear_spinup,Total_N_500+Added_N_from_500,Total_N_present,Total_N_500+Added_N_from_500-Total_N_present);
+	//	if (date.year > nyear_spinup)
+	//		dprintf("Year %d %d %g %d+added %g Present %g Diff %g\n",
+	//			date.year,nyear_spinup,Total_N_500,nyear_spinup,Total_N_500+Added_N_from_500,Total_N_present,Total_N_500+Added_N_from_500-Total_N_present);
 
 
 		// In contrast to annual NEE, monthly NEE does not include fire
@@ -5368,7 +5374,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			out.add_value(out_cpool, cwdc);
 			out.add_value(out_cpool, microc);
 			out.add_value(out_cpool, humusc);
-			out.add_value(out_cpool, c_litter+centuryc);
+			out.add_value(out_cpool, centuryc);
 		}
 		
 		if (run_landcover && ifslowharvestpool) {
@@ -5383,7 +5389,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			cpool_total += c_fast + c_slow;
 		}
 		else {
-			cpool_total += centuryc;
+			cpool_total += centuryc+surfsoillitterc+cwdc;
 		}
 
 		// Add slow harvest pool if needed
@@ -5401,11 +5407,11 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			out.add_value(out_npool, cwdn);
 			out.add_value(out_npool, micron);
 			out.add_value(out_npool, humusn);
-			out.add_value(out_npool, n_litter+centuryn);
+			out.add_value(out_npool, centuryn);
 
 			if(run_landcover && ifslowharvestpool) {
 				out.add_value(out_npool, n_harv_slow);
-				out.add_value(out_npool, nmass_gridcell+n_litter+centuryn+n_harv_slow);
+				out.add_value(out_npool, nmass_gridcell+n_litter+surfsoillittern+cwdn+centuryn+n_harv_slow);
 			}
 			else {
 				out.add_value(out_npool, nmass_gridcell+n_litter+centuryn);

@@ -1840,6 +1840,47 @@ void growth(Stand& stand,Patch& patch) {
 		for (p=0;p<npft;p++)
 			stand.pft[p].cmass_repr=0.0;
 
+	// BUG CHECK
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv=vegetation.getobj();
+		// For this individual 
+
+		if (indiv.cmass_leaf<MINCMASS || indiv.cmass_root<MINCMASS) {
+
+			// guess2008 - alive check
+			if (indiv.alive) {
+
+				// guess2008 - catches small, negative values too
+				patch.pft[indiv.pft.id].litter_leaf+=indiv.cmass_leaf;
+				patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
+
+				patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap;
+				patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_heart-indiv.cmass_debt;
+					
+				// GUESSN
+				patch.pft[indiv.pft.id].nmass_litter_leaf+=max(indiv.nmass_leaf,0.0);
+				patch.pft[indiv.pft.id].nmass_litter_root+=max(indiv.nmass_root,0.0);
+
+				patch.pft[indiv.pft.id].nmass_litter_wood+=max(indiv.nmass_sap,0.0)+
+					max(indiv.nmass_heart,0.0);
+						
+				// Transfer N storage to wood N litter for now
+				patch.pft[indiv.pft.id].nmass_litter_wood+=max(indiv.nstore,0.0)+max(indiv.nmass_reserve,0.0);
+				// end GUESSN
+			} 
+			else {	// GUESSN return N to soil so N budget is preserved
+				patch.soil.nmass_avail+=max(indiv.nmass_leaf,0.0)+max(indiv.nmass_root,0.0)+max(indiv.nmass_sap,0.0)+
+					max(indiv.nmass_heart,0.0)+max(indiv.nstore,0.0)+max(indiv.nmass_reserve,0.0);
+				// end GUESSN
+			}
+			vegetation.killobj();
+			killed=true;
+		}
+		// ... on to next individual
+		vegetation.nextobj();
+	}
+
 	// Loop through individuals	
 
 	vegetation.firstobj();

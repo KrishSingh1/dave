@@ -61,12 +61,31 @@ bool ifspeciesspecificwateruptake;	// water uptake is species specific
 bool run_landcover;
 bool run[NLANDCOVERTYPES];
 bool lcfrac_fixed;
+bool cftfrac_fixed;
 bool all_fracs_const;
 bool ifslowharvestpool;				// If a slow harvested product pool is included in patchpft.
 bool ifintercropgrass;
+int ncft=0; // number of CFTs in Pftlist, set in plib_callback()
 int nyear_spinup;		
 
 
+const cropphen_struct* Patchpft::get_cropphen() 
+{
+	if(pft.landcover!=CROPLAND)
+		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
+	else
+		return cropphen;
+}
+
+cropphen_struct* Patchpft::set_cropphen()
+{
+	if(pft.landcover!=CROPLAND)
+		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
+	else
+		return cropphen;
+}
+
+//Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i),pftid(-1),gridcell(gc),isirrigated(false),hasgrassintercrop(false),landcover(landcoverX),frac(1.0) {
 Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i),gridcell(gc),landcover(landcoverX),frac(1.0) {
 
 		// Constructor: initialises reference member of climate and
@@ -97,6 +116,11 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i
 	first_year=date.year;
 	natural_frac_change=0.0;
 	seed=12345678;
+
+	pftid=-1;
+	cftid=-1;
+	isirrigated=false;
+	hasgrassintercrop=false;
 }
 
 double Stand::get_gridcell_fraction() const {
@@ -154,8 +178,44 @@ Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 	for (m=0;m<12;m++) {
 		mnpp[m]=mlai[m]=mgpp[m]=mra[m]=0.0;
 	}
+
+	cropinfo=NULL;
+
+	if(pft.landcover==CROPLAND)
+	{
+		cropinfo=new cropindiv_struct;
+//		vegetation.patch.pft[pft.id].cropphen->est_year=cropindiv->est_year;
+	}
+
+#ifdef MATS_TEST
+//	dprintf("Year %d: Individual in stand %d created:id=%d, pft=%s\n", ::date.year-nyear_spinup+1901,vegetation.patch.stand.id,id,(char*)pft.name);
+#endif
 }
 
+Individual::~Individual()
+{
+#ifdef MATS_TEST
+//	dprintf("Year %d: Individual  in stand %d destroyed:id=%d, pft=%s\n",::date.year-nyear_spinup+1901,vegetation.patch.stand.id,id,(char*)pft.name);
+#endif
+	if(cropinfo)
+		delete cropinfo;
+}
+
+const cropindiv_struct* Individual::get_cropinfo() 
+{
+	if(pft.landcover!=CROPLAND)
+		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
+	else
+		return cropinfo;
+}
+
+cropindiv_struct* Individual::set_cropinfo()
+{
+	if(pft.landcover!=CROPLAND)
+		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
+	else
+		return cropinfo;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // THE FRAMEWORK
@@ -168,12 +228,60 @@ int framework(int argc,char* argv[]) {
 	bool dogridcell;
 	int p;
 
+#if defined DYNAMIC_LANDCOVER_INPUT
+remove("LUdata.old");
+rename("LUdata.out", "LUdata.old");
+remove("CFTdata.old");
+rename("CFTdata.out", "CFTdata.old");
+#endif
+
 	// The one and only linked list of Pft objects	
 	Pftlist pftlist;
 
 	// Call input/output module to obtain PFT static parameters and simulation
 	// settings and initialise input/output
 	initio(argc,argv,pftlist);
+
+#ifdef MATS_TEST
+	dprintf("\n");
+
+	pftlist.firstobj();
+	while(pftlist.isobj)
+	{
+		dprintf("pft n:o %d: %s",pftlist.getobj().id,(char*)pftlist.getobj().name);
+		if(pftlist.getobj().landcover==CROPLAND)
+			dprintf(", cftid %d",pftlist.getobj().cftid);			
+		dprintf("\n");
+		pftlist.nextobj();
+	}
+
+	if(run_landcover)
+	{
+		dprintf("\nLandcover version.\n");
+		if(run[URBAN])
+			dprintf("Urban stand simulated (landcover type %d)\n", URBAN);
+		if(run[CROPLAND])
+			dprintf("Crop stands simulated (landcover type %d)\n", CROPLAND);
+		if(run[PASTURE])
+			dprintf("Pasture stand simulated (landcover type %d)\n", PASTURE);
+		if(run[FOREST])
+			dprintf("Forest stand simulated (landcover type %d)\n", FOREST);
+		if(run[NATURAL])
+			dprintf("Natural stand simulated (landcover type %d)\n", NATURAL);
+		if(run[PEATLAND])
+			dprintf("Peatland stand simulated (landcover type %d)\n", PEATLAND);
+	}
+	dprintf("npft=%d\n",npft);
+	if(run_landcover)
+	{
+		dprintf("ncft=%d\n",ncft);
+//		if(run[CROPLAND] && minimizecftlist && !cftfrac_fixed)
+//			dprintf("Pftlist is minimized\n");
+	}
+
+	dprintf("\n");
+#endif
+
 
 	// Assume there is at least one grid cell to simulate
 	dogridcell=true;

@@ -1468,6 +1468,10 @@ public:
 		// mean water content in lower soil layer for last month
 		// (valid only on last day of month following call to daily_accounting_patch)
 
+	double rain_melt;						// rainfall and snowmelt today (mm)
+	double max_rain_melt;					// upper limit for percolation (mm)
+	bool percolate;							// whether to percolate today
+
 //////////////////////////////////////////////////////////////////////////////////
 // GUESSN: CENTURY SOM pools and other variables
 

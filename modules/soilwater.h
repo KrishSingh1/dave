@@ -2,7 +2,7 @@
 /// \file soilwater.h
 /// \brief Soil hydrology and snow
 ///
-/// Version including evaporation from soil surface, based on work by Dieter Gerten, 
+/// Version including evaporation from soil surface, based on work by Dieter Gerten,
 /// Sibyll Schaphoff and Wolfgang Lucht, Potsdam
 ///
 /// \author Ben Smith
@@ -18,7 +18,7 @@
 #define LPJ_GUESS_SOILWATER_H
 
 #include "guess.h"
-
-void soilwater(Climate& climate,Patch& patch);
+void initial_infiltration(Patch& patch, Climate& climate);
+void soilwater(Patch& patch, Climate& climate);
 
 #endif // LPJ_GUESS_SOILWATER_H

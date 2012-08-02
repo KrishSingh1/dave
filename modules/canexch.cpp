@@ -2338,14 +2338,10 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		
 		// On first day of year ...
 
-		// Calculate total FPC and initialise sums for each individual
-
-		patch.fpc_total=0.0;
 		vegetation.firstobj();
 		while (vegetation.isobj) {
 			Individual& indiv=vegetation.getobj();
 
-			patch.fpc_total+=indiv.fpc;
 			indiv.anpp=0.0;
 
 			// GUESSN
@@ -2370,18 +2366,9 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 			// bvoc
 			indiv.aiso=0.;
 			indiv.amon=0.;
-			
 
 			vegetation.nextobj();
 		}
-
-		// Calculate rescaling factor to account for overlap between populations/
-		// cohorts/individuals (i.e. total FPC > 1)
-
-		if (patch.fpc_total>1.0)
-			patch.fpc_rescale=1.0/patch.fpc_total;
-		else
-			patch.fpc_rescale=1.0;
 	}
 	
 	if (!patch.id) {
@@ -2390,7 +2377,6 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 
 	// Canopy exchange processes
 
-	interception(patch,climate);
 	fpar(patch);
 	demand(patch);
 	aet_water_stress(patch);

@@ -44,6 +44,7 @@
 #include <utility>
 #include <vector>
 #include <algorithm>
+#include "globalco2file.h"
 
 
 // guess2008 - header file for the CRU TS 3.0 data archives
@@ -166,7 +167,7 @@ private:
 
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM};
 enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_PATHWAY,	
-	CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM};
+	CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE};
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -325,6 +326,8 @@ void plib_declarations(int id,xtring setname) {
 			"Number of patches simulated");
 		declareitem("patcharea",&patcharea,1.0,1.0e4,1,CB_NONE,
 			"Patch area (m2)");
+		declareitem("wateruptake", &strparam, 20, CB_WATERUPTAKE, 
+			"Water uptake mode (\"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
 
 		// GUESSN
 		declareitem("nrelocfrac",&nrelocfrac,0.0,1.0,1,CB_NONE,
@@ -410,8 +413,6 @@ void plib_declarations(int id,xtring setname) {
 			"Whether establishment drought limited (0,1)");
 		declareitem("ifrainonwetdaysonly",&ifrainonwetdaysonly,1,CB_NONE,
 			"Whether it rains on wet days only (1), or a little every day (0);");
-		declareitem("ifspeciesspecificwateruptake",&ifspeciesspecificwateruptake,1,CB_NONE,
-			"Whether or not there is species specific soil water uptake (0,1)");
 		declareitem("searchradius", &searchradius, 0, 100, 1, CB_NONE,
 			"If specified, CRU data will be searched for in a circle");
 
@@ -646,6 +647,16 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
+	case CB_WATERUPTAKE:
+		if (strparam.upper() == "WCONT") wateruptake = WR_WCONT;
+		else if (strparam.upper() == "ROOTDIST") wateruptake = WR_ROOTDIST;
+		else if (strparam.upper() == "SMART") wateruptake = WR_SMART;
+		else if (strparam.upper() == "SPECIESSPECIFIC") wateruptake = WR_SPECIESSPECIFIC;
+		else {
+			sendmessage("Error",
+				"Unknown water uptake mode (valid types: \"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
+		}
+		break;
 	case CB_LIFEFORM:
 		if (strparam.upper()=="TREE") ppft->lifeform=TREE;
 		else if (strparam.upper()=="GRASS") ppft->lifeform=GRASS;
@@ -712,6 +723,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("iffire")) badins("iffire");
 		if (!itemparsed("ifcalcsla")) badins("ifcalcsla");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
+		if (!itemparsed("wateruptake")) badins("wateruptake");
 
 		// GUESSN
 		if (!itemparsed("nrelocfrac")) badins("nrelocfrac");
@@ -729,7 +741,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifsmoothgreffmort")) badins("ifsmoothgreffmort");
 		if (!itemparsed("ifdroughtlimitedestab")) badins("ifdroughtlimitedestab");
 		if (!itemparsed("ifrainonwetdaysonly")) badins("ifrainonwetdaysonly");
-		if (!itemparsed("ifspeciesspecificwateruptake")) badins("ifspeciesspecificwateruptake");
 		// bvoc
 		if (!itemparsed("ifbvoc")) badins("ifbvoc");
 
@@ -1305,8 +1316,13 @@ Table out_canopyh, out_allometry_ind;
 Timer tprogress,tmute;
 const int MUTESEC=20; // minimum number of sec to wait between progress messages
 
-// CO2 data for each year of historical data set
-double co2[NYEAR_HIST];
+/// Yearly CO2 data read from file
+/**
+ * This object is indexed with calendar years, so to get co2 value for
+ * year 1990, use co2[1990]. See documentation for GlobalCO2File for
+ * more information.
+ */
+GlobalCO2File co2;
 
 // Monthly temperature, precipitation and sunshine data for current grid cell
 // and historical period
@@ -2637,7 +2653,7 @@ void makeCMIP5data(double cmip5temp[NYEAR_CMIP5][12],double cmip5prec[NYEAR_CMIP
 
 				x[y]=(double)y+11.0;
 				
-				co2y[y]=co2[y+11];
+				co2y[y]=co2[1861+y];
 			}
 		
 			// regress data to remove trend
@@ -2648,7 +2664,7 @@ void makeCMIP5data(double cmip5temp[NYEAR_CMIP5][12],double cmip5prec[NYEAR_CMIP
 
 				anom_co2=(double)(y%10)*b_co2;
 
-				co2[y]=co2[11+y%10]-anom_co2;
+				co2[1850+y]=co2[1861+y%10]-anom_co2;
 			}
 		}	
 		if (correctionmethod=="c8" || correctionmethod=="c9") {
@@ -2770,40 +2786,6 @@ void makeCMIP5data(double cmip5temp[NYEAR_CMIP5][12],double cmip5prec[NYEAR_CMIP
 				wet[y][m]=cwet_cru_1961_1990[m];
 		}
 	}
-}
-
-void readco2_cmip5() {
-
-	// Reads in atmospheric CO2 concentrations for historical period
-	// from ascii text file with records in format: <year> <co2-value>
-
-	int year,calender_year;
-
-	// Retrieve name of CO2 file from ins file
-	xtring filename=path_cmip5_co2;
-
-	if (rcp=="26")
-		filename+="co2_1850_2100_hist_rcp26.txt";
-	else if (rcp=="45")
-		filename+="co2_1850_2100_hist_rcp45.txt"; 
-	else if (rcp=="60")
-		filename+="co2_1850_2100_hist_rcp60.txt";
-	else if (rcp=="85")
-		filename+="co2_1850_2100_hist_rcp85.txt";
-	else fail("CO2 file not valid");
-
-	FILE* in=fopen(filename,"rt");
-	if (!in) fail("readco2: 111 could not open CO2 file %s for input",
-		(char*)filename);
-
-	for (year=0;year<NYEAR_HIST;year++) {
-		readfor(in,"i,f",&calender_year,&co2[year]);
-		if (calender_year!=FIRSTHISTYEAR+year)
-			fail("readco2: 222 %s, line %d - incorrect year specified",
-				(char*)filename,year+1);
-	}
-
-	fclose(in);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -3037,29 +3019,6 @@ bool findnearestCRUdata(int searchradius, char* cruark, double& lon, double& lat
 	return false;
 }
 
-void readco2() {
-
-	// Reads in atmospheric CO2 concentrations for historical period
-	// from ascii text file with records in format: <year> <co2-value>
-
-	int year,calender_year;
-
-	// Retrieve name of CO2 file from ins file
-	xtring filename=param["file_co2"].str;
-
-	FILE* in=fopen(filename,"rt");
-	if (!in) fail("readco2: 333 could not open CO2 file %s for input",
-		(char*)filename);
-
-	for (year=0;year<NYEAR_CRU;year++) {
-		readfor(in,"i,f",&calender_year,&co2[year]);
-		if (calender_year!=FIRSTHISTYEAR+year)
-			fail("readco2: 444 %s, line %d - incorrect year specified",
-				(char*)filename,year+1);
-	}
-
-	fclose(in);
-}
 /// Help function to define_output_tables, creates one output table
 void create_output_table(Table& table, const char* file, const ColumnDescriptors& columns) {
 	 table = output_channel->create_table(TableDescriptor(file, columns));
@@ -3435,6 +3394,9 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	FILE* in_grid=fopen(file_gridlist,"r");
 	if (!in_grid) fail("initio: could not open %s for input",(char*)file_gridlist);
+
+	file_cru=param["file_cru"].str;
+	file_cru_misc=param["file_cru_misc"].str;
 	
 	ngridcell=0;
 
@@ -3455,8 +3417,27 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	fclose(in_grid);
 
-	file_cru=param["file_cru"].str;
-	file_cru_misc=param["file_cru_misc"].str;
+	// Read CO2 data from file
+	if (!ifcmip5) {
+		co2.load_file(param["file_co2"].str);
+	}
+	else {
+		// Retrieve name of CO2 file from ins file
+		path_cmip5_co2=param["path_cmip5_co2"].str;
+		xtring filename=path_cmip5_co2;
+
+		if (rcp=="26")
+			filename+="co2_1850_2100_hist_rcp26.txt";
+		else if (rcp=="45")
+			filename+="co2_1850_2100_hist_rcp45.txt"; 
+		else if (rcp=="60")
+			filename+="co2_1850_2100_hist_rcp60.txt";
+		else if (rcp=="85")
+			filename+="co2_1850_2100_hist_rcp85.txt";
+		else fail("CO2 file not valid");
+
+		co2.load_file(filename);
+	}
 
 	//AA CMIP5
 	correctionmethod=param["correctionmethod"].str;
@@ -3478,17 +3459,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	file_cmip5hist+="cmip5_hist.bin";
 	file_cmip5scen+="cmip5_scen.bin";
-
-	path_cmip5_co2=param["path_cmip5_co2"].str;
-
-	if (!ifcmip5) {
-		// Read CO2 data from file
-		readco2();
-	}
-	else {
-		// AA CMIP5
-		readco2_cmip5();
-	}
 
 	// GUESSN
 	file_ndep=param["file_ndep"].str;
@@ -4423,29 +4393,17 @@ bool getclimate(Gridcell& gridcell) {
 			}
 		}
 
-		if (!ifcmip5) {
-			if (date.year<nyear_spinup)
-				climate.co2=co2[0];
-			else if (date.year<nyear_spinup+NYEAR_HIST)
-				climate.co2=co2[date.year-nyear_spinup];
-		}
-		else {
+		if (ifcmip5) {
 			// CMIP5 - land use input
 			if (date.year<nyear_spinup){ 
-				climate.co2=co2[0];
 				if(iflandusesimple)
 				  climate.frluse=hist_frluse[0];
 			}
 			else if (date.year<nyear_spinup+NYEAR_HIST){
-				climate.co2=co2[date.year-nyear_spinup];
 				if(iflandusesimple)
 				  climate.frluse=hist_frluse[date.year-nyear_spinup];
 			}
 		}
-
-		// FACE
-		//if (date.year > nyear_spinup+NYEAR_HIST-10)
-		//	climate.co2=550.0;
 
 		climate.andep=0.0;
 		int m;
@@ -4483,6 +4441,12 @@ bool getclimate(Gridcell& gridcell) {
 	}
 
 	// Send environmental values for today to framework
+
+	climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
+
+	// FACE
+	//if (date.year > nyear_spinup+NYEAR_HIST-10)
+	//	climate.co2=550.0;
 
 	climate.temp=dtemp[date.day];
 	climate.prec=dprec[date.day];

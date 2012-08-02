@@ -95,6 +95,8 @@ ifsme 1               ! whether spatial mass effect enabled
 ifstochestab 1        ! whether establishment stochastic
 ifstochmort 1         ! whether mortality stochastic
 ifcdebt 1             ! whether to allow vegetation C storage (1) or not (0)
+wateruptake "rootdist"! "wcont", "rootdist", "smart" or "speciesspecific",
+                      ! see documentation for water_uptake()
 
 !///////////////////////////////////////////////////////////////////////////////
 ! PROCESS SETTINGS SPECIFIC TO GUESSN
@@ -117,7 +119,6 @@ ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficie
 ifdroughtlimitedestab 0			! whether establishment is limited by growing season drought
 								! guess2008 - species version has 1
 ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit every day (0)
-ifspeciesspecificwateruptake 0	! whether there is species specific water uptake (1) or not (0)
 ifbvoc 0              ! whether to include BVOC calculations (1) or not (0)
 
 ! CMIP5

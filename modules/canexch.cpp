@@ -85,43 +85,6 @@ const double b0=71.4/200.0*1000.0;	// Slope parameter in Friend et al. 1997 eqn 
 #error One of AET_MONTEITH_HYPERBOLIC and AET_MONTEITH_EXPONENTIAL must be #defined
 #endif
 
-// Alternative parameterisations of plant water uptake
-
-// guess2008 - drought/water uptake changes - added WR_SPECIESSPECIFIC option
-
-//   WR_WCONT = uptake rate coupled to water content and vertical root distribution
-//              (as in earlier versions of LPJ-GUESS and LPJF)
-//   WR_ROOTDIST = uptake rate independent of water content (to wilting point) but
-//                 with fractional uptake from different layers according to prescribed
-//                 root distribution
-//   WR_SMART = uptake rate independent of water content (to wilting point), fractional
-//              uptake from different layers according to layer water content for
-//              trees, according to prescribed root distribution for grasses
-//	 WR_SPECIESSPECIFIC = uptake rate is species specific, with more drought tolerance species 
-//            = (lower species_drought_tolerance values) having greater relative uptake rates. 
-
-// Comment out all but one of the following three lines:
-
-
-// guess2008 - drought/water uptake changes - added WR_SPECIESSPECIFIC option
-//#define WR_WCONT
-#define WR_ROOTDIST
-//#define WR_SMART
-//#define WR_SPECIESSPECIFIC
-
-
-#if defined(WR_WCONT) && defined(WR_ROOTDIST)
-#error Only one of WR_WCONT, WR_ROOTDIST and WR_SMART should be #defined
-#elif defined(WR_WCONT) && defined(WR_SMART)
-#error Only one of WR_WCONT, WR_ROOTDIST and WR_SMART should be #defined
-#elif defined(WR_ROOTDIST) && defined(WR_SMART)
-#error Only one of WR_WCONT, WR_ROOTDIST and WR_SMART should be #defined
-#elif defined(WR_SPECIESSPECIFIC) && (defined(WR_SMART) || defined(WR_ROOTDIST) || defined(WR_WCONT)) // guess2008
-#error Only one of WR_SPECIESSPECIFIC, WR_WCONT, WR_ROOTDIST and WR_SMART should be #defined
-#elif !defined(WR_WCONT) && !defined(WR_ROOTDIST) && !defined(WR_SMART) && !defined(WR_SPECIESSPECIFIC)
-#error One of WR_WCONT, WR_SPECIESSPECIFIC, WR_ROOTDIST and WR_SMART should be #defined
-#endif
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL VARIABLES
@@ -1057,15 +1020,30 @@ void demand(Patch& patch) {
 
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// PLANT WATER UPTAKE
 
+/// Plant water uptake
+/**
+ * Returns plant water uptake (point scale, or mean for patch) as a fraction of
+ * maximum possible (daily basis).
+ *
+ * Supports alternative parameterisations of plant water uptake:
+ *
+ * WCONT           = uptake rate coupled to water content and vertical 
+ *                   root distribution (as in earlier versions of LPJ-GUESS and LPJF)
+ * ROOTDIST        = uptake rate independent of water content (to wilting point) 
+ *                   but with fractional uptake from different layers according 
+ *                   to prescribed root distribution
+ * SMART           = uptake rate independent of water content (to wilting point), 
+ *                   fractional uptake from different layers according to layer 
+ *                   water content for trees, according to prescribed root 
+ *                   distribution for grasses
+ * SPECIESSPECIFIC = uptake rate is species specific, with more drought 
+ *                   tolerance species (lower species_drought_tolerance values) 
+ *                   having greater relative uptake rates. 
+ */
 inline double water_uptake(double wcont[NSOILLAYER],double awc[NSOILLAYER],
-	double rootdist[NSOILLAYER],double& emax,double& fpc_rescale,
+	double rootdist[NSOILLAYER], double emax, double fpc_rescale,
 	double fuptake[NSOILLAYER],bool ifsmart, double species_drought_tolerance) {
-
-	// Returns plant water uptake (point scale, or mean for patch) as a fraction of
-	// maximum possible (daily basis)
 
 	// INPUT PARAMETERS:
 	//   wcont       = water content of soil layers as fraction between wilting point
@@ -1077,9 +1055,7 @@ inline double water_uptake(double wcont[NSOILLAYER],double awc[NSOILLAYER],
 	//                 summed FPC overlap)
 	//   ifsmart     = whether plants can freely adapt root profile to distribution of
 	//                 available water among layers (required for "smart" mode)
-
-	// guess2008
-	// species_drought_tolerance = used only if the WR_SPECIESSPECIFIC option is specified.
+	//   species_drought_tolerance = used only if the SPECIESSPECIFIC option is specified.
 	
 
 	// OUTPUT PARAMETER:
@@ -1088,69 +1064,75 @@ inline double water_uptake(double wcont[NSOILLAYER],double awc[NSOILLAYER],
 	double wr;
 	int s;
 
-#if defined(WR_WCONT)
+	switch (wateruptake) {
+	case WR_WCONT:
 
-	// LPJ "standard" formulation with linear scaling of uptake to water content
-	// and weighting by plant root profiles
+		// LPJ "standard" formulation with linear scaling of uptake to water content
+		// and weighting by plant root profiles
 
-	wr=0.0;
-	for (s=0;s<NSOILLAYER;s++) {
-		fuptake[s]=rootdist[s]*wcont[s]*fpc_rescale;
-		wr+=fuptake[s];
-	}
-
-// guess2008 - drought/water uptake changes - new option
-#elif defined(WR_SPECIESSPECIFIC)
-
-	// Uptake rate is species specific, with more drought tolerance species (lower species_drought_tolerance
-	// values) having greater relative uptake rates. 
-	// Reduces to WR_WCONT if species_drought_tolerance = 0.5
-	
-	wr=0.0;
-	for (s=0;s<NSOILLAYER;s++) {
-		double max_rel_uptake = pow(wcont[s],2.0*0.1); // Upper limit. Limits C3 grass uptake
-		fuptake[s]=rootdist[s]*min(pow(wcont[s],2.0*species_drought_tolerance),max_rel_uptake)*fpc_rescale;
-		wr+=fuptake[s];
-	}
-
-#elif defined(WR_ROOTDIST)
-
-
-	// Uptake rate independent of water content (to wilting point) but with fractional
-	// uptake from different layers according to prescribed root distribution
-
-	wr=0.0;
-	for (s=0;s<NSOILLAYER;s++) {
-		fuptake[s]=min(wcont[s]*awc[s]*fpc_rescale,emax*rootdist[s])/emax;
-		wr+=fuptake[s];
-	}
-
-#elif defined(WR_SMART)
-
-	// Uptake rate independent of water content (to wilting point), fractional uptake
-	// from different layers according to layer water content for trees, and according
-	// to prescribed root distribution for grasses
-
-	double wcsum=0.0;
-	double wcfrac;
-
-	for (s=0;s<NSOILLAYER;s++) wcsum+=wcont[s];
-
-	wr=0.0;
-	if (negligible(wcsum))
-		for (s=0;s<NSOILLAYER;s++) fuptake[s]=0.0;
-	else {
+		wr=0.0;
 		for (s=0;s<NSOILLAYER;s++) {
-			wcfrac=wcont[s]/wcsum;
-			if (ifsmart)
-				fuptake[s]=min(wcont[s]*awc[s]*wcfrac*fpc_rescale,emax*wcfrac)/emax;
-			else
-				fuptake[s]=min(wcont[s]*awc[s]*fpc_rescale,emax*rootdist[s])/emax;
+			fuptake[s]=rootdist[s]*wcont[s]*fpc_rescale;
 			wr+=fuptake[s];
 		}
-	}
+		break;
 
-#endif
+	// guess2008 - drought/water uptake changes - new option
+	case WR_SPECIESSPECIFIC:
+
+		// Uptake rate is species specific, with more drought tolerance species (lower species_drought_tolerance
+		// values) having greater relative uptake rates. 
+		// Reduces to WCONT if species_drought_tolerance = 0.5
+
+		wr=0.0;
+		for (s=0;s<NSOILLAYER;s++) {
+			double max_rel_uptake = pow(wcont[s],2.0*0.1); // Upper limit. Limits C3 grass uptake
+			fuptake[s]=rootdist[s]*min(pow(wcont[s],2.0*species_drought_tolerance),max_rel_uptake)*fpc_rescale;
+			wr+=fuptake[s];
+		}
+		break;
+	case WR_ROOTDIST:
+
+		// Uptake rate independent of water content (to wilting point) but with fractional
+		// uptake from different layers according to prescribed root distribution
+
+		wr=0.0;
+		for (s=0;s<NSOILLAYER;s++) {
+			fuptake[s]=min(wcont[s]*awc[s]*fpc_rescale,emax*rootdist[s])/emax;
+			wr+=fuptake[s];
+		}
+		break;
+	case WR_SMART: 
+		{
+
+			// Uptake rate independent of water content (to wilting point), fractional uptake
+			// from different layers according to layer water content for trees, and according
+			// to prescribed root distribution for grasses
+
+			double wcsum=0.0;
+			double wcfrac;
+
+			for (s=0;s<NSOILLAYER;s++) wcsum+=wcont[s];
+
+			wr=0.0;
+			if (negligible(wcsum))
+				for (s=0;s<NSOILLAYER;s++) fuptake[s]=0.0;
+			else {
+				for (s=0;s<NSOILLAYER;s++) {
+					wcfrac=wcont[s]/wcsum;
+					if (ifsmart)
+						fuptake[s]=min(wcont[s]*awc[s]*wcfrac*fpc_rescale,emax*wcfrac)/emax;
+					else
+						fuptake[s]=min(wcont[s]*awc[s]*fpc_rescale,emax*rootdist[s])/emax;
+					wr+=fuptake[s];
+				}
+			}
+		}
+		break;
+	default:
+		// Should never happen
+		fail("Unsupported wateruptake type");
+	}
 
 	if (!negligible(wr))
 		for (s=0;s<NSOILLAYER;s++)
@@ -1212,16 +1194,8 @@ void aet_water_stress(Patch& patch) {
 		// individual's FPC, assuming individuals are equal in competition for water)
 
 		// ----------------------------------------
-		// guess2008 - specieds specific drought/water uptake changes
-		double species_drought_tolerance = 0.5; 
-		// default, ensures that WR_SPECIESSPECIFIC gives identical results to WR_WCONT 
-		
-		// override with species value (always <= 0.5) iff ifspeciesspecificwateruptake == 1
-		if (ifspeciesspecificwateruptake) 
-			species_drought_tolerance = pft.drought_tolerance;
-
 		wr=water_uptake(patch.soil.wcont,patch.soil.soiltype.awc,pft.rootdist,pft.emax,
-			patch.fpc_rescale,ppft.fuptake,pft.lifeform==TREE,species_drought_tolerance);
+			patch.fpc_rescale,ppft.fuptake,pft.lifeform==TREE,pft.drought_tolerance);
 		// ----------------------------------------
 
 		// Calculate supply (Eqn 24, Haxeltine & Prentice 1996)

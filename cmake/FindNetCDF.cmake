@@ -14,7 +14,7 @@ set(NETCDF_LIBRARIES ${NETCDF_C_LIBRARY})
 # The C++ API currently doesn't come with the prebuilt binaries
 # on Windows, so only include the C++ lib if found.
 if(NETCDF_CXX_LIBRARY)
-  set(NETCDF_LIBRARIES ${NETCDF_LIBRARIES} ${NETCDF_CXX_LIBRARY})
+  set(NETCDF_LIBRARIES ${NETCDF_CXX_LIBRARY} ${NETCDF_LIBRARIES})
 endif()
 
 set(NETCDF_INCLUDE_DIRS ${NETCDF_INCLUDE_DIR} )

@@ -82,9 +82,10 @@ double somfluxnerror;
 bool ifsmoothgreffmort;				// smooth growth efficiency mortality
 bool ifdroughtlimitedestab;			// whether establishment affected by growing season drought
 bool ifrainonwetdaysonly;			// rain on wet days only (1, true), or a little every day (0, false); 
-bool ifspeciesspecificwateruptake;	// water uptake is species specific 
 // bvoc
 bool ifbvoc; // BVOC calculations included
+
+wateruptaketype wateruptake;
 
 bool run_landcover;
 bool run[NLANDCOVERTYPES];
@@ -360,11 +361,8 @@ int framework(int argc,char* argv[]) {
 			}//while (getclimate())
 		}//if getgridcell()
 		else dogridcell=false; // no more grid cells to simulate
-
-		int test = 0;
-
-		// End of loop through grid cells
-	}
+		
+	}		// End of loop through grid cells
 
 	// Call to input/output module to perform any necessary clean up
 	termio();

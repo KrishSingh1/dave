@@ -56,7 +56,6 @@ void landcover_init(Gridcell& gridcell,Pftlist& pftlist) {
 						Stand& stand=gridcell.createobj(gridcell,landcover,pftlist);
 						stand.pftid=pft.id;
 						stand.cftid=pft.cftid;
-//orig					stand.frac=gridcell.cftfrac[pft.cftid]*gridcell.landcoverfrac[CROPLAND];	//110128
 						stand.set_gridcell_fraction(gridcell.cftfrac[pft.cftid]*gridcell.landcoverfrac[CROPLAND]);
 
 						stand.pft[pft.id].active=true;	//101213
@@ -345,26 +344,16 @@ if(!SUPPRESSLARGEOUTPUT)
 			}
 
 #ifdef multiple_natural_stands
-//1a:
-
 			if(stand.landcover!=CROPLAND && stand.landcover!=NATURAL && landcoverfrac_change[stand.landcover]<0.0						
 				|| stand.landcover==NATURAL && landcoverfrac_change[NATURAL]<0.0 && (nnaturalstands==1 || stand.natural_frac_change<0.0)
 				|| stand.landcover==CROPLAND && cropstand_change[stand.cftid]<0.0)
-
-//1b:
-/*
-			if(stand.landcover!=NATURAL && landcoverfrac_change[stand.landcover]<0.0														
-				|| stand.landcover==NATURAL && landcoverfrac_change[NATURAL]<0.0 && (nnaturalstands==1 || stand.natural_frac_change<0.0))
-*/
 #else
-			if(stand.landcover!=CROPLAND && landcoverfrac_change[stand.landcover]<0.0 || stand.landcover==CROPLAND && cropstand_change[stand.cftid]<0.0) //2a
-//			if(landcoverfrac_change[stand.landcover]<0.0)																								//2b
+			if(stand.landcover!=CROPLAND && landcoverfrac_change[stand.landcover]<0.0 || stand.landcover==CROPLAND && cropstand_change[stand.cftid]<0.0)																					//2b
 #endif
 			{
 //All landcovers that only have one stand:
 #ifdef multiple_natural_stands
-				if(stand.landcover!=CROPLAND && stand.landcover!=NATURAL)	//3a
-//				if(stand.landcover!=NATURAL)								//3b
+				if(stand.landcover!=CROPLAND && stand.landcover!=NATURAL)
 #else
 				if(stand.landcover!=CROPLAND)
 #endif
@@ -657,7 +646,6 @@ if(!SUPPRESSLARGEOUTPUT)
 						if(present)
 						{
 							Stand& stand=gridcell.getobj();
-//orig						stand.frac=gridcell.cftfrac[pft.cftid]*gridcell.landcoverfrac[CROPLAND];
 							stand.set_gridcell_fraction(gridcell.cftfrac[pft.cftid]*gridcell.landcoverfrac[CROPLAND]);
 #ifdef MATS_TEST
 							dprintf("Crop stand %d fraction updated year %d: %f\n", stand.id, date.year-nyear_spinup+1901, gridcell.cftfrac[pft.cftid]);
@@ -673,7 +661,6 @@ if(!SUPPRESSLARGEOUTPUT)
 #endif
 							stand.pftid=pft.id;
 							stand.cftid=pft.cftid;
-//orig						stand.frac=gridcell.cftfrac[pft.cftid]*gridcell.landcoverfrac[CROPLAND];
 							stand.set_gridcell_fraction(gridcell.cftfrac[pft.cftid]*gridcell.landcoverfrac[CROPLAND]);
 
 							stand.pft[pft.id].active=true;
@@ -762,13 +749,11 @@ if(!SUPPRESSLARGEOUTPUT)
 	while (gridcell.isobj) //Loop through stands:
 	{
 		Stand& stand=gridcell.getobj();
-//		if(stand.landcover!=CROPLAND && landcoverfrac_change[stand.landcover]>0.0 || stand.landcover==CROPLAND && cropstand_change[stand.cftid]>0.0)
-		if(landcoverfrac_change[stand.landcover]>0.0)
+		if(stand.landcover!=CROPLAND && landcoverfrac_change[stand.landcover]>0.0 || stand.landcover==CROPLAND && cropstand_change[stand.cftid]>0.0)
 		{
 			double old_frac, added_frac, new_frac;
 #ifdef multiple_natural_stands
 			if(stand.landcover!=CROPLAND && stand.landcover!=NATURAL)
-//			if(stand.landcover!=NATURAL)
 #else
 			if(stand.landcover!=CROPLAND)	
 #endif					

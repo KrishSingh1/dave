@@ -452,6 +452,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 	if (climate.temp<5.0 && climate.chilldays<=365)
 		climate.chilldays++;
 
+	respiration_temperature_response(climate.temp, climate.gtemp);
+
 ///	if (run_landuse && run_crop)
 ///		dailyaccounting_gridcell_crop(gridcell,pftlist);
 
@@ -515,23 +517,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 	}
 }
 
-void dailyaccounting_stand(Stand& stand,Pftlist& pftlist)
-{		
-	// Loop through PFTs
-	pftlist.firstobj();
-	while (pftlist.isobj) {
-		Pft& pft=pftlist.getobj();
-		// For this PFT ...
-
-		// [BEGIN CEFAST0207]
-		// Flag used by evapotranspiration_fast in canopy exchange module ...
-		stand.pft[pft.id].have_phot=false;
-
-		// [END CEFAST0207]
-
-		// ... on to next PFT
-		pftlist.nextobj();
-	}
+void dailyaccounting_stand(Stand& stand, Pftlist& pftlist) {
 }
 
 void dailyaccounting_patch_lc(Patch& patch, Pftlist& pftlist) {
@@ -616,11 +602,9 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 	if(run_landcover)
 		dailyaccounting_patch_lc(patch, pftlist);
 	
-	// Store daily soil water in upper layer
-	soil.dwcontupper[date.day]=soil.wcont[0];
-
-	// Store daily soil water in lower layer - guess2008
-	soil.dwcontlower[date.day]=soil.wcont[1];
+	// Store daily soil water in both layers
+	soil.dwcontupper[date.day] = soil.wcont[0];
+	soil.dwcontlower[date.day] = soil.wcont[1];
 
 	// On last day of month, calculate mean content of upper soil layer
 
@@ -640,6 +624,7 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 
 	// Calculate soil temperatures
 	soiltemp(patch.stand.gridcell.climate,soil);
+	respiration_temperature_response(soil.temp, soil.gtemp);
 
 	// On last day of month, calculate mean soil temperature for last month
 
@@ -652,7 +637,7 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // RESPIRATION TEMPERATURE RESPONSE
-// Called by canopy exchange and soil organic matter dynamics module to calculate
+// Called by dailyaccounting_patch and dailyaccounting_gridcell to calculate
 // response of respiration to temperature
 
 void respiration_temperature_response(double temp,double& gtemp) {
@@ -672,12 +657,12 @@ void respiration_temperature_response(double temp,double& gtemp) {
 	// OUTPUT PARAMETER
 	// gtemp = respiration temperature response
 
-	if (temp>=-40.0)
-		gtemp=exp(308.56*(1.0/56.02-1.0/(temp+46.02))); // NB: temperature in deg C
-	else
-		gtemp=0.0;
+	if (temp >= -40.0) {
+		gtemp = exp(308.56 * (1.0/56.02 - 1.0/(temp+46.02)));
+	} else {
+		gtemp = 0.0;
+	}
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // DAYLENGTH, INSOLATION AND POTENTIAL EVAPOTRANSPIRATION

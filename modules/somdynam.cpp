@@ -199,13 +199,6 @@ void som_dynamics_lpj(Patch& patch) {
 
 		// "DAILY" MODE
 
-		// Calculate respiration temperature response if not yet done for this day
-
-		if (soil.last_gtemp!=date.day) {
-			respiration_temperature_response(soil.temp,soil.gtemp);
-			soil.last_gtemp=date.day;
-		}
-
 		// Calculate decay constants and rates given today's soil moisture and
 		// temperature
 

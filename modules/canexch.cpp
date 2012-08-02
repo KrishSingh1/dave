@@ -70,22 +70,6 @@ const double b0=71.4/200.0*1000.0;	// Slope parameter in Friend et al. 1997 eqn 
 #error One of DEMAND_PATCH and DEMAND_INDIV must be #defined
 #endif
 
-// Alternative parameterisations of the convective boundary layer
-//   AET_MONTEITH_HYPERBOLIC = hyperbolic parameterisation (Huntington & Monteith 1998)
-//   AET_MONTEITH_EXPONENTIAL = exponential parameterisation (Monteith 1995)
-// Comment out one of the following two lines:
-
-#define AET_MONTEITH_HYPERBOLIC
-//#define AET_MONTEITH_EXPONENTIAL
-
-// Check:
-#if defined(AET_MONTEITH_HYPERBOLIC) && defined(AET_MONTEITH_EXPONENTIAL)
-#error Only one of AET_MONTEITH_HYPERBOLIC and AET_MONTEITH_EXPONENTIAL should be #defined
-#elif !defined(AET_MONTEITH_HYPERBOLIC) && !defined(AET_MONTEITH_EXPONENTIAL)
-#error One of AET_MONTEITH_HYPERBOLIC and AET_MONTEITH_EXPONENTIAL must be #defined
-#endif
-
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL VARIABLES
 
@@ -374,8 +358,8 @@ void fpar(Patch& patch) {
 			// Calculate FPAR at bottom of this layer
 			// Eqn 27, Prentice et al 1993
 
-			fpar_layer_bottom=exp(-LAMBERTBEER_K*plai);
-			fpar_leafon_layer_bottom=exp(-LAMBERTBEER_K*plai_leafon);
+			fpar_layer_bottom = lambertbeer(plai);
+			fpar_leafon_layer_bottom = lambertbeer(plai_leafon);
 
 			// Total PAR uptake in this layer
 
@@ -417,21 +401,21 @@ void fpar(Patch& patch) {
 		}
 
 		// FPAR reaching grass canopy
-		fpar_grass=exp(-LAMBERTBEER_K*plai);
-		fpar_leafon_grass=exp(-LAMBERTBEER_K*plai_leafon);
+		fpar_grass = lambertbeer(plai);
+		fpar_leafon_grass = lambertbeer(plai_leafon);
 
 		// Add grass LAI to calculate PAR reaching forest floor
 		// BLARP: Order changed Ben 050301 to overcome optimisation bug in pgCC
 
 		//plai+=plai_grass;
-		fpar_ff=exp(-LAMBERTBEER_K*(plai+plai_grass));
+		fpar_ff = lambertbeer(plai+plai_grass);
 		plai+=plai_grass;
 
 		// Save this
 		patch.fpar_ff=fpar_ff;
 
 		plai_leafon+=plai_leafon_grass;
-		fpar_leafon_ff=exp(-LAMBERTBEER_K*plai_leafon);
+		fpar_leafon_ff = lambertbeer(plai_leafon);
 
 		// FPAR for grass PFTs is difference between relative PAR at top of grass canopy
 		// canopy and at forest floor, or lower if FPAR at forest floor below threshold
@@ -852,6 +836,35 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 	adtmm=adt/CMASS*8.314*tk/PATMOS*1000.0;
 }
 
+/// Pre-calculate Vmax and no-stress assimilation and canopy conductance
+/**
+ * Vmax is calculated for a day (w/ daily averages of temperature and par)
+ */
+void photosynthesis_nowstress(Stand& stand, Climate& climate) {
+
+	for (int p=0; p<npft; p++) {
+		Standpft& spft = stand.pft[p];
+		Pft& pft = spft.pft;
+
+		// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
+		photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
+					       1.0, pft.lambda_max, pft.pathway, pft.pstemp_min, pft.pstemp_low,
+					       pft.pstemp_high, pft.pstemp_max, pft.lambda_max, 1.0, 1.0, 1.0, spft.photosynthesis);
+
+		// Eqn 21, Haxeltine & Prentice 1996
+		// NB: includes conversion of daylight from hours to seconds (*3600),
+		//     and CO2 from ppmv to mole fraction (*1.0e-6);
+		//     scalar multiplier = 1.6 / 1.0e-6 / 3600 = 444.4
+		spft.gpterm = 444.4 * spft.photosynthesis.adtmm / climate.co2 /
+						(1 - pft.lambda_max) / climate.daylength;
+
+		// Store net C-assimilation (gross photosynthesis minus leaf
+		// respiration); valid for all individuals of this PFT given today's
+		// climate and FPAR=1 assuming no water stress
+		spft.assim_term = spft.photosynthesis.net_assimilation();
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // TRANSPIRATIVE DEMAND AND NON-WATER-STRESSED PHOTOSYNTHESIS
 
@@ -892,7 +905,6 @@ void demand(Patch& patch) {
 		Pft& pft=indiv.pft;
 
 		if (!negligible(climate.daylength)) {
-
 			// GUESSN
 			if (ifnlim) {
 
@@ -916,40 +928,12 @@ void demand(Patch& patch) {
 				indiv.adtmm_term=indiv.photosynthesis.adtmm;
 			}
 			else {
-				Standpft& standpft = stand.pft[pft.id];
-				if (!standpft.have_phot) {
-					// Call photosynthesis with FPAR=1 and assuming stomates fully open
-					// (lambda = lambda_max)
-
-					photosynthesis(climate.co2,climate.temp,climate.par,climate.daylength,
-						1.0,pft.lambda_max,pft.pathway,pft.pstemp_min,pft.pstemp_low,
-						pft.pstemp_high,pft.pstemp_max,pft.lambda_max,
-						1.0,1.0,1.0,
-						standpft.photosynthesis);
-
-					// Eqn 21, Haxeltine & Prentice 1996
-					// NB: includes conversion of daylight from hours to seconds (*3600),
-					//     and CO2 from ppmv to mole fraction (*1.0e-6);
-					//     scalar multiplier = 1.6 / 1.0e-6 / 3600 = 444.4
-	
-					standpft.gpterm=444.4*standpft.photosynthesis.adtmm/climate.co2/(1.0-pft.lambda_max)/
-						climate.daylength;
-
-					// Store net C-assimilation (gross photosynthesis minus leaf
-					// respiration); valid for all individuals of this PFT given today's
-					// climate and FPAR=1 assuming no water stress
-
-					standpft.assim_term = standpft.photosynthesis.net_assimilation();
-					stand.pft[pft.id].adtmm_term = standpft.photosynthesis.adtmm;
-
-					standpft.have_phot=true;
-				}
-
 				// Calculate non-water-stressed canopy conductance assuming full leaf cover
 				//        - include canopy-conductance component not linked to
 				//          photosynthesis (diffusion through leaf cuticle etc); this is
 				//          assumed to be proportional to leaf-on fraction
-
+				Standpft& standpft = stand.pft[pft.id];
+				
 				indiv.gp_leafon=standpft.gpterm*indiv.fpar_leafon+
 					pft.gmin*indiv.fpc;
 			}
@@ -985,7 +969,6 @@ void demand(Patch& patch) {
 			// special case if daylength=0
 			
 			indiv.gp_leafon=0.0;
-			stand.pft[pft.id].assim_term=0.0;
 			stand.pft[pft.id].photosynthesis.nmass_term=0.0; // GUESSN
 		}
 
@@ -1844,7 +1827,6 @@ void npp(Patch& patch) {
 				indiv.aiso+=indiv.iso;
 				indiv.amon+=indiv.mon;
 			}
-				
 
 			// GC: add gmin
 			indiv.gc_sum+=indiv.pft.gmin;
@@ -1860,19 +1842,6 @@ void npp(Patch& patch) {
 				indiv.leafn+=leafn;
 			}
 			// end GUESSN
-
-			// Calculate respiration response to air and soil temperature
-			// (if not already known for this day)
-
-			if (climate.last_gtemp!=date.day) {
-				respiration_temperature_response(climate.temp,climate.gtemp);
-				climate.last_gtemp=date.day;
-			}
-
-			if (patch.soil.last_gtemp!=date.day) {
-				respiration_temperature_response(patch.soil.temp,patch.soil.gtemp);
-				patch.soil.last_gtemp=date.day;
-			}
 
 			// Calculate autotrophic respiration
 
@@ -2282,33 +2251,6 @@ void forest_floor_conditions(Patch& patch) {
 				ppft.anetps_ff+=result.net_assimilation();
 			}
 			else {
-				if (!stand.pft[p].have_phot) {
-
-					// Call photosynthesis with FPAR=1 and assuming stomates fully open
-					// (lambda = lambda_max)
-					photosynthesis(climate.co2,climate.temp,climate.par,climate.daylength,
-					       1.0,pft.lambda_max,pft.pathway,pft.pstemp_min,pft.pstemp_low,
-					       pft.pstemp_high,pft.pstemp_max,pft.lambda_max,
-						   1.0,1.0,1.0,
-						   stand.pft[p].photosynthesis);
-
-					// Eqn 21, Haxeltine & Prentice 1996
-					// NB: includes conversion of daylight from hours to seconds (*3600),
-					//     and CO2 from ppmv to mole fraction (*1.0e-6);
-					//     scalar multiplier = 1.6 / 1.0e-6 / 3600 = 444.4
-
-					stand.pft[pft.id].gpterm=444.4*stand.pft[p].photosynthesis.adtmm/climate.co2/(1.0-pft.lambda_max)/
-						climate.daylength;
-
-
-					// Store net C-assimilation (gross photosynthesis minus leaf
-					// respiration); valid for all individuals of this PFT given today's
-					// climate and FPAR=1 assuming no water stress
-
-					stand.pft[pft.id].assim_term=stand.pft[p].photosynthesis.net_assimilation();
-
-					stand.pft[pft.id].have_phot=true;
-				}
 
 				// Calculate net assimilation at top of grass canopy (or at soil surface
 				// if there is none)
@@ -2316,7 +2258,6 @@ void forest_floor_conditions(Patch& patch) {
 				ppft.anetps_ff+=stand.pft[p].assim_term*patch.fpar_grass*
 					ppft.phen;
 			}
-
 			// end GUESSN
 		}
 
@@ -2441,6 +2382,10 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 			patch.fpc_rescale=1.0/patch.fpc_total;
 		else
 			patch.fpc_rescale=1.0;
+	}
+	
+	if (!patch.id) {
+		photosynthesis_nowstress(patch.stand, climate);
 	}
 
 	// Canopy exchange processes

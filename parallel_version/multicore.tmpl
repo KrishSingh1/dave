@@ -166,7 +166,9 @@ function append_files {
     local i=""
     for ((i=2; i <= number_of_jobs; i++))
     do
-      cat run$i/$file | awk 'NR!=1 || NF==0 || $1 == $1+0 { print $0 }' >> $file
+      if [ -f run$i/$file ]; then
+        cat run$i/$file | awk 'NR!=1 || NF==0 || $1 == $1+0 { print $0 }' >> $file
+      fi
     done
 }
 

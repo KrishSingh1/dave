@@ -35,6 +35,7 @@
 
 #include "config.h"
 #include "growth.h"
+#include "canexch.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -100,17 +101,16 @@ void leaf_phenology_pft(Pft& pft,Climate& climate,double wscal,double aphen,
 			phen=min(1.0,climate.gdd5/pft.phengdd5ramp);
 		}
 	}
-	
-	if (raingreen) {
+
+	if (raingreen && wscal < pft.wscal_min) {
 
 		// Raingreen phenology based on water stress threshold
-
-		if (wscal<pft.wscal_min) phen=0.0;
+		phen = 0.0;
 	}
 }
 
 
-void leaf_phenology(Patch& patch,Climate& climate) {
+void leaf_phenology(Patch& patch, Climate& climate) {
 
 	// DESCRIPTION
 	// Updates leaf phenological status (fractional leaf-out) for Patch PFT objects and
@@ -145,13 +145,16 @@ void leaf_phenology(Patch& patch,Climate& climate) {
 		// Update annual leaf-on sum
 		if (climate.lat>=0.0 && date.day==COLDEST_DAY_NHEMISPHERE ||
 			climate.lat<0.0 && date.day==COLDEST_DAY_SHEMISPHERE) pft.aphen=0.0;
-		pft.aphen+=pft.phen;
+		pft.aphen += pft.phen;
 
 		// ... on to next PFT
 		patch.pft.nextobj();
 	}
 
-	if (leafout) climate.ifsensechill=true; // CHILLDAYS
+
+	if (leafout) {
+		climate.ifsensechill = true; // CHILLDAYS
+	}
 
 	// Copy PFT-specific phenological status to individuals of each PFT
 
@@ -613,15 +616,10 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// guess2008 - extra check - abnormal allocation can still happen if ltor is very small
 			if ((cmass_root_inc > 50 || cmass_root_inc < -50) && ltor < 0.0001) {
-				cmass_leaf_inc=0.0;
-				cmass_root_inc=bminc;
-
-				if (lifeform==TREE) {
-					cmass_sap_inc=-cmass_sap;
-					cmass_heart_inc=-cmass_sap_inc;
-				}
-
-				return;			
+				cmass_leaf_inc = 0.0;
+				cmass_root_inc = bminc;
+				cmass_sap_inc = -cmass_sap;
+				cmass_heart_inc = -cmass_sap_inc;
 			}
 
 			which_allocation=-1;
@@ -1660,7 +1658,7 @@ bool allometry(Individual& indiv) {
 			// FPC (Eqn 8)
 			
 			fpc_new=indiv.crownarea*indiv.densindiv*
-				(1.0-exp(-LAMBERTBEER_K*indiv.lai_indiv));
+				(1.0-lambertbeer(indiv.lai_indiv));
 				
 			// Increment deltafpc
 			indiv.deltafpc+=fpc_new-indiv.fpc;
@@ -1688,7 +1686,7 @@ bool allometry(Individual& indiv) {
 			indiv.lai_indiv=indiv.cmass_leaf*indiv.pft.sla;
 
 			// FPC (Eqn 10)
-			indiv.fpc=1.0-exp(-LAMBERTBEER_K*indiv.lai_indiv);
+			indiv.fpc = 1.0 - lambertbeer(indiv.lai_indiv);
 
 			// Stand-level LAI
 			indiv.lai=indiv.lai_indiv;

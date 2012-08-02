@@ -38,6 +38,7 @@
 #include <string.h>
 #include <time.h>
 #include <gutil.h>
+#include "shell.h"
 #include "guessmath.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -97,8 +98,6 @@ const int SOLVESOM_END=400;
 const int SOLVESOM_BEGIN=350;
 	// year at which to begin documenting means for calculation of equilibrium
 	// soil carbon
-const double LAMBERTBEER_K=0.50;
-	// Lambert-Beer extinction coefficient (Prentice et al 1993; Monsi & Saeki 1953)
 const int NYEARGREFF=5; 
 	// number of years to average growth efficiency over in function mortality
 const int COLDEST_DAY_NHEMISPHERE=14;
@@ -227,35 +226,6 @@ extern bool ifbvoc;
         // whether BVOC calculations are included
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// GLOBAL FUNCTION DECLARATIONS
-// These functions are defined in the framework source file or main module (if
-// a separate main module is implemented), and are accessible throughout the code
-
-void dprintf(xtring format,...);
-	// a printf-style function for text output to the screen and/or a log file. To
-	// maintain portability of the modular code, please use this function for general
-	// output instead of the standard C++ printf function
-void fail(xtring format,...);
-	// a printf-style function that sends output to the screen and/or a log file, then
-    // terminates execution.
-void plot(xtring window_name,xtring series_name,double x,double y);
-	// adds data point (x,y) to series 'series_name' of line graph 'window_name'. If
-	// the series and/or line graph do not yet exist, they are created. Functional only
-	// when the framework is built as a DLL and linked to the LPJ-GUESS Windows Shell
-	// (the function may still be called in other implementations, but will have no
-	// effect).
-void resetwindow(xtring window_name);
-	// 'forgets' series and data for line graph 'window_name' created using function
-	// plot (above). Functional only when the framework is built as a DLL and
-	// linked to the LPJ-GUESS Windows Shell.
-void clear_all_graphs();
-	// 'forgets' series and data for all currently-defined line graphs created using
-	// function plot (above). Functional only when the framework is built as a DLL and
-	// linked to the LPJ-GUESS Windows Shell.
-bool abort_request_received();
-	// May be called by framework to respond to abort request from Windows shell
-	// (returns true if shell has sent an abort request, otherwise false)
 
 /// General purpose object for handling simulation timing. 
 /** In general, frameworks should use a single Date object for all simulation
@@ -507,8 +477,6 @@ public:
 	double gtemp;
 		// respiration response to today's air temperature incorporating damping of Q10
 		// due to temperature acclimation (Lloyd & Taylor 1994)
-	int last_gtemp;
-		// the last day (0-364) for which gtemp was calculated
 	double mgtemp;
 		// gtemp (see above) calculated for this month's average temperature
 	int last_mgtemp;
@@ -581,7 +549,6 @@ public:
 		chilldays=0;
 		ifsensechill=true; //  guess2008 - CHILLDAYS
 		atemp_mean=0.0;
-		last_gtemp=-1;
 		last_mgtemp=-1;
 
 		aprec=0.0;
@@ -1439,8 +1406,6 @@ public:
 		// respiration response to today's soil temperature at 0.25 m depth
 		// incorporating damping of Q10 due to temperature acclimation (Lloyd & Taylor
 		// 1994)
-	int last_gtemp;
-		// the last day (0-364) for which gtemp was calculated
 	double mgtemp;
 		// gtemp (see above) calculated for this month's average temperature
 	int last_mgtemp;
@@ -1528,7 +1493,6 @@ public:
 		wcont[1]=0.0;
 		wcont_evap=0.0;
 		snowpack=0.0;
-		last_gtemp=-1;
 		last_mgtemp=-1;
 
 		// guess2008 - extra initialisation
@@ -1921,11 +1885,6 @@ public:
 	double anetps_ff_max;
 		// maximum value of anetpsff (potential annual net assimilation at forest
 		// floor) for this PFT in this stand so far in the simulation (kgC/m2/year)
-	double gterm;
-		// term in calculation of potential canopy conductance (mm/s)
-	bool have_gterm;
-		// true if value of gterm available for this PFT today, otherwise false
-
 	// Variables used only by input/output module
 
 	double greff_mort_total;
@@ -1933,7 +1892,6 @@ public:
 	double nsapling_total;
 		// sum/mean across patches for saplings per PFT
 
-	// Variables used by "fast" canopy exchange code (Ben Smith 2002-07)
 
 	double gpterm;
 		// non-FPAR-weighted value for canopy conductance component associated with
@@ -1941,8 +1899,6 @@ public:
 	double assim_term;
 		// non-FPAR-weighted leaf-level net photosynthesis value for PFT under non-
 		// water-stress conditions (kgC/m2/day)
-	bool have_phot;
-		// whether gpterm and assim_term values are valid today
 	double fpc_total;
 		// FPC sum for this PFT as average for stand (used by some versions of
 		// guessio.cpp)
@@ -1958,7 +1914,7 @@ public:
 	double adtmm_term; // GC
 	// end GUESSN
 
-	/// Is this PFT allowed to grow in this stand ?
+	/// Is this PFT allowed to grow in this stand?
 	bool active;
 
 	// MEMBER FUNCTIONS
@@ -1966,13 +1922,8 @@ public:
 	Standpft(int i,Pft& p):id(i),pft(p) {
 		
 		// Constructor: initialises various data members
-		
-		anetps_ff_max=0.0;
-
-		if (run_landcover)
-			active=false;
-		else
-			active=true;
+		anetps_ff_max = 0.0;
+		active = !run_landcover;
 	}
 };
 
@@ -2133,10 +2084,6 @@ public:
 	}
 };
 
-///////////////////////////////////////////////////////////////////////////////////////
-// FRAMEWORK FUNCTION DECLARATION
-
-int framework(int argc,char* argv[]);
 
 #endif // LPJ_GUESS_GUESS_H
 

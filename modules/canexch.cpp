@@ -1404,8 +1404,6 @@ void assimilation_wstress(Pft& pft,Patchpft& ppft,double co2,double temp,double 
 				   double daylength,double fpar,double fpc,
 				   PhotosynthesisResult& phot_result,double& lambda,double nmass_leaf,double lai){
 
-	// GUESSN: this is the standard version, without N-limitation of Vmax
-
 	// DESCRIPTION
 	// Calculation of net C-assimilation under water-stressed conditions
 	// (demand>supply; see function canopy_exchange_fast). Utilises a numerical
@@ -1442,9 +1440,6 @@ void assimilation_wstress(Pft& pft,Patchpft& ppft,double co2,double temp,double 
 	double x1,x2,xmid,rtbis,dx,fmid;
 	int b;
 
-	// Retrieve lookup table for this PFT in this patch
-	Lookup_lambda& lookup_lambda=ppft.lookup_lambda;
-
 	// Get canopy conductance component associated with photosynthesis and
 	// convert from second to daily basis
 
@@ -1478,8 +1473,6 @@ void assimilation_wstress(Pft& pft,Patchpft& ppft,double co2,double temp,double 
 
 	fmid=EPS+1.0;
 
-	lookup_lambda.newsearch();
-
 	while (fabs(fmid)>EPS && b<=Lookup_lambda::MAXTRIES) {
 
 		b++;
@@ -1492,54 +1485,22 @@ void assimilation_wstress(Pft& pft,Patchpft& ppft,double co2,double temp,double 
 
 		adt1=gcphot/1.6*ca*(1.0-xmid);
 
-		if (ifnlim) {
+		// Call function photosynthesis to calculate alternative value
+		// for total daytime photosynthesis according to Eqns 2 & 19,
+		// Haxeltine & Prentice (1996), and current guess for lambda
 
-			// Call function photosynthesis to calculate alternative value
-			// for total daytime photosynthesis according to Eqns 2 & 19,
-			// Haxeltine & Prentice (1996), and current guess for lambda
+		photosynthesis(co2,temp,par,daylength,fpar,xmid,pft.pathway,pft.pstemp_min,
+			pft.pstemp_low,pft.pstemp_high,pft.pstemp_max,pft.lambda_max,
+			nmass_leaf,pft.a0,lai,
+			phot_result);
 
-			photosynthesis(co2,temp,par,daylength,fpar,xmid,pft.pathway,pft.pstemp_min,
-					pft.pstemp_low,pft.pstemp_high,pft.pstemp_max,pft.lambda_max,
-					nmass_leaf,pft.a0,lai,
-					phot_result);
-			
-			// Evaluate fmid at the point lambda=xmid
-			// fmid will be an increasing function of xmid, with a solution
-			// (fmid=0) between x1 and x2
+		// Evaluate fmid at the point lambda=xmid
+		// fmid will be an increasing function of xmid, with a solution
+		// (fmid=0) between x1 and x2
 
-			fmid=phot_result.adtmm/fpc-adt1;
+		fmid=phot_result.adtmm/fpc-adt1;
 
-			if (fmid<0.0) rtbis=xmid;
-		}
-		else {
-
-			// Call function photosynthesis to calculate alternative value
-			// for total daytime photosynthesis according to Eqns 2 & 19,
-			// Haxeltine & Prentice (1996), and current guess for lambda
-			// Value from lookup table used if available
-
-			if (!lookup_lambda.getdata(date.year,date.day,phot_result)) {
-
-				photosynthesis(co2,temp,par,daylength,1.0,xmid,pft.pathway,pft.pstemp_min,
-						pft.pstemp_low,pft.pstemp_high,pft.pstemp_max,pft.lambda_max,
-						1.0,1.0,1.0,
-						phot_result);
-
-				lookup_lambda.setdata(date.year,date.day,phot_result);
-			}
-
-			// Evaluate fmid at the point lambda=xmid
-			// fmid will be an increasing function of xmid, with a solution
-			// (fmid=0) between x1 and x2
-
-			fmid=phot_result.adtmm*fpar_fpc-adt1;
-		
-			if (fmid<0.0) {
-				rtbis=xmid;
-				lookup_lambda.increase();
-			}
-			else lookup_lambda.decrease();
-		}
+		if (fmid<0.0) rtbis=xmid;
 	}
 
 	// bvoc
@@ -1763,8 +1724,9 @@ void npp(Patch& patch) {
 				assimilation_wstress(pft,ppft,climate.co2,climate.temp,climate.par,
 					climate.daylength,indiv.fpar,indiv.fpc,indiv.photosynthesis, indiv_lambda,
 					indiv.nmass_leaf,indiv.lai);
+
 				indiv.vmax_lim[date.day] = indiv.photosynthesis.vmax_lim;
-				indiv.assim = ifnlim ? indiv.photosynthesis.net_assimilation() : indiv.photosynthesis.net_assimilation()*indiv.fpar;
+				indiv.assim = indiv.photosynthesis.net_assimilation();
 
 				indiv.gc_sum=444.4*indiv.photosynthesis.adtmm/climate.co2/(1.0-indiv_lambda)/
 						climate.daylength;
@@ -2021,7 +1983,7 @@ void npp(Patch& patch) {
 					na_fpar = indiv.photosynthesis.nmass_term;
 
 					// Convert from mean to sum over water-stress-days
-					indiv.assim+=indiv.photosynthesis.net_assimilation()*indiv.fpar_wstress*(double)indiv.nday_wstress;
+					indiv.assim+=indiv.photosynthesis.net_assimilation()*(double)indiv.nday_wstress;
 					
 					// bvoc
 					if(ifbvoc){
@@ -2208,7 +2170,7 @@ void forest_floor_conditions(Patch& patch) {
 				1.0,photosynthesis,lambda,
 				1.0,1.0);
 				
-				ppft.anetps_ff+=ifnlim ? photosynthesis.net_assimilation() : photosynthesis.net_assimilation()*(patch.fpar_grass*ppft.phen);
+				ppft.anetps_ff += photosynthesis.net_assimilation();
 		}
 		else if (date.islastday && ppft.nday_wstress) {
 
@@ -2228,7 +2190,7 @@ void forest_floor_conditions(Patch& patch) {
 				ppft.fpar_grass_wstress,1.0,result,lambda,
 				1.0,1.0);
 			
-			ppft.anetps_ff+=result.net_assimilation()*ppft.fpar_grass_wstress*(double)ppft.nday_wstress;
+			ppft.anetps_ff+=result.net_assimilation()*(double)ppft.nday_wstress;
 		}
 
 		// NON-WATER-STRESSED ASSIMILATION

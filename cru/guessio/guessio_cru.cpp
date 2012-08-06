@@ -332,8 +332,10 @@ void plib_declarations(int id,xtring setname) {
 		// GUESSN
 		declareitem("nrelocfrac",&nrelocfrac,0.0,1.0,1,CB_NONE,
 			"Fractional N relocation from shed leaves & roots");
-		declareitem("ifnfix",&ifnfix,0,3,1,CB_NONE,
-			"Whether to include an estimate for N fixation");
+		declareitem("nfix_a",&nfix_a,0.0,0.4,1,CB_NONE,
+			"first term in N fixation eqn");
+		declareitem("nfix_b",&nfix_b,-10.0,10.,1,CB_NONE,
+			"second term in N fixation eqn");
 
 		declareitem("ifcentury",&ifcentury,1,CB_NONE,
 			"Whether to use CENTURY SOM dynamics (default standard LPJ)");
@@ -727,7 +729,8 @@ void plib_callback(int callback) {
 
 		// GUESSN
 		if (!itemparsed("nrelocfrac")) badins("nrelocfrac");
-		if (!itemparsed("ifnfix")) badins("ifnfix");
+		if (!itemparsed("nfix_a")) badins("nfix_a");
+		if (!itemparsed("nfix_b")) badins("nfix_b");
 
 		if (!itemparsed("ifcentury")) badins("ifcentury");
 		if (!itemparsed("ifnlim")) badins("ifnlim");
@@ -3123,6 +3126,9 @@ void define_output_tables(Pftlist& pftlist) {
 
 	// RUNOFF
 	ColumnDescriptors runoff_columns;
+	runoff_columns += ColumnDescriptor("Surf", 8, 1);
+	runoff_columns += ColumnDescriptor("Drain", 8, 1);
+	runoff_columns += ColumnDescriptor("Base", 8, 1);
 	runoff_columns += ColumnDescriptor("Total", 8, 1);
 
 	// SPECIESHEIGHTS
@@ -3954,7 +3960,7 @@ bool getgridcell(Gridcell& gridcell) {
 
 		// GUESSN
 		if (!getndep(file_ndep,lon,lat,gridcell.climate)) {
-
+			dprintf("Year %d 13\n",date.year);
 			fail("Grid cell Lat %g Long %g not found in %s",lat,lon,(char*)file_ndep);
 		}
 		// end GUESSN
@@ -4632,6 +4638,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		double cmass_gridcell=0.0;
 		double anpp_gridcell=0.0;
 		double lai_gridcell=0.0;
+		double surfrunoff_gridcell=0.0;
+		double drainrunoff_gridcell=0.0;
+		double baserunoff_gridcell=0.0;
 		double runoff_gridcell=0.0;
 		double dens_gridcell=0.0;
 		double firert_gridcell=0.0;
@@ -4701,11 +4710,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		double nmass_indiv=0.0;			// GUESSN N budget
 		double nmass_sompools=0.0;		// GUESSN N budget
 		double nmass_litterpools=0.0;	// GUESSN N budget
-
-		if (date.year == 500)
-			Total_N_500=0.0;
-		
-		double Total_N_present=0.0;
 
 		pftlist.firstobj();
 		while (pftlist.isobj) {
@@ -4830,12 +4834,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 									output_channel->finish_row(out_allometry_ind, lon, lat, date.year);
 								}
 
-								if (date.year == 500)
-									Total_N_500+=indiv.nstore+indiv.nmass_reserve+indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+indiv.nmass_heart;
-
-								Total_N_present+=indiv.nstore+indiv.nmass_reserve+indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+indiv.nmass_heart;
-
-
 								if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 
 									// Age structure
@@ -4858,13 +4856,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 						} // alive?
 						vegetation.nextobj();
-					}
-
-					if (patch.pft[pft.id].pft.name == pft.name) {
-						if (date.year == 500)
-							Total_N_500+=patch.pft[pft.id].nstore_est;
-			
-						Total_N_present+=patch.pft[pft.id].nstore_est;;
 					}
 
 					stand.nextobj();
@@ -5069,6 +5060,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 					}
 				}
 
+				surfrunoff_gridcell+=patch.asurfrunoff*to_gridcell_average;
+				drainrunoff_gridcell+=patch.adrainrunoff*to_gridcell_average;
+				baserunoff_gridcell+=patch.abaserunoff*to_gridcell_average;
 				runoff_gridcell+=patch.arunoff*to_gridcell_average;
 
 				// Fire return time
@@ -5112,17 +5106,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 							centuryn+=patch.soil.sompool[r].nmass/(double)stand.nobj;
 						}
 					}
-
-					if (date.year == 500)
-						Total_N_500+=patch.soil.sompool[r].nmass;
-
-					Total_N_present+=patch.soil.sompool[r].nmass;
 				}
-
-				if (date.year == 500)
-					Total_N_500+=patch.soil.nmass_avail+n_litter;
-
-				Total_N_present+=patch.soil.nmass_avail+n_litter;
 				// end GUESSN
 
 				// Monthly output variables
@@ -5171,13 +5155,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			gridcell.nextobj();
 		} // stand loop
 
-		Total_N_present+=flux_ntot;
-
-	//	if (date.year > nyear_spinup)
-	//		dprintf("Year %d %d %g %d+added %g Present %g Diff %g\n",
-	//			date.year,nyear_spinup,Total_N_500,nyear_spinup,Total_N_500+Added_N_from_500,Total_N_present,Total_N_500+Added_N_from_500-Total_N_present);
-
-
 		// In contrast to annual NEE, monthly NEE does not include fire
 		// or establishment fluxes
 		for (m=0;m<12;m++) {
@@ -5199,6 +5176,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		out.add_value(out_dens,   dens_gridcell);
 		out.add_value(out_lai,    lai_gridcell);
 		out.add_value(out_firert, firert_gridcell);
+		out.add_value(out_runoff, surfrunoff_gridcell);
+		out.add_value(out_runoff, drainrunoff_gridcell);
+		out.add_value(out_runoff, baserunoff_gridcell);
 		out.add_value(out_runoff, runoff_gridcell);
 		out.add_value(out_aiso,   aiso_gridcell);
 		out.add_value(out_amon,   amon_gridcell);

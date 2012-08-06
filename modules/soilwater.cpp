@@ -248,6 +248,9 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 
 	runoff = runoff_surf + runoff_drain + runoff_baseflow;
 
+	patch.asurfrunoff += runoff_surf;
+	patch.adrainrunoff += runoff_drain;
+	patch.abaserunoff += runoff_baseflow;
 	patch.arunoff += runoff;
 	patch.aaet += aet_total;
 	patch.aevap += evap;
@@ -294,6 +297,10 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
  */
 void initial_infiltration(Patch& patch, Climate& climate) {
 
+	const double SOILDEPTH_EVAP = 200.0;
+		// depth of sublayer at top of upper soil layer, from which evaporation is
+		// possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
+
 	Soil& soil = patch.soil;
 	snow(climate.prec - patch.intercep, climate.temp, soil.snowpack, soil.rain_melt);
 	soil.percolate = soil.rain_melt >= 0.1;
@@ -306,7 +313,26 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 		} else {
 			soil.rain_melt = 0;			
 		}
-		soil.wcont_evap = soil.wcont[0];
+
+		for (int s=1; s<NSOILLAYER; s++) {
+
+			// Percolation
+			// Allow only on days with rain or snowmelt (Dieter Gerten, 021216)
+
+			double perc = min(soil.soiltype.perc_base*pow(soil.wcont[s-1],soil.soiltype.perc_exp), soil.max_rain_melt);
+			
+			double perc_frac = min(perc/soil.soiltype.awc[s-1], soil.wcont[s-1]);
+
+			soil.wcont[s-1] -= perc_frac;
+			soil.wcont[s] += perc_frac * soil.soiltype.awc[s-1] / soil.soiltype.awc[s];
+			if (soil.wcont[s] > 1.0) {
+				double wreturn = (soil.wcont[s]-1.0)*soil.soiltype.awc[s];
+				soil.wcont[s-1] += wreturn / soil.soiltype.awc[s-1];
+				soil.wcont[s] = 1.0;
+			}
+		}
+
+		soil.wcont_evap = SOILDEPTH_EVAP/SOILDEPTH_UPPER*soil.wcont[0];
 	}
 }
 

@@ -105,14 +105,14 @@ int framework(int argc, char* argv[]) {
 						// Leaf phenology for PFTs and individuals
 					leaf_phenology(patch, gridcell.climate);
 						// Interception
-						interception(patch, gridcell.climate);
-						initial_infiltration(patch, gridcell.climate);
+					interception(patch, gridcell.climate);
+					initial_infiltration(patch, gridcell.climate);
 						// Photosynthesis, respiration, evapotranspiration
-						canopy_exchange(patch, gridcell.climate);
+					canopy_exchange(patch, gridcell.climate);
 						// Soil water accounting, snow pack accounting
-						soilwater(patch, gridcell.climate);
+					soilwater(patch, gridcell.climate);
 						// Soil organic matter and litter dynamics						
-						som_dynamics(patch,pftlist);
+					som_dynamics(patch,pftlist);
 
 						if (date.islastday && date.islastmonth) {
 						

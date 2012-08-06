@@ -17,5 +17,7 @@
 #include "guess.h"
 
 void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist);
+void ndemand_new_est(Patch& patch, Pftlist& pftlist, double& patch_ndemand);
+void indiv_fnuptake(Vegetation& vegetation, double nsupply_patch, double fnuptake);
 
 #endif // LPJ_GUESS_VEGDYNAM_H

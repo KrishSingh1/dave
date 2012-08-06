@@ -181,8 +181,10 @@ extern bool ifleachn;
 	// whether to allow N leaching
 extern bool ifindiv_fnuptake;
 	// whether to allow individual fractional N uptake
-extern int ifnfix;
-	// whether to include an estimate for N fixation
+extern double nfix_a;
+	// first term in N fixation eqn
+extern double nfix_b;
+	// second term in N fixation eqn
 extern bool ifndepdata;
 	// whether N deposition data available from a file
 // end GUESSN
@@ -196,9 +198,6 @@ extern bool iflandusechange;
 extern bool run_landcover;
 
 // N budget check
-extern double Total_N_500;
-extern double Total_C_500;
-extern double Added_N_from_500;
 extern double somfluxnerror;
 
 /// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND).
@@ -1452,7 +1451,8 @@ public:
 
 	double nmin_daily[365];		// daily N mineralisation (kgN/m2)
 	double nimmob_daily[365];	// daily N immobilisation (kgN/m2)
-	double leachfrac_daily[365]; // fraction of excess mineral N leached each day;
+	double minleachfrac_daily[365]; // fraction of available mineral N leached each day;
+	double orgleachfrac_daily[365]; // fraction of decayed organoc N leached each day;
 	double org_leachfrac;		// fraction of decayed substrate from the soil microbial pool
 	double nmass_avail;			// soil mineral N pool (kgN/m2)
 
@@ -1511,7 +1511,8 @@ public:
 			// GUESSN
 			nmin_daily[d]=0.0;	
 			nimmob_daily[d]=0.0;	
-			leachfrac_daily[d]=0.0;
+			minleachfrac_daily[d]=0.0;
+			orgleachfrac_daily[d]=0.0;
 			// end GUESSN
 		}
 
@@ -1806,6 +1807,12 @@ public:
 		// annual sum of soil evaporation (mm/year)
 	double aintercep;
 		// annual sum of interception (mm/year)
+	double asurfrunoff;
+		// annual sum of runoff (mm/year)
+	double adrainrunoff;
+		// annual sum of runoff (mm/year)
+	double abaserunoff;
+		// annual sum of runoff (mm/year)
 	double arunoff;
 		// annual sum of runoff (mm/year)
 	double apet;

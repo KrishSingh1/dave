@@ -52,8 +52,10 @@ bool ifleachn;
 	// whether to allow N leaching
 bool ifindiv_fnuptake;
 	// whether to allow individual fractional N uptake
-int ifnfix;
-	// whether to include an estimate for N fixation
+double nfix_a;
+	// first term in N fixation eqn
+double nfix_b;
+	// second term in N fixation eqn
 bool ifndepdata;
 	// whether N deposition data available from a file
 // end GUESSN
@@ -64,9 +66,6 @@ bool iflandusesimple;
 bool iflandusechange;
 
 // N budget check
-double Total_N_500;
-double Total_C_500;
-double Added_N_from_500;
 double somfluxnerror;
 
 // guess2008 - new inputs from the .ins file

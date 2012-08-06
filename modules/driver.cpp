@@ -573,6 +573,9 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 
 		patch.aaet=0.0;
 		patch.aevap=0.0;
+		patch.asurfrunoff=0.0;
+		patch.adrainrunoff=0.0;
+		patch.abaserunoff=0.0;
 		patch.arunoff=0.0;
 		patch.aintercep=0.0;
 		patch.apet=0.0;

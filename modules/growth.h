@@ -24,5 +24,7 @@ void leaf_phenology(Patch& patch,Climate& climate);
 bool allometry(Individual& indiv); // guess2008 - now returns bool instead of void
 void allocation_init(double bminit,double ltor,Individual& indiv);
 void growth(Stand& stand,Patch& patch);
+void raingreen_ndemand(Vegetation& vegetation, double& ndemand_patch, double& nsupply_patch, double& fnuptake_patch);
+void indiv_ndemand(Gridcell& gridcell, landcovertype landcover, Fluxes& fluxes, Individual& indiv);
 
 #endif // LPJ_GUESS_GROWTH_H

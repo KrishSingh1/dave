@@ -142,6 +142,454 @@ bool survive(Climate& climate,Pft& pft) {
 	return true;
 }
 
+//////////////////////////////////////////////////////////////////////////////////
+// GUESSN Calculates individual fnuptake based on surface of fine root
+//	Roots are cone formed with height == radie. 
+// V = PI * r^3 / 3
+// A = (2^1/2 + 1) * PI * r^2
+// -> A = const * cmass_root^2/3 
+
+double nitrogen_uptake_strength(const Individual& indiv) {
+	return pow(indiv.cmass_root, 2.0 / 3.0);
+}
+
+void indiv_fnuptake(Vegetation& vegetation, double nsupply_patch, double fnuptake) {
+
+	// Determining indvidual N uptake as a fraction of its N demand. Grasses should get at least 5% and no
+	// individual should get more than 100% of its N demand. 
+
+	double GRASS_part = 0.05;			// Grass should at least get 5% of total available N
+	double grass_nsupply = nsupply_patch * GRASS_part; // Minimum grass N supply
+	double GRASS_ndemand = 0.0;			// Grass total N demand
+	bool GRASS_100 = false;				// If grass gets what it demands from its part of the total N supply 
+	bool not_more_grass = false;		// Keeping track of if GRASS can compite with TREEs for more N than what is
+										// espacially assigned for GRASS (GRASS_part)
+	double grass_uptake_decider = 0.0;	// Total uptake strength of grasses
+	double total_uptake_decider = 0.0;	// Total uptake strength
+	double temp_nsupply_patch = nsupply_patch;
+	double ratio_uptake;				// How much N taken up per uptake strength
+	bool full_uptake = true;			// If indiv.fuptake should be updated as an individual got more than 100% of its 
+										// N demand
+
+	// RAINGREEN
+	// N demand from foliage droped during the year from raingreen pfts is always meet 
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv=vegetation.getobj();
+
+		if (indiv.pft.phenology == RAINGREEN) {
+			temp_nsupply_patch -= indiv.raingreen_ndemand;
+			indiv.ndemand_uptake -= indiv.raingreen_ndemand;
+			indiv.nstore += indiv.raingreen_ndemand;
+		}
+		vegetation.nextobj();
+	}
+
+	// GRASS
+	// Determine strength and demand of grasses
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv = vegetation.getobj();
+
+		if (indiv.pft.lifeform == GRASS && !negligible(indiv.ndemand_uptake)) {
+			GRASS_ndemand += indiv.ndemand_uptake;
+			grass_uptake_decider += nitrogen_uptake_strength(indiv);
+		}
+		vegetation.nextobj();
+	}
+
+	// GRASS
+	// Does grass get enough N from its part of the total
+	if (GRASS_ndemand < grass_nsupply) 
+		GRASS_100 = true;
+	else 
+		GRASS_100 = false;
+
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv=vegetation.getobj();
+		 
+		indiv.fnuptake = fnuptake;
+
+		// GRASS
+		// if grasses gets enough from its part, then take it up
+		if (indiv.pft.lifeform == GRASS && GRASS_100 && !negligible(indiv.ndemand_uptake)) {
+
+			// when grass part of total N is enough, then subtract it from total
+			temp_nsupply_patch -= indiv.ndemand_uptake;
+			// set uptake to meet demand
+			indiv.fnuptake = 1.0;
+			// and subtract uptake strength as it will be added further down
+			total_uptake_decider -= nitrogen_uptake_strength(indiv);
+		}
+		
+		// TREE
+		// Sum up uptake strengths
+		if (!negligible(indiv.ndemand_uptake)) {
+			total_uptake_decider += nitrogen_uptake_strength(indiv);
+		}
+
+		vegetation.nextobj();
+	}
+	
+	// Loop through indiv and decide their fnuptake
+	while (full_uptake){
+
+		full_uptake = false;	
+		
+		// restore N supply and uptake decider if not_more_grass == true
+		// (which can happen if there is a full_uptake)
+		// so that it can be calculated if they might be able to take up more 
+		// than just the GRASS part
+		if (not_more_grass) {
+			temp_nsupply_patch += grass_nsupply;
+			total_uptake_decider += grass_uptake_decider;
+			not_more_grass = false;
+		}
+
+		// decide how much N that will be taken up by each uptake strength 
+		if (total_uptake_decider > 0.0 && temp_nsupply_patch > 0.0)
+			ratio_uptake = temp_nsupply_patch / total_uptake_decider;
+		else
+			ratio_uptake = 0.0;
+
+		// GRASS
+		// Grass part of avail N is not enough
+		if (!GRASS_100 && !not_more_grass) {
+
+			// See if grass can't get more than the 5%
+			if (grass_nsupply > ratio_uptake * grass_uptake_decider) {
+
+				not_more_grass = true;
+				// then grass takes GRASS_part of total N supply
+				temp_nsupply_patch -= grass_nsupply;
+				// and GRASS strength is subtracted from totaluptake strength
+				total_uptake_decider -= grass_uptake_decider;
+				// and a new ratio uptake is calculated for TREEs 
+				ratio_uptake = temp_nsupply_patch / total_uptake_decider; 
+			}
+			else {
+				// GRASS can compite for more than 5%
+				not_more_grass = false;
+			}
+		}
+
+		vegetation.firstobj();
+		while (vegetation.isobj && !full_uptake) {
+			Individual& indiv=vegetation.getobj();
+
+			// if lifeform is GRASS and they can't compite with TREEs for more than their part of the total N supply
+			if (indiv.pft.lifeform == GRASS && not_more_grass && indiv.fnuptake != 1.0) {
+				if (!negligible(indiv.ndemand_uptake)) {
+
+					indiv.fnuptake = grass_nsupply * (nitrogen_uptake_strength(indiv)
+						/ grass_uptake_decider) / indiv.ndemand_uptake;
+
+					if (indiv.fnuptake > 1.0) {
+
+						indiv.fnuptake = 1.0;
+
+						// subtract N demand from grass N supply
+						grass_nsupply -= indiv.ndemand_uptake;
+
+						// and take away this indiv uptake strength from grass total
+						grass_uptake_decider -= nitrogen_uptake_strength(indiv);
+
+						// and redo indiv fnuptake calc for the rest of the indiv as this indiv probably could
+						// take up more than its N demand -> more available for the rest of the indiv
+						full_uptake = true;
+					}
+				}
+				else
+					indiv.fnuptake = 0.0;
+			}
+
+			// if lifeform is TREE and GRASS if it can compete with TREEs
+			else {
+
+				// if fuptake does't meet its N demand, then calculate a new value for fuptake
+				if (indiv.fnuptake != 1.0) {
+
+					// if indiv has the strenght to take up more than N demand
+					if (ratio_uptake * nitrogen_uptake_strength(indiv) > indiv.ndemand_uptake && !negligible(indiv.ndemand_uptake)){
+						
+						indiv.fnuptake = 1.0;
+						
+						// subtract N demand from N supply
+						temp_nsupply_patch -= indiv.ndemand_uptake;
+
+						// and take away this indiv uptake strength from total
+						total_uptake_decider -= nitrogen_uptake_strength(indiv);
+
+						// and redo indiv fuptake calc for the rest of the indiv as this indiv probably could
+						// take up more than its N demand -> more available for the rest of the indiv
+						full_uptake = true;
+					}
+					// normal N limited uptake (0.0 < fuptake < 1.0)
+					else if (indiv.ndemand_uptake > 0.0)
+						indiv.fnuptake = (ratio_uptake * nitrogen_uptake_strength(indiv)) / indiv.ndemand_uptake;
+					else
+						indiv.fnuptake = 0.0;
+				}
+			}
+
+			vegetation.nextobj();
+		}
+	}
+}
+
+// GUESSN
+void ndemand_new_est(Patch& patch, Pftlist& pftlist, double& patch_ndemand) {
+
+	// Creating new indiv which will determine new establishments ability to 
+	// take up N in competion with existing individuals. Killed after
+	// N is taken up.
+	// Same code as in establishment_guess()
+
+	double bminit, ltor, est, c, kest_bg, nsapling, newindiv;
+	double SAPSIZE = 0.1;
+
+	if (!patch.id) {
+
+		for (int pf=0;pf<npft;pf++)
+			patch.stand.pft[pf].cmass_repr_nuptake = 0.0;
+
+		for (int p=0;p<npatch;p++) {
+
+			// START OF LOOP THROUGH PATCHES
+
+			// Get reference to this patch
+			Patch& patch_temp = patch.stand[p];				
+
+			Vegetation& vegetation_temp = patch_temp.vegetation;
+
+			vegetation_temp.firstobj();
+			while (vegetation_temp.isobj) {
+				Individual& indiv = vegetation_temp.getobj();
+
+				double anpp = max(indiv.anpp, 0.0);
+
+				patch.stand.pft[indiv.pft.id].cmass_repr_nuptake += (anpp * indiv.pft.reprfrac) / (double)npatch;
+				vegetation_temp.nextobj();
+			}	
+		}
+	}
+
+	Vegetation& vegetation=patch.vegetation;
+
+	// guess2008 - determine the number of woody PFTs that can establish
+	// Thomas Hickler
+	int nwoodypfts_estab = 0;
+	pftlist.firstobj();
+	while (pftlist.isobj) {
+		Pft& pft = pftlist.getobj();
+		if (establish(patch, patch.stand.gridcell.climate,pft) && pft.lifeform==TREE)
+			nwoodypfts_estab++;
+		pftlist.nextobj();
+	}
+
+	// Loop through PFTs
+
+	pftlist.firstobj();
+	while (pftlist.isobj) {
+		Pft& pft=pftlist.getobj();
+
+		if (establish(patch, patch.stand.gridcell. climate,pft)) {
+
+			if (pft.lifeform==GRASS) {
+
+				// ESTABLISHMENT OF GRASSES
+
+				Individual& indiv=vegetation.createobj(pft,vegetation);
+				indiv.height = 0.0;
+				indiv.crownarea=1.0; // (value not used)
+				indiv.densindiv=1.0;
+				indiv.fpc=1.0;
+				indiv.age=-9999;
+					
+				// Initial grass biomass proportional to potential forest floor
+				// net assimilation this year on patch area basis
+
+				bminit=SAPSIZE*patch.pft[pft.id].anetps_ff;	
+
+				// Veiko -> makes no difference
+				bminit*=0.3;
+
+				// GUESSN grass gets at least 5% of available N. When established
+				// they shouldn't been able to get more!
+				double bminit_n_lim=indiv.pft.cton_leaf_avr*patch.nsupply*0.05;
+
+				if (ifnlim && date.year>freenyears)
+					bminit=min(bminit,bminit_n_lim);
+
+				// Initial leaf to fine root biomass ratio based on
+				// hypothetical value of water stress parameter
+
+				ltor=patch.pft[pft.id].wscal_mean*pft.ltor_max;
+
+				// Allocate initial biomass
+
+				allocation_init(bminit,ltor,indiv);
+
+				// Calculate initial allometry
+
+				allometry(indiv);
+
+				indiv.cton_leaf_new=indiv.pft.cton_leaf_avr;
+				indiv.cton_root_new=indiv.pft.cton_root_avr;
+
+				indiv.max_n_reserve = indiv.pft.n_reserve*indiv.cmass_root/indiv.pft.cton_leaf_avr;
+
+				// GUESSN
+				// Initialise N demand
+				indiv.ndemand_uptake=
+					indiv.cmass_leaf/indiv.pft.cton_leaf_avr+
+					indiv.cmass_root/indiv.pft.cton_root_avr;
+
+				if (indiv.ndemand_uptake>0.0) {
+					indiv.aassim=365.0;
+					for (int d=0;d<365;d++) 
+						indiv.dassim[d]=1.0;	// Could be phen or something realistic
+				}
+
+				patch_ndemand+=indiv.ndemand_uptake;
+			}
+			else if (pft.lifeform==TREE) {
+
+				// ESTABLISHMENT OF NEW TREE SAPLINGS
+
+				double anetps_ff = patch.pft[pft.id].anetps_ff;
+
+				if (patch.age==0)
+					
+					// First simulation year - initialising patch
+					// Eqn 1
+
+					est=pft.est_max*patcharea;
+
+				else {
+
+					// Every year except year 1
+					// Eqns 5, 6
+
+					if (anetps_ff>0.0 && !negligible(anetps_ff)) {
+
+						c=exp(pft.alphar-pft.alphar/anetps_ff*
+							patch.stand.pft[pft.id].anetps_ff_max)*pft.est_max*patcharea;
+					}
+					else
+						c=0.0;
+
+					// Background establishment enabled?
+
+					if (ifbgestab)
+						kest_bg=pft.kest_bg;
+					else
+						kest_bg=0.0;
+
+					// Spatial mass effect enabled?
+					// Eqns 2, 3, 4
+
+					double aaa=c;
+					double bbb=pft.kest_repr;
+					double ccc=patch.stand.pft[pft.id].cmass_repr_nuptake;
+					double ddd=kest_bg;
+
+					if (ifsme)
+						est=c*(pft.kest_repr*patch.stand.pft[pft.id].cmass_repr_nuptake+kest_bg);
+					else if (!negligible(patch.stand.pft[pft.id].cmass_repr))
+						est=c*(pft.kest_pres+kest_bg);
+					else
+						est=c*kest_bg;
+				}
+
+				// guess2008 - scale est by the number of woody PFTs/species that can establish
+				// Otherwise, simply adding more PFTs or species would increase est
+				est*=3.0/double(nwoodypfts_estab);
+
+				// Have a value for expected number of new saplings (est)
+				// Actual number of new saplings drawn from the Poisson distribution
+				// (except cohort mode with stochastic establishment disabled)
+
+				if (ifstochestab || vegmode==INDIVIDUAL) nsapling=randpoisson(est);
+				else nsapling=est;
+
+				patch.pft[pft.id].nsapling_nuptake=nsapling;
+
+				if (vegmode==COHORT)
+					newindiv=!negligible(nsapling);
+							// round down to 0 if nsapling very small
+				else if (vegmode==INDIVIDUAL)
+					newindiv=(int)(nsapling+0.5); // round up to be on the safe side
+
+				// Now create 'newindiv' new Individual objects
+
+				for (int i=0;i<newindiv;i++) {
+
+					// Create average individual for a new cohort (cohort mode)
+					// or an actual individual (individual mode)
+
+					Individual& indiv=vegetation.createobj(pft,vegetation);
+
+					if (vegmode==COHORT)
+						indiv.densindiv=nsapling/patcharea;
+					else if (vegmode==INDIVIDUAL)
+						indiv.densindiv=1.0/patcharea;
+
+					indiv.age=-9999;
+
+					// Initial biomass proportional to potential forest floor net
+					// assimilation for this PFT in this patch
+
+					bminit=SAPSIZE*anetps_ff;
+
+					// Veiko -> makes no difference
+					bminit*=0.3;
+
+					// Initial leaf to fine root biomass ratio based on hypothetical
+					// value of water stress parameter
+
+					ltor=patch.pft[pft.id].wscal_mean*pft.ltor_max;
+
+					// Allocate initial biomass
+
+					allocation_init(bminit,ltor,indiv);
+
+					// Calculate initial allometry
+
+					allometry(indiv);
+					
+					indiv.cton_leaf_new=indiv.pft.cton_leaf_avr;
+					indiv.cton_root_new=indiv.pft.cton_root_avr;
+					indiv.cton_sap_new=indiv.pft.cton_sap_avr;
+
+					indiv.max_n_reserve = indiv.pft.n_reserve*indiv.cmass_sap/indiv.pft.cton_leaf_avr;
+
+					// GUESSN
+					// Initialise N demand
+					indiv.ndemand_uptake=(
+						indiv.cmass_leaf/indiv.pft.cton_leaf_avr+
+						indiv.cmass_root/indiv.pft.cton_root_avr+
+						indiv.cmass_sap/(indiv.pft.cton_sap_avr/indiv.pft.cton_leaf_avr*indiv.pft.cton_leaf_avr)+
+						indiv.cmass_heart/(indiv.pft.cton_sap_avr/indiv.pft.cton_leaf_avr*indiv.pft.cton_leaf_avr)+
+						indiv.nmass_reserve);
+
+					if (indiv.ndemand_uptake>0.0) {
+						indiv.aassim=365.0;
+						for (int d=0;d<365;d++) 
+							indiv.dassim[d]=1.0;	// Could be phen or something realistic
+					}
+
+					patch_ndemand+=indiv.ndemand_uptake;
+				}
+			}
+		}
+		// ... on to next PFT
+
+		pftlist.nextobj();
+	}
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // ESTABLISHMENT
@@ -781,7 +1229,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 	Nafter+=patch.soil.nmass_avail;
 
-	if (date.year > freenyears && (Nbefore-Nafter < -1.0e-15 || Nbefore-Nafter > 1.0e-15))
+	if (ifnlim && date.year > freenyears && (Nbefore-Nafter < -1.0e-15 || Nbefore-Nafter > 1.0e-15))
 		dprintf("Year %d EST id %d before %g after %g diff %g\n",date.year,patch.id,Nbefore,Nafter,Nbefore-Nafter);
 }
 
@@ -903,8 +1351,8 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 			else
 				patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nstore+indiv.nmass_reserve;
 			// end GUESSN
-
-			//dprintf("Year %d KILLED 4 pft %s age %g npp %g\n",date.year,(char*)indiv.pft.name,indiv.age,indiv.anpp);
+			//if (indiv.pft.lifeform==GRASS)
+			//	dprintf("Year %d KILLED GRASS 4 pft %s age %g npp %g\n",date.year,(char*)indiv.pft.name,indiv.age,indiv.anpp);
 
 			vegetation.killobj();
 			killed=true;
@@ -1343,8 +1791,8 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 			else
 				patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nstore+indiv.nmass_reserve;
 			// end GUESSN
-
-			//dprintf("Year %d KILLED 7 pft %s age %g npp %g\n",date.year,(char*)indiv.pft.name,indiv.age,indiv.anpp);
+			//if (indiv.pft.lifeform==GRASS)
+			//	dprintf("Year %d KILLED GRASs 7 pft %s age %g npp %g\n",date.year,(char*)indiv.pft.name,indiv.age,indiv.anpp);
 
 			vegetation.killobj();
 			killed=true;

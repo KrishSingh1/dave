@@ -107,7 +107,8 @@ ifnlim 0				! whether plant growth limited by available N
 ifindiv_fnuptake 1		! whether to allow individual fractional N uptake
 freenyears 200			! number of years to spin up without N limitation (needed to build up a N pool)
 ifleachn 1				! whether to allow N leaching
-ifnfix 1				! whether to include an estimate for N fixation (1=conservative,2=Central,3=Upper)
+nfix_a 0.102				! first term in N fixation eqn (Conservative 0.102, Central 0.234, Upper 0.367)
+nfix_b 5.24				! second term in N fixation eqn (Conservative 5.24, Central -1.72, Upper -7.54)
 nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
 
 ! end GUESSN

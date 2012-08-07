@@ -383,15 +383,9 @@ void fpar(Patch& patch) {
 						indiv.fpar_leafon+=fpar_uptake_leafon_layer*
 							indiv.lai_leafon_layer/plai_leafon_layer;
 
-					else 
-						indiv.fpar_leafon=0.0;
-
 					if (!negligible(plai_layer))
 						indiv.fpar+=fpar_uptake_layer*
 							(indiv.lai_leafon_layer*indiv.phen)/plai_layer;
-					else
-						indiv.fpar=0.0;
-
 				}
 
 				// ... on to next individual

@@ -816,14 +816,28 @@ void daylengthinsoleet(Climate& climate) {
 			+climate.v[date.day]*climate.sinehh[date.day])*K; // Eqn 14
 
 	}
-	else { // insolation provided as instantaneous downward shortwave radiation flux
+	else { // insolation provided as instantaneous downward shortwave radiation flux 
 
-		if (climate.instype==NETSWRAD) // net radiation known
-			rs_day=climate.insol*climate.daylength_save[date.day]*3600.0;
-		else // include correction for albedo
-			rs_day=climate.insol*(1.0-BETA)*climate.daylength_save[date.day]*3600.0;
+		// deal with the fact that insolation can be radiation during
+		// daylight hours or during whole time step
 
-		// guess2008 - special case for polar night
+		double averaging_period = 24*3600;
+
+		if (climate.instype == NETSWRAD || climate.instype == SWRAD) {
+			// insolation is provided as radiation during daylight hours
+			averaging_period = climate.daylength_save[date.day]*3600.0;
+		}
+
+		if (climate.instype == NETSWRAD || climate.instype == NETSWRAD_TS) {
+			// net radiation known
+			rs_day = climate.insol*averaging_period;
+		}
+		else {
+			// include correction for albedo
+			rs_day = climate.insol*(1.0-BETA)*averaging_period;
+		}
+
+		// special case for polar night
 		if (climate.sinehh[date.day]<0.001) {
 			w=0.0 ; // polar night
 		}

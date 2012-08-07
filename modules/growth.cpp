@@ -2139,7 +2139,7 @@ void growth(Stand& stand,Patch& patch) {
 				indiv.pft.landcover, gridcell);
 
 			// Update stand record of reproduction by this PFT
-			stand.pft[indiv.pft.id].cmass_repr+=cmass_repr/(double)stand.nobj;
+			stand.pft[indiv.pft.id].cmass_repr+=cmass_repr/(double)stand.npatch();
 			stand.pft[indiv.pft.id].nmass_repr+=nmass_repr/(double)stand.nobj;
 
 			// Transfer reproduction straight to litter

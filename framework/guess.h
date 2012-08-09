@@ -1507,10 +1507,7 @@ public:
 		// non-FPAR-weighted value for canopy conductance component associated with
 		// photosynthesis for PFT under non-water-stress conditions (mm/s)
 	std::vector<double> gpterms;		// sub-daily version of the above variable (mm/s)
-	double assim_term;
-		// non-FPAR-weighted leaf-level net photosynthesis value for PFT under non-
-		// water-stress conditions (kgC/m2/day)
-	std::vector<double> assim_terms;	// sub-daily version of the above variable (kgC/m2/day)
+
 	double fpc_total;
 		// FPC sum for this PFT as average for stand (used by some versions of
 		// guessio.cpp)

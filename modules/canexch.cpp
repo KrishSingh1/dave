@@ -656,7 +656,6 @@ void photosynthesis_nowstress(Stand& stand, Climate& climate) {
 
 		if (date.diurnal()) {
 			spft.gpterms.assign(date.subdaily, 0);
-			spft.assim_terms.assign(date.subdaily, 0);
 			PhotosynthesisResult res;
 			spft.phots.assign(date.subdaily, res);
 			for (int i=0; i<date.subdaily; i++) {
@@ -665,16 +664,10 @@ void photosynthesis_nowstress(Stand& stand, Climate& climate) {
 					24, pft.lambda_max, pft, result, spft.photosynthesis.vm);
 
 				spft.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
-				spft.assim_terms[i] = result.net_assimilation();
 			}
 		}
 		spft.gpterm = gpterm(spft.photosynthesis.adtmm, climate.co2,
 									pft.lambda_max, climate.daylength);
-
-		// Store net C-assimilation (gross photosynthesis minus leaf
-		// respiration); valid for all individuals of this PFT given today's
-		// climate and FPAR=1 assuming no water stress
-		spft.assim_term = spft.photosynthesis.net_assimilation();
 	}
 }
 
@@ -1355,7 +1348,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			}
 			else {
 				// No water stress - use base value for non-water-stressed assimilation
-				assim = date.diurnal() ? spft.assim_terms[day.period] : spft.assim_term;
+				assim = (date.diurnal() ? spft.phots[day.period] : spft.photosynthesis).net_assimilation();
 			}
 			assim *= indiv.fpar;
 
@@ -1413,7 +1406,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			indiv.phen_mean += indiv.phen;
 
 			if (!indiv.wstress) {
-				indiv.assim += spft.assim_term * indiv.fpar;
+				indiv.assim += spft.photosynthesis.net_assimilation() * indiv.fpar;
 				if (ifbvoc) {
 					bvoc(temp, hours, hours, rad, climate.eet, climate.agdd5, climate.dtr,
 						climate.co2, climate.temp, indiv.fpar, patch, indiv, pft, spft.photosynthesis,
@@ -1526,7 +1519,10 @@ void forest_floor_conditions(Patch& patch) {
 					climate.daylength, patch.fpar_grass*ppft.phen, 1., ppft.gcbase_day,
 					spft.gpterm, spft.photosynthesis.vm, phot, lambda);
 				assim = phot.net_assimilation();
-			} else assim = spft.assim_term;
+			} 
+			else {
+				assim = spft.photosynthesis.net_assimilation();
+			}
 			assim *= ppft.phen * patch.fpar_grass;
 		}
 		if (date.islastday && !ifdailynpp && ppft.nday_wstress) {
@@ -1574,7 +1570,7 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		}
 	}
 
-	// Calculated shared daily values of photosynthesis, gpterm and assim_term
+	// Calculated shared daily values of photosynthesis and gpterm
 	// for the whole stand
 	if (!patch.id) {
 		photosynthesis_nowstress(patch.stand, climate);

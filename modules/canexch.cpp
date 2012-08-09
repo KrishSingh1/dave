@@ -1072,9 +1072,13 @@ void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 	// satisfies simulataneously a canopy-conductance based and light-based
 	// formulation of photosynthesis (Eqns 2, 18 and 19, Haxeltine & Prentice (1996)).
 
-	// Numerical method is a tailored implementation of the bisection method, with a
-	// fixed 10 bisections, assuming root (f(lambda)=0) bracketed by f(0.02)<0 and
-	// f(lambda_max+0.05)>0 (Press et al 1986)
+	// Numerical method is a tailored implementation of the bisection method, 
+	// assuming root (f(lambda)=0) bracketed by f(0.02)<0 and
+	// f(lambda_max)>0 (Press et al 1986)
+
+	// The bisection method terminates when we're close enough to a root
+	// (absolute value of f(lambda) < EPS), or after a maximum number of 
+	// iterations.
 
 	// To increase the efficiency with which the iteration is performed in cohort
 	// and individual modes, dynamic lookup tables of class Lookup_lambda are used

@@ -1268,76 +1268,6 @@ public:
 };
 
 
-/// One item in the Lookup_lambda table
-/** Each entry in the table holds photosynthesis values for a given lambda,
- *  we also store year and day to make sure we don't reuse items calculated
- *  for a previous day. id is required to keep both daily and sub-daily tables
- *  in diurnal mode, it doesn't play any role in monthly mode (just needs to be
- *  the same, negative values given below are convention).
- *
- *  \see Lookup_lambda */
-struct Lookup_lambda_item {
-	PhotosynthesisResult photosynthesis;
-	int year;
-	int day;
-
-	/// id (monthly: -2; daily: -1; sub-daily: any non-negative value)
-	int i;
-
-	Lookup_lambda_item()
-			: photosynthesis(), year(-1), day(0), i(-1) {
-	}
-};
-
-
-/// Lookup table for photosynthesis parameters
-/** \see canexch.cpp::assimilation_wstress
- */
-class Lookup_lambda {
-
-private:
-	std::vector<Lookup_lambda_item> data;
-	int position;
-
-public:
-	/// Maximum number of iterations towards a solution in bisection method
-	/** Should be static const int, but is an enum for backwards compatibility
-	 *  with old compilers (e.g. VC6) */
-	enum { MAXTRIES = 6 };
-
-	Lookup_lambda(): data((int)pow(2., MAXTRIES+1)) {}
-
-	void newsearch() {
-		position = 0;
-	}
-
-	bool getdata(int year, int day, int i, PhotosynthesisResult& phot) {
-		Lookup_lambda_item& cur = data[position];
-		bool retval = cur.year == year && cur.day == day && cur.i == i;
-		if (retval) {
-			phot = cur.photosynthesis;
-		}
-		return retval;
-	}
-
-	void setdata(int year, int day, int i, const PhotosynthesisResult& phot) {
-		Lookup_lambda_item& thisitem = data[position];
-		thisitem.year = year;
-		thisitem.day = day;
-		thisitem.i = i;
-		thisitem.photosynthesis = phot;
-	}
-
-	void increase() {
-		position += position + 1;
-	}
-
-	void decrease() {
-		position += position + 2;
-	}
-};
-
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // PATCHPFT
 // State variables common to all individuals of a particular PFT in a particular patch
@@ -1420,9 +1350,6 @@ public:
 		// fractional uptake of water from each soil layer today
 	bool wstress;				// whether water-stress conditions for this PFT
 	bool wstress_day;			// daily version of the above variable
-	Lookup_lambda lookup_lambda;
-		// lookup table for values of lambda (parameter in photosynthesis calculations)
-		// today (see canexch.cpp)
 	double harvested_products_slow;	//carbon depository for long-lived products like wood
 
 

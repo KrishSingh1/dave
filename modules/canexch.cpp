@@ -1080,15 +1080,6 @@ void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 	// (absolute value of f(lambda) < EPS), or after a maximum number of 
 	// iterations.
 
-	// To increase the efficiency with which the iteration is performed in cohort
-	// and individual modes, dynamic lookup tables of class Lookup_lambda are used
-	// to store output from successive calls to function photosynthesis. A separate
-	// lookup table is maintained by each Patchpft object. Stored values remain valid
-	// for one simulation day. This implies that function photosynthesis need be called
-	// just once for a particular patch, PFT, day and value of lambda. This technique
-	// will not influence computational speed in population mode, where each PFT is
-	// represented by just one Individual object in each grid cell.
-
 	// OUTPUT PARAMETER
 	// phot_result = result of photosynthesis for the found lambda
 	// lambda      = the lambda found by the bisection method (see above)
@@ -1115,9 +1106,6 @@ void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 
 	double xmid;
 
-	// Retrieve lookup table for this PFT in this patch
-	Lookup_lambda& lookup_lambda = ppft.lookup_lambda;
-
 	// Implement numerical solution
 
 	double x1 = 0.02;                      // minimum bracket of root
@@ -1125,13 +1113,12 @@ void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 	double rtbis = x1;                     // root of the bisection
 	double dx = x2 - x1;
 
-	int b = 0;				// number of tries so far towards solution
+	const int MAXTRIES = 6; // maximum number of iterations towards a solution
+	int b = 0;              // number of tries so far towards solution
 
 	double fmid = EPS + 1.0;
 
-	lookup_lambda.newsearch();
-
-	while (fabs(fmid)>EPS && b<=Lookup_lambda::MAXTRIES) {
+	while (fabs(fmid) > EPS && b <= MAXTRIES) {
 
 		b++;
 		dx *= 0.5;
@@ -1140,14 +1127,8 @@ void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 		// Call function photosynthesis to calculate alternative value
 		// for total daytime photosynthesis according to Eqns 2 & 19,
 		// Haxeltine & Prentice (1996), and current guess for lambda
-		// Value from lookup table used if available
 
-		if (!lookup_lambda.getdata(date.year, date.day, i, phot_result)) {
-
-			photosynthesis(co2, temp, par, daylength, xmid, ppft.pft, phot_result, vmax);
-
-			lookup_lambda.setdata(date.year, date.day, i, phot_result);
-		}
+		photosynthesis(co2, temp, par, daylength, xmid, ppft.pft, phot_result, vmax);
 
 		// Evaluate fmid at the point lambda=xmid
 		// fmid will be an increasing function of xmid, with a solution
@@ -1161,9 +1142,7 @@ void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 
 		if (fmid < 0) {
 			rtbis = xmid;
-			lookup_lambda.increase();
 		}
-		else lookup_lambda.decrease();
 	}
 
 	// bvoc

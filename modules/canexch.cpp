@@ -1062,7 +1062,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 			double daylength, double fpar, double fpc, double gcbase, double gpterm,
-			double vmax, int i, PhotosynthesisResult& phot_result, double& lambda) {
+			double vmax, PhotosynthesisResult& phot_result, double& lambda) {
 
 	// DESCRIPTION
 	// Calculation of net C-assimilation under water-stressed conditions
@@ -1317,14 +1317,12 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 	double par, temp, assim, resp, lambda, rad, gtemp;
 	double hours = 24;			// diurnal "daylength" to convert to daily units
-	int index = -1;
 
 	if (date.diurnal()) {
 		par = climate.pars[day.period];
 		temp = climate.temps[day.period];
 		rad = climate.rads[day.period];
 		gtemp = climate.gtemps[day.period];
-		index = day.period;
 	}
 	else {
 		par = climate.par;
@@ -1353,7 +1351,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 				// Water stress - derive assimilation by simultaneous solution
 				// of light- and conductance-based equations of photosynthesis
 				assimilation_wstress(ppft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
-							ppft.gcbase, gpterm_indiv, spft.photosynthesis.vm, index, phot, lambda);
+							ppft.gcbase, gpterm_indiv, spft.photosynthesis.vm, phot, lambda);
 				assim = phot.net_assimilation();
 			}
 			else {
@@ -1440,7 +1438,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 					assimilation_wstress(ppft, indiv.co2_wstress, indiv.temp_wstress,
 						indiv.par_wstress, indiv.daylength_wstress, indiv.fpar_wstress, indiv.fpc,
-						ppft.gcbase_wstress, ppft.gpterm_wstress, ppft.phot_wstress.vm, -2, phot, lambda);
+						ppft.gcbase_wstress, ppft.gpterm_wstress, ppft.phot_wstress.vm, phot, lambda);
 					indiv.assim += phot.net_assimilation() * indiv.fpar_wstress * indiv.nday_wstress;
 
 					if (ifbvoc) {
@@ -1527,7 +1525,7 @@ void forest_floor_conditions(Patch& patch) {
 			if (ppft.wstress_day) {
 				assimilation_wstress(ppft, climate.co2, climate.temp, climate.par,
 					climate.daylength, patch.fpar_grass*ppft.phen, 1., ppft.gcbase_day,
-					spft.gpterm, spft.photosynthesis.vm, -1, phot, lambda);
+					spft.gpterm, spft.photosynthesis.vm, phot, lambda);
 				assim = phot.net_assimilation();
 			} else assim = spft.assim_term;
 			assim *= ppft.phen * patch.fpar_grass;
@@ -1535,7 +1533,7 @@ void forest_floor_conditions(Patch& patch) {
 		if (date.islastday && !ifdailynpp && ppft.nday_wstress) {
  			assimilation_wstress(ppft, ppft.co2_wstress, ppft.temp_wstress,
 					ppft.par_wstress, ppft.daylength_wstress, ppft.fpar_grass_wstress,
-					1., ppft.gcbase_wstress, ppft.gpterm_wstress, ppft.phot_wstress.vm, -2, phot, lambda);
+					1., ppft.gcbase_wstress, ppft.gpterm_wstress, ppft.phot_wstress.vm, phot, lambda);
 			assim += phot.net_assimilation() * ppft.fpar_grass_wstress * ppft.nday_wstress;
 		}
 

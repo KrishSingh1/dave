@@ -979,7 +979,6 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 		}
 
 		indiv.wstress = ppft.wstress;
-		double demand_indiv = patch.demand;
 
 		if (indiv.wstress) {
 			indiv.aet += ppft.supply;
@@ -998,7 +997,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			}
 		}
 		else {
-			indiv.aet += negligible(indiv.phen) ? 0.0 : demand_indiv;
+			indiv.aet += negligible(indiv.phen) ? 0.0 : patch.demand;
 		}
 		if (day.isend) {
 			indiv.aet *= indiv.fpc / date.subdaily;

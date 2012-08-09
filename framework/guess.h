@@ -1004,14 +1004,6 @@ public:
 		// FPAR assuming full leaf cover for all vegetation
 	double lai_leafon_layer;
 		// LAI for current layer in canopy (cohort/individual mode; see function fpar)
-	double demand;
-		// transpirative demand on FPC basis (mm/day)
-	double demand_leafon;
-		// transpirative demand assuming full leaf cover on FPC basis (mm/day)
-	double supply;
-		// supply function of AET, FPC basis (mm/day)
-	double supply_leafon;
-		// supply function of AET assuming full leaf cover, FPC basis (mm/day)
 	double intercep;
 		// interception associated with this individual today (patch basis)
 

@@ -37,29 +37,6 @@
 #include "bvoc.h"
 #include <assert.h>
 
-///////////////////////////////////////////////////////////////////////////////////////
-// PROCESS SWITCHES
-// This module contains alternative formulations for several processes. Each of a set
-// of alternative formulations is represented by a keyword declared by a #define
-// directive (below). All but one of the #define's relating to a particular process
-// should be commented out prior to a build (this causes the preprocesser to exclude
-// the unwanted code before sending the remaining code on to the compiler)
-
-// Alternative formulations for transpirational demand
-//   DEMAND_PATCH = a single demand calculated for the entire patch / grid cell
-//   DEMAND_INDIV = a separate demand calculated for each individual (as in LPJF)
-// Comment out one of the following two lines:
-
-#define DEMAND_PATCH
-//#define DEMAND_INDIV
-
-// Check:
-#if defined(DEMAND_PATCH) && defined(DEMAND_INDIV)
-#error Only one of DEMAND_PATCH and DEMAND_INDIV should be #defined
-#elif !defined(DEMAND_PATCH) && !defined(DEMAND_INDIV)
-#error One of DEMAND_PATCH and DEMAND_INDIV must be #defined
-#endif
-
 // Anonymous namespace for variables with file scope
 namespace {
 
@@ -731,24 +708,7 @@ void demand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& d
 		//          assumed to be proportional to leaf-on fraction
 		double gp_leafon = (date.diurnal() ? spft.gpterms[day.period] : spft.gpterm) *
 									indiv.fpar_leafon + pft.gmin * indiv.fpc;
-#if defined(DEMAND_INDIV)
 
-		if (!negligible(indiv.fpc*indiv.phen)) {
-
-			// Individual conductance and demand assuming full leaf cover,
-			// FPC basis
-			double gp_indiv = gp_leafon * indiv.phen / indiv.fpc;
-			indiv.demand = aet_monteith(patch.eet_net_veg, gp_indiv);
-
-			// Actual conductance and demand, FPC basis
-			gp_indiv = gp_leafon / indiv.fpc;
-			indiv.demand_leafon = aet_monteith(patch.eet_net_veg, gp_indiv);
-		}
-		else {
-			indiv.demand = 0;
-			indiv.demand_leafon = 0;
-		}
-#endif
 		// Increment patch sums of non-water-stressed gp by individual value
 		gp_patch += gp_leafon * indiv.phen;
 		gp_leafon_patch += gp_leafon;
@@ -1018,13 +978,8 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			indiv.rad_wstress = 0;
 		}
 
-#if defined(DEMAND_PATCH)
 		indiv.wstress = ppft.wstress;
 		double demand_indiv = patch.demand;
-#elif defined(DEMAND_INDIV)
-		indiv.wstress = ppft.supply < indiv.demand;
-		double demand_indiv = indiv.demand;
-#endif
 
 		if (indiv.wstress) {
 			indiv.aet += ppft.supply;
@@ -1090,7 +1045,6 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 		}
 	}
 
-#ifdef DEMAND_PATCH
 	if (date.islastday && date.islastmonth && day.isend) {
 		vegetation.firstobj();
 		while (vegetation.isobj) {
@@ -1099,31 +1053,6 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 			vegetation.nextobj();
 		}
 	}
-#elif defined DEMAND_INDIV
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv = vegetation.getobj();
-
-		double wscal_indiv = 1;
-		if (!negligible(indiv.demand_leafon)) {
-			wscal_indiv = min(1.0, indiv.supply_leafon/indiv.demand_leafon);
-		}
-		wscal_indiv /= date.subdaily;
-
-		if (date.day == 0 && day.isstart) {
-			indiv.wscal_mean = wscal_indiv;
-		}
-		else {
-			indiv.wscal_mean+= wscal_indiv;
-		}
-
-		if (date.islastday && date.islastmonth && day.isend) {
-			indiv.wscal_mean /= 365.0;
-		}
-
-		vegetation.nextobj();
-	}
-#endif
 }
 
 

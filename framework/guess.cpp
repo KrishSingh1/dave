@@ -124,8 +124,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	age=0.0;
 	fpar=0.0;
 	aphen_raingreen=0;
-	demand=0.0;
-	supply=0.0;
 	intercep=0.0;
 	phen_mean=0.0;
 	temp_wstress = 0.0;

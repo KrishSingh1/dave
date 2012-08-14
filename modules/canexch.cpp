@@ -223,7 +223,7 @@ void fpar(Patch& patch) {
 	// And to Climate object
 	Climate& climate=patch.stand.gridcell.climate;
 
-	if (vegmode == POPULATION) {
+	if (vegmode==POPULATION) {
 		
 		// POPULATION MODE
 
@@ -235,8 +235,8 @@ void fpar(Patch& patch) {
 		
 			// For this individual ...
 
-			indiv.fpar = indiv.fpc * indiv.phen; // Eqn 1
-			indiv.fpar_leafon = (indiv.pft.phenology == RAINGREEN || indiv.pft.phenology == ANY) ? indiv.fpc : indiv.fpc * indiv.phen; // Eqn 2
+			indiv.fpar=indiv.fpc*indiv.phen; // Eqn 1
+			indiv.fpar_leafon=indiv.fpc; // Eqn 2
 
 			vegetation.nextobj(); // ... on to next individual
 		}
@@ -249,12 +249,12 @@ void fpar(Patch& patch) {
 		// Initialise individual FPAR, find maximum height of vegetation, calculate
 		// individual LAI given current phenology, calculate summed LAI for grasses
 
-		plai = 0.0;
-		plai_leafon = 0.0;
-		plai_grass = 0.0;
-		plai_leafon_grass = 0.0;
-		phen_veg = 0.0;
-		height_veg = 0.0;
+		plai=0.0;
+		plai_leafon=0.0;
+		plai_grass=0.0;
+		plai_leafon_grass=0.0;
+		phen_veg=0.0;
+		height_veg=0.0;
 
 		// Loop through individuals
 
@@ -264,18 +264,18 @@ void fpar(Patch& patch) {
 
 			// For this individual ...
 
-			indiv.fpar = 0.0;
-			indiv.fpar_leafon = 0.0;
-			if (indiv.height>height_veg) height_veg = indiv.height;
-			plai_leafon += (indiv.pft.phenology == RAINGREEN || indiv.pft.phenology == ANY) ? indiv.lai : indiv.lai * indiv.phen;
+			indiv.fpar=0.0;
+			indiv.fpar_leafon=0.0;
+			if (indiv.height>height_veg) height_veg=indiv.height;
+			plai_leafon+=indiv.lai;
 			
-			if (indiv.pft.lifeform == GRASS) {
-				plai_leafon_grass += indiv.lai;
-				plai_grass += indiv.lai * indiv.phen;
+			if (indiv.pft.lifeform==GRASS) {
+				plai_leafon_grass+=indiv.lai;
+				plai_grass+=indiv.lai*indiv.phen;
 			}
 
 			// Accumulate LAI-weighted sum of individual leaf-out fractions
-			phen_veg += indiv.phen * indiv.lai;
+			phen_veg+=indiv.phen*indiv.lai;
 
 			vegetation.nextobj(); // ... on to next individual
 		}
@@ -283,34 +283,34 @@ void fpar(Patch& patch) {
 		// Calculate LAI-weighted mean leaf-out fraction for vegetation
 		// guess2008 - bugfix - was: if (!negligible(plai))
 		if (!negligible(plai_leafon))
-			phen_veg /= plai_leafon;
+			phen_veg/=plai_leafon;
 		else
-			phen_veg = 1.0;
+			phen_veg=1.0;
 
 		// Calculate number of layers (minus 1) from ground surface to top of canopy
-		toplayer = (int)(height_veg / VSTEP - 0.0001);
+		toplayer=(int)(height_veg/VSTEP-0.0001);
 
 		// Calculate FPAR by integration from the top of the canopy (Eqn 2)
-		plai = 0.0;
-		plai_leafon = 0.0;
+		plai=0.0;
+		plai_leafon=0.0;
 
 		// Set FPAR for bottom of layer above (initially 1 at top of canopy)
 
-		fpar_layer_bottom = 1.0;
-		fpar_leafon_layer_bottom = 1.0;
+		fpar_layer_bottom=1.0;
+		fpar_leafon_layer_bottom=1.0;
 		
 		for (layer=toplayer;layer>=0;layer--) {
 
-			lowbound = (double)layer * VSTEP;
-			highbound = lowbound + VSTEP;
+			lowbound=(double)layer*VSTEP;
+			highbound=lowbound+VSTEP;
 
 			// FPAR at top of this layer = FPAR at bottom of layer above
 
-			fpar_layer_top = fpar_layer_bottom;
-			fpar_leafon_layer_top = fpar_leafon_layer_bottom;
+			fpar_layer_top=fpar_layer_bottom;
+			fpar_leafon_layer_top=fpar_leafon_layer_bottom;
 
-			plai_layer = 0.0;
-			plai_leafon_layer = 0.0;
+			plai_layer=0.0;
+			plai_leafon_layer=0.0;
 
 			// Loop through individuals
 
@@ -320,31 +320,29 @@ void fpar(Patch& patch) {
 
 				// For this individual ...
 
-				if (indiv.pft.lifeform == TREE) {
-					if (indiv.height > lowbound && indiv.boleht < highbound &&
-						!negligible(indiv.height - indiv.boleht)) {
+				if (indiv.pft.lifeform==TREE) {
+					if (indiv.height>lowbound && indiv.boleht<highbound &&
+						!negligible(indiv.height-indiv.boleht)) {
 						
 						// Calculate vertical fraction of current layer occupied by
 						// crown cylinders of this cohort
 
-						frac = 1.0;
-						if (indiv.height < highbound)
-							frac -= (highbound - indiv.height) / VSTEP;
-
-						if (indiv.boleht > lowbound)
-							frac -= (indiv.boleht - lowbound) / VSTEP;
+						frac=1.0;
+						if (indiv.height<highbound)
+							frac-=(highbound-indiv.height)/VSTEP;
+						if (indiv.boleht>lowbound)
+							frac-=(indiv.boleht-lowbound)/VSTEP;
 
 						// Calculate summed LAI of this cohort in this layer
 
-						atoh = indiv.lai / (indiv.height - indiv.boleht);
-						double lai_leafon_layer = atoh * frac * VSTEP;
-						plai_layer += lai_leafon_layer * indiv.phen;
-						indiv.lai_leafon_layer = (indiv.pft.phenology == RAINGREEN || indiv.pft.phenology == ANY) ? lai_leafon_layer : lai_leafon_layer * indiv.phen;
-						plai_leafon_layer += indiv.lai_leafon_layer;
+						atoh=indiv.lai/(indiv.height-indiv.boleht);
+						indiv.lai_leafon_layer=atoh*frac*VSTEP;
+						plai_layer+=indiv.lai_leafon_layer*indiv.phen;
+						plai_leafon_layer+=indiv.lai_leafon_layer;
 					}
 					else {
-						indiv.lai_layer = 0.0;
-						indiv.lai_leafon_layer = 0.0;
+						indiv.lai_layer=0.0;
+						indiv.lai_leafon_layer=0.0;
 					}
 				}
 
@@ -353,8 +351,8 @@ void fpar(Patch& patch) {
 			}
 
 			// Update cumulative LAI for this layer and above
-			plai += plai_layer;
-			plai_leafon += plai_leafon_layer;
+			plai+=plai_layer;
+			plai_leafon+=plai_leafon_layer;
 
 			// Calculate FPAR at bottom of this layer
 			// Eqn 27, Prentice et al 1993
@@ -364,8 +362,8 @@ void fpar(Patch& patch) {
 
 			// Total PAR uptake in this layer
 
-			fpar_uptake_layer = fpar_layer_top - fpar_layer_bottom;
-			fpar_uptake_leafon_layer = fpar_leafon_layer_top - fpar_leafon_layer_bottom;
+			fpar_uptake_layer=fpar_layer_top-fpar_layer_bottom;
+			fpar_uptake_leafon_layer=fpar_leafon_layer_top-fpar_leafon_layer_bottom;
 			
 			// Partition PAR for this layer among trees,
 
@@ -375,23 +373,18 @@ void fpar(Patch& patch) {
 
 				// For this individual ...
 
-				if (indiv.pft.lifeform == TREE) {
+				if (indiv.pft.lifeform==TREE) {
 					if (!negligible(plai_leafon_layer))
 
 						// FPAR partitioned according to the relative amount 
 						// of leaf area in this layer for this individual
 
-						indiv.fpar_leafon += fpar_uptake_leafon_layer *
-							indiv.lai_leafon_layer / plai_leafon_layer;
+						indiv.fpar_leafon+=fpar_uptake_leafon_layer*
+							indiv.lai_leafon_layer/plai_leafon_layer;
 
-					if (!negligible(plai_layer)) {
-						if (indiv.pft.phenology == RAINGREEN || indiv.pft.phenology == ANY)
-							indiv.fpar += fpar_uptake_layer *
-								(indiv.lai_leafon_layer * indiv.phen) / plai_layer;
-						else
-							indiv.fpar += fpar_uptake_layer *
-								indiv.lai_leafon_layer / plai_layer;
-					}
+					if (!negligible(plai_layer))
+						indiv.fpar+=fpar_uptake_layer*
+							(indiv.lai_leafon_layer*indiv.phen)/plai_layer;
 				}
 
 				// ... on to next individual
@@ -408,13 +401,13 @@ void fpar(Patch& patch) {
 		// BLARP: Order changed Ben 050301 to overcome optimisation bug in pgCC
 
 		//plai+=plai_grass;
-		fpar_ff = lambertbeer(plai + plai_grass);
-		plai += plai_grass;
+		fpar_ff = lambertbeer(plai+plai_grass);
+		plai+=plai_grass;
 
 		// Save this
-		patch.fpar_ff = fpar_ff;
+		patch.fpar_ff=fpar_ff;
 
-		plai_leafon += plai_leafon_grass;
+		plai_leafon+=plai_leafon_grass;
 		fpar_leafon_ff = lambertbeer(plai_leafon);
 
 		// FPAR for grass PFTs is difference between relative PAR at top of grass canopy
@@ -424,7 +417,7 @@ void fpar(Patch& patch) {
 
 		// Loop through individuals
 
-		double fpar_tree_total = 0.0;
+		double fpar_tree_total=0.0;
 
 		vegetation.firstobj();
 		while (vegetation.isobj) {
@@ -432,36 +425,36 @@ void fpar(Patch& patch) {
 
 			// For this individual ...
 
-			if (indiv.pft.lifeform == GRASS) {
+			if (indiv.pft.lifeform==GRASS) {
 
 				// Calculate minimum FPAR for growth of this grass
 
 				// Fraction of total grass LAI represented by this grass
 
 				if (!negligible(plai_grass))
-					flai = indiv.lai * indiv.phen / plai_grass;
+					flai=indiv.lai*indiv.phen/plai_grass;
 				else
-					flai = 1.0;
+					flai=1.0;
 
 				if (!negligible(climate.par))
-					fpar_min = min(indiv.pft.parff_min / climate.par, 1.0);
+					fpar_min=min(indiv.pft.parff_min/climate.par,1.0);
 				else
-					fpar_min = 1.0;
+					fpar_min=1.0;
 
-				indiv.fpar = max(0.0, fpar_grass * flai - max(fpar_ff * flai, fpar_min));
+				indiv.fpar=max(0.0,fpar_grass*flai-max(fpar_ff*flai,fpar_min));
 
 				// Repeat assuming full leaf cover for all individuals
 
 				if (!negligible(plai_leafon_grass))
-					flai = indiv.lai / plai_leafon_grass;
+					flai=indiv.lai/plai_leafon_grass;
 				else
-					flai = 1.0;
+					flai=1.0;
 
-				indiv.fpar_leafon = max(0.0, fpar_leafon_grass * flai -
-					max(fpar_leafon_ff * flai, fpar_min));
+				indiv.fpar_leafon=max(0.0,fpar_leafon_grass*flai-
+					max(fpar_leafon_ff*flai,fpar_min));
 			}
 
-			if (indiv.pft.lifeform == TREE) fpar_tree_total += indiv.fpar;
+			if (indiv.pft.lifeform==TREE) fpar_tree_total+=indiv.fpar;
 
 			vegetation.nextobj();
 		}
@@ -470,23 +463,23 @@ void fpar(Patch& patch) {
 		// Growing season defined here as days when mean vegetation leaf-on fraction
 		// exceeds 50%
 
-		patch.fpar_grass = fpar_grass;
-		par_grass = fpar_grass * climate.par;
+		patch.fpar_grass=fpar_grass;
+		par_grass=fpar_grass*climate.par;
 
-		if (date.day == 0) {
-			patch.par_grass_mean = 0.0;
-			patch.nday_growingseason = 0;
+		if (date.day==0) {
+			patch.par_grass_mean=0.0;
+			patch.nday_growingseason=0;
 		}
 
-		if (phen_veg > PHEN_GROWINGSEASON) {
-			patch.par_grass_mean += par_grass;
+		if (phen_veg>PHEN_GROWINGSEASON) {
+			patch.par_grass_mean+=par_grass;
 			patch.nday_growingseason++;
 		}
 
 		// Convert from sum to mean on last day of year
 
 		if (date.islastday && date.islastmonth && patch.nday_growingseason) {
-			patch.par_grass_mean /= (double)patch.nday_growingseason;
+			patch.par_grass_mean/=(double)patch.nday_growingseason;
 		}
 	}
 }
@@ -913,15 +906,15 @@ void demand(Patch& patch) {
 				// Call photosynthesis with actual FPAR assuming stomates fully open
 				// (lambda = lambda_max)
 
-				// leafon for RAINGREENs
-				if (indiv.pft.phenology == RAINGREEN || indiv.pft.phenology == ANY) {
-					photosynthesis(climate.co2,climate.temp,climate.par,climate.daylength,
-						indiv.fpar_leafon,pft.lambda_max,pft,
-						indiv.nmass_leaf,indiv.lai,
-						indiv.photosynthesis);
+				// Call photosynthesis first with fpar_leafon to get gp_leafon below.
+				// Should hopefully not be needed in future, demand_leafon only used
+				// by raingreen phenology.
+				photosynthesis(climate.co2,climate.temp,climate.par,climate.daylength,
+					indiv.fpar_leafon,pft.lambda_max,pft,
+					indiv.nmass_leaf,indiv.lai,
+					indiv.photosynthesis);
 
-					indiv.gp_leafon = gpterm(indiv.photosynthesis.adtmm, climate.co2, pft.lambda_max, climate.daylength) + pft.gmin * indiv.fpc;
-				}
+				indiv.gp_leafon = gpterm(indiv.photosynthesis.adtmm, climate.co2, pft.lambda_max, climate.daylength) + pft.gmin * indiv.fpc;
 
 				// Individual photosynthesis
 				photosynthesis(climate.co2,climate.temp,climate.par,climate.daylength,
@@ -931,10 +924,7 @@ void demand(Patch& patch) {
 
 				indiv.vmax_lim[date.day] = indiv.photosynthesis.vmax_lim;
 
-				indiv.gpterm = gpterm(indiv.photosynthesis.adtmm, climate.co2, pft.lambda_max, climate.daylength) + pft.gmin * indiv.fpc;
-
-				if (indiv.pft.phenology != RAINGREEN && indiv.pft.phenology != ANY)
-					indiv.gp_leafon = indiv.gpterm;
+				indiv.gpterm = gpterm(indiv.photosynthesis.adtmm, climate.co2, pft.lambda_max, climate.daylength);
 
 				// Save assimilation in case this turns out to be a non-water-stress day
 
@@ -991,7 +981,7 @@ void demand(Patch& patch) {
 
 		// Increment patch sums of non-water-stressed gp by individual value
 
-		gp_patch += (ifnlim) ? indiv.gpterm : indiv.gp_leafon * indiv.phen;
+		gp_patch += (ifnlim) ? indiv.gpterm + pft.gmin * indiv.fpc * indiv.phen : indiv.gp_leafon * indiv.phen;
 		gp_leafon_patch += indiv.gp_leafon;
 
 		// ... on to next individual

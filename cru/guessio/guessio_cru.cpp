@@ -4875,7 +4875,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				if (standpft_anpp_no_nlim>0.0 && standpft_anpp>0.0)
 					standpft_nlim=standpft_anpp/standpft_anpp_no_nlim;
 				else
-					standpft_nlim=0.0;
+					standpft_nlim=1.0;
 				
 				gcpft_cmass_leaf+=standpft_cmass_leaf;
 				gcpft_nmass_leaf+=standpft_nmass_leaf;
@@ -5070,12 +5070,12 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 					firert_gridcell+=(1.0/patch.fireprob)/(double)stand.npatch();
 
 				// GUESSN
-				andep_gridcell+=patch.soil.ndep_annual/(double)stand.npatch()*10000.0;	// convert from m2 to ha
-				anmin_gridcell+=patch.soil.nmin_annual/(double)stand.npatch()*10000.0;	// convert from m2 to ha
-				animm_gridcell+=patch.soil.nimmob_annual/(double)stand.npatch()*10000.0; // convert from m2 to ha
+				andep_gridcell+=patch.soil.andep/(double)stand.npatch()*10000.0;	// convert from m2 to ha
+				anmin_gridcell+=patch.soil.anmin/(double)stand.npatch()*10000.0;	// convert from m2 to ha
+				animm_gridcell+=patch.soil.animmob/(double)stand.npatch()*10000.0; // convert from m2 to ha
 				anfix_gridcell+=patch.soil.anfix/(double)stand.npatch()*10000.0;		// convert from m2 to ha
-				n_min_leach_gridcell+=patch.soil.n_min_leach_annual/(double)stand.npatch()*10000.0;	// convert from m2 to ha
-				n_org_leach_gridcell+=patch.soil.n_org_leach_annual/(double)stand.npatch()*10000.0;	// convert from m2 to ha
+				n_min_leach_gridcell+=patch.soil.aminleach/(double)stand.npatch()*10000.0;	// convert from m2 to ha
+				n_org_leach_gridcell+=patch.soil.aorgleach/(double)stand.npatch()*10000.0;	// convert from m2 to ha
 				nsupply_gridcell+=patch.nsupply/(double)stand.npatch()*10000.0;			// convert from m2 to ha
 				ndemand_gridcell+=patch.ndemand/(double)stand.npatch()*10000.0;			// convert from m2 to ha
 

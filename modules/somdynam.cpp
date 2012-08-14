@@ -50,6 +50,9 @@ static const double FASTFRAC=0.985;
 static const double ATMFRAC=0.7;
 	// fraction of litter decomposition entering atmosphere
 
+// Corresponds to minimum soil available N where SOM C:N ratio reach
+// their minimum (Parton et al 1993, Fig. 4)
+static const double nmin_balance_max = 0.002;	
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL VARIABLES
@@ -338,27 +341,27 @@ void som_dynamics_lpj(Patch& patch) {
 void est_nmin_balance(Patch& patch, Soil& soil, Climate& climate) {
 
 	// N fixation (using last year as an estimate as it is calculated on last day of year)
-	double nfix;
+	double anfix;
 
 	// If disturbance then no aaet -> can't use last years estimate as leaching might then exceed
 	// available N in end of year
 	if (patch.age)
-		nfix = soil.anfix / 365.0;
+		anfix = soil.anfix / 365.0;
 	else {
 		if (nfix_b > 0.0)
-			nfix = nfix_b / 100000.0 / 365.0;
+			anfix = nfix_b / 100000.0 / 365.0;
 		else
-			nfix = 0.0;
+			anfix = 0.0;
 	}
 
 	// First day of year
 	if (date.day == 0) {
-		soil.n_min_leach_annual = 0.0;
-		soil.nmin_balance = soil.nmass_avail + climate.dndep[date.day] + nfix;
+		soil.aminleach = 0.0;
+		soil.nmin_balance = soil.nmass_avail + climate.dndep[date.day] + anfix;
 	}
 	else {
 		// Update "daily" nmass available 
-		soil.nmin_balance += soil.nmin_daily[date.day-1] - soil.nimmob_daily[date.day-1] + climate.dndep[date.day] + nfix;
+		soil.nmin_balance += soil.nmin_daily[date.day-1] - soil.nimmob_daily[date.day-1] + climate.dndep[date.day] + anfix;
 	}
 
 	// Loop through individuals to determine N demand
@@ -392,7 +395,7 @@ void est_nmin_balance(Patch& patch, Soil& soil, Climate& climate) {
 	if (soil.nmin_balance > 0.0) {
 		double leaching = soil.nmin_balance * soil.minleachfrac_daily[date.day];
 		soil.nmin_balance -= leaching;
-		soil.n_min_leach_annual += leaching;
+		soil.aminleach += leaching;
 		soil.sompool[LEACHED].nmass += leaching;
 	}
 }
@@ -560,7 +563,6 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 	double leachsum_cmass, leachsum_nmass;
 	double nmin_actual = 0.0;	// actual (not net) N mineralisation
 	double nimmob = 0.0;		// N immobilisation
-	const double nmin_balance_max = 0.002;	//(Parton et al 1993, Fig. 4)
 
 	// Set N:C ratios for humus, soil microbial, passive and slow pool based on estimated mineral N pool
 	// (Parton et al 1993, Fig 4)
@@ -776,9 +778,9 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 
 	// Sum annual organic nitrogen leaching
 	if (date.day == 0)
-		soil.n_org_leach_annual = 0.0;
+		soil.aorgleach = 0.0;
 
-	soil.n_org_leach_annual += leachsum_nmass;
+	soil.aorgleach += leachsum_nmass;
 
 	// Store daily mineralisation and immobilisation to permit calculation of daily
 	// mineral nitrogen balance at end of year
@@ -1047,23 +1049,23 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 	// PLUS sum of daily mineralisation MINUS sum of daily immobilisation
 
 	// N deposition
-	soil.ndep_annual = patch.stand.gridcell.climate.andep;
+	soil.andep = patch.stand.gridcell.climate.andep;
 
 	// N fixation
 	soil.anfix = max((nfix_a * patch.aaet + nfix_b) / 100000.0, 0.0);	
 
 	// N mineralisation and immobilisation
-	soil.nmin_annual = 0.0;
-	soil.nimmob_annual = 0.0;
+	soil.anmin = 0.0;
+	soil.animmob = 0.0;
 
 	for (int d=0;d<365;d++) {
-		soil.nmin_annual += soil.nmin_daily[d];
-		soil.nimmob_annual += soil.nimmob_daily[d];
+		soil.anmin += soil.nmin_daily[d];
+		soil.animmob += soil.nimmob_daily[d];
 	}
 
 	// Total N supply in patch
-	patch.nsupply = soil.nmass_avail + soil.ndep_annual + soil.anfix+
-		soil.nmin_annual - soil.nimmob_annual - soil.n_min_leach_annual;
+	patch.nsupply = soil.nmass_avail + soil.andep + soil.anfix+
+		soil.anmin - soil.animmob - soil.aminleach;
 
 	// ANNUAL N DEMAND FOR PATCH
 
@@ -1082,8 +1084,8 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 
 			double max_n_reserve_uptake;
 
-			if (!negligible(indiv.ndemand_uptake))
-				max_n_reserve_uptake = min(1.0, max(0.0, (indiv.max_n_reserve - indiv.nmass_reserve) / indiv.ndemand_uptake));
+			if (!negligible(indiv.ndemand))
+				max_n_reserve_uptake = min(1.0, max(0.0, (indiv.max_n_reserve - indiv.nmass_reserve) / indiv.ndemand));
 			else
 				max_n_reserve_uptake = 0.0;
 
@@ -1091,13 +1093,13 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 			if (indiv.nmass_reserve > indiv.max_n_reserve)
 				indiv.n_reserve_uptake = 0.0;
 			// fill up storage to max
-			else if (indiv.max_n_reserve - indiv.nmass_reserve < max_n_reserve_uptake * indiv.ndemand_uptake)
-				indiv.n_reserve_uptake = (indiv.max_n_reserve - indiv.nmass_reserve) / indiv.ndemand_uptake;
+			else if (indiv.max_n_reserve - indiv.nmass_reserve < max_n_reserve_uptake * indiv.ndemand)
+				indiv.n_reserve_uptake = (indiv.max_n_reserve - indiv.nmass_reserve) / indiv.ndemand;
 			// store as much as possible 
 			else
 				indiv.n_reserve_uptake = max_n_reserve_uptake;
 
-			indiv.ndemand_uptake *= (1.0 + indiv.n_reserve_uptake);
+			indiv.ndemand *= (1.0 + indiv.n_reserve_uptake);
 		}
 
 		// Sum nitrogen demand of individuals with positive assimilation
@@ -1107,7 +1109,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 			indiv.aassim += max(0.0, indiv.dassim[d]);
 		
 		if (!negligible(indiv.aassim)) 
-			patch.ndemand += indiv.ndemand_uptake;
+			patch.ndemand += indiv.ndemand;
 
 		 vegetation.nextobj();
 	}
@@ -1117,13 +1119,25 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 		ndemand_new_est(patch, pftlist, patch.ndemand);
 
 	// Rescale demand to not exceed supply (Eqn 4)
-
 	if (patch.nsupply <= 0.0) 
 		patch.fnuptake = 0.0; 
 	else if (patch.ndemand > patch.nsupply) 
 		patch.fnuptake = patch.nsupply / patch.ndemand;	
 	else 
 		patch.fnuptake = 1.0;
+
+	// If soil available N is above the value for minimum SOM C:N ratio, then
+	// N fixation is reduced (N rich soils)
+	if (patch.fnuptake == 1.0 && patch.nsupply > patch.ndemand + nmin_balance_max) {
+		if (soil.anfix <= patch.nsupply - (patch.ndemand + nmin_balance_max)) {
+			patch.nsupply -= soil.anfix;
+			soil.anfix = 0.0;
+		}
+		else {
+			soil.anfix -= patch.nsupply - (patch.ndemand + nmin_balance_max);
+			patch.nsupply = (patch.ndemand + nmin_balance_max);
+		}
+	}
 
 	// Individual fnuptake
 	if (patch.fnuptake < 1.0 && patch.fnuptake > 0.0) {
@@ -1159,7 +1173,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 
 					// Daily N demand by this individual (Eqn 1)
 					
-					ndemand_day = indiv.dassim[d] / indiv.aassim * indiv.ndemand_uptake;
+					ndemand_day = indiv.dassim[d] / indiv.aassim * indiv.ndemand;
 
 					// Daily N uptake by this individual (Eqn 3)
 					nuptake_day = ndemand_day * indiv.fnuptake;
@@ -1268,7 +1282,7 @@ void check_nbalance(Patch& patch, bool print) {
 			patch.pft.nextobj();
 		}
 
-		nadded += soil.anfix + soil.ndep_annual;
+		nadded += soil.anfix + soil.andep;
 
 		if (print && date.year > nyear_spinup) 
 			dprintf("N BALANCE - difference over %d years: %g\n",

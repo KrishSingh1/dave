@@ -179,7 +179,7 @@ void indiv_fnuptake(Vegetation& vegetation, double nsupply_patch, double fnuptak
 
 		if (indiv.pft.phenology == RAINGREEN) {
 			temp_nsupply_patch -= indiv.raingreen_ndemand;
-			indiv.ndemand_uptake -= indiv.raingreen_ndemand;
+			indiv.ndemand -= indiv.raingreen_ndemand;
 			indiv.nstore += indiv.raingreen_ndemand;
 		}
 		vegetation.nextobj();
@@ -191,8 +191,8 @@ void indiv_fnuptake(Vegetation& vegetation, double nsupply_patch, double fnuptak
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
-		if (indiv.pft.lifeform == GRASS && !negligible(indiv.ndemand_uptake)) {
-			GRASS_ndemand += indiv.ndemand_uptake;
+		if (indiv.pft.lifeform == GRASS && !negligible(indiv.ndemand)) {
+			GRASS_ndemand += indiv.ndemand;
 			grass_uptake_decider += nitrogen_uptake_strength(indiv);
 		}
 		vegetation.nextobj();
@@ -213,10 +213,10 @@ void indiv_fnuptake(Vegetation& vegetation, double nsupply_patch, double fnuptak
 
 		// GRASS
 		// if grasses gets enough from its part, then take it up
-		if (indiv.pft.lifeform == GRASS && GRASS_100 && !negligible(indiv.ndemand_uptake)) {
+		if (indiv.pft.lifeform == GRASS && GRASS_100 && !negligible(indiv.ndemand)) {
 
 			// when grass part of total N is enough, then subtract it from total
-			temp_nsupply_patch -= indiv.ndemand_uptake;
+			temp_nsupply_patch -= indiv.ndemand;
 			// set uptake to meet demand
 			indiv.fnuptake = 1.0;
 			// and subtract uptake strength as it will be added further down
@@ -225,7 +225,7 @@ void indiv_fnuptake(Vegetation& vegetation, double nsupply_patch, double fnuptak
 		
 		// TREE
 		// Sum up uptake strengths
-		if (!negligible(indiv.ndemand_uptake)) {
+		if (!negligible(indiv.ndemand)) {
 			total_uptake_decider += nitrogen_uptake_strength(indiv);
 		}
 
@@ -280,17 +280,17 @@ void indiv_fnuptake(Vegetation& vegetation, double nsupply_patch, double fnuptak
 
 			// if lifeform is GRASS and they can't compite with TREEs for more than their part of the total N supply
 			if (indiv.pft.lifeform == GRASS && not_more_grass && indiv.fnuptake != 1.0) {
-				if (!negligible(indiv.ndemand_uptake)) {
+				if (!negligible(indiv.ndemand)) {
 
 					indiv.fnuptake = grass_nsupply * (nitrogen_uptake_strength(indiv)
-						/ grass_uptake_decider) / indiv.ndemand_uptake;
+						/ grass_uptake_decider) / indiv.ndemand;
 
 					if (indiv.fnuptake > 1.0) {
 
 						indiv.fnuptake = 1.0;
 
 						// subtract N demand from grass N supply
-						grass_nsupply -= indiv.ndemand_uptake;
+						grass_nsupply -= indiv.ndemand;
 
 						// and take away this indiv uptake strength from grass total
 						grass_uptake_decider -= nitrogen_uptake_strength(indiv);
@@ -311,12 +311,12 @@ void indiv_fnuptake(Vegetation& vegetation, double nsupply_patch, double fnuptak
 				if (indiv.fnuptake != 1.0) {
 
 					// if indiv has the strenght to take up more than N demand
-					if (ratio_uptake * nitrogen_uptake_strength(indiv) > indiv.ndemand_uptake && !negligible(indiv.ndemand_uptake)){
+					if (ratio_uptake * nitrogen_uptake_strength(indiv) > indiv.ndemand && !negligible(indiv.ndemand)){
 						
 						indiv.fnuptake = 1.0;
 						
 						// subtract N demand from N supply
-						temp_nsupply_patch -= indiv.ndemand_uptake;
+						temp_nsupply_patch -= indiv.ndemand;
 
 						// and take away this indiv uptake strength from total
 						total_uptake_decider -= nitrogen_uptake_strength(indiv);
@@ -326,8 +326,8 @@ void indiv_fnuptake(Vegetation& vegetation, double nsupply_patch, double fnuptak
 						full_uptake = true;
 					}
 					// normal N limited uptake (0.0 < fuptake < 1.0)
-					else if (indiv.ndemand_uptake > 0.0)
-						indiv.fnuptake = (ratio_uptake * nitrogen_uptake_strength(indiv)) / indiv.ndemand_uptake;
+					else if (indiv.ndemand > 0.0)
+						indiv.fnuptake = (ratio_uptake * nitrogen_uptake_strength(indiv)) / indiv.ndemand;
 					else
 						indiv.fnuptake = 0.0;
 				}
@@ -442,17 +442,17 @@ void ndemand_new_est(Patch& patch, Pftlist& pftlist, double& patch_ndemand) {
 
 				// GUESSN
 				// Initialise N demand
-				indiv.ndemand_uptake=
+				indiv.ndemand=
 					indiv.cmass_leaf/indiv.pft.cton_leaf_avr+
 					indiv.cmass_root/indiv.pft.cton_root_avr;
 
-				if (indiv.ndemand_uptake>0.0) {
+				if (indiv.ndemand>0.0) {
 					indiv.aassim=365.0;
 					for (int d=0;d<365;d++) 
 						indiv.dassim[d]=1.0;	// Could be phen or something realistic
 				}
 
-				patch_ndemand+=indiv.ndemand_uptake;
+				patch_ndemand+=indiv.ndemand;
 			}
 			else if (pft.lifeform==TREE) {
 
@@ -567,20 +567,20 @@ void ndemand_new_est(Patch& patch, Pftlist& pftlist, double& patch_ndemand) {
 
 					// GUESSN
 					// Initialise N demand
-					indiv.ndemand_uptake=(
+					indiv.ndemand=(
 						indiv.cmass_leaf/indiv.pft.cton_leaf_avr+
 						indiv.cmass_root/indiv.pft.cton_root_avr+
 						indiv.cmass_sap/(indiv.pft.cton_sap_avr/indiv.pft.cton_leaf_avr*indiv.pft.cton_leaf_avr)+
 						indiv.cmass_heart/(indiv.pft.cton_sap_avr/indiv.pft.cton_leaf_avr*indiv.pft.cton_leaf_avr)+
 						indiv.nmass_reserve);
 
-					if (indiv.ndemand_uptake>0.0) {
+					if (indiv.ndemand>0.0) {
 						indiv.aassim=365.0;
 						for (int d=0;d<365;d++) 
 							indiv.dassim[d]=1.0;	// Could be phen or something realistic
 					}
 
-					patch_ndemand+=indiv.ndemand_uptake;
+					patch_ndemand+=indiv.ndemand;
 				}
 			}
 		}
@@ -935,7 +935,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 						// GUESSN grass gets at least 5% of available N. When established
 						// they shouldn't been able to get more!
-						double bminit_n_lim=indiv.pft.cton_leaf_avr*patch.nsupply*0.05;
+						double bminit_n_lim=indiv.pft.cton_leaf_avr*max(0.0,patch.nsupply)*0.05;
 
 						if (ifdisturb && patch.disturbed)
 							bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est_initial;
@@ -968,7 +968,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 								indiv.cmass_leaf/indiv.pft.cton_leaf_avr+
 								indiv.cmass_root/indiv.pft.cton_root_avr;
 
-						if (ifnlim && date.year>=freenyears) {
+						if (ifnlim && date.year>=freenyears && indiv.ndemand > 0.0) {
 							double frac_est=min(1.0,patch.pft[pft.id].nstore_est/indiv.ndemand);
 							indiv.cmass_leaf*=frac_est;
 							indiv.nmass_leaf*=frac_est;

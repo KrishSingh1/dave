@@ -314,25 +314,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 			soil.rain_melt = 0;			
 		}
 
-		for (int s=1; s<NSOILLAYER; s++) {
-
-			// Percolation
-			// Allow only on days with rain or snowmelt (Dieter Gerten, 021216)
-
-			double perc = min(soil.soiltype.perc_base*pow(soil.wcont[s-1],soil.soiltype.perc_exp), soil.max_rain_melt);
-			
-			double perc_frac = min(perc/soil.soiltype.awc[s-1], soil.wcont[s-1]);
-
-			soil.wcont[s-1] -= perc_frac;
-			soil.wcont[s] += perc_frac * soil.soiltype.awc[s-1] / soil.soiltype.awc[s];
-			if (soil.wcont[s] > 1.0) {
-				double wreturn = (soil.wcont[s]-1.0)*soil.soiltype.awc[s];
-				soil.wcont[s-1] += wreturn / soil.soiltype.awc[s-1];
-				soil.wcont[s] = 1.0;
-			}
-		}
-
-		soil.wcont_evap = SOILDEPTH_EVAP/SOILDEPTH_UPPER*soil.wcont[0];
+		soil.wcont_evap = soil.wcont[0];
 	}
 }
 

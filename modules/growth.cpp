@@ -816,7 +816,7 @@ void raingreen_ndemand(Vegetation& vegetation, double& ndemand_patch, double& ns
 		if (indiv.pft.phenology == RAINGREEN) {
 			nsupply_patch -= indiv.raingreen_ndemand;
 			ndemand_patch -= indiv.raingreen_ndemand;
-			indiv.ndemand_uptake -= indiv.raingreen_ndemand;
+			indiv.ndemand -= indiv.raingreen_ndemand;
 			indiv.nstore += indiv.raingreen_ndemand;
 		}
 		vegetation.nextobj();
@@ -950,7 +950,7 @@ void indiv_ndemand(Gridcell& gridcell, landcovertype landcover, Fluxes& fluxes, 
 			dval, landcover, gridcell);
 
 	// N demand not associated with growth
-	indiv.ndemand_uptake = indiv.raingreen_ndemand - nstore_turnover;// + repr_ndemand;	// sch Need to ask Ben how to do with repr nmass
+	indiv.ndemand = indiv.raingreen_ndemand - nstore_turnover;
 
 	if (indiv.pft.lifeform == TREE) { 
 
@@ -970,7 +970,7 @@ void indiv_ndemand(Gridcell& gridcell, landcovertype landcover, Fluxes& fluxes, 
 					cmass_heart_inc, dval, dval, ival);
 
 		// Calculate N needed for this new biomass
-		indiv.ndemand_uptake +=
+		indiv.ndemand += 
 			max(0.0, cmass_leaf_inc) * densindiv_tmp / indiv.cton_leaf_new+
 			max(0.0, cmass_root_inc) * densindiv_tmp / cton_root_new+
 			max(0.0, cmass_sap_inc) * densindiv_tmp / cton_sap_new;
@@ -982,7 +982,7 @@ void indiv_ndemand(Gridcell& gridcell, landcovertype landcover, Fluxes& fluxes, 
 		}
 
 		// No negative N demand
-		indiv.ndemand_uptake = max(indiv.ndemand_uptake, 0.0);
+		indiv.ndemand = max(indiv.ndemand, 0.0);
 	}
 	else {
 
@@ -992,7 +992,7 @@ void indiv_ndemand(Gridcell& gridcell, landcovertype landcover, Fluxes& fluxes, 
 					dval, dval, ival);
 
 		// Calculate N needed for this new biomass
-		indiv.ndemand_uptake +=
+		indiv.ndemand += 
 			max(0.0, cmass_leaf_inc) * densindiv_tmp / indiv.cton_leaf_new +
 			max(0.0, cmass_root_inc) * densindiv_tmp / cton_root_new;
 
@@ -1003,7 +1003,7 @@ void indiv_ndemand(Gridcell& gridcell, landcovertype landcover, Fluxes& fluxes, 
 		}
 
 		// No negative N demand
-		indiv.ndemand_uptake = max(indiv.ndemand_uptake, 0.0);
+		indiv.ndemand = max(indiv.ndemand, 0.0); 
 	}
 }
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -1945,6 +1945,8 @@ void growth(Stand& stand,Patch& patch) {
 
 	// guess2008 - minimum carbon mass allowed (kgC/m2)
 	const double MINCMASS=1.0e-8;
+		// minimum carbon mass allowed (kgC/m2)
+	const double MAXCMASS=1.0e8;
 
 	const double CDEBT_PAYBACK_RATE=0.2;
 
@@ -1999,49 +2001,7 @@ void growth(Stand& stand,Patch& patch) {
 		for (p=0;p<npft;p++)
 			stand.pft[p].cmass_repr=0.0;
 
-	// BUG CHECK
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv=vegetation.getobj();
-		// For this individual 
-
-		if (indiv.cmass_leaf<MINCMASS || indiv.cmass_root<MINCMASS) {
-
-			// guess2008 - alive check
-			if (indiv.alive) {
-
-				// guess2008 - catches small, negative values too
-				patch.pft[indiv.pft.id].litter_leaf+=indiv.cmass_leaf;
-				patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
-
-				patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap;
-				patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_heart-indiv.cmass_debt;
-					
-				// GUESSN
-				patch.pft[indiv.pft.id].nmass_litter_leaf+=max(indiv.nmass_leaf,0.0);
-				patch.pft[indiv.pft.id].nmass_litter_root+=max(indiv.nmass_root,0.0);
-
-				patch.pft[indiv.pft.id].nmass_litter_wood+=max(indiv.nmass_sap,0.0)+
-					max(indiv.nmass_heart,0.0);
-						
-				// Transfer N storage to wood N litter for now
-				patch.pft[indiv.pft.id].nmass_litter_wood+=max(indiv.nstore,0.0)+max(indiv.nmass_reserve,0.0);
-				// end GUESSN
-			} 
-			else {	// GUESSN return N to soil so N budget is preserved
-				patch.soil.nmass_avail+=max(indiv.nmass_leaf,0.0)+max(indiv.nmass_root,0.0)+max(indiv.nmass_sap,0.0)+
-					max(indiv.nmass_heart,0.0)+max(indiv.nstore,0.0)+max(indiv.nmass_reserve,0.0);
-				// end GUESSN
-			}
-
-			vegetation.killobj();
-			killed=true;
-		}
-		// ... on to next individual
-		vegetation.nextobj();
-	}
-
-	// Loop through individuals	
+	// Loop through individuals		
 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
@@ -2156,7 +2116,7 @@ void growth(Stand& stand,Patch& patch) {
 				// determined from the ndemand allocation without any N limitation (indiv_ndemand())
 				// to determine C:N ratio of leafs that will result in no N limitation
 
-				if (bminc > 0.0 && indiv.ndemand_uptake > 0.0) {
+				if (bminc > 0.0 && indiv.ndemand > 0.0) {
 					double A;
 					if (indiv.pft.lifeform == TREE) {
 						A=bminc*(indiv.bminc_leaf_frac+indiv.bminc_root_frac*indiv.pft.cton_leaf_avr/indiv.pft.cton_root_avr+
@@ -2228,7 +2188,7 @@ void growth(Stand& stand,Patch& patch) {
 				// (NB: this overwrites the alternative factor calculated in canexch.cpp, but this
 				// one is better!)
 
-				if (ifnlim && (indiv.nstore+1.0e-14<indiv.ndemand || indiv.nstore < 0.0) && !negligible(indiv.ndemand)) {
+				if (ifnlim && (indiv.nstore+1.0e-14<indiv.ndemand || indiv.nstore < 0.0) && indiv.ndemand > 0.0) {
 					if (indiv.nstore<0.0) {
 						indiv.limnfact=0.0;
 					}
@@ -2423,9 +2383,6 @@ void growth(Stand& stand,Patch& patch) {
 						// Transfer N storage to wood N litter for now
 						patch.pft[indiv.pft.id].nmass_litter_wood+=max(indiv.nstore,0.0)+max(indiv.nmass_reserve,0.0);
 						// end GUESSN
-
-						if (indiv.nmass_sap<0.0 || indiv.nmass_heart<0.0 || indiv.nstore<0.0 || indiv.nmass_reserve<0.0)
-							dprintf("Year %d 111 negative\n",date.year);	// sch = 0;
 					} 
 					else {	// GUESSN return N to soil so N budget is preserved
 						patch.soil.nmass_avail+=max(indiv.nmass_leaf,0.0)+max(indiv.nmass_root,0.0)+max(indiv.nmass_sap,0.0)+
@@ -2464,7 +2421,7 @@ void growth(Stand& stand,Patch& patch) {
 				// (NB: this overwrites the alternative factor calculated in canexch.cpp, but this
 				// one is better!)
 
-				if (ifnlim && (indiv.nstore+1.0e-14<indiv.ndemand || indiv.nstore < 0.0) && !negligible(indiv.ndemand)) {
+				if (ifnlim && (indiv.nstore+1.0e-14<indiv.ndemand || indiv.nstore < 0.0) && indiv.ndemand > 0.0) {
 					if (indiv.nstore<0.0)	
 						indiv.limnfact=0.0;
 					else {
@@ -2656,9 +2613,6 @@ void growth(Stand& stand,Patch& patch) {
 					// Transfer N storage to root N litter for now
 					patch.pft[indiv.pft.id].nmass_litter_root+=max(indiv.nstore,0.0)+max(indiv.nmass_reserve,0.0);
 					// end GUESSN
-
-					if (indiv.nmass_sap<0.0 || indiv.nmass_heart<0.0 || indiv.nstore<0.0 || indiv.nmass_reserve<0.0)
-							dprintf("Year %d 222 negative\n",date.year);	// sch = 0;
 				}
 				else {	// GUESSN return N to soil so N budget is preserved
 					patch.soil.nmass_avail+=max(indiv.nmass_leaf,0.0)+max(indiv.nmass_root,0.0)+max(indiv.nmass_sap,0.0)+

@@ -111,13 +111,9 @@ typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptakety
 // number of soil layers modelled
 const int NSOILLAYER=2;
 
-
-
-
 // SOIL DEPTH VALUES
 const double SOILDEPTH_UPPER=500.0; // soil upper layer depth (mm)
 const double SOILDEPTH_LOWER=1000.0; // soil lower layer depth (mm)
-
 
 	// guess2008 - new default SOM values
 const int SOLVESOM_END=400;
@@ -208,9 +204,9 @@ extern bool ifleachn;
 extern bool ifindiv_fnuptake;
 	// whether to allow individual fractional N uptake
 extern double nfix_a;
-	// first term in N fixation eqn
+	// first term in N fixation eqn (Cleveland et al 1999)
 extern double nfix_b;
-	// second term in N fixation eqn
+	// second term in N fixation eqn (Cleveland et al 1999)
 extern bool ifndepdata;
 	// whether N deposition data available from a file
 // end GUESSN
@@ -422,9 +418,11 @@ struct PhotosynthesisResult {
 	/// factor accounting for effect of intercellular CO2 concentration on C4 photosynthesis
     double phi_pi;
 
-	double nmass_term; // GUESSN
+	/// leaf nitrogen associated with photosynthesis (kgN/m2)
+	double nmass_term;
 
-	double vmax_lim; // GUESSN
+	/// nitrogen limitation on vm
+	double vmax_lim;
 
 	/// gross daily photosynthesis (kgC/m2/day)
     double agd() const {
@@ -519,11 +517,10 @@ public:
 	double aprec;
 	double asun;
 
-	// GUESSN
-	// annual nitrogen deposition (kgN/m2/year)
+	/// annual nitrogen deposition (kgN/m2/year)
 	double andep;
+	/// daily nitrogen deposition (kgN/m2/year)
 	double dndep[365];
-	// end GUESSN
 
 	// Monthly sums (converted to means) used by canopy exchange module
 
@@ -641,19 +638,18 @@ public:
 	double mmon[12];
 	        // monthly monoterpene flux (g C/m2/month)
 
-	// GUESSN
-	// annaul NH3 flux to atmosphere from fire
+	/// annaul NH3 flux to atmosphere from fire
 	double aNH3_fire;
-	// annaul NO flux to atmosphere from fire	
+	/// annaul NO flux to atmosphere from fire	
 	double aNO_fire;
-	// annaul NO flux to atmosphere from fire
+	/// annaul NO flux to atmosphere from fire
 	double aNO2_fire;
-	// annaul N2O flux to atmosphere from fire	
+	/// annaul N2O flux to atmosphere from fire	
 	double aN2O_fire;
-	// emssion ratios from fire (NH3, NO, NO2, N2O)
+	/// emssion ratios from fire (NH3, NO, NO2, N2O)
 	double firenratio[4];
-	// Reproduction N is return to atmosphere
-	double aNrepr;
+	/// Reproduction nitrogen is return to atmosphere
+	//double aNrepr;
 
 	// MEMBER FUNCTIONS
 
@@ -678,7 +674,7 @@ public:
 		aNO_fire=0.0;
 		aNO2_fire=0.0;
 		aN2O_fire=0.0;
-		aNrepr=0.0;
+		//aNrepr=0.0;
 	}		
 
 	double anee() {
@@ -740,27 +736,27 @@ public:
 		// maximum evapotranspiration rate (mm/day)
 	double respcoeff;
 		// maintenance respiration coefficient (0-1)
-	// GUESSN
+	
+	/// minimum leaf C:N mass ratio
 	double cton_leaf_min;
-		// minimum leaf C:N mass ratio
+	/// maximum leaf C:N mass ratio	
 	double cton_leaf_max;
-		// maximum leaf C:N mass ratio
+	/// average leaf C:N mass ratio
 	double cton_leaf_avr;
-		// average leaf C:N mass ratio
+	/// average fine root C:N mass ratio	
 	double cton_root_avr;
-		// average fine root C:N mass ratio
+	/// average sapwood C:N mass ratio	
 	double cton_sap_avr;
-		// average sapwood C:N mass ratio
+	// nitrogen storage organ in relation to sapwood carbon for TREE and root carbon for GRASS
 	double n_reserve;
-		// N storage organ in relation to sapwood carbon
+	/// Intercept parameter in the relation between leaf N not associated with photosynthesis and total leaf N 
+	/// (leaf nitrogen content expressed on a leaf area basis) Friend et al. 1997
 	double a0;
-		// Intercept parameter in the relation between leaf N not associated with photosynthesis and total leaf N 
-		// (leaf nitrogen content expressed on a leaf area basis) Friend et al. 1997
-	// end GUESSN
-	double reprfrac;
-		// fraction of NPP allocated to reproduction
+	/// reproduction C:N ratio
 	double reprCN;
-		// reproduction C:N ratio
+		
+	double reprfrac;
+		// fraction of NPP allocated to reproduction		
 	double turnover_leaf;
 		// annual leaf turnover as a proportion of leaf C biomass
 	double turnover_root;
@@ -863,8 +859,6 @@ public:
 	double storfrac_mon;
 	        // fraction of monoterpene production that goes into storage pool (-)
 	
-	
-
 	// Sapling/regeneration characteristics (used only in population mode):
 	// for trees, on sapling individual basis (kgC); for grasses, on stand area basis,
 	// kgC/m2
@@ -918,6 +912,8 @@ public:
 		// m2/kgC)
 
 		sla=0.2*exp(6.15-0.46*log(leaflong*12.0));
+
+		//sla=0.2*exp(5.63-0.46*log(leaflong*12.0)); // David think the first constant is wrong
 	}
 
 	void initregen() {
@@ -1017,18 +1013,16 @@ public:
 	double cmass_debt;
 		// C "debt" (retrospective storage) (kgC/m2)
 
-	// GUESSN
+	/// N content of leaves on patch area basis (kgN/m2)
 	double nmass_leaf;
-		// N content of leaves on patch area basis (kgN/m2)
+	/// N content of roots on patch area basis (kgN/m2)	
 	double nmass_root;
-		// N content of roots on patch area basis (kgN/m2)
+	/// N content of sapwood on patch area basis (kgN/m2)	
 	double nmass_sap;
-		// N content of sapwood on patch area basis (kgN/m2)
+	/// N content of heartwood on patch area basis (kgN/m2)
 	double nmass_heart;
-		// N content of heartwood on patch area basis (kgN/m2)
+	/// N content of storage on patch area basis (kgN/m2)
 	double nmass_reserve;
-		// N content of storage on patch area basis (kgN/m2)
-	// end GUESSN
 
 	double fpc;
 		// foliar projective cover (FPC) under full leaf cover as fraction of modelled
@@ -1106,8 +1100,10 @@ public:
 		// FPAR assuming full leaf cover for all vegetation
 	double lai_leafon_layer;
 		// LAI for current layer in canopy (cohort/individual mode; see function fpar)
-	double gp_leafon;
+	double gpterm;
 		// non-water-stressed canopy conductance on FPC basis (mm/s)
+	double gp_leafon;
+		// non-water-stressed canopy conductance assuming full leaf cover on FPC basis (mm/s)
 	double demand;
 		// transpirative demand on FPC basis (mm/day)
 	double demand_leafon;
@@ -1135,37 +1131,62 @@ public:
 	int nday_wstress; // number of water-stress days for month
 	bool ifwstress; // whether individual subject to water stress today
 
-	// GUESSN
-
+	/// relocated N from leaves and roots and accumulated uptake from soil mineral N pool
 	double nstore;
-		// relocated N from leaves and roots and accumulated uptake from soil mineral N pool
+	/// accumulated uptake from soil mineral N pool
 	double nuptake;
-		// accumulated uptake from soil mineral N pool
+	/// cumulative mean (calculated at end of each month) of daily leaf N (kgN/m2)
+	/// (leaf N demand calculated from Vmax)
 	double leafn;
-		// cumulative mean (calculated at end of each month) of daily leaf N (kgN/m2)
-		// (leaf N demand calculated from Vmax)
+	/// largest monthly value of leafn for year
 	double leafn_max;
-		// largest monthly value of leafn for year
+	/// mean monthly value of leafn for year	
 	double leafn_mean;
-		// mean monthly value of leafn for year
+	/// annual N demand (used in growth)	
 	double ndemand;
-		// annual N demand (used in growth)
+	/// annual N demand under no N limitation
 	double ndemand_no_nlim;
-		// annual N demand under no N limitation (calculated in growth, used in guessio_cru)
-	double ndemand_uptake;
-		// annual N demand (used in vegetation_n_uptake)
-	double raingreen_ndemand;	// sch
+	/// raingreen nitrogen demand
+	double raingreen_ndemand;
+	/// fractional N uptake of indiv demand
 	double fnuptake;
-		// fractional N uptake of indiv demand
+	/// fraction extra N uptake to reserve pool
 	double n_reserve_uptake;
-		// fraction extra N uptake to reserve pool
+	/// maximum size of N reserve
 	double max_n_reserve;
-		// maximum size of N reserve
+	/// old maximum size of N reserve	
 	double max_n_reserve_old;
+	/// actual fractional N available to indiv N demand
 	double limnfact;
-		// actual fractional N available to indiv N demand in Growth()
+	/// leaf N associated with photosynthesis 	
 	double na_fpar;
-		// leaf N associated with photosynthesis 
+	/// daily N limitation to vmax
+	double vmax_lim[365];
+	/// N limitation on vmax
+	double avmaxnlim;
+	/// C:N ratio for new biomass (leaf)
+	double cton_leaf_new;
+	/// C:N ratio for new biomass (root)
+	double cton_root_new;
+	/// C:N ratio for new biomass (sap)
+	double cton_sap_new;
+	/// C:N ratio of old (current) biomass (leaf)
+	double cton_leaf_old;
+	/// C:N ratio of old (current) biomass (root)
+	double cton_root_old;
+	/// C:N ratio of old (current) biomass (sap)
+	double cton_sap_old;
+	/// optimal (photosynthesis) C:N ratio for new biomass (leaf) 
+	double cton_leaf_opt;
+	/// total growth C:N ratio
+	double cton_growth;
+	/// fraction of new biomass assigned to leaf
+	double bminc_leaf_frac;	
+	/// fraction of new biomass assigned to root
+	double bminc_root_frac;
+	/// fraction of annual gpp remaining after nitrogen limitation
+	double frac_agpp;
+		
 	double assim_nowstress;
 		// saved assimilation in case it turns out to be a non-water-stress day
 	int nday_leafon;	
@@ -1175,32 +1196,6 @@ public:
 		// plant N uptake through the year
 	double aassim;
 		// annual sum of positive dassim (above) - used by SOM dynamics
-	double vmax_lim[365];
-		// daily N limitation to vmax
-	double avmaxnlim;
-		// N limitation on vmax
-	double cton_leaf_new;
-		// C:N ratio for new biomass (leaf)
-	double cton_root_new;
-		// C:N ratio for new biomass (root)
-	double cton_sap_new;
-		// C:N ratio for new biomass (sap)
-	double cton_leaf_old;
-		// C:N ratio of old (current) biomass (leaf)
-	double cton_root_old;
-		// C:N ratio of old (current) biomass (root)
-	double cton_sap_old;
-		// C:N ratio of old (current) biomass (sap)
-	double cton_leaf_opt;
-		// optimal (photosynthesis) C:N ratio for new biomass (leaf) 
-	double cton_growth;
-		// total growth C:N ratio
-
-	double nstore_daily;
-	double bminc_leaf_frac;	
-	double bminc_root_frac;
-	double frac_agpp;
-	// end GUESSN
 
 	// GC
 	double gc_sum; // accumulated canopy conductance on individual FPC basis (mm/s)
@@ -1306,14 +1301,12 @@ public:
 		// soil carbon
 
 	// GUESSN: For CENTURY ...
-	
+	// fraction of soil that is sand
 	double sand_frac;
-		// fraction of soil that is sand
+	// fraction of soil that is clay
 	double clay_frac;
-		// fraction of soil that is clay
+	// fraction of soil that is silt plus clay	
 	double silt_frac;
-		// fraction of soil that is silt plus clay
-	// end GUESSN
 
 	// MEMBER FUNCTIONS
 
@@ -1348,13 +1341,18 @@ public:
 class Sompool {
 
 public:
+
+	/// C mass in pool kgC/m2
 	double cmass;
-		// C mass in pool kgC/m2
+	/// N mass in pool kgN/m2
 	double nmass;
-		// N mass in pool kgN/m2
-	double cdec; // (potential) decrease in C following decomposition today (kgC/m2)
-	double ndec; // (potential) decrease in N following decomposition today (kgN/m2)
+	/// (potential) decrease in C following decomposition today (kgC/m2)
+	double cdec; 
+	/// (potential) decrease in N following decomposition today (kgN/m2)
+	double ndec; 
+	/// daily change in carbon and nitrogen
 	double delta_cmass,delta_nmass;
+	/// lignin fractions
 	double ligcfrac;
 	double frc;
 	double ntoc;
@@ -1481,11 +1479,11 @@ public:
 	double org_leachfrac;		// fraction of decayed substrate from the soil microbial pool
 	double nmass_avail;			// soil mineral N pool (kgN/m2)
 
-	double nmin_annual;			// annual sum of N mineralisation
-	double nimmob_annual;		// annual sum of N immobilisation
-	double n_min_leach_annual;	// annual leaching from available N pool
-	double n_org_leach_annual;	// annual leaching of organics from active N pool
-	double ndep_annual;			// annual N deposition
+	double anmin;			// annual sum of N mineralisation
+	double animmob;			// annual sum of N immobilisation
+	double aminleach;		// annual leaching from available N pool
+	double aorgleach;		// annual leaching of organics from active N pool
+	double andep;			// annual N deposition
 
 	double nmin_balance;		// soil mineral N pool (kgN/m2) (used somfluxes() to determine C:N ratios for SOM pools and decay rates)
 
@@ -1558,11 +1556,11 @@ public:
 		nmass_avail=0.0;
 		org_leachfrac=0.0;
 
-		nmin_annual=0.0;			
-		nimmob_annual=0.0;		
-		n_min_leach_annual=0.0;
-		n_org_leach_annual=0.0;
-		ndep_annual=0.0;
+		anmin=0.0;			
+		animmob=0.0;		
+		aminleach=0.0;
+		aorgleach=0.0;
+		andep=0.0;
 		anfix=0.0;
 
 		dperc=0.0;

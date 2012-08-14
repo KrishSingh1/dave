@@ -491,7 +491,8 @@ void fpar(Patch& patch) {
 
 void photosynthesis(double co2,double temp,double par,double daylength,
 					double fpar, double lambda, const Pft& pft, 
-					double nmass_leaf, double lai, 
+					double nmass_leaf, double lai,
+					bool ifnlimvmax,
 					PhotosynthesisResult& result) {
   
 	// DESCRIPTION
@@ -535,7 +536,7 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 
 	// guess2008 - ALPHAA value chosen to give global carbon pool and flux values that 
 	// agree with published estimates.
-	const double ALPHAA = (!ifnlim || date.year < freenyears) ?	0.5 : 0.7;
+	const double ALPHAA = !ifnlimvmax ?	0.5 : 0.7;
 		// scaling factor for PAR absorption from leaf to plant projective area level
 		// alias "twigloss"
 		// Should normally be in the range 0-1
@@ -718,7 +719,7 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 		// Calculate leaf N based on [potential] Vmax (Eqn 28 Haxeltine & Prentice 1996b)
 		na=M*vm*CN*tfac;
 
-		if (vm>vm_max && ifnlim && date.year > freenyears) {
+		if (vm>vm_max && ifnlimvmax) {
 			vmax_lim=vm_max/vm;	// Save vmax nitrogen limitation for leaf C:N determination (growth())
 		  	vm=vm_max;
 		}
@@ -764,7 +765,7 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 			// Calculate leaf N based on [potential] Vmax (Eqn 28 Haxeltine & Prentice 1996b)
 			na=M*vm*CN*tfac;
 
-			if (vm>vm_max && ifnlim && date.year > freenyears){
+			if (vm>vm_max && ifnlimvmax){
 				vmax_lim=vm_max/vm;	// Save vmax nitrogen limitation for leaf C:N determination (growth())
 			 	vm=vm_max;
 			}
@@ -835,6 +836,11 @@ inline double gpterm(double adtmm, double co2, double lambda, double daylength) 
 	return 1.6 / 1e-6 / 3600 * adtmm / co2 / (1 - lambda) / daylength;
 }
 
+/// Help function to determine whether vmax should be limited by nitrogen today
+inline bool ifnlimvmax() {
+	return ifnlim && date.year > freenyears;
+}
+
 /// Pre-calculate Vmax and no-stress assimilation and canopy conductance
 /**
  * Vmax is calculated for a day (w/ daily averages of temperature and par)
@@ -847,7 +853,7 @@ void photosynthesis_nowstress(Stand& stand, Climate& climate) {
 
 		// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
 		photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
-									1.0, pft.lambda_max, pft, 1.0, 1.0, spft.photosynthesis);
+									1.0, pft.lambda_max, pft, 1.0, 1.0, ifnlimvmax(), spft.photosynthesis);
 
 		spft.gpterm = gpterm(spft.photosynthesis.adtmm, climate.co2, pft.lambda_max,
 									climate.daylength);
@@ -912,6 +918,7 @@ void demand(Patch& patch) {
 				photosynthesis(climate.co2,climate.temp,climate.par,climate.daylength,
 					indiv.fpar_leafon,pft.lambda_max,pft,
 					indiv.nmass_leaf,indiv.lai,
+					ifnlimvmax(),
 					indiv.photosynthesis);
 
 				indiv.gp_leafon = gpterm(indiv.photosynthesis.adtmm, climate.co2, pft.lambda_max, climate.daylength) + pft.gmin * indiv.fpc;
@@ -920,6 +927,7 @@ void demand(Patch& patch) {
 				photosynthesis(climate.co2,climate.temp,climate.par,climate.daylength,
 					indiv.fpar,pft.lambda_max,pft,
 					indiv.nmass_leaf*indiv.phen,indiv.lai*indiv.phen,
+					ifnlimvmax(),
 					indiv.photosynthesis);
 
 				indiv.vmax_lim[date.day] = indiv.photosynthesis.vmax_lim;
@@ -1474,7 +1482,7 @@ void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 		// for total daytime photosynthesis according to Eqns 2 & 19,
 		// Haxeltine & Prentice (1996), and current guess for lambda
 
-		photosynthesis(co2, temp, par, daylength, fpar, xmid, ppft.pft, nmass_leaf, lai, phot_result);
+		photosynthesis(co2, temp, par, daylength, fpar, xmid, ppft.pft, nmass_leaf, lai, ifnlimvmax(), phot_result);
 
 		// Evaluate fmid at the point lambda=xmid
 		// fmid will be an increasing function of xmid, with a solution
@@ -2189,6 +2197,7 @@ void forest_floor_conditions(Patch& patch) {
 				photosynthesis(climate.co2,climate.temp,climate.par,climate.daylength,
 					patch.fpar_grass*ppft.phen,pft.lambda_max,pft,
 					1.0,1.0,
+					ifnlimvmax(),
 					result);
 
 				ppft.anetps_ff+=result.net_assimilation();

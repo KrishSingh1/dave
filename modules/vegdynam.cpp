@@ -849,18 +849,6 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 	Vegetation& vegetation=patch.vegetation;
 
-	// Nitrogen check
-
-	double Nbefore=0.0;
-	double Nafter=0.0;
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv=vegetation.getobj();
-		Nbefore+=indiv.nstore+indiv.nmass_reserve+indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+indiv.nmass_heart;
-		// ... on to next individual
-		vegetation.nextobj();
-	}
-
 	// guess2008 - determine the number of woody PFTs that can establish
 	// Thomas Hickler
 	int nwoodypfts_estab=0;
@@ -869,14 +857,8 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 		Pft& pft=pftlist.getobj();
 		if (establish(patch,stand.gridcell.climate,pft) && pft.lifeform==TREE)
 			nwoodypfts_estab++;
-
-		// N check
-		Nbefore+=patch.pft[pft.id].nstore_est;
 		pftlist.nextobj();
 	}
-
-	// N check
-	Nbefore+=patch.soil.nmass_avail;
 
 	// Loop through PFTs
 
@@ -1210,27 +1192,6 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 		pftlist.nextobj();
 	}
-
-	// N check
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv=vegetation.getobj();
-		Nafter+=indiv.nstore+indiv.nmass_reserve+indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+indiv.nmass_heart;
-		// ... on to next individual
-		vegetation.nextobj();
-	}
-	pftlist.firstobj();
-	while (pftlist.isobj) {
-		Pft& pft=pftlist.getobj();
-		
-		Nafter+=patch.pft[pft.id].nstore_est;
-		pftlist.nextobj();
-	}
-
-	Nafter+=patch.soil.nmass_avail;
-
-	if (ifnlim && date.year > freenyears && (Nbefore-Nafter < -1.0e-15 || Nbefore-Nafter > 1.0e-15))
-		dprintf("Year %d EST id %d before %g after %g diff %g\n",date.year,patch.id,Nbefore,Nafter,Nbefore-Nafter);
 }
 
 

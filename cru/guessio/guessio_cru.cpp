@@ -166,7 +166,7 @@ private:
 // ENUM DECLARATIONS OF INTEGER CONSTANTS FOR PLIB INTERFACE
 
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM};
-enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_PATHWAY,	
+enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAF,CB_PATHWAY,	
 	CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE};
 
 
@@ -495,6 +495,8 @@ void plib_declarations(int id,xtring setname) {
 		// guess2008 - increased the upper limit to possible respcoeff values (was 1.2)
 		declareitem("respcoeff",&ppft->respcoeff,0.0,3,1,CB_NONE,
 			"Respiration coefficient (0-1)");
+		declareitem("leaftype",&strparam,16,CB_LEAF,
+			"Leaf type (\"BROAD\" or \"NEEDLE\")");
 		
 
 		// GUESSN
@@ -689,6 +691,15 @@ void plib_callback(int callback) {
 		else {
 			sendmessage("Error",
 				"Unknown phenology type\n  (valid types: \"EVERGREEN\", \"SUMMERGREEN\", \"RAINGREEN\" or \"ANY\")");
+			plibabort();
+		}
+		break;
+	case CB_LEAF:
+		if (strparam.upper()=="BROAD") ppft->leaf=BROAD;
+		else if (strparam.upper()=="NEEDLE") ppft->leaf=NEEDLE;
+		else {
+			sendmessage("Error",
+				"Unknown leaf type\n  (valid types: \"BROAD\" or \"NEEDLE\")");
 			plibabort();
 		}
 		break;

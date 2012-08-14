@@ -54,6 +54,9 @@ typedef enum {NOPHENOLOGY,EVERGREEN,RAINGREEN,SUMMERGREEN,ANY} phenologytype;
 /// Biochemical pathway for photosynthesis (C3 or C4)
 typedef enum {NOPATHWAY,C3,C4} pathwaytype;
 
+/// Leaf type for sla calculation (broad or needle)
+typedef enum {BROAD,NEEDLE} leaftype;
+
 /// Units for insolation driving data
 /** Insolation can be expressed as:
  *
@@ -711,6 +714,8 @@ public:
 		// life form (tree or grass)
 	phenologytype phenology;
 		// leaf phenology (raingreen, summergreen, evergreen, rain+summergreen)
+	leaftype leaf;
+		// leaf type for sla calculation (broad or needle)
 	double phengdd5ramp;
 		// growing degree sum on 5 degree base required for full leaf cover
 	double wscal_min;
@@ -908,12 +913,13 @@ public:
 	void initsla() {
 
 		// Calculates SLA given leaf longevity
-		// Reich et al 1997, Fig 1f (includes conversion x2.0 from m2/kg_dry_weight to
+		// Reich et al 1992, Table 1 (includes conversion x2.0 from m2/kg_dry_weight to
 		// m2/kgC)
 
-		sla=0.2*exp(6.15-0.46*log(leaflong*12.0));
-
-		//sla=0.2*exp(5.63-0.46*log(leaflong*12.0)); // David think the first constant is wrong
+		if (leaf == BROAD)
+			sla=0.2*pow(10.0,2.41-0.38*log10(12.0*leaflong));
+		else if (leaf == NEEDLE)
+			sla=0.2*pow(10.0,2.29-0.4*log10(12.0*leaflong));
 	}
 
 	void initregen() {
@@ -2165,9 +2171,9 @@ private:
 //   seine Bedeutung fuer die Stoffproduktion. Japanese Journal of Botany 14: 22-52
 // Prentice, IC, Sykes, MT & Cramer W (1993) A simulation model for the transient
 //   effects of climate change on forest landscapes. Ecological Modelling 65: 51-70.
-// Reich, PB, Walters MB & Ellsworth DS 1997 From tropics to tundra: global
-//   convergence in plant functioning. Proceedings of the National Academy of Sciences
-//   USA 94: 13730-13734.
+// Reich, PB, Walters MB & Ellsworth DS 1992 Leaf Life-Span in Relation to Leaf,
+//   Plant, and Stand Characteristics among Diverse Ecosystems. 
+//   Ecological Monographs 62: 365-392.
 // Sitch, S, Prentice IC, Smith, B & Other LPJ Consortium Members (2000) LPJ - a
 //   coupled model of vegetation dynamics and the terrestrial carbon cycle. In:
 //   Sitch, S. The Role of Vegetation Dynamics in the Control of Atmospheric CO2

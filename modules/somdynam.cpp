@@ -378,7 +378,10 @@ void est_nmin_balance(Patch& patch, Soil& soil, Climate& climate) {
 		double NPPp = indiv.assim - indiv.resp;
 
 		if (NPPp > 0.0)
-			N_demand += NPPp / indiv.cton_growth;			
+			N_demand += NPPp / indiv.cton_growth;		
+
+		indiv.assim = 0.0;
+		indiv.resp = 0.0;
 
 		vegetation.nextobj();
 	}

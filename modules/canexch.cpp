@@ -1512,7 +1512,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 					// Assimilation as calculated in function photosynthesis_nowstress
 					// (assuming no water stress)
 
-					indiv.assim = date.diurnal() ? indiv.assim_terms[day.period] : indiv.assim_nowstress;
+					assim = date.diurnal() ? indiv.assim_terms[day.period] : indiv.assim_nowstress;
 				}
 				else {
 					assim = date.diurnal() ? spft.assim_terms[day.period] : spft.assim_term;
@@ -1542,7 +1542,9 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			assim /= date.subdaily;
 			resp /= date.subdaily;
 
-			indiv.dassim[date.day] += assim;	// GUESSN
+			indiv.assim += assim;
+			indiv.dassim[date.day] += assim;	
+			indiv.resp += resp;
 
 			// Update accumulated annual NPP and daily vegetation-atmosphere flux
 			double ind_npp = assim - resp;
@@ -1626,12 +1628,12 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 				}
 
 				// Calculate autotrophic respiration
-				assim = indiv.assim / (double)date.ndaymonth[date.month];
+				indiv.assim /= (double)date.ndaymonth[date.month];
 					// average daily assimilation for this month
 
 				respiration(climate.mgtemp, patch.soil.mgtemp, indiv.pft.lifeform,
 					indiv.pft.respcoeff,indiv.cmass_sap/indiv.nmass_sap,indiv.cmass_root/indiv.nmass_root,
-					indiv.phen_mean,indiv.cmass_sap,indiv.cmass_root,assim*indiv.frac_agpp,indiv.resp);
+					indiv.phen_mean,indiv.cmass_sap,indiv.cmass_root,indiv.assim*indiv.frac_agpp,indiv.resp);
 
 				indiv.resp *= date.ndaymonth[date.month];
 				// Update accumulated annual NPP and daily vegetation-atmosphere flux
@@ -1644,7 +1646,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 					daynr+=date.ndaymonth[m];
 
 				for (int d=0;d<date.ndaymonth[date.month];d++)
-					indiv.dassim[daynr+d]=assim;
+					indiv.dassim[daynr+d]=indiv.assim;
 				// end GUESSN
 
 				indiv.anpp += indiv.assim - indiv.resp;

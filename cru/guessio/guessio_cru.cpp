@@ -5227,7 +5227,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		out.add_value(out_nsources, anmin_gridcell);
 		out.add_value(out_nsources, animm_gridcell);
 		out.add_value(out_nsources, anmin_gridcell-animm_gridcell);
-		out.add_value(out_nsources, andep_gridcell+anmin_gridcell-animm_gridcell+anfix_gridcell);
+		out.add_value(out_nsources, nsupply_gridcell);
 		out.add_value(out_nsources, ndemand_gridcell);
 
 		out.add_value(out_nleach, n_min_leach_gridcell);

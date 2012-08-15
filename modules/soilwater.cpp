@@ -241,7 +241,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 
 	// GUESSN: save percolation from last (bottom) layer (needed by CENTURY)
 	if (rain_melt > 0.0)
-		dperc=perc_frac*awc[NSOILLAYER-1];
+		dperc=runoff_baseflow;
 	else
 		dperc=0.0;
 	// end GUESSN

@@ -148,6 +148,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	deltafpc=0.0;
 	fpar_wstress=0.0;
 	assim=0.0;
+	resp=0.0;
 	assim_nowstress=0.0;
 
 	// GUESSN

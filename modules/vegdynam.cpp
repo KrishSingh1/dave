@@ -415,13 +415,6 @@ void ndemand_new_est(Patch& patch, Pftlist& pftlist, double& patch_ndemand) {
 				// Veiko -> makes no difference
 				bminit*=0.3;
 
-				// GUESSN grass gets at least 5% of available N. When established
-				// they shouldn't been able to get more!
-				double bminit_n_lim=indiv.pft.cton_leaf_avr*patch.nsupply*0.05;
-
-				if (ifnlim && date.year>freenyears)
-					bminit=min(bminit,bminit_n_lim);
-
 				// Initial leaf to fine root biomass ratio based on
 				// hypothetical value of water stress parameter
 
@@ -915,17 +908,10 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 						bminit=SAPSIZE*patch.pft[pft.id].anetps_ff;	
 
-						// GUESSN grass gets at least 5% of available N. When established
-						// they shouldn't been able to get more!
-						double bminit_n_lim=indiv.pft.cton_leaf_avr*max(0.0,patch.nsupply)*0.05;
-
 						if (ifdisturb && patch.disturbed)
 							bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est_initial;
 						// Makes no difference, Veiko 
 						bminit*=0.3;
-
-						if (ifnlim && date.year>freenyears)
-							bminit=min(bminit,bminit_n_lim);
 
 						// Initial leaf to fine root biomass ratio based on
 						// hypothetical value of water stress parameter

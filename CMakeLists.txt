@@ -46,6 +46,7 @@ find_package(NetCDF QUIET)
 if (NETCDF_FOUND)
   include_directories(${NETCDF_INCLUDE_DIRS})
   set(LIBS ${LIBS} ${NETCDF_LIBRARIES})
+  add_definitions(-DHAVE_NETCDF)
 endif()
 
 # Where the compiler should search for header files

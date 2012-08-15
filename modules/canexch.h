@@ -22,6 +22,7 @@
 #define LPJ_GUESS_CANEXCH_H
 
 #include "guess.h"
+#include "landcover.h"
 
 void canopy_exchange(Patch& patch);
 

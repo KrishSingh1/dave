@@ -68,8 +68,11 @@ bool ifintercropgrass;
 int ncft=0; // number of CFTs in Pftlist, set in plib_callback()
 int nyear_spinup;		
 
+bool forcesowingdates;	//101125
+bool forceharvestdates;
 
-const cropphen_struct* Patchpft::get_cropphen() 
+//const cropphen_struct* Patchpft::get_cropphen() 
+cropphen_struct* Patchpft::get_cropphen() 
 {
 	if(pft.landcover!=CROPLAND)
 		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
@@ -98,7 +101,7 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i
 		pft.createobj(pftlist[p]);
 	}
 
-#ifdef PRINT_MULTIPLE_NATURAL_STANDS
+#ifdef MATS_TEST
 	dprintf("Stand N:o %d, (landcover:%d) created year %d.\n", id,landcover, ::date.year);
 #endif
 
@@ -121,6 +124,7 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i
 	cftid=-1;
 	isirrigated=false;
 	hasgrassintercrop=false;
+	gdd0_intercrop=0.0;
 }
 
 double Stand::get_gridcell_fraction() const {
@@ -176,14 +180,15 @@ Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 
 	int m;
 	for (m=0;m<12;m++) {
-		mnpp[m]=mlai[m]=mgpp[m]=mra[m]=0.0;
+		mnpp[m]=mlai[m]=mlai_max[m]=mgpp[m]=mra[m]=0.0;
 	}
 
-	cropinfo=NULL;
+	dnpp=0.0;
+	cropindiv=NULL;
 
 	if(pft.landcover==CROPLAND)
 	{
-		cropinfo=new cropindiv_struct;
+		cropindiv=new cropindiv_struct;
 //		vegetation.patch.pft[pft.id].cropphen->est_year=cropindiv->est_year;
 	}
 
@@ -197,24 +202,25 @@ Individual::~Individual()
 #ifdef MATS_TEST
 //	dprintf("Year %d: Individual  in stand %d destroyed:id=%d, pft=%s\n",::date.year-nyear_spinup+1901,vegetation.patch.stand.id,id,(char*)pft.name);
 #endif
-	if(cropinfo)
-		delete cropinfo;
+	if(cropindiv)
+		delete cropindiv;
 }
 
-const cropindiv_struct* Individual::get_cropinfo() 
+//const cropindiv_struct* Individual::get_cropindiv() 
+cropindiv_struct* Individual::get_cropindiv() 
 {
 	if(pft.landcover!=CROPLAND)
 		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
 	else
-		return cropinfo;
+		return cropindiv;
 }
 
-cropindiv_struct* Individual::set_cropinfo()
+cropindiv_struct* Individual::set_cropindiv()
 {
 	if(pft.landcover!=CROPLAND)
 		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
 	else
-		return cropinfo;
+		return cropindiv;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -321,6 +327,9 @@ rename("CFTdata.out", "CFTdata.old");
 				// Update daily climate drivers etc
 				dailyaccounting_gridcell(gridcell,pftlist);
 
+				if (run_landcover && run[CROPLAND])
+					crop_sowing_gridcell(gridcell,pftlist);
+
 				// Calculate daylength, insolation and potential evapotranspiration
 				daylengthinsoleet(gridcell.climate);
 
@@ -328,6 +337,12 @@ rename("CFTdata.out", "CFTdata.old");
 				// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
 					if(date.year>=nyear_spinup)
 						landcover_dynamics(gridcell,pftlist);
+/*
+					if(run[CROPLAND] && forcesowingdates)
+						getsowingdates(gridcell,pftlist);
+					if(run[CROPLAND] && forceharvestdates)
+						getharvestdates(gridcell,pftlist);
+*/
 				}
 
 				gridcell.firstobj();
@@ -347,6 +362,10 @@ rename("CFTdata.out", "CFTdata.old");
 						Patch& patch=stand.getobj();
 						// Update daily soil drivers including soil temperature
 						dailyaccounting_patch(patch,pftlist);
+
+						if(stand.landcover==CROPLAND)
+							crop_sowing_patch(patch, pftlist);
+
 						// Leaf phenology for PFTs and individuals
 						leaf_phenology(patch,gridcell.climate);
 						// Photosynthesis, respiration, evapotranspiration
@@ -355,6 +374,9 @@ rename("CFTdata.out", "CFTdata.old");
 						soilwater(gridcell.climate,patch);
 						// Soil organic matter and litter dynamics
 						som_dynamics(patch);
+
+						if (stand.landcover==CROPLAND)
+							growth_crop_daily(patch);
 
 						if (date.islastday && date.islastmonth) {
 

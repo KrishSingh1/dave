@@ -205,7 +205,6 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 	if (wcont[0]!=0.0 && wcont[0] < 0.0001) // guess2008 - bugfix
 		wcont[0]=0.0;
 
-
 	// Surface runoff
 
 	if (wcont[0]>1.0) {
@@ -216,10 +215,18 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 
 	// Update water content in evaporation layer for tomorrow
 
+#if defined IRRIGATION
+	influx=rain+melt+patch.irrigation_d;
+#else
 	influx=rain+melt;
+#endif
 
 	wcont_evap+=(influx-aet_layer[0]*SOILDEPTH_EVAP*K_AET_DEPTH/SOILDEPTH_UPPER-evap)
 		/awc[0];
+
+if(!SUPPRESSLARGEOUTPUT)
+	if(wcont_evap<0.0)
+		dprintf("Negative wcont_evap !\n");
 
 	if (wcont_evap>wcont[0]) wcont_evap=wcont[0];
 
@@ -264,7 +271,7 @@ void hydrology_lpjf(Patch& patch,double pet,double rain,double melt,
 		// BLARP! Quick fix here to prevent negative soil water
 
 		wcont[s]-=aet_layer[s]/awc[s];
-		if (wcont[s]<0.0) wcont[s]=0.0;
+		if (wcont[s]<0.0001) wcont[s]=0.0;	
 	}
 
 	// Baseflow runoff (Dieter Gerten 021216) (rain or snowmelt days only)

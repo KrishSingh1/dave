@@ -1952,11 +1952,11 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		double landcover_lai[NLANDCOVERTYPES]={0.0};
 		double landcover_densindiv_total[NLANDCOVERTYPES]={0.0};
 
-		double gcpft_cmass=0.0;
-		double gcpft_anpp=0.0;
-		double gcpft_lai=0.0;
-		double gcpft_densindiv_total=0.0;
-		double gcpft_densindiv_ageclass[OUTPUT_MAXAGECLASS]={0.0};
+		double stand_mean_cmass=0.0;
+		double stand_mean_anpp=0.0;
+		double stand_mean_lai=0.0;
+		double stand_mean_densindiv_total=0.0;
+		double stand_mean_densindiv_ageclass[OUTPUT_MAXAGECLASS]={0.0};
 
 		double cmass_gridcell=0.0;
 		double anpp_gridcell=0.0;
@@ -1981,10 +1981,10 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			Gridcellpft& gridcellpft=gridcell.pft[pft.id];
 
 			// Sum C biomass, NPP and LAI across patches and PFTs		
-			gcpft_cmass=0.0;
-			gcpft_anpp=0.0;
-			gcpft_lai=0.0;
-			gcpft_densindiv_total=0.0;		
+			stand_mean_cmass=0.0;
+			stand_mean_anpp=0.0;
+			stand_mean_lai=0.0;
+			stand_mean_densindiv_total=0.0;		
 
 			gridcell.firstobj();
 
@@ -2065,22 +2065,22 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 #if defined multiple_natural_stands
 				if(pft.landcover==NATURAL && gridcell.landcoverfrac[stand.landcover]!=0.0)	//Natural landcover can now contain several stands.
 				{
-					gcpft_cmass+=standpft_cmass*stand.get_gridcell_fraction()/gridcell.landcoverfrac[stand.landcover];
-					gcpft_anpp+=standpft_anpp*stand.get_gridcell_fraction()/gridcell.landcoverfrac[stand.landcover];
-					gcpft_lai+=standpft_lai*stand.get_gridcell_fraction()/gridcell.landcoverfrac[stand.landcover];
-					gcpft_densindiv_total+=standpft_densindiv_total*stand.get_gridcell_fraction()/gridcell.landcoverfrac[stand.landcover];
+					stand_mean_cmass+=standpft_cmass*stand.get_gridcell_fraction()/gridcell.landcoverfrac[stand.landcover];
+					stand_mean_anpp+=standpft_anpp*stand.get_gridcell_fraction()/gridcell.landcoverfrac[stand.landcover];
+					stand_mean_lai+=standpft_lai*stand.get_gridcell_fraction()/gridcell.landcoverfrac[stand.landcover];
+					stand_mean_densindiv_total+=standpft_densindiv_total*stand.get_gridcell_fraction()/gridcell.landcoverfrac[stand.landcover];
 				}
 				else
 #endif
 				{
-					gcpft_cmass+=standpft_cmass;
-					gcpft_anpp+=standpft_anpp;
-					gcpft_lai+=standpft_lai;
-					gcpft_densindiv_total+=standpft_densindiv_total;
+					stand_mean_cmass+=standpft_cmass;
+					stand_mean_anpp+=standpft_anpp;
+					stand_mean_lai+=standpft_lai;
+					stand_mean_densindiv_total+=standpft_densindiv_total;
 				}
 				if (vegmode==COHORT || vegmode==INDIVIDUAL)
 					for (c=0;c<nclass;c++)
-						gcpft_densindiv_ageclass[c]+=standpft_densindiv_ageclass[c];
+						stand_mean_densindiv_ageclass[c]+=standpft_densindiv_ageclass[c];
 
 				// Update gridcell totals
 				double fraction_of_gridcell = stand.get_gridcell_fraction();
@@ -2092,24 +2092,24 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				// Graphical output every 10 years
 				// (Windows shell only - "plot" statements have no effect otherwise)
 				if (!(date.year%10)) {
-					plot("cmass",pft.name,date.year,gcpft_cmass);
-					plot("anpp",pft.name,date.year,gcpft_anpp);
-					plot("lai",pft.name,date.year,gcpft_lai);
+					plot("cmass",pft.name,date.year,stand_mean_cmass);
+					plot("anpp",pft.name,date.year,stand_mean_anpp);
+					plot("lai",pft.name,date.year,stand_mean_lai);
 				}
 				gridcell.nextobj();
 			}//End of loop through stands
 
 			// Print PFT sums to files
 			if (out_lai)
-				fprintf(out_lai,"%8.4f",gcpft_lai);
+				fprintf(out_lai,"%8.4f",stand_mean_lai);
 
-			if (out_dens) fprintf(out_dens,"%8.4f",gcpft_densindiv_total);
+			if (out_dens) fprintf(out_dens,"%8.4f",stand_mean_densindiv_total);
 
 			if (out_cmass)
-				fprintf(out_cmass,"%8.3f",gcpft_cmass);
+				fprintf(out_cmass,"%8.3f",stand_mean_cmass);
 
 			if (out_anpp)
-				fprintf(out_anpp,"%8.3f",gcpft_anpp);
+				fprintf(out_anpp,"%8.3f",stand_mean_anpp);
 
 			pftlist.nextobj();
 		
@@ -2355,7 +2355,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 						for (c=0;c<nclass;c++)
 							plot("age_structure",pft.name,
 								c*estinterval+estinterval/2,
-								gcpft_densindiv_ageclass[c]/(double)npatch);
+								stand_mean_densindiv_ageclass[c]/(double)npatch);
 					}
 					
 					pftlist.nextobj();

@@ -110,7 +110,8 @@ bool establish(Patch& patch,Climate& climate,Pft& pft) {
 		climate.mtemp_max<pft.twmin_est ||
 		climate.agdd5<pft.gdd5min_est) return false;
 
-	if (vegmode!=POPULATION && patch.par_grass_mean<pft.parff_min) return false;
+	if(patch.stand.landcover!=CROPLAND)
+		if (vegmode!=POPULATION && patch.par_grass_mean<pft.parff_min) return false;
 
 
 	// guess2008 - DLE - new drought limited establishment
@@ -188,6 +189,7 @@ void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
 	pftlist.firstobj();
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
+		Patchpft& patchpft=patch.pft[pft.id];
 
 		if (stand.pft[pft.id].active) {	//standpft.active is set in landcover_init according to rules for each stand
 
@@ -213,6 +215,18 @@ void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
 						indiv.crownarea=1.0; // (value not used)
 						indiv.densindiv=1.0;
 						indiv.fpc=0.0;
+					}
+
+					if(stand.landcover==CROPLAND)
+					{
+						if (stand.pftid==pft.id)
+						{
+							indiv.cropindiv->isprimarycrop=true;
+							if(pft.phenology==ANY)						//normal CC3G & CC4G (+ irrigated) growth
+								patchpft.cropphen->growingseason=true;
+						}
+						else if(ifintercropgrass && stand.hasgrassintercrop && pft.isintercropgrass)	// grass intercrop growth
+							indiv.cropindiv->isintercropgrass=true;
 					}
 				}
 			}
@@ -292,6 +306,9 @@ void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
 					indiv.pft.regen.cmass_root+indiv.pft.regen.cmass_sap+
 					indiv.pft.regen.cmass_heart)*est_pft;
 
+			if(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass))
+				patch.fluxes.acflux_est=0.0;
+
 			// Adjust average individual C biomass based on average biomass and density
 			// of the new saplings
 
@@ -300,8 +317,7 @@ void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
 			indiv.cmass_sap+=indiv.pft.regen.cmass_sap*est_pft;
 			indiv.cmass_heart+=indiv.pft.regen.cmass_heart*est_pft;
 		}
-		else if (indiv.pft.lifeform==GRASS &&
-			establish(patch,stand.gridcell.climate,indiv.pft)) {
+		else if ((indiv.pft.lifeform==GRASS && indiv.pft.phenology!=CROPGREEN) && establish(patch,stand.gridcell.climate,indiv.pft)) {
 			
 			// ESTABLISHMENT OF GRASSES
 			// Grasses establish throughout unoccupied regions of the grid cell
@@ -314,6 +330,9 @@ void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
 			if (indiv.alive) // guess2008 - alive check added
 				patch.fluxes.acflux_est-=(indiv.pft.regen.cmass_leaf+
 					indiv.pft.regen.cmass_root)*est_pft;
+
+			if(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass))
+				patch.fluxes.acflux_est=0.0;
 
 			// Add regeneration biomass to overall biomass
 
@@ -421,6 +440,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 	pftlist.firstobj();
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
+		Patchpft& patchpft=patch.pft[pft.id];	
 
 		// For this PFT ...
 
@@ -464,7 +484,22 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 						indiv.crownarea=1.0; // (value not used)
 						indiv.densindiv=1.0;
 						indiv.fpc=1.0;
-					
+
+						if(stand.landcover==CROPLAND)
+						{
+							if(pft.phenology==CROPGREEN)
+								indiv.fpc=0.0;
+
+							if (stand.pftid==pft.id)
+							{
+								indiv.cropindiv->isprimarycrop==true;
+								if(pft.phenology==ANY)						//normal CC3G & CC4G (+ irrigated) growth
+									patchpft.cropphen->growingseason=true;
+							}
+							else if(ifintercropgrass && stand.hasgrassintercrop && pft.isintercropgrass)	// grass intercrop growth
+								indiv.cropindiv->isintercropgrass=true;
+						}
+
 						// Initial grass biomass proportional to potential forest floor
 						// net assimilation this year on patch area basis
 
@@ -480,8 +515,8 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 						ltor=patch.pft[pft.id].wscal_mean*pft.ltor_max;
 
 						// Allocate initial biomass
-
-						allocation_init(bminit,ltor,indiv);
+						if(!(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass)))
+							allocation_init(bminit,ltor,indiv);
 
 						// Calculate initial allometry
 
@@ -495,6 +530,9 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 						if (indiv.alive)
 							patch.fluxes.acflux_est-=bminit;
+
+						if(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass))
+							patch.fluxes.acflux_est=0.0;
 					}
 				}
 				else if (pft.lifeform==TREE) {
@@ -623,6 +661,9 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 						if (indiv.alive)
 							patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
 								indiv.cmass_sap;
+
+						if(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass))
+							patch.fluxes.acflux_est=0.0;
 					}
 				}
 			}
@@ -724,7 +765,7 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 			deltafpc_tree_total+=indiv.deltafpc;
 
 		}
-		else if (indiv.pft.lifeform==GRASS) fpc_grass+=indiv.fpc;
+		else if (indiv.pft.lifeform==GRASS && indiv.pft.landcover!=CROPLAND) fpc_grass+=indiv.fpc;
 
 		vegetation.nextobj(); // ... on to next individual
 	}
@@ -749,6 +790,15 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 			patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
 			patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap+indiv.cmass_heart-
 				indiv.cmass_debt;
+
+			if(indiv.pft.landcover==CROPLAND)
+			{
+				if(indiv.pft.aboveground_ho)
+					patch.pft[indiv.pft.id].litter_leaf+=indiv.cropindiv->cmass_ho;
+				else
+					patch.pft[indiv.pft.id].litter_root+=indiv.cropindiv->cmass_ho;
+				patch.pft[indiv.pft.id].litter_leaf+=indiv.cropindiv->cmass_agpool;
+			}
 
 			vegetation.killobj();
 			killed=true;
@@ -830,6 +880,19 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 			
 			// GRASS MORTALITY
 
+			if (indiv.pft.landcover==CROPLAND && patch.stand.landcover==CROPLAND) 	//CFT fix ML 090819
+			{
+				fpc_grass=0.0;
+
+				for(int i=0;i<vegetation.nobj;i++)
+				{
+					if(indiv.cropindiv->isprimarycrop && (vegetation[i].cropindiv->isprimarycrop || vegetation[i].cropindiv->isprimarycovegetation))		//covegetation and secondary vegetation for future use ?
+						fpc_grass+=vegetation[i].fpc;
+					else if(indiv.cropindiv->isintercropgrass && vegetation[i].cropindiv->isintercropgrass)
+						fpc_grass+=vegetation[i].fpc;
+				}
+			}
+
 			// Shading mortality: grasses can persist only on regions not occupied
 			// by trees
 
@@ -846,7 +909,7 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 
 			// Mortality due to fire
 
-			if (iffire)
+			if (stand.landcover!=CROPLAND && iffire)
 				mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			else mort_fire=0.0;
 
@@ -860,9 +923,25 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 			patch.pft[indiv.pft.id].litter_leaf+=(mort-mort_fire)*indiv.cmass_leaf;
 			patch.pft[indiv.pft.id].litter_root+=mort*indiv.cmass_root;
 
+			if(indiv.pft.landcover==CROPLAND)
+			{
+				if(indiv.pft.aboveground_ho)
+					patch.pft[indiv.pft.id].litter_leaf+=(mort-mort_fire)*indiv.cropindiv->cmass_ho;
+				else
+					patch.pft[indiv.pft.id].litter_root+=mort*indiv.cropindiv->cmass_ho;
+				patch.pft[indiv.pft.id].litter_leaf+=(mort-mort_fire)*indiv.cropindiv->cmass_agpool;
+			}
+
 			// Flux to atmosphere from burnt above-ground biomass
 
 			patch.fluxes.acflux_fire+=mort_fire*indiv.cmass_leaf;
+
+			if(indiv.pft.landcover==CROPLAND)
+			{
+				if(indiv.pft.aboveground_ho)
+					patch.fluxes.acflux_fire+=mort_fire*indiv.cropindiv->cmass_ho;
+				patch.fluxes.acflux_fire+=mort_fire*indiv.cropindiv->cmass_agpool;
+			}
 
 			// Reduce C biomass on modelled area basis to account for biomass lost
 			// through mortality
@@ -870,6 +949,11 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 			indiv.cmass_leaf*=1.0-mort;
 			indiv.cmass_root*=1.0-mort;
 
+			if(indiv.pft.landcover==CROPLAND)
+			{
+				indiv.cropindiv->cmass_ho*=1.0-mort;
+				indiv.cropindiv->cmass_agpool*=1.0-mort;
+			}
 		}
 
 		// Remove this PFT population completely if all individuals killed
@@ -989,8 +1073,23 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					patch.fluxes.acflux_fire+=mort_fire*indiv.cmass_leaf;
 					patch.pft[indiv.pft.id].litter_root+=mort_fire*indiv.cmass_root;
 
+					if(indiv.pft.landcover==CROPLAND)
+					{
+						if(indiv.pft.aboveground_ho)
+							patch.fluxes.acflux_fire+=mort_fire*indiv.cropindiv->cmass_ho;
+						else
+							patch.pft[indiv.pft.id].litter_root+=mort_fire*indiv.cropindiv->cmass_ho;
+						patch.fluxes.acflux_fire+=mort_fire*indiv.cropindiv->cmass_agpool;
+					}
+
 					indiv.cmass_leaf*=indiv.pft.fireresist;
 					indiv.cmass_root*=indiv.pft.fireresist;
+
+					if(indiv.pft.landcover==CROPLAND)
+					{
+						indiv.cropindiv->cmass_ho*=indiv.pft.fireresist;
+						indiv.cropindiv->cmass_agpool*=indiv.pft.fireresist;
+					}
 
 					// Update allometry
 
@@ -1081,6 +1180,15 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 			patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
 			patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap+indiv.cmass_heart-
 				indiv.cmass_debt;
+
+			if(indiv.pft.landcover==CROPLAND)
+			{
+				if(indiv.pft.aboveground_ho)
+					patch.pft[indiv.pft.id].litter_leaf+=indiv.cropindiv->cmass_ho;
+				else
+					patch.pft[indiv.pft.id].litter_root+=indiv.cropindiv->cmass_ho;
+				patch.pft[indiv.pft.id].litter_leaf+=indiv.cropindiv->cmass_agpool;
+			}
 
 			vegetation.killobj();
 			killed=true;
@@ -1392,6 +1500,15 @@ void disturbance(Patch& patch,double disturb_prob) {
 			patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
 			patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap+indiv.cmass_heart
 				-indiv.cmass_debt;
+
+			if(indiv.pft.landcover==CROPLAND)
+			{
+				if(indiv.pft.aboveground_ho)
+					patch.pft[indiv.pft.id].litter_leaf+=indiv.cropindiv->cmass_ho;
+				else
+					patch.pft[indiv.pft.id].litter_root+=indiv.cropindiv->cmass_ho;
+				patch.pft[indiv.pft.id].litter_leaf+=indiv.cropindiv->cmass_agpool;
+			}
 
 			vegetation.killobj();
 		}

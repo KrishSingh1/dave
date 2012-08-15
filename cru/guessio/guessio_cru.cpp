@@ -171,7 +171,7 @@ bool includepft;
 // guess2008 - Now declare the output file xtrings here
 // Output file names ...
 xtring outputdirectory;
-xtring file_cmass,file_anpp,file_dens,file_lai,file_cflux,file_cpool,file_runoff;
+xtring file_cmass,file_anpp,file_dens,file_lai,file_cflux,file_cpool,file_runoff,file_yield;
 xtring file_mnpp,file_mlai,file_mgpp,file_mra,file_maet,file_mpet,file_mevap,file_mrunoff,file_mintercep,file_mrh;
 xtring file_mnee,file_mwcont_upper,file_mwcont_lower;
 xtring file_firert;
@@ -195,7 +195,7 @@ void initsettings() {
 
 	// guess2008 - initialise filenames here
 	outputdirectory = "";
-	file_cmass=file_anpp=file_lai=file_cflux=file_dens=file_runoff="";
+	file_cmass=file_anpp=file_lai=file_yield=file_cflux=file_dens=file_runoff="";
 	file_mnpp=file_mlai=file_maet=file_mpet=file_mevap=file_mrunoff=file_mintercep=file_mrh="";
 	file_mgpp=file_mra=file_mnee=file_mwcont_upper=file_mwcont_lower="";
 	file_cpool=file_firert="";
@@ -283,6 +283,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_cmass",&file_cmass,300,CB_NONE,"C biomass output file");
 		declareitem("file_anpp",&file_anpp,300,CB_NONE,"Annual NPP output file");
 		declareitem("file_lai",&file_lai,300,CB_NONE,"LAI output file");
+		declareitem("file_yield",&file_yield,300,CB_NONE,"Crop yield output file");
 		declareitem("file_cflux",&file_cflux,300,CB_NONE,"C fluxes output file");
 		declareitem("file_dens",&file_dens,300,CB_NONE,"Tree density output file");
 		declareitem("file_cpool",&file_cpool,300,CB_NONE,"Soil C output file");
@@ -324,6 +325,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("run_peatland",&run[PEATLAND],1,CB_NONE,"Whether peatland is to be simulated");
 		declareitem("ifslowharvestpool",&ifslowharvestpool,1,CB_NONE,"If a slow harvested product pool is included in patchpft.");
 		declareitem("ifintercropgrass",&ifintercropgrass,1,CB_NONE,"Whether intercrop growth is allowed");
+		declareitem("forcesowingdates",&forcesowingdates,1,CB_NONE,"use sowingdates from input file");
+		declareitem("forceharvestdates",&forceharvestdates,1,CB_NONE,"use harvestdates from input file");
 		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"Whether static landcover fractions are set in the ins-file (0,1)");
 		declareitem("cftfrac_fixed",&cftfrac_fixed,1,CB_NONE,"Whether static CFT fractions are set in the ins-file (0,1)");
 		declareitem("equal_crop_area",&equal_crop_area,1,CB_NONE,"Whether enforced static CFT fractions are equal-sized stands of all included crops (0,1)");
@@ -520,29 +523,23 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("flaimaxharvest",&ppft->flaimaxharvest,0.0,1.0,1,CB_NONE,"");
 		declareitem("aboveground_ho",&ppft->aboveground_ho,1,CB_NONE,"Whether aboveground structures are harvested");
 		declareitem("harv_eff_ic",&ppft->harv_eff_ic,0.0,1.0,1,CB_NONE,"");
-/*		declareitem("firstsowdatenh_prec",&ppft->firstsowdatenh_prec,-1,365.0,1,CB_NONE,"precipitation-limited sowing date in the northern hemisphere");
-		declareitem("firstsowdatesh_prec",&ppft->firstsowdatesh_prec,-1,365.0,1,CB_NONE,"precipitation-limited sowing date in the southern hemisphere");
-		declareitem("fphuc",&ppft->fphuc,0.0,1.0,1,CB_NONE,"growing season fract. on 1st pt on the opt. lai development curve");
-		declareitem("flaimaxc",&ppft->flaimaxc,0.0,1.0,1,CB_NONE,"plant max lai frac. on 1st pt on the opt. lai development curve");
-		declareitem("fphuk",&ppft->fphuk,0.0,1.0,1,CB_NONE,"growing season fract. on 2nd pt on the opt. lai development curve");
-		declareitem("flaimaxk",&ppft->flaimaxk,0.0,1.0,1,CB_NONE,"plant max lai frac. on 2nd pt on the opt. lai development curve");
-
-		declareitem("laimax",&ppft->laimax,0.0,10.0,1,CB_NONE,"");
-		declareitem("hiopt",&ppft->hiopt,0.0,2.0,1,CB_NONE,"");
-		declareitem("himin",&ppft->himin,0.0,2.0,1,CB_NONE,"");
-		declareitem("frootstart",&ppft->frootstart,0.0,1.0,1,CB_NONE,"");
-		declareitem("frootend",&ppft->frootend,0.0,1.0,1,CB_NONE,"");
 		declareitem("ifsdcalc",&ppft->ifsdcalc,1,CB_NONE,"Whether sowing date is to be calculated");
 		declareitem("ifsdtemp",&ppft->ifsdtemp,1,CB_NONE,"Whether sowing date is to be calculated from 20-year temperature data");
 		declareitem("ifsdautumn",&ppft->ifsdautumn,1,CB_NONE,"Whether sowing date in autumn is to be calculated");
 		declareitem("ifsdspring",&ppft->ifsdspring,1,CB_NONE,"Whether sowing date in spring is to be calculated");
 		declareitem("ifsdprec",&ppft->ifsdprec,1,CB_NONE,"Whether sowing date is to be calculated from 2-year precipitation data");
-		declareitem("forcesowingdate",&ppft->forcesowingdate,1,CB_NONE,"use sowingdate from input file");
-		declareitem("forceharvestdate",&ppft->forceharvestdate,1,CB_NONE,"use sowingdate from input file");
 		declareitem("tempautumn",&ppft->tempautumn,0.0,25.0,1,CB_NONE,"");
 		declareitem("tempspring",&ppft->tempspring,0.0,25.0,1,CB_NONE,"");
-		declareitem("forceautumnsowing",&ppft->forceautumnsowing,0,2,1,CB_NONE,"Whether autumn sowing is forced independent of climate");
-*/
+		declareitem("firstsowdatenh_prec",&ppft->firstsowdatenh_prec,-1,365.0,1,CB_NONE,"precipitation-limited sowing date in the northern hemisphere");	// only used in Crop_sowing_date_prec()
+		declareitem("firstsowdatesh_prec",&ppft->firstsowdatesh_prec,-1,365.0,1,CB_NONE,"precipitation-limited sowing date in the southern hemisphere");	// only used in Crop_sowing_date_prec()
+		declareitem("hiopt",&ppft->hiopt,0.0,2.0,1,CB_NONE,"");
+		declareitem("himin",&ppft->himin,0.0,2.0,1,CB_NONE,"");
+		declareitem("frootstart",&ppft->frootstart,0.0,1.0,1,CB_NONE,"");
+		declareitem("frootend",&ppft->frootend,0.0,1.0,1,CB_NONE,"");
+		declareitem("forcesowingdate",&ppft->forcesowingdate,1,CB_NONE,"use sowingdate from input file");
+		declareitem("forceharvestdate",&ppft->forceharvestdate,1,CB_NONE,"use sowingdate from input file");
+		declareitem("laimax",&ppft->laimax,0.0,10.0,1,CB_NONE,"");
+
 		callwhendone(CB_CHECKPFT);
 		
 		break;
@@ -754,52 +751,54 @@ void plib_callback(int callback) {
 			if (!itemparsed("harv_eff")) badins("harv_eff");
 			if (!itemparsed("res_outtake")) badins("res_outtake");
 
-			if (ppft->landcover==CROPLAND && ppft->phenology==CROPGREEN)
+			if (ppft->landcover==CROPLAND)
 			{
-				if (!itemparsed("cftid")) badins("cftid");
-				if (!itemparsed("sdatenh")) badins("sdatenh");
-				if (!itemparsed("sdatesh")) badins("sdatesh");
-				if (!itemparsed("hlimitdatenh")) badins("hlimitdatenh");
-				if (!itemparsed("hlimitdatesh")) badins("hlimitdatesh");
-				if (!itemparsed("tb")) badins("tb");
-				if (!itemparsed("trg")) badins("trg");
-				if (!itemparsed("pvd")) badins("pvd");
-				if (!itemparsed("isintercropgrass")) badins("isintercropgrass");
-				if (!itemparsed("psens")) badins("psens");
-				if (!itemparsed("pb")) badins("pb");
-				if (!itemparsed("ps")) badins("ps");
-				if (!itemparsed("phu")) badins("phu");
-				if (!itemparsed("fphusen")) badins("fphusen");
-				if (!itemparsed("shapesenescencenorm")) badins("shapesenescencenorm");
-				if (!itemparsed("flaimaxharvest")) badins("flaimaxharvest");
-				if (!itemparsed("aboveground_ho")) badins("aboveground_ho");
-/*				if (!itemparsed("ifsdcalc")) badins("ifsdcalc");
-				if (!itemparsed("ifsdtemp")) badins("ifsdtemp");
-				if (!itemparsed("ifsdautumn")) badins("ifsdautumn");
-				if (!itemparsed("ifsdspring")) badins("ifsdspring");
-				if (!itemparsed("ifsdprec")) badins("ifsdprec");
-				if (!itemparsed("fphuc")) badins("fphuc");
-				if (!itemparsed("flaimaxc")) badins("flaimaxc");
-				if (!itemparsed("fphuk")) badins("fphuk");
-				if (!itemparsed("fphuc")) badins("fphuc");
-				if (!itemparsed("flaimaxk")) badins("flaimaxk");
-				if (!itemparsed("laimax")) badins("laimax");
-				if (!itemparsed("hiopt")) badins("hiopt");
-				if (!itemparsed("himin")) badins("himin");
-				if (!itemparsed("res_outtake")) badins("res_outtake");
-				if (!itemparsed("frootstart")) badins("frootstart");
-				if (!itemparsed("frootend")) badins("frootend");
-				if (!itemparsed("tempautumn")) badins("tempautumn");
-				if (!itemparsed("tempspring")) badins("tempspring");
-				if (!itemparsed("turnover_harv_prod")) badins("turnover_harv_prod");
-				if(ppft->ifsdprec)
+				if (ppft->phenology==CROPGREEN)
 				{
-					if (!itemparsed("firstsowdatenh_prec")) badins("firstsowdatenh_prec");
-					if (!itemparsed("firstsowdatesh_prec")) badins("firstsowdatesh_prec");
+					if (!itemparsed("cftid")) badins("cftid");
+					if (!itemparsed("sdatenh")) badins("sdatenh");
+					if (!itemparsed("sdatesh")) badins("sdatesh");
+					if (!itemparsed("hlimitdatenh")) badins("hlimitdatenh");
+					if (!itemparsed("hlimitdatesh")) badins("hlimitdatesh");
+					if (!itemparsed("tb")) badins("tb");
+					if (!itemparsed("trg")) badins("trg");
+					if (!itemparsed("pvd")) badins("pvd");
+					if (!itemparsed("isintercropgrass")) badins("isintercropgrass");
+					if (!itemparsed("psens")) badins("psens");
+					if (!itemparsed("pb")) badins("pb");
+					if (!itemparsed("ps")) badins("ps");
+					if (!itemparsed("phu")) badins("phu");
+					if (!itemparsed("fphusen")) badins("fphusen");
+					if (!itemparsed("shapesenescencenorm")) badins("shapesenescencenorm");
+					if (!itemparsed("flaimaxharvest")) badins("flaimaxharvest");
+					if (!itemparsed("aboveground_ho")) badins("aboveground_ho");
+					if (!itemparsed("ifsdcalc")) badins("ifsdcalc");
+					if (!itemparsed("ifsdtemp")) badins("ifsdtemp");
+					if (!itemparsed("ifsdautumn")) badins("ifsdautumn");
+					if (!itemparsed("ifsdspring")) badins("ifsdspring");
+					if (!itemparsed("ifsdprec")) badins("ifsdprec");
+					if (!itemparsed("tempautumn")) badins("tempautumn");
+					if (!itemparsed("tempspring")) badins("tempspring");
+					if (!itemparsed("hiopt")) badins("hiopt");
+					if (!itemparsed("himin")) badins("himin");
+					if (!itemparsed("res_outtake")) badins("res_outtake");
+					if (!itemparsed("frootstart")) badins("frootstart");
+					if (!itemparsed("frootend")) badins("frootend");
+					if (!itemparsed("turnover_harv_prod")) badins("turnover_harv_prod");
+					if(ppft->ifsdprec)
+					{
+						if (!itemparsed("firstsowdatenh_prec")) badins("firstsowdatenh_prec");	// only used in Crop_sowing_date_prec()
+						if (!itemparsed("firstsowdatesh_prec")) badins("firstsowdatesh_prec");	// only used in Crop_sowing_date_prec()
+					}
 				}
-*/				if(ppft->isintercropgrass)
-					if (!itemparsed("harv_eff_ic")) badins("harv_eff_ic");
+				else if (ppft->phenology==ANY)
+				{
+					if(ppft->phenology==ANY)
+						if (!itemparsed("laimax")) badins("laimax");
 
+					if(ppft->isintercropgrass)
+						if (!itemparsed("harv_eff_ic")) badins("harv_eff_ic");
+				}
 			}
 		}
 
@@ -869,6 +868,16 @@ void plib_callback(int callback) {
 			if(ppft->landcover==CROPLAND)
 				ncft++;
 		}
+
+#if defined NEWSOWINGDATE
+		if(ppft->phenology==CROPGREEN)
+		{
+			ppft->ifsdcalc=true;
+			ppft->ifsdtemp=true;
+			ppft->ifsdspring=true;
+			ppft->ifsdprec=true;
+		}
+#endif
 
 		// If "include 0", remove this PFT from list, and set id to correct value
 
@@ -1286,7 +1295,7 @@ FILE *out_cmass,*out_anpp,*out_lai,*out_cflux,*out_cpool,*out_runoff,*out_dens;
 FILE *out_mnpp,*out_mlai,*out_mgpp,*out_mra,*out_maet,*out_mpet,*out_mevap,*out_mrunoff,*out_mintercep,*out_mrh;
 FILE *out_mnee,*out_mwcont_upper,*out_mwcont_lower; 
 FILE *out_firert; 
-
+FILE *out_yield;
 
 
 // Timers for keeping track of progress through the simulation
@@ -3296,10 +3305,10 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 			if(CFTdata.format==LOCAL_YEARLY)
 				all_fracs_const=false;
-#ifdef MATS_TEST
-			for(int i=0;i<CFTdata.nRecords;i++)
-				dprintf("%s:CFTdata.active=%d\n", CFTdata.GetHeader(i), CFTdata.active[i]);
-#endif
+
+//			for(int i=0;i<CFTdata.nRecords;i++)
+//				dprintf("%s:CFTdata.active=%d\n", CFTdata.GetHeader(i), CFTdata.active[i]);
+
 			if(CFTdata.GetnRecords()!=NCROPSTANDS_MAX)
 				fail("\ninitio: NCROPSTANDS_MAX is incorrectly set in guess.h !\n");
 #endif
@@ -3374,6 +3383,12 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	}
 	else out_runoff=NULL;
 
+	if (run[CROPLAND] && file_yield!="") {
+		file_yield = outputdirectory + file_yield;
+		out_yield=fopen(file_yield,"w");
+		if (!out_yield) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_runoff);
+	}
+	else out_yield=NULL;
 
 	// *** MONTHLY OUTPUT VARIABLES ***
 
@@ -3660,7 +3675,51 @@ bool getgridcell(Gridcell& gridcell)
 		
 		// Tell framework the latitude of this grid cell
 		gridcell.climate.lat=gridlist.getobj().lat;
-		
+		gridcell.climate.lon=gridlist.getobj().lon;
+
+		// Set CFT-specific members of climate and gridcellpft: 
+		if (run_landcover && run[CROPLAND]) 
+		{
+			if (gridcell.climate.lat>=0) 
+			{
+				gridcell.climate.testday_temp=180;		//June 30(day 180)
+				gridcell.climate.testday_prec=364;		//Dec.31(day 364)
+				gridcell.climate.coldestday=COLDEST_DAY_NHEMISPHERE;
+				gridcell.climate.adjustlat=0;
+			}
+			else
+			{
+				gridcell.climate.testday_temp=364;		//Dec.31(day 364)
+				gridcell.climate.testday_prec=180;		//June 30(day 180)
+				gridcell.climate.coldestday=COLDEST_DAY_SHEMISPHERE;
+				gridcell.climate.adjustlat=181;
+			}
+
+			if(gridcell.climate.lat>-15.0 && gridcell.climate.lat<20.0 && gridcell.climate.lon>90.0)
+				gridcell.climate.SOAsia=true;
+			else
+				gridcell.climate.SOAsia=false;
+
+			for(int p=0;p<gridcell.pft.nobj;p++) 
+			{
+				Gridcellpft& gcpft=gridcell.pft[p];
+
+				if (gridcell.climate.lat>=0.0)
+				{
+					gcpft.sdate_default=gcpft.pft.sdatenh;
+					gcpft.hlimitdate_default=gcpft.pft.hlimitdatenh;
+				}
+				else
+				{
+					gcpft.sdate_default=gcpft.pft.sdatesh;
+					gcpft.hlimitdate_default=gcpft.pft.hlimitdatesh;
+				}
+
+				if (!strncmp(gcpft.pft.name,"TrRi", strlen("TrRi")) && gridcell.climate.lon>=60.0 && gridcell.climate.lat<=30.0)		//double cropping in China and Japan: OK ??? Bondeau sätter detta i leaf_phenology_crop
+					gcpft.singlecrop=false;
+			}
+		}
+	
 		// The insolation data will be sent (in function getclimate, below)
 		// as percentage sunshine
 		
@@ -3973,8 +4032,7 @@ if(!SUPPRESSLARGEOUTPUT)
 				else if(sum!=1.0)	//added scaling to sum=1.0 (sum often !=1.0)
 				{
 if(!SUPPRESSLARGEOUTPUT)
-//					dprintf("Rescaling crop fractions year %d ! (sum is within 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
-					dprintf("Rescaling crop fractions year %d ! (sum is %f)\n", date.year-nyear_spinup+FIRSTHISTYEAR, sum);
+;//					dprintf("Rescaling crop fractions year %d ! (sum is %f)\n", date.year-nyear_spinup+FIRSTHISTYEAR, sum);
 					for(i=0;i<NCROPSTANDS_MAX;i++)
 						gridcell.cftfrac[i]/=sum;
 				}
@@ -4029,6 +4087,8 @@ bool getclimate(Gridcell& gridcell) {
 			for (m=0;m<12;m++) {
 				mtemp[m]=spinup_mtemp[m];
 				mprec[m]=spinup_mprec[m];
+				climate.mtemp_year[m]=spinup_mtemp[m];	
+				climate.mprec_year[m]=spinup_mprec[m];	
 				msun[m]=spinup_msun[m];
 
 				// guess2008
@@ -4073,9 +4133,25 @@ bool getclimate(Gridcell& gridcell) {
 				prdaily(hist_mprec[date.year-nyear_spinup],dprec,hist_mwet[date.year-nyear_spinup]);
 			}
 
+			for(int m=0;m<12;m++)	
+			{
+				climate.mtemp_year[m]=hist_mtemp[date.year-nyear_spinup][m];
+				climate.mprec_year[m]=hist_mprec[date.year-nyear_spinup][m];
+			}
 		}
 	}
 
+	if(date.day==0)
+	{
+		climate.aprec=0.0;
+
+		for(int m=0;m<12;m++)
+		{
+			climate.aprec+=climate.mprec_year[m];
+			climate.mpet_year[m]=0.0;
+		}
+	}
+	climate.mpet_year[date.month]+=climate.eet*PRIESTLEY_TAYLOR;
 
 	// Send environmental values for today to framework
 
@@ -4120,7 +4196,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	// provide any information to the framework.
 
 	int p,c,m,nclass;
-	double flux_veg,flux_soil,flux_fire,flux_est,flux_harvest;
+	double flux_veg,flux_soil,flux_fire,flux_est,flux_seed,flux_harvest;
 	double c_litter,c_fast,c_slow,c_harv_slow; 
 
 	// guess2008 - hold the monthly average across patches
@@ -4157,12 +4233,13 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_cmass) fprintf(out_cmass,lonlatyearstr,"Lon","Lat","Year");
 		if (out_anpp) fprintf(out_anpp,lonlatyearstr,"Lon","Lat","Year");
 		if (out_lai) fprintf(out_lai,lonlatyearstr,"Lon","Lat","Year");
+		if (out_yield) fprintf(out_yield,lonlatyearstr,"Lon","Lat","Year");
 		if (out_runoff) fprintf(out_runoff,lonlatyearstr,"Lon","Lat","Year");
 		if (out_dens) fprintf(out_dens,lonlatyearstr,"Lon","Lat","Year");
 		if (out_cflux) {
 			if(run_landcover)
-				fprintf(out_cflux,"%8s%8s%8s%8s%8s%8s%8s%9s%10s\n","Lon","Lat","Year","Veg","Soil",
-					"Fire","Est","Harvest","NEE");
+				fprintf(out_cflux,"%8s%8s%8s%8s%8s%8s%8s%8s%9s%10s\n","Lon","Lat","Year","Veg","Soil",
+					"Fire","Est","Seed","Harvest","NEE");
 			else
 				fprintf(out_cflux,lonlatyearstr_extended,"Lon","Lat","Year","Veg","Soil",
 					"Fire","Est","NEE");
@@ -4203,6 +4280,11 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			if (out_anpp) fprintf(out_anpp,"%8s",(char*)pft.name);
 			if (out_lai) fprintf(out_lai,"%8s",(char*)pft.name);
 			if (out_dens) fprintf(out_dens,"%8s",(char*)pft.name);
+
+			if(pft.landcover==CROPLAND)
+			{
+				if (out_yield) fprintf(out_yield,"%8s",(char*)pft.name);
+			}
 			pftlist.nextobj();
 		}
 
@@ -4228,7 +4310,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_cmass) fprintf(out_cmass,"\n");
 		if (out_anpp) fprintf(out_anpp,"\n");
 		if (out_lai) fprintf(out_lai,"\n");
-
+		if (out_yield) fprintf(out_yield,"\n");
 
 
 		// guess2008
@@ -4273,6 +4355,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_dens) fprintf(out_dens,lonlatyeardatastr,lon,lat,date.year);
 		if (out_cpool) fprintf(out_cpool,lonlatyeardatastr,lon,lat,date.year);
 		if (out_firert) fprintf(out_firert,lonlatyeardatastr,lon,lat,date.year);
+		if (out_yield) fprintf(out_yield,lonlatyeardatastr,lon,lat,date.year);
 
 
 		if (out_mnpp) fprintf(out_mnpp,lonlatyeardatastr,lon,lat,date.year);
@@ -4303,6 +4386,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		double gcpft_cmass=0.0;
 		double gcpft_anpp=0.0;
 		double gcpft_lai=0.0;
+		double gcpft_yield=0.0;
 		double gcpft_densindiv_total=0.0;
 		double gcpft_densindiv_ageclass[OUTPUT_MAXAGECLASS]={0.0};
 
@@ -4314,8 +4398,11 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		double firert_gridcell=0.0;
 
 		double standpft_cmass=0.0;
+		double standpft_ic_cmass=0.0;	//intercrop grass
 		double standpft_anpp=0.0;
+		double standpft_ic_anpp=0.0;	//intercrop grass
 		double standpft_lai=0.0;
+		double standpft_yield=0.0;	
 		double standpft_densindiv_total=0.0;
 		double standpft_densindiv_ageclass[OUTPUT_MAXAGECLASS]={0.0};
 
@@ -4332,6 +4419,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			gcpft_cmass=0.0;
 			gcpft_anpp=0.0;
 			gcpft_lai=0.0;
+			gcpft_yield=0.0;
 			gcpft_densindiv_total=0.0;		
 
 			gridcell.firstobj();
@@ -4343,8 +4431,11 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				Standpft& standpft=stand.pft[pft.id];
 				// Sum C biomass, NPP and LAI across patches and PFTs
 				standpft_cmass=0.0;
+				standpft_ic_cmass=0.0;
 				standpft_anpp=0.0;
+				standpft_ic_anpp=0.0;
 				standpft_lai=0.0;
+				standpft_yield=0.0;
 				standpft_densindiv_total = 0.0;
 
 				// Initialise age structure array
@@ -4368,28 +4459,49 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 						if (indiv.id!=-1 && indiv.alive) { 
 							
 							if (indiv.pft.id==pft.id) {
-								standpft_cmass+=indiv.cmass_leaf+
-									indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
-								standpft_anpp+=indiv.anpp;
-								standpft_lai+=indiv.lai;
 
-								if (vegmode==COHORT || vegmode==INDIVIDUAL) {
-									
-									// Age structure
-									
-									c=(int)(indiv.age/estinterval); // guess2008
-									if (c<OUTPUT_MAXAGECLASS)
-										standpft_densindiv_ageclass[c]+=indiv.densindiv;
-
-									// guess2008 - only count trees with a trunk above a certain diameter  
-									if (pft.lifeform==TREE && indiv.age>0) {
-										double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
-										if (diam>0.03) {
-											standpft_densindiv_total+=indiv.densindiv; // indiv/m2
-										}
+								if(pft.landcover==CROPLAND)
+								{
+									if(indiv.cropindiv->isintercropgrass==false)
+									{
+										standpft_cmass+=indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt+indiv.cropindiv->cmass_ho+indiv.cropindiv->cmass_agpool;
+										standpft_anpp+=indiv.anpp;
+										if(pft.phenology==CROPGREEN)					
+											standpft_lai+=indiv.cropindiv->cmass_leaf_max*pft.sla;
+										else
+											standpft_lai+=indiv.lai;
+										standpft_yield+=indiv.cropindiv->yield;
+									}
+									else
+									{
+										standpft_ic_cmass+=indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt+indiv.cropindiv->cmass_ho+indiv.cropindiv->cmass_agpool;
+										standpft_ic_anpp+=indiv.anpp;
 									}
 								}
-							
+								else
+								{
+									standpft_cmass+=indiv.cmass_leaf+
+										indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
+									standpft_anpp+=indiv.anpp;
+									standpft_lai+=indiv.lai;
+
+									if (vegmode==COHORT || vegmode==INDIVIDUAL) {
+										
+										// Age structure
+										
+										c=(int)(indiv.age/estinterval); // guess2008
+										if (c<OUTPUT_MAXAGECLASS)
+											standpft_densindiv_ageclass[c]+=indiv.densindiv;
+
+										// guess2008 - only count trees with a trunk above a certain diameter  
+										if (pft.lifeform==TREE && indiv.age>0) {
+											double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
+											if (diam>0.03) {
+												standpft_densindiv_total+=indiv.densindiv; // indiv/m2
+											}
+										}
+									}
+								}						
 							}
 
 						} // alive?
@@ -4399,13 +4511,16 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				} // end of patch loop
 
 				standpft_cmass/=(double)stand.nobj;
+				standpft_ic_cmass/=(double)stand.nobj;
 				standpft_anpp/=(double)stand.nobj;
+				standpft_ic_anpp/=(double)stand.nobj;
 				standpft_lai/=(double)stand.nobj;
+				standpft_yield/=(double)stand.nobj;
 				standpft_densindiv_total/=(double)stand.nobj;
 
 				//Update landcover totals
-				landcover_cmass[stand.landcover]+=standpft_cmass*stand.get_landcover_fraction();
-				landcover_anpp[stand.landcover]+=standpft_anpp*stand.get_landcover_fraction();
+				landcover_cmass[stand.landcover]+=(standpft_cmass+standpft_ic_cmass)*stand.get_landcover_fraction();
+				landcover_anpp[stand.landcover]+=(standpft_anpp+standpft_ic_anpp)*stand.get_landcover_fraction();
 				landcover_lai[stand.landcover]+=standpft_lai*stand.get_landcover_fraction();
 				landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.get_landcover_fraction();
 
@@ -4417,24 +4532,31 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 					gcpft_anpp+=standpft_anpp*stand.get_landcover_fraction();
 					gcpft_lai+=standpft_lai*stand.get_landcover_fraction();
 					gcpft_densindiv_total+=standpft_densindiv_total*stand.get_landcover_fraction();
+
+				if (vegmode==COHORT || vegmode==INDIVIDUAL)
+					for (c=0;c<nclass;c++)
+						gcpft_densindiv_ageclass[c]+=standpft_densindiv_ageclass[c]*stand.get_landcover_fraction();
+
 				}
 				else
 #endif
-				{
-					gcpft_cmass+=standpft_cmass;
+				{									
+					gcpft_cmass+=standpft_cmass;		//Intercrop grass not taken into account here for crop grass pft:s.
 					gcpft_anpp+=standpft_anpp;
 					gcpft_lai+=standpft_lai;
+					gcpft_yield+=standpft_yield;
 					gcpft_densindiv_total+=standpft_densindiv_total;
-				}
 
 				if (vegmode==COHORT || vegmode==INDIVIDUAL)
 					for (c=0;c<nclass;c++)
 						gcpft_densindiv_ageclass[c]+=standpft_densindiv_ageclass[c];
+				}
+
 
 				// Update gridcell totals
 				double fraction_of_gridcell = stand.get_gridcell_fraction();
-				cmass_gridcell+=standpft_cmass*fraction_of_gridcell;
-				anpp_gridcell+=standpft_anpp*fraction_of_gridcell;
+				cmass_gridcell+=(standpft_cmass+standpft_ic_cmass)*fraction_of_gridcell;
+				anpp_gridcell+=(standpft_anpp+standpft_ic_anpp)*fraction_of_gridcell;
 				lai_gridcell+=standpft_lai*fraction_of_gridcell;
 				dens_gridcell+=standpft_densindiv_total*fraction_of_gridcell;
 			
@@ -4460,12 +4582,15 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			if (out_anpp)
 				fprintf(out_anpp,"%8.3f",gcpft_anpp);
 
+			if (out_yield && pft.landcover==CROPLAND)
+				fprintf(out_yield,"%8.3f",gcpft_yield);
+
 			pftlist.nextobj();
 		
 		} // *** End of PFT loop ***
 
 
-		flux_veg=flux_soil=flux_fire=flux_est=flux_harvest=0.0;
+		flux_veg=flux_soil=flux_fire=flux_est=flux_harvest=flux_seed=0.0;
 
 		// guess2008 - carbon pools
 		c_litter=c_fast=c_slow=c_harv_slow=0.0;
@@ -4489,6 +4614,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				flux_soil+=patch.fluxes.acflux_soil*to_gridcell_average;
 				flux_fire+=patch.fluxes.acflux_fire*to_gridcell_average;
 				flux_est+=patch.fluxes.acflux_est*to_gridcell_average;
+				flux_seed+=patch.fluxes.acflux_seed*to_gridcell_average;
 				flux_harvest+=patch.fluxes.acflux_harvest*to_gridcell_average;
 
 				c_fast+=patch.soil.cpool_fast*to_gridcell_average;
@@ -4603,6 +4729,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		if (out_cmass) fprintf(out_cmass,"\n");
 		if (out_anpp) fprintf(out_anpp,"\n");
 		if (out_lai) fprintf(out_lai,"\n");
+		if (out_yield) fprintf(out_yield,"\n");
 		if (out_runoff) fprintf(out_runoff,"\n");
 		if (out_dens) fprintf(out_dens, "\n");
 		if (out_firert) fprintf(out_firert, "\n");
@@ -4665,8 +4792,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 		if (out_cflux) {		
 			if(run_landcover)
-				fprintf(out_cflux,"%8.3f%8.3f%8.3f%8.3f%9.3f%10.5f\n",flux_veg,flux_soil,flux_fire,
-					flux_est,flux_harvest,flux_veg+flux_soil+flux_fire+flux_est+flux_harvest);
+				fprintf(out_cflux,"%8.3f%8.3f%8.3f%8.3f%8.3f%9.3f%10.5f\n",flux_veg,flux_soil,flux_fire,
+					flux_est,flux_seed,flux_harvest,flux_veg+flux_soil+flux_fire+flux_est+flux_seed+flux_harvest);
 			else
 				fprintf(out_cflux,"%8.3f%8.3f%8.3f%8.3f%10.5f\n",flux_veg,flux_soil,flux_fire,
 					flux_est,flux_veg+flux_soil+flux_fire+flux_est);
@@ -4731,6 +4858,7 @@ void termio() {
 		if (out_cmass) fclose(out_cmass);
 		if (out_anpp) fclose(out_anpp);
 		if (out_lai) fclose(out_lai);
+		if (out_yield) fclose(out_yield);
 		if (out_cflux) fclose(out_cflux);
 		if (out_runoff) fclose(out_runoff);
 		if (out_dens) fclose(out_dens);

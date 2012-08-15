@@ -169,7 +169,10 @@ void interception(Patch& patch,Climate& climate) {
 
 			// Calculate interception by this individual, and increment patch total
 
-			indiv.intercep=fwet*pet*indiv.fpc;
+			if(indiv.pft.phenology==CROPGREEN)
+				indiv.intercep=fwet*pet;
+			else
+				indiv.intercep=fwet*pet*indiv.fpc;
 			patch.intercep+=indiv.intercep;
 		}
 		else {
@@ -270,6 +273,7 @@ void fpar(Patch& patch) {
 	double fpar_uptake_layer;
 	double fpar_uptake_leafon_layer;
 	
+
 	// Obtain reference to Vegetation object
 	Vegetation& vegetation=patch.vegetation;
 
@@ -320,15 +324,19 @@ void fpar(Patch& patch) {
 			indiv.fpar=0.0;
 			indiv.fpar_leafon=0.0;
 			if (indiv.height>height_veg) height_veg=indiv.height;
-			plai_leafon+=indiv.lai;
-			
-			if (indiv.pft.lifeform==GRASS) {
-				plai_leafon_grass+=indiv.lai;
-				plai_grass+=indiv.lai*indiv.phen;
-			}
 
-			// Accumulate LAI-weighted sum of individual leaf-out fractions
-			phen_veg+=indiv.phen*indiv.lai;
+			if(patch.stand.landcover!=CROPLAND || patch.stand.landcover==CROPLAND && patch.pft[indiv.pft.id].cropphen->growingseason==true)
+			{
+				plai_leafon+=indiv.lai;
+				
+				if (indiv.pft.lifeform==GRASS) {
+					plai_leafon_grass+=indiv.lai;
+					plai_grass+=indiv.lai*indiv.phen;
+				}
+
+				// Accumulate LAI-weighted sum of individual leaf-out fractions
+				phen_veg+=indiv.phen*indiv.lai;
+			}
 
 			vegetation.nextobj(); // ... on to next individual
 		}
@@ -348,108 +356,109 @@ void fpar(Patch& patch) {
 		plai_leafon=0.0;
 
 		// Set FPAR for bottom of layer above (initially 1 at top of canopy)
-
-		fpar_layer_bottom=1.0;
-		fpar_leafon_layer_bottom=1.0;
-		
-		for (layer=toplayer;layer>=0;layer--) {
-
-			lowbound=(double)layer*VSTEP;
-			highbound=lowbound+VSTEP;
-
-			// FPAR at top of this layer = FPAR at bottom of layer above
-
-			fpar_layer_top=fpar_layer_bottom;
-			fpar_leafon_layer_top=fpar_leafon_layer_bottom;
-
-			plai_layer=0.0;
-			plai_leafon_layer=0.0;
-
-			// Loop through individuals
-
-			vegetation.firstobj();
-			while (vegetation.isobj) {
-				Individual& indiv=vegetation.getobj();
-
-				// For this individual ...
-
-				if (indiv.pft.lifeform==TREE) {
-					if (indiv.height>lowbound && indiv.boleht<highbound &&
-						!negligible(indiv.height-indiv.boleht)) {
-						
-						// Calculate vertical fraction of current layer occupied by
-						// crown cylinders of this cohort
-
-						frac=1.0;
-						if (indiv.height<highbound)
-							frac-=(highbound-indiv.height)/VSTEP;
-						if (indiv.boleht>lowbound)
-							frac-=(indiv.boleht-lowbound)/VSTEP;
-
-						// Calculate summed LAI of this cohort in this layer
-
-						atoh=indiv.lai/(indiv.height-indiv.boleht);
-						indiv.lai_leafon_layer=atoh*frac*VSTEP;
-						plai_layer+=indiv.lai_leafon_layer*indiv.phen;
-						plai_leafon_layer+=indiv.lai_leafon_layer;
-					}
-					else {
-						indiv.lai_layer=0.0;
-						indiv.lai_leafon_layer=0.0;
-					}
-				}
-
-				// ... on to next individual
-				vegetation.nextobj();
-			}
-
-			// Update cumulative LAI for this layer and above
-			plai+=plai_layer;
-			plai_leafon+=plai_leafon_layer;
-
-			// Calculate FPAR at bottom of this layer
-			// Eqn 27, Prentice et al 1993
-
-			fpar_layer_bottom=exp(-LAMBERTBEER_K*plai);
-			fpar_leafon_layer_bottom=exp(-LAMBERTBEER_K*plai_leafon);
-
-			// Total PAR uptake in this layer
-
-			fpar_uptake_layer=fpar_layer_top-fpar_layer_bottom;
-			fpar_uptake_leafon_layer=fpar_leafon_layer_top-fpar_leafon_layer_bottom;
+		if(patch.stand.landcover!=CROPLAND)
+		{
+			fpar_layer_bottom=1.0;
+			fpar_leafon_layer_bottom=1.0;
 			
-			// Partition PAR for this layer among trees,
+			for (layer=toplayer;layer>=0;layer--) {
 
-			vegetation.firstobj();
-			while (vegetation.isobj) {
-				Individual& indiv=vegetation.getobj();
+				lowbound=(double)layer*VSTEP;
+				highbound=lowbound+VSTEP;
 
-				// For this individual ...
+				// FPAR at top of this layer = FPAR at bottom of layer above
 
-				if (indiv.pft.lifeform==TREE) {
-					if (!negligible(plai_leafon_layer))
+				fpar_layer_top=fpar_layer_bottom;
+				fpar_leafon_layer_top=fpar_leafon_layer_bottom;
 
-						// FPAR partitioned according to the relative amount 
-						// of leaf area in this layer for this individual
+				plai_layer=0.0;
+				plai_leafon_layer=0.0;
 
-						indiv.fpar_leafon+=fpar_uptake_leafon_layer*
-							indiv.lai_leafon_layer/plai_leafon_layer;
+				// Loop through individuals
 
-					else 
-						indiv.fpar_leafon=0.0;
+				vegetation.firstobj();
+				while (vegetation.isobj) {
+					Individual& indiv=vegetation.getobj();
 
-					if (!negligible(plai_layer))
-						indiv.fpar+=fpar_uptake_layer*
-							(indiv.lai_leafon_layer*indiv.phen)/plai_layer;
-					else
-						indiv.fpar=0.0;
+					// For this individual ...
 
+					if (indiv.pft.lifeform==TREE) {
+						if (indiv.height>lowbound && indiv.boleht<highbound &&
+							!negligible(indiv.height-indiv.boleht)) {
+							
+							// Calculate vertical fraction of current layer occupied by
+							// crown cylinders of this cohort
+
+							frac=1.0;
+							if (indiv.height<highbound)
+								frac-=(highbound-indiv.height)/VSTEP;
+							if (indiv.boleht>lowbound)
+								frac-=(indiv.boleht-lowbound)/VSTEP;
+
+							// Calculate summed LAI of this cohort in this layer
+
+							atoh=indiv.lai/(indiv.height-indiv.boleht);
+							indiv.lai_leafon_layer=atoh*frac*VSTEP;
+							plai_layer+=indiv.lai_leafon_layer*indiv.phen;
+							plai_leafon_layer+=indiv.lai_leafon_layer;
+						}
+						else {
+							indiv.lai_layer=0.0;
+							indiv.lai_leafon_layer=0.0;
+						}
+					}
+
+					// ... on to next individual
+					vegetation.nextobj();
 				}
 
-				// ... on to next individual
-				vegetation.nextobj();
-			}
+				// Update cumulative LAI for this layer and above
+				plai+=plai_layer;
+				plai_leafon+=plai_leafon_layer;
 
+				// Calculate FPAR at bottom of this layer
+				// Eqn 27, Prentice et al 1993
+
+				fpar_layer_bottom=exp(-LAMBERTBEER_K*plai);
+				fpar_leafon_layer_bottom=exp(-LAMBERTBEER_K*plai_leafon);
+
+				// Total PAR uptake in this layer
+
+				fpar_uptake_layer=fpar_layer_top-fpar_layer_bottom;
+				fpar_uptake_leafon_layer=fpar_leafon_layer_top-fpar_leafon_layer_bottom;
+				
+				// Partition PAR for this layer among trees,
+
+				vegetation.firstobj();
+				while (vegetation.isobj) {
+					Individual& indiv=vegetation.getobj();
+
+					// For this individual ...
+
+					if (indiv.pft.lifeform==TREE) {
+						if (!negligible(plai_leafon_layer))
+
+							// FPAR partitioned according to the relative amount 
+							// of leaf area in this layer for this individual
+
+							indiv.fpar_leafon+=fpar_uptake_leafon_layer*
+								indiv.lai_leafon_layer/plai_leafon_layer;
+
+						else 
+							indiv.fpar_leafon=0.0;
+
+						if (!negligible(plai_layer))
+							indiv.fpar+=fpar_uptake_layer*
+								(indiv.lai_leafon_layer*indiv.phen)/plai_layer;
+						else
+							indiv.fpar=0.0;
+
+					}
+
+					// ... on to next individual
+					vegetation.nextobj();
+				}
+			}
 		}
 
 		// FPAR reaching grass canopy
@@ -468,6 +477,7 @@ void fpar(Patch& patch) {
 
 		plai_leafon+=plai_leafon_grass;
 		fpar_leafon_ff=exp(-LAMBERTBEER_K*plai_leafon);
+
 
 		// FPAR for grass PFTs is difference between relative PAR at top of grass canopy
 		// canopy and at forest floor, or lower if FPAR at forest floor below threshold
@@ -501,6 +511,7 @@ void fpar(Patch& patch) {
 					fpar_min=1.0;
 
 				indiv.fpar=max(0.0,fpar_grass*flai-max(fpar_ff*flai,fpar_min));
+
 
 				// Repeat assuming full leaf cover for all individuals
 
@@ -639,7 +650,7 @@ LookupQ10 lookup_tau(Q10TAU,TAU25);
 void photosynthesis(double co2,double temp,double par,double daylength,
 	double fpar,double lambda,pathwaytype pathway,double pstemp_min,
 	double pstemp_low,double pstemp_high,double pstemp_max,double lambda_max,
-	double& agd,double& adtmm,double& rd) {
+	double& agd,double& adtmm,double& rd, phenologytype phenology) {
 
 	// DESCRIPTION
 	// Calculation of total daily gross photosynthesis and leaf-level net daytime
@@ -684,6 +695,7 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 
 	// guess2008 - ALPHAA value chosen to give global carbon pool and flux values that 
 	// agree with published estimates.
+	const double ALPHAA_CROP=1.0;	
 	const double ALPHAA=0.5;
 		// scaling factor for PAR absorption from leaf to plant projective area level
 		// alias "twigloss"
@@ -757,6 +769,11 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 	// fractional absorption at leaf level (APAR)
 	// Eqn 4, Haxeltine & Prentice 1996a
 
+#if defined HIGH_ALPHAA_CROP
+	if(phenology==CROPGREEN)
+		apar=par*fpar*ALPHAA_CROP;
+	else
+#endif
 	apar=par*fpar*ALPHAA;
 
 	// Calculate temperature-inhibition coefficient
@@ -1002,11 +1019,11 @@ void demand(Patch& patch) {
 	// A base value for non-water-stressed photosynthesis is calculated here (as a 
 	// biproduct of the calculation of canopy conductance) and stored for reuse later.
 
-	double adtmm;
+	double adtmm=0.0;
 		// leaf-level net daytime photosynthesis expressed as CO2 diffusion (mm/m2/d)
-	double agd;
+	double agd=0.0;
 		// gross daily photosynthesis (kgC/m2/day)
-	double rd;
+	double rd=0.0;
 		// leaf respiration (kgC/m2/day)
 	double gp_patch;
 		// non-water-stressed canopy conductance for patch, patch vegetated area
@@ -1017,6 +1034,7 @@ void demand(Patch& patch) {
 	double gp_indiv;
 		// non-water-stressed canopy conductance for individual/cohort/population,
 		// FPC basis
+
 
 	// Retrieve Stand, Climate and Vegetation objects for this patch
 
@@ -1047,7 +1065,8 @@ void demand(Patch& patch) {
 
 				photosynthesis(climate.co2,climate.temp,climate.par,climate.daylength,
 					1.0,pft.lambda_max,pft.pathway,pft.pstemp_min,pft.pstemp_low,
-					pft.pstemp_high,pft.pstemp_max,pft.lambda_max,agd,adtmm,rd);
+					pft.pstemp_high,pft.pstemp_max,pft.lambda_max,agd,adtmm,rd,pft.phenology);
+
 
 				// Eqn 21, Haxeltine & Prentice 1996
 				// NB: includes conversion of daylight from hours to seconds (*3600),
@@ -1062,7 +1081,6 @@ void demand(Patch& patch) {
 				// climate and FPAR=1 assuming no water stress
 
 				stand.pft[pft.id].assim_term=agd-rd;
-
 				stand.pft[pft.id].have_phot=true;
 			}
 
@@ -1074,7 +1092,6 @@ void demand(Patch& patch) {
 			indiv.gp_leafon=stand.pft[pft.id].gpterm*indiv.fpar_leafon+
 				pft.gmin*indiv.fpc;
 
-
 #if defined(DEMAND_INDIV)
 
 			if (!negligible(indiv.fpc*indiv.phen)) {
@@ -1082,12 +1099,12 @@ void demand(Patch& patch) {
 				// Individual conductance and demand assuming full leaf cover,
 				// FPC basis
 
-				gp_indiv=indiv.gp_leafon*indiv.phen/indiv.fpc;
+				gp_indiv=indiv.gp_leafon*indiv.phen/indiv.fpc;	// NEWCROPPHENOLOGY : add code
 				indiv.demand=aet_monteith(patch.eet_net_veg,gp_indiv);
 
 				// Actual conductance and demand, FPC basis
 
-				gp_indiv=indiv.gp_leafon/indiv.fpc;
+				gp_indiv=indiv.gp_leafon/indiv.fpc;				// NEWCROPPHENOLOGY : add code
 				indiv.demand_leafon=aet_monteith(patch.eet_net_veg,gp_indiv);
 			}
 			else {
@@ -1107,30 +1124,49 @@ void demand(Patch& patch) {
 		// Increment patch sums of non-water-stressed gp by individual value
 
 		gp_patch+=indiv.gp_leafon*indiv.phen;
-		gp_leafon_patch+=indiv.gp_leafon;
 
-		// ... on to next individual
+		if(patch.stand.landcover!=CROPLAND || patch.stand.landcover==CROPLAND && patch.pft[indiv.pft.id].cropphen->growingseason==true)
+			gp_leafon_patch+=indiv.gp_leafon;
+
+// ... on to next individual
 		vegetation.nextobj();
 	}
 
 	// Calculate transpirational demand on patch vegetated area basis
 	// Eqn 23, Haxeltine & Prentice 1996
 
-	// guess2008 - added fpc_total check
-	if (!negligible(gp_patch) && !negligible(patch.fpc_total)) {
-		gp_patch/=patch.fpc_total;
-		patch.demand=aet_monteith(patch.eet_net_veg,gp_patch);
-	}
-	else
-		patch.demand=0.0;
+	if(patch.stand.landcover!=CROPLAND || patch.pft[patch.stand.pftid].pft.phenology!=CROPGREEN)
+	{
 
-	// guess2008 - added fpc_total check
-	if (!negligible(gp_leafon_patch) && !negligible(patch.fpc_total)) {
-		gp_leafon_patch/=patch.fpc_total;
-		patch.demand_leafon=aet_monteith(patch.eet_net_veg,gp_leafon_patch);
+		// guess2008 - added fpc_total check
+		if (!negligible(gp_patch) && !negligible(patch.fpc_total)) {
+			gp_patch/=patch.fpc_total;
+			patch.demand=aet_monteith(patch.eet_net_veg,gp_patch);
+		}
+		else
+			patch.demand=0.0;
+
+		// guess2008 - added fpc_total check
+		if (!negligible(gp_leafon_patch) && !negligible(patch.fpc_total)) {
+			gp_leafon_patch/=patch.fpc_total;
+			patch.demand_leafon=aet_monteith(patch.eet_net_veg,gp_leafon_patch);
+		}
+		else
+			patch.demand_leafon=0.0;
 	}
-	else
-		patch.demand_leafon=0.0;
+
+	if(patch.stand.landcover==CROPLAND && patch.pft[patch.stand.pftid].pft.phenology==CROPGREEN && patch.pft[patch.stand.pftid].cropphen->growingseason)// corrected 110524
+	{
+		if (!negligible(gp_patch)) 
+			patch.demand=aet_monteith(patch.eet_net_veg,gp_patch);	
+		else
+			patch.demand=0.0;
+
+		if (!negligible(gp_leafon_patch)) 
+			patch.demand_leafon=aet_monteith(patch.eet_net_veg,gp_leafon_patch);
+		else
+			patch.demand_leafon=0.0;
+	}
 }
 
 
@@ -1260,6 +1296,11 @@ void aet_water_stress(Patch& patch) {
 
 	// Calculate common point supply for each PFT in this patch
 
+	patch.irrigation_d=0.0;
+
+	if(date.day==0)
+		patch.irrigation_y=0.0;
+
 	for (p=0;p<npft;p++) {
 
 		// Retrieve next patch PFT
@@ -1283,6 +1324,14 @@ void aet_water_stress(Patch& patch) {
 			ppft.gcbase=0.0;
 		}
 
+		if(pft.hydrology==IRRIGATED)
+		{
+			ppft.water_deficit_d=0.0;
+
+			if(date.day==0)
+				ppft.water_deficit_y=0.0;
+		}
+
 		// Calculate effective water supply from plant roots
 		// Rescale available water by patch FPC if exceeds 1
 		// (this then represents the average amount of water available over an
@@ -1297,6 +1346,66 @@ void aet_water_stress(Patch& patch) {
 		if (ifspeciesspecificwateruptake) 
 			species_drought_tolerance = pft.drought_tolerance;
 
+#if defined IRRIGATION
+		int irrigationtype=1;
+
+		if(patch.stand.isirrigated && pft.hydrology==IRRIGATED)
+		{
+			if (patch.soil.wcont[0]<0.9)	//Fader et al. 2010
+			{
+				double wcont_0_opt=0.0;
+
+				if(irrigationtype==1)
+				{
+					double wr_opt;
+
+					wr_opt=patch.demand/ppft.cropphen->fpc/pft.emax;
+					if(wr_opt>1.0)
+						wr_opt=1.0;
+
+#ifdef WR_ROOTDIST
+//// from water_uptake( ): wr_opt=(min(wcont_0_opt*patch.soil.soiltype.awc[0]*patch.fpc_rescale, pft.emax*pft.rootdist[0])+min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]))/pft.emax
+					wcont_0_opt=(wr_opt*pft.emax-min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]))/patch.soil.soiltype.awc[0]/patch.fpc_rescale;
+
+					if(wcont_0_opt*patch.soil.soiltype.awc[0]*patch.fpc_rescale>pft.emax*pft.rootdist[0])
+						wcont_0_opt=pft.emax*pft.rootdist[0]/patch.soil.soiltype.awc[0]/patch.fpc_rescale;
+#else
+					fail("Irrigation soil water only balanced for WR_ROOTDIST currently !\n");
+#endif	//WR_ROOTDIST
+				}
+				else if(irrigationtype==2)
+				{
+////				ppft.water_deficit_d=patch.demand-ppft.supply;
+////				(wcont_0_opt-patch.soil.wcont[0])*patch.soil.soiltype.awc[0]=patch.demand-ppft.supply
+//					wcont_0_opt=patch.soil.wcont[0]+(patch.demand-ppft.supply)/patch.soil.soiltype.awc[0];
+					wcont_0_opt=patch.soil.wcont[0]+(patch.demand-
+						(min(patch.soil.wcont[0]*patch.soil.soiltype.awc[0]*patch.fpc_rescale, pft.emax*pft.rootdist[0])+
+						 min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]) )/pft.emax*pft.emax*ppft.cropphen->fpc)
+						   /patch.soil.soiltype.awc[0];
+
+				}
+				else if(irrigationtype==3)
+////				ppft.water_deficit_d=(1.0-patch.soil.wcont[0])*patch.soil.soiltype.awc[0];	
+					wcont_0_opt=1.0;
+				else if(irrigationtype==4)
+////				ppft.water_deficit_d=pft.emax-patch.soil.wcont[0]*patch.soil.soiltype.awc[0];
+					wcont_0_opt=min(1.0,pft.emax/patch.soil.soiltype.awc[0]);
+
+				if(wcont_0_opt>patch.soil.wcont[0])
+				{
+					ppft.water_deficit_d=(wcont_0_opt-patch.soil.wcont[0])*patch.soil.soiltype.awc[0];
+					patch.soil.wcont[0]=wcont_0_opt;
+				}
+
+				ppft.water_deficit_y+=ppft.water_deficit_d;
+				if(ppft.water_deficit_d>patch.irrigation_d)
+					patch.irrigation_d=ppft.water_deficit_d;
+				patch.irrigation_y+=patch.irrigation_d;
+			}
+		}
+#endif	//IRRIGATION
+
+
 		wr=water_uptake(patch.soil.wcont,patch.soil.soiltype.awc,pft.rootdist,pft.emax,
 			patch.fpc_rescale,ppft.fuptake,pft.lifeform==TREE,species_drought_tolerance);
 		// ----------------------------------------
@@ -1305,6 +1414,9 @@ void aet_water_stress(Patch& patch) {
 
 		ppft.supply_leafon=pft.emax*wr;
 		ppft.supply=ppft.supply_leafon*ppft.phen;
+
+		if(pft.phenology==CROPGREEN)
+			ppft.supply=ppft.supply_leafon*ppft.cropphen->fpc;	
 
 		if (ppft.supply<patch.demand && !negligible(ppft.phen)) {
 
@@ -1339,6 +1451,8 @@ void aet_water_stress(Patch& patch) {
 			else
 				ppft.gcbase+=gcbase;
 
+			if(patch.stand.landcover==CROPLAND && pft.landcover==CROPLAND && !ifdailynpp && date.day==ppft.cropphen->sendate)
+				ppft.cropphen->gcbase_sen=gcbase;
 		}
 		else {
 
@@ -1393,7 +1507,10 @@ void aet_water_stress(Patch& patch) {
 
 			indiv.ifwstress=true;
 
-			indiv.aet=indiv.supply*indiv.fpc;
+			if(pft.phenology==CROPGREEN)
+				indiv.aet=indiv.supply;
+			else
+				indiv.aet=indiv.supply*indiv.fpc;
 
 			// Record FPAR for this individual today
 
@@ -1416,10 +1533,12 @@ void aet_water_stress(Patch& patch) {
 
 #if defined(DEMAND_PATCH)
 
-                        if (negligible(indiv.phen))
-                                indiv.aet=0.0;
-                        else
-                                indiv.aet=patch.demand*indiv.fpc;
+			if (negligible(indiv.phen))
+				indiv.aet=0.0;
+			else if(pft.phenology==CROPGREEN)
+				indiv.aet=patch.demand;
+			else
+				indiv.aet=patch.demand*indiv.fpc;
 
 #elif defined(DEMAND_INDIV)
 
@@ -1446,7 +1565,6 @@ void water_scalar(Patch& patch) {
 	// subsequent year
 
 	int p;
-
 	Vegetation& vegetation=patch.vegetation;
 
 	for (p=0;p<npft;p++) {
@@ -1456,21 +1574,65 @@ void water_scalar(Patch& patch) {
 
 		// Calculate patch PFT water scalar value
 
-		if (!negligible(patch.demand_leafon))
+		if(patch.stand.landcover==CROPLAND && ppft.pft.phenology==CROPGREEN)
+		{
+			if (!negligible(patch.demand))
+				ppft.wscal=min(1.0,ppft.supply/patch.demand);	//Cannot use leafon-values here because demand_leafon is daily, while supply_leafon is not. 110810
+			else
+				ppft.wscal=1.0;
+
+		}
+		else if (!negligible(patch.demand_leafon))
 			ppft.wscal=min(1.0,ppft.supply_leafon/patch.demand_leafon);
 		else
 			ppft.wscal=1.0;
 
 		// Update annual mean water scalar
 
-		if (date.day==0)
-			ppft.wscal_mean=ppft.wscal;
-		else
-			ppft.wscal_mean+=ppft.wscal;
+		if(!run_landcover
+				|| patch.stand.landcover!=CROPLAND && patch.stand.pft[ppft.pft.id].active  //natural, urban, pasture, forest and peatland stands
+				|| patch.stand.landcover==CROPLAND && ppft.pft.landcover==CROPLAND && ppft.pft.phenology==ANY && ppft.pft.id==patch.stand.pftid) //normal cc3g/cc4g-growth
+		{
+			if (date.day==0)
+				ppft.wscal_mean=ppft.wscal;
+			else
+				ppft.wscal_mean+=ppft.wscal;
 
-		// Convert from sum to mean on last day of year
-		if (date.islastday && date.islastmonth) ppft.wscal_mean/=365.0;
-
+			// Convert from sum to mean on last day of year
+			if (date.islastday && date.islastmonth) ppft.wscal_mean/=365.0;
+		}
+//////////// True crop stands ////////////////
+		else if(patch.stand.landcover==CROPLAND && ppft.pft.landcover==CROPLAND)
+		{
+//////////// True crop stands; main crop ////////////////			
+			if(ppft.pft.phenology==CROPGREEN)		//wscal_mean används ju inte för CROPGREEN !
+			{
+				if(date.day==ppft.cropphen->sdate)
+				{
+					ppft.cropphen->growingdays=0;
+					ppft.wscal_mean=ppft.wscal;
+				}
+				else if(ppft.cropphen->growingseason==true || date.day==ppft.cropphen->hdate)
+				{
+					ppft.cropphen->growingdays++;
+					ppft.wscal_mean=ppft.wscal_mean+(ppft.wscal-ppft.wscal_mean)/(ppft.cropphen->growingdays+1);
+				}
+			}
+//////////// True crop stands; intercrop grass ////////////////
+			else if(ifintercropgrass && ppft.pft.phenology==ANY && ppft.pft.isintercropgrass && ppft.pft.id!=patch.stand.pftid)
+			{
+				if(date.day==patch.pft[patch.stand.pftid].cropphen->bicdate)	//OBS ! bicdate ligger i huvudgrödan !
+				{
+					ppft.cropphen->growingdays=0;
+					ppft.wscal_mean=ppft.wscal;
+				}
+				else if(ppft.cropphen->growingseason==true || date.day==patch.pft[patch.stand.pftid].cropphen->eicdate)
+				{
+					ppft.cropphen->growingdays++;
+					ppft.wscal_mean=ppft.wscal_mean+(ppft.wscal-ppft.wscal_mean)/(ppft.cropphen->growingdays+1);
+				}
+			}
+		}
 	}
 
 	// Calculate individual water scalars
@@ -1485,20 +1647,60 @@ void water_scalar(Patch& patch) {
 
 #elif defined(DEMAND_INDIV)
 
-		if (!negligible(indiv.demand_leafon))
+		if(patch.stand.landcover==CROPLAND && indiv.pft.phenology==CROPGREEN)
+		{
+			if (!negligible(indiv.demand))
+				indiv.wscal=min(1.0,indiv.supply/indiv.demand);	//Cannot use leafon-values here because demand_leafon is daily, while supply_leafon is not. 110810
+			else
+				indiv.wscal=1.0;
+
+		}
+		else if (!negligible(indiv.demand_leafon))
 			indiv.wscal=min(1.0,indiv.supply_leafon/indiv.demand_leafon);
 		else
 			indiv.wscal=1.0;
 #endif
 
-		if (date.day==0)
-			indiv.wscal_mean=indiv.wscal;
-		else
-			indiv.wscal_mean+=indiv.wscal;
-		
-		if (date.islastday && date.islastmonth)
-			indiv.wscal_mean/=365.0;
-
+		if(!run_landcover
+				|| patch.stand.landcover!=CROPLAND && patch.stand.pft[indiv.pft.id].active  //natural, urban, pasture, forest and peatland stands
+				|| patch.stand.landcover==CROPLAND && indiv.pft.landcover==CROPLAND && indiv.pft.phenology==ANY && !indiv.cropindiv->isintercropgrass) //normal cc3g/cc4g-growth
+		{
+			if (date.day==0)
+				indiv.wscal_mean=indiv.wscal;
+			else
+				indiv.wscal_mean+=indiv.wscal;
+			
+			if (date.islastday && date.islastmonth)
+				indiv.wscal_mean/=365.0;
+		}
+//////////// True crop stands ////////////////
+		else if(patch.stand.landcover==CROPLAND && indiv.pft.landcover==CROPLAND)
+		{
+//////////// True crop stands; main crop ////////////////	
+			if(indiv.pft.phenology==CROPGREEN)
+			{
+				if(date.day==patch.pft[indiv.pft.id].cropphen->sdate)
+				{
+					indiv.wscal_mean=indiv.wscal;
+				}
+				else if(patch.pft[indiv.pft.id].cropphen->growingseason==true || date.day==patch.pft[indiv.pft.id].cropphen->hdate)
+				{
+					indiv.wscal_mean=indiv.wscal_mean+(indiv.wscal-indiv.wscal_mean)/(patch.pft[indiv.pft.id].cropphen->growingdays+1);
+				}
+			}
+//////////// True crop stands; intercrop grass ////////////////
+			else if(indiv.pft.phenology==ANY && indiv.cropindiv->isintercropgrass && indiv.pft.id!=patch.stand.pftid)
+			{
+				if(date.day==patch.pft[patch.stand.pftid].cropphen->bicdate)	//OBS ! bicdate ligger i huvudgrödan !
+				{
+					indiv.wscal_mean=indiv.wscal;
+				}
+				else if(patch.pft[indiv.pft.id].cropphen->growingseason==true || date.day==patch.pft[patch.stand.pftid].cropphen->eicdate)
+				{
+					indiv.wscal_mean=indiv.wscal_mean+(indiv.wscal-indiv.wscal_mean)/(patch.pft[indiv.pft.id].cropphen->growingdays+1);
+				}
+			}	
+		}
 		vegetation.nextobj();
 	}
 }
@@ -1567,7 +1769,11 @@ void assimilation_wstress(Pft& pft,Patchpft& ppft,double co2,double temp,double 
 	}
 
 	// Convert fpar from patch to fpc basis
-	fpar_fpc=fpar/fpc;
+
+	if(pft.phenology==CROPGREEN)
+		fpar_fpc=fpar;
+	else
+		fpar_fpc=fpar/fpc;
 
 	// convert CO2 from ppmv to mole fraction
 	ca=co2*1.0e-6; 
@@ -1606,7 +1812,7 @@ void assimilation_wstress(Pft& pft,Patchpft& ppft,double co2,double temp,double 
 
 			photosynthesis(co2,temp,par,daylength,1.0,xmid,pft.pathway,pft.pstemp_min,
 				pft.pstemp_low,pft.pstemp_high,pft.pstemp_max,pft.lambda_max,agd,adt2,
-				rd);
+				rd,pft.phenology);
 			
 			lookup_lambda.setdata(date.year,date.day,adt2,agd,rd);
 		}
@@ -1822,6 +2028,14 @@ void npp(Patch& patch) {
 
 			// DAILY NPP MODE
 
+			if(run_landcover && run[CROPLAND] && pft.landcover==CROPLAND)
+			{
+				if(date.day==ppft.cropphen->sdate)
+					indiv.cropindiv->anpp_sdate=indiv.anpp;
+				else if(indiv.cropindiv->isintercropgrass && date.day==patch.pft[patch.stand.pftid].cropphen->bicdate)
+					indiv.cropindiv->anpp_bicdate=indiv.anpp;
+			}
+
 			if (indiv.ifwstress) {
 
 				// Water-stress day - derive assimilation by simultaneous solution
@@ -1853,16 +2067,25 @@ void npp(Patch& patch) {
 
 			// Calculate autotrophic respiration
 
-			respiration(climate.gtemp,patch.soil.gtemp,indiv.pft.lifeform,
-				indiv.pft.respcoeff,indiv.pft.cton_sap,indiv.pft.cton_root,
-				indiv.phen,indiv.cmass_sap,indiv.cmass_root,indiv.assim,indiv.resp);
+			if(indiv.pft.phenology==CROPGREEN)
+			{
+				respiration(climate.gtemp,patch.soil.gtemp,indiv.pft.lifeform,
+					indiv.pft.respcoeff,indiv.pft.cton_sap,indiv.pft.cton_root,
+					1.0,indiv.cmass_sap,indiv.cropindiv->grs_cmass_root,indiv.assim,indiv.resp);
+			}
+			else
+				respiration(climate.gtemp,patch.soil.gtemp,indiv.pft.lifeform,
+					indiv.pft.respcoeff,indiv.pft.cton_sap,indiv.pft.cton_root,
+					indiv.phen,indiv.cmass_sap,indiv.cmass_root,indiv.assim,indiv.resp);
+
+			indiv.dnpp=indiv.assim-indiv.resp;
 
 			// Update accumulated annual NPP and daily vegetation-atmosphere flux
 
 			indiv.anpp+=indiv.assim-indiv.resp;
 
 			// guess2008
-			if (indiv.alive)
+			if (indiv.alive || pft.landcover==CROPLAND)
 				patch.fluxes.dcflux_veg+=indiv.resp-indiv.assim;
 
 			// Monthly NPP and LAI
@@ -1870,6 +2093,8 @@ void npp(Patch& patch) {
 			indiv.mnpp[date.month]+=indiv.assim-indiv.resp;
 			// guess2008 - changed indiv.phen_mean to indiv.phen here. mlai is always 0 otherwise 
 			indiv.mlai[date.month]+=indiv.lai*indiv.phen;
+			if(indiv.lai*indiv.phen>indiv.mlai_max[date.month])
+				indiv.mlai_max[date.month]=indiv.lai*indiv.phen;
 
 			// guess2008 - update monthly arrays
 			indiv.mgpp[date.month]+=indiv.assim;
@@ -2013,6 +2238,7 @@ void forest_floor_conditions(Patch& patch) {
 		// leaf-level net daytime photosynthesis expressed as CO2 diffusion (mm/m2/d)
 	int p;
 
+
 	// Retrieve Stand and Climate objects for patch
 
 	Stand& stand=patch.stand;
@@ -2060,7 +2286,6 @@ void forest_floor_conditions(Patch& patch) {
 		// NON-WATER-STRESSED ASSIMILATION
 
 		if (!ppft.ifwstress) {
-
 			if (!stand.pft[p].have_phot) {
 
 				Pft& pft=patch.pft[p].pft;
@@ -2070,7 +2295,7 @@ void forest_floor_conditions(Patch& patch) {
 
 				photosynthesis(climate.co2,climate.temp,climate.par,climate.daylength,
 					1.0,pft.lambda_max,pft.pathway,pft.pstemp_min,pft.pstemp_low,
-					pft.pstemp_high,pft.pstemp_max,pft.lambda_max,agd,adtmm,rd);
+					pft.pstemp_high,pft.pstemp_max,pft.lambda_max,agd,adtmm,rd,pft.phenology);	
 
 				// Store net C-assimilation (gross photosynthesis minus leaf
 				// respiration); valid for all individuals of this PFT given today's
@@ -2177,7 +2402,7 @@ void canopy_exchange(Patch& patch) {
 			for (m=0;m<12;m++) {
 				indiv.mnpp[m]=0.0;
 				indiv.mlai[m]=0.0;
-
+				indiv.mlai_max[m]=0.0;
 				// guess2008 - initialise
 				indiv.mgpp[m]=0.0;
 				indiv.mra[m]=0.0;
@@ -2196,10 +2421,34 @@ void canopy_exchange(Patch& patch) {
 			patch.fpc_rescale=1.0;
 	}
 
+	if(patch.stand.landcover==CROPLAND)
+	{
+		patch.fpc_total=0.0;
+		vegetation.firstobj();
+		while (vegetation.isobj) 
+		{
+			Individual& indiv=vegetation.getobj();
+
+			if(patch.pft[indiv.pft.id].cropphen->growingseason==true)
+				patch.fpc_total+=indiv.fpc;
+
+			vegetation.nextobj();
+		}
+
+		if (patch.fpc_total>1.0)
+			patch.fpc_rescale=1.0/patch.fpc_total;
+		else
+			patch.fpc_rescale=1.0;
+	}
+
+
 	// Canopy exchange processes
 
 	interception(patch,climate);
-	fpar(patch);
+	if(patch.stand.landcover==CROPLAND)
+		fpar_crop(patch);
+	else
+		fpar(patch);
 	demand(patch);
 	aet_water_stress(patch);
 	water_scalar(patch);
@@ -2213,8 +2462,13 @@ void canopy_exchange(Patch& patch) {
 
 	// Potential evapotranspiration for patch
 
-	pet_s=climate.eet*PRIESTLEY_TAYLOR*max(1.0-patch.fpc_total,0.0);
-	pet_patch=pet_s+patch.demand*patch.fpc_total+patch.intercep;
+	if(patch.stand.landcover==CROPLAND && patch.pft[patch.stand.pftid].pft.phenology==CROPGREEN && patch.pft[patch.stand.pftid].cropphen->growingseason)
+		pet_patch=patch.demand+patch.intercep;
+	else
+	{
+		pet_s=climate.eet*PRIESTLEY_TAYLOR*max(1.0-patch.fpc_total,0.0);
+		pet_patch=pet_s+patch.demand*patch.fpc_total+patch.intercep;
+	}
 	patch.apet+=pet_patch;
 	patch.mpet[date.month]+=pet_patch;
 }

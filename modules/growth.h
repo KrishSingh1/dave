@@ -20,6 +20,7 @@
 #define LPJ_GUESS_GROWTH_H
 
 #include "guess.h"
+#include "landcover.h"
 
 double fracmass_lpj(double fpc_low,double fpc_high,Individual& indiv);
 void leaf_phenology(Patch& patch,Climate& climate);

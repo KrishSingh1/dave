@@ -41,12 +41,12 @@
 #ifndef LPJ_GUESS_GUESS_H
 #define LPJ_GUESS_GUESS_H
 
-//#define MATS_TEST
-#define DYNAMIC_LANDCOVER_INPUT
+//#define MATS_TEST					//Basic test output.
+#define DYNAMIC_LANDCOVER_INPUT		//Reads landcover data from text files, using the TimeDataD class.
 
-#define multiple_natural_stands
-#define PRINT_MULTIPLE_NATURAL_STANDS
-#define cropLUchangeCtransfer
+#define multiple_natural_stands		//Creates new natural stands when cropland is abandoned.
+#define NEWSOWINGDATE				//Use sowing date method based on climate seasonality.
+#define IRRIGATION					//Crop irrigation on.
 
 const bool SUPPRESSLARGEOUTPUT=false;
 
@@ -85,6 +85,28 @@ typedef enum {NOVEGMODE,INDIVIDUAL,COHORT,POPULATION} vegmodetype;
 typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, NLANDCOVERTYPES} landcovertype;
 typedef enum {RAINFED, IRRIGATED} hydrologytype;	// Culture form class for PFTs (rainfed, irrigated)
 typedef enum {NOINTERCROP, NATURALGRASS} intercroptype;	// Intercrop form class for PFTs (none, grass)
+typedef enum {SEASONALITY_NO, SEASONALITY_PREC, SEASONALITY_PRECTEMP, SEASONALITY_TEMP, SEASONALITY_TEMPPREC} seasonality_type;
+// 0:SEASONALITY_NO
+// 1:SEASONALITY_PREC
+// 2:SEASONALITY_PRECTEMP
+// 3:SEASONALITY_TEMP
+// 4:SEASONALITY_TEMPPREC
+// 5:SEASONALITY_TEMPWARM
+typedef enum {DRY, DRY_INTERMEDIATE, DRY_WET, INTERMEDIATE, INTERMEDIATE_WET, WET} prec_seasonality_type;
+// 0:DRY						(minprec_pet20<=0.5 && maxprec_pet20<=0.5)
+// 1:DRY_INTERMEDIATE			(minprec_pet20<=0.5 && maxprec_pet20>0.5 && maxprec_pet20<=1.0)
+// 2:DRY_WET					(minprec_pet20<=0.5 && maxprec_pet20>1.0)
+// 3:INTERMEDIATE				(minprec_pet20>0.5 && minprec_pet20<=1.0 && maxprec_pet20>0.5 && maxprec_pet20<=1.0)
+// 4:INTERMEDIATE_WET			(minprec_pet20>0.5 && minprec_pet20<=1.0 && maxprec_pet20>1.0)
+// 5:WET						(minprec_pet20>1.0 && maxprec_pet20>1.0)
+
+typedef enum {COLD, COLD_WARM, COLD_HOT, WARM, WARM_HOT, HOT} temp_seasonality_type;
+// 0:COLD						(mtemp_max20<=10)
+// 1:COLD_WARM					(mtemp_min20<=10 && mtemp_max20>10 && mtemp_max20<=30)
+// 2:COLD_HOT					(mtemp_min20<=10 && mtemp_max20>30)
+// 3:WARM						(mtemp_min20>10 && mtemp_max20<=30)
+// 4:WARM_HOT					(mtemp_min20>10 && mtemp_max20>30)
+// 5:HOT						(mtemp_min20>30)
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
@@ -186,6 +208,9 @@ extern bool ifslowharvestpool; 	// If a slow harvested product pool is included 
 extern bool ifintercropgrass;
 extern int ncft; // number of CFTs in Pftlist, set in plib_callback()
 extern int nyear_spinup; // number of spinup years (ML)	Moved to guess.cpp to be accessed globally.
+
+extern bool forcesowingdates;
+extern bool forceharvestdates;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // guess2008 - new input variables, from the .ins file
@@ -429,6 +454,8 @@ public:
 		// atmospheric ambient CO2 concentration today (ppmv)
 	double lat;
 		// latitude (degrees; +=north, -=south)
+	double lon; 
+		// longitude 
 	double insol;
 		// insolation today
 	insoltype instype;
@@ -495,11 +522,77 @@ public:
 	bool doneday[365];
 		// indicates whether saved values exist for this day
 
+	double dprec_10[10];	// daily precipitations for the last 10 days (mm)
+	double sprec_2[2];		// daily 10 day-sums of precipitations for today and yesterday (mm)
+	double maxtemp;			// max temperature during the last test period (used by crops)
+	int testday_temp;	// summer day when we test what has happened in one year				NH:June 30(day 180), SH:Dec.31(day 364); changed from testmonth_temp 100426
+	int testday_prec;	// last day of dry month when we test what has happened in one year		NH:Dec.31(day 364), SH:June 30(day 180); changed from testmonth_prec 100426
+	int coldestday; // date used if no frost or spring occured during the year between the testmonths; renamed from defaultdate 100426	NH:14, SH:195
+	int adjustlat;	// used to adapt equations to the hemisphere
+// new sowing algorithm
+	double mtemp_year[12];		//Copy of historical or spinup values for one year (from local guessio.cpp-variables hist_mtemp or spinup_mtemp).
+	double mprec_year[12];
+	double mpet_year[12];		//Daily updated value.
+
+	double mtemp_20[20][12];	//Past 20 years montly values
+	double mprec_20[20][12];
+	double mpet_20[20][12];
+	double mprec_pet_20[20][12];
+	double mprec_petmin_20[20];	
+	double mprec_petmax_20[20];	
+
+	double mtemp20[12];			//20-year average
+	double mprec20[12];
+	double mpet20[12];
+	double mprec_pet20[12];
+	double mprec_petmin20;
+	double mprec_petmax20;
+
+	seasonality_type seasonality;
+	prec_seasonality_type prec_seasonality;
+	prec_seasonality_type prec_range;
+	temp_seasonality_type temp_seasonality;
+	bool biseasonal;
+
+	double var_prec;
+	double var_temp;
+	double aprec;
+
+	bool SOAsia;
+
 	// MEMBER FUNCTIONS
 
 public:
 
-	Climate(Gridcell& gc):gridcell(gc) {};
+	Climate(Gridcell& gc):gridcell(gc) {
+		memset(mtemp_20, 0, sizeof(double)*20*12);
+		memset(mtemp20, 0, sizeof(double)*12);
+		memset(mtemp_year, 0, sizeof(double)*12);
+
+		memset(mprec_20, 0, sizeof(double)*20*12);
+		memset(mprec20, 0, sizeof(double)*12);
+		memset(mprec_year, 0, sizeof(double)*12);
+
+		memset(mpet_20, 0, sizeof(double)*20*12);
+		memset(mpet20, 0, sizeof(double)*12);
+		memset(mpet_year, 0, sizeof(double)*12);
+
+		memset(mprec_pet_20, 0, sizeof(double)*20*12);
+		memset(mprec_pet20, 0, sizeof(double)*12);
+
+		memset(mprec_petmin_20, 0, sizeof(double)*20);		//111005
+		mprec_petmin20=0.0;		//111005
+		memset(mprec_petmax_20, 0, sizeof(double)*20);		//111115
+		mprec_petmax20=0.0;		//111115
+
+		seasonality=SEASONALITY_NO;
+/*		prec_seasonality=DRY;
+		prec_range=DRY;
+		temp_seasonality=COLD;
+		biseasonal=false;
+*/
+		eet=0.0;
+	};
 		// constructor function: initialises gridcell member
 
 	void initdrivers(double latitude) {
@@ -514,7 +607,10 @@ public:
 			mtemp_min_20[year]=0.0;
 			mtemp_max_20[year]=0.0;
 		}
+		mtemp_min20=0.0;
+		mtemp_max20=0.0;
 		mtemp=0.0;
+		maxtemp=0.0;
 		gdd5=0.0;
 		gdd5_pasture=0.0;
 		chilldays=0;
@@ -557,6 +653,8 @@ public:
 		// annual carbon flux to atmosphere from soil respiration
 	double acflux_est;
 		// annual flux from atmosphere to vegetation associated with establishment
+	double acflux_seed;
+		// annual flux from atmosphere to vegetation associated with sowing
 	double acflux_harvest; 
 		// annual flux to atmosphere from consumed harvested products
 	double dcflux_soil;
@@ -586,6 +684,7 @@ public:
 		acflux_fire=0.0;
 		acflux_soil=0.0;
 		acflux_est=0.0;
+		acflux_seed=0.0;
 		acflux_harvest=0.0;	
 	}
 		
@@ -772,11 +871,20 @@ public:
 
 	int cftid;		//crop pft id defined in the insfile. NB: must coincide with the crop pft position in the crop area fraction file (starting from 0).
 	bool isintercropgrass;
+	bool ifsdcalc;			// If sowing date is calculated
+	bool ifsdtemp;			// If sowing date is temperature dependent
+	bool ifsdautumn;		
+	bool ifsdspring;
+	bool ifsdprec;			// If sowing date is precipitation dependent
+	double tempautumn;
+	double tempspring;
 	int sdatenh;  // sowing date in the northern hemisphere (julian day), for the cfts without a calculation of the sowing date, or for initialization
 	int sdatesh;  //  sowing date in the southern hemisphere (julian day), for the cfts without a calculation of the sowing date, or for initialization
 	int hlimitdatenh;	// latest date for harvesting in the northern hemisphere, for the cfts without a calculation, or for initialization
 	int hlimitdatesh;	// latest date for harvesting in the southern hemisphere, for the cfts without a calculation, or for initialization
 	double tb;       // base temp (°C), for the cfts without its being calculated 
+	int firstsowdatenh_prec;	//early sowing limit for precipitation-limited crops (northern hemisphere)	: only used in Crop_sowing_date_prec()
+	int firstsowdatesh_prec;	//early sowing limit for precipitation-limited crops (southern hemisphere)	: only used in Crop_sowing_date_prec()
 	double trg;	   // temperature under which vernalization is possible (°C)
 	int pvd;	// number of vernalising days required, for the cfts without calculation
 	double psens;    // sensitivity to the photoperiod effect [0-1]
@@ -786,7 +894,14 @@ public:
 	double fphusen;  // fraction of growing season at which LAI starts decreasing [0-1]
 	bool shapesenescencenorm;  // type of senescence curve
 	double flaimaxharvest;     // fraction of maximal LAI still present at harvest [0-1]
+	double laimax; 
 	bool aboveground_ho;
+	double hiopt;
+	double himin;
+	double frootstart;
+	double frootend;
+	bool forcesowingdate;
+	bool forceharvestdate;
 
 	// MEMBER FUNCTIONS
 
@@ -810,6 +925,11 @@ public:
 
 		cftid=-1;
 		isintercropgrass=false;
+		ifsdcalc=false;
+		ifsdtemp=false;
+		ifsdautumn=false;
+		ifsdspring=false;
+		ifsdprec=false;
 		sdatenh=-1;
 		sdatesh=-1;
 		hlimitdatenh=-1;
@@ -824,7 +944,12 @@ public:
 		fphusen=-1.0;
 		shapesenescencenorm=0;
 		flaimaxharvest=-1.0;
+		laimax=0.0;
 		aboveground_ho=true;
+		frootstart=0.0;
+		frootend=0.0;
+		forcesowingdate=false;
+		forceharvestdate=false;
 	}
 
 	void initsla() {
@@ -914,7 +1039,6 @@ struct cropindiv_struct
 	double cmass_agpool;		// above-ground pool (when calculating daily cmass_leaf from lai_crop)
 	double cmass_leaf_max;		// cmass_leaf value saved at day before senescence (for LAI-calculation in allometry)
 	double cmass_leaf_sen;		//110321
-//	double lai_max_2;		//test 100726
 	double yield;				//091012
 	double yield_harvest[2];	//from ERA40 100325
 	double dcmass_plant;		// daily values (increase)
@@ -960,7 +1084,6 @@ struct cropindiv_struct
 		cmass_agpool=0.0;
 		cmass_leaf_max=0.0;
 		cmass_leaf_sen=0.0;
-//		lai_max_2=0.0;		//test 100726
 		yield=0.0;
 		yield_harvest[0]=0.0;	//from ERA40 100325
 		yield_harvest[1]=0.0;	//from ERA40 100325
@@ -1089,7 +1212,8 @@ public:
 		// monthly NPP (kgC/m2/month)
 	double mlai[12];
 		// monthly LAI (including phenology component)
-
+	double mlai_max[12];
+		// monthly maximum LAI (including phenology component)
 	double mgpp[12];
 		// monthly GPP-leafresp (kgC/m2/month)
 	double mra[12];
@@ -1135,7 +1259,7 @@ public:
 	bool alive; 
 		// guess2008 - whether this individual is truly alive. Set to false for first year 
 		// after the Individual object is created, then true.
-
+	double dnpp;
 
 	// MEMBER FUNCTIONS
 
@@ -1147,11 +1271,12 @@ public:
 	Individual(int i,Pft& p,Vegetation& v);
 	~Individual();
 
-	const cropindiv_struct* get_cropinfo();
-	cropindiv_struct* set_cropinfo();
+//	const cropindiv_struct* get_cropindiv();
+	cropindiv_struct* get_cropindiv();
+	cropindiv_struct* set_cropindiv();
 
-private:
-	cropindiv_struct *cropinfo;
+//private:
+	cropindiv_struct *cropindiv;
 };
 
 
@@ -1448,23 +1573,19 @@ struct cropphen_struct
 	double lai_crop;		//actual lai_crop value after water stress reduction		
 	double lai_crop_opt;	//optimum lai_crop value
 	double lai_crop_actual;	//100521
-	double lai_crop_year;	//100521
-	double lai_corr_fact;	//101110	set last day of the year if growingseason and on first senescence day, reset to 1.0 on first day of the year if not growingseason and on sowing day
-	double lai_nppdeficit;	//110302 Jens new code
-
 	int sdate;
 	int sdate_first;
 	int sdate_harv;
-	int sdate_harvest[2];	//from ERA40 100325
+	int sdate_harvest[2];	
 	int sdate_thisyear[2];
 	int nsow;
 	int hdate;
 	int hdate_first;
-	int hdate_harvest[2];	//from ERA40 100325
+	int hdate_harvest[2];	
 	int hlimitdate;			//NB: not always the same as gridcellpft.hlimitdate_default (dynamic for TrRi)
 	int hucountend;
 	int nharv;
-	bool sownlastyear;		//from ERA40 100325
+	bool sownlastyear;		
 	int sendate;
 	int bicdate;  // beginning of intercropseason (2 weeks after the harvest date)
 	int eicdate;  // end of intercropseason (labour starts==tillage?, 2 weeks before the sowing date)
@@ -1486,28 +1607,21 @@ struct cropphen_struct
 	double fphu;	// fraction of growing season [0-1]
 	double fphu_ystd;
 	double fphu_harv;	// fraction of growing season at latest harvest
-//	double fphu_harvest[2];		//from ERA40 100325
-	double flaimax_opt;	// fraction of plant maximal LAI [0-1]		//ersätts av phen (ML)
+//	double fphu_harvest[2];		
 	double flaimax;	// corrected fraction of plant maximal LAI [0-1]
-	double flaimax_sen;
-	double flaimax_harv;
 	double hi;		// harvest index [0-1, >1 if below-ground ho]
 	double hi_ystd;
 	double fhi;		// Fraction of harvest index
 	double fhi_phen;	//Phenology (fPHU) compoment of fhi
 	double fhi_water;	// Water deficiency component of fhi
 	double fhi_harv;	// Fraction of harvest index at latest harvest
-//	double fhi_harvest[2];	//adapted from ERA40 100325
-	double fhi_phen_harv;	//Phenology (fPHU) compoment of fhi at latest harvest
-//	double fhi_phen_harvest[2];	//from ERA40 100325
-	double fhi_water_harv;	// Water deficiency component of fhi at latest harvest
-//	double fhi_water_harvest[2];	//from ERA40 100325
+//	double fhi_harvest[2];
 	int est_year;	//establishment year of current individual; set in Individual constructor.
 	double demandsum_crop;
 	double supplysum_crop;
 	double lai;		// copy of indiv.lai (in allometry directly after lai calculation)
 	double fpc;		// copy of indiv.fpc (in allometry directly after fpc calculation)
-	double gcbase_sen;	//091030
+	double gcbase_sen;	
 
 	bool growingseason;
 	bool growingseason_ystd;
@@ -1516,23 +1630,18 @@ struct cropphen_struct
 	bool intercropseason;
 	bool maincrop;
 
-	bool phencurvejoin;		//100824
-
 	cropphen_struct()
 	{
 		lai_crop=0.0;
 		lai_crop_opt=0.0;	
 		lai_crop_actual=0.0;
-		lai_crop_year=0.0;
-		lai_corr_fact=1.0;
-		lai_nppdeficit=0.0;		//110302 Jens new code
 		sdate=-1;
 		sdate_first=-1;
 		sdate_harv=-1;
 		nsow=0;
-		sownlastyear=false;		//from ERA40 100325
+		sownlastyear=false;	
 		sendate=-1;		
-		hdate=-1;				//ändrat från 0 /ML 090701
+		hdate=-1;				
 		hdate_first=-1;	
 		hlimitdate=-1;
 		hucountend=-1;
@@ -1553,10 +1662,7 @@ struct cropphen_struct
 		fphu=0.0;
 		fphu_ystd=0.0;
 		fphu_harv=0.0;
-		flaimax_opt=0.0;
 		flaimax=0.0;
-		flaimax_sen=0.0;
-		flaimax_harv=0.0;
 
 		hi=0.0;
 		hi_ystd=0.0;
@@ -1564,8 +1670,6 @@ struct cropphen_struct
 		fhi_phen=0.0;
 		fhi_water=1.0;
 		fhi_harv=0.0;
-		fhi_phen_harv=0.0;
-		fhi_water_harv=1.0;
 		est_year=-1;
 		demandsum_crop=0.0;
 		supplysum_crop=0.0;
@@ -1581,15 +1685,13 @@ struct cropphen_struct
 		maincrop=true;
 		growingdays=0;
 
-		for(int j=0;j<2;j++)			//from ERA40 100325
+		for(int j=0;j<2;j++)			
 		{
 			sdate_harvest[j]=-1;	
 			hdate_harvest[j]=-1;
-			sdate_thisyear[j]=-1;		//100419
-//			fhi_harvest[j]=-1.0;		//ERA40 100120
-//			fhi_phen_harvest[j]=-1.0;	//ERA40 100124
-//			fhi_water_harvest[j]=-1.0;	//ERA40 100124
-//			fphu_harvest[j]=-1.0;		//ERA40 100124	
+			sdate_thisyear[j]=-1;		
+//			fhi_harvest[j]=-1.0;		
+//			fphu_harvest[j]=-1.0;		
 		}
 	}
 };
@@ -1676,6 +1778,10 @@ public:
 
 	double harvested_products_slow;	//carbon depository for long-lived products like wood
 
+	int swindow[2];
+
+	double water_deficit_d;
+	double water_deficit_y;
 
 	// MEMBER FUNCTIONS:
 
@@ -1696,18 +1802,14 @@ public:
 		cropphen=NULL;
 		harvested_products_slow=0.0;
 
+		swindow[0]=-1;
+		swindow[1]=-1;
+
 		if(pft.landcover==CROPLAND)
 		{
 			cropphen=new cropphen_struct;
-/*
-#if defined NEWCROPPHENOLOGY
 			cropphen->lai=0.0;
 			cropphen->fpc=0.0;
-#else
-			cropphen->lai=pft.laimax;	// Om leaf_phenology_crop( ) körs innan individer existerar ger detta rätt värden på patchpft:s
-			cropphen->fpc=1.0-exp(-LAMBERTBEER_K*cropphen->lai);
-#endif
-*/
 		}
 	}
 
@@ -1717,10 +1819,11 @@ public:
 			delete cropphen;
 	}
 
-	const cropphen_struct* get_cropphen();
+//	const cropphen_struct* get_cropphen();
+	cropphen_struct* get_cropphen();
 	cropphen_struct* set_cropphen();
 
-private:
+//private:
 	cropphen_struct *cropphen;
 };
 
@@ -1810,6 +1913,9 @@ public:
 		// monthly runoff (mm/month)
 	double mpet[12];
 		// monthly PET (mm/month)
+
+	double irrigation_d;
+	double irrigation_y;
 
 	// MEMBER FUNCTIONS
 
@@ -1909,6 +2015,7 @@ public:
 	int cftid;				//
 	bool isirrigated;		//
 	bool hasgrassintercrop;	//
+	double gdd0_intercrop;
 	
 	double natural_frac_change; //fraction removed from natural stand when converted to other landcover type
 
@@ -1982,8 +2089,30 @@ public:
 	 */
 	double addtw;
 
+	bool autumnoccurred;	// whether the daily temperature falls under the test temperature
+	bool springoccurred;	// whether the daily temperature rises over the test temperature
+	bool vernstartoccurred; // whether the daily temperature rises under the vernalization limit
+	bool vernendoccurred; // whether the daily temperature rises over the vernalization limit
+	bool precoccurred;	// whether the precipitation sum rises over the test amount
+	int first_autumndate;			// first day when temperature falls under the autumn temperature limit (julian day)
+	int first_autumndate20;		// 20-year mean (julian day)
+	int first_autumndate_20[20];	// memory of the last 20 years' values (julian day)
+	int last_springdate;			// last day when temperature rises over the spring temperature limit (julian day)
+	int last_springdate20;		// 20-year mean (julian day)
+	int last_springdate_20[20];	// memory of the last 20 years' values (julian day)
+	int last_verndate;		// 
+	int last_verndate20;    // 
+	int last_verndate_20[20]; //
+	int first_precdate;		// first day when 10-day precipitation sum rises over the limit (julian day)
 	int sdate_default;	// pft.sdatenh/sdatesh
+	int sdatecalc_temp;	// calculated sowing date (julian day)
+	int sdatecalc_prec;	// calculated sowing date (julian day)
+	int sdate_force;
+	int hdate_force;
 	int hlimitdate_default;	// calculated limit date for harvesting (julian day)
+	bool wintertype;
+	bool singlecrop;
+	int swindow[2];
 
 	// MEMBER FUNCTIONS
 
@@ -1993,8 +2122,35 @@ public:
 	 */
 	Gridcellpft(int i,Pft& p):id(i),pft(p) {
 		addtw=0.0;
+
+		autumnoccurred=false;
+		springoccurred=false;
+		vernstartoccurred=false;	//100519
+		vernendoccurred=false;
+		precoccurred=false;
+		first_autumndate=-1;
+		first_autumndate20=-1;
+		last_springdate=-1;
+		last_springdate20=-1;
+		last_verndate=-1;
+		last_verndate20=-1;
+		first_precdate=-1;
+		for (int year=0;year<20;year++) 
+		{
+			first_autumndate_20[year]=-1;
+			last_springdate_20[year]=-1;
+			last_verndate_20[year]=-1;
+		}
 		sdate_default=-1;
+		sdate_force=-1;
+		hdate_force=-1;
+		sdatecalc_temp=-1;
+		sdatecalc_prec=-1;
 		hlimitdate_default=-1;
+		wintertype=false;
+		singlecrop=true;
+		swindow[0]=-1;
+		swindow[1]=-1;
 	}
 };
 
@@ -2036,6 +2192,8 @@ public:
 	/** \see landcover_dynamics
 	 */
 	bool LC_updated;
+//	double acflux_harvest_slow;
+//	double acflux_landuse_change;
 
 	/// list array [0...npft-1] of Gridcellpft (initialised in constructor)
 	ListArray_idin1<Gridcellpft,Pft> pft;
@@ -2058,7 +2216,8 @@ public:
 		memset(landcoverfrac_old, 0, sizeof(double)*NLANDCOVERTYPES);
 		memset(cftfrac, 0, sizeof(double)*NCROPSTANDS_MAX);
 		memset(cftfrac_old, 0, sizeof(double)*NCROPSTANDS_MAX);
-
+//		acflux_harvest_slow=0.0;
+//		acflux_landuse_change=0.0;
 
 		if(!run_landcover) {
 			landcover=NATURAL;

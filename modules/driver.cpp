@@ -468,6 +468,9 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 		// ... reset annual GDD5 counter
 		climate.agdd5=0.0;
 
+//		gridcell.acflux_landuse_change=0.0;
+//		gridcell.acflux_harvest_slow=0.0;
+
 		if (date.year==0) {
 			// First day of simulation - initialise running annual mean temperature and daily temperatures for the last month
 			for (d=0;d<31;d++)
@@ -489,9 +492,6 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 	climate.gdd5_pasture+=max(0.0,climate.temp-5.0);
 	if (climate.temp<5.0 && climate.chilldays<=365)
 		climate.chilldays++;
-
-///	if (run_landuse && run_crop)
-///		dailyaccounting_gridcell_crop(gridcell,pftlist);
 
 	// Save yesterday's mean temperature for the last month
 	mtemp_last=climate.mtemp;
@@ -575,9 +575,11 @@ void dailyaccounting_stand(Stand& stand,Pftlist& pftlist)
 	}
 }
 
-void dailyaccounting_patch_lc(Patch& patch, Pftlist& pftlist) {
+void dailyaccounting_patch_landcover(Patch& patch, Pftlist& pftlist) {
 	if(date.day==0) {
 		Fluxes& fluxes=patch.fluxes;
+
+		fluxes.acflux_seed=0.0;
 
 		if(!patch.stand.gridcell.LC_updated) {	// NB. landcover_dynamics() is called before this function !
 			fluxes.acflux_harvest=0.0;
@@ -591,6 +593,7 @@ void dailyaccounting_patch_lc(Patch& patch, Pftlist& pftlist) {
 
 				fluxes.acflux_harvest+=patchpft.harvested_products_slow*pft.turnover_harv_prod;
 				patchpft.harvested_products_slow=patchpft.harvested_products_slow*(1-pft.turnover_harv_prod);
+//				patch.stand.gridcell.acflux_harvest_slow+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.frac/(double)patch.stand.nobj;	//unfinished code
 
 				pftlist.nextobj();
 			}
@@ -646,7 +649,7 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 	fluxes.dcflux_veg=0.0;
 
 	if(run_landcover)
-		dailyaccounting_patch_lc(patch, pftlist);
+		dailyaccounting_patch_landcover(patch, pftlist);
 	
 	// Store daily soil water in upper layer
 	soil.dwcontupper[date.day]=soil.wcont[0];

@@ -35,7 +35,6 @@
 #include "config.h"
 #include "growth.h"
 
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL CONSTANTS
 
@@ -135,9 +134,12 @@ void leaf_phenology(Patch& patch,Climate& climate) {
 	patch.pft.firstobj();
 	while (patch.pft.isobj) {
 		Patchpft& pft=patch.pft.getobj();
+		Gridcellpft& gridcellpft=patch.stand.gridcell.pft[pft.id];
 
 		// For this PFT ...
-		if(patch.stand.pft[pft.id].active)
+		if(pft.pft.landcover==CROPLAND && patch.stand.landcover==CROPLAND && patch.stand.pft[pft.id].active)
+			leaf_phenology_crop(pft.pft,climate,pft.wscal,pft.aphen,pft.phen, gridcellpft, patch.stand.isirrigated, patch);
+		else if(!run_landcover || patch.stand.pft[pft.id].active)	//natural, urban, pasture, forest and peatland stands/pft:s
 			leaf_phenology_pft(pft.pft,climate,pft.wscal,pft.aphen,pft.phen);
 
 		// guess2008
@@ -169,6 +171,13 @@ void leaf_phenology(Patch& patch,Climate& climate) {
 
 		// For this individual ...
 		indiv.phen=patch.pft[indiv.pft.id].phen;
+
+		if(patch.stand.landcover==CROPLAND && patch.stand.pft[indiv.pft.id].active && patch.pft[indiv.pft.id].pft.phenology==CROPGREEN)	//110311
+		{
+			indiv.lai=patch.pft[indiv.pft.id].cropphen->lai;
+			indiv.lai_indiv=indiv.lai;
+			indiv.fpc=patch.pft[indiv.pft.id].cropphen->fpc;
+		}
 
 		// Update annual leaf-day sum (raingreen PFTs)
 		if (date.day==0) indiv.aphen_raingreen=0;
@@ -213,6 +222,7 @@ void turnover(double turnover_leaf,double turnover_root,double turnover_sap,
 	double turnover = 0.0;
 	double scale=1.0;
 
+#ifndef multiple_natural_stands
 	if(run_landcover && gridcell.LC_updated) {
 		//scale harvest products of stands with increased area by (old area/new area) if landcover change has occurred:
 		scale=gridcell.landcoverfrac_old[landcover]/gridcell.landcoverfrac[landcover];
@@ -220,23 +230,24 @@ void turnover(double turnover_leaf,double turnover_root,double turnover_sap,
 		if(scale>=1.0)
 			scale=1.0;
 	}
+#endif
 
 	// Leaf turnover
-	turnover=turnover_leaf*cmass_leaf*scale;
+	turnover=turnover_leaf*cmass_leaf;
 	cmass_leaf-=turnover;
-	if (alive) litter_leaf+=turnover;
+	if (alive) litter_leaf+=turnover*scale;
 
 	// Root turnover
-	turnover=turnover_root*cmass_root*scale;
+	turnover=turnover_root*cmass_root;
 	cmass_root-=turnover;
-	if (alive) litter_root+=turnover;
+	if (alive) litter_root+=turnover*scale;
 
 	if (lifeform==TREE) {
 
 		// TREES ONLY:
 
 		// Sapwood turnover by conversion to heartwood
-		turnover=turnover_sap*cmass_sap*scale;
+		turnover=turnover_sap*cmass_sap;
 		cmass_sap-=turnover;
 		cmass_heart+=turnover;
 	}	
@@ -701,6 +712,9 @@ void allocation_init(double bminit,double ltor,Individual& indiv) {
 	indiv.cmass_leaf=cmass_leaf_ind*indiv.densindiv;
 	indiv.cmass_root=cmass_root_ind*indiv.densindiv;
 	
+	if(indiv.pft.landcover==CROPLAND)
+		indiv.cropindiv->cmass_plant=indiv.cmass_leaf+indiv.cmass_root;	
+
 	if (indiv.pft.lifeform==TREE)
 		indiv.cmass_sap=cmass_sap_ind*indiv.densindiv;
 }
@@ -768,6 +782,7 @@ bool allometry(Individual& indiv) {
 	// guess2008 - max tree height allowed (metre).
 	const double HEIGHT_MAX = 150.0; 
 
+	cropphen_struct& ppftcrop=*(indiv.vegetation.patch.pft[indiv.pft.id].cropphen);
 
 	if (indiv.pft.lifeform==TREE) {
 
@@ -837,20 +852,70 @@ bool allometry(Individual& indiv) {
 		
 		// GRASSES
 
-		// guess2008 - bugfix - added if 
-		if (!negligible(indiv.cmass_leaf)) {
+		if(indiv.pft.landcover!=CROPLAND)
+		{
 
-			// Grass "individual" LAI (Eqn 11)
-			indiv.lai_indiv=indiv.cmass_leaf*indiv.pft.sla;
+			// guess2008 - bugfix - added if 
+			if (!negligible(indiv.cmass_leaf)) {
 
-			// FPC (Eqn 10)
-			indiv.fpc=1.0-exp(-LAMBERTBEER_K*indiv.lai_indiv);
+				// Grass "individual" LAI (Eqn 11)
+				indiv.lai_indiv=indiv.cmass_leaf*indiv.pft.sla;
 
-			// Stand-level LAI
-			indiv.lai=indiv.lai_indiv;
-		} else
-			return false;
+				// FPC (Eqn 10)
+				indiv.fpc=1.0-exp(-LAMBERTBEER_K*indiv.lai_indiv);
 
+				// Stand-level LAI
+				indiv.lai=indiv.lai_indiv;
+			} else
+				return false;
+		}
+		else
+		{
+			double lai_lastyear;
+
+			if(indiv.pft.phenology==ANY)// crop grass compatible with natural grass
+			{
+				indiv.lai_indiv=indiv.cmass_leaf*indiv.pft.sla;
+
+				if(indiv.cropindiv->isintercropgrass)					//For intercrop grass, use LAI of parent grass in its own stand !
+				{
+					bool done=false;
+
+					Gridcell& gridcell=indiv.vegetation.patch.stand.gridcell;
+					for(int i=0;i<gridcell.nobj && !done;i++)
+					{
+						Stand& stand=gridcell[i];
+						if(stand.pftid==indiv.pft.id)
+						{
+							for(int j=0;j<stand.nobj && !done;j++)
+							{
+								Patch& patch=stand[j];
+								Vegetation& vegetation=patch.vegetation;
+								for(int k=0;k<vegetation.nobj && !done;k++)
+								{
+									Individual& grass_indiv=vegetation[k];
+									if(grass_indiv.pft.id==indiv.pft.id)
+									{
+										indiv.lai_indiv=grass_indiv.lai_indiv;
+										done=true;
+									}
+								}
+							}
+						}
+					}
+					if(!done)														// In case no grass stand exists.
+						indiv.lai_indiv=indiv.pft.laimax;
+				}
+				// FPC (Eqn 10)
+				indiv.fpc=1.0-exp(-LAMBERTBEER_K*indiv.lai_indiv);
+
+				// Stand-level LAI
+				indiv.lai=indiv.lai_indiv;
+
+				ppftcrop.lai=indiv.lai;
+				ppftcrop.fpc=indiv.fpc;
+			}
+		}
 	}
 
 	// guess2008 - new return value (was void)
@@ -920,34 +985,38 @@ void growth(Stand& stand,Patch& patch) {
 
 	const double CDEBT_PAYBACK_RATE=0.2;
 
-	double bminc;
+	double bminc=0.0;
 		// carbon biomass increment (component of NPP available for production of
 		// new biomass) for this time period on modelled area basis (kgC/m2)
-	double cmass_repr;
+	double cmass_repr=0.0;
 		// C allocated to reproduction this time period on modelled area basis (kgC/m2)
-	double cmass_leaf_inc;
+	double cmass_leaf_inc=0.0;
 		// increment in leaf C biomass following allocation, on individual basis (kgC)
-	double cmass_root_inc;
+	double cmass_root_inc=0.0;
 		// increment in root C biomass following allocation, on individual basis (kgC)
-	double cmass_sap_inc;
+	double cmass_sap_inc=0.0;
 		// increment in sapwood C biomass following allocation, on individual basis
 		// (kgC)
 	double cmass_debt_inc = 0.0; 
 		// guess2008 - bugfix - added initialisation
-	double cmass_heart_inc;
+	double cmass_heart_inc=0.0;
 		// increment in heartwood C biomass following allocation, on individual basis
 		// (kgC)
+	double cmass_plant_inc=0.0;
+	double cmass_ho_inc=0.0;
+	double cmass_agpool_inc=0.0;
 	double litter_leaf_inc = 0.0; // guess2008 - bugfix - added initialisation
 		// increment in leaf litter following allocation, on individual basis (kgC)
 	double litter_root_inc = 0.0; // guess2008 - bugfix - added initialisation
 		// increment in root litter following allocation, on individual basis (kgC)
-	double cmass_excess;
+	double cmass_excess=0.0;
 		// C biomass of leaves in "excess" of set allocated last year to raingreen PFT
 		// last year (kgC/m2)
-	double dval;
-	double cmass_payback;
+	double dval=0.0;
+	double cmass_payback=0.0;
 	int p;
 	bool killed;
+
 
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation=patch.vegetation;
@@ -969,6 +1038,7 @@ void growth(Stand& stand,Patch& patch) {
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
 
+
 		// For this individual ...
 
 		indiv.deltafpc=0.0;
@@ -985,8 +1055,8 @@ void growth(Stand& stand,Patch& patch) {
 		else {
 
 			// Allocation to reproduction
-
-			reproduction(indiv.pft.reprfrac,indiv.anpp,bminc,cmass_repr);
+			if(!(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass)))
+				reproduction(indiv.pft.reprfrac,indiv.anpp,bminc,cmass_repr);
 
 			// guess2008 - added bminc check. Otherwise we get -ve litter_leaf for grasses when indiv.anpp < 0.
 			if (bminc >= 0 && (indiv.pft.phenology==RAINGREEN || indiv.pft.phenology==ANY)) {
@@ -1015,11 +1085,19 @@ void growth(Stand& stand,Patch& patch) {
 			}
 
 			// Tissue turnover and associated litter production
-			turnover(indiv.pft.turnover_leaf,indiv.pft.turnover_root,
-				indiv.pft.turnover_sap,indiv.pft.lifeform,indiv.pft.landcover,indiv.cmass_leaf,
-				indiv.cmass_root,indiv.cmass_sap,indiv.cmass_heart,
-				patch.pft[indiv.pft.id].litter_leaf,
-				patch.pft[indiv.pft.id].litter_root,indiv.alive, gridcell);
+			if(indiv.pft.landcover==CROPLAND)
+				harvest_crop(indiv.cropindiv->cmass_plant,indiv.cmass_leaf,indiv.cmass_root,indiv.cropindiv->cmass_ho,indiv.cropindiv->cmass_agpool,
+					patch.pft[indiv.pft.id].litter_leaf,patch.pft[indiv.pft.id].litter_root,patch.fluxes.acflux_harvest,patch.pft[indiv.pft.id].harvested_products_slow, indiv);
+			else if(indiv.pft.landcover==PASTURE)
+				harvest_pasture(indiv.cmass_leaf,indiv.cmass_root,
+					patch.pft[indiv.pft.id].litter_leaf,patch.pft[indiv.pft.id].litter_root,patch.fluxes.acflux_harvest,patch.pft[indiv.pft.id].harvested_products_slow, indiv);
+			else
+				turnover(indiv.pft.turnover_leaf,indiv.pft.turnover_root,
+					indiv.pft.turnover_sap,indiv.pft.lifeform,indiv.pft.landcover,indiv.cmass_leaf,
+					indiv.cmass_root,indiv.cmass_sap,indiv.cmass_heart,
+					patch.pft[indiv.pft.id].litter_leaf,
+					patch.pft[indiv.pft.id].litter_root,indiv.alive, gridcell);
+
 
 			// Update stand record of reproduction by this PFT
 			stand.pft[indiv.pft.id].cmass_repr+=cmass_repr/(double)stand.nobj;
@@ -1100,11 +1178,15 @@ void growth(Stand& stand,Patch& patch) {
 
 				// guess2008 - initial grass cmass
 				double indiv_mass_before=indiv.cmass_leaf+indiv.cmass_root;
-	
-				allocation(bminc,indiv.cmass_leaf,indiv.cmass_root,
-					0.0,0.0,0.0,indiv.ltor,0.0,0.0,0.0,GRASS,0.0,
-					0.0,0.0,cmass_leaf_inc,cmass_root_inc,dval,dval,dval,
-					litter_leaf_inc,litter_root_inc);
+
+				if(indiv.pft.landcover==CROPLAND)	//Crops do not use bminc.or cmass_leaf etc.
+					allocation_crop(bminc,indiv.cmass_leaf,indiv.cmass_root,indiv.cropindiv->cmass_ho,indiv.ltor,
+						cmass_plant_inc,cmass_leaf_inc,cmass_root_inc,cmass_ho_inc,cmass_agpool_inc,litter_leaf_inc,litter_root_inc,indiv);
+				else
+					allocation(bminc,indiv.cmass_leaf,indiv.cmass_root,
+						0.0,0.0,0.0,indiv.ltor,0.0,0.0,0.0,GRASS,0.0,
+						0.0,0.0,cmass_leaf_inc,cmass_root_inc,dval,dval,dval,
+						litter_leaf_inc,litter_root_inc);
 
 				// Update carbon pools and litter (on area basis)
 				// only litter in the case of 'alive' individuals
@@ -1112,13 +1194,20 @@ void growth(Stand& stand,Patch& patch) {
 				indiv.cmass_leaf+=cmass_leaf_inc;
 				indiv.cmass_root+=cmass_root_inc;
 
+				if(indiv.pft.landcover==CROPLAND)
+				{
+					indiv.cropindiv->cmass_plant+=cmass_plant_inc;
+					indiv.cropindiv->cmass_ho+=cmass_ho_inc;
+					indiv.cropindiv->cmass_agpool+=cmass_agpool_inc;
+				}
+
 				// guess2008 - bugfix - determine the (small) mass imbalance (kgC) for this individual. 
 				// This can arise in the event of numerical errors in the allocation routine.
 				double indiv_mass_after=indiv.cmass_leaf+indiv.cmass_root+litter_leaf_inc+litter_root_inc;
 				double indiv_cmass_diff=(indiv_mass_before+bminc-indiv_mass_after);		
 
 				// guess2008 - alive check before ensuring C balance
-				if (indiv.alive) {
+				if (indiv.alive && indiv.pft.landcover!=CROPLAND) {
 
 					patch.pft[indiv.pft.id].litter_leaf+=litter_leaf_inc+indiv_cmass_diff/2;
 					patch.pft[indiv.pft.id].litter_root+=litter_root_inc+indiv_cmass_diff/2;			
@@ -1135,7 +1224,14 @@ void growth(Stand& stand,Patch& patch) {
 
 						patch.pft[indiv.pft.id].litter_leaf+=indiv.cmass_leaf;
 						patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
-						
+
+						if(indiv.pft.landcover==CROPLAND)
+						{
+							if(indiv.pft.aboveground_ho)
+								patch.pft[indiv.pft.id].litter_leaf+=indiv.cropindiv->cmass_ho;	
+							else
+								patch.pft[indiv.pft.id].litter_root+=indiv.cropindiv->cmass_ho;
+						}
 					}
 
 					vegetation.killobj();
@@ -1168,7 +1264,10 @@ void growth(Stand& stand,Patch& patch) {
 						indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
 					indiv.alive=true;
 				}
-			
+
+				if(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass))
+					patch.fluxes.acflux_est=0.0;
+
 				// ... on to next individual
 				vegetation.nextobj();
 			}

@@ -94,8 +94,8 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i
 		// Constructor: initialises reference member of climate and
 		// builds list array of Standpft objects
 		
-	int p;
-	int npatchL;
+	unsigned int p;
+	unsigned int npatchL;
 
 	for(p=0;p<pftlist.nobj;p++) {
 		pft.createobj(pftlist[p]);
@@ -232,7 +232,6 @@ cropindiv_struct* Individual::set_cropindiv()
 int framework(int argc,char* argv[]) {
 
 	bool dogridcell;
-	int p;
 
 #if defined DYNAMIC_LANDCOVER_INPUT
 remove("LUdata.old");

@@ -3202,6 +3202,9 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	if (abort) fail("\nUsage: %s <instruction-script-filename> | -help",argv[0]);
 
+	if(run[CROPLAND] && !ifdailynpp)
+		fail("Only daily npp mode possible with cropland functionality\n");
+
 	///////////////////////////////////////////////////////////////////////////////////
 	// USER-SPECIFIC SECTION (Modify as necessary or supply own code)
 	//

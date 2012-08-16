@@ -1347,49 +1347,27 @@ void aet_water_stress(Patch& patch) {
 			species_drought_tolerance = pft.drought_tolerance;
 
 #if defined IRRIGATION
-		int irrigationtype=1;
 
 		if(patch.stand.isirrigated && pft.hydrology==IRRIGATED)
 		{
 			if (patch.soil.wcont[0]<0.9)	//Fader et al. 2010
 			{
 				double wcont_0_opt=0.0;
+				double wr_opt;
 
-				if(irrigationtype==1)
-				{
-					double wr_opt;
-
-					wr_opt=patch.demand/ppft.cropphen->fpc/pft.emax;
-					if(wr_opt>1.0)
-						wr_opt=1.0;
+				wr_opt=patch.demand/ppft.cropphen->fpc/pft.emax;
+				if(wr_opt>1.0)
+					wr_opt=1.0;
 
 #ifdef WR_ROOTDIST
 //// from water_uptake( ): wr_opt=(min(wcont_0_opt*patch.soil.soiltype.awc[0]*patch.fpc_rescale, pft.emax*pft.rootdist[0])+min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]))/pft.emax
-					wcont_0_opt=(wr_opt*pft.emax-min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]))/patch.soil.soiltype.awc[0]/patch.fpc_rescale;
+				wcont_0_opt=(wr_opt*pft.emax-min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]))/patch.soil.soiltype.awc[0]/patch.fpc_rescale;
 
-					if(wcont_0_opt*patch.soil.soiltype.awc[0]*patch.fpc_rescale>pft.emax*pft.rootdist[0])
-						wcont_0_opt=pft.emax*pft.rootdist[0]/patch.soil.soiltype.awc[0]/patch.fpc_rescale;
+				if(wcont_0_opt*patch.soil.soiltype.awc[0]*patch.fpc_rescale>pft.emax*pft.rootdist[0])
+					wcont_0_opt=pft.emax*pft.rootdist[0]/patch.soil.soiltype.awc[0]/patch.fpc_rescale;
 #else
-					fail("Irrigation soil water only balanced for WR_ROOTDIST currently !\n");
+				fail("Irrigation soil water only balanced for WR_ROOTDIST currently !\n");
 #endif	//WR_ROOTDIST
-				}
-				else if(irrigationtype==2)
-				{
-////				ppft.water_deficit_d=patch.demand-ppft.supply;
-////				(wcont_0_opt-patch.soil.wcont[0])*patch.soil.soiltype.awc[0]=patch.demand-ppft.supply
-//					wcont_0_opt=patch.soil.wcont[0]+(patch.demand-ppft.supply)/patch.soil.soiltype.awc[0];
-					wcont_0_opt=patch.soil.wcont[0]+(patch.demand-
-						(min(patch.soil.wcont[0]*patch.soil.soiltype.awc[0]*patch.fpc_rescale, pft.emax*pft.rootdist[0])+
-						 min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]) )/pft.emax*pft.emax*ppft.cropphen->fpc)
-						   /patch.soil.soiltype.awc[0];
-
-				}
-				else if(irrigationtype==3)
-////				ppft.water_deficit_d=(1.0-patch.soil.wcont[0])*patch.soil.soiltype.awc[0];	
-					wcont_0_opt=1.0;
-				else if(irrigationtype==4)
-////				ppft.water_deficit_d=pft.emax-patch.soil.wcont[0]*patch.soil.soiltype.awc[0];
-					wcont_0_opt=min(1.0,pft.emax/patch.soil.soiltype.awc[0]);
 
 				if(wcont_0_opt>patch.soil.wcont[0])
 				{

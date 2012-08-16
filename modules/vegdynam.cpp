@@ -893,7 +893,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 						vegetation.nextobj();
 					}
 
-					if (!present) {
+					if (!present && patch.pft[pft.id].nstore_est) {
 
 						// ... if not, add it
 

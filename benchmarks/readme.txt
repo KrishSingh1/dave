@@ -58,20 +58,19 @@ mybenchmark
 |-- config
 |   |-- gridlist.txt
 |   `-- guess.ins
+|-- extra_source.txt
 |-- postprocess.sh
-|-- source
-|   |-- extra_code.cpp
-|   `-- extra_code.h
 `-- submit_vars.sh
 
 postprocess.sh is a bash script file containing post processing commands 
 specific for this benchmark. 
 
-If there is a directory named source, those files will be included in the 
-compilation. Additional source should be avoided when possible since it can 
-easily become a maintenance problem. The source files in this directory
-must follow exactly the same structure as in the regular source code. For
-instance if you want to replace modules/driver.cpp your replacement must
+If there is a file named extra_source.txt, it should include the name of a
+directory under benchmarks/extra_source. The files in that directory will be 
+included in the compilation. Additional source should be avoided when possible 
+since it can easily become a maintenance problem. The source files in this 
+directory must follow exactly the same structure as in the regular source code. 
+For instance if you want to replace modules/driver.cpp your replacement must
 be named driver.cpp and be placed in a directory named modules.
 
 If there is a file named submit_vars.sh it will be used to configure the PBS 

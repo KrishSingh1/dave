@@ -457,7 +457,11 @@ public:
 	double lon; 
 		// longitude 
 	double insol;
-		// insolation today
+		// insolation today, see also instype
+		// When instype is NETSWRAD or SWRAD insol is assumed to be W/m2 during
+		// daylight hours. If input data is averaged over a 24 hour period, code
+		// dealing with this variable needs to be changed 
+		// (see function daylengthinsoleet).
 	insoltype instype;
 		// units in which insol expressed:
 		// SUNSHINE = percentage of full sunshine
@@ -513,7 +517,7 @@ public:
 	double daylength_mean;
 		// accumulated mean daylength for this month (h)
 
-	// Saved parameters used by function daylengthinsolpet
+	// Saved parameters used by function daylengthinsoleet
 
 	double sinelat;
 	double cosinelat;

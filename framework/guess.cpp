@@ -55,6 +55,11 @@ bool all_fracs_const;
 bool ifslowharvestpool;				// If a slow harvested product pool is included in patchpft.
 int nyear_spinup;		
 
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Stand member functions
+////////////////////////////////////////////////////////////////////////////////
+
 Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i),gridcell(gc),landcover(landcoverX),frac(1.0) {
 
 		// Constructor: initialises reference member of climate and
@@ -72,7 +77,7 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i
 		npatchL=1;
 	}
 	else if(landcover==NATURAL || landcover==FOREST) {
-		npatchL=npatch;
+		npatchL=::npatch; // use the global variable npatch (not Stand::npatch)
 	}
 
 	for (p=0;p<npatchL;p++) {
@@ -94,7 +99,12 @@ void Stand::set_landcover_fraction(double fraction) {
 	frac = fraction;
 }
 
-Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Individual member functions
+////////////////////////////////////////////////////////////////////////////////
+
+Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	anpp=0.0;
 	fpc=0.0;
@@ -104,7 +114,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 	cmass_sap=0.0;
 	cmass_heart=0.0;
 	cmass_debt=0.0;
-	wscal=1.0;
 	phen=0.0;
 	aphen=0.0;
 	deltafpc=0.0;
@@ -124,7 +133,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 	daylength_wstress = 0.0;
 	co2_wstress = 0.0; 
 	nday_wstress = 0; 
-	ifwstress = false;
+	wstress = false;
 	lai = 0.0;
 	lai_layer = 0.0;
 	lai_indiv = 0.0;
@@ -146,4 +155,22 @@ Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 	eet_wstress=0.;
 	agdd5_wstress=0.;
 	rad_wstress=0.;		
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Gridcell member functions
+////////////////////////////////////////////////////////////////////////////////
+
+double Gridcell::get_lon() const {
+	return lon;
+}
+
+double Gridcell::get_lat() const {
+	return lat;
+}
+
+void Gridcell::set_coordinates(double longitude, double latitude) {
+	lon = longitude;
+	lat = latitude;
 }

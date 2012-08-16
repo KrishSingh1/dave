@@ -140,16 +140,29 @@ function build {
     fi
 
     pushd $build_path/output &> /dev/null
-    if ! $cmake_command .. &> /dev/null ; then
+
+    cmake_output=$(mktemp)
+    if ! $cmake_command .. &> $cmake_output ; then
 	error "Failed to configure build " $build_path "!"
-	exit 1
+	cat $cmake_output
+	rm $cmake_output
+	popd &> /dev/null
+	return 1
     fi
-    if ! $make_command &> /dev/null ; then
+    rm $cmake_output
+
+    make_output=$(mktemp)
+    if ! $make_command &> $make_output ; then
 	error "Failed to build " $build_path "!"
-	exit 1
+	cat $make_output
+	rm $make_output
+	popd &> /dev/null
+	return 1
     fi
+    rm $make_output
 
     popd &> /dev/null
+    return 0
 }
 
 # This function prepares the workspace for one of the benchmarks
@@ -299,7 +312,10 @@ function run_benchmark {
     if [ -f $test_name/extra_source.txt ]; then
 	build_path=$work_dir/${test_name}_build
 	echo "Building $test_name model..."
-	build $build_path extra_source/$(cat $test_name/extra_source.txt)
+	if ! build $build_path extra_source/$(cat $test_name/extra_source.txt); then
+	    echo "Not running ${test_name}..."
+	    return
+	fi
     fi
 
     if (( $compile_only == 1 )); then
@@ -397,7 +413,10 @@ fi
 # however.
 if (( $pp_only == 0 )); then
     echo "Building standard model..."
-    build $work_dir/standard_build
+    if ! build $work_dir/standard_build; then
+	echo "Not running any benchmarks!"
+	exit 1
+    fi
 fi
 
 # Find all sub directories

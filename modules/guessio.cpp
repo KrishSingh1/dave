@@ -41,7 +41,6 @@
 #include <plib.h>
 #include <stdio.h>
 
-
 ///////////////////////////////////////////////////////////////////////////////////////
 //
 //                      SECTION: INPUT FROM INSTRUCTION SCRIPT
@@ -843,38 +842,38 @@ void printhelp() {
 //   command-line argument, resulting in output of a brief description of the
 //   keywords recognised in the ins file, instead of a model run.
 //
-// bool getstand(Stand& stand)
-//   Obtains latitude and soil static parameters for the next stand (grid cell) to
-//   simulate. The function should returns false if no stands remain to be simulated,
-//   otherwise true. Currently the following member variables of stand should be
-//   initialised: members lat and instype of member climate; the following members of
+// bool getgridcell(Gridcell& gridcell)
+//   Obtains coordinates and soil static parameters for the next grid cell to
+//   simulate. The function should return false if no grid cells remain to be simulated,
+//   otherwise true. Currently the following member variables of gridcell should be
+//   initialised: longitude, latitude and climate.instype; the following members of
 //   member soiltype: awc[0], awc[1], perc_base, perc_exp, thermdiff_0, thermdiff_15,
 //   thermdiff_100. The soil parameters can be set indirectly based on an lpj soil
 //   code (Sitch et al 2000) by a call to function soilparameters in the driver
 //   module (driver.cpp):
 //
-//   soilparameters(stand.soiltype,soilcode);
+//   soilparameters(gridcell.soiltype,soilcode);
 //
 //   If the model is to be driven by quasi-daily values of the climate variables
 //   derived from monthly means, this function may be the appropriate place to
 //   perform the required interpolations. The utility functions interp_monthly_means
 //   and interp_monthly_totals in driver.cpp may be called for this purpose.
 //
-// bool getclimate(Stand& stand)
+// bool getclimate(Gridcell& gridcell)
 //   Obtains climate data (including atmospheric CO2 and insolation) for this day.
-//   The function should returns false if the simulation is complete for this stand,
+//   The function should return false if the simulation is complete for this grid cell,
 //   otherwise true. This will normally require querying the year and day member
 //   variables of the global class object date:
 //
-//   if (date.day==0 && date.year==nyear) return false; // guess2008
+//   if (date.day==0 && date.year==nyear) return false;
 //   // else
 //   return true;
 //
-//   Currently the following member variables of the climate member of stand must be
+//   Currently the following member variables of the climate member of gridcell must be
 //   initialised: co2, temp, prec, insol. If the model is to be driven by quasi-daily
 //   values of the climate variables derived from monthly means, this day's values
 //   will presumably be extracted from arrays containing the interpolated daily
-//   values (see function getstand):
+//   values (see function getgridcell):
 //
 //   gridcell.climate.temp=dtemp[date.day];
 //   gridcell.climate.prec=dprec[date.day];
@@ -884,12 +883,20 @@ void printhelp() {
 //   BVOC:
 //   gridcell.climate.dtr=ddtr[date.day]; 
 //
-// void outannual(Stand& stand,Pftlist& pftlist)
+//   If model is run in diurnal mode, which requires appropriate climate forcing data, 
+//   additional members of the climate must be initialised: temps, insols. Both of the
+//   variables must be of type std::vector. The length of these vectors should be equal
+//   to value of date.subdaily which also needs to be set either in getclimate or 
+//   getgridcell functions. date.subdaily is a number of sub-daily period in a single 
+//   day. Irrespective of the BVOC settings, climate.dtr variable is not required in 
+//   diurnal mode.
+//
+// void outannual(Gridcell& gridcell,Pftlist& pftlist)
 //   Called at the end of the last day of each simulation year to permit output of
 //   model results.
 //
 // termio()
-//   Called after simulation is complete for all stands to allow memory deallocation,
+//   Called after simulation is complete for all gridcells to allow memory deallocation,
 //   closing of files or other cleanup functions.
 //
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -1421,16 +1428,16 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	{
 /// Called by the framework at the start of the simulation for a particular grid cell
 bool getgridcell(Gridcell& gridcell) {
 
-	// Obtains latitude and soil static parameters for the next grid cell to
+	// Obtains coordinates and soil static parameters for the next grid cell to
 	// simulate. The function should return false if no grid cells remain to be simulated,
 	// otherwise true. Currently the following member variables of Gridcell should be
-	// initialised: members lat and instype of member climate; the following members of
+	// initialised: longitude, latitude and climate.instype; the following members of
 	// member soiltype: awc[0], awc[1], perc_base, perc_exp, thermdiff_0, thermdiff_15,
 	// thermdiff_100. The soil parameters can be set indirectly based on an lpj soil
 	// code (Sitch et al 2000) by a call to function soilparameters in the driver
 	// module (driver.cpp):
 	//
-	// soilparameters(stand.soiltype,soilcode);
+	// soilparameters(gridcell.soiltype,soilcode);
 	//
 	// If the model is to be driven by quasi-daily values of the climate variables
 	// derived from monthly means, this function may be the appropriate place to
@@ -1484,8 +1491,8 @@ bool getgridcell(Gridcell& gridcell) {
 			(char*)gridlist.getobj().descrip);
 		else dprintf("\n");
 		
-		// Tell framework the latitude of this grid cell
-		gridcell.climate.lat=gridlist.getobj().lat;
+		// Tell framework the coordinates of this grid cell
+		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
 		
 		// The insolation data will be sent (in function getclimate, below)
 		// as percentage sunshine
@@ -1529,14 +1536,14 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist) {
 
 			if(equal_landcover_area)
 			{
-				for(int i=0;i<NLANDCOVERTYPES;i++)
+				for(i=0;i<NLANDCOVERTYPES;i++)
 				{
 					if(run[i])
 						nactive_landcovertypes++;
 				}
 			}
 
-			for(int i=0;i<NLANDCOVERTYPES;i++)
+			for(i=0;i<NLANDCOVERTYPES;i++)
 			{
 				if(equal_landcover_area)
 				{
@@ -1586,7 +1593,7 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist) {
 				{
 /*					if(date.year==0)
 						dprintf("Rescaling landcover fractions !\n");
-					for(int i=0;i<NLANDCOVERTYPES;i++)
+					for(i=0;i<NLANDCOVERTYPES;i++)
 						gridcell.landcoverfrac[i]/=sum_active;			// if NATURAL not simulated, rescale active fractions to 1.0
 */					if(date.year==0)
 						dprintf("Non-unity fraction sum retained.\n");				// OR let sum remain non-unity
@@ -1676,7 +1683,7 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist) {
 					sum_active-=gridcell.landcoverfrac[NATURAL];	//fraction not possible to transfer moved back to sum_active, which will now be >1.0 again
 					gridcell.landcoverfrac[NATURAL]=0.0;
 
-					for(int i=0;i<NLANDCOVERTYPES;i++)
+					for(i=0;i<NLANDCOVERTYPES;i++)
 					{
 						gridcell.landcoverfrac[i]/=sum_active;		//fraction rescaled to unity sum
 						if(run[i])
@@ -1689,7 +1696,7 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist) {
 			{
 //				if(date.year==0)
 //					dprintf("Rescaling landcover fractions !\n");
-//				for(int i=0;i<NLANDCOVERTYPES;i++)
+//				for(i=0;i<NLANDCOVERTYPES;i++)
 //					gridcell.landcoverfrac[i]/=sum_active;						// if NATURAL not simulated, rescale active fractions to 1.0
 				if(date.year==0)
 					dprintf("Non-unity fraction sum retained.\n");				// OR let sum remain non-unity
@@ -1704,7 +1711,7 @@ void getlandcover(Gridcell& gridcell,Pftlist& pftlist) {
 bool getclimate(Gridcell& gridcell) {
 
 	// DESCRIPTION
-	// The function should returns false if the simulation is complete for this stand,
+	// The function should returns false if the simulation is complete for this grid cell,
 	// otherwise true. This will normally require querying the year and day member
 	// variables of the global class object date:
 	//
@@ -1712,11 +1719,11 @@ bool getclimate(Gridcell& gridcell) {
 	// // else
 	// return true;
 	//
-	// Currently the following member variables of the climate member of stand must be
+	// Currently the following member variables of the climate member of gridcell must be
 	// initialised: co2, temp, prec, insol. If the model is to be driven by quasi-daily
 	// values of the climate variables derived from monthly means, this day's values
 	// will presumably be extracted from arrays containing the interpolated daily
-	// values (see function getstand):
+	// values (see function getgridcell):
 	//
 	// gridcell.climate.temp=dtemp[date.day];
 	// gridcell.climate.prec=dprec[date.day];
@@ -1724,7 +1731,15 @@ bool getclimate(Gridcell& gridcell) {
 	// 
 	// Diurnal temperature range (dtr) added for calculation of leaf temperatures in 
 	// BVOC:
-	// gridcell.climate.dtr=ddtr[date.day]; 
+	// gridcell.climate.dtr=ddtr[date.day];
+	//
+	// If model is run in diurnal mode, which requires appropriate climate forcing data, 
+	// additional members of the climate must be initialised: temps, insols. Both of the
+	// variables must be of type std::vector. The length of these vectors should be equal
+	// to value of date.subdaily which also needs to be set either in getclimate or 
+	// getgridcell functions. date.subdaily is a number of sub-daily period in a single 
+	// day. Irrespective of the BVOC settings, climate.dtr variable is not required in 
+	// diurnal mode.
 
 	double progress;
 
@@ -1792,16 +1807,14 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	double miso[12];
 	double mmon[12];
 
-	double lon,lat;
-
 	if (vegmode==COHORT)
 		nclass=min(date.year/estinterval+1,OUTPUT_MAXAGECLASS);
 	
 	// guess2008 - yearly output after spinup
 	if (date.year>=nyear_spinup) {
 
-		lon=gridlist.getobj().lon;
-		lat=gridlist.getobj().lat;
+		double lon = gridcell.get_lon();
+		double lat = gridcell.get_lat();
 
 		// The OutputRows object manages the next row of output for each
 		// output table
@@ -1934,14 +1947,14 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 					stand.nextobj();
 				} // end of patch loop
 
-				standpft_cmass/=(double)stand.nobj;
-				standpft_anpp/=(double)stand.nobj;
-				standpft_lai/=(double)stand.nobj;
-				standpft_densindiv_total/=(double)stand.nobj;
-				standpft_aiso/=(double)stand.nobj;
-				standpft_amon/=(double)stand.nobj;
+				standpft_cmass/=(double)stand.npatch();
+				standpft_anpp/=(double)stand.npatch();
+				standpft_lai/=(double)stand.npatch();
+				standpft_densindiv_total/=(double)stand.npatch();
+				standpft_aiso/=(double)stand.npatch();
+				standpft_amon/=(double)stand.npatch();
 
-				heightindiv_total/=(double)stand.nobj;
+				heightindiv_total/=(double)stand.npatch();
 
 				//Update landcover totals
 				landcover_cmass[stand.landcover]+=standpft_cmass*stand.get_landcover_fraction();
@@ -2022,7 +2035,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			while (stand.isobj) {
 				Patch& patch=stand.getobj();
 
-				double to_gridcell_average = stand.get_gridcell_fraction()/(double)stand.nobj;
+				double to_gridcell_average = stand.get_gridcell_fraction()/(double)stand.npatch();
 
 				flux_veg+=patch.fluxes.acflux_veg*to_gridcell_average;
 				flux_soil+=patch.fluxes.acflux_soil*to_gridcell_average;
@@ -2053,9 +2066,9 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	
 				// Fire return time
 				if (!iffire || patch.fireprob < 0.001)
-					firert_gridcell+=1000.0/(double)stand.nobj; // Set a limit of 1000 years
+					firert_gridcell+=1000.0/(double)stand.npatch(); // Set a limit of 1000 years
 				else	
-					firert_gridcell+=(1.0/patch.fireprob)/(double)stand.nobj;
+					firert_gridcell+=(1.0/patch.fireprob)/(double)stand.npatch();
 
 
 				// Monthly output variables

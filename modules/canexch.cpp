@@ -1055,7 +1055,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 // ASSIMILATION_WSTRESS
 // Internal function (do not call directly from framework)
 
-void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
+void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 			double daylength, double fpar, double fpc, double gcbase, double gpterm,
 			double vmax, PhotosynthesisResult& phot_result, double& lambda) {
 
@@ -1089,7 +1089,7 @@ void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 
 		// lambda doesn't make sense here and shouldn't be used, but let's
 		// return something well defined at least
-		lambda = ppft.pft.lambda_max;
+		lambda = pft.lambda_max;
 		return;
 	}
 
@@ -1104,7 +1104,7 @@ void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 	// Implement numerical solution
 
 	double x1 = 0.02;                      // minimum bracket of root
-	double x2 = ppft.pft.lambda_max;       // maximum bracket of root
+	double x2 = pft.lambda_max;            // maximum bracket of root
 	double rtbis = x1;                     // root of the bisection
 	double dx = x2 - x1;
 
@@ -1123,7 +1123,7 @@ void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 		// for total daytime photosynthesis according to Eqns 2 & 19,
 		// Haxeltine & Prentice (1996), and current guess for lambda
 
-		photosynthesis(co2, temp, par, daylength, 1.0, xmid, ppft.pft, phot_result, vmax);
+		photosynthesis(co2, temp, par, daylength, 1.0, xmid, pft, phot_result, vmax);
 
 		// Evaluate fmid at the point lambda=xmid
 		// fmid will be an increasing function of xmid, with a solution
@@ -1345,7 +1345,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			if (indiv.wstress) {
 				// Water stress - derive assimilation by simultaneous solution
 				// of light- and conductance-based equations of photosynthesis
-				assimilation_wstress(ppft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
+				assimilation_wstress(pft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
 							ppft.gcbase, gpterm_indiv, spft.photosynthesis.vm, phot, lambda);
 				assim = phot.net_assimilation();
 			}
@@ -1431,7 +1431,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 					indiv.agdd5_wstress /= nday_double;
 					indiv.rad_wstress /= nday_double;
 
-					assimilation_wstress(ppft, indiv.co2_wstress, indiv.temp_wstress,
+					assimilation_wstress(pft, indiv.co2_wstress, indiv.temp_wstress,
 						indiv.par_wstress, indiv.daylength_wstress, indiv.fpar_wstress, indiv.fpc,
 						ppft.gcbase_wstress, ppft.gpterm_wstress, ppft.phot_wstress.vm, phot, lambda);
 					indiv.assim += phot.net_assimilation() * indiv.fpar_wstress * indiv.nday_wstress;
@@ -1510,6 +1510,7 @@ void forest_floor_conditions(Patch& patch) {
 
 		Patchpft& ppft = patch.pft[p];
 		Standpft& spft = patch.stand.pft[p];
+		Pft& pft = spft.pft;
 
 		// Initialise net photosynthesis sum on first day of year
 		if (date.day == 0) {
@@ -1518,7 +1519,7 @@ void forest_floor_conditions(Patch& patch) {
 		double assim = 0;
 		if (ifdailynpp || !ppft.wstress_day) {
 			if (ppft.wstress_day) {
-				assimilation_wstress(ppft, climate.co2, climate.temp, climate.par,
+				assimilation_wstress(pft, climate.co2, climate.temp, climate.par,
 					climate.daylength, patch.fpar_grass*ppft.phen, 1., ppft.gcbase_day,
 					spft.gpterm, spft.photosynthesis.vm, phot, lambda);
 				assim = phot.net_assimilation();
@@ -1529,7 +1530,7 @@ void forest_floor_conditions(Patch& patch) {
 			assim *= ppft.phen * patch.fpar_grass;
 		}
 		if (date.islastday && !ifdailynpp && ppft.nday_wstress) {
- 			assimilation_wstress(ppft, ppft.co2_wstress, ppft.temp_wstress,
+ 			assimilation_wstress(pft, ppft.co2_wstress, ppft.temp_wstress,
 					ppft.par_wstress, ppft.daylength_wstress, ppft.fpar_grass_wstress,
 					1., ppft.gcbase_wstress, ppft.gpterm_wstress, ppft.phot_wstress.vm, phot, lambda);
 			assim += phot.net_assimilation() * ppft.fpar_grass_wstress * ppft.nday_wstress;

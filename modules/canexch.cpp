@@ -748,8 +748,6 @@ void photosynthesis_nowstress(Patch& patch, Climate& climate) {
 			// respiration); valid for all individuals of this PFT given today's
 			// climate and FPAR=1 assuming no water stress
 			spft.assim_term = spft.photosynthesis.net_assimilation();
-
-			spft.adtmm_term = spft.photosynthesis.adtmm;
 		}
 	}
 

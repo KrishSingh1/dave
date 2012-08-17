@@ -1979,9 +1979,6 @@ public:
 		// net C allocated to reproduction for this PFT in all patches of this stand
 		// this year (kgC/m2)
 
-	double adtmm_term; // GC
-	// end GUESSN
-
 	/// Is this PFT allowed to grow in this stand?
 	bool active;
 

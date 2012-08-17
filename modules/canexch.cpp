@@ -484,7 +484,7 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
  *  In sub-daily mode daylength should be 24 h, to obtain values in daily units.
  */
 void photosynthesis(double co2, double temp, double par, double daylength,
-                    double lambda, const Pft& pft, PhotosynthesisResult& result, double vm) {
+                    double fpar, double lambda, const Pft& pft, PhotosynthesisResult& result, double vm) {
 
 	// DESCRIPTION
 	// Calculation of total daily gross photosynthesis and leaf-level net daytime
@@ -510,6 +510,7 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 	// temp         = mean air temperature today (deg C)
 	// par          = total daily photosynthetically-active radiation today (J/m2/day)
 	// daylength    = day length, must equal 24 in diurnal mode (h)
+	// fpar         = fraction of PAR absorbed by foliage
 	// lambda       = ratio of intercellular to ambient partial pressure of CO2
 	// pft          = Pft class containing the following public members
 	//    pathway     = biochemical pathway for photosynthesis (C3 or C4)
@@ -534,14 +535,14 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 	const double PATMOS = 1e5;	// atmospheric pressure (Pa)
 
 	// No photosynthesis during polar night, outside of temperature range or no RuBisCO activity
-	if (negligible(daylength) || temp > pft.pstemp_max || temp < pft.pstemp_min || !vm) {
+	if (negligible(daylength) || negligible(fpar) || temp > pft.pstemp_max || temp < pft.pstemp_min || !vm) {
 		result.clear();
 		return;
 	}
 	// Scale fractional PAR absorption at plant projective area level (FPAR) to
 	// fractional absorption at leaf level (APAR)
 	// Eqn 4, Haxeltine & Prentice 1996a
-	double apar = par * ALPHAA;
+	double apar = par * fpar * ALPHAA;
 	double b, c1, c2;
 
 	// Calculate temperature-inhibition coefficient
@@ -652,7 +653,7 @@ void photosynthesis_nowstress(Stand& stand, Climate& climate) {
 
 		// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
 		photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
-									pft.lambda_max, pft, spft.photosynthesis, -1);
+		               1.0, pft.lambda_max, pft, spft.photosynthesis, -1);
 
 		if (date.diurnal()) {
 			spft.gpterms.assign(date.subdaily, 0);
@@ -661,7 +662,7 @@ void photosynthesis_nowstress(Stand& stand, Climate& climate) {
 			for (int i=0; i<date.subdaily; i++) {
 				PhotosynthesisResult& result = spft.phots[i];
 				photosynthesis(climate.co2, climate.temps[i], climate.pars[i],
-					24, pft.lambda_max, pft, result, spft.photosynthesis.vm);
+				               24, 1.0, pft.lambda_max, pft, result, spft.photosynthesis.vm);
 
 				spft.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
 			}
@@ -1120,7 +1121,7 @@ void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 		// for total daytime photosynthesis according to Eqns 2 & 19,
 		// Haxeltine & Prentice (1996), and current guess for lambda
 
-		photosynthesis(co2, temp, par, daylength, xmid, ppft.pft, phot_result, vmax);
+		photosynthesis(co2, temp, par, daylength, 1.0, xmid, ppft.pft, phot_result, vmax);
 
 		// Evaluate fmid at the point lambda=xmid
 		// fmid will be an increasing function of xmid, with a solution

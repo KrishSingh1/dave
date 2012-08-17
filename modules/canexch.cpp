@@ -478,21 +478,44 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
 }
 
 /// Total daily gross photosynthesis
-/** To calculate vmax call w/ daily averages of temperature and par
- *  Vmax is to be calculated daily and only with lambda == lambda_max
+/** Calculation of total daily gross photosynthesis and leaf-level net daytime
+ *  photosynthesis given degree of stomatal closure (as parameter lambda).
+ *  Includes implicit scaling from leaf to plant projective area basis.
+ *  Adapted from Farquhar & von Caemmerer (1982) photosynthesis model, as simplified
+ *  by Collatz et al (1991), Collatz et al (1992), Haxeltine & Prentice (1996a,b)
+ *  and Sitch et al. (2000).
+ *
+ *  To calculate vmax call w/ daily averages of temperature and par.
+ *  Vmax is to be calculated daily and only with lambda == lambda_max.
  *  lambda values greater than lambda_max are forbidden.
  *  In sub-daily mode daylength should be 24 h, to obtain values in daily units.
+ *
+ *  INPUT PARAMETERS
+ *
+ *  \param co2        atmospheric ambient CO2 concentration (ppmv)
+ *  \param temp       mean air temperature today (deg C)
+ *  \param par        total daily photosynthetically-active radiation today (J/m2/day)
+ *  \param daylength  day length, must equal 24 in diurnal mode (h)
+ *  \param fpar       fraction of PAR absorbed by foliage
+ *  \param lambda     ratio of intercellular to ambient partial pressure of CO2
+ *  \param pft        Pft object containing the following public members:
+ *   - pathway         biochemical pathway for photosynthesis (C3 or C4)
+ *   - pstemp_min      approximate low temperature limit for photosynthesis (deg C)
+ *   - pstemp_low      approximate lower range of temperature optimum for
+ *                     photosynthesis (deg C)
+ *   - pstemp_high     approximate upper range of temperature optimum for photosynthesis
+ *                     (deg C)
+ *   - pstemp_max      maximum temperature limit for photosynthesis (deg C)
+ *   - lambda_max      non-water-stressed ratio of intercellular to ambient CO2 pp
+ *  \param vm         pre-calculated value of Vmax for this stand for this day if
+ *                    available, otherwise calculated
+ *
+ * OUTPUT PARAMETERS
+ *
+ * \param result      see documentation of PhotosynthesisResult struct
  */
 void photosynthesis(double co2, double temp, double par, double daylength,
                     double fpar, double lambda, const Pft& pft, PhotosynthesisResult& result, double vm) {
-
-	// DESCRIPTION
-	// Calculation of total daily gross photosynthesis and leaf-level net daytime
-	// photosynthesis given degree of stomatal closure (as parameter lambda).
-	// Includes implicit scaling from leaf to plant projective area basis.
-	// Adapted from Farquhar & von Caemmerer (1982) photosynthesis model, as simplified
-	// by Collatz et al (1991), Collatz et al (1992), Haxeltine & Prentice (1996a,b)
-	// and Sitch et al. (2000).
 
 	// NOTE: This function is identical to LPJF subroutine "photosynthesis" except for
 	// the formulation of low-temperature inhibition coefficient tscal (tstress; LPJF).
@@ -504,27 +527,6 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 	// Ben Smith 18/1/2001: Tested in comparison to LPJF subroutine "photosynthesis":
 	// function showed identical behaviour except at temperatures >= c. 35 deg C where
 	// LPJF temperature inhibition function results in lower photosynthesis.
-
-	// INPUT PARAMETERS
-	// co2          = atmospheric ambient CO2 concentration (ppmv)
-	// temp         = mean air temperature today (deg C)
-	// par          = total daily photosynthetically-active radiation today (J/m2/day)
-	// daylength    = day length, must equal 24 in diurnal mode (h)
-	// fpar         = fraction of PAR absorbed by foliage
-	// lambda       = ratio of intercellular to ambient partial pressure of CO2
-	// pft          = Pft class containing the following public members
-	//    pathway     = biochemical pathway for photosynthesis (C3 or C4)
-	//    pstemp_min  = approximate low temperature limit for photosynthesis (deg C)
-	//    pstemp_low  = approximate lower range of temperature optimum for
-	//                  photosynthesis (deg C)
-	//    pstemp_high = approximate upper range of temperature optimum for photosynthesis
-	//                  (deg C)
-	//    pstemp_max  = maximum temperature limit for photosynthesis (deg C)
-	//    lambda_max  = non-water-stressed ratio of intercellular to ambient CO2 pp
-	// vm           = pre-calculated value of Vmax for this stand for this day if
-	//                available, otherwise calculated
-	// OUTPUT PARAMETERS
-	// result       = see documentation of PhotosynthesisResult struct
 
 	// Make sure that only two alternative modes are possible:
 	//  * daily non-water stressed (forces Vmax calculation)

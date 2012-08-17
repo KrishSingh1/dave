@@ -879,289 +879,293 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 			if (establish(patch,stand.gridcell.climate,pft)) {
 
-				if (pft.lifeform==GRASS) {
+				// Either nitrogen free establishment or there is nitrogen available for establishment 
+				if (!(ifnlim && date.year>=freenyears && !patch.pft[pft.id].nstore_est)) {
 
-					// ESTABLISHMENT OF GRASSES
+					if (pft.lifeform==GRASS) {
 
-					// Each grass PFT represented by just one individual in each patch
-					// Check whether this grass PFT already represented ...
+						// ESTABLISHMENT OF GRASSES
 
-					present=false;
-					vegetation.firstobj();
-					while (vegetation.isobj && !present) {
-						if (vegetation.getobj().pft.id==pft.id) present=true;
-						vegetation.nextobj();
-					}
+						// Each grass PFT represented by just one individual in each patch
+						// Check whether this grass PFT already represented ...
 
-					if (!present && patch.pft[pft.id].nstore_est) {
+						present=false;
+						vegetation.firstobj();
+						while (vegetation.isobj && !present) {
+							if (vegetation.getobj().pft.id==pft.id) present=true;
+							vegetation.nextobj();
+						}
 
-						// ... if not, add it
+						if (!present) {
 
-						Individual& indiv=vegetation.createobj(pft,vegetation);
-						indiv.height=0.0;
-						indiv.crownarea=1.0; // (value not used)
-						indiv.densindiv=1.0;
-						indiv.fpc=1.0;
+							// ... if not, add it
 
-						// Initial grass biomass proportional to potential forest floor
-						// net assimilation this year on patch area basis
+							Individual& indiv=vegetation.createobj(pft,vegetation);
+							indiv.height=0.0;
+							indiv.crownarea=1.0; // (value not used)
+							indiv.densindiv=1.0;
+							indiv.fpc=1.0;
 
-						bminit=SAPSIZE*patch.pft[pft.id].anetps_ff;	
+							// Initial grass biomass proportional to potential forest floor
+							// net assimilation this year on patch area basis
 
-						if (ifdisturb && patch.disturbed)
-							bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est_initial;
-						// Makes no difference, Veiko 
-						bminit*=0.3;
+							bminit=SAPSIZE*patch.pft[pft.id].anetps_ff;	
 
-						// Initial leaf to fine root biomass ratio based on
-						// hypothetical value of water stress parameter
+							if (ifdisturb && patch.disturbed)
+								bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est_initial;
+							// Makes no difference, Veiko 
+							bminit*=0.3;
 
-						ltor=patch.pft[pft.id].wscal_mean*pft.ltor_max;
+							// Initial leaf to fine root biomass ratio based on
+							// hypothetical value of water stress parameter
 
-						// Allocate initial biomass
+							ltor=patch.pft[pft.id].wscal_mean*pft.ltor_max;
 
-						allocation_init(bminit,ltor,indiv);
+							// Allocate initial biomass
 
-						// Calculate initial allometry
+							allocation_init(bminit,ltor,indiv);
 
-						allometry(indiv);
+							// Calculate initial allometry
 
-						indiv.cton_leaf_new=indiv.pft.cton_leaf_avr;
-						indiv.cton_root_new=indiv.pft.cton_root_avr;
-						indiv.cton_leaf_opt=indiv.pft.cton_leaf_avr;
+							allometry(indiv);
 
-						// GUESSN
-						// Initialise N demand
-						indiv.ndemand=
+							indiv.cton_leaf_new=indiv.pft.cton_leaf_avr;
+							indiv.cton_root_new=indiv.pft.cton_root_avr;
+							indiv.cton_leaf_opt=indiv.pft.cton_leaf_avr;
+
+							// GUESSN
+							// Initialise N demand
+							indiv.ndemand=
 								indiv.cmass_leaf/indiv.pft.cton_leaf_avr+
 								indiv.cmass_root/indiv.pft.cton_root_avr;
 
-						if (ifnlim && date.year>=freenyears && indiv.ndemand > 0.0) {
-							double frac_est=min(1.0,patch.pft[pft.id].nstore_est/indiv.ndemand);
-							indiv.cmass_leaf*=frac_est;
-							indiv.nmass_leaf*=frac_est;
-							indiv.cmass_root*=frac_est;
-							indiv.nmass_root*=frac_est;
-							patch.pft[pft.id].nstore_est-=min(patch.pft[pft.id].nstore_est,indiv.ndemand);
-							bminit*=frac_est;
+							if (ifnlim && date.year>=freenyears && indiv.ndemand > 0.0) {
+								double frac_est=min(1.0,patch.pft[pft.id].nstore_est/indiv.ndemand);
+								indiv.cmass_leaf*=frac_est;
+								indiv.nmass_leaf*=frac_est;
+								indiv.cmass_root*=frac_est;
+								indiv.nmass_root*=frac_est;
+								patch.pft[pft.id].nstore_est-=min(patch.pft[pft.id].nstore_est,indiv.ndemand);
+								bminit*=frac_est;
 
+								if (patch.pft[pft.id].nstore_est>0.0) {
+									patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;
+									patch.pft[pft.id].nstore_est=0.0;
+								}
+							}
+
+							indiv.max_n_reserve = indiv.pft.n_reserve*indiv.cmass_root/indiv.pft.cton_leaf_avr;
+
+							if (!negligible(max(0.0,indiv.cmass_leaf)) && !negligible(max(0.0,indiv.cmass_root))) {
+								indiv.bminc_leaf_frac=indiv.cmass_leaf/(indiv.cmass_leaf+indiv.cmass_root);
+								indiv.bminc_root_frac=1.0-indiv.bminc_leaf_frac;
+							}
+							else {
+								indiv.bminc_leaf_frac=1.0/3.0;
+								indiv.bminc_root_frac=1.0-indiv.bminc_leaf_frac;
+							}
+
+							// Account for C flux from atmosphere to vegetation
+							// guess2008 - flux is not debited for 'new' Individual
+							// objects - their carbon is debited in function growth()
+							// if they survive the first year 
+
+							if (indiv.alive)
+								patch.fluxes.acflux_est-=bminit;
+						}
+						else {
 							if (patch.pft[pft.id].nstore_est>0.0) {
 								patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;
 								patch.pft[pft.id].nstore_est=0.0;
 							}
 						}
+					}
+					else if (pft.lifeform==TREE) {
 
-						indiv.max_n_reserve = indiv.pft.n_reserve*indiv.cmass_root/indiv.pft.cton_leaf_avr;
+						// ESTABLISHMENT OF NEW TREE SAPLINGS
 
-						if (!negligible(max(0.0,indiv.cmass_leaf)) && !negligible(max(0.0,indiv.cmass_root))) {
-							indiv.bminc_leaf_frac=indiv.cmass_leaf/(indiv.cmass_leaf+indiv.cmass_root);
-							indiv.bminc_root_frac=1.0-indiv.bminc_leaf_frac;
-						}
+						if (patch.age==0){
+
+							// First simulation year - initialising patch
+							// Eqn 1
+
+							est=pft.est_max*patcharea;
+						} 
 						else {
-							indiv.bminc_leaf_frac=1.0/3.0;
-							indiv.bminc_root_frac=1.0-indiv.bminc_leaf_frac;
-						}
 
-						// Account for C flux from atmosphere to vegetation
-						// guess2008 - flux is not debited for 'new' Individual
-						// objects - their carbon is debited in function growth()
-						// if they survive the first year 
+							// Every year except year 1
+							// Eqns 5, 6
 
-						if (indiv.alive)
-							patch.fluxes.acflux_est-=bminit;
-					}
-					else {
-						if (patch.pft[pft.id].nstore_est>0.0) {
-							patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;
-							patch.pft[pft.id].nstore_est=0.0;
-						}
-					}
-				}
-				else if (pft.lifeform==TREE) {
-
-					// ESTABLISHMENT OF NEW TREE SAPLINGS
-
-					if (patch.age==0){
-
-						// First simulation year - initialising patch
-						// Eqn 1
-
-						est=pft.est_max*patcharea;
-					} 
-					else {
-
-						// Every year except year 1
-						// Eqns 5, 6
-
-						if (patch.pft[pft.id].anetps_ff>0.0 &&
+							if (patch.pft[pft.id].anetps_ff>0.0 &&
 								!negligible(patch.pft[pft.id].anetps_ff)) {
 
-							c=exp(pft.alphar-pft.alphar/patch.pft[pft.id].anetps_ff*
-									stand.pft[pft.id].anetps_ff_max)*pft.est_max*patcharea;
-						}
-						else
-							c=0.0;
-
-						// Background establishment enabled?
-
-						if (ifbgestab)
-							kest_bg=pft.kest_bg;
-						else
-							kest_bg=0.0;
-
-						// Spatial mass effect enabled?
-						// Eqns 2, 3, 4
-
-						if (ifsme)
-							est=c*(pft.kest_repr*stand.pft[pft.id].cmass_repr+kest_bg);
-						else if (!negligible(stand.pft[pft.id].cmass_repr))
-							est=c*(pft.kest_pres+kest_bg);
-						else
-							est=c*kest_bg;
-					}
-
-					// guess2008 - scale est by the number of woody PFTs/species that can establish
-					// Otherwise, simply adding more PFTs or species would increase est
-					est*=3.0/double(nwoodypfts_estab);
-
-					// Have a value for expected number of new saplings (est)
-					// Actual number of new saplings drawn from the Poisson distribution
-					// (except cohort mode with stochastic establishment disabled)
-
-					if (ifstochestab || vegmode==INDIVIDUAL) nsapling=randpoisson(est);
-					else nsapling=est;
-
-					if (date.year>freenyears)
-						nsapling=patch.pft[pft.id].nsapling_nuptake;
-
-					patch.pft[pft.id].nsapling_yearly+=nsapling;
-
-					if (vegmode==COHORT) {
-
-						// BLARP added for OECD experiment (is this sensible?)
-						if (ifdisturb && patch.disturbed) {
-
-							patch.pft[pft.id].anetps_ff_est=
-									patch.pft[pft.id].anetps_ff_est_initial;
-							patch.pft[pft.id].wscal_mean_est=patch.pft[pft.id].wscal_mean;
-							newindiv=!negligible(nsapling);
-							est_year=true;
-						}
-						else if (patch.age%estinterval) {
-
-							// Not an establishment year - save sapling count for
-							// establishment the next establishment year
-
-							patch.pft[pft.id].nsapling+=nsapling;
-							newindiv=0;
-							est_year=false;
-						}
-						else {
-							if (patch.age) {// all except first year after disturbance
-								nsapling+=patch.pft[pft.id].nsapling;
-								patch.pft[pft.id].anetps_ff_est/=(double)estinterval;
-								patch.pft[pft.id].wscal_mean_est/=(double)estinterval;
+									c=exp(pft.alphar-pft.alphar/patch.pft[pft.id].anetps_ff*
+										stand.pft[pft.id].anetps_ff_max)*pft.est_max*patcharea;
 							}
-							newindiv=!negligible(nsapling);
-							// round down to 0 if nsapling very small
+							else
+								c=0.0;
+
+							// Background establishment enabled?
+
+							if (ifbgestab)
+								kest_bg=pft.kest_bg;
+							else
+								kest_bg=0.0;
+
+							// Spatial mass effect enabled?
+							// Eqns 2, 3, 4
+
+							if (ifsme)
+								est=c*(pft.kest_repr*stand.pft[pft.id].cmass_repr+kest_bg);
+							else if (!negligible(stand.pft[pft.id].cmass_repr))
+								est=c*(pft.kest_pres+kest_bg);
+							else
+								est=c*kest_bg;
+						}
+
+						// guess2008 - scale est by the number of woody PFTs/species that can establish
+						// Otherwise, simply adding more PFTs or species would increase est
+						est*=3.0/double(nwoodypfts_estab);
+
+						// Have a value for expected number of new saplings (est)
+						// Actual number of new saplings drawn from the Poisson distribution
+						// (except cohort mode with stochastic establishment disabled)
+
+						if (ifstochestab || vegmode==INDIVIDUAL) nsapling=randpoisson(est);
+						else nsapling=est;
+
+						if (date.year>freenyears)
+							nsapling=patch.pft[pft.id].nsapling_nuptake;
+
+						patch.pft[pft.id].nsapling_yearly+=nsapling;
+
+						if (vegmode==COHORT) {
+
+							// BLARP added for OECD experiment (is this sensible?)
+							if (ifdisturb && patch.disturbed) {
+
+								patch.pft[pft.id].anetps_ff_est=
+									patch.pft[pft.id].anetps_ff_est_initial;
+								patch.pft[pft.id].wscal_mean_est=patch.pft[pft.id].wscal_mean;
+								newindiv=!negligible(nsapling);
+								est_year=true;
+							}
+							else if (patch.age%estinterval) {
+
+								// Not an establishment year - save sapling count for
+								// establishment the next establishment year
+
+								patch.pft[pft.id].nsapling+=nsapling;
+								newindiv=0;
+								est_year=false;
+							}
+							else {
+								if (patch.age) {// all except first year after disturbance
+									nsapling+=patch.pft[pft.id].nsapling;
+									patch.pft[pft.id].anetps_ff_est/=(double)estinterval;
+									patch.pft[pft.id].wscal_mean_est/=(double)estinterval;
+								}
+								newindiv=!negligible(nsapling);
+								// round down to 0 if nsapling very small
+								est_year=true;
+							}
+						}
+						else if (vegmode==INDIVIDUAL){
+							newindiv=(int)(nsapling+0.5); // round up to be on the safe side
 							est_year=true;
 						}
-					}
-					else if (vegmode==INDIVIDUAL){
-						newindiv=(int)(nsapling+0.5); // round up to be on the safe side
-						est_year=true;
-					}
 
-					// Now create 'newindiv' new Individual objects
+						// Now create 'newindiv' new Individual objects
 
-					for (i=0;i<newindiv;i++) {
+						for (i=0;i<newindiv;i++) {
 
-						// Create average individual for a new cohort (cohort mode)
-						// or an actual individual (individual mode)
+							// Create average individual for a new cohort (cohort mode)
+							// or an actual individual (individual mode)
 
-						Individual& indiv=vegetation.createobj(pft,vegetation);
+							Individual& indiv=vegetation.createobj(pft,vegetation);
 
-						if (vegmode==COHORT)
-							indiv.densindiv=nsapling/patcharea;
-						else if (vegmode==INDIVIDUAL)
-							indiv.densindiv=1.0/patcharea;
+							if (vegmode==COHORT)
+								indiv.densindiv=nsapling/patcharea;
+							else if (vegmode==INDIVIDUAL)
+								indiv.densindiv=1.0/patcharea;
 
-						indiv.age=0.0;
+							indiv.age=0.0;
 
-						// Initial biomass proportional to potential forest floor net
-						// assimilation for this PFT in this patch
+							// Initial biomass proportional to potential forest floor net
+							// assimilation for this PFT in this patch
 
-						bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est;
+							bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est;
 
-						// Makes no difference, Veiko
-						bminit*=0.3;
+							// Makes no difference, Veiko
+							bminit*=0.3;
 
-						// Initial leaf to fine root biomass ratio based on hypothetical
-						// value of water stress parameter
+							// Initial leaf to fine root biomass ratio based on hypothetical
+							// value of water stress parameter
 
-						ltor=patch.pft[pft.id].wscal_mean_est*pft.ltor_max;
+							ltor=patch.pft[pft.id].wscal_mean_est*pft.ltor_max;
 
-						// Allocate initial biomass
+							// Allocate initial biomass
 
-						allocation_init(bminit,ltor,indiv);
+							allocation_init(bminit,ltor,indiv);
 
-						// Calculate initial allometry
+							// Calculate initial allometry
 
-						allometry(indiv);
+							allometry(indiv);
 
-						indiv.cton_leaf_new=indiv.pft.cton_leaf_avr;
-						indiv.cton_root_new=indiv.pft.cton_root_avr;
-						indiv.cton_sap_new=indiv.pft.cton_sap_avr;
-						indiv.cton_leaf_opt=indiv.pft.cton_leaf_avr;
-						
-						// GUESSN
-						// Initialise N demand
-						indiv.ndemand=
+							indiv.cton_leaf_new=indiv.pft.cton_leaf_avr;
+							indiv.cton_root_new=indiv.pft.cton_root_avr;
+							indiv.cton_sap_new=indiv.pft.cton_sap_avr;
+							indiv.cton_leaf_opt=indiv.pft.cton_leaf_avr;
+
+							// GUESSN
+							// Initialise N demand
+							indiv.ndemand=
 								indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+
 								indiv.nmass_heart+indiv.nmass_reserve;
 
-						if (ifnlim && date.year>=freenyears){
+							if (ifnlim && date.year>=freenyears){
 
-							nonlimdens=indiv.densindiv;
+								nonlimdens=indiv.densindiv;
 
-							indiv.densindiv *= min(1.0,patch.pft[pft.id].nstore_est/indiv.ndemand);
+								indiv.densindiv *= min(1.0,patch.pft[pft.id].nstore_est/indiv.ndemand);
 
-							indiv.densindiv = ((double)((int)(indiv.densindiv*1000.0)))/1000.0;
+								indiv.densindiv = ((double)((int)(indiv.densindiv*1000.0)))/1000.0;
 
-							if (indiv.densindiv<nonlimdens) {
-								double densfrac=indiv.densindiv/nonlimdens;
-								indiv.cmass_leaf*=densfrac;
-								indiv.cmass_root*=densfrac;
-								indiv.cmass_sap*=densfrac;
-								indiv.nmass_leaf*=densfrac;
-								indiv.nmass_root*=densfrac;
-								indiv.nmass_sap*=densfrac;
+								if (indiv.densindiv<nonlimdens) {
+									double densfrac=indiv.densindiv/nonlimdens;
+									indiv.cmass_leaf*=densfrac;
+									indiv.cmass_root*=densfrac;
+									indiv.cmass_sap*=densfrac;
+									indiv.nmass_leaf*=densfrac;
+									indiv.nmass_root*=densfrac;
+									indiv.nmass_sap*=densfrac;
+								}
+
+								double nstore_est=patch.pft[pft.id].nstore_est;
+
+								patch.pft[pft.id].nstore_est-=min(nstore_est,indiv.ndemand*indiv.densindiv/nonlimdens);
 							}
 
-							double nstore_est=patch.pft[pft.id].nstore_est;
+							// Account for C flux from atmosphere to vegetation
+							// guess2008
+							if (indiv.alive && indiv.densindiv)
+								patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
+								indiv.cmass_sap;
 
-							patch.pft[pft.id].nstore_est-=min(nstore_est,indiv.ndemand*indiv.densindiv/nonlimdens);
+							indiv.max_n_reserve = indiv.pft.n_reserve*indiv.cmass_sap/indiv.pft.cton_leaf_avr;
+
+							indiv.bminc_leaf_frac=indiv.cmass_leaf/(indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap);
+							indiv.bminc_root_frac=indiv.cmass_root/(indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap);
+
+							if (indiv.densindiv == 0.0)
+								vegetation.killobj();
 						}
 
-						// Account for C flux from atmosphere to vegetation
-						// guess2008
-						if (indiv.alive && indiv.densindiv)
-							patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
-							indiv.cmass_sap;
-
-						indiv.max_n_reserve = indiv.pft.n_reserve*indiv.cmass_sap/indiv.pft.cton_leaf_avr;
-
-						indiv.bminc_leaf_frac=indiv.cmass_leaf/(indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap);
-						indiv.bminc_root_frac=indiv.cmass_root/(indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap);
-
-						if (indiv.densindiv == 0.0)
-							vegetation.killobj();
-					}
-
-					if (est_year) {
-						if (patch.pft[pft.id].nstore_est>0.0) {
-							patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;
-							patch.pft[pft.id].nstore_est=0.0;
+						if (est_year) {
+							if (patch.pft[pft.id].nstore_est>0.0) {
+								patch.soil.nmass_avail+=patch.pft[pft.id].nstore_est;
+								patch.pft[pft.id].nstore_est=0.0;
+							}
 						}
 					}
 				}

@@ -192,7 +192,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	int m;
 	for (m=0;m<12;m++) {
-		mnpp[m]=mlai[m]=mgpp[m]=mra[m]=mgc[m]=0.0;
+		mnpp[m]=mlai[m]=mgpp[m]=mra[m]=0.0;
 	}
 
 	// bvoc
@@ -210,11 +210,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	// GUESSN
 	int d;
 	for (d=0;d<365;d++) {
-		dassim[d]=vmax_lim[d]=dgc[d]=0.0;
+		dassim[d]=vmax_lim[d]=0.0;
 	}
-
-	// GC
-	gc_sum=0.0;
 }
 
 

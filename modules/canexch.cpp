@@ -775,7 +775,6 @@ void photosynthesis_nowstress(Patch& patch, Climate& climate) {
 			// Save assimilation in case this turns out to be a non-water-stress day
 
 			indiv.assim_nowstress = indiv.photosynthesis.net_assimilation();
-			indiv.adtmm_term = indiv.photosynthesis.adtmm;
 
 			if (date.diurnal()) {
 				for (int i=0; i<date.subdaily; i++) {
@@ -1810,8 +1809,6 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
  			for (int m=0; m<12; m++) {
 				indiv.mnpp[m] = 0.0;
 				indiv.mlai[m] = 0.0;
-
-				indiv.mgc[m]=0.0;
 
 				indiv.mgpp[m] = 0.0;
 				indiv.mra[m] = 0.0;

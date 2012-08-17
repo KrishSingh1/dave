@@ -1224,12 +1224,6 @@ public:
 	double aassim;
 		// annual sum of positive dassim (above) - used by SOM dynamics
 
-	// GC
-	double gc_sum; // accumulated canopy conductance on individual FPC basis (mm/s)
-	double dgc[365];
-	double mgc[12];
-	double adtmm_term;
-
 	bool alive; 
 		// guess2008 - whether this individual is truly alive. Set to false for first year 
 		// after the Individual object is created, then true.

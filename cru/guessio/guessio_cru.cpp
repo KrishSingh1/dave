@@ -166,8 +166,8 @@ private:
 // ENUM DECLARATIONS OF INTEGER CONSTANTS FOR PLIB INTERFACE
 
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM};
-enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAF,CB_PATHWAY,	
-	CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE};
+enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,
+	CB_PATHWAY,	CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE};
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -470,6 +470,8 @@ void plib_declarations(int id,xtring setname) {
 			"Landcovertype (\"URBAN\", \"CROP\", \"PASTURE\", \"FOREST\", \"NATURAL\" or \"PEATLAND\")");
 		declareitem("phenology",&strparam,16,CB_PHENOLOGY,
 			"Phenology (\"EVERGREEN\", \"SUMMERGREEN\", \"RAINGREEN\" or \"ANY\")");
+		declareitem("leafphysiognomy",&strparam,16,CB_LEAFPHYSIOGNOMY,
+			"Leaf physiognomy (\"NEEDLELEAF\" or \"BROADLEAF\")");
 		declareitem("phengdd5ramp",&ppft->phengdd5ramp,0.0,1000.0,1,CB_NONE,
 			"GDD on 5 deg C base to attain full leaf cover");
 		declareitem("wscal_min",&ppft->wscal_min,0.0,1.0,1,CB_NONE,
@@ -495,8 +497,6 @@ void plib_declarations(int id,xtring setname) {
 		// guess2008 - increased the upper limit to possible respcoeff values (was 1.2)
 		declareitem("respcoeff",&ppft->respcoeff,0.0,3,1,CB_NONE,
 			"Respiration coefficient (0-1)");
-		declareitem("leaftype",&strparam,16,CB_LEAF,
-			"Leaf type (\"BROAD\" or \"NEEDLE\")");
 		
 
 		// GUESSN
@@ -694,12 +694,12 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
-	case CB_LEAF:
-		if (strparam.upper()=="BROAD") ppft->leaf=BROAD;
-		else if (strparam.upper()=="NEEDLE") ppft->leaf=NEEDLE;
+	case CB_LEAFPHYSIOGNOMY:
+		if (strparam.upper()=="NEEDLELEAF") ppft->leafphysiognomy=NEEDLELEAF;
+		else if (strparam.upper()=="BROADLEAF") ppft->leafphysiognomy=BROADLEAF;
 		else {
 			sendmessage("Error",
-				"Unknown leaf type\n  (valid types: \"BROAD\" or \"NEEDLE\")");
+				"Unknown leaf physiognomy (valid types: \"NEEDLELEAF\", \"BROADLEAF\")");
 			plibabort();
 		}
 		break;

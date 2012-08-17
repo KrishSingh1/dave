@@ -54,8 +54,8 @@ typedef enum {NOPHENOLOGY,EVERGREEN,RAINGREEN,SUMMERGREEN,ANY} phenologytype;
 /// Biochemical pathway for photosynthesis (C3 or C4)
 typedef enum {NOPATHWAY,C3,C4} pathwaytype;
 
-/// Leaf type for sla calculation (broad or needle)
-typedef enum {BROAD,NEEDLE} leaftype;
+/// Leaf physiognomy types for PFTs
+typedef enum {NOLEAFTYPE,NEEDLELEAF,BROADLEAF} leafphysiognomytype;
 
 /// Units for insolation driving data
 /** Insolation can be expressed as:
@@ -740,8 +740,8 @@ public:
 		// life form (tree or grass)
 	phenologytype phenology;
 		// leaf phenology (raingreen, summergreen, evergreen, rain+summergreen)
-	leaftype leaf;
-		// leaf type for sla calculation (broad or needle)
+	leafphysiognomytype leafphysiognomy;
+		// leaf physiognomy (needleleaf, broadleaf)
 	double phengdd5ramp;
 		// growing degree sum on 5 degree base required for full leaf cover
 	double wscal_min;
@@ -938,9 +938,9 @@ public:
 		// Reich et al 1992, Table 1 (includes conversion x2.0 from m2/kg_dry_weight to
 		// m2/kgC)
 
-		if (leaf == BROAD)
+		if (leafphysiognomy == BROADLEAF)
 			sla=0.2*pow(10.0,2.41-0.38*log10(12.0*leaflong));
-		else if (leaf == NEEDLE)
+		else if (leafphysiognomy == NEEDLELEAF)
 			sla=0.2*pow(10.0,2.29-0.4*log10(12.0*leaflong));
 	}
 

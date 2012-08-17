@@ -1488,7 +1488,6 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		Pft& pft = indiv.pft;
 		Patchpft& ppft = patch.pft[pft.id];
 		Standpft& spft = stand.pft[pft.id];
-		PhotosynthesisResult phot;
 
 		if (ifdailynpp) {
 			double gpterm_indiv = date.diurnal() ? indiv.gpterms[day.period] : indiv.gpterm;
@@ -1520,13 +1519,13 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			if (ifbvoc) {
 				double adtmm;
 				if (indiv.wstress) {
-					adtmm = phot.adtmm;
-					gpterm_indiv = gpterm(phot.adtmm, climate.co2, lambda, hours);
+					adtmm = date.diurnal() ? indiv.phots[day.period].adtmm : indiv.photosynthesis.adtmm;
+					gpterm_indiv = gpterm(adtmm, climate.co2, lambda, hours);
 				}
 				else {
 					adtmm = date.diurnal() ? spft.phots[day.period].adtmm : spft.photosynthesis.adtmm;
 				}
-				phot = date.diurnal() ? spft.phots[day.period] : spft.photosynthesis;
+				const PhotosynthesisResult& phot = date.diurnal() ? spft.phots[day.period] : spft.photosynthesis;
 				bvoc(temp, hours, climate.daylength, rad, climate.eet, climate.agdd5, climate.dtr,
 					climate.co2, climate.temp, indiv.fpar, patch, indiv, pft, phot, adtmm, gpterm_indiv, day);
 			}
@@ -1598,6 +1597,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 					indiv.agdd5_wstress /= nday_double;
 					indiv.rad_wstress /= nday_double;
 
+					PhotosynthesisResult phot;
 					assimilation_wstress(ppft, indiv.co2_wstress, indiv.temp_wstress,
 						indiv.par_wstress, indiv.daylength_wstress, indiv.fpar_wstress, indiv.fpc,
 						ppft.gcbase_wstress, ppft.gpterm_wstress, ppft.phot_wstress.vm, -2, phot, lambda, indiv.nmass_leaf * indiv.phen_mean, indiv.lai * indiv.phen_mean);

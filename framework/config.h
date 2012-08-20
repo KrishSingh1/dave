@@ -38,7 +38,7 @@
 #endif
 
 // min and max functions for MS Visual C++ 6.0
-#if defined(_MSC_VER) && _MSC_VER == 1200
+#if defined(_MSC_VER) && (_MSC_VER == 1200 || _MSC_VER == 1500)
 namespace std {
 template <class T> inline T max(const T& a, const T& b) {
     return (a > b) ? a : b;

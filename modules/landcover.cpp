@@ -154,7 +154,8 @@ void landcover_init(Gridcell& gridcell,Pftlist& pftlist) {
 
 void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 {	// Called first day of the year if run_landcover is set.
-	int i;	
+	bool present;
+	int i, j;	
 	landcovertype landcover;
 	double landcoverfrac_change[NLANDCOVERTYPES];
 	double cropfrac_change[NCROPSTANDS_MAX];	
@@ -1825,7 +1826,7 @@ void Crop_sowing_date_new(Patch& patch, Pft& pft)	// Enters here every day when 
 			else
 				length_growseas_def=gridcellpft.hlimitdate_default-gridcellpft.sdate_default;
 
-			length_growseas_def=min(length_growseas_def, 245);
+			length_growseas_def=min(length_growseas_def, 245.0);
 
 			if(pft.ifsdautumn)
 			{
@@ -1850,7 +1851,7 @@ void Crop_sowing_date_new(Patch& patch, Pft& pft)	// Enters here every day when 
 					if(pft.hydrology==IRRIGATED)
 						ppftcrop.hucountend=stepfromdate(date.day, length_growseas_def);
 					else
-						ppftcrop.hucountend=stepfromdate(date.day, min(length_growseas_def,210)); //Shorter growing period when risk for water stress.
+						ppftcrop.hucountend=stepfromdate(date.day, min(length_growseas_def,210.0)); //Shorter growing period when risk for water stress.
 				}
 				else
 					ppftcrop.hucountend=stepfromdate(date.day, length_growseas_def);
@@ -2089,7 +2090,7 @@ void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, do
 			{
 				if(!strncmp(pft.name,"TeSf", strlen("TeSf")))
 				{
-					ppftcrop.phu=min(2000,max(1300,-700.0/90.0*(ppftcrop.sdate-climate.adjustlat)+2460.0));
+					ppftcrop.phu=min(2000.0,max(1300.0,-700.0/90.0*(ppftcrop.sdate-climate.adjustlat)+2460.0));
 				}
 				if (!strncmp(pft.name,"TrRi", strlen("TrRi")) && date.year<=1)
 				{
@@ -2102,7 +2103,7 @@ void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, do
 			ppftcrop.phu_old=ppftcrop.phu;
 
 			if(patch.stand.first_year!=date.year)
-				ppftcrop.phu=max(900, 0.9*ppftcrop.husum_max_10);
+				ppftcrop.phu=max(900.0, 0.9*ppftcrop.husum_max_10);
 #endif
 		}	// End of if(date.day==ppftcrop.sdate)
 //UTRÄKNING AV PVD, PHU OCH TB SLUT
@@ -2124,7 +2125,7 @@ void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, do
 			{
 // Uträkning av fphu:
 #if defined MAXHUTEMP
-				hu=max(0,min(climate.temp, 30)-ppftcrop.tb);
+				hu=max(0.0,min(climate.temp, 30.0)-ppftcrop.tb);
 #else
 				hu=max(0,climate.temp-ppftcrop.tb);
 #endif
@@ -2141,7 +2142,7 @@ void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, do
 				}
 
 				// accounting for response to photoperiod
-				ppftcrop.prf=(1-pft.psens)*min(1,max(0,(climate.daylength_save[date.day]-pft.pb)/(pft.ps-pft.pb)))+pft.psens;
+				ppftcrop.prf=(1-pft.psens)*min(1.0,max(0.0,(climate.daylength_save[date.day]-pft.pb)/(pft.ps-pft.pb)))+pft.psens;
 				// Achtung difference daylength/photoperiod !
 				hu=hu*ppftcrop.prf;																				
 
@@ -2258,7 +2259,7 @@ void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, do
 		if(ppftcrop.growingseason==false && dayinperiod(date.day, ppftcrop.hdate, ppftcrop.hucountend) && ppftcrop.hdate>=0)
 		{
 #if defined MAXHUTEMP
-				hu=max(0,min(climate.temp, 30)-ppftcrop.tb);
+				hu=max(0.0,min(climate.temp, 30.0)-ppftcrop.tb);
 #else
 				hu=max(0,climate.temp-ppftcrop.tb);
 #endif
@@ -2275,7 +2276,7 @@ void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, do
 			}
 
 			// accounting for response to photoperiod
-			ppftcrop.prf=(1-pft.psens)*min(1,max(0,(climate.daylength_save[date.day]-pft.pb)/(pft.ps-pft.pb)))+pft.psens;
+			ppftcrop.prf=(1-pft.psens)*min(1.0,max(0.0,(climate.daylength_save[date.day]-pft.pb)/(pft.ps-pft.pb)))+pft.psens;
 			// Achtung difference daylength/photoperiod !
 			hu=hu*ppftcrop.prf;	
 
@@ -2467,7 +2468,7 @@ void fpar_crop(Patch& patch) {
 					fpar_min=1.0;
 
 				if(indiv.pft.phenology==CROPGREEN)
-					indiv.fpar=1-exp(-LAMBERTBEER_K*max(0,indiv.phen*indiv.lai));	//phen is 1.0 during growingseason here
+					indiv.fpar=1-exp(-LAMBERTBEER_K*max(0.0,indiv.phen*indiv.lai));	//phen is 1.0 during growingseason here
 				else
 				{
 					if(indiv.cropindiv->isintercropgrass)	//may contain both c3 and c4 grass
@@ -2487,7 +2488,7 @@ void fpar_crop(Patch& patch) {
 				// Repeat assuming full leaf cover for all individuals
 
 				if(indiv.pft.phenology==CROPGREEN)
-					indiv.fpar_leafon=1-exp(-LAMBERTBEER_K*max(0,indiv.lai));
+					indiv.fpar_leafon=1-exp(-LAMBERTBEER_K*max(0.0,indiv.lai));
 				else
 				{
 					if(indiv.cropindiv->isintercropgrass)	//may contain both c3 and c4 grass

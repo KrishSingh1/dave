@@ -3251,6 +3251,7 @@ void define_output_tables(Pftlist& pftlist) {
 	cflux_columns += ColumnDescriptor("Fire",    8, 3);
 	cflux_columns += ColumnDescriptor("Est",     8, 3);
 	if (run_landcover) {
+		 cflux_columns += ColumnDescriptor("Seed", 9, 3);
 		 cflux_columns += ColumnDescriptor("Harvest", 9, 3);
 	}
 	cflux_columns += ColumnDescriptor("NEE",    10, 5);

@@ -353,7 +353,7 @@ rename("CFTdata.out", "CFTdata.old");
 				daylengthinsoleet(gridcell.climate);
 
 				if(run_landcover && date.day==0) {
-				// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
+					// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
 					if(date.year>=nyear_spinup)
 						landcover_dynamics(gridcell,pftlist);
 /*

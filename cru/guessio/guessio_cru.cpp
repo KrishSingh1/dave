@@ -1335,15 +1335,13 @@ FILE *in_cru;
 // Full pathname of ASCII file containing annual CO2 values (read from ins file)
 xtring file_co2;
 
-
 using namespace GuessOutput;
-FILE *out_yield;
 
 /// The output channel through which all output is sent
 OutputChannel* output_channel;
 
 // Output tables
-Table out_cmass, out_anpp, out_dens, out_lai, out_cflux, out_cpool, out_firert, out_runoff, out_speciesheights;
+Table out_cmass, out_anpp, out_dens, out_lai, out_cflux, out_cpool, out_yield, out_firert, out_runoff, out_speciesheights;
 
 Table out_mnpp, out_mlai, out_mgpp, out_mra, out_maet, out_mpet, out_mevap, out_mrunoff, out_mintercep;
 Table out_mrh, out_mnee, out_mwcont_upper, out_mwcont_lower;
@@ -3194,14 +3192,21 @@ void define_output_tables(Pftlist& pftlist) {
 	// create a vector with the pft names
 	std::vector<std::string> pfts;
 
+	// create a vector with the crop pft names
+	std::vector<std::string> crop_pfts;
+
 	pftlist.firstobj();
 	while (pftlist.isobj) {
 		 Pft& pft=pftlist.getobj();
 
 		 pfts.push_back((char*)pft.name);
 
+		 if(pft.landcover==CROPLAND)
+			 crop_pfts.push_back((char*)pft.name);
+
 		 pftlist.nextobj();
 	}
+
 
 	// create a vector with the landcover column titles
 	std::vector<std::string> landcovers;
@@ -3251,7 +3256,7 @@ void define_output_tables(Pftlist& pftlist) {
 	cflux_columns += ColumnDescriptor("Fire",    8, 3);
 	cflux_columns += ColumnDescriptor("Est",     8, 3);
 	if (run_landcover) {
-		 cflux_columns += ColumnDescriptor("Seed", 9, 3);
+		 cflux_columns += ColumnDescriptor("Seed", 8, 3);
 		 cflux_columns += ColumnDescriptor("Harvest", 9, 3);
 	}
 	cflux_columns += ColumnDescriptor("NEE",    10, 5);
@@ -3266,6 +3271,10 @@ void define_output_tables(Pftlist& pftlist) {
 		 cpool_columns += ColumnDescriptor("HarvSlowC", 10, 3);
 	}
 	cpool_columns += ColumnDescriptor("Total", 10, 4);
+
+	//YIELD
+	ColumnDescriptors yield_columns;
+	yield_columns += ColumnDescriptors(crop_pfts, 8, 3);
 
 	// FIRERT
 	ColumnDescriptors firert_columns;
@@ -3296,6 +3305,8 @@ void define_output_tables(Pftlist& pftlist) {
 	create_output_table(out_lai,            file_lai,            lai_columns);
 	create_output_table(out_cflux,          file_cflux,          cflux_columns);
 	create_output_table(out_cpool,          file_cpool,          cpool_columns);
+	if(run_landcover && run[CROPLAND])
+		create_output_table(out_yield,          file_yield,           yield_columns);
 	create_output_table(out_firert,         file_firert,         firert_columns);
 	create_output_table(out_runoff,         file_runoff,         runoff_columns);
 	create_output_table(out_speciesheights, file_speciesheights, speciesheights_columns);
@@ -3536,12 +3547,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	// Define all output tables and their formats
 	define_output_tables(pftlist);
 
-	if (run[CROPLAND] && file_yield!="") {
-		file_yield = outputdirectory + file_yield;
-		out_yield=fopen(file_yield,"w");
-		if (!out_yield) fail("Could not open %s for output\nClose the file if it is open in another application",(char*)file_runoff);
-	}
-	else out_yield=NULL;
 	// Set timers
 	tprogress.init();
 	tmute.init();
@@ -4279,22 +4284,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		nclass=min(date.year/estinterval+1,OUTPUT_MAXAGECLASS);
 
 	if (date.year==0 && firstgrid) {
-		const char* lonlatyearstr = "%8s%8s%8s"; // easier to change now.
-		if (out_yield) fprintf(out_yield,lonlatyearstr,"Lon","Lat","Year");
-		// Loop through PFT's and print PFT names as column labels
 
-		pftlist.firstobj();
-		while (pftlist.isobj) {
-			Pft& pft=pftlist.getobj();
-
-			if(pft.landcover==CROPLAND)
-			{
-				if (out_yield) fprintf(out_yield,"%8s",(char*)pft.name);
-			}
-
-			pftlist.nextobj();
-		}
-		if (out_yield) fprintf(out_yield,"\n");
 		firstgrid=false;
 	}
 	
@@ -4312,9 +4302,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		// output table
 		OutputRows out(output_channel, lon, lat, date.year);
 
-		const char* lonlatyeardatastr = "%8.1f%8.1f%8d"; // std CRU
 
-		if (out_yield) fprintf(out_yield,lonlatyeardatastr,lon,lat,date.year);
 		// guess2008 - reset monthly average across patches each year
 		for (m=0;m<12;m++)
 			mnpp[m]=mlai[m]=mgpp[m]=mra[m]=maet[m]=mpet[m]=mevap[m]=mintercep[m]=mrunoff[m]=mrh[m]=mnee[m]=mwcont_upper[m]=mwcont_lower[m]=miso[m]=mmon[m]=0.0;
@@ -4550,8 +4538,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			out.add_value(out_dens,  stand_mean_densindiv_total);
 			out.add_value(out_lai,   stand_mean_lai);
 
-			if (out_yield && pft.landcover==CROPLAND)
-				fprintf(out_yield,"%8.3f",stand_mean_yield);
+			if (pft.landcover==CROPLAND)
+				out.add_value(out_yield,   stand_mean_yield);
 
 			// print species heights
 			double height = 0.0;
@@ -4706,7 +4694,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			}
 		}
 
-		if (out_yield) fprintf(out_yield,"\n");
+
 		// Print monthly output variables
 		for (m=0;m<12;m++) {
 			 out.add_value(out_mnpp,         mnpp[m]);
@@ -4812,7 +4800,7 @@ void termio() {
 
 	delete output_channel;
 
-		if (out_yield) fclose(out_yield);
+
 	// Clean up
 
 	gridlist.killall();

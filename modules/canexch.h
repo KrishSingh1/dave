@@ -26,4 +26,11 @@
 
 void canopy_exchange(Patch& patch);
 
+// Constants for photosynthesis calculations
+const double CQ=4.6E-6;      // conversion factor for solar radiation at 550
+                             // nm from J/m2 to mol_quanta/m2 (E=mol quanta); mol J-1
+const double ALPHA_C3=0.08;  // intrinsic quantum efficiency of CO2 uptake for C3 plants     
+const double ALPHA_C4=0.053; // intrinsic quantum efficiency of CO2 uptake for C4 plants                                                
+const double PO2=2.09E4;     // O2 partial pressure (Pa)
+
 #endif // LPJ_GUESS_CANEXCH_H

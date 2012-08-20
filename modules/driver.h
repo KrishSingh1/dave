@@ -24,8 +24,8 @@
 void setseed(long init);
 double randfrac(long& seed);
 void soilparameters(Soiltype& soiltype,int soilcode);
-void interp_climate(double mtemp[12],double mprec[12],double msun[12],
-	double dtemp[365],double dprec[365],double dsun[365]);
+void interp_monthly_means(double mvals[12], double dvals[365]);
+void interp_monthly_totals(double mvals[12], double dvals[365]);
 void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12]);
 void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist);
 void dailyaccounting_stand(Stand& stand,Pftlist& pftlist);

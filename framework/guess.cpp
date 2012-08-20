@@ -22,7 +22,7 @@
 #include "growth.h"
 #include "vegdynam.h"
 #include "landcover.h"
-
+#include "bvoc.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES WITH EXTERNAL LINKAGE
@@ -57,6 +57,8 @@ bool ifsmoothgreffmort;				// smooth growth efficiency mortality
 bool ifdroughtlimitedestab;			// whether establishment affected by growing season drought
 bool ifrainonwetdaysonly;			// rain on wet days only (1, true), or a little every day (0, false); 
 bool ifspeciesspecificwateruptake;	// water uptake is species specific 
+// bvoc
+bool ifbvoc; // BVOC calculations included
 
 bool run_landcover;
 bool run[NLANDCOVERTYPES];
@@ -68,7 +70,7 @@ bool ifintercropgrass;
 int ncft=0; // number of CFTs in Pftlist, set in plib_callback()
 int nyear_spinup;		
 
-bool forcesowingdates;	//101125
+bool forcesowingdates;
 bool forceharvestdates;
 
 //const cropphen_struct* Patchpft::get_cropphen() 
@@ -183,6 +185,18 @@ Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 		mnpp[m]=mlai[m]=mlai_max[m]=mgpp[m]=mra[m]=0.0;
 	}
 
+	// bvoc
+	monstor=0.;
+	iso=0.;
+	mon=0.;
+	aiso=0.;
+	amon=0.;
+	fvocseas=1.;
+	dtr_wstress=0.;
+	eet_wstress=0.;
+	agdd5_wstress=0.;
+	rad_wstress=0.;		
+
 	dnpp=0.0;
 	cropindiv=NULL;
 
@@ -286,6 +300,12 @@ rename("CFTdata.out", "CFTdata.old");
 
 	dprintf("\n");
 #endif
+
+
+	// bvoc
+	if(ifbvoc){
+	  initbvoc(pftlist);
+	}
 
 
 	// Assume there is at least one grid cell to simulate

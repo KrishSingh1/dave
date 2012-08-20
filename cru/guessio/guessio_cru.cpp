@@ -4311,6 +4311,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 		// output table
 		OutputRows out(output_channel, lon, lat, date.year);
 
+		const char* lonlatyeardatastr = "%8.1f%8.1f%8d"; // std CRU
+
 		if (out_yield) fprintf(out_yield,lonlatyeardatastr,lon,lat,date.year);
 		// guess2008 - reset monthly average across patches each year
 		for (m=0;m<12;m++)
@@ -4552,7 +4554,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 
 			// print species heights
 			double height = 0.0;
-			if (gcpft_densindiv_total > 0.0)
+			if (stand_mean_densindiv_total > 0.0)
 				height = heightindiv_total/stand_mean_densindiv_total;
 
 			out.add_value(out_speciesheights, height);

@@ -1,15 +1,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// FRAMEWORK SOURCE CODE FILE
-//
-// Framework:             LPJ-GUESS Combined Modular Framework
-//                        Includes modified code compatible with "fast" cohort/
-//                        individual mode - see canexch.cpp
-// Header file name:      guess.h
-// Source code file name: guess.cpp
-// Written by:            Ben Smith
-// Version dated:         2002-12-16
-// Updated:               2010-11-22
-
+/// \file guess.cpp
+/// \brief LPJ-GUESS Combined Modular Framework
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
 #include "guess.h"

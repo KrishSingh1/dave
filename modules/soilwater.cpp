@@ -1,20 +1,16 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// MODULE SOURCE CODE FILE
-//
-// Module:                Soil hydrology and snow (version including evaporation from
-//                        soil surface, based on work by Dieter Gerten, Sibyll
-//                        Schaphoff and Wolfgang Lucht, Potsdam)
-//                        Also includes modified code compatible with "fast" cohort/
-//                        individual mode - see canexch.cpp
-//                        Includes weather generator and Dieter G:s latest updates
-//                        Includes baseflow runoff
-//                        Note: error in runoff calculation corrected 030120
-// Header file name:      soilwater.h
-// Source code file name: soilwater.cpp
-// Written by:            Ben Smith
-// Version dated:         2003-01-20
-// Updated:               2010-11-22
-
+/// \file soilwater.cpp
+/// \brief Soil hydrology and snow
+///
+/// Version including evaporation from soil surface, based on work by Dieter Gerten, 
+/// Sibyll Schaphoff and Wolfgang Lucht, Potsdam
+///
+/// Includes baseflow runoff
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:

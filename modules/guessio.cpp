@@ -1,20 +1,14 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// MODULE SOURCE CODE FILE
-//
-// Module:                LPJ-GUESS input/output module with input from instruction
-//                        script
-//                        Includes modified code compatible with "fast" cohort/
-//                        individual mode - see canexch.cpp
-//                        Includes Dieter G:s latest updates 021121
-//                        Version compatible with LPJ-GUESS version 2.1
-//                        (excludes PFT paramter twmax)
-//                        Updated 20050125: last line in output files ends in newline
-// Header file name:      guessio.h
-// Source code file name: guessio.cpp
-// Written by:            Ben Smith
-// Version dated:         2003-07-22/2005-01-25
-// Updated:               2010-11-22
-
+/// \file guessio.cpp
+/// \brief LPJ-GUESS input/output module with input from instruction script
+///
+/// This is a demonstration I/O module. It is compatible with the input data files
+/// distributed with LPJ-GUESS (in the data directory).
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module source code files should contain, in this order:
@@ -35,10 +29,6 @@
 // Modules should be structured so as to be fully portable between models (frameworks).
 // When porting between frameworks, the only change required should normally be in the
 // "#include" directive referring to the framework header file.
-
-// ABOUT THIS I/O MODULE:
-// This is a demonstration I/O module. It is compatible with the input data files
-// distributed with LPJ-GUESS (in the data directory).
 
 #include "config.h"
 
@@ -1117,10 +1107,6 @@ double cpool_sum;
 // LPJ soil code
 int soilcode;
 
-bool annual_output;
-	// whether output should occur each simulation year (true) or at end of simulation
-	// for each grid cell only (false)
-
 /// Interpolates monthly data to quasi-daily values.
 void interp_climate(double mtemp[12], double mprec[12], double msun[12], double mdtr[12],
 					double dtemp[365], double dprec[365], double dsun[365], double ddtr[365]) {
@@ -1518,6 +1504,9 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	if(run[CROPLAND] && !ifdailynpp)
 		fail("\nOnly daily npp mode possible with cropland functionality.\n");
 
+	// Print the title of this run
+	dprintf("\n\n------------------------------------\n%s\n------------------------------------\n",(char*)title);
+
 	///////////////////////////////////////////////////////////////////////////////////
 	// USER-SPECIFIC SECTION (Modify as necessary or supply own code)
 	//
@@ -1558,9 +1547,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	// Retrieve specified CO2 value as read from ins file
 	co2=param["co2"].num;
-
-	// Remember whether to produce output each year or not
-	annual_output=param["annual_output"].num;
 
 	if (run_landcover) {
 		all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
@@ -2258,7 +2244,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 	// the simulation of each stand or grid cell. This function does not have to
 	// provide any information to the framework.
 
-	int p,c,m,nclass;
+	int c, m, nclass;
 	double flux_veg,flux_soil,flux_fire,flux_est,flux_seed,flux_harvest;
 	double c_litter,c_fast,c_slow,c_harv_slow; 
 

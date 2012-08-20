@@ -225,7 +225,7 @@ private:
 	void merge(unsigned char ptarget[3],unsigned char buf[4],int bits) {
 
 		int nb=bits/8;
-		int i,j;
+		int i;
 		unsigned char nib;
 		for (i=0;i<3;i++) {
 

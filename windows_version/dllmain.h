@@ -1,15 +1,14 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// MODULE HEADER FILE
-//
-// Module:                Main module for interface to Windows shell
-// Header file name:      dllmain.h
-// Source code file name: dllmain.cpp
-// Written by:            Ben Smith
-// Version dated:         2002-06-03
-// Updated:               2010-11-22
-//
-// The shell should call function dll_main, passing a GuessParam object containing run
-// time argument(s) for GUESS and pointers to the executable's own callback functions.
+/// \file dllmain.cpp
+/// \brief Main module for interface to Windows shell
+///
+/// The shell should call function dll_main, passing a GuessParam object containing run
+/// time argument(s) for GUESS and pointers to the executable's own callback functions.
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef LPJ_GUESS_MAIN_H
 #define LPJ_GUESS_MAIN_H

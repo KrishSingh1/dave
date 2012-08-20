@@ -154,8 +154,7 @@ void landcover_init(Gridcell& gridcell,Pftlist& pftlist) {
 
 void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 {	// Called first day of the year if run_landcover is set.
-	bool present;
-	int i, j;	
+	int i;	
 	landcovertype landcover;
 	double landcoverfrac_change[NLANDCOVERTYPES];
 	double cropfrac_change[NCROPSTANDS_MAX];	

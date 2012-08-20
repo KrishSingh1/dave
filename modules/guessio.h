@@ -1,16 +1,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-// MODULE HEADER FILE
-//
-// Module:                LPJ-GUESS input/output module with input from instruction
-//                        script
-//                        Version adapted for analyses for joint conceptual paper for
-//                        OECD conference with Wolfgang Knorr & Jean-Luc Widlowski
-// Header file name:      guessio.h
-// Source code file name: guessio.cpp
-// Written by:            Ben Smith
-// Version dated:         2002-08-11
-// Updated:               2010-11-22
-
+/// \file guessio.h
+/// \brief LPJ-GUESS input/output module with input from instruction script
+///
+/// \author Ben Smith
+/// $Date$
+///
+///////////////////////////////////////////////////////////////////////////////////////
 
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module header files need normally contain only declarations of functions defined in

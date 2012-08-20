@@ -13,8 +13,8 @@ if (UNIX)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w")
 endif()
 
-# Compiler flags for building on Windows
-if (WIN32)
+# Compiler flags for building with Microsoft Visual C++
+if (MSVC)
   # Disable warnings about using secure functions like sprintf_s instead of
   # regular sprintf etc.
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D _CRT_SECURE_NO_WARNINGS")

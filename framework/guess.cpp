@@ -39,26 +39,24 @@ int npft; // number of possible PFTs
 bool iffast;
 bool ifcdebt;
 
-// GUESSN
+/// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
 bool ifcentury;
-	// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
+/// whether plant growth limited by available N	
 bool ifnlim;
-	// whether plant growth limited by available N
+/// number of years to allow spinup without N limitation	
 int freenyears;
-	// number of years to allow spinup without N limitation
+/// fraction of N relocated by plants from roots and leaves
 double nrelocfrac;
-	// fraction of N relocated by plants from roots and leaves
+/// whether to allow N leaching	
 bool ifleachn;
-	// whether to allow N leaching
+/// whether to allow individual fractional N uptake
 bool ifindiv_fnuptake;
-	// whether to allow individual fractional N uptake
+/// first term in N fixation eqn
 double nfix_a;
-	// first term in N fixation eqn
+/// second term in N fixation eqn
 double nfix_b;
-	// second term in N fixation eqn
+/// whether N deposition data available from a file	
 bool ifndepdata;
-	// whether N deposition data available from a file
-// end GUESSN
 
 // CMIP5
 bool ifcmip5;
@@ -97,27 +95,27 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i
 	unsigned int p;
 	unsigned int npatchL;
 
-	for(p=0;p<pftlist.nobj;p++) {
+	for(p=0; p<pftlist. nobj;p++) {
 		pft.createobj(pftlist[p]);
 	}
 
 
-	if(landcover==CROPLAND || landcover==PASTURE || landcover==URBAN || landcover==PEATLAND) {
+	if(landcover == CROPLAND || landcover == PASTURE || landcover == URBAN || landcover == PEATLAND) {
 		npatchL=1;
 	}
-	else if(landcover==NATURAL || landcover==FOREST) {
+	else if(landcover == NATURAL || landcover == FOREST) {
 		npatchL=::npatch; // use the global variable npatch (not Stand::npatch)
 	}
 
-	for (p=0;p<npatchL;p++) {
+	for (p=0; p<npatchL; p++) {
 		createobj(*this,pftlist,gc.soiltype);
 	}
 
-	first_year=date.year;
+	first_year = date.year;
 }
 
 double Stand::get_gridcell_fraction() const {
-	return frac*gridcell.landcoverfrac[landcover];
+	return frac * gridcell.landcoverfrac[landcover];
 }
 
 double Stand::get_landcover_fraction() const {
@@ -135,50 +133,47 @@ void Stand::set_landcover_fraction(double fraction) {
 
 Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
-	anpp=0.0;
-	fpc=0.0;
-	densindiv=0.0;
-	cmass_leaf=0.0;
-	cmass_root=0.0;
-	cmass_sap=0.0;
-	cmass_heart=0.0;
-	cmass_debt=0.0;
-	phen=0.0;
-	aphen=0.0;
-	deltafpc=0.0;
-	fpar_wstress=0.0;
-	assim=0.0;
-	resp=0.0;
-	assim_nowstress=0.0;
+	anpp = 0.0;
+	fpc = 0.0;
+	densindiv = 0.0;
+	cmass_leaf = 0.0;
+	cmass_root = 0.0;
+	cmass_sap = 0.0;
+	cmass_heart = 0.0;
+	cmass_debt = 0.0;
+	phen = 0.0;
+	aphen = 0.0;
+	deltafpc = 0.0;
+	fpar_wstress = 0.0;
+	assim = 0.0;
+	resp = 0.0;
+	assim_nowstress = 0.0;
 
-	// GUESSN
-	nmass_leaf=0.0;
-	nmass_root=0.0;
-	nmass_sap=0.0;
-	nmass_heart=0.0;
-	nmass_reserve=0.0;
+	nmass_leaf = 0.0;
+	nmass_root = 0.0;
+	nmass_sap = 0.0;
+	nmass_heart = 0.0;
+	nmass_reserve = 0.0;
 
-	nstore=0.0;
-	nuptake=0.0;
-	ndemand=0.0;
-	ndemand_no_nlim=0.0;
-	fnuptake=1.0;
-	n_reserve_uptake=0.0;
-	max_n_reserve=0.0;
-	raingreen_ndemand=0.0;
+	nstore = 0.0;
+	nuptake = 0.0;
+	ndemand = 0.0;
+	ndemand_no_nlim = 0.0;
+	fnuptake = 1.0;
+	n_reserve_uptake = 0.0;
+	max_n_reserve = 0.0;
+	raingreen_ndemand = 0.0;
 
-	frac_agpp=1.0;
+	frac_agpp = 1.0;
 
-	// end GUESSN
-
-	// guess2008 - additional initialisation
-	age=0.0;
-	fpar=0.0;
-	aphen_raingreen=0;
-	demand=0.0;
-	supply=0.0;
-	intercep=0.0;
-	phen_mean=0.0;
+	// additional initialisation
+	age = 0.0;
+	fpar = 0.0;
+	aphen_raingreen = 0;
+	demand = 0.0;
+	supply = 0.0;
+	intercep = 0.0;
+	phen_mean = 0.0;
 	temp_wstress = 0.0;
 	par_wstress = 0.0;
 	daylength_wstress = 0.0;
@@ -191,26 +186,25 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	alive = false;
 
 	int m;
-	for (m=0;m<12;m++) {
-		mnpp[m]=mlai[m]=mgpp[m]=mra[m]=0.0;
+	for (m=0; m<12; m++) {
+		mnpp[m] = mlai[m] = mgpp[m] = mra[m] = 0.0;
 	}
 
 	// bvoc
-	monstor=0.;
-	iso=0.;
-	mon=0.;
-	aiso=0.;
-	amon=0.;
-	fvocseas=1.;
-	dtr_wstress=0.;
-	eet_wstress=0.;
-	agdd5_wstress=0.;
-	rad_wstress=0.;		
+	monstor = 0.;
+	iso = 0.;
+	mon = 0.;
+	aiso = 0.;
+	amon = 0.;
+	fvocseas = 1.;
+	dtr_wstress = 0.;
+	eet_wstress = 0.;
+	agdd5_wstress = 0.;
+	rad_wstress = 0.;		
 
-	// GUESSN
 	int d;
-	for (d=0;d<365;d++) {
-		dassim[d]=vmax_lim[d]=0.0;
+	for (d=0; d<365; d++) {
+		dassim[d] = vmax_lim[d] = 0.0;
 	}
 }
 

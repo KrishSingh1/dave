@@ -46,16 +46,16 @@
 // GLOBAL ENUMERATED TYPE DEFINITIONS
 
 /// Life form class for PFTs (trees, grasses)
-typedef enum {NOLIFEFORM,TREE,GRASS} lifeformtype;
+typedef enum {NOLIFEFORM, TREE, GRASS} lifeformtype;
 
 /// Phenology class for PFTs
-typedef enum {NOPHENOLOGY,EVERGREEN,RAINGREEN,SUMMERGREEN,ANY} phenologytype;
+typedef enum {NOPHENOLOGY, EVERGREEN, RAINGREEN, SUMMERGREEN, ANY} phenologytype;
 
 /// Biochemical pathway for photosynthesis (C3 or C4)
-typedef enum {NOPATHWAY,C3,C4} pathwaytype;
+typedef enum {NOPATHWAY, C3, C4} pathwaytype;
 
 /// Leaf physiognomy types for PFTs
-typedef enum {NOLEAFTYPE,NEEDLELEAF,BROADLEAF} leafphysiognomytype;
+typedef enum {NOLEAFTYPE, NEEDLELEAF, BROADLEAF} leafphysiognomytype;
 
 /// Units for insolation driving data
 /** Insolation can be expressed as:
@@ -92,13 +92,11 @@ typedef enum {
  *  2. A cohort of individuals of a PFT that are roughly the same age
  *  3. An individual plant
  */
-typedef enum {NOVEGMODE,INDIVIDUAL,COHORT,POPULATION} vegmodetype;
+typedef enum {NOVEGMODE, INDIVIDUAL, COHORT, POPULATION} vegmodetype;
 
-// GUESSN
 // CENTURY pool names, NSOMPOOL number of SOM pools
-typedef enum {SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SURFCWD,
-	SOILMETA,SLOWSOM,PASSIVESOM,LEACHED,NSOMPOOL} pooltype;	
-// end GUESSN
+typedef enum {SURFSTRUCT, SOILSTRUCT, SOILMICRO, SURFHUMUS, SURFMICRO, SURFMETA, SURFCWD,
+	SOILMETA, SLOWSOM, PASSIVESOM, LEACHED, NSOMPOOL} pooltype;	
 
 /// Land cover type of a stand. NLANDCOVERTYPES keeps count of number of items.
 typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, NLANDCOVERTYPES} landcovertype;
@@ -111,31 +109,31 @@ typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptakety
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
 
-// number of soil layers modelled
-const int NSOILLAYER=2;
+// number  of soil layers modelled
+const int NSOILLAYER = 2;
 
 // SOIL DEPTH VALUES
-const double SOILDEPTH_UPPER=500.0; // soil upper layer depth (mm)
-const double SOILDEPTH_LOWER=1000.0; // soil lower layer depth (mm)
+const double SOILDEPTH_UPPER = 500.0; // soil upper layer depth (mm)
+const double SOILDEPTH_LOWER = 1000.0; // soil lower layer depth (mm)
 
 	// guess2008 - new default SOM values
-const int SOLVESOM_END=400;
+const int SOLVESOM_END = 400;
 	// year at which to calculate equilibrium soil carbon
-const int SOLVESOM_BEGIN=350;
+const int SOLVESOM_BEGIN = 350;
 	// year at which to begin documenting means for calculation of equilibrium
 	// soil carbon
-const int NYEARGREFF=5; 
+const int NYEARGREFF = 5; 
 	// number of years to average growth efficiency over in function mortality
-const int COLDEST_DAY_NHEMISPHERE=14;
+const int COLDEST_DAY_NHEMISPHERE = 14;
 	// day at which to start counting GDD's and leaf-on days for summergreen phenology
 	// in N hemisphere (January 15)
-const int COLDEST_DAY_SHEMISPHERE=195;
+const int COLDEST_DAY_SHEMISPHERE = 195;
 	// day at which to start counting GDD's and leaf-on days for summergreen phenology
 	// in S hemisphere (July 15)
-const int OUTPUT_MAXAGECLASS=40;
+const int OUTPUT_MAXAGECLASS = 40;
 	// maximum number of age classes in age structure plots produced by function
 	// outannual
-const double PRIESTLEY_TAYLOR=1.32;
+const double PRIESTLEY_TAYLOR = 1.32;
 	// Priestley-Taylor coefficient (conversion factor from equilibrium
 	// evapotranspiration to PET)
 const double K2degC = 273.15;	// kelvin to deg c conversion
@@ -191,27 +189,24 @@ extern bool ifcdebt; // whether C debt (storage between years) permitted
 /// Water uptake parameterisation
 extern wateruptaketype wateruptake;
 
-
-// GUESSN
+/// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
 extern bool ifcentury;
-	// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
+/// whether plant growth limited by available N	
 extern bool ifnlim;
-	// whether plant growth limited by available N
+/// number of years to allow spinup without N limitation	
 extern int freenyears;
-	// number of years to allow spinup without N limitation
+/// fraction of N relocated by plants from roots and leaves	
 extern double nrelocfrac;
-	// fraction of N relocated by plants from roots and leaves
+/// whether to allow N leaching	
 extern bool ifleachn;
-	// whether to allow N leaching
+/// whether to allow individual fractional N uptake	
 extern bool ifindiv_fnuptake;
-	// whether to allow individual fractional N uptake
+/// first term in N fixation eqn (Cleveland et al 1999)	
 extern double nfix_a;
-	// first term in N fixation eqn (Cleveland et al 1999)
+/// second term in N fixation eqn (Cleveland et al 1999)	
 extern double nfix_b;
-	// second term in N fixation eqn (Cleveland et al 1999)
+/// whether N deposition data available from a file	
 extern bool ifndepdata;
-	// whether N deposition data available from a file
-// end GUESSN
 
 // CMIP5
 extern bool ifcmip5;
@@ -310,13 +305,13 @@ public:
 	/// Constructor function called automatically when Date object is created
 	/** Do not call explicitly. Initialises some member variables. */
 	Date() {
-		const int data[]={31,28,31,30,31,30,31,31,30,31,30,31};
+		const int data[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 		int month;
-		int dayct=0;
-		for (month=0;month<12;month++) {
-			ndaymonth[month]=data[month];
-			middaymonth[month]=dayct+data[month]/2;
-			dayct+=data[month];
+		int dayct = 0;
+		for (month=0; month<12; month++) {
+			ndaymonth[month] = data[month];
+			middaymonth[month] = dayct + data[month] / 2;
+			dayct += data[month];
 		}
 		subdaily = 1;
 	}
@@ -328,52 +323,52 @@ public:
 	 *  \param nyearsim  Intended number of simulation years
 	 */
 	void init(int nyearsim)	{
-		nyear=nyearsim;
-		day=month=year=dayofmonth=0;
-		islastmonth=islastday=ismidday=false;
-		if (nyear==1) islastyear=true;
-		else islastyear=false;
+		nyear = nyearsim;
+		day = month=year = dayofmonth = 0;
+		islastmonth = islastday = ismidday = false;
+		if (nyear == 1) islastyear = true;
+		else islastyear = false;
 	}
 
 	/// Call at end of every simulation day to update member variables.
 	void next() {
 		if (islastday) {
 			if (islastmonth) {
-				dayofmonth=0;
-				day=0;
-				month=0;
+				dayofmonth = 0;
+				day = 0;
+				month = 0;
 				year++;
-				if (year==nyear-1) islastyear=true;
-				islastmonth=false;
+				if (year == nyear - 1) islastyear = true;
+				islastmonth = false;
 			}
 			else {
 				day++;
-				dayofmonth=0;
+				dayofmonth = 0;
 				month++;
-				if (month==11) islastmonth=true;
+				if (month == 11) islastmonth = true;
 			}
-			islastday=false;
+			islastday = false;
 		}
 		else {
 			day++;
 			dayofmonth++;
-			if (dayofmonth==ndaymonth[month]/2) ismidday=true;
+			if (dayofmonth == ndaymonth[month] / 2) ismidday = true;
 			else {
-				ismidday=false;
-				if (dayofmonth==ndaymonth[month]-1) islastday=true;
+				ismidday = false;
+				if (dayofmonth == ndaymonth[month] - 1) islastday = true;
 			}
 		}
 	}
 
 	// \returns index (0-11) of previous month (11 if currently month 0).
 	int prevmonth() {
-		if (month>0) return month-1;
+		if (month > 0) return month - 1;
 		return 11;
 	}
 
 	/// \returns index of next month (0 if currently month 11)
 	int nextmonth() {
-		if (month<11) return month+1;
+		if (month < 11) return month+1;
 		return 0;
 	}
 
@@ -563,7 +558,7 @@ public:
 
 	double sinelat;
 	double cosinelat;
-	double qo[365],u[365],v[365],hh[365],sinehh[365];
+	double qo[365], u[365], v[365], hh[365], sinehh[365];
 	double daylength_save[365];
 	bool doneday[365];
 		// indicates whether saved values exist for this day
@@ -589,29 +584,29 @@ public:
 		// Initialises certain member variables
 		// Should be called before Climate object is applied to a new grid cell
 
-		int day,year;
+		int day, year;
 
-		for (year=0;year<20;year++) {
-			mtemp_min_20[year]=0.0;
-			mtemp_max_20[year]=0.0;
+		for (year=0; year<20; year++) {
+			mtemp_min_20[year] = 0.0;
+			mtemp_max_20[year] = 0.0;
 		}
-		mtemp=0.0;
-		gdd5=0.0;
-		chilldays=0;
-		ifsensechill=true; //  guess2008 - CHILLDAYS
-		atemp_mean=0.0;
-		last_mgtemp=-1;
+		mtemp = 0.0;
+		gdd5 = 0.0;
+		chilldays = 0;
+		ifsensechill = true; //  guess2008 - CHILLDAYS
+		atemp_mean = 0.0;
+		last_mgtemp = -1;
 
-		aprec=0.0;
-		asun=0.0;
+		aprec = 0.0;
+		asun = 0.0;
 
-		lat=latitude;
-		for (day=0;day<365;day++) doneday[day]=false;
-		sinelat=sin(lat*DEGTORAD);
-		cosinelat=cos(lat*DEGTORAD);
+		lat = latitude;
+		for (day=0; day<365; day++) doneday[day] = false;
+		sinelat = sin(lat * DEGTORAD);
+		cosinelat = cos(lat * DEGTORAD);
 
 		// CMIP5
-		frluse=1.0;
+		frluse = 1.0;
 	}
 };
 
@@ -685,24 +680,24 @@ public:
 public:
 	/// constructor: initialises members
 	Fluxes(Patch& p):patch(p) {
-		acflux_veg=0.0;
-		acflux_fire=0.0;
-		acflux_soil=0.0;
-		acflux_est=0.0;
-		acflux_harvest=0.0;	
+		acflux_veg = 0.0;
+		acflux_fire = 0.0;
+		acflux_soil = 0.0;
+		acflux_est = 0.0;
+		acflux_harvest = 0.0;	
 
-		for (int d=0;d<365;d++)
-			dcflux_soil[365]=0;
+		for (int d=0; d<365; d++)
+			dcflux_soil[365] = 0;
 
-		const double data[]={0.014,0.531,0.379,0.076};	// Delmas et al. 1995
+		const double data[] = {0.014, 0.531, 0.379, 0.076};	// Delmas et al. 1995
 			
-		for (int n=0;n<4;n++)
-			firenratio[n]=data[n];
+		for (int n=0; n<4; n++)
+			firenratio[n] = data[n];
 
-		aNH3_fire=0.0;
-		aNO_fire=0.0;
-		aNO2_fire=0.0;
-		aN2O_fire=0.0;
+		aNH3_fire = 0.0;
+		aNO_fire = 0.0;
+		aNO2_fire = 0.0;
+		aN2O_fire = 0.0;
 		//aNrepr=0.0;
 	}		
 
@@ -711,10 +706,8 @@ public:
 		// If called following update of annual accumulated fluxes on last day of
 		// simulation year, returns annual net ecosystem exchange (NEE)
 
-		return acflux_veg+acflux_fire+acflux_soil+acflux_est;
+		return acflux_veg + acflux_fire + acflux_soil + acflux_est;
 	}
-
-
 };
 
 
@@ -921,15 +914,15 @@ public:
 		// Constructor (initialises array gdd0)
 		
 		int y;
-		for (y=0;y<366;y++)
-			gdd0[y]=-1.0; // value<0 signifies "unknown"; see function phenology()
+		for (y=0; y<366; y++)
+			gdd0[y] = -1.0; // value<0 signifies "unknown"; see function phenology()
 
 		// guess2008 - DLE
-		drought_tolerance=0.0; // Default, means that the PFT will never be limited by drought.
+		drought_tolerance = 0.0; // Default, means that the PFT will never be limited by drought.
 
-		res_outtake=0.0;
-		harv_eff=0.0;
-		turnover_harv_prod=1.0;	// default 1 year turnover time
+		res_outtake = 0.0;
+		harv_eff = 0.0;
+		turnover_harv_prod = 1.0;	// default 1 year turnover time
 	}
 
 	void initsla() {
@@ -939,9 +932,9 @@ public:
 		// m2/kgC)
 
 		if (leafphysiognomy == BROADLEAF)
-			sla=0.2*pow(10.0,2.41-0.38*log10(12.0*leaflong));
+			sla = 0.2 * pow(10.0, 2.41 - 0.38 * log10(12.0 * leaflong));
 		else if (leafphysiognomy == NEEDLELEAF)
-			sla=0.2*pow(10.0,2.29-0.4*log10(12.0*leaflong));
+			sla = 0.2 * pow(10.0, 2.29 - 0.4 * log10(12.0 * leaflong));
 	}
 
 	void initregen() {
@@ -951,32 +944,32 @@ public:
 		// Note: primary PFT parameters, including SLA, must be set before this
 		//       function is called
 	
-		const double PI=3.14159265;
-		const double REGENLAI_TREE=1.5;
-		const double REGENLAI_GRASS=0.001;
-		const double SAPLINGHW=0.2;
+		const double PI = 3.14159265;
+		const double REGENLAI_TREE = 1.5;
+		const double REGENLAI_GRASS = 0.001;
+		const double SAPLINGHW = 0.2;
 
-		if (lifeform==TREE) {
+		if (lifeform == TREE) {
 
 			// Tree sapling characteristics
 
-			regen.cmass_leaf=pow(REGENLAI_TREE*k_allom1*pow(1.0+SAPLINGHW,k_rp)*
-				pow(4.0*sla/PI/k_latosa,k_rp*0.5)/sla,2.0/(2.0-k_rp));
+			regen.cmass_leaf = pow(REGENLAI_TREE * k_allom1 * pow(1.0 + SAPLINGHW, k_rp) *
+				pow(4.0 * sla / PI / k_latosa, k_rp * 0.5) / sla, 2.0 / (2.0 - k_rp));
 
-			regen.cmass_sap=wooddens*k_allom2*pow((1.0+SAPLINGHW)*
-				sqrt(4.0*regen.cmass_leaf*sla/PI/k_latosa),k_allom3)*
-				regen.cmass_leaf*sla/k_latosa;
+			regen.cmass_sap = wooddens * k_allom2 * pow((1.0 + SAPLINGHW) *
+				sqrt(4.0 * regen.cmass_leaf * sla / PI / k_latosa), k_allom3) *
+				regen.cmass_leaf * sla / k_latosa;
 
-			regen.cmass_heart=SAPLINGHW*regen.cmass_sap;
+			regen.cmass_heart = SAPLINGHW * regen.cmass_sap;
 		}
-		else if (lifeform==GRASS) {
+		else if (lifeform == GRASS) {
 
 			// Grass regeneration characteristics
 
-			regen.cmass_leaf=REGENLAI_GRASS/sla;
+			regen.cmass_leaf = REGENLAI_GRASS / sla;
 		}
 
-		regen.cmass_root=1.0/ltor_max*regen.cmass_leaf;
+		regen.cmass_root = 1.0 / ltor_max * regen.cmass_leaf;
 	}
 };
 
@@ -994,7 +987,7 @@ public:
 //   Pftlist pftlist;
 //   ...
 //   for (i=0; i<npft; i++) {
-//     Pft& thispft=pftlist[i];
+//     Pft& thispft = pftlist[i];
 //     /* query or modify object thispft here */
 //   }
 //
@@ -1002,7 +995,7 @@ public:
 //
 //   pftlist.firstobj();
 //   while (pftlist.isobj) {
-//     Pft& thispft=pftlist.getobj();
+//     Pft& thispft = pftlist.getobj();
 //     /* query or modify object thispft here */
 //     pftlist.nextobj();
 //   }
@@ -1163,7 +1156,7 @@ public:
 	double nstore;
 	/// accumulated uptake from soil mineral N pool
 	double nuptake;
-	/// cumulative mean (calculated at end of each month) of daily leaf N (kgN/m2)
+	/// cumulative mean (calculated at end of year) of daily leaf N (kgN/m2)
 	/// (leaf N demand calculated from Vmax)
 	double leafn;
 	/// mean monthly value of leafn for year	
@@ -1321,12 +1314,12 @@ public:
 		// year at which to begin documenting means for calculation of equilibrium
 		// soil carbon
 
-	// GUESSN: For CENTURY ...
-	// fraction of soil that is sand
+	// For CENTURY ...
+	/// fraction of soil that is sand
 	double sand_frac;
-	// fraction of soil that is clay
+	/// fraction of soil that is clay
 	double clay_frac;
-	// fraction of soil that is silt plus clay	
+	/// fraction of soil that is silt plus clay	
 	double silt_frac;
 
 	// MEMBER FUNCTIONS
@@ -1337,27 +1330,25 @@ public:
 
 		// Constructor: initialises certain member variables
 
-		solvesom_end=SOLVESOM_END;
-		solvesom_begin=SOLVESOM_BEGIN;
+		solvesom_end = SOLVESOM_END;
+		solvesom_begin = SOLVESOM_BEGIN;
 
-		// GUESSN
-		sand_frac=0.4;
-		clay_frac=0.4;
-		silt_frac=0.2;
-		// end GUESSN
+		sand_frac = 0.4;
+		clay_frac = 0.4;
+		silt_frac = 0.2;
 	}
 
 	// guess2008 - override the default SOM years with 70-80% of the spin-up period length
 	void updateSolveSOMvalues(const int& nyrspinup) {
 		
-		solvesom_end=static_cast<int>(0.8*nyrspinup);
-		solvesom_begin=static_cast<int>(0.7*nyrspinup);
+		solvesom_end = static_cast<int>(0.8 * nyrspinup);
+		solvesom_begin = static_cast<int>(0.7 * nyrspinup);
 
 	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////
-// CENTURY SOIL POOL (GUESSN)
+// CENTURY SOIL POOL
 
 class Sompool {
 
@@ -1376,32 +1367,29 @@ public:
 	/// lignin fractions
 	double ligcfrac;
 	double frc;
+	/// nitrogen to carbon ratio
 	double ntoc;
 
 	// Fire
+	/// soil litter moisture flammability threshold (fraction of AWC)
 	double litterme;
-		// soil litter moisture flammability threshold (fraction of AWC)
+	/// soil litter fire resistance (0-1)
 	double fireresist;
-		// soil litter fire resistance (0-1)
 
 	void init() {
 		
 		// Initialise pool
 		
-		cmass=0.0;
-		nmass=0.0;
-		ligcfrac=0.0;
-		delta_cmass=0.0;
-		delta_nmass=0.0;
-		frc=0.0;
-		litterme=0.0;
-		fireresist=0.0;
+		cmass = 0.0;
+		nmass = 0.0;
+		ligcfrac = 0.0;
+		delta_cmass = 0.0;
+		delta_nmass = 0.0;
+		frc = 0.0;
+		litterme = 0.0;
+		fireresist = 0.0;
 	};
 };
-
-// end GUESSN
-
-
 
 /// Soil stores state variables for soils and the snow pack. 
 /** Initialised by a call to initdrivers. One Soil object is defined for each patch. 
@@ -1470,7 +1458,7 @@ public:
 
 	// Parameters used by function soiltemp and updated monthly
 
-	double alag,exp_alag;
+	double alag, exp_alag;
 
 	// guess2008 - 3 new soil water variables
 	double mwcont[12][NSOILLAYER];
@@ -1487,33 +1475,36 @@ public:
 	bool percolate;							// whether to percolate today
 
 //////////////////////////////////////////////////////////////////////////////////
-// GUESSN: CENTURY SOM pools and other variables
+// CENTURY SOM pools and other variables
 
 	Sompool sompool[NSOMPOOL];
 
-	double dperc;				// daily percolation (mm)
-
-	double nmin_daily[365];		// daily N mineralisation (kgN/m2)
-	double nimmob_daily[365];	// daily N immobilisation (kgN/m2)
-	double minleachfrac_daily[365]; // fraction of available mineral N leached each day;
-	double orgleachfrac_daily[365]; // fraction of decayed organoc N leached each day;
-	double org_leachfrac;		// fraction of decayed substrate from the soil microbial pool
-	double nmass_avail;			// soil mineral N pool (kgN/m2)
-
-	double anmin;			// annual sum of N mineralisation
-	double animmob;			// annual sum of N immobilisation
-	double aminleach;		// annual leaching from available N pool
-	double aorgleach;		// annual leaching of organics from active N pool
-	double andep;			// annual N deposition
-
-	double nmin_balance;		// soil mineral N pool (kgN/m2) (used somfluxes() to determine C:N ratios for SOM pools and decay rates)
-
-	double anfix;				// total annual N fixation
-
-	double nmass_avail_daily;	// soil mineral N pool (kgN/m2) (used when trying to do daily N uptake)
-	double daily_leaching[365];	// daily N uptake leaching 
-
-// end GUESSN
+	/// daily percolation (mm)
+	double dperc;				
+	/// daily N mineralisation (kgN/m2)
+	double nmin_daily[365];		
+	/// daily N immobilisation (kgN/m2)
+	double nimmob_daily[365];	
+	/// fraction of available mineral N leached each day;
+	double minleachfrac_daily[365]; 
+	/// fraction of decayed organoc N leached each day;
+	double orgleachfrac_daily[365];
+	/// soil mineral N pool (kgN/m2)
+	double nmass_avail;			
+	/// annual sum of N mineralisation
+	double anmin;			
+	/// annual sum of N immobilisation
+	double animmob;			
+	/// annual leaching from available N pool
+	double aminleach;		
+	/// annual leaching of organics from active N pool
+	double aorgleach;		
+	/// annual N deposition
+	double andep;			
+	/// soil mineral N pool (kgN/m2) (used somfluxes() to determine C:N ratios for SOM pools and decay rates)
+	double nmin_balance;		
+	/// total annual N fixation
+	double anfix;				
 
 	// MEMBER FUNCTIONS
 
@@ -1527,23 +1518,23 @@ public:
 
 		// Initialises certain member variables
 
-		alag=0.0;
-		exp_alag=1.0;
-		cpool_slow=0.0;
-		cpool_fast=0.0;
-		decomp_litter_mean=0.0;
-		k_soilfast_mean=0.0;
-		k_soilslow_mean=0.0;
-		wcont[0]=0.0;
-		wcont[1]=0.0;
-		wcont_evap=0.0;
-		snowpack=0.0;
-		last_mgtemp=-1;
+		alag = 0.0;
+		exp_alag = 1.0;
+		cpool_slow = 0.0;
+		cpool_fast = 0.0;
+		decomp_litter_mean = 0.0;
+		k_soilfast_mean = 0.0;
+		k_soilslow_mean = 0.0;
+		wcont[0] = 0.0;
+		wcont[1] = 0.0;
+		wcont_evap = 0.0;
+		snowpack = 0.0;
+		last_mgtemp = -1;
 
 		// guess2008 - extra initialisation
 		mwcontupper = 0.0;
 		mwcontlower = 0.0;
-		for (int mth = 0; mth < 12; mth++) {
+		for (int mth=0; mth<12; mth++) {
 			mwcont[mth][0] = 0.0;
 			mwcont[mth][1] = 0.0;
 		}
@@ -1552,45 +1543,35 @@ public:
 			dwcontupper[d] = 0.0;
 			dwcontlower[d] = 0.0;
 
-			// GUESSN
-			nmin_daily[d]=0.0;	
-			nimmob_daily[d]=0.0;	
-			minleachfrac_daily[d]=0.0;
-			orgleachfrac_daily[d]=0.0;
-			// end GUESSN
+			nmin_daily[d] = 0.0;	
+			nimmob_daily[d] = 0.0;	
+			minleachfrac_daily[d] = 0.0;
+			orgleachfrac_daily[d] = 0.0;
 		}
 
 		/////////////////////////////////////////////////////
-		// GUESSN: Initialise CENTURY pools
+		// Initialise CENTURY pools
 
-		for (int p=0;p<NSOMPOOL;p++)
+		for (int p=0; p<NSOMPOOL; p++)
 			sompool[p].init();
 
 		// Set initial CENTURY pool N:C ratios 
 		// Parton et al 1993, Fig 4
 
-		sompool[SOILMICRO].ntoc=1.0/15.0;
-		sompool[SLOWSOM].ntoc=1.0/20.0;
-		sompool[PASSIVESOM].ntoc=1.0/10.0;
-		sompool[SURFMICRO].ntoc=1.0/20.0;
+		sompool[SOILMICRO].ntoc = 1.0 / 15.0;
+		sompool[SLOWSOM].ntoc = 1.0 / 20.0;
+		sompool[PASSIVESOM].ntoc = 1.0 / 10.0;
+		sompool[SURFMICRO].ntoc = 1.0 / 20.0;
 
-		nmass_avail=0.0;
-		org_leachfrac=0.0;
-
-		anmin=0.0;			
-		animmob=0.0;		
-		aminleach=0.0;
-		aorgleach=0.0;
-		andep=0.0;
-		anfix=0.0;
-
-		dperc=0.0;
-
-		nmin_balance=0.0;	
-
-		nmass_avail_daily=0.0;
-
-		// end GUESSN
+		nmass_avail = 0.0;
+		anmin = 0.0;			
+		animmob = 0.0;		
+		aminleach = 0.0;
+		aorgleach = 0.0;
+		andep = 0.0;
+		anfix = 0.0;
+		nmin_balance = 0.0;
+		dperc = 0.0;
 	}
 };
 
@@ -1755,18 +1736,18 @@ public:
 
 	double nsapling_yearly;
 
-	// GUESSN
+	/// leaf-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_leaf;
+	/// root-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_root;
+	/// wood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_wood;
-
-	double harvested_products_slow_nmass;	//nitrogen depository for long-lived products like wood
-
+	/// nitrogen depository for long-lived products like wood
+	double harvested_products_slow_nmass;	
+	/// N store for establishment
 	double nstore_est;
-		// N store for establishment
+	/// number of saplings of this PFT established in vegetation_n_uptake() (cohort mode)
 	double nsapling_nuptake;
-		// number of saplings of this PFT established in vegetation_n_uptake() (cohort mode)
-	// end GUESSN
 
 	// MEMBER FUNCTIONS:
 
@@ -1774,30 +1755,25 @@ public:
 
 		// Constructor: initialises id, pft and data members
 
-		litter_leaf=0.0;
-		litter_root=0.0;
-		litter_wood=0.0;
-		litter_repr=0.0;
-		nday_wstress=0;
-		wscal=1.0;
-		wscal_mean=0.0;
-		anetps_ff=0.0;
-		aphen=0.0;
+		litter_leaf = 0.0;
+		litter_root = 0.0;
+		litter_wood = 0.0;
+		litter_repr = 0.0;
+		nday_wstress = 0;
+		wscal = 1.0;
+		wscal_mean = 0.0;
+		anetps_ff = 0.0;
+		aphen = 0.0;
 
+		nmass_litter_leaf = 0.0;
+		nmass_litter_root = 0.0;
+		nmass_litter_wood = 0.0;
 
-		// GUESSN
-		nmass_litter_leaf=0.0;
-		nmass_litter_root=0.0;
-		nmass_litter_wood=0.0;
+		nsapling_nuptake = 0.0;
+		nstore_est = 0.0;
 
-		nsapling_nuptake=0.0;
-
-		nstore_est=0.0;
-		
-		// end GUESSN
-
-		harvested_products_slow=0.0;
-		harvested_products_slow_nmass=0.0;
+		harvested_products_slow = 0.0;
+		harvested_products_slow_nmass = 0.0;
 	}
 };
 
@@ -1850,7 +1826,6 @@ public:
 		// guess2008 - DLE - the number of days over which wcont is averaged for this 
 		// patch, i.e. those days for which daily temp > 5.0 degC
 
-
 	// Variables used by new hydrology (Dieter Gerten 2002-07)
 
 	double intercep;
@@ -1877,7 +1852,8 @@ public:
 
 	double demand;
 		// transpirative demand for patch, patch vegetative area basis (mm/day)
-	double demand_day;			// daily average of the above variable (mm/day)
+	double demand_day;			
+		// daily average of the above variable (mm/day)
 	double demand_leafon;
 		// transpirative demand for patch assuming full leaf cover today, mm/day,
 		// patch vegetative area basis
@@ -1896,14 +1872,12 @@ public:
 	double mpet[12];
 		// monthly PET (mm/month)
 
-	// GUESSN
+	/// fractional N uptake of patch demand
 	double fnuptake;
-		// fractional N uptake of patch demand
+	/// yearly N demand
 	double ndemand;
-		// yearly N demand
+	/// yearly N supply	
 	double nsupply;
-		// yearly N supply
-	// end GUESSN
 
 	// MEMBER FUNCTIONS
 
@@ -1919,13 +1893,13 @@ public:
 			pftlist.nextobj();
 		}
 
-		age=0;
-		disturbed=false;
+		age = 0;
+		disturbed = false;
 		
 		// guess2008 - initialise
-		growingseasondays=0;
+		growingseasondays = 0;
 
-		fireprob=0.0;
+		fireprob = 0.0;
 	}
 };
 
@@ -1956,7 +1930,6 @@ public:
 	double nsapling_total;
 		// sum/mean across patches for saplings per PFT
 
-
 	double gpterm;
 		// non-FPAR-weighted value for canopy conductance component associated with
 		// photosynthesis for PFT under non-water-stress conditions (mm/s)
@@ -1974,7 +1947,6 @@ public:
 	/// sub-daily version of the above variable (NB: daily units)
 	std::vector<PhotosynthesisResult> phots;
 	
-	// GUESSN
 	double cmass_repr_nuptake;
 		// net C allocated to reproduction for this PFT in all patches of this stand
 		// this year (kgC/m2)
@@ -2024,7 +1996,6 @@ public:
 	 *  Needed to set patchpft.anetps_ff_est_initial 
 	 */
 	int first_year;
-
 
 	// MEMBER FUNCTIONS
 
@@ -2084,10 +2055,9 @@ public:
 	 *  \param p   A reference to the Pft for this Gridcellpft
 	 */
 	Gridcellpft(int i,Pft& p):id(i),pft(p) {
-		addtw=0.0;
+		addtw = 0.0;
 	}
 };
-
 
 /// The Gridcell class corresponds to a modelled locality or grid cell.
 /** Member variables include an object of type Climate (holding climate, insolation and
@@ -2135,19 +2105,19 @@ public:
 	 */
 	Gridcell(Pftlist& pftlist):climate(*this) {
 		landcovertype landcover;
-		LC_updated=false;
+		LC_updated = false;
 
-		for(unsigned int p=0;p<pftlist.nobj;p++) {
+		for(unsigned int p=0; p<pftlist.nobj; p++) {
 			pft.createobj(pftlist[p]);
 		}		
 
-		memset(landcoverfrac, 0, sizeof(double)*NLANDCOVERTYPES);
-		memset(landcoverfrac_old, 0, sizeof(double)*NLANDCOVERTYPES);
+		memset(landcoverfrac, 0, sizeof(double) * NLANDCOVERTYPES);
+		memset(landcoverfrac_old, 0, sizeof(double) * NLANDCOVERTYPES);
 
 		if(!run_landcover) {
-			landcover=NATURAL;
-			createobj(*this,landcover,pftlist);
-			landcoverfrac[NATURAL]=1.0;
+			landcover = NATURAL;
+			createobj(*this, landcover, pftlist);
+			landcoverfrac[NATURAL] = 1.0;
 		}
 	}
 

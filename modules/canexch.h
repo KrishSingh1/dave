@@ -20,7 +20,8 @@
 #include "guess.h"
 #include "landcover.h"
 
-void canopy_exchange(Patch& patch);
+void interception(Patch& patch, Climate& climate);
+void canopy_exchange(Patch& patch, Climate& climate);
 
 
 // Constants for photosynthesis calculations

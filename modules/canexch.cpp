@@ -2279,16 +2279,26 @@ void forest_floor_conditions(Patch& patch) {
 
 				// Call photosynthesis with FPAR=1 and assuming stomates fully open
 				// (lambda = lambda_max)
-				PhotosynthesisResult result;
 				photosynthesis(climate.co2,climate.temp,climate.par,climate.daylength,
 					1.0,pft.lambda_max,pft.pathway,pft.pstemp_min,pft.pstemp_low,
-					       pft.pstemp_high,pft.pstemp_max,pft.lambda_max,result,pft.phenology);	
+					       pft.pstemp_high,pft.pstemp_max,pft.lambda_max,stand.pft[p].photosynthesis,pft.phenology);
+
+				// Eqn 21, Haxeltine & Prentice 1996
+				// NB: includes conversion of daylight from hours to seconds (*3600),
+				//     and CO2 from ppmv to mole fraction (*1.0e-6);
+				//     scalar multiplier = 1.6 / 1.0e-6 / 3600 = 444.4
+
+				stand.pft[pft.id].gpterm=444.4*stand.pft[p].photosynthesis.adtmm/climate.co2/(1.0-pft.lambda_max)/
+					climate.daylength;
+
 
 				// Store net C-assimilation (gross photosynthesis minus leaf
 				// respiration); valid for all individuals of this PFT given today's
 				// climate and FPAR=1 assuming no water stress
 
-				stand.pft[pft.id].assim_term=result.net_assimilation();
+				stand.pft[pft.id].assim_term=stand.pft[p].photosynthesis.net_assimilation();
+
+				stand.pft[pft.id].have_phot=true;
 			}
 
 			// Calculate net assimilation at top of grass canopy (or at soil surface

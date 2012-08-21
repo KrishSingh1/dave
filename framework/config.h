@@ -20,11 +20,6 @@
 #ifndef LPJ_GUESS_CONFIG_H
 #define LPJ_GUESS_CONFIG_H
 
-// Make sure we use the CRU I/O module unless DEMO I/O has been chosen
-#ifndef USE_DEMO_IO
-#define USE_CRU
-#endif
-
 // Compiler specific checks, for instance for disabling specific warnings
 
 // All versions of Microsoft's compiler

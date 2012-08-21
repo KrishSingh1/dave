@@ -1153,15 +1153,17 @@ void aet_water_stress(Patch& patch) {
 				if(wr_opt>1.0)
 					wr_opt=1.0;
 
-#ifdef WR_ROOTDIST
-//// from water_uptake( ): wr_opt=(min(wcont_0_opt*patch.soil.soiltype.awc[0]*patch.fpc_rescale, pft.emax*pft.rootdist[0])+min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]))/pft.emax
-				wcont_0_opt=(wr_opt*pft.emax-min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]))/patch.soil.soiltype.awc[0]/patch.fpc_rescale;
+				if(wateruptake==WR_ROOTDIST)
+				{
 
-				if(wcont_0_opt*patch.soil.soiltype.awc[0]*patch.fpc_rescale>pft.emax*pft.rootdist[0])
-					wcont_0_opt=pft.emax*pft.rootdist[0]/patch.soil.soiltype.awc[0]/patch.fpc_rescale;
-#else
-				fail("Irrigation soil water only balanced for WR_ROOTDIST currently !\n");
-#endif	//WR_ROOTDIST
+//// from water_uptake( ): wr_opt=(min(wcont_0_opt*patch.soil.soiltype.awc[0]*patch.fpc_rescale, pft.emax*pft.rootdist[0])+min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]))/pft.emax
+					wcont_0_opt=(wr_opt*pft.emax-min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]))/patch.soil.soiltype.awc[0]/patch.fpc_rescale;
+
+					if(wcont_0_opt*patch.soil.soiltype.awc[0]*patch.fpc_rescale>pft.emax*pft.rootdist[0])
+						wcont_0_opt=pft.emax*pft.rootdist[0]/patch.soil.soiltype.awc[0]/patch.fpc_rescale;
+				}
+				else
+					fail("Irrigation soil water only balanced for WR_ROOTDIST currently !\n");
 
 				if(wcont_0_opt>patch.soil.wcont[0])
 				{

@@ -98,6 +98,13 @@ typedef enum {COLD, COLD_WARM, COLD_HOT, WARM, WARM_HOT, HOT} temp_seasonality_t
 // 4:WARM_HOT					(mtemp_min20>10 && mtemp_max20>30)
 // 5:HOT						(mtemp_min20>30)
 
+
+
+/// Water uptake parameterisations
+/** \see water_uptake in canexch.cpp
+  */
+typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptaketype;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
 
@@ -181,6 +188,9 @@ extern int npft; // number of possible PFTs
 extern bool iffast; // whether to run in "fast" mode
 extern bool ifcdebt; // whether C debt (storage between years) permitted
 
+/// Water uptake parameterisation
+extern wateruptaketype wateruptake;
+
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;
 
@@ -211,8 +221,6 @@ extern bool ifdroughtlimitedestab;
 	// whether establishment is limited by growing season drought 
 extern bool ifrainonwetdaysonly;			
 	// rain on wet days only (1, true), or a little every day (0, false); 
-extern bool ifspeciesspecificwateruptake;	
-	// whether water uptake is species specific 
 // bvoc
 extern bool ifbvoc; 
         // whether BVOC calculations are included
@@ -612,7 +620,6 @@ public:
 		// Initialises certain member variables
 		// Should be called before Climate object is applied to a new grid cell
 
-		const double DEGTORAD=0.01745329;
 		int day,year;
 
 		for (year=0;year<20;year++) {

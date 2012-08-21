@@ -44,6 +44,7 @@
 #include <utility>
 #include <vector>
 #include <algorithm>
+#include "globalco2file.h"
 
 
 // guess2008 - header file for the CRU TS 3.0 data archives
@@ -150,7 +151,7 @@ private:
 
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM};
 enum {CB_NONE,CB_VEGMODE,CB_INSTYPE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_HYDROLOGY,CB_INTERCROP,CB_PHENOLOGY,CB_PATHWAY,	
-	CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM};
+	CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE};
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -292,6 +293,8 @@ void plib_declarations(int id,xtring setname) {
 			"Number of patches simulated");
 		declareitem("patcharea",&patcharea,1.0,1.0e4,1,CB_NONE,
 			"Patch area (m2)");
+		declareitem("wateruptake", &strparam, 20, CB_WATERUPTAKE, 
+			"Water uptake mode (\"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
 
 		// guess2008
 		// Annual output variables
@@ -333,8 +336,6 @@ void plib_declarations(int id,xtring setname) {
 			"Whether establishment drought limited (0,1)");
 		declareitem("ifrainonwetdaysonly",&ifrainonwetdaysonly,1,CB_NONE,
 			"Whether it rains on wet days only (1), or a little every day (0);");
-		declareitem("ifspeciesspecificwateruptake",&ifspeciesspecificwateruptake,1,CB_NONE,
-			"Whether or not there is species specific soil water uptake (0,1)");
 		declareitem("searchradius", &searchradius, 0, 100, 1, CB_NONE,
 			"If specified, CRU data will be searched for in a circle");
 
@@ -618,6 +619,16 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
+	case CB_WATERUPTAKE:
+		if (strparam.upper() == "WCONT") wateruptake = WR_WCONT;
+		else if (strparam.upper() == "ROOTDIST") wateruptake = WR_ROOTDIST;
+		else if (strparam.upper() == "SMART") wateruptake = WR_SMART;
+		else if (strparam.upper() == "SPECIESSPECIFIC") wateruptake = WR_SPECIESSPECIFIC;
+		else {
+			sendmessage("Error",
+				"Unknown water uptake mode (valid types: \"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
+		}
+		break;
 	case CB_LIFEFORM:
 		if (strparam.upper()=="TREE") ppft->lifeform=TREE;
 		else if (strparam.upper()=="GRASS") ppft->lifeform=GRASS;
@@ -705,14 +716,13 @@ void plib_callback(int callback) {
 		if (!itemparsed("iffire")) badins("iffire");
 		if (!itemparsed("ifcalcsla")) badins("ifcalcsla");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
-
+		if (!itemparsed("wateruptake")) badins("wateruptake");
 
 		// guess2008
 		if (!itemparsed("outputdirectory")) badins("outputdirectory");
 		if (!itemparsed("ifsmoothgreffmort")) badins("ifsmoothgreffmort");
 		if (!itemparsed("ifdroughtlimitedestab")) badins("ifdroughtlimitedestab");
 		if (!itemparsed("ifrainonwetdaysonly")) badins("ifrainonwetdaysonly");
-		if (!itemparsed("ifspeciesspecificwateruptake")) badins("ifspeciesspecificwateruptake");
 		// bvoc
 		if (!itemparsed("ifbvoc")) badins("ifbvoc");
 
@@ -1322,8 +1332,13 @@ Table out_aiso, out_miso, out_amon, out_mmon;
 Timer tprogress,tmute;
 const int MUTESEC=20; // minimum number of sec to wait between progress messages
 
-// CO2 data for each year of historical data set
-double co2[NYEAR_HIST];
+/// Yearly CO2 data read from file
+/**
+ * This object is indexed with calendar years, so to get co2 value for
+ * year 1990, use co2[1990]. See documentation for GlobalCO2File for
+ * more information.
+ */
+GlobalCO2File co2;
 
 // Monthly temperature, precipitation and sunshine data for current grid cell
 // and historical period
@@ -3112,29 +3127,6 @@ bool findnearestCRUdata(int searchradius, char* cruark, double& lon, double& lat
 	return false;
 }
 
-void readco2() {
-
-	// Reads in atmospheric CO2 concentrations for historical period
-	// from ascii text file with records in format: <year> <co2-value>
-
-	int year,calender_year;
-
-	// Retrieve name of CO2 file from ins file
-	xtring filename=param["file_co2"].str;
-
-	FILE* in=fopen(filename,"rt");
-	if (!in) fail("readco2: could not open CO2 file %s for input",
-		(char*)filename);
-
-	for (year=0;year<NYEAR_HIST;year++) {
-		readfor(in,"i,f",&calender_year,&co2[year]);
-		if (calender_year!=FIRSTHISTYEAR+year)
-			fail("readco2: %s, line %d - incorrect year specified",
-				(char*)filename,year+1);
-	}
-
-	fclose(in);
-}
 /// Help function to define_output_tables, creates one output table
 void create_output_table(Table& table, const char* file, const ColumnDescriptors& columns) {
 	 table = output_channel->create_table(TableDescriptor(file, columns));
@@ -3411,7 +3403,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	fclose(in_grid);
 
 	// Read CO2 data from file
-	readco2();
+	co2.load_file(param["file_co2"].str);
 
 	if (run_landcover) {
 		all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
@@ -4169,10 +4161,7 @@ bool getclimate(Gridcell& gridcell) {
 
 	// Send environmental values for today to framework
 
-	if (date.year<nyear_spinup)
-		climate.co2=co2[0];
-	else if (date.year<nyear_spinup+NYEAR_HIST)
-		climate.co2=co2[date.year-nyear_spinup];
+	climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
 
 	climate.temp=dtemp[date.day];
 	climate.prec=dprec[date.day];

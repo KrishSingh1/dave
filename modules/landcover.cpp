@@ -9,7 +9,7 @@
 #include "config.h"
 #include "landcover.h"
 #include "guessio.h"
-
+#include "canexch.h"
 
 #define DYNAMIC_PHU					//Calculation of potential heat units according to local climate.
 #define MAXHUTEMP					//30 degree limit for heat unit summation
@@ -2252,7 +2252,7 @@ void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, do
 			} //end harvest
 
 			ppftcrop.lai=ppftcrop.lai_crop_actual;
-			ppftcrop.fpc=1.0-exp(-LAMBERTBEER_K*ppftcrop.lai);
+			ppftcrop.fpc=1.0-lambertbeer(ppftcrop.lai);
 		}  //from sowing has taken place until harvest day
 
 #if defined DYNAMIC_PHU	// Every day
@@ -2433,12 +2433,12 @@ void fpar_crop(Patch& patch) {
 		// Add grass LAI to calculate PAR reaching forest floor
 		// BLARP: Order changed Ben 050301 to overcome optimisation bug in pgCC
 
-		fpar_ff=exp(-LAMBERTBEER_K*plai_grass);
+		fpar_ff=lambertbeer(plai_grass);
 
 		// Save this
 		patch.fpar_ff=fpar_ff;	//patch.fpar_ff not used further
 
-		fpar_leafon_ff=exp(-LAMBERTBEER_K*plai_leafon_grass);
+		fpar_leafon_ff=lambertbeer(plai_leafon_grass);
 
 
 		// FPAR for grass PFTs is difference between relative PAR at top of grass canopy
@@ -2468,7 +2468,7 @@ void fpar_crop(Patch& patch) {
 					fpar_min=1.0;
 
 				if(indiv.pft.phenology==CROPGREEN)
-					indiv.fpar=1-exp(-LAMBERTBEER_K*max(0.0,indiv.phen*indiv.lai));	//phen is 1.0 during growingseason here
+					indiv.fpar=1-lambertbeer(max(0.0,indiv.phen*indiv.lai));	//phen is 1.0 during growingseason here
 				else
 				{
 					if(indiv.cropindiv->isintercropgrass)	//may contain both c3 and c4 grass
@@ -2488,7 +2488,7 @@ void fpar_crop(Patch& patch) {
 				// Repeat assuming full leaf cover for all individuals
 
 				if(indiv.pft.phenology==CROPGREEN)
-					indiv.fpar_leafon=1-exp(-LAMBERTBEER_K*max(0.0,indiv.lai));
+					indiv.fpar_leafon=1-lambertbeer(max(0.0,indiv.lai));
 				else
 				{
 					if(indiv.cropindiv->isintercropgrass)	//may contain both c3 and c4 grass

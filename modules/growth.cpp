@@ -35,6 +35,7 @@
 
 #include "config.h"
 #include "growth.h"
+#include "canexch.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL CONSTANTS
@@ -103,11 +104,10 @@ void leaf_phenology_pft(Pft& pft,Climate& climate,double wscal,double aphen,
 		}
 	}
 	
-	if (raingreen) {
+	if (raingreen && wscal < pft.wscal_min) {
 
 		// Raingreen phenology based on water stress threshold
-
-		if (wscal<pft.wscal_min) phen=0.0;
+		phen = 0.0;
 	}
 }
 
@@ -157,10 +157,11 @@ void leaf_phenology(Patch& patch,Climate& climate) {
 	}
 
 
-	// guess2008
-	if(patch.stand.landcover==NATURAL)
-		if (leafout) climate.ifsensechill=true; // CHILLDAYS
 
+	if (patch.stand.landcover==NATURAL && leafout) {
+
+		climate.ifsensechill=true; // CHILLDAYS
+}
 
 	// Copy PFT-specific phenological status to individuals of each PFT
 
@@ -579,17 +580,11 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 			if ((cmass_root_inc > 50 || cmass_root_inc < -50) && ltor < 0.0001) {
 				cmass_leaf_inc=0.0;
 				cmass_root_inc=bminc;
-
-				if (lifeform==TREE) {
 					cmass_sap_inc=-cmass_sap;
 					cmass_heart_inc=-cmass_sap_inc;
 				}
 
-				return;			
-			}
-
-		}
-		else {
+		} else {
 
 			// Abnormal allocation: reduction in some biomass compartment(s) to
 			// satisfy allometry
@@ -615,8 +610,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 					litter_root_inc=-cmass_root_inc;
 				}
 
-			}
-			else {
+			} else {
 
 				// Negative or zero allocation to leaves
 				// Eqns (1), (3)
@@ -831,7 +825,7 @@ bool allometry(Individual& indiv) {
 			// FPC (Eqn 8)
 			
 			fpc_new=indiv.crownarea*indiv.densindiv*
-				(1.0-exp(-LAMBERTBEER_K*indiv.lai_indiv));
+				(1.0-lambertbeer(indiv.lai_indiv));
 				
 			// Increment deltafpc
 			indiv.deltafpc+=fpc_new-indiv.fpc;
@@ -862,7 +856,7 @@ bool allometry(Individual& indiv) {
 				indiv.lai_indiv=indiv.cmass_leaf*indiv.pft.sla;
 
 				// FPC (Eqn 10)
-				indiv.fpc=1.0-exp(-LAMBERTBEER_K*indiv.lai_indiv);
+				indiv.fpc = 1.0 - lambertbeer(indiv.lai_indiv);
 
 				// Stand-level LAI
 				indiv.lai=indiv.lai_indiv;
@@ -907,7 +901,7 @@ bool allometry(Individual& indiv) {
 						indiv.lai_indiv=indiv.pft.laimax;
 				}
 				// FPC (Eqn 10)
-				indiv.fpc=1.0-exp(-LAMBERTBEER_K*indiv.lai_indiv);
+				indiv.fpc=1.0-lambertbeer(indiv.lai_indiv);
 
 				// Stand-level LAI
 				indiv.lai=indiv.lai_indiv;

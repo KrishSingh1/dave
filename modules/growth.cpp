@@ -174,19 +174,39 @@ void leaf_phenology(Patch& patch,Climate& climate) {
 		// For this individual ...
 		indiv.phen=patch.pft[indiv.pft.id].phen;
 
-		if(patch.stand.landcover==CROPLAND && patch.stand.pft[indiv.pft.id].active && patch.pft[indiv.pft.id].pft.phenology==CROPGREEN)	//110311
-		{
-			indiv.lai=patch.pft[indiv.pft.id].cropphen->lai;
-			indiv.lai_indiv=indiv.lai;
-			indiv.fpc=patch.pft[indiv.pft.id].cropphen->fpc;
-		}
-
 		// Update annual leaf-day sum (raingreen PFTs)
 		if (date.day==0) indiv.aphen_raingreen=0;
 		indiv.aphen_raingreen+=(indiv.phen!=0.0);
 
 		// ... on to next individual
 		vegetation.nextobj();
+	}
+
+	if(patch.stand.landcover==CROPLAND)
+	{
+		patch.fpc_total=0.0;
+		vegetation.firstobj();
+		while (vegetation.isobj) 
+		{
+			Individual& indiv=vegetation.getobj();
+
+			if(patch.pft[indiv.pft.id].pft.phenology==CROPGREEN)
+			{
+				indiv.lai=patch.pft[indiv.pft.id].cropphen->lai;
+				indiv.lai_indiv=indiv.lai;
+				indiv.fpc=patch.pft[indiv.pft.id].cropphen->fpc;
+			}
+
+			if(patch.pft[indiv.pft.id].cropphen->growingseason==true)
+				patch.fpc_total+=indiv.fpc;
+
+			vegetation.nextobj();
+		}
+
+		if (patch.fpc_total>1.0)
+			patch.fpc_rescale=1.0/patch.fpc_total;
+		else
+			patch.fpc_rescale=1.0;
 	}
 }
 

@@ -2260,26 +2260,6 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		}
 	}
 
-	if(patch.stand.landcover==CROPLAND)
-	{
-		patch.fpc_total=0.0;
-		vegetation.firstobj();
-		while (vegetation.isobj) 
-		{
-			Individual& indiv=vegetation.getobj();
-
-			if(patch.pft[indiv.pft.id].cropphen->growingseason==true)
-				patch.fpc_total+=indiv.fpc;
-
-			vegetation.nextobj();
-		}
-
-		if (patch.fpc_total>1.0)
-			patch.fpc_rescale=1.0/patch.fpc_total;
-		else
-			patch.fpc_rescale=1.0;
-	}
-
 
 	if (!patch.id) {
 		photosynthesis_nowstress(patch.stand, climate);

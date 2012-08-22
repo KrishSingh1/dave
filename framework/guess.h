@@ -487,7 +487,7 @@ public:
 		// minimum monthly temperature for the last 12 months (deg C)
 	double atemp_mean;
 		// mean of monthly temperatures for the last 12 months (deg C)
-
+int last_gtemp;
 	// Monthly sums (converted to means) used by canopy exchange module
 
 	double temp_mean;
@@ -605,7 +605,7 @@ public:
 		ifsensechill=true; //  guess2008 - CHILLDAYS
 		atemp_mean=0.0;
 		last_mgtemp=-1;
-
+		last_gtemp=-1;
 		lat=latitude;
 		for (day=0;day<365;day++) doneday[day]=false;
 		sinelat=sin(lat*DEGTORAD);
@@ -1407,7 +1407,7 @@ class Soil {
 	// MEMBER VARIABLES
 
 public:
-
+int last_gtemp;
 	Patch& patch;
 		// reference to parent Patch object
 	Soiltype& soiltype;
@@ -1503,7 +1503,7 @@ public:
 		wcont_evap=0.0;
 		snowpack=0.0;
 		last_mgtemp=-1;
-
+last_gtemp=-1;
 
 		// guess2008 - extra initialisation
 		mwcontupper = 0.0;
@@ -1969,7 +1969,7 @@ class Standpft {
 public:
 
 	// MEMBER VARIABLES
-
+	bool have_phot;
 	int id;
 	Pft& pft;
 	double cmass_repr;

@@ -27,8 +27,6 @@ int framework(int argc,char* argv[]) {
 	// primary model data structures and containing all explicit loops through 
 	// space (grid cells/stands) and time (days and years).
 
-	bool dogridcell;
-
 #if defined DYNAMIC_LANDCOVER_INPUT
 remove("LUdata.old");
 rename("LUdata.out", "LUdata.old");
@@ -90,10 +88,7 @@ rename("CFTdata.out", "CFTdata.old");
 	  initbvoc(pftlist);
 	}
 
-	// Assume there is at least one grid cell to simulate
-	dogridcell=true;
-
-	while (dogridcell) {
+	while (true) {
 
 		// START OF LOOP THROUGH GRID CELLS
 
@@ -107,7 +102,9 @@ rename("CFTdata.out", "CFTdata.old");
 		// Call input/output to obtain latitude and soil driver data for this grid cell.
 		// Function getgridcell returns false if no further grid cells remain to be simulated
 
-		if (getgridcell(gridcell)) {
+		if (!getgridcell(gridcell)) {
+			break;
+		}
 
 			// Initialise certain climate and soil drivers
 			gridcell.climate.initdrivers(gridcell.climate.lat);
@@ -226,9 +223,6 @@ rename("CFTdata.out", "CFTdata.old");
 
 				// End of loop through simulation days
 			}//while (getclimate())
-		}//if getgridcell()
-		else dogridcell=false; // no more grid cells to simulate
-		
 	}		// End of loop through grid cells
 
 	// Call to input/output module to perform any necessary clean up

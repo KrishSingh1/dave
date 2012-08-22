@@ -1513,8 +1513,6 @@ void assimilation_wstress(Pft& pft,Patchpft& ppft,double co2,double temp,double 
 	// lambda      = the lambda found by the bisection method (see above)
 
 	const double EPS=0.1; // minimum precision of solution in bisection method
-	const int MAXTRIES=6;
-		// maximum number of iterations towards a solution in bisection method
 
 	double gcphot;
 		// canopy conductance component associated with photosynthesis on FPC basis
@@ -1566,7 +1564,7 @@ void assimilation_wstress(Pft& pft,Patchpft& ppft,double co2,double temp,double 
 
 	lookup_lambda.newsearch();
 
-	while (fabs(fmid)>EPS && b<=MAXTRIES) {
+	while (fabs(fmid)>EPS && b<=Lookup_lambda::MAXTRIES) {
 
 		b++;
 		dx*=0.5;
@@ -2172,12 +2170,38 @@ void forest_floor_conditions(Patch& patch) {
 	}
 }
 
+/// Initiate required variables for the module
+void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
+
+	if (date.day == 0) {
+		vegetation.firstobj();
+		while (vegetation.isobj) {
+			Individual& indiv = vegetation.getobj();
+
+			indiv.anpp = 0.0;
+ 			for (int m=0; m<12; m++) {
+				indiv.mnpp[m] = 0.0;
+				indiv.mlai[m] = 0.0;
+				indiv.mgpp[m] = 0.0;
+				indiv.mra[m] = 0.0;
+			}
+
+			indiv.aiso = 0.0;
+			indiv.amon = 0.0;
+
+			vegetation.nextobj();
+		}
+	}
+
+	if (!patch.id) {
+		photosynthesis_nowstress(patch.stand, climate);
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // CANOPY EXCHANGE
 // Should be called each simulation day for each modelled area or patch, following
 // update of leaf phenology and soil temperature and prior to update of soil water.
-
 
 void canopy_exchange(Patch& patch, Climate& climate) {
 
@@ -2222,51 +2246,11 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 	//        area in cohort/individual mode)
 
 	// Retrieve Vegetation and Climate objects for this patch
-
 	Vegetation& vegetation=patch.vegetation;
 
-	double pet_s;
-		// potential evapotranspiration over non-vegetated parts of patch (mm,
-		// patch basis)
-	double pet_patch;
-		// total potential evapotranspiration for patch
-	int m;
-
-	if (date.day==0) {
-		
-		// On first day of year ...
-
-		vegetation.firstobj();
-		while (vegetation.isobj) {
-			Individual& indiv=vegetation.getobj();
-
-			indiv.anpp=0.0;
- 
-			for (m=0;m<12;m++) {
-				indiv.mnpp[m]=0.0;
-				indiv.mlai[m]=0.0;
-				indiv.mlai_max[m]=0.0;
-				// guess2008 - initialise
-				indiv.mgpp[m]=0.0;
-				indiv.mra[m]=0.0;
-
-			}
-
-			// bvoc
-			indiv.aiso=0.;
-			indiv.amon=0.;
-
-			vegetation.nextobj();
-		}
-	}
-
-
-	if (!patch.id) {
-		photosynthesis_nowstress(patch.stand, climate);
-	}
+	init_canexch(patch, climate, vegetation);
 
 	// Canopy exchange processes
-
 	if(patch.stand.landcover==CROPLAND)
 		fpar_crop(patch);
 	else
@@ -2278,11 +2262,16 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 	forest_floor_conditions(patch);
 
 	// Potential evapotranspiration for patch
+	double pet_s;
+		// potential evapotranspiration over non-vegetated parts of patch (mm,
+		// patch basis)
+	double pet_patch;
+		// total potential evapotranspiration for patch
 
-	if(patch.stand.landcover==CROPLAND && patch.pft[patch.stand.pftid].pft.phenology==CROPGREEN && patch.pft[patch.stand.pftid].cropphen->growingseason)
+	if(patch.stand.landcover==CROPLAND && patch.pft[patch.stand.pftid].pft.phenology==CROPGREEN && patch.pft[patch.stand.pftid].cropphen->growingseason) {
 		pet_patch=patch.demand+patch.intercep;
-	else
-	{
+	}
+	else {
 		pet_s=climate.eet*PRIESTLEY_TAYLOR*max(1.0-patch.fpc_total,0.0);
 		pet_patch=pet_s+patch.demand*patch.fpc_total+patch.intercep;
 	}

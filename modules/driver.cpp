@@ -512,22 +512,6 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 }
 
 void dailyaccounting_stand(Stand& stand, Pftlist& pftlist) {
-	// Loop through PFTs
-	pftlist.firstobj();
-	while (pftlist.isobj) 
-	{
-		Pft& pft=pftlist.getobj();
-		// For this PFT ...
-
-		// [BEGIN CEFAST0207]
-		// Flag used by evapotranspiration_fast in canopy exchange module ...
-		stand.pft[pft.id].have_phot=false;
-
-		// [END CEFAST0207]
-
-		// ... on to next PFT
-		pftlist.nextobj();
-	}
 	}
 
 void dailyaccounting_patch_landcover(Patch& patch, Pftlist& pftlist) {

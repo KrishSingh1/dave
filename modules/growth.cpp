@@ -1060,7 +1060,8 @@ void growth(Stand& stand,Patch& patch) {
 
 
 		if (negligible(indiv.densindiv))
-			fail("growth: negligible densindiv for %s",(char*)indiv.pft.name);
+//			fail("growth: negligible densindiv for %s",(char*)indiv.pft.name);
+			dprintf("growth: negligible densindiv for %s\n",(char*)indiv.pft.name);
 		
 		else {
 

@@ -4685,7 +4685,8 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 			 out.add_value(out_cflux, flux_harvest);
 		}
 		out.add_value(out_cflux, flux_veg+flux_soil+flux_fire+flux_est+flux_seed+flux_harvest);
-
+if(cmass_gridcell<0.0 || cmass_gridcell>30)
+dprintf("cmass_gridcell out of bounds\n\n");
 		// guess2008 - output carbon pools
 		out.add_value(out_cpool, cmass_gridcell);
 		out.add_value(out_cpool, c_litter);

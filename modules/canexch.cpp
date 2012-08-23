@@ -267,18 +267,15 @@ void fpar(Patch& patch) {
 			indiv.fpar_leafon=0.0;
 			if (indiv.height>height_veg) height_veg=indiv.height;
 
-			if(patch.stand.landcover!=CROPLAND || patch.stand.landcover==CROPLAND && patch.pft[indiv.pft.id].cropphen->growingseason==true)
-			{
-				plai_leafon+=indiv.lai;
+			plai_leafon+=indiv.lai;
 				
-				if (indiv.pft.lifeform==GRASS) {
-					plai_leafon_grass+=indiv.lai;
-					plai_grass+=indiv.lai*indiv.phen;
-				}
-
-				// Accumulate LAI-weighted sum of individual leaf-out fractions
-				phen_veg+=indiv.phen*indiv.lai;
+			if (indiv.pft.lifeform==GRASS) {
+				plai_leafon_grass+=indiv.lai;
+				plai_grass+=indiv.lai*indiv.phen;
 			}
+
+			// Accumulate LAI-weighted sum of individual leaf-out fractions
+			phen_veg+=indiv.phen*indiv.lai;
 
 			vegetation.nextobj(); // ... on to next individual
 		}
@@ -298,108 +295,99 @@ void fpar(Patch& patch) {
 		plai_leafon=0.0;
 
 		// Set FPAR for bottom of layer above (initially 1 at top of canopy)
-		if(patch.stand.landcover!=CROPLAND)
-		{
-			fpar_layer_bottom=1.0;
-			fpar_leafon_layer_bottom=1.0;
+		fpar_layer_bottom=1.0;
+		fpar_leafon_layer_bottom=1.0;
 			
-			for (layer=toplayer;layer>=0;layer--) {
+		for (layer=toplayer;layer>=0;layer--) {
 
-				lowbound=(double)layer*VSTEP;
-				highbound=lowbound+VSTEP;
+			lowbound=(double)layer*VSTEP;
+			highbound=lowbound+VSTEP;
 
-				// FPAR at top of this layer = FPAR at bottom of layer above
+			// FPAR at top of this layer = FPAR at bottom of layer above
 
-				fpar_layer_top=fpar_layer_bottom;
-				fpar_leafon_layer_top=fpar_leafon_layer_bottom;
+			fpar_layer_top=fpar_layer_bottom;
+			fpar_leafon_layer_top=fpar_leafon_layer_bottom;
 
-				plai_layer=0.0;
-				plai_leafon_layer=0.0;
+			plai_layer=0.0;
+			plai_leafon_layer=0.0;
 
-				// Loop through individuals
+			// Loop through individuals
 
-				vegetation.firstobj();
-				while (vegetation.isobj) {
-					Individual& indiv=vegetation.getobj();
+			vegetation.firstobj();
+			while (vegetation.isobj) {
+				Individual& indiv=vegetation.getobj();
 
-					// For this individual ...
+				// For this individual ...
 
-					if (indiv.pft.lifeform==TREE) {
-						if (indiv.height>lowbound && indiv.boleht<highbound &&
-							!negligible(indiv.height-indiv.boleht)) {
+				if (indiv.pft.lifeform==TREE) {
+					if (indiv.height>lowbound && indiv.boleht<highbound &&
+						!negligible(indiv.height-indiv.boleht)) {
 							
-							// Calculate vertical fraction of current layer occupied by
-							// crown cylinders of this cohort
+						// Calculate vertical fraction of current layer occupied by
+						// crown cylinders of this cohort
 
-							frac=1.0;
-							if (indiv.height<highbound)
-								frac-=(highbound-indiv.height)/VSTEP;
-							if (indiv.boleht>lowbound)
-								frac-=(indiv.boleht-lowbound)/VSTEP;
+						frac=1.0;
+						if (indiv.height<highbound)
+							frac-=(highbound-indiv.height)/VSTEP;
+						if (indiv.boleht>lowbound)
+							frac-=(indiv.boleht-lowbound)/VSTEP;
 
-							// Calculate summed LAI of this cohort in this layer
+						// Calculate summed LAI of this cohort in this layer
 
-							atoh=indiv.lai/(indiv.height-indiv.boleht);
-							indiv.lai_leafon_layer=atoh*frac*VSTEP;
-							plai_layer+=indiv.lai_leafon_layer*indiv.phen;
-							plai_leafon_layer+=indiv.lai_leafon_layer;
-						}
-						else {
-							indiv.lai_layer=0.0;
-							indiv.lai_leafon_layer=0.0;
-						}
+						atoh=indiv.lai/(indiv.height-indiv.boleht);
+						indiv.lai_leafon_layer=atoh*frac*VSTEP;
+						plai_layer+=indiv.lai_leafon_layer*indiv.phen;
+						plai_leafon_layer+=indiv.lai_leafon_layer;
 					}
-
-					// ... on to next individual
-					vegetation.nextobj();
+					else {
+						indiv.lai_layer=0.0;
+						indiv.lai_leafon_layer=0.0;
+					}
 				}
 
-				// Update cumulative LAI for this layer and above
-				plai+=plai_layer;
-				plai_leafon+=plai_leafon_layer;
+				// ... on to next individual
+				vegetation.nextobj();
+			}
 
-				// Calculate FPAR at bottom of this layer
-				// Eqn 27, Prentice et al 1993
+			// Update cumulative LAI for this layer and above
+			plai+=plai_layer;
+			plai_leafon+=plai_leafon_layer;
+
+			// Calculate FPAR at bottom of this layer
+			// Eqn 27, Prentice et al 1993
 
 			fpar_layer_bottom = lambertbeer(plai);
 			fpar_leafon_layer_bottom = lambertbeer(plai_leafon);
 
-				// Total PAR uptake in this layer
+			// Total PAR uptake in this layer
 
-				fpar_uptake_layer=fpar_layer_top-fpar_layer_bottom;
-				fpar_uptake_leafon_layer=fpar_leafon_layer_top-fpar_leafon_layer_bottom;
+			fpar_uptake_layer=fpar_layer_top-fpar_layer_bottom;
+			fpar_uptake_leafon_layer=fpar_leafon_layer_top-fpar_leafon_layer_bottom;
 				
-				// Partition PAR for this layer among trees,
+			// Partition PAR for this layer among trees,
 
-				vegetation.firstobj();
-				while (vegetation.isobj) {
-					Individual& indiv=vegetation.getobj();
+			vegetation.firstobj();
+			while (vegetation.isobj) {
+				Individual& indiv=vegetation.getobj();
 
-					// For this individual ...
+				// For this individual ...
 
-					if (indiv.pft.lifeform==TREE) {
-						if (!negligible(plai_leafon_layer))
+				if (indiv.pft.lifeform==TREE) {
+					if (!negligible(plai_leafon_layer))
 
-							// FPAR partitioned according to the relative amount 
-							// of leaf area in this layer for this individual
+						// FPAR partitioned according to the relative amount 
+						// of leaf area in this layer for this individual
 
-							indiv.fpar_leafon+=fpar_uptake_leafon_layer*
-								indiv.lai_leafon_layer/plai_leafon_layer;
+						indiv.fpar_leafon+=fpar_uptake_leafon_layer*
+							indiv.lai_leafon_layer/plai_leafon_layer;
 
-						else 
-							indiv.fpar_leafon=0.0;
-
-						if (!negligible(plai_layer))
-							indiv.fpar+=fpar_uptake_layer*
-								(indiv.lai_leafon_layer*indiv.phen)/plai_layer;
-						else
-							indiv.fpar=0.0;
-
-					}
-
-					// ... on to next individual
-					vegetation.nextobj();
+					if (!negligible(plai_layer))
+						indiv.fpar+=fpar_uptake_layer*
+							(indiv.lai_leafon_layer*indiv.phen)/plai_layer;
 				}
+
+				// ... on to next individual
+				vegetation.nextobj();
 			}
 		}
 

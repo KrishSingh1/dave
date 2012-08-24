@@ -1111,7 +1111,7 @@ void growth(Stand& stand,Patch& patch) {
 
 
 			// Update stand record of reproduction by this PFT
-			stand.pft[indiv.pft.id].cmass_repr+=cmass_repr/(double)stand.nobj;
+			stand.pft[indiv.pft.id].cmass_repr+=cmass_repr/(double)stand.npatch();
 
 			// Transfer reproduction straight to litter
 			// guess2008 - only for 'alive' individuals

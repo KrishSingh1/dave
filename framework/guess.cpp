@@ -61,6 +61,11 @@ int nyear_spinup;
 bool forcesowingdates;
 bool forceharvestdates;
 
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Stand member functions
+
+////////////////////////////////////////////////////////////////////////////////
+
 //const cropphen_struct* Patchpft::get_cropphen() 
 cropphen_struct* Patchpft::get_cropphen() 
 {
@@ -77,6 +82,7 @@ cropphen_struct* Patchpft::set_cropphen()
 	else
 		return cropphen;
 }
+
 
 //Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i),pftid(-1),gridcell(gc),isirrigated(false),hasgrassintercrop(false),landcover(landcoverX),frac(1.0) {
 Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i),gridcell(gc),landcover(landcoverX),frac(1.0) {
@@ -99,7 +105,7 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i
 		npatchL=1;
 	}
 	else if(landcover==NATURAL || landcover==FOREST) {
-		npatchL=npatch;
+		npatchL=::npatch; // use the global variable npatch (not Stand::npatch)
 	}
 
 	for (p=0;p<npatchL;p++) {
@@ -132,7 +138,12 @@ void Stand::set_gridcell_fraction(double fraction) {
 	frac = fraction;
 }
 
-Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Individual member functions
+////////////////////////////////////////////////////////////////////////////////
+
+Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	anpp=0.0;
 	fpc=0.0;
@@ -223,4 +234,22 @@ cropindiv_struct* Individual::set_cropindiv()
 		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
 	else
 		return cropindiv;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Gridcell member functions
+////////////////////////////////////////////////////////////////////////////////
+
+double Gridcell::get_lon() const {
+	return lon;
+}
+
+double Gridcell::get_lat() const {
+	return lat;
+}
+
+void Gridcell::set_coordinates(double longitude, double latitude) {
+	lon = longitude;
+	lat = latitude;
 }

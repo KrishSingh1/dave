@@ -52,7 +52,7 @@ void GlobalCO2File::load_file(const char* path) {
 		  if (first_year == BAD_YEAR) {
 				first_year = calender_year;
 		  }
-		  else if (calender_year != first_year+co2.size()) {
+		  else if (calender_year != first_year+int(co2.size())) {
 				fail("GlobalCO2File::load_file: %s, line %d - bad year specified",
 					  path,co2.size()+1);
 		  }

@@ -54,25 +54,51 @@ const bool SUPPRESSLARGEOUTPUT=false;
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL ENUMERATED TYPE DEFINITIONS
 
+/// Life form class for PFTs (trees, grasses)
 typedef enum {NOLIFEFORM,TREE,GRASS} lifeformtype;
-	// Life form class for PFTs (trees, grasses)
 
+/// Phenology class for PFTs
 typedef enum {NOPHENOLOGY,EVERGREEN,RAINGREEN,SUMMERGREEN,CROPGREEN,ANY} phenologytype;
-	// Phenology class for PFTs
 
+/// Biochemical pathway for photosynthesis (C3 or C4)
 typedef enum {NOPATHWAY,C3,C4} pathwaytype;
-	// Biochemical pathway for photosynthesis (C3 or C4)
 
-typedef enum {NOINSOL,SUNSHINE,NETSWRAD,SWRAD} insoltype;
-	// Units for insolation driving data (percentage sunshine, net instantaneous
-	// downward shortwave radiation flux [W/m2], total [i.e. with no correction for
-	// surface albedo] instantaneous downward shortwave radiation flux [W/m2])
+/// Units for insolation driving data
+/** Insolation can be expressed as:
+ *
+ *  - Percentage sunshine
+ *  - Net instantaneous downward shortwave radiation flux (W/m2)
+ *  - Total (i.e. with no correction for surface albedo) instantaneous downward 
+ *    shortwave radiation flux (W/m2)
+ *
+ *  Radiation flux can be interpreted as W/m2 during daylight hours, or averaged
+ *  over the whole time step which it represents (24 hours in daily mode). For
+ *  this reason there are two enumerators for these insolation types (e.g. SWRAD
+ *  and SWRAD_TS).
+ */
+typedef enum {
+	/// No insolation type chosen
+	NOINSOL,
+	/// Percentage sunshine
+	SUNSHINE,
+	/// Net shortwave radiation flux during daylight hours (W/m2)
+	NETSWRAD,
+	/// Total shortwave radiation flux during daylight hours (W/m2)
+	SWRAD,
+	/// Net shortwave radiation flux during whole time step (W/m2)
+	NETSWRAD_TS,
+	/// Total shortwave radiation flux during whole time step (W/m2)
+	SWRAD_TS
+} insoltype;
 
+/// Vegetation 'mode', i.e. what each Individual object represents
+/** Can be one of: 
+ *  1. The average characteristics of all individuals comprising a PFT
+ *     population over the modelled area (standard LPJ mode)
+ *  2. A cohort of individuals of a PFT that are roughly the same age
+ *  3. An individual plant
+ */
 typedef enum {NOVEGMODE,INDIVIDUAL,COHORT,POPULATION} vegmodetype;
-	// Vegetation 'mode', i.e. what each Individual (see below) object represents;
-	// either: (1) the average characteristics of all individuals comprising a PFT
-	// population over the modelled area (standard LPJ mode); (2) a cohort of
-	// individuals of a PFT that are roughly the same age; (3) an individual plant.
 
 /// Land cover type of a stand. NLANDCOVERTYPES keeps count of number of items.
 typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, NLANDCOVERTYPES} landcovertype;
@@ -441,17 +467,16 @@ public:
 		// latitude (degrees; +=north, -=south)
 	double lon; 
 		// longitude 
+
+	/// Insolation today, see also instype
 	double insol;
-		// insolation today, see also instype
-		// When instype is NETSWRAD or SWRAD insol is assumed to be W/m2 during
-		// daylight hours. If input data is averaged over a 24 hour period, code
-		// dealing with this variable needs to be changed 
-		// (see function daylengthinsoleet).
+
+	/// Type of insolation
+	/** This decides how to interpret the variable insol,
+	 *  see also documentation for the insoltype enum.
+	 */
 	insoltype instype;
-		// units in which insol expressed:
-		// SUNSHINE = percentage of full sunshine
-		// NETSWRAD = net downward shortwave radiation flux (albedo corrected) (W/m2)
-		// SWRAD    = total downward shortwave radiation flux (W/m2)
+
 	double eet;
 		// equilibrium evapotranspiration today (mm/day)
 	double mtemp;
@@ -1943,7 +1968,7 @@ public:
 	// MEMBER FUNCTIONS
 
 	Patch(int i,Stand& s,Pftlist& pftlist,Soiltype& st):
-		id(i),stand(s),fluxes(*this),vegetation(*this),soil(*this,st) {
+		id(i),stand(s),vegetation(*this),soil(*this,st),fluxes(*this) {
 		
 		// Constructor: initialises various members and builds list array
 		// of Patchpft objects.
@@ -2071,6 +2096,9 @@ public:
 
 	/// Set the fraction of this Stand relative to the gridcell
 	void set_gridcell_fraction(double fraction);
+
+	/// Returns the number of patches in this Stand
+	unsigned int npatch() const { return nobj; }
 
 private:
 
@@ -2221,7 +2249,7 @@ public:
 		LC_updated=false;
 
 		for(unsigned int p=0;p<pftlist.nobj;p++) {
-			Gridcellpft& gcpft=pft.createobj(pftlist[p]);
+			pft.createobj(pftlist[p]);
 		}		
 
 		memset(landcoverfrac, 0, sizeof(double)*NLANDCOVERTYPES);
@@ -2237,6 +2265,24 @@ public:
 			landcoverfrac[NATURAL]=1.0;
 		}
 	}
+
+	/// Longitude for this grid cell
+	double get_lon() const;
+
+	/// Latitude for this grid cell
+	double get_lat() const;
+
+	/// Set longitude and latitude for this grid cell
+	void set_coordinates(double longitude, double latitude);
+
+private:
+
+	/// Longitude for this grid cell
+	double lon;
+
+	/// Latitude for this grid cell
+	double lat;
+
 };
 
 

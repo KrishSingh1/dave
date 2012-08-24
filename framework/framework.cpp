@@ -107,7 +107,7 @@ rename("CFTdata.out", "CFTdata.old");
 		}
 
 			// Initialise certain climate and soil drivers
-			gridcell.climate.initdrivers(gridcell.climate.lat);
+		gridcell.climate.initdrivers(gridcell.get_lat());
 
 			if(run_landcover) {
 				//Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.

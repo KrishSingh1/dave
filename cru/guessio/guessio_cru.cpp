@@ -3406,6 +3406,14 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 	fclose(in_grid);
 
+	//AA CMIP5
+	correctionmethod=param["correctionmethod"].str;
+	gcm=param["gcm"].str;
+	rcp=param["rcp"].str;
+
+	file_cmip5hist=param["path_cmip5hist"].str;
+	file_cmip5scen=param["path_cmip5scen"].str;
+
 	// Read CO2 data from file
 	if (!ifcmip5) {
 		co2.load_file(param["file_co2"].str);
@@ -3427,14 +3435,6 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 
 		co2.load_file(filename);
 	}
-
-	//AA CMIP5
-	correctionmethod=param["correctionmethod"].str;
-	gcm=param["gcm"].str;
-	rcp=param["rcp"].str;
-
-	file_cmip5hist=param["path_cmip5hist"].str;
-	file_cmip5scen=param["path_cmip5scen"].str;
 
 	if (rcp=="26")
 		file_cmip5scen+="mpi_esm_lr_rcp26_r1i1p1/";

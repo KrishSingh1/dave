@@ -349,6 +349,7 @@ void ndemand_new_est(Patch& patch, Pftlist& pftlist, double& patch_ndemand) {
 
 	double bminit, ltor, est, c, kest_bg, nsapling, newindiv;
 	double SAPSIZE = 0.1;
+	bool present;
 
 	if (!patch.id) {
 
@@ -399,53 +400,65 @@ void ndemand_new_est(Patch& patch, Pftlist& pftlist, double& patch_ndemand) {
 
 			if (pft.lifeform == GRASS) {
 
-				// ESTABLISHMENT OF GRASSES
-
-				Individual& indiv = vegetation.createobj(pft, vegetation);
-				indiv.height = 0.0;
-				indiv.crownarea = 1.0; // (value not used)
-				indiv.densindiv = 1.0;
-				indiv.fpc = 1.0;
-				indiv.age = -9999;
-					
-				// Initial grass biomass proportional to potential forest floor
-				// net assimilation this year on patch area basis
-
-				bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;	
-
-				// Veiko -> makes no difference
-				bminit *= 0.3;
-
-				// Initial leaf to fine root biomass ratio based on
-				// hypothetical value of water stress parameter
-
-				ltor = patch.pft[pft.id].wscal_mean * pft.ltor_max;
-
-				// Allocate initial biomass
-
-				allocation_init(bminit, ltor, indiv);
-
-				// Calculate initial allometry
-
-				allometry(indiv);
-
-				indiv.cton_leaf_new = indiv.pft.cton_leaf_avr;
-				indiv.cton_root_new = indiv.pft.cton_root_avr;
-
-				indiv.max_n_reserve = indiv.pft.n_reserve * indiv.cmass_root / indiv.pft.cton_leaf_avr;
-
-				// Initialise N demand
-				indiv.ndemand =
-					indiv.cmass_leaf / indiv.pft.cton_leaf_avr +
-					indiv.cmass_root / indiv.pft.cton_root_avr;
-
-				if (indiv.ndemand > 0.0) {
-					indiv.aassim = 365.0;
-					for (int d=0; d<365; d++) 
-						indiv.dassim[d] = 1.0;	// Could be phen or something realistic
+				present = false;
+				vegetation.firstobj();
+				while (vegetation.isobj && !present) {
+					Individual& indiv = vegetation.getobj();
+					if (indiv.pft.id == pft.id) 
+						present = true;
+					vegetation.nextobj();
 				}
 
-				patch_ndemand += indiv.ndemand;
+				if (!present) {
+
+					// ESTABLISHMENT OF GRASSES
+
+					Individual& indiv = vegetation.createobj(pft, vegetation);
+					indiv.height = 0.0;
+					indiv.crownarea = 1.0; // (value not used)
+					indiv.densindiv = 1.0;
+					indiv.fpc = 1.0;
+					indiv.age = -9999;
+
+					// Initial grass biomass proportional to potential forest floor
+					// net assimilation this year on patch area basis
+
+					bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;	
+
+					// Veiko -> makes no difference
+					bminit *= 0.3;
+
+					// Initial leaf to fine root biomass ratio based on
+					// hypothetical value of water stress parameter
+
+					ltor = patch.pft[pft.id].wscal_mean * pft.ltor_max;
+
+					// Allocate initial biomass
+
+					allocation_init(bminit, ltor, indiv);
+
+					// Calculate initial allometry
+
+					allometry(indiv);
+
+					indiv.cton_leaf_new = indiv.pft.cton_leaf_avr;
+					indiv.cton_root_new = indiv.pft.cton_root_avr;
+
+					indiv.max_n_reserve = indiv.pft.n_reserve * indiv.cmass_root / indiv.pft.cton_leaf_avr;
+
+					// Initialise N demand
+					indiv.ndemand =
+						indiv.cmass_leaf / indiv.pft.cton_leaf_avr +
+						indiv.cmass_root / indiv.pft.cton_root_avr;
+
+					if (indiv.ndemand > 0.0) {
+						indiv.aassim = 365.0;
+						for (int d=0; d<365; d++) 
+							indiv.dassim[d] = 1.0;	// Could be phen or something realistic
+					}
+
+					patch_ndemand += indiv.ndemand;
+				}
 			}
 			else if (pft.lifeform == TREE) {
 
@@ -944,13 +957,7 @@ void establishment_guess(Stand& stand, Patch& patch, Pftlist& pftlist) {
 								indiv.nmass_leaf *= frac_est;
 								indiv.cmass_root *= frac_est;
 								indiv.nmass_root *= frac_est;
-								patch.pft[pft.id].nstore_est -=min(patch.pft[pft.id].nstore_est, indiv.ndemand);
 								bminit *= frac_est;
-
-								if (patch.pft[pft.id].nstore_est > 0.0) {
-									patch.soil.nmass_avail += patch.pft[pft.id].nstore_est;
-									patch.pft[pft.id].nstore_est = 0.0;
-								}
 							}
 
 							indiv.max_n_reserve = indiv.pft.n_reserve * indiv.cmass_root / indiv.pft.cton_leaf_avr;
@@ -971,6 +978,8 @@ void establishment_guess(Stand& stand, Patch& patch, Pftlist& pftlist) {
 
 							if (indiv.alive)
 								patch.fluxes.acflux_est -= bminit;
+
+							patch.pft[pft.id].nstore_est = 0.0;
 						}
 						else {
 							if (patch.pft[pft.id].nstore_est > 0.0) {
@@ -1144,6 +1153,8 @@ void establishment_guess(Stand& stand, Patch& patch, Pftlist& pftlist) {
 
 								patch.pft[pft.id].nstore_est -= min(nstore_est, indiv.ndemand * indiv.densindiv / nonlimdens);
 							}
+							else
+								patch.pft[pft.id].nstore_est = 0.0;
 
 							// Account for C flux from atmosphere to vegetation
 							// guess2008

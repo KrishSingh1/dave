@@ -158,7 +158,6 @@ int lc_fixed_frac[NLANDCOVERTYPES]={0};
 /// Whether gridcell is divided into equal active landcover fractions.
 bool equal_landcover_area;
 
-Pftlist* ppftlist; // pointer to PFT list
 Pft* ppft; // pointer to Pft object currently being assigned to
 
 xtring paramname;
@@ -354,7 +353,7 @@ void plib_declarations(int id,xtring setname) {
 
 			// Create and initialise a new Pft object and obtain a reference to it
 			
-			ppft=&ppftlist->createobj();
+			ppft=&pftlist.createobj();
 			initpft(*ppft,setname);
 			includepft=true;
 		}
@@ -761,7 +760,7 @@ void plib_callback(int callback) {
 		// If "include 0", remove this PFT from list, and set id to correct value
 
 		if (!includepft) {
-			ppftlist->killobj();
+			pftlist.killobj();
 			npft--;
 		}
 
@@ -776,7 +775,7 @@ void plib_receivemessage(xtring text) {
 	dprintf((char*)text);
 }
 
-bool readins(xtring filename,Pftlist& pftlist) {
+bool readins(xtring filename) {
 
 	// DESCRIPTION
 	// Uses PLIB library functions to read instructions from file specified by
@@ -785,9 +784,6 @@ bool readins(xtring filename,Pftlist& pftlist) {
 
 	// OUTPUT PARAMETERS
 	// pftlist  = initialised list array of PFT parameters
-
-	// Store global pointer to pftlist
-	ppftlist=&pftlist;
 
 	// Initialise PFT count
 	npft=0;
@@ -819,7 +815,7 @@ void printhelp() {
 // this section of the input/output module. The following functions are called by the
 // framework at various stages of the simulation and should contain appropriate code:
 //
-// void initio(int argc,char* argv[],Pftlist& pftlist)
+// void initio(int argc,char* argv[])
 //   Initialises input/output (e.g. opening files), sets values for the global
 //   simulation parameter variables (currently vegmode, npatch, patcharea, ifdailynpp,
 //   ifdailydecomp, ifbgestab, ifsme, ifstochestab, ifstochmort, iffire, estinterval,
@@ -891,7 +887,7 @@ void printhelp() {
 //   day. Irrespective of the BVOC settings, climate.dtr variable is not required in 
 //   diurnal mode.
 //
-// void outannual(Gridcell& gridcell,Pftlist& pftlist)
+// void outannual(Gridcell& gridcell)
 //   Called at the end of the last day of each simulation year to permit output of
 //   model results.
 //
@@ -1088,7 +1084,7 @@ void create_output_table(Table& table, const char* file, const ColumnDescriptors
  *  For each table a TableDescriptor object is created which is then sent to
  *  the output channel to create the table.
  */
-void define_output_tables(Pftlist& pftlist) {
+void define_output_tables() {
 	// create a vector with the pft names
 	std::vector<std::string> pfts;
 
@@ -1222,7 +1218,7 @@ void define_output_tables(Pftlist& pftlist) {
 // INITIO
 // Called by the framework at the start of the model run
 
-void initio(int argc,char* argv[],Pftlist& pftlist) {
+void initio(int argc,char* argv[]) {
 
 	// DESCRIPTION
 	// Initialises input/output (e.g. opening files), sets values for the global
@@ -1282,7 +1278,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 		// Call to readins() returns false if file could not be opened for reading
 		// or contained errors (including missing parameters)
 
-		else if (!readins(insfilename,pftlist))
+		else if (!readins(insfilename))
 			abort=true;
 	}
 	else abort=true;
@@ -1381,7 +1377,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 														COORDINATES_PRECISION);
 
 	// Define all output tables and their formats
-	define_output_tables(pftlist);
+	define_output_tables();
 
 	// Set timers
 	tprogress.init();
@@ -1514,7 +1510,7 @@ bool getgridcell(Gridcell& gridcell) {
 }
 
 ///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
-void getlandcover(Gridcell& gridcell,Pftlist& pftlist) {
+void getlandcover(Gridcell& gridcell) {
 	int i, year;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
 
@@ -1778,7 +1774,7 @@ bool getclimate(Gridcell& gridcell) {
 }
 
 /// Called by the framework at the end of the last day of each simulation year
-void outannual(Gridcell& gridcell,Pftlist& pftlist) {
+void outannual(Gridcell& gridcell) {
 
 	// DESCRIPTION
 	// Output of simulation results at the end of each year, or for specific years in

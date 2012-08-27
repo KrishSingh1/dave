@@ -37,7 +37,7 @@
 const double CO2 = 370;            // standard CO2 concentration
 const double Tstand = 30;          // standard temperature, oC
 
-void initbvoc(Pftlist& pftlist) {
+void initbvoc(){
 
 	// initialising the VOC calculations: calculating the fraction of electrones
 	// available for isoprene production from the isoprene and monoterpene

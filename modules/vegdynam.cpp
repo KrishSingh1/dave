@@ -150,7 +150,7 @@ bool survive(Climate& climate,Pft& pft) {
 // ESTABLISHMENT
 // Internal functions (do not call directly from framework)
 
-void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
+void establishment_lpj(Stand& stand,Patch& patch) {
 
 	// DESCRIPTION
 	// Establishment in population (standard LPJ) mode.
@@ -327,7 +327,7 @@ void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
 }
 
 
-void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
+void establishment_guess(Stand& stand,Patch& patch) {
 
 	// DESCRIPTION
 	// Establishment in cohort or individual mode.
@@ -1406,7 +1406,7 @@ void disturbance(Patch& patch,double disturb_prob) {
 // Should be called by framework at the end of each simulation year, after vegetation,
 // climate and soil attributes have been updated
 
-void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
+void vegetation_dynamics(Stand& stand,Patch& patch) {
 
 	// DESCRIPTION
 	// Implementation of fire disturbance and population dynamics (establishment and
@@ -1432,7 +1432,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 		mortality_lpj(stand,patch,stand.gridcell.climate,fireprob);
 
 		// Establishment
-		establishment_lpj(stand,patch,pftlist);
+		establishment_lpj(stand,patch);
 
 	}
 	else {
@@ -1453,7 +1453,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 		mortality_guess(stand,patch,stand.gridcell.climate,fireprob);
 
 		// Establishment
-		establishment_guess(stand,patch,pftlist);
+		establishment_guess(stand,patch);
 
 	}
 

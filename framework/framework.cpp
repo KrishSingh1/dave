@@ -3,7 +3,7 @@
 /// \brief Implementation of the framework() function
 ///
 /// \author Ben Smith
-/// $Date: 2012-01-24 11:33:51 +0100 (Tue, 24 Jan 2012) $
+/// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -27,16 +27,13 @@ int framework(int argc, char* argv[]) {
 	// primary model data structures and containing all explicit loops through 
 	// space (grid cells/stands) and time (days and years).
 
-	// The one and only linked list of Pft objects	
-	Pftlist pftlist;
-
 	// Call input/output module to obtain PFT static parameters and simulation
 	// settings and initialise input/output
-	initio(argc, argv, pftlist);
+	initio(argc, argv);
 
 	// bvoc
 	if (ifbvoc) {
-	  initbvoc(pftlist);
+	  initbvoc();
 	}
 
 	while (true) {
@@ -48,7 +45,7 @@ int framework(int argc, char* argv[]) {
 		date.init(1);
 
 		// Create and initialise a new Gridcell object for each locality
-		Gridcell gridcell(pftlist);	
+		Gridcell gridcell;	
 
 		// Call input/output to obtain latitude and soil driver data for this grid cell.
 		// Function getgridcell returns false if no further grid cells remain to be simulated
@@ -62,7 +59,7 @@ int framework(int argc, char* argv[]) {
 
 		if(run_landcover) {
 			//Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
-			landcover_init(gridcell,pftlist);
+			landcover_init(gridcell);
 		}
 		
 		// Call input/output to obtain climate, insolation and CO2 for this
@@ -74,7 +71,7 @@ int framework(int argc, char* argv[]) {
 			// START OF LOOP THROUGH SIMULATION DAYS
 
 			// Update daily climate drivers etc
-			dailyaccounting_gridcell(gridcell,pftlist);
+			dailyaccounting_gridcell(gridcell);
 
 			// Calculate daylength, insolation and potential evapotranspiration
 			daylengthinsoleet(gridcell.climate);
@@ -82,7 +79,7 @@ int framework(int argc, char* argv[]) {
 			if(run_landcover && date.day == 0 && date.year >= nyear_spinup) {
 				// Update dynamic landcover and crop fraction data during historical
 				// period and create/kill stands.
-				landcover_dynamics(gridcell,pftlist);
+				landcover_dynamics(gridcell);
 			}
 
 			gridcell.firstobj();
@@ -92,7 +89,7 @@ int framework(int argc, char* argv[]) {
 
 				Stand& stand = gridcell.getobj();
 
-				dailyaccounting_stand(stand, pftlist);
+				dailyaccounting_stand(stand);
 
 				stand.firstobj();
 				while (stand.isobj) {
@@ -101,7 +98,7 @@ int framework(int argc, char* argv[]) {
 					// Get reference to this patch
 					Patch& patch = stand.getobj();
 					// Update daily soil drivers including soil temperature
-					dailyaccounting_patch(patch, pftlist);
+					dailyaccounting_patch(patch);
 					// Leaf phenology for PFTs and individuals
 					leaf_phenology(patch, gridcell.climate);
 					// Interception
@@ -132,7 +129,7 @@ int framework(int argc, char* argv[]) {
 						// For each patch ...
 						Patch& patch = stand.getobj();
 						// Establishment, mortality and disturbance by fire
-						vegetation_dynamics(stand, patch, pftlist);
+						vegetation_dynamics(stand, patch);
 						stand.nextobj();
 					}
 				}
@@ -144,7 +141,7 @@ int framework(int argc, char* argv[]) {
 				// LAST DAY OF YEAR
 				// Call input/output module to output results for end of year
 				// or end of simulation for this grid cell
-				outannual(gridcell, pftlist);
+				outannual(gridcell);
 
 				// Check whether to abort
 				if (abort_request_received()) {

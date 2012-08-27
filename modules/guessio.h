@@ -16,11 +16,11 @@
 
 #include "guess.h"
 
-void initio(int argc,char* argv[],Pftlist& pftlist);
+void initio(int argc,char* argv[]);
 bool getgridcell(Gridcell& gridcell);
 bool getclimate(Gridcell& gridcell);
-void getlandcover(Gridcell& gridcell,Pftlist& pftlist);
-void outannual(Gridcell& gridcell,Pftlist& pftlist);
+void getlandcover(Gridcell& gridcell);
+void outannual(Gridcell& gridcell);
 void termio();
 
 #endif // LPJ_GUESS_GUESSIO_H

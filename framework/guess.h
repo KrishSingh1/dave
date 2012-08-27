@@ -1230,8 +1230,6 @@ public:
 		// plant crown area (m2)
 	double deltafpc;
 		// increment in fpc since last simulation year
-	double wscal;
-		// water stress parameter (0-1 range; 1=minimum stress) (updated daily)
 	double wscal_mean;
 		// running sum (converted to annual mean) for wscal
 	double boleht;
@@ -1843,7 +1841,7 @@ public:
 		litter_repr=0.0;
 		nday_wstress=0;
 		wscal=1.0;
-		wscal_mean=0.0;
+		wscal_mean=1.0;
 		anetps_ff=0.0;
 		aphen=0.0;
 

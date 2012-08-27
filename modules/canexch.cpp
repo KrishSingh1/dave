@@ -1105,14 +1105,6 @@ void aet_water_stress(Patch& patch) {
 			ppft.gpterm_wstress = 0;
 		}
 
-		if(pft.hydrology==IRRIGATED)
-		{
-			ppft.water_deficit_d=0.0;
-
-			if(date.day==0)
-				ppft.water_deficit_y=0.0;
-		}
-
 		// Calculate effective water supply from plant roots
 		// Rescale available water by patch FPC if exceeds 1
 		// (this then represents the average amount of water available over an
@@ -1123,6 +1115,12 @@ void aet_water_stress(Patch& patch) {
 
 		if(patch.stand.isirrigated && pft.hydrology==IRRIGATED)
 		{
+
+			ppft.water_deficit_d=0.0;
+
+			if(date.day==0)
+				ppft.water_deficit_y=0.0;
+
 			if (patch.soil.wcont[0]<0.9)	//Fader et al. 2010
 			{
 				double wcont_0_opt=0.0;
@@ -1220,7 +1218,7 @@ void aet_water_stress(Patch& patch) {
 		if (date.islastday && !ifdailynpp && ppft.nday_wstress) {
 			ppft.gcbase/=(double)ppft.nday_wstress;
 			ppft.gpterm_wstress /= ppft.nday_wstress;
-	}
+		}
 	}
 
 	// Calculate / transfer supply to individuals
@@ -1338,40 +1336,40 @@ void water_scalar(Patch& patch) {
 		// Retrieve next patch PFT
 		Patchpft& ppft=patch.pft[p];
 
-		// Calculate patch PFT water scalar value
-
-		if(patch.stand.landcover==CROPLAND && ppft.pft.phenology==CROPGREEN)
+		if(patch.stand.pft[ppft.pft.id].active)
 		{
-			if (!negligible(patch.demand))
-				ppft.wscal=min(1.0,ppft.supply/patch.demand);	//Cannot use leafon-values here because demand_leafon is daily, while supply_leafon is not. 110810
+			// Calculate patch PFT water scalar value
+
+			if(ppft.pft.phenology==CROPGREEN)
+			{
+				if (!negligible(patch.demand))
+					ppft.wscal=min(1.0,ppft.supply/patch.demand);	//Cannot use leafon-values here because demand_leafon is daily, while supply_leafon is not.
+				else
+					ppft.wscal=1.0;
+
+			}
+			else if (!negligible(patch.demand_leafon))
+				ppft.wscal=min(1.0,ppft.supply_leafon/patch.demand_leafon);
 			else
 				ppft.wscal=1.0;
 
-		}
-		else if (!negligible(patch.demand_leafon))
-			ppft.wscal=min(1.0,ppft.supply_leafon/patch.demand_leafon);
-		else
-			ppft.wscal=1.0;
+			// Update annual mean water scalar
 
-		// Update annual mean water scalar
+			if(!run_landcover
+				|| patch.stand.landcover!=CROPLAND  //natural, urban, pasture, forest and peatland stands
+				|| ppft.pft.phenology==ANY && ppft.pft.id==patch.stand.pftid) //normal cc3g/cc4g-growth
+			{
+				if (date.day==0)
+					ppft.wscal_mean=ppft.wscal;
+				else
+					ppft.wscal_mean+=ppft.wscal;
 
-		if(!run_landcover
-				|| patch.stand.landcover!=CROPLAND && patch.stand.pft[ppft.pft.id].active  //natural, urban, pasture, forest and peatland stands
-				|| patch.stand.landcover==CROPLAND && ppft.pft.landcover==CROPLAND && ppft.pft.phenology==ANY && ppft.pft.id==patch.stand.pftid) //normal cc3g/cc4g-growth
-		{
-			if (date.day==0)
-				ppft.wscal_mean=ppft.wscal;
-			else
-				ppft.wscal_mean+=ppft.wscal;
-
-			// Convert from sum to mean on last day of year
-			if (date.islastday && date.islastmonth) ppft.wscal_mean/=365.0;
-		}
+				// Convert from sum to mean on last day of year
+				if (date.islastday && date.islastmonth) ppft.wscal_mean/=365.0;
+			}
 //////////// True crop stands ////////////////
-		else if(patch.stand.landcover==CROPLAND && ppft.pft.landcover==CROPLAND)
-		{
 //////////// True crop stands; main crop ////////////////			
-			if(ppft.pft.phenology==CROPGREEN)		//wscal_mean används ju inte för CROPGREEN !
+			else if(ppft.pft.phenology==CROPGREEN)	
 			{
 				if(date.day==ppft.cropphen->sdate)
 				{
@@ -1384,10 +1382,10 @@ void water_scalar(Patch& patch) {
 					ppft.wscal_mean=ppft.wscal_mean+(ppft.wscal-ppft.wscal_mean)/(ppft.cropphen->growingdays+1);
 				}
 			}
-//////////// True crop stands; intercrop grass ////////////////
-			else if(ifintercropgrass && ppft.pft.phenology==ANY && ppft.pft.isintercropgrass && ppft.pft.id!=patch.stand.pftid)
+	//////////// True crop stands; intercrop grass ////////////////
+			else if(ppft.pft.isintercropgrass)
 			{
-				if(date.day==patch.pft[patch.stand.pftid].cropphen->bicdate)	//OBS ! bicdate ligger i huvudgrödan !
+				if(date.day==patch.pft[patch.stand.pftid].cropphen->bicdate)
 				{
 					ppft.cropphen->growingdays=0;
 					ppft.wscal_mean=ppft.wscal;
@@ -1406,10 +1404,11 @@ void water_scalar(Patch& patch) {
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
+		double wscal_indiv = 1.0;
 
 #if defined(DEMAND_PATCH)
 
-		indiv.wscal=patch.pft[indiv.pft.id].wscal;
+		wscal_indiv=patch.pft[indiv.pft.id].wscal;
 
 #elif defined(DEMAND_INDIV)
 
@@ -1428,45 +1427,42 @@ void water_scalar(Patch& patch) {
 #endif
 
 		if(!run_landcover
-				|| patch.stand.landcover!=CROPLAND && patch.stand.pft[indiv.pft.id].active  //natural, urban, pasture, forest and peatland stands
-				|| patch.stand.landcover==CROPLAND && indiv.pft.landcover==CROPLAND && indiv.pft.phenology==ANY && !indiv.cropindiv->isintercropgrass) //normal cc3g/cc4g-growth
+				|| patch.stand.landcover!=CROPLAND //natural, urban, pasture, forest and peatland stands
+				|| indiv.pft.phenology==ANY && !indiv.cropindiv->isintercropgrass) //normal cc3g/cc4g-growth
 		{
 			if (date.day==0)
-				indiv.wscal_mean=indiv.wscal;
+				indiv.wscal_mean=wscal_indiv;
 			else
-				indiv.wscal_mean+=indiv.wscal;
+				indiv.wscal_mean+=wscal_indiv;
 			
 			if (date.islastday && date.islastmonth)
 				indiv.wscal_mean/=365.0;
 		}
 //////////// True crop stands ////////////////
-		else if(patch.stand.landcover==CROPLAND && indiv.pft.landcover==CROPLAND)
-		{
 //////////// True crop stands; main crop ////////////////	
-			if(indiv.pft.phenology==CROPGREEN)
+		else if(indiv.pft.phenology==CROPGREEN)
+		{
+			if(date.day==patch.pft[indiv.pft.id].cropphen->sdate)
 			{
-				if(date.day==patch.pft[indiv.pft.id].cropphen->sdate)
-				{
-					indiv.wscal_mean=indiv.wscal;
-				}
-				else if(patch.pft[indiv.pft.id].cropphen->growingseason==true || date.day==patch.pft[indiv.pft.id].cropphen->hdate)
-				{
-					indiv.wscal_mean=indiv.wscal_mean+(indiv.wscal-indiv.wscal_mean)/(patch.pft[indiv.pft.id].cropphen->growingdays+1);
-				}
+				indiv.wscal_mean=wscal_indiv;
 			}
-//////////// True crop stands; intercrop grass ////////////////
-			else if(indiv.pft.phenology==ANY && indiv.cropindiv->isintercropgrass && indiv.pft.id!=patch.stand.pftid)
+			else if(patch.pft[indiv.pft.id].cropphen->growingseason==true || date.day==patch.pft[indiv.pft.id].cropphen->hdate)
 			{
-				if(date.day==patch.pft[patch.stand.pftid].cropphen->bicdate)	//OBS ! bicdate ligger i huvudgrödan !
-				{
-					indiv.wscal_mean=indiv.wscal;
-				}
-				else if(patch.pft[indiv.pft.id].cropphen->growingseason==true || date.day==patch.pft[patch.stand.pftid].cropphen->eicdate)
-				{
-					indiv.wscal_mean=indiv.wscal_mean+(indiv.wscal-indiv.wscal_mean)/(patch.pft[indiv.pft.id].cropphen->growingdays+1);
-				}
-			}	
+				indiv.wscal_mean=indiv.wscal_mean+(wscal_indiv-indiv.wscal_mean)/(patch.pft[indiv.pft.id].cropphen->growingdays+1);
+			}
 		}
+//////////// True crop stands; intercrop grass ////////////////
+		else if(indiv.cropindiv->isintercropgrass && indiv.pft.id!=patch.stand.pftid)
+		{
+			if(date.day==patch.pft[patch.stand.pftid].cropphen->bicdate)
+			{
+				indiv.wscal_mean=wscal_indiv;
+			}
+			else if(patch.pft[indiv.pft.id].cropphen->growingseason==true || date.day==patch.pft[patch.stand.pftid].cropphen->eicdate)
+			{
+				indiv.wscal_mean=indiv.wscal_mean+(wscal_indiv-indiv.wscal_mean)/(patch.pft[indiv.pft.id].cropphen->growingdays+1);
+			}
+		}	
 		vegetation.nextobj();
 	}
 }

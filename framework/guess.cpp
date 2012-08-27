@@ -153,7 +153,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_sap=0.0;
 	cmass_heart=0.0;
 	cmass_debt=0.0;
-	wscal=1.0;
 	phen=0.0;
 	aphen=0.0;
 	deltafpc=0.0;

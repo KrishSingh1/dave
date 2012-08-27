@@ -35,9 +35,9 @@ static long seed=12345678; // seed for random number generator (see randfrac)
 
 
 // guess2008
-extern int nyear_spinup; 
+extern int nyear_spinup;
 	// allows access to the value declared guessio_cru.cpp
- 
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // RANDFRAC
@@ -120,7 +120,7 @@ void soilparameters(Soiltype& soiltype,int soilcode) {
 	if (soilcode<1 || soilcode>9)
 		fail("soilparameters: invalid LPJ soil code (%d)",soilcode);
 
-	
+
 	soiltype.perc_base=data[soilcode-1][0];
 	soiltype.perc_exp=PERC_EXP;
 	soiltype.awc[0]=SOILDEPTH_UPPER*data[soilcode-1][1];
@@ -135,7 +135,7 @@ void soilparameters(Soiltype& soiltype,int soilcode) {
 
 
 /// Climate interpolation from monthly means to quasi-daily values
-/** May be called from input/output module to generate daily climate values when 
+/** May be called from input/output module to generate daily climate values when
  *  raw data are on monthly basis.
  *
  *  \param mvals The monthly means
@@ -175,7 +175,7 @@ void interp_monthly_means(double mvals[12], double dvals[365]) {
 }
 
 /// Climate interpolation from monthly totals to quasi-daily values
-/** May be called from input/output module to generate daily climate values when 
+/** May be called from input/output module to generate daily climate values when
  *  raw data are on monthly basis.
  *
  *  \param mvals The monthly totals
@@ -239,7 +239,7 @@ void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12]) {
 			prob_rain=mval_wet[m]/(double)date.ndaymonth[m];
 
 			mprec=mval_prec[m]/mval_wet[m];
-			
+
 			dy_hold=dy;
 
 			while (negligible(mprec_sum)) {
@@ -247,7 +247,7 @@ void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12]) {
 				dy=dy_hold;
 
 				for (d=0;d<date.ndaymonth[m];d++) {
-				
+
 					// Transitional probabilities (Geng et al 1986)
 
 					if (dy==0) { // first day of year only
@@ -303,7 +303,7 @@ void soiltemp(Climate& climate,Soil& soil) {
 	// Soil temperatures are assumed to follow surface temperatures according to an
 	// annual sinusoidal cycle with damped oscillation about a common mean, and a
 	// temporal lag.
-	
+
 	// For a sinusoidal cycle, soil temperature at depth z and time t from beginning
 	// of cycle given by (Carslaw & Jaeger 1959; Eqn 52; Jury et al 1991):
 	//
@@ -446,7 +446,16 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 	if (climate.temp<5.0 && climate.chilldays<=365)
 		climate.chilldays++;
 
-	respiration_temperature_response(climate.temp, climate.gtemp);
+	// Calculate gtemp (daily/sub-daily depending on the mode)
+	if (date.diurnal()) {
+		climate.gtemps.assign(date.subdaily, 0);
+		for (int i=0; i<date.subdaily; i++) {
+			respiration_temperature_response(climate.temps[i], climate.gtemps[i]);
+		}
+	}
+	else {
+		respiration_temperature_response(climate.temp, climate.gtemp);
+	}
 
 	// Save yesterday's mean temperature for the last month
 	mtemp_last=climate.mtemp;
@@ -476,7 +485,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 		// Update mean temperature for the last 12 months
 		// atemp_mean_new = atemp_mean_old * (11/12) + mtemp * (1/12)
 		climate.atemp_mean=climate.atemp_mean*W11DIV12+climate.mtemp*W1DIV12;
-		
+
 		// Record minimum and maximum monthly temperatures
 		if (date.month==0) {
 			climate.mtemp_min=climate.mtemp;
@@ -567,7 +576,7 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 		patch.arunoff=0.0;
 		patch.aintercep=0.0;
 		patch.apet=0.0;
-		
+
 		// Calculate total FPC
 		patch.fpc_total = 0;
 		Vegetation& vegetation = patch.vegetation;
@@ -604,7 +613,7 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 
 	if(run_landcover)
 		dailyaccounting_patch_landcover(patch, pftlist);
-	
+
 	// Store daily soil water in both layers
 	soil.dwcontupper[date.day]=soil.wcont[0];
 	soil.dwcontlower[date.day]=soil.wcont[1];
@@ -615,11 +624,11 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 
 		soil.mwcontupper=mean(soil.dwcontupper+date.day-date.ndaymonth[date.month]+1,
 			date.ndaymonth[date.month]);
-		
-		// guess2008 - record water in lower layer too, and then update mwcont  
+
+		// guess2008 - record water in lower layer too, and then update mwcont
 		soil.mwcontlower=mean(soil.dwcontlower+date.day-date.ndaymonth[date.month]+1,
 			date.ndaymonth[date.month]);
-		
+
 		soil.mwcont[date.month][0] = soil.mwcontupper;
 		soil.mwcont[date.month][1] = soil.mwcontlower;
 
@@ -669,36 +678,31 @@ void respiration_temperature_response(double temp,double& gtemp) {
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // DAYLENGTH, INSOLATION AND POTENTIAL EVAPOTRANSPIRATION
-// Called by framework each simulation day following update of daily air temperature 
+// Called by framework each simulation day following update of daily air temperature
 // and before canopy exchange processes
 
 void daylengthinsoleet(Climate& climate) {
 
-	// DESCRIPTION
 	// Calculation of daylength, insolation and equilibrium evapotranspiration
 	// for each day, given mean daily temperature, insolation (as percentage
 	// of full sunshine or mean daily instantaneous downward shortwave
 	// radiation flux, W/m2), latitude and day of year
 
 	// INPUT AND OUTPUT PARAMETER
-	// climate = stand climate
+	// climate = gridcell climate
 
-	const double QOO=1360.0;
-	const double BETA=0.17;
-	const double A=107.0;
-	const double B=0.2;
-	const double C=0.25;
-	const double D=0.5;
-	const double K=13750.98708;
-	const double FRADPAR=0.5;
+	const double QOO = 1360.0;
+	const double BETA = 0.17;
+	const double A = 107.0;
+	const double B = 0.2;
+	const double C = 0.25;
+	const double D = 0.5;
+	const double K = 13750.98708;
+	const double FRADPAR = 0.5;
 		// fraction of net incident shortwave radiation that is photosynthetically
 		// active (PAR)
 
-	double delta; // solar declination angle (radians)
-	double rs_day; // daily net downward shortwave radiation sum (J/m2/day)
-	double rl; // instantaneous net upward longwave radiation flux (W/m2)
-	double eet_day; // equilibrium evapotranspiration sum (mm/day)
-	double w,gamma,lambda,s,uu,vv,hn;
+	double w, hn;
 
 	//	CALCULATION OF NET DOWNWARD SHORT-WAVE RADIATION FLUX
 	//	Refs: Prentice et al 1993, Monteith & Unsworth 1990,
@@ -751,26 +755,26 @@ void daylengthinsoleet(Climate& climate) {
 	//	Define
 	//	 (9) u = sin(lat) * sin(delta)
 	//	(10) v = cos(lat) * cos(delta)
-	//	Thus 
+	//	Thus
 	//	(11) hh = acos (-u/v)
 	//	To obtain the daily net downward short-wave radiation sum, integrate
 	//	equation (6) from -hh to hh with respect to h,
-	//	(12) rs_day = 2 * (c + d*ni) * (1 - beta) * Qo *
+	//	(12) rad = 2 * (c + d*ni) * (1 - beta) * Qo *
 	//	              ( u*hh + v*sin(hh) )
 	//	Define
 	//	(13) w = (c + d*ni) * (1 - beta) * Qo
 	//	From (12) & (13), and converting from angular units to seconds
-	//	(14) rs_day = 2 * w * ( u*hh + v*sin(hh) ) * k
+	//	(14) rad = 2 * w * ( u*hh + v*sin(hh) ) * k
 
 	if (!climate.doneday[date.day]) {
 
 		// Calculate values of saved parameters for this day
-
-		climate.qo[date.day]=QOO*(1.0+2.0*0.01675
-			*cos(2.0*PI*((double)date.day+0.5)/365.0)); // Eqn 2
-		delta=-23.4*DEGTORAD*cos(2.0*PI*((double)date.day+10.5)/365.0); // Eqn 4
-		climate.u[date.day]=climate.sinelat*sin(delta); // Eqn 9
-		climate.v[date.day]=climate.cosinelat*cos(delta); // Eqn 10
+		climate.qo[date.day] = QOO * (1.0 + 2.0 * 0.01675 *
+							cos(2.0*PI*((double)date.day+0.5)/365.0)); // Eqn 2
+		double delta = -23.4 * DEGTORAD * cos(2.0*PI*((double)date.day+10.5)/365.0);
+				// Eqn 4, solar declination angle (radians)
+		climate.u[date.day] = climate.sinelat * sin(delta); // Eqn 9
+		climate.v[date.day] = climate.cosinelat * cos(delta); // Eqn 10
 
 		if (climate.u[date.day]>=climate.v[date.day])
 			climate.hh[date.day]=PI; // polar day
@@ -783,19 +787,19 @@ void daylengthinsoleet(Climate& climate) {
 
 		// Calculate daylength in hours from hh
 
-		climate.daylength_save[date.day]=24.0*climate.hh[date.day]/PI;
-
-		climate.doneday[date.day]=true;
+		climate.daylength_save[date.day] = 24.0 * climate.hh[date.day] / PI;
+		climate.doneday[date.day] = true;
 	}
+	climate.daylength = climate.daylength_save[date.day];
 
-	if (climate.instype==SUNSHINE) { // insolation provided as percentage sunshine
-		
+	if (climate.instype == SUNSHINE) {		// insolation is percentage sunshine
+
 		w=(C+D*climate.insol/100.0)*(1.0-BETA)*climate.qo[date.day]; // Eqn 13
-		rs_day=2.0*w*(climate.u[date.day]*climate.hh[date.day]
-			+climate.v[date.day]*climate.sinehh[date.day])*K; // Eqn 14
+		climate.rad = 2.0*w*(climate.u[date.day]*climate.hh[date.day] +
+				climate.v[date.day]*climate.sinehh[date.day])*K; // Eqn 14
 
 	}
-	else { // insolation provided as instantaneous downward shortwave radiation flux 
+	else { // insolation provided as instantaneous downward shortwave radiation flux
 
 		// deal with the fact that insolation can be radiation during
 		// daylight hours or during whole time step
@@ -809,22 +813,36 @@ void daylengthinsoleet(Climate& climate) {
 
 		if (climate.instype == NETSWRAD || climate.instype == NETSWRAD_TS) {
 			// net radiation known
-			rs_day = climate.insol*averaging_period;
+			climate.rad = climate.insol * averaging_period;
+			
+			// If using diurnal data with SWRAD or SWRAD_TS insolation type move
+			// the following if-clause outside and below this if-else clause.
+			if (date.diurnal()) {
+				climate.pars.resize(date.subdaily);
+				climate.rads.resize(date.subdaily);
+				for (int i=0; i<date.subdaily; i++) {
+					climate.rads[i] = climate.insols[i] * averaging_period;
+					climate.pars[i] = climate.rads[i] * FRADPAR;
+				}
+			}
 		}
 		else {
 			// include correction for albedo
-			rs_day = climate.insol*(1.0-BETA)*averaging_period;
+			climate.rad = climate.insol*(1.0-BETA)*averaging_period;
 		}
 
 		// special case for polar night
-		if (climate.sinehh[date.day]<0.001) {
-			w=0.0 ; // polar night
+		if (climate.sinehh[date.day] < 0.001) {	// polar night
+			w = 0;
 		}
 		else {
-			w=rs_day/2.0/(climate.u[date.day]*climate.hh[date.day]
+			w = climate.rad/2.0/(climate.u[date.day]*climate.hh[date.day]
 				+climate.v[date.day]*climate.sinehh[date.day])/K; // from Eqn 14
 		}
 	}
+
+	// Calculate PAR from radiation (Eqn A1, Haxeltine & Prentice 1996)
+	climate.par = climate.rad * FRADPAR;
 
 	//	CALCULATION OF DAILY EQUILIBRIUM EVAPOTRANSPIRATION
 	//	(EET, or evaporative demand)
@@ -878,44 +896,30 @@ void daylengthinsoleet(Climate& climate) {
 	//	(26) eet_day = 2 * ( s / (s + gamma) / lambda ) *
 	//	               ( uu*hn + vv*sin(hn) ) * k
 
-	rl=(B+(1.0-B)*(w/climate.qo[date.day]/(1.0-BETA)-C)/D)*(A-climate.temp); // Eqn 19
+	double rl = (B + (1.0-B)*(w/climate.qo[date.day]/(1.0-BETA)-C)/D) *
+				(A - climate.temp); // Eqn 19: instantaneous net upward longwave radiation flux (W/m2)
 
 	//	Calculate gamma and lambda
+	double gamma = 65.05 + climate.temp * 0.064;
+	double lambda = 2.495e6 - climate.temp * 2380.;
 
-	gamma=65.05+climate.temp*0.064;
-	lambda=2.495E6-climate.temp*2380.0;
+	double ct = 237.3 + climate.temp;
+	double s = 2.503e6 * exp(17.269 * climate.temp / ct) / ct / ct;		// Eqn 16
 
-	s=2.503E6*exp(17.269*climate.temp/(237.3+climate.temp))/
-		(237.3+climate.temp)/(237.3+climate.temp); // Eqn 16
+	double uu = w * climate.u[date.day] - rl;			// Eqn 20
+	double vv = w * climate.v[date.day];				// Eqn 21
 
-	uu=w*climate.u[date.day]-rl; // Eqn 20
-	vv=w*climate.v[date.day]; // Eqn 21
-
-	//	Calculate half-period with positive net radiation, hn
-	//	In Eqn (25), hn defined for uu in range -vv to vv
-	//	For uu >= vv, hn = pi (12 hours, i.e. polar day)
-	//	For uu <= -vv, hn = 0 (i.e. polar night)
-
+	// Calculate half-period with positive net radiation, hn
+	// In Eqn (25), hn defined for uu in range -vv to vv
+	// For uu >= vv, hn = pi (12 hours, i.e. polar day)
+	// For uu <= -vv, hn = 0 (i.e. polar night)
 	if (uu>=vv) hn=PI; // polar day
 	else if (uu<=-vv) hn=0.0; // polar night
 	else hn=acos(-uu/vv); // Eqn 25
 
-	//	Calculate total EET for this day
-
-	eet_day=2.0*(s/(s+gamma)/lambda)*(uu*hn+vv*sin(hn))*K; // Eqn 26
-
-	// Transfer output to member variables of Climate object
-
-	climate.rad=rs_day;
-	climate.eet=eet_day;
-	climate.daylength=climate.daylength_save[date.day];
-
-	// Calculate PAR from radiation
-	// Eqn A1, Haxeltine & Prentice 1996
-
-	climate.par=rs_day*FRADPAR;
+	// Calculate total EET (equilibrium evapotranspiration) for this day, mm/day
+	climate.eet = 2.0*(s/(s+gamma)/lambda)*(uu*hn+vv*sin(hn))*K;	// Eqn 26;
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES

@@ -160,12 +160,11 @@ const int COLDEST_DAY_SHEMISPHERE=195;
 const int OUTPUT_MAXAGECLASS=2000;
 	// maximum number of age classes in age structure plots produced by function
 	// outannual
-
-	// guess2008 - this is now a global, constant variable Previously, we had duplicate definitions in 
-	// both canexch.cpp and soilwater.cpp
 const double PRIESTLEY_TAYLOR=1.32;
 	// Priestley-Taylor coefficient (conversion factor from equilibrium
 	// evapotranspiration to PET)
+const double K2degC = 273.15;	// kelvin to deg c conversion
+const double CO2_CONV = 1.0e-6;	// conversion factor for CO2 from ppmv to mole fraction
 
 const int NCROPSTANDS_MAX=26;
 
@@ -283,6 +282,9 @@ public:
 	/// year since start of simulation (0=first simulation year)		
 	int year;
 
+	/// number of subdaily periods in a day (to be set in IO module)
+	int subdaily;
+
 	/// julian day for middle day of each month		
 	int middaymonth[12];
 
@@ -318,6 +320,7 @@ public:
 			middaymonth[month]=dayct+data[month]/2;
 			dayct+=data[month];
 		}
+		subdaily = 1;
 	}
 
 	/// Initialises date to day 0 of year 0 and sets intended number of simulation years
@@ -375,6 +378,44 @@ public:
 		if (month<11) return month+1;
 		return 0;
 	}
+
+	/// Check if the year is leap
+	/** \param year        Calendar year
+	*   The algorith is as follows: only year that are divisible by 4 could
+	*   potentially be leap (e.g., 1904), however, not if they're divisble by
+	*   100 (e.g., 1900 is not leap), unless they're divisble by 400 (e.g., 2000
+	*   is still leap).
+	*/
+	static bool is_leap(int year) {
+		return (!(year % 4) && (year % 100 | !(year % 400)));
+	}
+	
+	/// Whether the current mode is diurnal
+	bool diurnal() const { return subdaily > 1; }
+};
+
+/// Object describing sub-daily periods
+class Day {
+public:
+	/// Whether sub-daily period first/last within day (both true in daily mode)
+	bool isstart, isend;
+	
+	/// Ordinal number of the sub-daily period [0, date.subdaily)
+	int period;
+
+	/// Constructs beginning of the day period (the only one in daily mode)
+	Day() {
+		isstart = true;
+		isend = !date.diurnal();
+		period = 0;
+	}
+
+	/// Advances to the next sub-daily period
+	void next() {
+		period++;
+		isstart = false;
+		isend = period == date.subdaily - 1;
+	}
 };
 
 /// This struct contains the result of a photosynthesis calculation.
@@ -390,14 +431,15 @@ struct PhotosynthesisResult {
 	 *  takes place.
 	 */
 	void clear() {
-		agd_g      = 0.0;
-		adtmm      = 0.0;
-		rd_g       = 0.0;
-		pi_co2_opt = 0.0;
-		gammastar  = 0.0;
-		apar       = 0.0;
-		phi_pi     = 0.0;
+		agd_g = 0;
+		adtmm = 0;
+		rd_g  = 0;
+		vm    = 0;
+		je    = 0;
 	}
+
+	/// RuBisCO capacity (gC/m2/day)
+	double vm;
 
 	/// gross daily photosynthesis (gC/m2/day)
 	double agd_g;
@@ -409,31 +451,12 @@ struct PhotosynthesisResult {
 	/// leaf respiration (gC/m2/day)
 	double rd_g;
 
-	/// non-water-stressed intercellular partial pressure of CO2 (Pa)
-	double pi_co2_opt;
-
-	/// CO2 compensation point in partial pressure units (Pa)
-    double gammastar;
-
-	/// amount of PAR absorbed at leaf level (J m-2 d-1)
-    double apar;
-
-	/// factor accounting for effect of intercellular CO2 concentration on C4 photosynthesis
-    double phi_pi;
-
-	/// gross daily photosynthesis (kgC/m2/day)
-    double agd() const {
-        return agd_g/1000.0;
-    }
-
-	/// leaf-level net daytime photosynthesis (kgC/m2/day)
-    double rd() const {
-        return rd_g/1000.0;
-    }
+	/// PAR-limited photosynthesis rate (gC/m2/h)
+    double je;
 
 	/// net C-assimilation (gross photosynthesis minus leaf respiration) (kgC/m2/day)
     double net_assimilation() const {
-        return agd()-rd();
+		return (agd_g - rd_g) * 1e-3;
     }
 };
 
@@ -534,8 +557,13 @@ public:
 	bool doneday[365];
 		// indicates whether saved values exist for this day
 
-	// bvoc
-	double dtr; // diurnal temperature range (oC)
+	double dtr; // diurnal temperature range, used in daily/monthly BVOC (deg C)
+
+	std::vector<double> temps, insols, pars, rads, gtemps;
+		// containers for sub-daily values of temperature, short-wave downward
+		// radiation, par, rad and gtemp (equivalent to temp, insol, par, rad and gtemp)
+		// NB: units of these variable are the same as their daily counterparts,
+		// i.e. representing daily averages (e.g. pars [J/m2/day])
 
 	double dprec_10[10];	// daily precipitations for the last 10 days (mm)
 	double sprec_2[2];		// daily 10 day-sums of precipitations for today and yesterday (mm)
@@ -578,7 +606,6 @@ public:
 	// MEMBER FUNCTIONS
 
 public:
-
 	Climate(Gridcell& gc):gridcell(gc) {
 		memset(mtemp_20, 0, sizeof(double)*20*12);
 		memset(mtemp20, 0, sizeof(double)*12);
@@ -867,14 +894,10 @@ public:
 	        // aerodynamic conductance (m s-1)
 	double eps_iso;
  	        // isoprene emission capacity (ug C g-1 h-1)
-	double Y_eps_iso;
-	        // fraction of electron transport to isoprene production under standard conditions (-)
 	bool seas_iso; 
 	        // whether (1) or not (1) isoprene emissions show a seasonality
 	double eps_mon;
 	        // monoterpene emission capacity (ug C g-1 h-1)
-	double Y_eps_mon;
-	        // fraction of electron transport to monoterpene production under standard conditions (-)
 	double storfrac_mon;
 	        // fraction of monoterpene production that goes into storage pool (-)
 	
@@ -1072,8 +1095,6 @@ class Pftlist : public ListArray_id<Pft> {};
 
 struct cropindiv_struct
 {
-	double anpp_sdate;
-	double anpp_bicdate;
 	double cmass_plant;			// whole crop plant carbon
 	double cmass_ho;			// harvestable crop organ carbon
 	double cmass_agpool;		// above-ground pool (when calculating daily cmass_leaf from lai_crop)
@@ -1117,8 +1138,6 @@ struct cropindiv_struct
 
 	cropindiv_struct()
 	{
-		anpp_sdate=0.0;
-		anpp_bicdate=0.0;
 		cmass_plant=0.0;
 		cmass_ho=0.0;
 		cmass_agpool=0.0;
@@ -1265,8 +1284,6 @@ public:
 		// FPAR assuming full leaf cover for all vegetation
 	double lai_leafon_layer;
 		// LAI for current layer in canopy (cohort/individual mode; see function fpar)
-	double gp_leafon;
-		// non-water-stressed canopy conductance on FPC basis (mm/s)
 	double demand;
 		// transpirative demand on FPC basis (mm/day)
 	double demand_leafon;
@@ -1292,7 +1309,7 @@ public:
 	double daylength_wstress; // daylength (h)
 	double co2_wstress; // CO2 (ppmv)
 	int nday_wstress; // number of water-stress days for month
-	bool ifwstress; // whether individual subject to water stress today
+	bool wstress; // whether individual subject to water stress
 
 	bool alive; 
 		// guess2008 - whether this individual is truly alive. Set to false for first year 
@@ -1377,7 +1394,7 @@ public:
 
 	double awc_frac;
 		// available water holding capacity as fraction of soil volume
-	double awc[2];
+	double awc[NSOILLAYER];
 		// available water holding capacity of soil layers [0=upper layer] (mm)
 	double perc_base;
 		// coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice
@@ -1550,7 +1567,9 @@ public:
 /// One item in the Lookup_lambda table
 /** Each entry in the table holds photosynthesis values for a given lambda,
  *  we also store year and day to make sure we don't reuse items calculated
- *  for a previous day.
+ *  for a previous day. id is required to keep both daily and sub-daily tables
+ *  in diurnal mode, it doesn't play any role in monthly mode (just needs to be
+ *  the same, negative values given below are convention).
  *
  *  \see Lookup_lambda */
 struct Lookup_lambda_item {
@@ -1558,8 +1577,11 @@ struct Lookup_lambda_item {
 	int year;
 	int day;
 
+	/// id (monthly: -2; daily: -1; sub-daily: any non-negative value)
+	int i;
+
 	Lookup_lambda_item()
-			: photosynthesis(), year(-1), day(0) {
+			: photosynthesis(), year(-1), day(0), i(-1) {
 	}
 };
 
@@ -1585,20 +1607,21 @@ public:
 		position = 0;
 	}
 
-	bool getdata(int year,int day,PhotosynthesisResult& photosynthesis) {
-		Lookup_lambda_item& thisitem = data[position];
-		if (thisitem.year==year && thisitem.day==day) {
-			photosynthesis = thisitem.photosynthesis;
-			return true;
+	bool getdata(int year, int day, int i, PhotosynthesisResult& phot) {
+		Lookup_lambda_item& cur = data[position];
+		bool retval = cur.year == year && cur.day == day && cur.i == i;
+		if (retval) {
+			phot = cur.photosynthesis;
 		}
-		return false;
+		return retval;
 	}
 
-	void setdata(int year,int day, const PhotosynthesisResult& photosynthesis) {
+	void setdata(int year, int day, int i, const PhotosynthesisResult& phot) {
 		Lookup_lambda_item& thisitem = data[position];
 		thisitem.year = year;
 		thisitem.day = day;
-		thisitem.photosynthesis = photosynthesis;
+		thisitem.i = i;
+		thisitem.photosynthesis = phot;
 	}
 
 	void increase() {
@@ -1789,11 +1812,13 @@ public:
 		// litter derived from allocation to reproduction for PFT on modelled area
 		// basis (kgC/m2)
 
-	// Variables used by "fast" canopy exchange code (Ben Smith 2002-07)
-
 	double gcbase;
 		// non-FPC-weighted canopy conductance value for PFT under water-stress
 		// conditions (mm/s)
+	double gcbase_day;				// daily value of the above variable (mm/s)
+	double gcbase_wstress;
+		// cumulative mean non-FPAR-weighted value for canopy conductance value
+		// for PFT under water-stress conditions (mm/s)
 	double temp_wstress;
 		// cumulative mean temperature for water stress days this month (deg C)
 	double par_wstress;
@@ -1811,13 +1836,15 @@ public:
 	double gpterm_wstress;
 		// cumulative mean non-FPAR-weighted value for canopy conductance component
 		// associated with photosynthesis for water stress (mm/s)
+	PhotosynthesisResult phot_wstress;
+		// contains averaged values for water-stressed days
 	double supply;
 		// evapotranspirational "supply" function for this PFT today (mm/day)
 	double supply_leafon;
 	double fuptake[NSOILLAYER];
 		// fractional uptake of water from each soil layer today
-	bool ifwstress;
-		// whether water-stress conditions for this PFT today
+	bool wstress;				// whether water-stress conditions for this PFT
+	bool wstress_day;			// daily version of the above variable
 	Lookup_lambda lookup_lambda;
 		// lookup table for values of lambda (parameter in photosynthesis calculations)
 		// today (see canexch.cpp)
@@ -1940,8 +1967,10 @@ public:
 
 	double eet_net_veg;
 		// equilibrium evapotranspiration today, deducting interception (mm)
+
 	double demand;
-		// transpirative demand for patch today, mm/day, patch vegetative area basis
+		// transpirative demand for patch, patch vegetative area basis (mm/day)
+	double demand_day;			// daily average of the above variable (mm/day)
 	double demand_leafon;
 		// transpirative demand for patch assuming full leaf cover today, mm/day,
 		// patch vegetative area basis
@@ -1985,12 +2014,9 @@ public:
 	}
 };
 
-
-///////////////////////////////////////////////////////////////////////////////////////
-// STANDPFT
-// State variables common to all individuals of a particular PFT in a stand. Used in
-// individual and cohort modes only.
-
+/// Container for variables common to individuals of a particular PFT in a stand.
+/** Used in individual and cohort modes only
+ */
 class Standpft {
 
 public:
@@ -2008,15 +2034,19 @@ public:
 	double gpterm;
 		// non-FPAR-weighted value for canopy conductance component associated with
 		// photosynthesis for PFT under non-water-stress conditions (mm/s)
+	std::vector<double> gpterms;		// sub-daily version of the above variable (mm/s)
 	double assim_term;
 		// non-FPAR-weighted leaf-level net photosynthesis value for PFT under non-
 		// water-stress conditions (kgC/m2/day)
+	std::vector<double> assim_terms;	// sub-daily version of the above variable (kgC/m2/day)
 	double fpc_total;
 		// FPC sum for this PFT as average for stand (used by some versions of
 		// guessio.cpp)
 
 	/// Photosynthesis values for this PFT under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;
+	/// sub-daily version of the above variable (NB: daily units)
+	std::vector<PhotosynthesisResult> phots;
 
 	/// Is this PFT allowed to grow in this stand?
 	bool active;

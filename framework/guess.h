@@ -1360,7 +1360,7 @@ public:
 ///////////////////////////////////////////////////////////////////////////////////////
 // CENTURY SOIL POOL
 
-class Sompool {
+class Sompool : public Serializable {
 
 public:
 
@@ -1399,6 +1399,8 @@ public:
 		litterme = 0.0;
 		fireresist = 0.0;
 	};
+
+	void serialize(ArchiveStream& arch);
 };
 
 /// Soil stores state variables for soils and the snow pack. 

@@ -1866,6 +1866,8 @@ public:
 		wscal_mean=1.0;
 		anetps_ff=0.0;
 		aphen=0.0;
+		phen=0.0;
+		supply=0.0;
 
 		cropphen=NULL;
 		harvested_products_slow=0.0;
@@ -2000,6 +2002,8 @@ public:
 
 		age=0;
 		disturbed=false;
+		demand=0.0;
+		demand_leafon=0.0;
 		
 		// guess2008 - initialise
 		growingseasondays=0;

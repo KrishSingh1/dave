@@ -1745,12 +1745,11 @@ bool getgridcell(Gridcell& gridcell) {
 		
 		// Tell framework the coordinates of this grid cell
 		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
-		gridcell.climate.lon=gridlist.getobj().lon;
 
 		// Set CFT-specific members of climate and gridcellpft: 
 		if (run_landcover && run[CROPLAND]) 
 		{
-			if (gridcell.climate.lat>=0) 
+			if (gridcell.get_lat()>=0) 
 			{
 				gridcell.climate.testday_temp=180;		//June 30(day 180)
 				gridcell.climate.testday_prec=364;		//Dec.31(day 364)
@@ -1765,7 +1764,7 @@ bool getgridcell(Gridcell& gridcell) {
 				gridcell.climate.adjustlat=181;
 			}
 
-			if(gridcell.climate.lat>-15.0 && gridcell.climate.lat<20.0 && gridcell.climate.lon>90.0)
+			if(gridcell.get_lat()>-15.0 && gridcell.get_lat()<20.0 && gridcell.get_lon()>90.0)
 				gridcell.climate.SOAsia=true;
 			else
 				gridcell.climate.SOAsia=false;
@@ -1774,7 +1773,7 @@ bool getgridcell(Gridcell& gridcell) {
 			{
 				Gridcellpft& gcpft=gridcell.pft[p];
 
-				if (gridcell.climate.lat>=0.0)
+				if (gridcell.get_lat()>=0.0)
 				{
 					gcpft.sdate_default=gcpft.pft.sdatenh;
 					gcpft.hlimitdate_default=gcpft.pft.hlimitdatenh;
@@ -1785,7 +1784,7 @@ bool getgridcell(Gridcell& gridcell) {
 					gcpft.hlimitdate_default=gcpft.pft.hlimitdatesh;
 				}
 
-				if (!strncmp(gcpft.pft.name,"TrRi", strlen("TrRi")) && gridcell.climate.lon>=60.0 && gridcell.climate.lat<=30.0)		//double cropping in China and Japan: OK ??? Bondeau sätter detta i leaf_phenology_crop
+				if (!strncmp(gcpft.pft.name,"TrRi", strlen("TrRi")) && gridcell.get_lon()>=60.0 && gridcell.get_lat()<=30.0)		//double cropping in China and Japan: OK ??? Bondeau sätter detta i leaf_phenology_crop
 					gcpft.singlecrop=false;
 			}
 		}
@@ -2074,12 +2073,12 @@ if(!SUPPRESSLARGEOUTPUT)
 						if(pft.landcover==CROPLAND)
 						{
 							
-							if(!strcmp(pft.name,"TeWW") && (gridcell.climate.lat>30 || gridcell.climate.lat<-30))	//bugfix 100923
+							if(!strcmp(pft.name,"TeWW") && (gridcell.get_lat()>30 || gridcell.get_lat()<-30))	//bugfix 100923
 							{
 								gridcell.cftfrac[pft.cftid]=1.0;				//bugfix 100923
 								dprintf("Wheat fraction set to 1.0.\n");
 							}
-							else if(!strcmp(pft.name,"TrMi") && (gridcell.climate.lat<=30 && gridcell.climate.lat>=-30))	//bugfix 100923, 101027
+							else if(!strcmp(pft.name,"TrMi") && (gridcell.get_lat()<=30 && gridcell.get_lat()>=-30))	//bugfix 100923, 101027
 							{
 								gridcell.cftfrac[pft.cftid]=1.0;				//bugfix 100923	
 								dprintf("Millet fraction set to 1.0.\n");

@@ -1797,10 +1797,10 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 	}
 
 	if (day.isend) {
-	// Update annual and monthly vegetation-atmosphere flux
-	patch.fluxes.acflux_veg+=patch.fluxes.dcflux_veg;
-	patch.fluxes.mcflux_veg[date.month]+=patch.fluxes.dcflux_veg;
-}
+		// Update annual and monthly vegetation-atmosphere flux
+		patch.fluxes.acflux_veg+=patch.fluxes.dcflux_veg;
+		patch.fluxes.mcflux_veg[date.month]+=patch.fluxes.dcflux_veg;
+	}
 }
 
 /// Forest-floor conditions

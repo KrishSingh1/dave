@@ -2077,7 +2077,7 @@ void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, do
 				}
 				if (!strncmp(pft.name,"TrRi", strlen("TrRi")) && date.year<=1)
 				{
-					if (climate.lon<60.0 || climate.lat>30.0)
+					if (patch.stand.gridcell.get_lon()<60.0 || patch.stand.gridcell.get_lat()>30.0)
 						ppftcrop.phu=1600.0;
 				}
 			}

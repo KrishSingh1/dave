@@ -88,6 +88,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& daylength
 		& co2
 		& lat
+		& lon
 		& insol
 		& instype
 		& eet
@@ -96,6 +97,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& mtemp_max20
 		& mtemp_max
 		& gdd5
+		& gdd5_pasture
 		& agdd5 
 		& chilldays
 		& ifsensechill
@@ -115,7 +117,32 @@ void Climate::serialize(ArchiveStream& arch) {
 		& cosinelat
 		& qo & u & v & hh & sinehh
 		& daylength_save
-		& doneday;
+		& doneday
+		& dprec_10
+		& sprec_2
+		& maxtemp
+		& testday_temp
+		& testday_prec
+		& coldestday
+		& adjustlat
+		& mtemp_20
+		& mprec_20
+		& mpet_20
+		& mprec_pet_20
+		& mprec_petmin_20
+		& mprec_petmax_20
+		& mtemp20
+		& mprec20
+		& mpet20
+		& mprec_pet20
+		& mprec_petmin20
+		& mprec_petmax20
+		& seasonality
+		& prec_seasonality
+		& var_prec
+		& var_temp
+		& aprec
+		& SOAsia;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -136,8 +163,10 @@ void Fluxes::serialize(ArchiveStream& arch) {
 		& mcflux_gpp
 		& mcflux_ra
 		& miso
-		& mmon;
+		& mmon
+		& acflux_seed;
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Vegetation member functions
@@ -239,7 +268,52 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& wstress
 		& wstress_day
 		& harvested_products_slow
-		& phot_wstress;
+		& phot_wstress
+		& swindow
+		& water_deficit_y
+		& *cropphen;
+}
+
+void cropphen_struct::serialize(ArchiveStream& arch) {
+	arch & lai_crop_actual
+		& sdate
+		& sdate_harv
+		& sdate_harvest
+		& sdate_thisyear 
+		& hdate
+		& hdate_harvest
+		& hlimitdate
+		& hucountend
+		& nharv
+		& sendate
+		& bicdate 
+		& eicdate
+		& tb
+		& pvd
+		& vdsum
+		& vrf
+		& prf
+		& phu 
+		& phu_old
+		& husum_max
+		& husum_max_postharv
+		& husum_max_hlim
+		& husum_max_10
+		& husum_h
+		& husum
+		& fphu 
+		& fphu_harv
+		& est_year
+		& demandsum_crop
+		& supplysum_crop
+		& lai
+		& fpc
+		& growingseason 
+		& growingseason_ystd
+		& senescence
+		& senescence_ystd
+		& intercropseason
+		& maincrop;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -289,7 +363,8 @@ void Patch::serialize(ArchiveStream& arch) {
 		& mevap
 		& mintercep
 		& mrunoff
-		& mpet;
+		& mpet
+		& irrigation_y;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -411,7 +486,13 @@ void Stand::serialize(ArchiveStream& arch) {
 	}
 
 	arch & first_year
-		& frac;
+		& frac
+		& pftid
+		& cftid
+		& isirrigated
+		& hasgrassintercrop
+		& gdd0_intercrop
+		& seed;
 }
 
 
@@ -484,6 +565,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 //	dprintf("Year %d: Individual in stand %d created:id=%d, pft=%s\n", ::date.year-nyear_spinup+1901,vegetation.patch.stand.id,id,(char*)pft.name);
 #endif
 }
+
 void Individual::serialize(ArchiveStream& arch) {
 	arch & cmass_leaf
 		& cmass_root
@@ -540,7 +622,8 @@ void Individual::serialize(ArchiveStream& arch) {
 		& dtr_wstress 
 		& eet_wstress 
 		& agdd5_wstress 
-		& rad_wstress; 
+		& rad_wstress
+		& *cropindiv; 
 }
 
 Individual::~Individual()
@@ -569,6 +652,19 @@ cropindiv_struct* Individual::set_cropindiv()
 		return cropindiv;
 }
 
+void cropindiv_struct::serialize(ArchiveStream& arch) {
+	arch & grs_cmass_plant
+		& grs_cmass_leaf
+		& grs_cmass_root
+		& grs_cmass_ho
+		& grs_cmass_agpool 
+		& est_year
+		& isprimarycrop
+		& isprimarycovegetation
+		& isintercropgrass;
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Gridcellpft member functions
@@ -576,7 +672,31 @@ cropindiv_struct* Individual::set_cropindiv()
 
 
 void Gridcellpft::serialize(ArchiveStream& arch) {
-	arch & addtw;
+	arch & addtw
+		& autumnoccurred
+		& springoccurred
+		& vernstartoccurred
+		& vernendoccurred 
+		& precoccurred
+		& first_autumndate
+		& first_autumndate20
+		& first_autumndate_20
+		& last_springdate
+		& last_springdate20
+		& last_springdate_20 
+		& last_verndate
+		& last_verndate20
+		& last_verndate_20
+		& first_precdate
+		& sdate_default
+		& sdatecalc_temp
+		& sdatecalc_prec 
+		& sdate_force
+		& hdate_force
+		& hlimitdate_default
+		& wintertype
+		& singlecrop
+		& swindow;
 }
 
 
@@ -601,6 +721,8 @@ void Gridcell::serialize(ArchiveStream& arch) {
 	arch & climate
 		& landcoverfrac
 		& landcoverfrac_old
+		& cftfrac
+		& cftfrac_old
 		& LC_updated;
 
 	if (arch.save()) {

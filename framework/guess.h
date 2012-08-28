@@ -598,7 +598,6 @@ public:
 	prec_seasonality_type prec_seasonality;
 	prec_seasonality_type prec_range;
 	temp_seasonality_type temp_seasonality;
-	bool biseasonal;
 
 	double var_prec;
 	double var_temp;
@@ -631,8 +630,8 @@ public:
 		mprec_petmax20=0.0;		//111115
 
 		seasonality=SEASONALITY_NO;
-/*		prec_seasonality=DRY;
-		prec_range=DRY;
+		prec_seasonality=DRY;
+/*		prec_range=DRY;
 		temp_seasonality=COLD;
 		biseasonal=false;
 */
@@ -1100,8 +1099,9 @@ extern Pftlist pftlist;
 //cropindiv_struct
 //container for crop-specific data at the individual level
 
-struct cropindiv_struct
-{
+class cropindiv_struct : public Serializable {
+
+public:
 	double cmass_plant;			// whole crop plant carbon
 	double cmass_ho;			// harvestable crop organ carbon
 	double cmass_agpool;		// above-ground pool (when calculating daily cmass_leaf from lai_crop)
@@ -1119,11 +1119,6 @@ struct cropindiv_struct
 	double grs_cmass_root;
 	double grs_cmass_ho;
 	double grs_cmass_agpool;
-	double grs_cmass_plant_ny;		// saved growing season values at new year 
-	double grs_cmass_leaf_ny;
-	double grs_cmass_root_ny;
-	double grs_cmass_ho_ny;
-	double grs_cmass_agpool_ny;
 	double ycmass_plant;		// this year's values (cumulative)
 	double ycmass_leaf;
 	double ycmass_root;
@@ -1163,11 +1158,6 @@ struct cropindiv_struct
 		grs_cmass_plant=0.0;
 		grs_cmass_ho=0.0;
 		grs_cmass_agpool=0.0;
-		grs_cmass_leaf_ny=0.0;
-		grs_cmass_root_ny=0.0;
-		grs_cmass_plant_ny=0.0;
-		grs_cmass_ho_ny=0.0;
-		grs_cmass_agpool_ny=0.0;
 		ycmass_leaf=0.0;
 		ycmass_root=0.0;
 		ycmass_plant=0.0;
@@ -1188,6 +1178,8 @@ struct cropindiv_struct
 //		issecondarycrop=false;
 		isintercropgrass=false;
 	}
+
+	void serialize(ArchiveStream& arch);
 };
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -1646,17 +1638,16 @@ public:
 };
 
 
-struct cropphen_struct
-{
+class cropphen_struct : public Serializable {
+
+public:
 	double lai_crop_actual;
 	int sdate;
-	int sdate_first;
 	int sdate_harv;
 	int sdate_harvest[2];	
 	int sdate_thisyear[2];
 	int nsow;
 	int hdate;
-	int hdate_first;
 	int hdate_harvest[2];	
 	int hlimitdate;			//NB: not always the same as gridcellpft.hlimitdate_default (dynamic for TrRi)
 	int hucountend;
@@ -1681,10 +1672,8 @@ struct cropphen_struct
 	double husum_h;
 	double husum;	// heat units sum (°Cd)
 	double fphu;	// fraction of growing season [0-1]
-	double fphu_ystd;
 	double fphu_harv;	// fraction of growing season at latest harvest
 //	double fphu_harvest[2];		
-	double flaimax;	// corrected fraction of plant maximal LAI [0-1]
 	double hi;		// harvest index [0-1, >1 if below-ground ho]
 	double hi_ystd;
 	double fhi;		// Fraction of harvest index
@@ -1697,7 +1686,6 @@ struct cropphen_struct
 	double supplysum_crop;
 	double lai;		// copy of indiv.lai (in allometry directly after lai calculation)
 	double fpc;		// copy of indiv.fpc (in allometry directly after fpc calculation)
-	double gcbase_sen;	
 
 	bool growingseason;
 	bool growingseason_ystd;
@@ -1710,13 +1698,11 @@ struct cropphen_struct
 	{
 		lai_crop_actual=0.0;
 		sdate=-1;
-		sdate_first=-1;
 		sdate_harv=-1;
 		nsow=0;
 		sownlastyear=false;	
 		sendate=-1;		
 		hdate=-1;				
-		hdate_first=-1;	
 		hlimitdate=-1;
 		hucountend=-1;
 		nharv=0;
@@ -1734,9 +1720,7 @@ struct cropphen_struct
 		prf=1.0;
 		husum=0.0;
 		fphu=0.0;
-		fphu_ystd=0.0;
 		fphu_harv=0.0;
-		flaimax=0.0;
 
 		hi=0.0;
 		hi_ystd=0.0;
@@ -1747,7 +1731,6 @@ struct cropphen_struct
 		est_year=-1;
 		demandsum_crop=0.0;
 		supplysum_crop=0.0;
-		gcbase_sen=0.0;
 
 		growingseason=false;	//Initialized to true for normal grass growth (CC3G & CC4G) in establishment
 		growingseason_ystd=false;
@@ -1768,6 +1751,8 @@ struct cropphen_struct
 //			fphu_harvest[j]=-1.0;		
 		}
 	}
+
+	void serialize(ArchiveStream& arch);
 };
 
 
@@ -1863,6 +1848,8 @@ public:
 
 	double water_deficit_d;
 	double water_deficit_y;
+//private:
+	cropphen_struct *cropphen;
 
 	// MEMBER FUNCTIONS:
 
@@ -1903,9 +1890,6 @@ public:
 //	const cropphen_struct* get_cropphen();
 	cropphen_struct* get_cropphen();
 	cropphen_struct* set_cropphen();
-
-//private:
-	cropphen_struct *cropphen;
 
 	void serialize(ArchiveStream& arch);
 };

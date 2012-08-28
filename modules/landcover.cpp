@@ -1954,11 +1954,9 @@ void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, do
 		{
 			ppftcrop.fphu_harv=-1.0;
 			ppftcrop.fhi_harv=-1.0;
-			ppftcrop.sdate_first=-1;
 			ppftcrop.sdate_harv=-1;
 			ppftcrop.nsow=0;
 			ppftcrop.sendate=-1;
-			ppftcrop.hdate_first=-1;
 			ppftcrop.nharv=0;
 
 			ppftcrop.sownlastyear=false;
@@ -1987,9 +1985,6 @@ void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, do
 			ppftcrop.bicdate=-1;	
 
 			ppftcrop.growingseason=true;
-
-			if(ppftcrop.sdate_first==-1)
-				ppftcrop.sdate_first=ppftcrop.sdate;
 			ppftcrop.nsow++;
 
 			if(ppftcrop.nsow==1)
@@ -2088,9 +2083,9 @@ void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, do
 			}
 
 #if defined DYNAMIC_PHU
-			ppftcrop.phu_old=ppftcrop.phu;
+			ppftcrop.phu_old=ppftcrop.phu;							//phu_old mainly for printout
 
-			if(patch.stand.first_year!=date.year)
+			if(patch.stand.first_year!=date.year)					//Insert condition here to use dynamic phu for a limited time
 				ppftcrop.phu=max(900.0, 0.9*ppftcrop.husum_max_10);
 #endif
 		}	// End of if(date.day==ppftcrop.sdate)
@@ -2102,7 +2097,6 @@ void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, do
 		if (date.day==ppftcrop.sdate || ppftcrop.growingseason) 
 		{
 			ppftcrop.senescence_ystd=ppftcrop.senescence;
-			ppftcrop.fphu_ystd=ppftcrop.fphu;
 			ppftcrop.hi_ystd=ppftcrop.hi;
 			ppftcrop.intercropseason=false;			
 
@@ -2200,8 +2194,6 @@ void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, do
 				ppftcrop.hdate=date.day;
 				ppftcrop.sdate_harv=ppftcrop.sdate;
 
-				if(ppftcrop.hdate_first==-1)
-					ppftcrop.hdate_first=ppftcrop.hdate;
 				ppftcrop.nharv++;
 
 				if(ppftcrop.nharv==1)

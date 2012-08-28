@@ -3,7 +3,7 @@
 /// \brief Implementation of the framework() function
 ///
 /// \author Ben Smith
-/// $Date: 2012-01-24 11:33:51 +0100 (Tue, 24 Jan 2012) $
+/// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -34,13 +34,9 @@ remove("CFTdata.old");
 rename("CFTdata.out", "CFTdata.old");
 #endif
 
-
-	// The one and only linked list of Pft objects	
-	Pftlist pftlist;
-
 	// Call input/output module to obtain PFT static parameters and simulation
 	// settings and initialise input/output
-	initio(argc,argv,pftlist);
+	initio(argc, argv);
 
 #ifdef MATS_TEST
 	dprintf("\n");
@@ -85,7 +81,7 @@ rename("CFTdata.out", "CFTdata.old");
 
 	// bvoc
 	if(ifbvoc){
-	  initbvoc(pftlist);
+	  initbvoc();
 	}
 
 	while (true) {
@@ -97,7 +93,7 @@ rename("CFTdata.out", "CFTdata.old");
 		date.init(1);
 
 		// Create and initialise a new Gridcell object for each locality
-		Gridcell gridcell(pftlist);	
+		Gridcell gridcell;	
 
 		// Call input/output to obtain latitude and soil driver data for this grid cell.
 		// Function getgridcell returns false if no further grid cells remain to be simulated
@@ -111,7 +107,7 @@ rename("CFTdata.out", "CFTdata.old");
 
 			if(run_landcover) {
 				//Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
-				landcover_init(gridcell,pftlist);
+			landcover_init(gridcell);
 			}
 			
 			// Call input/output to obtain climate, insolation and CO2 for this
@@ -123,7 +119,7 @@ rename("CFTdata.out", "CFTdata.old");
 				// START OF LOOP THROUGH SIMULATION DAYS
 
 				// Update daily climate drivers etc
-				dailyaccounting_gridcell(gridcell,pftlist);
+			dailyaccounting_gridcell(gridcell);
 
 				if (run_landcover && run[CROPLAND])
 					crop_sowing_gridcell(gridcell,pftlist);
@@ -134,7 +130,7 @@ rename("CFTdata.out", "CFTdata.old");
 				if(run_landcover && date.day==0) {
 					// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
 					if(date.year>=nyear_spinup)
-						landcover_dynamics(gridcell,pftlist);
+				landcover_dynamics(gridcell);
 /*
 					if(run[CROPLAND] && forcesowingdates)
 						getsowingdates(gridcell,pftlist);
@@ -150,7 +146,7 @@ rename("CFTdata.out", "CFTdata.old");
 
 					Stand& stand=gridcell.getobj();
 
-					dailyaccounting_stand(stand,pftlist);
+				dailyaccounting_stand(stand);
 
 					stand.firstobj();
 					while (stand.isobj) {
@@ -159,7 +155,7 @@ rename("CFTdata.out", "CFTdata.old");
 						// Get reference to this patch
 						Patch& patch=stand.getobj();
 						// Update daily soil drivers including soil temperature
-						dailyaccounting_patch(patch,pftlist);
+					dailyaccounting_patch(patch);
 
 						if(stand.landcover==CROPLAND)
 							crop_sowing_patch(patch, pftlist);
@@ -197,7 +193,7 @@ rename("CFTdata.out", "CFTdata.old");
 							// For each patch ...
 							Patch& patch=stand.getobj();
 							// Establishment, mortality and disturbance by fire
-							vegetation_dynamics(stand,patch,pftlist);
+						vegetation_dynamics(stand, patch);
 							stand.nextobj();
 						}
 					}
@@ -209,7 +205,7 @@ rename("CFTdata.out", "CFTdata.old");
 					// LAST DAY OF YEAR
 					// Call input/output module to output results for end of year
 					// or end of simulation for this grid cell
-					outannual(gridcell,pftlist);
+				outannual(gridcell);
 
 					// Check whether to abort
 					if (abort_request_received()) {

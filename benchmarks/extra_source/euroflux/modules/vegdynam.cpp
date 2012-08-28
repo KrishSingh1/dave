@@ -160,7 +160,7 @@ bool survive(Climate& climate,Pft& pft) {
 // ESTABLISHMENT
 // Internal functions (do not call directly from framework)
 
-void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
+void establishment_lpj(Stand& stand,Patch& patch) {
 
 	// DESCRIPTION
 	// Establishment in population (standard LPJ) mode.
@@ -337,7 +337,7 @@ void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
 }
 
 
-void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
+void establishment_guess(Stand& stand,Patch& patch) {
 
 	// DESCRIPTION
 	// Establishment in cohort or individual mode.
@@ -1413,7 +1413,7 @@ void disturbance(Patch& patch,double disturb_prob) {
 
 // guess2008 - euroflux - new subroutine - called ONLY after century_year >= current_stand_fluxdata->plantation_year
 
-void establishment_guess_plantation(Stand& stand,Patch& patch,Pftlist& pftlist, int century_year) {
+void establishment_guess_plantation(Stand& stand,Patch& patch, int century_year) {
 
 
 	// DESCRIPTION
@@ -1867,7 +1867,7 @@ void clearance(Patch& patch) {
 // Should be called by framework at the end of each simulation year, after vegetation,
 // climate and soil attributes have been updated
 
-void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
+void vegetation_dynamics(Stand& stand,Patch& patch) {
 
 
 	// DESCRIPTION
@@ -1896,7 +1896,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 		mortality_lpj(stand,patch,stand.gridcell.climate,fireprob);
 
 		// Establishment
-		establishment_lpj(stand,patch,pftlist);
+		establishment_lpj(stand,patch);
 
 	}
 	else {
@@ -1953,15 +1953,15 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 		// OLD CODE:
 
 		// Establishment
-		establishment_guess(stand,patch,pftlist);
+		establishment_guess(stand,patch);
 		
 		*/
 
 		if (century_year<plantation_year /* guess2008 - euroflux - eval */)
-			establishment_guess(stand,patch,pftlist);
+			establishment_guess(stand,patch);
 
 		if (century_year>=plantation_year /* guess2008 - euroflux - eval */)
-			establishment_guess_plantation(stand,patch,pftlist,century_year);
+			establishment_guess_plantation(stand,patch,century_year);
 
 	}
 

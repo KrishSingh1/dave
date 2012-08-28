@@ -398,7 +398,7 @@ void soiltemp(Climate& climate,Soil& soil) {
 
 
 /// Called each simulation day before any other driver or process functions
-void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
+void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 	// DESCRIPTION
 	// Updates daily climate parameters including growing degree day sums and
@@ -520,10 +520,10 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 	}
 }
 
-void dailyaccounting_stand(Stand& stand, Pftlist& pftlist) {
+void dailyaccounting_stand(Stand& stand) {
 	}
 
-void dailyaccounting_patch_landcover(Patch& patch, Pftlist& pftlist) {
+void dailyaccounting_patch_lc(Patch& patch) {
 	if(date.day==0) {
 		Fluxes& fluxes=patch.fluxes;
 
@@ -549,7 +549,7 @@ void dailyaccounting_patch_landcover(Patch& patch, Pftlist& pftlist) {
 	}
 }
 
-void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
+void dailyaccounting_patch(Patch& patch) {
 	// DESCRIPTION
 	// Updates daily soil parameters including exponential temperature response terms
 	// (gtemp, see below). Maintains monthly and longer term records of variation in
@@ -612,7 +612,7 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 	fluxes.dcflux_veg=0.0;
 
 	if(run_landcover)
-		dailyaccounting_patch_landcover(patch, pftlist);
+		dailyaccounting_patch_lc(patch);
 
 	// Store daily soil water in both layers
 	soil.dwcontupper[date.day]=soil.wcont[0];

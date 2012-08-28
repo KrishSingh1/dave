@@ -23,6 +23,6 @@ void bvoc(double temp, double hours, double daylength, double rad, double eet,
 		double agdd5, double dtr, double co2, double temp_day, double fpar, Patch& patch,
 		Individual& indiv, const Pft& pft, const PhotosynthesisResult& phot,
 		double adtmm, double gpterm, const Day& day, int ndays=1);
-void initbvoc(Pftlist& pftlist);
+void initbvoc();
 
 #endif // LPJ_GUESS_BVOC_H

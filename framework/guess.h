@@ -50,6 +50,7 @@ const bool SUPPRESSLARGEOUTPUT=false;
 #include <vector>
 #include "shell.h"
 #include "guessmath.h"
+#include "archive.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL ENUMERATED TYPE DEFINITIONS
@@ -420,7 +421,7 @@ public:
 
 /// This struct contains the result of a photosynthesis calculation.
 /** \see photosynthesis */  
-struct PhotosynthesisResult {
+struct PhotosynthesisResult : public Serializable {
 	/// Constructs an empty result
 	PhotosynthesisResult() {
 		clear();
@@ -458,6 +459,8 @@ struct PhotosynthesisResult {
     double net_assimilation() const {
 		return (agd_g - rd_g) * 1e-3;
     }
+
+	void serialize(ArchiveStream& arch);
 };
 
 
@@ -467,7 +470,7 @@ struct PhotosynthesisResult {
  *  a reference to the parent Gridcell object (defined below). Initialised by a 
  *  call to initdrivers.
  */
-class Climate {
+class Climate : public Serializable {
 
 	// MEMBER VARIABLES
 
@@ -664,6 +667,8 @@ public:
 		sinelat=sin(lat*DEGTORAD);
 		cosinelat=cos(lat*DEGTORAD);
 	}
+
+	void serialize(ArchiveStream& arch);
 };
 
 
@@ -676,7 +681,7 @@ public:
 // provided as part of the class functionality. One Fluxes object is defined for each
 // patch (see below).
 
-class Fluxes {
+class Fluxes : public Serializable {
 
 	// MEMBER VARIABLES
 	// (all CO2 fluxes on stand area basis, kgC/m2 ;
@@ -745,6 +750,7 @@ public:
 	}
 
 
+	void serialize(ArchiveStream& arch);
 };
 
 
@@ -1061,34 +1067,35 @@ public:
 };
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// PFTLIST
-// Functionality for building, maintaining, referencing and destroying a list array of
-// Pft objects. In general, frameworks should define a single Pftlist object containing
-// a single list of PFTs. Pft objects within the list are then referenced by the pft
-// member of each Individual object.
-//
-// Functionality is inherited from the ListArray_id template type in the GUTIL
-// Library. Sequential Pft objects can be referenced as array elements by id:
-//
-//   Pftlist pftlist;
-//   ...
-//   for (i=0; i<npft; i++) {
-//     Pft& thispft=pftlist[i];
-//     /* query or modify object thispft here */
-//   }
-//
-// or by iteration through the linked list:
-//
-//   pftlist.firstobj();
-//   while (pftlist.isobj) {
-//     Pft& thispft=pftlist.getobj();
-//     /* query or modify object thispft here */
-//     pftlist.nextobj();
-//   }
-
+/// A list of PFTs
+/** Functionality for building, maintaining, referencing and destroying a list array of
+ *  Pft objects. In general, there should be a single Pftlist object containing
+ *  a single list of PFTs. Pft objects within the list are then referenced by the pft
+ *  member of each Individual object.
+ *
+ * Functionality is inherited from the ListArray_id template type in the GUTIL
+ * Library. Sequential Pft objects can be referenced as array elements by id:
+ *
+ *   Pftlist pftlist;
+ *   ...
+ *   for (i=0; i<npft; i++) {
+ *     Pft& thispft=pftlist[i];
+ *     // query or modify object thispft here
+ *   }
+ *
+ * or by iteration through the linked list:
+ *
+ *   pftlist.firstobj();
+ *   while (pftlist.isobj) {
+ *     Pft& thispft=pftlist.getobj();
+ *     // query or modify object thispft here
+ *     pftlist.nextobj();
+ *   }
+ */
 class Pftlist : public ListArray_id<Pft> {};
 
+/// The one and only linked list of Pft objects	
+extern Pftlist pftlist;
 ///////////////////////////////////////////////////////////////////////////////////////
 //cropindiv_struct
 //container for crop-specific data at the individual level
@@ -1194,7 +1201,7 @@ struct cropindiv_struct
 // a reference to their 'parent' Vegetation object. Use the createobj member function
 // of class Vegetation to add new individuals.
 
-class Individual {
+class Individual : public Serializable {
 
 public:
 	Pft& pft;
@@ -1344,6 +1351,8 @@ public:
 
 //private:
 	cropindiv_struct *cropindiv;
+
+	void serialize(ArchiveStream& arch);
 };
 
 
@@ -1367,7 +1376,7 @@ public:
 //     vegetation.nextobj();
 //   }
 
-class Vegetation : public ListArray_idin2<Individual,Pft,Vegetation> {
+class Vegetation : public ListArray_idin2<Individual,Pft,Vegetation>, Serializable {
 
 public:
 	// MEMBER VARIABLES
@@ -1378,6 +1387,8 @@ public:
 
 	Vegetation(Patch& p):patch(p) {};
 		// constructor (initialises member variable patch)
+
+	void serialize(ArchiveStream& arch);
 };
 
 
@@ -1443,7 +1454,7 @@ public:
  *  there is one for each grid cell. A reference to the Soiltype object holding the 
  *  static parameters for this soil is included as a member variable.
  */
-class Soil {
+class Soil : public Serializable {
 
 	// MEMBER VARIABLES
 
@@ -1561,6 +1572,7 @@ public:
 
 	}
 
+	void serialize(ArchiveStream& arch);
 };
 
 
@@ -1768,7 +1780,7 @@ struct cropphen_struct
 // State variables common to all individuals of a particular PFT in a particular patch
 // Used in individual and cohort modes only.
 
-class Patchpft {
+class Patchpft : public Serializable {
 
 	// MEMBER VARIABLES:
 
@@ -1898,6 +1910,8 @@ public:
 
 //private:
 	cropphen_struct *cropphen;
+
+	void serialize(ArchiveStream& arch);
 };
 
 
@@ -1909,7 +1923,7 @@ public:
 // stand. A reference to the parent Stand object (defined below) is included as a
 // member variable.
 
-class Patch {
+class Patch : public Serializable {
 
 public:
 
@@ -1994,7 +2008,7 @@ public:
 
 	// MEMBER FUNCTIONS
 
-	Patch(int i,Stand& s,Pftlist& pftlist,Soiltype& st):
+	Patch(int i,Stand& s,Soiltype& st):
 		id(i),stand(s),vegetation(*this),soil(*this,st),fluxes(*this) {
 		
 		// Constructor: initialises various members and builds list array
@@ -2012,12 +2026,14 @@ public:
 
 		fireprob=0.0;
 	}
+
+	void serialize(ArchiveStream& arch);
 };
 
 /// Container for variables common to individuals of a particular PFT in a stand.
 /** Used in individual and cohort modes only
  */
-class Standpft {
+class Standpft : public Serializable {
 
 public:
 
@@ -2059,13 +2075,15 @@ public:
 		anetps_ff_max = 0.0;
 		active = !run_landcover;
 	}
+
+	void serialize(ArchiveStream& arch);
 };
 
 
 /// The stand class corresponds to a modelled area of a specific landcover type in a grid cell.
 /** There may be several stands of the same landcover type (but with different settings).
  */
-class Stand : public ListArray_idin3<Patch,Stand,Pftlist,Soiltype> {
+class Stand : public ListArray_idin2<Patch,Stand,Soiltype>, Serializable {
 
 public:
 
@@ -2112,9 +2130,8 @@ public:
 	/** \param i         The id for the stand within the grid cell
 	 *  \param gc        The parent grid cell
 	 *  \param landcover The type of landcover to use for this stand
-	 *  \param pftlist   The list of PFTs
 	 */
-	Stand(int i, Gridcell& gc,landcovertype landcover,Pftlist& pftlist); 
+	Stand(int i, Gridcell& gc,landcovertype landcover); 
 
 	/// Gives the fraction of this Stand relative to the whole grid cell
 	double get_gridcell_fraction() const;
@@ -2128,6 +2145,8 @@ public:
 	/// Returns the number of patches in this Stand
 	unsigned int npatch() const { return nobj; }
 
+	void serialize(ArchiveStream& arch);
+
 private:
 
 	/// Fraction of this stand relative to the gridcell
@@ -2140,7 +2159,7 @@ private:
 
 
 /// State variables common to all individuals of a particular PFT in a GRIDCELL.
-class Gridcellpft {
+class Gridcellpft : public Serializable {
 
 public:
 
@@ -2220,6 +2239,8 @@ public:
 		swindow[0]=-1;
 		swindow[1]=-1;
 	}
+
+	void serialize(ArchiveStream& arch);
 };
 
 
@@ -2230,7 +2251,7 @@ public:
  *  with patches, not gridcells. A separate Gridcell object must be declared for each modelled
  *  locality or grid cell.
  */
-class Gridcell : public ListArray_idin3<Stand,Gridcell,landcovertype, Pftlist> {
+class Gridcell : public ListArray_idin2<Stand,Gridcell,landcovertype>, Serializable {
 
 public:
 
@@ -2270,9 +2291,7 @@ public:
 	// MEMBER FUNCTIONS
 
 	/// Constructs a Gridcell object
-	/** \param pftlist    The list of plant functional types
-	 */
-	Gridcell(Pftlist& pftlist):climate(*this) {
+	Gridcell():climate(*this) {
 		landcovertype landcover;
 		LC_updated=false;
 
@@ -2289,7 +2308,7 @@ public:
 
 		if(!run_landcover) {
 			landcover=NATURAL;
-			createobj(*this,landcover,pftlist);
+			createobj(*this,landcover);
 			landcoverfrac[NATURAL]=1.0;
 		}
 	}
@@ -2302,6 +2321,8 @@ public:
 
 	/// Set longitude and latitude for this grid cell
 	void set_coordinates(double longitude, double latitude);
+
+	void serialize(ArchiveStream& arch);
 
 private:
 

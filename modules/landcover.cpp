@@ -52,17 +52,17 @@ int stepfromdate(int day, int step)
 ////////////////////////////////////////////////////////////  Landcover stand dynamics and C-partitioning  /////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void landcover_init(Gridcell& gridcell,Pftlist& pftlist) {
+void landcover_init(Gridcell& gridcell) {
 	landcovertype landcover;
 
-	getlandcover(gridcell,pftlist);		//Gets gridcell.landcoverfrac from landcover input file(s) or ins-file.
+	getlandcover(gridcell);		//Gets gridcell.landcoverfrac from landcover input file(s) or ins-file.
 
 	for(int i=0;i<NLANDCOVERTYPES;i++) { //For all landcover types without subclasses
 		if(i!=CROPLAND) {				
 			if(run[i]) {
 				if(gridcell.landcoverfrac[i]>0.0) {
 					landcover=(landcovertype)i;
-					Stand& stand=gridcell.createobj(gridcell,landcover,pftlist);
+					Stand& stand=gridcell.createobj(gridcell,landcover);
 					stand.set_gridcell_fraction(gridcell.landcoverfrac[i]);
 #ifdef MATS_TEST
 					dprintf("Stand %d, landcover type %d created year %d. Initial fraction = %f\n", stand.id, stand.landcover, date.year-nyear_spinup+1901, gridcell.landcoverfrac[i]);
@@ -95,7 +95,7 @@ void landcover_init(Gridcell& gridcell,Pftlist& pftlist) {
 					if(gridcell.cftfrac[pft.cftid]>0.0)
 					{
 						landcover=CROPLAND;
-						Stand& stand=gridcell.createobj(gridcell,landcover,pftlist);
+						Stand& stand=gridcell.createobj(gridcell,landcover);
 						stand.pftid=pft.id;
 						stand.cftid=pft.cftid;
 						stand.set_gridcell_fraction(gridcell.cftfrac[pft.cftid]*gridcell.landcoverfrac[CROPLAND]);
@@ -152,7 +152,7 @@ void landcover_init(Gridcell& gridcell,Pftlist& pftlist) {
 	}
 }
 
-void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
+void landcover_dynamics(Gridcell& gridcell)
 {	// Called first day of the year if run_landcover is set.
 	bool present;
 	int i, j;	
@@ -182,7 +182,7 @@ void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 
 //Get new gridcell.landcoverfrac and/or gridcell.cftfrac from LUdata and CFTdata.
 	if(!all_fracs_const)					
-		getlandcover(gridcell,pftlist);		
+		getlandcover(gridcell);	
 	else return;							
 
 	double changeLC=0.0;
@@ -543,7 +543,7 @@ if(!SUPPRESSLARGEOUTPUT)
 					if(gridcell.landcoverfrac_old[i]==0.0 && gridcell.landcoverfrac[i]>0.0)
 					{
 						landcover=(landcovertype)i;
-						Stand& stand=gridcell.createobj(gridcell,landcover,pftlist);
+						Stand& stand=gridcell.createobj(gridcell,landcover);
 						stand.set_gridcell_fraction(gridcell.landcoverfrac[i]);
 
 						pftlist.firstobj();
@@ -575,7 +575,7 @@ if(!SUPPRESSLARGEOUTPUT)
 					else if(i==NATURAL && landcoverfrac_change[i]>0.0)	//New NATURAL stand created from other landcover type.
 					{
 						landcover=(landcovertype)i;
-						Stand& stand=gridcell.createobj(gridcell,landcover,pftlist);
+						Stand& stand=gridcell.createobj(gridcell,landcover);
 						stand.set_gridcell_fraction(landcoverfrac_change[i]);
 
 						pftlist.firstobj();
@@ -643,7 +643,7 @@ if(!SUPPRESSLARGEOUTPUT)
 						else
 						{
 							landcover=CROPLAND;
-							Stand& stand=gridcell.createobj(gridcell,landcover,pftlist);
+							Stand& stand=gridcell.createobj(gridcell,landcover);
 
 							stand.pftid=pft.id;
 							stand.cftid=pft.cftid;

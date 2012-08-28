@@ -237,7 +237,10 @@ void Soil::serialize(ArchiveStream& arch) {
 		& max_rain_melt
 		& percolate;
 
-		& sompool; // sch
+		for (int i = 0; i<NSOMPOOL; i++) {
+			arch & sompool[i];
+		} 
+
 		& dperc;				
 		& nmin_daily;		
 		& nimmob_daily;	

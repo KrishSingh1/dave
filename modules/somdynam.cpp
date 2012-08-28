@@ -258,7 +258,7 @@ void som_dynamics(Patch& patch) {
 
 		// Loop through PFTs
 
-		for (p=0;p<npft;p++) {
+		for (p=0;p<npft;p++) {	//NB. also inactive pft's
 			
 			// For this PFT ...
 

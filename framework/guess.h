@@ -1106,9 +1106,9 @@ struct cropindiv_struct
 	double cmass_ho;			// harvestable crop organ carbon
 	double cmass_agpool;		// above-ground pool (when calculating daily cmass_leaf from lai_crop)
 	double cmass_leaf_max;		// cmass_leaf value saved at day before senescence (for LAI-calculation in allometry)
-	double cmass_leaf_sen;		//110321
-	double yield;				//091012
-	double yield_harvest[2];	//from ERA40 100325
+	double cmass_leaf_sen;		
+	double yield;				
+	double yield_harvest[2];	
 	double dcmass_plant;		// daily values (increase)
 	double dcmass_leaf;
 	double dcmass_root;
@@ -1133,12 +1133,12 @@ struct cropindiv_struct
 	double harv_cmass_leaf;
 	double harv_cmass_root;
 	double harv_cmass_ho;
-	double harv_yield;				//091012
+	double harv_yield;			
 	double harv_cmass_agpool;
-	double cmass_ho_harvest[2];	//from ERA40 100325
+	double cmass_ho_harvest[2];	
 
 	int est_year;
-	bool isprimarycrop;		//lägg in motsvarande i Pft ?
+	bool isprimarycrop;		
 	bool isprimarycovegetation;		//For future use ?
 //	bool issecondarycrop;			//For future use ?
 	bool isintercropgrass;
@@ -1335,6 +1335,9 @@ public:
 	double agdd5_wstress; // total gdd5 (accumulated) for this year (reset 1 January)
 	double rad_wstress; // total daily net downward shortwave solar radiation today (J/m2/day)
 
+//private:
+	cropindiv_struct *cropindiv;
+
 	// MEMBER FUNCTIONS
 
 public:
@@ -1348,9 +1351,6 @@ public:
 //	const cropindiv_struct* get_cropindiv();
 	cropindiv_struct* get_cropindiv();
 	cropindiv_struct* set_cropindiv();
-
-//private:
-	cropindiv_struct *cropindiv;
 
 	void serialize(ArchiveStream& arch);
 };
@@ -1648,9 +1648,7 @@ public:
 
 struct cropphen_struct
 {
-	double lai_crop;		//actual lai_crop value after water stress reduction		
-	double lai_crop_opt;	//optimum lai_crop value
-	double lai_crop_actual;	//100521
+	double lai_crop_actual;
 	int sdate;
 	int sdate_first;
 	int sdate_harv;
@@ -1710,8 +1708,6 @@ struct cropphen_struct
 
 	cropphen_struct()
 	{
-		lai_crop=0.0;
-		lai_crop_opt=0.0;	
 		lai_crop_actual=0.0;
 		sdate=-1;
 		sdate_first=-1;
@@ -2212,7 +2208,7 @@ public:
 
 		autumnoccurred=false;
 		springoccurred=false;
-		vernstartoccurred=false;	//100519
+		vernstartoccurred=false;
 		vernendoccurred=false;
 		precoccurred=false;
 		first_autumndate=-1;

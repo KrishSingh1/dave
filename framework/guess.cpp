@@ -330,7 +330,6 @@ cropphen_struct* Patchpft::set_cropphen()
 }
 
 
-//Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),pftid(-1),gridcell(gc),isirrigated(false),hasgrassintercrop(false),landcover(landcoverX),frac(1.0) {
 Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),gridcell(gc),landcover(landcoverX),frac(1.0) {
 
 		// Constructor: initialises reference member of climate and

@@ -264,7 +264,7 @@ if(!SUPPRESSLARGEOUTPUT)
             awcont[s]=0.0;
 			if (s == 0) {
 				patch.growingseasondays = 0;
-        }
+		   }
 		}
 
 		// If it's warm enough for growth, update awcont with this day's wcont
@@ -272,7 +272,7 @@ if(!SUPPRESSLARGEOUTPUT)
             awcont[s]+=wcont[s];
 			if (s==0) {
 				patch.growingseasondays++;
-        }
+			}
 		}
 
 		// Do the averaging on the last day of every year

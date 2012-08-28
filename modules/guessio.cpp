@@ -2330,157 +2330,160 @@ void outannual(Gridcell& gridcell) {
 				Stand& stand=gridcell.getobj();
 
 				Standpft& standpft=stand.pft[pft.id];
-				// Sum C biomass, NPP, LAI and BVOC fluxes across patches and PFTs
-				standpft_cmass=0.0;
-				standpft_ic_cmass=0.0;
-				standpft_anpp=0.0;
-				standpft_ic_anpp=0.0;
-				standpft_lai=0.0;
-				standpft_yield=0.0;
-				standpft_densindiv_total = 0.0;
-				standpft_aiso=0.0;
-				standpft_amon=0.0;
-
-				// Initialise age structure array
-
-				if (vegmode==COHORT || vegmode==INDIVIDUAL)
-					for (c=0;c<nclass;c++)
-						standpft_densindiv_ageclass[c]=0.0;
-		
-				stand.firstobj();
-
-				// Loop through Patches
-				while (stand.isobj) {
-					Patch& patch=stand.getobj();
-					Vegetation& vegetation=patch.vegetation;
-
-					vegetation.firstobj();
-					while (vegetation.isobj) {
-						Individual& indiv=vegetation.getobj();
-							
-						// guess2008 - alive check added
-						if (indiv.id!=-1 && indiv.alive) { 
-							
-							if (indiv.pft.id==pft.id) {
-
-								if(pft.landcover==CROPLAND)
-								{
-									if(indiv.cropindiv->isintercropgrass==false)
-									{
-										standpft_cmass+=indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt+indiv.cropindiv->cmass_ho+indiv.cropindiv->cmass_agpool;
-										standpft_anpp+=indiv.anpp;
-										if(pft.phenology==CROPGREEN)					
-											standpft_lai+=indiv.cropindiv->cmass_leaf_max*pft.sla;
-										else
-											standpft_lai+=indiv.lai;
-										standpft_yield+=indiv.cropindiv->yield;
-									}
-									else
-									{
-										standpft_ic_cmass+=indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt+indiv.cropindiv->cmass_ho+indiv.cropindiv->cmass_agpool;
-										standpft_ic_anpp+=indiv.anpp;
-									}
-								}
-								else
-								{
-									standpft_cmass+=indiv.cmass_leaf+
-										indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
-									standpft_anpp+=indiv.anpp;
-									standpft_lai+=indiv.lai;
-									standpft_aiso+=indiv.aiso;
-									standpft_amon+=indiv.amon;
-
-									if (vegmode==COHORT || vegmode==INDIVIDUAL) {
-										
-										// Age structure
-										
-										c=(int)(indiv.age/estinterval); // guess2008
-										if (c<OUTPUT_MAXAGECLASS)
-											standpft_densindiv_ageclass[c]+=indiv.densindiv;
-
-										// guess2008 - only count trees with a trunk above a certain diameter  
-										if (pft.lifeform==TREE && indiv.age>0) {
-											double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
-											if (diam>0.03) {
-												standpft_densindiv_total+=indiv.densindiv; // indiv/m2
-
-											heightindiv_total+=indiv.height * indiv.densindiv;
-											}
-										}
-									}
-								}						
-							}
-
-						} // alive?
-						vegetation.nextobj();
-					}
-					stand.nextobj();
-				} // end of patch loop
-
-				standpft_cmass/=(double)stand.npatch();
-				standpft_anpp/=(double)stand.npatch();
-				standpft_lai/=(double)stand.npatch();
-				standpft_densindiv_total/=(double)stand.npatch();
-				standpft_aiso/=(double)stand.npatch();
-				standpft_amon/=(double)stand.npatch();
-
-				heightindiv_total/=(double)stand.npatch();
-
-				//Update landcover totals
-				landcover_cmass[stand.landcover]+=(standpft_cmass+standpft_ic_cmass)*stand.get_landcover_fraction();
-				landcover_anpp[stand.landcover]+=(standpft_anpp+standpft_ic_anpp)*stand.get_landcover_fraction();
-				landcover_lai[stand.landcover]+=standpft_lai*stand.get_landcover_fraction();
-				landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.get_landcover_fraction();
-				landcover_aiso[stand.landcover]+=standpft_aiso*stand.get_landcover_fraction();
-				landcover_amon[stand.landcover]+=standpft_amon*stand.get_landcover_fraction();
-
-				//Update pft totals
-#if defined multiple_natural_stands
-				if(pft.landcover==NATURAL && gridcell.landcoverfrac[stand.landcover]!=0.0)	//Natural landcover can now contain several stands.
+				if(standpft.active)
 				{
-					stand_mean_cmass+=standpft_cmass*stand.get_landcover_fraction();
-					stand_mean_anpp+=standpft_anpp*stand.get_landcover_fraction();
-					stand_mean_lai+=standpft_lai*stand.get_landcover_fraction();
-					stand_mean_densindiv_total+=standpft_densindiv_total*stand.get_landcover_fraction();
-					stand_mean_aiso+=standpft_aiso*stand.get_landcover_fraction();
-					stand_mean_amon+=standpft_amon*stand.get_landcover_fraction();
+					// Sum C biomass, NPP, LAI and BVOC fluxes across patches and PFTs
+					standpft_cmass=0.0;
+					standpft_ic_cmass=0.0;
+					standpft_anpp=0.0;
+					standpft_ic_anpp=0.0;
+					standpft_lai=0.0;
+					standpft_yield=0.0;
+					standpft_densindiv_total = 0.0;
+					standpft_aiso=0.0;
+					standpft_amon=0.0;
 
-				if (vegmode==COHORT || vegmode==INDIVIDUAL)
-					for (c=0;c<nclass;c++)
-						stand_mean_densindiv_ageclass[c]+=standpft_densindiv_ageclass[c]*stand.get_landcover_fraction();
-
-				}
-				else
-#endif
-				{									
-					stand_mean_cmass+=standpft_cmass;		//Intercrop grass not taken into account here for crop grass pft:s.
-					stand_mean_anpp+=standpft_anpp;
-					stand_mean_lai+=standpft_lai;
-					stand_mean_yield+=standpft_yield;
-					stand_mean_densindiv_total+=standpft_densindiv_total;
-					stand_mean_aiso+=standpft_aiso;
-					stand_mean_amon+=standpft_amon;
+					// Initialise age structure array
 
 					if (vegmode==COHORT || vegmode==INDIVIDUAL)
 						for (c=0;c<nclass;c++)
-							stand_mean_densindiv_ageclass[c]+=standpft_densindiv_ageclass[c];
-				}
-
-				// Update gridcell totals
-				double fraction_of_gridcell = stand.get_gridcell_fraction();
-				cmass_gridcell+=(standpft_cmass+standpft_ic_cmass)*fraction_of_gridcell;
-				anpp_gridcell+=(standpft_anpp+standpft_ic_anpp)*fraction_of_gridcell;
-				lai_gridcell+=standpft_lai*fraction_of_gridcell;
-				dens_gridcell+=standpft_densindiv_total*fraction_of_gridcell;
-				aiso_gridcell+=standpft_aiso*fraction_of_gridcell;
-				amon_gridcell+=standpft_amon*fraction_of_gridcell;
+							standpft_densindiv_ageclass[c]=0.0;
 			
-				// Graphical output every 10 years
-				// (Windows shell only - "plot" statements have no effect otherwise)
-				if (!(date.year%10)) {
-					plot("cmass",pft.name,date.year,stand_mean_cmass);
-					plot("anpp",pft.name,date.year,stand_mean_anpp);
-					plot("lai",pft.name,date.year,stand_mean_lai);
+					stand.firstobj();
+
+					// Loop through Patches
+					while (stand.isobj) {
+						Patch& patch=stand.getobj();
+						Vegetation& vegetation=patch.vegetation;
+
+						vegetation.firstobj();
+						while (vegetation.isobj) {
+							Individual& indiv=vegetation.getobj();
+								
+							// guess2008 - alive check added
+							if (indiv.id!=-1 && indiv.alive) { 
+								
+								if (indiv.pft.id==pft.id) {
+
+									if(pft.landcover==CROPLAND)
+									{
+										if(indiv.cropindiv->isintercropgrass==false)
+										{
+											standpft_cmass+=indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt+indiv.cropindiv->cmass_ho+indiv.cropindiv->cmass_agpool;
+											standpft_anpp+=indiv.anpp;
+											if(pft.phenology==CROPGREEN)					
+												standpft_lai+=indiv.cropindiv->cmass_leaf_max*pft.sla;
+											else
+												standpft_lai+=indiv.lai;
+											standpft_yield+=indiv.cropindiv->yield;
+										}
+										else
+										{
+											standpft_ic_cmass+=indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt+indiv.cropindiv->cmass_ho+indiv.cropindiv->cmass_agpool;
+											standpft_ic_anpp+=indiv.anpp;
+										}
+									}
+									else
+									{
+										standpft_cmass+=indiv.cmass_leaf+
+											indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
+										standpft_anpp+=indiv.anpp;
+										standpft_lai+=indiv.lai;
+										standpft_aiso+=indiv.aiso;
+										standpft_amon+=indiv.amon;
+
+										if (vegmode==COHORT || vegmode==INDIVIDUAL) {
+											
+											// Age structure
+											
+											c=(int)(indiv.age/estinterval); // guess2008
+											if (c<OUTPUT_MAXAGECLASS)
+												standpft_densindiv_ageclass[c]+=indiv.densindiv;
+
+											// guess2008 - only count trees with a trunk above a certain diameter  
+											if (pft.lifeform==TREE && indiv.age>0) {
+												double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
+												if (diam>0.03) {
+													standpft_densindiv_total+=indiv.densindiv; // indiv/m2
+
+												heightindiv_total+=indiv.height * indiv.densindiv;
+												}
+											}
+										}
+									}						
+								}
+
+							} // alive?
+							vegetation.nextobj();
+						}
+						stand.nextobj();
+					} // end of patch loop
+
+					standpft_cmass/=(double)stand.npatch();
+					standpft_anpp/=(double)stand.npatch();
+					standpft_lai/=(double)stand.npatch();
+					standpft_densindiv_total/=(double)stand.npatch();
+					standpft_aiso/=(double)stand.npatch();
+					standpft_amon/=(double)stand.npatch();
+
+					heightindiv_total/=(double)stand.npatch();
+
+					//Update landcover totals
+					landcover_cmass[stand.landcover]+=(standpft_cmass+standpft_ic_cmass)*stand.get_landcover_fraction();
+					landcover_anpp[stand.landcover]+=(standpft_anpp+standpft_ic_anpp)*stand.get_landcover_fraction();
+					landcover_lai[stand.landcover]+=standpft_lai*stand.get_landcover_fraction();
+					landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.get_landcover_fraction();
+					landcover_aiso[stand.landcover]+=standpft_aiso*stand.get_landcover_fraction();
+					landcover_amon[stand.landcover]+=standpft_amon*stand.get_landcover_fraction();
+
+					//Update pft totals
+#if defined multiple_natural_stands
+					if(pft.landcover==NATURAL && gridcell.landcoverfrac[stand.landcover]!=0.0)	//Natural landcover can now contain several stands.
+					{
+						stand_mean_cmass+=standpft_cmass*stand.get_landcover_fraction();
+						stand_mean_anpp+=standpft_anpp*stand.get_landcover_fraction();
+						stand_mean_lai+=standpft_lai*stand.get_landcover_fraction();
+						stand_mean_densindiv_total+=standpft_densindiv_total*stand.get_landcover_fraction();
+						stand_mean_aiso+=standpft_aiso*stand.get_landcover_fraction();
+						stand_mean_amon+=standpft_amon*stand.get_landcover_fraction();
+
+					if (vegmode==COHORT || vegmode==INDIVIDUAL)
+						for (c=0;c<nclass;c++)
+							stand_mean_densindiv_ageclass[c]+=standpft_densindiv_ageclass[c]*stand.get_landcover_fraction();
+
+					}
+					else
+#endif
+					{									
+						stand_mean_cmass+=standpft_cmass;		//Intercrop grass not taken into account here for crop grass pft:s.
+						stand_mean_anpp+=standpft_anpp;
+						stand_mean_lai+=standpft_lai;
+						stand_mean_yield+=standpft_yield;
+						stand_mean_densindiv_total+=standpft_densindiv_total;
+						stand_mean_aiso+=standpft_aiso;
+						stand_mean_amon+=standpft_amon;
+
+						if (vegmode==COHORT || vegmode==INDIVIDUAL)
+							for (c=0;c<nclass;c++)
+								stand_mean_densindiv_ageclass[c]+=standpft_densindiv_ageclass[c];
+					}
+
+					// Update gridcell totals
+					double fraction_of_gridcell = stand.get_gridcell_fraction();
+					cmass_gridcell+=(standpft_cmass+standpft_ic_cmass)*fraction_of_gridcell;
+					anpp_gridcell+=(standpft_anpp+standpft_ic_anpp)*fraction_of_gridcell;
+					lai_gridcell+=standpft_lai*fraction_of_gridcell;
+					dens_gridcell+=standpft_densindiv_total*fraction_of_gridcell;
+					aiso_gridcell+=standpft_aiso*fraction_of_gridcell;
+					amon_gridcell+=standpft_amon*fraction_of_gridcell;
+				
+					// Graphical output every 10 years
+					// (Windows shell only - "plot" statements have no effect otherwise)
+					if (!(date.year%10)) {
+						plot("cmass",pft.name,date.year,stand_mean_cmass);
+						plot("anpp",pft.name,date.year,stand_mean_anpp);
+						plot("lai",pft.name,date.year,stand_mean_lai);
+					}
 				}
 				gridcell.nextobj();
 			}//End of loop through stands

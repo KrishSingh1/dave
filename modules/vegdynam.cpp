@@ -877,7 +877,7 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 			
 			// GRASS MORTALITY
 
-			if (indiv.pft.landcover==CROPLAND && patch.stand.landcover==CROPLAND) 	//CFT fix ML 090819
+			if (indiv.pft.landcover==CROPLAND && patch.stand.landcover==CROPLAND) 
 			{
 				fpc_grass=0.0;
 

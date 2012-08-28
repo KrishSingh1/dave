@@ -135,24 +135,27 @@ void leaf_phenology(Patch& patch,Climate& climate) {
 	patch.pft.firstobj();
 	while (patch.pft.isobj) {
 		Patchpft& pft=patch.pft.getobj();
-		Gridcellpft& gridcellpft=patch.stand.gridcell.pft[pft.id];
+		if(patch.stand.pft[pft.id].active)
+		{
+			Gridcellpft& gridcellpft=patch.stand.gridcell.pft[pft.id];
 
-		// For this PFT ...
-		if(pft.pft.landcover==CROPLAND && patch.stand.landcover==CROPLAND && patch.stand.pft[pft.id].active)
-			leaf_phenology_crop(pft.pft,climate,pft.wscal,pft.aphen,pft.phen, gridcellpft, patch.stand.isirrigated, patch);
-		else if(!run_landcover || patch.stand.pft[pft.id].active)	//natural, urban, pasture, forest and peatland stands/pft:s
-			leaf_phenology_pft(pft.pft,climate,pft.wscal,pft.aphen,pft.phen);
+			// For this PFT ...
+			if(pft.pft.landcover==CROPLAND && patch.stand.landcover==CROPLAND)
+				leaf_phenology_crop(pft.pft,climate,pft.wscal,pft.aphen,pft.phen, gridcellpft, patch.stand.isirrigated, patch);
+			else	//natural, urban, pasture, forest and peatland stands/pft:s
+				leaf_phenology_pft(pft.pft,climate,pft.wscal,pft.aphen,pft.phen);
 
-		// guess2008
-		if (pft.pft.lifeform==TREE && (pft.pft.phenology==SUMMERGREEN || pft.pft.phenology==ANY) && patch.stand.pft[pft.id].active)
-			if (pft.phen<1.0) leafout=false; // CHILLDAYS
+			// guess2008
+			if (pft.pft.lifeform==TREE && (pft.pft.phenology==SUMMERGREEN || pft.pft.phenology==ANY))
+				if (pft.phen<1.0) leafout=false; // CHILLDAYS
 
-		// Update annual leaf-on sum
-		if (climate.lat>=0.0 && date.day==COLDEST_DAY_NHEMISPHERE ||
-			climate.lat<0.0 && date.day==COLDEST_DAY_SHEMISPHERE) pft.aphen=0.0;
-		pft.aphen+=pft.phen;
+			// Update annual leaf-on sum
+			if (climate.lat>=0.0 && date.day==COLDEST_DAY_NHEMISPHERE ||
+				climate.lat<0.0 && date.day==COLDEST_DAY_SHEMISPHERE) pft.aphen=0.0;
+			pft.aphen+=pft.phen;
 
-		// ... on to next PFT
+			// ... on to next PFT
+		}
 		patch.pft.nextobj();
 	}
 
@@ -796,7 +799,6 @@ bool allometry(Individual& indiv) {
 	// guess2008 - max tree height allowed (metre).
 	const double HEIGHT_MAX = 150.0; 
 
-	cropphen_struct& ppftcrop=*(indiv.vegetation.patch.pft[indiv.pft.id].cropphen);
 
 	if (indiv.pft.lifeform==TREE) {
 
@@ -886,6 +888,7 @@ bool allometry(Individual& indiv) {
 		else
 		{
 			double lai_lastyear;
+			cropphen_struct& ppftcrop=*(indiv.vegetation.patch.pft[indiv.pft.id].get_cropphen());
 
 			if(indiv.pft.phenology==ANY)// crop grass compatible with natural grass
 			{

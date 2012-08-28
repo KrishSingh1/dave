@@ -535,7 +535,7 @@ void dailyaccounting_patch_lc(Patch& patch) {
 
 		if(ifslowharvestpool) {
 			pftlist.firstobj();
-			while(pftlist.isobj) {
+			while(pftlist.isobj) {				// NB. also unactive pft's	
 				Pft& pft=pftlist.getobj();
 				Patchpft& patchpft=patch.pft[pft.id];
 

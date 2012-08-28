@@ -690,33 +690,36 @@ void photosynthesis_nowstress(Stand& stand, Climate& climate) {
 
 	for (int p=0; p<npft; p++) {
 		Standpft& spft = stand.pft[p];
-		Pft& pft = spft.pft;
+		if(spft.active)
+		{
+			Pft& pft = spft.pft;
 
-		// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
-		photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
-									pft.lambda_max, pft, spft.photosynthesis, -1);
+			// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
+			photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
+										pft.lambda_max, pft, spft.photosynthesis, -1);
 
-		if (date.diurnal()) {
-			spft.gpterms.assign(date.subdaily, 0);
-			spft.assim_terms.assign(date.subdaily, 0);
-			PhotosynthesisResult res;
-			spft.phots.assign(date.subdaily, res);
-			for (int i=0; i<date.subdaily; i++) {
-				PhotosynthesisResult& result = spft.phots[i];
-				photosynthesis(climate.co2, climate.temps[i], climate.pars[i],
-					24, pft.lambda_max, pft, result, spft.photosynthesis.vm);
+			if (date.diurnal()) {
+				spft.gpterms.assign(date.subdaily, 0);
+				spft.assim_terms.assign(date.subdaily, 0);
+				PhotosynthesisResult res;
+				spft.phots.assign(date.subdaily, res);
+				for (int i=0; i<date.subdaily; i++) {
+					PhotosynthesisResult& result = spft.phots[i];
+					photosynthesis(climate.co2, climate.temps[i], climate.pars[i],
+						24, pft.lambda_max, pft, result, spft.photosynthesis.vm);
 
-				spft.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
-				spft.assim_terms[i] = result.net_assimilation();
+					spft.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
+					spft.assim_terms[i] = result.net_assimilation();
+				}
 			}
-		}
-		spft.gpterm = gpterm(spft.photosynthesis.adtmm, climate.co2,
-									pft.lambda_max, climate.daylength);
+			spft.gpterm = gpterm(spft.photosynthesis.adtmm, climate.co2,
+										pft.lambda_max, climate.daylength);
 
-		// Store net C-assimilation (gross photosynthesis minus leaf
-		// respiration); valid for all individuals of this PFT given today's
-		// climate and FPAR=1 assuming no water stress
-		spft.assim_term = spft.photosynthesis.net_assimilation();
+			// Store net C-assimilation (gross photosynthesis minus leaf
+			// respiration); valid for all individuals of this PFT given today's
+			// climate and FPAR=1 assuming no water stress
+			spft.assim_term = spft.photosynthesis.net_assimilation();
+		}
 	}
 }
 
@@ -967,136 +970,139 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 	// Calculate common point supply for each PFT in this patch
 	for (int p=0; p<npft; p++) {
 
-		// Retrieve next patch PFT
-		Patchpft& ppft = patch.pft[p];
 		Standpft& spft = patch.stand.pft[p];
-		// Retrieve PFT
-		Pft& pft = ppft.pft;
+		if(spft.active)
+		{
+			// Retrieve next patch PFT
+			Patchpft& ppft = patch.pft[p];
 
-		if (!ifdailynpp && date.dayofmonth == 0) {
-			// On first day of month, monthly mode, initialise cumulative
-			// environmental drivers and counter for water-stress days
+			// Retrieve PFT
+			Pft& pft = ppft.pft;
 
-			ppft.temp_wstress = 0;
-			ppft.gpterm_wstress = 0;
-			ppft.phot_wstress.clear();
-			ppft.par_wstress = 0;
-			ppft.daylength_wstress = 0;
-			ppft.co2_wstress = 0;
-			ppft.nday_wstress = 0;
-			ppft.fpar_grass_wstress = 0;
-			ppft.gcbase_wstress = 0;
-		}
+			if (!ifdailynpp && date.dayofmonth == 0) {
+				// On first day of month, monthly mode, initialise cumulative
+				// environmental drivers and counter for water-stress days
+
+				ppft.temp_wstress = 0;
+				ppft.gpterm_wstress = 0;
+				ppft.phot_wstress.clear();
+				ppft.par_wstress = 0;
+				ppft.daylength_wstress = 0;
+				ppft.co2_wstress = 0;
+				ppft.nday_wstress = 0;
+				ppft.fpar_grass_wstress = 0;
+				ppft.gcbase_wstress = 0;
+			}
 
 
-		if (day.isstart) {
+			if (day.isstart) {
 
 #if defined IRRIGATION
-
-			if(patch.stand.isirrigated && pft.hydrology==IRRIGATED)
-			{
-
-				ppft.water_deficit_d=0.0;
-
-				if(date.day==0)
-					ppft.water_deficit_y=0.0;
-
-				if (patch.soil.wcont[0]<0.9)	//Fader et al. 2010
+				if(patch.stand.isirrigated && pft.hydrology==IRRIGATED)
 				{
-					double wcont_0_opt=0.0;
-					double wr_opt;
 
-					wr_opt=patch.demand/ppft.cropphen->fpc/pft.emax;
-					if(wr_opt>1.0)
-						wr_opt=1.0;
+					ppft.water_deficit_d=0.0;
 
-					if(wateruptake==WR_ROOTDIST)
+					if(date.day==0)
+						ppft.water_deficit_y=0.0;
+
+					if (patch.soil.wcont[0]<0.9)	//Fader et al. 2010
 					{
+						double wcont_0_opt=0.0;
+						double wr_opt;
+
+						wr_opt=patch.demand/ppft.cropphen->fpc/pft.emax;
+						if(wr_opt>1.0)
+							wr_opt=1.0;
+
+						if(wateruptake==WR_ROOTDIST)
+						{
 
 //// from water_uptake( ): wr_opt=(min(wcont_0_opt*patch.soil.soiltype.awc[0]*patch.fpc_rescale, pft.emax*pft.rootdist[0])+min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]))/pft.emax
-						wcont_0_opt=(wr_opt*pft.emax-min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]))/patch.soil.soiltype.awc[0]/patch.fpc_rescale;
+							wcont_0_opt=(wr_opt*pft.emax-min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]))/patch.soil.soiltype.awc[0]/patch.fpc_rescale;
 
-						if(wcont_0_opt*patch.soil.soiltype.awc[0]*patch.fpc_rescale>pft.emax*pft.rootdist[0])
-							wcont_0_opt=pft.emax*pft.rootdist[0]/patch.soil.soiltype.awc[0]/patch.fpc_rescale;
+							if(wcont_0_opt*patch.soil.soiltype.awc[0]*patch.fpc_rescale>pft.emax*pft.rootdist[0])
+								wcont_0_opt=pft.emax*pft.rootdist[0]/patch.soil.soiltype.awc[0]/patch.fpc_rescale;
+						}
+						else
+							fail("Irrigation soil water only balanced for WR_ROOTDIST currently !\n");
+
+						if(wcont_0_opt>patch.soil.wcont[0])
+						{
+							ppft.water_deficit_d=(wcont_0_opt-patch.soil.wcont[0])*patch.soil.soiltype.awc[0];
+							patch.soil.wcont[0]=wcont_0_opt;
+						}
+
+						ppft.water_deficit_y+=ppft.water_deficit_d;
+						if(ppft.water_deficit_d>patch.irrigation_d)
+							patch.irrigation_d=ppft.water_deficit_d;
+						patch.irrigation_y+=patch.irrigation_d;
 					}
-					else
-						fail("Irrigation soil water only balanced for WR_ROOTDIST currently !\n");
-
-					if(wcont_0_opt>patch.soil.wcont[0])
-					{
-						ppft.water_deficit_d=(wcont_0_opt-patch.soil.wcont[0])*patch.soil.soiltype.awc[0];
-						patch.soil.wcont[0]=wcont_0_opt;
-					}
-
-					ppft.water_deficit_y+=ppft.water_deficit_d;
-					if(ppft.water_deficit_d>patch.irrigation_d)
-						patch.irrigation_d=ppft.water_deficit_d;
-					patch.irrigation_y+=patch.irrigation_d;
 				}
-			}
 #endif	//IRRIGATION
 
-			// Calculate effective water supply from plant roots
-			// Rescale available water by patch FPC if exceeds 1
-			// (this then represents the average amount of water available over an
-			// individual's FPC, assuming individuals are equal in competition for water)
-			double wr = water_uptake(patch.soil.wcont, patch.soil.soiltype.awc,
-							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fuptake,
-							pft.lifeform == TREE, pft.drought_tolerance);
+				// Calculate effective water supply from plant roots
+				// Rescale available water by patch FPC if exceeds 1
+				// (this then represents the average amount of water available over an
+				// individual's FPC, assuming individuals are equal in competition for water)
+				double wr = water_uptake(patch.soil.wcont, patch.soil.soiltype.awc,
+								pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fuptake,
+								pft.lifeform == TREE, pft.drought_tolerance);
 
-			// Calculate supply (Eqn 24, Haxeltine & Prentice 1996)
-			ppft.supply_leafon = pft.emax * wr;
+				// Calculate supply (Eqn 24, Haxeltine & Prentice 1996)
+				ppft.supply_leafon = pft.emax * wr;
 
-			if(pft.phenology==CROPGREEN)
-				ppft.supply = ppft.supply_leafon * ppft.cropphen->fpc;
-			else
-				ppft.supply = ppft.supply_leafon * ppft.phen;
-		}
-		ppft.wstress = ppft.supply < patch.demand && !negligible(ppft.phen);
-
-		if (!ifdailynpp && ppft.wstress) {
-			ppft.nday_wstress++;
-			ppft.temp_wstress += climate.temp;
-			ppft.par_wstress += climate.par;
-			ppft.co2_wstress += climate.co2;
-			ppft.fpar_grass_wstress += patch.fpar_grass * ppft.phen;
-			ppft.daylength_wstress += climate.daylength;
-			ppft.gpterm_wstress += spft.gpterm;
-			ppft.phot_wstress.vm += spft.photosynthesis.vm;
-			ppft.phot_wstress.rd_g += spft.photosynthesis.rd_g;
-			ppft.phot_wstress.je += spft.photosynthesis.je;
-		}
-
-		// Calculate water-stressed canopy conductance on FPC basis assuming
-		// FPAR=1 and deducting canopy conductance component not associated
-		// with CO2 uptake; valid for all individuals of this PFT in this patch
-		// today.
-		// Eqn 25, Haxeltine & Prentice 1996
-		ppft.gcbase = ppft.wstress ? max(gc_monteith(ppft.supply, patch.eet_net_veg)-
-					pft.gmin * ppft.supply / patch.demand, 0.0) : 0;
-		if (!date.diurnal()) {
-			ppft.wstress_day = ppft.wstress;
-			ppft.gcbase_day = ppft.gcbase;
-			if (!ifdailynpp) {
-				ppft.gcbase_wstress += ppft.gcbase;
+				if(pft.phenology==CROPGREEN)
+					ppft.supply = ppft.supply_leafon * ppft.cropphen->fpc;
+				else
+					ppft.supply = ppft.supply_leafon * ppft.phen;
 			}
-		}
-		else if (day.isend) {
-			ppft.wstress_day = ppft.supply < patch.demand_day && !negligible(ppft.phen);
-			ppft.gcbase_day = ppft.wstress_day ? max(gc_monteith(ppft.supply,
-					patch.eet_net_veg) - pft.gmin * ppft.supply / patch.demand_day, 0.0) : 0;
-		}
-		if (!ifdailynpp && date.islastday && ppft.nday_wstress) {
-			ppft.temp_wstress /= ppft.nday_wstress;
-			ppft.par_wstress /= ppft.nday_wstress;
-			ppft.co2_wstress /= ppft.nday_wstress;
-			ppft.fpar_grass_wstress /= ppft.nday_wstress;
-			ppft.daylength_wstress /= ppft.nday_wstress;
-			ppft.gcbase_wstress /= ppft.nday_wstress;
-			ppft.gpterm_wstress /= ppft.nday_wstress;
-			ppft.phot_wstress.vm /= ppft.nday_wstress;
-			ppft.phot_wstress.rd_g /= ppft.nday_wstress;
-			ppft.phot_wstress.je /= ppft.nday_wstress;
+			ppft.wstress = ppft.supply < patch.demand && !negligible(ppft.phen);
+
+			if (!ifdailynpp && ppft.wstress) {
+				ppft.nday_wstress++;
+				ppft.temp_wstress += climate.temp;
+				ppft.par_wstress += climate.par;
+				ppft.co2_wstress += climate.co2;
+				ppft.fpar_grass_wstress += patch.fpar_grass * ppft.phen;
+				ppft.daylength_wstress += climate.daylength;
+				ppft.gpterm_wstress += spft.gpterm;
+				ppft.phot_wstress.vm += spft.photosynthesis.vm;
+				ppft.phot_wstress.rd_g += spft.photosynthesis.rd_g;
+				ppft.phot_wstress.je += spft.photosynthesis.je;
+			}
+
+			// Calculate water-stressed canopy conductance on FPC basis assuming
+			// FPAR=1 and deducting canopy conductance component not associated
+			// with CO2 uptake; valid for all individuals of this PFT in this patch
+			// today.
+			// Eqn 25, Haxeltine & Prentice 1996
+			ppft.gcbase = ppft.wstress ? max(gc_monteith(ppft.supply, patch.eet_net_veg)-
+						pft.gmin * ppft.supply / patch.demand, 0.0) : 0;
+			if (!date.diurnal()) {
+				ppft.wstress_day = ppft.wstress;
+				ppft.gcbase_day = ppft.gcbase;
+				if (!ifdailynpp) {
+					ppft.gcbase_wstress += ppft.gcbase;
+				}
+			}
+			else if (day.isend) {
+				ppft.wstress_day = ppft.supply < patch.demand_day && !negligible(ppft.phen);
+				ppft.gcbase_day = ppft.wstress_day ? max(gc_monteith(ppft.supply,
+						patch.eet_net_veg) - pft.gmin * ppft.supply / patch.demand_day, 0.0) : 0;
+			}
+			if (!ifdailynpp && date.islastday && ppft.nday_wstress) {
+				ppft.temp_wstress /= ppft.nday_wstress;
+				ppft.par_wstress /= ppft.nday_wstress;
+				ppft.co2_wstress /= ppft.nday_wstress;
+				ppft.fpar_grass_wstress /= ppft.nday_wstress;
+				ppft.daylength_wstress /= ppft.nday_wstress;
+				ppft.gcbase_wstress /= ppft.nday_wstress;
+				ppft.gpterm_wstress /= ppft.nday_wstress;
+				ppft.phot_wstress.vm /= ppft.nday_wstress;
+				ppft.phot_wstress.rd_g /= ppft.nday_wstress;
+				ppft.phot_wstress.je /= ppft.nday_wstress;
+			}
 		}
 	}
 
@@ -1811,41 +1817,43 @@ void forest_floor_conditions(Patch& patch) {
 
 	for (int p=0; p<npft; p++) {
 
-		Patchpft& ppft=patch.pft[p];
 		Standpft& spft = patch.stand.pft[p];
+		if(spft.active)
+		{
+			Patchpft& ppft=patch.pft[p];
+			// Initialise net photosynthesis sum on first day of year
+			if (date.day == 0) {
+				ppft.anetps_ff = 0.0;
+			}
+			double assim = 0;
+			if (ifdailynpp || !ppft.wstress_day) {
+				if (ppft.wstress_day) {
+					assimilation_wstress(ppft, climate.co2, climate.temp, climate.par,
+						climate.daylength, patch.fpar_grass*ppft.phen, 1., ppft.gcbase_day,
+						spft.gpterm, spft.photosynthesis.vm, -1, phot, lambda);
+					assim = phot.net_assimilation();
+				} else assim = spft.assim_term;
+				assim *= ppft.phen * patch.fpar_grass;
+			}
+			if (date.islastday && !ifdailynpp && ppft.nday_wstress) {
+				assimilation_wstress(ppft, ppft.co2_wstress, ppft.temp_wstress,
+					ppft.par_wstress, ppft.daylength_wstress, ppft.fpar_grass_wstress,
+						1., ppft.gcbase_wstress, ppft.gpterm_wstress, ppft.phot_wstress.vm, -2, phot, lambda);
+				assim += phot.net_assimilation() * ppft.fpar_grass_wstress * ppft.nday_wstress;
+			}
 
-		// Initialise net photosynthesis sum on first day of year
-		if (date.day == 0) {
-			ppft.anetps_ff = 0.0;
-		}
-		double assim = 0;
-		if (ifdailynpp || !ppft.wstress_day) {
-			if (ppft.wstress_day) {
-				assimilation_wstress(ppft, climate.co2, climate.temp, climate.par,
-					climate.daylength, patch.fpar_grass*ppft.phen, 1., ppft.gcbase_day,
-					spft.gpterm, spft.photosynthesis.vm, -1, phot, lambda);
-				assim = phot.net_assimilation();
-			} else assim = spft.assim_term;
-			assim *= ppft.phen * patch.fpar_grass;
-		}
-		if (date.islastday && !ifdailynpp && ppft.nday_wstress) {
-			assimilation_wstress(ppft, ppft.co2_wstress, ppft.temp_wstress,
-				ppft.par_wstress, ppft.daylength_wstress, ppft.fpar_grass_wstress,
-					1., ppft.gcbase_wstress, ppft.gpterm_wstress, ppft.phot_wstress.vm, -2, phot, lambda);
-			assim += phot.net_assimilation() * ppft.fpar_grass_wstress * ppft.nday_wstress;
-		}
+			// Accumulate annual value
+			ppft.anetps_ff += assim;
 
-		// Accumulate annual value
-		ppft.anetps_ff += assim;
+			if (date.islastmonth && date.islastday) {
 
-		if (date.islastmonth && date.islastday) {
+				// Avoid negative ppft.anetps_ff
+				ppft.anetps_ff = max(0.0, ppft.anetps_ff);
 
-			// Avoid negative ppft.anetps_ff
-			ppft.anetps_ff = max(0.0, ppft.anetps_ff);
-
-			if (ppft.anetps_ff > spft.anetps_ff_max) {
-				spft.anetps_ff_max = ppft.anetps_ff;
-		}
+				if (ppft.anetps_ff > spft.anetps_ff_max) {
+					spft.anetps_ff_max = ppft.anetps_ff;
+				}
+			}
 		}
 	}
 }

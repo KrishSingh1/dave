@@ -270,8 +270,10 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& harvested_products_slow
 		& phot_wstress
 		& swindow
-		& water_deficit_y
-		& *cropphen;
+		& water_deficit_y;
+	if(pft.landcover==CROPLAND)
+		arch & *cropphen;
+		
 }
 
 void cropphen_struct::serialize(ArchiveStream& arch) {
@@ -612,8 +614,9 @@ void Individual::serialize(ArchiveStream& arch) {
 		& dtr_wstress 
 		& eet_wstress 
 		& agdd5_wstress 
-		& rad_wstress
-		& *cropindiv; 
+		& rad_wstress;
+	if(pft.landcover==CROPLAND)
+		arch & *cropindiv;
 }
 
 Individual::~Individual()

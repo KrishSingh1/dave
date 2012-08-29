@@ -1095,6 +1095,7 @@ class Pftlist : public ListArray_id<Pft> {};
 
 /// The one and only linked list of Pft objects	
 extern Pftlist pftlist;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 //cropindiv_struct
 //container for crop-specific data at the individual level

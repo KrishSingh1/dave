@@ -32,8 +32,3 @@ bool ArchiveOutStream::save() const {
 void ArchiveOutStream::transfer(char* s, std::streamsize n) {
 	out.write(s, n);
 }
-
-ArchiveStream& operator&(ArchiveStream& stream, Serializable& obj) {
-	obj.serialize(stream);
-	return stream;
-}

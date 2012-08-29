@@ -64,9 +64,7 @@ void landcover_init(Gridcell& gridcell) {
 					landcover=(landcovertype)i;
 					Stand& stand=gridcell.createobj(gridcell,landcover);
 					stand.set_gridcell_fraction(gridcell.landcoverfrac[i]);
-#ifdef MATS_TEST
-					dprintf("Stand %d, landcover type %d created year %d. Initial fraction = %f\n", stand.id, stand.landcover, date.year-nyear_spinup+1901, gridcell.landcoverfrac[i]);
-#endif
+
 					pftlist.firstobj();
 					while (pftlist.isobj) {
 						Pft& pft=pftlist.getobj();
@@ -105,14 +103,8 @@ void landcover_init(Gridcell& gridcell) {
 						if(pft.hydrology==IRRIGATED)
 						{
 							stand.isirrigated=true;
-#ifdef MATS_TEST			
-							dprintf("Irrigated crop stand created, pft=%s\n", (char*)pft.name);
-#endif
 						}
-#ifdef MATS_TEST
-						else
-							dprintf("Rainfed crop stand created, pft=%s\n", (char*)pft.name);
-#endif
+
 						if(pft.intercrop==NATURALGRASS && ifintercropgrass)	
 						{
 							stand.hasgrassintercrop=true;
@@ -122,10 +114,6 @@ void landcover_init(Gridcell& gridcell) {
 								if(pftlist[i].isintercropgrass)
 									stand.pft[pftlist[i].id].active=true;
 							}
-
-#ifdef MATS_TEST
-							dprintf("Crop stand with intercrop growth created, pft=%s\n", (char*)pft.name);
-#endif
 						}
 
 					// Set crop cycle dates to default values.
@@ -654,14 +642,8 @@ if(!SUPPRESSLARGEOUTPUT)
 							if(pft.hydrology==IRRIGATED)
 							{
 								stand.isirrigated=true;
-#ifdef MATS_TEST
-								dprintf("Irrigated crop stand created, pft=%s\n", (char*)pft.name);
-#endif
 							}
-#ifdef MATS_TEST
-							else
-								dprintf("Rainfed crop stand created, pft=%s\n", (char*)pft.name);
-#endif
+
 							if(pft.intercrop==NATURALGRASS && ifintercropgrass)
 							{
 								stand.hasgrassintercrop=true;
@@ -671,10 +653,6 @@ if(!SUPPRESSLARGEOUTPUT)
 									if(pftlist[i].isintercropgrass)
 										stand.pft[pftlist[i].id].active=true;
 								}
-
-#ifdef MATS_TEST
-								dprintf("Crop stand with intercrop growth created, pft=%s\n", (char*)pft.name);
-#endif
 							}
 
 							// Set crop cycle dates to default values.

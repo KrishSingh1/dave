@@ -38,47 +38,6 @@ rename("CFTdata.out", "CFTdata.old");
 	// settings and initialise input/output
 	initio(argc, argv);
 
-#ifdef MATS_TEST
-	dprintf("\n");
-
-	pftlist.firstobj();
-	while(pftlist.isobj)
-	{
-		dprintf("pft n:o %d: %s",pftlist.getobj().id,(char*)pftlist.getobj().name);
-		if(pftlist.getobj().landcover==CROPLAND)
-			dprintf(", cftid %d",pftlist.getobj().cftid);			
-		dprintf("\n");
-		pftlist.nextobj();
-	}
-
-	if(run_landcover)
-	{
-		dprintf("\nLandcover version.\n");
-		if(run[URBAN])
-			dprintf("Urban stand simulated (landcover type %d)\n", URBAN);
-		if(run[CROPLAND])
-			dprintf("Crop stands simulated (landcover type %d)\n", CROPLAND);
-		if(run[PASTURE])
-			dprintf("Pasture stand simulated (landcover type %d)\n", PASTURE);
-		if(run[FOREST])
-			dprintf("Forest stand simulated (landcover type %d)\n", FOREST);
-		if(run[NATURAL])
-			dprintf("Natural stand simulated (landcover type %d)\n", NATURAL);
-		if(run[PEATLAND])
-			dprintf("Peatland stand simulated (landcover type %d)\n", PEATLAND);
-	}
-	dprintf("npft=%d\n",npft);
-	if(run_landcover)
-	{
-		dprintf("ncft=%d\n",ncft);
-//		if(run[CROPLAND] && minimizecftlist && !cftfrac_fixed)
-//			dprintf("Pftlist is minimized\n");
-	}
-
-	dprintf("\n");
-#endif
-
-
 	// bvoc
 	if(ifbvoc){
 	  initbvoc();

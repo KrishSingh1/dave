@@ -303,7 +303,6 @@ void cropphen_struct::serialize(ArchiveStream& arch) {
 		& husum
 		& fphu 
 		& fphu_harv
-		& est_year
 		& demandsum_crop
 		& supplysum_crop
 		& lai
@@ -416,10 +415,6 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),gridcell(gc),la
 	for(p=0;p<pftlist.nobj;p++) {
 		pft.createobj(pftlist[p]);
 	}
-
-#ifdef MATS_TEST
-	dprintf("Stand N:o %d, (landcover:%d) created year %d.\n", id,landcover, ::date.year);
-#endif
 
 	if(landcover==CROPLAND || landcover==PASTURE || landcover==URBAN || landcover==PEATLAND) {
 		npatchL=1;
@@ -558,12 +553,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	if(pft.landcover==CROPLAND)
 	{
 		cropindiv=new cropindiv_struct;
-//		vegetation.patch.pft[pft.id].cropphen->est_year=cropindiv->est_year;
 	}
-
-#ifdef MATS_TEST
-//	dprintf("Year %d: Individual in stand %d created:id=%d, pft=%s\n", ::date.year-nyear_spinup+1901,vegetation.patch.stand.id,id,(char*)pft.name);
-#endif
 }
 
 void Individual::serialize(ArchiveStream& arch) {
@@ -628,9 +618,6 @@ void Individual::serialize(ArchiveStream& arch) {
 
 Individual::~Individual()
 {
-#ifdef MATS_TEST
-//	dprintf("Year %d: Individual  in stand %d destroyed:id=%d, pft=%s\n",::date.year-nyear_spinup+1901,vegetation.patch.stand.id,id,(char*)pft.name);
-#endif
 	if(cropindiv)
 		delete cropindiv;
 }
@@ -658,7 +645,6 @@ void cropindiv_struct::serialize(ArchiveStream& arch) {
 		& grs_cmass_root
 		& grs_cmass_ho
 		& grs_cmass_agpool 
-		& est_year
 		& isprimarycrop
 		& isprimarycovegetation
 		& isintercropgrass;

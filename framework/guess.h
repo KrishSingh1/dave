@@ -33,7 +33,7 @@
 //   templates for dynamic collection classes (list arrays of various types), argument
 //   processing for printf-style functions, timing functions and other utilities.
 
-//#define MATS_TEST					//Basic test output.
+
 #define DYNAMIC_LANDCOVER_INPUT		//Reads landcover data from text files, using the TimeDataD class.
 
 #define multiple_natural_stands		//Creates new natural stands when cropland is abandoned.
@@ -1132,7 +1132,6 @@ public:
 	double harv_cmass_agpool;
 	double cmass_ho_harvest[2];	
 
-	int est_year;
 	bool isprimarycrop;		
 	bool isprimarycovegetation;		//For future use ?
 //	bool issecondarycrop;			//For future use ?
@@ -1172,7 +1171,6 @@ public:
 		cmass_ho_harvest[0]=0.0;	//from ERA40 100325
 		cmass_ho_harvest[1]=0.0;	//from ERA40 100325
 
-		est_year=date.year;
 		isprimarycrop=false;
 		isprimarycovegetation=false;
 //		issecondarycrop=false;
@@ -1681,7 +1679,6 @@ public:
 	double fhi_water;	// Water deficiency component of fhi
 	double fhi_harv;	// Fraction of harvest index at latest harvest
 //	double fhi_harvest[2];
-	int est_year;	//establishment year of current individual; set in Individual constructor.
 	double demandsum_crop;
 	double supplysum_crop;
 	double lai;		// copy of indiv.lai (in allometry directly after lai calculation)
@@ -1728,7 +1725,6 @@ public:
 		fhi_phen=0.0;
 		fhi_water=1.0;
 		fhi_harv=0.0;
-		est_year=-1;
 		demandsum_crop=0.0;
 		supplysum_crop=0.0;
 

@@ -141,7 +141,7 @@ void leaf_phenology(Patch& patch,Climate& climate) {
 
 			// For this PFT ...
 			if(pft.pft.landcover==CROPLAND && patch.stand.landcover==CROPLAND)
-				leaf_phenology_crop(pft.pft,climate,pft.wscal,pft.aphen,pft.phen, gridcellpft, patch.stand.isirrigated, patch);
+				leaf_phenology_crop(pft.pft, patch) ;
 			else	//natural, urban, pasture, forest and peatland stands/pft:s
 				leaf_phenology_pft(pft.pft,climate,pft.wscal,pft.aphen,pft.phen);
 

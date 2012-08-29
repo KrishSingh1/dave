@@ -37,7 +37,8 @@ void Crop_sowing_date(Patch& patch, Pft& pft);
 void Crop_sowing_date_new(Patch& patch, Pft& pft);
 void crop_sowing_patch(Patch& patch);
 
-void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, double& phen, Gridcellpft& gridcellpft, bool isirrigated, Patch& patch);
+void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch);
+void leaf_phenology_crop(Pft& pft, Patch& patch);
 void fpar_crop(Patch& patch);
 void growth_crop_daily(Patch& patch);void allocation_crop(double bminc,double cmass_leaf,double cmass_root,double cmass_ho,double ltor,double& cmass_plant_inc,double& cmass_leaf_inc,
 	double& cmass_root_inc,double& cmass_ho_inc,double& cmass_agpool_inc, double& litter_leaf_inc,double& litter_root_inc, Individual& indiv);

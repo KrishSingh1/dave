@@ -1916,41 +1916,11 @@ double senescence_curve(Pft& pft, double fphu)
 	return senfactor;
 }
 
-void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, double& phen, Gridcellpft& gridcellpft, bool isirrigated, Patch& patch) 
+void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 {
+	Pft& pft=gridcellpft.pft;
+	Climate& climate=patch.stand.gridcell.climate;
 
-	double hu=0.0,k,c;
-	Patchpft& patchpft=patch.pft[pft.id];
-
-	cropphen_struct& ppftcrop=*(patchpft.get_cropphen());
-	ppftcrop.growingseason_ystd=ppftcrop.growingseason;
-
-	if(pft.phenology==CROPGREEN)	//excludes CC3G and CC4G
-	{
-
-		if(date.day==0)
-		{
-			ppftcrop.fphu_harv=-1.0;
-			ppftcrop.fhi_harv=-1.0;
-			ppftcrop.sdate_harv=-1;
-			ppftcrop.nsow=0;
-			ppftcrop.sendate=-1;
-			ppftcrop.nharv=0;
-
-			ppftcrop.sownlastyear=false;
-			for(int i=0;i<2;i++)
-			{
-				ppftcrop.sdate_harvest[i]=-1;
-				ppftcrop.hdate_harvest[i]=-1;
-//				ppftcrop.fphu_harvest[i]=-1.0;
-//				ppftcrop.fhi_harvest[i]=-1.0;
-				ppftcrop.sdate_thisyear[i]=-1;
-			}
-		}
-
-	//Calculation of PVD, PHU and TB:
-		if(date.day==ppftcrop.sdate)
-		{
 			ppftcrop.husum=0.0;	
 			ppftcrop.vrf=1.0;
 			ppftcrop.vdsum=0;
@@ -2066,11 +2036,51 @@ void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, do
 			if(patch.stand.first_year!=date.year)					//Insert condition here to use dynamic phu for a limited time
 				ppftcrop.phu=max(900.0, 0.9*ppftcrop.husum_max_10);
 #endif
-		}	// End of if(date.day==ppftcrop.sdate)
-//UTRÄKNING AV PVD, PHU OCH TB SLUT
+}
 
 
-//UTRÄKNING AV FPHU, PHEN och HI
+void leaf_phenology_crop(Pft& pft, Patch& patch) 
+{
+
+	double hu=0.0,k,c;
+	Gridcell& gridcell=patch.stand.gridcell;
+	Climate& climate=gridcell.climate;
+	Patchpft& patchpft=patch.pft[pft.id];
+	Gridcellpft& gridcellpft=gridcell.pft[pft.id];
+
+	cropphen_struct& ppftcrop=*(patchpft.get_cropphen());
+	ppftcrop.growingseason_ystd=ppftcrop.growingseason;
+
+	if(pft.phenology==CROPGREEN)	//excludes CC3G and CC4G
+	{
+
+		if(date.day==0)
+		{
+			ppftcrop.fphu_harv=-1.0;
+			ppftcrop.fhi_harv=-1.0;
+			ppftcrop.sdate_harv=-1;
+			ppftcrop.nsow=0;
+			ppftcrop.sendate=-1;
+			ppftcrop.nharv=0;
+
+			ppftcrop.sownlastyear=false;
+			for(int i=0;i<2;i++)
+			{
+				ppftcrop.sdate_harvest[i]=-1;
+				ppftcrop.hdate_harvest[i]=-1;
+//				ppftcrop.fphu_harvest[i]=-1.0;
+//				ppftcrop.fhi_harvest[i]=-1.0;
+				ppftcrop.sdate_thisyear[i]=-1;
+			}
+		}
+
+//Calculation of PVD, PHU and TB:
+		if(date.day==ppftcrop.sdate)
+		{
+			phu_init(ppftcrop, gridcellpft, patch);
+		}
+
+//Calculation of FPHU, PHEN och HI
 		// loop on days from sowing to maturity, calculates daily fraction of plant maximal LAI after sowing has taken place
 		if (date.day==ppftcrop.sdate || ppftcrop.growingseason) 
 		{
@@ -2112,7 +2122,7 @@ void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, do
 				// phenological scale (fraction of growing season)
 				ppftcrop.fphu=min(1.0,ppftcrop.husum/ppftcrop.phu);						//SWAT 5:2.1.11
 
-				phen=1.0;
+				patchpft.phen=1.0;
 
 				if (ppftcrop.fphu>=pft.fphusen) 
 				{
@@ -2165,7 +2175,7 @@ void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, do
 				ppftcrop.fphu_harv=ppftcrop.fphu;
 				ppftcrop.fhi_harv=ppftcrop.fhi;
 
-				phen=0.0;
+				patchpft.phen=0.0;
 				ppftcrop.lai_crop_actual=0.0;
 				ppftcrop.demandsum_crop=0.0;
 				ppftcrop.supplysum_crop=0.0;
@@ -2281,7 +2291,7 @@ void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, do
 				{
 					ppftcrop.growingseason=false;
 					patch.stand.gdd0_intercrop=0.0;
-					phen=0.0;
+					patchpft.phen=0.0;
 				}
 			}
 
@@ -2291,18 +2301,18 @@ void leaf_phenology_crop(Pft& pft,Climate& climate,double wscal,double aphen, do
 			if(ppftcrop.growingseason)	// NB on bicdate, not on eicdate
 			{
 				if(patch.stand.pftid==pft.id)	//Normal grass growth: gives identical result to natural stands.
-					phen=min(1.0,climate.gdd5_pasture/pft.phengdd5ramp);
+					patchpft.phen=min(1.0,climate.gdd5_pasture/pft.phengdd5ramp);
 				else if(patch.stand.gdd0_intercrop>0.0)
-					phen=min(1.0,(climate.gdd5_pasture-patch.stand.gdd0_intercrop)/(pft.phengdd5ramp*0.9));
+					patchpft.phen=min(1.0,(climate.gdd5_pasture-patch.stand.gdd0_intercrop)/(pft.phengdd5ramp*0.9));
 				else
-					phen=min(1.0,(climate.gdd5_pasture-patch.stand.gdd0_intercrop)/pft.phengdd5ramp);
+					patchpft.phen=min(1.0,(climate.gdd5_pasture-patch.stand.gdd0_intercrop)/pft.phengdd5ramp);
 
-				if(phen<0.0)
-					phen=0.0;
+				if(patchpft.phen<0.0)
+					patchpft.phen=0.0;
 
-				if (wscal<pft.wscal_min)
+				if (patchpft.wscal<pft.wscal_min)
 				{
-					phen=0.0;
+					patchpft.phen=0.0;
 					patch.stand.gdd0_intercrop=climate.gdd5_pasture;
 				}
 			}

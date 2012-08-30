@@ -531,6 +531,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	lai_layer = 0.0;
 	lai_indiv = 0.0;
 	alive = false;
+	wscal_mean=1.0;
 
 	int m;
 	for (m=0;m<12;m++) {

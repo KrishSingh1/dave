@@ -48,6 +48,10 @@ void setseed(long init) {
 	seed = init;
 }
 
+long getseed() {
+	return seed;
+}
+
 double randfrac() {
 
 	// DESCRIPTION

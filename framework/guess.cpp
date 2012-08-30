@@ -9,7 +9,7 @@
 
 #include "config.h"
 #include "guess.h"
-
+#include "driver.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES WITH EXTERNAL LINKAGE
@@ -654,6 +654,19 @@ void Gridcell::set_coordinates(double longitude, double latitude) {
 }
 
 void Gridcell::serialize(ArchiveStream& arch) {
+	// Saving and restoring the random seed is not strictly necessary, but
+	// helps when verifying that the model behaves the same with and without
+	// restart
+	if (arch.save()) {
+		long seed = getseed();
+		arch & seed;
+	}
+	else {
+		long seed;
+		arch & seed;
+		setseed(seed);
+	}
+
 	arch & climate
 		& landcoverfrac
 		& landcoverfrac_old

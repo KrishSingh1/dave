@@ -433,6 +433,11 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("iflandusechange",&iflandusechange,1,CB_NONE,
 			    "Whether land use is static (0) or dynamic (1)");
 
+		declareitem("state_path",&state_path,80,CB_NONE,"State directory");
+		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
+		declareitem("save", &save, 1, CB_NONE, "Whether to save new state files");
+		declareitem("start_year", &start_year,1,10000,1,CB_NONE, "Year to start/save state file");
+
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
 		callwhendone(CB_CHECKGLOBAL);
@@ -4587,7 +4592,7 @@ void outannual(Gridcell& gridcell) {
 
 	// guess2008 - yearly output after spinup
 
-	if (date.year>=10){//nyear_spinup) {
+	if (date.year>=nyear_spinup) {
 
 		double lon = gridcell.get_lon();
 		double lat = gridcell.get_lat();
@@ -5025,7 +5030,7 @@ void outannual(Gridcell& gridcell) {
 					firert_gridcell+=1000.0/(double)stand.npatch(); // Set a limit of 1000 years
 				else
 					firert_gridcell+=(1.0/patch.fireprob)/(double)stand.npatch();
-
+				
 				andep_gridcell+=patch.soil.andep/(double)stand.npatch()*10000.0;	// convert from m2 to ha
 				anmin_gridcell+=patch.soil.anmin/(double)stand.npatch()*10000.0;	// convert from m2 to ha
 				animm_gridcell+=patch.soil.animmob/(double)stand.npatch()*10000.0; // convert from m2 to ha
@@ -5300,7 +5305,7 @@ void outannual(Gridcell& gridcell) {
 				out.add_value(out_npool, nmass_gridcell+n_litter+surfsoillittern+cwdn+centuryn+n_harv_slow);
 			}
 			else {
-				out.add_value(out_npool, nmass_gridcell+n_litter+centuryn);
+				out.add_value(out_npool, nmass_gridcell+n_litter+surfsoillittern+cwdn+centuryn);
 			}
 		}
 

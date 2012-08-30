@@ -19,6 +19,7 @@
 #include "vegdynam.h"
 #include "landcover.h"
 #include "bvoc.h"
+#include "guessserializer.h"
 
 
 int framework(int argc, char* argv[]) {
@@ -35,6 +36,19 @@ int framework(int argc, char* argv[]) {
 	if (ifbvoc) {
 	  initbvoc();
 	}
+
+	GuessSerializer* serializer = 0;
+    GuessDeserializer* deserializer = 0;
+
+	if (save && restart)
+		fail("Serialization: Can't save and restart at the same time");
+
+    if (save) {
+        serializer = new GuessSerializer(state_path, 0);
+    }
+    if (restart) {
+        deserializer = new GuessDeserializer(state_path);
+    } 
 
 	while (true) {
 
@@ -60,6 +74,11 @@ int framework(int argc, char* argv[]) {
 		if(run_landcover) {
 			//Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
 			landcover_init(gridcell);
+		}
+
+		if (restart) {
+			deserializer->deserialize_gridcell(gridcell);
+			date.year = start_year;
 		}
 
 		// Call input/output to obtain climate, insolation and CO2 for this
@@ -143,6 +162,10 @@ int framework(int argc, char* argv[]) {
 				// or end of simulation for this grid cell
 				outannual(gridcell);
 
+				if (date.year == start_year-1 && save) {
+					serializer->serialize_gridcell(gridcell);
+				}
+
 				// Check whether to abort
 				if (abort_request_received()) {
 					termio();
@@ -156,6 +179,9 @@ int framework(int argc, char* argv[]) {
 			// End of loop through simulation days
 		}	//while (getclimate())
 	}		// End of loop through grid cells
+
+	delete serializer;
+    delete deserializer; 
 
 	// Call to input/output module to perform any necessary clean up
 	termio();

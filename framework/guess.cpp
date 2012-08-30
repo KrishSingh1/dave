@@ -82,6 +82,11 @@ bool all_fracs_const;
 bool ifslowharvestpool;				// If a slow harvested product pool is included in patchpft.
 int nyear_spinup;		
 
+xtring state_path;
+bool restart;
+bool save;
+int start_year;
+
 Pftlist pftlist;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -94,9 +99,8 @@ void PhotosynthesisResult::serialize(ArchiveStream& arch) {
 		& adtmm
 		& rd_g
 		& vm
-		& je;
-
-		& nmass_term;
+		& je
+		& nmass_term
 		& vmax_lim;
 }
 
@@ -140,10 +144,9 @@ void Climate::serialize(ArchiveStream& arch) {
 		& cosinelat
 		& qo & u & v & hh & sinehh
 		& daylength_save
-		& doneday;
-
-		& andep;
-		& dndep;
+		& doneday
+		& andep
+		& dndep
 		& frluse; // CMIP5
 }
 
@@ -165,12 +168,11 @@ void Fluxes::serialize(ArchiveStream& arch) {
 		& mcflux_gpp
 		& mcflux_ra
 		& miso
-		& mmon;
-
-		& aNH3_fire;
-		& aNO_fire;
-		& aNO2_fire;
-		& aN2O_fire;
+		& mmon
+		& aNH3_fire
+		& aNO_fire
+		& aNO2_fire
+		& aN2O_fire
 		& firenratio;
 }
 
@@ -241,18 +243,18 @@ void Soil::serialize(ArchiveStream& arch) {
 			arch & sompool[i];
 		} 
 
-		& dperc;				
-		& nmin_daily;		
-		& nimmob_daily;	
-		& minleachfrac_daily; 
-		& orgleachfrac_daily;
-		& nmass_avail;			
-		& anmin;			
-		& animmob;			
-		& aminleach;		
-		& aorgleach;		
-		& andep;			
-		& nmin_balance;		
+	arch & dperc				
+		& nmin_daily		
+		& nimmob_daily	
+		& minleachfrac_daily 
+		& orgleachfrac_daily
+		& nmass_avail			
+		& anmin			
+		& animmob			
+		& aminleach		
+		& aorgleach		
+		& andep			
+		& nmin_balance		
 		& anfix;
 }
 
@@ -292,14 +294,13 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& wstress
 		& wstress_day
 		& harvested_products_slow
-		& phot_wstress;
-
-		& nlitter_repr;
-		& nmass_litter_leaf;
-		& nmass_litter_root;
-		& nmass_litter_wood;
-		& harvested_products_slow_nmass;	
-		& nstore_est;
+		& phot_wstress
+		& nlitter_repr
+		& nmass_litter_leaf
+		& nmass_litter_root
+		& nmass_litter_wood
+		& harvested_products_slow_nmass	
+		& nstore_est
 		& nsapling_nuptake;
 }
 
@@ -350,10 +351,9 @@ void Patch::serialize(ArchiveStream& arch) {
 		& mevap
 		& mintercep
 		& mrunoff
-		& mpet;
-
-		& fnuptake;
-		& ndemand;
+		& mpet
+		& fnuptake
+		& ndemand
 		& nsupply;
 }
 
@@ -368,8 +368,7 @@ void Standpft::serialize(ArchiveStream& arch) {
 		& gpterm
 		& assim_term
 		& fpc_total
-		& active;
-
+		& active
 		& cmass_repr_nuptake;
 }
 
@@ -586,43 +585,40 @@ void Individual::serialize(ArchiveStream& arch) {
 		& dtr_wstress 
 		& eet_wstress 
 		& agdd5_wstress 
-		& rad_wstress; 
-
-		& nmass_leaf;
-		& nmass_root;
-		& nmass_sap;
-		& nmass_heart;
-		& nmass_reserve;
-		& nstore;
-		& nuptake;
-		& leafn;
-		& leafn_mean;
-		& ndemand;
-		& ndemand_no_nlim;
-		& raingreen_ndemand;
-		& fnuptake;
-		& n_reserve_uptake;
-		& max_n_reserve;
-		& max_n_reserve_old;
-		& limnfact;
-		& na_fpar;
-		& vmax_lim;
-		& avmaxnlim;
-		& cton_leaf_new;
-		& cton_root_new;
-		& cton_sap_new;
-		& cton_leaf_old;
-		& cton_root_old;
-		& cton_sap_old;
-		& cton_leaf_opt;
-		& cton_growth;
-		& bminc_leaf_frac;	
-		& bminc_root_frac;
-		& frac_agpp;
-		& dassim;
-		& aassim;
-
-		& assim_nowstress;
+		& rad_wstress 
+		& nmass_leaf
+		& nmass_root
+		& nmass_sap
+		& nmass_heart
+		& nmass_reserve
+		& nstore
+		& nuptake
+		& leafn
+		& leafn_mean
+		& ndemand
+		& ndemand_no_nlim
+		& raingreen_ndemand
+		& fnuptake
+		& n_reserve_uptake
+		& max_n_reserve
+		& max_n_reserve_old
+		& limnfact
+		& vmax_lim
+		& avmaxnlim
+		& cton_leaf_new
+		& cton_root_new
+		& cton_sap_new
+		& cton_leaf_old
+		& cton_root_old
+		& cton_sap_old
+		& cton_leaf_opt
+		& cton_growth
+		& bminc_leaf_frac	
+		& bminc_root_frac
+		& frac_agpp
+		& dassim
+		& aassim
+		& assim_nowstress
 		& nday_leafon;
 }
 
@@ -705,15 +701,15 @@ void Gridcell::serialize(ArchiveStream& arch) {
 }
 
 void Sompool::serialize(ArchiveStream& arch) {
-	arch & cmass;
-		& nmass;
-		& cdec; 
-		& ndec; 
-		& delta_cmass;
-		& delta_nmass;
-		& ligcfrac;
-		& frc;
-		& ntoc;
-		& litterme;
+	arch & cmass
+		& nmass
+		& cdec 
+		& ndec 
+		& delta_cmass
+		& delta_nmass
+		& ligcfrac
+		& frc
+		& ntoc
+		& litterme
 		& fireresist;
 }

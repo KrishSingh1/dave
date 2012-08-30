@@ -245,7 +245,13 @@ extern bool ifrainonwetdaysonly;
 extern bool ifbvoc; 
         // whether BVOC calculations are included
 
+/// Directory for state files
+extern xtring state_path;
 
+/// Whether to restart from state files
+extern bool restart;
+extern bool save;
+extern int start_year;
 
 /// General purpose object for handling simulation timing. 
 /** In general, frameworks should use a single Date object for all simulation
@@ -1185,8 +1191,6 @@ public:
 	/// actual fractional N available to indiv N demand
 	double limnfact;
 	/// leaf N associated with photosynthesis 	
-	double na_fpar;
-	/// daily N limitation to vmax
 	double vmax_lim[365];
 	/// N limitation on vmax
 	double avmaxnlim;

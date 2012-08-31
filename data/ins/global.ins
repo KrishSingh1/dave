@@ -77,7 +77,7 @@ file_mmon "mmon.out"
 title 'LPJ-GUESS (guess2008) cohort mode - global pfts'
 
 vegmode "cohort"		! "cohort", "individual" or "population"
-nyear_spinup 500		! number of years to spin up the simulation for
+nyear_spinup 5000		! number of years to spin up the simulation for
 ifdailynpp 1			! whether to calculate NPP daily (1) or monthly (0)
 						! guess2008 - species version has 1
 ifdailydecomp 1			! whether to calculate soil respiration daily (1) or monthly (0)
@@ -111,7 +111,13 @@ nfix_a 0.102				! first term in N fixation eqn (Conservative 0.102, Central 0.23
 nfix_b 5.24				! second term in N fixation eqn (Conservative 5.24, Central -1.72, Upper -7.54)
 nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
 
-! end GUESSN
+!///////////////////////////////////////////////////////////////////////////////
+! SERIALIZATION SETTINGS 
+!///////////////////////////////////////////////////////////////////////////////
+start_year 5000			! year to save/start state file
+restart 0				! wheter to start from a state file
+save 0					! wheter to save a state file
+
 
 ! guess2008 - additions
 ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1) 

@@ -394,8 +394,6 @@ void est_nmin_balance(Patch& patch, Soil& soil, Climate& climate) {
 
 	soil.nmin_balance -= N_uptake;
 
-	double check_leach=0.0;
-
 	// LEACHING OF SOIL MINERAL N
 	// Allowed on days with residual N following estimated vegetation N uptake
 	// in proportion to percolation following Parton et al. 1993 eqn 13
@@ -404,11 +402,7 @@ void est_nmin_balance(Patch& patch, Soil& soil, Climate& climate) {
 		soil.nmin_balance -= leaching;
 		soil.aminleach += leaching;
 		soil.sompool[LEACHED].nmass += leaching;
-		check_leach=leaching;
 	}
-
-	if (date.year == 300)
-		dprintf("Day %d Navail %g Ndemand %g Nleach %g\n",date.day,N_availability,N_demand,check_leach);
 }
 
 /// Decreases decay rates to keep the daily N balance in the soil  

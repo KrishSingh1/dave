@@ -145,8 +145,8 @@ void Climate::serialize(ArchiveStream& arch) {
 		& qo & u & v & hh & sinehh
 		& daylength_save
 		& doneday
-		& andep
-		& dndep
+		& andep//
+		& dndep//
 		& frluse; // CMIP5
 }
 
@@ -248,7 +248,7 @@ void Soil::serialize(ArchiveStream& arch) {
 		& nimmob_daily	
 		& minleachfrac_daily 
 		& orgleachfrac_daily
-		& nmass_avail			
+		& nmass_avail		
 		& anmin			
 		& animmob			
 		& aminleach		

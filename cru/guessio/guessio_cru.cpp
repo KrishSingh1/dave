@@ -2005,9 +2005,6 @@ void makeCMIP5data(double cmip5temp[NYEAR_CMIP5][12],double cmip5prec[NYEAR_CMIP
 		//printf("in correctmonthly\n");
 		for (y = 0; y < NYEAR_CMIP5; y++) 
 		{  
-
-			if (y == 241)
-				int sch = 0;
 			for (m = 0; m < 12; m++) 
 			{
 				temp[y][m]=cmip5temp[y][m]-ctemp_cmip5[m]+ctemp_cru[m];

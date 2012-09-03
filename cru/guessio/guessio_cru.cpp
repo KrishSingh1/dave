@@ -3357,7 +3357,7 @@ void initio(int argc,char* argv[]) {
 
 	if (abort) fail("\nUsage: %s <instruction-script-filename> | -help",argv[0]);
 
-	if(run[CROPLAND] && !ifdailynpp)
+	if(run_landcover && run[CROPLAND] && !ifdailynpp)
 		fail("\nOnly daily npp mode possible with cropland functionality.\n");
 
 	// Print the title of this run

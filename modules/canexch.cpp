@@ -882,7 +882,6 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			// environmental drivers and counter for water-stress days
 
 			ppft.temp_wstress = 0;
-			ppft.gpterm_wstress = 0;
 			ppft.phot_wstress.clear();
 			ppft.par_wstress = 0;
 			ppft.daylength_wstress = 0;
@@ -914,7 +913,6 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			ppft.co2_wstress += climate.co2;
 			ppft.fpar_grass_wstress += patch.fpar_grass * ppft.phen;
 			ppft.daylength_wstress += climate.daylength;
-			ppft.gpterm_wstress += spft.gpterm;
 			ppft.phot_wstress.vm += spft.photosynthesis.vm;
 			ppft.phot_wstress.rd_g += spft.photosynthesis.rd_g;
 			ppft.phot_wstress.je += spft.photosynthesis.je;
@@ -946,7 +944,6 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			ppft.fpar_grass_wstress /= ppft.nday_wstress;
 			ppft.daylength_wstress /= ppft.nday_wstress;
 			ppft.gcbase_wstress /= ppft.nday_wstress;
-			ppft.gpterm_wstress /= ppft.nday_wstress;
 			ppft.phot_wstress.vm /= ppft.nday_wstress;
 			ppft.phot_wstress.rd_g /= ppft.nday_wstress;
 			ppft.phot_wstress.je /= ppft.nday_wstress;
@@ -1056,7 +1053,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 // Internal function (do not call directly from framework)
 
 void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
-			double daylength, double fpar, double fpc, double gcbase, double gpterm,
+			double daylength, double fpar, double fpc, double gcbase,
 			double vmax, PhotosynthesisResult& phot_result, double& lambda) {
 
 	// DESCRIPTION
@@ -1075,27 +1072,47 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 	// (absolute value of f(lambda) < EPS), or after a maximum number of 
 	// iterations.
 
+	// Note that the function sometimes doesn't search for a lambda,
+	// and returns zero assimilation (for instance if there is no
+	// root within the valid interval, or if daylength is zero).
+	// So if zero assimilation is returned, the returned lambda should
+	// not be used!
+
 	// OUTPUT PARAMETER
 	// phot_result = result of photosynthesis for the found lambda
 	// lambda      = the lambda found by the bisection method (see above)
 
+
+	// Set lambda to something for cases where we don't actually search for
+	// a proper lambda. This value shouldn't be used (see documentation
+	// above), but we'll set it to something anyway so we don't return
+	// random garbage.
+	lambda = pft.lambda_max;
+
 	// Convert fpar from patch to fpc basis
 	double fpar_fpc = fpar / fpc;
 
-	if (negligible(fpc) || negligible(fpar) || fpar_fpc * gpterm <= gcbase ||
-									negligible(gcbase * daylength * 3600)) {
+	if (negligible(fpc) || negligible(fpar) || negligible(gcbase * daylength * 3600)) {
 		// Return zero assimilation
 		phot_result.clear();
-
-		// lambda doesn't make sense here and shouldn't be used, but let's
-		// return something well defined at least
-		lambda = pft.lambda_max;
 		return;
 	}
 
 	// Canopy conductance component associated with photosynthesis on a
 	// daily basis (mm / m2 / day)
 	double gcphot = gcbase * daylength * 3600 / 1.6 * co2 * CO2_CONV;
+
+	// Evaluate f(lambda_max) to see if there's a root 
+	// in the interval we're searching
+	photosynthesis(co2, temp, par, daylength, 1.0, pft.lambda_max, pft, phot_result, vmax);
+	
+	double f_lambda_max = phot_result.adtmm * fpar_fpc - gcphot * (1 - pft.lambda_max);
+
+	if (f_lambda_max < 0) {
+		// Return zero assimilation
+		phot_result.clear();
+		return;		
+	}
 
 	const double EPS = 0.1; // minimum precision of solution in bisection method
 
@@ -1346,7 +1363,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 				// Water stress - derive assimilation by simultaneous solution
 				// of light- and conductance-based equations of photosynthesis
 				assimilation_wstress(pft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
-							ppft.gcbase, gpterm_indiv, spft.photosynthesis.vm, phot, lambda);
+							ppft.gcbase, spft.photosynthesis.vm, phot, lambda);
 				assim = phot.net_assimilation();
 			}
 			else {
@@ -1433,7 +1450,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 					assimilation_wstress(pft, indiv.co2_wstress, indiv.temp_wstress,
 						indiv.par_wstress, indiv.daylength_wstress, indiv.fpar_wstress, indiv.fpc,
-						ppft.gcbase_wstress, ppft.gpterm_wstress, ppft.phot_wstress.vm, phot, lambda);
+						ppft.gcbase_wstress, ppft.phot_wstress.vm, phot, lambda);
 					indiv.assim += phot.net_assimilation() * indiv.fpar_wstress * indiv.nday_wstress;
 
 					if (ifbvoc) {
@@ -1521,7 +1538,7 @@ void forest_floor_conditions(Patch& patch) {
 			if (ppft.wstress_day) {
 				assimilation_wstress(pft, climate.co2, climate.temp, climate.par,
 					climate.daylength, patch.fpar_grass*ppft.phen, 1., ppft.gcbase_day,
-					spft.gpterm, spft.photosynthesis.vm, phot, lambda);
+					spft.photosynthesis.vm, phot, lambda);
 				assim = phot.net_assimilation();
 			} 
 			else {
@@ -1532,7 +1549,7 @@ void forest_floor_conditions(Patch& patch) {
 		if (date.islastday && !ifdailynpp && ppft.nday_wstress) {
  			assimilation_wstress(pft, ppft.co2_wstress, ppft.temp_wstress,
 					ppft.par_wstress, ppft.daylength_wstress, ppft.fpar_grass_wstress,
-					1., ppft.gcbase_wstress, ppft.gpterm_wstress, ppft.phot_wstress.vm, phot, lambda);
+					1., ppft.gcbase_wstress, ppft.phot_wstress.vm, phot, lambda);
 			assim += phot.net_assimilation() * ppft.fpar_grass_wstress * ppft.nday_wstress;
 		}
 

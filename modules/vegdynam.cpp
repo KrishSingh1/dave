@@ -120,15 +120,6 @@ bool establish(Patch& patch, Climate& climate, Pft& pft) {
         }
     }
 
-	// FACE DAVID
-	if (has_FACE_clim && pft.lifeform==TREE && date.year<patch.stand.plantyear && !ifduke && Sims < 1) // date.year>=200 &&
-		return false;
-		// Cutting natural forest, replaced by pasture or field, as happened at the sites
-
-	if (has_FACE_clim && pft.lifeform==TREE && date.year>=patch.stand.distyear2 && date.year<patch.stand.plantyear-45 && ifduke && Sims < 1)
-		return false;
-		// Cutting natural forest, replaced by pasture or field, as happened at the sites
-
 	return true;
 }
 
@@ -398,6 +389,7 @@ void ndemand_new_est(Patch& patch, Pftlist& pftlist, double& patch_ndemand) {
 			nwoodypfts_estab++;
 		pftlist.nextobj();
 	}
+
 	// Loop through PFTs
 
 	pftlist.firstobj();
@@ -858,15 +850,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 	double nonlimdens;	// No N limitation indiv density
 
-	// FACE DAVID plantation cohort mode; not used
-	double no_trees_planted;
-
-	if (!ifduke) // then ORNL
-		no_trees_planted=380.0;
-	else
-		no_trees_planted=170.0;
-	// end FACE
-
 	// Obtain reference to Vegetation object
 
 	Vegetation& vegetation = patch.vegetation;
@@ -881,8 +864,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 			nwoodypfts_estab++;
 		pftlist.nextobj();
 	}
-	if (date.year == 1103)
-		int sch = 0;
+
 	// Loop through PFTs
 
 	pftlist.firstobj();
@@ -909,8 +891,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 			if (establish(patch, stand.gridcell.climate, pft)) {
 
-				double sch = patch.pft[pft.id].nstore_est;
-
 				// Either nitrogen free establishment or there is nitrogen available for establishment 
 				if (!(ifnlim && date.year >= freenyears && !patch.pft[pft.id].nstore_est)) {
 
@@ -927,9 +907,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							if (vegetation.getobj().pft.id == pft.id) present = true;
 							vegetation.nextobj();
 						}
-
-						if (date.year>stand.plantyear && Sims) //FACE sch
-							present=true;
 
 						if (!present) {
 
@@ -950,12 +927,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 								bminit = SAPSIZE * patch.pft[pft.id].anetps_ff_est_initial;
 							// Makes no difference, Veiko 
 							bminit *= 0.3;
-
-							// FACE DAVID
-							if (has_FACE_clim && ifplantation) {
-								if (date.year>=stand.plantyear-1 && date.year<=stand.plantyear+10) 
-									bminit=0.0;
-							}
 
 							// Initial leaf to fine root biomass ratio based on
 							// hypothetical value of water stress parameter
@@ -980,14 +951,14 @@ void establishment_guess(Stand& stand,Patch& patch) {
 								indiv.cmass_root / indiv.pft.cton_root_avr;
 
 							// N limitation on establishment
-							if (ifnlim && date.year >= freenyears && indiv.ndemand > 0.0 && (!has_FACE_clim || (date.year < stand.plantyear && date.year >= stand.plantyear+estinterval))) {
+							if (ifnlim && date.year >= freenyears && indiv.ndemand > 0.0) {
 								double frac_est = min(1.0, patch.pft[pft.id].nstore_est / indiv.ndemand);
 								indiv.cmass_leaf *= frac_est;
 								indiv.nmass_leaf *= frac_est;
 								indiv.cmass_root *= frac_est;
 								indiv.nmass_root *= frac_est;
 								bminit *= frac_est;
-								}
+							}
 
 							indiv.max_n_reserve = indiv.pft.n_reserve * indiv.cmass_root / indiv.pft.cton_leaf_avr;
 
@@ -1073,27 +1044,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						if (date.year > freenyears)
 							nsapling = patch.pft[pft.id].nsapling_nuptake;
-
-						// FACE DAVID 
-						if (has_FACE_clim && ifplantation && Sims < 1) {
-							if (date.year>=stand.plantyear) {
-								if (ifduke) {
-									if (pft.name=="TeINE" && date.year==stand.plantyear+1) 
-										nsapling=no_trees_planted;
-									else if (date.year<stand.plantyear+5)	//stand.plantyear+3) // FACE plantation
-										nsapling=0.0;
-								//	else	// Thomas plantation new
-								//		nsapling*=20.0;
-								}
-								else { // Oak Ridge
-									if (pft.name=="IBS" && date.year==stand.plantyear+1)					
-										nsapling=no_trees_planted;
-									else if (date.year<stand.plantyear+3)// was ??? >stand.plantyear)	// FACE plantation
-										nsapling=0.0;
-								}
-							}
-						}
-						// end FACE
 
 						patch.pft[pft.id].nsapling_yearly += nsapling;
 
@@ -1181,7 +1131,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 								indiv.nmass_heart + indiv.nmass_reserve;
 
 							// N limitation on establishment
-							if (ifnlim && date.year >= freenyears && (!has_FACE_clim || (date.year < stand.plantyear && date.year >= stand.plantyear+estinterval))){
+							if (ifnlim && date.year >= freenyears){
 
 								nonlimdens = indiv.densindiv;
 
@@ -2208,36 +2158,6 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 				return; // no mortality or establishment this year
 			}
 		}
-
-		// FACE
-		if (has_FACE_clim && Sims) {
-			disturbance(patch,1.0/distinterval);
-			if (patch.disturbed) {
-				return; // no mortality or establishment this year
-			}
-		}
-
-		// FACE Thomas plantation cohort mode
-		if (has_FACE_clim && date.year==stand.plantyear && ifplantation && Sims < 1) {
-			disturbance(patch,1.0);
-			if (patch.disturbed) {
-				return; // no mortality or establishment this year
-			}
-		}
-		// help the trees establishing in competition with grasses
-		if (has_FACE_clim && date.year==distyear && ifdisturb_init && Sims < 1) {
-			disturbance(patch,1.0);
-			if (patch.disturbed) {
-				return; // no mortality or establishment this year
-			}
-		}
-		if (has_FACE_clim && date.year==stand.distyear2 && ifdisturb_init && Sims < 1) { // when trees were felled at the sites, replaced by pasture or cropland
-			disturbance(patch,1.0);
-			if (patch.disturbed) {
-				return; // no mortality or establishment this year
-			}
-		}
-		// end FACE
 
 		// Mortality
 

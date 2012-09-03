@@ -776,9 +776,6 @@ void photosynthesis_nowstress(Patch& patch, Climate& climate) {
 			// Save assimilation in case this turns out to be a non-water-stress day
 			indiv.assim_nowstress = indiv.photosynthesis.net_assimilation();
 
-			// FACE OUT
-			indiv.FACE_out[18][date.day]=indiv.photosynthesis.rd_g*1000.0;	// Leaf respiration (kg C m-2 day-1)
-
 			if (date.diurnal()) {
 				for (int i=0; i<date.subdaily; i++) {
 					PhotosynthesisResult& result = indiv.phots[i];
@@ -847,8 +844,6 @@ void demand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& d
 				indiv.photosynthesis.vm);
 
 			gp_leafon = gpterm(leafon_photosynthesis.adtmm, climate.co2, pft.lambda_max, daylength) + pft.gmin * indiv.fpc;
-
-			indiv.adtmm_term=indiv.photosynthesis.adtmm; // GC
 		}
 		else {
 			// Calculate non-water-stressed canopy conductance assuming full leaf cover
@@ -1211,8 +1206,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 			double daylength, double fpar, double fpc, double gcbase, double gpterm,
-			double vmax, int i, PhotosynthesisResult& phot_result, double& lambda, double nmass_leaf, double lai,
-			double& adtmm_last_save,double& lambda_last_save) {	 // GC
+			double vmax, int i, PhotosynthesisResult& phot_result, double& lambda, double nmass_leaf, double lai) {
 
 	// DESCRIPTION
 	// Calculation of net C-assimilation under water-stressed conditions
@@ -1247,8 +1241,6 @@ void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 		// lambda doesn't make sense here and shouldn't be used, but let's
 		// return something well defined at least
 		lambda = ppft.pft.lambda_max;
-		adtmm_last_save = 0.0;
-		lambda_last_save = 0.0;
 		return;
 	}
 
@@ -1300,13 +1292,6 @@ void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 
 	// bvoc
 	lambda=xmid;
-
-	if (date.year == 1097 && date.day == 46)
-		int sch = 0;
-
-	// GC
-	adtmm_last_save=phot_result.adtmm*fpar;
-	lambda_last_save=xmid;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -1315,8 +1300,7 @@ void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 
 void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	double respcoeff, double cton_sap, double cton_root,
-	double phen, double cmass_sap, double cmass_root, double assim, double& resp,
-	double& resp_sap, double& resp_root, double& resp_growth) {	
+	double phen, double cmass_sap, double cmass_root, double assim, double& resp) {	
 
 	// DESCRIPTION
 	// Calculation of daily maintenance and growth respiration for individual with
@@ -1350,9 +1334,9 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	const double K=0.095218;  // NEW parameter value in respiration equations 
 	// See the comment after Eqn (4) below.
 
-	//double resp_sap;    // sapwood respiration (kg/m2/day)
-	//double resp_root;   // root respiration (kg/m2/day)
-	//double resp_growth; // growth respiration (kg/m2/day)
+	double resp_sap;    // sapwood respiration (kg/m2/day)
+	double resp_root;   // root respiration (kg/m2/day)
+	double resp_growth; // growth respiration (kg/m2/day)
 
 	// Calculation of maintenance respiration components for each living tissue:
 	//
@@ -1439,8 +1423,6 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	}
 	else if (lifeform == GRASS) {
 
-		resp_sap = 0.0;
-
 		// Root respiration
 
 		resp_root = respcoeff * K * cmass_root / cton_root * gtemp_soil * phen;
@@ -1480,12 +1462,6 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 	double hours = 24;			// diurnal "daylength" to convert to daily units
 	int index = -1;
 
-	if (date.year == 1097 && date.day == 46)
-		int sch = 0;
-
-	// GC
-	double adtmm;
-
 	if (date.diurnal()) {
 		par = climate.pars[day.period];
 		temp = climate.temps[day.period];
@@ -1522,13 +1498,9 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 				// of light- and conductance-based equations of photosynthesis
 				assimilation_wstress(ppft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
 							ppft.gcbase, gpterm_indiv, indiv.photosynthesis.vm, index, phot, lambda,
-							indiv.nmass_leaf * indiv.phen, indiv.lai * indiv.phen, adtmm, lambda);	// GC
+							indiv.nmass_leaf * indiv.phen, indiv.lai * indiv.phen);
 
 				assim = phot.net_assimilation();
-
-				// GC
-				indiv.gc_sum=444.4*adtmm/climate.co2/(1.0-lambda)/
-						climate.daylength;
 			}
 			else {
 				// No water stress - use base value for non-water-stressed assimilation
@@ -1537,9 +1509,6 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 					// (assuming no water stress)
 
 					assim = date.diurnal() ? indiv.assim_terms[day.period] : indiv.assim_nowstress;
-					// GC
-					indiv.gc_sum=444.4*indiv.adtmm_term*indiv.fpar/
-						climate.co2/(1.0-indiv.pft.lambda_max)/climate.daylength;
 				}
 				else {
 					assim = date.diurnal() ? spft.assim_terms[day.period] : spft.assim_term;
@@ -1560,18 +1529,10 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 				bvoc(temp, hours, climate.daylength, rad, climate.eet, climate.agdd5, climate.dtr,
 					climate.co2, climate.temp, indiv.fpar, patch, indiv, pft, phot, adtmm, gpterm_indiv, day);
 			}
-
-			// GC: add gmin
-			indiv.gc_sum+=indiv.pft.gmin;
-			// convert from FPC to grid cell basis
-			indiv.gc_sum*=indiv.fpc;
-			// Finished: gc_sum is now canopy conductance in mm/s
-
-			double resp_sap, resp_root, resp_growth;
 			// Calculate autotrophic respiration
 			respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 				indiv.pft.respcoeff, indiv.cmass_sap / indiv.nmass_sap, indiv.cmass_root / indiv.nmass_root,
-				indiv.phen, indiv.cmass_sap, indiv.cmass_root, assim * indiv.frac_agpp, resp, resp_sap, resp_root, resp_growth);
+				indiv.phen, indiv.cmass_sap, indiv.cmass_root, assim * indiv.frac_agpp, resp);
 
 			// Convert to averages for this period for accounting purposes
 			assim /= date.subdaily;
@@ -1587,30 +1548,6 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			if (indiv.alive) {
 				patch.fluxes.dcflux_veg -= ind_npp;
 			}
-
-			// GC
-			indiv.mgc[date.month]+=indiv.gc_sum;
-			indiv.dgc[date.day]=indiv.gc_sum;
-
-			if (date.year >= nyear_spinup + 95 && date.day == 46)
-				int sch = 0;
-
-			// FACE OUT
-			patch.soil.FACE_out[2][date.day]=date.day+1;
-			patch.soil.FACE_out[3][date.day]=climate.co2;
-			patch.soil.FACE_out[4][date.day]=climate.prec;
-			patch.soil.FACE_out[5][date.day]=climate.par*4.56/1000000.0;
-			patch.soil.FACE_out[6][date.day]=climate.temp;
-			patch.soil.FACE_out[7][date.day]=patch.soil.temp;
-			indiv.FACE_out[12][date.day]=indiv.assim*1000.0;				// GPP daily net assimilation (GPP-leaf respiration) on modelled area basis (kgC/m2/day)
-			indiv.FACE_out[17][date.day]=indiv.resp*1000.0;				// Resp Autotrophic (sapwood, root and growth respiration (kg/m2/day))
-																		// daily maintenance respiration (not including leaf respiration) and growth
-																		// respiration on modelled area basis (kgC/m2/day)
-			indiv.FACE_out[19][date.day] = resp_sap*1000.0;				// Resp Wood (maint) (sapwood respiration (kg/m2/day))
-			indiv.FACE_out[20][date.day] = resp_root*1000.0;				// Resp Fine Root (maint) (root respiration (kg/m2/day))
-			indiv.FACE_out[21][date.day] = resp_growth*1000.0;				// Resp growth (growth respiration (kg/m2/day))
-			indiv.FACE_out[76][date.day] = indiv.gc_sum;				// Canopy conductance (mm/s)
-			// end FACE OUT
 
 			// Monthly NPP and LAI
 			indiv.mnpp[date.month] += ind_npp;
@@ -1663,7 +1600,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 					PhotosynthesisResult phot;
 					assimilation_wstress(ppft, indiv.co2_wstress, indiv.temp_wstress,
 						indiv.par_wstress, indiv.daylength_wstress, indiv.fpar_wstress, indiv.fpc,
-						ppft.gcbase_wstress, ppft.gpterm_wstress, ppft.phot_wstress.vm, -2, phot, lambda, indiv.nmass_leaf * indiv.phen_mean, indiv.lai * indiv.phen_mean,adtmm,lambda);	// GC
+						ppft.gcbase_wstress, ppft.gpterm_wstress, ppft.phot_wstress.vm, -2, phot, lambda, indiv.nmass_leaf * indiv.phen_mean, indiv.lai * indiv.phen_mean);
 					indiv.assim += phot.net_assimilation() * indiv.nday_wstress;
 
 					if (ifbvoc) {
@@ -1691,12 +1628,9 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 				indiv.assim /= (double)date.ndaymonth[date.month];
 					// average daily assimilation for this month
 
-				double resp_sap, resp_root, resp_growth;
-
 				respiration(climate.mgtemp, patch.soil.mgtemp, indiv.pft.lifeform,
 					indiv.pft.respcoeff, indiv.cmass_sap / indiv.nmass_sap, indiv.cmass_root / indiv.nmass_root,
-					indiv.phen_mean, indiv.cmass_sap, indiv.cmass_root, indiv.assim * indiv.frac_agpp, indiv.resp,
-					resp_sap, resp_root, resp_growth);
+					indiv.phen_mean, indiv.cmass_sap, indiv.cmass_root, indiv.assim * indiv.frac_agpp, indiv.resp);
 
 				indiv.resp *= date.ndaymonth[date.month];
 				// Update accumulated annual NPP and daily vegetation-atmosphere flux
@@ -1745,8 +1679,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 void forest_floor_conditions(Patch& patch) {
 
 	Climate& climate = patch.stand.gridcell.climate;
-	double lambda;	// GC
-	double adtmm;	// GC
+	double lambda;			// not used here
 	PhotosynthesisResult phot;
 
 	for (int p=0; p<npft; p++) {
@@ -1765,7 +1698,7 @@ void forest_floor_conditions(Patch& patch) {
 				assimilation_wstress(ppft, climate.co2, climate.temp, climate.par,
 					climate.daylength, patch.fpar_grass*ppft.phen, 1., ppft.gcbase_day,
 					spft.gpterm, spft.photosynthesis.vm, -1, phot, lambda,
-					1.0, 1.0,adtmm,lambda);	// GC	
+					1.0, 1.0);
 				assim = phot.net_assimilation();
 			} 
 			else {
@@ -1788,7 +1721,7 @@ void forest_floor_conditions(Patch& patch) {
  			assimilation_wstress(ppft, ppft.co2_wstress, ppft.temp_wstress,
 					ppft.par_wstress, ppft.daylength_wstress, ppft.fpar_grass_wstress,
 					1., ppft.gcbase_wstress, ppft.gpterm_wstress, ppft.phot_wstress.vm, -2, phot, lambda,
-					1.0, 1.0,adtmm,lambda);	// GC
+					1.0, 1.0);
 			assim += phot.net_assimilation() * ppft.nday_wstress;
 		}
 

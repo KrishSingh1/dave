@@ -116,17 +116,13 @@ void soilparameters(Soiltype& soiltype, int soilcode) {
 		{   5.0, 0.110,   0.2, 0.800,   0.4,	0.074,	0.395},    // 1	Coarse		
 		{   4.0, 0.150,   0.2, 0.650,   0.4,	0.184,	0.439},    // 2	Medium		
 		{   3.0, 0.120,   0.2, 0.500,   0.4,	0.274,	0.454},    // 3	Fine
-		//	{   4.5, 0.130,   0.2, 0.725,   0.4,	0.129,	0.417},    // 4	Medium-coarse
-		{   4.5, 0.366,   0.2, 0.725,   0.4,	0.200,	0.52},	 // 4	Medium-coarse	// FACE Thomas the PWP is 0.125 m3/m3, and saturation is at .54 m3/m3 -> So 1 should be 0.415
+		{   4.5, 0.130,   0.2, 0.725,   0.4,	0.129,	0.417},    // 4	Medium-coarse
 		{   4.0, 0.115,   0.2, 0.650,   0.4,	0.174,	0.425},    // 5	Fine-coarse
 		{   3.5, 0.135,   0.2, 0.575,   0.4,	0.229,	0.447},    // 6	Fine-medium 
 		{   4.0, 0.127,   0.2, 0.650,   0.4,	0.177,	0.430},    // 7	Fine-medium-coarse
 		{   9.0, 0.300,   0.1, 0.100,   0.1,	0.200,	0.600},    // 8	Organic (values not know for wp)
 		{   0.2, 0.100,   0.2, 0.500,   0.4,	0.100,	0.250}     // 9	Vertisols (values not know for wp)
 	};
-
-	if ((data[3][1] == 0.366 && !has_FACE_clim) || (data[3][1] != 0.366 && has_FACE_clim))
-		fail("WRONG SOIL CODE!!!!\n");
 
 	if (soilcode<1 || soilcode>9)
 		fail("soilparameters: invalid LPJ soil code (%d)",soilcode);
@@ -851,11 +847,6 @@ void daylengthinsoleet(Climate& climate) {
 			climate.rad = climate.insol * (1.0 - BETA) * averaging_period;
 		}
 
-		// FACE DAVID climate 
-		if(has_FACE_clim)	{	// Has par as inputdata! 
-			climate.rad = climate.par / FRADPAR;	// Calculates Rad backwards with the help of FRADPAR
-		}
-
 		// special case for polar night
 		if (climate.sinehh[date.day] < 0.001) {	// polar night
 			w = 0;
@@ -866,12 +857,8 @@ void daylengthinsoleet(Climate& climate) {
 		}
 	}
 
-	// FACE DAVID climate 
-	if(has_FACE_clim)	{	// Has par as inputdata! 
-		climate.rad = climate.par / FRADPAR;	// Calculates Rad backwards with the help of FRADPAR
-	}
-	else
-		climate.par = climate.rad * FRADPAR;	// Calculate PAR from radiation (Eqn A1, Haxeltine & Prentice 1996)
+	// Calculate PAR from radiation (Eqn A1, Haxeltine & Prentice 1996)
+	climate.par = climate.rad * FRADPAR;
 
 	//	CALCULATION OF DAILY EQUILIBRIUM EVAPOTRANSPIRATION
 	//	(EET, or evaporative demand)

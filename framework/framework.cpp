@@ -141,19 +141,6 @@ int framework(int argc, char* argv[]) {
 				}// End of loop through patches
 
 				if (date.islastday && date.islastmonth) {
-
-					// FACE plantation
-					if (has_FACE_clim) {
-						if (!ifduke) {
-							stand.plantyear=nyear_spinup+106-28; // 33 2073 should be 2087=1988
-							stand.distyear2=stand.plantyear-45;
-						}
-						else {
-							stand.plantyear=nyear_spinup+106-25; // 2074 should be 2082 (i.e. 1983), but forest needs more time to grow 2074
-							stand.distyear2=stand.plantyear-283;
-						}
-					}
-					
 					// LAST DAY OF YEAR
 					stand.firstobj();
 					while (stand.isobj) {

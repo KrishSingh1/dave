@@ -63,14 +63,6 @@ bool ifcmip5;
 bool iflandusesimple;
 bool iflandusechange;
 
-// FACE David
-int FYEAR_SCENARIO_FACE;
-int Sims;
-int Fert;
-int FACE_ring;
-int ifduke;
-int has_FACE_clim;
-
 // N budget check
 double somfluxnerror;
 
@@ -535,16 +527,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	for (d=0; d<365; d++) {
 		dassim[d] = vmax_lim[d] = 0.0;
 	}
-
-	// FACE_OUT
-	for (int k=0;k<77;k++) {
-		for (int l=0;l<365;l++) {
-			FACE_out[k][l]=-9999.0;
-		}
-	}
-
-	// GC
-	gc_sum=0.0;
 }
 
 void Individual::serialize(ArchiveStream& arch) {

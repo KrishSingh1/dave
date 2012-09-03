@@ -211,8 +211,6 @@ xtring file_cton, file_nmass, file_nsources, file_npool, file_nleach, file_nupta
 // allometry
 xtring file_allometry,file_canopyh,file_allometry_ind;
 
-// FACE OUT
-xtring file_face;
 
 void initsettings() {
 
@@ -245,9 +243,6 @@ void initsettings() {
 
 	// allometry
 	file_allometry=file_canopyh=file_allometry_ind="";
-
-	// FACE OUT
-	file_face="";
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -291,13 +286,6 @@ void plib_declarations(int id,xtring setname) {
 	switch (id) {
 
 	case BLOCK_GLOBAL:
-
-		// FACE David
-		declareitem("Sims",&Sims,0,3,1,CB_NONE,"Which simulation");
-		declareitem("Fert",&Fert,0,1,1,CB_NONE,"Fertilization");
-		declareitem("FACE_ring",&FACE_ring,1,2,1,CB_NONE,"Which FACE ring to simulated");
-		declareitem("FACE_DUKE_or_OAK",&ifduke,0,1,1,CB_NONE,"Which FACE site to simulated");
-		declareitem("Has_FACE_clim",&has_FACE_clim,0,1,1,CB_NONE,"Using FACE clim data");
 
 
 		declareitem("title",&title,80,CB_NONE,"Title for run");
@@ -379,10 +367,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_allometry",&file_allometry,300,CB_NONE,"Allometry output file");
 		declareitem("file_canopyh",&file_canopyh,300,CB_NONE,"Canopy height output file");
 		declareitem("file_allometry_ind",&file_allometry_ind,300,CB_NONE,"Individual Allometry output file");
-
-		// FACE OUT
-		declareitem("file_face",&file_face,300,CB_NONE,"FACE output file");
-		// end FACE OUT
 		
 		declareitem("file_speciesheights",&file_speciesheights,300,CB_NONE,"Mean species heights");
 
@@ -752,13 +736,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("freenyears")) badins("freenyears");
 		if (!itemparsed("ifleachn")) badins("ifleachn");
 		if (!itemparsed("ifindiv_fnuptake")) badins("ifindiv_fnuptake");
-
-		// FACE David
-		if (!itemparsed("Sims")) badins("Sims");
-		if (!itemparsed("Fert")) badins("Fert");
-		if (!itemparsed("FACE_ring")) badins("FACE_ring");
-		if (!itemparsed("FACE_DUKE_or_OAK")) badins("FACE_DUKE_or_OAK");
-		if (!itemparsed("Has_FACE_clim")) badins("Has_FACE_clim");
 
 		if (!itemparsed("outputdirectory")) badins("outputdirectory");
 		if (!itemparsed("ifsmoothgreffmort")) badins("ifsmoothgreffmort");
@@ -1291,7 +1268,7 @@ const int NYEAR_CMIP5=251; //1850-01 - 2100-12
 const int FIRSTHISTYEAR_CMIP5=1850;
 
 // CRU
-const int NYEAR_CRU=106+287;	//FACE SIMS
+const int NYEAR_CRU=106;
 const int FIRSTHISTYEAR_CRU=1901;
 
 // guess2008
@@ -1303,10 +1280,6 @@ const int NYEAR_SPINUP_DATA=30;
 	// number of years to use for temperature-detrended spinup data set
 	// (not to be confused with the number of years to spinup model for, which
 	// is read from the ins file)
-
-// FACE DAVID climate dataset NYEAR_SCENARIO_FACE
-const int NYEAR_SCENARIO_FACE=11;	// ORNL
-//const int NYEAR_SCENARIO_FACE=12;	// Duke
 
 // Stream pointer to binary CRU historical climate data file (read from ins file)
 FILE *in_cru;
@@ -1336,8 +1309,6 @@ Table out_cton, out_nmass, out_nsources, out_npool, out_nleach, out_nuptake, out
 // allometry
 Table out_canopyh, out_allometry_ind;
 
-// FACE OUT
-Table out_face;
 
 // Timers for keeping track of progress through the simulation
 Timer tprogress,tmute;
@@ -1350,17 +1321,6 @@ const int MUTESEC=20; // minimum number of sec to wait between progress messages
  * more information.
  */
 GlobalCO2File co2;
-
-// FACE DAVID climate CO2 data for each day of the FACE scenario
-double dco2_FACE[NYEAR_SCENARIO_FACE][365];
-
-// FACE DAVID climate Daily temperature, precipitation and sunshine data for FACE scenario 
-double dtemp_FACE[NYEAR_SCENARIO_FACE][365];
-double dprecip_FACE[NYEAR_SCENARIO_FACE][365];
-double dsun_FACE[NYEAR_SCENARIO_FACE][365];
-
-// FACE DAVID climate Yearly ndep data for FACE scenario 
-double yndep_FACE[NYEAR_NDEP];	// inputdata ranges from 1750-2007
 
 // Monthly temperature, precipitation and sunshine data for current grid cell
 // and historical period
@@ -1453,77 +1413,6 @@ void interp_climate(double mtemp[12], double mprec[12], double msun[12], double 
 //AA CMIP5 - climate input
 xtring file_cmip5hist;
 xtring file_cmip5scen;
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// 
-// FACE DAVID climate Reads in climate data for sceanrio period from temp, sun, precip and CO2 scenario files
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void read_FACE_clim(double FACE_dtemp[NYEAR_SCENARIO_FACE][365],double FACE_dprec[NYEAR_SCENARIO_FACE][365],
-	double FACE_dsun[NYEAR_SCENARIO_FACE][365],double FACE_dco2[NYEAR_SCENARIO_FACE][365], 
-	double FACE_yndep[NYEAR_NDEP],int NYEAR_SCENARIO_FACE,int NYEAR_NDEP)
-{
-	xtring filename_FACE,filename_FACE_ndep;
-	FILE* file_FACE_met;
-	FILE* file_FACE_ndep;
-
-	int year;
-	int day;
-
-	if (ifduke)
-	{
-		filename_FACE=param["met_face_duke"].str;
-		filename_FACE_ndep=param["ndep_face_duke"].str;
-	}
-	else {
-		filename_FACE=param["met_face_oak"].str;
-		filename_FACE_ndep=param["ndep_face_oak"].str;
-	}
-
-	file_FACE_met=fopen(filename_FACE,"rt");
-
-	if (!file_FACE_met) 
-		fail("FACE: could not open file %s for input",(char*)filename_FACE);
-
-	file_FACE_ndep=fopen(filename_FACE_ndep,"rt");
-
-	if (!file_FACE_ndep) 
-	fail("FACE: could not open file %s for input",(char*)filename_FACE_ndep);
-
-	double met[6];
-	double ndep[3];
-
-	for (year = 0; year < NYEAR_SCENARIO_FACE; year++)  // go through the years of data
-	{
-		for (day = 0; day < 365; day++)
-		{
-			readfor(file_FACE_met, "6f", met);				// read data
-
-			FACE_dsun[year][day] = met[3] / 4.56 * 1000000;	// val_duke is in umol/m2/day, dsun should be in J/m2/day 1.8umol/m2/day == 1J/m2/day
-															// http://www.hydro.co.nz/1_information/1_light_info/info_light.html
-															// Thomas got 4.56 from meeting in Santa Barbara!!! Better value
-			FACE_dtemp[year][day] = met[1];
-			FACE_dprec[year][day] = met[2];
-
-			if (FACE_ring == 2)		// David co2 elevated concentration 
-				FACE_dco2[year][day] = met[5];
-			else					// David co2 ambient concentration
-				FACE_dco2[year][day] = met[4];
-		}
-	}
-
-	for (year = 0; year < NYEAR_NDEP; year++)
-	{
-		readfor(file_FACE_ndep, "3f", ndep);
-
-		FACE_yndep[year] = ndep[1];	// Two different columns in the input file with ndep data (1,2)
-	}
-}
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //Landuse:
 
@@ -3353,87 +3242,6 @@ void define_output_tables() {
 	allometry_ind_columns += ColumnDescriptor("H",       9, 3);
 	allometry_ind_columns += ColumnDescriptor("D",       9, 3);
 
-	// FACE
-	ColumnDescriptors face_columns;
-	face_columns += ColumnDescriptor("YEAR",	14, 0);
-	face_columns += ColumnDescriptor("DOY",		14, 0);
-	face_columns += ColumnDescriptor("CO2",		14, 6);
-	face_columns += ColumnDescriptor("PPT",		14, 6);
-	face_columns += ColumnDescriptor("PAR",		14, 6);
-	face_columns += ColumnDescriptor("AT",		14, 6);
-	face_columns += ColumnDescriptor("ST",		14, 6);
-	face_columns += ColumnDescriptor("VPD",		14, 6);
-	face_columns += ColumnDescriptor("SW",		14, 6);
-	face_columns += ColumnDescriptor("NDEP",	14, 6);	// 10
-	face_columns += ColumnDescriptor("NEP",		14, 6);
-	face_columns += ColumnDescriptor("GPP",		14, 6);
-	face_columns += ColumnDescriptor("NPP",		14, 6);
-	face_columns += ColumnDescriptor("CEX",		14, 6);
-	face_columns += ColumnDescriptor("CVOC",	14, 6);
-	face_columns += ColumnDescriptor("RECO",	14, 6);
-	face_columns += ColumnDescriptor("RAUTO",	14, 6);
-	face_columns += ColumnDescriptor("RLEAF",	14, 6);
-	face_columns += ColumnDescriptor("RWOOD",	14, 6);
-	face_columns += ColumnDescriptor("RROOT",	14, 6);	// 20
-	face_columns += ColumnDescriptor("RGROW",	14, 6);
-	face_columns += ColumnDescriptor("RHET",	14, 6);
-	face_columns += ColumnDescriptor("RSOIL",	14, 6);
-	face_columns += ColumnDescriptor("ET",		14, 6);
-	face_columns += ColumnDescriptor("T",		14, 6);
-	face_columns += ColumnDescriptor("ES",		14, 6);
-	face_columns += ColumnDescriptor("EC",		14, 6);
-	face_columns += ColumnDescriptor("RO",		14, 6);
-	face_columns += ColumnDescriptor("DRAIN",	14, 6);
-	face_columns += ColumnDescriptor("LE",		14, 6);	// 30
-	face_columns += ColumnDescriptor("SH",		14, 6);
-	face_columns += ColumnDescriptor("CL",		14, 6);
-	face_columns += ColumnDescriptor("CW",		14, 6);
-	face_columns += ColumnDescriptor("CCR",		14, 6);
-	face_columns += ColumnDescriptor("CFR",		14, 6);
-	face_columns += ColumnDescriptor("TNC",		14, 6);
-	face_columns += ColumnDescriptor("CFLIT",	14, 6);
-	face_columns += ColumnDescriptor("CFLITA",	14, 6);
-	face_columns += ColumnDescriptor("CFLITB",	14, 6);
-	face_columns += ColumnDescriptor("CCLITB",	14, 6);	// 40
-	face_columns += ColumnDescriptor("CSOIL",	14, 6);
-	face_columns += ColumnDescriptor("GL",		14, 6);
-	face_columns += ColumnDescriptor("GW",		14, 6);
-	face_columns += ColumnDescriptor("GCR",		14, 6);
-	face_columns += ColumnDescriptor("GR",		14, 6);
-	face_columns += ColumnDescriptor("CLLFALL",	14, 6);
-	face_columns += ColumnDescriptor("CRLIN",	14, 6);
-	face_columns += ColumnDescriptor("CWIN",	14, 6);
-	face_columns += ColumnDescriptor("LAI",		14, 6);
-	face_columns += ColumnDescriptor("LMA",		14, 6);	// 50
-	face_columns += ColumnDescriptor("NCON",	14, 6);
-	face_columns += ColumnDescriptor("NCAN",	14, 6);
-	face_columns += ColumnDescriptor("NWOOD",	14, 6);
-	face_columns += ColumnDescriptor("NCR",		14, 6);
-	face_columns += ColumnDescriptor("NFR",		14, 6);
-	face_columns += ColumnDescriptor("NSTOR",	14, 6);
-	face_columns += ColumnDescriptor("NLIT",	14, 6);
-	face_columns += ColumnDescriptor("NRLIT",	14, 6);
-	face_columns += ColumnDescriptor("NDW",		14, 6);
-	face_columns += ColumnDescriptor("NSOIL",	14, 6);	// 60
-	face_columns += ColumnDescriptor("NPOOLM",	14, 6);
-	face_columns += ColumnDescriptor("NPOOLO",	14, 6);
-	face_columns += ColumnDescriptor("NFIX",	14, 6);
-	face_columns += ColumnDescriptor("NLITIN",	14, 6);
-	face_columns += ColumnDescriptor("NWLIN",	14, 6);
-	face_columns += ColumnDescriptor("NRLIN",	14, 6);
-	face_columns += ColumnDescriptor("NUP",		14, 6);
-	face_columns += ColumnDescriptor("NGMIN",	14, 6);
-	face_columns += ColumnDescriptor("NMIN",	14, 6);
-	face_columns += ColumnDescriptor("NVOL",	14, 6);	// 70
-	face_columns += ColumnDescriptor("NLEACH",	14, 6);
-	face_columns += ColumnDescriptor("NGL",		14, 6);
-	face_columns += ColumnDescriptor("NGW",		14, 6);
-	face_columns += ColumnDescriptor("NGCR",	14, 6);
-	face_columns += ColumnDescriptor("NGR",		14, 6);	// 75
-	face_columns += ColumnDescriptor("GC",		14, 6);
-
-	// end GUESSN
-
 	// *** ANNUAL OUTPUT VARIABLES ***
 
 	create_output_table(out_cmass,          file_cmass,          cmass_columns);
@@ -3447,9 +3255,6 @@ void define_output_tables() {
 	create_output_table(out_speciesheights, file_speciesheights, speciesheights_columns);
 	create_output_table(out_aiso,           file_aiso,           aiso_columns);
 	create_output_table(out_amon,           file_amon,           amon_columns);
-
-	// FACE
-	create_output_table(out_face,			file_face,			 face_columns);
 
 	create_output_table(out_cton,           file_cton,           cton_columns);
 	create_output_table(out_nmass,          file_nmass,          nmass_columns);
@@ -4133,10 +3938,9 @@ bool getgridcell(Gridcell& gridcell) {
 		double lon = gridlist.getobj().lon;
 		double lat = gridlist.getobj().lat;
 
-		if (!Sims) {	// FACE SIMS
 		if (!getndep(file_ndep,lon,lat,gridcell.climate)) {
+			dprintf("Year %d 13\n",date.year);
 			fail("Grid cell Lat %g Long %g not found in %s",lat,lon,(char*)file_ndep);
-		}
 		}
 
 		if (!ifcmip5) {
@@ -4146,10 +3950,6 @@ bool getgridcell(Gridcell& gridcell) {
 			if (gridfound) // Get more historical CRU data for this grid cell
 				gridfound = searchcru_misc(file_cru_misc, lon, lat, elevation, 
 			                           hist_mfrs, hist_mwet, hist_mdtr);
-
-			// FACE DAVID climate Reading met data
-			if (has_FACE_clim)		
-				read_FACE_clim(dtemp_FACE,dprecip_FACE,dsun_FACE,dco2_FACE,yndep_FACE,NYEAR_SCENARIO_FACE,NYEAR_NDEP);
 
 			if (run_landcover) {
 				Coord& c=gridlist.getobj();
@@ -4275,9 +4075,6 @@ bool getgridcell(Gridcell& gridcell) {
 			gridcell.climate.instype=SWRAD_TS;
 			if (correctionmethod=="c7") gridcell.climate.instype=SUNSHINE; //AA CMIP5
 		}
-
-		if (has_FACE_clim) 
-			soilcode = 4; // FACE climate soilcode
 
 		// Tell framework the soil type of this grid cell
 		soilparameters(gridcell.soiltype,soilcode);
@@ -4645,143 +4442,15 @@ bool getclimate(Gridcell& gridcell) {
 
 	// Send environmental values for today to framework
 
-	//////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-	//
-	// FACE DAVID climate - Using Duke or ORNL data set instead. This code 
-	//				just writes over old climate data
-	//
-	///////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
+	climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
 
-	int duke[] = {1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2004,2005,2005,2007,
-		2000,2001,2002,2002,2000,2006,2006,2006,1996,1999,2007,2006,1996,1997,2002,2003,2000,
-		2002,1997,2006,1996,2005,1999,2007,2000,1997,2007,2007,2004,1998,2006,2007,1996,1999,
-		2007,2001,2004,1998,2007,1998,1996,2006,2006,2003,2000,2003,1999,2007,2004,1999,2003,
-		1997,2004,2006,2002,2006,1996,1998,2005,1999,2000,2007,2007,1999,2004,2007,1997,2007,
-		1996,2002,2002,1999,1996,2001,1998,1999,2000,2005,2007,1998,2000,2001,2002,2003,2000,
-		2002,1999,2006,2003,2006,1999,1999,2000,2006,1999,2001,1996,2001,2005,2001,2000,2002,
-		2001,2003,1996,1997,1999,2005,2004,1998,2005,2003,1996,2003,1998,2002,2000,2001,2002,
-		1998,2000,2006,2001,2002,1996,1998,2005,2006,2000,2007,2002,2001,2000,1997,2007,2001,
-		2000,2003,2007,2003,1996,2005,1998,2002,2000,2003,2005,1998,2004,1999,2001,1999,2000,
-		2001,2006,2007,1996,1999,1998,2005,2004,1997,2007,2007,2004,2003,2001,2003,2000,2003,
-		1997,1997,1996,1997,2005,1997,2000,2001,2007,2005,2004,2001,2006,2003,2000,1997,2005,
-		1999,2005,2002,2003,2006,2000,2002,2007,2001,2000,2006,2006,2007,1996,2003,1997,1998,
-		2004,2006,2007,1999,2004,1997,1997,1998,1996,2007,1998,2002,1996,2003,1999,2007,2000,
-		2005,1999,2003,2004,2002,1999,1999,2004,2006,1998,2001,2000,2001,1997,2002,2004,2007,
-		2006,1998,2004,1997,2006,2005,2004,2002,1997,1997,2000,2007,2006,1997,2000,2006,2003,
-		2003,2000,1999,2005,2007,2004,1999,2005,1997,2000,2005,2005,2002,2004,2006,2002,1997,
-		1996,2001,2007,1997,2004,1998,2001,2001,2004,2002,1998,2003,1996};
+	// FACE
+//	if (date.year > nyear_spinup+NYEAR_HIST-10)
+//		climate.co2=550.0;
 
-	int ornl[] = {1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2002,2003,2001,2004,
-		2006,2001,2007,2008,2001,2003,2005,2000,2007,1999,2002,2008,1999,2006,2006,2008,2003,
-		2002,1999,2000,2001,2002,1998,2008,1999,2003,2002,2004,1998,1998,2007,2000,2002,2005,
-		1998,2000,2006,1998,2001,2004,2003,2003,1999,2000,2007,2006,2002,2008,1998,1998,2006,
-		2004,1998,1999,2002,2004,2002,2001,2001,2008,2001,2001,2007,2004,1999,2005,2007,2008,
-		2003,2005,2002,2000,2005,2006,2005,2000,2003,2002,2006,2004,1998,2006,2006,2004,2002,
-		1998,2002,2005,2006,2002,2007,2004,2007,2003,2007,2004,1999,2005,2005,2000,2006,2006,
-		2003,2004,2006,2005,1999,2008,1998,1999,2003,2000,2005,2005,2002,2008,2005,2007,2007,
-		2000,2006,2005,2005,2000,2006,2003,2002,2000,2002,2007,2007,2004,2005,2001,2001,2008,
-		1998,2002,2002,2008,2002,2005,1998,2004,1998,1999,2002,2008,2006,2002,1999,2000,1999,
-		2006,1998,2008,1999,2005,1999,2008,2003,2001,1998,2004,2007,2003,2005,2004,1999,2005,
-		1998,2000,2006,1998,2006,2004,2006,2006,2006,2000,2001,2005,2001,2004,2003,1999,2003,
-		2002,2007,2005,1998,2008,1998,2003,2001,2004,1998,2006,1998,2000,2005,1999,2005,2008,
-		2005,1999,1999,2000,2001,2006,1998,2008,1999,2001,1999,2000,1999,2007,2006,2008,1999,
-		2005,2001,2004,2002,2007,2007,2008,2007,2007,1999,2008,1998,1998,2006,2000,2007,2002,
-		2001,2008,1998,2003,1999,2008,1999,2005,1999,2000,2007,2007,2001,2000,1999,2005,2003,
-		2008,2005,2001,2007,2008,2005,2003,2007,2008,2006,1998,2006,2008,2001,2005,2002,2008,
-		2005,1999,1999,2000,2005,2003,1999,2004,2001,1998,2005,2000,2005};
-
-	if (has_FACE_clim && (SOILDEPTH_LOWER != 250.0 || SOILDEPTH_UPPER != 500.0 || NYEAR_SCENARIO_FACE != 12 || (nyear_spinup != 2000 && Sims == 0)) && ifduke)
-		fail("DUKE input data is wrong!!!\n");
-
-	if (has_FACE_clim && (SOILDEPTH_LOWER != 1500.0 || SOILDEPTH_UPPER != 500.0 || NYEAR_SCENARIO_FACE != 11 || (nyear_spinup != 1000 && Sims == 0)) && !ifduke)
-		fail("ORNL input data is wrong!!!\n");
-
-	if (!has_FACE_clim && (SOILDEPTH_LOWER != 1000.0 || SOILDEPTH_UPPER != 500.0))
-		fail("wrong soil depths!!!\n");
-
-	FYEAR_SCENARIO_FACE = nyear_spinup+106-NYEAR_SCENARIO_FACE; 
-	// Calculates which year we should start with the data so we end the simulation with the right order
-
-	if (has_FACE_clim) //Last years the data is in the right order. 
-	{
-
-		//climate.instype=SUNSHINE;
-		climate.instype=NETSWRAD;
-
-		int scenario_year = date.year%(NYEAR_SCENARIO_FACE);
-
-		if (date.year >= FYEAR_SCENARIO_FACE) {
-
-			// Which year in the data set this year represent
-			int scenario_year_tmp = date.year-FYEAR_SCENARIO_FACE;
-			if (Sims) {
-				if (ifduke)
-					scenario_year = duke[scenario_year_tmp]-1996;
-				else
-					scenario_year = ornl[scenario_year_tmp]-1998;
-			}
-			else
-				scenario_year=scenario_year_tmp;
-		}
-
-		climate.temp=dtemp_FACE[scenario_year][date.day]; // Temperature
-		climate.prec=dprecip_FACE[scenario_year][date.day];// Precipitation
-		climate.par=dsun_FACE[scenario_year][date.day];	// Photosynthetically-active radiation
-		
-		if (date.year >= FYEAR_SCENARIO_FACE) 
-			climate.co2=dco2_FACE[scenario_year][date.day];	// CO2
-		else
-			climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
-
-		if (Sims) {
-			climate.co2 = 380.0;
-			if (Sims == 2 && date.year >= FYEAR_SCENARIO_FACE) 
-				climate.co2 = 550.0;
-			else if (Sims == 3) {
-				int year = date.year-FYEAR_SCENARIO_FACE;
-				if (year<0)
-					climate.co2=380.0;
-				else if (year<51) {
-					double fact = pow(1.00742,year);
-					climate.co2 = 380.0*fact;
-				}
-				else
-					climate.co2 = 550;
-			}
-		}
-
-		// Nitrogen deposition
-		if (date.day == 0)
-		{
-			if (date.year >= FYEAR_SCENARIO_FACE)
-				climate.andep=yndep_FACE[scenario_year+NYEAR_NDEP-NYEAR_SCENARIO_FACE] / 10000.0;  // from ha to m2
-			else if (date.year < nyear_spinup+NYEAR_HIST-NYEAR_NDEP)
-				climate.andep=yndep_FACE[0] / 10000;	// from ha to m2
-			else 
-				climate.andep=yndep_FACE[date.year-(nyear_spinup+NYEAR_HIST-NYEAR_NDEP)] / 10000.0;	// from ha to m2
-		}
-
-		if (date.day == 0 && Sims)
-			climate.andep=2.4 / 10000.0;  // from ha to m2
-
-		//climate.temp=dtemp[date.day];	// used when comparing clim data to cru data
-		//climate.prec=dprec[date.day];	// used when comparing clim data to cru data
-		climate.rad = climate.par / 0.5;	// Calculates Rad backwards with the help of FRADPAR
-		//climate.insol = climate.rad / (24 * 3600);
-	}
-
-	///////////////////////////////////////////////////////////////////////////////
-	/////////////////////////// End FACE climate //////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////
-
-	else {
-		climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
-		climate.temp=dtemp[date.day];
-		climate.prec=dprec[date.day];
-		climate.insol=dsun[date.day];
-	}
+	climate.temp=dtemp[date.day];
+	climate.prec=dprec[date.day];
+	climate.insol=dsun[date.day];
 
 	// bvoc
 	if(ifbvoc){
@@ -5082,30 +4751,10 @@ void outannual(Gridcell& gridcell) {
 					while (vegetation.isobj) {
 						Individual& indiv=vegetation.getobj();
 
-						// FACE out
-						if (pft.id==0){	
-
-							// FACE out
-							for (int d=0;d<365;d++) {			
-								patch.soil.FACE_out[17][d] = 0.0;	// Total Resp Autotrophic
-								patch.soil.FACE_out[12][d] = 0.0;	// Total GPP
-							}
-						}
-						for (int d=0;d<365;d++) 
-							patch.soil.FACE_out[24][d] = patch.soil.FACE_out[25][d] + patch.soil.FACE_out[26][d] + patch.soil.FACE_out[27][d];	// Calculate Evapotranspiration = Transpiration + Evaporation + Interception
-						// end FACE out
-
 						// guess2008 - alive check added
 						if (indiv.id!=-1 && indiv.alive) {
 
 							if (indiv.pft.id==pft.id) {
-
-								// FACE out
-								for (int d=0;d<365;d++) {
-									patch.soil.FACE_out[17][d]+=indiv.FACE_out[17][d];	// Calculate Resp Ecosystem = Resp Autotrophic + Resp Heterotrophic
-									patch.soil.FACE_out[12][d]+=indiv.FACE_out[12][d];	// Calculate NEP = GPP - Resp Ecosystem
-								}
-
 								standpft_cmass+=indiv.cmass_leaf+
 									indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
 
@@ -5275,33 +4924,6 @@ void outannual(Gridcell& gridcell) {
 				gridcell.nextobj();
 			}//End of loop through stands
 
-
-			// FACE DAVID 
-			double ORNL_amb[10] = {904.0,951.0,1098.0,1135.0,1001.0,1089.0,903.0,819.0,682.0,697.0};	// start 1998
-			double ORNL_ele[10] = {1134.0,1097.0,1329.0,1431.0,1344.0,1236.0,1084.0,963.0,762.0,760.0};
-			double Duke_amb[10] = {1020.0,1248.0,1330.0,1121.0,718.0,1046.0,1142.0,996.0,0.0,0.0};	// start 1998
-			double Duke_ele[10] = {1315.0,1615.0,1711.0,1435.0,1017.0,1424.0,1537.0,1367.0,0.0,0.0};
-
-			int start_year = nyear_spinup+106-NYEAR_SCENARIO_FACE; 
-			if (ifduke)
-				start_year+=2;
-			
-			if (date.year >= start_year && date.year <= start_year + 9 && has_FACE_clim) { 
-				plot("anpp output",pft.name,date.year,gcpft_anpp);
-				if (!ifduke) {
-					if (FACE_ring == 1)
-						plot("anpp output","Real Amb",date.year,ORNL_amb[date.year-start_year]/1000.0);
-					else 
-						plot("anpp output","Real Ele",date.year,ORNL_ele[date.year-start_year]/1000.0);
-				}
-				else {
-					if (FACE_ring == 1)
-						plot("anpp output","Real Amb",date.year,Duke_amb[date.year-(nyear_spinup + 96)]/1000.0);
-					else 
-						plot("anpp output","Real Ele",date.year,Duke_ele[date.year-(nyear_spinup + 96)]/1000.0);
-				}
-			}
-
 			// Print PFT sums to files
 
 			double gcpft_cton_leaf=0.0;
@@ -5335,103 +4957,6 @@ void outannual(Gridcell& gridcell) {
 			pftlist.nextobj();
 
 		} // *** End of PFT loop ***
-
-		// FACE OUT
-		int p;
-		gridcell.firstobj();
-		// Loop through Stands
-		while (gridcell.isobj) {
-			Stand& stand=gridcell.getobj();
-		
-			double FYEAR_SCENARIO_FACE = nyear_spinup+106-NYEAR_SCENARIO_FACE; 
-			// Calculates which year we should start with the data so we end the simulation with the right order
-
-			if (date.year >= FYEAR_SCENARIO_FACE) {//Last years the data is in the right order.
-				for (int d=0;d<365;d++){
-					
-					double out_put[77];
-
-					int nr_indiv=0;
-			
-					for(int e=0;e<77;e++)
-						out_put[e]=-7777.0;
-
-					for (p=0;p<npatch;p++) {
-
-						Patch& patch=stand[p];
-						Vegetation& vegetation=patch.vegetation;
-
-						patch.soil.FACE_out[1][d]=(double)date.year-nyear_spinup+1901+1;
-						if (!ifduke)
-							patch.soil.FACE_out[1][d]+=1.0;
-
-						if (ifduke && Sims)
-							patch.soil.FACE_out[1][d]+=1.0;
-
-						patch.soil.FACE_out[16][d]=patch.soil.FACE_out[17][d]+patch.soil.FACE_out[22][d];	// Calculate Resp Ecosystem = Resp Autotrophic + Resp Heterotrophic
-						patch.soil.FACE_out[11][d]=patch.soil.FACE_out[12][d]-patch.soil.FACE_out[16][d];	// Calculate NEP = GPP - Resp Ecosystem
-
-						for(int data=1;data<77;data++) {
-							if(data==1 || data==2 || data==3 || data==4 || data==5 || data==6 || data==7 || data==9 || data==10 || data==11 || data==16 || data==22 || data==23 || data==24 || data==25 || data==26 || data==27 || data==28 || data==29 || data==37 || data==38 || data==39 || data==40 || data==41 || data==46 || data==47 || data==48 ||data==57 || data==58 || data==59 || data==60 || data==62 || data==63 || data==64 || data==65 ||  data==66 || data==68 || data==69 || data==71) {
-
-								if (out_put[data]==-7777.0)
-									out_put[data]=patch.soil.FACE_out[data][d]/(double)npatch;
-								else
-									out_put[data]+=patch.soil.FACE_out[data][d]/(double)npatch;
-							}
-							else {
-								vegetation.firstobj();
-								while (vegetation.isobj) {
-									Individual& indiv=vegetation.getobj();
-
-									if (data == 76 && d == 46)
-										int sch = 0;
-	
-									if (indiv.age > 0 || indiv.pft.lifeform == GRASS) {
-											
-										if(indiv.FACE_out[data][d] != -9999.0) {
-											if (out_put[data] == -9999.0 || out_put[data]==-7777.0)
-												out_put[data]=indiv.FACE_out[data][d]/(double)npatch;
-											else
-												out_put[data]+=indiv.FACE_out[data][d]/(double)npatch;
-											
-											if (data==50)
-												nr_indiv++;
-										}
-										else if(out_put[data]==-7777.0) {
-											out_put[data]=indiv.FACE_out[data][d];
-										}
-									}
-									vegetation.nextobj();
-								}
-							}							
-						}
-					}
-
-					double nrindiv=(double)nr_indiv/(double)npatch;
-					if (nrindiv)
-						out_put[50]/=nrindiv;
-					else {
-						out_put[18]=0.0;
-						out_put[50]=0.0;
-					}
-
-					if (out_put[32]>0.0)
-						out_put[51]=out_put[52]/out_put[32];
-					else
-						out_put[51]=0.0;
-
-					for(int g=1;g<77;g++) 
-						output_channel->add_value(out_face, out_put[g]);
-
-					output_channel->finish_row(out_face, lon, lat, date.year,d+1);
-				}
-			}
-			gridcell.nextobj();
-		}//End of loop through stands
-
-		
-		// end FACE OUT
 
 		flux_veg=flux_soil=flux_fire=flux_est=flux_harvest=0.0;
 

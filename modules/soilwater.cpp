@@ -124,6 +124,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	double aet_layer[NSOILLAYER]; // total AET for each soil layer (mm)
 	double perc_frac;
 
+
 	for (s=0; s<NSOILLAYER; s++) {
 		aet_layer[s] = 0.0;
 	}
@@ -131,9 +132,6 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 
 	// Sum AET for across all vegetation individuals
 	Vegetation& vegetation = patch.vegetation;
-
-	patch.soil.FACE_out[25][date.day]=0.0; // Transpiration (total AET (mm))
-
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
@@ -142,8 +140,6 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 			aet = patch.pft[indiv.pft.id].fuptake[s] * indiv.aet;
 			aet_layer[s] += aet;
 			aet_total += aet;
-
-			patch.soil.FACE_out[25][date.day]+=aet; // Transpiration (total AET (mm))
 		}
 		vegetation.nextobj();
 	}
@@ -157,8 +153,6 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	if (snowpack < 10.0) {					// evap only if snow depth < 10mm
 		evap = climate.eet * PRIESTLEY_TAYLOR * wcont_evap * wcont_evap * fevap;
 	}
-
-	patch.soil.FACE_out[26][date.day]=evap; // Evaporation (evaporation from soil surface (mm))
 
 	// Implement in- and outgoing fluxes to upper soil layer
 	// BLARP: water content can become negative, though apparently only very slightly
@@ -252,11 +246,6 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 		dperc = 0.0;
 
 	runoff = runoff_surf + runoff_drain + runoff_baseflow;
-
-	// FACE OUT
-	patch.soil.FACE_out[9][date.day] = (wcont[0]*SOILDEPTH_UPPER+wcont[1]*SOILDEPTH_LOWER)/(SOILDEPTH_UPPER+SOILDEPTH_LOWER)*100.0;	// Surface Soil Water Duke (soil moisture calculated as m3/m3 (volumetric) including PWP)
-	patch.soil.FACE_out[28][date.day] = runoff_surf;					// Runoff (runoff from upper soil layer (mm)) 
-	patch.soil.FACE_out[29][date.day] = runoff_drain + runoff_baseflow;	// Drainage (runoff (drainage) from lower soil layers (mm) + base flow (mm))
 
 	patch.asurfrunoff += runoff_surf;
 	patch.adrainrunoff += runoff_drain;
@@ -363,9 +352,6 @@ void soilwater(Patch& patch, Climate& climate) {
 			soil.soiltype.perc_exp, soil.soiltype.awc, max(1.0-fpc_phen_total,0.0),
 			soil.snowpack, soil.percolate, soil.max_rain_melt, soil.awcont, soil.wcont,
 			soil.wcont_evap, soil.runoff, soil.dperc);
-
-	// FACE
-	patch.soil.FACE_out[27][date.day] = patch.intercep;				// Canopy water interception
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

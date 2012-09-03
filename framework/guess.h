@@ -113,9 +113,17 @@ typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptakety
 // number  of soil layers modelled
 const int NSOILLAYER = 2;
 
-// SOIL DEPTH VALUES
-const double SOILDEPTH_UPPER = 500.0; // soil upper layer depth (mm)
-const double SOILDEPTH_LOWER = 1000.0; // soil lower layer depth (mm)
+// FACE DAVID ORNL
+const double SOILDEPTH_UPPER=500.0; // soil upper layer depth (mm)
+const double SOILDEPTH_LOWER=1500.0;// soil lower layer depth (mm)
+
+// FACE DAVID Duke
+//const double SOILDEPTH_UPPER=500.0; // soil upper layer depth (mm)
+//const double SOILDEPTH_LOWER=250.0; // soil lower layer depth (mm)
+
+// NORMAL SOIL DEPTH VALUES
+//const double SOILDEPTH_UPPER=500.0; // soil upper layer depth (mm)
+//const double SOILDEPTH_LOWER=1000.0; // soil lower layer depth (mm)
 
 	// guess2008 - new default SOM values
 const int SOLVESOM_END = 400;
@@ -139,6 +147,14 @@ const double PRIESTLEY_TAYLOR = 1.32;
 	// evapotranspiration to PET)
 const double K2degC = 273.15;	// kelvin to deg c conversion
 const double CO2_CONV = 1.0e-6;	// conversion factor for CO2 from ppmv to mole fraction
+
+// FACE DAVID climate David
+const int NYEAR_NDEP = 258;			// Number of years with ndep data
+const double KgTOg = 1000;			// Convert kg to g
+const bool ifplantation=true; // not used yet
+const bool ifdisturb_init=true; // disturbance during spin up to help trees establishing in
+	// competition with grasses
+const int distyear=50;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -216,6 +232,14 @@ extern bool iflandusechange;
 
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;
+
+// FACE David
+extern int FYEAR_SCENARIO_FACE;
+extern int Sims;
+extern int Fert;
+extern int FACE_ring;				// Which FACE ring examined
+extern int ifduke;					// Duke or Oak Ridge
+extern int has_FACE_clim;			// If we are using FACE clim data
 
 // N budget check
 extern double somfluxnerror;
@@ -1244,6 +1268,94 @@ public:
 	double agdd5_wstress; // total gdd5 (accumulated) for this year (reset 1 January)
 	double rad_wstress; // total daily net downward shortwave solar radiation today (J/m2/day)
 
+	// GC
+	double gc_sum; // accumulated canopy conductance on individual FPC basis (mm/s)
+	double dgc[365];
+	double mgc[12];
+	double adtmm_term; // GC
+
+	//FACE OUTPUT
+	double FACE_out[77][365];
+
+		// 0 - empty space to keep numbering easier 
+		// 1 - YEAR
+		// 2 - Day
+		// 3 - CO2
+		// 4 - Precipitation
+		// 5 - PAR
+		// 6 - Air Temp Canopy
+		// 7 - Soil Temp 10 cm
+		// 8 - Vapor Pres Def
+		// 9 - Root Zone Soil Water
+		// 10 - N Deposition
+		// 11 - NEP
+		// 12 - GPP
+		// 13 - NPP
+		// 14 - C Exudation
+		// 15 - C VOC Flux
+		// 16 - Resp Ecosystem
+		// 17 - Resp Autotrophic
+		// 18 - Resp Leaves
+		// 19 - Resp Wood
+		// 20 - Resp Fine Root
+		// 21 - Resp Growth
+		// 22 - Resp Heterotrophic
+		// 23 - Resp Soil
+		// 24 - Evapotranspiration
+		// 25 - Transpiration
+		// 26 - Soil Evaporation
+		// 27 - Canopy Evaporation
+		// 28 - Runoff
+		// 29 - Drainage
+		// 30 - Latent Energy
+		// 31 - Sensible Heat
+		// 32 - C Leaf Mass
+		// 33 - C Wood Mass
+		// 34 - C Coarse Root Mass
+		// 35 - C Fine Root Mass
+		// 36 - C Storage as TNC
+		// 37 - C fine litter total
+		// 38 - C fine Litter Above
+		// 39 - C fine Litter Below
+		// 40 - C coarse litter
+		// 41 - C Soil
+		// 42 - C Leaf Growth
+		// 43 - C Wood Growth
+		// 44 - C Coarse Root Growth
+		// 45 - C Fine Root Growth
+		// 46 - C Leaf Litterfall
+		// 47 - C Root Litterfall
+		// 48 - C Wood/Branch Inputs
+		// 49 - LAI Projected
+		// 50 - Leaf gC/leaf area
+		// 51 - N conc leaces
+		// 52 - N Mass Leaf
+		// 53 - N Mass Wood
+		// 54 - N Mass Coarse Root
+		// 55 - N Mass Fine Root
+		// 56 - N Storage
+		// 57 - N Litter Aboveground
+		// 58 - N Litter Belowground
+		// 59 - N Dead Wood
+		// 60 - N Soil Total
+		// 61 - N in Mineral Form
+		// 62 - N in Organic Form
+		// 63 - N Fixation
+		// 64 - N Leaf Litterfall
+		// 65 - N Wood/Branch Litterfall
+		// 66 - N Root Litter Input
+		// 67 - N Biomass Uptake
+		// 68 - N Gross Mineralisation
+		// 69 - N Net Mineralisation
+		// 70 - N Volatilization
+		// 71 - N Leaching
+		// 72 - N Leaf growth
+		// 73 - N Wood Growth
+		// 74 - N CR Growth
+		// 75 - N Fine Root Growth
+		// 76 - GC
+	// end FACE OUTPUT
+
 	// MEMBER FUNCTIONS
 
 public:
@@ -1522,6 +1634,9 @@ public:
 	/// total annual N fixation
 	double anfix;				
 
+	// FACE_OUT
+	double FACE_out[77][365];
+
 	// MEMBER FUNCTIONS
 
 public:
@@ -1588,6 +1703,11 @@ public:
 		anfix = 0.0;
 		nmin_balance = 0.0;
 		dperc = 0.0;
+
+		// FACE out
+		for (int k=0;k<77;k++)
+			for (int l=0;l<365;l++)
+				FACE_out[k][l]=0.0;
 	}
 	void serialize(ArchiveStream& arch);
 };
@@ -1972,6 +2092,8 @@ public:
 		// net C allocated to reproduction for this PFT in all patches of this stand
 		// this year (kgC/m2)
 
+	double adtmm_term; // GC
+
 	/// Is this PFT allowed to grow in this stand?
 	bool active;
 
@@ -2002,6 +2124,11 @@ public:
 
 	/// A number identifying this Stand within the grid cell
 	int id;
+
+	// FACE DAVID Thomas plantation general
+	int plantyear; // year of plantation of FACE forest
+	int distyear2; // cutting natural forest to be replaced by grassland: 1700 for Duke, Oak Ridge unclear, was also field
+	// Thomas2 this year's ndemand: checking, see grwoth.cpp
 
 	/// reference to parent object
 	Gridcell& gridcell;

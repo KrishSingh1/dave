@@ -332,7 +332,7 @@ void som_dynamics_lpj(Patch& patch) {
 
 /// Estimates the daily mineral nitrogen available for plant uptake  
 /** Instead of using the soil.nmass_avail at day==0 as in Parton et al 1993,
- *  nmass_avail is "updated" each day (soil.nmin_balance) depending on mineralization, 
+ *  nmass_avail is 6"updated" each day (soil.nmin_balance) depending on mineralization, 
  *  immobilization, deposition, fixation, leaching and plant uptake (no N limitation  
  *  and with last years growth C:N ratio). Then the ntoc ratios for SOM pools are able to be 
  *  calculated each day. 
@@ -342,7 +342,7 @@ void som_dynamics_lpj(Patch& patch) {
 void est_nmin_balance(Patch& patch, Soil& soil, Climate& climate) {
 
 	// N fixation (using last year as an estimate as it is calculated on last day of year)
-	double dnfix;
+	double dnfix,dndep;
 
 	// If disturbance then no aaet -> can't use last years estimate as leaching might then exceed
 	// available N in end of year
@@ -355,14 +355,34 @@ void est_nmin_balance(Patch& patch, Soil& soil, Climate& climate) {
 			dnfix = 0.0;
 	}
 
+	if (has_FACE_clim) {
+		dnfix=(2.4/10000.0)/365.0;
+		dndep=dnfix;
+	}
+	else
+		dndep=climate.dndep[date.day];
+
+	// FACE
+	int real_year=date.year-nyear_spinup+1902;
+	if (!ifduke)
+		real_year+=1;
+
+	double dnfert=0.0;
+	if (real_year >= 2004 && Fert) {
+		if (ifduke && date.day == 73)
+			dnfert=0.0112;
+		else if (!ifduke && date.day >= 73 && date.day <= 82)
+			dnfert=0.002;
+	}
+
 	// First day of year
 	if (date.day == 0) {
 		soil.aminleach = 0.0;
-		soil.nmin_balance = soil.nmass_avail + climate.dndep[date.day] + dnfix;
+		soil.nmin_balance = soil.nmass_avail + dndep + dnfix;
 	}
 	else {
 		// Update "daily" nmass available 
-		soil.nmin_balance += soil.nmin_daily[date.day-1] - soil.nimmob_daily[date.day-1] + climate.dndep[date.day] + dnfix;
+		soil.nmin_balance += soil.nmin_daily[date.day-1] - soil.nimmob_daily[date.day-1] + dndep + dnfix + dnfert;
 	}
 
 	// Loop through individuals to determine N demand
@@ -397,11 +417,14 @@ void est_nmin_balance(Patch& patch, Soil& soil, Climate& climate) {
 	// LEACHING OF SOIL MINERAL N
 	// Allowed on days with residual N following estimated vegetation N uptake
 	// in proportion to percolation following Parton et al. 1993 eqn 13
+	soil.FACE_out[71][date.day]=0.0;
 	if (soil.nmin_balance > 0.0) {
+
 		double leaching = soil.nmin_balance * soil.minleachfrac_daily[date.day];
 		soil.nmin_balance -= leaching;
 		soil.aminleach += leaching;
 		soil.sompool[LEACHED].nmass += leaching;
+		soil.FACE_out[71][date.day]+=leaching*1000.0; // FACE OUT
 	}
 }
 
@@ -792,6 +815,13 @@ void somfluxes(Patch& patch, Soil& soil,Fluxes& fluxes) {
 
 	soil.aorgleach += leachsum_nmass;
 
+	// FACE out
+	soil.FACE_out[22][date.day]=respsum*1000.0;
+	soil.FACE_out[23][date.day]=respsum*1000.0;
+	soil.FACE_out[68][date.day]=nmin_actual*1000.0;
+	soil.FACE_out[69][date.day]=(nmin_actual-nimmob)*1000.0;
+	soil.FACE_out[71][date.day]+=leachsum_nmass*1000.0;
+
 	// Store daily mineralisation and immobilisation to permit calculation of daily
 	// mineral nitrogen balance at end of year
 
@@ -827,6 +857,18 @@ void transfer_litter(Patch& patch, Soil& soil) {
 
 	double litter_nmass = 0.0;	
 	double litter_cmass = 0.0;	
+	int d;
+
+	// FACE out
+	for (d=0;d<365;d++) {
+		patch.soil.FACE_out[46][d] = 0.0;	// C Leaf Litterfall
+		patch.soil.FACE_out[47][d] = 0.0;	// C Root Litter Input
+		patch.soil.FACE_out[48][d] = 0.0;	// C Wood/branch Input
+
+		patch.soil.FACE_out[64][d] = 0.0;	// N Leaf Litterfall
+		patch.soil.FACE_out[65][d] = 0.0;	// N Wood/brch litterfall
+		patch.soil.FACE_out[66][d] = 0.0;	// N Root Litter Input
+	}
 
 	// Fire
 	double litterme[3];
@@ -882,6 +924,12 @@ void transfer_litter(Patch& patch, Soil& soil) {
 		fireresist[0] += pft.litter_leaf * (1.0 - fm) * pft.pft.fireresist;
 		fireresist[1] += pft.litter_leaf * fm * pft.pft.fireresist;
 
+		// FACE out
+		for (d=0;d<365;d++) {
+			patch.soil.FACE_out[46][d] += pft.litter_leaf*1000.0/365.0;		// C Leaf Litterfall
+			patch.soil.FACE_out[64][d] += litter_leaf_n*1000.0/365.0;		// N Leaf Litterfall
+		}
+
 		// NB: reproduction litter cannot contain nitrogen!!
 
 		ligcmass_new = pft.litter_leaf * (1.0 - fm) * LIGCFRAC_LEAF;
@@ -926,6 +974,12 @@ void transfer_litter(Patch& patch, Soil& soil) {
 				soil.sompool[SOILSTRUCT].cmass;
 		soil.sompool[SOILMETA].cmass += pft.litter_root * fm;
 		soil.sompool[SOILMETA].nmass += pft.nmass_litter_root * fm;
+
+		// FACE out
+		for (d=0;d<365;d++) {
+			patch.soil.FACE_out[47][d] += pft.litter_root*1000.0/365.0;			// C Root Litter Input						
+			patch.soil.FACE_out[66][d] += pft.nmass_litter_root*1000.0/365.0;	// N Root Litter Input
+		}
 		
 		// Remove association with vegetation
 		pft.litter_root = 0.0;
@@ -959,6 +1013,12 @@ void transfer_litter(Patch& patch, Soil& soil) {
 			// Fire
 			litterme[2] += pft.litter_wood * pft.pft.litterme;
 			fireresist[2] += pft.litter_wood * pft.pft.fireresist;
+
+			// FACE out
+			for (d=0;d<365;d++) {
+				patch.soil.FACE_out[48][d] += pft.litter_wood*1000.0/365.0;			// C Wood/branch Input
+				patch.soil.FACE_out[65][d] += pft.nmass_litter_wood*1000.0/365.0;	// N Wood/branch litterfall
+			}
 		
 			// Update vegetation
 			pft.litter_wood = 0.0;
@@ -1061,6 +1121,28 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 	// N fixation
 	soil.anfix = max((nfix_a * patch.aaet + nfix_b) / 100000.0, 0.0);	
 
+	// FACE
+	soil.anfix = 2.4/10000.0;
+
+	// FACE
+	int real_year=date.year-nyear_spinup+1902;
+	if (!ifduke)
+		real_year+=1;
+
+	double nfert=0.0;
+	if (real_year >= 2004 && Fert) {
+		if (ifduke)
+			nfert=0.0112;
+		else
+			nfert=0.02;
+	}
+
+	// FACE OUT
+	for (int dd=0;dd<365;dd++) {
+		soil.FACE_out[10][dd]=soil.andep/365.0*1000.0;
+		soil.FACE_out[63][dd]=soil.anfix/365.0*1000.0;
+	}
+
 	// N mineralisation and immobilisation
 	soil.anmin = 0.0;
 	soil.animmob = 0.0;
@@ -1072,7 +1154,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 
 	// Total N supply in patch
 	patch.nsupply = soil.nmass_avail + soil.andep + soil.anfix+
-		soil.anmin - soil.animmob - soil.aminleach;
+		soil.anmin - soil.animmob - soil.aminleach + nfert;
 
 	// ANNUAL N DEMAND FOR PATCH
 
@@ -1135,7 +1217,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 
 	// If soil available N is above the value for minimum SOM C:N ratio, then
 	// N fixation is reduced (N rich soils)
-	if (patch.fnuptake == 1.0 && patch.nsupply > patch.ndemand + nmin_balance_max) {
+	/*if (patch.fnuptake == 1.0 && patch.nsupply > patch.ndemand + nmin_balance_max) {
 		if (soil.anfix <= patch.nsupply - (patch.ndemand + nmin_balance_max)) {
 			patch.nsupply -= soil.anfix;
 			soil.anfix = 0.0;
@@ -1144,7 +1226,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 			soil.anfix -= patch.nsupply - (patch.ndemand + nmin_balance_max);
 			patch.nsupply = (patch.ndemand + nmin_balance_max);
 		}
-	}
+	}*/
 
 	// Individual fnuptake
 	if (patch.fnuptake < 1.0 && patch.fnuptake > 0.0) {
@@ -1185,12 +1267,17 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 					// Daily N uptake by this individual (Eqn 3)
 					nuptake_day = ndemand_day * indiv.fnuptake;
 
+					// FACE OUT
+					indiv.FACE_out[67][d]=ndemand_day*indiv.fnuptake*1000.0;	
+
 					// Add to individual's nitrogen stores
 					indiv.nstore += nuptake_day;
 					
 					// Add to yearly N uptake
 					indiv.nuptake += nuptake_day;
 				}
+				else
+					indiv.FACE_out[67][d]=0.0;	// FACE OUT
 				// ... on to next individual
 				vegetation.nextobj();
 			}
@@ -1384,6 +1471,46 @@ void som_dynamics_century(Patch& patch,Pftlist& pftlist) {
 		plot("century N","total", date.year, total_npool); 
 	}
 
+	// FACE OUT
+	soil.FACE_out[38][date.day]=0.0;
+	soil.FACE_out[39][date.day]=0.0;
+	soil.FACE_out[41][date.day]=0.0;
+	soil.FACE_out[57][date.day]=0.0;
+	soil.FACE_out[58][date.day]=0.0;
+	soil.FACE_out[60][date.day]=0.0;
+	soil.FACE_out[62][date.day]=0.0;
+	
+	// SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SURFCWD,SOILMETA,SLOWSOM,PASSIVESOM,LEACHED,NSOMPOOL
+	for (int p=0;p<NSOMPOOL;p++) 
+	{
+		// SURFSTRUCT and SURFMETA
+		if (p == 0 || p == 5) {
+			soil.FACE_out[38][date.day] += soil.sompool[p].cmass*1000.0;	// C fine Litter Above
+			soil.FACE_out[57][date.day] += soil.sompool[p].nmass*1000.0;	// N Litter Aboveground	
+		}
+		// SURFCWD
+		if (p == 6) {
+			soil.FACE_out[40][date.day] = soil.sompool[p].cmass*1000.0;		// C coarse litter	
+			soil.FACE_out[57][date.day] += soil.sompool[p].nmass*1000.0;	// N Litter Aboveground	
+			soil.FACE_out[59][date.day] = soil.sompool[p].nmass*1000.0;		// N Dead Wood	
+		}
+		// SOILSTRUCT and SOILMETA
+		if (p == 1 || p == 7) {
+			soil.FACE_out[39][date.day] += soil.sompool[p].cmass*1000.0;	// C fine Litter Below	
+			soil.FACE_out[58][date.day] += soil.sompool[p].nmass*1000.0;	// N Litter Belowground
+		}
+		// SOILMICRO, SURFHUMUS, SURFMICRO, SLOWSOM and PASSIVESOM
+		if(p != 0 && p != 1 && p != 7 && p != 5 && p != 6 && p != NSOMPOOL-1) {
+			soil.FACE_out[62][date.day] += soil.sompool[p].nmass*1000.0;	// N in Organic Form (N mass in pool kgC/m2)
+		}
+
+		if(p != NSOMPOOL-1) {
+			soil.FACE_out[41][date.day] += soil.sompool[p].cmass*1000.0;	// C Soil (C mass in pool kgC/m2)
+			soil.FACE_out[60][date.day] += soil.sompool[p].nmass*1000.0;	// N Soil Total (N mass in pool kgC/m2)
+		}
+	}
+
+	soil.FACE_out[37][date.day] = soil.FACE_out[38][date.day] + soil.FACE_out[39][date.day];	// C fine Litter total
 }
 
 /// Choose between CENTURY or standard LPJ SOM dynamics

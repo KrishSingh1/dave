@@ -171,6 +171,11 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 		if (date.day == 0) indiv.aphen_raingreen = 0;
 		indiv.aphen_raingreen += (indiv.phen != 0.0);
 
+		// FACE out
+		indiv.FACE_out[32][date.day] = indiv.cmass_leaf*indiv.phen*1000.0;	// C Leaf Mass (leaf C biomass on modelled area basis (kgC/m2))
+		indiv.FACE_out[52][date.day] = indiv.nmass_leaf*indiv.phen*1000.0;	// N Leaf Mass (N content of leaves on patch area basis (kgN/m2))
+		indiv.FACE_out[49][date.day] = indiv.lai*indiv.phen;		// LAI Projected  (patch-level lai for this individual or cohort
+
 		// ... on to next individual
 		vegetation.nextobj();
 	}
@@ -213,6 +218,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 
 	double turnover = 0.0;
 	double scale = 1.0;
+	double nrelocfrac_root=0.2;	// FACE
 
 	if(run_landcover && gridcell.LC_updated) {
 		//scale harvest products of stands with increased area by (old area/new area) if landcover change has occurred:
@@ -248,12 +254,12 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	turnover = turnover_root * nmass_root * scale;
 	nmass_root -= turnover;
 	if (alive) {
-		nmass_litter_root += turnover * (1.0 - nrelocfrac);
-		nstore += turnover * nrelocfrac;
+		nmass_litter_root += turnover * (1.0 - nrelocfrac_root); // face
+		nstore += turnover * nrelocfrac_root;
 	}
 	else {
-		nmass_avail += turnover * (1.0 - nrelocfrac);
-		nstore += turnover * nrelocfrac;
+		nmass_avail += turnover * (1.0 - nrelocfrac_root);
+		nstore += turnover * nrelocfrac_root;
 	}
 
 	if (lifeform == TREE) {
@@ -1952,6 +1958,9 @@ void growth(Stand& stand, Patch& patch) {
 		Individual& indiv = vegetation.getobj();
 		// For this individual 
 
+		// FACE out
+		indiv.FACE_out[0][0]=-9999.0;
+
 		// N stress scalar for leaf to root allocation (adopted from Zaehle 2010 SM eq 19) 		
 		if (ifnlim && date.year > freenyears)
 			nscal = min(1.0, indiv.pft.cton_leaf_avr / (indiv.cmass_leaf / indiv.nmass_leaf));
@@ -2181,6 +2190,14 @@ void growth(Stand& stand, Patch& patch) {
 						}
 					}
 
+					// FACE
+					double agpp_face=0.0;
+					for (int g=0;g<365;g++)
+						agpp_face+=max(0.0,indiv.FACE_out[12][g])/1000.0;
+
+					if (!negligible(agpp_face))
+						indiv.FACE_out[0][0]=bminc_dec/agpp_face;
+
 					// Update annual npp
 					// NB: this is important because it affects growth efficiency and
 					//     therefore mortality and litter fluxes (in vegdynam.cpp).
@@ -2235,6 +2252,33 @@ void growth(Stand& stand, Patch& patch) {
 				if (!negligible(max(0.0, cmass_leaf_inc)) && !negligible(max(0.0, cmass_root_inc)) && !negligible(max(0.0, cmass_sap_inc))) {
 					indiv.bminc_leaf_frac = max(0.0, cmass_leaf_inc) / (max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc) + max(0.0, cmass_sap_inc));
 					indiv.bminc_root_frac = max(0.0, cmass_root_inc) / (max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc) + max(0.0, cmass_sap_inc));
+				}
+
+				// FACE out
+				for (int i=0;i<365;i++) {
+
+					if (indiv.FACE_out[0][0]!=-9999.0) {
+
+						double gpp_temp=indiv.FACE_out[12][i];
+						indiv.FACE_out[12][i]*=(1.0-indiv.FACE_out[0][0]);		// GPP update due to N limitation
+					}
+
+					indiv.FACE_out[13][i]=indiv.FACE_out[12][i]-indiv.FACE_out[17][i];						// NPP
+					indiv.FACE_out[33][i]=(indiv.cmass_sap + indiv.cmass_heart)*1000.0;						// C Wood Mass										
+					indiv.FACE_out[35][i]=indiv.cmass_root*1000.0;											// C Fine Root Mass
+						
+					indiv.FACE_out[42][i]=cmass_leaf_inc*indiv.densindiv/365.0*1000.0;						// C Leaf Growth
+					indiv.FACE_out[43][i]=(cmass_sap_inc+cmass_heart_inc)*indiv.densindiv/365.0*1000.0;		// C Wood Growth
+					indiv.FACE_out[45][i]=cmass_root_inc*indiv.densindiv/365.0*1000.0;						// C Fine Root Growth
+
+					indiv.FACE_out[53][i]=(indiv.nmass_sap+indiv.nmass_heart)*1000.0;						// N Wood Mass
+					indiv.FACE_out[55][i]=indiv.nmass_root*1000.0;											// N Fine Root Mass
+					
+					indiv.FACE_out[72][i]=cmass_leaf_inc*indiv.densindiv/indiv.cton_leaf_new/365.0*1000.0;	// N Leaf Growth
+					indiv.FACE_out[73][i]=nmass_sap_inc/365.0*1000.0;										// N Wood Growth
+					indiv.FACE_out[75][i]=cmass_root_inc*indiv.densindiv/indiv.cton_root_new/365.0*1000.0;	// N Fine Root Growth
+
+					indiv.FACE_out[50][i]=1.0/indiv.pft.sla*1000.0;											// Leaf gC/Leaf area
 				}
 
 				if (indiv.alive) {
@@ -2376,6 +2420,14 @@ void growth(Stand& stand, Patch& patch) {
 						}
 					}	
 
+					// FACE
+					agpp=0.0;
+					for (int g=0;g<365;g++)
+						agpp+=max(0.0,indiv.FACE_out[12][g]);
+
+					if (!negligible(agpp))
+						indiv.FACE_out[0][0]=bminc_dec/agpp;
+
 					// Temporary: save biomass increment as new npp
 					// NB: this is important because it affects growth efficiency and
 					//     therefore mortality and litter fluxes (in vegdynam.cpp).
@@ -2415,6 +2467,32 @@ void growth(Stand& stand, Patch& patch) {
 				if (!negligible(max(0.0, cmass_leaf_inc)) && !negligible(max(0.0, cmass_root_inc))) {
 					indiv.bminc_leaf_frac = max(0.0, max(0.0, cmass_leaf_inc) / (max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)));
 					indiv.bminc_root_frac = 1.0 - indiv.bminc_leaf_frac;
+				}
+
+				// FACE out
+				for (int i=0;i<365;i++) {
+
+					if (indiv.FACE_out[0][0]!=-9999.0) {
+						double gpp_temp=indiv.FACE_out[12][i];
+						indiv.FACE_out[12][i]*=1.0-max(0.0,gpp_temp)*indiv.FACE_out[0][0];		// GPP update due to N limitation
+					}
+
+					indiv.FACE_out[13][i]=indiv.FACE_out[12][i]-indiv.FACE_out[17][i];						// NPP
+					indiv.FACE_out[33][i]=0.0;																// C Wood Mass										
+					indiv.FACE_out[35][i]=indiv.cmass_root*1000.0;											// C Fine Root Mass
+						
+					indiv.FACE_out[42][i]=cmass_leaf_inc*indiv.densindiv/365.0*1000.0;						// C Leaf Growth
+					indiv.FACE_out[43][i]=0.0;																// C Wood Growth
+					indiv.FACE_out[45][i]=cmass_root_inc*indiv.densindiv/365.0*1000.0;						// C Fine Root Growth
+
+					indiv.FACE_out[53][i]=0.0;																// N Wood Mass
+					indiv.FACE_out[55][i]=indiv.nmass_root*1000.0;											// N Fine Root Mass
+					
+					indiv.FACE_out[72][i]=cmass_leaf_inc*indiv.densindiv/indiv.cton_leaf_new/365.0*1000.0;	// N Leaf Growth
+					indiv.FACE_out[73][i]=0.0;																// N Wood Growth
+					indiv.FACE_out[75][i]=cmass_root_inc*indiv.densindiv/indiv.cton_root_new/365.0*1000.0;	// N Fine Root Growth
+
+					indiv.FACE_out[50][i]=1.0/indiv.pft.sla*1000.0;											// Leaf gC/Leaf area
 				}
 
 				// Determine the (small) mass imbalance (kgC) for this individual. 
@@ -2498,6 +2576,9 @@ void growth(Stand& stand, Patch& patch) {
 				killed = true;
 			}
 
+			if (date.year == nyear_spinup + 106 - 15 && indiv.pft.name == "IBS" && !ifduke)
+					dprintf("Year %d pft %s age %g HEIGHT %g should be %g\n",date.year,(char*)indiv.pft.name,indiv.age,indiv.height,12.0);
+
 			if (!killed) {
 				if (!indiv.alive) {
 					patch.fluxes.acflux_est -= indiv.cmass_leaf + indiv.cmass_root +
@@ -2540,6 +2621,10 @@ void growth(Stand& stand, Patch& patch) {
 						indiv.nmass_reserve = 0.0;
 					}
 				}
+
+				// FACE OUT
+				for (int k=0;k<365;k++)
+					indiv.FACE_out[56][k]=indiv.nmass_reserve*1000.0;	// N Store
 
 				// ... on to next individual
 				vegetation.nextobj();

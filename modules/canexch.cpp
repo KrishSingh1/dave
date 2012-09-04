@@ -1058,17 +1058,24 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 	// DESCRIPTION
 	// Calculation of net C-assimilation under water-stressed conditions
-	// (demand>supply; see function canopy_exchange_fast). Utilises a numerical
+	// (demand>supply; see function canopy_exchange). Utilises a numerical
 	// iteration procedure to find the level of stomatal aperture (characterised by
 	// lambda, the ratio of leaf intercellular to ambient CO2 concentration) which
 	// satisfies simulataneously a canopy-conductance based and light-based
 	// formulation of photosynthesis (Eqns 2, 18 and 19, Haxeltine & Prentice (1996)).
 
-	// Numerical method is a tailored implementation of the bisection method, 
-	// assuming root (f(lambda)=0) bracketed by f(0.02)<0 and
-	// f(lambda_max)>0 (Press et al 1986)
+	// We'll search for a root to the function:
+	//
+	//   f(x) = g(x) - h(x)
+	//
+	// Where g(x) is the light-based formulation of photosynthesis (Eqns 2 & 19,
+	// Haxeltine & Prentice (1996)), and h(x) is based on canopy-conductance
+	// (Eqn 18, Haxeltine & Prentice 1996).
 
-	// The bisection method terminates when we're close enough to a root
+	// Numerical method is the Illinois method (Dowell & Jarratt 1971), 
+	// assuming root (f(lambda)=0) bracketed by f(0.02)<0 and f(lambda_max)>0.
+
+	// The numerical method terminates when we're close enough to a root
 	// (absolute value of f(lambda) < EPS), or after a maximum number of 
 	// iterations.
 
@@ -1102,63 +1109,70 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 	// daily basis (mm / m2 / day)
 	double gcphot = gcbase * daylength * 3600 / 1.6 * co2 * CO2_CONV;
 
+	// At this point the function f(x) = g(x) - h(x) can be calculated as:
+	//
+	// g(x) = phot_result.adtmm * fpar_fpc (after a call to photosynthesis with lambda x)
+	// h(x) = gcphot * (1 - x)
+
 	// Evaluate f(lambda_max) to see if there's a root 
 	// in the interval we're searching
 	photosynthesis(co2, temp, par, daylength, 1.0, pft.lambda_max, pft, phot_result, vmax);
-	
 	double f_lambda_max = phot_result.adtmm * fpar_fpc - gcphot * (1 - pft.lambda_max);
 
-	if (f_lambda_max < 0) {
+	if (f_lambda_max <= 0) {
 		// Return zero assimilation
 		phot_result.clear();
 		return;		
 	}
 
-	const double EPS = 0.1; // minimum precision of solution in bisection method
-
-	double xmid;
-
 	// Implement numerical solution
-
-	double x1 = 0.02;                      // minimum bracket of root
-	double x2 = pft.lambda_max;            // maximum bracket of root
-	double rtbis = x1;                     // root of the bisection
-	double dx = x2 - x1;
-
+	const double EPS = 0.1; // minimum precision of solution in numerical method
 	const int MAXTRIES = 6; // maximum number of iterations towards a solution
-	int b = 0;              // number of tries so far towards solution
 
-	double fmid = EPS + 1.0;
+	double x1 = 0.02;                      // first bracket of root
+	double x2 = pft.lambda_max;            // second bracket of root
 
-	while (fabs(fmid) > EPS && b <= MAXTRIES) {
+	double fx1 = - gcphot * (1 - x1);      // estimate f(x1), assume g(x1) == 0
+	double fx2 = f_lambda_max;             // f(x2)
+
+	int b = 0;                 // number of tries so far towards solution
+
+	double xnew;               // will be current guess for lambda
+	double fnew = EPS + 1.0;   // fnew will be f(xnew)
+
+	while (fabs(fnew) > EPS && b <= MAXTRIES) {
 
 		b++;
-		dx *= 0.5;
-		xmid = rtbis + dx;				// current guess for lambda
 
-		// Call function photosynthesis to calculate alternative value
-		// for total daytime photosynthesis according to Eqns 2 & 19,
-		// Haxeltine & Prentice (1996), and current guess for lambda
+		// Let the root of the straight line between (x1, fx1) and (x2, fx2)
+		// be the new guess for lambda
 
-		photosynthesis(co2, temp, par, daylength, 1.0, xmid, pft, phot_result, vmax);
+		xnew = x2 - fx2 * (x2 - x1) / (fx2 - fx1);
 
-		// Evaluate fmid at the point lambda=xmid
-		// fmid will be an increasing function of xmid, with a solution
-		// (fmid=0) between x1 and x2
+		// Calculate fnew = f(xnew)
+		photosynthesis(co2, temp, par, daylength, 1.0, xnew, pft, phot_result, vmax);
+		fnew = phot_result.adtmm * fpar_fpc - gcphot * (1 - xnew);
 
-		// Second term is total daytime photosynthesis (mm/m2/day) implied by
-		// canopy conductance and current guess for lambda (xmid)
-		// Eqn 18, Haxeltine & Prentice 1996
-
-		fmid = phot_result.adtmm * fpar_fpc - gcphot * (1 - xmid);
-
-		if (fmid < 0) {
-			rtbis = xmid;
+		// Update brackets according to Illinois method (Dowell & Jarratt 1971)
+		if (fnew * fx2 < 0) {
+			// New guess is on opposite side of the root as last guess, great!
+			// We'll simply use the last two guesses as new brackets
+			x1 = x2;
+			fx1 = fx2;
 		}
+		else {
+			// New guess is on the same side of the root as last guess.
+			// Downweight the other side to avoid multiple steps on the
+			// same side and slow convergence.
+			fx1 *= 0.5;
+		}
+
+		x2 = xnew;
+		fx2 = fnew;
 	}
 
 	// bvoc
-	lambda=xmid;
+	lambda=xnew;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -1679,6 +1693,8 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 // Collatz, GJ, Ribas-Carbo, M & Berry, JA 1992 Coupled photosynthesis-stomatal
 //   conductance models for leaves of C4 plants. Australian Journal of Plant
 //   Physiology 19: 519-538
+// Dowell M & Jarratt P 1971 A modified regula falsi method for computing the 
+//   root of an equation. BIT Numerical Mathematics, Volume 11 (2): 168-174
 // Farquhar GD & von Caemmerer 1982 Modelling of photosynthetic response to
 //   environmental conditions. In: Lange, OL, Nobel PS, Osmond CB, Ziegler H
 //   (eds) Physiological Plant Ecology II: Water Relations and Carbon

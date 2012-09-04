@@ -1049,31 +1049,6 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 	Vegetation& vegetation=patch.vegetation;
 	Soil& soil = patch.soil;	
 
-	// ANNUAL N SUPPLY
-	// Potential N supply is remaining pool from last year
-	// PLUS annual deposition
-	// PLUS estimate of annual N fixation
-	// PLUS sum of daily mineralisation MINUS sum of daily immobilisation
-
-	// N deposition
-	soil.andep = patch.stand.gridcell.climate.andep;
-
-	// N fixation
-	soil.anfix = max((nfix_a * patch.aaet + nfix_b) / 100000.0, 0.0);	
-
-	// N mineralisation and immobilisation
-	soil.anmin = 0.0;
-	soil.animmob = 0.0;
-
-	for (int d=0;d<365;d++) {
-		soil.anmin += soil.nmin_daily[d];
-		soil.animmob += soil.nimmob_daily[d];
-	}
-
-	// Total N supply in patch
-	patch.nsupply = soil.nmass_avail + soil.andep + soil.anfix+
-		soil.anmin - soil.animmob - soil.aminleach;
-
 	// ANNUAL N DEMAND FOR PATCH
 
 	// Loop through individuals
@@ -1124,6 +1099,31 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 	// Create individuals that determines amount of N that each pft has for establishment
 	if (date.year >= freenyears)
 		ndemand_new_est(patch, pftlist, patch.ndemand);
+
+	// ANNUAL N SUPPLY
+	// Potential N supply is remaining pool from last year
+	// PLUS annual deposition
+	// PLUS estimate of annual N fixation
+	// PLUS sum of daily mineralisation MINUS sum of daily immobilisation
+
+	// N deposition
+	soil.andep = patch.stand.gridcell.climate.andep;
+
+	// N fixation
+	soil.anfix = max((nfix_a * patch.aaet + nfix_b) / 100000.0, 0.0);	
+
+	// N mineralisation and immobilisation
+	soil.anmin = 0.0;
+	soil.animmob = 0.0;
+
+	for (int d=0;d<365;d++) {
+		soil.anmin += soil.nmin_daily[d];
+		soil.animmob += soil.nimmob_daily[d];
+	}
+
+	// Total N supply in patch
+	patch.nsupply = soil.nmass_avail + soil.andep + soil.anfix+
+		soil.anmin - soil.animmob - soil.aminleach;
 
 	// Rescale demand to not exceed supply (Eqn 4)
 	if (patch.nsupply <= 0.0) 
@@ -1291,7 +1291,7 @@ void check_nbalance(Patch& patch, bool print) {
 		nadded += soil.anfix + soil.andep;
 
 		if (print && date.year > nyear_spinup) 
-			dprintf("N BALANCE - difference over %d years: %g\n",
+			dprintf("Year %d N BALANCE - difference over %d years: %g\n",date.year,
 				date.year - nyear_spinup, old_total + nadded - (vegn + centuryn + soil.nmass_avail + vegstore + estn + littern + soil.sompool[LEACHED].nmass));
 
 		if (date.year == nyear_spinup) {

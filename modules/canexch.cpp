@@ -42,9 +42,7 @@
 
 /// Slope parameter in Friend et al. 1997 eqn 47. 
 /// Used in eqn to calculate leaf N associated with photosynthesis
-/// Divided with 200 as Freind et al. uses a plot area of 200 m2 and multiplied with
-/// 1000 to change from kg to g
-const double b0=71.4/200.0*1000.0;	
+const double b0=71.4;	
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // PROCESS SWITCHES

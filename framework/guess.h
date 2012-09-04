@@ -1520,7 +1520,7 @@ public:
 	/// soil mineral N pool (kgN/m2) (used somfluxes() to determine C:N ratios for SOM pools and decay rates)
 	double nmin_balance;		
 	/// total annual N fixation
-	double anfix;				
+	double anfix;
 
 	// MEMBER FUNCTIONS
 

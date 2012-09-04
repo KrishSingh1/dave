@@ -1945,7 +1945,7 @@ void growth(Stand& stand, Patch& patch) {
 		for (p=0; p<npft; p++)
 			stand.pft[p].cmass_repr = 0.0;
 
-	// Loop through individuals		
+	// Loop through individuals	
 
 	vegetation.firstobj();
 	while (vegetation.isobj) {

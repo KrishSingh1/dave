@@ -408,14 +408,26 @@ if(!SUPPRESSLARGEOUTPUT)
 				{
 					Patch& patch=stand.getobj();
 
+//sum original litter:
+					for(int n=0;n<npft;n++)
+					{
+						transfer_litter_leaf[n]+=patch.pft[n].litter_leaf*scale;
+						transfer_litter_root[n]+=patch.pft[n].litter_root*scale;
+						transfer_litter_wood[n]+=patch.pft[n].litter_wood*scale;
+						transfer_litter_repr[n]+=patch.pft[n].litter_repr*scale;
+						if(ifslowharvestpool)
+							transfer_harvested_products_slow[n]+=patch.pft[n].harvested_products_slow*scale;
+					}
+					transfer_acflux_harvest+=patch.fluxes.acflux_harvest*scale;
+
 					Vegetation& vegetation=patch.vegetation;
 					vegetation.firstobj();
 					while(vegetation.isobj)
 					{
 						double cmass_leaf_cp=0.0, cmass_root_cp=0.0, cmass_sap_cp=0.0, cmass_heart_cp=0.0, cmass_debt_cp=0.0, cmass_ho_cp=0.0, cmass_agpool_cp=0.0, cmass_plant_cp=0.0;//bugfix 101103
-						double litter_leaf_cp, litter_root_cp, litter_wood_cp, litter_repr_cp;
-						double acflux_harvest_cp;
-						double harvested_products_slow_cp;
+						double litter_leaf_cp=0.0, litter_root_cp=0.0, litter_wood_cp=0.0, litter_repr_cp=0.0;
+						double acflux_harvest_cp=0.0;
+						double harvested_products_slow_cp=0.0;
 
 						Individual& indiv=vegetation.getobj();
 						Patchpft& patchpft=patch.pft[indiv.pft.id];
@@ -433,14 +445,6 @@ if(!SUPPRESSLARGEOUTPUT)
 							cmass_plant_cp=indiv.cropindiv->cmass_plant;
 						}
 	
-						litter_leaf_cp=patchpft.litter_leaf;
-						litter_root_cp=patchpft.litter_root;
-						litter_wood_cp=patchpft.litter_wood;
-						litter_repr_cp=patchpft.litter_repr;
-
-						acflux_harvest_cp=patch.fluxes.acflux_harvest;	//flux är nollställd
-						harvested_products_slow_cp=patch.pft[indiv.pft.id].harvested_products_slow;
-
 	//Harvest of transferred areas:
 						if(indiv.pft.landcover==CROPLAND)
 							harvest_crop(cmass_plant_cp,cmass_leaf_cp,cmass_root_cp,cmass_ho_cp,cmass_agpool_cp,

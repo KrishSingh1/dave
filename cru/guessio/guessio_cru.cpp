@@ -502,8 +502,6 @@ void plib_declarations(int id,xtring setname) {
 			"Average Sapwood C:N mass ratio");
 		declareitem("n_reserve",&ppft->n_reserve,0.0,1.0,1,CB_NONE,
 			"N storage organ in relation to sapwood carbon");
-		declareitem("a0",&ppft->a0,0.0,2.0,1,CB_NONE,
-			"Intercept parameter in the relation between leaf N not associated with photosynthesis and total leaf N");
 
 		declareitem("reprfrac",&ppft->reprfrac,0.0,1.0,1,CB_NONE,
 			"Fraction of NPP allocated to reproduction");
@@ -809,7 +807,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("cton_leaf_avr")) badins("cton_leaf_avr");
 		if (!itemparsed("cton_root_avr")) badins("cton_root_avr");
 		if (!itemparsed("n_reserve")) badins("n_reserve");
-		if (!itemparsed("a0")) badins("a0");
 
 		if (!itemparsed("reprfrac")) badins("reprfrac");
 		if (!itemparsed("reprCN")) badins("reprCN");

@@ -63,4 +63,25 @@ inline void regress(double* x, double* y, int n, double& a, double& b) {
 	b = ((double)n*sxy-sx*sy)/delta;
 }
 
+/// Clips a value to an interval
+/** \param x       Value to clip
+ *  \param limit1  One of the limits
+ *  \param limit2  The other limit
+ *
+ *  \returns x if it's within the interval [limit1, limit2],
+ *           otherwise the closest limit. */
+template<typename T>
+inline T clip(T x, T limit1, T limit2) {
+	T lower = min(limit1, limit2);
+	T upper = max(limit1, limit2);
+
+	if (x < lower) {
+		return lower;
+	}
+	else if (x > upper) {
+		return upper;
+	}
+	return x;
+}
+
 #endif

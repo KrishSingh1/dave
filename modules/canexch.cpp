@@ -1144,10 +1144,24 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 		b++;
 
+		// Loop invariant:
+		//
+		// fx1 and fx2 always have opposite sign.
+		// The Illinois method assumes this to be the case initially, and
+		// maintains that relation throughout the loop.
+		assert(fx1 * fx2 < 0);
+
 		// Let the root of the straight line between (x1, fx1) and (x2, fx2)
 		// be the new guess for lambda
 
 		xnew = x2 - fx2 * (x2 - x1) / (fx2 - fx1);
+
+		// Because of our invariant above, xnew should mathematically be
+		// guaranteed to be in the interval [x1, x2]. floating point
+		// arithmetics with limited precision cannot give that guarantee
+		// however. This is a bit pedantic, but makes sure we never call
+		// photosynthesis with lambda > lambda_max.
+		xnew = clip(xnew, x1, x2);
 
 		// Calculate fnew = f(xnew)
 		photosynthesis(co2, temp, par, daylength, 1.0, xnew, pft, phot_result, vmax);

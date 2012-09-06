@@ -40,9 +40,9 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL CONSTANTS
 
-/// Slope parameter in Friend et al. 1997 eqn 47. 
-/// Used in eqn to calculate leaf N associated with photosynthesis
-const double b0=71.4;	
+/// leaf N (kgN/kgC) not associated with photosynthesis
+/// (value given by Haxeltine & Prentice 1996)
+const double N0=7.15*0.001;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // PROCESS SWITCHES
@@ -538,7 +538,7 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
  */
 void photosynthesis(double co2, double temp, double par, double daylength,
                     double fpar, double lambda, const Pft& pft, 
-					double nmass_leaf, double lai,
+					double nmass_leaf, double cmass_leaf,
 					bool ifnlimvmax,
 					PhotosynthesisResult& result, double vm) {
 
@@ -651,9 +651,10 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 		b = BC4;
 	}
 	if (vm < 0) {
-		// Calculate leaf N associated with photosynthesis (Friend et al. 1997 eqn 47)
+		// Calculate leaf N associated with photosynthesis (Haxeltine et al. 1996 eqn 27/28)
 		// Should be done on FPC basis, but is not as it does not matter mathematically
-		double nactive = (1.0 - max(0.1, pft.a0 - b0 * nmass_leaf / lai)) * nmass_leaf;
+
+		double nactive = nmass_leaf - N0 * cmass_leaf;
 
 		if (nactive < 0.0) nactive = 0.0;
 
@@ -761,7 +762,7 @@ void photosynthesis_nowstress(Patch& patch, Climate& climate) {
 			// Individual photosynthesis
 			photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
 				indiv.fpar, pft.lambda_max, pft,
-				indiv.nmass_leaf * indiv.phen, indiv.lai * indiv.phen,
+				indiv.nmass_leaf * indiv.phen, indiv.cmass_leaf * indiv.phen,
 				ifnlimvmax(),
 				indiv.photosynthesis,
 				-1);
@@ -779,7 +780,7 @@ void photosynthesis_nowstress(Patch& patch, Climate& climate) {
 					PhotosynthesisResult& result = indiv.phots[i];
 					photosynthesis(climate.co2, climate.temps[i], climate.pars[i], 24,
 						indiv.fpar, pft.lambda_max, pft,
-						indiv.nmass_leaf * indiv.phen, indiv.lai * indiv.phen,
+						indiv.nmass_leaf * indiv.phen, indiv.cmass_leaf * indiv.phen,
 						ifnlimvmax(),
 						result,
 						indiv.photosynthesis.vm);
@@ -836,7 +837,7 @@ void demand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& d
 
 			photosynthesis(climate.co2, temp, par, daylength,
 				indiv.fpar_leafon, pft.lambda_max, pft,
-				indiv.nmass_leaf, indiv.lai,
+				indiv.nmass_leaf, indiv.cmass_leaf,
 				ifnlimvmax(),
 				leafon_photosynthesis,
 				indiv.photosynthesis.vm);
@@ -1204,7 +1205,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 			double daylength, double fpar, double fpc, double gcbase, double gpterm,
-			double vmax, int i, PhotosynthesisResult& phot_result, double& lambda, double nmass_leaf, double lai) {
+			double vmax, int i, PhotosynthesisResult& phot_result, double& lambda, double nmass_leaf, double cmass_leaf) {
 
 	// DESCRIPTION
 	// Calculation of net C-assimilation under water-stressed conditions
@@ -1271,7 +1272,7 @@ void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 		// for total daytime photosynthesis according to Eqns 2 & 19,
 		// Haxeltine & Prentice (1996), and current guess for lambda
 
-		photosynthesis(co2, temp, par, daylength, fpar, xmid, ppft.pft, nmass_leaf, lai, ifnlimvmax(), phot_result, vmax);
+		photosynthesis(co2, temp, par, daylength, fpar, xmid, ppft.pft, nmass_leaf, cmass_leaf, ifnlimvmax(), phot_result, vmax);
 
 		// Evaluate fmid at the point lambda=xmid
 		// fmid will be an increasing function of xmid, with a solution
@@ -1496,7 +1497,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 				// of light- and conductance-based equations of photosynthesis
 				assimilation_wstress(ppft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
 							ppft.gcbase, gpterm_indiv, indiv.photosynthesis.vm, index, phot, lambda,
-							indiv.nmass_leaf * indiv.phen, indiv.lai * indiv.phen);
+							indiv.nmass_leaf * indiv.phen, indiv.cmass_leaf * indiv.phen);
 
 				assim = phot.net_assimilation();
 			}
@@ -1598,7 +1599,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 					PhotosynthesisResult phot;
 					assimilation_wstress(ppft, indiv.co2_wstress, indiv.temp_wstress,
 						indiv.par_wstress, indiv.daylength_wstress, indiv.fpar_wstress, indiv.fpc,
-						ppft.gcbase_wstress, ppft.gpterm_wstress, ppft.phot_wstress.vm, -2, phot, lambda, indiv.nmass_leaf * indiv.phen_mean, indiv.lai * indiv.phen_mean);
+						ppft.gcbase_wstress, ppft.gpterm_wstress, ppft.phot_wstress.vm, -2, phot, lambda, indiv.nmass_leaf * indiv.phen_mean, indiv.cmass_leaf * indiv.phen_mean);
 					indiv.assim += phot.net_assimilation() * indiv.nday_wstress;
 
 					if (ifbvoc) {
@@ -1756,7 +1757,8 @@ void leafn_accounting(Patch& patch) {
 		if (!negligible(indiv.phen)) {
 			indiv.nday_leafon++;
 
-			indiv.leafn += indiv.photosynthesis.nmass_term + max(0.1, indiv.pft.a0 - b0 * indiv.nmass_leaf / indiv.lai) * indiv.nmass_leaf * indiv.phen;
+			// Calculate optimal leaf N associated with photosynthesis and none photosynthetic active N (Haxeltine et al. 1996 eqn 27/28)
+			indiv.leafn += indiv.photosynthesis.nmass_term + N0 * indiv.nmass_leaf * indiv.phen;
 			
 			// Determining annual N limitation on vmax
 			indiv.avmaxnlim += indiv.vmax_lim[date.day];

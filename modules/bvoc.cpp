@@ -192,7 +192,7 @@ void bvoc(double temp, double hours, double daylength, double rad, double eet,
 		double adtmm, double gpterm, const Day& day, int ndays) {
 
 	// Calculation of isoprene and monoterpene production in leaves as a function
-	// of photosynthetis. Isoprene and monoterpenes are calculated from a
+	// of photosynthesis. Isoprene and monoterpenes are calculated from a
 	// standardized fraction of the total photosynthesis, which is adjusted as
 	// a function of temperature, CO2 concentration and (for isoprene)
 	// seasonality.
@@ -205,12 +205,12 @@ void bvoc(double temp, double hours, double daylength, double rad, double eet,
 	// of isoprene seasonality (which requires a GDD sum twice as large as
 	// required for phenology, and decreases with a relative rate at the end of
 	// the growing season).
-	
+
 	// Changes made to accommodate diurnal mode, include re-calculating seasonality
 	// irrespective of the possibility of BVOC emissions, and switching to
 	// photosynthesis pre-calculated with air temperature (instead of leaf
 	// temperature previously).
-	
+
 	// (selected) INPUT PARAMETERS
 	// temp      = temperature for this calculation period (deg C)
 	// hours     = in diurnal mode should equal 24 (to convert to daily units),
@@ -218,7 +218,7 @@ void bvoc(double temp, double hours, double daylength, double rad, double eet,
 	// daylength = actual daylength of the day the calculation period belongs to (h)
 	// dtr       = diurnal temperature range (not used in diurnal mode) (deg C)
 	// temp_day  = daily temperature of the day this calculation period belongs to (deg C)
-	// phot      = non-water stressed photosythensis
+	// phot      = non-water stressed photosynthesis
 	// adtmm     = actual (water-stressed) photosynthesis production for the period (mm/m2/day)
 	// gpterm    = actual (water-stressed) canopy conductance for the period (mm/s)
 

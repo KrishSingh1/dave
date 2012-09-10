@@ -21,8 +21,7 @@ set(source
   somdynam.cpp 
   landcover.cpp 
   vegdynam.cpp 
-  bvoc.cpp 
-  q10.cpp
+  bvoc.cpp
   globalco2file.cpp
   )
 

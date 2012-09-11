@@ -8,6 +8,7 @@ set(headers
   shell.h
   partitionedmapserializer.h
   guessserializer.h
+  parallel.h
 )
 
 set(source  
@@ -18,6 +19,7 @@ set(source
   shell.cpp
   partitionedmapserializer.cpp
   guessserializer.cpp
+  parallel.cpp
 )
 
 include(add_guess_sources)

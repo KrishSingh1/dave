@@ -152,6 +152,11 @@ __declspec(dllexport) int dll_main(GuessParam param) {
 
 	set_shell(new WindowsShell(file_log));
 
+	// Initialize parallel communication if available
+	// Note that the graphical user interface doesn't support
+	// parallel runs yet.
+	GuessParallel::init(param.argc, param.argv);
+
 	// Call the framework
 	framework(param.argc,param.argv);
 

@@ -49,6 +49,16 @@ if (NETCDF_FOUND)
   add_definitions(-DHAVE_NETCDF)
 endif()
 
+# MPI - used if found
+find_package(MPI)
+
+if (MPI_FOUND)
+  include_directories(${MPI_INCLUDE_PATH})
+  set(LIBS ${LIBS} ${MPI_LIBRARIES})
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_COMPILE_FLAGS}")
+  add_definitions(-DHAVE_MPI)
+endif()
+
 # Where the compiler should search for header files
 include_directories(${guess_SOURCE_DIR}/framework ${guess_SOURCE_DIR}/libraries/gutil ${guess_SOURCE_DIR}/libraries/plib ${guess_SOURCE_DIR}/modules)
 

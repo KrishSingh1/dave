@@ -10,7 +10,7 @@
 #include "config.h"
 #include "guess.h"
 #include "framework.h"
-
+#include "parallel.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // LOG FILE
@@ -29,6 +29,9 @@ int main(int argc,char* argv[]) {
 
 	// Set our shell for the model to communicate with the world
 	set_shell(new CommandLineShell(file_log));
+
+	// Initialize parallel communication if available
+	GuessParallel::init(argc, argv);
 
 	// Call the framework
 	framework(argc,argv);

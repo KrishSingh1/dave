@@ -50,7 +50,12 @@ if (NETCDF_FOUND)
 endif()
 
 # MPI - used if found
-find_package(MPI)
+find_package(MPI QUIET)
+
+# These are deprecated according to documentation in the FindMPI module,
+# but for some reason not hidden. Let's not display them for the typical
+# LPJ-GUESS user who hasn't got MPI installed.
+mark_as_advanced(MPI_LIBRARY MPI_EXTRA_LIBRARY)
 
 if (MPI_FOUND)
   include_directories(${MPI_INCLUDE_PATH})

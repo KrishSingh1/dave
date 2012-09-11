@@ -13,6 +13,7 @@
 #include "config.h"
 #include "dllmain.h"
 #include "framework.h"
+#include "parallel.h"
 
 #include <process.h>
 #include <stdarg.h>

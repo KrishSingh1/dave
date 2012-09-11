@@ -58,7 +58,7 @@ void initbvoc(){
  	while (pftlist.isobj) {
  		Pft& pft = pftlist.getobj();
 
-		photosynthesis(CO2, Tstand, par, daylength, 1.0, pft.lambda_max, pft, 1.0, 1.0, false, phot, -1);
+		photosynthesis(CO2, Tstand, par, daylength, 1.0, pft.lambda_max, pft, 1.0, 1.0, false, phot, -1, pft.leafphysiognomy);
 
 		double coeff = 1e-3 / (phot.je + phot.rd_g/24) / daylength / pft.sla / Cfrac;
 

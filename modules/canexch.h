@@ -25,7 +25,7 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 					double fpar, double lambda, const Pft& pft, 
 					double nmass_leaf, double cmass_leaf,
 					bool ifnlimvmax,
-					PhotosynthesisResult& result, double vm);
+					PhotosynthesisResult& result, double vm, leafphysiognomytype leafphysiognomy);
 
 // Constants for photosynthesis calculations
 

@@ -88,7 +88,7 @@ int framework(int argc, char* argv[]) {
 		while (getclimate(gridcell)) {
 
 			// START OF LOOP THROUGH SIMULATION DAYS
-
+			
 			// Update daily climate drivers etc
 			dailyaccounting_gridcell(gridcell);
 

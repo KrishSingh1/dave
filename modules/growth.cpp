@@ -669,37 +669,34 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 		cmass_leaf_inc=(bminc-cmass_leaf/ltor+cmass_root)/(1.0+1.0/ltor);
 		cmass_root_inc=bminc-cmass_leaf_inc;
 
-		if (cmass_leaf_inc<0.0) {
+		if (cmass_leaf_inc < 0.0 && bminc > 0.0) {
 
-			// Negative allocation to leaves
+			// Positive bminc, but ltor causes negative allocation to leaves,
+			// put all of bminc into roots
 
 			cmass_root_inc=bminc;
 			cmass_leaf_inc=(cmass_root+cmass_root_inc)*ltor-cmass_leaf; // Eqn (3)
-
-			// Add killed leaves to litter
-
-			cmass_leaf_inc=(cmass_root+cmass_root_inc)*ltor-cmass_leaf; // Eqn (3)
-
-			// Add killed leaves to litter
-
-			// guess2008 - bugfix 
-			// litter_leaf_inc=-cmass_leaf_inc;
-			litter_leaf_inc=min(-cmass_leaf_inc, cmass_leaf);
 		}
-		else if (cmass_root_inc<0.0) {
+		else if (cmass_root_inc < 0.0 && bminc > 0.0) {
 
-			// Negative allocation to roots
+			// Positive bminc, but ltor causes negative allocation to roots,
+			// put all of bminc into leaves
 
 			cmass_leaf_inc=bminc;
 			cmass_root_inc=(cmass_leaf+bminc)/ltor-cmass_root;
-
-			// Add killed roots to litter
-
-			// guess2008 - bugfix 
-			//litter_root_inc=-cmass_root_inc;
-			litter_root_inc=min(-cmass_root_inc, cmass_root);
-
 		}
+
+		// Make sure we don't end up with negative cmass_leaf
+		cmass_leaf_inc = max(-cmass_leaf, cmass_leaf_inc);
+
+		// Make sure we don't end up with negative cmass_root
+		cmass_root_inc = max(-cmass_root, cmass_root_inc);
+
+		// Add killed leaves to litter
+		litter_leaf_inc = max(-cmass_leaf_inc, 0.0);
+
+		// Add killed roots to litter
+		litter_root_inc = max(-cmass_root_inc, 0.0);
 	}
 }
 

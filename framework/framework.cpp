@@ -9,6 +9,7 @@
 
 #include "config.h"
 #include "framework.h"
+#include "commandlinearguments.h"
 
 #include "guessio.h"
 #include "driver.h"
@@ -21,7 +22,7 @@
 #include "bvoc.h"
 
 
-int framework(int argc, char* argv[]) {
+int framework(const CommandLineArguments& args) {
 
 	// The 'mission control' of the model, responsible for maintaining the 
 	// primary model data structures and containing all explicit loops through 
@@ -29,7 +30,7 @@ int framework(int argc, char* argv[]) {
 
 	// Call input/output module to obtain PFT static parameters and simulation
 	// settings and initialise input/output
-	initio(argc, argv);
+	initio(args.get_instruction_file());
 
 	// bvoc
 	if (ifbvoc) {

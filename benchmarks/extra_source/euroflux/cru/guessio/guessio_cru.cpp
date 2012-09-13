@@ -868,28 +868,14 @@ void printhelp() {
 // this section of the input/output module. The following functions are called by the
 // framework at various stages of the simulation and should contain appropriate code:
 //
-// void initio(int argc,char* argv[])
+// void initio(const xtring& insfilename)
 //   Initialises input/output (e.g. opening files), sets values for the global
 //   simulation parameter variables (currently vegmode, npatch, patcharea, ifdailynpp,
 //   ifdailydecomp, ifbgestab, ifsme, ifstochestab, ifstochmort, iffire, estinterval,
 //   npft), initialises pftlist (the one and only list of PFTs and their static
 //   parameters for this run of the model). Normally all of the above parameters,
 //   and possibly others, are read from the ins file (see above). Function readins
-//   should be called to input settings from the ins file. The syntax for this call
-//   should be similar to the following (note that readins returns false in the event
-//   of an error in the ins file; normally this should result in program termination):
-//
-//   xtring insfilename=argv[1];
-//   if (!readins(insfilename,pftlist))
-//       fail("\nUsage: %s <instruction-script-filename> | -help",argv[0]);
-//
-//   Arguments argc and argv normally correspond to the command-line arguments
-//   imported from the main function (main module, usually main.cpp). The first
-//   command line argument (argv[0]) is the name of the binary executable (e.g.
-//   guess, guess.exe); the second (argv[1]) should normally be the ins file name.
-//   This demonstration version of initio also implements "-help" as an alternative
-//   command-line argument, resulting in output of a brief description of the
-//   keywords recognised in the ins file, instead of a model run.
+//   should be called to input settings from the ins file.
 //
 // bool getgridcell(Gridcell& gridcell)
 //   Obtains coordinates and soil static parameters for the next grid cell to
@@ -947,6 +933,10 @@ void printhelp() {
 // termio()
 //   Called after simulation is complete for all gridcells to allow memory deallocation,
 //   closing of files or other cleanup functions.
+//
+// printhelp()
+//   Prints out information about all available ins file parameters. Is typically
+//   called when the user starts the program with the -help option.
 //
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -1926,7 +1916,7 @@ void define_output_tables() {
 // INITIO
 // Called by the framework at the start of the model run
 
-void initio(int argc,char* argv[]) {
+void initio(const xtring& insfilename) {
 
 	// DESCRIPTION
 	// Initialises input/output (e.g. opening files), sets values for the global
@@ -1935,63 +1925,28 @@ void initio(int argc,char* argv[]) {
 	// estinterval, npft), initialises pftlist (the one and only list of PFTs and their
 	// static parameters for this run of the model). Normally all of the above
 	// parameters, and possibly others, are read from the ins file (see above).
-	// Function readins should be called to input settings from the ins file. The
-	// syntax for this call should be similar to the following (note that readins
-	// returns false in the event of an error in the ins file; normally this should
-	// result in program termination):
-	//
-	// xtring insfilename=argv[1];
-	// if (!readins(insfilename,pftlist))
-	//     fail("\nUsage: %s <instruction-script-filename> | -help",argv[0]);
-	//
-	// Arguments argc and argv normally correspond to the command-line arguments
-	// imported from the main function (main module, usually main.cpp). The first
-	// command line argument (argv[0]) is the name of the binary executable (e.g.
-	// guess, guess.exe); the second (argv[1]) should normally be the ins file name.
-	// This demonstration version of initio also implements "-help" as an alternative
-	// command-line argument, resulting in output of a brief description of the
-	// keywords recognised in the ins file, instead of a model run.
+	// Function readins should be called to input settings from the ins file.
 
 	///////////////////////////////////////////////////////////////////////////////////
 	// GENERIC SECTION - DO NOT MODIFY
 
-	bool abort;
-	xtring insfilename;
 	xtring header;
-
 
 	unixtime(header);
 	header=(xtring)"[LPJ-GUESS  "+header+"]\n\n";
 	dprintf((char*)header);
 
-	abort=false;
-	if (argc>1) {
-		insfilename=argv[1];
-		if (insfilename[0]=='-') {
-			if (insfilename.lower()=="-help") {
-				printhelp();
-				abort=true;
+	if (!fileexists(insfilename)) {
+		fail("Error: could not open %s for input",(const char*)insfilename);
 			}
-			else {
-				dprintf("Unknown option \"%s\"\n",(char*)insfilename);
-				abort=true;
-			}
-		}
-		else if (!fileexists(insfilename)) {
-			dprintf("Error: could not open %s for input\n",(char*)insfilename);
-			abort=true;
-		}
 
 		// Initialise simulation settings and PFT parameters from instruction script
 		// Call to readins() returns false if file could not be opened for reading
 		// or contained errors (including missing parameters)
 
-		else if (!readins(insfilename))
-			abort=true;
+	if (!readins(insfilename)) {
+		fail("Bad instruction file!");
 	}
-	else abort=true;
-
-	if (abort) fail("\nUsage: %s <instruction-script-filename> | -help",argv[0]);
 
 	// Print the title of this run
 	dprintf("\n\n------------------------------------\n%s\n------------------------------------\n",(char*)title);

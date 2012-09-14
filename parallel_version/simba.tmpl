@@ -172,6 +172,8 @@ outfiles_unexpanded='$OUTFILES'
 outfiles_expanded=\$(echo \$outfiles_unexpanded)
 popd &> /dev/null
 
+cp run1/meta.bin /scratch/david/state/global/
+
 for ((i = 1; i <= $NPROCESS; i++))
 do 
   cp run\$i/0.state /scratch/david/state/global/\$((i-1)).state; 

@@ -1268,15 +1268,19 @@ const int FIRSTHISTYEAR_CMIP5=1850;
 const int NYEAR_CRU=106;
 const int FIRSTHISTYEAR_CRU=1901;
 
-// guess2008
-const int NYEAR_HIST=NYEAR_CRU; // guess2008 - CRU TS 3.0 has 106 years of data (1901-2006)
-	// number of years of historical climate in CRU and CO2 files (see below)
+/// CRU TS 3.0 has 106 years of data (1901-2006)
+/// number of years of historical climate
+const int NYEAR_HIST=NYEAR_CRU; 
+/// calender year corresponding to first year in CRU climate data set
 const int FIRSTHISTYEAR=FIRSTHISTYEAR_CRU;
-	// calender year corresponding to first year in CRU climate data set
+/// calender year corresponding to first year N deposition
+const int FIRSTHISTYEARNDEP=1850;
+/// number of years of historical N deposition 
+const int NYEAR_HISTNDEP=FIRSTHISTYEAR-FIRSTHISTYEARNDEP+NYEAR_HIST;
+/// number of years to use for temperature-detrended spinup data set
+/// (not to be confused with the number of years to spinup model for, which
+/// is read from the ins file)	
 const int NYEAR_SPINUP_DATA=30;
-	// number of years to use for temperature-detrended spinup data set
-	// (not to be confused with the number of years to spinup model for, which
-	// is read from the ins file)
 
 // Stream pointer to binary CRU historical climate data file (read from ins file)
 FILE *in_cru;
@@ -1331,15 +1335,14 @@ double hist_mfrs[NYEAR_HIST][12];
 double hist_mwet[NYEAR_HIST][12];
 double hist_mdtr[NYEAR_HIST][12];
 
-
 /// Monthly data on daily dry NHx deposition (kgN/m2/day)
-double NHxDryDep[NYEAR_HIST][12];
+double NHxDryDep[NYEAR_HISTNDEP][12];
 /// Monthly data on daily wet NHx deposition (kgN/m2/day)
-double NHxWetDep[NYEAR_HIST][12];
+double NHxWetDep[NYEAR_HISTNDEP][12];
 /// Monthly data on daily dry NOy deposition (kgN/m2/day)
-double NOyDryDep[NYEAR_HIST][12];
+double NOyDryDep[NYEAR_HISTNDEP][12];
 /// Monthly data on daily wet NOy deposition (kgN/m2/day)
-double NOyWetDep[NYEAR_HIST][12];
+double NOyWetDep[NYEAR_HISTNDEP][12];
 
 // CMIP5 - land use input
 double hist_frluse[NYEAR_HIST];
@@ -3567,8 +3570,8 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	{
 /** The values are either taken from the andep parameter in the instruction
  *  file, or from a binary archive file.
  *
- *  The binary archive has nitrogen deposition in gN/m2 on a monthly timestep
- *  for 16 years (Galloway et. al., 2004).
+ *  The binary archive files have nitrogen deposition in gN/m2 on a monthly timestep
+ *  for 26 years with 10 year interval (Lamarque et. al., 2011).
  *
  *  Returned values will not be smaller than minndep.
  *
@@ -3576,7 +3579,7 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	{
  *  \param  lon         Longitude
  *  \param  lat         Latitude
  */
-bool getndep(xtring filename,double lon,double lat,Climate& climate) {
+bool getndep(xtring filename,double lon,double lat) {
 
 	int y,m;
 	double dval;
@@ -3844,7 +3847,7 @@ bool getndep(xtring filename,double lon,double lat,Climate& climate) {
 	int interyear[2]={0.0};
 	int yy=0;
 
-	for (y=0;y<NYEAR_HIST;y++) {
+	for (y=0;y<NYEAR_HISTNDEP;y++) {
 
 		bool found=false;
 		while (!found){
@@ -3935,7 +3938,7 @@ bool getgridcell(Gridcell& gridcell) {
 		double lon = gridlist.getobj().lon;
 		double lat = gridlist.getobj().lat;
 
-		if (!getndep(file_ndep,lon,lat,gridcell.climate)) {
+		if (!getndep(file_ndep,lon,lat)) {
 			dprintf("Year %d 13\n",date.year);
 			fail("Grid cell Lat %g Long %g not found in %s",lat,lon,(char*)file_ndep);
 		}
@@ -4401,10 +4404,10 @@ bool getclimate(Gridcell& gridcell) {
 				  climate.frluse=hist_frluse[date.year-nyear_spinup];
 			}
 		}
-
+		int first_ndep_year=nyear_spinup+FIRSTHISTYEARNDEP-FIRSTHISTYEAR;
 		climate.andep=0.0;
 		int m;
-		if (date.year<nyear_spinup){
+		if (date.year<first_ndep_year){
 			dd=0;
 			for (m=0;m<12;m++) {
 				climate.andep+=(NHxDryDep[0][m]+NOyDryDep[0][m]+
@@ -4418,19 +4421,19 @@ bool getclimate(Gridcell& gridcell) {
 				}
 			}
 		}
-		else {
+		else {  
 			dd=0;
 			for (m=0;m<12;m++) {
-				climate.andep+=(NHxDryDep[date.year-nyear_spinup][m]+
-					NOyDryDep[date.year-nyear_spinup][m]+
-					NHxWetDep[date.year-nyear_spinup][m]+
-					NOyWetDep[date.year-nyear_spinup][m])*date.ndaymonth[m];
+				climate.andep+=(NHxDryDep[date.year-first_ndep_year][m]+
+					NOyDryDep[date.year-first_ndep_year][m]+
+					NHxWetDep[date.year-first_ndep_year][m]+
+					NOyWetDep[date.year-first_ndep_year][m])*date.ndaymonth[m];
 
 				for (int dm=0;dm<date.ndaymonth[m];dm++) {
-					climate.dndep[dd]=(NHxDryDep[date.year-nyear_spinup][m]+
-						NOyDryDep[date.year-nyear_spinup][m]+
-						NHxWetDep[date.year-nyear_spinup][m]+
-						NOyWetDep[date.year-nyear_spinup][m]);
+					climate.dndep[dd]=(NHxDryDep[date.year-first_ndep_year][m]+
+						NOyDryDep[date.year-first_ndep_year][m]+
+						NHxWetDep[date.year-first_ndep_year][m]+
+						NOyWetDep[date.year-first_ndep_year][m]);
 					dd++;
 				}
 			}
@@ -4912,6 +4915,7 @@ void outannual(Gridcell& gridcell) {
 					plot("cmass",pft.name,date.year,gcpft_cmass);
 					plot("anpp",pft.name,date.year,gcpft_anpp);
 					plot("lai",pft.name,date.year,gcpft_lai);
+					plot("dens [indiv/ha]",pft.name,date.year,gcpft_densindiv_total*10000.0);
 					if (gcpft_cmass_leaf>0.0 && ifnlim) {
 						plot("vmax N lim",pft.name,date.year,gcpft_vmaxnlim/gcpft_cmass_leaf);
 						plot("N lim on growth",pft.name,date.year,gcpft_nlim);

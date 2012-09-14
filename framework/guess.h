@@ -1165,6 +1165,10 @@ public:
 	int nday_wstress; // number of water-stress days for month
 	bool wstress; // whether individual subject to water stress
 
+	/// N mass that is photosyntetic active
+	double nactive;
+	/// N mass that is photosyntetic active (leafon)
+	double nactive_leafon;
 	/// relocated N from leaves and roots and accumulated uptake from soil mineral N pool
 	double nstore;
 	/// accumulated uptake from soil mineral N pool

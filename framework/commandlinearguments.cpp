@@ -49,7 +49,7 @@ bool CommandLineArguments::parse_arguments(int argc, char** argv) {
 				goto_rundir = true;
 			}
 			else {
-				fprintf(stderr, "Unknown option: %s\n", argv[1]);
+				fprintf(stderr, "Unknown option: \"%s\"\n", argv[i]);
 				return false;
 			}
 		}

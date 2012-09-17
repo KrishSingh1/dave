@@ -26,6 +26,9 @@ public:
 	/// Returns true if the user has specified the help option
 	bool get_help() const;
 
+	/// Returns true if the user has specified the goto-rundir option
+	bool get_goto_rundir() const;
+
 private:
 	/// Does the actual parsing of the arguments
 	bool parse_arguments(int argc, char** argv);
@@ -38,6 +41,9 @@ private:
 
 	/// Whether the user wants help on how to run the LPJ-GUESS command
 	bool help;
+
+	/// Whether we should step into a run directory before starting
+	bool goto_rundir;
 };
 
 #endif // LPJ_GUESS_COMMAND_LINE_ARGUMENTS_H

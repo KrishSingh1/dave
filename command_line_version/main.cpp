@@ -13,6 +13,7 @@
 #include "guessio.h"
 #include "commandlinearguments.h"
 #include "parallel.h"
+#include <stdlib.h>
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // LOG FILE
@@ -31,16 +32,27 @@ int main(int argc,char* argv[]) {
 	// Parse command line arguments
 	CommandLineArguments args(argc, argv);
 
+	// Initialize parallel communication if available
+	GuessParallel::init(argc, argv);
+
+	// Change working directory according to rank if requested
+	if (args.get_goto_rundir()) {
+		xtring path;
+		path.printf("./run%d", GuessParallel::get_rank()+1);
+
+		if (change_directory(path) != 0) {
+			fprintf(stderr, "Failed to change to run directory\n");
+			return EXIT_FAILURE;
+		}
+	}
+
 	// Set our shell for the model to communicate with the world
 	set_shell(new CommandLineShell(file_log));
 
 	if (args.get_help()) {
 		printhelp();
-		return 0;
+		return EXIT_SUCCESS;
 	}
-
-	// Initialize parallel communication if available
-	GuessParallel::init(argc, argv);
 
 	// Call the framework
 	framework(args);
@@ -48,5 +60,5 @@ int main(int argc,char* argv[]) {
 	// Say goodbye
 	dprintf("\nFinished\n");
 
-	return 0;
+	return EXIT_SUCCESS;
 }

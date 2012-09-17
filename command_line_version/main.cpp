@@ -29,11 +29,14 @@ xtring file_log="guess.log";
 // This is the function called when the executable is run
 
 int main(int argc,char* argv[]) {
+	// Initialize parallel communication if available.
+	// This needs to be done before command line parsing since some MPI
+	// implementations put their own arguments in our command line
+	// (which should then be removed after the MPI initialization).
+	GuessParallel::init(argc, argv);
+
 	// Parse command line arguments
 	CommandLineArguments args(argc, argv);
-
-	// Initialize parallel communication if available
-	GuessParallel::init(argc, argv);
 
 	// Change working directory according to rank if requested
 	if (args.get_goto_rundir()) {

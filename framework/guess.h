@@ -1088,7 +1088,7 @@ public:
 //     vegetation.nextobj();
 //   }
 
-class Vegetation : public ListArray_idin2<Individual,Pft,Vegetation>, Serializable {
+class Vegetation : public ListArray_idin2<Individual,Pft,Vegetation>, public Serializable {
 
 public:
 	// MEMBER VARIABLES
@@ -1636,7 +1636,7 @@ public:
 /// The stand class corresponds to a modelled area of a specific landcover type in a grid cell.
 /** There may be several stands of the same landcover type (but with different settings).
  */
-class Stand : public ListArray_idin2<Patch,Stand,Soiltype>, Serializable {
+class Stand : public ListArray_idin2<Patch,Stand,Soiltype>, public Serializable {
 
 public:
 
@@ -1739,7 +1739,7 @@ public:
  *  with patches, not gridcells. A separate Gridcell object must be declared for each modelled
  *  locality or grid cell.
  */
-class Gridcell : public ListArray_idin2<Stand,Gridcell,landcovertype>, Serializable {
+class Gridcell : public ListArray_idin2<Stand,Gridcell,landcovertype>, public Serializable {
 
 public:
 

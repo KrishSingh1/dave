@@ -38,7 +38,7 @@ endif (UNIX)
 
 # Where to search for cmake modules
 # (used by cmake when the include() command is used in a cmake file)
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
 # NetCDF - look for libraries and include files, and use them if found
 find_package(NetCDF QUIET)

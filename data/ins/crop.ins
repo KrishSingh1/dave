@@ -1,0 +1,1294 @@
+!///////////////////////////////////////////////////////////////////////////////////////
+!// CROP-SPECIFIC ADDITIONS TO LPJ-GUESS INSTRUCTION SCRIPT
+!// Mats Lindeskog 2012-09-18
+!///////////////////////////////////////////////////////////////////////////////////////
+
+file_yield "yield.out"
+
+ifdailynpp 1			! whether to calculate NPP daily (1) or monthly (0)
+ifdailydecomp 1			! whether to calculate soil respiration daily (1) or monthly (0)
+
+!!!!!!!!!!!! landcover parameters !!!!!!!!!!!!!!					
+
+run_landcover 1        ! whether to use (and change) landcover fractions (1) or not (0)						
+
+run_urban 0	      ! whether to simulate barren land (1) or not (0)	
+run_crop 1	      ! whether to simulate crop vegetation (1) or not (0)
+run_forest 0	      ! whether to simulate managed forest (1) or not (0)
+run_pasture 0	      ! whether to simulate pasture (1) or not (0)
+run_natural 1	      ! whether to simulate natural vegetation (1) or not (0)
+run_peatland 0	      ! whether to simulate peatland (1) or not (0)
+
+minimizecftlist 0	! Checks cft fraction file for cft:s with fractions>0.0 at any time or place; if cftfrac_fixed is 1, this option is not functional.
+cftfrac_fixed 0       	! whether to force CFT % (1) or just read CFT file (0)
+equal_crop_area 1	! creates equal-sized stands of all included crops (cftfrac_fixed must also be set to 1)
+
+cft0 0   ! rainfed c3grass
+cft1 0   ! rainfed c4grass
+cft2 100   ! rainfed winter cereals
+cft3 0   ! rainfed rice
+cft4 0   ! rainfed maize
+cft5 0   ! rainfed millet
+cft6 0   ! rainfed lentils
+cft7 0   ! rainfed sugarbeet
+cft8 0   ! rainfed maniok
+cft9 0   ! rainfed sunfloyer
+cft10 0  ! rainfed soya
+cft11 0  ! rainfed peanuts
+cft12 0  ! rainfed rapeseed
+cft13 0  ! irrigated c3grass
+cft14 0  ! irrigated c4grass
+cft15 0  ! irrigated winter cereals
+cft16 0  ! irrigated rice
+cft17 0  ! irrigated maize
+cft18 0  ! irrigated millet
+cft19 0  ! irrigated lentils
+cft20 0  ! irrigated sugarbeet
+cft21 0  ! irrigated maniok
+cft22 0  ! irrigated sunflower
+cft23 0  ! irrigated soya
+cft24 0  ! irrigated peanuts
+cft25 0  ! irrigated rapeseed
+
+ifslowharvestpool 1	! If a slow harvested product pool is included in patchpft.
+ifintercropgrass 1
+
+!forcesowingdates 0
+!forceharvestdates 0
+!forceautumnsowing 0
+
+!///////////////////////////////////////////////////////////////////////////////////////
+
+!///////////////////////////////////////////////////////////////////////////////////////
+!// PARAMETERS FOR PFTS
+
+group "crop" (
+
+	! Parameter common to all crops
+
+	include 1
+	phenology "cropgreen"
+	rootdist 0.9 0.1  !Sitch et al give 0.9 0.1	Fraction of fine roots in the upper and lower soil layers.
+	sla 41.1      ! value overridden if "ifcalcsla 1" specified above
+	fireresist 0.5  ! 9.11.02  Alb (originally fireresist=1)						!Included in grass
+	respcoeff 1   ! Sitch et al 2001 specify 1.2				!090910 for cohort /ML; NB: guess2.1 grass value is 2.0. Keep 1.0 for crops ??
+	gmin 0.5
+	turnover_leaf 1
+	turnover_root 0.7
+	intc 0.01
+	drought_tolerance 0.01
+	leaflong 1			! Leaf longevity (years)
+	frootstart 0.40
+	frootend 0.20
+
+	tcmin_surv -1000 ! limit not implemented					! value not relevant for non-autumn-sown crops
+	tcmin_est -1000  ! limit not implemented					! value not relevant for non-autumn-sown crops
+	tcmax_est 1000  	!no limit	
+	twmin_est -1000  ! limit not implemented
+	gdd5min_est 0   	!no limit; previously initiated to 1000 in initpft()
+
+	parff_min 0	!110302: true crops, reset to 1000000 for crop grass
+
+	landcover "cropland"
+!	intercrop "nointercrop"		! ML CFT
+	intercrop "naturalgrass"	! ML CFT
+	ifsdcalc 0
+	ifsdtemp 0
+	ifsdautumn 0
+	ifsdspring 0
+	ifsdprec 0
+	tempautumn 12
+	tempspring 12
+
+	harv_eff 0.9		! Part of harvestable organs actually harvested
+	harvest_slow_frac 0	! Part of harvest that goes into patchpft.harvested_products_slow, the rest goes into fluxes.acflux_harvest
+	turnover_harv_prod 1 	! Turnover rate for long-lived harvested products (wood) : 1-year turnover time for crops
+	res_outtake 0.75	! Part of residues after harvest removed from stand; goes into fluxes.acflux_harvest
+	aboveground_ho 1	! 
+	isintercropgrass 0
+!!	forcesowingdate 0
+!!	forceharvestdate 1
+!	forceautumnsowing 0
+)
+
+pft "CC3G" (
+
+	! Cool (C3) grass   n?11 (pft.id 10)
+
+	grass
+	crop
+	phenology "any"
+!	include 1
+	cftid 0	
+	pathway "c3"
+	phenology "any"	
+	pstemp_min -5						! C3G-values 090910/ML
+	pstemp_low 10
+	pstemp_high 30
+	pstemp_max 45
+	tcmin_surv -1000 ! limit not implemented
+	tcmin_est -1000  ! limit not implemented
+	tcmax_est 1000  	!no limit			! as in C3G 090910/ML
+	twmin_est -1000  ! limit not implemented
+	gdd5min_est 0    ! limit not implemented
+
+	laimax 4
+	intercrop "nointercrop"		! ML CFT
+	isintercropgrass 1
+	harv_eff 0.5
+	harv_eff_ic 0.0
+	leaflong 1			! as in crop
+	turnover_leaf 1			! as in crop
+	turnover_root 0.7		! as in crop
+	phengdd5ramp 100
+	rootdist 0.9 0.1		! as in crop
+	gmin 0.5			! as in crop
+
+	drought_tolerance 0.01		! as in crop
+	intc 0.01			! as in crop
+
+	respcoeff 1.0			! as in crop (general grass value 2.0)
+	fireresist 0.5			! as in crop (c3_gr 1.0)
+	parff_min 1000000		! ThomasH 2000000 ! Changed from 2500000 on April 10, 2006; c3_gr 2000000
+)
+
+pft "CC4G" (
+
+	! Warm (C4) grass
+
+	grass
+	crop
+	parff_min 1000000
+!	include 0
+	cftid 1			
+	pathway "c4"
+
+	phenology "any"	
+	leaflong 1			! as in crop
+	turnover_leaf 1			! as in crop
+
+	phengdd5ramp 100
+	rootdist 0.9 0.1		! as in crop
+	gmin 0.5			! as in crop
+	pstemp_min 6						
+	pstemp_low 20
+	pstemp_high 45
+	pstemp_max 55
+	tcmin_surv 15.5
+	tcmin_est 15.5
+	tcmax_est 1000			! limit not implemented
+	twmin_est -1000			! limit not implemented  ! limit not implemented
+	gdd5min_est 0			! limit not implemented
+	parff_min 1000000		! ThomasH 2000000 ! Changed from 2500000 on April 10, 2006
+	intc 0.01			! as in crop
+	drought_tolerance 0.01		! as in crop
+
+	respcoeff 0.15			! guess2008 value (c4_gr 2.0)
+	turnover_root 0.7		! as in crop, (c4_gr 0.5)
+	fireresist 0.5			! as in crop, (c4_gr 1.0)
+
+	intercrop "nointercrop"		
+	laimax 4	
+	isintercropgrass 1
+	harv_eff 0.5			! old value; intensive grazing: 90% grazed, 25-60 % returned to soil as faeces (0.36-0.675 removed, 0.5 OK average)
+	harv_eff_ic 0.0
+	res_outtake 0.0			! not used by crop grass
+)
+
+pft "TeWW" (
+
+	! Winter cereals, Triticum spp. (wheat), Hordeum vulgare (barley), Secale cereale (rye), Avena sativa (oat)
+	
+	grass
+	crop
+!	include 1
+	cftid 2			
+	pathway "c3"
+	phengdd5ramp 500
+	pstemp_min -5	
+	pstemp_low 10	
+	pstemp_high 30	
+	pstemp_max 45	
+
+	sdatenh 330	! for initialization, otherwise calculated to be adapted to climate and precocity
+	sdatesh 150	! idem
+	tb 0		! base temperature
+	trg 12		! temperatures have a vernalizing effect until trg
+	pvd 0		! not implemented since calculated to be adapted to climate
+	psens 0.5		! temporary, should be adapted to climate and precocity ?
+	pb 8		! not yet implemented
+	ps 20		! not yet implemented
+	phu 2900	! not implemented since calculated to be adapted to climate
+	hlimitdatenh 269! for initialization
+	hlimitdatesh 89	! idem
+
+!!	fphuc 0.05							! SWAT winter wheat values
+!!	flaimaxc 0.05
+!!	fphuk 0.45
+!!	flaimaxk 0.95
+	fphusen 0.7							! SWAT 0.9
+
+	shapesenescencenorm 1
+	flaimaxharvest 0
+!!	laimax 6	! 									; increase ? 10 in Eslami et al 2006
+	hiopt 0.5	! FAO/IIASA AEZ				
+	himin 0.2						
+
+	ifsdcalc 1
+	ifsdtemp 1
+	ifsdautumn 1
+	ifsdspring 1
+	tempautumn 12
+	tempspring 5
+)
+
+pft "TrRi" (
+
+	! rice, Oryza sativa
+
+	grass
+	crop
+!	include 0
+	cftid 3			
+	pathway "c3"
+	pstemp_min -5	
+	pstemp_low 10	
+	pstemp_high 30	
+	pstemp_max 45	
+
+	sdatenh 120	! for initialization, otherwise calculated, possibly several growing seasons in one year
+	sdatesh 300	! idem	new value 1004 /ML
+	tb 10		! base temperature
+	trg 10		! temperatures have a vernalizing effect until trg
+	pvd 0
+	psens 1		! temporary, should be adapted to climate and precocity ?
+	pb 24		! not yet implemented
+	ps 0		! not yet implemented
+	phu 1800
+	hlimitdatenh 60		! for initialization
+	hlimitdatesh 240	! for initialization
+
+!!	fphuc 0.1		! NEW 100413
+!!	flaimaxc 0.05		! NEW 100413
+!!	fphuk 0.5		! NEW 100413
+!!	flaimaxk 0.95
+	fphusen 0.80		! SWAT 0.9
+
+	shapesenescencenorm 1
+	flaimaxharvest 0	
+!!	laimax 5	! SWAT					; Increase to 10-12 (Peng 2000), 12.7 (Kiniry 2001)
+	hiopt 0.5
+	himin 0.25
+
+	intercrop "nointercrop"	
+	ifsdcalc 1
+	tempspring 18
+)
+
+pft "TeCo" (
+
+	! maize; Zea mays
+
+	grass
+	crop
+!	include 1
+	cftid 4			
+	pathway "c4"
+	phengdd5ramp 500
+	pstemp_min 6						
+	pstemp_low 20
+	pstemp_high 45
+	pstemp_max 55
+
+	respcoeff 0.15	! 110301
+
+	sdatenh 140	! for initialization, otherwise calculated to be adapted to climate and precocity
+	sdatesh 320	! idem
+	tb 8		! SWAT: test 110527
+	trg 8		! temperatures have a vernalizing effect until trg
+	pvd 0
+	psens 1		! temporary, should be adapted to climate and precocity
+	pb 0		! not yet implemented
+	ps 24		! not yet implemented
+	phu 1400	! test alberte
+	hlimitdatenh 360 ! for initialization
+	hlimitdatesh 176 ! idem; changed from 175 111115
+	firstsowdatenh_prec -1		! not used
+	firstsowdatesh_prec -1		! not used
+
+!!	fphuc 0.10						! SWAT 0.15
+!!	flaimaxc 0.05
+!!	fphuk 0.5
+!!	flaimaxk 0.95
+	fphusen 0.75						! SWAT 0.9
+
+	shapesenescencenorm 1
+	flaimaxharvest 0
+!!	laimax 6	! 					; OK? (6.0 Kiniry & Bockholt 1998, 7.9 Kiniry et al 2004) 
+	hiopt 0.5	! SWAT (silage 0.9)
+	himin 0.3
+
+	ifsdcalc 1
+	ifsdtemp 1
+	ifsdspring 1
+	ifsdprec 1
+	tempspring 14
+	forcesowingdate 1
+)
+
+pft "TrMi" (
+
+	! Tropical cereals; Pennisetum glaucum (pearl millet), Setaria italica (foxtail millet), Panicum miliaceum (common millet), Eleucine coracana (finger millet), Sorghum
+
+	grass
+	crop
+!	include 1
+	cftid 5			
+	pathway "c4"
+	phengdd5ramp 500
+	pstemp_min 6						
+	pstemp_low 20
+	pstemp_high 45
+	pstemp_max 55
+
+	respcoeff 0.15	! 110301
+
+	sdatenh 150	! for initialization
+	sdatesh 330	! for initialization
+	tb 10		! base temperature
+	trg 10		! temperatures have a vernalizing effect until trg
+	pvd 0
+	psens 1		! temporary, should be adapted to climate and precocity ?
+	pb 0		! not yet implemented
+	ps 24		! not yet implemented
+	phu 2000
+	hlimitdatenh 50		! for initialization
+	hlimitdatesh 230	! for initialization
+	firstsowdatenh_prec 120
+	firstsowdatesh_prec 300			
+
+!!	fphuc 0.15				! values for pearl millet (P. glaucum)
+!!	flaimaxc 0.01
+!!	fphuk 0.50
+!!	flaimaxk 0.95
+	fphusen 0.85				! SWAT 0.9
+
+	shapesenescencenorm 1
+	flaimaxharvest 0
+!!	laimax 2.5	! SWAT						;  Increase to 4(Akponikpe 2004)-5.5(
+	hiopt 0.25	! SWAT
+	himin 0.1
+	ifsdcalc 1
+	ifsdprec 1
+	tempspring 12	
+)
+
+pft "TePu" (
+
+	! Lentils
+
+	grass
+	crop
+!	include 1
+	cftid 6			
+	pathway "c3"
+	phengdd5ramp 500
+	pstemp_min -5	
+	pstemp_low 10	
+	pstemp_high 30	
+	pstemp_max 45	
+
+	sdatenh 100	! for initialization
+	sdatesh 280	! for initialization
+	tb 3		! base temperature
+	trg 3		! temperatures have a vernalizing effect until trg
+	pvd 0
+	psens 1		! temporary, should be adapted to climate and precocity ?
+	pb 0		! not yet implemented
+	ps 24		! not yet implemented
+	phu 2000
+	hlimitdatenh 364	
+	hlimitdatesh 180! for initialization
+
+!!	fphuc 0.15
+!!	flaimaxc 0.02
+!!	fphuk 0.50
+!!	flaimaxk 0.95
+	fphusen 0.90
+
+	shapesenescencenorm 2
+	flaimaxharvest 0
+!!	laimax 4	! SWAT						; Increase to 5 (cowpea, Bastos 2011), 5(chickpea)-6(bean, cowpea): Tesfaye 2006
+	hiopt 0.6	! SWAT 0.61
+	himin 0.01
+	ifsdcalc 0
+	tempspring 10	
+)
+
+pft "TeSb" (
+
+	! Sugarbeet   Pascalle; Beta vulgaris
+
+	grass
+	crop
+!	include 1
+	cftid 7			
+	pathway "c3"
+	phengdd5ramp 500
+	pstemp_min -5							
+	pstemp_low 10
+	pstemp_high 30
+	pstemp_max 45
+
+	sdatenh 90	! temporary, should be adapted to climate
+	sdatesh 270	! temporary, should be adapted to climate
+	tb 3		! base temperature
+	trg 3		! temperatures have a vernalizing effect until trg
+	pvd 0
+	psens 1
+	pb 0
+	ps 24
+	phu 2700
+	hlimitdatenh 330	! temporary, should be adapted to climate
+	hlimitdatesh 146	! temporary, should be adapted to climate; changed from 145 111115
+
+!!	fphuc 0.15
+!!	flaimaxc 0.05
+!!	fphuk 0.5
+!!	flaimaxk 0.95
+	fphusen 0.75		! SWAT 0.9
+
+	shapesenescencenorm 0
+	flaimaxharvest 0.75
+!!	laimax 5	! SWAT									; Increase ? 8 (Monreal 2007)
+	hiopt 2.0	! SWAT (Achtung below-ground) ! 0.15 AEZ (fraction of total biomass)
+	himin 1.1
+	ifsdcalc 0
+	tempspring 8	
+	aboveground_ho 0
+)
+
+pft "TrMa" (
+
+	! Roots and tubers (Africa); Manihot esculenta; aka. cassava, yuka
+
+	grass
+	crop
+!	include 1
+	cftid 8			
+	pathway "c3"
+	phengdd5ramp 500
+	pstemp_min -5							
+	pstemp_low 10
+	pstemp_high 30
+	pstemp_max 45
+
+	sdatenh 100	! for initialization
+	sdatesh 280	! for initialization
+	tb 15		! base temperature
+	trg 15		! temperatures have a vernalizing effect until trg
+	pvd 0
+	psens 1		! temporary, should be adapted to climate and precocity 
+	pb 0		! not yet implemented
+	ps 24		! not yet implemented
+	phu 2000
+	hlimitdatenh 330! for initialization
+	hlimitdatesh 146! for initialization
+	firstsowdatenh_prec 80
+	firstsowdatesh_prec 260 		
+
+!!	fphuc 0.15
+!!	flaimaxc 0.05
+!!	fphuk 0.5
+!!	flaimaxk 0.95
+	fphusen 0.75
+
+	shapesenescencenorm 0
+	flaimaxharvest 0.75
+!!	laimax 5	! like sugarbeet ?				;	4-8 (Cock 1984) (highest 10)
+	hiopt 2.0	! like sugarbeet ?
+	himin 1.1
+	ifsdcalc 1
+	ifsdprec 1
+	tempspring 22	! New sowing date algorithm
+	aboveground_ho 0
+)
+
+pft "TeSf" (
+
+	! Sunflower; Helianthus annuus
+
+	grass
+	crop
+!	include 1
+	cftid 9			
+	pathway "c3"
+	phengdd5ramp 500
+	pstemp_min -5		
+	pstemp_low 10	
+	pstemp_high 30	
+	pstemp_max 45	
+
+	sdatenh 120	! for initialization, otherwise calculated to be adapted to climate and precocity
+	sdatesh 300	! idem
+	tb 6		! base temperature
+	trg 6		! temperatures have a vernalizing effect until trg
+	pvd 0
+	psens 1		! temporary, should be adapted to climate and precocity ?
+	pb 0		! not yet implemented
+	ps 24		! not yet implemented
+	phu 1500	! not implemented since calculated to be adapted to climate and precocity
+	hlimitdatenh 300 ! for initialization, otherwise calculated to be adapted to climate and precocity
+	hlimitdatesh 116 ! idem; changed from 115 111115
+
+!!	fphuc 0.15
+!!	flaimaxc 0.01
+!!	fphuk 0.5
+!!	flaimaxk 0.95
+	fphusen 0.7			! SWAT 0.9
+
+	shapesenescencenorm 1
+	flaimaxharvest 0
+!!	laimax 3	! SWAT						;	Increase to 7 (Howell)
+	hiopt 0.3	! SWAT
+	himin 0.2	! SWAT 0.18
+	ifsdcalc 1
+	ifsdtemp 1
+	ifsdautumn 0
+	ifsdspring 1
+	ifsdprec 0
+	tempspring 15	!NB Bondeau 13, paper 15 changed to 15 100104
+!	tempspring 13	! New sowing date algorithm, new value	: use ??????
+)
+
+pft "TeSo" (
+
+	! Soybean;   Glycine max
+
+	grass
+	crop
+!	include 1
+	cftid 10			
+	pathway "c3"
+	phengdd5ramp 500
+	pstemp_min -5		
+	pstemp_low 10	
+	pstemp_high 30	
+	pstemp_max 45	
+
+	sdatenh 140
+	sdatesh 320
+	tb 10		! base temperature
+
+	trg 10		! temperatures have a vernalizing effect until trg
+	pvd 0
+	psens 1
+	pb 0
+	ps 24
+	phu 1500
+	hlimitdatenh 330	! temporary, should be adapted to climate
+	hlimitdatesh 146	! temporary, should be adapted to climate; changed from 150 111115
+
+!!	fphuc 0.15
+!!	flaimaxc 0.01		! SWAT 0.05
+!!	fphuk 0.5
+!!	flaimaxk 0.95
+	fphusen 0.6		! SWAT 0.9
+
+	shapesenescencenorm 0
+	flaimaxharvest 0
+!!	laimax 3	! SWAT							; Too small: increase to at least 5.5 (Oliver 1979 (5.6), Liu 2005)
+	hiopt 0.3	! SWAT 0.31
+	himin 0.01
+	ifsdcalc 0
+	tempspring 13	! New sowing date algorithm
+)
+
+pft "TrPe" (
+
+	! Peanut for part of RIVM's oil crops (Africa and Asia ?)   Arachis hypogaea; aka groundnut
+
+	grass
+	crop
+!	include 1
+	cftid 11			
+	pathway "c3"
+	pstemp_min -5	
+	pstemp_low 10	
+	pstemp_high 30	
+	pstemp_max 45	
+
+	sdatenh 140	! for initialization
+	sdatesh 320	! for initialization
+	tb 14		! base temperature
+	trg 14		! temperatures have a vernalizing effect until trg
+	pvd 0
+	psens 1		! temporary, should be adapted to climate and precocity ?
+	pb 0		! not yet implemented
+	ps 24		! not yet implemented
+	phu 1500
+	hlimitdatenh 330	! for initialization
+	hlimitdatesh 146	! for initialization; 
+	firstsowdatenh_prec 100
+	firstsowdatesh_prec 280		
+
+!!	fphuc 0.15
+!!	flaimaxc 0.01
+!!	fphuk 0.5
+!!	flaimaxk 0.95
+	fphusen 0.75			! SWAT 0.9
+
+	shapesenescencenorm 0
+	flaimaxharvest 0
+!!	laimax 4	! SWAT							;	Increase to 8.5 ? (Kiniry 2005)
+	hiopt 0.4	! SWAT
+	himin 0.3
+	ifsdcalc 1
+	ifsdprec 1
+	tempspring 15	
+)
+
+pft "TeRa" (
+
+	! Rape for part of RIVM's oil crops  pheno Pascalle; Brassica napus; aka canola
+
+	grass
+	crop
+!	include 1
+	cftid 12			
+	pathway "c3"
+	phengdd5ramp 500
+	pstemp_min -5	
+	pstemp_low 10	
+	pstemp_high 30	
+	pstemp_max 45	
+
+	sdatenh 300	! for initialization, otherwise calculated to be adapted to climate and precocity
+	sdatesh 120	! idem
+	tb 0		! base temperature
+	trg 12		! temperatures have a vernalizing effect until trg
+	pvd 0		! not implemented since calculated to be adapted to climate
+	psens 1		! temporary, should be adapted to climate and precocity ?
+	pb 8		! not yet implemented
+	ps 20		! not yet implemented
+	phu 2500	! not implemented since calculated to be adapted to climate
+	hlimitdatenh 240! for initialization
+	hlimitdatesh 60	! idem
+
+!!	fphuc 0.05			! SWAT 0.15
+!!	flaimaxc 0.01			! SWAT 0.02
+!!	fphuk 0.5			! SWAT 0.45
+!!	flaimaxk 0.95
+	fphusen 0.85			! SWAT 0.9
+
+	shapesenescencenorm 1
+	flaimaxharvest 0
+!!	laimax 4.5	!SWIM		SWAT Argentina			;		 increase to 5 ? (Wright, Australia 1988; Franzaring, Stuttgart 2008)
+	hiopt 0.3	!?		SWAT Argentina			;			winter rapeseed 0.4 (Frick et al. 1994)
+	himin 0.15			! SWAT 0.01 !!
+	ifsdcalc 1
+	ifsdtemp 1
+	ifsdautumn 1
+	ifsdspring 1
+	ifsdprec 0
+	tempautumn 17
+	tempspring 5	! 12 in Bondeau's code, ändra till 11 och 5
+)
+
+pft "CC3Girr" (
+
+	! Cool (C3) grass   n?11 (pft.id 10)
+
+	grass
+	crop
+	phenology "any"
+!	include 1
+	cftid 13			
+	hydrology "irrigated"
+	pathway "c3"
+	phenology "any"	
+	pstemp_min -5						! C3G-values 090910/ML
+	pstemp_low 10
+	pstemp_high 30
+	pstemp_max 45
+	tcmin_surv -1000 ! limit not implemented
+	tcmin_est -1000  ! limit not implemented
+	tcmax_est 1000  	!no limit			! as in C3G 090910/ML
+	twmin_est -1000  ! limit not implemented
+	gdd5min_est 0    ! limit not implemented
+
+	laimax 4
+	intercrop "nointercrop"		! ML CFT
+	isintercropgrass 1
+	harv_eff 0.5
+	harv_eff_ic 0.0
+	leaflong 1			! as in crop
+	turnover_leaf 1			! as in crop
+	turnover_root 0.7		! as in crop
+	phengdd5ramp 100
+	rootdist 0.9 0.1		! as in crop
+	gmin 0.5			! as in crop
+
+	drought_tolerance 0.01		! as in crop
+	intc 0.01			! as in crop
+
+	respcoeff 1.0			! as in crop (general grass value 2.0)
+	fireresist 0.5			! as in crop (c3_gr 1.0)
+	parff_min 1000000		! ThomasH 2000000 ! Changed from 2500000 on April 10, 2006; c3_gr 2000000
+)
+
+pft "CC4Girr" (
+
+	! Warm (C4) grass
+
+	grass
+	crop
+	parff_min 1000000
+!	include 0
+	cftid 14			! new 100414
+	hydrology "irrigated"		
+	pathway "c4"
+
+	phenology "any"	
+	leaflong 1			! as in crop
+	turnover_leaf 1			! as in crop
+
+	phengdd5ramp 100
+	rootdist 0.9 0.1		! as in crop
+	gmin 0.5			! as in crop
+	pstemp_min 6						
+	pstemp_low 20
+	pstemp_high 45
+	pstemp_max 55
+	tcmin_surv 15.5
+	tcmin_est 15.5
+	tcmax_est 1000			! limit not implemented
+	twmin_est -1000			! limit not implemented  ! limit not implemented
+	gdd5min_est 0			! limit not implemented
+	parff_min 1000000		! ThomasH 2000000 ! Changed from 2500000 on April 10, 2006
+	intc 0.01			! as in crop
+	drought_tolerance 0.01		! as in crop
+
+	respcoeff 0.15			! guess2008 value (c4_gr 2.0)
+	turnover_root 0.7		! as in crop, (c4_gr 0.5)
+	fireresist 0.5			! as in crop, (c4_gr 1.0)
+
+	intercrop "nointercrop"		
+	laimax 4	
+	isintercropgrass 1
+	harv_eff 0.5			! old value; intensive grazing: 90% grazed, 25-60 % reurned to soil as faeces (0.36-0.675 removed, 0.5 OK average)
+	harv_eff_ic 0.0
+	res_outtake 0.0			! not used by crop grass
+)
+
+pft "TeWWirr" (
+
+	! Winter Wheat for RIVM's temperate cereals  pheno Pascalle   n?13 (pft.id 12); Triticum spp. (wheat), Hordeum vulgare (barley), Secale cereale (rye), Avena sativa (oat)
+	
+	grass
+	crop
+!	include 0
+	cftid 15			
+	hydrology "irrigated"
+	pathway "c3"
+	phengdd5ramp 500
+	pstemp_min -5	! not yet touched, should be adapted to cft	!changed to c3g-value 091016
+	pstemp_low 10	! not yet touched, should be adapted to cft
+	pstemp_high 30	! not yet touched, should be adapted to cft
+	pstemp_max 45	! not yet touched, should be adapted to cft
+
+	sdatenh 330	! for initialization, otherwise calculated to be adapted to climate and precocity
+	sdatesh 150	! idem
+	tb 0		! base temperature
+	trg 12		! temperatures have a vernalizing effect until trg
+	pvd 0		! not implemented since calculated to be adapted to climate
+	psens 0.5		! temporary, should be adapted to climate and precocity ?
+	pb 8		! not yet implemented
+	ps 20		! not yet implemented
+	phu 2900	! not implemented since calculated to be adapted to climate
+	hlimitdatenh 269! for initialization
+	hlimitdatesh 89	! idem
+
+!!	fphuc 0.05							! SWAT winter wheat values
+!!	flaimaxc 0.05
+!!	fphuk 0.45
+!!	flaimaxk 0.95
+	fphusen 0.7							! SWAT 0.9
+
+	shapesenescencenorm 1
+	flaimaxharvest 0
+!!	laimax 6	! 									; increase ? 10 in Eslami et al 2006
+	hiopt 0.5	! FAO/IIASA AEZ				
+	himin 0.2						
+
+	ifsdcalc 1
+	ifsdtemp 1
+	ifsdautumn 1
+	ifsdspring 1
+	tempautumn 12
+	tempspring 5
+)
+
+pft "TrRiirr" (
+
+	! rice, Oryza sativa
+
+	grass
+	crop
+!	include 0
+	cftid 16			
+	hydrology "irrigated"
+	pathway "c3"
+	pstemp_min -5	
+	pstemp_low 10	
+	pstemp_high 30	
+	pstemp_max 45	
+
+	sdatenh 120	! for initialization, otherwise calculated, possibly several growing seasons in one year
+	sdatesh 300	! idem	new value 1004 /ML
+	tb 10		! base temperature
+	trg 10		! temperatures have a vernalizing effect until trg
+	pvd 0
+	psens 1		! temporary, should be adapted to climate and precocity ?
+	pb 24		! not yet implemented
+	ps 0		! not yet implemented
+	phu 1800
+	hlimitdatenh 60		! for initialization
+	hlimitdatesh 240	! for initialization
+
+!!	fphuc 0.1		! NEW 100413
+!!	flaimaxc 0.05		! NEW 100413
+!!	fphuk 0.5		! NEW 100413
+!!	flaimaxk 0.95
+	fphusen 0.80		! SWAT 0.9
+
+	shapesenescencenorm 1
+	flaimaxharvest 0	
+!!	laimax 5	! SWAT					; Increase to 10-12 (Peng 2000), 12.7 (Kiniry 2001)
+	hiopt 0.5
+	himin 0.25
+
+!	intercrop "nointercrop"	
+	ifsdcalc 1
+	tempspring 18
+)
+
+pft "TeCoirr" (
+
+	! maize; Zea mays
+
+	grass
+	crop
+!	include 1
+	cftid 17			
+	hydrology "irrigated"		
+	pathway "c4"
+	phengdd5ramp 500
+	pstemp_min 6						
+	pstemp_low 20
+	pstemp_high 45
+	pstemp_max 55
+
+	respcoeff 0.15	! 110301
+
+	sdatenh 140	! for initialization, otherwise calculated to be adapted to climate and precocity
+	sdatesh 320	! idem
+	tb 8		! SWAT: test 110527
+	trg 8		! temperatures have a vernalizing effect until trg
+	pvd 0
+	psens 1		! temporary, should be adapted to climate and precocity
+	pb 0		! not yet implemented
+	ps 24		! not yet implemented
+	phu 1400	! test alberte
+	hlimitdatenh 360 ! for initialization
+	hlimitdatesh 176 ! idem; changed from 175 111115
+	firstsowdatenh_prec -1		! not used
+	firstsowdatesh_prec -1		! not used
+
+!!	fphuc 0.10						! SWAT 0.15
+!!	flaimaxc 0.05
+!!	fphuk 0.5
+!!	flaimaxk 0.95
+	fphusen 0.75						! SWAT 0.9
+
+	shapesenescencenorm 1
+	flaimaxharvest 0
+!!	laimax 6	! 					; OK? (6.0 Kiniry & Bockholt 1998, 7.9 Kiniry et al 2004) 
+	hiopt 0.5	! SWAT (silage 0.9)
+	himin 0.3
+
+	ifsdcalc 1
+	ifsdtemp 1
+	ifsdspring 1
+	ifsdprec 1
+	tempspring 14
+	forcesowingdate 1
+)
+
+pft "TrMiirr" (
+
+	! Tropical cereals; Pennisetum glaucum (pearl millet), Setaria italica (foxtail millet), Panicum miliaceum (common millet), Eleucine coracana (finger millet), Sorghum
+
+	grass
+	crop
+!	include 1
+	cftid 18			
+	hydrology "irrigated"		
+	pathway "c4"
+	phengdd5ramp 500
+	pstemp_min 6						
+	pstemp_low 20
+	pstemp_high 45
+	pstemp_max 55
+
+	respcoeff 0.15	! 110301
+
+	sdatenh 150	! for initialization
+	sdatesh 330	! for initialization
+	tb 10		! base temperature
+	trg 10		! temperatures have a vernalizing effect until trg
+	pvd 0
+	psens 1		! temporary, should be adapted to climate and precocity ?
+	pb 0		! not yet implemented
+	ps 24		! not yet implemented
+	phu 2000
+	hlimitdatenh 50		! for initialization
+	hlimitdatesh 230	! for initialization
+	firstsowdatenh_prec 120
+	firstsowdatesh_prec 300			
+
+!!	fphuc 0.15				! values for pearl millet (P. glaucum)
+!!	flaimaxc 0.01
+!!	fphuk 0.50
+!!	flaimaxk 0.95
+	fphusen 0.85				! SWAT 0.9
+
+	shapesenescencenorm 1
+	flaimaxharvest 0
+!!	laimax 2.5	! SWAT						;  Increase to 4(Akponikpe 2004)-5.5(
+	hiopt 0.25	! SWAT
+	himin 0.1
+	ifsdcalc 1
+	ifsdprec 1
+	tempspring 12	
+)
+
+pft "TePuirr" (
+
+	! Lentils
+
+	grass
+	crop
+!	include 1
+	cftid 19			
+	hydrology "irrigated"		
+	pathway "c3"
+	phengdd5ramp 500
+	pstemp_min -5		
+	pstemp_low 10
+	pstemp_high 30	
+	pstemp_max 45	
+
+	sdatenh 100	! for initialization
+	sdatesh 280	! for initialization
+	tb 3		! base temperature
+	trg 3		! temperatures have a vernalizing effect until trg
+	pvd 0
+	psens 1		! temporary, should be adapted to climate and precocity ?
+	pb 0		! not yet implemented
+	ps 24		! not yet implemented
+	phu 2000
+	hlimitdatenh 364	
+	hlimitdatesh 180! for initialization
+
+!!	fphuc 0.15
+!!	flaimaxc 0.02
+!!	fphuk 0.50
+!!	flaimaxk 0.95
+	fphusen 0.90
+
+	shapesenescencenorm 2
+	flaimaxharvest 0
+!!	laimax 4	! SWAT						; Increase to 5 (cowpea, Bastos 2011), 5(chickpea)-6(bean, cowpea): Tesfaye 2006
+	hiopt 0.6	! SWAT 0.61
+	himin 0.01
+	ifsdcalc 0
+	tempspring 10	
+)
+
+
+pft "TeSbirr" (
+
+	! Sugarbeet; Beta vulgaris
+
+	grass
+	crop
+!	include 1
+	cftid 20		
+	hydrology "irrigated"
+	pathway "c3"
+	phengdd5ramp 500
+	pstemp_min -5							
+	pstemp_low 10
+	pstemp_high 30
+	pstemp_max 45
+
+	sdatenh 90	! temporary, should be adapted to climate
+	sdatesh 270	! temporary, should be adapted to climate
+	tb 3		! base temperature
+	trg 3		! temperatures have a vernalizing effect until trg
+	pvd 0
+	psens 1
+	pb 0
+	ps 24
+	phu 2700
+	hlimitdatenh 330	! temporary, should be adapted to climate
+	hlimitdatesh 146	! temporary, should be adapted to climate; changed from 145 111115
+
+!!	fphuc 0.15
+!!	flaimaxc 0.05
+!!	fphuk 0.5
+!!	flaimaxk 0.95
+	fphusen 0.75		! SWAT 0.9
+
+	shapesenescencenorm 0
+	flaimaxharvest 0.75
+!!	laimax 5	! SWAT									; Increase ? 8 (Monreal 2007)
+	hiopt 2.0	! SWAT (Achtung below-ground) ! 0.15 AEZ (fraction of total biomass)
+	himin 1.1
+	ifsdcalc 0
+	tempspring 8	! New sowing date algorithm
+	aboveground_ho 0
+)
+
+pft "TrMairr" (
+
+	! Roots and tubers (Africa); Manihot esculenta; aka. cassava, yuka
+
+	grass
+	crop
+!	include 1
+	cftid 21			
+	hydrology "irrigated"		
+	pathway "c3"
+	phengdd5ramp 500
+	pstemp_min -5							
+	pstemp_low 10
+	pstemp_high 30
+	pstemp_max 45
+
+	sdatenh 100	! for initialization
+	sdatesh 280	! for initialization
+	tb 15		! base temperature
+	trg 15		! temperatures have a vernalizing effect until trg
+	pvd 0
+	psens 1		! temporary, should be adapted to climate and precocity 
+	pb 0		! not yet implemented
+	ps 24		! not yet implemented
+	phu 2000
+	hlimitdatenh 330! for initialization
+	hlimitdatesh 146! for initialization
+	firstsowdatenh_prec 80
+	firstsowdatesh_prec 260 		
+
+!!	fphuc 0.15
+!!	flaimaxc 0.05
+!!	fphuk 0.5
+!!	flaimaxk 0.95
+	fphusen 0.75
+
+	shapesenescencenorm 0
+	flaimaxharvest 0.75
+!!	laimax 5	! like sugarbeet ?				;	4-8 (Cock 1984) (highest 10)
+	hiopt 2.0	! like sugarbeet ?
+	himin 1.1
+	ifsdcalc 1
+	ifsdprec 1
+	tempspring 22	! New sowing date algorithm
+	aboveground_ho 0
+)
+
+pft "TeSfirr" (
+
+	! Sunflower; Helianthus annuus
+
+	grass
+	crop
+!	include 1
+	cftid 22			
+	hydrology "irrigated"		
+	pathway "c3"
+	phengdd5ramp 500
+	pstemp_min -5	
+	pstemp_low 10	
+	pstemp_high 30	
+	pstemp_max 45	
+
+	sdatenh 120	! for initialization, otherwise calculated to be adapted to climate and precocity
+	sdatesh 300	! idem
+	tb 6		! base temperature
+	trg 6		! temperatures have a vernalizing effect until trg
+	pvd 0
+	psens 1		! temporary, should be adapted to climate and precocity ?
+	pb 0		! not yet implemented
+	ps 24		! not yet implemented
+	phu 1500	! not implemented since calculated to be adapted to climate and precocity
+	hlimitdatenh 300 ! for initialization, otherwise calculated to be adapted to climate and precocity
+	hlimitdatesh 116 ! idem; changed from 115 111115
+
+!!	fphuc 0.15
+!!	flaimaxc 0.01
+!!	fphuk 0.5
+!!	flaimaxk 0.95
+	fphusen 0.7			! SWAT 0.9
+
+	shapesenescencenorm 1
+	flaimaxharvest 0
+!!	laimax 3	! SWAT						;	Increase to 7 (Howell)
+	hiopt 0.3	! SWAT
+	himin 0.2	! SWAT 0.18
+	ifsdcalc 1
+	ifsdtemp 1
+	ifsdautumn 0
+	ifsdspring 1
+	ifsdprec 0
+	tempspring 15	!NB Bondeau 13, paper 15 changed to 15 100104
+!	tempspring 13	! New sowing date algorithm, new value	: use ??????
+)
+
+pft "TeSoirr" (
+
+	! Soybean;   Glycine max
+
+	grass
+	crop
+!	include 1		
+	cftid 23			
+	hydrology "irrigated"
+	pathway "c3"
+	phengdd5ramp 500
+	pstemp_min -5		
+	pstemp_low 10	
+	pstemp_high 30	
+	pstemp_max 45	
+
+	sdatenh 140
+	sdatesh 320
+	tb 10		! base temperature
+
+	trg 10		! temperatures have a vernalizing effect until trg
+	pvd 0
+	psens 1
+	pb 0
+	ps 24
+	phu 1500
+	hlimitdatenh 330	! temporary, should be adapted to climate
+	hlimitdatesh 146	! temporary, should be adapted to climate; changed from 150 111115
+
+!!	fphuc 0.15
+!!	flaimaxc 0.01		! SWAT 0.05
+!!	fphuk 0.5
+!!	flaimaxk 0.95
+	fphusen 0.6		! SWAT 0.9
+
+	shapesenescencenorm 0
+	flaimaxharvest 0
+!!	laimax 3	! SWAT							; Too small: increase to at least 5.5 (Oliver 1979 (5.6), Liu 2005)
+	hiopt 0.3	! SWAT 0.31
+	himin 0.01
+	ifsdcalc 0
+	tempspring 13	! New sowing date algorithm
+)
+
+pft "TrPeirr" (
+
+	! Peanut for part of RIVM's oil crops (Africa and Asia ?)   Arachis hypogaea; aka groundnut
+
+	grass
+	crop
+!	include 1
+	cftid 24			
+	hydrology "irrigated"			
+	pathway "c3"
+	pstemp_min -5	
+	pstemp_low 10	
+	pstemp_high 30	
+	pstemp_max 45	
+
+	sdatenh 140	! for initialization
+	sdatesh 320	! for initialization
+	tb 14		! base temperature
+	trg 14		! temperatures have a vernalizing effect until trg
+	pvd 0
+	psens 1		! temporary, should be adapted to climate and precocity ?
+	pb 0		! not yet implemented
+	ps 24		! not yet implemented
+	phu 1500
+	hlimitdatenh 330	! for initialization
+	hlimitdatesh 146	! for initialization; 
+	firstsowdatenh_prec 100
+	firstsowdatesh_prec 280		
+
+!!	fphuc 0.15
+!!	flaimaxc 0.01
+!!	fphuk 0.5
+!!	flaimaxk 0.95
+	fphusen 0.75			! SWAT 0.9
+
+	shapesenescencenorm 0
+	flaimaxharvest 0
+!!	laimax 4	! SWAT							;	Increase to 8.5 ? (Kiniry 2005)
+	hiopt 0.4	! SWAT
+	himin 0.3
+	ifsdcalc 1
+	ifsdprec 1
+	tempspring 15	
+)
+
+pft "TeRairr" (
+
+	! Rape for part of RIVM's oil crops  pheno Pascalle; Brassica napus; aka canola
+
+	grass
+	crop
+!	include 1
+	cftid 25			
+	hydrology "irrigated"			
+	pathway "c3"
+	phengdd5ramp 500
+	pstemp_min -5	
+	pstemp_low 10	
+	pstemp_high 30	
+	pstemp_max 45	
+
+	sdatenh 300	! for initialization, otherwise calculated to be adapted to climate and precocity
+	sdatesh 120	! idem
+	tb 0		! base temperature
+	trg 12		! temperatures have a vernalizing effect until trg
+	pvd 0		! not implemented since calculated to be adapted to climate
+	psens 1		! temporary, should be adapted to climate and precocity ?
+	pb 8		! not yet implemented
+	ps 20		! not yet implemented
+	phu 2500	! not implemented since calculated to be adapted to climate
+	hlimitdatenh 240! for initialization
+	hlimitdatesh 60	! idem
+
+!!	fphuc 0.05			! SWAT 0.15
+!!	flaimaxc 0.01			! SWAT 0.02
+!!	fphuk 0.5			! SWAT 0.45
+!!	flaimaxk 0.95
+	fphusen 0.85			! SWAT 0.9
+
+	shapesenescencenorm 1
+	flaimaxharvest 0
+!!	laimax 4.5	!SWIM		SWAT Argentina			;		 increase to 5 ? (Wright, Australia 1988; Franzaring, Stuttgart 2008)
+	hiopt 0.3	!?		SWAT Argentina			;			winter rapeseed 0.4 (Frick et al. 1994)
+	himin 0.15			! SWAT 0.01 !!
+	ifsdcalc 1
+	ifsdtemp 1
+	ifsdautumn 1
+	ifsdspring 1
+	ifsdprec 0
+	tempautumn 17
+	tempspring 5	! 12 in Bondeau's code, ändra till 11 och 5
+)

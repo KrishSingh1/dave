@@ -3841,41 +3841,51 @@ void getlandcover(Gridcell& gridcell) {
 	{
 		if(run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST])
 		{	
-
-			for(i=0;i<PEATLAND;i++)		//peatland fraction data is not in this file, otherwise i<NLANDCOVERTYPES.
-			{	
-#if defined DYNAMIC_LANDCOVER_INPUT
-				sum_tot+=gridcell.landcoverfrac[i]=LUdata.Get(year,i);					//count sum of all fractions (should be 1.0)
-#endif
-				if(gridcell.landcoverfrac[i]<0.0 || gridcell.landcoverfrac[i]>1.0)			//discard unreasonable values
-				{		
-					if(date.year==0)
-						dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
-					sum_tot-=gridcell.landcoverfrac[i];
-					gridcell.landcoverfrac[i]=0.0;
-				}
-
-				sum_active+=gridcell.landcoverfrac[i]=run[i]*gridcell.landcoverfrac[i];
-			}
-
-			if(sum_tot!=1.0)		// Check input data, rescale if sum !=1.0
+			// To allow run without LU data in Bondeau's file (sets NATURAL to 1.0)
+			if(LUdata.Get(year,0)==-9.999)
 			{
-				sum_active=0.0;		//reset sum of active landcover fractions
-
-				if(sum_tot<0.99 || sum_tot>1.01)
-				{
-					if(date.year==0)
-					{
-						dprintf("WARNING ! landcover fraction sum is %4.2f for year %d\n", sum_tot, year+FIRSTHISTYEAR);
-						dprintf("Rescaling landcover fractions year %d ! (sum is beyond 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
+				dprintf("WARNING ! missing landcover fraction data for year %d, natural vegetation fraction set to 1.0\n", year+FIRSTHISTYEAR);
+				memset(gridcell.landcoverfrac, 0, sizeof(double)*NLANDCOVERTYPES);
+				gridcell.landcoverfrac[NATURAL]=1.0;
+				sum_active=1.0;	//fix 110316
+			}
+			else
+			{
+				for(i=0;i<PEATLAND;i++)		//peatland fraction data is not in this file, otherwise i<NLANDCOVERTYPES.
+				{	
+#if defined DYNAMIC_LANDCOVER_INPUT
+					sum_tot+=gridcell.landcoverfrac[i]=LUdata.Get(year,i);					//count sum of all fractions (should be 1.0)
+#endif
+					if(gridcell.landcoverfrac[i]<0.0 || gridcell.landcoverfrac[i]>1.0)			//discard unreasonable values
+					{		
+						if(date.year==0)
+							dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
+						sum_tot-=gridcell.landcoverfrac[i];
+						gridcell.landcoverfrac[i]=0.0;
 					}
-				}
-				else				//added scaling to sum=1.0 (sum often !=1.0)
-					if(!SUPPRESSLARGEOUTPUT)
-						dprintf("Rescaling landcover fractions year %d ! (sum is within 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
 
-				for(i=0;i<PEATLAND;i++)
-					sum_active+=gridcell.landcoverfrac[i]/=sum_tot;
+					sum_active+=gridcell.landcoverfrac[i]=run[i]*gridcell.landcoverfrac[i];
+				}
+
+				if(sum_tot!=1.0)		// Check input data, rescale if sum !=1.0
+				{
+					sum_active=0.0;		//reset sum of active landcover fractions
+
+					if(sum_tot<0.99 || sum_tot>1.01)
+					{
+						if(date.year==0)
+						{
+							dprintf("WARNING ! landcover fraction sum is %4.2f for year %d\n", sum_tot, year+FIRSTHISTYEAR);
+							dprintf("Rescaling landcover fractions year %d ! (sum is beyond 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
+						}
+					}
+					else				//added scaling to sum=1.0 (sum often !=1.0)
+						if(!SUPPRESSLARGEOUTPUT)
+							dprintf("Rescaling landcover fractions year %d ! (sum is within 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
+
+					for(i=0;i<PEATLAND;i++)
+						sum_active+=gridcell.landcoverfrac[i]/=sum_tot;
+				}
 			}
 		}
 		else
@@ -3974,16 +3984,24 @@ void getlandcover(Gridcell& gridcell) {
 		else
 		{
 
-			for(i=0;i<NCROPSTANDS_MAX;i++)
+			if(CFTdata.Get(year,0)==-9.999)	//to cope with missing Bondeau fraction data
 			{
-				if(CFTdata.active[i])	//forces rescaling of fractions of active pft:s
+				dprintf("WARNING ! missing crop fraction data  for year %d, all set to 0.0\n", year+FIRSTHISTYEAR);
+				memset(gridcell.cftfrac, 0, sizeof(double)*NCROPSTANDS_MAX);
+			}
+			else
+			{
+				for(i=0;i<NCROPSTANDS_MAX;i++)
 				{
-					sum+=gridcell.cftfrac[i]=CFTdata.Get(year,i);
-					if(gridcell.cftfrac[i]<0.0 || gridcell.cftfrac[i]>1.0)
+					if(CFTdata.active[i])	//forces rescaling of fractions of active pft:s
 					{
-						dprintf("WARNING ! crop fraction size out of limits, set to 0.0\n");
-						sum-=gridcell.cftfrac[i];
-						gridcell.cftfrac[i]=0.0;
+						sum+=gridcell.cftfrac[i]=CFTdata.Get(year,i);
+						if(gridcell.cftfrac[i]<0.0 || gridcell.cftfrac[i]>1.0)
+						{
+							dprintf("WARNING ! crop fraction size out of limits, set to 0.0\n");
+							sum-=gridcell.cftfrac[i];
+							gridcell.cftfrac[i]=0.0;
+						}
 					}
 				}
 			}

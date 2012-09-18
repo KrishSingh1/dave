@@ -201,6 +201,8 @@ void initsettings() {
 	// bvoc
 	file_aiso=file_miso=file_amon=file_mmon="";
 
+	save_state = false;
+	restart = false;
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -339,6 +341,11 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("lc_fixed_forest",&lc_fixed_frac[FOREST],0,100,1,CB_NONE,"% lc_fixed_forest");
 		declareitem("lc_fixed_natural",&lc_fixed_frac[NATURAL],0,100,1,CB_NONE,"% lc_fixed_natural");
 		declareitem("lc_fixed_peatland",&lc_fixed_frac[PEATLAND],0,100,1,CB_NONE,"% lc_fixed_peatland");
+
+		declareitem("state_path", &state_path, 300, CB_NONE, "State files directory (for restarting from, or saving state files)");
+		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
+		declareitem("save_state", &save_state, 1, CB_NONE, "Whether to save new state files");
+		declareitem("state_year", &state_year, 1, 20000, 1, CB_NONE, "Save/restart year. Unspecified means just after spinup");
 
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
@@ -651,6 +658,21 @@ void plib_callback(int callback) {
 				"Value specified for npatch ignored in population mode");
 			npatch=1;
 		}
+
+		if (save_state && restart) {
+			sendmessage("Error",
+			            "Can't save state and restart at the same time");
+			plibabort();
+		}
+
+		if (!itemparsed(state_year)) {
+			state_year = nyear_spinup;
+		}
+
+		if (state_path == "" && (save_state || restart)) {
+			badins("state_path");
+		}
+
 		break;
 	case CB_CHECKPFT:
 		if (!itemparsed("lifeform")) badins("lifeform");

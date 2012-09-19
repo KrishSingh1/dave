@@ -41,15 +41,16 @@ int framework(const CommandLineArguments& args) {
 	}
 
 	// Create objects for (de)serializing grid cells
-	std::auto_ptr<GuessSerializer> serializer;
-	std::auto_ptr<GuessDeserializer> deserializer;
+	using std::auto_ptr;
+	auto_ptr<GuessSerializer> serializer;
+	auto_ptr<GuessDeserializer> deserializer;
 
 	if (save_state) {
-		serializer.reset(new GuessSerializer(state_path, GuessParallel::get_rank()));
+		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(state_path, GuessParallel::get_rank()));
 	}
 
 	if (restart) {
-		deserializer.reset(new GuessDeserializer(state_path));
+		deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(state_path));
 	}
 
 	while (true) {

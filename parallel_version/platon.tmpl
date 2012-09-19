@@ -142,6 +142,12 @@ set -e
 
 cd \$PBS_O_WORKDIR
 
+if ! type -P mpiexec &> /dev/null; then
+    echo "Didn't find mpiexec! Make sure an MPI module is loaded in your" >&2
+    echo "login script (~/.bashrc) and recompile LPJ-GUESS with MPI support!" >&2
+    exit 1
+fi
+
 # If there's a script for setting up files on local disk, run it
 if [ -f setup_local.sh ]; then
     mpiexec -pernode setup_local.sh

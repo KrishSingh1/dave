@@ -49,8 +49,10 @@ if (NETCDF_FOUND)
   add_definitions(-DHAVE_NETCDF)
 endif()
 
-# MPI - used if found
-find_package(MPI QUIET)
+# MPI - used if found (not needed on Windows)
+if (NOT CMAKE_HOST_WIN32)
+  find_package(MPI QUIET)
+endif()
 
 # These are deprecated according to documentation in the FindMPI module,
 # but for some reason not hidden. Let's not display them for the typical

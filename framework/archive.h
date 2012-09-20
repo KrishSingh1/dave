@@ -77,6 +77,26 @@ public:
 	virtual void serialize(ArchiveStream& arch) = 0;
 };
 
+/// Function for checking if something inherits from Serializable
+/** This variant will be chosen by the compiler for anything which
+  * isn't Serializable (because of the overload below), and so always 
+  * returns false.
+  *
+  * Only intended to be used from the operator& implementation below,
+  * which has the added benefit that if & is used for a class which
+  * doesn't inherit from Serializable, many modern compilers will
+  * warn because we're trying to send a non-POD type to a variadic
+  * function.
+  */
+inline bool inheritsFromSerializable(...) {
+	return false;
+}
+
+/// Overload for Serializable, always returns true
+inline bool inheritsFromSerializable(const Serializable& s) {
+	return true;
+}
+
 /// Operator overloading of &, allowing serialization to be chained
 /** Since the operator returns the original stream, we can serialize
  *  multiple items in the following way:
@@ -89,19 +109,17 @@ public:
  *
  *  This function can be used for any item where the memory representation
  *  of the item can be written to file bit by bit, such as the primitive
- *  data types. Classes should typically do their own serialization by
- *  implementing Serializable.
+ *  data types, or classes implementing Serializable.
  */
 template<typename T>
 ArchiveStream& operator&(ArchiveStream& stream, T& data) {
-	stream.transfer((char*)&data, sizeof(data));
+	if (inheritsFromSerializable(data)) {
+		((Serializable&)data).serialize(stream);
+	}
+	else {
+		stream.transfer((char*)&data, sizeof(data));
+	}
 	return stream;
 }
-
-/// Operator overloading of &, for classes implementing Serializable
-/** This makes it possible to serialize complex objects with the &-syntax,
- *  given that they implement Serializable.
- */
-ArchiveStream& operator&(ArchiveStream& stream, Serializable& obj);
 
 #endif // LPJ_GUESS_ARCHIVE_H

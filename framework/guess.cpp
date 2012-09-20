@@ -55,6 +55,11 @@ bool all_fracs_const;
 bool ifslowharvestpool;				// If a slow harvested product pool is included in patchpft.
 int nyear_spinup;		
 
+xtring state_path;
+bool restart;
+bool save_state;
+int state_year;
+
 Pftlist pftlist;
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -198,6 +198,22 @@ extern bool ifslowharvestpool; 	// If a slow harvested product pool is included 
 extern int nyear_spinup; // number of spinup years (ML)	Moved to guess.cpp to be accessed globally.
 
 ///////////////////////////////////////////////////////////////////////////////////////
+// Settings controlling the saving and loading from state files
+
+/// Location of state files
+extern xtring state_path;
+
+/// Whether to restart from state files
+extern bool restart;
+
+/// Whether to save state files
+extern bool save_state;
+
+/// Save/restart year
+extern int state_year;
+
+
+///////////////////////////////////////////////////////////////////////////////////////
 // guess2008 - new input variables, from the .ins file
 extern bool ifsmoothgreffmort;
 	// whether to vary mort_greff smoothly with growth efficiency (1) or to use the standard
@@ -1088,7 +1104,7 @@ public:
 //     vegetation.nextobj();
 //   }
 
-class Vegetation : public ListArray_idin2<Individual,Pft,Vegetation>, Serializable {
+class Vegetation : public ListArray_idin2<Individual,Pft,Vegetation>, public Serializable {
 
 public:
 	// MEMBER VARIABLES
@@ -1636,7 +1652,7 @@ public:
 /// The stand class corresponds to a modelled area of a specific landcover type in a grid cell.
 /** There may be several stands of the same landcover type (but with different settings).
  */
-class Stand : public ListArray_idin2<Patch,Stand,Soiltype>, Serializable {
+class Stand : public ListArray_idin2<Patch,Stand,Soiltype>, public Serializable {
 
 public:
 
@@ -1739,7 +1755,7 @@ public:
  *  with patches, not gridcells. A separate Gridcell object must be declared for each modelled
  *  locality or grid cell.
  */
-class Gridcell : public ListArray_idin2<Stand,Gridcell,landcovertype>, Serializable {
+class Gridcell : public ListArray_idin2<Stand,Gridcell,landcovertype>, public Serializable {
 
 public:
 

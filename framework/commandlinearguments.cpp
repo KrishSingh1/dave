@@ -65,11 +65,17 @@ bool CommandLineArguments::parse_arguments(int argc, char** argv) {
 		}
 	}
 
+	// The only time it's ok not to specify an insfile is if -help is used
+	if (insfile.empty() && !help) {
+		fprintf(stderr, "No instruction file specified\n");
+		return false;
+	}
+
 	return true;
 }
 
 void CommandLineArguments::print_usage(const char* command_name) const {
-	fprintf(stderr, "\nUsage: %s [-goto-rundir] <instruction-script-filename> | -help", 
+	fprintf(stderr, "\nUsage: %s [-goto-rundir] <instruction-script-filename> | -help\n", 
 			  command_name);
 	exit(EXIT_FAILURE);
 }

@@ -1252,11 +1252,11 @@ void initio(const xtring& insfilename) {
 
 	if (!fileexists(insfilename)) {
 		fail("Error: could not open %s for input",(const char*)insfilename);
-			}
+	}
 
-		// Initialise simulation settings and PFT parameters from instruction script
-		// Call to readins() returns false if file could not be opened for reading
-		// or contained errors (including missing parameters)
+	// Initialise simulation settings and PFT parameters from instruction script
+	// Call to readins() returns false if file could not be opened for reading
+	// or contained errors (including missing parameters)
 
 	if (!readins(insfilename)) {
 		fail("Bad instruction file!");

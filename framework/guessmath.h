@@ -43,6 +43,11 @@ inline double mean(double* array, int nitem) {
 	return sum / (double)nitem;
 }
 
+/// Gives the mean of just two values
+inline double mean(double x, double y) {
+	return (x+y)/2.0;
+}
+
 inline void regress(double* x, double* y, int n, double& a, double& b) {
 
 	// Performs a linear regression of array y on array x (n values)

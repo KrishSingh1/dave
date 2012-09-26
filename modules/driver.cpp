@@ -236,9 +236,11 @@ void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12]) {
 			mval_wet[m] = max (mval_wet[m], 1.0);
 				// force at least one rain day per month
 
-			prob_rain=mval_wet[m]/(double)date.ndaymonth[m];
+			// rain on wet days (should be at least 0.1)
+			mprec = max(mval_prec[m]/mval_wet[m], 0.1);
+			mval_wet[m] = mval_prec[m] / mprec;
 
-			mprec=mval_prec[m]/mval_wet[m];
+			prob_rain=mval_wet[m]/(double)date.ndaymonth[m];
 
 			dy_hold=dy;
 

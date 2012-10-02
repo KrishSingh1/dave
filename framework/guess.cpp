@@ -84,8 +84,8 @@ int nyear_spinup;
 
 xtring state_path;
 bool restart;
-bool save;
-int start_year;
+bool save_state;
+int state_year;
 
 Pftlist pftlist;
 

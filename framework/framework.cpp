@@ -9,6 +9,9 @@
 
 #include "config.h"
 #include "framework.h"
+#include "commandlinearguments.h"
+#include "guessserializer.h"
+#include "parallel.h"
 
 #include "guessio.h"
 #include "driver.h"
@@ -19,10 +22,10 @@
 #include "vegdynam.h"
 #include "landcover.h"
 #include "bvoc.h"
-#include "guessserializer.h"
 
+#include <memory>
 
-int framework(int argc, char* argv[]) {
+int framework(const CommandLineArguments& args) {
 
 	// The 'mission control' of the model, responsible for maintaining the 
 	// primary model data structures and containing all explicit loops through 
@@ -30,25 +33,25 @@ int framework(int argc, char* argv[]) {
 
 	// Call input/output module to obtain PFT static parameters and simulation
 	// settings and initialise input/output
-	initio(argc, argv);
+	initio(args.get_instruction_file());
 
 	// bvoc
 	if (ifbvoc) {
 	  initbvoc();
 	}
 
-	GuessSerializer* serializer = 0;
-    GuessDeserializer* deserializer = 0;
+	// Create objects for (de)serializing grid cells
+	using std::auto_ptr;
+	auto_ptr<GuessSerializer> serializer;
+	auto_ptr<GuessDeserializer> deserializer;
 
-	if (save && restart)
-		fail("Serialization: Can't save and restart at the same time");
+	if (save_state) {
+		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(state_path, GuessParallel::get_rank()));
+	}
 
-    if (save) {
-        serializer = new GuessSerializer(state_path, 0);
-    }
-    if (restart) {
-        deserializer = new GuessDeserializer(state_path);
-    } 
+	if (restart) {
+		deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(state_path));
+	}
 
 	while (true) {
 
@@ -77,10 +80,12 @@ int framework(int argc, char* argv[]) {
 		}
 
 		if (restart) {
+			// Get the whole grid cell from file...
 			deserializer->deserialize_gridcell(gridcell);
-			date.year = start_year;
+			// ...and jump to the restart year
+			date.year = state_year;
 		}
-
+		
 		// Call input/output to obtain climate, insolation and CO2 for this
 		// day of the simulation. Function getclimate returns false if last year
 		// has already been simulated for this grid cell
@@ -161,8 +166,9 @@ int framework(int argc, char* argv[]) {
 				// Call input/output module to output results for end of year
 				// or end of simulation for this grid cell
 				outannual(gridcell);
-
-				if (date.year == start_year-1 && save) {
+				
+				// Time to save state?
+				if (date.year == state_year-1 && save_state) {
 					serializer->serialize_gridcell(gridcell);
 				}
 
@@ -179,9 +185,6 @@ int framework(int argc, char* argv[]) {
 			// End of loop through simulation days
 		}	//while (getclimate())
 	}		// End of loop through grid cells
-
-	delete serializer;
-    delete deserializer; 
 
 	// Call to input/output module to perform any necessary clean up
 	termio();

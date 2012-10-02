@@ -9,16 +9,17 @@
 #ifndef LPJ_GUESS_FRAMEWORK_H
 #define LPJ_GUESS_FRAMEWORK_H
 
+class CommandLineArguments;
+
 /// The 'mission control' of the model
 /** 
  *  Responsible for maintaining the primary model data structures and containing
  *  all explicit loops through space (grid cells/stands) and time (days and 
  *  years).
  *
- *  \param argc Number of arguments to the program, sent in from main
- *  \param argv The arguments to the program, sent in from main
+ *  \param args The command line arguments, sent in from main
  *
  */
-int framework(int argc,char* argv[]);
+int framework(const CommandLineArguments& args);
 
 #endif // LPJ_GUESS_FRAMEWORK_H

@@ -13,6 +13,8 @@
 #include "config.h"
 #include "dllmain.h"
 #include "framework.h"
+#include "commandlinearguments.h"
+#include "parallel.h"
 
 #include <process.h>
 #include <stdarg.h>
@@ -150,10 +152,19 @@ __declspec(dllexport) int dll_main(GuessParam param) {
 
 	ifabort=false;
 
+	// Parse arguments from shell (should be only instruction file)
+	CommandLineArguments args(param.argc, param.argv);
+
+	// Set our shell for the model to communicate with the world
 	set_shell(new WindowsShell(file_log));
 
+	// Initialize parallel communication if available
+	// Note that the graphical user interface doesn't support
+	// parallel runs yet.
+	GuessParallel::init(param.argc, param.argv);
+
 	// Call the framework
-	framework(param.argc,param.argv);
+	framework(args);
 
 	// Say goodbye
 	message_finished();

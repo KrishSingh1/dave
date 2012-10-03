@@ -31,9 +31,19 @@ if (NOT MSVC_VERSION EQUAL "1200")
 endif()
 
 if (UNIX)
-  # The SYSTEM variable is currently only used to choose which 
+  # Setup the SYSTEM variable, currently only used to choose which 
   # submit.sh to generate (for submitting to job queue)
-  set(SYSTEM "" CACHE STRING "System to build for (empty (=simba), gimle, platon or multicore)")
+
+
+  # Figure out what value it should have initially, based on the
+  # environment variable ARCH if it's set.
+  if (NOT $ENV{ARCH} STREQUAL "")
+	set(DEFAULT_SYSTEM $ENV{ARCH})
+  else()
+	set(DEFAULT_SYSTEM "")
+  endif()
+
+  set(SYSTEM ${DEFAULT_SYSTEM} CACHE STRING "System to build for (empty (=simba), gimle, platon or multicore)")
 endif (UNIX)
 
 # Where to search for cmake modules

@@ -152,8 +152,11 @@ __declspec(dllexport) int dll_main(GuessParam param) {
 
 	ifabort=false;
 
-	// Parse arguments from shell (should be only instruction file)
-	CommandLineArguments args(param.argc, param.argv);
+	// Parse only first two arguments from shell (should be application name 
+	// and instruction file).
+	// The shell also passes the file name of a climate file, used by
+	// the educational version. We'll ignore that.
+	CommandLineArguments args(2, param.argv);
 
 	// Set our shell for the model to communicate with the world
 	set_shell(new WindowsShell(file_log));

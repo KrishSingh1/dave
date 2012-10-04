@@ -1338,8 +1338,6 @@ public:
 	double fpar_grass_wstress;
 		// mean FPAR at top of grass canopy for days with water stress for this PFT
 		// in this patch
-	PhotosynthesisResult phot_wstress;
-		// contains averaged values for water-stressed days
 	double supply;
 		// evapotranspirational "supply" function for this PFT today (mm/day)
 	double supply_leafon;

@@ -1087,7 +1087,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 	// a proper lambda. This value shouldn't be used (see documentation
 	// above), but we'll set it to something anyway so we don't return
 	// random garbage.
-	lambda = pft.lambda_max;
+	lambda = -1;
 
 	// Convert fpar from patch to fpc basis
 	double fpar_fpc = fpar / fpc;

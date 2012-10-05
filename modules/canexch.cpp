@@ -1219,7 +1219,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 				}
 				else if(ppft.pft.phenology==CROPGREEN)			// True crop stands: main crop
 				{
-					if(date.day==ppft.cropphen->sdate)
+					if (date.day==0)
 					{
 						ppft.cropphen->growingdays=0;
 						ppft.wscal_mean=ppft.wscal;
@@ -1232,7 +1232,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 				}
 				else if(ppft.pft.isintercropgrass)				// True crop stands: intercrop grass
 				{
-					if(date.day==patch.pft[patch.stand.pftid].cropphen->bicdate)	
+					if (date.day==0)
 					{
 						ppft.cropphen->growingdays=0;
 						ppft.wscal_mean=ppft.wscal;
@@ -1297,7 +1297,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 //////////// True crop stands; main crop ////////////////	
 			else if(indiv.pft.phenology==CROPGREEN)
 			{
-				if(date.day==patch.pft[indiv.pft.id].cropphen->sdate)
+				if (date.day==0)
 				{
 					indiv.wscal_mean = wscal_indiv;
 				}
@@ -1309,7 +1309,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 //////////// True crop stands; intercrop grass ////////////////
 			else if(indiv.cropindiv->isintercropgrass && indiv.pft.id!=patch.stand.pftid)
 			{
-				if(date.day==patch.pft[patch.stand.pftid].cropphen->bicdate)
+				if (date.day==0)
 				{
 					indiv.wscal_mean = wscal_indiv;
 				}
@@ -1706,8 +1706,8 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 				indiv.mlai[date.month] += indiv.lai*indiv.phen;
 			// On last day of month - convert monthly LAI from sum to mean
 				if (date.islastday) {
-				indiv.mlai[date.month]/=(double)date.ndaymonth[date.month];
-		}
+					indiv.mlai[date.month]/=(double)date.ndaymonth[date.month];
+				}
 			}
 		}
 		else {

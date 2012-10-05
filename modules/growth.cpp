@@ -1231,7 +1231,7 @@ void growth(Stand& stand,Patch& patch) {
 				if (indiv.cmass_leaf<MINCMASS || indiv.cmass_root<MINCMASS) {
 
 					// guess2008 - alive check
-					if (indiv.alive) {
+					if (indiv.alive || indiv.pft.landcover==CROPLAND) {	//Allow for true grass ?
 
 						patch.pft[indiv.pft.id].litter_leaf+=indiv.cmass_leaf;
 						patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;

@@ -40,9 +40,12 @@ void crop_sowing_patch(Patch& patch);
 void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch);
 void leaf_phenology_crop(Pft& pft, Patch& patch);
 void fpar_crop(Patch& patch);
-void growth_crop_daily(Patch& patch);void allocation_crop(double bminc,double cmass_leaf,double cmass_root,double cmass_ho,double ltor,double& cmass_plant_inc,double& cmass_leaf_inc,
+void growth_crop_daily(Patch& patch);
+void allocation_crop(double bminc,double cmass_leaf,double cmass_root,double cmass_ho,double ltor,double& cmass_leaf_inc,
 	double& cmass_root_inc,double& cmass_ho_inc,double& cmass_agpool_inc, double& litter_leaf_inc,double& litter_root_inc, Individual& indiv);
-void harvest_crop(double& cmass_plant,double& cmass_leaf,double& cmass_root,double& cmass_ho,double& cmass_agpool,double& litter_leaf,double& litter_root,
+void yield_crop(Individual& indiv);
+void yield_pasture(Individual& indiv, double cmass_leaf_inc);
+void harvest_crop(double& cmass_leaf,double& cmass_root,double& cmass_ho,double& cmass_agpool,double& litter_leaf,double& litter_root,
 	double& acflux_harvest,double& harvested_products_slow,Individual& indiv);
 void harvest_natural(double& cmass_leaf,double& cmass_root,double& cmass_sap,double& cmass_heart,double& cmass_debt,double& litter_leaf,double& litter_root,double& litter_wood,
 	double& acflux_harvest,double& harvested_products_slow,Individual& indiv);

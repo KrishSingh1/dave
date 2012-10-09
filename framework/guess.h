@@ -1103,7 +1103,6 @@ extern Pftlist pftlist;
 class cropindiv_struct : public Serializable {
 
 public:
-	double cmass_plant;			// whole crop plant carbon
 	double cmass_ho;			// harvestable crop organ carbon
 	double cmass_agpool;		// above-ground pool (when calculating daily cmass_leaf from lai_crop)
 	double cmass_leaf_max;		// cmass_leaf value saved at day before senescence (for LAI-calculation in allometry)
@@ -1140,7 +1139,6 @@ public:
 
 	cropindiv_struct()
 	{
-		cmass_plant=0.0;
 		cmass_ho=0.0;
 		cmass_agpool=0.0;
 		cmass_leaf_max=0.0;

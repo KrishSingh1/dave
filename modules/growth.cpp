@@ -726,9 +726,6 @@ void allocation_init(double bminit,double ltor,Individual& indiv) {
 	indiv.cmass_leaf=cmass_leaf_ind*indiv.densindiv;
 	indiv.cmass_root=cmass_root_ind*indiv.densindiv;
 	
-	if(indiv.pft.landcover==CROPLAND)
-		indiv.cropindiv->cmass_plant=indiv.cmass_leaf+indiv.cmass_root;	
-
 	if (indiv.pft.lifeform==TREE)
 		indiv.cmass_sap=cmass_sap_ind*indiv.densindiv;
 }
@@ -1016,7 +1013,6 @@ void growth(Stand& stand,Patch& patch) {
 	double cmass_heart_inc=0.0;
 		// increment in heartwood C biomass following allocation, on individual basis
 		// (kgC)
-	double cmass_plant_inc=0.0;
 	double cmass_ho_inc=0.0;
 	double cmass_agpool_inc=0.0;
 	double litter_leaf_inc = 0.0; // guess2008 - bugfix - added initialisation
@@ -1097,7 +1093,7 @@ void growth(Stand& stand,Patch& patch) {
 
 			// Tissue turnover and associated litter production
 			if(indiv.pft.landcover==CROPLAND)
-				harvest_crop(indiv.cropindiv->cmass_plant,indiv.cmass_leaf,indiv.cmass_root,indiv.cropindiv->cmass_ho,indiv.cropindiv->cmass_agpool,
+				harvest_crop(indiv.cmass_leaf,indiv.cmass_root,indiv.cropindiv->cmass_ho,indiv.cropindiv->cmass_agpool,
 					patch.pft[indiv.pft.id].litter_leaf,patch.pft[indiv.pft.id].litter_root,patch.fluxes.acflux_harvest,patch.pft[indiv.pft.id].harvested_products_slow, indiv);
 			else if(indiv.pft.landcover==PASTURE)
 				harvest_pasture(indiv.cmass_leaf,indiv.cmass_root,
@@ -1190,14 +1186,21 @@ void growth(Stand& stand,Patch& patch) {
 				// guess2008 - initial grass cmass
 				double indiv_mass_before=indiv.cmass_leaf+indiv.cmass_root;
 
-				if(indiv.pft.landcover==CROPLAND)	//Crops do not use bminc.or cmass_leaf etc.
+				if(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass))	//True crops do not use bminc.or cmass_leaf etc.
 					allocation_crop(bminc,indiv.cmass_leaf,indiv.cmass_root,indiv.cropindiv->cmass_ho,indiv.ltor,
-						cmass_plant_inc,cmass_leaf_inc,cmass_root_inc,cmass_ho_inc,cmass_agpool_inc,litter_leaf_inc,litter_root_inc,indiv);
+						cmass_leaf_inc,cmass_root_inc,cmass_ho_inc,cmass_agpool_inc,litter_leaf_inc,litter_root_inc,indiv);
 				else
 					allocation(bminc,indiv.cmass_leaf,indiv.cmass_root,
 						0.0,0.0,0.0,indiv.ltor,0.0,0.0,0.0,GRASS,0.0,
 						0.0,0.0,cmass_leaf_inc,cmass_root_inc,dval,dval,dval,
 						litter_leaf_inc,litter_root_inc);
+
+				if(indiv.pft.landcover==CROPLAND) {
+					if(indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass)
+						yield_crop(indiv);
+					else
+						yield_pasture(indiv, cmass_leaf_inc);
+				}
 
 				// Update carbon pools and litter (on area basis)
 				// only litter in the case of 'alive' individuals
@@ -1207,7 +1210,6 @@ void growth(Stand& stand,Patch& patch) {
 
 				if(indiv.pft.landcover==CROPLAND)
 				{
-					indiv.cropindiv->cmass_plant+=cmass_plant_inc;
 					indiv.cropindiv->cmass_ho+=cmass_ho_inc;
 					indiv.cropindiv->cmass_agpool+=cmass_agpool_inc;
 				}
@@ -1218,7 +1220,7 @@ void growth(Stand& stand,Patch& patch) {
 				double indiv_cmass_diff=(indiv_mass_before+bminc-indiv_mass_after);		
 
 				// guess2008 - alive check before ensuring C balance
-				if (indiv.alive && indiv.pft.landcover!=CROPLAND) {
+				if (indiv.alive && !(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass))) {
 
 					patch.pft[indiv.pft.id].litter_leaf+=litter_leaf_inc+indiv_cmass_diff/2;
 					patch.pft[indiv.pft.id].litter_root+=litter_root_inc+indiv_cmass_diff/2;			
@@ -1231,7 +1233,7 @@ void growth(Stand& stand,Patch& patch) {
 				if (indiv.cmass_leaf<MINCMASS || indiv.cmass_root<MINCMASS) {
 
 					// guess2008 - alive check
-					if (indiv.alive || indiv.pft.landcover==CROPLAND) {	//Allow for true grass ?
+					if (indiv.alive || indiv.pft.landcover==CROPLAND) {
 
 						patch.pft[indiv.pft.id].litter_leaf+=indiv.cmass_leaf;
 						patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;

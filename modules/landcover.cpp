@@ -424,7 +424,7 @@ if(!SUPPRESSLARGEOUTPUT)
 					vegetation.firstobj();
 					while(vegetation.isobj)
 					{
-						double cmass_leaf_cp=0.0, cmass_root_cp=0.0, cmass_sap_cp=0.0, cmass_heart_cp=0.0, cmass_debt_cp=0.0, cmass_ho_cp=0.0, cmass_agpool_cp=0.0, cmass_plant_cp=0.0;//bugfix 101103
+						double cmass_leaf_cp=0.0, cmass_root_cp=0.0, cmass_sap_cp=0.0, cmass_heart_cp=0.0, cmass_debt_cp=0.0, cmass_ho_cp=0.0, cmass_agpool_cp=0.0;//bugfix 101103
 						double litter_leaf_cp=0.0, litter_root_cp=0.0, litter_wood_cp=0.0, litter_repr_cp=0.0;
 						double acflux_harvest_cp=0.0;
 						double harvested_products_slow_cp=0.0;
@@ -442,12 +442,11 @@ if(!SUPPRESSLARGEOUTPUT)
 						{
 							cmass_ho_cp=indiv.cropindiv->cmass_ho;
 							cmass_agpool_cp=indiv.cropindiv->cmass_agpool;
-							cmass_plant_cp=indiv.cropindiv->cmass_plant;
 						}
 	
 	//Harvest of transferred areas:
 						if(indiv.pft.landcover==CROPLAND)
-							harvest_crop(cmass_plant_cp,cmass_leaf_cp,cmass_root_cp,cmass_ho_cp,cmass_agpool_cp,
+							harvest_crop(cmass_leaf_cp,cmass_root_cp,cmass_ho_cp,cmass_agpool_cp,
 							litter_leaf_cp,litter_root_cp,acflux_harvest_cp,harvested_products_slow_cp,indiv);
 						else if(indiv.pft.landcover==PASTURE)
 						{
@@ -2835,7 +2834,7 @@ void harvest_pasture(double& cmass_leaf,double& cmass_root,double& litter_leaf,d
 
 }
 
-void harvest_crop(double& cmass_plant,double& cmass_leaf,double& cmass_root,double& cmass_ho,double& cmass_agpool,double& litter_leaf,double& litter_root,
+void harvest_crop(double& cmass_leaf,double& cmass_root,double& cmass_ho,double& cmass_agpool,double& litter_leaf,double& litter_root,
 				  double& acflux_harvest,double& harvested_products_slow,Individual& indiv) 
 {	//NB. this function is for balancing carbon fluxes based on last year's cmass, not for calculating this year's yield. This is done in allocation_crop().
 	double turnover, residue_outtake, harvest;
@@ -2900,7 +2899,6 @@ void harvest_crop(double& cmass_plant,double& cmass_leaf,double& cmass_root,doub
 		}
 		cmass_leaf=0.0;
 		cmass_agpool=0.0;
-		cmass_plant=0.0;
 
 		//No turnover (no remaining live plant tissue after harvest) for real crops.
 	}
@@ -2931,8 +2929,6 @@ void harvest_crop(double& cmass_plant,double& cmass_leaf,double& cmass_root,doub
 			cmass_leaf=0.0;
 			cmass_ho=0.0;														//cmass_ho används ej för gräs
 			cmass_agpool=0.0;													//cmass_agpool används ej för gräs
-			cmass_plant=0.0;
-
 		}
 		else								//Normal CC3G/CC4G stand growth (ej kollat om cmass>0.0 behövs än)
 		{
@@ -2967,23 +2963,16 @@ void harvest_crop(double& cmass_plant,double& cmass_leaf,double& cmass_root,doub
 				litter_leaf+=turnover;
 
 			cmass_leaf-=turnover;
-			cmass_plant=cmass_leaf+cmass_root;
 		}
 	}
 }
 
 void allocation_crop(double bminc,double cmass_leaf,double cmass_root,double cmass_ho,double ltor,
-	double& cmass_plant_inc,double& cmass_leaf_inc,double& cmass_root_inc,double& cmass_ho_inc,double& cmass_agpool_inc, double& litter_leaf_inc,double& litter_root_inc, Individual& indiv)
+	double& cmass_leaf_inc,double& cmass_root_inc,double& cmass_ho_inc,double& cmass_agpool_inc, double& litter_leaf_inc,double& litter_root_inc, Individual& indiv)
 {
-
-	double froot, fho;
-	double hi;
-
 	cropindiv_struct& cropindiv=*(indiv.get_cropindiv());
 
-	litter_leaf_inc=0.0;
-	litter_root_inc=0.0;
-
+	// true crop growth and grass intercrop growth; NB: bminit (cmass_repr & cmass_excess subtracted) not used !
 
 	if (ltor<1.0e-10)	// normal cc3g/cc4g-growth: yearly mean, actual crops and intercrops: growingseason mean
 	{
@@ -2991,89 +2980,73 @@ void allocation_crop(double bminc,double cmass_leaf,double cmass_root,double cma
 		// (Individual will die next time period)
 
 		cmass_leaf_inc=0.0;
-		if(indiv.pft.phenology==ANY && indiv.pft.id==indiv.vegetation.patch.stand.pftid)	
-			cmass_root_inc=bminc;
-		else
-			cmass_root_inc=cropindiv.ycmass_plant;	
+		cmass_root_inc=cropindiv.ycmass_plant;	
 		cmass_ho_inc=0.0;		
 		cmass_agpool_inc=0.0;	
 
 		return;
 	}
 
-	if(indiv.pft.phenology==ANY && indiv.pft.id==indiv.vegetation.patch.stand.pftid)			//Normal CC3G/CC4G stand growth
+	cmass_leaf_inc=cropindiv.ycmass_leaf;
+	cmass_root_inc=cropindiv.ycmass_root;
+	cmass_ho_inc=cropindiv.ycmass_ho;
+	cmass_agpool_inc=cropindiv.ycmass_agpool;
+
+	return;
+}
+
+void yield_crop(Individual& indiv)
+{
+	cropindiv_struct& cropindiv=*(indiv.get_cropindiv());
+
+	if(indiv.pft.phenology==ANY)				// grass intercrop yield
 	{
-		cmass_plant_inc=bminc;	//reproduction and cmass_excess reducement; daily and yearly values will NOT be compatible !
-
-		cmass_leaf_inc=(cmass_plant_inc-cmass_leaf/ltor+cmass_root)/(1.0+1.0/ltor);
-		cmass_root_inc=cmass_plant_inc-cmass_leaf_inc;
-
-		if(cmass_leaf_inc<0.0) 
-		{
-			// Negative allocation to leaves
-			cmass_root_inc=cmass_plant_inc;
-			cmass_leaf_inc=(cmass_root+cmass_root_inc)*ltor-cmass_leaf; // Eqn (3)
-
-			// Add killed leaves to litter
-			litter_leaf_inc=-cmass_leaf_inc;
-		}
-		else if(cmass_root_inc<0.0) 
-		{
-			// Negative allocation to roots
-			cmass_leaf_inc=cmass_plant_inc;
-			cmass_root_inc=(cmass_leaf+cmass_plant_inc)/ltor-cmass_root;
-
-			// Add killed roots to litter
-			litter_root_inc=-cmass_root_inc;
-		}
-
-		if(cmass_leaf_inc>0.0)									
-			cropindiv.yield=cmass_leaf_inc*indiv.pft.harv_eff*2.0;	// OK om turnover_leaf=1.0, annars (cmass_leaf+cmass_leaf_inc)*indiv.pft.harv_eff*2.0 !
+		if(cropindiv.ycmass_leaf>0.0)									
+			cropindiv.yield=cropindiv.ycmass_leaf*indiv.pft.harv_eff_ic*2.0;	//Yield dry wieght of allocated harvestable organs this year; NB independent from harvest calculation in harvest_crop (different years)
 		else
 			cropindiv.yield=0.0;
-		cropindiv.harv_yield=cropindiv.yield;							//Although no specified harvest date, harv_yield is set for compatibility.
+
+		if(cropindiv.harv_cmass_leaf>0.0)			
+			cropindiv.harv_yield=cropindiv.harv_cmass_leaf*indiv.pft.harv_eff_ic*2.0;	//Yield dry wieght of actually harvest products this year; NB as above
+		else
+			cropindiv.harv_yield=0.0;
 	}
-	else	// true crop growth and grass intercrop growth; NB: bminit (cmass_repr & cmass_excess subtracted) not used !
+	else if(indiv.pft.phenology==CROPGREEN)		//true crop yield
 	{
-		cmass_plant_inc=cropindiv.ycmass_plant;
-		cmass_leaf_inc=cropindiv.ycmass_leaf;
-		cmass_root_inc=cropindiv.ycmass_root;
-		cmass_ho_inc=cropindiv.ycmass_ho;
-		cmass_agpool_inc=cropindiv.ycmass_agpool;
+		if(cropindiv.ycmass_ho>0.0)									
+			cropindiv.yield=cropindiv.ycmass_ho*indiv.pft.harv_eff*2.0;	//Yield dry wieght of allocated harvestable organs this year; NB independent from harvest calculation in harvest_crop (different years)
+		else
+			cropindiv.yield=0.0;
 
-		if(indiv.pft.phenology==ANY)				// grass intercrop growth
+		if(cropindiv.harv_cmass_ho>0.0)									
+			cropindiv.harv_yield=cropindiv.harv_cmass_ho*indiv.pft.harv_eff*2.0;	//Yield dry wieght of actually harvest products this year; NB as above
+		else
+			cropindiv.harv_yield=0.0;
+
+		for(int i=0;i<2;i++)
 		{
-			if(cropindiv.ycmass_leaf>0.0)									
-				cropindiv.yield=cropindiv.ycmass_leaf*indiv.pft.harv_eff_ic*2.0;	//Yield dry wieght of allocated harvestable organs this year; NB independent from harvest calculation in harvest_crop (different years)
+			if(cropindiv.cmass_ho_harvest[i]>0.0)								
+				cropindiv.yield_harvest[i]=cropindiv.cmass_ho_harvest[i]*indiv.pft.harv_eff*2.0;	//Yield dry wieght of actually harvest products this year; NB as above
 			else
-				cropindiv.yield=0.0;
-
-			if(cropindiv.harv_cmass_leaf>0.0)			
-				cropindiv.harv_yield=cropindiv.harv_cmass_leaf*indiv.pft.harv_eff_ic*2.0;	//Yield dry wieght of actually harvest products this year; NB as above
-			else
-				cropindiv.harv_yield=0.0;
-		}
-		else if(indiv.pft.phenology==CROPGREEN)		//true crop growth
-		{
-			if(cropindiv.ycmass_ho>0.0)									
-				cropindiv.yield=cropindiv.ycmass_ho*indiv.pft.harv_eff*2.0;	//Yield dry wieght of allocated harvestable organs this year; NB independent from harvest calculation in harvest_crop (different years)
-			else
-				cropindiv.yield=0.0;
-
-			if(cropindiv.harv_cmass_ho>0.0)									
-				cropindiv.harv_yield=cropindiv.harv_cmass_ho*indiv.pft.harv_eff*2.0;	//Yield dry wieght of actually harvest products this year; NB as above
-			else
-				cropindiv.harv_yield=0.0;
-
-			for(int i=0;i<2;i++)
-			{
-				if(cropindiv.cmass_ho_harvest[i]>0.0)								
-					cropindiv.yield_harvest[i]=cropindiv.cmass_ho_harvest[i]*indiv.pft.harv_eff*2.0;	//Yield dry wieght of actually harvest products this year; NB as above
-				else
-					cropindiv.yield_harvest[i]=0.0;	
-			}
+				cropindiv.yield_harvest[i]=0.0;	
 		}
 	}
+
+	return;
+}
+
+void yield_pasture(Individual& indiv, double cmass_leaf_inc)
+{
+
+	cropindiv_struct& cropindiv=*(indiv.get_cropindiv());
+
+	//Normal CC3G/CC4G stand growth (Pasture)
+
+	if(cmass_leaf_inc>0.0)									
+		cropindiv.yield=cmass_leaf_inc*indiv.pft.harv_eff*2.0;	// OK om turnover_leaf=1.0, annars (cmass_leaf+cmass_leaf_inc)*indiv.pft.harv_eff*2.0 !
+	else
+		cropindiv.yield=0.0;
+	cropindiv.harv_yield=cropindiv.yield;							//Although no specified harvest date, harv_yield is set for compatibility.
 
 	return;
 }

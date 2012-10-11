@@ -489,7 +489,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 							if (stand.pftid==pft.id)
 							{
-								indiv.cropindiv->isprimarycrop==true;
+								indiv.cropindiv->isprimarycrop=true;
 								if(pft.phenology==ANY)						//normal CC3G & CC4G (+ irrigated) growth
 									patchpft.cropphen->growingseason=true;
 							}

@@ -2823,7 +2823,8 @@ void harvest_pasture(double& cmass_leaf,double& cmass_root,double& litter_leaf,d
 		harvested_products_slow+=harvest*indiv.pft.harvest_slow_frac;
 		harvest=harvest*(1-indiv.pft.harvest_slow_frac);
 	}
-	acflux_harvest+=harvest;										//skördat gräs
+	if(alive)
+		acflux_harvest+=harvest;										//skördat gräs
 	cmass_leaf-=harvest;
 
 	// Leaf turnover
@@ -2864,14 +2865,14 @@ void harvest_crop(double& cmass_leaf,double& cmass_root,double& cmass_ho,double&
 
 //NB. cmass_x can be negative here only if individuals with negative cmass-x are not killed last year.
 	if(indiv.pft.phenology==CROPGREEN)
-	{		
-		if(alive && cmass_root>0.0)
+	{
+		if(cmass_root>0.0)
 			litter_root+=cmass_root;
 
 		cmass_root=0.0;
 
-		//Bondeau: harv_eff=1.0		
-		if(alive && cmass_ho>0.0)										// (this year's yield is set in allocation_crop)
+		//Bondeau: harv_eff=1.0	
+		if(cmass_ho>0.0)											// (this year's yield is set in allocation_crop)
 		{
 			harvest=indiv.pft.harv_eff*cmass_ho;			//skördade produkter	
 
@@ -2890,7 +2891,7 @@ void harvest_crop(double& cmass_leaf,double& cmass_root,double& cmass_ho,double&
 		cmass_ho=0.0;
 
 		//Bondeau: res_outtake=0.9 or 0.0
-		if (alive && (cmass_leaf+cmass_agpool)>0.0)
+		if ((cmass_leaf+cmass_agpool)>0.0)
 		{
 			residue_outtake=indiv.pft.res_outtake*(cmass_leaf+cmass_agpool);
 			litter_leaf+=cmass_leaf+cmass_agpool-residue_outtake;						//ej uttagna rester
@@ -2906,7 +2907,7 @@ void harvest_crop(double& cmass_leaf,double& cmass_root,double& cmass_ho,double&
 	{
 		if(indiv.cropindiv->isintercropgrass)			//Intercrop growth
 		{
-			if(alive && cmass_root>0.0)
+			if(cmass_root>0.0)
 				litter_root+=cmass_root;
 
 			cmass_root=0.0;
@@ -2936,7 +2937,7 @@ void harvest_crop(double& cmass_leaf,double& cmass_root,double& cmass_ho,double&
 			//Bondeau: turnover_root=0.5
 			turnover=indiv.pft.turnover_root*cmass_root;	//turnover_root är normalt 0.7 för gräs
 
-			if(alive && turnover>0.0) 
+			if(alive) 
 				litter_root+=turnover;
 
 			cmass_root-=turnover;
@@ -2954,12 +2955,13 @@ void harvest_crop(double& cmass_leaf,double& cmass_root,double& cmass_ho,double&
 				harvest=harvest*(1-indiv.pft.harvest_slow_frac);
 			}
 
-			acflux_harvest+=harvest;										//skördat gräs
+			if(alive)
+				acflux_harvest+=harvest;										//skördat gräs
 
 			// Leaf turnover
 			turnover=indiv.pft.turnover_leaf*cmass_leaf;	//turnover_leaf är normalt 1.0 för gräs
 
-			if(alive && turnover>0.0)
+			if(alive)
 				litter_leaf+=turnover;
 
 			cmass_leaf-=turnover;

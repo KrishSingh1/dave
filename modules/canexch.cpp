@@ -1687,7 +1687,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			// Update accumulated annual NPP and daily vegetation-atmosphere flux
 			indiv.dnpp = assim - resp;
 			indiv.anpp += indiv.dnpp;
-			if (indiv.alive || pft.landcover==CROPLAND) {
+			if (indiv.alive || indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass)) {
 				patch.fluxes.dcflux_veg -= indiv.dnpp;
 			}
 

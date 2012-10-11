@@ -2809,7 +2809,7 @@ void harvest_pasture(double& cmass_leaf,double& cmass_root,double& litter_leaf,d
 	cmass_leaf*=scale;	
 
 	turnover=indiv.pft.turnover_root*cmass_root;	//turnover_root är normalt 0.7 för gräs
-	if(alive && turnover>0.0) 
+	if(alive) 
 		litter_root+=turnover;
 	cmass_root-=turnover;
 
@@ -2829,7 +2829,7 @@ void harvest_pasture(double& cmass_leaf,double& cmass_root,double& litter_leaf,d
 
 	// Leaf turnover
 	turnover=indiv.pft.turnover_leaf*cmass_leaf;	//turnover_leaf är normalt 1.0 för gräs
-	if(alive && turnover>0.0) 
+	if(alive) 
 		litter_leaf+=turnover;
 	cmass_leaf-=turnover;
 
@@ -2914,7 +2914,7 @@ void harvest_crop(double& cmass_leaf,double& cmass_root,double& cmass_ho,double&
 
 			//Harvest/Grazing:			
 			//Bondeau: harv_eff=0.9 i kod, 0 i artikel
-			if(alive && cmass_leaf>0.0)
+			if(cmass_leaf>0.0)
 			{
 				harvest=indiv.pft.harv_eff_ic*cmass_leaf;
 				litter_leaf+=cmass_leaf-harvest;											//ej skördat gräs

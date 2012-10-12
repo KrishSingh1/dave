@@ -896,6 +896,11 @@ void plib_callback(int callback) {
 		ppft->id=npft++;
 			// VERY IMPORTANT (cannot rely on internal id counter of collection class)
 
+#if defined GRASSFORCROP
+		run[CROPLAND]=0;
+		run[PASTURE]=1;
+#endif
+
 		//	delete unused pft:s from pftlist
 
 		if (ppft->landcover!=NATURAL) {
@@ -1847,6 +1852,13 @@ void getlandcover(Gridcell& gridcell) {
 				}
 				else
 				{
+#if defined GRASSFORCROP
+					if(i==PASTURE)
+						sum_tot+=gridcell.landcoverfrac[PASTURE]=(double)lc_fixed_frac[CROPLAND]/100.0;
+					else if(i==CROPLAND)
+						gridcell.landcoverfrac[CROPLAND]=0.0;
+					else
+#endif
 					sum_tot+=gridcell.landcoverfrac[i]=(double)lc_fixed_frac[i]/100.0;					//count sum of all fractions (should be 1.0)
 
 					if(gridcell.landcoverfrac[i]<0.0 || gridcell.landcoverfrac[i]>1.0)					//discard unreasonable values
@@ -1905,6 +1917,13 @@ void getlandcover(Gridcell& gridcell) {
 			for(i=0;i<PEATLAND;i++)		//peatland fraction data is not in this file, otherwise i<NLANDCOVERTYPES.
 			{	
 #if defined DYNAMIC_LANDCOVER_INPUT
+#ifdef GRASSFORCROP
+					if(i==PASTURE)
+						sum_tot+=gridcell.landcoverfrac[PASTURE]=LUdata.Get(year,CROPLAND);
+					else if(i==CROPLAND)
+						gridcell.landcoverfrac[CROPLAND]=0.0;
+					else
+#endif
 				sum_tot+=gridcell.landcoverfrac[i]=LUdata.Get(year,i);					//count sum of all fractions (should be 1.0)
 #endif
 				if(gridcell.landcoverfrac[i]<0.0 || gridcell.landcoverfrac[i]>1.0)			//discard unreasonable values

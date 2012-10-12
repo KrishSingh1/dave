@@ -2827,6 +2827,15 @@ void harvest_pasture(double& cmass_leaf,double& cmass_root,double& litter_leaf,d
 		acflux_harvest+=harvest;										//skördat gräs
 	cmass_leaf-=harvest;
 
+#if defined GRASSFORCROP
+	if (alive)
+	{
+		residue_outtake=indiv.pft.res_outtake*cmass_leaf;				//res_outtake currently set to 0.0, not used for crop grass
+		acflux_harvest+=residue_outtake;								
+		cmass_leaf-=residue_outtake;
+	}
+#endif
+
 	// Leaf turnover
 	turnover=indiv.pft.turnover_leaf*cmass_leaf;	//turnover_leaf är normalt 1.0 för gräs
 	if(alive) 

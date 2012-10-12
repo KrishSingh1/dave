@@ -40,6 +40,7 @@
 #define NEWSOWINGDATE				//Use sowing date method based on climate seasonality.
 #define IRRIGATION					//Crop irrigation on.
 #define NOPASTURESTOCH				//Fire and disturbance for pasture grass. Number of patches will be the same as for natural stands.
+//#define GRASSFORCROP
 
 const bool SUPPRESSLARGEOUTPUT=false;
 

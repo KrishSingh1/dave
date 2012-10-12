@@ -418,10 +418,14 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),gridcell(gc),la
 		pft.createobj(pftlist[p]);
 	}
 
+#if defined NOPASTURESTOCH
 	if(landcover==CROPLAND || landcover==PASTURE || landcover==URBAN || landcover==PEATLAND) {
+#else
+	if(landcover==CROPLAND || landcover==URBAN || landcover==PEATLAND) {
+#endif
 		npatchL=1;
 	}
-	else if(landcover==NATURAL || landcover==FOREST) {
+	else {
 		npatchL=::npatch; // use the global variable npatch (not Stand::npatch)
 	}
 
@@ -557,6 +561,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	{
 		cropindiv=new cropindiv_struct;
 	}
+
+//	dprintf("Year %d: Individual in stand %d created:id=%d, pft=%s\n", ::date.year-nyear_spinup+1901,vegetation.patch.stand.id,id,(char*)pft.name);
 }
 
 void Individual::serialize(ArchiveStream& arch) {
@@ -624,6 +630,8 @@ Individual::~Individual()
 {
 	if(cropindiv)
 		delete cropindiv;
+
+//	dprintf("Year %d: Individual  in stand %d destroyed:id=%d, pft=%s\n",::date.year-nyear_spinup+1901,vegetation.patch.stand.id,id,(char*)pft.name);
 }
 
 //const cropindiv_struct* Individual::get_cropindiv() 

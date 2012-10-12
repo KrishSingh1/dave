@@ -905,8 +905,11 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 			}
 
 			// Mortality due to fire
-
+#if defined NOPASTURESTOCH
+			if (stand.landcover!=CROPLAND && stand.landcover!=PASTURE && iffire)
+#else
 			if (stand.landcover!=CROPLAND && iffire)
+#endif
 				mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			else mort_fire=0.0;
 
@@ -1040,8 +1043,11 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 	Vegetation& vegetation=patch.vegetation;
 
 	// FIRE MORTALITY
-
+#if defined NOPASTURESTOCH
+	if (stand.landcover!=CROPLAND && stand.landcover!=PASTURE && iffire) {
+#else
 	if (stand.landcover!=CROPLAND && iffire) {
+#endif
 
 		// Impose fire in this patch with probability 'fireprob'
 
@@ -1535,7 +1541,11 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		// (in population mode: fraction of modelled area affected by fire this year)
 
 	// Calculate fire probability and volatilise litter
+#if defined NOPASTURESTOCH
+	if (stand.landcover!=CROPLAND && stand.landcover!=PASTURE && iffire) {
+#else
 	if (stand.landcover!=CROPLAND && iffire) {
+#endif
 		fire(patch,fireprob);
 	}
 	patch.fireprob=fireprob;
@@ -1556,8 +1566,11 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		// INDIVIDUAL AND COHORT MODES
 
 		// Patch-destroying disturbance
-
+#if defined NOPASTURESTOCH
+		if (stand.landcover!=CROPLAND && stand.landcover!=PASTURE && ifdisturb && patch.age) {
+#else
 		if (stand.landcover!=CROPLAND && ifdisturb && patch.age) {
+#endif
 			disturbance(patch,1.0/distinterval);
 			if (patch.disturbed) {
 				return; // no mortality or establishment this year

@@ -801,8 +801,6 @@ public:
 	double cton_sap_avr;
 	// nitrogen storage organ in relation to sapwood carbon for TREE and root carbon for GRASS
 	double n_reserve;
-	/// maximum nitrogen uptake per fine root mass (kgN/kgC)
-	double nupmax;
 		
 	double reprfrac;
 		// fraction of NPP allocated to reproduction		

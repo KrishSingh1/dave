@@ -114,9 +114,9 @@ nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
 !///////////////////////////////////////////////////////////////////////////////
 ! SERIALIZATION SETTINGS 
 !///////////////////////////////////////////////////////////////////////////////
-start_year 3000			! year to save/start state file
+state_year 3000			! year to save/start state file
 restart 0				! wheter to start from a state file
-save 0					! wheter to save a state file
+save_state 0			! wheter to save a state file
 
 
 ! guess2008 - additions
@@ -187,7 +187,6 @@ group "common" (
 	lambda_max 0.8
 	emax 5
 	reprfrac 0.1
-	reprCN 17.0
 	wscal_min 0.35
 	drought_tolerance 0.0001	
 	! default value - ensures that this has little effect even if  

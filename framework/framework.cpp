@@ -143,6 +143,7 @@ int framework(const CommandLineArguments& args) {
 						growth(stand, patch);
 					}
 					stand.nextobj();
+
 				}// End of loop through patches
 
 				if (date.islastday && date.islastmonth) {
@@ -154,6 +155,10 @@ int framework(const CommandLineArguments& args) {
 						Patch& patch = stand.getobj();
 						// Establishment, mortality and disturbance by fire
 						vegetation_dynamics(stand, patch);
+
+						// Function to check the nitrogen balance
+						check_nbalance(patch, false);
+
 						stand.nextobj();
 					}
 				}
@@ -177,6 +182,9 @@ int framework(const CommandLineArguments& args) {
 					termio();
 					return 99;
 				}
+
+
+
 			}
 
 			// Advance timer to next simulation day

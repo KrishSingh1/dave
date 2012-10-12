@@ -49,8 +49,6 @@ int freenyears;
 double nrelocfrac;
 /// whether to allow N leaching	
 bool ifleachn;
-/// whether to allow individual fractional N uptake
-bool ifindiv_fnuptake;
 /// first term in N fixation eqn
 double nfix_a;
 /// second term in N fixation eqn
@@ -101,7 +99,7 @@ void PhotosynthesisResult::serialize(ArchiveStream& arch) {
 		& vm
 		& je
 		& nmass_term
-		& vmax_lim;
+		& vmaxnlim;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -145,8 +143,8 @@ void Climate::serialize(ArchiveStream& arch) {
 		& qo & u & v & hh & sinehh
 		& daylength_save
 		& doneday
-		& andep//
-		& dndep//
+		& andep
+		& dndep
 		& frluse; // CMIP5
 }
 
@@ -248,14 +246,13 @@ void Soil::serialize(ArchiveStream& arch) {
 		& nimmob_daily	
 		& minleachfrac_daily 
 		& orgleachfrac_daily
-		& nmass_avail		
+		& nmass		
 		& anmin			
 		& animmob			
 		& aminleach		
-		& aorgleach		
-		& andep			
-		& nmin_balance		
-		& anfix;
+		& aorgleach					
+		& anfix
+		& anfix_calc; 
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -299,9 +296,7 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& nmass_litter_leaf
 		& nmass_litter_root
 		& nmass_litter_wood
-		& harvested_products_slow_nmass	
-		& nstore_est
-		& nsapling_nuptake;
+		& harvested_products_slow_nmass;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -338,6 +333,7 @@ void Patch::serialize(ArchiveStream& arch) {
 		& growingseasondays
 		& intercep
 		& aaet
+		& aaet_5
 		& aevap
 		& aintercep
 		& arunoff
@@ -353,8 +349,7 @@ void Patch::serialize(ArchiveStream& arch) {
 		& mrunoff
 		& mpet
 		& fnuptake
-		& ndemand
-		& nsupply;
+		& ndemand;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -468,26 +463,35 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	fpar_wstress = 0.0;
 	assim = 0.0;
 	resp = 0.0;
-	assim_nowstress = 0.0;
+	assim_nostress = 0.0;
 
 	nmass_leaf = 0.0;
 	nmass_root = 0.0;
 	nmass_sap = 0.0;
 	nmass_heart = 0.0;
-	nmass_reserve = 0.0;
+	cton_leaf_opt = 0.0;
 
 	nactive = 0.0;
-	nactive_leafon = 0.0;
+	nstore_leaf = 0.0;
+	nstore_root = 0.0;
 	nstore = 0.0;
-	nuptake = 0.0;
 	ndemand = 0.0;
-	ndemand_no_nlim = 0.0;
 	fnuptake = 1.0;
-	n_reserve_uptake = 0.0;
+	anuptake = 0.0;
 	max_n_reserve = 0.0;
-	raingreen_ndemand = 0.0;
+	scale_n_reserve = 0.0;
 
-	frac_agpp = 1.0;
+	nstress = false;
+
+	leafndemand = 0.0;
+	rootndemand = 0.0;
+	sapndemand = 0.0;
+	storendemand = 0.0;
+	for (int c=0; c<3; c++) {
+		fndemand[c] = 0.0;
+	}
+	leafndemand_opt = 0.0;
+	rootndemand_opt = 0.0;
 
 	// additional initialisation
 	age = 0.0;
@@ -523,12 +527,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	dtr_wstress = 0.;
 	eet_wstress = 0.;
 	agdd5_wstress = 0.;
-	rad_wstress = 0.;		
-
-	int d;
-	for (d=0; d<365; d++) {
-		dassim[d] = vmax_lim[d] = 0.0;
-	}
+	rad_wstress = 0.;	
 }
 
 void Individual::serialize(ArchiveStream& arch) {
@@ -592,37 +591,32 @@ void Individual::serialize(ArchiveStream& arch) {
 		& nmass_root
 		& nmass_sap
 		& nmass_heart
-		& nmass_reserve
 		& nactive
-		& nactive_leafon
+		& nstore_leaf
+		& nstore_root
 		& nstore
-		& nuptake
-		& leafn
-		& leafn_mean
 		& ndemand
-		& ndemand_no_nlim
-		& raingreen_ndemand
 		& fnuptake
-		& n_reserve_uptake
+		& anuptake
 		& max_n_reserve
-		& max_n_reserve_old
-		& limnfact
-		& vmax_lim
+		& scale_n_reserve
 		& avmaxnlim
 		& cton_leaf_new
-		& cton_root_new
-		& cton_sap_new
-		& cton_leaf_old
-		& cton_root_old
-		& cton_sap_old
 		& cton_leaf_opt
-		& cton_growth
-		& bminc_leaf_frac	
-		& bminc_root_frac
-		& frac_agpp
-		& dassim
-		& aassim
-		& assim_nowstress
+		& cton_leaf
+		& cton_root
+		& cton_sap
+
+		& nstress
+		& leafndemand
+		& rootndemand
+		& sapndemand
+		& storendemand
+		& fndemand
+		& leafndemand_opt
+		& rootndemand_opt
+		
+		& assim_nostress
 		& nday_leafon;
 }
 

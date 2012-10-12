@@ -124,11 +124,12 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	double aet_layer[NSOILLAYER]; // total AET for each soil layer (mm)
 	double perc_frac;
 
-
 	for (s=0; s<NSOILLAYER; s++) {
 		aet_layer[s] = 0.0;
 	}
 	double aet_total = 0.0;
+
+	double total_water = wcont[0] * patch.soil.soiltype.awc[0] + patch.soil.soiltype.wp[0] + wcont[1] * patch.soil.soiltype.awc[1] + patch.soil.soiltype.wp[1];
 
 	// Sum AET for across all vegetation individuals
 	Vegetation& vegetation = patch.vegetation;
@@ -244,6 +245,9 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 		dperc = runoff_baseflow;
 	else
 		dperc = 0.0;
+
+	if (rain_melt <= 0.0 && runoff_baseflow > 0.0)
+		dprintf("Year %d Day %d runoff!!! %g\n",date.year,date.day,runoff_baseflow);
 
 	runoff = runoff_surf + runoff_drain + runoff_baseflow;
 

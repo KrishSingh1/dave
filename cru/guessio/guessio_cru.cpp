@@ -204,9 +204,7 @@ xtring file_firert,file_speciesheights;
 // bvoc
 xtring file_aiso,file_miso,file_amon,file_mmon;
 
-xtring file_dgpp,file_dlai,file_dleafN,file_dresp;
-
-xtring file_cton, file_nmass, file_nsources, file_npool, file_nleach, file_nuptake, file_anppn, file_vmaxnlim, file_nlim, file_nflux;
+xtring file_cton, file_nmass, file_nsources, file_npool, file_nleach, file_nuptake, file_anppn, file_vmaxnlim, file_nflux;
 
 // allometry
 xtring file_allometry,file_canopyh,file_allometry_ind;
@@ -240,9 +238,7 @@ void initsettings() {
 	save_state = false;
 	restart = false;
 
-	file_dgpp="";
-
-	file_cton=file_nmass=file_nsources=file_npool=file_nleach=file_nuptake=file_anppn=file_vmaxnlim=file_nlim=file_nflux="";
+	file_cton=file_nmass=file_nsources=file_npool=file_nleach=file_nuptake=file_anppn=file_vmaxnlim=file_nflux="";
 
 	// allometry
 	file_allometry=file_canopyh=file_allometry_ind="";
@@ -341,8 +337,6 @@ void plib_declarations(int id,xtring setname) {
 			"Number of years to spinup without N limitation");
 		declareitem("ifleachn",&ifleachn,1,CB_NONE,
 			"Whether to allow N leaching");
-		declareitem("ifindiv_fnuptake",&ifindiv_fnuptake,1,CB_NONE,
-			"Whether to allow individual fractional N uptake");
 
 		// Annual output variables
 		declareitem("outputdirectory",&outputdirectory,300,CB_NONE,"Directory for the output files");
@@ -363,7 +357,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_nuptake",&file_nuptake,300,CB_NONE,"annual N uptake output file");
 		declareitem("file_anppn",&file_anppn,300,CB_NONE,"annual N usage output file");
 		declareitem("file_vmaxnlim",&file_vmaxnlim,300,CB_NONE,"annual N limitation on vm output file");
-		declareitem("file_nlim",&file_nlim,300,CB_NONE,"annual N limitation on growth output file");
 		declareitem("file_nflux",&file_nflux,300,CB_NONE,"annual N fluxes output file");
 
 		// allometry
@@ -392,11 +385,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_miso",&file_miso,300,CB_NONE,"monthly isoprene flux output file");
 		declareitem("file_amon",&file_amon,300,CB_NONE,"annual monoterpene flux output file");
 		declareitem("file_mmon",&file_mmon,300,CB_NONE,"monthly monoterpene flux output file");
-
-		declareitem("file_dgpp",&file_dgpp,300,CB_NONE,"Daily GPP output file");
-		declareitem("file_dlai",&file_dlai,300,CB_NONE,"Daily LAI output file");
-		declareitem("file_dleafN",&file_dleafN,300,CB_NONE,"Daily Leaf N output file");
-		declareitem("file_dresp",&file_dresp,300,CB_NONE,"Daily Resp output file");
 
 		// guess2008 - new options
 		declareitem("ifsmoothgreffmort",&ifsmoothgreffmort,1,CB_NONE,
@@ -506,11 +494,11 @@ void plib_declarations(int id,xtring setname) {
 			"Average Sapwood C:N mass ratio");
 		declareitem("n_reserve",&ppft->n_reserve,0.0,1.0,1,CB_NONE,
 			"N storage organ in relation to sapwood carbon");
+		declareitem("nupmax",&ppft->nupmax,0.0,1.0,1,CB_NONE,
+			"Maximum nitrogen uptake per fine root mass");
 
 		declareitem("reprfrac",&ppft->reprfrac,0.0,1.0,1,CB_NONE,
 			"Fraction of NPP allocated to reproduction");
-		declareitem("reprCN",&ppft->reprCN,1.0,1.0e4,1,CB_NONE,
-			"Reproduction CN ratio");
 		declareitem("turnover_leaf",&ppft->turnover_leaf,0.0,1.0,1,CB_NONE,
 			"Leaf turnover (fraction/year)");
 		declareitem("turnover_root",&ppft->turnover_root,0.0,1.0,1,CB_NONE,
@@ -737,7 +725,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifnlim")) badins("ifnlim");
 		if (!itemparsed("freenyears")) badins("freenyears");
 		if (!itemparsed("ifleachn")) badins("ifleachn");
-		if (!itemparsed("ifindiv_fnuptake")) badins("ifindiv_fnuptake");
 
 		if (!itemparsed("outputdirectory")) badins("outputdirectory");
 		if (!itemparsed("ifsmoothgreffmort")) badins("ifsmoothgreffmort");
@@ -826,9 +813,9 @@ void plib_callback(int callback) {
 		if (!itemparsed("cton_leaf_avr")) badins("cton_leaf_avr");
 		if (!itemparsed("cton_root_avr")) badins("cton_root_avr");
 		if (!itemparsed("n_reserve")) badins("n_reserve");
+		if (!itemparsed("nupmax")) badins("nupmax");
 
 		if (!itemparsed("reprfrac")) badins("reprfrac");
-		if (!itemparsed("reprCN")) badins("reprCN");
 		if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
 		if (!itemparsed("turnover_root")) badins("turnover_root");
 		if (!itemparsed("ltor_max")) badins("ltor_max");
@@ -1314,7 +1301,7 @@ Table out_mrh, out_mnee, out_mwcont_upper, out_mwcont_lower;
 // bvoc
 Table out_aiso, out_miso, out_amon, out_mmon;
 
-Table out_cton, out_nmass, out_nsources, out_npool, out_nleach, out_nuptake, out_anppn, out_vmaxnlim, out_nlim, out_nflux;
+Table out_cton, out_nmass, out_nsources, out_npool, out_nleach, out_nuptake, out_anppn, out_vmaxnlim, out_nflux;
 
 // allometry
 Table out_canopyh, out_allometry_ind;
@@ -3216,12 +3203,6 @@ void define_output_tables() {
 	vmaxnlim_columns += ColumnDescriptor("Total", 8, 3);
 	vmaxnlim_columns += ColumnDescriptors(landcovers, 13, 4);
 
-	// NLIM
-	ColumnDescriptors nlim_columns;
-	nlim_columns += ColumnDescriptors(pfts, 8, 3);
-	nlim_columns += ColumnDescriptor("Total", 8, 3);
-	nlim_columns += ColumnDescriptors(landcovers, 13, 4);
-
 	// NFLUX
 	ColumnDescriptors nflux_columns;
 	nflux_columns += ColumnDescriptor("NH3",   10, 6);
@@ -3273,7 +3254,6 @@ void define_output_tables() {
 	create_output_table(out_nuptake,        file_nuptake,        nuptake_columns);
 	create_output_table(out_anppn,          file_anppn,          anppn_columns);
 	create_output_table(out_vmaxnlim,       file_vmaxnlim,       vmaxnlim_columns);
-	create_output_table(out_nlim,           file_nlim,           nlim_columns);
 	create_output_table(out_nflux,          file_nflux,          nflux_columns);
 	create_output_table(out_canopyh,        file_canopyh,        canopyh_columns);
 	create_output_table(out_allometry_ind,  file_allometry_ind,  allometry_ind_columns);
@@ -4617,7 +4597,6 @@ void outannual(Gridcell& gridcell) {
 		double landcover_nuptake[NLANDCOVERTYPES]={0.0};
 		double landcover_anppn[NLANDCOVERTYPES]={0.0};
 		double landcover_vmaxnlim[NLANDCOVERTYPES]={0.0};
-		double landcover_nlim[NLANDCOVERTYPES]={0.0};
 
 		double gcpft_cmass_leaf=0.0;	// nitrogen mass of leafs
 		double gcpft_nmass_leaf=0.0;	// carbon mass of leafs
@@ -4625,7 +4604,6 @@ void outannual(Gridcell& gridcell) {
 		double gcpft_nuptake=0.0;		// sum across patches for nitrogen uptake (kgN/m2)
 		double gcpft_anppn=0.0;			// sum across patches for nitrogen ANPP usage (kgN/m2)
 		double gcpft_vmaxnlim=0.0;		// N limitation on vm
-		double gcpft_nlim=0.0;			// N limitation on growth
 
 		double cmass_leaf_gridcell=0.0;
 		double nmass_leaf_gridcell=0.0;
@@ -4633,8 +4611,6 @@ void outannual(Gridcell& gridcell) {
 		double nuptake_gridcell=0.0;
 		double anppn_gridcell=0.0;
 		double vmaxnlim_gridcell=0.0;
-		double nlim_gridcell=0.0;
-		double anpp_no_nlim_gridcell=0.0;
 
 		double standpft_cmass_leaf=0.0;
 		double standpft_nmass_leaf=0.0;
@@ -4642,8 +4618,6 @@ void outannual(Gridcell& gridcell) {
 		double standpft_nuptake=0.0;
 		double standpft_anppn=0.0;
 		double standpft_vmaxnlim=0.0;
-		double standpft_nlim=0.0;
-		double standpft_anpp_no_nlim=0.0;
 
 		surfsoillitterc,surfsoillittern,cwdc,cwdn,microc,micron,humusc,humusn,centuryc,centuryn=0.0;
 		double n_litter=0.0;
@@ -4678,7 +4652,6 @@ void outannual(Gridcell& gridcell) {
 			gcpft_nuptake=0.0;
 			gcpft_anppn=0.0;
 			gcpft_vmaxnlim=0.0;
-			gcpft_nlim=0.0;
 
 			double heightindiv_total = 0.0;
 
@@ -4703,8 +4676,6 @@ void outannual(Gridcell& gridcell) {
 				standpft_nuptake=0.0;
 				standpft_anppn=0.0;
 				standpft_vmaxnlim=0.0;
-				standpft_nlim=0.0;
-				standpft_anpp_no_nlim=0.0;
 
 				// Initialise age structure array
 
@@ -4736,13 +4707,12 @@ void outannual(Gridcell& gridcell) {
 								standpft_amon+=indiv.amon;
 
 								standpft_cmass_leaf+=indiv.cmass_leaf*indiv.densindiv;
-								standpft_nmass_leaf+=indiv.nmass_leaf*indiv.densindiv;
+								standpft_nmass_leaf+=indiv.cmass_leaf*indiv.densindiv/indiv.cton_leaf;
 								standpft_vmaxnlim+=indiv.avmaxnlim*indiv.cmass_leaf*indiv.densindiv;
-								standpft_anpp_no_nlim+=indiv.anpp/indiv.limnfact;
-								standpft_nuptake+=indiv.nuptake;
+								standpft_nuptake+=indiv.anuptake;
 								standpft_anppn+=indiv.ndemand;
 								standpft_nmass+=indiv.nmass_leaf+indiv.nmass_root+indiv.nmass_sap+
-									indiv.nmass_heart+indiv.nmass_reserve;
+									indiv.nmass_heart+indiv.nstore_leaf+indiv.nstore_root+indiv.nstore;
 
 								// WOLF
 								if (date.year == 605 && pft.lifeform==TREE && indiv.age>0) {
@@ -4809,22 +4779,14 @@ void outannual(Gridcell& gridcell) {
 				standpft_nuptake/=(double)stand.npatch();
 				standpft_anppn/=(double)stand.npatch();
 				standpft_nmass/=(double)stand.npatch();
-				standpft_anpp_no_nlim/=(double)stand.npatch();
-
-				if (standpft_anpp_no_nlim>0.0 && standpft_anpp>0.0)
-					standpft_nlim=standpft_anpp/standpft_anpp_no_nlim;
-				else
-					standpft_nlim=1.0;
 				
 				gcpft_cmass_leaf+=standpft_cmass_leaf;
 				gcpft_nmass_leaf+=standpft_nmass_leaf;
 				gcpft_vmaxnlim+=standpft_vmaxnlim;
-				gcpft_nlim+=standpft_nlim;
 
 				cmass_leaf_gridcell+=standpft_cmass_leaf;
 				nmass_leaf_gridcell+=standpft_nmass_leaf;
 				vmaxnlim_gridcell+=standpft_vmaxnlim;
-				nlim_gridcell+=standpft_nlim;
 
 				if (!negligible(standpft_cmass_leaf))
 					standpft_vmaxnlim/=standpft_cmass_leaf;
@@ -4845,7 +4807,6 @@ void outannual(Gridcell& gridcell) {
 				landcover_nuptake[stand.landcover]+=standpft_nuptake*stand.get_landcover_fraction();
 				landcover_anppn[stand.landcover]+=standpft_anppn*stand.get_landcover_fraction();
 				landcover_vmaxnlim[stand.landcover]+=standpft_vmaxnlim*stand.get_landcover_fraction();
-				landcover_nlim[stand.landcover]+=standpft_nlim*stand.get_landcover_fraction();
 
 				//Update pft totals
 				gcpft_cmass+=standpft_cmass;
@@ -4875,7 +4836,6 @@ void outannual(Gridcell& gridcell) {
 				nmass_gridcell+=standpft_nmass*fraction_of_gridcell;
 				nuptake_gridcell+=standpft_nuptake*fraction_of_gridcell;
 				anppn_gridcell+=standpft_anppn*fraction_of_gridcell;
-				anpp_no_nlim_gridcell+=standpft_anpp_no_nlim*fraction_of_gridcell;
 
 				if (!out_canopyh.invalid()) {
 					canopyheight_gridcell=canopy_height(stand);
@@ -4890,7 +4850,6 @@ void outannual(Gridcell& gridcell) {
 					plot("dens [indiv/ha]",pft.name,date.year,gcpft_densindiv_total*10000.0);
 					if (gcpft_cmass_leaf>0.0 && ifnlim) {
 						plot("vmax N lim",pft.name,date.year,gcpft_vmaxnlim/gcpft_cmass_leaf);
-						plot("N lim on growth",pft.name,date.year,gcpft_nlim);
 						plot("leaf C:N ratio",pft.name,date.year,gcpft_cmass_leaf/gcpft_nmass_leaf);
 					}
 				}
@@ -4907,7 +4866,6 @@ void outannual(Gridcell& gridcell) {
 			
 			out.add_value(out_cton,     gcpft_cton_leaf);
 			out.add_value(out_vmaxnlim, gcpft_vmaxnlim);
-			out.add_value(out_nlim,     gcpft_nlim);
 			out.add_value(out_nmass,    gcpft_nmass);
 			out.add_value(out_nuptake,  gcpft_nuptake);
 			out.add_value(out_anppn,    gcpft_anppn);
@@ -5000,14 +4958,14 @@ void outannual(Gridcell& gridcell) {
 					firert_gridcell+=1000.0/(double)stand.npatch(); // Set a limit of 1000 years
 				else
 					firert_gridcell+=(1.0/patch.fireprob)/(double)stand.npatch();
-				
-				andep_gridcell+=patch.soil.andep/(double)stand.npatch()*10000.0;	// convert from m2 to ha
+			
+				andep_gridcell+=stand.gridcell.climate.andep/(double)stand.npatch()*10000.0;	// convert from m2 to ha
 				anmin_gridcell+=patch.soil.anmin/(double)stand.npatch()*10000.0;	// convert from m2 to ha
 				animm_gridcell+=patch.soil.animmob/(double)stand.npatch()*10000.0; // convert from m2 to ha
 				anfix_gridcell+=patch.soil.anfix/(double)stand.npatch()*10000.0;		// convert from m2 to ha
 				n_min_leach_gridcell+=patch.soil.aminleach/(double)stand.npatch()*10000.0;	// convert from m2 to ha
 				n_org_leach_gridcell+=patch.soil.aorgleach/(double)stand.npatch()*10000.0;	// convert from m2 to ha
-				nsupply_gridcell+=patch.nsupply/(double)stand.npatch()*10000.0;			// convert from m2 to ha
+				nsupply_gridcell+=patch.soil.nmass/(double)stand.npatch()*10000.0;			// convert from m2 to ha
 				ndemand_gridcell+=patch.ndemand/(double)stand.npatch()*10000.0;			// convert from m2 to ha
 
 				for (int r=0;r<NSOMPOOL;r++) {
@@ -5111,15 +5069,10 @@ void outannual(Gridcell& gridcell) {
 		out.add_value(out_aiso,   aiso_gridcell);
 		out.add_value(out_amon,   amon_gridcell);
 
-		double nlim_grid=0.0;
-		if (!negligible(anpp_no_nlim_gridcell))
-			nlim_grid=anpp_gridcell/anpp_no_nlim_gridcell;
-
 		out.add_value(out_nmass,     nmass_gridcell);
 		out.add_value(out_anppn,     anppn_gridcell);
 		out.add_value(out_cton,      cton_leaf_gridcell);
 		out.add_value(out_vmaxnlim,  vmaxnlim_gridcell);
-		out.add_value(out_nlim,      nlim_grid);
 		out.add_value(out_canopyh,   canopyheight_gridcell);
 		out.add_value(out_nuptake,   nuptake_gridcell);
 
@@ -5160,7 +5113,6 @@ void outannual(Gridcell& gridcell) {
 
 					out.add_value(out_cton, landcover_cton_leaf);
 					out.add_value(out_vmaxnlim, landcover_vmaxnlim[i]);
-					out.add_value(out_nlim, landcover_nlim[i]);
 					out.add_value(out_nuptake, landcover_nuptake[i]);
 				}
 			}

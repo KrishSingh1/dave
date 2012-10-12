@@ -142,456 +142,6 @@ bool survive(Climate& climate, Pft& pft) {
 	return true;
 }
 
-/// Calculates individual fnuptake based on surface of fine root
-/** Roots are cone formed with height == radie. 
- *  V = PI * r^3 / 3
- *  A = (2^1/2 + 1) * PI * r^2
- *  -> A = const * cmass_root^2/3 
- */
-double nitrogen_uptake_strength(const Individual& indiv) {
-	return pow(indiv.cmass_root, 2.0 / 3.0);
-}
-
-/// Individual N uptake fraction
-/** Determining indvidual N uptake as a fraction of its N demand. 
- *  Grasses should get at least 5% and no
- *  individual should get more than 100% of its N demand. 
- */
-void indiv_fnuptake(Vegetation& vegetation, double nsupply_patch, double fnuptake) {
-
-	double GRASS_part = 0.05;			// Grass should at least get 5% of total available N
-	double grass_nsupply = nsupply_patch * GRASS_part; // Minimum grass N supply
-	double GRASS_ndemand = 0.0;			// Grass total N demand
-	bool GRASS_100 = false;				// If grass gets what it demands from its part of the total N supply 
-	bool not_more_grass = false;		// Keeping track of if GRASS can compite with TREEs for more N than what is
-										// espacially assigned for GRASS (GRASS_part)
-	double grass_uptake_decider = 0.0;	// Uptake strength of grasses
-	double total_uptake_decider = 0.0;	// Total uptake strength
-	double temp_nsupply_patch = nsupply_patch;
-	double ratio_uptake;				// How much N taken up per uptake strength
-	bool full_uptake = true;			// If indiv.fuptake should be updated as an individual got more than 100% of its 
-										// N demand
-
-	// RAINGREEN
-	// N demand from foliage droped during the year from raingreen pfts is always meet 
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv=vegetation.getobj();
-
-		if (indiv.pft.phenology == RAINGREEN) {
-			temp_nsupply_patch -= indiv.raingreen_ndemand;
-			indiv.ndemand -= indiv.raingreen_ndemand;
-			indiv.nstore += indiv.raingreen_ndemand;
-		}
-		vegetation.nextobj();
-	}
-
-	// GRASS
-	// Determine strength and demand of grasses
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv = vegetation.getobj();
-
-		if (indiv.pft.lifeform == GRASS && !negligible(indiv.ndemand)) {
-			GRASS_ndemand += indiv.ndemand;
-			grass_uptake_decider += nitrogen_uptake_strength(indiv);
-		}
-		vegetation.nextobj();
-	}
-
-	// GRASS
-	// Does grass get enough N from its part of the total
-	if (GRASS_ndemand < grass_nsupply) 
-		GRASS_100 = true;
-	else 
-		GRASS_100 = false;
-
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv=vegetation.getobj();
-		 
-		indiv.fnuptake = fnuptake;
-
-		// GRASS
-		// if grasses gets enough from its part, then take it up
-		if (indiv.pft.lifeform == GRASS && GRASS_100 && !negligible(indiv.ndemand)) {
-
-			// when grass part of total N is enough, then subtract it from total
-			temp_nsupply_patch -= indiv.ndemand;
-			// set uptake to meet demand
-			indiv.fnuptake = 1.0;
-			// and subtract uptake strength as it will be added further down
-			total_uptake_decider -= nitrogen_uptake_strength(indiv);
-		}
-		
-		// TREE
-		// Sum up uptake strengths
-		if (!negligible(indiv.ndemand)) {
-			total_uptake_decider += nitrogen_uptake_strength(indiv);
-		}
-
-		vegetation.nextobj();
-	}
-	
-	// Loop through indiv and decide their fnuptake
-	while (full_uptake){
-
-		full_uptake = false;	
-		
-		// restore N supply and uptake decider if not_more_grass == true
-		// (which can happen if there is a full_uptake)
-		// so that it can be calculated if they might be able to take up more 
-		// than just the GRASS part
-		if (not_more_grass) {
-			temp_nsupply_patch += grass_nsupply;
-			total_uptake_decider += grass_uptake_decider;
-			not_more_grass = false;
-		}
-
-		// decide how much N that will be taken up by each uptake strength 
-		if (total_uptake_decider > 0.0 && temp_nsupply_patch > 0.0)
-			ratio_uptake = temp_nsupply_patch / total_uptake_decider;
-		else
-			ratio_uptake = 0.0;
-
-		// GRASS
-		// Grass part of avail N is not enough
-		if (!GRASS_100 && !not_more_grass) {
-
-			// See if grass can't get more than the 5%
-			if (grass_nsupply > ratio_uptake * grass_uptake_decider) {
-
-				not_more_grass = true;
-				// then grass takes GRASS_part of total N supply
-				temp_nsupply_patch -= grass_nsupply;
-				// and GRASS strength is subtracted from totaluptake strength
-				total_uptake_decider -= grass_uptake_decider;
-				// and a new ratio uptake is calculated for TREEs 
-				ratio_uptake = temp_nsupply_patch / total_uptake_decider; 
-			}
-			else {
-				// GRASS can compite for more than 5%
-				not_more_grass = false;
-			}
-		}
-
-		vegetation.firstobj();
-		while (vegetation.isobj && !full_uptake) {
-			Individual& indiv=vegetation.getobj();
-
-			// if lifeform is GRASS and they can't compite with TREEs for more than their part of the total N supply
-			if (indiv.pft.lifeform == GRASS && not_more_grass && indiv.fnuptake != 1.0) {
-				if (!negligible(indiv.ndemand)) {
-
-					indiv.fnuptake = grass_nsupply * (nitrogen_uptake_strength(indiv)
-						/ grass_uptake_decider) / indiv.ndemand;
-
-					if (indiv.fnuptake > 1.0) {
-
-						indiv.fnuptake = 1.0;
-
-						// subtract N demand from grass N supply
-						grass_nsupply -= indiv.ndemand;
-
-						// and take away this indiv uptake strength from grass total
-						grass_uptake_decider -= nitrogen_uptake_strength(indiv);
-
-						// and redo indiv fnuptake calc for the rest of the indiv as this indiv probably could
-						// take up more than its N demand -> more available for the rest of the indiv
-						full_uptake = true;
-					}
-				}
-				else
-					indiv.fnuptake = 0.0;
-			}
-
-			// if lifeform is TREE and GRASS if it can compete with TREEs
-			else {
-
-				// if fuptake does't meet its N demand, then calculate a new value for fuptake
-				if (indiv.fnuptake != 1.0) {
-
-					// if indiv has the strenght to take up more than N demand
-					if (ratio_uptake * nitrogen_uptake_strength(indiv) > indiv.ndemand && !negligible(indiv.ndemand)){
-						
-						indiv.fnuptake = 1.0;
-						
-						// subtract N demand from N supply
-						temp_nsupply_patch -= indiv.ndemand;
-
-						// and take away this indiv uptake strength from total
-						total_uptake_decider -= nitrogen_uptake_strength(indiv);
-
-						// and redo indiv fuptake calc for the rest of the indiv as this indiv probably could
-						// take up more than its N demand -> more available for the rest of the indiv
-						full_uptake = true;
-					}
-					// normal N limited uptake (0.0 < fuptake < 1.0)
-					else if (indiv.ndemand > 0.0)
-						indiv.fnuptake = (ratio_uptake * nitrogen_uptake_strength(indiv)) / indiv.ndemand;
-					else
-						indiv.fnuptake = 0.0;
-				}
-			}
-
-			vegetation.nextobj();
-		}
-	}
-}
-
-/// Create new establishments for N uptake
-/** Creating new indiv which will determine new establishments ability to 
- *  take up N in competion with existing individuals. Killed after
- *  N is taken up.
- *  Same code as in establishment_guess()
- */
-void ndemand_new_est(Patch& patch, Pftlist& pftlist, double& patch_ndemand) {
-
-	double bminit, ltor, est, c, kest_bg, nsapling, newindiv;
-	double SAPSIZE = 0.1;
-
-	if (!patch.id) {
-
-		for (int pf=0; pf<npft; pf++)
-			patch.stand.pft[pf].cmass_repr_nuptake = 0.0;
-
-		for (int p=0; p<npatch; p++) {
-
-			// START OF LOOP THROUGH PATCHES
-
-			// Get reference to this patch
-			Patch& patch_temp = patch.stand[p];				
-
-			Vegetation& vegetation_temp = patch_temp.vegetation;
-
-			vegetation_temp.firstobj();
-			while (vegetation_temp.isobj) {
-				Individual& indiv = vegetation_temp.getobj();
-
-				double anpp = max(indiv.anpp, 0.0);
-
-				patch.stand.pft[indiv.pft.id].cmass_repr_nuptake += (anpp * indiv.pft.reprfrac) / (double)npatch;
-				vegetation_temp.nextobj();
-			}	
-		}
-	}
-
-	Vegetation& vegetation = patch.vegetation;
-
-	// guess2008 - determine the number of woody PFTs that can establish
-	// Thomas Hickler
-	int nwoodypfts_estab = 0;
-	pftlist.firstobj();
-	while (pftlist.isobj) {
-		Pft& pft = pftlist.getobj();
-		if (establish(patch, patch.stand.gridcell.climate,pft) && pft.lifeform == TREE)
-			nwoodypfts_estab++;
-		pftlist.nextobj();
-	}
-
-	// Loop through PFTs
-
-	pftlist.firstobj();
-	while (pftlist.isobj) {
-		Pft& pft = pftlist.getobj();
-
-		if (establish(patch, patch.stand.gridcell. climate,pft)) {
-
-			if (pft.lifeform == GRASS) {
-
-				// ESTABLISHMENT OF GRASSES
-
-				Individual& indiv = vegetation.createobj(pft, vegetation);
-				indiv.height = 0.0;
-				indiv.crownarea = 1.0; // (value not used)
-				indiv.densindiv = 1.0;
-				indiv.fpc = 1.0;
-				indiv.age = -9999;
-
-				// Initial grass biomass proportional to potential forest floor
-				// net assimilation this year on patch area basis
-
-				bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;	
-
-				// Veiko -> makes no difference
-				bminit *= 0.3;
-
-				// Initial leaf to fine root biomass ratio based on
-				// hypothetical value of water stress parameter
-
-				ltor = patch.pft[pft.id].wscal_mean * pft.ltor_max;
-
-				// Allocate initial biomass
-
-				allocation_init(bminit, ltor, indiv);
-
-				// Calculate initial allometry
-
-				allometry(indiv);
-
-				indiv.cton_leaf_new = indiv.pft.cton_leaf_avr;
-				indiv.cton_root_new = indiv.pft.cton_root_avr;
-
-				indiv.max_n_reserve = indiv.pft.n_reserve * indiv.cmass_root / indiv.pft.cton_leaf_avr;
-
-				// Initialise N demand
-				indiv.ndemand =
-					indiv.cmass_leaf / indiv.pft.cton_leaf_avr +
-					indiv.cmass_root / indiv.pft.cton_root_avr;
-
-				if (indiv.ndemand > 0.0) {
-					indiv.aassim = 365.0;
-					for (int d=0; d<365; d++) 
-						indiv.dassim[d] = 1.0;	// Could be phen or something realistic
-				}
-
-				if (patch.pft[pft.id].nstore_est < indiv.ndemand) {
-					indiv.ndemand -= patch.pft[pft.id].nstore_est;
-					patch_ndemand += indiv.ndemand;
-				}
-				else {
-					double surplus = patch.pft[pft.id].nstore_est - indiv.ndemand;
-					patch.pft[pft.id].nstore_est -= surplus;
-					patch.soil.nmass_avail += surplus;
-					vegetation.killobj();
-				}
-			}
-			else if (pft.lifeform == TREE) {
-
-				// ESTABLISHMENT OF NEW TREE SAPLINGS
-
-				double anetps_ff = patch.pft[pft.id].anetps_ff;
-
-				if (patch.age == 0)
-					
-					// First simulation year - initialising patch
-					// Eqn 1
-
-					est = pft.est_max * patcharea;
-
-				else {
-
-					// Every year except year 1
-					// Eqns 5, 6
-
-					if (anetps_ff > 0.0 && !negligible(anetps_ff)) {
-
-						c = exp(pft.alphar - pft.alphar / anetps_ff *
-							patch.stand.pft[pft.id].anetps_ff_max) * pft.est_max * patcharea;
-					}
-					else
-						c = 0.0;
-
-					// Background establishment enabled?
-
-					if (ifbgestab)
-						kest_bg = pft.kest_bg;
-					else
-						kest_bg = 0.0;
-
-					// Spatial mass effect enabled?
-					// Eqns 2, 3, 4
-
-					double aaa = c;
-					double bbb = pft.kest_repr;
-					double ccc = patch.stand.pft[pft.id].cmass_repr_nuptake;
-					double ddd = kest_bg;
-
-					if (ifsme)
-						est = c * (pft.kest_repr * patch.stand.pft[pft.id].cmass_repr_nuptake + kest_bg);
-					else if (!negligible(patch.stand.pft[pft.id].cmass_repr))
-						est = c * (pft.kest_pres + kest_bg);
-					else
-						est = c * kest_bg;
-				}
-
-				// guess2008 - scale est by the number of woody PFTs/species that can establish
-				// Otherwise, simply adding more PFTs or species would increase est
-				est *= 3.0 / double(nwoodypfts_estab);
-
-				// Have a value for expected number of new saplings (est)
-				// Actual number of new saplings drawn from the Poisson distribution
-				// (except cohort mode with stochastic establishment disabled)
-
-				if (ifstochestab || vegmode == INDIVIDUAL) nsapling = randpoisson(est);
-				else nsapling = est;
-
-				patch.pft[pft.id].nsapling_nuptake = nsapling;
-
-				if (vegmode == COHORT)
-					newindiv = !negligible(nsapling);
-							// round down to 0 if nsapling very small
-				else if (vegmode == INDIVIDUAL)
-					newindiv = (int)(nsapling + 0.5); // round up to be on the safe side
-
-				// Now create 'newindiv' new Individual objects
-
-				for (int i=0; i<newindiv; i++) {
-
-					// Create average individual for a new cohort (cohort mode)
-					// or an actual individual (individual mode)
-
-					Individual& indiv = vegetation.createobj(pft,vegetation);
-
-					if (vegmode == COHORT)
-						indiv.densindiv = nsapling / patcharea;
-					else if (vegmode == INDIVIDUAL)
-						indiv.densindiv = 1.0 / patcharea;
-
-					indiv.age = -9999;
-
-					// Initial biomass proportional to potential forest floor net
-					// assimilation for this PFT in this patch
-
-					bminit = SAPSIZE * anetps_ff;
-
-					// Veiko -> makes no difference
-					bminit *= 0.3;
-
-					// Initial leaf to fine root biomass ratio based on hypothetical
-					// value of water stress parameter
-
-					ltor = patch.pft[pft.id].wscal_mean * pft.ltor_max;
-
-					// Allocate initial biomass
-
-					allocation_init(bminit, ltor, indiv);
-
-					// Calculate initial allometry
-
-					allometry(indiv);
-					
-					indiv.cton_leaf_new = indiv.pft.cton_leaf_avr;
-					indiv.cton_root_new = indiv.pft.cton_root_avr;
-					indiv.cton_sap_new = indiv.pft.cton_sap_avr;
-
-					indiv.max_n_reserve = indiv.pft.n_reserve * indiv.cmass_sap / indiv.pft.cton_leaf_avr;
-
-					// Initialise N demand
-					indiv.ndemand = (
-						indiv.cmass_leaf / indiv.pft.cton_leaf_avr +
-						indiv.cmass_root / indiv.pft.cton_root_avr +
-						indiv.cmass_sap / (indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr * indiv.pft.cton_leaf_avr)+
-						indiv.cmass_heart / (indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr * indiv.pft.cton_leaf_avr)+
-						indiv.nmass_reserve);
-
-					if (indiv.ndemand > 0.0) {
-						indiv.aassim = 365.0;
-						for (int d=0; d<365; d++) 
-							indiv.dassim[d] = 1.0;	// Could be phen or something realistic
-					}
-
-					patch_ndemand += indiv.ndemand;
-				}
-			}
-		}
-		// ... on to next PFT
-
-		pftlist.nextobj();
-	}
-}
-
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // ESTABLISHMENT
 // Internal functions (do not call directly from framework)
@@ -842,9 +392,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	int newindiv; // number of new Individual objects to add to vegetation for this PFT
 	double kest_bg;
 	int i;
-	bool est_year; // On establishment year reset establishment N store
-
-	double nonlimdens;	// No N limitation indiv density
 
 	// Obtain reference to Vegetation object
 
@@ -887,286 +434,207 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 			if (establish(patch, stand.gridcell.climate, pft)) {
 
-				// Either nitrogen free establishment or there is nitrogen available for establishment 
-				if (!(ifnlim && date.year >= freenyears && !patch.pft[pft.id].nstore_est)) {
+				if (pft.lifeform == GRASS) {
 
-					if (pft.lifeform == GRASS) {
+					// ESTABLISHMENT OF GRASSES
 
-						// ESTABLISHMENT OF GRASSES
+					// Each grass PFT represented by just one individual in each patch
+					// Check whether this grass PFT already represented ...
 
-						// Each grass PFT represented by just one individual in each patch
-						// Check whether this grass PFT already represented ...
+					present = false;
+					vegetation.firstobj();
+					while (vegetation.isobj && !present) {
+						if (vegetation.getobj().pft.id == pft.id) present = true;
+						vegetation.nextobj();
+					}
 
-						present = false;
-						vegetation.firstobj();
-						while (vegetation.isobj && !present) {
-							if (vegetation.getobj().pft.id == pft.id) present = true;
-							vegetation.nextobj();
+					if (!present) {
+
+						// ... if not, add it
+
+						Individual& indiv = vegetation.createobj(pft, vegetation);
+						indiv.height = 0.0;
+						indiv.crownarea = 1.0; // (value not used)
+						indiv.densindiv = 1.0;
+						indiv.fpc = 1.0;
+
+						// Initial grass biomass proportional to potential forest floor
+						// net assimilation this year on patch area basis
+
+						bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;	
+
+						if (ifdisturb && patch.disturbed)
+							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff_est_initial;
+						// Makes no difference, Veiko 
+						bminit *= 0.3;
+
+						// Initial leaf to fine root biomass ratio based on
+						// hypothetical value of water stress parameter
+
+						ltor = patch.pft[pft.id].wscal_mean * pft.ltor_max;
+
+						// Allocate initial biomass
+
+						allocation_init(bminit, ltor, indiv);
+
+						// Calculate initial allometry
+
+						allometry(indiv);
+
+						// Sap wood nitrogen demand allways zero
+						indiv.sapndemand = 0.0;
+
+						// Set new leaf tissue C:N ratio
+						indiv.cton_leaf_new = indiv.pft.cton_leaf_avr;
+
+						indiv.max_n_reserve = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
+						indiv.scale_n_reserve = indiv.max_n_reserve / bminit;
+
+						// Account for C flux from atmosphere to vegetation
+						// guess2008 - flux is not debited for 'new' Individual
+						// objects - their carbon is debited in function growth()
+						// if they survive the first year 
+
+						if (indiv.alive)
+							patch.fluxes.acflux_est -= bminit;
+					}
+				}
+				else if (pft.lifeform == TREE) {
+
+					// ESTABLISHMENT OF NEW TREE SAPLINGS
+
+					if (patch.age == 0){
+
+						// First simulation year - initialising patch
+						// Eqn 1
+
+						est = pft.est_max * patcharea;
+					} 
+					else {
+
+						// Every year except year 1
+						// Eqns 5, 6
+
+						if (patch.pft[pft.id].anetps_ff > 0.0 &&
+							!negligible(patch.pft[pft.id].anetps_ff)) {
+
+								c = exp(pft.alphar - pft.alphar / patch.pft[pft.id].anetps_ff *
+									stand.pft[pft.id].anetps_ff_max) * pft.est_max * patcharea;
 						}
+						else
+							c = 0.0;
 
-						if (!present) {
+						// Background establishment enabled?
 
-							// ... if not, add it
+						if (ifbgestab)
+							kest_bg = pft.kest_bg;
+						else
+							kest_bg = 0.0;
 
-							Individual& indiv = vegetation.createobj(pft, vegetation);
-							indiv.height = 0.0;
-							indiv.crownarea = 1.0; // (value not used)
-							indiv.densindiv = 1.0;
-							indiv.fpc = 1.0;
+						// Spatial mass effect enabled?
+						// Eqns 2, 3, 4
 
-							// Initial grass biomass proportional to potential forest floor
-							// net assimilation this year on patch area basis
+						if (ifsme)
+							est = c * (pft.kest_repr * stand.pft[pft.id].cmass_repr + kest_bg);
+						else if (!negligible(stand.pft[pft.id].cmass_repr))
+							est = c * (pft.kest_pres + kest_bg);
+						else
+							est = c * kest_bg;
+					}
 
-							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;	
+					// guess2008 - scale est by the number of woody PFTs/species that can establish
+					// Otherwise, simply adding more PFTs or species would increase est
+					est *= 3.0 / double(nwoodypfts_estab);
 
-							if (ifdisturb && patch.disturbed)
-								bminit = SAPSIZE * patch.pft[pft.id].anetps_ff_est_initial;
-							// Makes no difference, Veiko 
-							bminit *= 0.3;
+					// Have a value for expected number of new saplings (est)
+					// Actual number of new saplings drawn from the Poisson distribution
+					// (except cohort mode with stochastic establishment disabled)
 
-							// Initial leaf to fine root biomass ratio based on
-							// hypothetical value of water stress parameter
+					if (ifstochestab || vegmode == INDIVIDUAL) nsapling = randpoisson(est);
+					else nsapling = est;
 
-							ltor = patch.pft[pft.id].wscal_mean * pft.ltor_max;
+					patch.pft[pft.id].nsapling_yearly += nsapling;
 
-							// Allocate initial biomass
+					if (vegmode == COHORT) {
 
-							allocation_init(bminit, ltor, indiv);
+						// BLARP added for OECD experiment (is this sensible?)
+						if (ifdisturb && patch.disturbed) {
 
-							// Calculate initial allometry
+							patch.pft[pft.id].anetps_ff_est =
+								patch.pft[pft.id].anetps_ff_est_initial;
+							patch.pft[pft.id].wscal_mean_est = patch.pft[pft.id].wscal_mean;
+							newindiv = !negligible(nsapling);
+						}
+						else if (patch.age % estinterval) {
 
-							allometry(indiv);
+							// Not an establishment year - save sapling count for
+							// establishment the next establishment year
 
-							indiv.cton_leaf_new = indiv.pft.cton_leaf_avr;
-							indiv.cton_root_new = indiv.pft.cton_root_avr;
-							indiv.cton_leaf_opt = indiv.pft.cton_leaf_avr;
-
-							// Initialise N demand
-							indiv.ndemand =
-								indiv.cmass_leaf / indiv.pft.cton_leaf_avr +
-								indiv.cmass_root / indiv.pft.cton_root_avr;
-
-							// N limitation on establishment
-							if (ifnlim && date.year >= freenyears && indiv.ndemand > 0.0) {
-								double frac_est = min(1.0, patch.pft[pft.id].nstore_est / indiv.ndemand);
-								indiv.cmass_leaf *= frac_est;
-								indiv.nmass_leaf *= frac_est;
-								indiv.cmass_root *= frac_est;
-								indiv.nmass_root *= frac_est;
-								bminit *= frac_est;
+							patch.pft[pft.id].nsapling += nsapling;
+							newindiv = 0;
+						}
+						else {
+							if (patch.age) {// all except first year after disturbance
+								nsapling += patch.pft[pft.id].nsapling;
+								patch.pft[pft.id].anetps_ff_est /= (double)estinterval;
+								patch.pft[pft.id].wscal_mean_est /= (double)estinterval;
 							}
-
-							indiv.max_n_reserve = indiv.pft.n_reserve * indiv.cmass_root / indiv.pft.cton_leaf_avr;
-
-							if (!negligible(max(0.0, indiv.cmass_leaf)) && !negligible(max(0.0, indiv.cmass_root))) {
-								indiv.bminc_leaf_frac = indiv.cmass_leaf / (indiv.cmass_leaf + indiv.cmass_root);
-								indiv.bminc_root_frac = 1.0 - indiv.bminc_leaf_frac;
-							}
-							else {
-								indiv.bminc_leaf_frac = 1.0 / 3.0;
-								indiv.bminc_root_frac = 1.0 - indiv.bminc_leaf_frac;
-							}
-
-							// Account for C flux from atmosphere to vegetation
-							// guess2008 - flux is not debited for 'new' Individual
-							// objects - their carbon is debited in function growth()
-							// if they survive the first year 
-
-							if (indiv.alive)
-								patch.fluxes.acflux_est -= bminit;
-
-							patch.pft[pft.id].nstore_est = 0.0;
+							newindiv = !negligible(nsapling);
+							// round down to 0 if nsapling very small
 						}
 					}
-					else if (pft.lifeform == TREE) {
+					else if (vegmode == INDIVIDUAL){
+						newindiv = (int)(nsapling + 0.5); // round up to be on the safe side
+					}
 
-						// ESTABLISHMENT OF NEW TREE SAPLINGS
+					// Now create 'newindiv' new Individual objects
 
-						if (patch.age == 0){
+					for (i=0; i<newindiv; i++) {
 
-							// First simulation year - initialising patch
-							// Eqn 1
+						// Create average individual for a new cohort (cohort mode)
+						// or an actual individual (individual mode)
 
-							est = pft.est_max * patcharea;
-						} 
-						else {
+						Individual& indiv = vegetation.createobj(pft, vegetation);
 
-							// Every year except year 1
-							// Eqns 5, 6
+						if (vegmode == COHORT)
+							indiv.densindiv = nsapling / patcharea;
+						else if (vegmode == INDIVIDUAL)
+							indiv.densindiv = 1.0 / patcharea;
 
-							if (patch.pft[pft.id].anetps_ff > 0.0 &&
-								!negligible(patch.pft[pft.id].anetps_ff)) {
+						indiv.age = 0.0;
 
-									c = exp(pft.alphar - pft.alphar / patch.pft[pft.id].anetps_ff *
-										stand.pft[pft.id].anetps_ff_max) * pft.est_max * patcharea;
-							}
-							else
-								c = 0.0;
+						// Initial biomass proportional to potential forest floor net
+						// assimilation for this PFT in this patch
 
-							// Background establishment enabled?
+						bminit = SAPSIZE * patch.pft[pft.id].anetps_ff_est;
 
-							if (ifbgestab)
-								kest_bg = pft.kest_bg;
-							else
-								kest_bg = 0.0;
+						// Makes no difference, Veiko
+						bminit *= 0.3;
 
-							// Spatial mass effect enabled?
-							// Eqns 2, 3, 4
+						// Initial leaf to fine root biomass ratio based on hypothetical
+						// value of water stress parameter
 
-							if (ifsme)
-								est = c * (pft.kest_repr * stand.pft[pft.id].cmass_repr + kest_bg);
-							else if (!negligible(stand.pft[pft.id].cmass_repr))
-								est = c * (pft.kest_pres + kest_bg);
-							else
-								est = c * kest_bg;
-						}
+						ltor = patch.pft[pft.id].wscal_mean_est * pft.ltor_max;
 
-						// guess2008 - scale est by the number of woody PFTs/species that can establish
-						// Otherwise, simply adding more PFTs or species would increase est
-						est *= 3.0 / double(nwoodypfts_estab);
+						// Allocate initial biomass
 
-						// Have a value for expected number of new saplings (est)
-						// Actual number of new saplings drawn from the Poisson distribution
-						// (except cohort mode with stochastic establishment disabled)
+						allocation_init(bminit, ltor, indiv);
 
-						if (ifstochestab || vegmode == INDIVIDUAL) nsapling = randpoisson(est);
-						else nsapling = est;
+						// Calculate initial allometry
 
-						if (date.year > freenyears)
-							nsapling = patch.pft[pft.id].nsapling_nuptake;
+						allometry(indiv);
 
-						patch.pft[pft.id].nsapling_yearly += nsapling;
+						// Set new leaf tissue C:N ratio
+						indiv.cton_leaf_new = indiv.pft.cton_leaf_avr;
 
-						if (vegmode == COHORT) {
+						// Account for C flux from atmosphere to vegetation
+						// guess2008
+						if (indiv.alive && indiv.densindiv)
+							patch.fluxes.acflux_est -= indiv.cmass_leaf + indiv.cmass_root +
+							indiv.cmass_sap;
 
-							// BLARP added for OECD experiment (is this sensible?)
-							if (ifdisturb && patch.disturbed) {
-
-								patch.pft[pft.id].anetps_ff_est =
-									patch.pft[pft.id].anetps_ff_est_initial;
-								patch.pft[pft.id].wscal_mean_est = patch.pft[pft.id].wscal_mean;
-								newindiv = !negligible(nsapling);
-								est_year = true;
-							}
-							else if (patch.age % estinterval) {
-
-								// Not an establishment year - save sapling count for
-								// establishment the next establishment year
-
-								patch.pft[pft.id].nsapling += nsapling;
-								newindiv = 0;
-								est_year = false;
-							}
-							else {
-								if (patch.age) {// all except first year after disturbance
-									nsapling += patch.pft[pft.id].nsapling;
-									patch.pft[pft.id].anetps_ff_est /= (double)estinterval;
-									patch.pft[pft.id].wscal_mean_est /= (double)estinterval;
-								}
-								newindiv = !negligible(nsapling);
-								// round down to 0 if nsapling very small
-								est_year = true;
-							}
-						}
-						else if (vegmode == INDIVIDUAL){
-							newindiv = (int)(nsapling + 0.5); // round up to be on the safe side
-							est_year = true;
-						}
-
-						// Now create 'newindiv' new Individual objects
-
-						for (i=0; i<newindiv; i++) {
-
-							// Create average individual for a new cohort (cohort mode)
-							// or an actual individual (individual mode)
-
-							Individual& indiv = vegetation.createobj(pft, vegetation);
-
-							if (vegmode == COHORT)
-								indiv.densindiv = nsapling / patcharea;
-							else if (vegmode == INDIVIDUAL)
-								indiv.densindiv = 1.0 / patcharea;
-
-							indiv.age = 0.0;
-
-							// Initial biomass proportional to potential forest floor net
-							// assimilation for this PFT in this patch
-
-							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff_est;
-
-							// Makes no difference, Veiko
-							bminit *= 0.3;
-
-							// Initial leaf to fine root biomass ratio based on hypothetical
-							// value of water stress parameter
-
-							ltor = patch.pft[pft.id].wscal_mean_est * pft.ltor_max;
-
-							// Allocate initial biomass
-
-							allocation_init(bminit, ltor, indiv);
-
-							// Calculate initial allometry
-
-							allometry(indiv);
-
-							indiv.cton_leaf_new = indiv.pft.cton_leaf_avr;
-							indiv.cton_root_new = indiv.pft.cton_root_avr;
-							indiv.cton_sap_new = indiv.pft.cton_sap_avr;
-							indiv.cton_leaf_opt = indiv.pft.cton_leaf_avr;
-
-							// Initialise N demand
-							indiv.ndemand =
-								indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap +
-								indiv.nmass_heart + indiv.nmass_reserve;
-
-							// N limitation on establishment
-							if (ifnlim && date.year >= freenyears){
-
-								nonlimdens = indiv.densindiv;
-
-								indiv.densindiv *= min(1.0, patch.pft[pft.id].nstore_est / indiv.ndemand);
-
-								indiv.densindiv = ((double)((int)(indiv.densindiv * 1000.0))) / 1000.0;
-
-								if (indiv.densindiv < nonlimdens) {
-									double densfrac = indiv.densindiv / nonlimdens;
-									indiv.cmass_leaf *= densfrac;
-									indiv.cmass_root *= densfrac;
-									indiv.cmass_sap *= densfrac;
-									indiv.nmass_leaf *= densfrac;
-									indiv.nmass_root *= densfrac;
-									indiv.nmass_sap *= densfrac;
-								}
-
-								double nstore_est = patch.pft[pft.id].nstore_est;
-
-								patch.pft[pft.id].nstore_est -= min(nstore_est, indiv.ndemand * indiv.densindiv / nonlimdens);
-							}
-							else
-								patch.pft[pft.id].nstore_est = 0.0;
-
-							// Account for C flux from atmosphere to vegetation
-							// guess2008
-							if (indiv.alive && indiv.densindiv)
-								patch.fluxes.acflux_est -= indiv.cmass_leaf + indiv.cmass_root +
-								indiv.cmass_sap;
-
-							indiv.max_n_reserve = indiv.pft.n_reserve * indiv.cmass_sap / indiv.pft.cton_leaf_avr;
-
-							indiv.bminc_leaf_frac = indiv.cmass_leaf / (indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap);
-							indiv.bminc_root_frac = indiv.cmass_root / (indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap);
-
-							if (indiv.densindiv == 0.0)
-								vegetation.killobj();
-						}
-
-						if (est_year) {
-							if (patch.pft[pft.id].nstore_est > 0.0) {
-								patch.soil.nmass_avail += patch.pft[pft.id].nstore_est;
-								patch.pft[pft.id].nstore_est = 0.0;
-							}
-						}
+						indiv.max_n_reserve = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
+						indiv.scale_n_reserve = indiv.max_n_reserve / bminit;
 					}
 				}
 			}
@@ -1296,10 +764,10 @@ void mortality_lpj(Stand& stand, Patch& patch, Climate& climate, double fireprob
 			patch.pft[indiv.pft.id].nmass_litter_wood+=indiv.nmass_sap+indiv.nmass_heart;
 			
 			// Transfer N storage to wood N litter for now 
-			if (indiv.pft.lifeform == TREE)
-				patch.pft[indiv.pft.id].nmass_litter_wood+=indiv.nstore+indiv.nmass_reserve;
+			if (patch.pft[indiv.pft.id].pft.lifeform == TREE)
+				patch.pft[indiv.pft.id].nmass_litter_wood+=indiv.nstore_leaf+indiv.nstore_root+indiv.nstore;
 			else
-				patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nstore+indiv.nmass_reserve;
+				patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nstore_leaf+indiv.nstore_root+indiv.nstore;
 
 			vegetation.killobj();
 			killed=true;
@@ -1369,38 +837,37 @@ void mortality_lpj(Stand& stand, Patch& patch, Climate& climate, double fireprob
 				indiv.nmass_heart);
 				
 			// Transfer N storage to wood N litter for now 	
-			patch.pft[indiv.pft.id].nmass_litter_wood+=(mort-mort_fire)*(indiv.nstore+indiv.nmass_reserve);
+			patch.pft[indiv.pft.id].nmass_litter_wood += (mort - mort_fire) * (indiv.nstore_leaf + indiv.nstore_root + indiv.nstore);
 
 			// Flux to atmosphere from burnt above-ground biomass
 
 			patch.fluxes.acflux_fire+=mort_fire*(indiv.cmass_leaf+indiv.cmass_sap+
 				indiv.cmass_heart-indiv.cmass_debt);
 
-			patch.fluxes.aNH3_fire+=mort_fire*patch.fluxes.firenratio[0]*(indiv.nmass_leaf+indiv.nmass_sap+
-				indiv.nmass_heart+indiv.nstore+indiv.nmass_reserve);
-			patch.fluxes.aNO_fire+=mort_fire*patch.fluxes.firenratio[1]*(indiv.nmass_leaf+indiv.nmass_sap+
-				indiv.nmass_heart+indiv.nstore+indiv.nmass_reserve);
-			patch.fluxes.aNO2_fire+=mort_fire*patch.fluxes.firenratio[2]*(indiv.nmass_leaf+indiv.nmass_sap+
-				indiv.nmass_heart+indiv.nstore+indiv.nmass_reserve);
-			patch.fluxes.aN2O_fire+=mort_fire*patch.fluxes.firenratio[3]*(indiv.nmass_leaf+indiv.nmass_sap+
-				indiv.nmass_heart+indiv.nstore+indiv.nmass_reserve);
+			double nmass = indiv.nmass_leaf + indiv.nmass_sap + indiv.nmass_heart + 
+				indiv.nstore_leaf + indiv.nstore_root + indiv.nstore;
+			patch.fluxes.aNH3_fire += mort_fire * patch.fluxes.firenratio[0] * nmass;
+			patch.fluxes.aNO_fire  += mort_fire * patch.fluxes.firenratio[1] * nmass;
+			patch.fluxes.aNO2_fire += mort_fire * patch.fluxes.firenratio[2] * nmass;
+			patch.fluxes.aN2O_fire += mort_fire * patch.fluxes.firenratio[3] * nmass;
 
 			// Reduce population density and C biomass on modelled area basis
 			// to account for loss of killed individuals
 
-			indiv.densindiv*=1.0-mort;
-			indiv.cmass_leaf*=1.0-mort;
-			indiv.cmass_root*=1.0-mort;
-			indiv.cmass_sap*=1.0-mort;
-			indiv.cmass_debt*=1.0-mort;
-			indiv.cmass_heart*=1.0-mort;
+			indiv.densindiv   *= 1.0 - mort;
+			indiv.cmass_leaf  *= 1.0 - mort;
+			indiv.cmass_root  *= 1.0 - mort;
+			indiv.cmass_sap   *= 1.0 - mort;
+			indiv.cmass_debt  *= 1.0 - mort;
+			indiv.cmass_heart *= 1.0 - mort;
 
-			indiv.nmass_leaf*=1.0-mort;
-			indiv.nmass_root*=1.0-mort;
-			indiv.nmass_sap*=1.0-mort;
-			indiv.nmass_heart*=1.0-mort;
-			indiv.nstore*=1.0-mort;	
-			indiv.nmass_reserve*=1.0-mort;
+			indiv.nmass_leaf  *= 1.0 - mort;
+			indiv.nmass_root  *= 1.0 - mort;
+			indiv.nmass_sap   *= 1.0 - mort;
+			indiv.nmass_heart *= 1.0 - mort;
+			indiv.nstore_leaf *= 1.0 - mort;
+			indiv.nstore_root *= 1.0 - mort;
+			indiv.nstore      *= 1.0 - mort;
 		}
 		else if (indiv.pft.lifeform==GRASS) {
 			
@@ -1440,7 +907,7 @@ void mortality_lpj(Stand& stand, Patch& patch, Climate& climate, double fireprob
 			patch.pft[indiv.pft.id].nmass_litter_root+=mort*indiv.nmass_root;
 
 			// Transfer N storage to root N litter for now
-			patch.pft[indiv.pft.id].nmass_litter_root+=mort*(indiv.nstore+indiv.nmass_reserve);
+			patch.pft[indiv.pft.id].nmass_litter_root+=mort*(indiv.nstore_leaf+indiv.nstore_root+indiv.nstore);
 
 			// Flux to atmosphere from burnt above-ground biomass
 
@@ -1459,8 +926,9 @@ void mortality_lpj(Stand& stand, Patch& patch, Climate& climate, double fireprob
 
 			indiv.nmass_leaf*=1.0-mort;
 			indiv.nmass_root*=1.0-mort;
+			indiv.nstore_leaf*=1.0-mort;
+			indiv.nstore_root*=1.0-mort;
 			indiv.nstore*=1.0-mort;
-			indiv.nmass_reserve*=1.0-mort;
 		}
 
 		// Remove this PFT population completely if all individuals killed
@@ -1585,17 +1053,18 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 					indiv.cmass_root *= indiv.pft.fireresist;
 
 					// N storage to root N litter 
-					patch.pft[indiv.pft.id].nmass_litter_root += mort_fire * (indiv.nmass_root + indiv.nstore + indiv.nmass_reserve);
+					patch.pft[indiv.pft.id].nmass_litter_root += mort_fire * (indiv.nmass_root + indiv.nstore_leaf + indiv.nstore_root + indiv.nstore);
 
 					patch.fluxes.aNH3_fire += mort_fire * patch.fluxes.firenratio[0] * indiv.nmass_leaf;
 					patch.fluxes.aNO_fire  += mort_fire * patch.fluxes.firenratio[1] * indiv.nmass_leaf;
 					patch.fluxes.aNO2_fire += mort_fire * patch.fluxes.firenratio[2] * indiv.nmass_leaf;
 					patch.fluxes.aN2O_fire += mort_fire * patch.fluxes.firenratio[3] * indiv.nmass_leaf;
 
-					indiv.nmass_leaf *= indiv.pft.fireresist;
-					indiv.nmass_root *= indiv.pft.fireresist;
-					indiv.nstore *= indiv.pft.fireresist;
-					indiv.nmass_reserve *= indiv.pft.fireresist;
+					indiv.nmass_leaf  *= indiv.pft.fireresist;
+					indiv.nmass_root  *= indiv.pft.fireresist;
+					indiv.nstore_leaf *= indiv.pft.fireresist;
+					indiv.nstore_root *= indiv.pft.fireresist;
+					indiv.nstore      *= indiv.pft.fireresist;
 
 					// Update allometry
 
@@ -1643,34 +1112,32 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 					// Reduce individual density and biomass on patch area basis
 					// to account for loss of killed individuals
 
-					indiv.densindiv *= frac_survive;
-					indiv.cmass_leaf *= frac_survive;
-					indiv.cmass_root *= frac_survive;
-					indiv.cmass_sap *= frac_survive;
-					indiv.cmass_debt *= frac_survive;
+					indiv.densindiv   *= frac_survive;
+					indiv.cmass_leaf  *= frac_survive;
+					indiv.cmass_root  *= frac_survive;
+					indiv.cmass_sap   *= frac_survive;
+					indiv.cmass_debt  *= frac_survive;
 					indiv.cmass_heart *= frac_survive;
 
 					// Transfer killed roots to litter
 					patch.pft[indiv.pft.id].nmass_litter_root += (1.0 - frac_survive) * indiv.nmass_root;
 
 					// Calculate flux from biomass to atmosphere due to fire
-					patch.fluxes.aNH3_fire += (1.0 - frac_survive) * patch.fluxes.firenratio[0] * (indiv.nmass_leaf + indiv.nmass_sap +
-						indiv.nmass_heart + indiv.nstore + indiv.nmass_reserve);
-					patch.fluxes.aNO_fire  += (1.0 - frac_survive) * patch.fluxes.firenratio[1] * (indiv.nmass_leaf + indiv.nmass_sap +
-						indiv.nmass_heart + indiv.nstore + indiv.nmass_reserve);
-					patch.fluxes.aNO2_fire += (1.0 - frac_survive) * patch.fluxes.firenratio[2] * (indiv.nmass_leaf + indiv.nmass_sap +
-						indiv.nmass_heart + indiv.nstore + indiv.nmass_reserve);
-					patch.fluxes.aN2O_fire += (1.0 - frac_survive) * patch.fluxes.firenratio[3] * (indiv.nmass_leaf + indiv.nmass_sap +
-						indiv.nmass_heart + indiv.nstore + indiv.nmass_reserve);
+					double nmass = indiv.nmass_leaf + indiv.nmass_sap +	indiv.nmass_heart + indiv.nstore_leaf + indiv.nstore_root + indiv.nstore;
+					patch.fluxes.aNH3_fire += (1.0 - frac_survive) * patch.fluxes.firenratio[0] * nmass;
+					patch.fluxes.aNO_fire  += (1.0 - frac_survive) * patch.fluxes.firenratio[1] * nmass;
+					patch.fluxes.aNO2_fire += (1.0 - frac_survive) * patch.fluxes.firenratio[2] * nmass;
+					patch.fluxes.aN2O_fire += (1.0 - frac_survive) * patch.fluxes.firenratio[3] * nmass;
 
-					// Reduce individual density and biomass on patch area basis
+					// Reduce individual biomass on patch area basis
 					// to account for loss of killed individuals
-					indiv.nmass_leaf *= frac_survive;
-					indiv.nmass_root *= frac_survive;
-					indiv.nmass_sap *= frac_survive;
+					indiv.nmass_leaf  *= frac_survive;
+					indiv.nmass_root  *= frac_survive;
+					indiv.nmass_sap   *= frac_survive;
 					indiv.nmass_heart *= frac_survive;
-					indiv.nstore *= frac_survive;
-					indiv.nmass_reserve *= frac_survive;
+					indiv.nstore_leaf *= frac_survive;
+					indiv.nstore_root *= frac_survive;
+					indiv.nstore      *= frac_survive;
 
 					// Remove this cohort completely if all individuals killed
 					// (in individual mode: removes individual if killed)
@@ -1715,9 +1182,9 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 				
 			// Transfer N storage to wood N litter for now
 			if (indiv.pft.lifeform == TREE)
-				patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nstore + indiv.nmass_reserve;
+				patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nstore_leaf + indiv.nstore_root + indiv.nstore;
 			else
-				patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore + indiv.nmass_reserve;
+				patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore_leaf + indiv.nstore_root + indiv.nstore;
 
 			vegetation.killobj();
 			killed = true;
@@ -1856,24 +1323,25 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 					(1.0 - frac_survive) * (indiv.nmass_sap + indiv.nmass_heart);
 			
 				// Transfer N storage to wood N litter for now 	
-				patch.pft[indiv.pft.id].nmass_litter_wood += (1.0 - frac_survive) * (indiv.nstore + indiv.nmass_reserve);
+				patch.pft[indiv.pft.id].nmass_litter_wood += (1.0 - frac_survive) * (indiv.nstore_leaf + indiv.nstore_root + indiv.nstore);
 
 				// Reduce individual density and biomass on patch area basis
 				// to account for loss of killed individuals
 				
-				indiv.densindiv *= frac_survive;
-				indiv.cmass_leaf *= frac_survive;
-				indiv.cmass_root *= frac_survive;
-				indiv.cmass_sap *= frac_survive;
-				indiv.cmass_debt *= frac_survive;
+				indiv.densindiv   *= frac_survive;
+				indiv.cmass_leaf  *= frac_survive;
+				indiv.cmass_root  *= frac_survive;
+				indiv.cmass_sap   *= frac_survive;
+				indiv.cmass_debt  *= frac_survive;
 				indiv.cmass_heart *= frac_survive;
 
-				indiv.nmass_leaf *= frac_survive;
-				indiv.nmass_root *= frac_survive;
-				indiv.nmass_sap *= frac_survive;
+				indiv.nmass_leaf  *= frac_survive;
+				indiv.nmass_root  *= frac_survive;
+				indiv.nmass_sap   *= frac_survive;
 				indiv.nmass_heart *= frac_survive;
-				indiv.nstore *= frac_survive;
-				indiv.nmass_reserve *= frac_survive;
+				indiv.nstore_leaf *= frac_survive;
+				indiv.nstore_root *= frac_survive;
+				indiv.nstore      *= frac_survive;
 
 				// Remove this cohort completely if all individuals killed
 				// (in individual mode: removes individual if killed)
@@ -2013,23 +1481,23 @@ void fire(Patch& patch, double& fireprob) {
 
 		// Account for burnt above ground litter
 
-		patch.pft[p].litter_leaf *= 1.0 - mort_fire;
-		patch.pft[p].litter_wood *= 1.0 - mort_fire;
-		patch.pft[p].litter_repr *= 1.0 - mort_fire;
+		patch.pft[p].litter_leaf *= (1.0 - mort_fire);
+		patch.pft[p].litter_wood *= (1.0 - mort_fire);
+		patch.pft[p].litter_repr *= (1.0 - mort_fire);
 
 		patch.fluxes.aNH3_fire += mort_fire * patch.fluxes.firenratio[0] * (patch.pft[p].nmass_litter_leaf + patch.pft[p].nmass_litter_wood);
 		patch.fluxes.aNO_fire  += mort_fire * patch.fluxes.firenratio[1] * (patch.pft[p].nmass_litter_leaf + patch.pft[p].nmass_litter_wood);
 		patch.fluxes.aNO2_fire += mort_fire * patch.fluxes.firenratio[2] * (patch.pft[p].nmass_litter_leaf + patch.pft[p].nmass_litter_wood);
 		patch.fluxes.aN2O_fire += mort_fire * patch.fluxes.firenratio[3] * (patch.pft[p].nmass_litter_leaf + patch.pft[p].nmass_litter_wood);
 
-		patch.pft[p].nmass_litter_leaf *= 1.0-mort_fire;
-		patch.pft[p].nmass_litter_wood *= 1.0-mort_fire;
+		patch.pft[p].nmass_litter_leaf *= (1.0 - mort_fire);
+		patch.pft[p].nmass_litter_wood *= (1.0 - mort_fire);
 	}
 
 	// Soil litter
 	double mort_fire_struct = fireprob * (1.0 - patch.soil.sompool[SURFSTRUCT].fireresist);
-	double mort_fire_meta = fireprob * (1.0 - patch.soil.sompool[SURFMETA].fireresist);
-	double mort_fire_cwd = fireprob * (1.0 - patch.soil.sompool[SURFCWD].fireresist);
+	double mort_fire_meta   = fireprob * (1.0 - patch.soil.sompool[SURFMETA].fireresist);
+	double mort_fire_cwd    = fireprob * (1.0 - patch.soil.sompool[SURFCWD].fireresist);
 
 	// Calculate flux from burnt soil litter
 	patch.fluxes.acflux_fire += patch.soil.sompool[SURFSTRUCT].cmass * mort_fire_struct +
@@ -2037,22 +1505,22 @@ void fire(Patch& patch, double& fireprob) {
 		patch.soil.sompool[SURFCWD].cmass * mort_fire_cwd;
 
 	// Account for burnt above ground litter
-	patch.soil.sompool[SURFSTRUCT].cmass *= 1.0 - mort_fire_struct;
-	patch.soil.sompool[SURFMETA].cmass *= 1.0 - mort_fire_meta;
-	patch.soil.sompool[SURFCWD].cmass *= 1.0 - mort_fire_cwd;
+	patch.soil.sompool[SURFSTRUCT].cmass *= (1.0 - mort_fire_struct);
+	patch.soil.sompool[SURFMETA].cmass   *= (1.0 - mort_fire_meta);
+	patch.soil.sompool[SURFCWD].cmass    *= (1.0 - mort_fire_cwd);
 
 	double nflux_fire = patch.soil.sompool[SURFSTRUCT].nmass * mort_fire_struct +
 		patch.soil.sompool[SURFMETA].nmass * mort_fire_meta +
 		patch.soil.sompool[SURFCWD].nmass * mort_fire_cwd;
 
-	patch.fluxes.aNH3_fire += patch.fluxes.firenratio[1] * nflux_fire; 
+	patch.fluxes.aNH3_fire += patch.fluxes.firenratio[0] * nflux_fire; 
 	patch.fluxes.aNO_fire  += patch.fluxes.firenratio[1] * nflux_fire;
 	patch.fluxes.aNO2_fire += patch.fluxes.firenratio[2] * nflux_fire;
 	patch.fluxes.aN2O_fire += patch.fluxes.firenratio[3] * nflux_fire;
 
-	patch.soil.sompool[SURFSTRUCT].nmass *= 1.0 - mort_fire_struct;
-	patch.soil.sompool[SURFMETA].nmass *= 1.0 - mort_fire_meta;
-	patch.soil.sompool[SURFCWD].nmass *= 1.0 - mort_fire_cwd;
+	patch.soil.sompool[SURFSTRUCT].nmass *= (1.0 - mort_fire_struct);
+	patch.soil.sompool[SURFMETA].nmass   *= (1.0 - mort_fire_meta);
+	patch.soil.sompool[SURFCWD].nmass    *= (1.0 - mort_fire_cwd);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -2089,9 +1557,9 @@ void disturbance(Patch& patch, double disturb_prob) {
 
 			// Transfer N storage to wood N litter for now 
 			if (indiv.pft.lifeform == TREE)
-				patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nstore + indiv.nmass_reserve;
+				patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nstore_leaf + indiv.nstore_root + indiv.nstore;
 			else
-				patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore + indiv.nmass_reserve;
+				patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore_leaf + indiv.nstore_root + indiv.nstore;
 
 			vegetation.killobj();
 		}

@@ -725,6 +725,15 @@ void dailyaccounting_patch(Patch& patch) {
 		patch.aintercep = 0.0;
 		patch.apet = 0.0;
 
+		if (date.year == 0)
+			for (int i=0; i<NYEARAAET; i++)
+				patch.aaet_5[i] = 0.0;
+		
+		soil.anfix = 0.0;
+		soil.aminleach = 0.0;
+		soil.anmin = 0.0;
+		soil.animmob = 0.0;
+
 		// Calculate total FPC
 		patch.fpc_total = 0;
 		Vegetation& vegetation = patch.vegetation;
@@ -1066,6 +1075,84 @@ void daylengthinsoleet(Climate& climate) {
 
 	// Calculate total EET (equilibrium evapotranspiration) for this day, mm/day
 	climate.eet = 2.0 * (s / (s + gamma) / lambda) * (uu * hn + vv * sin(hn)) * K;	// Eqn 26;
+}
+
+// Variables for checking N Balance! only works with one patch
+double old_total = 0.0;
+double old_vegn = 0.0;
+double old_vegstore = 0.0;
+double old_centuryn = 0.0;
+double old_nmass = 0.0;
+double old_littern = 0.0;
+double old_leachn = 0.0;
+double nadded = 0.0;
+double fluxn = 0.0;
+
+
+/// Checking nitrogen balance  
+/** Function to check if nitrogen is in balance
+ */
+void check_nbalance(Patch& patch, bool print) {
+
+	double vegn, centuryn, littern, vegstore;
+	int p;
+
+	Soil& soil=patch.soil;
+	Vegetation& vegetation=patch.vegetation;
+
+	if (patch.id == 0) {
+
+		// Work out total ecosystem N for checking
+		vegn = 0.0;
+		vegstore = 0.0;
+		vegetation.firstobj();
+		while (vegetation.isobj) {
+			Individual& indiv = vegetation.getobj();
+
+			vegn += indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + indiv.nmass_heart;
+			vegstore += indiv.nstore_leaf + indiv.nstore_root + indiv.nstore; 
+			
+			vegetation.nextobj();
+		}
+
+		centuryn = 0.0;
+		for (p=0;p<NSOMPOOL-1;p++) {
+			centuryn += soil.sompool[p].nmass;
+		}	
+
+		littern = 0.0;
+		patch.pft.firstobj();
+		while (patch.pft.isobj) {
+			Patchpft& pft=patch.pft.getobj();
+
+			littern += pft.nmass_litter_leaf +
+				pft.nmass_litter_root +
+				pft.nmass_litter_wood;
+
+			patch.pft.nextobj();
+		}
+
+		nadded += soil.anfix + patch.stand.gridcell.climate.andep;
+		fluxn += patch.fluxes.aNH3_fire+patch.fluxes.aNO_fire+patch.fluxes.aNO2_fire+patch.fluxes.aN2O_fire;
+
+		if (print && date.year > nyear_spinup) {
+			dprintf("Year %d N BALANCE - difference over %d years: %g\n",date.year,
+				date.year - nyear_spinup, old_total + nadded - (vegn + centuryn + soil.nmass + vegstore + littern + soil.sompool[LEACHED].nmass + fluxn));
+		}
+
+		if (date.year == nyear_spinup) {
+			old_vegn = vegn;
+			old_vegstore = vegstore;
+			old_centuryn = centuryn;
+			old_nmass = soil.nmass;
+			old_littern = littern;
+			old_leachn = soil.sompool[LEACHED].nmass;
+			nadded = 0.0;
+			fluxn = 0.0;
+
+			old_total = vegn + centuryn + soil.nmass + vegstore + littern + soil.sompool[LEACHED].nmass + nadded + fluxn;
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

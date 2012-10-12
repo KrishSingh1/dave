@@ -125,6 +125,8 @@ const int SOLVESOM_BEGIN = 350;
 	// soil carbon
 const int NYEARGREFF = 5; 
 	// number of years to average growth efficiency over in function mortality
+const int NYEARAAET = 5; 
+	// number of years to average aaet over in function naddition
 const int COLDEST_DAY_NHEMISPHERE = 14;
 	// day at which to start counting GDD's and leaf-on days for summergreen phenology
 	// in N hemisphere (January 15)
@@ -194,19 +196,17 @@ extern wateruptaketype wateruptake;
 extern bool ifcentury;
 /// whether plant growth limited by available N	
 extern bool ifnlim;
-/// number of years to allow spinup without N limitation	
+/// number of years to allow spinup without nitrogen limitation	
 extern int freenyears;
-/// fraction of N relocated by plants from roots and leaves	
+/// fraction of nitrogen relocated by plants from roots and leaves	
 extern double nrelocfrac;
-/// whether to allow N leaching	
+/// whether to allow nitrogen leaching	
 extern bool ifleachn;
-/// whether to allow individual fractional N uptake	
-extern bool ifindiv_fnuptake;
-/// first term in N fixation eqn (Cleveland et al 1999)	
+/// first term in nitrogen fixation eqn (Cleveland et al 1999)	
 extern double nfix_a;
-/// second term in N fixation eqn (Cleveland et al 1999)	
+/// second term in nitrogen fixation eqn (Cleveland et al 1999)	
 extern double nfix_b;
-/// whether N deposition data available from a file	
+/// whether nitrogen deposition data available from a file	
 extern bool ifndepdata;
 
 // CMIP5
@@ -217,7 +217,7 @@ extern bool iflandusechange;
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;
 
-// N budget check
+// nitrogen budget check
 extern double somfluxnerror;
 
 /// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND).
@@ -453,7 +453,7 @@ struct PhotosynthesisResult : public Serializable {
 		vm    = 0;
 		je    = 0;
 		nmass_term = 0.0;
-		vmax_lim   = 1.0;
+		vmaxnlim   = 1.0;
 	}
 
 	/// RuBisCO capacity (gC/m2/day)
@@ -476,7 +476,7 @@ struct PhotosynthesisResult : public Serializable {
 	double nmass_term;
 
 	/// nitrogen limitation on vm
-	double vmax_lim;
+	double vmaxnlim;
 
 	/// net C-assimilation (gross photosynthesis minus leaf respiration) (kgC/m2/day)
     double net_assimilation() const {
@@ -801,11 +801,8 @@ public:
 	double cton_sap_avr;
 	// nitrogen storage organ in relation to sapwood carbon for TREE and root carbon for GRASS
 	double n_reserve;
-	/// Intercept parameter in the relation between leaf N not associated with photosynthesis and total leaf N 
-	/// (leaf nitrogen content expressed on a leaf area basis) Friend et al. 1997
-	double a0;
-	/// reproduction C:N ratio
-	double reprCN;
+	/// maximum nitrogen uptake per fine root mass (kgN/kgC)
+	double nupmax;
 		
 	double reprfrac;
 		// fraction of NPP allocated to reproduction		
@@ -1063,16 +1060,14 @@ public:
 	double cmass_debt;
 		// C "debt" (retrospective storage) (kgC/m2)
 
-	/// N content of leaves on patch area basis (kgN/m2)
+	/// nitrogen content of leaves on patch area basis (kgN/m2)
 	double nmass_leaf;
-	/// N content of roots on patch area basis (kgN/m2)	
+	/// nitrogen content of roots on patch area basis (kgN/m2)	
 	double nmass_root;
-	/// N content of sapwood on patch area basis (kgN/m2)	
+	/// nitrogen content of sapwood on patch area basis (kgN/m2)	
 	double nmass_sap;
-	/// N content of heartwood on patch area basis (kgN/m2)
+	/// nitrogen content of heartwood on patch area basis (kgN/m2)
 	double nmass_heart;
-	/// N content of storage on patch area basis (kgN/m2)
-	double nmass_reserve;
 
 	double fpc;
 		// foliar projective cover (FPC) under full leaf cover as fraction of modelled
@@ -1093,10 +1088,10 @@ public:
 		// 1 January)
 	double assim;
 		// daily net assimilation (GPP-leaf respiration) on modelled area basis
-		// (kgC/m2/day)
+		// (kgC/m2/day) (used in monthly NPP mode)
 	double resp;
 		// daily maintenance respiration (not including leaf respiration) and growth
-		// respiration on modelled area basis (kgC/m2/day)
+		// respiration on modelled area basis (kgC/m2/day) (used in monthly NPP mode)
 
 	/// Photosynthesis values for this PFT under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;
@@ -1181,73 +1176,60 @@ public:
 	int nday_wstress; // number of water-stress days for month
 	bool wstress; // whether individual subject to water stress
 
-	/// N mass that is photosyntetic active
+	/// nitrogen mass that is photosyntetic active
 	double nactive;
-	/// N mass that is photosyntetic active (leafon)
-	double nactive_leafon;
-	/// relocated N from leaves and roots and accumulated uptake from soil mineral N pool
+	/// storage of relocated nitrogen from leaves
+	double nstore_leaf;
+	/// storage of relocated nitrogen from root
+	double nstore_root;
+	/// storage of labile nitrogen
 	double nstore;
-	/// accumulated uptake from soil mineral N pool
-	double nuptake;
-	/// cumulative mean (calculated at end of year) of daily leaf N (kgN/m2)
-	/// (leaf N demand calculated from Vmax)
-	double leafn;
-	/// mean monthly value of leafn for year	
-	double leafn_mean;
-	/// annual N demand (used in growth)	
+	/// nitrogen storage organ in relation to sapwood carbon for TREE and root carbon for GRASS
 	double ndemand;
-	/// annual N demand under no N limitation
-	double ndemand_no_nlim;
-	/// raingreen nitrogen demand
-	double raingreen_ndemand;
-	/// fractional N uptake of indiv demand
+	/// annual nitrogen demand under no nitrogen limitation
 	double fnuptake;
-	/// fraction extra N uptake to reserve pool
-	double n_reserve_uptake;
-	/// maximum size of N reserve
+	/// annual nitrogen uptake
+	double anuptake;
+	/// maximum size of nitrogen reserve
 	double max_n_reserve;
-	/// old maximum size of N reserve	
-	double max_n_reserve_old;
-	/// actual fractional N available to indiv N demand
-	double limnfact;
-	/// leaf N associated with photosynthesis 	
-	double vmax_lim[365];
-	/// N limitation on vmax
+	/// scales annual npp to maximum nitrogen reserve
+	double scale_n_reserve;
+	/// annual nitrogen limitation on vmax
 	double avmaxnlim;
-	/// C:N ratio for new biomass (leaf)
+	/// daily optimal leaf C:N ratio
 	double cton_leaf_new;
-	/// C:N ratio for new biomass (root)
-	double cton_root_new;
-	/// C:N ratio for new biomass (sap)
-	double cton_sap_new;
-	/// C:N ratio of old (current) biomass (leaf)
-	double cton_leaf_old;
-	/// C:N ratio of old (current) biomass (root)
-	double cton_root_old;
-	/// C:N ratio of old (current) biomass (sap)
-	double cton_sap_old;
-	/// optimal (photosynthesis) C:N ratio for new biomass (leaf) 
+	/// annual optimal leaf C:N ratio
 	double cton_leaf_opt;
-	/// total growth C:N ratio
-	double cton_growth;
-	/// fraction of new biomass assigned to leaf
-	double bminc_leaf_frac;	
-	/// fraction of new biomass assigned to root
-	double bminc_root_frac;
-	/// fraction of annual gpp remaining after nitrogen limitation
-	double frac_agpp;
+	/// C:N ratio of current biomass (leaf)
+	double cton_leaf;
+	/// C:N ratio of current biomass (root)
+	double cton_root;
+	/// C:N ratio of current biomass (sap)
+	double cton_sap;
+
+	/// whether individual subject to nitrogen stress
+	bool nstress;
+	/// daily leaf nitrogen demand calculated from Vmax (kgN/m2)
+	double leafndemand;
+	/// daily root nitrogen demand
+	double rootndemand;
+	/// daily sap wood nitrogen demand
+	double sapndemand;
+	/// daily labile nitrogen demand
+	double storendemand;
+	/// compartments fraction of total nitrogen demand
+	double fndemand[4];
+	/// daily optimal leaf nitrogen demand over possible uptake
+	double leafndemand_opt;
+	/// daily optimal root nitrogen demand over possible uptake
+	double rootndemand_opt;
 		
-	double assim_nowstress;
-		// saved assimilation in case it turns out to be a non-water-stress day
+	/// saved assimilation in case it turns out to be a non-water- or nitrogen-stress day
+	double assim_nostress;
+		
 	std::vector<double> assim_terms;	// sub-daily version of the above variable (kgC/m2/day)
 	int nday_leafon;	
 		// Number of days with non-negligible phenology this month
-	double dassim[365];
-		// daily net assimilation (kgC/m2/day) - used by SOM dynamics to distribute
-		// plant N uptake through the year
-	double aassim;
-		// annual sum of positive dassim (above) - used by SOM dynamics
-
 	bool alive; 
 		// guess2008 - whether this individual is truly alive. Set to false for first year 
 		// after the Individual object is created, then true.
@@ -1525,8 +1507,8 @@ public:
 	double minleachfrac_daily[365]; 
 	/// fraction of decayed organoc N leached each day;
 	double orgleachfrac_daily[365];
-	/// soil mineral N pool (kgN/m2)
-	double nmass_avail;			
+	/// soil mineral nitrogen pool (kgN/m2)
+	double nmass;			
 	/// annual sum of N mineralisation
 	double anmin;			
 	/// annual sum of N immobilisation
@@ -1535,12 +1517,10 @@ public:
 	double aminleach;		
 	/// annual leaching of organics from active N pool
 	double aorgleach;		
-	/// annual N deposition
-	double andep;			
-	/// soil mineral N pool (kgN/m2) (used somfluxes() to determine C:N ratios for SOM pools and decay rates)
-	double nmin_balance;		
-	/// total annual N fixation
+	/// total annual nitrogen fixation 
 	double anfix;
+	/// calculated annual mean nitrogen fixation
+	double anfix_calc;
 
 	// MEMBER FUNCTIONS
 
@@ -1599,14 +1579,13 @@ public:
 		sompool[PASSIVESOM].ntoc = 1.0 / 10.0;
 		sompool[SURFMICRO].ntoc = 1.0 / 20.0;
 
-		nmass_avail = 0.0;
+		nmass = 0.0;
 		anmin = 0.0;			
 		animmob = 0.0;		
 		aminleach = 0.0;
 		aorgleach = 0.0;
-		andep = 0.0;
 		anfix = 0.0;
-		nmin_balance = 0.0;
+		anfix_calc = 0.0;
 		dperc = 0.0;
 	}
 	void serialize(ArchiveStream& arch);
@@ -1781,10 +1760,6 @@ public:
 	double nmass_litter_wood;
 	/// nitrogen depository for long-lived products like wood
 	double harvested_products_slow_nmass;	
-	/// N store for establishment
-	double nstore_est;
-	/// number of saplings of this PFT established in vegetation_n_uptake() (cohort mode)
-	double nsapling_nuptake;
 
 	// MEMBER FUNCTIONS:
 
@@ -1805,9 +1780,6 @@ public:
 		nmass_litter_leaf = 0.0;
 		nmass_litter_root = 0.0;
 		nmass_litter_wood = 0.0;
-
-		nsapling_nuptake = 0.0;
-		nstore_est = 0.0;
 
 		harvested_products_slow = 0.0;
 		harvested_products_slow_nmass = 0.0;
@@ -1871,6 +1843,8 @@ public:
 		// interception by vegetation today on patch basis (mm)
 	double aaet;
 		// annual sum of AET (mm/year)
+	double aaet_5[NYEARAAET];
+		// annual sum of AET (mm/year) for each of the last five simulation years
 	double aevap;
 		// annual sum of soil evaporation (mm/year)
 	double aintercep;
@@ -1911,12 +1885,11 @@ public:
 	double mpet[12];
 		// monthly PET (mm/month)
 
-	/// fractional N uptake of patch demand
+	/// fractional nitrogen uptake of patch demand
 	double fnuptake;
-	/// yearly N demand
+	/// daily nitrogen demand
 	double ndemand;
-	/// yearly N supply	
-	double nsupply;
+	/// daily nitrogen demand
 
 	// MEMBER FUNCTIONS
 
@@ -1939,6 +1912,8 @@ public:
 		growingseasondays = 0;
 
 		fireprob = 0.0;
+		fnuptake = 1.0;
+		ndemand = 0.0;
 	}
 
 	void serialize(ArchiveStream& arch);
@@ -1958,9 +1933,6 @@ public:
 	double cmass_repr;
 		// net C allocated to reproduction for this PFT in all patches of this stand
 		// this year (kgC/m2)
-	double nmass_repr;
-		// net N allocated to reproduction for this PFT in all patches of this stand
-		// this year (kgN/m2)
 	double anetps_ff_max;
 		// maximum value of anetpsff (potential annual net assimilation at forest
 		// floor) for this PFT in this stand so far in the simulation (kgC/m2/year)

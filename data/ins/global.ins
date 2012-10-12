@@ -44,7 +44,6 @@ file_nsources "nsources.out"
 file_npool "npool.out"
 file_nleach "nleach.out"
 file_nuptake "nuptake.out"
-file_nlim "nlim.out"
 file_nflux "nflux.out"
 file_vmaxnlim "vmaxnlim.out"
 
@@ -106,7 +105,6 @@ wateruptake "rootdist"  ! "wcont", "rootdist", "smart" or "speciesspecific",
 
 ifcentury 1				! whether to use CENTURY SOM dynamics (mandatory for N cycling)
 ifnlim 0				! whether plant growth limited by available N
-ifindiv_fnuptake 1		! whether to allow individual fractional N uptake
 freenyears 200			! number of years to spin up without N limitation (needed to build up a N pool)
 ifleachn 1				! whether to allow N leaching
 nfix_a 0.102				! first term in N fixation eqn (Conservative 0.102, Central 0.234, Upper 0.367)

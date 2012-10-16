@@ -170,7 +170,6 @@ int lc_fixed_frac[NLANDCOVERTYPES]={0};
 /// Whether gridcell is divided into equal active landcover fractions.
 bool equal_landcover_area;
 
-Pftlist* ppftlist; // pointer to PFT list
 Pft* ppft; // pointer to Pft object currently being assigned to
 
 xtring paramname;
@@ -215,6 +214,8 @@ void initsettings() {
 	// bvoc
 	file_aiso=file_miso=file_amon=file_mmon="";
 
+	save_state = false;
+	restart = false;
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -356,6 +357,11 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("lc_fixed_natural",&lc_fixed_frac[NATURAL],0,100,1,CB_NONE,"% lc_fixed_natural");
 		declareitem("lc_fixed_peatland",&lc_fixed_frac[PEATLAND],0,100,1,CB_NONE,"% lc_fixed_peatland");
 
+		declareitem("state_path", &state_path, 300, CB_NONE, "State files directory (for restarting from, or saving state files)");
+		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
+		declareitem("save_state", &save_state, 1, CB_NONE, "Whether to save new state files");
+		declareitem("state_year", &state_year, 1, 20000, 1, CB_NONE, "Save/restart year. Unspecified means just after spinup");
+
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
 		callwhendone(CB_CHECKGLOBAL);
@@ -369,7 +375,7 @@ void plib_declarations(int id,xtring setname) {
 
 			// Create and initialise a new Pft object and obtain a reference to it
 			
-			ppft=&ppftlist->createobj();
+			ppft=&pftlist.createobj();
 			initpft(*ppft,setname);
 			includepft=true;
 		}
@@ -666,6 +672,21 @@ void plib_callback(int callback) {
 				"Value specified for npatch ignored in population mode");
 			npatch=1;
 		}
+
+		if (save_state && restart) {
+			sendmessage("Error",
+			            "Can't save state and restart at the same time");
+			plibabort();
+		}
+
+		if (!itemparsed(state_year)) {
+			state_year = nyear_spinup;
+		}
+
+		if (state_path == "" && (save_state || restart)) {
+			badins("state_path");
+		}
+
 		break;
 	case CB_CHECKPFT:
 		if (!itemparsed("lifeform")) badins("lifeform");
@@ -775,7 +796,7 @@ void plib_callback(int callback) {
 		// If "include 0", remove this PFT from list, and set id to correct value
 
 		if (!includepft) {
-			ppftlist->killobj();
+			pftlist.killobj();
 			npft--;
 		}
 
@@ -790,7 +811,7 @@ void plib_receivemessage(xtring text) {
 	dprintf((char*)text);
 }
 
-bool readins(xtring filename,Pftlist& pftlist) {
+bool readins(xtring filename) {
 
 	// DESCRIPTION
 	// Uses PLIB library functions to read instructions from file specified by
@@ -799,9 +820,6 @@ bool readins(xtring filename,Pftlist& pftlist) {
 
 	// OUTPUT PARAMETERS
 	// pftlist  = initialised list array of PFT parameters
-
-	// Store global pointer to pftlist
-	ppftlist=&pftlist;
 
 	// Initialise PFT count
 	npft=0;
@@ -833,28 +851,14 @@ void printhelp() {
 // this section of the input/output module. The following functions are called by the
 // framework at various stages of the simulation and should contain appropriate code:
 //
-// void initio(int argc,char* argv[],Pftlist& pftlist)
+// void initio(const xtring& insfilename)
 //   Initialises input/output (e.g. opening files), sets values for the global
 //   simulation parameter variables (currently vegmode, npatch, patcharea, ifdailynpp,
 //   ifdailydecomp, ifbgestab, ifsme, ifstochestab, ifstochmort, iffire, estinterval,
 //   npft), initialises pftlist (the one and only list of PFTs and their static
 //   parameters for this run of the model). Normally all of the above parameters,
 //   and possibly others, are read from the ins file (see above). Function readins
-//   should be called to input settings from the ins file. The syntax for this call
-//   should be similar to the following (note that readins returns false in the event
-//   of an error in the ins file; normally this should result in program termination):
-//
-//   xtring insfilename=argv[1];
-//   if (!readins(insfilename,pftlist))
-//       fail("\nUsage: %s <instruction-script-filename> | -help",argv[0]);
-//
-//   Arguments argc and argv normally correspond to the command-line arguments
-//   imported from the main function (main module, usually main.cpp). The first
-//   command line argument (argv[0]) is the name of the binary executable (e.g.
-//   guess, guess.exe); the second (argv[1]) should normally be the ins file name.
-//   This demonstration version of initio also implements "-help" as an alternative
-//   command-line argument, resulting in output of a brief description of the
-//   keywords recognised in the ins file, instead of a model run.
+//   should be called to input settings from the ins file.
 //
 // bool getgridcell(Gridcell& gridcell)
 //   Obtains coordinates and soil static parameters for the next grid cell to
@@ -875,11 +879,11 @@ void printhelp() {
 //
 // bool getclimate(Gridcell& gridcell)
 //   Obtains climate data (including atmospheric CO2 and insolation) for this day.
-//   The function should returns false if the simulation is complete for this grid cell,
+//   The function should return false if the simulation is complete for this grid cell,
 //   otherwise true. This will normally require querying the year and day member
 //   variables of the global class object date:
 //
-//   if (date.day==0 && date.year==nyear_spinup) return false; // guess2008
+//   if (date.day==0 && date.year==nyear_spinup) return false;
 //   // else
 //   return true;
 //
@@ -897,13 +901,25 @@ void printhelp() {
 //   BVOC:
 //   gridcell.climate.dtr=ddtr[date.day]; 
 //
-// void outannual(Gridcell& gridcell,Pftlist& pftlist)
+//   If model is run in diurnal mode, which requires appropriate climate forcing data, 
+//   additional members of the climate must be initialised: temps, insols. Both of the
+//   variables must be of type std::vector. The length of these vectors should be equal
+//   to value of date.subdaily which also needs to be set either in getclimate or 
+//   getgridcell functions. date.subdaily is a number of sub-daily period in a single 
+//   day. Irrespective of the BVOC settings, climate.dtr variable is not required in 
+//   diurnal mode.
+//
+// void outannual(Gridcell& gridcell)
 //   Called at the end of the last day of each simulation year to permit output of
 //   model results.
 //
 // termio()
 //   Called after simulation is complete for all gridcells to allow memory deallocation,
 //   closing of files or other cleanup functions.
+//
+// printhelp()
+//   Prints out information about all available ins file parameters. Is typically
+//   called when the user starts the program with the -help option.
 //
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -1481,7 +1497,7 @@ void create_output_table(Table& table, const char* file, const ColumnDescriptors
  *  For each table a TableDescriptor object is created which is then sent to
  *  the output channel to create the table.
  */
-void define_output_tables(Pftlist& pftlist) {
+void define_output_tables() {
 	// create a vector with the pft names
 	std::vector<std::string> pfts;
 
@@ -1615,7 +1631,7 @@ void define_output_tables(Pftlist& pftlist) {
 // INITIO
 // Called by the framework at the start of the model run
 
-void initio(int argc,char* argv[],Pftlist& pftlist) {
+void initio(const xtring& insfilename) {
 
 	// DESCRIPTION
 	// Initialises input/output (e.g. opening files), sets values for the global
@@ -1624,63 +1640,28 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 	// estinterval, npft), initialises pftlist (the one and only list of PFTs and their
 	// static parameters for this run of the model). Normally all of the above
 	// parameters, and possibly others, are read from the ins file (see above).
-	// Function readins should be called to input settings from the ins file. The
-	// syntax for this call should be similar to the following (note that readins
-	// returns false in the event of an error in the ins file; normally this should
-	// result in program termination):
-	//
-	// xtring insfilename=argv[1];
-	// if (!readins(insfilename,pftlist))
-	//     fail("\nUsage: %s <instruction-script-filename> | -help",argv[0]);
-	//
-	// Arguments argc and argv normally correspond to the command-line arguments
-	// imported from the main function (main module, usually main.cpp). The first
-	// command line argument (argv[0]) is the name of the binary executable (e.g.
-	// guess, guess.exe); the second (argv[1]) should normally be the ins file name.
-	// This demonstration version of initio also implements "-help" as an alternative
-	// command-line argument, resulting in output of a brief description of the
-	// keywords recognised in the ins file, instead of a model run.
+	// Function readins should be called to input settings from the ins file.
 
 	///////////////////////////////////////////////////////////////////////////////////
 	// GENERIC SECTION - DO NOT MODIFY
 
-	bool abort;
-	xtring insfilename;
 	xtring header;
-
 
 	unixtime(header);
 	header=(xtring)"[LPJ-GUESS  "+header+"]\n\n";
 	dprintf((char*)header);
 
-	abort=false;
-	if (argc>1) {
-		insfilename=argv[1];
-		if (insfilename[0]=='-') {
-			if (insfilename.lower()=="-help") {
-				printhelp();
-				abort=true;
-			}
-			else {
-				dprintf("Unknown option \"%s\"\n",(char*)insfilename);
-				abort=true;
-			}
-		}
-		else if (!fileexists(insfilename)) {
-			dprintf("Error: could not open %s for input\n",(char*)insfilename);
-			abort=true;
-		}
-
-		// Initialise simulation settings and PFT parameters from instruction script
-		// Call to readins() returns false if file could not be opened for reading
-		// or contained errors (including missing parameters)
-
-		else if (!readins(insfilename,pftlist))
-			abort=true;
+	if (!fileexists(insfilename)) {
+		fail("Error: could not open %s for input",(const char*)insfilename);
 	}
-	else abort=true;
 
-	if (abort) fail("\nUsage: %s <instruction-script-filename> | -help",argv[0]);
+	// Initialise simulation settings and PFT parameters from instruction script
+	// Call to readins() returns false if file could not be opened for reading
+	// or contained errors (including missing parameters)
+
+	if (!readins(insfilename)) {
+		fail("Bad instruction file!");
+	}
 
 	// Print the title of this run
 	dprintf("\n\n------------------------------------\n%s\n------------------------------------\n",(char*)title);
@@ -1773,7 +1754,7 @@ void initio(int argc,char* argv[],Pftlist& pftlist) {
 														COORDINATES_PRECISION);
 
 	// Define all output tables and their formats
-	define_output_tables(pftlist);
+	define_output_tables();
 
 	// Set timers
 	tprogress.init();
@@ -1818,7 +1799,7 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	{
 }
 
 /// Called by the framework at the start of the simulation for a particular grid cell
-bool getgridcell(Gridcell& gridcell)
+bool getgridcell(Gridcell& gridcell) 
 {
 	// DESCRIPTION
 	// Obtains coordinates and soil static parameters for the next grid cell to
@@ -1961,7 +1942,7 @@ bool getgridcell(Gridcell& gridcell)
 }
 
 ///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
-void getlandcover(Gridcell& gridcell,Pftlist& pftlist) {
+void getlandcover(Gridcell& gridcell) {
 	int i, year;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
 
@@ -2179,6 +2160,14 @@ bool getclimate(Gridcell& gridcell) {
 	// Diurnal temperature range (dtr) added for calculation of leaf temperatures in 
 	// BVOC:
 	// gridcell.climate.dtr=ddtr[date.day]; 
+	//
+	// If model is run in diurnal mode, which requires appropriate climate forcing data, 
+	// additional members of the climate must be initialised: temps, insols. Both of the
+	// variables must be of type std::vector. The length of these vectors should be equal
+	// to value of date.subdaily which also needs to be set either in getclimate or 
+	// getgridcell functions. date.subdaily is a number of sub-daily period in a single 
+	// day. Irrespective of the BVOC settings, climate.dtr variable is not required in 
+	// diurnal mode.
 
 	double progress;
 
@@ -2287,7 +2276,7 @@ bool getclimate(Gridcell& gridcell) {
 }
 
 /// Called by the framework at the end of the last day of each simulation year
-void outannual(Gridcell& gridcell,Pftlist& pftlist) {
+void outannual(Gridcell& gridcell) {
 
 	// DESCRIPTION
 	// Output of simulation results at the end of each year, or for specific years in

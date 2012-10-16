@@ -3,12 +3,15 @@
 /// \brief Implementation of the framework() function
 ///
 /// \author Ben Smith
-/// $Date: 2012-01-24 11:33:51 +0100 (Tue, 24 Jan 2012) $
+/// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
 #include "framework.h"
+#include "commandlinearguments.h"
+#include "guessserializer.h"
+#include "parallel.h"
 
 #include "guessio.h"
 #include "driver.h"
@@ -20,23 +23,34 @@
 #include "landcover.h"
 #include "bvoc.h"
 
+#include <memory>
 
-int framework(int argc, char* argv[]) {
+int framework(const CommandLineArguments& args) {
 
 	// The 'mission control' of the model, responsible for maintaining the 
 	// primary model data structures and containing all explicit loops through 
 	// space (grid cells/stands) and time (days and years).
 
-	// The one and only linked list of Pft objects	
-	Pftlist pftlist;
-
 	// Call input/output module to obtain PFT static parameters and simulation
 	// settings and initialise input/output
-	initio(argc, argv, pftlist);
+	initio(args.get_instruction_file());
 
 	// bvoc
 	if (ifbvoc) {
-	  initbvoc(pftlist);
+	  initbvoc();
+	}
+
+	// Create objects for (de)serializing grid cells
+	using std::auto_ptr;
+	auto_ptr<GuessSerializer> serializer;
+	auto_ptr<GuessDeserializer> deserializer;
+
+	if (save_state) {
+		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(state_path, GuessParallel::get_rank()));
+	}
+
+	if (restart) {
+		deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(state_path));
 	}
 
 	while (true) {
@@ -48,7 +62,7 @@ int framework(int argc, char* argv[]) {
 		date.init(1);
 
 		// Create and initialise a new Gridcell object for each locality
-		Gridcell gridcell(pftlist);	
+		Gridcell gridcell;	
 
 		// Call input/output to obtain latitude and soil driver data for this grid cell.
 		// Function getgridcell returns false if no further grid cells remain to be simulated
@@ -62,7 +76,14 @@ int framework(int argc, char* argv[]) {
 
 		if(run_landcover) {
 			//Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
-			landcover_init(gridcell,pftlist);
+			landcover_init(gridcell);
+		}
+
+		if (restart) {
+			// Get the whole grid cell from file...
+			deserializer->deserialize_gridcell(gridcell);
+			// ...and jump to the restart year
+			date.year = state_year;
 		}
 		
 		// Call input/output to obtain climate, insolation and CO2 for this
@@ -74,7 +95,7 @@ int framework(int argc, char* argv[]) {
 			// START OF LOOP THROUGH SIMULATION DAYS
 
 			// Update daily climate drivers etc
-			dailyaccounting_gridcell(gridcell,pftlist);
+			dailyaccounting_gridcell(gridcell);
 
 			// Calculate daylength, insolation and potential evapotranspiration
 			daylengthinsoleet(gridcell.climate);
@@ -82,7 +103,7 @@ int framework(int argc, char* argv[]) {
 			if(run_landcover && date.day == 0 && date.year >= nyear_spinup) {
 				// Update dynamic landcover and crop fraction data during historical
 				// period and create/kill stands.
-				landcover_dynamics(gridcell,pftlist);
+				landcover_dynamics(gridcell);
 			}
 
 			gridcell.firstobj();
@@ -92,7 +113,7 @@ int framework(int argc, char* argv[]) {
 
 				Stand& stand = gridcell.getobj();
 
-				dailyaccounting_stand(stand, pftlist);
+				dailyaccounting_stand(stand);
 
 				stand.firstobj();
 				while (stand.isobj) {
@@ -101,7 +122,7 @@ int framework(int argc, char* argv[]) {
 					// Get reference to this patch
 					Patch& patch = stand.getobj();
 					// Update daily soil drivers including soil temperature
-					dailyaccounting_patch(patch, pftlist);
+					dailyaccounting_patch(patch);
 					// Leaf phenology for PFTs and individuals
 					leaf_phenology(patch, gridcell.climate);
 					// Interception
@@ -132,7 +153,7 @@ int framework(int argc, char* argv[]) {
 						// For each patch ...
 						Patch& patch = stand.getobj();
 						// Establishment, mortality and disturbance by fire
-						vegetation_dynamics(stand, patch, pftlist);
+						vegetation_dynamics(stand, patch);
 						stand.nextobj();
 					}
 				}
@@ -144,7 +165,12 @@ int framework(int argc, char* argv[]) {
 				// LAST DAY OF YEAR
 				// Call input/output module to output results for end of year
 				// or end of simulation for this grid cell
-				outannual(gridcell, pftlist);
+				outannual(gridcell);
+				
+				// Time to save state?
+				if (date.year == state_year-1 && save_state) {
+					serializer->serialize_gridcell(gridcell);
+				}
 
 				// Check whether to abort
 				if (abort_request_received()) {

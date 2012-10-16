@@ -45,6 +45,9 @@ OUTFILES='*.out'
 # Nothing to change past here
 ########################################################################
 
+# Exit if any command fails
+set -e
+
 # Handle the command line arguments
 while getopts ":n:s:i:" opt; do
     case $opt in
@@ -135,24 +138,35 @@ cat <<EOF > guess.cmd
 #!/bin/bash
 #PBS -l nodes=$nodes:ppn=$CORES_PER_NODE
 #PBS -l walltime=$WALLTIME
+set -e
+
+if ! type -P mpiexec &> /dev/null; then
+    # If there's no mpiexec available, load openmpi for Intel
+    . use_modules
+    module add intel
+    module add openmpi
+fi
 
 cd \$PBS_O_WORKDIR
 
 # If there's a script for setting up files on local disk, run it
 if [ -f setup_local.sh ]; then
-    pbsdsh -u env PBS_O_LOCAL=\$PBS_O_LOCAL \$PBS_O_WORKDIR/setup_local.sh
+    mpiexec -pernode setup_local.sh
 fi
 
 cat<<EOL > startguess.sh
 #!/bin/sh
+set -e
 umask 022
-cd \$PBS_O_WORKDIR
-cd run\\\$((PBS_VNODENUM+1))
-rm local ; ln -s \$PBS_O_LOCAL local
+cd run\\\$((OMPI_COMM_WORLD_RANK+1))
+if [ -f local ]; then
+   rm local
+fi
+ln -s \$PBS_O_LOCAL local
 BINARY $INSFILE
 EOL
 chmod +x startguess.sh
-pbsdsh -c $NPROCESS \$PBS_O_WORKDIR/startguess.sh
+mpiexec startguess.sh
 
 rm startguess.sh
 EOF
@@ -161,6 +175,8 @@ cat <<EOF > append.cmd
 #!/bin/bash
 #PBS -l nodes=1:ppn=1
 #PBS -l walltime=$WALLTIME
+set -e
+
 cd \$PBS_O_WORKDIR
 function append_files {
     local number_of_jobs=\$1

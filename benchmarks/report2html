@@ -28,7 +28,7 @@ def resizeimage(path, small):
     else:
         format = '800x600>'
     try:
-        subprocess.call(['convert', path, '-resize', format, newpath])
+        subprocess.call(['convert', path, '-trim', '-bordercolor', 'White', '-border', '25x25', '-resize', format, newpath])
     except:
         raise ResizeFail
 

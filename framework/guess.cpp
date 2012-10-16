@@ -253,10 +253,7 @@ int framework(int argc,char* argv[]) {
 						som_dynamics(patch);
 
 						if (date.islastday && date.islastmonth) {
-
-						        // NPP CONSISTENCY
-						        calcannualflux(stand,patch,pftlist);
-						
+							
 							// LAST DAY OF YEAR
 							// Tissue turnover, allocation to new biomass and reproduction,
 							// updated allometry
@@ -269,10 +266,9 @@ int framework(int argc,char* argv[]) {
 						// LAST DAY OF YEAR
 						stand.firstobj();
 						while (stand.isobj) {
-
+							
 							// For each patch ...
 							Patch& patch=stand.getobj();
-
 							// Establishment, mortality and disturbance by fire
 							vegetation_dynamics(stand,patch,pftlist);
 							stand.nextobj();

@@ -2430,11 +2430,14 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 						// guess2008 - alive check added
 						if (indiv.id!=-1 && indiv.alive) { 
 							
-						         if (indiv.pft.id==pft.id) {
+							if (indiv.pft.id==pft.id) {
 								standpft_cmass+=indiv.cmass_leaf+
 									indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
+								standpft_anpp+=indiv.anpp;
 								standpft_lai+=indiv.lai;
-								
+								standpft_aiso+=indiv.aiso;
+								standpft_amon+=indiv.amon;
+
 								if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 									
 									// Age structure
@@ -2460,18 +2463,15 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 						vegetation.nextobj();
 					}
 					stand.nextobj();
-					
 				} // end of patch loop
 
-
-				// NPP CONSISTENCY
-				standpft_anpp=standpft.anpp;
-				standpft_aiso=standpft.aiso;
-				standpft_amon=standpft.amon;
-				
 				standpft_cmass/=(double)stand.nobj;
+				standpft_anpp/=(double)stand.nobj;
 				standpft_lai/=(double)stand.nobj;
 				standpft_densindiv_total/=(double)stand.nobj;
+				standpft_aiso/=(double)stand.nobj;
+				standpft_amon/=(double)stand.nobj;
+
 				heightindiv_total/=(double)stand.nobj;
 
 				//Update landcover totals
@@ -2481,7 +2481,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.get_landcover_fraction();
 				landcover_aiso[stand.landcover]+=standpft_aiso*stand.get_landcover_fraction();
 				landcover_amon[stand.landcover]+=standpft_amon*stand.get_landcover_fraction();
-								
 
 				//Update pft totals
 				gcpft_cmass+=standpft_cmass;
@@ -2490,7 +2489,7 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 				gcpft_densindiv_total+=standpft_densindiv_total;
 				gcpft_aiso+=standpft_aiso;
 				gcpft_amon+=standpft_amon;
-				
+
 				if (vegmode==COHORT || vegmode==INDIVIDUAL)
 					for (c=0;c<nclass;c++)
 						gcpft_densindiv_ageclass[c]+=standpft_densindiv_ageclass[c];
@@ -2766,7 +2765,6 @@ void outannual(Gridcell& gridcell,Pftlist& pftlist) {
 }
 
 
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // TERMIO
 // Called at end of model run (i.e. following simulation of all stands)
@@ -2778,46 +2776,6 @@ void termio() {
 
 	// Clean up
 	gridlist.killall();
-}
-
-///////////////////////////////////////////////////////////////////////////////////////
-// CALCANNUALFLUX
-// Called before vegetation_dynamics to calculate annual fluxes of existing PFTs
-
-void calcannualflux(Stand& stand,Patch& patch,Pftlist& pftlist){
-  
-  // loop through PFTs
-  pftlist.firstobj();
-  while (pftlist.isobj) {
-
-    Pft& pft=pftlist.getobj();    
-    
-    Standpft& standpft=stand.pft[pft.id];
-    Vegetation& vegetation=patch.vegetation;
-    
-    // initialization is needed somehow
-    if(patch.id==0){
-      standpft.anpp=0.;
-      standpft.aiso=0.;
-      standpft.amon=0.;
-    }
-  
-    vegetation.firstobj();
-    while (vegetation.isobj) {
-      Individual& indiv=vegetation.getobj();
-      
-      // guess2008 - alive check added
-      if (indiv.id!=-1 && indiv.alive) { 
-	if (indiv.pft.id==pft.id) {
-	  standpft.anpp+=indiv.anpp/(double)stand.nobj;
-	  standpft.aiso+=indiv.aiso/(double)stand.nobj;
-	  standpft.amon+=indiv.amon/(double)stand.nobj;
-	}
-      }
-      vegetation.nextobj();
-    }
-    pftlist.nextobj();
-  }
 }
 
 #endif // USE_CRU_IO

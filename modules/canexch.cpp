@@ -41,7 +41,6 @@
 // FILE SCOPE GLOBAL CONSTANTS
 
 
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // PROCESS SWITCHES
 // This module contains alternative formulations for several processes. Each of a set
@@ -64,59 +63,6 @@
 #elif !defined(DEMAND_PATCH) && !defined(DEMAND_INDIV)
 #error One of DEMAND_PATCH and DEMAND_INDIV must be #defined
 #endif
-
-// Alternative parameterisations of the convective boundary layer
-//   AET_MONTEITH_HYPERBOLIC = hyperbolic parameterisation (Huntington & Monteith 1998)
-//   AET_MONTEITH_EXPONENTIAL = exponential parameterisation (Monteith 1995)
-// Comment out one of the following two lines:
-
-#define AET_MONTEITH_HYPERBOLIC
-//#define AET_MONTEITH_EXPONENTIAL
-
-// Check:
-#if defined(AET_MONTEITH_HYPERBOLIC) && defined(AET_MONTEITH_EXPONENTIAL)
-#error Only one of AET_MONTEITH_HYPERBOLIC and AET_MONTEITH_EXPONENTIAL should be #defined
-#elif !defined(AET_MONTEITH_HYPERBOLIC) && !defined(AET_MONTEITH_EXPONENTIAL)
-#error One of AET_MONTEITH_HYPERBOLIC and AET_MONTEITH_EXPONENTIAL must be #defined
-#endif
-
-// Alternative parameterisations of plant water uptake
-
-// guess2008 - drought/water uptake changes - added WR_SPECIESSPECIFIC option
-
-//   WR_WCONT = uptake rate coupled to water content and vertical root distribution
-//              (as in earlier versions of LPJ-GUESS and LPJF)
-//   WR_ROOTDIST = uptake rate independent of water content (to wilting point) but
-//                 with fractional uptake from different layers according to prescribed
-//                 root distribution
-//   WR_SMART = uptake rate independent of water content (to wilting point), fractional
-//              uptake from different layers according to layer water content for
-//              trees, according to prescribed root distribution for grasses
-//	 WR_SPECIESSPECIFIC = uptake rate is species specific, with more drought tolerance species 
-//            = (lower species_drought_tolerance values) having greater relative uptake rates. 
-
-// Comment out all but one of the following three lines:
-
-
-// guess2008 - drought/water uptake changes - added WR_SPECIESSPECIFIC option
-//#define WR_WCONT
-#define WR_ROOTDIST
-//#define WR_SMART
-//#define WR_SPECIESSPECIFIC
-
-
-#if defined(WR_WCONT) && defined(WR_ROOTDIST)
-#error Only one of WR_WCONT, WR_ROOTDIST and WR_SMART should be #defined
-#elif defined(WR_WCONT) && defined(WR_SMART)
-#error Only one of WR_WCONT, WR_ROOTDIST and WR_SMART should be #defined
-#elif defined(WR_ROOTDIST) && defined(WR_SMART)
-#error Only one of WR_WCONT, WR_ROOTDIST and WR_SMART should be #defined
-#elif defined(WR_SPECIESSPECIFIC) && (defined(WR_SMART) || defined(WR_ROOTDIST) || defined(WR_WCONT)) // guess2008
-#error Only one of WR_SPECIESSPECIFIC, WR_WCONT, WR_ROOTDIST and WR_SMART should be #defined
-#elif !defined(WR_WCONT) && !defined(WR_ROOTDIST) && !defined(WR_SMART) && !defined(WR_SPECIESSPECIFIC)
-#error One of WR_WCONT, WR_SPECIESSPECIFIC, WR_ROOTDIST and WR_SMART should be #defined
-#endif
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL VARIABLES
@@ -176,6 +122,11 @@ void interception(Patch& patch,Climate& climate) {
 	// Calculate net EET for vegetated parts of patch (deducting loss to interception)
 
 	patch.eet_net_veg=max(climate.eet-patch.intercep,0.0);
+
+	// Interception accounting for patch
+	patch.aintercep+=patch.intercep;
+	patch.mintercep[date.month]+=patch.intercep;
+
 }
 
 
@@ -401,8 +352,8 @@ void fpar(Patch& patch) {
 			// Calculate FPAR at bottom of this layer
 			// Eqn 27, Prentice et al 1993
 
-			fpar_layer_bottom=exp(-LAMBERTBEER_K*plai);
-			fpar_leafon_layer_bottom=exp(-LAMBERTBEER_K*plai_leafon);
+			fpar_layer_bottom = lambertbeer(plai);
+			fpar_leafon_layer_bottom = lambertbeer(plai_leafon);
 
 			// Total PAR uptake in this layer
 
@@ -444,21 +395,21 @@ void fpar(Patch& patch) {
 		}
 
 		// FPAR reaching grass canopy
-		fpar_grass=exp(-LAMBERTBEER_K*plai);
-		fpar_leafon_grass=exp(-LAMBERTBEER_K*plai_leafon);
+		fpar_grass = lambertbeer(plai);
+		fpar_leafon_grass = lambertbeer(plai_leafon);
 
 		// Add grass LAI to calculate PAR reaching forest floor
 		// BLARP: Order changed Ben 050301 to overcome optimisation bug in pgCC
 
 		//plai+=plai_grass;
-		fpar_ff=exp(-LAMBERTBEER_K*(plai+plai_grass));
+		fpar_ff = lambertbeer(plai+plai_grass);
 		plai+=plai_grass;
 
 		// Save this
 		patch.fpar_ff=fpar_ff;
 
 		plai_leafon+=plai_leafon_grass;
-		fpar_leafon_ff=exp(-LAMBERTBEER_K*plai_leafon);
+		fpar_leafon_ff = lambertbeer(plai_leafon);
 
 		// FPAR for grass PFTs is difference between relative PAR at top of grass canopy
 		// canopy and at forest floor, or lower if FPAR at forest floor below threshold
@@ -812,6 +763,35 @@ void photosynthesis(double co2,double temp,double par,double daylength,
 	adtmm=adt/CMASS*8.314*tk/PATMOS*1000.0;
 }
 
+/// Pre-calculate Vmax and no-stress assimilation and canopy conductance
+/**
+ * Vmax is calculated for a day (w/ daily averages of temperature and par)
+ */
+void photosynthesis_nowstress(Stand& stand, Climate& climate) {
+
+	for (int p=0; p<npft; p++) {
+		Standpft& spft = stand.pft[p];
+		Pft& pft = spft.pft;
+
+		// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
+		photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
+					       1.0, pft.lambda_max, pft.pathway, pft.pstemp_min, pft.pstemp_low,
+					       pft.pstemp_high, pft.pstemp_max, pft.lambda_max, spft.photosynthesis);
+
+		// Eqn 21, Haxeltine & Prentice 1996
+		// NB: includes conversion of daylight from hours to seconds (*3600),
+		//     and CO2 from ppmv to mole fraction (*1.0e-6);
+		//     scalar multiplier = 1.6 / 1.0e-6 / 3600 = 444.4
+		spft.gpterm = 444.4 * spft.photosynthesis.adtmm / climate.co2 /
+						(1 - pft.lambda_max) / climate.daylength;
+
+		// Store net C-assimilation (gross photosynthesis minus leaf
+		// respiration); valid for all individuals of this PFT given today's
+		// climate and FPAR=1 assuming no water stress
+		spft.assim_term = spft.photosynthesis.net_assimilation();
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // TRANSPIRATIVE DEMAND AND NON-WATER-STRESSED PHOTOSYNTHESIS
 
@@ -852,30 +832,6 @@ void demand(Patch& patch) {
 
 		if (!negligible(climate.daylength)) {
 			Standpft& standpft = stand.pft[pft.id];
-			if (!standpft.have_phot) {
-
-				// Call photosynthesis with FPAR=1 and assuming stomates fully open
-				// (lambda = lambda_max)
-				photosynthesis(climate.co2,climate.temp,climate.par,climate.daylength,
-					1.0,pft.lambda_max,pft.pathway,pft.pstemp_min,pft.pstemp_low,
-					pft.pstemp_high,pft.pstemp_max,pft.lambda_max,standpft.photosynthesis);
-
-				// Eqn 21, Haxeltine & Prentice 1996
-				// NB: includes conversion of daylight from hours to seconds (*3600),
-				//     and CO2 from ppmv to mole fraction (*1.0e-6);
-				//     scalar multiplier = 1.6 / 1.0e-6 / 3600 = 444.4
-
-				standpft.gpterm=444.4*standpft.photosynthesis.adtmm/climate.co2/(1.0-pft.lambda_max)/
-					climate.daylength;
-
-				// Store net C-assimilation (gross photosynthesis minus leaf
-				// respiration); valid for all individuals of this PFT given today's
-				// climate and FPAR=1 assuming no water stress
-
-				standpft.assim_term = standpft.photosynthesis.net_assimilation();
-
-				standpft.have_phot=true;
-			}
 
 			// Calculate non-water-stressed canopy conductance assuming full leaf cover
 			//        - include canopy-conductance component not linked to
@@ -915,7 +871,6 @@ void demand(Patch& patch) {
 			// special case if daylength=0
 			
 			indiv.gp_leafon=0.0;
-			stand.pft[pft.id].assim_term=0.0;
 		}
 
 		// Increment patch sums of non-water-stressed gp by individual value
@@ -949,15 +904,30 @@ void demand(Patch& patch) {
 
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// PLANT WATER UPTAKE
 
+/// Plant water uptake
+/**
+ * Returns plant water uptake (point scale, or mean for patch) as a fraction of
+ * maximum possible (daily basis).
+ *
+ * Supports alternative parameterisations of plant water uptake:
+ *
+ * WCONT           = uptake rate coupled to water content and vertical 
+ *                   root distribution (as in earlier versions of LPJ-GUESS and LPJF)
+ * ROOTDIST        = uptake rate independent of water content (to wilting point) 
+ *                   but with fractional uptake from different layers according 
+ *                   to prescribed root distribution
+ * SMART           = uptake rate independent of water content (to wilting point), 
+ *                   fractional uptake from different layers according to layer 
+ *                   water content for trees, according to prescribed root 
+ *                   distribution for grasses
+ * SPECIESSPECIFIC = uptake rate is species specific, with more drought 
+ *                   tolerance species (lower species_drought_tolerance values) 
+ *                   having greater relative uptake rates. 
+ */
 inline double water_uptake(double wcont[NSOILLAYER],double awc[NSOILLAYER],
-	double rootdist[NSOILLAYER],double& emax,double& fpc_rescale,
+	double rootdist[NSOILLAYER], double emax, double fpc_rescale,
 	double fuptake[NSOILLAYER],bool ifsmart, double species_drought_tolerance) {
-
-	// Returns plant water uptake (point scale, or mean for patch) as a fraction of
-	// maximum possible (daily basis)
 
 	// INPUT PARAMETERS:
 	//   wcont       = water content of soil layers as fraction between wilting point
@@ -969,9 +939,7 @@ inline double water_uptake(double wcont[NSOILLAYER],double awc[NSOILLAYER],
 	//                 summed FPC overlap)
 	//   ifsmart     = whether plants can freely adapt root profile to distribution of
 	//                 available water among layers (required for "smart" mode)
-
-	// guess2008
-	// species_drought_tolerance = used only if the WR_SPECIESSPECIFIC option is specified.
+	//   species_drought_tolerance = used only if the SPECIESSPECIFIC option is specified.
 	
 
 	// OUTPUT PARAMETER:
@@ -980,69 +948,75 @@ inline double water_uptake(double wcont[NSOILLAYER],double awc[NSOILLAYER],
 	double wr;
 	int s;
 
-#if defined(WR_WCONT)
+	switch (wateruptake) {
+	case WR_WCONT:
 
-	// LPJ "standard" formulation with linear scaling of uptake to water content
-	// and weighting by plant root profiles
+		// LPJ "standard" formulation with linear scaling of uptake to water content
+		// and weighting by plant root profiles
 
-	wr=0.0;
-	for (s=0;s<NSOILLAYER;s++) {
-		fuptake[s]=rootdist[s]*wcont[s]*fpc_rescale;
-		wr+=fuptake[s];
-	}
-
-// guess2008 - drought/water uptake changes - new option
-#elif defined(WR_SPECIESSPECIFIC)
-
-	// Uptake rate is species specific, with more drought tolerance species (lower species_drought_tolerance
-	// values) having greater relative uptake rates. 
-	// Reduces to WR_WCONT if species_drought_tolerance = 0.5
-	
-	wr=0.0;
-	for (s=0;s<NSOILLAYER;s++) {
-		double max_rel_uptake = pow(wcont[s],2.0*0.1); // Upper limit. Limits C3 grass uptake
-		fuptake[s]=rootdist[s]*min(pow(wcont[s],2.0*species_drought_tolerance),max_rel_uptake)*fpc_rescale;
-		wr+=fuptake[s];
-	}
-
-#elif defined(WR_ROOTDIST)
-
-
-	// Uptake rate independent of water content (to wilting point) but with fractional
-	// uptake from different layers according to prescribed root distribution
-
-	wr=0.0;
-	for (s=0;s<NSOILLAYER;s++) {
-		fuptake[s]=min(wcont[s]*awc[s]*fpc_rescale,emax*rootdist[s])/emax;
-		wr+=fuptake[s];
-	}
-
-#elif defined(WR_SMART)
-
-	// Uptake rate independent of water content (to wilting point), fractional uptake
-	// from different layers according to layer water content for trees, and according
-	// to prescribed root distribution for grasses
-
-	double wcsum=0.0;
-	double wcfrac;
-
-	for (s=0;s<NSOILLAYER;s++) wcsum+=wcont[s];
-
-	wr=0.0;
-	if (negligible(wcsum))
-		for (s=0;s<NSOILLAYER;s++) fuptake[s]=0.0;
-	else {
+		wr=0.0;
 		for (s=0;s<NSOILLAYER;s++) {
-			wcfrac=wcont[s]/wcsum;
-			if (ifsmart)
-				fuptake[s]=min(wcont[s]*awc[s]*wcfrac*fpc_rescale,emax*wcfrac)/emax;
-			else
-				fuptake[s]=min(wcont[s]*awc[s]*fpc_rescale,emax*rootdist[s])/emax;
+			fuptake[s]=rootdist[s]*wcont[s]*fpc_rescale;
 			wr+=fuptake[s];
 		}
-	}
+		break;
 
-#endif
+	// guess2008 - drought/water uptake changes - new option
+	case WR_SPECIESSPECIFIC:
+
+		// Uptake rate is species specific, with more drought tolerance species (lower species_drought_tolerance
+		// values) having greater relative uptake rates. 
+		// Reduces to WCONT if species_drought_tolerance = 0.5
+
+		wr=0.0;
+		for (s=0;s<NSOILLAYER;s++) {
+			double max_rel_uptake = pow(wcont[s],2.0*0.1); // Upper limit. Limits C3 grass uptake
+			fuptake[s]=rootdist[s]*min(pow(wcont[s],2.0*species_drought_tolerance),max_rel_uptake)*fpc_rescale;
+			wr+=fuptake[s];
+		}
+		break;
+	case WR_ROOTDIST:
+
+		// Uptake rate independent of water content (to wilting point) but with fractional
+		// uptake from different layers according to prescribed root distribution
+
+		wr=0.0;
+		for (s=0;s<NSOILLAYER;s++) {
+			fuptake[s]=min(wcont[s]*awc[s]*fpc_rescale,emax*rootdist[s])/emax;
+			wr+=fuptake[s];
+		}
+		break;
+	case WR_SMART: 
+		{
+
+			// Uptake rate independent of water content (to wilting point), fractional uptake
+			// from different layers according to layer water content for trees, and according
+			// to prescribed root distribution for grasses
+
+			double wcsum=0.0;
+			double wcfrac;
+
+			for (s=0;s<NSOILLAYER;s++) wcsum+=wcont[s];
+
+			wr=0.0;
+			if (negligible(wcsum))
+				for (s=0;s<NSOILLAYER;s++) fuptake[s]=0.0;
+			else {
+				for (s=0;s<NSOILLAYER;s++) {
+					wcfrac=wcont[s]/wcsum;
+					if (ifsmart)
+						fuptake[s]=min(wcont[s]*awc[s]*wcfrac*fpc_rescale,emax*wcfrac)/emax;
+					else
+						fuptake[s]=min(wcont[s]*awc[s]*fpc_rescale,emax*rootdist[s])/emax;
+					wr+=fuptake[s];
+				}
+			}
+		}
+		break;
+	default:
+		// Should never happen
+		fail("Unsupported wateruptake type");
+	}
 
 	if (!negligible(wr))
 		for (s=0;s<NSOILLAYER;s++)
@@ -1104,16 +1078,8 @@ void aet_water_stress(Patch& patch) {
 		// individual's FPC, assuming individuals are equal in competition for water)
 
 		// ----------------------------------------
-		// guess2008 - specieds specific drought/water uptake changes
-		double species_drought_tolerance = 0.5; 
-		// default, ensures that WR_SPECIESSPECIFIC gives identical results to WR_WCONT 
-		
-		// override with species value (always <= 0.5) iff ifspeciesspecificwateruptake == 1
-		if (ifspeciesspecificwateruptake) 
-			species_drought_tolerance = pft.drought_tolerance;
-
 		wr=water_uptake(patch.soil.wcont,patch.soil.soiltype.awc,pft.rootdist,pft.emax,
-			patch.fpc_rescale,ppft.fuptake,pft.lifeform==TREE,species_drought_tolerance);
+			patch.fpc_rescale,ppft.fuptake,pft.lifeform==TREE,pft.drought_tolerance);
 		// ----------------------------------------
 
 		// Calculate supply (Eqn 24, Haxeltine & Prentice 1996)
@@ -1363,8 +1329,6 @@ void assimilation_wstress(Pft& pft,Patchpft& ppft,double co2,double temp,double 
 	// lambda      = the lambda found by the bisection method (see above)
 
 	const double EPS=0.1; // minimum precision of solution in bisection method
-	const int MAXTRIES=6;
-		// maximum number of iterations towards a solution in bisection method
 
 	double gcphot;
 		// canopy conductance component associated with photosynthesis on FPC basis
@@ -1412,7 +1376,7 @@ void assimilation_wstress(Pft& pft,Patchpft& ppft,double co2,double temp,double 
 
 	lookup_lambda.newsearch();
 
-	while (fabs(fmid)>EPS && b<=MAXTRIES) {
+	while (fabs(fmid)>EPS && b<=Lookup_lambda::MAXTRIES) {
 
 		b++;
 		dx*=0.5;
@@ -1699,20 +1663,6 @@ void npp(Patch& patch) {
 				indiv.aiso+=indiv.iso;
 				indiv.amon+=indiv.mon;
 			}
-				
-
-			// Calculate respiration response to air and soil temperature
-			// (if not already known for this day)
-
-			if (climate.last_gtemp!=date.day) {
-				respiration_temperature_response(climate.temp,climate.gtemp);
-				climate.last_gtemp=date.day;
-			}
-
-			if (patch.soil.last_gtemp!=date.day) {
-				respiration_temperature_response(patch.soil.temp,patch.soil.gtemp);
-				patch.soil.last_gtemp=date.day;
-			}
 
 			// Calculate autotrophic respiration
 
@@ -1998,34 +1948,6 @@ void forest_floor_conditions(Patch& patch) {
 
 		if (!ppft.ifwstress) {
 
-			if (!stand.pft[p].have_phot) {
-
-				Pft& pft=patch.pft[p].pft;
-
-				// Call photosynthesis with FPAR=1 and assuming stomates fully open
-				// (lambda = lambda_max)
-				photosynthesis(climate.co2,climate.temp,climate.par,climate.daylength,
-					       1.0,pft.lambda_max,pft.pathway,pft.pstemp_min,pft.pstemp_low,
-					       pft.pstemp_high,pft.pstemp_max,pft.lambda_max,stand.pft[p].photosynthesis);
-						
-				// Eqn 21, Haxeltine & Prentice 1996
-				// NB: includes conversion of daylight from hours to seconds (*3600),
-				//     and CO2 from ppmv to mole fraction (*1.0e-6);
-				//     scalar multiplier = 1.6 / 1.0e-6 / 3600 = 444.4
-
-				stand.pft[pft.id].gpterm=444.4*stand.pft[p].photosynthesis.adtmm/climate.co2/(1.0-pft.lambda_max)/
-					climate.daylength;
-
-
-				// Store net C-assimilation (gross photosynthesis minus leaf
-				// respiration); valid for all individuals of this PFT given today's
-				// climate and FPAR=1 assuming no water stress
-
-				stand.pft[pft.id].assim_term=stand.pft[p].photosynthesis.net_assimilation();
-
-				stand.pft[pft.id].have_phot=true;
-			}
-
 			// Calculate net assimilation at top of grass canopy (or at soil surface
 			// if there is none)
 
@@ -2046,14 +1968,40 @@ void forest_floor_conditions(Patch& patch) {
 	}
 }
 
+/// Initiate required variables for the module
+void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
+
+	if (date.day == 0) {
+		vegetation.firstobj();
+		while (vegetation.isobj) {
+			Individual& indiv = vegetation.getobj();
+
+			indiv.anpp = 0.0;
+ 			for (int m=0; m<12; m++) {
+				indiv.mnpp[m] = 0.0;
+				indiv.mlai[m] = 0.0;
+				indiv.mgpp[m] = 0.0;
+				indiv.mra[m] = 0.0;
+			}
+
+			indiv.aiso = 0.0;
+			indiv.amon = 0.0;
+
+			vegetation.nextobj();
+		}
+	}
+
+	if (!patch.id) {
+		photosynthesis_nowstress(patch.stand, climate);
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // CANOPY EXCHANGE
 // Should be called each simulation day for each modelled area or patch, following
 // update of leaf phenology and soil temperature and prior to update of soil water.
 
-
-void canopy_exchange(Patch& patch) {
+void canopy_exchange(Patch& patch, Climate& climate) {
 
 	// DESCRIPTION
 	// Vegetation-atmosphere exchange of CO2 and water including calculations
@@ -2096,61 +2044,11 @@ void canopy_exchange(Patch& patch) {
 	//        area in cohort/individual mode)
 
 	// Retrieve Vegetation and Climate objects for this patch
+	Vegetation& vegetation = patch.vegetation;
 
-	Vegetation& vegetation=patch.vegetation;
-	Climate& climate=patch.stand.gridcell.climate;
-
-	double pet_s;
-		// potential evapotranspiration over non-vegetated parts of patch (mm,
-		// patch basis)
-	double pet_patch;
-		// total potential evapotranspiration for patch
-	int m;
-
-	if (date.day==0) {
-		
-		// On first day of year ...
-
-		// Calculate total FPC and initialise sums for each individual
-
-		patch.fpc_total=0.0;
-		vegetation.firstobj();
-		while (vegetation.isobj) {
-			Individual& indiv=vegetation.getobj();
-
-			patch.fpc_total+=indiv.fpc;
-			indiv.anpp=0.0;
- 
-			for (m=0;m<12;m++) {
-				indiv.mnpp[m]=0.0;
-				indiv.mlai[m]=0.0;
-
-				// guess2008 - initialise
-				indiv.mgpp[m]=0.0;
-				indiv.mra[m]=0.0;
-				
-			}
-
-			// bvoc
-			indiv.aiso=0.;
-			indiv.amon=0.;
-			
-
-			vegetation.nextobj();
-		}
-
-		// Calculate rescaling factor to account for overlap between populations/
-		// cohorts/individuals (i.e. total FPC > 1)
-
-		if (patch.fpc_total>1.0)
-			patch.fpc_rescale=1.0/patch.fpc_total;
-		else
-			patch.fpc_rescale=1.0;
-	}
+	init_canexch(patch, climate, vegetation);
 
 	// Canopy exchange processes
-
-	interception(patch,climate);
 	fpar(patch);
 	demand(patch);
 	aet_water_stress(patch);
@@ -2158,17 +2056,14 @@ void canopy_exchange(Patch& patch) {
 	npp(patch);
 	forest_floor_conditions(patch);
 
-	// Interception for patch
-
-	patch.aintercep+=patch.intercep;
-	patch.mintercep[date.month]+=patch.intercep;
-
 	// Potential evapotranspiration for patch
-
-	pet_s=climate.eet*PRIESTLEY_TAYLOR*max(1.0-patch.fpc_total,0.0);
-	pet_patch=pet_s+patch.demand*patch.fpc_total+patch.intercep;
-	patch.apet+=pet_patch;
-	patch.mpet[date.month]+=pet_patch;
+	double pet_s = climate.eet * PRIESTLEY_TAYLOR * max(1.0-patch.fpc_total, 0.0);
+		// potential evapotranspiration over non-vegetated parts of patch (mm,
+		// patch basis)
+	double pet_patch = pet_s + patch.demand*patch.fpc_total + patch.intercep;
+		// total potential evapotranspiration for patch
+	patch.apet += pet_patch;
+	patch.mpet[date.month] += pet_patch;
 }
 
 

@@ -35,6 +35,7 @@
 
 #include "config.h"
 #include "growth.h"
+#include "canexch.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -100,17 +101,16 @@ void leaf_phenology_pft(Pft& pft,Climate& climate,double wscal,double aphen,
 			phen=min(1.0,climate.gdd5/pft.phengdd5ramp);
 		}
 	}
-	
-	if (raingreen) {
+
+	if (raingreen && wscal < pft.wscal_min) {
 
 		// Raingreen phenology based on water stress threshold
-
-		if (wscal<pft.wscal_min) phen=0.0;
+		phen = 0.0;
 	}
 }
 
 
-void leaf_phenology(Patch& patch,Climate& climate) {
+void leaf_phenology(Patch& patch, Climate& climate) {
 
 	// DESCRIPTION
 	// Updates leaf phenological status (fractional leaf-out) for Patch PFT objects and
@@ -145,15 +145,16 @@ void leaf_phenology(Patch& patch,Climate& climate) {
 		// Update annual leaf-on sum
 		if (climate.lat>=0.0 && date.day==COLDEST_DAY_NHEMISPHERE ||
 			climate.lat<0.0 && date.day==COLDEST_DAY_SHEMISPHERE) pft.aphen=0.0;
-		pft.aphen+=pft.phen;
+		pft.aphen += pft.phen;
 
 		// ... on to next PFT
 		patch.pft.nextobj();
 	}
 
 
-	// guess2008
-	if (leafout) climate.ifsensechill=true; // CHILLDAYS
+	if (leafout) {
+		climate.ifsensechill = true; // CHILLDAYS
+	}
 
 
 	// Copy PFT-specific phenological status to individuals of each PFT
@@ -562,19 +563,13 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// guess2008 - extra check - abnormal allocation can still happen if ltor is very small
 			if ((cmass_root_inc > 50 || cmass_root_inc < -50) && ltor < 0.0001) {
-				cmass_leaf_inc=0.0;
-				cmass_root_inc=bminc;
-
-				if (lifeform==TREE) {
-					cmass_sap_inc=-cmass_sap;
-					cmass_heart_inc=-cmass_sap_inc;
-				}
-
-				return;			
+				cmass_leaf_inc = 0.0;
+				cmass_root_inc = bminc;
+				cmass_sap_inc = -cmass_sap;
+				cmass_heart_inc = -cmass_sap_inc;
 			}
 
-		}
-		else {
+		} else {
 
 			// Abnormal allocation: reduction in some biomass compartment(s) to
 			// satisfy allometry
@@ -600,8 +595,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 					litter_root_inc=-cmass_root_inc;
 				}
 
-			}
-			else {
+			} else {
 
 				// Negative or zero allocation to leaves
 				// Eqns (1), (3)
@@ -637,37 +631,34 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 		cmass_leaf_inc=(bminc-cmass_leaf/ltor+cmass_root)/(1.0+1.0/ltor);
 		cmass_root_inc=bminc-cmass_leaf_inc;
 
-		if (cmass_leaf_inc<0.0) {
+		if (cmass_leaf_inc < 0.0 && bminc > 0.0) {
 
-			// Negative allocation to leaves
+			// Positive bminc, but ltor causes negative allocation to leaves,
+			// put all of bminc into roots
 
 			cmass_root_inc=bminc;
 			cmass_leaf_inc=(cmass_root+cmass_root_inc)*ltor-cmass_leaf; // Eqn (3)
-
-			// Add killed leaves to litter
-
-			cmass_leaf_inc=(cmass_root+cmass_root_inc)*ltor-cmass_leaf; // Eqn (3)
-
-			// Add killed leaves to litter
-
-			// guess2008 - bugfix 
-			// litter_leaf_inc=-cmass_leaf_inc;
-			litter_leaf_inc=min(-cmass_leaf_inc, cmass_leaf);
 		}
-		else if (cmass_root_inc<0.0) {
+		else if (cmass_root_inc < 0.0 && bminc > 0.0) {
 
-			// Negative allocation to roots
+			// Positive bminc, but ltor causes negative allocation to roots,
+			// put all of bminc into leaves
 
 			cmass_leaf_inc=bminc;
 			cmass_root_inc=(cmass_leaf+bminc)/ltor-cmass_root;
-
-			// Add killed roots to litter
-
-			// guess2008 - bugfix 
-			//litter_root_inc=-cmass_root_inc;
-			litter_root_inc=min(-cmass_root_inc, cmass_root);
-
 		}
+
+		// Make sure we don't end up with negative cmass_leaf
+		cmass_leaf_inc = max(-cmass_leaf, cmass_leaf_inc);
+
+		// Make sure we don't end up with negative cmass_root
+		cmass_root_inc = max(-cmass_root, cmass_root_inc);
+
+		// Add killed leaves to litter
+		litter_leaf_inc = max(-cmass_leaf_inc, 0.0);
+
+		// Add killed roots to litter
+		litter_root_inc = max(-cmass_root_inc, 0.0);
 	}
 }
 
@@ -812,7 +803,7 @@ bool allometry(Individual& indiv) {
 			// FPC (Eqn 8)
 			
 			fpc_new=indiv.crownarea*indiv.densindiv*
-				(1.0-exp(-LAMBERTBEER_K*indiv.lai_indiv));
+				(1.0-lambertbeer(indiv.lai_indiv));
 				
 			// Increment deltafpc
 			indiv.deltafpc+=fpc_new-indiv.fpc;
@@ -840,7 +831,7 @@ bool allometry(Individual& indiv) {
 			indiv.lai_indiv=indiv.cmass_leaf*indiv.pft.sla;
 
 			// FPC (Eqn 10)
-			indiv.fpc=1.0-exp(-LAMBERTBEER_K*indiv.lai_indiv);
+			indiv.fpc = 1.0 - lambertbeer(indiv.lai_indiv);
 
 			// Stand-level LAI
 			indiv.lai=indiv.lai_indiv;
@@ -957,10 +948,6 @@ void growth(Stand& stand,Patch& patch) {
 			stand.pft[p].cmass_repr=0.0;
 
 	// Loop through individuals
-
-	if (date.year > 152)
-		int test = 0;
-
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();

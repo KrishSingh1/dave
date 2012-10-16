@@ -173,8 +173,13 @@ function setup_workspace {
 	cp $build_path/output/submit.sh $workspace
     fi
 
-    # Copy the config files to the workspace
-    cp $test_name/config/* $workspace
+    # Copy the config files to the workspace.
+    # The ins file is excluded to avoid confusion. It's the ins
+    # file in the benchmark directory that's used. If we copy
+    # the ins file to the run directory it looks like the ins
+    # file in the benchmark directory can be modified once the
+    # job has been submitted to queue.
+    ls $test_name/config/* | grep -v guess.ins | xargs -I '{}' cp '{}' $workspace
 
     # Limit the gridlist if there is a boundingbox.txt
     if [ -f $test_name/config/boundingbox.txt ]; then
@@ -233,10 +238,13 @@ function submit_job {
     else
 	jobid=$(sh submit.sh -i $insfile -n "bm_$test_name" 2> /dev/null)
     fi
+
+    local submit_exit_status=$?
+
     popd &> /dev/null
 
-    if (($? != 0)); then
-	error "Failed to submit $test_name!"
+    if (($submit_exit_status != 0)); then
+	error "Failed to submit $test_name! Try manually for more information."
     else
 	submit_pp $test_name $jobid
     fi

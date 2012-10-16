@@ -22,6 +22,7 @@ double const PI = 4 * atan(1.0);
 double const PI = M_PI;
 #undef M_PI
 #endif
+const double DEGTORAD = PI / 180.;
 
 inline bool negligible(double dval) {
 	// Returns true if |dval| < EPSILON, otherwise false

@@ -38,6 +38,8 @@
 #include <string.h>
 #include <time.h>
 #include <gutil.h>
+#include <vector>
+#include "shell.h"
 #include "guessmath.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -66,6 +68,11 @@ typedef enum {NOVEGMODE,INDIVIDUAL,COHORT,POPULATION} vegmodetype;
 /// Land cover type of a stand. NLANDCOVERTYPES keeps count of number of items.
 typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, NLANDCOVERTYPES} landcovertype;
 
+/// Water uptake parameterisations
+/** \see water_uptake in canexch.cpp
+  */
+typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptaketype;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
 
@@ -81,8 +88,6 @@ const int SOLVESOM_END=400;
 const int SOLVESOM_BEGIN=350;
 	// year at which to begin documenting means for calculation of equilibrium
 	// soil carbon
-const double LAMBERTBEER_K=0.50;
-	// Lambert-Beer extinction coefficient (Prentice et al 1993; Monsi & Saeki 1953)
 const int NYEARGREFF=5;
 	// number of years to average growth efficiency over in function mortality
 const int COLDEST_DAY_NHEMISPHERE=14;
@@ -148,6 +153,9 @@ extern int npft; // number of possible PFTs
 extern bool iffast; // whether to run in "fast" mode
 extern bool ifcdebt; // whether C debt (storage between years) permitted
 
+/// Water uptake parameterisation
+extern wateruptaketype wateruptake;
+
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;
 
@@ -172,42 +180,11 @@ extern bool ifdroughtlimitedestab;
 	// whether establishment is limited by growing season drought 
 extern bool ifrainonwetdaysonly;			
 	// rain on wet days only (1, true), or a little every day (0, false); 
-extern bool ifspeciesspecificwateruptake;	
-	// whether water uptake is species specific 
 // bvoc
 extern bool ifbvoc; 
         // whether BVOC calculations are included
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// GLOBAL FUNCTION DECLARATIONS
-// These functions are defined in the framework source file or main module (if
-// a separate main module is implemented), and are accessible throughout the code
-
-void dprintf(xtring format,...);
-	// a printf-style function for text output to the screen and/or a log file. To
-	// maintain portability of the modular code, please use this function for general
-	// output instead of the standard C++ printf function
-void fail(xtring format,...);
-	// a printf-style function that sends output to the screen and/or a log file, then
-    // terminates execution.
-void plot(xtring window_name,xtring series_name,double x,double y);
-	// adds data point (x,y) to series 'series_name' of line graph 'window_name'. If
-	// the series and/or line graph do not yet exist, they are created. Functional only
-	// when the framework is built as a DLL and linked to the LPJ-GUESS Windows Shell
-	// (the function may still be called in other implementations, but will have no
-	// effect).
-void resetwindow(xtring window_name);
-	// 'forgets' series and data for line graph 'window_name' created using function
-	// plot (above). Functional only when the framework is built as a DLL and
-	// linked to the LPJ-GUESS Windows Shell.
-void clear_all_graphs();
-	// 'forgets' series and data for all currently-defined line graphs created using
-	// function plot (above). Functional only when the framework is built as a DLL and
-	// linked to the LPJ-GUESS Windows Shell.
-bool abort_request_received();
-	// May be called by framework to respond to abort request from Windows shell
-	// (returns true if shell has sent an abort request, otherwise false)
 
 /// General purpose object for handling simulation timing. 
 /** In general, frameworks should use a single Date object for all simulation
@@ -453,8 +430,6 @@ public:
 	double gtemp;
 		// respiration response to today's air temperature incorporating damping of Q10
 		// due to temperature acclimation (Lloyd & Taylor 1994)
-	int last_gtemp;
-		// the last day (0-364) for which gtemp was calculated
 	double mgtemp;
 		// gtemp (see above) calculated for this month's average temperature
 	int last_mgtemp;
@@ -504,7 +479,6 @@ public:
 		// Initialises certain member variables
 		// Should be called before Climate object is applied to a new grid cell
 
-		const double DEGTORAD=0.01745329;
 		int day,year;
 
 		for (year=0;year<20;year++) {
@@ -516,7 +490,6 @@ public:
 		chilldays=0;
 		ifsensechill=true; //  guess2008 - CHILLDAYS
 		atemp_mean=0.0;
-		last_gtemp=-1;
 		last_mgtemp=-1;
 
 		lat=latitude;
@@ -1180,8 +1153,6 @@ public:
 		// respiration response to today's soil temperature at 0.25 m depth
 		// incorporating damping of Q10 due to temperature acclimation (Lloyd & Taylor
 		// 1994)
-	int last_gtemp;
-		// the last day (0-364) for which gtemp was calculated
 	double mgtemp;
 		// gtemp (see above) calculated for this month's average temperature
 	int last_mgtemp;
@@ -1215,7 +1186,9 @@ public:
 		// mean water content in lower soil layer for last month
 		// (valid only on last day of month following call to daily_accounting_patch)
 
-
+	double rain_melt;						// rainfall and snowmelt today (mm)
+	double max_rain_melt;					// upper limit for percolation (mm)
+	bool percolate;							// whether to percolate today
 
 	// MEMBER FUNCTIONS
 
@@ -1240,7 +1213,6 @@ public:
 		wcont[1]=0.0;
 		wcont_evap=0.0;
 		snowpack=0.0;
-		last_gtemp=-1;
 		last_mgtemp=-1;
 
 
@@ -1261,13 +1233,13 @@ public:
 
 };
 
-///////////////////////////////////////////////////////////////////////////////////////
-// CLASS LOOKUP_LAMBDA
-// Lookup table for photosynthesis parameters (required for "fast" version of canopy
-// exchange code; see canexch.cpp)
 
-const int LOOKUP_LAMBDA_MAXITEM=130;
-
+/// One item in the Lookup_lambda table
+/** Each entry in the table holds photosynthesis values for a given lambda,
+ *  we also store year and day to make sure we don't reuse items calculated
+ *  for a previous day.
+ *
+ *  \see Lookup_lambda */
 struct Lookup_lambda_item {
 	PhotosynthesisResult photosynthesis;
 	int year;
@@ -1279,49 +1251,49 @@ struct Lookup_lambda_item {
 };
 
 
+/// Lookup table for photosynthesis parameters
+/** \see canexch.cpp::assimilation_wstress
+ */
 class Lookup_lambda {
 
 private:
-	Lookup_lambda_item data[LOOKUP_LAMBDA_MAXITEM];
+	std::vector<Lookup_lambda_item> data;
 	int position;
 
 public:
+	/// Maximum number of iterations towards a solution in bisection method
+	/** Should be static const int, but is an enum for backwards compatibility
+	 *  with old compilers (e.g. VC6) */
+	enum { MAXTRIES = 6 };
+
+	Lookup_lambda(): data((int)pow(2., MAXTRIES+1)) {}
 
 	void newsearch() {
-		position=0;
+		position = 0;
 	}
 
 	bool getdata(int year,int day,PhotosynthesisResult& photosynthesis) {
-		if (position>=LOOKUP_LAMBDA_MAXITEM)
-			fail("class Lookup_lambda: exceeded dimension of lookup table");
-		Lookup_lambda_item& thisitem=data[position];
+		Lookup_lambda_item& thisitem = data[position];
 		if (thisitem.year==year && thisitem.day==day) {
 			photosynthesis = thisitem.photosynthesis;
 			return true;
 		}
-		// else
 		return false;
 	}
 
 	void setdata(int year,int day, const PhotosynthesisResult& photosynthesis) {
-		if (position>=LOOKUP_LAMBDA_MAXITEM)
-			fail("class Lookup_lambda: exceeded dimension of lookup table");
-		Lookup_lambda_item& thisitem=data[position];
-		thisitem.year=year;
-		thisitem.day=day;
+		Lookup_lambda_item& thisitem = data[position];
+		thisitem.year = year;
+		thisitem.day = day;
 		thisitem.photosynthesis = photosynthesis;
 	}
 
-	bool increase() {
-		position+=position+1;
-		if (position>=LOOKUP_LAMBDA_MAXITEM) return false;
-		return true;
+	void increase() {
+		position += position + 1;
 	}
 
-	bool decrease() {
-		position+=position+2;
-		if (position>=LOOKUP_LAMBDA_MAXITEM) return false;
-		return true;
+	void decrease() {
+		position += position + 2;
 	}
 };
 
@@ -1558,31 +1530,20 @@ public:
 	double anetps_ff_max;
 		// maximum value of anetpsff (potential annual net assimilation at forest
 		// floor) for this PFT in this stand so far in the simulation (kgC/m2/year)
-	double gterm;
-		// term in calculation of potential canopy conductance (mm/s)
-	bool have_gterm;
-		// true if value of gterm available for this PFT today, otherwise false
-
-	// Variables used by "fast" canopy exchange code (Ben Smith 2002-07)
-
 	double gpterm;
 		// non-FPAR-weighted value for canopy conductance component associated with
 		// photosynthesis for PFT under non-water-stress conditions (mm/s)
 	double assim_term;
 		// non-FPAR-weighted leaf-level net photosynthesis value for PFT under non-
 		// water-stress conditions (kgC/m2/day)
-	bool have_phot;
-		// whether gpterm and assim_term values are valid today
 	double fpc_total;
 		// FPC sum for this PFT as average for stand (used by some versions of
 		// guessio.cpp)
 
 	/// Photosynthesis values for this PFT under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;
-	
-	
 
-	/// Is this PFT allowed to grow in this stand ?
+	/// Is this PFT allowed to grow in this stand?
 	bool active;
 
 	// MEMBER FUNCTIONS
@@ -1590,13 +1551,8 @@ public:
 	Standpft(int i,Pft& p):id(i),pft(p) {
 		
 		// Constructor: initialises various data members
-		
-		anetps_ff_max=0.0;
-
-		if (run_landcover)
-			active=false;
-		else
-			active=true;
+		anetps_ff_max = 0.0;
+		active = !run_landcover;
 	}
 };
 
@@ -1758,10 +1714,6 @@ public:
 	}
 };
 
-///////////////////////////////////////////////////////////////////////////////////////
-// FRAMEWORK FUNCTION DECLARATION
-
-int framework(int argc,char* argv[]);
 
 #endif // LPJ_GUESS_GUESS_H
 

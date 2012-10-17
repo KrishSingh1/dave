@@ -42,13 +42,13 @@ namespace {
 
 // Lookup tables for parameters with Q10 temperature responses
 
-/// lookup table for Q10 temperature response of Michaelis constant for O2
+/// lookup table for Q10 temperature response of CO2/O2 specificity ratio
 LookupQ10 lookup_tau(0.57, 2600.0);
 
-/// lookup table for Q10 temperature response of Michaelis constant for CO2
+/// lookup table for Q10 temperature response of Michaelis constant for O2
 LookupQ10 lookup_ko(1.2, 3.0e4);
 
-/// lookup table for Q10 temperature response of CO2/O2 specificity ratio
+/// lookup table for Q10 temperature response of Michaelis constant for CO2
 LookupQ10 lookup_kc(2.1, 30.0);
 
 }

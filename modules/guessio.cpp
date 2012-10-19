@@ -93,7 +93,7 @@ public:
 		Paramtype* p = find(name);
 		if (p == 0) {
 			p = &createobj();
-	}
+		}
 		p->name=name.lower();
 		p->str=value;
 	}
@@ -103,7 +103,7 @@ public:
 		Paramtype* p = find(name);
 		if (p == 0) {
 			p = &createobj();
-	}
+		}
 		p->name=name.lower();
 		p->num=value;
 	}
@@ -140,7 +140,7 @@ private:
 // ENUM DECLARATIONS OF INTEGER CONSTANTS FOR PLIB INTERFACE
 
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM};
-enum {CB_NONE,CB_VEGMODE,CB_INSTYPE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_HYDROLOGY,CB_INTERCROP,CB_PHENOLOGY,CB_PATHWAY,	
+enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_HYDROLOGY,CB_INTERCROP,CB_PHENOLOGY,CB_PATHWAY,	
 	CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE};
 
 
@@ -509,7 +509,7 @@ void plib_declarations(int id,xtring setname) {
 		// guess2008 - DLE
 		declareitem("drought_tolerance",&ppft->drought_tolerance,0.0,1.0,1,CB_NONE,
 			"Drought tolerance level (0 = very -> 1 = not at all) (unitless)");
-
+		
 		// bvoc
 		declareitem("ga",&ppft->ga,0.0,1.0,1,CB_NONE,
 			"aerodynamic conductance (m/s)");
@@ -1213,14 +1213,14 @@ bool readenv(Coord coord) {
 	//                    soilparameters in driver module)
 	// The fields in each record are separated by spaces
 
-	double mtemp[12]; // monthly mean temperature (deg C)
-	double mprec[12]; // monthly precipitation sum (mm)
-	double msun[12]; // monthly mean percentage sunshine values
+	double mtemp[12];		// monthly mean temperature (deg C)
+	double mprec[12];		// monthly precipitation sum (mm)
+	double msun[12];		// monthly mean percentage sunshine values
 
 	double mwet[12]={31,28,31,30,31,30,31,31,30,31,30,31}; // number of rain days per month
 
-	double mdtr[12]; // monthly mean diurnal temperature range (oC)
-	for(int m=0;m<12;m++) {
+	double mdtr[12];		// monthly mean diurnal temperature range (oC)
+	for(int m=0; m<12; m++) {
 		mdtr[m] = 0.;
 		if (ifbvoc) {
 			dprintf("WARNING: No data available for dtr in sample data set!\nNo daytime temperature correction for BVOC calculations applied.");
@@ -1235,7 +1235,7 @@ bool readenv(Coord coord) {
 	// Interpolate monthly values for environmental drivers to daily values
 	// (relevant daily values will be sent to the framework each simulation
 	// day in function getclimate, below)
-	interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
+	interp_climate(mtemp, mprec, msun, mdtr, dtemp, dprec, dsun, ddtr);
 
 	for(int m=0;m<12;m++)
 	{
@@ -1244,7 +1244,7 @@ bool readenv(Coord coord) {
 	}
 	// Recalculate precipitation values using weather generator
 	// (from Dieter Gerten 021121)
-	prdaily(mprec,dprec,mwet);
+	prdaily(mprec, dprec, mwet);
 	return true;
 }
 
@@ -1638,7 +1638,7 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	{
 
 		if (run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST]) {
 #if defined DYNAMIC_LANDCOVER_INPUT					
-			if(!LUdata.Load(c))		//Load area fraction data from Bondeau input file to data object
+			if (!LUdata.Load(c))		//Load area fraction data from Bondeau input file to data object
 			{
 				dprintf("Problems with landcover fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;		// skip this stand
@@ -1702,8 +1702,8 @@ bool getgridcell(Gridcell& gridcell) {
 	// and interp_monthly_totals in driver.cpp may be called for this purpose.
 
 	// Select coordinates for next grid cell in linked list
-	bool gridfound=false;
-	bool LUerror=false;
+	bool gridfound = false;
+	bool LUerror = false;
 
 	// to ensure an identical random number sequence for each gridcell.
 	setseed(12345678);
@@ -1726,20 +1726,20 @@ bool getgridcell(Gridcell& gridcell) {
 		while(!gridfound) {
 
 			// Retrieve coordinate of next grid cell from linked list
-			Coord& c=gridlist.getobj();
+			Coord& c = gridlist.getobj();
 
 			// Load environmental data for this grid cell from files
 			// (these will be the same for every year of the simulation, but must be sent
 			// anew to the framework each year in function getclimate, below)
 
 			if(run_landcover) {
-				LUerror=loadlandcover(gridcell, c);
+				LUerror = loadlandcover(gridcell, c);
 			}
 			if (!LUerror) {
 				gridfound = readenv(c);
 			} else {
 				gridlist.nextobj();
-		}
+			}
 		}
 
 		dprintf("\nCommencing simulation for stand at (%g,%g)",gridlist.getobj().lon,
@@ -2225,8 +2225,8 @@ void outannual(Gridcell& gridcell) {
 	// provide any information to the framework.
 
 	int c, m, nclass;
-	double flux_veg,flux_soil,flux_fire,flux_est,flux_seed,flux_harvest;
-	double c_litter,c_fast,c_slow,c_harv_slow; 
+	double flux_veg, flux_soil, flux_fire, flux_est, flux_seed, flux_harvest;
+	double c_litter, c_fast, c_slow, c_harv_slow; 
 
 	// guess2008 - hold the monthly average across patches
 	double mnpp[12];
@@ -2634,7 +2634,7 @@ void outannual(Gridcell& gridcell) {
 
 
 		// In contrast to annual NEE, monthly NEE does not include fire 
-		// or establishment fluxes 
+		// or establishment fluxes
 		for (m=0;m<12;m++) {
 			mnpp[m] = mgpp[m]-mra[m];
 			mnee[m] = mnpp[m]-mrh[m];
@@ -2681,7 +2681,7 @@ void outannual(Gridcell& gridcell) {
 			 out.add_value(out_mwcont_lower, mwcont_lower[m]);
 			 out.add_value(out_miso,         miso[m]);
 			 out.add_value(out_mmon,         mmon[m]);
-			}
+		}
 
 
 		// Graphical output every 10 years
@@ -2767,7 +2767,7 @@ void termio() {
 	// Performs memory deallocation, closing of files or other "cleanup" functions.
 	delete output_channel;
 
-		if (out_yield) fclose(out_yield);
+	if (out_yield) fclose(out_yield);
 	// Clean up
 	gridlist.killall();
 }

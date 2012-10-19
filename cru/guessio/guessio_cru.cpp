@@ -150,7 +150,7 @@ private:
 // ENUM DECLARATIONS OF INTEGER CONSTANTS FOR PLIB INTERFACE
 
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM};
-enum {CB_NONE,CB_VEGMODE,CB_INSTYPE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_HYDROLOGY,CB_INTERCROP,CB_PHENOLOGY,CB_PATHWAY,	
+enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_HYDROLOGY,CB_INTERCROP,CB_PHENOLOGY,CB_PATHWAY,	
 	CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE};
 
 
@@ -340,7 +340,7 @@ void plib_declarations(int id,xtring setname) {
 
 		// bvoc 
 		declareitem("ifbvoc",&ifbvoc,1,CB_NONE,
-			    "Whether or not BVOC calculations are performed (0,1)");
+			"Whether or not BVOC calculations are performed (0,1)");
 		declareitem("run_landcover",&run_landcover,1,CB_NONE,"Landcover version");
 		declareitem("run_urban",&run[URBAN],1,CB_NONE,"Whether urban land is to be simulated");
 		declareitem("run_crop",&run[CROPLAND],1,CB_NONE,"Whether crop-land is to be simulated");
@@ -523,7 +523,7 @@ void plib_declarations(int id,xtring setname) {
 		// guess2008 - DLE
 		declareitem("drought_tolerance",&ppft->drought_tolerance,0.0,1.0,1,CB_NONE,
 			"Drought tolerance level (0 = very -> 1 = not at all) (unitless)");
-
+		
 		// bvoc
 		declareitem("ga",&ppft->ga,0.0,1.0,1,CB_NONE,
 			"aerodynamic conductance (m/s)");
@@ -1062,7 +1062,7 @@ void printhelp() {
 //   Diurnal temperature range (dtr) added for calculation of leaf temperatures in 
 //   BVOC:
 //   gridcell.climate.dtr=ddtr[date.day]; 
-// 
+//
 //   If model is run in diurnal mode, which requires appropriate climate forcing data, 
 //   additional members of the climate must be initialised: temps, insols. Both of the
 //   variables must be of type std::vector. The length of these vectors should be equal
@@ -1321,6 +1321,7 @@ FILE *in_cru;
 
 // Full pathname of ASCII file containing annual CO2 values (read from ins file)
 xtring file_co2;
+
 
 using namespace GuessOutput;
 
@@ -3166,7 +3167,6 @@ void define_output_tables() {
 		 pftlist.nextobj();
 	}
 
-
 	// create a vector with the landcover column titles
 	std::vector<std::string> landcovers;
 
@@ -3327,7 +3327,7 @@ void initio(int argc,char* argv[]) {
 	bool abort;
 	xtring insfilename;
 	xtring header;
- 
+
 
 	unixtime(header);
 	header=(xtring)"[LPJ-GUESS  "+header+"]\n\n";
@@ -3493,6 +3493,7 @@ void initio(int argc,char* argv[]) {
 #endif
 		}
 	}
+
 	// We MUST have an output directory
 	if (outputdirectory=="") {
 		fail("No output directory given in the .ins file!");
@@ -4113,7 +4114,7 @@ bool getclimate(Gridcell& gridcell) {
 	// 
 	// Diurnal temperature range (dtr) added for calculation of leaf temperatures in 
 	// BVOC:
-	// gridcell.climate.dtr=ddtr[date.day];
+	// gridcell.climate.dtr=ddtr[date.day]; 
 	//
 	// If model is run in diurnal mode, which requires appropriate climate forcing data, 
 	// additional members of the climate must be initialised: temps, insols. Both of the
@@ -4256,8 +4257,8 @@ void outannual(Gridcell& gridcell) {
 	// provide any information to the framework.
 
 	int c, m, nclass;
-	double flux_veg,flux_soil,flux_fire,flux_est,flux_seed,flux_harvest;
-	double c_litter,c_fast,c_slow,c_harv_slow; 
+	double flux_veg, flux_soil, flux_fire, flux_est, flux_seed, flux_harvest;
+	double c_litter, c_fast, c_slow, c_harv_slow; 
 
 	// guess2008 - hold the monthly average across patches
 	double mnpp[12];
@@ -4279,7 +4280,7 @@ void outannual(Gridcell& gridcell) {
 
 	if (vegmode==COHORT)
 		nclass=min(date.year/estinterval+1,OUTPUT_MAXAGECLASS);
-
+	
 	// guess2008 - yearly output after spinup
 		
 	// If only yearly output between, say 1961 and 1990 is requred, use: 
@@ -4293,7 +4294,6 @@ void outannual(Gridcell& gridcell) {
 		// The OutputRows object manages the next row of output for each
 		// output table
 		OutputRows out(output_channel, lon, lat, date.year);
-
 
 		// guess2008 - reset monthly average across patches each year
 		for (m=0;m<12;m++)
@@ -4651,7 +4651,7 @@ void outannual(Gridcell& gridcell) {
 
 
 		// In contrast to annual NEE, monthly NEE does not include fire 
-		// or establishment fluxes 
+		// or establishment fluxes
 		for (m=0;m<12;m++) {
 			mnpp[m] = mgpp[m]-mra[m];
 			mnee[m] = mnpp[m]-mrh[m];
@@ -4681,7 +4681,6 @@ void outannual(Gridcell& gridcell) {
 			}
 		}
 
-
 		// Print monthly output variables
 		for (m=0;m<12;m++) {
 			 out.add_value(out_mnpp,         mnpp[m]);
@@ -4699,7 +4698,7 @@ void outannual(Gridcell& gridcell) {
 			 out.add_value(out_mwcont_lower, mwcont_lower[m]);
 			 out.add_value(out_miso,         miso[m]);
 			 out.add_value(out_mmon,         mmon[m]);
-			}
+		}
 
 
 		// Graphical output every 10 years
@@ -4784,7 +4783,6 @@ void termio() {
 
 	// Performs memory deallocation, closing of files or other "cleanup" functions.
 	delete output_channel;
-
 
 	// Clean up
 	gridlist.killall();

@@ -521,7 +521,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 }
 
 void dailyaccounting_stand(Stand& stand) {
-	}
+}
 
 void dailyaccounting_patch_lc(Patch& patch) {
 	if(date.day==0) {
@@ -615,8 +615,8 @@ void dailyaccounting_patch(Patch& patch) {
 		dailyaccounting_patch_lc(patch);
 
 	// Store daily soil water in both layers
-	soil.dwcontupper[date.day]=soil.wcont[0];
-	soil.dwcontlower[date.day]=soil.wcont[1];
+	soil.dwcontupper[date.day] = soil.wcont[0];
+	soil.dwcontlower[date.day] = soil.wcont[1];
 
 	// On last day of month, calculate mean content of upper soil layer
 
@@ -672,8 +672,8 @@ void respiration_temperature_response(double temp,double& gtemp) {
 	if (temp >= -40.0) {
 		gtemp = exp(308.56 * (1.0/56.02 - 1.0/(temp+46.02)));
 	} else {
-		gtemp=0.0;
-}
+		gtemp = 0.0;
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

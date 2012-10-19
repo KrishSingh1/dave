@@ -21,7 +21,7 @@
 #include "bvoc.h"
 
 
-int framework(int argc,char* argv[]) {
+int framework(int argc, char* argv[]) {
 
 	// The 'mission control' of the model, responsible for maintaining the 
 	// primary model data structures and containing all explicit loops through 
@@ -39,7 +39,7 @@ rename("CFTdata.out", "CFTdata.old");
 	initio(argc, argv);
 
 	// bvoc
-	if(ifbvoc){
+	if (ifbvoc) {
 	  initbvoc();
 	}
 
@@ -61,14 +61,14 @@ rename("CFTdata.out", "CFTdata.old");
 			break;
 		}
 
-			// Initialise certain climate and soil drivers
+		// Initialise certain climate and soil drivers
 		gridcell.climate.initdrivers(gridcell.get_lat());
 
 		if(run_landcover) {
-		//Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
+			//Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
 			landcover_init(gridcell);
 		}
-			
+		
 		// Call input/output to obtain climate, insolation and CO2 for this
 		// day of the simulation. Function getclimate returns false if last year
 		// has already been simulated for this grid cell
@@ -86,9 +86,9 @@ rename("CFTdata.out", "CFTdata.old");
 			// Calculate daylength, insolation and potential evapotranspiration
 			daylengthinsoleet(gridcell.climate);
 
-			if(run_landcover && date.day==0) {
+			if(run_landcover && date.day == 0) {
 				// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
-				if(date.year>=nyear_spinup)
+				if(date.year >= nyear_spinup)
 					landcover_dynamics(gridcell);
 /*
 				if(run[CROPLAND] && forcesowingdates)
@@ -103,7 +103,7 @@ rename("CFTdata.out", "CFTdata.old");
 
 				// START OF LOOP THROUGH STANDS
 
-				Stand& stand=gridcell.getobj();
+				Stand& stand = gridcell.getobj();
 
 				dailyaccounting_stand(stand);
 
@@ -112,7 +112,7 @@ rename("CFTdata.out", "CFTdata.old");
 					// START OF LOOP THROUGH PATCHES
 
 					// Get reference to this patch
-					Patch& patch=stand.getobj();
+					Patch& patch = stand.getobj();
 					// Update daily soil drivers including soil temperature
 					dailyaccounting_patch(patch);
 
@@ -120,7 +120,7 @@ rename("CFTdata.out", "CFTdata.old");
 						crop_sowing_patch(patch);
 
 					// Leaf phenology for PFTs and individuals
-					leaf_phenology(patch,gridcell.climate);
+					leaf_phenology(patch, gridcell.climate);
 					// Interception
 					interception(patch, gridcell.climate);
 					initial_infiltration(patch, gridcell.climate);
@@ -135,11 +135,11 @@ rename("CFTdata.out", "CFTdata.old");
 						growth_crop_daily(patch);
 
 					if (date.islastday && date.islastmonth) {
-							
+						
 						// LAST DAY OF YEAR
 						// Tissue turnover, allocation to new biomass and reproduction,
 						// updated allometry
-						growth(stand,patch);
+						growth(stand, patch);
 					}
 					stand.nextobj();
 				}// End of loop through patches
@@ -148,9 +148,9 @@ rename("CFTdata.out", "CFTdata.old");
 					// LAST DAY OF YEAR
 					stand.firstobj();
 					while (stand.isobj) {
-							
+						
 						// For each patch ...
-						Patch& patch=stand.getobj();
+						Patch& patch = stand.getobj();
 						// Establishment, mortality and disturbance by fire
 						vegetation_dynamics(stand, patch);
 						stand.nextobj();
@@ -177,7 +177,7 @@ rename("CFTdata.out", "CFTdata.old");
 			date.next();
 
 			// End of loop through simulation days
-		}//while (getclimate())
+		}	//while (getclimate())
 	}		// End of loop through grid cells
 
 	// Call to input/output module to perform any necessary clean up

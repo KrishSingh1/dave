@@ -37,6 +37,7 @@
 #include "growth.h"
 #include "canexch.h"
 
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL CONSTANTS
 
@@ -103,7 +104,7 @@ void leaf_phenology_pft(Pft& pft,Climate& climate,double wscal,double aphen,
 				phen=min(1.0,climate.gdd5_pasture/pft.phengdd5ramp);
 		}
 	}
-	
+
 	if (raingreen && wscal < pft.wscal_min) {
 
 		// Raingreen phenology based on water stress threshold
@@ -112,7 +113,7 @@ void leaf_phenology_pft(Pft& pft,Climate& climate,double wscal,double aphen,
 }
 
 
-void leaf_phenology(Patch& patch,Climate& climate) {
+void leaf_phenology(Patch& patch, Climate& climate) {
 
 	// DESCRIPTION
 	// Updates leaf phenological status (fractional leaf-out) for Patch PFT objects and
@@ -601,11 +602,11 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// guess2008 - extra check - abnormal allocation can still happen if ltor is very small
 			if ((cmass_root_inc > 50 || cmass_root_inc < -50) && ltor < 0.0001) {
-				cmass_leaf_inc=0.0;
-				cmass_root_inc=bminc;
-					cmass_sap_inc=-cmass_sap;
-					cmass_heart_inc=-cmass_sap_inc;
-				}
+				cmass_leaf_inc = 0.0;
+				cmass_root_inc = bminc;
+				cmass_sap_inc = -cmass_sap;
+				cmass_heart_inc = -cmass_sap_inc;
+			}
 
 		} else {
 
@@ -996,37 +997,36 @@ void growth(Stand& stand,Patch& patch) {
 
 	const double CDEBT_PAYBACK_RATE=0.2;
 
-	double bminc=0.0;
+	double bminc = 0.0;
 		// carbon biomass increment (component of NPP available for production of
 		// new biomass) for this time period on modelled area basis (kgC/m2)
-	double cmass_repr=0.0;
+	double cmass_repr = 0.0;
 		// C allocated to reproduction this time period on modelled area basis (kgC/m2)
-	double cmass_leaf_inc=0.0;
+	double cmass_leaf_inc = 0.0;
 		// increment in leaf C biomass following allocation, on individual basis (kgC)
-	double cmass_root_inc=0.0;
+	double cmass_root_inc = 0.0;
 		// increment in root C biomass following allocation, on individual basis (kgC)
-	double cmass_sap_inc=0.0;
+	double cmass_sap_inc = 0.0;
 		// increment in sapwood C biomass following allocation, on individual basis
 		// (kgC)
 	double cmass_debt_inc = 0.0; 
 		// guess2008 - bugfix - added initialisation
-	double cmass_heart_inc=0.0;
+	double cmass_heart_inc = 0.0;
 		// increment in heartwood C biomass following allocation, on individual basis
 		// (kgC)
-	double cmass_ho_inc=0.0;
-	double cmass_agpool_inc=0.0;
+	double cmass_ho_inc = 0.0;
+	double cmass_agpool_inc = 0.0;
 	double litter_leaf_inc = 0.0; // guess2008 - bugfix - added initialisation
 		// increment in leaf litter following allocation, on individual basis (kgC)
 	double litter_root_inc = 0.0; // guess2008 - bugfix - added initialisation
 		// increment in root litter following allocation, on individual basis (kgC)
-	double cmass_excess=0.0;
+	double cmass_excess = 0.0;
 		// C biomass of leaves in "excess" of set allocated last year to raingreen PFT
 		// last year (kgC/m2)
-	double dval=0.0;
-	double cmass_payback=0.0;
+	double dval = 0.0;
+	double cmass_payback = 0.0;
 	int p;
 	bool killed;
-
 
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation=patch.vegetation;
@@ -1043,7 +1043,6 @@ void growth(Stand& stand,Patch& patch) {
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
-
 
 		// For this individual ...
 

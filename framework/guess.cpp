@@ -131,19 +131,13 @@ Fluxes::Fluxes(Patch& p)
 
 void Fluxes::reset() {
 	for (int i = 0; i < annual_fluxes_per_pft.size(); ++i) {
-		for (int j = 0; j < NPERPFTFLUXTYPES; ++j) {
-			annual_fluxes_per_pft[i][j] = 0;
-		}
+		std::fill_n(annual_fluxes_per_pft[i].begin(), int(NPERPFTFLUXTYPES), 0);
 	}
 
 	for (int m = 0; m < 12; ++m) {
-		for (int i = 0; i < NPERPFTFLUXTYPES; ++i) {
-			monthly_fluxes_pft[m][i] = 0;
-		}
+		std::fill_n(monthly_fluxes_pft[m], int(NPERPFTFLUXTYPES), 0);
 
-		for (int i = 0; i < NPERPATCHFLUXTYPES; ++i) {
-			monthly_fluxes_patch[m][i] = 0;
-		}
+		std::fill_n(monthly_fluxes_patch[m], int(NPERPATCHFLUXTYPES), 0);
 	}
 }
 

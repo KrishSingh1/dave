@@ -998,7 +998,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 					if(date.day==0)
 						ppft.water_deficit_y=0.0;
 
-					if (patch.soil.wcont[0]<0.9)	//Fader et al. 2010
+					if (patch.soil.wcont[0]<0.9 && ppft.cropphen->fpc > 0.0)	//Fader et al. 2010
 					{
 						double wcont_0_opt=0.0;
 						double wr_opt;

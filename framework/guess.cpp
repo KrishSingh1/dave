@@ -122,21 +122,81 @@ void Climate::serialize(ArchiveStream& arch) {
 // Implementation of Fluxes member functions
 ////////////////////////////////////////////////////////////////////////////////
 
+Fluxes::Fluxes(Patch& p) 		
+  : patch(p), 
+    annual_fluxes_per_pft(npft, std::vector<double>(NPERPFTFLUXTYPES)) {
+	
+	reset();
+}
+
+void Fluxes::reset() {
+	for (int i = 0; i < annual_fluxes_per_pft.size(); ++i) {
+		for (int j = 0; j < NPERPFTFLUXTYPES; ++j) {
+			annual_fluxes_per_pft[i][j] = 0;
+		}
+	}
+
+	for (int m = 0; m < 12; ++m) {
+		for (int i = 0; i < NPERPFTFLUXTYPES; ++i) {
+			monthly_fluxes_pft[m][i] = 0;
+		}
+
+		for (int i = 0; i < NPERPATCHFLUXTYPES; ++i) {
+			monthly_fluxes_patch[m][i] = 0;
+		}
+	}
+}
+
+double Fluxes::anee() {
+	double acflux_veg  = -get_annual_flux(NPP);
+	double acflux_fire =  get_annual_flux(FIREC);
+	double acflux_soil =  get_annual_flux(SOILC);
+	double acflux_est  =  get_annual_flux(ESTC);
+
+	return acflux_veg + acflux_fire + acflux_soil + acflux_est;
+}
 
 void Fluxes::serialize(ArchiveStream& arch) {
-	arch & acflux_veg
-		& acflux_fire
-		& acflux_soil
-		& acflux_est
-		& acflux_harvest 
-		& dcflux_soil
-		& mcflux_soil
-		& mcflux_veg
-		& dcflux_veg
-		& mcflux_gpp
-		& mcflux_ra
-		& miso
-		& mmon;
+	arch & annual_fluxes_per_pft 
+		& monthly_fluxes_patch
+		& monthly_fluxes_pft;
+}
+
+void Fluxes::report_flux(PerPFTFluxType flux_type, int pft_id, double value) {
+	annual_fluxes_per_pft[pft_id][flux_type] += value;
+	monthly_fluxes_pft[date.month][flux_type] += value;
+}
+
+void Fluxes::report_flux(PerPatchFluxType flux_type, double value) {
+	monthly_fluxes_patch[date.month][flux_type] += value;
+}
+
+double Fluxes::get_monthly_flux(PerPFTFluxType flux_type, int month) const {
+	return monthly_fluxes_pft[month][flux_type];
+}
+
+double Fluxes::get_monthly_flux(PerPatchFluxType flux_type, int month) const {
+	return monthly_fluxes_patch[month][flux_type];
+}
+
+double Fluxes::get_annual_flux(PerPFTFluxType flux_type, int pft_id) const {
+	return annual_fluxes_per_pft[pft_id][flux_type];
+}
+
+double Fluxes::get_annual_flux(PerPFTFluxType flux_type) const {
+	double sum = 0;
+	for (int i = 0; i < annual_fluxes_per_pft.size(); ++i) {
+		sum += annual_fluxes_per_pft[i][flux_type];
+	}
+	return sum;
+}
+
+double Fluxes::get_annual_flux(PerPatchFluxType flux_type) const {
+	double sum = 0;
+	for (int m = 0; m < 12; ++m) {
+		sum += monthly_fluxes_patch[m][flux_type];
+	}
+	return sum;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -423,15 +483,13 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	int m;
 	for (m=0;m<12;m++) {
-		mnpp[m]=mlai[m]=mgpp[m]=mra[m]=0.0;
+		mlai[m]=0.0;
 	}
 
 	// bvoc
 	monstor=0.;
 	iso=0.;
 	mon=0.;
-	aiso=0.;
-	amon=0.;
 	fvocseas=1.;
 	dtr_wstress=0.;
 	eet_wstress=0.;
@@ -466,10 +524,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& lai_indiv
 		& greff_5
 		& age
-		& mnpp
 		& mlai
-		& mgpp
-		& mra
 		& fpar_wstress
 		& fpar_leafon
 		& lai_leafon_layer
@@ -488,14 +543,24 @@ void Individual::serialize(ArchiveStream& arch) {
 		& alive 
 		& iso 
 		& mon 
-		& aiso 
-		& amon 
 		& monstor 
 		& fvocseas 
 		& dtr_wstress 
 		& eet_wstress 
 		& agdd5_wstress 
 		& rad_wstress; 
+}
+
+void Individual::report_flux(Fluxes::PerPFTFluxType flux_type, double value) {
+	if (alive) {
+		vegetation.patch.fluxes.report_flux(flux_type, pft.id, value);
+	}
+}
+
+void Individual::report_flux(Fluxes::PerPatchFluxType flux_type, double value) {
+	if (alive) {
+		vegetation.patch.fluxes.report_flux(flux_type, value);
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////

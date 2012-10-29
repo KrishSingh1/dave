@@ -280,14 +280,10 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 			// Account for flux from the atmosphere to new saplings
 			// (flux is downward and therefore negative)
 
-			// guess2008
-			// flux is not debited for 'new' Individual objects - their carbon is 
-			// debited in function growth() if they survive the first year
-
-			if (indiv.alive) // guess2008 - alive check added
-				patch.fluxes.acflux_est-=(indiv.pft.regen.cmass_leaf+
-					indiv.pft.regen.cmass_root+indiv.pft.regen.cmass_sap+
-					indiv.pft.regen.cmass_heart)*est_pft;
+			indiv.report_flux(Fluxes::ESTC, 
+			                  -(indiv.pft.regen.cmass_leaf+
+			                    indiv.pft.regen.cmass_root+indiv.pft.regen.cmass_sap+
+			                    indiv.pft.regen.cmass_heart)*est_pft);
 
 			// Adjust average individual C biomass based on average biomass and density
 			// of the new saplings
@@ -308,9 +304,9 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 
 			// Account for flux from atmosphere to grass regeneration
 
-			if (indiv.alive) // guess2008 - alive check added
-				patch.fluxes.acflux_est-=(indiv.pft.regen.cmass_leaf+
-					indiv.pft.regen.cmass_root)*est_pft;
+			indiv.report_flux(Fluxes::ESTC, 
+			                  -(indiv.pft.regen.cmass_leaf+
+			                    indiv.pft.regen.cmass_root)*est_pft);
 
 			// Add regeneration biomass to overall biomass
 
@@ -484,14 +480,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						allometry(indiv);
 
-
-						// Account for C flux from atmosphere to vegetation
-						// guess2008 - flux is not debited for 'new' Individual
+						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()
 						// if they survive the first year 
-
-						if (indiv.alive)
-							patch.fluxes.acflux_est-=bminit;
 					}
 				}
 				else if (pft.lifeform==TREE) {
@@ -615,11 +606,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						allometry(indiv);
 						
-						// Account for C flux from atmosphere to vegetation
-						// guess2008
-						if (indiv.alive)
-							patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
-								indiv.cmass_sap;
+						// Establishment flux is not debited for 'new' Individual
+						// objects - their carbon is debited in function growth()
+						// if they survive the first year 
 					}
 				}
 			}
@@ -811,8 +800,9 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 
 			// Flux to atmosphere from burnt above-ground biomass
 
-			patch.fluxes.acflux_fire+=mort_fire*(indiv.cmass_leaf+indiv.cmass_sap+
-				indiv.cmass_heart-indiv.cmass_debt);
+			patch.fluxes.report_flux(Fluxes::FIREC, 
+			                         mort_fire*(indiv.cmass_leaf+indiv.cmass_sap+
+			                                    indiv.cmass_heart-indiv.cmass_debt));
 
 			// Reduce population density and C biomass on modelled area basis
 			// to account for loss of killed individuals
@@ -860,7 +850,7 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 
 			// Flux to atmosphere from burnt above-ground biomass
 
-			patch.fluxes.acflux_fire+=mort_fire*indiv.cmass_leaf;
+			patch.fluxes.report_flux(Fluxes::FIREC, mort_fire*indiv.cmass_leaf);
 
 			// Reduce C biomass on modelled area basis to account for biomass lost
 			// through mortality
@@ -984,7 +974,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					// Transfer killed biomass from leaves to atmosphere,
 					// roots to litter
 
-					patch.fluxes.acflux_fire+=mort_fire*indiv.cmass_leaf;
+					patch.fluxes.report_flux(Fluxes::FIREC, mort_fire*indiv.cmass_leaf);
 					patch.pft[indiv.pft.id].litter_root+=mort_fire*indiv.cmass_root;
 
 					indiv.cmass_leaf*=indiv.pft.fireresist;
@@ -1025,8 +1015,9 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					// Calculate flux from biomass to atmosphere due to fire
 					// (flux from litter calculated in function fire)
 
-					patch.fluxes.acflux_fire+=(1.0-frac_survive)*(indiv.cmass_leaf+
-						indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt);
+					patch.fluxes.report_flux(Fluxes::FIREC,
+					                         (1.0-frac_survive)*(indiv.cmass_leaf+
+					                                             indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt));
 
 					// Transfer killed roots to litter
 
@@ -1350,8 +1341,9 @@ void fire(Patch& patch,double& fireprob) {
 
 		// Calculate flux from burnt litter
 
-		patch.fluxes.acflux_fire+=mort_fire*(patch.pft[p].litter_leaf+
-			patch.pft[p].litter_wood+patch.pft[p].litter_repr);
+		patch.fluxes.report_flux(Fluxes::FIREC,
+		                         mort_fire*(patch.pft[p].litter_leaf+
+		                                    patch.pft[p].litter_wood+patch.pft[p].litter_repr));
 
 		// Account for burnt above ground litter
 

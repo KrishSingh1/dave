@@ -605,9 +605,9 @@ public:
 		GPP,
 		/// Autotrophic respiration (kgC/m2)
 		RA,
-		/// Isoprene (gC/m2)
+		/// Isoprene (mgC/m2)
 		ISO,
-		/// Monoterpene (gC/m2)
+		/// Monoterpene (mgC/m2)
 		MON,
 		/// Number of types, must be last
 		NPERPFTFLUXTYPES

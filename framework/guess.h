@@ -626,10 +626,6 @@ public:
 	/// Sets all fluxes to zero (call at the beginning of each year)
 	void reset();
 
-	/// Annual Net Ecosystem Exchange (NEE)
-	/** Call at last day of simulation year */
-	double anee();
-
 	void serialize(ArchiveStream& arch);
 
 	/// Report flux for a certain flux type

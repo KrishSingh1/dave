@@ -141,15 +141,6 @@ void Fluxes::reset() {
 	}
 }
 
-double Fluxes::anee() {
-	double acflux_veg  = -get_annual_flux(NPP);
-	double acflux_fire =  get_annual_flux(FIREC);
-	double acflux_soil =  get_annual_flux(SOILC);
-	double acflux_est  =  get_annual_flux(ESTC);
-
-	return acflux_veg + acflux_fire + acflux_soil + acflux_est;
-}
-
 void Fluxes::serialize(ArchiveStream& arch) {
 	arch & annual_fluxes_per_pft 
 		& monthly_fluxes_patch

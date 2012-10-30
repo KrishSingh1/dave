@@ -800,9 +800,9 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 
 			// Flux to atmosphere from burnt above-ground biomass
 
-			patch.fluxes.report_flux(Fluxes::FIREC, 
-			                         mort_fire*(indiv.cmass_leaf+indiv.cmass_sap+
-			                                    indiv.cmass_heart-indiv.cmass_debt));
+			indiv.report_flux(Fluxes::FIREC, 
+			                  mort_fire*(indiv.cmass_leaf+indiv.cmass_sap+
+			                             indiv.cmass_heart-indiv.cmass_debt));
 
 			// Reduce population density and C biomass on modelled area basis
 			// to account for loss of killed individuals
@@ -850,7 +850,7 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 
 			// Flux to atmosphere from burnt above-ground biomass
 
-			patch.fluxes.report_flux(Fluxes::FIREC, mort_fire*indiv.cmass_leaf);
+			indiv.report_flux(Fluxes::FIREC, mort_fire*indiv.cmass_leaf);
 
 			// Reduce C biomass on modelled area basis to account for biomass lost
 			// through mortality
@@ -974,7 +974,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					// Transfer killed biomass from leaves to atmosphere,
 					// roots to litter
 
-					patch.fluxes.report_flux(Fluxes::FIREC, mort_fire*indiv.cmass_leaf);
+					indiv.report_flux(Fluxes::FIREC, mort_fire*indiv.cmass_leaf);
 					patch.pft[indiv.pft.id].litter_root+=mort_fire*indiv.cmass_root;
 
 					indiv.cmass_leaf*=indiv.pft.fireresist;
@@ -1015,9 +1015,9 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					// Calculate flux from biomass to atmosphere due to fire
 					// (flux from litter calculated in function fire)
 
-					patch.fluxes.report_flux(Fluxes::FIREC,
-					                         (1.0-frac_survive)*(indiv.cmass_leaf+
-					                                             indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt));
+					indiv.report_flux(Fluxes::FIREC,
+					                  (1.0-frac_survive)*(indiv.cmass_leaf+
+					                                      indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt));
 
 					// Transfer killed roots to litter
 

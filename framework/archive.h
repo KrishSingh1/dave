@@ -139,6 +139,8 @@ ArchiveStream& operator&(ArchiveStream& stream, std::vector<T>& data) {
 	for (size_t i = 0; i < data.size(); ++i) {
 		stream & data[i];
 	}
+
+	return stream;
 }
 
 #endif // LPJ_GUESS_ARCHIVE_H

@@ -2744,11 +2744,11 @@ void harvest_natural(double& cmass_leaf,double& cmass_root,double& cmass_sap,dou
 	double residue_outtake=0.0;
 	bool alive=indiv.alive;
 
-	if(alive && cmass_root>0.0)
+	if(alive)
 		litter_root+=cmass_root;			//all root carbon goes to litter
 	cmass_root=0.0;
 
-	if(alive && (cmass_sap+cmass_heart-cmass_debt)>0.0)						// Only wood currently harvested in this function !
+	if(alive)						// Only wood currently harvested in this function !
 	{	
 		harvest=indiv.pft.harv_eff*(cmass_sap+cmass_heart-cmass_debt);		//harvested products
 
@@ -2763,13 +2763,13 @@ void harvest_natural(double& cmass_leaf,double& cmass_root,double& cmass_sap,dou
 		cmass_sap=(1-indiv.pft.harv_eff)*cmass_sap;			//unharvested parts of the plant
 		cmass_heart=(1-indiv.pft.harv_eff)*cmass_heart;
 		cmass_debt=(1-indiv.pft.harv_eff)*cmass_debt;		
+
+		residue_outtake=indiv.pft.res_outtake*(cmass_sap+cmass_heart-cmass_debt+cmass_leaf);
+		acflux_harvest+=residue_outtake;																//removed residues
+
+		litter_leaf+=cmass_leaf*(1-indiv.pft.res_outtake);												//not removed residues
+		litter_wood+=(cmass_sap+cmass_heart-cmass_debt)*(1-indiv.pft.res_outtake);						//not removed residues
 	}
-
-	residue_outtake=indiv.pft.res_outtake*(cmass_sap+cmass_heart-cmass_debt+cmass_leaf);
-	acflux_harvest+=residue_outtake;																//removed residues
-
-	litter_leaf+=cmass_leaf*(1-indiv.pft.res_outtake);												//not removed residues
-	litter_wood+=(cmass_sap+cmass_heart-cmass_debt)*(1-indiv.pft.res_outtake);						//not removed residues
 
 	cmass_sap=cmass_heart=cmass_debt=cmass_leaf=0.0;
 }

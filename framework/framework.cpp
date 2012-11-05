@@ -35,6 +35,10 @@ int framework(const CommandLineArguments& args) {
 	// settings and initialise input/output
 	initio(args.get_instruction_file());
 
+	// Nitrogen limitation
+	if (ifnlim && !ifcentury)
+		fail("\n\nIf nitrogen limitation is switched on then century soil module also needs to be switched on!");
+
 	// bvoc
 	if (ifbvoc) {
 	  initbvoc();
@@ -62,7 +66,7 @@ int framework(const CommandLineArguments& args) {
 		date.init(1);
 
 		// Create and initialise a new Gridcell object for each locality
-		Gridcell gridcell;	
+		Gridcell gridcell;
 
 		// Call input/output to obtain latitude and soil driver data for this grid cell.
 		// Function getgridcell returns false if no further grid cells remain to be simulated

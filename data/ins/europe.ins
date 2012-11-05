@@ -29,42 +29,33 @@ file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 file_firert "firert.out"
-!file_aiso "aiso.out"
-!file_amon "amon.out"
-!file_allometry "allometry.out"
-file_canopyh "canopyheight.out"
-!file_allometry_ind "allometry_ind.out"
+file_speciesheights "height.out"
 
-! GUESSN
-file_anppn "anppn.out"
 file_cton "cton.out"
-file_nmass "nmass.out"
 file_nsources "nsources.out"
 file_npool "npool.out"
 file_nleach "nleach.out"
 file_nuptake "nuptake.out"
-file_nlim "nlim.out"
 file_nflux "nflux.out"
 file_vmaxnlim "vmaxnlim.out"
 
 ! Monthly outputs
-!file_mnpp "mnpp.out"
-!file_mlai "mlai.out"
-!file_mrh "mrh.out"
-!file_mgpp "mgpp.out"
-!file_mra "mra.out"
-!file_mnee "mnee.out"
-!file_maet "maet.out"
-!file_mpet "mpet.out"
-!file_mevap "mevap.out"
-!file_mintercep "mintercep.out"
-!file_mrunoff "mrunoff.out"
-!file_mwcont_upper "mwcont_upper.out"
-!file_mwcont_lower "mwcont_lower.out"
+file_mnpp "mnpp.out"
+file_mlai "mlai.out"
+file_mrh "mrh.out"
+file_mgpp "mgpp.out"
+file_mra "mra.out"
+file_mnee "mnee.out"
+file_maet "maet.out"
+file_mpet "mpet.out"
+file_mevap "mevap.out"
+file_mintercep "mintercep.out"
+file_mrunoff "mrunoff.out"
+file_mwcont_upper "mwcont_upper.out"
+file_mwcont_lower "mwcont_lower.out"
 
-!file_miso "miso.out"
-!file_mmon "mmon.out"
-
+file_miso "miso.out"
+file_mmon "mmon.out"
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -73,43 +64,49 @@ file_vmaxnlim "vmaxnlim.out"
 !// RUN PARAMETERS AND OPTIONS 
 !
 
+! Whether annual output desired (1) or not (0)
+	param "annual_output" (num 1)
+
 ! Settings recognised by Plib
 ! Run GUESS with -help option for list of keywords and their meanings
 
 title 'LPJ-GUESS (guess2008) cohort mode - global pfts'
 
-vegmode "cohort"      ! "cohort", "individual" or "population"
-nyear_spinup 3000      ! number of years to spin up the simulation for
-ifdailynpp 1          ! whether to calculate NPP daily (1) or monthly (0)
-ifdailydecomp 1       ! whether to calculate soil respiration daily (1) or monthly (0)
-ifcalcsla 1           ! whether to calculate SLA from leaf longevity
-                      ! (PFT-specific value can be specified in this file instead)
-iffire 1              ! whether to implement fire (1) or not (0)
-npatch 25             ! number of replicate patches to simulate
-patcharea 1000        ! patch area (m2)
-estinterval 5         ! years between establishment events in cohort mode
-ifdisturb 1           ! whether generic patch-destroying disturbances enabled
-distinterval 100      ! average return time for generic patch-destroying disturbances
-					  ! Hickler et al. (2011) used 200
-ifbgestab 1           ! whether background establishment enabled
-ifsme 1               ! whether spatial mass effect enabled
-ifstochestab 1        ! whether establishment stochastic
-ifstochmort 1         ! whether mortality stochastic
-ifcdebt 1             ! whether to allow vegetation C storage (1) or not (0)
-wateruptake "rootdist"! "wcont", "rootdist", "smart" or "speciesspecific",
-                      ! see documentation for water_uptake()
+vegmode "cohort"		! "cohort", "individual" or "population"
+nyear_spinup 3000		! number of years to spin up the simulation for
+ifdailynpp 1			! whether to calculate NPP daily (1) or monthly (0)
+						! guess2008 - species version has 1
+ifdailydecomp 1			! whether to calculate soil respiration daily (1) or monthly (0)
+ifcalcsla 1				! whether to calculate SLA from leaf longevity
+						! (PFT-specific value can be specified in this file instead)
+iffire 1				! whether to implement fire (1) or not (0)
+npatch 25				! number of replicate patches to simulate
+patcharea 1000			! patch area (m2)
+estinterval 5			! years between establishment events in cohort mode
+ifdisturb 1				! whether generic patch-destroying disturbances enabled
+distinterval 200		! average return time for generic patch-destroying disturbances
+						! guess2008 - 200 for Europe, 100 globally
+ifbgestab 1				! whether background establishment enabled
+ifsme 1					! whether spatial mass effect enabled
+ifstochestab 1			! whether establishment stochastic
+ifstochmort 1			! whether mortality stochastic
+ifcdebt 1				! whether to allow vegetation C storage (1) or not (0)
+ifbvoc 1				! BVOC
+wateruptake "rootdist"  ! "wcont", "rootdist", "smart" or "speciesspecific",
+                        ! see documentation for water_uptake()
 
 !///////////////////////////////////////////////////////////////////////////////
-! PROCESS SETTINGS SPECIFIC TO GUESSN
+! PROCESS SETTINGS SPECIFIC TO NITROGEN
 !///////////////////////////////////////////////////////////////////////////////
 
-ifcentury 1				! whether to use CENTURY SOM dynamics (mandatory for N cycling)
+ifcentury 0				! whether to use CENTURY SOM dynamics (mandatory for N cycling)
 ifnlim 0				! whether plant growth limited by available N
 freenyears 200			! number of years to spin up without N limitation (needed to build up a N pool)
 ifleachn 1				! whether to allow N leaching
-nfix_a 0.102				! first term in N fixation eqn (Conservative 0.102, Central 0.234, Upper 0.367)
+nfix_a 0.102			! first term in N fixation eqn (Conservative 0.102, Central 0.234, Upper 0.367)
 nfix_b 5.24				! second term in N fixation eqn (Conservative 5.24, Central -1.72, Upper -7.54)
 nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
+
 
 !///////////////////////////////////////////////////////////////////////////////
 ! SERIALIZATION SETTINGS 
@@ -118,15 +115,13 @@ state_year 3000			! year to save/start state file
 restart 0				! wheter to start from a state file
 save_state 0			! wheter to save a state file
 
-
-! guess2008 - additions
+! additions
 ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1) 
 								! or to use the standard step-function (0)  
 								! greff_min values below calibrated for the smooth (1) option 
 ifdroughtlimitedestab 0			! whether establishment is limited by growing season drought
 								! guess2008 - species version has 1
 ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit every day (0)
-ifbvoc 0              ! whether to include BVOC calculations (1) or not (0)
 
 ! CMIP5
 ifcmip5 0				! Use CMIP5 climate data instead of CRU
@@ -151,7 +146,7 @@ param "correctionmethod" (str "c3")
 
 param "gcm" (str "bjarki")		!Will be added to the outfile name
 
-param "rcp" (str "85")			!26 45 60 85 !!! HAVE 45 and 85
+param "rcp" (str "85")			!26 45 60 85 doesn't have 60
 
 !!!!!!!!!!!! landcover parameters !!!!!!!!!!!!!!					
 
@@ -213,7 +208,9 @@ group "tree" (
 	kest_bg 0.1
 	kest_pres 1
 	litterme 0.3
-	rootdist 0.6 0.4 ! THdiff: TH often has 0.7 0.3 or 0.8 0.2 - see note below
+	rootdist 0.6 0.4
+	cton_root_resp 29
+	cton_sap_resp 330
 )
 
 group "shrub" (
@@ -228,12 +225,13 @@ group "shrub" (
 	k_allom3 0.67
 	k_rp 1.6
 	wooddens 250
-	cton_leaf_min 16		! GUESSN
-	cton_leaf_avr 25		! GUESSN
-	cton_leaf_max 45		! GUESSN
-	cton_root_avr 25 		! GUESSN
-	cton_sap_avr 172		! GUESSN !285 old value, new value from Friend 1997
-	n_reserve 0.15			! GUESSN
+	cton_leaf_min 16	
+	cton_leaf_avr 25	
+	cton_leaf_max 45
+	cton_root_avr 25	
+	cton_root_resp 29
+	cton_sap_avr 285			
+	cton_sap_resp 330
 	pathway "c3"
 	kest_repr 20
 	kest_bg 0.1
@@ -248,11 +246,11 @@ group "needle_leaved" (
 	k_allom1 150
 	k_latosa 4000
 	ga 0.140
-	cton_leaf_min 28		! GUESSN
-	cton_leaf_avr 42		! GUESSN
-	cton_leaf_max 75		! GUESSN
-	cton_root_avr 42 		! GUESSN
-	cton_sap_avr 290		! GUESSN !480 old value, new value from Friend 1997
+	cton_leaf_min 28	
+	cton_leaf_avr 42	
+	cton_leaf_max 75
+	cton_root_avr 42	
+	cton_sap_avr 480
 )
 
 group "broad_leaved" (
@@ -262,11 +260,11 @@ group "broad_leaved" (
 	leaflong 0.5		! PMxx: new default
 	turnover_leaf 1		! PMxx: new default
 	ga 0.040
-	cton_leaf_min 16		! GUESSN
-	cton_leaf_avr 25		! GUESSN
-	cton_leaf_max 45		! GUESSN
-	cton_root_avr 25 		! GUESSN
-	cton_sap_avr 172		! GUESSN !285 old value, new value from Friend 1997
+	cton_leaf_min 16	
+	cton_leaf_avr 25	
+	cton_leaf_max 45
+	cton_root_avr 25	
+	cton_sap_avr 285
 )
 
 group "grass" (
@@ -277,11 +275,11 @@ group "grass" (
 	lifeform "grass"
 	leafphysiognomy "broadleaf"
 	ltor_max 0.5
-	cton_leaf_min 16		! GUESSN
-	cton_leaf_avr 25		! GUESSN
-	cton_leaf_max 45		! GUESSN
-	cton_root_avr 25 		! GUESSN
-	n_reserve 0.30		! GUESSN
+	cton_leaf_min 16	
+	cton_leaf_avr 25	
+	cton_leaf_max 45
+	cton_root_avr 25	
+	cton_root_resp 29
 	respcoeff 2.0 
 	litterme 0.2
 	ga 0.030
@@ -374,8 +372,6 @@ pft "Abi_alb" (
 	seas_iso 0
 	eps_mon 1.8
 	storfrac_mon 0.5
-
-	n_reserve 0.05			! GUESSN
 )
 
 
@@ -416,8 +412,6 @@ pft "BES" (
 	eps_mon 4.0
 	storfrac_mon 0.5
 	ga 0.040
-
-	n_reserve 0.05			! GUESSN
 )
 
 
@@ -448,8 +442,6 @@ pft "Bet_pen" (
 	seas_iso 1
 	eps_mon 6.
 	storfrac_mon 0.
-
-	n_reserve 0.15			! GUESSN
 )
 
 
@@ -480,8 +472,6 @@ pft "Bet_pub" (
 	seas_iso 1
 	eps_mon 1.0
 	storfrac_mon 0.
-
-	n_reserve 0.15			! GUESSN
 )
 
 
@@ -512,8 +502,6 @@ pft "Car_bet" (
 	seas_iso 1
 	eps_mon 0.08
 	storfrac_mon 0.
-
-	n_reserve 0.15			! GUESSN
 )
 
 
@@ -546,8 +534,6 @@ pft "Cor_ave" (
 	seas_iso 1
 	eps_mon 0.
 	storfrac_mon 0.
-
-	n_reserve 0.15			! GUESSN
 )
 
 
@@ -578,8 +564,6 @@ pft "Fag_syl" (
 	seas_iso 1
 	eps_mon 10.
 	storfrac_mon 0.
-
-	n_reserve 0.15			! GUESSN
 )
 
 
@@ -610,8 +594,6 @@ pft "Fra_exc" (
 	seas_iso 1
 	eps_mon 0.
 	storfrac_mon 0.
-
-	n_reserve 0.15			! GUESSN
 )
 
 
@@ -649,8 +631,6 @@ pft "Jun_oxy" (
 	seas_iso 0
 	eps_mon 2.0
 	storfrac_mon 0.5
-
-	n_reserve 0.05			! GUESSN
 )
 
 
@@ -689,8 +669,6 @@ pft "MRS" (
 	eps_mon 4.0
 	storfrac_mon 0.5
 	ga 0.040
-
-	n_reserve 0.15			! GUESSN
 )
 
 
@@ -724,8 +702,6 @@ pft "Pic_abi" (
 	seas_iso 0
 	eps_mon 6.0
 	storfrac_mon 0.5
-
-	n_reserve 0.05			! GUESSN
 )
 
 
@@ -763,8 +739,6 @@ pft "Pic_sit" (
 	eps_mon 0.					! to be determined
 	storfrac_mon 0.5
 
-	n_reserve 0.05			! GUESSN
-
 	! wooddens 200 - Should be less dens than P. abies (Savill)
 	! turnover_sap 0.065 ! Bjarki 30% + abies!
 )
@@ -801,8 +775,6 @@ pft "Pin_syl" (
 	seas_iso 0
 	eps_mon 4.0
 	storfrac_mon 0.5
-
-	n_reserve 0.05			! GUESSN
 )
 
 
@@ -838,8 +810,6 @@ pft "Pin_hal" (
 	seas_iso 0
 	eps_mon 10.0
 	storfrac_mon 0.5
-
-	n_reserve 0.05			! GUESSN
 )
 
 
@@ -873,8 +843,6 @@ pft "Pop_tre" (
 	seas_iso 1
 	eps_mon 4.0
 	storfrac_mon 0.
-
-	n_reserve 0.15			! GUESSN
 )
 
 
@@ -911,8 +879,6 @@ pft "Que_coc" (
 	eps_mon 10.0
 	storfrac_mon 0.
 	ga 0.040
-
-	n_reserve 0.05			! GUESSN
 )
 
 
@@ -947,8 +913,6 @@ pft "Que_ile" (
 	seas_iso 0
 	eps_mon 16.0
 	storfrac_mon 0.
-
-	n_reserve 0.05			! GUESSN
 )
 
 
@@ -981,8 +945,6 @@ pft "Que_pub" (
 	seas_iso 1
 	eps_mon 0.
 	storfrac_mon 0.
-
-	n_reserve 0.15			! GUESSN
 )
 
 
@@ -1013,8 +975,6 @@ pft "Que_rob" (
 	seas_iso 1
 	eps_mon 0.
 	storfrac_mon 0.
-
-	n_reserve 0.15			! GUESSN
 )
 
 
@@ -1046,8 +1006,6 @@ pft "Til_cor" (
 	seas_iso 1
 	eps_mon 0.
 	storfrac_mon 0.
-
-	n_reserve 0.15			! GUESSN
 )
 
 
@@ -1080,8 +1038,6 @@ pft "Ulm_gla" (
 	seas_iso 1
 	eps_mon 0. ! to be determined
 	storfrac_mon 0.
-
-	n_reserve 0.15			! GUESSN
 )
 
 

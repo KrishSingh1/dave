@@ -96,7 +96,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	// wcont_evap = water content of evaporation sublayer at top of upper soil layer
 	//              as fraction of available water holding capacity (AWC)
 	// awcont     = wcont averaged over the growing season - guess2008
-	// dperc      = daily percolation beyond bottom soil layer (mm)
+	// dperc      = daily percolation beyond system (mm)
 
 	// OUTPUT PARAMETER
 	// runoff     = total daily runoff from all soil layers (mm/day)
@@ -138,7 +138,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 		Individual& indiv = vegetation.getobj();
 
 		for (s=0; s<NSOILLAYER; s++) {
-			aet = patch.pft[indiv.pft.id].fuptake[s] * indiv.aet;
+			aet = patch.pft[indiv.pft.id].fwuptake[s] * indiv.aet;
 			aet_layer[s] += aet;
 			aet_total += aet;
 		}
@@ -240,11 +240,9 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 		runoff_baseflow = perc_frac * awc[NSOILLAYER-1];
 	}
 
-	// save percolation from last (bottom) layer (needed by CENTURY)
-	if (rain_melt > 0.0)
-		dperc = runoff_baseflow;
-	else
-		dperc = 0.0;
+	// save percolation from system (needed by CENTURY)
+	dperc = runoff_baseflow + runoff_drain;
+	
 
 	if (rain_melt <= 0.0 && runoff_baseflow > 0.0)
 		dprintf("Year %d Day %d runoff!!! %g\n",date.year,date.day,runoff_baseflow);

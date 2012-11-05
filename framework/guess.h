@@ -261,14 +261,6 @@ extern bool ifrainonwetdaysonly;
 extern bool ifbvoc; 
         // whether BVOC calculations are included
 
-/// Directory for state files
-extern xtring state_path;
-
-/// Whether to restart from state files
-extern bool restart;
-extern bool save;
-extern int start_year;
-
 /// General purpose object for handling simulation timing. 
 /** In general, frameworks should use a single Date object for all simulation
  *  timing.
@@ -560,13 +552,16 @@ public:
 	double atemp_mean;
 		// mean of monthly temperatures for the last 12 months (deg C)
 
+	/// annual precipitation
 	double aprec;
-	double asun;
 
 	/// annual nitrogen deposition (kgN/m2/year)
 	double andep;
-	/// daily nitrogen deposition (kgN/m2/year)
+	/// daily nitrogen deposition (kgN/m2)
 	double dndep[365];
+
+	/// annual nitrogen fertilization (kgN/m2/year)
+	double anfert;
 
 	// Monthly sums (converted to means) used by canopy exchange module
 
@@ -623,7 +618,6 @@ public:
 		last_mgtemp = -1;
 
 		aprec = 0.0;
-		asun = 0.0;
 
 		lat = latitude;
 		for (day=0; day<365; day++) doneday[day] = false;
@@ -699,18 +693,16 @@ public:
 	double aN2O_fire;
 	/// emssion ratios from fire (NH3, NO, NO2, N2O)
 	double firenratio[4];
-	/// Reproduction nitrogen is return to atmosphere
-	//double aNrepr;
 
 	// MEMBER FUNCTIONS
 
 public:
 	/// constructor: initialises members
 	Fluxes(Patch& p):patch(p) {
-		acflux_veg = 0.0;
+		acflux_veg  = 0.0;
 		acflux_fire = 0.0;
 		acflux_soil = 0.0;
-		acflux_est = 0.0;
+		acflux_est  = 0.0;
 		acflux_harvest = 0.0;	
 
 		for (int d=0; d<365; d++)
@@ -722,10 +714,9 @@ public:
 			firenratio[n] = data[n];
 
 		aNH3_fire = 0.0;
-		aNO_fire = 0.0;
+		aNO_fire  = 0.0;
 		aNO2_fire = 0.0;
 		aN2O_fire = 0.0;
-		//aNrepr=0.0;
 	}		
 
 	double anee() {
@@ -797,10 +788,12 @@ public:
 	double cton_leaf_avr;
 	/// average fine root C:N mass ratio	
 	double cton_root_avr;
+	/// respiration fine root C:N mass ratio	
+	double cton_root_resp;
 	/// average sapwood C:N mass ratio	
 	double cton_sap_avr;
-	// nitrogen storage organ in relation to sapwood carbon for TREE and root carbon for GRASS
-	double n_reserve;
+	/// respiration sapwood C:N mass ratio	
+	double cton_sap_resp;
 		
 	double reprfrac;
 		// fraction of NPP allocated to reproduction		
@@ -1091,12 +1084,12 @@ public:
 		// daily maintenance respiration (not including leaf respiration) and growth
 		// respiration on modelled area basis (kgC/m2/day) (used in monthly NPP mode)
 
-	/// Photosynthesis values for this PFT under non-water-stress conditions
+	/// Photosynthesis values for this individual under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;
 
 	/// sub-daily version of the above variable (NB: daily units)
 	std::vector<PhotosynthesisResult> phots;
-
+		
 	double anpp;
 		// accumulated NPP over modelled area (kgC/m2/year); = annual NPP following
 		// call to growth module on last day of simulation year
@@ -1147,17 +1140,16 @@ public:
 	double gpterm;
 		// non-water-stressed canopy conductance on FPC basis (mm/s)
 	std::vector<double> gpterms;		// sub-daily version of the above variable (mm/s)
-	double demand;
+	double wdemand;
 		// transpirative demand on FPC basis (mm/day)
-	double demand_leafon;
+	double wdemand_leafon;
 		// transpirative demand assuming full leaf cover on FPC basis (mm/day)
-	double supply;
+	double wsupply;
 		// supply function of AET, FPC basis (mm/day)
-	double supply_leafon;
+	double wsupply_leafon;
 		// supply function of AET assuming full leaf cover, FPC basis (mm/day)
 	double intercep;
 		// interception associated with this individual today (patch basis)
-
 
 	// Monthly sums (converted to means) maintained by function canopy_exchange
 
@@ -1172,7 +1164,7 @@ public:
 	double daylength_wstress; // daylength (h)
 	double co2_wstress; // CO2 (ppmv)
 	int nday_wstress; // number of water-stress days for month
-	bool wstress; // whether individual subject to water stress
+	bool wstress; // whether individual subject to water stress	
 
 	/// nitrogen mass that is photosyntetic active
 	double nactive;
@@ -1195,9 +1187,9 @@ public:
 	/// annual nitrogen limitation on vmax
 	double avmaxnlim;
 	/// daily optimal leaf C:N ratio
-	double cton_leaf_new;
+	double cton_leaf_dopt;
 	/// annual optimal leaf C:N ratio
-	double cton_leaf_opt;
+	double cton_leaf_aopt;
 	/// C:N ratio of current biomass (leaf)
 	double cton_leaf;
 	/// C:N ratio of current biomass (root)
@@ -1222,8 +1214,9 @@ public:
 	/// daily optimal root nitrogen demand over possible uptake
 	double rootndemand_opt;
 		
-	/// saved assimilation in case it turns out to be a non-water- or nitrogen-stress day
-	double assim_nostress;
+	// FPAR-weighted leaf-level net photosynthesis value for PFT under non-
+	// water-stress conditions (kgC/m2/day)
+	double assim_term;
 		
 	std::vector<double> assim_terms;	// sub-daily version of the above variable (kgC/m2/day)
 	int nday_leafon;	
@@ -1243,6 +1236,15 @@ public:
 	double eet_wstress; // equilibrium evapotranspiration today (mm/day)
 	double agdd5_wstress; // total gdd5 (accumulated) for this year (reset 1 January)
 	double rad_wstress; // total daily net downward shortwave solar radiation today (J/m2/day)
+
+	// Monthly NPP mode
+	/// Photosynthesis values for this individual under water-stress conditions
+	PhotosynthesisResult phot_wstress;
+	/// cumulative mean non-FPAR-weighted value for canopy conductance component
+	/// associated with photosynthesis for water stress (mm/s)
+	double gpterm_wstress;
+	/// nitrogen mass that is photosyntetic active
+	double nactive_wstress;
 
 	// MEMBER FUNCTIONS
 
@@ -1496,13 +1498,7 @@ public:
 	Sompool sompool[NSOMPOOL];
 
 	/// daily percolation (mm)
-	double dperc;				
-	/// daily N mineralisation (kgN/m2)
-	double nmin_daily[365];		
-	/// daily N immobilisation (kgN/m2)
-	double nimmob_daily[365];	
-	/// fraction of available mineral N leached each day;
-	double minleachfrac_daily[365]; 
+	double dperc;
 	/// fraction of decayed organoc N leached each day;
 	double orgleachfrac_daily[365];
 	/// soil mineral nitrogen pool (kgN/m2)
@@ -1556,10 +1552,6 @@ public:
 		for (int d=0; d<365; d++) {
 			dwcontupper[d] = 0.0;
 			dwcontlower[d] = 0.0;
-
-			nmin_daily[d] = 0.0;	
-			nimmob_daily[d] = 0.0;	
-			minleachfrac_daily[d] = 0.0;
 			orgleachfrac_daily[d] = 0.0;
 		}
 
@@ -1706,9 +1698,13 @@ public:
 	double litter_repr;
 		// litter derived from allocation to reproduction for PFT on modelled area
 		// basis (kgC/m2)
-	double nlitter_repr;
-		// litter derived from allocation to reproduction for PFT on modelled area
-		// basis (kgN/m2)
+	
+	/// leaf-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
+	double nmass_litter_leaf;
+	/// root-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
+	double nmass_litter_root;
+	/// wood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
+	double nmass_litter_wood;		
 
 	double gcbase;
 		// non-FPC-weighted canopy conductance value for PFT under water-stress
@@ -1736,28 +1732,21 @@ public:
 		// associated with photosynthesis for water stress (mm/s)
 	PhotosynthesisResult phot_wstress;
 		// contains averaged values for water-stressed days
-	double supply;
+	double wsupply;
 		// evapotranspirational "supply" function for this PFT today (mm/day)
-	double supply_leafon;
-	double fuptake[NSOILLAYER];
+	double wsupply_leafon;
+	double fwuptake[NSOILLAYER];
 		// fractional uptake of water from each soil layer today
 	bool wstress;				// whether water-stress conditions for this PFT
 	bool wstress_day;			// daily version of the above variable
 	Lookup_lambda lookup_lambda;
 		// lookup table for values of lambda (parameter in photosynthesis calculations)
 		// today (see canexch.cpp)
-	double harvested_products_slow;	//carbon depository for long-lived products like wood
 
-	double nsapling_yearly;
-
-	/// leaf-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
-	double nmass_litter_leaf;
-	/// root-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
-	double nmass_litter_root;
-	/// wood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
-	double nmass_litter_wood;
+	/// carbon depository for long-lived products like wood
+	double harvested_products_slow;	
 	/// nitrogen depository for long-lived products like wood
-	double harvested_products_slow_nmass;	
+	double harvested_products_slow_nmass; 
 
 	// MEMBER FUNCTIONS:
 
@@ -1769,15 +1758,15 @@ public:
 		litter_root = 0.0;
 		litter_wood = 0.0;
 		litter_repr = 0.0;
+		nmass_litter_leaf = 0.0;
+		nmass_litter_root = 0.0;
+		nmass_litter_wood = 0.0;
+
 		nday_wstress = 0;
 		wscal = 1.0;
 		wscal_mean = 0.0;
 		anetps_ff = 0.0;
 		aphen = 0.0;
-
-		nmass_litter_leaf = 0.0;
-		nmass_litter_root = 0.0;
-		nmass_litter_wood = 0.0;
 
 		harvested_products_slow = 0.0;
 		harvested_products_slow_nmass = 0.0;
@@ -1861,11 +1850,11 @@ public:
 	double eet_net_veg;
 		// equilibrium evapotranspiration today, deducting interception (mm)
 
-	double demand;
+	double wdemand;
 		// transpirative demand for patch, patch vegetative area basis (mm/day)
-	double demand_day;			
+	double wdemand_day;			
 		// daily average of the above variable (mm/day)
-	double demand_leafon;
+	double wdemand_leafon;
 		// transpirative demand for patch assuming full leaf cover today, mm/day,
 		// patch vegetative area basis
 	double fpc_rescale;
@@ -1887,7 +1876,6 @@ public:
 	double fnuptake;
 	/// daily nitrogen demand
 	double ndemand;
-	/// daily nitrogen demand
 
 	// MEMBER FUNCTIONS
 

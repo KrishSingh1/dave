@@ -428,9 +428,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 			else {
 				patch.pft[pft.id].anetps_ff_est += patch.pft[pft.id].anetps_ff;
 				patch.pft[pft.id].wscal_mean_est += patch.pft[pft.id].wscal_mean;		
-			}			
-
-			patch.pft[pft.id].nsapling_yearly = 0.0;
+			}
 
 			if (establish(patch, stand.gridcell.climate, pft)) {
 
@@ -465,7 +463,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						if (ifdisturb && patch.disturbed)
 							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff_est_initial;
-						// Makes no difference, Veiko 
+
 						bminit *= 0.3;
 
 						// Initial leaf to fine root biomass ratio based on
@@ -485,10 +483,11 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						indiv.sapndemand = 0.0;
 
 						// Set new leaf tissue C:N ratio
-						indiv.cton_leaf_new = indiv.pft.cton_leaf_avr;
+						indiv.cton_leaf = indiv.pft.cton_leaf_avr;
 
+						// Calculate reserve pool size
 						indiv.max_n_reserve = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
-						indiv.scale_n_reserve = indiv.max_n_reserve / bminit;
+						indiv.scale_n_reserve = indiv.max_n_reserve * indiv.cton_leaf / bminit;
 
 						// Account for C flux from atmosphere to vegetation
 						// guess2008 - flux is not debited for 'new' Individual
@@ -553,8 +552,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 					if (ifstochestab || vegmode == INDIVIDUAL) nsapling = randpoisson(est);
 					else nsapling = est;
 
-					patch.pft[pft.id].nsapling_yearly += nsapling;
-
 					if (vegmode == COHORT) {
 
 						// BLARP added for OECD experiment (is this sensible?)
@@ -608,7 +605,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						bminit = SAPSIZE * patch.pft[pft.id].anetps_ff_est;
 
-						// Makes no difference, Veiko
 						bminit *= 0.3;
 
 						// Initial leaf to fine root biomass ratio based on hypothetical
@@ -624,17 +620,21 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						allometry(indiv);
 
+						// Sap wood nitrogen demand starts with zero
+						indiv.sapndemand = 0.0;
+
 						// Set new leaf tissue C:N ratio
-						indiv.cton_leaf_new = indiv.pft.cton_leaf_avr;
+						indiv.cton_leaf = indiv.pft.cton_leaf_avr;
+
+						// Calculate reserve pool size
+						indiv.max_n_reserve = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
+						indiv.scale_n_reserve = indiv.max_n_reserve * indiv.cton_leaf / bminit;
 
 						// Account for C flux from atmosphere to vegetation
 						// guess2008
 						if (indiv.alive && indiv.densindiv)
 							patch.fluxes.acflux_est -= indiv.cmass_leaf + indiv.cmass_root +
 							indiv.cmass_sap;
-
-						indiv.max_n_reserve = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
-						indiv.scale_n_reserve = indiv.max_n_reserve / bminit;
 					}
 				}
 			}

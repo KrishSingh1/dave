@@ -234,15 +234,25 @@ void bvoc(double temp, double hours, double daylength, double rad, double eet,
 	double temp_leaf = leafT(temp, hours, gpterm, eet, pft.ga, rad, pft.gmin,
 	                                                     indiv.lai*indiv.phen);
 	if (date.diurnal()) {
-		temp_leaf_daytime = temp_leaf;
+		if (!ifnlim) {
+			temp_leaf_daytime = temp_leaf;
+		}
+		else {
+			temp_leaf_daytime = temp;
+		}
 	}
 	else {
 		// perform daily to daytime correction
 		double temp_corrected = daytime_temp(temp, daylength, dtr);
-
-		// perform air temperature to leaf temperature correction
-		temp_leaf_daytime = leafT(temp_corrected, daylength, gpterm, eet, pft.ga,
+		
+		if (!ifnlim) {
+			// perform air temperature to leaf temperature correction
+			temp_leaf_daytime = leafT(temp_corrected, daylength, gpterm, eet, pft.ga,
 		                                   rad, pft.gmin, indiv.lai*indiv.phen);
+		}
+		else {
+			temp_leaf_daytime = temp_corrected;
+		}
 	}
 
 	// calculate isoprene and monoterpene emissions, g C m-2 d-1

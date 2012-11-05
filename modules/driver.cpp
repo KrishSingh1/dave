@@ -107,10 +107,9 @@ void soilparameters(Soiltype& soiltype, int soilcode) {
 		//       Jury et al (1991), Fig 5.11.
 		//    5  wilting point as fraction of depth (calculation method described in 
 		//       Prentice et al 1992)
-		//    6  saturation capacity  
-		//    7  saturated hydraulic conductivity (Ks) (mm/h) following Cosby (1984)
+		//    6  saturation capacity following Cosby (1984)
 
-		//    0      1      2      3      4      5      6      7      soilcode
+		//    0      1      2      3      4      5      6          soilcode
 		//  ------------------------------------------------------------------
 
 		{   5.0, 0.110,   0.2, 0.800,   0.4,	0.074,	0.395},    // 1	Coarse		
@@ -562,7 +561,6 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		// ... reset annual GDD5 counter
 		climate.agdd5 = 0.0;
 		climate.aprec = 0.0;
-		climate.asun = 0.0;
 
 		if (date.year == 0) {
 			// First day of simulation - initialise running annual mean temperature and daily temperatures for the last month
@@ -579,8 +577,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		climate.ifsensechill = false; // guess2008 - CHILLDAYS
 	}
 
+	// adding up annual precipitation
 	climate.aprec += climate.prec / 365.0;
-	climate.asun += climate.par / 36500000.0;
 
 	// Update GDD counters and chill day count
 	climate.gdd5 += max(0.0, climate.temp - 5.0);
@@ -714,7 +712,6 @@ void dailyaccounting_patch(Patch& patch) {
 		fluxes.aNO_fire = 0.0;
 		fluxes.aNO2_fire = 0.0;
 		fluxes.aN2O_fire = 0.0;
-//		fluxes.aNrepr = 0.0;
 
 		patch.aaet = 0.0;
 		patch.aevap = 0.0;
@@ -1077,7 +1074,7 @@ void daylengthinsoleet(Climate& climate) {
 	climate.eet = 2.0 * (s / (s + gamma) / lambda) * (uu * hn + vv * sin(hn)) * K;	// Eqn 26;
 }
 
-// Variables for checking N Balance! only works with one patch
+// Variables for checking nitrogen balance! only works with one patch
 double old_total = 0.0;
 double old_vegn = 0.0;
 double old_vegstore = 0.0;
@@ -1102,7 +1099,7 @@ void check_nbalance(Patch& patch, bool print) {
 
 	if (patch.id == 0) {
 
-		// Work out total ecosystem N for checking
+		// Work out total ecosystem nitrogen for checking
 		vegn = 0.0;
 		vegstore = 0.0;
 		vegetation.firstobj();

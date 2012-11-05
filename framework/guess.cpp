@@ -145,6 +145,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& doneday
 		& andep
 		& dndep
+		& anfert
 		& frluse; // CMIP5
 }
 
@@ -241,10 +242,7 @@ void Soil::serialize(ArchiveStream& arch) {
 			arch & sompool[i];
 		} 
 
-	arch & dperc				
-		& nmin_daily		
-		& nimmob_daily	
-		& minleachfrac_daily 
+	arch & dperc		
 		& orgleachfrac_daily
 		& nmass		
 		& anmin			
@@ -285,14 +283,13 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& nday_wstress
 		& fpar_grass_wstress
 		& gpterm_wstress
-		& supply
-		& supply_leafon
-		& fuptake
+		& wsupply
+		& wsupply_leafon
+		& fwuptake
 		& wstress
 		& wstress_day
 		& harvested_products_slow
 		& phot_wstress
-		& nlitter_repr
 		& nmass_litter_leaf
 		& nmass_litter_root
 		& nmass_litter_wood
@@ -339,9 +336,9 @@ void Patch::serialize(ArchiveStream& arch) {
 		& arunoff
 		& apet
 		& eet_net_veg
-		& demand
-		& demand_day
-		& demand_leafon
+		& wdemand
+		& wdemand_day
+		& wdemand_leafon
 		& fpc_rescale
 		& maet
 		& mevap
@@ -463,13 +460,14 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	fpar_wstress = 0.0;
 	assim = 0.0;
 	resp = 0.0;
-	assim_nostress = 0.0;
+	assim_term = 0.0;
 
 	nmass_leaf = 0.0;
 	nmass_root = 0.0;
 	nmass_sap = 0.0;
 	nmass_heart = 0.0;
-	cton_leaf_opt = 0.0;
+	cton_leaf_dopt = 0.0;
+	cton_leaf_aopt = 0.0;
 
 	nactive = 0.0;
 	nstore_leaf = 0.0;
@@ -497,8 +495,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	age = 0.0;
 	fpar = 0.0;
 	aphen_raingreen = 0;
-	demand = 0.0;
-	supply = 0.0;
+	wdemand = 0.0;
+	wsupply = 0.0;
 	intercep = 0.0;
 	phen_mean = 0.0;
 	temp_wstress = 0.0;
@@ -528,6 +526,10 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	eet_wstress = 0.;
 	agdd5_wstress = 0.;
 	rad_wstress = 0.;	
+
+	// monthly NPP
+	gpterm_wstress = 0.0;
+	nactive_wstress = 0.0;
 }
 
 void Individual::serialize(ArchiveStream& arch) {
@@ -564,10 +566,10 @@ void Individual::serialize(ArchiveStream& arch) {
 		& fpar_wstress
 		& fpar_leafon
 		& lai_leafon_layer
-		& demand
-		& demand_leafon
-		& supply
-		& supply_leafon
+		& wdemand
+		& wdemand_leafon
+		& wsupply
+		& wsupply_leafon
 		& intercep
 		& phen_mean
 		& temp_wstress 
@@ -601,8 +603,8 @@ void Individual::serialize(ArchiveStream& arch) {
 		& max_n_reserve
 		& scale_n_reserve
 		& avmaxnlim
-		& cton_leaf_new
-		& cton_leaf_opt
+		& cton_leaf_aopt
+		& cton_leaf_dopt
 		& cton_leaf
 		& cton_root
 		& cton_sap
@@ -616,8 +618,12 @@ void Individual::serialize(ArchiveStream& arch) {
 		& leafndemand_opt
 		& rootndemand_opt
 		
-		& assim_nostress
-		& nday_leafon;
+		& assim_term
+		& nday_leafon
+
+		& phot_wstress
+		& gpterm_wstress
+		& nactive_wstress;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

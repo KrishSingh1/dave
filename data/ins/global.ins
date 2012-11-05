@@ -124,31 +124,6 @@ ifdroughtlimitedestab 0			! whether establishment is limited by growing season d
 								! guess2008 - species version has 1
 ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit every day (0)
 
-! CMIP5
-ifcmip5 0				! Use CMIP5 climate data instead of CRU
-
-! CMIP5 - land use input
-iflandusesimple 0                       ! whether to use a simple land use representation (1) or not (0)
-iflandusechange 0                       ! whether land use is static (0) or dynamic (1) 
-
-! CMIP5 - climate data correction
-param "correctionmethod" (str "c3") 	
-					!c1: use raw cmip5 data. 
-					!c2: correct annual offset.
-					!c3: correct annual and seasonal offset.
-					!c4: merge cru and cmip5 data at 2006, cru 1850-2005, cmip5 c3 data for 2006-2100
-					!c5: cru var cmip5 trend, cru data 1850-2005, cmip5 trend + cru 61-90 var 2006-2085
-					!c6: same as above, but now with seasonality change from cmip5
-					!c7: CRU data only, cru cloudiness instead of shortwave radiation, ends 2005
-					!c8: correct annual and seasonal offset (c3) and keeping temperature and CO2 at pre industrial level (1861-1870).
-					!c9: correct annual and seasonal offset (c3) and keeping temperature and N deposition at pre industrial level (1861-1870).
-					!c10: correct annual and seasonal offset (c3) and keeping CO2 and N deposition at pre industrial level (1861-1870).
-					!c11: correct annual and seasonal offset (c3) and keeping temperature at pre industrial level (1861-1870).
-
-param "gcm" (str "bjarki")		!Will be added to the outfile name
-
-param "rcp" (str "85")			!26 45 60 85 doesn't have 60
-
 !!!!!!!!!!!! landcover parameters !!!!!!!!!!!!!!					
 
 run_landcover 0        ! whether to use (and change) landcover fractions (1) or not (0)						

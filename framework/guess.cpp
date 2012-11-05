@@ -56,11 +56,6 @@ double nfix_b;
 /// whether N deposition data available from a file	
 bool ifndepdata;
 
-// CMIP5
-bool ifcmip5;
-bool iflandusesimple;
-bool iflandusechange;
-
 // N budget check
 double somfluxnerror;
 
@@ -145,8 +140,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& doneday
 		& andep
 		& dndep
-		& anfert
-		& frluse; // CMIP5
+		& anfert;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

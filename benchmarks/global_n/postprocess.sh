@@ -2,7 +2,7 @@
 
 mkdir results
 
-common1961to1990.sh
+common1961to1990_nitrogen.sh
 tslice cflux.out -o results/cflux1990to2000.txt -f 589 -t 599 -lon 1 -lat 2 -y 3
 aslice cflux1961to1990.txt -o results/cflux1961to1990_areaaverage.txt -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.25 0.25   
 aslice cflux1990to2000.txt -o results/cflux1990to2000_areaaverage.txt -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.25 0.25   
@@ -10,7 +10,7 @@ aslice cpool1961to1990.txt -o results/cpool1961to1990_areaaverage.txt -lon 1 -la
 aslice tot_runoff1961to1990.txt -o results/tot_runoff1961to1990_areaaverage.txt -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.25 0.25   
 gmap lai1961to1990max.txt -t 'Dominant PFT (greatest LAI)' -lon 1 -lat 2 -i 3 -legend legend_global.txt -o results/maxLAI.jpg
 gmapall lai1961to1990.txt -P results/lai_ -s 0 0.5 10
-cbalance -spinup 500 -ncells 59191 -path ./ -start 500 -end 605
+cbalance -spinup 3000 -ncells 59191 -path ./ -start 3000 -end 3105
 
 
 

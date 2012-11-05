@@ -209,11 +209,6 @@ extern double nfix_b;
 /// whether nitrogen deposition data available from a file	
 extern bool ifndepdata;
 
-// CMIP5
-extern bool ifcmip5;
-extern bool iflandusesimple;
-extern bool iflandusechange;
-
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;
 
@@ -591,9 +586,6 @@ public:
 		// NB: units of these variable are the same as their daily counterparts,
 		// i.e. representing daily averages (e.g. pars [J/m2/day])
 
-	// CMIP5
-	double frluse;
-
 
 public:
 	Climate(Gridcell& gc):gridcell(gc) {};
@@ -623,9 +615,6 @@ public:
 		for (day=0; day<365; day++) doneday[day] = false;
 		sinelat = sin(lat * DEGTORAD);
 		cosinelat = cos(lat * DEGTORAD);
-
-		// CMIP5
-		frluse = 1.0;
 	}
 
 	void serialize(ArchiveStream& arch);

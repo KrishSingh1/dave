@@ -226,7 +226,9 @@ if(!SUPPRESSLARGEOUTPUT)
 		// BLARP! Quick fix here to prevent negative soil water
 
 		wcont[s] -= aet_layer[s] / awc[s];
-		if (wcont[s]<0.0001) wcont[s]=0.0;	
+		if (wcont[s] < 0.0) {
+			wcont[s] = 0.0;
+		}
 	}
 
 	// Baseflow runoff (Dieter Gerten 021216) (rain or snowmelt days only)

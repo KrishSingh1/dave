@@ -41,6 +41,7 @@
 #define IRRIGATION					//Crop irrigation on.
 #define NOPASTURESTOCH				//Fire and disturbance for pasture grass. Number of patches will be the same as for natural stands.
 //#define GRASSFORCROP
+//#define RANDFRAC_PER_STAND	//REMOVES LATERAL EFFECT ON RANDOM NUMBER GENERATION BETWEEN STANDS
 
 const bool SUPPRESSLARGEOUTPUT=false;
 
@@ -2082,7 +2083,9 @@ public:
 	
 	double natural_frac_change; //fraction removed from natural stand when converted to other landcover type
 
+#if defined RANDFRAC_PER_STAND
 	long seed;
+#endif
 
 	/// reference to parent object
 	Gridcell& gridcell;

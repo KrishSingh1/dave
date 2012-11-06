@@ -153,7 +153,7 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 			// Update annual leaf-on sum
 			if (climate.lat>=0.0 && date.day==COLDEST_DAY_NHEMISPHERE ||
 				climate.lat<0.0 && date.day==COLDEST_DAY_SHEMISPHERE) pft.aphen=0.0;
-			pft.aphen+=pft.phen;
+			pft.aphen += pft.phen;
 
 			// ... on to next PFT
 		}
@@ -1103,7 +1103,6 @@ void growth(Stand& stand,Patch& patch) {
 					indiv.cmass_root,indiv.cmass_sap,indiv.cmass_heart,
 					patch.pft[indiv.pft.id].litter_leaf,
 					patch.pft[indiv.pft.id].litter_root,indiv.alive, gridcell);
-
 
 			// Update stand record of reproduction by this PFT
 			stand.pft[indiv.pft.id].cmass_repr+=cmass_repr/(double)stand.npatch();

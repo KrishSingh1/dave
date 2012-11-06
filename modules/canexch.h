@@ -56,6 +56,7 @@ const double ALPHAA = 0.5;		// value chosen to give global carbon pool and flux 
 								// agree with published estimates.
 								// scaling factor for PAR absorption from leaf to plant projective area level
 								// alias "twigloss". Should normally be in the range 0-1
+const double ALPHAA_CROP=1.0;	
 
 /// Lambert-Beer extinction law (Prentice et al 1993; Monsi & Saeki 1953)
 inline double lambertbeer(double lai) {

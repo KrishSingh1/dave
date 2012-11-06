@@ -556,13 +556,6 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 	//  * with pre-calculated Vmax (sub-daily and water-stressed)
 	assert(vm >= 0 || lambda == pft.lambda_max);
 	assert(lambda <= pft.lambda_max);
-	// guess2008 - ALPHAA value chosen to give global carbon pool and flux values that 
-	// agree with published estimates.
-	const double ALPHAA_CROP=1.0;	
-	const double ALPHAA=0.5;
-		// scaling factor for PAR absorption from leaf to plant projective area level
-		// alias "twigloss"
-		// Should normally be in the range 0-1
 
 	const double PATMOS = 1e5;	// atmospheric pressure (Pa)
 
@@ -1771,7 +1764,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 				indiv.anpp += indiv.assim - indiv.resp;
 
-				if (indiv.alive) // Ben 2007-11-28	
+				if (indiv.alive) // Ben 2007-11-28
 					patch.fluxes.dcflux_veg+=indiv.resp-indiv.assim;
 
 				// Monthly NPP and LAI
@@ -1949,14 +1942,14 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 	double pet_patch;
 
 	if(patch.stand.landcover==CROPLAND && patch.pft[patch.stand.pftid].pft.phenology==CROPGREEN && patch.pft[patch.stand.pftid].cropphen->growingseason) {
-		pet_patch=patch.demand+patch.intercep;
+		pet_patch = patch.demand + patch.intercep;
 	}
 	else {
-		pet_patch=patch.demand_day * patch.fpc_total + patch.intercep +
+		pet_patch = patch.demand_day * patch.fpc_total + patch.intercep +
 				climate.eet * PRIESTLEY_TAYLOR * max(1.0-patch.fpc_total, 0.0);
 	}
-	patch.apet+=pet_patch;
-	patch.mpet[date.month]+=pet_patch;
+	patch.apet += pet_patch;
+	patch.mpet[date.month] += pet_patch;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

@@ -98,7 +98,7 @@ void landcover_init(Gridcell& gridcell) {
 						stand.cftid=pft.cftid;
 						stand.set_gridcell_fraction(gridcell.cftfrac[pft.cftid]*gridcell.landcoverfrac[CROPLAND]);
 
-						stand.pft[pft.id].active=true;	//101213
+						stand.pft[pft.id].active=true;
 
 						if(pft.hydrology==IRRIGATED)
 						{
@@ -109,7 +109,7 @@ void landcover_init(Gridcell& gridcell) {
 						{
 							stand.hasgrassintercrop=true;
 
-							for(int i=0;i<pftlist.nobj;i++)		//101213
+							for(int i=0;i<pftlist.nobj;i++)
 							{
 								if(pftlist[i].isintercropgrass)
 									stand.pft[pftlist[i].id].active=true;
@@ -131,7 +131,6 @@ void landcover_init(Gridcell& gridcell) {
 									stand[i].pft[pft.id].set_cropphen()->eicdate=365+stand[i].pft[pft.id].get_cropphen()->sdate-15;
 							}
 						}
-
 					}
 				}
 				pftlist.nextobj(); // ... on to next PFT
@@ -248,6 +247,7 @@ if(!SUPPRESSLARGEOUTPUT)
 	double transfer_cpool_fast=0.0;
 	double transfer_cpool_slow=0.0;
 	double transfer_wcont[NSOILLAYER];
+	double transfer_wcont_evap=0.0;
 	double transfer_decomp_litter_mean=0.0;
 	double transfer_k_soilfast_mean=0.0;
 	double transfer_k_soilslow_mean=0.0;
@@ -274,7 +274,6 @@ if(!SUPPRESSLARGEOUTPUT)
 #ifdef multiple_natural_stands
 		if(landcoverfrac_change[NATURAL]<0.0)	// Find the age order of natural stands.
 		{
-
 			gridcell.firstobj();
 			while (gridcell.isobj) //Loop through stands:
 			{
@@ -507,6 +506,7 @@ if(!SUPPRESSLARGEOUTPUT)
 					{
 						transfer_wcont[i]+=patch.soil.wcont[i]*scale;
 					}
+					transfer_wcont_evap+=patch.soil.wcont_evap*scale;
 
 					transfer_decomp_litter_mean+=patch.soil.decomp_litter_mean*scale;
 					transfer_k_soilfast_mean+=patch.soil.k_soilfast_mean*scale;
@@ -775,7 +775,7 @@ if(!SUPPRESSLARGEOUTPUT)
 //other soil stuff:
 					for(i=0;i<NSOILLAYER;i++)
 						patch.soil.wcont[i]=(patch.soil.wcont[i]*old_frac+transfer_wcont[i]*added_frac)/new_frac;
-
+					patch.soil.wcont_evap=(patch.soil.wcont_evap*old_frac+transfer_wcont_evap*added_frac)/new_frac;
 					patch.soil.decomp_litter_mean=(patch.soil.decomp_litter_mean*old_frac+transfer_decomp_litter_mean*added_frac)/new_frac;
 					patch.soil.k_soilfast_mean=(patch.soil.k_soilfast_mean*old_frac+transfer_k_soilfast_mean*added_frac)/new_frac;
 					patch.soil.k_soilslow_mean=(patch.soil.k_soilslow_mean*old_frac+transfer_k_soilslow_mean*added_frac)/new_frac;

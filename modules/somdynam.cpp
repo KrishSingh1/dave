@@ -758,14 +758,14 @@ void transfer_litter(Patch& patch, Soil& soil) {
 
 	// Fire
 	double litterme[3];
-	litterme[0] = soil.sompool[SURFSTRUCT].cmass	* soil.sompool[SURFSTRUCT].litterme;
-	litterme[1] = soil.sompool[SURFMETA].cmass		* soil.sompool[SURFMETA].litterme;
-	litterme[2] = soil.sompool[SURFCWD].cmass		* soil.sompool[SURFCWD].litterme;
+	litterme[0] = soil.sompool[SURFSTRUCT].cmass   * soil.sompool[SURFSTRUCT].litterme;
+	litterme[1] = soil.sompool[SURFMETA].cmass     * soil.sompool[SURFMETA].litterme;
+	litterme[2] = soil.sompool[SURFCWD].cmass      * soil.sompool[SURFCWD].litterme;
 
 	double fireresist[3];
-	fireresist[0] = soil.sompool[SURFSTRUCT].cmass	* soil.sompool[SURFSTRUCT].fireresist;
-	fireresist[1] = soil.sompool[SURFMETA].cmass	* soil.sompool[SURFMETA].fireresist;
-	fireresist[2] = soil.sompool[SURFCWD].cmass		* soil.sompool[SURFCWD].fireresist;
+	fireresist[0] = soil.sompool[SURFSTRUCT].cmass * soil.sompool[SURFSTRUCT].fireresist;
+	fireresist[1] = soil.sompool[SURFMETA].cmass   * soil.sompool[SURFMETA].fireresist;
+	fireresist[2] = soil.sompool[SURFCWD].cmass    * soil.sompool[SURFCWD].fireresist;
 
 	patch.pft.firstobj();
 	while (patch.pft.isobj) {
@@ -798,10 +798,10 @@ void transfer_litter(Patch& patch, Soil& soil) {
 			dprintf("Year %d LEAF fm %g pft %s\n", date.year, fm, (char*)pft.pft.name);
 
 		// Add to pools
-		soil.sompool[SURFSTRUCT].cmass	+= pft.litter_leaf * (1.0 - fm);
-		soil.sompool[SURFSTRUCT].nmass	+= litter_leaf_n * (1.0 - fm);
-		soil.sompool[SURFMETA].cmass	+= pft.litter_leaf * fm;
-		soil.sompool[SURFMETA].nmass	+= litter_leaf_n * fm;
+		soil.sompool[SURFSTRUCT].cmass += pft.litter_leaf * (1.0 - fm);
+		soil.sompool[SURFSTRUCT].nmass += litter_leaf_n * (1.0 - fm);
+		soil.sompool[SURFMETA].cmass   += pft.litter_leaf * fm;
+		soil.sompool[SURFMETA].nmass   += litter_leaf_n * fm;
 
 		// Fire
 		litterme[0] += pft.litter_leaf * (1.0 - fm) * pft.pft.litterme;
@@ -821,9 +821,9 @@ void transfer_litter(Patch& patch, Soil& soil) {
 				soil.sompool[SURFSTRUCT].cmass;
 
 		// Remove association with vegetation
-		pft.litter_leaf			= 0.0;
-		pft.nmass_litter_leaf	= 0.0;
-		pft.litter_repr			= 0.0;
+		pft.litter_leaf       = 0.0;
+		pft.nmass_litter_leaf = 0.0;
+		pft.litter_repr       = 0.0;
 
 		// ROOT
 
@@ -858,8 +858,8 @@ void transfer_litter(Patch& patch, Soil& soil) {
 		soil.sompool[SOILMETA].nmass += pft.nmass_litter_root * fm;
 		
 		// Remove association with vegetation
-		pft.litter_root			= 0.0;
-		pft.nmass_litter_root	= 0.0;
+		pft.litter_root       = 0.0;
+		pft.nmass_litter_root = 0.0;
 
 		// WOOD
 
@@ -888,11 +888,11 @@ void transfer_litter(Patch& patch, Soil& soil) {
 			}
 
 			// Fire
-			litterme[2] += pft.litter_wood * pft.pft.litterme;
+			litterme[2]   += pft.litter_wood * pft.pft.litterme;
 			fireresist[2] += pft.litter_wood * pft.pft.fireresist;
 		
 			// Update vegetation
-			pft.litter_wood = 0.0;
+			pft.litter_wood       = 0.0;
 			pft.nmass_litter_wood = 0.0;
 		}
 
@@ -901,16 +901,16 @@ void transfer_litter(Patch& patch, Soil& soil) {
 
 	// FIRE
 	if (soil.sompool[SURFSTRUCT].cmass > 0.0) {
-		soil.sompool[SURFSTRUCT].litterme	= litterme[0]	/ soil.sompool[SURFSTRUCT].cmass;
+		soil.sompool[SURFSTRUCT].litterme   = litterme[0]	/ soil.sompool[SURFSTRUCT].cmass;
 		soil.sompool[SURFSTRUCT].fireresist = fireresist[0] / soil.sompool[SURFSTRUCT].cmass;
 	}
 	if (soil.sompool[SURFMETA].cmass > 0.0) {
-		soil.sompool[SURFMETA].litterme		= litterme[1]	/ soil.sompool[SURFMETA].cmass;
-		soil.sompool[SURFMETA].fireresist	= fireresist[1] / soil.sompool[SURFMETA].cmass;
+		soil.sompool[SURFMETA].litterme   = litterme[1]	/ soil.sompool[SURFMETA].cmass;
+		soil.sompool[SURFMETA].fireresist = fireresist[1] / soil.sompool[SURFMETA].cmass;
 	}
 	if (soil.sompool[SURFCWD].cmass > 0.0) {
-		soil.sompool[SURFCWD].litterme		= litterme[2]	/ soil.sompool[SURFCWD].cmass;
-		soil.sompool[SURFCWD].fireresist	= fireresist[2] / soil.sompool[SURFCWD].cmass;
+		soil.sompool[SURFCWD].litterme    = litterme[2]	/ soil.sompool[SURFCWD].cmass;
+		soil.sompool[SURFCWD].fireresist  = fireresist[2] / soil.sompool[SURFCWD].cmass;
 	}
 
 	// Set N:C ratio of surface microbial pool based on C:N ratio of litter from all PFTs

@@ -462,6 +462,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	nmass_heart = 0.0;
 	cton_leaf_dopt = 0.0;
 	cton_leaf_aopt = 0.0;
+	cmass_veg = 0.0;
+	nmass_veg = 0.0;
 
 	nactive = 0.0;
 	nstore_leaf = 0.0;
@@ -602,6 +604,8 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cton_leaf
 		& cton_root
 		& cton_sap
+		& cmass_veg
+		& nmass_veg
 
 		& nstress
 		& leafndemand

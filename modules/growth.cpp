@@ -1052,6 +1052,10 @@ void growth(Stand& stand, Patch& patch) {
 		Individual& indiv = vegetation.getobj();
 		// For this individual 
 
+		// Calculate vegetation carbon and nitrogen mass before growth to determine vegetation C:N ratios
+		indiv.cmass_veg = indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap + indiv.cmass_heart - indiv.cmass_debt;
+		indiv.nmass_veg = indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + indiv.nmass_heart;
+
 		// Calculate compartment C:N ratios
 		if (!negligible(indiv.nmass_leaf))
 			indiv.cton_leaf = indiv.cmass_leaf / indiv.nmass_leaf;

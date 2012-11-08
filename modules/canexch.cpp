@@ -1516,15 +1516,15 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			// On first day of month, monthly mode, initialise cumulative
 			// environmental drivers and counter for water-stress days
 
-			ppft.temp_wstress = 0;
-			ppft.gpterm_wstress = 0;
-			ppft.phot_wstress.clear();
-			ppft.par_wstress = 0;
-			ppft.daylength_wstress = 0;
-			ppft.co2_wstress = 0;
-			ppft.nday_wstress = 0;
+			ppft.temp_wstress       = 0;
+			ppft.gpterm_wstress     = 0;
+			ppft.par_wstress        = 0;
+			ppft.daylength_wstress  = 0;
+			ppft.co2_wstress        = 0;
+			ppft.nday_wstress       = 0;
 			ppft.fpar_grass_wstress = 0;
-			ppft.gcbase_wstress = 0;
+			ppft.gcbase_wstress     = 0;
+			ppft.phot_wstress.clear();
 		}
 
 		if (day.isstart) {
@@ -1544,15 +1544,15 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 		if (!ifdailynpp && ppft.wstress) {
 			ppft.nday_wstress++;
-			ppft.temp_wstress += climate.temp;
-			ppft.par_wstress += climate.par;
-			ppft.co2_wstress += climate.co2;
+			ppft.temp_wstress       += climate.temp;
+			ppft.par_wstress        += climate.par;
+			ppft.co2_wstress        += climate.co2;
 			ppft.fpar_grass_wstress += patch.fpar_grass * ppft.phen;
-			ppft.daylength_wstress += climate.daylength;
-			ppft.gpterm_wstress += spft.gpterm;
-			ppft.phot_wstress.vm += spft.photosynthesis.vm;
-			ppft.phot_wstress.rd_g += spft.photosynthesis.rd_g;
-			ppft.phot_wstress.je += spft.photosynthesis.je;
+			ppft.daylength_wstress  += climate.daylength;
+			ppft.gpterm_wstress     += spft.gpterm;
+			ppft.phot_wstress.vm    += spft.photosynthesis.vm;
+			ppft.phot_wstress.rd_g  += spft.photosynthesis.rd_g;
+			ppft.phot_wstress.je    += spft.photosynthesis.je;
 		}
 
 		// Calculate water-stressed canopy conductance on FPC basis assuming
@@ -1576,16 +1576,16 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 					patch.eet_net_veg) - pft.gmin * ppft.wsupply / patch.wdemand_day, 0.0) : 0;
 		}
 		if (!ifdailynpp && date.islastday && ppft.nday_wstress) {
-			ppft.temp_wstress /= ppft.nday_wstress;
-			ppft.par_wstress /= ppft.nday_wstress;
-			ppft.co2_wstress /= ppft.nday_wstress;
+			ppft.temp_wstress       /= ppft.nday_wstress;
+			ppft.par_wstress        /= ppft.nday_wstress;
+			ppft.co2_wstress        /= ppft.nday_wstress;
 			ppft.fpar_grass_wstress /= ppft.nday_wstress;
-			ppft.daylength_wstress /= ppft.nday_wstress;
-			ppft.gcbase_wstress /= ppft.nday_wstress;
-			ppft.gpterm_wstress /= ppft.nday_wstress;
-			ppft.phot_wstress.vm /= ppft.nday_wstress;
-			ppft.phot_wstress.rd_g /= ppft.nday_wstress;
-			ppft.phot_wstress.je /= ppft.nday_wstress;
+			ppft.daylength_wstress  /= ppft.nday_wstress;
+			ppft.gcbase_wstress     /= ppft.nday_wstress;
+			ppft.gpterm_wstress     /= ppft.nday_wstress;
+			ppft.phot_wstress.vm    /= ppft.nday_wstress;
+			ppft.phot_wstress.rd_g  /= ppft.nday_wstress;
+			ppft.phot_wstress.je    /= ppft.nday_wstress;
 		}
 	}
 
@@ -1598,18 +1598,18 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			indiv.aet = 0;
 		}
 		if (!ifdailynpp && date.dayofmonth == 0) {
-			indiv.fpar_wstress = 0;
-			indiv.temp_wstress = 0;
-			indiv.par_wstress = 0;
+			indiv.fpar_wstress      = 0;
+			indiv.temp_wstress      = 0;
+			indiv.par_wstress       = 0;
 			indiv.daylength_wstress = 0;
-			indiv.co2_wstress = 0;
-			indiv.nday_wstress = 0;
-			indiv.dtr_wstress = 0;
-			indiv.eet_wstress = 0;
-			indiv.agdd5_wstress = 0;
-			indiv.rad_wstress = 0;
-			indiv.gpterm_wstress = 0;
-			indiv.nactive_wstress = 0;
+			indiv.co2_wstress       = 0;
+			indiv.nday_wstress      = 0;
+			indiv.dtr_wstress       = 0;
+			indiv.eet_wstress       = 0;
+			indiv.agdd5_wstress     = 0;
+			indiv.rad_wstress       = 0;
+			indiv.gpterm_wstress    = 0;
+			indiv.nactive_wstress   = 0;
 			indiv.phot_wstress.clear();
 		}
 
@@ -1621,20 +1621,20 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 			if (!ifdailynpp) {
 				indiv.nday_wstress++;
-				indiv.fpar_wstress += indiv.fpar;
-				indiv.temp_wstress += climate.temp;
-				indiv.par_wstress += climate.par;
+				indiv.fpar_wstress      += indiv.fpar;
+				indiv.temp_wstress      += climate.temp;
+				indiv.par_wstress       += climate.par;
 				indiv.daylength_wstress += climate.daylength;
-				indiv.co2_wstress += climate.co2;
-				indiv.dtr_wstress += climate.dtr;
-				indiv.eet_wstress += climate.eet;
-				indiv.agdd5_wstress += climate.agdd5;
-				indiv.rad_wstress += climate.rad;
-				indiv.gpterm_wstress += indiv.gpterm;
-				indiv.nactive_wstress += indiv.nactive;
-				indiv.phot_wstress.vm += indiv.photosynthesis.vm;
+				indiv.co2_wstress       += climate.co2;
+				indiv.dtr_wstress       += climate.dtr;
+				indiv.eet_wstress       += climate.eet;
+				indiv.agdd5_wstress     += climate.agdd5;
+				indiv.rad_wstress       += climate.rad;
+				indiv.gpterm_wstress    += indiv.gpterm;
+				indiv.nactive_wstress   += indiv.nactive;
+				indiv.phot_wstress.vm   += indiv.photosynthesis.vm;
 				indiv.phot_wstress.rd_g += indiv.photosynthesis.rd_g;
-				indiv.phot_wstress.je += indiv.photosynthesis.je;
+				indiv.phot_wstress.je   += indiv.photosynthesis.je;
 			}
 		}
 		else {
@@ -1970,18 +1970,18 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 	int index = -1;
 
 	if (date.diurnal()) {
-		par		= climate.pars[day.period];
-		temp	= climate.temps[day.period];
-		rad		= climate.rads[day.period];
-		gtemp	= climate.gtemps[day.period];
-		index	= day.period;
+		par   = climate.pars[day.period];
+		temp  = climate.temps[day.period];
+		rad   = climate.rads[day.period];
+		gtemp = climate.gtemps[day.period];
+		index = day.period;
 	}
 	else {
-		par		= climate.par;
-		temp	= climate.temp;
-		hours	= climate.daylength;
-		rad		= climate.rad;
-		gtemp	= climate.gtemp;
+		par   = climate.par;
+		temp  = climate.temp;
+		hours = climate.daylength;
+		rad   = climate.rad;
+		gtemp = climate.gtemp;
 	}
 
 	vegetation.firstobj();
@@ -2094,20 +2094,20 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 				if (indiv.nday_wstress) {
 					double nday_double = indiv.nday_wstress;
 
-					indiv.fpar_wstress		/= nday_double;
-					indiv.temp_wstress		/= nday_double;
-					indiv.par_wstress		/= nday_double;
-					indiv.daylength_wstress	/= nday_double;
-					indiv.co2_wstress		/= nday_double;
-					indiv.dtr_wstress		/= nday_double;
-					indiv.eet_wstress		/= nday_double;
-					indiv.agdd5_wstress		/= nday_double;
-					indiv.rad_wstress		/= nday_double;
-					indiv.gpterm_wstress	/= nday_double;
-					indiv.nactive_wstress	/= nday_double;
-					indiv.phot_wstress.vm	/= nday_double;
-					indiv.phot_wstress.rd_g	/= nday_double;
-					indiv.phot_wstress.je	/= nday_double;
+					indiv.fpar_wstress      /= nday_double;
+					indiv.temp_wstress      /= nday_double;
+					indiv.par_wstress       /= nday_double;
+					indiv.daylength_wstress /= nday_double;
+					indiv.co2_wstress       /= nday_double;
+					indiv.dtr_wstress       /= nday_double;
+					indiv.eet_wstress       /= nday_double;
+					indiv.agdd5_wstress     /= nday_double;
+					indiv.rad_wstress       /= nday_double;
+					indiv.gpterm_wstress    /= nday_double;
+					indiv.nactive_wstress   /= nday_double;
+					indiv.phot_wstress.vm   /= nday_double;
+					indiv.phot_wstress.rd_g /= nday_double;
+					indiv.phot_wstress.je   /= nday_double;
 
 					assimilation_wstress(ppft, indiv.co2_wstress, indiv.temp_wstress,
 						indiv.par_wstress, indiv.daylength_wstress, indiv.fpar_wstress, indiv.fpc,

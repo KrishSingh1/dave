@@ -1185,6 +1185,10 @@ public:
 	double cton_root;
 	/// C:N ratio of current biomass (sap)
 	double cton_sap;
+	/// total carbon in compartments before growth
+	double cmass_veg;
+	/// total nitrogen in compartments before growth
+	double nmass_veg;
 
 	/// whether individual subject to nitrogen stress
 	bool nstress;

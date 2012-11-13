@@ -3754,9 +3754,13 @@ bool getgridcell(Gridcell& gridcell)
 	return false; // no more stands
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////
+bool fixedlu_hist=0;
+bool fixedcrop_hist=0;
+
 ///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
 void getlandcover(Gridcell& gridcell) {
-	int i, year;
+	int i, year, year_saved;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
 
 	if(date.year<nyear_spinup)					//Use values for first historic year during spinup period !
@@ -3768,6 +3772,12 @@ void getlandcover(Gridcell& gridcell) {
 	}
 	else
 		year=date.year-nyear_spinup;
+
+	if(fixedlu_hist)
+	{
+		year_saved=year;
+		year=0;
+	}
 
 	if(lcfrac_fixed)	// If area fractions are set in the ins-file.
 	{
@@ -4003,6 +4013,10 @@ void getlandcover(Gridcell& gridcell) {
 		}
 		else
 		{
+			if(fixedcrop_hist)
+				year=0;
+			else if(fixedlu_hist)
+				year=year_saved;
 
 			if(CFTdata.Get(year,0)==-9.999)	//to cope with missing Bondeau fraction data
 			{

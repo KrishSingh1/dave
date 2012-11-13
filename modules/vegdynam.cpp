@@ -311,13 +311,10 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 			// flux is not debited for 'new' Individual objects - their carbon is 
 			// debited in function growth() if they survive the first year
 
-			if (indiv.alive) // guess2008 - alive check added
+			if (indiv.alive && !(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass)))
 				patch.fluxes.acflux_est-=(indiv.pft.regen.cmass_leaf+
 					indiv.pft.regen.cmass_root+indiv.pft.regen.cmass_sap+
 					indiv.pft.regen.cmass_heart)*est_pft;
-
-			if(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass))
-				patch.fluxes.acflux_est=0.0;
 
 			// Adjust average individual C biomass based on average biomass and density
 			// of the new saplings
@@ -337,12 +334,9 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 
 			// Account for flux from atmosphere to grass regeneration
 
-			if (indiv.alive) // guess2008 - alive check added
+			if (indiv.alive && !(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass)))
 				patch.fluxes.acflux_est-=(indiv.pft.regen.cmass_leaf+
 					indiv.pft.regen.cmass_root)*est_pft;
-
-			if(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass))
-				patch.fluxes.acflux_est=0.0;
 
 			// Add regeneration biomass to overall biomass
 
@@ -538,11 +532,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// objects - their carbon is debited in function growth()
 						// if they survive the first year 
 
-						if (indiv.alive)
+						if (indiv.alive && !(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass)))
 							patch.fluxes.acflux_est-=bminit;
 
-						if(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass))
-							patch.fluxes.acflux_est=0.0;
 					}
 				}
 				else if (pft.lifeform==TREE) {
@@ -672,12 +664,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						
 						// Account for C flux from atmosphere to vegetation
 						// guess2008
-						if (indiv.alive)
+						if (indiv.alive && !(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass)))
 							patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
 								indiv.cmass_sap;
-
-						if(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass))
-							patch.fluxes.acflux_est=0.0;
 					}
 				}
 			}

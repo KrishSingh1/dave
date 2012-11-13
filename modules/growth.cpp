@@ -1271,13 +1271,12 @@ void growth(Stand& stand,Patch& patch) {
 
 			if (!killed) {
 				if (!indiv.alive) {
-					patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
-						indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
+					if (!(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass))) {
+						patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
+							indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
+					}
 					indiv.alive=true;
 				}
-
-				if(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass))
-					patch.fluxes.acflux_est=0.0;
 
 				// ... on to next individual
 				vegetation.nextobj();

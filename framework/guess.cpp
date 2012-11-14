@@ -58,6 +58,11 @@ bool ifintercropgrass;
 int ncft=0; // number of CFTs in Pftlist, set in plib_callback()
 int nyear_spinup;		
 
+xtring state_path;
+bool restart;
+bool save_state;
+int state_year;
+
 bool forcesowingdates;
 bool forceharvestdates;
 Pftlist pftlist;

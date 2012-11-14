@@ -1021,6 +1021,11 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 						ppft.water_deficit_y+=ppft.water_deficit_d;
 						if(ppft.water_deficit_d>patch.irrigation_d)
 							patch.irrigation_d=ppft.water_deficit_d;
+						if(patch.irrigation_d<0.0)
+						{
+							patch.irrigation_d=0.0;
+							dprintf("Negative irrigation_d !\n");
+						}
 						patch.irrigation_y+=patch.irrigation_d;
 					}
 				}

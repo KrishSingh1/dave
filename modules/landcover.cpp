@@ -603,7 +603,7 @@ if(!SUPPRESSLARGEOUTPUT)
 //CFT stand dynamics (from updated cftfrac):
 	if(run[CROPLAND] && (change_crop>0.0 || landcoverfrac_change[CROPLAND]!=0.0))
 	{
-		if(gridcell.landcoverfrac[CROPLAND]>0.0)	//landcoverfrac[CROP] overrides cftfrac[]
+		if(gridcell.landcoverfrac[CROPLAND]>0.0)	//landcoverfrac[CROPLAND] overrides cftfrac[]
 		{
 			pftlist.firstobj();
 			while (pftlist.isobj) 

@@ -438,9 +438,8 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),gridcell(gc),la
 
 	first_year=date.year;
 	natural_frac_change=0.0;
-#if defined RANDFRAC_PER_STAND
 	seed=12345678;
-#endif
+
 	pftid=-1;
 	cftid=-1;
 	isirrigated=false;
@@ -497,11 +496,7 @@ void Stand::serialize(ArchiveStream& arch) {
 		& isirrigated
 		& hasgrassintercrop
 		& gdd0_intercrop
-#if defined RANDFRAC_PER_STAND
 		& seed;
-#else
-		;
-#endif
 }
 
 

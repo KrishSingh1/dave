@@ -17,11 +17,7 @@
 #include "guess.h"
 
 void setseed(long init);
-#if defined RANDFRAC_PER_STAND
 double randfrac(long& seed);
-#else
-double randfrac();
-#endif
 void soilparameters(Soiltype& soiltype,int soilcode);
 void interp_monthly_means(double mvals[12], double dvals[365]);
 void interp_monthly_totals(double mvals[12], double dvals[365]);

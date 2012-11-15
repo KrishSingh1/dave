@@ -1852,9 +1852,6 @@ bool getgridcell(Gridcell& gridcell)
 	bool gridfound;
 	bool LUerror=false;
 
-	// to ensure an identical random number sequence for each gridcell.
-	setseed(12345678);
-
 	// Make sure we use the first gridcell in the first call to this function,
 	// and then step through the gridlist in subsequent calls.
 	static bool first_call = true;

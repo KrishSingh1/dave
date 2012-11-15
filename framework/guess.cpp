@@ -336,6 +336,7 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),gridcell(gc),la
 	}
 
 	first_year=date.year;
+	seed = 12345678;
 }
 
 double Stand::get_gridcell_fraction() const {
@@ -378,7 +379,8 @@ void Stand::serialize(ArchiveStream& arch) {
 	}
 
 	arch & first_year
-		& frac;
+		& frac
+		& seed;
 }
 
 
@@ -529,7 +531,8 @@ void Gridcell::serialize(ArchiveStream& arch) {
 	arch & climate
 		& landcoverfrac
 		& landcoverfrac_old
-		& LC_updated;
+		& LC_updated
+		& seed;
 
 	if (arch.save()) {
 		for (unsigned int i = 0; i < pft.nobj; i++) {

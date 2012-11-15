@@ -1664,6 +1664,18 @@ public:
 	/// A number identifying this Stand within the grid cell
 	int id;
 
+	/// Seed for generating random numbers within this Stand
+	/** The reason why Stand has its own seed, rather than using for instance
+	 *  a single global seed is to make it easier to compare results when using
+	 *  different land cover types.
+	 *
+	 *  Randomness not associated with a specific stand, but rather a whole
+	 *  grid cell should instead use the seed in the Gridcell class.
+	 *
+	 *  \see randfrac()
+	 */
+	long seed;
+
 	/// reference to parent object
 	Gridcell& gridcell;
 
@@ -1787,6 +1799,16 @@ public:
 	/// list array [0...npft-1] of Gridcellpft (initialised in constructor)
 	ListArray_idin1<Gridcellpft,Pft> pft;
 
+	/// Seed for generating random numbers within this Gridcell
+	/** The reason why Gridcell has its own seed, rather than using for instance
+	 *  a single global seed is to make it easier to compare results when for
+	 *  instance changing the order in which the simulation proceeds. It also
+	 *  gets serialized together with the rest of the Gridcell state to make it
+	 *  possible to get exactly identical results after a restart.
+	 *
+	 *  \see randfrac()
+	 */
+	long seed;
 
 	// MEMBER FUNCTIONS
 
@@ -1807,6 +1829,8 @@ public:
 			createobj(*this,landcover);
 			landcoverfrac[NATURAL]=1.0;
 		}
+
+		seed = 12345678;
 	}
 
 	/// Longitude for this grid cell

@@ -36,7 +36,6 @@ int estinterval; // establishment interval in cohort mode (years)
 double distinterval;
 	// generic patch-destroying disturbance interval (individual, cohort mode)
 int npft; // number of possible PFTs
-bool iffast;
 bool ifcdebt;
 
 // guess2008 - new inputs from the .ins file

@@ -1049,6 +1049,7 @@ void nstore_usage(Vegetation& vegetation) {
  */
 void ndemand(Patch& patch, Vegetation& vegetation) {
 
+	Gridcell& gridcell = patch.stand.gridcell;
 	Soil& soil = patch.soil;
 
 	/// daily nitrogen demand for patch (kgN/m2)
@@ -1056,6 +1057,8 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 	// Optimal leaf nitrogen content
 	double leafoptn;
+
+	bool first=true;
 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
@@ -1136,31 +1139,58 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		if (!ifnlim || date.year < freenyears)
 			indiv.storendemand = 0.0;
 
+		/// Nitrogen demand without scalars
+		double ndemand_tot = indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand;
+
 		// Calculate scalars to nitrogen demand
 
 		// Current plant mobile and storage nitrogen concentration
-		double ntoc_indiv = !negligible(indiv.phen) ? ((indiv.nmass_leaf + indiv.nmass_root) / ((indiv.cmass_leaf + indiv.cmass_root) * indiv.phen) + 1.0 / indiv.cton_leaf_dopt) / 2.0 : 1.0 / indiv.pft.cton_leaf_max;
-		double ntoc_store = indiv.anpp > 0.0 ? (indiv.nstore + indiv.nstore_leaf + indiv.nstore_root) / max(0.0, indiv.anpp) : 1.0 / indiv.pft.cton_leaf_min;
-		
+		double ntoc = !negligible(indiv.phen) ? (indiv.nmass_leaf + indiv.nmass_root) / (indiv.cmass_leaf * indiv.phen + indiv.cmass_root) : 1.0 / indiv.pft.cton_leaf_max;
+
 		// Scale to maximum nitrogen concentrations
-		double cton_indiv_scale = min(1.0, max(0.0, (ntoc_indiv - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_max - 1.0 / indiv.pft.cton_leaf_min)));
-		double cton_store_scale = min(1.0, max(0.0, (ntoc_store - indiv.scale_n_reserve / indiv.cton_leaf) / (1.0 / indiv.pft.cton_leaf_max - 1.0 / indiv.pft.cton_leaf_min)));
+		double cton_scale = min(1.0, max(0.0, (ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_max - 1.0 / indiv.pft.cton_leaf_min)));
 
 		// Scale to soil temperature (Xu-Ri and Prentice 2008)
 		double temp_scale = max(0.0 ,min(1.0, exp(308.56 * (1.0 / 66.02 - 1.0 / (soil.temp + 46.02)))));
 
-		// Nitrogen demand not meet by fine root uptake capacity
-		indiv.leafndemand_opt = indiv.leafndemand * (1.0 - temp_scale * cton_indiv_scale);
-		indiv.rootndemand_opt = indiv.rootndemand * (1.0 - temp_scale * cton_indiv_scale);
+		/// Rate of nitrogen uptake not associated with Michaelis-Menten Kinetics
+		double kNmin = 0.05;
 
-		// Scale to max nitrogen uptake per carbon fine root
-		indiv.leafndemand  *= temp_scale * cton_indiv_scale;
-		indiv.rootndemand  *= temp_scale * cton_indiv_scale;
-		indiv.sapndemand   *= temp_scale;
-		indiv.storendemand *= temp_scale * cton_store_scale;
-		
-		// Sum total individual nitrogen demand 
+		/// Nitrogen availablilty scalar due to saturating Michealis-Menten kinetics
+		double nmin_scale = min(1.0, kNmin + soil.nmass / (soil.nmass + gridcell.pft[indiv.pft.id].Km));
+
+		/// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake)
+		double maxnup = 2.0 * indiv.pft.nuptoroot * nmin_scale * temp_scale * cton_scale * indiv.cmass_root;
+
+		/// Nitrogen demand limited to maximum nitrogen uptake capacity
+		double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot,1.0) : 0.0;
+
+		/// Root and leaf nitrogen demand above maximum uptake capacity
+		indiv.leafndemand_opt = indiv.leafndemand * (1.0 - fractomax);
+		indiv.rootndemand_opt = indiv.rootndemand * (1.0 - fractomax);
+
+		/// Nitrogen demand after adjustment to maximum uptake capacity
+		indiv.leafndemand  *= fractomax;
+		indiv.rootndemand  *= fractomax;
+		indiv.sapndemand   *= fractomax;
+		indiv.storendemand *= fractomax;
+
+		/// Sum total nitrogen demand individual is capable to take up
 		indiv.ndemand = indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand;
+
+		if (date.year == 500 && first){
+			plot("N demand","leaf",date.day,indiv.leafndemand*10000.0);
+			plot("N demand","root",date.day,indiv.rootndemand*10000.0);
+			plot("N demand","sap",date.day,indiv.sapndemand*10000.0);
+			plot("N demand","store",date.day,indiv.storendemand*10000.0);
+			plot("max N demand","demand",date.day,indiv.ndemand*10000.0);
+			plot("max N uptake","max",date.day,maxnup*10000.0);
+			plot("scale","nmin",date.day,nmin_scale);
+			plot("scale","C:N",date.day,cton_scale);
+			plot("scale","Temp",date.day,temp_scale);
+			plot("scale","tot",date.day,nmin_scale * temp_scale * cton_scale);
+		}
+		first=false;
 
 		if (negligible(indiv.ndemand))
 			indiv.ndemand = 0.0;
@@ -1186,17 +1216,14 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 
 	// Supply function for nitrogen and determination of nitrogen stress leading
 	// to down-regulation of vmax.
-	
-	// Soil nitrogen available for plants 
-	double nmass_avail = patch.soil.nmass * patch.soil.wcont[0];
 
 	// Calculate individual uptake fraction of nitrogen demand
-	if (patch.ndemand > nmass_avail && ifnlimvmax()) {
+	if (patch.ndemand > patch.soil.nmass && ifnlimvmax()) {
 
-		patch.fnuptake = patch.ndemand > 0.0 ? nmass_avail / patch.ndemand : 0.0;
+		patch.fnuptake = patch.ndemand > 0.0 ? patch.soil.nmass / patch.ndemand : 0.0;
 		
 		// Determine individual nitrogen uptake fractions
-		fnuptake(vegetation, nmass_avail, patch.fnuptake);
+		fnuptake(vegetation, patch.soil.nmass, patch.fnuptake);
 	}
 	else {
 		patch.fnuptake = 1.0;
@@ -2037,7 +2064,8 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			}
 			// Calculate autotrophic respiration
 			respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
-				indiv.pft.respcoeff, indiv.pft.cton_sap_resp, indiv.pft.cton_root_resp,
+				//indiv.pft.respcoeff, indiv.pft.cton_sap_resp, indiv.pft.cton_root_resp,
+				indiv.pft.respcoeff, indiv.cton_sap_resp, indiv.cton_root_resp,
 				indiv.phen, indiv.cmass_sap, indiv.cmass_root, assim, resp);
 
 			// Convert to averages for this period for accounting purposes
@@ -2142,7 +2170,8 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 					// average daily assimilation for this month
 
 				respiration(climate.mgtemp, patch.soil.mgtemp, indiv.pft.lifeform,
-					indiv.pft.respcoeff, indiv.pft.cton_sap_resp, indiv.pft.cton_root_resp,
+					//indiv.pft.respcoeff, indiv.pft.cton_sap_resp, indiv.pft.cton_root_resp,
+					indiv.pft.respcoeff, indiv.cton_sap_resp, indiv.cton_root_resp,
 					indiv.phen_mean, indiv.cmass_sap, indiv.cmass_root, assim, indiv.resp);
 
 				indiv.resp *= date.ndaymonth[date.month];

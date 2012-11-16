@@ -137,7 +137,7 @@ int framework(const CommandLineArguments& args) {
 					// Soil water accounting, snow pack accounting
 					soilwater(patch, gridcell.climate);
 					// Soil organic matter and litter dynamics						
-					som_dynamics(patch,pftlist);
+					som_dynamics(patch);
 
 					if (date.islastday && date.islastmonth) {
 

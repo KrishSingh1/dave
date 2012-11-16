@@ -462,6 +462,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	nmass_heart = 0.0;
 	cton_leaf_dopt = 0.0;
 	cton_leaf_aopt = 0.0;
+	cton_root_resp = 0.0;
+	cton_sap_resp = 0.0;
 	cmass_veg = 0.0;
 	nmass_veg = 0.0;
 
@@ -601,6 +603,8 @@ void Individual::serialize(ArchiveStream& arch) {
 		& avmaxnlim
 		& cton_leaf_aopt
 		& cton_leaf_dopt
+		& cton_root_resp
+		& cton_sap_resp
 		& cton_leaf
 		& cton_root
 		& cton_sap
@@ -630,7 +634,8 @@ void Individual::serialize(ArchiveStream& arch) {
 
 
 void Gridcellpft::serialize(ArchiveStream& arch) {
-	arch & addtw;
+	arch & addtw
+		 & Km;
 }
 
 

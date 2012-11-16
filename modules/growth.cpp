@@ -1072,6 +1072,9 @@ void growth(Stand& stand, Patch& patch) {
 		else
 			indiv.cton_sap = indiv.pft.cton_sap_avr;
 
+		indiv.cton_root_resp = indiv.cton_root;
+		indiv.cton_sap_resp = indiv.cton_sap;
+
 		// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle 2010 SM eq 19) 	
 		double cton_leaf_opt = (indiv.cton_leaf_aopt > indiv.pft.cton_leaf_avr) ? indiv.cton_leaf_aopt : indiv.pft.cton_leaf_avr;
 

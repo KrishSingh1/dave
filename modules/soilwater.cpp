@@ -242,10 +242,6 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 
 	// save percolation from system (needed by CENTURY)
 	dperc = runoff_baseflow + runoff_drain;
-	
-
-	if (rain_melt <= 0.0 && runoff_baseflow > 0.0)
-		dprintf("Year %d Day %d runoff!!! %g\n",date.year,date.day,runoff_baseflow);
 
 	runoff = runoff_surf + runoff_drain + runoff_baseflow;
 

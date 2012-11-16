@@ -93,7 +93,7 @@ void soilparameters(Soiltype& soiltype, int soilcode) {
 		// exponent in percolation equation [k2; LPJF]
 		// (Eqn 31, Haxeltine & Prentice 1996)
 		// Changed from 4 to 2 (Sitch, Thonicke, pers comm 26/11/01)
-
+	
 	double data[9][7] = {
 
 		//    0  empirical parameter in percolation equation (k1) (mm/day)
@@ -138,6 +138,7 @@ void soilparameters(Soiltype& soiltype, int soilcode) {
 	soiltype.wp[1] = SOILDEPTH_LOWER * data[soilcode-1][5];
 	soiltype.wsats[0] = SOILDEPTH_UPPER * data[soilcode-1][6];
 	soiltype.wsats[1] = SOILDEPTH_LOWER * data[soilcode-1][6];
+	soiltype.wtot = (data[soilcode-1][1] + data[soilcode-1][5]) * (SOILDEPTH_UPPER + SOILDEPTH_LOWER);
 
 	// guess2008 - override the default SOM years with 70-80% of the spin-up period
 	soiltype.updateSolveSOMvalues(nyear_spinup);
@@ -568,6 +569,13 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 				climate.dtemp_31[d] = climate.temp;
 
 			climate.atemp_mean = climate.temp;
+
+			// Initialise gridcellpfts Michaelis-Menten kinetic Km value
+			pftlist.firstobj();
+				while (pftlist.isobj) {
+					gridcell.pft[pftlist.getobj().id].Km = pftlist.getobj().Km_volym * gridcell.soiltype.wtot;
+				pftlist.nextobj();
+			}
 		}
 	}
 	else if (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE ||

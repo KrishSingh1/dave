@@ -484,6 +484,8 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						// Set new leaf tissue C:N ratio
 						indiv.cton_leaf = indiv.pft.cton_leaf_avr;
+						indiv.cton_root_resp = indiv.pft.cton_root_avr;
+						indiv.cton_sap_resp = indiv.pft.cton_sap_avr;
 
 						// Calculate reserve pool size
 						indiv.max_n_reserve = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
@@ -625,6 +627,8 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						// Set new leaf tissue C:N ratio
 						indiv.cton_leaf = indiv.pft.cton_leaf_avr;
+						indiv.cton_root_resp = indiv.pft.cton_root_avr;
+						indiv.cton_sap_resp = indiv.pft.cton_sap_avr;
 
 						// Calculate reserve pool size
 						indiv.max_n_reserve = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;

@@ -783,6 +783,11 @@ public:
 	double cton_sap_avr;
 	/// respiration sapwood C:N mass ratio	
 	double cton_sap_resp;
+	/// Maximum nitrogen (NH4+ and NO3- seperatly) uptake per fine root [kgN kgC-1 day-1]
+	double nuptoroot;
+	/// Michaelis-Menten kinetic parameters chosen to match observed rates of increase 
+	/// in nitrogen uptake at high nitrogen [kgN l-1] (Rothstein 2000) 
+	double Km_volym;
 		
 	double reprfrac;
 		// fraction of NPP allocated to reproduction		
@@ -1185,6 +1190,10 @@ public:
 	double cton_root;
 	/// C:N ratio of current biomass (sap)
 	double cton_sap;
+	/// C:N ratio root for respiration
+	double cton_root_resp;
+	/// C:N ratio sap wood for respiration
+	double cton_sap_resp;
 	/// total carbon in compartments before growth
 	double cmass_veg;
 	/// total nitrogen in compartments before growth
@@ -1322,6 +1331,9 @@ public:
 	int solvesom_begin;
 		// year at which to begin documenting means for calculation of equilibrium
 		// soil carbon
+
+	/// water holding capacity plus wilting point for whole soil volym
+	double wtot; 
 
 	// For CENTURY ...
 	/// fraction of soil that is sand
@@ -2043,6 +2055,10 @@ public:
 	 */
 	double addtw;
 
+	/// Michaelis-Menten kinetic parameters chosen to match observed rates of increase 
+	/// in nitrogen uptake at high nitrogen [kgN m2] (Rothstein 2000) 
+	double Km;
+
 	// MEMBER FUNCTIONS
 
 	/// Constructs a Gridcellpft object
@@ -2051,6 +2067,7 @@ public:
 	 */
 	Gridcellpft(int i,Pft& p):id(i),pft(p) {
 		addtw = 0.0;
+		Km = 0.0;
 	}
 
 	void serialize(ArchiveStream& arch);

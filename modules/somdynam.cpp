@@ -1010,7 +1010,7 @@ void naddition(Patch& patch) {
  *  Partitioned among individuals according to todays nitrogen demand
  *  and individuals root area
  */
-void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
+void vegetation_n_uptake(Patch& patch) {
 
 	// Daily nitrogen demand given by:
 	//	 For individual:
@@ -1032,6 +1032,8 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 	Vegetation& vegetation=patch.vegetation;
 	Soil& soil = patch.soil;	
 
+	bool firstt=true;
+
 	// Loop through individuals
 
 	vegetation.firstobj();
@@ -1052,6 +1054,17 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
 		if (indiv.phen > 0.0)
 			indiv.cton_leaf = indiv.cmass_leaf * indiv.phen / indiv.nmass_leaf;
 
+		if (date.year == 500 && firstt) {
+			plot("nmass","leafn",date.day,indiv.nmass_leaf*1000.0);
+			plot("nmass","leafnmax",date.day,indiv.cmass_leaf*indiv.phen/indiv.pft.cton_leaf_min*1000.0);
+			plot("nmass","leafnopt",date.day,indiv.cmass_leaf*indiv.phen/indiv.cton_leaf_dopt*1000.0);
+			plot("nmass","nstore",date.day,indiv.nstore*1000.0);
+			plot("nmass","nstore_leaf",date.day,indiv.nstore_leaf*1000.0);
+			plot("nmass","nstore_root",date.day,indiv.nstore_root*1000.0);
+			plot("nmass","maxnstore",date.day,indiv.scale_n_reserve*max(0.0,indiv.anpp)/ indiv.cton_leaf*1000.0);
+		}
+		firstt=false;
+
 		vegetation.nextobj();
 	}
 
@@ -1066,7 +1079,7 @@ void vegetation_n_uptake(Patch& patch,Pftlist& pftlist) {
  *  of soil temperature and soil water.
  *  Transfers litter on first day, performes nitrogen uptake and addition, leaching and decomposition.
  */
-void som_dynamics_century(Patch& patch,Pftlist& pftlist) {
+void som_dynamics_century(Patch& patch) {
 
 	// First day of year only
 	if (date.day == 0) { 	
@@ -1079,7 +1092,7 @@ void som_dynamics_century(Patch& patch,Pftlist& pftlist) {
 		patch.fluxes.mcflux_soil[date.month] = 0.0;
 
 	// Daily nitrogen uptake
-	vegetation_n_uptake(patch, pftlist);
+	vegetation_n_uptake(patch);
 
 	// Daily mineral and organic nitrogen leaching
 	leaching(patch.soil);
@@ -1094,9 +1107,9 @@ void som_dynamics_century(Patch& patch,Pftlist& pftlist) {
 /// Choose between CENTURY or standard LPJ SOM dynamics
 /**
 */
-void som_dynamics(Patch& patch,Pftlist& pftlist) {
+void som_dynamics(Patch& patch) {
 
-	if (ifcentury) som_dynamics_century(patch,pftlist);
+	if (ifcentury) som_dynamics_century(patch);
 	else som_dynamics_lpj(patch);
 }
 

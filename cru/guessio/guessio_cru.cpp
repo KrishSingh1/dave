@@ -461,6 +461,10 @@ void plib_declarations(int id,xtring setname) {
 			"Average Sapwood C:N mass ratio");
 		declareitem("cton_sap_resp",&ppft->cton_sap_resp,1.0,1.0e4,1,CB_NONE,
 			"Respiration Sapwood C:N mass ratio");
+		declareitem("nuptoroot",&ppft->nuptoroot,0.0,1.0,1,CB_NONE,
+			"Maximum nitrogen uptake per fine root");
+		declareitem("Km_volym",&ppft->Km_volym,0.0,10.0,1,CB_NONE,
+			"Michaelis-Menten kinetic parameters for nitrogen uptake");
 
 		declareitem("reprfrac",&ppft->reprfrac,0.0,1.0,1,CB_NONE,
 			"Fraction of NPP allocated to reproduction");
@@ -773,6 +777,8 @@ void plib_callback(int callback) {
 		if (!itemparsed("cton_leaf_avr")) badins("cton_leaf_avr");
 		if (!itemparsed("cton_root_avr")) badins("cton_root_avr");
 		if (!itemparsed("cton_root_resp")) badins("cton_root_resp");
+		if (!itemparsed("nuptoroot")) badins("nuptoroot");
+		if (!itemparsed("Km_volym")) badins("Km_volym");
 
 		if (!itemparsed("reprfrac")) badins("reprfrac");
 		if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
@@ -2564,8 +2570,8 @@ bool getclimate(Gridcell& gridcell) {
 	climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
 
 	// FACE
-//	if (date.year > nyear_spinup+NYEAR_HIST-10)
-//		climate.co2=550.0;
+	//if (date.year > nyear_spinup+NYEAR_HIST-10)	// sch = 0
+	//	climate.co2=550.0;
 
 	climate.temp  = dtemp[date.day];
 	climate.prec  = dprec[date.day];
@@ -2592,73 +2598,6 @@ bool getclimate(Gridcell& gridcell) {
 	
 	return true;
 }
-
-///////////////////////////////////////////////////////////////////////////////////////
-// Canopy Height
-//
-double canopy_height(Stand& stand) {
-
-	// DESCRIPTION
-	// Determines canopy height from the top 100
-	// tallest trees in each patch (Nakai 2010). 
-
-	double accumulated_canopy_height=0.0;
-
-	for (int p=0;p<npatch;p++) {
-
-		double tree_height[10];
-		double dens[10];
-
-		for (int k=0;k<10;k++) {
-			tree_height[k] = 0.0;	//indiv.height
-			dens[k] = 0.0;			//indiv.densindiv
-		}
-
-		Patch& patch = stand[p];
-		Vegetation& vegetation = patch.vegetation;
-
-		vegetation.firstobj();
-		while (vegetation.isobj) {
-			Individual& indiv = vegetation.getobj();
-
-			if (indiv.height > tree_height[9]) {
-				for (int i=0;i<10;i++){
-					if (indiv.height > tree_height[i]) {
-						for (int j=8;j>=i;j--) {
-							tree_height[j+1] = tree_height[j];
-							dens[j+1] = dens[j];
-						}
-						tree_height[i] = indiv.height;
-						dens[i] = indiv.densindiv;
-
-						i=10;
-					}
-				}
-			}
-
-			vegetation.nextobj();
-		}
-
-		double tree_height_patch = 0.0;
-		double density_patch = 0.0;
-		int l = 0;
-
-		while (density_patch<0.1 && l<10){
-
-			if (density_patch + dens[l] > 0.1)
-				dens[l] = 0.1 - density_patch;
-
-			tree_height_patch += tree_height[l] * dens[l];
-			density_patch += dens[l];
-			l++;
-		}
-
-		if (!negligible(density_patch))
-			accumulated_canopy_height += tree_height_patch / density_patch;
-	}
-	return accumulated_canopy_height / (double)npatch;
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // OUTANNUAL

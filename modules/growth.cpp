@@ -1072,9 +1072,6 @@ void growth(Stand& stand, Patch& patch) {
 		else
 			indiv.cton_sap = indiv.pft.cton_sap_avr;
 
-		indiv.cton_root_resp = indiv.cton_root;
-		indiv.cton_sap_resp = indiv.cton_sap;
-
 		// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle 2010 SM eq 19) 	
 		double cton_leaf_opt = (indiv.cton_leaf_aopt > indiv.pft.cton_leaf_avr) ? indiv.cton_leaf_aopt : indiv.pft.cton_leaf_avr;
 
@@ -1159,10 +1156,10 @@ void growth(Stand& stand, Patch& patch) {
 				patch.fluxes, indiv.alive, patch.soil.nmass,
 				indiv.pft.landcover, gridcell);
 
-			if (indiv.alive && date.year > freenyears && indiv.nstore + retransn > indiv.max_n_reserve) {
+			if (indiv.alive && date.year > freenyears && indiv.nstore + retransn > indiv.max_n_storage) {
 				
 				// Nitrogen stored above maximum that will be subtracted from retranslocated nitrogen
-				double surplus = min(retransn, indiv.nstore + retransn - indiv.max_n_reserve);
+				double surplus = min(retransn, indiv.nstore + retransn - indiv.max_n_storage);
 
 				retransn -= surplus;
 
@@ -1234,18 +1231,18 @@ void growth(Stand& stand, Patch& patch) {
 				frac_bminc_leaf = bminc > 0.0 ? max(0.0, cmass_leaf_inc  * indiv.densindiv / bminc) : 0.5;
 				frac_bminc_root = bminc > 0.0 ? max(0.0, cmass_root_inc  * indiv.densindiv / bminc) : 0.5;
 
-				// Nitrogen longtime reserves
+				// Nitrogen longtime storage
 				// Nitrogen approx retranslocated next year
 				double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.cton_leaf * nrelocfrac +
 					indiv.cmass_root * indiv.pft.turnover_root / indiv.cton_root * nrelocfrac +
 					indiv.cmass_sap * indiv.pft.turnover_sap / indiv.cton_sap * nrelocfrac;
 				
 				// Max nitrogen storage
-				indiv.max_n_reserve = (max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv / indiv.cton_leaf;
+				indiv.max_n_storage = (max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv / indiv.cton_leaf;
 
 				// Scale this year productivity to max storage
 				if (indiv.anpp > 0.0)
-					indiv.scale_n_reserve = max(0.0, indiv.max_n_reserve - retransn_nextyear) * indiv.cton_leaf / indiv.anpp;
+					indiv.scale_n_storage = max(0.0, indiv.max_n_storage - retransn_nextyear) * indiv.cton_leaf / indiv.anpp;
 
 				if (indiv.alive) {
 					patch.pft[indiv.pft.id].litter_leaf += litter_leaf_inc * indiv.densindiv;
@@ -1338,17 +1335,17 @@ void growth(Stand& stand, Patch& patch) {
 				frac_bminc_leaf = bminc > 0.0 ? max(0.0, cmass_leaf_inc  * indiv.densindiv / bminc) : 0.5;
 				frac_bminc_root = bminc > 0.0 ? max(0.0, cmass_root_inc  * indiv.densindiv / bminc) : 0.5;
 
-				// Nitrogen longtime reserves
+				// Nitrogen longtime storage
 				// Nitrogen approx retranslocated next year
 				double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.cton_leaf * nrelocfrac +
 					indiv.cmass_root * indiv.pft.turnover_root / indiv.cton_root * nrelocfrac;
 				
 				// Max nitrogen storage
-				indiv.max_n_reserve = (max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv / indiv.cton_leaf;
+				indiv.max_n_storage = (max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv / indiv.cton_leaf;
 
 				// Scale this year productivity to max storage
 				if (indiv.anpp > 0.0)
-					indiv.scale_n_reserve = max(0.0, indiv.max_n_reserve - retransn_nextyear) * indiv.cton_leaf / indiv.anpp;
+					indiv.scale_n_storage = max(0.0, indiv.max_n_storage - retransn_nextyear) * indiv.cton_leaf / indiv.anpp;
 
 				// Determine the (small) mass imbalance (kgC) for this individual. 
 				// This can arise in the event of numerical errors in the allocation routine.

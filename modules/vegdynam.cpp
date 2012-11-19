@@ -484,12 +484,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						// Set new leaf tissue C:N ratio
 						indiv.cton_leaf = indiv.pft.cton_leaf_avr;
-						indiv.cton_root_resp = indiv.pft.cton_root_avr;
-						indiv.cton_sap_resp = indiv.pft.cton_sap_avr;
 
-						// Calculate reserve pool size
-						indiv.max_n_reserve = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
-						indiv.scale_n_reserve = indiv.max_n_reserve * indiv.cton_leaf / bminit;
+						// Calculate storage pool size
+						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
+						indiv.scale_n_storage = indiv.max_n_storage * indiv.cton_leaf / bminit;
 
 						// Account for C flux from atmosphere to vegetation
 						// guess2008 - flux is not debited for 'new' Individual
@@ -627,12 +625,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						// Set new leaf tissue C:N ratio
 						indiv.cton_leaf = indiv.pft.cton_leaf_avr;
-						indiv.cton_root_resp = indiv.pft.cton_root_avr;
-						indiv.cton_sap_resp = indiv.pft.cton_sap_avr;
 
-						// Calculate reserve pool size
-						indiv.max_n_reserve = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
-						indiv.scale_n_reserve = indiv.max_n_reserve * indiv.cton_leaf / bminit;
+						// Calculate storage pool size
+						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
+						indiv.scale_n_storage = indiv.max_n_storage * indiv.cton_leaf / bminit;
 
 						// Account for C flux from atmosphere to vegetation
 						// guess2008

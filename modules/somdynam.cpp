@@ -1061,7 +1061,7 @@ void vegetation_n_uptake(Patch& patch) {
 			plot("nmass","nstore",date.day,indiv.nstore*1000.0);
 			plot("nmass","nstore_leaf",date.day,indiv.nstore_leaf*1000.0);
 			plot("nmass","nstore_root",date.day,indiv.nstore_root*1000.0);
-			plot("nmass","maxnstore",date.day,indiv.scale_n_reserve*max(0.0,indiv.anpp)/ indiv.cton_leaf*1000.0);
+			plot("nmass","maxnstore",date.day,indiv.scale_n_storage*max(0.0,indiv.anpp)/ indiv.cton_leaf*1000.0);
 		}
 		firstt=false;
 

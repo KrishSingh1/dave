@@ -462,8 +462,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	nmass_heart = 0.0;
 	cton_leaf_dopt = 0.0;
 	cton_leaf_aopt = 0.0;
-	cton_root_resp = 0.0;
-	cton_sap_resp = 0.0;
 	cmass_veg = 0.0;
 	nmass_veg = 0.0;
 
@@ -474,8 +472,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	ndemand = 0.0;
 	fnuptake = 1.0;
 	anuptake = 0.0;
-	max_n_reserve = 0.0;
-	scale_n_reserve = 0.0;
+	max_n_storage = 0.0;
+	scale_n_storage = 0.0;
 
 	nstress = false;
 
@@ -598,13 +596,11 @@ void Individual::serialize(ArchiveStream& arch) {
 		& ndemand
 		& fnuptake
 		& anuptake
-		& max_n_reserve
-		& scale_n_reserve
+		& max_n_storage
+		& scale_n_storage
 		& avmaxnlim
 		& cton_leaf_aopt
 		& cton_leaf_dopt
-		& cton_root_resp
-		& cton_sap_resp
 		& cton_leaf
 		& cton_root
 		& cton_sap

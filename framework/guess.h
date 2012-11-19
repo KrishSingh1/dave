@@ -1174,10 +1174,10 @@ public:
 	double fnuptake;
 	/// annual nitrogen uptake
 	double anuptake;
-	/// maximum size of nitrogen reserve
-	double max_n_reserve;
-	/// scales annual npp to maximum nitrogen reserve
-	double scale_n_reserve;
+	/// maximum size of nitrogen storage
+	double max_n_storage;
+	/// scales annual npp to maximum nitrogen storage
+	double scale_n_storage;
 	/// annual nitrogen limitation on vmax
 	double avmaxnlim;
 	/// daily optimal leaf C:N ratio
@@ -1190,10 +1190,6 @@ public:
 	double cton_root;
 	/// C:N ratio of current biomass (sap)
 	double cton_sap;
-	/// C:N ratio root for respiration
-	double cton_root_resp;
-	/// C:N ratio sap wood for respiration
-	double cton_sap_resp;
 	/// total carbon in compartments before growth
 	double cmass_veg;
 	/// total nitrogen in compartments before growth

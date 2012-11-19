@@ -1134,7 +1134,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		}
 
 		// Labile nitrogen storage demand
-		indiv.storendemand = max(0.0, min(max(0.0, indiv.anpp * indiv.scale_n_reserve / indiv.cton_leaf), indiv.max_n_reserve) - (indiv.nstore + indiv.nstore_leaf + indiv.nstore_root));
+		indiv.storendemand = max(0.0, min(max(0.0, indiv.anpp * indiv.scale_n_storage / indiv.cton_leaf), indiv.max_n_storage) - (indiv.nstore + indiv.nstore_leaf + indiv.nstore_root));
 
 		if (!ifnlim || date.year < freenyears)
 			indiv.storendemand = 0.0;
@@ -2064,8 +2064,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			}
 			// Calculate autotrophic respiration
 			respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
-				//indiv.pft.respcoeff, indiv.pft.cton_sap_resp, indiv.pft.cton_root_resp,
-				indiv.pft.respcoeff, indiv.cton_sap_resp, indiv.cton_root_resp,
+				indiv.pft.respcoeff, indiv.pft.cton_sap_resp, indiv.pft.cton_root_resp,
 				indiv.phen, indiv.cmass_sap, indiv.cmass_root, assim, resp);
 
 			// Convert to averages for this period for accounting purposes
@@ -2170,8 +2169,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 					// average daily assimilation for this month
 
 				respiration(climate.mgtemp, patch.soil.mgtemp, indiv.pft.lifeform,
-					//indiv.pft.respcoeff, indiv.pft.cton_sap_resp, indiv.pft.cton_root_resp,
-					indiv.pft.respcoeff, indiv.cton_sap_resp, indiv.cton_root_resp,
+					indiv.pft.respcoeff, indiv.pft.cton_sap_resp, indiv.pft.cton_root_resp,
 					indiv.phen_mean, indiv.cmass_sap, indiv.cmass_root, assim, indiv.resp);
 
 				indiv.resp *= date.ndaymonth[date.month];

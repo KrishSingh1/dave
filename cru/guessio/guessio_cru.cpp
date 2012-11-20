@@ -1246,7 +1246,7 @@ using namespace GuessOutput;
 /// The output channel through which all output is sent
 OutputChannel* output_channel;
 
-// Full pathname of ASCII file containing annual N deposition values (read from ins file)
+// Full pathname of bin file containing annual N deposition values (read from ins file)
 xtring file_ndep;
 
 // Output tables

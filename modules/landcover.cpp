@@ -188,17 +188,6 @@ void landcover_dynamics(Gridcell& gridcell)
 
 		Stand& stand=gridcell.getobj();
 
-		// Reset fluxes. NB. landcover_dynamics() is called before dailyaccounting_patch() on date.day==0 && date.year>=nyear_spinup !
-		stand.firstobj();
-		while(stand.isobj) //Loop through Patches
-		{
-			Patch& patch=stand.getobj();
-		
-			patch.fluxes.acflux_harvest=0.0;
-
-			stand.nextobj();
-		}
-
 //		if(stand.landcover!=CROPLAND && landcoverfrac_change[stand.landcover]<0.0 || stand.landcover==CROPLAND && cropstand_change[stand.cftid]<0.0)
 		if(landcoverfrac_change[stand.landcover]<0.0)
 		{
@@ -222,7 +211,7 @@ void landcover_dynamics(Gridcell& gridcell)
 				{
 					double cmass_leaf_cp=0.0, cmass_root_cp=0.0, cmass_sap_cp=0.0, cmass_heart_cp=0.0, cmass_debt_cp=0.0, cmass_ho_cp=0.0, cmass_agpool_cp=0.0, cmass_plant_cp=0.0;//bugfix 101103
 					double litter_leaf_cp, litter_root_cp, litter_wood_cp, litter_repr_cp;
-					double acflux_harvest_cp;
+					double acflux_harvest_cp = 0;
 					double harvested_products_slow_cp;
 
 					Individual& indiv=vegetation.getobj();
@@ -246,7 +235,6 @@ void landcover_dynamics(Gridcell& gridcell)
 					litter_wood_cp=patchpft.litter_wood;
 					litter_repr_cp=patchpft.litter_repr;
 
-					acflux_harvest_cp=patch.fluxes.acflux_harvest;	//flux är nollställd
 					harvested_products_slow_cp=patch.pft[indiv.pft.id].harvested_products_slow;
 
 //Harvest of transferred areas:
@@ -410,7 +398,7 @@ void landcover_dynamics(Gridcell& gridcell)
 				patch.soil.k_soilfast_mean=(patch.soil.k_soilfast_mean*old_frac+transfer_k_soilfast_mean*added_frac)/new_frac;
 				patch.soil.k_soilslow_mean=(patch.soil.k_soilslow_mean*old_frac+transfer_k_soilslow_mean*added_frac)/new_frac;
 //add fluxes:
-				patch.fluxes.acflux_harvest=(patch.fluxes.acflux_harvest*old_frac+transfer_acflux_harvest*added_frac)/new_frac;
+				patch.fluxes.report_flux(Fluxes::HARVESTC, transfer_acflux_harvest*added_frac/new_frac);
 
 				stand.nextobj();
 			}

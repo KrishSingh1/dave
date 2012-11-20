@@ -286,14 +286,10 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 			// Account for flux from the atmosphere to new saplings
 			// (flux is downward and therefore negative)
 
-			// guess2008
-			// flux is not debited for 'new' Individual objects - their carbon is 
-			// debited in function growth() if they survive the first year
-
-			if (indiv.alive) // guess2008 - alive check added
-				patch.fluxes.acflux_est-=(indiv.pft.regen.cmass_leaf+
+			indiv.report_flux(Fluxes::ESTC, 
+			                  -(indiv.pft.regen.cmass_leaf+
 					indiv.pft.regen.cmass_root+indiv.pft.regen.cmass_sap+
-					indiv.pft.regen.cmass_heart)*est_pft;
+			                    indiv.pft.regen.cmass_heart)*est_pft);
 
 			// Adjust average individual C biomass based on average biomass and density
 			// of the new saplings
@@ -314,9 +310,9 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 
 			// Account for flux from atmosphere to grass regeneration
 
-			if (indiv.alive) // guess2008 - alive check added
-				patch.fluxes.acflux_est-=(indiv.pft.regen.cmass_leaf+
-					indiv.pft.regen.cmass_root)*est_pft;
+			indiv.report_flux(Fluxes::ESTC, 
+			                  -(indiv.pft.regen.cmass_leaf+
+			                    indiv.pft.regen.cmass_root)*est_pft);
 
 			// Add regeneration biomass to overall biomass
 
@@ -499,11 +495,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						// Account for C flux from atmosphere to vegetation
 						// guess2008 - flux is not debited for 'new' Individual
-						// objects - their carbon is debited in function growth()
-						// if they survive the first year 
-
-						if (indiv.alive)
-							patch.fluxes.acflux_est-=bminit;
+						// Establishment flux is not debited for 'new' Individual
 					}
 				}
 				else if (pft.lifeform==TREE) {
@@ -636,11 +628,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
 						indiv.scale_n_storage = indiv.max_n_storage * indiv.cton_leaf / bminit;
 
-						// Account for C flux from atmosphere to vegetation
-						// guess2008
-						if (indiv.alive && indiv.densindiv)
-							patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
-								indiv.cmass_sap;
+						// Establishment flux is not debited for 'new' Individual
+						// objects - their carbon is debited in function growth()
+						// if they survive the first year 
 					}
 				}
 			}
@@ -847,8 +837,9 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 
 			// Flux to atmosphere from burnt above-ground biomass
 
-			patch.fluxes.acflux_fire+=mort_fire*(indiv.cmass_leaf+indiv.cmass_sap+
-				indiv.cmass_heart-indiv.cmass_debt);
+			indiv.report_flux(Fluxes::FIREC, 
+			                  mort_fire*(indiv.cmass_leaf+indiv.cmass_sap+
+			                             indiv.cmass_heart-indiv.cmass_debt));
 
 			double nmass = indiv.nmass_leaf + indiv.nmass_sap + indiv.nmass_heart + 
 				indiv.nstore_leaf + indiv.nstore_root + indiv.nstore;
@@ -917,7 +908,7 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 
 			// Flux to atmosphere from burnt above-ground biomass
 
-			patch.fluxes.acflux_fire+=mort_fire*indiv.cmass_leaf;
+			indiv.report_flux(Fluxes::FIREC, mort_fire*indiv.cmass_leaf);
 
 			patch.fluxes.aNH3_fire+=mort_fire*patch.fluxes.firenratio[0]*indiv.nmass_leaf;
 			patch.fluxes.aNO_fire+=mort_fire*patch.fluxes.firenratio[1]*indiv.nmass_leaf;
@@ -1052,7 +1043,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					// Transfer killed biomass from leaves to atmosphere,
 					// roots to litter
 
-					patch.fluxes.acflux_fire+=mort_fire*indiv.cmass_leaf;
+					indiv.report_flux(Fluxes::FIREC, mort_fire*indiv.cmass_leaf);
 					patch.pft[indiv.pft.id].litter_root+=mort_fire*indiv.cmass_root;
 
 					indiv.cmass_leaf*=indiv.pft.fireresist;
@@ -1107,8 +1098,9 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					// Calculate flux from biomass to atmosphere due to fire
 					// (flux from litter calculated in function fire)
 
-					patch.fluxes.acflux_fire+=(1.0-frac_survive)*(indiv.cmass_leaf+
-						indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt);
+					indiv.report_flux(Fluxes::FIREC,
+					                  (1.0-frac_survive)*(indiv.cmass_leaf+
+					                                      indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt));
 
 					// Transfer killed roots to litter
 
@@ -1482,8 +1474,9 @@ void fire(Patch& patch,double& fireprob) {
 		mort_fire=fireprob*(1.0-patch.pft[p].pft.fireresist);
 
 		// Calculate flux from burnt litter
-		patch.fluxes.acflux_fire+=mort_fire*(patch.pft[p].litter_leaf+
-			patch.pft[p].litter_wood+patch.pft[p].litter_repr);
+		patch.fluxes.report_flux(Fluxes::FIREC,
+		                         mort_fire*(patch.pft[p].litter_leaf+
+		                                    patch.pft[p].litter_wood+patch.pft[p].litter_repr));
 
 		// Account for burnt above ground litter
 
@@ -1799,14 +1792,9 @@ void establishment_guess_plantation(Stand& stand,Patch& patch, int century_year)
 						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
 						indiv.scale_n_storage = indiv.max_n_storage * indiv.cton_leaf / bminit;
 
-						// Account for C flux from atmosphere to vegetation
-						// guess2008 
-						// Ben 2007-11-28: flux is not debited for 'new' Individual
+						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()
 						// if they survive the first year 
-
-						if (indiv.alive)
-							patch.fluxes.acflux_est-=bminit;
 					}
 				}
 				else if (pft.lifeform==TREE) {
@@ -1954,15 +1942,9 @@ void establishment_guess_plantation(Stand& stand,Patch& patch, int century_year)
 						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
 						indiv.scale_n_storage = indiv.max_n_storage * indiv.cton_leaf / bminit;
 
-						// Account for C flux from atmosphere to vegetation
-						// guess2008
-						// Ben 2007-11-28: flux is not debited for 'new' Individual
+						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()
 						// if they survive the first year
-
-						if (indiv.alive)
-							patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
-							indiv.cmass_sap;
 					}
 				}
 			}

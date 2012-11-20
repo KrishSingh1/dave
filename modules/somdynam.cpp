@@ -300,24 +300,12 @@ void som_dynamics_lpj(Patch& patch) {
 		// Increment C flux to atmosphere by SOM decomposition
 		cflux+=soil.cpool_fast*(1.0-fr_soilfast)+soil.cpool_slow*(1.0-fr_soilslow);
 
-		// Monthly C flux
-
-		if (ifdailydecomp) {
-			if (date.dayofmonth==0)
-				patch.fluxes.mcflux_soil[date.month]=cflux;
-			else
-				patch.fluxes.mcflux_soil[date.month]+=cflux;
-		}
-		else
-			patch.fluxes.mcflux_soil[date.month]=cflux;
-
 		// Reduce SOM pools 
 		soil.cpool_fast*=fr_soilfast;
 		soil.cpool_slow*=fr_soilslow;
 
-		// Updated daily and annual fluxes
-		patch.fluxes.dcflux_soil[date.day]=cflux;
-		patch.fluxes.acflux_soil+=cflux;
+		// Updated soil fluxes
+		patch.fluxes.report_flux(Fluxes::SOILC, cflux);
 
 		// Solve SOM pool sizes at end of year given by soil.solvesom_end
 
@@ -706,11 +694,8 @@ void somfluxes(Patch& patch) {
 		soil.sompool[p].nmass += soil.sompool[p].delta_nmass;
 	}
 
-	// Transfer respiration sum to fluxes
-
-	fluxes.dcflux_soil[date.day] = respsum;
-	fluxes.mcflux_soil[date.month] += respsum;
-	fluxes.acflux_soil += respsum;
+	// Updated soil fluxes
+	patch.fluxes.report_flux(Fluxes::SOILC, respsum);
 
 	// Transfer organic leaching to pool
 
@@ -1086,10 +1071,7 @@ void som_dynamics_century(Patch& patch) {
 
 		// Transfer last year's litter to SOM pools
 		transfer_litter(patch, patch.soil);
-	}	
-
-	if (date.dayofmonth == 0) 
-		patch.fluxes.mcflux_soil[date.month] = 0.0;
+	}
 
 	// Daily nitrogen uptake
 	vegetation_n_uptake(patch);

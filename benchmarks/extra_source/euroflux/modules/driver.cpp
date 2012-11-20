@@ -610,6 +610,25 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 					gridcell.pft[pftlist.getobj().id].Km = pftlist.getobj().Km_volym * gridcell.soiltype.wtot;
 				pftlist.nextobj();
 		}
+
+		// Reset fluxes for all patches
+
+		// Belongs perhaps in dailyaccounting_patch, but needs to be done before 
+		// landcover_dynamics because harvest flux is generated there.
+		gridcell.firstobj();
+		while (gridcell.isobj) {
+			Stand& stand = gridcell.getobj();
+		
+			stand.firstobj();
+			while (stand.isobj) {
+				Patch& patch = stand.getobj();
+
+				patch.fluxes.reset();
+				stand.nextobj();
+			}
+			
+			gridcell.nextobj();
+		}
 	}
 	}
 	else if (climate.lat>=0.0 && date.day==COLDEST_DAY_NHEMISPHERE ||
@@ -707,19 +726,13 @@ void dailyaccounting_stand(Stand& stand) {
 
 void dailyaccounting_patch_lc(Patch& patch) {
 	if(date.day==0) {
-		Fluxes& fluxes=patch.fluxes;
-
-		if(!patch.stand.gridcell.LC_updated) {	// NB. landcover_dynamics() is called before this function !
-			fluxes.acflux_harvest=0.0;
-		}
-
 		if(ifslowharvestpool) {
 			pftlist.firstobj();
 			while(pftlist.isobj) {
 				Pft& pft=pftlist.getobj();
 				Patchpft& patchpft=patch.pft[pft.id];
 
-				fluxes.acflux_harvest+=patchpft.harvested_products_slow*pft.turnover_harv_prod;
+				patch.fluxes.report_flux(Fluxes::HARVESTC, patchpft.harvested_products_slow*pft.turnover_harv_prod);
 				patchpft.harvested_products_slow=patchpft.harvested_products_slow*(1-pft.turnover_harv_prod);
 
 				pftlist.nextobj();
@@ -743,12 +756,6 @@ void dailyaccounting_patch(Patch& patch) {
 	Fluxes& fluxes=patch.fluxes;
 
 	if (date.day==0) {
-
-		// Reset fluxes
-		fluxes.acflux_soil=0.0;
-		fluxes.acflux_veg=0.0;
-		fluxes.acflux_est=0.0;
-		fluxes.acflux_fire=0.0;
 
 		fluxes.aNH3_fire = 0.0;
 		fluxes.aNO_fire = 0.0;
@@ -788,24 +795,12 @@ void dailyaccounting_patch(Patch& patch) {
 
 	if (date.dayofmonth==0) {
 
-		fluxes.mcflux_veg[date.month]=0.0;
-
 		patch.maet[date.month]=0.0;
 		patch.mevap[date.month]=0.0;
 		patch.mrunoff[date.month]=0.0;
 		patch.mintercep[date.month]=0.0;
 		patch.mpet[date.month]=0.0;
-		// bvoc
-		fluxes.miso[date.month]=0.;
-		fluxes.mmon[date.month]=0.;
-
-		// guess2008 - reset month C budget arrays each month
-		fluxes.mcflux_gpp[date.month] = 0.0;
-		fluxes.mcflux_ra[date.month] = 0.0;
-
 	}
-
-	fluxes.dcflux_veg=0.0;
 
 	if(run_landcover)
 		dailyaccounting_patch_lc(patch);

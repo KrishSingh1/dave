@@ -38,6 +38,7 @@
 // FILE SCOPE GLOBAL VARIABLES
 
 int individ = 0; // running id code for new individuals (see establishment)
+const double firenratio[] = {0.014, 0.531, 0.379, 0.076};	// emssion ratios from fire (NH3, NO, NO2, N2O) Delmas et al. 1995
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -276,14 +277,10 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 			// Account for flux from the atmosphere to new saplings
 			// (flux is downward and therefore negative)
 
-			// guess2008
-			// flux is not debited for 'new' Individual objects - their carbon is 
-			// debited in function growth() if they survive the first year
-
-			if (indiv.alive) // guess2008 - alive check added
-				patch.fluxes.acflux_est-=(indiv.pft.regen.cmass_leaf+
+			indiv.report_flux(Fluxes::ESTC, 
+					-(indiv.pft.regen.cmass_leaf+
 					indiv.pft.regen.cmass_root+indiv.pft.regen.cmass_sap+
-					indiv.pft.regen.cmass_heart)*est_pft;
+					indiv.pft.regen.cmass_heart)*est_pft);
 
 			// Adjust average individual C biomass based on average biomass and density
 			// of the new saplings
@@ -304,9 +301,9 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 
 			// Account for flux from atmosphere to grass regeneration
 
-			if (indiv.alive) // guess2008 - alive check added
-				patch.fluxes.acflux_est-=(indiv.pft.regen.cmass_leaf+
-					indiv.pft.regen.cmass_root)*est_pft;
+			indiv.report_flux(Fluxes::ESTC, 
+				-(indiv.pft.regen.cmass_leaf+
+				indiv.pft.regen.cmass_root)*est_pft);
 
 			// Add regeneration biomass to overall biomass
 
@@ -489,13 +486,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
 						indiv.scale_n_storage = indiv.max_n_storage * indiv.cton_leaf / bminit;
 
-						// Account for C flux from atmosphere to vegetation
-						// guess2008 - flux is not debited for 'new' Individual
+						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()
 						// if they survive the first year 
-
-						if (indiv.alive)
-							patch.fluxes.acflux_est -= bminit;
 					}
 				}
 				else if (pft.lifeform == TREE) {
@@ -630,11 +623,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
 						indiv.scale_n_storage = indiv.max_n_storage * indiv.cton_leaf / bminit;
 
-						// Account for C flux from atmosphere to vegetation
-						// guess2008
-						if (indiv.alive && indiv.densindiv)
-							patch.fluxes.acflux_est -= indiv.cmass_leaf + indiv.cmass_root +
-							indiv.cmass_sap;
+						// Establishment flux is not debited for 'new' Individual
+						// objects - their carbon is debited in function growth()
+						// if they survive the first year 
 					}
 				}
 			}
@@ -841,15 +832,16 @@ void mortality_lpj(Stand& stand, Patch& patch, Climate& climate, double fireprob
 
 			// Flux to atmosphere from burnt above-ground biomass
 
-			patch.fluxes.acflux_fire+=mort_fire*(indiv.cmass_leaf+indiv.cmass_sap+
-				indiv.cmass_heart-indiv.cmass_debt);
+			indiv.report_flux(Fluxes::FIREC, 
+			                  mort_fire*(indiv.cmass_leaf+indiv.cmass_sap+
+			                             indiv.cmass_heart-indiv.cmass_debt));
 
 			double nmass = indiv.nmass_leaf + indiv.nmass_sap + indiv.nmass_heart + 
 				indiv.nstore_leaf + indiv.nstore_root + indiv.nstore;
-			patch.fluxes.aNH3_fire += mort_fire * patch.fluxes.firenratio[0] * nmass;
-			patch.fluxes.aNO_fire  += mort_fire * patch.fluxes.firenratio[1] * nmass;
-			patch.fluxes.aNO2_fire += mort_fire * patch.fluxes.firenratio[2] * nmass;
-			patch.fluxes.aN2O_fire += mort_fire * patch.fluxes.firenratio[3] * nmass;
+			patch.fluxes.report_flux(Fluxes::NH3_FIRE, mort_fire * firenratio[0] * nmass);
+			patch.fluxes.report_flux(Fluxes::NO_FIRE,  mort_fire * firenratio[1] * nmass);
+			patch.fluxes.report_flux(Fluxes::NO2_FIRE, mort_fire * firenratio[2] * nmass);
+			patch.fluxes.report_flux(Fluxes::N2O_FIRE, mort_fire * firenratio[3] * nmass);
 
 			// Reduce population density and C biomass on modelled area basis
 			// to account for loss of killed individuals
@@ -911,12 +903,12 @@ void mortality_lpj(Stand& stand, Patch& patch, Climate& climate, double fireprob
 
 			// Flux to atmosphere from burnt above-ground biomass
 
-			patch.fluxes.acflux_fire+=mort_fire*indiv.cmass_leaf;
+			indiv.report_flux(Fluxes::FIREC, mort_fire*indiv.cmass_leaf);
 
-			patch.fluxes.aNH3_fire+=mort_fire*patch.fluxes.firenratio[0]*indiv.nmass_leaf;
-			patch.fluxes.aNO_fire+=mort_fire*patch.fluxes.firenratio[1]*indiv.nmass_leaf;
-			patch.fluxes.aNO2_fire+=mort_fire*patch.fluxes.firenratio[2]*indiv.nmass_leaf;
-			patch.fluxes.aN2O_fire+=mort_fire*patch.fluxes.firenratio[3]*indiv.nmass_leaf;
+			patch.fluxes.report_flux(Fluxes::NH3_FIRE, mort_fire * firenratio[0] * indiv.nmass_leaf);
+			patch.fluxes.report_flux(Fluxes::NO_FIRE,  mort_fire * firenratio[1] * indiv.nmass_leaf);
+			patch.fluxes.report_flux(Fluxes::NO2_FIRE, mort_fire * firenratio[2] * indiv.nmass_leaf);
+			patch.fluxes.report_flux(Fluxes::N2O_FIRE, mort_fire * firenratio[3] * indiv.nmass_leaf);
 
 			// Reduce C biomass on modelled area basis to account for biomass lost
 			// through mortality
@@ -1046,7 +1038,7 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 					// Transfer killed biomass from leaves to atmosphere,
 					// roots to litter
 
-					patch.fluxes.acflux_fire += mort_fire * indiv.cmass_leaf;
+					indiv.report_flux(Fluxes::FIREC, mort_fire*indiv.cmass_leaf);
 					patch.pft[indiv.pft.id].litter_root += mort_fire * indiv.cmass_root;
 
 					indiv.cmass_leaf *= indiv.pft.fireresist;
@@ -1055,10 +1047,10 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 					// N storage to root N litter 
 					patch.pft[indiv.pft.id].nmass_litter_root += mort_fire * (indiv.nmass_root + indiv.nstore_leaf + indiv.nstore_root + indiv.nstore);
 
-					patch.fluxes.aNH3_fire += mort_fire * patch.fluxes.firenratio[0] * indiv.nmass_leaf;
-					patch.fluxes.aNO_fire  += mort_fire * patch.fluxes.firenratio[1] * indiv.nmass_leaf;
-					patch.fluxes.aNO2_fire += mort_fire * patch.fluxes.firenratio[2] * indiv.nmass_leaf;
-					patch.fluxes.aN2O_fire += mort_fire * patch.fluxes.firenratio[3] * indiv.nmass_leaf;
+					patch.fluxes.report_flux(Fluxes::NH3_FIRE, mort_fire * firenratio[0] * indiv.nmass_leaf);
+					patch.fluxes.report_flux(Fluxes::NO_FIRE,  mort_fire * firenratio[1] * indiv.nmass_leaf);
+					patch.fluxes.report_flux(Fluxes::NO2_FIRE, mort_fire * firenratio[2] * indiv.nmass_leaf);
+					patch.fluxes.report_flux(Fluxes::N2O_FIRE, mort_fire * firenratio[3] * indiv.nmass_leaf);	
 
 					indiv.nmass_leaf  *= indiv.pft.fireresist;
 					indiv.nmass_root  *= indiv.pft.fireresist;
@@ -1101,8 +1093,9 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 					// Calculate flux from biomass to atmosphere due to fire
 					// (flux from litter calculated in function fire)
 
-					patch.fluxes.acflux_fire += (1.0 - frac_survive) * (indiv.cmass_leaf +
-						indiv.cmass_sap + indiv.cmass_heart - indiv.cmass_debt);
+					indiv.report_flux(Fluxes::FIREC,
+					                  (1.0-frac_survive)*(indiv.cmass_leaf+
+					                                      indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt));
 
 					// Transfer killed roots to litter
 
@@ -1124,10 +1117,10 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 
 					// Calculate flux from biomass to atmosphere due to fire
 					double nmass = indiv.nmass_leaf + indiv.nmass_sap +	indiv.nmass_heart + indiv.nstore_leaf + indiv.nstore_root + indiv.nstore;
-					patch.fluxes.aNH3_fire += (1.0 - frac_survive) * patch.fluxes.firenratio[0] * nmass;
-					patch.fluxes.aNO_fire  += (1.0 - frac_survive) * patch.fluxes.firenratio[1] * nmass;
-					patch.fluxes.aNO2_fire += (1.0 - frac_survive) * patch.fluxes.firenratio[2] * nmass;
-					patch.fluxes.aN2O_fire += (1.0 - frac_survive) * patch.fluxes.firenratio[3] * nmass;
+					patch.fluxes.report_flux(Fluxes::NH3_FIRE, (1.0 - frac_survive) * firenratio[0] * nmass);
+					patch.fluxes.report_flux(Fluxes::NO_FIRE,  (1.0 - frac_survive) * firenratio[1] * nmass);
+					patch.fluxes.report_flux(Fluxes::NO2_FIRE, (1.0 - frac_survive) * firenratio[2] * nmass);
+					patch.fluxes.report_flux(Fluxes::N2O_FIRE, (1.0 - frac_survive) * firenratio[3] * nmass);	
 
 					// Reduce individual biomass on patch area basis
 					// to account for loss of killed individuals
@@ -1476,8 +1469,9 @@ void fire(Patch& patch, double& fireprob) {
 		mort_fire = fireprob * (1.0 - patch.pft[p].pft.fireresist);
 
 		// Calculate flux from burnt litter
-		patch.fluxes.acflux_fire += mort_fire * (patch.pft[p].litter_leaf +
-			patch.pft[p].litter_wood + patch.pft[p].litter_repr);
+		patch.fluxes.report_flux(Fluxes::FIREC,
+		                         mort_fire*(patch.pft[p].litter_leaf+
+		                                    patch.pft[p].litter_wood+patch.pft[p].litter_repr));
 
 		// Account for burnt above ground litter
 
@@ -1485,10 +1479,13 @@ void fire(Patch& patch, double& fireprob) {
 		patch.pft[p].litter_wood *= (1.0 - mort_fire);
 		patch.pft[p].litter_repr *= (1.0 - mort_fire);
 
-		patch.fluxes.aNH3_fire += mort_fire * patch.fluxes.firenratio[0] * (patch.pft[p].nmass_litter_leaf + patch.pft[p].nmass_litter_wood);
-		patch.fluxes.aNO_fire  += mort_fire * patch.fluxes.firenratio[1] * (patch.pft[p].nmass_litter_leaf + patch.pft[p].nmass_litter_wood);
-		patch.fluxes.aNO2_fire += mort_fire * patch.fluxes.firenratio[2] * (patch.pft[p].nmass_litter_leaf + patch.pft[p].nmass_litter_wood);
-		patch.fluxes.aN2O_fire += mort_fire * patch.fluxes.firenratio[3] * (patch.pft[p].nmass_litter_leaf + patch.pft[p].nmass_litter_wood);
+
+		// Calculate nitrogen fluxes from burnt litter
+		double nmass_litter = patch.pft[p].nmass_litter_leaf + patch.pft[p].nmass_litter_wood;
+		patch.fluxes.report_flux(Fluxes::NH3_FIRE, mort_fire * firenratio[0] * nmass_litter);
+		patch.fluxes.report_flux(Fluxes::NO_FIRE,  mort_fire * firenratio[1] * nmass_litter);
+		patch.fluxes.report_flux(Fluxes::NO2_FIRE, mort_fire * firenratio[2] * nmass_litter);
+		patch.fluxes.report_flux(Fluxes::N2O_FIRE, mort_fire * firenratio[3] * nmass_litter);
 
 		patch.pft[p].nmass_litter_leaf *= (1.0 - mort_fire);
 		patch.pft[p].nmass_litter_wood *= (1.0 - mort_fire);
@@ -1500,23 +1497,24 @@ void fire(Patch& patch, double& fireprob) {
 	double mort_fire_cwd    = fireprob * (1.0 - patch.soil.sompool[SURFCWD].fireresist);
 
 	// Calculate flux from burnt soil litter
-	patch.fluxes.acflux_fire += patch.soil.sompool[SURFSTRUCT].cmass * mort_fire_struct +
-		patch.soil.sompool[SURFMETA].cmass * mort_fire_meta +
-		patch.soil.sompool[SURFCWD].cmass * mort_fire_cwd;
+	patch.fluxes.report_flux(Fluxes::FIREC,patch.soil.sompool[SURFSTRUCT].cmass * mort_fire_struct +
+	                                       patch.soil.sompool[SURFMETA].cmass   * mort_fire_meta +
+	                                       patch.soil.sompool[SURFCWD].cmass    * mort_fire_cwd);
 
 	// Account for burnt above ground litter
 	patch.soil.sompool[SURFSTRUCT].cmass *= (1.0 - mort_fire_struct);
 	patch.soil.sompool[SURFMETA].cmass   *= (1.0 - mort_fire_meta);
 	patch.soil.sompool[SURFCWD].cmass    *= (1.0 - mort_fire_cwd);
 
+	// Calculate nitrogen flux from burnt soil litter
 	double nflux_fire = patch.soil.sompool[SURFSTRUCT].nmass * mort_fire_struct +
 		patch.soil.sompool[SURFMETA].nmass * mort_fire_meta +
 		patch.soil.sompool[SURFCWD].nmass * mort_fire_cwd;
 
-	patch.fluxes.aNH3_fire += patch.fluxes.firenratio[0] * nflux_fire; 
-	patch.fluxes.aNO_fire  += patch.fluxes.firenratio[1] * nflux_fire;
-	patch.fluxes.aNO2_fire += patch.fluxes.firenratio[2] * nflux_fire;
-	patch.fluxes.aN2O_fire += patch.fluxes.firenratio[3] * nflux_fire;
+	patch.fluxes.report_flux(Fluxes::NH3_FIRE, firenratio[0] * nflux_fire); 
+	patch.fluxes.report_flux(Fluxes::NO_FIRE,  firenratio[1] * nflux_fire);
+	patch.fluxes.report_flux(Fluxes::NO2_FIRE, firenratio[2] * nflux_fire);
+	patch.fluxes.report_flux(Fluxes::N2O_FIRE, firenratio[3] * nflux_fire);
 
 	patch.soil.sompool[SURFSTRUCT].nmass *= (1.0 - mort_fire_struct);
 	patch.soil.sompool[SURFMETA].nmass   *= (1.0 - mort_fire_meta);

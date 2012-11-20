@@ -134,8 +134,7 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 		Patchpft& pft = patch.pft.getobj();
 
 		// For this PFT ...
-		if(patch.stand.pft[pft.id].active)
-		{
+		if(patch.stand.pft[pft.id].active) {
 			leaf_phenology_pft(pft.pft, climate, pft.wscal, pft.aphen, pft.phen);
 
 			if (pft.pft.lifeform == TREE && (pft.pft.phenology == SUMMERGREEN || pft.pft.phenology == ANY))
@@ -971,12 +970,9 @@ void flush_litter_repr(Patch& patch) {
 	while (patch.pft.isobj) {
 		Patchpft& pft = patch.pft.getobj();
 		
-		patch.fluxes.acflux_soil += pft.litter_repr;
-		patch.fluxes.mcflux_soil[date.month] += pft.litter_repr;
+		// Updated soil fluxes
+		patch.fluxes.report_flux(Fluxes::SOILC, pft.litter_repr);
 		pft.litter_repr = 0.0;
-
-		for (int d=0; d<365; d++)
-			patch.fluxes.dcflux_soil[d] += pft.litter_repr / 365.0;
 
 		patch.pft.nextobj();
 	}
@@ -1441,9 +1437,13 @@ void growth(Stand& stand, Patch& patch) {
 
 			if (!killed) {
 				if (!indiv.alive) {
-					patch.fluxes.acflux_est -= indiv.cmass_leaf + indiv.cmass_root +
-						indiv.cmass_sap + indiv.cmass_heart - indiv.cmass_debt;
+					// The individual has survived its first year...
 					indiv.alive = true;
+
+					// ...now we can start counting its fluxes,
+					// debit current biomass as establishment flux
+					indiv.report_flux(Fluxes::ESTC, 
+					                  -(indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt));
 				}
 
 				// Partion labile nitrogen between pools labile storage

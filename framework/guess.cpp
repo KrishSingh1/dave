@@ -130,7 +130,7 @@ Fluxes::Fluxes(Patch& p)
 }
 
 void Fluxes::reset() {
-	for (int i = 0; i < annual_fluxes_per_pft.size(); ++i) {
+	for (size_t i = 0; i < annual_fluxes_per_pft.size(); ++i) {
 		std::fill_n(annual_fluxes_per_pft[i].begin(), int(NPERPFTFLUXTYPES), 0);
 	}
 
@@ -170,7 +170,7 @@ double Fluxes::get_annual_flux(PerPFTFluxType flux_type, int pft_id) const {
 
 double Fluxes::get_annual_flux(PerPFTFluxType flux_type) const {
 	double sum = 0;
-	for (int i = 0; i < annual_fluxes_per_pft.size(); ++i) {
+	for (size_t i = 0; i < annual_fluxes_per_pft.size(); ++i) {
 		sum += annual_fluxes_per_pft[i][flux_type];
 	}
 	return sum;

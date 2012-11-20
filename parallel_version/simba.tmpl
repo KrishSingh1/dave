@@ -134,7 +134,7 @@ cd \$PBS_O_WORKDIR
 
 umask 022
 
-mpiexec BINARY -goto-rundir $INSFILE
+mpiexec -comm mpich-p4 BINARY -goto-rundir $INSFILE
 
 EOF
 

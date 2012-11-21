@@ -621,7 +621,7 @@ void somfluxes(Patch& patch) {
 		transferdecomp(soil, SLOWSOM, PASSIVESOM, csp, 0.0, respsum, nmin_actual, nimmob, net_min[7]);
 
 		// Account for respiration flux
-		// N associated with this respiration is mineralised (Parton et al 1993, p 791)
+		// Nitrogen associated with this respiration is mineralised (Parton et al 1993, p 791)
 		respsum += respfrac * soil.sompool[SLOWSOM].cdec;
 
 		if(!negligible(soil.sompool[SLOWSOM].cmass))
@@ -733,7 +733,7 @@ void transfer_litter(Patch& patch, Soil& soil) {
 	const double LIGCFRAC_ROOT = 0.16;
 	const double LIGCFRAC_WOOD = 0.3;
 
-	double lton;	// Leaf litter ligning to N ratio
+	double lton;	// Leaf litter ligning to nitrogen ratio
 	double fm;
 	double ligcmass_old, ligcmass_new;
 	double litter_leaf_n;
@@ -1017,8 +1017,6 @@ void vegetation_n_uptake(Patch& patch) {
 	Vegetation& vegetation=patch.vegetation;
 	Soil& soil = patch.soil;	
 
-	bool firstt=true;
-
 	// Loop through individuals
 
 	vegetation.firstobj();
@@ -1038,17 +1036,6 @@ void vegetation_n_uptake(Patch& patch) {
 
 		if (indiv.phen > 0.0)
 			indiv.cton_leaf = indiv.cmass_leaf * indiv.phen / indiv.nmass_leaf;
-
-		if (date.year == 500 && firstt) {
-			plot("nmass","leafn",date.day,indiv.nmass_leaf*1000.0);
-			plot("nmass","leafnmax",date.day,indiv.cmass_leaf*indiv.phen/indiv.pft.cton_leaf_min*1000.0);
-			plot("nmass","leafnopt",date.day,indiv.cmass_leaf*indiv.phen/indiv.cton_leaf_dopt*1000.0);
-			plot("nmass","nstore",date.day,indiv.nstore*1000.0);
-			plot("nmass","nstore_leaf",date.day,indiv.nstore_leaf*1000.0);
-			plot("nmass","nstore_root",date.day,indiv.nstore_root*1000.0);
-			plot("nmass","maxnstore",date.day,indiv.scale_n_storage*max(0.0,indiv.anpp)/ indiv.cton_leaf*1000.0);
-		}
-		firstt=false;
 
 		vegetation.nextobj();
 	}

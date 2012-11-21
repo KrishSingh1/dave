@@ -41,22 +41,22 @@ bool ifcdebt;
 
 /// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
 bool ifcentury;
-/// whether plant growth limited by available N	
+/// whether plant growth limited by available nitrogen	
 bool ifnlim;
-/// number of years to allow spinup without N limitation	
+/// number of years to allow spinup without nitrogen limitation	
 int freenyears;
-/// fraction of N relocated by plants from roots and leaves
+/// fraction of nitrogen relocated by plants from roots and leaves
 double nrelocfrac;
-/// whether to allow N leaching	
+/// whether to allow nitrogen leaching	
 bool ifleachn;
-/// first term in N fixation eqn
+/// first term in nitrogen fixation eqn
 double nfix_a;
-/// second term in N fixation eqn
+/// second term in nitrogen fixation eqn
 double nfix_b;
-/// whether N deposition data available from a file	
+/// whether nitrogen deposition data available from a file	
 bool ifndepdata;
 
-// N budget check
+// Nitrogen budget check
 double somfluxnerror;
 
 // guess2008 - new inputs from the .ins file

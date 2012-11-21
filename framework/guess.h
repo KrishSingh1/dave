@@ -1374,11 +1374,11 @@ public:
 
 	/// C mass in pool kgC/m2
 	double cmass;
-	/// N mass in pool kgN/m2
+	/// Nitrogen mass in pool kgN/m2
 	double nmass;
 	/// (potential) decrease in C following decomposition today (kgC/m2)
 	double cdec; 
-	/// (potential) decrease in N following decomposition today (kgN/m2)
+	/// (potential) decrease in nitrogen following decomposition today (kgN/m2)
 	double ndec; 
 	/// daily change in carbon and nitrogen
 	double delta_cmass,delta_nmass;
@@ -1501,17 +1501,17 @@ public:
 
 	/// daily percolation (mm)
 	double dperc;
-	/// fraction of decayed organoc N leached each day;
+	/// fraction of decayed organic nitrogen leached each day;
 	double orgleachfrac_daily[365];
 	/// soil mineral nitrogen pool (kgN/m2)
 	double nmass;			
-	/// annual sum of N mineralisation
+	/// annual sum of nitrogen mineralisation
 	double anmin;			
-	/// annual sum of N immobilisation
+	/// annual sum of nitrogen immobilisation
 	double animmob;			
-	/// annual leaching from available N pool
+	/// annual leaching from available nitrogen pool
 	double aminleach;		
-	/// annual leaching of organics from active N pool
+	/// annual leaching of organics from active nitrogen pool
 	double aorgleach;		
 	/// total annual nitrogen fixation 
 	double anfix;

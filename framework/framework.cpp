@@ -186,9 +186,6 @@ int framework(const CommandLineArguments& args) {
 					termio();
 					return 99;
 				}
-
-
-
 			}
 
 			// Advance timer to next simulation day

@@ -796,71 +796,79 @@ double nitrogen_uptake_strength(const Individual& indiv) {
 }
 
 /// Individual nitrogen uptake fraction
-/** Determining indvidual nitrogen uptake as a fraction of its nitrogen demand. 
+/** Determining individual nitrogen uptake as a fraction of its nitrogen demand. 
  *  Grasses should get at least 5% and no
  *  individual should get more than 100% of its nitrogen demand. 
+ *  Function nitrogen_uptake_strength() determines how good individuals are at
+ *  acquiring nitrogen.
  */
 void fnuptake(Vegetation& vegetation, double nmass_avail, double fnuptake) {
 
-	double GRASS_part = 0.05;			// Grass should at least get 5% of total available N
-	double grass_nsupply = nmass_avail * GRASS_part; // Minimum grass N supply
-	double GRASS_ndemand = 0.0;			// Grass total N demand
-	bool GRASS_100 = false;				// If grass gets what it demands from its part of the total N supply 
-	bool not_more_grass = false;		// Keeping track of if GRASS can compite with TREEs for more N than what is
-										// espacially assigned for GRASS (GRASS_part)
-	double grass_uptake_decider = 0.0;	// Uptake strength of grasses
-	double total_uptake_decider = 0.0;	// Total uptake strength
-	double temp_nsupply_patch = nmass_avail;
-	double ratio_uptake;				// How much N taken up per uptake strength
-	bool full_uptake = true;			// If indiv.fnuptake should be updated as an individual got more than 100% of its 
-										// N demand
+	
+	double nsupply = nmass_avail;		// Nitrogen available for uptake
+	double grassmin_nsupply = nmass_avail * 0.05; // Minimum grass nitrogen supply. 
+										// Grass should at least get 5% of total available nitrogen
+										// This will be changed in a future version where more soil
+										// layers are introduced and then grass gets this advantage
+										// by having higher fraction of roots in top layer
+	double grass_ndemand = 0.0;			// Grass total nitrogen demand
+	bool grass_satisfied = false;		// If grass gets what it demands from grassmin_nsupply 
+	bool grass_competitive = true;		// Keeping track of if grass can compete with trees for 
+										// more than what is especially assigned for grass
+	double grass_ups = 0.0;				// Uptake strength of grasses
+	double total_ups = 0.0;				// Total uptake strength
+	double ratio_uptake;				// Nitrogen per uptake strength
+	bool full_uptake = true;			// If an individual could get more than its demand, then
+										// that indiv gets fnuptake = 1 and everything has to be 
+										// redone for all indiv with fnuptake < 1 as more nitrogen 
+										// could be taken up per unit strength (starts with true to
+										// get into while loop)
 
-	// GRASS
-	// Determine strength and demand of grasses
+	// Determine strength and demand
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
-		// TREE
+		// All indiv
 		// Sum uptake strengths
 		if (!negligible(indiv.ndemand)) {
-			total_uptake_decider += nitrogen_uptake_strength(indiv);
+			total_ups += nitrogen_uptake_strength(indiv);
 		}
 
-		// GRASS
-		// Sum uptake strengths
+		// Grass
+		// Sum gras demand demand and uptake strengths
 		if (indiv.pft.lifeform == GRASS && !negligible(indiv.ndemand)) {
-			GRASS_ndemand += indiv.ndemand;
-			grass_uptake_decider += nitrogen_uptake_strength(indiv);
+			grass_ndemand += indiv.ndemand;
+			grass_ups += nitrogen_uptake_strength(indiv);
 		}
 		vegetation.nextobj();
 	}
 
-	// GRASS
-	// Does grass get enough N from its part of the total
-	if (GRASS_ndemand < grass_nsupply) 
-		GRASS_100 = true;
+	// Grass
+	// Does grass get enough nitrogen from its part of the total
+	if (grass_ndemand < grassmin_nsupply) 
+		grass_satisfied = true;
 	else 
-		GRASS_100 = false;
+		grass_satisfied = false;
 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
 
-		if (!negligible(total_uptake_decider)) {
+		if (!negligible(total_ups)) {
 		 
 			indiv.fnuptake = fnuptake;
 
 			// GRASS
 			// if grasses gets enough from its part, then take it up
-			if (indiv.pft.lifeform == GRASS && GRASS_100 && !negligible(indiv.ndemand)) {
+			if (indiv.pft.lifeform == GRASS && grass_satisfied && !negligible(indiv.ndemand)) {
 
 				// when grass part of total N is enough, then subtract it from total
-				temp_nsupply_patch -= indiv.ndemand;
+				nsupply -= indiv.ndemand;
 				// set uptake to meet demand
 				indiv.fnuptake = 1.0;
 				// and subtract uptake strength as it will be added further down
-				total_uptake_decider -= nitrogen_uptake_strength(indiv);
+				total_ups -= nitrogen_uptake_strength(indiv);
 			}
 		}
 		else {
@@ -876,40 +884,40 @@ void fnuptake(Vegetation& vegetation, double nmass_avail, double fnuptake) {
 
 		full_uptake = false;	
 		
-		// restore N supply and uptake decider if not_more_grass == true
+		// restore nitrogen supply and uptake decider if grass_competitive == true
 		// (which can happen if there is a full_uptake)
 		// so that it can be calculated if they might be able to take up more 
-		// than just the GRASS part
-		if (not_more_grass) {
-			temp_nsupply_patch += grass_nsupply;
-			total_uptake_decider += grass_uptake_decider;
-			not_more_grass = false;
+		// than just the grass part
+		if (!grass_competitive) {
+			nsupply += grassmin_nsupply;
+			total_ups += grass_ups;
+			grass_competitive = true;
 		}
 
-		// decide how much N that will be taken up by each uptake strength 
-		if (total_uptake_decider > 0.0 && temp_nsupply_patch > 0.0)
-			ratio_uptake = temp_nsupply_patch / total_uptake_decider;
+		// decide how much nitrogen that will be taken up by each uptake strength 
+		if (total_ups > 0.0 && nsupply > 0.0)
+			ratio_uptake = nsupply / total_ups;
 		else
 			ratio_uptake = 0.0;
 
-		// GRASS
-		// Grass part of avail N is not enough
-		if (!GRASS_100 && !not_more_grass) {
+		// Grass
+		// Grass minimum of avail nitrogen is not enough
+		if (!grass_satisfied && grass_competitive) {
 
-			// See if grass can't get more than the 5%
-			if (grass_nsupply > ratio_uptake * grass_uptake_decider) {
+			// If grass can't get more than grassmin_nsupply
+			if (ratio_uptake * grass_ups < grassmin_nsupply) {
 
-				not_more_grass = true;
-				// then grass takes GRASS_part of total N supply
-				temp_nsupply_patch -= grass_nsupply;
-				// and GRASS strength is subtracted from totaluptake strength
-				total_uptake_decider -= grass_uptake_decider;
-				// and a new ratio uptake is calculated for TREEs 
-				ratio_uptake = temp_nsupply_patch / total_uptake_decider; 
+				grass_competitive = false;
+				// then grass takes grassmin_nsupply of total nitrogen supply
+				nsupply -= grassmin_nsupply;
+				// and grass strength is subtracted from total uptake strength
+				total_ups -= grass_ups;
+				// and a new ratio uptake is calculated for trees 
+				ratio_uptake = nsupply / total_ups; 
 			}
 			else {
-				// GRASS can compite for more than 5%
-				not_more_grass = false;
+				// Grass can compite for more than grassmin_nsupply
+				grass_competitive = true;
 			}
 		}
 
@@ -917,25 +925,27 @@ void fnuptake(Vegetation& vegetation, double nmass_avail, double fnuptake) {
 		while (vegetation.isobj && !full_uptake) {
 			Individual& indiv=vegetation.getobj();
 
-			// if lifeform is GRASS and they can't compite with TREEs for more than their part of the total N supply
-			if (indiv.pft.lifeform == GRASS && not_more_grass && indiv.fnuptake != 1.0) {
+			// if lifeform is grass and they can't compete with trees for more than grassmin_nsupply of the total nitrogen supply
+			if (indiv.pft.lifeform == GRASS && !grass_competitive && indiv.fnuptake != 1.0) {
 				if (!negligible(indiv.ndemand)) {
 
-					indiv.fnuptake = grass_nsupply * (nitrogen_uptake_strength(indiv)
-						/ grass_uptake_decider) / indiv.ndemand;
+					// Calculate new fnuptake
+					indiv.fnuptake = grassmin_nsupply * (nitrogen_uptake_strength(indiv)
+						/ grass_ups) / indiv.ndemand;
 
+					// If indiv can get more nitrogen the its demand
 					if (indiv.fnuptake > 1.0) {
 
 						indiv.fnuptake = 1.0;
 
-						// subtract N demand from grass N supply
-						grass_nsupply -= indiv.ndemand;
+						// subtract nitrogen demand from grass nitrogen supply
+						grassmin_nsupply -= indiv.ndemand;
 
 						// and take away this indiv uptake strength from grass total
-						grass_uptake_decider -= nitrogen_uptake_strength(indiv);
+						grass_ups -= nitrogen_uptake_strength(indiv);
 
-						// and redo indiv fnuptake calc for the rest of the indiv as this indiv probably could
-						// take up more than its N demand -> more available for the rest of the indiv
+						// and redo indiv fnuptake calc for the rest of the indivs as this indiv probably could
+						// take up more than its nitrogen demand -> more available for the rest of the indiv
 						full_uptake = true;
 					}
 				}
@@ -943,35 +953,34 @@ void fnuptake(Vegetation& vegetation, double nmass_avail, double fnuptake) {
 					indiv.fnuptake = 0.0;
 			}
 
-			// if lifeform is TREE and GRASS if it can compete with TREEs
+			// if lifeform is tree and grass if it can compete with trees
 			else {
 
-				// if fnuptake doesn't meet its N demand, then calculate a new value for fnuptake
+				// if fnuptake doesn't meet indiv nitrogen demand, then calculate a new value for fnuptake
 				if (indiv.fnuptake != 1.0) {
 
-					// if indiv has the strenght to take up more than N demand
+					// if indiv has the strenght to take up more than nitrogen demand
 					if (ratio_uptake * nitrogen_uptake_strength(indiv) > indiv.ndemand && !negligible(indiv.ndemand)){
 						
 						indiv.fnuptake = 1.0;
 						
-						// subtract N demand from N supply
-						temp_nsupply_patch -= indiv.ndemand;
+						// subtract nitrogen demand from nitrogen supply
+						nsupply -= indiv.ndemand;
 
 						// and take away this indiv uptake strength from total
-						total_uptake_decider -= nitrogen_uptake_strength(indiv);
+						total_ups -= nitrogen_uptake_strength(indiv);
 
 						// and redo indiv fnuptake calc for the rest of the indiv as this indiv probably could
-						// take up more than its N demand -> more available for the rest of the indiv
+						// take up more than its nitrogen demand -> more available for the rest of the indiv
 						full_uptake = true;
 					}
-					// normal N limited uptake (0.0 < fnuptake < 1.0)
+					// normal nitrogen limited uptake (0.0 < fnuptake < 1.0)
 					else if (indiv.ndemand > 0.0)
 						indiv.fnuptake = min(1.0, (ratio_uptake * nitrogen_uptake_strength(indiv)) / indiv.ndemand);
 					else
 						indiv.fnuptake = 0.0;
 				}
 			}
-
 			vegetation.nextobj();
 		}
 	}
@@ -1057,8 +1066,6 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 	// Optimal leaf nitrogen content
 	double leafoptn;
-
-	bool first=true;
 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
@@ -1177,20 +1184,6 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 		/// Sum total nitrogen demand individual is capable to take up
 		indiv.ndemand = indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand;
-
-		if (date.year == 500 && first){
-			plot("N demand","leaf",date.day,indiv.leafndemand*10000.0);
-			plot("N demand","root",date.day,indiv.rootndemand*10000.0);
-			plot("N demand","sap",date.day,indiv.sapndemand*10000.0);
-			plot("N demand","store",date.day,indiv.storendemand*10000.0);
-			plot("max N demand","demand",date.day,indiv.ndemand*10000.0);
-			plot("max N uptake","max",date.day,maxnup*10000.0);
-			plot("scale","nmin",date.day,nmin_scale);
-			plot("scale","C:N",date.day,cton_scale);
-			plot("scale","Temp",date.day,temp_scale);
-			plot("scale","tot",date.day,nmin_scale * temp_scale * cton_scale);
-		}
-		first=false;
 
 		if (negligible(indiv.ndemand))
 			indiv.ndemand = 0.0;

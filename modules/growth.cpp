@@ -203,17 +203,17 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	// cmass_leaf    = leaf C biomass (kgC/m2)
 	// cmass_root    = fine root C biomass (kgC/m2)
 	// cmass_sap     = sapwood C biomass (kgC/m2)
-	// nmass_leaf    = leaf N biomass (kgN/m2)
-	// nmass_root    = fine root N biomass (kgN/m2)
-	// nmass_sap     = sapwood N biomass (kgN/m2)
+	// nmass_leaf    = leaf nitrogen biomass (kgN/m2)
+	// nmass_root    = fine root nitrogen biomass (kgN/m2)
+	// nmass_sap     = sapwood nitrogen biomass (kgN/m2)
 
 	// OUTPUT PARAMETERS
 	// litter_leaf			= new leaf C litter (kgC/m2)
 	// litter_root			= new root C litter (kgC/m2)
-	// nmass_litter_leaf	= new leaf N litter (kgN/m2)
-	// nmass_litter_root	= new root N litter (kgN/m2)
+	// nmass_litter_leaf	= new leaf nitrogen litter (kgN/m2)
+	// nmass_litter_root	= new root nitrogen litter (kgN/m2)
 	// cmass_heart			= heartwood C biomass (kgC/m2)
-	// nmass_heart			= heartwood N biomass (kgC/m2)
+	// nmass_heart			= heartwood nitrogen biomass (kgC/m2)
 	// retransn				= retranslocated nitrogen (kgN/m2)
 
 	double turnover = 0.0;
@@ -270,7 +270,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 		cmass_sap -= turnover;
 		cmass_heart += turnover;
 
-		// NB: assumes N is translocated from sapwood prior to conversion to
+		// NB: assumes nitrogen is translocated from sapwood prior to conversion to
 		//     heartwood and that this is the same fraction that is conserved
 		//     in conjunction with leaf and root shedding
 		
@@ -1252,12 +1252,12 @@ void growth(Stand& stand, Patch& patch) {
 						indiv.cton_root * (1.0 - nrelocfrac);
 					indiv.nstore += litter_root_inc * indiv.densindiv / indiv.cton_root * nrelocfrac;
 											
-					// if sapwood gets killed transfer 50% of N into storage,
+					// if sapwood gets killed transfer 50% of nitrogen into storage,
 					// the other 50% going into heartwood
 					if (cmass_sap_inc < 0.0)	
 						indiv.nstore -= cmass_sap_inc * indiv.densindiv / indiv.cton_sap * (1.0 - nrelocfrac);
 				}
-				else {	// return N to soil so N budget is preserved
+				else {	// return nitrogen to soil so nitrogen budget is preserved
 					patch.soil.nmass += (litter_leaf_inc / indiv.cton_leaf + litter_root_inc / indiv.cton_root -
 						min(0.0, cmass_sap_inc) / indiv.cton_sap * (1.0 - nrelocfrac)) * indiv.densindiv; // nrelocfrac gone to heartwood above
 				}
@@ -1292,11 +1292,11 @@ void growth(Stand& stand, Patch& patch) {
 						patch.pft[indiv.pft.id].nmass_litter_wood += max(indiv.nmass_sap, 0.0) +
 							max(indiv.nmass_heart, 0.0);
 						
-						// Transfer N storage to wood N litter for now
+						// Transfer nitrogen storage to wood nitrogen litter for now
 						patch.pft[indiv.pft.id].nmass_litter_wood += max(indiv.nstore_leaf, 0.0) + 
 							max(indiv.nstore_root, 0.0) + max(indiv.nstore, 0.0);
 					} 
-					else {	// return N to soil so N budget is preserved
+					else {	// return nitrogen to soil so nitrogen budget is preserved
 						patch.soil.nmass += max(indiv.nmass_leaf, 0.0) + max(indiv.nmass_root, 0.0) + max(indiv.nmass_sap, 0.0) +
 							max(indiv.nmass_heart, 0.0) + max(indiv.nstore_leaf, 0.0) + max(indiv.nstore_root, 0.0) + 
 							max(indiv.nstore, 0.0);
@@ -1384,11 +1384,11 @@ void growth(Stand& stand, Patch& patch) {
 						patch.pft[indiv.pft.id].nmass_litter_leaf += max(indiv.nmass_leaf, 0.0);
 						patch.pft[indiv.pft.id].nmass_litter_root += max(indiv.nmass_root, 0.0); 
 						
-						// Transfer N storage to root N litter for now
+						// Transfer nitrogen storage to root nitrogen litter for now
 						patch.pft[indiv.pft.id].nmass_litter_root += max(indiv.nstore_leaf, 0.0) + 
 							max(indiv.nstore_root, 0.0) + max(indiv.nstore, 0.0);
 					} 
-					else {	// return N to soil so N budget is preserved
+					else {	// return nitrogen to soil so nitrogen budget is preserved
 						patch.soil.nmass += max(indiv.nmass_leaf, 0.0) + max(indiv.nmass_root, 0.0) +
 							max(indiv.nstore_leaf, 0.0) + max(indiv.nstore_root, 0.0) + max(indiv.nstore, 0.0);
 					}
@@ -1417,7 +1417,7 @@ void growth(Stand& stand, Patch& patch) {
 					patch.pft[indiv.pft.id].nmass_litter_wood += max(indiv.nmass_sap, 0.0) +
 						max(indiv.nmass_heart, 0.0);
 					
-					// Transfer N storage to root N litter if grass otherwise to wood nitrogen litter
+					// Transfer nitrogen storage to root nitrogen litter if grass otherwise to wood nitrogen litter
 					if (indiv.pft.lifeform == GRASS)
 						patch.pft[indiv.pft.id].nmass_litter_root += max(indiv.nstore_leaf, 0.0) + 
 							max(indiv.nstore_root, 0.0) + max(indiv.nstore, 0.0);
@@ -1425,7 +1425,7 @@ void growth(Stand& stand, Patch& patch) {
 						patch.pft[indiv.pft.id].nmass_litter_wood += max(indiv.nstore_leaf, 0.0) + 
 							max(indiv.nstore_root, 0.0) + max(indiv.nstore, 0.0);
 				}
-				else {	// return N to soil so N budget is preserved
+				else {	// return nitrogen to soil so nitrogen budget is preserved
 					patch.soil.nmass += max(indiv.nmass_leaf, 0.0) + max(indiv.nmass_root, 0.0) + 
 						max(indiv.nmass_sap, 0.0) +	max(indiv.nmass_heart, 0.0) + max(indiv.nstore_leaf, 0.0) + 
 						max(indiv.nstore_root, 0.0) + max(indiv.nstore, 0.0);
@@ -1483,7 +1483,7 @@ void growth(Stand& stand, Patch& patch) {
 		}
 	}
 
-	// Flush N free litter from reproduction straight to atmosphere
+	// Flush nitrogen free litter from reproduction straight to atmosphere
 	if (ifnlim)
 		flush_litter_repr(patch);
 }

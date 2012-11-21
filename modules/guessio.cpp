@@ -291,20 +291,20 @@ void plib_declarations(int id,xtring setname) {
 			"Water uptake mode (\"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
 
 		declareitem("nrelocfrac",&nrelocfrac,0.0,1.0,1,CB_NONE,
-			"Fractional N relocation from shed leaves & roots");
+			"Fractional nitrogen relocation from shed leaves & roots");
 		declareitem("nfix_a",&nfix_a,0.0,0.4,1,CB_NONE,
-			"first term in N fixation eqn");
+			"first term in nitrogen fixation eqn");
 		declareitem("nfix_b",&nfix_b,-10.0,10.,1,CB_NONE,
-			"second term in N fixation eqn");
+			"second term in nitrogen fixation eqn");
 
 		declareitem("ifcentury",&ifcentury,1,CB_NONE,
 			"Whether to use CENTURY SOM dynamics (default standard LPJ)");
 		declareitem("ifnlim",&ifnlim,1,CB_NONE,
-			"Whether plant growth limited by available N");
+			"Whether plant growth limited by available nitrogen");
 		declareitem("freenyears",&freenyears,0,1000,1,CB_NONE,
-			"Number of years to spinup without N limitation");
+			"Number of years to spinup without nitrogen limitation");
 		declareitem("ifleachn",&ifleachn,1,CB_NONE,
-			"Whether to allow N leaching");
+			"Whether to allow nitrogen leaching");
 
 		// Annual output variables
 		declareitem("outputdirectory",&outputdirectory,300,CB_NONE,"Directory for the output files");
@@ -319,12 +319,12 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("file_cton_leaf",&file_cton_leaf,300,CB_NONE,"Mean leaf C:N output file");
 		declareitem("file_cton_veg",&file_cton_veg,300,CB_NONE,"Mean vegetation C:N output file");
-		declareitem("file_nsources",&file_nsources,300,CB_NONE,"annual N sources output file");
-		declareitem("file_npool",&file_npool,300,CB_NONE,"Soil N output file");
-		declareitem("file_nleach",&file_nleach,300,CB_NONE,"Leached mineral N output file");
-		declareitem("file_nuptake",&file_nuptake,300,CB_NONE,"annual N uptake output file");
-		declareitem("file_vmaxnlim",&file_vmaxnlim,300,CB_NONE,"annual N limitation on vm output file");
-		declareitem("file_nflux",&file_nflux,300,CB_NONE,"annual N fluxes output file");
+		declareitem("file_nsources",&file_nsources,300,CB_NONE,"annual nitrogen sources output file");
+		declareitem("file_npool",&file_npool,300,CB_NONE,"Soil nitrogen output file");
+		declareitem("file_nleach",&file_nleach,300,CB_NONE,"Leached mineral nitrogen output file");
+		declareitem("file_nuptake",&file_nuptake,300,CB_NONE,"annual nitrogen uptake output file");
+		declareitem("file_vmaxnlim",&file_vmaxnlim,300,CB_NONE,"annual nitrogen limitation on vm output file");
+		declareitem("file_nflux",&file_nflux,300,CB_NONE,"annual nitrogen fluxes output file");
 
 		declareitem("file_speciesheights",&file_speciesheights,300,CB_NONE,"Mean species heights");
 
@@ -2264,7 +2264,7 @@ void outannual(Gridcell& gridcell) {
 						plot("lai",pft.name,date.year,gcpft_lai);
 						plot("dens [indiv/ha]",pft.name,date.year,gcpft_densindiv_total*10000.0);
 						if (gcpft_cmass_leaf > 0.0 && ifnlim) {
-							plot("vmax N lim",pft.name,date.year,gcpft_vmaxnlim);
+							plot("vmax nitrogen lim",pft.name,date.year,gcpft_vmaxnlim);
 							plot("leaf C:N ratio",pft.name,date.year,gcpft_cmass_leaf/gcpft_nmass_leaf);
 						}
 					}

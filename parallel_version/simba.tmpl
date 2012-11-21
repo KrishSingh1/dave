@@ -169,7 +169,7 @@ cp run1/meta.bin /scratch/david/state/global/
 
 for ((i = 1; i <= $NPROCESS; i++))
 do 
-  cp run\$i/0.state /scratch/david/state/global/\$((i-1)).state; 
+  cp run\$i/\$((i-1)).state /scratch/david/state/global/\$((i-1)).state; 
 done 
 
 for file in \$outfiles_expanded

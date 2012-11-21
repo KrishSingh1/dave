@@ -1881,10 +1881,9 @@ void initio(const xtring& insfilename) {
 	if (file_ndep=="")
 		ifndepdata=false;
 	else {
-		xtring file_ndep_hist=file_ndep+".bin";
-		FILE* in_ndep=fopen(file_ndep_hist,"rt");
+		FILE* in_ndep=fopen(file_ndep,"rt");
 		if (!in_ndep)
-			fail("initio: could not open %s for input",(char*)file_ndep_hist);
+			fail("initio: could not open %s for input",(char*)file_ndep);
 
 		fclose(in_ndep);
 		ifndepdata=true;
@@ -2007,36 +2006,36 @@ bool getndep(xtring filename,double lon,double lat) {
 			}
 		}
 	}
-
-	xtring historic_filename = filename+".bin";
-
-	GlobalNitrogenDepositionArchive ark;
-	if (!ark.open(historic_filename)) {
-		 fail("Could not open %s for input",(char*)historic_filename);
-		 return false;
-	}
-
-	GlobalNitrogenDeposition rec;
-	rec.longitude = lon;
-	rec.latitude = lat;
-	
-	if (!ark.getindex(rec)) {
-		 // The coordinate wasn't found in the archive
-		 ark.close();
-		 return false;
-	}
 	else {
-		 // Found the record, get the values
-		for (y=0;y<16;y++) {
-			for (m=0;m<12;m++) {
-				NHxDryDep_10[y][m] = rec.NHxDry[y*12+m];
-				NHxWetDep_10[y][m] = rec.NHxWet[y*12+m];	
-				NOyDryDep_10[y][m] = rec.NOyDry[y*12+m];	
-				NOyWetDep_10[y][m] = rec.NOyWet[y*12+m];
-			}
+
+		GlobalNitrogenDepositionArchive ark;
+		if (!ark.open(filename)) {
+			fail("Could not open %s for input",(char*)filename);
+			return false;
 		}
 
-		ark.close();
+		GlobalNitrogenDeposition rec;
+		rec.longitude = lon;
+		rec.latitude = lat;
+
+		if (!ark.getindex(rec)) {
+			// The coordinate wasn't found in the archive
+			ark.close();
+			return false;
+		}
+		else {
+			// Found the record, get the values
+			for (y=0;y<16;y++) {
+				for (m=0;m<12;m++) {
+					NHxDryDep_10[y][m] = rec.NHxDry[y*12+m];
+					NHxWetDep_10[y][m] = rec.NHxWet[y*12+m];	
+					NOyDryDep_10[y][m] = rec.NOyDry[y*12+m];	
+					NOyWetDep_10[y][m] = rec.NOyWet[y*12+m];
+				}
+			}
+
+			ark.close();
+		}
 	}
 
 	// interpolate to all hist and scenario years

@@ -1411,24 +1411,27 @@ void interp_climate(double mtemp[12], double mprec[12], double msun[12], double 
 
 #if defined DYNAMIC_LANDCOVER_INPUT
 //TimeDataD input code may be put here
-#define MAXLINE 20000	//Ändrat från 400 091227
+#define MAXLINE 20000	
+#define MAXNAMESIZE 50
 #define MAXRECORDS 500
 #define MAXLINESPARSE 30000
-//#define NRECORDS 26
+
 enum {EMPTY, GLOBAL_STATIC, GLOBAL_YEARLY, LOCAL_STATIC, LOCAL_YEARLY};
-bool ascendinglongitudes=0;
+bool ascendinglongitudes=false;
 
 class TimeDataD									//Represents a set of double data over time (years).
 {												//Data can be global or for a specific stand. Also static. set by format flag
 	FILE *ifp;
 	char *fileName;
+	int nCells;
 	bool ifheader;
-	char header_arr[MAXRECORDS][10];
+	char header_arr[MAXRECORDS][MAXNAMESIZE];
 	Coord currentStand;
 	double *data;								//allocated in constructor
 	bool *checkdata;							//allocated in CheckIfPresent()
 	bool ischeckingdata;
 	int firstyear;								//110601; set in ParseNYears() to be used in FindRecord()
+	bool isfirstgrid;
 
 	int ParseFormat();							//Returns 0 if wrong format, sets nRecords, ifheader and header_arr[]
 	int ParseNYears();
@@ -1437,6 +1440,7 @@ class TimeDataD									//Represents a set of double data over time (years).
 	int Allocate();
 	int FindRecord(Coord c) const;				//Quick version
 	int FindRecord2(Coord c) const;				//Slower version, can handle blank lines
+	void ParseNCells();
 
 public:
 	int nRecords;
@@ -1451,23 +1455,28 @@ public:
 	int Load();									//Loads global data
 	int Load(Coord c);							//Loads local data for a certain coordinate.
 	int LoadNext();								//For stepping through a data file, loading each coordinate data consecutively
-	void Output(char*) const;					//test
-	double Get(int year, int column) const;		//Returns a single value
+	void Output(char*);	
+	double Get(int year, int column) const;		//Returns a ingle value
 	double Get(int year, char* name) const;		//Returns a single value for column with header string name
 	int Get(int year, double* dataX) const;		//Copies the values for one year data to the dataX array, returns 0 if wrong format.
 	int Get(double* dataX) const;				//Copies all data to the dataX array, returns 0 if wrong format.
-	double* Get(int year) const;
+//	double* Get(int year) const;
 	int GetnRecords() const {return nRecords;}
-	int GetHeader(char cropnames[][10]) const;
+	int GetHeader(char cropnames[][MAXNAMESIZE]) const;
+	int GetHeaderFull(char *header_line) const;			//120124
+	int FindCoord(Coord c) const{return FindRecord(c);}	//120124
 //	int GetActive(bool *activeX) const;
 	char* GetHeader(int record) const;
+	Coord GetCoord() const {return currentStand;} //added 100106, added to GUESS version 120123
 	void Rewind() {rewind(ifp);}
+	int GetNCells();
 	void CheckIfPresent(ListArray_id<Coord>& gridlist);
 	bool CFTPresent(int cft){return checkdata[cft];}
+
 };
 
 
-void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist)
+void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist)	//Requires gutil.h
 {
 	if(checkdata)
 	{
@@ -1493,6 +1502,8 @@ void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist)
 						checkdata[j]=1;
 				}
 			}
+if(!SUPPRESSLARGEOUTPUT)
+dprintf("Done checking for crop pft:s in input file at %.2f,%.2f.\n", c.lon, c.lat);
 		}
 		gridlist.nextobj();
 	}
@@ -1508,17 +1519,41 @@ void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist)
 	ischeckingdata=false;
 }
 
-int TimeDataD::GetHeader(char cropnames[][10]) const	//Not used for anything yet...
+int TimeDataD::GetHeader(char cropnames[][MAXNAMESIZE]) const
 {
 	if(ifheader && header_arr)
 	{
 		for(int i=0; i<nRecords; i++)
-			strncpy(cropnames[i], header_arr[i], 10*sizeof(char));
+			strncpy(cropnames[i], header_arr[i], MAXNAMESIZE*sizeof(char));
 		return 1;
 	}
 	else
 		return 0;
 }
+
+int TimeDataD::GetHeaderFull(char *header_line) const	
+{
+	if(ifheader && header_arr)
+	{
+		if(format==LOCAL_YEARLY)
+			strcpy(header_line, "   Lon\t   Lat\t  Year");
+		else if(format==GLOBAL_YEARLY)
+			strcpy(header_line, "    lon\t    lat");
+		else if(format==LOCAL_STATIC)
+			strcpy(header_line, "   year");
+
+		for(int i=0; i<nRecords; i++)
+		{
+			char buffer[MAXNAMESIZE];
+			sprintf(buffer, "\t%8s", header_arr[i]);
+			strncat(header_line, buffer, strlen(buffer));
+		}
+		return 1;
+	}
+	else
+		return 0;
+}
+
 
 /*
 int TimeDataD::GetActive(bool *activeX) const
@@ -1559,18 +1594,11 @@ int TimeDataD::Get(double* dataX) const
 
 int TimeDataD::Get(int yearX, double* dataX) const
 {
-	if(format==LOCAL_YEARLY || format==GLOBAL_YEARLY)
-	{
-		if(yearX>nYears)
-			memcpy(dataX, &data[(nYears-1)*nRecords], nRecords * sizeof(double));	//use last year's value if land use data miss years at the end. Bugfix 100103
-		else
-			memcpy(dataX, &data[yearX*nRecords], nRecords * sizeof(double));
-	}
+	//This code handles all four formats (TEST STATIC formats !):
+	if(yearX>=nYears)
+		memcpy(dataX, &data[(nYears-1)*nRecords], nRecords * sizeof(double));	//use last year's value if land use data miss years at the end. Bugfix 100103
 	else
-	{
-		printf("Wrong usage of TimeDataD::Get(int year, double* dataX).\n");
-		return 0;
-	}
+		memcpy(dataX, &data[yearX*nRecords], nRecords * sizeof(double));
 
 	return 1;
 }
@@ -1586,17 +1614,7 @@ double TimeDataD::Get(int yearX, int column) const
 		return 0.0;
 	}
 
-/*	if(format==LOCAL_YEARLY || format==GLOBAL_YEARLY)
-	{
-		if(yearX>=nYears)
-			dataX=data[nRecords*(nYears-1)+column];		//Bugfixes 100103, 101231
-		else
-			dataX=data[nRecords*yearX+column];
-	}
-	else if(format==LOCAL_STATIC || format==GLOBAL_STATIC)
-		dataX=data[column];		
-*/
-	//This code handles all four formats:
+//This code handles all four formats:
 	if(yearX>=nYears)
 		dataX=data[nRecords*(nYears-1)+column];		//Bugfixes 100103, 101231
 	else
@@ -1709,7 +1727,7 @@ int TimeDataD::Open(char* name)
 int TimeDataD::ParseFormat()	//Checks format, sets nRecords, ifheader and header_arr[].
 { //Desired format must be set beforehand by program at initiation of class TimeDataD objects (if no header) !
 
-	char line[MAXLINE], *p=NULL, s1[MAXRECORDS][10]={'\0'}, s2[MAXRECORDS][10]={'\0'};
+	char line[MAXLINE], *p=NULL, s1[MAXRECORDS][MAXNAMESIZE]={'\0'}, s2[MAXRECORDS][MAXNAMESIZE]={'\0'};
 	int count1=0, count2=0, i=0, k=0;
 	int format_local=EMPTY, offset=0;
 	float d[MAXRECORDS]={0.0};
@@ -1726,14 +1744,14 @@ int TimeDataD::ParseFormat()	//Checks format, sets nRecords, ifheader and header
 			if(!p)				//Fix for blank line 110531
 				continue;
 
-			strncpy(s1[count1], p, 9);
+			strncpy(s1[count1], p, MAXNAMESIZE-1);
 			count1++;
 			do
 			{
 				p=strtok(NULL, "\t\n ");
 				if(p)
 				{
-					strncpy(s1[count1], p, 9);
+					strncpy(s1[count1], p, MAXNAMESIZE-1);
 					count1++;
 				}
 				k++;
@@ -1751,34 +1769,34 @@ int TimeDataD::ParseFormat()	//Checks format, sets nRecords, ifheader and header
 	}
 	while(!(count1>0));
 
-	if(!strcmp(s1[0], "lon") || !strcmp(s1[0], "Lon"))
+	if(!strcmp(s1[0], "lon") || !strcmp(s1[0], "Lon") || !strcmp(s1[0], "LON"))
 	{
 		if(!strcmp(s1[2], "year") || !strcmp(s1[2], "Year"))
 		{
 			format_local=LOCAL_YEARLY;
 			offset=2;
 			for(i=3;i<count1;i++)
-				strncpy(header_arr[i-3],s1[i], 9);
+				strncpy(header_arr[i-3],s1[i], MAXNAMESIZE-1);
 		}
 		else
 		{
 			format_local=LOCAL_STATIC;
 //			offset=2;
 			for(i=2;i<count1;i++)
-				strncpy(header_arr[i-2],s1[i], 9);
+				strncpy(header_arr[i-2],s1[i], MAXNAMESIZE-1);
 		}
 	}
 	else if(!strcmp(s1[0], "year") || !strcmp(s1[0], "Year"))
 	{
 			format_local=GLOBAL_YEARLY;
 			for(i=1;i<count1;i++)
-				strncpy(header_arr[i-1],s1[i], 9);
+				strncpy(header_arr[i-1],s1[i], MAXNAMESIZE-1);
 	}
 	else if(!strcmp(s1[0], "static"))
 	{
 			format_local=GLOBAL_STATIC;
 			for(i=1;i<count1;i++)
-				strncpy(header_arr[i-1],s1[i], 9);
+				strncpy(header_arr[i-1],s1[i], MAXNAMESIZE-1);
 	}
 	else
 		ifheader=false;
@@ -1915,6 +1933,68 @@ int TimeDataD::ParseNYears()
 	return n_yearsX;
 }
 
+int TimeDataD::GetNCells()
+{
+	if(!nCells)
+		ParseNCells();
+
+
+
+	return
+		nCells;
+}
+
+void TimeDataD::ParseNCells()
+{
+	float d1;
+	long int oldpos;
+	int i=0, count=0;
+	char line[MAXLINE];
+	bool error=false;
+
+	oldpos=ftell(ifp);
+	if(oldpos!=0)
+		rewind(ifp);
+
+	if(ifheader)
+	{
+		fgets(line,sizeof(line),ifp);	//ignore header line
+	}
+
+	while(!feof(ifp))
+	{
+//		count=0;
+		line[0]=0;
+
+		fgets(line,sizeof(line),ifp);
+		count=sscanf(line,"%f", &d1);
+
+		if(count>0)
+			i++;
+	}
+
+	if(ifheader)
+	{
+		nCells=i/nYears;
+		if(i%nYears)
+			error=true;
+	}
+	else
+	{
+		nCells=i/(nYears+1);
+		if(i%(nYears+1))
+			error=true;
+	}
+
+	if(error)
+		dprintf("Unexpected number of lines ! No.lines=%d, No.cells=%d, No.years=%d\n", i,nCells,nYears);
+
+	fseek(ifp, oldpos, 0);
+
+}
+
+
+
 int TimeDataD::ParseNYearsLocal()
 {
 	int i=0, count1=0, prevLine=0, nyears1=0, nyears2=0, n=0;
@@ -1937,7 +2017,6 @@ int TimeDataD::ParseNYearsLocal()
 					new_coord=true;
 					firstyear=(int)d3;	//110601
 				}
-//				if(count1==2)
 				else if(count1==2 && d1<=180.0)		//line with coordinates	; added new condition to be able to use data files with only one value per year 100721
 				{
 					nyears2=i-prevLine-1;
@@ -2434,13 +2513,13 @@ int TimeDataD::Load(Coord c)
 		return 0;
 	else
 	{
-//if(!SUPPRESSLARGEOUTPUT)
+if(!SUPPRESSLARGEOUTPUT)
 		dprintf("Loading all data for %.2f,%.2f in %s into memory\n", c.lon, c.lat,fileName);
 		return 1;
 	}
 }
 
-int TimeDataD::LoadNext()	//Only implemented for LOCAL_YEARLY (100106)			; Needs to be modified to handle missing lines in data files with header ! (see Load)
+int TimeDataD::LoadNext()	//Only implemented for LOCAL_YEARLY (100106) and LOCAL_STATIC (121016)	; Needs to be modified to handle missing lines in data files with header ! (see Load)
 {
 
 	char line[MAXLINE], *p=NULL;
@@ -2508,14 +2587,115 @@ int TimeDataD::LoadNext()	//Only implemented for LOCAL_YEARLY (100106)			; Needs
 						p=strtok(line," \t");	//lon
 						p=strtok(NULL, " \t");	//lat
 						p=strtok(NULL, " \t");	//year
-
-						//Kolla att koordinaten är samma här !
 					}
 					else
 						p=strtok(line, "\t\n ");	//year
 					if(!p)							//Fix for blank line 110531
 						continue;
 					sscanf(p, "%d", &yearX);
+//printf("count1=%d\n",count1);
+//printf("yearX=%d\n",yearX);
+
+					do
+					{
+						p=strtok(NULL, "\t\n ");
+						if(p)
+						{
+							count1+=sscanf(p, "%lf", &d[k]);
+//printf("count1=%d\n",count1);
+//printf("d[%d]=%f\n",k, d[k]);
+						}
+						k++;
+					}
+					while(p);
+//printf("count1=%d\n",count1);
+
+					if(count1>0)
+					{
+						if(count1==nRecords)
+						{
+							year[i]=yearX;
+							for(j=0;j<nRecords;j++)
+							{
+								data[nRecords*i+j]=d[j];
+							}
+						}
+						else
+						{
+							printf("FORMAT ERROR in input file %s: LoadNext(), count!=%d, year %d\n", fileName,nRecords+1,i+1);
+							error=1;
+							break;
+						}
+						i++;	// only count lines with something on them
+					}
+				}
+				else
+				{
+					printf("An ERROR occurred reading file %s\n", fileName);
+					error=1;
+					break;
+				}
+			}
+		}
+		else if(format==LOCAL_STATIC)
+		{
+			if(data)
+				memset(data, 0, nRecords*nYears*sizeof(double));
+
+			if(ifheader)
+			{
+				fpos=ftell(ifp);
+				if(fpos==0)
+					fgets(line,sizeof(line),ifp);	//ignore header line
+			}
+
+			if(fgets(line,sizeof(line),ifp))	//OBS! behövs, annars läser scanf in gammal line igen efter sista raden
+			{
+				count=sscanf(line,"%lf%lf%lf", &d1, &d2, &d3);
+				if(count>0)	// Avoid blank lines at the end of the file
+				{
+					if(count==2 || count>2 && (format==LOCAL_STATIC || ifheader))	//added LOCAL_STATIC compatibility 091207 (not used, use SoilData instead for soilcode)
+					{																//Bugfix 110607 (was =2)
+						currentStand.lon=d1;
+						currentStand.lat=d2;				
+					}
+					else
+					{
+						printf("FORMAT ERROR in input file %s: LoadNext(), count!=2, line %d\n",fileName,i);
+						error=1;
+					}
+				}
+				else
+				{
+					printf("WARNING: blank line in file %s: LoadNext(), count==0\n",fileName);
+				}	
+			}
+			else
+				error=1;
+
+			for(i=0;i<nYears && error==0;)
+			{
+				k=0;
+				count1=0;
+
+				if(ifheader && firstyear)
+					firstyear=false;
+				else
+					fgets(line, sizeof(line), ifp);
+
+				if(line)
+				{
+					memset(d, 0, nRecords*sizeof(double));
+
+					if(ifheader)
+					{
+						p=strtok(line," \t");	//lon
+						p=strtok(NULL, " \t");	//lat
+					}
+
+					if(!p)							//Fix for blank line 110531
+						continue;
+
 //printf("count1=%d\n",count1);
 //printf("yearX=%d\n",yearX);
 					//Kolla att årtalet är rätt här !
@@ -2538,7 +2718,6 @@ int TimeDataD::LoadNext()	//Only implemented for LOCAL_YEARLY (100106)			; Needs
 					{
 						if(count1==nRecords)
 						{
-							year[i]=yearX;
 							for(j=0;j<nRecords;j++)
 							{
 								data[nRecords*i+j]=d[j];
@@ -2599,9 +2778,7 @@ int TimeDataD::FindRecord(Coord c) const
 		{
 			if(ifheader)
 			{
-//				oldpos=ftell(ifp);				// slow !
-
-				if(!(i%nYears))					// much quicker, only 3 times per coordinate.
+				if(!(i%nYears))					
 					oldpos=ftell(ifp);
 			}
 
@@ -2624,11 +2801,12 @@ int TimeDataD::FindRecord(Coord c) const
 					count=sscanf(line,"%lf%lf%lf", &d1, &d2, &d3);
 					if(count>0)	// Avoid blank line at the end of the file
 					{
-						if(count==2 || count>2 && d3==firstyear && (format==LOCAL_STATIC || ifheader))	//added LOCAL_STATIC compatibility 091207 (not used, use SoilData instead for soilcode)
+						if(count==2 || count>2 && (d3==firstyear || format==LOCAL_STATIC) && (format==LOCAL_STATIC || ifheader))	//added LOCAL_STATIC compatibility 091207 (not used, use SoilData instead for soilcode)
 						{
 							if(c.lon==d1 && c.lat==d2)
 							{
 								if(!ischeckingdata)
+if(!SUPPRESSLARGEOUTPUT)
 									dprintf("Coordinate <%.2f,%.2f> found in %s\n", d1, d2, fileName);
 								found=1;
 								break;
@@ -2675,7 +2853,6 @@ int TimeDataD::FindRecord(Coord c) const
 	{
 		if(ifheader)
 			fseek(ifp, oldpos, 0);	//The found line needs to be read again in Load()
-//			fseek(ifp, oldpos-newpos, SEEK_CUR);
 
 		return 1;
 	}
@@ -2736,6 +2913,7 @@ int TimeDataD::FindRecord2(Coord c) const	//No need for FindRecord2()
 							if(c.lon==d1 && c.lat==d2)
 							{
 								if(!ischeckingdata)
+if(!SUPPRESSLARGEOUTPUT)
 									dprintf("Coordinate <%.2f,%.2f> found in %s\n", d1, d2, fileName);
 								found=1;
 								break;
@@ -2783,25 +2961,43 @@ int TimeDataD::FindRecord2(Coord c) const	//No need for FindRecord2()
 		return 0;
 }
 
-void TimeDataD::Output(char *name) const
+void TimeDataD::Output(char *name)
 {
 	int i=0, j=0;
 	FILE *ofp;
 
 //	dprintf("Inside Output()\n");	// Test
+	if(isfirstgrid)
+		remove(name);
 
 	if(format==GLOBAL_STATIC || format==GLOBAL_YEARLY)
 		ofp=fopen(name, "w");
 	else if(format==LOCAL_STATIC || format==LOCAL_YEARLY)
 		ofp=fopen(name, "a");
 
-	if(ifheader && header_arr)
+	if(ifheader && header_arr && isfirstgrid)
 	{
-		fprintf(ofp, "   lon\t   lat\t  year\t");
-		   
+		switch (format)
+		{
+		case GLOBAL_STATIC:
+			break;
+		case GLOBAL_YEARLY:
+			fprintf(ofp, "  year\t");
+			break;
+		case LOCAL_STATIC:
+			fprintf(ofp, "   lon\t   lat\t");
+			break;
+		case LOCAL_YEARLY:
+			fprintf(ofp, "   lon\t   lat\t  year\t");
+			break;
+		default:
+			;
+		}
+			   
 		for(int i=0; i<nRecords; i++)
 			fprintf(ofp, "%8s\t", header_arr[i]);
 		fprintf(ofp, "\n");
+		isfirstgrid=false;
 	}
 
 
@@ -2817,6 +3013,10 @@ void TimeDataD::Output(char *name) const
 			fprintf(ofp, "%d\t%.3lf\n", year[i], data[i]);
 		break;
 	case LOCAL_STATIC:
+		fprintf(ofp, "%6.2f\t%6.2f",currentStand.lon, currentStand.lat);
+		for(j=0;j<nRecords;j++)
+			fprintf(ofp, "\t%8.3f", data[nRecords*i+j]);
+		fprintf(ofp, "\n");
 		break;
 	case LOCAL_YEARLY:
 //		ofp=fopen(name, "a");
@@ -2848,7 +3048,7 @@ TimeDataD::TimeDataD(int formatX)
 	ifp=NULL;
 	fileName=NULL;
 	ifheader=true;
-	memset(header_arr,0,sizeof(char)*MAXRECORDS*10);
+	memset(header_arr,0,sizeof(char)*MAXRECORDS*MAXNAMESIZE);
 //	for(int i=0;i<MAXRECORDS;i++)
 //		printf("header_arr[i]=%s\n", header_arr[i]);
 	currentStand.lon=0;
@@ -2857,9 +3057,11 @@ TimeDataD::TimeDataD(int formatX)
 	checkdata=NULL;
 	ischeckingdata=false;
 	active=NULL;
+	isfirstgrid=true;
 
 	nRecords=0;
 	nYears=0;
+	nCells=0;
 	year=NULL;
 	format=formatX;
 	fileopened=false;
@@ -2904,10 +3106,117 @@ TimeDataD::~TimeDataD()
 	}
 }
 
-TimeDataD LUdata(LOCAL_YEARLY);
+class TimeDataDmem
+{
+	Coord *gridlist;
+	double **data;
+	int nCells;
+	int nColumns;
+	int nYears;
+	int currentCell;
+public:
+	double Get(int year, int column) const;	
+	int Load(Coord c);
+	void SetCoord(int index, Coord c);
+	void SetData(int index, double* data);
+	void Open(int nCells, int nColumns, int nYears);
+	TimeDataDmem();
+	~TimeDataDmem();
+};
+
+double TimeDataDmem::Get(int year, int column) const
+{
+	if(currentCell>=0)
+		return data[currentCell][year*nColumns+column];
+	else
+		return 0.0;
+}
+
+int TimeDataDmem::Load(Coord c)
+{
+	bool error=true;
+
+	if(gridlist[currentCell+1].lon==c.lon && gridlist[currentCell+1].lat==c.lat)	//In case gridlist cell order is same as in land use files.
+	{
+		currentCell++;
+		error=false;
+	}
+	else
+	{
+		for(int i=0;i<nCells;i++)
+		{
+			if(gridlist[i].lon==c.lon && gridlist[i].lat==c.lat)
+			{
+				currentCell=i;
+				error=false;
+				break;
+			}
+		}
+	}
+	if(error)
+		return 0;
+	else
+		return 1;
+}
+void TimeDataDmem::SetData(int index, double* dataX)
+{
+	if(data && data[index])
+		memcpy(data[index], dataX, nColumns*nYears* sizeof(double));
+}
+
+void TimeDataDmem::SetCoord(int index, Coord c)
+{
+	gridlist[index].lon=c.lon;
+	gridlist[index].lat=c.lat;
+}
+
+void TimeDataDmem::Open(int nCellsX, int nColumnsX, int nYearsX)
+{
+	nCells=nCellsX;
+	nColumns=nColumnsX;
+	nYears=nYearsX;
+	gridlist=new Coord[nCells];
+	data=new double*[nCells];
+	for(int i=0;i<nCells;i++)
+	{
+		data[i]=new double[nColumns*nYears];
+		if(data[i])
+			memset(data[i], 0, nColumns*nYears*sizeof(double));
+	}
+}
+
+TimeDataDmem::TimeDataDmem()
+{
+	gridlist=NULL;
+	data=NULL;
+	nCells=0;
+	currentCell=-1;
+}
+
+TimeDataDmem::~TimeDataDmem()
+{
+	for(int i=0;i<nCells;i++)
+	{
+		if(data[i])
+			delete[] data[i];
+	}
+	if(data)
+		delete[] data;
+}
+
+TimeDataD LUdata;
 TimeDataD Peatdata;
-TimeDataD CFTdata(LOCAL_YEARLY);
+TimeDataD CFTdata;
+
+#define LUTOMEMORY	//Write land use fraction data to memory; enables efficient usage of randomized gridlists for parallell runs on Simba.
+
+#ifdef LUTOMEMORY
+TimeDataDmem LUdata_mem;
+TimeDataDmem CFTdata_mem;
 #endif
+
+#endif
+
 xtring file_lu, file_lucrop, file_peat;
 const int NYEAR_LU=103;	//only used to get LU data after historical period (after 2003) : only used in AR4-runs, but causes no harm otherwise
 //
@@ -3394,7 +3703,7 @@ void initio(const xtring& insfilename) {
 		all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
 
 		//Retrieve file names for landcover files and open them if static values from ins-file are not used !
-		if (!lcfrac_fixed) {	//This version does not support dynamic landcover fraction data
+		if (!lcfrac_fixed) {
 
 			if (run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST]) {
 				file_lu=param["file_lu"].str;
@@ -3402,7 +3711,40 @@ void initio(const xtring& insfilename) {
 				if(!LUdata.Open(file_lu))				//Open Bondeau area fraction file, returned false if problem
 					fail("initio: could not open %s for input",(char*)file_lu);
 				else if(LUdata.format==LOCAL_YEARLY)
+				{
 					all_fracs_const=false;				//Set all_fracs_const to false if yearly data
+
+#ifdef LUTOMEMORY
+					LUdata_mem.Open(gridlist.nobj, LUdata.nRecords,LUdata.nYears);
+
+					int cell_no=0;
+
+					double *celldata;
+					celldata=new double[LUdata.nRecords*LUdata.nYears];
+
+					while(LUdata.LoadNext())
+					{
+						Coord c;
+						c=LUdata.GetCoord();
+
+						gridlist.firstobj();
+						while(gridlist.isobj)
+						{
+							Coord cc=gridlist.getobj();
+							if(c.lon==cc.lon && c.lat==cc.lat)
+							{
+								LUdata_mem.SetCoord(cell_no, c);
+								LUdata.Get(celldata);
+								LUdata_mem.SetData(cell_no, celldata);
+								cell_no++;
+								break;
+							}
+							gridlist.nextobj();
+						}
+					}
+					delete[] celldata;
+#endif
+				}
 #endif
 			}
 
@@ -3460,7 +3802,40 @@ void initio(const xtring& insfilename) {
 			}
 
 			if(CFTdata.format==LOCAL_YEARLY)
+			{
 				all_fracs_const=false;
+
+#ifdef LUTOMEMORY
+				CFTdata_mem.Open(gridlist.nobj, CFTdata.nRecords,CFTdata.nYears);
+
+				int cell_no=0;
+
+				double *celldata;
+				celldata=new double[CFTdata.nRecords*CFTdata.nYears];
+
+				while(CFTdata.LoadNext())
+				{
+					Coord c;
+					c=CFTdata.GetCoord();
+
+					gridlist.firstobj();
+					while(gridlist.isobj)
+					{
+						Coord cc=gridlist.getobj();
+						if(c.lon==cc.lon && c.lat==cc.lat)
+						{
+							CFTdata_mem.SetCoord(cell_no, c);
+							CFTdata.Get(celldata);
+							CFTdata_mem.SetData(cell_no, celldata);
+							cell_no++;
+							break;
+						}
+						gridlist.nextobj();
+					}
+				}
+				delete[] celldata;
+#endif
+			}
 
 //			for(int i=0;i<CFTdata.nRecords;i++)
 //				dprintf("%s:CFTdata.active=%d\n", CFTdata.GetHeader(i), CFTdata.active[i]);
@@ -3503,16 +3878,22 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	{
 		// transferred to gridcell.landcoverfrac each year in getlandcover()
 
 		if (run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST]) {
-#if defined DYNAMIC_LANDCOVER_INPUT					
+#if defined DYNAMIC_LANDCOVER_INPUT
+#ifdef LUTOMEMORY
+			if (!LUdata_mem.Load(c))		//Load area fraction data from memory
+#else
 			if (!LUdata.Load(c))		//Load area fraction data from Bondeau input file to data object
+#endif
 			{
 				dprintf("Problems with landcover fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;		// skip this stand
 			}
 			else
 			{
+#ifndef LUTOMEMORY
 if(!SUPPRESSLARGEOUTPUT)
 				LUdata.Output("LUdata.out");
+#endif
 			}
 #endif
 		}
@@ -3532,15 +3913,21 @@ if(!SUPPRESSLARGEOUTPUT)
 	{
 		if(!cftfrac_fixed)// Crop fraction data: read from crop fraction file; dynamic, so data for all years are loaded to CFTdata object and 
 		{	// transferred to gridcell.cftfrac each year in getlandcover()
+#ifdef LUTOMEMORY
+			if(!CFTdata_mem.Load(c))
+#else
 			if(!CFTdata.Load(c))
+#endif
 			{
 				dprintf("Problems with CFT fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;	// skip this stand
 			}
 		else
 			{
+#ifndef LUTOMEMORY
 if(!SUPPRESSLARGEOUTPUT)
 				CFTdata.Output("CFTdata.out");
+#endif
 			}
 		}
 	}
@@ -3842,7 +4229,11 @@ void getlandcover(Gridcell& gridcell) {
 		if(run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST])
 		{	
 			// To allow run without LU data in Bondeau's file (sets NATURAL to 1.0)
+#ifdef LUTOMEMORY
+			if(LUdata_mem.Get(year,0)==-9.999)
+#else
 			if(LUdata.Get(year,0)==-9.999)
+#endif
 			{
 				dprintf("WARNING ! missing landcover fraction data for year %d, natural vegetation fraction set to 1.0\n", year+FIRSTHISTYEAR);
 				memset(gridcell.landcoverfrac, 0, sizeof(double)*NLANDCOVERTYPES);
@@ -3856,12 +4247,20 @@ void getlandcover(Gridcell& gridcell) {
 #if defined DYNAMIC_LANDCOVER_INPUT
 #ifdef GRASSFORCROP
 					if(i==PASTURE)
+#ifdef LUTOMEMORY
+						sum_tot+=gridcell.landcoverfrac[PASTURE]=LUdata_mem.Get(year,CROPLAND);
+#else
 						sum_tot+=gridcell.landcoverfrac[PASTURE]=LUdata.Get(year,CROPLAND);
+#endif
 					else if(i==CROPLAND)
 						gridcell.landcoverfrac[CROPLAND]=0.0;
 					else
 #endif
+#ifdef LUTOMEMORY
+					sum_tot+=gridcell.landcoverfrac[i]=LUdata_mem.Get(year,i);					//count sum of all fractions (should be 1.0)
+#else
 					sum_tot+=gridcell.landcoverfrac[i]=LUdata.Get(year,i);					//count sum of all fractions (should be 1.0)
+#endif
 #endif
 					if(gridcell.landcoverfrac[i]<0.0 || gridcell.landcoverfrac[i]>1.0)			//discard unreasonable values
 					{		
@@ -3994,8 +4393,11 @@ void getlandcover(Gridcell& gridcell) {
 				year=0;
 			else if(fixedlu_hist)
 				year=year_saved;
-
+#ifdef LUTOMEMORY
+			if(CFTdata_mem.Get(year,0)==-9.999)	//to cope with missing Bondeau fraction data
+#else
 			if(CFTdata.Get(year,0)==-9.999)	//to cope with missing Bondeau fraction data
+#endif
 			{
 				dprintf("WARNING ! missing crop fraction data  for year %d, all set to 0.0\n", year+FIRSTHISTYEAR);
 				memset(gridcell.cftfrac, 0, sizeof(double)*NCROPSTANDS_MAX);
@@ -4006,7 +4408,11 @@ void getlandcover(Gridcell& gridcell) {
 				{
 					if(CFTdata.active[i])	//forces rescaling of fractions of active pft:s
 					{
+#ifdef LUTOMEMORY
+						sum+=gridcell.cftfrac[i]=CFTdata_mem.Get(year,i);
+#else
 						sum+=gridcell.cftfrac[i]=CFTdata.Get(year,i);
+#endif
 						if(gridcell.cftfrac[i]<0.0 || gridcell.cftfrac[i]>1.0)
 						{
 							dprintf("WARNING ! crop fraction size out of limits, set to 0.0\n");

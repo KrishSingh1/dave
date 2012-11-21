@@ -2,8 +2,8 @@
 
 mkdir results
 
-common1961to1990_nitrogen.sh
-tslice cflux.out -o results/cflux1990to2000.txt -f 589 -t 599 -lon 1 -lat 2 -y 3
+common1961to1990.sh
+tslice cflux.out -o results/cflux1990to2000.txt -f 3089 -t 3099 -lon 1 -lat 2 -y 3
 aslice cflux1961to1990.txt -o results/cflux1961to1990_areaaverage.txt -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.25 0.25   
 aslice cflux1990to2000.txt -o results/cflux1990to2000_areaaverage.txt -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.25 0.25   
 aslice cpool1961to1990.txt -o results/cpool1961to1990_areaaverage.txt -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.25 0.25   

@@ -1816,14 +1816,9 @@ void establishment_guess_plantation(Stand& stand,Patch& patch, int century_year)
 						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
 						indiv.scale_n_storage = indiv.max_n_storage * indiv.cton_leaf / bminit;
 
-						// Account for C flux from atmosphere to vegetation
-						// guess2008 
-						// Ben 2007-11-28: flux is not debited for 'new' Individual
+						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()
 						// if they survive the first year 
-
-						if (indiv.alive)
-							patch.fluxes.acflux_est-=bminit;
 					}
 				}
 				else if (pft.lifeform==TREE) {

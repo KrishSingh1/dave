@@ -2045,7 +2045,7 @@ bool getndep(xtring filename,double lon,double lat) {
 
 	// interpolate to all hist and scenario years
 
-	int years[] = {5, 15, 25, 35, 45, 55, 65, 75, 85, 95, 105, 115, 125, 135, 145, 155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255};
+	int years[] = {5, 15, 25, 35, 45, 55, 65, 75, 85, 95, 105, 115, 125, 135, 145, 155};
 	int interyear[2] = {0};
 	int yy = 0;
 
@@ -2063,6 +2063,8 @@ bool getndep(xtring filename,double lon,double lat) {
 				interyear[1] = yy;
 				found = true;
 			}
+			else if (y>155)
+				found = true;
 			else
 				yy++;
 		}
@@ -2985,17 +2987,19 @@ void outannual(Gridcell& gridcell) {
 
 				double to_gridcell_average = stand.get_gridcell_fraction()/(double)stand.npatch();
 
-				flux_veg+=-patch.fluxes.get_annual_flux(Fluxes::NPP)*to_gridcell_average;
-				flux_soil+=patch.fluxes.get_annual_flux(Fluxes::SOILC)*to_gridcell_average;
-				flux_fire+=patch.fluxes.get_annual_flux(Fluxes::FIREC)*to_gridcell_average;
-				flux_est+=patch.fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;
-				flux_harvest+=patch.fluxes.get_annual_flux(Fluxes::HARVESTC)*to_gridcell_average;
-				flux_nh3     += patch.fluxes.aNH3_fire      * to_gridcell_average;
-				flux_no      += patch.fluxes.aNO_fire       * to_gridcell_average;
-				flux_no2     += patch.fluxes.aNO2_fire      * to_gridcell_average;
-				flux_n2o     += patch.fluxes.aN2O_fire      * to_gridcell_average;	
-				flux_ntot    += (patch.fluxes.aNH3_fire + patch.fluxes.aNO_fire + patch.fluxes.aNO2_fire +
-					patch.fluxes.aN2O_fire)                 * to_gridcell_average;
+				flux_veg     +=-patch.fluxes.get_annual_flux(Fluxes::NPP)      * to_gridcell_average;
+				flux_soil    +=patch.fluxes.get_annual_flux(Fluxes::SOILC)     * to_gridcell_average;
+				flux_fire    +=patch.fluxes.get_annual_flux(Fluxes::FIREC)     * to_gridcell_average;
+				flux_est     +=patch.fluxes.get_annual_flux(Fluxes::ESTC)      * to_gridcell_average;
+				flux_harvest +=patch.fluxes.get_annual_flux(Fluxes::HARVESTC)  * to_gridcell_average;
+				flux_nh3     += patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE) * to_gridcell_average;
+				flux_no      += patch.fluxes.get_annual_flux(Fluxes::NO_FIRE)  * to_gridcell_average;
+				flux_no2     += patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE) * to_gridcell_average;
+				flux_n2o     += patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE) * to_gridcell_average;	
+				flux_ntot    += (patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE) + 
+					patch.fluxes.get_annual_flux(Fluxes::NO_FIRE) + 
+					patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE) +
+					patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE))            * to_gridcell_average;
 
 				c_fast+=patch.soil.cpool_fast*to_gridcell_average;
 				c_slow+=patch.soil.cpool_slow*to_gridcell_average;

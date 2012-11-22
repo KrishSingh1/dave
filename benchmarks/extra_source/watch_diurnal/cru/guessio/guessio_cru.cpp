@@ -2070,7 +2070,7 @@ bool getndep(xtring filename,double lon,double lat) {
 
 	// interpolate to all hist and scenario years
 
-	int years[] = {5, 15, 25, 35, 45, 55, 65, 75, 85, 95, 105, 115, 125, 135, 145, 155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255};
+	int years[] = {5, 15, 25, 35, 45, 55, 65, 75, 85, 95, 105, 115, 125, 135, 145, 155};
 	int interyear[2] = {0};
 	int yy = 0;
 
@@ -2088,6 +2088,8 @@ bool getndep(xtring filename,double lon,double lat) {
 				interyear[1] = yy;
 				found = true;
 			}
+			else if (y>155)
+				found = true;
 			else
 				yy++;
 		}
@@ -2742,15 +2744,15 @@ void outannual(Gridcell& gridcell) {
 						if (indiv.id!=-1 && indiv.alive) { 
 							
 							if (indiv.pft.id==pft.id) {
-								standpft_cmass      += indiv.cmass_leaf +
-									indiv.cmass_root + indiv.cmass_sap + indiv.cmass_heart - indiv.cmass_debt;
+								standpft_cmass+=indiv.cmass_leaf+
+									indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
 								standpft_nmass      += indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + 
 									indiv.nmass_heart +	indiv.nstore + indiv.nstore_leaf + indiv.nstore_root;
 								standpft_cmass_leaf += indiv.cmass_leaf;
 								standpft_nmass_leaf += indiv.cmass_leaf / indiv.cton_leaf;
 								standpft_cmass_veg  += indiv.cmass_veg;
 								standpft_nmass_veg  += indiv.nmass_veg;
-								standpft_lai        += indiv.lai;
+								standpft_lai+=indiv.lai;
 								standpft_vmaxnlim   += indiv.avmaxnlim * indiv.cmass_leaf;
 								standpft_nuptake    += indiv.anuptake;
 
@@ -2922,17 +2924,19 @@ void outannual(Gridcell& gridcell) {
 
 				double to_gridcell_average = stand.get_gridcell_fraction()/(double)stand.npatch();
 
-				flux_veg+=-patch.fluxes.get_annual_flux(Fluxes::NPP)*to_gridcell_average;
-				flux_soil+=patch.fluxes.get_annual_flux(Fluxes::SOILC)*to_gridcell_average;
-				flux_fire+=patch.fluxes.get_annual_flux(Fluxes::FIREC)*to_gridcell_average;
-				flux_est+=patch.fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;
-				flux_harvest+=patch.fluxes.get_annual_flux(Fluxes::HARVESTC)*to_gridcell_average;
-				flux_nh3     += patch.fluxes.aNH3_fire      * to_gridcell_average;
-				flux_no      += patch.fluxes.aNO_fire       * to_gridcell_average;
-				flux_no2     += patch.fluxes.aNO2_fire      * to_gridcell_average;
-				flux_n2o     += patch.fluxes.aN2O_fire      * to_gridcell_average;	
-				flux_ntot    += (patch.fluxes.aNH3_fire + patch.fluxes.aNO_fire + patch.fluxes.aNO2_fire +
-					patch.fluxes.aN2O_fire)                 * to_gridcell_average;
+				flux_veg     +=-patch.fluxes.get_annual_flux(Fluxes::NPP)      * to_gridcell_average;
+				flux_soil    +=patch.fluxes.get_annual_flux(Fluxes::SOILC)     * to_gridcell_average;
+				flux_fire    +=patch.fluxes.get_annual_flux(Fluxes::FIREC)     * to_gridcell_average;
+				flux_est     +=patch.fluxes.get_annual_flux(Fluxes::ESTC)      * to_gridcell_average;
+				flux_harvest +=patch.fluxes.get_annual_flux(Fluxes::HARVESTC)  * to_gridcell_average;
+				flux_nh3     += patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE) * to_gridcell_average;
+				flux_no      += patch.fluxes.get_annual_flux(Fluxes::NO_FIRE)  * to_gridcell_average;
+				flux_no2     += patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE) * to_gridcell_average;
+				flux_n2o     += patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE) * to_gridcell_average;	
+				flux_ntot    += (patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE) + 
+					patch.fluxes.get_annual_flux(Fluxes::NO_FIRE) + 
+					patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE) +
+					patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE))            * to_gridcell_average;
 
 				c_fast+=patch.soil.cpool_fast*to_gridcell_average;
 				c_slow+=patch.soil.cpool_slow*to_gridcell_average;
@@ -3013,11 +3017,11 @@ void outannual(Gridcell& gridcell) {
 					mwcont_upper[m] += patch.soil.mwcont[m][0]*to_gridcell_average;
 					mwcont_lower[m] += patch.soil.mwcont[m][1]*to_gridcell_average;
 
-					mgpp[m] += patch.fluxes.get_monthly_flux(Fluxes::GPP, m ) * to_gridcell_average;
-					mra[m]  += patch.fluxes.get_monthly_flux(Fluxes::RA, m)   * to_gridcell_average;
+					mgpp[m] += patch.fluxes.get_monthly_flux(Fluxes::GPP, m)*to_gridcell_average;
+					mra[m] += patch.fluxes.get_monthly_flux(Fluxes::RA, m)*to_gridcell_average;
 
-					miso[m] += patch.fluxes.get_monthly_flux(Fluxes::ISO, m)  * to_gridcell_average;
-					mmon[m] += patch.fluxes.get_monthly_flux(Fluxes::MON, m)  * to_gridcell_average;
+					miso[m]+=patch.fluxes.get_monthly_flux(Fluxes::ISO, m)*to_gridcell_average;
+					mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MON, m)*to_gridcell_average;
 				}
 
 				// Calculate monthly NPP and LAI

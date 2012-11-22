@@ -2246,7 +2246,7 @@ void initio(const xtring& insfilename) {
 	if (file_ndep=="")
 		ifndepdata=false;
 	else {
-		xtring file_ndep_hist=file_ndep;
+		xtring file_ndep_hist=file_ndep+".bin";
 		FILE* in_ndep=fopen(file_ndep_hist,"rt");
 		if (!in_ndep)
 			fail("initio: could not open %s for input",(char*)file_ndep_hist);
@@ -2355,7 +2355,7 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	{
 bool getndep(xtring filename,double lon,double lat) {
 
 	int y,m;
-	double dailyndep = 2000.0 / (4.0 * 365.0);	// pre-industrial nitrogen depostion [gN ha-1] (2 kgN/ha/year)
+	double dailyndep = 2000.0 / (4.0 * 365.0);	// pre-industrial N depostion [gN ha-1] (2 kgN/ha/year)
 	double convert = 0.0000001;					// converting from gN ha-1 to kgN m-2
 	double NHxWetDep_10[26][12] = {0.0};
 	double NHxDryDep_10[26][12] = {0.0};
@@ -2372,36 +2372,36 @@ bool getndep(xtring filename,double lon,double lat) {
 			}
 		}
 	}
+
+	xtring historic_filename = filename+".bin";
+
+	GlobalNitrogenDepositionArchive ark;
+	if (!ark.open(historic_filename)) {
+		 fail("Could not open %s for input",(char*)historic_filename);
+		 return false;
+	}
+
+	GlobalNitrogenDeposition rec;
+	rec.longitude = lon;
+	rec.latitude = lat;
+	
+	if (!ark.getindex(rec)) {
+		 // The coordinate wasn't found in the archive
+		 ark.close();
+		 return false;
+	}
 	else {
-
-		GlobalNitrogenDepositionArchive ark;
-		if (!ark.open(filename)) {
-			fail("Could not open %s for input",(char*)filename);
-			return false;
-		}
-
-		GlobalNitrogenDeposition rec;
-		rec.longitude = lon;
-		rec.latitude = lat;
-
-		if (!ark.getindex(rec)) {
-			// The coordinate wasn't found in the archive
-			ark.close();
-			return false;
-		}
-		else {
-			// Found the record, get the values
-			for (y=0;y<16;y++) {
-				for (m=0;m<12;m++) {
-					NHxDryDep_10[y][m] = rec.NHxDry[y*12+m];
-					NHxWetDep_10[y][m] = rec.NHxWet[y*12+m];	
-					NOyDryDep_10[y][m] = rec.NOyDry[y*12+m];	
-					NOyWetDep_10[y][m] = rec.NOyWet[y*12+m];
-				}
+		 // Found the record, get the values
+		for (y=0;y<16;y++) {
+			for (m=0;m<12;m++) {
+				NHxDryDep_10[y][m] = rec.NHxDry[y*12+m];
+				NHxWetDep_10[y][m] = rec.NHxWet[y*12+m];	
+				NOyDryDep_10[y][m] = rec.NOyDry[y*12+m];	
+				NOyWetDep_10[y][m] = rec.NOyWet[y*12+m];
 			}
-
-			ark.close();
 		}
+
+		ark.close();
 	}
 
 	// interpolate to all hist and scenario years
@@ -3604,15 +3604,15 @@ void outannual(Gridcell& gridcell) {
 						if (indiv.id!=-1 && indiv.alive) { 
 							
 							if (indiv.pft.id==pft.id) {
-								standpft_cmass      += indiv.cmass_leaf +
-									indiv.cmass_root + indiv.cmass_sap + indiv.cmass_heart - indiv.cmass_debt;
+								standpft_cmass+=indiv.cmass_leaf+
+									indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
 								standpft_nmass      += indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + 
 									indiv.nmass_heart +	indiv.nstore + indiv.nstore_leaf + indiv.nstore_root;
 								standpft_cmass_leaf += indiv.cmass_leaf;
 								standpft_nmass_leaf += indiv.cmass_leaf / indiv.cton_leaf;
 								standpft_cmass_veg  += indiv.cmass_veg;
 								standpft_nmass_veg  += indiv.nmass_veg;
-								standpft_lai        +=indiv.lai;
+								standpft_lai+=indiv.lai;
 								standpft_vmaxnlim   += indiv.avmaxnlim * indiv.cmass_leaf;
 								standpft_nuptake    += indiv.anuptake;
 
@@ -3784,17 +3784,19 @@ void outannual(Gridcell& gridcell) {
 
 				double to_gridcell_average = stand.get_gridcell_fraction()/(double)stand.npatch();
 
-				flux_veg+=-patch.fluxes.get_annual_flux(Fluxes::NPP)*to_gridcell_average;
-				flux_soil+=patch.fluxes.get_annual_flux(Fluxes::SOILC)*to_gridcell_average;
-				flux_fire+=patch.fluxes.get_annual_flux(Fluxes::FIREC)*to_gridcell_average;
-				flux_est+=patch.fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;
-				flux_harvest+=patch.fluxes.get_annual_flux(Fluxes::HARVESTC)*to_gridcell_average;
-				flux_nh3     += patch.fluxes.aNH3_fire      * to_gridcell_average;
-				flux_no      += patch.fluxes.aNO_fire       * to_gridcell_average;
-				flux_no2     += patch.fluxes.aNO2_fire      * to_gridcell_average;
-				flux_n2o     += patch.fluxes.aN2O_fire      * to_gridcell_average;	
-				flux_ntot    += (patch.fluxes.aNH3_fire + patch.fluxes.aNO_fire + patch.fluxes.aNO2_fire +
-					patch.fluxes.aN2O_fire)                 * to_gridcell_average;
+				flux_veg     +=-patch.fluxes.get_annual_flux(Fluxes::NPP)      * to_gridcell_average;
+				flux_soil    +=patch.fluxes.get_annual_flux(Fluxes::SOILC)     * to_gridcell_average;
+				flux_fire    +=patch.fluxes.get_annual_flux(Fluxes::FIREC)     * to_gridcell_average;
+				flux_est     +=patch.fluxes.get_annual_flux(Fluxes::ESTC)      * to_gridcell_average;
+				flux_harvest +=patch.fluxes.get_annual_flux(Fluxes::HARVESTC)  * to_gridcell_average;
+				flux_nh3     += patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE) * to_gridcell_average;
+				flux_no      += patch.fluxes.get_annual_flux(Fluxes::NO_FIRE)  * to_gridcell_average;
+				flux_no2     += patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE) * to_gridcell_average;
+				flux_n2o     += patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE) * to_gridcell_average;	
+				flux_ntot    += (patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE) + 
+					patch.fluxes.get_annual_flux(Fluxes::NO_FIRE) + 
+					patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE) +
+					patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE))            * to_gridcell_average;
 
 				c_fast+=patch.soil.cpool_fast*to_gridcell_average;
 				c_slow+=patch.soil.cpool_slow*to_gridcell_average;
@@ -3876,10 +3878,10 @@ void outannual(Gridcell& gridcell) {
 					mwcont_lower[m] += patch.soil.mwcont[m][1]*to_gridcell_average;
 
 					mgpp[m] += patch.fluxes.get_monthly_flux(Fluxes::GPP, m)*to_gridcell_average;
-					mra[m]  += patch.fluxes.get_monthly_flux(Fluxes::RA, m)*to_gridcell_average;
+					mra[m] += patch.fluxes.get_monthly_flux(Fluxes::RA, m)*to_gridcell_average;
 
-					miso[m] +=patch.fluxes.get_monthly_flux(Fluxes::ISO, m)*to_gridcell_average;
-					mmon[m] +=patch.fluxes.get_monthly_flux(Fluxes::MON, m)*to_gridcell_average;
+					miso[m]+=patch.fluxes.get_monthly_flux(Fluxes::ISO, m)*to_gridcell_average;
+					mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MON, m)*to_gridcell_average;
 				}
 
 				// Calculate monthly NPP and LAI

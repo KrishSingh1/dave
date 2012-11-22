@@ -608,7 +608,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			pftlist.firstobj();
 				while (pftlist.isobj) {
 					gridcell.pft[pftlist.getobj().id].Km = pftlist.getobj().Km_volym * gridcell.soiltype.wtot;
-				pftlist.nextobj();
+					pftlist.nextobj();
+				}
 		}
 
 		// Reset fluxes for all patches
@@ -625,11 +626,10 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 				patch.fluxes.reset();
 				stand.nextobj();
-			}
+	}
 			
 			gridcell.nextobj();
 		}
-	}
 	}
 	else if (climate.lat>=0.0 && date.day==COLDEST_DAY_NHEMISPHERE ||
 		climate.lat<0.0 && date.day==COLDEST_DAY_SHEMISPHERE) {
@@ -756,11 +756,6 @@ void dailyaccounting_patch(Patch& patch) {
 	Fluxes& fluxes=patch.fluxes;
 
 	if (date.day==0) {
-
-		fluxes.aNH3_fire = 0.0;
-		fluxes.aNO_fire = 0.0;
-		fluxes.aNO2_fire = 0.0;
-		fluxes.aN2O_fire = 0.0;
 
 		patch.aaet=0.0;
 		patch.aevap=0.0;
@@ -1167,7 +1162,8 @@ void check_nbalance(Patch& patch, bool print) {
 		}
 
 		nadded += soil.anfix + patch.stand.gridcell.climate.andep;
-		fluxn += patch.fluxes.aNH3_fire+patch.fluxes.aNO_fire+patch.fluxes.aNO2_fire+patch.fluxes.aN2O_fire;
+		fluxn += patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE) + patch.fluxes.get_annual_flux(Fluxes::NO_FIRE) + 
+		         patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE) + patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE);
 
 		if (print && date.year > nyear_spinup) {
 			dprintf("Year %d N BALANCE - difference over %d years: %g\n",date.year,

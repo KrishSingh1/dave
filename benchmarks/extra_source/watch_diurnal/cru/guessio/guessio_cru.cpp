@@ -310,20 +310,20 @@ void plib_declarations(int id,xtring setname) {
 			"Water uptake mode (\"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
 
 		declareitem("nrelocfrac",&nrelocfrac,0.0,1.0,1,CB_NONE,
-			"Fractional N relocation from shed leaves & roots");
+			"Fractional nitrogen relocation from shed leaves & roots");
 		declareitem("nfix_a",&nfix_a,0.0,0.4,1,CB_NONE,
-			"first term in N fixation eqn");
+			"first term in nitrogen fixation eqn");
 		declareitem("nfix_b",&nfix_b,-10.0,10.,1,CB_NONE,
-			"second term in N fixation eqn");
+			"second term in nitrogen fixation eqn");
 
 		declareitem("ifcentury",&ifcentury,1,CB_NONE,
 			"Whether to use CENTURY SOM dynamics (default standard LPJ)");
 		declareitem("ifnlim",&ifnlim,1,CB_NONE,
-			"Whether plant growth limited by available N");
+			"Whether plant growth limited by available nitrogen");
 		declareitem("freenyears",&freenyears,0,1000,1,CB_NONE,
-			"Number of years to spinup without N limitation");
+			"Number of years to spinup without nitrogen limitation");
 		declareitem("ifleachn",&ifleachn,1,CB_NONE,
-			"Whether to allow N leaching");
+			"Whether to allow nitrogen leaching");
 
 		// Annual output variables
 		declareitem("outputdirectory",&outputdirectory,300,CB_NONE,"Directory for the output files");
@@ -338,12 +338,12 @@ void plib_declarations(int id,xtring setname) {
 		
 		declareitem("file_cton_leaf",&file_cton_leaf,300,CB_NONE,"Mean leaf C:N output file");
 		declareitem("file_cton_veg",&file_cton_veg,300,CB_NONE,"Mean vegetation C:N output file");
-		declareitem("file_nsources",&file_nsources,300,CB_NONE,"annual N sources output file");
-		declareitem("file_npool",&file_npool,300,CB_NONE,"Soil N output file");
-		declareitem("file_nleach",&file_nleach,300,CB_NONE,"Leached mineral N output file");
-		declareitem("file_nuptake",&file_nuptake,300,CB_NONE,"annual N uptake output file");
-		declareitem("file_vmaxnlim",&file_vmaxnlim,300,CB_NONE,"annual N limitation on vm output file");
-		declareitem("file_nflux",&file_nflux,300,CB_NONE,"annual N fluxes output file");
+		declareitem("file_nsources",&file_nsources,300,CB_NONE,"annual nitrogen sources output file");
+		declareitem("file_npool",&file_npool,300,CB_NONE,"Soil nitrogen output file");
+		declareitem("file_nleach",&file_nleach,300,CB_NONE,"Leached mineral nitrogen output file");
+		declareitem("file_nuptake",&file_nuptake,300,CB_NONE,"annual nitrogen uptake output file");
+		declareitem("file_vmaxnlim",&file_vmaxnlim,300,CB_NONE,"annual nitrogen limitation on vm output file");
+		declareitem("file_nflux",&file_nflux,300,CB_NONE,"annual nitrogen fluxes output file");
 		
 		declareitem("file_speciesheights",&file_speciesheights,300,CB_NONE,"Mean species heights");
 
@@ -1239,9 +1239,9 @@ public:
 const int NYEAR_HIST=106; 
 /// calender year corresponding to first year in CRU climate data set
 const int FIRSTHISTYEAR=1901;
-/// calender year corresponding to first year N deposition
+/// calender year corresponding to first year nitrogen deposition
 const int FIRSTHISTYEARNDEP=1850;
-/// number of years of historical N deposition 
+/// number of years of historical nitrogen deposition 
 const int NYEAR_HISTNDEP=FIRSTHISTYEAR-FIRSTHISTYEARNDEP+NYEAR_HIST;
 /// number of years to use for temperature-detrended spinup data set
 /// (not to be confused with the number of years to spinup model for, which
@@ -1259,7 +1259,7 @@ using namespace GuessOutput;
 /// The output channel through which all output is sent
 OutputChannel* output_channel;
 
-// Full pathname of ASCII file containing annual N deposition values (read from ins file)
+// Full pathname of bin file containing annual nitrogen deposition values (read from ins file)
 xtring file_ndep;
 
 // Output tables
@@ -1910,10 +1910,9 @@ void initio(const xtring& insfilename) {
 	if (file_ndep=="")
 		ifndepdata=false;
 	else {
-		xtring file_ndep_hist=file_ndep+".bin";
-		FILE* in_ndep=fopen(file_ndep_hist,"rt");
+		FILE* in_ndep=fopen(file_ndep,"rt");
 		if (!in_ndep)
-			fail("initio: could not open %s for input",(char*)file_ndep_hist);
+			fail("initio: could not open %s for input",(char*)file_ndep);
 
 		fclose(in_ndep);
 		ifndepdata=true;
@@ -2019,7 +2018,7 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	{
 bool getndep(xtring filename,double lon,double lat) {
 
 	int y,m;
-	double dailyndep = 2000.0 / (4.0 * 365.0);	// pre-industrial N depostion [gN ha-1] (2 kgN/ha/year)
+	double dailyndep = 2000.0 / (4.0 * 365.0);	// pre-industrial nitrogen depostion [gN ha-1] (2 kgN/ha/year)
 	double convert = 0.0000001;					// converting from gN ha-1 to kgN m-2
 	double NHxWetDep_10[26][12] = {0.0};
 	double NHxDryDep_10[26][12] = {0.0};
@@ -2036,12 +2035,11 @@ bool getndep(xtring filename,double lon,double lat) {
 			}
 		}
 	}
-
-	xtring historic_filename = filename+".bin";
+	else {
 
 	GlobalNitrogenDepositionArchive ark;
-	if (!ark.open(historic_filename)) {
-		 fail("Could not open %s for input",(char*)historic_filename);
+		if (!ark.open(filename)) {
+			fail("Could not open %s for input",(char*)filename);
 		 return false;
 	}
 
@@ -2066,6 +2064,7 @@ bool getndep(xtring filename,double lon,double lat) {
 		}
 
 		ark.close();
+	}
 	}
 
 	// interpolate to all hist and scenario years
@@ -2859,7 +2858,7 @@ void outannual(Gridcell& gridcell) {
 					plot("lai",pft.name,date.year,gcpft_lai);
 					plot("dens [indiv/ha]",pft.name,date.year,gcpft_densindiv_total*10000.0);
 					if (gcpft_cmass_leaf > 0.0 && ifnlim) {
-						plot("vmax N lim",pft.name,date.year,gcpft_vmaxnlim);
+						plot("vmax nitrogen lim",pft.name,date.year,gcpft_vmaxnlim);
 						plot("leaf C:N ratio",pft.name,date.year,gcpft_cmass_leaf/gcpft_nmass_leaf);
 				}
 				}

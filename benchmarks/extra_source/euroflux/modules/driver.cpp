@@ -1166,7 +1166,7 @@ void check_nbalance(Patch& patch, bool print) {
 		         patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE) + patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE);
 
 		if (print && date.year > nyear_spinup) {
-			dprintf("Year %d N BALANCE - difference over %d years: %g\n",date.year,
+			dprintf("Year %d Nitrogen BALANCE - difference over %d years: %g\n",date.year,
 				date.year - nyear_spinup, old_total + nadded - (vegn + centuryn + soil.nmass + vegstore + littern + soil.sompool[LEACHED].nmass + fluxn));
 		}
 

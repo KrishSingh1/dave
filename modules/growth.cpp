@@ -1081,15 +1081,15 @@ void growth(Stand& stand, Patch& patch) {
 		indiv.ltor = min(indiv.wscal_mean, nscal) * indiv.pft.ltor_max;
 
 		// Move leftover compartment nitrogen storage to longterm storage
-		indiv.nstore += indiv.nstore_leaf + indiv.nstore_root;
+		indiv.nstore_labile += indiv.nstore_leaf + indiv.nstore_root;
 		indiv.nstore_leaf = 0.0;
 		indiv.nstore_root = 0.0;
 
 		// No nitrogen limitation, set nitrogen storage to zero
 		if (!ifnlim || date.year < freenyears) {
-			indiv.nstore      = 0.0;
-			indiv.nstore_leaf = 0.0;
-			indiv.nstore_root = 0.0;
+			indiv.nstore_labile = 0.0;
+			indiv.nstore_leaf   = 0.0;
+			indiv.nstore_root   = 0.0;
 		}
 
 		indiv.deltafpc = 0.0;
@@ -1152,10 +1152,10 @@ void growth(Stand& stand, Patch& patch) {
 				indiv.alive, patch.soil.nmass,
 				indiv.pft.landcover, gridcell);
 
-			if (indiv.alive && date.year > freenyears && indiv.nstore + retransn > indiv.max_n_storage) {
+			if (indiv.alive && date.year > freenyears && indiv.nstore_labile + retransn > indiv.max_n_storage) {
 				
 				// Nitrogen stored above maximum that will be subtracted from retranslocated nitrogen
-				double surplus = min(retransn, indiv.nstore + retransn - indiv.max_n_storage);
+				double surplus = min(retransn, indiv.nstore_labile + retransn - indiv.max_n_storage);
 
 				retransn -= surplus;
 
@@ -1165,7 +1165,7 @@ void growth(Stand& stand, Patch& patch) {
 			}
 			
 			// Add retranslocated nitrogen to storage
-			indiv.nstore += retransn;
+			indiv.nstore_labile += retransn;
 			
 			// Update stand record of reproduction by this PFT
 			stand.pft[indiv.pft.id].cmass_repr += cmass_repr / (double)stand.npatch();
@@ -1246,16 +1246,16 @@ void growth(Stand& stand, Patch& patch) {
 
 					patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
 						indiv.cton_leaf * (1.0 - nrelocfrac);
-					indiv.nstore += litter_leaf_inc * indiv.densindiv / indiv.cton_leaf * nrelocfrac;
+					indiv.nstore_labile += litter_leaf_inc * indiv.densindiv / indiv.cton_leaf * nrelocfrac;
 
 					patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
 						indiv.cton_root * (1.0 - nrelocfrac);
-					indiv.nstore += litter_root_inc * indiv.densindiv / indiv.cton_root * nrelocfrac;
+					indiv.nstore_labile += litter_root_inc * indiv.densindiv / indiv.cton_root * nrelocfrac;
 											
 					// if sapwood gets killed transfer 50% of nitrogen into storage,
 					// the other 50% going into heartwood
 					if (cmass_sap_inc < 0.0)	
-						indiv.nstore -= cmass_sap_inc * indiv.densindiv / indiv.cton_sap * (1.0 - nrelocfrac);
+						indiv.nstore_labile -= cmass_sap_inc * indiv.densindiv / indiv.cton_sap * (1.0 - nrelocfrac);
 				}
 				else {	// return nitrogen to soil so nitrogen budget is preserved
 					patch.soil.nmass += (litter_leaf_inc / indiv.cton_leaf + litter_root_inc / indiv.cton_root -
@@ -1294,12 +1294,12 @@ void growth(Stand& stand, Patch& patch) {
 						
 						// Transfer nitrogen storage to wood nitrogen litter for now
 						patch.pft[indiv.pft.id].nmass_litter_wood += max(indiv.nstore_leaf, 0.0) + 
-							max(indiv.nstore_root, 0.0) + max(indiv.nstore, 0.0);
+							max(indiv.nstore_root, 0.0) + max(indiv.nstore_labile, 0.0);
 					} 
 					else {	// return nitrogen to soil so nitrogen budget is preserved
 						patch.soil.nmass += max(indiv.nmass_leaf, 0.0) + max(indiv.nmass_root, 0.0) + max(indiv.nmass_sap, 0.0) +
 							max(indiv.nmass_heart, 0.0) + max(indiv.nstore_leaf, 0.0) + max(indiv.nstore_root, 0.0) + 
-							max(indiv.nstore, 0.0);
+							max(indiv.nstore_labile, 0.0);
 					}
 
 					vegetation.killobj();
@@ -1386,11 +1386,11 @@ void growth(Stand& stand, Patch& patch) {
 						
 						// Transfer nitrogen storage to root nitrogen litter for now
 						patch.pft[indiv.pft.id].nmass_litter_root += max(indiv.nstore_leaf, 0.0) + 
-							max(indiv.nstore_root, 0.0) + max(indiv.nstore, 0.0);
+							max(indiv.nstore_root, 0.0) + max(indiv.nstore_labile, 0.0);
 					} 
 					else {	// return nitrogen to soil so nitrogen budget is preserved
 						patch.soil.nmass += max(indiv.nmass_leaf, 0.0) + max(indiv.nmass_root, 0.0) +
-							max(indiv.nstore_leaf, 0.0) + max(indiv.nstore_root, 0.0) + max(indiv.nstore, 0.0);
+							max(indiv.nstore_leaf, 0.0) + max(indiv.nstore_root, 0.0) + max(indiv.nstore_labile, 0.0);
 					}
 
 					vegetation.killobj();
@@ -1420,15 +1420,15 @@ void growth(Stand& stand, Patch& patch) {
 					// Transfer nitrogen storage to root nitrogen litter if grass otherwise to wood nitrogen litter
 					if (indiv.pft.lifeform == GRASS)
 						patch.pft[indiv.pft.id].nmass_litter_root += max(indiv.nstore_leaf, 0.0) + 
-							max(indiv.nstore_root, 0.0) + max(indiv.nstore, 0.0);
+							max(indiv.nstore_root, 0.0) + max(indiv.nstore_labile, 0.0);
 					else
 						patch.pft[indiv.pft.id].nmass_litter_wood += max(indiv.nstore_leaf, 0.0) + 
-							max(indiv.nstore_root, 0.0) + max(indiv.nstore, 0.0);
+							max(indiv.nstore_root, 0.0) + max(indiv.nstore_labile, 0.0);
 				}
 				else {	// return nitrogen to soil so nitrogen budget is preserved
 					patch.soil.nmass += max(indiv.nmass_leaf, 0.0) + max(indiv.nmass_root, 0.0) + 
 						max(indiv.nmass_sap, 0.0) +	max(indiv.nmass_heart, 0.0) + max(indiv.nstore_leaf, 0.0) + 
-						max(indiv.nstore_root, 0.0) + max(indiv.nstore, 0.0);
+						max(indiv.nstore_root, 0.0) + max(indiv.nstore_labile, 0.0);
 				}
 
 				vegetation.killobj();
@@ -1447,9 +1447,9 @@ void growth(Stand& stand, Patch& patch) {
 				}
 
 				// Partion labile nitrogen between pools labile storage
-				indiv.nstore_leaf += indiv.nstore * frac_bminc_leaf / (frac_bminc_leaf + frac_bminc_root);
-				indiv.nstore_root += indiv.nstore * frac_bminc_root / (frac_bminc_leaf + frac_bminc_root);
-				indiv.nstore = 0.0;
+				indiv.nstore_leaf += indiv.nstore_labile * frac_bminc_leaf / (frac_bminc_leaf + frac_bminc_root);
+				indiv.nstore_root += indiv.nstore_labile * frac_bminc_root / (frac_bminc_leaf + frac_bminc_root);
+				indiv.nstore_labile = 0.0;
 
 				// Check so plant C:N ratios are not below minimum allowed C:N ratios (can happen under negative bminc)
 				double nbeyond;

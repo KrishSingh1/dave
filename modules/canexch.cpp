@@ -1141,7 +1141,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		}
 
 		// Labile nitrogen storage demand
-		indiv.storendemand = max(0.0, min(max(0.0, indiv.anpp * indiv.scale_n_storage / indiv.cton_leaf), indiv.max_n_storage) - (indiv.nstore + indiv.nstore_leaf + indiv.nstore_root));
+		indiv.storendemand = max(0.0, min(max(0.0, indiv.anpp * indiv.scale_n_storage / indiv.cton_leaf), indiv.max_n_storage) - (indiv.nstore_labile + indiv.nstore_leaf + indiv.nstore_root));
 
 		if (!ifnlim || date.year < freenyears)
 			indiv.storendemand = 0.0;

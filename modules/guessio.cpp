@@ -2258,7 +2258,7 @@ void outannual(Gridcell& gridcell) {
 
 					// Graphical output every 10 years
 					// (Windows shell only - "plot" statements have no effect otherwise)
-					if (true) {
+					if (!(date.year%10)) {
 						plot("cmass",pft.name,date.year,gcpft_cmass);
 						plot("anpp",pft.name,date.year,gcpft_anpp);
 						plot("lai",pft.name,date.year,gcpft_lai);
@@ -2558,7 +2558,7 @@ void outannual(Gridcell& gridcell) {
 		// Graphical output every 10 years
 		// (Windows shell only - no effect otherwise)
 
-		if (true) {
+		if (!(date.year%10)) {
 			gridcell.firstobj();
 			if(gridcell.isobj)	//Fixed bug here if no stands were present.
 			{
@@ -2574,9 +2574,10 @@ void outannual(Gridcell& gridcell) {
 					plot("soilc","fast",date.year,stand[0].soil.cpool_fast);
 				}
 				else {
-					plot("N addition (kgN/ha/yr)","Fixation",date.year,anfix_gridcell * m2toha);
-					plot("N addition (kgN/ha/yr)","Deposition",date.year,andep_gridcell * m2toha);
-					plot("N addition (kgN/ha/yr)","Fertilization",date.year,anfert_gridcell * m2toha);
+					plot("N addition (kgN/ha/yr)","Fixation",      date.year,anfix_gridcell * m2toha);
+					plot("N addition (kgN/ha/yr)","Deposition",    date.year,andep_gridcell * m2toha);
+					plot("N addition (kgN/ha/yr)","Fertilization", date.year,anfert_gridcell * m2toha);
+					plot("N addition (kgN/ha/yr)","Leaching",      date.year, (n_min_leach_gridcell + n_org_leach_gridcell) * m2toha);
 
 					plot("N min-immob (kgN/ha/yr)","N",date.year,(anmin_gridcell-animm_gridcell) * m2toha);
 

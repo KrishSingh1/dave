@@ -1162,7 +1162,7 @@ public:
 	/// storage of relocated nitrogen from root
 	double nstore_root;
 	/// storage of labile nitrogen
-	double nstore;
+	double nstore_labile;
 	/// nitrogen storage organ in relation to sapwood carbon for TREE and root carbon for GRASS
 	double ndemand;
 	/// annual nitrogen demand under no nitrogen limitation

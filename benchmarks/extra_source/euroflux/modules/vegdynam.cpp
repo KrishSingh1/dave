@@ -42,9 +42,29 @@ extern EurofluxData* current_stand_fluxdata;
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL VARIABLES
 
-int individ=0; // running id code for new individuals (see establishment)
-const double firenratio[] = {0.014, 0.531, 0.379, 0.076};	// emssion ratios from fire (NH3, NO, NO2, N2O) Delmas et al. 1995
+int individ = 0; // running id code for new individuals (see establishment)
 
+// emssion ratios from fire (NH3, NO, NO2, N2O) Delmas et al. 1995
+const double NH3_FIRERATIO = 0.014;
+const double NO_FIRERATIO  = 0.531;
+const double NO2_FIRERATIO = 0.379;
+const double N2O_FIRERATIO = 0.076;	
+
+/// Internal help function for splitting up nitrogen fire fluxes into components
+void report_fire_nfluxes(Patch& patch, double nflux_fire) {
+	patch.fluxes.report_flux(Fluxes::NH3_FIRE, NH3_FIRERATIO * nflux_fire); 
+	patch.fluxes.report_flux(Fluxes::NO_FIRE,  NO_FIRERATIO  * nflux_fire);
+	patch.fluxes.report_flux(Fluxes::NO2_FIRE, NO2_FIRERATIO * nflux_fire);
+	patch.fluxes.report_flux(Fluxes::N2O_FIRE, N2O_FIRERATIO * nflux_fire);
+}
+
+/// Same as above, but for fluxes associated with an individual
+void report_fire_nfluxes(Individual& indiv, double nflux_fire) {
+	indiv.report_flux(Fluxes::NH3_FIRE, NH3_FIRERATIO * nflux_fire); 
+	indiv.report_flux(Fluxes::NO_FIRE,  NO_FIRERATIO  * nflux_fire);
+	indiv.report_flux(Fluxes::NO2_FIRE, NO2_FIRERATIO * nflux_fire);
+	indiv.report_flux(Fluxes::N2O_FIRE, N2O_FIRERATIO * nflux_fire);	
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // RANDPOISSON
@@ -854,10 +874,8 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 
 			double nmass = indiv.nmass_leaf + indiv.nmass_sap + indiv.nmass_heart + 
 				indiv.nstore_leaf + indiv.nstore_root + indiv.nstore;
-			patch.fluxes.report_flux(Fluxes::NH3_FIRE, mort_fire * firenratio[0] * nmass);
-			patch.fluxes.report_flux(Fluxes::NO_FIRE,  mort_fire * firenratio[1] * nmass);
-			patch.fluxes.report_flux(Fluxes::NO2_FIRE, mort_fire * firenratio[2] * nmass);
-			patch.fluxes.report_flux(Fluxes::N2O_FIRE, mort_fire * firenratio[3] * nmass);
+
+			report_fire_nfluxes(indiv, mort_fire * nmass);
 
 			// Reduce population density and C biomass on modelled area basis
 			// to account for loss of killed individuals
@@ -921,10 +939,7 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 
 			indiv.report_flux(Fluxes::FIREC, mort_fire*indiv.cmass_leaf);
 
-			patch.fluxes.report_flux(Fluxes::NH3_FIRE, mort_fire * firenratio[0] * indiv.nmass_leaf);
-			patch.fluxes.report_flux(Fluxes::NO_FIRE,  mort_fire * firenratio[1] * indiv.nmass_leaf);
-			patch.fluxes.report_flux(Fluxes::NO2_FIRE, mort_fire * firenratio[2] * indiv.nmass_leaf);
-			patch.fluxes.report_flux(Fluxes::N2O_FIRE, mort_fire * firenratio[3] * indiv.nmass_leaf);
+			report_fire_nfluxes(indiv, mort_fire * indiv.nmass_leaf);
 
 			// Reduce C biomass on modelled area basis to account for biomass lost
 			// through mortality
@@ -1062,10 +1077,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					// nitrogen storage to root nitrogen litter 
 					patch.pft[indiv.pft.id].nmass_litter_root += mort_fire * (indiv.nmass_root + indiv.nstore_leaf + indiv.nstore_root + indiv.nstore);
 
-					patch.fluxes.report_flux(Fluxes::NH3_FIRE, mort_fire * firenratio[0] * indiv.nmass_leaf);
-					patch.fluxes.report_flux(Fluxes::NO_FIRE,  mort_fire * firenratio[1] * indiv.nmass_leaf);
-					patch.fluxes.report_flux(Fluxes::NO2_FIRE, mort_fire * firenratio[2] * indiv.nmass_leaf);
-					patch.fluxes.report_flux(Fluxes::N2O_FIRE, mort_fire * firenratio[3] * indiv.nmass_leaf);	
+					report_fire_nfluxes(indiv, mort_fire * indiv.nmass_leaf);
 
 					indiv.nmass_leaf  *= indiv.pft.fireresist;
 					indiv.nmass_root  *= indiv.pft.fireresist;
@@ -1132,10 +1144,8 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 
 					// Calculate flux from biomass to atmosphere due to fire
 					double nmass = indiv.nmass_leaf + indiv.nmass_sap +	indiv.nmass_heart + indiv.nstore_leaf + indiv.nstore_root + indiv.nstore;
-					patch.fluxes.report_flux(Fluxes::NH3_FIRE, (1.0 - frac_survive) * firenratio[0] * nmass);
-					patch.fluxes.report_flux(Fluxes::NO_FIRE,  (1.0 - frac_survive) * firenratio[1] * nmass);
-					patch.fluxes.report_flux(Fluxes::NO2_FIRE, (1.0 - frac_survive) * firenratio[2] * nmass);
-					patch.fluxes.report_flux(Fluxes::N2O_FIRE, (1.0 - frac_survive) * firenratio[3] * nmass);	
+
+					report_fire_nfluxes(indiv, (1.0 - frac_survive) * nmass);
 
 					// Reduce individual biomass on patch area basis
 					// to account for loss of killed individuals
@@ -1501,10 +1511,8 @@ void fire(Patch& patch,double& fireprob) {
 
 		// Calculate nitrogen fluxes from burnt litter
 		double nmass_litter = patch.pft[p].nmass_litter_leaf + patch.pft[p].nmass_litter_wood;
-		patch.fluxes.report_flux(Fluxes::NH3_FIRE, mort_fire * firenratio[0] * nmass_litter);
-		patch.fluxes.report_flux(Fluxes::NO_FIRE,  mort_fire * firenratio[1] * nmass_litter);
-		patch.fluxes.report_flux(Fluxes::NO2_FIRE, mort_fire * firenratio[2] * nmass_litter);
-		patch.fluxes.report_flux(Fluxes::N2O_FIRE, mort_fire * firenratio[3] * nmass_litter);
+
+		report_fire_nfluxes(patch, mort_fire * nmass_litter);
 
 		patch.pft[p].nmass_litter_leaf *= (1.0 - mort_fire);
 		patch.pft[p].nmass_litter_wood *= (1.0 - mort_fire);
@@ -1530,10 +1538,7 @@ void fire(Patch& patch,double& fireprob) {
 		patch.soil.sompool[SURFMETA].nmass * mort_fire_meta +
 		patch.soil.sompool[SURFCWD].nmass * mort_fire_cwd;
 
-	patch.fluxes.report_flux(Fluxes::NH3_FIRE, firenratio[0] * nflux_fire); 
-	patch.fluxes.report_flux(Fluxes::NO_FIRE,  firenratio[1] * nflux_fire);
-	patch.fluxes.report_flux(Fluxes::NO2_FIRE, firenratio[2] * nflux_fire);
-	patch.fluxes.report_flux(Fluxes::N2O_FIRE, firenratio[3] * nflux_fire);
+	report_fire_nfluxes(patch, nflux_fire);
 
 	patch.soil.sompool[SURFSTRUCT].nmass *= (1.0 - mort_fire_struct);
 	patch.soil.sompool[SURFMETA].nmass   *= (1.0 - mort_fire_meta);

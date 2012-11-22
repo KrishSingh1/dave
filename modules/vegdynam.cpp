@@ -121,6 +121,9 @@ bool establish(Patch& patch, Climate& climate, Pft& pft) {
         }
     }
 
+
+	// else
+
 	return true;
 }
 
@@ -142,6 +145,7 @@ bool survive(Climate& climate, Pft& pft) {
 
 	return true;
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // ESTABLISHMENT
@@ -373,8 +377,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	// establishment disabled, a cohort representing exactly 'est' individuals (may be
 	// not-integral) is established.
 
-	double SAPSIZE = 0.1;
-
+	const double SAPSIZE = 0.1;
 	// coefficient in calculation of initial sapling size and initial
 	// grass biomass (see comment above)
 
@@ -394,6 +397,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 	Vegetation& vegetation = patch.vegetation;
 
+
 	// guess2008 - determine the number of woody PFTs that can establish
 	// Thomas Hickler
 	int nwoodypfts_estab=0;
@@ -405,13 +409,14 @@ void establishment_guess(Stand& stand,Patch& patch) {
 		pftlist.nextobj();
 	}
 
+
 	// Loop through PFTs
 
 	pftlist.firstobj();
 	while (pftlist.isobj) {
 		Pft& pft = pftlist.getobj();
 
-		// For this PFT ..
+		// For this PFT ...
 
 		if (stand.pft[pft.id].active) {
 			if (patch.age == 0) {
@@ -421,6 +426,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 				// BLARP
 				if (date.year == 0 || date.year == stand.first_year)
 					patch.pft[pft.id].anetps_ff_est_initial = patch.pft[pft.id].anetps_ff;
+
 			}
 			else {
 				patch.pft[pft.id].anetps_ff_est += patch.pft[pft.id].anetps_ff;
@@ -534,9 +540,11 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							est = c * kest_bg;
 					}
 
+
 					// guess2008 - scale est by the number of woody PFTs/species that can establish
 					// Otherwise, simply adding more PFTs or species would increase est
 					est *= 3.0 / double(nwoodypfts_estab);
+
 
 					// Have a value for expected number of new saplings (est)
 					// Actual number of new saplings drawn from the Poisson distribution
@@ -573,7 +581,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							// round down to 0 if nsapling very small
 						}
 					}
-					else if (vegmode == INDIVIDUAL){
+					else if (vegmode == INDIVIDUAL) {
 						newindiv = (int)(nsapling + 0.5); // round up to be on the safe side
 					}
 
@@ -629,6 +637,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 					}
 				}
 			}
+
 			// Reset running sums for next year (establishment years only in cohort mode)
 
 			if (vegmode != COHORT || !(patch.age % estinterval)) {
@@ -636,9 +645,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 				patch.pft[pft.id].wscal_mean_est = 0.0;
 				patch.pft[pft.id].anetps_ff_est = 0.0;
 			}
-		}
-		// ... on to next PFT
 
+		}
+
+		// ... on to next PFT
 		pftlist.nextobj();
 	}
 }
@@ -926,7 +936,6 @@ void mortality_lpj(Stand& stand, Patch& patch, Climate& climate, double fireprob
 		// Remove this PFT population completely if all individuals killed
 
 		if (negligible(indiv.densindiv)) {
-
 			vegetation.killobj();
 			killed=true;
 		}
@@ -1136,11 +1145,11 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 					// (in individual mode: removes individual if killed)
 
 					if (negligible(indiv.densindiv)) {
-
 						vegetation.killobj();
 						killed = true;
 					}
 				}
+
 				if (!killed) vegetation.nextobj(); // ... on to next individual
 			}
 		}
@@ -1248,6 +1257,7 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 				mort_min = min(1.0, KMORTBG_LNF * (KMORTBG_Q + 1) / indiv.pft.longevity *
 					pow(indiv.age / indiv.pft.longevity, KMORTBG_Q));
 
+
 				// Growth suppression mortality
 				// Smith et al 2001; c.f. Pacala et al 1993, Eqn 5
 
@@ -1262,6 +1272,7 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 						mort_greff = 0.0;
 				}
 
+
 				// Increase growth efficiency mortality if summed crown area within 
 				// cohort exceeds 1 (to ensure self-thinning for shade-tolerant PFTs)
 
@@ -1275,6 +1286,7 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 				// Overall mortality: c.f. Eqn 29, Smith et al 2001
 
 				mort = mort_min + mort_greff - mort_min * mort_greff;
+
 
 				// guess2008 - added safety check 
 				if (mort > 1.0 || mort < 0.0)
@@ -1340,7 +1352,6 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 				// (in individual mode: removes individual if killed)
 
 				if (negligible(indiv.densindiv)) {
-
 					vegetation.killobj();
 					killed = true;
 				}
@@ -1350,11 +1361,13 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 				else allometry(indiv);
 			}
 		}
+
 		// ... on to next individual
 
 		if (!killed) vegetation.nextobj();
 	}
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FIRE DISTURBANCE
@@ -1521,6 +1534,7 @@ void fire(Patch& patch, double& fireprob) {
 	patch.soil.sompool[SURFCWD].nmass    *= (1.0 - mort_fire_cwd);
 }
 
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // DISTURBANCE
 // Generic patch-destroying disturbance with a prescribed probability
@@ -1608,6 +1622,8 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 
 		// INDIVIDUAL AND COHORT MODES
 
+		// Patch-destroying disturbance
+
 		if (ifdisturb && patch.age) {
 			disturbance(patch, 1.0 / distinterval);
 			if (patch.disturbed) {
@@ -1616,7 +1632,6 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		}
 
 		// Mortality
-
 		mortality_guess(stand, patch, stand.gridcell.climate, fireprob);
 
 		// Establishment

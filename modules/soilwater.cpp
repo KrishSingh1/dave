@@ -72,7 +72,7 @@ void snow(double prec, double temp, double& snowpack, double& rain_melt) {
 void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double perc_base,
 		double perc_exp, double awc[NSOILLAYER], double fevap, double snowpack,
 		bool percolate, double max_rain_melt, double awcont[NSOILLAYER],
-		double wcont[NSOILLAYER], double& wcont_evap, double& runoff, double &dperc) {
+		double wcont[NSOILLAYER], double& wcont_evap, double& runoff, double& dperc) {
 
 	// Daily update of water content for each soil layer given snow melt, rainfall,
 	// evapotranspiration from vegetation (AET) and percolation between layers;
@@ -128,8 +128,6 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 		aet_layer[s] = 0.0;
 	}
 	double aet_total = 0.0;
-
-	double total_water = wcont[0] * patch.soil.soiltype.awc[0] + patch.soil.soiltype.wp[0] + wcont[1] * patch.soil.soiltype.awc[1] + patch.soil.soiltype.wp[1];
 
 	// Sum AET for across all vegetation individuals
 	Vegetation& vegetation = patch.vegetation;
@@ -294,10 +292,6 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
  *  rainmelt to be re-distributed later in hydrology_lpjf
  */
 void initial_infiltration(Patch& patch, Climate& climate) {
-
-	const double SOILDEPTH_EVAP = 200.0;
-		// depth of sublayer at top of upper soil layer, from which evaporation is
-		// possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
 
 	Soil& soil = patch.soil;
 	snow(climate.prec - patch.intercep, climate.temp, soil.snowpack, soil.rain_melt);

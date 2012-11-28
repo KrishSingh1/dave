@@ -723,7 +723,9 @@ void somfluxes(Patch& patch) {
 /** Call annually after growth, mortality and fire to transfer this year's litter   
  *  from vegetation to soil litter pools
  */
-void transfer_litter(Patch& patch, Soil& soil) {
+void transfer_litter(Patch& patch) {
+
+	Soil& soil = patch.soil;
 
 	// Leaf, root and wood litter lignin fractions
 	// Leaf and root fractions: Comins & McMurtrie 1993; Friend et al 1997
@@ -1056,7 +1058,7 @@ void som_dynamics_century(Patch& patch) {
 	if (date.day == 0) { 	
 
 		// Transfer last year's litter to SOM pools
-		transfer_litter(patch, patch.soil);
+		transfer_litter(patch);
 	}
 
 	// Daily nitrogen uptake

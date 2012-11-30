@@ -227,14 +227,12 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& co2_wstress
 		& nday_wstress
 		& fpar_grass_wstress
-		& gpterm_wstress
 		& supply
 		& supply_leafon
 		& fuptake
 		& wstress
 		& wstress_day
-		& harvested_products_slow
-		& phot_wstress;
+		& harvested_products_slow;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -296,7 +294,6 @@ void Standpft::serialize(ArchiveStream& arch) {
 	arch & cmass_repr
 		& anetps_ff_max
 		& gpterm
-		& assim_term
 		& fpc_total
 		& active;
 }
@@ -466,10 +463,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& fpar_wstress
 		& fpar_leafon
 		& lai_leafon_layer
-		& demand
-		& demand_leafon
-		& supply
-		& supply_leafon
 		& intercep
 		& phen_mean
 		& temp_wstress 

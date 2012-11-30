@@ -9,6 +9,9 @@
 
 #include "config.h"
 #include "framework.h"
+#include "commandlinearguments.h"
+#include "guessserializer.h"
+#include "parallel.h"
 
 #include "guessio.h"
 #include "driver.h"
@@ -20,8 +23,9 @@
 #include "landcover.h"
 #include "bvoc.h"
 
+#include <memory>
 
-int framework(int argc, char* argv[]) {
+int framework(const CommandLineArguments& args) {
 
 	// The 'mission control' of the model, responsible for maintaining the 
 	// primary model data structures and containing all explicit loops through 
@@ -29,11 +33,24 @@ int framework(int argc, char* argv[]) {
 
 	// Call input/output module to obtain PFT static parameters and simulation
 	// settings and initialise input/output
-	initio(argc, argv);
+	initio(args.get_instruction_file());
 
 	// bvoc
 	if (ifbvoc) {
 	  initbvoc();
+	}
+
+	// Create objects for (de)serializing grid cells
+	using std::auto_ptr;
+	auto_ptr<GuessSerializer> serializer;
+	auto_ptr<GuessDeserializer> deserializer;
+
+	if (save_state) {
+		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(state_path, GuessParallel::get_rank()));
+	}
+
+	if (restart) {
+		deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(state_path));
 	}
 
 	while (true) {
@@ -60,6 +77,13 @@ int framework(int argc, char* argv[]) {
 		if(run_landcover) {
 			//Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
 			landcover_init(gridcell);
+		}
+
+		if (restart) {
+			// Get the whole grid cell from file...
+			deserializer->deserialize_gridcell(gridcell);
+			// ...and jump to the restart year
+			date.year = state_year;
 		}
 		
 		// Call input/output to obtain climate, insolation and CO2 for this
@@ -142,6 +166,11 @@ int framework(int argc, char* argv[]) {
 				// Call input/output module to output results for end of year
 				// or end of simulation for this grid cell
 				outannual(gridcell);
+				
+				// Time to save state?
+				if (date.year == state_year-1 && save_state) {
+					serializer->serialize_gridcell(gridcell);
+				}
 
 				// Check whether to abort
 				if (abort_request_received()) {

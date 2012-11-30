@@ -252,8 +252,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("nyear_spinup",&nyear_spinup,1,10000,1,CB_NONE,"Number of simulation years to spinup for");
 		declareitem("vegmode",&strparam,16,CB_VEGMODE,
 			"Vegetation mode (\"INDIVIDUAL\", \"COHORT\", \"POPULATION\")");
-		declareitem("ifdailynpp",&ifdailynpp,1,CB_NONE,
-			"Whether photosynthesis calculated daily (alt monthly)");
 		declareitem("ifdailydecomp",&ifdailydecomp,1,CB_NONE,
 			"Whether soil decomposition calculated daily (alt monthly)");
 		declareitem("ifbgestab",&ifbgestab,1,CB_NONE,
@@ -608,7 +606,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("nyear")) badins("nyear");
 		if (!itemparsed("nyear_spinup")) badins("nyear_spinup");
 		if (!itemparsed("vegmode")) badins("vegmode");
-		if (!itemparsed("ifdailynpp")) badins("ifdailynpp");
 		if (!itemparsed("ifdailydecomp")) badins("ifdailydecomp");
 		if (!itemparsed("iffire")) badins("iffire");
 		if (!itemparsed("ifcalcsla")) badins("ifcalcsla");
@@ -839,7 +836,7 @@ void printhelp() {
 //
 // void initio(const xtring& insfilename)
 //   Initialises input/output (e.g. opening files), sets values for the global
-//   simulation parameter variables (currently vegmode, npatch, patcharea, ifdailynpp,
+//   simulation parameter variables (currently vegmode, npatch, patcharea,
 //   ifdailydecomp, ifbgestab, ifsme, ifstochestab, ifstochmort, iffire, estinterval,
 //   npft), initialises pftlist (the one and only list of PFTs and their static
 //   parameters for this run of the model). Normally all of the above parameters,
@@ -1235,7 +1232,7 @@ void initio(const xtring& insfilename) {
 	// DESCRIPTION
 	// Initialises input/output (e.g. opening files), sets values for the global
 	// simulation parameter variables (currently vegmode, npatch, patcharea,
-	// ifdailynpp, ifdailydecomp, ifbgestab, ifsme, ifstochestab, ifstochmort, iffire,
+	// ifdailydecomp, ifbgestab, ifsme, ifstochestab, ifstochmort, iffire,
 	// estinterval, npft), initialises pftlist (the one and only list of PFTs and their
 	// static parameters for this run of the model). Normally all of the above
 	// parameters, and possibly others, are read from the ins file (see above).

@@ -10,17 +10,17 @@
 #include "landcover.h"
 #include "guessio.h"
 
-void landcover_init(Gridcell& gridcell,Pftlist& pftlist) {
+void landcover_init(Gridcell& gridcell) {
 	landcovertype landcover;
 
-	getlandcover(gridcell,pftlist);		//Gets gridcell.landcoverfrac from landcover input file(s) or ins-file.
+	getlandcover(gridcell);		//Gets gridcell.landcoverfrac from landcover input file(s) or ins-file.
 
 	for(int i=0;i<NLANDCOVERTYPES;i++) { //For all landcover types without subclasses
 //		if(i!=CROPLAND) {					// cropland subclasses turned off in this version
 			if(run[i]) {
 				if(gridcell.landcoverfrac[i]>0.0) {
 					landcover=(landcovertype)i;
-					Stand& stand=gridcell.createobj(gridcell,landcover,pftlist);
+					Stand& stand=gridcell.createobj(gridcell,landcover);
 
 					pftlist.firstobj();
 					while (pftlist.isobj) {
@@ -73,7 +73,7 @@ void harvest_natural(double& cmass_leaf,double& cmass_root,double& cmass_sap,dou
 	cmass_sap=cmass_heart=cmass_debt=cmass_leaf=0.0;
 }
 
-void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
+void landcover_dynamics(Gridcell& gridcell)
 {	// Called first day of the year if run_landcover is set.
 	int i;	
 	landcovertype landcover;
@@ -95,7 +95,7 @@ void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 
 //Get new gridcell.landcoverfrac and/or gridcell.cftfrac from LUdata and CFTdata.
 	if(!all_fracs_const)
-		getlandcover(gridcell,pftlist);	
+		getlandcover(gridcell);	
 	else return;
 
 	double changeLC=0.0;
@@ -321,7 +321,7 @@ void landcover_dynamics(Gridcell& gridcell,Pftlist& pftlist)
 					if(gridcell.landcoverfrac_old[i]==0.0 && gridcell.landcoverfrac[i]>0.0)
 					{
 						landcover=(landcovertype)i;
-						Stand& stand=gridcell.createobj(gridcell,landcover,pftlist);
+						Stand& stand=gridcell.createobj(gridcell,landcover);
 
 						pftlist.firstobj();
 						while (pftlist.isobj) 

@@ -156,8 +156,6 @@ extern int npatch;
 	// number of patches in each stand (should always be 1 in population mode)
 extern double patcharea;
 	// patch area (m2) (individual and cohort mode only)
-extern bool ifdailynpp;
-	// whether photosynthesis calculations performed daily (alt: monthly)
 extern bool ifdailydecomp;
 	// whether soil decomposition calculations performed daily (alt: monthly)
 extern bool ifbgestab;
@@ -1026,10 +1024,6 @@ public:
 	double mlai[12];
 		// monthly LAI (including phenology component)
 
-	// Variables used by "fast" canopy exchange code (Ben Smith 2002-07)
-
-	double fpar_wstress;
-		// FPAR for days with water stress (see canopy exchange module)
 	double fpar_leafon;
 		// FPAR assuming full leaf cover for all vegetation
 	double lai_leafon_layer;
@@ -1043,14 +1037,6 @@ public:
 	double phen_mean;
 		// accumulated mean fraction of potential leaf cover
 
-	// Means for driving parameters of photosynthesis required for "individual" demand
-	// mode (see canexch.cpp)
-
-	double temp_wstress; // temperature (deg C)
-	double par_wstress; // PAR (J/m2/day)
-	double daylength_wstress; // daylength (h)
-	double co2_wstress; // CO2 (ppmv)
-	int nday_wstress; // number of water-stress days for month
 	bool wstress; // whether individual subject to water stress
 
 	bool alive;
@@ -1063,10 +1049,6 @@ public:
 	double mon; // monoterpene production (mg C m-2 d-1)
 	double monstor; // monoterpene storage pool (mg C m-2)
 	double fvocseas; // isoprene seasonality factor (-)
-	double dtr_wstress; // diurnal temperature range (oC)
-	double eet_wstress; // equilibrium evapotranspiration today (mm/day)
-	double agdd5_wstress; // total gdd5 (accumulated) for this year (reset 1 January)
-	double rad_wstress; // total daily net downward shortwave solar radiation today (J/m2/day)
 
 	// MEMBER FUNCTIONS
 
@@ -1362,23 +1344,7 @@ public:
 		// non-FPC-weighted canopy conductance value for PFT under water-stress
 		// conditions (mm/s)
 	double gcbase_day;				// daily value of the above variable (mm/s)
-	double gcbase_wstress;
-		// cumulative mean non-FPAR-weighted value for canopy conductance value
-		// for PFT under water-stress conditions (mm/s)
-	double temp_wstress;
-		// cumulative mean temperature for water stress days this month (deg C)
-	double par_wstress;
-		// cumulative mean PAR for water stress days this month (J/m2/day)
-	double daylength_wstress;
-		// cumulative mean day length for water stress days this month (h)
-	double co2_wstress;
-		// cumulative mean atmospheric CO2 concentration for water stress days this
-		// month (ppmv)
-	int nday_wstress;
-		// cumulative number of water stress days this month
-	double fpar_grass_wstress;
-		// mean FPAR at top of grass canopy for days with water stress for this PFT
-		// in this patch
+
 	double supply;
 		// evapotranspirational "supply" function for this PFT today (mm/day)
 	double supply_leafon;
@@ -1399,7 +1365,6 @@ public:
 		litter_root=0.0;
 		litter_wood=0.0;
 		litter_repr=0.0;
-		nday_wstress=0;
 		wscal=1.0;
 		wscal_mean=0.0;
 		anetps_ff=0.0;

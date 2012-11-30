@@ -877,19 +877,6 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 		// Retrieve PFT
 		Pft& pft = ppft.pft;
 
-		if (!ifdailynpp && date.dayofmonth == 0) {
-			// On first day of month, monthly mode, initialise cumulative
-			// environmental drivers and counter for water-stress days
-
-			ppft.temp_wstress = 0;
-			ppft.par_wstress = 0;
-			ppft.daylength_wstress = 0;
-			ppft.co2_wstress = 0;
-			ppft.nday_wstress = 0;
-			ppft.fpar_grass_wstress = 0;
-			ppft.gcbase_wstress = 0;
-		}
-
 		if (day.isstart) {
 			// Calculate effective water supply from plant roots
 			// Rescale available water by patch FPC if exceeds 1
@@ -905,15 +892,6 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 		}
 		ppft.wstress = ppft.supply < patch.demand && !negligible(ppft.phen);
 
-		if (!ifdailynpp && ppft.wstress) {
-			ppft.nday_wstress++;
-			ppft.temp_wstress += climate.temp;
-			ppft.par_wstress += climate.par;
-			ppft.co2_wstress += climate.co2;
-			ppft.fpar_grass_wstress += patch.fpar_grass * ppft.phen;
-			ppft.daylength_wstress += climate.daylength;
-		}
-
 		// Calculate water-stressed canopy conductance on FPC basis assuming
 		// FPAR=1 and deducting canopy conductance component not associated
 		// with CO2 uptake; valid for all individuals of this PFT in this patch
@@ -924,22 +902,11 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 		if (!date.diurnal()) {
 			ppft.wstress_day = ppft.wstress;
 			ppft.gcbase_day = ppft.gcbase;
-			if (!ifdailynpp) {
-				ppft.gcbase_wstress += ppft.gcbase;
-			}
 		}
 		else if (day.isend) {
 			ppft.wstress_day = ppft.supply < patch.demand_day && !negligible(ppft.phen);
 			ppft.gcbase_day = ppft.wstress_day ? max(gc_monteith(ppft.supply,
 					patch.eet_net_veg) - pft.gmin * ppft.supply / patch.demand_day, 0.0) : 0;
-		}
-		if (!ifdailynpp && date.islastday && ppft.nday_wstress) {
-			ppft.temp_wstress /= ppft.nday_wstress;
-			ppft.par_wstress /= ppft.nday_wstress;
-			ppft.co2_wstress /= ppft.nday_wstress;
-			ppft.fpar_grass_wstress /= ppft.nday_wstress;
-			ppft.daylength_wstress /= ppft.nday_wstress;
-			ppft.gcbase_wstress /= ppft.nday_wstress;
 		}
 	}
 
@@ -951,36 +918,11 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 		if (day.isstart) {
 			indiv.aet = 0;
 		}
-		if (!ifdailynpp && date.dayofmonth == 0) {
-			indiv.fpar_wstress = 0;
-			indiv.temp_wstress = 0;
-			indiv.par_wstress = 0;
-			indiv.daylength_wstress = 0;
-			indiv.co2_wstress = 0;
-			indiv.nday_wstress = 0;
-			indiv.dtr_wstress = 0;
-			indiv.eet_wstress = 0;
-			indiv.agdd5_wstress = 0;
-			indiv.rad_wstress = 0;
-		}
 
 		indiv.wstress = ppft.wstress;
 
 		if (indiv.wstress) {
 			indiv.aet += ppft.supply;
-
-			if (!ifdailynpp) {
-				indiv.nday_wstress++;
-				indiv.fpar_wstress += indiv.fpar;
-				indiv.temp_wstress += climate.temp;
-				indiv.par_wstress += climate.par;
-				indiv.daylength_wstress += climate.daylength;
-				indiv.co2_wstress += climate.co2;
-				indiv.dtr_wstress += climate.dtr;
-				indiv.eet_wstress += climate.eet;
-				indiv.agdd5_wstress += climate.agdd5;
-				indiv.rad_wstress += climate.rad;
-			}
 		}
 		else {
 			indiv.aet += negligible(indiv.phen) ? 0.0 : patch.demand;
@@ -1378,141 +1320,58 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		Standpft& spft = stand.pft[pft.id];
 		PhotosynthesisResult phot;
 
-		if (ifdailynpp) {
-			double gpterm_indiv = date.diurnal() ? spft.gpterms[day.period] : spft.gpterm;
-			if (indiv.wstress) {
-				// Water stress - derive assimilation by simultaneous solution
-				// of light- and conductance-based equations of photosynthesis
-				assimilation_wstress(pft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
-							ppft.gcbase, spft.photosynthesis.vm, phot, lambda);
-				assim = phot.net_assimilation();
-			}
-			else {
-				// No water stress - use base value for non-water-stressed assimilation
-				assim = (date.diurnal() ? spft.phots[day.period] : spft.photosynthesis).net_assimilation();
-			}
-			assim *= indiv.fpar;
-
-			if (ifbvoc) {
-				double adtmm;
-				if (indiv.wstress) {
-					adtmm = phot.adtmm;
-					gpterm_indiv = gpterm(phot.adtmm, climate.co2, lambda, hours);
-				}
-				else {
-					adtmm = date.diurnal() ? spft.phots[day.period].adtmm : spft.photosynthesis.adtmm;
-				}
-				phot = date.diurnal() ? spft.phots[day.period] : spft.photosynthesis;
-				bvoc(temp, hours, climate.daylength, rad, climate.eet, climate.agdd5, climate.dtr,
-					climate.co2, climate.temp, indiv.fpar, patch, indiv, pft, phot, adtmm, gpterm_indiv, day);
-			}
-			// Calculate autotrophic respiration
-			respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
-				indiv.pft.respcoeff, indiv.pft.cton_sap, indiv.pft.cton_root,
-				indiv.phen, indiv.cmass_sap, indiv.cmass_root, assim, resp);
-
-			// Convert to averages for this period for accounting purposes
-			assim /= date.subdaily;
-			resp /= date.subdaily;
-
-			// Update accumulated annual NPP and daily vegetation-atmosphere flux
-			double ind_npp = assim - resp;
-			indiv.anpp += ind_npp;
-
-			indiv.report_flux(Fluxes::NPP, ind_npp);
-			indiv.report_flux(Fluxes::GPP, assim);
-			indiv.report_flux(Fluxes::RA, resp);
-
-			if (day.isend) {
-				indiv.mlai[date.month] += indiv.lai*indiv.phen;
-				// On last day of month - convert monthly LAI from sum to mean
-				if (date.islastday) {
-					indiv.mlai[date.month] /= (double)date.ndaymonth[date.month];
-				}
-			}
+		double gpterm_indiv = date.diurnal() ? spft.gpterms[day.period] : spft.gpterm;
+		if (indiv.wstress) {
+			// Water stress - derive assimilation by simultaneous solution
+			// of light- and conductance-based equations of photosynthesis
+			assimilation_wstress(pft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
+				ppft.gcbase, spft.photosynthesis.vm, phot, lambda);
+			assim = phot.net_assimilation();
 		}
 		else {
-			if (date.dayofmonth == 0) {
-				indiv.phen_mean = 0;
-				indiv.assim = 0;
-			}
-			indiv.phen_mean += indiv.phen;
+			// No water stress - use base value for non-water-stressed assimilation
+			assim = (date.diurnal() ? spft.phots[day.period] : spft.photosynthesis).net_assimilation();
+		}
+		assim *= indiv.fpar;
 
-			if (!indiv.wstress) {
-				indiv.assim += spft.photosynthesis.net_assimilation() * indiv.fpar;
-				if (ifbvoc) {
-					bvoc(temp, hours, hours, rad, climate.eet, climate.agdd5, climate.dtr,
-						climate.co2, climate.temp, indiv.fpar, patch, indiv, pft, spft.photosynthesis,
-						spft.photosynthesis.adtmm, spft.gpterm, day);
-				}
+		if (ifbvoc) {
+			double adtmm;
+			if (indiv.wstress) {
+				adtmm = phot.adtmm;
+				gpterm_indiv = gpterm(phot.adtmm, climate.co2, lambda, hours);
 			}
+			else {
+				adtmm = date.diurnal() ? spft.phots[day.period].adtmm : spft.photosynthesis.adtmm;
+			}
+			phot = date.diurnal() ? spft.phots[day.period] : spft.photosynthesis;
+			bvoc(temp, hours, climate.daylength, rad, climate.eet, climate.agdd5, climate.dtr,
+				climate.co2, climate.temp, indiv.fpar, patch, indiv, pft, phot, adtmm, gpterm_indiv, day);
+		}
+		// Calculate autotrophic respiration
+		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
+			indiv.pft.respcoeff, indiv.pft.cton_sap, indiv.pft.cton_root,
+			indiv.phen, indiv.cmass_sap, indiv.cmass_root, assim, resp);
+
+		// Convert to averages for this period for accounting purposes
+		assim /= date.subdaily;
+		resp /= date.subdaily;
+
+		// Update accumulated annual NPP and daily vegetation-atmosphere flux
+		double ind_npp = assim - resp;
+		indiv.anpp += ind_npp;
+
+		indiv.report_flux(Fluxes::NPP, ind_npp);
+		indiv.report_flux(Fluxes::GPP, assim);
+		indiv.report_flux(Fluxes::RA, resp);
+
+		if (day.isend) {
+			indiv.mlai[date.month] += indiv.lai*indiv.phen;
+			// On last day of month - convert monthly LAI from sum to mean
 			if (date.islastday) {
-				indiv.phen_mean /= (double)date.ndaymonth[date.month];
-				if (indiv.nday_wstress) {
-					double nday_double = indiv.nday_wstress;
-
-					indiv.fpar_wstress /= nday_double;
-					indiv.temp_wstress /= nday_double;
-					indiv.par_wstress /= nday_double;
-					indiv.daylength_wstress /= nday_double;
-					indiv.co2_wstress /= nday_double;
-					indiv.dtr_wstress /= nday_double;
-					indiv.eet_wstress /= nday_double;
-					indiv.agdd5_wstress /= nday_double;
-					indiv.rad_wstress /= nday_double;
-
-					PhotosynthesisResult phot_wstress;
-					photosynthesis(indiv.co2_wstress, indiv.temp_wstress,
-							indiv.par_wstress, indiv.daylength_wstress,
-							indiv.fpar_wstress, pft.lambda_max, pft, phot_wstress, -1);
-
-					assimilation_wstress(pft, indiv.co2_wstress, indiv.temp_wstress,
-						indiv.par_wstress, indiv.daylength_wstress, indiv.fpar_wstress, indiv.fpc,
-						ppft.gcbase_wstress, phot_wstress.vm, phot, lambda);
-					indiv.assim += phot.net_assimilation() * indiv.fpar_wstress * indiv.nday_wstress;
-
-					if (ifbvoc) {
-						double gpterm_indiv = gpterm(phot.adtmm, climate.co2, lambda, indiv.daylength_wstress);
-						bvoc(indiv.temp_wstress, indiv.daylength_wstress, indiv.daylength_wstress,
-							indiv.rad_wstress, indiv.eet_wstress, indiv.agdd5_wstress, indiv.dtr_wstress,
-							indiv.co2_wstress, indiv.temp_wstress, indiv.fpar_wstress, patch, indiv, pft,
-							phot_wstress, phot.adtmm, gpterm_indiv, day, indiv.nday_wstress);
-					}
-				}
-
-				// Calculate respiration response to mean monthly air and soil temperature
-				// (if not already known for this month)
-				if (climate.last_mgtemp != date.month) {
-					respiration_temperature_response(climate.mtemp, climate.mgtemp);
-					climate.last_mgtemp = date.month;
-				}
-
-				if (patch.soil.last_mgtemp != date.month) {
-					respiration_temperature_response(patch.soil.mtemp, patch.soil.mgtemp);
-					patch.soil.last_mgtemp = date.month;
-				}
-
-				// Calculate autotrophic respiration
-				assim = indiv.assim / (double)date.ndaymonth[date.month];
-					// average daily assimilation for this month
-
-				respiration(climate.mgtemp, patch.soil.mgtemp, indiv.pft.lifeform,
-					indiv.pft.respcoeff,indiv.pft.cton_sap,indiv.pft.cton_root,
-					indiv.phen_mean,indiv.cmass_sap,indiv.cmass_root,assim,indiv.resp);
-
-				indiv.resp *= date.ndaymonth[date.month];
-				// Update accumulated annual NPP and daily vegetation-atmosphere flux
-
-				indiv.anpp += indiv.assim - indiv.resp;
-
-				indiv.report_flux(Fluxes::NPP, indiv.assim - indiv.resp);
-				indiv.report_flux(Fluxes::GPP, indiv.assim);
-				indiv.report_flux(Fluxes::RA, indiv.resp);
-
-				// Monthly LAI
-				indiv.mlai[date.month] = indiv.lai * indiv.phen_mean;
+				indiv.mlai[date.month] /= (double)date.ndaymonth[date.month];
 			}
 		}
+
 		vegetation.nextobj();
 	}
 }
@@ -1540,29 +1399,17 @@ void forest_floor_conditions(Patch& patch) {
 			ppft.anetps_ff = 0.0;
 		}
 		double assim = 0;
-		if (ifdailynpp || !ppft.wstress_day) {
-			if (ppft.wstress_day) {
-				assimilation_wstress(pft, climate.co2, climate.temp, climate.par,
-					climate.daylength, patch.fpar_grass*ppft.phen, 1., ppft.gcbase_day,
-					spft.photosynthesis.vm, phot, lambda);
-				assim = phot.net_assimilation();
-			} 
-			else {
-				assim = spft.photosynthesis.net_assimilation();
-			}
-			assim *= ppft.phen * patch.fpar_grass;
-		}
-		if (date.islastday && !ifdailynpp && ppft.nday_wstress) {
-			PhotosynthesisResult phot_wstress;
-			photosynthesis(ppft.co2_wstress, ppft.temp_wstress, ppft.par_wstress,
-					ppft.daylength_wstress, ppft.fpar_grass_wstress, pft.lambda_max,
-					pft, phot_wstress, -1);
 
- 			assimilation_wstress(pft, ppft.co2_wstress, ppft.temp_wstress,
-					ppft.par_wstress, ppft.daylength_wstress, ppft.fpar_grass_wstress,
-					1., ppft.gcbase_wstress, phot_wstress.vm, phot, lambda);
-			assim += phot.net_assimilation() * ppft.fpar_grass_wstress * ppft.nday_wstress;
+		if (ppft.wstress_day) {
+			assimilation_wstress(pft, climate.co2, climate.temp, climate.par,
+				climate.daylength, patch.fpar_grass*ppft.phen, 1., ppft.gcbase_day,
+				spft.photosynthesis.vm, phot, lambda);
+			assim = phot.net_assimilation();
+		} 
+		else {
+			assim = spft.photosynthesis.net_assimilation();
 		}
+		assim *= ppft.phen * patch.fpar_grass;
 
 		// Accumulate annual value
 		ppft.anetps_ff += assim;
@@ -1613,21 +1460,6 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
  *  of soil water.
  */
 void canopy_exchange(Patch& patch, Climate& climate) {
-
-	// In "monthly" mode (ifdailynpp=0), following LPJF, AET and canopy conductance
-	// are calculated daily, while carbon assimilation is calculated daily under
-	// non-water-stress conditions (when transpirational demand for water is met
-	// by plant-regulated supply) and on the last day of the month for water-stress
-	// days (demand>supply).
-	// This results in the fastest overall simulation speed, since non-water-stressed
-	// photosynthesis is calculated as a biproduct of daily AET calculations, while
-	// water-stressed photosynthesis is calculated using a computationally-intensive
-	// numerical iteration procedure. Note that, in monthly mode, the accumulated
-	// annual NPP and vegetation C flux values are valid only for the last day of each
-	// month, following the call to this function. Daily flux values are never valid in
-	// "monthly" mode.
-
-	// If you require daily output, use "daily" mode (ifdailynpp=1)
 
 	// NEW ASSUMPTIONS CONCERNING FPC AND FPAR (Ben Smith 2002-02-20)
 	// FPAR = average individual fraction of PAR absorbed on patch basis today,

@@ -571,82 +571,96 @@ public:
 };
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// FLUXES
-// Stores daily and accumulated annual fluxes (currently only C fluxes). Upward fluxes
-// (from vegetation to atmosphere or soil to atmosphere) are positive values, downward
-// fluxes (from atmosphere to vegetation) are negative values. Accumulated fluxes
-// should be initialised where appropriate in the model code - initialisation is not
-// provided as part of the class functionality. One Fluxes object is defined for each
-// patch (see below).
-
+/// Stores accumulated monthly and annual fluxes.
+/** This class handles the storage and accounting of fluxes for a single patch.
+ *  Different fluxes can be stored in different ways, depending on what kind of
+ *  flux it is and what kind of output we want. The details of whether fluxes
+ *  are stored per PFT or just as a patch total, or per day, month or only a
+ *  yearly sum, is hidden from the 'scientific' code, which merely reports the
+ *  fluxes generated.
+ */
 class Fluxes : public Serializable {
-
-	// MEMBER VARIABLES
-	// (all CO2 fluxes on stand area basis, kgC/m2 ;
-        // BVOC fluxes (isoprene and monoterpenes) in gC/m2)
 
 public:
 
+	/// Fluxes stored as totals for the whole patch
+	enum PerPatchFluxType { 
+		/// Carbon flux to atmosphere from burnt vegetation and litter (kgC/m2)
+		FIREC,
+		/// Carbon flux to atmosphere from soil respiration (kgC/m2)
+		SOILC,
+		/// Flux from atmosphere to vegetation associated with establishment (kgC/m2)
+		ESTC,
+		/// Flux to atmosphere from consumed harvested products (kgC/m2)
+		HARVESTC,
+		/// Number of types, must be last
+		NPERPATCHFLUXTYPES
+	};
+
+	/// Fluxes stored per pft
+	enum PerPFTFluxType { 
+		/// NPP (kgC/m2)
+		NPP,
+		/// GPP (kgC/m2)
+		GPP,
+		/// Autotrophic respiration (kgC/m2)
+		RA,
+		/// Isoprene (mgC/m2)
+		ISO,
+		/// Monoterpene (mgC/m2)
+		MON,
+		/// Number of types, must be last
+		NPERPFTFLUXTYPES
+	};
+
+
+	/// Reference to patch to which this Fluxes object belongs
 	Patch& patch;
-		// reference to patch to which this Fluxes object belongs
-	double acflux_veg;
-		// annual flux to vegetation (=total vegetation annual NPP)
-	double acflux_fire;
-		// annual carbon flux to atmosphere from burnt vegetation and litter
-	double acflux_soil;
-		// annual carbon flux to atmosphere from soil respiration
-	double acflux_est;
-		// annual flux from atmosphere to vegetation associated with establishment
-	double acflux_harvest;
-		// annual flux to atmosphere from consumed harvested products
-	double dcflux_soil;
-		// daily carbon flux to atmosphere from soil respiration
-		// NB: not implemented by som_dynamics_monthly
-	double mcflux_soil[12];
-		// monthly C flux to atmosphere from soil respiration
-	double mcflux_veg[12];
-		// monthly C flux to vegetation from atmosphere
-	double dcflux_veg;
-		// daily net carbon flux to vegetation (respiration-assimilation)
-		// NB: not implemented by canopy_exchange_monthly
-
-	// guess2008 - new carbon budget arrays
-	double mcflux_gpp[12];
-		// monthly GPP
-	double mcflux_ra[12];
-		// monthly autotrophic respiration
-	// bvoc
-	double miso[12];
-                // monthly isoprene flux (g C/m2/month)
-	double mmon[12];
-	        // monthly monoterpene flux (g C/m2/month)
-
-
 
 	// MEMBER FUNCTIONS
 
 public:
 	/// constructor: initialises members
-	Fluxes(Patch& p):patch(p) {
-		acflux_veg=0.0;
-		acflux_fire=0.0;
-		acflux_soil=0.0;
-		acflux_est=0.0;
-		acflux_harvest=0.0;
-	}
+	Fluxes(Patch& p);
 
-
-	double anee() {
-
-		// If called following update of annual accumulated fluxes on last day of
-		// simulation year, returns annual net ecosystem exchange (NEE)
-
-		return acflux_veg+acflux_fire+acflux_soil+acflux_est;
-	}
-
+	/// Sets all fluxes to zero (call at the beginning of each year)
+	void reset();
 
 	void serialize(ArchiveStream& arch);
+
+	/// Report flux for a certain flux type
+	void report_flux(PerPFTFluxType flux_type, int pft_id, double value);
+
+	/// Report flux for a certain flux type
+	void report_flux(PerPatchFluxType flux_type, double value);
+
+	/// \returns flux for a given month and flux type (for all PFTs)
+	double get_monthly_flux(PerPFTFluxType flux_type, int month) const;
+
+	/// \returns flux for a given month and flux type
+	double get_monthly_flux(PerPatchFluxType flux_type, int month) const;
+
+	/// \returns annual flux for a given PFT and flux type
+	double get_annual_flux(PerPFTFluxType flux_type, int pft_id) const;
+
+	/// \returns annual flux for a given flux type (for all PFTs)
+	double get_annual_flux(PerPFTFluxType flux_type) const;
+
+	/// \returns annual flux for a given flux type
+	double get_annual_flux(PerPatchFluxType flux_type) const;
+
+private:
+
+	/// Stores one flux value per PFT and flux type
+	std::vector<std::vector<double> > annual_fluxes_per_pft;
+
+	/// Stores one flux value per month and flux type
+	/** For the fluxes only stored as totals for the whole patch */
+	double monthly_fluxes_patch[12][NPERPATCHFLUXTYPES];
+
+	/// Stores one flux value per month and flux type
+	/** For the fluxes stored per pft for annual values */
+	double monthly_fluxes_pft[12][NPERPFTFLUXTYPES];
 };
 
 
@@ -1009,15 +1023,8 @@ public:
 		// (kgC/m2/yr)
 	double age;
 		// individual/cohort age (years)
-	double mnpp[12];
-		// monthly NPP (kgC/m2/month)
 	double mlai[12];
 		// monthly LAI (including phenology component)
-
-	double mgpp[12];
-		// monthly GPP-leafresp (kgC/m2/month)
-	double mra[12];
-		// monthly respiration
 
 	// Variables used by "fast" canopy exchange code (Ben Smith 2002-07)
 
@@ -1054,8 +1061,6 @@ public:
 	// bvoc
 	double iso; // isoprene production (mg C m-2 d-1)
 	double mon; // monoterpene production (mg C m-2 d-1)
-	double aiso; // annual isoprene emission (mg C m-2 y-1)
-	double amon; // annual monoterpene emission (mg C m-2 y-1)
 	double monstor; // monoterpene storage pool (mg C m-2)
 	double fvocseas; // isoprene seasonality factor (-)
 	double dtr_wstress; // diurnal temperature range (oC)
@@ -1073,6 +1078,14 @@ public:
 	Individual(int i,Pft& p,Vegetation& v);
 
 	void serialize(ArchiveStream& arch);
+
+	/// Report a flux associated with this Individual
+	/** Fluxes from 'new' Individuals (alive == false) will not be reported */
+	void report_flux(Fluxes::PerPFTFluxType flux_type, double value);
+
+	/// Report a flux associated with this Individual
+	/** Fluxes from 'new' Individuals (alive == false) will not be reported */
+	void report_flux(Fluxes::PerPatchFluxType flux_type, double value);
 };
 
 

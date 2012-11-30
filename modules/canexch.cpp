@@ -1418,18 +1418,10 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			// Update accumulated annual NPP and daily vegetation-atmosphere flux
 			double ind_npp = assim - resp;
 			indiv.anpp += ind_npp;
-			if (indiv.alive) {
-				patch.fluxes.dcflux_veg -= ind_npp;
-			}
 
-			// Monthly NPP and LAI
-			indiv.mnpp[date.month] += ind_npp;
-
-			// guess2008 - update monthly arrays
-			indiv.mgpp[date.month] += assim;
-			indiv.mra[date.month] += resp;
-			patch.fluxes.mcflux_gpp[date.month] += assim;
-			patch.fluxes.mcflux_ra[date.month] += resp;
+			indiv.report_flux(Fluxes::NPP, ind_npp);
+			indiv.report_flux(Fluxes::GPP, assim);
+			indiv.report_flux(Fluxes::RA, resp);
 
 			if (day.isend) {
 				indiv.mlai[date.month] += indiv.lai*indiv.phen;
@@ -1513,27 +1505,15 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 				indiv.anpp += indiv.assim - indiv.resp;
 
-				if (indiv.alive) // Ben 2007-11-28
-					patch.fluxes.dcflux_veg+=indiv.resp-indiv.assim;
+				indiv.report_flux(Fluxes::NPP, indiv.assim - indiv.resp);
+				indiv.report_flux(Fluxes::GPP, indiv.assim);
+				indiv.report_flux(Fluxes::RA, indiv.resp);
 
-				// Monthly NPP and LAI
-				indiv.mnpp[date.month] = indiv.assim - indiv.resp;
+				// Monthly LAI
 				indiv.mlai[date.month] = indiv.lai * indiv.phen_mean;
-
-				// guess2008 - update monthly arrays
-				indiv.mgpp[date.month] += indiv.assim;
-				indiv.mra[date.month] += indiv.resp;
-				patch.fluxes.mcflux_gpp[date.month] += indiv.assim; // ANDERS A TRENDY
-				patch.fluxes.mcflux_ra[date.month] += indiv.resp; // ANDERS A TRENDY
 			}
 		}
 		vegetation.nextobj();
-	}
-
-	if (day.isend) {
-		// Update annual and monthly vegetation-atmosphere flux
-		patch.fluxes.acflux_veg += patch.fluxes.dcflux_veg;
-		patch.fluxes.mcflux_veg[date.month] += patch.fluxes.dcflux_veg;
 	}
 }
 
@@ -1609,14 +1589,8 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 			indiv.anpp = 0.0;
  			for (int m=0; m<12; m++) {
-				indiv.mnpp[m] = 0.0;
 				indiv.mlai[m] = 0.0;
-				indiv.mgpp[m] = 0.0;
-				indiv.mra[m] = 0.0;
 			}
-
-			indiv.aiso = 0.0;
-			indiv.amon = 0.0;
 
 			vegetation.nextobj();
 		}

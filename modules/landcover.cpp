@@ -2148,7 +2148,7 @@ void leaf_phenology_crop(Pft& pft, Patch& patch)
 				double fwdf;
 				double hi_save;
 
-				ppftcrop.demandsum_crop+=climate.eet*PRIESTLEY_TAYLOR;		//demamdsum_crop==petsum, supplysum_crop==aetsum
+				ppftcrop.demandsum_crop+=patch.demand;
 				if (patchpft.supply>patch.demand) 
 					ppftcrop.supplysum_crop+=patch.demand; 
 				else
@@ -2437,7 +2437,7 @@ void fpar_crop(Patch& patch) {
 					fpar_min=1.0;
 
 				if(indiv.pft.phenology==CROPGREEN)
-					indiv.fpar=1-lambertbeer(max(0.0,indiv.phen*indiv.lai));	//phen is 1.0 during growingseason here
+					flai=1.0;	//monoculture
 				else
 				{
 					if(indiv.cropindiv->isintercropgrass)	//may contain both c3 and c4 grass
@@ -2449,15 +2449,13 @@ void fpar_crop(Patch& patch) {
 					}
 					else	//monoculture
 						flai=1.0;
-
-					indiv.fpar=max(0.0,flai-max(fpar_ff*flai,fpar_min));
 				}
-
+				indiv.fpar=max(0.0,flai-max(fpar_ff*flai,fpar_min));
 
 				// Repeat assuming full leaf cover for all individuals
 
 				if(indiv.pft.phenology==CROPGREEN)
-					indiv.fpar_leafon=1-lambertbeer(max(0.0,indiv.lai));
+					flai=1.0;
 				else
 				{
 					if(indiv.cropindiv->isintercropgrass)	//may contain both c3 and c4 grass
@@ -2468,10 +2466,9 @@ void fpar_crop(Patch& patch) {
 							flai=1.0;					
 					}
 					else	//monoculture
-						flai=1.0;
-						
-					indiv.fpar_leafon=max(0.0,flai-max(fpar_leafon_ff*flai,fpar_min));
+						flai=1.0;				
 				}
+				indiv.fpar_leafon=max(0.0,flai-max(fpar_leafon_ff*flai,fpar_min));
 			}
 
 			vegetation.nextobj();
@@ -2548,6 +2545,9 @@ void growth_crop_daily(Patch& patch)
 			{
 
 #define CMASS_SEED 0.01	// 10g/m2;
+
+				cropindiv.dcmass_plant=0.0;
+
 #ifdef DELAYED_SEEDCARBON
 				if(dayinperiod(date.day, pppftcrop.sdate, (patchpft.cropphen->sdate+9))%365 )	// Seed carbon 110310; portion the seed carbon over a 10-day period.
 				{
@@ -2560,11 +2560,12 @@ void growth_crop_daily(Patch& patch)
 				{
 					cropindiv.grs_cmass_plant+=CMASS_SEED;
 					cropindiv.ycmass_plant+=CMASS_SEED;
+					cropindiv.dcmass_plant+=CMASS_SEED;
 
 					patch.fluxes.acflux_seed-=CMASS_SEED;	// This flux will be balancing litter fluxes for the NEXT year, but the amount should be OK.
 				}
 #endif
-				cropindiv.dcmass_plant=indiv.dnpp;
+				cropindiv.dcmass_plant+=indiv.dnpp;
 				cropindiv.grs_cmass_plant+=indiv.dnpp;
 				cropindiv.ycmass_plant+=indiv.dnpp;
 

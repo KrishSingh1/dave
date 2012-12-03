@@ -51,6 +51,13 @@
 #include "cru_1901_2006.h"
 #include "cru_1901_2006misc.h"
 
+bool fixedtemp_hist=0;
+bool fixedprec_hist=0;
+bool fixedrad_hist=0;
+bool fixedco2_hist=0;
+bool fixedlu_hist=0;
+bool fixedcrop_hist=0;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 //
 //                      SECTION: INPUT FROM INSTRUCTION SCRIPT
@@ -3208,7 +3215,7 @@ TimeDataD LUdata;
 TimeDataD Peatdata;
 TimeDataD CFTdata;
 
-#define LUTOMEMORY	//Write land use fraction data to memory; enables efficient usage of randomized gridlists for parallell runs on Simba.
+//#define LUTOMEMORY	//Write land use fraction data to memory; enables efficient usage of randomized gridlists for parallell runs on Simba.
 
 #ifdef LUTOMEMORY
 TimeDataDmem LUdata_mem;
@@ -3283,14 +3290,23 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 
 		for (y=0;y<NYEAR_HIST;y++) {
 			for (m=0;m<12;m++) {
-				mtemp[y][m] = data.mtemp[y*12+m]*0.1; // now degC
-				mprec[y][m] = data.mprec[y*12+m]*0.1; // mm (sum over month)
+				if(fixedtemp_hist)
+					mtemp[y][m] = data.mtemp[m]*0.1;
+				else
+					mtemp[y][m] = data.mtemp[y*12+m]*0.1; // now degC
+				if(fixedprec_hist)
+					mprec[y][m] = data.mprec[m]*0.1;
+				else
+					mprec[y][m] = data.mprec[y*12+m]*0.1; // mm (sum over month)
 				
 				// Limit very low precip amounts because negligible precipitation causes problems 
 				// in the prdaily function (infinite loops). 
 				if (mprec[y][m] <= 1.0) mprec[y][m] = 0.0;
-				
-				msun[y][m]  = data.msun[y*12+m]*0.1;   // % sun 
+
+				if(fixedrad_hist)
+					msun[y][m]  = data.msun[m]*0.1;
+				else
+					msun[y][m]  = data.msun[y*12+m]*0.1;   // % sun 
 
 			}
 		}
@@ -4119,9 +4135,6 @@ bool getgridcell(Gridcell& gridcell)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-bool fixedlu_hist=0;
-bool fixedcrop_hist=0;
-
 ///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
 void getlandcover(Gridcell& gridcell) {
 	int i, year, year_saved;
@@ -4614,8 +4627,15 @@ bool getclimate(Gridcell& gridcell) {
 	climate.mpet_year[date.month]+=climate.eet*PRIESTLEY_TAYLOR;
 
 	// Send environmental values for today to framework
-
-	climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
+	if(fixedco2_hist)
+		climate.co2 = co2[0];
+	else
+	{
+//		if(FIRSTHISTYEAR + date.year - nyear_spinup>=1950)				//Temporary code to test crashing c4 crops at high co2
+//			climate.co2 = climate.co2 + !(date.day%365)*5;
+//		else
+			climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
+	}
 
 	climate.temp=dtemp[date.day];
 	climate.prec=dprec[date.day];

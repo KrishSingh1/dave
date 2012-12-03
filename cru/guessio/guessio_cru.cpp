@@ -4632,7 +4632,7 @@ bool getclimate(Gridcell& gridcell) {
 	else
 	{
 //		if(FIRSTHISTYEAR + date.year - nyear_spinup>=1950)				//Temporary code to test crashing c4 crops at high co2
-//			climate.co2 = climate.co2 + !(date.day%365)*5;
+//			climate.co2 = climate.co2 + !(date.day%365)*10;
 //		else
 			climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
 	}

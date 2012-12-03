@@ -33,6 +33,7 @@
 #include "driver.h"
 #include "growth.h"
 
+#include <bitset>
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL CONSTANTS
@@ -316,38 +317,44 @@ void som_dynamics_lpj(Patch& patch) {
 /////////////////////////////////////////////////
 // CENTURY SOM DYNAMICS
 
-/// Decreases decay rates to keep the daily nitrogen balance in the soil  
-/** Function goes through the different SOM pools in a specific order
- *  depending on the order they feed into eachother.
+/// Data type representing a selection of SOM pools
+/** A selection of SOM pools is represented by a bitset,
+ *  the selected pools have their corresponding bits switched on.
  */
-void neg_mineralization(double decay_reduction[NSOMPOOL], double net_min[NSOMPOOL], int start, int end, double daily_nmass, double nmass) {
+typedef std::bitset<NSOMPOOL> SomPoolSelection;
 
-	int p;
-	double tot_neg_min;
+
+/// Decreases decay rates to keep the daily nitrogen balance in the soil  
+/** Only a selected subset of the SOM pools (as specified by the caller),
+ *  are considered for decay rate reduction.
+ */
+void neg_mineralization(double decay_reduction[NSOMPOOL], double net_min[NSOMPOOL], const SomPoolSelection& selected, double daily_nmass, double nmass) {
+
 	int neg_min[NSOMPOOL] = {0};	// Keeping track on which pools that are negative
-	int order[NSOMPOOL] = {0,5,1,7,6,4,3,8,2,9,10}; // Order to go through soil pools when decomposition is nitrogen limited
-	// pools SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SURFCWD,SOILMETA,SLOWSOM,PASSIVESOM,LEACHED,NSOMPOOL
 
-	double decay_red = 0.0;	// decay reduction
-
-	// add up immobilization
-	tot_neg_min = 0.0;
-	for (p=start; p<end; p++) {
-		if (net_min[p] < 0.0) {
+	// add up immobilization for considered pools
+	double tot_neg_min = 0.0;
+	for (int p = 0; p < NSOMPOOL; p++) {
+		if (selected[p] && net_min[p] < 0.0) {
 			tot_neg_min += net_min[p];
 			neg_min[p] = 1;
 		}
 	}
 
 	// Calculate decay reduction
+	double decay_red = 0.0;
+
 	if (tot_neg_min < daily_nmass)
 		decay_red = 1.0 - (tot_neg_min - (daily_nmass + nmass)) / tot_neg_min;
 	else
 		decay_red = 1.0;
 		
 	// Reduce decay rate for considered pools
-	for (p=start;p<end;p++)
-		decay_reduction[order[p]] = decay_red * neg_min[p];
+	for (int p = 0; p < NSOMPOOL; p++) {
+		if (selected[p]) {
+			decay_reduction[p] = decay_red * neg_min[p];
+		}
+	}
 }
 
 /// Set N:C ratios for SOM pools  
@@ -541,6 +548,15 @@ void somfluxes(Patch& patch) {
 	int times = 0;
 	double decay_reduction[NSOMPOOL] = {0.0};
 
+	// If necessary, the decay rates in the pools will be reduced in groups, one group
+	// is reduced after each iteration in the loop below. The groups are defined by
+	// how the pools feed into each other.
+	SomPoolSelection reduction_groups[4];
+	reduction_groups[0].set(SURFSTRUCT).set(SURFMETA).set(SURFCWD).set(SOILSTRUCT).set(SOILMETA);
+	reduction_groups[1].set(SURFMICRO);
+	reduction_groups[2].set(SURFHUMUS);
+	reduction_groups[3].set(SOILMICRO).set(SLOWSOM).set(PASSIVESOM);
+
 	// If mineralization together with soil available nitrogen is negative then decay rates are decreased 
 	// The SOM system have five try to get a positive result, after that all pools decay rate has been 
 	// affected by nitrogen limitation
@@ -570,42 +586,42 @@ void somfluxes(Patch& patch) {
 		// Donor pool SURFACE STRUCTURAL
 
 		transferdecomp(soil, SURFSTRUCT, SURFMICRO, 1.0 - soil.sompool[SURFSTRUCT].ligcfrac,
-			0.6, respsum, nmin_actual, nimmob, net_min[0]);	
+			0.6, respsum, nmin_actual, nimmob, net_min[SURFSTRUCT]);	
 
 		transferdecomp(soil, SURFSTRUCT, SURFHUMUS, soil.sompool[SURFSTRUCT].ligcfrac, 0.3,
-			respsum, nmin_actual, nimmob, net_min[0]);
+			respsum, nmin_actual, nimmob, net_min[SURFSTRUCT]);
 
 		// Donor pool SURFACE METABOLIC
 
-		transferdecomp(soil, SURFMETA, SURFMICRO, 1.0, 0.6, respsum, nmin_actual, nimmob, net_min[1]);
+		transferdecomp(soil, SURFMETA, SURFMICRO, 1.0, 0.6, respsum, nmin_actual, nimmob, net_min[SURFMETA]);
 
 		// Donor pool SOIL STRUCTURAL
 
 		transferdecomp(soil, SOILSTRUCT, SOILMICRO, 1.0 - soil.sompool[SOILSTRUCT].ligcfrac,
-			0.55, respsum, nmin_actual, nimmob, net_min[2]);
+			0.55, respsum, nmin_actual, nimmob, net_min[SOILSTRUCT]);
 
 		transferdecomp(soil, SOILSTRUCT, SLOWSOM, soil.sompool[SOILSTRUCT].ligcfrac, 0.3,
-			respsum, nmin_actual, nimmob, net_min[2]);
+			respsum, nmin_actual, nimmob, net_min[SOILSTRUCT]);
 
 		// Donor pool SOIL METABOLIC
 
-		transferdecomp(soil, SOILMETA, SOILMICRO, 1.0, 0.55, respsum, nmin_actual, nimmob, net_min[3]);
+		transferdecomp(soil, SOILMETA, SOILMICRO, 1.0, 0.55, respsum, nmin_actual, nimmob, net_min[SOILMETA]);
 
 		// Donor pool SURFACE COARSE WOODY DEBRIS
 
 		transferdecomp(soil, SURFCWD, SURFMICRO, 1.0 - soil.sompool[SURFCWD].ligcfrac,	
-			0.76, respsum, nmin_actual, nimmob, net_min[4]);
+			0.76, respsum, nmin_actual, nimmob, net_min[SURFCWD]);
 
 		transferdecomp(soil, SURFCWD, SURFHUMUS, soil.sompool[SURFCWD].ligcfrac, 0.76,
-			respsum, nmin_actual, nimmob, net_min[4]);
+			respsum, nmin_actual, nimmob, net_min[SURFCWD]);
 	
 		// Donor pool SURFACE MICROBE
 
-		transferdecomp(soil, SURFMICRO, SURFHUMUS, 1.0, 0.6, respsum, nmin_actual, nimmob, net_min[5]);
+		transferdecomp(soil, SURFMICRO, SURFHUMUS, 1.0, 0.6, respsum, nmin_actual, nimmob, net_min[SURFMICRO]);
 
 		// Donor pool SURFACE HUMUS
 
-		transferdecomp(soil, SURFHUMUS, SLOWSOM, 1.0, 0.6, respsum, nmin_actual, nimmob, net_min[6]);
+		transferdecomp(soil, SURFHUMUS, SLOWSOM, 1.0, 0.6, respsum, nmin_actual, nimmob, net_min[SURFHUMUS]);
 
 		// Donor pool SLOW SOM
 	
@@ -615,9 +631,9 @@ void somfluxes(Patch& patch) {
 		respfrac = 0.55;
 		csa= 1.0 - csp - respfrac;
 
-		transferdecomp(soil, SLOWSOM, SOILMICRO, csa, 0.0, respsum, nmin_actual, nimmob, net_min[7]);
+		transferdecomp(soil, SLOWSOM, SOILMICRO, csa, 0.0, respsum, nmin_actual, nimmob, net_min[SLOWSOM]);
 
-		transferdecomp(soil, SLOWSOM, PASSIVESOM, csp, 0.0, respsum, nmin_actual, nimmob, net_min[7]);
+		transferdecomp(soil, SLOWSOM, PASSIVESOM, csp, 0.0, respsum, nmin_actual, nimmob, net_min[SLOWSOM]);
 
 		// Account for respiration flux
 		// Nitrogen associated with this respiration is mineralised (Parton et al 1993, p 791)
@@ -634,12 +650,12 @@ void somfluxes(Patch& patch) {
 		// Fraction entering passive SOM pool (Parton et al 1993, Eqn 9)
 		cap = 0.003 + 0.032 * soil.soiltype.clay_frac;
 
-		transferdecomp(soil, SOILMICRO, PASSIVESOM, cap, 0.0, respsum, nmin_actual, nimmob, net_min[8]);
+		transferdecomp(soil, SOILMICRO, PASSIVESOM, cap, 0.0, respsum, nmin_actual, nimmob, net_min[SOILMICRO]);
 
 		// Fraction entering slow SOM pool
 		csp = 1.0 - respfrac - soil.orgleachfrac_daily[date.day] - cap;
 
-		transferdecomp(soil, SOILMICRO, SLOWSOM, csp, 0.0, respsum, nmin_actual, nimmob, net_min[8]);
+		transferdecomp(soil, SOILMICRO, SLOWSOM, csp, 0.0, respsum, nmin_actual, nimmob, net_min[SOILMICRO]);
 
 		// Account for respiration flux
 		// nitrogen associated with this respiration is mineralised (Parton et al 1993, p 791)
@@ -657,7 +673,7 @@ void somfluxes(Patch& patch) {
 
 		// Donor pool PASSIVE SOM
 
-		transferdecomp(soil, PASSIVESOM, SOILMICRO, 1.0, 0.55, respsum, nmin_actual, nimmob, net_min[9]);
+		transferdecomp(soil, PASSIVESOM, SOILMICRO, 1.0, 0.55, respsum, nmin_actual, nimmob, net_min[PASSIVESOM]);
 
 		// Estimate daily soil mineral nitrogen pool after decomposition
 		// (negative value = immobilisation) 
@@ -671,14 +687,9 @@ void somfluxes(Patch& patch) {
 		else {
 
 			// Immobilization larger than soil available nitrogen -> decrease decay rates
-			if (times == 0)
-				neg_mineralization(decay_reduction, net_min, 0, 5, daily_nmass, soil.nmass);
-			else if (times == 1)
-				neg_mineralization(decay_reduction, net_min, 5, 6, daily_nmass, soil.nmass);
-			else if (times == 2)
-				neg_mineralization(decay_reduction, net_min, 6, 7, daily_nmass, soil.nmass);
-			else if (times == 3)
-				neg_mineralization(decay_reduction, net_min, 7, 10, daily_nmass, soil.nmass);
+			if (times < 4) {
+				neg_mineralization(decay_reduction, net_min, reduction_groups[times], daily_nmass, soil.nmass);
+			}
 
 			net_mineralization = false;
 		}

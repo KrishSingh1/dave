@@ -763,7 +763,8 @@ void demand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& d
 		}
 #endif
 		// Increment patch sums of non-water-stressed gp by individual value
-		gp_patch += gp_leafon * indiv.phen;
+		if(indiv.pft.phenology!=CROPGREEN || indiv.pft.phenology==CROPGREEN && patch.pft[indiv.pft.id].cropphen->growingseason==true)
+			gp_patch += gp_leafon * indiv.phen;
 		if(patch.stand.landcover!=CROPLAND || patch.stand.landcover==CROPLAND && patch.pft[indiv.pft.id].cropphen->growingseason==true)
 			gp_leafon_patch += gp_leafon;
 
@@ -793,15 +794,14 @@ void demand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& d
 		else
 			patch.demand_leafon=0.0;
 	}
-
-	if(patch.stand.landcover==CROPLAND && patch.pft[patch.stand.pftid].pft.phenology==CROPGREEN && patch.pft[patch.stand.pftid].cropphen->growingseason)
+	else if(patch.stand.landcover==CROPLAND && patch.pft[patch.stand.pftid].pft.phenology==CROPGREEN)
 	{
-		if (!negligible(gp_patch)) 
+		if (!negligible(gp_patch) && patch.pft[patch.stand.pftid].cropphen->growingseason) 
 			patch.demand=aet_monteith(patch.eet_net_veg,gp_patch);	
 		else
 			patch.demand=0.0;
 
-		if (!negligible(gp_leafon_patch)) 
+		if (!negligible(gp_leafon_patch) && patch.pft[patch.stand.pftid].cropphen->growingseason) 
 			patch.demand_leafon=aet_monteith(patch.eet_net_veg,gp_leafon_patch);
 		else
 			patch.demand_leafon=0.0;
@@ -1047,7 +1047,11 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 				else
 					ppft.supply = ppft.supply_leafon * ppft.phen;
 			}
-			ppft.wstress = ppft.supply < patch.demand && !negligible(ppft.phen);
+
+			if(pft.phenology==CROPGREEN)			
+				ppft.wstress = ppft.supply < patch.demand && !negligible(ppft.cropphen->fpc) && ((patch.demand-ppft.supply)>1.0e-10);
+			else
+				ppft.wstress = ppft.supply < patch.demand && !negligible(ppft.phen);
 
 			if (!ifdailynpp && ppft.wstress) {
 				ppft.nday_wstress++;
@@ -1067,8 +1071,17 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			// with CO2 uptake; valid for all individuals of this PFT in this patch
 			// today.
 			// Eqn 25, Haxeltine & Prentice 1996
-			ppft.gcbase = ppft.wstress ? max(gc_monteith(ppft.supply, patch.eet_net_veg)-
-						pft.gmin * ppft.supply / patch.demand, 0.0) : 0;
+			if(pft.phenology==CROPGREEN)
+			{
+				ppft.gcbase = ppft.wstress ? max(gc_monteith(ppft.supply, patch.eet_net_veg) -
+					ppft.cropphen->fpc * pft.gmin * ppft.supply / patch.demand, 0.0) : 0;
+			}
+			else
+			{
+				ppft.gcbase = ppft.wstress ? max(gc_monteith(ppft.supply, patch.eet_net_veg)-
+							pft.gmin * ppft.supply / patch.demand, 0.0) : 0;
+			}
+
 			if (!date.diurnal()) {
 				ppft.wstress_day = ppft.wstress;
 				ppft.gcbase_day = ppft.gcbase;
@@ -1077,9 +1090,21 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 				}
 			}
 			else if (day.isend) {
-				ppft.wstress_day = ppft.supply < patch.demand_day && !negligible(ppft.phen);
-				ppft.gcbase_day = ppft.wstress_day ? max(gc_monteith(ppft.supply,
-						patch.eet_net_veg) - pft.gmin * ppft.supply / patch.demand_day, 0.0) : 0;
+				if(pft.phenology==CROPGREEN)
+					ppft.wstress_day = ppft.supply < patch.demand_day && !negligible(ppft.cropphen->fpc) && ((patch.demand-ppft.supply)>1.0e-10);
+				else
+					ppft.wstress_day = ppft.supply < patch.demand_day && !negligible(ppft.phen);
+
+				if(pft.phenology==CROPGREEN)
+				{
+					ppft.gcbase_day = ppft.wstress_day ? max(gc_monteith(ppft.supply,
+							patch.eet_net_veg) - ppft.cropphen->fpc * pft.gmin * ppft.supply / patch.demand_day, 0.0) : 0;
+				}
+				else
+				{
+					ppft.gcbase_day = ppft.wstress_day ? max(gc_monteith(ppft.supply,
+							patch.eet_net_veg) - pft.gmin * ppft.supply / patch.demand_day, 0.0) : 0;
+				}
 			}
 			if (!ifdailynpp && date.islastday && ppft.nday_wstress) {
 				ppft.temp_wstress /= ppft.nday_wstress;
@@ -1142,7 +1167,10 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			}
 		}
 		else {
-			indiv.aet += negligible(indiv.phen) ? 0.0 : demand_indiv;
+			if(indiv.pft.phenology==CROPGREEN)	
+				indiv.aet += negligible(indiv.fpc) ? 0.0 : demand_indiv;
+			else
+				indiv.aet += negligible(indiv.phen) ? 0.0 : demand_indiv;
 		}
 		if (day.isend) {
 			if(indiv.pft.phenology==CROPGREEN)
@@ -1663,7 +1691,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 				respiration(gtemp,patch.soil.gtemp,indiv.pft.lifeform,
 			
 				indiv.pft.respcoeff, indiv.pft.cton_sap, indiv.pft.cton_root,
-				1.0, indiv.cmass_sap, indiv.cropindiv->grs_cmass_root, assim, resp);
+				indiv.phen, indiv.cmass_sap, indiv.cropindiv->grs_cmass_root, assim, resp);
 			}
 			else
 				respiration(gtemp,patch.soil.gtemp,indiv.pft.lifeform,
@@ -1947,7 +1975,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 	double pet_patch;
 
 	if(patch.stand.landcover==CROPLAND && patch.pft[patch.stand.pftid].pft.phenology==CROPGREEN && patch.pft[patch.stand.pftid].cropphen->growingseason) {
-		pet_patch = patch.demand + patch.intercep;
+		pet_patch = patch.demand_day + patch.intercep;
 	}
 	else {
 		pet_patch = patch.demand_day * patch.fpc_total + patch.intercep +

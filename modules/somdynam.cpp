@@ -2,7 +2,7 @@
 /// \file somdynam.cpp
 /// \brief Soil organic matter dynamics
 ///
-/// \author Ben Smith
+/// \author Ben Smith (LPJ SOM dynamics), David Wårlind (CENTURY)
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -31,7 +31,6 @@
 #include "somdynam.h"
 
 #include "driver.h"
-#include "growth.h"
 
 #include <bitset>
 
@@ -52,7 +51,7 @@ static const double ATMFRAC=0.7;
 
 // Corresponds to minimum soil available nitrogen where SOM C:N ratio reach
 // their minimum (Parton et al 1993, Fig. 4)
-static const double nmass_max = 0.002;	
+static const double NMASS_MAX = 0.002;	
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL VARIABLES
@@ -389,23 +388,18 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil) {
 	// Modifier for effect of soil texture
 	// Eqn 5, Parton et al 1993:
 
-	double texture_mod = 1.0 - 0.75 * (soil.soiltype.clay_frac + soil.soiltype.silt_frac);
-
-	double temp_mod;
-	double moist_mod;
-	double wfps;
-	double k;
-	int p;
+	const double texture_mod = 1.0 - 0.75 * (soil.soiltype.clay_frac + soil.soiltype.silt_frac);
 
 	// Calculate decomposition temperature modifier (in range 0-1)
 	// [A(T_soil), Eqn A9, Comins & McMurtrie 1993; ET, Friend et al 1997; abiotic
 	// effect of soil temperature, Parton et al 1993, Fig 2)
 
-	if (temp_soil > 0.0)
+	double temp_mod = 0.0;
+
+	if (temp_soil > 0.0) {
 		temp_mod = max(0.0,
 			0.0326 + 0.00351 * pow(temp_soil, 1.652) - pow(temp_soil / 41.748, 7.19));
-	else
-		temp_mod = 0.0;
+	}
 
 	// Calculate decomposition moisture modifier (in range 0-1)
 	// Friend et al 1997, Eqn 53
@@ -414,27 +408,31 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil) {
 	// Water Filled Pore Spaces (wfps)
 	// water holding capacity at wilting point (wp) and saturation capacity (wsats) 
 	// is calculated with the help of Cosby et al 1984;
-	wfps = (wcont_soil * soil.soiltype.awc[0] + soil.soiltype.wp[0]) * 100.0 / soil.soiltype.wsats[0];			
+	const double wfps = (wcont_soil * soil.soiltype.awc[0] + soil.soiltype.wp[0]) * 100.0 / soil.soiltype.wsats[0];			
+
+	double moist_mod;
 
 	if (wfps < 60.0)
 		moist_mod = exp((wfps - 60.0) * (wfps - 60.0) / -800.0);
 	else
 		moist_mod = 0.000371 * wfps * wfps - 0.0748 * wfps + 4.13;
 
-	for (p=0;p<NSOMPOOL-1;p++) {
+	for (int p = 0; p < NSOMPOOL-1; p++) {
 
 		// Calculate decay constant (annual basis)
 		// (dC_I/dt / C_I; Parton et al 1993, Eqns 2-4)
 
-		k = K_MAX[p] * temp_mod * moist_mod;
+		double k = K_MAX[p] * temp_mod * moist_mod;
 
 		// Include effect of recalcitrance effect of lignin
 		// Parton et al 1993 Eqn 2
 
-		if (p == SURFSTRUCT || p == SOILSTRUCT || p == SURFCWD)
+		if (p == SURFSTRUCT || p == SOILSTRUCT || p == SURFCWD) {
 			k *= exp(-3.0 * soil.sompool[p].ligcfrac);
-		else if (p == SOILMICRO)
+		}
+		else if (p == SOILMICRO) {
 			k *= texture_mod;
+		}
 
 		// Calculate fraction of carbon pool remaining after today's decomposition
 
@@ -479,13 +477,11 @@ void transferdecomp(Soil& soil, pooltype donor, pooltype receiver,
 }
 
 /// Fluxes between the CENTURY pools, and CO2 release to the atmosphere   
-/** Daily or monthly fluxes between the ten CENTURY pools, and CO2 release to the atmosphere   
+/** Daily or monthly fluxes between the ten CENTURY pools, and CO2 release to the atmosphere
  *  Parton et al 1993, Fig 1; Comins & McMurtrie 1993, Appendix A
  */
 void somfluxes(Patch& patch) {	
 
-	int p;
-	double csp, csa, respfrac, cap;
 	double respsum = 0.0;
 	double leachsum_cmass, leachsum_nmass;
 	double nmin_actual = 0.0;	// actual (not net) nitrogen mineralisation
@@ -496,24 +492,26 @@ void somfluxes(Patch& patch) {
 	Fluxes& fluxes = patch.fluxes;
 	Soil& soil = patch.soil;
 
-	if (date.day == 0)
+	if (date.day == 0) {
 		soil.aorgleach = 0.0;
+	}
 
 	// Set N:C ratios for humus, soil microbial, passive and slow pool based on estimated mineral nitrogen pool
 	// (Parton et al 1993, Fig 4)
 
 	// Warning if soil available nitrogen is negative (if happens once or so no problem, but if it propagates through time then it is)
-	if (soil.nmass < -EPS && date.year >= freenyears)
+	if (soil.nmass < -EPS && date.year >= freenyears) {
 		dprintf("Year %d Day %d negative mineral soil available nitrogen %g \n",date.year, date.day, soil.nmass);
+	}
 
 	// ForCent (Parton 2010) values
-	setntoc(soil, soil.nmass, SLOWSOM, 30.0, 15.0, 0.0, nmass_max);
+	setntoc(soil, soil.nmass, SLOWSOM, 30.0, 15.0, 0.0, NMASS_MAX);
 		
-	setntoc(soil, soil.nmass, PASSIVESOM, 10.0, 6.0, 0.0, nmass_max);
+	setntoc(soil, soil.nmass, PASSIVESOM, 10.0, 6.0, 0.0, NMASS_MAX);
 
-	setntoc(soil, soil.nmass, SOILMICRO, 15.0, 6.0, 0.0, nmass_max);
+	setntoc(soil, soil.nmass, SOILMICRO, 15.0, 6.0, 0.0, NMASS_MAX);
 
-	setntoc(soil, soil.nmass, SURFHUMUS, 30.0, 15.0, 0.0, nmass_max);
+	setntoc(soil, soil.nmass, SURFHUMUS, 30.0, 15.0, 0.0, NMASS_MAX);
 
 	if (ifdailydecomp){
 
@@ -534,7 +532,7 @@ void somfluxes(Patch& patch) {
 
 		// Convert fractional scalars from daily to monthly basis
 
-		for (p=0; p<NSOMPOOL; p++) {
+		for (int p = 0; p < NSOMPOOL; p++) {
 			soil.sompool[p].frc = pow(soil.sompool[p].frc, date.ndaymonth[date.month]);
 		}
 	}
@@ -569,7 +567,7 @@ void somfluxes(Patch& patch) {
 		leachsum_nmass = 0.0;
 
 		// Calculate decomposition in all pools assuming these decay rates
-		for (p=0;p<NSOMPOOL;p++) {
+		for (int p = 0; p < NSOMPOOL; p++) {
 			soil.sompool[p].cdec = soil.sompool[p].cmass * (1.0 - soil.sompool[p].frc) * (1.0 - decay_reduction[p]);
 			soil.sompool[p].ndec = soil.sompool[p].nmass * (1.0 - soil.sompool[p].frc) * (1.0 - decay_reduction[p]);
 			
@@ -627,9 +625,9 @@ void somfluxes(Patch& patch) {
 	
 		// First work out partitioning coefficients (Fig 1, Parton et al 1993)
 
-		csp = 0.003 - 0.009 * soil.soiltype.clay_frac;
-		respfrac = 0.55;
-		csa= 1.0 - csp - respfrac;
+		double csp = 0.003 - 0.009 * soil.soiltype.clay_frac;
+		double respfrac = 0.55;
+		double csa = 1.0 - csp - respfrac;
 
 		transferdecomp(soil, SLOWSOM, SOILMICRO, csa, 0.0, respsum, nmin_actual, nimmob, net_min[SLOWSOM]);
 
@@ -648,7 +646,7 @@ void somfluxes(Patch& patch) {
 		respfrac = max(0.0, 0.85 - 0.68 * (soil.soiltype.clay_frac + soil.soiltype.silt_frac));
 
 		// Fraction entering passive SOM pool (Parton et al 1993, Eqn 9)
-		cap = 0.003 + 0.032 * soil.soiltype.clay_frac;
+		double cap = 0.003 + 0.032 * soil.soiltype.clay_frac;
 
 		transferdecomp(soil, SOILMICRO, PASSIVESOM, cap, 0.0, respsum, nmin_actual, nimmob, net_min[SOILMICRO]);
 
@@ -699,7 +697,7 @@ void somfluxes(Patch& patch) {
 
 	// Update pool sizes
 
-	for (p=0;p<NSOMPOOL-1;p++) {
+	for (int p = 0; p < NSOMPOOL-1; p++) {
 		soil.sompool[p].cmass += soil.sompool[p].delta_cmass;
 		soil.sompool[p].nmass += soil.sompool[p].delta_nmass;
 	}
@@ -725,9 +723,9 @@ void somfluxes(Patch& patch) {
 
 	// If no nitrogen limitation or free nitrogen year (100 years added to get consistency after switch)
 	// set soil avaiable nitrogen to zero on last day of year
-	if (date.islastday && date.islastmonth && (!ifnlim || date.year <= freenyears + 100))
+	if (date.islastday && date.islastmonth && (!ifnlim || date.year <= freenyears + 100)) {
 		soil.nmass = 0.0;
-
+	}
 }
 
 /// Transfers litter from this year's growth, mortality and fire   
@@ -973,15 +971,15 @@ void naddition(Patch& patch) {
 	// Nitrogen fixation
 	// If soil available nitrogen is above the value for minimum SOM C:N ratio, then
 	// nitrogen fixation is reduced (nitrogen rich soils)
-	if (soil.nmass < nmass_max) {
+	if (soil.nmass < NMASS_MAX) {
 
-		if (soil.nmass + soil.anfix_calc / 365.0 < nmass_max) {
+		if (soil.nmass + soil.anfix_calc / 365.0 < NMASS_MAX) {
 			soil.nmass += soil.anfix_calc / 365.0;
 			soil.anfix += soil.anfix_calc / 365.0;;
 		}
 		else {
-			soil.anfix += nmass_max - soil.nmass;
-			soil.nmass = nmass_max;
+			soil.anfix += NMASS_MAX - soil.nmass;
+			soil.nmass = NMASS_MAX;
 		}
 	}
 

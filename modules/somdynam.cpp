@@ -31,7 +31,7 @@
 #include "somdynam.h"
 
 #include "driver.h"
-
+#include <assert.h>
 #include <bitset>
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -736,6 +736,7 @@ void somfluxes(Patch& patch) {
  * \param lton  Litter lignin:N ratio
  */
 double metabolic_litter_fraction(double lton) {
+	assert(lton >= 0);
 	return max(0.0, 0.85 - lton * 0.013);
 }
 
@@ -796,9 +797,6 @@ void transfer_litter(Patch& patch) {
 
 		double ligcmass_old = soil.sompool[SURFSTRUCT].cmass * soil.sompool[SURFSTRUCT].ligcfrac;
 
-		if (fm < 0.0 || fm > 1.0) 
-			dprintf("Year %d LEAF fm %g pft %s\n", date.year, fm, (char*)pft.pft.name);
-
 		// Add to pools
 		soil.sompool[SURFSTRUCT].cmass += pft.litter_leaf * (1.0 - fm);
 		soil.sompool[SURFSTRUCT].nmass += litter_leaf_n * (1.0 - fm);
@@ -845,9 +843,6 @@ void transfer_litter(Patch& patch) {
 		// Metabolic litter fraction for root litter
 		fm = metabolic_litter_fraction(root_lton);
 
-		if (fm < 0.0 || fm > 1.0) 
-			dprintf("Year %d ROOT fm %g pft %s\n", date.year, fm, (char*)pft.pft.name);
-
 		ligcmass_new = pft.litter_root * (1.0 - fm) * LIGCFRAC_ROOT;
 		ligcmass_old = soil.sompool[SOILSTRUCT].cmass * soil.sompool[SOILSTRUCT].ligcfrac;
 
@@ -878,11 +873,9 @@ void transfer_litter(Patch& patch) {
 
 			// Coarse woody debris
 
-			ligcmass_new = max(0.0, pft.litter_wood) * LIGCFRAC_WOOD;
+			assert(pft.litter_wood >= 0);
+			ligcmass_new = pft.litter_wood * LIGCFRAC_WOOD;
 			ligcmass_old = soil.sompool[SURFCWD].cmass * soil.sompool[SURFCWD].ligcfrac;
-
-			if (pft.litter_wood < 0.0)
-				dprintf("Year %d pft %s Negative litter wood %g \n", date.year, (char*)pft.pft.name, pft.litter_wood);
 
 			// Add to structural pool and update lignin fraction in pool
 			soil.sompool[SURFCWD].cmass += pft.litter_wood;

@@ -923,6 +923,56 @@ inline double water_uptake(double wcont[NSOILLAYER],double awc[NSOILLAYER],
 	return wr;
 }
 
+double irrigated_water_uptake(Patch& patch, Pft& pft)
+{
+	double wr;
+	Patchpft& ppft = patch.pft[pft.id];
+
+	double wcont_cp[NSOILLAYER];
+	for(int i=0;i<NSOILLAYER;i++)
+		wcont_cp[i]=patch.soil.wcont[i];
+
+	ppft.water_deficit_d=0.0;
+	if(date.day==0)
+		ppft.water_deficit_y=0.0;
+
+	if (patch.soil.wcont[0]<0.9 && ppft.phen > 0.0)	//Fader et al. 2010
+	{
+		double wcont_0_opt=0.0;
+		double wr_opt;
+
+		wr_opt=patch.demand/ppft.phen/pft.emax;
+		if(wr_opt>1.0)
+			wr_opt=1.0;
+
+		if(wateruptake==WR_ROOTDIST)
+		{
+
+//// from water_uptake( ): wr_opt=(min(wcont_0_opt*patch.soil.soiltype.awc[0]*patch.fpc_rescale, pft.emax*pft.rootdist[0])+min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]))/pft.emax
+			wcont_0_opt=(wr_opt*pft.emax-min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]))/patch.soil.soiltype.awc[0]/patch.fpc_rescale;
+
+			if(wcont_0_opt*patch.soil.soiltype.awc[0]*patch.fpc_rescale>pft.emax*pft.rootdist[0])
+				wcont_0_opt=pft.emax*pft.rootdist[0]/patch.soil.soiltype.awc[0]/patch.fpc_rescale;
+		}
+		else
+			fail("Irrigation soil water only balanced for WR_ROOTDIST currently !\n");
+
+		if(wcont_0_opt>patch.soil.wcont[0])
+		{
+			ppft.water_deficit_d=(wcont_0_opt-patch.soil.wcont[0])*patch.soil.soiltype.awc[0];
+			wcont_cp[0]=wcont_0_opt;
+		}
+
+		ppft.water_deficit_y+=ppft.water_deficit_d;
+
+	}
+		wr = water_uptake(wcont_cp, patch.soil.soiltype.awc, pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fuptake,
+								pft.lifeform == TREE, pft.drought_tolerance);
+
+		return wr;
+};
+
+
 /// Actual evapotranspiration and water stress
 /** Soil water supply at the roots available to meet the transpirational demand
  *  Fundamentally, water stress = supply < demand
@@ -936,11 +986,6 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 	// individuals and used to derive actual photosynthesis in function npp (below)
 
 	Climate& climate = patch.stand.gridcell.climate;
-
-	patch.irrigation_d=0.0;
-
-	if(date.day==0)
-		patch.irrigation_y=0.0;
 
 	// Calculate common point supply for each PFT in this patch
 	for (int p=0; p<npft; p++) {
@@ -972,60 +1017,17 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 			if (day.isstart) {
 
-#if defined IRRIGATION
-				if(patch.stand.isirrigated && pft.hydrology==IRRIGATED)
-				{
-
-					ppft.water_deficit_d=0.0;
-
-					if(date.day==0)
-						ppft.water_deficit_y=0.0;
-
-					if (patch.soil.wcont[0]<0.9 && ppft.phen > 0.0)	//Fader et al. 2010
-					{
-						double wcont_0_opt=0.0;
-						double wr_opt;
-
-						wr_opt=patch.demand/ppft.phen/pft.emax;
-						if(wr_opt>1.0)
-							wr_opt=1.0;
-
-						if(wateruptake==WR_ROOTDIST)
-						{
-
-//// from water_uptake( ): wr_opt=(min(wcont_0_opt*patch.soil.soiltype.awc[0]*patch.fpc_rescale, pft.emax*pft.rootdist[0])+min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]))/pft.emax
-							wcont_0_opt=(wr_opt*pft.emax-min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]))/patch.soil.soiltype.awc[0]/patch.fpc_rescale;
-
-							if(wcont_0_opt*patch.soil.soiltype.awc[0]*patch.fpc_rescale>pft.emax*pft.rootdist[0])
-								wcont_0_opt=pft.emax*pft.rootdist[0]/patch.soil.soiltype.awc[0]/patch.fpc_rescale;
-						}
-						else
-							fail("Irrigation soil water only balanced for WR_ROOTDIST currently !\n");
-
-						if(wcont_0_opt>patch.soil.wcont[0])
-						{
-							ppft.water_deficit_d=(wcont_0_opt-patch.soil.wcont[0])*patch.soil.soiltype.awc[0];
-							patch.soil.wcont[0]=wcont_0_opt;
-						}
-
-						ppft.water_deficit_y+=ppft.water_deficit_d;
-						if(ppft.water_deficit_d>patch.irrigation_d)
-							patch.irrigation_d=ppft.water_deficit_d;
-						if(patch.irrigation_d<0.0)
-						{
-							patch.irrigation_d=0.0;
-							dprintf("Negative irrigation_d !\n");
-						}
-						patch.irrigation_y+=patch.irrigation_d;
-					}
-				}
-#endif	//IRRIGATION
-
 				// Calculate effective water supply from plant roots
 				// Rescale available water by patch FPC if exceeds 1
 				// (this then represents the average amount of water available over an
 				// individual's FPC, assuming individuals are equal in competition for water)
-				double wr = water_uptake(patch.soil.wcont, patch.soil.soiltype.awc,
+				double wr;
+#ifdef IRRIGATION
+				if(patch.stand.isirrigated && pft.hydrology==IRRIGATED)
+					wr = irrigated_water_uptake(patch, pft);
+				else
+#endif
+					wr = water_uptake(patch.soil.wcont, patch.soil.soiltype.awc,
 								pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fuptake,
 								pft.lifeform == TREE, pft.drought_tolerance);
 

@@ -158,7 +158,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	// BLARP: water content can become negative, though apparently only very slightly
 	//    - quick fix implemented here, should be done better later
 
-	wcont[0] += (rain_melt - aet_layer[0] - evap) / awc[0];
+	wcont[0] += (rain_melt + patch.irrigation_d - aet_layer[0] - evap) / awc[0];
 	if (wcont[0] != 0.0 && wcont[0] < 0.0001) { // guess2008 - bugfix
 		wcont[0] = 0.0;
 	}
@@ -312,6 +312,33 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 			soil.rain_melt = 0;			
 		}
 		soil.wcont_evap = soil.wcont[0];
+	}
+}
+////////////////////////////////////////////////////////////////////////////////////////
+// IRRIGATION
+// Calculate required irrigation according to water deficiency.
+// Function to be called after canopy_exchange and before soilwater.
+
+void irrigation(Patch& patch)
+{
+	patch.irrigation_d=0.0;
+	if(date.day==0)
+		patch.irrigation_y=0.0;
+
+	if(patch.stand.isirrigated)
+	{
+		for(int i=0;i<patch.pft.nobj;i++)
+		{
+			if(patch.pft[i].pft.hydrology==IRRIGATED && patch.pft[i].cropphen->growingseason)
+			{
+				patch.irrigation_d+=patch.pft[i].water_deficit_d;
+				if(patch.irrigation_d<0.0)
+				{
+					dprintf("Negative irrigation_d !\n");
+				}
+				patch.irrigation_y+=patch.irrigation_d;
+			}
+		}
 	}
 }
 

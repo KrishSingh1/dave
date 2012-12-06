@@ -150,6 +150,7 @@ rename("CFTdata.out", "CFTdata.old");
 					initial_infiltration(patch, gridcell.climate);
 					// Photosynthesis, respiration, evapotranspiration
 					canopy_exchange(patch, gridcell.climate);
+					irrigation(patch);
 					// Soil water accounting, snow pack accounting
 					soilwater(patch, gridcell.climate);
 					// Soil organic matter and litter dynamics

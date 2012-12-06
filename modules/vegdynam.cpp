@@ -479,7 +479,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						if(stand.landcover==CROPLAND)
 						{
 							if(pft.phenology==CROPGREEN)
+							{
 								indiv.fpc=0.0;
+								indiv.fpc_thisday=0.0;
+							}
 
 							if (stand.pftid==pft.id)
 							{
@@ -873,7 +876,7 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 				for(int i=0;i<vegetation.nobj;i++)
 				{
 					if(indiv.cropindiv->isprimarycrop && (vegetation[i].cropindiv->isprimarycrop || vegetation[i].cropindiv->isprimarycovegetation))		//covegetation and secondary vegetation for future use ?
-						fpc_grass+=vegetation[i].fpc;
+						fpc_grass+=vegetation[i].fpc_thisday;
 					else if(indiv.cropindiv->isintercropgrass && vegetation[i].cropindiv->isintercropgrass)
 						fpc_grass+=vegetation[i].fpc;
 				}

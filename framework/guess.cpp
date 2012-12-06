@@ -508,6 +508,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	anpp=0.0;
 	fpc=0.0;
+	fpc_thisday=0.0;
 	densindiv=0.0;
 	cmass_leaf=0.0;
 	cmass_root=0.0;

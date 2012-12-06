@@ -2221,7 +2221,8 @@ void leaf_phenology_crop(Pft& pft, Patch& patch)
 			} //end harvest
 
 			ppftcrop.lai=ppftcrop.lai_crop_actual;
-			ppftcrop.fpc=1.0-lambertbeer(ppftcrop.lai);
+			ppftcrop.fpc_thisday=1.0-lambertbeer(ppftcrop.lai);
+			ppftcrop.fpc=1.0;
 		}  //from sowing has taken place until harvest day
 
 #if defined DYNAMIC_PHU	// Every day
@@ -2355,7 +2356,7 @@ void fpar_crop(Patch& patch) {
 		
 			// For this individual ...
 
-			indiv.fpar=indiv.fpc*indiv.phen; // Eqn 1
+			indiv.fpar=indiv.fpc_thisday*indiv.phen; // Eqn 1
 			indiv.fpar_leafon=indiv.fpc; // Eqn 2
 
 			vegetation.nextobj(); // ... on to next individual
@@ -2469,6 +2470,8 @@ void fpar_crop(Patch& patch) {
 						flai=1.0;				
 				}
 				indiv.fpar_leafon=max(0.0,flai-max(fpar_leafon_ff*flai,fpar_min));
+				if(indiv.pft.phenology==CROPGREEN)	//quickfix
+					indiv.fpar_leafon=indiv.fpc;
 			}
 
 			vegetation.nextobj();

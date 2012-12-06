@@ -1230,6 +1230,9 @@ public:
 	double fpc;
 		// foliar projective cover (FPC) under full leaf cover as fraction of modelled
 		// area
+	double fpc_thisday;
+		// foliar projective cover (FPC) this day as fraction of modelled
+		// area
 	double fpar;
 		// fraction of PAR absorbed by foliage over projective area today, taking
 		// account of leaf phenological state
@@ -1698,9 +1701,9 @@ public:
 //	double fhi_harvest[2];
 	double demandsum_crop;
 	double supplysum_crop;
-	double lai;		// copy of indiv.lai (in allometry directly after lai calculation)
-	double fpc;		// copy of indiv.fpc (in allometry directly after fpc calculation)
-
+	double lai;		// copy of indiv.lai 
+	double fpc;		// copy of indiv.fpc 
+	double fpc_thisday;		// copy of indiv.fpc_thisday 
 	bool growingseason;
 	bool growingseason_ystd;
 	bool senescence;
@@ -1892,6 +1895,7 @@ public:
 			cropphen=new cropphen_struct;
 			cropphen->lai=0.0;
 			cropphen->fpc=0.0;
+			cropphen->fpc_thisday=0.0;
 		}
 	}
 

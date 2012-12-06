@@ -199,6 +199,7 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 				indiv.lai=patch.pft[indiv.pft.id].cropphen->lai;
 				indiv.lai_indiv=indiv.lai;
 				indiv.fpc=patch.pft[indiv.pft.id].cropphen->fpc;
+				indiv.fpc_thisday=patch.pft[indiv.pft.id].cropphen->fpc_thisday;
 			}
 
 			if(patch.pft[indiv.pft.id].cropphen->growingseason==true)
@@ -206,11 +207,9 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 
 			vegetation.nextobj();
 		}
-
-		if (patch.fpc_total>1.0)
-			patch.fpc_rescale=1.0/patch.fpc_total;
-		else
-			patch.fpc_rescale=1.0;
+		// Calculate rescaling factor to account for overlap between populations/
+		// cohorts/individuals (i.e. total FPC > 1)
+		patch.fpc_rescale = 1.0 / max(patch.fpc_total, 1.0);
 	}
 }
 

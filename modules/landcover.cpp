@@ -2125,8 +2125,6 @@ void leaf_phenology_crop(Pft& pft, Patch& patch)
 				// phenological scale (fraction of growing season)
 				ppftcrop.fphu=min(1.0,ppftcrop.husum/ppftcrop.phu);						//SWAT 5:2.1.11
 
-				patchpft.phen=1.0;
-
 				if (ppftcrop.fphu>=pft.fphusen) 
 				{
 					if(ppftcrop.senescence_ystd==false)
@@ -2223,6 +2221,8 @@ void leaf_phenology_crop(Pft& pft, Patch& patch)
 			ppftcrop.lai=ppftcrop.lai_crop_actual;
 			ppftcrop.fpc_thisday=1.0-lambertbeer(ppftcrop.lai);
 			ppftcrop.fpc=1.0;
+			patchpft.phen=ppftcrop.fpc_thisday/ppftcrop.fpc;
+
 		}  //from sowing has taken place until harvest day
 
 #if defined DYNAMIC_PHU	// Every day
@@ -2356,7 +2356,7 @@ void fpar_crop(Patch& patch) {
 		
 			// For this individual ...
 
-			indiv.fpar=indiv.fpc_thisday*indiv.phen; // Eqn 1
+			indiv.fpar=indiv.fpc_thisday; // Eqn 1
 			indiv.fpar_leafon=indiv.fpc; // Eqn 2
 
 			vegetation.nextobj(); // ... on to next individual
@@ -2390,7 +2390,10 @@ void fpar_crop(Patch& patch) {
 					if(indiv.lai>highest_grass_lai)
 						highest_grass_lai=indiv.lai;
 					plai_leafon_grass=highest_grass_lai;	// avoids double lai count for intercrop grass (c3 and c4 grass competing, lai is for monocultures)
-					plai_grass+=indiv.lai*indiv.phen;	
+					if(indiv.pft.phenology==CROPGREEN)
+						plai_grass+=indiv.lai;	
+					else
+						plai_grass+=indiv.lai*indiv.phen;	
 				}
 			}
 			vegetation.nextobj(); // ... on to next individual

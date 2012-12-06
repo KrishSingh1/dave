@@ -231,7 +231,11 @@ void bvoc(double temp, double hours, double daylength, double rad, double eet,
 	}
 
 	double temp_leaf_daytime;
-	double temp_leaf = leafT(temp, hours, gpterm, eet, pft.ga, rad, pft.gmin,
+	double temp_leaf;
+	if(indiv.pft.phenology==CROPGREEN)
+		temp_leaf = leafT(temp, hours, gpterm, eet, pft.ga, rad, pft.gmin, indiv.lai);
+	else
+		temp_leaf = leafT(temp, hours, gpterm, eet, pft.ga, rad, pft.gmin,
 	                                                     indiv.lai*indiv.phen);
 	if (date.diurnal()) {
 		temp_leaf_daytime = temp_leaf;
@@ -241,6 +245,10 @@ void bvoc(double temp, double hours, double daylength, double rad, double eet,
 		double temp_corrected = daytime_temp(temp, daylength, dtr);
 
 		// perform air temperature to leaf temperature correction
+	if(indiv.pft.phenology==CROPGREEN)
+		temp_leaf_daytime = leafT(temp_corrected, daylength, gpterm, eet, pft.ga,
+		                                   rad, pft.gmin, indiv.lai);
+	else
 		temp_leaf_daytime = leafT(temp_corrected, daylength, gpterm, eet, pft.ga,
 		                                   rad, pft.gmin, indiv.lai*indiv.phen);
 	}

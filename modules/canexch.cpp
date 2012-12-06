@@ -774,28 +774,20 @@ void demand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& d
 	// Calculate transpirational demand on patch vegetated area basis
 	// Eqn 23, Haxeltine & Prentice 1996
 
-	if(patch.stand.landcover!=CROPLAND || patch.pft[patch.stand.pftid].cropphen->growingseason)
-	{
-		// guess2008 - added fpc_total check
-		if (!negligible(gp_patch) && !negligible(patch.fpc_total)) {
-			gp_patch /= patch.fpc_total;
-			patch.demand = aet_monteith(patch.eet_net_veg, gp_patch);
-		}
-		else
-			patch.demand = 0.0;
-
-		if (!negligible(gp_leafon_patch) && !negligible(patch.fpc_total)) {
-			gp_leafon_patch /= patch.fpc_total;
-			patch.demand_leafon = aet_monteith(patch.eet_net_veg, gp_leafon_patch);
-		}
-		else
-			patch.demand_leafon=0.0;
+	// guess2008 - added fpc_total check
+	if (!negligible(gp_patch) && !negligible(patch.fpc_total)) {
+		gp_patch /= patch.fpc_total;
+		patch.demand = aet_monteith(patch.eet_net_veg, gp_patch);
 	}
 	else
-	{
 		patch.demand = 0.0;
-		patch.demand_leafon=0.0;
+
+	if (!negligible(gp_leafon_patch) && !negligible(patch.fpc_total)) {
+		gp_leafon_patch /= patch.fpc_total;
+		patch.demand_leafon = aet_monteith(patch.eet_net_veg, gp_leafon_patch);
 	}
+	else
+		patch.demand_leafon=0.0;
 
 	patch.demand_day += patch.demand;
 	if (day.isend) {
@@ -1032,7 +1024,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 								pft.lifeform == TREE, pft.drought_tolerance);
 
 				// Calculate supply (Eqn 24, Haxeltine & Prentice 1996)
-				if(patch.stand.landcover!=CROPLAND || patch.pft[patch.stand.pftid].cropphen->growingseason)
+				if(patch.stand.landcover!=CROPLAND || ppft.cropphen->growingseason)
 					ppft.supply_leafon = pft.emax * wr;
 				else
 					ppft.supply_leafon = 0.0;

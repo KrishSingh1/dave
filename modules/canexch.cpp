@@ -1692,16 +1692,9 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 			// Monthly NPP and LAI
 			indiv.mnpp[date.month] += indiv.dnpp;
-			if(indiv.pft.phenology==CROPGREEN)
-			{
-				if(indiv.lai>indiv.mlai_max[date.month])
-					indiv.mlai_max[date.month]=indiv.lai;
-			}
-			else
-			{
-				if(indiv.lai*indiv.phen>indiv.mlai_max[date.month])
-					indiv.mlai_max[date.month]=indiv.lai*indiv.phen;
-			}
+			double lai_indiv=indiv.pft.phenology==CROPGREEN ? indiv.lai : indiv.lai*indiv.phen;
+			if(lai_indiv>indiv.mlai_max[date.month])
+				indiv.mlai_max[date.month]=lai_indiv;
 
 			// guess2008 - update monthly arrays
 			indiv.mgpp[date.month] += assim;
@@ -1710,10 +1703,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			patch.fluxes.mcflux_ra[date.month] += resp;
 
 			if (day.isend) {
-				if(indiv.pft.phenology==CROPGREEN)
-					indiv.mlai[date.month] += indiv.lai;
-				else
-					indiv.mlai[date.month] += indiv.lai*indiv.phen;
+				indiv.mlai[date.month] += lai_indiv;
 				// On last day of month - convert monthly LAI from sum to mean
 				if (date.islastday) {
 					indiv.mlai[date.month] /= (double)date.ndaymonth[date.month];

@@ -126,15 +126,7 @@ cat <<EOF > guess.cmd
 #SBATCH -n $NPROCESS
 #SBATCH --time=$WALLTIME
 
-cat<<EOL > startguess.sh
-#!/bin/sh
-cd run\\\$((SLURM_PROCID+1))
-BINARY $INSFILE
-EOL
-chmod +x startguess.sh
-srun ./startguess.sh
-
-rm startguess.sh
+mpprun BINARY -goto-rundir $INSFILE
 
 function append_files {
     local number_of_jobs=\$1
@@ -145,7 +137,9 @@ function append_files {
     local i=""
     for ((i=2; i <= number_of_jobs; i++))
     do
-      cat run\$i/\$file | awk 'NR!=1 || NF==0 || \$1 == \$1+0 { print \$0 }' >> \$file
+      if [ -f run\$i/\$file ]; then
+        cat run\$i/\$file | awk 'NR!=1 || NF==0 || \$1 == \$1+0 { print \$0 }' >> \$file
+      fi
     done
 }
 

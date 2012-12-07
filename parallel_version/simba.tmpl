@@ -45,6 +45,9 @@ OUTFILES='*.out'
 # Nothing to change past here
 ########################################################################
 
+# Exit if any command fails
+set -e
+
 # Handle the command line arguments
 while getopts ":n:s:i:" opt; do
     case $opt in
@@ -125,26 +128,22 @@ cat <<EOF > guess.cmd
 #!/bin/bash
 #PBS -l nodes=$NPROCESS
 #PBS -l walltime=$WALLTIME
+set -e
 
 cd \$PBS_O_WORKDIR
 
-cat<<EOL > startguess.sh
-#!/bin/sh
 umask 022
-cd \$PBS_O_WORKDIR
-cd run\\\$((PBS_VNODENUM+1))
-BINARY $INSFILE
-EOL
-chmod +x startguess.sh
-pbsdsh \$PBS_O_WORKDIR/startguess.sh
 
-rm startguess.sh
+mpiexec BINARY -goto-rundir $INSFILE
+
 EOF
 
 cat <<EOF > append.cmd
 #!/bin/bash
 #PBS -l nodes=1
 #PBS -l walltime=$WALLTIME
+set -e
+
 cd \$PBS_O_WORKDIR
 function append_files {
     local number_of_jobs=\$1
@@ -155,7 +154,9 @@ function append_files {
     local i=""
     for ((i=2; i <= number_of_jobs; i++))
     do
-      cat run\$i/\$file | awk 'NR!=1 || NF==0 || \$1 == \$1+0 { print \$0 }' >> \$file
+      if [ -f run\$i/\$file ]; then
+        cat run\$i/\$file | awk 'NR!=1 || NF==0 || \$1 == \$1+0 { print \$0 }' >> \$file
+      fi
     done
 }
 

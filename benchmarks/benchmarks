@@ -140,16 +140,29 @@ function build {
     fi
 
     pushd $build_path/output &> /dev/null
-    if ! $cmake_command .. &> /dev/null ; then
+
+    cmake_output=$(mktemp)
+    if ! $cmake_command .. &> $cmake_output ; then
 	error "Failed to configure build " $build_path "!"
-	exit 1
+	cat $cmake_output
+	rm $cmake_output
+	popd &> /dev/null
+	return 1
     fi
-    if ! $make_command &> /dev/null ; then
+    rm $cmake_output
+
+    make_output=$(mktemp)
+    if ! $make_command &> $make_output ; then
 	error "Failed to build " $build_path "!"
-	exit 1
+	cat $make_output
+	rm $make_output
+	popd &> /dev/null
+	return 1
     fi
+    rm $make_output
 
     popd &> /dev/null
+    return 0
 }
 
 # This function prepares the workspace for one of the benchmarks
@@ -173,8 +186,13 @@ function setup_workspace {
 	cp $build_path/output/submit.sh $workspace
     fi
 
-    # Copy the config files to the workspace
-    cp $test_name/config/* $workspace
+    # Copy the config files to the workspace.
+    # The ins file is excluded to avoid confusion. It's the ins
+    # file in the benchmark directory that's used. If we copy
+    # the ins file to the run directory it looks like the ins
+    # file in the benchmark directory can be modified once the
+    # job has been submitted to queue.
+    ls $test_name/config/* | grep -v guess.ins | xargs -I '{}' cp '{}' $workspace
 
     # Limit the gridlist if there is a boundingbox.txt
     if [ -f $test_name/config/boundingbox.txt ]; then
@@ -233,10 +251,13 @@ function submit_job {
     else
 	jobid=$(sh submit.sh -i $insfile -n "bm_$test_name" 2> /dev/null)
     fi
+
+    local submit_exit_status=$?
+
     popd &> /dev/null
 
-    if (($? != 0)); then
-	error "Failed to submit $test_name!"
+    if (($submit_exit_status != 0)); then
+	error "Failed to submit $test_name! Try manually for more information."
     else
 	submit_pp $test_name $jobid
     fi
@@ -291,7 +312,10 @@ function run_benchmark {
     if [ -f $test_name/extra_source.txt ]; then
 	build_path=$work_dir/${test_name}_build
 	echo "Building $test_name model..."
-	build $build_path extra_source/$(cat $test_name/extra_source.txt)
+	if ! build $build_path extra_source/$(cat $test_name/extra_source.txt); then
+	    echo "Not running ${test_name}..."
+	    return
+	fi
     fi
 
     if (( $compile_only == 1 )); then
@@ -389,7 +413,10 @@ fi
 # however.
 if (( $pp_only == 0 )); then
     echo "Building standard model..."
-    build $work_dir/standard_build
+    if ! build $work_dir/standard_build; then
+	echo "Not running any benchmarks!"
+	exit 1
+    fi
 fi
 
 # Find all sub directories

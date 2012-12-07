@@ -23,15 +23,32 @@ endif()
 # The IO variable decides which IO module to use. 
 set(IO "cru" CACHE STRING "The IO module to use (cru/demo)")
 
+# A variable controlling whether or not to include unit tests
+# Unit tests are disabled in old VS 6.0, since CATCH doesn't compile in such 
+# an old compiler.
+if (NOT MSVC_VERSION EQUAL "1200")
+  set(UNIT_TESTS "OFF" CACHE BOOL "Whether to include unit tests")
+endif()
+
 if (UNIX)
-  # The SYSTEM variable is currently only used to choose which 
+  # Setup the SYSTEM variable, currently only used to choose which 
   # submit.sh to generate (for submitting to job queue)
-  set(SYSTEM "" CACHE STRING "System to build for (empty, gimle or platon)")
+
+
+  # Figure out what value it should have initially, based on the
+  # environment variable ARCH if it's set.
+  if (NOT $ENV{ARCH} STREQUAL "")
+	set(DEFAULT_SYSTEM $ENV{ARCH})
+  else()
+	set(DEFAULT_SYSTEM "")
+  endif()
+
+  set(SYSTEM ${DEFAULT_SYSTEM} CACHE STRING "System to build for (empty (=simba), gimle, platon or multicore)")
 endif (UNIX)
 
 # Where to search for cmake modules
 # (used by cmake when the include() command is used in a cmake file)
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
 # NetCDF - look for libraries and include files, and use them if found
 find_package(NetCDF QUIET)
@@ -39,6 +56,24 @@ find_package(NetCDF QUIET)
 if (NETCDF_FOUND)
   include_directories(${NETCDF_INCLUDE_DIRS})
   set(LIBS ${LIBS} ${NETCDF_LIBRARIES})
+  add_definitions(-DHAVE_NETCDF)
+endif()
+
+# MPI - used if found (not needed on Windows)
+if (NOT CMAKE_HOST_WIN32)
+  find_package(MPI QUIET)
+endif()
+
+# These are deprecated according to documentation in the FindMPI module,
+# but for some reason not hidden. Let's not display them for the typical
+# LPJ-GUESS user who hasn't got MPI installed.
+mark_as_advanced(MPI_LIBRARY MPI_EXTRA_LIBRARY)
+
+if (MPI_FOUND)
+  include_directories(${MPI_INCLUDE_PATH})
+  set(LIBS ${LIBS} ${MPI_LIBRARIES})
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_COMPILE_FLAGS}")
+  add_definitions(-DHAVE_MPI)
 endif()
 
 # Where the compiler should search for header files
@@ -51,6 +86,10 @@ add_subdirectory(modules)
 add_subdirectory(cru)
 add_subdirectory(libraries)
 
+if (UNIT_TESTS)
+  add_subdirectory(tests)
+endif()
+
 # Add the command line program's target
 if (WIN32)
   # Let the exe be called guesscmd so it doesn't collide with the dll target
@@ -62,6 +101,11 @@ endif()
 
 # Specify the executable to build, and which sources to build it from
 add_executable(${guess_command_name} ${guess_sources} command_line_version/main.cpp)
+
+# Rule for building the unit test binary
+if (UNIT_TESTS)
+  add_executable(runtests ${guess_sources} ${test_sources})
+endif()
 
 # Specify libraries to link to the executable
 target_link_libraries(${guess_command_name} ${LIBS})
@@ -92,6 +136,14 @@ if (UNIX)
              COMMENT "Generating submit script")
 endif (UNIX)
 
+# Rule for running unit tests automatically
+if (UNIT_TESTS)
+  add_custom_command(TARGET runtests 
+    POST_BUILD 
+    COMMAND runtests 
+    COMMENT "Running tests")
+endif()
+
 string(TOUPPER ${IO} IO)
 add_definitions(-DUSE_${IO}_IO)
 
@@ -102,4 +154,13 @@ if (UNIX)
    # (sometime after 2.8)
    SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
    SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
+endif(UNIX)
+
+if (UNIX)
+  # Set default build type to Release on Unix
+  if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING
+      "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
+      FORCE)
+  endif(NOT CMAKE_BUILD_TYPE)
 endif(UNIX)

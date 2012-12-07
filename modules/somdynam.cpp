@@ -197,13 +197,6 @@ void som_dynamics(Patch& patch) {
 
 		// "DAILY" MODE
 
-		// Calculate respiration temperature response if not yet done for this day
-
-		if (soil.last_gtemp!=date.day) {
-			respiration_temperature_response(soil.temp,soil.gtemp);
-			soil.last_gtemp=date.day;
-		}
-
 		// Calculate decay constants and rates given today's soil moisture and
 		// temperature
 
@@ -301,24 +294,12 @@ void som_dynamics(Patch& patch) {
 		// Increment C flux to atmosphere by SOM decomposition
 		cflux+=soil.cpool_fast*(1.0-fr_soilfast)+soil.cpool_slow*(1.0-fr_soilslow);
 
-		// Monthly C flux
-
-		if (ifdailydecomp) {
-			if (date.dayofmonth==0)
-				patch.fluxes.mcflux_soil[date.month]=cflux;
-			else
-				patch.fluxes.mcflux_soil[date.month]+=cflux;
-		}
-		else
-			patch.fluxes.mcflux_soil[date.month]=cflux;
-
 		// Reduce SOM pools 
 		soil.cpool_fast*=fr_soilfast;
 		soil.cpool_slow*=fr_soilslow;
 
-		// Updated daily and annual fluxes
-		patch.fluxes.dcflux_soil=cflux;
-		patch.fluxes.acflux_soil+=cflux;
+		// Updated soil fluxes
+		patch.fluxes.report_flux(Fluxes::SOILC, cflux);
 
 		// Solve SOM pool sizes at end of year given by soil.solvesom_end
 

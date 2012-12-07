@@ -45,6 +45,9 @@ OUTFILES='*.out'
 # Nothing to change past here
 ########################################################################
 
+# Exit if any command fails
+set -e
+
 # Handle the command line arguments
 while getopts ":n:s:i:" opt; do
     case $opt in
@@ -135,32 +138,42 @@ cat <<EOF > guess.cmd
 #!/bin/bash
 #PBS -l nodes=$nodes:ppn=$CORES_PER_NODE
 #PBS -l walltime=$WALLTIME
+set -e
 
 cd \$PBS_O_WORKDIR
+
+if ! type -P mpiexec &> /dev/null; then
+    echo "Didn't find mpiexec! Make sure an MPI module is loaded in your" >&2
+    echo "login script (~/.bashrc) and recompile LPJ-GUESS with MPI support!" >&2
+    exit 1
+fi
 
 # If there's a script for setting up files on local disk, run it
 if [ -f setup_local.sh ]; then
-    pbsdsh -u env PBS_O_LOCAL=\$PBS_O_LOCAL \$PBS_O_WORKDIR/setup_local.sh
+    mpiexec -pernode setup_local.sh
 fi
 
-cat<<EOL > startguess.sh
-#!/bin/sh
-umask 022
-cd \$PBS_O_WORKDIR
-cd run\\\$((PBS_VNODENUM+1))
-rm local ; ln -s \$PBS_O_LOCAL local
-BINARY $INSFILE
-EOL
-chmod +x startguess.sh
-pbsdsh -c $NPROCESS \$PBS_O_WORKDIR/startguess.sh
+# In each run directory, create a symbolic link to the node local storage
+for ((a=1; a <= $NPROCESS ; a++))
+do
+  cd run\$a
+  if [-f local ]; then
+      rm local
+  fi
+  ln -s \$PBS_O_LOCAL local
+  cd ..
+done
 
-rm startguess.sh
+mpiexec BINARY -goto-rundir $INSFILE
+
 EOF
 
 cat <<EOF > append.cmd
 #!/bin/bash
 #PBS -l nodes=1:ppn=1
 #PBS -l walltime=$WALLTIME
+set -e
+
 cd \$PBS_O_WORKDIR
 function append_files {
     local number_of_jobs=\$1
@@ -171,7 +184,9 @@ function append_files {
     local i=""
     for ((i=2; i <= number_of_jobs; i++))
     do
-      cat run\$i/\$file | awk 'NR!=1 || NF==0 || \$1 == \$1+0 { print \$0 }' >> \$file
+      if [ -f run\$i/\$file ]; then
+        cat run\$i/\$file | awk 'NR!=1 || NF==0 || \$1 == \$1+0 { print \$0 }' >> \$file
+      fi
     done
 }
 

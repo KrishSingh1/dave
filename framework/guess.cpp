@@ -10,15 +10,6 @@
 #include "config.h"
 #include "guess.h"
 
-#include "guessio.h"
-#include "driver.h"
-#include "canexch.h"
-#include "soilwater.h"
-#include "somdynam.h"
-#include "growth.h"
-#include "vegdynam.h"
-#include "landcover.h"
-#include "bvoc.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES WITH EXTERNAL LINKAGE
@@ -52,9 +43,10 @@ bool ifcdebt;
 bool ifsmoothgreffmort;				// smooth growth efficiency mortality
 bool ifdroughtlimitedestab;			// whether establishment affected by growing season drought
 bool ifrainonwetdaysonly;			// rain on wet days only (1, true), or a little every day (0, false); 
-bool ifspeciesspecificwateruptake;	// water uptake is species specific 
 // bvoc
 bool ifbvoc; // BVOC calculations included
+
+wateruptaketype wateruptake;
 
 bool run_landcover;
 bool run[NLANDCOVERTYPES];
@@ -63,7 +55,308 @@ bool all_fracs_const;
 bool ifslowharvestpool;				// If a slow harvested product pool is included in patchpft.
 int nyear_spinup;		
 
-Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i),gridcell(gc),landcover(landcoverX),frac(1.0) {
+xtring state_path;
+bool restart;
+bool save_state;
+int state_year;
+
+Pftlist pftlist;
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of PhotosynthesisResult member functions
+////////////////////////////////////////////////////////////////////////////////
+
+
+void PhotosynthesisResult::serialize(ArchiveStream& arch) {
+	arch & agd_g
+		& adtmm
+		& rd_g
+		& vm
+		& je;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Climate member functions
+////////////////////////////////////////////////////////////////////////////////
+
+
+void Climate::serialize(ArchiveStream& arch) {
+	arch & temp
+		& rad
+		& par
+		& prec
+		& daylength
+		& co2
+		& lat
+		& insol
+		& instype
+		& eet
+		& mtemp
+		& mtemp_min20
+		& mtemp_max20
+		& mtemp_max
+		& gdd5
+		& agdd5 
+		& chilldays
+		& ifsensechill
+		& gtemp
+		& mgtemp
+		& last_mgtemp
+		& dtemp_31
+		& mtemp_min_20
+		& mtemp_max_20
+		& mtemp_min
+		& atemp_mean
+		& temp_mean
+		& par_mean
+		& co2_mean
+		& daylength_mean
+		& sinelat
+		& cosinelat
+		& qo & u & v & hh & sinehh
+		& daylength_save
+		& doneday;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Fluxes member functions
+////////////////////////////////////////////////////////////////////////////////
+
+Fluxes::Fluxes(Patch& p) 		
+  : patch(p), 
+    annual_fluxes_per_pft(npft, std::vector<double>(NPERPFTFLUXTYPES)) {
+	
+	reset();
+}
+
+void Fluxes::reset() {
+	for (size_t i = 0; i < annual_fluxes_per_pft.size(); ++i) {
+		std::fill_n(annual_fluxes_per_pft[i].begin(), int(NPERPFTFLUXTYPES), 0);
+	}
+
+	for (int m = 0; m < 12; ++m) {
+		std::fill_n(monthly_fluxes_pft[m], int(NPERPFTFLUXTYPES), 0);
+
+		std::fill_n(monthly_fluxes_patch[m], int(NPERPATCHFLUXTYPES), 0);
+	}
+}
+
+void Fluxes::serialize(ArchiveStream& arch) {
+	arch & annual_fluxes_per_pft 
+		& monthly_fluxes_patch
+		& monthly_fluxes_pft;
+}
+
+void Fluxes::report_flux(PerPFTFluxType flux_type, int pft_id, double value) {
+	annual_fluxes_per_pft[pft_id][flux_type] += value;
+	monthly_fluxes_pft[date.month][flux_type] += value;
+}
+
+void Fluxes::report_flux(PerPatchFluxType flux_type, double value) {
+	monthly_fluxes_patch[date.month][flux_type] += value;
+}
+
+double Fluxes::get_monthly_flux(PerPFTFluxType flux_type, int month) const {
+	return monthly_fluxes_pft[month][flux_type];
+}
+
+double Fluxes::get_monthly_flux(PerPatchFluxType flux_type, int month) const {
+	return monthly_fluxes_patch[month][flux_type];
+}
+
+double Fluxes::get_annual_flux(PerPFTFluxType flux_type, int pft_id) const {
+	return annual_fluxes_per_pft[pft_id][flux_type];
+}
+
+double Fluxes::get_annual_flux(PerPFTFluxType flux_type) const {
+	double sum = 0;
+	for (size_t i = 0; i < annual_fluxes_per_pft.size(); ++i) {
+		sum += annual_fluxes_per_pft[i][flux_type];
+	}
+	return sum;
+}
+
+double Fluxes::get_annual_flux(PerPatchFluxType flux_type) const {
+	double sum = 0;
+	for (int m = 0; m < 12; ++m) {
+		sum += monthly_fluxes_patch[m][flux_type];
+	}
+	return sum;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Vegetation member functions
+////////////////////////////////////////////////////////////////////////////////
+
+
+void Vegetation::serialize(ArchiveStream& arch) {
+	if (arch.save()) {
+		arch & nobj;
+
+		for (unsigned int i = 0; i < nobj; i++) {
+			Individual& indiv = (*this)[i];
+			arch & indiv.pft.id
+				& indiv;
+		}
+	}
+	else {
+		killall();
+		unsigned int number_of_individuals;
+		arch & number_of_individuals;
+
+		for (unsigned int i = 0; i < number_of_individuals; i++) {
+			int pft_id;
+			arch & pft_id;
+			Individual& indiv = createobj(pftlist[pft_id], *this);
+			arch & indiv;
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Soil member functions
+////////////////////////////////////////////////////////////////////////////////
+
+
+void Soil::serialize(ArchiveStream& arch) {
+	arch & wcont
+		& awcont
+		& wcont_evap
+		& dwcontupper
+		& mwcontupper
+		& snowpack
+		& runoff
+		& temp
+		& dtemp
+		& mtemp
+		& gtemp
+		& mgtemp
+		& last_mgtemp
+		& cpool_slow
+		& cpool_fast
+		& decomp_litter_mean
+		& k_soilfast_mean
+		& k_soilslow_mean
+		& alag
+		& exp_alag
+		& mwcont
+		& dwcontlower
+		& mwcontlower
+		// probably shouldn't need to serialize these
+		& rain_melt
+		& max_rain_melt
+		& percolate;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Patchpft member functions
+////////////////////////////////////////////////////////////////////////////////
+
+
+void Patchpft::serialize(ArchiveStream& arch) {
+	arch & anetps_ff
+		& wscal
+		& wscal_mean
+		& anetps_ff_est
+		& anetps_ff_est_initial
+		& wscal_mean_est
+		& phen
+		& aphen
+		& establish
+		& nsapling
+		& litter_leaf
+		& litter_root
+		& litter_wood
+		& litter_repr
+		& gcbase
+		& gcbase_day
+		& gcbase_wstress
+		& temp_wstress
+		& par_wstress
+		& daylength_wstress
+		& co2_wstress
+		& nday_wstress
+		& fpar_grass_wstress
+		& gpterm_wstress
+		& supply
+		& supply_leafon
+		& fuptake
+		& wstress
+		& wstress_day
+		& harvested_products_slow
+		& phot_wstress;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Patch member functions
+////////////////////////////////////////////////////////////////////////////////
+
+
+void Patch::serialize(ArchiveStream& arch) {
+	if (arch.save()) {
+		for (unsigned int i = 0; i < pft.nobj; i++) {
+			arch & pft[i];
+		}
+	}
+	else {
+		pft.killall();
+				
+		for (unsigned int i = 0; i < pftlist.nobj; i++) {
+			pft.createobj(pftlist[i]);
+			arch & pft[i];
+		}
+	}
+
+	arch & vegetation
+		& soil
+		& fluxes
+		& fpar_grass
+		& fpar_ff
+		& par_grass_mean
+		& nday_growingseason
+		& fpc_total
+		& disturbed
+		& age
+		& fireprob
+		& growingseasondays
+		& intercep
+		& aaet
+		& aevap
+		& aintercep
+		& arunoff
+		& apet
+		& eet_net_veg
+		& demand
+		& demand_day
+		& demand_leafon
+		& fpc_rescale
+		& maet
+		& mevap
+		& mintercep
+		& mrunoff
+		& mpet;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Standpft member functions
+////////////////////////////////////////////////////////////////////////////////
+
+
+void Standpft::serialize(ArchiveStream& arch) {
+	arch & cmass_repr
+		& anetps_ff_max
+		& gpterm
+		& assim_term
+		& fpc_total
+		& active;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Stand member functions
+////////////////////////////////////////////////////////////////////////////////
+
+Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),gridcell(gc),landcover(landcoverX),frac(1.0) {
 
 		// Constructor: initialises reference member of climate and
 		// builds list array of Standpft objects
@@ -80,11 +373,11 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX,Pftlist& pftlist):id(i
 		npatchL=1;
 	}
 	else if(landcover==NATURAL || landcover==FOREST) {
-		npatchL=npatch;
+		npatchL=::npatch; // use the global variable npatch (not Stand::npatch)
 	}
 
 	for (p=0;p<npatchL;p++) {
-		createobj(*this,pftlist,gc.soiltype);
+		createobj(*this,gc.soiltype);
 	}
 
 	first_year=date.year;
@@ -102,7 +395,43 @@ void Stand::set_landcover_fraction(double fraction) {
 	frac = fraction;
 }
 
-Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
+void Stand::serialize(ArchiveStream& arch) {
+	if (arch.save()) {
+		for (unsigned int i = 0; i < pft.nobj; i++) {
+			arch & pft[i];
+		}
+
+		arch & nobj;
+		for (unsigned int k = 0; k < nobj; k++) {
+			arch & (*this)[k];
+		}
+	}
+	else {
+		pft.killall();
+		for (unsigned int i = 0; i < pftlist.nobj; i++) {
+			Standpft& standpft = pft.createobj(pftlist[i]);
+			arch & standpft;
+		}
+
+		killall();
+		unsigned int npatch;
+		arch & npatch;
+		for (unsigned int k = 0; k < npatch; k++) {
+			Patch& patch = createobj(*this, gridcell.soiltype);
+			arch & patch;
+		}
+	}
+
+	arch & first_year
+		& frac;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Individual member functions
+////////////////////////////////////////////////////////////////////////////////
+
+Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	anpp=0.0;
 	fpc=0.0;
@@ -112,7 +441,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 	cmass_sap=0.0;
 	cmass_heart=0.0;
 	cmass_debt=0.0;
-	wscal=1.0;
 	phen=0.0;
 	aphen=0.0;
 	deltafpc=0.0;
@@ -132,7 +460,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 	daylength_wstress = 0.0;
 	co2_wstress = 0.0; 
 	nday_wstress = 0; 
-	ifwstress = false;
+	wstress = false;
 	lai = 0.0;
 	lai_layer = 0.0;
 	lai_indiv = 0.0;
@@ -140,15 +468,13 @@ Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 
 	int m;
 	for (m=0;m<12;m++) {
-		mnpp[m]=mlai[m]=mgpp[m]=mra[m]=0.0;
+		mlai[m]=0.0;
 	}
 
 	// bvoc
 	monstor=0.;
 	iso=0.;
 	mon=0.;
-	aiso=0.;
-	amon=0.;
 	fvocseas=1.;
 	dtr_wstress=0.;
 	eet_wstress=0.;
@@ -156,158 +482,133 @@ Individual::Individual(int i,Pft& p,Vegetation& v):id(i),pft(p),vegetation(v) {
 	rad_wstress=0.;		
 }
 
+void Individual::serialize(ArchiveStream& arch) {
+	arch & cmass_leaf
+		& cmass_root
+		& cmass_sap 
+		& cmass_heart
+		& cmass_debt
+		& fpc
+		& fpar
+		& densindiv
+		& phen
+		& aphen
+		& aphen_raingreen
+		& assim
+		& resp
+		& anpp
+		& aet
+		& ltor
+		& height
+		& crownarea
+		& deltafpc
+		& wscal_mean
+		& boleht
+		& lai
+		& lai_layer
+		& lai_indiv
+		& greff_5
+		& age
+		& mlai
+		& fpar_wstress
+		& fpar_leafon
+		& lai_leafon_layer
+		& demand
+		& demand_leafon
+		& supply
+		& supply_leafon
+		& intercep
+		& phen_mean
+		& temp_wstress 
+		& par_wstress 
+		& daylength_wstress 
+		& co2_wstress 
+		& nday_wstress 
+		& wstress 
+		& alive 
+		& iso 
+		& mon 
+		& monstor 
+		& fvocseas 
+		& dtr_wstress 
+		& eet_wstress 
+		& agdd5_wstress 
+		& rad_wstress; 
+}
 
-///////////////////////////////////////////////////////////////////////////////////////
-// THE FRAMEWORK
-// The 'mission control' of the model, responsible for maintaining the primary model
-// data structures and containing all explicit loops through space (grid cells/stands)
-// and time (days and years).
-
-int framework(int argc,char* argv[]) {
-
-	bool dogridcell;
-
-	// The one and only linked list of Pft objects	
-	Pftlist pftlist;
-
-	// Call input/output module to obtain PFT static parameters and simulation
-	// settings and initialise input/output
-	initio(argc,argv,pftlist);
-
-	// bvoc
-	if(ifbvoc){
-	  initbvoc(pftlist);
+void Individual::report_flux(Fluxes::PerPFTFluxType flux_type, double value) {
+	if (alive) {
+		vegetation.patch.fluxes.report_flux(flux_type, pft.id, value);
 	}
+}
 
-	// Assume there is at least one grid cell to simulate
-	dogridcell=true;
-
-	while (dogridcell) {
-
-		// START OF LOOP THROUGH GRID CELLS
-
-		// Initialise global variable date
-		// (argument nyear not used in this implementation)
-		date.init(1);
-
-		// Create and initialise a new Gridcell object for each locality
-		Gridcell gridcell(pftlist);	
-
-		// Call input/output to obtain latitude and soil driver data for this grid cell.
-		// Function getgridcell returns false if no further grid cells remain to be simulated
-
-		if (getgridcell(gridcell)) {
-
-			// Initialise certain climate and soil drivers
-			gridcell.climate.initdrivers(gridcell.climate.lat);
-
-			if(run_landcover) {
-				//Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
-				landcover_init(gridcell,pftlist);
-			}
-			
-			// Call input/output to obtain climate, insolation and CO2 for this
-			// day of the simulation. Function getclimate returns false if last year
-			// has already been simulated for this grid cell
-
-			while (getclimate(gridcell)) {
-
-				// START OF LOOP THROUGH SIMULATION DAYS
-
-				// Update daily climate drivers etc
-				dailyaccounting_gridcell(gridcell,pftlist);
-
-				// Calculate daylength, insolation and potential evapotranspiration
-				daylengthinsoleet(gridcell.climate);
-
-				if(run_landcover && date.day==0) {
-					// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
-					if(date.year>=nyear_spinup)
-						landcover_dynamics(gridcell,pftlist);
-				}
-
-				gridcell.firstobj();
-				while (gridcell.isobj) {
-
-					// START OF LOOP THROUGH STANDS
-
-					Stand& stand=gridcell.getobj();
-
-					dailyaccounting_stand(stand,pftlist);
-
-					stand.firstobj();
-					while (stand.isobj) {
-						// START OF LOOP THROUGH PATCHES
-
-						// Get reference to this patch
-						Patch& patch=stand.getobj();
-						// Update daily soil drivers including soil temperature
-						dailyaccounting_patch(patch,pftlist);
-						// Leaf phenology for PFTs and individuals
-						leaf_phenology(patch,gridcell.climate);
-						// Photosynthesis, respiration, evapotranspiration
-						canopy_exchange(patch);
-						// Soil water accounting, snow pack accounting
-						soilwater(gridcell.climate,patch);
-						// Soil organic matter and litter dynamics
-						som_dynamics(patch);
-
-						if (date.islastday && date.islastmonth) {
-							
-							// LAST DAY OF YEAR
-							// Tissue turnover, allocation to new biomass and reproduction,
-							// updated allometry
-							growth(stand,patch);
-						}
-						stand.nextobj();
-					}// End of loop through patches
-
-					if (date.islastday && date.islastmonth) {
-						// LAST DAY OF YEAR
-						stand.firstobj();
-						while (stand.isobj) {
-							
-							// For each patch ...
-							Patch& patch=stand.getobj();
-							// Establishment, mortality and disturbance by fire
-							vegetation_dynamics(stand,patch,pftlist);
-							stand.nextobj();
-						}
-					}
-
-					gridcell.nextobj();			
-				}	// End of loop through stands
-
-				if (date.islastday && date.islastmonth) {
-					// LAST DAY OF YEAR
-					// Call input/output module to output results for end of year
-					// or end of simulation for this grid cell
-					outannual(gridcell,pftlist);
-
-					// Check whether to abort
-					if (abort_request_received()) {
-						termio();
-						return 99;
-					}
-				}
-
-				// Advance timer to next simulation day
-				date.next();
-
-				// End of loop through simulation days
-			}//while (getclimate())
-		}//if getgridcell()
-		else dogridcell=false; // no more grid cells to simulate
-
-		int test = 0;
-
-		// End of loop through grid cells
+void Individual::report_flux(Fluxes::PerPatchFluxType flux_type, double value) {
+	if (alive) {
+		vegetation.patch.fluxes.report_flux(flux_type, value);
 	}
+}
 
-	// Call to input/output module to perform any necessary clean up
-	termio();
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Gridcellpft member functions
+////////////////////////////////////////////////////////////////////////////////
 
-	// END OF SIMULATION
 
-	return 0;
+void Gridcellpft::serialize(ArchiveStream& arch) {
+	arch & addtw;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Gridcell member functions
+////////////////////////////////////////////////////////////////////////////////
+
+double Gridcell::get_lon() const {
+	return lon;
+}
+
+double Gridcell::get_lat() const {
+	return lat;
+}
+
+void Gridcell::set_coordinates(double longitude, double latitude) {
+	lon = longitude;
+	lat = latitude;
+}
+
+void Gridcell::serialize(ArchiveStream& arch) {
+	arch & climate
+		& landcoverfrac
+		& landcoverfrac_old
+		& LC_updated;
+
+	if (arch.save()) {
+		for (unsigned int i = 0; i < pft.nobj; i++) {
+			arch & pft[i];
+		}
+
+		arch & nobj;
+		for (unsigned int s = 0; s < nobj; s++) {
+			arch & (*this)[s].landcover
+				& (*this)[s];
+		}
+	}
+	else {
+		pft.killall();
+
+		for (unsigned int i = 0; i < pftlist.nobj; i++) {
+			pft.createobj(pftlist[i]);
+			arch & pft[i];
+		}
+
+		killall();
+		unsigned int number_of_stands;
+		arch & number_of_stands;
+				
+		for (unsigned int s = 0; s < number_of_stands; s++) {
+			landcovertype landcover;
+			arch & landcover;
+			createobj(*this, landcover);
+			arch & (*this)[s];
+		}
+	}
 }

@@ -1340,8 +1340,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 				adtmm = date.diurnal() ? spft.phots[day.period].adtmm : spft.photosynthesis.adtmm;
 			}
 			phot = date.diurnal() ? spft.phots[day.period] : spft.photosynthesis;
-			bvoc(temp, hours, climate.daylength, rad, climate.eet, climate.agdd5, climate.dtr,
-				climate.co2, climate.temp, indiv.fpar, patch, indiv, pft, phot, adtmm, gpterm_indiv, day);
+			bvoc(temp, hours, rad, climate, patch, indiv, pft, phot, adtmm, gpterm_indiv, day);
 		}
 		// Calculate autotrophic respiration
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,

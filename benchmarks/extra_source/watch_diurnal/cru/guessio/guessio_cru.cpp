@@ -276,8 +276,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("nyear_spinup",&nyear_spinup,1,10000,1,CB_NONE,"Number of simulation years to spinup for");
 		declareitem("vegmode",&strparam,16,CB_VEGMODE,
 			"Vegetation mode (\"INDIVIDUAL\", \"COHORT\", \"POPULATION\")");
-		declareitem("ifdailydecomp",&ifdailydecomp,1,CB_NONE,
-			"Whether soil decomposition calculated daily (alt monthly)");
 		declareitem("ifbgestab",&ifbgestab,1,CB_NONE,
 			"Whether background establishment enabled (0,1)");
 		declareitem("ifsme",&ifsme,1,CB_NONE,
@@ -684,7 +682,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("title")) badins("title");
 		if (!itemparsed("nyear_spinup")) badins("nyear_spinup");
 		if (!itemparsed("vegmode")) badins("vegmode");
-		if (!itemparsed("ifdailydecomp")) badins("ifdailydecomp");
 		if (!itemparsed("iffire")) badins("iffire");
 		if (!itemparsed("ifcalcsla")) badins("ifcalcsla");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
@@ -705,12 +702,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifrainonwetdaysonly")) badins("ifrainonwetdaysonly");
 		// bvoc
 		if (!itemparsed("ifbvoc")) badins("ifbvoc");
-
-		if (itemparsed("diurnal")) {
-			if (diurnal && !ifdailynpp) {
-				fail("Diurnal and monthly mode contradict each other.");
-			}
-		}
 
 		if (!itemparsed("run_landcover")) badins("run_landcover");
 		if (run_landcover) {
@@ -937,7 +928,7 @@ void printhelp() {
 // void initio(const xtring& insfilename)
 //   Initialises input/output (e.g. opening files), sets values for the global
 //   simulation parameter variables (currently vegmode, npatch, patcharea,
-//   ifdailydecomp, ifbgestab, ifsme, ifstochestab, ifstochmort, iffire, estinterval,
+//   ifbgestab, ifsme, ifstochestab, ifstochmort, iffire, estinterval,
 //   npft), initialises pftlist (the one and only list of PFTs and their static
 //   parameters for this run of the model). Normally all of the above parameters,
 //   and possibly others, are read from the ins file (see above). Function readins
@@ -1826,7 +1817,7 @@ void initio(const xtring& insfilename) {
 	// DESCRIPTION
 	// Initialises input/output (e.g. opening files), sets values for the global
 	// simulation parameter variables (currently vegmode, npatch, patcharea,
-	// ifdailydecomp, ifbgestab, ifsme, ifstochestab, ifstochmort, iffire,
+	// ifbgestab, ifsme, ifstochestab, ifstochmort, iffire,
 	// estinterval, npft), initialises pftlist (the one and only list of PFTs and their
 	// static parameters for this run of the model). Normally all of the above
 	// parameters, and possibly others, are read from the ins file (see above).
@@ -2449,44 +2440,35 @@ bool getclimate(Gridcell& gridcell) {
 	if (date.day == 0) {
 
 		// First day of year ...
-		int first_ndep_year = nyear_spinup + FIRSTHISTYEARNDEP - FIRSTHISTYEAR;
 		climate.andep  = 0.0;
 		climate.anfert = 0.0;
-		
-		int m;
-		if (date.year < first_ndep_year){
-			dd = 0;
-			for (m=0;m<12;m++) {
-				climate.andep += (NHxDryDep[0][m] + NOyDryDep[0][m] +
-					NHxWetDep[0][m] + NOyWetDep[0][m]) * date.ndaymonth[m];
 
-				for (int dm=0;dm<date.ndaymonth[m];dm++) {
-					climate.dndep[dd] = (NHxDryDep[0][m] +
-						NOyDryDep[0][m] + NHxWetDep[0][m] +
-						NOyWetDep[0][m]);
-					dd++;
-				}
-			}
-		}
-		else {  
-			dd = 0;
-			for (m=0;m<12;m++) {
-				climate.andep += (NHxDryDep[date.year - first_ndep_year][m] +
-					NOyDryDep[date.year - first_ndep_year][m] +
-					NHxWetDep[date.year - first_ndep_year][m] +
-					NOyWetDep[date.year - first_ndep_year][m]) * date.ndaymonth[m];
-				for (int dm=0;dm<date.ndaymonth[m];dm++) {
-					climate.dndep[dd] = (NHxDryDep[date.year - first_ndep_year][m] +
-						NOyDryDep[date.year - first_ndep_year][m] +
-						NHxWetDep[date.year - first_ndep_year][m] +
-						NOyWetDep[date.year - first_ndep_year][m]);
-					dd++;
-				}
-			}
-		}
 	}
+
 	// Send environmental values for today to framework
 
+	int first_ndep_year = nyear_spinup + FIRSTHISTYEARNDEP - FIRSTHISTYEAR;
+	
+	// Nitrogen deposition
+	if (date.year < first_ndep_year){
+		climate.dndep = (NHxDryDep[0][date.month] +	
+		                 NOyDryDep[0][date.month] + 
+		                 NHxWetDep[0][date.month] + 
+		                 NOyWetDep[0][date.month]);
+	}
+	else {  
+		climate.dndep = (NHxDryDep[date.year - first_ndep_year][date.month] +
+		                 NOyDryDep[date.year - first_ndep_year][date.month] +
+		                 NHxWetDep[date.year - first_ndep_year][date.month] +
+		                 NOyWetDep[date.year - first_ndep_year][date.month]);
+	}
+
+	climate.andep  += climate.dndep;
+
+	// Nitrogen fertilization
+	climate.dnfert = 0.0;
+	climate.anfert += climate.dnfert;
+		
 	int year = date.year < nyear_spinup ? 
 		date.year % NYEAR_SPINUP_DATA : date.year - nyear_spinup;
 

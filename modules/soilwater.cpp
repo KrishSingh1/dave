@@ -120,6 +120,22 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 		//   K_DEPTH=0.4, K_AET=0.52
 
 	int s;
+
+	// Reset annuals
+	if (date.day == 0) {
+		patch.aevap = 0.0;
+		patch.asurfrunoff = 0.0;
+		patch.adrainrunoff = 0.0;
+		patch.abaserunoff = 0.0;
+		patch.arunoff = 0.0;
+	}
+
+	// Reset monthlys
+	if (date.dayofmonth == 0) {
+		patch.mevap[date.month] = 0.0;
+		patch.mrunoff[date.month] = 0.0;
+	}
+
 	double aet;				// AET for a particular layer and individual (mm)
 	double aet_layer[NSOILLAYER]; // total AET for each soil layer (mm)
 	double perc_frac;
@@ -238,7 +254,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 		runoff_baseflow = perc_frac * awc[NSOILLAYER-1];
 	}
 
-	// save percolation from system (needed by CENTURY)
+	// save percolation from system (needed in leaching())
 	dperc = runoff_baseflow + runoff_drain;
 
 	runoff = runoff_surf + runoff_drain + runoff_baseflow;

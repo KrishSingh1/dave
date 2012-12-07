@@ -2107,6 +2107,15 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 
 		// Patch-destroying disturbance
 
+		// Disturbance for equilsom() to get century SOM pool to equilibrium faster
+		if (ifcentury && date.year == (int)((patch.soil.solvesomcent_beginyr + patch.soil.solvesomcent_endyr)/2)) {
+			disturbance(patch, 1.0);
+			if (patch.disturbed) {
+				return; // no mortality or establishment this year
+			}
+		}
+		
+		// Normal disturbance with probability interval of distinterval
 		if (ifdisturb && patch.age && century_year<plantation_year /* guess2008 - eval */) {
 		//if (ifdisturb && patch.age && century_year!=plantation_year /* guess2008 - eval */) {
 			disturbance(patch,1.0/distinterval);

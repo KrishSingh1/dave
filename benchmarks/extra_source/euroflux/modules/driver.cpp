@@ -173,9 +173,10 @@ void soilparameters(Soiltype& soiltype,int soilcode,double soildepth) {
 	soiltype.thermdiff_100=data[soilcode-1][4];
 	soiltype.wtot = (data[soilcode-1][1] + data[soilcode-1][5]) * (soildepth);
 
-	// guess2008 - override the default SOM years with 70-80% of the spin-up period
-	soiltype.updateSolveSOMvalues(nyear_spinup);
-
+	if (!ifcentury) {
+		// guess2008 - override the default SOM years with 70-80% of the spin-up period
+		soiltype.updateSolveSOMvalues(nyear_spinup);
+	}
 }
 
 
@@ -639,7 +640,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	}
 
 	// adding up annual precipitation
-	climate.aprec += climate.prec / 365.0;
+	climate.aprec += climate.prec;
 
 	// Update GDD counters and chill day count
 	climate.gdd5+=max(0.0,climate.temp-5.0);
@@ -751,29 +752,14 @@ void dailyaccounting_patch(Patch& patch) {
 	// soil   = patch soil
 	// fluxes = current and accumulated C fluxes for patch
 
-	//int p;
-	Soil& soil=patch.soil;
-	Fluxes& fluxes=patch.fluxes;
+	Soil& soil = patch.soil;
+	Fluxes& fluxes = patch.fluxes;
 
-	if (date.day==0) {
+	if (date.day == 0) {
 
-		patch.aaet=0.0;
-		patch.aevap=0.0;
-		patch.asurfrunoff = 0.0;
-		patch.adrainrunoff = 0.0;
-		patch.abaserunoff = 0.0;
-		patch.arunoff=0.0;
-		patch.aintercep=0.0;
-		patch.apet=0.0;
-
-		if (date.year == 0)
-			for (int i=0; i<NYEARAAET; i++)
-				patch.aaet_5[i] = 0.0;
-		
-		soil.anfix = 0.0;
-		soil.aminleach = 0.0;
-		soil.anmin = 0.0;
-		soil.animmob = 0.0;
+		patch.aaet = 0.0;
+		patch.apet = 0.0;
+		patch.aintercep = 0.0;
 
 		// Calculate total FPC
 		patch.fpc_total = 0;
@@ -788,13 +774,11 @@ void dailyaccounting_patch(Patch& patch) {
 		patch.fpc_rescale = 1.0 / max(patch.fpc_total, 1.0);
 	}
 
-	if (date.dayofmonth==0) {
+	if (date.dayofmonth == 0) {
 
-		patch.maet[date.month]=0.0;
-		patch.mevap[date.month]=0.0;
-		patch.mrunoff[date.month]=0.0;
-		patch.mintercep[date.month]=0.0;
-		patch.mpet[date.month]=0.0;
+		patch.maet[date.month] = 0.0;
+		patch.mpet[date.month] = 0.0;
+		patch.mintercep[date.month] = 0.0;
 	}
 
 	if(run_landcover)
@@ -808,11 +792,11 @@ void dailyaccounting_patch(Patch& patch) {
 
 	if (date.islastday) {
 
-		soil.mwcontupper=mean(soil.dwcontupper+date.day-date.ndaymonth[date.month]+1,
+		soil.mwcontupper = mean(soil.dwcontupper + date.day - date.ndaymonth[date.month] + 1,
 			date.ndaymonth[date.month]);
 
 		// guess2008 - record water in lower layer too, and then update mwcont
-		soil.mwcontlower=mean(soil.dwcontlower+date.day-date.ndaymonth[date.month]+1,
+		soil.mwcontlower = mean(soil.dwcontlower + date.day - date.ndaymonth[date.month] + 1,
 			date.ndaymonth[date.month]);
 
 		soil.mwcont[date.month][0] = soil.mwcontupper;
@@ -826,10 +810,10 @@ void dailyaccounting_patch(Patch& patch) {
 
 	// On last day of month, calculate mean soil temperature for last month
 
-	soil.dtemp[date.dayofmonth]=soil.temp;
+	soil.dtemp[date.dayofmonth] = soil.temp;
 
 	if (date.islastday)
-		soil.mtemp=mean(soil.dtemp,date.ndaymonth[date.month]);
+		soil.mtemp = mean(soil.dtemp,date.ndaymonth[date.month]);
 }
 
 
@@ -1167,20 +1151,20 @@ void check_nbalance(Patch& patch, bool print) {
 
 		if (print && date.year > nyear_spinup) {
 			dprintf("Year %d Nitrogen BALANCE - difference over %d years: %g\n",date.year,
-				date.year - nyear_spinup, old_total + nadded - (vegn + centuryn + soil.nmass + vegstore + littern + soil.sompool[LEACHED].nmass + fluxn));
+				date.year - nyear_spinup, old_total + nadded - (vegn + centuryn + soil.nmass_avail + vegstore + littern + soil.sompool[LEACHED].nmass + fluxn));
 		}
 
 		if (date.year == nyear_spinup) {
 			old_vegn = vegn;
 			old_vegstore = vegstore;
 			old_centuryn = centuryn;
-			old_nmass = soil.nmass;
+			old_nmass = soil.nmass_avail;
 			old_littern = littern;
 			old_leachn = soil.sompool[LEACHED].nmass;
 			nadded = 0.0;
 			fluxn = 0.0;
 
-			old_total = vegn + centuryn + soil.nmass + vegstore + littern + soil.sompool[LEACHED].nmass + nadded + fluxn;
+			old_total = vegn + centuryn + soil.nmass_avail + vegstore + littern + soil.sompool[LEACHED].nmass + nadded + fluxn;
 		}
 	}
 }

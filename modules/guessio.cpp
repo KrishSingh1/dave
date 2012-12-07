@@ -259,8 +259,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("nyear_spinup",&nyear_spinup,1,10000,1,CB_NONE,"Number of simulation years to spinup for");
 		declareitem("vegmode",&strparam,16,CB_VEGMODE,
 			"Vegetation mode (\"INDIVIDUAL\", \"COHORT\", \"POPULATION\")");
-		declareitem("ifdailydecomp",&ifdailydecomp,1,CB_NONE,
-			"Whether soil decomposition calculated daily (alt monthly)");
 		declareitem("ifbgestab",&ifbgestab,1,CB_NONE,
 			"Whether background establishment enabled (0,1)");
 		declareitem("ifsme",&ifsme,1,CB_NONE,
@@ -666,7 +664,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("nyear")) badins("nyear");
 		if (!itemparsed("nyear_spinup")) badins("nyear_spinup");
 		if (!itemparsed("vegmode")) badins("vegmode");
-		if (!itemparsed("ifdailydecomp")) badins("ifdailydecomp");
 		if (!itemparsed("iffire")) badins("iffire");
 		if (!itemparsed("ifcalcsla")) badins("ifcalcsla");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
@@ -913,7 +910,7 @@ void printhelp() {
 // void initio(const xtring& insfilename)
 //   Initialises input/output (e.g. opening files), sets values for the global
 //   simulation parameter variables (currently vegmode, npatch, patcharea,
-//   ifdailydecomp, ifbgestab, ifsme, ifstochestab, ifstochmort, iffire, estinterval,
+//   ifbgestab, ifsme, ifstochestab, ifstochmort, iffire, estinterval,
 //   npft), initialises pftlist (the one and only list of PFTs and their static
 //   parameters for this run of the model). Normally all of the above parameters,
 //   and possibly others, are read from the ins file (see above). Function readins
@@ -1400,7 +1397,7 @@ void initio(const xtring& insfilename) {
 	// DESCRIPTION
 	// Initialises input/output (e.g. opening files), sets values for the global
 	// simulation parameter variables (currently vegmode, npatch, patcharea,
-	// ifdailydecomp, ifbgestab, ifsme, ifstochestab, ifstochmort, iffire,
+	// ifbgestab, ifsme, ifstochestab, ifstochmort, iffire,
 	// estinterval, npft), initialises pftlist (the one and only list of PFTs and their
 	// static parameters for this run of the model). Normally all of the above
 	// parameters, and possibly others, are read from the ins file (see above).
@@ -1906,10 +1903,16 @@ bool getclimate(Gridcell& gridcell) {
 
 	// Send environmental values for today to framework
 
-	if (date.day == 0)
-		climate.andep=ndep/10000.0;
+	if (date.day == 0) {
+		climate.andep  = 0.0;
+		climate.anfert = 0.0;
+	}
 
-	climate.dndep[date.day]=ndep/(365.0*10000.0);
+	climate.dndep  = ndep / (365.0 * 10000.0);
+	climate.dnfert = 0.0;
+
+	climate.andep  += climate.dndep;
+	climate.anfert += climate.dnfert;
 
 	climate.co2=co2;
 
@@ -2259,7 +2262,7 @@ void outannual(Gridcell& gridcell) {
 						plot("cmass",pft.name,date.year,gcpft_cmass);
 						plot("anpp",pft.name,date.year,gcpft_anpp);
 						plot("lai",pft.name,date.year,gcpft_lai);
-						plot("dens [indiv/ha]",pft.name,date.year,gcpft_densindiv_total*10000.0);
+						plot("dens [indiv/ha]",pft.name,date.year,gcpft_densindiv_total*m2toha);
 						if (gcpft_cmass_leaf > 0.0 && ifnlim) {
 							plot("vmax nitrogen lim",pft.name,date.year,gcpft_vmaxnlim);
 							plot("leaf C:N ratio",pft.name,date.year,gcpft_cmass_leaf/gcpft_nmass_leaf);

@@ -142,6 +142,15 @@ const double PRIESTLEY_TAYLOR = 1.32;
 const double K2degC = 273.15;	// kelvin to deg c conversion
 const double CO2_CONV = 1.0e-6;	// conversion factor for CO2 from ppmv to mole fraction
 
+/// Solving Century SOM pools 
+/// fraction of freenyears at which to begin documenting for calculation of Century equilibrium
+const double SOLVESOMCENT_FREENBEGIN = 0.5;
+/// fraction of freenyears at which to end documentation and start calculation of Century equilibrium
+const double SOLVESOMCENT_FREENEND   = 1.0;
+/// fraction of nyear_spinup minus freenyears at which to begin documenting for calculation of Century equilibrium
+const double SOLVESOMCENT_SPINBEGIN  = 0.2;
+/// fraction of nyear_spinup minus freenyears at which to end documentation and start calculation of Century equilibrium
+const double SOLVESOMCENT_SPINEND    = 0.4;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FORWARD DECLARATIONS OF CLASSES DEFINED IN THIS FILE
@@ -166,8 +175,6 @@ extern int npatch;
 	// number of patches in each stand (should always be 1 in population mode)
 extern double patcharea;
 	// patch area (m2) (individual and cohort mode only)
-extern bool ifdailydecomp;
-	// whether soil decomposition calculations performed daily (alt: monthly)
 extern bool ifbgestab;
 	// whether background establishment enabled (individual, cohort mode)
 extern bool ifsme;
@@ -209,9 +216,6 @@ extern bool ifndepdata;
 
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;
-
-// nitrogen budget check
-extern double somfluxnerror;
 
 /// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND).
 extern bool run[NLANDCOVERTYPES];
@@ -531,10 +535,6 @@ public:
 	double gtemp;
 		// respiration response to today's air temperature incorporating damping of Q10
 		// due to temperature acclimation (Lloyd & Taylor 1994)
-	double mgtemp;
-		// gtemp (see above) calculated for this month's average temperature
-	int last_mgtemp;
-		// the last month (0-11) for which mgtemp was calculated
 	double dtemp_31[31];
 		// daily temperatures for the last 31 days (deg C)
 	double mtemp_min_20[20];
@@ -551,10 +551,12 @@ public:
 	/// annual nitrogen deposition (kgN/m2/year)
 	double andep;
 	/// daily nitrogen deposition (kgN/m2)
-	double dndep[365];
+	double dndep;
 
 	/// annual nitrogen fertilization (kgN/m2/year)
 	double anfert;
+	/// daily nitrogen fertilization (kgN/m2/year)
+	double dnfert;
 
 	// Monthly sums (converted to means) used by canopy exchange module
 
@@ -605,7 +607,6 @@ public:
 		chilldays = 0;
 		ifsensechill = true; //  guess2008 - CHILLDAYS
 		atemp_mean = 0.0;
-		last_mgtemp = -1;
 
 		aprec = 0.0;
 
@@ -1357,7 +1358,8 @@ public:
 	double delta_cmass,delta_nmass;
 	/// lignin fractions
 	double ligcfrac;
-	double frc;
+	/// fraction of pool remaining after decomposition
+	double fracremain;
 	/// nitrogen to carbon ratio
 	double ntoc;
 
@@ -1366,6 +1368,10 @@ public:
 	double litterme;
 	/// soil litter fire resistance (0-1)
 	double fireresist;
+
+	/// Fast SOM spinup variables
+	/// monthly mean fraction of carbon pool remaining after decomposition
+	double mfracremain_mean[12];
 
 	void init() {
 		
@@ -1376,10 +1382,51 @@ public:
 		ligcfrac = 0.0;
 		delta_cmass = 0.0;
 		delta_nmass = 0.0;
-		frc = 0.0;
+		fracremain = 0.0;
 		litterme = 0.0;
 		fireresist = 0.0;
+
+		for (int m=0;m<12;m++)
+			mfracremain_mean[m] = 0.0;
 	};
+
+	void serialize(ArchiveStream& arch);
+};
+
+/// This struct contains litter for solving Century SOM pools.
+/** \see equilsom() */  
+struct LitterSolveSOM : public Serializable {
+	/// Constructs an empty result
+	LitterSolveSOM() {
+		clear();
+	}
+
+	/// Clears all members
+	void clear() {
+		for (int p=0;p<NSOMPOOL;p++) {
+			clitter[p] = 0.0;
+			nlitter[p] = 0.0;
+		}
+	}
+
+	// Carbon litter
+	double clitter[NSOMPOOL];
+	
+	// Nitrogen litter
+	double nlitter[NSOMPOOL];
+
+	/// Add litter
+    void add_litter(double cvalue, double nvalue, int pool) {
+		clitter[pool] += cvalue;
+		nlitter[pool] += nvalue;
+    }
+
+	double get_clitter(int pool) {
+		return clitter[pool];
+	}
+	double get_nlitter(int pool) {
+		return nlitter[pool];
+	}
 
 	void serialize(ArchiveStream& arch);
 };
@@ -1431,10 +1478,6 @@ public:
 		// respiration response to today's soil temperature at 0.25 m depth
 		// incorporating damping of Q10 due to temperature acclimation (Lloyd & Taylor
 		// 1994)
-	double mgtemp;
-		// gtemp (see above) calculated for this month's average temperature
-	int last_mgtemp;
-		// the last month (0-11) for which mgtemp was calculated
 	double cpool_slow;
 		// soil organic matter (SOM) pool with c. 1000 yr turnover (kgC/m2)
 	double cpool_fast;
@@ -1475,9 +1518,9 @@ public:
 	/// daily percolation (mm)
 	double dperc;
 	/// fraction of decayed organic nitrogen leached each day;
-	double orgleachfrac_daily[365];
+	double orgleachfrac;
 	/// soil mineral nitrogen pool (kgN/m2)
-	double nmass;			
+	double nmass_avail;			
 	/// annual sum of nitrogen mineralisation
 	double anmin;			
 	/// annual sum of nitrogen immobilisation
@@ -1490,6 +1533,24 @@ public:
 	double anfix;
 	/// calculated annual mean nitrogen fixation
 	double anfix_calc;
+	
+	/// Variables for fast spinup of SOM pools
+	/// Monthly fraction of available mineral nitrogen taken up
+	double fnuptake_mean[12];
+	/// Monthly fraction of organic carbon/nitrogen leached
+	double morgleach_mean[12];
+	/// Monthly fraction of available mineral nitrogen leached
+	double mminleach_mean[12];
+	/// Annual nitrogen fixation
+	double anfix_mean;
+
+	/// Solving Century SOM pools 
+	/// years at which to begin documenting for calculation of Century equilibrium
+	int solvesomcent_beginyr;
+	/// years at which to end documentation and start calculation of Century equilibrium
+	int solvesomcent_endyr;
+
+	std::vector<LitterSolveSOM> solvesom;
 
 	// MEMBER FUNCTIONS
 
@@ -1514,7 +1575,7 @@ public:
 		wcont[1] = 0.0;
 		wcont_evap = 0.0;
 		snowpack = 0.0;
-		last_mgtemp = -1;
+		orgleachfrac = 0.0;
 
 		// guess2008 - extra initialisation
 		mwcontupper = 0.0;
@@ -1522,12 +1583,14 @@ public:
 		for (int mth=0; mth<12; mth++) {
 			mwcont[mth][0] = 0.0;
 			mwcont[mth][1] = 0.0;
+			fnuptake_mean[mth] = 0.0;
+			morgleach_mean[mth] = 0.0;
+			mminleach_mean[mth] = 0.0;
 		}
 
 		for (int d=0; d<365; d++) {
 			dwcontupper[d] = 0.0;
 			dwcontlower[d] = 0.0;
-			orgleachfrac_daily[d] = 0.0;
 		}
 
 		/////////////////////////////////////////////////////
@@ -1544,14 +1607,18 @@ public:
 		sompool[PASSIVESOM].ntoc = 1.0 / 10.0;
 		sompool[SURFMICRO].ntoc = 1.0 / 20.0;
 
-		nmass = 0.0;
+		nmass_avail = 0.0;
 		anmin = 0.0;			
 		animmob = 0.0;		
 		aminleach = 0.0;
 		aorgleach = 0.0;
 		anfix = 0.0;
 		anfix_calc = 0.0;
+		anfix_mean = 0.0;
 		dperc = 0.0;
+
+		solvesomcent_beginyr = (int)(SOLVESOMCENT_FREENBEGIN * freenyears);
+		solvesomcent_endyr   = (int)(SOLVESOMCENT_FREENEND * freenyears);
 	}
 	void serialize(ArchiveStream& arch);
 };

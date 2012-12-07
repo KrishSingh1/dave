@@ -20,8 +20,6 @@ Date date; // object describing timing stage of simulation
 vegmodetype vegmode; // vegetation mode (population, cohort or individual)
 int npatch; // number of patches in each stand (should always be 1 in population mode); cropland stands always have 1 patch
 double patcharea; // patch area (m2) (individual and cohort mode only)
-bool ifdailydecomp;
-	// whether soil decomposition calculations performed daily (alt: monthly)
 bool ifbgestab; // whether background establishment enabled (individual, cohort mode)
 bool ifsme;
 	// whether spatial mass effect enabled for establishment (individual, cohort mode)
@@ -55,8 +53,6 @@ double nfix_b;
 /// whether nitrogen deposition data available from a file	
 bool ifndepdata;
 
-// Nitrogen budget check
-double somfluxnerror;
 
 // guess2008 - new inputs from the .ins file
 bool ifsmoothgreffmort;				// smooth growth efficiency mortality
@@ -72,7 +68,13 @@ bool run[NLANDCOVERTYPES];
 bool lcfrac_fixed;
 bool all_fracs_const;
 bool ifslowharvestpool;				// If a slow harvested product pool is included in patchpft.
-int nyear_spinup;		
+int nyear_spinup;	
+
+/// Solving Century SOM pools 
+/// years at which to begin documenting for calculation of Century equilibrium
+int solvesomcent_beginyr;
+/// years at which to end documentation and start calculation of Century equilibrium
+int solvesomcent_endyr;
 
 xtring state_path;
 bool restart;
@@ -121,8 +123,6 @@ void Climate::serialize(ArchiveStream& arch) {
 		& chilldays
 		& ifsensechill
 		& gtemp
-		& mgtemp
-		& last_mgtemp
 		& dtemp_31
 		& mtemp_min_20
 		& mtemp_max_20
@@ -139,7 +139,8 @@ void Climate::serialize(ArchiveStream& arch) {
 		& doneday
 		& andep
 		& dndep
-		& anfert;
+		& anfert
+		& dnfert;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -239,6 +240,18 @@ void Vegetation::serialize(ArchiveStream& arch) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Implementation of LitterSolveSOM member functions
+////////////////////////////////////////////////////////////////////////////////
+
+
+void LitterSolveSOM::serialize(ArchiveStream& arch) {
+	for (int p = 0; p<NSOMPOOL; p++) {
+		arch & clitter[p]
+		     & nlitter[p];
+	} 
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // Implementation of Soil member functions
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -255,8 +268,6 @@ void Soil::serialize(ArchiveStream& arch) {
 		& dtemp
 		& mtemp
 		& gtemp
-		& mgtemp
-		& last_mgtemp
 		& cpool_slow
 		& cpool_fast
 		& decomp_litter_mean
@@ -277,14 +288,21 @@ void Soil::serialize(ArchiveStream& arch) {
 		} 
 
 	arch & dperc		
-		& orgleachfrac_daily
-		& nmass		
+		& orgleachfrac
+		& nmass_avail		
 		& anmin			
 		& animmob			
 		& aminleach		
 		& aorgleach					
 		& anfix
-		& anfix_calc; 
+		& anfix_calc
+		& anfix_mean
+		& solvesomcent_beginyr
+		& solvesomcent_endyr
+		& solvesom
+		& fnuptake_mean
+		& morgleach_mean
+		& mminleach_mean; 
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -719,8 +737,9 @@ void Sompool::serialize(ArchiveStream& arch) {
 		& delta_cmass
 		& delta_nmass
 		& ligcfrac
-		& frc
+		& fracremain
 		& ntoc
 		& litterme
-		& fireresist;
+		& fireresist
+		& mfracremain_mean;
 }

@@ -126,7 +126,7 @@ cat <<EOF > guess.cmd
 #SBATCH -n $NPROCESS
 #SBATCH --time=$WALLTIME
 
-mpprun BINARY -goto-rundir $INSFILE
+mpprun BINARY -parallel $INSFILE
 
 function append_files {
     local number_of_jobs=\$1

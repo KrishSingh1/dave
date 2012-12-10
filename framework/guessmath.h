@@ -143,6 +143,11 @@ public:
 		}
 	}
 
+	/// Writes all values to a plain buffer
+	/** The values will be ordered by age, the oldest value has index 0.
+	 *
+	 *  \param buffer   Array to write to, must have room for at least size() values
+	 */
 	void to_array(T* buffer) const {
 		const int first_position = full ? current_index : 0;
 		const int nvalues = size();

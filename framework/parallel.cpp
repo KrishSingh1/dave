@@ -18,6 +18,7 @@
 #include "parallel.h"
 #include "shell.h"
 #include <memory>
+#include <string>
 
 namespace GuessParallel {
 
@@ -51,7 +52,7 @@ void init(int& argc, char**& argv) {
 	// look for the -parallel option here by ourselves.
 	bool parallel = false;
 	for (int i = 0; i < argc; ++i) {
-		if (std::string(argv[i]) == '-parallel') {
+		if (std::string(argv[i]) == "-parallel") {
 			parallel = true;
 			break;
 		}

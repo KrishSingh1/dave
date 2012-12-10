@@ -1211,14 +1211,8 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 
 				// Calculate 5 year mean growth efficiency
 
-				greff_mean = greff;
-				startyear = NYEARGREFF - min(NYEARGREFF - 1, (int)indiv.age - 1);
-				for (y=startyear; y<NYEARGREFF; y++) {
-					greff_mean += indiv.greff_5[y];
-					indiv.greff_5[y-1] = indiv.greff_5[y];
-				}
-				indiv.greff_5[NYEARGREFF-1] = greff;
-				greff_mean /= min((double)NYEARGREFF, indiv.age);
+				indiv.greff_5.add(greff);
+				greff_mean = indiv.greff_5.mean();
 
 				// BACKGROUND MORTALITY
 				//

@@ -1109,7 +1109,7 @@ public:
 		// patch-level lai for cohort in current vertical layer (function fpar)
 	double lai_indiv;
 		// individual leaf area index (individual and cohort modes only)
-	double greff_5[NYEARGREFF];
+	Historic<double, NYEARGREFF> greff_5;
 		// growth efficiency (NPP/leaf area) for each of the last five simulation years
 		// (kgC/m2/yr)
 	double age;

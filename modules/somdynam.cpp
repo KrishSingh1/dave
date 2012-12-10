@@ -980,21 +980,13 @@ void naddition(Patch& patch) {
 	// by using five year average aaet
 	if (date.islastmonth && date.islastday) {
 
-		// Calculate five year average aaet
-		double aaet_mean = patch.aaet;
-		int yearofdata = min(NYEARAAET, date.year + 1);
-		int startyear = NYEARAAET - (yearofdata - 1); 
-		for (int y=startyear; y<NYEARAAET; y++) {
-			aaet_mean += patch.aaet_5[y];
-			patch.aaet_5[y-1] = patch.aaet_5[y];			
-		}
-		patch.aaet_5[NYEARAAET-1] = patch.aaet;
-		aaet_mean /= (double)yearofdata;
+		// Add this year's AET to aaet_5 which keeps track of the last 5 years
+		patch.aaet_5.add(patch.aaet);
 
 		// Calculate estimated nitrogen fixation (aaet should be in cm/yr, eqn is in nitrogen/ha/yr)
 		double cmtomm = 0.1;
 		double hatom2 = 0.0001;
-		soil.anfix_calc = max((nfix_a * aaet_mean * cmtomm + nfix_b) * hatom2, 0.0);
+		soil.anfix_calc = max((nfix_a * patch.aaet_5.mean() * cmtomm + nfix_b) * hatom2, 0.0);
 
 		if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
 			soil.anfix_mean += soil.anfix;

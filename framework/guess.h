@@ -1850,7 +1850,7 @@ public:
 		// interception by vegetation today on patch basis (mm)
 	double aaet;
 		// annual sum of AET (mm/year)
-	double aaet_5[NYEARAAET];
+	Historic<double, NYEARAAET> aaet_5;
 		// annual sum of AET (mm/year) for each of the last five simulation years
 	double aevap;
 		// annual sum of soil evaporation (mm/year)

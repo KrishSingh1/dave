@@ -143,6 +143,15 @@ public:
 		}
 	}
 
+	void to_array(T* buffer) const {
+		const int first_position = full ? current_index : 0;
+		const int nvalues = size();
+
+		for (int i = 0; i < nvalues; ++i) {
+			buffer[i] = values[(first_position+i)%CAPACITY];
+		}
+	}
+
 private:
 	/// The stored values
 	T values[CAPACITY];

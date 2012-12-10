@@ -529,7 +529,9 @@ void soiltemp(Climate& climate, Soil& soil) {
 		// Every day, calculate linear model for trend in daily air
 		// temperatures for the last 31 days: temp_day = a + b * day
 
-		regress(day, climate.dtemp_31, 31, a, b);
+		double buffer[31];
+		climate.dtemp_31.to_array(buffer);
+		regress(day, buffer, 31, a, b);
 
 		// Calculate soil temperature
 
@@ -567,8 +569,9 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 		if (date.year == 0) {
 			// First day of simulation - initialise running annual mean temperature and daily temperatures for the last month
-			for (d=0; d<31; d++)
-				climate.dtemp_31[d] = climate.temp;
+			for (d = 0; d < climate.dtemp_31.CAPACITY; d++) {
+				climate.dtemp_31.add(climate.temp);
+			}
 
 			climate.atemp_mean = climate.temp;
 
@@ -633,13 +636,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	mtemp_last = climate.mtemp;
 
 	// Update daily temperatures, and mean overall temperature, for last 31 days
-	climate.mtemp = climate.temp;
-	for (d=0; d<30; d++) {
-		climate.dtemp_31[d] = climate.dtemp_31[d+1];
-		climate.mtemp += climate.dtemp_31[d];
-	}
-	climate.dtemp_31[30] = climate.temp;
-	climate.mtemp /= 31.0;
+	climate.dtemp_31.add(climate.temp);
+	climate.mtemp = climate.dtemp_31.mean();
 
 	// Reset GDD and chill day counter if mean monthly temperature falls below base
 	// temperature

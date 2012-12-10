@@ -535,7 +535,7 @@ public:
 	double gtemp;
 		// respiration response to today's air temperature incorporating damping of Q10
 		// due to temperature acclimation (Lloyd & Taylor 1994)
-	double dtemp_31[31];
+	Historic<double, 31> dtemp_31;
 		// daily temperatures for the last 31 days (deg C)
 	double mtemp_min_20[20];
 		// minimum monthly temperatures for the last 20 years (deg C)

@@ -1009,9 +1009,7 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 		// five-year-mean growth efficiency (kgC/m2 leaf/year)
 	int nindiv; // number of individuals (remaining) in cohort
 	int nindiv_prev; // number of individuals in cohort prior to mortality
-	int startyear;
-		// first year for calculation of five-year-mean growth efficiency
-	int y, i;
+	int i;
 	bool killed;
 
 	const double KMORTGREFF = 0.3;

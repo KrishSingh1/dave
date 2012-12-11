@@ -79,12 +79,12 @@ inline void regress(double* x, double* y, int n, double& a, double& b) {
  *  when a new value is added, and the queue is full,
  *  the oldest value is overwritten.
  */
-template<typename T, int capacity>
+template<typename T, size_t capacity>
 class Historic {
 public:
 
 	/// The maximum number of elements stored, given as template parameter
-	static const int CAPACITY = capacity;
+	static const size_t CAPACITY = capacity;
 
 	Historic() 
 		: current_index(0), full(false) {
@@ -102,13 +102,13 @@ public:
 	}
 
 	/// Returns the number of values stored (0-CAPACITY)
-	int size() const {
+	size_t size() const {
 		return full ? CAPACITY : current_index;
 	}
 
 	/// Calculates arithmetic mean of the stored values
 	T mean() const {
-		const int nvalues = size();
+		const size_t nvalues = size();
 
 		assert(nvalues != 0);
 
@@ -119,8 +119,8 @@ public:
 	T sum() const {
 		T result = 0.0;
 
-		const int nvalues = size();
-		for (int i = 0; i < nvalues; ++i) {
+		const size_t nvalues = size();
+		for (size_t i = 0; i < nvalues; ++i) {
 			result += values[i];
 		}
 
@@ -149,10 +149,10 @@ public:
 	 *  \param buffer   Array to write to, must have room for at least size() values
 	 */
 	void to_array(T* buffer) const {
-		const int first_position = full ? current_index : 0;
-		const int nvalues = size();
+		const size_t first_position = full ? current_index : 0;
+		const size_t nvalues = size();
 
-		for (int i = 0; i < nvalues; ++i) {
+		for (size_t i = 0; i < nvalues; ++i) {
 			buffer[i] = values[(first_position+i)%CAPACITY];
 		}
 	}
@@ -162,21 +162,21 @@ private:
 	T values[CAPACITY];
 
 	/// The next position (in the values array) to write to
-	int current_index;
+	size_t current_index;
 
 	/// Whether we've stored CAPACITY values yet
 	bool full;
 };
 
 /// Serialization support for Historic
-template<typename T, int capacity>
+template<typename T, size_t capacity>
 ArchiveStream& operator&(ArchiveStream& stream,
                          Historic<T, capacity>& data) {
 	if (stream.save()) {
 		size_t size = data.size();
 		stream & size;
 		
-		for (int i = 0; i < data.size(); ++i) {
+		for (size_t i = 0; i < data.size(); ++i) {
 			double value = data[i];
 			stream & value;
 		}
@@ -185,7 +185,7 @@ ArchiveStream& operator&(ArchiveStream& stream,
 		size_t size;
 		stream & size;
 
-		for (int i = 0; i < size; ++i) {
+		for (size_t i = 0; i < size; ++i) {
 			double value;
 			stream & value;
 			data.add(value);

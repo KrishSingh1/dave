@@ -719,9 +719,9 @@ void transfer_litter(Patch& patch) {
 
 	// Fire
 	double litterme[NSOMPOOL];
-	litterme[SURFSTRUCT] = soil.sompool[SURFSTRUCT].cmass   * soil.sompool[SURFSTRUCT].litterme;
-	litterme[SURFMETA]   = soil.sompool[SURFMETA].cmass     * soil.sompool[SURFMETA].litterme;
-	litterme[SURFCWD]    = soil.sompool[SURFCWD].cmass      * soil.sompool[SURFCWD].litterme;
+	litterme[SURFSTRUCT]   = soil.sompool[SURFSTRUCT].cmass * soil.sompool[SURFSTRUCT].litterme;
+	litterme[SURFMETA]     = soil.sompool[SURFMETA].cmass   * soil.sompool[SURFMETA].litterme;
+	litterme[SURFCWD]      = soil.sompool[SURFCWD].cmass    * soil.sompool[SURFCWD].litterme;
 
 	double fireresist[NSOMPOOL];
 	fireresist[SURFSTRUCT] = soil.sompool[SURFSTRUCT].cmass * soil.sompool[SURFSTRUCT].fireresist;
@@ -738,14 +738,12 @@ void transfer_litter(Patch& patch) {
 
 		// LEAF
 
-		// Calculate inputs to surface structural and metabolic litter
-
-		double litter_leaf_n = pft.nmass_litter_leaf; 
+		// Calculate inputs to surface structural and metabolic litter 
 
 		// Leaf litter lignin:N ratio
 		double leaf_lton;
-		if (!negligible(litter_leaf_n)) {
-			leaf_lton = max(0.0, LIGCFRAC_LEAF * pft.litter_leaf / litter_leaf_n);
+		if (!negligible(pft.nmass_litter_leaf)) {
+			leaf_lton = max(0.0, LIGCFRAC_LEAF * pft.litter_leaf / pft.nmass_litter_leaf);
 		}
 		else {
 			leaf_lton = max(0.0, LIGCFRAC_LEAF * pft.pft.cton_leaf_avr / (1.0 - nrelocfrac));
@@ -757,22 +755,22 @@ void transfer_litter(Patch& patch) {
 		double ligcmass_old = soil.sompool[SURFSTRUCT].cmass * soil.sompool[SURFSTRUCT].ligcfrac;
 
 		// Add to pools
-		soil.sompool[SURFSTRUCT].cmass += pft.litter_leaf * (1.0 - fm);
-		soil.sompool[SURFSTRUCT].nmass += litter_leaf_n * (1.0 - fm);
-		soil.sompool[SURFMETA].cmass   += pft.litter_leaf * fm;
-		soil.sompool[SURFMETA].nmass   += litter_leaf_n * fm;
+		soil.sompool[SURFSTRUCT].cmass += pft.litter_leaf       * (1.0 - fm);
+		soil.sompool[SURFSTRUCT].nmass += pft.nmass_litter_leaf * (1.0 - fm);
+		soil.sompool[SURFMETA].cmass   += pft.litter_leaf       * fm;
+		soil.sompool[SURFMETA].nmass   += pft.nmass_litter_leaf * fm;
 
 		// Save litter input for equilsom()
 		if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
-			litterSolveSOM.add_litter(pft.litter_leaf * (1.0 - fm), litter_leaf_n * (1.0 - fm), SURFSTRUCT);
-			litterSolveSOM.add_litter(pft.litter_leaf * fm, litter_leaf_n * fm, SURFMETA);
+			litterSolveSOM.add_litter(pft.litter_leaf * (1.0 - fm), pft.nmass_litter_leaf * (1.0 - fm), SURFSTRUCT);
+			litterSolveSOM.add_litter(pft.litter_leaf * fm, pft.nmass_litter_leaf * fm, SURFMETA);
 		}
 
 		// Fire
-		litterme[SURFSTRUCT] += pft.litter_leaf * (1.0 - fm) * pft.pft.litterme;
-		litterme[SURFMETA]   += pft.litter_leaf * fm * pft.pft.litterme;
-
+		litterme[SURFSTRUCT]   += pft.litter_leaf * (1.0 - fm) * pft.pft.litterme;
 		fireresist[SURFSTRUCT] += pft.litter_leaf * (1.0 - fm) * pft.pft.fireresist;
+
+		litterme[SURFMETA]     += pft.litter_leaf * fm * pft.pft.litterme;		
 		fireresist[SURFMETA]   += pft.litter_leaf * fm * pft.pft.fireresist;
 
 		// NB: reproduction litter cannot contain nitrogen!!
@@ -812,9 +810,9 @@ void transfer_litter(Patch& patch) {
 		ligcmass_old = soil.sompool[SOILSTRUCT].cmass * soil.sompool[SOILSTRUCT].ligcfrac;
 
 		// Add to pools and update lignin fraction in structural pool
-		soil.sompool[SOILSTRUCT].cmass += pft.litter_root * (1.0 - fm);
+		soil.sompool[SOILSTRUCT].cmass += pft.litter_root       * (1.0 - fm);
 		soil.sompool[SOILSTRUCT].nmass += pft.nmass_litter_root * (1.0 - fm);
-		soil.sompool[SOILMETA].cmass   += pft.litter_root * fm;
+		soil.sompool[SOILMETA].cmass   += pft.litter_root       * fm;
 		soil.sompool[SOILMETA].nmass   += pft.nmass_litter_root * fm;
 
 		// Save litter input for equilsom()
@@ -879,15 +877,15 @@ void transfer_litter(Patch& patch) {
 
 	// FIRE
 	if (soil.sompool[SURFSTRUCT].cmass > 0.0) {
-		soil.sompool[SURFSTRUCT].litterme   = litterme[SURFSTRUCT] / soil.sompool[SURFSTRUCT].cmass;
+		soil.sompool[SURFSTRUCT].litterme   = litterme[SURFSTRUCT]   / soil.sompool[SURFSTRUCT].cmass;
 		soil.sompool[SURFSTRUCT].fireresist = fireresist[SURFSTRUCT] / soil.sompool[SURFSTRUCT].cmass;
 	}
 	if (soil.sompool[SURFMETA].cmass > 0.0) {
-		soil.sompool[SURFMETA].litterme   = litterme[SURFMETA] / soil.sompool[SURFMETA].cmass;
+		soil.sompool[SURFMETA].litterme   = litterme[SURFMETA]   / soil.sompool[SURFMETA].cmass;
 		soil.sompool[SURFMETA].fireresist = fireresist[SURFMETA] / soil.sompool[SURFMETA].cmass;
 	}
 	if (soil.sompool[SURFCWD].cmass > 0.0) {
-		soil.sompool[SURFCWD].litterme    = litterme[SURFCWD] / soil.sompool[SURFCWD].cmass;
+		soil.sompool[SURFCWD].litterme    = litterme[SURFCWD]   / soil.sompool[SURFCWD].cmass;
 		soil.sompool[SURFCWD].fireresist  = fireresist[SURFCWD] / soil.sompool[SURFCWD].cmass;
 	}
 

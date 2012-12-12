@@ -1064,9 +1064,6 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 	/// daily nitrogen demand for patch (kgN/m2)
 	patch.ndemand = 0.0;
 
-	// Optimal leaf nitrogen content
-	double leafoptn;
-
 	// Scalar to soil temperature (Eqn A9, Comins & McMurtrie 1993) for nitrogen uptake
 	double temp_scale = soil.temp > 0.0 ? max(0.0, 0.0326 + 0.00351 * pow(soil.temp, 1.652) - pow(soil.temp / 41.748, 7.19)) : 0.0;
 
@@ -1083,13 +1080,8 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Starts with no nitrogen stress
 		indiv.nstress = false;
 
-		// reset annual optimal leaf C:N ratio
-		if (date.day == 0) {
-			if (!negligible(indiv.cmass_leaf) && !negligible(indiv.nmass_leaf))
-				indiv.cton_leaf_aopt = indiv.cmass_leaf / indiv.nmass_leaf;
-			else
-				indiv.cton_leaf_aopt = indiv.pft.cton_leaf_max;
-		}
+		// Optimal leaf nitrogen content
+		double leafoptn;
 
 		// If any leaves are out
 		if (!negligible(indiv.phen)) {
@@ -1164,7 +1156,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		double cton_scale = max(0.0, (ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_max - 1.0 / indiv.pft.cton_leaf_min));
 
 		/// Nitrogen availablilty scalar due to saturating Michealis-Menten kinetics
-		double nmin_scale = min(1.0, kNmin + soil.nmass_avail / (soil.nmass_avail + gridcell.pft[indiv.pft.id].Km));
+		double nmin_scale = kNmin + soil.nmass_avail / (soil.nmass_avail + gridcell.pft[indiv.pft.id].Km);
 
 		/// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake)
 		double maxnup = 2.0 * indiv.pft.nuptoroot * nmin_scale * temp_scale * cton_scale * indiv.cmass_root;
@@ -1302,9 +1294,6 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 			else {
 				indiv.avmaxnlim = 0.0;
 			}			
-
-			// Reset leaf-on-day counter for following year
-			indiv.nday_leafon = 0;
 		}
 		vegetation.nextobj();
 	}
@@ -1962,11 +1951,9 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			}
 			else {
 				assim = date.diurnal() ? spft.assim_terms[day.period] : spft.assim_term;
-				//assim *= indiv.fpar;
+				assim *= indiv.fpar;
 			}
 		}
-		if (!ifnlim)
-			assim *= indiv.fpar;
 
 		if (ifbvoc) {
 			if (indiv.wstress) 
@@ -2080,6 +2067,11 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 			indiv.nday_leafon = 0;
 			indiv.avmaxnlim = 1.0;
+
+			if (!negligible(indiv.cmass_leaf) && !negligible(indiv.nmass_leaf))
+				indiv.cton_leaf_aopt = indiv.cmass_leaf / indiv.nmass_leaf;
+			else
+				indiv.cton_leaf_aopt = indiv.pft.cton_leaf_max;
 
  			for (int m=0; m<12; m++) {
 				indiv.mlai[m] = 0.0;

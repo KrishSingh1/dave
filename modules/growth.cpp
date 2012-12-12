@@ -91,6 +91,7 @@ void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
 					(climate.gdd5 - pft.gdd0[climate.chilldays]) / pft.phengdd5ramp);
 			else
 				phen = 0.0;
+		
 		}
 		else if (pft.lifeform == GRASS) {
 
@@ -154,6 +155,7 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 		climate.ifsensechill = true; // CHILLDAYS
 	}
 
+
 	// Copy PFT-specific phenological status to individuals of each PFT
 
 	// Loop through individuals
@@ -180,12 +182,12 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 // Internal function (do not call directly from framework)
 
 void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
-	lifeformtype lifeform, double& cmass_leaf, double& cmass_root, double& cmass_sap,
+	lifeformtype lifeform, landcovertype landcover, double& cmass_leaf, double& cmass_root, double& cmass_sap,
 	double& cmass_heart, double& nmass_leaf, double& nmass_root, double& nmass_sap,
 	double& nmass_heart, double& litter_leaf, double& litter_root,
 	double& nmass_litter_leaf, double& nmass_litter_root,
-	double& retransn, bool alive, double& nmass,
-	landcovertype landcover, Gridcell& gridcell) {
+	double& retransn, double& nmass,
+	bool alive, Gridcell& gridcell) {
 
 	// DESCRIPTION
 	// Transfers carbon from leaves and roots to litter, and from sapwood to heartwood
@@ -1139,9 +1141,8 @@ void growth(Stand& stand, Patch& patch) {
 			double retransn = 0.0;
 
 			// Tissue turnover and associated litter production
-
 			turnover(indiv.pft.turnover_leaf, indiv.pft.turnover_root,
-				indiv.pft.turnover_sap, indiv.pft.lifeform,
+				indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
 				indiv.cmass_leaf, indiv.cmass_root, indiv.cmass_sap, indiv.cmass_heart,
 				indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap, indiv.nmass_heart,
 				patch.pft[indiv.pft.id].litter_leaf,
@@ -1149,8 +1150,8 @@ void growth(Stand& stand, Patch& patch) {
 				patch.pft[indiv.pft.id].nmass_litter_leaf,
 				patch.pft[indiv.pft.id].nmass_litter_root,
 				retransn, 
-				indiv.alive, patch.soil.nmass_avail,
-				indiv.pft.landcover, gridcell);
+				patch.soil.nmass_avail,
+				indiv.alive, gridcell);
 
 			if (indiv.alive && date.year > freenyears && indiv.nstore_labile + retransn > indiv.max_n_storage) {
 				

@@ -345,6 +345,7 @@ inline double f(double& cmass_leaf_inc) {
 		k2);
 }
 
+
 void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sap,
 	double cmass_debt,double cmass_heart,double ltor,double height,double sla,
 	double wooddens,lifeformtype lifeform,double k_latosa,double k_allom2,
@@ -613,7 +614,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 		}
 		else {
 
-			// Abnormal allocation: negativ bminc
+			// Abnormal allocation: negative bminc
 
 			if (bminc < 0) {
 				
@@ -684,8 +685,9 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 				cmass_sap;
 
 			// Convert killed sapwood to heartwood
-			if (cmass_sap_inc < 0.0)  
+			if (cmass_sap_inc < 0.0) {
 				cmass_heart_inc = -cmass_sap_inc;
+			}
 		}
 	}
 	else if (lifeform==GRASS) {
@@ -766,6 +768,7 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 }
 
 
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // ALLOMETRY
 // Should be called to update allometry, FPC and FPC increment whenever biomass values
@@ -822,12 +825,11 @@ bool allometry(Individual& indiv) {
 	//    (11) lai_ind = cmass_leaf * sla
 
 	double diam; // stem diameter (m)
-	double vol; // stem volume (m^2)
-	double PI = 3.1415927;
 	double fpc_new; // updated FPC
 
 	// guess2008 - max tree height allowed (metre).
 	const double HEIGHT_MAX = 150.0; 
+
 
 	if (indiv.pft.lifeform == TREE) {
 
@@ -844,7 +846,7 @@ bool allometry(Individual& indiv) {
 			diam = pow(indiv.height / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
 
 			// Stem volume
-			vol = indiv.height * PI * diam * diam * 0.25;
+			double vol = indiv.height * PI * diam * diam * 0.25;
 
 			if (indiv.age && (indiv.cmass_heart + indiv.cmass_sap) / indiv.densindiv / vol < indiv.pft.wooddens * 0.9) {
 				return false;	
@@ -863,6 +865,7 @@ bool allometry(Individual& indiv) {
 			diam = 0.0;
 			return false;
 		}
+
 
 		// Crown area (Eqn 6)
 		indiv.crownarea = min(indiv.pft.k_allom1 * pow(diam, indiv.pft.k_rp),
@@ -989,43 +992,41 @@ void flush_litter_repr(Patch& patch) {
  *  Should be called by framework at the end of each simulation year for modelling
  *  of turnover, allocation and growth, prior to vegetation dynamics and disturbance
  */
-void growth(Stand& stand, Patch& patch) {	
+void growth(Stand& stand, Patch& patch) {
 
-	/// minimum carbon mass allowed (kgC/m2)
+	// minimum carbon mass allowed (kgC/m2)
 	const double MINCMASS = 1.0e-8;
-	/// maximum carbon mass allowed (kgC/m2)
+	// maximum carbon mass allowed (kgC/m2)
 	const double MAXCMASS = 1.0e8;
 
 	const double CDEBT_PAYBACK_RATE = 0.2;
 
-	const double EPS = 1.0e-15;
-
-	/// carbon biomass increment (component of NPP available for production of
-	/// new biomass) for this time period on modelled area basis (kgC/m2)
+	// carbon biomass increment (component of NPP available for production of
+	// new biomass) for this time period on modelled area basis (kgC/m2)
 	double bminc;
-	/// C allocated to reproduction this time period on modelled area basis (kgC/m2)	
+	// C allocated to reproduction this time period on modelled area basis (kgC/m2)	
 	double cmass_repr;
-	/// increment in leaf C biomass following allocation, on individual basis (kgC)	
+	// increment in leaf C biomass following allocation, on individual basis (kgC)	
 	double cmass_leaf_inc;
-	/// increment in root C biomass following allocation, on individual basis (kgC)	
+	// increment in root C biomass following allocation, on individual basis (kgC)	
 	double cmass_root_inc;
-	/// increment in sapwood C biomass following allocation, on individual basis (kgC)	
+	// increment in sapwood C biomass following allocation, on individual basis (kgC)	
 	double cmass_sap_inc;
-	/// increment in heartwood C biomass following allocation, on individual basis (kgC)
+	// increment in heartwood C biomass following allocation, on individual basis (kgC)
 	double cmass_heart_inc;
-	/// increment in heartwood C biomass following allocation, on individual basis (kgC)
+	// increment in heartwood C biomass following allocation, on individual basis (kgC)
 	double cmass_debt_inc = 0.0; 
-	/// increment in leaf litter following allocation, on individual basis (kgC)	
+	// increment in leaf litter following allocation, on individual basis (kgC)	
 	double litter_leaf_inc = 0.0;
-	/// increment in root litter following allocation, on individual basis (kgC)	
+	// increment in root litter following allocation, on individual basis (kgC)	
 	double litter_root_inc = 0.0;
-	/// C biomass of leaves in "excess" of set allocated last year to raingreen PFT last year (kgC/m2)
+	// C biomass of leaves in "excess" of set allocated last year to raingreen PFT last year (kgC/m2)
 	double cmass_excess;
-	/// Raingreen nitrogen demand for leaves dropped during the year
+	// Raingreen nitrogen demand for leaves dropped during the year
 	double raingreen_ndemand;
-	/// Nitrogen stress scalar for leaf to root allocation
+	// Nitrogen stress scalar for leaf to root allocation
 	double nscal;
-	/// Fraction of new biomass that is leaf and root
+	// Fraction of new biomass that is leaf and root
 	double frac_bminc_leaf, frac_bminc_root;
 
 	double dval;
@@ -1073,10 +1074,12 @@ void growth(Stand& stand, Patch& patch) {
 		// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle 2010 SM eq 19) 	
 		double cton_leaf_opt = (indiv.cton_leaf_aopt > indiv.pft.cton_leaf_avr) ? indiv.cton_leaf_aopt : indiv.pft.cton_leaf_avr;
 
-		if (ifnlim && date.year > freenyears)
+		if (ifnlim && date.year > freenyears) {
 			nscal = min(1.0, cton_leaf_opt / indiv.cton_leaf);
-		else
+		}
+		else {
 			nscal = 1.0;
+		}
 
 		// Set leaf:root mass ratio based on water stress parameter 
 		// or nitrogen stress scalar 
@@ -1103,6 +1106,7 @@ void growth(Stand& stand, Patch& patch) {
 		else {
 
 			// Allocation to reproduction
+
 			reproduction(indiv.pft.reprfrac, indiv.anpp, bminc, cmass_repr);
 
 			// added bminc check. Otherwise we get -ve litter_leaf for grasses when indiv.anpp < 0.
@@ -1173,8 +1177,9 @@ void growth(Stand& stand, Patch& patch) {
 
 			// Transfer reproduction straight to litter
 			// only for 'alive' individuals
-			if (indiv.alive) 
+			if (indiv.alive) {
 				patch.pft[indiv.pft.id].litter_repr += cmass_repr;
+			}
 
 			if (indiv.pft.lifeform == TREE) {
 				
@@ -1224,7 +1229,7 @@ void growth(Stand& stand, Patch& patch) {
 				// C debt
 				indiv.cmass_debt += cmass_debt_inc * indiv.densindiv;
 
-				// Fracion of biomass increment that went to leaf and root tissue
+				// Fraction of biomass increment that went to leaf and root tissue
 				if (bminc > 0.0) {
 					frac_bminc_leaf = max(0.0, cmass_leaf_inc  * indiv.densindiv / bminc);
 					frac_bminc_root = max(0.0, cmass_root_inc  * indiv.densindiv / bminc);
@@ -1243,8 +1248,9 @@ void growth(Stand& stand, Patch& patch) {
 				indiv.max_n_storage = (max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv / indiv.cton_leaf;
 
 				// Scale this year productivity to max storage
-				if (indiv.anpp > 0.0)
+				if (indiv.anpp > 0.0) {
 					indiv.scale_n_storage = max(0.0, indiv.max_n_storage - retransn_nextyear) * indiv.cton_leaf / indiv.anpp;
+				}
 
 				if (indiv.alive) {
 					patch.pft[indiv.pft.id].litter_leaf += litter_leaf_inc * indiv.densindiv;
@@ -1260,8 +1266,9 @@ void growth(Stand& stand, Patch& patch) {
 											
 					// if sapwood gets killed transfer 50% of nitrogen into storage,
 					// the other 50% going into heartwood
-					if (cmass_sap_inc < 0.0)	
+					if (cmass_sap_inc < 0.0) {
 						indiv.nstore_labile -= cmass_sap_inc * indiv.densindiv / indiv.cton_sap * (1.0 - nrelocfrac);
+					}
 				}
 				else {	// return nitrogen to soil so nitrogen budget is preserved
 					patch.soil.nmass_avail += (litter_leaf_inc / indiv.cton_leaf + litter_root_inc / indiv.cton_root -
@@ -1351,8 +1358,9 @@ void growth(Stand& stand, Patch& patch) {
 				indiv.max_n_storage = (max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv / indiv.cton_leaf;
 
 				// Scale this year productivity to max storage
-				if (indiv.anpp > 0.0)
+				if (indiv.anpp > 0.0) {
 					indiv.scale_n_storage = max(0.0, indiv.max_n_storage - retransn_nextyear) * indiv.cton_leaf / indiv.anpp;
+				}
 
 				// Determine the (small) mass imbalance (kgC) for this individual. 
 				// This can arise in the event of numerical errors in the allocation routine.
@@ -1429,12 +1437,14 @@ void growth(Stand& stand, Patch& patch) {
 						indiv.nmass_heart;
 					
 					// Transfer nitrogen storage to root nitrogen litter if grass otherwise to wood nitrogen litter
-					if (indiv.pft.lifeform == GRASS)
+					if (indiv.pft.lifeform == GRASS) {
 						patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore_leaf + 
 							indiv.nstore_root + indiv.nstore_labile;
-					else
+					}
+					else {
 						patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nstore_leaf + 
 							indiv.nstore_root + indiv.nstore_labile;
+					}
 				}
 				else {	// return nitrogen to soil so nitrogen budget is preserved
 					patch.soil.nmass_avail += indiv.nmass_leaf + indiv.nmass_root + 
@@ -1495,8 +1505,9 @@ void growth(Stand& stand, Patch& patch) {
 	}
 
 	// Flush nitrogen free litter from reproduction straight to atmosphere
-	if (ifnlim)
+	if (ifnlim) {
 		flush_litter_repr(patch);
+	}
 }
 
 

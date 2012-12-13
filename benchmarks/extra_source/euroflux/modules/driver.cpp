@@ -1123,7 +1123,7 @@ void check_nbalance(Patch& patch, bool print) {
 			Individual& indiv = vegetation.getobj();
 
 			vegn += indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + indiv.nmass_heart;
-			vegstore += indiv.nstore_leaf + indiv.nstore_root + indiv.nstore_labile; 
+			vegstore += indiv.nstore(); 
 			
 			vegetation.nextobj();
 		}

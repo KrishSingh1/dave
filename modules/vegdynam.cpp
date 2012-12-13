@@ -782,9 +782,9 @@ void mortality_lpj(Stand& stand, Patch& patch, Climate& climate, double fireprob
 			
 			// Transfer nitrogen storage to wood nitrogen litter for now 
 			if (patch.pft[indiv.pft.id].pft.lifeform == TREE)
-				patch.pft[indiv.pft.id].nmass_litter_wood+=indiv.nstore_leaf+indiv.nstore_root+indiv.nstore_labile;
+				patch.pft[indiv.pft.id].nmass_litter_wood+=indiv.nstore();
 			else
-				patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nstore_leaf+indiv.nstore_root+indiv.nstore_labile;
+				patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nstore();
 
 			vegetation.killobj();
 			killed=true;
@@ -854,7 +854,7 @@ void mortality_lpj(Stand& stand, Patch& patch, Climate& climate, double fireprob
 				indiv.nmass_heart);
 				
 			// Transfer nitrogen storage to wood nitrogen litter for now 	
-			patch.pft[indiv.pft.id].nmass_litter_wood += (mort - mort_fire) * (indiv.nstore_leaf + indiv.nstore_root + indiv.nstore_labile);
+			patch.pft[indiv.pft.id].nmass_litter_wood += (mort - mort_fire) * indiv.nstore();
 
 			// Flux to atmosphere from burnt above-ground biomass
 
@@ -863,7 +863,7 @@ void mortality_lpj(Stand& stand, Patch& patch, Climate& climate, double fireprob
 			                             indiv.cmass_heart-indiv.cmass_debt));
 
 			double nmass = indiv.nmass_leaf + indiv.nmass_sap + indiv.nmass_heart + 
-				indiv.nstore_leaf + indiv.nstore_root + indiv.nstore_labile;
+				indiv.nstore();
 
 			report_fire_nfluxes(indiv, mort_fire * nmass);
 
@@ -923,7 +923,7 @@ void mortality_lpj(Stand& stand, Patch& patch, Climate& climate, double fireprob
 			patch.pft[indiv.pft.id].nmass_litter_root+=mort*indiv.nmass_root;
 
 			// Transfer nitrogen storage to root nitrogen litter for now
-			patch.pft[indiv.pft.id].nmass_litter_root+=mort*(indiv.nstore_leaf+indiv.nstore_root+indiv.nstore_labile);
+			patch.pft[indiv.pft.id].nmass_litter_root+=mort*indiv.nstore();
 
 			// Flux to atmosphere from burnt above-ground biomass
 
@@ -1063,7 +1063,7 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 					indiv.cmass_root *= indiv.pft.fireresist;
 
 					// nitrogen storage to root nitrogen litter 
-					patch.pft[indiv.pft.id].nmass_litter_root += mort_fire * (indiv.nmass_root + indiv.nstore_leaf + indiv.nstore_root + indiv.nstore_labile);
+					patch.pft[indiv.pft.id].nmass_litter_root += mort_fire * (indiv.nmass_root + indiv.nstore());
 
 					report_fire_nfluxes(indiv, mort_fire * indiv.nmass_leaf);
 
@@ -1131,7 +1131,7 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 					patch.pft[indiv.pft.id].nmass_litter_root += (1.0 - frac_survive) * indiv.nmass_root;
 
 					// Calculate flux from biomass to atmosphere due to fire
-					double nmass = indiv.nmass_leaf + indiv.nmass_sap +	indiv.nmass_heart + indiv.nstore_leaf + indiv.nstore_root + indiv.nstore_labile;
+					double nmass = indiv.nmass_leaf + indiv.nmass_sap +	indiv.nmass_heart + indiv.nstore();
 
 					report_fire_nfluxes(indiv, (1.0 - frac_survive) * nmass);
 
@@ -1188,9 +1188,9 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 				
 			// Transfer nitrogen storage to wood nitrogen litter for now
 			if (indiv.pft.lifeform == TREE)
-				patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nstore_leaf + indiv.nstore_root + indiv.nstore_labile;
+				patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nstore();
 			else
-				patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore_leaf + indiv.nstore_root + indiv.nstore_labile;
+				patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore();
 
 			vegetation.killobj();
 			killed = true;
@@ -1326,7 +1326,7 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 					(1.0 - frac_survive) * (indiv.nmass_sap + indiv.nmass_heart);
 			
 				// Transfer nitrogen storage to wood nitrogen litter for now 	
-				patch.pft[indiv.pft.id].nmass_litter_wood += (1.0 - frac_survive) * (indiv.nstore_leaf + indiv.nstore_root + indiv.nstore_labile);
+				patch.pft[indiv.pft.id].nmass_litter_wood += (1.0 - frac_survive) * indiv.nstore();
 
 				// Reduce individual density and biomass on patch area basis
 				// to account for loss of killed individuals
@@ -1562,9 +1562,9 @@ void disturbance(Patch& patch, double disturb_prob) {
 
 			// Transfer nitrogen storage to wood nitrogen litter for now 
 			if (indiv.pft.lifeform == TREE)
-				patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nstore_leaf + indiv.nstore_root + indiv.nstore_labile;
+				patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nstore();
 			else
-				patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore_leaf + indiv.nstore_root + indiv.nstore_labile;
+				patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore();
 
 			vegetation.killobj();
 		}

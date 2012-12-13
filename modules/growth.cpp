@@ -1305,13 +1305,11 @@ void growth(Stand& stand, Patch& patch) {
 						patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nmass_sap + indiv.nmass_heart;
 						
 						// Transfer nitrogen storage to wood nitrogen litter for now
-						patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nstore_leaf + 
-							indiv.nstore_root + indiv.nstore_labile;
+						patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nstore();
 					} 
 					else {	// return nitrogen to soil so nitrogen budget is preserved
 						patch.soil.nmass_avail += indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap +
-							indiv.nmass_heart + indiv.nstore_leaf + indiv.nstore_root + 
-							indiv.nstore_labile;
+							indiv.nmass_heart + indiv.nstore();
 					}
 
 					vegetation.killobj();
@@ -1404,12 +1402,11 @@ void growth(Stand& stand, Patch& patch) {
 						patch.pft[indiv.pft.id].nmass_litter_root += indiv.nmass_root; 
 						
 						// Transfer nitrogen storage to root nitrogen litter for now
-						patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore_leaf + 
-							indiv.nstore_root + indiv.nstore_labile;
+						patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore();
 					} 
 					else {	// return nitrogen to soil so nitrogen budget is preserved
 						patch.soil.nmass_avail += indiv.nmass_leaf + indiv.nmass_root +
-							indiv.nstore_leaf + indiv.nstore_root + indiv.nstore_labile;
+							indiv.nstore();
 					}
 
 					vegetation.killobj();
@@ -1438,18 +1435,15 @@ void growth(Stand& stand, Patch& patch) {
 					
 					// Transfer nitrogen storage to root nitrogen litter if grass otherwise to wood nitrogen litter
 					if (indiv.pft.lifeform == GRASS) {
-						patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore_leaf + 
-							indiv.nstore_root + indiv.nstore_labile;
+						patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore();
 					}
 					else {
-						patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nstore_leaf + 
-							indiv.nstore_root + indiv.nstore_labile;
+						patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nstore();
 					}
 				}
 				else {	// return nitrogen to soil so nitrogen budget is preserved
 					patch.soil.nmass_avail += indiv.nmass_leaf + indiv.nmass_root + 
-						indiv.nmass_sap + indiv.nmass_heart + indiv.nstore_leaf + 
-						indiv.nstore_root + indiv.nstore_labile;
+						indiv.nmass_sap + indiv.nmass_heart + indiv.nstore();
 				}
 
 				vegetation.killobj();

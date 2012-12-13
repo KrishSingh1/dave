@@ -1229,6 +1229,11 @@ public:
 	/// Report a flux associated with this Individual
 	/** Fluxes from 'new' Individuals (alive == false) will not be reported */
 	void report_flux(Fluxes::PerPatchFluxType flux_type, double value);
+
+	/// Total storage of nitrogen
+	double nstore() const {
+		return nstore_leaf + nstore_root + nstore_labile;
+	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////

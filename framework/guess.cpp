@@ -619,9 +619,9 @@ void Individual::serialize(ArchiveStream& arch) {
 		& avmaxnlim
 		& cton_leaf_aopt
 		& cton_leaf_dopt
-		& cton_leaf
-		& cton_root
-		& cton_sap
+		& cton_leaf_bg
+		& cton_root_bg
+		& cton_sap_bg
 		& cmass_veg
 		& nmass_veg
 

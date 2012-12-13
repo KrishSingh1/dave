@@ -513,12 +513,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Sap wood nitrogen demand allways zero
 						indiv.sapndemand = 0.0;
 
-						// Set new leaf tissue C:N ratio
-						indiv.cton_leaf = indiv.pft.cton_leaf_avr;
-
 						// Calculate storage pool size
 						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
-						indiv.scale_n_storage = indiv.max_n_storage * indiv.cton_leaf / bminit;
+						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
 
 						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()
@@ -650,12 +647,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Sap wood nitrogen demand starts with zero
 						indiv.sapndemand = 0.0;
 
-						// Set new leaf tissue C:N ratio
-						indiv.cton_leaf = indiv.pft.cton_leaf_avr;
-
 						// Calculate storage pool size
 						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
-						indiv.scale_n_storage = indiv.max_n_storage * indiv.cton_leaf / bminit;
+						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
 
 						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()
@@ -1809,12 +1803,9 @@ void establishment_guess_plantation(Stand& stand,Patch& patch, int century_year)
 						// Sap wood nitrogen demand allways zero
 						indiv.sapndemand = 0.0;
 
-						// Set new leaf tissue C:N ratio
-						indiv.cton_leaf = indiv.pft.cton_leaf_avr;
-
 						// Calculate storage pool size
 						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
-						indiv.scale_n_storage = indiv.max_n_storage * indiv.cton_leaf / bminit;
+						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
 
 						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()
@@ -1957,14 +1948,11 @@ void establishment_guess_plantation(Stand& stand,Patch& patch, int century_year)
 						allometry(indiv);
 
 						// Sap wood nitrogen demand starts with zero
-						indiv.sapndemand = 0.0;
-
-						// Set new leaf tissue C:N ratio
-						indiv.cton_leaf = indiv.pft.cton_leaf_avr;	
+						indiv.sapndemand = 0.0;	
 
 						// Calculate storage pool size
 						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
-						indiv.scale_n_storage = indiv.max_n_storage * indiv.cton_leaf / bminit;
+						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
 
 						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()

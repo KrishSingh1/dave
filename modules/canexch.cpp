@@ -1051,8 +1051,8 @@ void nstore_usage(Vegetation& vegetation) {
 }
 
 /// Nitrogen demand
-/** Determines nitrogen demand based on vmax for leaves and 
- *  roots and sap wood nitrogen concentration follows leaf 
+/** Determines nitrogen demand based on vmax for leaves. 
+ *  Roots and sap wood nitrogen concentration follows leaf 
  *  nitrogen concentration. 
  *  Also determins individual nitrogen uptake capability 
  */
@@ -1123,23 +1123,24 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 			if (indiv.leafndemand)
 				indiv.cton_leaf_dopt = indiv.cmass_leaf * indiv.phen / leafoptn;
 			else
-				indiv.cton_leaf_dopt = max(indiv.pft.cton_leaf_min, indiv.cton_leaf);
+				indiv.cton_leaf_dopt = max(indiv.pft.cton_leaf_min, indiv.cton_leaf());
 		}
 		else {
 			indiv.leafndemand = 0.0;
-			indiv.cton_leaf_dopt = indiv.cton_leaf;
+			indiv.cton_leaf_dopt = indiv.cton_leaf();
 		}
 
+		// Root nitrogen demand
 		indiv.rootndemand = max(0.0, indiv.cmass_root * indiv.phen / (indiv.cton_leaf_dopt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root  * indiv.phen);
 		
-		// Sap wood nitrogen demand. Demand is divided up throughout the year
+		// Sap wood nitrogen demand. Demand is divided throughout the year
 		if (indiv.pft.lifeform == TREE) {
 
 			indiv.sapndemand = max(0.0, indiv.cmass_sap / (indiv.cton_leaf_dopt * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_sap) * ((1.0 + (double)date.day)/365.0);
 		}
 
 		// Labile nitrogen storage demand
-		indiv.storendemand = max(0.0, min(indiv.anpp * indiv.scale_n_storage / indiv.cton_leaf, indiv.max_n_storage) - indiv.nstore());
+		indiv.storendemand = max(0.0, min(indiv.anpp * indiv.scale_n_storage / indiv.cton_leaf(), indiv.max_n_storage) - indiv.nstore());
 
 		if (!ifnlim || date.year <= freenyears)
 			indiv.storendemand = 0.0;
@@ -1149,7 +1150,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 		// Calculate scalars to nitrogen demand
 
-		// Current plant mobile and storage nitrogen concentration
+		// Current plant mobile nitrogen concentration
 		double ntoc = !negligible(indiv.phen) ? (indiv.nmass_leaf + indiv.nmass_root) / (indiv.cmass_leaf * indiv.phen + indiv.cmass_root) : 1.0 / indiv.pft.cton_leaf_max;
 
 		// Scale to maximum nitrogen concentrations

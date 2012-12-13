@@ -1166,12 +1166,12 @@ public:
 	double cton_leaf_dopt;
 	/// annual optimal leaf C:N ratio
 	double cton_leaf_aopt;
-	/// C:N ratio of current biomass (leaf)
-	double cton_leaf;
-	/// C:N ratio of current biomass (root)
-	double cton_root;
-	/// C:N ratio of current biomass (sap)
-	double cton_sap;
+	/// C:N ratio of current biomass before growth (leaf)
+	double cton_leaf_bg;
+	/// C:N ratio of current biomass before growth (root)
+	double cton_root_bg;
+	/// C:N ratio of current biomass before growth (sap)
+	double cton_sap_bg;
 	/// total carbon in compartments before growth
 	double cmass_veg;
 	/// total nitrogen in compartments before growth
@@ -1233,6 +1233,30 @@ public:
 	/// Total storage of nitrogen
 	double nstore() const {
 		return nstore_leaf + nstore_root + nstore_labile;
+	}
+
+	/// Current leaf C:N ratio
+	double cton_leaf() const {
+		if (!negligible(nmass_leaf))
+			return cmass_leaf / nmass_leaf;
+		else
+			return pft.cton_leaf_avr;
+	}
+
+	/// Current root C:N ratio
+	double cton_root() const {
+		if (!negligible(nmass_root))
+			return cmass_root / nmass_root;
+		else
+			return pft.cton_root_avr;
+	}
+
+	/// Current sap C:N ratio
+	double cton_sap() const {
+		if (!negligible(nmass_sap))
+			return cmass_sap / nmass_sap;
+		else
+			return pft.cton_sap_avr;
 	}
 };
 

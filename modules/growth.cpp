@@ -186,7 +186,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	double& cmass_heart, double& nmass_leaf, double& nmass_root, double& nmass_sap,
 	double& nmass_heart, double& litter_leaf, double& litter_root,
 	double& nmass_litter_leaf, double& nmass_litter_root,
-	double& retransn, double& nmass,
+	double& retransn, double& nmass_avail,
 	bool alive, Gridcell& gridcell) {
 
 	// DESCRIPTION
@@ -208,6 +208,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	// nmass_leaf    = leaf nitrogen biomass (kgN/m2)
 	// nmass_root    = fine root nitrogen biomass (kgN/m2)
 	// nmass_sap     = sapwood nitrogen biomass (kgN/m2)
+	// nmass_avail   = soil available nitrogen (kgN/m2)
 
 	// OUTPUT PARAMETERS
 	// litter_leaf			= new leaf C litter (kgC/m2)
@@ -243,7 +244,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 		retransn += turnover * nrelocfrac;
 	}
 	else {
-		nmass += turnover * (1.0 - nrelocfrac);	
+		nmass_avail += turnover * (1.0 - nrelocfrac);	
 		retransn += turnover * nrelocfrac;
 	}
 
@@ -259,7 +260,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 		retransn += turnover * nrelocfrac;
 	}
 	else {
-		nmass += turnover * (1.0 - nrelocfrac);
+		nmass_avail += turnover * (1.0 - nrelocfrac);
 		retransn += turnover * nrelocfrac;
 	}
 
@@ -527,7 +528,6 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 			cmass_root_inc_min + cmass_leaf_inc_min <= bminc) {
 
 			// Normal allocation (positive increment to all living C compartments)
-			// NOTE: includes allocation of zero or negative NPP, c.f. LPJF
 
 			// Calculation of leaf mass increment (lminc_ind) satisfying Eqn (13)
 			// using bisection method (Press et al 1986)
@@ -614,17 +614,21 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 		}
 		else {
 
-			// Abnormal allocation: negative bminc
+			// Abnormal allocation: negative biomass increment
+
+			// No positive allocation allowed and trying to keep leaf to root ratio Eqn (3)
 
 			if (bminc < 0) {
 				
 				cmass_leaf_inc = (bminc - cmass_leaf / ltor + cmass_root) / (1.0 + 1.0 / ltor);
 				cmass_root_inc = bminc - cmass_leaf_inc;
 
+				// Positive leaf increment not allowed
 				if (cmass_leaf_inc > 0.0) {
 					cmass_leaf_inc = 0.0;
 					cmass_root_inc = bminc;
 				}
+				// Positive root increment not allowed
 				else if (cmass_root_inc > 0.0) {
 					cmass_root_inc = 0.0;
 					cmass_leaf_inc = bminc;
@@ -1055,27 +1059,19 @@ void growth(Stand& stand, Patch& patch) {
 		indiv.cmass_veg = indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap + indiv.cmass_heart - indiv.cmass_debt;
 		indiv.nmass_veg = indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + indiv.nmass_heart;
 
-		// Calculate compartment C:N ratios
-		if (!negligible(indiv.nmass_leaf))
-			indiv.cton_leaf = indiv.cmass_leaf / indiv.nmass_leaf;
-		else
-			indiv.cton_leaf = indiv.pft.cton_leaf_avr;
-		
-		if (!negligible(indiv.nmass_root))
-			indiv.cton_root = indiv.cmass_root / indiv.nmass_root;
-		else
-			indiv.cton_root = indiv.pft.cton_root_avr;
-
-		if (!negligible(indiv.nmass_sap))
-			indiv.cton_sap = indiv.cmass_sap / indiv.nmass_sap;
-		else
-			indiv.cton_sap = indiv.pft.cton_sap_avr;
+		// Save compartment C:N ratios before growth
+		// Leaf
+		indiv.cton_leaf_bg = indiv.cton_leaf();
+		// Root
+		indiv.cton_root_bg = indiv.cton_root();
+		// Sap
+		indiv.cton_sap_bg = indiv.cton_sap();
 
 		// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle 2010 SM eq 19) 	
-		double cton_leaf_opt = (indiv.cton_leaf_aopt > indiv.pft.cton_leaf_avr) ? indiv.cton_leaf_aopt : indiv.pft.cton_leaf_avr;
+		double cton_leaf_opt = max(indiv.cton_leaf_aopt ,indiv.pft.cton_leaf_avr);
 
 		if (ifnlim && date.year > freenyears) {
-			nscal = min(1.0, cton_leaf_opt / indiv.cton_leaf);
+			nscal = min(1.0, cton_leaf_opt / indiv.cton_leaf_bg);
 		}
 		else {
 			nscal = 1.0;
@@ -1131,7 +1127,7 @@ void growth(Stand& stand, Patch& patch) {
 				if (indiv.alive) {
 					patch.pft[indiv.pft.id].litter_leaf += cmass_excess;
 					
-					raingreen_ndemand = min(indiv.nmass_leaf, cmass_excess / indiv.cton_leaf);
+					raingreen_ndemand = min(indiv.nmass_leaf, cmass_excess / indiv.cton_leaf_bg);
 					patch.pft[indiv.pft.id].nmass_litter_leaf += raingreen_ndemand;
 					indiv.nmass_leaf -= raingreen_ndemand;	// remove nitrogen from existing tissue for now
 				}
@@ -1222,8 +1218,8 @@ void growth(Stand& stand, Patch& patch) {
 				indiv.cmass_heart += cmass_heart_inc * indiv.densindiv;
 
 				if (cmass_sap_inc < 0.0) {
-					indiv.nmass_heart -= cmass_sap_inc * indiv.densindiv / indiv.cton_sap * nrelocfrac;
-					indiv.nmass_sap += cmass_sap_inc * indiv.densindiv / indiv.cton_sap;
+					indiv.nmass_heart -= cmass_sap_inc * indiv.densindiv / indiv.cton_sap_bg * nrelocfrac;
+					indiv.nmass_sap += cmass_sap_inc * indiv.densindiv / indiv.cton_sap_bg;
 				}
 
 				// C debt
@@ -1240,16 +1236,16 @@ void growth(Stand& stand, Patch& patch) {
 				}
 				// Nitrogen longtime storage
 				// Nitrogen approx retranslocated next year
-				double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.cton_leaf * nrelocfrac +
-					indiv.cmass_root * indiv.pft.turnover_root / indiv.cton_root * nrelocfrac +
-					indiv.cmass_sap * indiv.pft.turnover_sap / indiv.cton_sap * nrelocfrac;
+				double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.cton_leaf_bg * nrelocfrac +
+					indiv.cmass_root * indiv.pft.turnover_root / indiv.cton_root_bg * nrelocfrac +
+					indiv.cmass_sap * indiv.pft.turnover_sap / indiv.cton_sap_bg * nrelocfrac;
 				
 				// Max nitrogen storage
-				indiv.max_n_storage = (max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv / indiv.cton_leaf;
+				indiv.max_n_storage = (max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv / indiv.cton_leaf_bg;
 
 				// Scale this year productivity to max storage
 				if (indiv.anpp > 0.0) {
-					indiv.scale_n_storage = max(0.0, indiv.max_n_storage - retransn_nextyear) * indiv.cton_leaf / indiv.anpp;
+					indiv.scale_n_storage = max(0.0, indiv.max_n_storage - retransn_nextyear) * indiv.cton_leaf_bg / indiv.anpp;
 				}
 
 				if (indiv.alive) {
@@ -1257,27 +1253,27 @@ void growth(Stand& stand, Patch& patch) {
 					patch.pft[indiv.pft.id].litter_root += litter_root_inc * indiv.densindiv;
 
 					patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
-						indiv.cton_leaf * (1.0 - nrelocfrac);
-					indiv.nstore_labile += litter_leaf_inc * indiv.densindiv / indiv.cton_leaf * nrelocfrac;
+						indiv.cton_leaf_bg * (1.0 - nrelocfrac);
+					indiv.nstore_labile += litter_leaf_inc * indiv.densindiv / indiv.cton_leaf_bg * nrelocfrac;
 
 					patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
-						indiv.cton_root * (1.0 - nrelocfrac);
-					indiv.nstore_labile += litter_root_inc * indiv.densindiv / indiv.cton_root * nrelocfrac;
+						indiv.cton_root_bg * (1.0 - nrelocfrac);
+					indiv.nstore_labile += litter_root_inc * indiv.densindiv / indiv.cton_root_bg * nrelocfrac;
 											
 					// if sapwood gets killed transfer 50% of nitrogen into storage,
 					// the other 50% going into heartwood
 					if (cmass_sap_inc < 0.0) {
-						indiv.nstore_labile -= cmass_sap_inc * indiv.densindiv / indiv.cton_sap * (1.0 - nrelocfrac);
+						indiv.nstore_labile -= cmass_sap_inc * indiv.densindiv / indiv.cton_sap_bg * (1.0 - nrelocfrac);
 					}
 				}
 				else {	// return nitrogen to soil so nitrogen budget is preserved
-					patch.soil.nmass_avail += (litter_leaf_inc / indiv.cton_leaf + litter_root_inc / indiv.cton_root -
-						min(0.0, cmass_sap_inc) / indiv.cton_sap * (1.0 - nrelocfrac)) * indiv.densindiv; // nrelocfrac gone to heartwood above
+					patch.soil.nmass_avail += (litter_leaf_inc / indiv.cton_leaf_bg + litter_root_inc / indiv.cton_root_bg -
+						min(0.0, cmass_sap_inc) / indiv.cton_sap_bg * (1.0 - nrelocfrac)) * indiv.densindiv; // nrelocfrac gone to heartwood above
 				}
 
 				// Subtracting litter nitrogen from individuals
-				indiv.nmass_leaf -= litter_leaf_inc * indiv.densindiv / indiv.cton_leaf;
-				indiv.nmass_root -= litter_root_inc * indiv.densindiv / indiv.cton_root;
+				indiv.nmass_leaf -= litter_leaf_inc * indiv.densindiv / indiv.cton_leaf_bg;
+				indiv.nmass_root -= litter_root_inc * indiv.densindiv / indiv.cton_root_bg;
 								
 				// Update individual age
 
@@ -1349,15 +1345,15 @@ void growth(Stand& stand, Patch& patch) {
 
 				// Nitrogen longtime storage
 				// Nitrogen approx retranslocated next year
-				double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.cton_leaf * nrelocfrac +
-					indiv.cmass_root * indiv.pft.turnover_root / indiv.cton_root * nrelocfrac;
+				double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.cton_leaf_bg * nrelocfrac +
+					indiv.cmass_root * indiv.pft.turnover_root / indiv.cton_root_bg * nrelocfrac;
 				
 				// Max nitrogen storage
-				indiv.max_n_storage = (max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv / indiv.cton_leaf;
+				indiv.max_n_storage = (max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv / indiv.cton_leaf_bg;
 
 				// Scale this year productivity to max storage
 				if (indiv.anpp > 0.0) {
-					indiv.scale_n_storage = max(0.0, indiv.max_n_storage - retransn_nextyear) * indiv.cton_leaf / indiv.anpp;
+					indiv.scale_n_storage = max(0.0, indiv.max_n_storage - retransn_nextyear) * indiv.cton_leaf_bg / indiv.anpp;
 				}
 
 				// Determine the (small) mass imbalance (kgC) for this individual. 
@@ -1372,20 +1368,20 @@ void growth(Stand& stand, Patch& patch) {
 					patch.pft[indiv.pft.id].litter_root += litter_root_inc + indiv_cmass_diff / 2.0;
 
 					patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
-						indiv.cton_leaf * (1.0 - nrelocfrac);
-					indiv.nstore_leaf += litter_leaf_inc * indiv.densindiv / indiv.cton_leaf * nrelocfrac;
+						indiv.cton_leaf_bg * (1.0 - nrelocfrac);
+					indiv.nstore_leaf += litter_leaf_inc * indiv.densindiv / indiv.cton_leaf_bg * nrelocfrac;
 
 					patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
-						indiv.cton_root * (1.0 - nrelocfrac);
-					indiv.nstore_root += litter_root_inc / indiv.cton_root * nrelocfrac;
+						indiv.cton_root_bg * (1.0 - nrelocfrac);
+					indiv.nstore_root += litter_root_inc / indiv.cton_root_bg * nrelocfrac;
 				}
 				else {	// return nitrogen to soil so nitrogen budget is preserved
-					patch.soil.nmass_avail += litter_leaf_inc / indiv.cton_leaf + litter_root_inc / indiv.cton_root;
+					patch.soil.nmass_avail += litter_leaf_inc / indiv.cton_leaf_bg + litter_root_inc / indiv.cton_root_bg;
 				}
 
 				// Subtracting litter nitrogen from individuals
-				indiv.nmass_leaf -= litter_leaf_inc * indiv.densindiv / indiv.cton_leaf;
-				indiv.nmass_root -= litter_root_inc * indiv.densindiv / indiv.cton_root;
+				indiv.nmass_leaf -= litter_leaf_inc * indiv.densindiv / indiv.cton_leaf_bg;
+				indiv.nmass_root -= litter_root_inc * indiv.densindiv / indiv.cton_root_bg;
 				
 				// Kill individual and transfer biomass to litter if either biomass
 				// compartment negative
@@ -1458,39 +1454,14 @@ void growth(Stand& stand, Patch& patch) {
 					// ...now we can start counting its fluxes,
 					// debit current biomass as establishment flux
 					indiv.report_flux(Fluxes::ESTC, 
-					                  -(indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt));
+					                  - (indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap +
+									  indiv.cmass_heart - indiv.cmass_debt));
 				}
 
 				// Partion labile nitrogen between pools labile storage
 				indiv.nstore_leaf += indiv.nstore_labile * frac_bminc_leaf / (frac_bminc_leaf + frac_bminc_root);
 				indiv.nstore_root += indiv.nstore_labile * frac_bminc_root / (frac_bminc_leaf + frac_bminc_root);
-				indiv.nstore_labile = 0.0;
-
-				// Check so plant C:N ratios are not below minimum allowed C:N ratios (can happen under negative bminc)
-				double nbeyond;
-
-				// Leaf
-				if (!negligible(indiv.nmass_leaf) && indiv.cmass_leaf / indiv.nmass_leaf < indiv.pft.cton_leaf_min) {
-					nbeyond = indiv.nmass_leaf - indiv.cmass_leaf / indiv.pft.cton_leaf_min;
-					indiv.nstore_leaf += nbeyond;
-					indiv.nmass_leaf -= nbeyond;
-					indiv.cton_leaf = indiv.cmass_leaf / indiv.nmass_leaf;
-				}
-
-				// Root
-				if (!negligible(indiv.nmass_root) && indiv.cmass_root / indiv.nmass_root < indiv.pft.cton_leaf_min * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) {
-					nbeyond = indiv.nmass_root - indiv.cmass_root / (indiv.pft.cton_leaf_min  * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
-					indiv.nstore_root += nbeyond;
-					indiv.nmass_root -= nbeyond;
-				}
-
-				// Sap
-				if (!negligible(indiv.nmass_sap) && indiv.cmass_sap / indiv.nmass_sap < indiv.pft.cton_leaf_min * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr) {
-					nbeyond = indiv.nmass_sap - indiv.cmass_sap / (indiv.pft.cton_leaf_min  * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr);
-					indiv.nstore_leaf += nbeyond / 2.0;
-					indiv.nstore_root += nbeyond / 2.0;
-					indiv.nmass_sap -= nbeyond;
-				}			
+				indiv.nstore_labile = 0.0;		
 
 				// ... on to next individual
 				vegetation.nextobj();

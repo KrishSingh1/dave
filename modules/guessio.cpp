@@ -2154,7 +2154,7 @@ void outannual(Gridcell& gridcell) {
 									standpft_nmass      += indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + 
 										indiv.nmass_heart +	indiv.nstore();
 									standpft_cmass_leaf += indiv.cmass_leaf;
-									standpft_nmass_leaf += indiv.cmass_leaf / indiv.cton_leaf;
+									standpft_nmass_leaf += indiv.cmass_leaf / indiv.cton_leaf_bg;
 									standpft_cmass_veg  += indiv.cmass_veg;
 									standpft_nmass_veg  += indiv.nmass_veg;
 									standpft_lai+=indiv.lai;

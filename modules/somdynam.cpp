@@ -1001,17 +1001,14 @@ void vegetation_n_uptake(Patch& patch) {
 
 	// Daily nitrogen demand given by:
 	//	 For individual:
-	//     (1)  ndemand_day = leafndemand + rootndemand + sapndemand;
+	//     (1)  ndemand = leafndemand + rootndemand + sapndemand;
     //          where
 	//          leafndemand is leaf demand based on vmax
 	//			rootndemand is based on optimal leaf C:N ratio
-	//          rootndemand is based on optimal leaf C:N ratio
-	//
-	//	 For patch:
-	//          ndemand_patch_day = sum of ndemand_day over all individuals
+	//          sapndemand is based on optimal leaf C:N ratio
 	//                        
 	// Actual nitrogen uptake for each day and individual given by:
-	//     (3)  nuptake_day = ndemand_day * fnuptake
+	//     (2)  nuptake = ndemand * fnuptake
 	//     where fnuptake is individual uptake capacity calculated in fnuptake in canexch.cpp 
 
 	double nuptake_day, orignmass;
@@ -1037,10 +1034,6 @@ void vegetation_n_uptake(Patch& patch) {
 		indiv.nmass_sap     += indiv.fndemand[2] * nuptake_day;
 		indiv.nstore_labile += indiv.fndemand[3] * nuptake_day;
 		soil.nmass_avail -= nuptake_day;
-
-		if (indiv.phen > 0.0) {
-			indiv.cton_leaf = indiv.cmass_leaf * indiv.phen / indiv.nmass_leaf;
-		}
 
 		vegetation.nextobj();
 	}

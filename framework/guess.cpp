@@ -36,7 +36,6 @@ int estinterval; // establishment interval in cohort mode (years)
 double distinterval;
 	// generic patch-destroying disturbance interval (individual, cohort mode)
 int npft; // number of possible PFTs
-bool iffast;
 bool ifcdebt;
 
 // guess2008 - new inputs from the .ins file
@@ -381,6 +380,7 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),gridcell(gc),la
 	}
 
 	first_year=date.year;
+	seed = 12345678;
 }
 
 double Stand::get_gridcell_fraction() const {
@@ -423,7 +423,8 @@ void Stand::serialize(ArchiveStream& arch) {
 	}
 
 	arch & first_year
-		& frac;
+		& frac
+		& seed;
 }
 
 
@@ -579,7 +580,8 @@ void Gridcell::serialize(ArchiveStream& arch) {
 	arch & climate
 		& landcoverfrac
 		& landcoverfrac_old
-		& LC_updated;
+		& LC_updated
+		& seed;
 
 	if (arch.save()) {
 		for (unsigned int i = 0; i < pft.nobj; i++) {

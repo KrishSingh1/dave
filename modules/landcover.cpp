@@ -1923,6 +1923,9 @@ void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 {
 	Pft& pft=gridcellpft.pft;
 	Climate& climate=patch.stand.gridcell.climate;
+	bool dynamic_phu_limit=false;
+	int nyear_dyn_phu=106;
+	double phu_last_year=ppftcrop.phu;
 
 			ppftcrop.husum=0.0;	
 			ppftcrop.vrf=1.0;
@@ -2038,6 +2041,9 @@ void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 
 			if(patch.stand.first_year!=date.year)					//Insert condition here to use dynamic phu for a limited time
 				ppftcrop.phu=max(900.0, 0.9*ppftcrop.husum_max_10);
+
+			if(dynamic_phu_limit && date.year>=patch.stand.first_year+20 && date.year>=nyear_spinup+nyear_dyn_phu)
+				ppftcrop.phu=phu_last_year;
 #endif
 }
 

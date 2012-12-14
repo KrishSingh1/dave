@@ -191,7 +191,8 @@ bool includepft;
 // guess2008 - Now declare the output file xtrings here
 // Output file names ...
 xtring outputdirectory;
-xtring file_cmass,file_anpp,file_dens,file_lai,file_cflux,file_cpool,file_runoff,file_yield;
+xtring file_cmass,file_anpp,file_dens,file_lai,file_cflux,file_cpool,file_runoff;
+xtring file_yield, file_yield1, file_yield2, file_sdate1, file_sdate2, file_hdate1, file_hdate2;
 xtring file_mnpp,file_mlai,file_mgpp,file_mra,file_maet,file_mpet,file_mevap,file_mrunoff,file_mintercep,file_mrh;
 xtring file_mnee,file_mwcont_upper,file_mwcont_lower;
 xtring file_firert,file_speciesheights;
@@ -216,7 +217,8 @@ void initsettings() {
 
 	// guess2008 - initialise filenames here
 	outputdirectory = "";
-	file_cmass=file_anpp=file_lai=file_yield=file_cflux=file_dens=file_runoff="";
+	file_cmass=file_anpp=file_lai=file_cflux=file_dens=file_runoff="";
+	file_yield=file_yield1=file_yield2=file_sdate1=file_sdate2=file_hdate1=file_hdate2="";
 	file_mnpp=file_mlai=file_maet=file_mpet=file_mevap=file_mrunoff=file_mintercep=file_mrh="";
 	file_mgpp=file_mra=file_mnee=file_mwcont_upper=file_mwcont_lower="";
 	file_cpool=file_firert=file_speciesheights="";
@@ -311,6 +313,12 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_anpp",&file_anpp,300,CB_NONE,"Annual NPP output file");
 		declareitem("file_lai",&file_lai,300,CB_NONE,"LAI output file");
 		declareitem("file_yield",&file_yield,300,CB_NONE,"Crop yield output file");
+		declareitem("file_yield1",&file_yield1,300,CB_NONE,"Crop first yield output file");
+		declareitem("file_yield2",&file_yield2,300,CB_NONE,"Crop second yield output file");
+		declareitem("file_sdate1",&file_sdate1,300,CB_NONE,"Crop first sowing date output file");
+		declareitem("file_sdate2",&file_sdate2,300,CB_NONE,"Crop second sowing date output file");
+		declareitem("file_hdate1",&file_hdate1,300,CB_NONE,"Crop first harvest date output file");
+		declareitem("file_hdate2",&file_hdate2,300,CB_NONE,"Crop second harvest date output file");
 		declareitem("file_cflux",&file_cflux,300,CB_NONE,"C fluxes output file");
 		declareitem("file_dens",&file_dens,300,CB_NONE,"Tree density output file");
 		declareitem("file_cpool",&file_cpool,300,CB_NONE,"Soil C output file");
@@ -1349,7 +1357,7 @@ OutputChannel* output_channel;
 
 // Output tables
 Table out_cmass, out_anpp, out_dens, out_lai, out_cflux, out_cpool, out_yield, out_firert, out_runoff, out_speciesheights;
-
+Table out_yield1, out_yield2, out_sdate1, out_sdate2, out_hdate1, out_hdate2;
 Table out_mnpp, out_mlai, out_mgpp, out_mra, out_maet, out_mpet, out_mevap, out_mrunoff, out_mintercep;
 Table out_mrh, out_mnee, out_mwcont_upper, out_mwcont_lower;
 
@@ -3568,9 +3576,13 @@ void define_output_tables() {
 	}
 	cpool_columns += ColumnDescriptor("Total", 10, 4);
 
-	//YIELD
-	ColumnDescriptors yield_columns;
-	yield_columns += ColumnDescriptors(crop_pfts, 8, 3);
+	//CROP YIELD
+	ColumnDescriptors crop_columns;
+	crop_columns += ColumnDescriptors(crop_pfts, 8, 3);
+
+	//CROP SDATE & HDATE
+	ColumnDescriptors date_columns;
+	date_columns += ColumnDescriptors(crop_pfts, 8, 0);
 
 	// FIRERT
 	ColumnDescriptors firert_columns;
@@ -3602,7 +3614,15 @@ void define_output_tables() {
 	create_output_table(out_cflux,          file_cflux,          cflux_columns);
 	create_output_table(out_cpool,          file_cpool,          cpool_columns);
 	if(run_landcover && run[CROPLAND])
-		create_output_table(out_yield,          file_yield,           yield_columns);
+	{
+		create_output_table(out_yield,          file_yield,           crop_columns);
+		create_output_table(out_yield1,          file_yield1,           crop_columns);
+		create_output_table(out_yield2,          file_yield2,           crop_columns);
+		create_output_table(out_sdate1,          file_sdate1,           date_columns);
+		create_output_table(out_sdate2,          file_sdate2,           date_columns);
+		create_output_table(out_hdate1,          file_hdate1,           date_columns);
+		create_output_table(out_hdate2,          file_hdate2,           date_columns);
+	}
 	create_output_table(out_firert,         file_firert,         firert_columns);
 	create_output_table(out_runoff,         file_runoff,         runoff_columns);
 	create_output_table(out_speciesheights, file_speciesheights, speciesheights_columns);
@@ -4729,6 +4749,8 @@ void outannual(Gridcell& gridcell) {
 		double stand_mean_anpp=0.0;
 		double stand_mean_lai=0.0;
 		double stand_mean_yield=0.0;
+		double stand_mean_yield1=0.0;
+		double stand_mean_yield2=0.0;
 		double stand_mean_densindiv_total=0.0;
 		double stand_mean_densindiv_ageclass[OUTPUT_MAXAGECLASS]={0.0};
 		double stand_mean_aiso=0.0;
@@ -4749,6 +4771,8 @@ void outannual(Gridcell& gridcell) {
 		double standpft_ic_anpp=0.0;	//intercrop grass
 		double standpft_lai=0.0;
 		double standpft_yield=0.0;	
+		double standpft_yield1=0.0;	
+		double standpft_yield2=0.0;	
 		double standpft_densindiv_total=0.0;
 		double standpft_densindiv_ageclass[OUTPUT_MAXAGECLASS]={0.0};
 		double standpft_aiso=0.0;
@@ -4768,6 +4792,8 @@ void outannual(Gridcell& gridcell) {
 			stand_mean_anpp=0.0;
 			stand_mean_lai=0.0;
 			stand_mean_yield=0.0;
+			stand_mean_yield1=0.0;
+			stand_mean_yield2=0.0;
 			stand_mean_densindiv_total=0.0;		
 			stand_mean_aiso=0.0;
 			stand_mean_amon=0.0;
@@ -4790,6 +4816,8 @@ void outannual(Gridcell& gridcell) {
 					standpft_ic_anpp=0.0;
 					standpft_lai=0.0;
 					standpft_yield=0.0;
+					standpft_yield1=0.0;
+					standpft_yield2=0.0;
 					standpft_densindiv_total = 0.0;
 					standpft_aiso=0.0;
 					standpft_amon=0.0;
@@ -4827,6 +4855,8 @@ void outannual(Gridcell& gridcell) {
 											else
 												standpft_lai+=indiv.lai;
 											standpft_yield+=indiv.cropindiv->yield;
+											standpft_yield1+=indiv.cropindiv->yield_harvest[0];
+											standpft_yield2+=indiv.cropindiv->yield_harvest[1];
 										}
 										else
 										{
@@ -4910,6 +4940,8 @@ void outannual(Gridcell& gridcell) {
 						stand_mean_anpp+=standpft_anpp;
 						stand_mean_lai+=standpft_lai;
 						stand_mean_yield+=standpft_yield;
+						stand_mean_yield1+=standpft_yield1;
+						stand_mean_yield2+=standpft_yield2;
 						stand_mean_densindiv_total+=standpft_densindiv_total;
 						stand_mean_aiso+=standpft_aiso;
 						stand_mean_amon+=standpft_amon;
@@ -4948,7 +4980,11 @@ void outannual(Gridcell& gridcell) {
 			out.add_value(out_lai,   stand_mean_lai);
 
 			if (pft.landcover==CROPLAND)
+			{
 				out.add_value(out_yield,   stand_mean_yield);
+				out.add_value(out_yield1,   stand_mean_yield1);
+				out.add_value(out_yield2,   stand_mean_yield2);
+			}
 
 			// print species heights
 			double height = 0.0;
@@ -4959,6 +4995,34 @@ void outannual(Gridcell& gridcell) {
 
 			out.add_value(out_aiso, stand_mean_aiso);
 			out.add_value(out_amon, stand_mean_amon);
+
+
+			if (pft.landcover==CROPLAND)
+			{
+				int pft_sdate1=-1;
+				int pft_sdate2=-1;
+				int pft_hdate1=-1;
+				int pft_hdate2=-1;
+
+				gridcell.firstobj();
+				while (gridcell.isobj)
+				{
+					Stand& stand=gridcell.getobj();
+
+					if(stand.cftid==pft.cftid)
+					{
+						pft_sdate1=stand[0].pft[pft.id].cropphen->sdate_thisyear[0];
+						pft_sdate2=stand[0].pft[pft.id].cropphen->sdate_thisyear[1];
+						pft_hdate1=stand[0].pft[pft.id].cropphen->hdate_harvest[0];
+						pft_hdate2=stand[0].pft[pft.id].cropphen->hdate_harvest[1];
+					}
+					gridcell.nextobj();
+				}
+				out.add_value(out_sdate1, pft_sdate1);
+				out.add_value(out_sdate2, pft_sdate2);
+				out.add_value(out_hdate1, pft_hdate1);
+				out.add_value(out_hdate2, pft_hdate2);
+			}
 
 			pftlist.nextobj();
 		

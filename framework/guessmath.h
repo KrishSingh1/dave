@@ -71,6 +71,15 @@ inline void regress(double* x, double* y, int n, double& a, double& b) {
 	b = ((double)n*sxy-sx*sy)/delta;
 }
 
+// Forward declarations needed for the friendship between Historic and operator&
+
+template<typename T, size_t capacity>
+class Historic;
+
+template<typename T, size_t capacity>
+ArchiveStream& operator&(ArchiveStream& stream,
+                         Historic<T, capacity>& data);
+
 
 /// Keeps track of historic values of some variable
 /** Useful for calculating running means etc.
@@ -157,6 +166,9 @@ public:
 		}
 	}
 
+	friend ArchiveStream& operator&<T, capacity>(ArchiveStream& stream,
+	                                             Historic<T, capacity>& data);
+
 private:
 	/// The stored values
 	T values[CAPACITY];
@@ -169,28 +181,24 @@ private:
 };
 
 /// Serialization support for Historic
+/** We have a friend serialization operator instead of 
+ *  implementing Serializable, to avoid overhead of a
+ *  vtable in Historic (since serialize() is virtual).
+ *
+ *  This could be implemented without friend, by only
+ *  using size(), operator[] and add(). The order of
+ *  the elements in the buffer will however not be
+ *  preserved then, and for instance the sum() function
+ *  will then not give _exactly_ the same results
+ *  (due to limited floating point precision).
+ */
 template<typename T, size_t capacity>
 ArchiveStream& operator&(ArchiveStream& stream,
                          Historic<T, capacity>& data) {
-	if (stream.save()) {
-		size_t size = data.size();
-		stream & size;
-		
-		for (size_t i = 0; i < data.size(); ++i) {
-			double value = data[i];
-			stream & value;
-		}
-	}
-	else {
-		size_t size;
-		stream & size;
+	stream & data.values
+		& data.current_index
+		& data.full;
 
-		for (size_t i = 0; i < size; ++i) {
-			double value;
-			stream & value;
-			data.add(value);
-		}
-	}
 	return stream;
 }
 

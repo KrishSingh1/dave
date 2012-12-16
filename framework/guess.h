@@ -545,9 +545,6 @@ public:
 	double atemp_mean;
 		// mean of monthly temperatures for the last 12 months (deg C)
 
-	/// annual precipitation
-	double aprec;
-
 	/// annual nitrogen deposition (kgN/m2/year)
 	double andep;
 	/// daily nitrogen deposition (kgN/m2)
@@ -607,8 +604,6 @@ public:
 		chilldays = 0;
 		ifsensechill = true; //  guess2008 - CHILLDAYS
 		atemp_mean = 0.0;
-
-		aprec = 0.0;
 
 		lat = latitude;
 		for (day=0; day<365; day++) doneday[day] = false;
@@ -1253,10 +1248,15 @@ public:
 
 	/// Current sap C:N ratio
 	double cton_sap() const {
-		if (!negligible(nmass_sap))
-			return cmass_sap / nmass_sap;
-		else
-			return pft.cton_sap_avr;
+		if (pft.lifeform == TREE) {
+			if (!negligible(nmass_sap))
+				return cmass_sap / nmass_sap;
+			else
+				return pft.cton_sap_avr;
+		}
+		else {
+			return 1.0;
+		}
 	}
 };
 

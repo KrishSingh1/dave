@@ -565,7 +565,6 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	if (date.day == 0) {
 		// ... reset annual GDD5 counter
 		climate.agdd5 = 0.0;
-		climate.aprec = 0.0;
 
 		if (date.year == 0) {
 			// First day of simulation - initialise running annual mean temperature and daily temperatures for the last month
@@ -608,9 +607,6 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		climate.gdd5 = 0.0;
 		climate.ifsensechill = false; // guess2008 - CHILLDAYS
 	}
-
-	// adding up annual precipitation
-	climate.aprec += climate.prec;
 
 	// Update GDD counters and chill day count
 	climate.gdd5 += max(0.0, climate.temp - 5.0);

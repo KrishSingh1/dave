@@ -1452,7 +1452,7 @@ public:
 	int FindCoord(Coord c) const{return FindRecord(c);}	//120124
 //	int GetActive(bool *activeX) const;
 	char* GetHeader(int record) const;
-	Coord GetCoord() const {return currentStand;} //added 100106, added to GUESS version 120123
+	Coord& GetCoord() {return currentStand;}
 	void Rewind() {rewind(ifp);}
 	int GetNCells();
 	void CheckIfPresent(ListArray_id<Coord>& gridlist);

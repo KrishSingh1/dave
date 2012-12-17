@@ -175,9 +175,7 @@ int lc_fixed_frac[NLANDCOVERTYPES]={0};
 
 /// Whether gridcell is divided into equal active landcover fractions.
 bool equal_landcover_area;
-bool equal_crop_area;
 bool minimizecftlist;
-int cft_forc[NCROPSTANDS_MAX]={0};
 
 Pft* ppft; // pointer to Pft object currently being assigned to
 
@@ -371,7 +369,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("forceharvestdates",&forceharvestdates,1,CB_NONE,"use harvestdates from input file");
 		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"Whether static landcover fractions are set in the ins-file (0,1)");
 		declareitem("cftfrac_fixed",&cftfrac_fixed,1,CB_NONE,"Whether static CFT fractions are set in the ins-file (0,1)");
-		declareitem("equal_crop_area",&equal_crop_area,1,CB_NONE,"Whether enforced static CFT fractions are equal-sized stands of all included crops (0,1)");
 		declareitem("equal_landcover_area",&equal_landcover_area,1,CB_NONE,"Whether enforced static landcover fractions are equal-sized stands of all included landcovers (0,1)");
 		declareitem("minimizecftlist",&minimizecftlist,1,CB_NONE,"Whether pfts not in crop fraction input file are removed from pftlist (0,1)");
 		declareitem("lc_fixed_urban",&lc_fixed_frac[URBAN],0,100,1,CB_NONE,"% lc_fixed_urban");
@@ -380,32 +377,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("lc_fixed_forest",&lc_fixed_frac[FOREST],0,100,1,CB_NONE,"% lc_fixed_forest");
 		declareitem("lc_fixed_natural",&lc_fixed_frac[NATURAL],0,100,1,CB_NONE,"% lc_fixed_natural");
 		declareitem("lc_fixed_peatland",&lc_fixed_frac[PEATLAND],0,100,1,CB_NONE,"% lc_fixed_peatland");
-		declareitem("cft0",&cft_forc[0],0,100,1,CB_NONE,"% cft0");
-		declareitem("cft1",&cft_forc[1],0,100,1,CB_NONE,"% cft1");
-		declareitem("cft2",&cft_forc[2],0,100,1,CB_NONE,"% cft2");
-		declareitem("cft3",&cft_forc[3],0,100,1,CB_NONE,"% cft3");
-		declareitem("cft4",&cft_forc[4],0,100,1,CB_NONE,"% cft4");
-		declareitem("cft5",&cft_forc[5],0,100,1,CB_NONE,"% cft5");
-		declareitem("cft6",&cft_forc[6],0,100,1,CB_NONE,"% cft6");
-		declareitem("cft7",&cft_forc[7],0,100,1,CB_NONE,"% cft7");
-		declareitem("cft8",&cft_forc[8],0,100,1,CB_NONE,"% cft8");
-		declareitem("cft9",&cft_forc[9],0,100,1,CB_NONE,"% cft9");
-		declareitem("cft10",&cft_forc[10],0,100,1,CB_NONE,"% cft10");
-		declareitem("cft11",&cft_forc[11],0,100,1,CB_NONE,"% cft11");
-		declareitem("cft12",&cft_forc[12],0,100,1,CB_NONE,"% cft12");
-		declareitem("cft13",&cft_forc[13],0,100,1,CB_NONE,"% cft13");
-		declareitem("cft14",&cft_forc[14],0,100,1,CB_NONE,"% cft14");
-		declareitem("cft15",&cft_forc[15],0,100,1,CB_NONE,"% cft15");
-		declareitem("cft16",&cft_forc[16],0,100,1,CB_NONE,"% cft16");
-		declareitem("cft17",&cft_forc[17],0,100,1,CB_NONE,"% cft17");
-		declareitem("cft18",&cft_forc[18],0,100,1,CB_NONE,"% cft18");
-		declareitem("cft19",&cft_forc[19],0,100,1,CB_NONE,"% cft19");
-		declareitem("cft20",&cft_forc[20],0,100,1,CB_NONE,"% cft20");
-		declareitem("cft21",&cft_forc[21],0,100,1,CB_NONE,"% cft21");
-		declareitem("cft22",&cft_forc[22],0,100,1,CB_NONE,"% cft22");
-		declareitem("cft23",&cft_forc[23],0,100,1,CB_NONE,"% cft23");
-		declareitem("cft24",&cft_forc[24],0,100,1,CB_NONE,"% cft24");
-		declareitem("cft25",&cft_forc[25],0,100,1,CB_NONE,"% cft25");
 
 		declareitem("state_path", &state_path, 300, CB_NONE, "State files directory (for restarting from, or saving state files)");
 		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
@@ -753,7 +724,6 @@ void plib_callback(int callback) {
 			if (!itemparsed("lcfrac_fixed")) badins("lcfrac_fixed");
 			if (!itemparsed("cftfrac_fixed")) badins("cftfrac_fixed");
 			if (!itemparsed("equal_landcover_area")) badins("equal_landcover_area");
-			if (!itemparsed("equal_crop_area")) badins("equal_crop_area");
 			if (!itemparsed("lc_fixed_urban")) badins("lc_fixed_urban");
 			if (!itemparsed("lc_fixed_cropland")) badins("lc_fixed_cropland");
 			if (!itemparsed("lc_fixed_pasture")) badins("lc_fixed_pasture");
@@ -4404,11 +4374,7 @@ void getlandcover(Gridcell& gridcell) {
 					if(pftlist[i].cftid>=0)
 					{
 						index=pftlist[i].cftid;
-
-						if(equal_crop_area)
-							sum+=gridcell.cftfrac[index]=1.0/(double)ncft;	
-						else
-							sum+=gridcell.cftfrac[index]=(double)cft_forc[index]/100.0;
+						sum+=gridcell.cftfrac[index]=1.0/(double)ncft;	
 
 						if(gridcell.cftfrac[index]<0.0 || gridcell.cftfrac[index]>1.0)
 						{

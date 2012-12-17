@@ -26,35 +26,7 @@ run_natural 1	      ! whether to simulate natural vegetation (1) or not (0)
 run_peatland 0	      ! whether to simulate peatland (1) or not (0)
 
 minimizecftlist 0	! Checks cft fraction file for cft:s with fractions>0.0 at any time or place; if cftfrac_fixed is 1, this option is not functional.
-cftfrac_fixed 0       	! whether to force CFT % (1) or just read CFT file (0)
-equal_crop_area 1	! creates equal-sized stands of all included crops (cftfrac_fixed must also be set to 1)
-
-cft0 0   ! rainfed c3grass
-cft1 0   ! rainfed c4grass
-cft2 100   ! rainfed winter cereals
-cft3 0   ! rainfed rice
-cft4 0   ! rainfed maize
-cft5 0   ! rainfed millet
-cft6 0   ! rainfed lentils
-cft7 0   ! rainfed sugarbeet
-cft8 0   ! rainfed maniok
-cft9 0   ! rainfed sunfloyer
-cft10 0  ! rainfed soya
-cft11 0  ! rainfed peanuts
-cft12 0  ! rainfed rapeseed
-cft13 0  ! irrigated c3grass
-cft14 0  ! irrigated c4grass
-cft15 0  ! irrigated winter cereals
-cft16 0  ! irrigated rice
-cft17 0  ! irrigated maize
-cft18 0  ! irrigated millet
-cft19 0  ! irrigated lentils
-cft20 0  ! irrigated sugarbeet
-cft21 0  ! irrigated maniok
-cft22 0  ! irrigated sunflower
-cft23 0  ! irrigated soya
-cft24 0  ! irrigated peanuts
-cft25 0  ! irrigated rapeseed
+cftfrac_fixed 0       	! whether to force CFT % (1) or just read CFT file (0) ; all active crop pft:s have equal area
 
 ifslowharvestpool 1	! If a slow harvested product pool is included in patchpft.
 ifintercropgrass 1

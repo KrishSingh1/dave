@@ -3187,6 +3187,8 @@ TimeDataDmem::~TimeDataDmem()
 	}
 	if(data)
 		delete[] data;
+	if(gridlist)
+		delete[] gridlist;
 }
 
 TimeDataD LUdata;

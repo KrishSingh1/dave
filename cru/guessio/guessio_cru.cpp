@@ -3193,7 +3193,7 @@ TimeDataD LUdata;
 TimeDataD Peatdata;
 TimeDataD CFTdata;
 
-//#define LUTOMEMORY	//Write land use fraction data to memory; enables efficient usage of randomized gridlists for parallell runs on Simba.
+#define LUTOMEMORY	//Write land use fraction data to memory; enables efficient usage of randomized gridlists for parallell runs on Simba.
 
 #ifdef LUTOMEMORY
 TimeDataDmem LUdata_mem;

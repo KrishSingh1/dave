@@ -1145,7 +1145,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		if (!ifnlim || date.year <= freenyears)
 			indiv.storendemand = 0.0;
 
-		/// Nitrogen demand without scalars
+		// Nitrogen demand without scalars
 		double ndemand_tot = indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand;
 
 		// Calculate scalars to nitrogen demand
@@ -1156,26 +1156,27 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Scale to maximum nitrogen concentrations
 		double cton_scale = max(0.0, (ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_max - 1.0 / indiv.pft.cton_leaf_min));
 
-		/// Nitrogen availablilty scalar due to saturating Michealis-Menten kinetics
+		// Nitrogen availablilty scalar due to saturating Michealis-Menten kinetics
 		double nmin_scale = kNmin + soil.nmass_avail / (soil.nmass_avail + gridcell.pft[indiv.pft.id].Km);
 
-		/// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake)
-		double maxnup = 2.0 * indiv.pft.nuptoroot * nmin_scale * temp_scale * cton_scale * indiv.cmass_root;
+		// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake) 
+		// and soil available nitrogen within individual projective coverage
+		double maxnup = min(2.0 * indiv.pft.nuptoroot * nmin_scale * temp_scale * cton_scale * indiv.cmass_root, indiv.fpc * soil.nmass_avail);
 
-		/// Nitrogen demand limited to maximum nitrogen uptake capacity
+		// Nitrogen demand limited to maximum nitrogen uptake capacity
 		double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot,1.0) : 0.0;
 
-		/// Root and leaf nitrogen demand above maximum uptake capacity
+		// Root and leaf nitrogen demand above maximum uptake capacity
 		indiv.leafndemand_opt = indiv.leafndemand * (1.0 - fractomax);
 		indiv.rootndemand_opt = indiv.rootndemand * (1.0 - fractomax);
 
-		/// Nitrogen demand after adjustment to maximum uptake capacity
+		// Nitrogen demand after adjustment to maximum uptake capacity
 		indiv.leafndemand  *= fractomax;
 		indiv.rootndemand  *= fractomax;
 		indiv.sapndemand   *= fractomax;
 		indiv.storendemand *= fractomax;
 
-		/// Sum total nitrogen demand individual is capable to take up
+		// Sum total nitrogen demand individual is capable to take up
 		indiv.ndemand = indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand;
 
 		if (indiv.ndemand <= 0.0) {
@@ -1210,13 +1211,16 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 	// Supply function for nitrogen and determination of nitrogen stress leading
 	// to down-regulation of vmax.
 
-	// Calculate individual uptake fraction of nitrogen demand
-	if (patch.ndemand > patch.soil.nmass_avail && ifnlimvmax()) {
+	// Nitrogen within projective cover of all individuals
+	double tot_nmass_avail = patch.soil.nmass_avail * min(1.0, patch.fpc_total);
 
-		patch.fnuptake = patch.ndemand > 0.0 ? patch.soil.nmass_avail / patch.ndemand : 0.0;
+	// Calculate individual uptake fraction of nitrogen demand
+	if (patch.ndemand > tot_nmass_avail && ifnlimvmax()) {
+
+		patch.fnuptake = patch.ndemand > 0.0 ? tot_nmass_avail / patch.ndemand : 0.0;
 		
 		// Determine individual nitrogen uptake fractions
-		fnuptake(vegetation, patch.soil.nmass_avail, patch.fnuptake);
+		fnuptake(vegetation, tot_nmass_avail, patch.fnuptake);
 	}
 	else {
 		patch.fnuptake = 1.0;

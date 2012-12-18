@@ -138,6 +138,29 @@ cat <<EOF > guess.cmd
 #SBATCH -n $NPROCESS
 #SBATCH --time=$WALLTIME
 #SBATCH --exclusive
+set -e
+
+if ! type -P mpirun &> /dev/null; then
+    echo "Didn't find mpirun! Make sure an MPI module is loaded in your" >&2
+    echo "login script (~/.bashrc) and recompile LPJ-GUESS with MPI support!" >&2
+    exit 1
+fi
+
+# If there's a script for setting up files on local disk, run it
+if [ -f setup_local.sh ]; then
+    srun -n \$SLURM_NNODES -N \$SLURM_NNODES setup_local.sh
+fi
+
+# In each run directory, create a symbolic link to the node local storage
+for ((a=1; a <= $NPROCESS ; a++))
+do
+  cd run\$a
+  if [ -f local ]; then
+      rm local
+  fi
+  ln -s \$SNIC_TMP local
+  cd ..
+done
 
 mpirun BINARY -parallel $INSFILE
 

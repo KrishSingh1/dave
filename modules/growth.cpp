@@ -1053,6 +1053,7 @@ void growth(Stand& stand, Patch& patch) {
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
+
 		// For this individual 
 
 		// Calculate vegetation carbon and nitrogen mass before growth to determine vegetation C:N ratios

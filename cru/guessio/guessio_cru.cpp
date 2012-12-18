@@ -2520,9 +2520,6 @@ bool getclimate(Gridcell& gridcell) {
 			// Return false if last year was the last for the simulation
 			return false;
 		}
-
-		climate.andep  = 0.0;
-		climate.anfert = 0.0;
 	}
 
 	// Send environmental values for today to framework
@@ -2543,11 +2540,8 @@ bool getclimate(Gridcell& gridcell) {
 		                 NOyWetDep[date.year - first_ndep_year][date.month]);
 	}
 
-	climate.andep  += climate.dndep;
-
 	// Nitrogen fertilization
 	climate.dnfert = 0.0;
-	climate.anfert += climate.dnfert;
 
 	climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
 

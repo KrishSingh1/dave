@@ -462,7 +462,6 @@ void somfluxes(Patch& patch) {
 	Soil& soil = patch.soil;
 
 	if (date.day == 0) {
-		soil.anfix = 0.0;
 		soil.aminleach = 0.0;
 		soil.aorgleach = 0.0;
 		soil.anmin = 0.0;
@@ -951,11 +950,19 @@ void naddition(Patch& patch) {
 	Soil& soil = patch.soil;
 	Climate& climate = patch.stand.gridcell.climate;
 
+	if (date.day == 0) {
+		climate.andep  = 0.0;
+		climate.anfert = 0.0;
+		soil.anfix     = 0.0;
+	}
+
 	// Nitrogen Deposition
 	soil.nmass_avail += climate.dndep;
+	climate.andep    += climate.dndep;
 
 	// Nitrogen Fertilization
 	soil.nmass_avail += climate.dnfert;
+	climate.anfert   += climate.dnfert;
 
 	// Nitrogen fixation
 	// If soil available nitrogen is above the value for minimum SOM C:N ratio, then

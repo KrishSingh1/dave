@@ -36,6 +36,7 @@
 #include "config.h"
 #include "growth.h"
 #include "canexch.h"
+#include <assert.h>
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -472,7 +473,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 		// (Individual will die next time period)
 
 		cmass_leaf_inc=0.0;
-		cmass_root_inc=bminc;
+		cmass_root_inc=max(bminc,-cmass_root);
 
 		if (lifeform==TREE) {
 			cmass_sap_inc=-cmass_sap;
@@ -525,7 +526,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 		else cmass_debt_inc=0.0;
 
 		if (cmass_root_inc_min >= 0.0 && cmass_leaf_inc_min >= 0.0 &&
-			cmass_root_inc_min + cmass_leaf_inc_min <= bminc) {
+			cmass_root_inc_min + cmass_leaf_inc_min <= bminc || bminc<=0.0) {
 
 			// Normal allocation (positive increment to all living C compartments)
 
@@ -611,31 +612,11 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 				cmass_sap_inc = -cmass_sap;
 				cmass_heart_inc = -cmass_sap_inc;
 			}
-		}
-		else {
 
-			// Abnormal allocation: negative biomass increment
+			// Negative sapwood increment larger than existing sapwood or
+			// if debt becomes larger than existing woody biomass
+			if (cmass_sap < -cmass_sap_inc || cmass_sap + cmass_sap_inc + cmass_heart < cmass_debt + cmass_debt_inc) {
 
-			// No positive allocation allowed and trying to keep leaf to root ratio Eqn (3)
-
-			if (bminc < 0) {
-				
-				cmass_leaf_inc = (bminc - cmass_leaf / ltor + cmass_root) / (1.0 + 1.0 / ltor);
-				cmass_root_inc = bminc - cmass_leaf_inc;
-
-				// Positive leaf increment not allowed
-				if (cmass_leaf_inc > 0.0) {
-					cmass_leaf_inc = 0.0;
-					cmass_root_inc = bminc;
-				}
-				// Positive root increment not allowed
-				else if (cmass_root_inc > 0.0) {
-					cmass_root_inc = 0.0;
-					cmass_leaf_inc = bminc;
-				} 
-			}
-			else {
-				
 				// Abnormal allocation: reduction in some biomass compartment(s) to
 				// satisfy allometry
 
@@ -643,31 +624,58 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 				// Eqn (3)
 
 				cmass_leaf_inc = (bminc - cmass_leaf / ltor + cmass_root) / (1.0 + 1.0 / ltor);
+				cmass_root_inc = bminc - cmass_leaf_inc;
 
-				if (cmass_leaf_inc > 0.0) {
+				// Make sure we don't end up with negative cmass_leaf
+				cmass_leaf_inc = max(-cmass_leaf, cmass_leaf_inc);
 
-					// Positive allocation to leaves
+				// Make sure we don't end up with negative cmass_root
+				cmass_root_inc = max(-cmass_root, cmass_root_inc);
 
-					cmass_root_inc = bminc - cmass_leaf_inc; // Eqn (1)
+				// If biomass of roots and leafs can't meet biomass decrease then
+				// sapwood also needs to decrease
+				cmass_sap_inc = bminc - cmass_leaf_inc - cmass_root_inc; 
 
-					// Add killed roots (if any) to litter
+				// Make sure we don't end up with negative cmass_sap
+				cmass_sap_inc = max(-cmass_sap, cmass_sap_inc);
 
-					// guess2008 - back to LPJF method in this case
-					// if (cmass_root_inc<0.0) litter_root_inc=-cmass_root_inc;
-					if (cmass_root_inc < 0.0) {
-						cmass_leaf_inc = bminc;
-						cmass_root_inc = (cmass_leaf_inc + cmass_leaf) / ltor - cmass_root; // Eqn (3)
-					}
+				// Comment: Can happen that biomass decrease is larger than biomass in all compartments. 
+				// Then bminc is more negative than there is biomass to respire
+			}
+		}
+		else {
 
+			// Abnormal allocation: reduction in some biomass compartment(s) to
+			// satisfy allometry
+
+			// Attempt to distribute this year's production among leaves and roots only
+			// Eqn (3)
+
+			cmass_leaf_inc = (bminc - cmass_leaf / ltor + cmass_root) / (1.0 + 1.0 / ltor);
+
+			if (cmass_leaf_inc > 0.0) {
+
+				// Positive allocation to leaves
+
+				cmass_root_inc = bminc - cmass_leaf_inc; // Eqn (1)
+
+				// Add killed roots (if any) to litter
+
+				// guess2008 - back to LPJF method in this case
+				// if (cmass_root_inc<0.0) litter_root_inc=-cmass_root_inc;
+				if (cmass_root_inc < 0.0) {
+					cmass_leaf_inc = bminc;
+					cmass_root_inc = (cmass_leaf_inc + cmass_leaf) / ltor - cmass_root; // Eqn (3)
 				}
-				else {
 
-					// Negative or zero allocation to leaves
-					// Eqns (1), (3)
+			}
+			else {
 
-					cmass_root_inc = bminc;
-					cmass_leaf_inc = (cmass_root + cmass_root_inc) * ltor - cmass_leaf;
-				}
+				// Negative or zero allocation to leaves
+				// Eqns (1), (3)
+
+				cmass_root_inc = bminc;
+				cmass_leaf_inc = (cmass_root + cmass_root_inc) * ltor - cmass_leaf;
 			}
 
 			// Make sure we don't end up with negative cmass_leaf
@@ -684,17 +692,14 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// Calculate increase in sapwood mass (which must be negative)
 			// Eqn (2)
-
 			cmass_sap_inc = (cmass_leaf_inc + cmass_leaf) * wooddens * height * sla / k_latosa -
 				cmass_sap;
 
 			// Convert killed sapwood to heartwood
-			if (cmass_sap_inc < 0.0) {
-				cmass_heart_inc = -cmass_sap_inc;
-			}
+			cmass_heart_inc = -cmass_sap_inc;
 		}
 	}
-	else if (lifeform==GRASS) {
+	else if (lifeform == GRASS) {
 
 		// GRASS ALLOCATION
 		// Allocation attempts to distribute biomass increment (bminc) among leaf
@@ -702,37 +707,77 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 		//   (14) bminc = cmass_leaf_inc + cmass_root_inc
 		// while satisfying Eqn(3)
 
-		cmass_leaf_inc=(bminc-cmass_leaf/ltor+cmass_root)/(1.0+1.0/ltor);
-		cmass_root_inc=bminc-cmass_leaf_inc;
+		cmass_leaf_inc = (bminc - cmass_leaf / ltor + cmass_root) / (1.0 + 1.0 / ltor);
+		cmass_root_inc = bminc - cmass_leaf_inc;
 
-		if (cmass_leaf_inc < 0.0 && bminc > 0.0) {
+		if (bminc >= 0.0) {
 
-			// Positive bminc, but ltor causes negative allocation to leaves,
-			// put all of bminc into roots
+			// Positive biomass increment
 
-			cmass_root_inc=bminc;
-			cmass_leaf_inc=(cmass_root+cmass_root_inc)*ltor-cmass_leaf; // Eqn (3)
+			if (cmass_leaf_inc < 0.0) {
+
+				// Positive bminc, but ltor causes negative allocation to leaves,
+				// put all of bminc into roots
+
+				cmass_root_inc = bminc;
+				cmass_leaf_inc = (cmass_root + cmass_root_inc) * ltor - cmass_leaf; // Eqn (3)
+			}
+			else if (cmass_root_inc < 0.0) {
+
+				// Positive bminc, but ltor causes negative allocation to roots,
+				// put all of bminc into leaves
+
+				cmass_leaf_inc = bminc;
+				cmass_root_inc = (cmass_leaf + bminc) / ltor - cmass_root;
+			}
+
+			// Make sure we don't end up with negative cmass_leaf
+			cmass_leaf_inc = max(-cmass_leaf, cmass_leaf_inc);
+
+			// Make sure we don't end up with negative cmass_root
+			cmass_root_inc = max(-cmass_root, cmass_root_inc);
+
+			// Add killed leaves to litter
+			litter_leaf_inc = max(-cmass_leaf_inc, 0.0);
+
+			// Add killed roots to litter
+			litter_root_inc = max(-cmass_root_inc, 0.0);
 		}
-		else if (cmass_root_inc < 0.0 && bminc > 0.0) {
+		else if (bminc < 0) {
 
-			// Positive bminc, but ltor causes negative allocation to roots,
-			// put all of bminc into leaves
+			// Abnormal allocation: negative biomass increment
 
-			cmass_leaf_inc=bminc;
-			cmass_root_inc=(cmass_leaf+bminc)/ltor-cmass_root;
+			// Negative increment is respiration (neg bminc) or/and increment in other 
+			// compartments leading to no litter production
+
+			if (bminc < -(cmass_leaf + cmass_root)) {
+
+				// Biomass decrease is larger than existing biomass
+
+				cmass_leaf_inc = -cmass_leaf;
+				cmass_root_inc = -cmass_root;
+			}
+			else if (cmass_root_inc < 0.0) {
+
+				// Negative allocation to root
+				// Make sure we don't end up with negative cmass_root
+
+				if (cmass_root < -cmass_root_inc) {
+					cmass_leaf_inc = bminc + cmass_root;
+					cmass_root_inc = -cmass_root;
+				}
+			}
+			else if (cmass_leaf_inc < 0.0) {
+
+				// Negative allocation to leaf
+				// Make sure we don't end up with negative cmass_leaf
+
+				if (cmass_leaf < -cmass_leaf_inc) {
+					cmass_root_inc = bminc + cmass_leaf;
+					cmass_leaf_inc = -cmass_leaf;
+				}
+			} 
 		}
-
-		// Make sure we don't end up with negative cmass_leaf
-		cmass_leaf_inc = max(-cmass_leaf, cmass_leaf_inc);
-
-		// Make sure we don't end up with negative cmass_root
-		cmass_root_inc = max(-cmass_root, cmass_root_inc);
-
-		// Add killed leaves to litter
-		litter_leaf_inc = max(-cmass_leaf_inc, 0.0);
-
-		// Add killed roots to litter
-		litter_root_inc = max(-cmass_root_inc, 0.0);
 	}
 }
 
@@ -1005,6 +1050,9 @@ void growth(Stand& stand, Patch& patch) {
 
 	const double CDEBT_PAYBACK_RATE = 0.2;
 
+	// maximum carbon mismatch in allocation
+	double EPS = 1.0e-12;
+
 	// carbon biomass increment (component of NPP available for production of
 	// new biomass) for this time period on modelled area basis (kgC/m2)
 	double bminc;
@@ -1049,6 +1097,7 @@ void growth(Stand& stand, Patch& patch) {
 			stand.pft[p].cmass_repr = 0.0;
 
 	// Loop through individuals	
+
 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
@@ -1203,6 +1252,18 @@ void growth(Stand& stand, Patch& patch) {
 					cmass_heart_inc,
 					litter_leaf_inc, litter_root_inc);
 
+				// Check C budget after allocation
+				// Two cases: 
+				// 1) bminc more negative than existing biomass 
+				// 2) normal allocation, bminc can be applied without any restrictions 
+
+				if (indiv.ltor > 1.0e-10) {
+					assert(abs((bminc < -(indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap + cmass_debt_inc * indiv.densindiv)) ?										
+						(indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap) + (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc) * indiv.densindiv : // case 1
+						bminc - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc - cmass_debt_inc + litter_leaf_inc + litter_root_inc) * indiv.densindiv)                                   // case 2
+						< EPS);
+				}
+
 				// Update carbon pools and litter (on area basis)
 				// (litter not accrued for not 'alive' individuals - Ben 2007-11-28)
 
@@ -1293,8 +1354,11 @@ void growth(Stand& stand, Patch& patch) {
 						patch.pft[indiv.pft.id].litter_leaf += indiv.cmass_leaf;
 						patch.pft[indiv.pft.id].litter_root += indiv.cmass_root;
 
-						patch.pft[indiv.pft.id].litter_wood += indiv.cmass_sap;
-						patch.pft[indiv.pft.id].litter_wood += indiv.cmass_heart - indiv.cmass_debt;
+						// debt might be larger than biomass
+						if (indiv.cmass_debt <= indiv.cmass_sap + indiv.cmass_heart) {
+							patch.pft[indiv.pft.id].litter_wood += indiv.cmass_sap;
+							patch.pft[indiv.pft.id].litter_wood += indiv.cmass_heart - indiv.cmass_debt;
+						}
 					
 						patch.pft[indiv.pft.id].nmass_litter_leaf += indiv.nmass_leaf;
 						patch.pft[indiv.pft.id].nmass_litter_root += indiv.nmass_root;
@@ -1317,14 +1381,22 @@ void growth(Stand& stand, Patch& patch) {
 				
 				// GRASS GROWTH
 
-				// initial grass cmass
-				double indiv_mass_before = indiv.cmass_leaf + indiv.cmass_root;
-	
 				allocation(bminc, indiv.cmass_leaf, indiv.cmass_root,
 					0.0, 0.0, 0.0, indiv.ltor, 0.0, 0.0, 0.0, GRASS, 0.0,
 					0.0, 0.0, cmass_leaf_inc, cmass_root_inc, dval, dval, dval,
 					litter_leaf_inc, litter_root_inc);
 
+				// Check C budget after allocation
+				// Two cases: 
+				// 1) bminc more negative than existing biomass 
+				// 2) normal allocation, bminc can be applied without any restrictions 
+				if (indiv.ltor > 1.0e-10) {
+					assert(abs(bminc < -(indiv.cmass_leaf + indiv.cmass_root) && indiv.ltor > 0.0001 ? 
+						(indiv.cmass_leaf + indiv.cmass_root) + (cmass_leaf_inc + cmass_root_inc + litter_leaf_inc + litter_root_inc) : // case 1
+						bminc - (cmass_leaf_inc + cmass_root_inc + litter_leaf_inc + litter_root_inc))                                  // case 2
+						< EPS);
+				}
+				
 				// Update carbon pools and litter (on area basis)
 				// only litter in the case of 'alive' individuals
 
@@ -1357,16 +1429,8 @@ void growth(Stand& stand, Patch& patch) {
 					indiv.scale_n_storage = max(0.0, indiv.max_n_storage - retransn_nextyear) * indiv.cton_leaf_bg / indiv.anpp;
 				}
 
-				// Determine the (small) mass imbalance (kgC) for this individual. 
-				// This can arise in the event of numerical errors in the allocation routine.
-				double indiv_mass_after = indiv.cmass_leaf + indiv.cmass_root + litter_leaf_inc + litter_root_inc;
-				double indiv_cmass_diff = (indiv_mass_before + bminc - indiv_mass_after);
-
 				// alive check before ensuring C balance
 				if (indiv.alive) {
-
-					patch.pft[indiv.pft.id].litter_leaf += litter_leaf_inc + indiv_cmass_diff / 2.0;
-					patch.pft[indiv.pft.id].litter_root += litter_root_inc + indiv_cmass_diff / 2.0;
 
 					patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
 						indiv.cton_leaf_bg * (1.0 - nrelocfrac);

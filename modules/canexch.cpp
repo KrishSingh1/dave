@@ -2066,12 +2066,13 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 			indiv.anpp = 0.0;
 
-			indiv.leafndemand = 0.0;
-			indiv.rootndemand = 0.0;
-			indiv.sapndemand = 0.0;
+			indiv.leafndemand  = 0.0;
+			indiv.rootndemand  = 0.0;
+			indiv.sapndemand   = 0.0;
+			indiv.storendemand = 0.0;
 
-			indiv.nday_leafon = 0;
-			indiv.avmaxnlim = 1.0;
+			indiv.nday_leafon  = 0;
+			indiv.avmaxnlim    = 1.0;
 
 			if (!negligible(indiv.cmass_leaf) && !negligible(indiv.nmass_leaf))
 				indiv.cton_leaf_aopt = indiv.cmass_leaf / indiv.nmass_leaf;

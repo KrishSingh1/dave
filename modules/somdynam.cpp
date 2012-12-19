@@ -678,10 +678,10 @@ void somfluxes(Patch& patch) {
 	soil.nmass_avail += nmin_actual - nimmob;
 
 	// If no nitrogen limitation or during free nitrogen years set soil 
-	// available nitrogen to zero on last day of year. This is done
+	// available nitrogen to a fixed value. This is done
 	// to prevent mineral nitrogen accumulation free nitrogen years 
-	if (date.islastday && date.islastmonth && (!ifnlim || date.year <= freenyears))
-		soil.nmass_avail = 0.0;
+	if (!ifnlim || date.year <= freenyears)
+		soil.nmass_avail = 0.0001;
 }
 
 /// Metabolic litter fraction (for leaf and root litter)

@@ -45,6 +45,9 @@ OUTFILES='*.out'
 # Nothing to change past here
 ########################################################################
 
+# Exit if any command fails
+set -e
+
 # Handle the command line arguments
 while getopts ":n:s:i:" opt; do
     case $opt in

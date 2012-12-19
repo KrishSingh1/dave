@@ -162,7 +162,7 @@ do
   cd ..
 done
 
-mpirun BINARY -parallel $INSFILE
+mpirun -bind-to-core BINARY -parallel $INSFILE
 
 EOF
 

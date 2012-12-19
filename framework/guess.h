@@ -1157,10 +1157,10 @@ public:
 	double scale_n_storage;
 	/// annual nitrogen limitation on vmax
 	double avmaxnlim;
-	/// daily optimal leaf C:N ratio
-	double cton_leaf_dopt;
 	/// annual optimal leaf C:N ratio
 	double cton_leaf_aopt;
+	/// annual average leaf C:N ratio
+	double cton_leaf_aavr;
 	/// C:N ratio of current biomass before growth (leaf)
 	double cton_leaf_bg;
 	/// C:N ratio of current biomass before growth (root)
@@ -1171,7 +1171,6 @@ public:
 	double cmass_veg;
 	/// total nitrogen in compartments before growth
 	double nmass_veg;
-
 	/// whether individual subject to nitrogen stress
 	bool nstress;
 	/// daily leaf nitrogen demand calculated from Vmax (kgN/m2)
@@ -1184,10 +1183,10 @@ public:
 	double storendemand;
 	/// compartments fraction of total nitrogen demand
 	double fndemand[4];
-	/// daily optimal leaf nitrogen demand over possible uptake
-	double leafndemand_opt;
-	/// daily optimal root nitrogen demand over possible uptake
-	double rootndemand_opt;
+	/// daily leaf nitrogen demand over possible uptake (storage demand)
+	double leafndemand_store;
+	/// daily root nitrogen demand over possible uptake (storage demand)
+	double rootndemand_store;
 		
 	// FPAR-weighted leaf-level net photosynthesis value for PFT under non-
 	// water-stress conditions (kgC/m2/day)
@@ -1232,10 +1231,17 @@ public:
 
 	/// Current leaf C:N ratio
 	double cton_leaf() const {
-		if (!negligible(nmass_leaf))
-			return cmass_leaf / nmass_leaf;
-		else
+		if (!negligible(nmass_leaf)) {
+			if(!negligible(phen)) {
+				return cmass_leaf * phen / nmass_leaf;
+			}
+			else {
+				return cmass_leaf / nmass_leaf;
+			}
+		}
+		else {
 			return pft.cton_leaf_avr;
+		}
 	}
 
 	/// Current root C:N ratio

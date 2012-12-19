@@ -1117,15 +1117,16 @@ void growth(Stand& stand, Patch& patch) {
 		// Sap
 		indiv.cton_sap_bg = indiv.cton_sap();
 
+		// Save leaf annual average C:N ratio
+		indiv.cton_leaf_aavr /= indiv.nday_leafon;
+		
 		// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle 2010 SM eq 19) 	
-		double cton_leaf_opt = max(indiv.cton_leaf_aopt ,indiv.pft.cton_leaf_avr);
+		double cton_leaf_aopt = max(indiv.cton_leaf_aopt ,indiv.pft.cton_leaf_avr);
 
-		if (ifnlim && date.year > freenyears) {
-			nscal = min(1.0, cton_leaf_opt / indiv.cton_leaf_bg);
-		}
-		else {
+		if (ifnlim && date.year > freenyears) 
+			nscal = min(1.0, cton_leaf_aopt / indiv.cton_leaf_aavr);
+		else 
 			nscal = 1.0;
-		}
 
 		// Set leaf:root mass ratio based on water stress parameter 
 		// or nitrogen stress scalar 
@@ -1135,13 +1136,6 @@ void growth(Stand& stand, Patch& patch) {
 		indiv.nstore_labile += indiv.nstore_leaf + indiv.nstore_root;
 		indiv.nstore_leaf = 0.0;
 		indiv.nstore_root = 0.0;
-
-		// No nitrogen limitation, set nitrogen storage to zero
-		if (!ifnlim || date.year <= freenyears) {
-			indiv.nstore_labile = 0.0;
-			indiv.nstore_leaf   = 0.0;
-			indiv.nstore_root   = 0.0;
-		}
 
 		indiv.deltafpc = 0.0;
 

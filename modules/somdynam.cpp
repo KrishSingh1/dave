@@ -1042,6 +1042,9 @@ void vegetation_n_uptake(Patch& patch) {
 		indiv.nstore_labile += indiv.fndemand[3] * nuptake_day;
 		soil.nmass_avail -= nuptake_day;
 
+		if (!negligible(indiv.phen))
+			indiv.cton_leaf_aavr += min(indiv.cton_leaf(),indiv.pft.cton_leaf_max);
+
 		vegetation.nextobj();
 	}
 

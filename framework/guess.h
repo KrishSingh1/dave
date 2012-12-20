@@ -108,29 +108,38 @@ const int NSOILLAYER=2;
 const double SOILDEPTH_UPPER=500.0; // soil upper layer depth (mm)
 const double SOILDEPTH_LOWER=1000.0; // soil lower layer depth (mm)
 
-
-	// guess2008 - new default SOM values
+/// Year at which to calculate equilibrium soil carbon
 const int SOLVESOM_END=400;
-	// year at which to calculate equilibrium soil carbon
+
+/// Year at which to begin documenting means for calculation of equilibrium soil carbon
 const int SOLVESOM_BEGIN=350;
-	// year at which to begin documenting means for calculation of equilibrium
-	// soil carbon
+
+/// Number of years to average growth efficiency over in function mortality
 const int NYEARGREFF=5;
-	// number of years to average growth efficiency over in function mortality
+
+/// Coldest day in N hemisphere (January 15)
+/** Used to decide when to start counting GDD's and leaf-on days 
+ *  for summergreen phenology.
+ */
 const int COLDEST_DAY_NHEMISPHERE=14;
-	// day at which to start counting GDD's and leaf-on days for summergreen phenology
-	// in N hemisphere (January 15)
+
+/// Coldest day in S hemisphere (July 15)
+/** Used to decide when to start counting GDD's and leaf-on days 
+ *  for summergreen phenology.
+ */
 const int COLDEST_DAY_SHEMISPHERE=195;
-	// day at which to start counting GDD's and leaf-on days for summergreen phenology
-	// in S hemisphere (July 15)
+
+/// Maximum number of age classes in age structure plots produced by function outannual
 const int OUTPUT_MAXAGECLASS=2000;
-	// maximum number of age classes in age structure plots produced by function
-	// outannual
+
+/// Priestley-Taylor coefficient (conversion factor from equilibrium evapotranspiration to PET)
 const double PRIESTLEY_TAYLOR=1.32;
-	// Priestley-Taylor coefficient (conversion factor from equilibrium
-	// evapotranspiration to PET)
-const double K2degC = 273.15;	// kelvin to deg c conversion
-const double CO2_CONV = 1.0e-6;	// conversion factor for CO2 from ppmv to mole fraction
+
+/// Kelvin to deg c conversion
+const double K2degC = 273.15;
+
+/// Conversion factor for CO2 from ppmv to mole fraction
+const double CO2_CONV = 1.0e-6;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -149,33 +158,53 @@ class Gridcell;
 // These variables are defined in the framework source code file, and are accessible
 // throughout the code
 
-extern Date date; // object describing timing stage of simulation
+/// Object describing timing stage of simulation
+extern Date date;
+
+/// Vegetation mode (population, cohort or individual)
 extern vegmodetype vegmode;
-	// vegetation mode (population, cohort or individual)
+
+/// Number of patches in each stand (should always be 1 in population mode)
 extern int npatch;
-	// number of patches in each stand (should always be 1 in population mode)
+
+/// Patch area (m2) (individual and cohort mode only)
 extern double patcharea;
-	// patch area (m2) (individual and cohort mode only)
+
+/// Whether soil decomposition calculations performed daily (alt: monthly)
 extern bool ifdailydecomp;
-	// whether soil decomposition calculations performed daily (alt: monthly)
+
+/// Whether background establishment enabled (individual, cohort mode)
 extern bool ifbgestab;
-	// whether background establishment enabled (individual, cohort mode)
+
+/// Whether spatial mass effect enabled for establishment (individual, cohort mode)
 extern bool ifsme;
-	// whether spatial mass effect enabled for establishment (individual, cohort mode)
+
+/// Whether establishment stochastic (individual, cohort mode)
 extern bool ifstochestab;
-	// whether establishment stochastic (individual, cohort mode)
+
+/// Whether mortality stochastic (individual, cohort mode)
 extern bool ifstochmort;
-	// whether mortality stochastic (individual, cohort mode)
-extern bool iffire; // whether fire enabled
+
+/// Whether fire enabled
+extern bool iffire;
+
+/// Whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
 extern bool ifdisturb;
-	// whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
+
+/// Generic patch-destroying disturbance interval (individual, cohort mode)
 extern double distinterval;
-	// generic patch-destroying disturbance interval (individual, cohort mode)
-extern bool ifcalcsla; // whether SLA calculated from leaf longevity (alt: prescribed)
-extern int estinterval; // establishment interval in cohort mode (years)
-extern int npft; // number of possible PFTs
-extern bool iffast; // whether to run in "fast" mode
-extern bool ifcdebt; // whether C debt (storage between years) permitted
+
+/// Whether SLA calculated from leaf longevity (alt: prescribed)
+extern bool ifcalcsla;
+
+/// Establishment interval in cohort mode (years)
+extern int estinterval;
+
+/// Number of possible PFTs
+extern int npft;
+
+/// Whether C debt (storage between years) permitted
+extern bool ifcdebt;
 
 /// Water uptake parameterisation
 extern wateruptaketype wateruptake;
@@ -1553,6 +1582,18 @@ public:
 	/// A number identifying this Stand within the grid cell
 	int id;
 
+	/// Seed for generating random numbers within this Stand
+	/** The reason why Stand has its own seed, rather than using for instance
+	 *  a single global seed is to make it easier to compare results when using
+	 *  different land cover types.
+	 *
+	 *  Randomness not associated with a specific stand, but rather a whole
+	 *  grid cell should instead use the seed in the Gridcell class.
+	 *
+	 *  \see randfrac()
+	 */
+	long seed;
+
 	/// reference to parent object
 	Gridcell& gridcell;
 
@@ -1676,6 +1717,16 @@ public:
 	/// list array [0...npft-1] of Gridcellpft (initialised in constructor)
 	ListArray_idin1<Gridcellpft,Pft> pft;
 
+	/// Seed for generating random numbers within this Gridcell
+	/** The reason why Gridcell has its own seed, rather than using for instance
+	 *  a single global seed is to make it easier to compare results when for
+	 *  instance changing the order in which the simulation proceeds. It also
+	 *  gets serialized together with the rest of the Gridcell state to make it
+	 *  possible to get exactly identical results after a restart.
+	 *
+	 *  \see randfrac()
+	 */
+	long seed;
 
 	// MEMBER FUNCTIONS
 
@@ -1696,6 +1747,8 @@ public:
 			createobj(*this,landcover);
 			landcoverfrac[NATURAL]=1.0;
 		}
+
+		seed = 12345678;
 	}
 
 	/// Longitude for this grid cell

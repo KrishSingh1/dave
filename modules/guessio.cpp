@@ -1004,7 +1004,7 @@ void read_from_file(Coord coord, xtring fname, const char* format,
 	}
 }
 
-bool readenv(Coord coord) {
+bool readenv(Coord coord, long& seed) {
 
 	// Searches for environmental data in driver temperature, precipitation,
 	// sunshine and soil code files for the grid cell whose coordinates are given by
@@ -1076,7 +1076,7 @@ bool readenv(Coord coord) {
 
 	// Recalculate precipitation values using weather generator
 	// (from Dieter Gerten 021121)
-	prdaily(mprec, dprec, mwet);
+	prdaily(mprec, dprec, mwet, seed);
 	return true;
 }
 
@@ -1418,9 +1418,6 @@ bool getgridcell(Gridcell& gridcell) {
 	bool gridfound = false;
 	bool LUerror = false;
 
-	// to ensure an identical random number sequence for each gridcell.
-	setseed(12345678);
-
 	// Make sure we use the first gridcell in the first call to this function,
 	// and then step through the gridlist in subsequent calls.
 	static bool first_call = true;
@@ -1449,7 +1446,7 @@ bool getgridcell(Gridcell& gridcell) {
 				LUerror = loadlandcover(gridcell, c);
 			}
 			if (!LUerror) {
-				gridfound = readenv(c);
+				gridfound = readenv(c, gridcell.seed);
 			} else {
 				gridlist.nextobj();
 			}

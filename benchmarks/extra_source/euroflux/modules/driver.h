@@ -16,9 +16,7 @@
 
 #include "guess.h"
 
-void setseed(long init);
-long getseed();
-double randfrac();
+double randfrac(long& seed);
 //void soilparameters(Soiltype& soiltype,int soilcode); // guess2008
 // guess2008 - euroflux
 void soilparameters(Soiltype& soiltype,int soilcode,double soildepth); 
@@ -26,7 +24,7 @@ void interp_monthly_means(double mvals[12], double dvals[365]);
 void interp_monthly_totals(double mvals[12], double dvals[365]);
 void interp_monthly_means_conserve(const double* mvals, double* dvals);
 void interp_monthly_totals_conserve(const double* mvals, double* dvals);
-void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12]);
+void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12], long seed);
 void dailyaccounting_gridcell(Gridcell& gridcell);
 void dailyaccounting_stand(Stand& stand);
 void dailyaccounting_patch(Patch& patch);

@@ -25,7 +25,7 @@ std::string tolower(const char* str) {
 
 CommandLineArguments::CommandLineArguments(int argc, char** argv) 
 : help(false),
-  goto_rundir(false) {
+  parallel(false) {
 
 	if (!parse_arguments(argc, argv)) {
 		print_usage(argv[0]);
@@ -45,8 +45,8 @@ bool CommandLineArguments::parse_arguments(int argc, char** argv) {
 			if (option == "-help") {
 				help = true;
 			}
-			else if (option == "-goto-rundir") {
-				goto_rundir = true;
+			else if (option == "-parallel") {
+				parallel = true;
 			}
 			else {
 				fprintf(stderr, "Unknown option: \"%s\"\n", argv[i]);
@@ -75,7 +75,7 @@ bool CommandLineArguments::parse_arguments(int argc, char** argv) {
 }
 
 void CommandLineArguments::print_usage(const char* command_name) const {
-	fprintf(stderr, "\nUsage: %s [-goto-rundir] <instruction-script-filename> | -help\n", 
+	fprintf(stderr, "\nUsage: %s [-parallel] <instruction-script-filename> | -help\n", 
 			  command_name);
 	exit(EXIT_FAILURE);
 }
@@ -84,8 +84,8 @@ bool CommandLineArguments::get_help() const {
 	return help;
 }
 
-bool CommandLineArguments::get_goto_rundir() const {
-	return goto_rundir;
+bool CommandLineArguments::get_parallel() const {
+	return parallel;
 }
 
 const char* CommandLineArguments::get_instruction_file() const {

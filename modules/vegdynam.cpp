@@ -66,7 +66,7 @@ void report_fire_nfluxes(Individual& indiv, double nflux_fire) {
 // Internal functions for generating random numbers
 
 
-int randpoisson(double expectation) {
+int randpoisson(double expectation, long& seed) {
 
 	// DESCRIPTION
 	// Returns a random integer drawn from the Poisson distribution with specified
@@ -82,7 +82,7 @@ int randpoisson(double expectation) {
 	
 		p = exp(-expectation);
 		q = p;
-		r = randfrac();
+		r=randfrac(seed);
 
 		n = 0;
 		while (q < r) {
@@ -98,9 +98,9 @@ int randpoisson(double expectation) {
 	// and standard deviation the square root of this value
 
 	do {
-		r = randfrac() * 8.0 - 4.0;
+		r=randfrac(seed)*8.0-4.0;
 		p = exp(-r * r / 2.0);
-	} while (randfrac() > p);
+	} while (randfrac(seed)>p);
 
 	return max(0, (int)(r * sqrt(expectation) + expectation + 0.5));
 }
@@ -565,7 +565,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 					// Actual number of new saplings drawn from the Poisson distribution
 					// (except cohort mode with stochastic establishment disabled)
 
-					if (ifstochestab || vegmode == INDIVIDUAL) nsapling = randpoisson(est);
+					if (ifstochestab || vegmode==INDIVIDUAL) nsapling=randpoisson(est, stand.seed);
 					else nsapling = est;
 
 					if (vegmode == COHORT) {
@@ -1028,7 +1028,7 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 
 		// Impose fire in this patch with probability 'fireprob'
 
-		if (randfrac() < fireprob) {
+		if (randfrac(stand.seed)<fireprob) {
 
 			// Loop through individuals
 
@@ -1087,7 +1087,7 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 						nindiv_prev = nindiv;
 
 						for (i=0; i<nindiv_prev; i++)
-							if (randfrac() > indiv.pft.fireresist) nindiv--;
+							if (randfrac(stand.seed)>indiv.pft.fireresist) nindiv--;
 
 						if (nindiv_prev)
 							frac_survive = (double)nindiv / (double)nindiv_prev;
@@ -1293,7 +1293,7 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 					nindiv_prev = nindiv;
 
 					for (i=0; i<nindiv_prev; i++)
-						if (randfrac() < mort) nindiv--;
+						if (randfrac(stand.seed)<mort) nindiv--;
 
 					if (nindiv_prev)
 						frac_survive = (double)nindiv / (double)nindiv_prev;
@@ -1537,7 +1537,7 @@ void disturbance(Patch& patch, double disturb_prob) {
 	// INPUT PARAMETER
 	// disturb_prob = the probability of a disturbance this year
 
-	if (randfrac() < disturb_prob) {
+	if (randfrac(patch.stand.seed)<disturb_prob) {
 
 		Vegetation& vegetation = patch.vegetation;
 

@@ -33,7 +33,6 @@ int estinterval; // establishment interval in cohort mode (years)
 double distinterval;
 	// generic patch-destroying disturbance interval (individual, cohort mode)
 int npft; // number of possible PFTs
-bool iffast;
 bool ifcdebt;
 
 /// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
@@ -437,6 +436,7 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),gridcell(gc),la
 	}
 
 	first_year = date.year;
+	seed = 12345678;
 }
 
 double Stand::get_gridcell_fraction() const {
@@ -479,7 +479,8 @@ void Stand::serialize(ArchiveStream& arch) {
 	}
 
 	arch & first_year
-		& frac;
+		& frac
+		& seed;
 }
 
 
@@ -676,23 +677,12 @@ void Gridcell::set_coordinates(double longitude, double latitude) {
 }
 
 void Gridcell::serialize(ArchiveStream& arch) {
-	// Saving and restoring the random seed is not strictly necessary, but
-	// helps when verifying that the model behaves the same with and without
-	// restart
-	if (arch.save()) {
-		long seed = getseed();
-		arch & seed;
-	}
-	else {
-		long seed;
-		arch & seed;
-		setseed(seed);
-	}
 
 	arch & climate
 		& landcoverfrac
 		& landcoverfrac_old
-		& LC_updated;
+		& LC_updated
+		& seed;
 
 	if (arch.save()) {
 		for (unsigned int i = 0; i < pft.nobj; i++) {

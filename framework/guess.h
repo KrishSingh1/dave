@@ -1157,12 +1157,6 @@ public:
 	double cton_leaf_aopt;
 	/// annual average leaf C:N ratio
 	double cton_leaf_aavr;
-	/// C:N ratio of current biomass before growth (leaf)
-	double cton_leaf_bg;
-	/// C:N ratio of current biomass before growth (root)
-	double cton_root_bg;
-	/// C:N ratio of current biomass before growth (sap)
-	double cton_sap_bg;
 	/// total carbon in compartments before growth
 	double cmass_veg;
 	/// total nitrogen in compartments before growth

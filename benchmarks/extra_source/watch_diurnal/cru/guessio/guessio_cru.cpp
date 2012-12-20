@@ -640,12 +640,6 @@ void plib_callback(int callback) {
 		// bvoc
 		if (!itemparsed("ifbvoc")) badins("ifbvoc");
 
-		if (itemparsed("diurnal")) {
-			if (diurnal && !ifdailynpp) {
-				fail("Diurnal and monthly mode contradict each other.");
-			}
-		}
-
 		if (!itemparsed("run_landcover")) badins("run_landcover");
 		if (run_landcover) {
 			if (!itemparsed("lcfrac_fixed")) badins("lcfrac_fixed");

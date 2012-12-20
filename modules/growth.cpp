@@ -1123,7 +1123,7 @@ void growth(Stand& stand, Patch& patch) {
 		// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle 2010 SM eq 19) 	
 		double cton_leaf_aopt = max(indiv.cton_leaf_aopt ,indiv.pft.cton_leaf_avr);
 
-		if (ifnlim && date.year > freenyears) 
+		if (ifnlim) 
 			nscal = min(1.0, cton_leaf_aopt / indiv.cton_leaf_aavr);
 		else 
 			nscal = 1.0;
@@ -1197,7 +1197,7 @@ void growth(Stand& stand, Patch& patch) {
 				patch.soil.nmass_avail,
 				indiv.alive, gridcell);
 
-			if (indiv.alive && date.year > freenyears && indiv.nstore_labile + retransn > indiv.max_n_storage) {
+			if (indiv.alive && indiv.nstore_labile + retransn > indiv.max_n_storage) {
 				
 				// Nitrogen stored above maximum that will be subtracted from retranslocated nitrogen
 				double surplus = min(retransn, indiv.nstore_labile + retransn - indiv.max_n_storage);

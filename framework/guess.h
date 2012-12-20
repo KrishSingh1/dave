@@ -143,14 +143,10 @@ const double K2degC = 273.15;	// kelvin to deg c conversion
 const double CO2_CONV = 1.0e-6;	// conversion factor for CO2 from ppmv to mole fraction
 
 /// Solving Century SOM pools 
-/// fraction of freenyears at which to begin documenting for calculation of Century equilibrium
-const double SOLVESOMCENT_FREENBEGIN = 0.5;
-/// fraction of freenyears at which to end documentation and start calculation of Century equilibrium
-const double SOLVESOMCENT_FREENEND   = 1.0;
 /// fraction of nyear_spinup minus freenyears at which to begin documenting for calculation of Century equilibrium
-const double SOLVESOMCENT_SPINBEGIN  = 0.2;
+const double SOLVESOMCENT_SPINBEGIN  = 0.1;
 /// fraction of nyear_spinup minus freenyears at which to end documentation and start calculation of Century equilibrium
-const double SOLVESOMCENT_SPINEND    = 0.4;
+const double SOLVESOMCENT_SPINEND    = 0.3;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FORWARD DECLARATIONS OF CLASSES DEFINED IN THIS FILE
@@ -1652,8 +1648,8 @@ public:
 		anfix_mean = 0.0;
 		dperc = 0.0;
 
-		solvesomcent_beginyr = (int)(SOLVESOMCENT_FREENBEGIN * freenyears);
-		solvesomcent_endyr   = (int)(SOLVESOMCENT_FREENEND * freenyears);
+		solvesomcent_beginyr = (int)(SOLVESOMCENT_SPINBEGIN * (nyear_spinup - freenyears) + freenyears);
+		solvesomcent_endyr   = (int)(SOLVESOMCENT_SPINEND   * (nyear_spinup - freenyears) + freenyears);
 	}
 	void serialize(ArchiveStream& arch);
 };

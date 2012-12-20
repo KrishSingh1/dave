@@ -697,11 +697,6 @@ inline double gpterm(double adtmm, double co2, double lambda, double daylength) 
 	return 1.6 / CO2_CONV / 3600 * adtmm / co2 / (1 - lambda) / daylength;
 }
 
-/// Help function to determine whether vmax should be limited by nitrogen today
-inline bool ifnlimvmax() {
-	return ifnlim && date.year > freenyears;
-}
-
 /// Pre-calculate Vmax and no-stress assimilation and canopy conductance
 /**
  * Vmax is calculated on a daily scale (w/ daily averages of temperature and par)
@@ -1043,7 +1038,7 @@ void nstore_usage(Vegetation& vegetation) {
 			}
 		}
 
-		if (!ifnlim || !ifnlimvmax())
+		if (!ifnlim)
 			indiv.nstress = false;
 
 		vegetation.nextobj();
@@ -1091,7 +1086,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 			indiv.nday_leafon++;
 
-			if (ifnlim && date.year > freenyears) {
+			if (ifnlim) {
 
 				// Calculate optimal leaf nitrogen associated with photosynthesis and none photosynthetic 
 				// active nitrogen (Haxeltine et al. 1996 eqn 27/28)
@@ -1218,7 +1213,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 	double tot_nmass_avail = patch.soil.nmass_avail * min(1.0, patch.fpc_total);
 
 	// Calculate individual uptake fraction of nitrogen demand
-	if (patch.ndemand > tot_nmass_avail && ifnlimvmax()) {
+	if (patch.ndemand > tot_nmass_avail && ifnlim) {
 
 		patch.fnuptake = patch.ndemand > 0.0 ? tot_nmass_avail / patch.ndemand : 0.0;
 		
@@ -1945,7 +1940,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			// of light- and conductance-based equations of photosynthesis
 			assimilation_wstress(ppft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
 				ppft.gcbase, gpterm_indiv, phot.vm, index, phot, lambda,
-				indiv.nactive, ifnlimvmax());
+				indiv.nactive, ifnlim);
 
 			assim = phot.net_assimilation();
 		}

@@ -468,13 +468,13 @@ void somfluxes(Patch& patch) {
 		soil.animmob = 0.0;
 	}
 
+	// Warning if soil available nitrogen is negative (if happens once or so no problem, but if it propagates through time then it is)
+	if (ifnlim) {
+		assert(soil.nmass_avail > -EPS);
+	}
+
 	// Set N:C ratios for humus, soil microbial, passive and slow pool based on estimated mineral nitrogen pool
 	// (Parton et al 1993, Fig 4)
-
-	// Warning if soil available nitrogen is negative (if happens once or so no problem, but if it propagates through time then it is)
-	if (soil.nmass_avail < -EPS && date.year >= freenyears) {
-		dprintf("Year %d Day %d negative mineral soil available nitrogen %g \n",date.year, date.day, soil.nmass_avail);
-	}
 
 	// ForCent (Parton 2010) values
 	setntoc(soil, soil.nmass_avail, SLOWSOM, 30.0, 15.0, 0.0, NMASS_SAT);
@@ -633,7 +633,7 @@ void somfluxes(Patch& patch) {
 
 		// Estimate daily soil mineral nitrogen pool after decomposition
 		// (negative value = immobilisation) 
-		if ((tot_net_min + soil.nmass_avail + EPS >= 0.0) || date.year <= freenyears) {
+		if ((tot_net_min + soil.nmass_avail + EPS >= 0.0) || !ifnlim) {
 
 			net_mineralization = true;
 		}
@@ -678,10 +678,9 @@ void somfluxes(Patch& patch) {
 	soil.nmass_avail += nmin_actual - nimmob;
 
 	// If no nitrogen limitation or during free nitrogen years set soil 
-	// available nitrogen to a fixed value. This is done
-	// to prevent mineral nitrogen accumulation free nitrogen years 
+	// available nitrogen to its saturation level. 
 	if (!ifnlim || date.year <= freenyears)
-		soil.nmass_avail = 0.0001;
+		soil.nmass_avail = NMASS_SAT;
 }
 
 /// Metabolic litter fraction (for leaf and root litter)
@@ -1048,12 +1047,6 @@ void vegetation_n_uptake(Patch& patch) {
 		vegetation.nextobj();
 	}
 
-	// Set soil available nitrogen to zero if nitrogen limitation switch is set of or
-	// during free nitrogen years so soil mineral nitrogen pool doesn't become negative
-	if (!ifnlim || date.year <= freenyears) {
-		soil.nmass_avail = 0.0;
-	}
-
 	if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr && !negligible(orignmass)) {
 		soil.fnuptake_mean[date.month] += (1.0 - soil.nmass_avail / orignmass) / date.ndaymonth[date.month];
 	}
@@ -1183,10 +1176,6 @@ void equilsom(Soil& soil) {
 
 	soil.anfix_mean = 0.0;
 	soil.solvesom.clear();
-	
-	// override the default SOM years with second spin-up period
-	soil.solvesomcent_beginyr = (int)(SOLVESOMCENT_SPINBEGIN * (nyear_spinup - freenyears) + freenyears);
-	soil.solvesomcent_endyr   = (int)(SOLVESOMCENT_SPINEND   * (nyear_spinup - freenyears) + freenyears);
 }
 
 /// SOM CENTURY DYNAMICS

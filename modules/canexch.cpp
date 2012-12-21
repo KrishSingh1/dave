@@ -2025,18 +2025,7 @@ void forest_floor_conditions(Patch& patch) {
 			assim = phot.net_assimilation();
 		} 
 		else {
-			if (ifnlim) {
-				photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
-					patch.fpar_grass * ppft.phen,pft.lambda_max, pft,
-					1.0, false,
-					phot,
-					-1);
-
-				assim = phot.net_assimilation();
-			}
-			else {
-				assim = spft.assim_term * ppft.phen * patch.fpar_grass;
-			}
+			assim = spft.assim_term * ppft.phen * patch.fpar_grass;
 		}
 
 		// Accumulate annual value

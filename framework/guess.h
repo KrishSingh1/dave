@@ -1245,6 +1245,26 @@ public:
 	/** Fluxes from 'new' Individuals (alive == false) will not be reported */
 	void report_flux(Fluxes::PerPatchFluxType flux_type, double value);
 
+	/// Reduce current biomass with a scalar
+	void reduce_biomass(double scalar) {
+
+		if (pft.lifeform != GRASS)
+			densindiv *= scalar;
+
+		cmass_leaf    *= scalar;
+		cmass_root    *= scalar;
+		cmass_sap     *= scalar;
+		cmass_debt    *= scalar;
+		cmass_heart   *= scalar;
+		nmass_leaf    *= scalar;
+		nmass_root    *= scalar;
+		nmass_sap     *= scalar;
+		nmass_heart   *= scalar;
+		nstore_leaf   *= scalar;
+		nstore_root   *= scalar;
+		nstore_labile *= scalar;
+	}
+
 	/// Total storage of nitrogen
 	double nstore() const {
 		return nstore_leaf + nstore_root + nstore_labile;

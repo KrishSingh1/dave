@@ -474,10 +474,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// ... if not, add it
 
 						Individual& indiv = vegetation.createobj(pft, vegetation);
-						indiv.height = 0.0;
-						indiv.crownarea = 1.0; // (value not used)
-						indiv.densindiv = 1.0;
-						indiv.fpc = 1.0;
+						indiv.height      = 0.0;
+						indiv.crownarea   = 1.0; // (value not used)
+						indiv.densindiv   = 1.0;
+						indiv.fpc         = 1.0;
 
 						// Initial grass biomass proportional to potential forest floor
 						// net assimilation this year on patch area basis
@@ -651,9 +651,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 			// Reset running sums for next year (establishment years only in cohort mode)
 
 			if (vegmode != COHORT || !(patch.age % estinterval)) {
-				patch.pft[pft.id].nsapling = 0.0;
+				patch.pft[pft.id].nsapling       = 0.0;
 				patch.pft[pft.id].wscal_mean_est = 0.0;
-				patch.pft[pft.id].anetps_ff_est = 0.0;
+				patch.pft[pft.id].anetps_ff_est  = 0.0;
 			}
 
 		}
@@ -863,21 +863,7 @@ void mortality_lpj(Stand& stand, Patch& patch, Climate& climate, double fireprob
 
 			// Reduce population density and C biomass on modelled area basis
 			// to account for loss of killed individuals
-
-			indiv.densindiv     *= 1.0 - mort;
-			indiv.cmass_leaf    *= 1.0 - mort;
-			indiv.cmass_root    *= 1.0 - mort;
-			indiv.cmass_sap     *= 1.0 - mort;
-			indiv.cmass_debt    *= 1.0 - mort;
-			indiv.cmass_heart   *= 1.0 - mort;
-
-			indiv.nmass_leaf    *= 1.0 - mort;
-			indiv.nmass_root    *= 1.0 - mort;
-			indiv.nmass_sap     *= 1.0 - mort;
-			indiv.nmass_heart   *= 1.0 - mort;
-			indiv.nstore_leaf   *= 1.0 - mort;
-			indiv.nstore_root   *= 1.0 - mort;
-			indiv.nstore_labile *= 1.0 - mort;
+			indiv.reduce_biomass(1.0 - mort);
 		}
 		else if (indiv.pft.lifeform==GRASS) {
 			
@@ -927,15 +913,7 @@ void mortality_lpj(Stand& stand, Patch& patch, Climate& climate, double fireprob
 
 			// Reduce C biomass on modelled area basis to account for biomass lost
 			// through mortality
-
-			indiv.cmass_leaf    *=1.0-mort;
-			indiv.cmass_root    *=1.0-mort;
-
-			indiv.nmass_leaf    *=1.0-mort;
-			indiv.nmass_root    *=1.0-mort;
-			indiv.nstore_leaf   *=1.0-mort;
-			indiv.nstore_root   *=1.0-mort;
-			indiv.nstore_labile *=1.0-mort;
+			indiv.reduce_biomass(1.0 - mort);
 		}
 
 		// Remove this PFT population completely if all individuals killed
@@ -1053,19 +1031,13 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 					indiv.report_flux(Fluxes::FIREC, mort_fire*indiv.cmass_leaf);
 					patch.pft[indiv.pft.id].litter_root += mort_fire * indiv.cmass_root;
 
-					indiv.cmass_leaf *= indiv.pft.fireresist;
-					indiv.cmass_root *= indiv.pft.fireresist;
-
 					// nitrogen storage to root nitrogen litter 
 					patch.pft[indiv.pft.id].nmass_litter_root += mort_fire * (indiv.nmass_root + indiv.nstore());
 
 					report_fire_nfluxes(indiv, mort_fire * indiv.nmass_leaf);
 
-					indiv.nmass_leaf    *= indiv.pft.fireresist;
-					indiv.nmass_root    *= indiv.pft.fireresist;
-					indiv.nstore_leaf   *= indiv.pft.fireresist;
-					indiv.nstore_root   *= indiv.pft.fireresist;
-					indiv.nstore_labile *= indiv.pft.fireresist;
+					// Reduce individual biomass
+					indiv.reduce_biomass(indiv.pft.fireresist);
 
 					// Update allometry
 
@@ -1111,16 +1083,6 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 					patch.pft[indiv.pft.id].litter_root +=
 						(1.0 - frac_survive) * indiv.cmass_root;
 
-					// Reduce individual density and biomass on patch area basis
-					// to account for loss of killed individuals
-
-					indiv.densindiv   *= frac_survive;
-					indiv.cmass_leaf  *= frac_survive;
-					indiv.cmass_root  *= frac_survive;
-					indiv.cmass_sap   *= frac_survive;
-					indiv.cmass_debt  *= frac_survive;
-					indiv.cmass_heart *= frac_survive;
-
 					// Transfer killed roots to litter
 					patch.pft[indiv.pft.id].nmass_litter_root += (1.0 - frac_survive) * indiv.nmass_root;
 
@@ -1131,13 +1093,7 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 
 					// Reduce individual biomass on patch area basis
 					// to account for loss of killed individuals
-					indiv.nmass_leaf    *= frac_survive;
-					indiv.nmass_root    *= frac_survive;
-					indiv.nmass_sap     *= frac_survive;
-					indiv.nmass_heart   *= frac_survive;
-					indiv.nstore_leaf   *= frac_survive;
-					indiv.nstore_root   *= frac_survive;
-					indiv.nstore_labile *= frac_survive;
+					indiv.reduce_biomass(frac_survive);
 
 					// Remove this cohort completely if all individuals killed
 					// (in individual mode: removes individual if killed)
@@ -1324,21 +1280,7 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 
 				// Reduce individual density and biomass on patch area basis
 				// to account for loss of killed individuals
-				
-				indiv.densindiv     *= frac_survive;
-				indiv.cmass_leaf    *= frac_survive;
-				indiv.cmass_root    *= frac_survive;
-				indiv.cmass_sap     *= frac_survive;
-				indiv.cmass_debt    *= frac_survive;
-				indiv.cmass_heart   *= frac_survive;
-
-				indiv.nmass_leaf    *= frac_survive;
-				indiv.nmass_root    *= frac_survive;
-				indiv.nmass_sap     *= frac_survive;
-				indiv.nmass_heart   *= frac_survive;
-				indiv.nstore_leaf   *= frac_survive;
-				indiv.nstore_root   *= frac_survive;
-				indiv.nstore_labile *= frac_survive;
+				indiv.reduce_biomass(frac_survive);
 
 				// Remove this cohort completely if all individuals killed
 				// (in individual mode: removes individual if killed)

@@ -2286,14 +2286,11 @@ private:
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
 //
+// LPJF refers to the original FORTRAN implementation of LPJ as described by Sitch
+//   et al 2000
 // Cosby, B. J., Hornberger, C. M., Clapp, R. B., & Ginn, T. R. 1984 A statistical exploration
 //   of the relationships of soil moisture characteristic to the physical properties of soil.
 //   Water Resources Research, 20: 682-690.
-// Delmas, R., Lacaux, J.P., Menaut, J.C., Abbadie, L., Le Roux, X., Helaa, G., Lobert, J., 1995. 
-//   Nitrogen compound emission from biomass burning in tropical African Savanna FOS/DECAFE 1991 
-//   experiment. Journal of Atmospheric Chemistry 22, 175–193.
-// LPJF refers to the original FORTRAN implementation of LPJ as described by Sitch
-//   et al 2000
 // Fulton, MR 1991 Adult recruitment rate as a function of juvenile growth in size-
 //   structured plant populations. Oikos 61: 102-105.
 // Haxeltine A & Prentice IC 1996 BIOME3: an equilibrium terrestrial biosphere

@@ -3339,10 +3339,6 @@ void termio() {
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
-// Galloway, J. N., F. J. Dentener, D. G. Capone, E. W. Boyer, R. W. Howarth, S. P. Seitzinger,
-//   G. P. Asner, C. Cleveland, P. Green, E. Holland, D. M. Karl, A. F. Michaels, J. H. Porter, 
-//   A. Townsend, and C. V?r?smarty. 2004.
-//   Nitrogen Cycles: Past, Present and Future. Biogeochemistry 70: 153-226.
 // Nakai, T., Sumida, A., Kodama, Y., Hara, T., Ohta, T. (2010). A comparison between
 //   various definitions of forest stand height and aerodynamic canopy height.
 //   Agricultural and Forest Meteorology, 150(9), 1225-1233

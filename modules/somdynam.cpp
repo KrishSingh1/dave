@@ -1221,9 +1221,9 @@ void som_dynamics(Patch& patch) {
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
 //
-// Brunner, A. and J. P. Kimmins (2003). "Nitrogen fixation in coarse woody debris of Thuja 
-//   plicata and Tsuga heterophylla forests on northern Vancouver Island." Canadian Journal 
-//   of Forest Research-Revue Canadienne De Recherche Forestiere 33(9): 1670-1682.
+// Comins, H. N. & McMurtrie, R. E. 1993. Long-Term Response of Nutrient-Limited 
+//   Forests to CO2 Enrichment - Equilibrium Behavior of Plant-Soil Models. 
+//   Ecological Applications, 3, 666-681.
 // Cosby, B. J., Hornberger, C. M., Clapp, R. B., & Ginn, T. R. 1984 A statistical exploration
 //   of the relationships of soil moisture characteristic to the physical properties of soil.
 //   Water Resources Research, 20: 682-690.
@@ -1231,14 +1231,18 @@ void som_dynamics(Patch& patch) {
 //   in natural ecosystems. GBC 13: 623-645
 // Foley J A 1995 An equilibrium model of the terrestrial carbon budget
 //   Tellus (1995), 47B, 310-319
-// Friend, A. D., Stevens, A. K., Knox, R. G. & Cannell, M. G. R. 1997. A process-based, 
-//   terrestrial biosphere model of ecosystem dynamics (Hybrid v3.0). Ecological Modelling, 95, 249-287.
+// Friend, A. D., Stevens, A. K., Knox, R. G. & Cannell, M. G. R. 1997. A 
+//   process-based, terrestrial biosphere model of ecosystem dynamics 
+//   (Hybrid v3.0). Ecological Modelling, 95, 249-287.
 // Kirschbaum, M. U. F. and K. I. Paul (2002). "Modelling C and N dynamics in forest soils 
 //   with a modified version of the CENTURY model." Soil Biology & Biochemistry 34(3): 341-354.
 // Meentemeyer, V. (1978) Macroclimate and lignin control of litter decomposition
 //   rates. Ecology 59: 465-472.
-// Parton (2010) ForCent model development and testing using the Enriched Background 
-//	 Isotope Study experiment JoGR 115: 
-// Zaehle, S. & Friend, A. D. 2010. Carbon and nitrogen cycle dynamics in the O-CN land surface 
-//   model: 1. Model description, site-scale evaluation, and sensitivity to parameter estimates. 
-//   Global Biogeochemical Cycles, 24.
+// Parton, W. J., Scurlock, J. M. O., Ojima, D. S., Gilmanov, T. G., Scholes, R. J., Schimel, D. S.,
+//   Kirchner, T., Menaut, J. C., Seastedt, T., Moya, E. G., Kamnalrut, A. & Kinyamario, J. I. 1993. 
+//   Observations and Modeling of Biomass and Soil Organic-Matter Dynamics for the Grassland Biome 
+//   Worldwide. Global Biogeochemical Cycles, 7, 785-809.
+// Parton, W. J., Hanson, P. J., Swanston, C., Torn, M., Trumbore, S. E., Riley, W. & Kelly, R. 2010.
+//   ForCent model development and testing using the Enriched Background Isotope Study experiment. 
+//   Journal of Geophysical Research-Biogeosciences, 115. 
+

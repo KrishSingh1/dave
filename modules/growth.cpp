@@ -1142,7 +1142,7 @@ void growth(Stand& stand, Patch& patch) {
 		// Save leaf annual average C:N ratio
 		indiv.cton_leaf_aavr /= indiv.nday_leafon;
 		
-		// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle 2010 SM eq 19) 	
+		// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle and Friend 2010 SM eq 19) 	
 		double cton_leaf_aopt = max(indiv.cton_leaf_aopt ,indiv.pft.cton_leaf_avr);
 
 		if (ifnlim) 
@@ -1562,7 +1562,7 @@ void growth(Stand& stand, Patch& patch) {
 // Waring, RH Schroeder, PE & Oren, R (1982) Application of the pipe model theory
 //   to predict canopy leaf area. Canadian Journal of Forest Research 12:
 //   556-560  
-// Zaehle, S. & Friend, A. D. 2010. Carbon and nitrogen cycle dynamics in the O-CN land surface 
-//   model: 1. Model description, site-scale evaluation, and sensitivity to parameter estimates. 
-//   Global Biogeochemical Cycles, 24.
+// Zaehle, S. & Friend, A. D. 2010. Carbon and nitrogen cycle dynamics in the O-CN
+//   land surface model: 1. Model description, site-scale evaluation, and sensitivity 
+//   to parameter estimates. Global Biogeochemical Cycles, 24.
 // Zeide, B (1993) Primary unit of the tree crown. Ecology 74: 1598-1602.

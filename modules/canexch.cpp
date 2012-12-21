@@ -1062,7 +1062,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 	// Scalar to soil temperature (Eqn A9, Comins & McMurtrie 1993) for nitrogen uptake
 	double temp_scale = soil.temp > 0.0 ? max(0.0, 0.0326 + 0.00351 * pow(soil.temp, 1.652) - pow(soil.temp / 41.748, 7.19)) : 0.0;
 
-	/// Rate of nitrogen uptake not associated with Michaelis-Menten Kinetics
+	/// Rate of nitrogen uptake not associated with Michaelis-Menten Kinetics (Zaehle and Friend 2010)
 	double kNmin = 0.05;
 
 	vegetation.firstobj();
@@ -1947,9 +1947,6 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		else {
 			// No water stress - use base value for non-water-stressed assimilation
 			if (ifnlim) {
-				// Assimilation as calculated in function photosynthesis_nowstress
-				// (assuming no water stress)
-
 				assim = date.diurnal() ? indiv.assim_terms[day.period] : indiv.assim_term;
 			}
 			else {
@@ -2010,7 +2007,6 @@ void forest_floor_conditions(Patch& patch) {
 
 		Patchpft& ppft = patch.pft[p];
 		Standpft& spft = patch.stand.pft[p];
-		Pft& pft = ppft.pft;
 
 		// Initialise net photosynthesis sum on first day of year
 		if (date.day == 0) {
@@ -2155,10 +2151,16 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 // Collatz, GJ, Ribas-Carbo, M & Berry, JA 1992 Coupled photosynthesis-stomatal
 //   conductance models for leaves of C4 plants. Australian Journal of Plant
 //   Physiology 19: 519-538
+// Comins, H. N. & McMurtrie, R. E. 1993. Long-Term Response of Nutrient-Limited 
+//   Forests to CO2 Enrichment - Equilibrium Behavior of Plant-Soil Models. 
+//   Ecological Applications, 3, 666-681.
 // Farquhar GD & von Caemmerer 1982 Modelling of photosynthetic response to
 //   environmental conditions. In: Lange, OL, Nobel PS, Osmond CB, Ziegler H
 //   (eds) Physiological Plant Ecology II: Water Relations and Carbon
 //   Assimilation, Vol 12B. Springer, Berlin, pp 549-587.
+// Friend, A. D., Stevens, A. K., Knox, R. G. & Cannell, M. G. R. 1997. A 
+//   process-based, terrestrial biosphere model of ecosystem dynamics 
+//   (Hybrid v3.0). Ecological Modelling, 95, 249-287.
 // Haxeltine A & Prentice IC 1996a BIOME3: an equilibrium terrestrial biosphere
 //   model based on ecophysiological constraints, resource availability, and
 //   competition among plant functional types. Global Biogeochemical Cycles 10:
@@ -2185,3 +2187,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 // Sprugel, DG, Ryan MG, Renee Brooks, J, Vogt, KA & Martin, TA (1996) Respiration
 //   from the organ level to the stand. In: Smith, WK & Hinckley, TM (eds),
 //   Physiological Ecology of Coniferous Forests.
+// Zaehle, S. & Friend, A. D. 2010. Carbon and nitrogen cycle dynamics in the O-CN
+//   land surface model: 1. Model description, site-scale evaluation, and sensitivity 
+//   to parameter estimates. Global Biogeochemical Cycles, 24.
+

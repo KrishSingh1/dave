@@ -1123,6 +1123,9 @@ void check_nbalance(Patch& patch, bool print) {
 //   et al 2000
 // Carslaw, HS & Jaeger JC 1959 Conduction of Heat in Solids, Oxford University
 //   Press, London
+// Cosby, B. J., Hornberger, C. M., Clapp, R. B., & Ginn, T. R. 1984 A statistical exploration
+//   of the relationships of soil moisture characteristic to the physical properties of soil.
+//   Water Resources Research, 20: 682-690.
 // Haxeltine A & Prentice IC 1996 BIOME3: an equilibrium terrestrial biosphere
 //   model based on ecophysiological constraints, resource availability, and
 //   competition among plant functional types. Global Biogeochemical Cycles 10:

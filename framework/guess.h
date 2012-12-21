@@ -1270,6 +1270,16 @@ public:
 		return nstore_leaf + nstore_root + nstore_labile;
 	}
 
+	/// Total carbon wood biomass
+	double cmass_wood() const {
+		return cmass_sap + cmass_heart - cmass_debt;
+	}
+
+	/// Total nitrogen wood biomass
+	double nmass_wood() const {
+		return nmass_sap + nmass_heart;
+	}
+
 	/// Current leaf C:N ratio
 	double cton_leaf() const {
 		if (!negligible(nmass_leaf)) {

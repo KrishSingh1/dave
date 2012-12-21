@@ -1069,7 +1069,7 @@ void check_nbalance(Patch& patch, bool print) {
 		while (vegetation.isobj) {
 			Individual& indiv = vegetation.getobj();
 
-			vegn += indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + indiv.nmass_heart;
+			vegn += indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_wood();
 			vegstore += indiv.nstore(); 
 			
 			vegetation.nextobj();

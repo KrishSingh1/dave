@@ -2772,9 +2772,9 @@ void outannual(Gridcell& gridcell) {
 
 							if (indiv.pft.id == pft.id) {
 								standpft_cmass      += indiv.cmass_leaf + indiv.cmass_root + 
-								                       indiv.cmass_sap + indiv.cmass_heart - indiv.cmass_debt;
-								standpft_nmass      += indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + 
-								                       indiv.nmass_heart + indiv.nstore();
+								                       indiv.cmass_wood();
+								standpft_nmass      += indiv.nmass_leaf + indiv.nmass_root + 
+								                       indiv.nmass_wood() + indiv.nstore();
 								standpft_cmass_leaf += indiv.cmass_leaf;
 								standpft_nmass_leaf += indiv.cmass_leaf / indiv.cton_leaf_aavr;
 								standpft_cmass_veg  += indiv.cmass_veg;

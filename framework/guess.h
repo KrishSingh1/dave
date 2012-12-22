@@ -238,8 +238,6 @@ extern bool ifleachn;
 extern double nfix_a;
 /// second term in nitrogen fixation eqn (Cleveland et al 1999)	
 extern double nfix_b;
-/// whether nitrogen deposition data available from a file	
-extern bool ifndepdata;
 
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;

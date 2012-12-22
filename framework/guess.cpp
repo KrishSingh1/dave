@@ -49,9 +49,6 @@ bool ifleachn;
 double nfix_a;
 /// second term in nitrogen fixation eqn
 double nfix_b;
-/// whether nitrogen deposition data available from a file	
-bool ifndepdata;
-
 
 // guess2008 - new inputs from the .ins file
 bool ifsmoothgreffmort;				// smooth growth efficiency mortality

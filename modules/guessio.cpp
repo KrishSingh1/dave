@@ -1565,21 +1565,6 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	{
 	return LUerror;
 }
 
-
-/// Retrieves nitrogen deposition for a particular gridcell
-/** The values are either taken from the andep parameter in the instruction
-*  file, or from a binary archive file.
-*
-*  The binary archive files have nitrogen deposition in gN/m2 on a monthly timestep
-*  for 26 years with 10 year interval (Lamarque et. al., 2011).
-*
-*  Returned values will not be smaller than minndep.
-*
-*  \param  filename    The file name of the binary archive
-*  \param  lon         Longitude
-*  \param  lat         Latitude
-*/
-
 /// Called by the framework at the start of the simulation for a particular grid cell
 bool getgridcell(Gridcell& gridcell) {
 

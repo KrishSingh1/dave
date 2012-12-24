@@ -187,7 +187,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	double& cmass_heart, double& nmass_leaf, double& nmass_root, double& nmass_sap,
 	double& nmass_heart, double& litter_leaf, double& litter_root,
 	double& nmass_litter_leaf, double& nmass_litter_root,
-	double& retransn, double& nmass_avail,
+	double& retransn,
 	bool alive, Gridcell& gridcell) {
 
 	// DESCRIPTION
@@ -209,7 +209,6 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	// nmass_leaf    = leaf nitrogen biomass (kgN/m2)
 	// nmass_root    = fine root nitrogen biomass (kgN/m2)
 	// nmass_sap     = sapwood nitrogen biomass (kgN/m2)
-	// nmass_avail   = soil available nitrogen (kgN/m2)
 
 	// OUTPUT PARAMETERS
 	// litter_leaf			= new leaf C litter (kgC/m2)
@@ -240,14 +239,8 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	
 	turnover = turnover_leaf * nmass_leaf * scale;
 	nmass_leaf -= turnover;
-	if (alive) {
-		nmass_litter_leaf += turnover * (1.0 - nrelocfrac);
-		retransn += turnover * nrelocfrac;
-	}
-	else {
-		nmass_avail += turnover * (1.0 - nrelocfrac);	
-		retransn += turnover * nrelocfrac;
-	}
+	nmass_litter_leaf += turnover * (1.0 - nrelocfrac);
+	retransn += turnover * nrelocfrac;
 
 	// Root turnover
 	turnover = turnover_root * cmass_root * scale;
@@ -256,14 +249,8 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 
 	turnover = turnover_root * nmass_root * scale;
 	nmass_root -= turnover;
-	if (alive) {
-		nmass_litter_root += turnover * (1.0 - nrelocfrac);
-		retransn += turnover * nrelocfrac;
-	}
-	else {
-		nmass_avail += turnover * (1.0 - nrelocfrac);
-		retransn += turnover * nrelocfrac;
-	}
+	nmass_litter_root += turnover * (1.0 - nrelocfrac);
+	retransn += turnover * nrelocfrac;
 
 	if (lifeform == TREE) {
 
@@ -1216,7 +1203,6 @@ void growth(Stand& stand, Patch& patch) {
 				patch.pft[indiv.pft.id].nmass_litter_leaf,
 				patch.pft[indiv.pft.id].nmass_litter_root,
 				retransn, 
-				patch.soil.nmass_avail,
 				indiv.alive, gridcell);
 
 			if (indiv.alive && indiv.nstore_labile + retransn > indiv.max_n_storage) {
@@ -1319,26 +1305,23 @@ void growth(Stand& stand, Patch& patch) {
 				if (indiv.alive) {
 					patch.pft[indiv.pft.id].litter_leaf += litter_leaf_inc * indiv.densindiv;
 					patch.pft[indiv.pft.id].litter_root += litter_root_inc * indiv.densindiv;
+				}
 
-					patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
-						cton_leaf_bg * (1.0 - nrelocfrac);
-					indiv.nstore_labile += litter_leaf_inc * indiv.densindiv / cton_leaf_bg * nrelocfrac;
+				// Nitrogen litter allways return to soil litter and storage
+				patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
+					cton_leaf_bg * (1.0 - nrelocfrac);
+				indiv.nstore_labile += litter_leaf_inc * indiv.densindiv / cton_leaf_bg * nrelocfrac;
 
-					patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
-						cton_root_bg * (1.0 - nrelocfrac);
-					indiv.nstore_labile += litter_root_inc * indiv.densindiv / cton_root_bg * nrelocfrac;
+				patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
+					cton_root_bg * (1.0 - nrelocfrac);
+				indiv.nstore_labile += litter_root_inc * indiv.densindiv / cton_root_bg * nrelocfrac;
 											
-					// If negative sap growth, then nrelocfrac of nitrogen will go to heart wood and 
-					// (1.0 - nreloctrac) will go to storage
-					if (cmass_sap_inc < 0.0) {
-						indiv.nstore_labile -= cmass_sap_inc * indiv.densindiv / cton_sap_bg * (1.0 - nrelocfrac);
-					}
+				// If negative sap growth, then nrelocfrac of nitrogen will go to heart wood and 
+				// (1.0 - nreloctrac) will go to storage
+				if (cmass_sap_inc < 0.0) {
+					indiv.nstore_labile -= cmass_sap_inc * indiv.densindiv / cton_sap_bg * (1.0 - nrelocfrac);
 				}
-				else {	// return nitrogen to soil so nitrogen budget is preserved
-					patch.soil.nmass_avail += (litter_leaf_inc / cton_leaf_bg + litter_root_inc / cton_root_bg -
-						min(0.0, cmass_sap_inc) / cton_sap_bg * (1.0 - nrelocfrac)) * indiv.densindiv; // nrelocfrac gone to heartwood above
-				}
-
+				
 				// Subtracting litter nitrogen from individuals
 				indiv.nmass_leaf -= litter_leaf_inc * indiv.densindiv / cton_leaf_bg;
 				indiv.nmass_root -= litter_root_inc * indiv.densindiv / cton_root_bg;
@@ -1364,18 +1347,16 @@ void growth(Stand& stand, Patch& patch) {
 						if (indiv.cmass_debt <= indiv.cmass_sap + indiv.cmass_heart) {
 							patch.pft[indiv.pft.id].litter_wood += indiv.cmass_wood();
 						}
-					
-						patch.pft[indiv.pft.id].nmass_litter_leaf += indiv.nmass_leaf;
-						patch.pft[indiv.pft.id].nmass_litter_root += indiv.nmass_root;
-
-						patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nmass_wood();
-						
-						// Transfer nitrogen storage to wood nitrogen litter for now
-						patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nstore();
-					} 
-					else {	// return nitrogen to soil so nitrogen budget is preserved
-						patch.soil.nmass_avail += indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_wood() + indiv.nstore();
 					}
+					
+					// Nitrogen allways return to soil litter
+					patch.pft[indiv.pft.id].nmass_litter_leaf += indiv.nmass_leaf;
+					patch.pft[indiv.pft.id].nmass_litter_root += indiv.nmass_root;
+
+					patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nmass_wood();
+						
+					// Transfer nitrogen storage to wood nitrogen litter for now
+					patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nstore();
 
 					vegetation.killobj();
 					killed = true;
@@ -1425,17 +1406,18 @@ void growth(Stand& stand, Patch& patch) {
 				// alive check before ensuring C balance
 				if (indiv.alive) {
 
-					patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
-						cton_leaf_bg * (1.0 - nrelocfrac);
-					indiv.nstore_leaf += litter_leaf_inc * indiv.densindiv / cton_leaf_bg * nrelocfrac;
+					patch.pft[indiv.pft.id].litter_leaf += litter_leaf_inc;
+					patch.pft[indiv.pft.id].litter_root += litter_root_inc;
+				}
 
-					patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
-						cton_root_bg * (1.0 - nrelocfrac);
-					indiv.nstore_root += litter_root_inc / cton_root_bg * nrelocfrac;
-				}
-				else {	// return nitrogen to soil so nitrogen budget is preserved
-					patch.soil.nmass_avail += litter_leaf_inc / cton_leaf_bg + litter_root_inc / cton_root_bg;
-				}
+				// Nitrogen allways return to soil litter and storage
+				patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
+					cton_leaf_bg * (1.0 - nrelocfrac);
+				indiv.nstore_leaf += litter_leaf_inc * indiv.densindiv / cton_leaf_bg * nrelocfrac;
+
+				patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
+					cton_root_bg * (1.0 - nrelocfrac);
+				indiv.nstore_root += litter_root_inc / cton_root_bg * nrelocfrac;
 
 				// Subtracting litter nitrogen from individuals
 				indiv.nmass_leaf -= litter_leaf_inc * indiv.densindiv / cton_leaf_bg;
@@ -1451,17 +1433,14 @@ void growth(Stand& stand, Patch& patch) {
 
 						patch.pft[indiv.pft.id].litter_leaf += indiv.cmass_leaf;
 						patch.pft[indiv.pft.id].litter_root += indiv.cmass_root;
-
-						patch.pft[indiv.pft.id].nmass_litter_leaf += indiv.nmass_leaf;
-						patch.pft[indiv.pft.id].nmass_litter_root += indiv.nmass_root; 
-						
-						// Transfer nitrogen storage to root nitrogen litter for now
-						patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore();
-					} 
-					else {	// return nitrogen to soil so nitrogen budget is preserved
-						patch.soil.nmass_avail += indiv.nmass_leaf + indiv.nmass_root +
-							indiv.nstore();
 					}
+
+					// Nitrogen allways return to soil litter
+					patch.pft[indiv.pft.id].nmass_litter_leaf += indiv.nmass_leaf;
+					patch.pft[indiv.pft.id].nmass_litter_root += indiv.nmass_root; 
+						
+					// Transfer nitrogen storage to root nitrogen litter for now
+					patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore();
 
 					vegetation.killobj();
 					killed = true;
@@ -1479,25 +1458,22 @@ void growth(Stand& stand, Patch& patch) {
 					patch.pft[indiv.pft.id].litter_root += indiv.cmass_root;
 
 					patch.pft[indiv.pft.id].litter_wood += indiv.cmass_wood();
+				}
 
-					patch.pft[indiv.pft.id].nmass_litter_leaf += indiv.nmass_leaf;
-					patch.pft[indiv.pft.id].nmass_litter_root += indiv.nmass_root;
+				// Nitrogen allways return to soil litter
+				patch.pft[indiv.pft.id].nmass_litter_leaf += indiv.nmass_leaf;
+				patch.pft[indiv.pft.id].nmass_litter_root += indiv.nmass_root;
 
-					patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nmass_wood();
+				patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nmass_wood();
 					
-					// Transfer nitrogen storage to root nitrogen litter if grass otherwise to wood nitrogen litter
-					if (indiv.pft.lifeform == GRASS) {
-						patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore();
-					}
-					else {
-						patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nstore();
-					}
+				// Transfer nitrogen storage to root nitrogen litter if grass otherwise to wood nitrogen litter
+				if (indiv.pft.lifeform == GRASS) {
+					patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore();
 				}
-				else {	// return nitrogen to soil so nitrogen budget is preserved
-					patch.soil.nmass_avail += indiv.nmass_leaf + indiv.nmass_root + 
-						indiv.nmass_wood() + indiv.nstore();
+				else {
+					patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nstore();
 				}
-
+				
 				vegetation.killobj();
 				killed = true;
 			}

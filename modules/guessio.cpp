@@ -1885,8 +1885,15 @@ bool getclimate(Gridcell& gridcell) {
 
 	// Send environmental values for today to framework
 
+	if (date.day == 0) {
+		climate.andep  = 0.0;
+		climate.anfert = 0.0;
+	}
+
 	climate.dndep  = ndep / (365.0 * 10000.0);
 	climate.dnfert = 0.0;
+	climate.andep  += climate.dndep;
+	climate.anfert += climate.dnfert;
 
 	climate.co2=co2;
 

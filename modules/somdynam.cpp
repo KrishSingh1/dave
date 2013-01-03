@@ -348,7 +348,7 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil) {
 	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
 	// plus Kirschbaum et al 2001 coarse woody debris decay	
-	const double K_MAX[] = {9.2e-3, 1.8e-2, 4.0e-2, 4.8e-4, 2.6e-2, 3.7e-2, 2.2e-3, 6.8e-2, 1.7e-3, 6.9e-5};
+	const double K_MAX[] = {9.5e-3, 1.9e-2, 4.2e-2, 4.8e-4, 2.7e-2, 3.8e-2, 2.2e-3, 7.0e-2, 1.7e-3, 6.9e-6};
 	// pools SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SURFCWD,SOILMETA,SLOWSOM,PASSIVESOM
 
 	// Modifier for effect of soil texture
@@ -392,9 +392,11 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil) {
 
 		// Include effect of recalcitrance effect of lignin
 		// Parton et al 1993 Eqn 2
+		// Kirschbaum et al 2001 changed the exponential term 
+		// from 3 to 5.
 
 		if (p == SURFSTRUCT || p == SOILSTRUCT || p == SURFCWD) {
-			k *= exp(-3.0 * soil.sompool[p].ligcfrac);
+			k *= exp(-5.0 * soil.sompool[p].ligcfrac);
 		}
 		else if (p == SOILMICRO) {
 			k *= texture_mod;
@@ -950,18 +952,14 @@ void naddition(Patch& patch) {
 	Climate& climate = patch.stand.gridcell.climate;
 
 	if (date.day == 0) {
-		climate.andep  = 0.0;
-		climate.anfert = 0.0;
-		soil.anfix     = 0.0;
+		soil.anfix = 0.0;
 	}
 
 	// Nitrogen Deposition
 	soil.nmass_avail += climate.dndep;
-	climate.andep    += climate.dndep;
 
 	// Nitrogen Fertilization
 	soil.nmass_avail += climate.dnfert;
-	climate.anfert   += climate.dnfert;
 
 	// Nitrogen fixation
 	// If soil available nitrogen is above the value for minimum SOM C:N ratio, then

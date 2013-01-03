@@ -2459,6 +2459,11 @@ bool getclimate(Gridcell& gridcell) {
 
 	int first_ndep_year = nyear_spinup + FIRSTHISTYEARNDEP - FIRSTHISTYEAR;
 	
+	if (date.day == 0) {
+		climate.andep  = 0.0;
+		climate.anfert = 0.0;
+	}
+
 	// Nitrogen deposition
 	// Before first year of nitrogen deposition data use first data set
 	if (date.year < first_ndep_year){
@@ -2475,9 +2480,11 @@ bool getclimate(Gridcell& gridcell) {
 		                 NHxWetDep[yr][date.month] +
 		                 NOyWetDep[yr][date.month]);
 	}
+	climate.andep += climate.dndep;
 
 	// Nitrogen fertilization
 	climate.dnfert = 0.0;
+	climate.anfert += climate.dnfert;
 
 	climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
 
@@ -2931,7 +2938,8 @@ void outannual(Gridcell& gridcell) {
 					firert_gridcell += 1000.0 / (double)stand.npatch(); // Set a limit of 1000 years
 				else
 					firert_gridcell += (1.0 / patch.fireprob) / (double)stand.npatch();
-			
+
+
 				andep_gridcell       += stand.gridcell.climate.andep  / (double)stand.npatch();
 				anfert_gridcell      += stand.gridcell.climate.anfert / (double)stand.npatch();
 				anmin_gridcell       += patch.soil.anmin              / (double)stand.npatch();

@@ -179,7 +179,7 @@ void interp_monthly_totals(double mvals[12], double dvals[365]) {
 
 	// Convert monthly totals to mean daily values
 	double mvals_daily[12];
-	for (int m=0; m<12; m++)
+	for (int m = 0; m < 12; m++)
 		mvals_daily[m] = mvals[m] / (double)date.ndaymonth[m];
 
 	interp_monthly_means(mvals_daily, dvals);
@@ -556,10 +556,10 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 			// Initialise gridcellpfts Michaelis-Menten kinetic Km value
 			pftlist.firstobj();
-				while (pftlist.isobj) {
-					gridcell.pft[pftlist.getobj().id].Km = pftlist.getobj().Km_volym * gridcell.soiltype.wtot;
-					pftlist.nextobj();
-				}
+			while (pftlist.isobj) {
+				gridcell.pft[pftlist.getobj().id].Km = pftlist.getobj().Km_volym * gridcell.soiltype.wtot;
+				pftlist.nextobj();
+			}
 		}
 
 		// Reset fluxes for all patches
@@ -699,8 +699,8 @@ void dailyaccounting_patch(Patch& patch) {
 	if (date.day==0) {
 
 		patch.aaet=0.0;
-		patch.apet=0.0;
 		patch.aintercep=0.0;
+		patch.apet=0.0;
 
 		// Calculate total FPC
 		patch.fpc_total = 0;
@@ -718,8 +718,8 @@ void dailyaccounting_patch(Patch& patch) {
 	if (date.dayofmonth==0) {
 
 		patch.maet[date.month]=0.0;
-		patch.mpet[date.month]=0.0;
 		patch.mintercep[date.month]=0.0;
+		patch.mpet[date.month]=0.0;
 	}
 
 	if(run_landcover)

@@ -31,13 +31,6 @@
 #include "driver.h"
 
 
-
-
-
-// guess2008
-extern int nyear_spinup;
-	// allows access to the value declared guessio_cru.cpp
-
 /// Function for generating random numbers
 /** Returns a random floating-point number in the range 0-1.
  *  Uses and updates the parameter 'seed' which may be initialised to any

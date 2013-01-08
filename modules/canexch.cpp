@@ -988,7 +988,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 // Internal function (do not call directly from framework)
 
 void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
-			double daylength, double fpar, double fpc, double gcbase, double gpterm_max,
+			double daylength, double fpar, double fpc, double gcbase,
 			double vmax, PhotosynthesisResult& phot_result, double& lambda) {
 
 	// DESCRIPTION
@@ -1007,11 +1007,11 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 	// Haxeltine & Prentice (1996)), and h(x) is based on canopy-conductance
 	// (Eqn 18, Haxeltine & Prentice 1996).
 
-	// Numerical method is the Illinois method (Dowell & Jarratt 1971),
+	// Numerical method is the Illinois method (Dowell & Jarratt 1971), 
 	// assuming root (f(lambda)=0) bracketed by f(0.02)<0 and f(lambda_max)>0.
 
 	// The numerical method terminates when we're close enough to a root
-	// (absolute value of f(lambda) < EPS), or after a maximum number of
+	// (absolute value of f(lambda) < EPS), or after a maximum number of 
 	// iterations.
 
 	// Note that the function sometimes doesn't search for a lambda,
@@ -1040,15 +1040,19 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 		return;
 	}
 
-	// At this point the function f(x) = g(x) - gcbase can be calculated as:
-	//
-	// g(x) = gpterm(phot_result.adtmm, co2, x, daylength) * fpar_fpc
-	// (after a call to photosynthesis with lambda x)
+	// Canopy conductance component associated with photosynthesis on a
+	// daily basis (mm / m2 / day)
+	double gcphot = gcbase * daylength * 3600 / 1.6 * co2 * CO2_CONV;
 
-	// Evaluate f(lambda_max) to see if there's a root
-	// in the interval we're searching. Shortcutting using pre-calculated
-	// gpterm value.
-	double f_lambda_max = gpterm_max * fpar_fpc - gcbase;
+	// At this point the function f(x) = g(x) - h(x) can be calculated as:
+	//
+	// g(x) = phot_result.adtmm * fpar_fpc (after a call to photosynthesis with lambda x)
+	// h(x) = gcphot * (1 - x)
+
+	// Evaluate f(lambda_max) to see if there's a root 
+	// in the interval we're searching
+	photosynthesis(co2, temp, par, daylength, 1.0, pft.lambda_max, pft, phot_result, vmax);
+	double f_lambda_max = phot_result.adtmm * fpar_fpc - gcphot * (1 - pft.lambda_max);
 
 	if (f_lambda_max <= 0) {
 		// Return zero assimilation
@@ -1060,11 +1064,11 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 	const double EPS = 0.1; // minimum precision of solution in numerical method
 	const int MAXTRIES = 6; // maximum number of iterations towards a solution
 
-	double x1 = 0.02;                   // first bracket of root
-	double x2 = pft.lambda_max;         // second bracket of root
+	double x1 = 0.02;                      // first bracket of root
+	double x2 = pft.lambda_max;            // second bracket of root
 
-	double fx1 = -gcbase;               // estimate f(x1), assuming gpterm == 0
-	double fx2 = f_lambda_max;          // f(x2)
+	double fx1 = - gcphot * (1 - x1);      // estimate f(x1), assume g(x1) == 0
+	double fx2 = f_lambda_max;             // f(x2)
 
 	int b = 0;                 // number of tries so far towards solution
 
@@ -1096,7 +1100,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 		// Calculate fnew = f(xnew)
 		photosynthesis(co2, temp, par, daylength, 1.0, xnew, pft, phot_result, vmax);
-		fnew = gpterm(phot_result.adtmm, co2, xnew, daylength) * fpar_fpc - gcbase;
+		fnew = phot_result.adtmm * fpar_fpc - gcphot * (1 - xnew);
 
 		// Update brackets according to Illinois method (Dowell & Jarratt 1971)
 		if (fnew * fx2 < 0) {
@@ -1321,7 +1325,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			// Water stress - derive assimilation by simultaneous solution
 			// of light- and conductance-based equations of photosynthesis
 			assimilation_wstress(pft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
-				ppft.gcbase, gpterm_indiv, spft.photosynthesis.vm, phot, lambda);
+				ppft.gcbase, spft.photosynthesis.vm, phot, lambda);
 			assim = phot.net_assimilation();
 		}
 		else {
@@ -1398,9 +1402,9 @@ void forest_floor_conditions(Patch& patch) {
 		if (ppft.wstress_day) {
 			assimilation_wstress(pft, climate.co2, climate.temp, climate.par,
 				climate.daylength, patch.fpar_grass*ppft.phen, 1., ppft.gcbase_day,
-				spft.gpterm, spft.photosynthesis.vm, phot, lambda);
+				spft.photosynthesis.vm, phot, lambda);
 			assim = phot.net_assimilation();
-		}
+		} 
 		else {
 			assim = spft.photosynthesis.net_assimilation();
 		}
@@ -1511,7 +1515,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 // Collatz, GJ, Ribas-Carbo, M & Berry, JA 1992 Coupled photosynthesis-stomatal
 //   conductance models for leaves of C4 plants. Australian Journal of Plant
 //   Physiology 19: 519-538
-// Dowell M & Jarratt P 1971 A modified regula falsi method for computing the
+// Dowell M & Jarratt P 1971 A modified regula falsi method for computing the 
 //   root of an equation. BIT Numerical Mathematics, Volume 11 (2): 168-174
 // Farquhar GD & von Caemmerer 1982 Modelling of photosynthetic response to
 //   environmental conditions. In: Lange, OL, Nobel PS, Osmond CB, Ziegler H

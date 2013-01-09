@@ -64,13 +64,7 @@ bool run[NLANDCOVERTYPES];
 bool lcfrac_fixed;
 bool all_fracs_const;
 bool ifslowharvestpool;				// If a slow harvested product pool is included in patchpft.
-int nyear_spinup;	
-
-/// Solving Century SOM pools 
-/// years at which to begin documenting for calculation of Century equilibrium
-int solvesomcent_beginyr;
-/// years at which to end documentation and start calculation of Century equilibrium
-int solvesomcent_endyr;
+int nyear_spinup;
 
 xtring state_path;
 bool restart;

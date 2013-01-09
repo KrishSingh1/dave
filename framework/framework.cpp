@@ -36,8 +36,9 @@ int framework(const CommandLineArguments& args) {
 	initio(args.get_instruction_file());
 
 	// Nitrogen limitation
-	if (ifnlim && !ifcentury)
+	if (ifnlim && !ifcentury) {
 		fail("\n\nIf nitrogen limitation is switched on then century soil module also needs to be switched on!");
+	}
 
 	// bvoc
 	if (ifbvoc) {
@@ -136,7 +137,7 @@ int framework(const CommandLineArguments& args) {
 					canopy_exchange(patch, gridcell.climate);
 					// Soil water accounting, snow pack accounting
 					soilwater(patch, gridcell.climate);
-					// Soil organic matter and litter dynamics						
+					// Soil organic matter and litter dynamics
 					som_dynamics(patch);
 
 					if (date.islastday && date.islastmonth) {
@@ -147,7 +148,6 @@ int framework(const CommandLineArguments& args) {
 						growth(stand, patch);
 					}
 					stand.nextobj();
-
 				}// End of loop through patches
 
 				if (date.islastday && date.islastmonth) {

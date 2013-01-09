@@ -1,8 +1,8 @@
 #!/bin/bash
 #
 # Common post processing for the benchmarks where simulation years 560 to 589
-# correspond to real years 1961 to 1990
-# and CRU data from 1901).
+# correspond to real years 1961 to 1990 (500 year spin up and CRU data from 
+# 1901).
 
 # We will run tslice on these files                                                                              
 files_to_tslice="cmass lai dens anpp cflux nflux cpool npool nleach nsources nuptake cton_leaf cton_veg firert tot_runoff \

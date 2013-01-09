@@ -346,7 +346,7 @@ function run_benchmark {
 	if ! build $build_path extra_source/$(cat $test_name/extra_source.txt); then
 	    echo "Not running ${test_name}..."
 	    return
-    fi
+	fi
     fi
 
     if (( $compile_only == 1 )); then
@@ -447,7 +447,7 @@ if (( $pp_only == 0 )); then
     if ! build $work_dir/standard_build; then
 	echo "Not running any benchmarks!"
 	exit 1
-fi
+    fi
 fi
 
 # Find all sub directories

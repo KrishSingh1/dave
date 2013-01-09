@@ -2164,8 +2164,10 @@ public:
 	 */
 	double addtw;
 
-	/// Michaelis-Menten kinetic parameters chosen to match observed rates of increase 
-	/// in nitrogen uptake at high nitrogen [kgN m2] (Rothstein 2000) 
+	/// Michaelis-Menten kinetic parameters 
+	/** Chosen to match observed rates of increase 
+	 *  in nitrogen uptake at high nitrogen [kgN m2] (Rothstein 2000) 
+	 */
 	double Km;
 
 	// MEMBER FUNCTIONS

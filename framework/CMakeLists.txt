@@ -1,10 +1,10 @@
 set(headers 
   config.h 
   guess.h 
-  guessmath.h 
-  outputchannel.h
+  guessmath.h
+  outputchannel.h 
   archive.h 
-  framework.h
+  framework.h 
   shell.h
   partitionedmapserializer.h
   guessserializer.h
@@ -14,9 +14,9 @@ set(headers
 
 set(source  
   guess.cpp 
-  outputchannel.cpp
+  outputchannel.cpp 
   archive.cpp 
-  framework.cpp
+  framework.cpp 
   shell.cpp
   partitionedmapserializer.cpp
   guessserializer.cpp

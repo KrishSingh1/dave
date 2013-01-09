@@ -316,7 +316,7 @@ if(!SUPPRESSLARGEOUTPUT)
 						//convert equal areas from all stands
 						if((landcoverfrac_change[CROPLAND]>0.0 || landcoverfrac_change[PASTURE]>0.0 || landcoverfrac_change[URBAN]>0.0 || landcoverfrac_change[PEATLAND]>0.0) && landcoverfrac_change[FOREST]>0.0)
 						{
-							stand.natural_frac_change=landcoverfrac_change[NATURAL]*stand.get_landcover_fraction();
+							stand.natural_frac_change=landcoverfrac_change[NATURAL]*stand.get_gridcell_fraction()/gridcell.landcoverfrac_old[NATURAL];
 							stand.set_gridcell_fraction(stand.get_gridcell_fraction()+stand.natural_frac_change);
 						}
 						else

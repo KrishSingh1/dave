@@ -272,7 +272,7 @@ if(!SUPPRESSLARGEOUTPUT)
 //Keep track of carbon and water in lost areas.
 
 #ifdef multiple_natural_stands
-		if(landcoverfrac_change[NATURAL]<0.0)	// Find the age order of natural stands.
+		if(landcoverfrac_change[NATURAL]<0.0)
 		{
 			gridcell.firstobj();
 			while (gridcell.isobj) //Loop through stands:
@@ -292,29 +292,39 @@ if(!SUPPRESSLARGEOUTPUT)
 			{
 				double natural_change_remain=landcoverfrac_change[NATURAL];
 
-				int i=0, index;
+				bool reduce_all_stands=false;	//convert equal percentage of area from all stands
+				bool young_stands_first=true;	//convert area from youngest stands first
 
-				for(i=0;i<gridcell.nobj;i++)
+//Remove this section and always use the default values ?
+				//convert equal percentage of area from all stands if both managed forest and other managed land expands
+				if((landcoverfrac_change[CROPLAND]>0.0 || landcoverfrac_change[PASTURE]>0.0 || landcoverfrac_change[URBAN]>0.0 || landcoverfrac_change[PEATLAND]>0.0) && landcoverfrac_change[FOREST]>0.0)
 				{
-					int j;
+					reduce_all_stands=true;
+					young_stands_first=false;
+				}
+				//convert area from youngest stands first if managedforest does not expand
+				else if(landcoverfrac_change[CROPLAND]>0.0 || landcoverfrac_change[PASTURE]>0.0 || landcoverfrac_change[URBAN]>0.0 || landcoverfrac_change[PEATLAND]>0.0)
+					young_stands_first=true;
+				//convert area from oldest stands first if only managed forest expands
+				else if(landcoverfrac_change[FOREST]>0.0)	
+					young_stands_first=false;
+//////////////////////
 
-					//convert equal percentage of area from all stands
-					if((landcoverfrac_change[CROPLAND]>0.0 || landcoverfrac_change[PASTURE]>0.0 || landcoverfrac_change[URBAN]>0.0 || landcoverfrac_change[PEATLAND]>0.0) && landcoverfrac_change[FOREST]>0.0)
-						index=i;
-					//convert area from youngest stands first
-  					else if(landcoverfrac_change[CROPLAND]>0.0 || landcoverfrac_change[PASTURE]>0.0 || landcoverfrac_change[URBAN]>0.0 || landcoverfrac_change[PEATLAND]>0.0)
+				for(int i=0;i<gridcell.nobj;i++)
+				{
+					int index;
+
+					if(young_stands_first)
 						index=gridcell.nobj-1-i;
-					//convert area from oldest stands first
-					else if(landcoverfrac_change[FOREST]>0.0)	
+					else
 						index=i;
-
 
 					Stand& stand=gridcell[index];	
 
 					if(stand.landcover==NATURAL)
 					{
 						//convert equal areas from all stands
-						if((landcoverfrac_change[CROPLAND]>0.0 || landcoverfrac_change[PASTURE]>0.0 || landcoverfrac_change[URBAN]>0.0 || landcoverfrac_change[PEATLAND]>0.0) && landcoverfrac_change[FOREST]>0.0)
+						if(reduce_all_stands)
 						{
 							stand.natural_frac_change=landcoverfrac_change[NATURAL]*stand.get_gridcell_fraction()/gridcell.landcoverfrac_old[NATURAL];
 							stand.set_gridcell_fraction(stand.get_gridcell_fraction()+stand.natural_frac_change);

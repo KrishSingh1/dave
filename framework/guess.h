@@ -2134,7 +2134,7 @@ public:
 	/// Gives the fraction of this Stand relative to the whole grid cell
 	double get_gridcell_fraction() const;
 
-	/// Gives the fraction of this Stand relative to its land cover type
+	/// Gives the fraction of this Stand relative to its land cover type; NB: unsafe to use within landcover_dynamics() !
 	double get_landcover_fraction() const;
 
 	/// Set the fraction of this Stand relative to the gridcell

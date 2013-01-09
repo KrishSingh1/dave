@@ -459,7 +459,7 @@ void plib_declarations(int id,xtring setname) {
 			"Respiration Sapwood C:N mass ratio");
 		declareitem("nuptoroot",&ppft->nuptoroot,0.0,1.0,1,CB_NONE,
 			"Maximum nitrogen uptake per fine root");
-		declareitem("Km_volym",&ppft->Km_volym,0.0,10.0,1,CB_NONE,
+		declareitem("Km_volume",&ppft->Km_volume,0.0,10.0,1,CB_NONE,
 			"Michaelis-Menten kinetic parameters for nitrogen uptake");
 
 		declareitem("reprfrac",&ppft->reprfrac,0.0,1.0,1,CB_NONE,
@@ -772,7 +772,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("cton_root_avr")) badins("cton_root_avr");
 		if (!itemparsed("cton_root_resp")) badins("cton_root_resp");
 		if (!itemparsed("nuptoroot")) badins("nuptoroot");
-		if (!itemparsed("Km_volym")) badins("Km_volym");
+		if (!itemparsed("Km_volume")) badins("Km_volume");
 
 		if (!itemparsed("reprfrac")) badins("reprfrac");
 		if (!itemparsed("turnover_leaf")) badins("turnover_leaf");

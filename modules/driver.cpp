@@ -179,7 +179,7 @@ void interp_monthly_totals(double mvals[12], double dvals[365]) {
 
 	// Convert monthly totals to mean daily values
 	double mvals_daily[12];
-	for (int m = 0; m < 12; m++)
+	for (int m=0; m<12; m++)
 		mvals_daily[m] = mvals[m] / (double)date.ndaymonth[m];
 
 	interp_monthly_means(mvals_daily, dvals);
@@ -419,7 +419,7 @@ void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12], lon
 //  Call each simulation day following update of daily air temperature prior to canopy
 //  exchange and SOM dynamics
 
-void soiltemp(Climate& climate,Soil& soil) {
+void soiltemp(Climate& climate, Soil& soil) {
 
 	// DESCRIPTION
 	// Calculation of soil temperature at 0.25 m depth (middle of upper soil layer).
@@ -465,25 +465,25 @@ void soiltemp(Climate& climate,Soil& soil) {
 	// between estimates for 0, 15% and 100% AWHC (Van Duin 1963; Jury et al 1991,
 	// Fig 5.11).
 
-	const double DIFFUS_CONV=0.0864;
+	const double DIFFUS_CONV = 0.0864;
 		// conversion factor for soil thermal diffusivity from mm2/s to m2/day
-	const double HALF_OMEGA=8.607E-3; // corresponds to omega/2 = pi/365 (Eqn 1)
-	const double DEPTH=SOILDEPTH_UPPER*0.0005;
+	const double HALF_OMEGA = 8.607E-3; // corresponds to omega/2 = pi/365 (Eqn 1)
+	const double DEPTH = SOILDEPTH_UPPER * 0.0005;
 		// soil depth at which to estimate temperature (m)
-	const double LAG_CONV=58.09;
+	const double LAG_CONV = 58.09;
 		// conversion factor for oscillation lag from angular units to days (=365/(2*PI))
 
-	double a,b; // regression parameters
+	double a, b; // regression parameters
 	double k; // soil thermal diffusivity (m2/day)
 	double temp_lag; // air temperature 'lag' days ago (see above; deg C)
-	double day[]={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
-		16,17,18,19,20,21,22,23,24,25,26,27,28,29,30};
+	double day[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+		16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30};
 
-	if ((date.year==0 || date.year==soil.patch.stand.first_year) && date.month==0 && !date.islastday) {
+	if ((date.year == 0 || date.year == soil.patch.stand.first_year) && date.month == 0 && !date.islastday) {
 
 		// First month of simulation, use air temperature for soil temperature
 
-		soil.temp=climate.temp;
+		soil.temp = climate.temp;
 	}
 	else {
 
@@ -492,17 +492,17 @@ void soiltemp(Climate& climate,Soil& soil) {
 			// Linearly interpolate soil thermal diffusivity given mean
 			// soil water content
 
-			if (soil.mwcontupper<0.15)
-				k=((soil.soiltype.thermdiff_15-soil.soiltype.thermdiff_0)/0.15*
-					soil.mwcontupper+soil.soiltype.thermdiff_0)*DIFFUS_CONV;
+			if (soil.mwcontupper < 0.15)
+				k = ((soil.soiltype.thermdiff_15 - soil.soiltype.thermdiff_0) / 0.15 *
+					soil.mwcontupper + soil.soiltype.thermdiff_0) * DIFFUS_CONV;
 			else
-				k=((soil.soiltype.thermdiff_100-soil.soiltype.thermdiff_15)/0.85*
-					(soil.mwcontupper-0.15)+soil.soiltype.thermdiff_15)*DIFFUS_CONV;
+				k = ((soil.soiltype.thermdiff_100 - soil.soiltype.thermdiff_15) / 0.85 *
+					(soil.mwcontupper - 0.15) + soil.soiltype.thermdiff_15) * DIFFUS_CONV;
 
 			// Calculate parameters alag and exp(-alag) from Eqn 2
 
-			soil.alag=DEPTH/sqrt(k/HALF_OMEGA); // from Eqn 1
-			soil.exp_alag=exp(-soil.alag);
+			soil.alag = DEPTH / sqrt(k / HALF_OMEGA); // from Eqn 1
+			soil.exp_alag = exp(-soil.alag);
 
 		}
 
@@ -515,8 +515,8 @@ void soiltemp(Climate& climate,Soil& soil) {
 
 		// Calculate soil temperature
 
-		temp_lag=a+b*(30.0-soil.alag*LAG_CONV);
-		soil.temp=climate.atemp_mean+soil.exp_alag*(temp_lag-climate.atemp_mean);
+		temp_lag = a + b * (30.0 - soil.alag * LAG_CONV);
+		soil.temp = climate.atemp_mean + soil.exp_alag * (temp_lag - climate.atemp_mean);
 			// Eqn 2
 	}
 }
@@ -531,22 +531,22 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	// and longer term records of variation in climate variables. PFT-specific
 	// degree-day sums in excess of damaging temperatures are also calculated here.
 
-	const double W11DIV12=11.0/12.0;
-	const double W1DIV12=1.0/12.0;
-	int d,y,startyear;
+	const double W11DIV12 = 11.0 / 12.0;
+	const double W1DIV12 = 1.0 / 12.0;
+	int d, y, startyear;
 
 	// guess2008 - changed this from an int to a double
 	double mtemp_last;
 
-	Climate& climate=gridcell.climate;
+	Climate& climate = gridcell.climate;
 
 	// On first day of year ...
 
-	if (date.day==0) {
+	if (date.day == 0) {
 		// ... reset annual GDD5 counter
-		climate.agdd5=0.0;
+		climate.agdd5 = 0.0;
 
-		if (date.year==0) {
+		if (date.year == 0) {
 			// First day of simulation - initialise running annual mean temperature and daily temperatures for the last month
 			for (d = 0; d < climate.dtemp_31.CAPACITY; d++) {
 				climate.dtemp_31.add(climate.temp);
@@ -557,7 +557,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			// Initialise gridcellpfts Michaelis-Menten kinetic Km value
 			pftlist.firstobj();
 			while (pftlist.isobj) {
-				gridcell.pft[pftlist.getobj().id].Km = pftlist.getobj().Km_volym * gridcell.soiltype.wtot;
+				gridcell.pft[pftlist.getobj().id].Km = pftlist.getobj().Km_volume * gridcell.soiltype.wtot;
 				pftlist.nextobj();
 			}
 		}
@@ -581,17 +581,17 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			gridcell.nextobj();
 		}
 	}
-	else if (climate.lat>=0.0 && date.day==COLDEST_DAY_NHEMISPHERE ||
-		climate.lat<0.0 && date.day==COLDEST_DAY_SHEMISPHERE) {
+	else if (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE ||
+		climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE) {
 		// In midwinter, reset GDD counter for summergreen phenology
-		climate.gdd5=0.0;
-		climate.ifsensechill=false; // guess2008 - CHILLDAYS
+		climate.gdd5 = 0.0;
+		climate.ifsensechill = false; // guess2008 - CHILLDAYS
 	}
 
 	// Update GDD counters and chill day count
-	climate.gdd5+=max(0.0,climate.temp-5.0);
-	climate.agdd5+=max(0.0,climate.temp-5.0);
-	if (climate.temp<5.0 && climate.chilldays<=365)
+	climate.gdd5 += max(0.0, climate.temp - 5.0);
+	climate.agdd5 += max(0.0, climate.temp - 5.0);
+	if (climate.temp < 5.0 && climate.chilldays <= 365)
 		climate.chilldays++;
 
 	// Calculate gtemp (daily/sub-daily depending on the mode)
@@ -609,7 +609,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 ///		dailyaccounting_gridcell_crop(gridcell,pftlist);
 
 	// Save yesterday's mean temperature for the last month
-	mtemp_last=climate.mtemp;
+	mtemp_last = climate.mtemp;
 
 	// Update daily temperatures, and mean overall temperature, for last 31 days
 	climate.dtemp_31.add(climate.temp);
@@ -617,9 +617,9 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 	// Reset GDD and chill day counter if mean monthly temperature falls below base
 	// temperature
-	if (mtemp_last>=5.0 && climate.mtemp<5.0 && climate.ifsensechill) { // guess2008 - CHILLDAYS
-		climate.gdd5=0.0;
-		climate.chilldays=0;
+	if (mtemp_last >= 5.0 && climate.mtemp < 5.0 && climate.ifsensechill) { // guess2008 - CHILLDAYS
+		climate.gdd5 = 0.0;
+		climate.chilldays = 0;
 	}
 
 	// On last day of month ...
@@ -627,38 +627,38 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	if (date.islastday) {
 		// Update mean temperature for the last 12 months
 		// atemp_mean_new = atemp_mean_old * (11/12) + mtemp * (1/12)
-		climate.atemp_mean=climate.atemp_mean*W11DIV12+climate.mtemp*W1DIV12;
+		climate.atemp_mean = climate.atemp_mean * W11DIV12 + climate.mtemp * W1DIV12;
 
 		// Record minimum and maximum monthly temperatures
-		if (date.month==0) {
-			climate.mtemp_min=climate.mtemp;
-			climate.mtemp_max=climate.mtemp;
+		if (date.month == 0) {
+			climate.mtemp_min = climate.mtemp;
+			climate.mtemp_max = climate.mtemp;
 		}
 		else {
-			if (climate.mtemp<climate.mtemp_min)
-				climate.mtemp_min=climate.mtemp;
-			if (climate.mtemp>climate.mtemp_max)
-				climate.mtemp_max=climate.mtemp;
+			if (climate.mtemp < climate.mtemp_min)
+				climate.mtemp_min = climate.mtemp;
+			if (climate.mtemp > climate.mtemp_max)
+				climate.mtemp_max = climate.mtemp;
 		}
 
 		// On 31 December update records of minimum monthly temperatures for the last
 		// 20 years and find mean of minimum monthly temperatures for the last 20 years
 		if (date.islastmonth) {
-			startyear=20-(int)min(19,date.year);
-			climate.mtemp_min20=climate.mtemp_min;
-			climate.mtemp_max20=climate.mtemp_max;
+			startyear = 20 - (int)min(19, date.year);
+			climate.mtemp_min20 = climate.mtemp_min;
+			climate.mtemp_max20 = climate.mtemp_max;
 
-			for (y=startyear;y<20;y++) {
-				climate.mtemp_min_20[y-1]=climate.mtemp_min_20[y];
-				climate.mtemp_min20+=climate.mtemp_min_20[y];
-				climate.mtemp_max_20[y-1]=climate.mtemp_max_20[y];
-				climate.mtemp_max20+=climate.mtemp_max_20[y];
+			for (y=startyear; y<20; y++) {
+				climate.mtemp_min_20[y-1] = climate.mtemp_min_20[y];
+				climate.mtemp_min20 += climate.mtemp_min_20[y];
+				climate.mtemp_max_20[y-1] = climate.mtemp_max_20[y];
+				climate.mtemp_max20 += climate.mtemp_max_20[y];
 			}
 
-			climate.mtemp_min20/=(double)(21-startyear);
-			climate.mtemp_max20/=(double)(21-startyear);
-			climate.mtemp_min_20[19]=climate.mtemp_min;
-			climate.mtemp_max_20[19]=climate.mtemp_max;
+			climate.mtemp_min20 /= (double)(21 - startyear);
+			climate.mtemp_max20 /= (double)(21 - startyear);
+			climate.mtemp_min_20[19] = climate.mtemp_min;
+			climate.mtemp_max_20[19] = climate.mtemp_max;
 		}
 	}
 }
@@ -667,15 +667,15 @@ void dailyaccounting_stand(Stand& stand) {
 }
 
 void dailyaccounting_patch_lc(Patch& patch) {
-	if(date.day==0) {
+	if(date.day == 0) {
 		if(ifslowharvestpool) {
 			pftlist.firstobj();
 			while(pftlist.isobj) {
-				Pft& pft=pftlist.getobj();
-				Patchpft& patchpft=patch.pft[pft.id];
+				Pft& pft = pftlist.getobj();
+				Patchpft& patchpft = patch.pft[pft.id];
 
 				patch.fluxes.report_flux(Fluxes::HARVESTC, patchpft.harvested_products_slow*pft.turnover_harv_prod);
-				patchpft.harvested_products_slow=patchpft.harvested_products_slow*(1-pft.turnover_harv_prod);
+				patchpft.harvested_products_slow = patchpft.harvested_products_slow * (1 - pft.turnover_harv_prod);
 
 				pftlist.nextobj();
 			}
@@ -693,13 +693,13 @@ void dailyaccounting_patch(Patch& patch) {
 	// soil   = patch soil
 	// fluxes = current and accumulated C fluxes for patch
 
-	Soil& soil=patch.soil;
-	Fluxes& fluxes=patch.fluxes;
+	Soil& soil = patch.soil;
+	Fluxes& fluxes = patch.fluxes;
 
-	if (date.day==0) {
+	if (date.day == 0) {
 
-		patch.aaet=0.0;
-		patch.aintercep=0.0;
+		patch.aaet = 0.0;
+		patch.aintercep = 0.0;
 		patch.apet=0.0;
 
 		// Calculate total FPC
@@ -715,10 +715,10 @@ void dailyaccounting_patch(Patch& patch) {
 		patch.fpc_rescale = 1.0 / max(patch.fpc_total, 1.0);
 	}
 
-	if (date.dayofmonth==0) {
+	if (date.dayofmonth == 0) {
 
-		patch.maet[date.month]=0.0;
-		patch.mintercep[date.month]=0.0;
+		patch.maet[date.month] = 0.0;
+		patch.mintercep[date.month] = 0.0;
 		patch.mpet[date.month]=0.0;
 	}
 
@@ -733,11 +733,11 @@ void dailyaccounting_patch(Patch& patch) {
 
 	if (date.islastday) {
 
-		soil.mwcontupper=mean(soil.dwcontupper+date.day-date.ndaymonth[date.month]+1,
+		soil.mwcontupper = mean(soil.dwcontupper + date.day - date.ndaymonth[date.month] + 1,
 			date.ndaymonth[date.month]);
 
 		// guess2008 - record water in lower layer too, and then update mwcont
-		soil.mwcontlower=mean(soil.dwcontlower+date.day-date.ndaymonth[date.month]+1,
+		soil.mwcontlower = mean(soil.dwcontlower + date.day - date.ndaymonth[date.month] + 1,
 			date.ndaymonth[date.month]);
 
 		soil.mwcont[date.month][0] = soil.mwcontupper;
@@ -751,10 +751,10 @@ void dailyaccounting_patch(Patch& patch) {
 
 	// On last day of month, calculate mean soil temperature for last month
 
-	soil.dtemp[date.dayofmonth]=soil.temp;
+	soil.dtemp[date.dayofmonth] = soil.temp;
 
 	if (date.islastday)
-		soil.mtemp=mean(soil.dtemp,date.ndaymonth[date.month]);
+		soil.mtemp = mean(soil.dtemp,date.ndaymonth[date.month]);
 }
 
 
@@ -781,7 +781,7 @@ void respiration_temperature_response(double temp,double& gtemp) {
 	// gtemp = respiration temperature response
 
 	if (temp >= -40.0) {
-		gtemp = exp(308.56 * (1.0/56.02 - 1.0/(temp+46.02)));
+		gtemp = exp(308.56 * (1.0 / 56.02 - 1.0 / (temp + 46.02)));
 	} else {
 		gtemp = 0.0;
 	}
@@ -881,20 +881,20 @@ void daylengthinsoleet(Climate& climate) {
 
 		// Calculate values of saved parameters for this day
 		climate.qo[date.day] = QOO * (1.0 + 2.0 * 0.01675 *
-							cos(2.0*PI*((double)date.day+0.5)/365.0)); // Eqn 2
-		double delta = -23.4 * DEGTORAD * cos(2.0*PI*((double)date.day+10.5)/365.0);
+							cos(2.0 * PI * ((double)date.day + 0.5) / 365.0)); // Eqn 2
+		double delta = -23.4 * DEGTORAD * cos(2.0 * PI * ((double)date.day + 10.5) / 365.0);
 				// Eqn 4, solar declination angle (radians)
 		climate.u[date.day] = climate.sinelat * sin(delta); // Eqn 9
 		climate.v[date.day] = climate.cosinelat * cos(delta); // Eqn 10
 
-		if (climate.u[date.day]>=climate.v[date.day])
-			climate.hh[date.day]=PI; // polar day
-		else if (climate.u[date.day]<=-climate.v[date.day])
-			climate.hh[date.day]=0.0; // polar night
-		else climate.hh[date.day]=
-			acos(-climate.u[date.day]/climate.v[date.day]); // Eqn 11
+		if (climate.u[date.day] >= climate.v[date.day])
+			climate.hh[date.day] = PI; // polar day
+		else if (climate.u[date.day] <= -climate.v[date.day])
+			climate.hh[date.day] = 0.0; // polar night
+		else climate.hh[date.day] =
+			acos(-climate.u[date.day] / climate.v[date.day]); // Eqn 11
 
-		climate.sinehh[date.day]=sin(climate.hh[date.day]);
+		climate.sinehh[date.day] = sin(climate.hh[date.day]);
 
 		// Calculate daylength in hours from hh
 
@@ -905,9 +905,9 @@ void daylengthinsoleet(Climate& climate) {
 
 	if (climate.instype == SUNSHINE) {		// insolation is percentage sunshine
 
-		w=(C+D*climate.insol/100.0)*(1.0-BETA)*climate.qo[date.day]; // Eqn 13
-		climate.rad = 2.0*w*(climate.u[date.day]*climate.hh[date.day] +
-				climate.v[date.day]*climate.sinehh[date.day])*K; // Eqn 14
+		w = (C+D * climate.insol / 100.0) * (1.0 - BETA) * climate.qo[date.day]; // Eqn 13
+		climate.rad = 2.0 * w * (climate.u[date.day] * climate.hh[date.day] +
+				climate.v[date.day] * climate.sinehh[date.day]) * K; // Eqn 14
 
 	}
 	else { // insolation provided as instantaneous downward shortwave radiation flux
@@ -915,11 +915,11 @@ void daylengthinsoleet(Climate& climate) {
 		// deal with the fact that insolation can be radiation during
 		// daylight hours or during whole time step
 
-		double averaging_period = 24*3600;
+		double averaging_period = 24 * 3600;
 
 		if (climate.instype == NETSWRAD || climate.instype == SWRAD) {
 			// insolation is provided as radiation during daylight hours
-			averaging_period = climate.daylength_save[date.day]*3600.0;
+			averaging_period = climate.daylength_save[date.day] * 3600.0;
 		}
 
 		if (climate.instype == NETSWRAD || climate.instype == NETSWRAD_TS) {
@@ -939,7 +939,7 @@ void daylengthinsoleet(Climate& climate) {
 		}
 		else {
 			// include correction for albedo
-			climate.rad = climate.insol*(1.0-BETA)*averaging_period;
+			climate.rad = climate.insol * (1.0 - BETA) * averaging_period;
 		}
 
 		// special case for polar night
@@ -1007,7 +1007,7 @@ void daylengthinsoleet(Climate& climate) {
 	//	(26) eet_day = 2 * ( s / (s + gamma) / lambda ) *
 	//	               ( uu*hn + vv*sin(hn) ) * k
 
-	double rl = (B + (1.0-B)*(w/climate.qo[date.day]/(1.0-BETA)-C)/D) *
+	double rl = (B + (1.0 - B) * (w / climate.qo[date.day] / (1.0 - BETA) - C) / D) *
 				(A - climate.temp); // Eqn 19: instantaneous net upward longwave radiation flux (W/m2)
 
 	//	Calculate gamma and lambda
@@ -1024,12 +1024,12 @@ void daylengthinsoleet(Climate& climate) {
 	// In Eqn (25), hn defined for uu in range -vv to vv
 	// For uu >= vv, hn = pi (12 hours, i.e. polar day)
 	// For uu <= -vv, hn = 0 (i.e. polar night)
-	if (uu>=vv) hn=PI; // polar day
-	else if (uu<=-vv) hn=0.0; // polar night
-	else hn=acos(-uu/vv); // Eqn 25
+	if (uu>=vv) hn = PI; // polar day
+	else if (uu<=-vv) hn = 0.0; // polar night
+	else hn=acos(-uu / vv); // Eqn 25
 
 	// Calculate total EET (equilibrium evapotranspiration) for this day, mm/day
-	climate.eet = 2.0*(s/(s+gamma)/lambda)*(uu*hn+vv*sin(hn))*K;	// Eqn 26;
+	climate.eet = 2.0 * (s / (s + gamma) / lambda) * (uu * hn + vv * sin(hn)) * K;	// Eqn 26;
 }
 
 // Variables for checking nitrogen balance! only works with one patch

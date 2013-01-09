@@ -808,7 +808,7 @@ public:
 	double nuptoroot;
 	/// Michaelis-Menten kinetic parameters chosen to match observed rates of increase 
 	/// in nitrogen uptake at high nitrogen [kgN l-1] (Rothstein 2000) 
-	double Km_volym;
+	double Km_volume;
 		
 	double reprfrac;
 		// fraction of NPP allocated to reproduction		

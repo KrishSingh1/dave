@@ -1377,9 +1377,9 @@ public:
 		// thermal diffusivity at 15% WHC (mm2/s)
 	double thermdiff_100;
 		// thermal diffusivity at 100% WHC (mm2/s)
-	double wp[2];
+	double wp[NSOILLAYER];
 		// wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
-	double wsats[2];
+	double wsats[NSOILLAYER];
 		// saturation point. Cosby et al 1984
 	int solvesom_end;
 		// year at which to calculate equilibrium soil carbon
@@ -1493,12 +1493,6 @@ struct LitterSolveSOM : public Serializable {
 		}
 	}
 
-	// Carbon litter
-	double clitter[NSOMPOOL];
-	
-	// Nitrogen litter
-	double nlitter[NSOMPOOL];
-
 	/// Add litter
     void add_litter(double cvalue, double nvalue, int pool) {
 		clitter[pool] += cvalue;
@@ -1513,6 +1507,13 @@ struct LitterSolveSOM : public Serializable {
 	}
 
 	void serialize(ArchiveStream& arch);
+
+private:
+	// Carbon litter
+	double clitter[NSOMPOOL];
+	
+	// Nitrogen litter
+	double nlitter[NSOMPOOL];
 };
 
 /// Soil stores state variables for soils and the snow pack. 
@@ -1976,8 +1977,6 @@ public:
 	double mpet[12];
 		// monthly PET (mm/month)
 
-	/// fractional nitrogen uptake of patch demand
-	double fnuptake;
 	/// daily nitrogen demand
 	double ndemand;
 
@@ -2002,7 +2001,6 @@ public:
 		growingseasondays = 0;
 
 		fireprob = 0.0;
-		fnuptake = 1.0;
 		ndemand = 0.0;
 	}
 

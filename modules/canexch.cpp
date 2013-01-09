@@ -41,7 +41,7 @@
 // FILE SCOPE GLOBAL CONSTANTS
 
 /// leaf nitrogen (kgN/kgC) not associated with photosynthesis
-/// (value given by Haxeltine & Prentice 1996)
+/** (value given by Haxeltine & Prentice 1996) */
 const double N0 = 7.15 * 0.001;
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -492,13 +492,13 @@ void fpar(Patch& patch) {
 	}
 }
 
-/// Non-water stressed rubisco capacity
-/** Calculation of non-water-stressed rubisco capacity assuming leaf nitrogen not
- *  limiting (Eqn 11, Haxeltine & Prentice 1996a)
- *  Calculation of sigma is based on Eqn 12 (same source)
- */
+/// Non-water stressed rubisco capacity, with or without nitrogen limitation
 void vmax(double b, double c1, double c2, double apar, double tscal,
 		  double daylength, double temp, double nactive, bool ifnlimvmax, double& vm, double& vmaxnlim, double& na) {
+
+	// Calculation of non-water-stressed rubisco capacity assuming leaf nitrogen not
+	// limiting (Eqn 11, Haxeltine & Prentice 1996a)
+	// Calculation of sigma is based on Eqn 12 (same source)
 
 	double s =  24.0 / daylength * b;
 	double sigma = sqrt(max(0., 1. - (c2 - s) / (c2 - THETA * s)));
@@ -526,8 +526,9 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
 		vmaxnlim = vm_max / vm;	// Save vmax nitrogen limitation
 		vm = vm_max;
 	}
-	else
+	else {
 		vmaxnlim = 1.0;
+	}
 }
 
 /// Total daily gross photosynthesis
@@ -538,8 +539,8 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
  */
 void photosynthesis(double co2, double temp, double par, double daylength,
                     double fpar, double lambda, const Pft& pft, 
-					double nactive, bool ifnlimvmax,
-					PhotosynthesisResult& result, double vm) {
+                    double nactive, bool ifnlimvmax,
+                    PhotosynthesisResult& result, double vm) {
 
 	// DESCRIPTION
 	// Calculation of total daily gross photosynthesis and leaf-level net daytime
@@ -1091,12 +1092,14 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 				// Calculate optimal leaf nitrogen associated with photosynthesis and none photosynthetic 
 				// active nitrogen (Haxeltine et al. 1996 eqn 27/28)
 				// Added difference between needleleaved and broadleaved mentioned in Friend et al. 1997
-				if (indiv.pft.leafphysiognomy == BROADLEAF)
+				if (indiv.pft.leafphysiognomy == BROADLEAF) {
 					leafoptn = indiv.photosynthesis.nmass_term + N0 * indiv.cmass_leaf * indiv.phen;
-				else
+				}
+				else {
 					leafoptn = indiv.photosynthesis.nmass_term + 
-					(0.67 * N0 + 0.33 * (indiv.nmass_leaf + indiv.photosynthesis.nmass_term) / (indiv.cmass_leaf * indiv.phen)) *
-					indiv.cmass_leaf * indiv.phen; 
+					    (0.67 * N0 + 0.33 * (indiv.nmass_leaf + indiv.photosynthesis.nmass_term) / (indiv.cmass_leaf * indiv.phen)) *
+					    indiv.cmass_leaf * indiv.phen;
+				}
 			}
 			else {
 				// If no nitrogen limitation use average nitrogen content in leaves
@@ -1217,13 +1220,10 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 	// Calculate individual uptake fraction of nitrogen demand
 	if (patch.ndemand > tot_nmass_avail && ifnlim) {
 
-		patch.fnuptake = patch.ndemand > 0.0 ? tot_nmass_avail / patch.ndemand : 0.0;
+		double patch_fnuptake = patch.ndemand > 0.0 ? tot_nmass_avail / patch.ndemand : 0.0;
 		
 		// Determine individual nitrogen uptake fractions
-		fnuptake(vegetation, tot_nmass_avail, patch.fnuptake);
-	}
-	else {
-		patch.fnuptake = 1.0;
+		fnuptake(vegetation, tot_nmass_avail, patch_fnuptake);
 	}
 
 	// Resolve nitrogen stress with longterm stored nitrogen

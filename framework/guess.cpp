@@ -384,7 +384,6 @@ void Patch::serialize(ArchiveStream& arch) {
 		& mintercep
 		& mrunoff
 		& mpet
-		& fnuptake
 		& ndemand;
 }
 

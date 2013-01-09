@@ -1049,7 +1049,7 @@ void nstore_usage(Vegetation& vegetation) {
 /** Determines nitrogen demand based on vmax for leaves. 
  *  Roots and sap wood nitrogen concentration follows leaf 
  *  nitrogen concentration. 
- *  Also determins individual nitrogen uptake capability 
+ *  Also determines individual nitrogen uptake capability 
  */
 void ndemand(Patch& patch, Vegetation& vegetation) {
 
@@ -1099,15 +1099,15 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 					indiv.cmass_leaf * indiv.phen; 
 			}
 			else {
-				// If no nitrogen limitation or free nitrogen year use average nitrogen content in leaves
+				// If no nitrogen limitation use average nitrogen content in leaves
 				leafoptn = indiv.cmass_leaf * indiv.phen / indiv.pft.cton_leaf_avr;
 			}
 
-			// Can not have higher nitrogen concentartion than minimum leaf C:N ratio
+			// Can not have higher nitrogen concentration than minimum leaf C:N ratio
 			if (indiv.cmass_leaf * indiv.phen / leafoptn < indiv.pft.cton_leaf_min) {
 				leafoptn = indiv.cmass_leaf * indiv.phen / indiv.pft.cton_leaf_min;
 			}
-			// Can not have lower nitrogen concentartion than maximum leaf C:N ratio
+			// Can not have lower nitrogen concentration than maximum leaf C:N ratio
 			else if (indiv.cmass_leaf * indiv.phen / leafoptn > indiv.pft.cton_leaf_max) {
 				leafoptn = indiv.cmass_leaf * indiv.phen / indiv.pft.cton_leaf_max;
 			}
@@ -1116,13 +1116,15 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 			indiv.cton_leaf_aopt = min(indiv.cmass_leaf * indiv.phen / leafoptn, indiv.cton_leaf_aopt);
 
 			// Leaf nitrogen demand
-			indiv.leafndemand = leafoptn > indiv.nmass_leaf ? leafoptn - indiv.nmass_leaf : 0.0;			
+			indiv.leafndemand = max(leafoptn - indiv.nmass_leaf, 0.0);
 
 			// Setting daily optimal leaf C:N ratio
-			if (indiv.leafndemand)
+			if (indiv.leafndemand) {
 				cton_leaf_opt = indiv.cmass_leaf * indiv.phen / leafoptn;
-			else
+			}
+			else {
 				cton_leaf_opt = max(indiv.pft.cton_leaf_min, indiv.cton_leaf());
+			}
 		}
 		else {
 			indiv.leafndemand = 0.0;

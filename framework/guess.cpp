@@ -9,7 +9,7 @@
 
 #include "config.h"
 #include "guess.h"
-#include "driver.h"
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES WITH EXTERNAL LINKAGE
@@ -139,9 +139,8 @@ void Climate::serialize(ArchiveStream& arch) {
 
 Fluxes::Fluxes(Patch& p) 		
   : patch(p), 
-
     annual_fluxes_per_pft(npft, std::vector<double>(NPERPFTFLUXTYPES)) {
-
+	
 	reset();
 }
 
@@ -235,10 +234,8 @@ void Vegetation::serialize(ArchiveStream& arch) {
 
 
 void LitterSolveSOM::serialize(ArchiveStream& arch) {
-	for (int p = 0; p<NSOMPOOL; p++) {
-		arch & clitter[p]
-		     & nlitter[p];
-	} 
+	arch & clitter
+		& nlitter;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -273,9 +270,9 @@ void Soil::serialize(ArchiveStream& arch) {
 		& max_rain_melt
 		& percolate;
 
-		for (int i = 0; i<NSOMPOOL; i++) {
-			arch & sompool[i];
-		} 
+	for (int i = 0; i<NSOMPOOL; i++) {
+		arch & sompool[i];
+	} 
 
 	arch & dperc		
 		& orgleachfrac
@@ -409,28 +406,28 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),gridcell(gc),la
 	unsigned int p;
 	unsigned int npatchL;
 
-	for(p=0; p<pftlist. nobj;p++) {
+	for(p=0;p<pftlist.nobj;p++) {
 		pft.createobj(pftlist[p]);
 	}
 
 
-	if(landcover == CROPLAND || landcover == PASTURE || landcover == URBAN || landcover == PEATLAND) {
+	if(landcover==CROPLAND || landcover==PASTURE || landcover==URBAN || landcover==PEATLAND) {
 		npatchL=1;
 	}
-	else if(landcover == NATURAL || landcover == FOREST) {
+	else if(landcover==NATURAL || landcover==FOREST) {
 		npatchL=::npatch; // use the global variable npatch (not Stand::npatch)
 	}
 
-	for (p=0; p<npatchL; p++) {
+	for (p=0;p<npatchL;p++) {
 		createobj(*this,gc.soiltype);
 	}
 
-	first_year = date.year;
+	first_year=date.year;
 	seed = 12345678;
 }
 
 double Stand::get_gridcell_fraction() const {
-	return frac * gridcell.landcoverfrac[landcover];
+	return frac*gridcell.landcoverfrac[landcover];
 }
 
 double Stand::get_landcover_fraction() const {
@@ -667,7 +664,6 @@ void Gridcell::set_coordinates(double longitude, double latitude) {
 }
 
 void Gridcell::serialize(ArchiveStream& arch) {
-
 	arch & climate
 		& landcoverfrac
 		& landcoverfrac_old

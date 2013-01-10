@@ -40,21 +40,6 @@
  */
 double randfrac(long& seed) {
 
-
-// guess2008
-extern int nyear_spinup;
-	// allows access to the value declared guessio_cru.cpp
-
-
-/// Function for generating random numbers
-/** Returns a random floating-point number in the range 0-1.
- *  Uses and updates the parameter 'seed' which may be initialised to any
- *  positive integral value (the same initial value will result in the same sequence
- *  of returned values on subsequent calls to randfrac every time the program is
- *  run)
- */
-double randfrac(long& seed) {{
-
 	// Reference: Park & Miller 1988 CACM 31: 1192
 
 	const long modulus=2147483647;
@@ -168,7 +153,7 @@ void soilparameters(Soiltype& soiltype,int soilcode,double soildepth) {
 	soiltype.wtot = (data[soilcode-1][1] + data[soilcode-1][5]) * (soildepth);
 
 	if (!ifcentury) {
-		// guess2008 - override the default SOM years with 70-80% of the spin-up period
+		// override the default SOM years with 70-80% of the spin-up period
 		soiltype.updateSolveSOMvalues(nyear_spinup);
 	}
 }
@@ -364,9 +349,6 @@ void interp_monthly_totals_conserve(const double* mvals, double* dvals) {
 	interp_monthly_means_conserve(mvals_daily, dvals);
 }
 
-///////////////////////////////////////////////////////////////////////////////////////
-//  PRDAILY
-
 /// Distribution of monthly precipitation totals to quasi-daily values
 /** \param mval_prec  total rainfall (mm) for month
  *  \param dval_prec  actual rainfall (mm) for each day of year
@@ -374,7 +356,6 @@ void interp_monthly_totals_conserve(const double* mvals, double* dvals) {
  *  \param seed       seed for generating random numbers (\see randfrac)
  */
 void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12], long seed) {
-
 
 //  Distribution of monthly precipitation totals to quasi-daily values
 //  (From Dieter Gerten 021121)
@@ -555,12 +536,15 @@ void soiltemp(Climate& climate,Soil& soil) {
 
 			soil.alag=DEPTH/sqrt(k/HALF_OMEGA); // from Eqn 1
 			soil.exp_alag=exp(-soil.alag);
+
 		}
 
 		// Every day, calculate linear model for trend in daily air
 		// temperatures for the last 31 days: temp_day = a + b * day
 
-		regress(day,climate.dtemp_31,31,a,b);
+		double buffer[31];
+		climate.dtemp_31.to_array(buffer);
+		regress(day, buffer, 31, a, b);
 
 		// Calculate soil temperature
 
@@ -594,19 +578,19 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	if (date.day==0) {
 		// ... reset annual GDD5 counter
 		climate.agdd5=0.0;
-		climate.aprec = 0.0;
 
 		if (date.year==0) {
 			// First day of simulation - initialise running annual mean temperature and daily temperatures for the last month
-			for (d=0;d<31;d++)
-				climate.dtemp_31[d]=climate.temp;
+			for (d = 0; d < climate.dtemp_31.CAPACITY; d++) {
+				climate.dtemp_31.add(climate.temp);
+			}
 
 			climate.atemp_mean=climate.temp;
 
 			// Initialise gridcellpfts Michaelis-Menten kinetic Km value
 			pftlist.firstobj();
 				while (pftlist.isobj) {
-					gridcell.pft[pftlist.getobj().id].Km = pftlist.getobj().Km_volym * gridcell.soiltype.wtot;
+				gridcell.pft[pftlist.getobj().id].Km = pftlist.getobj().Km_volume * gridcell.soiltype.wtot;
 					pftlist.nextobj();
 				}
 		}
@@ -637,9 +621,6 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		climate.ifsensechill=false; // guess2008 - CHILLDAYS
 	}
 
-	// adding up annual precipitation
-	climate.aprec += climate.prec;
-
 	// Update GDD counters and chill day count
 	climate.gdd5+=max(0.0,climate.temp-5.0);
 	climate.agdd5+=max(0.0,climate.temp-5.0);
@@ -664,13 +645,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	mtemp_last=climate.mtemp;
 
 	// Update daily temperatures, and mean overall temperature, for last 31 days
-	climate.mtemp=climate.temp;
-	for (d=0;d<30;d++) {
-		climate.dtemp_31[d]=climate.dtemp_31[d+1];
-		climate.mtemp+=climate.dtemp_31[d];
-	}
-	climate.dtemp_31[30]=climate.temp;
-	climate.mtemp/=31.0;
+	climate.dtemp_31.add(climate.temp);
+	climate.mtemp = climate.dtemp_31.mean();
 
 	// Reset GDD and chill day counter if mean monthly temperature falls below base
 	// temperature
@@ -756,8 +732,8 @@ void dailyaccounting_patch(Patch& patch) {
 	if (date.day == 0) {
 
 		patch.aaet = 0.0;
-		patch.apet = 0.0;
 		patch.aintercep = 0.0;
+		patch.apet = 0.0;
 
 		// Calculate total FPC
 		patch.fpc_total = 0;
@@ -775,8 +751,8 @@ void dailyaccounting_patch(Patch& patch) {
 	if (date.dayofmonth == 0) {
 
 		patch.maet[date.month] = 0.0;
-		patch.mpet[date.month] = 0.0;
 		patch.mintercep[date.month] = 0.0;
+		patch.mpet[date.month] = 0.0;
 	}
 
 	if(run_landcover)
@@ -965,6 +941,7 @@ void daylengthinsoleet(Climate& climate) {
 		w=(C+D*climate.insol/100.0)*(1.0-BETA)*climate.qo[date.day]; // Eqn 13
 		climate.rad = 2.0*w*(climate.u[date.day]*climate.hh[date.day] +
 				climate.v[date.day]*climate.sinehh[date.day])*K; // Eqn 14
+
 	}
 	else { // insolation provided as instantaneous downward shortwave radiation flux
 
@@ -1003,8 +980,8 @@ void daylengthinsoleet(Climate& climate) {
 			w = 0;
 		}
 		else {
-			w = climate.rad / 2.0 / (climate.u[date.day] * climate.hh[date.day] +
-				climate.v[date.day] * climate.sinehh[date.day]) / K; // from Eqn 14
+			w = climate.rad/2.0/(climate.u[date.day]*climate.hh[date.day]
+				+climate.v[date.day]*climate.sinehh[date.day])/K; // from Eqn 14
 		}
 	}
 
@@ -1120,7 +1097,7 @@ void check_nbalance(Patch& patch, bool print) {
 		while (vegetation.isobj) {
 			Individual& indiv = vegetation.getobj();
 
-			vegn += indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + indiv.nmass_heart;
+			vegn += indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_wood();
 			vegstore += indiv.nstore(); 
 			
 			vegetation.nextobj();
@@ -1174,6 +1151,9 @@ void check_nbalance(Patch& patch, bool print) {
 //   et al 2000
 // Carslaw, HS & Jaeger JC 1959 Conduction of Heat in Solids, Oxford University
 //   Press, London
+// Cosby, B. J., Hornberger, C. M., Clapp, R. B., & Ginn, T. R. 1984 A statistical exploration
+//   of the relationships of soil moisture characteristic to the physical properties of soil.
+//   Water Resources Research, 20: 682-690.
 // Haxeltine A & Prentice IC 1996 BIOME3: an equilibrium terrestrial biosphere
 //   model based on ecophysiological constraints, resource availability, and
 //   competition among plant functional types. Global Biogeochemical Cycles 10:

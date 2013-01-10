@@ -484,10 +484,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// ... if not, add it
 
 						Individual& indiv=vegetation.createobj(pft,vegetation);
-						indiv.height=0.0;
-						indiv.crownarea=1.0; // (value not used)
-						indiv.densindiv=1.0;
-						indiv.fpc=1.0;
+						indiv.height      = 0.0;
+						indiv.crownarea   = 1.0; // (value not used)
+						indiv.densindiv   = 1.0;
+						indiv.fpc         = 1.0;
 					
 						// Initial grass biomass proportional to potential forest floor
 						// net assimilation this year on patch area basis
@@ -661,9 +661,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 			// Reset running sums for next year (establishment years only in cohort mode)
 
 			if (vegmode!=COHORT || !(patch.age%estinterval)) {
-				patch.pft[pft.id].nsapling=0.0;
+				patch.pft[pft.id].nsapling       = 0.0;
 				patch.pft[pft.id].wscal_mean_est=0.0;
-				patch.pft[pft.id].anetps_ff_est=0.0;
+				patch.pft[pft.id].anetps_ff_est  = 0.0;
 			}
 
 		}
@@ -778,11 +778,11 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 
 			patch.pft[indiv.pft.id].litter_leaf+=indiv.cmass_leaf;
 			patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
-			patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
+			patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_wood();
 
 			patch.pft[indiv.pft.id].nmass_litter_leaf+=indiv.nmass_leaf;
 			patch.pft[indiv.pft.id].nmass_litter_root+=indiv.nmass_root;
-			patch.pft[indiv.pft.id].nmass_litter_wood+=indiv.nmass_sap+indiv.nmass_heart;
+			patch.pft[indiv.pft.id].nmass_litter_wood+=indiv.nmass_wood();
 			
 			// Transfer nitrogen storage to wood nitrogen litter for now 
 			if (patch.pft[indiv.pft.id].pft.lifeform == TREE)
@@ -848,46 +848,25 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 			// (above-ground biomass killed by fire enters atmosphere, not litter)
 
 			patch.pft[indiv.pft.id].litter_leaf+=(mort-mort_fire)*indiv.cmass_leaf;
-			patch.pft[indiv.pft.id].litter_wood+=(mort-mort_fire)*
-				(indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt);
 			patch.pft[indiv.pft.id].litter_root+=mort*indiv.cmass_root;
+			patch.pft[indiv.pft.id].litter_wood+=(mort-mort_fire)*indiv.cmass_wood();
 
 			patch.pft[indiv.pft.id].nmass_litter_leaf+=(mort-mort_fire)*indiv.nmass_leaf;
 			patch.pft[indiv.pft.id].nmass_litter_root+=mort*indiv.nmass_root;
-			patch.pft[indiv.pft.id].nmass_litter_wood+=(mort-mort_fire)*(indiv.nmass_sap+
-				indiv.nmass_heart);
+			patch.pft[indiv.pft.id].nmass_litter_wood+=(mort-mort_fire)*indiv.nmass_wood();
 				
 			// Transfer nitrogen storage to wood nitrogen litter for now 	
 			patch.pft[indiv.pft.id].nmass_litter_wood += (mort - mort_fire) * indiv.nstore();
 
 			// Flux to atmosphere from burnt above-ground biomass
 
-			indiv.report_flux(Fluxes::FIREC, 
-			                  mort_fire*(indiv.cmass_leaf+indiv.cmass_sap+
-			                             indiv.cmass_heart-indiv.cmass_debt));
+			indiv.report_flux(Fluxes::FIREC, mort_fire*(indiv.cmass_leaf + indiv.cmass_wood()));
 
-			double nmass = indiv.nmass_leaf + indiv.nmass_sap + indiv.nmass_heart + 
-				indiv.nstore();
-
-			report_fire_nfluxes(indiv, mort_fire * nmass);
+			report_fire_nfluxes(indiv, mort_fire * (indiv.nmass_leaf + indiv.nmass_wood() + indiv.nstore()));
 
 			// Reduce population density and C biomass on modelled area basis
 			// to account for loss of killed individuals
-
-			indiv.densindiv     *= 1.0 - mort;
-			indiv.cmass_leaf    *= 1.0 - mort;
-			indiv.cmass_root    *= 1.0 - mort;
-			indiv.cmass_sap     *= 1.0 - mort;
-			indiv.cmass_debt    *= 1.0 - mort;
-			indiv.cmass_heart   *= 1.0 - mort;
-
-			indiv.nmass_leaf    *= 1.0 - mort;
-			indiv.nmass_root    *= 1.0 - mort;
-			indiv.nmass_sap     *= 1.0 - mort;
-			indiv.nmass_heart   *= 1.0 - mort;
-			indiv.nstore_leaf   *= 1.0 - mort;
-			indiv.nstore_root   *= 1.0 - mort;
-			indiv.nstore_labile *= 1.0 - mort;
+			indiv.reduce_biomass(1.0 - mort);
 		}
 		else if (indiv.pft.lifeform==GRASS) {
 			
@@ -937,15 +916,7 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 
 			// Reduce C biomass on modelled area basis to account for biomass lost
 			// through mortality
-
-			indiv.cmass_leaf*=1.0-mort;
-			indiv.cmass_root*=1.0-mort;
-
-			indiv.nmass_leaf*=1.0-mort;
-			indiv.nmass_root*=1.0-mort;
-			indiv.nstore_leaf*=1.0-mort;
-			indiv.nstore_root*=1.0-mort;
-			indiv.nstore_labile*=1.0-mort;
+			indiv.reduce_biomass(1.0 - mort);
 		}
 
 		// Remove this PFT population completely if all individuals killed
@@ -1065,19 +1036,13 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					indiv.report_flux(Fluxes::FIREC, mort_fire*indiv.cmass_leaf);
 					patch.pft[indiv.pft.id].litter_root+=mort_fire*indiv.cmass_root;
 
-					indiv.cmass_leaf*=indiv.pft.fireresist;
-					indiv.cmass_root*=indiv.pft.fireresist;
-
 					// nitrogen storage to root nitrogen litter 
 					patch.pft[indiv.pft.id].nmass_litter_root += mort_fire * (indiv.nmass_root + indiv.nstore());
 
 					report_fire_nfluxes(indiv, mort_fire * indiv.nmass_leaf);
 
-					indiv.nmass_leaf    *= indiv.pft.fireresist;
-					indiv.nmass_root    *= indiv.pft.fireresist;
-					indiv.nstore_leaf   *= indiv.pft.fireresist;
-					indiv.nstore_root   *= indiv.pft.fireresist;
-					indiv.nstore_labile *= indiv.pft.fireresist;
+					// Reduce individual biomass
+					indiv.reduce_biomass(indiv.pft.fireresist);
 
 					// Update allometry
 
@@ -1113,43 +1078,18 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 
 					// Calculate flux from biomass to atmosphere due to fire
 					// (flux from litter calculated in function fire)
+					indiv.report_flux(Fluxes::FIREC, (1.0 - frac_survive) * (indiv.cmass_leaf + indiv.cmass_wood()));
 
-					indiv.report_flux(Fluxes::FIREC,
-					                  (1.0-frac_survive)*(indiv.cmass_leaf+
-					                                      indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt));
-
-					// Transfer killed roots to litter
-
-					patch.pft[indiv.pft.id].litter_root+=
-						(1.0-frac_survive)*indiv.cmass_root;
-
-					// Reduce individual density and biomass on patch area basis
-					// to account for loss of killed individuals
-
-					indiv.densindiv*=frac_survive;
-					indiv.cmass_leaf*=frac_survive;
-					indiv.cmass_root*=frac_survive;
-					indiv.cmass_sap*=frac_survive;
-					indiv.cmass_debt*=frac_survive;
-					indiv.cmass_heart*=frac_survive;
+					report_fire_nfluxes(indiv, (1.0 - frac_survive) * (indiv.nmass_leaf + indiv.nmass_wood() + indiv.nstore()));
 
 					// Transfer killed roots to litter
+					patch.pft[indiv.pft.id].litter_root += (1.0 - frac_survive) * indiv.cmass_root;
+
 					patch.pft[indiv.pft.id].nmass_litter_root += (1.0 - frac_survive) * indiv.nmass_root;
-
-					// Calculate flux from biomass to atmosphere due to fire
-					double nmass = indiv.nmass_leaf + indiv.nmass_sap +	indiv.nmass_heart + indiv.nstore();
-
-					report_fire_nfluxes(indiv, (1.0 - frac_survive) * nmass);
 
 					// Reduce individual biomass on patch area basis
 					// to account for loss of killed individuals
-					indiv.nmass_leaf    *= frac_survive;
-					indiv.nmass_root    *= frac_survive;
-					indiv.nmass_sap     *= frac_survive;
-					indiv.nmass_heart   *= frac_survive;
-					indiv.nstore_leaf   *= frac_survive;
-					indiv.nstore_root   *= frac_survive;
-					indiv.nstore_labile *= frac_survive;
+					indiv.reduce_biomass(frac_survive);
 
 					// Remove this cohort completely if all individuals killed
 					// (in individual mode: removes individual if killed)
@@ -1185,12 +1125,11 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 
 			patch.pft[indiv.pft.id].litter_leaf+=indiv.cmass_leaf;
 			patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
-			patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap+indiv.cmass_heart-
-				indiv.cmass_debt;
+			patch.pft[indiv.pft.id].litter_wood += indiv.cmass_wood();
 
 			patch.pft[indiv.pft.id].nmass_litter_leaf += indiv.nmass_leaf;
 			patch.pft[indiv.pft.id].nmass_litter_root += indiv.nmass_root;
-			patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nmass_sap + indiv.nmass_heart;
+			patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nmass_wood();
 				
 			// Transfer nitrogen storage to wood nitrogen litter for now
 			if (indiv.pft.lifeform == TREE)
@@ -1330,33 +1269,18 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 				patch.pft[indiv.pft.id].litter_root+=
 					(1.0-frac_survive)*indiv.cmass_root;
 				patch.pft[indiv.pft.id].litter_wood+=
-					(1.0-frac_survive)*(indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt);
+					(1.0 - frac_survive) * (indiv.cmass_wood());
 
 				patch.pft[indiv.pft.id].nmass_litter_leaf += (1.0 - frac_survive) * indiv.nmass_leaf;
 				patch.pft[indiv.pft.id].nmass_litter_root += (1.0 - frac_survive) * indiv.nmass_root;
-				patch.pft[indiv.pft.id].nmass_litter_wood +=
-					(1.0 - frac_survive) * (indiv.nmass_sap + indiv.nmass_heart);
+				patch.pft[indiv.pft.id].nmass_litter_wood += (1.0 - frac_survive) * (indiv.nmass_wood());
 			
 				// Transfer nitrogen storage to wood nitrogen litter for now 	
 				patch.pft[indiv.pft.id].nmass_litter_wood += (1.0 - frac_survive) * indiv.nstore();
 
 				// Reduce individual density and biomass on patch area basis
 				// to account for loss of killed individuals
-
-				indiv.densindiv     *= frac_survive;
-				indiv.cmass_leaf    *= frac_survive;
-				indiv.cmass_root    *= frac_survive;
-				indiv.cmass_sap     *= frac_survive;
-				indiv.cmass_debt    *= frac_survive;
-				indiv.cmass_heart   *= frac_survive;
-
-				indiv.nmass_leaf    *= frac_survive;
-				indiv.nmass_root    *= frac_survive;
-				indiv.nmass_sap     *= frac_survive;
-				indiv.nmass_heart   *= frac_survive;
-				indiv.nstore_leaf   *= frac_survive;
-				indiv.nstore_root   *= frac_survive;
-				indiv.nstore_labile *= frac_survive;
+				indiv.reduce_biomass(frac_survive);
 
 				// Remove this cohort completely if all individuals killed
 				// (in individual mode: removes individual if killed)
@@ -1496,18 +1420,13 @@ void fire(Patch& patch,double& fireprob) {
 		                         mort_fire*(patch.pft[p].litter_leaf+
 		                                    patch.pft[p].litter_wood+patch.pft[p].litter_repr));
 
+		report_fire_nfluxes(patch, mort_fire * (patch.pft[p].nmass_litter_leaf + patch.pft[p].nmass_litter_wood));
+
 		// Account for burnt above ground litter
 
 		patch.pft[p].litter_leaf *= (1.0 - mort_fire);
 		patch.pft[p].litter_wood *= (1.0 - mort_fire);
 		patch.pft[p].litter_repr *= (1.0 - mort_fire);
-
-
-		// Calculate nitrogen fluxes from burnt litter
-		double nmass_litter = patch.pft[p].nmass_litter_leaf + patch.pft[p].nmass_litter_wood;
-
-		report_fire_nfluxes(patch, mort_fire * nmass_litter);
-
 		patch.pft[p].nmass_litter_leaf *= (1.0 - mort_fire);
 		patch.pft[p].nmass_litter_wood *= (1.0 - mort_fire);
 	}
@@ -1565,12 +1484,11 @@ void disturbance(Patch& patch,double disturb_prob) {
 
 			patch.pft[indiv.pft.id].litter_leaf+=indiv.cmass_leaf;
 			patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
-			patch.pft[indiv.pft.id].litter_wood += indiv.cmass_sap + indiv.cmass_heart -
-				indiv.cmass_debt;
+			patch.pft[indiv.pft.id].litter_wood += indiv.cmass_wood();
 
 			patch.pft[indiv.pft.id].nmass_litter_leaf += indiv.nmass_leaf;
 			patch.pft[indiv.pft.id].nmass_litter_root += indiv.nmass_root;
-			patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nmass_sap + indiv.nmass_heart;
+			patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nmass_wood();
 
 			// Transfer nitrogen storage to wood nitrogen litter for now 
 			if (indiv.pft.lifeform == TREE)
@@ -2096,7 +2014,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		// Patch-destroying disturbance
 
 		// Disturbance for equilsom() to get century SOM pool to equilibrium faster
-		if (ifcentury && date.year == (int)((patch.soil.solvesomcent_beginyr + patch.soil.solvesomcent_endyr)/2)) {
+		if (ifcentury && (date.year == (int)((patch.soil.solvesomcent_beginyr + patch.soil.solvesomcent_endyr)/2) || date.year == freenyears)) {
 			disturbance(patch, 1.0);
 			if (patch.disturbed) {
 				return; // no mortality or establishment this year
@@ -2173,6 +2091,9 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 //
 // LPJF refers to the original FORTRAN implementation of LPJ as described by Sitch
 //   et al 2001
+// Delmas, R., Lacaux, J.P., Menaut, J.C., Abbadie, L., Le Roux, X., Helaa, G., Lobert, J., 1995. 
+//   Nitrogen compound emission from biomass burning in tropical African Savanna FOS/DECAFE 1991 
+//   experiment. Journal of Atmospheric Chemistry 22, 175–193.
 // Fulton, MR 1991 Adult recruitment rate as a function of juvenile growth in size-
 //   structured plant populations. Oikos 61: 102-105.
 // Pacala SW, Canham, CD & Silander JA Jr 1993 Forest models defined by field

@@ -492,7 +492,7 @@ void plib_declarations(int id,xtring setname) {
 			"Respiration Sapwood C:N mass ratio");
 		declareitem("nuptoroot",&ppft->nuptoroot,0.0,1.0,1,CB_NONE,
 			"Maximum nitrogen uptake per fine root");
-		declareitem("Km_volym",&ppft->Km_volym,0.0,10.0,1,CB_NONE,
+		declareitem("Km_volume",&ppft->Km_volume,0.0,10.0,1,CB_NONE,
 			"Michaelis-Menten kinetic parameters for nitrogen uptake");
 
 		declareitem("reprfrac",&ppft->reprfrac,0.0,1.0,1,CB_NONE,
@@ -805,7 +805,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("cton_root_avr")) badins("cton_root_avr");
 		if (!itemparsed("cton_root_resp")) badins("cton_root_resp");
 		if (!itemparsed("nuptoroot")) badins("nuptoroot");
-		if (!itemparsed("Km_volym")) badins("Km_volym");
+		if (!itemparsed("Km_volume")) badins("Km_volume");
 
 		if (!itemparsed("reprfrac")) badins("reprfrac");
 		if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
@@ -1280,7 +1280,7 @@ const int FIRSTHISTYEAR=1901;
 /// calender year corresponding to first year nitrogen deposition
 const int FIRSTHISTYEARNDEP=1850;
 /// number of years of historical nitrogen deposition 
-const int NYEAR_HISTNDEP=FIRSTHISTYEAR-FIRSTHISTYEARNDEP+NYEAR_HIST;
+const int NYEAR_HISTNDEP=16;
 /// number of years to use for temperature-detrended spinup data set
 /// (not to be confused with the number of years to spinup model for, which
 /// is read from the ins file)	
@@ -1296,9 +1296,6 @@ using namespace GuessOutput;
 
 /// The output channel through which all output is sent
 OutputChannel* output_channel;
-
-// Full pathname of bin file containing annual nitrogen deposition values (read from ins file)
-xtring file_ndep;
 
 // Output tables
 Table out_cmass, out_anpp, out_dens, out_lai, out_cflux, out_cpool, out_firert, out_runoff, out_speciesheights;
@@ -2236,18 +2233,6 @@ void initio(const xtring& insfilename) {
 	// Read CO2 data from file
 	co2.load_file(param["file_co2"].str);
 
-	file_ndep=param["file_ndep"].str;
-	if (file_ndep=="")
-		ifndepdata=false;
-	else {
-		FILE* in_ndep=fopen(file_ndep,"rt");
-		if (!in_ndep)
-			fail("initio: could not open %s for input",(char*)file_ndep);
-
-		fclose(in_ndep);
-		ifndepdata=true;
-	}
-
 	if (run_landcover) {
 		all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
 
@@ -2333,44 +2318,38 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	{
 }
 
 /// Retrieves nitrogen deposition for a particular gridcell
-/** The values are either taken from the andep parameter in the instruction
- *  file, or from a binary archive file.
+/** The values are either taken from a binary archive file or when it's not
+ *  provided default to pre-industrial level of 2 kgN/ha/year.
  *
  *  The binary archive files have nitrogen deposition in gN/m2 on a monthly timestep
- *  for 26 years with 10 year interval (Lamarque et. al., 2011).
+ *  for 16 years with 10 year interval starting from 1850 (Lamarque et. al., 2011).
  *
- *  Returned values will not be smaller than minndep.
- *
- *  \param  filename    The file name of the binary archive
  *  \param  lon         Longitude
  *  \param  lat         Latitude
  */
-bool getndep(xtring filename,double lon,double lat) {
+void getndep(double lon, double lat) {
 
-	int y,m;
-	double dailyndep = 2000.0 / (4.0 * 365.0);	// pre-industrial nitrogen depostion [gN ha-1] (2 kgN/ha/year)
-	double convert = 0.0000001;					// converting from gN ha-1 to kgN m-2
-	double NHxWetDep_10[26][12] = {0.0};
-	double NHxDryDep_10[26][12] = {0.0};
-	double NOyWetDep_10[26][12] = {0.0};
-	double NOyDryDep_10[26][12] = {0.0};
+	const double convert = 1e-7;				// converting from gN ha-1 to kgN m-2
 
-	if (!ifndepdata) {
-		for (y=0;y<16;y++) {
-			for (m=0;m<12;m++) {
-				NHxDryDep_10[y][m] = dailyndep;	
-				NHxWetDep_10[y][m] = dailyndep;	
-				NOyDryDep_10[y][m] = dailyndep;	
-				NOyWetDep_10[y][m] = dailyndep;	
+	xtring file_ndep = param["file_ndep"].str;
+
+	if (file_ndep == "") {
+		// pre-industrial N depostion [gN ha-1] (2 kgN/ha/year)
+		double dailyndep = 2000.0 / (4 * 365) * convert;
+
+		for (int y=0; y<NYEAR_HISTNDEP; y++) {
+			for (int m=0; m<12; m++) {
+				NHxDryDep[y][m] = dailyndep;
+				NHxWetDep[y][m] = dailyndep;
+				NOyDryDep[y][m] = dailyndep;
+				NOyWetDep[y][m] = dailyndep;
 			}
 		}
 	}
 	else {
-
 	GlobalNitrogenDepositionArchive ark;
-		if (!ark.open(filename)) {
-			fail("Could not open %s for input",(char*)filename);
-		 return false;
+		if (!ark.open(file_ndep)) {
+			fail("Could not open %s for input", (char*)file_ndep);
 	}
 
 	GlobalNitrogenDeposition rec;
@@ -2378,65 +2357,22 @@ bool getndep(xtring filename,double lon,double lat) {
 	rec.latitude = lat;
 	
 	if (!ark.getindex(rec)) {
-		 // The coordinate wasn't found in the archive
 		 ark.close();
-		 return false;
+			fail("Grid cell not found in %s", (char*)file_ndep);
 	}
-	else {
-		 // Found the record, get the values
-		for (y=0;y<16;y++) {
-			for (m=0;m<12;m++) {
-				NHxDryDep_10[y][m] = rec.NHxDry[y*12+m];
-				NHxWetDep_10[y][m] = rec.NHxWet[y*12+m];	
-				NOyDryDep_10[y][m] = rec.NOyDry[y*12+m];	
-				NOyWetDep_10[y][m] = rec.NOyWet[y*12+m];
+
+		// Found the record, get the values
+		for (int y=0; y<NYEAR_HISTNDEP; y++) {
+			for (int m=0; m<12; m++) {
+				NHxDryDep[y][m] = rec.NHxDry[y*12+m] * convert;
+				NHxWetDep[y][m] = rec.NHxWet[y*12+m] * convert;
+				NOyDryDep[y][m] = rec.NOyDry[y*12+m] * convert;
+				NOyWetDep[y][m] = rec.NOyWet[y*12+m] * convert;
 			}
 		}
-
 		ark.close();
 	}
 	}
-
-	// interpolate to all hist and scenario years
-
-	int years[] = {5, 15, 25, 35, 45, 55, 65, 75, 85, 95, 105, 115, 125, 135, 145, 155};
-	int interyear[2] = {0};
-	int yy = 0;
-
-	for (y=0;y<NYEAR_HISTNDEP;y++) {
-
-		bool found = false;
-		while (!found){
-			if (y<=years[0]){
-				interyear[0] = 0;
-				interyear[1] = 0;
-				found = true;
-			}
-			else if (y<=years[yy]){
-				interyear[0] = yy-1;
-				interyear[1] = yy;
-				found = true;
-			}
-			else if (y>155)
-				found = true;
-			else
-				yy++;
-		}
-
-		for (m=0;m<12;m++){
-
-			NHxWetDep[y][m] = (NHxWetDep_10[interyear[0]][m] + ((double)(y - years[interyear[0]])) / 10.0 *
-									(NHxWetDep_10[interyear[1]][m] - NHxWetDep_10[interyear[0]][m])) * convert;
-			NHxDryDep[y][m] = (NHxDryDep_10[interyear[0]][m] + ((double)(y - years[interyear[0]])) / 10.0 *
-									(NHxDryDep_10[interyear[1]][m] - NHxDryDep_10[interyear[0]][m])) * convert;
-			NOyWetDep[y][m] = (NOyWetDep_10[interyear[0]][m] + ((double)(y - years[interyear[0]])) / 10.0 *
-									(NOyWetDep_10[interyear[1]][m] - NOyWetDep_10[interyear[0]][m])) * convert;
-			NOyDryDep[y][m] = (NOyDryDep_10[interyear[0]][m] + ((double)(y - years[interyear[0]])) / 10.0 *
-									(NOyDryDep_10[interyear[1]][m] - NOyDryDep_10[interyear[0]][m])) * convert;
-		}
-	}
-	return true;
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GETGRIDCELL
@@ -2500,9 +2436,6 @@ bool getgridcell(Gridcell& gridcell) {
 			gridfound = searchcru_misc(file_cru_misc, lon, lat, elevation, 
 			                           hist_mfrs, hist_mwet, hist_mdtr);
 
-		if (!getndep(file_ndep, lon, lat))
-			fail("Grid cell Lat %g Long %g not found in %s",lat,lon,(char*)file_ndep);
-
 		if (run_landcover) {
 			Coord& c=gridlist.getobj();
 			LUerror=loadlandcover(gridcell, c);
@@ -2564,6 +2497,9 @@ bool getgridcell(Gridcell& gridcell) {
 		// Tell framework the coordinates of this grid cell
 		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
 		
+		// Get nitrogen deposition data
+		getndep(lon, lat);
+
 		// The insolation data will be sent (in function getclimate, below)
 		// as percentage sunshine
 		
@@ -2894,9 +2830,6 @@ bool getclimate(Gridcell& gridcell) {
 			// Return false if last year was the last for the simulation
 			return false;
 		}
-
-		climate.andep  = 0.0;
-		climate.anfert = 0.0;
 		
 	}
 
@@ -2904,7 +2837,13 @@ bool getclimate(Gridcell& gridcell) {
 
 	int first_ndep_year = nyear_spinup + FIRSTHISTYEARNDEP - FIRSTHISTYEAR;
 	
+	if (date.day == 0) {
+		climate.andep  = 0.0;
+		climate.anfert = 0.0;
+	}
+
 	// Nitrogen deposition
+	// Before first year of nitrogen deposition data use first data set
 	if (date.year < first_ndep_year){
 		climate.dndep = (NHxDryDep[0][date.month] +	
 		                 NOyDryDep[0][date.month] + 
@@ -2912,13 +2851,14 @@ bool getclimate(Gridcell& gridcell) {
 		                 NOyWetDep[0][date.month]);
 	}
 	else {  
-		climate.dndep = (NHxDryDep[date.year - first_ndep_year][date.month] +
-		                 NOyDryDep[date.year - first_ndep_year][date.month] +
-		                 NHxWetDep[date.year - first_ndep_year][date.month] +
-		                 NOyWetDep[date.year - first_ndep_year][date.month]);
+		// Use each data set for 10 years
+		int yr = (int)((date.year - first_ndep_year)/10);
+		climate.dndep = (NHxDryDep[yr][date.month] +
+		                 NOyDryDep[yr][date.month] +
+		                 NHxWetDep[yr][date.month] +
+		                 NOyWetDep[yr][date.month]);
 	}
-
-	climate.andep  += climate.dndep;
+	climate.andep += climate.dndep;
 
 	// Nitrogen fertilization
 	climate.dnfert = 0.0;
@@ -3400,7 +3340,7 @@ void outannual(Gridcell& gridcell) {
 	double surfsoillitterc,surfsoillittern,cwdc,cwdn,microc,micron,humusc,humusn,centuryc,centuryn,n_litter,n_harv_slow;
 	double flux_nh3,flux_no,flux_no2,flux_n2o,flux_ntot,flux_nconc;
 
-	// Nitrogen output is in kgN/ha instead of as for carbon kgC/m2
+	// Nitrogen output is in kgN/ha instead of kgC/m2 as for carbon 
 	double m2toha = 10000.0;
 
 	// hold the monthly average across patches
@@ -3583,12 +3523,12 @@ void outannual(Gridcell& gridcell) {
 						if (indiv.id!=-1 && indiv.alive) { 
 							
 							if (indiv.pft.id==pft.id) {
-								standpft_cmass+=indiv.cmass_leaf+
-									indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
-								standpft_nmass      += indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + 
-									indiv.nmass_heart +	indiv.nstore();
+								standpft_cmass      += indiv.cmass_leaf + indiv.cmass_root + 
+								                       indiv.cmass_wood();
+								standpft_nmass      += indiv.nmass_leaf + indiv.nmass_root + 
+								                       indiv.nmass_wood() + indiv.nstore();
 								standpft_cmass_leaf += indiv.cmass_leaf;
-								standpft_nmass_leaf += indiv.cmass_leaf / indiv.cton_leaf_bg;
+								standpft_nmass_leaf += indiv.cmass_leaf / indiv.cton_leaf_aavr;
 								standpft_cmass_veg  += indiv.cmass_veg;
 								standpft_nmass_veg  += indiv.nmass_veg;
 								standpft_lai+=indiv.lai;
@@ -3692,11 +3632,11 @@ void outannual(Gridcell& gridcell) {
 			
 				// Graphical output every 10 years
 				// (Windows shell only - "plot" statements have no effect otherwise)
-				if (true) {
+				if (!(date.year%10)) {
 					plot("cmass",pft.name,date.year,gcpft_cmass);
 					plot("anpp",pft.name,date.year,gcpft_anpp);
 					plot("lai",pft.name,date.year,gcpft_lai);
-					plot("dens [indiv/ha]",pft.name,date.year,gcpft_densindiv_total*10000.0);
+					plot("dens [indiv/ha]",pft.name,date.year,gcpft_densindiv_total*m2toha);
 					if (gcpft_cmass_leaf > 0.0 && ifnlim) {
 						plot("vmax nitrogen lim",pft.name,date.year,gcpft_vmaxnlim);
 						plot("leaf C:N ratio",pft.name,date.year,gcpft_cmass_leaf/gcpft_nmass_leaf);
@@ -3809,6 +3749,7 @@ void outannual(Gridcell& gridcell) {
 				else	
 					firert_gridcell+=(1.0/patch.fireprob)/(double)stand.npatch();
 
+
 				andep_gridcell       += stand.gridcell.climate.andep  / (double)stand.npatch();
 				anfert_gridcell      += stand.gridcell.climate.anfert / (double)stand.npatch();
 				anmin_gridcell       += patch.soil.anmin              / (double)stand.npatch();
@@ -3858,7 +3799,6 @@ void outannual(Gridcell& gridcell) {
 
 					mgpp[m] += patch.fluxes.get_monthly_flux(Fluxes::GPP, m)*to_gridcell_average;
 					mra[m] += patch.fluxes.get_monthly_flux(Fluxes::RA, m)*to_gridcell_average;
-
 					miso[m]+=patch.fluxes.get_monthly_flux(Fluxes::ISO, m)*to_gridcell_average;
 					mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MON, m)*to_gridcell_average;
 				}
@@ -4051,7 +3991,7 @@ void outannual(Gridcell& gridcell) {
 		// Graphical output every 10 years
 		// (Windows shell only - no effect otherwise)
 
-		if (true) {
+		if (!(date.year%10)) {
 			gridcell.firstobj();
 			if(gridcell.isobj)	//Fixed bug here if no stands were present.
 			{
@@ -4070,6 +4010,7 @@ void outannual(Gridcell& gridcell) {
 					plot("N addition (kgN/ha/yr)","Fixation",date.year,anfix_gridcell * m2toha);
 					plot("N addition (kgN/ha/yr)","Deposition",date.year,andep_gridcell * m2toha);
 					plot("N addition (kgN/ha/yr)","Fertilization",date.year,anfert_gridcell * m2toha);
+					plot("N addition (kgN/ha/yr)","Leaching",      date.year, (n_min_leach_gridcell + n_org_leach_gridcell) * m2toha);
 
 					plot("N min-immob (kgN/ha/yr)","N",date.year,(anmin_gridcell-animm_gridcell) * m2toha);
 
@@ -4217,10 +4158,10 @@ void termio() {
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
-// Galloway, J. N., F. J. Dentener, D. G. Capone, E. W. Boyer, R. W. Howarth, S. P. Seitzinger,
-//   G. P. Asner, C. Cleveland, P. Green, E. Holland, D. M. Karl, A. F. Michaels, J. H. Porter, 
-//   A. Townsend, and C. V?r?smarty. 2004.
-//   Nitrogen Cycles: Past, Present and Future. Biogeochemistry 70: 153-226.
+// Lamarque, J.-F., Kyle, G. P., Meinshausen, M., Riahi, K., Smith, S. J., Van Vuuren, 
+//   D. P., Conley, A. J. & Vitt, F. 2011. Global and regional evolution of short-lived
+//   radiatively-active gases and aerosols in the Representative Concentration Pathways. 
+//   Climatic Change, 109, 191-212.
 // Nakai, T., Sumida, A., Kodama, Y., Hara, T., Ohta, T. (2010). A comparison between
 //   various definitions of forest stand height and aerodynamic canopy height.
 //   Agricultural and Forest Meteorology, 150(9), 1225-1233

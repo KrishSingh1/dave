@@ -984,9 +984,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 		// five-year-mean growth efficiency (kgC/m2 leaf/year)
 	int nindiv; // number of individuals (remaining) in cohort
 	int nindiv_prev; // number of individuals in cohort prior to mortality
-	int startyear;
-		// first year for calculation of five-year-mean growth efficiency
-	int y,i;
+	int i;
 	bool killed;
 
 	const double KMORTGREFF=0.3;
@@ -1154,14 +1152,8 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 
 				// Calculate 5 year mean growth efficiency
 
-				greff_mean = greff;
-				startyear = NYEARGREFF - min(NYEARGREFF-1, (int)indiv.age-1);
-				for (y=startyear;y<NYEARGREFF;y++) {
-					greff_mean+=indiv.greff_5[y];
-					indiv.greff_5[y-1]=indiv.greff_5[y];
-				}
-				indiv.greff_5[NYEARGREFF-1]=greff;
-				greff_mean /= min((double)NYEARGREFF, indiv.age);
+				indiv.greff_5.add(greff);
+				greff_mean = indiv.greff_5.mean();
 
 				// BACKGROUND MORTALITY
 				//

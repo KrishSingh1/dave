@@ -1503,7 +1503,6 @@ void disturbance(Patch& patch,double disturb_prob) {
 
 void establishment_guess_plantation(Stand& stand,Patch& patch, int century_year) {
 
-
 	// DESCRIPTION
 	// Establishment in cohort or individual mode.
 	// Establishes new tree saplings and simulates grass population increase each
@@ -1555,16 +1554,16 @@ void establishment_guess_plantation(Stand& stand,Patch& patch, int century_year)
 	// establishment disabled, a cohort representing exactly 'est' individuals (may be
 	// not-integral) is established.
 
-	const double SAPSIZE=0.1;
-	// coefficient in calculation of initial sapling size and initial
-	// grass biomass (see comment above)
+	const double SAPSIZE = 0.1;
+		// coefficient in calculation of initial sapling size and initial
+		// grass biomass (see comment above)
 
 	bool present; // whether PFT already present in this patch
 	double c; // constant in equation for number of new saplings (Eqn 5)
 	double est; // expected number of new saplings for PFT in this patch
 	double nsapling;
-	// actual number of new saplings for PFT in this patch (may include a
-	// fractional part in cohort mode with stochastic establishment disabled)
+		// actual number of new saplings for PFT in this patch (may include a
+		// fractional part in cohort mode with stochastic establishment disabled)
 	double bminit; // initial sapling biomass (kgC) or new grass biomass (kgC/m2)
 	double ltor; // leaf to fine root mass ratio for new saplings or grass
 	int newindiv; // number of new Individual objects to add to vegetation for this PFT
@@ -1582,7 +1581,7 @@ void establishment_guess_plantation(Stand& stand,Patch& patch, int century_year)
 	Vegetation& vegetation=patch.vegetation;
 
 
-	// guess2008 - determine the number of PFTs that can establish
+	// guess2008 - determine the number of woody PFTs that can establish
 	// Thomas Hickler
 	/*
 	int nwoodypfts_estab=0;
@@ -1650,7 +1649,6 @@ void establishment_guess_plantation(Stand& stand,Patch& patch, int century_year)
 			*/
 
 
-			//if (establish(patch,stand.gridcell.climate,pft)) { // guess2008 - euroflux - eval
 
 			// guess2008 - eval - LOGIC:
 			// Grasses always allowed to establish
@@ -1680,20 +1678,16 @@ void establishment_guess_plantation(Stand& stand,Patch& patch, int century_year)
 						// ... if not, add it
 
 						Individual& indiv=vegetation.createobj(pft,vegetation);
-						indiv.height=0.0;
-						indiv.crownarea=1.0; // (value not used)
-						indiv.densindiv=1.0;
-						indiv.fpc=1.0;
-
+						indiv.height      = 0.0;
+						indiv.crownarea   = 1.0; // (value not used)
+						indiv.densindiv   = 1.0;
+						indiv.fpc         = 1.0;
+					
 						// Initial grass biomass proportional to potential forest floor
 						// net assimilation this year on patch area basis
 
-						int yu = date.year;
-						char* nm = (char*)indiv.pft.name;
-
 						bminit=SAPSIZE*patch.pft[pft.id].anetps_ff;
 
-						// BLARP! OECD
 						if (ifdisturb && patch.disturbed)
 							bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est_initial;
 
@@ -1726,16 +1720,13 @@ void establishment_guess_plantation(Stand& stand,Patch& patch, int century_year)
 
 					// ESTABLISHMENT OF NEW TREE SAPLINGS
 
-					// guess2008 - euroflux - eval
-					// nsapling defined directly below
-
-					if (patch.age==0)
-
+					if (patch.age == 0){
+						
 						// First simulation year - initialising patch
 						// Eqn 1
 
 						est=pft.est_max*patcharea;
-
+					} 
 					else {
 
 						// Every year except year 1
@@ -1744,8 +1735,8 @@ void establishment_guess_plantation(Stand& stand,Patch& patch, int century_year)
 						if (patch.pft[pft.id].anetps_ff>0.0 &&
 							!negligible(patch.pft[pft.id].anetps_ff)) {
 
-								c=exp(pft.alphar-pft.alphar/patch.pft[pft.id].anetps_ff*
-									stand.pft[pft.id].anetps_ff_max)*pft.est_max*patcharea;
+							c=exp(pft.alphar-pft.alphar/patch.pft[pft.id].anetps_ff*
+								stand.pft[pft.id].anetps_ff_max)*pft.est_max*patcharea;
 						}
 						else
 							c=0.0;
@@ -1770,6 +1761,7 @@ void establishment_guess_plantation(Stand& stand,Patch& patch, int century_year)
 
 
 					// guess2008 - scale est by the number of woody PFTs/species that can establish
+					// Otherwise, simply adding more PFTs or species would increase est
 					est*=3.0/double(nwoodypfts_estab);
 
 
@@ -1777,7 +1769,7 @@ void establishment_guess_plantation(Stand& stand,Patch& patch, int century_year)
 					// Actual number of new saplings drawn from the Poisson distribution
 					// (except cohort mode with stochastic establishment disabled)
 
-						if (ifstochestab || vegmode==INDIVIDUAL) nsapling=randpoisson(est, stand.seed);
+					if (ifstochestab || vegmode==INDIVIDUAL) nsapling=randpoisson(est, stand.seed);
 					else nsapling=est;
 
 
@@ -1791,7 +1783,6 @@ void establishment_guess_plantation(Stand& stand,Patch& patch, int century_year)
 					if (vegmode==COHORT) {
 
 						// BLARP added for OECD experiment (is this sensible?)
-						// if (ifdisturb && patch.disturbed) {
 
 						// guess2008 - euroflux - eval - override the above for dominant species
 
@@ -1817,11 +1808,12 @@ void establishment_guess_plantation(Stand& stand,Patch& patch, int century_year)
 								patch.pft[pft.id].wscal_mean_est/=(double)estinterval;
 							}
 							newindiv=!negligible(nsapling);
-							// round down to 0 if nsapling very small
+								// round down to 0 if nsapling very small
 						}
 					}
-					else if (vegmode==INDIVIDUAL)
+					else if (vegmode == INDIVIDUAL){
 						newindiv=(int)(nsapling+0.5); // round up to be on the safe side
+					}
 
 					// Now create 'newindiv' new Individual objects
 
@@ -1856,9 +1848,9 @@ void establishment_guess_plantation(Stand& stand,Patch& patch, int century_year)
 						// Calculate initial allometry
 
 						allometry(indiv);
-
+						
 						// Sap wood nitrogen demand starts with zero
-						indiv.sapndemand = 0.0;	
+						indiv.sapndemand = 0.0;
 
 						// Calculate storage pool size
 						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
@@ -1874,18 +1866,18 @@ void establishment_guess_plantation(Stand& stand,Patch& patch, int century_year)
 			// Reset running sums for next year (establishment years only in cohort mode)
 
 			if (vegmode!=COHORT || !(patch.age%estinterval)) {
-				patch.pft[pft.id].nsapling=0.0;
+				patch.pft[pft.id].nsapling       = 0.0;
 				patch.pft[pft.id].wscal_mean_est=0.0;
-				patch.pft[pft.id].anetps_ff_est=0.0;
+				patch.pft[pft.id].anetps_ff_est  = 0.0;
 			}
 
 		}
 
 		// ... on to next PFT
-
 		pftlist.nextobj();
 	}
 }
+
 
 
 
@@ -1983,7 +1975,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 	int plantation_year = current_stand_fluxdata->plantation_year;
 
 	// Calculate fire probability and volatilise litter
-	if (iffire && century_year<plantation_year /* guess2008 - eval */) {
+	if (iffire && century_year<plantation_year /* euroflux */) {
 		fire(patch,fireprob);
 	}
 	patch.fireprob=fireprob;
@@ -2014,8 +2006,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		}
 		
 		// Normal disturbance with probability interval of distinterval
-		if (ifdisturb && patch.age && century_year<plantation_year /* guess2008 - eval */) {
-		//if (ifdisturb && patch.age && century_year!=plantation_year /* guess2008 - eval */) {
+		if (ifdisturb && patch.age && century_year<plantation_year /* euroflux - eval */) {
 			disturbance(patch,1.0/distinterval);
 			if (patch.disturbed) {
 				return; // no mortality or establishment this year
@@ -2023,51 +2014,26 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		}
 
 
-		// guess2008 - eval - euroflux - clear the patch of natural vegetation during the 
+		// eval - euroflux - clear the patch of natural vegetation during the 
 		// plantation year. Should we leave the C3 grasses????
 		if (century_year==plantation_year)
 			clearance(patch);
 
 
-		// guess2008 - eval - euroflux
+		// eval - euroflux
 		// No mortality after management starts
 
-		/*
-
-		// OLD CODE:
-
-		// Mortality
-		mortality_guess(stand,patch,stand.gridcell.climate,fireprob);
-		
-		*/
-
-
-		if (century_year<plantation_year /* guess2008 - euroflux - eval */)
+		if (century_year<plantation_year /* euroflux - eval */)
 			mortality_guess(stand,patch,stand.gridcell.climate,fireprob);
 
-		/*		
-		// guess2008 - euroflux - eval
-		if (century_year>=plantation_year) {
-			fireprob = 0.0;
-			mortality_guess(stand,patch,stand.gridcell.climate,fireprob);		
-		}
-		*/
 
-		// guess2008 - eval - euroflux
+		// eval - euroflux
 		// New establishment. 
 
-		/*
-
-		// OLD CODE:
-
-		// Establishment
-		establishment_guess(stand,patch);
-		*/
-
-		if (century_year<plantation_year /* guess2008 - euroflux - eval */)
+		if (century_year<plantation_year /* euroflux - eval */)
 			establishment_guess(stand,patch);
 
-		if (century_year>=plantation_year /* guess2008 - euroflux - eval */)
+		if (century_year>=plantation_year /* euroflux - eval */)
 			establishment_guess_plantation(stand,patch,century_year);
 
 	}

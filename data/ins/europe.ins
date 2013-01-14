@@ -24,7 +24,7 @@
 ! guess2008 - New predefined outputs. Procedure adapted from Ben's LPJ-GUESS Education
 ! outputdirectory is mandatory
 outputdirectory "./"
-state_path "/scratch/david/state/europe/"
+state_path "./"
 
 ! Prefined yearly output
 ! These files may be outcommented if their output is not required. 
@@ -36,6 +36,8 @@ file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 file_firert "firert.out"
+!file_aiso "aiso.out"
+!file_amon "amon.out"
 file_speciesheights "height.out"
 
 file_cton_leaf "cton_leaf.out"
@@ -61,9 +63,9 @@ file_mintercep "mintercep.out"
 file_mrunoff "mrunoff.out"
 file_mwcont_upper "mwcont_upper.out"
 file_mwcont_lower "mwcont_lower.out"
+!file_miso "miso.out"
+!file_mmon "mmon.out"
 
-file_miso "miso.out"
-file_mmon "mmon.out"
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -78,7 +80,7 @@ file_mmon "mmon.out"
 ! Settings recognised by Plib
 ! Run GUESS with -help option for list of keywords and their meanings
 
-title 'LPJ-GUESS (guess2008) cohort mode - global pfts'
+title 'LPJ-GUESS (guess2008) cohort mode'
 
 vegmode "cohort"		! "cohort", "individual" or "population"
 nyear_spinup 500		! number of years to spin up the simulation for
@@ -89,14 +91,14 @@ npatch 25				! number of replicate patches to simulate
 patcharea 1000			! patch area (m2)
 estinterval 5			! years between establishment events in cohort mode
 ifdisturb 1				! whether generic patch-destroying disturbances enabled
-distinterval 200		! average return time for generic patch-destroying disturbances
+distinterval 100		! average return time for generic patch-destroying disturbances
 						! guess2008 - 200 for Europe, 100 globally
 ifbgestab 1				! whether background establishment enabled
 ifsme 1					! whether spatial mass effect enabled
 ifstochestab 1			! whether establishment stochastic
 ifstochmort 1			! whether mortality stochastic
 ifcdebt 1				! whether to allow vegetation C storage (1) or not (0)
-ifbvoc 1				! BVOC
+ifbvoc 0				! whether to include BVOC calculations (1) or not (0)
 wateruptake "rootdist"  ! "wcont", "rootdist", "smart" or "speciesspecific",
                         ! see documentation for water_uptake()
 
@@ -124,7 +126,7 @@ save_state 0			! wheter to save a state file
 ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1) 
 								! or to use the standard step-function (0)  
 								! greff_min values below calibrated for the smooth (1) option 
-ifdroughtlimitedestab 0			! whether establishment is limited by growing season drought
+ifdroughtlimitedestab 1			! whether establishment is limited by growing season drought
 								! guess2008 - species version has 1
 ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit every day (0)
 
@@ -1068,7 +1070,6 @@ pft "C4_gr" (
 	rootdist 0.9 0.1
 	gmin 0.5
 	phenology "any"
-	sla 32.4		! SKALL INTE VARA HÄR DAVID GUESSNFIX
 	leaflong 1
 	turnover_leaf 1
 	turnover_root 0.5

@@ -30,6 +30,8 @@ file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 file_firert "firert.out"
+!file_aiso "aiso.out"
+!file_amon "amon.out"
 file_speciesheights "height.out"
 
 file_cton_leaf "cton_leaf.out"
@@ -55,9 +57,9 @@ file_mintercep "mintercep.out"
 file_mrunoff "mrunoff.out"
 file_mwcont_upper "mwcont_upper.out"
 file_mwcont_lower "mwcont_lower.out"
+!file_miso "miso.out"
+!file_mmon "mmon.out"
 
-file_miso "miso.out"
-file_mmon "mmon.out"
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -90,7 +92,7 @@ ifsme 1					! whether spatial mass effect enabled
 ifstochestab 1			! whether establishment stochastic
 ifstochmort 1			! whether mortality stochastic
 ifcdebt 1				! whether to allow vegetation C storage (1) or not (0)
-ifbvoc 1				! BVOC
+ifbvoc 0				! whether to include BVOC calculations (1) or not (0)
 wateruptake "rootdist"  ! "wcont", "rootdist", "smart" or "speciesspecific",
                         ! see documentation for water_uptake()
 
@@ -145,17 +147,6 @@ equal_landcover_area 0	! divide gridcell into equal active landcover fractions
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
-
-!///////////////////////////////////////////////////////////////////////////////////////
-!// EVALUATION OPTIONS & SWITCHES 
-!
-
-!///////////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
 !///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR PFTS
 !// Run GUESS with -help option for list of keywords and their meanings
@@ -172,6 +163,7 @@ group "common" (
 	! default value - ensures that this has little effect even if  
 	! ifdroughtlimitedestab is turned on
 	landcover "natural"
+
 )
 
 group "tree" (
@@ -203,7 +195,7 @@ group "tree" (
 	litterme 0.3
 )
 
-group "Shrub" (
+group "shrub" (
 	
 	! Unchanged from species version
 	common
@@ -232,7 +224,6 @@ group "Shrub" (
 	litterme 0.3
 	rootdist 0.6 0.4
 	longevity 100
-	
 )
 
 
@@ -353,13 +344,12 @@ group "tropical" (
 	pstemp_low 25
 	pstemp_high 30
 	pstemp_max 55
-	respcoeff 0.15	!0.15	
+	respcoeff 0.15
 )
 
 
 ! greff_min values below calibrated for the smooth (ifsmoothgreffmort 1) option 
-group "shade_tolerant"
-(
+group "shade_tolerant" (
 	est_max 0.05					
 	parff_min 350000			
 	alphar 3.0          			
@@ -368,8 +358,7 @@ group "shade_tolerant"
 )
 
 ! So far only trial values; not used in this global version
-group "intermediate_shade_tolerant"
-(
+group "intermediate_shade_tolerant" (
 	est_max 0.15					
 	parff_min 2000000			
 	alphar 7.0          			
@@ -378,14 +367,15 @@ group "intermediate_shade_tolerant"
 )
 
 ! From global version; values from orginal European version after "!"
-group "shade_intolerant" 
-(
+group "shade_intolerant" (
 	est_max 0.2					
 	parff_min 2500000 
 	alphar 10.0 
 	greff_min 0.08
 	turnover_sap 0.1
 )
+
+
 
 pft "BNE" (
 
@@ -559,7 +549,6 @@ pft "TeBE" (
         storfrac_mon 0.
 )
 
-
 pft "TrBE" (
 
 	! Tropical broadleaved evergreen tree
@@ -643,7 +632,6 @@ pft "C3G" (
         seas_iso 1
         eps_mon 1.6
         storfrac_mon 0.5
-	respcoeff 1.0 
 )
 
 pft "C4G" (

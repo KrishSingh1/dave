@@ -252,7 +252,6 @@ void plib_declarations(int id,xtring setname) {
 
 	case BLOCK_GLOBAL:
 
-
 		declareitem("title",&title,80,CB_NONE,"Title for run");
 		declareitem("nyear",&nyear,1,10000,1,CB_NONE,"Number of simulation years to run after spinup");
 		declareitem("nyear_spinup",&nyear_spinup,1,10000,1,CB_NONE,"Number of simulation years to spinup for");
@@ -314,12 +313,12 @@ void plib_declarations(int id,xtring setname) {
 		
 		declareitem("file_cton_leaf",&file_cton_leaf,300,CB_NONE,"Mean leaf C:N output file");
 		declareitem("file_cton_veg",&file_cton_veg,300,CB_NONE,"Mean vegetation C:N output file");
-		declareitem("file_nsources",&file_nsources,300,CB_NONE,"annual nitrogen sources output file");
+		declareitem("file_nsources",&file_nsources,300,CB_NONE,"Annual nitrogen sources output file");
 		declareitem("file_npool",&file_npool,300,CB_NONE,"Soil nitrogen output file");
 		declareitem("file_nleach",&file_nleach,300,CB_NONE,"Leached mineral nitrogen output file");
-		declareitem("file_nuptake",&file_nuptake,300,CB_NONE,"annual nitrogen uptake output file");
-		declareitem("file_vmaxnlim",&file_vmaxnlim,300,CB_NONE,"annual nitrogen limitation on vm output file");
-		declareitem("file_nflux",&file_nflux,300,CB_NONE,"annual nitrogen fluxes output file");
+		declareitem("file_nuptake",&file_nuptake,300,CB_NONE,"Annual nitrogen uptake output file");
+		declareitem("file_vmaxnlim",&file_vmaxnlim,300,CB_NONE,"Annual nitrogen limitation on vm output file");
+		declareitem("file_nflux",&file_nflux,300,CB_NONE,"Annual nitrogen fluxes output file");
 		
 		declareitem("file_speciesheights",&file_speciesheights,300,CB_NONE,"Mean species heights");
 
@@ -379,6 +378,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
 		callwhendone(CB_CHECKGLOBAL);
+
 
 		break;
 	
@@ -520,7 +520,7 @@ void plib_declarations(int id,xtring setname) {
 		// guess2008 - DLE
 		declareitem("drought_tolerance",&ppft->drought_tolerance,0.0,1.0,1,CB_NONE,
 			"Drought tolerance level (0 = very -> 1 = not at all) (unitless)");
-
+		
 		// bvoc
 		declareitem("ga",&ppft->ga,0.0,1.0,1,CB_NONE,
 			"aerodynamic conductance (m/s)");
@@ -998,6 +998,7 @@ int ngridcell; // the number of grid cells to simulate
 // File names for temperature, precipitation, sunshine and soil code driver files
 xtring file_temp,file_prec,file_sun,file_soil;
 
+
 using namespace GuessOutput;
 
 /// The output channel through which all output is sent
@@ -1444,10 +1445,9 @@ void initio(const xtring& insfilename) {
 	if (!in_grid) fail("initio: could not open %s for input",(char*)file_gridlist);
 
 	ngridcell=0;
-
 	while (!eof) {
 		
-	// Read next record in file
+		// Read next record in file
 		eof=!readfor(in_grid,"f,f,a#",&dlon,&dlat,&descrip);
 
 		if (!eof && !(dlon==0.0 && dlat==0.0)) { // ignore blank lines at end (if any)
@@ -1460,6 +1460,7 @@ void initio(const xtring& insfilename) {
 		}
 	}
 
+
 	fclose(in_grid);
 
 	// Retrieve specified CO2 value as read from ins file
@@ -1470,7 +1471,6 @@ void initio(const xtring& insfilename) {
 
 	if (run_landcover) {
 		all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
-
 
 		//Retrieve file names for landcover files and open them if static values from ins-file are not used !
 		if (!lcfrac_fixed) {	//This version does not support dynamic landcover fraction data
@@ -1494,6 +1494,7 @@ void initio(const xtring& insfilename) {
 					all_fracs_const=false;				//Set all_fracs_const to false if yearly data
 #endif
 			}
+
 		}
 	}
 
@@ -1608,7 +1609,6 @@ bool getgridcell(Gridcell& gridcell) {
 			// Load environmental data for this grid cell from files
 			// (these will be the same for every year of the simulation, but must be sent
 			// anew to the framework each year in function getclimate, below)
-
 			if(run_landcover) {
 				LUerror = loadlandcover(gridcell, c);
 			}
@@ -1618,6 +1618,7 @@ bool getgridcell(Gridcell& gridcell) {
 				gridlist.nextobj();
 			}
 		}
+
 
 		dprintf("\nCommencing simulation for stand at (%g,%g)",gridlist.getobj().lon,
 			gridlist.getobj().lat);
@@ -1866,7 +1867,7 @@ bool getclimate(Gridcell& gridcell) {
 	// 
 	// Diurnal temperature range (dtr) added for calculation of leaf temperatures in 
 	// BVOC:
-	// gridcell.climate.dtr=ddtr[date.day];
+	// gridcell.climate.dtr=ddtr[date.day]; 
 	//
 	// If model is run in diurnal mode, which requires appropriate climate forcing data, 
 	// additional members of the climate must be initialised: temps, insols. Both of the
@@ -1879,6 +1880,7 @@ bool getclimate(Gridcell& gridcell) {
 	double progress;
 
 	Climate& climate = gridcell.climate;
+
 
 	// Send environmental values for today to framework
 
@@ -1923,7 +1925,7 @@ bool getclimate(Gridcell& gridcell) {
 			tmute.settimer(MUTESEC);
 		}
 	}
-	
+
 	return true;
 }
 
@@ -1970,6 +1972,9 @@ void outannual(Gridcell& gridcell) {
 		nclass = min(date.year / estinterval + 1, OUTPUT_MAXAGECLASS);
 
 	// guess2008 - yearly output after spinup
+		
+	// If only yearly output between, say 1961 and 1990 is requred, use: 
+	//	if (date.year>=nyear_spinup+60 && date.year<nyear_spinup+90) {
 
 	if (date.year >= nyear_spinup) {
 
@@ -2058,7 +2063,7 @@ void outannual(Gridcell& gridcell) {
 
 		pftlist.firstobj();
 		while (pftlist.isobj) {
-
+			
 			Pft& pft=pftlist.getobj();
 			Gridcellpft& gridcellpft=gridcell.pft[pft.id];
 
@@ -2532,6 +2537,7 @@ void outannual(Gridcell& gridcell) {
 			 out.add_value(out_miso,         miso[m]);
 			 out.add_value(out_mmon,         mmon[m]);
 		}
+
 
 		// Graphical output every 10 years
 		// (Windows shell only - no effect otherwise)

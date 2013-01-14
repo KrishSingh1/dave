@@ -290,7 +290,6 @@ void plib_declarations(int id,xtring setname) {
 
 	case BLOCK_GLOBAL:
 
-
 		declareitem("title",&title,80,CB_NONE,"Title for run");
 		declareitem("nyear_spinup",&nyear_spinup,1,10000,1,CB_NONE,"Number of simulation years to spinup for");
 		declareitem("vegmode",&strparam,16,CB_VEGMODE,
@@ -351,12 +350,12 @@ void plib_declarations(int id,xtring setname) {
 		
 		declareitem("file_cton_leaf",&file_cton_leaf,300,CB_NONE,"Mean leaf C:N output file");
 		declareitem("file_cton_veg",&file_cton_veg,300,CB_NONE,"Mean vegetation C:N output file");
-		declareitem("file_nsources",&file_nsources,300,CB_NONE,"annual nitrogen sources output file");
+		declareitem("file_nsources",&file_nsources,300,CB_NONE,"Annual nitrogen sources output file");
 		declareitem("file_npool",&file_npool,300,CB_NONE,"Soil nitrogen output file");
 		declareitem("file_nleach",&file_nleach,300,CB_NONE,"Leached mineral nitrogen output file");
-		declareitem("file_nuptake",&file_nuptake,300,CB_NONE,"annual nitrogen uptake output file");
-		declareitem("file_vmaxnlim",&file_vmaxnlim,300,CB_NONE,"annual nitrogen limitation on vm output file");
-		declareitem("file_nflux",&file_nflux,300,CB_NONE,"annual nitrogen fluxes output file");
+		declareitem("file_nuptake",&file_nuptake,300,CB_NONE,"Annual nitrogen uptake output file");
+		declareitem("file_vmaxnlim",&file_vmaxnlim,300,CB_NONE,"Annual nitrogen limitation on vm output file");
+		declareitem("file_nflux",&file_nflux,300,CB_NONE,"Annual nitrogen fluxes output file");
 		
 		declareitem("file_speciesheights",&file_speciesheights,300,CB_NONE,"Mean species heights");
 
@@ -427,6 +426,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
 		callwhendone(CB_CHECKGLOBAL);
+
 
 		break;
 	
@@ -568,7 +568,7 @@ void plib_declarations(int id,xtring setname) {
 		// guess2008 - DLE
 		declareitem("drought_tolerance",&ppft->drought_tolerance,0.0,1.0,1,CB_NONE,
 			"Drought tolerance level (0 = very -> 1 = not at all) (unitless)");
-
+		
 		// bvoc
 		declareitem("ga",&ppft->ga,0.0,1.0,1,CB_NONE,
 			"aerodynamic conductance (m/s)");
@@ -1272,18 +1272,22 @@ public:
 
 // Constants associated with historical climate data set
 
-/// CRU TS 3.0 has 106 years of data (1901-2006)
-/// number of years of historical climate
-const int NYEAR_HIST=106; 
-/// calender year corresponding to first year in CRU climate data set
+// number of years of historical climate
+// CRU TS 3.0 has 106 years of data (1901-2006)
+const int NYEAR_HIST=106;
+
+// calender year corresponding to first year in CRU climate data set
 const int FIRSTHISTYEAR=1901;
-/// calender year corresponding to first year nitrogen deposition
+
+// calender year corresponding to first year nitrogen deposition
 const int FIRSTHISTYEARNDEP=1850;
-/// number of years of historical nitrogen deposition 
+
+// number of years of historical nitrogen deposition 
 const int NYEAR_HISTNDEP=16;
-/// number of years to use for temperature-detrended spinup data set
-/// (not to be confused with the number of years to spinup model for, which
-/// is read from the ins file)	
+
+// number of years to use for temperature-detrended spinup data set
+// (not to be confused with the number of years to spinup model for, which
+// is read from the ins file)	
 const int NYEAR_SPINUP_DATA=30;
 
 // Stream pointer to binary CRU historical climate data file (read from ins file)
@@ -1291,6 +1295,7 @@ FILE *in_cru;
 
 // Full pathname of ASCII file containing annual CO2 values (read from ins file)
 xtring file_co2;
+
 
 using namespace GuessOutput;
 
@@ -1463,6 +1468,7 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 			}
 		}
 
+
 		// Close the archive
 		ark.close();
 
@@ -1474,6 +1480,9 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 		return false;
 	}
 }
+
+
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // SEARCHCRU_MISC
@@ -1505,6 +1514,7 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 		}
 		else
 			return false;
+
 
 		// The CRU archive index hold lons & lats as whole doubles * 10
 		data.lon = dlon * 10.0;
@@ -2170,12 +2180,12 @@ void initio(const xtring& insfilename) {
 
 	file_cru=param["file_cru"].str;
 	file_cru_misc=param["file_cru_misc"].str;
+
 	
 	ngridcell=0;
-
 	while (!eof) {
 		
-	// Read next record in file
+		// Read next record in file
 		//eof=!readfor(in_grid,"f,f,a#",&dlon,&dlat,&descrip);
 
 		// New, local versions of these arrays
@@ -2228,6 +2238,7 @@ void initio(const xtring& insfilename) {
 		}
 	}
 
+
 	fclose(in_grid);
 
 	// Read CO2 data from file
@@ -2235,7 +2246,6 @@ void initio(const xtring& insfilename) {
 
 	if (run_landcover) {
 		all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
-
 
 		//Retrieve file names for landcover files and open them if static values from ins-file are not used !
 		if (!lcfrac_fixed) {	//This version does not support dynamic landcover fraction data
@@ -2259,6 +2269,7 @@ void initio(const xtring& insfilename) {
 					all_fracs_const=false;				//Set all_fracs_const to false if yearly data
 #endif
 			}
+
 		}
 	}
 
@@ -2374,9 +2385,7 @@ void getndep(double lon, double lat) {
 	}
 }
 
-///////////////////////////////////////////////////////////////////////////////////////
-// GETGRIDCELL
-// Called by the framework at the start of the simulation for a particular grid cell
+/// Called by the framework at the start of the simulation for a particular grid cell
 bool getgridcell(Gridcell& gridcell) {
 
 	// DESCRIPTION
@@ -2428,13 +2437,12 @@ bool getgridcell(Gridcell& gridcell) {
 
 		double lon = gridlist.getobj().lon;
 		double lat = gridlist.getobj().lat;
-
 		gridfound = findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode, 
-			hist_mtemp, hist_mprec, hist_msun);
+		                               hist_mtemp, hist_mprec, hist_msun);
 
 		if (gridfound) // Get more historical CRU data for this grid cell
 			gridfound = searchcru_misc(file_cru_misc, lon, lat, elevation, 
-			hist_mfrs, hist_mwet, hist_mdtr);
+			                           hist_mfrs, hist_mwet, hist_mdtr);
 
 		if (run_landcover) {
 			Coord& c=gridlist.getobj();
@@ -2455,11 +2463,11 @@ bool getgridcell(Gridcell& gridcell) {
 				double lon = gridlist.getobj().lon;
 				double lat = gridlist.getobj().lat;
 				gridfound = findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
-					hist_mtemp, hist_mprec, hist_msun);
-
+				                               hist_mtemp, hist_mprec, hist_msun);
+			  
 				if (gridfound) // Get more historical CRU data for this grid cell
 					gridfound = searchcru_misc(file_cru_misc, lon, lat, elevation,
-					hist_mfrs, hist_mwet, hist_mdtr);
+					                           hist_mfrs, hist_mwet, hist_mdtr);
 
 				if (run_landcover) {
 					Coord& c=gridlist.getobj();
@@ -2470,7 +2478,6 @@ bool getgridcell(Gridcell& gridcell) {
 			}
 			else return false;
 		}
-				   
 
 		euroflux_adjust_climate_read_flux_data(gridlist.getobj(), 
 															hist_mtemp, hist_mprec);
@@ -2488,6 +2495,7 @@ bool getgridcell(Gridcell& gridcell) {
 		spinup_mwet.get_data_from(hist_mwet);
 		spinup_mdtr.get_data_from(hist_mdtr);
 		spinup_mdtr.detrend_data();
+
 
 		dprintf("\nCommencing simulation for stand at (%g,%g)",gridlist.getobj().lon,
 			gridlist.getobj().lat);
@@ -2522,9 +2530,7 @@ bool getgridcell(Gridcell& gridcell) {
 	return false; // no more stands
 }
 
-///////////////////////////////////////////////////////////////////////////////////////
-// GETLANDCOVER
-// Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
+///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
 void getlandcover(Gridcell& gridcell) {
 	int i, year;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
@@ -2716,10 +2722,9 @@ void getlandcover(Gridcell& gridcell) {
 	}
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-// GETCLIMATE
-// Called by the framework each simulation day before any process modelling is performed for this day
-// Obtains climate data (including atmospheric CO2 and insolation) for this day. 
+
+/// Called by the framework each simulation day before any process modelling is performed for this day
+/** Obtains climate data (including atmospheric CO2 and insolation) for this day. */
 bool getclimate(Gridcell& gridcell) {
 
 	// DESCRIPTION
@@ -2743,7 +2748,7 @@ bool getclimate(Gridcell& gridcell) {
 	// 
 	// Diurnal temperature range (dtr) added for calculation of leaf temperatures in 
 	// BVOC:
-	// gridcell.climate.dtr=ddtr[date.day];
+	// gridcell.climate.dtr=ddtr[date.day]; 
 	//
 	// If model is run in diurnal mode, which requires appropriate climate forcing data, 
 	// additional members of the climate must be initialised: temps, insols. Both of the
@@ -2762,7 +2767,7 @@ bool getclimate(Gridcell& gridcell) {
 
 	if (date.day == 0) {
 
-		// First day of year ..
+		// First day of year ...
 		
 		if (date.year < nyear_spinup) {
 
@@ -2826,12 +2831,14 @@ bool getclimate(Gridcell& gridcell) {
 				// (from Dieter Gerten 021121)
 				prdaily(hist_mprec[date.year-nyear_spinup], dprec, hist_mwet[date.year-nyear_spinup], gridcell.seed);
 			}
+
 		}
 		else {
 			// Return false if last year was the last for the simulation
 			return false;
 		}
 	}
+
 
 	// Send environmental values for today to framework
 
@@ -2879,6 +2886,8 @@ bool getclimate(Gridcell& gridcell) {
 
 	if (date.day == 0) {
 
+		// Progress report to user and update timer
+
 		if (tmute.getprogress()>=1.0) {
 			progress=(double)(gridlist.getobj().id*(nyear_spinup+NYEAR_HIST)
 				+date.year)/(double)(ngridcell*(nyear_spinup+NYEAR_HIST));
@@ -2888,9 +2897,10 @@ bool getclimate(Gridcell& gridcell) {
 			tmute.settimer(MUTESEC);
 		}
 	}
-	
+
 	return true;
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // calculateAnnualFluxSums - euroflux
@@ -3321,9 +3331,6 @@ void calculateEurofluxStats(Table out_stats_nee,
 
 
 /// Called by the framework at the end of the last day of each simulation year
-///////////////////////////////////////////////////////////////////////////////////////
-// OUTANNUAL
-// Called by the framework at the end of the last day of each simulation year
 void outannual(Gridcell& gridcell) {
 
 	// DESCRIPTION
@@ -3452,7 +3459,7 @@ void outannual(Gridcell& gridcell) {
 
 		pftlist.firstobj();
 		while (pftlist.isobj) {
-
+			
 			Pft& pft=pftlist.getobj();
 			Gridcellpft& gridcellpft=gridcell.pft[pft.id];
 

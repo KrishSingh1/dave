@@ -494,7 +494,7 @@ void fpar(Patch& patch) {
 
 /// Non-water stressed rubisco capacity, with or without nitrogen limitation
 void vmax(double b, double c1, double c2, double apar, double tscal,
-		  double daylength, double temp, double nactive, bool ifnlimvmax, double& vm, double& vmaxnlim, double& na) {
+		  double daylength, double temp, double nactive, bool ifnlimvmax, double& vm, double& vmaxnlim, double& nactive_opt) {
 
 	// Calculation of non-water-stressed rubisco capacity assuming leaf nitrogen not
 	// limiting (Eqn 11, Haxeltine & Prentice 1996a)
@@ -519,8 +519,8 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
 	double tfac = exp(-0.0693 * (temp - 25.0));
 	double vm_max = nactive / (M * CN * tfac);
 
-	// Calculate leaf nitrogen based on [potential] Vmax (Eqn 28 Haxeltine & Prentice 1996b)
-	na = M * vm * CN * tfac;
+	// Calculate optimal leaf nitrogen based on [potential] Vmax (Eqn 28 Haxeltine & Prentice 1996b)
+	nactive_opt = M * vm * CN * tfac;
 
 	if (vm > vm_max && ifnlimvmax) {
 		vmaxnlim = vm_max / vm;	// Save vmax nitrogen limitation
@@ -655,7 +655,7 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 	if (vm < 0) {
 		
 		// Calculation of non-water-stressed rubisco capacity (Eqn 11, Haxeltine & Prentice 1996a)
-		vmax(b, c1, c2, apar, tscal, daylength, temp, nactive, ifnlimvmax, result.vm, result.vmaxnlim, result.nmass_term);
+		vmax(b, c1, c2, apar, tscal, daylength, temp, nactive, ifnlimvmax, result.vm, result.vmaxnlim, result.nactive_opt);
 	}
 	else {
 		result.vm = vm;			// reuse existing Vmax
@@ -1093,11 +1093,11 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 				// active nitrogen (Haxeltine et al. 1996 eqn 27/28)
 				// Added difference between needleleaved and broadleaved mentioned in Friend et al. 1997
 				if (indiv.pft.leafphysiognomy == BROADLEAF) {
-					leafoptn = indiv.photosynthesis.nmass_term + N0 * indiv.cmass_leaf * indiv.phen;
+					leafoptn = indiv.photosynthesis.nactive_opt + N0 * indiv.cmass_leaf * indiv.phen;
 				}
 				else {
-					leafoptn = indiv.photosynthesis.nmass_term + 
-					    (0.67 * N0 + 0.33 * (indiv.nmass_leaf + indiv.photosynthesis.nmass_term) / (indiv.cmass_leaf * indiv.phen)) *
+					leafoptn = indiv.photosynthesis.nactive_opt + 
+					    (0.67 * N0 + 0.33 * (indiv.nmass_leaf + indiv.photosynthesis.nactive_opt) / (indiv.cmass_leaf * indiv.phen)) *
 					    indiv.cmass_leaf * indiv.phen;
 				}
 			}
@@ -1137,9 +1137,9 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Nitrogen demand
 
 		// Root nitrogen demand
-		indiv.rootndemand = max(0.0, indiv.cmass_root * indiv.phen / (cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root  * indiv.phen);
+		indiv.rootndemand = max(0.0, indiv.cmass_root * indiv.phen / (cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root);
 		
-		// Sap wood nitrogen demand. Demand is divided throughout the year
+		// Sap wood nitrogen demand. Demand is ramped up throughout the year.
 		if (indiv.pft.lifeform == TREE) {
 			indiv.sapndemand = max(0.0, indiv.cmass_sap / (cton_leaf_opt * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_sap) * ((1.0 + (double)date.day)/365.0);
 		}

@@ -84,7 +84,7 @@ void PhotosynthesisResult::serialize(ArchiveStream& arch) {
 		& rd_g
 		& vm
 		& je
-		& nmass_term
+		& nactive_opt
 		& vmaxnlim;
 }
 

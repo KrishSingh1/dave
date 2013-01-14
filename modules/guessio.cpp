@@ -1,10 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-/// \file guessio_cru.cpp
+/// \file guessio.cpp
 /// \brief LPJ-GUESS input/output module with input from instruction script
 ///
-/// This I/O module reads in CRU climate data in a customised binary format.
-/// The binary files contain CRU half-degree global historical climate data
-/// for 1901-2006.
 ///
 /// \author Ben Smith
 /// $Date$
@@ -1466,7 +1463,7 @@ void initio(const xtring& insfilename) {
 	// Retrieve specified CO2 value as read from ins file
 	co2=param["co2"].num;
 
-	// Retrieve specified CO2 value as read from ins file
+	// Retrieve specified N value as read from ins file
 	ndep=param["ndep"].num;
 
 	if (run_landcover) {
@@ -1884,15 +1881,8 @@ bool getclimate(Gridcell& gridcell) {
 
 	// Send environmental values for today to framework
 
-	if (date.day == 0) {
-		climate.andep  = 0.0;
-		climate.anfert = 0.0;
-	}
-
 	climate.dndep  = ndep / (365.0 * 10000.0);
 	climate.dnfert = 0.0;
-	climate.andep  += climate.dndep;
-	climate.anfert += climate.dnfert;
 
 	climate.co2=co2;
 

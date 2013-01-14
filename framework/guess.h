@@ -461,13 +461,13 @@ struct PhotosynthesisResult : public Serializable {
 	 *  takes place.
 	 */
 	void clear() {
-		agd_g = 0;
-		adtmm = 0;
-		rd_g  = 0;
-		vm    = 0;
-		je    = 0;
-		nmass_term = 0.0;
-		vmaxnlim   = 1.0;
+		agd_g       = 0;
+		adtmm       = 0;
+		rd_g        = 0;
+		vm          = 0;
+		je          = 0;
+		nactive_opt = 0.0;
+		vmaxnlim    = 1.0;
 	}
 
 	/// RuBisCO capacity (gC/m2/day)
@@ -486,8 +486,8 @@ struct PhotosynthesisResult : public Serializable {
 	/// PAR-limited photosynthesis rate (gC/m2/h)
     double je;
 
-	/// leaf nitrogen associated with photosynthesis (kgN/m2)
-	double nmass_term;
+	/// optimal leaf nitrogen associated with photosynthesis (kgN/m2)
+	double nactive_opt;
 
 	/// nitrogen limitation on vm
 	double vmaxnlim;

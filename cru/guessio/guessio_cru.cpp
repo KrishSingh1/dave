@@ -1980,7 +1980,8 @@ void getndep(double lon, double lat) {
 	xtring file_ndep = param["file_ndep"].str;
 
 	if (file_ndep == "") {
-		// pre-industrial N depostion [gN ha-1] (2 kgN/ha/year)
+
+		// pre-industrial total nitrogen depostion set to 2 kgN/ha/year [kgN m-2]
 		double dailyndep = 2000.0 / (4 * 365) * convert;
 
 		for (int y=0; y<NYEAR_HISTNDEP; y++) {
@@ -2465,11 +2466,6 @@ bool getclimate(Gridcell& gridcell) {
 	// Send environmental values for today to framework
 
 	int first_ndep_year = nyear_spinup + FIRSTHISTYEARNDEP - FIRSTHISTYEAR;
-	
-	if (date.day == 0) {
-		climate.andep  = 0.0;
-		climate.anfert = 0.0;
-	}
 
 	// Nitrogen deposition
 	// Before first year of nitrogen deposition data use first data set
@@ -2487,11 +2483,9 @@ bool getclimate(Gridcell& gridcell) {
 		                 NHxWetDep[yr][date.month] +
 		                 NOyWetDep[yr][date.month]);
 	}
-	climate.andep += climate.dndep;
 
 	// Nitrogen fertilization
 	climate.dnfert = 0.0;
-	climate.anfert += climate.dnfert;
 
 	climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
 
@@ -2865,7 +2859,7 @@ void outannual(Gridcell& gridcell) {
 			out.add_value(out_cton_leaf, gcpft_cton_leaf);
 			out.add_value(out_cton_veg,  gcpft_cton_veg);
 			out.add_value(out_vmaxnlim,  gcpft_vmaxnlim);
-			out.add_value(out_nuptake,   gcpft_nuptake * m2toha);			
+			out.add_value(out_nuptake,   gcpft_nuptake * m2toha);	
 
 			// print species heights
 			double height = 0.0;

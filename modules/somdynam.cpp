@@ -952,6 +952,7 @@ void naddition(Patch& patch) {
 	Climate& climate = patch.stand.gridcell.climate;
 
 	if (date.day == 0) {
+
 		soil.anfix = 0.0;
 	}
 

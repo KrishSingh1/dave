@@ -545,6 +545,10 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	if (date.day == 0) {
 		// ... reset annual GDD5 counter
 		climate.agdd5 = 0.0;
+		
+		// reset annual nitrogen input variables
+		climate.andep  = 0.0;
+		climate.anfert = 0.0;
 
 		if (date.year == 0) {
 			// First day of simulation - initialise running annual mean temperature and daily temperatures for the last month
@@ -607,6 +611,10 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 ///	if (run_landuse && run_crop)
 ///		dailyaccounting_gridcell_crop(gridcell,pftlist);
+
+	// Sum annual nitrogen addition to system
+	climate.andep  += climate.dndep;
+	climate.anfert += climate.dnfert;
 
 	// Save yesterday's mean temperature for the last month
 	mtemp_last = climate.mtemp;

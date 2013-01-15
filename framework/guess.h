@@ -187,7 +187,7 @@ extern int npatch;
 /// Patch area (m2) (individual and cohort mode only)
 extern double patcharea;
 
-/// Whether photosynthesis calculations performed daily (alt: monthly)
+
 /// Whether background establishment enabled (individual, cohort mode)
 extern bool ifbgestab;
 
@@ -1144,14 +1144,6 @@ public:
 	double gpterm;
 		// non-water-stressed canopy conductance on FPC basis (mm/s)
 	std::vector<double> gpterms;		// sub-daily version of the above variable (mm/s)
-	double wdemand;
-		// transpirative demand on FPC basis (mm/day)
-	double wdemand_leafon;
-		// transpirative demand assuming full leaf cover on FPC basis (mm/day)
-	double wsupply;
-		// supply function of AET, FPC basis (mm/day)
-	double wsupply_leafon;
-		// supply function of AET assuming full leaf cover, FPC basis (mm/day)
 	double intercep;
 		// interception associated with this individual today (patch basis)
 
@@ -1207,11 +1199,6 @@ public:
 	/// daily root nitrogen demand over possible uptake (storage demand)
 	double rootndemand_store;
 		
-	// FPAR-weighted leaf-level net photosynthesis value for PFT under non-
-	// water-stress conditions (kgC/m2/day)
-	double assim_term;
-		
-	std::vector<double> assim_terms;	// sub-daily version of the above variable (kgC/m2/day)
 	int nday_leafon;	
 		// Number of days with non-negligible phenology this month
 	bool alive; 
@@ -1709,74 +1696,6 @@ public:
 };
 
 
-/// One item in the Lookup_lambda table
-/** Each entry in the table holds photosynthesis values for a given lambda,
- *  we also store year and day to make sure we don't reuse items calculated
- *  for a previous day. id is required to keep both daily and sub-daily tables
- *  in diurnal mode, it doesn't play any role in monthly mode (just needs to be
- *  the same, negative values given below are convention).
- *
- *  \see Lookup_lambda */
-struct Lookup_lambda_item {
-	PhotosynthesisResult photosynthesis;
-	int year;
-	int day;
-
-	/// id (monthly: -2; daily: -1; sub-daily: any non-negative value)
-	int i;
-
-	Lookup_lambda_item()
-			: photosynthesis(), year(-1), day(0), i(-1) {
-	}
-};
-
-/// Lookup table for photosynthesis parameters
-/** \see canexch.cpp::assimilation_wstress
- */
-class Lookup_lambda {
-
-private:
-	std::vector<Lookup_lambda_item> data;
-	int position;
-
-public:
-	/// Maximum number of iterations towards a solution in bisection method
-	/** Should be static const int, but is an enum for backwards compatibility
-	 *  with old compilers (e.g. VC6) */
-	enum { MAXTRIES = 6 };
-
-	Lookup_lambda(): data((int)pow(2., MAXTRIES+1)) {}
-
-	void newsearch() {
-		position = 0;
-	}
-
-	bool getdata(int year, int day, int i, PhotosynthesisResult& phot) {
-		Lookup_lambda_item& cur = data[position];
-		bool retval = cur.year == year && cur.day == day && cur.i == i;
-		if (retval) {
-			phot = cur.photosynthesis;
-		}
-		return retval;
-	}
-
-	void setdata(int year, int day, int i, const PhotosynthesisResult& phot) {
-		Lookup_lambda_item& thisitem = data[position];
-		thisitem.year = year;
-		thisitem.day = day;
-		thisitem.i = i;
-		thisitem.photosynthesis = phot;
-	}
-
-	void increase() {
-		position += position + 1;
-	}
-
-	void decrease() {
-		position += position + 2;
-	}
-};
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // PATCHPFT
 // State variables common to all individuals of a particular PFT in a particular patch
@@ -1845,9 +1764,6 @@ public:
 		// fractional uptake of water from each soil layer today
 	bool wstress;				// whether water-stress conditions for this PFT
 	bool wstress_day;			// daily version of the above variable
-	Lookup_lambda lookup_lambda;
-		// lookup table for values of lambda (parameter in photosynthesis calculations)
-		// today (see canexch.cpp)
 
 	/// carbon depository for long-lived products like wood
 	double harvested_products_slow;	
@@ -2035,10 +1951,7 @@ public:
 		// non-FPAR-weighted value for canopy conductance component associated with
 		// photosynthesis for PFT under non-water-stress conditions (mm/s)
 	std::vector<double> gpterms;		// sub-daily version of the above variable (mm/s)
-	double assim_term;
-		// non-FPAR-weighted leaf-level net photosynthesis value for PFT under non-
-		// water-stress conditions (kgC/m2/day)
-	std::vector<double> assim_terms;	// sub-daily version of the above variable (kgC/m2/day)
+
 	double fpc_total;
 		// FPC sum for this PFT as average for stand (used by some versions of
 		// guessio.cpp)

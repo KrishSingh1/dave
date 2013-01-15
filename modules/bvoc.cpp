@@ -83,7 +83,7 @@ double daytime_temp(double temp, double daylength, double dtr) {
 }
 
 void iso_mono(double co2, double temp, double daylength, const Pft& pft, double temprel,
-			double fpar, const PhotosynthesisResult& phot, Individual& indiv, int ndays) {
+				const PhotosynthesisResult& phot, Individual& indiv) {
 
 	// Calculation of isoprene and monoterpene emissions coupled to
 	// photosynthesis as described in Arneth et al. (2007) for isoprene and
@@ -118,8 +118,8 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 	dmonstor = 1. / max(min(dmonstor, tcstor_max), tcstor_min) / date.subdaily;
 
 	// convert from g C m-2 d-1 to mg C m-2 d-1
-	indiv.iso *= fpar * 1e3 / date.subdaily * ndays;
-	indiv.mon *= fpar * 1e3 / date.subdaily * ndays;
+	indiv.iso *= indiv.fpar * 1e3 / date.subdaily;
+	indiv.mon *= indiv.fpar * 1e3 / date.subdaily;
 	double rmonstor = -indiv.monstor * dmonstor + pft.storfrac_mon * indiv.mon;
 	indiv.monstor += rmonstor;
 	indiv.mon -= rmonstor;
@@ -154,8 +154,7 @@ double leafT(double temp, double daylength, double gpterm, double eet, double ga
 	                            (1 + lambertbeer(lai));
 }
 
-void seasonality(double temp, double daylength, double agdd5, const Pft& pft,
-                                                double& f_season, int ndays) {
+void seasonality(Climate& climate, const Pft& pft, double& f_season) {
 
 	// Calculating the seasonality for VOCs (isoprene and monoterpene) for PFTs
 	// Revised version compared to Arneth et al. (2007).
@@ -174,11 +173,11 @@ void seasonality(double temp, double daylength, double agdd5, const Pft& pft,
 		double vocgdd5ramp = mulgdd * pft.phengdd5ramp;
 				// GDD sum required for full expression of isoprene
 				// synthase/isoprene production
-		if (agdd5 <= vocgdd5ramp) {
-			f_season = vocgdd5ramp != 0 ? agdd5/vocgdd5ramp : 1;
+		if (climate.agdd5 <= vocgdd5ramp) {
+			f_season = vocgdd5ramp != 0 ? climate.agdd5/vocgdd5ramp : 1;
 		}
-		else if (temp < tmin || daylength < dmin) {
-			f_season *= pow(1-rdr, ndays);
+		else if (climate.temp < tmin || climate.daylength < dmin) {
+			f_season *= 1-rdr;
 		}
 		else {
 			f_season = 1;
@@ -186,13 +185,12 @@ void seasonality(double temp, double daylength, double agdd5, const Pft& pft,
 	}
 }
 
-void bvoc(double temp, double hours, double daylength, double rad, double eet,
-		double agdd5, double dtr, double co2, double temp_day, double fpar, Patch& patch,
+void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 		Individual& indiv, const Pft& pft, const PhotosynthesisResult& phot,
-		double adtmm, double gpterm, const Day& day, int ndays) {
+		double adtmm, double gpterm, const Day& day) {
 
 	// Calculation of isoprene and monoterpene production in leaves as a function
-	// of photosynthetis. Isoprene and monoterpenes are calculated from a
+	// of photosynthesis. Isoprene and monoterpenes are calculated from a
 	// standardized fraction of the total photosynthesis, which is adjusted as
 	// a function of temperature, CO2 concentration and (for isoprene)
 	// seasonality.
@@ -214,24 +212,24 @@ void bvoc(double temp, double hours, double daylength, double rad, double eet,
 	// (selected) INPUT PARAMETERS
 	// temp      = temperature for this calculation period (deg C)
 	// hours     = in diurnal mode should equal 24 (to convert to daily units),
-	//             in daily/monthly mode should equal to "daylength" parameter (h)
+	//             in daily/monthly mode should equal to "climate.daylength" parameter (h)
+	// climate:
 	// daylength = actual daylength of the day the calculation period belongs to (h)
 	// dtr       = diurnal temperature range (not used in diurnal mode) (deg C)
-	// temp_day  = daily temperature of the day this calculation period belongs to (deg C)
-	// phot      = non-water stressed photosythensis
+	// phot      = non-water stressed photosynthesis
 	// adtmm     = actual (water-stressed) photosynthesis production for the period (mm/m2/day)
 	// gpterm    = actual (water-stressed) canopy conductance for the period (mm/s)
 
 	if (day.isstart) {
 		// calculate seasonality for VOC emissions
-		seasonality(temp_day, daylength, agdd5, pft, indiv.fvocseas, ndays);
+		seasonality(climate, pft, indiv.fvocseas);
 	}
 	if (adtmm <= 0) {
 		return;
 	}
 
 	double temp_leaf_daytime;
-	double temp_leaf = leafT(temp, hours, gpterm, eet, pft.ga, rad, pft.gmin,
+	double temp_leaf = leafT(temp, hours, gpterm, climate.eet, pft.ga, rad, pft.gmin,
 	                                                     indiv.lai*indiv.phen);
 	if (date.diurnal()) {
 		if (!ifnlim) {
@@ -243,12 +241,12 @@ void bvoc(double temp, double hours, double daylength, double rad, double eet,
 	}
 	else {
 		// perform daily to daytime correction
-		double temp_corrected = daytime_temp(temp, daylength, dtr);
+		double temp_corrected = daytime_temp(climate.temp, climate.daylength, climate.dtr);
 		
 		if (!ifnlim) {
 			// perform air temperature to leaf temperature correction
-			temp_leaf_daytime = leafT(temp_corrected, daylength, gpterm, eet, pft.ga,
-		                                   rad, pft.gmin, indiv.lai*indiv.phen);
+			temp_leaf_daytime = leafT(temp_corrected, climate.daylength, gpterm, climate.eet, pft.ga,
+			                                   rad, pft.gmin, indiv.lai*indiv.phen);
 		}
 		else {
 			temp_leaf_daytime = temp_corrected;
@@ -256,7 +254,7 @@ void bvoc(double temp, double hours, double daylength, double rad, double eet,
 	}
 
 	// calculate isoprene and monoterpene emissions, g C m-2 d-1
-	iso_mono(co2, temp_leaf_daytime, hours, pft, temp_leaf, fpar, phot, indiv, ndays);
+	iso_mono(climate.co2, temp_leaf_daytime, hours, pft, temp_leaf, phot, indiv);
 
 	indiv.report_flux(Fluxes::ISO, indiv.iso);
 	indiv.report_flux(Fluxes::MON, indiv.mon);

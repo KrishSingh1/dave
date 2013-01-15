@@ -387,7 +387,6 @@ void Standpft::serialize(ArchiveStream& arch) {
 	arch & cmass_repr
 		& anetps_ff_max
 		& gpterm
-		& assim_term
 		& fpc_total
 		& active
 		& cmass_repr_nuptake;
@@ -488,9 +487,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	phen = 0.0;
 	aphen = 0.0;
 	deltafpc = 0.0;
-	assim = 0.0;
 	resp = 0.0;
-	assim_term = 0.0;
 
 	nmass_leaf = 0.0;
 	nmass_root = 0.0;
@@ -527,8 +524,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	age = 0.0;
 	fpar = 0.0;
 	aphen_raingreen = 0;
-	wdemand = 0.0;
-	wsupply = 0.0;
 	intercep = 0.0;
 	phen_mean = 0.0;
 	wstress = false;
@@ -579,10 +574,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& mlai
 		& fpar_leafon
 		& lai_leafon_layer
-		& wdemand
-		& wdemand_leafon
-		& wsupply
-		& wsupply_leafon
 		& intercep
 		& phen_mean
 		& wstress 
@@ -619,7 +610,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& leafndemand_store
 		& rootndemand_store
 		
-		& assim_term
 		& nday_leafon;
 }
 

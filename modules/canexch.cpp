@@ -37,41 +37,18 @@
 #include "bvoc.h"
 #include <assert.h>
 
-///////////////////////////////////////////////////////////////////////////////////////
-// PROCESS SWITCHES
-// This module contains alternative formulations for several processes. Each of a set
-// of alternative formulations is represented by a keyword declared by a #define
-// directive (below). All but one of the #define's relating to a particular process
-// should be commented out prior to a build (this causes the preprocesser to exclude
-// the unwanted code before sending the remaining code on to the compiler)
-
-// Alternative formulations for transpirational demand
-//   DEMAND_PATCH = a single demand calculated for the entire patch / grid cell
-//   DEMAND_INDIV = a separate demand calculated for each individual (as in LPJF)
-// Comment out one of the following two lines:
-
-#define DEMAND_PATCH
-//#define DEMAND_INDIV
-
-// Check:
-#if defined(DEMAND_PATCH) && defined(DEMAND_INDIV)
-#error Only one of DEMAND_PATCH and DEMAND_INDIV should be #defined
-#elif !defined(DEMAND_PATCH) && !defined(DEMAND_INDIV)
-#error One of DEMAND_PATCH and DEMAND_INDIV must be #defined
-#endif
-
 // Anonymous namespace for variables with file scope
 namespace {
 
 // Lookup tables for parameters with Q10 temperature responses
 
-/// lookup table for Q10 temperature response of Michaelis constant for O2
+/// lookup table for Q10 temperature response of CO2/O2 specificity ratio
 LookupQ10 lookup_tau(0.57, 2600.0);
 
-/// lookup table for Q10 temperature response of Michaelis constant for CO2
+/// lookup table for Q10 temperature response of Michaelis constant for O2
 LookupQ10 lookup_ko(1.2, 3.0e4);
 
-/// lookup table for Q10 temperature response of CO2/O2 specificity ratio
+/// lookup table for Q10 temperature response of Michaelis constant for CO2
 LookupQ10 lookup_kc(2.1, 30.0);
 
 }
@@ -501,21 +478,44 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
 }
 
 /// Total daily gross photosynthesis
-/** To calculate vmax call w/ daily averages of temperature and par
- *  Vmax is to be calculated daily and only with lambda == lambda_max
+/** Calculation of total daily gross photosynthesis and leaf-level net daytime
+ *  photosynthesis given degree of stomatal closure (as parameter lambda).
+ *  Includes implicit scaling from leaf to plant projective area basis.
+ *  Adapted from Farquhar & von Caemmerer (1982) photosynthesis model, as simplified
+ *  by Collatz et al (1991), Collatz et al (1992), Haxeltine & Prentice (1996a,b)
+ *  and Sitch et al. (2000).
+ *
+ *  To calculate vmax call w/ daily averages of temperature and par.
+ *  Vmax is to be calculated daily and only with lambda == lambda_max.
  *  lambda values greater than lambda_max are forbidden.
  *  In sub-daily mode daylength should be 24 h, to obtain values in daily units.
+ *
+ *  INPUT PARAMETERS
+ *
+ *  \param co2        atmospheric ambient CO2 concentration (ppmv)
+ *  \param temp       mean air temperature today (deg C)
+ *  \param par        total daily photosynthetically-active radiation today (J/m2/day)
+ *  \param daylength  day length, must equal 24 in diurnal mode (h)
+ *  \param fpar       fraction of PAR absorbed by foliage
+ *  \param lambda     ratio of intercellular to ambient partial pressure of CO2
+ *  \param pft        Pft object containing the following public members:
+ *   - pathway         biochemical pathway for photosynthesis (C3 or C4)
+ *   - pstemp_min      approximate low temperature limit for photosynthesis (deg C)
+ *   - pstemp_low      approximate lower range of temperature optimum for
+ *                     photosynthesis (deg C)
+ *   - pstemp_high     approximate upper range of temperature optimum for photosynthesis
+ *                     (deg C)
+ *   - pstemp_max      maximum temperature limit for photosynthesis (deg C)
+ *   - lambda_max      non-water-stressed ratio of intercellular to ambient CO2 pp
+ *  \param vm         pre-calculated value of Vmax for this stand for this day if
+ *                    available, otherwise calculated
+ *
+ * OUTPUT PARAMETERS
+ *
+ * \param result      see documentation of PhotosynthesisResult struct
  */
 void photosynthesis(double co2, double temp, double par, double daylength,
-                    double lambda, const Pft& pft, PhotosynthesisResult& result, double vm) {
-
-	// DESCRIPTION
-	// Calculation of total daily gross photosynthesis and leaf-level net daytime
-	// photosynthesis given degree of stomatal closure (as parameter lambda).
-	// Includes implicit scaling from leaf to plant projective area basis.
-	// Adapted from Farquhar & von Caemmerer (1982) photosynthesis model, as simplified
-	// by Collatz et al (1991), Collatz et al (1992), Haxeltine & Prentice (1996a,b)
-	// and Sitch et al. (2000).
+                    double fpar, double lambda, const Pft& pft, PhotosynthesisResult& result, double vm) {
 
 	// NOTE: This function is identical to LPJF subroutine "photosynthesis" except for
 	// the formulation of low-temperature inhibition coefficient tscal (tstress; LPJF).
@@ -528,26 +528,6 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 	// function showed identical behaviour except at temperatures >= c. 35 deg C where
 	// LPJF temperature inhibition function results in lower photosynthesis.
 
-	// INPUT PARAMETERS
-	// co2          = atmospheric ambient CO2 concentration (ppmv)
-	// temp         = mean air temperature today (deg C)
-	// par          = total daily photosynthetically-active radiation today (J/m2/day)
-	// daylength    = day length, must equal 24 in diurnal mode (h)
-	// lambda       = ratio of intercellular to ambient partial pressure of CO2
-	// pft          = Pft class containing the following public members
-	//    pathway     = biochemical pathway for photosynthesis (C3 or C4)
-	//    pstemp_min  = approximate low temperature limit for photosynthesis (deg C)
-	//    pstemp_low  = approximate lower range of temperature optimum for
-	//                  photosynthesis (deg C)
-	//    pstemp_high = approximate upper range of temperature optimum for photosynthesis
-	//                  (deg C)
-	//    pstemp_max  = maximum temperature limit for photosynthesis (deg C)
-	//    lambda_max  = non-water-stressed ratio of intercellular to ambient CO2 pp
-	// vm           = pre-calculated value of Vmax for this stand for this day if
-	//                available, otherwise calculated
-	// OUTPUT PARAMETERS
-	// result       = see documentation of PhotosynthesisResult struct
-
 	// Make sure that only two alternative modes are possible:
 	//  * daily non-water stressed (forces Vmax calculation)
 	//  * with pre-calculated Vmax (sub-daily and water-stressed)
@@ -557,14 +537,14 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 	const double PATMOS = 1e5;	// atmospheric pressure (Pa)
 
 	// No photosynthesis during polar night, outside of temperature range or no RuBisCO activity
-	if (negligible(daylength) || temp > pft.pstemp_max || temp < pft.pstemp_min || !vm) {
+	if (negligible(daylength) || negligible(fpar) || temp > pft.pstemp_max || temp < pft.pstemp_min || !vm) {
 		result.clear();
 		return;
 	}
 	// Scale fractional PAR absorption at plant projective area level (FPAR) to
 	// fractional absorption at leaf level (APAR)
 	// Eqn 4, Haxeltine & Prentice 1996a
-	double apar = par * ALPHAA;
+	double apar = par * fpar * ALPHAA;
 	double b, c1, c2;
 
 	// Calculate temperature-inhibition coefficient
@@ -675,29 +655,22 @@ void photosynthesis_nowstress(Stand& stand, Climate& climate) {
 
 		// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
 		photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
-									pft.lambda_max, pft, spft.photosynthesis, -1);
+		               1.0, pft.lambda_max, pft, spft.photosynthesis, -1);
 
 		if (date.diurnal()) {
 			spft.gpterms.assign(date.subdaily, 0);
-			spft.assim_terms.assign(date.subdaily, 0);
 			PhotosynthesisResult res;
 			spft.phots.assign(date.subdaily, res);
 			for (int i=0; i<date.subdaily; i++) {
 				PhotosynthesisResult& result = spft.phots[i];
 				photosynthesis(climate.co2, climate.temps[i], climate.pars[i],
-					24, pft.lambda_max, pft, result, spft.photosynthesis.vm);
+				               24, 1.0, pft.lambda_max, pft, result, spft.photosynthesis.vm);
 
 				spft.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
-				spft.assim_terms[i] = result.net_assimilation();
 			}
 		}
 		spft.gpterm = gpterm(spft.photosynthesis.adtmm, climate.co2,
 									pft.lambda_max, climate.daylength);
-
-		// Store net C-assimilation (gross photosynthesis minus leaf
-		// respiration); valid for all individuals of this PFT given today's
-		// climate and FPAR=1 assuming no water stress
-		spft.assim_term = spft.photosynthesis.net_assimilation();
 	}
 }
 
@@ -731,24 +704,7 @@ void demand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& d
 		//          assumed to be proportional to leaf-on fraction
 		double gp_leafon = (date.diurnal() ? spft.gpterms[day.period] : spft.gpterm) *
 									indiv.fpar_leafon + pft.gmin * indiv.fpc;
-#if defined(DEMAND_INDIV)
 
-		if (!negligible(indiv.fpc*indiv.phen)) {
-
-			// Individual conductance and demand assuming full leaf cover,
-			// FPC basis
-			double gp_indiv = gp_leafon * indiv.phen / indiv.fpc;
-			indiv.demand = aet_monteith(patch.eet_net_veg, gp_indiv);
-
-			// Actual conductance and demand, FPC basis
-			gp_indiv = gp_leafon / indiv.fpc;
-			indiv.demand_leafon = aet_monteith(patch.eet_net_veg, gp_indiv);
-		}
-		else {
-			indiv.demand = 0;
-			indiv.demand_leafon = 0;
-		}
-#endif
 		// Increment patch sums of non-water-stressed gp by individual value
 		gp_patch += gp_leafon * indiv.phen;
 		gp_leafon_patch += gp_leafon;
@@ -921,21 +877,6 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 		// Retrieve PFT
 		Pft& pft = ppft.pft;
 
-		if (!ifdailynpp && date.dayofmonth == 0) {
-			// On first day of month, monthly mode, initialise cumulative
-			// environmental drivers and counter for water-stress days
-
-			ppft.temp_wstress = 0;
-			ppft.gpterm_wstress = 0;
-			ppft.phot_wstress.clear();
-			ppft.par_wstress = 0;
-			ppft.daylength_wstress = 0;
-			ppft.co2_wstress = 0;
-			ppft.nday_wstress = 0;
-			ppft.fpar_grass_wstress = 0;
-			ppft.gcbase_wstress = 0;
-		}
-
 		if (day.isstart) {
 			// Calculate effective water supply from plant roots
 			// Rescale available water by patch FPC if exceeds 1
@@ -951,19 +892,6 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 		}
 		ppft.wstress = ppft.supply < patch.demand && !negligible(ppft.phen);
 
-		if (!ifdailynpp && ppft.wstress) {
-			ppft.nday_wstress++;
-			ppft.temp_wstress += climate.temp;
-			ppft.par_wstress += climate.par;
-			ppft.co2_wstress += climate.co2;
-			ppft.fpar_grass_wstress += patch.fpar_grass * ppft.phen;
-			ppft.daylength_wstress += climate.daylength;
-			ppft.gpterm_wstress += spft.gpterm;
-			ppft.phot_wstress.vm += spft.photosynthesis.vm;
-			ppft.phot_wstress.rd_g += spft.photosynthesis.rd_g;
-			ppft.phot_wstress.je += spft.photosynthesis.je;
-		}
-
 		// Calculate water-stressed canopy conductance on FPC basis assuming
 		// FPAR=1 and deducting canopy conductance component not associated
 		// with CO2 uptake; valid for all individuals of this PFT in this patch
@@ -974,26 +902,11 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 		if (!date.diurnal()) {
 			ppft.wstress_day = ppft.wstress;
 			ppft.gcbase_day = ppft.gcbase;
-			if (!ifdailynpp) {
-				ppft.gcbase_wstress += ppft.gcbase;
-			}
 		}
 		else if (day.isend) {
 			ppft.wstress_day = ppft.supply < patch.demand_day && !negligible(ppft.phen);
 			ppft.gcbase_day = ppft.wstress_day ? max(gc_monteith(ppft.supply,
 					patch.eet_net_veg) - pft.gmin * ppft.supply / patch.demand_day, 0.0) : 0;
-		}
-		if (!ifdailynpp && date.islastday && ppft.nday_wstress) {
-			ppft.temp_wstress /= ppft.nday_wstress;
-			ppft.par_wstress /= ppft.nday_wstress;
-			ppft.co2_wstress /= ppft.nday_wstress;
-			ppft.fpar_grass_wstress /= ppft.nday_wstress;
-			ppft.daylength_wstress /= ppft.nday_wstress;
-			ppft.gcbase_wstress /= ppft.nday_wstress;
-			ppft.gpterm_wstress /= ppft.nday_wstress;
-			ppft.phot_wstress.vm /= ppft.nday_wstress;
-			ppft.phot_wstress.rd_g /= ppft.nday_wstress;
-			ppft.phot_wstress.je /= ppft.nday_wstress;
 		}
 	}
 
@@ -1005,45 +918,14 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 		if (day.isstart) {
 			indiv.aet = 0;
 		}
-		if (!ifdailynpp && date.dayofmonth == 0) {
-			indiv.fpar_wstress = 0;
-			indiv.temp_wstress = 0;
-			indiv.par_wstress = 0;
-			indiv.daylength_wstress = 0;
-			indiv.co2_wstress = 0;
-			indiv.nday_wstress = 0;
-			indiv.dtr_wstress = 0;
-			indiv.eet_wstress = 0;
-			indiv.agdd5_wstress = 0;
-			indiv.rad_wstress = 0;
-		}
 
-#if defined(DEMAND_PATCH)
 		indiv.wstress = ppft.wstress;
-		double demand_indiv = patch.demand;
-#elif defined(DEMAND_INDIV)
-		indiv.wstress = ppft.supply < indiv.demand;
-		double demand_indiv = indiv.demand;
-#endif
 
 		if (indiv.wstress) {
 			indiv.aet += ppft.supply;
-
-			if (!ifdailynpp) {
-				indiv.nday_wstress++;
-				indiv.fpar_wstress += indiv.fpar;
-				indiv.temp_wstress += climate.temp;
-				indiv.par_wstress += climate.par;
-				indiv.daylength_wstress += climate.daylength;
-				indiv.co2_wstress += climate.co2;
-				indiv.dtr_wstress += climate.dtr;
-				indiv.eet_wstress += climate.eet;
-				indiv.agdd5_wstress += climate.agdd5;
-				indiv.rad_wstress += climate.rad;
-			}
 		}
 		else {
-			indiv.aet += negligible(indiv.phen) ? 0.0 : demand_indiv;
+			indiv.aet += negligible(indiv.phen) ? 0.0 : patch.demand;
 		}
 		if (day.isend) {
 			indiv.aet *= indiv.fpc / date.subdaily;
@@ -1090,7 +972,6 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 		}
 	}
 
-#ifdef DEMAND_PATCH
 	if (date.islastday && date.islastmonth && day.isend) {
 		vegetation.firstobj();
 		while (vegetation.isobj) {
@@ -1099,31 +980,6 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 			vegetation.nextobj();
 		}
 	}
-#elif defined DEMAND_INDIV
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv = vegetation.getobj();
-
-		double wscal_indiv = 1;
-		if (!negligible(indiv.demand_leafon)) {
-			wscal_indiv = min(1.0, indiv.supply_leafon/indiv.demand_leafon);
-		}
-		wscal_indiv /= date.subdaily;
-
-		if (date.day == 0 && day.isstart) {
-			indiv.wscal_mean = wscal_indiv;
-		}
-		else {
-			indiv.wscal_mean+= wscal_indiv;
-		}
-
-		if (date.islastday && date.islastmonth && day.isend) {
-			indiv.wscal_mean /= 365.0;
-		}
-
-		vegetation.nextobj();
-	}
-#endif
 }
 
 
@@ -1131,46 +987,49 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 // ASSIMILATION_WSTRESS
 // Internal function (do not call directly from framework)
 
-void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
-			double daylength, double fpar, double fpc, double gcbase, double gpterm,
-			double vmax, int i, PhotosynthesisResult& phot_result, double& lambda) {
+void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
+			double daylength, double fpar, double fpc, double gcbase,
+			double vmax, PhotosynthesisResult& phot_result, double& lambda) {
 
 	// DESCRIPTION
 	// Calculation of net C-assimilation under water-stressed conditions
-	// (demand>supply; see function canopy_exchange_fast). Utilises a numerical
+	// (demand>supply; see function canopy_exchange). Utilises a numerical
 	// iteration procedure to find the level of stomatal aperture (characterised by
 	// lambda, the ratio of leaf intercellular to ambient CO2 concentration) which
 	// satisfies simulataneously a canopy-conductance based and light-based
 	// formulation of photosynthesis (Eqns 2, 18 and 19, Haxeltine & Prentice (1996)).
 
-	// Numerical method is a tailored implementation of the bisection method, with a
-	// fixed 10 bisections, assuming root (f(lambda)=0) bracketed by f(0.02)<0 and
-	// f(lambda_max+0.05)>0 (Press et al 1986)
+	// Numerical method is a tailored implementation of the bisection method, 
+	// assuming root (f(lambda)=0) bracketed by f(0.02)<0 and
+	// f(lambda_max)>0 (Press et al 1986)
 
-	// To increase the efficiency with which the iteration is performed in cohort
-	// and individual modes, dynamic lookup tables of class Lookup_lambda are used
-	// to store output from successive calls to function photosynthesis. A separate
-	// lookup table is maintained by each Patchpft object. Stored values remain valid
-	// for one simulation day. This implies that function photosynthesis need be called
-	// just once for a particular patch, PFT, day and value of lambda. This technique
-	// will not influence computational speed in population mode, where each PFT is
-	// represented by just one Individual object in each grid cell.
+	// The bisection method terminates when we're close enough to a root
+	// (absolute value of f(lambda) < EPS), or after a maximum number of 
+	// iterations.
+
+	// Note that the function sometimes doesn't search for a lambda,
+	// and returns zero assimilation (for instance if there is no
+	// root within the valid interval, or if daylength is zero).
+	// So if zero assimilation is returned, the returned lambda should
+	// not be used!
 
 	// OUTPUT PARAMETER
 	// phot_result = result of photosynthesis for the found lambda
 	// lambda      = the lambda found by the bisection method (see above)
 
+
+	// Set lambda to something for cases where we don't actually search for
+	// a proper lambda. This value shouldn't be used (see documentation
+	// above), but we'll set it to something anyway so we don't return
+	// random garbage.
+	lambda = -1;
+
 	// Convert fpar from patch to fpc basis
 	double fpar_fpc = fpar / fpc;
 
-	if (negligible(fpc) || negligible(fpar) || fpar_fpc * gpterm <= gcbase ||
-									negligible(gcbase * daylength * 3600)) {
+	if (negligible(fpc) || negligible(fpar) || negligible(gcbase * daylength * 3600)) {
 		// Return zero assimilation
 		phot_result.clear();
-
-		// lambda doesn't make sense here and shouldn't be used, but let's
-		// return something well defined at least
-		lambda = ppft.pft.lambda_max;
 		return;
 	}
 
@@ -1178,27 +1037,39 @@ void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 	// daily basis (mm / m2 / day)
 	double gcphot = gcbase * daylength * 3600 / 1.6 * co2 * CO2_CONV;
 
+	// At this point the function f(x) = g(x) - h(x) can be calculated as:
+	//
+	// g(x) = phot_result.adtmm * fpar_fpc (after a call to photosynthesis with lambda x)
+	// h(x) = gcphot * (1 - x)
+
+	// Evaluate f(lambda_max) to see if there's a root 
+	// in the interval we're searching
+	photosynthesis(co2, temp, par, daylength, 1.0, pft.lambda_max, pft, phot_result, vmax);
+	double f_lambda_max = phot_result.adtmm * fpar_fpc - gcphot * (1 - pft.lambda_max);
+
+	if (f_lambda_max <= 0) {
+		// Return zero assimilation
+		phot_result.clear();
+		return;
+	}
+
 	const double EPS = 0.1; // minimum precision of solution in bisection method
 
 	double xmid;
 
-	// Retrieve lookup table for this PFT in this patch
-	Lookup_lambda& lookup_lambda = ppft.lookup_lambda;
-
 	// Implement numerical solution
 
 	double x1 = 0.02;                      // minimum bracket of root
-	double x2 = ppft.pft.lambda_max;       // maximum bracket of root
+	double x2 = pft.lambda_max;            // maximum bracket of root
 	double rtbis = x1;                     // root of the bisection
 	double dx = x2 - x1;
 
-	int b = 0;				// number of tries so far towards solution
+	const int MAXTRIES = 6; // maximum number of iterations towards a solution
+	int b = 0;              // number of tries so far towards solution
 
 	double fmid = EPS + 1.0;
 
-	lookup_lambda.newsearch();
-
-	while (fabs(fmid)>EPS && b<=Lookup_lambda::MAXTRIES) {
+	while (fabs(fmid) > EPS && b <= MAXTRIES) {
 
 		b++;
 		dx *= 0.5;
@@ -1207,14 +1078,8 @@ void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 		// Call function photosynthesis to calculate alternative value
 		// for total daytime photosynthesis according to Eqns 2 & 19,
 		// Haxeltine & Prentice (1996), and current guess for lambda
-		// Value from lookup table used if available
 
-		if (!lookup_lambda.getdata(date.year, date.day, i, phot_result)) {
-
-			photosynthesis(co2, temp, par, daylength, xmid, ppft.pft, phot_result, vmax);
-
-			lookup_lambda.setdata(date.year, date.day, i, phot_result);
-		}
+		photosynthesis(co2, temp, par, daylength, 1.0, xmid, pft, phot_result, vmax);
 
 		// Evaluate fmid at the point lambda=xmid
 		// fmid will be an increasing function of xmid, with a solution
@@ -1228,9 +1093,7 @@ void assimilation_wstress(Patchpft& ppft, double co2, double temp, double par,
 
 		if (fmid < 0) {
 			rtbis = xmid;
-			lookup_lambda.increase();
 		}
-		else lookup_lambda.decrease();
 	}
 
 	// bvoc
@@ -1405,14 +1268,12 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 	double par, temp, assim, resp, lambda, rad, gtemp;
 	double hours = 24;			// diurnal "daylength" to convert to daily units
-	int index = -1;
 
 	if (date.diurnal()) {
 		par = climate.pars[day.period];
 		temp = climate.temps[day.period];
 		rad = climate.rads[day.period];
 		gtemp = climate.gtemps[day.period];
-		index = day.period;
 	}
 	else {
 		par = climate.par;
@@ -1435,136 +1296,57 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		Standpft& spft = stand.pft[pft.id];
 		PhotosynthesisResult phot;
 
-		if (ifdailynpp) {
-			double gpterm_indiv = date.diurnal() ? spft.gpterms[day.period] : spft.gpterm;
-			if (indiv.wstress) {
-				// Water stress - derive assimilation by simultaneous solution
-				// of light- and conductance-based equations of photosynthesis
-				assimilation_wstress(ppft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
-							ppft.gcbase, gpterm_indiv, spft.photosynthesis.vm, index, phot, lambda);
-				assim = phot.net_assimilation();
-			}
-			else {
-				// No water stress - use base value for non-water-stressed assimilation
-				assim = date.diurnal() ? spft.assim_terms[day.period] : spft.assim_term;
-			}
-			assim *= indiv.fpar;
-
-			if (ifbvoc) {
-				double adtmm;
-				if (indiv.wstress) {
-					adtmm = phot.adtmm;
-					gpterm_indiv = gpterm(phot.adtmm, climate.co2, lambda, hours);
-				}
-				else {
-					adtmm = date.diurnal() ? spft.phots[day.period].adtmm : spft.photosynthesis.adtmm;
-				}
-				phot = date.diurnal() ? spft.phots[day.period] : spft.photosynthesis;
-				bvoc(temp, hours, climate.daylength, rad, climate.eet, climate.agdd5, climate.dtr,
-					climate.co2, climate.temp, indiv.fpar, patch, indiv, pft, phot, adtmm, gpterm_indiv, day);
-			}
-			// Calculate autotrophic respiration
-			respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
-				indiv.pft.respcoeff, indiv.pft.cton_sap, indiv.pft.cton_root,
-				indiv.phen, indiv.cmass_sap, indiv.cmass_root, assim, resp);
-
-			// Convert to averages for this period for accounting purposes
-			assim /= date.subdaily;
-			resp /= date.subdaily;
-
-			// Update accumulated annual NPP and daily vegetation-atmosphere flux
-			double ind_npp = assim - resp;
-			indiv.anpp += ind_npp;
-
-			indiv.report_flux(Fluxes::NPP, ind_npp);
-			indiv.report_flux(Fluxes::GPP, assim);
-			indiv.report_flux(Fluxes::RA, resp);
-
-			if (day.isend) {
-				indiv.mlai[date.month] += indiv.lai*indiv.phen;
-				// On last day of month - convert monthly LAI from sum to mean
-				if (date.islastday) {
-					indiv.mlai[date.month] /= (double)date.ndaymonth[date.month];
-				}
-			}
+		double gpterm_indiv = date.diurnal() ? spft.gpterms[day.period] : spft.gpterm;
+		if (indiv.wstress) {
+			// Water stress - derive assimilation by simultaneous solution
+			// of light- and conductance-based equations of photosynthesis
+			assimilation_wstress(pft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
+				ppft.gcbase, spft.photosynthesis.vm, phot, lambda);
+			assim = phot.net_assimilation();
 		}
 		else {
-			if (date.dayofmonth == 0) {
-				indiv.phen_mean = 0;
-				indiv.assim = 0;
-			}
-			indiv.phen_mean += indiv.phen;
+			// No water stress - use base value for non-water-stressed assimilation
+			assim = (date.diurnal() ? spft.phots[day.period] : spft.photosynthesis).net_assimilation();
+		}
+		assim *= indiv.fpar;
 
-			if (!indiv.wstress) {
-				indiv.assim += spft.assim_term * indiv.fpar;
-				if (ifbvoc) {
-					bvoc(temp, hours, hours, rad, climate.eet, climate.agdd5, climate.dtr,
-						climate.co2, climate.temp, indiv.fpar, patch, indiv, pft, spft.photosynthesis,
-						spft.photosynthesis.adtmm, spft.gpterm, day);
-				}
+		if (ifbvoc) {
+			double adtmm;
+			if (indiv.wstress) {
+				adtmm = phot.adtmm;
+				gpterm_indiv = gpterm(phot.adtmm, climate.co2, lambda, hours);
 			}
+			else {
+				adtmm = date.diurnal() ? spft.phots[day.period].adtmm : spft.photosynthesis.adtmm;
+			}
+			phot = date.diurnal() ? spft.phots[day.period] : spft.photosynthesis;
+			bvoc(temp, hours, rad, climate, patch, indiv, pft, phot, adtmm, gpterm_indiv, day);
+		}
+		// Calculate autotrophic respiration
+		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
+			indiv.pft.respcoeff, indiv.pft.cton_sap, indiv.pft.cton_root,
+			indiv.phen, indiv.cmass_sap, indiv.cmass_root, assim, resp);
+
+		// Convert to averages for this period for accounting purposes
+		assim /= date.subdaily;
+		resp /= date.subdaily;
+
+		// Update accumulated annual NPP and daily vegetation-atmosphere flux
+		double ind_npp = assim - resp;
+		indiv.anpp += ind_npp;
+
+		indiv.report_flux(Fluxes::NPP, ind_npp);
+		indiv.report_flux(Fluxes::GPP, assim);
+		indiv.report_flux(Fluxes::RA, resp);
+
+		if (day.isend) {
+			indiv.mlai[date.month] += indiv.lai*indiv.phen;
+			// On last day of month - convert monthly LAI from sum to mean
 			if (date.islastday) {
-				indiv.phen_mean /= (double)date.ndaymonth[date.month];
-				if (indiv.nday_wstress) {
-					double nday_double = indiv.nday_wstress;
-
-					indiv.fpar_wstress /= nday_double;
-					indiv.temp_wstress /= nday_double;
-					indiv.par_wstress /= nday_double;
-					indiv.daylength_wstress /= nday_double;
-					indiv.co2_wstress /= nday_double;
-					indiv.dtr_wstress /= nday_double;
-					indiv.eet_wstress /= nday_double;
-					indiv.agdd5_wstress /= nday_double;
-					indiv.rad_wstress /= nday_double;
-
-					assimilation_wstress(ppft, indiv.co2_wstress, indiv.temp_wstress,
-						indiv.par_wstress, indiv.daylength_wstress, indiv.fpar_wstress, indiv.fpc,
-						ppft.gcbase_wstress, ppft.gpterm_wstress, ppft.phot_wstress.vm, -2, phot, lambda);
-					indiv.assim += phot.net_assimilation() * indiv.fpar_wstress * indiv.nday_wstress;
-
-					if (ifbvoc) {
-						double gpterm_indiv = gpterm(phot.adtmm, climate.co2, lambda, indiv.daylength_wstress);
-						bvoc(indiv.temp_wstress, indiv.daylength_wstress, indiv.daylength_wstress,
-							indiv.rad_wstress, indiv.eet_wstress, indiv.agdd5_wstress, indiv.dtr_wstress,
-							indiv.co2_wstress, indiv.temp_wstress, indiv.fpar_wstress, patch, indiv, pft,
-							ppft.phot_wstress, phot.adtmm, gpterm_indiv, day, indiv.nday_wstress);
-					}
-				}
-
-				// Calculate respiration response to mean monthly air and soil temperature
-				// (if not already known for this month)
-				if (climate.last_mgtemp != date.month) {
-					respiration_temperature_response(climate.mtemp, climate.mgtemp);
-					climate.last_mgtemp = date.month;
-				}
-
-				if (patch.soil.last_mgtemp != date.month) {
-					respiration_temperature_response(patch.soil.mtemp, patch.soil.mgtemp);
-					patch.soil.last_mgtemp = date.month;
-				}
-
-				// Calculate autotrophic respiration
-				assim = indiv.assim / (double)date.ndaymonth[date.month];
-					// average daily assimilation for this month
-
-				respiration(climate.mgtemp, patch.soil.mgtemp, indiv.pft.lifeform,
-					indiv.pft.respcoeff,indiv.pft.cton_sap,indiv.pft.cton_root,
-					indiv.phen_mean,indiv.cmass_sap,indiv.cmass_root,assim,indiv.resp);
-
-				indiv.resp *= date.ndaymonth[date.month];
-				// Update accumulated annual NPP and daily vegetation-atmosphere flux
-
-				indiv.anpp += indiv.assim - indiv.resp;
-
-				indiv.report_flux(Fluxes::NPP, indiv.assim - indiv.resp);
-				indiv.report_flux(Fluxes::GPP, indiv.assim);
-				indiv.report_flux(Fluxes::RA, indiv.resp);
-
-				// Monthly LAI
-				indiv.mlai[date.month] = indiv.lai * indiv.phen_mean;
+				indiv.mlai[date.month] /= (double)date.ndaymonth[date.month];
 			}
 		}
+
 		vegetation.nextobj();
 	}
 }
@@ -1585,27 +1367,24 @@ void forest_floor_conditions(Patch& patch) {
 
 		Patchpft& ppft = patch.pft[p];
 		Standpft& spft = patch.stand.pft[p];
+		Pft& pft = spft.pft;
 
 		// Initialise net photosynthesis sum on first day of year
 		if (date.day == 0) {
 			ppft.anetps_ff = 0.0;
 		}
 		double assim = 0;
-		if (ifdailynpp || !ppft.wstress_day) {
-			if (ppft.wstress_day) {
-				assimilation_wstress(ppft, climate.co2, climate.temp, climate.par,
-					climate.daylength, patch.fpar_grass*ppft.phen, 1., ppft.gcbase_day,
-					spft.gpterm, spft.photosynthesis.vm, -1, phot, lambda);
-				assim = phot.net_assimilation();
-			} else assim = spft.assim_term;
-			assim *= ppft.phen * patch.fpar_grass;
+
+		if (ppft.wstress_day) {
+			assimilation_wstress(pft, climate.co2, climate.temp, climate.par,
+				climate.daylength, patch.fpar_grass*ppft.phen, 1., ppft.gcbase_day,
+				spft.photosynthesis.vm, phot, lambda);
+			assim = phot.net_assimilation();
+		} 
+		else {
+			assim = spft.photosynthesis.net_assimilation();
 		}
-		if (date.islastday && !ifdailynpp && ppft.nday_wstress) {
- 			assimilation_wstress(ppft, ppft.co2_wstress, ppft.temp_wstress,
-					ppft.par_wstress, ppft.daylength_wstress, ppft.fpar_grass_wstress,
-					1., ppft.gcbase_wstress, ppft.gpterm_wstress, ppft.phot_wstress.vm, -2, phot, lambda);
-			assim += phot.net_assimilation() * ppft.fpar_grass_wstress * ppft.nday_wstress;
-		}
+		assim *= ppft.phen * patch.fpar_grass;
 
 		// Accumulate annual value
 		ppft.anetps_ff += assim;
@@ -1639,7 +1418,7 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		}
 	}
 
-	// Calculated shared daily values of photosynthesis, gpterm and assim_term
+	// Calculated shared daily values of photosynthesis and gpterm
 	// for the whole stand
 	if (!patch.id) {
 		photosynthesis_nowstress(patch.stand, climate);
@@ -1656,21 +1435,6 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
  *  of soil water.
  */
 void canopy_exchange(Patch& patch, Climate& climate) {
-
-	// In "monthly" mode (ifdailynpp=0), following LPJF, AET and canopy conductance
-	// are calculated daily, while carbon assimilation is calculated daily under
-	// non-water-stress conditions (when transpirational demand for water is met
-	// by plant-regulated supply) and on the last day of the month for water-stress
-	// days (demand>supply).
-	// This results in the fastest overall simulation speed, since non-water-stressed
-	// photosynthesis is calculated as a biproduct of daily AET calculations, while
-	// water-stressed photosynthesis is calculated using a computationally-intensive
-	// numerical iteration procedure. Note that, in monthly mode, the accumulated
-	// annual NPP and vegetation C flux values are valid only for the last day of each
-	// month, following the call to this function. Daily flux values are never valid in
-	// "monthly" mode.
-
-	// If you require daily output, use "daily" mode (ifdailynpp=1)
 
 	// NEW ASSUMPTIONS CONCERNING FPC AND FPAR (Ben Smith 2002-02-20)
 	// FPAR = average individual fraction of PAR absorbed on patch basis today,

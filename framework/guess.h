@@ -798,12 +798,12 @@ public:
 	double cton_leaf_avr;
 	/// average fine root C:N mass ratio	
 	double cton_root_avr;
-	/// respiration fine root C:N mass ratio	
-	double cton_root_resp;
-	/// average sapwood C:N mass ratio	
+	/// average sapwood C:N mass ratio
 	double cton_sap_avr;
-	/// respiration sapwood C:N mass ratio	
-	double cton_sap_resp;
+	/// reference fine root C:N mass ratio	
+	double cton_root;
+	/// reference sapwood C:N mass ratio	
+	double cton_sap;
 	/// Maximum nitrogen (NH4+ and NO3- seperatly) uptake per fine root [kgN kgC-1 day-1]
 	double nuptoroot;
 	/// Michaelis-Menten kinetic parameters chosen to match observed rates of increase 
@@ -966,6 +966,39 @@ public:
 			sla = 0.2 * pow(10.0, 2.41 - 0.38 * log10(12.0 * leaflong));
 		else if (leafphysiognomy == NEEDLELEAF)
 			sla = 0.2 * pow(10.0, 2.29 - 0.4 * log10(12.0 * leaflong));
+	}
+
+	void init_cton_limits() {
+
+		// Calculates minimum leaf C:N ratio given leaf longevity
+		// Reich et al 1992, Table 1 (includes conversion x500 from mg/g_dry_weight to
+		// kgN/kgC)
+
+		if (leafphysiognomy == BROADLEAF)
+			cton_leaf_min = 500.0 / pow(10.0, 1.75 - 0.33 * log10(12.0 * leaflong));
+		else if (leafphysiognomy == NEEDLELEAF)
+			cton_leaf_min = 500.0 / pow(10.0, 1.52 - 0.26 * log10(12.0 * leaflong));
+
+		// Fraction between min and max C:N ratio
+		double frac_mintomax = 2.78;
+
+		// Fraction between leaf and root C:N ratio
+		double frac_leaftoroot = 1.0;
+		
+		// Fraction between leaf and sap wood C:N ratio
+		double frac_leaftosap = 11.38;
+
+		// Max leaf C:N ratio
+		cton_leaf_max = cton_leaf_min * frac_mintomax;
+		
+		// Average leaf C:N ratio
+		cton_leaf_avr = 1.0 / ((1.0 / cton_leaf_min + 1.0 / cton_leaf_max) / 2.0);
+
+		// Average root C:N ratio
+		cton_root_avr = cton_leaf_avr * frac_leaftoroot;
+
+		// Average sap C:N ratio
+		cton_sap_avr  = cton_leaf_avr * frac_leaftosap;
 	}
 
 	void initregen() {

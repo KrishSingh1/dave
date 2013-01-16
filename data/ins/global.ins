@@ -179,9 +179,9 @@ group "tree" (
 	k_allom2 60		
 	k_allom3 0.67
 	k_rp 1.6
-	wooddens 200
-	cton_root_resp 29
-	cton_sap_resp 330
+	wooddens 200	
+	cton_root 29
+	cton_sap 330
 	nuptoroot 0.0028
 	Km_volume 0.000001477
 	pathway "c3"
@@ -207,14 +207,9 @@ group "shrub" (
 	k_allom2 5
 	k_allom3 0.67
 	k_rp 1.6
-	wooddens 250
-	cton_leaf_min 16	
-	cton_leaf_avr 25	
-	cton_leaf_max 45
-	cton_root_avr 25	
-	cton_root_resp 29
-	cton_sap_avr 285			
-	cton_sap_resp 330
+	wooddens 250	
+	cton_root 29
+	cton_sap 330
 	nuptoroot 0.0028
 	Km_volume 0.000001477
 	pathway "c3"
@@ -241,12 +236,8 @@ group "grass" (
 	phengdd5ramp 100		! C3 har 50 hos Thomas
 	leaflong 1				! Leaf longevity (years)
 	turnover_leaf 1
-	turnover_root 0.7		! 0.5 hos guess2008
-	cton_leaf_min 16	
-	cton_leaf_avr 25	
-	cton_leaf_max 45
-	cton_root_avr 25	
-	cton_root_resp 29
+	turnover_root 0.7		! 0.5 hos guess2008	
+	cton_root 29
 	nuptoroot 0.00551
 	Km_volume 0.000001876
 	litterme 0.2
@@ -266,12 +257,7 @@ group "broadleaved" (
 	k_latosa 6000
 	gmin 0.5
 	intc 0.02
-        ga 0.040
-	cton_leaf_min 16	
-	cton_leaf_avr 25	
-	cton_leaf_max 45
-	cton_root_avr 25	
-	cton_sap_avr 285		
+        ga 0.040		
 )
 
 group "needleleaved" (
@@ -283,12 +269,7 @@ group "needleleaved" (
 	k_latosa 5000
 	gmin 0.3
 	intc 0.06
-        ga 0.140
-	cton_leaf_min 28	
-	cton_leaf_avr 42	
-	cton_leaf_max 75
-	cton_root_avr 42	
-	cton_sap_avr 480			
+        ga 0.140			
 )
 
 group "evergreen" (

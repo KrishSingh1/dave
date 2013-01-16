@@ -425,20 +425,10 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("respcoeff",&ppft->respcoeff,0.0,3,1,CB_NONE,
 			"Respiration coefficient (0-1)");
 
-		declareitem("cton_leaf_min",&ppft->cton_leaf_min,1.0,1.0e4,1,CB_NONE,
-			"Min Leaf C:N mass ratio");
-		declareitem("cton_leaf_max",&ppft->cton_leaf_max,1.0,1.0e4,1,CB_NONE,
-			"Max Leaf C:N mass ratio");
-		declareitem("cton_leaf_avr",&ppft->cton_leaf_avr,1.0,1.0e4,1,CB_NONE,
-			"Average Leaf C:N mass ratio");
-		declareitem("cton_root_avr",&ppft->cton_root_avr,1.0,1.0e4,1,CB_NONE,
-			"Average Fine root C:N mass ratio");
-		declareitem("cton_root_resp",&ppft->cton_root_resp,1.0,1.0e4,1,CB_NONE,
-			"Respiration Fine root C:N mass ratio");
-		declareitem("cton_sap_avr",&ppft->cton_sap_avr,1.0,1.0e4,1,CB_NONE,
-			"Average Sapwood C:N mass ratio");
-		declareitem("cton_sap_resp",&ppft->cton_sap_resp,1.0,1.0e4,1,CB_NONE,
-			"Respiration Sapwood C:N mass ratio");
+		declareitem("cton_root",&ppft->cton_root,1.0,1.0e4,1,CB_NONE,
+			"Reference Fine root C:N mass ratio");
+		declareitem("cton_sap",&ppft->cton_sap_avr,1.0,1.0e4,1,CB_NONE,
+			"Reference Sapwood C:N mass ratio");
 		declareitem("nuptoroot",&ppft->nuptoroot,0.0,1.0,1,CB_NONE,
 			"Maximum nitrogen uptake per fine root");
 		declareitem("Km_volume",&ppft->Km_volume,0.0,10.0,1,CB_NONE,
@@ -749,11 +739,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("respcoeff")) badins("respcoeff");
 		if (!itemparsed("sla") && !ifcalcsla) badins("sla");
 
-		if (!itemparsed("cton_leaf_min")) badins("cton_leaf_min");
-		if (!itemparsed("cton_leaf_max")) badins("cton_leaf_max");
-		if (!itemparsed("cton_leaf_avr")) badins("cton_leaf_avr");
-		if (!itemparsed("cton_root_avr")) badins("cton_root_avr");
-		if (!itemparsed("cton_root_resp")) badins("cton_root_resp");
+		if (!itemparsed("cton_root")) badins("cton_root");
 		if (!itemparsed("nuptoroot")) badins("nuptoroot");
 		if (!itemparsed("Km_volume")) badins("Km_volume");
 
@@ -785,8 +771,7 @@ void plib_callback(int callback) {
 		}
 
 		if (ppft->lifeform==TREE) {
-			if (!itemparsed("cton_sap_avr")) badins("cton_sap_avr");
-			if (!itemparsed("cton_sap_resp")) badins("cton_sap_resp");
+			if (!itemparsed("cton_sap")) badins("cton_sap");
 			if (!itemparsed("turnover_sap")) badins("turnover_sap");
 			if (!itemparsed("wooddens")) badins("wooddens");
 			if (!itemparsed("crownarea_max")) badins("crownarea_max");

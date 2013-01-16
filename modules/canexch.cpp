@@ -1060,15 +1060,8 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 				// Calculate optimal leaf nitrogen associated with photosynthesis and none photosynthetic 
 				// active nitrogen (Haxeltine et al. 1996 eqn 27/28)
-				// Added difference between needleleaved and broadleaved mentioned in Friend et al. 1997
-				if (indiv.pft.leafphysiognomy == BROADLEAF) {
-					leafoptn = indiv.photosynthesis.nactive_opt + N0 * indiv.cmass_leaf * indiv.phen;
-				}
-				else {
-					leafoptn = indiv.photosynthesis.nactive_opt + 
-					    (0.67 * N0 + 0.33 * (indiv.nmass_leaf + indiv.photosynthesis.nactive_opt) / (indiv.cmass_leaf * indiv.phen)) *
-					    indiv.cmass_leaf * indiv.phen;
-				}
+				// Added a scalar depending on individual lai to slow down optimization of newly shaded leafs.
+				leafoptn = indiv.photosynthesis.nactive_opt * pow(1.1, indiv.lai * indiv.phen) + N0 * indiv.cmass_leaf * indiv.phen;
 			}
 			else {
 				// If no nitrogen limitation use average nitrogen content in leaves
@@ -1216,13 +1209,11 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 		double nmass_leaf = indiv.nmass_leaf + indiv.leafndemand * indiv.fnuptake;
 
 		if (indiv.phen > 0.0) {
-			if (indiv.pft.leafphysiognomy == BROADLEAF)
-				indiv.nactive = max(0.0, nmass_leaf - N0 * indiv.cmass_leaf * indiv.phen);
-			else
-				indiv.nactive = max(0.0, nmass_leaf - (0.67 * N0 + 0.33 * nmass_leaf / (indiv.cmass_leaf * indiv.phen)) * indiv.cmass_leaf * indiv.phen); 
+			indiv.nactive = max(0.0, nmass_leaf - N0 * indiv.cmass_leaf * indiv.phen);
 		}
-		else
+		else {
 			indiv.nactive = 0.0;
+		}
 
 		// Individuals photosynthesis is nitrogen stressed 
 		if (indiv.nstress) {
@@ -1929,7 +1920,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		}
 		// Calculate autotrophic respiration
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
-			indiv.pft.respcoeff, indiv.pft.cton_sap_resp, indiv.pft.cton_root_resp,
+			indiv.pft.respcoeff, indiv.pft.cton_sap, indiv.pft.cton_root,
 			indiv.phen, indiv.cmass_sap, indiv.cmass_root, assim, resp);
 
 		// Convert to averages for this period for accounting purposes

@@ -681,9 +681,12 @@ inline double gpterm(double adtmm, double co2, double lambda, double daylength) 
 /**
  * Vmax is calculated on a daily scale (w/ daily averages of temperature and par)
  * Subdaily values calculated if needed
- * With nitrogen cycle switched on photosynthesis() needs to be done for each individual 
  */
 void photosynthesis_nostress(Patch& patch, Climate& climate) {
+
+	// If this is the first patch, calculate no-stress assimilation for
+	// each Standpft, assuming FPAR=1. This is then later used in 
+	// forest_floor_conditions.
 	if (!patch.id) {
 		Stand& stand = patch.stand;
 
@@ -713,38 +716,36 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 		}
 	}
 
-	// Pre-calculation for each individual when nitrogen cycle switch on
-	if (ifnlim) {
-		Vegetation& vegetation = patch.vegetation;
-		vegetation.firstobj();
+	// Pre-calculation of no-stress assimilation for each individual
+	Vegetation& vegetation = patch.vegetation;
+	vegetation.firstobj();
 
-		while (vegetation.isobj) {
-			Individual& indiv = vegetation.getobj();
-			Pft& pft = indiv.pft;
+	while (vegetation.isobj) {
+		Individual& indiv = vegetation.getobj();
+		Pft& pft = indiv.pft;
 
-			// Individual photosynthesis with no nitrogen limitation
-			photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
-				indiv.fpar, pft.lambda_max, pft,
-				1.0, false,
-				indiv.photosynthesis,
-				-1);
+		// Individual photosynthesis with no nitrogen limitation
+		photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
+		               indiv.fpar, pft.lambda_max, pft,
+		               1.0, false,
+		               indiv.photosynthesis,
+		               -1);
 
-			indiv.gpterm = gpterm(indiv.photosynthesis.adtmm, climate.co2, pft.lambda_max, climate.daylength);
+		indiv.gpterm = gpterm(indiv.photosynthesis.adtmm, climate.co2, pft.lambda_max, climate.daylength);
 
-			if (date.diurnal()) {
-				for (int i=0; i<date.subdaily; i++) {
-					PhotosynthesisResult& result = indiv.phots[i];
-					photosynthesis(climate.co2, climate.temps[i], climate.pars[i], 24,
-						indiv.fpar, pft.lambda_max, pft,
-						1.0, false,
-						result,
-						indiv.photosynthesis.vm);
+		if (date.diurnal()) {
+			for (int i=0; i<date.subdaily; i++) {
+				PhotosynthesisResult& result = indiv.phots[i];
+				photosynthesis(climate.co2, climate.temps[i], climate.pars[i], 24,
+				               indiv.fpar, pft.lambda_max, pft,
+				               1.0, false,
+				               result,
+				               indiv.photosynthesis.vm);
 
-					indiv.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
-				}
+				indiv.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
 			}
-			vegetation.nextobj();
 		}
+		vegetation.nextobj();
 	}
 }
 
@@ -1292,42 +1293,36 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
 		Pft& pft = indiv.pft;
 		Standpft& spft = patch.stand.pft[pft.id];
 
-		double gp_leafon;
+		// Calculate non-water-stressed canopy conductance assuming full leaf cover
+		//        - include canopy-conductance component not linked to
+		//          photosynthesis (diffusion through leaf cuticle etc); this is
+		//          assumed to be proportional to leaf-on fraction
 
-		if (ifnlim) {
-			// Call photosynthesis with actual FPAR assuming stomates fully open
-			// (lambda = lambda_max)
+		// Call photosynthesis for individual assuming stomates fully open
+		// (lambda = lambda_max)
 
-			PhotosynthesisResult leafon_photosynthesis;
+		PhotosynthesisResult leafon_photosynthesis;
 
-			// Call photosynthesis first with fpar_leafon to get gp_leafon below.
-			// Should hopefully not be needed in future, demand_leafon only used
-			// by raingreen phenology.
+		// Call photosynthesis first with fpar_leafon to get gp_leafon below.
+		// Should hopefully not be needed in future, demand_leafon only used
+		// by raingreen phenology.
 	
-			double temp = date.diurnal() ? climate.temps[day.period] : climate.temp;
-			double par = date.diurnal() ? climate.pars[day.period] : climate.par;
-			double daylength = date.diurnal() ? 24 : climate.daylength;
+		double temp = date.diurnal() ? climate.temps[day.period] : climate.temp;
+		double par = date.diurnal() ? climate.pars[day.period] : climate.par;
+		double daylength = date.diurnal() ? 24 : climate.daylength;
 
-			// No nitrogen limitation when calculating gp_leafon
-			photosynthesis(climate.co2, temp, par, daylength,
-				indiv.fpar_leafon, pft.lambda_max, pft,
-				1.0, false,
-				leafon_photosynthesis,
-				-1);
+		// No nitrogen limitation when calculating gp_leafon
+		photosynthesis(climate.co2, temp, par, daylength,
+		               indiv.fpar_leafon, pft.lambda_max, pft,
+		               1.0, false,
+		               leafon_photosynthesis,
+		               -1);
 
-			gp_leafon = gpterm(leafon_photosynthesis.adtmm, climate.co2, pft.lambda_max, daylength) + pft.gmin * indiv.fpc;
-		}
-		else {
-			// Calculate non-water-stressed canopy conductance assuming full leaf cover
-			//        - include canopy-conductance component not linked to
-			//          photosynthesis (diffusion through leaf cuticle etc); this is
-			//          assumed to be proportional to leaf-on fraction
-			gp_leafon = (date.diurnal() ? spft.gpterms[day.period] : spft.gpterm) *
-				indiv.fpar_leafon + pft.gmin * indiv.fpc;
-		}
+		double gp_leafon = gpterm(leafon_photosynthesis.adtmm, climate.co2, pft.lambda_max, daylength) + pft.gmin * indiv.fpc;
+
 
 		// Increment patch sums of non-water-stressed gp by individual value
-		gp_patch += (ifnlim) ? (date.diurnal() ? indiv.gpterms[day.period] : indiv.gpterm) + pft.gmin * indiv.fpc * indiv.phen : gp_leafon * indiv.phen;
+		gp_patch +=  (date.diurnal() ? indiv.gpterms[day.period] : indiv.gpterm) + pft.gmin * indiv.fpc * indiv.phen;
 		gp_leafon_patch += gp_leafon;
 
 		vegetation.nextobj();
@@ -1911,11 +1906,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		Pft& pft = indiv.pft;
 		Patchpft& ppft = patch.pft[pft.id];
 		Standpft& spft = stand.pft[pft.id];		
-		PhotosynthesisResult& phot = ifnlim ? (date.diurnal() ? indiv.phots[day.period] : indiv.photosynthesis) :
-			(date.diurnal() ? spft.phots[day.period] : spft.photosynthesis);
-
-		double gpterm_indiv = ifnlim ? (date.diurnal() ? indiv.gpterms[day.period] : indiv.gpterm) : 
-			(date.diurnal() ? spft.gpterms[day.period] * indiv.fpar : spft.gpterm * indiv.fpar);
+		PhotosynthesisResult phot = date.diurnal() ? indiv.phots[day.period] : indiv.photosynthesis;
 
 		if (indiv.wstress) {
 
@@ -1924,21 +1915,13 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			assimilation_wstress(pft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
 				ppft.gcbase, phot.vm, phot, lambda,
 				indiv.nactive, ifnlim);
+		}
 
-			assim = phot.net_assimilation();
-		}
-		else {
-			// No water stress - use base value for non-water-stressed assimilation
-			if (ifnlim) {
-				assim = (date.diurnal() ? indiv.phots[day.period] : indiv.photosynthesis).net_assimilation();
-			}
-			else {
-				assim = (date.diurnal() ? spft.phots[day.period] : spft.photosynthesis).net_assimilation();
-				assim *= indiv.fpar;
-			}
-		}
+		assim = phot.net_assimilation();
 
 		if (ifbvoc) {
+			double gpterm_indiv = date.diurnal() ? indiv.gpterms[day.period] : indiv.gpterm;
+
 			if (indiv.wstress) 
 				gpterm_indiv = gpterm(phot.adtmm, climate.co2, lambda, hours);
 

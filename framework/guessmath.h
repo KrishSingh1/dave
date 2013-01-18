@@ -103,7 +103,7 @@ public:
 	void add(double value) {
 		values[current_index] = value;
 
-		current_index = (current_index+1) % CAPACITY;
+		current_index = (current_index+1) % capacity;
 
 		if (current_index == 0) {
 			full = true;
@@ -112,7 +112,7 @@ public:
 
 	/// Returns the number of values stored (0-CAPACITY)
 	size_t size() const {
-		return full ? CAPACITY : current_index;
+		return full ? capacity : current_index;
 	}
 
 	/// Calculates arithmetic mean of the stored values
@@ -145,7 +145,7 @@ public:
 		assert(pos < size());
 
 		if (full) {
-			return values[(current_index+pos)%CAPACITY];
+			return values[(current_index+pos)%capacity];
 		}
 		else {
 			return values[pos];
@@ -162,7 +162,7 @@ public:
 		const size_t nvalues = size();
 
 		for (size_t i = 0; i < nvalues; ++i) {
-			buffer[i] = values[(first_position+i)%CAPACITY];
+			buffer[i] = values[(first_position+i)%capacity];
 		}
 	}
 
@@ -171,7 +171,7 @@ public:
 
 private:
 	/// The stored values
-	T values[CAPACITY];
+	T values[capacity];
 
 	/// The next position (in the values array) to write to
 	size_t current_index;

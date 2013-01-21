@@ -155,4 +155,4 @@ done
 EOF
 
 # Submit job
-sbatch -J ${name:-"guess"} guess.cmd
+sbatch -J ${name:-"guess"} guess.cmd | awk '{print $NF}'

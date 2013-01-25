@@ -160,35 +160,6 @@ double leafT(double temp, double daylength, double ga, double rs_day, double aet
 }
 
 
-double leafT(double temp, double daylength, double gpterm, double eet, double ga,
-									double rs_day, double gmin, double lai) {
-
-	// Canopy temperature is calculated from the air temperature and leaf
-	// latent heat loss, using a weighted average temperature within the canopy.
-	// Revised version compared to Arneth et al. (2007).
-
-	if (lai <= 1e-2) {
-		return temp;
-	}
-
-	// canopy conductance for water vapour (mm s-1)
-	double gc = gmin + gpterm;
-
-	// transpiration, corrected for the fraction of the ground covered by
-	// vegetation (mm s-1)
-	double trans = aet_monteith(eet, gc);
-
-	const double lam = 2.45e6;      // latent heat loss of vapourisation (J g-1 at 20 deg C)
-	const double sigma = 5.67e-8;   // Stefan-Boltzmann constant, W m-2 K-4
-	const double emiss_leaf = .97;  // average emissivity for leaves, Campbell and Norman, (1998)
-	const double rhoair = 1.204;    // air density, kg m-3
-	const double cp = 1010;         // specific heat capacity of air, J kg-1 K-1
-
-	return temp + (rs_day - trans * lam) / daylength / 3600 / 2 /
-	            (4*emiss_leaf*sigma*pow(temp+K2degC, 3) + rhoair*cp*ga) *
-	                            (1 + lambertbeer(lai));
-}
-
 void seasonality(Climate& climate, const Pft& pft, double& f_season) {
 
 	// Calculating the seasonality for VOCs (isoprene and monoterpene) for PFTs

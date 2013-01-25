@@ -193,7 +193,7 @@ void seasonality(Climate& climate, const Pft& pft, double& f_season) {
 
 void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 		Individual& indiv, const Pft& pft, const PhotosynthesisResult& phot,
-		double adtmm, double gpterm, const Day& day) {
+		double adtmm, const Day& day) {
 
 	// Calculation of isoprene and monoterpene production in leaves as a function
 	// of photosynthesis. Isoprene and monoterpenes are calculated from a
@@ -224,7 +224,6 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 	//   dtr       = diurnal temperature range (not used in diurnal mode) (deg C)
 	// phot      = non-water stressed photosynthesis
 	// adtmm     = actual (water-stressed) photosynthesis production for the period (mm/m2/day)
-	// gpterm    = actual (water-stressed) canopy conductance for the period (mm/s)
 
 	if (day.isstart) {
 		// calculate seasonality for VOC emissions

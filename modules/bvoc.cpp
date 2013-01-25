@@ -125,38 +125,38 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 	indiv.mon -= rmonstor;
 }
 
+
 double leafT(double temp, double daylength, double ga, double rs_day, double aet,
              double lai, double phen, double fpar, double fpc) {
 
-  // Canopy temperature is calculated from the air temperature and the energy balance (longwave
-  // radiation, shortwave radiation and sensible and latent heat loss). 
-  // Revised version compared to Arneth et al. (2007) and Schurgers et al. (2011).
+	// Canopy temperature is calculated from the air temperature and the energy balance (longwave
+	// radiation, shortwave radiation and sensible and latent heat loss). 
+	// Revised version compared to Arneth et al. (2007) and Schurgers et al. (2011).
 
-  if(lai*phen<=1.e-2){
-    return temp;
-  }
+	if(lai*phen <= 1.e-2) {
+		return temp;
+	}
 
-  const double lam = 2.45e6;      // latent heat loss of vapourisation (J g-1 at 20 deg C)                                                                                                                                             
-  const double sigma = 5.67e-8;   // Stefan-Boltzmann constant, W m-2 K-4                                                                                                                                                              
-  const double emiss_leaf = .97;  // average emissivity for leaves, Campbell and Norman, (1998)                                                                                                                                        
-  const double rhoair = 1.204;    // air density, kg m-3                                                                                                                                                                               
-  const double cp = 1010;         // specific heat capacity of air, J kg-1 K-1                                                                                                                                                         
+	const double lam = 2.45e6;      // latent heat loss of vapourisation (J g-1 at 20 deg C)
+	const double sigma = 5.67e-8;   // Stefan-Boltzmann constant, W m-2 K-4
+	const double emiss_leaf = .97;  // average emissivity for leaves, Campbell and Norman, (1998)
+	const double rhoair = 1.204;    // air density, kg m-3
+	const double cp = 1010;         // specific heat capacity of air, J kg-1 K-1
 
-  // leaf temperature is calculated by balancing four fluxes:                                                                                                                                                                          
-  // 1. net SW radiation, computed from the incoming radiation                                                                                                                                                                         
-  //    S_net = -rs_day*fpar*fpc/(daylength*3600.)                                                                                                                                                                                     
-  // 2. net LW radiation, computed as a first-order Taylor expansion of Stefan-Boltzman law,                                                                                                                                           
-  //    which makes it a linear function of the temperature difference deltaT                                                                                                                                                          
-  //    L_net = 4*emiss_leaf*sigma*(T**3.)*deltaT*phen*lai
-  // 3. latent heat, computed from actual evapotranspiration AET
-  //    LH = aet*lam/(daylength*3600.)                                                                                                                                                                                                 
-  // 4. sensible heat, computed as a linear function of the temperat
-  //    H = deltaT*rhoair*cp*ga*phen*lai       
-  //
+	// leaf temperature is calculated by balancing four fluxes:
+	// 1. net SW radiation, computed from the incoming radiation
+	//    S_net = -rs_day*fpar*fpc/(daylength*3600.)
+	// 2. net LW radiation, computed as a first-order Taylor expansion of Stefan-Boltzman law,
+	//    which makes it a linear function of the temperature difference deltaT
+	//    L_net = 4*emiss_leaf*sigma*(T**3.)*deltaT*phen*lai
+	// 3. latent heat, computed from actual evapotranspiration AET
+	//    LH = aet*lam/(daylength*3600.)
+	// 4. sensible heat, computed as a linear function of the temperat
+	//    H = deltaT*rhoair*cp*ga*phen*lai
+	//
 
-  return temp+(rs_day*fpar*fpc-aet*lam)/(3600.*daylength*lai*phen)/
-    (4.*emiss_leaf*sigma*pow(temp+K2degC,3.)+rhoair*cp*ga);
-
+	return temp+(rs_day*fpar*fpc-aet*lam)/(3600.*daylength*lai*phen)/
+		(4.*emiss_leaf*sigma*pow(temp+K2degC,3.)+rhoair*cp*ga);
 }
 
 
@@ -275,8 +275,8 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 		double temp_corrected = daytime_temp(climate.temp, climate.daylength, climate.dtr);
 
 		// perform air temperature to leaf temperature correction
-                temp_leaf_daytime = leafT(temp_corrected, climate.daylength, pft.ga, rad, indiv.aet,
-                                          indiv.lai,indiv.phen,indiv.fpar,indiv.fpc);
+		temp_leaf_daytime = leafT(temp_corrected, climate.daylength, pft.ga, rad, indiv.aet,
+		                          indiv.lai,indiv.phen,indiv.fpar,indiv.fpc);
 
 	}
 

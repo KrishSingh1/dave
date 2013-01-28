@@ -1911,12 +1911,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		assim = phot.net_assimilation();
 
 		if (ifbvoc) {
-			double gpterm_indiv = date.diurnal() ? indiv.gpterms[day.period] : indiv.gpterm;
-
-			if (indiv.wstress) 
-				gpterm_indiv = gpterm(phot.adtmm, climate.co2, lambda, hours);
-
-			bvoc(temp, hours, rad, climate, patch, indiv, pft, phot, phot.adtmm, gpterm_indiv, day);
+			bvoc(temp, hours, rad, climate, patch, indiv, pft, phot, phot.adtmm, day);
 		}
 		// Calculate autotrophic respiration
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,

@@ -43,8 +43,6 @@ bool ifnlim;
 int freenyears;
 /// fraction of nitrogen relocated by plants from roots and leaves
 double nrelocfrac;
-/// whether to allow nitrogen leaching	
-bool ifleachn;
 /// first term in nitrogen fixation eqn
 double nfix_a;
 /// second term in nitrogen fixation eqn

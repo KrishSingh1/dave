@@ -910,7 +910,7 @@ void leaching(Soil& soil) {
 
 	double minleachfrac;
 	
-	if (!negligible(soil.dperc) && ifleachn) {
+	if (!negligible(soil.dperc)) {
 
 		// Leaching from available nitrogen mineral pool
 		// in proportion to amount of water drainage 

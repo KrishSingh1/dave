@@ -931,7 +931,7 @@ bool allometry(Individual& indiv) {
 			// Individual LAI (Eqn 9)
 			indiv.lai_indiv = indiv.cmass_leaf / indiv.densindiv *
 				indiv.pft.sla / indiv.crownarea;
-			
+
 			// FPC (Eqn 8)
 			
 			fpc_new = indiv.crownarea * indiv.densindiv *
@@ -1127,8 +1127,11 @@ void growth(Stand& stand, Patch& patch) {
 		cton_sap_bg = indiv.cton_sap();
 
 		// Save leaf annual average C:N ratio
-		indiv.cton_leaf_aavr /= indiv.nday_leafon;
-		
+		if (!negligible(indiv.nday_leafon))
+			indiv.cton_leaf_aavr /= indiv.nday_leafon;
+		else
+			indiv.cton_leaf_aavr = indiv.pft.cton_leaf_max;
+
 		// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle and Friend 2010 SM eq 19) 	
 		double cton_leaf_aopt = max(indiv.cton_leaf_aopt ,indiv.pft.cton_leaf_avr);
 

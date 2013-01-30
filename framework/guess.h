@@ -232,8 +232,6 @@ extern bool ifnlim;
 extern int freenyears;
 /// fraction of nitrogen relocated by plants from roots and leaves	
 extern double nrelocfrac;
-/// whether to allow nitrogen leaching	
-extern bool ifleachn;
 /// first term in nitrogen fixation eqn (Cleveland et al 1999)	
 extern double nfix_a;
 /// second term in nitrogen fixation eqn (Cleveland et al 1999)	
@@ -808,7 +806,7 @@ public:
 	double nuptoroot;
 	/// Michaelis-Menten kinetic parameters chosen to match observed rates of increase 
 	/// in nitrogen uptake at high nitrogen [kgN l-1] (Rothstein 2000) 
-	double Km_volume;
+	double km_volume;
 		
 	double reprfrac;
 		// fraction of NPP allocated to reproduction		
@@ -983,10 +981,10 @@ public:
 		double frac_mintomax = 2.78;
 
 		// Fraction between leaf and root C:N ratio
-		double frac_leaftoroot = 1.0;
+		double frac_leaftoroot = 1.16; // Friend et al. 1997
 		
 		// Fraction between leaf and sap wood C:N ratio
-		double frac_leaftosap = 11.38;
+		double frac_leaftosap = 6.9;   // Friend et al. 1997
 
 		// Max leaf C:N ratio
 		cton_leaf_max = cton_leaf_min * frac_mintomax;
@@ -1300,13 +1298,8 @@ public:
 
 	/// Current leaf C:N ratio
 	double cton_leaf() const {
-		if (!negligible(nmass_leaf)) {
-			if(!negligible(phen)) {
-				return cmass_leaf * phen / nmass_leaf;
-			}
-			else {
-				return cmass_leaf / nmass_leaf;
-			}
+		if (!negligible(nmass_leaf) && !negligible(phen)) {
+			return cmass_leaf * phen / nmass_leaf;
 		}
 		else {
 			return pft.cton_leaf_avr;
@@ -2235,6 +2228,9 @@ private:
 // Cosby, B. J., Hornberger, C. M., Clapp, R. B., & Ginn, T. R. 1984 A statistical exploration
 //   of the relationships of soil moisture characteristic to the physical properties of soil.
 //   Water Resources Research, 20: 682-690.
+// Friend, A. D., Stevens, A. K., Knox, R. G. & Cannell, M. G. R. 1997. A 
+//   process-based, terrestrial biosphere model of ecosystem dynamics 
+//   (Hybrid v3.0). Ecological Modelling, 95, 249-287.
 // Fulton, MR 1991 Adult recruitment rate as a function of juvenile growth in size-
 //   structured plant populations. Oikos 61: 102-105.
 // Haxeltine A & Prentice IC 1996 BIOME3: an equilibrium terrestrial biosphere

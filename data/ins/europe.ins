@@ -16,7 +16,6 @@
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
-
 !///////////////////////////////////////////////////////////////////////////////////////
 ! Output files
 !
@@ -109,7 +108,6 @@ wateruptake "rootdist"  ! "wcont", "rootdist", "smart" or "speciesspecific",
 ifcentury 1				! whether to use CENTURY SOM dynamics (mandatory for N cycling)
 ifnlim 1				! whether plant growth limited by available N
 freenyears 100			! number of years to spin up without N limitation (needed to build up a N pool)
-ifleachn 1				! whether to allow N leaching
 nfix_a 0.102			! first term in N fixation eqn (Conservative 0.102, Central 0.234, Upper 0.367)
 nfix_b 0.524			! second term in N fixation eqn (Conservative 0.524, Central -0.172, Upper -0.754)
 nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
@@ -188,7 +186,7 @@ group "tree" (
 	cton_root 29
 	cton_sap 330
 	nuptoroot 0.0028
-	Km_volume 0.000001477
+	km_volume 0.000001477
 	pathway "c3"
 	kest_repr 200
 	kest_bg 0.1
@@ -212,7 +210,7 @@ group "shrub" (
 	cton_root 29
 	cton_sap 330
 	nuptoroot 0.0028
-	Km_volume 0.000001477
+	km_volume 0.000001477
 	pathway "c3"
 	kest_repr 20
 	kest_bg 0.1
@@ -248,7 +246,7 @@ group "grass" (
 	ltor_max 0.5
 	cton_root 29
 	nuptoroot 0.00551
-	Km_volume 0.000001876
+	km_volume 0.000001876
 	respcoeff 2.0 
 	litterme 0.2
 	ga 0.030

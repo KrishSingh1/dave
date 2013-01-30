@@ -294,8 +294,6 @@ void plib_declarations(int id,xtring setname) {
 			"Whether plant growth limited by available nitrogen");
 		declareitem("freenyears",&freenyears,0,1000,1,CB_NONE,
 			"Number of years to spinup without nitrogen limitation");
-		declareitem("ifleachn",&ifleachn,1,CB_NONE,
-			"Whether to allow nitrogen leaching");
 
 		// Annual output variables
 		declareitem("outputdirectory",&outputdirectory,300,CB_NONE,"Directory for the output files");
@@ -431,7 +429,7 @@ void plib_declarations(int id,xtring setname) {
 			"Reference Sapwood C:N mass ratio");
 		declareitem("nuptoroot",&ppft->nuptoroot,0.0,1.0,1,CB_NONE,
 			"Maximum nitrogen uptake per fine root");
-		declareitem("Km_volume",&ppft->Km_volume,0.0,10.0,1,CB_NONE,
+		declareitem("km_volume",&ppft->km_volume,0.0,10.0,1,CB_NONE,
 			"Michaelis-Menten kinetic parameters for nitrogen uptake");
 
 		declareitem("reprfrac",&ppft->reprfrac,0.0,1.0,1,CB_NONE,
@@ -660,7 +658,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcentury")) badins("ifcentury");
 		if (!itemparsed("ifnlim")) badins("ifnlim");
 		if (!itemparsed("freenyears")) badins("freenyears");
-		if (!itemparsed("ifleachn")) badins("ifleachn");
 
 		if (!itemparsed("outputdirectory")) badins("outputdirectory");
 		if (!itemparsed("ifsmoothgreffmort")) badins("ifsmoothgreffmort");
@@ -741,7 +738,7 @@ void plib_callback(int callback) {
 
 		if (!itemparsed("cton_root")) badins("cton_root");
 		if (!itemparsed("nuptoroot")) badins("nuptoroot");
-		if (!itemparsed("Km_volume")) badins("Km_volume");
+		if (!itemparsed("km_volume")) badins("km_volume");
 
 		if (!itemparsed("reprfrac")) badins("reprfrac");
 		if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
@@ -2533,10 +2530,11 @@ void outannual(Gridcell& gridcell) {
 					plot("soilc","fast", date.year, stand[0].soil.cpool_fast);
 				}
 				else {
-					plot("N addition (kgN/ha/yr)","Fixation",      date.year, anfix_gridcell * m2toha);
-					plot("N addition (kgN/ha/yr)","Deposition",    date.year, andep_gridcell * m2toha);
-					plot("N addition (kgN/ha/yr)","Fertilization", date.year, anfert_gridcell * m2toha);
-					plot("N addition (kgN/ha/yr)","Leaching",      date.year, (n_min_leach_gridcell + n_org_leach_gridcell) * m2toha);
+					plot("N fluxes (kgN/ha/yr)","Fix",   date.year, -anfix_gridcell * m2toha);
+					plot("N fluxes (kgN/ha/yr)","Dep",   date.year, -andep_gridcell * m2toha);
+					plot("N fluxes (kgN/ha/yr)","Fert",  date.year, -anfert_gridcell * m2toha);
+					plot("N fluxes (kgN/ha/yr)","Leach", date.year, (n_min_leach_gridcell + n_org_leach_gridcell) * m2toha);
+					plot("N fluxes (kgN/ha/yr)","Fire",  date.year, flux_ntot * m2toha);
 
 					plot("N min-immob (kgN/ha/yr)","N", date.year, (anmin_gridcell - animm_gridcell) * m2toha);
 

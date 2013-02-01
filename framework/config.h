@@ -51,4 +51,16 @@ template <class T> inline T min(const T& a, const T& b) {
 using std::min;
 using std::max;
 
+// platform independent function for changing working directory
+// we'll call our new function change_directory
+#ifdef _MSC_VER
+// The Microsoft way
+#include <direct.h>
+#define change_directory _chdir
+#else
+// The POSIX way
+#include <unistd.h>
+#define change_directory chdir
+#endif
+
 #endif // LPJ_GUESS_CONFIG_H

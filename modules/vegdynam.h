@@ -16,6 +16,6 @@
 
 #include "guess.h"
 
-void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist);
+void vegetation_dynamics(Stand& stand,Patch& patch);
 
 #endif // LPJ_GUESS_VEGDYNAM_H

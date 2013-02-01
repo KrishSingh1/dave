@@ -132,17 +132,10 @@ set -e
 
 cd \$PBS_O_WORKDIR
 
-cat<<EOL > startguess.sh
-#!/bin/sh
-set -e
 umask 022
-cd run\\\$((PBS_VNODENUM+1))
-BINARY $INSFILE
-EOL
-chmod +x startguess.sh
-mpiexec -comm none startguess.sh
 
-rm startguess.sh
+mpiexec -comm mpich-p4 BINARY -parallel $INSFILE
+
 EOF
 
 cat <<EOF > append.cmd

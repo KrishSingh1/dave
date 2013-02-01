@@ -45,7 +45,7 @@ int individ=0; // running id code for new individuals (see establishment)
 // Internal functions for generating random numbers
 
 
-int randpoisson(double expectation) {
+int randpoisson(double expectation, long& seed) {
 
 	// DESCRIPTION
 	// Returns a random integer drawn from the Poisson distribution with specified
@@ -61,7 +61,7 @@ int randpoisson(double expectation) {
 	
 		p=exp(-expectation);
 		q=p;
-		r=randfrac();
+		r=randfrac(seed);
 
 		n=0;
 		while (q<r) {
@@ -77,9 +77,9 @@ int randpoisson(double expectation) {
 	// and standard deviation the square root of this value
 
 	do {
-		r=randfrac()*8.0-4.0;
+		r=randfrac(seed)*8.0-4.0;
 		p=exp(-r*r/2.0);
-	} while (randfrac()>p);
+	} while (randfrac(seed)>p);
 
 	return max(0, (int)(r*sqrt(expectation)+expectation+0.5));
 }
@@ -150,7 +150,7 @@ bool survive(Climate& climate,Pft& pft) {
 // ESTABLISHMENT
 // Internal functions (do not call directly from framework)
 
-void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
+void establishment_lpj(Stand& stand,Patch& patch) {
 
 	// DESCRIPTION
 	// Establishment in population (standard LPJ) mode.
@@ -280,14 +280,10 @@ void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
 			// Account for flux from the atmosphere to new saplings
 			// (flux is downward and therefore negative)
 
-			// guess2008
-			// flux is not debited for 'new' Individual objects - their carbon is 
-			// debited in function growth() if they survive the first year
-
-			if (indiv.alive) // guess2008 - alive check added
-				patch.fluxes.acflux_est-=(indiv.pft.regen.cmass_leaf+
-					indiv.pft.regen.cmass_root+indiv.pft.regen.cmass_sap+
-					indiv.pft.regen.cmass_heart)*est_pft;
+			indiv.report_flux(Fluxes::ESTC, 
+			                  -(indiv.pft.regen.cmass_leaf+
+			                    indiv.pft.regen.cmass_root+indiv.pft.regen.cmass_sap+
+			                    indiv.pft.regen.cmass_heart)*est_pft);
 
 			// Adjust average individual C biomass based on average biomass and density
 			// of the new saplings
@@ -308,9 +304,9 @@ void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 			// Account for flux from atmosphere to grass regeneration
 
-			if (indiv.alive) // guess2008 - alive check added
-				patch.fluxes.acflux_est-=(indiv.pft.regen.cmass_leaf+
-					indiv.pft.regen.cmass_root)*est_pft;
+			indiv.report_flux(Fluxes::ESTC, 
+			                  -(indiv.pft.regen.cmass_leaf+
+			                    indiv.pft.regen.cmass_root)*est_pft);
 
 			// Add regeneration biomass to overall biomass
 
@@ -327,7 +323,7 @@ void establishment_lpj(Stand& stand,Patch& patch,Pftlist& pftlist) {
 }
 
 
-void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
+void establishment_guess(Stand& stand,Patch& patch) {
 
 	// DESCRIPTION
 	// Establishment in cohort or individual mode.
@@ -484,14 +480,9 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 						allometry(indiv);
 
-
-						// Account for C flux from atmosphere to vegetation
-						// guess2008 - flux is not debited for 'new' Individual
+						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()
 						// if they survive the first year 
-
-						if (indiv.alive)
-							patch.fluxes.acflux_est-=bminit;
 					}
 				}
 				else if (pft.lifeform==TREE) {
@@ -547,7 +538,7 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 					// Actual number of new saplings drawn from the Poisson distribution
 					// (except cohort mode with stochastic establishment disabled)
 
-					if (ifstochestab || vegmode==INDIVIDUAL) nsapling=randpoisson(est);
+					if (ifstochestab || vegmode==INDIVIDUAL) nsapling=randpoisson(est, stand.seed);
 					else nsapling=est;
 
 					if (vegmode==COHORT) {
@@ -615,11 +606,9 @@ void establishment_guess(Stand& stand,Patch& patch,Pftlist& pftlist) {
 
 						allometry(indiv);
 						
-						// Account for C flux from atmosphere to vegetation
-						// guess2008
-						if (indiv.alive)
-							patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
-								indiv.cmass_sap;
+						// Establishment flux is not debited for 'new' Individual
+						// objects - their carbon is debited in function growth()
+						// if they survive the first year 
 					}
 				}
 			}
@@ -811,8 +800,9 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 
 			// Flux to atmosphere from burnt above-ground biomass
 
-			patch.fluxes.acflux_fire+=mort_fire*(indiv.cmass_leaf+indiv.cmass_sap+
-				indiv.cmass_heart-indiv.cmass_debt);
+			indiv.report_flux(Fluxes::FIREC, 
+			                  mort_fire*(indiv.cmass_leaf+indiv.cmass_sap+
+			                             indiv.cmass_heart-indiv.cmass_debt));
 
 			// Reduce population density and C biomass on modelled area basis
 			// to account for loss of killed individuals
@@ -860,7 +850,7 @@ void mortality_lpj(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
 
 			// Flux to atmosphere from burnt above-ground biomass
 
-			patch.fluxes.acflux_fire+=mort_fire*indiv.cmass_leaf;
+			indiv.report_flux(Fluxes::FIREC, mort_fire*indiv.cmass_leaf);
 
 			// Reduce C biomass on modelled area basis to account for biomass lost
 			// through mortality
@@ -962,7 +952,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 
 		// Impose fire in this patch with probability 'fireprob'
 
-		if (randfrac()<fireprob) {
+		if (randfrac(stand.seed)<fireprob) {
 
 			// Loop through individuals
 
@@ -984,7 +974,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					// Transfer killed biomass from leaves to atmosphere,
 					// roots to litter
 
-					patch.fluxes.acflux_fire+=mort_fire*indiv.cmass_leaf;
+					indiv.report_flux(Fluxes::FIREC, mort_fire*indiv.cmass_leaf);
 					patch.pft[indiv.pft.id].litter_root+=mort_fire*indiv.cmass_root;
 
 					indiv.cmass_leaf*=indiv.pft.fireresist;
@@ -1010,7 +1000,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 						nindiv_prev=nindiv;
 
 						for (i=0;i<nindiv_prev;i++)
-							if (randfrac()>indiv.pft.fireresist) nindiv--;
+							if (randfrac(stand.seed)>indiv.pft.fireresist) nindiv--;
 
 						if (nindiv_prev)
 							frac_survive=(double)nindiv/(double)nindiv_prev;
@@ -1025,8 +1015,9 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					// Calculate flux from biomass to atmosphere due to fire
 					// (flux from litter calculated in function fire)
 
-					patch.fluxes.acflux_fire+=(1.0-frac_survive)*(indiv.cmass_leaf+
-						indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt);
+					indiv.report_flux(Fluxes::FIREC,
+					                  (1.0-frac_survive)*(indiv.cmass_leaf+
+					                                      indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt));
 
 					// Transfer killed roots to litter
 
@@ -1193,7 +1184,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 					nindiv_prev=nindiv;
 
 					for (i=0;i<nindiv_prev;i++)
-						if (randfrac()<mort) nindiv--;
+						if (randfrac(stand.seed)<mort) nindiv--;
 
 					if (nindiv_prev)
 						frac_survive=(double)nindiv/(double)nindiv_prev;
@@ -1350,8 +1341,9 @@ void fire(Patch& patch,double& fireprob) {
 
 		// Calculate flux from burnt litter
 
-		patch.fluxes.acflux_fire+=mort_fire*(patch.pft[p].litter_leaf+
-			patch.pft[p].litter_wood+patch.pft[p].litter_repr);
+		patch.fluxes.report_flux(Fluxes::FIREC,
+		                         mort_fire*(patch.pft[p].litter_leaf+
+		                                    patch.pft[p].litter_wood+patch.pft[p].litter_repr));
 
 		// Account for burnt above ground litter
 
@@ -1377,7 +1369,7 @@ void disturbance(Patch& patch,double disturb_prob) {
 	// INPUT PARAMETER
 	// disturb_prob = the probability of a disturbance this year
 
-	if (randfrac()<disturb_prob) {
+	if (randfrac(patch.stand.seed)<disturb_prob) {
 
 		Vegetation& vegetation=patch.vegetation;
 
@@ -1406,7 +1398,7 @@ void disturbance(Patch& patch,double disturb_prob) {
 // Should be called by framework at the end of each simulation year, after vegetation,
 // climate and soil attributes have been updated
 
-void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
+void vegetation_dynamics(Stand& stand,Patch& patch) {
 
 	// DESCRIPTION
 	// Implementation of fire disturbance and population dynamics (establishment and
@@ -1432,7 +1424,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 		mortality_lpj(stand,patch,stand.gridcell.climate,fireprob);
 
 		// Establishment
-		establishment_lpj(stand,patch,pftlist);
+		establishment_lpj(stand,patch);
 
 	}
 	else {
@@ -1453,7 +1445,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch,Pftlist& pftlist) {
 		mortality_guess(stand,patch,stand.gridcell.climate,fireprob);
 
 		// Establishment
-		establishment_guess(stand,patch,pftlist);
+		establishment_guess(stand,patch);
 
 	}
 

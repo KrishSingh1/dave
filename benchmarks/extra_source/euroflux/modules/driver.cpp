@@ -31,31 +31,14 @@
 #include "driver.h"
 
 
-static long seed=12345678; // seed for random number generator (see randfrac)
-
-
-// guess2008
-extern int nyear_spinup;
-	// allows access to the value declared guessio_cru.cpp
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-// RANDFRAC
-// Internal function for generating random numbers
-
-void setseed(long init) {
-
-	seed=init;
-}
-
-double randfrac() {
-
-	// DESCRIPTION
-	// Returns a random floating-point number in the range 0-1.
-	// Uses and updates the global variable 'seed' which may be initialised to any
-	// positive integral value (the same initial value will result in the same sequence
-	// of returned values on subsequent calls to randfloat every time the program is
-	// run)
+/// Function for generating random numbers
+/** Returns a random floating-point number in the range 0-1.
+ *  Uses and updates the parameter 'seed' which may be initialised to any
+ *  positive integral value (the same initial value will result in the same sequence
+ *  of returned values on subsequent calls to randfrac every time the program is
+ *  run)
+ */
+double randfrac(long& seed) {
 
 	// Reference: Park & Miller 1988 CACM 31: 1192
 
@@ -223,16 +206,17 @@ void interp_monthly_totals(double mvals[12], double dvals[365]) {
 	interp_monthly_means(mvals_daily, dvals);
 }
 
-///////////////////////////////////////////////////////////////////////////////////////
-//  PRDAILY
-//  Distribution of monthly precipitation totals to quasi-daily values
-//  (From Dieter Gerten 021121)
 
-void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12]) {
+/// Distribution of monthly precipitation totals to quasi-daily values
+/** \param mval_prec  total rainfall (mm) for month
+ *  \param dval_prec  actual rainfall (mm) for each day of year
+ *  \param mval_wet   expected number of rain days for month
+ *  \param seed       seed for generating random numbers (\see randfrac)
+ */
+void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12], long seed) {
 
-	// mval_prec = total rainfall (mm) for month
-	// dval_prec = actual rainfall (mm) for each day of year
-	// mval_wet  = expected number of rain days for month
+	//  Distribution of monthly precipitation totals to quasi-daily values
+	//  (From Dieter Gerten 021121)
 
 	const double c1=1.0; // normalising coefficient for exponential distribution
 	const double c2=1.2; // power for exponential distribution
@@ -293,10 +277,10 @@ void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12]) {
 					// Determine wet days randomly and use Krysanova/Cramer estimates of
 					// parameter values (c1,c2) for an exponential distribution
 
-					if (randfrac()>prob)
+					if (randfrac(seed)>prob)
 						dval_prec[dy]=0.0;
 					else {
-						double x=randfrac();
+						double x=randfrac(seed);
 						dval_prec[dy]=pow(-log(x),c2)*mprec*c1;
 						if (dval_prec[dy]<0.1) dval_prec[dy]=0.0;
 					}
@@ -428,7 +412,7 @@ void soiltemp(Climate& climate,Soil& soil) {
 
 
 /// Called each simulation day before any other driver or process functions
-void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
+void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 	// DESCRIPTION
 	// Updates daily climate parameters including growing degree day sums and
@@ -456,6 +440,25 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 			for (d=0;d<31;d++)
 				climate.dtemp_31[d]=climate.temp;
 			climate.atemp_mean=climate.temp;
+		}
+
+		// Reset fluxes for all patches
+
+		// Belongs perhaps in dailyaccounting_patch, but needs to be done before 
+		// landcover_dynamics because harvest flux is generated there.
+		gridcell.firstobj();
+		while (gridcell.isobj) {
+			Stand& stand = gridcell.getobj();
+		
+			stand.firstobj();
+			while (stand.isobj) {
+				Patch& patch = stand.getobj();
+
+				patch.fluxes.reset();
+				stand.nextobj();
+			}
+			
+			gridcell.nextobj();
 		}
 	}
 	else if (climate.lat>=0.0 && date.day==COLDEST_DAY_NHEMISPHERE ||
@@ -545,24 +548,18 @@ void dailyaccounting_gridcell(Gridcell& gridcell,Pftlist& pftlist) {
 	}
 }
 
-void dailyaccounting_stand(Stand& stand, Pftlist& pftlist) {
+void dailyaccounting_stand(Stand& stand) {
 }
 
-void dailyaccounting_patch_lc(Patch& patch, Pftlist& pftlist) {
+void dailyaccounting_patch_lc(Patch& patch) {
 	if(date.day==0) {
-		Fluxes& fluxes=patch.fluxes;
-
-		if(!patch.stand.gridcell.LC_updated) {	// NB. landcover_dynamics() is called before this function !
-			fluxes.acflux_harvest=0.0;
-		}
-
 		if(ifslowharvestpool) {
 			pftlist.firstobj();
 			while(pftlist.isobj) {
 				Pft& pft=pftlist.getobj();
 				Patchpft& patchpft=patch.pft[pft.id];
 
-				fluxes.acflux_harvest+=patchpft.harvested_products_slow*pft.turnover_harv_prod;
+				patch.fluxes.report_flux(Fluxes::HARVESTC, patchpft.harvested_products_slow*pft.turnover_harv_prod);
 				patchpft.harvested_products_slow=patchpft.harvested_products_slow*(1-pft.turnover_harv_prod);
 
 				pftlist.nextobj();
@@ -571,7 +568,7 @@ void dailyaccounting_patch_lc(Patch& patch, Pftlist& pftlist) {
 	}
 }
 
-void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
+void dailyaccounting_patch(Patch& patch) {
 	// DESCRIPTION
 	// Updates daily soil parameters including exponential temperature response terms
 	// (gtemp, see below). Maintains monthly and longer term records of variation in
@@ -586,12 +583,6 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 	Fluxes& fluxes=patch.fluxes;
 
 	if (date.day==0) {
-
-		// Reset fluxes
-		fluxes.acflux_soil=0.0;
-		fluxes.acflux_veg=0.0;
-		fluxes.acflux_est=0.0;
-		fluxes.acflux_fire=0.0;
 
 		patch.aaet=0.0;
 		patch.aevap=0.0;
@@ -614,27 +605,15 @@ void dailyaccounting_patch(Patch& patch, Pftlist& pftlist) {
 
 	if (date.dayofmonth==0) {
 
-		fluxes.mcflux_veg[date.month]=0.0;
-
 		patch.maet[date.month]=0.0;
 		patch.mevap[date.month]=0.0;
 		patch.mrunoff[date.month]=0.0;
 		patch.mintercep[date.month]=0.0;
 		patch.mpet[date.month]=0.0;
-		// bvoc
-		fluxes.miso[date.month]=0.;
-		fluxes.mmon[date.month]=0.;
-
-		// guess2008 - reset month C budget arrays each month
-		fluxes.mcflux_gpp[date.month] = 0.0;
-		fluxes.mcflux_ra[date.month] = 0.0;
-
 	}
 
-	fluxes.dcflux_veg=0.0;
-
 	if(run_landcover)
-		dailyaccounting_patch_lc(patch, pftlist);
+		dailyaccounting_patch_lc(patch);
 
 	// Store daily soil water in both layers
 	soil.dwcontupper[date.day] = soil.wcont[0];

@@ -1147,9 +1147,13 @@ void growth(Stand& stand,Patch& patch) {
 
 			if (!killed) {
 				if (!indiv.alive) {
-					patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
-						indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
-					indiv.alive=true;
+					// The individual has survived its first year...
+					indiv.alive = true;
+
+					// ...now we can start counting its fluxes,
+					// debit current biomass as establishment flux
+					indiv.report_flux(Fluxes::ESTC, 
+					                  -(indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt));
 				}
 			
 				// ... on to next individual

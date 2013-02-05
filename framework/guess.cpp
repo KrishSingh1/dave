@@ -497,8 +497,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	nmass_veg = 0.0;
 
 	nactive = 0.0;
-	nstore_leaf = 0.0;
-	nstore_root = 0.0;
+	nstore_longterm = 0.0;
 	nstore_labile = 0.0;
 	ndemand = 0.0;
 	fnuptake = 1.0;
@@ -585,8 +584,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& nmass_sap
 		& nmass_heart
 		& nactive
-		& nstore_leaf
-		& nstore_root
+		& nstore_longterm
 		& nstore_labile
 		& ndemand
 		& fnuptake

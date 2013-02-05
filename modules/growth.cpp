@@ -1081,8 +1081,6 @@ void growth(Stand& stand, Patch& patch) {
 	double raingreen_ndemand;
 	// Nitrogen stress scalar for leaf to root allocation
 	double nscal;
-	// Fraction of new biomass that is leaf and root
-	double frac_bminc_leaf, frac_bminc_root;
 	// Leaf C:N ratios before growth
 	double cton_leaf_bg;
 	// Root C:N ratios before growth
@@ -1145,9 +1143,8 @@ void growth(Stand& stand, Patch& patch) {
 		indiv.ltor = min(indiv.wscal_mean, nscal) * indiv.pft.ltor_max;
 
 		// Move leftover compartment nitrogen storage to longterm storage
-		indiv.nstore_labile += indiv.nstore_leaf + indiv.nstore_root;
-		indiv.nstore_leaf = 0.0;
-		indiv.nstore_root = 0.0;
+		indiv.nstore_longterm += indiv.nstore_labile;
+		indiv.nstore_labile = 0.0;
 
 		indiv.deltafpc = 0.0;
 
@@ -1208,10 +1205,10 @@ void growth(Stand& stand, Patch& patch) {
 				retransn, 
 				indiv.alive, gridcell);
 
-			if (indiv.alive && indiv.nstore_labile + retransn > indiv.max_n_storage) {
+			if (indiv.alive && indiv.nstore_longterm + retransn > indiv.max_n_storage) {
 				
 				// Nitrogen stored above maximum that will be subtracted from retranslocated nitrogen
-				double surplus = min(retransn, indiv.nstore_labile + retransn - indiv.max_n_storage);
+				double surplus = min(retransn, indiv.nstore_longterm + retransn - indiv.max_n_storage);
 
 				retransn -= surplus;
 
@@ -1221,7 +1218,7 @@ void growth(Stand& stand, Patch& patch) {
 			}
 			
 			// Add retranslocated nitrogen to storage
-			indiv.nstore_labile += retransn;
+			indiv.nstore_longterm += retransn;
 			
 			// Update stand record of reproduction by this PFT
 			stand.pft[indiv.pft.id].cmass_repr += cmass_repr / (double)stand.npatch();
@@ -1282,15 +1279,6 @@ void growth(Stand& stand, Patch& patch) {
 				// C debt
 				indiv.cmass_debt += cmass_debt_inc * indiv.densindiv;
 
-				// Fraction of biomass increment that went to leaf and root tissue
-				if (bminc > 0.0) {
-					frac_bminc_leaf = max(0.0, cmass_leaf_inc  * indiv.densindiv / bminc);
-					frac_bminc_root = max(0.0, cmass_root_inc  * indiv.densindiv / bminc);
-				}
-				else {
-					frac_bminc_leaf = 0.5;
-					frac_bminc_root = 0.5;
-				}
 				// Nitrogen longtime storage
 				// Nitrogen approx retranslocated next year
 				double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
@@ -1313,16 +1301,16 @@ void growth(Stand& stand, Patch& patch) {
 				// Nitrogen litter allways return to soil litter and storage
 				patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
 					cton_leaf_bg * (1.0 - nrelocfrac);
-				indiv.nstore_labile += litter_leaf_inc * indiv.densindiv / cton_leaf_bg * nrelocfrac;
+				indiv.nstore_longterm += litter_leaf_inc * indiv.densindiv / cton_leaf_bg * nrelocfrac;
 
 				patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
 					cton_root_bg * (1.0 - nrelocfrac);
-				indiv.nstore_labile += litter_root_inc * indiv.densindiv / cton_root_bg * nrelocfrac;
+				indiv.nstore_longterm += litter_root_inc * indiv.densindiv / cton_root_bg * nrelocfrac;
 											
 				// If negative sap growth, then nrelocfrac of nitrogen will go to heart wood and 
 				// (1.0 - nreloctrac) will go to storage
 				if (cmass_sap_inc < 0.0) {
-					indiv.nstore_labile -= cmass_sap_inc * indiv.densindiv / cton_sap_bg * (1.0 - nrelocfrac);
+					indiv.nstore_longterm -= cmass_sap_inc * indiv.densindiv / cton_sap_bg * (1.0 - nrelocfrac);
 				}
 				
 				// Subtracting litter nitrogen from individuals
@@ -1383,16 +1371,6 @@ void growth(Stand& stand, Patch& patch) {
 				// Roots
 				indiv.cmass_root += cmass_root_inc;
 
-				// Fracion of biomass increment that went to leaf and root tissue
-				if (bminc > 0.0) {
-					frac_bminc_leaf = max(0.0, cmass_leaf_inc  * indiv.densindiv / bminc);
-					frac_bminc_root = max(0.0, cmass_root_inc  * indiv.densindiv / bminc);
-				}
-				else {
-					frac_bminc_leaf = 0.5;
-					frac_bminc_root = 0.5;
-				}
-
 				// Nitrogen longtime storage
 				// Nitrogen approx retranslocated next year
 				double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
@@ -1416,11 +1394,11 @@ void growth(Stand& stand, Patch& patch) {
 				// Nitrogen allways return to soil litter and storage
 				patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
 					cton_leaf_bg * (1.0 - nrelocfrac);
-				indiv.nstore_leaf += litter_leaf_inc * indiv.densindiv / cton_leaf_bg * nrelocfrac;
+				indiv.nstore_longterm += litter_leaf_inc * indiv.densindiv / cton_leaf_bg * nrelocfrac;
 
 				patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
 					cton_root_bg * (1.0 - nrelocfrac);
-				indiv.nstore_root += litter_root_inc / cton_root_bg * nrelocfrac;
+				indiv.nstore_longterm += litter_root_inc / cton_root_bg * nrelocfrac;
 
 				// Subtracting litter nitrogen from individuals
 				indiv.nmass_leaf -= litter_leaf_inc * indiv.densindiv / cton_leaf_bg;
@@ -1493,10 +1471,9 @@ void growth(Stand& stand, Patch& patch) {
 									  indiv.cmass_heart - indiv.cmass_debt));
 				}
 
-				// Partion labile nitrogen between pools labile storage
-				indiv.nstore_leaf += indiv.nstore_labile * frac_bminc_leaf / (frac_bminc_leaf + frac_bminc_root);
-				indiv.nstore_root += indiv.nstore_labile * frac_bminc_root / (frac_bminc_leaf + frac_bminc_root);
-				indiv.nstore_labile = 0.0;		
+				// Move long-term nitrogen storage pool to labile storage pool for usage next year
+				indiv.nstore_labile = indiv.nstore_longterm;
+				indiv.nstore_longterm = 0.0;		
 
 				// ... on to next individual
 				vegetation.nextobj();

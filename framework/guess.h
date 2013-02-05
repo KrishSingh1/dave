@@ -1187,10 +1187,8 @@ public:
 
 	/// nitrogen mass that is photosyntetic active
 	double nactive;
-	/// storage of relocated nitrogen from leaves
-	double nstore_leaf;
-	/// storage of relocated nitrogen from root
-	double nstore_root;
+	/// long-term storage of labile nitrogen
+	double nstore_longterm;
 	/// storage of labile nitrogen
 	double nstore_labile;
 	/// nitrogen storage organ in relation to sapwood carbon for TREE and root carbon for GRASS
@@ -1267,23 +1265,22 @@ public:
 		if (pft.lifeform != GRASS)
 			densindiv *= scalar;
 
-		cmass_leaf    *= scalar;
-		cmass_root    *= scalar;
-		cmass_sap     *= scalar;
-		cmass_debt    *= scalar;
-		cmass_heart   *= scalar;
-		nmass_leaf    *= scalar;
-		nmass_root    *= scalar;
-		nmass_sap     *= scalar;
-		nmass_heart   *= scalar;
-		nstore_leaf   *= scalar;
-		nstore_root   *= scalar;
-		nstore_labile *= scalar;
+		cmass_leaf      *= scalar;
+		cmass_root      *= scalar;
+		cmass_sap       *= scalar;
+		cmass_debt      *= scalar;
+		cmass_heart     *= scalar;
+		nmass_leaf      *= scalar;
+		nmass_root      *= scalar;
+		nmass_sap       *= scalar;
+		nmass_heart     *= scalar;
+		nstore_longterm *= scalar;
+		nstore_labile   *= scalar;
 	}
 
 	/// Total storage of nitrogen
 	double nstore() const {
-		return nstore_leaf + nstore_root + nstore_labile;
+		return nstore_longterm + nstore_labile;
 	}
 
 	/// Total carbon wood biomass

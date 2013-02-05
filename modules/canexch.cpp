@@ -734,6 +734,11 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 		indiv.gpterm = gpterm(indiv.photosynthesis.adtmm, climate.co2, pft.lambda_max, climate.daylength);
 
 		if (date.diurnal()) {
+
+			indiv.gpterms.assign(date.subdaily, 0);
+			PhotosynthesisResult res;
+			indiv.phots.assign(date.subdaily, res);
+
 			for (int i=0; i<date.subdaily; i++) {
 				PhotosynthesisResult& result = indiv.phots[i];
 				photosynthesis(climate.co2, climate.temps[i], climate.pars[i], 24,
@@ -962,53 +967,55 @@ void nstore_usage(Vegetation& vegetation) {
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
 
-		// If leaf is nitrogen stressed
-		if (indiv.fnuptake < 1.0 || indiv.leafndemand_store) {
+		// individual excess nitrogen demand after uptake
+		double excess_ndemand = (indiv.leafndemand + indiv.rootndemand) * (1.0 - indiv.fnuptake) 
+		                        + indiv.leafndemand_store + indiv.rootndemand_store;
+
+		// if individual is in need of using its labile nitrogen storage
+		if (!negligible(excess_ndemand) || !ifnlim) {
 			
-			// Leaves
-			if (indiv.phen > 0.0) {
-				double leaf_ndemand = (1.0 - indiv.fnuptake) * indiv.leafndemand + indiv.leafndemand_store;
+			// if labile nitrogen storage is larger than excess nitrogen demand
+			if (excess_ndemand <= indiv.nstore_labile) {
 
-				if (indiv.nstore_leaf <= leaf_ndemand) {
-					indiv.nmass_leaf += indiv.nstore_leaf;
-					indiv.nstore_leaf = 0.0;
+				// leaf nitrogen demand
+				double leaf_ndemand = indiv.leafndemand * (1.0 - indiv.fnuptake) + indiv.leafndemand_store;
+				indiv.nmass_leaf    += leaf_ndemand;
+				indiv.nstore_labile -= leaf_ndemand;
 
-					// photosynthesis will be nitrogen stresses
-					indiv.nstress = true;
-				}
-				else {
-					indiv.nmass_leaf += leaf_ndemand;
-					indiv.nstore_leaf -= leaf_ndemand;
+				// root nitrogen demand
+				double root_ndemand = indiv.rootndemand * (1.0 - indiv.fnuptake) + indiv.rootndemand_store;
+				indiv.nmass_root    += root_ndemand;
+				indiv.nstore_labile -= root_ndemand;
 
-					// photosynthesis will not be nitrogen stresses
-					indiv.nstress = false;
-				}
-			}
-			else
-				// photosynthesis will not be nitrogen stresses
 				indiv.nstress = false;
+			}
+			else {
+				
+				if (!negligible(indiv.nstore_labile)) {
+					
+					// calculate total nitrogen mass
+					double tot_nmass = indiv.nmass_leaf + indiv.nmass_root + indiv.fnuptake * (indiv.leafndemand + indiv.rootndemand) + indiv.nstore_labile;
+
+					// leaf C:N ratio
+					double cton_leaf = (indiv.phen * (indiv.cmass_leaf + indiv.cmass_root * (indiv.pft.cton_leaf_avr / indiv.pft.cton_root_avr))) / tot_nmass;
+
+					// nitrogen added to leaf from storage
+					double labile_nto_leaf = indiv.phen * indiv.cmass_leaf / cton_leaf - (indiv.nmass_leaf + indiv.fnuptake * indiv.leafndemand); 
+
+					// new leaf nitrogen
+					indiv.nmass_leaf += labile_nto_leaf;
+
+					// new root nitrogen
+					indiv.nmass_root += indiv.nstore_labile - labile_nto_leaf;
+
+					indiv.nstore_labile = 0.0;
+				}
+
+				indiv.nstress = true;
+			}
 		}
 		else
 			// photosynthesis will not be nitrogen stresses
-			indiv.nstress = false;
-
-		// If root is nitrogen stressed
-		if (indiv.fnuptake < 1.0 || indiv.rootndemand_store) {
-
-			// Roots
-			double root_ndemand = (1.0 - indiv.fnuptake) * indiv.rootndemand + indiv.rootndemand_store;
-
-			if (indiv.nstore_root <= root_ndemand) {
-				indiv.nmass_root += indiv.nstore_root;
-				indiv.nstore_root = 0.0;
-			}
-			else {
-				indiv.nmass_root += root_ndemand;
-				indiv.nstore_root -= root_ndemand;
-			}
-		}
-
-		if (!ifnlim)
 			indiv.nstress = false;
 
 		vegetation.nextobj();

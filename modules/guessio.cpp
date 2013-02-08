@@ -175,7 +175,7 @@ xtring file_firert,file_speciesheights;
 // bvoc
 xtring file_aiso,file_miso,file_amon,file_mmon;
 
-xtring file_cton_leaf, file_cton_veg, file_nsources, file_npool, file_nleach, file_nuptake, file_vmaxnlim, file_nflux;
+xtring file_cton_leaf, file_cton_veg, file_nsources, file_npool, file_nleach, file_nuptake, file_vmaxnlim, file_nflux, file_ngases;
 
 void initsettings() {
 
@@ -204,7 +204,7 @@ void initsettings() {
 	save_state = false;
 	restart = false;
 
-	file_cton_leaf=file_cton_veg=file_nsources=file_npool=file_nleach=file_nuptake=file_vmaxnlim=file_nflux="";
+	file_cton_leaf=file_cton_veg=file_nsources=file_npool=file_nleach=file_nuptake=file_vmaxnlim=file_nflux=file_ngases="";
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -314,6 +314,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_nuptake",&file_nuptake,300,CB_NONE,"Annual nitrogen uptake output file");
 		declareitem("file_vmaxnlim",&file_vmaxnlim,300,CB_NONE,"Annual nitrogen limitation on vm output file");
 		declareitem("file_nflux",&file_nflux,300,CB_NONE,"Annual nitrogen fluxes output file");
+		declareitem("file_ngases",&file_ngases,300,CB_NONE,"Annual nitrogen gases output file");
 		
 		declareitem("file_speciesheights",&file_speciesheights,300,CB_NONE,"Mean species heights");
 
@@ -992,7 +993,7 @@ Table out_mrh, out_mnee, out_mwcont_upper, out_mwcont_lower;
 // bvoc
 Table out_aiso, out_miso, out_amon, out_mmon;
 
-Table out_cton_leaf, out_cton_veg, out_nsources, out_npool, out_nleach, out_nuptake, out_vmaxnlim, out_nflux;
+Table out_cton_leaf, out_cton_veg, out_nsources, out_npool, out_nleach, out_nuptake, out_vmaxnlim, out_nflux, out_ngases;
 
 // Timers for keeping track of progress through the simulation
 Timer tprogress,tmute;
@@ -1265,16 +1266,16 @@ void define_output_tables() {
 
 	// CTON
 	ColumnDescriptors cton_columns;
-	cton_columns += ColumnDescriptors(pfts,                8, 2);
-	cton_columns += ColumnDescriptor("Total",              8, 2);
-	cton_columns += ColumnDescriptors(landcovers,         12, 2);
+	cton_columns += ColumnDescriptors(pfts,                8, 1);
+	cton_columns += ColumnDescriptor("Total",              8, 1);
+	cton_columns += ColumnDescriptors(landcovers,         12, 1);
 
 	// NSOURCES
 	ColumnDescriptors nsources_columns;
-	nsources_columns += ColumnDescriptor("dep",            8, 3);
-	nsources_columns += ColumnDescriptor("fix",            8, 3);
-	nsources_columns += ColumnDescriptor("fert",           8, 3);
-	nsources_columns += ColumnDescriptor("input",          8, 3);
+	nsources_columns += ColumnDescriptor("dep",            8, 2);
+	nsources_columns += ColumnDescriptor("fix",            8, 2);
+	nsources_columns += ColumnDescriptor("fert",           8, 2);
+	nsources_columns += ColumnDescriptor("input",          8, 2);
 	nsources_columns += ColumnDescriptor("min",            7, 2);
 	nsources_columns += ColumnDescriptor("imm",            7, 2);
 	nsources_columns += ColumnDescriptor("netmin",         7, 2);
@@ -1282,25 +1283,25 @@ void define_output_tables() {
 
 	// NPOOL
 	ColumnDescriptors npool_columns;
-	npool_columns += ColumnDescriptor("VegN",              8, 2);
-	npool_columns += ColumnDescriptor("LittVN",            8, 2);
-	npool_columns += ColumnDescriptor("LittSN",            8, 2);
-	npool_columns += ColumnDescriptor("CwdN",              8, 2);
-	npool_columns += ColumnDescriptor("MicroN",            8, 2);
-	npool_columns += ColumnDescriptor("HumusN",            8, 2);
-	npool_columns += ColumnDescriptor("tot_SoilN",        10, 2);
+	npool_columns += ColumnDescriptor("VegN",              8, 0);
+	npool_columns += ColumnDescriptor("LittVN",            8, 0);
+	npool_columns += ColumnDescriptor("LittSN",            8, 0);
+	npool_columns += ColumnDescriptor("CwdN",              8, 0);
+	npool_columns += ColumnDescriptor("MicroN",            8, 0);
+	npool_columns += ColumnDescriptor("HumusN",            8, 0);
+	npool_columns += ColumnDescriptor("tot_SoilN",        10, 0);
 
 	if (run_landcover && ifslowharvestpool) {
-		npool_columns += ColumnDescriptor("HarvSlowN",     8, 2);
+		npool_columns += ColumnDescriptor("HarvSlowN",     8, 0);
 	}
 
-	npool_columns += ColumnDescriptor("Total",            10, 2);
+	npool_columns += ColumnDescriptor("Total",            10, 0);
 
 	// NLEACH
 	ColumnDescriptors nleach_columns;
-	nleach_columns += ColumnDescriptor("Min",              8, 3);
-	nleach_columns += ColumnDescriptor("Org",              8, 3);
-	nleach_columns += ColumnDescriptor("Total",            8, 3);
+	nleach_columns += ColumnDescriptor("Min",              8, 2);
+	nleach_columns += ColumnDescriptor("Org",              8, 2);
+	nleach_columns += ColumnDescriptor("Total",            8, 2);
 
 	// NUPTAKE
 	ColumnDescriptors nuptake_columns;
@@ -1310,18 +1311,27 @@ void define_output_tables() {
 
 	// VMAXNLIM
 	ColumnDescriptors vmaxnlim_columns;
-	vmaxnlim_columns += ColumnDescriptors(pfts,            8, 3);
-	vmaxnlim_columns += ColumnDescriptor("Total",          8, 3);
-	vmaxnlim_columns += ColumnDescriptors(landcovers,     13, 4);
+	vmaxnlim_columns += ColumnDescriptors(pfts,            8, 2);
+	vmaxnlim_columns += ColumnDescriptor("Total",          8, 2);
+	vmaxnlim_columns += ColumnDescriptors(landcovers,     13, 2);
 
 	// NFLUX
 	ColumnDescriptors nflux_columns;
-	nflux_columns += ColumnDescriptor("NH3",               9, 4);
-	nflux_columns += ColumnDescriptor("NO",                9, 4);
-	nflux_columns += ColumnDescriptor("NO2",               9, 4);
-	nflux_columns += ColumnDescriptor("N2O",               9, 4);
-	nflux_columns += ColumnDescriptor("Total",             9, 4);
-	nflux_columns += ColumnDescriptor("C:N",               8, 2);
+	nflux_columns += ColumnDescriptor("dep",               8, 2);
+	nflux_columns += ColumnDescriptor("fix",               8, 2);
+	nflux_columns += ColumnDescriptor("fert",              8, 2);
+	nflux_columns += ColumnDescriptor("fire",              8, 2);
+	nflux_columns += ColumnDescriptor("leach",             8, 2);
+	nflux_columns += ColumnDescriptor("NEE",               8, 2);
+
+	// NGASES
+	ColumnDescriptors ngases_columns;
+	ngases_columns += ColumnDescriptor("NH3",              9, 3);
+	ngases_columns += ColumnDescriptor("NO",               9, 3);
+	ngases_columns += ColumnDescriptor("NO2",              9, 3);
+	ngases_columns += ColumnDescriptor("N2O",              9, 3);
+	ngases_columns += ColumnDescriptor("Total",            9, 3);
+	ngases_columns += ColumnDescriptor("C:N",              8, 0);
 
 	// *** ANNUAL OUTPUT VARIABLES ***
 
@@ -1345,6 +1355,7 @@ void define_output_tables() {
 	create_output_table(out_nuptake,        file_nuptake,        nuptake_columns);
 	create_output_table(out_vmaxnlim,       file_vmaxnlim,       vmaxnlim_columns);
 	create_output_table(out_nflux,          file_nflux,          nflux_columns);
+	create_output_table(out_ngases,         file_ngases,         ngases_columns);
 
 	// *** MONTHLY OUTPUT VARIABLES ***
 
@@ -2566,6 +2577,13 @@ void outannual(Gridcell& gridcell) {
 		}
 		out.add_value(out_cflux, flux_veg + flux_soil + flux_fire + flux_est + flux_harvest);
 
+		out.add_value(out_nflux, -andep_gridcell * m2toha);
+		out.add_value(out_nflux, -anfix_gridcell * m2toha);
+		out.add_value(out_nflux, -anfert_gridcell * m2toha);
+		out.add_value(out_nflux, flux_ntot * m2toha);
+		out.add_value(out_nflux, (n_min_leach_gridcell + n_org_leach_gridcell) * m2toha);
+		out.add_value(out_nflux, (flux_ntot + n_min_leach_gridcell + n_org_leach_gridcell - (andep_gridcell + anfix_gridcell + anfert_gridcell)) * m2toha);
+
 		out.add_value(out_cpool, cmass_gridcell);
 		out.add_value(out_cpool, c_litter);
 		if (!ifcentury) {
@@ -2620,12 +2638,12 @@ void outannual(Gridcell& gridcell) {
 			}
 		}
 
-		out.add_value(out_nflux, flux_nh3 * m2toha);
-		out.add_value(out_nflux, flux_no * m2toha);
-		out.add_value(out_nflux, flux_no2 * m2toha);
-		out.add_value(out_nflux, flux_n2o * m2toha);
-		out.add_value(out_nflux, flux_ntot * m2toha);
-		out.add_value(out_nflux, flux_nconc);
+		out.add_value(out_ngases, flux_nh3  * m2toha);
+		out.add_value(out_ngases, flux_no   * m2toha);
+		out.add_value(out_ngases, flux_no2  * m2toha);
+		out.add_value(out_ngases, flux_n2o  * m2toha);
+		out.add_value(out_ngases, flux_ntot * m2toha);
+		out.add_value(out_ngases, flux_nconc);
 
 		// Output of age structure (Windows shell only - no effect otherwise)
 

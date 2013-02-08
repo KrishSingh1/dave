@@ -374,7 +374,7 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil) {
 	// Water Filled Pore Spaces (wfps)
 	// water holding capacity at wilting point (wp) and saturation capacity (wsats) 
 	// is calculated with the help of Cosby et al 1984;
-	const double wfps = (wcont_soil * soil.soiltype.awc[0] + soil.soiltype.wp[0]) * 100.0 / soil.soiltype.wsats[0];			
+	const double wfps = (wcont_soil * soil.soiltype.awc[0] + soil.soiltype.wp[0]) * 100.0 / soil.soiltype.wsats[0];		
 
 	double moist_mod;
 

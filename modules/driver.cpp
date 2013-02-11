@@ -1101,7 +1101,7 @@ void check_nbalance(Patch& patch, bool print) {
 
 		if (print && date.year > nyear_spinup) {
 			dprintf("Year %d Nitrogen BALANCE - difference over %d years: %g\n",date.year,
-				date.year - nyear_spinup, old_total + nadded - (vegn + centuryn + soil.nmass_avail + vegstore + littern + soil.sompool[LEACHED].nmass + fluxn));
+				date.year - nyear_spinup, old_total + nadded - (vegn + centuryn + soil.nmass_avail + soil.snowpack_nmass + vegstore + littern + soil.sompool[LEACHED].nmass + fluxn));
 		}
 
 		if (date.year == nyear_spinup) {
@@ -1114,7 +1114,7 @@ void check_nbalance(Patch& patch, bool print) {
 			nadded = 0.0;
 			fluxn = 0.0;
 
-			old_total = vegn + centuryn + soil.nmass_avail + vegstore + littern + soil.sompool[LEACHED].nmass + nadded + fluxn;
+			old_total = vegn + centuryn + soil.nmass_avail + soil.snowpack_nmass + vegstore + littern + soil.sompool[LEACHED].nmass + nadded + fluxn;
 		}
 	}
 }

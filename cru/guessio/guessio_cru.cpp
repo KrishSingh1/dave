@@ -2461,33 +2461,41 @@ bool getclimate(Gridcell& gridcell) {
 
 	// Send environmental values for today to framework
 
-	int first_ndep_year = nyear_spinup + FIRSTHISTYEARNDEP - FIRSTHISTYEAR;
-
-	// Nitrogen deposition
-	// Before first year of nitrogen deposition data use first data set
-	if (date.year < first_ndep_year){
-		climate.dndep = (NHxDryDep[0][date.month] +	
-		                 NOyDryDep[0][date.month] + 
-		                 NHxWetDep[0][date.month] + 
-		                 NOyWetDep[0][date.month]);
-	}
-	else {  
-		// Use each data set for 10 years
-		int yr = (int)((date.year - first_ndep_year)/10);
-		climate.dndep = (NHxDryDep[yr][date.month] +
-		                 NOyDryDep[yr][date.month] +
-		                 NHxWetDep[yr][date.month] +
-		                 NOyWetDep[yr][date.month]);
-	}
-
-	// Nitrogen fertilization
-	climate.dnfert = 0.0;
-
 	climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
 
 	climate.temp  = dtemp[date.day];
 	climate.prec  = dprec[date.day];
 	climate.insol = dsun[date.day];
+
+	// Nitrogen deposition
+
+	int first_ndep_year = nyear_spinup + FIRSTHISTYEARNDEP - FIRSTHISTYEAR;
+
+	// Before first year of nitrogen deposition data use first data set
+	if (date.year < first_ndep_year){
+		climate.dndep    = NHxDryDep[0][date.month] +	
+		                   NOyDryDep[0][date.month];
+
+		climate.wetndep += NHxWetDep[0][date.month] + 
+		                   NOyWetDep[0][date.month];
+	}
+	else {  
+		// Use each data set for 10 years
+		int yr = (int)((date.year - first_ndep_year)/10);
+		climate.dndep    = NHxDryDep[yr][date.month] +
+		                   NOyDryDep[yr][date.month];
+
+		climate.wetndep += NHxWetDep[yr][date.month] +
+		                   NOyWetDep[yr][date.month];
+	}
+
+	if (!negligible(climate.prec)) {
+		climate.dndep += climate.wetndep;
+		climate.wetndep = 0.0;
+	}
+
+	// Nitrogen fertilization
+	climate.dnfert = 0.0;
 
 	// bvoc
 	if(ifbvoc){

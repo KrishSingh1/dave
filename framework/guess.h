@@ -572,6 +572,8 @@ public:
 	double andep;
 	/// daily nitrogen deposition (kgN/m2)
 	double dndep;
+	/// accumulated wet nitrogen deposition (kgN/m2)
+	double wetndep;
 
 	/// annual nitrogen fertilization (kgN/m2/year)
 	double anfert;
@@ -627,6 +629,7 @@ public:
 		chilldays = 0;
 		ifsensechill = true; //  guess2008 - CHILLDAYS
 		atemp_mean = 0.0;
+		wetndep = 0.0;
 
 		lat = latitude;
 		for (day=0; day<365; day++) doneday[day] = false;
@@ -1630,14 +1633,16 @@ public:
 	double anfix_calc;
 	
 	/// Variables for fast spinup of SOM pools
-	/// Monthly fraction of available mineral nitrogen taken up
+	/// monthly fraction of available mineral nitrogen taken up
 	double fnuptake_mean[12];
-	/// Monthly fraction of organic carbon/nitrogen leached
+	/// monthly fraction of organic carbon/nitrogen leached
 	double morgleach_mean[12];
-	/// Monthly fraction of available mineral nitrogen leached
+	/// monthly fraction of available mineral nitrogen leached
 	double mminleach_mean[12];
-	/// Annual nitrogen fixation
+	/// annual nitrogen fixation
 	double anfix_mean;
+	/// stored nitrogen deposition in snowpack
+	double snowpack_nmass;
 
 	/// Solving Century SOM pools 
 	/// years at which to begin documenting for calculation of Century equilibrium
@@ -1710,6 +1715,7 @@ public:
 		anfix = 0.0;
 		anfix_calc = 0.0;
 		anfix_mean = 0.0;
+		snowpack_nmass = 0.0;
 		dperc = 0.0;
 
 		solvesomcent_beginyr = (int)(SOLVESOMCENT_SPINBEGIN * (nyear_spinup - freenyears) + freenyears);

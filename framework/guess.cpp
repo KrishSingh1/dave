@@ -127,6 +127,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& doneday
 		& andep
 		& dndep
+		& wetndep
 		& anfert
 		& dnfert;
 }
@@ -282,6 +283,7 @@ void Soil::serialize(ArchiveStream& arch) {
 		& anfix
 		& anfix_calc
 		& anfix_mean
+		& snowpack_nmass
 		& solvesomcent_beginyr
 		& solvesomcent_endyr
 		& solvesom

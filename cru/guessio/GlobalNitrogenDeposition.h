@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////////////
 // GLOBALNITROGENDEPOSITION.H
 // Header file for input from a fast data archive
-// Created automatically by FastArchive on Mon Feb 13 18:01:35 2012
+// Created automatically by FastArchive on Tue Feb 05 18:14:49 2013
 //
 // The following #includes should appear in your source code file:
 //
@@ -210,20 +210,20 @@ private:
 
 	void bitify(unsigned char buf[4],double fval,double offset,double scalar) {
 
-		long ival=(fval-offset)/scalar+0.5;
-		buf[0]=ival/0x1000000;
+		long ival = (long)((fval-offset)/scalar + 0.5);
+		buf[0]=(unsigned char)(ival/0x1000000);
 		ival-=buf[0]*0x1000000;
-		buf[1]=ival/0x10000;
+		buf[1]=(unsigned char)(ival/0x10000);
 		ival-=buf[1]*0x10000;
-		buf[2]=ival/0x100;
+		buf[2]=(unsigned char)(ival/0x100);
 		ival-=buf[2]*0x100;
-		buf[3]=ival;
+		buf[3]=(unsigned char)(ival);
 	}
 
 	void merge(unsigned char ptarget[3],unsigned char buf[4],int bits) {
 
 		int nb=bits/8;
-		int i,j;
+		int i;
 		unsigned char nib;
 		for (i=0;i<3;i++) {
 
@@ -258,7 +258,7 @@ private:
 		return 0;
 	}
 
-	bool initialise(char* filename) {
+	bool initialise(const char* filename) {
 
 		int i;
 		unsigned char* pheader;
@@ -288,7 +288,7 @@ private:
 				return false;
 			}
 		}
-		delete pheader;
+		delete[] pheader;
 
 		::rewind(pfile);
 		fseek(pfile,GLOBALNITROGENDEPOSITION_HEADERSIZE+GLOBALNITROGENDEPOSITION_DATA_LENGTH*GLOBALNITROGENDEPOSITION_NRECORD,SEEK_CUR);
@@ -308,7 +308,7 @@ public:
 		if (pfile) fclose(pfile);
 	}
 
-	bool open(char* filename) {
+	bool open(const char* filename) {
 		return initialise(filename);
 	}
 
@@ -368,34 +368,32 @@ public:
 		bitify(buf,obj.latitude,-90,0.5);
 		merge(ptarget,buf,9);
 
-		int i,c;
-		bool not_done=true;
-		long direction=1;
-		long offset=GLOBALNITROGENDEPOSITION_NRECORD/2+GLOBALNITROGENDEPOSITION_NRECORD%2;
-		long thisrecord=0-GLOBALNITROGENDEPOSITION_NRECORD%2;
+		long begin = 0;
+		long end = GLOBALNITROGENDEPOSITION_NRECORD;
 
-		while (not_done) {
-			thisrecord+=offset*direction;
-			if (thisrecord>=GLOBALNITROGENDEPOSITION_NRECORD) thisrecord=GLOBALNITROGENDEPOSITION_NRECORD-1;
-			else if (thisrecord<0) thisrecord=0;
-			if (offset==1) not_done=false;
+		while (begin < end) {
+			long middle = (begin+end)/2;
 
-			getindex(thisrecord);
+			getindex(middle);
 			getdata();
 
-			c=compare_index(pindex,ptarget);
-			if (c<0) direction=1;
-			else if (c>0) direction=-1;
-			else { // found
+			int c = compare_index(pindex, ptarget);
 
-				for (i=191;i>=0;i--) obj.NOyWet[i]=popreal(pdata,GLOBALNITROGENDEPOSITION_DATA_LENGTH,29,1e-005,0);
-				for (i=191;i>=0;i--) obj.NOyDry[i]=popreal(pdata,GLOBALNITROGENDEPOSITION_DATA_LENGTH,29,1e-005,0);
-				for (i=191;i>=0;i--) obj.NHxWet[i]=popreal(pdata,GLOBALNITROGENDEPOSITION_DATA_LENGTH,29,1e-005,0);
-				for (i=191;i>=0;i--) obj.NHxDry[i]=popreal(pdata,GLOBALNITROGENDEPOSITION_DATA_LENGTH,29,1e-005,0);
+			if (c < 0) {
+				begin = middle + 1;
+			}
+			else if (c > 0) {
+				end = middle;
+			}
+			else {
+
+				for (int i=191;i>=0;i--) obj.NOyWet[i]=popreal(pdata,GLOBALNITROGENDEPOSITION_DATA_LENGTH,29,1e-005,0);
+				for (int i=191;i>=0;i--) obj.NOyDry[i]=popreal(pdata,GLOBALNITROGENDEPOSITION_DATA_LENGTH,29,1e-005,0);
+				for (int i=191;i>=0;i--) obj.NHxWet[i]=popreal(pdata,GLOBALNITROGENDEPOSITION_DATA_LENGTH,29,1e-005,0);
+				for (int i=191;i>=0;i--) obj.NHxDry[i]=popreal(pdata,GLOBALNITROGENDEPOSITION_DATA_LENGTH,29,1e-005,0);
 
 				return true;
 			}
-			offset=offset/2+offset%2;
 		}
 
 		return false;

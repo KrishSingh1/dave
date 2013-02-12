@@ -275,7 +275,8 @@ void Soil::serialize(ArchiveStream& arch) {
 
 	arch & dperc		
 		& orgleachfrac
-		& nmass_avail		
+		& nmass_avail	
+		& ninput
 		& anmin			
 		& animmob			
 		& aminleach		

@@ -1644,9 +1644,8 @@ void define_output_tables() {
 		cpool_columns += ColumnDescriptor("LittVC",        8, 3);
 		cpool_columns += ColumnDescriptor("LittSC",        8, 3);
 		cpool_columns += ColumnDescriptor("CwdC",          8, 3);
-		cpool_columns += ColumnDescriptor("MicroC",        8, 3);
 		cpool_columns += ColumnDescriptor("HumusC",        8, 3);
-		cpool_columns += ColumnDescriptor("tot_SoilC",    12, 3);
+		cpool_columns += ColumnDescriptor("SoilC",         8, 3);
 	}
 	if (run_landcover && ifslowharvestpool) {
 		 cpool_columns += ColumnDescriptor("HarvSlowC",   10, 3);
@@ -1698,24 +1697,23 @@ void define_output_tables() {
 
 	// NPOOL
 	ColumnDescriptors npool_columns;
-	npool_columns += ColumnDescriptor("VegN",              8, 0);
-	npool_columns += ColumnDescriptor("LittVN",            8, 0);
-	npool_columns += ColumnDescriptor("LittSN",            8, 0);
-	npool_columns += ColumnDescriptor("CwdN",              8, 0);
-	npool_columns += ColumnDescriptor("MicroN",            8, 0);
-	npool_columns += ColumnDescriptor("HumusN",            8, 0);
-	npool_columns += ColumnDescriptor("tot_SoilN",        10, 0);
+	npool_columns += ColumnDescriptor("VegN",              8, 1);
+	npool_columns += ColumnDescriptor("LittVN",            8, 1);
+	npool_columns += ColumnDescriptor("LittSN",            8, 1);
+	npool_columns += ColumnDescriptor("CwdN",              8, 1);
+	npool_columns += ColumnDescriptor("HumusN",            8, 1);
+	npool_columns += ColumnDescriptor("SoilN",             8, 1);
 
 	if (run_landcover && ifslowharvestpool) {
-		npool_columns += ColumnDescriptor("HarvSlowN",     8, 0);
+		npool_columns += ColumnDescriptor("HarvSlowN",     8, 1);
 	}
 
-	npool_columns += ColumnDescriptor("Total",            10, 0);
+	npool_columns += ColumnDescriptor("Total",            10, 1);
 
 	// NLEACH
 	ColumnDescriptors nleach_columns;
 	nleach_columns += ColumnDescriptor("Min",              8, 2);
-	nleach_columns += ColumnDescriptor("Org",              8, 2);
+	nleach_columns += ColumnDescriptor("Org",              8, 4);
 	nleach_columns += ColumnDescriptor("Total",            8, 2);
 
 	// NUPTAKE
@@ -2533,7 +2531,7 @@ void outannual(Gridcell& gridcell) {
 	double flux_veg, flux_soil, flux_fire, flux_est, flux_harvest;
 	double c_litter, c_fast, c_slow, c_harv_slow; 
 
-	double surfsoillitterc,surfsoillittern,cwdc,cwdn,microc,micron,humusc,humusn,centuryc,centuryn,n_litter,n_harv_slow;
+	double surfsoillitterc,surfsoillittern,cwdc,cwdn,humusc,humusn,centuryc,centuryn,n_litter,n_harv_slow;
 	double flux_nh3,flux_no,flux_no2,flux_n2o,flux_ntot,flux_nconc;
 
 	// Nitrogen output is in kgN/ha instead of kgC/m2 as for carbon 
@@ -2881,7 +2879,7 @@ void outannual(Gridcell& gridcell) {
 		// guess2008 - carbon pools
 		c_litter = c_fast = c_slow = c_harv_slow = 0.0;
 
-		surfsoillitterc = surfsoillittern = cwdc = cwdn = microc = micron = humusc = humusn = centuryc = centuryn = n_litter = n_harv_slow = 0.0;
+		surfsoillitterc = surfsoillittern = cwdc = cwdn = humusc = humusn = centuryc = centuryn = n_litter = n_harv_slow = 0.0;
 		andep_gridcell = anfert_gridcell = anmin_gridcell = animm_gridcell = anfix_gridcell = 0.0;
 		n_org_leach_gridcell = n_min_leach_gridcell = 0.0;
 		flux_nh3 = flux_no = flux_no2 = flux_n2o = flux_ntot = 0.0;
@@ -2966,17 +2964,11 @@ void outannual(Gridcell& gridcell) {
 							cwdc += patch.soil.sompool[r].cmass            / (double)stand.npatch();
 							cwdn += patch.soil.sompool[r].nmass            / (double)stand.npatch();
 						}
-						else {
-							if (r == SURFMICRO || r == SOILMICRO) {
-								microc += patch.soil.sompool[r].cmass      / (double)stand.npatch();
-								micron += patch.soil.sompool[r].nmass      / (double)stand.npatch();
-							} 
-
-							if (r == SURFHUMUS){
-								humusc += patch.soil.sompool[r].cmass      / (double)stand.npatch();
-								humusn += patch.soil.sompool[r].nmass      / (double)stand.npatch();
-							}
-							
+						else if (r == SURFHUMUS){
+							humusc += patch.soil.sompool[r].cmass      / (double)stand.npatch();
+							humusn += patch.soil.sompool[r].nmass      / (double)stand.npatch();
+						}
+						else {	
 							centuryc += patch.soil.sompool[r].cmass        / (double)stand.npatch();
 							centuryn += patch.soil.sompool[r].nmass        / (double)stand.npatch();
 						}
@@ -3157,17 +3149,15 @@ void outannual(Gridcell& gridcell) {
 
 					plot("century C","fine litter",   date.year, surfsoillitterc);
 					plot("century C","coarse litter", date.year, cwdc);
-					plot("century C","micro",         date.year, microc);
 					plot("century C","humus",         date.year, humusc);
-					plot("century C","soil",          date.year, centuryc - (microc + humusc)); 
-					plot("century C","total",         date.year, surfsoillitterc + cwdc + centuryc); 
+					plot("century C","soil",          date.year, centuryc); 
+					plot("century C","total",         date.year, surfsoillitterc + cwdc + humusc + centuryc); 
 
 					plot("century N","fine litter",   date.year, surfsoillittern);
 					plot("century N","coarse litter", date.year, cwdn);
-					plot("century N","micro",         date.year, micron);
 					plot("century N","humus",         date.year, humusn);
-					plot("century N","soil",          date.year, centuryn - (micron + humusn)); 
-					plot("century N","total",         date.year, surfsoillittern + cwdn + centuryn); 
+					plot("century N","soil",          date.year, centuryn); 
+					plot("century N","total",         date.year, surfsoillittern + cwdn + humusn + centuryn); 
 				}
 			}
 		}
@@ -3199,7 +3189,6 @@ void outannual(Gridcell& gridcell) {
 		else {
 			out.add_value(out_cpool, surfsoillitterc);
 			out.add_value(out_cpool, cwdc);
-			out.add_value(out_cpool, microc);
 			out.add_value(out_cpool, humusc);
 			out.add_value(out_cpool, centuryc);
 		}
@@ -3216,7 +3205,7 @@ void outannual(Gridcell& gridcell) {
 			cpool_total += c_fast + c_slow;
 		}
 		else {
-			cpool_total += centuryc + surfsoillitterc + cwdc;
+			cpool_total += humusc + centuryc + surfsoillitterc + cwdc;
 		}
 
 		// Add slow harvest pool if needed
@@ -3231,16 +3220,15 @@ void outannual(Gridcell& gridcell) {
 			out.add_value(out_npool, n_litter * m2toha);
 			out.add_value(out_npool, surfsoillittern * m2toha);
 			out.add_value(out_npool, cwdn * m2toha);
-			out.add_value(out_npool, micron * m2toha);
 			out.add_value(out_npool, humusn * m2toha);
 			out.add_value(out_npool, centuryn * m2toha);
 
 			if(run_landcover && ifslowharvestpool) {
 				out.add_value(out_npool, n_harv_slow * m2toha);
-				out.add_value(out_npool, (nmass_gridcell + n_litter + surfsoillittern + cwdn + centuryn + n_harv_slow) * m2toha);
+				out.add_value(out_npool, (nmass_gridcell + n_litter + surfsoillittern + cwdn + humusn + centuryn + n_harv_slow) * m2toha);
 			}
 			else {
-				out.add_value(out_npool, (nmass_gridcell + n_litter + surfsoillittern + cwdn + centuryn) * m2toha);
+				out.add_value(out_npool, (nmass_gridcell + n_litter + surfsoillittern + cwdn + humusn + centuryn) * m2toha);
 			}
 		}
 

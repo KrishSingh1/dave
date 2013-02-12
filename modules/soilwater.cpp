@@ -69,10 +69,13 @@ void snow(double prec, double temp, double& snowpack, double& rain_melt) {
 	rain_melt = prec + melt;
 }
 
-/// SNOW_NDEP   
-/** Nitrogen deposition on a snowpack stays in snowpack until it starts melting
+/// SNOW_NINPUT   
+/** Nitrogen deposition and fertilization on a snowpack stays in snowpack 
+ *  until it starts melting. If no snowpack daily nitrogen deposition and 
+ *  fertilization goes to the soil available mineral nitrogen pool.
  */
-void snow_ndep(double prec, double snowpack_after, double rain_melt, double& dndep, double& snowpack_nmass) {
+void snow_ninput(double prec, double snowpack_after, double rain_melt, 
+	           double dndep, double dnfert, double& snowpack_nmass, double& ninput) {
 
 	// calculates this day melt and original snowpack size
 	double melt = max(0.0, rain_melt - prec);
@@ -86,15 +89,18 @@ void snow_ndep(double prec, double snowpack_after, double rain_melt, double& dnd
 		if (melt > 0.0) {
 			double frac_melt  = melt / snowpack;
 			double melt_nmass = frac_melt * snowpack_nmass;
-			dndep            += melt_nmass;
+			ninput            = melt_nmass + dndep + dnfert;
 			snowpack_nmass   -= melt_nmass;
 		}
-		// if no snow is melted, then add daily nitrogen deposition to 
-		// to snowpack nitrogen pool
+		// if no snow is melted, then add daily nitrogen deposition 
+		// and fertilization to snowpack nitrogen pool
 		else {
-			snowpack_nmass += dndep;
-			dndep = 0.0;
+			snowpack_nmass += (dndep + dnfert);
+			ninput = 0.0;
 		}
+	}
+	else {
+		ninput = dndep + dnfert;
 	}
 }
 
@@ -340,7 +346,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 
 	Soil& soil = patch.soil;
 	snow(climate.prec - patch.intercep, climate.temp, soil.snowpack, soil.rain_melt);
-	snow_ndep(climate.prec - patch.intercep, soil.snowpack, soil.rain_melt, climate.dndep, soil.snowpack_nmass);
+	snow_ninput(climate.prec - patch.intercep, soil.snowpack, soil.rain_melt, climate.dndep, climate.dnfert, soil.snowpack_nmass, soil.ninput);
 	soil.percolate = soil.rain_melt >= 0.1;
 	soil.max_rain_melt = soil.rain_melt;
 

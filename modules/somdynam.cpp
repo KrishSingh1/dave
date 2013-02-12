@@ -956,11 +956,8 @@ void naddition(Patch& patch) {
 		soil.anfix = 0.0;
 	}
 
-	// Nitrogen Deposition
-	soil.nmass_avail += climate.dndep;
-
-	// Nitrogen Fertilization
-	soil.nmass_avail += climate.dnfert;
+	// Nitrogen deposition and fertilization input to the soil (calculated in snow_ndep())
+	soil.nmass_avail += soil.ninput;
 
 	// Nitrogen fixation
 	// If soil available nitrogen is above the value for minimum SOM C:N ratio, then

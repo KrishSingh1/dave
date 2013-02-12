@@ -1024,7 +1024,7 @@ double fracmass_lpj(double fpc_low,double fpc_high,Individual& indiv) {
 
 void flush_litter_repr(Patch& patch) {
 
-	// Returns N-free reproduction "litter" to atmosphere
+	// Returns nitrogen-free reproduction "litter" to atmosphere
 
 	patch.pft.firstobj();
 	while (patch.pft.isobj) {
@@ -1473,7 +1473,7 @@ void growth(Stand& stand, Patch& patch) {
 
 				// Move long-term nitrogen storage pool to labile storage pool for usage next year
 				indiv.nstore_labile = indiv.nstore_longterm;
-				indiv.nstore_longterm = 0.0;		
+				indiv.nstore_longterm = 0.0;	
 
 				// ... on to next individual
 				vegetation.nextobj();

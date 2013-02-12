@@ -1618,7 +1618,9 @@ public:
 	/// fraction of decayed organic nitrogen leached each day;
 	double orgleachfrac;
 	/// soil mineral nitrogen pool (kgN/m2)
-	double nmass_avail;			
+	double nmass_avail;		
+	/// soil nitrogen input (kgN/m2)
+	double ninput;
 	/// annual sum of nitrogen mineralisation
 	double anmin;			
 	/// annual sum of nitrogen immobilisation
@@ -1708,6 +1710,7 @@ public:
 		sompool[SURFMICRO].ntoc = 1.0 / 20.0;
 
 		nmass_avail = 0.0;
+		ninput = 0.0;
 		anmin = 0.0;			
 		animmob = 0.0;		
 		aminleach = 0.0;

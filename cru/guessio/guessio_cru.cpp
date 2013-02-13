@@ -2400,7 +2400,7 @@ bool getclimate(Gridcell& gridcell) {
 		// monthly means to be distributed into daily values further down
 		int first_ndep_year = nyear_spinup + FIRSTHISTYEARNDEP - FIRSTHISTYEAR;
 
-		double mndry[12], mnwet[12];
+		double mndrydep[12], mnwetdep[12];
 		int ndep_year = 0;
 
 		if (date.year >= first_ndep_year) {
@@ -2408,9 +2408,9 @@ bool getclimate(Gridcell& gridcell) {
 		}
 
 		for (int m = 0; m < 12; m++) {
-			mndry[m] = NHxDryDep[ndep_year][m] + NOyDryDep[ndep_year][m];
+			mndrydep[m] = NHxDryDep[ndep_year][m] + NOyDryDep[ndep_year][m];
 
-			mnwet[m] = NHxWetDep[ndep_year][m] + NOyWetDep[ndep_year][m];
+			mnwetdep[m] = NHxWetDep[ndep_year][m] + NOyWetDep[ndep_year][m];
 		}
 		
 		if (date.year < nyear_spinup) {
@@ -2443,7 +2443,7 @@ bool getclimate(Gridcell& gridcell) {
 			}
 			
 			// Distribute N deposition
-			distribute_ndep(mndry, mnwet, dprec, dndep);
+			distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
 
 			spinup_mtemp.nextyear();
 			spinup_mprec.nextyear();
@@ -2473,7 +2473,7 @@ bool getclimate(Gridcell& gridcell) {
 			}
 
 			// Distribute N deposition
-			distribute_ndep(mndry, mnwet, dprec, dndep);
+			distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
 		}
 		else {
 			// Return false if last year was the last for the simulation

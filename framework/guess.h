@@ -572,8 +572,6 @@ public:
 	double andep;
 	/// daily nitrogen deposition (kgN/m2)
 	double dndep;
-	/// accumulated wet nitrogen deposition (kgN/m2)
-	double wetndep;
 
 	/// annual nitrogen fertilization (kgN/m2/year)
 	double anfert;
@@ -629,7 +627,6 @@ public:
 		chilldays = 0;
 		ifsensechill = true; //  guess2008 - CHILLDAYS
 		atemp_mean = 0.0;
-		wetndep = 0.0;
 
 		lat = latitude;
 		for (day=0; day<365; day++) doneday[day] = false;

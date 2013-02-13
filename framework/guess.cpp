@@ -127,7 +127,6 @@ void Climate::serialize(ArchiveStream& arch) {
 		& doneday
 		& andep
 		& dndep
-		& wetndep
 		& anfert
 		& dnfert;
 }

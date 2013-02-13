@@ -1294,6 +1294,9 @@ double dtemp[365],dprec[365],dsun[365];
 // Daily diurnal temperature range for one year
 double ddtr[365];
 
+// Daily N deposition for one year
+double dndep[365];
+
 // guess2008 - make file_cru and file_cru_misc global variables
 xtring file_cru;
 xtring file_cru_misc;
@@ -2392,6 +2395,23 @@ bool getclimate(Gridcell& gridcell) {
 	if (date.day == 0) {
 
 		// First day of year ...
+
+		// Extract N deposition to use for this year,
+		// monthly means to be distributed into daily values further down
+		int first_ndep_year = nyear_spinup + FIRSTHISTYEARNDEP - FIRSTHISTYEAR;
+
+		double mndry[12], mnwet[12];
+		int ndep_year = 0;
+
+		if (date.year >= first_ndep_year) {
+			ndep_year = (int)((date.year - first_ndep_year)/10);
+		}
+
+		for (int m = 0; m < 12; m++) {
+			mndry[m] = NHxDryDep[ndep_year][m] + NOyDryDep[ndep_year][m];
+
+			mnwet[m] = NHxWetDep[ndep_year][m] + NOyWetDep[ndep_year][m];
+		}
 		
 		if (date.year < nyear_spinup) {
 
@@ -2421,6 +2441,9 @@ bool getclimate(Gridcell& gridcell) {
 				// (from Dieter Gerten 021121)
 				prdaily(mprec, dprec, mwet, gridcell.seed);
 			}
+			
+			// Distribute N deposition
+			distribute_ndep(mndry, mnwet, dprec, dndep);
 
 			spinup_mtemp.nextyear();
 			spinup_mprec.nextyear();
@@ -2449,6 +2472,8 @@ bool getclimate(Gridcell& gridcell) {
 				prdaily(hist_mprec[date.year-nyear_spinup], dprec, hist_mwet[date.year-nyear_spinup], gridcell.seed);
 			}
 
+			// Distribute N deposition
+			distribute_ndep(mndry, mnwet, dprec, dndep);
 		}
 		else {
 			// Return false if last year was the last for the simulation
@@ -2466,35 +2491,11 @@ bool getclimate(Gridcell& gridcell) {
 	climate.insol = dsun[date.day];
 
 	// Nitrogen deposition
-
-	int first_ndep_year = nyear_spinup + FIRSTHISTYEARNDEP - FIRSTHISTYEAR;
-
-	// Before first year of nitrogen deposition data use first data set
-	if (date.year < first_ndep_year){
-		climate.dndep    = NHxDryDep[0][date.month] +	
-		                   NOyDryDep[0][date.month];
-
-		climate.wetndep += NHxWetDep[0][date.month] + 
-		                   NOyWetDep[0][date.month];
-	}
-	else {  
-		// Use each data set for 10 years
-		int yr = (int)((date.year - first_ndep_year)/10);
-		climate.dndep    = NHxDryDep[yr][date.month] +
-		                   NOyDryDep[yr][date.month];
-
-		climate.wetndep += NHxWetDep[yr][date.month] +
-		                   NOyWetDep[yr][date.month];
-	}
-
-	if (!negligible(climate.prec)) {
-		climate.dndep += climate.wetndep;
-		climate.wetndep = 0.0;
-	}
+	climate.dndep = dndep[date.day];
 
 	// Nitrogen fertilization
 	climate.dnfert = 0.0;
-
+	
 	// bvoc
 	if(ifbvoc){
 	  climate.dtr = ddtr[date.day];

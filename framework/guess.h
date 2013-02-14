@@ -1448,6 +1448,25 @@ class Sompool : public Serializable {
 
 public:
 
+	/// Constructor
+	Sompool() {
+		
+		// Initialise pool
+		
+		cmass = 0.0;
+		nmass = 0.0;
+		ligcfrac = 0.0;
+		delta_cmass = 0.0;
+		delta_nmass = 0.0;
+		fracremain = 0.0;
+		litterme = 0.0;
+		fireresist = 0.0;
+
+		for (int m = 0; m < 12; m++) {
+			mfracremain_mean[m] = 0.0;
+		}
+	}
+
 	/// C mass in pool kgC/m2
 	double cmass;
 	/// Nitrogen mass in pool kgN/m2
@@ -1475,23 +1494,6 @@ public:
 
 	/// monthly mean fraction of carbon pool remaining after decomposition
 	double mfracremain_mean[12];
-
-	void init() {
-		
-		// Initialise pool
-		
-		cmass = 0.0;
-		nmass = 0.0;
-		ligcfrac = 0.0;
-		delta_cmass = 0.0;
-		delta_nmass = 0.0;
-		fracremain = 0.0;
-		litterme = 0.0;
-		fireresist = 0.0;
-
-		for (int m=0;m<12;m++)
-			mfracremain_mean[m] = 0.0;
-	};
 
 	void serialize(ArchiveStream& arch);
 };
@@ -1600,6 +1602,7 @@ public:
 
 	double alag, exp_alag;
 
+
 	// guess2008 - 3 new soil water variables
 	double mwcont[12][NSOILLAYER];
 		// water content of soil layers [0=upper layer] as fraction of available water
@@ -1706,9 +1709,6 @@ public:
 
 		/////////////////////////////////////////////////////
 		// Initialise CENTURY pools
-
-		for (int p=0; p<NSOMPOOL; p++)
-			sompool[p].init();
 
 		// Set initial CENTURY pool N:C ratios 
 		// Parton et al 1993, Fig 4
@@ -1981,13 +1981,6 @@ public:
 	double anetps_ff_max;
 		// maximum value of anetpsff (potential annual net assimilation at forest
 		// floor) for this PFT in this stand so far in the simulation (kgC/m2/year)
-	// Variables used only by input/output module
-
-	double greff_mort_total;
-		// sum/mean across patches for saplings per PFT
-	double nsapling_total;
-		// sum/mean across patches for saplings per PFT
-
 	double gpterm;
 		// non-FPAR-weighted value for canopy conductance component associated with
 		// photosynthesis for PFT under non-water-stress conditions (mm/s)
@@ -2002,10 +1995,6 @@ public:
 	/// sub-daily version of the above variable (NB: daily units)
 	std::vector<PhotosynthesisResult> phots;
 	
-	double cmass_repr_nuptake;
-		// net C allocated to reproduction for this PFT in all patches of this stand
-		// this year (kgC/m2)
-
 	/// Is this PFT allowed to grow in this stand?
 	bool active;
 
@@ -2065,6 +2054,7 @@ public:
 	 *  Needed to set patchpft.anetps_ff_est_initial 
 	 */
 	int first_year;
+
 
 	// MEMBER FUNCTIONS
 

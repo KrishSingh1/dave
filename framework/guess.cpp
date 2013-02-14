@@ -388,8 +388,7 @@ void Standpft::serialize(ArchiveStream& arch) {
 		& anetps_ff_max
 		& gpterm
 		& fpc_total
-		& active
-		& cmass_repr_nuptake;
+		& active;
 }
 
 

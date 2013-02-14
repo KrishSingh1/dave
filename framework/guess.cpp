@@ -487,7 +487,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	phen = 0.0;
 	aphen = 0.0;
 	deltafpc = 0.0;
-	resp = 0.0;
 
 	nmass_leaf = 0.0;
 	nmass_root = 0.0;
@@ -555,8 +554,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& phen
 		& aphen
 		& aphen_raingreen
-		& assim
-		& resp
 		& anpp
 		& aet
 		& ltor

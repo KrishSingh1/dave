@@ -95,7 +95,7 @@ typedef enum {
  */
 typedef enum {NOVEGMODE, INDIVIDUAL, COHORT, POPULATION} vegmodetype;
 
-// CENTURY pool names, NSOMPOOL number of SOM pools
+/// CENTURY pool names, NSOMPOOL number of SOM pools
 typedef enum {SURFSTRUCT, SOILSTRUCT, SOILMICRO, SURFHUMUS, SURFMICRO, SURFMETA, SURFCWD,
 	SOILMETA, SLOWSOM, PASSIVESOM, LEACHED, NSOMPOOL} pooltype;	
 
@@ -110,12 +110,15 @@ typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptakety
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
 
-// number  of soil layers modelled
+/// number  of soil layers modelled
 const int NSOILLAYER = 2;
 
 // SOIL DEPTH VALUES
-const double SOILDEPTH_UPPER = 500.0; // soil upper layer depth (mm)
-const double SOILDEPTH_LOWER = 1000.0; // soil lower layer depth (mm)
+
+/// soil upper layer depth (mm)
+const double SOILDEPTH_UPPER = 500.0;
+/// soil lower layer depth (mm)
+const double SOILDEPTH_LOWER = 1000.0;
 
 /// Year at which to calculate equilibrium soil carbon
 const int SOLVESOM_END=400;
@@ -130,8 +133,6 @@ const int NYEARGREFF = 5;
 /** Used to decide when to start counting GDD's and leaf-on days 
  *  for summergreen phenology.
  */
-const int NYEARAAET = 5; 
-	// number of years to average aaet over in function naddition
 const int COLDEST_DAY_NHEMISPHERE = 14;
 
 /// Coldest day in S hemisphere (July 15)
@@ -140,13 +141,17 @@ const int COLDEST_DAY_NHEMISPHERE = 14;
  */
 const int COLDEST_DAY_SHEMISPHERE = 195;
 
+/// number of years to average aaet over in function naddition
+const int NYEARAAET = 5;
+
 /// Maximum number of age classes in age structure plots produced by function outannual
 const int OUTPUT_MAXAGECLASS = 40;
 
 /// Priestley-Taylor coefficient (conversion factor from equilibrium evapotranspiration to PET)
 const double PRIESTLEY_TAYLOR = 1.32;
 
-/// Solving Century SOM pools 
+// Solving Century SOM pools 
+
 /// fraction of nyear_spinup minus freenyears at which to begin documenting for calculation of Century equilibrium
 const double SOLVESOMCENT_SPINBEGIN  = 0.1;
 /// fraction of nyear_spinup minus freenyears at which to end documentation and start calculation of Century equilibrium
@@ -280,6 +285,8 @@ extern bool ifrainonwetdaysonly;
 // bvoc
 extern bool ifbvoc; 
         // whether BVOC calculations are included
+
+
 
 /// General purpose object for handling simulation timing. 
 /** In general, frameworks should use a single Date object for all simulation
@@ -804,8 +811,10 @@ public:
 	double cton_sap;
 	/// Maximum nitrogen (NH4+ and NO3- seperatly) uptake per fine root [kgN kgC-1 day-1]
 	double nuptoroot;
-	/// Michaelis-Menten kinetic parameters chosen to match observed rates of increase 
-	/// in nitrogen uptake at high nitrogen [kgN l-1] (Rothstein 2000) 
+
+	/// Michaelis-Menten kinetic parameters 
+	/** Chosen to match observed rates of increase 
+	 *  in nitrogen uptake at high nitrogen [kgN l-1] (Rothstein 2000) */
 	double km_volume;
 		
 	double reprfrac;
@@ -907,7 +916,8 @@ public:
 	        // monoterpene emission capacity (ug C g-1 h-1)
 	double storfrac_mon;
 	        // fraction of monoterpene production that goes into storage pool (-)
-	
+
+
 	// Sapling/regeneration characteristics (used only in population mode):
 	// for trees, on sapling individual basis (kgC); for grasses, on stand area basis,
 	// kgC/m2
@@ -954,16 +964,18 @@ public:
 		turnover_harv_prod = 1.0;	// default 1 year turnover time
 	}
 
+	/// Calculates SLA given leaf longevity
 	void initsla() {
 
-		// Calculates SLA given leaf longevity
 		// Reich et al 1992, Table 1 (includes conversion x2.0 from m2/kg_dry_weight to
 		// m2/kgC)
 
-		if (leafphysiognomy == BROADLEAF)
+		if (leafphysiognomy == BROADLEAF) {
 			sla = 0.2 * pow(10.0, 2.41 - 0.38 * log10(12.0 * leaflong));
-		else if (leafphysiognomy == NEEDLELEAF)
+		}
+		else if (leafphysiognomy == NEEDLELEAF) {
 			sla = 0.2 * pow(10.0, 2.29 - 0.4 * log10(12.0 * leaflong));
+		}
 	}
 
 	void init_cton_limits() {
@@ -1123,12 +1135,6 @@ public:
 	int aphen_raingreen;
 		// annual number of days with full leaf cover) (raingreen PFTs only; reset on
 		// 1 January)
-	double assim;
-		// daily net assimilation (GPP-leaf respiration) on modelled area basis
-		// (kgC/m2/day) (used in monthly NPP mode)
-	double resp;
-		// daily maintenance respiration (not including leaf respiration) and growth
-		// respiration on modelled area basis (kgC/m2/day) (used in monthly NPP mode)
 
 	/// Photosynthesis values for this individual under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;
@@ -1234,6 +1240,7 @@ public:
 		// guess2008 - whether this individual is truly alive. Set to false for first year 
 		// after the Individual object is created, then true.
 
+
 	// bvoc
 	double iso; // isoprene production (mg C m-2 d-1)
 	double mon; // monoterpene production (mg C m-2 d-1)
@@ -1262,8 +1269,9 @@ public:
 	/// Reduce current biomass with a scalar
 	void reduce_biomass(double scalar) {
 
-		if (pft.lifeform != GRASS)
+		if (pft.lifeform != GRASS) {
 			densindiv *= scalar;
+		}
 
 		cmass_leaf      *= scalar;
 		cmass_root      *= scalar;
@@ -1325,6 +1333,7 @@ public:
 	}
 };
 
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // VEGETATION
 // Functionality for building, maintaining, referencing and destroying a list array of
@@ -1359,6 +1368,7 @@ public:
 
 	void serialize(ArchiveStream& arch);
 };
+
 
 /// Soiltype stores static parameters for soils and the snow pack. 
 /** One Soiltype object is defined for each Gridcell. State variables for soils 
@@ -1397,7 +1407,7 @@ public:
 		// year at which to begin documenting means for calculation of equilibrium
 		// soil carbon
 
-	/// water holding capacity plus wilting point for whole soil volym
+	/// water holding capacity plus wilting point for whole soil volume
 	double wtot; 
 
 	// For CENTURY ...
@@ -1433,9 +1443,7 @@ public:
 	}
 };
 
-///////////////////////////////////////////////////////////////////////////////////////
-// CENTURY SOIL POOL
-
+/// CENTURY SOIL POOL
 class Sompool : public Serializable {
 
 public:
@@ -1463,7 +1471,8 @@ public:
 	/// soil litter fire resistance (0-1)
 	double fireresist;
 
-	/// Fast SOM spinup variables
+	// Fast SOM spinup variables
+
 	/// monthly mean fraction of carbon pool remaining after decomposition
 	double mfracremain_mean[12];
 
@@ -1497,7 +1506,7 @@ struct LitterSolveSOM : public Serializable {
 
 	/// Clears all members
 	void clear() {
-		for (int p=0;p<NSOMPOOL;p++) {
+		for (int p = 0; p < NSOMPOOL; p++) {
 			clitter[p] = 0.0;
 			nlitter[p] = 0.0;
 		}
@@ -1631,7 +1640,8 @@ public:
 	/// calculated annual mean nitrogen fixation
 	double anfix_calc;
 	
-	/// Variables for fast spinup of SOM pools
+	// Variables for fast spinup of SOM pools
+
 	/// monthly fraction of available mineral nitrogen taken up
 	double fnuptake_mean[12];
 	/// monthly fraction of organic carbon/nitrogen leached
@@ -1640,16 +1650,18 @@ public:
 	double mminleach_mean[12];
 	/// annual nitrogen fixation
 	double anfix_mean;
-	/// stored nitrogen deposition in snowpack
-	double snowpack_nmass;
 
-	/// Solving Century SOM pools 
+	// Solving Century SOM pools 
+
 	/// years at which to begin documenting for calculation of Century equilibrium
 	int solvesomcent_beginyr;
 	/// years at which to end documentation and start calculation of Century equilibrium
 	int solvesomcent_endyr;
 
 	std::vector<LitterSolveSOM> solvesom;
+
+	/// stored nitrogen deposition in snowpack
+	double snowpack_nmass;
 
 	// MEMBER FUNCTIONS
 
@@ -2125,6 +2137,7 @@ public:
 
 	void serialize(ArchiveStream& arch);
 };
+
 
 /// The Gridcell class corresponds to a modelled locality or grid cell.
 /** Member variables include an object of type Climate (holding climate, insolation and

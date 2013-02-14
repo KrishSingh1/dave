@@ -780,10 +780,10 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	double EPS = 1.0e-12;
 
 	if (bminc < -(cmass_leaf + cmass_root + cmass_sap)) { // case 1
-		assert(abs((cmass_leaf + cmass_root + cmass_sap) + (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
+		assert(fabs((cmass_leaf + cmass_root + cmass_sap) + (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
 	}
 	else { // case 2
-		assert(abs(bminc - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
+		assert(fabs(bminc - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
 	}
 }
 

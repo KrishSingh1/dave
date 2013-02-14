@@ -2830,13 +2830,13 @@ void outannual(Gridcell& gridcell) {
 				// Graphical output every 10 years
 				// (Windows shell only - "plot" statements have no effect otherwise)
 				if (!(date.year%10)) {
-					plot("cmass",pft.name,date.year,gcpft_cmass);
-					plot("anpp",pft.name,date.year,gcpft_anpp);
-					plot("lai",pft.name,date.year,gcpft_lai);
+					plot("C mass [kg C/m2]",pft.name,date.year,gcpft_cmass);
+					plot("NPP [kg C/m2/yr]",pft.name,date.year,gcpft_anpp);
+					plot("LAI [m2/m2]",pft.name,date.year,gcpft_lai);
 					plot("dens [indiv/ha]",pft.name,date.year,gcpft_densindiv_total*m2toha);
 					if (gcpft_cmass_leaf > 0.0 && ifnlim) {
-						plot("vmax nitrogen lim",pft.name,date.year,gcpft_vmaxnlim);
-						plot("leaf C:N ratio",pft.name,date.year,gcpft_cmass_leaf/gcpft_nmass_leaf);
+						plot("vmax nitrogen lim [dimless]",pft.name,date.year,gcpft_vmaxnlim);
+						plot("leaf C:N ratio [kg C/kg N]",pft.name,date.year,gcpft_cmass_leaf/gcpft_nmass_leaf);
 					}
 				}
 				gridcell.nextobj();
@@ -3129,36 +3129,36 @@ void outannual(Gridcell& gridcell) {
 			if(gridcell.isobj)	//Fixed bug here if no stands were present.
 			{
 				Stand& stand=gridcell.getobj();
-				plot("fluxes","flux_veg",  date.year, flux_veg);
-				plot("fluxes","flux_soil", date.year, flux_soil);
-				plot("fluxes","flux_fire", date.year, flux_fire);
-				plot("fluxes","flux_est",  date.year, flux_est);
-				plot("fluxes","NEE",       date.year, flux_veg + flux_soil + flux_fire + flux_est);
+				plot("C flux [kg C/m2/yr]","flux_veg",  date.year, flux_veg);
+				plot("C flux [kg C/m2/yr]","flux_soil", date.year, flux_soil);
+				plot("C flux [kg C/m2/yr]","flux_fire", date.year, flux_fire);
+				plot("C flux [kg C/m2/yr]","flux_est",  date.year, flux_est);
+				plot("C flux [kg C/m2/yr]","NEE",       date.year, flux_veg + flux_soil + flux_fire + flux_est);
 
 				if (!ifcentury) {
-					plot("soilc","slow", date.year, stand[0].soil.cpool_slow);
-					plot("soilc","fast", date.year, stand[0].soil.cpool_fast);
+					plot("Soil C [kg C/m2]","slow", date.year, stand[0].soil.cpool_slow);
+					plot("Soil C [kg C/m2]","fast", date.year, stand[0].soil.cpool_fast);
 				}
 				else {
-					plot("N fluxes (kgN/ha/yr)","Fix",   date.year, -anfix_gridcell * m2toha);
-					plot("N fluxes (kgN/ha/yr)","Dep",   date.year, -andep_gridcell * m2toha);
-					plot("N fluxes (kgN/ha/yr)","Fert",  date.year, -anfert_gridcell * m2toha);
-					plot("N fluxes (kgN/ha/yr)","Leach", date.year, (n_min_leach_gridcell + n_org_leach_gridcell) * m2toha);
-					plot("N fluxes (kgN/ha/yr)","Fire",  date.year, flux_ntot * m2toha);
+					plot("N flux (kg N/ha/yr)","Fix",   date.year, -anfix_gridcell * m2toha);
+					plot("N flux (kg N/ha/yr)","Dep",   date.year, -andep_gridcell * m2toha);
+					plot("N flux (kg N/ha/yr)","Fert",  date.year, -anfert_gridcell * m2toha);
+					plot("N flux (kg N/ha/yr)","Leach", date.year, (n_min_leach_gridcell + n_org_leach_gridcell) * m2toha);
+					plot("N flux (kg N/ha/yr)","Fire",  date.year, flux_ntot * m2toha);
 
-					plot("N min-immob (kgN/ha/yr)","N", date.year, (anmin_gridcell - animm_gridcell) * m2toha);
+					plot("N mineralization [kg N/ha/yr]","N", date.year, (anmin_gridcell - animm_gridcell) * m2toha);
 
-					plot("century C","fine litter",   date.year, surfsoillitterc);
-					plot("century C","coarse litter", date.year, cwdc);
-					plot("century C","humus",         date.year, humusc);
-					plot("century C","soil",          date.year, centuryc); 
-					plot("century C","total",         date.year, surfsoillitterc + cwdc + humusc + centuryc); 
+					plot("Soil C [kg C/m2]","fine litter",   date.year, surfsoillitterc);
+					plot("Soil C [kg C/m2]","coarse litter", date.year, cwdc);
+					plot("Soil C [kg C/m2]","humus",         date.year, humusc);
+					plot("Soil C [kg C/m2]","soil",          date.year, centuryc); 
+					plot("Soil C [kg C/m2]","total",         date.year, surfsoillitterc + cwdc + humusc + centuryc); 
 
-					plot("century N","fine litter",   date.year, surfsoillittern);
-					plot("century N","coarse litter", date.year, cwdn);
-					plot("century N","humus",         date.year, humusn);
-					plot("century N","soil",          date.year, centuryn); 
-					plot("century N","total",         date.year, surfsoillittern + cwdn + humusn + centuryn); 
+					plot("Soil N [kg N/ha]","fine litter",   date.year, surfsoillittern);
+					plot("Soil N [kg N/ha]","coarse litter", date.year, cwdn);
+					plot("Soil N [kg N/ha]","humus",         date.year, humusn);
+					plot("Soil N [kg N/ha]","soil",          date.year, centuryn); 
+					plot("Soil N [kg N/ha]","total",         date.year, surfsoillittern + cwdn + humusn + centuryn); 
 				}
 			}
 		}
@@ -3246,7 +3246,7 @@ void outannual(Gridcell& gridcell) {
 
 			if (!(date.year%20) && date.year<2000) {
 			
-				resetwindow("age_structure");
+				resetwindow("Age structure [yr]");
 
 				pftlist.firstobj();
 				while (pftlist.isobj) {
@@ -3257,7 +3257,7 @@ void outannual(Gridcell& gridcell) {
 						Gridcellpft& gridcellpft=gridcell.pft[pft.id];
 
 						for (c=0;c<nclass;c++)
-							plot("age_structure",pft.name,
+							plot("Age structure [yr]",pft.name,
 								c * estinterval + estinterval / 2,
 								gcpft_densindiv_ageclass[c] / (double)npatch);
 					}

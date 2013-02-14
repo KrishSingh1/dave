@@ -667,6 +667,9 @@ void somfluxes(Patch& patch) {
 		soil.sompool[LEACHED].cmass += leachsum_cmass;
 		soil.sompool[LEACHED].nmass += leachsum_nmass;
 
+		// Report organic carbon leaching to soil carbon fluxes for now
+		patch.fluxes.report_flux(Fluxes::SOILC, leachsum_cmass);
+
 		// Sum annual organic nitrogen leaching
 
 		soil.aorgleach += leachsum_nmass;
@@ -733,8 +736,8 @@ void transfer_litter(Patch& patch) {
 		Patchpft& pft=patch.pft.getobj();
 
 		// Calculate total litter carbon and nitrogen mass for set N:C ratio of surface microbial pool
-		litter_nmass += (pft.nmass_litter_leaf + pft.nmass_litter_wood);
-		litter_cmass += (pft.litter_leaf + pft.litter_wood);
+		litter_nmass += pft.nmass_litter_leaf + pft.nmass_litter_wood;
+		litter_cmass += pft.litter_leaf + pft.litter_wood;
 
 		// LEAF
 

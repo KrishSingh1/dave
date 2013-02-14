@@ -2093,8 +2093,8 @@ bool getgridcell(Gridcell& gridcell) {
 
 			gridlist.nextobj();
 			if (gridlist.isobj) {
-				double lon = gridlist.getobj().lon;
-				double lat = gridlist.getobj().lat;
+				lon = gridlist.getobj().lon;
+				lat = gridlist.getobj().lat;
 				gridfound = findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
 				                               hist_mtemp, hist_mprec, hist_msun);
 			  

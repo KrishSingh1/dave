@@ -956,7 +956,7 @@ void naddition(Patch& patch) {
 		soil.anfix = 0.0;
 	}
 
-	// Nitrogen deposition and fertilization input to the soil (calculated in snow_ndep())
+	// Nitrogen deposition and fertilization input to the soil (calculated in snow_ninput())
 	soil.nmass_avail += soil.ninput;
 
 	// Nitrogen fixation

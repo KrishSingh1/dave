@@ -175,13 +175,14 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	double aet_layer[NSOILLAYER]; // total AET for each soil layer (mm)
 	double perc_frac;
 
+
 	for (s=0; s<NSOILLAYER; s++) {
 		aet_layer[s] = 0.0;
 	}
 	double aet_total = 0.0;
 
 	// Sum AET for across all vegetation individuals
-	Vegetation& vegetation = patch.vegetation;
+	Vegetation& vegetation=patch.vegetation;
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
@@ -222,8 +223,8 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 
 	// Update water content in evaporation layer for tomorrow
 
-	wcont_evap += (rain_melt - aet_layer[0] * SOILDEPTH_EVAP * K_AET_DEPTH / SOILDEPTH_UPPER - evap)
-		/ awc[0];
+	wcont_evap += (rain_melt-aet_layer[0]*SOILDEPTH_EVAP*K_AET_DEPTH/SOILDEPTH_UPPER-evap)
+		/awc[0];
 
 	if (wcont_evap > wcont[0]) {
 		wcont_evap = wcont[0];
@@ -232,10 +233,10 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	// Percolation from evaporation layer
 	double perc = 0.0;
 	if (percolate) {
-		perc = min(SOILDEPTH_EVAP / SOILDEPTH_UPPER * perc_base * pow(wcont_evap, perc_exp),
-					max_rain_melt);
+		perc = min(SOILDEPTH_EVAP/SOILDEPTH_UPPER*perc_base*pow(wcont_evap,perc_exp),
+													max_rain_melt);
 	}
-	wcont_evap -= perc / awc[0];
+	wcont_evap -= perc/awc[0];
 
 	// Percolation and fluxes to and from lower soil layer(s)
 
@@ -251,16 +252,16 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 		// Allow only on days with rain or snowmelt (Dieter Gerten, 021216)
 
 		if (percolate) {
-			perc = min(perc_base * pow(wcont[s-1], perc_exp), max_rain_melt);
+			perc = min(perc_base*pow(wcont[s-1],perc_exp), max_rain_melt);
 		} else {
-			perc = 0.0;
+			perc=0.0;
 		}
-		perc_frac = min(perc / awc[s-1], wcont[s-1]);
+		perc_frac = min(perc/awc[s-1], wcont[s-1]);
 
 		wcont[s-1] -= perc_frac;
 		wcont[s] += perc_frac * awc[s-1] / awc[s];
 		if (wcont[s] > 1.0) {
-			runoff_drain += (wcont[s] - 1.0) * awc[s];
+			runoff_drain += (wcont[s]-1.0)*awc[s];
 			wcont[s] = 1.0;
 		}
 
@@ -276,7 +277,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	// Baseflow runoff (Dieter Gerten 021216) (rain or snowmelt days only)
 	double runoff_baseflow = 0.0;
 	if (percolate) {
-		double perc_baseflow = BASEFLOW_FRAC * perc_base * pow(wcont[NSOILLAYER-1], perc_exp);
+		double perc_baseflow=BASEFLOW_FRAC*perc_base*pow(wcont[NSOILLAYER-1],perc_exp);
 		// guess2008 - Added "&& rain_melt >= runoff_surf" to guarantee nonnegative baseflow.
 		if (perc_baseflow > rain_melt - runoff_surf && rain_melt >= runoff_surf) {
 			perc_baseflow = rain_melt - runoff_surf;
@@ -284,7 +285,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 
 		// Deduct from water content of bottom soil layer
 
-		perc_frac = min(perc_baseflow / awc[NSOILLAYER-1], wcont[NSOILLAYER-1]);
+		perc_frac = min(perc_baseflow/awc[NSOILLAYER-1], wcont[NSOILLAYER-1]);
 		wcont[NSOILLAYER-1] -= perc_frac;
 		runoff_baseflow = perc_frac * awc[NSOILLAYER-1];
 	}

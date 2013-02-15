@@ -2396,7 +2396,7 @@ bool getclimate(Gridcell& gridcell) {
 		}
 		
 		// Distribute N deposition - without rain days
-		std::fill(dprec, 365, 0);
+		std::fill_n(dprec, 365, 0);
 		distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
 	}
 

@@ -945,11 +945,11 @@ void leaching(Soil& soil) {
 }
 
 
-/// Nitrogen addition to the system 
-/** Daily nitrogen addition to system
+/// Nitrogen addition to the soil 
+/** Daily nitrogen addition to the soil
  *  from deposition and fixation
  */
-void naddition(Patch& patch) {
+void soilnadd(Patch& patch) {
 
 	Soil& soil = patch.soil;
 	Climate& climate = patch.stand.gridcell.climate;
@@ -1194,8 +1194,8 @@ void som_dynamics_century(Patch& patch) {
 	// Daily nitrogen uptake
 	vegetation_n_uptake(patch);
 
-	// Daily nitrogen addition to the system
-	naddition(patch);
+	// Daily nitrogen addition to the soil
+	soilnadd(patch);
 
 	// Daily or monthly decomposition and fluxes between SOM pools
 	somfluxes(patch);

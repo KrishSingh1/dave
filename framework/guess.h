@@ -141,7 +141,7 @@ const int COLDEST_DAY_NHEMISPHERE = 14;
  */
 const int COLDEST_DAY_SHEMISPHERE = 195;
 
-/// number of years to average aaet over in function naddition
+/// number of years to average aaet over in function soilnadd
 const int NYEARAAET = 5;
 
 /// Maximum number of age classes in age structure plots produced by function outannual

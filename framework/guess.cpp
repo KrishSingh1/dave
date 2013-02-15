@@ -475,70 +475,71 @@ void Stand::serialize(ArchiveStream& arch) {
 
 Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
-	anpp = 0.0;
-	fpc = 0.0;
-	densindiv = 0.0;
-	cmass_leaf = 0.0;
-	cmass_root = 0.0;
-	cmass_sap = 0.0;
-	cmass_heart = 0.0;
-	cmass_debt = 0.0;
-	phen = 0.0;
-	aphen = 0.0;
-	deltafpc = 0.0;
+	anpp              = 0.0;
+	fpc               = 0.0;
+	densindiv         = 0.0;
+	cmass_leaf        = 0.0;
+	cmass_root        = 0.0;
+	cmass_sap         = 0.0;
+	cmass_heart       = 0.0;
+	cmass_debt        = 0.0;
+	phen              = 0.0;
+	aphen             = 0.0;
+	deltafpc          = 0.0;
 
-	nmass_leaf = 0.0;
-	nmass_root = 0.0;
-	nmass_sap = 0.0;
-	nmass_heart = 0.0;
-	cton_leaf_aopt = 0.0;
-	cton_leaf_aavr = 0.0;
-	cmass_veg = 0.0;
-	nmass_veg = 0.0;
+	nmass_leaf        = 0.0;
+	nmass_root        = 0.0;
+	nmass_sap         = 0.0;
+	nmass_heart       = 0.0;
+	cton_leaf_aopt    = 0.0;
+	cton_leaf_aavr    = 0.0;
+	cmass_veg         = 0.0;
+	nmass_veg         = 0.0;
 
-	nactive = 0.0;
-	nstore_longterm = 0.0;
-	nstore_labile = 0.0;
-	ndemand = 0.0;
-	fnuptake = 1.0;
-	anuptake = 0.0;
-	max_n_storage = 0.0;
-	scale_n_storage = 0.0;
+	nactive           = 0.0;
+	nstore_longterm   = 0.0;
+	nstore_labile     = 0.0;
+	ndemand           = 0.0;
+	fnuptake          = 1.0;
+	anuptake          = 0.0;
+	max_n_storage     = 0.0;
+	scale_n_storage   = 0.0;
 
-	nstress = false;
-
-	leafndemand = 0.0;
-	rootndemand = 0.0;
-	sapndemand = 0.0;
-	storendemand = 0.0;
-	for (int c=0; c<3; c++) {
-		fndemand[c] = 0.0;
-	}
+	leafndemand       = 0.0;
+	rootndemand       = 0.0;
+	sapndemand        = 0.0;
+	storendemand      = 0.0;
+	leaffndemand      = 0.0;
+	rootfndemand      = 0.0;
+	sapfndemand       = 0.0;
+	storefndemand     = 0.0;
 	leafndemand_store = 0.0;
 	rootndemand_store = 0.0;
 
+	nstress           = false;
+
 	// additional initialisation
-	age = 0.0;
-	fpar = 0.0;
-	aphen_raingreen = 0;
-	intercep = 0.0;
-	phen_mean = 0.0;
-	wstress = false;
-	lai = 0.0;
-	lai_layer = 0.0;
-	lai_indiv = 0.0;
-	alive = false;
+	age               = 0.0;
+	fpar              = 0.0;
+	aphen_raingreen   = 0;
+	intercep          = 0.0;
+	phen_mean         = 0.0;
+	wstress           = false;
+	lai               = 0.0;
+	lai_layer         = 0.0;
+	lai_indiv         = 0.0;
+	alive             = false;
 
 	int m;
 	for (m=0; m<12; m++) {
-		mlai[m]=0.0;
+		mlai[m] = 0.0;
 	}
 
 	// bvoc
-	monstor = 0.;
-	iso = 0.;
-	mon = 0.;
-	fvocseas = 1.;
+	monstor           = 0.;
+	iso               = 0.;
+	mon               = 0.;
+	fvocseas          = 1.;
 }
 
 void Individual::serialize(ArchiveStream& arch) {
@@ -600,7 +601,10 @@ void Individual::serialize(ArchiveStream& arch) {
 		& rootndemand
 		& sapndemand
 		& storendemand
-		& fndemand
+		& leaffndemand
+		& rootfndemand
+		& sapfndemand
+		& storefndemand
 		& leafndemand_store
 		& rootndemand_store
 		

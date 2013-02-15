@@ -1155,16 +1155,18 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 			indiv.ndemand = 0.0;
 
 			// Compartments fraction of total nitrogen demand
-			for (int i = 0;i<4;i++)
-				indiv.fndemand[i] = 0.0;
+			indiv.leaffndemand  = 0.0;
+			indiv.rootfndemand  = 0.0;
+			indiv.sapfndemand   = 0.0;
+			indiv.storefndemand = 0.0;
 		}
 		else {
 
 			// Compartments fraction of total nitrogen demand
-			indiv.fndemand[0] = indiv.leafndemand / indiv.ndemand;	// Leaf
-			indiv.fndemand[1] = indiv.rootndemand / indiv.ndemand;	// Root
-			indiv.fndemand[2] = indiv.sapndemand  / indiv.ndemand;	// Sap wood
-			indiv.fndemand[3] = 1.0 - (indiv.fndemand[0] + indiv.fndemand[1] + indiv.fndemand[2]);	// Store		
+			indiv.leaffndemand  = indiv.leafndemand / indiv.ndemand;
+			indiv.rootfndemand  = indiv.rootndemand / indiv.ndemand;
+			indiv.sapfndemand   = indiv.sapndemand  / indiv.ndemand;
+			indiv.storefndemand = 1.0 - (indiv.leaffndemand + indiv.rootfndemand + indiv.sapfndemand);		
 		}
 
 		// Sum total patch nitrogen demand

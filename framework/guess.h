@@ -1200,9 +1200,9 @@ public:
 	double nstore_longterm;
 	/// storage of labile nitrogen
 	double nstore_labile;
-	/// nitrogen storage organ in relation to sapwood carbon for TREE and root carbon for GRASS
+	/// daily total nitrogen demand
 	double ndemand;
-	/// annual nitrogen demand under no nitrogen limitation
+	/// fraction of individual nitrogen demand available for uptake
 	double fnuptake;
 	/// annual nitrogen uptake
 	double anuptake;
@@ -1224,14 +1224,20 @@ public:
 	bool nstress;
 	/// daily leaf nitrogen demand calculated from Vmax (kgN/m2)
 	double leafndemand;
-	/// daily root nitrogen demand
+	/// daily root nitrogen demand based on leafndemand
 	double rootndemand;
-	/// daily sap wood nitrogen demand
+	/// daily sap wood nitrogen demand based on leafndemand
 	double sapndemand;
-	/// daily labile nitrogen demand
+	/// daily labile nitrogen demand based on npp
 	double storendemand;
-	/// compartments fraction of total nitrogen demand
-	double fndemand[4];
+	/// leaf fraction of total nitrogen demand
+	double leaffndemand;
+	/// root fraction of total nitrogen demand
+	double rootfndemand;
+	/// sap fraction of total nitrogen demand
+	double sapfndemand;
+	/// store fraction of total nitrogen demand
+	double storefndemand;
 	/// daily leaf nitrogen demand over possible uptake (storage demand)
 	double leafndemand_store;
 	/// daily root nitrogen demand over possible uptake (storage demand)

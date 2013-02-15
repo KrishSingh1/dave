@@ -1034,10 +1034,10 @@ void vegetation_n_uptake(Patch& patch) {
 
 		nuptake_day           = indiv.ndemand * indiv.fnuptake;
 		indiv.anuptake        += nuptake_day;
-		indiv.nmass_leaf      += indiv.fndemand[0] * nuptake_day;
-		indiv.nmass_root      += indiv.fndemand[1] * nuptake_day;
-		indiv.nmass_sap       += indiv.fndemand[2] * nuptake_day;
-		indiv.nstore_longterm += indiv.fndemand[3] * nuptake_day;
+		indiv.nmass_leaf      += indiv.leaffndemand  * nuptake_day;
+		indiv.nmass_root      += indiv.rootfndemand  * nuptake_day;
+		indiv.nmass_sap       += indiv.sapfndemand   * nuptake_day;
+		indiv.nstore_longterm += indiv.storefndemand * nuptake_day;
 		soil.nmass_avail      -= nuptake_day;
 
 		if (!negligible(indiv.phen))

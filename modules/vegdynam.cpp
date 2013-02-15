@@ -313,9 +313,6 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 			indiv.cmass_root+=indiv.pft.regen.cmass_root*est_pft;
 			indiv.cmass_sap+=indiv.pft.regen.cmass_sap*est_pft;
 			indiv.cmass_heart+=indiv.pft.regen.cmass_heart*est_pft;
-
-			// Sap wood nitrogen demand starts with zero
-			indiv.sapndemand = 0.0;
 			
 			// Calculate storage pool size
 			indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
@@ -343,9 +340,6 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 
 			indiv.cmass_leaf+=est_pft*indiv.pft.regen.cmass_leaf;
 			indiv.cmass_root+=est_pft*indiv.pft.regen.cmass_root;
-
-			// Sap wood nitrogen demand allways zero
-			indiv.sapndemand = 0.0;
 			
 			// Calculate storage pool size
 			indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
@@ -519,9 +513,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						allometry(indiv);
 
-						// Sap wood nitrogen demand allways zero
-						indiv.sapndemand = 0.0;
-
 						// Calculate storage pool size
 						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
 						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
@@ -652,9 +643,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Calculate initial allometry
 
 						allometry(indiv);
-
-						// Sap wood nitrogen demand starts with zero
-						indiv.sapndemand = 0.0;
 
 						// Calculate storage pool size
 						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;

@@ -349,6 +349,72 @@ void interp_monthly_totals_conserve(const double* mvals, double* dvals) {
 	interp_monthly_means_conserve(mvals_daily, dvals);
 }
 
+/// Distributes a single month of N deposition values
+/** The dry component is simply spread out over all days, the
+ *  wet deposition is distributed over days with precipitation
+ *  (or evenly over all days if there is no precipitation).
+ *
+ *  \see distribute_ndep
+ *
+ *  \param ndry        Dry N deposition (monthly mean of daily deposition)
+ *  \param nwet        Wet N deposition (monthly mean of daily deposition)
+ *  \param time_steps  Number of days in the month
+ *  \param dprec       Array of precipitation values
+ *  \param dndep       Output, total N deposition for each day
+ */
+void distribute_ndep_single_month(double ndry, 
+                                  double nwet,
+                                  int time_steps,
+                                  const double* dprec,
+                                  double* dndep) {
+
+	// First count number of days with precipitation
+	int raindays = 0;
+
+	for (int i = 0; i < time_steps; i++) {
+		if (!negligible(dprec[i])) {
+			raindays++;
+		}
+	}
+
+	// Distribute the values
+	for (int i = 0; i < time_steps; i++) {
+
+		// ndry is included in all days
+		dndep[i] = ndry;
+		
+		if (raindays == 0) {
+			dndep[i] += nwet;
+		}
+		else if (!negligible(dprec[i])) {
+			dndep[i] += (nwet*time_steps)/raindays;
+		}
+	}
+}
+
+/// Distributes monthly mean N deposition values to daily values
+/** \see distribute_ndep_single_month for details about how the
+ *  distribution is done.
+ *
+ *  \param mndry Monthly means of daily dry N deposition
+ *  \param mnwet Monthly means of daily wet N deposition
+ *  \param dprec Daily precipitation data
+ *  \param dndep Output, total N deposition for each day
+ */
+void distribute_ndep(const double* mndry, const double* mnwet,
+                     const double* dprec, double* dndep) {
+
+	Date date;
+	int start_of_month = 0;
+
+	for (int m = 0; m < 12; m++) {
+		distribute_ndep_single_month(mndry[m], mnwet[m], date.ndaymonth[m],
+		                             dprec+start_of_month, dndep+start_of_month);
+
+		start_of_month += date.ndaymonth[m];
+	}
+}
+
 /// Distribution of monthly precipitation totals to quasi-daily values
 /** \param mval_prec  total rainfall (mm) for month
  *  \param dval_prec  actual rainfall (mm) for each day of year
@@ -594,7 +660,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			// Initialise gridcellpfts Michaelis-Menten kinetic Km value
 			pftlist.firstobj();
 			while (pftlist.isobj) {
-				gridcell.pft[pftlist.getobj().id].Km = pftlist.getobj().Km_volume * gridcell.soiltype.wtot;
+				gridcell.pft[pftlist.getobj().id].Km = pftlist.getobj().km_volume * gridcell.soiltype.wtot;
 				pftlist.nextobj();
 			}
 		}
@@ -1134,7 +1200,7 @@ void check_nbalance(Patch& patch, bool print) {
 
 		if (print && date.year > nyear_spinup) {
 			dprintf("Year %d Nitrogen BALANCE - difference over %d years: %g\n",date.year,
-				date.year - nyear_spinup, old_total + nadded - (vegn + centuryn + soil.nmass_avail + vegstore + littern + soil.sompool[LEACHED].nmass + fluxn));
+				date.year - nyear_spinup, old_total + nadded - (vegn + centuryn + soil.nmass_avail + soil.snowpack_nmass + vegstore + littern + soil.sompool[LEACHED].nmass + fluxn));
 		}
 
 		if (date.year == nyear_spinup) {
@@ -1147,7 +1213,7 @@ void check_nbalance(Patch& patch, bool print) {
 			nadded = 0.0;
 			fluxn = 0.0;
 
-			old_total = vegn + centuryn + soil.nmass_avail + vegstore + littern + soil.sompool[LEACHED].nmass + nadded + fluxn;
+			old_total = vegn + centuryn + soil.nmass_avail + soil.snowpack_nmass + vegstore + littern + soil.sompool[LEACHED].nmass + nadded + fluxn;
 		}
 	}
 }

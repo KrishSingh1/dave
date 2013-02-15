@@ -16,8 +16,6 @@
 ! guess2008 - New predefined outputs. Procedure adapted from Ben's LPJ-GUESS Education
 ! outputdirectory is mandatory
 outputdirectory "./"
-state_path "./"
-
 
 ! Prefined yearly output
 ! These files may be outcommented if their output is not required. 
@@ -58,7 +56,6 @@ file_mwcont_upper "mwcont_upper.out"
 file_mwcont_lower "mwcont_lower.out"
 !file_miso "miso.out"
 !file_mmon "mmon.out"
-
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -66,9 +63,6 @@ file_mwcont_lower "mwcont_lower.out"
 !///////////////////////////////////////////////////////////////////////////////////////
 !// RUN PARAMETERS AND OPTIONS 
 !
-
-! Whether annual output desired (1) or not (0)
-	param "annual_output" (num 1)
 
 ! Settings recognised by Plib
 ! Run GUESS with -help option for list of keywords and their meanings
@@ -85,7 +79,7 @@ patcharea 1000			! patch area (m2)
 estinterval 5			! years between establishment events in cohort mode
 ifdisturb 1				! whether generic patch-destroying disturbances enabled
 distinterval 100		! average return time for generic patch-destroying disturbances
-						! guess2008 - 200 for Europe, 100 globally
+						! Hickler et al. (2011) used 200
 ifbgestab 1				! whether background establishment enabled
 ifsme 1					! whether spatial mass effect enabled
 ifstochestab 1			! whether establishment stochastic
@@ -110,11 +104,12 @@ nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
 !///////////////////////////////////////////////////////////////////////////////
 ! SERIALIZATION SETTINGS 
 !///////////////////////////////////////////////////////////////////////////////
-state_year 500			! year to save/start state file
+!state_year 500			! year to save/start state file (no setting = after spinup)
 restart 0				! wheter to start from a state file
 save_state 0			! wheter to save a state file
+!state_path ""			! directory to put state files in
 
-! additions
+
 ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1) 
 								! or to use the standard step-function (0)  
 								! greff_min values below calibrated for the smooth (1) option 

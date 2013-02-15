@@ -33,7 +33,7 @@ public:
 	  *
 	  *  \param year The historical year for which to get the CO2 value
 	  */
-	 double& operator[](int year);
+	 double operator[](int year) const;
 
 private:
 

@@ -66,7 +66,7 @@ void GlobalCO2File::load_file(const char* path) {
 	 fclose(in);
 }
 
-double& GlobalCO2File::operator[](int year){
+double GlobalCO2File::operator[](int year) const {
 	 if (first_year == BAD_YEAR) {
 		  fail("GlobalCO2File::operator[]: "\
 				 "Tried to get CO2 value before loading from file!");
@@ -81,7 +81,7 @@ double& GlobalCO2File::operator[](int year){
 				 "Last year: %d, tried to get CO2 for: %d",
 				 first_year+co2.size()-1, year);
 
-		  return co2.front(); // to avoid compiler warning
+		  return 0.0; // to avoid compiler warning
 	 }
 	 else {
 		  return co2[year-first_year];

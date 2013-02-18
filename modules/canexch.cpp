@@ -37,15 +37,13 @@
 #include "bvoc.h"
 #include <assert.h>
 
-///////////////////////////////////////////////////////////////////////////////////////
-// FILE SCOPE GLOBAL CONSTANTS
+
+// Anonymous namespace for variables with file scope
+namespace {
 
 /// leaf nitrogen (kgN/kgC) not associated with photosynthesis
 /** (value given by Haxeltine & Prentice 1996) */
 const double N0 = 7.15 * 0.001;
-
-// Anonymous namespace for variables with file scope
-namespace {
 
 // Lookup tables for parameters with Q10 temperature responses
 
@@ -540,6 +538,7 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
  *   - pstemp_max      maximum temperature limit for photosynthesis (deg C)
  *   - lambda_max      non-water-stressed ratio of intercellular to ambient CO2 pp
  *  \param nactive    nitrogen available for photosynthesis
+ *  \param ifnlimvmax whether nitrogen should limit Vmax
  *  \param vm         pre-calculated value of Vmax for this stand for this day if
  *                    available, otherwise calculated
  *
@@ -1656,7 +1655,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 	// At this point the function f(x) = g(x) - h(x) can be calculated as:
 	//
-	// g(x) = phot_result.adtmm * fpar_fpc (after a call to photosynthesis with lambda x)
+	// g(x) = phot_result.adtmm / fpc (after a call to photosynthesis with lambda x)
 	// h(x) = gcphot * (1 - x)
 
 	// Evaluate f(lambda_max) to see if there's a root 
@@ -2035,9 +2034,6 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		}
 	}
 
-	// Calculates no-stress daily values of photosynthesis and gpterm
-	photosynthesis_nostress(patch, climate);
-
 	patch.wdemand_day = 0;
 }
 
@@ -2065,11 +2061,14 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 	// Retrieve Vegetation and Climate objects for this patch
 	Vegetation& vegetation = patch.vegetation;
 
+	// Initial no-stress canopy exchange processes
+	init_canexch(patch, climate, vegetation);
+
 	// Canopy exchange processes
 	fpar(patch);
 
-	// Initial no-stress canopy exchange processes
-	init_canexch(patch, climate, vegetation);
+	// Calculates no-stress daily values of photosynthesis and gpterm
+	photosynthesis_nostress(patch, climate);
 
 	// Nitrogen demand
 	ndemand(patch, vegetation);

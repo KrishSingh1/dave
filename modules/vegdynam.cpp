@@ -39,7 +39,7 @@
 
 int individ = 0; // running id code for new individuals (see establishment)
 
-// emssion ratios from fire (NH3, NO, NO2, N2O) Delmas et al. 1995
+// emission ratios from fire (NH3, NO, NO2, N2O) Delmas et al. 1995
 const double NH3_FIRERATIO = 0.014;
 const double NO_FIRERATIO  = 0.531;
 const double NO2_FIRERATIO = 0.379;

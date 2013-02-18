@@ -991,7 +991,7 @@ public:
 		else if (leafphysiognomy == NEEDLELEAF)
 			cton_leaf_min = 500.0 / pow(10.0, 1.52 - 0.26 * log10(12.0 * leaflong));
 
-		// Fraction between min and max C:N ratio
+		// Fraction between min and max C:N ratio White et al. 2000
 		double frac_mintomax = 2.78;
 
 		// Fraction between leaf and root C:N ratio
@@ -2259,7 +2259,7 @@ private:
 //   Functional Ecology 8: 315-323
 // Monsi M & Saeki T 1953 Ueber den Lichtfaktor in den Pflanzengesellschaften und
 //   seine Bedeutung fuer die Stoffproduktion. Japanese Journal of Botany 14: 22-52
-// Prentice, IC, Sykes, MT & Cramer W (1993) A simulation model for the transient
+// Prentice, IC, Sykes, MT & Cramer W 1993 A simulation model for the transient
 //   effects of climate change on forest landscapes. Ecological Modelling 65: 51-70.
 // Reich, PB, Walters MB & Ellsworth DS 1992 Leaf Life-Span in Relation to Leaf,
 //   Plant, and Stand Characteristics among Diverse Ecosystems. 
@@ -2271,3 +2271,6 @@ private:
 // Sykes, MT, Prentice IC & Cramer W 1996 A bioclimatic model for the potential
 //   distributions of north European tree species under present and future climates.
 //   Journal of Biogeography 23: 209-233.
+// White, M A, Thornton, P E, Running, S. & Nemani, R 2000 Parameterization and 
+//   Sensitivity Analysis of the BIOME-BGC Terrestrial Ecosystem Model: Net Primary 
+//   Production Controls. Earth Interactions, 4, 1-55.

@@ -4822,7 +4822,7 @@ void outannual(Gridcell& gridcell) {
 												standpft_lai+=indiv.cropindiv->cmass_leaf_max*pft.sla;
 											else
 												standpft_lai+=indiv.lai;
-											standpft_yield+=indiv.cropindiv->yield;
+											standpft_yield+=indiv.cropindiv->harv_yield;
 											standpft_yield1+=indiv.cropindiv->yield_harvest[0];
 											standpft_yield2+=indiv.cropindiv->yield_harvest[1];
 										}

@@ -55,8 +55,6 @@ static const double NMASS_SAT = 0.002;
 // Corresponds to the nitrogen concentration in litter where SOM C:N ratio reach
 // their minimum (nitrogen saturation) (Parton et al 1993, Fig. 4)
 static const double NCONC_SAT = 0.02;
-// If SOM pools are under fast equilibrium spinup
-bool ifequilsom = false;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL VARIABLES
@@ -450,8 +448,12 @@ void transferdecomp(Soil& soil, pooltype donor, pooltype receiver,
 /// Fluxes between the CENTURY pools, and CO2 release to the atmosphere   
 /** Daily or monthly fluxes between the ten CENTURY pools, and CO2 release to the atmosphere   
  *  Parton et al 1993, Fig 1; Comins & McMurtrie 1993, Appendix A
+ *
+ *  \param ifequilsom Whether the function is called during calculation om SOM pool equilibrium,
+ *                    \see equilsom(). During this stage, somfluxes shouldn't calculate decayrates
+ *                    itself, and shouldn't produce output like fluxes etc.
  */
-void somfluxes(Patch& patch) {	
+void somfluxes(Patch& patch, bool ifequilsom) {	
 
 	double respsum ;
 	double leachsum_cmass, leachsum_nmass;
@@ -1077,22 +1079,18 @@ void equilsom(Soil& soil) {
 	Patch& patch = soil.patch;
 	Climate& climate = soil.patch.stand.gridcell.climate;
 
-	int m,yr;
-	
 	// Save nmass_avail status
 	double save_nmass_avail = soil.nmass_avail;
 	
-	// Boolean to switch of decay rate calculation and outputs from somfluxes()
-	ifequilsom = true;
-
 	// Number of years with mean input data
-	double nyear = soil.solvesomcent_endyr - soil.solvesomcent_beginyr + 1;
+	int nyear = soil.solvesomcent_endyr - soil.solvesomcent_beginyr + 1;
 
-	for (m=0; m<12; m++) {
+	for (int m = 0; m < 12; m++) {
 
 		// Monthly average decay rates
-		for (int p=0; p<NSOMPOOL-1; p++) 
+		for (int p = 0; p < NSOMPOOL-1; p++) {
 			soil.sompool[p].mfracremain_mean[m] = pow(soil.sompool[p].mfracremain_mean[m] / nyear, date.ndaymonth[m]);
+		}
 
 		// Monthly average mineral nitrogen uptake
 		soil.fnuptake_mean[m] /= nyear;
@@ -1109,10 +1107,10 @@ void equilsom(Soil& soil) {
 
 	// Spin SOM pools with saved litter input, nitrogen addition and fractions of
 	// nitrogen uptake and leaching for 3000 years with monthly timesteps
-	for (yr=0;yr<3000;yr++) {
+	for (int yr = 0; yr < 3000; yr++) {
 
 		// Which year in saved data set
-		int savedyear = yr%(int)nyear;
+		int savedyear = yr%nyear;
 
 		// Total litter input this year. Used to determine litter N:C ratio needed for setntoc() for the SURFMICRO pool
 		double litter_cmass = 0.0;
@@ -1131,7 +1129,7 @@ void equilsom(Soil& soil) {
 		}
 		
 		// Monthly time steps
-		for (m=0;m<12;m++) {
+		for (int m = 0; m < 12; m++) {
 			
 			// Monthly nitrogen uptake
 			soil.nmass_avail *= (1.0 - soil.fnuptake_mean[m]);
@@ -1142,31 +1140,30 @@ void equilsom(Soil& soil) {
 			// Monthly decomposition and fluxes between SOM pools
 
 			// Set this months decay rates
-			for (int p=0;p<NSOMPOOL-1;p++) 
+			for (int p = 0; p < NSOMPOOL-1; p++) {
 				soil.sompool[p].fracremain = soil.sompool[p].mfracremain_mean[m];
+			}
 
 			// Set this months organic nitrogen leaching fraction
 			soil.orgleachfrac = soil.morgleach_mean[m];
 			
 			// Monthly decomposition and fluxes between SOM pools
-			somfluxes(patch);
+			somfluxes(patch, true);
 
 			// Monthly mineral nitrogen leaching
 			soil.nmass_avail *= (1.0 - soil.mminleach_mean[m]);
 		}
 	}
 
-	// Finished with getting SOM pools to equlibrium
-	ifequilsom = false;
-
 	// Reset nmass_avail status
 	soil.nmass_avail = save_nmass_avail;
 
 	// Reset variables for next equilsom() 
-	for (m=0;m<12;m++) {
+	for (int m = 0; m < 12; m++) {
 
-		for (int p=0;p<NSOMPOOL-1;p++) 
+		for (int p = 0; p < NSOMPOOL-1; p++) {
 			soil.sompool[p].mfracremain_mean[m] = 0.0;
+		}
 
 		soil.fnuptake_mean[m]  = 0.0;
 		soil.morgleach_mean[m] = 0.0;
@@ -1198,7 +1195,7 @@ void som_dynamics_century(Patch& patch) {
 	soilnadd(patch);
 
 	// Daily or monthly decomposition and fluxes between SOM pools
-	somfluxes(patch);
+	somfluxes(patch, false);
 
 	// Daily mineral and organic nitrogen leaching
 	leaching(patch.soil);

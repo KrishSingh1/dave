@@ -426,7 +426,7 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("cton_root",&ppft->cton_root,1.0,1.0e4,1,CB_NONE,
 			"Reference Fine root C:N mass ratio");
-		declareitem("cton_sap",&ppft->cton_sap_avr,1.0,1.0e4,1,CB_NONE,
+		declareitem("cton_sap",&ppft->cton_sap,1.0,1.0e4,1,CB_NONE,
 			"Reference Sapwood C:N mass ratio");
 		declareitem("nuptoroot",&ppft->nuptoroot,0.0,1.0,1,CB_NONE,
 			"Maximum nitrogen uptake per fine root");

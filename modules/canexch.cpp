@@ -120,6 +120,7 @@ void interception(Patch& patch,Climate& climate) {
 
 }
 
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // FPAR
 // Internal function - not intended to be called by framework
@@ -201,7 +202,7 @@ void fpar(Patch& patch) {
 	//variables needed for "S�kes" FPAR scheme
 	double fpar_uptake_layer;
 	double fpar_uptake_leafon_layer;
-	
+
 	// Obtain reference to Vegetation object
 	Vegetation& vegetation=patch.vegetation;
 
@@ -209,7 +210,7 @@ void fpar(Patch& patch) {
 	Climate& climate=patch.stand.gridcell.climate;
 
 	if (vegmode==POPULATION) {
-		
+
 		// POPULATION MODE
 
 		// Loop through individuals
@@ -217,7 +218,7 @@ void fpar(Patch& patch) {
 		vegetation.firstobj();
 		while (vegetation.isobj) {
 			Individual& indiv=vegetation.getobj();
-		
+
 			// For this individual ...
 
 			indiv.fpar=indiv.fpc*indiv.phen; // Eqn 1
@@ -228,7 +229,7 @@ void fpar(Patch& patch) {
 	}
 
 	else {
-	
+
 		// INDIVIDUAL OR COHORT MODE
 
 		// Initialise individual FPAR, find maximum height of vegetation, calculate
@@ -253,7 +254,7 @@ void fpar(Patch& patch) {
 			indiv.fpar_leafon=0.0;
 			if (indiv.height>height_veg) height_veg=indiv.height;
 			plai_leafon+=indiv.lai;
-			
+
 			if (indiv.pft.lifeform==GRASS) {
 				plai_leafon_grass+=indiv.lai;
 				plai_grass+=indiv.lai*indiv.phen;
@@ -283,7 +284,7 @@ void fpar(Patch& patch) {
 
 		fpar_layer_bottom=1.0;
 		fpar_leafon_layer_bottom=1.0;
-		
+
 		for (layer=toplayer;layer>=0;layer--) {
 
 			lowbound=(double)layer*VSTEP;
@@ -308,7 +309,7 @@ void fpar(Patch& patch) {
 				if (indiv.pft.lifeform==TREE) {
 					if (indiv.height>lowbound && indiv.boleht<highbound &&
 						!negligible(indiv.height-indiv.boleht)) {
-						
+
 						// Calculate vertical fraction of current layer occupied by
 						// crown cylinders of this cohort
 
@@ -349,7 +350,7 @@ void fpar(Patch& patch) {
 
 			fpar_uptake_layer=fpar_layer_top-fpar_layer_bottom;
 			fpar_uptake_leafon_layer=fpar_leafon_layer_top-fpar_leafon_layer_bottom;
-			
+
 			// Partition PAR for this layer among trees,
 
 			vegetation.firstobj();
@@ -361,7 +362,7 @@ void fpar(Patch& patch) {
 				if (indiv.pft.lifeform==TREE) {
 					if (!negligible(plai_leafon_layer))
 
-						// FPAR partitioned according to the relative amount 
+						// FPAR partitioned according to the relative amount
 						// of leaf area in this layer for this individual
 
 						indiv.fpar_leafon+=fpar_uptake_leafon_layer*
@@ -1357,18 +1358,18 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
  *
  * Supports alternative parameterisations of plant water uptake:
  *
- * WCONT           = uptake rate coupled to water content and vertical 
+ * WCONT           = uptake rate coupled to water content and vertical
  *                   root distribution (as in earlier versions of LPJ-GUESS and LPJF)
- * ROOTDIST        = uptake rate independent of water content (to wilting point) 
- *                   but with fractional uptake from different layers according 
+ * ROOTDIST        = uptake rate independent of water content (to wilting point)
+ *                   but with fractional uptake from different layers according
  *                   to prescribed root distribution
- * SMART           = uptake rate independent of water content (to wilting point), 
- *                   fractional uptake from different layers according to layer 
- *                   water content for trees, according to prescribed root 
+ * SMART           = uptake rate independent of water content (to wilting point),
+ *                   fractional uptake from different layers according to layer
+ *                   water content for trees, according to prescribed root
  *                   distribution for grasses
- * SPECIESSPECIFIC = uptake rate is species specific, with more drought 
- *                   tolerance species (lower species_drought_tolerance values) 
- *                   having greater relative uptake rates. 
+ * SPECIESSPECIFIC = uptake rate is species specific, with more drought
+ *                   tolerance species (lower species_drought_tolerance values)
+ *                   having greater relative uptake rates.
  */
 inline double water_uptake(double wcont[NSOILLAYER], double awc[NSOILLAYER],
 	double rootdist[NSOILLAYER], double emax, double fpc_rescale,
@@ -1385,7 +1386,7 @@ inline double water_uptake(double wcont[NSOILLAYER], double awc[NSOILLAYER],
 	//   ifsmart     = whether plants can freely adapt root profile to distribution of
 	//                 available water among layers (required for "smart" mode)
 	//   species_drought_tolerance = used only if the SPECIESSPECIFIC option is specified.
-	
+
 
 	// OUTPUT PARAMETER:
 	//   fwuptake     = fraction of total uptake originating from each layer
@@ -1410,7 +1411,7 @@ inline double water_uptake(double wcont[NSOILLAYER], double awc[NSOILLAYER],
 	case WR_SPECIESSPECIFIC:
 
 		// Uptake rate is species specific, with more drought tolerance species (lower species_drought_tolerance
-		// values) having greater relative uptake rates. 
+		// values) having greater relative uptake rates.
 		// Reduces to WCONT if species_drought_tolerance = 0.5
 
 		wr = 0.0;
@@ -1431,8 +1432,9 @@ inline double water_uptake(double wcont[NSOILLAYER], double awc[NSOILLAYER],
 			wr += fwuptake[s];
 		}
 		break;
-	case WR_SMART: 
+	case WR_SMART:
 		{
+
 			// Uptake rate independent of water content (to wilting point), fractional uptake
 			// from different layers according to layer water content for trees, and according
 			// to prescribed root distribution for grasses
@@ -1739,19 +1741,20 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	// gtemp_soil = as gtemp_air given soil temperature
 	// lifeform   = PFT life form class (TREE or GRASS)
 	// respcoeff  = PFT respiration coefficient
-	// cton_sap   = PFT sapwood C:N ratio	
+	// cton_sap   = PFT sapwood C:N ratio
 	// cton_root  = PFT root C:N ratio
 	// phen       = vegetation phenological state (fraction of potential leaf cover)
-	// cmass_sap  = sapwood C biomass on grid cell area basis (kgC/m2) 
+	// cmass_sap  = sapwood C biomass on grid cell area basis (kgC/m2)
 	// cmass_root = fine root C biomass on grid cell area basis (kgC/m2)
 	// assim      = net assimilation on grid cell area basis (kgC/m2/day)
 
 	// OUTPUT PARAMETER
 	// resp       = sum of maintenance and growth respiration on grid cell area basis
-	//              (kgC/m2/day)	
-	// guess2008 - following a comment by Annett Wolf, the following parameter value was changed: 
+	//              (kgC/m2/day)
+
+	// guess2008 - following a comment by Annett Wolf, the following parameter value was changed:
 	// const double K=0.0548; // OLD value
-	const double K=0.095218;  // NEW parameter value in respiration equations 
+	const double K=0.095218;  // NEW parameter value in respiration equations
 	// See the comment after Eqn (4) below.
 
 	double resp_sap;    // sapwood respiration (kg/m2/day)
@@ -1766,19 +1769,19 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	//     (Sprugel et al. 1996, Eqn 7)
 	//
 	//     (A1) Rm = 7.4e-7 * N * f(T)
-	//     (A2) f(T) = EXP (beta * T) 
+	//     (A2) f(T) = EXP (beta * T)
 	//
 	//       where Rm   = tissue maintenance respiration rate in mol C/sec
 	//             N    = tissue nitrogen in mol N
 	//             f(T) = temperature response function
-	//             beta = ln Q10 / 10 
-	//             Q10  = change in respiration rate with a 10 K change 
+	//             beta = ln Q10 / 10
+	//             Q10  = change in respiration rate with a 10 K change
 	//                    in temperature
 	//             T    = tissue absolute temperature in K
 	//
 	// (B) Temperature response of soil respiration across ecosystems
 	//     incorporating damping of Q10 response due to temperature acclimation
-	//     (Lloyd & Taylor 1994, Eqn 11)  
+	//     (Lloyd & Taylor 1994, Eqn 11)
 	//
 	//     (B1) R = R10 * g(T)
 	//     (B2) g(T) = EXP [308.56 * (1 / 56.02 - 1 / (T - 227.13))]
@@ -1798,16 +1801,16 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	// From (A1), (1) and (2),
 	//  (3) R = 7.4e-7 * c_mass / cton / atomic_mass_N * atomic_mass_C
 	//          * seconds_per_day * f(T)
-	// Let  
+	// Let
 	//  (4) k = 7.4e-7 * atomic_mass_C / atomic_mass_N * seconds_per_day
 	//        = 0.0548
 
 	// guess2008 - there is an ERROR here, spotted by Annett Wolf
-	// If we calculate the respiration at 20 degC using g(T) and compare it to 
-	// Sprugel's eqn 3, for 1 mole tissue N, say, we do NOT get the same result with this 
-	// k value. This is because g(T) = 1 at 10 degC, not 20 degC. Changing k from 0.0548 
-	// to 0.095218 gives exactly the same results as Sprugel at 20 degC. The scaling factor 
-	// 7.4e-7 used here is taken from Sprugel's eqn. (7), but they used f(T), not g(T), and 
+	// If we calculate the respiration at 20 degC using g(T) and compare it to
+	// Sprugel's eqn 3, for 1 mole tissue N, say, we do NOT get the same result with this
+	// k value. This is because g(T) = 1 at 10 degC, not 20 degC. Changing k from 0.0548
+	// to 0.095218 gives exactly the same results as Sprugel at 20 degC. The scaling factor
+	// 7.4e-7 used here is taken from Sprugel's eqn. (7), but they used f(T), not g(T), and
 	// these are defined on different bases.
 
 	// from (3), (4)
@@ -1851,7 +1854,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 		resp_growth = (assim - resp_root) * 0.25;
 
-		// guess2008 - disallow negative growth respiration 
+		// guess2008 - disallow negative growth respiration
 		// (following a comment (060823) from Annett Wolf)
 		if(resp_growth < 0.0) resp_growth = 0.0;
 
@@ -1905,7 +1908,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 		Pft& pft = indiv.pft;
 		Patchpft& ppft = patch.pft[pft.id];
-		Standpft& spft = stand.pft[pft.id];		
+		Standpft& spft = stand.pft[pft.id];
 		PhotosynthesisResult phot = date.diurnal() ? indiv.phots[day.period] : indiv.photosynthesis;
 
 		if (indiv.wstress) {

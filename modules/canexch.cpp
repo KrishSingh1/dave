@@ -774,7 +774,7 @@ double nitrogen_uptake_strength(const Individual& indiv) {
  *  Function nitrogen_uptake_strength() determines how good individuals are at
  *  acquiring nitrogen.
  */
-void fnuptake(Vegetation& vegetation, double nmass_avail, double fnuptake) {
+void fnuptake(Vegetation& vegetation, double nmass_avail) {
 
 	// Create vector describing the individuals to ncompete()
 	std::vector<NCompetingIndividual> individuals(vegetation.nobj);
@@ -786,7 +786,7 @@ void fnuptake(Vegetation& vegetation, double nmass_avail, double fnuptake) {
 	}
 
 	// Let ncompete() do the actual distribution
-	ncompete(individuals, nmass_avail, fnuptake);
+	ncompete(individuals, nmass_avail);
 
 	// Get the results, nitrogen uptake fraction for each individual
 	for (unsigned int i = 0; i < vegetation.nobj; i++) {
@@ -1029,10 +1029,8 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 	// Calculate individual uptake fraction of nitrogen demand
 	if (patch.ndemand > tot_nmass_avail && ifnlim) {
 
-		double patch_fnuptake = patch.ndemand > 0.0 ? tot_nmass_avail / patch.ndemand : 0.0;
-		
 		// Determine individual nitrogen uptake fractions
-		fnuptake(vegetation, tot_nmass_avail, patch_fnuptake);
+		fnuptake(vegetation, tot_nmass_avail);
 	}
 
 	// Resolve nitrogen stress with longterm stored nitrogen

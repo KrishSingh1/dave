@@ -12,7 +12,7 @@
 #include "ncompete.h"
 #include "guessmath.h"
 
-void ncompete(std::vector<NCompetingIndividual>& individuals, double nmass_avail, double fnuptake) {
+void ncompete(std::vector<NCompetingIndividual>& individuals, double nmass_avail) {
 	double nsupply = nmass_avail;		// Nitrogen available for uptake
 	double grassmin_nsupply = nmass_avail * 0.05; // Minimum grass nitrogen supply. 
 										// Grass should at least get 5% of total available nitrogen
@@ -31,6 +31,14 @@ void ncompete(std::vector<NCompetingIndividual>& individuals, double nmass_avail
 										// redone for all indiv with fnuptake < 1 as more nitrogen 
 										// could be taken up per unit strength (starts with true to
 										// get into while loop)
+
+	double total_ndemand = 0;
+	for (size_t i = 0; i < individuals.size(); ++i) {
+		total_ndemand += individuals[i].ndemand;
+	}
+
+	// calculate a starting value for the individuals' fnuptake
+	double fnuptake = total_ndemand > 0.0 ? nmass_avail / total_ndemand : 0.0;
 
 	// Determine strength and demand
 	for (size_t i = 0; i < individuals.size(); ++i) {

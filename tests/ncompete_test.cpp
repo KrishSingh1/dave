@@ -58,13 +58,13 @@ TEST_CASE("ncompete/double", "Testing two individuals") {
 	indivs[1] = indivs[0];
 
 	// more N available than needed
-	ncompete(indivs, 3.0, 3.0);
+	ncompete(indivs, 3.0, 3.0/2.0);
 	
 	REQUIRE(indivs[0].fnuptake == Approx(1));
 	REQUIRE(indivs[1].fnuptake == Approx(1));
 
 	// less N available than needed
-	ncompete(indivs, 1.0, 1.0);
+	ncompete(indivs, 1.0, 1.0/2.0);
 
 	REQUIRE(indivs[0].fnuptake == Approx(0.5));
 	REQUIRE(indivs[1].fnuptake == Approx(0.5));

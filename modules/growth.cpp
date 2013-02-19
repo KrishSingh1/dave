@@ -342,7 +342,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	double& cmass_sap_inc,
 	double& cmass_debt_inc,
 	double& cmass_heart_inc,double& litter_leaf_inc,
-	double& litter_root_inc,double& litter_inc_exceeds) {
+	double& litter_root_inc,double& exceeds_cmass) {
 
 	// DESCRIPTION
 	// Calculates changes in C compartment sizes (leaves, roots, sapwood, heartwood)
@@ -377,7 +377,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	//                      basis (kgC)
 	// litter_root_inc    = increment in root litter following allocation, on individual
 	//                      basis (kgC)
-	// litter_inc_exceeds = litter increment that exceeds existing biomass (kgC)
+	// exceeds_cmass      = negative increment that exceeds existing biomass (kgC)
 
 	// MATHEMATICAL DERIVATION FOR TREE ALLOCATION
 	// Allocation attempts to distribute biomass increment (bminc) among the living
@@ -452,13 +452,13 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	double cmass_deficit,cmass_loan;
 
 	// initialise
-	litter_leaf_inc    = 0.0;
-	litter_root_inc    = 0.0;
-	litter_inc_exceeds = 0.0;
-	cmass_leaf_inc     = 0.0;
-	cmass_root_inc     = 0.0;
-	cmass_sap_inc      = 0.0;
-	cmass_heart_inc    = 0.0;
+	litter_leaf_inc = 0.0;
+	litter_root_inc = 0.0;
+	exceeds_cmass   = 0.0;
+	cmass_leaf_inc  = 0.0;
+	cmass_root_inc  = 0.0;
+	cmass_sap_inc   = 0.0;
+	cmass_heart_inc = 0.0;
 
 	if (ltor < 1.0e-10) {
 		
@@ -469,7 +469,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 		// Make sure we don't end up with negative cmass_root
 		if (bminc < -cmass_root) {
-			litter_inc_exceeds = -(cmass_root + bminc);
+			exceeds_cmass = -(cmass_root + bminc);
 			cmass_root_inc = -cmass_root;
 		}
 		else {
@@ -639,7 +639,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 				// Make sure we don't end up with negative cmass_sap
 				if (cmass_sap_inc < -cmass_sap) {
-					litter_inc_exceeds = -(cmass_sap + cmass_sap_inc);
+					exceeds_cmass = -(cmass_sap + cmass_sap_inc);
 					cmass_sap_inc = -cmass_sap;					
 				}
 
@@ -684,13 +684,13 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// Make sure we don't end up with negative cmass_leaf
 			if (cmass_leaf_inc < -cmass_leaf) {
-				litter_inc_exceeds += -(cmass_leaf + cmass_leaf_inc);
+				exceeds_cmass += -(cmass_leaf + cmass_leaf_inc);
 				cmass_leaf_inc = -cmass_leaf;
 			}
 
 			// Make sure we don't end up with negative cmass_root
 			if (cmass_root_inc < -cmass_root) {
-				litter_inc_exceeds += -(cmass_root + cmass_root_inc);
+				exceeds_cmass += -(cmass_root + cmass_root_inc);
 				cmass_root_inc = -cmass_root;
 			}
 
@@ -707,7 +707,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// Make sure we don't end up with negative cmass_sap
 			if (cmass_sap_inc < -cmass_sap) {
-				litter_inc_exceeds += -(cmass_sap + cmass_sap_inc);
+				exceeds_cmass += -(cmass_sap + cmass_sap_inc);
 				cmass_sap_inc = -cmass_sap;
 			}
 
@@ -749,13 +749,13 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// Make sure we don't end up with negative cmass_leaf
 			if (cmass_leaf_inc < -cmass_leaf) {
-				litter_inc_exceeds += -(cmass_leaf + cmass_leaf_inc);
+				exceeds_cmass += -(cmass_leaf + cmass_leaf_inc);
 				cmass_leaf_inc = -cmass_leaf;
 			}
 
 			// Make sure we don't end up with negative cmass_root
 			if (cmass_root_inc < -cmass_root) {
-				litter_inc_exceeds += -(cmass_root + cmass_root_inc);
+				exceeds_cmass += -(cmass_root + cmass_root_inc);
 				cmass_root_inc = -cmass_root;
 			}
 
@@ -776,7 +776,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 				// Biomass decrease is larger than existing biomass
 
-				litter_inc_exceeds = -(bminc + cmass_leaf + cmass_root);
+				exceeds_cmass = -(bminc + cmass_leaf + cmass_root);
 
 				cmass_leaf_inc = -cmass_leaf;
 				cmass_root_inc = -cmass_root;
@@ -805,19 +805,11 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	}
 
 	// Check C budget after allocation
-	// Two cases: 
-	// 1) bminc more negative than existing biomass 
-	// 2) normal allocation, bminc can be applied without any restrictions
 
 	// maximum carbon mismatch
 	double EPS = 1.0e-12;
 
-	if (bminc < -(cmass_leaf + cmass_root + cmass_sap)) { // case 1
-		assert(fabs((cmass_leaf + cmass_root + cmass_sap) + (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
-	}
-	else { // case 2
-		assert(fabs(bminc - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
-	}
+	assert(fabs(bminc + exceeds_cmass - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
 }
 
 
@@ -1108,8 +1100,8 @@ void growth(Stand& stand, Patch& patch) {
 	double litter_leaf_inc = 0.0;
 	// increment in root litter following allocation, on individual basis (kgC)	
 	double litter_root_inc = 0.0;
-	// litter increment that exceeds existing biomass following allocation, on individual basis (kgC)
-	double litter_inc_exceeds;
+	// negative increment that exceeds existing biomass following allocation, on individual basis (kgC)
+	double exceeds_cmass;
 	// C biomass of leaves in "excess" of set allocated last year to raingreen PFT last year (kgC/m2)
 	double cmass_excess;
 	// Raingreen nitrogen demand for leaves dropped during the year
@@ -1287,7 +1279,7 @@ void growth(Stand& stand, Patch& patch) {
 					indiv.pft.k_latosa, indiv.pft.k_allom2, indiv.pft.k_allom3,
 					cmass_leaf_inc, cmass_root_inc, cmass_sap_inc, cmass_debt_inc,
 					cmass_heart_inc,
-					litter_leaf_inc, litter_root_inc,litter_inc_exceeds);
+					litter_leaf_inc, litter_root_inc, exceeds_cmass);
 
 				// Update carbon pools and litter (on area basis)
 				// (litter not accrued for not 'alive' individuals - Ben 2007-11-28)
@@ -1333,8 +1325,8 @@ void growth(Stand& stand, Patch& patch) {
 					patch.pft[indiv.pft.id].litter_root += litter_root_inc * indiv.densindiv;
 					
 					// C litter exceeding existing biomass
-					indiv.report_flux(Fluxes::NPP, litter_inc_exceeds * indiv.densindiv);
-					indiv.report_flux(Fluxes::RA, -litter_inc_exceeds * indiv.densindiv);
+					indiv.report_flux(Fluxes::NPP, exceeds_cmass * indiv.densindiv);
+					indiv.report_flux(Fluxes::RA, -exceeds_cmass * indiv.densindiv);
 				}
 
 				// Nitrogen litter allways return to soil litter and storage
@@ -1404,7 +1396,7 @@ void growth(Stand& stand, Patch& patch) {
 				allocation(bminc, indiv.cmass_leaf, indiv.cmass_root,
 					0.0, 0.0, 0.0, indiv.ltor, 0.0, 0.0, 0.0, GRASS, 0.0,
 					0.0, 0.0, cmass_leaf_inc, cmass_root_inc, dval, dval, dval,
-					litter_leaf_inc, litter_root_inc,litter_inc_exceeds);
+					litter_leaf_inc, litter_root_inc, exceeds_cmass);
 				
 				// Update carbon pools and litter (on area basis)
 				// only litter in the case of 'alive' individuals
@@ -1435,8 +1427,8 @@ void growth(Stand& stand, Patch& patch) {
 					patch.pft[indiv.pft.id].litter_root += litter_root_inc;
 
 					// C litter exceeding existing biomass
-					indiv.report_flux(Fluxes::NPP, litter_inc_exceeds * indiv.densindiv);
-					indiv.report_flux(Fluxes::RA, -litter_inc_exceeds * indiv.densindiv);
+					indiv.report_flux(Fluxes::NPP, exceeds_cmass * indiv.densindiv);
+					indiv.report_flux(Fluxes::RA, -exceeds_cmass * indiv.densindiv);
 				}
 
 				// Nitrogen allways return to soil litter and storage

@@ -834,7 +834,7 @@ void nstore_usage(Vegetation& vegetation) {
 					// calculate total nitrogen mass
 					double tot_nmass = indiv.nmass_leaf + indiv.nmass_root + indiv.fnuptake * (indiv.leafndemand + indiv.rootndemand) + indiv.nstore_labile;
 
-					// leaf C:N ratio
+					// new leaf C:N ratio
 					double cton_leaf = (indiv.phen * (indiv.cmass_leaf + indiv.cmass_root * (indiv.pft.cton_leaf_avr / indiv.pft.cton_root_avr))) / tot_nmass;
 
 					// nitrogen added to leaf from storage

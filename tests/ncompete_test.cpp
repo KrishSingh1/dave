@@ -103,4 +103,23 @@ TEST_CASE("ncompete/double", "Testing two individuals") {
 
 	REQUIRE(indivs[0].fnuptake == Approx(0.9));
 	REQUIRE(indivs[1].fnuptake == Approx(1));
+
+}
+
+TEST_CASE("ncompete/triple", "Testing three individuals") {
+	std::vector<NCompetingIndividual> indivs(3);
+
+    indivs[0].ndemand = 1;
+    indivs[0].strength = 1;
+    indivs[0].isgrass = true;
+
+    indivs[1].ndemand = 0.01;
+    indivs[1].strength = 5;
+    indivs[1].isgrass = true;
+
+    indivs[2].ndemand = 5;
+    indivs[2].strength = 50;
+    indivs[2].isgrass = false;
+
+    ncompete(indivs, 5); 
 }

@@ -121,11 +121,11 @@ TEST_CASE("ncompete/triple", "Testing three individuals") {
     indivs[2].strength = 50;
     indivs[2].isgrass = false;
 
-    ncompete(indivs, 5); 
+	ncompete(indivs, 5); 
 
-	REQUIRE(indivs[0].fnuptake == Approx(5.0*0.05-0.01));
-	REQUIRE(indivs[1].fnuptake == Approx(1.0));
-	REQUIRE(indivs[2].fnuptake == Approx(0.95));
+	REQUIRE(indivs[0].fnuptake == Approx(0.097843137)); // was 0.24
+	REQUIRE(indivs[1].fnuptake == Approx(1));
+	REQUIRE(indivs[2].fnuptake == Approx(0.97843137));
 
     indivs[0].ndemand = 0.01;
     indivs[0].strength = 5;
@@ -141,9 +141,9 @@ TEST_CASE("ncompete/triple", "Testing three individuals") {
 
     ncompete(indivs, 5); 
 
-	REQUIRE(indivs[0].fnuptake == Approx(1.0));
-	REQUIRE(indivs[1].fnuptake == Approx(0.95));
-	REQUIRE(indivs[2].fnuptake == Approx(5.0*0.05-0.01));
+	REQUIRE(indivs[0].fnuptake == Approx(1));
+	REQUIRE(indivs[1].fnuptake == Approx(0.97843137));
+	REQUIRE(indivs[2].fnuptake == Approx(0.097843137));
 
     indivs[0].ndemand = 5;
     indivs[0].strength = 50;
@@ -159,9 +159,9 @@ TEST_CASE("ncompete/triple", "Testing three individuals") {
 
     ncompete(indivs, 5); 
 
-	REQUIRE(indivs[0].fnuptake == Approx(0.95));
-	REQUIRE(indivs[1].fnuptake == Approx(5.0*0.05-0.01));
-	REQUIRE(indivs[2].fnuptake == Approx(1.0));
+	REQUIRE(indivs[0].fnuptake == Approx(0.97843137));
+	REQUIRE(indivs[1].fnuptake == Approx(0.097843137));
+	REQUIRE(indivs[2].fnuptake == Approx(1));
 }
 
 TEST_CASE("ncompete/four", "Testing four individuals") {

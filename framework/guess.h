@@ -812,6 +812,8 @@ public:
 	double cton_sap;
 	/// Maximum nitrogen (NH4+ and NO3- seperatly) uptake per fine root [kgN kgC-1 day-1]
 	double nuptoroot;
+	/// Coefficient to compensate for different vertical distribution of fine root on nitrogen uptake
+	double nupscoeff;
 
 	/// Michaelis-Menten kinetic parameters 
 	/** Chosen to match observed rates of increase 
@@ -1011,6 +1013,19 @@ public:
 
 		// Average sap C:N ratio
 		cton_sap_avr  = cton_leaf_avr * frac_leaftosap;
+	}
+
+	void init_nupscoeff() {
+
+		// Calculates coefficient to compensate for different vertical distribution of fine root on nitrogen uptake
+		
+		// Fraction fine root in upper soil layer should have higher possibility for mineralized nitrogen uptake
+		// Soil nitrogen profile is considered to have a exponential decline (Franzluebbers et al. 2009) giving 
+		// an approximate advantage of 2 of having more roots in the upper soil layer
+		double upper_adv = 2.0;
+
+		nupscoeff = rootdist[0] * upper_adv + rootdist[1];
+
 	}
 
 	void initregen() {
@@ -2243,9 +2258,13 @@ private:
 //
 // LPJF refers to the original FORTRAN implementation of LPJ as described by Sitch
 //   et al 2000
-// Cosby, B. J., Hornberger, C. M., Clapp, R. B., & Ginn, T. R. 1984 A statistical exploration
-//   of the relationships of soil moisture characteristic to the physical properties of soil.
+// Cosby, B. J., Hornberger, C. M., Clapp, R. B., & Ginn, T. R. 1984 A statistical 
+//   exploration of the relationships of soil moisture characteristic to the 
+//   physical properties of soil.
 //   Water Resources Research, 20: 682-690.
+// Franzlubbers, AJ & Stuedemann, JA 2009 Soil-profile organic carbon and total 
+//   nitrogen during 12 years of pasture management in the Southern Piedmont USA. 
+//   Agriculture Ecosystems & Environment, 129, 28-36.
 // Friend, A. D., Stevens, A. K., Knox, R. G. & Cannell, M. G. R. 1997. A 
 //   process-based, terrestrial biosphere model of ecosystem dynamics 
 //   (Hybrid v3.0). Ecological Modelling, 95, 249-287.

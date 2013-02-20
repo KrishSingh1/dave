@@ -804,13 +804,16 @@ void plib_callback(int callback) {
 
 			// Calculate SLA
 			ppft->initsla();
-
-			// Calculate leaf C:N ratio limits
-			ppft->init_cton_limits();
 		}
 		if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 			if (!itemparsed("parff_min")) badins("parff_min");	
 		}
+
+		// Calculate leaf C:N ratio limits
+		ppft->init_cton_limits();
+
+		// Calculate nitrogen uptake strength dependency on root distribution
+		ppft->init_nupscoeff();
 
 		// Calculate regeneration characteristics for population mode
 		ppft->initregen();

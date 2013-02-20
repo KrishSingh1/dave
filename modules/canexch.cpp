@@ -763,7 +763,7 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
  *  -> A = const * cmass_root^2/3 
  */
 double nitrogen_uptake_strength(const Individual& indiv) {
-	return pow(indiv.cmass_root / indiv.densindiv, 2.0 / 3.0) * indiv.densindiv;		
+	return pow(indiv.cmass_root * indiv.pft.nupscoeff / indiv.densindiv, 2.0 / 3.0) * indiv.densindiv;		
 }
 
 /// Individual nitrogen uptake fraction

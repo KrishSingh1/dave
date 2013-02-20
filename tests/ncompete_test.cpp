@@ -122,4 +122,94 @@ TEST_CASE("ncompete/triple", "Testing three individuals") {
     indivs[2].isgrass = false;
 
     ncompete(indivs, 5); 
+
+	REQUIRE(indivs[0].fnuptake == Approx(5.0*0.05-0.01));
+	REQUIRE(indivs[1].fnuptake == Approx(1.0));
+	REQUIRE(indivs[2].fnuptake == Approx(0.95));
+
+    indivs[0].ndemand = 0.01;
+    indivs[0].strength = 5;
+    indivs[0].isgrass = true;
+
+    indivs[1].ndemand = 5;
+    indivs[1].strength = 50;
+    indivs[1].isgrass = false;
+
+	indivs[2].ndemand = 1;
+    indivs[2].strength = 1;
+    indivs[2].isgrass = true;
+
+    ncompete(indivs, 5); 
+
+	REQUIRE(indivs[0].fnuptake == Approx(1.0));
+	REQUIRE(indivs[1].fnuptake == Approx(0.95));
+	REQUIRE(indivs[2].fnuptake == Approx(5.0*0.05-0.01));
+
+    indivs[0].ndemand = 5;
+    indivs[0].strength = 50;
+    indivs[0].isgrass = false;
+
+	indivs[1].ndemand = 1;
+    indivs[1].strength = 1;
+    indivs[1].isgrass = true;
+
+    indivs[2].ndemand = 0.01;
+    indivs[2].strength = 5;
+    indivs[2].isgrass = true;
+
+    ncompete(indivs, 5); 
+
+	REQUIRE(indivs[0].fnuptake == Approx(0.95));
+	REQUIRE(indivs[1].fnuptake == Approx(5.0*0.05-0.01));
+	REQUIRE(indivs[2].fnuptake == Approx(1.0));
+}
+
+TEST_CASE("ncompete/four", "Testing four individuals") {
+	std::vector<NCompetingIndividual> indivs(4);
+
+	indivs[0].ndemand = 0.5;
+    indivs[0].strength = 2;
+    indivs[0].isgrass = true;
+
+	indivs[1].ndemand = 8;
+    indivs[1].strength = 5;
+    indivs[1].isgrass = false;
+
+    indivs[2].ndemand = 0.5;
+    indivs[2].strength = 0.1;
+    indivs[2].isgrass = true;
+
+	indivs[3].ndemand = 2;
+    indivs[3].strength = 100;
+    indivs[3].isgrass = false;
+
+    ncompete(indivs, 10); 
+
+	REQUIRE(indivs[0].fnuptake == Approx(1));
+	REQUIRE(indivs[1].fnuptake == Approx(0.919118));
+	REQUIRE(indivs[2].fnuptake == Approx(0.294118));
+	REQUIRE(indivs[3].fnuptake == Approx(1));
+
+    indivs[0].ndemand = 0.5;
+    indivs[0].strength = 0.1;
+    indivs[0].isgrass = true;
+
+	indivs[1].ndemand = 2;
+    indivs[1].strength = 100;
+    indivs[1].isgrass = false;
+
+	indivs[2].ndemand = 0.5;
+    indivs[2].strength = 2;
+    indivs[2].isgrass = true;
+
+	indivs[3].ndemand = 8;
+    indivs[3].strength = 5;
+    indivs[3].isgrass = false;
+
+    ncompete(indivs, 10); 
+
+	REQUIRE(indivs[0].fnuptake == Approx(0.294118));
+	REQUIRE(indivs[1].fnuptake == Approx(1));
+	REQUIRE(indivs[2].fnuptake == Approx(1));
+	REQUIRE(indivs[3].fnuptake == Approx(0.919118));
 }

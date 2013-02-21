@@ -172,7 +172,7 @@ void seasonality(Climate& climate, const Pft& pft, double& f_season) {
 	const double mulgdd = 2;    // required GDD sum for VOCs is assumed to be twice
 	                            // as large as for phenology
 
-	if (pft.seas_iso) {
+	if (pft.seas_iso == 0) {
 		f_season = 1;
 	}
 	else {

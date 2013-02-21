@@ -5,6 +5,7 @@ set(headers
 set(source  
   main.cpp
   date_test.cpp
+  climate_test.cpp
   )
 
 include(add_test_sources)

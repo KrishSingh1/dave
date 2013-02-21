@@ -164,8 +164,8 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB
 Paramlist param;
 
 xtring title; // Title for this run
-// guess2008 - new optional parameter
-int searchradius; // search radius to use when finding CRU data
+
+double searchradius; // search radius to use when finding CRU data
 
 /// Landcover fractions read from ins-file (% area).
 int lc_fixed_frac[NLANDCOVERTYPES]={0};
@@ -1493,10 +1493,9 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 }
 
 
-// guess2008
 // Utility function that returns the CRU data from the nearest cell to (lon,lat) within
 // a given search radius
-bool findnearestCRUdata(int searchradius, char* cruark, double& lon, double& lat, 
+bool findnearestCRUdata(double searchradius, char* cruark, double& lon, double& lat, 
                         int& scode, double hist_mtemp1[NYEAR_HIST][12], 
                         double hist_mprec1[NYEAR_HIST][12], 
                         double hist_msun1[NYEAR_HIST][12]) {
@@ -1525,14 +1524,15 @@ bool findnearestCRUdata(int searchradius, char* cruark, double& lon, double& lat
 	std::vector<pair<double, point> > search_points;
 
 	const double STEP = 0.5;
+	const double EPS = 1e-15;
 
-	for (double y = center_lon-searchradius; y <= center_lon+searchradius; y += STEP) {
-		for (double x = center_lat-searchradius; x <= center_lat+searchradius; x += STEP) {
+	for (double y = center_lon-searchradius; y <= center_lon+searchradius+EPS; y += STEP) {
+		for (double x = center_lat-searchradius; x <= center_lat+searchradius+EPS; x += STEP) {
 			double xdist = x-center_lat;
 			double ydist = y-center_lon;
 			double dist = sqrt(xdist*xdist + ydist*ydist);
 			
-			if (dist <= searchradius) {
+			if (dist <= searchradius + EPS) {
 				search_points.push_back(make_pair(dist, make_pair(y, x)));
 			}
 		}

@@ -1334,8 +1334,8 @@ void define_output_tables() {
 	ngases_columns += ColumnDescriptor("NO",               9, 3);
 	ngases_columns += ColumnDescriptor("NO2",              9, 3);
 	ngases_columns += ColumnDescriptor("N2O",              9, 3);
+	ngases_columns += ColumnDescriptor("NSoil",            9, 3);
 	ngases_columns += ColumnDescriptor("Total",            9, 3);
-	ngases_columns += ColumnDescriptor("C:N",              8, 0);
 
 	// *** ANNUAL OUTPUT VARIABLES ***
 
@@ -1932,7 +1932,7 @@ void outannual(Gridcell& gridcell) {
 	double c_litter, c_fast, c_slow, c_harv_slow; 
 
 	double surfsoillitterc,surfsoillittern,cwdc,cwdn,humusc,humusn,centuryc,centuryn,n_litter,n_harv_slow;
-	double flux_nh3,flux_no,flux_no2,flux_n2o,flux_ntot,flux_nconc;
+	double flux_nh3,flux_no,flux_no2,flux_n2o,flux_nsoil,flux_ntot;
 
 	// Nitrogen output is in kgN/ha instead of kgC/m2 as for carbon 
 	double m2toha = 10000.0;
@@ -2282,7 +2282,7 @@ void outannual(Gridcell& gridcell) {
 		surfsoillitterc = surfsoillittern = cwdc = cwdn = humusc = humusn = centuryc = centuryn = n_litter = n_harv_slow = 0.0;
 		andep_gridcell = anfert_gridcell = anmin_gridcell = animm_gridcell = anfix_gridcell = 0.0;
 		n_org_leach_gridcell = n_min_leach_gridcell = 0.0;
-		flux_nh3 = flux_no = flux_no2 = flux_n2o = flux_ntot = 0.0;
+		flux_nh3 = flux_no = flux_no2 = flux_n2o = flux_nsoil = flux_ntot = 0.0;
 
 		// Sum C fluxes, dead C pools and runoff across patches
 
@@ -2307,11 +2307,13 @@ void outannual(Gridcell& gridcell) {
 				flux_nh3     += patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE)  * to_gridcell_average;
 				flux_no      += patch.fluxes.get_annual_flux(Fluxes::NO_FIRE)   * to_gridcell_average;
 				flux_no2     += patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE)  * to_gridcell_average;
-				flux_n2o     += patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE)  * to_gridcell_average;	
+				flux_n2o     += patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE)  * to_gridcell_average;
+				flux_nsoil   += patch.fluxes.get_annual_flux(Fluxes::N_SOIL)    * to_gridcell_average;	
 				flux_ntot    += (patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE) + 
 				                patch.fluxes.get_annual_flux(Fluxes::NO_FIRE)   + 
 				                patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE)  +
-				                patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE)) * to_gridcell_average;
+								patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE)    +
+				                patch.fluxes.get_annual_flux(Fluxes::N_SOIL)) * to_gridcell_average;
 				
 				c_fast       += patch.soil.cpool_fast                           * to_gridcell_average;
 				c_slow       += patch.soil.cpool_slow                           * to_gridcell_average;
@@ -2438,8 +2440,6 @@ void outannual(Gridcell& gridcell) {
 		if (cmass_veg_gridcell > 0.0) {
 			cton_veg_gridcell = cmass_veg_gridcell / nmass_veg_gridcell;
 		}
-
-		flux_nconc = (flux_ntot > 0.0) ? flux_fire / flux_ntot : 0.0;
 
 		out.add_value(out_cmass,  cmass_gridcell);
 		out.add_value(out_anpp,   anpp_gridcell);
@@ -2632,12 +2632,12 @@ void outannual(Gridcell& gridcell) {
 			}
 		}
 
-		out.add_value(out_ngases, flux_nh3  * m2toha);
-		out.add_value(out_ngases, flux_no   * m2toha);
-		out.add_value(out_ngases, flux_no2  * m2toha);
-		out.add_value(out_ngases, flux_n2o  * m2toha);
-		out.add_value(out_ngases, flux_ntot * m2toha);
-		out.add_value(out_ngases, flux_nconc);
+		out.add_value(out_ngases, flux_nh3   * m2toha);
+		out.add_value(out_ngases, flux_no    * m2toha);
+		out.add_value(out_ngases, flux_no2   * m2toha);
+		out.add_value(out_ngases, flux_n2o   * m2toha);
+		out.add_value(out_ngases, flux_nsoil * m2toha);
+		out.add_value(out_ngases, flux_ntot  * m2toha);
 
 		// Output of age structure (Windows shell only - no effect otherwise)
 

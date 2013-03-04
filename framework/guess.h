@@ -675,6 +675,8 @@ public:
 		NO2_FIRE,
 		/// N2O flux to atmosphere from fire	
 		N2O_FIRE,
+		/// N flux from soil
+		N_SOIL,
 		/// Number of types, must be last
 		NPERPATCHFLUXTYPES
 	};

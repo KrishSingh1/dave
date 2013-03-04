@@ -684,6 +684,14 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 	// Adding mineral nitrogen to soil available pool
 	soil.nmass_avail += nmin_actual - nimmob;
 
+	// Estimate of N flux from soil (simple CLM-CN approach)
+	double nflux = soil.temp > 0.0 ? max(0.0, soil.nmass_avail * 0.01) : 0.0;
+	soil.nmass_avail -= nflux;
+
+	if (!ifequilsom) {
+		patch.fluxes.report_flux(Fluxes::N_SOIL, nflux);
+	}
+
 	// If no nitrogen limitation or during free nitrogen years set soil 
 	// available nitrogen to its saturation level. 
 	if (!ifnlim || date.year <= freenyears)
@@ -967,17 +975,19 @@ void soilnadd(Patch& patch) {
 	// Nitrogen fixation
 	// If soil available nitrogen is above the value for minimum SOM C:N ratio, then
 	// nitrogen fixation is reduced (nitrogen rich soils)
-	if (soil.nmass_avail < NMASS_SAT) {
+	// Comment: NMASS_SAT is too high when considering BNF - Zaehle
+	double nmass_sat = NMASS_SAT * 0.1;
+	if (soil.nmass_avail < nmass_sat) {
 
 		const double daily_nfix = soil.anfix_calc / 365.0;
 
-		if (soil.nmass_avail + daily_nfix < NMASS_SAT) {
+		if (soil.nmass_avail + daily_nfix < nmass_sat) {
 			soil.nmass_avail += daily_nfix;
 			soil.anfix += daily_nfix;
 		}
 		else {
-			soil.anfix += NMASS_SAT - soil.nmass_avail;
-			soil.nmass_avail = NMASS_SAT;
+			soil.anfix += nmass_sat - soil.nmass_avail;
+			soil.nmass_avail = nmass_sat;
 		} 
 	}
 
@@ -1149,6 +1159,9 @@ void equilsom(Soil& soil) {
 			
 			// Monthly decomposition and fluxes between SOM pools
 			somfluxes(patch, true);
+
+			// Estimate of N flux from soil before nitrogen uptake (simple CLM-CN approach)
+			soil.nmass_avail *= 0.99;
 
 			// Monthly mineral nitrogen leaching
 			soil.nmass_avail *= (1.0 - soil.mminleach_mean[m]);

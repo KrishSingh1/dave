@@ -34,3 +34,7 @@ describe_textfile amon1961to1990_sums.txt "Global terrestrial monoterpene emissi
 cbalance -spinup 500 -ncells 59191 -path ./ -start 500 -end 605
 describe_textfile cbalance_totalerror_GtC.txt "Global Terrestrial Carbon Uptake, 1901 to 2006. /
 Determined using C pools (cpool_GtC), Cumulative C fluxes (cflux_GtC), and their absolute difference (absdiff_GtC)"
+
+nbalance -spinup 500 -ncells 59191 -path ./ -start 500 -end 605
+describe_textfile nbalance_totalerror_GtN.txt "Global Terrestrial Nitrogen Uptake, 1901 to 2006. /
+Determined using N pools (npool_GtN), Cumulative N fluxes (nflux_GtN), and their absolute difference (absdiff_GtN)"

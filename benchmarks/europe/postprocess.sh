@@ -20,3 +20,7 @@ describe_image amon_tot.jpg "Annual monoterpene flux (1961-90 average)"
 cbalance -spinup 500 -ncells 3464 -path ./ -start 500 -end 605
 describe_textfile cbalance_totalerror_GtC.txt "European Terrestrial Carbon Uptake, 1901 to 2006. /
 Determined using C pools (cpool_GtC), Cumulative C fluxes (cflux_GtC), and their absolute difference (absdiff_GtC)"
+
+nbalance -spinup 500 -ncells 3464 -path ./ -start 500 -end 605
+describe_textfile nbalance_totalerror_GtN.txt "European Terrestrial Nitrogen Uptake, 1901 to 2006. /
+Determined using N pools (npool_GtN), Cumulative N fluxes (nflux_GtN), and their absolute difference (absdiff_GtN)"

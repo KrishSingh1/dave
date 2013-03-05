@@ -1703,18 +1703,19 @@ void define_output_tables() {
 
 	// NPOOL
 	ColumnDescriptors npool_columns;
-	npool_columns += ColumnDescriptor("VegN",              8, 1);
-	npool_columns += ColumnDescriptor("LittVN",            8, 1);
-	npool_columns += ColumnDescriptor("LittSN",            8, 1);
-	npool_columns += ColumnDescriptor("CwdN",              8, 1);
-	npool_columns += ColumnDescriptor("HumusN",            8, 1);
-	npool_columns += ColumnDescriptor("SoilN",             8, 1);
+	npool_columns += ColumnDescriptor("VegN",              9, 2);
+	npool_columns += ColumnDescriptor("LittVN",            9, 2);
+	npool_columns += ColumnDescriptor("LittSN",            9, 2);
+	npool_columns += ColumnDescriptor("CwdN",              9, 2);
+	npool_columns += ColumnDescriptor("HumusN",            9, 2);
+	npool_columns += ColumnDescriptor("SoilN",             9, 2);
+	npool_columns += ColumnDescriptor("AvailN",            9, 2);
 
 	if (run_landcover && ifslowharvestpool) {
-		npool_columns += ColumnDescriptor("HarvSlowN",     8, 1);
+		npool_columns += ColumnDescriptor("HarvSlowN",     9, 2);
 	}
 
-	npool_columns += ColumnDescriptor("Total",            10, 1);
+	npool_columns += ColumnDescriptor("Total",            10, 2);
 
 	// NLEACH
 	ColumnDescriptors nleach_columns;
@@ -1739,7 +1740,7 @@ void define_output_tables() {
 	nflux_columns += ColumnDescriptor("dep",               8, 2);
 	nflux_columns += ColumnDescriptor("fix",               8, 2);
 	nflux_columns += ColumnDescriptor("fert",              8, 2);
-	nflux_columns += ColumnDescriptor("fire",              8, 2);
+	nflux_columns += ColumnDescriptor("flux",              8, 2);
 	nflux_columns += ColumnDescriptor("leach",             8, 2);
 	nflux_columns += ColumnDescriptor("NEE",               8, 2);
 
@@ -2535,7 +2536,7 @@ void outannual(Gridcell& gridcell) {
 	double flux_veg, flux_soil, flux_fire, flux_est, flux_harvest;
 	double c_litter, c_fast, c_slow, c_harv_slow; 
 
-	double surfsoillitterc,surfsoillittern,cwdc,cwdn,humusc,humusn,centuryc,centuryn,n_litter,n_harv_slow;
+	double surfsoillitterc,surfsoillittern,cwdc,cwdn,humusc,humusn,centuryc,centuryn,n_litter,n_harv_slow,availn;
 	double flux_nh3,flux_no,flux_no2,flux_n2o,flux_nsoil,flux_ntot;
 
 	// Nitrogen output is in kgN/ha instead of kgC/m2 as for carbon 
@@ -2883,7 +2884,7 @@ void outannual(Gridcell& gridcell) {
 		// guess2008 - carbon pools
 		c_litter = c_fast = c_slow = c_harv_slow = 0.0;
 
-		surfsoillitterc = surfsoillittern = cwdc = cwdn = humusc = humusn = centuryc = centuryn = n_litter = n_harv_slow = 0.0;
+		surfsoillitterc = surfsoillittern = cwdc = cwdn = humusc = humusn = centuryc = centuryn = n_litter = n_harv_slow = availn = 0.0;
 		andep_gridcell = anfert_gridcell = anmin_gridcell = animm_gridcell = anfix_gridcell = 0.0;
 		n_org_leach_gridcell = n_min_leach_gridcell = 0.0;
 		flux_nh3 = flux_no = flux_no2 = flux_n2o = flux_nsoil = flux_ntot = 0.0;
@@ -2959,9 +2960,11 @@ void outannual(Gridcell& gridcell) {
 				anfix_gridcell       += patch.soil.anfix              / (double)stand.npatch();
 				n_min_leach_gridcell += patch.soil.aminleach          / (double)stand.npatch();
 				n_org_leach_gridcell += patch.soil.aorgleach          / (double)stand.npatch();
+				availn               += (patch.soil.nmass_avail + patch.soil.snowpack_nmass)   
+					                                                  / (double)stand.npatch();
 
-				for (int r=0;r<NSOMPOOL;r++) {
-					if (patch.soil.sompool[r].nmass > 0.0 && r<NSOMPOOL-1) {
+				for (int r=0;r<NSOMPOOL-1;r++) {
+					if (patch.soil.sompool[r].nmass > 0.0) {
 						if(r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
 							surfsoillitterc += patch.soil.sompool[r].cmass / (double)stand.npatch();
 							surfsoillittern += patch.soil.sompool[r].nmass / (double)stand.npatch();
@@ -3226,13 +3229,14 @@ void outannual(Gridcell& gridcell) {
 			out.add_value(out_npool, cwdn * m2toha);
 			out.add_value(out_npool, humusn * m2toha);
 			out.add_value(out_npool, centuryn * m2toha);
+			out.add_value(out_npool, availn * m2toha);
 
 			if(run_landcover && ifslowharvestpool) {
 				out.add_value(out_npool, n_harv_slow * m2toha);
-				out.add_value(out_npool, (nmass_gridcell + n_litter + surfsoillittern + cwdn + humusn + centuryn + n_harv_slow) * m2toha);
+				out.add_value(out_npool, (nmass_gridcell + n_litter + surfsoillittern + cwdn + humusn + centuryn + availn + n_harv_slow) * m2toha);
 			}
 			else {
-				out.add_value(out_npool, (nmass_gridcell + n_litter + surfsoillittern + cwdn + humusn + centuryn) * m2toha);
+				out.add_value(out_npool, (nmass_gridcell + n_litter + surfsoillittern + cwdn + humusn + centuryn + availn) * m2toha);
 			}
 		}
 

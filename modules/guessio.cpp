@@ -1288,18 +1288,19 @@ void define_output_tables() {
 
 	// NPOOL
 	ColumnDescriptors npool_columns;
-	npool_columns += ColumnDescriptor("VegN",              8, 1);
-	npool_columns += ColumnDescriptor("LittVN",            8, 1);
-	npool_columns += ColumnDescriptor("LittSN",            8, 1);
-	npool_columns += ColumnDescriptor("CwdN",              8, 1);
-	npool_columns += ColumnDescriptor("HumusN",            8, 1);
-	npool_columns += ColumnDescriptor("SoilN",             8, 1);
+	npool_columns += ColumnDescriptor("VegN",              9, 2);
+	npool_columns += ColumnDescriptor("LittVN",            9, 2);
+	npool_columns += ColumnDescriptor("LittSN",            9, 2);
+	npool_columns += ColumnDescriptor("CwdN",              9, 2);
+	npool_columns += ColumnDescriptor("HumusN",            9, 2);
+	npool_columns += ColumnDescriptor("SoilN",             9, 2);
+	npool_columns += ColumnDescriptor("AvailN",            9, 2);
 
 	if (run_landcover && ifslowharvestpool) {
-		npool_columns += ColumnDescriptor("HarvSlowN",     8, 1);
+		npool_columns += ColumnDescriptor("HarvSlowN",     8, 2);
 	}
 
-	npool_columns += ColumnDescriptor("Total",            10, 1);
+	npool_columns += ColumnDescriptor("Total",            10, 2);
 
 	// NLEACH
 	ColumnDescriptors nleach_columns;
@@ -1324,7 +1325,7 @@ void define_output_tables() {
 	nflux_columns += ColumnDescriptor("dep",               8, 2);
 	nflux_columns += ColumnDescriptor("fix",               8, 2);
 	nflux_columns += ColumnDescriptor("fert",              8, 2);
-	nflux_columns += ColumnDescriptor("fire",              8, 2);
+	nflux_columns += ColumnDescriptor("flux",              8, 2);
 	nflux_columns += ColumnDescriptor("leach",             8, 2);
 	nflux_columns += ColumnDescriptor("NEE",               8, 2);
 
@@ -2356,8 +2357,8 @@ void outannual(Gridcell& gridcell) {
 				n_min_leach_gridcell += patch.soil.aminleach          / (double)stand.npatch();
 				n_org_leach_gridcell += patch.soil.aorgleach          / (double)stand.npatch();
 
-				for (int r=0;r<NSOMPOOL;r++) {
-					if (patch.soil.sompool[r].nmass > 0.0 && r<NSOMPOOL-1) {
+				for (int r=0;r<NSOMPOOL-1;r++) {
+					if (patch.soil.sompool[r].nmass > 0.0) {
 						if(r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
 							surfsoillitterc += patch.soil.sompool[r].cmass / (double)stand.npatch();
 							surfsoillittern += patch.soil.sompool[r].nmass / (double)stand.npatch();

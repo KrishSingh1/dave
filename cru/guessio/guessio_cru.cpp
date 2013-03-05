@@ -2925,8 +2925,8 @@ void outannual(Gridcell& gridcell) {
 				// Sum all litter
 				for (int q=0;q<npft;q++) {
 					Patchpft& patchpft = patch.pft[q];
-					c_litter += (patchpft.litter_leaf + patchpft.litter_root + patchpft.litter_wood + patchpft.litter_repr) * to_gridcell_average;
-					n_litter += (patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_wood)      * to_gridcell_average;
+					c_litter += (patchpft.litter_leaf + patchpft.litter_root + patchpft.litter_sap + patchpft.litter_heart + patchpft.litter_repr)  * to_gridcell_average;
+					n_litter += (patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap + patchpft.nmass_litter_heart) * to_gridcell_average;
 				}
 
 				//Sum slow pools of harvested products
@@ -2966,7 +2966,7 @@ void outannual(Gridcell& gridcell) {
 							surfsoillitterc += patch.soil.sompool[r].cmass / (double)stand.npatch();
 							surfsoillittern += patch.soil.sompool[r].nmass / (double)stand.npatch();
 						}
-						else if (r == SURFCWD) {
+						else if (r == SURFFWD || r == SURFCWD) {
 							cwdc += patch.soil.sompool[r].cmass            / (double)stand.npatch();
 							cwdn += patch.soil.sompool[r].nmass            / (double)stand.npatch();
 						}

@@ -1367,7 +1367,14 @@ void growth(Stand& stand, Patch& patch) {
 
 						// debt might be larger than biomass
 						if (indiv.cmass_debt <= indiv.cmass_sap + indiv.cmass_heart) {
-							patch.pft[indiv.pft.id].litter_wood += indiv.cmass_wood();
+
+							if (indiv.cmass_heart >= indiv.cmass_debt) {
+								patch.pft[indiv.pft.id].litter_sap   += indiv.cmass_sap;
+								patch.pft[indiv.pft.id].litter_heart += indiv.cmass_heart - indiv.cmass_debt;
+							}
+							else {
+								patch.pft[indiv.pft.id].litter_sap   += indiv.cmass_sap + indiv.cmass_heart - indiv.cmass_debt;
+							}
 						}
 						else {
 							double debt_excess = indiv.cmass_debt - (indiv.cmass_sap + indiv.cmass_heart);
@@ -1377,13 +1384,14 @@ void growth(Stand& stand, Patch& patch) {
 					}
 					
 					// Nitrogen allways return to soil litter
-					patch.pft[indiv.pft.id].nmass_litter_leaf += indiv.nmass_leaf;
-					patch.pft[indiv.pft.id].nmass_litter_root += indiv.nmass_root;
+					patch.pft[indiv.pft.id].nmass_litter_leaf  += indiv.nmass_leaf;
+					patch.pft[indiv.pft.id].nmass_litter_root  += indiv.nmass_root;
 
-					patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nmass_wood();
+					patch.pft[indiv.pft.id].nmass_litter_sap   += indiv.nmass_sap;
+					patch.pft[indiv.pft.id].nmass_litter_heart += indiv.nmass_heart;
 						
 					// Transfer nitrogen storage to wood nitrogen litter for now
-					patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nstore();
+					patch.pft[indiv.pft.id].nmass_litter_sap   += indiv.nstore();
 
 					vegetation.killobj();
 					killed = true;
@@ -1475,17 +1483,19 @@ void growth(Stand& stand, Patch& patch) {
 
 				// alive check
 				if (indiv.alive) {
-					patch.pft[indiv.pft.id].litter_leaf += indiv.cmass_leaf;
-					patch.pft[indiv.pft.id].litter_root += indiv.cmass_root;
+					patch.pft[indiv.pft.id].litter_leaf  += indiv.cmass_leaf;
+					patch.pft[indiv.pft.id].litter_root  += indiv.cmass_root;
 
-					patch.pft[indiv.pft.id].litter_wood += indiv.cmass_wood();
+					patch.pft[indiv.pft.id].litter_sap   += indiv.cmass_sap;
+					patch.pft[indiv.pft.id].litter_heart += indiv.cmass_heart;
 				}
 
 				// Nitrogen allways return to soil litter
-				patch.pft[indiv.pft.id].nmass_litter_leaf += indiv.nmass_leaf;
-				patch.pft[indiv.pft.id].nmass_litter_root += indiv.nmass_root;
+				patch.pft[indiv.pft.id].nmass_litter_leaf  += indiv.nmass_leaf;
+				patch.pft[indiv.pft.id].nmass_litter_root  += indiv.nmass_root;
 
-				patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nmass_wood();
+				patch.pft[indiv.pft.id].nmass_litter_sap   += indiv.nmass_sap;
+				patch.pft[indiv.pft.id].nmass_litter_heart += indiv.nmass_heart;
 					
 				// Transfer nitrogen storage for now to wood nitrogen litter for trees
 				// and roots for grasses
@@ -1493,7 +1503,7 @@ void growth(Stand& stand, Patch& patch) {
 					patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore();
 				}
 				else {
-					patch.pft[indiv.pft.id].nmass_litter_wood += indiv.nstore();
+					patch.pft[indiv.pft.id].nmass_litter_sap  += indiv.nstore();
 				}
 				
 				vegetation.killobj();

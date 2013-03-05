@@ -96,7 +96,7 @@ typedef enum {
 typedef enum {NOVEGMODE, INDIVIDUAL, COHORT, POPULATION} vegmodetype;
 
 /// CENTURY pool names, NSOMPOOL number of SOM pools
-typedef enum {SURFSTRUCT, SOILSTRUCT, SOILMICRO, SURFHUMUS, SURFMICRO, SURFMETA, SURFCWD,
+typedef enum {SURFSTRUCT, SOILSTRUCT, SOILMICRO, SURFHUMUS, SURFMICRO, SURFMETA, SURFFWD, SURFCWD,
 	SOILMETA, SLOWSOM, PASSIVESOM, LEACHED, NSOMPOOL} pooltype;	
 
 /// Land cover type of a stand. NLANDCOVERTYPES keeps count of number of items.
@@ -1741,9 +1741,12 @@ public:
 		// Parton et al 1993, Fig 4
 
 		sompool[SOILMICRO].ntoc = 1.0 / 15.0;
+		sompool[SURFHUMUS].ntoc = 1.0 / 15.0;
 		sompool[SLOWSOM].ntoc = 1.0 / 20.0;
-		sompool[PASSIVESOM].ntoc = 1.0 / 10.0;
 		sompool[SURFMICRO].ntoc = 1.0 / 20.0;
+
+		// passive has a fixed value
+		sompool[PASSIVESOM].ntoc = 1.0 / 6.0;
 
 		nmass_avail = 0.0;
 		ninput = 0.0;
@@ -1808,8 +1811,10 @@ public:
 		// leaf-derived litter for PFT on modelled area basis (kgC/m2)
 	double litter_root;
 		// fine root-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_wood;
-		// heartwood and sapwood-derived litter for PFT on modelled area basis (kgC/m2)
+	double litter_sap;
+		// sapwood-derived litter for PFT on modelled area basis (kgC/m2)
+	double litter_heart;
+		// heartwood-derived litter for PFT on modelled area basis (kgC/m2)
 	double litter_repr;
 		// litter derived from allocation to reproduction for PFT on modelled area
 		// basis (kgC/m2)
@@ -1818,8 +1823,10 @@ public:
 	double nmass_litter_leaf;
 	/// root-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_root;
-	/// wood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
-	double nmass_litter_wood;		
+	/// sapwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
+	double nmass_litter_sap;
+	/// heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
+	double nmass_litter_heart;
 
 	double gcbase;
 		// non-FPC-weighted canopy conductance value for PFT under water-stress
@@ -1845,13 +1852,16 @@ public:
 
 		// Constructor: initialises id, pft and data members
 
-		litter_leaf = 0.0;
-		litter_root = 0.0;
-		litter_wood = 0.0;
-		litter_repr = 0.0;
-		nmass_litter_leaf = 0.0;
-		nmass_litter_root = 0.0;
-		nmass_litter_wood = 0.0;
+		litter_leaf  = 0.0;
+		litter_root  = 0.0;
+		litter_sap   = 0.0;
+		litter_heart = 0.0;
+		litter_repr  = 0.0;
+
+		nmass_litter_leaf  = 0.0;
+		nmass_litter_root  = 0.0;
+		nmass_litter_sap   = 0.0;
+		nmass_litter_heart = 0.0;
 
 		wscal = 1.0;
 		wscal_mean = 0.0;

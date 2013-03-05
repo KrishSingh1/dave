@@ -1158,7 +1158,8 @@ void check_nbalance(Patch& patch, bool print) {
 
 			littern += pft.nmass_litter_leaf +
 				pft.nmass_litter_root +
-				pft.nmass_litter_wood;
+				pft.nmass_litter_sap + 
+				pft.nmass_litter_heart;
 
 			patch.pft.nextobj();
 		}

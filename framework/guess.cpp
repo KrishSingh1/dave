@@ -310,7 +310,8 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& nsapling
 		& litter_leaf
 		& litter_root
-		& litter_wood
+		& litter_sap
+		& litter_heart
 		& litter_repr
 		& gcbase
 		& gcbase_day
@@ -322,7 +323,8 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& harvested_products_slow
 		& nmass_litter_leaf
 		& nmass_litter_root
-		& nmass_litter_wood
+		& nmass_litter_sap
+		& nmass_litter_heart
 		& harvested_products_slow_nmass;
 }
 

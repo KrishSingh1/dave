@@ -24,9 +24,6 @@ struct NCompetingIndividual {
 	/// A meassure of this individual's uptake strength
 	double strength;
 
-	/// Whether this individual is grass
-	bool isgrass;
-
 	/// Output from ncompete - fraction of the demand satisfied by the distribution
 	double fnuptake;
 };

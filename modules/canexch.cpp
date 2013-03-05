@@ -782,7 +782,6 @@ void fnuptake(Vegetation& vegetation, double nmass_avail) {
 	for (unsigned int i = 0; i < vegetation.nobj; i++) {
 		individuals[i].ndemand = vegetation[i].ndemand;
 		individuals[i].strength = nitrogen_uptake_strength(vegetation[i]);
-		individuals[i].isgrass = vegetation[i].pft.lifeform == GRASS;
 	}
 
 	// Let ncompete() do the actual distribution

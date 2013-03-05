@@ -16,7 +16,6 @@ TEST_CASE("ncompete/single", "Testing a single individual") {
 
 	indivs[0].ndemand = 1;
 	indivs[0].strength = 1;
-	indivs[0].isgrass = false;
 
 	// more N available than needed
 	ncompete(indivs, 2.0);
@@ -28,10 +27,6 @@ TEST_CASE("ncompete/single", "Testing a single individual") {
 	ncompete(indivs, 0.5);
 
 	REQUIRE(indivs[0].fnuptake == Approx(0.5));
-
-	// change to grass
-
-	indivs[0].isgrass = true;
 
 	// more N available than needed
 	ncompete(indivs, 2.0);
@@ -53,7 +48,6 @@ TEST_CASE("ncompete/double", "Testing two individuals") {
 
 	indivs[0].ndemand = 1;
 	indivs[0].strength = 1;
-	indivs[0].isgrass = false;
 	
 	indivs[1] = indivs[0];
 
@@ -68,11 +62,6 @@ TEST_CASE("ncompete/double", "Testing two individuals") {
 
 	REQUIRE(indivs[0].fnuptake == Approx(0.5));
 	REQUIRE(indivs[1].fnuptake == Approx(0.5));
-
-	// change to grass
-
-	indivs[0].isgrass = true;
-	indivs[1].isgrass = true;
 
 	// more N available than needed
 	ncompete(indivs, 3.0);
@@ -111,15 +100,12 @@ TEST_CASE("ncompete/triple", "Testing three individuals") {
 
     indivs[0].ndemand = 1;
     indivs[0].strength = 1;
-    indivs[0].isgrass = true;
 
     indivs[1].ndemand = 0.01;
     indivs[1].strength = 5;
-    indivs[1].isgrass = true;
 
     indivs[2].ndemand = 5;
     indivs[2].strength = 50;
-    indivs[2].isgrass = false;
 
 	ncompete(indivs, 5); 
 
@@ -129,15 +115,12 @@ TEST_CASE("ncompete/triple", "Testing three individuals") {
 
     indivs[0].ndemand = 0.01;
     indivs[0].strength = 5;
-    indivs[0].isgrass = true;
 
     indivs[1].ndemand = 5;
     indivs[1].strength = 50;
-    indivs[1].isgrass = false;
 
 	indivs[2].ndemand = 1;
     indivs[2].strength = 1;
-    indivs[2].isgrass = true;
 
     ncompete(indivs, 5); 
 
@@ -147,15 +130,12 @@ TEST_CASE("ncompete/triple", "Testing three individuals") {
 
     indivs[0].ndemand = 5;
     indivs[0].strength = 50;
-    indivs[0].isgrass = false;
 
 	indivs[1].ndemand = 1;
     indivs[1].strength = 1;
-    indivs[1].isgrass = true;
 
     indivs[2].ndemand = 0.01;
     indivs[2].strength = 5;
-    indivs[2].isgrass = true;
 
     ncompete(indivs, 5); 
 
@@ -169,19 +149,15 @@ TEST_CASE("ncompete/four", "Testing four individuals") {
 
 	indivs[0].ndemand = 0.5;
     indivs[0].strength = 2;
-    indivs[0].isgrass = true;
 
 	indivs[1].ndemand = 8;
     indivs[1].strength = 5;
-    indivs[1].isgrass = false;
 
     indivs[2].ndemand = 0.5;
     indivs[2].strength = 0.1;
-    indivs[2].isgrass = true;
 
 	indivs[3].ndemand = 2;
     indivs[3].strength = 100;
-    indivs[3].isgrass = false;
 
     ncompete(indivs, 10); 
 
@@ -192,19 +168,15 @@ TEST_CASE("ncompete/four", "Testing four individuals") {
 
     indivs[0].ndemand = 0.5;
     indivs[0].strength = 0.1;
-    indivs[0].isgrass = true;
 
 	indivs[1].ndemand = 2;
     indivs[1].strength = 100;
-    indivs[1].isgrass = false;
 
 	indivs[2].ndemand = 0.5;
     indivs[2].strength = 2;
-    indivs[2].isgrass = true;
 
 	indivs[3].ndemand = 8;
     indivs[3].strength = 5;
-    indivs[3].isgrass = false;
 
     ncompete(indivs, 10); 
 

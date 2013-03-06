@@ -902,10 +902,14 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 			if (ifnlim) {
 
+				// Added a scalar depending on individual lai to slow down light optimization of newly shaded leafs
+				// Peltoniemi et al. 2012
+				indiv.nextin = exp(0.1429 * indiv.lai * indiv.phen);
+
 				// Calculate optimal leaf nitrogen associated with photosynthesis and none photosynthetic 
 				// active nitrogen (Haxeltine et al. 1996 eqn 27/28)
-				// Added a scalar depending on individual lai to slow down optimization of newly shaded leafs.
-				leafoptn = indiv.photosynthesis.nactive_opt * pow(1.1, indiv.lai * indiv.phen) + N0 * indiv.cmass_leaf * indiv.phen;
+				
+				leafoptn = indiv.photosynthesis.nactive_opt * indiv.nextin + N0 * indiv.cmass_leaf * indiv.phen;
 			}
 			else {
 				// If no nitrogen limitation use average nitrogen content in leaves
@@ -1065,7 +1069,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 			// Individual photosynthesis
 			photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
 				indiv.fpar, pft.lambda_max, pft,
-				indiv.nactive, true,
+				indiv.nactive / indiv.nextin, true,
 				indiv.photosynthesis,
 				-1);
 
@@ -1076,7 +1080,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 					PhotosynthesisResult& result = indiv.phots[i];
 					photosynthesis(climate.co2, climate.temps[i], climate.pars[i], 24,
 						indiv.fpar, pft.lambda_max, pft,
-						indiv.nactive, true,
+						indiv.nactive / indiv.nextin, true,
 						result,
 						indiv.photosynthesis.vm);
 
@@ -1751,7 +1755,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			// of light- and conductance-based equations of photosynthesis
 			assimilation_wstress(pft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
 				ppft.gcbase, phot.vm, phot, lambda,
-				indiv.nactive, ifnlim);
+				indiv.nactive / indiv.nextin, ifnlim);
 		}
 
 		assim = phot.net_assimilation();
@@ -1974,6 +1978,8 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 //   seine Bedeutung fuer die Stoffproduktion. Japanese Journal of Botany 14: 22-52
 // Monteith, JL, 1995. Accomodation between transpiring vegetation and the convective
 //   boundary layer. Journal of Hydrology 166: 251-263.
+// Peltoniemi, MS, Duursma, RA & Medlyn, BE. 2012. Co-optimal distribution of leaf
+//   nitrogen and hydraulic conductance in plant canopies. Tree Physiology, 32, 510-519.
 // Prentice, IC, Sykes, MT & Cramer W (1993) A simulation model for the transient
 //   effects of climate change on forest landscapes. Ecological Modelling 65: 51-70.
 // Press, WH, Teukolsky, SA, Vetterling, WT & Flannery, BT. 1986. Numerical

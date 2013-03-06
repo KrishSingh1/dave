@@ -1213,6 +1213,9 @@ public:
 
 	/// nitrogen mass that is photosyntetic active
 	double nactive;
+	/// extinction scalar to account for leaf nitrogen not
+	/// following the optimal light extinction, but is shallower
+	double nextin;
 	/// long-term storage of labile nitrogen
 	double nstore_longterm;
 	/// storage of labile nitrogen

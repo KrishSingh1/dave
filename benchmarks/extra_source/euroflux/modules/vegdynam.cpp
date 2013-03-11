@@ -1609,27 +1609,27 @@ void clearance(Patch& patch) {
 		
 			if (indiv.pft.lifeform==GRASS) {
 
-				patch.pft[indiv.pft.id].litter_leaf+=FRACTION_REMAINING*max(indiv.cmass_leaf,0.0);
-				patch.pft[indiv.pft.id].litter_root+=FRACTION_REMAINING*max(indiv.cmass_root,0.0);
+				patch.pft[indiv.pft.id].litter_leaf+=FRACTION_REMAINING*indiv.cmass_leaf;
+				patch.pft[indiv.pft.id].litter_root+=FRACTION_REMAINING*indiv.cmass_root;
 
-				patch.pft[indiv.pft.id].nmass_litter_leaf+=FRACTION_REMAINING*max(indiv.nmass_leaf,0.0);
-				patch.pft[indiv.pft.id].nmass_litter_root+=FRACTION_REMAINING*max(indiv.nmass_root,0.0);
-				patch.pft[indiv.pft.id].nmass_litter_root+=FRACTION_REMAINING*max(indiv.nstore(),0.0);
+				patch.pft[indiv.pft.id].nmass_litter_leaf+=FRACTION_REMAINING*indiv.nmass_leaf;
+				patch.pft[indiv.pft.id].nmass_litter_root+=FRACTION_REMAINING*indiv.nmass_root;
+				patch.pft[indiv.pft.id].nmass_litter_root+=FRACTION_REMAINING*indiv.nstore();
 
 			} else {
 			
 				// TREES
 
-				patch.pft[indiv.pft.id].litter_leaf+=FRACTION_REMAINING*max(indiv.cmass_leaf,0.0);
-				patch.pft[indiv.pft.id].litter_root+=max(indiv.cmass_root,0.0);
-				patch.pft[indiv.pft.id].litter_sap+=FRACTION_REMAINING*max(indiv.cmass_sap,0.0);
-				patch.pft[indiv.pft.id].litter_heart+=FRACTION_REMAINING*max(indiv.cmass_heart,0.0);	
+				patch.pft[indiv.pft.id].litter_leaf+=FRACTION_REMAINING*indiv.cmass_leaf;
+				patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
+				patch.pft[indiv.pft.id].litter_sap+=FRACTION_REMAINING*indiv.cmass_sap;
+				patch.pft[indiv.pft.id].litter_heart+=FRACTION_REMAINING*indiv.cmass_heart;
 
-				patch.pft[indiv.pft.id].nmass_litter_leaf+=FRACTION_REMAINING*max(indiv.nmass_leaf,0.0);
-				patch.pft[indiv.pft.id].nmass_litter_root+=FRACTION_REMAINING*max(indiv.nmass_root,0.0);
-				patch.pft[indiv.pft.id].nmass_litter_sap+=FRACTION_REMAINING*max(indiv.nmass_sap,0.0);
-				patch.pft[indiv.pft.id].nmass_litter_heart+=FRACTION_REMAINING*max(indiv.nmass_heart,0.0);
-				patch.pft[indiv.pft.id].nmass_litter_sap+=FRACTION_REMAINING*max(indiv.nstore(),0.0);
+				patch.pft[indiv.pft.id].nmass_litter_leaf+=FRACTION_REMAINING*indiv.nmass_leaf;
+				patch.pft[indiv.pft.id].nmass_litter_root+=FRACTION_REMAINING*indiv.nmass_root;
+				patch.pft[indiv.pft.id].nmass_litter_sap+=FRACTION_REMAINING*indiv.nmass_sap;
+				patch.pft[indiv.pft.id].nmass_litter_heart+=FRACTION_REMAINING*indiv.nmass_heart;
+				patch.pft[indiv.pft.id].nmass_litter_sap+=FRACTION_REMAINING*indiv.nstore();
 
 				/*
 				//patch.pft[indiv.pft.id].litter_leaf+=indiv.cmass_leaf;

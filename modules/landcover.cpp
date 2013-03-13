@@ -361,17 +361,6 @@ if(!SUPPRESSLARGEOUTPUT)
 
 			Stand& stand=gridcell.getobj();
 
-			// Reset fluxes. NB. landcover_dynamics() is called before dailyaccounting_patch() on date.day==0 && date.year>=nyear_spinup !
-			stand.firstobj();
-			while(stand.isobj) //Loop through Patches
-			{
-				Patch& patch=stand.getobj();
-			
-				patch.fluxes.acflux_harvest=0.0;
-
-				stand.nextobj();
-			}
-
 #ifdef multiple_natural_stands
 			if(stand.landcover!=CROPLAND && stand.landcover!=NATURAL && landcoverfrac_change[stand.landcover]<0.0						
 				|| stand.landcover==NATURAL && landcoverfrac_change[NATURAL]<0.0 && (nnaturalstands==1 || stand.natural_frac_change<0.0)
@@ -426,7 +415,6 @@ if(!SUPPRESSLARGEOUTPUT)
 						if(ifslowharvestpool)
 							transfer_harvested_products_slow[n]+=patch.pft[n].harvested_products_slow*scale;
 					}
-					transfer_acflux_harvest+=patch.fluxes.acflux_harvest*scale;
 
 					Vegetation& vegetation=patch.vegetation;
 					vegetation.firstobj();
@@ -789,7 +777,7 @@ if(!SUPPRESSLARGEOUTPUT)
 					patch.soil.k_soilfast_mean=(patch.soil.k_soilfast_mean*old_frac+transfer_k_soilfast_mean*added_frac)/new_frac;
 					patch.soil.k_soilslow_mean=(patch.soil.k_soilslow_mean*old_frac+transfer_k_soilslow_mean*added_frac)/new_frac;
 //add fluxes:
-					patch.fluxes.acflux_harvest=(patch.fluxes.acflux_harvest*old_frac+transfer_acflux_harvest*added_frac)/new_frac;
+					patch.fluxes.report_flux(Fluxes::HARVESTC, transfer_acflux_harvest*added_frac/new_frac);
 
 					stand.nextobj();
 				}
@@ -2583,7 +2571,7 @@ void growth_crop_daily(Patch& patch)
 					cropindiv.ycmass_plant+=CMASS_SEED;
 					cropindiv.dcmass_plant+=CMASS_SEED;
 
-					patch.fluxes.acflux_seed-=CMASS_SEED;	// This flux will be balancing litter fluxes for the NEXT year, but the amount should be OK.
+					patch.fluxes.report_flux(Fluxes::SEEDC, -CMASS_SEED);	// This flux will be balancing litter fluxes for the NEXT year, but the amount should be OK.
 				}
 #endif
 				cropindiv.dcmass_plant+=indiv.dnpp;

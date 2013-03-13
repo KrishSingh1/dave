@@ -11,6 +11,7 @@
 
 #include <ostream>
 #include <istream>
+#include <vector>
 
 /// Abstract base class for ArchiveInStream and ArchiveOutStream
 /** The base class declares the transfer function, which will read
@@ -119,6 +120,26 @@ ArchiveStream& operator&(ArchiveStream& stream, T& data) {
 	else {
 		stream.transfer((char*)&data, sizeof(data));
 	}
+	return stream;
+}
+
+template<typename T>
+ArchiveStream& operator&(ArchiveStream& stream, std::vector<T>& data) {
+	if (stream.save()) {
+		size_t size = data.size();
+		stream & size;
+	}
+	else {
+		size_t size;
+		stream & size;
+
+		data.resize(size);
+	}
+
+	for (size_t i = 0; i < data.size(); ++i) {
+		stream & data[i];
+	}
+
 	return stream;
 }
 

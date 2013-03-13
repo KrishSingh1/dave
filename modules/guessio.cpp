@@ -2315,6 +2315,10 @@ void outannual(Gridcell& gridcell) {
 					// Loop through Patches
 					while (stand.isobj) {
 						Patch& patch=stand.getobj();
+
+						standpft_aiso += patch.fluxes.get_annual_flux(Fluxes::ISO, pft.id);
+						standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MON, pft.id);
+
 						Vegetation& vegetation=patch.vegetation;
 
 						vegetation.firstobj();
@@ -2331,7 +2335,7 @@ void outannual(Gridcell& gridcell) {
 										if(indiv.cropindiv->isintercropgrass==false)
 										{
 											standpft_cmass+=indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt+indiv.cropindiv->cmass_ho+indiv.cropindiv->cmass_agpool;
-											standpft_anpp+=indiv.anpp;
+											standpft_anpp += patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id);
 											if(pft.phenology==CROPGREEN)					
 												standpft_lai+=indiv.cropindiv->cmass_leaf_max*pft.sla;
 											else
@@ -2341,14 +2345,14 @@ void outannual(Gridcell& gridcell) {
 										else
 										{
 											standpft_ic_cmass+=indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt+indiv.cropindiv->cmass_ho+indiv.cropindiv->cmass_agpool;
-											standpft_ic_anpp+=indiv.anpp;
+											standpft_ic_anpp += patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id);
 										}
 									}
 									else
 									{
 										standpft_cmass+=indiv.cmass_leaf+
 											indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
-										standpft_anpp+=indiv.anpp;
+										standpft_anpp += patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id);
 										standpft_lai+=indiv.lai;
 										standpft_aiso+=indiv.aiso;
 										standpft_amon+=indiv.amon;
@@ -2537,16 +2541,15 @@ void outannual(Gridcell& gridcell) {
 					mevap[m] += patch.mevap[m]*to_gridcell_average;
 					mintercep[m] += patch.mintercep[m]*to_gridcell_average;
 					mrunoff[m] += patch.mrunoff[m]*to_gridcell_average;
-					mrh[m] += patch.fluxes.mcflux_soil[m]*to_gridcell_average;
+					mrh[m] += patch.fluxes.get_monthly_flux(Fluxes::SOILC, m)*to_gridcell_average;
 					mwcont_upper[m] += patch.soil.mwcont[m][0]*to_gridcell_average;
 					mwcont_lower[m] += patch.soil.mwcont[m][1]*to_gridcell_average;
 
-					// guess2008 - average across stands to get mgpp and mra here. 
-					mgpp[m] += patch.fluxes.mcflux_gpp[m]*to_gridcell_average;
-					mra[m] += patch.fluxes.mcflux_ra[m]*to_gridcell_average;
-					// bvoc
-					miso[m]+=patch.fluxes.miso[m]*to_gridcell_average;
-					mmon[m]+=patch.fluxes.mmon[m]*to_gridcell_average;
+					mgpp[m] += patch.fluxes.get_monthly_flux(Fluxes::GPP, m)*to_gridcell_average;
+					mra[m] += patch.fluxes.get_monthly_flux(Fluxes::RA, m)*to_gridcell_average;
+
+					miso[m]+=patch.fluxes.get_monthly_flux(Fluxes::ISO, m)*to_gridcell_average;
+					mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MON, m)*to_gridcell_average;
 				}
 
 

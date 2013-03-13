@@ -250,11 +250,8 @@ void bvoc(double temp, double hours, double daylength, double rad, double eet,
 	// calculate isoprene and monoterpene emissions, g C m-2 d-1
 	iso_mono(co2, temp_leaf_daytime, hours, pft, temp_leaf, fpar, phot, indiv, ndays);
 
-	indiv.aiso += indiv.iso;
-	indiv.amon += indiv.mon;
-
-	patch.fluxes.miso[date.month] += indiv.iso;
-	patch.fluxes.mmon[date.month] += indiv.mon;
+	indiv.report_flux(Fluxes::ISO, indiv.iso);
+	indiv.report_flux(Fluxes::MON, indiv.mon);
 }
 
 // REFERENCES

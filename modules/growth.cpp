@@ -1090,19 +1090,29 @@ void growth(Stand& stand,Patch& patch) {
 			}
 
 			// Tissue turnover and associated litter production
-			if(indiv.pft.landcover==CROPLAND)
-				harvest_crop(indiv.cmass_leaf,indiv.cmass_root,indiv.cropindiv->cmass_ho,indiv.cropindiv->cmass_agpool,
-					patch.pft[indiv.pft.id].litter_leaf,patch.pft[indiv.pft.id].litter_root,patch.fluxes.acflux_harvest,patch.pft[indiv.pft.id].harvested_products_slow, indiv);
-			else if(indiv.pft.landcover==PASTURE)
-				harvest_pasture(indiv.cmass_leaf,indiv.cmass_root,
-					patch.pft[indiv.pft.id].litter_leaf,patch.pft[indiv.pft.id].litter_root,patch.fluxes.acflux_harvest,patch.pft[indiv.pft.id].harvested_products_slow, indiv);
-			else
+
+			if(indiv.pft.landcover==NATURAL)
+			{
 				turnover(indiv.pft.turnover_leaf,indiv.pft.turnover_root,
 					indiv.pft.turnover_sap,indiv.pft.lifeform,indiv.pft.landcover,indiv.cmass_leaf,
 					indiv.cmass_root,indiv.cmass_sap,indiv.cmass_heart,
 					patch.pft[indiv.pft.id].litter_leaf,
 					patch.pft[indiv.pft.id].litter_root,indiv.alive, gridcell);
+			}
+			else
+			{
+				double acflux_harvest=patch.fluxes.get_annual_flux(Fluxes::HARVESTC);
+				double acflux_harvest_saved=acflux_harvest;
 
+				if(indiv.pft.landcover==CROPLAND)
+					harvest_crop(indiv.cmass_leaf,indiv.cmass_root,indiv.cropindiv->cmass_ho,indiv.cropindiv->cmass_agpool,
+						patch.pft[indiv.pft.id].litter_leaf,patch.pft[indiv.pft.id].litter_root,acflux_harvest,patch.pft[indiv.pft.id].harvested_products_slow, indiv);
+				else if(indiv.pft.landcover==PASTURE)
+					harvest_pasture(indiv.cmass_leaf,indiv.cmass_root,
+						patch.pft[indiv.pft.id].litter_leaf,patch.pft[indiv.pft.id].litter_root,acflux_harvest,patch.pft[indiv.pft.id].harvested_products_slow, indiv);
+				patch.fluxes.report_flux(Fluxes::HARVESTC, acflux_harvest-acflux_harvest_saved);
+
+			}
 			// Update stand record of reproduction by this PFT
 			stand.pft[indiv.pft.id].cmass_repr+=cmass_repr/(double)stand.npatch();
 
@@ -1270,11 +1280,15 @@ void growth(Stand& stand,Patch& patch) {
 
 			if (!killed) {
 				if (!indiv.alive) {
+					// The individual has survived its first year...
+					indiv.alive = true;
+
+					// ...now we can start counting its fluxes,
+					// debit current biomass as establishment flux
 					if (!(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass))) {
-						patch.fluxes.acflux_est-=indiv.cmass_leaf+indiv.cmass_root+
-							indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
+						indiv.report_flux(Fluxes::ESTC, 
+					                  -(indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt));
 					}
-					indiv.alive=true;
 				}
 
 				// ... on to next individual

@@ -1358,40 +1358,7 @@ void growth(Stand& stand, Patch& patch) {
 				if (indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS || 
 					indiv.cmass_sap < MINCMASS) {
 
-					// alive check
-					if (indiv.alive) {
-
-						// catches small, negative values too
-						patch.pft[indiv.pft.id].litter_leaf += indiv.cmass_leaf;
-						patch.pft[indiv.pft.id].litter_root += indiv.cmass_root;
-
-						// debt might be larger than biomass
-						if (indiv.cmass_debt <= indiv.cmass_sap + indiv.cmass_heart) {
-
-							if (indiv.cmass_heart >= indiv.cmass_debt) {
-								patch.pft[indiv.pft.id].litter_sap   += indiv.cmass_sap;
-								patch.pft[indiv.pft.id].litter_heart += indiv.cmass_heart - indiv.cmass_debt;
-							}
-							else {
-								patch.pft[indiv.pft.id].litter_sap   += indiv.cmass_sap + indiv.cmass_heart - indiv.cmass_debt;
-							}
-						}
-						else {
-							double debt_excess = indiv.cmass_debt - (indiv.cmass_sap + indiv.cmass_heart);
-							indiv.report_flux(Fluxes::NPP, debt_excess);
-							indiv.report_flux(Fluxes::RA, -debt_excess);
-						}
-					}
-					
-					// Nitrogen allways return to soil litter
-					patch.pft[indiv.pft.id].nmass_litter_leaf  += indiv.nmass_leaf;
-					patch.pft[indiv.pft.id].nmass_litter_root  += indiv.nmass_root;
-
-					patch.pft[indiv.pft.id].nmass_litter_sap   += indiv.nmass_sap;
-					patch.pft[indiv.pft.id].nmass_litter_heart += indiv.nmass_heart;
-						
-					// Transfer nitrogen storage to wood nitrogen litter for now
-					patch.pft[indiv.pft.id].nmass_litter_sap   += indiv.nstore();
+					indiv.kill();
 
 					vegetation.killobj();
 					killed = true;

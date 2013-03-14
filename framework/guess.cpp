@@ -627,6 +627,49 @@ void Individual::report_flux(Fluxes::PerPatchFluxType flux_type, double value) {
 	}
 }
 
+Patchpft& Individual::patchpft() {
+	return vegetation.patch.pft[pft.id];
+}
+
+void Individual::kill() {
+	Patchpft& ppft = patchpft();
+
+	// C doesn't return to litter if the Individual isn't alive
+	if (alive) {
+
+		// catches small, negative values too
+		ppft.litter_leaf += cmass_leaf;
+		ppft.litter_root += cmass_root;
+
+		// debt might be larger than biomass
+		if (cmass_debt <= cmass_sap + cmass_heart) {
+
+			if (cmass_heart >= cmass_debt) {
+				ppft.litter_sap   += cmass_sap;
+				ppft.litter_heart += cmass_heart - cmass_debt;
+			}
+			else {
+				ppft.litter_sap   += cmass_sap + cmass_heart - cmass_debt;
+			}
+		}
+		else {
+			double debt_excess = cmass_debt - (cmass_sap + cmass_heart);
+			report_flux(Fluxes::NPP, debt_excess);
+			report_flux(Fluxes::RA, -debt_excess);
+		}
+	}
+
+	// Nitrogen always return to soil litter
+	ppft.nmass_litter_leaf  += nmass_leaf;
+	ppft.nmass_litter_root  += nmass_root;
+
+	ppft.nmass_litter_sap   += nmass_sap;
+	ppft.nmass_litter_heart += nmass_heart;
+
+	// Transfer nitrogen storage to wood nitrogen litter for now
+	ppft.nmass_litter_sap   += nstore();
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Gridcellpft member functions
 ////////////////////////////////////////////////////////////////////////////////

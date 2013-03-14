@@ -174,6 +174,7 @@ class Stand;
 class Patch;
 class Vegetation;
 class Gridcell;
+class Patchpft;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES WITH EXTERNAL LINKAGE
@@ -1360,6 +1361,12 @@ public:
 			return 1.0;
 		}
 	}
+
+	/// Gets the individual's Patchpft
+	Patchpft& patchpft();
+
+	/// Transfers the individual's biomass (C and N) to litter pools/fluxes
+	void kill();
 };
 
 

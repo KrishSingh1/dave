@@ -1137,6 +1137,8 @@ public:
 	double nmass_sap;
 	/// nitrogen content of heartwood on patch area basis (kgN/m2)
 	double nmass_heart;
+	// nitrogen "debt" (retrospective storage) (kgN/m2)
+	double nmass_debt;		
 
 	double fpc;
 		// foliar projective cover (FPC) under full leaf cover as fraction of modelled

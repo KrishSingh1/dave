@@ -493,6 +493,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	nmass_root        = 0.0;
 	nmass_sap         = 0.0;
 	nmass_heart       = 0.0;
+	nmass_debt        = 0.0;
 	cton_leaf_aopt    = 0.0;
 	cton_leaf_aavr    = 0.0;
 	cmass_veg         = 0.0;
@@ -585,6 +586,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& nmass_root
 		& nmass_sap
 		& nmass_heart
+		& nmass_debt
 		& nactive
 		& nextin
 		& nstore_longterm
@@ -641,33 +643,55 @@ void Individual::kill() {
 		ppft.litter_leaf += cmass_leaf;
 		ppft.litter_root += cmass_root;
 
-		// debt might be larger than biomass
-		if (cmass_debt <= cmass_sap + cmass_heart) {
+		if (pft.lifeform == TREE) {
 
-			if (cmass_heart >= cmass_debt) {
-				ppft.litter_sap   += cmass_sap;
-				ppft.litter_heart += cmass_heart - cmass_debt;
+			// debt smaller than existing woody biomass
+			if (cmass_debt <= cmass_sap + cmass_heart) {
+
+				if (cmass_heart >= cmass_debt) {
+					ppft.litter_sap   += cmass_sap;
+					ppft.litter_heart += cmass_heart - cmass_debt;
+				}
+				else {
+					ppft.litter_sap   += cmass_sap + cmass_heart - cmass_debt;
+				}
 			}
+			// debt larger than existing woody biomass
 			else {
-				ppft.litter_sap   += cmass_sap + cmass_heart - cmass_debt;
+				double debt_excess = cmass_debt - (cmass_sap + cmass_heart);
+				report_flux(Fluxes::NPP, debt_excess);
+				report_flux(Fluxes::RA, -debt_excess);
 			}
-		}
-		else {
-			double debt_excess = cmass_debt - (cmass_sap + cmass_heart);
-			report_flux(Fluxes::NPP, debt_excess);
-			report_flux(Fluxes::RA, -debt_excess);
 		}
 	}
 
 	// Nitrogen always return to soil litter
-	ppft.nmass_litter_leaf  += nmass_leaf;
-	ppft.nmass_litter_root  += nmass_root;
+	double frac = 1.0;
 
-	ppft.nmass_litter_sap   += nmass_sap;
-	ppft.nmass_litter_heart += nmass_heart;
+	if (pft.lifeform == TREE) {
 
-	// Transfer nitrogen storage to wood nitrogen litter for now
-	ppft.nmass_litter_sap   += nstore();
+		// sapwood and storage can repay all nitrogen debt
+		if (nmass_debt < nmass_sap + nstore()) {
+			ppft.nmass_litter_sap += nmass_sap + nstore() - nmass_debt;
+		}
+		// sapwood and storage doesn't have enough nitrogen, rest must pay equal amount
+		else if (nmass_leaf + nmass_root + nmass_sap + nmass_heart + nstore() - nmass_debt > 0.0){
+			double nmass = nmass_leaf + nmass_root + nmass_sap + nmass_heart + nstore() - nmass_debt;
+			frac = (nmass_leaf + nmass_root + nmass_heart) / nmass;			
+		}
+		else {
+			frac = 0.0;
+		}
+
+		ppft.nmass_litter_heart += nmass_heart * frac;
+	}
+	else {
+		// Transfer nitrogen storage to root nitrogen litter for now
+		ppft.nmass_litter_root  += nstore();
+	}
+
+	ppft.nmass_litter_leaf  += nmass_leaf * frac;
+	ppft.nmass_litter_root  += nmass_root * frac;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

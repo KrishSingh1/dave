@@ -345,10 +345,13 @@ void setntoc(Soil& soil, double fac, pooltype pool, double cton_max, double cton
  */
 void decayrates(Soil& soil, double temp_soil, double wcont_soil) {
 
+	double scall=6.0;
+
 	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
 	// plus Kirschbaum et al 2001 coarse woody debris decay	
-	const double K_MAX[] = {9.5e-3, 1.9e-2, 4.2e-2, 4.8e-4, 2.7e-2, 3.8e-2, 1.1e-2, 2.2e-3, 7.0e-2, 1.7e-3, 6.9e-6};
+	//const double K_MAX[] = {9.5e-3, 1.9e-2, 4.2e-2, 4.8e-4, 2.7e-2, 3.8e-2, 1.1e-2, 2.2e-3, 7.0e-2, 1.7e-3, 6.9e-6};
+	const double K_MAX[] = {9.5e-3, 1.9e-2, 4.2e-2, 4.8e-4, 2.7e-2, 3.8e-2, 1.1e-2, 2.2e-3, 7.0e-2, 1.7e-3/scall, 6.9e-6/scall};
 	// pools SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SURFFWD,SURFCWD,SOILMETA,SLOWSOM,PASSIVESOM
 
 	// Modifier for effect of soil texture
@@ -693,7 +696,7 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 	soil.nmass_avail += nmin_actual - nimmob;
 
 	// Estimate of N flux from soil (simple CLM-CN approach)
-	double nflux = soil.temp > 0.0 ? max(0.0, soil.nmass_avail * 0.01) : 0.0;
+	double nflux = nmin_actual - nimmob > 0.0 ? (nmin_actual - nimmob) * 0.01 : 0.0;
 	soil.nmass_avail -= nflux;
 
 	if (!ifequilsom) {

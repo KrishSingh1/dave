@@ -239,8 +239,13 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	
 	turnover = turnover_leaf * nmass_leaf * scale;
 	nmass_leaf -= turnover;
-	nmass_litter_leaf += turnover * (1.0 - nrelocfrac);
-	retransn += turnover * nrelocfrac;
+	if (alive || lifeform == GRASS) {
+		nmass_litter_leaf += turnover * (1.0 - nrelocfrac);
+		retransn += turnover * nrelocfrac;
+	}
+	else {
+		retransn += turnover;
+	}
 
 	// Root turnover
 	turnover = turnover_root * cmass_root * scale;
@@ -249,8 +254,13 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 
 	turnover = turnover_root * nmass_root * scale;
 	nmass_root -= turnover;
-	nmass_litter_root += turnover * (1.0 - nrelocfrac);
-	retransn += turnover * nrelocfrac;
+	if (alive || lifeform == GRASS) {
+		nmass_litter_root += turnover * (1.0 - nrelocfrac);
+		retransn += turnover * nrelocfrac;
+	}
+	else {
+		retransn += turnover;
+	}
 
 	if (lifeform == TREE) {
 
@@ -1114,6 +1124,8 @@ void growth(Stand& stand, Patch& patch) {
 	double cton_root_bg;
 	// Sap C:N ratios before growth
 	double cton_sap_bg;
+	// nitrogen stored over maximum long-term storage capacity
+	double nsurplus;
 
 	double dval;
 	int p;
@@ -1232,20 +1244,41 @@ void growth(Stand& stand, Patch& patch) {
 				retransn, 
 				indiv.alive, gridcell);
 
-			if (indiv.alive && indiv.nstore_longterm + retransn > indiv.max_n_storage) {
+			if (indiv.nstore_longterm + retransn > indiv.max_n_storage) {
 				
 				// Nitrogen stored above maximum that will be subtracted from retranslocated nitrogen
-				double surplus = min(retransn, indiv.nstore_longterm + retransn - indiv.max_n_storage);
+				nsurplus = min(retransn, indiv.nstore_longterm + retransn - indiv.max_n_storage);
 
-				retransn -= surplus;
-
-				// Return nitrogen to litter
-				patch.pft[indiv.pft.id].nmass_litter_leaf += surplus / 2.0;
-				patch.pft[indiv.pft.id].nmass_litter_root += surplus / 2.0;
+				retransn -= nsurplus;
 			}
-			
+			else {
+				nsurplus = 0.0;
+			}
+
 			// Add retranslocated nitrogen to storage
 			indiv.nstore_longterm += retransn;
+
+			// Try and pay back part of nitrogen debt
+			if (indiv.nmass_debt > 0.0) {
+
+				if (nsurplus >= indiv.nmass_debt) {
+					nsurplus -= indiv.nmass_debt;
+					indiv.nmass_debt = 0.0;
+				}
+				else {
+					indiv.nmass_debt -= nsurplus;
+
+					double NDEBT_PAYBACK_RATE = 0.1;
+
+					double nmass_payback = min(indiv.nstore_longterm * NDEBT_PAYBACK_RATE, indiv.nmass_debt);
+					indiv.nmass_debt -= nmass_payback;
+					indiv.nstore_longterm -= nmass_payback;
+				}
+			}
+
+			// Return surplus nitrogen to litter
+			patch.pft[indiv.pft.id].nmass_litter_leaf += nsurplus / 2.0;
+			patch.pft[indiv.pft.id].nmass_litter_root += nsurplus / 2.0;
 			
 			// Update stand record of reproduction by this PFT
 			stand.pft[indiv.pft.id].cmass_repr += cmass_repr / (double)stand.npatch();
@@ -1424,19 +1457,7 @@ void growth(Stand& stand, Patch& patch) {
 
 				if (indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS) {
 
-					// alive check
-					if (indiv.alive) {
-
-						patch.pft[indiv.pft.id].litter_leaf += indiv.cmass_leaf;
-						patch.pft[indiv.pft.id].litter_root += indiv.cmass_root;
-					}
-
-					// Nitrogen allways return to soil litter
-					patch.pft[indiv.pft.id].nmass_litter_leaf += indiv.nmass_leaf;
-					patch.pft[indiv.pft.id].nmass_litter_root += indiv.nmass_root; 
-						
-					// Transfer nitrogen storage to root nitrogen litter for now
-					patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore();
+					indiv.kill();
 
 					vegetation.killobj();
 					killed = true;
@@ -1448,30 +1469,7 @@ void growth(Stand& stand, Patch& patch) {
 
 			if (!allometry(indiv)) {
 
-				// alive check
-				if (indiv.alive) {
-					patch.pft[indiv.pft.id].litter_leaf  += indiv.cmass_leaf;
-					patch.pft[indiv.pft.id].litter_root  += indiv.cmass_root;
-
-					patch.pft[indiv.pft.id].litter_sap   += indiv.cmass_sap;
-					patch.pft[indiv.pft.id].litter_heart += indiv.cmass_heart;
-				}
-
-				// Nitrogen allways return to soil litter
-				patch.pft[indiv.pft.id].nmass_litter_leaf  += indiv.nmass_leaf;
-				patch.pft[indiv.pft.id].nmass_litter_root  += indiv.nmass_root;
-
-				patch.pft[indiv.pft.id].nmass_litter_sap   += indiv.nmass_sap;
-				patch.pft[indiv.pft.id].nmass_litter_heart += indiv.nmass_heart;
-					
-				// Transfer nitrogen storage for now to wood nitrogen litter for trees
-				// and roots for grasses
-				if (indiv.pft.lifeform == GRASS) {
-					patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore();
-				}
-				else {
-					patch.pft[indiv.pft.id].nmass_litter_sap  += indiv.nstore();
-				}
+				indiv.kill();
 				
 				vegetation.killobj();
 				killed = true;

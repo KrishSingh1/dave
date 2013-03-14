@@ -648,6 +648,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
 						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
 
+						// Starting nitrogen mass as debt
+						indiv.nstore_labile = indiv.max_n_storage;
+						indiv.nmass_debt    = indiv.max_n_storage;
+
 						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()
 						// if they survive the first year 
@@ -773,22 +777,7 @@ void mortality_lpj(Stand& stand, Patch& patch, Climate& climate, double fireprob
 
 			// Remove completely if PFT beyond its bioclimatic limits for survival
 
-			patch.pft[indiv.pft.id].litter_leaf  += indiv.cmass_leaf;
-			patch.pft[indiv.pft.id].litter_root  += indiv.cmass_root;
-			patch.pft[indiv.pft.id].litter_sap   += indiv.cmass_sap;
-			patch.pft[indiv.pft.id].litter_heart += indiv.cmass_heart;
-
-			patch.pft[indiv.pft.id].nmass_litter_leaf  += indiv.nmass_leaf;
-			patch.pft[indiv.pft.id].nmass_litter_root  += indiv.nmass_root;
-			patch.pft[indiv.pft.id].nmass_litter_sap   += indiv.nmass_sap;
-			patch.pft[indiv.pft.id].nmass_litter_heart += indiv.nmass_heart;
-			
-			// Transfer nitrogen storage for now to wood nitrogen litter for trees
-			// and roots for grasses 
-			if (patch.pft[indiv.pft.id].pft.lifeform == TREE)
-				patch.pft[indiv.pft.id].nmass_litter_sap += indiv.nstore();
-			else
-				patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore();
+			indiv.kill();
 
 			vegetation.killobj();
 			killed=true;
@@ -1123,22 +1112,7 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 
 			// Kill cohort/individual, transfer biomass to litter
 
-			patch.pft[indiv.pft.id].litter_leaf  += indiv.cmass_leaf;
-			patch.pft[indiv.pft.id].litter_root  += indiv.cmass_root;
-			patch.pft[indiv.pft.id].litter_sap   += indiv.cmass_sap;
-			patch.pft[indiv.pft.id].litter_heart += indiv.cmass_heart;
-
-			patch.pft[indiv.pft.id].nmass_litter_leaf  += indiv.nmass_leaf;
-			patch.pft[indiv.pft.id].nmass_litter_root  += indiv.nmass_root;
-			patch.pft[indiv.pft.id].nmass_litter_sap   += indiv.nmass_sap;
-			patch.pft[indiv.pft.id].nmass_litter_heart += indiv.nmass_heart;
-				
-			// Transfer nitrogen storage for now to wood nitrogen litter for trees
-			// and roots for grasses
-			if (indiv.pft.lifeform == TREE)
-				patch.pft[indiv.pft.id].nmass_litter_sap += indiv.nstore();
-			else
-				patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore();
+			indiv.kill();
 
 			vegetation.killobj();
 			killed = true;
@@ -1487,22 +1461,7 @@ void disturbance(Patch& patch, double disturb_prob) {
 		while (vegetation.isobj) {
 			Individual& indiv = vegetation.getobj();
 			 
-			patch.pft[indiv.pft.id].litter_leaf  += indiv.cmass_leaf;
-			patch.pft[indiv.pft.id].litter_root  += indiv.cmass_root;
-			patch.pft[indiv.pft.id].litter_sap   += indiv.cmass_sap;
-			patch.pft[indiv.pft.id].litter_heart += indiv.cmass_heart;
-			
-			patch.pft[indiv.pft.id].nmass_litter_leaf  += indiv.nmass_leaf;
-			patch.pft[indiv.pft.id].nmass_litter_root  += indiv.nmass_root;
-			patch.pft[indiv.pft.id].nmass_litter_sap   += indiv.nmass_sap;
-			patch.pft[indiv.pft.id].nmass_litter_heart += indiv.nmass_heart;
-
-			// Transfer nitrogen storage for now to wood nitrogen litter for trees
-			// and roots for grasses
-			if (indiv.pft.lifeform == TREE)
-				patch.pft[indiv.pft.id].nmass_litter_sap += indiv.nstore();
-			else
-				patch.pft[indiv.pft.id].nmass_litter_root += indiv.nstore();
+			indiv.kill();
 
 			vegetation.killobj();
 		}

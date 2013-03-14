@@ -2354,6 +2354,7 @@ public:
 	Gridcell():climate(*this) {
 		landcovertype landcover;
 		LC_updated=false;
+		seed=12345678;
 
 		for(unsigned int p=0;p<pftlist.nobj;p++) {
 			pft.createobj(pftlist[p]);

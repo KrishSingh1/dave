@@ -20,7 +20,7 @@ double randfrac(long& seed);
 void soilparameters(Soiltype& soiltype,int soilcode);
 void interp_monthly_means(double mvals[12], double dvals[365]);
 void interp_monthly_totals(double mvals[12], double dvals[365]);
-void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12], long seed);
+void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12], long& seed);
 void dailyaccounting_gridcell(Gridcell& gridcell);
 void dailyaccounting_stand(Stand& stand);
 void dailyaccounting_patch(Patch& patch);

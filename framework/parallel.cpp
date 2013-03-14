@@ -18,6 +18,7 @@
 #include "parallel.h"
 #include "shell.h"
 #include <memory>
+#include <string>
 
 namespace GuessParallel {
 
@@ -38,10 +39,31 @@ std::auto_ptr<FinalizeCaller> destructor;
 
 void init(int& argc, char**& argv) {
 #ifdef HAVE_MPI
-	MPI_Init(&argc, &argv);
 
-	// Make sure the MPI_Finalize function is called at program termination
-	destructor = std::auto_ptr<FinalizeCaller>(new FinalizeCaller());
+	// Only initialize MPI is the command line options explicitly
+	// asks for a parallel run (with the -parallel option).
+	// In most cases it wouldn't hurt to initialize MPI even if
+	// it's not used, but apparently some implementations start
+	// by going to the users home directory if the program isn't
+	// launched by an mpiexec/mpirun launcher.
+
+	// Unfortunately, since MPI initialization must be done before
+	// we parse our options with CommandLineArguments, we need to
+	// look for the -parallel option here by ourselves.
+	bool parallel = false;
+	for (int i = 0; i < argc; ++i) {
+		if (std::string(argv[i]) == "-parallel") {
+			parallel = true;
+			break;
+		}
+	}
+
+	if (parallel) {
+		MPI_Init(&argc, &argv);
+
+		// Make sure the MPI_Finalize function is called at program termination
+		destructor = std::auto_ptr<FinalizeCaller>(new FinalizeCaller());
+	}
 #endif
 }
 

@@ -36,7 +36,6 @@ int estinterval; // establishment interval in cohort mode (years)
 double distinterval;
 	// generic patch-destroying disturbance interval (individual, cohort mode)
 int npft; // number of possible PFTs
-bool iffast;
 bool ifcdebt;
 
 // guess2008 - new inputs from the .ins file
@@ -774,7 +773,8 @@ void Gridcell::serialize(ArchiveStream& arch) {
 		& landcoverfrac_old
 		& cftfrac
 		& cftfrac_old
-		& LC_updated;
+		& LC_updated
+		& seed;
 
 	if (arch.save()) {
 		for (unsigned int i = 0; i < pft.nobj; i++) {

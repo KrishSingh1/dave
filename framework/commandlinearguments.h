@@ -26,8 +26,8 @@ public:
 	/// Returns true if the user has specified the help option
 	bool get_help() const;
 
-	/// Returns true if the user has specified the goto-rundir option
-	bool get_goto_rundir() const;
+	/// Returns true if the user has specified the parallel option
+	bool get_parallel() const;
 
 private:
 	/// Does the actual parsing of the arguments
@@ -42,8 +42,8 @@ private:
 	/// Whether the user wants help on how to run the LPJ-GUESS command
 	bool help;
 
-	/// Whether we should step into a run directory before starting
-	bool goto_rundir;
+	/// Whether the user requested a parallel run
+	bool parallel;
 };
 
 #endif // LPJ_GUESS_COMMAND_LINE_ARGUMENTS_H

@@ -3972,9 +3972,6 @@ bool getgridcell(Gridcell& gridcell)
 	bool gridfound;
 	bool LUerror=false;
 
-	// to ensure an identical random number sequence for each gridcell.
-	setseed(12345678);
-
 	// Make sure we use the first gridcell in the first call to this function,
 	// and then step through the gridlist in subsequent calls.
 	static bool first_call = true;
@@ -4560,7 +4557,7 @@ bool getclimate(Gridcell& gridcell) {
 			// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
 			if (ifrainonwetdaysonly) { 
 				// (from Dieter Gerten 021121)
-				prdaily(mprec,dprec,mwet);
+				prdaily(mprec, dprec, mwet, gridcell.seed);
 			}
 
 			spinup_mtemp.nextyear();
@@ -4587,7 +4584,7 @@ bool getclimate(Gridcell& gridcell) {
 			// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
 			if (ifrainonwetdaysonly) { 
 				// (from Dieter Gerten 021121)
-				prdaily(hist_mprec[date.year-nyear_spinup],dprec,hist_mwet[date.year-nyear_spinup]);
+				prdaily(hist_mprec[date.year-nyear_spinup], dprec, hist_mwet[date.year-nyear_spinup], gridcell.seed);
 			}
 
 			for(int m=0;m<12;m++)	

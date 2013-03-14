@@ -55,8 +55,8 @@ int main(int argc,char* argv[]) {
 	// Parse command line arguments
 	CommandLineArguments args(argc, argv);
 
-	// Change working directory according to rank if requested
-	if (args.get_goto_rundir()) {
+	// Change working directory according to rank if parallel run
+	if (args.get_parallel()) {
 		xtring path;
 		path.printf("./run%d", GuessParallel::get_rank()+1);
 

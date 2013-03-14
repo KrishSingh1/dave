@@ -31,31 +31,14 @@
 #include "driver.h"
 
 
-static long seed=12345678; // seed for random number generator (see randfrac)
-
-
-// guess2008
-extern int nyear_spinup;
-	// allows access to the value declared guessio_cru.cpp
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-// RANDFRAC
-// Internal function for generating random numbers
-
-void setseed(long init) {
-
-	seed=init;
-}
-
+/// Function for generating random numbers
+/** Returns a random floating-point number in the range 0-1.
+ *  Uses and updates the parameter 'seed' which may be initialised to any
+ *  positive integral value (the same initial value will result in the same sequence
+ *  of returned values on subsequent calls to randfrac every time the program is
+ *  run)
+ */
 double randfrac(long& seed) {
-
-	// DESCRIPTION
-	// Returns a random floating-point number in the range 0-1.
-	// Uses and updates the global variable 'seed' which may be initialised to any
-	// positive integral value (the same initial value will result in the same sequence
-	// of returned values on subsequent calls to randfloat every time the program is
-	// run)
 
 	// Reference: Park & Miller 1988 CACM 31: 1192
 
@@ -193,16 +176,17 @@ void interp_monthly_totals(double mvals[12], double dvals[365]) {
 	interp_monthly_means(mvals_daily, dvals);
 }
 
-///////////////////////////////////////////////////////////////////////////////////////
-//  PRDAILY
-//  Distribution of monthly precipitation totals to quasi-daily values
-//  (From Dieter Gerten 021121)
 
-void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12]) {
+/// Distribution of monthly precipitation totals to quasi-daily values
+/** \param mval_prec  total rainfall (mm) for month
+ *  \param dval_prec  actual rainfall (mm) for each day of year
+ *  \param mval_wet   expected number of rain days for month
+ *  \param seed       seed for generating random numbers (\see randfrac)
+ */
+void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12], long seed) {
 
-	// mval_prec = total rainfall (mm) for month
-	// dval_prec = actual rainfall (mm) for each day of year
-	// mval_wet  = expected number of rain days for month
+	//  Distribution of monthly precipitation totals to quasi-daily values
+	//  (From Dieter Gerten 021121)
 
 	const double c1=1.0; // normalising coefficient for exponential distribution
 	const double c2=1.2; // power for exponential distribution

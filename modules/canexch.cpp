@@ -1496,8 +1496,6 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			vegetation.nextobj();
 			continue;
 		}
-
-		double gpterm_indiv = date.diurnal() ? spft.gpterms[day.period] : spft.gpterm;
 		if (indiv.wstress) {
 			// Water stress - derive assimilation by simultaneous solution
 			// of light- and conductance-based equations of photosynthesis
@@ -1515,13 +1513,12 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			double adtmm;
 			if (indiv.wstress) {
 				adtmm = phot.adtmm;
-				gpterm_indiv = gpterm(phot.adtmm, climate.co2, lambda, hours);
 			}
 			else {
 				adtmm = date.diurnal() ? spft.phots[day.period].adtmm : spft.photosynthesis.adtmm;
 			}
 			phot = date.diurnal() ? spft.phots[day.period] : spft.photosynthesis;
-			bvoc(temp, hours, rad, climate, patch, indiv, pft, phot, adtmm, gpterm_indiv, day);
+			bvoc(temp, hours, rad, climate, patch, indiv, pft, phot, adtmm, day);
 		}
 
 		// Calculate autotrophic respiration

@@ -20,7 +20,6 @@ Date date; // object describing timing stage of simulation
 vegmodetype vegmode; // vegetation mode (population, cohort or individual)
 int npatch; // number of patches in each stand (should always be 1 in population mode); cropland stands always have 1 patch
 double patcharea; // patch area (m2) (individual and cohort mode only)
-bool ifdailynpp; // whether NPP calculations performed daily (alt: monthly)
 bool ifdailydecomp;
 	// whether soil decomposition calculations performed daily (alt: monthly)
 bool ifbgestab; // whether background establishment enabled (individual, cohort mode)
@@ -301,21 +300,12 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& litter_repr
 		& gcbase
 		& gcbase_day
-		& gcbase_wstress
-		& temp_wstress
-		& par_wstress
-		& daylength_wstress
-		& co2_wstress
-		& nday_wstress
-		& fpar_grass_wstress
-		& gpterm_wstress
 		& supply
 		& supply_leafon
 		& fuptake
 		& wstress
 		& wstress_day
 		& harvested_products_slow
-		& phot_wstress
 		& swindow
 		& water_deficit_y;
 	if(pft.landcover==CROPLAND)
@@ -424,7 +414,6 @@ void Standpft::serialize(ArchiveStream& arch) {
 	arch & cmass_repr
 		& anetps_ff_max
 		& gpterm
-		& assim_term
 		& fpc_total
 		& active;
 }
@@ -561,22 +550,14 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	phen=0.0;
 	aphen=0.0;
 	deltafpc=0.0;
-	fpar_wstress=0.0;
 	assim=0.0;
 
 	// guess2008 - additional initialisation
 	age=0.0;
 	fpar=0.0;
 	aphen_raingreen=0;
-	demand=0.0;
-	supply=0.0;
 	intercep=0.0;
 	phen_mean=0.0;
-	temp_wstress = 0.0;
-	par_wstress = 0.0;
-	daylength_wstress = 0.0;
-	co2_wstress = 0.0; 
-	nday_wstress = 0; 
 	wstress = false;
 	lai = 0.0;
 	lai_layer = 0.0;
@@ -594,10 +575,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	iso=0.;
 	mon=0.;
 	fvocseas=1.;
-	dtr_wstress=0.;
-	eet_wstress=0.;
-	agdd5_wstress=0.;
-	rad_wstress=0.;		
 
 	dnpp=0.0;
 	cropindiv=NULL;
@@ -638,30 +615,16 @@ void Individual::serialize(ArchiveStream& arch) {
 		& greff_5
 		& age
 		& mlai
-		& fpar_wstress
 		& fpar_leafon
 		& lai_leafon_layer
-		& demand
-		& demand_leafon
-		& supply
-		& supply_leafon
 		& intercep
 		& phen_mean
-		& temp_wstress 
-		& par_wstress 
-		& daylength_wstress 
-		& co2_wstress 
-		& nday_wstress 
 		& wstress 
 		& alive 
 		& iso 
 		& mon 
 		& monstor 
-		& fvocseas 
-		& dtr_wstress 
-		& eet_wstress 
-		& agdd5_wstress 
-		& rad_wstress;
+		& fvocseas;
 	if(pft.landcover==CROPLAND)
 		arch & *cropindiv;
 }

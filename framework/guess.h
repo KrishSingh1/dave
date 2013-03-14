@@ -208,9 +208,6 @@ extern int npatch;
 /// Patch area (m2) (individual and cohort mode only)
 extern double patcharea;
 
-/// Whether photosynthesis calculations performed daily (alt: monthly)
-extern bool ifdailynpp;
-
 /// Whether soil decomposition calculations performed daily (alt: monthly)
 extern bool ifdailydecomp;
 
@@ -1329,22 +1326,10 @@ public:
 		// monthly LAI (including phenology component)
 	double mlai_max[12];
 		// monthly maximum LAI (including phenology component)
-	// Variables used by "fast" canopy exchange code (Ben Smith 2002-07)
-
-	double fpar_wstress;
-		// FPAR for days with water stress (see canopy exchange module)
 	double fpar_leafon;
 		// FPAR assuming full leaf cover for all vegetation
 	double lai_leafon_layer;
 		// LAI for current layer in canopy (cohort/individual mode; see function fpar)
-	double demand;
-		// transpirative demand on FPC basis (mm/day)
-	double demand_leafon;
-		// transpirative demand assuming full leaf cover on FPC basis (mm/day)
-	double supply;
-		// supply function of AET, FPC basis (mm/day)
-	double supply_leafon;
-		// supply function of AET assuming full leaf cover, FPC basis (mm/day)
 	double intercep;
 		// interception associated with this individual today (patch basis)
 
@@ -1354,14 +1339,6 @@ public:
 	double phen_mean;
 		// accumulated mean fraction of potential leaf cover
 
-	// Means for driving parameters of photosynthesis required for "individual" demand
-	// mode (see canexch.cpp)
-
-	double temp_wstress; // temperature (deg C)
-	double par_wstress; // PAR (J/m2/day)
-	double daylength_wstress; // daylength (h)
-	double co2_wstress; // CO2 (ppmv)
-	int nday_wstress; // number of water-stress days for month
 	bool wstress; // whether individual subject to water stress
 
 	bool alive;
@@ -1374,10 +1351,6 @@ public:
 	double mon; // monoterpene production (mg C m-2 d-1)
 	double monstor; // monoterpene storage pool (mg C m-2)
 	double fvocseas; // isoprene seasonality factor (-)
-	double dtr_wstress; // diurnal temperature range (oC)
-	double eet_wstress; // equilibrium evapotranspiration today (mm/day)
-	double agdd5_wstress; // total gdd5 (accumulated) for this year (reset 1 January)
-	double rad_wstress; // total daily net downward shortwave solar radiation today (J/m2/day)
 
 //private:
 	cropindiv_struct *cropindiv;
@@ -1628,76 +1601,6 @@ public:
 };
 
 
-/// One item in the Lookup_lambda table
-/** Each entry in the table holds photosynthesis values for a given lambda,
- *  we also store year and day to make sure we don't reuse items calculated
- *  for a previous day. id is required to keep both daily and sub-daily tables
- *  in diurnal mode, it doesn't play any role in monthly mode (just needs to be
- *  the same, negative values given below are convention).
- *
- *  \see Lookup_lambda */
-struct Lookup_lambda_item {
-	PhotosynthesisResult photosynthesis;
-	int year;
-	int day;
-
-	/// id (monthly: -2; daily: -1; sub-daily: any non-negative value)
-	int i;
-
-	Lookup_lambda_item()
-			: photosynthesis(), year(-1), day(0), i(-1) {
-	}
-};
-
-
-/// Lookup table for photosynthesis parameters
-/** \see canexch.cpp::assimilation_wstress
- */
-class Lookup_lambda {
-
-private:
-	std::vector<Lookup_lambda_item> data;
-	int position;
-
-public:
-	/// Maximum number of iterations towards a solution in bisection method
-	/** Should be static const int, but is an enum for backwards compatibility
-	 *  with old compilers (e.g. VC6) */
-	enum { MAXTRIES = 6 };
-
-	Lookup_lambda(): data((int)pow(2., MAXTRIES+1)) {}
-
-	void newsearch() {
-		position = 0;
-	}
-
-	bool getdata(int year, int day, int i, PhotosynthesisResult& phot) {
-		Lookup_lambda_item& cur = data[position];
-		bool retval = cur.year == year && cur.day == day && cur.i == i;
-		if (retval) {
-			phot = cur.photosynthesis;
-		}
-		return retval;
-	}
-
-	void setdata(int year, int day, int i, const PhotosynthesisResult& phot) {
-		Lookup_lambda_item& thisitem = data[position];
-		thisitem.year = year;
-		thisitem.day = day;
-		thisitem.i = i;
-		thisitem.photosynthesis = phot;
-	}
-
-	void increase() {
-		position += position + 1;
-	}
-
-	void decrease() {
-		position += position + 2;
-	}
-};
-
-
 class cropphen_struct : public Serializable {
 
 public:
@@ -1867,28 +1770,7 @@ public:
 		// non-FPC-weighted canopy conductance value for PFT under water-stress
 		// conditions (mm/s)
 	double gcbase_day;				// daily value of the above variable (mm/s)
-	double gcbase_wstress;
-		// cumulative mean non-FPAR-weighted value for canopy conductance value
-		// for PFT under water-stress conditions (mm/s)
-	double temp_wstress;
-		// cumulative mean temperature for water stress days this month (deg C)
-	double par_wstress;
-		// cumulative mean PAR for water stress days this month (J/m2/day)
-	double daylength_wstress;
-		// cumulative mean day length for water stress days this month (h)
-	double co2_wstress;
-		// cumulative mean atmospheric CO2 concentration for water stress days this
-		// month (ppmv)
-	int nday_wstress;
-		// cumulative number of water stress days this month
-	double fpar_grass_wstress;
-		// mean FPAR at top of grass canopy for days with water stress for this PFT
-		// in this patch
-	double gpterm_wstress;
-		// cumulative mean non-FPAR-weighted value for canopy conductance component
-		// associated with photosynthesis for water stress (mm/s)
-	PhotosynthesisResult phot_wstress;
-		// contains averaged values for water-stressed days
+
 	double supply;
 		// evapotranspirational "supply" function for this PFT today (mm/day)
 	double supply_leafon;
@@ -1896,9 +1778,6 @@ public:
 		// fractional uptake of water from each soil layer today
 	bool wstress;				// whether water-stress conditions for this PFT
 	bool wstress_day;			// daily version of the above variable
-	Lookup_lambda lookup_lambda;
-		// lookup table for values of lambda (parameter in photosynthesis calculations)
-		// today (see canexch.cpp)
 	double harvested_products_slow;	//carbon depository for long-lived products like wood
 
 	int swindow[2];
@@ -1918,7 +1797,6 @@ public:
 		litter_root=0.0;
 		litter_wood=0.0;
 		litter_repr=0.0;
-		nday_wstress=0;
 		wscal=1.0;
 		wscal_mean=1.0;
 		anetps_ff=0.0;
@@ -2093,10 +1971,7 @@ public:
 		// non-FPAR-weighted value for canopy conductance component associated with
 		// photosynthesis for PFT under non-water-stress conditions (mm/s)
 	std::vector<double> gpterms;		// sub-daily version of the above variable (mm/s)
-	double assim_term;
-		// non-FPAR-weighted leaf-level net photosynthesis value for PFT under non-
-		// water-stress conditions (kgC/m2/day)
-	std::vector<double> assim_terms;	// sub-daily version of the above variable (kgC/m2/day)
+
 	double fpc_total;
 		// FPC sum for this PFT as average for stand (used by some versions of
 		// guessio.cpp)
@@ -2354,7 +2229,6 @@ public:
 	Gridcell():climate(*this) {
 		landcovertype landcover;
 		LC_updated=false;
-		seed=12345678;
 
 		for(unsigned int p=0;p<pftlist.nobj;p++) {
 			pft.createobj(pftlist[p]);

@@ -23,7 +23,7 @@
 void interception(Patch& patch, Climate& climate);
 void canopy_exchange(Patch& patch, Climate& climate);
 void photosynthesis(double co2, double temp, double par, double daylength,
-			double lambda, const Pft& pft, PhotosynthesisResult& result, double vm);
+                    double fpar, double lambda, const Pft& pft, PhotosynthesisResult& result, double vm);
 
 // Constants for photosynthesis calculations
 

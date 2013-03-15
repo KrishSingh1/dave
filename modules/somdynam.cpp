@@ -345,13 +345,10 @@ void setntoc(Soil& soil, double fac, pooltype pool, double cton_max, double cton
  */
 void decayrates(Soil& soil, double temp_soil, double wcont_soil) {
 
-	double scall=6.0;
-
 	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
 	// plus Kirschbaum et al 2001 coarse woody debris decay	
-	//const double K_MAX[] = {9.5e-3, 1.9e-2, 4.2e-2, 4.8e-4, 2.7e-2, 3.8e-2, 1.1e-2, 2.2e-3, 7.0e-2, 1.7e-3, 6.9e-6};
-	const double K_MAX[] = {9.5e-3, 1.9e-2, 4.2e-2, 4.8e-4, 2.7e-2, 3.8e-2, 1.1e-2, 2.2e-3, 7.0e-2, 1.7e-3/scall, 6.9e-6/scall};
+	const double K_MAX[] = {9.5e-3, 1.9e-2, 4.2e-2, 9.6e-4, 2.7e-2, 3.8e-2, 1.1e-2, 2.2e-3, 7.0e-2, 0.8e-3, 6.9e-7};
 	// pools SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SURFFWD,SURFCWD,SOILMETA,SLOWSOM,PASSIVESOM
 
 	// Modifier for effect of soil texture
@@ -1200,6 +1197,9 @@ void equilsom(Soil& soil) {
 			// Monthly nitrogen uptake
 			soil.nmass_avail *= (1.0 - soil.fnuptake_mean[m]);
 
+			// Monthly mineral nitrogen leaching
+			soil.nmass_avail *= (1.0 - soil.mminleach_mean[m]);
+
 			// Monthly nitrogen addition to the system
 			soil.nmass_avail += (climate.andep + soil.anfix_mean) / 12.0;
 
@@ -1214,13 +1214,8 @@ void equilsom(Soil& soil) {
 			soil.orgleachfrac = soil.morgleach_mean[m];
 			
 			// Monthly decomposition and fluxes between SOM pools
+			// and nitrogen flux from soil 
 			somfluxes(patch, true);
-
-			// Estimate of N flux from soil before nitrogen uptake (simple CLM-CN approach)
-			soil.nmass_avail *= 0.99;
-
-			// Monthly mineral nitrogen leaching
-			soil.nmass_avail *= (1.0 - soil.mminleach_mean[m]);
 		}
 	}
 
@@ -1260,14 +1255,14 @@ void som_dynamics_century(Patch& patch) {
 	// Daily nitrogen uptake
 	vegetation_n_uptake(patch);
 
+	// Daily mineral and organic nitrogen leaching
+	leaching(patch.soil);
+
 	// Daily nitrogen addition to the soil
 	soilnadd(patch);
 
 	// Daily or monthly decomposition and fluxes between SOM pools
 	somfluxes(patch, false);
-
-	// Daily mineral and organic nitrogen leaching
-	leaching(patch.soil);
 
 	// Solve SOM pool sizes at end of year given by soil.solvesomcent_endyr
 	if (date.year==patch.soil.solvesomcent_endyr && date.islastmonth && date.islastday)

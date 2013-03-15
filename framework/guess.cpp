@@ -493,9 +493,9 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	nmass_root        = 0.0;
 	nmass_sap         = 0.0;
 	nmass_heart       = 0.0;
-	nmass_debt        = 0.0;
 	cton_leaf_aopt    = 0.0;
 	cton_leaf_aavr    = 0.0;
+	cton_status       = 0.0;
 	cmass_veg         = 0.0;
 	nmass_veg         = 0.0;
 
@@ -586,7 +586,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& nmass_root
 		& nmass_sap
 		& nmass_heart
-		& nmass_debt
 		& nactive
 		& nextin
 		& nstore_longterm
@@ -599,6 +598,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& avmaxnlim
 		& cton_leaf_aopt
 		& cton_leaf_aavr
+		& cton_status
 		& cmass_veg
 		& nmass_veg
 
@@ -666,32 +666,19 @@ void Individual::kill() {
 	}
 
 	// Nitrogen always return to soil litter
-	double frac = 1.0;
-
 	if (pft.lifeform == TREE) {
 
-		// sapwood and storage can repay all nitrogen debt
-		if (nmass_debt < nmass_sap + nstore()) {
-			ppft.nmass_litter_sap += nmass_sap + nstore() - nmass_debt;
-		}
-		// sapwood and storage doesn't have enough nitrogen, rest must pay equal amount
-		else if (nmass_leaf + nmass_root + nmass_sap + nmass_heart + nstore() - nmass_debt > 0.0){
-			double nmass = nmass_leaf + nmass_root + nmass_sap + nmass_heart + nstore() - nmass_debt;
-			frac = (nmass_leaf + nmass_root + nmass_heart) / nmass;			
-		}
-		else {
-			frac = 0.0;
-		}
-
-		ppft.nmass_litter_heart += nmass_heart * frac;
+		// Transfer nitrogen storage to sapwood nitrogen litter
+		ppft.nmass_litter_sap   += nmass_sap + nstore();
+		ppft.nmass_litter_heart += nmass_heart;
 	}
 	else {
-		// Transfer nitrogen storage to root nitrogen litter for now
-		ppft.nmass_litter_root  += nstore();
+		// Transfer nitrogen storage to root nitrogen litter
+		ppft.nmass_litter_root += nstore();
 	}
 
-	ppft.nmass_litter_leaf  += nmass_leaf * frac;
-	ppft.nmass_litter_root  += nmass_root * frac;
+	ppft.nmass_litter_leaf += nmass_leaf;
+	ppft.nmass_litter_root += nmass_root;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

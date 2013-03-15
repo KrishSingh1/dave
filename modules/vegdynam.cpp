@@ -648,10 +648,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
 						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
 
-						// Starting nitrogen mass as debt
-						indiv.nstore_labile = indiv.max_n_storage;
-						indiv.nmass_debt    = indiv.max_n_storage;
-
 						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()
 						// if they survive the first year 
@@ -666,7 +662,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 				patch.pft[pft.id].wscal_mean_est = 0.0;
 				patch.pft[pft.id].anetps_ff_est  = 0.0;
 			}
-
 		}
 
 		// ... on to next PFT

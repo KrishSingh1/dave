@@ -763,7 +763,7 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
  *  -> A = const * cmass_root^2/3 
  */
 double nitrogen_uptake_strength(const Individual& indiv) {
-	return pow(indiv.cmass_root * indiv.pft.nupscoeff / indiv.densindiv, 2.0 / 3.0) * indiv.densindiv;
+	return pow(indiv.cmass_root * indiv.pft.nupscoeff * indiv.cton_status / indiv.densindiv, 2.0 / 3.0) * indiv.densindiv;
 }
 
 /// Individual nitrogen uptake fraction
@@ -904,7 +904,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 				// Added a scalar depending on individual lai to slow down light optimization of newly shaded leafs
 				// Peltoniemi et al. 2012
-				indiv.nextin = exp(0.1429 * indiv.lai_indiv * indiv.phen);
+				indiv.nextin = exp(0.12 * indiv.lai_indiv * indiv.phen);
 
 				// Calculate optimal leaf nitrogen associated with photosynthesis and none photosynthetic 
 				// active nitrogen (Haxeltine et al. 1996 eqn 27/28)
@@ -963,17 +963,22 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Calculate scalars to possible nitrogen uptake
 
 		// Current plant mobile nitrogen concentration
-		double ntoc = !negligible(indiv.phen) ? (indiv.nmass_leaf + indiv.nmass_root) / (indiv.cmass_leaf * indiv.phen + indiv.cmass_root) : 1.0 / indiv.pft.cton_leaf_max;
+		double ntoc = !negligible(indiv.phen) ? (indiv.nmass_leaf + indiv.nmass_root) / (indiv.cmass_leaf * indiv.phen + indiv.cmass_root) : 0.0;
 
 		// Scale to maximum nitrogen concentrations
-		double cton_scale = max(0.0, (ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_max - 1.0 / indiv.pft.cton_leaf_min));
+		indiv.cton_status = max(0.0, pow((ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_avr - 1.0 / indiv.pft.cton_leaf_min), 3.0));
 
 		// Nitrogen availablilty scalar due to saturating Michealis-Menten kinetics
 		double nmin_scale = kNmin + soil.nmass_avail / (soil.nmass_avail + gridcell.pft[indiv.pft.id].Km);
 
+		// Maximum available soil mineral nitrogen for this individual is base on its root area.
+		// This is considered to be related to FPC which is proportional to crown area which is appro
+		// 4 times smaller than the root area
+		double max_indiv_avail = min(1.0, indiv.fpc * 4.0) * soil.nmass_avail;
+
 		// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake) 
 		// and soil available nitrogen within individual projectived coverage
-		double maxnup = min(2.0 * indiv.pft.nuptoroot * nmin_scale * temp_scale * cton_scale * indiv.cmass_root, indiv.fpc * soil.nmass_avail);
+		double maxnup = min(2.0 * indiv.pft.nuptoroot * nmin_scale * temp_scale * indiv.cton_status * indiv.cmass_root, max_indiv_avail);
 
 		// Nitrogen demand limitation due to maximum nitrogen uptake capacity
 		double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot,1.0) : 0.0;

@@ -1136,9 +1136,7 @@ public:
 	/// nitrogen content of sapwood on patch area basis (kgN/m2)	
 	double nmass_sap;
 	/// nitrogen content of heartwood on patch area basis (kgN/m2)
-	double nmass_heart;
-	// nitrogen "debt" (retrospective storage) (kgN/m2)
-	double nmass_debt;		
+	double nmass_heart;	
 
 	double fpc;
 		// foliar projective cover (FPC) under full leaf cover as fraction of modelled
@@ -1239,6 +1237,8 @@ public:
 	double cton_leaf_aopt;
 	/// annual average leaf C:N ratio
 	double cton_leaf_aavr;
+	/// plant mobile nitrogen status
+	double cton_status;
 	/// total carbon in compartments before growth
 	double cmass_veg;
 	/// total nitrogen in compartments before growth

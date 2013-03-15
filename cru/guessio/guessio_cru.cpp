@@ -3150,7 +3150,7 @@ void outannual(Gridcell& gridcell) {
 					plot("N flux (kg N/ha/yr)","Dep",   date.year, -andep_gridcell * m2toha);
 					plot("N flux (kg N/ha/yr)","Fert",  date.year, -anfert_gridcell * m2toha);
 					plot("N flux (kg N/ha/yr)","Leach", date.year, (n_min_leach_gridcell + n_org_leach_gridcell) * m2toha);
-					plot("N flux (kg N/ha/yr)","Fire",  date.year, flux_ntot * m2toha);
+					plot("N flux (kg N/ha/yr)","Flux",  date.year, flux_ntot * m2toha);
 
 					plot("N mineralization [kg N/ha/yr]","N", date.year, (anmin_gridcell - animm_gridcell) * m2toha);
 

@@ -904,7 +904,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 				// Added a scalar depending on individual lai to slow down light optimization of newly shaded leafs
 				// Peltoniemi et al. 2012
-				indiv.nextin = exp(0.12 * indiv.lai_indiv * indiv.phen);
+				indiv.nextin = exp(0.12 * min(10.0, indiv.lai_indiv) * indiv.phen);
 
 				// Calculate optimal leaf nitrogen associated with photosynthesis and none photosynthetic 
 				// active nitrogen (Haxeltine et al. 1996 eqn 27/28)
@@ -966,7 +966,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		double ntoc = !negligible(indiv.phen) ? (indiv.nmass_leaf + indiv.nmass_root) / (indiv.cmass_leaf * indiv.phen + indiv.cmass_root) : 0.0;
 
 		// Scale to maximum nitrogen concentrations
-		indiv.cton_status = max(0.0, pow((ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_avr - 1.0 / indiv.pft.cton_leaf_min), 3.0));
+		indiv.cton_status = max(0.0, (ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_avr - 1.0 / indiv.pft.cton_leaf_min));
 
 		// Nitrogen availablilty scalar due to saturating Michealis-Menten kinetics
 		double nmin_scale = kNmin + soil.nmass_avail / (soil.nmass_avail + gridcell.pft[indiv.pft.id].Km);

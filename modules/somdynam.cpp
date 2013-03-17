@@ -348,7 +348,7 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil) {
 	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
 	// plus Kirschbaum et al 2001 coarse woody debris decay	
-	const double K_MAX[] = {9.5e-3, 1.9e-2, 4.2e-2, 9.6e-4, 2.7e-2, 3.8e-2, 1.1e-2, 2.2e-3, 7.0e-2, 0.8e-3, 6.9e-7};
+	const double K_MAX[] = {9.5e-3, 1.9e-2, 4.2e-2, 4.8e-4, 2.7e-2, 3.8e-2, 1.1e-2, 2.2e-3, 7.0e-2, 1.7e-3, 4.5e-6};
 	// pools SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SURFFWD,SURFCWD,SOILMETA,SLOWSOM,PASSIVESOM
 
 	// Modifier for effect of soil texture
@@ -728,6 +728,8 @@ void transfer_litter(Patch& patch) {
 
 	LitterSolveSOM litterSolveSOM;
 
+	double EPS = -1.0e-16;
+
 	// Leaf, root and wood litter lignin fractions
 	// Leaf and root fractions: Comins & McMurtrie 1993; Friend et al 1997
 	// Not sure of wood fraction
@@ -866,7 +868,7 @@ void transfer_litter(Patch& patch) {
 
 				// Fine woody debris
 
-				assert(pft.litter_sap >= 0);
+				assert(pft.litter_sap >= EPS);
 				ligcmass_new = pft.litter_sap * LIGCFRAC_WOOD;
 				ligcmass_old = soil.sompool[SURFFWD].cmass * soil.sompool[SURFFWD].ligcfrac;
 
@@ -901,7 +903,7 @@ void transfer_litter(Patch& patch) {
 
 				// Coarse woody debris
 
-				assert(pft.litter_heart >= 0);
+				assert(pft.litter_heart >= EPS);
 				ligcmass_new = pft.litter_heart * LIGCFRAC_WOOD;
 				ligcmass_old = soil.sompool[SURFCWD].cmass * soil.sompool[SURFCWD].ligcfrac;
 
@@ -1169,7 +1171,7 @@ void equilsom(Soil& soil) {
 
 	// Spin SOM pools with saved litter input, nitrogen addition and fractions of
 	// nitrogen uptake and leaching for 3000 years with monthly timesteps
-	for (int yr = 0; yr < 3000; yr++) {
+	for (int yr = 0; yr < 40000; yr++) {
 
 		// Which year in saved data set
 		int savedyear = yr%nyear;

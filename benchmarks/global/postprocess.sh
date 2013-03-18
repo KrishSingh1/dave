@@ -20,7 +20,7 @@ describe_textfile tot_runoff1961to1990_areaaverage.txt "Global Runoff, 1961 to 1
 gmap lai1961to1990max.txt -t 'Dominant PFT (greatest LAI)' -lon 1 -lat 2 -i 3 -legend legend_global.txt -portrait -o maxLAI.jpg
 describe_image maxLAI.jpg "PFT With the Highest LAI in Each Gridcell (1961-90 average)"
 
-/home/david/post/biomes/biomes lai1961to1990.txt
+biomes lai1961to1990.txt
 gmap biomes_lai1961to1990.txt -t 'Biomes (Hickler et al. 2006)' -lon 1 -lat 2 -i 3 -legend legend_biomes.txt -portrait -o biomes.jpg
 describe_image biomes.jpg "Biomes in Each Gridcell (1961-90 average) (according to Hickler et al. 2006)"
 

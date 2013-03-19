@@ -218,6 +218,9 @@ extern double distinterval;
 /// Whether SLA calculated from leaf longevity (alt: prescribed)
 extern bool ifcalcsla;
 
+/// Whether leaf C:N ratio minimum calculated from leaf longevity (alt: prescribed)
+extern bool ifcalccton;
+
 /// Establishment interval in cohort mode (years)
 extern int estinterval;
 
@@ -819,8 +822,7 @@ public:
 	double nupscoeff;
 
 	/// Michaelis-Menten kinetic parameters 
-	/** Chosen to match observed rates of increase 
-	 *  in nitrogen uptake at high nitrogen [kgN l-1] (Rothstein 2000) */
+	/** Half saturation concentration for N uptake [kgN l-1] (Rothstein 2000) */
 	double km_volume;
 		
 	double reprfrac;
@@ -985,7 +987,7 @@ public:
 		}
 	}
 
-	void init_cton_limits() {
+	void init_cton_min() {
 
 		// Calculates minimum leaf C:N ratio given leaf longevity
 		// Reich et al 1992, Table 1 (includes conversion x500 from mg/g_dry_weight to
@@ -995,6 +997,9 @@ public:
 			cton_leaf_min = 500.0 / pow(10.0, 1.75 - 0.33 * log10(12.0 * leaflong));
 		else if (leafphysiognomy == NEEDLELEAF)
 			cton_leaf_min = 500.0 / pow(10.0, 1.52 - 0.26 * log10(12.0 * leaflong));
+	}
+
+	void init_cton_limits() {
 
 		// Fraction between min and max C:N ratio White et al. 2000
 		double frac_mintomax = 2.78;

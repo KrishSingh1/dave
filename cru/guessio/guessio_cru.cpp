@@ -202,6 +202,7 @@ void initsettings() {
 	ifcalcsla=true;
 	ifdisturb=false;
 	ifcalcsla=false;
+	ifcalccton=true;
 	ifcdebt=false;
 	distinterval=1.0e10;
 	npatch=1;
@@ -288,6 +289,8 @@ void plib_declarations(int id,xtring setname) {
 			"Whether generic patch-destroying disturbance enabled (0,1)");
 		declareitem("ifcalcsla",&ifcalcsla,1,CB_NONE,
 			"Whether SLA calculated from leaf longevity");
+		declareitem("ifcalccton",&ifcalccton,1,CB_NONE,
+			"Whether leaf C:N min calculated from leaf longevity");
 		declareitem("ifcdebt",&ifcdebt,1,CB_NONE,
 			"Whether to allow C storage");
 		declareitem("npatch",&npatch,1,1000,1,CB_NONE,
@@ -476,6 +479,8 @@ void plib_declarations(int id,xtring setname) {
 			"Tree leaf to sapwood xs area ratio");
 		declareitem("sla",&ppft->sla,1.0,1000.0,1,CB_NONE,
 			"Specific leaf area (m2/kgC)");
+		declareitem("cton_leaf_min",&ppft->cton_leaf_min,1.0,1.0e4,1,CB_NONE,
+			"Minimum leaf C:N mass ratio");
 		declareitem("ltor_max",&ppft->ltor_max,0.1,10.0,1,CB_NONE,
 			"Non-water-stressed leaf:fine root mass ratio");
 		declareitem("litterme",&ppft->litterme,0.0,1.0,1,CB_NONE,
@@ -665,6 +670,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("vegmode")) badins("vegmode");
 		if (!itemparsed("iffire")) badins("iffire");
 		if (!itemparsed("ifcalcsla")) badins("ifcalcsla");
+		if (!itemparsed("ifcalccton")) badins("ifcalccton");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
 		if (!itemparsed("wateruptake")) badins("wateruptake");
 
@@ -752,6 +758,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("emax")) badins("emax");
 		if (!itemparsed("respcoeff")) badins("respcoeff");
 		if (!itemparsed("sla") && !ifcalcsla) badins("sla");
+		if (!itemparsed("cton_leaf_min") && !ifcalccton) badins("cton_leaf_min");
 
 		if (!itemparsed("cton_root")) badins("cton_root");
 		if (!itemparsed("nuptoroot")) badins("nuptoroot");
@@ -825,7 +832,21 @@ void plib_callback(int callback) {
 			if (!itemparsed("parff_min")) badins("parff_min");	
 		}
 
-		// Calculate leaf C:N ratio limits
+		if (ifcalccton) {
+			if (!itemparsed("leaflong")) {
+				sendmessage("Error",
+					"Value required for leaflong when ifcalccton enabled");
+				plibabort();
+			}
+			if (itemparsed("cton_leaf_min"))
+				sendmessage("Warning",
+				"Specified cton_leaf_min value not used when ifcalccton enabled");
+		
+			// Calculate leaf C:N ratio minimum
+			ppft->init_cton_min();
+		}
+
+		// Calculate C:N ratio limits
 		ppft->init_cton_limits();
 
 		// Calculate nitrogen uptake strength dependency on root distribution

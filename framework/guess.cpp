@@ -29,6 +29,7 @@ bool iffire; // whether fire enabled
 bool ifdisturb;
 	// whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
 bool ifcalcsla; // whether SLA calculated from leaf longevity (alt: prescribed)
+bool ifcalccton; // whether leaf C:N ratio minimum calculated from leaf longevity (alt: prescribed)
 int estinterval; // establishment interval in cohort mode (years)
 double distinterval;
 	// generic patch-destroying disturbance interval (individual, cohort mode)

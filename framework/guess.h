@@ -815,7 +815,7 @@ public:
 	double cton_sap;
 	/// Maximum nitrogen (NH4+ and NO3- seperatly) uptake per fine root [kgN kgC-1 day-1]
 	double nuptoroot;
-	/// Coefficient to compensate for different vertical distribution of fine root on nitrogen uptake
+	/// Coefficient to compensate for vertical distribution of fine root on nitrogen uptake
 	double nupscoeff;
 
 	/// Michaelis-Menten kinetic parameters 
@@ -1212,7 +1212,7 @@ public:
 
 	bool wstress; // whether individual subject to water stress
 
-	/// nitrogen mass that is photosyntetic active
+	/// leaf nitrogen that is photosyntetic active
 	double nactive;
 	/// extinction scalar to account for leaf nitrogen not
 	/// following the optimal light extinction, but is shallower
@@ -1758,7 +1758,7 @@ public:
 		sompool[SURFMICRO].ntoc = 1.0 / 20.0;
 
 		// passive has a fixed value
-		sompool[PASSIVESOM].ntoc = 1.0 / 6.0;
+		sompool[PASSIVESOM].ntoc = 1.0 / 9.0;
 
 		nmass_avail = 0.0;
 		ninput = 0.0;
@@ -2160,8 +2160,7 @@ public:
 	double addtw;
 
 	/// Michaelis-Menten kinetic parameters 
-	/** Chosen to match observed rates of increase 
-	 *  in nitrogen uptake at high nitrogen [kgN m2] (Rothstein 2000) 
+	/** Half saturation concentration for N uptake (Rothstein 2000, Macduff 2002) 
 	 */
 	double Km;
 
@@ -2300,6 +2299,9 @@ private:
 //   693-709
 // Lloyd, J & Taylor JA 1994 On the temperature dependence of soil respiration
 //   Functional Ecology 8: 315-323
+// Macduff, JH, Humphreys, MO & Thomas, H 2002. Effects of a stay-green mutation on
+//   plant nitrogen relations in Lolium perenne during N starvation and after 
+//   defoliation. Annals of Botany, 89, 11-21.
 // Monsi M & Saeki T 1953 Ueber den Lichtfaktor in den Pflanzengesellschaften und
 //   seine Bedeutung fuer die Stoffproduktion. Japanese Journal of Botany 14: 22-52
 // Prentice, IC, Sykes, MT & Cramer W 1993 A simulation model for the transient

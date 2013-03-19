@@ -385,7 +385,7 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil) {
 
 	for (int p = 0; p < NSOMPOOL-1; p++) {
 
-		// Calculate decay constant (annual basis)
+		// Calculate decay constant
 		// (dC_I/dt / C_I; Parton et al 1993, Eqns 2-4)
 
 		double k = K_MAX[p] * temp_mod * moist_mod;

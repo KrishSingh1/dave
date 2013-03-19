@@ -44,10 +44,14 @@ aslice amon1961to1990.txt -o amon1961to1990_sums.txt -n -sums
 describe_textfile aiso1961to1990_sums.txt "Global terrestrial isoprene emissions, 1961 to 1990. Units: mg C/y"
 describe_textfile amon1961to1990_sums.txt "Global terrestrial monoterpene emissions, 1961 to 1990. Units: mg C/y"
 
-cbalance -spinup 500 -ncells 59191 -path ./ -start 500 -end 605
-describe_textfile cbalance_totalerror_GtC.txt "Global Terrestrial Carbon Uptake, 1901 to 2006. /
-Determined using C pools (cpool_GtC), Cumulative C fluxes (cflux_GtC), and their absolute difference (absdiff_GtC)"
+compute cpool.out -n -o cpool_total.out -i Lon Lat Year Total
+compute cflux.out -n -o cflux_nee.out -i Lon Lat Year NEE
+balance -pool cpool_total.out -flux cflux_nee.out -start 500 -end 605 -matter C
+describe_textfile Cbalance_totalerror_GtC.txt "Global Terrestrial Carbon Uptake, 1901 to 2006. /
+Determined using C pools (pool_GtC), Cumulative C fluxes (flux_GtC), and their absolute difference (absdiff_GtC)"
 
-nbalance -spinup 500 -ncells 59191 -path ./ -start 500 -end 605
-describe_textfile nbalance_totalerror_GtN.txt "Global Terrestrial Nitrogen Uptake, 1901 to 2006. /
-Determined using N pools (npool_GtN), Cumulative N fluxes (nflux_GtN), and their absolute difference (absdiff_GtN)"
+compute npool.out -n -o npool_total.out -i Lon Lat Year Total
+compute nflux.out -n -o nflux_nee.out -i Lon Lat Year 'nee_m2=NEE/10000'
+balance -pool npool_total.out -flux nflux_nee.out -start 500 -end 605 -matter N
+describe_textfile Nbalance_totalerror_GtN.txt "Global Terrestrial Nitrogen Uptake, 1901 to 2006. /
+Determined using N pools (pool_GtN), Cumulative N fluxes (flux_GtN), and their absolute difference (absdiff_GtN)"

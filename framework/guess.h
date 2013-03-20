@@ -671,6 +671,8 @@ public:
 		ESTC,
 		/// Flux to atmosphere from consumed harvested products (kgC/m2)
 		HARVESTC,
+		/// Flux to atmosphere from consumed harvested products (kgN/m2)
+		HARVESTN,
 		/// NH3 flux to atmosphere from fire
 		NH3_FIRE,
 		/// NO flux to atmosphere from fire	
@@ -1372,8 +1374,13 @@ public:
 	/// Gets the individual's Patchpft
 	Patchpft& patchpft();
 
-	/// Transfers the individual's biomass (C and N) to litter pools/fluxes
-	void kill();
+	/// Transfers the individual's biomass (C and N) to litter and harvest pools/fluxes
+	/** 
+	 *  \param harvest Set to true if some of the biomass should be harvested,
+	 *                 harvest will be done according to the PFT's harvest efficiency
+	 *                 and residue outtake.
+	 */
+	void kill(bool harvest = false);
 };
 
 

@@ -634,30 +634,124 @@ Patchpft& Individual::patchpft() {
 	return vegetation.patch.pft[pft.id];
 }
 
-void Individual::kill() {
+/// Help function for kill(), partitions wood biomass into litter and harvest
+/** 
+ *  Wood biomass (either C or N) is partitioned into litter pools and
+ *  harvest, according to PFT specific harvest fractions.
+ *
+ *  Biomass is sent in as sap and heart, any debt should already have been
+ *  subtracted from these before calling this function.
+ *
+ *  \param mass_sap          Sapwood
+ *  \param mass_heart        Heartwood
+ *  \param harv_eff          Harvest efficiency (fraction of biomass harvested)
+ *  \param harvest_slow_frac Fraction of harvested products that goes into slow depository
+ *  \param res_outtake       Fraction of residue outtake at harvest
+ *  \param litter_sap        Biomass going to sapwood litter pool
+ *  \param litter_heart      Biomass going to heartwood litter pool
+ *  \param fast_harvest      Biomass going to harvest flux
+ *  \param slow_harvest      Biomass going to slow depository
+ */
+void partition_wood_biomass(double mass_sap, double mass_heart,
+                            double harv_eff, double harvest_slow_frac, double res_outtake,
+                            double& litter_sap, double& litter_heart,
+                            double& fast_harvest, double& slow_harvest) {
+
+	double sap_left = mass_sap;
+	double heart_left = mass_heart;
+
+	// Remove harvest
+	double total_wood_harvest = harv_eff * (sap_left + heart_left);
+
+	sap_left   *= 1 - harv_eff;
+	heart_left *= 1 - harv_eff;
+
+	// Partition wood harvest into slow and fast
+	slow_harvest = total_wood_harvest * harvest_slow_frac;
+	fast_harvest = total_wood_harvest * (1 - harvest_slow_frac);
+
+	// Remove residue outtake
+	fast_harvest += res_outtake * (sap_left + heart_left);
+				
+	sap_left   *= 1 - res_outtake;
+	heart_left *= 1 - res_outtake;
+
+	// The rest goes to litter
+	litter_sap   = sap_left;
+	litter_heart = heart_left;
+}
+
+
+void Individual::kill(bool harvest /* = false */) {
 	Patchpft& ppft = patchpft();
 
-	// C doesn't return to litter if the Individual isn't alive
+	double charvest_flux = 0.0;
+	double charvested_products_slow = 0.0;
+
+	double nharvest_flux = 0.0;
+	double nharvested_products_slow = 0.0;
+
+	double harv_eff = 0.0;
+	double harvest_slow_frac = 0.0;
+	double res_outtake = 0.0;
+
+	// The function always deals with harvest, but the harvest
+	// fractions are zero when there is no harvest.
+	if (harvest) {
+		harv_eff = pft.harv_eff;
+
+		if (ifslowharvestpool) {
+			harvest_slow_frac = pft.harvest_slow_frac;
+		}
+		
+		res_outtake = pft.res_outtake;
+	}
+
+	// C doesn't return to litter/harvest if the Individual isn't alive
 	if (alive) {
 
-		// catches small, negative values too
-		ppft.litter_leaf += cmass_leaf;
+		// For leaf and root, catches small, negative values too
+
+		// Leaf: remove residue outtake and send the rest to litter
+		ppft.litter_leaf += cmass_leaf * (1 - res_outtake);
+		charvest_flux    += cmass_leaf * res_outtake;
+
+		// Root: all goes to litter
 		ppft.litter_root += cmass_root;
 
+		// Deal with the wood biomass and carbon debt for trees
 		if (pft.lifeform == TREE) {
 
-			// debt smaller than existing woody biomass
+			// debt smaller than existing wood biomass
 			if (cmass_debt <= cmass_sap + cmass_heart) {
 
+				// before partitioning the biomass into litter and harvest,
+				// first get rid of the debt so we're left with only
+				// sap and heart
+				double to_partition_sap   = 0.0;
+				double to_partition_heart = 0.0;
+
 				if (cmass_heart >= cmass_debt) {
-					ppft.litter_sap   += cmass_sap;
-					ppft.litter_heart += cmass_heart - cmass_debt;
+					to_partition_sap   = cmass_sap;
+					to_partition_heart = cmass_heart - cmass_debt;
 				}
 				else {
-					ppft.litter_sap   += cmass_sap + cmass_heart - cmass_debt;
+					to_partition_sap   = cmass_sap + cmass_heart - cmass_debt;
 				}
+
+				double clitter_sap, clitter_heart, cwood_harvest;
+
+				partition_wood_biomass(to_partition_sap, to_partition_heart,
+				                       harv_eff, harvest_slow_frac, res_outtake,
+				                       clitter_sap, clitter_heart,
+				                       cwood_harvest, charvested_products_slow);
+				
+				ppft.litter_sap   += clitter_sap;
+				ppft.litter_heart += clitter_heart;
+
+				charvest_flux += cwood_harvest;
 			}
-			// debt larger than existing woody biomass
+			// debt larger than existing wood biomass
 			else {
 				double debt_excess = cmass_debt - (cmass_sap + cmass_heart);
 				report_flux(Fluxes::NPP, debt_excess);
@@ -669,17 +763,38 @@ void Individual::kill() {
 	// Nitrogen always return to soil litter
 	if (pft.lifeform == TREE) {
 
-		// Transfer nitrogen storage to sapwood nitrogen litter
-		ppft.nmass_litter_sap   += nmass_sap + nstore();
-		ppft.nmass_litter_heart += nmass_heart;
+		double nlitter_sap, nlitter_heart, nwood_harvest;
+
+		// Transfer nitrogen storage to sapwood nitrogen litter/harvest
+		partition_wood_biomass(nmass_sap + nstore(), nmass_heart,
+		                       harv_eff, harvest_slow_frac, res_outtake,
+		                       nlitter_sap, nlitter_heart,
+		                       nwood_harvest, nharvested_products_slow);
+
+		ppft.nmass_litter_sap   += nlitter_sap;
+		ppft.nmass_litter_heart += nlitter_heart;
+
+		nharvest_flux += nwood_harvest;
 	}
 	else {
 		// Transfer nitrogen storage to root nitrogen litter
 		ppft.nmass_litter_root += nstore();
 	}
 
-	ppft.nmass_litter_leaf += nmass_leaf;
+	// Leaf: remove residue outtake and send the rest to litter
+	ppft.nmass_litter_leaf += nmass_leaf * (1 - res_outtake);
+	nharvest_flux          += nmass_leaf * res_outtake;
+
+	// Root: all goes to litter
 	ppft.nmass_litter_root += nmass_root;
+
+	// Report harvest fluxes
+	report_flux(Fluxes::HARVESTC, charvest_flux);
+	report_flux(Fluxes::HARVESTN, nharvest_flux);
+
+	// Add to biomass depositories for long-lived products
+	ppft.harvested_products_slow += charvested_products_slow;
+	ppft.harvested_products_slow_nmass += nharvested_products_slow;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

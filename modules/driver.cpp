@@ -753,6 +753,9 @@ void dailyaccounting_patch_lc(Patch& patch) {
 				patch.fluxes.report_flux(Fluxes::HARVESTC, patchpft.harvested_products_slow*pft.turnover_harv_prod);
 				patchpft.harvested_products_slow = patchpft.harvested_products_slow * (1 - pft.turnover_harv_prod);
 
+				patch.fluxes.report_flux(Fluxes::HARVESTN, patchpft.harvested_products_slow_nmass*pft.turnover_harv_prod);
+				patchpft.harvested_products_slow_nmass = patchpft.harvested_products_slow_nmass * (1 - pft.turnover_harv_prod);
+
 				pftlist.nextobj();
 			}
 		}

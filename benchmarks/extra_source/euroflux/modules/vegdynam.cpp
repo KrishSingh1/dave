@@ -1538,7 +1538,7 @@ void disturbance(Patch& patch, double disturb_prob) {
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
-// guess2008 - euroflux - eval - CLEARANCE
+// euroflux - eval - CLEARANCE
 // Like a generic patch-destroying disturbance, but with a prescribed probability of 1
 // Internal function - do not call from framework
 
@@ -1546,66 +1546,22 @@ void clearance(Patch& patch) {
 
 	// DESCRIPTION
 	// Destroys all biomass in a patch.
-	// Unlike a normal distrurbance, only root biomass and 30% of aboveground biomass enters the litter.
+	// Unlike a normal distrurbance, harvesting is used.
 	// NB: cohort and individual mode only
 
 	Vegetation& vegetation=patch.vegetation;
-
-	// 70% of the patch vegetation is removed. 
-	const double FRACTION_REMAINING = 0.3;
 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
 
-		// guess2008 - alive check
-		if (indiv.alive) {
-		
-			if (indiv.pft.lifeform==GRASS) {
-
-				patch.pft[indiv.pft.id].litter_leaf+=FRACTION_REMAINING*indiv.cmass_leaf;
-				patch.pft[indiv.pft.id].litter_root+=FRACTION_REMAINING*indiv.cmass_root;
-
-				patch.pft[indiv.pft.id].nmass_litter_leaf+=FRACTION_REMAINING*indiv.nmass_leaf;
-				patch.pft[indiv.pft.id].nmass_litter_root+=FRACTION_REMAINING*indiv.nmass_root;
-				patch.pft[indiv.pft.id].nmass_litter_root+=FRACTION_REMAINING*indiv.nstore();
-
-			} else {
-			
-				// TREES
-
-				patch.pft[indiv.pft.id].litter_leaf+=FRACTION_REMAINING*indiv.cmass_leaf;
-				patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
-				patch.pft[indiv.pft.id].litter_sap+=FRACTION_REMAINING*indiv.cmass_sap;
-				patch.pft[indiv.pft.id].litter_heart+=FRACTION_REMAINING*indiv.cmass_heart;
-
-				patch.pft[indiv.pft.id].nmass_litter_leaf+=FRACTION_REMAINING*indiv.nmass_leaf;
-				patch.pft[indiv.pft.id].nmass_litter_root+=FRACTION_REMAINING*indiv.nmass_root;
-				patch.pft[indiv.pft.id].nmass_litter_sap+=FRACTION_REMAINING*indiv.nmass_sap;
-				patch.pft[indiv.pft.id].nmass_litter_heart+=FRACTION_REMAINING*indiv.nmass_heart;
-				patch.pft[indiv.pft.id].nmass_litter_sap+=FRACTION_REMAINING*indiv.nstore();
-
-				/*
-				//patch.pft[indiv.pft.id].litter_leaf+=indiv.cmass_leaf;
-				cmass_cleared += indiv.cmass_leaf;
-
-				patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
-				cmass_remaining += indiv.cmass_root;
-
-				//patch.pft[indiv.pft.id].litter_wood+=indiv.cmass_sap+indiv.cmass_heart
-				//	-indiv.cmass_debt;
-				cmass_cleared += indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt;
-				*/
-
-			}
-
-		} // alive?
+		indiv.kill(true);
 
 		vegetation.killobj();
 	}
 
-	patch.disturbed=true;
-	patch.age=0;
+	patch.disturbed = true;
+	patch.age = 0;
 }
 
 

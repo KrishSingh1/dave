@@ -192,7 +192,7 @@ xtring file_firert,file_speciesheights;
 // bvoc
 xtring file_aiso,file_miso,file_amon,file_mmon;
 
-xtring file_cton_leaf, file_cton_veg, file_nsources, file_npool, file_nleach, file_nuptake, file_vmaxnlim, file_nflux, file_ngases;
+xtring file_cton_leaf, file_cton_veg, file_nsources, file_npool, file_nuptake, file_vmaxnlim, file_nflux, file_ngases;
 
 void initsettings() {
 
@@ -203,6 +203,7 @@ void initsettings() {
 	ifcalcsla=true;
 	ifdisturb=false;
 	ifcalcsla=false;
+	ifcalccton=true;
 	ifcdebt=false;
 	distinterval=1.0e10;
 	npatch=1;
@@ -222,7 +223,7 @@ void initsettings() {
 	save_state = false;
 	restart = false;
 
-	file_cton_leaf=file_cton_veg=file_nsources=file_npool=file_nleach=file_nuptake=file_vmaxnlim=file_nflux=file_ngases="";
+	file_cton_leaf=file_cton_veg=file_nsources=file_npool=file_nuptake=file_vmaxnlim=file_nflux=file_ngases="";
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -289,6 +290,8 @@ void plib_declarations(int id,xtring setname) {
 			"Whether generic patch-destroying disturbance enabled (0,1)");
 		declareitem("ifcalcsla",&ifcalcsla,1,CB_NONE,
 			"Whether SLA calculated from leaf longevity");
+		declareitem("ifcalccton",&ifcalccton,1,CB_NONE,
+			"Whether leaf C:N min calculated from leaf longevity");
 		declareitem("ifcdebt",&ifcdebt,1,CB_NONE,
 			"Whether to allow C storage");
 		declareitem("npatch",&npatch,1,1000,1,CB_NONE,
@@ -327,7 +330,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_cton_veg",&file_cton_veg,300,CB_NONE,"Mean vegetation C:N output file");
 		declareitem("file_nsources",&file_nsources,300,CB_NONE,"Annual nitrogen sources output file");
 		declareitem("file_npool",&file_npool,300,CB_NONE,"Soil nitrogen output file");
-		declareitem("file_nleach",&file_nleach,300,CB_NONE,"Leached mineral nitrogen output file");
 		declareitem("file_nuptake",&file_nuptake,300,CB_NONE,"Annual nitrogen uptake output file");
 		declareitem("file_vmaxnlim",&file_vmaxnlim,300,CB_NONE,"Annual nitrogen limitation on vm output file");
 		declareitem("file_nflux",&file_nflux,300,CB_NONE,"Annual nitrogen fluxes output file");
@@ -478,6 +480,8 @@ void plib_declarations(int id,xtring setname) {
 			"Tree leaf to sapwood xs area ratio");
 		declareitem("sla",&ppft->sla,1.0,1000.0,1,CB_NONE,
 			"Specific leaf area (m2/kgC)");
+		declareitem("cton_leaf_min",&ppft->cton_leaf_min,1.0,1.0e4,1,CB_NONE,
+			"Minimum leaf C:N mass ratio");
 		declareitem("ltor_max",&ppft->ltor_max,0.1,10.0,1,CB_NONE,
 			"Non-water-stressed leaf:fine root mass ratio");
 		declareitem("litterme",&ppft->litterme,0.0,1.0,1,CB_NONE,
@@ -667,6 +671,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("vegmode")) badins("vegmode");
 		if (!itemparsed("iffire")) badins("iffire");
 		if (!itemparsed("ifcalcsla")) badins("ifcalcsla");
+		if (!itemparsed("ifcalccton")) badins("ifcalccton");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
 		if (!itemparsed("wateruptake")) badins("wateruptake");
 
@@ -754,6 +759,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("emax")) badins("emax");
 		if (!itemparsed("respcoeff")) badins("respcoeff");
 		if (!itemparsed("sla") && !ifcalcsla) badins("sla");
+		if (!itemparsed("cton_leaf_min") && !ifcalccton) badins("cton_leaf_min");
 
 		if (!itemparsed("cton_root")) badins("cton_root");
 		if (!itemparsed("nuptoroot")) badins("nuptoroot");
@@ -827,7 +833,21 @@ void plib_callback(int callback) {
 			if (!itemparsed("parff_min")) badins("parff_min");	
 		}
 
-		// Calculate leaf C:N ratio limits
+		if (ifcalccton) {
+			if (!itemparsed("leaflong")) {
+				sendmessage("Error",
+					"Value required for leaflong when ifcalccton enabled");
+				plibabort();
+			}
+			if (itemparsed("cton_leaf_min"))
+				sendmessage("Warning",
+				"Specified cton_leaf_min value not used when ifcalccton enabled");
+		
+			// Calculate leaf C:N ratio minimum
+			ppft->init_cton_min();
+		}
+
+		// Calculate C:N ratio limits
 		ppft->init_cton_limits();
 
 		// Calculate nitrogen uptake strength dependency on root distribution
@@ -1244,7 +1264,7 @@ Table out_mrh, out_mnee, out_mwcont_upper, out_mwcont_lower;
 // bvoc
 Table out_aiso, out_miso, out_amon, out_mmon;
 
-Table out_cton_leaf, out_cton_veg, out_nsources, out_npool, out_nleach, out_nuptake, out_vmaxnlim, out_nflux, out_ngases;
+Table out_cton_leaf, out_cton_veg, out_nsources, out_npool, out_nuptake, out_vmaxnlim, out_nflux, out_ngases;
 
 // Timers for keeping track of progress through the simulation
 Timer tprogress,tmute;
@@ -1651,7 +1671,6 @@ void define_output_tables() {
 		cpool_columns += ColumnDescriptor("LittVC",        8, 3);
 		cpool_columns += ColumnDescriptor("LittSC",        8, 3);
 		cpool_columns += ColumnDescriptor("CwdC",          8, 3);
-		cpool_columns += ColumnDescriptor("HumusC",        8, 3);
 		cpool_columns += ColumnDescriptor("SoilC",         8, 3);
 	}
 	if (run_landcover && ifslowharvestpool) {
@@ -1704,25 +1723,18 @@ void define_output_tables() {
 
 	// NPOOL
 	ColumnDescriptors npool_columns;
-	npool_columns += ColumnDescriptor("VegN",              9, 2);
-	npool_columns += ColumnDescriptor("LittVN",            9, 2);
-	npool_columns += ColumnDescriptor("LittSN",            9, 2);
-	npool_columns += ColumnDescriptor("CwdN",              9, 2);
-	npool_columns += ColumnDescriptor("HumusN",            9, 2);
-	npool_columns += ColumnDescriptor("SoilN",             9, 2);
-	npool_columns += ColumnDescriptor("AvailN",            9, 2);
+	npool_columns += ColumnDescriptor("VegN",              9, 5);
+	npool_columns += ColumnDescriptor("LittVN",            9, 5);
+	npool_columns += ColumnDescriptor("LittSN",            9, 5);
+	npool_columns += ColumnDescriptor("CwdN",              9, 5);
+	npool_columns += ColumnDescriptor("SoilN",             9, 5);
+	npool_columns += ColumnDescriptor("AvailN",            9, 5);
 
 	if (run_landcover && ifslowharvestpool) {
-		npool_columns += ColumnDescriptor("HarvSlowN",     9, 2);
+		npool_columns += ColumnDescriptor("HarvSlowN",     9, 5);
 	}
 
-	npool_columns += ColumnDescriptor("Total",            10, 2);
-
-	// NLEACH
-	ColumnDescriptors nleach_columns;
-	nleach_columns += ColumnDescriptor("Min",              8, 2);
-	nleach_columns += ColumnDescriptor("Org",              8, 4);
-	nleach_columns += ColumnDescriptor("Total",            8, 2);
+	npool_columns += ColumnDescriptor("Total",            10, 5);
 
 	// NUPTAKE
 	ColumnDescriptors nuptake_columns;
@@ -1772,7 +1784,6 @@ void define_output_tables() {
 	create_output_table(out_cton_veg,       file_cton_veg,       cton_columns);
 	create_output_table(out_nsources,       file_nsources,       nsources_columns);
 	create_output_table(out_npool,          file_npool,          npool_columns);
-	create_output_table(out_nleach,         file_nleach,         nleach_columns);
 	create_output_table(out_nuptake,        file_nuptake,        nuptake_columns);
 	create_output_table(out_vmaxnlim,       file_vmaxnlim,       vmaxnlim_columns);
 	create_output_table(out_nflux,          file_nflux,          nflux_columns);
@@ -2544,7 +2555,7 @@ void outannual(Gridcell& gridcell) {
 	double flux_veg, flux_soil, flux_fire, flux_est, flux_harvest;
 	double c_litter, c_fast, c_slow, c_harv_slow; 
 
-	double surfsoillitterc,surfsoillittern,cwdc,cwdn,humusc,humusn,centuryc,centuryn,n_litter,n_harv_slow,availn;
+	double surfsoillitterc,surfsoillittern,cwdc,cwdn,centuryc,centuryn,n_litter,n_harv_slow,availn;
 	double flux_nh3,flux_no,flux_no2,flux_n2o,flux_nsoil,flux_ntot;
 
 	// Nitrogen output is in kgN/ha instead of kgC/m2 as for carbon 
@@ -2892,7 +2903,7 @@ void outannual(Gridcell& gridcell) {
 		// guess2008 - carbon pools
 		c_litter = c_fast = c_slow = c_harv_slow = 0.0;
 
-		surfsoillitterc = surfsoillittern = cwdc = cwdn = humusc = humusn = centuryc = centuryn = n_litter = n_harv_slow = availn = 0.0;
+		surfsoillitterc = surfsoillittern = cwdc = cwdn = centuryc = centuryn = n_litter = n_harv_slow = availn = 0.0;
 		andep_gridcell = anfert_gridcell = anmin_gridcell = animm_gridcell = anfix_gridcell = 0.0;
 		n_org_leach_gridcell = n_min_leach_gridcell = 0.0;
 		flux_nh3 = flux_no = flux_no2 = flux_n2o = flux_nsoil = flux_ntot = 0.0;
@@ -2980,10 +2991,6 @@ void outannual(Gridcell& gridcell) {
 						else if (r == SURFFWD || r == SURFCWD) {
 							cwdc += patch.soil.sompool[r].cmass            / (double)stand.npatch();
 							cwdn += patch.soil.sompool[r].nmass            / (double)stand.npatch();
-						}
-						else if (r == SURFHUMUS){
-							humusc += patch.soil.sompool[r].cmass      / (double)stand.npatch();
-							humusn += patch.soil.sompool[r].nmass      / (double)stand.npatch();
 						}
 						else {	
 							centuryc += patch.soil.sompool[r].cmass        / (double)stand.npatch();
@@ -3082,10 +3089,6 @@ void outannual(Gridcell& gridcell) {
 		out.add_value(out_nsources, (anmin_gridcell - animm_gridcell) * m2toha);
 		out.add_value(out_nsources, (anmin_gridcell - animm_gridcell + andep_gridcell + anfix_gridcell + anfert_gridcell) * m2toha);
 
-		out.add_value(out_nleach, n_min_leach_gridcell * m2toha);
-		out.add_value(out_nleach, n_org_leach_gridcell * m2toha);
-		out.add_value(out_nleach, (n_min_leach_gridcell + n_org_leach_gridcell) * m2toha);
-
 		if (run_landcover) {
 			for(int i=0;i<NLANDCOVERTYPES;i++) {
 				if(run[i]) {
@@ -3158,21 +3161,19 @@ void outannual(Gridcell& gridcell) {
 					plot("N flux (kg N/ha/yr)","Dep",   date.year, -andep_gridcell * m2toha);
 					plot("N flux (kg N/ha/yr)","Fert",  date.year, -anfert_gridcell * m2toha);
 					plot("N flux (kg N/ha/yr)","Leach", date.year, (n_min_leach_gridcell + n_org_leach_gridcell) * m2toha);
-					plot("N flux (kg N/ha/yr)","Fire",  date.year, flux_ntot * m2toha);
+					plot("N flux (kg N/ha/yr)","Flux",  date.year, flux_ntot * m2toha);
 
 					plot("N mineralization [kg N/ha/yr]","N", date.year, (anmin_gridcell - animm_gridcell) * m2toha);
 
 					plot("Soil C [kg C/m2]","fine litter",   date.year, surfsoillitterc);
 					plot("Soil C [kg C/m2]","coarse litter", date.year, cwdc);
-					plot("Soil C [kg C/m2]","humus",         date.year, humusc);
 					plot("Soil C [kg C/m2]","soil",          date.year, centuryc); 
-					plot("Soil C [kg C/m2]","total",         date.year, surfsoillitterc + cwdc + humusc + centuryc); 
+					plot("Soil C [kg C/m2]","total",         date.year, surfsoillitterc + cwdc + centuryc); 
 
 					plot("Soil N [kg N/ha]","fine litter",   date.year, surfsoillittern);
 					plot("Soil N [kg N/ha]","coarse litter", date.year, cwdn);
-					plot("Soil N [kg N/ha]","humus",         date.year, humusn);
 					plot("Soil N [kg N/ha]","soil",          date.year, centuryn); 
-					plot("Soil N [kg N/ha]","total",         date.year, surfsoillittern + cwdn + humusn + centuryn); 
+					plot("Soil N [kg N/ha]","total",         date.year, surfsoillittern + cwdn + centuryn); 
 				}
 			}
 		}
@@ -3204,7 +3205,6 @@ void outannual(Gridcell& gridcell) {
 		else {
 			out.add_value(out_cpool, surfsoillitterc);
 			out.add_value(out_cpool, cwdc);
-			out.add_value(out_cpool, humusc);
 			out.add_value(out_cpool, centuryc);
 		}
 		
@@ -3220,7 +3220,7 @@ void outannual(Gridcell& gridcell) {
 			cpool_total += c_fast + c_slow;
 		}
 		else {
-			cpool_total += humusc + centuryc + surfsoillitterc + cwdc;
+			cpool_total += centuryc + surfsoillitterc + cwdc;
 		}
 
 		// Add slow harvest pool if needed
@@ -3231,20 +3231,19 @@ void outannual(Gridcell& gridcell) {
 		out.add_value(out_cpool, cpool_total);
 
 		if (ifcentury) {
-			out.add_value(out_npool, nmass_gridcell * m2toha);
-			out.add_value(out_npool, n_litter * m2toha);
-			out.add_value(out_npool, surfsoillittern * m2toha);
-			out.add_value(out_npool, cwdn * m2toha);
-			out.add_value(out_npool, humusn * m2toha);
-			out.add_value(out_npool, centuryn * m2toha);
-			out.add_value(out_npool, availn * m2toha);
+			out.add_value(out_npool, nmass_gridcell);
+			out.add_value(out_npool, n_litter);
+			out.add_value(out_npool, surfsoillittern);
+			out.add_value(out_npool, cwdn);
+			out.add_value(out_npool, centuryn);
+			out.add_value(out_npool, availn);
 
 			if(run_landcover && ifslowharvestpool) {
-				out.add_value(out_npool, n_harv_slow * m2toha);
-				out.add_value(out_npool, (nmass_gridcell + n_litter + surfsoillittern + cwdn + humusn + centuryn + availn + n_harv_slow) * m2toha);
+				out.add_value(out_npool, n_harv_slow);
+				out.add_value(out_npool, (nmass_gridcell + n_litter + surfsoillittern + cwdn + centuryn + availn + n_harv_slow));
 			}
 			else {
-				out.add_value(out_npool, (nmass_gridcell + n_litter + surfsoillittern + cwdn + humusn + centuryn + availn) * m2toha);
+				out.add_value(out_npool, (nmass_gridcell + n_litter + surfsoillittern + cwdn + centuryn + availn));
 			}
 		}
 

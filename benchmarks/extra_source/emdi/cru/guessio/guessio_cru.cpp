@@ -1755,6 +1755,9 @@ void define_output_tables() {
 	nflux_columns += ColumnDescriptor("fert",              8, 2);
 	nflux_columns += ColumnDescriptor("flux",              8, 2);
 	nflux_columns += ColumnDescriptor("leach",             8, 2);
+	if (run_landcover) {
+		nflux_columns += ColumnDescriptor("harvest",       8, 2);
+	}
 	nflux_columns += ColumnDescriptor("NEE",               8, 2);
 
 	// NGASES
@@ -2552,11 +2555,11 @@ void outannual(Gridcell& gridcell) {
 	// provide any information to the framework.
 
 	int c, m, nclass;
-	double flux_veg, flux_soil, flux_fire, flux_est, flux_harvest;
+	double flux_veg, flux_soil, flux_fire, flux_est, flux_charvest;
 	double c_litter, c_fast, c_slow, c_harv_slow; 
 
 	double surfsoillitterc,surfsoillittern,cwdc,cwdn,centuryc,centuryn,n_litter,n_harv_slow,availn;
-	double flux_nh3,flux_no,flux_no2,flux_n2o,flux_nsoil,flux_ntot;
+	double flux_nh3,flux_no,flux_no2,flux_n2o,flux_nsoil,flux_ntot,flux_nharvest;
 
 	// Nitrogen output is in kgN/ha instead of kgC/m2 as for carbon 
 	double m2toha = 10000.0;
@@ -2898,7 +2901,7 @@ void outannual(Gridcell& gridcell) {
 
 		} // *** End of PFT loop ***
 
-		flux_veg = flux_soil = flux_fire = flux_est = flux_harvest = 0.0;
+		flux_veg = flux_soil = flux_fire = flux_est = flux_charvest = 0.0;
 
 		// guess2008 - carbon pools
 		c_litter = c_fast = c_slow = c_harv_slow = 0.0;
@@ -2906,7 +2909,7 @@ void outannual(Gridcell& gridcell) {
 		surfsoillitterc = surfsoillittern = cwdc = cwdn = centuryc = centuryn = n_litter = n_harv_slow = availn = 0.0;
 		andep_gridcell = anfert_gridcell = anmin_gridcell = animm_gridcell = anfix_gridcell = 0.0;
 		n_org_leach_gridcell = n_min_leach_gridcell = 0.0;
-		flux_nh3 = flux_no = flux_no2 = flux_n2o = flux_nsoil = flux_ntot = 0.0;
+		flux_nh3 = flux_no = flux_no2 = flux_n2o = flux_nsoil = flux_ntot = flux_nharvest = 0.0;
 
 		// Sum C fluxes, dead C pools and runoff across patches
 
@@ -2923,20 +2926,21 @@ void outannual(Gridcell& gridcell) {
 
 				double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
 
-				flux_veg     += -patch.fluxes.get_annual_flux(Fluxes::NPP)      * to_gridcell_average;
-				flux_soil    += patch.fluxes.get_annual_flux(Fluxes::SOILC)     * to_gridcell_average;
-				flux_fire    += patch.fluxes.get_annual_flux(Fluxes::FIREC)     * to_gridcell_average;
-				flux_est     += patch.fluxes.get_annual_flux(Fluxes::ESTC)      * to_gridcell_average;
-				flux_harvest += patch.fluxes.get_annual_flux(Fluxes::HARVESTC)  * to_gridcell_average;
-				flux_nh3     += patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE)  * to_gridcell_average;
-				flux_no      += patch.fluxes.get_annual_flux(Fluxes::NO_FIRE)   * to_gridcell_average;
-				flux_no2     += patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE)  * to_gridcell_average;
-				flux_n2o     += patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE)  * to_gridcell_average;
-				flux_nsoil   += patch.fluxes.get_annual_flux(Fluxes::N_SOIL)    * to_gridcell_average;	
-				flux_ntot    += (patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE) + 
-				                patch.fluxes.get_annual_flux(Fluxes::NO_FIRE)   + 
-				                patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE)  +
-								patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE)    +
+				flux_veg      += -patch.fluxes.get_annual_flux(Fluxes::NPP)      * to_gridcell_average;
+				flux_soil     += patch.fluxes.get_annual_flux(Fluxes::SOILC)     * to_gridcell_average;
+				flux_fire     += patch.fluxes.get_annual_flux(Fluxes::FIREC)     * to_gridcell_average;
+				flux_est      += patch.fluxes.get_annual_flux(Fluxes::ESTC)      * to_gridcell_average;
+				flux_charvest += patch.fluxes.get_annual_flux(Fluxes::HARVESTC)  * to_gridcell_average;
+				flux_nharvest += patch.fluxes.get_annual_flux(Fluxes::HARVESTN)  * to_gridcell_average;
+				flux_nh3      += patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE)  * to_gridcell_average;
+				flux_no       += patch.fluxes.get_annual_flux(Fluxes::NO_FIRE)   * to_gridcell_average;
+				flux_no2      += patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE)  * to_gridcell_average;
+				flux_n2o      += patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE)  * to_gridcell_average;
+				flux_nsoil    += patch.fluxes.get_annual_flux(Fluxes::N_SOIL)    * to_gridcell_average;	
+				flux_ntot     += (patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE) + 
+				                patch.fluxes.get_annual_flux(Fluxes::NO_FIRE)    + 
+				                patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE)   +
+								patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE)   +
 				                patch.fluxes.get_annual_flux(Fluxes::N_SOIL)) * to_gridcell_average;
 				
 				c_fast       += patch.soil.cpool_fast                           * to_gridcell_average;
@@ -3185,16 +3189,19 @@ void outannual(Gridcell& gridcell) {
 		out.add_value(out_cflux, flux_fire);
 		out.add_value(out_cflux, flux_est);
 		if (run_landcover) {
-			 out.add_value(out_cflux, flux_harvest);
+			 out.add_value(out_cflux, flux_charvest);
 		}
-		out.add_value(out_cflux, flux_veg + flux_soil + flux_fire + flux_est + flux_harvest);
+		out.add_value(out_cflux, flux_veg + flux_soil + flux_fire + flux_est + flux_charvest);
 
 		out.add_value(out_nflux, -andep_gridcell * m2toha);
 		out.add_value(out_nflux, -anfix_gridcell * m2toha);
 		out.add_value(out_nflux, -anfert_gridcell * m2toha);
 		out.add_value(out_nflux, flux_ntot * m2toha);
 		out.add_value(out_nflux, (n_min_leach_gridcell + n_org_leach_gridcell) * m2toha);
-		out.add_value(out_nflux, (flux_ntot + n_min_leach_gridcell + n_org_leach_gridcell - (andep_gridcell + anfix_gridcell + anfert_gridcell)) * m2toha);
+		if (run_landcover) {
+			 out.add_value(out_nflux, flux_nharvest);
+		}
+		out.add_value(out_nflux, (flux_nharvest + flux_ntot + n_min_leach_gridcell + n_org_leach_gridcell - (andep_gridcell + anfix_gridcell + anfert_gridcell)) * m2toha);
 
 		out.add_value(out_cpool, cmass_gridcell);
 		out.add_value(out_cpool, c_litter);

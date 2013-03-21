@@ -1338,6 +1338,9 @@ void define_output_tables() {
 	nflux_columns += ColumnDescriptor("fert",              8, 2);
 	nflux_columns += ColumnDescriptor("flux",              8, 2);
 	nflux_columns += ColumnDescriptor("leach",             8, 2);
+	if (run_landcover) {
+		nflux_columns += ColumnDescriptor("harvest",       8, 2);
+	}
 	nflux_columns += ColumnDescriptor("NEE",               8, 2);
 
 	// NGASES

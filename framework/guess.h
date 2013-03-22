@@ -820,8 +820,10 @@ public:
 	double cton_sap;
 	/// Maximum nitrogen (NH4+ and NO3- seperatly) uptake per fine root [kgN kgC-1 day-1]
 	double nuptoroot;
-	/// Coefficient to compensate for vertical distribution of fine root on nitrogen uptake
+	/// coefficient to compensate for vertical distribution of fine root on nitrogen uptake
 	double nupscoeff;
+	/// fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen storage scalar
+	double fnstorage;
 
 	/// Michaelis-Menten kinetic parameters 
 	/** Half saturation concentration for N uptake [kgN l-1] (Rothstein 2000) */

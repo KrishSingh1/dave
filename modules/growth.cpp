@@ -1311,8 +1311,9 @@ void growth(Stand& stand, Patch& patch) {
 					indiv.cmass_root * indiv.pft.turnover_root / cton_root_bg * nrelocfrac +
 					indiv.cmass_sap * indiv.pft.turnover_sap / cton_sap_bg * nrelocfrac;
 				
-				// Max nitrogen storage
-				indiv.max_n_storage = (max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv / cton_leaf_bg;
+				// Max longterm nitrogen storage
+				indiv.max_n_storage = min(indiv.cmass_sap * indiv.pft.fnstorage, 
+				                      (max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv) / cton_leaf_bg;
 
 				// Scale this year productivity to max storage
 				if (indiv.anpp > 0.0) {
@@ -1385,9 +1386,10 @@ void growth(Stand& stand, Patch& patch) {
 				// Nitrogen approx retranslocated next year
 				double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
 					indiv.cmass_root * indiv.pft.turnover_root / cton_root_bg * nrelocfrac;
-				
-				// Max nitrogen storage
-				indiv.max_n_storage = (max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv / cton_leaf_bg;
+
+				// Max longterm nitrogen storage
+				indiv.max_n_storage = min(indiv.cmass_root * indiv.pft.fnstorage, 
+				                      (max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv) / cton_leaf_bg;
 
 				// Scale this year productivity to max storage
 				if (indiv.anpp > 0.0) {

@@ -213,6 +213,7 @@ group "shrub" (
 	cton_sap 330
 	nuptoroot 0.0028
 	km_volume 0.000001477
+	fnstorage 0.3
 	pathway "c3"
 	kest_repr 20
 	kest_bg 0.1
@@ -242,6 +243,7 @@ group "grass" (
 	cton_root 29
 	nuptoroot 0.00551
 	km_volume 0.000001876
+	fnstorage 0.3
 	litterme 0.2
 	parff_min 1000000		! 2500000 i guess2008	
 	fireresist 0.5			! 1.0 hos Thomas
@@ -281,6 +283,7 @@ group "evergreen" (
 	! Parameters common to all evergreen trees
 
 	phenology "evergreen"
+	fnstorage 0.05
 	phengdd5ramp 0
 )
 
@@ -289,6 +292,7 @@ group "summergreen" (
 	! Parameters common to all summergreen trees
 
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	leaflong 0.5
 	turnover_leaf 1
@@ -586,6 +590,7 @@ pft "TrBR" (
 	shade_intolerant
 	tropical
 	phenology "raingreen"
+	fnstorage 0.15
 	leaflong 0.5
 	turnover_leaf 1
 	longevity 400    ! from Thomas h 2010-03-30

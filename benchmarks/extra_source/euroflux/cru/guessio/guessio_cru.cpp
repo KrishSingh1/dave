@@ -485,6 +485,8 @@ void plib_declarations(int id,xtring setname) {
 			"Maximum nitrogen uptake per fine root");
 		declareitem("km_volume",&ppft->km_volume,0.0,10.0,1,CB_NONE,
 			"Michaelis-Menten kinetic parameters for nitrogen uptake");
+		declareitem("fnstorage",&ppft->fnstorage,0.0,10.0,1,CB_NONE,
+			"fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen storage scalar");
 
 		declareitem("reprfrac",&ppft->reprfrac,0.0,1.0,1,CB_NONE,
 			"Fraction of NPP allocated to reproduction");
@@ -796,6 +798,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("cton_root")) badins("cton_root");
 		if (!itemparsed("nuptoroot")) badins("nuptoroot");
 		if (!itemparsed("km_volume")) badins("km_volume");
+		if (!itemparsed("fnstorage")) badins("fnstorage");
 
 		if (!itemparsed("reprfrac")) badins("reprfrac");
 		if (!itemparsed("turnover_leaf")) badins("turnover_leaf");

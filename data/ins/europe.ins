@@ -216,6 +216,7 @@ group "shrub" (
 	cton_sap 330
 	nuptoroot 0.0028
 	km_volume 0.000001477
+	fnstorage 0.3
 	pathway "c3"
 	kest_repr 20
 	kest_bg 0.1
@@ -255,6 +256,7 @@ group "grass" (
 	cton_root 29
 	nuptoroot 0.00551
 	km_volume 0.000001876
+	fnstorage 0.3
 	respcoeff 2.0 
 	litterme 0.2
 	ga 0.030
@@ -328,6 +330,7 @@ pft "Abi_alb" (
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
+	fnstorage 0.05
 	leaflong 3			! THdiff: 4
 	turnover_leaf 0.33  ! THdiff: 0.25
 	phengdd5ramp 0
@@ -400,6 +403,7 @@ pft "Bet_pen" (
 !	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -30
 	tcmin_est -30
@@ -430,6 +434,7 @@ pft "Bet_pub" (
 !	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -30
 	tcmin_est -30
@@ -460,6 +465,7 @@ pft "Car_bet" (
 !	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -8		! Sykes96
 	tcmin_est -8
@@ -492,6 +498,7 @@ pft "Cor_ave" (
 !	sla 12				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -11		! THdiff: -8 Sykes96: -15
 	tcmin_est -11		! THdiff: -7 Sykes96: -15
@@ -522,6 +529,7 @@ pft "Fag_syl" (
 !	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -3.5		! Sykes96
 	tcmin_est -3.5		
@@ -552,6 +560,7 @@ pft "Fra_exc" (
 !	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -16		! Sykes96
 	tcmin_est -16		! Sykes96
@@ -587,6 +596,7 @@ pft "Jun_oxy" (
 !	sla 10				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "evergreen"
+	fnstorage 0.05
 	leaflong 1.5
 	turnover_leaf 0.6667
 	phengdd5ramp 0
@@ -658,6 +668,7 @@ pft "Pic_abi" (
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
+	fnstorage 0.05
 	leaflong 3			! THdiff: 4	
 	turnover_leaf 0.33	! THdiff: 0.25
 	phengdd5ramp 0
@@ -694,6 +705,7 @@ pft "Pic_sit" (
 !	sla 9.3						! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
+	fnstorage 0.05
 	leaflong 4					! 5 !?
 	turnover_leaf 0.25			! 0.2 !?
 	phengdd5ramp 0
@@ -731,6 +743,7 @@ pft "Pin_syl" (
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
+	fnstorage 0.05
 	leaflong 2				
 	turnover_leaf 0.5
 	phengdd5ramp 0
@@ -766,6 +779,7 @@ pft "Pin_hal" (
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
+	fnstorage 0.05
 	leaflong 2				
 	turnover_leaf 0.5
 	phengdd5ramp 0
@@ -801,6 +815,7 @@ pft "Pop_tre" (
 !	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -31		! Sykes
 	tcmin_est -30		! Sykes
@@ -869,6 +884,7 @@ pft "Que_ile" (
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "evergreen"
+	fnstorage 0.05
 	leaflong 2			
 	turnover_leaf 0.5
 	phengdd5ramp 0
@@ -903,6 +919,7 @@ pft "Que_pub" (
 !	sla 24.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -6			! THdiff: -6
 	tcmin_est -5			! THdiff: -5
@@ -933,6 +950,7 @@ pft "Que_rob" (
 !	sla 24.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -10			! THdiff: -16, Sykes96: -16
 	tcmin_est -9			! THdiff: -15, Sykes96: -16
@@ -964,6 +982,7 @@ pft "Til_cor" (
 !	sla 24.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -12			! THdiff: -18, Sykes96: -18
 	tcmin_est -11			! THdiff: -17
@@ -996,6 +1015,7 @@ pft "Ulm_gla" (
 !	sla 24.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -10.5		! Sykes96: -15
 	tcmin_est -9.5			! Sykes96: -15

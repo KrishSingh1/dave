@@ -2877,7 +2877,7 @@ void outannual(Gridcell& gridcell) {
 				flux_ntot     += (patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE) + 
 				                patch.fluxes.get_annual_flux(Fluxes::NO_FIRE)    + 
 				                patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE)   +
-								patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE)   +
+				                patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE)   +
 				                patch.fluxes.get_annual_flux(Fluxes::N_SOIL)) * to_gridcell_average;
 				
 				c_fast       += patch.soil.cpool_fast                           * to_gridcell_average;

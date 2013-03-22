@@ -822,7 +822,7 @@ public:
 	double nuptoroot;
 	/// coefficient to compensate for vertical distribution of fine root on nitrogen uptake
 	double nupscoeff;
-	/// fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen storage scalar
+	/// fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen longterm storage scalar
 	double fnstorage;
 
 	/// Michaelis-Menten kinetic parameters 

@@ -1032,7 +1032,7 @@ public:
 		// Fraction fine root in upper soil layer should have higher possibility for mineralized nitrogen uptake
 		// Soil nitrogen profile is considered to have a exponential decline (Franzluebbers et al. 2009) giving 
 		// an approximate advantage of 2 of having more roots in the upper soil layer
-		double upper_adv = 2.0;
+		const double upper_adv = 2.0;
 
 		nupscoeff = rootdist[0] * upper_adv + rootdist[1];
 
@@ -1221,8 +1221,10 @@ public:
 
 	/// leaf nitrogen that is photosyntetic active
 	double nactive;
-	/// extinction scalar to account for leaf nitrogen not
-	/// following the optimal light extinction, but is shallower
+	/// Nitrogen extinction scalar
+	/** Scalar to account for leaf nitrogen not following the optimal light 
+	  * extinction, but is shallower.
+	  */
 	double nextin;
 	/// long-term storage of labile nitrogen
 	double nstore_longterm;

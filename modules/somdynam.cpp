@@ -861,7 +861,7 @@ void transfer_litter(Patch& patch) {
 		// WOOD
 
 		if (pft.pft.lifeform == TREE) { 
-			// Woody debris enters two woody litter pool as described in
+			// Woody debris enters two woody litter pools as described in
 			// Kirschbaum and Paul (2002).
 
 			if (!negligible(pft.litter_sap)) {

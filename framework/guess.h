@@ -1025,6 +1025,12 @@ public:
 
 		// Average sap C:N ratio
 		cton_sap_avr  = cton_leaf_avr * frac_leaftosap;
+
+		if (lifeform == GRASS)
+			respcoeff /= 2.0 * cton_root / (cton_root_avr + cton_leaf_min * frac_leaftoroot);
+		else
+			respcoeff /= cton_root / (cton_root_avr + cton_leaf_min * frac_leaftoroot) +
+			             cton_sap  / (cton_sap_avr  + cton_leaf_min * frac_leaftosap);
 	}
 
 	void init_nupscoeff() {

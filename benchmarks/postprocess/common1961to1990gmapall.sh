@@ -13,5 +13,5 @@ describe_images "LAI For All PFTs/Species (1961-90 average). Units: m2 m-2"  lai
 gmapall cmass1961to1990.txt -P cmass_ -s $@
 describe_images "CMASS For All PFTs/Species (1961-90 average). Units: kgC m-2" cmass_*.jpg
 
-gmapall cton_leaf1961to1990.txt -P cton_leaf_ -legend legend_cton.txt
+gmapall cton_leaf1961to1990.txt -P cton_leaf_ -legend common/legend_cton.txt
 describe_images "Leaf C:N Ratio For All PFTs/Species (1961-90 average). Units: kgC kgN-1" cton_leaf_*.jpg

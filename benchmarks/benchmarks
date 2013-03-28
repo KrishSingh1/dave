@@ -207,6 +207,9 @@ function setup_workspace {
 	$bbox_command -f $test_name/config/gridlist.txt \
 	    -o $workspace/gridlist.txt $bbox
     fi
+
+	# Create a symbolic link to the common directory
+	ln -s -T $(readlink -f common) $workspace/common
 }
 
 # This function submits the post processing job.

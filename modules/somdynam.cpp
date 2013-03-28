@@ -1140,6 +1140,9 @@ void add_litter(Soil& soil, int year, int pool, double& litter_cmass, double& li
  */
 void equilsom(Soil& soil) {
 
+	// Number of years to run SOM pools, value chosen to get cold climates to equilibrium
+	const int EQUILSOM_YEARS = 40000;
+
 	Patch& patch = soil.patch;
 	Climate& climate = soil.patch.stand.gridcell.climate;
 
@@ -1170,8 +1173,8 @@ void equilsom(Soil& soil) {
 	soil.anfix_mean /= nyear;	
 
 	// Spin SOM pools with saved litter input, nitrogen addition and fractions of
-	// nitrogen uptake and leaching for 3000 years with monthly timesteps
-	for (int yr = 0; yr < 40000; yr++) {
+	// nitrogen uptake and leaching for EQUILSOM_YEARS years with monthly timesteps
+	for (int yr = 0; yr < EQUILSOM_YEARS; yr++) {
 
 		// Which year in saved data set
 		int savedyear = yr%nyear;

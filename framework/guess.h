@@ -812,8 +812,12 @@ public:
 	double cton_leaf_avr;
 	/// average fine root C:N mass ratio	
 	double cton_root_avr;
+	/// maximum fine root C:N mass ratio	
+	double cton_root_max;
 	/// average sapwood C:N mass ratio
 	double cton_sap_avr;
+	/// maximum sapwood C:N mass ratio
+	double cton_sap_max;
 	/// reference fine root C:N mass ratio	
 	double cton_root;
 	/// reference sapwood C:N mass ratio	
@@ -1020,11 +1024,17 @@ public:
 		// Average leaf C:N ratio
 		cton_leaf_avr = 1.0 / ((1.0 / cton_leaf_min + 1.0 / cton_leaf_max) / 2.0);
 
-		// Average root C:N ratio
+		// Average fine root C:N ratio
 		cton_root_avr = cton_leaf_avr * frac_leaftoroot;
+
+		// Maximum fine root C:N ratio
+		cton_root_max = cton_leaf_min * frac_leaftoroot * frac_mintomax;
 
 		// Average sap C:N ratio
 		cton_sap_avr  = cton_leaf_avr * frac_leaftosap;
+
+		// Maximum sap C:N ratio
+		cton_sap_max  = cton_leaf_min * frac_leaftosap * frac_mintomax;
 
 		if (lifeform == GRASS)
 			respcoeff /= 2.0 * cton_root / (cton_root_avr + cton_leaf_min * frac_leaftoroot);
@@ -1325,7 +1335,12 @@ public:
 		cmass_leaf      *= scalar;
 		cmass_root      *= scalar;
 		cmass_sap       *= scalar;
-		cmass_debt      *= scalar;
+		if (cmass_debt <= cmass_heart) {
+			cmass_debt  *= scalar;
+		}
+		else {
+			cmass_debt  -= cmass_heart * (1.0 - scalar);
+		}
 		cmass_heart     *= scalar;
 		nmass_leaf      *= scalar;
 		nmass_root      *= scalar;

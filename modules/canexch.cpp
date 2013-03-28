@@ -1770,7 +1770,8 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		}
 		// Calculate autotrophic respiration
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
-			indiv.pft.respcoeff, indiv.cton_sap(), indiv.cton_root(),
+			indiv.pft.respcoeff, min(indiv.cton_sap(), indiv.pft.cton_sap_max), 
+			min(indiv.cton_root(), indiv.pft.cton_root_max),
 			indiv.phen, indiv.cmass_sap, indiv.cmass_root, assim, resp);
 
 		// Convert to averages for this period for accounting purposes

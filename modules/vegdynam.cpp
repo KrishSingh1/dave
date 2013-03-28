@@ -834,7 +834,9 @@ void mortality_lpj(Stand& stand, Patch& patch, Climate& climate, double fireprob
 			patch.pft[indiv.pft.id].litter_leaf  += (mort - mort_fire) * indiv.cmass_leaf;
 			patch.pft[indiv.pft.id].litter_root  += mort * indiv.cmass_root;
 			patch.pft[indiv.pft.id].litter_sap   += (mort - mort_fire) * indiv.cmass_sap;
-			patch.pft[indiv.pft.id].litter_heart += (mort - mort_fire) * indiv.cmass_heart;
+			if (indiv.cmass_debt <= indiv.cmass_heart) {
+				patch.pft[indiv.pft.id].litter_heart += (mort - mort_fire) * (indiv.cmass_heart - indiv.cmass_debt);
+			}
 
 			patch.pft[indiv.pft.id].nmass_litter_leaf  += (mort - mort_fire) * indiv.nmass_leaf;
 			patch.pft[indiv.pft.id].nmass_litter_root  += mort * indiv.nmass_root;
@@ -1232,13 +1234,15 @@ void mortality_guess(Stand& stand, Patch& patch, Climate& climate, double firepr
 
 				patch.pft[indiv.pft.id].litter_leaf  += (1.0 - frac_survive) * indiv.cmass_leaf;
 				patch.pft[indiv.pft.id].litter_root  += (1.0 - frac_survive) * indiv.cmass_root;
-				patch.pft[indiv.pft.id].litter_sap   += (1.0 - frac_survive) * (indiv.cmass_sap);
-				patch.pft[indiv.pft.id].litter_heart += (1.0 - frac_survive) * (indiv.cmass_heart);
+				patch.pft[indiv.pft.id].litter_sap   += (1.0 - frac_survive) * indiv.cmass_sap;
+				if (indiv.cmass_debt <= indiv.cmass_heart) {
+					patch.pft[indiv.pft.id].litter_heart += (1.0 - frac_survive) * (indiv.cmass_heart - indiv.cmass_debt);
+				}
 
 				patch.pft[indiv.pft.id].nmass_litter_leaf  += (1.0 - frac_survive) * indiv.nmass_leaf;
 				patch.pft[indiv.pft.id].nmass_litter_root  += (1.0 - frac_survive) * indiv.nmass_root;
-				patch.pft[indiv.pft.id].nmass_litter_sap   += (1.0 - frac_survive) * (indiv.nmass_sap);
-				patch.pft[indiv.pft.id].nmass_litter_heart += (1.0 - frac_survive) * (indiv.nmass_heart);
+				patch.pft[indiv.pft.id].nmass_litter_sap   += (1.0 - frac_survive) * indiv.nmass_sap;
+				patch.pft[indiv.pft.id].nmass_litter_heart += (1.0 - frac_survive) * indiv.nmass_heart;
 			
 				// Transfer nitrogen storage to wood nitrogen litter for now 	
 				patch.pft[indiv.pft.id].nmass_litter_sap += (1.0 - frac_survive) * indiv.nstore();

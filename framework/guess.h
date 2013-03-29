@@ -1375,9 +1375,9 @@ public:
 		}
 	}
 
-	/// Current root C:N ratio
+	/// Current fine root C:N ratio
 	double cton_root() const {
-		if (!negligible(nmass_root))
+		if (!negligible(nmass_root) && !negligible(phen))
 			return cmass_root / nmass_root;
 		else
 			return pft.cton_root_avr;

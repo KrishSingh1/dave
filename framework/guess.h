@@ -1367,7 +1367,7 @@ public:
 
 	/// Current leaf C:N ratio
 	double cton_leaf() const {
-		if (!negligible(nmass_leaf) && !negligible(phen)) {
+		if (!negligible(cmass_leaf) && !negligible(nmass_leaf) && !negligible(phen)) {
 			return cmass_leaf * phen / nmass_leaf;
 		}
 		else {
@@ -1377,7 +1377,7 @@ public:
 
 	/// Current fine root C:N ratio
 	double cton_root() const {
-		if (!negligible(nmass_root) && !negligible(phen))
+		if (!negligible(cmass_root) && !negligible(nmass_root) && !negligible(phen))
 			return cmass_root / nmass_root;
 		else
 			return pft.cton_root_avr;
@@ -1386,7 +1386,7 @@ public:
 	/// Current sap C:N ratio
 	double cton_sap() const {
 		if (pft.lifeform == TREE) {
-			if (!negligible(nmass_sap))
+			if (!negligible(cmass_sap) && !negligible(nmass_sap))
 				return cmass_sap / nmass_sap;
 			else
 				return pft.cton_sap_avr;

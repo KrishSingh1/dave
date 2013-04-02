@@ -1321,10 +1321,9 @@ void growth(Stand& stand, Patch& patch) {
 
 				// Nitrogen longtime storage
 				// Nitrogen approx retranslocated next year
-				double retransn_nextyear;
 				if (!negligible(cton_leaf_bg) && !negligible(cton_root_bg) && !negligible(cton_sap_bg)) {
 
-					retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
+					double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
 						indiv.cmass_root * indiv.pft.turnover_root / cton_root_bg * nrelocfrac +
 						indiv.cmass_sap * indiv.pft.turnover_sap / cton_sap_bg * nrelocfrac;
 				
@@ -1344,7 +1343,7 @@ void growth(Stand& stand, Patch& patch) {
 
 					// Scale this year productivity to max storage
 					if (indiv.anpp > 0.0) {
-						indiv.scale_n_storage = max(0.5 * indiv.max_n_storage, indiv.max_n_storage - retransn_nextyear) * indiv.pft.cton_leaf_avr / indiv.anpp;
+						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / indiv.anpp;
 					}
 				}
 
@@ -1358,7 +1357,7 @@ void growth(Stand& stand, Patch& patch) {
 					indiv.report_flux(Fluxes::RA, -exceeds_cmass * indiv.densindiv);
 				}
 
-				// Nitrogen litter allways return to soil litter and storage
+				// Nitrogen litter always return to soil litter and storage
 				if (!negligible(cton_leaf_bg)) {
 					patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
 						cton_leaf_bg * (1.0 - nrelocfrac);
@@ -1419,9 +1418,9 @@ void growth(Stand& stand, Patch& patch) {
 
 				// Nitrogen longtime storage
 				// Nitrogen approx retranslocated next year
-				double retransn_nextyear;
 				if (!negligible(cton_leaf_bg) && !negligible(cton_root_bg)) {
-					retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
+
+					double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
 						indiv.cmass_root * indiv.pft.turnover_root / cton_root_bg * nrelocfrac;
 
 					// Max longterm nitrogen storage
@@ -1440,7 +1439,7 @@ void growth(Stand& stand, Patch& patch) {
 
 					// Scale this year productivity to max storage
 					if (indiv.anpp > 0.0) {
-						indiv.scale_n_storage = max(0.5 * indiv.max_n_storage, indiv.max_n_storage - retransn_nextyear) * indiv.pft.cton_leaf_avr / indiv.anpp;
+						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / indiv.anpp;
 					}
 				}
 
@@ -1455,7 +1454,7 @@ void growth(Stand& stand, Patch& patch) {
 					indiv.report_flux(Fluxes::RA, -exceeds_cmass * indiv.densindiv);
 				}
 
-				// Nitrogen allways return to soil litter and storage
+				// Nitrogen always return to soil litter and storage
 				if (!negligible(cton_leaf_bg)) {
 					patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
 						cton_leaf_bg * (1.0 - nrelocfrac);

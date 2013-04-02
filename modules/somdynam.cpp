@@ -2,7 +2,7 @@
 /// \file somdynam.cpp
 /// \brief Soil organic matter dynamics
 ///
-/// \author Ben Smith (LPJ SOM dynamics), David Wårlind (CENTURY)
+/// \author Ben Smith (LPJ SOM dynamics, CENTURY), David Wårlind (CENTURY)
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////

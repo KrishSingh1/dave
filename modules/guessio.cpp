@@ -2260,11 +2260,11 @@ void outannual(Gridcell& gridcell) {
 			// Print PFT sums to files
 
 			double gcpft_cton_leaf = 0.0;
-			if (gcpft_cmass_leaf > 0.0) {
+			if (gcpft_nmass_leaf > 0.0) {
 				gcpft_cton_leaf = gcpft_cmass_leaf / gcpft_nmass_leaf;
 			}
 			double gcpft_cton_veg = 0.0;
-			if (gcpft_cmass_veg > 0.0) {
+			if (gcpft_nmass_veg > 0.0) {
 				gcpft_cton_veg = gcpft_cmass_veg / gcpft_nmass_veg;
 			}
 			

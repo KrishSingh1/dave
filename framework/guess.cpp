@@ -72,6 +72,14 @@ int state_year;
 
 Pftlist pftlist;
 
+// emission ratios from fire (NH3, NO, NO2, N2O) Delmas et al. 1995
+
+const double Fluxes::NH3_FIRERATIO = 0.014;
+const double Fluxes::NO_FIRERATIO  = 0.531;
+const double Fluxes::NO2_FIRERATIO = 0.379;
+const double Fluxes::N2O_FIRERATIO = 0.076;
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of PhotosynthesisResult member functions
 ////////////////////////////////////////////////////////////////////////////////
@@ -630,6 +638,84 @@ void Individual::report_flux(Fluxes::PerPatchFluxType flux_type, double value) {
 	}
 }
 
+void Individual::reduce_biomass(double mortality, double mortality_fire) {
+
+	// This function needs to be modified if a new lifeform is added,
+	// specifically to deal with nstore().
+	assert(pft.lifeform == TREE || pft.lifeform == GRASS);
+
+	const double mortality_non_fire = mortality - mortality_fire;
+
+	// Transfer killed biomass to litter
+	// (above-ground biomass killed by fire enters atmosphere, not litter)
+
+	Patchpft& ppft = patchpft();
+
+	ppft.litter_leaf  += mortality_non_fire * cmass_leaf;
+	ppft.litter_root  += mortality * cmass_root;
+	ppft.litter_sap   += mortality_non_fire * cmass_sap;
+
+	if (cmass_debt <= cmass_heart) {
+		ppft.litter_heart += mortality_non_fire * (cmass_heart - cmass_debt);
+	}
+		
+	ppft.nmass_litter_leaf  += mortality_non_fire * nmass_leaf;
+	ppft.nmass_litter_root  += mortality * nmass_root;
+	ppft.nmass_litter_sap   += mortality_non_fire * nmass_sap;
+	ppft.nmass_litter_heart += mortality_non_fire * nmass_heart;
+
+	if (pft.lifeform == TREE) {				
+		// Transfer nitrogen storage to wood nitrogen litter for now 	
+		ppft.nmass_litter_sap += mortality_non_fire * nstore();
+	}
+	else { // GRASS
+		// Transfer nitrogen storage to root nitrogen litter for now
+		ppft.nmass_litter_root += mortality * nstore();			
+	}
+
+
+	// Flux to atmosphere from burnt above-ground biomass
+
+	double cflux_fire = mortality_fire * (cmass_leaf + cmass_wood());
+	double nflux_fire = mortality_fire * (nmass_leaf + nmass_wood());
+
+	if (pft.lifeform == TREE) {
+		nflux_fire += mortality_fire * nstore();
+	}
+
+	report_flux(Fluxes::FIREC,    cflux_fire);
+
+	report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire); 
+	report_flux(Fluxes::NO_FIRE,  Fluxes::NO_FIRERATIO  * nflux_fire);
+	report_flux(Fluxes::NO2_FIRE, Fluxes::NO2_FIRERATIO * nflux_fire);
+	report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
+
+	// Reduce this Individual's biomass values
+
+	const double remaining = 1.0 - mortality;
+
+	if (pft.lifeform != GRASS) {
+		densindiv *= remaining;
+	}
+
+	cmass_leaf      *= remaining;
+	cmass_root      *= remaining;
+	cmass_sap       *= remaining;
+	if (cmass_debt <= cmass_heart) {
+		cmass_debt  *= remaining;
+	}
+	else {
+		cmass_debt  -= cmass_heart * (1.0 - remaining);
+	}
+	cmass_heart     *= remaining;
+	nmass_leaf      *= remaining;
+	nmass_root      *= remaining;
+	nmass_sap       *= remaining;
+	nmass_heart     *= remaining;
+	nstore_longterm *= remaining;
+	nstore_labile   *= remaining;
+}
+
 Patchpft& Individual::patchpft() {
 	return vegetation.patch.pft[pft.id];
 }
@@ -878,3 +964,12 @@ void Sompool::serialize(ArchiveStream& arch) {
 		& fireresist
 		& mfracremain_mean;
 }
+
+///////////////////////////////////////////////////////////////////////////////////////
+// REFERENCES
+//
+// LPJF refers to the original FORTRAN implementation of LPJ as described by Sitch
+//   et al 2000
+// Delmas, R., Lacaux, J.P., Menaut, J.C., Abbadie, L., Le Roux, X., Helaa, G., Lobert, J., 1995. 
+//   Nitrogen compound emission from biomass burning in tropical African Savanna FOS/DECAFE 1991 
+//   experiment. Journal of Atmospheric Chemistry 22, 175-193.

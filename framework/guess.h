@@ -703,6 +703,14 @@ public:
 		NPERPFTFLUXTYPES
 	};
 
+	// emission ratios from fire (NH3, NO, NO2, N2O) Delmas et al. 1995
+	// values in .cpp file
+
+	static const double NH3_FIRERATIO;
+	static const double NO_FIRERATIO;
+	static const double NO2_FIRERATIO;
+	static const double N2O_FIRERATIO;	
+
 
 	/// Reference to patch to which this Fluxes object belongs
 	Patch& patch;
@@ -1325,30 +1333,15 @@ public:
 	/** Fluxes from 'new' Individuals (alive == false) will not be reported */
 	void report_flux(Fluxes::PerPatchFluxType flux_type, double value);
 
-	/// Reduce current biomass with a scalar
-	void reduce_biomass(double scalar) {
-
-		if (pft.lifeform != GRASS) {
-			densindiv *= scalar;
-		}
-
-		cmass_leaf      *= scalar;
-		cmass_root      *= scalar;
-		cmass_sap       *= scalar;
-		if (cmass_debt <= cmass_heart) {
-			cmass_debt  *= scalar;
-		}
-		else {
-			cmass_debt  -= cmass_heart * (1.0 - scalar);
-		}
-		cmass_heart     *= scalar;
-		nmass_leaf      *= scalar;
-		nmass_root      *= scalar;
-		nmass_sap       *= scalar;
-		nmass_heart     *= scalar;
-		nstore_longterm *= scalar;
-		nstore_labile   *= scalar;
-	}
+	/// Reduce current biomass due to mortality and/or fire
+	/** The removed biomass is put into litter pools and/or goes to fire fluxes.
+	 *
+	 *  \param mortality      fraction of Individual's biomass killed due to
+	 *                        mortality (including fire)
+	 *  \param mortality_fire fraction of Individual's biomass killed due to
+	 *                        fire only
+	 */
+	void reduce_biomass(double mortality, double mortality_fire);
 
 	/// Total storage of nitrogen
 	double nstore() const {
@@ -2318,6 +2311,9 @@ private:
 //
 // LPJF refers to the original FORTRAN implementation of LPJ as described by Sitch
 //   et al 2000
+// Delmas, R., Lacaux, J.P., Menaut, J.C., Abbadie, L., Le Roux, X., Helaa, G., Lobert, J., 1995. 
+//   Nitrogen compound emission from biomass burning in tropical African Savanna FOS/DECAFE 1991 
+//   experiment. Journal of Atmospheric Chemistry 22, 175-193.
 // Cosby, B. J., Hornberger, C. M., Clapp, R. B., & Ginn, T. R. 1984 A statistical 
 //   exploration of the relationships of soil moisture characteristic to the 
 //   physical properties of soil.

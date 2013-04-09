@@ -1303,7 +1303,7 @@ void growth(Stand& stand, Patch& patch) {
 
 				// If negative sap growth, then nrelocfrac of nitrogen will go to heart wood and 
 				// (1.0 - nreloctrac) will go to storage
-				if (cmass_sap_inc < 0.0 && !negligible(cton_sap_bg)) {
+				if (cmass_sap_inc < 0.0) {
 					indiv.nmass_heart -= cmass_sap_inc * indiv.densindiv / cton_sap_bg * nrelocfrac;
 					indiv.nmass_sap += cmass_sap_inc * indiv.densindiv / cton_sap_bg;
 				}

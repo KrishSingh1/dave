@@ -812,19 +812,19 @@ public:
 	double respcoeff;
 		// maintenance respiration coefficient (0-1)
 	
-	/// minimum leaf C:N mass ratio
+	/// minimum leaf C:N mass ratio allowed when nitrogen demand is determined
 	double cton_leaf_min;
-	/// maximum leaf C:N mass ratio	
+	/// maximum leaf C:N mass ratio	allowed when nitrogen demand is determined
 	double cton_leaf_max;
-	/// average leaf C:N mass ratio
+	/// average leaf C:N mass ratio (between min and max)
 	double cton_leaf_avr;
-	/// average fine root C:N mass ratio	
+	/// average fine root C:N mass ratio (connected cton_leaf_avr)
 	double cton_root_avr;
-	/// maximum fine root C:N mass ratio	
+	/// maximum fine root C:N mass ratio (used when mass is negligible) 	
 	double cton_root_max;
-	/// average sapwood C:N mass ratio
+	/// average sapwood C:N mass ratio (connected cton_leaf_avr)
 	double cton_sap_avr;
-	/// maximum sapwood C:N mass ratio
+	/// maximum sapwood C:N mass ratio (used when mass is negligible) 
 	double cton_sap_max;
 	/// reference fine root C:N mass ratio	
 	double cton_root;

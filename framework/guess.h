@@ -1359,35 +1359,21 @@ public:
 	}
 
 	/// Current leaf C:N ratio
-	double cton_leaf() const {
-		if (!negligible(cmass_leaf) && !negligible(nmass_leaf) && !negligible(phen)) {
-			return cmass_leaf * phen / nmass_leaf;
-		}
-		else {
-			return pft.cton_leaf_avr;
-		}
-	}
+	/**
+	 *  /param use_phen Set to false if indiv.phen shouldn't be considered
+	 *  when calculating C:N ratio
+	 */
+	double cton_leaf(bool use_phen = true);
 
 	/// Current fine root C:N ratio
-	double cton_root() const {
-		if (!negligible(cmass_root) && !negligible(nmass_root) && !negligible(phen))
-			return cmass_root / nmass_root;
-		else
-			return pft.cton_root_avr;
-	}
+	/**
+	 *  /param use_phen Set to false if indiv.phen shouldn't be considered
+	 *  when calculating C:N ratio
+	 */
+	double cton_root(bool use_phen = true);
 
 	/// Current sap C:N ratio
-	double cton_sap() const {
-		if (pft.lifeform == TREE) {
-			if (!negligible(cmass_sap) && !negligible(nmass_sap))
-				return cmass_sap / nmass_sap;
-			else
-				return pft.cton_sap_avr;
-		}
-		else {
-			return 1.0;
-		}
-	}
+	double cton_sap();
 
 	/// Gets the individual's Patchpft
 	Patchpft& patchpft();

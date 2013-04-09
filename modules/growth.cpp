@@ -1146,23 +1146,15 @@ void growth(Stand& stand, Patch& patch) {
 		indiv.nmass_veg = indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_wood();
 
 		// Save real compartment C:N ratios before growth
+		// phen is switched off for leaf and root
 		// Leaf
-		if (!negligible(indiv.nmass_leaf))
-			cton_leaf_bg = indiv.cmass_leaf / indiv.nmass_leaf;
-		else
-			cton_leaf_bg = 0.0;
+		cton_leaf_bg = indiv.cton_leaf(false);
 
 		// Root
-		if (!negligible(indiv.nmass_root))
-			cton_root_bg = indiv.cmass_root / indiv.nmass_root;
-		else
-			cton_root_bg = 0.0;
+		cton_root_bg = indiv.cton_root(false);
 
 		// Sap
-		if (!negligible(indiv.nmass_sap))
-			cton_sap_bg = indiv.cmass_sap / indiv.nmass_sap;
-		else
-			cton_sap_bg = 0.0;
+		cton_sap_bg = indiv.cton_sap();
 
 		// Save leaf annual average C:N ratio
 		if (!negligible(indiv.nday_leafon))
@@ -1321,30 +1313,17 @@ void growth(Stand& stand, Patch& patch) {
 
 				// Nitrogen longtime storage
 				// Nitrogen approx retranslocated next year
-				if (!negligible(cton_leaf_bg) && !negligible(cton_root_bg) && !negligible(cton_sap_bg)) {
-
-					double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
-						indiv.cmass_root * indiv.pft.turnover_root / cton_root_bg * nrelocfrac +
-						indiv.cmass_sap * indiv.pft.turnover_sap / cton_sap_bg * nrelocfrac;
+				double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
+					indiv.cmass_root * indiv.pft.turnover_root / cton_root_bg * nrelocfrac +
+					indiv.cmass_sap * indiv.pft.turnover_sap / cton_sap_bg * nrelocfrac;
 				
-					// Max longterm nitrogen storage
-					indiv.max_n_storage = min(indiv.cmass_sap * indiv.pft.fnstorage, 
-						(max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv) / cton_leaf_bg;
+				// Max longterm nitrogen storage
+				indiv.max_n_storage = min(indiv.cmass_sap * indiv.pft.fnstorage, 
+					(max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv) / cton_leaf_bg;
 
-					// Scale this year productivity to max storage
-					if (indiv.anpp > 0.0) {
-						indiv.scale_n_storage = max(0.5 * indiv.max_n_storage, indiv.max_n_storage - retransn_nextyear) * cton_leaf_bg / indiv.anpp;
-					}
-				}
-				else {
-					// Max longterm nitrogen storage
-					indiv.max_n_storage = min(indiv.cmass_sap * indiv.pft.fnstorage, 
-						(max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv) / indiv.pft.cton_leaf_avr;
-
-					// Scale this year productivity to max storage
-					if (indiv.anpp > 0.0) {
-						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / indiv.anpp;
-					}
+				// Scale this year productivity to max storage
+				if (indiv.anpp > 0.0) {
+					indiv.scale_n_storage = max(0.5 * indiv.max_n_storage, indiv.max_n_storage - retransn_nextyear) * cton_leaf_bg / indiv.anpp;
 				}
 
 				// alive check before ensuring C balance
@@ -1358,27 +1337,23 @@ void growth(Stand& stand, Patch& patch) {
 				}
 
 				// Nitrogen litter always return to soil litter and storage
-				if (!negligible(cton_leaf_bg)) {
-					patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
-						cton_leaf_bg * (1.0 - nrelocfrac);
-					indiv.nstore_longterm += litter_leaf_inc * indiv.densindiv / cton_leaf_bg * nrelocfrac;
+				// Leaf
+				patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
+					cton_leaf_bg * (1.0 - nrelocfrac);
+				indiv.nstore_longterm += litter_leaf_inc * indiv.densindiv / cton_leaf_bg * nrelocfrac;
 
-					// Subtracting litter nitrogen from individuals
-					indiv.nmass_leaf -= litter_leaf_inc * indiv.densindiv / cton_leaf_bg;
-				}
+				// Root
+				patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
+					cton_root_bg * (1.0 - nrelocfrac);
+				indiv.nstore_longterm += litter_root_inc * indiv.densindiv / cton_root_bg * nrelocfrac;
 
-				if (!negligible(cton_root_bg)) {
-					patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
-						cton_root_bg * (1.0 - nrelocfrac);
-					indiv.nstore_longterm += litter_root_inc * indiv.densindiv / cton_root_bg * nrelocfrac;
-
-					// Subtracting litter nitrogen from individuals
-					indiv.nmass_root -= litter_root_inc * indiv.densindiv / cton_root_bg;
-				}
+				// Subtracting litter nitrogen from individuals
+				indiv.nmass_leaf -= litter_leaf_inc * indiv.densindiv / cton_leaf_bg;
+				indiv.nmass_root -= litter_root_inc * indiv.densindiv / cton_root_bg;
 											
 				// If negative sap growth, then nrelocfrac of nitrogen will go to heart wood and 
 				// (1.0 - nreloctrac) will go to storage
-				if (cmass_sap_inc < 0.0 && !negligible(cton_sap_bg)) {
+				if (cmass_sap_inc < 0.0) {
 					indiv.nstore_longterm -= cmass_sap_inc * indiv.densindiv / cton_sap_bg * (1.0 - nrelocfrac);
 				}
 								
@@ -1418,29 +1393,16 @@ void growth(Stand& stand, Patch& patch) {
 
 				// Nitrogen longtime storage
 				// Nitrogen approx retranslocated next year
-				if (!negligible(cton_leaf_bg) && !negligible(cton_root_bg)) {
+				double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
+					indiv.cmass_root * indiv.pft.turnover_root / cton_root_bg * nrelocfrac;
 
-					double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
-						indiv.cmass_root * indiv.pft.turnover_root / cton_root_bg * nrelocfrac;
+				// Max longterm nitrogen storage
+				indiv.max_n_storage = min(indiv.cmass_root * indiv.pft.fnstorage, 
+					(max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv) / cton_leaf_bg;
 
-					// Max longterm nitrogen storage
-					indiv.max_n_storage = min(indiv.cmass_root * indiv.pft.fnstorage, 
-						(max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv) / cton_leaf_bg;
-
-					// Scale this year productivity to max storage
-					if (indiv.anpp > 0.0) {
-						indiv.scale_n_storage = max(0.5 * indiv.max_n_storage, indiv.max_n_storage - retransn_nextyear) * cton_leaf_bg / indiv.anpp;
-					}
-				}
-				else {
-					// Max longterm nitrogen storage
-					indiv.max_n_storage = min(indiv.cmass_root * indiv.pft.fnstorage, 
-						(max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv) / indiv.pft.cton_leaf_avr;
-
-					// Scale this year productivity to max storage
-					if (indiv.anpp > 0.0) {
-						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / indiv.anpp;
-					}
+				// Scale this year productivity to max storage
+				if (indiv.anpp > 0.0) {
+					indiv.scale_n_storage = max(0.5 * indiv.max_n_storage, indiv.max_n_storage - retransn_nextyear) * cton_leaf_bg / indiv.anpp;
 				}
 
 				// alive check before ensuring C balance
@@ -1455,24 +1417,20 @@ void growth(Stand& stand, Patch& patch) {
 				}
 
 				// Nitrogen always return to soil litter and storage
-				if (!negligible(cton_leaf_bg)) {
-					patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
-						cton_leaf_bg * (1.0 - nrelocfrac);
-					indiv.nstore_longterm += litter_leaf_inc * indiv.densindiv / cton_leaf_bg * nrelocfrac;
+				// Leaf
+				patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
+					cton_leaf_bg * (1.0 - nrelocfrac);
+				indiv.nstore_longterm += litter_leaf_inc * indiv.densindiv / cton_leaf_bg * nrelocfrac;
 
-					// Subtracting litter nitrogen from individuals
-					indiv.nmass_leaf -= litter_leaf_inc * indiv.densindiv / cton_leaf_bg;
-				}
-
-				if (!negligible(cton_root_bg)) {
-					patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
-						cton_root_bg * (1.0 - nrelocfrac);
-					indiv.nstore_longterm += litter_root_inc / cton_root_bg * nrelocfrac;
-
-					// Subtracting litter nitrogen from individuals
-					indiv.nmass_root -= litter_root_inc * indiv.densindiv / cton_root_bg;
-				}
+				// Root
+				patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
+					cton_root_bg * (1.0 - nrelocfrac);
+				indiv.nstore_longterm += litter_root_inc / cton_root_bg * nrelocfrac;
 				
+				// Subtracting litter nitrogen from individuals
+				indiv.nmass_leaf -= litter_leaf_inc * indiv.densindiv / cton_leaf_bg;
+				indiv.nmass_root -= litter_root_inc * indiv.densindiv / cton_root_bg;
+								
 				// Kill individual and transfer biomass to litter if either biomass
 				// compartment negative
 

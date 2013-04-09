@@ -721,7 +721,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 	nstore_labile   *= remaining;
 }
 
-double Individual::cton_leaf(bool use_phen /* = true*/) {
+double Individual::cton_leaf(bool use_phen /* = true*/) const {
 	if (!negligible(cmass_leaf) && !negligible(nmass_leaf)) {
 		if (use_phen) {
 			if (!negligible(phen)) {
@@ -740,7 +740,7 @@ double Individual::cton_leaf(bool use_phen /* = true*/) {
 	}
 }
 
-double Individual::cton_root(bool use_phen /* = true*/) {
+double Individual::cton_root(bool use_phen /* = true*/) const {
 	if (!negligible(cmass_root) && !negligible(nmass_root)) { 
 		if (use_phen) {
 			if (!negligible(phen)) {
@@ -759,7 +759,7 @@ double Individual::cton_root(bool use_phen /* = true*/) {
 	}
 }
 
-double Individual::cton_sap() {
+double Individual::cton_sap() const {
 	if (pft.lifeform == TREE) {
 		if (!negligible(cmass_sap) && !negligible(nmass_sap))
 			return cmass_sap / nmass_sap;

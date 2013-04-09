@@ -1360,20 +1360,20 @@ public:
 
 	/// Current leaf C:N ratio
 	/**
-	 *  /param use_phen Set to false if indiv.phen shouldn't be considered
-	 *  when calculating C:N ratio
+	 *  \param use_phen Set to false if indiv.phen shouldn't be considered
+	 *                  when calculating C:N ratio
 	 */
-	double cton_leaf(bool use_phen = true);
+	double cton_leaf(bool use_phen = true) const;
 
 	/// Current fine root C:N ratio
 	/**
-	 *  /param use_phen Set to false if indiv.phen shouldn't be considered
-	 *  when calculating C:N ratio
+	 *  \param use_phen Set to false if indiv.phen shouldn't be considered
+	 *                  when calculating C:N ratio
 	 */
-	double cton_root(bool use_phen = true);
+	double cton_root(bool use_phen = true) const;
 
 	/// Current sap C:N ratio
-	double cton_sap();
+	double cton_sap() const;
 
 	/// Gets the individual's Patchpft
 	Patchpft& patchpft();

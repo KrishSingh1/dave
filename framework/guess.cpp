@@ -653,10 +653,20 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 	ppft.litter_leaf  += mortality_non_fire * cmass_leaf;
 	ppft.litter_root  += mortality * cmass_root;
-	ppft.litter_sap   += mortality_non_fire * cmass_sap;
 
-	if (cmass_debt <= cmass_heart) {
-		ppft.litter_heart += mortality_non_fire * (cmass_heart - cmass_debt);
+	if (cmass_debt <= cmass_heart + cmass_sap) {
+		if (cmass_debt <= cmass_heart) {
+			ppft.litter_sap   += mortality_non_fire * cmass_sap;
+			ppft.litter_heart += mortality_non_fire * (cmass_heart - cmass_debt);
+		}
+		else {
+			ppft.litter_sap   += mortality_non_fire * (cmass_sap + cmass_heart - cmass_debt);
+		}
+	}
+	else {
+		double debt_excess = mortality_non_fire * (cmass_debt - (cmass_sap + cmass_heart));
+		report_flux(Fluxes::NPP, debt_excess);
+		report_flux(Fluxes::RA, -debt_excess);
 	}
 		
 	ppft.nmass_litter_leaf  += mortality_non_fire * nmass_leaf;
@@ -701,13 +711,8 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 	cmass_leaf      *= remaining;
 	cmass_root      *= remaining;
 	cmass_sap       *= remaining;
-	if (cmass_debt <= cmass_heart) {
-		cmass_debt  *= remaining;
-	}
-	else {
-		cmass_debt  -= cmass_heart * (1.0 - remaining);
-	}
 	cmass_heart     *= remaining;
+	cmass_debt      *= remaining;
 	nmass_leaf      *= remaining;
 	nmass_root      *= remaining;
 	nmass_sap       *= remaining;

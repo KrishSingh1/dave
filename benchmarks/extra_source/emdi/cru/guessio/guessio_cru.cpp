@@ -1731,7 +1731,6 @@ void define_output_tables() {
 	npool_columns += ColumnDescriptor("LittSN",            9, 5);
 	npool_columns += ColumnDescriptor("CwdN",              9, 5);
 	npool_columns += ColumnDescriptor("SoilN",             9, 5);
-	npool_columns += ColumnDescriptor("AvailN",            9, 5);
 
 	if (run_landcover && ifslowharvestpool) {
 		npool_columns += ColumnDescriptor("HarvSlowN",     9, 5);
@@ -2874,11 +2873,11 @@ void outannual(Gridcell& gridcell) {
 			// Print PFT sums to files
 
 			double gcpft_cton_leaf = 0.0;
-			if (gcpft_cmass_leaf > 0.0) {
+			if (gcpft_nmass_leaf > 0.0) {
 				gcpft_cton_leaf = gcpft_cmass_leaf / gcpft_nmass_leaf;
 			}
 			double gcpft_cton_veg = 0.0;
-			if (gcpft_cmass_veg > 0.0) {
+			if (gcpft_nmass_veg > 0.0) {
 				gcpft_cton_veg = gcpft_cmass_veg / gcpft_nmass_veg;
 			}
 			
@@ -3245,8 +3244,7 @@ void outannual(Gridcell& gridcell) {
 			out.add_value(out_npool, n_litter);
 			out.add_value(out_npool, surfsoillittern);
 			out.add_value(out_npool, cwdn);
-			out.add_value(out_npool, centuryn);
-			out.add_value(out_npool, availn);
+			out.add_value(out_npool, centuryn + availn);
 
 			if(run_landcover && ifslowharvestpool) {
 				out.add_value(out_npool, n_harv_slow);

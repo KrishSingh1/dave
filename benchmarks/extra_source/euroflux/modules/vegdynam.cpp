@@ -1436,7 +1436,7 @@ void disturbance(Patch& patch, double disturb_prob) {
 			Individual& indiv = vegetation.getobj();
 			 
 			indiv.kill();
-			
+
 			vegetation.killobj();
 		}
 

@@ -2417,7 +2417,6 @@ bool getclimate(Gridcell& gridcell) {
 
 	// guess2008 - changed name from mwet to mwet_all
 	double mwet_all[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}; // number of rain days per month
-	int dd;
 	Climate& climate = gridcell.climate;
 
 	if (date.day == 0) {

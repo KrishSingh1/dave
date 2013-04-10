@@ -274,7 +274,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifcalcsla",&ifcalcsla,1,CB_NONE,
 			"Whether SLA calculated from leaf longevity");
 		declareitem("ifcalccton",&ifcalccton,1,CB_NONE,
-			"Whether leaf C:N ratio minimum calculated from leaf longevity");
+			"Whether leaf C:N min calculated from leaf longevity");
 		declareitem("ifcdebt",&ifcdebt,1,CB_NONE,
 			"Whether to allow C storage");
 		declareitem("npatch",&npatch,1,1000,1,CB_NONE,
@@ -1257,6 +1257,7 @@ void define_output_tables() {
 	else {
 		cpool_columns += ColumnDescriptor("LittVC",        8, 3);
 		cpool_columns += ColumnDescriptor("LittSC",        8, 3);
+		cpool_columns += ColumnDescriptor("CwdC",          8, 3);
 		cpool_columns += ColumnDescriptor("SoilC",         8, 3);
 	}
 	if (run_landcover && ifslowharvestpool) {
@@ -1316,7 +1317,7 @@ void define_output_tables() {
 	npool_columns += ColumnDescriptor("SoilN",             9, 5);
 
 	if (run_landcover && ifslowharvestpool) {
-		npool_columns += ColumnDescriptor("HarvSlowN",     8, 5);
+		npool_columns += ColumnDescriptor("HarvSlowN",     9, 5);
 	}
 
 	npool_columns += ColumnDescriptor("Total",            10, 5);
@@ -1659,7 +1660,6 @@ bool getgridcell(Gridcell& gridcell) {
 }
 
 ///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
-
 void getlandcover(Gridcell& gridcell) {
 	int i, year;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
@@ -1933,9 +1933,6 @@ bool getclimate(Gridcell& gridcell) {
 }
 
 /// Called by the framework at the end of the last day of each simulation year
-
-
-
 void outannual(Gridcell& gridcell) {
 
 	// DESCRIPTION
@@ -2277,7 +2274,7 @@ void outannual(Gridcell& gridcell) {
 			out.add_value(out_cton_leaf, gcpft_cton_leaf);
 			out.add_value(out_cton_veg,  gcpft_cton_veg);
 			out.add_value(out_vmaxnlim,  gcpft_vmaxnlim);
-			out.add_value(out_nuptake,   gcpft_nuptake * m2toha);			
+			out.add_value(out_nuptake,   gcpft_nuptake * m2toha);	
 
 			// print species heights
 			double height = 0.0;
@@ -2385,7 +2382,7 @@ void outannual(Gridcell& gridcell) {
 							cwdc += patch.soil.sompool[r].cmass            / (double)stand.npatch();
 							cwdn += patch.soil.sompool[r].nmass            / (double)stand.npatch();
 						}
-						else {
+						else {	
 							centuryc += patch.soil.sompool[r].cmass        / (double)stand.npatch();
 							centuryn += patch.soil.sompool[r].nmass        / (double)stand.npatch();
 						}
@@ -2635,7 +2632,7 @@ void outannual(Gridcell& gridcell) {
 
 			if(run_landcover && ifslowharvestpool) {
 				out.add_value(out_npool, n_harv_slow);
-				out.add_value(out_npool, (nmass_gridcell + n_litter + surfsoillittern + cwdn + centuryn + n_harv_slow + availn));
+				out.add_value(out_npool, (nmass_gridcell + n_litter + surfsoillittern + cwdn + centuryn + availn + n_harv_slow));
 			}
 			else {
 				out.add_value(out_npool, (nmass_gridcell + n_litter + surfsoillittern + cwdn + centuryn + availn));

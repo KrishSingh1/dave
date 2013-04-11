@@ -2993,16 +2993,21 @@ void outannual(Gridcell& gridcell) {
 
 		// Print gridcell totals to files
 
-		// Determine total leaf C:N ratio and vmax nitrogen limitation
+		// Determine total leaf C:N ratio
 		double cton_leaf_gridcell = 0.0;
-		if (cmass_leaf_gridcell > 0.0) {
+		if (nmass_leaf_gridcell > 0.0) {
 			cton_leaf_gridcell = cmass_leaf_gridcell / nmass_leaf_gridcell;
-			vmaxnlim_gridcell /= cmass_leaf_gridcell;
 		}
+		
 		// Determine total vegetation C:N ratio
 		double cton_veg_gridcell = 0.0;
-		if (cmass_veg_gridcell > 0.0) {
+		if (nmass_veg_gridcell > 0.0) {
 			cton_veg_gridcell = cmass_veg_gridcell / nmass_veg_gridcell;
+		}
+
+		// Determine total vmax nitrogen limitation
+		if (cmass_leaf_gridcell > 0.0) {
+			vmaxnlim_gridcell /= cmass_leaf_gridcell;
 		}
 
 		out.add_value(out_cmass,  cmass_gridcell);

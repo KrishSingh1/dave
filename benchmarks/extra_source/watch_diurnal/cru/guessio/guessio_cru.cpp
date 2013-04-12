@@ -691,6 +691,11 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifnlim")) badins("ifnlim");
 		if (!itemparsed("freenyears")) badins("freenyears");
 
+		if (nyear_spinup <= freenyears) {
+			sendmessage("Error", "freenyears must be smaller than nyear_spinup");
+			plibabort();
+		}
+
 		if (!itemparsed("outputdirectory")) badins("outputdirectory");
 		if (!itemparsed("ifsmoothgreffmort")) badins("ifsmoothgreffmort");
 		if (!itemparsed("ifdroughtlimitedestab")) badins("ifdroughtlimitedestab");

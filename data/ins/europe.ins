@@ -77,27 +77,27 @@ file_vmaxnlim "vmaxnlim.out"
 
 title 'LPJ-GUESS (guess2008) cohort mode'
 
-vegmode "cohort"		! "cohort", "individual" or "population"
-nyear_spinup 500		! number of years to spin up the simulation for
-ifcalcsla 1				! whether to calculate SLA from leaf longevity
-						! (PFT-specific value can be specified in this file instead)
-ifcalccton 1			! whether to calculate leaf C:N min from leaf longevity
-						! (PFT-specific value can be specified in this file instead)
-iffire 1				! whether to implement fire (1) or not (0)
-npatch 25				! number of replicate patches to simulate
-patcharea 1000			! patch area (m2)
-estinterval 5			! years between establishment events in cohort mode
-ifdisturb 1				! whether generic patch-destroying disturbances enabled
-distinterval 100		! average return time for generic patch-destroying disturbances
+vegmode "cohort"      ! "cohort", "individual" or "population"
+nyear_spinup 500      ! number of years to spin up the simulation for
+ifcalcsla 1           ! whether to calculate SLA from leaf longevity
+                      ! (PFT-specific value can be specified in this file instead)
+ifcalccton 1          ! whether to calculate leaf C:N min from leaf longevity
+                      ! (PFT-specific value can be specified in this file instead)
+iffire 1              ! whether to implement fire (1) or not (0)
+npatch 25             ! number of replicate patches to simulate
+patcharea 1000        ! patch area (m2)
+estinterval 5         ! years between establishment events in cohort mode
+ifdisturb 1           ! whether generic patch-destroying disturbances enabled
+distinterval 100      ! average return time for generic patch-destroying disturbances
 						! Hickler et al. (2011) used 200
-ifbgestab 1				! whether background establishment enabled
-ifsme 1					! whether spatial mass effect enabled
-ifstochestab 1			! whether establishment stochastic
-ifstochmort 1			! whether mortality stochastic
-ifcdebt 1				! whether to allow vegetation C storage (1) or not (0)
-ifbvoc 0				! whether to include BVOC calculations (1) or not (0)
-wateruptake "rootdist"  ! "wcont", "rootdist", "smart" or "speciesspecific",
-                        ! see documentation for water_uptake()
+ifbgestab 1           ! whether background establishment enabled
+ifsme 1               ! whether spatial mass effect enabled
+ifstochestab 1        ! whether establishment stochastic
+ifstochmort 1         ! whether mortality stochastic
+ifcdebt 1             ! whether to allow vegetation C storage (1) or not (0)
+ifbvoc 0              ! whether to include BVOC calculations (1) or not (0)
+wateruptake "rootdist"! "wcont", "rootdist", "smart" or "speciesspecific",
+                      ! see documentation for water_uptake()
 
 !///////////////////////////////////////////////////////////////////////////////
 ! PROCESS SETTINGS SPECIFIC TO NITROGEN
@@ -121,12 +121,11 @@ save_state 0			! wheter to save a state file
 
 
 ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1) 
-								! or to use the standard step-function (0)  
+								! or to use the standard step-function (0)
 								! greff_min values below calibrated for the smooth (1) option 
 ifdroughtlimitedestab 1			! whether establishment is limited by growing season drought
 								! guess2008 - species version has 1
 ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit every day (0)
-
 
 !!!!!!!!!!!! landcover parameters !!!!!!!!!!!!!!					
 
@@ -170,6 +169,7 @@ group "common" (
 	turnover_harv_prod 1
 )
 
+
 group "tree" (
 
 	! Parameters common to all trees
@@ -182,7 +182,7 @@ group "tree" (
 	k_allom2 40 
 	k_allom3 0.67
 	k_rp 1.6
-	wooddens 200	
+	wooddens 200
 	cton_root 29
 	cton_sap 330
 	nuptoroot 0.0028

@@ -2552,6 +2552,29 @@ bool getclimate(Gridcell& gridcell) {
 	return true;
 }
 
+
+/// Help function to prepare C:N values for output
+/** Avoids division by zero and limits the results to a maximum
+ *  value to avoid inf or values large enough to ruin the alignment
+ *  in the output.
+ *
+ *  If both cmass and nmass is 0, the function returns 0.
+ */ 
+double limited_cton(double cmass, double nmass) {
+	const double MAX_CTON = 1000;
+
+	if (nmass > 0.0) {
+		return min(MAX_CTON, cmass / nmass);
+	}
+	else if (cmass > 0.0) {
+		return MAX_CTON;
+	}
+	else {
+		return 0.0;
+	}
+}
+
+
 /// Called by the framework at the end of the last day of each simulation year
 void outannual(Gridcell& gridcell) {
 
@@ -2880,14 +2903,8 @@ void outannual(Gridcell& gridcell) {
 
 			// Print PFT sums to files
 
-			double gcpft_cton_leaf = 0.0;
-			if (gcpft_nmass_leaf > 0.0) {
-				gcpft_cton_leaf = gcpft_cmass_leaf / gcpft_nmass_leaf;
-			}
-			double gcpft_cton_veg = 0.0;
-			if (gcpft_nmass_veg > 0.0) {
-				gcpft_cton_veg = gcpft_cmass_veg / gcpft_nmass_veg;
-			}
+			double gcpft_cton_leaf = limited_cton(gcpft_cmass_leaf, gcpft_nmass_leaf);
+			double gcpft_cton_veg = limited_cton(gcpft_cmass_veg, gcpft_nmass_veg);
 			
 			out.add_value(out_cmass,     gcpft_cmass);
 			out.add_value(out_anpp,      gcpft_anpp);
@@ -3069,16 +3086,10 @@ void outannual(Gridcell& gridcell) {
 		// Print gridcell totals to files
 
 		// Determine total leaf C:N ratio
-		double cton_leaf_gridcell = 0.0;
-		if (nmass_leaf_gridcell > 0.0) {
-			cton_leaf_gridcell = cmass_leaf_gridcell / nmass_leaf_gridcell;
-		}
+		double cton_leaf_gridcell = limited_cton(cmass_leaf_gridcell, nmass_leaf_gridcell);
 		
 		// Determine total vegetation C:N ratio
-		double cton_veg_gridcell = 0.0;
-		if (nmass_veg_gridcell > 0.0) {
-			cton_veg_gridcell = cmass_veg_gridcell / nmass_veg_gridcell;
-		}
+		double cton_veg_gridcell = limited_cton(cmass_veg_gridcell, nmass_veg_gridcell);
 
 		// Determine total vmax nitrogen limitation
 		if (cmass_leaf_gridcell > 0.0) {
@@ -3121,15 +3132,11 @@ void outannual(Gridcell& gridcell) {
 					out.add_value(out_aiso,  landcover_aiso[i]);
 					out.add_value(out_amon,  landcover_amon[i]);
 
-					double landcover_cton_leaf = 0.0;
-					if (landcover_cmass_leaf[i] > 0.0) {
-						landcover_cton_leaf = landcover_cmass_leaf[i] / landcover_nmass_leaf[i];
-						landcover_vmaxnlim[i] /= landcover_cmass_leaf[i];
-					}
+					double landcover_cton_leaf = limited_cton(landcover_cmass_leaf[i], landcover_nmass_leaf[i]);
+					double landcover_cton_veg = limited_cton(landcover_cmass_veg[i], landcover_nmass_veg[i]);
 
-					double landcover_cton_veg = 0.0;
-					if (landcover_cmass_veg[i] > 0.0) {
-						landcover_cton_veg = landcover_cmass_veg[i] / landcover_nmass_veg[i];
+					if (landcover_cmass_leaf[i] > 0.0) {
+						landcover_vmaxnlim[i] /= landcover_cmass_leaf[i];
 					}
 
 					out.add_value(out_cton_leaf, landcover_cton_leaf);

@@ -115,6 +115,12 @@ avoid duplication, this script can call other scripts from the "postprocess"
 directory (in the "benchmarks" directory). The scripts under postprocess
 contain commands that can be useful in several of the benchmarks.
 
+Common files
+------------
+Files used by several benchmarks, for instance legends used by the post 
+processing etc., can be placed in the "common" directory. This directory
+is accessible from each benchmark and post processing script through
+a symbolic link in the benchmarks working directory.
 
 
 Joe Lindström

@@ -37,7 +37,7 @@ void landcover_init(Gridcell& gridcell) {
 }
 
 void harvest_natural(double& cmass_leaf,double& cmass_root,double& cmass_sap,double& cmass_heart,double& cmass_debt,
-	double& litter_leaf,double& litter_root,double& litter_wood,double& acflux_harvest,double& harvested_products_slow,Individual& indiv) 
+	double& litter_leaf,double& litter_root,double& litter_sap,double& litter_heart,double& acflux_harvest,double& harvested_products_slow,Individual& indiv) 
 {
 	double harvest=0.0;
 	double residue_outtake=0.0;
@@ -68,7 +68,8 @@ void harvest_natural(double& cmass_leaf,double& cmass_root,double& cmass_sap,dou
 	acflux_harvest+=residue_outtake;																//removed residues
 
 	litter_leaf+=cmass_leaf*(1-indiv.pft.res_outtake);												//not removed residues
-	litter_wood+=(cmass_sap+cmass_heart-cmass_debt)*(1-indiv.pft.res_outtake);						//not removed residues
+	litter_sap+=cmass_sap*(1-indiv.pft.res_outtake);												//not removed residues
+	litter_heart+=(cmass_heart-cmass_debt)*(1-indiv.pft.res_outtake);								//not removed residues
 
 	cmass_sap=cmass_heart=cmass_debt=cmass_leaf=0.0;
 }
@@ -154,12 +155,13 @@ void landcover_dynamics(Gridcell& gridcell)
 #define cropLUchangeCtransfer
 #if defined cropLUchangeCtransfer
 
-	double *transfer_litter_leaf, *transfer_litter_wood, *transfer_litter_root, *transfer_litter_repr, *transfer_harvested_products_slow;
+	double *transfer_litter_leaf, *transfer_litter_sap, *transfer_litter_heart, *transfer_litter_root, *transfer_litter_repr, *transfer_harvested_products_slow;
 
-	transfer_litter_leaf=transfer_litter_wood=transfer_litter_root=transfer_litter_repr=transfer_harvested_products_slow=NULL;
+	transfer_litter_leaf=transfer_litter_sap=transfer_litter_heart=transfer_litter_root=transfer_litter_repr=transfer_harvested_products_slow=NULL;
 
 	transfer_litter_leaf=new double[npft];
-	transfer_litter_wood=new double[npft];
+	transfer_litter_sap=new double[npft];
+	transfer_litter_heart=new double[npft];
 	transfer_litter_root=new double[npft];
 	transfer_litter_repr=new double[npft];
 
@@ -175,7 +177,8 @@ void landcover_dynamics(Gridcell& gridcell)
 	double transfer_k_soilslow_mean=0.0;
 
 	memset(transfer_litter_leaf,0,sizeof(double)*npft);
-	memset(transfer_litter_wood,0,sizeof(double)*npft);
+	memset(transfer_litter_sap,0,sizeof(double)*npft);
+	memset(transfer_litter_heart,0,sizeof(double)*npft);
 	memset(transfer_litter_root,0,sizeof(double)*npft);
 	memset(transfer_litter_repr,0,sizeof(double)*npft);
 	memset(transfer_harvested_products_slow,0,sizeof(double)*npft);
@@ -210,7 +213,7 @@ void landcover_dynamics(Gridcell& gridcell)
 				while(vegetation.isobj)
 				{
 					double cmass_leaf_cp=0.0, cmass_root_cp=0.0, cmass_sap_cp=0.0, cmass_heart_cp=0.0, cmass_debt_cp=0.0, cmass_ho_cp=0.0, cmass_agpool_cp=0.0, cmass_plant_cp=0.0;//bugfix 101103
-					double litter_leaf_cp, litter_root_cp, litter_wood_cp, litter_repr_cp;
+					double litter_leaf_cp, litter_root_cp, litter_sap_cp, litter_heart_cp, litter_repr_cp;
 					double acflux_harvest_cp = 0;
 					double harvested_products_slow_cp;
 
@@ -232,7 +235,8 @@ void landcover_dynamics(Gridcell& gridcell)
 */
 					litter_leaf_cp=patchpft.litter_leaf;
 					litter_root_cp=patchpft.litter_root;
-					litter_wood_cp=patchpft.litter_wood;
+					litter_sap_cp=patchpft.litter_sap;
+					litter_heart_cp=patchpft.litter_heart;
 					litter_repr_cp=patchpft.litter_repr;
 
 					harvested_products_slow_cp=patch.pft[indiv.pft.id].harvested_products_slow;
@@ -243,7 +247,7 @@ void landcover_dynamics(Gridcell& gridcell)
 						litter_leaf_cp,litter_root_cp,acflux_harvest_cp,harvested_products_slow_cp,indiv);
 					else if(patch.stand.landcover!=CROPLAND)												
 */						harvest_natural(cmass_leaf_cp,cmass_root_cp,cmass_sap_cp,cmass_heart_cp,cmass_debt_cp,	//kolla vad som händer här, både för träd och gräs !
-						litter_leaf_cp,litter_root_cp,litter_wood_cp,acflux_harvest_cp,harvested_products_slow_cp,indiv);
+						litter_leaf_cp,litter_root_cp,litter_sap_cp,litter_heart_cp,acflux_harvest_cp,harvested_products_slow_cp,indiv);
 
 					gridcell.LC_updated=true;
 
@@ -252,7 +256,8 @@ void landcover_dynamics(Gridcell& gridcell)
 					{
 						litter_leaf_cp+=cmass_leaf_cp;
 						litter_root_cp+=cmass_root_cp;
-						litter_wood_cp+=cmass_sap_cp+cmass_heart_cp-cmass_debt_cp;
+						litter_sap_cp+=cmass_sap_cp;
+						litter_heart_cp+=cmass_heart_cp-cmass_debt_cp;
 /*
 						if(indiv.pft.aboveground_ho)
 							litter_leaf_cp+=cmass_ho_cp;
@@ -262,7 +267,8 @@ void landcover_dynamics(Gridcell& gridcell)
 
 					transfer_litter_leaf[indiv.pft.id]+=litter_leaf_cp*scale;
 					transfer_litter_root[indiv.pft.id]+=litter_root_cp*scale;
-					transfer_litter_wood[indiv.pft.id]+=litter_wood_cp*scale;
+					transfer_litter_sap[indiv.pft.id]+=litter_sap_cp*scale;
+					transfer_litter_heart[indiv.pft.id]+=litter_heart_cp*scale;
 					transfer_litter_repr[indiv.pft.id]+=litter_repr_cp*scale;
 
 					transfer_acflux_harvest+=acflux_harvest_cp*scale;
@@ -378,7 +384,8 @@ void landcover_dynamics(Gridcell& gridcell)
 					Patchpft& patchpft=patch.pft[i];
 
 					patchpft.litter_leaf=(patchpft.litter_leaf*old_frac+transfer_litter_leaf[i]*added_frac)/new_frac;
-					patchpft.litter_wood=(patchpft.litter_wood*old_frac+transfer_litter_wood[i]*added_frac)/new_frac;
+					patchpft.litter_sap=(patchpft.litter_sap*old_frac+transfer_litter_sap[i]*added_frac)/new_frac;
+					patchpft.litter_heart=(patchpft.litter_heart*old_frac+transfer_litter_heart[i]*added_frac)/new_frac;
 					patchpft.litter_root=(patchpft.litter_root*old_frac+transfer_litter_root[i]*added_frac)/new_frac;
 					patchpft.litter_repr=(patchpft.litter_repr*old_frac+transfer_litter_repr[i]*added_frac)/new_frac;
 
@@ -408,7 +415,8 @@ void landcover_dynamics(Gridcell& gridcell)
 	}
 #if defined cropLUchangeCtransfer
 	if(transfer_litter_leaf) delete[] transfer_litter_leaf;
-	if(transfer_litter_wood) delete[] transfer_litter_wood;
+	if(transfer_litter_sap) delete[] transfer_litter_sap;
+	if(transfer_litter_heart) delete[] transfer_litter_heart;
 	if(transfer_litter_root) delete[] transfer_litter_root;
 	if(transfer_litter_repr) delete[] transfer_litter_repr;
 	if(transfer_harvested_products_slow) delete[] transfer_harvested_products_slow;

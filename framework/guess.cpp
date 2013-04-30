@@ -20,8 +20,6 @@ Date date; // object describing timing stage of simulation
 vegmodetype vegmode; // vegetation mode (population, cohort or individual)
 int npatch; // number of patches in each stand (should always be 1 in population mode); cropland stands always have 1 patch
 double patcharea; // patch area (m2) (individual and cohort mode only)
-bool ifdailydecomp;
-	// whether soil decomposition calculations performed daily (alt: monthly)
 bool ifbgestab; // whether background establishment enabled (individual, cohort mode)
 bool ifsme;
 	// whether spatial mass effect enabled for establishment (individual, cohort mode)
@@ -31,11 +29,25 @@ bool iffire; // whether fire enabled
 bool ifdisturb;
 	// whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
 bool ifcalcsla; // whether SLA calculated from leaf longevity (alt: prescribed)
+bool ifcalccton; // whether leaf C:N ratio minimum calculated from leaf longevity (alt: prescribed)
 int estinterval; // establishment interval in cohort mode (years)
 double distinterval;
 	// generic patch-destroying disturbance interval (individual, cohort mode)
 int npft; // number of possible PFTs
 bool ifcdebt;
+
+/// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
+bool ifcentury;
+/// whether plant growth limited by available nitrogen	
+bool ifnlim;
+/// number of years to allow spinup without nitrogen limitation	
+int freenyears;
+/// fraction of nitrogen relocated by plants from roots and leaves
+double nrelocfrac;
+/// first term in nitrogen fixation eqn
+double nfix_a;
+/// second term in nitrogen fixation eqn
+double nfix_b;
 
 // guess2008 - new inputs from the .ins file
 bool ifsmoothgreffmort;				// smooth growth efficiency mortality
@@ -51,7 +63,7 @@ bool run[NLANDCOVERTYPES];
 bool lcfrac_fixed;
 bool all_fracs_const;
 bool ifslowharvestpool;				// If a slow harvested product pool is included in patchpft.
-int nyear_spinup;		
+int nyear_spinup;
 
 xtring state_path;
 bool restart;
@@ -59,6 +71,14 @@ bool save_state;
 int state_year;
 
 Pftlist pftlist;
+
+// emission ratios from fire (NH3, NO, NO2, N2O) Delmas et al. 1995
+
+const double Fluxes::NH3_FIRERATIO = 0.014;
+const double Fluxes::NO_FIRERATIO  = 0.531;
+const double Fluxes::NO2_FIRERATIO = 0.379;
+const double Fluxes::N2O_FIRERATIO = 0.076;
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of PhotosynthesisResult member functions
@@ -70,7 +90,9 @@ void PhotosynthesisResult::serialize(ArchiveStream& arch) {
 		& adtmm
 		& rd_g
 		& vm
-		& je;
+		& je
+		& nactive_opt
+		& vmaxnlim;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -98,8 +120,6 @@ void Climate::serialize(ArchiveStream& arch) {
 		& chilldays
 		& ifsensechill
 		& gtemp
-		& mgtemp
-		& last_mgtemp
 		& dtemp_31
 		& mtemp_min_20
 		& mtemp_max_20
@@ -113,7 +133,11 @@ void Climate::serialize(ArchiveStream& arch) {
 		& cosinelat
 		& qo & u & v & hh & sinehh
 		& daylength_save
-		& doneday;
+		& doneday
+		& andep
+		& dndep
+		& anfert
+		& dnfert;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -212,6 +236,16 @@ void Vegetation::serialize(ArchiveStream& arch) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Implementation of LitterSolveSOM member functions
+////////////////////////////////////////////////////////////////////////////////
+
+
+void LitterSolveSOM::serialize(ArchiveStream& arch) {
+	arch & clitter
+		& nlitter;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // Implementation of Soil member functions
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -228,8 +262,6 @@ void Soil::serialize(ArchiveStream& arch) {
 		& dtemp
 		& mtemp
 		& gtemp
-		& mgtemp
-		& last_mgtemp
 		& cpool_slow
 		& cpool_fast
 		& decomp_litter_mean
@@ -244,6 +276,29 @@ void Soil::serialize(ArchiveStream& arch) {
 		& rain_melt
 		& max_rain_melt
 		& percolate;
+
+	for (int i = 0; i<NSOMPOOL; i++) {
+		arch & sompool[i];
+	} 
+
+	arch & dperc		
+		& orgleachfrac
+		& nmass_avail	
+		& ninput
+		& anmin			
+		& animmob			
+		& aminleach		
+		& aorgleach					
+		& anfix
+		& anfix_calc
+		& anfix_mean
+		& snowpack_nmass
+		& solvesomcent_beginyr
+		& solvesomcent_endyr
+		& solvesom
+		& fnuptake_mean
+		& morgleach_mean
+		& mminleach_mean; 
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -264,16 +319,22 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& nsapling
 		& litter_leaf
 		& litter_root
-		& litter_wood
+		& litter_sap
+		& litter_heart
 		& litter_repr
 		& gcbase
 		& gcbase_day
-		& supply
-		& supply_leafon
-		& fuptake
+		& wsupply
+		& wsupply_leafon
+		& fwuptake
 		& wstress
 		& wstress_day
-		& harvested_products_slow;
+		& harvested_products_slow
+		& nmass_litter_leaf
+		& nmass_litter_root
+		& nmass_litter_sap
+		& nmass_litter_heart
+		& harvested_products_slow_nmass;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -310,20 +371,22 @@ void Patch::serialize(ArchiveStream& arch) {
 		& growingseasondays
 		& intercep
 		& aaet
+		& aaet_5
 		& aevap
 		& aintercep
 		& arunoff
 		& apet
 		& eet_net_veg
-		& demand
-		& demand_day
-		& demand_leafon
+		& wdemand
+		& wdemand_day
+		& wdemand_leafon
 		& fpc_rescale
 		& maet
 		& mevap
 		& mintercep
 		& mrunoff
-		& mpet;
+		& mpet
+		& ndemand;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -423,41 +486,73 @@ void Stand::serialize(ArchiveStream& arch) {
 
 Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
-	anpp=0.0;
-	fpc=0.0;
-	densindiv=0.0;
-	cmass_leaf=0.0;
-	cmass_root=0.0;
-	cmass_sap=0.0;
-	cmass_heart=0.0;
-	cmass_debt=0.0;
-	phen=0.0;
-	aphen=0.0;
-	deltafpc=0.0;
-	assim=0.0;
+	anpp              = 0.0;
+	fpc               = 0.0;
+	densindiv         = 0.0;
+	cmass_leaf        = 0.0;
+	cmass_root        = 0.0;
+	cmass_sap         = 0.0;
+	cmass_heart       = 0.0;
+	cmass_debt        = 0.0;
+	phen              = 0.0;
+	aphen             = 0.0;
+	deltafpc          = 0.0;
 
-	// guess2008 - additional initialisation
-	age=0.0;
-	fpar=0.0;
-	aphen_raingreen=0;
-	intercep=0.0;
-	phen_mean=0.0;
-	wstress = false;
-	lai = 0.0;
-	lai_layer = 0.0;
-	lai_indiv = 0.0;
-	alive = false;
+	nmass_leaf        = 0.0;
+	nmass_root        = 0.0;
+	nmass_sap         = 0.0;
+	nmass_heart       = 0.0;
+	cton_leaf_aopt    = 0.0;
+	cton_leaf_aavr    = 0.0;
+	cton_status       = 0.0;
+	cmass_veg         = 0.0;
+	nmass_veg         = 0.0;
+
+	nactive           = 0.0;
+	nextin            = 1.0;
+	nstore_longterm   = 0.0;
+	nstore_labile     = 0.0;
+	ndemand           = 0.0;
+	fnuptake          = 1.0;
+	anuptake          = 0.0;
+	max_n_storage     = 0.0;
+	scale_n_storage   = 0.0;
+
+	leafndemand       = 0.0;
+	rootndemand       = 0.0;
+	sapndemand        = 0.0;
+	storendemand      = 0.0;
+	leaffndemand      = 0.0;
+	rootfndemand      = 0.0;
+	sapfndemand       = 0.0;
+	storefndemand     = 0.0;
+	leafndemand_store = 0.0;
+	rootndemand_store = 0.0;
+
+	nstress           = false;
+
+	// additional initialisation
+	age               = 0.0;
+	fpar              = 0.0;
+	aphen_raingreen   = 0;
+	intercep          = 0.0;
+	phen_mean         = 0.0;
+	wstress           = false;
+	lai               = 0.0;
+	lai_layer         = 0.0;
+	lai_indiv         = 0.0;
+	alive             = false;
 
 	int m;
-	for (m=0;m<12;m++) {
-		mlai[m]=0.0;
+	for (m=0; m<12; m++) {
+		mlai[m] = 0.0;
 	}
 
 	// bvoc
-	monstor=0.;
-	iso=0.;
-	mon=0.;
-	fvocseas=1.;
+	monstor           = 0.;
+	iso               = 0.;
+	mon               = 0.;
+	fvocseas          = 1.;
 }
 
 void Individual::serialize(ArchiveStream& arch) {
@@ -472,8 +567,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& phen
 		& aphen
 		& aphen_raingreen
-		& assim
-		& resp
 		& anpp
 		& aet
 		& ltor
@@ -497,7 +590,40 @@ void Individual::serialize(ArchiveStream& arch) {
 		& iso 
 		& mon 
 		& monstor 
-		& fvocseas;
+		& fvocseas 
+		& nmass_leaf
+		& nmass_root
+		& nmass_sap
+		& nmass_heart
+		& nactive
+		& nextin
+		& nstore_longterm
+		& nstore_labile
+		& ndemand
+		& fnuptake
+		& anuptake
+		& max_n_storage
+		& scale_n_storage
+		& avmaxnlim
+		& cton_leaf_aopt
+		& cton_leaf_aavr
+		& cton_status
+		& cmass_veg
+		& nmass_veg
+
+		& nstress
+		& leafndemand
+		& rootndemand
+		& sapndemand
+		& storendemand
+		& leaffndemand
+		& rootfndemand
+		& sapfndemand
+		& storefndemand
+		& leafndemand_store
+		& rootndemand_store
+		
+		& nday_leafon;
 }
 
 void Individual::report_flux(Fluxes::PerPFTFluxType flux_type, double value) {
@@ -512,13 +638,315 @@ void Individual::report_flux(Fluxes::PerPatchFluxType flux_type, double value) {
 	}
 }
 
+void Individual::reduce_biomass(double mortality, double mortality_fire) {
+
+	// This function needs to be modified if a new lifeform is added,
+	// specifically to deal with nstore().
+	assert(pft.lifeform == TREE || pft.lifeform == GRASS);
+
+	const double mortality_non_fire = mortality - mortality_fire;
+
+	// Transfer killed biomass to litter
+	// (above-ground biomass killed by fire enters atmosphere, not litter)
+
+	Patchpft& ppft = patchpft();
+
+	ppft.litter_leaf  += mortality_non_fire * cmass_leaf;
+	ppft.litter_root  += mortality * cmass_root;
+
+	if (cmass_debt <= cmass_heart + cmass_sap) {
+		if (cmass_debt <= cmass_heart) {
+			ppft.litter_sap   += mortality_non_fire * cmass_sap;
+			ppft.litter_heart += mortality_non_fire * (cmass_heart - cmass_debt);
+		}
+		else {
+			ppft.litter_sap   += mortality_non_fire * (cmass_sap + cmass_heart - cmass_debt);
+		}
+	}
+	else {
+		double debt_excess = mortality_non_fire * (cmass_debt - (cmass_sap + cmass_heart));
+		report_flux(Fluxes::NPP, debt_excess);
+		report_flux(Fluxes::RA, -debt_excess);
+	}
+		
+	ppft.nmass_litter_leaf  += mortality_non_fire * nmass_leaf;
+	ppft.nmass_litter_root  += mortality * nmass_root;
+	ppft.nmass_litter_sap   += mortality_non_fire * nmass_sap;
+	ppft.nmass_litter_heart += mortality_non_fire * nmass_heart;
+
+	if (pft.lifeform == TREE) {				
+		// Transfer nitrogen storage to wood nitrogen litter for now 	
+		ppft.nmass_litter_sap += mortality_non_fire * nstore();
+	}
+	else { // GRASS
+		// Transfer nitrogen storage to root nitrogen litter for now
+		ppft.nmass_litter_root += mortality * nstore();			
+	}
+
+
+	// Flux to atmosphere from burnt above-ground biomass
+
+	double cflux_fire = mortality_fire * (cmass_leaf + cmass_wood());
+	double nflux_fire = mortality_fire * (nmass_leaf + nmass_wood());
+
+	if (pft.lifeform == TREE) {
+		nflux_fire += mortality_fire * nstore();
+	}
+
+	report_flux(Fluxes::FIREC,    cflux_fire);
+
+	report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire); 
+	report_flux(Fluxes::NO_FIRE,  Fluxes::NO_FIRERATIO  * nflux_fire);
+	report_flux(Fluxes::NO2_FIRE, Fluxes::NO2_FIRERATIO * nflux_fire);
+	report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
+
+	// Reduce this Individual's biomass values
+
+	const double remaining = 1.0 - mortality;
+
+	if (pft.lifeform != GRASS) {
+		densindiv *= remaining;
+	}
+
+	cmass_leaf      *= remaining;
+	cmass_root      *= remaining;
+	cmass_sap       *= remaining;
+	cmass_heart     *= remaining;
+	cmass_debt      *= remaining;
+	nmass_leaf      *= remaining;
+	nmass_root      *= remaining;
+	nmass_sap       *= remaining;
+	nmass_heart     *= remaining;
+	nstore_longterm *= remaining;
+	nstore_labile   *= remaining;
+}
+
+double Individual::cton_leaf(bool use_phen /* = true*/) const {
+	if (!negligible(cmass_leaf) && !negligible(nmass_leaf)) {
+		if (use_phen) {
+			if (!negligible(phen)) {
+				return cmass_leaf * phen / nmass_leaf;
+			}
+			else {
+				return pft.cton_leaf_avr;
+			}
+		}
+		else {
+			return cmass_leaf / nmass_leaf;
+		}
+	}
+	else {
+		return pft.cton_leaf_max;
+	}
+}
+
+double Individual::cton_root(bool use_phen /* = true*/) const {
+	if (!negligible(cmass_root) && !negligible(nmass_root)) { 
+		if (use_phen) {
+			if (!negligible(phen)) {
+				return cmass_root * phen / nmass_root;
+			}
+			else {
+				return pft.cton_root_avr;
+			}
+		}
+		else {
+			return cmass_root / nmass_root;
+		}
+	}
+	else {
+		return pft.cton_root_max;
+	}
+}
+
+double Individual::cton_sap() const {
+	if (pft.lifeform == TREE) {
+		if (!negligible(cmass_sap) && !negligible(nmass_sap))
+			return cmass_sap / nmass_sap;
+		else
+			return pft.cton_sap_max;
+	}
+	else {
+		return 1.0;
+	}
+}
+
+
+Patchpft& Individual::patchpft() {
+	return vegetation.patch.pft[pft.id];
+}
+
+/// Help function for kill(), partitions wood biomass into litter and harvest
+/** 
+ *  Wood biomass (either C or N) is partitioned into litter pools and
+ *  harvest, according to PFT specific harvest fractions.
+ *
+ *  Biomass is sent in as sap and heart, any debt should already have been
+ *  subtracted from these before calling this function.
+ *
+ *  \param mass_sap          Sapwood
+ *  \param mass_heart        Heartwood
+ *  \param harv_eff          Harvest efficiency (fraction of biomass harvested)
+ *  \param harvest_slow_frac Fraction of harvested products that goes into slow depository
+ *  \param res_outtake       Fraction of residue outtake at harvest
+ *  \param litter_sap        Biomass going to sapwood litter pool
+ *  \param litter_heart      Biomass going to heartwood litter pool
+ *  \param fast_harvest      Biomass going to harvest flux
+ *  \param slow_harvest      Biomass going to slow depository
+ */
+void partition_wood_biomass(double mass_sap, double mass_heart,
+                            double harv_eff, double harvest_slow_frac, double res_outtake,
+                            double& litter_sap, double& litter_heart,
+                            double& fast_harvest, double& slow_harvest) {
+
+	double sap_left = mass_sap;
+	double heart_left = mass_heart;
+
+	// Remove harvest
+	double total_wood_harvest = harv_eff * (sap_left + heart_left);
+
+	sap_left   *= 1 - harv_eff;
+	heart_left *= 1 - harv_eff;
+
+	// Partition wood harvest into slow and fast
+	slow_harvest = total_wood_harvest * harvest_slow_frac;
+	fast_harvest = total_wood_harvest * (1 - harvest_slow_frac);
+
+	// Remove residue outtake
+	fast_harvest += res_outtake * (sap_left + heart_left);
+				
+	sap_left   *= 1 - res_outtake;
+	heart_left *= 1 - res_outtake;
+
+	// The rest goes to litter
+	litter_sap   = sap_left;
+	litter_heart = heart_left;
+}
+
+
+void Individual::kill(bool harvest /* = false */) {
+	Patchpft& ppft = patchpft();
+
+	double charvest_flux = 0.0;
+	double charvested_products_slow = 0.0;
+
+	double nharvest_flux = 0.0;
+	double nharvested_products_slow = 0.0;
+
+	double harv_eff = 0.0;
+	double harvest_slow_frac = 0.0;
+	double res_outtake = 0.0;
+
+	// The function always deals with harvest, but the harvest
+	// fractions are zero when there is no harvest.
+	if (harvest) {
+		harv_eff = pft.harv_eff;
+
+		if (ifslowharvestpool) {
+			harvest_slow_frac = pft.harvest_slow_frac;
+		}
+		
+		res_outtake = pft.res_outtake;
+	}
+
+	// C doesn't return to litter/harvest if the Individual isn't alive
+	if (alive) {
+
+		// For leaf and root, catches small, negative values too
+
+		// Leaf: remove residue outtake and send the rest to litter
+		ppft.litter_leaf += cmass_leaf * (1 - res_outtake);
+		charvest_flux    += cmass_leaf * res_outtake;
+
+		// Root: all goes to litter
+		ppft.litter_root += cmass_root;
+
+		// Deal with the wood biomass and carbon debt for trees
+		if (pft.lifeform == TREE) {
+
+			// debt smaller than existing wood biomass
+			if (cmass_debt <= cmass_sap + cmass_heart) {
+
+				// before partitioning the biomass into litter and harvest,
+				// first get rid of the debt so we're left with only
+				// sap and heart
+				double to_partition_sap   = 0.0;
+				double to_partition_heart = 0.0;
+
+				if (cmass_heart >= cmass_debt) {
+					to_partition_sap   = cmass_sap;
+					to_partition_heart = cmass_heart - cmass_debt;
+				}
+				else {
+					to_partition_sap   = cmass_sap + cmass_heart - cmass_debt;
+				}
+
+				double clitter_sap, clitter_heart, cwood_harvest;
+
+				partition_wood_biomass(to_partition_sap, to_partition_heart,
+				                       harv_eff, harvest_slow_frac, res_outtake,
+				                       clitter_sap, clitter_heart,
+				                       cwood_harvest, charvested_products_slow);
+				
+				ppft.litter_sap   += clitter_sap;
+				ppft.litter_heart += clitter_heart;
+
+				charvest_flux += cwood_harvest;
+			}
+			// debt larger than existing wood biomass
+			else {
+				double debt_excess = cmass_debt - (cmass_sap + cmass_heart);
+				report_flux(Fluxes::NPP, debt_excess);
+				report_flux(Fluxes::RA, -debt_excess);
+			}
+		}
+	}
+
+	// Nitrogen always return to soil litter
+	if (pft.lifeform == TREE) {
+
+		double nlitter_sap, nlitter_heart, nwood_harvest;
+
+		// Transfer nitrogen storage to sapwood nitrogen litter/harvest
+		partition_wood_biomass(nmass_sap + nstore(), nmass_heart,
+		                       harv_eff, harvest_slow_frac, res_outtake,
+		                       nlitter_sap, nlitter_heart,
+		                       nwood_harvest, nharvested_products_slow);
+
+		ppft.nmass_litter_sap   += nlitter_sap;
+		ppft.nmass_litter_heart += nlitter_heart;
+
+		nharvest_flux += nwood_harvest;
+	}
+	else {
+		// Transfer nitrogen storage to root nitrogen litter
+		ppft.nmass_litter_root += nstore();
+	}
+
+	// Leaf: remove residue outtake and send the rest to litter
+	ppft.nmass_litter_leaf += nmass_leaf * (1 - res_outtake);
+	nharvest_flux          += nmass_leaf * res_outtake;
+
+	// Root: all goes to litter
+	ppft.nmass_litter_root += nmass_root;
+
+	// Report harvest fluxes
+	report_flux(Fluxes::HARVESTC, charvest_flux);
+	report_flux(Fluxes::HARVESTN, nharvest_flux);
+
+	// Add to biomass depositories for long-lived products
+	ppft.harvested_products_slow += charvested_products_slow;
+	ppft.harvested_products_slow_nmass += nharvested_products_slow;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Gridcellpft member functions
 ////////////////////////////////////////////////////////////////////////////////
 
 
 void Gridcellpft::serialize(ArchiveStream& arch) {
-	arch & addtw;
+	arch & addtw
+		 & Km;
 }
 
 
@@ -577,3 +1005,27 @@ void Gridcell::serialize(ArchiveStream& arch) {
 		}
 	}
 }
+
+void Sompool::serialize(ArchiveStream& arch) {
+	arch & cmass
+		& nmass
+		& cdec 
+		& ndec 
+		& delta_cmass
+		& delta_nmass
+		& ligcfrac
+		& fracremain
+		& ntoc
+		& litterme
+		& fireresist
+		& mfracremain_mean;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////
+// REFERENCES
+//
+// LPJF refers to the original FORTRAN implementation of LPJ as described by Sitch
+//   et al 2000
+// Delmas, R., Lacaux, J.P., Menaut, J.C., Abbadie, L., Le Roux, X., Helaa, G., Lobert, J., 1995. 
+//   Nitrogen compound emission from biomass burning in tropical African Savanna FOS/DECAFE 1991 
+//   experiment. Journal of Atmospheric Chemistry 22, 175-193.

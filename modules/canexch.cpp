@@ -809,7 +809,7 @@ void nstore_usage(Vegetation& vegetation) {
 		                        + indiv.leafndemand_store + indiv.rootndemand_store;
 
 		// if individual is in need of using its labile nitrogen storage
-		if (!negligible(excess_ndemand) || !ifnlim) {
+		if (!negligible(excess_ndemand) && ifnlim) {
 			
 			// if labile nitrogen storage is larger than excess nitrogen demand
 			if (excess_ndemand <= indiv.nstore_labile) {

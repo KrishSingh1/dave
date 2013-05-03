@@ -722,49 +722,64 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 }
 
 double Individual::cton_leaf(bool use_phen /* = true*/) const {
-	if (!negligible(cmass_leaf) && !negligible(nmass_leaf)) {
-		if (use_phen) {
-			if (!negligible(phen)) {
-				return cmass_leaf * phen / nmass_leaf;
+	if (ifnlim) {
+		if (!negligible(cmass_leaf) && !negligible(nmass_leaf)) {
+			if (use_phen) {
+				if (!negligible(phen)) {
+					return cmass_leaf * phen / nmass_leaf;
+				}
+				else {
+					return pft.cton_leaf_avr;
+				}
 			}
 			else {
-				return pft.cton_leaf_avr;
+				return cmass_leaf / nmass_leaf;
 			}
 		}
 		else {
-			return cmass_leaf / nmass_leaf;
+			return pft.cton_leaf_max;
 		}
 	}
 	else {
-		return pft.cton_leaf_max;
+		return pft.cton_leaf_avr;
 	}
 }
 
 double Individual::cton_root(bool use_phen /* = true*/) const {
-	if (!negligible(cmass_root) && !negligible(nmass_root)) { 
-		if (use_phen) {
-			if (!negligible(phen)) {
-				return cmass_root * phen / nmass_root;
+	if (ifnlim) {
+		if (!negligible(cmass_root) && !negligible(nmass_root)) { 
+			if (use_phen) {
+				if (!negligible(phen)) {
+					return cmass_root * phen / nmass_root;
+				}
+				else {
+					return pft.cton_root_avr;
+				}
 			}
 			else {
-				return pft.cton_root_avr;
+				return cmass_root / nmass_root;
 			}
 		}
 		else {
-			return cmass_root / nmass_root;
+			return pft.cton_root_max;
 		}
 	}
 	else {
-		return pft.cton_root_max;
+		return pft.cton_root_avr;
 	}
 }
 
 double Individual::cton_sap() const {
 	if (pft.lifeform == TREE) {
-		if (!negligible(cmass_sap) && !negligible(nmass_sap))
-			return cmass_sap / nmass_sap;
-		else
-			return pft.cton_sap_max;
+		if (ifnlim) {
+			if (!negligible(cmass_sap) && !negligible(nmass_sap))
+				return cmass_sap / nmass_sap;
+			else
+				return pft.cton_sap_max;
+		}
+		else {
+			return pft.cton_sap_avr;
+		}
 	}
 	else {
 		return 1.0;

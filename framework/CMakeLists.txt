@@ -10,6 +10,7 @@ set(headers
   guessserializer.h
   parallel.h
   commandlinearguments.h
+  parameters.h
 )
 
 set(source  
@@ -22,6 +23,7 @@ set(source
   guessserializer.cpp
   parallel.cpp
   commandlinearguments.cpp
+  parameters.cpp
 )
 
 include(add_guess_sources)

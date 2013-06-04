@@ -1493,6 +1493,8 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		if(stand.landcover==CROPLAND && !ppft.cropphen->growingseason)
 		{
 			indiv.dnpp=0.0;
+			if(ppft.cropphen->growingseason_ystd && date.dayofmonth!=0)
+				indiv.mlai[date.month] /= (double)date.ndaymonth[date.month];
 			vegetation.nextobj();
 			continue;
 		}

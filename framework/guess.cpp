@@ -61,8 +61,8 @@ bool restart;
 bool save_state;
 int state_year;
 
-bool forcesowingdates;
-bool forceharvestdates;
+bool forcesowingdates=false;
+bool forceharvestdates=false;
 Pftlist pftlist;
 
 ////////////////////////////////////////////////////////////////////////////////

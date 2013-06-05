@@ -18,6 +18,7 @@
 #define IRRIGATED_USE_TEMP_SDATE	//Use temperature-dependent sowing date for irrigated crops at site with PRECTEMP seasonality.
 //#define DELAYED_SEEDCARBON		//Seed carbon allocation to leaves and roots are done over a 10-day period.
 
+#define CMASS_SEED 0.01	// 10g/m2;
 
 //Functions facilitating handling time periods spanning newyear:
 bool dayinperiod(int day, int start, int end)	//Intended for use with short windows (start-end, eg. 30 days), but can be used with longer with caution.
@@ -1452,15 +1453,16 @@ void crop_sowing_gridcell(Gridcell& gridcell)
 						// Determine sdatecalc_temp:						
 						set_sdatecalc_temp(climate, gridcellpft);
 
-						climate.maxtemp=climate.temp;	//Rese maxtemp to today's value
+						climate.maxtemp=climate.temp;	//Reset maxtemp to today's value
 					}
 				}
-
+#ifndef NEWSOWINGDATE
 				// Determine sdatecalc_prec:
 				if(pft.ifsdprec)	//TeCo,TrMi,TrMa,TrPe:
 				{
 					set_sdatecalc_prec(climate, gridcellpft);
 				}
+#endif
 			}
 		}
 		// ... on to next PFT
@@ -1924,123 +1926,122 @@ void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 	int nyear_dyn_phu=50;
 	double phu_last_year=ppftcrop.phu;
 
-			ppftcrop.husum=0.0;	
-			ppftcrop.vrf=1.0;
-			ppftcrop.vdsum=0;
-			ppftcrop.prf=1.0;
-			ppftcrop.fphu=0.0;
-			ppftcrop.fhi=0.0;
-			ppftcrop.fhi_phen=0.0;
-			ppftcrop.fhi_water=1.0;
-			ppftcrop.hdate=-1;
-			ppftcrop.bicdate=-1;	
+	ppftcrop.husum=0.0;	
+	ppftcrop.vrf=1.0;
+	ppftcrop.vdsum=0;
+	ppftcrop.prf=1.0;
+	ppftcrop.fphu=0.0;
+	ppftcrop.fhi=0.0;
+	ppftcrop.fhi_phen=0.0;
+	ppftcrop.fhi_water=1.0;
+	ppftcrop.hdate=-1;
+	ppftcrop.bicdate=-1;	
 
-			ppftcrop.growingseason=true;
-			ppftcrop.nsow++;
+	ppftcrop.growingseason=true;
+	ppftcrop.nsow++;
 
-			if(ppftcrop.nsow==1)
-				ppftcrop.sdate_thisyear[0]=ppftcrop.sdate;	
-			else if(ppftcrop.nsow==2)
-				ppftcrop.sdate_thisyear[1]=ppftcrop.sdate;
+	if(ppftcrop.nsow==1)
+		ppftcrop.sdate_thisyear[0]=ppftcrop.sdate;	
+	else if(ppftcrop.nsow==2)
+		ppftcrop.sdate_thisyear[1]=ppftcrop.sdate;
 
-			ppftcrop.pvd=pft.pvd;		//default; kept for TrMi, TePu, TeSb, TrMa, TeSo, TrPe
-			ppftcrop.phu=pft.phu;
-			ppftcrop.tb=pft.tb;
+	ppftcrop.pvd=pft.pvd;		//default; kept for TrMi, TePu, TeSb, TrMa, TeSo, TrPe
+	ppftcrop.phu=pft.phu;
+	ppftcrop.tb=pft.tb;
 
 #if defined DYNAMIC_PHU
-			int years=min(date.year-patch.stand.first_year-1, 9);
+	int years=min(date.year-patch.stand.first_year-1, 9);
 
-			if(patch.stand.first_year!=date.year)
-				ppftcrop.husum_max_10=(ppftcrop.husum_max_10*years+ppftcrop.husum_max)/(years+1);
-			ppftcrop.husum_max=0.0;
+	if(patch.stand.first_year!=date.year)
+		ppftcrop.husum_max_10=(ppftcrop.husum_max_10*years+ppftcrop.husum_max)/(years+1);
+	ppftcrop.husum_max=0.0;
 #endif
 
-			if(pft.ifsdautumn)	//TeWW,TeRa
+	if(pft.ifsdautumn)	//TeWW,TeRa
+	{
+		if(gridcellpft.wintertype)	// Autumn sowing
+		{
+			if((gridcellpft.first_autumndate20==climate.testday_temp || gridcellpft.first_autumndate20==climate.coldestday) && gridcellpft.first_autumndate%365==gridcellpft.first_autumndate20
+				&& (gridcellpft.last_springdate20==climate.testday_temp || gridcellpft.last_springdate20==climate.coldestday) && gridcellpft.last_springdate==gridcellpft.last_springdate20)	//wintertype if neither spring or winter conditions for the past 20 years
 			{
-				if(gridcellpft.wintertype)	// Autumn sowing
-				{
-					if((gridcellpft.first_autumndate20==climate.testday_temp || gridcellpft.first_autumndate20==climate.coldestday) && gridcellpft.first_autumndate%365==gridcellpft.first_autumndate20
-						&& (gridcellpft.last_springdate20==climate.testday_temp || gridcellpft.last_springdate20==climate.coldestday) && gridcellpft.last_springdate==gridcellpft.last_springdate20)	//wintertype if neither spring or winter conditions for the past 20 years
-					{
-						ppftcrop.pvd=pft.pvd;
-						ppftcrop.phu=pft.phu;
-					}
-					else if(!(gridcellpft.last_verndate20==gridcellpft.last_springdate20+60 && gridcellpft.last_verndate==gridcellpft.last_verndate20))	//not all past 20 years without vernendoccurred: too cold
-					{
-						//pvd:
+				ppftcrop.pvd=pft.pvd;
+				ppftcrop.phu=pft.phu;
+			}
+			else if(!(gridcellpft.last_verndate20==gridcellpft.last_springdate20+60 && gridcellpft.last_verndate==gridcellpft.last_verndate20))	//not all past 20 years without vernendoccurred: too cold
+			{
+				//pvd:
 
-						//NB: vernalization (below 12 degrees) is supposed to occur directly at sowing (trg=tempautumn) for TeWW, for TeRa a 20-day lag (tempautumn=17) ??
-						if((ppftcrop.sdate<180 || gridcellpft.last_verndate20>=180) && climate.lat>=0.0 || climate.lat<0.0)	// first_autumndate20 occurred before last_verndate20
-						{
-							if(!strncmp(pft.name,"TeWW", strlen("TeWW")))
-							{
-								ppftcrop.pvd=(int)min(60,gridcellpft.last_verndate20-ppftcrop.sdate);
-							}
-							else if(!strncmp(pft.name,"TeRa", strlen("TeRa")))
-								ppftcrop.pvd=(int)max(0,min(60,gridcellpft.last_verndate20-ppftcrop.sdate-20));
-						}
-						else if(!strncmp(pft.name,"TeWW", strlen("TeWW")))													// first_autumndate20 occurred after last_verndate20
-							ppftcrop.pvd=(int)min(60,gridcellpft.last_verndate20+365-ppftcrop.sdate);
-						else if(!strncmp(pft.name,"TeRa", strlen("TeRa")))													// first_autumndate20 occurred after last_verndate20
-							ppftcrop.pvd=(int)max(0,min(60,gridcellpft.last_verndate20+365-ppftcrop.sdate-20));
-						//phu:
-						if (ppftcrop.sdate<184+climate.adjustlat) 
-						{
-							if(!strncmp(pft.name,"TeWW", strlen("TeWW")))
-								ppftcrop.phu=max(1700.0,-0.1081*pow((double)(ppftcrop.sdate-climate.adjustlat),2)+3.1633*((double)(ppftcrop.sdate-climate.adjustlat))+2876.9);
-							else if(!strncmp(pft.name,"TeRa", strlen("TeRa")))
-								ppftcrop.phu=max(2100.0,-0.1081*pow((double)(ppftcrop.sdate-climate.adjustlat),2)+3.1633*((double)(ppftcrop.sdate-climate.adjustlat))+3279.7);
-						}
-						else
-						{
-							if(!strncmp(pft.name,"TeWW", strlen("TeWW")))
-							{
-
-								ppftcrop.phu=max(1700.0,-0.1081*pow((double)ppftcrop.sdate-365,2)+3.1633*((double)ppftcrop.sdate-365)+2876.9);
-								ppftcrop.phu*=0.8;
-							}
-							else if(!strncmp(pft.name,"TeRa", strlen("TeRa")))
-								ppftcrop.phu=max(2100.0,-0.1081*pow((double)ppftcrop.sdate-365,2)+3.1633*((double)ppftcrop.sdate-365)+3279.7);
-						}
-					}
-				}
-				else if (!gridcellpft.wintertype)
+				//NB: vernalization (below 12 degrees) is supposed to occur directly at sowing (trg=tempautumn) for TeWW, for TeRa a 20-day lag (tempautumn=17) ??
+				if((ppftcrop.sdate<180 || gridcellpft.last_verndate20>=180) && climate.lat>=0.0 || climate.lat<0.0)	// first_autumndate20 occurred before last_verndate20
 				{
-					//If last_verndate has occurred during the past 20 year (or too warm):
-					if(!(gridcellpft.last_verndate20==ppftcrop.sdate+60 && gridcellpft.last_verndate==gridcellpft.last_verndate20))
+					if(!strncmp(pft.name,"TeWW", strlen("TeWW")))
 					{
 						ppftcrop.pvd=(int)min(60,gridcellpft.last_verndate20-ppftcrop.sdate);
-						ppftcrop.phu=1300.0;
 					}
-////				If no last_verndate occurred during the past 20 year (too cold, what about too warm ?):
-					else 
+					else if(!strncmp(pft.name,"TeRa", strlen("TeRa")))
+						ppftcrop.pvd=(int)max(0,min(60,gridcellpft.last_verndate20-ppftcrop.sdate-20));
+				}
+				else if(!strncmp(pft.name,"TeWW", strlen("TeWW")))													// first_autumndate20 occurred after last_verndate20
+					ppftcrop.pvd=(int)min(60,gridcellpft.last_verndate20+365-ppftcrop.sdate);
+				else if(!strncmp(pft.name,"TeRa", strlen("TeRa")))													// first_autumndate20 occurred after last_verndate20
+					ppftcrop.pvd=(int)max(0,min(60,gridcellpft.last_verndate20+365-ppftcrop.sdate-20));
+				//phu:
+				if (ppftcrop.sdate<184+climate.adjustlat) 
+				{
+					if(!strncmp(pft.name,"TeWW", strlen("TeWW")))
+						ppftcrop.phu=max(1700.0,-0.1081*pow((double)(ppftcrop.sdate-climate.adjustlat),2)+3.1633*((double)(ppftcrop.sdate-climate.adjustlat))+2876.9);
+					else if(!strncmp(pft.name,"TeRa", strlen("TeRa")))
+						ppftcrop.phu=max(2100.0,-0.1081*pow((double)(ppftcrop.sdate-climate.adjustlat),2)+3.1633*((double)(ppftcrop.sdate-climate.adjustlat))+3279.7);
+				}
+				else
+				{
+					if(!strncmp(pft.name,"TeWW", strlen("TeWW")))
 					{
-						ppftcrop.pvd=30;
-						ppftcrop.phu=1500.0;
+						ppftcrop.phu=max(1700.0,-0.1081*pow((double)ppftcrop.sdate-365,2)+3.1633*((double)ppftcrop.sdate-365)+2876.9);
+						ppftcrop.phu*=0.8;
 					}
+					else if(!strncmp(pft.name,"TeRa", strlen("TeRa")))
+						ppftcrop.phu=max(2100.0,-0.1081*pow((double)ppftcrop.sdate-365,2)+3.1633*((double)ppftcrop.sdate-365)+3279.7);
 				}
 			}
-			else if(!strncmp(pft.name,"TrRi", strlen("TrRi")) || !strncmp(pft.name,"TeSf", strlen("TeSf")))
+		}
+		else if (!gridcellpft.wintertype)
+		{
+			//If last_verndate has occurred during the past 20 year (or too warm):
+			if(!(gridcellpft.last_verndate20==ppftcrop.sdate+60 && gridcellpft.last_verndate==gridcellpft.last_verndate20))
 			{
-				if(!strncmp(pft.name,"TeSf", strlen("TeSf")))
-				{
-					ppftcrop.phu=min(2000.0,max(1300.0,-700.0/90.0*(ppftcrop.sdate-climate.adjustlat)+2460.0));
-				}
-				if (!strncmp(pft.name,"TrRi", strlen("TrRi")) && date.year<=1)
-				{
-					if (patch.stand.gridcell.get_lon()<60.0 || patch.stand.gridcell.get_lat()>30.0)
-						ppftcrop.phu=1600.0;
-				}
+				ppftcrop.pvd=(int)min(60,gridcellpft.last_verndate20-ppftcrop.sdate);
+				ppftcrop.phu=1300.0;
 			}
+////		If no last_verndate occurred during the past 20 year (too cold, what about too warm ?):
+			else 
+			{
+				ppftcrop.pvd=30;
+				ppftcrop.phu=1500.0;
+			}
+		}
+	}
+	else if(!strncmp(pft.name,"TrRi", strlen("TrRi")) || !strncmp(pft.name,"TeSf", strlen("TeSf")))
+	{
+		if(!strncmp(pft.name,"TeSf", strlen("TeSf")))
+		{
+			ppftcrop.phu=min(2000.0,max(1300.0,-700.0/90.0*(ppftcrop.sdate-climate.adjustlat)+2460.0));
+		}
+		if (!strncmp(pft.name,"TrRi", strlen("TrRi")) && date.year<=1)
+		{
+			if (patch.stand.gridcell.get_lon()<60.0 || patch.stand.gridcell.get_lat()>30.0)
+				ppftcrop.phu=1600.0;
+		}
+	}
 
 #if defined DYNAMIC_PHU
-			ppftcrop.phu_old=ppftcrop.phu;							//phu_old mainly for printout
+	ppftcrop.phu_old=ppftcrop.phu;							//phu_old mainly for printout
 
-			if(patch.stand.first_year!=date.year)					//Insert condition here to use dynamic phu for a limited time
-				ppftcrop.phu=max(900.0, 0.9*ppftcrop.husum_max_10);
+	if(patch.stand.first_year!=date.year)					//Insert condition here to use dynamic phu for a limited time
+		ppftcrop.phu=max(900.0, 0.9*ppftcrop.husum_max_10);
 
-			if(dynamic_phu_limit && date.year>=patch.stand.first_year+20 && date.year>=nyear_spinup+nyear_dyn_phu)
-				ppftcrop.phu=phu_last_year;
+	if(dynamic_phu_limit && date.year>=patch.stand.first_year+20 && date.year>=nyear_spinup+nyear_dyn_phu)
+		ppftcrop.phu=phu_last_year;
 #endif
 }
 
@@ -2503,7 +2504,7 @@ void growth_crop_daily(Patch& patch)
 {
 /////////  Daily growth routine for crops /ML
 
-	double froot,fleaf,fho;
+	double froot,fleaf;
 	double grs_cmass_plant_old;
 	double grs_cmass_root_old;
 	double grs_cmass_leaf_old;
@@ -2553,8 +2554,6 @@ void growth_crop_daily(Patch& patch)
 			if(ppftcrop.growingseason || date.day==ppftcrop.hdate)
 			{
 
-#define CMASS_SEED 0.01	// 10g/m2;
-
 				cropindiv.dcmass_plant=0.0;
 
 #ifdef DELAYED_SEEDCARBON
@@ -2587,7 +2586,6 @@ void growth_crop_daily(Patch& patch)
 
 /////////// STORAGE ORGANS GROWTH
 				grs_cmass_ag=(1.0-froot)*cropindiv.grs_cmass_plant;
-				fho=ppftcrop.hi*(1.0-froot);			//SWAT
 				grs_cmass_ho_old=cropindiv.grs_cmass_ho;
 
 				if(indiv.pft.hiopt<=1.0)

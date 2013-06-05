@@ -1101,8 +1101,7 @@ void growth(Stand& stand,Patch& patch) {
 			}
 			else
 			{
-				double acflux_harvest=patch.fluxes.get_annual_flux(Fluxes::HARVESTC);
-				double acflux_harvest_saved=acflux_harvest;
+				double acflux_harvest=0.0;
 
 				if(indiv.pft.landcover==CROPLAND)
 					harvest_crop(indiv.cmass_leaf,indiv.cmass_root,indiv.cropindiv->cmass_ho,indiv.cropindiv->cmass_agpool,
@@ -1110,8 +1109,7 @@ void growth(Stand& stand,Patch& patch) {
 				else if(indiv.pft.landcover==PASTURE)
 					harvest_pasture(indiv.cmass_leaf,indiv.cmass_root,
 						patch.pft[indiv.pft.id].litter_leaf,patch.pft[indiv.pft.id].litter_root,acflux_harvest,patch.pft[indiv.pft.id].harvested_products_slow, indiv);
-				patch.fluxes.report_flux(Fluxes::HARVESTC, acflux_harvest-acflux_harvest_saved);
-
+				patch.fluxes.report_flux(Fluxes::HARVESTC, acflux_harvest);
 			}
 			// Update stand record of reproduction by this PFT
 			stand.pft[indiv.pft.id].cmass_repr+=cmass_repr/(double)stand.npatch();

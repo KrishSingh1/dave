@@ -643,6 +643,7 @@ public:
 	prec_seasonality_type prec_seasonality;
 	prec_seasonality_type prec_range;
 	temp_seasonality_type temp_seasonality;
+	bool biseasonal;
 
 	double var_prec;
 	double var_temp;
@@ -676,10 +677,10 @@ public:
 
 		seasonality=SEASONALITY_NO;
 		prec_seasonality=DRY;
-/*		prec_range=DRY;
+		prec_range=DRY;
 		temp_seasonality=COLD;
 		biseasonal=false;
-*/
+
 		eet=0.0;
 	};
 		// constructor function: initialises gridcell member

@@ -189,7 +189,7 @@ bool includepft;
 // Output file names ...
 xtring outputdirectory;
 xtring file_cmass,file_anpp,file_dens,file_lai,file_cflux,file_cpool,file_runoff;
-xtring file_yield, file_yield1, file_yield2, file_sdate1, file_sdate2, file_hdate1, file_hdate2;
+xtring file_yield, file_yield1, file_yield2, file_sdate1, file_sdate2, file_hdate1, file_hdate2, file_irrigation, file_seasonality;
 xtring file_mnpp,file_mlai,file_mgpp,file_mra,file_maet,file_mpet,file_mevap,file_mrunoff,file_mintercep,file_mrh;
 xtring file_mnee,file_mwcont_upper,file_mwcont_lower;
 xtring file_firert,file_speciesheights;
@@ -215,7 +215,7 @@ void initsettings() {
 	// guess2008 - initialise filenames here
 	outputdirectory = "";
 	file_cmass=file_anpp=file_lai=file_cflux=file_dens=file_runoff="";
-	file_yield=file_yield1=file_yield2=file_sdate1=file_sdate2=file_hdate1=file_hdate2="";
+	file_yield=file_yield1=file_yield2=file_sdate1=file_sdate2=file_hdate1=file_hdate2=file_irrigation=file_seasonality="";
 	file_mnpp=file_mlai=file_maet=file_mpet=file_mevap=file_mrunoff=file_mintercep=file_mrh="";
 	file_mgpp=file_mra=file_mnee=file_mwcont_upper=file_mwcont_lower="";
 	file_cpool=file_firert=file_speciesheights="";
@@ -314,6 +314,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("file_sdate2",&file_sdate2,300,CB_NONE,"Crop second sowing date output file");
 		declareitem("file_hdate1",&file_hdate1,300,CB_NONE,"Crop first harvest date output file");
 		declareitem("file_hdate2",&file_hdate2,300,CB_NONE,"Crop second harvest date output file");
+		declareitem("file_irrigation",&file_irrigation,300,CB_NONE,"Crop irrigation output file");	
+		declareitem("file_seasonality",&file_seasonality,300,CB_NONE,"Seasonality output file");		
 		declareitem("file_cflux",&file_cflux,300,CB_NONE,"C fluxes output file");
 		declareitem("file_dens",&file_dens,300,CB_NONE,"Tree density output file");
 		declareitem("file_cpool",&file_cpool,300,CB_NONE,"Soil C output file");
@@ -1323,7 +1325,7 @@ OutputChannel* output_channel;
 
 // Output tables
 Table out_cmass, out_anpp, out_dens, out_lai, out_cflux, out_cpool, out_yield, out_firert, out_runoff, out_speciesheights;
-Table out_yield1, out_yield2, out_sdate1, out_sdate2, out_hdate1, out_hdate2;
+Table out_yield1, out_yield2, out_sdate1, out_sdate2, out_hdate1, out_hdate2, out_irrigation, out_seasonality;
 Table out_mnpp, out_mlai, out_mgpp, out_mra, out_maet, out_mpet, out_mevap, out_mrunoff, out_mintercep;
 Table out_mrh, out_mnee, out_mwcont_upper, out_mwcont_lower;
 
@@ -3554,6 +3556,23 @@ void define_output_tables() {
 	ColumnDescriptors date_columns;
 	date_columns += ColumnDescriptors(crop_pfts, 8, 0);
 
+	//IRRIGATION
+	ColumnDescriptors irrigation_columns;
+	irrigation_columns += ColumnDescriptor("Total", 10, 3);
+
+	//SEASONALITY
+	ColumnDescriptors seasonality_columns;
+	seasonality_columns += ColumnDescriptor("Seasonal", 10, 0);
+	seasonality_columns += ColumnDescriptor("V_temp", 10, 3);
+	seasonality_columns += ColumnDescriptor("V_prec", 10, 3);
+	seasonality_columns += ColumnDescriptor("temp_min", 10, 1);
+	seasonality_columns += ColumnDescriptor("temp_mean", 10, 1);
+	seasonality_columns += ColumnDescriptor("temp_seas", 10, 0);
+	seasonality_columns += ColumnDescriptor("prec_min", 10, 2);
+	seasonality_columns += ColumnDescriptor("prec", 10, 1);
+	seasonality_columns += ColumnDescriptor("prec_range", 12, 0);
+//	seasonality_columns += ColumnDescriptor("biseasonal", 12, 0);
+
 	// FIRERT
 	ColumnDescriptors firert_columns;
 	firert_columns += ColumnDescriptor("FireRT", 8, 1);
@@ -3592,6 +3611,8 @@ void define_output_tables() {
 		create_output_table(out_sdate2,          file_sdate2,           date_columns);
 		create_output_table(out_hdate1,          file_hdate1,           date_columns);
 		create_output_table(out_hdate2,          file_hdate2,           date_columns);
+		create_output_table(out_irrigation,      file_irrigation,       irrigation_columns);
+		create_output_table(out_seasonality,      file_seasonality,      seasonality_columns);	
 	}
 	create_output_table(out_firert,         file_firert,         firert_columns);
 	create_output_table(out_runoff,         file_runoff,         runoff_columns);
@@ -4797,6 +4818,8 @@ void outannual(Gridcell& gridcell) {
 		double aiso_gridcell=0.0;
 		double amon_gridcell=0.0;
 
+		double irrigation_gridcell=0.0;
+
 		double standpft_cmass=0.0;
 		double standpft_ic_cmass=0.0;	//intercrop grass
 		double standpft_anpp=0.0;
@@ -5119,6 +5142,9 @@ void outannual(Gridcell& gridcell) {
 					}
 				}
 
+				//Gridcell irrigation
+				irrigation_gridcell += patch.irrigation_y*to_gridcell_average;
+
 				runoff_gridcell+=patch.arunoff*to_gridcell_average;
 	
 				// Fire return time
@@ -5190,6 +5216,12 @@ void outannual(Gridcell& gridcell) {
 		out.add_value(out_runoff, runoff_gridcell);
 		out.add_value(out_aiso,   aiso_gridcell);
 		out.add_value(out_amon,   amon_gridcell);
+
+		if (run_landcover && run[CROPLAND]) {
+			out.add_value(out_irrigation,   irrigation_gridcell);
+		}
+
+		// Print landcover totals to files
 
 		if (run_landcover) {
 			for(int i=0;i<NLANDCOVERTYPES;i++) {
@@ -5292,6 +5324,20 @@ void outannual(Gridcell& gridcell) {
 					pftlist.nextobj();
 				}
 			}
+		}
+
+		//Output of seasonality variables
+		if (run_landcover && run[CROPLAND]) {
+			out.add_value(out_seasonality,   gridcell.climate.seasonality);
+			out.add_value(out_seasonality,   gridcell.climate.var_temp);
+			out.add_value(out_seasonality,   gridcell.climate.var_prec);
+			out.add_value(out_seasonality,   gridcell.climate.mtemp_min20);
+			out.add_value(out_seasonality,   gridcell.climate.atemp_mean);
+			out.add_value(out_seasonality,   gridcell.climate.temp_seasonality);
+			out.add_value(out_seasonality,   gridcell.climate.mprec_petmin20);
+			out.add_value(out_seasonality,   gridcell.climate.aprec);
+			out.add_value(out_seasonality,   gridcell.climate.prec_range);
+//			out.add_value(out_seasonality,   gridcell.climate.biseasonal);	//Not implemented in this version
 		}
 
 	}

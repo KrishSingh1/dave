@@ -1009,8 +1009,10 @@ void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft)
 			gridcellpft.wintertype=false;
 		}
 
-/*
-		if(forcesowingdates && pft.forcesowingdate && gridcellpft.sdate_force>0)
+//Forced sowing date read from input file.
+//Calculated value used if value for pft not found in file.
+//NB: Sowing date cannot be set to 0 (this is the value set to sdate_force if value for pft is not in input file)
+		if(forcesowingdates && pft.forcesowingdate && gridcellpft.sdate_force>0) 
 		{
 			if((abs(gridcellpft.sdate_force-gridcellpft.first_autumndate20)<=abs(gridcellpft.sdate_force-gridcellpft.last_springdate20)))
 				gridcellpft.wintertype=true;
@@ -1018,7 +1020,7 @@ void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft)
 				gridcellpft.wintertype=false;
 			gridcellpft.sdatecalc_temp=gridcellpft.sdate_force;
 		}
-*/
+
 
 		// Climatic limits for TeWW growth:	
 		if(!strncmp(pft.name,"TeWW", strlen("TeWW")) && climate.mtemp_min20>15.0)
@@ -1624,6 +1626,9 @@ void Crop_sowing_date_rice(Patch& patch, Pft& pft)
 	}
 }
 
+//Forced sowing date read from input file.
+//Calculated value used if value for pft not found in file.
+//NB: Sowing date cannot be set to 0 (this is the value set to sdate_force if value for pft is not in input file)
 void Crop_sowing_date_forced(Patch& patch, Pft& pft)
 {
 	Gridcell& gridcell=patch.stand.gridcell;
@@ -2097,7 +2102,7 @@ void leaf_phenology_crop(Pft& pft, Patch& patch)
 
 			// before maturity is reached
 
-			if (!forceharvestdates && ppftcrop.husum<ppftcrop.phu && (date.day<ppftcrop.hlimitdate || ppftcrop.sdate>ppftcrop.hlimitdate && date.day>=ppftcrop.sdate) 
+			if ((!forceharvestdates || !(pft.forceharvestdate && gridcellpft.hdate_force>0)) && ppftcrop.husum<ppftcrop.phu && (date.day<ppftcrop.hlimitdate || ppftcrop.sdate>ppftcrop.hlimitdate && date.day>=ppftcrop.sdate) 
 				|| (forceharvestdates && pft.forceharvestdate && gridcellpft.hdate_force>0 && (date.day<gridcellpft.hdate_force || ppftcrop.sdate>gridcellpft.hdate_force && date.day>=ppftcrop.sdate)) )
 			{
 // Uträkning av fphu:

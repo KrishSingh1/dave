@@ -46,7 +46,6 @@
 #include <algorithm>
 #include "globalco2file.h"
 
-
 // guess2008 - header file for the CRU TS 3.0 data archives
 #include "cru_1901_2006.h"
 #include "cru_1901_2006misc.h"
@@ -1591,7 +1590,7 @@ double TimeDataD::Get(int yearX, int column) const
 
 	if(column>=nRecords)
 	{
-		if(yearX==0)
+		if(yearX==1)
 			printf("WARNING: Trying to retreive more columns than available in %s. Value set to 0.0 \n", fileName);
 		return 0.0;
 	}
@@ -1622,7 +1621,7 @@ double TimeDataD::Get(int yearX, char* name) const		//Returns a single value for
 
 	if(column==-1)
 	{
-		if(yearX==0)
+		if(yearX==1)
 		printf("WARNING: Value for %s not found in %s. Value set to 0.0\n", name, fileName);
 		return 0.0;
 	}
@@ -3191,6 +3190,8 @@ TimeDataDmem::~TimeDataDmem()
 TimeDataD LUdata;
 TimeDataD Peatdata;
 TimeDataD CFTdata;
+TimeDataD sdates;
+TimeDataD hdates;
 
 #define LUTOMEMORY	//Write land use fraction data to memory; enables efficient usage of randomized gridlists for parallell runs on Simba.
 
@@ -3201,7 +3202,7 @@ TimeDataDmem CFTdata_mem;
 
 #endif
 
-xtring file_lu, file_lucrop, file_peat;
+xtring file_lu, file_lucrop, file_peat, file_sdates, file_hdates;
 const int NYEAR_LU=103;	//only used to get LU data after historical period (after 2003) : only used in AR4-runs, but causes no harm otherwise
 //
 
@@ -3752,7 +3753,10 @@ void initio(const xtring& insfilename) {
 
 			if (run[PEATLAND]) {	//special case for peatland: separate fraction file
 				file_peat=param["file_peat"].str;
-#if defined DYNAMIC_LANDCOVER_INPUT				
+#if defined DYNAMIC_LANDCOVER_INPUT	
+#ifdef LUTOMEMORY
+				fail("initio: Please modify code for use of LUTOMEMORY with extra land cover input file (needed for quick use of randomised gridlists) or turn option off!");
+#endif
 				if(!Peatdata.Open(file_peat))			//Open peatland area fraction file, returned false if problem
 					fail("initio: could not open %s for input",(char*)file_peat);
 				else if(Peatdata.format==LOCAL_YEARLY)
@@ -3765,7 +3769,7 @@ void initio(const xtring& insfilename) {
 		if(run[CROPLAND] && !cftfrac_fixed)
 		{
 			file_lucrop=param["file_lucrop"].str;
-#if defined DYNAMIC_LANDCOVER_INPUT	
+#if defined DYNAMIC_LANDCOVER_INPUT
 			if(!CFTdata.Open(file_lucrop))
 				fail("initio: could not open %s for input",(char*)file_lucrop);
 			else if(minimizecftlist)
@@ -3846,6 +3850,22 @@ void initio(const xtring& insfilename) {
 				fail("\ninitio: NCROPSTANDS_MAX is incorrectly set in guess.h !\n");
 #endif
 		}
+#if defined DYNAMIC_LANDCOVER_INPUT
+		if(run[CROPLAND]) {
+			if(forcesowingdates)
+			{
+				file_sdates=param["file_sdates"].str;
+				if(!sdates.Open(file_sdates))
+					fail("initio: could not open %s for input",(char*)file_sdates);
+			}
+			if(forceharvestdates)
+			{
+				file_hdates=param["file_hdates"].str;
+				if(!hdates.Open(file_hdates))
+					fail("initio: could not open %s for input",(char*)file_hdates);
+			}
+		}
+#endif
 	}
 
 	// We MUST have an output directory
@@ -3930,6 +3950,22 @@ if(!SUPPRESSLARGEOUTPUT)
 if(!SUPPRESSLARGEOUTPUT)
 				CFTdata.Output("CFTdata.out");
 #endif
+			}
+		}
+		if(forcesowingdates && !LUerror)
+		{ 
+			if(!sdates.Load(c))
+			{
+				dprintf("Problems with sowing date input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
+				LUerror=true;	// skip this stand
+			}
+		}
+		if(forceharvestdates && !LUerror)
+		{
+			if(!hdates.Load(c))
+			{
+				dprintf("Problems with harvest date input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
+				LUerror=true;	// skip this stand
 			}
 		}
 	}
@@ -4241,23 +4277,19 @@ void getlandcover(Gridcell& gridcell) {
 				for(i=0;i<PEATLAND;i++)		//peatland fraction data is not in this file, otherwise i<NLANDCOVERTYPES.
 				{	
 #if defined DYNAMIC_LANDCOVER_INPUT
-#ifdef GRASSFORCROP
-					if(i==PASTURE)
-#ifdef LUTOMEMORY
-						sum_tot+=gridcell.landcoverfrac[PASTURE]=LUdata_mem.Get(year,CROPLAND);
-#else
-						sum_tot+=gridcell.landcoverfrac[PASTURE]=LUdata.Get(year,CROPLAND);
-#endif
-					else if(i==CROPLAND)
-						gridcell.landcoverfrac[CROPLAND]=0.0;
-					else
-#endif
 #ifdef LUTOMEMORY
 					sum_tot+=gridcell.landcoverfrac[i]=LUdata_mem.Get(year,i);					//count sum of all fractions (should be 1.0)
 #else
 					sum_tot+=gridcell.landcoverfrac[i]=LUdata.Get(year,i);					//count sum of all fractions (should be 1.0)
 #endif
 #endif
+				}
+#ifdef GRASSFORCROP
+				gridcell.landcoverfrac[PASTURE]+=gridcell.landcoverfrac[CROPLAND];
+				gridcell.landcoverfrac[CROPLAND]=0.0;
+#endif
+				for(i=0;i<PEATLAND;i++)		//peatland fraction data is not in this file, otherwise i<NLANDCOVERTYPES.
+				{
 					if(gridcell.landcoverfrac[i]<0.0 || gridcell.landcoverfrac[i]>1.0)			//discard unreasonable values
 					{		
 						if(date.year==0)
@@ -4293,7 +4325,7 @@ void getlandcover(Gridcell& gridcell) {
 		else
 			gridcell.landcoverfrac[NATURAL]=0.0;
 
-		if(run[PEATLAND])
+		if(run[PEATLAND])	//Add code to cope with LUTOMEMORY !
 		{
 #if defined DYNAMIC_LANDCOVER_INPUT
 			sum_active+=gridcell.landcoverfrac[PEATLAND]=Peatdata.Get(year,"PEATLAND");			//peatland fraction data is currently in a separate file !
@@ -4477,6 +4509,47 @@ if(!SUPPRESSLARGEOUTPUT)
 	}
 }
 
+void getsowingdates(Gridcell& gridcell,Pftlist& pftlist)
+{
+	int i, year;
+
+	if(date.year<nyear_spinup)
+		year=0;
+	else
+		year=date.year-nyear_spinup;
+
+	if(date.year<nyear_spinup+NYEAR_HIST)
+	{
+		for(i=0;i<npft;i++)	
+		{
+			if(pftlist[i].cftid>=0 && pftlist[i].forcesowingdate)	//natural pft:s have cftid=-1
+			{
+				gridcell.pft[i].sdate_force=sdates.Get(year,pftlist[i].name);
+			}
+		}
+	}
+}
+
+void getharvestdates(Gridcell& gridcell,Pftlist& pftlist)
+{
+	int i, year;
+
+	if(date.year<nyear_spinup)
+		year=0;
+	else
+		year=date.year-nyear_spinup;
+
+	if(date.year<nyear_spinup+NYEAR_HIST)
+	{
+ 		for(i=0;i<npft;i++)	
+		{
+			if(pftlist[i].cftid>=0 && pftlist[i].forceharvestdate)	//natural pft:s have cftid=-1
+			{
+				gridcell.pft[pftlist[i].id].hdate_force=hdates.Get(year,pftlist[i].name);
+			}
+		}
+	}
+}
 
 /// Called by the framework each simulation day before any process modelling is performed for this day
 /** Obtains climate data (including atmospheric CO2 and insolation) for this day. */
@@ -5085,7 +5158,6 @@ void outannual(Gridcell& gridcell) {
 					
 					// guess2008 - alive check added
 					if (indiv.id!=-1 && indiv.alive) { 
-
 						for (m=0;m<12;m++) {
 							mlai[m] += indiv.mlai[m]*to_gridcell_average;
 						}

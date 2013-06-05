@@ -20,6 +20,8 @@ void initio(const xtring& insfilename);
 bool getgridcell(Gridcell& gridcell);
 bool getclimate(Gridcell& gridcell);
 void getlandcover(Gridcell& gridcell);
+void getsowingdates(Gridcell& gridcell,Pftlist& pftlist);
+void getharvestdates(Gridcell& gridcell,Pftlist& pftlist);
 void outannual(Gridcell& gridcell);
 void termio();
 void printhelp();

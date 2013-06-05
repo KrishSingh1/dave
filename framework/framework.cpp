@@ -114,12 +114,11 @@ rename("CFTdata.out", "CFTdata.old");
 				// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
 				if(date.year >= nyear_spinup)
 					landcover_dynamics(gridcell);
-/*
-				if(run[CROPLAND] && forcesowingdates)
+
+				if(run[CROPLAND] && forcesowingdates)		//Read sowing dates from input file, put into gridcellpft.sdate_force
 					getsowingdates(gridcell,pftlist);
-				if(run[CROPLAND] && forceharvestdates)
-						getharvestdates(gridcell,pftlist);
-*/
+				if(run[CROPLAND] && forceharvestdates)		//Read harvest dates from input file, put into gridcellpft.hdate_force
+					getharvestdates(gridcell,pftlist);
 			}
 
 			gridcell.firstobj();

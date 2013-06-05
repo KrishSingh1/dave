@@ -1493,8 +1493,6 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		if(stand.landcover==CROPLAND && !ppft.cropphen->growingseason)
 		{
 			indiv.dnpp=0.0;
-			if(ppft.cropphen->growingseason_ystd && date.dayofmonth!=0)
-				indiv.mlai[date.month] /= (double)date.ndaymonth[date.month];
 			vegetation.nextobj();
 			continue;
 		}
@@ -1553,11 +1551,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			indiv.mlai_max[date.month]=lai_indiv;
 
 		if (day.isend) {
-			indiv.mlai[date.month] += lai_indiv;
-			// On last day of month - convert monthly LAI from sum to mean
-			if (date.islastday) {
-				indiv.mlai[date.month] /= (double)date.ndaymonth[date.month];
-			}
+			indiv.mlai[date.month] += lai_indiv/(double)date.ndaymonth[date.month];
 		}
 
 		vegetation.nextobj();

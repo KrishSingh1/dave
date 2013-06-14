@@ -4701,7 +4701,7 @@ bool getclimate(Gridcell& gridcell) {
 
 	// Send environmental values for today to framework
 	if(fixedco2_hist)
-		climate.co2 = co2[0];
+		climate.co2 = co2[FIRSTHISTYEAR];
 	else
 	{
 //		if(FIRSTHISTYEAR + date.year - nyear_spinup>=1950)				//Temporary code to test crashing c4 crops at high co2

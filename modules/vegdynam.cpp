@@ -293,7 +293,7 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 
 			// Account for flux from the atmosphere to new saplings
 			// (flux is downward and therefore negative)
-			if (!(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass))) {
+			if(!indiv.istruecrop_or_intercropgrass()) {
 				indiv.report_flux(Fluxes::ESTC, 
 								  -(indiv.pft.regen.cmass_leaf+
 									indiv.pft.regen.cmass_root+indiv.pft.regen.cmass_sap+
@@ -317,7 +317,7 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 			est_pft=(1.0-fpc_tree-fpc_grass)/(double)ngrass_est;
 
 			// Account for flux from atmosphere to grass regeneration
-			if (!(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass))) {
+			if (!indiv.istruecrop_or_intercropgrass()) {
 				indiv.report_flux(Fluxes::ESTC, 
 			                  -(indiv.pft.regen.cmass_leaf+
 			                    indiv.pft.regen.cmass_root)*est_pft);
@@ -507,7 +507,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						ltor=patch.pft[pft.id].wscal_mean*pft.ltor_max;
 
 						// Allocate initial biomass
-						if(!(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass)))
+						if(!indiv.istruecrop_or_intercropgrass())
 							allocation_init(bminit,ltor,indiv);
 
 						// Calculate initial allometry

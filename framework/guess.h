@@ -1379,6 +1379,10 @@ public:
 	/// Report a flux associated with this Individual
 	/** Fluxes from 'new' Individuals (alive == false) will not be reported */
 	void report_flux(Fluxes::PerPatchFluxType flux_type, double value);
+
+	inline bool istruecrop_or_intercropgrass() {
+		return (pft.landcover==CROPLAND && (pft.phenology==CROPGREEN || cropindiv->isintercropgrass));
+	}
 };
 
 

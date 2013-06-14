@@ -1060,7 +1060,7 @@ void growth(Stand& stand,Patch& patch) {
 		else {
 
 			// Allocation to reproduction
-			if(!(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass)))
+			if(!indiv.istruecrop_or_intercropgrass())
 				reproduction(indiv.pft.reprfrac,indiv.anpp,bminc,cmass_repr);
 
 			// guess2008 - added bminc check. Otherwise we get -ve litter_leaf for grasses when indiv.anpp < 0.
@@ -1191,7 +1191,7 @@ void growth(Stand& stand,Patch& patch) {
 				// guess2008 - initial grass cmass
 				double indiv_mass_before=indiv.cmass_leaf+indiv.cmass_root;
 
-				if(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass))	//True crops do not use bminc.or cmass_leaf etc.
+				if(indiv.istruecrop_or_intercropgrass()) 	//True crops do not use bminc.or cmass_leaf etc.
 					allocation_crop(bminc,indiv.cmass_leaf,indiv.cmass_root,indiv.cropindiv->cmass_ho,indiv.ltor,
 						cmass_leaf_inc,cmass_root_inc,cmass_ho_inc,cmass_agpool_inc,litter_leaf_inc,litter_root_inc,indiv);
 				else
@@ -1201,7 +1201,7 @@ void growth(Stand& stand,Patch& patch) {
 						litter_leaf_inc,litter_root_inc);
 
 				if(indiv.pft.landcover==CROPLAND) {
-					if(indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass)
+					if(indiv.istruecrop_or_intercropgrass())
 						yield_crop(indiv);
 					else
 						yield_pasture(indiv, cmass_leaf_inc);
@@ -1225,7 +1225,7 @@ void growth(Stand& stand,Patch& patch) {
 				double indiv_cmass_diff=(indiv_mass_before+bminc-indiv_mass_after);		
 
 				// guess2008 - alive check before ensuring C balance
-				if (indiv.alive && !(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass))) {
+				if (indiv.alive && !indiv.istruecrop_or_intercropgrass()) {
 
 					patch.pft[indiv.pft.id].litter_leaf+=litter_leaf_inc+indiv_cmass_diff/2;
 					patch.pft[indiv.pft.id].litter_root+=litter_root_inc+indiv_cmass_diff/2;			
@@ -1238,7 +1238,7 @@ void growth(Stand& stand,Patch& patch) {
 				if (indiv.cmass_leaf<MINCMASS || indiv.cmass_root<MINCMASS) {
 
 					// guess2008 - alive check
-					if (indiv.alive || indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass)) {
+					if( indiv.alive || indiv.istruecrop_or_intercropgrass()) {
 
 						patch.pft[indiv.pft.id].litter_leaf+=indiv.cmass_leaf;
 						patch.pft[indiv.pft.id].litter_root+=indiv.cmass_root;
@@ -1283,7 +1283,7 @@ void growth(Stand& stand,Patch& patch) {
 
 					// ...now we can start counting its fluxes,
 					// debit current biomass as establishment flux
-					if (!(indiv.pft.landcover==CROPLAND && (indiv.pft.phenology==CROPGREEN || indiv.cropindiv->isintercropgrass))) {
+					if (!indiv.istruecrop_or_intercropgrass()) {
 						indiv.report_flux(Fluxes::ESTC, 
 					                  -(indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt));
 					}

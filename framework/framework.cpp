@@ -31,6 +31,10 @@ int framework(const CommandLineArguments& args) {
 	// primary model data structures and containing all explicit loops through 
 	// space (grid cells/stands) and time (days and years).
 
+	construct_io();
+
+	read_instruction_file(args.get_instruction_file());
+
 	// Call input/output module to obtain PFT static parameters and simulation
 	// settings and initialise input/output
 	initio(args.get_instruction_file());

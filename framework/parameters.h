@@ -15,6 +15,7 @@
 #define LPJ_GUESS_PARAMETERS_H
 
 #include "gutil.h"
+#include <string>
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -42,6 +43,8 @@ typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptakety
 ///////////////////////////////////////////////////////////////////////////////////////
 // Global instruction file parameters
 
+/// Title for this run
+extern xtring title;
 
 /// Vegetation mode (population, cohort or individual)
 extern vegmodetype vegmode;
@@ -205,4 +208,32 @@ private:
 /** Contains all the custom parameters after reading in the instruction file */
 extern Paramlist param;
 
-#endif //LPJ_GUESS_PARAMETERS_H
+/// Reads in the instruction file
+/** Uses PLIB library functions to read instructions from file specified by
+ * 'insfilename'.
+ */
+void read_instruction_file(const char* insfilename);
+
+/// Displays documentation about the instruction file parameters to the user
+void printhelp();
+
+
+///////////////////////////////////////////////////////////////////////////////////////
+// Interface for declaring parameters from other modules
+
+/// Declares an xtring parameter
+void declare_parameter(const char* name, xtring* param, int maxlen, const char* help = "");
+
+/// Declares a std:string parameter
+void declare_parameter(const char* name, std::string* param, int maxlen, const char* help = "");
+
+/// Declares an int parameter
+void declare_parameter(const char* name, int* param, int min, int max, const char* help = "");
+
+/// Declares a double parameter
+void declare_parameter(const char* name, double* param, double min, double max, const char* help = "");
+
+/// Declares a bool parameter
+void declare_parameter(const char* name, bool* param, const char* help = "");
+
+#endif // LPJ_GUESS_PARAMETERS_H

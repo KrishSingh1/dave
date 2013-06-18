@@ -22,6 +22,7 @@
 #include "vegdynam.h"
 #include "landcover.h"
 #include "bvoc.h"
+#include "commonoutput.h"
 
 #include <memory>
 
@@ -33,11 +34,16 @@ int framework(const CommandLineArguments& args) {
 
 	construct_io();
 
+	GuessOutput::OutputModuleContainer output_modules;
+	output_modules.add(new GuessOutput::CommonOutput());
+
 	read_instruction_file(args.get_instruction_file());
 
 	// Call input/output module to obtain PFT static parameters and simulation
 	// settings and initialise input/output
 	initio(args.get_instruction_file());
+
+	output_modules.init();
 
 	// Nitrogen limitation
 	if (ifnlim && !ifcentury) {
@@ -170,11 +176,13 @@ int framework(const CommandLineArguments& args) {
 				gridcell.nextobj();			
 			}	// End of loop through stands
 
+			output_modules.outdaily(gridcell);
+
 			if (date.islastday && date.islastmonth) {
 				// LAST DAY OF YEAR
-				// Call input/output module to output results for end of year
+				// Call output module to output results for end of year
 				// or end of simulation for this grid cell
-				outannual(gridcell);
+				output_modules.outannual(gridcell);
 				
 				// Time to save state?
 				if (date.year == state_year-1 && save_state) {

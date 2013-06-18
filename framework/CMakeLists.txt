@@ -11,6 +11,7 @@ set(headers
   parallel.h
   commandlinearguments.h
   parameters.h
+  outputmodule.h
 )
 
 set(source  
@@ -24,6 +25,7 @@ set(source
   parallel.cpp
   commandlinearguments.cpp
   parameters.cpp
+  outputmodule.cpp
 )
 
 include(add_guess_sources)

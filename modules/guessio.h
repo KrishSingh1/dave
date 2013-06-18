@@ -21,7 +21,6 @@ void initio(const xtring& insfilename);
 bool getgridcell(Gridcell& gridcell);
 bool getclimate(Gridcell& gridcell);
 void getlandcover(Gridcell& gridcell);
-void outannual(Gridcell& gridcell);
 void termio();
 
 #endif // LPJ_GUESS_GUESSIO_H

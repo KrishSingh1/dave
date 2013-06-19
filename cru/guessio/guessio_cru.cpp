@@ -35,7 +35,7 @@
 
 #ifdef USE_CRU_IO
 
-#include "guessio.h"
+#include "cruinputmodule.h"
 
 #include "driver.h"
 #include "parameters.h"
@@ -73,7 +73,7 @@ void initsettings() {
 }
 }
 
-void construct_io() {
+CRUInputModule::CRUInputModule() {
 	initsettings();
 
 	declare_parameter("searchradius", &searchradius, 0, 100,
@@ -740,7 +740,7 @@ bool findnearestCRUdata(double searchradius, char* cruark, double& lon, double& 
 // INITIO
 // Called by the framework at the start of the model run
 
-void initio(const xtring& insfilename) {
+void CRUInputModule::init() {
 
 	// DESCRIPTION
 	// Initialises input/output (e.g. opening files), sets values for the global
@@ -938,7 +938,7 @@ void getndep(double lon, double lat) {
 }
 
 /// Called by the framework at the start of the simulation for a particular grid cell
-bool getgridcell(Gridcell& gridcell) {
+bool CRUInputModule::getgridcell(Gridcell& gridcell) {
 
 	// DESCRIPTION
 	// Obtains coordinates and soil static parameters for the next grid cell to
@@ -1078,7 +1078,7 @@ bool getgridcell(Gridcell& gridcell) {
 }
 
 ///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
-void getlandcover(Gridcell& gridcell) {
+void CRUInputModule::getlandcover(Gridcell& gridcell) {
 	int i, year;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
 
@@ -1272,7 +1272,7 @@ void getlandcover(Gridcell& gridcell) {
 
 /// Called by the framework each simulation day before any process modelling is performed for this day
 /** Obtains climate data (including atmospheric CO2 and insolation) for this day. */
-bool getclimate(Gridcell& gridcell) {
+bool CRUInputModule::getclimate(Gridcell& gridcell) {
 
 	// DESCRIPTION
 	// The function should returns false if the simulation is complete for this grid cell,
@@ -1440,11 +1440,7 @@ bool getclimate(Gridcell& gridcell) {
 }
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// TERMIO
-// Called at end of model run (i.e. following simulation of all stands)
-
-void termio() {
+CRUInputModule::~CRUInputModule() {
 
 	// Performs memory deallocation, closing of files or other "cleanup" functions.
 

@@ -2,7 +2,6 @@ set(headers
   canexch.h 
   driver.h 
   growth.h 
-  guessio.h 
   soilwater.h 
   somdynam.h 
   vegdynam.h 

@@ -13,7 +13,7 @@
 #include "guessserializer.h"
 #include "parallel.h"
 
-#include "guessio.h"
+#include "cruinputmodule.h"
 #include "driver.h"
 #include "canexch.h"
 #include "soilwater.h"
@@ -32,17 +32,18 @@ int framework(const CommandLineArguments& args) {
 	// primary model data structures and containing all explicit loops through 
 	// space (grid cells/stands) and time (days and years).
 
-	construct_io();
+	using std::auto_ptr;
+	auto_ptr<InputModule> input_module(new CRUInputModule());
 
 	GuessOutput::OutputModuleContainer output_modules;
 	output_modules.add(new GuessOutput::CommonOutput());
 
+	// Read the instruction file to obtain PFT static parameters and
+	// simulation settings
 	read_instruction_file(args.get_instruction_file());
 
-	// Call input/output module to obtain PFT static parameters and simulation
-	// settings and initialise input/output
-	initio(args.get_instruction_file());
-
+	// Initialise input/output
+	input_module->init();
 	output_modules.init();
 
 	// Nitrogen limitation
@@ -56,7 +57,6 @@ int framework(const CommandLineArguments& args) {
 	}
 
 	// Create objects for (de)serializing grid cells
-	using std::auto_ptr;
 	auto_ptr<GuessSerializer> serializer;
 	auto_ptr<GuessDeserializer> deserializer;
 
@@ -82,7 +82,7 @@ int framework(const CommandLineArguments& args) {
 		// Call input/output to obtain latitude and soil driver data for this grid cell.
 		// Function getgridcell returns false if no further grid cells remain to be simulated
 
-		if (!getgridcell(gridcell)) {
+		if (!input_module->getgridcell(gridcell)) {
 			break;
 		}
 
@@ -91,7 +91,7 @@ int framework(const CommandLineArguments& args) {
 
 		if(run_landcover) {
 			//Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
-			landcover_init(gridcell);
+			landcover_init(gridcell, input_module.get());
 		}
 
 		if (restart) {
@@ -105,7 +105,7 @@ int framework(const CommandLineArguments& args) {
 		// day of the simulation. Function getclimate returns false if last year
 		// has already been simulated for this grid cell
 
-		while (getclimate(gridcell)) {
+		while (input_module->getclimate(gridcell)) {
 
 			// START OF LOOP THROUGH SIMULATION DAYS
 			
@@ -118,7 +118,7 @@ int framework(const CommandLineArguments& args) {
 			if(run_landcover && date.day == 0 && date.year >= nyear_spinup) {
 				// Update dynamic landcover and crop fraction data during historical
 				// period and create/kill stands.
-				landcover_dynamics(gridcell);
+				landcover_dynamics(gridcell, input_module.get());
 			}
 
 			gridcell.firstobj();
@@ -191,7 +191,6 @@ int framework(const CommandLineArguments& args) {
 
 				// Check whether to abort
 				if (abort_request_received()) {
-					termio();
 					return 99;
 				}
 			}
@@ -202,9 +201,6 @@ int framework(const CommandLineArguments& args) {
 			// End of loop through simulation days
 		}	//while (getclimate())
 	}		// End of loop through grid cells
-
-	// Call to input/output module to perform any necessary clean up
-	termio();
 
 	// END OF SIMULATION
 

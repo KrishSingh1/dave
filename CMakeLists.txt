@@ -77,7 +77,7 @@ if (MPI_FOUND)
 endif()
 
 # Where the compiler should search for header files
-include_directories(${guess_SOURCE_DIR}/framework ${guess_SOURCE_DIR}/libraries/gutil ${guess_SOURCE_DIR}/libraries/plib ${guess_SOURCE_DIR}/modules)
+include_directories(${guess_SOURCE_DIR}/framework ${guess_SOURCE_DIR}/libraries/gutil ${guess_SOURCE_DIR}/libraries/plib ${guess_SOURCE_DIR}/modules ${guess_SOURCE_DIR}/cru/guessio)
 
 # The following directories contain source code and 
 # additional CMakeLists.txt files

@@ -54,27 +54,16 @@
 #include "GlobalNitrogenDeposition.h"
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// GLOBAL VARIABLES WITH FILE SCOPE
-
-double searchradius; // search radius to use when finding CRU data
-
-/// Landcover fractions read from ins-file (% area).
-int lc_fixed_frac[NLANDCOVERTYPES]={0};
-
-/// Whether gridcell is divided into equal active landcover fractions.
-bool equal_landcover_area;
-
-
-namespace {
-void initsettings() {
-
-	searchradius = 0;
-}
-}
-
-CRUInputModule::CRUInputModule() {
-	initsettings();
+CRUInputModule::CRUInputModule()
+	: searchradius(0),
+	  lc_fixed_frac(NLANDCOVERTYPES, 0),
+	  equal_landcover_area(false),
+	  spinup_mtemp(NYEAR_SPINUP_DATA),
+	  spinup_mprec(NYEAR_SPINUP_DATA),
+	  spinup_msun(NYEAR_SPINUP_DATA),
+	  spinup_mfrs(NYEAR_SPINUP_DATA),
+	  spinup_mwet(NYEAR_SPINUP_DATA),
+	  spinup_mdtr(NYEAR_SPINUP_DATA) {
 
 	declare_parameter("searchradius", &searchradius, 0, 100,
 		"If specified, CRU data will be searched for in a circle");
@@ -89,391 +78,12 @@ CRUInputModule::CRUInputModule() {
 	declare_parameter("lc_fixed_peatland", &lc_fixed_frac[PEATLAND], 0, 100, "% lc_fixed_peatland");
 }
 
-///////////////////////////////////////////////////////////////////////////////////////
-//
-//             SECTION: INPUT OF ENVIRONMENTAL DRIVING DATA FOR SIMULATION
-//                            OUTPUT OF SIMULATION RESULTS
-//
-// In general it is the responsibility of the user of the model to provide code for
-// this section of the input/output module. The following functions are called by the
-// framework at various stages of the simulation and should contain appropriate code:
-//
-// void initio(const xtring& insfilename)
-//   Initialises input/output (e.g. opening files), sets values for the global
-//   simulation parameter variables (currently vegmode, npatch, patcharea,
-//   ifbgestab, ifsme, ifstochestab, ifstochmort, iffire, estinterval,
-//   npft), initialises pftlist (the one and only list of PFTs and their static
-//   parameters for this run of the model). Normally all of the above parameters,
-//   and possibly others, are read from the ins file (see above). Function readins
-//   should be called to input settings from the ins file.
-//
-// bool getgridcell(Gridcell& gridcell)
-//   Obtains coordinates and soil static parameters for the next grid cell to
-//   simulate. The function should return false if no grid cells remain to be simulated,
-//   otherwise true. Currently the following member variables of gridcell should be
-//   initialised: longitude, latitude and climate.instype; the following members of
-//   member soiltype: awc[0], awc[1], perc_base, perc_exp, thermdiff_0, thermdiff_15,
-//   thermdiff_100. The soil parameters can be set indirectly based on an lpj soil
-//   code (Sitch et al 2000) by a call to function soilparameters in the driver
-//   module (driver.cpp):
-//
-//   soilparameters(gridcell.soiltype,soilcode);
-//
-//   If the model is to be driven by quasi-daily values of the climate variables
-//   derived from monthly means, this function may be the appropriate place to
-//   perform the required interpolations. The utility functions interp_monthly_means
-//   and interp_monthly_totals in driver.cpp may be called for this purpose.
-//
-// bool getclimate(Gridcell& gridcell)
-//   Obtains climate data (including atmospheric CO2 and insolation) for this day.
-//   The function should return false if the simulation is complete for this grid cell,
-//   otherwise true. This will normally require querying the year and day member
-//   variables of the global class object date:
-//
-//   if (date.day==0 && date.year==nyear_spinup) return false;
-//   // else
-//   return true;
-//
-//   Currently the following member variables of the climate member of gridcell must be
-//   initialised: co2, temp, prec, insol. If the model is to be driven by quasi-daily
-//   values of the climate variables derived from monthly means, this day's values
-//   will presumably be extracted from arrays containing the interpolated daily
-//   values (see function getgridcell):
-//
-//   gridcell.climate.temp=dtemp[date.day];
-//   gridcell.climate.prec=dprec[date.day];
-//   gridcell.climate.insol=dsun[date.day];
-//
-//   Diurnal temperature range (dtr) added for calculation of leaf temperatures in 
-//   BVOC:
-//   gridcell.climate.dtr=ddtr[date.day]; 
-//
-//   If model is run in diurnal mode, which requires appropriate climate forcing data, 
-//   additional members of the climate must be initialised: temps, insols. Both of the
-//   variables must be of type std::vector. The length of these vectors should be equal
-//   to value of date.subdaily which also needs to be set either in getclimate or 
-//   getgridcell functions. date.subdaily is a number of sub-daily period in a single 
-//   day. Irrespective of the BVOC settings, climate.dtr variable is not required in 
-//   diurnal mode.
-//
-// void outannual(Gridcell& gridcell)
-//   Called at the end of the last day of each simulation year to permit output of
-//   model results.
-//
-// termio()
-//   Called after simulation is complete for all gridcells to allow memory deallocation,
-//   closing of files or other cleanup functions.
-//
-// printhelp()
-//   Prints out information about all available ins file parameters. Is typically
-//   called when the user starts the program with the -help option.
-//
-///////////////////////////////////////////////////////////////////////////////////////
-
-struct Coord {
-
-	// Type for storing grid cell longitude, latitude and description text
-
-	int id;
-	double lon;
-	double lat;
-	xtring descrip;
-
-};
-
-
-ListArray_id<Coord> gridlist;
-	// Will maintain a list of Coord objectsc ontaining coordinates
-	// of the grid cells to simulate
-
-int ngridcell; // the number of grid cells to simulate
-
-class Spinup_data {
-
-	// Class for management of climate data for spinup
-	// (derived from first few years of historical climate data)
-
-private:
-	int nyear;
-	int thisyear;
-	double* data;
-	bool havedata;
-
-	// guess2008 - this array holds the climatology for the spinup period
-	double dataclim[12];
-
-
-public:
-	Spinup_data(int nyear_loc) {
-		nyear=nyear_loc;
-		havedata=false;
-		data=new double[nyear*12];
-		if (!data) fail("Spinup_data::Spinup_data: out of memory");
-		thisyear=0;
-		havedata=true;
-		reset_clim(); // guess2008
-	}
-
-	~Spinup_data() {
-		if (havedata) delete[] data;
-	}
-
-	double& operator[](int month) {
-
-		return data[thisyear*12+month];
-	}
-
-	void nextyear() {
-		if (thisyear==nyear-1) thisyear=0;
-		else thisyear++;
-	}
-
-	void firstyear() {
-		thisyear=0;
-	}
-
-	void get_data_from(double source[][12]) {
-		
-		int y,m;
-		thisyear=0; // guess2008 - ML bugfix
-		for (y=0;y<nyear;y++) {
-			for (m=0;m<12;m++) {
-				data[y*12+m]=source[y][m];
-			}
-		}
-	}
-
-	// guess2008 - NEW METHODS 
-
-	void reset_clim() {
-		for (int ii = 0; ii < 12; ii++) dataclim[ii] = 0.0;
-	}
-
-
-	void make_clim() {
-		
-		reset_clim(); // Always reset before calculating
-
-		int y,m;
-		for (y=0;y<nyear;y++) {
-			for (m=0;m<12;m++) {
-				dataclim[m] += data[y*12+m] / (double)nyear;
-			}
-		}
-	}
-
-
-	bool extract_data(double source[][12], const int& startyear, const int& endyear) {
-		
-		// Populate data with data from the middle of source. 
-		// Condition: endyear - startyear + 1 == nyear
-		// if startyear == 1 and endyear == 30 then this function is identical to get_data_from above.
-
-		if (endyear < startyear) return false;
-		if (endyear - startyear + 1 == nyear) {
-
-			int y,m;
-			for (y=startyear-1;y<endyear;y++) {
-				for (m=0;m<12;m++) {
-					data[(y-(startyear-1))*12+m]=source[y][m];
-				}
-			}
-
-		} else return false;
-
-		return true;
-	}
-
-
-	void adjust_data(double anom[12], bool additive) {
-		
-		// Adjust the spinup data to the conditions prevailing at a particular time, as given by 
-		// the (additive or multiplicative) anomalies in anom 
-		int y,m;
-		for (y=0;y<nyear;y++) {
-			for (m=0;m<12;m++) {
-				if (additive)	
-					data[y*12+m] += anom[m];
-				else
-					data[y*12+m] *= anom[m];
-			}
-		}
-
-	}
-	
-	
-	// Replace interannual data with the period's climatology.
-	void use_clim_data() {
-	
-		int y,m;
-		for (y=0;y<nyear;y++) {
-			for (m=0;m<12;m++) {
-				data[y*12+m] = dataclim[m];
-			}
-		}
-	}
-
-
-	// Alter variability about the mean climatology
-	void adjust_data_variability(const double& factor) {
-	
-		// factor == 0 gives us the climatology (i.e. generalises use_clim_data above)
-		// factor == 1 leaves everything unchanged
-		// Remember to check the for negative precip or cloudiness values etc. 
-		// after calling this method.
-
-		if (factor == 1.0) return;
-
-		int y,m;
-		for (y=0;y<nyear;y++) {
-			for (m=0;m<12;m++) {
-				data[y*12+m] = dataclim[m] + (data[y*12+m] - dataclim[m]) * factor;
-			}
-		}
-	}
-
-
-	void limit_data(double minval, double maxval) {
-
-		// Limit data to a range
-		int y,m;
-		for (y=0;y<nyear;y++) {
-			for (m=0;m<12;m++) {
-				if (data[y*12+m] < minval) data[y*12+m] = minval;
-				if (data[y*12+m] > maxval) data[y*12+m] = maxval;
-			}
-		}
-
-	}
-	
-	
-	void set_min_val(const double& oldval, const double& newval) {
-
-		// Change values < oldval to newval
-		int y,m;
-		for (y=0;y<nyear;y++) {
-			for (m=0;m<12;m++) {
-				if (data[y*12+m] < oldval) data[y*12+m] = newval;
-			}
-		}
-
-	}
-
-	// guess2008 - END OF NEW METHODS
-
-
-	void detrend_data() {
-
-		int y,m;
-		double a,b,anomaly;
-		double* annual_mean=new double[nyear];
-		double* year_number=new double[nyear];
-
-		if (!annual_mean || !year_number)
-			fail("Spinup_driver::detrend_data: out of memory");
-
-		for (y=0;y<nyear;y++) {
-			annual_mean[y]=0.0;
-			for (m=0;m<12;m++) annual_mean[y]+=data[y*12+m];
-			annual_mean[y]/=12.0;
-			year_number[y]=y;
-		}
-
-		regress(year_number,annual_mean,nyear,a,b);
-
-		for (y=0;y<nyear;y++) {
-			anomaly=b*(double)y;
-			for (m=0;m<12;m++)
-				data[y*12+m]-=anomaly;
-		}
-		
-		// guess2008 - added [] - Clean up
-		delete[] annual_mean;
-		delete[] year_number;
-	}
-};
-
-// Constants associated with historical climate data set
-
-// number of years of historical climate
-// CRU TS 3.0 has 106 years of data (1901-2006)
-const int NYEAR_HIST=106;
-
-// calender year corresponding to first year in CRU climate data set
-const int FIRSTHISTYEAR=1901;
-
-// calender year corresponding to first year nitrogen deposition
-const int FIRSTHISTYEARNDEP=1850;
-
-// number of years of historical nitrogen deposition 
-const int NYEAR_HISTNDEP=16;
-
-// number of years to use for temperature-detrended spinup data set
-// (not to be confused with the number of years to spinup model for, which
-// is read from the ins file)	
-const int NYEAR_SPINUP_DATA=30;
-
-// Stream pointer to binary CRU historical climate data file (read from ins file)
-FILE *in_cru;
-
-// Full pathname of ASCII file containing annual CO2 values (read from ins file)
-xtring file_co2;
-
 
 // Timers for keeping track of progress through the simulation
 Timer tprogress,tmute;
 const int MUTESEC=20; // minimum number of sec to wait between progress messages
 
-/// Yearly CO2 data read from file
-/**
- * This object is indexed with calendar years, so to get co2 value for
- * year 1990, use co2[1990]. See documentation for GlobalCO2File for
- * more information.
- */
-GlobalCO2File co2;
 
-// Monthly temperature, precipitation and sunshine data for current grid cell
-// and historical period
-double hist_mtemp[NYEAR_HIST][12];
-double hist_mprec[NYEAR_HIST][12];
-double hist_msun[NYEAR_HIST][12];
-
-// Monthly frost days, precipitation days and DTR data for current grid cell
-// and historical period
-double hist_mfrs[NYEAR_HIST][12];
-double hist_mwet[NYEAR_HIST][12];
-double hist_mdtr[NYEAR_HIST][12];
-
-/// Monthly data on daily dry NHx deposition (kgN/m2/day)
-double NHxDryDep[NYEAR_HISTNDEP][12];
-/// Monthly data on daily wet NHx deposition (kgN/m2/day)
-double NHxWetDep[NYEAR_HISTNDEP][12];
-/// Monthly data on daily dry NOy deposition (kgN/m2/day)
-double NOyDryDep[NYEAR_HISTNDEP][12];
-/// Monthly data on daily wet NOy deposition (kgN/m2/day)
-double NOyWetDep[NYEAR_HISTNDEP][12];
-
-// Spinup data sets for current grid cell
-Spinup_data spinup_mtemp(NYEAR_SPINUP_DATA);
-Spinup_data spinup_mprec(NYEAR_SPINUP_DATA);
-Spinup_data spinup_msun(NYEAR_SPINUP_DATA);
-
-// guess2008
-// Spinup data sets for monthly frost days, precipitation days and DTR data for 
-// current grid cell
-Spinup_data spinup_mfrs(NYEAR_SPINUP_DATA);
-Spinup_data spinup_mwet(NYEAR_SPINUP_DATA);
-Spinup_data spinup_mdtr(NYEAR_SPINUP_DATA);
-
-
-// Daily temperature, precipitation and sunshine for one year
-double dtemp[365],dprec[365],dsun[365];
-// bvoc
-// Daily diurnal temperature range for one year
-double ddtr[365];
-
-// Daily N deposition for one year
-double dndep[365];
 
 // guess2008 - make file_cru and file_cru_misc global variables
 xtring file_cru;
@@ -488,17 +98,6 @@ void interp_climate(double mtemp[12], double mprec[12], double msun[12], double 
 	interp_monthly_means(mdtr, ddtr);
 }
 
-//Landuse:
-
-//#define DYNAMIC_LANDCOVER_INPUT
-#if defined DYNAMIC_LANDCOVER_INPUT
-//TimeDataD input code may be put here
-TimeDataD LUdata(LOCAL_YEARLY);
-TimeDataD Peatdata;
-#endif
-xtring file_lu, file_peat;
-const int NYEAR_LU=103;	//only used to get LU data after historical period (after 2003) : only used in AR4-runs, but causes no harm otherwise
-
 ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
 // 
@@ -512,8 +111,9 @@ const int NYEAR_LU=103;	//only used to get LU data after historical period (afte
 // Determine temp, precip, sunshine & soilcode
  
 bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
-	double mtemp[NYEAR_HIST][12],double mprec[NYEAR_HIST][12],
-	double msun[NYEAR_HIST][12]) {
+               double mtemp[CRUInputModule::NYEAR_HIST][12],
+               double mprec[CRUInputModule::NYEAR_HIST][12],
+               double msun[CRUInputModule::NYEAR_HIST][12]) {
 
 	// !!!! NEW VERSION OF THIS FUNCTION - guess2008 - NEW VERSION OF THIS FUNCTION !!!!
 	// Please note the new function signature. 
@@ -559,7 +159,7 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 		soilcode=(int)data.soilcode[0];
 
 
-		for (y=0;y<NYEAR_HIST;y++) {
+		for (y = 0; y < CRUInputModule::NYEAR_HIST; y++) {
 			for (m=0;m<12;m++) {
 				mtemp[y][m] = data.mtemp[y*12+m]*0.1; // now degC
 				mprec[y][m] = data.mprec[y*12+m]*0.1; // mm (sum over month)
@@ -594,8 +194,9 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 // Determine elevation, frs frq, wet frq & DTR
 
 bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
-	double mfrs[NYEAR_HIST][12],double mwet[NYEAR_HIST][12],
-	double mdtr[NYEAR_HIST][12]) {
+                    double mfrs[CRUInputModule::NYEAR_HIST][12],
+                    double mwet[CRUInputModule::NYEAR_HIST][12],
+                    double mdtr[CRUInputModule::NYEAR_HIST][12]) {
 	
 	// Please note the new function signature. 
 
@@ -636,7 +237,7 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 		// Note that the multipliers are NOT the same as in searchcru above!
 		elevation=(int)data.elv[0]; // km * 1000
 
-		for (y=0;y<NYEAR_HIST;y++) { 
+		for (y = 0; y < CRUInputModule::NYEAR_HIST; y++) { 
 			for (m=0;m<12;m++) {
 
 				// guess2008 - catch rounding errors 
@@ -673,9 +274,10 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 // Utility function that returns the CRU data from the nearest cell to (lon,lat) within
 // a given search radius
 bool findnearestCRUdata(double searchradius, char* cruark, double& lon, double& lat, 
-                        int& scode, double hist_mtemp1[NYEAR_HIST][12], 
-                        double hist_mprec1[NYEAR_HIST][12], 
-                        double hist_msun1[NYEAR_HIST][12]) {
+                        int& scode, 
+                        double hist_mtemp1[CRUInputModule::NYEAR_HIST][12], 
+                        double hist_mprec1[CRUInputModule::NYEAR_HIST][12], 
+                        double hist_msun1[CRUInputModule::NYEAR_HIST][12]) {
 
 	// First try the exact coordinate
 	if (searchcru(cruark, lon, lat, scode, hist_mtemp1, hist_mprec1, hist_msun1)) {
@@ -785,8 +387,8 @@ void CRUInputModule::init() {
 	file_cru=param["file_cru"].str;
 	file_cru_misc=param["file_cru_misc"].str;
 
-	
-	ngridcell=0;
+
+	ngridcell=0;	
 	while (!eof) {
 		
 		// Read next record in file
@@ -848,7 +450,7 @@ void CRUInputModule::init() {
 ///	Loads landcover area fraction data from file(s) for a gridcell.
 /** Called from getgridcell() if run_landcover is true. 
   */
-bool loadlandcover(Gridcell& gridcell, Coord c)	{
+bool CRUInputModule::loadlandcover(Gridcell& gridcell, Coord c)	{
 	bool LUerror=false;
 
 	if (!lcfrac_fixed) {
@@ -889,7 +491,7 @@ bool loadlandcover(Gridcell& gridcell, Coord c)	{
  *  \param  lon         Longitude
  *  \param  lat         Latitude
  */
-void getndep(double lon, double lat) {
+void CRUInputModule::getndep(double lon, double lat) {
 	
 	const double convert = 1e-7;				// converting from gN ha-1 to kgN m-2
 

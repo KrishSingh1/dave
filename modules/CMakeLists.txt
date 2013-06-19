@@ -11,6 +11,7 @@ set(headers
   globalco2file.h
   ncompete.h
   commonoutput.h
+  spinupdata.h
   )
 
 set(source  

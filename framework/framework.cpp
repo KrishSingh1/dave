@@ -33,7 +33,16 @@ int framework(const CommandLineArguments& args) {
 	// space (grid cells/stands) and time (days and years).
 
 	using std::auto_ptr;
-	auto_ptr<InputModule> input_module(InputModuleRegistry::get_instance().create_input_module("cru"));
+
+	const char* input_module_name;
+
+#ifdef USE_CRU_IO
+	input_module_name = "cru";
+#else
+	input_module_name = "demo";
+#endif
+
+	auto_ptr<InputModule> input_module(InputModuleRegistry::get_instance().create_input_module(input_module_name));
 
 	GuessOutput::OutputModuleContainer output_modules;
 	output_modules.add(new GuessOutput::CommonOutput());

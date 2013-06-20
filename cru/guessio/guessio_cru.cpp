@@ -32,9 +32,6 @@
 // "#include" directive referring to the framework header file.
 
 #include "config.h"
-
-#ifdef USE_CRU_IO
-
 #include "cruinputmodule.h"
 
 #include "driver.h"
@@ -81,15 +78,11 @@ CRUInputModule::CRUInputModule()
 }
 
 
-// Timers for keeping track of progress through the simulation
-Timer tprogress,tmute;
-const int MUTESEC=20; // minimum number of sec to wait between progress messages
-
-
-
 // guess2008 - make file_cru and file_cru_misc global variables
 xtring file_cru;
 xtring file_cru_misc;
+
+namespace {
 
 /// Interpolates monthly data to quasi-daily values.
 void interp_climate(double mtemp[12], double mprec[12], double msun[12], double mdtr[12],
@@ -99,6 +92,8 @@ void interp_climate(double mtemp[12], double mprec[12], double msun[12], double 
 	interp_monthly_means(msun, dsun);
 	interp_monthly_means(mdtr, ddtr);
 }
+
+} // namespace
 
 ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -1051,8 +1046,6 @@ CRUInputModule::~CRUInputModule() {
 	// Clean up
 	gridlist.killall();
 }
-
-#endif // USE_CRU_IO
 
 
 ///////////////////////////////////////////////////////////////////////////////////////

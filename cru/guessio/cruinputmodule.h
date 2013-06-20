@@ -7,8 +7,8 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef LPJ_GUESS_GUESSIO_CRU_H
-#define LPJ_GUESS_GUESSIO_CRU_H
+#ifndef LPJ_GUESS_CRUINPUTMODULE_H
+#define LPJ_GUESS_CRUINPUTMODULE_H
 
 #include "inputmodule.h"
 #include <vector>
@@ -85,6 +85,10 @@ private:
 	/// The number of grid cells to simulate
 	int ngridcell;
 
+	// Timers for keeping track of progress through the simulation
+	Timer tprogress,tmute;
+	static const int MUTESEC=20; // minimum number of sec to wait between progress messages
+
 	/// Yearly CO2 data read from file
 	/**
 	 * This object is indexed with calendar years, so to get co2 value for
@@ -148,4 +152,4 @@ private:
 	static const int NYEAR_LU=103;	//only used to get LU data after historical period (after 2003) : only used in AR4-runs, but causes no harm otherwise
 };
 
-#endif // LPJ_GUESS_GUESSIO_CRU_H
+#endif // LPJ_GUESS_CRUINPUTMODULE_H

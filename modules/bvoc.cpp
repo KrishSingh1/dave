@@ -58,7 +58,7 @@ void initbvoc(){
  	while (pftlist.isobj) {
  		Pft& pft = pftlist.getobj();
 
-		photosynthesis(CO2, Tstand, par, daylength, 1.0, pft.lambda_max, pft, phot, -1);
+		photosynthesis(CO2, Tstand, par, daylength, 1.0, pft.lambda_max, pft, 1.0, false, phot, -1);
 
 		double coeff = 1e-3 / (phot.je + phot.rd_g/24) / daylength / pft.sla / Cfrac;
 
@@ -118,8 +118,8 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 	dmonstor = 1. / max(min(dmonstor, tcstor_max), tcstor_min) / date.subdaily;
 
 	// convert from g C m-2 d-1 to mg C m-2 d-1
-	indiv.iso *= indiv.fpar * 1e3 / date.subdaily;
-	indiv.mon *= indiv.fpar * 1e3 / date.subdaily;
+	indiv.iso *= 1e3 / date.subdaily;
+	indiv.mon *= 1e3 / date.subdaily;
 	double rmonstor = -indiv.monstor * dmonstor + pft.storfrac_mon * indiv.mon;
 	indiv.monstor += rmonstor;
 	indiv.mon -= rmonstor;
@@ -209,19 +209,19 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 	// of isoprene seasonality (which requires a GDD sum twice as large as
 	// required for phenology, and decreases with a relative rate at the end of
 	// the growing season).
-
+	
 	// Changes made to accommodate diurnal mode, include re-calculating seasonality
 	// irrespective of the possibility of BVOC emissions, and switching to
 	// photosynthesis pre-calculated with air temperature (instead of leaf
 	// temperature previously).
-
+	
 	// (selected) INPUT PARAMETERS
 	// temp      = temperature for this calculation period (deg C)
 	// hours     = in diurnal mode should equal 24 (to convert to daily units),
 	//             in daily/monthly mode should equal to "climate.daylength" parameter (h)
 	// climate:
-	//   daylength = actual daylength of the day the calculation period belongs to (h)
-	//   dtr       = diurnal temperature range (not used in diurnal mode) (deg C)
+	// daylength = actual daylength of the day the calculation period belongs to (h)
+	// dtr       = diurnal temperature range (not used in diurnal mode) (deg C)
 	// phot      = non-water stressed photosynthesis
 	// adtmm     = actual (water-stressed) photosynthesis production for the period (mm/m2/day)
 
@@ -238,12 +238,12 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
                                  indiv.lai,indiv.phen,indiv.fpar,indiv.fpc);
 
 	if (date.diurnal()) {
-		temp_leaf_daytime = temp_leaf;
+			temp_leaf_daytime = temp_leaf;
 	}
 	else {
 		// perform daily to daytime correction
 		double temp_corrected = daytime_temp(climate.temp, climate.daylength, climate.dtr);
-
+		
 		// perform air temperature to leaf temperature correction
 		temp_leaf_daytime = leafT(temp_corrected, climate.daylength, pft.ga, rad, indiv.aet,
 		                          indiv.lai,indiv.phen,indiv.fpar,indiv.fpc);

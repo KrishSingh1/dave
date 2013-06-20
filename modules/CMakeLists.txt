@@ -10,6 +10,7 @@ set(headers
   bvoc.h 
   q10.h 
   globalco2file.h
+  ncompete.h
   )
 
 set(source  
@@ -23,6 +24,7 @@ set(source
   vegdynam.cpp 
   bvoc.cpp
   globalco2file.cpp
+  ncompete.cpp
   )
 
 include(add_guess_sources)

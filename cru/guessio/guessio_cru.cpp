@@ -54,6 +54,8 @@
 #include "GlobalNitrogenDeposition.h"
 
 
+REGISTER_INPUT_MODULE("cru", CRUInputModule)
+
 CRUInputModule::CRUInputModule()
 	: searchradius(0),
 	  lc_fixed_frac(NLANDCOVERTYPES, 0),

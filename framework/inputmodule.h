@@ -10,6 +10,9 @@
 #ifndef LPJ_GUESS_INPUT_MODULE_H
 #define LPJ_GUESS_INPUT_MODULE_H
 
+#include <map>
+#include <string>
+
 class Gridcell;
 
 class InputModule {
@@ -74,5 +77,76 @@ public:
 	/// Sets land cover fractions for the gridcell for the current year
 	virtual void getlandcover(Gridcell& gridcell) = 0;
 };
+
+
+/// Keeps track of registered input modules
+/** Input modules are registered with the REGISTER_INPUT_MODULE
+ *  macro defined below. The framework can then ask the registry
+ *  to create an input module by specifying its name.
+ *
+ *  The InputModuleRegistry is a singleton, meaning there's only
+ *  one instance of this class, which is retrieved with the
+ *  get_instance() member function.
+ */
+class InputModuleRegistry {
+public:
+
+	/// Function pointer type
+	/** For each registered input module, we have a function which
+	 *  creates an instance of that input module. The function is
+	 *  created by the REGISTER_INPUT_MODULE macro below.
+	 */
+	typedef InputModule* (*InputModuleCreator)();
+
+	/// Returns the one and only input module registry
+	static InputModuleRegistry& get_instance();
+
+	/// Registers an input module
+	/** This function shouldn't be called directly, use the REGISTER_INPUT_MODULE
+	 *  macro below instead.
+	 */
+	void register_input_module(const char* name, InputModuleCreator imc);
+
+	/// Creates an input module given its name
+	/** Used by the framework to instantiate the chosen input module. */
+	InputModule* create_input_module(const char* name) const;
+
+private:
+
+	/// Private constructor to make sure we only have one instance
+	InputModuleRegistry() {}
+
+	/// Also private to prevent copying
+	InputModuleRegistry(const InputModuleRegistry&);
+
+	/// The modules and their names
+	std::map<std::string, InputModuleCreator> modules;
+};
+
+/// A macro used to register input modules
+/** Each input module should use this macro somewhere in their
+ *  cpp file. For instance:
+ *
+ *  REGISTER_INPUT_MODULE("cru", CRUInputModule)
+ *
+ *  where "cru" is the name of the module (used when chosing which
+ *  input module to use), and CRUInputModule is the class to associate
+ *  with that name.
+ */
+#define REGISTER_INPUT_MODULE(name, class_name) \
+namespace class_name##_registration { \
+\
+InputModule* class_name##_creator() {\
+	return new class_name();\
+}\
+\
+int dummy() {\
+	InputModuleRegistry::get_instance().register_input_module(name, class_name##_creator);\
+	return 0;\
+}\
+\
+int x = dummy();\
+}
+
 
 #endif // LPJ_GUESS_INPUT_MODULE_H

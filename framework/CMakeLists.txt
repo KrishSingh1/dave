@@ -12,6 +12,7 @@ set(headers
   commandlinearguments.h
   parameters.h
   outputmodule.h
+  inputmodule.h
 )
 
 set(source  
@@ -26,6 +27,7 @@ set(source
   commandlinearguments.cpp
   parameters.cpp
   outputmodule.cpp
+  inputmodule.cpp
 )
 
 include(add_guess_sources)

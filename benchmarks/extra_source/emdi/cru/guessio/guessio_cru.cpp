@@ -676,7 +676,7 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 
-		if (!itemparsed(state_year)) {
+		if (!itemparsed("state_year")) {
 			state_year = nyear_spinup;
 		}
 

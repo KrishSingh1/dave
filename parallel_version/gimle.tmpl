@@ -18,17 +18,19 @@
 NPROCESS=15
 WALLTIME=150:00:00
 INSFILE=guess.ins
+INPUT_MODULE=cru
 GRIDLIST=gridlist.txt
 OUTFILES='*.out'
 
 #      Where:
-#      NPROCESS = number of processes in parallel job
-#      WALLTIME = maximum wall (real) time for job hh:mm:ss
-#      INSFILE  = path to ins file from run directory
-#      GRIDLIST = path to gridlist file from run directory
-#      OUTFILES = list of LPJ-GUESS output files in single quotes,
-#                 and separated by spaces (filenames only, including
-#                 extension, no directory.) Shell wildcards are allowed.
+#      NPROCESS     = number of processes in parallel job
+#      WALLTIME     = maximum wall (real) time for job hh:mm:ss
+#      INSFILE      = path to ins file from run directory
+#      INPUT_MODULE = input module to use
+#      GRIDLIST     = path to gridlist file from run directory
+#      OUTFILES     = list of LPJ-GUESS output files in single quotes,
+#                     and separated by spaces (filenames only, including
+#                     extension, no directory.) Shell wildcards are allowed.
 #
 #   3. Run the script using the command:
 #        sh submit.sh
@@ -126,7 +128,7 @@ cat <<EOF > guess.cmd
 #SBATCH -n $NPROCESS
 #SBATCH --time=$WALLTIME
 
-mpprun BINARY -parallel $INSFILE
+mpprun BINARY -parallel -input $INPUT_MODULE $INSFILE
 
 function append_files {
     local number_of_jobs=\$1

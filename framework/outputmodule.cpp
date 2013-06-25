@@ -29,8 +29,10 @@ void OutputModule::create_output_table(Table& table, const char* file, const Col
 /// OutputModuleContainer
 ///
 
-OutputModuleContainer::OutputModuleContainer() {
+OutputModuleContainer::OutputModuleContainer()
+	: coordinates_precision(1) {
 	declare_parameter("outputdirectory", &outputdirectory, 300, "Directory for the output files");
+	declare_parameter("coordinates_precision", &coordinates_precision, 0, 10, "Digits after decimal point in coordinates in output");
 }
 
 OutputModuleContainer::~OutputModuleContainer() {
@@ -52,9 +54,8 @@ void OutputModuleContainer::init() {
 	}
 
 	// Create the output channel
-	const int COORDINATES_PRECISION = 1; // decimal places for coords in output
 	output_channel = new FileOutputChannel(outputdirectory.c_str(),
-	                                       COORDINATES_PRECISION);
+	                                       coordinates_precision);
 
 	for (size_t i = 0; i < modules.size(); ++i) {
 		modules[i]->init();

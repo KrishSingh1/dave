@@ -96,6 +96,10 @@ private:
 
 	/// Instruction file parameter deciding where to create output files
 	std::string outputdirectory;
+
+	/// Instruction file parameter deciding precision of coordinates in output
+	/** The parameter controls the number of digits after the decimal point */
+	int coordinates_precision;
 };
 
 /// The output channel through which all output is sent

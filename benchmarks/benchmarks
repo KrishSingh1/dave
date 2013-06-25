@@ -100,6 +100,9 @@ if (( $single_machine == 0 )); then
 	error "benchmarks on the local machine with the -s option."
 	exit 1
     fi
+else
+	# Use the multicore submit script if running on a local machine
+	cmake_command="$cmake_command -D SYSTEM=multicore"
 fi
 
 if (( $compile_only == 1 && $pp_only == 1 )); then
@@ -186,12 +189,8 @@ function setup_workspace {
     rm -rf $workspace
     mkdir $workspace
 
-    if (( $single_machine == 1 )); then
-	ln -s $build_path/output/guess $workspace/guess
-    else
-        # Get the submit script
+    # Get the submit script
 	cp $build_path/output/submit.sh $workspace
-    fi
 
     # Copy the config files to the workspace.
     # The ins file is excluded to avoid confusion. It's the ins
@@ -324,9 +323,16 @@ function run_single_machine_model {
     local test_name=$1
     local workspace=$work_dir/$test_name
     local bm_root=$PWD
+    local submit_vars=$PWD/$test_name/submit_vars.sh
+    local insfile=$bm_root/$test_name/config/guess.ins
 
     pushd $workspace &> /dev/null
-    nice ./guess $bm_root/$test_name/config/guess.ins
+    if [ -f $submit_vars ]; then
+		sh submit.sh -i $insfile -s $submit_vars
+    else
+		sh submit.sh -i $insfile
+    fi
+
     popd &> /dev/null
 
     run_single_machine_pp $test_name

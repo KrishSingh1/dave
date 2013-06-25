@@ -20,9 +20,6 @@ endif()
 # in the graphical cmake tools (cmake-gui on Windows, ccmake
 # on Unix) or pass them in as parameters to cmake.
 
-# The IO variable decides which IO module to use. 
-set(IO "cru" CACHE STRING "The IO module to use (cru/demo)")
-
 # A variable controlling whether or not to include unit tests
 # Unit tests are disabled in old VS 6.0, since CATCH doesn't compile in such 
 # an old compiler.
@@ -143,9 +140,6 @@ if (UNIT_TESTS)
     COMMAND runtests 
     COMMENT "Running tests")
 endif()
-
-string(TOUPPER ${IO} IO)
-add_definitions(-DUSE_${IO}_IO)
 
 if (UNIX)
    # pgCC 6 doesn't seem to recognize -rdynamic, so remove it

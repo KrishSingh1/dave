@@ -34,13 +34,7 @@ int framework(const CommandLineArguments& args) {
 
 	using std::auto_ptr;
 
-	const char* input_module_name;
-
-#ifdef USE_CRU_IO
-	input_module_name = "cru";
-#else
-	input_module_name = "demo";
-#endif
+	const char* input_module_name = args.get_input_module();
 
 	auto_ptr<InputModule> input_module(InputModuleRegistry::get_instance().create_input_module(input_module_name));
 

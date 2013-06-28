@@ -1,35 +1,26 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-/// \file watch_netcdf.h
-/// \brief Code for reading in WATCH diurnal data from NetCDF files
+/// \file watch_diurnal.cpp
+/// \brief Input module for reading in WATCH diurnal data from NetCDF files
 ///
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef LPJ_GUESS_WATCH_NETCDF_H
-#define LPJ_GUESS_WATCH_NETCDF_H
-
-#ifndef HAVE_NETCDF
-#error "NetCDF library not found by build system!"
-#endif
-
+#include "config.h"
+#include "watch_diurnal.h"
 #include <netcdf.h>
 #include <assert.h>
+#include "guess.h"
+#include "driver.h"
 
-const int SUBDAILY = 8;
-const int FIRST_WATCH_YEAR = 1901;
+REGISTER_INPUT_MODULE("watch_diurnal", WATCHDiurnalInputModule)
 
-/// A lon,lat pair, used by load_gridlist function below
-typedef std::pair<double, double> landpoint;
-
-/// Help function to deal with status codes from NetCDF library
 void handle_error(int status, const char* message) {
 	if (status != NC_NOERR) {
 		fail("NetCDF error: %s: %s\n", nc_strerror(status), message);
 	}
 }
 
-/// Opens a NetCDF file and returns its id
 int open_ncdf(const char* fname) {
 	int netcdf_id;
 	int status = nc_open(fname, NC_NOWRITE, &netcdf_id);
@@ -37,10 +28,6 @@ int open_ncdf(const char* fname) {
 	return netcdf_id;
 }
 
-/// Reads in all the WATCH coordinates into a vector.
-/** The index of a coordinate in the landpoints vector is the grid cell's id,
- *  which is used to find the NetCDF file for the grid cell.
- */
 void load_gridlist(const char* dir_name, std::vector<landpoint>& landpoints) {
 	using std::vector;
 	using std::string;
@@ -84,7 +71,6 @@ void load_gridlist(const char* dir_name, std::vector<landpoint>& landpoints) {
 	nc_close(ncid);
 }
 
-/// Returns the grid cell id for a coordinate
 int get_cell_id(double lon, double lat, const std::vector<landpoint>& landpoints) {
 	double c_lon = lon + .25;	// offset between a centre of the cell (WATCH) and
 	double c_lat = lat + .25;	// lower-left corner (LPJ-GUESS)
@@ -97,13 +83,6 @@ int get_cell_id(double lon, double lat, const std::vector<landpoint>& landpoints
 	return -1;
 }
 
-/// Read in all data for a single variable
-/** Data for leap years is skipped.
- *
- * \param dir_name Path to WATCH directory with all NetCDF files
- * \param var_name Which variable to read in
- * \param cell_id  id number for the grid cell to read in
- * \param diurnal  Whether the variable has subdaily or daily data */
 void load_watch_data(const char* dir_name,
                      const char* var_name,
                      int cell_id, 
@@ -170,4 +149,100 @@ void load_watch_data(const char* dir_name,
 	nc_close(ncid);
 }
 
-#endif // LPJ_GUESS_WATCH_NETCDF_H
+
+WATCHDiurnalInputModule::WATCHDiurnalInputModule()
+	: diurnal(false) {
+	
+	declare_parameter("diurnal", &diurnal, "If specified, diurnal version will be run (0,1)");
+}
+
+void WATCHDiurnalInputModule::init() {
+	CRUInputModule::init();
+	
+	watch_dir = param["watch_dir"].str;
+	load_gridlist(watch_dir, landpoints);
+}
+
+bool WATCHDiurnalInputModule::getgridcell(Gridcell& gridcell) {
+	if (CRUInputModule::getgridcell(gridcell)) {
+		// Load WATCH subdaily variables
+		int cell_id = get_cell_id(gridcell.get_lon(), gridcell.get_lat(), landpoints);
+
+		load_watch_data(watch_dir, "Tair",   cell_id, watch_temp,   true);
+		load_watch_data(watch_dir, "SWdown", cell_id, watch_swdown, true);
+		load_watch_data(watch_dir, "Rainf",  cell_id, watch_rainf,  false);
+		load_watch_data(watch_dir, "Snowf",  cell_id, watch_snowf,  false);
+
+		gridcell.climate.instype=NETSWRAD_TS;
+		
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+bool WATCHDiurnalInputModule::getclimate(Gridcell& gridcell) {
+	if (CRUInputModule::getclimate(gridcell)) {
+
+		Climate& climate = gridcell.climate;
+
+		if (date.day == 0) {
+			double dprec[365];
+			double mndrydep[12];
+			double mnwetdep[12];
+
+			get_monthly_ndep(FIRST_WATCH_YEAR + date.year - nyear_spinup, mndrydep, mnwetdep);
+
+			// Distribute N deposition - without rain days
+			std::fill_n(dprec, 365, 0);
+			distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
+		}
+
+		int year = date.year < nyear_spinup ? 
+			date.year % NYEAR_SPINUP_DATA : date.year - nyear_spinup;
+
+		size_t daily_index = year * 365 + date.day;
+		size_t subdaily_index = daily_index * SUBDAILY;
+		size_t subdaily_end = subdaily_index + SUBDAILY;
+
+		if (daily_index >= watch_rainf.size()) {
+			// no more forcing data left, so we're finished with this grid cell
+			return false;
+		}
+
+		climate.temps.assign(watch_temp.begin()+subdaily_index, 
+		                     watch_temp.begin()+subdaily_end);
+		climate.insols.assign(watch_swdown.begin()+subdaily_index,
+		                      watch_swdown.begin()+subdaily_end);
+
+		// Convert temperatures (K -> C)
+		for (size_t i = 0; i < SUBDAILY; ++i) {
+			climate.temps[i] -= K2degC;
+		}
+
+		climate.temp = mean(&climate.temps.front(), SUBDAILY);
+		climate.insol = mean(&climate.insols.front(), SUBDAILY);
+		climate.prec = (watch_rainf[daily_index] + watch_snowf[daily_index]);
+		climate.prec *= 24 * 3600; // mm/s -> mm/day
+
+		if (ifbvoc && !diurnal) {
+			std::vector<double>::const_iterator start, end;
+			start = climate.temps.begin();
+			end = climate.temps.end();
+			climate.dtr = std::max_element(start, end) - std::min_element(start, end);
+		}
+		date.subdaily = diurnal ? SUBDAILY : 1;
+
+		// Nitrogen deposition
+		climate.dndep = dndep[date.day];
+		
+		// Nitrogen fertilization
+		climate.dnfert = 0.0;
+
+		return true;
+	}
+	else {
+		return false;
+	}
+}

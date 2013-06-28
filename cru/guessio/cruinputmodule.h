@@ -52,6 +52,23 @@ public:
 	// is read from the ins file)	
 	static const int NYEAR_SPINUP_DATA=30;
 
+protected:
+
+	/// Gets monthly ndep values for a given calendar year
+	/** To be used by sub-classes that wish to do their own
+	 *  distribution of monthly values to daily values.
+	 *
+	 *  The ndep values returned are for the current gridcell,
+	 *  i.e. the gridcell chosen in the most recent call to
+	 *  getgridcell().
+	 *
+	 *  \param calendar_year The calendar (not simulation!) year for which to get ndep
+	 *  \param mndrydep      Pointer to array holding 12 doubles
+	 *  \param mnwetdep      Pointer to array holding 12 doubles
+	 */
+	void get_monthly_ndep(int calendar_year,
+	                      double* mndrydep,
+	                      double* mnwetdep);
 
 private:
 

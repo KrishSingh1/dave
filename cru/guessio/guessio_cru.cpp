@@ -444,6 +444,24 @@ void CRUInputModule::init() {
 	tmute.settimer(MUTESEC);
 }
 
+
+void CRUInputModule::get_monthly_ndep(int calendar_year,
+                                      double* mndrydep,
+                                      double* mnwetdep) {
+	int ndep_year = 0;
+
+	if (calendar_year >= FIRSTHISTYEARNDEP) {
+		ndep_year = (int)((calendar_year - FIRSTHISTYEARNDEP)/10);
+	}
+
+	for (int m = 0; m < 12; m++) {
+		mndrydep[m] = NHxDryDep[ndep_year][m] + NOyDryDep[ndep_year][m];
+		
+		mnwetdep[m] = NHxWetDep[ndep_year][m] + NOyWetDep[ndep_year][m];
+	}
+}
+
+
 ///	Loads landcover area fraction data from file(s) for a gridcell.
 /** Called from getgridcell() if run_landcover is true. 
   */

@@ -462,6 +462,14 @@ void CRUInputModule::get_monthly_ndep(int calendar_year,
 }
 
 
+void CRUInputModule::adjust_raw_forcing_data(double hist_mtemp[NYEAR_HIST][12],
+                                             double hist_mprec[NYEAR_HIST][12],
+                                             double hist_msun[NYEAR_HIST][12]) {
+
+	// The default (base class) implementation does nothing here.
+}
+
+
 ///	Loads landcover area fraction data from file(s) for a gridcell.
 /** Called from getgridcell() if run_landcover is true. 
   */
@@ -647,6 +655,9 @@ bool CRUInputModule::getgridcell(Gridcell& gridcell) {
 			}
 			else return false;
 		}
+
+		// Give sub-classes a chance to modify the data
+		adjust_raw_forcing_data(hist_mtemp, hist_mprec, hist_msun);
 
 		// Build spinup data sets
 		spinup_mtemp.get_data_from(hist_mtemp);

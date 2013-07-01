@@ -70,6 +70,22 @@ protected:
 	                      double* mndrydep,
 	                      double* mnwetdep);
 
+	/// Gives sub-classes a chance to modify the forcing data
+	/** This function will be called just after the forcing data for the historical
+	 *  period has been read in for a gridcell. Sub-classes can override this function
+	 *  and modify the data if needed, for instance adjusting according to site data.
+	 *
+	 *  Note that modifying this data will also affect the spinup period since
+	 *  the spinup forcing is based on the historical period.
+	 *
+	 *  \param hist_mtemp  Monthly temperature values for each year
+	 *  \param hist_mprec  Monthly precipitation values for each year
+	 *  \param hist_msun   Monthly sunshine values for each year
+	 */
+	virtual void adjust_raw_forcing_data(double hist_mtemp[NYEAR_HIST][12],
+	                                     double hist_mprec[NYEAR_HIST][12],
+	                                     double hist_msun[NYEAR_HIST][12]);
+
 private:
 
 	struct Coord {

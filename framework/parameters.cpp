@@ -15,6 +15,7 @@
 #include "parameters.h"
 #include "guess.h"
 #include "plib.h"
+#include <map>
 
 // Definitions of parameters defined globally in parameters.h,
 // for documentation, see parameters.h
@@ -125,7 +126,19 @@ xtring paramname;
 xtring strparam;
 double numparam;
 bool ifhelp=false;
+
+// 'include' parameter for currently scanned PFT
 bool includepft;
+
+// 'include' parameter per PFT
+std::map<xtring, bool> includepft_map;
+
+// Whether each PFT has had their parameters checked.
+// We only check a PFT:s parameters (in plib_callback) the first time the PFT is
+// parsed. If the same PFT occurs again (probably in a different file with a few
+// minor modifications) we don't check again (because plib's itemparsed() function 
+// doesn't remember the old parsed parameters).
+std::map<xtring, bool> checked_pft;
 
 }
 
@@ -416,11 +429,22 @@ void plib_declarations(int id,xtring setname) {
 
 		if (!ifhelp) {
 
-			// Create and initialise a new Pft object and obtain a reference to it
+			ppft = 0;
+
+			// Was this pft already created?
+			for (size_t p = 0; p < pftlist.nobj; ++p) {
+				if (pftlist[p].name == setname) {
+					ppft = &pftlist[p];
+				}
+			}
+
+			if (ppft == 0) {
+				// Create and initialise a new Pft object and obtain a reference to it
 			
-			ppft=&pftlist.createobj();
-			initpft(*ppft,setname);
-			includepft=true;
+				ppft=&pftlist.createobj();
+				initpft(*ppft,setname);
+				includepft_map[setname] = true;
+			}
 		}
 
 		declareitem("include",&includepft,1,CB_NONE,"Include PFT in analysis");
@@ -760,110 +784,166 @@ void plib_callback(int callback) {
 			badins("state_path");
 		}
 
+		//	delete unused pft:s from pftlist
+
+		pftlist.firstobj();
+		while (pftlist.isobj) {
+			Pft& pft = pftlist.getobj();
+			bool include = includepft_map[pft.name];
+
+			if (pft.landcover!=NATURAL) {
+				if (!run_landcover || !run[pft.landcover])
+					include = false;
+			}
+			else if (run_landcover && !run[NATURAL]) {
+				if (pft.landcover==NATURAL)
+					include = false;
+			}
+
+			if (!include) {
+				// Remove this PFT from list
+				pftlist.killobj();
+			}
+			else {
+				pftlist.nextobj();
+			}
+		}
+
+		// Set ids and npft variable after removing unused pfts
+		npft = 0;
+		pftlist.firstobj();
+		while (pftlist.isobj) {
+			pftlist.getobj().id = npft++;
+			pftlist.nextobj();
+		}
+
+
 		break;
 	case CB_CHECKPFT:
-		if (!itemparsed("lifeform")) badins("lifeform");
-		if (!itemparsed("phenology")) badins("phenology");
-		if (ppft->phenology==SUMMERGREEN || ppft->phenology==ANY)
-			if (!itemparsed("phengdd5ramp")) badins("phengdd5ramp");
-		if (ppft->phenology==RAINGREEN || ppft->phenology==ANY)
-			if (!itemparsed("wscal_min")) badins("wscal_min");
-		if (!itemparsed("pathway")) badins("pathway");
-		if (!itemparsed("pstemp_min")) badins("pstemp_min");
-		if (!itemparsed("pstemp_low")) badins("pstemp_low");
-		if (!itemparsed("pstemp_high")) badins("pstemp_high");
-		if (!itemparsed("pstemp_max")) badins("pstemp_max");
-		if (!itemparsed("lambda_max")) badins("lambda_max");
-		if (!itemparsed("rootdist")) badins("rootdist");
-		if (!itemparsed("gmin")) badins("gmin");
-		if (!itemparsed("emax")) badins("emax");
-		if (!itemparsed("respcoeff")) badins("respcoeff");
-		if (!itemparsed("sla") && !ifcalcsla) badins("sla");
-		if (!itemparsed("cton_leaf_min") && !ifcalccton) badins("cton_leaf_min");
+		if (!checked_pft[ppft->name]) {
+			checked_pft[ppft->name] = true;
 
-		if (!itemparsed("cton_root")) badins("cton_root");
-		if (!itemparsed("nuptoroot")) badins("nuptoroot");
-		if (!itemparsed("km_volume")) badins("km_volume");
-		if (!itemparsed("fnstorage")) badins("fnstorage");
+			if (!itemparsed("lifeform")) badins("lifeform");
+			if (!itemparsed("phenology")) badins("phenology");
+			if (ppft->phenology==SUMMERGREEN || ppft->phenology==ANY)
+				if (!itemparsed("phengdd5ramp")) badins("phengdd5ramp");
+			if (ppft->phenology==RAINGREEN || ppft->phenology==ANY)
+				if (!itemparsed("wscal_min")) badins("wscal_min");
+			if (!itemparsed("pathway")) badins("pathway");
+			if (!itemparsed("pstemp_min")) badins("pstemp_min");
+			if (!itemparsed("pstemp_low")) badins("pstemp_low");
+			if (!itemparsed("pstemp_high")) badins("pstemp_high");
+			if (!itemparsed("pstemp_max")) badins("pstemp_max");
+			if (!itemparsed("lambda_max")) badins("lambda_max");
+			if (!itemparsed("rootdist")) badins("rootdist");
+			if (!itemparsed("gmin")) badins("gmin");
+			if (!itemparsed("emax")) badins("emax");
+			if (!itemparsed("respcoeff")) badins("respcoeff");
+			if (!itemparsed("sla") && !ifcalcsla) badins("sla");
+			if (!itemparsed("cton_leaf_min") && !ifcalccton) badins("cton_leaf_min");
 
-		if (!itemparsed("reprfrac")) badins("reprfrac");
-		if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
-		if (!itemparsed("turnover_root")) badins("turnover_root");
-		if (!itemparsed("ltor_max")) badins("ltor_max");
-		if (!itemparsed("intc")) badins("intc");
+			if (!itemparsed("cton_root")) badins("cton_root");
+			if (!itemparsed("nuptoroot")) badins("nuptoroot");
+			if (!itemparsed("km_volume")) badins("km_volume");
+			if (!itemparsed("fnstorage")) badins("fnstorage");
 
-		if (run_landcover)
-		{
-			if (!itemparsed("landcover")) badins("landcover");
-			if (!itemparsed("turnover_harv_prod")) badins("turnover_harv_prod");
-			if (!itemparsed("harvest_slow_frac")) badins("harvest_slow_frac");
-			if (!itemparsed("harv_eff")) badins("harv_eff");
-			if (!itemparsed("res_outtake")) badins("res_outtake");
-		}
+			if (!itemparsed("reprfrac")) badins("reprfrac");
+			if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
+			if (!itemparsed("turnover_root")) badins("turnover_root");
+			if (!itemparsed("ltor_max")) badins("ltor_max");
+			if (!itemparsed("intc")) badins("intc");
 
-		// guess2008 - DLE
-		if (!itemparsed("drought_tolerance")) badins("drought_tolerance");
+			if (run_landcover)
+				{
+					if (!itemparsed("landcover")) badins("landcover");
+					if (!itemparsed("turnover_harv_prod")) badins("turnover_harv_prod");
+					if (!itemparsed("harvest_slow_frac")) badins("harvest_slow_frac");
+					if (!itemparsed("harv_eff")) badins("harv_eff");
+					if (!itemparsed("res_outtake")) badins("res_outtake");
+				}
 
-		// bvoc
-		if(ifbvoc){
-		  if (!itemparsed("ga")) badins("ga");
-		  if (!itemparsed("eps_iso")) badins("eps_iso");
-		  if (!itemparsed("seas_iso")) badins("seas_iso");
-		  if (!itemparsed("eps_mon")) badins("eps_mon");
-		  if (!itemparsed("storfrac_mon")) badins("storfrac_mon");
-		}
+			// guess2008 - DLE
+			if (!itemparsed("drought_tolerance")) badins("drought_tolerance");
 
-		if (ppft->lifeform==TREE) {
-			if (!itemparsed("cton_sap")) badins("cton_sap");
-			if (!itemparsed("turnover_sap")) badins("turnover_sap");
-			if (!itemparsed("wooddens")) badins("wooddens");
-			if (!itemparsed("crownarea_max")) badins("crownarea_max");
-			if (!itemparsed("k_allom1")) badins("k_allom1");
-			if (!itemparsed("k_allom2")) badins("k_allom2");
-			if (!itemparsed("k_allom3")) badins("k_allom3");
-			if (!itemparsed("k_rp")) badins("k_rp");
-			if (!itemparsed("k_latosa")) badins("k_latosa");
+			// bvoc
+			if(ifbvoc){
+				if (!itemparsed("ga")) badins("ga");
+				if (!itemparsed("eps_iso")) badins("eps_iso");
+				if (!itemparsed("seas_iso")) badins("seas_iso");
+				if (!itemparsed("eps_mon")) badins("eps_mon");
+				if (!itemparsed("storfrac_mon")) badins("storfrac_mon");
+			}
+
+			if (ppft->lifeform==TREE) {
+				if (!itemparsed("cton_sap")) badins("cton_sap");
+				if (!itemparsed("turnover_sap")) badins("turnover_sap");
+				if (!itemparsed("wooddens")) badins("wooddens");
+				if (!itemparsed("crownarea_max")) badins("crownarea_max");
+				if (!itemparsed("k_allom1")) badins("k_allom1");
+				if (!itemparsed("k_allom2")) badins("k_allom2");
+				if (!itemparsed("k_allom3")) badins("k_allom3");
+				if (!itemparsed("k_rp")) badins("k_rp");
+				if (!itemparsed("k_latosa")) badins("k_latosa");
+				if (vegmode==COHORT || vegmode==INDIVIDUAL) {
+					if (!itemparsed("kest_repr")) badins("kest_repr");
+					if (!itemparsed("kest_bg")) badins("kest_bg");
+					if (!itemparsed("kest_pres")) badins("kest_pres");
+					if (!itemparsed("longevity")) badins("longevity");
+					if (!itemparsed("greff_min")) badins("greff_min");		
+					if (!itemparsed("alphar")) badins("alphar");
+					if (!itemparsed("est_max")) badins("est_max");
+				}
+			}
+			if (iffire) {
+				if (!itemparsed("litterme")) badins("litterme");
+				if (!itemparsed("fireresist")) badins("fireresist");
+			}
+			if (ifcalcsla) {
+				if (!itemparsed("leaflong")) {
+					sendmessage("Error",
+					            "Value required for leaflong when ifcalcsla enabled");
+					plibabort();
+				}
+				if (itemparsed("sla"))
+					sendmessage("Warning",
+					            "Specified sla value not used when ifcalcsla enabled");
+			}
 			if (vegmode==COHORT || vegmode==INDIVIDUAL) {
-				if (!itemparsed("kest_repr")) badins("kest_repr");
-				if (!itemparsed("kest_bg")) badins("kest_bg");
-				if (!itemparsed("kest_pres")) badins("kest_pres");
-				if (!itemparsed("longevity")) badins("longevity");
-				if (!itemparsed("greff_min")) badins("greff_min");		
-				if (!itemparsed("alphar")) badins("alphar");
-				if (!itemparsed("est_max")) badins("est_max");
+				if (!itemparsed("parff_min")) badins("parff_min");	
+			}
+
+			if (ifcalccton) {
+				if (!itemparsed("leaflong")) {
+					sendmessage("Error",
+					            "Value required for leaflong when ifcalccton enabled");
+					plibabort();
+				}
+				if (itemparsed("cton_leaf_min"))
+					sendmessage("Warning",
+					            "Specified cton_leaf_min value not used when ifcalccton enabled");
 			}
 		}
-		if (iffire) {
-			if (!itemparsed("litterme")) badins("litterme");
-			if (!itemparsed("fireresist")) badins("fireresist");
-		}
-		if (ifcalcsla) {
-			if (!itemparsed("leaflong")) {
-				sendmessage("Error",
-					"Value required for leaflong when ifcalcsla enabled");
+		else {
+			// This PFT has already been parsed once, don't allow changing parameters
+			// which would have incurred different checks above.
+			if (itemparsed("lifeform") ||
+			    itemparsed("phenology")) {
+				sendmessage("Error", 
+				            "Not allowed to redefine lifeform or phenology in second PFT definition");
 				plibabort();
 			}
-			if (itemparsed("sla"))
-				sendmessage("Warning",
-				"Specified sla value not used when ifcalcsla enabled");
+		}
 
+		if (itemparsed("include")) {
+			includepft_map[ppft->name] = includepft;
+		}
+
+		if (ifcalcsla) {
 			// Calculate SLA
 			ppft->initsla();
 		}
-		if (vegmode==COHORT || vegmode==INDIVIDUAL) {
-			if (!itemparsed("parff_min")) badins("parff_min");	
-		}
 
 		if (ifcalccton) {
-			if (!itemparsed("leaflong")) {
-				sendmessage("Error",
-					"Value required for leaflong when ifcalccton enabled");
-				plibabort();
-			}
-			if (itemparsed("cton_leaf_min"))
-				sendmessage("Warning",
-				"Specified cton_leaf_min value not used when ifcalccton enabled");
-		
 			// Calculate leaf C:N ratio minimum
 			ppft->init_cton_min();
 		}
@@ -876,27 +956,6 @@ void plib_callback(int callback) {
 
 		// Calculate regeneration characteristics for population mode
 		ppft->initregen();
-
-		ppft->id=npft++;
-			// VERY IMPORTANT (cannot rely on internal id counter of collection class)
-
-		//	delete unused pft:s from pftlist
-
-		if (ppft->landcover!=NATURAL) {
-			if (!run_landcover || !run[ppft->landcover])
-				includepft=0;
-		}
-		else if (run_landcover && !run[NATURAL]) {
-			if (ppft->landcover==NATURAL)
-				includepft=0;
-		}
-
-		// If "include 0", remove this PFT from list, and set id to correct value
-
-		if (!includepft) {
-			pftlist.killobj();
-			npft--;
-		}
 
 		break;
 	}

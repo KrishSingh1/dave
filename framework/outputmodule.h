@@ -12,6 +12,7 @@
 
 #include <vector>
 #include <string>
+#include <map>
 #include "outputchannel.h"
 
 class Gridcell;
@@ -101,6 +102,76 @@ private:
 	/** The parameter controls the number of digits after the decimal point */
 	int coordinates_precision;
 };
+
+
+/// Keeps track of registered output modules
+/** Output modules are registered with the REGISTER_OUTPUT_MODULE
+ *  macro defined below. The framework can then use the registry
+ *  to create output modules.
+ *
+ *  The OutputModuleRegistry is a singleton, meaning there's only
+ *  one instance of this class, which is retrieved with the
+ *  get_instance() member function.
+ */
+class OutputModuleRegistry {
+public:
+
+	/// Function pointer type
+	/** For each registered output module, we have a function which
+	 *  creates an instance of that output module. The function is
+	 *  created by the REGISTER_OUTPUT_MODULE macro below.
+	 */
+	typedef OutputModule* (*OutputModuleCreator)();
+
+	/// Returns the one and only output module registry
+	static OutputModuleRegistry& get_instance();
+
+	/// Registers an output module
+	/** This function shouldn't be called directly, use the REGISTER_OUTPUT_MODULE
+	 *  macro below instead.
+	 */
+	void register_output_module(const char* name, OutputModuleCreator omc);
+
+	/// Creates one instance of each registered module and adds it to a container
+	void create_all_modules(OutputModuleContainer& container) const;
+
+private:
+	
+	/// Private constructor to make sure we only have one instance
+	OutputModuleRegistry() {}
+
+	/// Also private to prevent copying
+	OutputModuleRegistry(const OutputModuleRegistry&);
+
+	/// The modules and their names
+	std::map<std::string, OutputModuleCreator> modules;
+};
+
+
+/// A macro used to register output modules
+/** Each output module should use this macro somewhere in their
+ *  cpp file. For instance:
+ *
+ *  REGISTER_OUTPUT_MODULE("euroflux", EurofluxOutput)
+ *
+ *  where "euroflux" is the name of the module, and EurofluxOutput is the
+ *  class to associate with that name. The names are currently not used,
+ *  all registered output modules are always used by the framework.
+ */
+#define REGISTER_OUTPUT_MODULE(name, class_name) \
+namespace class_name##_registration { \
+\
+OutputModule* class_name##_creator() {\
+	return new class_name();\
+}\
+\
+int dummy() {\
+	OutputModuleRegistry::get_instance().register_output_module(name, class_name##_creator);\
+	return 0;\
+}\
+\
+int x = dummy();\
+}
 
 /// The output channel through which all output is sent
 /** Currently a global for legacy reasons (in order to not break

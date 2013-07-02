@@ -74,4 +74,25 @@ void OutputModuleContainer::outdaily(Gridcell& gridcell) {
 	}
 }
 
+///////////////////////////////////////////////////////////////////////////////////////
+/// OutputModuleRegistry
+///
+
+OutputModuleRegistry& OutputModuleRegistry::get_instance() {
+	static OutputModuleRegistry instance;
+	return instance;
+}
+
+void OutputModuleRegistry::register_output_module(const char* name,
+                                                  OutputModuleCreator omc) {
+	modules.insert(make_pair(std::string(name), omc));
+}
+
+void OutputModuleRegistry::create_all_modules(OutputModuleContainer& container) const {
+	for (std::map<std::string, OutputModuleCreator>::const_iterator itr = modules.begin();
+	     itr != modules.end(); ++itr) {
+		container.add((itr->second)());
+	}
+}
+
 } // namespace

@@ -14,6 +14,8 @@
 
 namespace GuessOutput {
 
+REGISTER_OUTPUT_MODULE("common", CommonOutput)
+
 CommonOutput::CommonOutput() {
 	// Annual output variables
 	declare_parameter("file_cmass", &file_cmass, 300, "C biomass output file");

@@ -13,7 +13,7 @@
 #include "guessserializer.h"
 #include "parallel.h"
 
-#include "cruinputmodule.h"
+#include "inputmodule.h"
 #include "driver.h"
 #include "canexch.h"
 #include "soilwater.h"
@@ -39,7 +39,7 @@ int framework(const CommandLineArguments& args) {
 	auto_ptr<InputModule> input_module(InputModuleRegistry::get_instance().create_input_module(input_module_name));
 
 	GuessOutput::OutputModuleContainer output_modules;
-	output_modules.add(new GuessOutput::CommonOutput());
+	GuessOutput::OutputModuleRegistry::get_instance().create_all_modules(output_modules);
 
 	// Read the instruction file to obtain PFT static parameters and
 	// simulation settings

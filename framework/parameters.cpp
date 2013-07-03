@@ -817,6 +817,33 @@ void plib_callback(int callback) {
 			pftlist.nextobj();
 		}
 
+		// Call various init functions on each PFT now that all settings have been read
+		pftlist.firstobj();
+		while (pftlist.isobj) {
+			ppft = &pftlist.getobj();
+
+			if (ifcalcsla) {
+				// Calculate SLA
+				ppft->initsla();
+			}
+
+			if (ifcalccton) {
+				// Calculate leaf C:N ratio minimum
+				ppft->init_cton_min();
+			}
+
+			// Calculate C:N ratio limits
+			ppft->init_cton_limits();
+
+			// Calculate nitrogen uptake strength dependency on root distribution
+			ppft->init_nupscoeff();
+
+			// Calculate regeneration characteristics for population mode
+			ppft->initregen();
+
+			pftlist.nextobj();
+		}
+
 
 		break;
 	case CB_CHECKPFT:
@@ -937,25 +964,6 @@ void plib_callback(int callback) {
 		if (itemparsed("include")) {
 			includepft_map[ppft->name] = includepft;
 		}
-
-		if (ifcalcsla) {
-			// Calculate SLA
-			ppft->initsla();
-		}
-
-		if (ifcalccton) {
-			// Calculate leaf C:N ratio minimum
-			ppft->init_cton_min();
-		}
-
-		// Calculate C:N ratio limits
-		ppft->init_cton_limits();
-
-		// Calculate nitrogen uptake strength dependency on root distribution
-		ppft->init_nupscoeff();
-
-		// Calculate regeneration characteristics for population mode
-		ppft->initregen();
 
 		break;
 	}

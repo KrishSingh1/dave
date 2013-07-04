@@ -161,12 +161,12 @@ private:
 #define REGISTER_OUTPUT_MODULE(name, class_name) \
 namespace class_name##_registration { \
 \
-OutputModule* class_name##_creator() {\
+GuessOutput::OutputModule* class_name##_creator() {	  \
 	return new class_name();\
 }\
 \
 int dummy() {\
-	OutputModuleRegistry::get_instance().register_output_module(name, class_name##_creator);\
+	GuessOutput::OutputModuleRegistry::get_instance().register_output_module(name, class_name##_creator); \
 	return 0;\
 }\
 \

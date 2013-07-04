@@ -25,8 +25,8 @@ namespace GuessOutput {
  *  the pure virtual functions.
  *
  *  In order for the output module to be used by the framework,
- *  it must be added to a container (\see OutputModuleContainer), 
- *  which is done in the function framework().
+ *  it must be registered with the REGISTER_OUTPUT_MODULE macro
+ *  (defined and documented below).
  */
 class OutputModule {
 public:

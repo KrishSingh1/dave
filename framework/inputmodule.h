@@ -15,6 +15,15 @@
 
 class Gridcell;
 
+/// Base class from which any input module must inherit
+/** An input module supplies LPJ-GUESS with the forcing data it needs. The
+ *  InputModule base class is an abstract class, meaning it only defines
+ *  the interface which subclasses must implement.
+ *
+ *  To create a new input module, create a new class which inherits from
+ *  this one, implement all the member functions below, and register it
+ *  with the REGISTER_INPUT_MODULE macro (defined and documented below).
+ */
 class InputModule {
 public:
 	/// Called after the instruction file has been read

@@ -10,7 +10,7 @@
 #ifndef LPJ_GUESS_EUROFLUX_H
 #define LPJ_GUESS_EUROFLUX_H
 
-#include "cruinputmodule.h"
+#include "cruinput.h"
 #include "outputmodule.h"
 #include <gutil.h>
 
@@ -75,7 +75,7 @@ struct EurofluxData {
  *  and also update the soiltype with soildepth information
  *  after the base class has initialized it according to soil code.
  */
-class EurofluxInputModule : public CRUInputModule {
+class EurofluxInput : public CRUInput {
 public:
 	void init();
 

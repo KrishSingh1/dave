@@ -11,10 +11,10 @@
 #include "emdi.h"
 #include <sstream>
 
-REGISTER_INPUT_MODULE("emdi", EMDIInputModule);
+REGISTER_INPUT_MODULE("emdi", EMDIInput);
 
-void EMDIInputModule::init() {
-	CRUInputModule::init();
+void EMDIInput::init() {
+	CRUInput::init();
 
 	// Read in the gridlist again to get plant available water content
 
@@ -44,8 +44,8 @@ void EMDIInputModule::init() {
 	
 }
 
-bool EMDIInputModule::getgridcell(Gridcell& gridcell) {
-	if (CRUInputModule::getgridcell(gridcell)) {
+bool EMDIInput::getgridcell(Gridcell& gridcell) {
+	if (CRUInput::getgridcell(gridcell)) {
 		overrideAWC(gridcell.get_lon(), gridcell.get_lat(), gridcell.soiltype);
 		return true;
 	}
@@ -54,7 +54,7 @@ bool EMDIInputModule::getgridcell(Gridcell& gridcell) {
 	}
 }
 
-void EMDIInputModule::rememberPAWC(double dlon, double dlat, xtring pawc) {
+void EMDIInput::rememberPAWC(double dlon, double dlat, xtring pawc) {
 	std::istringstream is((char*)pawc);
 	double first_number_in_string;
 	is >> first_number_in_string;
@@ -62,7 +62,7 @@ void EMDIInputModule::rememberPAWC(double dlon, double dlat, xtring pawc) {
 	pawcPerGridCell[std::make_pair(dlon, dlat)] = first_number_in_string;
 }
 	
-void EMDIInputModule::overrideAWC(double lon, double lat, Soiltype& soiltype) {
+void EMDIInput::overrideAWC(double lon, double lat, Soiltype& soiltype) {
 	double pawc = pawcPerGridCell[std::make_pair(lon, lat)];
 	if (pawc > 0) {
 		// Assume pawc applies to the whole 1.5m, so replace soiltype.awc with a scaled pawc

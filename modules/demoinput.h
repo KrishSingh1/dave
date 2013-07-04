@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-/// \file demoinputmodule.h
+/// \file demoinput.h
 /// \brief Input module for demo data set
 ///
 /// \author Joe Siltberg
@@ -7,19 +7,19 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef LPJ_GUESS_DEMOINPUTMODULE_H
-#define LPJ_GUESS_DEMOINPUTMODULE_H
+#ifndef LPJ_GUESS_DEMOINPUT_H
+#define LPJ_GUESS_DEMOINPUT_H
 
 #include "inputmodule.h"
 #include <vector>
 #include "gutil.h"
 
-class DemoInputModule : public InputModule {
+class DemoInput : public InputModule {
 public:
 
-	DemoInputModule();
+	DemoInput();
 
-	~DemoInputModule();
+	~DemoInput();
 
 	void init();
 
@@ -92,4 +92,4 @@ private:
 	static const int NYEAR_LU=103;	//only used to get LU data after historical period (after 2003) : only used in AR4-runs, but causes no harm otherwise
 };
 
-#endif // LPJ_GUESS_DEMOINPUTMODULE_H
+#endif // LPJ_GUESS_DEMOINPUT_H

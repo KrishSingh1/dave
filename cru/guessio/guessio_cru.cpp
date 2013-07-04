@@ -32,7 +32,7 @@
 // "#include" directive referring to the framework header file.
 
 #include "config.h"
-#include "cruinputmodule.h"
+#include "cruinput.h"
 
 #include "driver.h"
 #include "parameters.h"
@@ -51,9 +51,9 @@
 #include "GlobalNitrogenDeposition.h"
 
 
-REGISTER_INPUT_MODULE("cru", CRUInputModule)
+REGISTER_INPUT_MODULE("cru", CRUInput)
 
-CRUInputModule::CRUInputModule()
+CRUInput::CRUInput()
 	: searchradius(0),
 	  lc_fixed_frac(NLANDCOVERTYPES, 0),
 	  equal_landcover_area(false),
@@ -108,9 +108,9 @@ void interp_climate(double mtemp[12], double mprec[12], double msun[12], double 
 // Determine temp, precip, sunshine & soilcode
  
 bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
-               double mtemp[CRUInputModule::NYEAR_HIST][12],
-               double mprec[CRUInputModule::NYEAR_HIST][12],
-               double msun[CRUInputModule::NYEAR_HIST][12]) {
+               double mtemp[CRUInput::NYEAR_HIST][12],
+               double mprec[CRUInput::NYEAR_HIST][12],
+               double msun[CRUInput::NYEAR_HIST][12]) {
 
 	// !!!! NEW VERSION OF THIS FUNCTION - guess2008 - NEW VERSION OF THIS FUNCTION !!!!
 	// Please note the new function signature. 
@@ -156,7 +156,7 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 		soilcode=(int)data.soilcode[0];
 
 
-		for (y = 0; y < CRUInputModule::NYEAR_HIST; y++) {
+		for (y = 0; y < CRUInput::NYEAR_HIST; y++) {
 			for (m=0;m<12;m++) {
 				mtemp[y][m] = data.mtemp[y*12+m]*0.1; // now degC
 				mprec[y][m] = data.mprec[y*12+m]*0.1; // mm (sum over month)
@@ -191,9 +191,9 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 // Determine elevation, frs frq, wet frq & DTR
 
 bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
-                    double mfrs[CRUInputModule::NYEAR_HIST][12],
-                    double mwet[CRUInputModule::NYEAR_HIST][12],
-                    double mdtr[CRUInputModule::NYEAR_HIST][12]) {
+                    double mfrs[CRUInput::NYEAR_HIST][12],
+                    double mwet[CRUInput::NYEAR_HIST][12],
+                    double mdtr[CRUInput::NYEAR_HIST][12]) {
 	
 	// Please note the new function signature. 
 
@@ -234,7 +234,7 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 		// Note that the multipliers are NOT the same as in searchcru above!
 		elevation=(int)data.elv[0]; // km * 1000
 
-		for (y = 0; y < CRUInputModule::NYEAR_HIST; y++) { 
+		for (y = 0; y < CRUInput::NYEAR_HIST; y++) { 
 			for (m=0;m<12;m++) {
 
 				// guess2008 - catch rounding errors 
@@ -272,9 +272,9 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 // a given search radius
 bool findnearestCRUdata(double searchradius, char* cruark, double& lon, double& lat, 
                         int& scode, 
-                        double hist_mtemp1[CRUInputModule::NYEAR_HIST][12], 
-                        double hist_mprec1[CRUInputModule::NYEAR_HIST][12], 
-                        double hist_msun1[CRUInputModule::NYEAR_HIST][12]) {
+                        double hist_mtemp1[CRUInput::NYEAR_HIST][12], 
+                        double hist_mprec1[CRUInput::NYEAR_HIST][12], 
+                        double hist_msun1[CRUInput::NYEAR_HIST][12]) {
 
 	// First try the exact coordinate
 	if (searchcru(cruark, lon, lat, scode, hist_mtemp1, hist_mprec1, hist_msun1)) {
@@ -339,7 +339,7 @@ bool findnearestCRUdata(double searchradius, char* cruark, double& lon, double& 
 // INITIO
 // Called by the framework at the start of the model run
 
-void CRUInputModule::init() {
+void CRUInput::init() {
 
 	// DESCRIPTION
 	// Initialises input/output (e.g. opening files), sets values for the global
@@ -445,9 +445,9 @@ void CRUInputModule::init() {
 }
 
 
-void CRUInputModule::get_monthly_ndep(int calendar_year,
-                                      double* mndrydep,
-                                      double* mnwetdep) {
+void CRUInput::get_monthly_ndep(int calendar_year,
+                                double* mndrydep,
+                                double* mnwetdep) {
 	int ndep_year = 0;
 
 	if (calendar_year >= FIRSTHISTYEARNDEP) {
@@ -462,11 +462,11 @@ void CRUInputModule::get_monthly_ndep(int calendar_year,
 }
 
 
-void CRUInputModule::adjust_raw_forcing_data(double lon,
-                                             double lat,
-                                             double hist_mtemp[NYEAR_HIST][12],
-                                             double hist_mprec[NYEAR_HIST][12],
-                                             double hist_msun[NYEAR_HIST][12]) {
+void CRUInput::adjust_raw_forcing_data(double lon,
+                                       double lat,
+                                       double hist_mtemp[NYEAR_HIST][12],
+                                       double hist_mprec[NYEAR_HIST][12],
+                                       double hist_msun[NYEAR_HIST][12]) {
 
 	// The default (base class) implementation does nothing here.
 }
@@ -475,7 +475,7 @@ void CRUInputModule::adjust_raw_forcing_data(double lon,
 ///	Loads landcover area fraction data from file(s) for a gridcell.
 /** Called from getgridcell() if run_landcover is true. 
   */
-bool CRUInputModule::loadlandcover(Gridcell& gridcell, Coord c)	{
+bool CRUInput::loadlandcover(Gridcell& gridcell, Coord c)	{
 	bool LUerror=false;
 
 	if (!lcfrac_fixed) {
@@ -516,7 +516,7 @@ bool CRUInputModule::loadlandcover(Gridcell& gridcell, Coord c)	{
  *  \param  lon         Longitude
  *  \param  lat         Latitude
  */
-void CRUInputModule::getndep(double lon, double lat) {
+void CRUInput::getndep(double lon, double lat) {
 	
 	const double convert = 1e-7;				// converting from gN ha-1 to kgN m-2
 
@@ -565,7 +565,7 @@ void CRUInputModule::getndep(double lon, double lat) {
 }
 
 /// Called by the framework at the start of the simulation for a particular grid cell
-bool CRUInputModule::getgridcell(Gridcell& gridcell) {
+bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 	// DESCRIPTION
 	// Obtains coordinates and soil static parameters for the next grid cell to
@@ -710,7 +710,7 @@ bool CRUInputModule::getgridcell(Gridcell& gridcell) {
 }
 
 ///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
-void CRUInputModule::getlandcover(Gridcell& gridcell) {
+void CRUInput::getlandcover(Gridcell& gridcell) {
 	int i, year;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
 
@@ -904,7 +904,7 @@ void CRUInputModule::getlandcover(Gridcell& gridcell) {
 
 /// Called by the framework each simulation day before any process modelling is performed for this day
 /** Obtains climate data (including atmospheric CO2 and insolation) for this day. */
-bool CRUInputModule::getclimate(Gridcell& gridcell) {
+bool CRUInput::getclimate(Gridcell& gridcell) {
 
 	// DESCRIPTION
 	// The function should returns false if the simulation is complete for this grid cell,
@@ -1072,7 +1072,7 @@ bool CRUInputModule::getclimate(Gridcell& gridcell) {
 }
 
 
-CRUInputModule::~CRUInputModule() {
+CRUInput::~CRUInput() {
 
 	// Performs memory deallocation, closing of files or other "cleanup" functions.
 

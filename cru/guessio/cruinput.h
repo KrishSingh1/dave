@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-/// \file cruinputmodule.h
+/// \file cruinput.h
 /// \brief Input module for the CRU TS 3.0 data set
 ///
 /// \author Joe Siltberg
@@ -7,8 +7,8 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef LPJ_GUESS_CRUINPUTMODULE_H
-#define LPJ_GUESS_CRUINPUTMODULE_H
+#ifndef LPJ_GUESS_CRUINPUT_H
+#define LPJ_GUESS_CRUINPUT_H
 
 #include "inputmodule.h"
 #include <vector>
@@ -16,12 +16,12 @@
 #include "globalco2file.h"
 #include "spinupdata.h"
 
-class CRUInputModule : public InputModule {
+class CRUInput : public InputModule {
 public:
 
-	CRUInputModule();
+	CRUInput();
 
-	~CRUInputModule();
+	~CRUInput();
 
 	void init();
 
@@ -187,4 +187,4 @@ private:
 	static const int NYEAR_LU=103;	//only used to get LU data after historical period (after 2003) : only used in AR4-runs, but causes no harm otherwise
 };
 
-#endif // LPJ_GUESS_CRUINPUTMODULE_H
+#endif // LPJ_GUESS_CRUINPUT_H

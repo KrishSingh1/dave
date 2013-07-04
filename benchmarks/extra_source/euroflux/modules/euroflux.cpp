@@ -13,7 +13,7 @@
 #include "guess.h"
 #include "driver.h"
 
-REGISTER_INPUT_MODULE("euroflux", EurofluxInputModule)
+REGISTER_INPUT_MODULE("euroflux", EurofluxInput)
 REGISTER_OUTPUT_MODULE("euroflux", EurofluxOutput)
 
 using namespace GuessOutput;
@@ -27,9 +27,9 @@ int century_year;
 
 EurofluxData* current_stand_fluxdata = 0;
 
-void EurofluxInputModule::init() {
+void EurofluxInput::init() {
 	// First let base class initialize
-	CRUInputModule::init();
+	CRUInput::init();
 
 	// Retrieve name of grid list file as read from ins file
 	xtring file_gridlist=param["file_gridlist"].str;
@@ -103,8 +103,8 @@ void adjust_soildepth(Soiltype& soiltype, double soildepth) {
 
 }
 
-bool EurofluxInputModule::getgridcell(Gridcell& gridcell) {
-	if (CRUInputModule::getgridcell(gridcell)) {
+bool EurofluxInput::getgridcell(Gridcell& gridcell) {
+	if (CRUInput::getgridcell(gridcell)) {
 		
 		// now give the soil depth too
 		EurofluxData& edata = eurofluxdata[std::make_pair(gridcell.get_lon(), gridcell.get_lat())];
@@ -117,7 +117,7 @@ bool EurofluxInputModule::getgridcell(Gridcell& gridcell) {
 	}
 }
 
-bool EurofluxInputModule::getclimate(Gridcell& gridcell) {
+bool EurofluxInput::getclimate(Gridcell& gridcell) {
 	if (date.day == 0) {
 		if (date.year < nyear_spinup) {
 			century_year = 0;
@@ -127,14 +127,14 @@ bool EurofluxInputModule::getclimate(Gridcell& gridcell) {
 		}
 	}
 
-	return CRUInputModule::getclimate(gridcell);
+	return CRUInput::getclimate(gridcell);
 }
 
-void EurofluxInputModule::adjust_raw_forcing_data(double lon,
-                                                  double lat,
-                                                  double hist_mtemp[NYEAR_HIST][12],
-                                                  double hist_mprec[NYEAR_HIST][12],
-                                                  double hist_msun[NYEAR_HIST][12]) {
+void EurofluxInput::adjust_raw_forcing_data(double lon,
+                                            double lat,
+                                            double hist_mtemp[NYEAR_HIST][12],
+                                            double hist_mprec[NYEAR_HIST][12],
+                                            double hist_msun[NYEAR_HIST][12]) {
 
 	current_stand_fluxdata = &eurofluxdata[std::make_pair(lon, lat)];
 
@@ -802,8 +802,8 @@ void calculateEurofluxStats(double lon,
 void EurofluxOutput::outannual(Gridcell& gridcell) {
 
 	// flux years are 1996 - 2002
-	if (date.year >= nyear_spinup + CRUInputModule::NYEAR_HIST - NFLUXYEARS &&
-	    date.year <= nyear_spinup + CRUInputModule::NYEAR_HIST - 1) {
+	if (date.year >= nyear_spinup + CRUInput::NYEAR_HIST - NFLUXYEARS &&
+	    date.year <= nyear_spinup + CRUInput::NYEAR_HIST - 1) {
 
 		OutputRows out(output_channel, gridcell.get_lon(), gridcell.get_lat(), date.year);
 
@@ -896,7 +896,7 @@ void EurofluxOutput::outannual(Gridcell& gridcell) {
 		out.add_value(out_eurofluxannual, sumGPP_obs);
 	}
 
-	if (date.year == nyear_spinup + CRUInputModule::NYEAR_HIST - 1) {
+	if (date.year == nyear_spinup + CRUInput::NYEAR_HIST - 1) {
 		calculateEurofluxStats(gridcell.get_lon(),
 		                       gridcell.get_lat(),
 		                       out_eurofluxstats_nee,

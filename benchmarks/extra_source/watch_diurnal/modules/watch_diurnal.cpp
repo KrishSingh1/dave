@@ -13,7 +13,7 @@
 #include "guess.h"
 #include "driver.h"
 
-REGISTER_INPUT_MODULE("watch_diurnal", WATCHDiurnalInputModule)
+REGISTER_INPUT_MODULE("watch_diurnal", WATCHDiurnalInput)
 
 void handle_error(int status, const char* message) {
 	if (status != NC_NOERR) {
@@ -150,21 +150,21 @@ void load_watch_data(const char* dir_name,
 }
 
 
-WATCHDiurnalInputModule::WATCHDiurnalInputModule()
+WATCHDiurnalInput::WATCHDiurnalInput()
 	: diurnal(false) {
 	
 	declare_parameter("diurnal", &diurnal, "If specified, diurnal version will be run (0,1)");
 }
 
-void WATCHDiurnalInputModule::init() {
-	CRUInputModule::init();
+void WATCHDiurnalInput::init() {
+	CRUInput::init();
 	
 	watch_dir = param["watch_dir"].str;
 	load_gridlist(watch_dir, landpoints);
 }
 
-bool WATCHDiurnalInputModule::getgridcell(Gridcell& gridcell) {
-	if (CRUInputModule::getgridcell(gridcell)) {
+bool WATCHDiurnalInput::getgridcell(Gridcell& gridcell) {
+	if (CRUInput::getgridcell(gridcell)) {
 		// Load WATCH subdaily variables
 		int cell_id = get_cell_id(gridcell.get_lon(), gridcell.get_lat(), landpoints);
 
@@ -182,8 +182,8 @@ bool WATCHDiurnalInputModule::getgridcell(Gridcell& gridcell) {
 	}
 }
 
-bool WATCHDiurnalInputModule::getclimate(Gridcell& gridcell) {
-	if (CRUInputModule::getclimate(gridcell)) {
+bool WATCHDiurnalInput::getclimate(Gridcell& gridcell) {
+	if (CRUInput::getclimate(gridcell)) {
 
 		Climate& climate = gridcell.climate;
 

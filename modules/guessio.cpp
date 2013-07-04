@@ -29,16 +29,16 @@
 // "#include" directive referring to the framework header file.
 
 #include "config.h"
-#include "demoinputmodule.h"
+#include "demoinput.h"
 
 #include "driver.h"
 #include "outputchannel.h"
 #include <plib.h>
 #include <stdio.h>
 
-REGISTER_INPUT_MODULE("demo", DemoInputModule)
+REGISTER_INPUT_MODULE("demo", DemoInput)
 
-DemoInputModule::DemoInputModule() 
+DemoInput::DemoInput() 
 	: nyear(1),
 	  lc_fixed_frac(NLANDCOVERTYPES, 0),
 	  equal_landcover_area(false) {
@@ -75,8 +75,8 @@ void interp_climate(double mtemp[12], double mprec[12], double msun[12], double 
 
 } // namespace
 
-void DemoInputModule::read_from_file(Coord coord, xtring fname, const char* format,
-                                     double monthly[12], bool soil /* = false */) {
+void DemoInput::read_from_file(Coord coord, xtring fname, const char* format,
+                               double monthly[12], bool soil /* = false */) {
 		double dlon, dlat;
 		int elev;
 		FILE* in = fopen(fname, "r");
@@ -102,7 +102,7 @@ void DemoInputModule::read_from_file(Coord coord, xtring fname, const char* form
 		}
 }
 
-bool DemoInputModule::readenv(Coord coord, long& seed) {
+bool DemoInput::readenv(Coord coord, long& seed) {
 
 	// Searches for environmental data in driver temperature, precipitation,
 	// sunshine and soil code files for the grid cell whose coordinates are given by
@@ -184,7 +184,7 @@ bool DemoInputModule::readenv(Coord coord, long& seed) {
 // INITIO
 // Called by the framework at the start of the model run
 
-void DemoInputModule::init() {
+void DemoInput::init() {
 
 	// DESCRIPTION
 	// Initialises input/output (e.g. opening files), sets values for the global
@@ -299,7 +299,7 @@ void DemoInputModule::init() {
 ///	Loads landcover area fraction data from file(s) for a gridcell.
 /** Called from getgridcell() if run_landcover is true. 
   */
-bool DemoInputModule::loadlandcover(Gridcell& gridcell, Coord c)	{
+bool DemoInput::loadlandcover(Gridcell& gridcell, Coord c)	{
 	bool LUerror=false;
 
 	if (!lcfrac_fixed) {
@@ -331,7 +331,7 @@ bool DemoInputModule::loadlandcover(Gridcell& gridcell, Coord c)	{
 }
 
 /// Called by the framework at the start of the simulation for a particular grid cell
-bool DemoInputModule::getgridcell(Gridcell& gridcell) {
+bool DemoInput::getgridcell(Gridcell& gridcell) {
 
 	// DESCRIPTION
 	// Obtains coordinates and soil static parameters for the next grid cell to
@@ -418,7 +418,7 @@ bool DemoInputModule::getgridcell(Gridcell& gridcell) {
 }
 
 ///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
-void DemoInputModule::getlandcover(Gridcell& gridcell) {
+void DemoInput::getlandcover(Gridcell& gridcell) {
 	int i, year;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
 
@@ -612,7 +612,7 @@ void DemoInputModule::getlandcover(Gridcell& gridcell) {
 
 /// Called by the framework each simulation day before any process modelling is performed for this day
 /** Obtains climate data (including atmospheric CO2 and insolation) for this day. */
-bool DemoInputModule::getclimate(Gridcell& gridcell) {
+bool DemoInput::getclimate(Gridcell& gridcell) {
 
 	// DESCRIPTION
 	// The function should returns false if the simulation is complete for this grid cell,
@@ -691,7 +691,7 @@ bool DemoInputModule::getclimate(Gridcell& gridcell) {
 }
 
 
-DemoInputModule::~DemoInputModule() {
+DemoInput::~DemoInput() {
 
 	// Performs memory deallocation, closing of files or other "cleanup" functions.
 

@@ -12,6 +12,7 @@ set(headers
   ncompete.h
   commonoutput.h
   spinupdata.h
+  demoinput.h
   )
 
 set(source  

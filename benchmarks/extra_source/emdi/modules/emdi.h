@@ -13,7 +13,7 @@
 #include <gutil.h>
 #include <map>
 #include <utility>
-#include "cruinputmodule.h"
+#include "cruinput.h"
 #include "guess.h"
 
 /// The EMDI input module
@@ -22,7 +22,7 @@
  *  is overridden for each gridcell with values taken from
  *  the gridlist.
  */
-class EMDIInputModule : public CRUInputModule {
+class EMDIInput : public CRUInput {
 public:
 
 	void init();

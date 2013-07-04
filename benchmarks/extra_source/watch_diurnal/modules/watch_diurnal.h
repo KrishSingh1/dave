@@ -13,7 +13,7 @@
 #error "NetCDF library not found by build system!"
 #endif
 
-#include "cruinputmodule.h"
+#include "cruinput.h"
 
 const int SUBDAILY = 8;
 const int FIRST_WATCH_YEAR = 1901;
@@ -50,12 +50,12 @@ void load_watch_data(const char* dir_name,
                      bool diurnal);
 
 /// Input module for reading WATCH diurnal data from NetCDF files
-class WATCHDiurnalInputModule : public CRUInputModule {
+class WATCHDiurnalInput : public CRUInput {
 public:
 
-	WATCHDiurnalInputModule();
+	WATCHDiurnalInput();
 
-	// Reimplemented functions from CRUInputModule
+	// Reimplemented functions from CRUInput
 
 	void init();
 

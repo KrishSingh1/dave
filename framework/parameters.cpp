@@ -307,10 +307,9 @@ void declare_parameter(const char* name, bool* param, const char* help) {
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
-// INPUT FROM INSTRUCTION SCRIPT FILE
 // The following code uses functionality from the PLIB library to process an
 // instruction script (ins) file containing simulation settings and PFT parameters.
-// Function readins() is called by the framework to initiate parsing of the script.
+// Function read_instruction_file() is called by the framework to initiate parsing of the script.
 // Function printhelp() is called if GUESS is run with '-help' instead of an ins file
 // name as a command line argument. Functions plib_declarations, plib_callback and
 // plib_receivemessage comprise part of the interface to PLIB.

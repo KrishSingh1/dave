@@ -6,6 +6,20 @@
 /// used by the model, but also lets other modules define their own parameters or
 /// access "custom" parameters without defining them.
 ///
+/// A new parameter can be added by creating a new global variable here (or a new
+/// Pft member variable if it's a PFT parameter), and then declaring it in
+/// plib_declarations in parameters.cpp. See the many existing examples, and
+/// documentation in the PLIB library for further documentation about this.
+///
+/// Sometimes, adding a new parameter shouldn't (or can't) be done here however.
+/// A parameter specific for a certain input module, should only be declared if
+/// that input module is used. In this case the input module should declare its
+/// own parameters when it is created. This can also be a good idea simply to 
+/// make modules more independent. For parameters like this, we can either use
+/// the "custom" parameters (\see Paramlist) which don't need to be declared at
+/// all, or the parameters can be declared with the declare_parameter family of
+/// functions.
+///
 /// \author Joe Siltberg
 /// $Date$
 ///
@@ -154,37 +168,44 @@ extern bool ifbvoc;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
-// The Paramlist class (and Paramtype) defined below implement "custom" parameters,
-// which other modules can access without the need to define them beforehand.
+// The Paramlist class (and Paramtype) 
 //
-// Custom keywords may be included in the instruction script using syntax similar to
-// the following examples:
-//
-//   param "co2" (num 340)
-//   param "file_gridlist" (str "gridlist.txt")
-//
-// To retrieve the values associated with the "param" strings in the above examples,
-// use the following function calls (may appear anywhere in this file; instruction
-// script must have been read in first):
-//
-//   param["co2"].num
-//   param["file_gridlist"].str
-//
-// Each "param" item can store EITHER a number (int or double) OR a string, but not
-// both types of data. Function fail is called to terminate output if a "param" item
-// with the specified identifier was not read in.
-
 
 /// Represents one custom "param" item
+/** \see Paramlist */
 struct Paramtype {
 	xtring name;
 	xtring str;
 	double num;
 };
 
-/// List for the custom parameters
+/// List for the "custom" parameters
 /** Functionality for storing and retrieving custom "param" items from the instruction
- *  script.
+ *  script. "Custom" parameters can be accessed by other modules without the need to 
+ *  define them beforehand. This of course also means there is no help text associated
+ *  with these parameters, so the user can't get any documentation about them from
+ *  the command line.
+ *
+ * Custom keywords may be included in the instruction script using syntax similar to
+ * the following examples:
+ *
+ * \code
+ *     param "co2" (num 340)
+ *     param "file_gridlist" (str "gridlist.txt")
+ * \endcode
+ *
+ * To retrieve the values associated with the "param" strings in the above examples,
+ * use the following function calls (may appear anywhere in this file; instruction
+ * script must have been read in first):
+ *
+ * \code
+ *     param["co2"].num
+ *     param["file_gridlist"].str
+ * \endcode
+ *
+ * Each "param" item can store EITHER a number (int or double) OR a string, but not
+ * both types of data. Function fail is called to terminate output if a "param" item
+ * with the specified identifier was not read in.
  */
 class Paramlist : public ListArray<Paramtype> {
 
@@ -222,18 +243,44 @@ void printhelp();
 // Interface for declaring parameters from other modules
 
 /// Declares an xtring parameter
+/** \param name     The name of the parameter
+ *  \param param    Pointer to variable where the value of the parameter is to be placed
+ *  \param maxlen   Maximum allowed length of the parameter in the ins file
+ *  \param help     Documentation describing the parameter to the user
+ */
 void declare_parameter(const char* name, xtring* param, int maxlen, const char* help = "");
 
 /// Declares a std:string parameter
+/** \param name     The name of the parameter
+ *  \param param    Pointer to variable where the value of the parameter is to be placed
+ *  \param maxlen   Maximum allowed length of the parameter in the ins file
+ *  \param help     Documentation describing the parameter to the user
+ */
 void declare_parameter(const char* name, std::string* param, int maxlen, const char* help = "");
 
 /// Declares an int parameter
+/** \param name     The name of the parameter
+ *  \param param    Pointer to variable where the value of the parameter is to be placed
+ *  \param min      Minimum allowed value of the parameter in the ins file
+ *  \param max      Maximum allowed value of the parameter in the ins file
+ *  \param help     Documentation describing the parameter to the user
+ */
 void declare_parameter(const char* name, int* param, int min, int max, const char* help = "");
 
 /// Declares a double parameter
+/** \param name     The name of the parameter
+ *  \param param    Pointer to variable where the value of the parameter is to be placed
+ *  \param min      Minimum allowed value of the parameter in the ins file
+ *  \param max      Maximum allowed value of the parameter in the ins file
+ *  \param help     Documentation describing the parameter to the user
+ */
 void declare_parameter(const char* name, double* param, double min, double max, const char* help = "");
 
 /// Declares a bool parameter
+/** \param name     The name of the parameter
+ *  \param param    Pointer to variable where the value of the parameter is to be placed
+ *  \param help     Documentation describing the parameter to the user
+ */
 void declare_parameter(const char* name, bool* param, const char* help = "");
 
 #endif // LPJ_GUESS_PARAMETERS_H

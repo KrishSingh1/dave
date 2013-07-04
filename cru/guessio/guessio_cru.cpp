@@ -462,7 +462,9 @@ void CRUInputModule::get_monthly_ndep(int calendar_year,
 }
 
 
-void CRUInputModule::adjust_raw_forcing_data(double hist_mtemp[NYEAR_HIST][12],
+void CRUInputModule::adjust_raw_forcing_data(double lon,
+                                             double lat,
+                                             double hist_mtemp[NYEAR_HIST][12],
                                              double hist_mprec[NYEAR_HIST][12],
                                              double hist_msun[NYEAR_HIST][12]) {
 
@@ -657,7 +659,9 @@ bool CRUInputModule::getgridcell(Gridcell& gridcell) {
 		}
 
 		// Give sub-classes a chance to modify the data
-		adjust_raw_forcing_data(hist_mtemp, hist_mprec, hist_msun);
+		adjust_raw_forcing_data(gridlist.getobj().lon,
+		                        gridlist.getobj().lat,
+		                        hist_mtemp, hist_mprec, hist_msun);
 
 		// Build spinup data sets
 		spinup_mtemp.get_data_from(hist_mtemp);

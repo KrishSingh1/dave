@@ -82,7 +82,9 @@ protected:
 	 *  \param hist_mprec  Monthly precipitation values for each year
 	 *  \param hist_msun   Monthly sunshine values for each year
 	 */
-	virtual void adjust_raw_forcing_data(double hist_mtemp[NYEAR_HIST][12],
+	virtual void adjust_raw_forcing_data(double lon,
+	                                     double lat,
+	                                     double hist_mtemp[NYEAR_HIST][12],
 	                                     double hist_mprec[NYEAR_HIST][12],
 	                                     double hist_msun[NYEAR_HIST][12]);
 

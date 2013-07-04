@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file guessio_cru.cpp
-/// \brief LPJ-GUESS input/output module with input from instruction script
+/// \brief LPJ-GUESS input module for CRU TS 3.0 data set
 ///
-/// This I/O module reads in CRU climate data in a customised binary format.
+/// This input module reads in CRU climate data in a customised binary format.
 /// The binary files contain CRU half-degree global historical climate data
 /// for 1901-2006.
 ///
@@ -10,26 +10,6 @@
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
-
-// WHAT SHOULD THIS FILE CONTAIN?
-// Module source code files should contain, in this order:
-//   (1) a "#include" directive naming the framework header file. The framework header
-//       file should define all classes used as arguments to functions in the present
-//       module. It may also include declarations of global functions, constants and
-//       types, accessible throughout the model code;
-//   (2) other #includes, including header files for other modules accessed by the
-//       present one;
-//   (3) type definitions, constants and file scope global variables for use within
-//       the present module only;
-//   (4) declarations of functions defined in this file, if needed;
-//   (5) definitions of all functions. Functions that are to be accessible to other
-//       modules or to the calling framework should be declared in the module header
-//       file.
-//
-// PORTING MODULES BETWEEN FRAMEWORKS:
-// Modules should be structured so as to be fully portable between models (frameworks).
-// When porting between frameworks, the only change required should normally be in the
-// "#include" directive referring to the framework header file.
 
 #include "config.h"
 #include "cruinput.h"
@@ -63,6 +43,8 @@ CRUInput::CRUInput()
 	  spinup_mfrs(NYEAR_SPINUP_DATA),
 	  spinup_mwet(NYEAR_SPINUP_DATA),
 	  spinup_mdtr(NYEAR_SPINUP_DATA) {
+
+	// Declare instruction file parameters
 
 	declare_parameter("searchradius", &searchradius, 0, 100,
 		"If specified, CRU data will be searched for in a circle");
@@ -335,20 +317,10 @@ bool findnearestCRUdata(double searchradius, char* cruark, double& lon, double& 
 }
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// INITIO
-// Called by the framework at the start of the model run
-
 void CRUInput::init() {
 
 	// DESCRIPTION
-	// Initialises input/output (e.g. opening files), sets values for the global
-	// simulation parameter variables (currently vegmode, npatch, patcharea,
-	// ifbgestab, ifsme, ifstochestab, ifstochmort, iffire,
-	// estinterval, npft), initialises pftlist (the one and only list of PFTs and their
-	// static parameters for this run of the model). Normally all of the above
-	// parameters, and possibly others, are read from the ins file (see above).
-	// Function readins should be called to input settings from the ins file.
+	// Initialises input (e.g. opening files), and reads in the gridlist
 
 	///////////////////////////////////////////////////////////////////////////////////
 	// GENERIC SECTION - DO NOT MODIFY

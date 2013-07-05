@@ -69,10 +69,45 @@ void snow(double prec, double temp, double& snowpack, double& rain_melt) {
 	rain_melt = prec + melt;
 }
 
+/// SNOW_NINPUT   
+/** Nitrogen deposition and fertilization on a snowpack stays in snowpack 
+ *  until it starts melting. If no snowpack daily nitrogen deposition and 
+ *  fertilization goes to the soil available mineral nitrogen pool.
+ */
+void snow_ninput(double prec, double snowpack_after, double rain_melt, 
+	           double dndep, double dnfert, double& snowpack_nmass, double& ninput) {
+
+	// calculates this day melt and original snowpack size
+	double melt = max(0.0, rain_melt - prec);
+	double snowpack = melt + snowpack_after;
+
+	// snow exist
+	if (!negligible(snowpack)) {
+		
+		// if some snow is melted, fraction of nitrogen in snowpack 
+		// will go to soil available nitrogen pool
+		if (melt > 0.0) {
+			double frac_melt  = melt / snowpack;
+			double melt_nmass = frac_melt * snowpack_nmass;
+			ninput            = melt_nmass + dndep + dnfert;
+			snowpack_nmass   -= melt_nmass;
+		}
+		// if no snow is melted, then add daily nitrogen deposition 
+		// and fertilization to snowpack nitrogen pool
+		else {
+			snowpack_nmass += (dndep + dnfert);
+			ninput = 0.0;
+		}
+	}
+	else {
+		ninput = dndep + dnfert;
+	}
+}
+
 void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double perc_base,
 		double perc_exp, double awc[NSOILLAYER], double fevap, double snowpack,
 		bool percolate, double max_rain_melt, double awcont[NSOILLAYER],
-		double wcont[NSOILLAYER], double& wcont_evap, double& runoff) {
+		double wcont[NSOILLAYER], double& wcont_evap, double& runoff, double& dperc) {
 
 	// Daily update of water content for each soil layer given snow melt, rainfall,
 	// evapotranspiration from vegetation (AET) and percolation between layers;
@@ -96,7 +131,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	// wcont_evap = water content of evaporation sublayer at top of upper soil layer
 	//              as fraction of available water holding capacity (AWC)
 	// awcont     = wcont averaged over the growing season - guess2008
-
+	// dperc      = daily percolation beyond system (mm)
 
 	// OUTPUT PARAMETER
 	// runoff     = total daily runoff from all soil layers (mm/day)
@@ -112,14 +147,30 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 		// Fraction of total (vegetation) AET from upper soil layer that is derived
 		// from the top K_DEPTH (fraction) of the upper soil layer
 		// (parameters for calculating K_AET_DEPTH below)
-	const double K_AET_DEPTH = (SOILDEPTH_UPPER/SOILDEPTH_EVAP-1.0)*
-								(K_AET/K_DEPTH-1.0)/(1.0/K_DEPTH-1.0)+1.0;
+	const double K_AET_DEPTH = (SOILDEPTH_UPPER / SOILDEPTH_EVAP - 1.0) *
+								(K_AET / K_DEPTH - 1.0) / (1.0 / K_DEPTH - 1.0) + 1.0;
 		// Weighting coefficient for AET flux from evaporation layer, assuming active
 		//   root density decreases with soil depth
 		// Equates to 1.3 given SOILDEPTH_EVAP=200 mm, SOILDEPTH_UPPER=500 mm,
 		//   K_DEPTH=0.4, K_AET=0.52
 
 	int s;
+
+	// Reset annuals
+	if (date.day == 0) {
+		patch.aevap = 0.0;
+		patch.asurfrunoff = 0.0;
+		patch.adrainrunoff = 0.0;
+		patch.abaserunoff = 0.0;
+		patch.arunoff = 0.0;
+	}
+
+	// Reset monthlys
+	if (date.dayofmonth == 0) {
+		patch.mevap[date.month] = 0.0;
+		patch.mrunoff[date.month] = 0.0;
+	}
+
 	double aet;				// AET for a particular layer and individual (mm)
 	double aet_layer[NSOILLAYER]; // total AET for each soil layer (mm)
 	double perc_frac;
@@ -137,7 +188,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 		Individual& indiv = vegetation.getobj();
 
 		for (s=0; s<NSOILLAYER; s++) {
-			aet = patch.pft[indiv.pft.id].fuptake[s] * indiv.aet;
+			aet = patch.pft[indiv.pft.id].fwuptake[s] * indiv.aet;
 			aet_layer[s] += aet;
 			aet_total += aet;
 		}
@@ -174,6 +225,10 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 
 	wcont_evap += (rain_melt-aet_layer[0]*SOILDEPTH_EVAP*K_AET_DEPTH/SOILDEPTH_UPPER-evap)
 		/awc[0];
+
+	if (wcont_evap < 0) {
+		 wcont_evap = 0;
+	}
 
 	if (wcont_evap > wcont[0]) {
 		wcont_evap = wcont[0];
@@ -239,8 +294,14 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 		runoff_baseflow = perc_frac * awc[NSOILLAYER-1];
 	}
 
+	// save percolation from system (needed in leaching())
+	dperc = runoff_baseflow + runoff_drain;
+
 	runoff = runoff_surf + runoff_drain + runoff_baseflow;
 
+	patch.asurfrunoff += runoff_surf;
+	patch.adrainrunoff += runoff_drain;
+	patch.abaserunoff += runoff_baseflow;
 	patch.arunoff += runoff;
 	patch.aaet += aet_total;
 	patch.aevap += evap;
@@ -290,16 +351,20 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 
 	Soil& soil = patch.soil;
 	snow(climate.prec - patch.intercep, climate.temp, soil.snowpack, soil.rain_melt);
+	snow_ninput(climate.prec - patch.intercep, soil.snowpack, soil.rain_melt, climate.dndep, climate.dnfert, soil.snowpack_nmass, soil.ninput);
 	soil.percolate = soil.rain_melt >= 0.1;
 	soil.max_rain_melt = soil.rain_melt;
+
 	if (soil.percolate) {
 		soil.wcont[0] += soil.rain_melt / soil.soiltype.awc[0];
+
 		if (soil.wcont[0] > 1) {
 			soil.rain_melt = (soil.wcont[0] - 1) * soil.soiltype.awc[0];
 			soil.wcont[0] = 1;
 		} else {
 			soil.rain_melt = 0;			
 		}
+
 		soil.wcont_evap = soil.wcont[0];
 	}
 }
@@ -335,7 +400,7 @@ void soilwater(Patch& patch, Climate& climate) {
 	hydrology_lpjf(patch, climate, soil.rain_melt, soil.soiltype.perc_base,
 			soil.soiltype.perc_exp, soil.soiltype.awc, max(1.0-fpc_phen_total,0.0),
 			soil.snowpack, soil.percolate, soil.max_rain_melt, soil.awcont, soil.wcont,
-			soil.wcont_evap, soil.runoff);
+			soil.wcont_evap, soil.runoff, soil.dperc);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -345,12 +410,10 @@ void soilwater(Patch& patch, Climate& climate) {
 //   model based on ecophysiological constraints, resource availability, and
 //   competition among plant functional types. Global Biogeochemical Cycles 10:
 //   693-709
-//
 // Bondeau, A., Smith, P.C., Zaehle, S., Schaphoff, S., Lucht, W., Cramer, W.,
 //   Gerten, D., Lotze-Campen, H., Müller, C., Reichstein, M. and Smith, B. (2007),
 //   Modelling the role of agriculture for the 20th century global terrestrial carbon balance.
-//   Global Change Biology, 13: 679–706. doi: 10.1111/j.1365-2486.2006.01305.x
-//
+//   Global Change Biology, 13: 679-706. doi: 10.1111/j.1365-2486.2006.01305.x
 // Rost, S., D. Gerten, A. Bondeau, W. Luncht, J. Rohwer, and S. Schaphoff (2008),
 //   Agricultural green and blue water consumption and its influence on the global
 //   water system, Water Resour. Res., 44, W09405, doi:10.1029/2007WR006331

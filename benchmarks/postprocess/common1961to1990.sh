@@ -5,8 +5,8 @@
 # 1901).
 
 # We will run tslice on these files                                                                              
-files_to_tslice="cmass lai dens anpp cflux cpool firert tot_runoff mnpp mlai mrh \                               
-mgpp mra mnee maet mpet mevap mintercep mrunoff mwcont_upper mwcont_lower"
+files_to_tslice="cmass lai dens anpp cflux nflux cpool npool nsources nuptake cton_leaf cton_veg firert tot_runoff \
+vmaxnlim mnpp mlai mrh mgpp mra mnee maet mpet mevap mintercep mrunoff mwcont_upper mwcont_lower"
 
 # Go through each file in the list and run tslice                                                                
 for file in $files_to_tslice ; do

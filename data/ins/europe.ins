@@ -33,24 +33,34 @@ file_cflux "cflux.out"
 file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
-file_firert "firert.out"
+!file_firert "firert.out"
 !file_aiso "aiso.out"
 !file_amon "amon.out"
+!file_speciesheights "height.out"
+
+file_cton_leaf "cton_leaf.out"
+!file_cton_veg "cton_veg.out"
+file_ngases "ngases.out"
+file_nsources "nsources.out"
+file_npool "npool.out"
+file_nuptake "nuptake.out"
+file_nflux "nflux.out"
+file_vmaxnlim "vmaxnlim.out"
 
 ! Monthly outputs
-file_mnpp "mnpp.out"
-file_mlai "mlai.out"
-file_mrh "mrh.out"
-file_mgpp "mgpp.out"
-file_mra "mra.out"
-file_mnee "mnee.out"
-file_maet "maet.out"
-file_mpet "mpet.out"
-file_mevap "mevap.out"
-file_mintercep "mintercep.out"
-file_mrunoff "mrunoff.out"
-file_mwcont_upper "mwcont_upper.out"
-file_mwcont_lower "mwcont_lower.out"
+!file_mnpp "mnpp.out"
+!file_mlai "mlai.out"
+!file_mrh "mrh.out"
+!file_mgpp "mgpp.out"
+!file_mra "mra.out"
+!file_mnee "mnee.out"
+!file_maet "maet.out"
+!file_mpet "mpet.out"
+!file_mevap "mevap.out"
+!file_mintercep "mintercep.out"
+!file_mrunoff "mrunoff.out"
+!file_mwcont_upper "mwcont_upper.out"
+!file_mwcont_lower "mwcont_lower.out"
 !file_miso "miso.out"
 !file_mmon "mmon.out"
 
@@ -69,9 +79,9 @@ title 'LPJ-GUESS (guess2008) cohort mode'
 
 vegmode "cohort"      ! "cohort", "individual" or "population"
 nyear_spinup 500      ! number of years to spin up the simulation for
-ifdailynpp 1          ! whether to calculate NPP daily (1) or monthly (0)
-ifdailydecomp 0       ! whether to calculate soil respiration daily (1) or monthly (0)
 ifcalcsla 1           ! whether to calculate SLA from leaf longevity
+                      ! (PFT-specific value can be specified in this file instead)
+ifcalccton 1          ! whether to calculate leaf C:N min from leaf longevity
                       ! (PFT-specific value can be specified in this file instead)
 iffire 1              ! whether to implement fire (1) or not (0)
 npatch 25             ! number of replicate patches to simulate
@@ -88,7 +98,27 @@ ifcdebt 1             ! whether to allow vegetation C storage (1) or not (0)
 wateruptake "rootdist"! "wcont", "rootdist", "smart" or "speciesspecific",
                       ! see documentation for water_uptake()
 
-! guess2008 - additions
+!///////////////////////////////////////////////////////////////////////////////
+! PROCESS SETTINGS SPECIFIC TO NITROGEN
+!///////////////////////////////////////////////////////////////////////////////
+
+ifcentury 1				! whether to use CENTURY SOM dynamics (mandatory for N cycling)
+ifnlim 1				! whether plant growth limited by available N
+freenyears 100			! number of years to spin up without N limitation (needed to build up a N pool)
+nfix_a 0.102			! first term in N fixation eqn (Conservative 0.102, Central 0.234, Upper 0.367)
+nfix_b 0.524			! second term in N fixation eqn (Conservative 0.524, Central -0.172, Upper -0.754)
+nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
+
+
+!///////////////////////////////////////////////////////////////////////////////
+! SERIALIZATION SETTINGS 
+!///////////////////////////////////////////////////////////////////////////////
+!state_year 500			! year to save/start state file (no setting = after spinup)
+restart 0				! wheter to start from a state file
+save_state 0			! wheter to save a state file
+!state_path ""			! directory to put state files in
+
+
 ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1) 
 								! or to use the standard step-function (0)
 								! greff_min values below calibrated for the smooth (1) option 
@@ -131,7 +161,11 @@ group "common" (
 	emax 5
 	reprfrac 0.1
 	wscal_min 0.35
+	drought_tolerance 0.0001	
+	! default value - ensures that this has little effect even if  
+	! ifdroughtlimitedestab is turned on
 	landcover "natural"
+	turnover_harv_prod 1
 )
 
 
@@ -148,20 +182,26 @@ group "tree" (
 	k_allom3 0.67
 	k_rp 1.6
 	wooddens 200
-	cton_leaf 29
 	cton_root 29
 	cton_sap 330
+	nuptoroot 0.0028
+	km_volume 0.000001477
 	pathway "c3"
 	kest_repr 200
 	kest_bg 0.1
 	kest_pres 1
 	litterme 0.3
-	rootdist 0.6 0.4 ! THdiff: TH often has 0.7 0.3 or 0.8 0.2 - see note below
+	rootdist 0.6 0.4
+	harv_eff 0.7
+	res_outtake 0.75
+	harvest_slow_frac 0.33
+	turnover_harv_prod 0.04
 )
 
 group "shrub" (
 	common
 	lifeform "tree"
+	leafphysiognomy "broadleaf"
 	crownarea_max 10
 	turnover_root 0.7
 	ltor_max 1
@@ -170,9 +210,12 @@ group "shrub" (
 	k_allom3 0.67
 	k_rp 1.6
 	wooddens 250
-	cton_leaf 29
+	!cton_leaf_min 16	
 	cton_root 29
 	cton_sap 330
+	nuptoroot 0.0028
+	km_volume 0.000001477
+	fnstorage 0.3
 	pathway "c3"
 	kest_repr 20
 	kest_bg 0.1
@@ -183,12 +226,16 @@ group "shrub" (
 )
 
 group "needle_leaved" (
+	leafphysiognomy "needleleaf"
+	!cton_leaf_min 28
 	k_allom1 150
 	k_latosa 4000
 	ga 0.140
 )
 
 group "broad_leaved" (
+	leafphysiognomy "broadleaf"
+	!cton_leaf_min 16
 	k_allom1 250 
 	k_latosa 5000
 	leaflong 0.5		! PMxx: new default
@@ -202,9 +249,13 @@ group "grass" (
 
 	common
 	lifeform "grass"
+	leafphysiognomy "broadleaf"
 	ltor_max 0.5
-	cton_leaf 29
+	!cton_leaf_min 16
 	cton_root 29
+	nuptoroot 0.00551
+	km_volume 0.000001876
+	fnstorage 0.3
 	respcoeff 1.0 ! PM_Dec2012, was 2.0 
 	litterme 0.2
 	ga 0.030
@@ -278,6 +329,7 @@ pft "Abi_alb" (
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
+	fnstorage 0.05
 	leaflong 3			! THdiff: 4
 	turnover_leaf 0.33  ! THdiff: 0.25
 	phengdd5ramp 0
@@ -350,6 +402,7 @@ pft "Bet_pen" (
 !	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -30
 	tcmin_est -30
@@ -380,6 +433,7 @@ pft "Bet_pub" (
 !	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -30
 	tcmin_est -30
@@ -410,6 +464,7 @@ pft "Car_bet" (
 !	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -8		! Sykes96
 	tcmin_est -8
@@ -442,6 +497,7 @@ pft "Cor_ave" (
 !	sla 12				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -11		! THdiff: -8 Sykes96: -15
 	tcmin_est -11		! THdiff: -7 Sykes96: -15
@@ -472,6 +528,7 @@ pft "Fag_syl" (
 !	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -3.5		! Sykes96
 	tcmin_est -3.5		
@@ -502,6 +559,7 @@ pft "Fra_exc" (
 !	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -16		! Sykes96
 	tcmin_est -16		! Sykes96
@@ -537,6 +595,7 @@ pft "Jun_oxy" (
 !	sla 10				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "evergreen"
+	fnstorage 0.05
 	leaflong 1.5
 	turnover_leaf 0.6667
 	phengdd5ramp 0
@@ -608,6 +667,7 @@ pft "Pic_abi" (
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
+	fnstorage 0.05
 	leaflong 3			! THdiff: 4	
 	turnover_leaf 0.33	! THdiff: 0.25
 	phengdd5ramp 0
@@ -644,6 +704,7 @@ pft "Pic_sit" (
 !	sla 9.3						! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
+	fnstorage 0.05
 	leaflong 4					! 5 !?
 	turnover_leaf 0.25			! 0.2 !?
 	phengdd5ramp 0
@@ -681,6 +742,7 @@ pft "Pin_syl" (
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
+	fnstorage 0.05
 	leaflong 2				
 	turnover_leaf 0.5
 	phengdd5ramp 0
@@ -716,6 +778,7 @@ pft "Pin_hal" (
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
+	fnstorage 0.05
 	leaflong 2				
 	turnover_leaf 0.5
 	phengdd5ramp 0
@@ -751,6 +814,7 @@ pft "Pop_tre" (
 !	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -31		! Sykes
 	tcmin_est -30		! Sykes
@@ -819,6 +883,7 @@ pft "Que_ile" (
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "evergreen"
+	fnstorage 0.05
 	leaflong 2			
 	turnover_leaf 0.5
 	phengdd5ramp 0
@@ -853,6 +918,7 @@ pft "Que_pub" (
 !	sla 24.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -6			! THdiff: -6
 	tcmin_est -5			! THdiff: -5
@@ -883,6 +949,7 @@ pft "Que_rob" (
 !	sla 24.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -10			! THdiff: -16, Sykes96: -16
 	tcmin_est -9			! THdiff: -15, Sykes96: -16
@@ -914,6 +981,7 @@ pft "Til_cor" (
 !	sla 24.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -12			! THdiff: -18, Sykes96: -18
 	tcmin_est -11			! THdiff: -17
@@ -946,6 +1014,7 @@ pft "Ulm_gla" (
 !	sla 24.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -10.5		! Sykes96: -15
 	tcmin_est -9.5			! Sykes96: -15

@@ -219,13 +219,13 @@ private:
 	void bitify(unsigned char buf[4],double fval,double offset,double scalar) {
 
 		long ival = (long)((fval-offset)/scalar + 0.5);
-		buf[0]=ival/0x1000000;
+		buf[0]=(unsigned char)(ival/0x1000000);
 		ival-=buf[0]*0x1000000;
-		buf[1]=ival/0x10000;
+		buf[1]=(unsigned char)(ival/0x10000);
 		ival-=buf[1]*0x10000;
-		buf[2]=ival/0x100;
+		buf[2]=(unsigned char)(ival/0x100);
 		ival-=buf[2]*0x100;
-		buf[3]=ival;
+		buf[3]=(unsigned char)(ival);
 	}
 
 	void merge(unsigned char ptarget[3],unsigned char buf[4],int bits) {

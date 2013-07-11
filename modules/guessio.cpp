@@ -27,7 +27,6 @@ DemoInput::DemoInput()
 
 	declare_parameter("nyear", &nyear, 1, 10000, "Number of simulation years to run after spinup");
 
-	declare_parameter("lcfrac_fixed", &lcfrac_fixed, "Whether static landcover fractions are set in the ins-file (0,1)");
 	declare_parameter("equal_landcover_area", &equal_landcover_area, "Whether enforced static landcover fractions are equal-sized stands of all included landcovers (0,1)");
 	declare_parameter("lc_fixed_urban", &lc_fixed_frac[URBAN], 0, 100, "% lc_fixed_urban");
 	declare_parameter("lc_fixed_cropland", &lc_fixed_frac[CROPLAND], 0, 100, "% lc_fixed_cropland");

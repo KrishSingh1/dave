@@ -13,6 +13,7 @@ set(headers
   commonoutput.h
   spinupdata.h
   demoinput.h
+  cfinput.h
   )
 
 set(source  
@@ -28,6 +29,7 @@ set(source
   globalco2file.cpp
   ncompete.cpp
   commonoutput.cpp
+  cfinput.cpp
   )
 
 include(add_guess_sources)

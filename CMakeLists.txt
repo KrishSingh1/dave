@@ -74,7 +74,7 @@ if (MPI_FOUND)
 endif()
 
 # Where the compiler should search for header files
-include_directories(${guess_SOURCE_DIR}/framework ${guess_SOURCE_DIR}/libraries/gutil ${guess_SOURCE_DIR}/libraries/plib ${guess_SOURCE_DIR}/modules ${guess_SOURCE_DIR}/cru/guessio)
+include_directories(${guess_SOURCE_DIR}/framework ${guess_SOURCE_DIR}/libraries/gutil ${guess_SOURCE_DIR}/libraries/plib ${guess_SOURCE_DIR}/libraries/guessnc ${guess_SOURCE_DIR}/modules ${guess_SOURCE_DIR}/cru/guessio)
 
 # The following directories contain source code and 
 # additional CMakeLists.txt files
@@ -102,6 +102,7 @@ add_executable(${guess_command_name} ${guess_sources} command_line_version/main.
 # Rule for building the unit test binary
 if (UNIT_TESTS)
   add_executable(runtests ${guess_sources} ${test_sources})
+  target_link_libraries(runtests ${LIBS})
 endif()
 
 # Specify libraries to link to the executable

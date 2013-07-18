@@ -8,6 +8,7 @@ set(source
   climate_test.cpp
   math_test.cpp
   ncompete_test.cpp
+  cftime_test.cpp
   )
 
 include(add_test_sources)

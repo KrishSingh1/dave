@@ -256,7 +256,7 @@ group "grass" (
 	nuptoroot 0.00551
 	km_volume 0.000001876
 	fnstorage 0.3
-	respcoeff 2.0 
+	respcoeff 1.0 ! PM_Dec2012, was 2.0 
 	litterme 0.2
 	ga 0.030
 )
@@ -1058,7 +1058,7 @@ pft "C3_gr" (
 	twmin_est -1000			! limit not implemented
 	gdd5min_est 0			! limit not implemented
 	parff_min 2000000
-	fireresist 1.0			! THdiff 0.5 ! Changed from 0.5 on April 10, 2006
+	fireresist 0.5 ! PM_Dec2012, was 1.0			! THdiff 0.5 ! Changed from 0.5 on April 10, 2006
 	intc 0.01
 	drought_tolerance 0.01
 	eps_iso 0.
@@ -1078,7 +1078,7 @@ pft "C4_gr" (
 	phenology "any"
 	leaflong 1
 	turnover_leaf 1
-	turnover_root 0.5
+	turnover_root 0.7 ! PM_Dec2012, was 0.5
 	phengdd5ramp 100
 	pstemp_min 6
 	pstemp_low 20

@@ -29,6 +29,9 @@ public:
 	/// Returns true if the user has specified the parallel option
 	bool get_parallel() const;
 
+	/// Returns the chosen (or default) input module
+	const char* get_input_module() const;
+
 private:
 	/// Does the actual parsing of the arguments
 	bool parse_arguments(int argc, char** argv);
@@ -44,6 +47,9 @@ private:
 
 	/// Whether the user requested a parallel run
 	bool parallel;
+
+	/// The chosen (or default) input module
+	std::string input_module;
 };
 
 #endif // LPJ_GUESS_COMMAND_LINE_ARGUMENTS_H

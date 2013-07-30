@@ -17,58 +17,7 @@
 // They are accessible throughout the model code.
 
 Date date; // object describing timing stage of simulation
-vegmodetype vegmode; // vegetation mode (population, cohort or individual)
-int npatch; // number of patches in each stand (should always be 1 in population mode); cropland stands always have 1 patch
-double patcharea; // patch area (m2) (individual and cohort mode only)
-bool ifbgestab; // whether background establishment enabled (individual, cohort mode)
-bool ifsme;
-	// whether spatial mass effect enabled for establishment (individual, cohort mode)
-bool ifstochestab; // whether establishment stochastic (individual, cohort mode)
-bool ifstochmort; // whether mortality stochastic (individual, cohort mode)
-bool iffire; // whether fire enabled
-bool ifdisturb;
-	// whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
-bool ifcalcsla; // whether SLA calculated from leaf longevity (alt: prescribed)
-bool ifcalccton; // whether leaf C:N ratio minimum calculated from leaf longevity (alt: prescribed)
-int estinterval; // establishment interval in cohort mode (years)
-double distinterval;
-	// generic patch-destroying disturbance interval (individual, cohort mode)
 int npft; // number of possible PFTs
-bool ifcdebt;
-
-/// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
-bool ifcentury;
-/// whether plant growth limited by available nitrogen	
-bool ifnlim;
-/// number of years to allow spinup without nitrogen limitation	
-int freenyears;
-/// fraction of nitrogen relocated by plants from roots and leaves
-double nrelocfrac;
-/// first term in nitrogen fixation eqn
-double nfix_a;
-/// second term in nitrogen fixation eqn
-double nfix_b;
-
-// guess2008 - new inputs from the .ins file
-bool ifsmoothgreffmort;				// smooth growth efficiency mortality
-bool ifdroughtlimitedestab;			// whether establishment affected by growing season drought
-bool ifrainonwetdaysonly;			// rain on wet days only (1, true), or a little every day (0, false); 
-// bvoc
-bool ifbvoc; // BVOC calculations included
-
-wateruptaketype wateruptake;
-
-bool run_landcover;
-bool run[NLANDCOVERTYPES];
-bool lcfrac_fixed;
-bool all_fracs_const;
-bool ifslowharvestpool;				// If a slow harvested product pool is included in patchpft.
-int nyear_spinup;
-
-xtring state_path;
-bool restart;
-bool save_state;
-int state_year;
 
 Pftlist pftlist;
 

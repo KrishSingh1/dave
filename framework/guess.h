@@ -311,6 +311,12 @@ public:
 	
 	/// Whether the current mode is diurnal
 	bool diurnal() const { return subdaily > 1; }
+
+
+	/// Checks whether two Date objects represent the same date
+	bool operator==(const Date& other) const {
+		return year == other.year && day == other.day;
+	}
 };
 
 /// Object describing sub-daily periods

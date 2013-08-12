@@ -53,6 +53,23 @@ bool earlier_day(const Date& date, int calendar_year,
 	return d1 < d2;
 }
 
+// Compares a Date with a GuessNC::CF::DateTime to see if the Date is on a later day
+bool later_day(const Date& date, int calendar_year,
+               const GuessNC::CF::DateTime& date_time) {
+	std::vector<int> d1(3),d2(3);
+
+	d1[0] = calendar_year;
+	d2[0] = date_time.get_year();
+	
+	d1[1] = date.month+1;
+	d2[1] = date_time.get_month();
+
+	d1[2] = date.dayofmonth+1;
+	d2[2] = date_time.get_day();
+
+	return d1 > d2;	
+}
+
 }
 
 CFInput::CFInput()
@@ -161,51 +178,84 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 
 	int calendar_year = cf_temp->get_date_time(0).get_year() + date.year - nyear_spinup;
 
+	GuessNC::CF::DateTime last_date = cf_temp->get_date_time(cf_temp->get_timesteps()-1);
+
+	if (later_day(date, calendar_year, last_date)) {
+		return false;
+	}
+
 	climate.co2 = co2[calendar_year];
 
 	if (date.day == 0) {
-		double dprec[365];
+
+		// Extract daily values for all days in this year, either from
+		// spinup dataset or historical dataset
+
+		Date current_day = date;
+
+		while (current_day.year == date.year) {
+
+			// In the spinup?
+			if (earlier_day(current_day, calendar_year, cf_temp->get_date_time(0))) {
+				dtemp[current_day.day]  = spinup_temp[current_day.day];
+				dprec[current_day.day]  = spinup_prec[current_day.day];
+				dinsol[current_day.day] = spinup_insol[current_day.day];
+			}
+			else {
+				// Historical period
+
+				if (historic_timestep + 1 < cf_temp->get_timesteps()) {
+
+					++historic_timestep;
+					GuessNC::CF::DateTime dt = cf_temp->get_date_time(historic_timestep);
+
+					if (dt.get_month() == 2 && dt.get_day() == 29) {
+						++historic_timestep;
+					}
+				}
+				
+				if (historic_timestep < cf_temp->get_timesteps()) {
+					dtemp[current_day.day]  = cf_temp->get_value(historic_timestep);
+					dprec[current_day.day]  = cf_prec->get_value(historic_timestep);
+					dinsol[current_day.day] = cf_insol->get_value(historic_timestep);
+				}
+				else {
+					// Past the end of the historical period, these days wont be simulated.
+					dtemp[current_day.day] = 0;
+					dprec[current_day.day] = 0;
+					dinsol[current_day.day] = 0;
+				}
+			}
+
+			// Convert to units the model expects
+			dtemp[current_day.day] -= K2degC;
+			dprec[current_day.day] *= 3600*24;
+
+			current_day.next();
+		}
+
+		// Move to next year in spinup dataset
+
+		spinup_temp.nextyear();
+		spinup_prec.nextyear();
+		spinup_insol.nextyear();
+
+
+		// Get monthly ndep values and convert to daily
+
 		double mndrydep[12];
 		double mnwetdep[12];
 
 		// The ndep data set only goes up to 2009, after that we use the 2009 data
 		get_monthly_ndep(min(2009, calendar_year), mndrydep, mnwetdep);
 
-		// Distribute N deposition - without rain days
-		std::fill_n(dprec, 365, 0);
+		// Distribute N deposition
 		distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
 	}
 
-	// In the spinup?
-	if (earlier_day(date, calendar_year, cf_temp->get_date_time(0))) {
-		climate.temp  = spinup_temp[date.day];
-		climate.prec  = spinup_prec[date.day];
-		climate.insol = spinup_insol[date.day];
-
-		if (date.islastmonth && date.islastday) {
-			spinup_temp.nextyear();
-			spinup_prec.nextyear();
-			spinup_insol.nextyear();
-		}
-	}
-	else {
-		// Historical period
-
-		++historic_timestep;
-		GuessNC::CF::DateTime dt = cf_temp->get_date_time(historic_timestep);
-
-		if (dt.get_month() == 2 && dt.get_day() == 29) {
-			++historic_timestep;
-		}
-
-		climate.temp  = cf_temp->get_value(historic_timestep);
-		climate.prec  = cf_prec->get_value(historic_timestep);
-		climate.insol = cf_insol->get_value(historic_timestep);
-	}
-
-	// Convert to units the model expects
-	climate.temp -= K2degC;
-	climate.prec *= 3600*24;
+	climate.temp = dtemp[date.day];
+	climate.prec = dprec[date.day];
+	climate.insol = dinsol[date.day];
 
 	// Nitrogen deposition
 	climate.dndep = dndep[date.day];
@@ -217,10 +267,6 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 	if(ifbvoc){
 		//	  climate.dtr=ddtr[date.day];
 		fail("bvoc not supported by this input module");
-	}
-
-	if (historic_timestep + 1 == cf_temp->get_timesteps()) {
-		return false;
 	}
 
 	return true;

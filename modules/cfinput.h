@@ -54,10 +54,19 @@ private:
 
 	GenericSpinupData spinup_insol;
 
-	int historic_timestep;
+	/// Temperature for current gridcell and current year (deg C)
+	double dtemp[365];
+
+	/// Precipitation for current gridcell and current year (mm/day)
+	double dprec[365];
+
+	/// Insolation for current gridcell and current year (\see instype)
+	double dinsol[365];
 
 	// Daily N deposition for one year
 	double dndep[365];
+
+	int historic_timestep;
 };
 
 #endif // LPJ_GUESS_CFINPUT_H

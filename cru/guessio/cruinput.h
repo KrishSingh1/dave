@@ -15,6 +15,7 @@
 #include "gutil.h"
 #include "globalco2file.h"
 #include "spinupdata.h"
+#include "cru.h"
 
 class CRUInput : public InputModule {
 public:
@@ -33,10 +34,6 @@ public:
 
 
 	// Constants associated with historical climate data set
-
-	// number of years of historical climate
-	// CRU TS 3.0 has 106 years of data (1901-2006)
-	static const int NYEAR_HIST=106;
 
 	// calender year corresponding to first year in CRU climate data set
 	static const int FIRSTHISTYEAR=1901;
@@ -84,9 +81,9 @@ protected:
 	 */
 	virtual void adjust_raw_forcing_data(double lon,
 	                                     double lat,
-	                                     double hist_mtemp[NYEAR_HIST][12],
-	                                     double hist_mprec[NYEAR_HIST][12],
-	                                     double hist_msun[NYEAR_HIST][12]);
+	                                     double hist_mtemp[CRU::NYEAR_HIST][12],
+	                                     double hist_mprec[CRU::NYEAR_HIST][12],
+	                                     double hist_msun[CRU::NYEAR_HIST][12]);
 
 private:
 
@@ -134,15 +131,15 @@ private:
 
 	// Monthly temperature, precipitation and sunshine data for current grid cell
 	// and historical period
-	double hist_mtemp[NYEAR_HIST][12];
-	double hist_mprec[NYEAR_HIST][12];
-	double hist_msun[NYEAR_HIST][12];
+	double hist_mtemp[CRU::NYEAR_HIST][12];
+	double hist_mprec[CRU::NYEAR_HIST][12];
+	double hist_msun[CRU::NYEAR_HIST][12];
 
 	// Monthly frost days, precipitation days and DTR data for current grid cell
 	// and historical period
-	double hist_mfrs[NYEAR_HIST][12];
-	double hist_mwet[NYEAR_HIST][12];
-	double hist_mdtr[NYEAR_HIST][12];
+	double hist_mfrs[CRU::NYEAR_HIST][12];
+	double hist_mwet[CRU::NYEAR_HIST][12];
+	double hist_mdtr[CRU::NYEAR_HIST][12];
 
 	/// Monthly data on daily dry NHx deposition (kgN/m2/day)
 	double NHxDryDep[NYEAR_HISTNDEP][12];

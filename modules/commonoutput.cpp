@@ -363,7 +363,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		// The OutputRows object manages the next row of output for each
 		// output table
-		OutputRows out(output_channel, lon, lat, date.year);
+		OutputRows out(output_channel, lon, lat, date.get_calendar_year());
 
 		// guess2008 - reset monthly average across patches each year
 		for (m=0;m<12;m++)

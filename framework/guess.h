@@ -242,6 +242,7 @@ public:
 			dayct += data[month];
 		}
 		subdaily = 1;
+		first_calendar_year = 0;
 	}
 
 	/// Initialises date to day 0 of year 0 and sets intended number of simulation years

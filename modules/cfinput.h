@@ -26,7 +26,13 @@ public:
 
 	bool getclimate(Gridcell& gridcell);
 
+	static const int NYEAR_SPINUP_DATA=30;
+
 private:
+
+	/// Gets the first few years of data from cf_var and puts it into spinup_data
+	void load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_var,
+	                      GenericSpinupData& spinup_data);
 
 	/// Yearly CO2 data read from file
 	/**
@@ -36,14 +42,19 @@ private:
 	 */
 	GlobalCO2File co2;
 
-	std::auto_ptr<GuessNC::CF::GridcellOrderedVariable> cf_temp;
+	GuessNC::CF::GridcellOrderedVariable* cf_temp;
 
-	std::auto_ptr<GuessNC::CF::GridcellOrderedVariable> cf_prec;
+	GuessNC::CF::GridcellOrderedVariable* cf_prec;
 
-	std::auto_ptr<GuessNC::CF::GridcellOrderedVariable> cf_insol;
+	GuessNC::CF::GridcellOrderedVariable* cf_insol;
+
+	GenericSpinupData spinup_temp;
+
+	GenericSpinupData spinup_prec;
+
+	GenericSpinupData spinup_insol;
 
 	int historic_timestep;
-	int spinup_timestep;
 
 	// Daily N deposition for one year
 	double dndep[365];

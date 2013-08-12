@@ -29,6 +29,7 @@ set(source
   globalco2file.cpp
   ncompete.cpp
   commonoutput.cpp
+  spinupdata.cpp
   cfinput.cpp
   )
 

@@ -89,11 +89,9 @@ void CFInput::init() {
 	CRUInput::init();
 
 	// A warning about this input module not being proper from a scientific
-	// perspective yet. For instance we're not doing the spinup properly
-	// yet, and we're using historical ndep values for the future (if
-	// the NetCDF data set has a timespan that reaches further than the
-	// CRU data set). Also ndep isn't distributed correctly according
-	// to wet days.
+	// perspective yet. For instance we're using historical ndep values for 
+	// the future (if the NetCDF data set has a timespan that reaches further 
+	// than the CRU data set).
 	dprintf("Please note: this input module is a draft and not meant to be used for\n");
 	dprintf("anything except technical evaluation of the file format.\n");
 
@@ -138,6 +136,8 @@ void CFInput::init() {
 	// TODO: check that all variables have the same timespan
 	// check time resolution?
 	// other checks?
+
+	date.set_first_calendar_year(cf_temp->get_date_time(0).get_year() - nyear_spinup);
 }
 
 bool CFInput::getgridcell(Gridcell& gridcell) {
@@ -167,6 +167,74 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	return true;
 }
 
+void CFInput::populate_daily_arrays() {
+	// Extract daily values for all days in this year, either from
+	// spinup dataset or historical dataset
+
+	int calendar_year = date.get_calendar_year();
+
+	Date current_day = date;
+
+	while (current_day.year == date.year) {
+
+		// In the spinup?
+		if (earlier_day(current_day, calendar_year, cf_temp->get_date_time(0))) {
+			dtemp[current_day.day]  = spinup_temp[current_day.day];
+			dprec[current_day.day]  = spinup_prec[current_day.day];
+			dinsol[current_day.day] = spinup_insol[current_day.day];
+		}
+		else {
+			// Historical period
+
+			if (historic_timestep + 1 < cf_temp->get_timesteps()) {
+
+				++historic_timestep;
+				GuessNC::CF::DateTime dt = cf_temp->get_date_time(historic_timestep);
+
+				if (dt.get_month() == 2 && dt.get_day() == 29) {
+					++historic_timestep;
+				}
+			}
+				
+			if (historic_timestep < cf_temp->get_timesteps()) {
+				dtemp[current_day.day]  = cf_temp->get_value(historic_timestep);
+				dprec[current_day.day]  = cf_prec->get_value(historic_timestep);
+				dinsol[current_day.day] = cf_insol->get_value(historic_timestep);
+			}
+			else {
+				// Past the end of the historical period, these days wont be simulated.
+				dtemp[current_day.day] = 0;
+				dprec[current_day.day] = 0;
+				dinsol[current_day.day] = 0;
+			}
+		}
+
+		// Convert to units the model expects
+		dtemp[current_day.day] -= K2degC;
+		dprec[current_day.day] *= 3600*24;
+
+		current_day.next();
+	}
+
+	// Move to next year in spinup dataset
+
+	spinup_temp.nextyear();
+	spinup_prec.nextyear();
+	spinup_insol.nextyear();
+
+
+	// Get monthly ndep values and convert to daily
+
+	double mndrydep[12];
+	double mnwetdep[12];
+
+	// The ndep data set only goes up to 2009, after that we use the 2009 data
+	get_monthly_ndep(min(2009, calendar_year), mndrydep, mnwetdep);
+
+	// Distribute N deposition
+	distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
+}
+
 bool CFInput::getclimate(Gridcell& gridcell) {
 	
 	// We won't call the base class' getclimate here since:
@@ -176,7 +244,7 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 
 	Climate& climate = gridcell.climate;
 
-	int calendar_year = cf_temp->get_date_time(0).get_year() + date.year - nyear_spinup;
+	int calendar_year = date.get_calendar_year();
 
 	GuessNC::CF::DateTime last_date = cf_temp->get_date_time(cf_temp->get_timesteps()-1);
 
@@ -187,70 +255,7 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 	climate.co2 = co2[calendar_year];
 
 	if (date.day == 0) {
-
-		// Extract daily values for all days in this year, either from
-		// spinup dataset or historical dataset
-
-		Date current_day = date;
-
-		while (current_day.year == date.year) {
-
-			// In the spinup?
-			if (earlier_day(current_day, calendar_year, cf_temp->get_date_time(0))) {
-				dtemp[current_day.day]  = spinup_temp[current_day.day];
-				dprec[current_day.day]  = spinup_prec[current_day.day];
-				dinsol[current_day.day] = spinup_insol[current_day.day];
-			}
-			else {
-				// Historical period
-
-				if (historic_timestep + 1 < cf_temp->get_timesteps()) {
-
-					++historic_timestep;
-					GuessNC::CF::DateTime dt = cf_temp->get_date_time(historic_timestep);
-
-					if (dt.get_month() == 2 && dt.get_day() == 29) {
-						++historic_timestep;
-					}
-				}
-				
-				if (historic_timestep < cf_temp->get_timesteps()) {
-					dtemp[current_day.day]  = cf_temp->get_value(historic_timestep);
-					dprec[current_day.day]  = cf_prec->get_value(historic_timestep);
-					dinsol[current_day.day] = cf_insol->get_value(historic_timestep);
-				}
-				else {
-					// Past the end of the historical period, these days wont be simulated.
-					dtemp[current_day.day] = 0;
-					dprec[current_day.day] = 0;
-					dinsol[current_day.day] = 0;
-				}
-			}
-
-			// Convert to units the model expects
-			dtemp[current_day.day] -= K2degC;
-			dprec[current_day.day] *= 3600*24;
-
-			current_day.next();
-		}
-
-		// Move to next year in spinup dataset
-
-		spinup_temp.nextyear();
-		spinup_prec.nextyear();
-		spinup_insol.nextyear();
-
-
-		// Get monthly ndep values and convert to daily
-
-		double mndrydep[12];
-		double mnwetdep[12];
-
-		// The ndep data set only goes up to 2009, after that we use the 2009 data
-		get_monthly_ndep(min(2009, calendar_year), mndrydep, mnwetdep);
-
-		// Distribute N deposition
-		distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
+		populate_daily_arrays();
 	}
 
 	climate.temp = dtemp[date.day];

@@ -34,6 +34,9 @@ private:
 	void load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_var,
 	                      GenericSpinupData& spinup_data);
 
+	/// Fills dtemp, dprec, etc. with forcing data for the current year
+	void populate_daily_arrays();
+
 	/// Yearly CO2 data read from file
 	/**
 	 * This object is indexed with calendar years, so to get co2 value for

@@ -219,6 +219,8 @@ public:
 	/// true if middle day of month, false otherwise
 	bool ismidday;
 
+	/// The calendar year corresponding to simulation year 0
+	int first_calendar_year;
 
 private:
 
@@ -312,10 +314,20 @@ public:
 	/// Whether the current mode is diurnal
 	bool diurnal() const { return subdaily > 1; }
 
+	/// Sets calendar year for simulation year 0
+	/** Astronomical year numbering is used, so year 1 BC is represented by 0,
+	 *  2 BC = -1 etc. See ISO 8601.
+	 */
+	void set_first_calendar_year(int calendar_year) {
+		first_calendar_year = calendar_year;
+	}
 
-	/// Checks whether two Date objects represent the same date
-	bool operator==(const Date& other) const {
-		return year == other.year && day == other.day;
+	/// Returns the calendar year corresponding to the current simulation year
+	/** Astronimical year numbering is used, so year 1 BC is represented by 0,
+	 *  2 BC = -1 etc. See ISO 8601.
+	 */
+	int get_calendar_year() const {
+		return year + first_calendar_year;
 	}
 };
 

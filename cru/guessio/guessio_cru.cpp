@@ -172,17 +172,11 @@ void CRUInput::init() {
 void CRUInput::get_monthly_ndep(int calendar_year,
                                 double* mndrydep,
                                 double* mnwetdep) {
-	int ndep_year = 0;
 
-	if (calendar_year >= Lamarque::FIRSTHISTYEARNDEP) {
-		ndep_year = (int)((calendar_year - Lamarque::FIRSTHISTYEARNDEP)/10);
-	}
-
-	for (int m = 0; m < 12; m++) {
-		mndrydep[m] = NHxDryDep[ndep_year][m] + NOyDryDep[ndep_year][m];
-		
-		mnwetdep[m] = NHxWetDep[ndep_year][m] + NOyWetDep[ndep_year][m];
-	}
+	Lamarque::get_one_calendar_year(calendar_year,
+	                                NHxDryDep, NHxWetDep,
+	                                NOyDryDep, NOyWetDep,
+	                                mndrydep, mnwetdep);
 }
 
 

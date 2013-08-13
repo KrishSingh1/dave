@@ -68,4 +68,29 @@ void getndep(const char* file_ndep,
 	}
 }
 
+void get_one_calendar_year(int calendar_year,
+                           double NHxDryDep[NYEAR_HISTNDEP][12],
+                           double NHxWetDep[NYEAR_HISTNDEP][12],
+                           double NOyDryDep[NYEAR_HISTNDEP][12],
+                           double NOyWetDep[NYEAR_HISTNDEP][12],
+                           double mndrydep[12],
+                           double mnwetdep[12]) {
+	int ndep_year = 0;
+
+	if (calendar_year >= Lamarque::FIRSTHISTYEARNDEP) {
+		ndep_year = (int)((calendar_year - Lamarque::FIRSTHISTYEARNDEP)/10);
+	}
+
+	if (ndep_year >= NYEAR_HISTNDEP) {
+		fail("Tried to get ndep for year %d (not included in Lamarque ndep data set)",
+		     calendar_year);
+	}
+
+	for (int m = 0; m < 12; m++) {
+		mndrydep[m] = NHxDryDep[ndep_year][m] + NOyDryDep[ndep_year][m];
+		
+		mnwetdep[m] = NHxWetDep[ndep_year][m] + NOyWetDep[ndep_year][m];
+	}	
+}
+
 }

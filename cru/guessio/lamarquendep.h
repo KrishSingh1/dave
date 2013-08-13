@@ -39,6 +39,31 @@ void getndep(const char* file_ndep,
              double NOyDryDep[NYEAR_HISTNDEP][12],
              double NOyWetDep[NYEAR_HISTNDEP][12]);
 
+/// Returns nitrogen deposition for one year
+/** Given arrays of ndep data as returned by getndep, and a calendar year,
+ *  this function chooses values from the correct 10 year interval, and
+ *  sums the different types of wet and dry deposition.
+ *
+ *  If calendar_year is earlier than the first year in data set (1850),
+ *  the values for the first year will be used. If later than the last
+ *  year (2009), fail() is called and the program terminated.
+ *
+ *  \param calendar_year The year for which to get ndep data
+ *  \param NHxDryDep     As returned by getndep
+ *  \param NHxWetDep     As returned by getndep
+ *  \param NOyDryDep     As returned by getndep
+ *  \param NOyWetDep     As returned by getndep
+ *  \param mndrydep      Monthly values for dry nitrogen deposition (kgN/m2/day)
+ *  \param mnwetdep      Monthly values for wet nitrogen deposition (kgN/m2/day)
+ */
+void get_one_calendar_year(int calendar_year,
+                           double NHxDryDep[NYEAR_HISTNDEP][12],
+                           double NHxWetDep[NYEAR_HISTNDEP][12],
+                           double NOyDryDep[NYEAR_HISTNDEP][12],
+                           double NOyWetDep[NYEAR_HISTNDEP][12],
+                           double mndrydep[12],
+                           double mnwetdep[12]);
+
 }
 
 #endif // LPJ_GUESS_LAMARQUENDEP_H

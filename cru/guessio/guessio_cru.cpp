@@ -22,10 +22,6 @@
 #include <algorithm>
 #include "globalco2file.h"
 
-// header file for reading binary data archive of global nitrogen deposition
-#include "GlobalNitrogenDeposition.h"
-
-
 REGISTER_INPUT_MODULE("cru", CRUInput)
 
 CRUInput::CRUInput()
@@ -178,8 +174,8 @@ void CRUInput::get_monthly_ndep(int calendar_year,
                                 double* mnwetdep) {
 	int ndep_year = 0;
 
-	if (calendar_year >= FIRSTHISTYEARNDEP) {
-		ndep_year = (int)((calendar_year - FIRSTHISTYEARNDEP)/10);
+	if (calendar_year >= Lamarque::FIRSTHISTYEARNDEP) {
+		ndep_year = (int)((calendar_year - Lamarque::FIRSTHISTYEARNDEP)/10);
 	}
 
 	for (int m = 0; m < 12; m++) {
@@ -234,63 +230,6 @@ bool CRUInput::loadlandcover(Gridcell& gridcell, Coord c)	{
 	return LUerror;
 }
 
-/// Retrieves nitrogen deposition for a particular gridcell
-/** The values are either taken from a binary archive file or when it's not
- *  provided default to pre-industrial level of 2 kgN/ha/year.
- *
- *  The binary archive files have nitrogen deposition in gN/m2 on a monthly timestep
- *  for 16 years with 10 year interval starting from 1850 (Lamarque et. al., 2011).
- *
- *  \param  lon         Longitude
- *  \param  lat         Latitude
- */
-void CRUInput::getndep(double lon, double lat) {
-	
-	const double convert = 1e-7;				// converting from gN ha-1 to kgN m-2
-
-	xtring file_ndep = param["file_ndep"].str;
-
-	if (file_ndep == "") {
-
-		// pre-industrial total nitrogen depostion set to 2 kgN/ha/year [kgN m-2]
-		double dailyndep = 2000.0 / (4 * 365) * convert;
-
-		for (int y=0; y<NYEAR_HISTNDEP; y++) {
-			for (int m=0; m<12; m++) {
-				NHxDryDep[y][m] = dailyndep;
-				NHxWetDep[y][m] = dailyndep;
-				NOyDryDep[y][m] = dailyndep;
-				NOyWetDep[y][m] = dailyndep;
-			}
-		}
-	}
-	else {
-		GlobalNitrogenDepositionArchive ark;
-		if (!ark.open(file_ndep)) {
-			fail("Could not open %s for input", (char*)file_ndep);
-		}
-
-		GlobalNitrogenDeposition rec;
-		rec.longitude = lon;
-		rec.latitude = lat;
-
-		if (!ark.getindex(rec)) {
-			ark.close();
-			fail("Grid cell not found in %s", (char*)file_ndep);
-		}
-
-		// Found the record, get the values
-		for (int y=0; y<NYEAR_HISTNDEP; y++) {
-			for (int m=0; m<12; m++) {
-				NHxDryDep[y][m] = rec.NHxDry[y*12+m] * convert;
-				NHxWetDep[y][m] = rec.NHxWet[y*12+m] * convert;
-				NOyDryDep[y][m] = rec.NOyDry[y*12+m] * convert;
-				NOyWetDep[y][m] = rec.NOyWet[y*12+m] * convert;
-			}
-		}
-		ark.close();
-	}
-}
 
 /// Called by the framework at the start of the simulation for a particular grid cell
 bool CRUInput::getgridcell(Gridcell& gridcell) {
@@ -416,7 +355,9 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
 		
 		// Get nitrogen deposition data
-		getndep(lon, lat);
+		Lamarque::getndep(param["file_ndep"].str, lon, lat,
+		                  NHxDryDep, NHxWetDep,
+		                  NOyDryDep, NOyWetDep);
 
 		// The insolation data will be sent (in function getclimate, below)
 		// as percentage sunshine
@@ -677,7 +618,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 
 		// Extract N deposition to use for this year,
 		// monthly means to be distributed into daily values further down
-		int first_ndep_year = nyear_spinup + FIRSTHISTYEARNDEP - FIRSTHISTYEAR;
+		int first_ndep_year = nyear_spinup + Lamarque::FIRSTHISTYEARNDEP - FIRSTHISTYEAR;
 
 		double mndrydep[12], mnwetdep[12];
 		int ndep_year = 0;

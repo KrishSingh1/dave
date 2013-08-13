@@ -16,6 +16,7 @@
 #include "globalco2file.h"
 #include "spinupdata.h"
 #include "cru.h"
+#include "lamarquendep.h"
 
 class CRUInput : public InputModule {
 public:
@@ -37,12 +38,6 @@ public:
 
 	// calender year corresponding to first year in CRU climate data set
 	static const int FIRSTHISTYEAR=1901;
-
-	// calender year corresponding to first year nitrogen deposition
-	static const int FIRSTHISTYEARNDEP=1850;
-
-	// number of years of historical nitrogen deposition 
-	static const int NYEAR_HISTNDEP=16;
 
 	// number of years to use for temperature-detrended spinup data set
 	// (not to be confused with the number of years to spinup model for, which
@@ -99,8 +94,6 @@ private:
 
 	bool loadlandcover(Gridcell& gridcell, Coord c);
 
-	void getndep(double lon, double lat);
-
 	/// search radius to use when finding CRU data
 	double searchradius;
 
@@ -142,13 +135,13 @@ private:
 	double hist_mdtr[CRU::NYEAR_HIST][12];
 
 	/// Monthly data on daily dry NHx deposition (kgN/m2/day)
-	double NHxDryDep[NYEAR_HISTNDEP][12];
+	double NHxDryDep[Lamarque::NYEAR_HISTNDEP][12];
 	/// Monthly data on daily wet NHx deposition (kgN/m2/day)
-	double NHxWetDep[NYEAR_HISTNDEP][12];
+	double NHxWetDep[Lamarque::NYEAR_HISTNDEP][12];
 	/// Monthly data on daily dry NOy deposition (kgN/m2/day)
-	double NOyDryDep[NYEAR_HISTNDEP][12];
+	double NOyDryDep[Lamarque::NYEAR_HISTNDEP][12];
 	/// Monthly data on daily wet NOy deposition (kgN/m2/day)
-	double NOyWetDep[NYEAR_HISTNDEP][12];
+	double NOyWetDep[Lamarque::NYEAR_HISTNDEP][12];
 
 	// Spinup data sets for current grid cell
 	Spinup_data spinup_mtemp;

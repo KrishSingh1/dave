@@ -75,7 +75,21 @@ bool later_day(const Date& date, int calendar_year,
 CFInput::CFInput()
 	: cf_temp(0),
 	  cf_prec(0),
-	  cf_insol(0) {
+	  cf_insol(0),
+	  lc_fixed_frac(NLANDCOVERTYPES, 0),
+	  equal_landcover_area(false) {
+
+	// Not used by this input module currently, but included as parameters so
+	// common ins files can be used.
+
+	declare_parameter("equal_landcover_area", &equal_landcover_area, "Whether enforced static landcover fractions are equal-sized stands of all included landcovers (0,1)");
+	declare_parameter("lc_fixed_urban", &lc_fixed_frac[URBAN], 0, 100, "% lc_fixed_urban");
+	declare_parameter("lc_fixed_cropland", &lc_fixed_frac[CROPLAND], 0, 100, "% lc_fixed_cropland");
+	declare_parameter("lc_fixed_pasture", &lc_fixed_frac[PASTURE], 0, 100, "% lc_fixed_pasture");
+	declare_parameter("lc_fixed_forest", &lc_fixed_frac[FOREST], 0, 100, "% lc_fixed_forest");
+	declare_parameter("lc_fixed_natural", &lc_fixed_frac[NATURAL], 0, 100, "% lc_fixed_natural");
+	declare_parameter("lc_fixed_peatland", &lc_fixed_frac[PEATLAND], 0, 100, "% lc_fixed_peatland");
+
 }
 
 CFInput::~CFInput() {
@@ -86,8 +100,6 @@ CFInput::~CFInput() {
 
 void CFInput::init() {
 
-	CRUInput::init();
-
 	// A warning about this input module not being proper from a scientific
 	// perspective yet. For instance we're using historical ndep values for 
 	// the future (if the NetCDF data set has a timespan that reaches further 
@@ -95,8 +107,42 @@ void CFInput::init() {
 	dprintf("Please note: this input module is a draft and not meant to be used for\n");
 	dprintf("anything except technical evaluation of the file format.\n");
 
+	// Read list of grid coordinates and store in gridlist member variable
+
+	// Retrieve name of grid list file as read from ins file
+	xtring file_gridlist=param["file_gridlist"].str;
+
+	FILE* in_grid=fopen(file_gridlist,"r");
+	if (!in_grid) fail("CFInput::init: could not open %s for input",(char*)file_gridlist);
+
+	bool eof = false;
+	while (!eof) {
+		
+		// Read next record in file
+		int rlat, rlon;
+		xtring descrip;
+		eof=!readfor(in_grid,"i,i,a#",&rlat,&rlon,&descrip);
+
+		if (!eof) {
+			// add new coordinate to grid list
+			Coord c;
+
+			c.rlon=rlon;
+			c.rlat=rlat;
+			c.descrip=descrip;
+
+			gridlist.push_back(c);
+		}
+	}
+
+	fclose(in_grid);
+	
+	current_gridcell = gridlist.begin();
+
 	// Read CO2 data from file
 	co2.load_file(param["file_co2"].str);
+
+	file_cru = param["file_cru"].str;
 	
 	// Try to open the NetCDF files
 	try {
@@ -141,14 +187,13 @@ void CFInput::init() {
 }
 
 bool CFInput::getgridcell(Gridcell& gridcell) {
-	if (!CRUInput::getgridcell(gridcell)) {
+	
+	if (current_gridcell == gridlist.end()) {
 		return false;
 	}
 
-	// Somehow get these based on the gridcell's coordinates
-	int rlon = 0, rlat = 0;
-
-	// If it didn't work, call CRUInput::getgridcell until it works
+	int rlon = current_gridcell->rlon;
+	int rlat = current_gridcell->rlat;
 
 	cf_temp->load_data_for(rlon, rlat);
 	cf_prec->load_data_for(rlon, rlat);
@@ -161,6 +206,33 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	spinup_temp.detrend_data();
 
 	gridcell.climate.instype = cf_standard_name_to_insoltype(cf_insol->get_standard_name());
+
+	double lon, lat;
+	
+	cf_temp->get_coords_for(rlon, rlat, lon, lat);
+
+	gridcell.set_coordinates(lon, lat);
+
+	// Find nearest CRU grid cell in order to get the soilcode
+
+	int soilcode;
+	double cru_lon = lon, cru_lat = lat;
+	double dummy[CRU::NYEAR_HIST][12];
+
+	const double searchradius = 1;
+
+	if (!CRU::findnearestCRUdata(searchradius, file_cru, cru_lon, cru_lat, soilcode,
+	                             dummy, dummy, dummy)) {
+		fail("Failed to find soil code from CRU archive, close to coordinates (%g,%g)", cru_lon, cru_lat);
+	}
+
+	// Get nitrogen deposition, using the found CRU coordinates
+	Lamarque::getndep(param["file_ndep"].str, cru_lon, cru_lat,
+	                  NHxDryDep, NHxWetDep,
+	                  NOyDryDep, NOyWetDep);
+
+	// Setup the soil type
+	soilparameters(gridcell.soiltype, soilcode);
 
 	historic_timestep = -1;
 
@@ -229,10 +301,20 @@ void CFInput::populate_daily_arrays() {
 	double mnwetdep[12];
 
 	// The ndep data set only goes up to 2009, after that we use the 2009 data
-	get_monthly_ndep(min(2009, calendar_year), mndrydep, mnwetdep);
+	Lamarque::get_one_calendar_year(min(2009, calendar_year),
+	                                NHxDryDep, NHxWetDep,
+	                                NOyDryDep, NOyWetDep,
+	                                mndrydep, mnwetdep);
 
 	// Distribute N deposition
 	distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
+}
+
+void CFInput::getlandcover(Gridcell& gridcell) {
+	for (int i = 0; i < NLANDCOVERTYPES; ++i) {
+		gridcell.landcoverfrac[i] = 0;
+	}
+	gridcell.landcoverfrac[NATURAL] = 1;
 }
 
 bool CFInput::getclimate(Gridcell& gridcell) {
@@ -249,6 +331,7 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 	GuessNC::CF::DateTime last_date = cf_temp->get_date_time(cf_temp->get_timesteps()-1);
 
 	if (later_day(date, calendar_year, last_date)) {
+		++current_gridcell;
 		return false;
 	}
 

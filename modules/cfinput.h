@@ -14,7 +14,7 @@
 #include "guessnc.h"
 #include <memory>
 
-class CFInput : public CRUInput {
+class CFInput : public InputModule {
 public:
 	CFInput();
 
@@ -26,9 +26,27 @@ public:
 
 	bool getclimate(Gridcell& gridcell);
 
+	void getlandcover(Gridcell& gridcell);
+
 	static const int NYEAR_SPINUP_DATA=30;
 
 private:
+
+	struct Coord {
+
+		// Type for storing grid cell longitude, latitude and description text
+		
+		int id;
+		int rlon;
+		int rlat;
+		xtring descrip;
+	};
+
+	/// The grid cells to simulate
+	std::vector<Coord> gridlist;
+
+	/// The current grid cell to simulate
+	std::vector<Coord>::iterator current_gridcell;
 
 	/// Gets the first few years of data from cf_var and puts it into spinup_data
 	void load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_var,
@@ -69,7 +87,27 @@ private:
 	// Daily N deposition for one year
 	double dndep[365];
 
+	/// Current timestep CF files
 	int historic_timestep;
+
+	/// Path to CRU binary archive
+	xtring file_cru;
+
+	/// Monthly data on daily dry NHx deposition (kgN/m2/day)
+	double NHxDryDep[Lamarque::NYEAR_HISTNDEP][12];
+	/// Monthly data on daily wet NHx deposition (kgN/m2/day)
+	double NHxWetDep[Lamarque::NYEAR_HISTNDEP][12];
+	/// Monthly data on daily dry NOy deposition (kgN/m2/day)
+	double NOyDryDep[Lamarque::NYEAR_HISTNDEP][12];
+	/// Monthly data on daily wet NOy deposition (kgN/m2/day)
+	double NOyWetDep[Lamarque::NYEAR_HISTNDEP][12];
+
+	/// Landcover fractions read from ins-file (% area).
+	/** One entry for each land cover type */
+	std::vector<int> lc_fixed_frac;
+
+	/// Whether gridcell is divided into equal active landcover fractions.
+	bool equal_landcover_area;
 };
 
 #endif // LPJ_GUESS_CFINPUT_H

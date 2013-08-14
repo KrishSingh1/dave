@@ -36,10 +36,10 @@ private:
 
 		// Type for storing grid cell longitude, latitude and description text
 		
-		int id;
 		int rlon;
 		int rlat;
-		xtring descrip;
+		int landid;
+		std::string descrip;
 	};
 
 	/// The grid cells to simulate

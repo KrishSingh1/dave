@@ -11,6 +11,8 @@
 #include "cfinput.h"
 #include "guess.h"
 #include "driver.h"
+#include <fstream>
+#include <sstream>
 
 REGISTER_INPUT_MODULE("cf", CFInput)
 
@@ -107,38 +109,6 @@ void CFInput::init() {
 	dprintf("Please note: this input module is a draft and not meant to be used for\n");
 	dprintf("anything except technical evaluation of the file format.\n");
 
-	// Read list of grid coordinates and store in gridlist member variable
-
-	// Retrieve name of grid list file as read from ins file
-	xtring file_gridlist=param["file_gridlist"].str;
-
-	FILE* in_grid=fopen(file_gridlist,"r");
-	if (!in_grid) fail("CFInput::init: could not open %s for input",(char*)file_gridlist);
-
-	bool eof = false;
-	while (!eof) {
-		
-		// Read next record in file
-		int rlat, rlon;
-		xtring descrip;
-		eof=!readfor(in_grid,"i,i,a#",&rlat,&rlon,&descrip);
-
-		if (!eof) {
-			// add new coordinate to grid list
-			Coord c;
-
-			c.rlon=rlon;
-			c.rlat=rlat;
-			c.descrip=descrip;
-
-			gridlist.push_back(c);
-		}
-	}
-
-	fclose(in_grid);
-	
-	current_gridcell = gridlist.begin();
-
 	// Read CO2 data from file
 	co2.load_file(param["file_co2"].str);
 
@@ -183,6 +153,49 @@ void CFInput::init() {
 	// check time resolution?
 	// other checks?
 
+
+	// Read list of localities and store in gridlist member variable
+
+	// Retrieve name of grid list file as read from ins file
+	xtring file_gridlist=param["file_gridlist"].str;
+
+	std::ifstream ifs(file_gridlist, std::ifstream::in);
+
+	if (!ifs.good()) fail("CFInput::init: could not open %s for input",(char*)file_gridlist);
+
+	std::string line;
+	while (getline(ifs, line)) {
+		
+		// Read next record in file
+		int rlat, rlon;
+		int landid;
+		std::string descrip;
+		Coord c;
+
+		std::istringstream iss(line);
+
+		if (cf_temp->is_reduced()) {
+			if (iss >> landid) {
+				iss >> descrip;
+
+				c.landid = landid;
+				c.descrip = descrip;
+			}
+		}
+		else {
+			if (iss >> rlat >> rlon) {
+				iss >> descrip;
+				
+				c.rlat = rlat;
+				c.rlon = rlon;
+				c.descrip = descrip;
+			}
+		}
+		gridlist.push_back(c);
+	}
+
+	current_gridcell = gridlist.begin();
+
 	date.set_first_calendar_year(cf_temp->get_date_time(0).get_year() - nyear_spinup);
 }
 
@@ -194,10 +207,22 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 
 	int rlon = current_gridcell->rlon;
 	int rlat = current_gridcell->rlat;
+	int landid = current_gridcell->landid;
 
-	cf_temp->load_data_for(rlon, rlat);
-	cf_prec->load_data_for(rlon, rlat);
-	cf_insol->load_data_for(rlon, rlat);
+	if (cf_temp->is_reduced()) {
+		if (!cf_temp->load_data_for(landid) ||
+		    !cf_prec->load_data_for(landid) ||
+		    !cf_insol->load_data_for(landid)) {
+			fail("Failed to load data for (%d) from NetCDF files", landid);
+		}
+	}
+	else {
+		if (!cf_temp->load_data_for(rlon, rlat) ||
+		    !cf_prec->load_data_for(rlon, rlat) ||
+		    !cf_insol->load_data_for(rlon, rlat)) {
+			fail("Failed to load data for (%d, %d) from NetCDF files", rlat, rlon);
+		}		
+	}
 
 	load_spinup_data(cf_temp, spinup_temp);
 	load_spinup_data(cf_prec, spinup_prec);
@@ -208,8 +233,13 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	gridcell.climate.instype = cf_standard_name_to_insoltype(cf_insol->get_standard_name());
 
 	double lon, lat;
-	
-	cf_temp->get_coords_for(rlon, rlat, lon, lat);
+
+	if (cf_temp->is_reduced()) {
+		cf_temp->get_coords_for(landid, lon, lat);
+	}
+	else {
+		cf_temp->get_coords_for(rlon, rlat, lon, lat);
+	}
 
 	gridcell.set_coordinates(lon, lat);
 
@@ -319,11 +349,6 @@ void CFInput::getlandcover(Gridcell& gridcell) {
 
 bool CFInput::getclimate(Gridcell& gridcell) {
 	
-	// We won't call the base class' getclimate here since:
-	// - the mapping from simulation year to calendar year might be different
-	//   (so we could get incorrect values for i.e. co2 or ndep)
-	// - we want to be able to continue after the last CRU year if needed
-
 	Climate& climate = gridcell.climate;
 
 	int calendar_year = date.get_calendar_year();

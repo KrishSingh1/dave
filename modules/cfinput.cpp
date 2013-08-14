@@ -165,7 +165,7 @@ void CFInput::init() {
 
 	std::string line;
 	while (getline(ifs, line)) {
-		
+
 		// Read next record in file
 		int rlat, rlon;
 		int landid;
@@ -180,6 +180,8 @@ void CFInput::init() {
 
 				c.landid = landid;
 				c.descrip = descrip;
+
+				gridlist.push_back(c);
 			}
 		}
 		else {
@@ -189,9 +191,10 @@ void CFInput::init() {
 				c.rlat = rlat;
 				c.rlon = rlon;
 				c.descrip = descrip;
+
+				gridlist.push_back(c);
 			}
 		}
-		gridlist.push_back(c);
 	}
 
 	current_gridcell = gridlist.begin();
@@ -266,6 +269,11 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 
 	historic_timestep = -1;
 
+	dprintf("\nCommencing simulation for stand at (%g,%g)", lon, lat);
+	if (current_gridcell->descrip != "") 
+		dprintf(" (%s)\n\n", current_gridcell->descrip.c_str());
+	else dprintf("\n\n");
+	
 	return true;
 }
 

@@ -38,6 +38,11 @@ bool first_day_of_year(GuessNC::CF::DateTime dt) {
 	return dt.get_month() == 1 && dt.get_day() == 1;
 }
 
+// Checks if a DateTime is in January
+bool first_month_of_year(GuessNC::CF::DateTime dt) {
+	return dt.get_month() == 1;
+}
+
 // Compares a Date with a GuessNC::CF::DateTime to see if the Date is on an earlier day
 bool earlier_day(const Date& date, int calendar_year, 
                  const GuessNC::CF::DateTime& date_time) {
@@ -70,6 +75,41 @@ bool later_day(const Date& date, int calendar_year,
 	d2[2] = date_time.get_day();
 
 	return d1 > d2;	
+}
+
+// Checks if the variable contains daily data
+bool is_daily(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
+
+	// Check if first and second timestep is one day apart
+
+	DateTime dt1 = cf_var->get_date_time(0);
+	DateTime dt2 = cf_var->get_date_time(1);
+
+	dt1.add_time(1, GuessNC::CF::DAYS, cf_var->get_calendar_type());
+
+	return dt1 == dt2;
+}
+
+// Returns a DateTime in the last day for which the variable has data.
+// For daily data, this is simply the day of the last timestep, for monthly data
+// we need to find the last day of the last timestep's month.
+GuessNC::CF::DateTime last_day_to_simulate(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
+	GuessNC::CF::DateTime last = cf_var->get_date_time(cf_var->get_timesteps()-1);
+	if (is_daily(cf_var)) {
+		return last;
+	}
+	else {
+		// Not daily, assume monthly.
+		GuessNC::CF::DateTime prev = last;
+		GuessNC::CF::DateTime next = last;
+
+		do {
+			prev = next;
+			next.add_time(1, GuessNC::CF::DAYS, cf_var->get_calendar_type());
+		} while (next.get_month() == last.get_month());
+
+		return prev;
+	}
 }
 
 }
@@ -267,7 +307,9 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	// Setup the soil type
 	soilparameters(gridcell.soiltype, soilcode);
 
-	historic_timestep = -1;
+	historic_timestep_temp = -1;
+	historic_timestep_prec = -1;
+	historic_timestep_insol = -1;
 
 	dprintf("\nCommencing simulation for stand at (%g,%g)", lon, lat);
 	if (current_gridcell->descrip != "") 
@@ -277,53 +319,101 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	return true;
 }
 
+void CFInput::populate_daily_array(double daily[365], 
+                                   const GenericSpinupData& spinup,
+                                   GridcellOrderedVariable* cf_historic,
+                                   int& historic_timestep) {
+
+	// Extract daily values for all days in this year, for one variable,
+	// either from spinup dataset or historical dataset
+
+	int calendar_year = date.get_calendar_year();
+
+	if (is_daily(cf_historic)) {
+
+		// This function is called at the first day of the year, so current_day
+		// starts at Jan 1, then we step through the whole year, getting data
+		// either from spinup or historical period.
+		Date current_day = date;
+
+		while (current_day.year == date.year) {
+
+			// In the spinup?
+			if (earlier_day(current_day, calendar_year, cf_historic->get_date_time(0))) {
+				daily[current_day.day]  = spinup[current_day.day];
+			}
+			else {
+				// Historical period
+
+				if (historic_timestep + 1 < cf_historic->get_timesteps()) {
+
+					++historic_timestep;
+					GuessNC::CF::DateTime dt = cf_historic->get_date_time(historic_timestep);
+
+					if (dt.get_month() == 2 && dt.get_day() == 29) {
+						++historic_timestep;
+					}
+				}
+				
+				if (historic_timestep < cf_historic->get_timesteps()) {
+					daily[current_day.day]  = cf_historic->get_value(historic_timestep);
+				}
+				else {
+					// Past the end of the historical period, these days wont be simulated.
+					daily[current_day.day] = 0;
+				}
+			}
+
+			current_day.next();
+		}
+	}
+	else {
+		// for now, assume that data set must be monthly since it isn't daily
+
+		double months[12];
+
+		for (int m = 0; m < 12; ++m) {
+
+			GuessNC::CF::DateTime first_date = cf_historic->get_date_time(0);
+
+			// In the spinup?
+			if (calendar_year < first_date.get_year() ||
+			    (calendar_year == first_date.get_year() &&
+			     m+1 < first_date.get_month())) {
+				months[m] = spinup[m];
+			}
+			else {
+				// Historical period
+				if (historic_timestep + 1 < cf_historic->get_timesteps()) {
+					++historic_timestep;
+				}
+
+				if (historic_timestep < cf_historic->get_timesteps()) {
+					months[m] = cf_historic->get_value(historic_timestep);
+				}
+				else {
+					// Past the end of the historical period, these months wont be simulated.
+					months[m] = 0;
+				}
+			}
+		}
+
+		interp_monthly_means(months, daily);
+	}
+}
+
 void CFInput::populate_daily_arrays() {
 	// Extract daily values for all days in this year, either from
 	// spinup dataset or historical dataset
 
-	int calendar_year = date.get_calendar_year();
+	populate_daily_array(dtemp, spinup_temp, cf_temp, historic_timestep_temp);
+	populate_daily_array(dprec, spinup_prec, cf_prec, historic_timestep_prec);
+	populate_daily_array(dinsol, spinup_insol, cf_insol, historic_timestep_insol);
 
-	Date current_day = date;
-
-	while (current_day.year == date.year) {
-
-		// In the spinup?
-		if (earlier_day(current_day, calendar_year, cf_temp->get_date_time(0))) {
-			dtemp[current_day.day]  = spinup_temp[current_day.day];
-			dprec[current_day.day]  = spinup_prec[current_day.day];
-			dinsol[current_day.day] = spinup_insol[current_day.day];
-		}
-		else {
-			// Historical period
-
-			if (historic_timestep + 1 < cf_temp->get_timesteps()) {
-
-				++historic_timestep;
-				GuessNC::CF::DateTime dt = cf_temp->get_date_time(historic_timestep);
-
-				if (dt.get_month() == 2 && dt.get_day() == 29) {
-					++historic_timestep;
-				}
-			}
-				
-			if (historic_timestep < cf_temp->get_timesteps()) {
-				dtemp[current_day.day]  = cf_temp->get_value(historic_timestep);
-				dprec[current_day.day]  = cf_prec->get_value(historic_timestep);
-				dinsol[current_day.day] = cf_insol->get_value(historic_timestep);
-			}
-			else {
-				// Past the end of the historical period, these days wont be simulated.
-				dtemp[current_day.day] = 0;
-				dprec[current_day.day] = 0;
-				dinsol[current_day.day] = 0;
-			}
-		}
-
-		// Convert to units the model expects
-		dtemp[current_day.day] -= K2degC;
-		dprec[current_day.day] *= 3600*24;
-
-		current_day.next();
+	// Convert to units the model expects
+	for (int i = 0; i < 365; ++i) {
+		dtemp[i] -= K2degC;
+		dprec[i] *= 3600*24;
 	}
 
 	// Move to next year in spinup dataset
@@ -339,7 +429,7 @@ void CFInput::populate_daily_arrays() {
 	double mnwetdep[12];
 
 	// The ndep data set only goes up to 2009, after that we use the 2009 data
-	Lamarque::get_one_calendar_year(min(2009, calendar_year),
+	Lamarque::get_one_calendar_year(min(2009, date.get_calendar_year()),
 	                                NHxDryDep, NHxWetDep,
 	                                NOyDryDep, NOyWetDep,
 	                                mndrydep, mnwetdep);
@@ -361,7 +451,7 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 
 	int calendar_year = date.get_calendar_year();
 
-	GuessNC::CF::DateTime last_date = cf_temp->get_date_time(cf_temp->get_timesteps()-1);
+	GuessNC::CF::DateTime last_date = last_day_to_simulate(cf_temp);
 
 	if (later_day(date, calendar_year, last_date)) {
 		++current_gridcell;
@@ -401,24 +491,29 @@ void CFInput::load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_va
 
 	int timestep = 0;
 
-	// Skip the first year if it doesn't start on Jan 1
-	while (!first_day_of_year(cf_var->get_date_time(timestep))) {
+	bool daily = is_daily(cf_var);
+	// for now, assume that each data set is either daily or monthly
+	bool monthly = !daily;
+
+	// Skip the first year if data doesn't start at the beginning of the year
+	while ((daily && !first_day_of_year(cf_var->get_date_time(timestep))) ||
+	       (monthly && !first_month_of_year(cf_var->get_date_time(timestep)))) {
 		++timestep;
 	}
 
-	// Get all the daily values for the first NYEAR_SPINUP_DATA years, 
+	// Get all the values for the first NYEAR_SPINUP_DATA years, 
 	// and put them into source
 	for (int i = 0; i < NYEAR_SPINUP_DATA; ++i) {
-		std::vector<double> year(GenericSpinupData::DAYS_PER_YEAR);
+		std::vector<double> year(daily ? GenericSpinupData::DAYS_PER_YEAR : 12);
 
-		for (int d = 0; d < year.size(); ++d) {
+		for (int i = 0; i < year.size(); ++i) {
 			GuessNC::CF::DateTime dt = cf_var->get_date_time(timestep);
 
-			if (dt.get_month() == 2 && dt.get_day() == 29) {
+			if (daily && dt.get_month() == 2 && dt.get_day() == 29) {
 				++timestep;
 			}
 
-			year[d] = cf_var->get_value(timestep);
+			year[i] = cf_var->get_value(timestep);
 			++timestep;
 		}
 		

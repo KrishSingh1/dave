@@ -52,6 +52,12 @@ private:
 	void load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_var,
 	                      GenericSpinupData& spinup_data);
 
+	/// Fills one array of daily values with forcing data for the current year
+	void populate_daily_array(double daily[365],
+	                          const GenericSpinupData& spinup,
+	                          GuessNC::CF::GridcellOrderedVariable* cf_historic,
+	                          int& historic_timestep);
+	
 	/// Fills dtemp, dprec, etc. with forcing data for the current year
 	void populate_daily_arrays();
 
@@ -87,8 +93,13 @@ private:
 	// Daily N deposition for one year
 	double dndep[365];
 
-	/// Current timestep CF files
-	int historic_timestep;
+	// Current timestep in CF files
+
+	int historic_timestep_temp;
+
+	int historic_timestep_prec;
+
+	int historic_timestep_insol;
 
 	/// Path to CRU binary archive
 	xtring file_cru;

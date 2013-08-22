@@ -735,6 +735,9 @@ void plib_callback(int callback) {
 			if (!itemparsed("run_pasture")) badins("run_pasture");
 			if (!itemparsed("ifslowharvestpool")) badins("ifslowharvestpool");
 			if (!itemparsed("ifintercropgrass")) badins("ifintercropgrass");
+#ifdef HAVE_MPI
+			minimizecftlist=false;
+#endif
 		}
 
 		if (!itemparsed("pft")) badins("pft");
@@ -3801,7 +3804,8 @@ void initio(const xtring& insfilename) {
 				pftlist.firstobj();
 				while(pftlist.isobj)
 				{		
-					if(pftlist.getobj().cftid>=0 && !CFTdata.CFTPresent(pftlist.getobj().cftid))
+					if(pftlist.getobj().cftid>=0 && !CFTdata.CFTPresent(pftlist.getobj().cftid) && 
+						!(pftlist.getobj().isintercropgrass && ifintercropgrass))
 					{
 						n+=1;
 						pftlist.killobj();

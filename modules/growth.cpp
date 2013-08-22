@@ -893,28 +893,64 @@ bool allometry(Individual& indiv) {
 					bool done=false;
 
 					Gridcell& gridcell=indiv.vegetation.patch.stand.gridcell;
-					for(int i=0;i<gridcell.nobj && !done;i++)
+//First look in PASTURE.
+					if(gridcell.landcoverfrac[PASTURE]>0.0)
 					{
-						Stand& stand=gridcell[i];
-						if(stand.pftid==indiv.pft.id)
+						char name_start[5]={0};;
+						char* sp=NULL;
+						strncpy(name_start, indiv.pft.name, 4);
+						sp=name_start+1;
+
+						for(int i=0;i<gridcell.nobj && !done;i++)
 						{
-							for(int j=0;j<stand.nobj && !done;j++)
+							Stand& stand=gridcell[i];
+							if(stand.landcover==PASTURE)
 							{
-								Patch& patch=stand[j];
-								Vegetation& vegetation=patch.vegetation;
-								for(int k=0;k<vegetation.nobj && !done;k++)
+								for(int j=0;j<stand.nobj && !done;j++)
 								{
-									Individual& grass_indiv=vegetation[k];
-									if(grass_indiv.pft.id==indiv.pft.id)
+									Patch& patch=stand[j];
+									Vegetation& vegetation=patch.vegetation;
+									for(int k=0;k<vegetation.nobj && !done;k++)
 									{
-										indiv.lai_indiv=grass_indiv.lai_indiv;
-										done=true;
+										Individual& grass_indiv=vegetation[k];
+
+										if(!strncmp(sp, grass_indiv.pft.name, 3))	//NB: 3 first letters in pft name must be identical (e.g. CC3G and CC3G_past
+										{
+											indiv.lai_indiv=grass_indiv.lai_indiv;
+											done=true;
+										}
 									}
 								}
 							}
 						}
 					}
-					if(!done)														// In case no grass stand exists.
+//If PASTURE landcover not used, look for crop stand with pasture grass. 
+					else
+					{
+						for(int i=0;i<gridcell.nobj && !done;i++)
+						{
+							Stand& stand=gridcell[i];
+							if(stand.pftid==indiv.pft.id)
+							{
+								for(int j=0;j<stand.nobj && !done;j++)
+								{
+									Patch& patch=stand[j];
+									Vegetation& vegetation=patch.vegetation;
+									for(int k=0;k<vegetation.nobj && !done;k++)
+									{
+										Individual& grass_indiv=vegetation[k];
+										if(grass_indiv.pft.id==indiv.pft.id)
+										{
+											indiv.lai_indiv=grass_indiv.lai_indiv;
+											done=true;
+										}
+									}
+								}
+							}
+						}
+					}
+//If no grass stand found in either cropland or pasture, use laimax value.
+					if(!done)
 						indiv.lai_indiv=indiv.pft.laimax;
 				}
 				// FPC (Eqn 10)

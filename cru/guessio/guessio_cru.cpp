@@ -4825,9 +4825,7 @@ void outannual(Gridcell& gridcell) {
 		double irrigation_gridcell=0.0;
 
 		double standpft_cmass=0.0;
-		double standpft_ic_cmass=0.0;	//intercrop grass
 		double standpft_anpp=0.0;
-		double standpft_ic_anpp=0.0;	//intercrop grass
 		double standpft_lai=0.0;
 		double standpft_yield=0.0;	
 		double standpft_yield1=0.0;	
@@ -4870,9 +4868,7 @@ void outannual(Gridcell& gridcell) {
 				{
 					// Sum C biomass, NPP, LAI and BVOC fluxes across patches and PFTs
 					standpft_cmass=0.0;
-					standpft_ic_cmass=0.0;
 					standpft_anpp=0.0;
-					standpft_ic_anpp=0.0;
 					standpft_lai=0.0;
 					standpft_yield=0.0;
 					standpft_yield1=0.0;
@@ -4894,13 +4890,7 @@ void outannual(Gridcell& gridcell) {
 						Patch& patch=stand.getobj();
 						Vegetation& vegetation=patch.vegetation;
 
-//Temporary code as long as grass pft:s represent both pasture and intercrop grass:
-#define CROP_NPP_CONSISTENCY
-#ifndef CROP_NPP_CONSISTENCY
-						if(pft.landcover!=CROPLAND)
-#endif
-							standpft_anpp += patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id);
-
+						standpft_anpp += patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id);
 						standpft_aiso += patch.fluxes.get_annual_flux(Fluxes::ISO, pft.id);
 						standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MON, pft.id);
 
@@ -4915,28 +4905,15 @@ void outannual(Gridcell& gridcell) {
 
 									if(pft.landcover==CROPLAND)
 									{
-										if(indiv.cropindiv->isintercropgrass==false)
-										{
-											standpft_cmass+=indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt+indiv.cropindiv->cmass_ho+indiv.cropindiv->cmass_agpool;
-#ifndef CROP_NPP_CONSISTENCY
-											standpft_anpp += indiv.anpp;
-#endif
-											if(pft.phenology==CROPGREEN)					
-												standpft_lai+=indiv.cropindiv->cmass_leaf_max*pft.sla;
-											else
-												standpft_lai+=indiv.lai;
-											standpft_yield+=indiv.cropindiv->harv_yield;
-											standpft_yield1+=indiv.cropindiv->yield_harvest[0];
-											standpft_yield2+=indiv.cropindiv->yield_harvest[1];
-										}
+										standpft_cmass+=indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt+indiv.cropindiv->cmass_ho+indiv.cropindiv->cmass_agpool;
+
+										if(pft.phenology==CROPGREEN)					
+											standpft_lai+=indiv.cropindiv->cmass_leaf_max*pft.sla;
 										else
-										{
-											standpft_ic_cmass+=indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_sap+indiv.cmass_heart-indiv.cmass_debt+indiv.cropindiv->cmass_ho+indiv.cropindiv->cmass_agpool;
-											standpft_ic_anpp += indiv.anpp;
-#ifdef CROP_NPP_CONSISTENCY
-											standpft_anpp -= indiv.anpp;
-#endif
-										}
+											standpft_lai+=indiv.lai;
+										standpft_yield+=indiv.cropindiv->harv_yield;
+										standpft_yield1+=indiv.cropindiv->yield_harvest[0];
+										standpft_yield2+=indiv.cropindiv->yield_harvest[1];
 									}
 									else
 									{
@@ -4981,8 +4958,8 @@ void outannual(Gridcell& gridcell) {
 					heightindiv_total/=(double)stand.npatch();
 
 					//Update landcover totals
-					landcover_cmass[stand.landcover]+=(standpft_cmass+standpft_ic_cmass)*stand.get_landcover_fraction();
-					landcover_anpp[stand.landcover]+=(standpft_anpp+standpft_ic_anpp)*stand.get_landcover_fraction();
+					landcover_cmass[stand.landcover]+=standpft_cmass*stand.get_landcover_fraction();
+					landcover_anpp[stand.landcover]+=standpft_anpp*stand.get_landcover_fraction();
 					landcover_lai[stand.landcover]+=standpft_lai*stand.get_landcover_fraction();
 					landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.get_landcover_fraction();
 					landcover_aiso[stand.landcover]+=standpft_aiso*stand.get_landcover_fraction();
@@ -4990,8 +4967,8 @@ void outannual(Gridcell& gridcell) {
 
 					//Update pft totals
 #if defined multiple_natural_stands
-					if(pft.landcover==NATURAL && gridcell.landcoverfrac[stand.landcover]!=0.0)	//Natural landcover can now contain several stands.
-					{
+					if(pft.landcover!=CROPLAND  || pft.isintercropgrass)	//Natural landcover can now contain several stands.
+					{			
 						stand_mean_cmass+=standpft_cmass*stand.get_landcover_fraction();
 						stand_mean_anpp+=standpft_anpp*stand.get_landcover_fraction();
 						stand_mean_lai+=standpft_lai*stand.get_landcover_fraction();
@@ -4999,10 +4976,9 @@ void outannual(Gridcell& gridcell) {
 						stand_mean_aiso+=standpft_aiso*stand.get_landcover_fraction();
 						stand_mean_amon+=standpft_amon*stand.get_landcover_fraction();
 
-					if (vegmode==COHORT || vegmode==INDIVIDUAL)
-						for (c=0;c<nclass;c++)
-							stand_mean_densindiv_ageclass[c]+=standpft_densindiv_ageclass[c]*stand.get_landcover_fraction();
-
+						if (vegmode==COHORT || vegmode==INDIVIDUAL)
+							for (c=0;c<nclass;c++)
+								stand_mean_densindiv_ageclass[c]+=standpft_densindiv_ageclass[c]*stand.get_landcover_fraction();
 					}
 					else
 #endif
@@ -5025,8 +5001,8 @@ void outannual(Gridcell& gridcell) {
 
 					// Update gridcell totals
 					double fraction_of_gridcell = stand.get_gridcell_fraction();
-					cmass_gridcell+=(standpft_cmass+standpft_ic_cmass)*fraction_of_gridcell;
-					anpp_gridcell+=(standpft_anpp+standpft_ic_anpp)*fraction_of_gridcell;
+					cmass_gridcell+=standpft_cmass*fraction_of_gridcell;
+					anpp_gridcell+=standpft_anpp*fraction_of_gridcell;
 					lai_gridcell+=standpft_lai*fraction_of_gridcell;
 					dens_gridcell+=standpft_densindiv_total*fraction_of_gridcell;
 					aiso_gridcell+=standpft_aiso*fraction_of_gridcell;

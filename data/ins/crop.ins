@@ -168,7 +168,7 @@ pft "CC3G" (
 
 	laimax 4
 	intercrop "nointercrop"		! ML CFT
-	isintercropgrass 1
+	isintercropgrass 0
 	harv_eff 0.5
 	harv_eff_ic 0.0
 	leaflong 1			! as in crop
@@ -223,7 +223,7 @@ pft "CC4G" (
 
 	intercrop "nointercrop"		
 	laimax 4	
-	isintercropgrass 1
+	isintercropgrass 0
 	harv_eff 0.5			! old value; intensive grazing: 90% grazed, 25-60 % returned to soil as faeces (0.36-0.675 removed, 0.5 OK average)
 	harv_eff_ic 0.0
 	res_outtake 0.0			! not used by crop grass
@@ -1323,4 +1323,86 @@ pft "TeRairr" (
 	ifsdprec 0
 	tempautumn 17
 	tempspring 5	! 12 in Bondeau's code, ändra till 11 och 5
+)
+
+pft "CC3G_ic" (
+
+	! Cool (C3) grass   n?11 (pft.id 10)
+
+	grass
+	crop
+	phenology "any"
+!	include 1
+	pathway "c3"
+	phenology "any"	
+	pstemp_min -5						! C3G-values 090910/ML
+	pstemp_low 10
+	pstemp_high 30
+	pstemp_max 45
+	tcmin_surv -1000 ! limit not implemented
+	tcmin_est -1000  ! limit not implemented
+	tcmax_est 1000  	!no limit			! as in C3G 090910/ML
+	twmin_est -1000  ! limit not implemented
+	gdd5min_est 0    ! limit not implemented
+
+	laimax 4
+	intercrop "nointercrop"		! ML CFT
+	isintercropgrass 1
+	harv_eff 0.5
+	harv_eff_ic 0.0
+	leaflong 1			! as in crop
+	turnover_leaf 1			! as in crop
+	turnover_root 0.7		! as in crop
+	phengdd5ramp 100
+	rootdist 0.9 0.1		! as in crop
+	gmin 0.5			! as in crop
+
+	drought_tolerance 0.01		! as in crop
+	intc 0.01			! as in crop
+
+	respcoeff 1.0			! as in crop (general grass value 2.0)
+	fireresist 0.5			! as in crop (c3_gr 1.0)
+	parff_min 1000000		! ThomasH 2000000 ! Changed from 2500000 on April 10, 2006; c3_gr 2000000
+)
+
+pft "CC4G_ic" (
+
+	! Warm (C4) grass
+
+	grass
+	crop
+	parff_min 1000000
+!	include 0	
+	pathway "c4"
+
+	phenology "any"	
+	leaflong 1			! as in crop
+	turnover_leaf 1			! as in crop
+
+	phengdd5ramp 100
+	rootdist 0.9 0.1		! as in crop
+	gmin 0.5			! as in crop
+	pstemp_min 6						
+	pstemp_low 20
+	pstemp_high 45
+	pstemp_max 55
+	tcmin_surv 15.5
+	tcmin_est 15.5
+	tcmax_est 1000			! limit not implemented
+	twmin_est -1000			! limit not implemented  ! limit not implemented
+	gdd5min_est 0			! limit not implemented
+	parff_min 1000000		! ThomasH 2000000 ! Changed from 2500000 on April 10, 2006
+	intc 0.01			! as in crop
+	drought_tolerance 0.01		! as in crop
+
+	respcoeff 0.15			! guess2008 value (c4_gr 2.0)
+	turnover_root 0.7		! as in crop, (c4_gr 0.5)
+	fireresist 0.5			! as in crop, (c4_gr 1.0)
+
+	intercrop "nointercrop"		
+	laimax 4	
+	isintercropgrass 1
+	harv_eff 0.5			! old value; intensive grazing: 90% grazed, 25-60 % returned to soil as faeces (0.36-0.675 removed, 0.5 OK average)
+	harv_eff_ic 0.0
+	res_outtake 0.0			! not used by crop grass
 )

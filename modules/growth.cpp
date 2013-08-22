@@ -899,7 +899,7 @@ bool allometry(Individual& indiv) {
 						char name_start[5]={0};;
 						char* sp=NULL;
 						strncpy(name_start, indiv.pft.name, 4);
-						sp=name_start+1;
+						sp=name_start+1;											//NB: this works with current pft names. CC3G_ic and C3G_pasture
 
 						for(int i=0;i<gridcell.nobj && !done;i++)
 						{
@@ -914,7 +914,7 @@ bool allometry(Individual& indiv) {
 									{
 										Individual& grass_indiv=vegetation[k];
 
-										if(!strncmp(sp, grass_indiv.pft.name, 3))	//NB: 3 first letters in pft name must be identical (e.g. CC3G and CC3G_past
+										if(!strncmp(sp, grass_indiv.pft.name, 3))	//NB: this works with current pft names. CC3G_ic and C3G_pasture
 										{
 											indiv.lai_indiv=grass_indiv.lai_indiv;
 											done=true;
@@ -927,10 +927,16 @@ bool allometry(Individual& indiv) {
 //If PASTURE landcover not used, look for crop stand with pasture grass. 
 					else
 					{
+
+						char name_start[5]={0};;
+						char* sp=NULL;
+						strncpy(name_start, indiv.pft.name, 4);
+						sp=name_start;											//NB: this works with current pft names. CC3G_ic and CC3G
+
 						for(int i=0;i<gridcell.nobj && !done;i++)
 						{
 							Stand& stand=gridcell[i];
-							if(stand.pftid==indiv.pft.id)
+							if(stand.landcover==CROPLAND)
 							{
 								for(int j=0;j<stand.nobj && !done;j++)
 								{
@@ -939,7 +945,8 @@ bool allometry(Individual& indiv) {
 									for(int k=0;k<vegetation.nobj && !done;k++)
 									{
 										Individual& grass_indiv=vegetation[k];
-										if(grass_indiv.pft.id==indiv.pft.id)
+
+										if(!strncmp(sp, grass_indiv.pft.name, 3) && !grass_indiv.istruecrop_or_intercropgrass())	//NB: this works with current pft names. CC3G_ic and CC3G
 										{
 											indiv.lai_indiv=grass_indiv.lai_indiv;
 											done=true;

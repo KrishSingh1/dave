@@ -239,11 +239,13 @@ if(!SUPPRESSLARGEOUTPUT)
 	}
 ////////////////////////////////////////////////////////////
 
-	double *transfer_litter_leaf, *transfer_litter_wood, *transfer_litter_root, *transfer_litter_repr, *transfer_harvested_products_slow;
+	double *transfer_litter_leaf, *transfer_litter_sap,  *transfer_litter_heart, *transfer_litter_root, *transfer_litter_repr, *transfer_harvested_products_slow;
+	double *transfer_nmass_litter_leaf, *transfer_nmass_litter_sap,  *transfer_nmass_litter_heart, *transfer_nmass_litter_root, *transfer_harvested_products_slow_nmass;
 
-	transfer_litter_leaf=transfer_litter_wood=transfer_litter_root=transfer_litter_repr=transfer_harvested_products_slow=NULL;
+	transfer_litter_leaf=transfer_litter_sap=transfer_litter_heart=transfer_litter_root=transfer_litter_repr=transfer_harvested_products_slow=NULL;
+	transfer_nmass_litter_leaf=transfer_nmass_litter_sap=transfer_nmass_litter_heart=transfer_nmass_litter_root=transfer_harvested_products_slow_nmass=NULL;
 
-	double transfer_acflux_harvest=0.0;
+	double transfer_acflux_harvest=0.0,transfer_anflux_harvest=0.0;
 
 	double transfer_cpool_fast=0.0;
 	double transfer_cpool_slow=0.0;
@@ -252,23 +254,50 @@ if(!SUPPRESSLARGEOUTPUT)
 	double transfer_decomp_litter_mean=0.0;
 	double transfer_k_soilfast_mean=0.0;
 	double transfer_k_soilslow_mean=0.0;
+	Sompool transfer_sompool[NSOMPOOL];
+	double transfer_nmass_avail=0.0;
+	double transfer_snowpack=0.0;
+	double transfer_snowpack_nmass=0.0;
 
 	memset(transfer_wcont,0,NSOILLAYER*sizeof(double));
+
+	for(i=0;i<NSOMPOOL;i++) {
+		transfer_sompool[i].cmass = 0.0;
+		transfer_sompool[i].fireresist = 0.0;
+		transfer_sompool[i].fracremain = 0.0;
+		transfer_sompool[i].ligcfrac = 0.0;
+		transfer_sompool[i].litterme = 0.0;
+		transfer_sompool[i].ntoc = 0.0;
+	}
+
 
 	if(LCchangeCtransfer)	//stand.frac not updated if Ctransfer code not read !
 	{
 		transfer_litter_leaf=new double[npft];
-		transfer_litter_wood=new double[npft];
+		transfer_litter_sap=new double[npft];
+		transfer_litter_heart=new double[npft];
 		transfer_litter_root=new double[npft];
 		transfer_litter_repr=new double[npft];
-
 		transfer_harvested_products_slow=new double[npft];
 
+		transfer_nmass_litter_leaf=new double[npft];
+		transfer_nmass_litter_sap=new double[npft];
+		transfer_nmass_litter_heart=new double[npft];
+		transfer_nmass_litter_root=new double[npft];
+		transfer_harvested_products_slow_nmass=new double[npft];
+
 		memset(transfer_litter_leaf,0,sizeof(double)*npft);
-		memset(transfer_litter_wood,0,sizeof(double)*npft);
+		memset(transfer_litter_sap,0,sizeof(double)*npft);
+		memset(transfer_litter_heart,0,sizeof(double)*npft);
 		memset(transfer_litter_root,0,sizeof(double)*npft);
 		memset(transfer_litter_repr,0,sizeof(double)*npft);
 		memset(transfer_harvested_products_slow,0,sizeof(double)*npft);
+
+		memset(transfer_nmass_litter_leaf,0,sizeof(double)*npft);
+		memset(transfer_nmass_litter_sap,0,sizeof(double)*npft);
+		memset(transfer_nmass_litter_heart,0,sizeof(double)*npft);
+		memset(transfer_nmass_litter_root,0,sizeof(double)*npft);
+		memset(transfer_harvested_products_slow_nmass,0,sizeof(double)*npft);
 
 //Keep track of carbon and water in lost areas.
 
@@ -406,15 +435,24 @@ if(!SUPPRESSLARGEOUTPUT)
 				{
 					Patch& patch=stand.getobj();
 
-//sum original litter:
+//sum original litter C & N:
 					for(int n=0;n<npft;n++)
 					{
 						transfer_litter_leaf[n]+=patch.pft[n].litter_leaf*scale;
 						transfer_litter_root[n]+=patch.pft[n].litter_root*scale;
-						transfer_litter_wood[n]+=patch.pft[n].litter_wood*scale;
+						transfer_litter_sap[n]+=patch.pft[n].litter_sap*scale;
+						transfer_litter_heart[n]+=patch.pft[n].litter_heart*scale;
 						transfer_litter_repr[n]+=patch.pft[n].litter_repr*scale;
-						if(ifslowharvestpool)
+
+						transfer_nmass_litter_leaf[n]+=patch.pft[n].nmass_litter_leaf*scale;
+						transfer_nmass_litter_root[n]+=patch.pft[n].nmass_litter_root*scale;
+						transfer_nmass_litter_sap[n]+=patch.pft[n].nmass_litter_sap*scale;
+						transfer_nmass_litter_heart[n]+=patch.pft[n].nmass_litter_heart*scale;
+
+						if(ifslowharvestpool) {
 							transfer_harvested_products_slow[n]+=patch.pft[n].harvested_products_slow*scale;
+							transfer_harvested_products_slow_nmass[n]+=patch.pft[n].harvested_products_slow_nmass*scale;
+						}
 					}
 
 					Vegetation& vegetation=patch.vegetation;
@@ -422,9 +460,11 @@ if(!SUPPRESSLARGEOUTPUT)
 					while(vegetation.isobj)
 					{
 						double cmass_leaf_cp=0.0, cmass_root_cp=0.0, cmass_sap_cp=0.0, cmass_heart_cp=0.0, cmass_debt_cp=0.0, cmass_ho_cp=0.0, cmass_agpool_cp=0.0;//bugfix 101103
-						double litter_leaf_cp=0.0, litter_root_cp=0.0, litter_wood_cp=0.0, litter_repr_cp=0.0;
-						double acflux_harvest_cp=0.0;
-						double harvested_products_slow_cp=0.0;
+						double nmass_leaf_cp=0.0, nmass_root_cp=0.0, nmass_sap_cp=0.0, nmass_heart_cp=0.0, nmass_ho_cp=0.0, nmass_agpool_cp=0.0;
+						double litter_leaf_cp=0.0, litter_root_cp=0.0, litter_sap_cp=0.0, litter_heart_cp=0.0,litter_repr_cp=0.0;
+						double nmass_litter_leaf_cp=0.0, nmass_litter_root_cp=0.0, nmass_litter_sap_cp=0.0, nmass_litter_heart_cp=0.0;
+						double acflux_harvest_cp=0.0, anflux_harvest_cp=0.0;
+						double harvested_products_slow_cp=0.0, harvested_products_slow_nmass_cp=0.0, nstore_longterm_cp=0.0;
 
 						Individual& indiv=vegetation.getobj();
 						Patchpft& patchpft=patch.pft[indiv.pft.id];
@@ -441,18 +481,24 @@ if(!SUPPRESSLARGEOUTPUT)
 							cmass_agpool_cp=indiv.cropindiv->cmass_agpool;
 						}
 	
-	//Harvest of transferred areas:
+//Harvest of transferred areas:
 						if(indiv.pft.landcover==CROPLAND)
 							harvest_crop(cmass_leaf_cp,cmass_root_cp,cmass_ho_cp,cmass_agpool_cp,
-							litter_leaf_cp,litter_root_cp,acflux_harvest_cp,harvested_products_slow_cp,indiv);
+								nmass_leaf_cp,nmass_root_cp,nmass_ho_cp,nmass_agpool_cp,
+								nmass_litter_leaf_cp,nmass_litter_root_cp,anflux_harvest_cp,harvested_products_slow_nmass_cp,nstore_longterm_cp,
+								litter_leaf_cp,litter_root_cp,acflux_harvest_cp,harvested_products_slow_cp,indiv);
 						else if(indiv.pft.landcover==PASTURE)
 						{
 							harvest_pasture(cmass_leaf_cp,cmass_root_cp,
+								nmass_leaf_cp,nmass_root_cp,
+								nmass_litter_leaf_cp,nmass_litter_root_cp,anflux_harvest_cp,harvested_products_slow_nmass_cp,nstore_longterm_cp,
 								litter_leaf_cp,litter_root_cp,acflux_harvest_cp,harvested_products_slow_cp, indiv);
 						}
-						else												
+						else											
 							harvest_natural(cmass_leaf_cp,cmass_root_cp,cmass_sap_cp,cmass_heart_cp,cmass_debt_cp,
-							litter_leaf_cp,litter_root_cp,litter_wood_cp,acflux_harvest_cp,harvested_products_slow_cp,indiv);
+								nmass_leaf_cp,nmass_root_cp,nmass_sap_cp,nmass_heart_cp,
+								nmass_litter_leaf_cp,nmass_litter_root_cp,nmass_litter_sap_cp,nmass_litter_heart_cp,anflux_harvest_cp,harvested_products_slow_nmass_cp,
+								litter_leaf_cp,litter_root_cp,litter_sap_cp,litter_heart_cp,acflux_harvest_cp,harvested_products_slow_cp,indiv);
 
 						gridcell.LC_updated=true;
 
@@ -461,23 +507,42 @@ if(!SUPPRESSLARGEOUTPUT)
 						{
 							litter_leaf_cp+=cmass_leaf_cp;
 							litter_root_cp+=cmass_root_cp;
-							litter_wood_cp+=cmass_sap_cp+cmass_heart_cp-cmass_debt_cp;
-	
+							litter_sap_cp+=cmass_sap_cp;
+							litter_heart_cp+=cmass_heart_cp-cmass_debt_cp;
+
+							nmass_litter_leaf_cp+=nmass_leaf_cp;
+							nmass_litter_root_cp+=nmass_root_cp;
+							nmass_litter_sap_cp+=nmass_sap_cp;
+							nmass_litter_heart_cp+=nmass_heart_cp;
+							nmass_litter_root_cp+=nstore_longterm_cp;
+
 							if(indiv.pft.landcover==CROPLAND)
 							{
-								if(indiv.pft.aboveground_ho)
+								if(indiv.pft.aboveground_ho) {
 									litter_leaf_cp+=cmass_ho_cp;
-								else
+									nmass_litter_leaf_cp+=nmass_ho_cp;
+								}
+								else {
 									litter_root_cp+=cmass_ho_cp;
+									nmass_litter_root_cp+=nmass_ho_cp;
+								}
 							}
 						}
 
+//Sum added litter C & N:
 						transfer_litter_leaf[indiv.pft.id]+=litter_leaf_cp*scale;
 						transfer_litter_root[indiv.pft.id]+=litter_root_cp*scale;
-						transfer_litter_wood[indiv.pft.id]+=litter_wood_cp*scale;
+						transfer_litter_sap[indiv.pft.id]+=litter_sap_cp*scale;
+						transfer_litter_heart[indiv.pft.id]+=litter_heart_cp*scale;
 						transfer_litter_repr[indiv.pft.id]+=litter_repr_cp*scale;
 
+						transfer_nmass_litter_leaf[indiv.pft.id]+=nmass_litter_leaf_cp*scale;
+						transfer_nmass_litter_root[indiv.pft.id]+=nmass_litter_root_cp*scale;
+						transfer_nmass_litter_sap[indiv.pft.id]+=nmass_litter_sap_cp*scale;
+						transfer_nmass_litter_heart[indiv.pft.id]+=nmass_litter_heart_cp*scale;
+
 						transfer_acflux_harvest+=acflux_harvest_cp*scale;
+						transfer_anflux_harvest+=anflux_harvest_cp*scale;
 
 						if(stand.landcover==NATURAL)
 						{
@@ -489,22 +554,40 @@ if(!SUPPRESSLARGEOUTPUT)
 //							gridcell.acflux_landuse_change+=-acflux_harvest_cp*change_frac/(double)stand.nobj;
 						}
 
-						if(ifslowharvestpool)
+						if(ifslowharvestpool) {
 							transfer_harvested_products_slow[indiv.pft.id]+=harvested_products_slow_cp*scale;
+							transfer_harvested_products_slow_nmass[indiv.pft.id]+=harvested_products_slow_nmass_cp*scale;
+						}
 
 						vegetation.nextobj();
 					}
 
-	//sum litter C:
+//sum litter C & N:
 					transfer_cpool_fast+=patch.soil.cpool_fast*scale;
 					transfer_cpool_slow+=patch.soil.cpool_slow*scale;
 
-	//sum wcont:
+//sum soil C & N:
+					for(i=0;i<NSOMPOOL;i++) {
+						transfer_sompool[i].cmass+=patch.soil.sompool[i].cmass*scale;
+						transfer_sompool[i].fireresist+=patch.soil.sompool[i].fireresist*scale;
+						transfer_sompool[i].fracremain+=patch.soil.sompool[i].fracremain*scale;
+						transfer_sompool[i].ligcfrac+=patch.soil.sompool[i].ligcfrac*scale;
+						transfer_sompool[i].litterme+=patch.soil.sompool[i].litterme*scale;
+						transfer_sompool[i].nmass+=patch.soil.sompool[i].nmass*scale;
+						transfer_sompool[i].ntoc+=patch.soil.sompool[i].ntoc*scale;
+					}
+
+					transfer_nmass_avail+=patch.soil.nmass_avail*scale;
+
+//sum wcont:
 					for(i=0;i<NSOILLAYER;i++)
 					{
 						transfer_wcont[i]+=patch.soil.wcont[i]*scale;
 					}
 					transfer_wcont_evap+=patch.soil.wcont_evap*scale;
+
+					transfer_snowpack+=patch.soil.snowpack*scale;
+					transfer_snowpack_nmass+=patch.soil.snowpack_nmass*scale;
 
 					transfer_decomp_litter_mean+=patch.soil.decomp_litter_mean*scale;
 					transfer_k_soilfast_mean+=patch.soil.k_soilfast_mean*scale;
@@ -752,33 +835,58 @@ if(!SUPPRESSLARGEOUTPUT)
 				while(stand.isobj) //Loop through Patches
 				{
 					Patch& patch=stand.getobj();
-//add litter C:
+//add litter C & N:
 					for (i=0;i<npft;i++) 
 					{
 						Patchpft& patchpft=patch.pft[i];
 
 						patchpft.litter_leaf=(patchpft.litter_leaf*old_frac+transfer_litter_leaf[i]*added_frac)/new_frac;
-						patchpft.litter_wood=(patchpft.litter_wood*old_frac+transfer_litter_wood[i]*added_frac)/new_frac;
+						patchpft.litter_sap=(patchpft.litter_sap*old_frac+transfer_litter_sap[i]*added_frac)/new_frac;
+						patchpft.litter_heart=(patchpft.litter_heart*old_frac+transfer_litter_heart[i]*added_frac)/new_frac;
 						patchpft.litter_root=(patchpft.litter_root*old_frac+transfer_litter_root[i]*added_frac)/new_frac;
 						patchpft.litter_repr=(patchpft.litter_repr*old_frac+transfer_litter_repr[i]*added_frac)/new_frac;
 
+						patchpft.nmass_litter_leaf=(patchpft.litter_leaf*old_frac+transfer_nmass_litter_leaf[i]*added_frac)/new_frac;
+						patchpft.nmass_litter_root=(patchpft.litter_leaf*old_frac+transfer_nmass_litter_root[i]*added_frac)/new_frac;
+						patchpft.nmass_litter_sap=(patchpft.litter_leaf*old_frac+transfer_nmass_litter_sap[i]*added_frac)/new_frac;
+						patchpft.nmass_litter_heart=(patchpft.litter_leaf*old_frac+transfer_nmass_litter_heart[i]*added_frac)/new_frac;
+
 						if(ifslowharvestpool)
 							patchpft.harvested_products_slow=(patchpft.harvested_products_slow*old_frac+transfer_harvested_products_slow[i]*added_frac)/new_frac;
+							patchpft.harvested_products_slow_nmass=(patchpft.harvested_products_slow_nmass*old_frac+transfer_harvested_products_slow_nmass[i]*added_frac)/new_frac;
 					}
 
-//add soil C:
+//add soil C & N:
 					patch.soil.cpool_fast=(patch.soil.cpool_fast*old_frac+transfer_cpool_fast*added_frac)/new_frac;
 					patch.soil.cpool_slow=(patch.soil.cpool_slow*old_frac+transfer_cpool_slow*added_frac)/new_frac;
+
+					for(i=0;i<NSOMPOOL;i++) {
+						patch.soil.sompool[i].cmass=(patch.soil.sompool[i].cmass*old_frac+transfer_sompool[i].cmass*added_frac)/new_frac;
+						patch.soil.sompool[i].fireresist=(patch.soil.sompool[i].fireresist*old_frac+transfer_sompool[i].fireresist*added_frac)/new_frac;
+						patch.soil.sompool[i].fracremain=(patch.soil.sompool[i].fracremain*old_frac+transfer_sompool[i].fracremain*added_frac)/new_frac;
+						patch.soil.sompool[i].ligcfrac=(patch.soil.sompool[i].ligcfrac*old_frac+transfer_sompool[i].ligcfrac*added_frac)/new_frac;
+						patch.soil.sompool[i].litterme=(patch.soil.sompool[i].litterme*old_frac+transfer_sompool[i].litterme*added_frac)/new_frac;
+						patch.soil.sompool[i].nmass=(patch.soil.sompool[i].nmass*old_frac+transfer_sompool[i].nmass*added_frac)/new_frac;
+						patch.soil.sompool[i].ntoc=(patch.soil.sompool[i].ntoc*old_frac+transfer_sompool[i].ntoc*added_frac)/new_frac;
+					}
+
+					patch.soil.nmass_avail=(patch.soil.nmass_avail*old_frac+transfer_nmass_avail*added_frac)/new_frac;
+					
 
 //other soil stuff:
 					for(i=0;i<NSOILLAYER;i++)
 						patch.soil.wcont[i]=(patch.soil.wcont[i]*old_frac+transfer_wcont[i]*added_frac)/new_frac;
 					patch.soil.wcont_evap=(patch.soil.wcont_evap*old_frac+transfer_wcont_evap*added_frac)/new_frac;
+
+					patch.soil.snowpack=(patch.soil.snowpack*old_frac+transfer_snowpack*added_frac)/new_frac;
+					patch.soil.snowpack_nmass=(patch.soil.snowpack_nmass*old_frac+transfer_snowpack_nmass*added_frac)/new_frac;
+
 					patch.soil.decomp_litter_mean=(patch.soil.decomp_litter_mean*old_frac+transfer_decomp_litter_mean*added_frac)/new_frac;
 					patch.soil.k_soilfast_mean=(patch.soil.k_soilfast_mean*old_frac+transfer_k_soilfast_mean*added_frac)/new_frac;
 					patch.soil.k_soilslow_mean=(patch.soil.k_soilslow_mean*old_frac+transfer_k_soilslow_mean*added_frac)/new_frac;
 //add fluxes:
 					patch.fluxes.report_flux(Fluxes::HARVESTC, transfer_acflux_harvest*added_frac/new_frac);
+					patch.fluxes.report_flux(Fluxes::HARVESTN, transfer_anflux_harvest*added_frac/new_frac);
 
 					stand.nextobj();
 				}
@@ -802,10 +910,16 @@ if(!SUPPRESSLARGEOUTPUT)
 #endif
 
 	if(transfer_litter_leaf) delete[] transfer_litter_leaf;
-	if(transfer_litter_wood) delete[] transfer_litter_wood;
+	if(transfer_litter_sap) delete[] transfer_litter_sap;
+	if(transfer_litter_heart) delete[] transfer_litter_heart;
 	if(transfer_litter_root) delete[] transfer_litter_root;
 	if(transfer_litter_repr) delete[] transfer_litter_repr;
 	if(transfer_harvested_products_slow) delete[] transfer_harvested_products_slow;
+	if(transfer_nmass_litter_leaf) delete[] transfer_nmass_litter_leaf;
+	if(transfer_nmass_litter_sap) delete[] transfer_nmass_litter_sap;
+	if(transfer_nmass_litter_heart) delete[] transfer_nmass_litter_heart;
+	if(transfer_nmass_litter_root) delete[] transfer_nmass_litter_root;
+	if(transfer_harvested_products_slow_nmass) delete[] transfer_harvested_products_slow_nmass;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2155,11 +2269,11 @@ void leaf_phenology_crop(Pft& pft, Patch& patch)
 				double fwdf;
 				double hi_save;
 
-				ppftcrop.demandsum_crop+=patch.demand;
-				if (patchpft.supply>patch.demand) 
-					ppftcrop.supplysum_crop+=patch.demand; 
+				ppftcrop.demandsum_crop+=patch.wdemand;
+				if (patchpft.wsupply>patch.wdemand) 
+					ppftcrop.supplysum_crop+=patch.wdemand; 
 				else
-					ppftcrop.supplysum_crop+=patchpft.supply;
+					ppftcrop.supplysum_crop+=patchpft.wsupply;
 
 				if(ppftcrop.demandsum_crop>0.0)							
 					wdf=100.0*ppftcrop.supplysum_crop/ppftcrop.demandsum_crop;	//SWAT 5:3.3.2	: aetsum/petsum
@@ -2756,18 +2870,28 @@ if(!SUPPRESSLARGEOUTPUT)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void harvest_natural(double& cmass_leaf,double& cmass_root,double& cmass_sap,double& cmass_heart,double& cmass_debt,
-	double& litter_leaf,double& litter_root,double& litter_wood,double& acflux_harvest,double& harvested_products_slow,Individual& indiv) 
+	double& nmass_leaf,double& nmass_root,double& nmass_sap,double& nmass_heart,
+	double& nmass_litter_leaf,double& nmass_litter_root,double& nmass_litter_sap,double& nmass_litter_heart,double& anflux_harvest,double& harvested_products_slow_nmass,
+	double& litter_leaf,double& litter_root,double& litter_sap,double& litter_heart,double& acflux_harvest,double& harvested_products_slow,Individual& indiv) 
 {
 	double harvest=0.0;
 	double residue_outtake=0.0;
 	bool alive=indiv.alive;
 
 	if(alive)
+	{
 		litter_root+=cmass_root;			//all root carbon goes to litter
+		nmass_litter_root+=nmass_root;
+		nmass_litter_root += indiv.nstore();
+	}
 	cmass_root=0.0;
+	nmass_root=0.0;
 
 	if(alive)						// Only wood currently harvested in this function !
 	{	
+
+//Carbon:
+
 		harvest=indiv.pft.harv_eff*(cmass_sap+cmass_heart-cmass_debt);		//harvested products
 
 		if(ifslowharvestpool)
@@ -2782,17 +2906,49 @@ void harvest_natural(double& cmass_leaf,double& cmass_root,double& cmass_sap,dou
 		cmass_heart=(1-indiv.pft.harv_eff)*cmass_heart;
 		cmass_debt=(1-indiv.pft.harv_eff)*cmass_debt;		
 
+		//removed residues
 		residue_outtake=indiv.pft.res_outtake*(cmass_sap+cmass_heart-cmass_debt+cmass_leaf);
-		acflux_harvest+=residue_outtake;																//removed residues
+		acflux_harvest+=residue_outtake;															
 
-		litter_leaf+=cmass_leaf*(1-indiv.pft.res_outtake);												//not removed residues
-		litter_wood+=(cmass_sap+cmass_heart-cmass_debt)*(1-indiv.pft.res_outtake);						//not removed residues
+		//not removed residues
+		litter_leaf+=cmass_leaf*(1-indiv.pft.res_outtake);												
+		litter_sap+=cmass_sap*(1-indiv.pft.res_outtake);
+		litter_heart+=(cmass_heart-cmass_debt)*(1-indiv.pft.res_outtake);
+
+//Nitrogen:
+
+		harvest=indiv.pft.harv_eff*(nmass_sap+nmass_heart);		//harvested products
+
+		if(ifslowharvestpool)
+		{
+			harvested_products_slow_nmass+=harvest*indiv.pft.harvest_slow_frac;	//harvested products not consumed (oxidized) this year put into patchpft.harvested_products_slow
+			harvest=harvest*(1-indiv.pft.harvest_slow_frac);
+		}
+
+		anflux_harvest+=harvest;							//harvested products consumed (oxidized) this year put into patch.fluxes.acflux_harvest, not litter pool !
+
+		nmass_sap=(1-indiv.pft.harv_eff)*nmass_sap;			//unharvested parts of the plant
+		nmass_heart=(1-indiv.pft.harv_eff)*nmass_heart;
+
+		//removed residues
+		residue_outtake=indiv.pft.res_outtake*(nmass_sap+nmass_heart+nmass_leaf);
+		anflux_harvest+=residue_outtake;															
+
+		//not removed residues
+		nmass_litter_leaf+=nmass_leaf*(1-indiv.pft.res_outtake);												
+		nmass_litter_sap+=nmass_sap*(1-indiv.pft.res_outtake);
+		nmass_litter_heart+=nmass_heart*(1-indiv.pft.res_outtake);
+
 	}
 
 	cmass_sap=cmass_heart=cmass_debt=cmass_leaf=0.0;
+	nmass_sap=nmass_heart=nmass_leaf=0.0;
 }
 
-void harvest_pasture(double& cmass_leaf,double& cmass_root,double& litter_leaf,double& litter_root,double& acflux_harvest,double& harvested_products_slow,Individual& indiv) 
+void harvest_pasture(double& cmass_leaf,double& cmass_root,
+		double& nmass_leaf,double& nmass_root,
+		double& nmass_litter_leaf,double& nmass_litter_root, double& anflux_harvest,double& harvested_products_slow_nmass, double& retransn,
+		double& litter_leaf,double& litter_root,double& acflux_harvest,double& harvested_products_slow,Individual& indiv) 
 {
 	double turnover, residue_outtake, harvest;
 	double scale=1.0;
@@ -2824,12 +2980,22 @@ void harvest_pasture(double& cmass_leaf,double& cmass_root,double& litter_leaf,d
 	// Root turnover
 	//Bondeau: turnover_root=0.5
 	cmass_root*=scale;	
-	cmass_leaf*=scale;	
+	cmass_leaf*=scale;
+
+	nmass_root*=scale;	
+	nmass_leaf*=scale;	
 
 	turnover=indiv.pft.turnover_root*cmass_root;	//turnover_root är normalt 0.7 för gräs
 	if(alive) 
 		litter_root+=turnover;
 	cmass_root-=turnover;
+
+//N:
+	turnover=indiv.pft.turnover_root*nmass_root;	//turnover_root är normalt 0.7 för gräs
+	nmass_litter_root+=turnover * (1.0 - nrelocfrac);
+	nmass_root-=turnover;
+	retransn += turnover * nrelocfrac;
+//
 
 	//OBS ! skörd före turnover !!!!
 	//Harvest/Grazing:					
@@ -2845,12 +3011,31 @@ void harvest_pasture(double& cmass_leaf,double& cmass_root,double& litter_leaf,d
 		acflux_harvest+=harvest;										//skördat gräs
 	cmass_leaf-=harvest;
 
+//N:
+	double N_harvest_scale=0.25;	//Quick fix to set reduced depletion of N relative to C during grazing.
+	harvest=indiv.pft.harv_eff*nmass_leaf * N_harvest_scale;
+
+	if(ifslowharvestpool)
+	{
+		harvested_products_slow_nmass+=harvest*indiv.pft.harvest_slow_frac;
+		harvest=harvest*(1-indiv.pft.harvest_slow_frac);
+	}
+	anflux_harvest+=harvest;										//skördat gräs
+	nmass_leaf-=harvest;
+///
+
 #if defined GRASSFORCROP
 	if (alive)
 	{
 		residue_outtake=indiv.pft.res_outtake*cmass_leaf;				//res_outtake currently set to 0.0, not used for crop grass
 		acflux_harvest+=residue_outtake;								
 		cmass_leaf-=residue_outtake;
+
+//N:
+		residue_outtake=indiv.pft.res_outtake*nmass_leaf;				//res_outtake currently set to 0.0, not used for crop grass
+		anflux_harvest+=residue_outtake;								
+		nmass_leaf-=residue_outtake;
+///
 	}
 #endif
 
@@ -2860,11 +3045,21 @@ void harvest_pasture(double& cmass_leaf,double& cmass_root,double& litter_leaf,d
 		litter_leaf+=turnover;
 	cmass_leaf-=turnover;
 
+//N:
+	turnover=indiv.pft.turnover_leaf*nmass_leaf;	//turnover_leaf är normalt 1.0 för gräs
+	nmass_litter_leaf+=turnover * (1.0 - nrelocfrac);
+	nmass_leaf-=turnover;
+	retransn += turnover * nrelocfrac;
+///
+
 }
 
-void harvest_crop(double& cmass_leaf,double& cmass_root,double& cmass_ho,double& cmass_agpool,double& litter_leaf,double& litter_root,
-				  double& acflux_harvest,double& harvested_products_slow,Individual& indiv) 
-{	//NB. this function is for balancing carbon fluxes based on last year's cmass, not for calculating this year's yield. This is done in allocation_crop().
+void harvest_crop(double& cmass_leaf,double& cmass_root,double& cmass_ho,double& cmass_agpool,
+	double& nmass_leaf,double& nmass_root,double& nmass_ho,double& nmass_agpool,
+	double& nmass_litter_leaf,double& nmass_litter_root,double& anflux_harvest,double& harvested_products_slow_nmass, double& retransn,
+	double& litter_leaf,double& litter_root, double& acflux_harvest,double& harvested_products_slow,Individual& indiv) {
+
+//NB. this function is for balancing carbon fluxes based on last year's cmass, not for calculating this year's yield. This is done in allocation_crop().
 	double turnover, residue_outtake, harvest;
 	double scale=1.0;	
 	int m;
@@ -2888,6 +3083,11 @@ void harvest_crop(double& cmass_leaf,double& cmass_root,double& cmass_ho,double&
 	cmass_agpool*=scale;
 	cmass_ho*=scale;	
 
+	nmass_root*=scale;	
+	nmass_leaf*=scale;	
+	nmass_agpool*=scale;
+	nmass_ho*=scale;
+
 //turnover and harvest (and acflux_harvest) of last year's carbon :
 
 //NB. cmass_x can be negative here only if individuals with negative cmass-x are not killed last year.
@@ -2895,8 +3095,11 @@ void harvest_crop(double& cmass_leaf,double& cmass_root,double& cmass_ho,double&
 	{
 		if(cmass_root>0.0)
 			litter_root+=cmass_root;
+		if(nmass_root>0.0)
+			nmass_litter_root+=nmass_root;
 
 		cmass_root=0.0;
+		nmass_root=0.0;
 
 		//Bondeau: harv_eff=1.0	
 		if(cmass_ho>0.0)											// (this year's yield is set in allocation_crop)
@@ -2928,6 +3131,36 @@ void harvest_crop(double& cmass_leaf,double& cmass_root,double& cmass_ho,double&
 		cmass_leaf=0.0;
 		cmass_agpool=0.0;
 
+//N:
+		if(nmass_ho>0.0)											// (this year's yield is set in allocation_crop)
+		{
+			harvest=indiv.pft.harv_eff*nmass_ho;			//skördade produkter	
+
+			if(indiv.pft.aboveground_ho)
+				nmass_litter_leaf+=(nmass_ho-harvest);			// ej skördade produkter
+			else
+				nmass_litter_root+=(nmass_ho-harvest);			
+
+			if(ifslowharvestpool)	
+			{
+				harvested_products_slow_nmass+=harvest*indiv.pft.harvest_slow_frac;	//patchpft.harvested_products_slow
+				harvest=harvest*(1-indiv.pft.harvest_slow_frac);
+			}
+			anflux_harvest+=harvest;											//patch.fluxes.acflux_harvest
+		}
+		nmass_ho=0.0;
+
+		if ((nmass_leaf+nmass_agpool)>0.0)
+		{
+			residue_outtake=indiv.pft.res_outtake*(nmass_leaf+nmass_agpool);
+			nmass_litter_leaf+=nmass_leaf+nmass_agpool-residue_outtake;						//ej uttagna rester
+
+			anflux_harvest+=residue_outtake;											//uttagna rester
+		}
+		nmass_leaf=0.0;
+		nmass_agpool=0.0;
+///
+
 		//No turnover (no remaining live plant tissue after harvest) for real crops.
 	}
 	else if(indiv.pft.phenology==ANY)
@@ -2957,6 +3190,33 @@ void harvest_crop(double& cmass_leaf,double& cmass_root,double& cmass_ho,double&
 			cmass_leaf=0.0;
 			cmass_ho=0.0;														//cmass_ho används ej för gräs
 			cmass_agpool=0.0;													//cmass_agpool används ej för gräs
+
+//N:
+			if(nmass_root>0.0)
+				nmass_litter_root+=nmass_root;
+
+			nmass_root=0.0;
+
+			//Harvest/Grazing:			
+			//Bondeau: harv_eff=0.9 i kod, 0 i artikel
+			if(nmass_leaf>0.0)
+			{
+				harvest=indiv.pft.harv_eff_ic*nmass_leaf;
+				nmass_litter_leaf+=nmass_leaf-harvest;											//ej skördat gräs
+
+				if(ifslowharvestpool)	
+				{
+					harvested_products_slow_nmass+=harvest*indiv.pft.harvest_slow_frac;
+					harvest=harvest*(1-indiv.pft.harvest_slow_frac);
+				}
+
+				anflux_harvest+=harvest;										//skördat gräs	(inget för närvarande)
+			}
+			nmass_leaf=0.0;
+			nmass_ho=0.0;														//nmass_ho används ej för gräs
+			nmass_agpool=0.0;													//nmass_agpool används ej för gräs
+////
+
 		}
 		else								//Normal CC3G/CC4G stand growth (ej kollat om cmass>0.0 behövs än)
 		{
@@ -2992,6 +3252,35 @@ void harvest_crop(double& cmass_leaf,double& cmass_root,double& cmass_ho,double&
 				litter_leaf+=turnover;
 
 			cmass_leaf-=turnover;
+
+//N:
+			// Root turnover
+			turnover=indiv.pft.turnover_root*nmass_root;	//turnover_root är normalt 0.7 för gräs
+			nmass_litter_root+=turnover * (1.0 - nrelocfrac);
+			nmass_root-=turnover;
+			retransn += turnover * nrelocfrac;
+
+			//OBS ! skörd före turnover !!!!
+			//Harvest/Grazing:					
+
+			harvest=indiv.pft.harv_eff*nmass_leaf;						//använd 0.5;	(this year's yield is set in allocation_crop)
+			nmass_leaf-=harvest;
+
+			if(ifslowharvestpool)
+			{
+				harvested_products_slow_nmass+=harvest*indiv.pft.harvest_slow_frac;
+				harvest=harvest*(1-indiv.pft.harvest_slow_frac);
+			}
+
+			anflux_harvest+=harvest;										//skördat gräs
+
+			// Leaf turnover
+			turnover=indiv.pft.turnover_leaf*nmass_leaf;	//turnover_leaf är normalt 1.0 för gräs
+			nmass_litter_leaf+=turnover * (1.0 - nrelocfrac);
+			nmass_leaf-=turnover;
+			retransn += turnover * nrelocfrac;
+//////
+
 		}
 	}
 }

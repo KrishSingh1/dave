@@ -26,24 +26,34 @@ file_cflux "cflux.out"
 file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
-file_firert "firert.out"
+!file_firert "firert.out"
 !file_aiso "aiso.out"
 !file_amon "amon.out"
+!file_speciesheights "height.out"
+
+file_cton_leaf "cton_leaf.out"
+file_cton_veg "cton_veg.out"
+file_ngases "ngases.out"
+file_nsources "nsources.out"
+file_npool "npool.out"
+file_nuptake "nuptake.out"
+file_nflux "nflux.out"
+file_vmaxnlim "vmaxnlim.out"
 
 ! Monthly outputs
-file_mnpp "mnpp.out"
-file_mlai "mlai.out"
-file_mrh "mrh.out"
-file_mgpp "mgpp.out"
-file_mra "mra.out"
-file_mnee "mnee.out"
-file_maet "maet.out"
-file_mpet "mpet.out"
-file_mevap "mevap.out"
-file_mintercep "mintercep.out"
-file_mrunoff "mrunoff.out"
-file_mwcont_upper "mwcont_upper.out"
-file_mwcont_lower "mwcont_lower.out"
+!file_mnpp "mnpp.out"
+!file_mlai "mlai.out"
+!file_mrh "mrh.out"
+!file_mgpp "mgpp.out"
+!file_mra "mra.out"
+!file_mnee "mnee.out"
+!file_maet "maet.out"
+!file_mpet "mpet.out"
+!file_mevap "mevap.out"
+!file_mintercep "mintercep.out"
+!file_mrunoff "mrunoff.out"
+!file_mwcont_upper "mwcont_upper.out"
+!file_mwcont_lower "mwcont_lower.out"
 !file_miso "miso.out"
 !file_mmon "mmon.out"
 !///////////////////////////////////////////////////////////////////////////////////////
@@ -61,8 +71,9 @@ title 'LPJ-GUESS (guess2008) cohort mode - global pfts'
 
 vegmode "cohort"		! "cohort", "individual" or "population"
 nyear_spinup 500		! number of years to spin up the simulation for
-ifdailydecomp 0			! whether to calculate soil respiration daily (1) or monthly (0)
 ifcalcsla 1				! whether to calculate SLA from leaf longevity
+						! (PFT-specific value can be specified in this file instead)
+ifcalccton 1			! whether to calculate leaf C:N min from leaf longevity
 						! (PFT-specific value can be specified in this file instead)
 iffire 1				! whether to implement fire (1) or not (0)
 npatch 5				! number of replicate patches to simulate
@@ -79,8 +90,29 @@ ifcdebt 1				! whether to allow vegetation C storage (1) or not (0)
 wateruptake "rootdist"  ! "wcont", "rootdist", "smart" or "speciesspecific",
                         ! see documentation for water_uptake()
 
+!///////////////////////////////////////////////////////////////////////////////
+! PROCESS SETTINGS SPECIFIC TO NITROGEN
+!///////////////////////////////////////////////////////////////////////////////
 
-! guess2008 - additions
+ifcentury 1				! whether to use CENTURY SOM dynamics (mandatory for N cycling)
+ifnlim 1				! whether plant growth limited by available N
+ifnlim_pasture 0			! whether growth in pasture limited by available N
+ifnlim_crop 0				! whether growth in cropland limited by available N
+freenyears 100			! number of years to spin up without N limitation (needed to build up a N pool)
+nfix_a 0.102			! first term in N fixation eqn (Conservative 0.102, Central 0.234, Upper 0.367)
+nfix_b 0.524			! second term in N fixation eqn (Conservative 0.524, Central -0.172, Upper -0.754)
+nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
+
+
+!///////////////////////////////////////////////////////////////////////////////
+! SERIALIZATION SETTINGS 
+!///////////////////////////////////////////////////////////////////////////////
+!state_year 500			! year to save/start state file (no setting = after spinup)
+restart 0				! wheter to start from a state file
+save_state 0			! wheter to save a state file
+!state_path ""			! directory to put state files in
+
+
 ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1) 
 								! or to use the standard step-function (0)  
 								! greff_min values below calibrated for the smooth (1) option 
@@ -148,9 +180,10 @@ group "tree" (
 	k_allom3 0.67
 	k_rp 1.6
 	wooddens 200
-	cton_leaf 29			
 	cton_root 29
 	cton_sap 330
+	nuptoroot 0.0028
+	km_volume 0.000001477
 	pathway "c3"
 	respcoeff 1.0	! utkommenterad hos Thomas !
 	kest_repr 200 	! 200
@@ -169,6 +202,7 @@ group "shrub" (
 	! Unchanged from species version
 	common
 	lifeform "tree"
+	leafphysiognomy "broadleaf"
 	crownarea_max 10
 	ltor_max 1
 	k_allom1 100
@@ -176,9 +210,12 @@ group "shrub" (
 	k_allom3 0.67
 	k_rp 1.6
 	wooddens 250
-	cton_leaf 29
+	!cton_leaf_min 16	
 	cton_root 29
 	cton_sap 330
+	nuptoroot 0.0028
+	km_volume 0.000001477
+	fnstorage 0.3
 	pathway "c3"
 	kest_repr 20
 	kest_bg 0.1
@@ -198,6 +235,7 @@ group "grass" (
 
 	common
 	lifeform "grass"
+	leafphysiognomy "broadleaf"
 	ltor_max 0.5
 	rootdist 0.9 0.1  !Sitch et al give 0.9 0.1	Fraction of fine roots in the upper and lower soil layers.
 	gmin 0.5
@@ -206,8 +244,11 @@ group "grass" (
 	leaflong 1				! Leaf longevity (years)
 	turnover_leaf 1
 	turnover_root 0.7		! 0.5 hos guess2008
-	cton_leaf 29
+	!cton_leaf_min 16
 	cton_root 29
+	nuptoroot 0.00551
+	km_volume 0.000001876
+	fnstorage 0.3
 	litterme 0.2
 	parff_min 1000000		! 2500000 i guess2008	
 	fireresist 0.5			! 1.0 hos Thomas
@@ -223,6 +264,8 @@ group "broadleaved" (
 
 	! Parameters common to all broadleaved trees
 
+	leafphysiognomy "broadleaf"
+	!cton_leaf_min 16
 	k_allom1 250
 	k_latosa 6000
 	gmin 0.5
@@ -234,6 +277,8 @@ group "needleleaved" (
 
 	! Parameters common to all needleleaved trees
 
+	leafphysiognomy "needleleaf"
+	!cton_leaf_min 28
 	k_allom1 150
 	k_latosa 5000
 	gmin 0.3
@@ -246,6 +291,7 @@ group "evergreen" (
 	! Parameters common to all evergreen trees
 
 	phenology "evergreen"
+	fnstorage 0.05
 	phengdd5ramp 0
 )
 
@@ -254,6 +300,7 @@ group "summergreen" (
 	! Parameters common to all summergreen trees
 
 	phenology "summergreen"
+	fnstorage 0.15
 	phengdd5ramp 200
 	leaflong 0.5
 	turnover_leaf 1
@@ -394,13 +441,39 @@ pft "BNS" (
 	tcmax_est -2
 	twmin_est -1000   ! no limit
 	twminusc 43       ! AA from TH 03-11 added this
-	gdd5min_est 500
+	gdd5min_est 350	! Stefan added new value, old 500
+	phengdd5ramp 100	! Stefan added new value, old 200
 	longevity 300
 	fireresist 0.3
 	eps_iso 8.0
 	seas_iso 1
 	eps_mon 4.8
 	storfrac_mon 0.5
+)
+
+pft "TeNE" (
+
+	! Temperate needleleaved evergreen tree
+
+	include 0
+	tree
+	needleleaved
+	shade_intolerant ! cf Jun_oxy, Pin_hal in europe.ins
+	evergreen
+	temperate
+	leaflong 3
+	turnover_leaf 0.33
+	tcmin_surv -2 ! As in Sitch et al. (2003), a little lower than TeBE
+	tcmin_est -2 ! As in Sitch et al. (2003), a little lower than TeBE
+	tcmax_est 10 ! Hickler et al. (2012) have 9 degC for Pin_hal
+	twmin_est 5  ! low, since Hickler et al. (2012) have -1000 for Jun_oxy
+	gdd5min_est 2000 !(Stefans value 900)2000 ! As TeBE, a little lower than Jun_oxy, Pin_hal in europe.ins
+	longevity 300  ! Hickler et al. (2012) have 350 for Pin_hal
+	fireresist 0.3 ! Hickler et al. (2012) have 0.2 for Pin_hal and 0.4 for Jun_oxy
+	    eps_iso 8.0	!?????????????
+        seas_iso 0	!?????????????
+        eps_mon 4.8	!?????????????
+        storfrac_mon 0.5	!?????
 )
 
 pft "TeBS" (
@@ -527,6 +600,7 @@ pft "TrBR" (
 	shade_intolerant
 	tropical
 	phenology "raingreen"
+	fnstorage 0.15
 	leaflong 0.5
 	turnover_leaf 1
 	longevity 400    ! from Thomas h 2010-03-30

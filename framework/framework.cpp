@@ -42,6 +42,11 @@ rename("CFTdata.out", "CFTdata.old");
 	// settings and initialise input/output
 	initio(args.get_instruction_file());
 
+	// Nitrogen limitation
+	if (ifnlim && !ifcentury) {
+		fail("\n\nIf nitrogen limitation is switched on then century soil module also needs to be switched on!");
+	}
+
 	// bvoc
 	if (ifbvoc) {
 	  initbvoc();
@@ -69,7 +74,7 @@ rename("CFTdata.out", "CFTdata.old");
 		date.init(1);
 
 		// Create and initialise a new Gridcell object for each locality
-		Gridcell gridcell;	
+		Gridcell gridcell;
 
 		// Call input/output to obtain latitude and soil driver data for this grid cell.
 		// Function getgridcell returns false if no further grid cells remain to be simulated
@@ -100,7 +105,7 @@ rename("CFTdata.out", "CFTdata.old");
 		while (getclimate(gridcell)) {
 
 			// START OF LOOP THROUGH SIMULATION DAYS
-
+			
 			// Update daily climate drivers etc
 			dailyaccounting_gridcell(gridcell);
 
@@ -159,7 +164,7 @@ rename("CFTdata.out", "CFTdata.old");
 						growth_crop_daily(patch);
 
 					if (date.islastday && date.islastmonth) {
-						
+
 						// LAST DAY OF YEAR
 						// Tissue turnover, allocation to new biomass and reproduction,
 						// updated allometry
@@ -172,7 +177,7 @@ rename("CFTdata.out", "CFTdata.old");
 					// LAST DAY OF YEAR
 					stand.firstobj();
 					while (stand.isobj) {
-						
+
 						// For each patch ...
 						Patch& patch = stand.getobj();
 						// Establishment, mortality and disturbance by fire

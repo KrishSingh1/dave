@@ -45,10 +45,17 @@ void allocation_crop(double bminc,double cmass_leaf,double cmass_root,double cma
 	double& cmass_root_inc,double& cmass_ho_inc,double& cmass_agpool_inc, double& litter_leaf_inc,double& litter_root_inc, Individual& indiv);
 void yield_crop(Individual& indiv);
 void yield_pasture(Individual& indiv, double cmass_leaf_inc);
-void harvest_crop(double& cmass_leaf,double& cmass_root,double& cmass_ho,double& cmass_agpool,double& litter_leaf,double& litter_root,
-	double& acflux_harvest,double& harvested_products_slow,Individual& indiv);
-void harvest_natural(double& cmass_leaf,double& cmass_root,double& cmass_sap,double& cmass_heart,double& cmass_debt,double& litter_leaf,double& litter_root,double& litter_wood,
-	double& acflux_harvest,double& harvested_products_slow,Individual& indiv);
-void harvest_pasture(double& cmass_leaf,double& cmass_root,double& litter_leaf,double& litter_root,double& acflux_harvest,double& harvested_products_slow,Individual& indiv);
+void harvest_crop(double& cmass_leaf,double& cmass_root,double& cmass_ho,double& cmass_agpool,
+	double& nmass_leaf,double& nmass_root,double& nmass_ho,double& nmass_agpool,
+	double& nmass_litter_leaf,double& nmass_litter_root,double& anflux_harvest,double& harvested_products_slow_nmass, double& retransn,
+	double& litter_leaf,double& litter_root, double& acflux_harvest,double& harvested_products_slow,Individual& indiv);
+void harvest_natural(double& cmass_leaf,double& cmass_root,double& cmass_sap,double& cmass_heart,double& cmass_debt,
+	double& nmass_leaf,double& nmass_root,double& nmass_sap,double& nmass_heart,
+	double& nmass_litter_leaf,double& nmass_litter_root, double& nmass_litter_sap, double& nmass_litter_heart, double& anflux_harvest,double& harvested_products_slow_nmass,
+	double& litter_leaf,double& litter_root,double& litter_sap,double& litter_heart,double& acflux_harvest,double& harvested_products_slow,Individual& indiv);
+void harvest_pasture(double& cmass_leaf,double& cmass_root,
+	double& nmass_leaf,double& nmass_root,
+	double& nmass_litter_leaf,double& nmass_litter_root,double& anflux_harvest,double& harvested_products_slow_nmass, double& retransn,
+	double& litter_leaf,double& litter_root,double& acflux_harvest,double& harvested_products_slow,Individual& indiv);
 
 #endif // LPJ_GUESS_LANDCOVER_H

@@ -1258,7 +1258,7 @@ void growth(Stand& stand,Patch& patch) {
 	int p;
 	bool killed;
 
-	bool ifnlim_stand = ifnlim && (ifnlim_pasture && patch.stand.landcover==PASTURE || ifnlim_crop && patch.stand.landcover==CROPLAND);
+	bool ifnlim_stand = ifnlim && (patch.stand.landcover==NATURAL || ifnlim_pasture && patch.stand.landcover==PASTURE || ifnlim_crop && patch.stand.landcover==CROPLAND);
 
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation=patch.vegetation;

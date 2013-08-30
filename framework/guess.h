@@ -150,13 +150,15 @@ typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptakety
 /// number  of soil layers modelled
 const int NSOILLAYER = 2;
 
+// SOIL DEPTH VALUES
+
 /// soil upper layer depth (mm)
 const double SOILDEPTH_UPPER = 500.0;
 /// soil lower layer depth (mm)
 const double SOILDEPTH_LOWER = 1000.0;
 
 /// Year at which to calculate equilibrium soil carbon
-const int SOLVESOM_END = 400;
+const int SOLVESOM_END=400;
 
 /// Year at which to begin documenting means for calculation of equilibrium soil carbon
 const int SOLVESOM_BEGIN = 350;
@@ -228,6 +230,7 @@ extern int npatch;
 
 /// Patch area (m2) (individual and cohort mode only)
 extern double patcharea;
+
 
 /// Whether background establishment enabled (individual, cohort mode)
 extern bool ifbgestab;
@@ -396,13 +399,13 @@ public:
 	/// Constructor function called automatically when Date object is created
 	/** Do not call explicitly. Initialises some member variables. */
 	Date() {
-		const int data[]={31,28,31,30,31,30,31,31,30,31,30,31};
+		const int data[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 		int month;
-		int dayct=0;
-		for (month=0;month<12;month++) {
-			ndaymonth[month]=data[month];
-			middaymonth[month]=dayct+data[month]/2;
-			dayct+=data[month];
+		int dayct = 0;
+		for (month=0; month<12; month++) {
+			ndaymonth[month] = data[month];
+			middaymonth[month] = dayct + data[month] / 2;
+			dayct += data[month];
 		}
 		subdaily = 1;
 	}
@@ -414,52 +417,52 @@ public:
 	 *  \param nyearsim  Intended number of simulation years
 	 */
 	void init(int nyearsim)	{
-		nyear=nyearsim;
-		day=month=year=dayofmonth=0;
-		islastmonth=islastday=ismidday=false;
-		if (nyear==1) islastyear=true;
-		else islastyear=false;
+		nyear = nyearsim;
+		day = month=year = dayofmonth = 0;
+		islastmonth = islastday = ismidday = false;
+		if (nyear == 1) islastyear = true;
+		else islastyear = false;
 	}
 
 	/// Call at end of every simulation day to update member variables.
 	void next() {
 		if (islastday) {
 			if (islastmonth) {
-				dayofmonth=0;
-				day=0;
-				month=0;
+				dayofmonth = 0;
+				day = 0;
+				month = 0;
 				year++;
-				if (year==nyear-1) islastyear=true;
-				islastmonth=false;
+				if (year == nyear - 1) islastyear = true;
+				islastmonth = false;
 			}
 			else {
 				day++;
-				dayofmonth=0;
+				dayofmonth = 0;
 				month++;
-				if (month==11) islastmonth=true;
+				if (month == 11) islastmonth = true;
 			}
-			islastday=false;
+			islastday = false;
 		}
 		else {
 			day++;
 			dayofmonth++;
-			if (dayofmonth==ndaymonth[month]/2) ismidday=true;
+			if (dayofmonth == ndaymonth[month] / 2) ismidday = true;
 			else {
-				ismidday=false;
-				if (dayofmonth==ndaymonth[month]-1) islastday=true;
+				ismidday = false;
+				if (dayofmonth == ndaymonth[month] - 1) islastday = true;
 			}
 		}
 	}
 
 	// \returns index (0-11) of previous month (11 if currently month 0).
 	int prevmonth() {
-		if (month>0) return month-1;
+		if (month > 0) return month - 1;
 		return 11;
 	}
 
 	/// \returns index of next month (0 if currently month 11)
 	int nextmonth() {
-		if (month<11) return month+1;
+		if (month < 11) return month+1;
 		return 0;
 	}
 
@@ -652,7 +655,7 @@ public:
 
 	double sinelat;
 	double cosinelat;
-	double qo[365],u[365],v[365],hh[365],sinehh[365];
+	double qo[365], u[365], v[365], hh[365], sinehh[365];
 	double daylength_save[365];
 	bool doneday[365];
 		// indicates whether saved values exist for this day
@@ -742,25 +745,26 @@ public:
 		// Initialises certain member variables
 		// Should be called before Climate object is applied to a new grid cell
 
-		int day,year;
+		int day, year;
 
-		for (year=0;year<20;year++) {
-			mtemp_min_20[year]=0.0;
-			mtemp_max_20[year]=0.0;
+		for (year=0; year<20; year++) {
+			mtemp_min_20[year] = 0.0;
+			mtemp_max_20[year] = 0.0;
 		}
-		mtemp_min20=0.0;
-		mtemp_max20=0.0;
-		mtemp=0.0;
-		maxtemp=0.0;
-		gdd5=0.0;
-		gdd5_pasture=0.0;
-		chilldays=0;
-		ifsensechill=true; //  guess2008 - CHILLDAYS
+		mtemp_min20 = 0.0;
+		mtemp_max20 = 0.0;
+		mtemp = 0.0;
+		maxtemp = 0.0;
+		gdd5 = 0.0;
+		gdd5_pasture = 0.0;
+		chilldays = 0;
+		ifsensechill = true; //  guess2008 - CHILLDAYS
+		atemp_mean = 0.0;
 
-		lat=latitude;
-		for (day=0;day<365;day++) doneday[day]=false;
-		sinelat=sin(lat*DEGTORAD);
-		cosinelat=cos(lat*DEGTORAD);
+		lat = latitude;
+		for (day=0; day<365; day++) doneday[day] = false;
+		sinelat = sin(lat * DEGTORAD);
+		cosinelat = cos(lat * DEGTORAD);
 	}
 
 	void serialize(ArchiveStream& arch);
@@ -1135,16 +1139,16 @@ public:
 		// Constructor (initialises array gdd0)
 
 		int y;
-		for (y=0;y<366;y++)
-			gdd0[y]=-1.0; // value<0 signifies "unknown"; see function phenology()
+		for (y=0; y<366; y++)
+			gdd0[y] = -1.0; // value<0 signifies "unknown"; see function phenology()
 
 		// guess2008 - DLE
-		drought_tolerance=0.0; // Default, means that the PFT will never be limited by drought.
+		drought_tolerance = 0.0; // Default, means that the PFT will never be limited by drought.
 
-		res_outtake=0.0;
-		harv_eff=0.0;
-		harv_eff_ic=0.0;
-		turnover_harv_prod=1.0;	// default 1 year turnover time
+		res_outtake = 0.0;
+		harv_eff = 0.0;
+		harv_eff_ic = 0.0;
+		turnover_harv_prod = 1.0;	// default 1 year turnover time
 
 		cftid=-1;
 		isintercropgrass=false;
@@ -1257,32 +1261,32 @@ public:
 		// Note: primary PFT parameters, including SLA, must be set before this
 		//       function is called
 
-		const double PI=3.14159265;
-		const double REGENLAI_TREE=1.5;
-		const double REGENLAI_GRASS=0.001;
-		const double SAPLINGHW=0.2;
+		const double PI = 3.14159265;
+		const double REGENLAI_TREE = 1.5;
+		const double REGENLAI_GRASS = 0.001;
+		const double SAPLINGHW = 0.2;
 
-		if (lifeform==TREE) {
+		if (lifeform == TREE) {
 
 			// Tree sapling characteristics
 
-			regen.cmass_leaf=pow(REGENLAI_TREE*k_allom1*pow(1.0+SAPLINGHW,k_rp)*
-				pow(4.0*sla/PI/k_latosa,k_rp*0.5)/sla,2.0/(2.0-k_rp));
+	regen.cmass_leaf = pow(REGENLAI_TREE * k_allom1 * pow(1.0 + SAPLINGHW, k_rp) *
+				pow(4.0 * sla / PI / k_latosa, k_rp * 0.5) / sla, 2.0 / (2.0 - k_rp));
 
-			regen.cmass_sap=wooddens*k_allom2*pow((1.0+SAPLINGHW)*
-				sqrt(4.0*regen.cmass_leaf*sla/PI/k_latosa),k_allom3)*
-				regen.cmass_leaf*sla/k_latosa;
+			regen.cmass_sap = wooddens * k_allom2 * pow((1.0 + SAPLINGHW) *
+				sqrt(4.0 * regen.cmass_leaf * sla / PI / k_latosa), k_allom3) *
+				regen.cmass_leaf * sla / k_latosa;
 
-			regen.cmass_heart=SAPLINGHW*regen.cmass_sap;
+			regen.cmass_heart = SAPLINGHW * regen.cmass_sap;
 		}
-		else if (lifeform==GRASS) {
+		else if (lifeform == GRASS) {
 
 			// Grass regeneration characteristics
 
-			regen.cmass_leaf=REGENLAI_GRASS/sla;
+			regen.cmass_leaf = REGENLAI_GRASS / sla;
 		}
 
-		regen.cmass_root=1.0/ltor_max*regen.cmass_leaf;
+		regen.cmass_root = 1.0 / ltor_max * regen.cmass_leaf;
 	}
 };
 
@@ -1774,8 +1778,8 @@ public:
 
 		// Constructor: initialises certain member variables
 
-		solvesom_end=SOLVESOM_END;
-		solvesom_begin=SOLVESOM_BEGIN;
+		solvesom_end = SOLVESOM_END;
+		solvesom_begin = SOLVESOM_BEGIN;
 
 		sand_frac = 0.4;
 		clay_frac = 0.4;
@@ -1785,8 +1789,8 @@ public:
 	// guess2008 - override the default SOM years with 70-80% of the spin-up period length
 	void updateSolveSOMvalues(const int& nyrspinup) {
 
-		solvesom_end=static_cast<int>(0.8*nyrspinup);
-		solvesom_begin=static_cast<int>(0.7*nyrspinup);
+		solvesom_end = static_cast<int>(0.8 * nyrspinup);
+		solvesom_begin = static_cast<int>(0.7 * nyrspinup);
 
 	}
 };
@@ -1948,7 +1952,7 @@ public:
 
 	// Parameters used by function soiltemp and updated monthly
 
-	double alag,exp_alag;
+	double alag, exp_alag;
 
 
 	// guess2008 - 3 new soil water variables
@@ -2026,24 +2030,24 @@ public:
 
 		// Initialises certain member variables
 
-		alag=0.0;
-		exp_alag=1.0;
-		cpool_slow=0.0;
-		cpool_fast=0.0;
-		decomp_litter_mean=0.0;
-		k_soilfast_mean=0.0;
-		k_soilslow_mean=0.0;
-		wcont[0]=0.0;
-		wcont[1]=0.0;
-		wcont_evap=0.0;
-		snowpack=0.0;
+		alag = 0.0;
+		exp_alag = 1.0;
+		cpool_slow = 0.0;
+		cpool_fast = 0.0;
+		decomp_litter_mean = 0.0;
+		k_soilfast_mean = 0.0;
+		k_soilslow_mean = 0.0;
+		wcont[0] = 0.0;
+		wcont[1] = 0.0;
+		wcont_evap = 0.0;
+		snowpack = 0.0;
 		orgleachfrac = 0.0;
 
 
 		// guess2008 - extra initialisation
 		mwcontupper = 0.0;
 		mwcontlower = 0.0;
-		for (int mth = 0; mth < 12; mth++) {
+		for (int mth=0; mth<12; mth++) {
 			mwcont[mth][0] = 0.0;
 			mwcont[mth][1] = 0.0;
 			fnuptake_mean[mth] = 0.0;
@@ -2270,11 +2274,11 @@ public:
 		// non-FPC-weighted canopy conductance value for PFT under water-stress
 		// conditions (mm/s)
 	double gcbase_day;				// daily value of the above variable (mm/s)
+
 	double wsupply;
 		// evapotranspirational "supply" function for this PFT today (mm/day)
 	double wsupply_leafon;
 	double fwuptake[NSOILLAYER];
-
 		// fractional uptake of water from each soil layer today
 	bool wstress;				// whether water-stress conditions for this PFT
 	bool wstress_day;			// daily version of the above variable
@@ -2297,30 +2301,30 @@ public:
 
 		// Constructor: initialises id, pft and data members
 
-		litter_leaf=0.0;
-		litter_root=0.0;
+		litter_leaf = 0.0;
+		litter_root = 0.0;
 		litter_sap   = 0.0;
 		litter_heart = 0.0;
-		litter_repr=0.0;
+		litter_repr = 0.0;
 
 		nmass_litter_leaf  = 0.0;
 		nmass_litter_root  = 0.0;
 		nmass_litter_sap   = 0.0;
 		nmass_litter_heart = 0.0;
 
-		wscal=1.0;
-		wscal_mean=1.0;
-		anetps_ff=0.0;
-		aphen=0.0;
-		phen=0.0;
-		wsupply=0.0;
-		wsupply_leafon=0.0;
+		wscal = 1.0;
+		wscal_mean = 1.0;
+		anetps_ff = 0.0;
+		aphen = 0.0;
+		phen = 0.0;
+		wsupply = 0.0;
+		wsupply_leafon = 0.0;
 
 		for(int i=0;i<NSOILLAYER;i++)
 			fwuptake[i]=0.0;
 
-		cropphen=NULL;
-		harvested_products_slow=0.0;
+		cropphen = NULL;
+		harvested_products_slow = 0.0;
 		harvested_products_slow_nmass = 0.0;
 
 		swindow[0]=-1;
@@ -2464,15 +2468,15 @@ public:
 			pft.createobj(pftlist[p]);
 		}
 
-		age=0;
-		disturbed=false;
-		wdemand=0.0;
-		wdemand_leafon=0.0;
+		age = 0;
+		disturbed = false;
+		wdemand = 0.0;
+		wdemand_leafon = 0.0;
 		
 		// guess2008 - initialise
-		growingseasondays=0;
+		growingseasondays = 0;
 
-		fireprob=0.0;
+		fireprob = 0.0;
 		ndemand = 0.0;
 	}
 
@@ -2671,7 +2675,7 @@ public:
 	 *  \param p   A reference to the Pft for this Gridcellpft
 	 */
 	Gridcellpft(int i,Pft& p):id(i),pft(p) {
-		addtw=0.0;
+		addtw = 0.0;
 		Km = 0.0;
 
 		autumnoccurred=false;
@@ -2767,23 +2771,23 @@ public:
 	/// Constructs a Gridcell object
 	Gridcell():climate(*this) {
 		landcovertype landcover;
-		LC_updated=false;
+		LC_updated = false;
 
-		for(unsigned int p=0;p<pftlist.nobj;p++) {
+		for(unsigned int p=0; p<pftlist.nobj; p++) {
 			pft.createobj(pftlist[p]);
 		}
 
-		memset(landcoverfrac, 0, sizeof(double)*NLANDCOVERTYPES);
-		memset(landcoverfrac_old, 0, sizeof(double)*NLANDCOVERTYPES);
-		memset(cftfrac, 0, sizeof(double)*NCROPSTANDS_MAX);
-		memset(cftfrac_old, 0, sizeof(double)*NCROPSTANDS_MAX);
+		memset(landcoverfrac, 0, sizeof(double) * NLANDCOVERTYPES);
+		memset(landcoverfrac_old, 0, sizeof(double) * NLANDCOVERTYPES);
+		memset(cftfrac, 0, sizeof(double) * NCROPSTANDS_MAX);
+		memset(cftfrac_old, 0, sizeof(double) * NCROPSTANDS_MAX);
 //		acflux_harvest_slow=0.0;
 //		acflux_landuse_change=0.0;
 
 		if(!run_landcover) {
-			landcover=NATURAL;
+			landcover = NATURAL;
 			createobj(*this,landcover);
-			landcoverfrac[NATURAL]=1.0;
+			landcoverfrac[NATURAL] = 1.0;
 		}
 
 		seed = 12345678;

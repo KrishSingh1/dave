@@ -27,7 +27,6 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 					double nactive, bool ifnlimvmax,
 					PhotosynthesisResult& result, double vm);
 
-
 // Constants for photosynthesis calculations
 
 /// conversion factor for solar radiation at 550 nm from J/m2 to mol_quanta/m2 (E=mol quanta); mol J-1
@@ -59,6 +58,7 @@ const double ALPHAA = 0.5;		// value chosen to give global carbon pool and flux 
 								// agree with published estimates.
 								// scaling factor for PAR absorption from leaf to plant projective area level
 								// alias "twigloss". Should normally be in the range 0-1
+
 const double ALPHAA_NLIM = 0.75; // Same as ALPHAA above but chosen to give pools and flux values
 								 // that agree with published estimates when Nitrogen limitation is
 								 // switched on.

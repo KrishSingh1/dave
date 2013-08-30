@@ -20,7 +20,6 @@ Date date; // object describing timing stage of simulation
 vegmodetype vegmode; // vegetation mode (population, cohort or individual)
 int npatch; // number of patches in each stand (should always be 1 in population mode); cropland stands always have 1 patch
 double patcharea; // patch area (m2) (individual and cohort mode only)
-	// whether soil decomposition calculations performed daily (alt: monthly)
 bool ifbgestab; // whether background establishment enabled (individual, cohort mode)
 bool ifsme;
 	// whether spatial mass effect enabled for establishment (individual, cohort mode)
@@ -607,18 +606,18 @@ void Stand::serialize(ArchiveStream& arch) {
 
 Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
-	anpp=0.0;
-	fpc=0.0;
-	fpc_thisday=0.0;
-	densindiv=0.0;
-	cmass_leaf=0.0;
-	cmass_root=0.0;
-	cmass_sap=0.0;
-	cmass_heart=0.0;
-	cmass_debt=0.0;
-	phen=0.0;
-	aphen=0.0;
-	deltafpc=0.0;
+	anpp              = 0.0;
+	fpc               = 0.0;
+	fpc_thisday       = 0.0;
+	densindiv         = 0.0;
+	cmass_leaf        = 0.0;
+	cmass_root        = 0.0;
+	cmass_sap         = 0.0;
+	cmass_heart       = 0.0;
+	cmass_debt        = 0.0;
+	phen              = 0.0;
+	aphen             = 0.0;
+	deltafpc          = 0.0;
 
 	nmass_leaf        = 0.0;
 	nmass_root        = 0.0;
@@ -654,31 +653,31 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	nstress           = false;
 
 	// guess2008 - additional initialisation
-	age=0.0;
-	fpar=0.0;
-	aphen_raingreen=0;
-	intercep=0.0;
-	phen_mean=0.0;
-	wstress = false;
-	lai = 0.0;
-	lai_layer = 0.0;
-	lai_indiv = 0.0;
-	alive = false;
-	wscal_mean=1.0;
+	age               = 0.0;
+	fpar              = 0.0;
+	aphen_raingreen   = 0;
+	intercep          = 0.0;
+	phen_mean         = 0.0;
+	wstress           = false;
+	lai               = 0.0;
+	lai_layer         = 0.0;
+	lai_indiv         = 0.0;
+	alive             = false;
+	wscal_mean        = 1.0;
 
 	int m;
 	for (m=0;m<12;m++) {
-		mlai[m]=mlai[m]=0.0;
+		mlai[m]    = 0.0;
 	}
 
 	// bvoc
-	monstor=0.;
-	iso=0.;
-	mon=0.;
-	fvocseas=1.;
+	monstor           = 0.;
+	iso               = 0.;
+	mon               = 0.;
+	fvocseas          = 1.;
 
-	dnpp=0.0;
-	cropindiv=NULL;
+	dnpp              = 0.0;
+	cropindiv         = NULL;
 
 	if(pft.landcover==CROPLAND)
 	{
@@ -1145,7 +1144,6 @@ void Individual::kill(bool harvest /* = false */) {
 				report_flux(Fluxes::NPP, debt_excess);
 				report_flux(Fluxes::RA, -debt_excess);
 			}
-
 		}
 	}
 

@@ -230,11 +230,8 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	wcont_evap += (rain_melt-aet_layer[0]*SOILDEPTH_EVAP*K_AET_DEPTH/SOILDEPTH_UPPER-evap)
 		/awc[0];
 
-	if(wcont_evap<0.0)
-	{
-		if(!SUPPRESSLARGEOUTPUT)
-			dprintf("Negative wcont_evap, stand n:o %d year %d day %d!\n", patch.stand.id, date.year, date.day);
-		wcont_evap=0.0;
+	if (wcont_evap < 0) {
+		wcont_evap = 0;
 	}
 
 	if (wcont_evap > wcont[0]) {

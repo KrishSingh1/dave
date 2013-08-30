@@ -56,6 +56,9 @@ static const double NMASS_SAT = 0.002;
 // their minimum (nitrogen saturation) (Parton et al 1993, Fig. 4)
 static const double NCONC_SAT = 0.02;
 
+///////////////////////////////////////////////////////////////////////////////////////
+// FILE SCOPE GLOBAL VARIABLES
+
 // Exponential decay constants for litter and SOM fractions
 // Values set from turnover times (constants above) on first call to decayrates
 

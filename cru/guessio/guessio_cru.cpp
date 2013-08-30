@@ -46,6 +46,7 @@
 #include <algorithm>
 #include "globalco2file.h"
 
+
 // guess2008 - header file for the CRU TS 3.0 data archives
 #include "cru_1901_2006.h"
 #include "cru_1901_2006misc.h"
@@ -159,8 +160,8 @@ private:
 // ENUM DECLARATIONS OF INTEGER CONSTANTS FOR PLIB INTERFACE
 
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM};
-enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_HYDROLOGY,CB_INTERCROP,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,CB_PATHWAY,	
-	CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE};
+enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_HYDROLOGY,CB_INTERCROP,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,	
+	CB_PATHWAY,CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE};
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -327,7 +328,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("freenyears",&freenyears,0,1000,1,CB_NONE,
 			"Number of years to spinup without nitrogen limitation");
 
-		// guess2008
 		// Annual output variables
 		declareitem("outputdirectory",&outputdirectory,300,CB_NONE,"Directory for the output files");
 		declareitem("file_cmass",&file_cmass,300,CB_NONE,"C biomass output file");
@@ -3324,7 +3324,6 @@ TimeDataDmem CFTdata_mem;
 
 xtring file_lu, file_lucrop, file_peat, file_sdates, file_hdates;
 const int NYEAR_LU=103;	//only used to get LU data after historical period (after 2003) : only used in AR4-runs, but causes no harm otherwise
-//
 
 ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -4211,7 +4210,6 @@ if(!SUPPRESSLARGEOUTPUT)
  *  \param  lon         Longitude
  *  \param  lat         Latitude
  */
-
 void getndep(double lon, double lat) {
 	
 	const double convert = 1e-7;				// converting from gN ha-1 to kgN m-2
@@ -4443,7 +4441,6 @@ bool getgridcell(Gridcell& gridcell) {
 	return false; // no more stands
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
 ///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
 void getlandcover(Gridcell& gridcell) {
 	int i, year, year_saved;
@@ -4879,10 +4876,10 @@ bool getclimate(Gridcell& gridcell) {
 	double progress;
 
 	// guess2008 - changed name from mwet to mwet_all
-	double mwet_all[12]={31,28,31,30,31,30,31,31,30,31,30,31}; // number of rain days per month
-	Climate& climate=gridcell.climate;
+	double mwet_all[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}; // number of rain days per month
+	Climate& climate = gridcell.climate;
 
-	if (date.day==0) {
+	if (date.day == 0) {
 
 		// First day of year ...
 	
@@ -4903,7 +4900,7 @@ bool getclimate(Gridcell& gridcell) {
 			mnwetdep[m] = NHxWetDep[ndep_year][m] + NOyWetDep[ndep_year][m];
 		}
 
-		if (date.year<nyear_spinup) {
+		if (date.year < nyear_spinup) {
 
 			// During spinup period
 
@@ -4912,16 +4909,16 @@ bool getclimate(Gridcell& gridcell) {
 			double mfrs[12],mwet[12],mdtr[12];
 
 			for (m=0;m<12;m++) {
-				mtemp[m]=spinup_mtemp[m];
-				mprec[m]=spinup_mprec[m];
-				climate.mtemp_year[m]=spinup_mtemp[m];	
-				climate.mprec_year[m]=spinup_mprec[m];	
-				msun[m]=spinup_msun[m];
+				mtemp[m] = spinup_mtemp[m];
+				mprec[m] = spinup_mprec[m];
+				climate.mtemp_year[m] = spinup_mtemp[m];	
+				climate.mprec_year[m] = spinup_mprec[m];	
+				msun[m] = spinup_msun[m];
 
 				// guess2008
-				mfrs[m]=spinup_mfrs[m];
-				mwet[m]=spinup_mwet[m];
-				mdtr[m]=spinup_mdtr[m];
+				mfrs[m] = spinup_mfrs[m];
+				mwet[m] = spinup_mwet[m];
+				mdtr[m] = spinup_mdtr[m];
 			}
 
 			// Interpolate monthly spinup data to quasi-daily values
@@ -4947,7 +4944,7 @@ bool getclimate(Gridcell& gridcell) {
 			spinup_mdtr.nextyear();
 
 		}
-		else if (date.year<nyear_spinup+NYEAR_HIST) {
+		else if (date.year < nyear_spinup + NYEAR_HIST) {
 
 			// Historical period
 
@@ -4969,8 +4966,8 @@ bool getclimate(Gridcell& gridcell) {
 
 			for(int m=0;m<12;m++)	
 			{
-				climate.mtemp_year[m]=hist_mtemp[date.year-nyear_spinup][m];
-				climate.mprec_year[m]=hist_mprec[date.year-nyear_spinup][m];
+				climate.mtemp_year[m]  =hist_mtemp[date.year-nyear_spinup][m];
+				climate.mprec_year[m] = hist_mprec[date.year-nyear_spinup][m];
 			}
 		}
 		else {
@@ -4979,32 +4976,27 @@ bool getclimate(Gridcell& gridcell) {
 		}
 	}
 
-	if(date.day==0)
+	if(date.day == 0)
 	{
-		climate.aprec=0.0;
+		climate.aprec = 0.0;
 
-		for(int m=0;m<12;m++)
+		for(int m=0; m<12; m++)
 		{
-			climate.aprec+=climate.mprec_year[m];
-			climate.mpet_year[m]=0.0;
+			climate.aprec += climate.mprec_year[m];
+			climate.mpet_year[m] = 0.0;
 		}
 	}
-	climate.mpet_year[date.month]+=climate.eet*PRIESTLEY_TAYLOR;
+	climate.mpet_year[date.month] + =climate.eet * PRIESTLEY_TAYLOR;
 
 	// Send environmental values for today to framework
 	if(fixedco2_hist)
 		climate.co2 = co2[FIRSTHISTYEAR];
 	else
-	{
-//		if(FIRSTHISTYEAR + date.year - nyear_spinup>=1950)				//Temporary code to test crashing c4 crops at high co2
-//			climate.co2 = climate.co2 + !(date.day%365)*10;
-//		else
-			climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
-	}
+		climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
 
-	climate.temp=dtemp[date.day];
-	climate.prec=dprec[date.day];
-	climate.insol=dsun[date.day];
+	climate.temp = dtemp[date.day];
+	climate.prec = dprec[date.day];
+	climate.insol = dsun[date.day];
 
 	// Nitrogen deposition
 	climate.dndep = dndep[date.day];
@@ -5014,12 +5006,12 @@ bool getclimate(Gridcell& gridcell) {
 
 	// bvoc
 	if(ifbvoc){
-	  climate.dtr=ddtr[date.day];
+	  climate.dtr = ddtr[date.day];
 	}
 
 	// First day of year only ...
 
-	if (date.day==0) {
+	if (date.day == 0) {
 
 		// Progress report to user and update timer
 
@@ -5077,7 +5069,7 @@ void outannual(Gridcell& gridcell) {
 	// Nitrogen output is in kgN/ha instead of kgC/m2 as for carbon 
 	double m2toha = 10000.0;
 
-	// guess2008 - hold the monthly average across patches
+	// hold the monthly average across patches
 	double mnpp[12];
 	double mgpp[12];
 	double mlai[12];
@@ -5095,15 +5087,15 @@ void outannual(Gridcell& gridcell) {
 	double miso[12];
 	double mmon[12];
 
-	if (vegmode==COHORT)
-		nclass=min(date.year/estinterval+1,OUTPUT_MAXAGECLASS);
+	if (vegmode == COHORT)
+		nclass = min(date.year / estinterval + 1, OUTPUT_MAXAGECLASS);
 	
 	// guess2008 - yearly output after spinup
 		
 	// If only yearly output between, say 1961 and 1990 is requred, use: 
 	//	if (date.year>=nyear_spinup+60 && date.year<nyear_spinup+90) {
 
-	if (date.year>=nyear_spinup) {
+	if (date.year >= nyear_spinup) {
 
 		double lon = gridcell.get_lon();
 		double lat = gridcell.get_lat();
@@ -5184,7 +5176,6 @@ void outannual(Gridcell& gridcell) {
 		double standpft_nmass_leaf=0.0;
 		double standpft_cmass_veg=0.0;
 		double standpft_nmass_veg=0.0;
-
 		double standpft_anpp=0.0;
 		double standpft_lai=0.0;
 		double standpft_yield=0.0;	
@@ -5244,7 +5235,6 @@ void outannual(Gridcell& gridcell) {
 					standpft_nmass_leaf=0.0;
 					standpft_cmass_veg=0.0;
 					standpft_nmass_veg=0.0;
-
 					standpft_anpp=0.0;
 					standpft_lai=0.0;
 					standpft_yield=0.0;
@@ -5261,19 +5251,17 @@ void outannual(Gridcell& gridcell) {
 					// Initialise age structure array
 
 					if (vegmode==COHORT || vegmode==INDIVIDUAL)
-						for (c=0;c<nclass;c++) {
-							standpft_densindiv_ageclass[c]=0.0;
-						}
-			
+						for (c=0;c<nclass;c++){
+							standpft_densindiv_ageclass[c] = 0.0;
+						}			
 					stand.firstobj();
 
 					// Loop through Patches
 					while (stand.isobj) {
-						Patch& patch=stand.getobj();
+						Patch& patch = stand.getobj();
 						Vegetation& vegetation=patch.vegetation;
 
 						standpft_anpp += patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id);
-
 						standpft_aiso += patch.fluxes.get_annual_flux(Fluxes::ISO, pft.id);
 						standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MON, pft.id);
 
@@ -5286,9 +5274,9 @@ void outannual(Gridcell& gridcell) {
 								
 								if (indiv.pft.id==pft.id) {
 
-									if(pft.landcover==CROPLAND)
+									if(pft.landcover == CROPLAND)
 									{
-										standpft_cmass+=indiv.cmass_leaf+indiv.cmass_root+indiv.cmass_wood()+indiv.cropindiv->cmass_ho+indiv.cropindiv->cmass_agpool;
+										standpft_cmass += indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood() + indiv.cropindiv->cmass_ho +i ndiv.cropindiv->cmass_agpool;
 										standpft_nmass += indiv.nmass_leaf + indiv.nmass_root + indiv.cropindiv->nmass_ho + indiv.cropindiv->nmass_agpool +
 														  indiv.nmass_wood() + indiv.nstore();
 										standpft_cmass_leaf += indiv.cmass_leaf;
@@ -5298,13 +5286,13 @@ void outannual(Gridcell& gridcell) {
 										standpft_vmaxnlim += indiv.avmaxnlim * indiv.cmass_leaf;
 										standpft_nuptake += indiv.anuptake;
 
-										if(pft.phenology==CROPGREEN)					
-											standpft_lai+=indiv.cropindiv->cmass_leaf_max*pft.sla;
+										if(pft.phenology == CROPGREEN)					
+											standpft_lai += indiv.cropindiv->cmass_leaf_max * pft.sla;
 										else
-											standpft_lai+=indiv.lai;
-										standpft_yield+=indiv.cropindiv->harv_yield;
-										standpft_yield1+=indiv.cropindiv->yield_harvest[0];
-										standpft_yield2+=indiv.cropindiv->yield_harvest[1];
+											standpft_lai += indiv.lai;
+										standpft_yield += indiv.cropindiv->harv_yield;
+										standpft_yield1 += indiv.cropindiv->yield_harvest[0];
+										standpft_yield2 += indiv.cropindiv->yield_harvest[1];
 									}
 									else
 									{
@@ -5430,6 +5418,7 @@ void outannual(Gridcell& gridcell) {
 
 					// Update gridcell totals
 					double fraction_of_gridcell = stand.get_gridcell_fraction();
+
 					cmass_gridcell+=standpft_cmass*fraction_of_gridcell;
 					nmass_gridcell+=standpft_nmass*fraction_of_gridcell;
 					cmass_leaf_gridcell+=standpft_cmass_leaf*fraction_of_gridcell;
@@ -5465,28 +5454,28 @@ void outannual(Gridcell& gridcell) {
 			double stand_mean_cton_leaf = limited_cton(stand_mean_cmass_leaf, stand_mean_nmass_leaf);
 			double stand_mean_cton_veg = limited_cton(stand_mean_cmass_veg, stand_mean_nmass_veg);
 
-			out.add_value(out_cmass, stand_mean_cmass);
-			out.add_value(out_anpp,  stand_mean_anpp);
-			out.add_value(out_dens,  stand_mean_densindiv_total);
-			out.add_value(out_lai,   stand_mean_lai);
-			out.add_value(out_aiso, stand_mean_aiso);
-			out.add_value(out_amon, stand_mean_amon);
+			out.add_value(out_cmass,     stand_mean_cmass);
+			out.add_value(out_anpp,      stand_mean_anpp);
+			out.add_value(out_dens,      stand_mean_densindiv_total);
+			out.add_value(out_lai,       stand_mean_lai);
+			out.add_value(out_aiso,      stand_mean_aiso);
+			out.add_value(out_amon,      stand_mean_amon);
 			out.add_value(out_cton_leaf, stand_mean_cton_leaf);
 			out.add_value(out_cton_veg,  stand_mean_cton_veg);
 			out.add_value(out_vmaxnlim,  stand_mean_vmaxnlim);
 			out.add_value(out_nuptake,   stand_mean_nuptake * m2toha);
 
-			if (pft.landcover==CROPLAND)
+			if (pft.landcover == CROPLAND)
 			{
 				out.add_value(out_yield,   stand_mean_yield);
-				out.add_value(out_yield1,   stand_mean_yield1);
-				out.add_value(out_yield2,   stand_mean_yield2);
+				out.add_value(out_yield1,  stand_mean_yield1);
+				out.add_value(out_yield2,  stand_mean_yield2);
 			}
 
 			// print species heights
 			double height = 0.0;
 			if (stand_mean_densindiv_total > 0.0)
-				height = heightindiv_total/stand_mean_densindiv_total;
+				height = heightindiv_total / stand_mean_densindiv_total;
 
 			out.add_value(out_speciesheights, height);
 
@@ -5521,11 +5510,10 @@ void outannual(Gridcell& gridcell) {
 		
 		} // *** End of PFT loop ***
 
-
-		flux_veg=flux_soil=flux_fire=flux_est=flux_charvest=flux_seed=0.0;
+		flux_veg = flux_soil = flux_fire = flux_est = flux_charvest = flux_seed = 0.0;
 
 		// guess2008 - carbon pools
-		c_litter=c_fast=c_slow=c_harv_slow=0.0;
+		c_litter = c_fast = c_slow = c_harv_slow = 0.0;
 
 		surfsoillitterc = surfsoillittern = cwdc = cwdn = centuryc = centuryn = n_litter = n_harv_slow = availn = 0.0;
 		andep_gridcell = anfert_gridcell = anmin_gridcell = animm_gridcell = anfix_gridcell = 0.0;
@@ -5538,14 +5526,14 @@ void outannual(Gridcell& gridcell) {
 
 		// Loop through Stands
 		while (gridcell.isobj) {
-			Stand& stand=gridcell.getobj();
+			Stand& stand = gridcell.getobj();
 			stand.firstobj();
 
 			//Loop through Patches
 			while (stand.isobj) {
-				Patch& patch=stand.getobj();
+				Patch& patch = stand.getobj();
 
-				double to_gridcell_average = stand.get_gridcell_fraction()/(double)stand.npatch();
+				double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
 
 				flux_veg+=-patch.fluxes.get_annual_flux(Fluxes::NPP)*to_gridcell_average;
 				flux_soil+=patch.fluxes.get_annual_flux(Fluxes::SOILC)*to_gridcell_average;
@@ -5570,7 +5558,7 @@ void outannual(Gridcell& gridcell) {
 
 				// Sum all litter
 				for (int q=0;q<npft;q++) {
-					Patchpft& patchpft=patch.pft[q];
+					Patchpft& patchpft = patch.pft[q];
 					c_litter += (patchpft.litter_leaf + patchpft.litter_root + patchpft.litter_sap + patchpft.litter_heart + patchpft.litter_repr)  * to_gridcell_average;
 					n_litter += (patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap + patchpft.nmass_litter_heart) * to_gridcell_average;
 				}
@@ -5595,34 +5583,34 @@ void outannual(Gridcell& gridcell) {
 	
 				// Fire return time
 				if (!iffire || patch.fireprob < 0.001)
-					firert_gridcell+=1000.0/(double)stand.npatch()*to_gridcell_average; // Set a limit of 1000 years
+					firert_gridcell+=1000.0/(double)stand.npatch() * to_gridcell_average; // Set a limit of 1000 years
 				else	
-					firert_gridcell+=(1.0/patch.fireprob)/(double)stand.npatch()*to_gridcell_average;
+					firert_gridcell+=(1.0/patch.fireprob)/(double)stand.npatch() * to_gridcell_average;
 
 
-				andep_gridcell += stand.gridcell.climate.andep / (double)stand.npatch()*to_gridcell_average;
-				anfert_gridcell += stand.gridcell.climate.anfert / (double)stand.npatch()*to_gridcell_average;
-				anmin_gridcell += patch.soil.anmin / (double)stand.npatch()*to_gridcell_average;
-				animm_gridcell += patch.soil.animmob / (double)stand.npatch()*to_gridcell_average;
-				anfix_gridcell += patch.soil.anfix / (double)stand.npatch()*to_gridcell_average;
-				n_min_leach_gridcell += patch.soil.aminleach / (double)stand.npatch()*to_gridcell_average;
-				n_org_leach_gridcell += patch.soil.aorgleach / (double)stand.npatch()*to_gridcell_average;
+				andep_gridcell += stand.gridcell.climate.andep / (double)stand.npatch() * to_gridcell_average;
+				anfert_gridcell += stand.gridcell.climate.anfert / (double)stand.npatch() * to_gridcell_average;
+				anmin_gridcell += patch.soil.anmin / (double)stand.npatch() * to_gridcell_average;
+				animm_gridcell += patch.soil.animmob / (double)stand.npatch() * to_gridcell_average;
+				anfix_gridcell += patch.soil.anfix / (double)stand.npatch() * to_gridcell_average;
+				n_min_leach_gridcell += patch.soil.aminleach / (double)stand.npatch() * to_gridcell_average;
+				n_org_leach_gridcell += patch.soil.aorgleach / (double)stand.npatch() * to_gridcell_average;
 				availn += (patch.soil.nmass_avail + patch.soil.snowpack_nmass)
-				          / (double)stand.npatch()*to_gridcell_average;
+				          / (double)stand.npatch() * to_gridcell_average;
 
 				for (int r = 0; r < NSOMPOOL-1; r++) {
 					if (patch.soil.sompool[r].nmass > 0.0) {
 						if(r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
-							surfsoillitterc += patch.soil.sompool[r].cmass / (double)stand.npatch()*to_gridcell_average;
-							surfsoillittern += patch.soil.sompool[r].nmass / (double)stand.npatch()*to_gridcell_average;
+							surfsoillitterc += patch.soil.sompool[r].cmass / (double)stand.npatch() * to_gridcell_average;
+							surfsoillittern += patch.soil.sompool[r].nmass / (double)stand.npatch() * to_gridcell_average;
 						}
 						else if (r == SURFFWD || r == SURFCWD) {
-							cwdc += patch.soil.sompool[r].cmass / (double)stand.npatch()*to_gridcell_average;
-							cwdn += patch.soil.sompool[r].nmass / (double)stand.npatch()*to_gridcell_average;
+							cwdc += patch.soil.sompool[r].cmass / (double)stand.npatch() * to_gridcell_average;
+							cwdn += patch.soil.sompool[r].nmass / (double)stand.npatch() * to_gridcell_average;
 						}
 						else {	
-							centuryc += patch.soil.sompool[r].cmass / (double)stand.npatch()*to_gridcell_average;
-							centuryn += patch.soil.sompool[r].nmass / (double)stand.npatch()*to_gridcell_average;
+							centuryc += patch.soil.sompool[r].cmass / (double)stand.npatch() * to_gridcell_average;
+							centuryn += patch.soil.sompool[r].nmass / (double)stand.npatch() * to_gridcell_average;
 						}
 					}
 				}
@@ -5649,16 +5637,17 @@ void outannual(Gridcell& gridcell) {
 
 				// Calculate monthly NPP and LAI
 
-				Vegetation& vegetation=patch.vegetation;
+				Vegetation& vegetation = patch.vegetation;
 
 				vegetation.firstobj();
 				while (vegetation.isobj) {
-					Individual& indiv=vegetation.getobj();
+					Individual& indiv = vegetation.getobj();
 					
 					// guess2008 - alive check added
-					if (indiv.id!=-1 && indiv.alive) { 
+					if (indiv.id != -1 && indiv.alive) { 
+
 						for (m=0;m<12;m++) {
-							mlai[m] += indiv.mlai[m]*to_gridcell_average;
+							mlai[m] += indiv.mlai[m] * to_gridcell_average;
 						}
 
 					} // alive?
@@ -5675,8 +5664,8 @@ void outannual(Gridcell& gridcell) {
 		// In contrast to annual NEE, monthly NEE does not include fire 
 		// or establishment fluxes
 		for (m=0;m<12;m++) {
-			mnpp[m] = mgpp[m]-mra[m];
-			mnee[m] = mnpp[m]-mrh[m];
+			mnpp[m] = mgpp[m] - mra[m];
+			mnee[m] = mnpp[m] - mrh[m];
 		}
 
 		// Print gridcell totals to files
@@ -5895,7 +5884,7 @@ void outannual(Gridcell& gridcell) {
 
 			if (!(date.year%20) && date.year<2000) {
 			
-				resetwindow("Age structure [yr]");;
+				resetwindow("Age structure [yr]");
 
 				pftlist.firstobj();
 				while (pftlist.isobj) {
@@ -5907,8 +5896,8 @@ void outannual(Gridcell& gridcell) {
 
 						for (c=0;c<nclass;c++)
 							plot("Age structure [yr]",pft.name,
-								c*estinterval+estinterval/2,
-								stand_mean_densindiv_ageclass[c]/(double)npatch);
+								c * estinterval + estinterval / 2,
+								stand_mean_densindiv_ageclass[c] / (double)npatch);
 					}
 					
 					pftlist.nextobj();

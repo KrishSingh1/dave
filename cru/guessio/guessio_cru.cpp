@@ -4986,7 +4986,7 @@ bool getclimate(Gridcell& gridcell) {
 			climate.mpet_year[m] = 0.0;
 		}
 	}
-	climate.mpet_year[date.month] + =climate.eet * PRIESTLEY_TAYLOR;
+	climate.mpet_year[date.month] += climate.eet * PRIESTLEY_TAYLOR;
 
 	// Send environmental values for today to framework
 	if(fixedco2_hist)
@@ -5276,7 +5276,7 @@ void outannual(Gridcell& gridcell) {
 
 									if(pft.landcover == CROPLAND)
 									{
-										standpft_cmass += indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood() + indiv.cropindiv->cmass_ho +i ndiv.cropindiv->cmass_agpool;
+										standpft_cmass += indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood() + indiv.cropindiv->cmass_ho + indiv.cropindiv->cmass_agpool;
 										standpft_nmass += indiv.nmass_leaf + indiv.nmass_root + indiv.cropindiv->nmass_ho + indiv.cropindiv->nmass_agpool +
 														  indiv.nmass_wood() + indiv.nstore();
 										standpft_cmass_leaf += indiv.cmass_leaf;

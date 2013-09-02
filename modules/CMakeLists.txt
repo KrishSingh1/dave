@@ -11,6 +11,7 @@ set(headers
   q10.h 
   globalco2file.h
   ncompete.h
+  InData.h
   )
 
 set(source  
@@ -25,6 +26,7 @@ set(source
   bvoc.cpp
   globalco2file.cpp
   ncompete.cpp
+  InData.cpp
   )
 
 include(add_guess_sources)

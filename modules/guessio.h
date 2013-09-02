@@ -16,6 +16,19 @@
 
 #include "guess.h"
 
+//Moved here temporarily from guessio_cru pending merge with trunk r2758
+struct Coord {
+
+	// Type for storing grid cell longitude, latitude and description text
+
+	int id;
+	double lon;
+	double lat;
+	xtring descrip;
+
+};
+//
+
 void initio(const xtring& insfilename);
 bool getgridcell(Gridcell& gridcell);
 bool getclimate(Gridcell& gridcell);

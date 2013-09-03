@@ -17,16 +17,18 @@
 
 NPROCESS=15
 INSFILE=guess.ins
+INPUT_MODULE=cru
 GRIDLIST=gridlist.txt
 OUTFILES='*.out'
 
 #      Where:
-#      NPROCESS = number of processes in parallel job
-#      INSFILE  = path to ins file from run directory
-#      GRIDLIST = path to gridlist file from run directory
-#      OUTFILES = list of LPJ-GUESS output files in single quotes,
-#                 and separated by spaces (filenames only, including
-#                 extension, no directory.) Shell wildcards are allowed.
+#      NPROCESS     = number of processes in parallel job
+#      INSFILE      = path to ins file from run directory
+#      INPUT_MODULE = input module to use
+#      GRIDLIST     = path to gridlist file from run directory
+#      OUTFILES     = list of LPJ-GUESS output files in single quotes,
+#                     and separated by spaces (filenames only, including
+#                     extension, no directory.) Shell wildcards are allowed.
 #
 #   3. Run the script using the command:
 #        sh submit.sh
@@ -125,7 +127,7 @@ for ((a=1; a <= NPROCESS ; a++))
 do
   echo "Starting process $a..."
   cd run$a
-  ( if ! BINARY $INSFILE 1> stdout.txt 2> stderr.txt ; then
+  ( if ! BINARY -input $INPUT_MODULE $INSFILE 1>> ../stdout.txt 2>> ../stderr.txt ; then
       echo -n $a" " >> ../failed.txt
   fi ) &
   cd ..

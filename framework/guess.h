@@ -54,6 +54,7 @@ const bool SUPPRESSLARGEOUTPUT=true;
 #include "shell.h"
 #include "guessmath.h"
 #include "archive.h"
+#include "parameters.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL ENUMERATED TYPE DEFINITIONS
@@ -98,21 +99,10 @@ typedef enum {
 	SWRAD_TS
 } insoltype;
 
-/// Vegetation 'mode', i.e. what each Individual object represents
-/** Can be one of:
- *  1. The average characteristics of all individuals comprising a PFT
- *     population over the modelled area (standard LPJ mode)
- *  2. A cohort of individuals of a PFT that are roughly the same age
- *  3. An individual plant
- */
-typedef enum {NOVEGMODE, INDIVIDUAL, COHORT, POPULATION} vegmodetype;
-
 /// CENTURY pool names, NSOMPOOL number of SOM pools
 typedef enum {SURFSTRUCT, SOILSTRUCT, SOILMICRO, SURFHUMUS, SURFMICRO, SURFMETA, SURFFWD, SURFCWD,
 	SOILMETA, SLOWSOM, PASSIVESOM, LEACHED, NSOMPOOL} pooltype;	
 
-/// Land cover type of a stand. NLANDCOVERTYPES keeps count of number of items.
-typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, NLANDCOVERTYPES} landcovertype;
 typedef enum {RAINFED, IRRIGATED} hydrologytype;	// Culture form class for PFTs (rainfed, irrigated)
 typedef enum {NOINTERCROP, NATURALGRASS} intercroptype;	// Intercrop form class for PFTs (none, grass)
 typedef enum {SEASONALITY_NO, SEASONALITY_PREC, SEASONALITY_PRECTEMP, SEASONALITY_TEMP, SEASONALITY_TEMPPREC} seasonality_type;
@@ -137,14 +127,6 @@ typedef enum {COLD, COLD_WARM, COLD_HOT, WARM, WARM_HOT, HOT} temp_seasonality_t
 // 3:WARM						(mtemp_min20>10 && mtemp_max20<=30)
 // 4:WARM_HOT					(mtemp_min20>10 && mtemp_max20>30)
 // 5:HOT						(mtemp_min20>30)
-
-
-
-/// Water uptake parameterisations
-/** \see water_uptake in canexch.cpp
-  */
-typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptaketype;
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
 
@@ -223,122 +205,9 @@ class Patchpft;
 /// Object describing timing stage of simulation
 extern Date date;
 
-/// Vegetation mode (population, cohort or individual)
-extern vegmodetype vegmode;
-
-/// Number of patches in each stand (should always be 1 in population mode)
-extern int npatch;
-
-/// Patch area (m2) (individual and cohort mode only)
-extern double patcharea;
-
-
-/// Whether background establishment enabled (individual, cohort mode)
-extern bool ifbgestab;
-
-/// Whether spatial mass effect enabled for establishment (individual, cohort mode)
-extern bool ifsme;
-
-/// Whether establishment stochastic (individual, cohort mode)
-extern bool ifstochestab;
-
-/// Whether mortality stochastic (individual, cohort mode)
-extern bool ifstochmort;
-
-/// Whether fire enabled
-extern bool iffire;
-
-/// Whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
-extern bool ifdisturb;
-
-/// Generic patch-destroying disturbance interval (individual, cohort mode)
-extern double distinterval;
-
-/// Whether SLA calculated from leaf longevity (alt: prescribed)
-extern bool ifcalcsla;
-
-/// Whether leaf C:N ratio minimum calculated from leaf longevity (alt: prescribed)
-extern bool ifcalccton;
-
-/// Establishment interval in cohort mode (years)
-extern int estinterval;
-
 /// Number of possible PFTs
 extern int npft;
-
-/// Whether C debt (storage between years) permitted
-extern bool ifcdebt;
-
-/// Water uptake parameterisation
-extern wateruptaketype wateruptake;
-
-/// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
-extern bool ifcentury;
-/// whether plant growth limited by available N	
-extern bool ifnlim;
-/// whether plant growth limited by available N	in pasture
-extern bool ifnlim_pasture;
-/// whether plant growth limited by available N	in crop stands
-extern bool ifnlim_crop;
-/// number of years to allow spinup without nitrogen limitation	
-extern int freenyears;
-/// fraction of nitrogen relocated by plants from roots and leaves	
-extern double nrelocfrac;
-/// first term in nitrogen fixation eqn (Cleveland et al 1999)	
-extern double nfix_a;
-/// second term in nitrogen fixation eqn (Cleveland et al 1999)	
-extern double nfix_b;
-
-/// Whether other landcovers than natural vegetation are simulated.
-extern bool run_landcover;
-
-/// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND).
-extern bool run[NLANDCOVERTYPES];
-
-/// Whether landcover fractions are read from ins-file.
-extern bool lcfrac_fixed;
-extern bool cftfrac_fixed;
-
-/// Set to false by initio( ) if fraction input files have yearly data.
-extern bool all_fracs_const;
-
-extern bool ifslowharvestpool; 	// If a slow harvested product pool is included in patchpft.
-extern bool ifintercropgrass;
-extern int ncft; // number of CFTs in Pftlist, set in plib_callback()
-extern int nyear_spinup; // number of spinup years (ML)	Moved to guess.cpp to be accessed globally.
-
-extern bool forcesowingdates;
-extern bool forceharvestdates;
-
-///////////////////////////////////////////////////////////////////////////////////////
-// Settings controlling the saving and loading from state files
-
-/// Location of state files
-extern xtring state_path;
-
-/// Whether to restart from state files
-extern bool restart;
-
-/// Whether to save state files
-extern bool save_state;
-
-/// Save/restart year
-extern int state_year;
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-// guess2008 - new input variables, from the .ins file
-extern bool ifsmoothgreffmort;
-	// whether to vary mort_greff smoothly with growth efficiency (1) or to use the standard
-	// step-function (0)
-extern bool ifdroughtlimitedestab;
-	// whether establishment is limited by growing season drought
-extern bool ifrainonwetdaysonly;
-	// rain on wet days only (1, true), or a little every day (0, false);
-// bvoc
-extern bool ifbvoc;
-        // whether BVOC calculations are included
-
+extern int ncft;
 
 
 /// General purpose object for handling simulation timing.
@@ -1271,7 +1140,7 @@ public:
 
 			// Tree sapling characteristics
 
-	regen.cmass_leaf = pow(REGENLAI_TREE * k_allom1 * pow(1.0 + SAPLINGHW, k_rp) *
+			regen.cmass_leaf = pow(REGENLAI_TREE * k_allom1 * pow(1.0 + SAPLINGHW, k_rp) *
 				pow(4.0 * sla / PI / k_latosa, k_rp * 0.5) / sla, 2.0 / (2.0 - k_rp));
 
 			regen.cmass_sap = wooddens * k_allom2 * pow((1.0 + SAPLINGHW) *
@@ -2411,7 +2280,7 @@ public:
 		// annual sum of AET (mm/year)
 	Historic<double, NYEARAAET> aaet_5;
 		// annual sum of AET (mm/year) for each of the last five simulation years
-	double aevap;	//N:REMOVE ?
+	double aevap;
 		// annual sum of soil evaporation (mm/year)
 	double aintercep;
 		// annual sum of interception (mm/year)
@@ -2421,7 +2290,7 @@ public:
 		// annual sum of runoff (mm/year)
 	double abaserunoff;
 		// annual sum of runoff (mm/year)
-	double arunoff;	//N:REMOVE ?
+	double arunoff;
 		// annual sum of runoff (mm/year)
 	double apet;
 		// annual sum of potential evapotranspiration (mm/year)
@@ -2442,11 +2311,11 @@ public:
 
 	double maet[12];
 		// monthly AET (mm/month)
-	double mevap[12];	//N:REMOVE ?
+	double mevap[12];
 		// monthly soil evaporation (mm/month)
 	double mintercep[12];
 		// monthly interception (mm/month)
-	double mrunoff[12];	//N:REMOVE ?
+	double mrunoff[12];
 		// monthly runoff (mm/month)
 	double mpet[12];
 		// monthly PET (mm/month)

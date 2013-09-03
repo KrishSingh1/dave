@@ -8,7 +8,6 @@
 
 #include "config.h"
 #include "landcover.h"
-#include "guessio.h"
 #include "canexch.h"
 
 #define DYNAMIC_PHU					//Calculation of potential heat units according to local climate.
@@ -53,10 +52,11 @@ int stepfromdate(int day, int step)
 ////////////////////////////////////////////////////////////  Landcover stand dynamics and C-partitioning  /////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void landcover_init(Gridcell& gridcell) {
+
+void landcover_init(Gridcell& gridcell, InputModule* input_module) {
 	landcovertype landcover;
 
-	getlandcover(gridcell);		//Gets gridcell.landcoverfrac from landcover input file(s) or ins-file.
+	input_module->getlandcover(gridcell);		//Gets gridcell.landcoverfrac from landcover input file(s) or ins-file.
 
 	for(int i=0;i<NLANDCOVERTYPES;i++) { //For all landcover types without subclasses
 		if(i!=CROPLAND) {				
@@ -140,7 +140,7 @@ void landcover_init(Gridcell& gridcell) {
 	}
 }
 
-void landcover_dynamics(Gridcell& gridcell)
+void landcover_dynamics(Gridcell& gridcell, InputModule* input_module)
 {	// Called first day of the year if run_landcover is set.
 	bool present;
 	int i, j;	
@@ -170,7 +170,7 @@ void landcover_dynamics(Gridcell& gridcell)
 
 //Get new gridcell.landcoverfrac and/or gridcell.cftfrac from LUdata and CFTdata.
 	if(!all_fracs_const)					
-		getlandcover(gridcell);	
+		input_module->getlandcover(gridcell);	
 	else return;							
 
 	double changeLC=0.0;

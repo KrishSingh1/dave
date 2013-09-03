@@ -8,8 +8,9 @@
 // The program will inform about blank lines in some cases, but should handle them well, continuing the simulation of the site.
 // NB. The header format is much slower when searching for coordinates in global files.
 
-//#include "guess.h" //??
-#include "guessio.h"
+#include "config.h"
+#include "guess.h" //??
+//#include "gutil.h"
 #include "InData.h"
 //#include "math.h"
 

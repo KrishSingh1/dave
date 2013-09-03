@@ -13,7 +13,7 @@
 #include "guessserializer.h"
 #include "parallel.h"
 
-#include "guessio.h"
+#include "inputmodule.h"
 #include "driver.h"
 #include "canexch.h"
 #include "soilwater.h"
@@ -22,6 +22,7 @@
 #include "vegdynam.h"
 #include "landcover.h"
 #include "bvoc.h"
+#include "commonoutput.h"
 
 #include <memory>
 
@@ -31,16 +32,28 @@ int framework(const CommandLineArguments& args) {
 	// primary model data structures and containing all explicit loops through 
 	// space (grid cells/stands) and time (days and years).
 
+	using std::auto_ptr;
 #if defined DYNAMIC_LANDCOVER_INPUT
-remove("LUdata.old");
-rename("LUdata.out", "LUdata.old");
-remove("CFTdata.old");
-rename("CFTdata.out", "CFTdata.old");
+	remove("LUdata.old");
+	rename("LUdata.out", "LUdata.old");
+	remove("CFTdata.old");
+	rename("CFTdata.out", "CFTdata.old");
 #endif
 
-	// Call input/output module to obtain PFT static parameters and simulation
-	// settings and initialise input/output
-	initio(args.get_instruction_file());
+	const char* input_module_name = args.get_input_module();
+
+	auto_ptr<InputModule> input_module(InputModuleRegistry::get_instance().create_input_module(input_module_name));
+
+	GuessOutput::OutputModuleContainer output_modules;
+	GuessOutput::OutputModuleRegistry::get_instance().create_all_modules(output_modules);
+
+	// Read the instruction file to obtain PFT static parameters and
+	// simulation settings
+	read_instruction_file(args.get_instruction_file());
+
+	// Initialise input/output
+	input_module->init();
+	output_modules.init();
 
 	// Nitrogen limitation
 	if (ifnlim && !ifcentury) {
@@ -53,7 +66,6 @@ rename("CFTdata.out", "CFTdata.old");
 	}
 
 	// Create objects for (de)serializing grid cells
-	using std::auto_ptr;
 	auto_ptr<GuessSerializer> serializer;
 	auto_ptr<GuessDeserializer> deserializer;
 
@@ -79,7 +91,7 @@ rename("CFTdata.out", "CFTdata.old");
 		// Call input/output to obtain latitude and soil driver data for this grid cell.
 		// Function getgridcell returns false if no further grid cells remain to be simulated
 
-		if (!getgridcell(gridcell)) {
+		if (!input_module->getgridcell(gridcell)) {
 			break;
 		}
 
@@ -88,7 +100,7 @@ rename("CFTdata.out", "CFTdata.old");
 
 		if(run_landcover) {
 			//Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
-			landcover_init(gridcell);
+			landcover_init(gridcell, input_module.get());
 		}
 
 		if (restart) {
@@ -102,7 +114,7 @@ rename("CFTdata.out", "CFTdata.old");
 		// day of the simulation. Function getclimate returns false if last year
 		// has already been simulated for this grid cell
 
-		while (getclimate(gridcell)) {
+		while (input_module->getclimate(gridcell)) {
 
 			// START OF LOOP THROUGH SIMULATION DAYS
 			
@@ -118,12 +130,12 @@ rename("CFTdata.out", "CFTdata.old");
 			if(run_landcover && date.day == 0) {
 				// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
 				if(date.year >= nyear_spinup)
-					landcover_dynamics(gridcell);
+				landcover_dynamics(gridcell, input_module.get());
 
 				if(run[CROPLAND] && forcesowingdates)		//Read sowing dates from input file, put into gridcellpft.sdate_force
-					getsowingdates(gridcell,pftlist);
+					input_module->getsowingdates(gridcell);
 				if(run[CROPLAND] && forceharvestdates)		//Read harvest dates from input file, put into gridcellpft.hdate_force
-					getharvestdates(gridcell,pftlist);
+					input_module->getharvestdates(gridcell);
 			}
 
 			gridcell.firstobj();
@@ -189,11 +201,13 @@ rename("CFTdata.out", "CFTdata.old");
 				gridcell.nextobj();			
 			}	// End of loop through stands
 
+			output_modules.outdaily(gridcell);
+
 			if (date.islastday && date.islastmonth) {
 				// LAST DAY OF YEAR
-				// Call input/output module to output results for end of year
+				// Call output module to output results for end of year
 				// or end of simulation for this grid cell
-				outannual(gridcell);
+				output_modules.outannual(gridcell);
 				
 				// Time to save state?
 				if (date.year == state_year-1 && save_state) {
@@ -202,7 +216,6 @@ rename("CFTdata.out", "CFTdata.old");
 
 				// Check whether to abort
 				if (abort_request_received()) {
-					termio();
 					return 99;
 				}
 			}
@@ -213,9 +226,6 @@ rename("CFTdata.out", "CFTdata.old");
 			// End of loop through simulation days
 		}	//while (getclimate())
 	}		// End of loop through grid cells
-
-	// Call to input/output module to perform any necessary clean up
-	termio();
 
 	// END OF SIMULATION
 

@@ -17,68 +17,9 @@
 // They are accessible throughout the model code.
 
 Date date; // object describing timing stage of simulation
-vegmodetype vegmode; // vegetation mode (population, cohort or individual)
-int npatch; // number of patches in each stand (should always be 1 in population mode); cropland stands always have 1 patch
-double patcharea; // patch area (m2) (individual and cohort mode only)
-bool ifbgestab; // whether background establishment enabled (individual, cohort mode)
-bool ifsme;
-	// whether spatial mass effect enabled for establishment (individual, cohort mode)
-bool ifstochestab; // whether establishment stochastic (individual, cohort mode)
-bool ifstochmort; // whether mortality stochastic (individual, cohort mode)
-bool iffire; // whether fire enabled
-bool ifdisturb;
-	// whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
-bool ifcalcsla; // whether SLA calculated from leaf longevity (alt: prescribed)
-bool ifcalccton; // whether leaf C:N ratio minimum calculated from leaf longevity (alt: prescribed)
-int estinterval; // establishment interval in cohort mode (years)
-double distinterval;
-	// generic patch-destroying disturbance interval (individual, cohort mode)
 int npft; // number of possible PFTs
-bool ifcdebt;
+int ncft=0; // number of CFTs in Pftlist
 
-/// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
-bool ifcentury;
-/// whether plant growth limited by available nitrogen	
-bool ifnlim;
-/// whether plant growth limited by available N	in pasture
-bool ifnlim_pasture;
-/// whether plant growth limited by available N	in crop stands
-bool ifnlim_crop;
-/// number of years to allow spinup without nitrogen limitation	
-int freenyears;
-/// fraction of nitrogen relocated by plants from roots and leaves
-double nrelocfrac;
-/// first term in nitrogen fixation eqn
-double nfix_a;
-/// second term in nitrogen fixation eqn
-double nfix_b;
-
-// guess2008 - new inputs from the .ins file
-bool ifsmoothgreffmort;				// smooth growth efficiency mortality
-bool ifdroughtlimitedestab;			// whether establishment affected by growing season drought
-bool ifrainonwetdaysonly;			// rain on wet days only (1, true), or a little every day (0, false); 
-// bvoc
-bool ifbvoc; // BVOC calculations included
-
-wateruptaketype wateruptake;
-
-bool run_landcover;
-bool run[NLANDCOVERTYPES];
-bool lcfrac_fixed;
-bool cftfrac_fixed;
-bool all_fracs_const;
-bool ifslowharvestpool;				// If a slow harvested product pool is included in patchpft.
-bool ifintercropgrass;
-int ncft=0; // number of CFTs in Pftlist, set in plib_callback()
-int nyear_spinup;		
-
-xtring state_path;
-bool restart;
-bool save_state;
-int state_year;
-
-bool forcesowingdates=false;
-bool forceharvestdates=false;
 Pftlist pftlist;
 
 // emission ratios from fire (NH3, NO, NO2, N2O) Delmas et al. 1995
@@ -652,7 +593,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	nstress           = false;
 
-	// guess2008 - additional initialisation
+	// additional initialisation
 	age               = 0.0;
 	fpar              = 0.0;
 	aphen_raingreen   = 0;
@@ -666,8 +607,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	wscal_mean        = 1.0;
 
 	int m;
-	for (m=0;m<12;m++) {
-		mlai[m]    = 0.0;
+	for (m=0; m<12; m++) {
+		mlai[m] = 0.0;
 	}
 
 	// bvoc

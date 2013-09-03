@@ -35,6 +35,7 @@
 
 
 #define DYNAMIC_LANDCOVER_INPUT		//Reads landcover data from text files, using the TimeDataD class.
+#define LUTOMEMORY	//Write land use fraction data to memory; enables efficient usage of randomized gridlists for parallell runs on Simba.
 
 #define multiple_natural_stands		//Creates new natural stands when cropland is abandoned.
 #define NEWSOWINGDATE				//Use sowing date method based on climate seasonality.

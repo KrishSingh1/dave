@@ -1187,7 +1187,7 @@ void printhelp() {
 //
 ///////////////////////////////////////////////////////////////////////////////////////
 
-/*
+
 //Moved temporarily to guessio.h pending merge with trunk r2758
 struct Coord {
 
@@ -1199,11 +1199,35 @@ struct Coord {
 	xtring descrip;
 
 };
-*/
 
 ListArray_id<Coord> gridlist;
 	// Will maintain a list of Coord objectsc ontaining coordinates
 	// of the grid cells to simulate
+
+#if defined DYNAMIC_LANDCOVER_INPUT
+
+InData::Coord GetLonLat(Coord coord) {
+
+	InData::Coord lonlat;
+	lonlat.lon=coord.lon;
+	lonlat.lat=coord.lat;
+
+	return lonlat;
+}
+
+//void GetLonLatListFromCoord(ListArray_id<InData::Coord>&lonlatlist, ListArray_id<Coord>& gridlist) {
+ListArray_id<InData::Coord> GetLonLatList(ListArray_id<Coord>& gridlist) {
+	ListArray_id<InData::Coord> lonlatlist;
+
+	for(int i=0;i<gridlist.nobj;i++) {
+		InData::Coord& c= lonlatlist.createobj();
+		c.lon=gridlist[i].lon;
+		c.lat=gridlist[i].lat;
+	}
+	return lonlatlist;
+}
+
+#endif
 
 int ngridcell; // the number of grid cells to simulate
 
@@ -1527,17 +1551,15 @@ void interp_climate(double mtemp[12], double mprec[12], double msun[12], double 
 
 #if defined DYNAMIC_LANDCOVER_INPUT
 
-TimeDataD LUdata;
-TimeDataD Peatdata;
-TimeDataD CFTdata;
-TimeDataD sdates;
-TimeDataD hdates;
-
-#define LUTOMEMORY	//Write land use fraction data to memory; enables efficient usage of randomized gridlists for parallell runs on Simba.
+InData::TimeDataD LUdata;
+InData::TimeDataD Peatdata;
+InData::TimeDataD CFTdata;
+InData::TimeDataD sdates;
+InData::TimeDataD hdates;
 
 #ifdef LUTOMEMORY
-TimeDataDmem LUdata_mem;
-TimeDataDmem CFTdata_mem;
+InData::TimeDataDmem LUdata_mem;
+InData::TimeDataDmem CFTdata_mem;
 #endif
 
 #endif
@@ -2159,7 +2181,7 @@ void initio(const xtring& insfilename) {
 #if defined DYNAMIC_LANDCOVER_INPUT
 				if(!LUdata.Open(file_lu))				//Open Bondeau area fraction file, returned false if problem
 					fail("initio: could not open %s for input",(char*)file_lu);
-				else if(LUdata.format==LOCAL_YEARLY)
+				else if(LUdata.format==InData::LOCAL_YEARLY)
 				{
 					all_fracs_const=false;				//Set all_fracs_const to false if yearly data
 
@@ -2173,7 +2195,7 @@ void initio(const xtring& insfilename) {
 
 					while(LUdata.LoadNext())
 					{
-						Coord c;
+						InData::Coord c;
 						c=LUdata.GetCoord();
 
 						gridlist.firstobj();
@@ -2205,7 +2227,7 @@ void initio(const xtring& insfilename) {
 #endif
 				if(!Peatdata.Open(file_peat))			//Open peatland area fraction file, returned false if problem
 					fail("initio: could not open %s for input",(char*)file_peat);
-				else if(Peatdata.format==LOCAL_YEARLY)
+				else if(Peatdata.format==InData::LOCAL_YEARLY)
 					all_fracs_const=false;				//Set all_fracs_const to false if yearly data
 #endif
 			}
@@ -2220,7 +2242,10 @@ void initio(const xtring& insfilename) {
 				fail("initio: could not open %s for input",(char*)file_lucrop);
 			else if(minimizecftlist)
 			{
-				CFTdata.CheckIfPresent(gridlist);
+//				ListArray_id<InData::Coord> lonlatlist;
+//				GetLonLatListFromCoord(lonlatlist, gridlist);
+//				CFTdata.CheckIfPresent(lonlatlist);
+				CFTdata.CheckIfPresent(GetLonLatList(gridlist));
 				
 				int n=0;
 				pftlist.firstobj();
@@ -2254,7 +2279,7 @@ void initio(const xtring& insfilename) {
 				}
 			}
 
-			if(CFTdata.format==LOCAL_YEARLY)
+			if(CFTdata.format==InData::LOCAL_YEARLY)
 			{
 				all_fracs_const=false;
 
@@ -2268,7 +2293,7 @@ void initio(const xtring& insfilename) {
 
 				while(CFTdata.LoadNext())
 				{
-					Coord c;
+					InData::Coord c;
 					c=CFTdata.GetCoord();
 
 					gridlist.firstobj();
@@ -2340,7 +2365,11 @@ void initio(const xtring& insfilename) {
 ///	Loads landcover area fraction data from file(s) for a gridcell.
 /** Called from getgridcell() if run_landcover is true. 
   */
-bool loadlandcover(Gridcell& gridcell, Coord c)	{
+bool loadlandcover(Gridcell& gridcell, Coord cc) {
+
+#if defined DYNAMIC_LANDCOVER_INPUT
+	InData::Coord c = GetLonLat(cc);
+#endif
 	bool LUerror=false;
 
 	if (!lcfrac_fixed) {

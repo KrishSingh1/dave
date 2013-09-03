@@ -42,6 +42,7 @@
 #include "shell.h"
 #include "guessmath.h"
 #include "archive.h"
+#include "parameters.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL ENUMERATED TYPE DEFINITIONS
@@ -86,26 +87,9 @@ typedef enum {
 	SWRAD_TS
 } insoltype;
 
-/// Vegetation 'mode', i.e. what each Individual object represents
-/** Can be one of: 
- *  1. The average characteristics of all individuals comprising a PFT
- *     population over the modelled area (standard LPJ mode)
- *  2. A cohort of individuals of a PFT that are roughly the same age
- *  3. An individual plant
- */
-typedef enum {NOVEGMODE, INDIVIDUAL, COHORT, POPULATION} vegmodetype;
-
 /// CENTURY pool names, NSOMPOOL number of SOM pools
 typedef enum {SURFSTRUCT, SOILSTRUCT, SOILMICRO, SURFHUMUS, SURFMICRO, SURFMETA, SURFFWD, SURFCWD,
 	SOILMETA, SLOWSOM, PASSIVESOM, LEACHED, NSOMPOOL} pooltype;	
-
-/// Land cover type of a stand. NLANDCOVERTYPES keeps count of number of items.
-typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, NLANDCOVERTYPES} landcovertype;
-
-/// Water uptake parameterisations
-/** \see water_uptake in canexch.cpp
-  */
-typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptaketype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
@@ -184,112 +168,8 @@ class Patchpft;
 /// Object describing timing stage of simulation
 extern Date date;
 
-/// Vegetation mode (population, cohort or individual)
-extern vegmodetype vegmode;
-
-/// Number of patches in each stand (should always be 1 in population mode)
-extern int npatch;
-
-/// Patch area (m2) (individual and cohort mode only)
-extern double patcharea;
-
-
-/// Whether background establishment enabled (individual, cohort mode)
-extern bool ifbgestab;
-
-/// Whether spatial mass effect enabled for establishment (individual, cohort mode)
-extern bool ifsme;
-
-/// Whether establishment stochastic (individual, cohort mode)
-extern bool ifstochestab;
-
-/// Whether mortality stochastic (individual, cohort mode)
-extern bool ifstochmort;
-
-/// Whether fire enabled
-extern bool iffire;
-
-/// Whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
-extern bool ifdisturb;
-
-/// Generic patch-destroying disturbance interval (individual, cohort mode)
-extern double distinterval;
-
-/// Whether SLA calculated from leaf longevity (alt: prescribed)
-extern bool ifcalcsla;
-
-/// Whether leaf C:N ratio minimum calculated from leaf longevity (alt: prescribed)
-extern bool ifcalccton;
-
-/// Establishment interval in cohort mode (years)
-extern int estinterval;
-
 /// Number of possible PFTs
 extern int npft;
-
-/// Whether C debt (storage between years) permitted
-extern bool ifcdebt;
-
-/// Water uptake parameterisation
-extern wateruptaketype wateruptake;
-
-/// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
-extern bool ifcentury;
-/// whether plant growth limited by available N	
-extern bool ifnlim;
-/// number of years to allow spinup without nitrogen limitation	
-extern int freenyears;
-/// fraction of nitrogen relocated by plants from roots and leaves	
-extern double nrelocfrac;
-/// first term in nitrogen fixation eqn (Cleveland et al 1999)	
-extern double nfix_a;
-/// second term in nitrogen fixation eqn (Cleveland et al 1999)	
-extern double nfix_b;
-
-/// Whether other landcovers than natural vegetation are simulated.
-extern bool run_landcover;
-
-/// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND).
-extern bool run[NLANDCOVERTYPES];
-
-/// Whether landcover fractions are read from ins-file.
-extern bool lcfrac_fixed;
-
-/// Set to false by initio( ) if fraction input files have yearly data.
-extern bool all_fracs_const;
-
-extern bool ifslowharvestpool; 	// If a slow harvested product pool is included in patchpft.
-extern int nyear_spinup; // number of spinup years (ML)	Moved to guess.cpp to be accessed globally.
-
-///////////////////////////////////////////////////////////////////////////////////////
-// Settings controlling the saving and loading from state files
-
-/// Location of state files
-extern xtring state_path;
-
-/// Whether to restart from state files
-extern bool restart;
-
-/// Whether to save state files
-extern bool save_state;
-
-/// Save/restart year
-extern int state_year;
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-// guess2008 - new input variables, from the .ins file
-extern bool ifsmoothgreffmort;
-	// whether to vary mort_greff smoothly with growth efficiency (1) or to use the standard
-	// step-function (0)
-extern bool ifdroughtlimitedestab;
-	// whether establishment is limited by growing season drought
-extern bool ifrainonwetdaysonly;
-	// rain on wet days only (1, true), or a little every day (0, false);
-// bvoc
-extern bool ifbvoc;
-        // whether BVOC calculations are included
-
 
 
 /// General purpose object for handling simulation timing.

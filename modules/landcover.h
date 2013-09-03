@@ -10,14 +10,15 @@
 #define LPJ_GUESS_LANDCOVER_H
 
 #include "guess.h"
+#include "inputmodule.h"
 
 ///	Creates stands for landcovers present in the gridcell
-void landcover_init(Gridcell& gridcell);
+void landcover_init(Gridcell& gridcell, InputModule* input_module);
 
 /// Handles changes in the landcover fractions from year to year
 /** This function will for instance kill or create new stands
  *  if needed.
  */
-void landcover_dynamics(Gridcell& gridcell);
+void landcover_dynamics(Gridcell& gridcell, InputModule* input_module);
 
 #endif // LPJ_GUESS_LANDCOVER_H

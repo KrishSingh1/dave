@@ -316,7 +316,6 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_dens,           file_dens,           dens_columns);
 	create_output_table(out_lai,            file_lai,            lai_columns);
 	create_output_table(out_cflux,          file_cflux,          cflux_columns);
-	create_output_table(out_cflux2,         "cflux2.out",        cflux2_columns);
 	create_output_table(out_cflux_cropland, file_cflux_cropland, cflux_columns);
 	create_output_table(out_cflux_pasture,  file_cflux_pasture,  cflux_columns);
 	create_output_table(out_cflux_natural,  file_cflux_natural,  cflux_columns);
@@ -1189,16 +1188,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			 out.add_value(out_cflux, gridcell.acflux_harvest_slow);
 		}
 		out.add_value(out_cflux, flux_veg + flux_soil + flux_fire + flux_est + flux_seed + flux_charvest + gridcell.acflux_landuse_change + gridcell.acflux_harvest_slow);
-
-		out.add_value(out_cflux2, flux_veg);
-		out.add_value(out_cflux2, flux_soil);
-		out.add_value(out_cflux2, flux_fire);
-		out.add_value(out_cflux2, flux_est);
-		if (run_landcover) {
-			 out.add_value(out_cflux2, flux_seed);
-			 out.add_value(out_cflux2, flux_charvest + gridcell.acflux_landuse_change + gridcell.acflux_harvest_slow);
-		}
-		out.add_value(out_cflux2, flux_veg + flux_soil + flux_fire + flux_est + flux_seed + flux_charvest + gridcell.acflux_landuse_change + gridcell.acflux_harvest_slow);
 
 		if (run_landcover) {
 			for(int i=0;i<NLANDCOVERTYPES;i++) {

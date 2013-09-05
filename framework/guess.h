@@ -2619,8 +2619,11 @@ public:
 	/** \see landcover_dynamics
 	 */
 	bool LC_updated;
-//	double acflux_harvest_slow;
-//	double acflux_landuse_change;
+
+	double acflux_harvest_slow;
+	double acflux_landuse_change;
+	double acflux_harvest_slow_lc[NLANDCOVERTYPES];	
+	double acflux_landuse_change_lc[NLANDCOVERTYPES];
 
 	/// list array [0...npft-1] of Gridcellpft (initialised in constructor)
 	ListArray_idin1<Gridcellpft,Pft> pft;
@@ -2651,8 +2654,10 @@ public:
 		memset(landcoverfrac_old, 0, sizeof(double) * NLANDCOVERTYPES);
 		memset(cftfrac, 0, sizeof(double) * NCROPSTANDS_MAX);
 		memset(cftfrac_old, 0, sizeof(double) * NCROPSTANDS_MAX);
-//		acflux_harvest_slow=0.0;
-//		acflux_landuse_change=0.0;
+		acflux_harvest_slow=0.0;
+		acflux_landuse_change=0.0;
+		memset(acflux_harvest_slow_lc, 0, sizeof(double)*NLANDCOVERTYPES);
+		memset(acflux_landuse_change_lc, 0, sizeof(double)*NLANDCOVERTYPES);
 
 		if(!run_landcover) {
 			landcover = NATURAL;

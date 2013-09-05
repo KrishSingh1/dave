@@ -541,18 +541,27 @@ if(!SUPPRESSLARGEOUTPUT)
 						transfer_nmass_litter_sap[indiv.pft.id]+=nmass_litter_sap_cp*scale;
 						transfer_nmass_litter_heart[indiv.pft.id]+=nmass_litter_heart_cp*scale;
 
-						transfer_acflux_harvest+=acflux_harvest_cp*scale;
 						transfer_anflux_harvest+=anflux_harvest_cp*scale;
 
+						double change_frac;
 						if(stand.landcover==NATURAL)
 						{
-							double change_frac;
 							if(nnaturalstands>1)
 								change_frac=stand.natural_frac_change;
 							else
 								change_frac=landcoverfrac_change[NATURAL];
-//							gridcell.acflux_landuse_change+=-acflux_harvest_cp*change_frac/(double)stand.nobj;
 						}
+						else if(stand.landcover==CROPLAND)
+						{
+							change_frac=cropstand_change[stand.cftid];
+						}
+						else
+						{
+							change_frac=landcoverfrac_change[stand.landcover];
+						}
+
+						gridcell.acflux_landuse_change+=-acflux_harvest_cp*change_frac/(double)stand.nobj;
+						gridcell.acflux_landuse_change_lc[stand.landcover]+=-acflux_harvest_cp*change_frac/(double)stand.nobj;
 
 						if(ifslowharvestpool) {
 							transfer_harvested_products_slow[indiv.pft.id]+=harvested_products_slow_cp*scale;

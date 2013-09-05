@@ -618,8 +618,14 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		climate.andep  = 0.0;
 		climate.anfert = 0.0;
 
-//		gridcell.acflux_landuse_change=0.0;
-//		gridcell.acflux_harvest_slow=0.0;
+		gridcell.acflux_landuse_change=0.0;
+		gridcell.acflux_harvest_slow=0.0;
+
+		for(int i=0;i<NLANDCOVERTYPES;i++)
+		{
+			gridcell.acflux_landuse_change_lc[i]=0.0;
+			gridcell.acflux_harvest_slow_lc[i]=0.0;
+		}
 
 		if (date.year == 0) {
 			// First day of simulation - initialise running annual mean temperature and daily temperatures for the last month
@@ -755,9 +761,11 @@ void dailyaccounting_patch_lc(Patch& patch) {
 				Pft& pft = pftlist.getobj();
 				Patchpft& patchpft = patch.pft[pft.id];
 
-				patch.fluxes.report_flux(Fluxes::HARVESTC, patchpft.harvested_products_slow*pft.turnover_harv_prod);
+//				patch.fluxes.report_flux(Fluxes::HARVESTC, patchpft.harvested_products_slow*pft.turnover_harv_prod);
+				patch.stand.gridcell.acflux_harvest_slow+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.get_gridcell_fraction()/(double)patch.stand.nobj;
+				patch.stand.gridcell.acflux_harvest_slow_lc[pft.landcover]+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.get_gridcell_fraction()/(double)patch.stand.nobj;
+
 				patchpft.harvested_products_slow = patchpft.harvested_products_slow * (1 - pft.turnover_harv_prod);
-//				patch.stand.gridcell.acflux_harvest_slow+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.frac/(double)patch.stand.nobj;	//unfinished code
 
 				patch.fluxes.report_flux(Fluxes::HARVESTN, patchpft.harvested_products_slow_nmass*pft.turnover_harv_prod);
 				patchpft.harvested_products_slow_nmass = patchpft.harvested_products_slow_nmass * (1 - pft.turnover_harv_prod);

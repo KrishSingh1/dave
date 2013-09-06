@@ -112,8 +112,7 @@ private:
 #if defined DYNAMIC_LANDCOVER_INPUT
 	InData::Coord GetLonLat(Coord coord);
 
-//void GetLonLatListFromCoord(ListArray_id<InData::Coord>&lonlatlist, ListArray_id<Coord>& gridlist);
-	ListArray_id<InData::Coord> GetLonLatList(ListArray_id<Coord>& gridlist);
+	void GetLonLatList(ListArray_id<InData::Coord>& lonlatlist, ListArray_id<Coord>& gridlist);
 #endif
 
 	void getndep(double lon, double lat);

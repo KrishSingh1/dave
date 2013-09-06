@@ -194,10 +194,9 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 
 			if(patch.pft[indiv.pft.id].pft.phenology==CROPGREEN)
 			{
-				indiv.lai=patch.pft[indiv.pft.id].cropphen->lai;
-				indiv.lai_indiv=indiv.lai;
-				indiv.fpc=patch.pft[indiv.pft.id].cropphen->fpc;
-				indiv.fpc_thisday=patch.pft[indiv.pft.id].cropphen->fpc_thisday;
+				indiv.lai_daily=patch.pft[indiv.pft.id].cropphen->lai_daily;
+				indiv.lai_indiv_daily=indiv.lai_daily;
+				indiv.fpc_daily=patch.pft[indiv.pft.id].cropphen->fpc_daily;
 			}
 
 			if(patch.pft[indiv.pft.id].cropphen->growingseason==true)
@@ -1124,6 +1123,23 @@ bool allometry(Individual& indiv) {
 
 				ppftcrop.lai = indiv.lai;
 				ppftcrop.fpc = indiv.fpc;
+			}
+			else {
+				if (!negligible(indiv.cropindiv->cmass_leaf_max)) {
+
+					// Grass "individual" LAI (Eqn 11)
+					indiv.lai_indiv = indiv.cropindiv->cmass_leaf_max * indiv.pft.sla;
+
+					// FPC (Eqn 10)
+//					indiv.fpc = 1.0 - lambertbeer(indiv.lai_indiv);
+					indiv.fpc = 1.0;
+
+					// Stand-level LAI
+					indiv.lai = indiv.lai_indiv;
+
+					ppftcrop.lai = indiv.lai;
+					ppftcrop.fpc = indiv.fpc;
+				} 
 			}
 		}
 	}

@@ -627,7 +627,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 										standpft_nuptake += indiv.anuptake;
 
 										if(pft.phenology == CROPGREEN)					
-											standpft_lai += indiv.cropindiv->cmass_leaf_max * pft.sla;
+//											standpft_lai += indiv.cropindiv->cmass_leaf_max * pft.sla;
+											standpft_lai += indiv.lai;
 										else
 											standpft_lai += indiv.lai;
 										standpft_yield += indiv.cropindiv->harv_yield;

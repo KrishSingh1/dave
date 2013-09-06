@@ -1326,7 +1326,7 @@ public:
 	double fpc;
 		// foliar projective cover (FPC) under full leaf cover as fraction of modelled
 		// area
-	double fpc_thisday;
+	double fpc_daily;
 		// foliar projective cover (FPC) this day as fraction of modelled
 		// area
 	double fpar;
@@ -1373,6 +1373,10 @@ public:
 	double lai_layer;
 		// patch-level lai for cohort in current vertical layer (function fpar)
 	double lai_indiv;
+		// individual leaf area index (individual and cohort modes only)
+	double lai_daily;
+		// individual leaf area index (individual and cohort modes only)
+	double lai_indiv_daily;
 		// individual leaf area index (individual and cohort modes only)
 	Historic<double, NYEARGREFF> greff_5;
 		// growth efficiency (NPP/leaf area) for each of the last five simulation years
@@ -1967,7 +1971,6 @@ public:
 class cropphen_struct : public Serializable {
 
 public:
-	double lai_crop_actual;
 	int sdate;
 	int sdate_harv;
 	int sdate_harvest[2];	
@@ -2010,8 +2013,9 @@ public:
 	double demandsum_crop;
 	double supplysum_crop;
 	double lai;		// copy of indiv.lai 
+	double lai_daily;
 	double fpc;		// copy of indiv.fpc 
-	double fpc_thisday;		// copy of indiv.fpc_thisday 
+	double fpc_daily;		// copy of indiv.fpc_daily 
 	bool growingseason;
 	bool growingseason_ystd;
 	bool senescence;
@@ -2021,7 +2025,10 @@ public:
 
 	cropphen_struct()
 	{
-		lai_crop_actual=0.0;
+		lai=0.0;
+		lai_daily=0.0;
+		fpc=0.0;
+		fpc_daily=0.0;
 		sdate=-1;
 		sdate_harv=-1;
 		nsow=0;
@@ -2203,9 +2210,6 @@ public:
 		if(pft.landcover==CROPLAND)
 		{
 			cropphen=new cropphen_struct;
-			cropphen->lai=0.0;
-			cropphen->fpc=0.0;
-			cropphen->fpc_thisday=0.0;
 		}
 	}
 

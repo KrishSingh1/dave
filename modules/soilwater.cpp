@@ -421,10 +421,9 @@ void soilwater(Patch& patch, Climate& climate) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
-		if(indiv.pft.phenology==CROPGREEN)
-			fpc_phen_total += indiv.fpc_thisday;
-		else
-			fpc_phen_total += indiv.fpc * indiv.phen;
+		double fpc_phen=indiv.pft.phenology==CROPGREEN ? indiv.fpc_daily : indiv.fpc * indiv.phen;
+
+		fpc_phen_total += fpc_phen;
 
 		vegetation.nextobj();
 	}

@@ -2309,7 +2309,7 @@ void leaf_phenology_crop(Pft& pft, Patch& patch)
 				ppftcrop.fhi_harv=ppftcrop.fhi;
 
 				patchpft.phen=0.0;
-				ppftcrop.lai_crop_actual=0.0;
+				ppftcrop.lai_daily=0.0;
 				ppftcrop.demandsum_crop=0.0;
 				ppftcrop.supplysum_crop=0.0;
 				ppftcrop.hdate=date.day;
@@ -2350,10 +2350,12 @@ void leaf_phenology_crop(Pft& pft, Patch& patch)
 				ppftcrop.senescence=false;
 			} //end harvest
 
-			ppftcrop.lai=ppftcrop.lai_crop_actual;
-			ppftcrop.fpc_thisday=1.0-lambertbeer(ppftcrop.lai);
-			ppftcrop.fpc=1.0;
-			patchpft.phen=ppftcrop.fpc_thisday/ppftcrop.fpc;
+			ppftcrop.fpc_daily=1.0-lambertbeer(ppftcrop.lai_daily);
+
+			if(ppftcrop.fpc)
+				patchpft.phen=ppftcrop.fpc_daily/ppftcrop.fpc;
+			else
+				patchpft.phen=0.0;
 
 		}  //from sowing has taken place until harvest day
 
@@ -2488,7 +2490,7 @@ void fpar_crop(Patch& patch) {
 		
 			// For this individual ...
 
-			indiv.fpar=indiv.fpc_thisday; // Eqn 1
+			indiv.fpar=indiv.fpc_daily; // Eqn 1
 			indiv.fpar_leafon=indiv.fpc; // Eqn 2
 
 			vegetation.nextobj(); // ... on to next individual
@@ -2517,6 +2519,8 @@ void fpar_crop(Patch& patch) {
 
 			if(patch.pft[indiv.pft.id].cropphen->growingseason==true)
 			{
+				double lai_indiv=indiv.pft.phenology==CROPGREEN ? indiv.lai_daily : indiv.lai*indiv.phen;
+
 				if (indiv.pft.lifeform==GRASS)
 				{
 					if(patch.stand.gridcell.landcoverfrac[PASTURE]>0.0) {
@@ -2527,10 +2531,7 @@ void fpar_crop(Patch& patch) {
 							highest_grass_lai=indiv.lai;
 						plai_leafon_grass=highest_grass_lai;	// avoids double lai count for intercrop grass (c3 and c4 grass competing, lai is for monocultures)
 					}
-					if(indiv.pft.phenology==CROPGREEN)
-						plai_grass+=indiv.lai;	
-					else
-						plai_grass+=indiv.lai*indiv.phen;	
+					plai_grass+=lai_indiv;	
 				}
 			}
 			vegetation.nextobj(); // ... on to next individual
@@ -2538,7 +2539,6 @@ void fpar_crop(Patch& patch) {
 
 		// FPAR reaching grass canopy
 		fpar_grass=1.0;
-
 
 		// Add grass LAI to calculate PAR reaching forest floor
 		// BLARP: Order changed Ben 050301 to overcome optimisation bug in pgCC
@@ -2768,21 +2768,21 @@ void growth_crop_daily(Patch& patch)
 				{
 					if(!ppftcrop.senescence)
 					{
-						ppftcrop.lai_crop_actual=cropindiv.grs_cmass_leaf*indiv.pft.sla;	
+						ppftcrop.lai_daily=cropindiv.grs_cmass_leaf*indiv.pft.sla;	
 					}
 					else
 					{
 
 						//Follow the Potsdam senescence curve from leaf cmass at senescence (cmass_leaf_sen):
-						ppftcrop.lai_crop_actual=cropindiv.cmass_leaf_sen*indiv.pft.sla*senescence_curve(indiv.pft, ppftcrop.fphu);
+						ppftcrop.lai_daily=cropindiv.cmass_leaf_sen*indiv.pft.sla*senescence_curve(indiv.pft, ppftcrop.fphu);
 					}
 
-					if(ppftcrop.lai_crop_actual<0.0)
-						ppftcrop.lai_crop_actual=0.0;
+					if(ppftcrop.lai_daily<0.0)
+						ppftcrop.lai_daily=0.0;
 				}
-				if(!(ppftcrop.lai_crop_actual>=0.0 && ppftcrop.lai_crop_actual<=20.0))//Test for unrealistically high lai.
+				if(!(ppftcrop.lai_daily>=0.0 && ppftcrop.lai_daily<=20.0))//Test for unrealistically high lai.
 if(!SUPPRESSLARGEOUTPUT)	
-					dprintf("In growth_crop_daily() stand %d pft %d year %d day %d: senescence=%d, grs_cmass_leaf=%f, grs_cmass_ho=%f, lai_crop_actual=%f, out of bounds !\n", patch.stand.id, indiv.pft.id, date.year-nyear_spinup+1901, date.day, ppftcrop.senescence, cropindiv.grs_cmass_leaf, cropindiv.grs_cmass_ho, ppftcrop.lai_crop_actual);
+					dprintf("In growth_crop_daily() stand %d pft %d year %d day %d: senescence=%d, grs_cmass_leaf=%f, grs_cmass_ho=%f, lai_daily=%f, out of bounds !\n", patch.stand.id, indiv.pft.id, date.year-nyear_spinup+1901, date.day, ppftcrop.senescence, cropindiv.grs_cmass_leaf, cropindiv.grs_cmass_ho, ppftcrop.lai_daily);
 			}
 
 			// CROPGREEN COMMON TASKS AT HARVEST DAY

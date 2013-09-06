@@ -467,10 +467,9 @@ void CRUInput::init() {
 				fail("initio: could not open %s for input",(char*)file_lucrop);
 			else if(minimizecftlist)
 			{
-//				ListArray_id<InData::Coord> lonlatlist;
-//				GetLonLatListFromCoord(lonlatlist, gridlist);
-//				CFTdata.CheckIfPresent(lonlatlist);
-				CFTdata.CheckIfPresent(GetLonLatList(gridlist));
+				ListArray_id<InData::Coord> lonlatlist;
+				GetLonLatList(lonlatlist, gridlist);
+				CFTdata.CheckIfPresent(lonlatlist);
 				
 				int n=0;
 				pftlist.firstobj();
@@ -612,16 +611,13 @@ InData::Coord CRUInput::GetLonLat(Coord coord) {
 	return lonlat;
 }
 
-//void GetLonLatListFromCoord(ListArray_id<InData::Coord>&lonlatlist, ListArray_id<Coord>& gridlist) {
-ListArray_id<InData::Coord> CRUInput::GetLonLatList(ListArray_id<Coord>& gridlist) {
-	ListArray_id<InData::Coord> lonlatlist;
+void CRUInput::GetLonLatList(ListArray_id<InData::Coord>&lonlatlist, ListArray_id<Coord>& gridlist) {
 
 	for(int i=0;i<gridlist.nobj;i++) {
 		InData::Coord& c= lonlatlist.createobj();
 		c.lon=gridlist[i].lon;
 		c.lat=gridlist[i].lat;
 	}
-	return lonlatlist;
 }
 
 #endif

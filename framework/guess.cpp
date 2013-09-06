@@ -320,7 +320,7 @@ void Patchpft::serialize(ArchiveStream& arch) {
 }
 
 void cropphen_struct::serialize(ArchiveStream& arch) {
-	arch & lai_crop_actual
+	arch & lai_daily
 		& sdate
 		& sdate_harv
 		& sdate_harvest
@@ -549,7 +549,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	anpp              = 0.0;
 	fpc               = 0.0;
-	fpc_thisday       = 0.0;
+	fpc_daily       = 0.0;
 	densindiv         = 0.0;
 	cmass_leaf        = 0.0;
 	cmass_root        = 0.0;
@@ -603,6 +603,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	lai               = 0.0;
 	lai_layer         = 0.0;
 	lai_indiv         = 0.0;
+	lai_daily       = 0.0;
+	lai_indiv_daily = 0.0;
 	alive             = false;
 	wscal_mean        = 1.0;
 

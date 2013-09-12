@@ -224,6 +224,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	// Update water content in evaporation layer for tomorrow
 
 #if defined IRRIGATION
+	// Add irrigation water
 	rain_melt+=patch.irrigation_d;
 #endif
 
@@ -372,26 +373,21 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 		soil.wcont_evap = soil.wcont[0];
 	}
 }
-////////////////////////////////////////////////////////////////////////////////////////
-// IRRIGATION
-// Calculate required irrigation according to water deficiency.
-// Function to be called after canopy_exchange and before soilwater.
 
+/// Calculate required irrigation according to water deficiency.
+/** Function to be called after canopy_exchange and before soilwater.
+ */
 void irrigation(Patch& patch)
 {
 	patch.irrigation_d=0.0;
 	if(date.day==0)
 		patch.irrigation_y=0.0;
 
-	if(patch.stand.isirrigated)
-	{
-		for(int i=0;i<patch.pft.nobj;i++)
-		{
-			if(patch.pft[i].pft.hydrology==IRRIGATED && patch.pft[i].cropphen->growingseason)
-			{
+	if(patch.stand.isirrigated) {
+		for(int i=0;i<patch.pft.nobj;i++) {
+			if(patch.pft[i].pft.hydrology==IRRIGATED && patch.pft[i].cropphen->growingseason) {
 				patch.irrigation_d+=patch.pft[i].water_deficit_d;
-				if(patch.irrigation_d<0.0)
-				{
+				if(patch.irrigation_d<0.0) {
 					dprintf("Negative irrigation_d !\n");
 				}
 				patch.irrigation_y+=patch.irrigation_d;

@@ -566,8 +566,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				Stand& stand=gridcell.getobj();
 
 				Standpft& standpft=stand.pft[pft.id];
-				if(standpft.active)
-				{
+				if(standpft.active) {
 					// Sum C biomass, NPP, LAI and BVOC fluxes across patches and PFTs
 					standpft_cmass=0.0;
 					standpft_nmass=0.0;
@@ -613,42 +612,27 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 							if (indiv.id!=-1 && indiv.alive) { 
 								
 								if (indiv.pft.id==pft.id) {
+									standpft_cmass += indiv.cmass_leaf + indiv.cmass_root + 
+													  indiv.cmass_wood();
+									standpft_nmass += indiv.nmass_leaf + indiv.nmass_root + 
+													  indiv.nmass_wood() + indiv.nstore();
+									standpft_cmass_leaf += indiv.cmass_leaf;
+									standpft_nmass_leaf += indiv.cmass_leaf / indiv.cton_leaf_aavr;
+									standpft_cmass_veg += indiv.cmass_veg;
+									standpft_nmass_veg += indiv.nmass_veg;
+									standpft_lai+=indiv.lai;
+									standpft_vmaxnlim += indiv.avmaxnlim * indiv.cmass_leaf;
+									standpft_nuptake += indiv.anuptake;
 
-									if(pft.landcover == CROPLAND)
-									{
-										standpft_cmass += indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood() + indiv.cropindiv->cmass_ho + indiv.cropindiv->cmass_agpool;
-										standpft_nmass += indiv.nmass_leaf + indiv.nmass_root + indiv.cropindiv->nmass_ho + indiv.cropindiv->nmass_agpool +
-														  indiv.nmass_wood() + indiv.nstore();
-										standpft_cmass_leaf += indiv.cmass_leaf;
-										standpft_nmass_leaf += indiv.cmass_leaf / indiv.cton_leaf_aavr;
-										standpft_cmass_veg += indiv.cmass_veg;
-										standpft_nmass_veg += indiv.nmass_veg;
-										standpft_vmaxnlim += indiv.avmaxnlim * indiv.cmass_leaf;
-										standpft_nuptake += indiv.anuptake;
+									if(pft.landcover == CROPLAND) {
+										standpft_cmass += indiv.cropindiv->cmass_ho + indiv.cropindiv->cmass_agpool;
+										standpft_nmass += indiv.cropindiv->nmass_ho + indiv.cropindiv->nmass_agpool;
 
-										if(pft.phenology == CROPGREEN)					
-//											standpft_lai += indiv.cropindiv->cmass_leaf_max * pft.sla;
-											standpft_lai += indiv.lai;
-										else
-											standpft_lai += indiv.lai;
 										standpft_yield += indiv.cropindiv->harv_yield;
 										standpft_yield1 += indiv.cropindiv->yield_harvest[0];
 										standpft_yield2 += indiv.cropindiv->yield_harvest[1];
 									}
-									else
-									{
-										standpft_cmass += indiv.cmass_leaf + indiv.cmass_root + 
-														  indiv.cmass_wood();
-										standpft_nmass += indiv.nmass_leaf + indiv.nmass_root + 
-														  indiv.nmass_wood() + indiv.nstore();
-										standpft_cmass_leaf += indiv.cmass_leaf;
-										standpft_nmass_leaf += indiv.cmass_leaf / indiv.cton_leaf_aavr;
-										standpft_cmass_veg += indiv.cmass_veg;
-										standpft_nmass_veg += indiv.nmass_veg;
-										standpft_lai+=indiv.lai;
-										standpft_vmaxnlim += indiv.avmaxnlim * indiv.cmass_leaf;
-										standpft_nuptake += indiv.anuptake;
-
+									else {
 										if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 											
 											// Age structure
@@ -663,7 +647,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 												if (diam>0.03) {
 													standpft_densindiv_total+=indiv.densindiv; // indiv/m2
 
-												heightindiv_total+=indiv.height * indiv.densindiv;
+													heightindiv_total+=indiv.height * indiv.densindiv;
 												}
 											}
 										}
@@ -710,9 +694,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					landcover_vmaxnlim[stand.landcover]+=standpft_vmaxnlim*stand.get_landcover_fraction();
 
 					//Update pft totals
-#if defined multiple_natural_stands
-					if(pft.landcover!=CROPLAND  || pft.isintercropgrass)	//Natural landcover can now contain several stands.
-					{
+
+					if(pft.landcover!=CROPLAND  || pft.isintercropgrass) {
+
 						stand_mean_cmass+=standpft_cmass*stand.get_landcover_fraction();
 						stand_mean_nmass+=standpft_nmass*stand.get_landcover_fraction();
 						stand_mean_cmass_leaf+=standpft_cmass_leaf*stand.get_landcover_fraction();
@@ -731,9 +715,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 							for (c=0;c<nclass;c++)
 								stand_mean_densindiv_ageclass[c]+=standpft_densindiv_ageclass[c]*stand.get_landcover_fraction();
 					}
-					else
-#endif
-					{											//Not mean value for crop stands, but value for unique stand with crop pft
+					else {		//Not mean value for crop stands, but value for unique stand with crop pft
 						stand_mean_cmass+=standpft_cmass;		
 						stand_mean_nmass+=standpft_nmass;
 						stand_mean_cmass_leaf+=standpft_cmass_leaf;
@@ -820,20 +802,18 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			out.add_value(out_speciesheights, height);
 
-			if (pft.landcover==CROPLAND)
-			{
+			// print crop sowing- and harvest dates
+			if (pft.landcover==CROPLAND) {
 				int pft_sdate1=-1;
 				int pft_sdate2=-1;
 				int pft_hdate1=-1;
 				int pft_hdate2=-1;
 
 				gridcell.firstobj();
-				while (gridcell.isobj)
-				{
+				while (gridcell.isobj) {
 					Stand& stand=gridcell.getobj();
 
-					if(stand.cftid==pft.cftid)
-					{
+					if(stand.cftid==pft.cftid) {
 						pft_sdate1=stand[0].pft[pft.id].cropphen->sdate_thisyear[0];
 						pft_sdate2=stand[0].pft[pft.id].cropphen->sdate_thisyear[1];
 						pft_hdate1=stand[0].pft[pft.id].cropphen->hdate_harvest[0];
@@ -866,8 +846,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		double c_litter_lc[NLANDCOVERTYPES], c_fast_lc[NLANDCOVERTYPES], c_slow_lc[NLANDCOVERTYPES], c_harv_slow_lc[NLANDCOVERTYPES];
 		double surfsoillitterc_lc[NLANDCOVERTYPES], cwdc_lc[NLANDCOVERTYPES], centuryc_lc[NLANDCOVERTYPES];
 
-		for (int i=0; i<NLANDCOVERTYPES; i++)
-		{
+		for (int i=0; i<NLANDCOVERTYPES; i++) {
 			flux_veg_lc[i]=0.0;
 			flux_soil_lc[i]=0.0;
 			flux_fire_lc[i]=0.0;
@@ -939,10 +918,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				}
 
 				//Sum slow pools of harvested products
-				if(run_landcover && ifslowharvestpool)
-				{
-					for (int q=0;q<npft;q++) 
-					{
+				if(run_landcover && ifslowharvestpool) {
+					for (int q=0;q<npft;q++) {
 						Patchpft& patchpft=patch.pft[q];
 						c_harv_slow+=patchpft.harvested_products_slow*to_gridcell_average;
 //						c_harv_slow_lc[stand.landcover]+=patchpft.harvested_products_slow*to_gridcell_average;		  //slow pool in receiving landcover (1)
@@ -1091,6 +1068,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			out.add_value(out_irrigation,   irrigation_gridcell);
 		}
 
+		// Print landcover totals to files
 		if (run_landcover) {
 			for(int i=0;i<NLANDCOVERTYPES;i++) {
 				if(run[i]) {
@@ -1190,6 +1168,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		}
 		out.add_value(out_cflux, flux_veg + flux_soil + flux_fire + flux_est + flux_seed + flux_charvest + gridcell.acflux_landuse_change + gridcell.acflux_harvest_slow);
 
+		// Print C fluxes to per-landcover files
 		if (run_landcover) {
 			for(int i=0;i<NLANDCOVERTYPES;i++) {
 				if(run[i]) {
@@ -1278,6 +1257,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		out.add_value(out_cpool, cpool_total);
 
+		// Print C pools to per-landcover files
 		if (run_landcover) {
 			for(int i=0;i<NLANDCOVERTYPES;i++) {
 				if(run[i]) {

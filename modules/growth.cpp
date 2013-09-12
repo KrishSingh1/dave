@@ -140,8 +140,9 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 
 			// For this PFT ...
 		if(patch.stand.pft[pft.id].active) {
-			if(pft.pft.landcover == CROPLAND && patch.stand.landcover == CROPLAND)
-				leaf_phenology_crop(pft.pft, patch) ;
+			if(pft.pft.landcover == CROPLAND && patch.stand.landcover == CROPLAND) {
+				leaf_phenology_crop(pft.pft, patch);
+			}
 			else	//natural, urban, pasture, forest and peatland stands/pft:s
 				leaf_phenology_pft(pft.pft, climate, pft.wscal, pft.aphen, pft.phen);
 
@@ -184,16 +185,14 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 		vegetation.nextobj();
 	}
 
-	if(patch.stand.landcover==CROPLAND)
-	{
+	// Update crop daily phenology individual variables and crop patch.fpc_total
+	if(patch.stand.landcover==CROPLAND) {
 		patch.fpc_total=0.0;
 		vegetation.firstobj();
-		while (vegetation.isobj) 
-		{
+		while (vegetation.isobj) {
 			Individual& indiv=vegetation.getobj();
 
-			if(patch.pft[indiv.pft.id].pft.phenology==CROPGREEN)
-			{
+			if(patch.pft[indiv.pft.id].pft.phenology==CROPGREEN) {
 				indiv.lai_daily=patch.pft[indiv.pft.id].cropphen->lai_daily;
 				indiv.lai_indiv_daily=indiv.lai_daily;
 				indiv.fpc_daily=patch.pft[indiv.pft.id].cropphen->fpc_daily;
@@ -253,38 +252,28 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	// retransn				= retranslocated nitrogen (kgN/m2)
 
 	double turnover = 0.0;
-	double scale = 1.0;
 
-#ifndef multiple_natural_stands
-	if(run_landcover && gridcell.LC_updated) {
-		//scale harvest products of stands with increased area by (old area/new area) if landcover change has occurred:
-		scale = gridcell.landcoverfrac_old[landcover] / gridcell.landcoverfrac[landcover];
-
-		if(scale >= 1.0)
-			scale = 1.0;
-	}
-#endif
 
 	// TREES AND GRASSES:
 
 	// Leaf turnover
 	turnover = turnover_leaf * cmass_leaf;
 	cmass_leaf -= turnover;
-	if (alive) litter_leaf += turnover * scale;
+	if (alive) litter_leaf += turnover;
 
 	turnover = turnover_leaf * nmass_leaf;
 	nmass_leaf -= turnover;
-	nmass_litter_leaf += turnover * (1.0 - nrelocfrac) * scale;
+	nmass_litter_leaf += turnover * (1.0 - nrelocfrac);
 	retransn += turnover * nrelocfrac;
 
-	// Root turnover
+	// Root turnover 
 	turnover = turnover_root * cmass_root;
 	cmass_root -= turnover;
-	if (alive) litter_root += turnover * scale;
+	if (alive) litter_root += turnover;
 
 	turnover = turnover_root * nmass_root;
 	nmass_root -= turnover;
-	nmass_litter_root += turnover * (1.0 - nrelocfrac) * scale;
+	nmass_litter_root += turnover * (1.0 - nrelocfrac);
 	retransn += turnover * nrelocfrac;
 
 	if (lifeform == TREE) {
@@ -1036,28 +1025,30 @@ bool allometry(Individual& indiv) {
 			}
 		}
 		else {
-			double lai_lastyear;
-			cropphen_struct& ppftcrop= * (indiv.vegetation.patch.pft[indiv.pft.id].get_cropphen());
+			cropphen_struct& ppftcrop = *(indiv.vegetation.patch.pft[indiv.pft.id].get_cropphen());
 
-			if(indiv.pft.phenology == ANY)// crop grass compatible with natural grass
-			{
+			// crop grass compatible with natural grass
+			if(indiv.pft.phenology == ANY) {
+
 				indiv.lai_indiv = indiv.cmass_leaf * indiv.pft.sla;
 
-				if(indiv.cropindiv->isintercropgrass)					//For intercrop grass, use LAI of parent grass in its own stand !
-				{
+				// For intercrop grass, use LAI of parent grass in its own stand.
+				if(indiv.cropindiv->isintercropgrass) {
+
 					bool done = false;
 
 					Gridcell& gridcell = indiv.vegetation.patch.stand.gridcell;
-//First look in PASTURE.
-					if(gridcell.landcoverfrac[PASTURE] > 0.0)
-					{
+
+					//First look in PASTURE.
+					if(gridcell.landcoverfrac[PASTURE] > 0.0) {
+
 						char name_start[5] = {0};;
 						char* sp = NULL;
 						strncpy(name_start, indiv.pft.name, 4);
-						sp = name_start + 1;											//NB: this works with current pft names. CC3G_ic and C3G_pasture
+						sp = name_start + 1;										//NB: this works with current pft names. CC3G_ic and C3G_pasture
 
-						for(int i=0; i<gridcell.nobj && !done; i++)
-						{
+						for(int i=0; i<gridcell.nobj && !done; i++)	{
+
 							Stand& stand=gridcell[i];
 							if(stand.landcover == PASTURE)
 							{
@@ -1065,12 +1056,10 @@ bool allometry(Individual& indiv) {
 								{
 									Patch& patch = stand[j];
 									Vegetation& vegetation = patch.vegetation;
-									for(int k=0; k<vegetation.nobj && !done; k++)
-									{
+									for(int k=0; k<vegetation.nobj && !done; k++) {
 										Individual& grass_indiv = vegetation[k];
 
-										if(!strncmp(sp, grass_indiv.pft.name, 3))	//NB: this works with current pft names. CC3G_ic and C3G_pasture
-										{
+										if(!strncmp(sp, grass_indiv.pft.name, 3)) {	//NB: this works with current pft names. CC3G_ic and C3G_pasture
 											indiv.lai_indiv = grass_indiv.lai_indiv;
 											done = true;
 										}
@@ -1079,7 +1068,7 @@ bool allometry(Individual& indiv) {
 							}
 						}
 					}
-//If PASTURE landcover not used, look for crop stand with pasture grass. 
+					// If PASTURE landcover not used, look for crop stand with pasture grass. 
 					else
 					{
 
@@ -1088,21 +1077,17 @@ bool allometry(Individual& indiv) {
 						strncpy(name_start, indiv.pft.name, 4);
 						sp = name_start;											//NB: this works with current pft names. CC3G_ic and CC3G
 
-						for(int i=0; i<gridcell.nobj && !done; i++)
-						{
+						for(int i=0; i<gridcell.nobj && !done; i++)	{
 							Stand& stand = gridcell[i];
-							if(stand.landcover == CROPLAND)
-							{
+							if(stand.landcover == CROPLAND)	{
 								for(int j=0; j<stand.nobj && !done; j++)
 								{
 									Patch& patch = stand[j];
 									Vegetation& vegetation = patch.vegetation;
-									for(int k=0; k<vegetation.nobj && !done; k++)
-									{
+									for(int k=0; k<vegetation.nobj && !done; k++) {
 										Individual& grass_indiv = vegetation[k];
 
-										if(!strncmp(sp, grass_indiv.pft.name, 3) && !grass_indiv.istruecrop_or_intercropgrass())	//NB: this works with current pft names. CC3G_ic and CC3G
-										{
+										if(!strncmp(sp, grass_indiv.pft.name, 3) && !grass_indiv.istruecrop_or_intercropgrass()) {	//NB: this works with current pft names. CC3G_ic and CC3G							
 											indiv.lai_indiv = grass_indiv.lai_indiv;
 											done = true;
 										}
@@ -1111,7 +1096,7 @@ bool allometry(Individual& indiv) {
 							}
 						}
 					}
-//If no grass stand found in either cropland or pasture, use laimax value.
+					//If no grass stand found in either cropland or pasture, use laimax value.
 					if(!done)
 						indiv.lai_indiv = indiv.pft.laimax;
 				}
@@ -1124,7 +1109,7 @@ bool allometry(Individual& indiv) {
 				ppftcrop.lai = indiv.lai;
 				ppftcrop.fpc = indiv.fpc;
 			}
-			else {
+			else {	// cropgreen
 				if (!negligible(indiv.cropindiv->cmass_leaf_max)) {
 
 					// Grass "individual" LAI (Eqn 11)
@@ -1315,7 +1300,7 @@ void growth(Stand& stand, Patch& patch) {
 		// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle and Friend 2010 SM eq 19) 	
 		double cton_leaf_aopt = max(indiv.cton_leaf_aopt ,indiv.pft.cton_leaf_avr);
 
-		if (ifnlim_stand) //crops:no N limitation yet
+		if (ifnlim_stand)
 			nscal = min(1.0, cton_leaf_aopt / indiv.cton_leaf_aavr);
 		else 
 			nscal = 1.0;
@@ -1333,7 +1318,7 @@ void growth(Stand& stand, Patch& patch) {
 		killed = false;
 
 		if (negligible(indiv.densindiv))
-//			fail("growth: negligible densindiv for %s",(char*)indiv.pft.name);//N:ACTIVATE ? (TO BE COMPATIBLE TO TRUNK)
+//			fail("growth: negligible densindiv for %s",(char*)indiv.pft.name);// ???
 			dprintf("growth: negligible densindiv for %s\n",(char*)indiv.pft.name);	
 		else {
 
@@ -1380,8 +1365,7 @@ void growth(Stand& stand, Patch& patch) {
 			double retransn = 0.0;
 
 			// Tissue turnover and associated litter production
-			if(indiv.pft.landcover==NATURAL)
-			{
+			if(indiv.pft.landcover==NATURAL) {
 				turnover(indiv.pft.turnover_leaf, indiv.pft.turnover_root,
 					indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
 					indiv.cmass_leaf, indiv.cmass_root, indiv.cmass_sap, indiv.cmass_heart,
@@ -1393,8 +1377,7 @@ void growth(Stand& stand, Patch& patch) {
 					indiv.nstore_longterm, 
 					indiv.alive, gridcell);
 			}
-			else
-			{
+			else {
 				double acflux_harvest=0.0;
 				double anflux_harvest=0.0;
 
@@ -1579,8 +1562,7 @@ void growth(Stand& stand, Patch& patch) {
 				// Roots
 				indiv.cmass_root += cmass_root_inc;
 
-				if(indiv.pft.landcover == CROPLAND)
-				{
+				if(indiv.pft.landcover == CROPLAND)	{
 					indiv.cropindiv->cmass_ho += cmass_ho_inc;
 					indiv.cropindiv->cmass_agpool += cmass_agpool_inc;
 				}
@@ -1641,7 +1623,7 @@ void growth(Stand& stand, Patch& patch) {
 
 		if (!killed) {
 
-			if (!allometry(indiv)) {	//NB: crops never enter this code
+			if (!allometry(indiv)) {	// crops never enter this code
 
 				indiv.kill();
 
@@ -1675,7 +1657,7 @@ void growth(Stand& stand, Patch& patch) {
 	}
 
 	// Flush nitrogen free litter from reproduction straight to atmosphere
-	if (ifnlim_stand) {//crops:no N limitation yet
+	if (ifnlim_stand) {
 		flush_litter_repr(patch);
 	}
 }

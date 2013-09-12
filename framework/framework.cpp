@@ -33,12 +33,6 @@ int framework(const CommandLineArguments& args) {
 	// space (grid cells/stands) and time (days and years).
 
 	using std::auto_ptr;
-#if defined DYNAMIC_LANDCOVER_INPUT
-	remove("LUdata.old");
-	rename("LUdata.out", "LUdata.old");
-	remove("CFTdata.old");
-	rename("CFTdata.out", "CFTdata.old");
-#endif
 
 	const char* input_module_name = args.get_input_module();
 
@@ -99,7 +93,7 @@ int framework(const CommandLineArguments& args) {
 		gridcell.climate.initdrivers(gridcell.get_lat());
 
 		if(run_landcover) {
-			//Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
+			// Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
 			landcover_init(gridcell, input_module.get());
 		}
 
@@ -121,6 +115,7 @@ int framework(const CommandLineArguments& args) {
 			// Update daily climate drivers etc
 			dailyaccounting_gridcell(gridcell);
 
+			// Update crop sowing date calculation framework
 			if (run_landcover && run[CROPLAND])
 				crop_sowing_gridcell(gridcell);
 
@@ -130,11 +125,13 @@ int framework(const CommandLineArguments& args) {
 			if(run_landcover && date.day == 0) {
 				// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
 				if(date.year >= nyear_spinup)
-				landcover_dynamics(gridcell, input_module.get());
+					landcover_dynamics(gridcell, input_module.get());
 
-				if(run[CROPLAND] && forcesowingdates)		//Read sowing dates from input file, put into gridcellpft.sdate_force
+				//Read sowing dates from input file, put into gridcellpft.sdate_force
+				if(run[CROPLAND] && forcesowingdates)		
 					input_module->getsowingdates(gridcell);
-				if(run[CROPLAND] && forceharvestdates)		//Read harvest dates from input file, put into gridcellpft.hdate_force
+				//Read harvest dates from input file, put into gridcellpft.hdate_force
+				if(run[CROPLAND] && forceharvestdates)		
 					input_module->getharvestdates(gridcell);
 			}
 
@@ -156,6 +153,7 @@ int framework(const CommandLineArguments& args) {
 					// Update daily soil drivers including soil temperature
 					dailyaccounting_patch(patch);
 
+					// Calculate crop sowing dates
 					if(stand.landcover==CROPLAND)
 						crop_sowing_patch(patch);
 
@@ -172,6 +170,7 @@ int framework(const CommandLineArguments& args) {
 					// Soil organic matter and litter dynamics
 					som_dynamics(patch);
 
+					// Calculate daily crop C allocation
 					if (stand.landcover==CROPLAND)
 						growth_crop_daily(patch);
 

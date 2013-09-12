@@ -618,11 +618,11 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		climate.andep  = 0.0;
 		climate.anfert = 0.0;
 
+		// reset gridcell-level harvest fluxes
 		gridcell.acflux_landuse_change=0.0;
 		gridcell.acflux_harvest_slow=0.0;
 
-		for(int i=0;i<NLANDCOVERTYPES;i++)
-		{
+		for(int i=0;i<NLANDCOVERTYPES;i++) {
 			gridcell.acflux_landuse_change_lc[i]=0.0;
 			gridcell.acflux_harvest_slow_lc[i]=0.0;
 		}
@@ -753,6 +753,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 void dailyaccounting_stand(Stand& stand) {
 }
 
+/// Manages C and N fluxes from slow harvest pools
 void dailyaccounting_patch_lc(Patch& patch) {
 	if(date.day == 0) {
 		if(ifslowharvestpool) {

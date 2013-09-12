@@ -981,18 +981,15 @@ void plib_callback(int callback) {
 			if (!itemparsed("ltor_max")) badins("ltor_max");
 			if (!itemparsed("intc")) badins("intc");
 
-			if (run_landcover)
-			{
+			if (run_landcover) {
 				if (!itemparsed("landcover")) badins("landcover");
 				if (!itemparsed("turnover_harv_prod")) badins("turnover_harv_prod");
 				if (!itemparsed("harvest_slow_frac")) badins("harvest_slow_frac");
 				if (!itemparsed("harv_eff")) badins("harv_eff");
 				if (!itemparsed("res_outtake")) badins("res_outtake");
 
-				if (ppft->landcover==CROPLAND)
-				{
-					if (ppft->phenology==CROPGREEN)
-					{
+				if (ppft->landcover==CROPLAND) {
+					if (ppft->phenology==CROPGREEN) {
 						if (!itemparsed("cftid")) badins("cftid");
 						if (!itemparsed("sdatenh")) badins("sdatenh");
 						if (!itemparsed("sdatesh")) badins("sdatesh");
@@ -1023,8 +1020,7 @@ void plib_callback(int callback) {
 						if (!itemparsed("frootstart")) badins("frootstart");
 						if (!itemparsed("frootend")) badins("frootend");
 						if (!itemparsed("turnover_harv_prod")) badins("turnover_harv_prod");
-						if(ppft->ifsdprec)
-						{
+						if(ppft->ifsdprec) {
 							if (!itemparsed("firstsowdatenh_prec")) badins("firstsowdatenh_prec");	// only used in Crop_sowing_date_prec()
 							if (!itemparsed("firstsowdatesh_prec")) badins("firstsowdatesh_prec");	// only used in Crop_sowing_date_prec()
 						}
@@ -1036,8 +1032,7 @@ void plib_callback(int callback) {
 							ppft->ifsdprec=true;
 #endif
 					}
-					else if (ppft->phenology==ANY)
-					{
+					else if (ppft->phenology==ANY) {
 						if(ppft->phenology==ANY)
 							if (!itemparsed("laimax")) badins("laimax");
 

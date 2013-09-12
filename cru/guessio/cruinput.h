@@ -33,10 +33,13 @@ public:
 
 	bool getclimate(Gridcell& gridcell);
 
+	/// Gets landcover and crop fractions for one year
 	void getlandcover(Gridcell& gridcell);
 
+	/// Gets sowing dates for one year
 	void getsowingdates(Gridcell& gridcell);
 
+	/// Gets harvest dates for one year
 	void getharvestdates(Gridcell& gridcell);
 
 	// Constants associated with historical climate data set
@@ -107,11 +110,13 @@ private:
 		xtring descrip;
 	};
 
+	/// Loads landcover and crop fractions plus sowing and harvest dates from input files
 	bool loadlandcover(Gridcell& gridcell, Coord c);
 
 #if defined DYNAMIC_LANDCOVER_INPUT
+	/// Transfers coordinates from CRUInput::Coord to InData::Coord
 	InData::Coord GetLonLat(Coord coord);
-
+	/// Transfers gridlist of coordinates from CRUInput::Coord to InData::Coord
 	void GetLonLatList(ListArray_id<InData::Coord>& lonlatlist, ListArray_id<Coord>& gridlist);
 #endif
 
@@ -124,10 +129,10 @@ private:
 	/** One entry for each land cover type */
 	std::vector<int> lc_fixed_frac;
 
-	/// Whether gridcell is divided into equal active landcover fractions.
+	/// Whether enforced static landcover fractions are equal-sized stands of all included landcovers
 	bool equal_landcover_area;
 
-	//Whether enforced static landcover fractions are equal-sized stands of all included landcovers
+	/// Whether pfts not in crop fraction input file are removed from pftlist (0,1)
 	bool minimizecftlist;
 
 	/// A list of Coord objects containing coordinates of the grid cells to simulate
@@ -191,10 +196,11 @@ private:
 	// Daily N deposition for one year
 	double dndep[365];
 
-	//Landuse:
+	//Landuse input:
 
 #if defined DYNAMIC_LANDCOVER_INPUT
 
+	// Objects handling landcover fraction data input
 	InData::TimeDataD LUdata;
 	InData::TimeDataD Peatdata;
 	InData::TimeDataD CFTdata;
@@ -208,7 +214,8 @@ private:
 
 #endif
 	xtring file_lu, file_lucrop, file_peat, file_sdates, file_hdates;
-	static const int NYEAR_LU=103;	//only used to get LU data after historical period (after 2003) : only used in AR4-runs, but causes no harm otherwise
+	// Number of years of landcover fraction data in input files
+	static const int NYEAR_LU=103;
 };
 
 #endif // LPJ_GUESS_CRUINPUT_H

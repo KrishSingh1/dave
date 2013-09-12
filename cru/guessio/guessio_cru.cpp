@@ -398,19 +398,20 @@ void CRUInput::init() {
 	if (run_landcover) {
 		all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
 
-		//Retrieve file names for landcover files and open them if static values from ins-file are not used !
+		//Retrieve file names for landcover files and open them if static values from ins-file are not used
 		if (!lcfrac_fixed) {
 
 			if (run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST]) {
 				file_lu=param["file_lu"].str;
 #if defined DYNAMIC_LANDCOVER_INPUT
-				if(!LUdata.Open(file_lu))				//Open Bondeau area fraction file, returned false if problem
+				// Open landcover area fraction file, return false if problem
+				if(!LUdata.Open(file_lu))
 					fail("initio: could not open %s for input",(char*)file_lu);
-				else if(LUdata.format==InData::LOCAL_YEARLY)
-				{
+				else if(LUdata.format==InData::LOCAL_YEARLY) {
 					all_fracs_const=false;				//Set all_fracs_const to false if yearly data
 
 #ifdef LUTOMEMORY
+					// Save all landcover area fraction data in memory
 					LUdata_mem.Open(gridlist.nobj, LUdata.nRecords,LUdata.nYears);
 
 					int cell_no=0;
@@ -418,17 +419,14 @@ void CRUInput::init() {
 					double *celldata;
 					celldata=new double[LUdata.nRecords*LUdata.nYears];
 
-					while(LUdata.LoadNext())
-					{
+					while(LUdata.LoadNext()) {
 						InData::Coord c;
 						c=LUdata.GetCoord();
 
 						gridlist.firstobj();
-						while(gridlist.isobj)
-						{
+						while(gridlist.isobj) {
 							Coord cc=gridlist.getobj();
-							if(c.lon==cc.lon && c.lat==cc.lat)
-							{
+							if(c.lon==cc.lon && c.lat==cc.lat) {
 								LUdata_mem.SetCoord(cell_no, c);
 								LUdata.Get(celldata);
 								LUdata_mem.SetData(cell_no, celldata);
@@ -443,14 +441,15 @@ void CRUInput::init() {
 				}
 #endif
 			}
-
-			if (run[PEATLAND]) {	//special case for peatland: separate fraction file
+			// special case for peatland: separate fraction file
+			if (run[PEATLAND]) {
 				file_peat=param["file_peat"].str;
 #if defined DYNAMIC_LANDCOVER_INPUT	
 #ifdef LUTOMEMORY
 				fail("initio: Please modify code for use of LUTOMEMORY with extra land cover input file (needed for quick use of randomised gridlists) or turn option off!");
 #endif
-				if(!Peatdata.Open(file_peat))			//Open peatland area fraction file, returned false if problem
+				// Open peatland area fraction file, return false if problem
+				if(!Peatdata.Open(file_peat))
 					fail("initio: could not open %s for input",(char*)file_peat);
 				else if(Peatdata.format==InData::LOCAL_YEARLY)
 					all_fracs_const=false;				//Set all_fracs_const to false if yearly data
@@ -459,32 +458,31 @@ void CRUInput::init() {
 
 		}
 
+		//Retrieve file names for crop fraction file and open them if static equal-size values are not used.
 		if(run[CROPLAND] && !cftfrac_fixed)
 		{
 			file_lucrop=param["file_lucrop"].str;
 #if defined DYNAMIC_LANDCOVER_INPUT
+			// Open crop fraction file, return false if problem
 			if(!CFTdata.Open(file_lucrop))
 				fail("initio: could not open %s for input",(char*)file_lucrop);
-			else if(minimizecftlist)
-			{
+			else if(minimizecftlist) {
+				// remove all crop pft:s from gridlist that always have zero area fraction
 				ListArray_id<InData::Coord> lonlatlist;
 				GetLonLatList(lonlatlist, gridlist);
 				CFTdata.CheckIfPresent(lonlatlist);
 				
 				int n=0;
 				pftlist.firstobj();
-				while(pftlist.isobj)
-				{		
+				while(pftlist.isobj) {		
 					if(pftlist.getobj().cftid>=0 && !CFTdata.CFTPresent(pftlist.getobj().cftid) && 
-						!(pftlist.getobj().isintercropgrass && ifintercropgrass))
-					{
+						!(pftlist.getobj().isintercropgrass && ifintercropgrass)) {
 						n+=1;
 						pftlist.killobj();
 						npft--;
 						ncft--;
 					}
-					else
-					{
+					else {
 						pftlist.getobj().id-=n;
 						if(pftlist.getobj().cftid>=0)
 							CFTdata.active[pftlist.getobj().cftid]=1;
@@ -492,22 +490,20 @@ void CRUInput::init() {
 					}			
 				}
 			}
-			else
-			{
+			else {
 				pftlist.firstobj();
-				while(pftlist.isobj)
-				{
+				while(pftlist.isobj) {
 					if(pftlist.getobj().cftid>=0)
 						CFTdata.active[pftlist.getobj().cftid]=1;
 					pftlist.nextobj();
 				}
 			}
 
-			if(CFTdata.format==InData::LOCAL_YEARLY)
-			{
-				all_fracs_const=false;
+			if(CFTdata.format==InData::LOCAL_YEARLY) {
+				all_fracs_const=false;				// Set all_fracs_const to false if yearly data
 
 #ifdef LUTOMEMORY
+				// Save all crop area fraction data in memory
 				CFTdata_mem.Open(gridlist.nobj, CFTdata.nRecords,CFTdata.nYears);
 
 				int cell_no=0;
@@ -515,17 +511,14 @@ void CRUInput::init() {
 				double *celldata;
 				celldata=new double[CFTdata.nRecords*CFTdata.nYears];
 
-				while(CFTdata.LoadNext())
-				{
+				while(CFTdata.LoadNext()) {
 					InData::Coord c;
 					c=CFTdata.GetCoord();
 
 					gridlist.firstobj();
-					while(gridlist.isobj)
-					{
+					while(gridlist.isobj) {
 						Coord cc=gridlist.getobj();
-						if(c.lon==cc.lon && c.lat==cc.lat)
-						{
+						if(c.lon==cc.lon && c.lat==cc.lat) {
 							CFTdata_mem.SetCoord(cell_no, c);
 							CFTdata.Get(celldata);
 							CFTdata_mem.SetData(cell_no, celldata);
@@ -602,6 +595,7 @@ void CRUInput::adjust_raw_forcing_data(double lon,
 
 #if defined DYNAMIC_LANDCOVER_INPUT
 
+/// Transfers coordinates from DemoInput::Coord to InData::Coord
 InData::Coord CRUInput::GetLonLat(Coord coord) {
 
 	InData::Coord lonlat;
@@ -611,6 +605,7 @@ InData::Coord CRUInput::GetLonLat(Coord coord) {
 	return lonlat;
 }
 
+/// Transfers gridlist of coordinates from DemoInput::Coord to InData::Coord
 void CRUInput::GetLonLatList(ListArray_id<InData::Coord>&lonlatlist, ListArray_id<Coord>& gridlist) {
 
 	for(int i=0;i<gridlist.nobj;i++) {
@@ -633,25 +628,20 @@ bool CRUInput::loadlandcover(Gridcell& gridcell, Coord cc) {
 	bool LUerror=false;
 
 	if (!lcfrac_fixed) {
+
 		// Landcover fraction data: read from land use fraction file; dynamic, so data for all years are loaded to LUdata object and 
 		// transferred to gridcell.landcoverfrac each year in getlandcover()
+
 #if defined DYNAMIC_LANDCOVER_INPUT
 		if (run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST]) {
+			// Load landcover area fraction data from input file to data object
 #ifdef LUTOMEMORY
-			if (!LUdata_mem.Load(c))		//Load area fraction data from memory
+			if (!LUdata_mem.Load(c)) {
 #else
-			if (!LUdata.Load(c))		//Load area fraction data from Bondeau input file to data object
-#endif
-			{
+			if (!LUdata.Load(c)) {
+#endif		
 				dprintf("Problems with landcover fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;		// skip this stand
-			}
-			else
-			{
-#ifndef LUTOMEMORY
-if(!SUPPRESSLARGEOUTPUT)
-				LUdata.Output("LUdata.out");
-#endif
 			}
 		}
 
@@ -667,40 +657,30 @@ if(!SUPPRESSLARGEOUTPUT)
 
 	if(run[CROPLAND] && !LUerror)
 	{
-		if(!cftfrac_fixed)// Crop fraction data: read from crop fraction file; dynamic, so data for all years are loaded to CFTdata object and 
-		{	// transferred to gridcell.cftfrac each year in getlandcover()
 #if defined DYNAMIC_LANDCOVER_INPUT
+		if(!cftfrac_fixed) {
+			
+			// Crop fraction data: read from crop fraction file; dynamic, so data for all years are loaded to CFTdata object and 
+			// transferred to gridcell.cftfrac each year in getlandcover()			
+
 #ifdef LUTOMEMORY
-			if(!CFTdata_mem.Load(c))
+			if(!CFTdata_mem.Load(c)) {
 #else
-			if(!CFTdata.Load(c))
-#endif
-			{
+			if(!CFTdata.Load(c)) {
+#endif		
 				dprintf("Problems with CFT fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;	// skip this stand
 			}
-		else
-			{
-#ifndef LUTOMEMORY
-if(!SUPPRESSLARGEOUTPUT)
-				CFTdata.Output("CFTdata.out");
-#endif
-			}
-#endif
 		}
-#if defined DYNAMIC_LANDCOVER_INPUT
-		if(forcesowingdates && !LUerror)
-		{ 
-			if(!sdates.Load(c))
-			{
+
+		if(forcesowingdates && !LUerror) { 
+			if(!sdates.Load(c)) {
 				dprintf("Problems with sowing date input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;	// skip this stand
 			}
 		}
-		if(forceharvestdates && !LUerror)
-		{
-			if(!hdates.Load(c))
-			{
+		if(forceharvestdates && !LUerror) {
+			if(!hdates.Load(c)) {
 				dprintf("Problems with harvest date input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;	// skip this stand
 			}
@@ -828,6 +808,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 			gridfound = searchcru_misc(file_cru_misc, lon, lat, elevation, 
 			                           hist_mfrs, hist_mwet, hist_mdtr);
 
+		// Load environmental data for this grid cell from files
 		if (run_landcover) {
 			Coord& c=gridlist.getobj();
 			LUerror=loadlandcover(gridcell, c);
@@ -896,8 +877,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		getndep(lon, lat);
 
 		// Set CFT-specific members of climate and gridcellpft: 
-		if (run_landcover && run[CROPLAND]) 
-		{
+		if (run_landcover && run[CROPLAND]) {
 			if (gridcell.get_lat()>=0) 
 			{
 				gridcell.climate.testday_temp=180;		//June 30(day 180)
@@ -905,35 +885,26 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 				gridcell.climate.coldestday=COLDEST_DAY_NHEMISPHERE;
 				gridcell.climate.adjustlat=0;
 			}
-			else
-			{
+			else {
 				gridcell.climate.testday_temp=364;		//Dec.31(day 364)
 				gridcell.climate.testday_prec=180;		//June 30(day 180)
 				gridcell.climate.coldestday=COLDEST_DAY_SHEMISPHERE;
 				gridcell.climate.adjustlat=181;
 			}
 
-			if(gridcell.get_lat()>-15.0 && gridcell.get_lat()<20.0 && gridcell.get_lon()>90.0)
-				gridcell.climate.SOAsia=true;
-			else
-				gridcell.climate.SOAsia=false;
-
-			for(int p=0;p<gridcell.pft.nobj;p++) 
-			{
+			for(int p=0;p<gridcell.pft.nobj;p++) {
 				Gridcellpft& gcpft=gridcell.pft[p];
 
-				if (gridcell.get_lat()>=0.0)
-				{
+				if (gridcell.get_lat()>=0.0) {
 					gcpft.sdate_default=gcpft.pft.sdatenh;
 					gcpft.hlimitdate_default=gcpft.pft.hlimitdatenh;
 				}
-				else
-				{
+				else {
 					gcpft.sdate_default=gcpft.pft.sdatesh;
 					gcpft.hlimitdate_default=gcpft.pft.hlimitdatesh;
 				}
-
-				if (!strncmp(gcpft.pft.name,"TrRi", strlen("TrRi")) && gridcell.get_lon()>=60.0 && gridcell.get_lat()<=30.0)		//double cropping in China and Japan: OK ??? Bondeau sätter detta i leaf_phenology_crop
+				// double cropping in China and Japan.
+				if (!strncmp(gcpft.pft.name,"TrRi", strlen("TrRi")) && gridcell.get_lon()>=60.0 && gridcell.get_lat()<=30.0)
 					gcpft.singlecrop=false;
 			}
 		}
@@ -962,46 +933,37 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 	int i, year, year_saved;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
 
-	if(date.year<nyear_spinup)					//Use values for first historic year during spinup period !
+	if(date.year<nyear_spinup)					// Use values for first historic year during spinup period.
 		year=0;
-	else if(date.year>=nyear_spinup+NYEAR_LU)	//AR4 adaptation
-	{
-//		dprintf("setting LU data for scenario period\n");
+	else if(date.year>=nyear_spinup+NYEAR_LU) {	// scenario adaptation
 		year=NYEAR_LU-1;
 	}
 	else
 		year=date.year-nyear_spinup;
 
-	if(fixedlu_hist)
-	{
+	if(fixedlu_hist) {
 		year_saved=year;
 		year=0;
 	}
 
-	if(lcfrac_fixed)	// If area fractions are set in the ins-file.
-	{
-		if(date.year==0) // called by landcover_init
-		{
+	if(lcfrac_fixed) {		// If landcover area fractions are set in the ins-file.
+		if(date.year==0) {	// Year 0: called by landcover_init
+	
 			int nactive_landcovertypes=0;
 
-			if(equal_landcover_area)
-			{
-				for(i=0;i<NLANDCOVERTYPES;i++)
-				{
+			if(equal_landcover_area) {
+				for(i=0;i<NLANDCOVERTYPES;i++) {
 					if(run[i])
 						nactive_landcovertypes++;
 				}
 			}
 
-			for(i=0;i<NLANDCOVERTYPES;i++)
-			{
-				if(equal_landcover_area)
-				{
-					sum_active+=gridcell.landcoverfrac[i]=1.0*run[i]/(double)nactive_landcovertypes;	// only set fractions that are active !
+			for(i=0;i<NLANDCOVERTYPES;i++) {
+				if(equal_landcover_area) {
+					sum_active+=gridcell.landcoverfrac[i]=1.0*run[i]/(double)nactive_landcovertypes;	// only set fractions that are active
 					sum_tot=sum_active;
 				}
-				else
-				{
+				else {
 #if defined GRASSFORCROP
 					if(i==PASTURE)
 						sum_tot+=gridcell.landcoverfrac[PASTURE]=(double)lc_fixed_frac[CROPLAND]/100.0;
@@ -1009,23 +971,22 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 						gridcell.landcoverfrac[CROPLAND]=0.0;
 					else
 #endif
-					sum_tot+=gridcell.landcoverfrac[i]=(double)lc_fixed_frac[i]/100.0;					//count sum of all fractions (should be 1.0)
+					sum_tot+=gridcell.landcoverfrac[i]=(double)lc_fixed_frac[i]/100.0;					// count sum of all fractions (should be 1.0)
 
-					if(gridcell.landcoverfrac[i]<0.0 || gridcell.landcoverfrac[i]>1.0)					//discard unreasonable values
-					{
+					if(gridcell.landcoverfrac[i]<0.0 || gridcell.landcoverfrac[i]>1.0) {				// discard unreasonable values					
 						if(date.year==0)
 							dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
 						sum_tot-=gridcell.landcoverfrac[i];
 						gridcell.landcoverfrac[i]=0.0;
 					}
 
-					sum_active+=gridcell.landcoverfrac[i]=run[i]*gridcell.landcoverfrac[i];				//only set fractions that are active !
+					sum_active+=gridcell.landcoverfrac[i]=run[i]*gridcell.landcoverfrac[i];				// only set fractions that are active
 				}
 			}
 			
-			if(sum_tot<0.99 || sum_tot>1.01)	// Check input data, rescale if sum !=1.0
-			{
-				sum_active=0.0;		//reset sum of active landcover fractions
+			if(sum_tot<0.99 || sum_tot>1.01) {	// Check input data, rescale if sum !=1.0
+			
+				sum_active=0.0;					// reset sum of active landcover fractions
 				if(date.year==0)
 					dprintf("WARNING ! landcover fixed fraction sum is %4.2f, rescaling landcover fractions !\n", sum_tot);
 
@@ -1033,67 +994,56 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 					sum_active+=gridcell.landcoverfrac[i]/=sum_tot;
 			}
 
-			//NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
-			if(sum_active<0.99)	//if landcover types are turned off in the ini-file, always <=1.0 here
-			{
+			// NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
+			if(sum_active<0.99)	{	// if landcover types are turned off in the ini-file, always <=1.0 here		
 				if(date.year==0)
 					dprintf("WARNING ! landcover active fraction sum is %4.2f.\n", sum_active);
 
-				if(run[NATURAL])	//Transfer landcover areas not simulated to NATURAL fraction, if simulated.
-				{
+				if(run[NATURAL]) {	// Transfer landcover areas not simulated to NATURAL fraction, if simulated.				
 					if(date.year==0)
 						dprintf("Inactive fractions (%4.2f) transferred to NATURAL fraction.\n", 1.0-sum_active);
 
 					gridcell.landcoverfrac[NATURAL]+=1.0-sum_active;	// difference 1.0-(sum of active landcover fractions) are added to the natural fraction
 				}
-				else
-				{
+				else {
 /*					if(date.year==0)
 						dprintf("Rescaling landcover fractions !\n");
 					for(i=0;i<NLANDCOVERTYPES;i++)
-						gridcell.landcoverfrac[i]/=sum_active;			// if NATURAL not simulated, rescale active fractions to 1.0
+						gridcell.landcoverfrac[i]/=sum_active;					// if NATURAL not simulated, rescale active fractions to 1.0
 */					if(date.year==0)
-						dprintf("Non-unity fraction sum retained.\n");				// OR let sum remain non-unity
-				}
-																	
+						dprintf("Non-unity fraction sum retained.\n");			// OR let sum remain non-unity
+				}																
 			}
 		}
 	}
-	else	//area fractions are read from input file(s);
-	{
+	else {	// landcover area fractions are read from input file(s)	
 #if defined DYNAMIC_LANDCOVER_INPUT
-		if(run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST])
-		{	
-			// To allow run without LU data in Bondeau's file (sets NATURAL to 1.0)
+		if(run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST]) {	
+			// To allow run without LU data in landcover file (sets NATURAL to 1.0)
 #ifdef LUTOMEMORY
-			if(LUdata_mem.Get(year,0)==-9.999)
+			if(LUdata_mem.Get(year,0)==-9.999) {
 #else
-			if(LUdata.Get(year,0)==-9.999)
-#endif
-			{
+			if(LUdata.Get(year,0)==-9.999) {
+#endif		
 				dprintf("WARNING ! missing landcover fraction data for year %d, natural vegetation fraction set to 1.0\n", year+FIRSTHISTYEAR);
 				memset(gridcell.landcoverfrac, 0, sizeof(double)*NLANDCOVERTYPES);
 				gridcell.landcoverfrac[NATURAL]=1.0;
 				sum_active=1.0;	//fix 110316
 			}
-			else
-			{
-				for(i=0;i<PEATLAND;i++)		//peatland fraction data is not in this file, otherwise i<NLANDCOVERTYPES.
-				{	
+			else {
+				for(i=0;i<PEATLAND;i++)	{	// peatland fraction data is not in this file, otherwise i<NLANDCOVERTYPES.				
 #ifdef LUTOMEMORY
-					sum_tot+=gridcell.landcoverfrac[i]=LUdata_mem.Get(year,i);					//count sum of all fractions (should be 1.0)
+					sum_tot+=gridcell.landcoverfrac[i]=LUdata_mem.Get(year,i);					// count sum of all fractions (should be 1.0)
 #else
-					sum_tot+=gridcell.landcoverfrac[i]=LUdata.Get(year,i);					//count sum of all fractions (should be 1.0)
+					sum_tot+=gridcell.landcoverfrac[i]=LUdata.Get(year,i);						// count sum of all fractions (should be 1.0)
 #endif
 				}
 #ifdef GRASSFORCROP
 				gridcell.landcoverfrac[PASTURE]+=gridcell.landcoverfrac[CROPLAND];
 				gridcell.landcoverfrac[CROPLAND]=0.0;
 #endif
-				for(i=0;i<PEATLAND;i++)		//peatland fraction data is not in this file, otherwise i<NLANDCOVERTYPES.
-				{
-					if(gridcell.landcoverfrac[i]<0.0 || gridcell.landcoverfrac[i]>1.0)			//discard unreasonable values
-					{		
+				for(i=0;i<PEATLAND;i++)	{	// peatland fraction data is not in this file, otherwise i<NLANDCOVERTYPES.				
+					if(gridcell.landcoverfrac[i]<0.0 || gridcell.landcoverfrac[i]>1.0) {		// discard unreasonable values							
 						if(date.year==0)
 							dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
 						sum_tot-=gridcell.landcoverfrac[i];
@@ -1103,19 +1053,17 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 					sum_active+=gridcell.landcoverfrac[i]=run[i]*gridcell.landcoverfrac[i];
 				}
 
-				if(sum_tot!=1.0)		// Check input data, rescale if sum !=1.0
-				{
-					sum_active=0.0;		//reset sum of active landcover fractions
+				if(sum_tot!=1.0) {		// Check input data, rescale if sum !=1.0	
 
-					if(sum_tot<0.99 || sum_tot>1.01)
-					{
-						if(date.year==0)
-						{
+					sum_active=0.0;		// reset sum of active landcover fractions
+
+					if(sum_tot<0.99 || sum_tot>1.01) {
+						if(date.year==0) {
 							dprintf("WARNING ! landcover fraction sum is %4.2f for year %d\n", sum_tot, year+FIRSTHISTYEAR);
 							dprintf("Rescaling landcover fractions year %d ! (sum is beyond 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
 						}
 					}
-					else				//added scaling to sum=1.0 (sum often !=1.0)
+					else				// sum often !=1.0 in input file
 						if(!SUPPRESSLARGEOUTPUT)
 							dprintf("Rescaling landcover fractions year %d ! (sum is within 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
 
@@ -1127,22 +1075,18 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 		else
 			gridcell.landcoverfrac[NATURAL]=0.0;
 
-		if(run[PEATLAND])	//Add code to cope with LUTOMEMORY !
-		{
-			sum_active+=gridcell.landcoverfrac[PEATLAND]=Peatdata.Get(year,"PEATLAND");			//peatland fraction data is currently in a separate file !
+		if(run[PEATLAND]) {	// ToDo: Add code to cope with LUTOMEMORY !	
+			sum_active+=gridcell.landcoverfrac[PEATLAND]=Peatdata.Get(year,"PEATLAND");			//peatland fraction data is currently in a separate file
 		}
 
-		//NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
-		if(sum_active!=1.0)		//if landcover types are turned off in the ini-file, or if more landcover types are added in other input files, can be either less or more than 1.0
-		{
+		// NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
+		if(sum_active!=1.0)	{	// if landcover types are turned off in the ini-file, or if more landcover types are added in other input files, can be either less or more than 1.0
 			if(!SUPPRESSLARGEOUTPUT)
 				if(date.year==0)
 					dprintf("Landcover fraction sum not 1.0 !\n");
 
-			if(run[NATURAL])	//Transfer landcover areas not simulated to NATURAL fraction, if simulated.
-			{
-				if(date.year==0)
-				{
+			if(run[NATURAL]) {	// Transfer landcover areas not simulated to NATURAL fraction, if simulated.		
+				if(date.year==0) {
 					if(sum_active<1.0)
 						dprintf("Inactive fractions (%4.3f) transferred to NATURAL fraction.\n", 1.0-sum_active);
 					else
@@ -1154,93 +1098,73 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 				if(date.year==0)
 					dprintf("New NATURAL fraction is %4.3f.\n", gridcell.landcoverfrac[NATURAL]);
 
-				sum_active=1.0;		//sum_active should now be 1.0
+				sum_active=1.0;		// sum_active should now be 1.0
 
-				if(gridcell.landcoverfrac[NATURAL]<0.0)	//If new landcover type fraction is bigger than the natural fraction (something wrong in the distribution of input file area fractions)
-				{										
+				if(gridcell.landcoverfrac[NATURAL]<0.0) {	// If new landcover type fraction is bigger than the natural fraction (something wrong in the distribution of input file area fractions)						
 					if(date.year==0)
 						dprintf("New landcover type fraction is bigger than NATURAL fraction, rescaling landcover fractions !.\n");
 
-					sum_active-=gridcell.landcoverfrac[NATURAL];	//fraction not possible to transfer moved back to sum_active, which will now be >1.0 again
+					sum_active-=gridcell.landcoverfrac[NATURAL];	// fraction not possible to transfer moved back to sum_active, which will now be >1.0 again
 					gridcell.landcoverfrac[NATURAL]=0.0;
 
-					for(i=0;i<NLANDCOVERTYPES;i++)
-					{
-						gridcell.landcoverfrac[i]/=sum_active;		//fraction rescaled to unity sum
+					for(i=0;i<NLANDCOVERTYPES;i++) {
+						gridcell.landcoverfrac[i]/=sum_active;		// fraction rescaled to unity sum
 						if(run[i])
 							if(date.year==0)
 								dprintf("Landcover type %d fraction is %4.3f\n", i, gridcell.landcoverfrac[i]);
 					}
 				}
 			}
-			else
-			{
+			else {
 //				if(date.year==0)
 //					dprintf("Rescaling landcover fractions !\n");
 //				for(i=0;i<NLANDCOVERTYPES;i++)
-//					gridcell.landcoverfrac[i]/=sum_active;						// if NATURAL not simulated, rescale active fractions to 1.0
+//					gridcell.landcoverfrac[i]/=sum_active;						// 1) if NATURAL not simulated, rescale active fractions to 1.0
 				if(date.year==0)
-					dprintf("Non-unity fraction sum retained.\n");				// OR let sum remain non-unity
+					dprintf("Non-unity fraction sum retained.\n");				// 2) let sum remain non-unity
 			}
 		}
 #endif
 	}
 
-	if(run[CROPLAND])
-	{
+	if(run[CROPLAND]) {
 		sum=0.0;
-		if(cftfrac_fixed)
-		{
-			if(date.year==0)
-			{
-				for(int i=0;i<npft;i++)	
-				{
+		if(cftfrac_fixed) {		// If static equal crop fractions
+			if(date.year==0) {	// Year 0: called by landcover_init
+				for(int i=0;i<npft;i++)	{
 					int index=-9;
 
-					if(pftlist[i].cftid>=0)
-					{
+					if(pftlist[i].cftid>=0)	{
 						index=pftlist[i].cftid;
 						sum+=gridcell.cftfrac[index]=1.0/(double)ncft;	
-
-						if(gridcell.cftfrac[index]<0.0 || gridcell.cftfrac[index]>1.0)
-						{
-							dprintf("WARNING ! crop fraction size out of limits, set to 0.0\n");
-							sum-=gridcell.cftfrac[index];
-							gridcell.cftfrac[index]=0.0;
-						}
 					}
 				}
 			}
 		}
-		else
-		{
+		else {					// crop area fractions are read from input file(s)
 #if defined DYNAMIC_LANDCOVER_INPUT
 			if(fixedcrop_hist)
 				year=0;
 			else if(fixedlu_hist)
 				year=year_saved;
 #ifdef LUTOMEMORY
-			if(CFTdata_mem.Get(year,0)==-9.999)	//to cope with missing Bondeau fraction data
+			if(CFTdata_mem.Get(year,0)==-9.999) {	// to cope with missing Bondeau fraction data
 #else
-			if(CFTdata.Get(year,0)==-9.999)	//to cope with missing Bondeau fraction data
-#endif
-			{
+			if(CFTdata.Get(year,0)==-9.999) {		// to cope with missing Bondeau fraction data
+#endif		
 				dprintf("WARNING ! missing crop fraction data  for year %d, all set to 0.0\n", year+FIRSTHISTYEAR);
 				memset(gridcell.cftfrac, 0, sizeof(double)*NCROPSTANDS_MAX);
 			}
-			else
-			{
-				for(i=0;i<NCROPSTANDS_MAX;i++)
-				{
-					if(CFTdata.active[i])	//forces rescaling of fractions of active pft:s
-					{
+			else {
+				// sum fractions for active crop pft:s and discard unreasonable values
+				for(i=0;i<NCROPSTANDS_MAX;i++) {
+					if(CFTdata.active[i]) {		// forces rescaling of fractions of active pft:s					
 #ifdef LUTOMEMORY
 						sum+=gridcell.cftfrac[i]=CFTdata_mem.Get(year,i);
 #else
 						sum+=gridcell.cftfrac[i]=CFTdata.Get(year,i);
 #endif
-						if(gridcell.cftfrac[i]<0.0 || gridcell.cftfrac[i]>1.0)
-						{
+						if(gridcell.cftfrac[i]<0.0 || gridcell.cftfrac[i]>1.0) {
 							dprintf("WARNING ! crop fraction size out of limits, set to 0.0\n");
 							sum-=gridcell.cftfrac[i];
 							gridcell.cftfrac[i]=0.0;
@@ -1251,38 +1175,29 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 #endif
 		}
 
-		if(!cftfrac_fixed || date.year==0)
-		{
+		if(!cftfrac_fixed || date.year==0) {
 #if defined DYNAMIC_LANDCOVER_INPUT
-			if(gridcell.landcoverfrac[CROPLAND]==0.0)
-			{
-				if(sum!=0.0)
-				{
+			if(gridcell.landcoverfrac[CROPLAND]==0.0) {
+				if(sum!=0.0) {
 					dprintf("WARNING ! crop landcover fraction is 0.0 for year %d while crop data exist !\n", year+FIRSTHISTYEAR);
 				}
 			}
-			else
-			{
-				if(sum==0.0)
-				{
-if(!SUPPRESSLARGEOUTPUT)
-					dprintf("WARNING ! crop fraction sum is 0.0 for year %d while LU[CROPLAND] is > 0 !\n", year+FIRSTHISTYEAR);
+			else {
+				if(sum==0.0) {
+					if(!SUPPRESSLARGEOUTPUT)
+						dprintf("WARNING ! crop fraction sum is 0.0 for year %d while LU[CROPLAND] is > 0 !\n", year+FIRSTHISTYEAR);
 
-					//	Set to most common crop according to Bondeau 	
+					//	Set to most common crop according to Bondeau
 					pftlist.firstobj();
-					while(pftlist.isobj)
-					{
+					while(pftlist.isobj) {
 						Pft& pft=pftlist.getobj();
-						if(pft.landcover==CROPLAND)
-						{
+						if(pft.landcover==CROPLAND)	{
 							
-							if(!strcmp(pft.name,"TeWW") && (gridcell.get_lat()>30 || gridcell.get_lat()<-30))	
-							{
+							if(!strcmp(pft.name,"TeWW") && (gridcell.get_lat()>30 || gridcell.get_lat()<-30)) {
 								gridcell.cftfrac[pft.cftid]=1.0;				
 								dprintf("Wheat fraction set to 1.0.\n");
 							}
-							else if(!strcmp(pft.name,"TrMi") && (gridcell.get_lat()<=30 && gridcell.get_lat()>=-30))	
-							{
+							else if(!strcmp(pft.name,"TrMi") && (gridcell.get_lat()<=30 && gridcell.get_lat()>=-30)) {
 								gridcell.cftfrac[pft.cftid]=1.0;				
 								dprintf("Millet fraction set to 1.0.\n");
 							}
@@ -1291,22 +1206,17 @@ if(!SUPPRESSLARGEOUTPUT)
 					}
 					
 				}
-				else if(sum<0.99 || sum>1.01)		
-				{
-if(!SUPPRESSLARGEOUTPUT)
-{
-					dprintf("WARNING ! crop fraction sum is %5.3f for year %d\n", sum, date.year-nyear_spinup+FIRSTHISTYEAR);
-					dprintf("Rescaling crop fractions year %d ! (sum is beyond 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
-}
+				else {
+					// rescale active crop fraction so sum is 1.0
 					for(i=0;i<NCROPSTANDS_MAX;i++)
 						gridcell.cftfrac[i]/=sum;
-				}
-				else if(sum!=1.0)	//added scaling to sum=1.0 (sum often !=1.0)
-				{
-if(!SUPPRESSLARGEOUTPUT)
-;//					dprintf("Rescaling crop fractions year %d ! (sum is %f)\n", date.year-nyear_spinup+FIRSTHISTYEAR, sum);
-					for(i=0;i<NCROPSTANDS_MAX;i++)
-						gridcell.cftfrac[i]/=sum;
+
+					if(sum<0.99 || sum>1.01) {	// warn if sum is significantly different from 1.0 
+						if(!SUPPRESSLARGEOUTPUT) {
+							dprintf("WARNING ! crop fraction sum is %5.3f for year %d\n", sum, date.year-nyear_spinup+FIRSTHISTYEAR);
+							dprintf("Rescaling crop fractions year %d ! (sum is beyond 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
+						}
+					}
 				}
 			}
 #endif
@@ -1314,6 +1224,7 @@ if(!SUPPRESSLARGEOUTPUT)
 	}
 }
 
+/// Get sowing dates for one year
 void CRUInput::getsowingdates(Gridcell& gridcell)
 {
 	int i, year;
@@ -1337,6 +1248,7 @@ void CRUInput::getsowingdates(Gridcell& gridcell)
 	}
 }
 
+/// Get harvest dates for one year
 void CRUInput::getharvestdates(Gridcell& gridcell)
 {
 	int i, year;
@@ -1486,9 +1398,9 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			// Distribute N deposition
 			distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
 
-			for(int m=0;m<12;m++)	
-			{
-				climate.mtemp_year[m]  =hist_mtemp[date.year-nyear_spinup][m];
+			// save climate date for calculation of seasonality
+			for(int m=0;m<12;m++) {
+				climate.mtemp_year[m] = hist_mtemp[date.year-nyear_spinup][m];
 				climate.mprec_year[m] = hist_mprec[date.year-nyear_spinup][m];
 			}
 		}
@@ -1498,12 +1410,10 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 		}
 	}
 
-	if(date.day == 0)
-	{
+	if(date.day == 0) {
 		climate.aprec = 0.0;
 
-		for(int m=0; m<12; m++)
-		{
+		for(int m=0; m<12; m++) {
 			climate.aprec += climate.mprec_year[m];
 			climate.mpet_year[m] = 0.0;
 		}

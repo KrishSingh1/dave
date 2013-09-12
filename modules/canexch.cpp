@@ -827,7 +827,7 @@ void nstore_usage(Vegetation& vegetation) {
 		                        + indiv.leafndemand_store + indiv.rootndemand_store;
 
 		// if individual is in need of using its labile nitrogen storage
-		if (!negligible(excess_ndemand) && ifnlim_pft) {//crops:no N limitation yet
+		if (!negligible(excess_ndemand) && ifnlim_pft) {
 			
 			// if labile nitrogen storage is larger than excess nitrogen demand
 			if (excess_ndemand <= indiv.nstore_labile) {
@@ -853,7 +853,7 @@ void nstore_usage(Vegetation& vegetation) {
 
 					// new leaf C:N ratio
 					double cton_leaf = (indiv.phen * (indiv.cmass_leaf + indiv.cmass_root * (indiv.pft.cton_leaf_avr / indiv.pft.cton_root_avr))) / tot_nmass;
-//					double cton_leaf = ( (cmass_leaf_phen + cmass_root_phen * (indiv.pft.cton_leaf_avr / indiv.pft.cton_root_avr))) / tot_nmass;//crops
+//					double cton_leaf = ((cmass_leaf_phen + cmass_root_phen * (indiv.pft.cton_leaf_avr / indiv.pft.cton_root_avr))) / tot_nmass;//crops
 
 					// nitrogen added to leaf from storage
 					double labile_nto_leaf = indiv.phen * indiv.cmass_leaf / cton_leaf - (indiv.nmass_leaf + indiv.fnuptake * indiv.leafndemand); 
@@ -923,7 +923,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 			indiv.nday_leafon++;
 
-			if (ifnlim_pft) {	//crops:no N limitation yet
+			if (ifnlim_pft) {
 
 				// Added a scalar depending on individual lai to slow down light optimization of newly shaded leafs
 				// Peltoniemi et al. 2012
@@ -1073,7 +1073,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 	double tot_nmass_avail = patch.soil.nmass_avail * min(1.0, patch.fpc_total);
 
 	// Calculate individual uptake fraction of nitrogen demand
-	if (patch.ndemand > tot_nmass_avail && ifnlim_stand) {	//crops:no N limitation yet
+	if (patch.ndemand > tot_nmass_avail && ifnlim_stand) {
 
 		// Determine individual nitrogen uptake fractions
 		fnuptake(vegetation, tot_nmass_avail);
@@ -1357,6 +1357,19 @@ inline double water_uptake(double wcont[NSOILLAYER], double awc[NSOILLAYER],
 	return wr;
 }
 
+/// Plant water uptake for irrigated crops
+/**
+ * Returns plant water uptake (point scale, or mean for patch) as a fraction of
+ * maximum possible (daily basis), after adding required water to obtain maximum
+ * water uptake.
+ * Irrigation water is added to the soil in hydrology_lpjf
+ *
+ * Only ROOTDIST currently supported plant water uptake parameterisation:
+ *
+ * ROOTDIST        = uptake rate independent of water content (to wilting point)
+ *                   but with fractional uptake from different layers according
+ *                   to prescribed root distribution
+ */
 double irrigated_water_uptake(Patch& patch, Pft& pft)
 {
 	double wr;
@@ -1370,8 +1383,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft)
 	if(date.day==0)
 		ppft.water_deficit_y=0.0;
 
-	if (patch.soil.wcont[0]<0.9 && ppft.phen > 0.0)	//Fader et al. 2010
-	{
+	if (patch.soil.wcont[0]<0.9 && ppft.phen > 0.0)	{
 		double wcont_0_opt=0.0;
 		double wr_opt;
 
@@ -1379,10 +1391,9 @@ double irrigated_water_uptake(Patch& patch, Pft& pft)
 		if(wr_opt>1.0)
 			wr_opt=1.0;
 
-		if(wateruptake==WR_ROOTDIST)
-		{
+		if(wateruptake==WR_ROOTDIST) {
 
-//// from water_uptake( ): wr_opt=(min(wcont_0_opt*patch.soil.soiltype.awc[0]*patch.fpc_rescale, pft.emax*pft.rootdist[0])+min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]))/pft.emax
+			// from water_uptake( ): wr_opt=(min(wcont_0_opt*patch.soil.soiltype.awc[0]*patch.fpc_rescale, pft.emax*pft.rootdist[0])+min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]))/pft.emax
 			wcont_0_opt=(wr_opt*pft.emax-min(patch.soil.wcont[1]*patch.soil.soiltype.awc[1]*patch.fpc_rescale, pft.emax*pft.rootdist[1]))/patch.soil.soiltype.awc[0]/patch.fpc_rescale;
 
 			if(wcont_0_opt*patch.soil.soiltype.awc[0]*patch.fpc_rescale>pft.emax*pft.rootdist[0])
@@ -1391,8 +1402,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft)
 		else
 			fail("Irrigation soil water only balanced for WR_ROOTDIST currently !\n");
 
-		if(wcont_0_opt>patch.soil.wcont[0])
-		{
+		if(wcont_0_opt>patch.soil.wcont[0])	{
 			ppft.water_deficit_d=(wcont_0_opt-patch.soil.wcont[0])*patch.soil.soiltype.awc[0];
 			wcont_cp[0]=wcont_0_opt;
 		}
@@ -1464,16 +1474,13 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			// with CO2 uptake; valid for all individuals of this PFT in this patch
 			// today.
 			// Eqn 25, Haxeltine & Prentice 1996
-			if(pft.phenology==CROPGREEN)
-			{
-				ppft.gcbase = ppft.wstress ? max(gc_monteith(ppft.wsupply, patch.eet_net_veg) -
-							ppft.phen * pft.gmin * ppft.wsupply / patch.wdemand, 0.0) : 0;
-			}
-			else
-			{
-				ppft.gcbase = ppft.wstress ? max(gc_monteith(ppft.wsupply, patch.eet_net_veg)-
-							pft.gmin * ppft.wsupply / patch.wdemand, 0.0) : 0;
-			}
+
+			// Fix, valid for monocultures, for faulty equation, manifesting itself in problems with crops in high scenario CO2-levels.
+			// No fix for natural vegetation yet.
+			double gmin = pft.phenology==CROPGREEN ? ppft.phen * pft.gmin : pft.gmin;
+
+			ppft.gcbase = ppft.wstress ? max(gc_monteith(ppft.wsupply, patch.eet_net_veg)-
+						gmin * ppft.wsupply / patch.wdemand, 0.0) : 0;
 
 			if (!date.diurnal()) {
 				ppft.wstress_day = ppft.wstress;
@@ -1483,16 +1490,8 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 				ppft.wstress_day = ppft.wsupply < patch.wdemand_day && !negligible(ppft.phen) && ((patch.wdemand-ppft.wsupply)>1.0e-10);
 
-				if(pft.phenology==CROPGREEN)
-				{
-					ppft.gcbase_day = ppft.wstress_day ? max(gc_monteith(ppft.wsupply,
-							patch.eet_net_veg) - ppft.phen * pft.gmin * ppft.wsupply / patch.wdemand_day, 0.0) : 0;
-				}
-				else
-				{
-					ppft.gcbase_day = ppft.wstress_day ? max(gc_monteith(ppft.wsupply,
-							patch.eet_net_veg) - pft.gmin * ppft.wsupply / patch.wdemand_day, 0.0) : 0;
-				}
+				ppft.gcbase_day = ppft.wstress_day ? max(gc_monteith(ppft.wsupply,
+						patch.eet_net_veg) - gmin * ppft.wsupply / patch.wdemand_day, 0.0) : 0;
 			}
 		}
 	}
@@ -1547,15 +1546,14 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 		if(patch.stand.pft[ppft.pft.id].active)
 		{
 			// Calculate patch PFT water scalar value
-			if(ppft.pft.phenology==CROPGREEN)
-			{
+/*			if(ppft.pft.phenology==CROPGREEN && ppft.cropphen->growingseason==true) {
 				if (!negligible(patch.wdemand))
-					ppft.wscal += min(1.0,ppft.wsupply/patch.wdemand);	//Cannot use leafon-values here because demand_leafon is daily, while supply_leafon is not.
+					ppft.wscal += min(1.0,ppft.wsupply/patch.wdemand);	//Cannot use leafon-values here because demand_leafon is daily
 				else
 					ppft.wscal += 1.0;
 
 			}
-			else if (!negligible(patch.wdemand_leafon)) {
+			else*/ if (!negligible(patch.wdemand_leafon)) {
 				ppft.wscal += min(1.0, ppft.wsupply_leafon/patch.wdemand_leafon);
 			}
 			else {
@@ -1565,9 +1563,8 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 			if (day.isend) {
 				ppft.wscal /= (double)date.subdaily;
 
-				if(patch.stand.landcover!=CROPLAND //natural, urban, pasture, forest and peatland stands
-						|| ppft.pft.phenology==ANY && ppft.pft.id==patch.stand.pftid) //normal cc3g/cc4g-growth
-				{
+				if(patch.stand.landcover!=CROPLAND										//natural, urban, pasture, forest and peatland stands
+						|| ppft.pft.phenology==ANY && ppft.pft.id==patch.stand.pftid) {	//normal cc3g/cc4g-growth 
 					ppft.wscal_mean += ppft.wscal;
 
 					// Convert from sum to mean on last day of year
@@ -1575,10 +1572,9 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 						ppft.wscal_mean /= 365.0;
 					}
 				}
-				else if(ppft.cropphen->growingseason==true 
+				else if(ppft.cropphen->growingseason==true								// true crops and intercrop grass
 						|| ppft.pft.phenology==CROPGREEN && date.day==ppft.cropphen->hdate
-						|| ppft.pft.isintercropgrass && date.day==patch.pft[patch.stand.pftid].cropphen->eicdate)
-				{
+						|| ppft.pft.isintercropgrass && date.day==patch.pft[patch.stand.pftid].cropphen->eicdate) {
 					ppft.cropphen->growingdays++;
 					ppft.wscal_mean=ppft.wscal_mean+(ppft.wscal-ppft.wscal_mean)/(ppft.cropphen->growingdays+1);
 				}
@@ -1906,8 +1902,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		Standpft& spft = stand.pft[pft.id];
 
 		//Don't do calculations for crops outside their growingseason
-		if(stand.landcover==CROPLAND && !ppft.cropphen->growingseason)
-		{
+		if(stand.landcover==CROPLAND && !ppft.cropphen->growingseason) {
 			indiv.dnpp=0.0;
 			vegetation.nextobj();
 			continue;
@@ -1934,8 +1929,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		}
 		// Calculate autotrophic respiration
 
-		if(indiv.pft.phenology==CROPGREEN)
-		{
+		if(indiv.pft.phenology==CROPGREEN) {
 			respiration(gtemp,patch.soil.gtemp,indiv.pft.lifeform,	
 				indiv.pft.respcoeff, indiv.cton_sap(), indiv.cton_root(),
 				1.0, indiv.cmass_sap, indiv.cropindiv->grs_cmass_root, assim, resp);
@@ -1957,12 +1951,12 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		indiv.report_flux(Fluxes::GPP, assim);
 		indiv.report_flux(Fluxes::RA, resp);
 
-		double lai_indiv=indiv.pft.phenology==CROPGREEN ? indiv.lai_daily : indiv.lai*indiv.phen;
-		if(lai_indiv>indiv.mlai_max[date.month])
-			indiv.mlai_max[date.month]=lai_indiv;
+		double lai_phen=indiv.pft.phenology==CROPGREEN ? indiv.lai_daily : indiv.lai*indiv.phen;
+		if(lai_phen>indiv.mlai_max[date.month])
+			indiv.mlai_max[date.month]=lai_phen;
 
 		if (day.isend) {
-			indiv.mlai[date.month] += lai_indiv/(double)date.ndaymonth[date.month];
+			indiv.mlai[date.month] += lai_phen/(double)date.ndaymonth[date.month];
 		}
 
 		vegetation.nextobj();
@@ -1992,8 +1986,7 @@ void forest_floor_conditions(Patch& patch) {
 			if (date.day == 0) {
 				ppft.anetps_ff = 0.0;
 			}
-			if(patch.stand.landcover!=CROPLAND || ppft.pft.phenology!=CROPGREEN && ppft.cropphen->growingseason)
-			{
+			if(patch.stand.landcover!=CROPLAND || ppft.pft.phenology!=CROPGREEN && ppft.cropphen->growingseason) {
 				double assim = 0;
 
 				if (ppft.wstress_day) {

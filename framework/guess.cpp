@@ -18,7 +18,7 @@
 
 Date date; // object describing timing stage of simulation
 int npft; // number of possible PFTs
-int ncft=0; // number of CFTs in Pftlist
+int ncft=0; // number of crop PFTs in Pftlist
 
 Pftlist pftlist;
 
@@ -113,8 +113,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& prec_seasonality
 		& var_prec
 		& var_temp
-		& aprec
-		& SOAsia;
+		& aprec;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -431,7 +430,6 @@ void Standpft::serialize(ArchiveStream& arch) {
 // Implementation of Stand member functions
 ////////////////////////////////////////////////////////////////////////////////
 
-//const cropphen_struct* Patchpft::get_cropphen() 
 cropphen_struct* Patchpft::get_cropphen() 
 {
 	if(pft.landcover!=CROPLAND)
@@ -622,8 +620,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	dnpp              = 0.0;
 	cropindiv         = NULL;
 
-	if(pft.landcover==CROPLAND)
-	{
+	if(pft.landcover==CROPLAND) {
 		cropindiv=new cropindiv_struct;
 	}
 
@@ -704,25 +701,20 @@ void Individual::serialize(ArchiveStream& arch) {
 		arch & *cropindiv;
 }
 
-Individual::~Individual()
-{
+Individual::~Individual() {
 	if(cropindiv)
 		delete cropindiv;
-
 //	dprintf("Year %d: Individual  in stand %d destroyed:id=%d, pft=%s\n",::date.year-nyear_spinup+1901,vegetation.patch.stand.id,id,(char*)pft.name);
 }
 
-//const cropindiv_struct* Individual::get_cropindiv() 
-cropindiv_struct* Individual::get_cropindiv() 
-{
+cropindiv_struct* Individual::get_cropindiv() {
 	if(pft.landcover!=CROPLAND)
 		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
 	else
 		return cropindiv;
 }
 
-cropindiv_struct* Individual::set_cropindiv()
-{
+cropindiv_struct* Individual::set_cropindiv() {
 	if(pft.landcover!=CROPLAND)
 		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
 	else
@@ -770,8 +762,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 	ppft.litter_leaf  += mortality_non_fire * cmass_leaf;
 	ppft.litter_root  += mortality * cmass_root;
 
-	if(pft.landcover==CROPLAND)
-	{
+	if(pft.landcover==CROPLAND) {
 		if(pft.aboveground_ho)
 			ppft.litter_leaf += mortality_non_fire * cropindiv->cmass_ho;
 		else
@@ -800,8 +791,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 	ppft.nmass_litter_sap   += mortality_non_fire * nmass_sap;
 	ppft.nmass_litter_heart += mortality_non_fire * nmass_heart;
 
-	if(pft.landcover==CROPLAND)
-	{
+	if(pft.landcover==CROPLAND) {
 		if(pft.aboveground_ho)
 			ppft.nmass_litter_leaf += mortality_non_fire * cropindiv->nmass_ho;
 		else
@@ -825,8 +815,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 	double cflux_fire = mortality_fire * (cmass_leaf + cmass_wood());
 	double nflux_fire = mortality_fire * (nmass_leaf + nmass_wood());
 
-	if(pft.landcover==CROPLAND)
-	{
+	if(pft.landcover==CROPLAND) {
 		if(pft.aboveground_ho) {
 			cflux_fire += mortality_fire * cropindiv->cmass_ho;
 			nflux_fire += mortality_fire * cropindiv->nmass_ho;
@@ -880,7 +869,7 @@ double Individual::cton_leaf(bool use_phen /* = true*/) const {
 
 	bool ifnlim_pft = ifnlim && (pft.landcover==NATURAL || ifnlim_pasture && pft.landcover==PASTURE || ifnlim_crop && pft.landcover==CROPLAND);
 
-	if (ifnlim_pft) {//crops:no N limitation yet
+	if (ifnlim_pft) {
 		if (!negligible(cmass_leaf) && !negligible(nmass_leaf)) {
 			if (use_phen) {
 				if (!negligible(phen)) {
@@ -907,7 +896,7 @@ double Individual::cton_root(bool use_phen /* = true*/) const {
 
 	bool ifnlim_pft = ifnlim && (pft.landcover==NATURAL || ifnlim_pasture && pft.landcover==PASTURE || ifnlim_crop && pft.landcover==CROPLAND);
 
-	if (ifnlim_pft) {//crops:no N limitation yet
+	if (ifnlim_pft) {
 		if (!negligible(cmass_root) && !negligible(nmass_root)) { 
 			if (use_phen) {
 				if (!negligible(phen)) {
@@ -932,7 +921,7 @@ double Individual::cton_root(bool use_phen /* = true*/) const {
 
 double Individual::cton_sap() const {
 	if (pft.lifeform == TREE) {
-		if (ifnlim) {//crops:no N limitation yet;no tree crops
+		if (ifnlim) {
 			if (!negligible(cmass_sap) && !negligible(nmass_sap))
 				return cmass_sap / nmass_sap;
 			else
@@ -1037,8 +1026,7 @@ void Individual::kill(bool harvest /* = false */) {
 		// Root: all goes to litter
 		ppft.litter_root += cmass_root;
 
-		if(pft.landcover==CROPLAND)
-		{
+		if(pft.landcover==CROPLAND) {
 			if(pft.aboveground_ho) {
 				ppft.litter_leaf+=cropindiv->cmass_ho * (1 - res_outtake);
 				charvest_flux += cropindiv->cmass_ho * res_outtake;
@@ -1118,8 +1106,7 @@ void Individual::kill(bool harvest /* = false */) {
 	// Root: all goes to litter
 	ppft.nmass_litter_root += nmass_root;
 
-	if(pft.landcover==CROPLAND)
-	{
+	if(pft.landcover==CROPLAND) {
 		if(pft.aboveground_ho) {
 			ppft.nmass_litter_leaf+=cropindiv->nmass_ho * (1 - res_outtake);
 			nharvest_flux += cropindiv->nmass_ho * res_outtake;

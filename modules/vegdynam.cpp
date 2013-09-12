@@ -218,12 +218,10 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 						indiv.fpc=0.0;
 					}
 
-					if(stand.landcover==CROPLAND)
-					{
-						if (stand.pftid==pft.id)
-						{
+					if(stand.landcover==CROPLAND) {
+						if (stand.pftid==pft.id) {
 							indiv.cropindiv->isprimarycrop=true;
-							if(pft.phenology==ANY)						//normal CC3G & CC4G (+ irrigated) growth
+							if(pft.phenology==ANY)						// normal CC3G & CC4G (+ irrigated) growth
 								patchpft.cropphen->growingseason=true;
 						}
 						else if(ifintercropgrass && stand.hasgrassintercrop && pft.isintercropgrass)	// grass intercrop growth
@@ -492,19 +490,16 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						indiv.densindiv=1.0;
 						indiv.fpc=1.0;
 
-						if(stand.landcover==CROPLAND)
-						{
-							if(pft.phenology==CROPGREEN)
-							{
+						if(stand.landcover==CROPLAND) {
+							if(pft.phenology==CROPGREEN) {
 								indiv.fpc=1.0;
 								patchpft.cropphen->fpc=indiv.fpc;
 								indiv.fpc_daily=0.0;
 							}
 
-							if (stand.pftid==pft.id)
-							{
+							if (stand.pftid==pft.id) {
 								indiv.cropindiv->isprimarycrop=true;
-								if(pft.phenology==ANY)						//normal CC3G & CC4G (+ irrigated) growth
+								if(pft.phenology==ANY)						// normal CC3G & CC4G (+ irrigated) growth
 									patchpft.cropphen->growingseason=true;
 							}
 							else if(ifintercropgrass && stand.hasgrassintercrop && pft.isintercropgrass)	// grass intercrop growth
@@ -855,13 +850,11 @@ void mortality_lpj(Stand& stand, Patch& patch,Climate& climate, double fireprob)
 			
 			// GRASS MORTALITY
 
-			if (indiv.pft.landcover==CROPLAND && patch.stand.landcover==CROPLAND) 
-			{
+			if (indiv.pft.landcover==CROPLAND && patch.stand.landcover==CROPLAND) {
 				fpc_grass=0.0;
 
-				for(int i=0;i<vegetation.nobj;i++)
-				{
-					if(indiv.cropindiv->isprimarycrop && (vegetation[i].cropindiv->isprimarycrop || vegetation[i].cropindiv->isprimarycovegetation))		//covegetation and secondary vegetation for future use ?
+				for(int i=0;i<vegetation.nobj;i++) {		//covegetation and secondary vegetation for future use
+					if(indiv.cropindiv->isprimarycrop && (vegetation[i].cropindiv->isprimarycrop || vegetation[i].cropindiv->isprimarycovegetation))
 						fpc_grass+=vegetation[i].fpc_daily;
 					else if(indiv.cropindiv->isintercropgrass && vegetation[i].cropindiv->isintercropgrass)
 						fpc_grass+=vegetation[i].fpc;

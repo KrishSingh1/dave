@@ -19,7 +19,7 @@
 #ifndef LPJ_GUESS_GUESS_H
 #define LPJ_GUESS_GUESS_H
 
-//Defines for landcover version:
+// Defines for landcover version:
 #define DYNAMIC_LANDCOVER_INPUT		// Reads landcover data from text files, using the TimeDataD class.
 #define LUTOMEMORY					// Write land use fraction data to memory; enables efficient usage of randomized gridlists for parallell runs on Simba.
 #define NEWSOWINGDATE				// Use sowing date method based on climate seasonality (modified version of Waha et al. 2012), as opposed to old method used in Bondeau et al. 2007.
@@ -2237,7 +2237,7 @@ public:
 	/// copy of indiv.lai, could be used in crop_phenology() to set phen
 	double lai;
 
-	/// daily lai value, set in growth_crop_daily()
+	/// daily lai value, set in lai_crop()
 	double lai_daily;
 
 	/// copy of indiv.fpc, used in crop_phenology() to set phen 
@@ -2960,6 +2960,9 @@ public:
 
 		seed = 12345678;
 	}
+
+	/// Creates new stand
+	void create_stand_lu(landcovertype landcover, double fraction, int cftid=-2);
 
 	/// Longitude for this grid cell
 	double get_lon() const;

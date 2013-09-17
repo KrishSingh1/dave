@@ -153,9 +153,12 @@ int framework(const CommandLineArguments& args) {
 					// Update daily soil drivers including soil temperature
 					dailyaccounting_patch(patch);
 
-					// Calculate crop sowing dates
-					if(stand.landcover==CROPLAND)
+					if(stand.landcover == CROPLAND) {
+						// Calculate crop sowing dates
 						crop_sowing_patch(patch);
+						// Crop phenology
+						crop_phenology(patch);
+					}
 
 					// Leaf phenology for PFTs and individuals
 					leaf_phenology(patch, gridcell.climate);
@@ -170,9 +173,9 @@ int framework(const CommandLineArguments& args) {
 					// Soil organic matter and litter dynamics
 					som_dynamics(patch);
 
-					// Calculate daily crop C allocation
-					if (stand.landcover==CROPLAND)
-						growth_crop_daily(patch);
+					// Daily crop C allocation
+					if (stand.landcover == CROPLAND)
+						crop_growth_daily(patch);
 
 					if (date.islastday && date.islastmonth) {
 

@@ -1225,23 +1225,19 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 }
 
 /// Get sowing dates for one year
-void CRUInput::getsowingdates(Gridcell& gridcell)
-{
+void CRUInput::getsowingdates(Gridcell& gridcell) {
 	int i, year;
 
-	if(date.year<nyear_spinup)
+	if(date.year < nyear_spinup)
 		year=0;
 	else
-		year=date.year-nyear_spinup;
+		year = date.year - nyear_spinup;
 
-	if(date.year<nyear_spinup+NYEAR_HIST)
-	{
-		for(i=0;i<npft;i++)	
-		{
-			if(pftlist[i].cftid>=0 && pftlist[i].forcesowingdate)	//natural pft:s have cftid=-1
-			{
+	if(date.year < nyear_spinup + NYEAR_HIST) {
+		for(i=0; i<npft; i++) {
+			if(pftlist[i].cftid >= 0 && pftlist[i].forcesowingdate)	{ //natural pft:s have cftid=-1	
 #if defined DYNAMIC_LANDCOVER_INPUT
-				gridcell.pft[i].sdate_force=sdates.Get(year,pftlist[i].name);
+				gridcell.pft[i].sdate_force = sdates.Get(year,pftlist[i].name);
 #endif
 			}
 		}
@@ -1249,23 +1245,19 @@ void CRUInput::getsowingdates(Gridcell& gridcell)
 }
 
 /// Get harvest dates for one year
-void CRUInput::getharvestdates(Gridcell& gridcell)
-{
+void CRUInput::getharvestdates(Gridcell& gridcell) {
 	int i, year;
 
-	if(date.year<nyear_spinup)
+	if(date.year < nyear_spinup)
 		year=0;
 	else
-		year=date.year-nyear_spinup;
+		year = date.year - nyear_spinup;
 
-	if(date.year<nyear_spinup+NYEAR_HIST)
-	{
- 		for(i=0;i<npft;i++)	
-		{
-			if(pftlist[i].cftid>=0 && pftlist[i].forceharvestdate)	//natural pft:s have cftid=-1
-			{
+	if(date.year < nyear_spinup + NYEAR_HIST) {
+ 		for(i=0; i<npft; i++)	{
+			if(pftlist[i].cftid >= 0 && pftlist[i].forceharvestdate) {	//natural pft:s have cftid=-1			
 #if defined DYNAMIC_LANDCOVER_INPUT
-				gridcell.pft[pftlist[i].id].hdate_force=hdates.Get(year,pftlist[i].name);
+				gridcell.pft[pftlist[i].id].hdate_force = hdates.Get(year,pftlist[i].name);
 #endif
 			}
 		}

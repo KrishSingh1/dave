@@ -141,6 +141,7 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 			// For this PFT ...
 		if(patch.stand.pft[pft.id].active) {
 			if(pft.pft.landcover == CROPLAND && patch.stand.landcover == CROPLAND) {
+//				crop_phenology(pft.pft, patch);
 				leaf_phenology_crop(pft.pft, patch);
 			}
 			else	//natural, urban, pasture, forest and peatland stands/pft:s
@@ -186,25 +187,26 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 	}
 
 	// Update crop daily phenology individual variables and crop patch.fpc_total
-	if(patch.stand.landcover==CROPLAND) {
-		patch.fpc_total=0.0;
+	if(patch.stand.landcover == CROPLAND) {
+		patch.fpc_total = 0.0;
 		vegetation.firstobj();
 		while (vegetation.isobj) {
-			Individual& indiv=vegetation.getobj();
+			Individual& indiv = vegetation.getobj();
 
-			if(patch.pft[indiv.pft.id].pft.phenology==CROPGREEN) {
-				indiv.lai_daily=patch.pft[indiv.pft.id].cropphen->lai_daily;
-				indiv.lai_indiv_daily=indiv.lai_daily;
-				indiv.fpc_daily=patch.pft[indiv.pft.id].cropphen->fpc_daily;
+			if(patch.pft[indiv.pft.id].pft.phenology == CROPGREEN) {
+				indiv.lai_daily = patch.pft[indiv.pft.id].cropphen->lai_daily;
+				indiv.lai_indiv_daily = indiv.lai_daily;
+				indiv.fpc_daily = patch.pft[indiv.pft.id].cropphen->fpc_daily;
 			}
 
-			if(patch.pft[indiv.pft.id].cropphen->growingseason==true)
-				patch.fpc_total+=indiv.fpc;
+			if(patch.pft[indiv.pft.id].cropphen->growingseason == true)
+				patch.fpc_total += indiv.fpc;
 
 			vegetation.nextobj();
 		}
 		// Calculate rescaling factor to account for overlap between populations/
 		// cohorts/individuals (i.e. total FPC > 1)
+		// necessary to undate here after growingseason updated
 		patch.fpc_rescale = 1.0 / max(patch.fpc_total, 1.0);
 	}
 }
@@ -1535,8 +1537,9 @@ void growth(Stand& stand, Patch& patch) {
 
 				//True crops do not use bminc.or cmass_leaf etc.
 				if(indiv.istruecrop_or_intercropgrass()) {
-					allocation_crop(bminc, indiv.cmass_leaf, indiv.cmass_root, indiv.cropindiv->cmass_ho, indiv.ltor,
-						cmass_leaf_inc, cmass_root_inc, cmass_ho_inc, cmass_agpool_inc, litter_leaf_inc, litter_root_inc, indiv);
+					// transfer crop cmass increase values to common variables
+					growth_crop_year(indiv.cropindiv->ycmass_leaf, indiv.cropindiv->ycmass_root, indiv.cropindiv->ycmass_ho, indiv.cropindiv->ycmass_agpool,
+						cmass_leaf_inc, cmass_root_inc, cmass_ho_inc, cmass_agpool_inc);
 					exceeds_cmass = 0.0;	//exceeds_cmass not used for true crops
 				}
 				else {

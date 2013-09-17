@@ -1178,6 +1178,75 @@ void Gridcell::set_coordinates(double longitude, double latitude) {
 	lat = latitude;
 }
 
+void Gridcell::create_stand_lu(landcovertype lc, double fraction, int cftid)
+{
+
+		if(lc!=CROPLAND) {				
+			if(run[lc]) {
+				if(landcoverfrac[lc]>0.0) {
+					Stand& stand = createobj(*this,lc);
+					stand.set_gridcell_fraction(fraction);
+
+					pftlist.firstobj();
+					while (pftlist.isobj) {
+						Pft& pft = pftlist.getobj();
+						if(pft.landcover == lc) {
+							stand.pft[pft.id].active = true;
+						}
+						pftlist.nextobj();
+					}
+				}
+			}
+		}
+		else {
+			if(cftid < 0)
+				fail("call to create_stand_lu() with landcover==CROPLAND must include a cftid\n");
+
+			int index;
+
+			for(index = 0; index < pftlist.nobj; index++) {
+				if(pftlist[index].cftid == cftid) {
+					break;
+				}
+			}
+
+			Stand& stand = createobj(*this,lc);
+			stand.pftid = pftlist[index].id;
+			stand.cftid = pftlist[index].cftid;
+			stand.set_gridcell_fraction(fraction);
+
+			stand.pft[pftlist[index].id].active = true;
+
+			if(pftlist[index].hydrology == IRRIGATED) {
+				stand.isirrigated = true;
+			}
+
+			if(pftlist[index].intercrop==NATURALGRASS && ifintercropgrass) {
+				stand.hasgrassintercrop = true;
+
+				for(int i=0; i<pftlist.nobj; i++) {
+					if(pftlist[i].isintercropgrass)
+						stand.pft[pftlist[i].id].active = true;
+				}
+			}
+
+			// Set crop cycle dates to default values.
+			for(int i=0; i<stand.nobj; i++) {
+
+				stand[i].pft[pftlist[index].id].set_cropphen()->sdate = stand.gridcell.pft[pftlist[index].id].sdate_default;
+				stand[i].pft[pftlist[index].id].set_cropphen()->hlimitdate = stand.gridcell.pft[pftlist[index].id].hlimitdate_default;
+	
+				if(pftlist[index].phenology == ANY)
+					stand[i].pft[stand.pftid].set_cropphen()->growingseason = true;
+				else if(pftlist[index].phenology == CROPGREEN) {
+					stand[i].pft[pftlist[index].id].set_cropphen()->eicdate = stand[i].pft[pftlist[index].id].get_cropphen()->sdate - 15;
+					if(stand[i].pft[pftlist[index].id].get_cropphen()->eicdate < 0)
+						stand[i].pft[pftlist[index].id].set_cropphen()->eicdate = 365 + stand[i].pft[pftlist[index].id].get_cropphen()->sdate - 15;
+				}
+			}
+		}
+}
+
 void Gridcell::serialize(ArchiveStream& arch) {
 	arch & climate
 		& landcoverfrac

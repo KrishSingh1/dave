@@ -2646,7 +2646,7 @@ if(!SUPPRESSLARGEOUTPUT)
  *  Requires updated value of fphu and hi.
  *  Equations are from Neitsch et al. 2002.
  */
-void growth_crop_year_daily(Patch& patch) {
+void growth_crop_daily(Patch& patch) {
 
 	double froot, fleaf;
 	double grs_cmass_plant_old;
@@ -2853,7 +2853,7 @@ void growth_crop_year_daily(Patch& patch) {
 void crop_growth_daily(Patch& patch) {
 
 	// allocates daily npp to leaf, roots and harvestable organs
-	growth_crop_year_daily(patch);
+	growth_crop_daily(patch);
 
 	// updates patchpft.lai_daily
 	lai_crop(patch);

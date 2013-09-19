@@ -140,10 +140,8 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 
 			// For this PFT ...
 		if(patch.stand.pft[pft.id].active) {
-			if(pft.pft.landcover == CROPLAND && patch.stand.landcover == CROPLAND) {
-//				crop_phenology(pft.pft, patch);
+			if(pft.pft.landcover == CROPLAND && patch.stand.landcover == CROPLAND)
 				leaf_phenology_crop(pft.pft, patch);
-			}
 			else	//natural, urban, pasture, forest and peatland stands/pft:s
 				leaf_phenology_pft(pft.pft, climate, pft.wscal, pft.aphen, pft.phen);
 
@@ -184,30 +182,6 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 
 		// ... on to next individual
 		vegetation.nextobj();
-	}
-
-	// Update crop daily phenology individual variables and crop patch.fpc_total
-	if(patch.stand.landcover == CROPLAND) {
-		patch.fpc_total = 0.0;
-		vegetation.firstobj();
-		while (vegetation.isobj) {
-			Individual& indiv = vegetation.getobj();
-
-			if(patch.pft[indiv.pft.id].pft.phenology == CROPGREEN) {
-				indiv.lai_daily = patch.pft[indiv.pft.id].cropphen->lai_daily;
-				indiv.lai_indiv_daily = indiv.lai_daily;
-				indiv.fpc_daily = patch.pft[indiv.pft.id].cropphen->fpc_daily;
-			}
-
-			if(patch.pft[indiv.pft.id].cropphen->growingseason == true)
-				patch.fpc_total += indiv.fpc;
-
-			vegetation.nextobj();
-		}
-		// Calculate rescaling factor to account for overlap between populations/
-		// cohorts/individuals (i.e. total FPC > 1)
-		// necessary to undate here after growingseason updated
-		patch.fpc_rescale = 1.0 / max(patch.fpc_total, 1.0);
 	}
 }
 

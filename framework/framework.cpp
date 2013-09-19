@@ -158,6 +158,9 @@ int framework(const CommandLineArguments& args) {
 						crop_sowing_patch(patch);
 						// Crop phenology
 						crop_phenology(patch);
+						// necessary updates after changing growingperiod status
+						update_indiv_lai_fpc(patch);
+						update_patch_fpc(patch);
 					}
 
 					// Leaf phenology for PFTs and individuals

@@ -28,6 +28,10 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_sdate2",&file_sdate2,300,"Crop second sowing date output file");
 	declare_parameter("file_hdate1",&file_hdate1,300,"Crop first harvest date output file");
 	declare_parameter("file_hdate2",&file_hdate2,300,"Crop second harvest date output file");
+	declare_parameter("file_lgp",&file_lgp,300,"Crop length of growing period output file");
+	declare_parameter("file_phu",&file_phu,300,"Crop potential heat units output file");
+	declare_parameter("file_fphu",&file_fphu,300,"Crop attained fraction of potential heat units output file");
+	declare_parameter("file_fhi",&file_fhi,300,"Crop attained fraction of harvest index output file");
 	declare_parameter("file_irrigation",&file_irrigation,300,"Crop irrigation output file");	
 	declare_parameter("file_seasonality",&file_seasonality,300,"Seasonality output file");		
 	declare_parameter("file_cflux", &file_cflux, 300, "C fluxes output file");
@@ -333,6 +337,10 @@ void CommonOutput::define_output_tables() {
 		create_output_table(out_sdate2,     file_sdate2,         date_columns);
 		create_output_table(out_hdate1,     file_hdate1,         date_columns);
 		create_output_table(out_hdate2,     file_hdate2,         date_columns);
+		create_output_table(out_lgp,	    file_lgp,	         date_columns);
+		create_output_table(out_phu,	    file_phu,	         date_columns);
+		create_output_table(out_fphu,	    file_fphu,	         crop_columns);
+		create_output_table(out_fhi,	    file_fhi,	         crop_columns);
 		create_output_table(out_irrigation, file_irrigation,     irrigation_columns);
 		create_output_table(out_seasonality,file_seasonality,    seasonality_columns);	
 	}
@@ -808,6 +816,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				int pft_sdate2=-1;
 				int pft_hdate1=-1;
 				int pft_hdate2=-1;
+				int pft_lgp=-1;
+				int pft_phu=-1;
+				double pft_fphu=-1;
+				double pft_fhi=-1;
 
 				gridcell.firstobj();
 				while (gridcell.isobj) {
@@ -818,6 +830,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 						pft_sdate2=stand[0].pft[pft.id].cropphen->sdate_thisyear[1];
 						pft_hdate1=stand[0].pft[pft.id].cropphen->hdate_harvest[0];
 						pft_hdate2=stand[0].pft[pft.id].cropphen->hdate_harvest[1];
+						pft_lgp=stand[0].pft[pft.id].cropphen->lgp;
+						pft_phu=stand[0].pft[pft.id].cropphen->phu;
+						pft_fphu=stand[0].pft[pft.id].cropphen->fphu_harv;
+						pft_fhi=stand[0].pft[pft.id].cropphen->fhi_harv;
 					}
 					gridcell.nextobj();
 				}
@@ -825,6 +841,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				out.add_value(out_sdate2, pft_sdate2);
 				out.add_value(out_hdate1, pft_hdate1);
 				out.add_value(out_hdate2, pft_hdate2);
+				out.add_value(out_lgp,	  pft_lgp);
+				out.add_value(out_phu,	  pft_phu);
+				out.add_value(out_fphu,	  pft_fphu);
+				out.add_value(out_fhi,	  pft_fhi);
 			}
 
 			pftlist.nextobj();

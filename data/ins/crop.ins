@@ -10,6 +10,12 @@ file_sdate1 "sdate1.out"
 file_sdate2 "sdate2.out"
 file_hdate1 "hdate1.out"
 file_hdate2 "hdate2.out"
+file_lgp "lgp.out"
+file_phu "phu.out"
+file_fphu "fphu.out"
+file_fhi "fhi.out"
+file_irrigation "irrigation.out"
+file_seasonality "seasonality.out"
 file_cflux_cropland "cflux_cropland.out"
 file_cflux_pasture "cflux_pasture.out"
 file_cflux_natural "cflux_natural.out"
@@ -35,11 +41,14 @@ minimizecftlist 0	! Checks cft fraction file for cft:s with fractions>0.0 at any
 cftfrac_fixed 0       	! whether to force CFT % (1) or just read CFT file (0) ; all active crop pft:s have equal area
 
 ifslowharvestpool 1	! If a slow harvested product pool is included in patchpft.
-ifintercropgrass 1
+ifintercropgrass 1	! Whether to grow grass as cover crop between growing periods
 
-forcesowingdates 0
-forceharvestdates 0
-!forceautumnsowing 0
+forcesowingdates 0	! Whether to read sowing dates from an input file
+forceharvestdates 0	! Whether to read harvest dates from an input file	
+!forceautumnsowing 0	
+ifcalcdynamic_phu 1	! Whether to calculate dynamic potential heat units
+ifdyn_phu_limit 0	! Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
+nyear_dyn_phu 50	! Number of years to calculate dynamic phu if dynamic_phu_limit is 1
 
 !///////////////////////////////////////////////////////////////////////////////////////
 

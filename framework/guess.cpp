@@ -340,10 +340,9 @@ void cropphen_struct::serialize(ArchiveStream& arch) {
 		& phu 
 		& phu_old
 		& husum_max
-		& husum_max_postharv
-		& husum_max_hlim
+		& husum_sampled
 		& husum_max_10
-		& husum_h
+		& nyears_hu_sample
 		& husum
 		& fphu 
 		& fphu_harv

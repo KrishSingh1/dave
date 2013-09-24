@@ -60,6 +60,9 @@ bool cftfrac_fixed;
 bool all_fracs_const;
 bool ifslowharvestpool;
 bool ifintercropgrass;
+bool ifcalcdynamic_phu;
+bool ifdyn_phu_limit;
+int nyear_dyn_phu;
 int nyear_spinup;
 
 xtring state_path;
@@ -67,8 +70,8 @@ bool restart;
 bool save_state;
 int state_year;
 
-bool forcesowingdates=false;
-bool forceharvestdates=false;
+bool forcesowingdates = false;
+bool forceharvestdates = false;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Implementation of the Paramlist class
@@ -396,6 +399,9 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("run_peatland",&run[PEATLAND],1,CB_NONE,"Whether peatland is to be simulated");
 		declareitem("ifslowharvestpool",&ifslowharvestpool,1,CB_NONE,"If a slow harvested product pool is included in patchpft.");
 		declareitem("ifintercropgrass",&ifintercropgrass,1,CB_NONE,"Whether intercrop growth is allowed");
+		declareitem("ifcalcdynamic_phu",&ifcalcdynamic_phu,1,CB_NONE,"Whether to calculate dynamic potential heat units");
+		declareitem("ifdyn_phu_limit",&ifdyn_phu_limit,1,CB_NONE,"Whether to limit dynamic phu calculation to a time period");
+		declareitem("nyear_dyn_phu",&nyear_dyn_phu,0,1000,1,CB_NONE, "Number of years to calculate dynamic phu");
 		declareitem("forcesowingdates",&forcesowingdates,1,CB_NONE,"Whether to use sowingdates from input file");
 		declareitem("forceharvestdates",&forceharvestdates,1,CB_NONE,"Whether touse harvestdates from input file");
 		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"Whether static landcover fractions are set in the ins-file (0,1)");
@@ -829,6 +835,9 @@ void plib_callback(int callback) {
 			if (!itemparsed("run_pasture")) badins("run_pasture");
 			if (!itemparsed("ifslowharvestpool")) badins("ifslowharvestpool");
 			if (!itemparsed("ifintercropgrass")) badins("ifintercropgrass");
+			if (!itemparsed("ifcalcdynamic_phu")) badins("ifcalcdynamic_phu");
+			if (!itemparsed("ifdyn_phu_limit")) badins("ifdyn_phu_limit");
+			if (!itemparsed("nyear_dyn_phu")) badins("nyear_dyn_phu");
 			if (!itemparsed("forcesowingdates")) badins("forcesowingdates");
 			if (!itemparsed("forceharvestdates")) badins("forceharvestdates");
 #ifdef HAVE_MPI

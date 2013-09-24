@@ -146,6 +146,15 @@ extern bool ifslowharvestpool;
 // If grass is allowed to grow between crop growingseasons
 extern bool ifintercropgrass;
 
+// Whether to calculate dynamic potential heat units
+extern bool ifcalcdynamic_phu;
+
+// Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
+extern bool ifdyn_phu_limit;
+
+// Number of years to calculate dynamic phu if dynamic_phu_limit is true
+extern int nyear_dyn_phu;
+
 /// number of spinup years
 extern int nyear_spinup;
 

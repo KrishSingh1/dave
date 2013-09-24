@@ -2156,8 +2156,14 @@ public:
 	/// latest end of intercropseason (2 weeks before the sowing date)
 	int eicdate;
 
-	/// number of growing days this year (used for wscal_mean calculation)
+	/// number of growing days this growing period
 	int growingdays;
+
+	/// number of growing days this year (used for wscal_mean calculation)
+	int growingdays_y;
+
+	/// length of growingseason ending in last harvest
+	int lgp;
 
 	/// base temp for heat unit calculation (°C)
 	double tb;
@@ -2183,20 +2189,17 @@ public:
 	/// heat unit sum aquired during last growing period (°Cd)
 	double husum;
 
-	/// heat unit sum aquired between this year's hdate and hucountend
-	double husum_max_postharv;
+	/// heat unit sum aquired durin sampling period, starting with sdate
+	double husum_sampled;
 
 	/// this year's heat unit sum aquired from sdate to hucountend
 	double husum_max;
 
-	/// heat unit sum aquired during growing period ending in last harvest this year
-	double husum_h;
-
-	/// heat unit sum aquired from sdate to hucountend at last hucountend this year
-	double husum_max_hlim;
-
-	/// running mean of recent past's husum_max_hlim
+	/// running mean of recent past's husum_max
 	double husum_max_10;
+
+	/// number of heat units sampling years
+	int nyears_hu_sample;
 
 	/// fraction of growing season [0-1] (husum/phu)
 	double fphu;
@@ -2206,6 +2209,10 @@ public:
 
 	/// fraction of growing season at the two latest harvests this year
 //	double fphu_harvest[2];	
+
+	bool hu_samplingperiod;
+
+	int hu_samplingdays;
 
 	/// harvest index today [0-1, >1 if below-ground ho], harvestable organ/above-ground C for above-ground harvestable organs, dependent on fphu, reduced by water stress 
 	double hi;
@@ -2286,14 +2293,15 @@ public:
 		phu=0.0;
 		phu_old=0.0;
 		husum_max=0.0;
-		husum_max_postharv=0.0;
-		husum_max_hlim=0.0;
+		husum_sampled=0.0;
 		husum_max_10=0.0;
-		husum_h=0.0;
+		nyears_hu_sample = 0;
 		prf=1.0;
 		husum=0.0;
 		fphu=0.0;
 		fphu_harv=0.0;
+		hu_samplingdays=0;
+		hu_samplingperiod=false;
 
 		hi=0.0;
 		hi_ystd=0.0;
@@ -2313,6 +2321,8 @@ public:
 		eicdate=-1;
 		maincrop=true;
 		growingdays=0;
+		growingdays_y=0;
+		lgp=0;
 
 		for(int j=0;j<2;j++)			
 		{

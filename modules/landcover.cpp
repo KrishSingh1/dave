@@ -14,7 +14,6 @@
 #include "landcover.h"
 #include "canexch.h"
 
-#define DYNAMIC_PHU					//Calculation of potential heat units according to local climate.
 #define MAXHUTEMP					//30 degree limit for heat unit summation
 #define SD_TEMP_WINDOW				//Uses sowing window for temperature-dependent sowing.
 #define IRRIGATED_USE_TEMP_SDATE	//Use temperature-dependent sowing date for irrigated crops at site with PRECTEMP seasonality.
@@ -2000,16 +1999,14 @@ double senescence_curve(Pft& pft, double fphu) {
 
 /// Initiation of potential heat unit calculation
 /** Calculates pvd (required vernalising days), tb (base temperature)
- *  and phu (potential heat units).
- *  phu calculation based on Lindeskog et al. 2013 (dynamic).
+ *  and phu (potential heat units) based on Bondeau et al. 2007.
+ *  Dynamic phu calculation based on Lindeskog et al. 2013.
  *  Called on sowing date.
  */
 void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch) {
 
 	Pft& pft = gridcellpft.pft;
 	Climate& climate = patch.stand.gridcell.climate;
-	bool dynamic_phu_limit = false;
-	int nyear_dyn_phu = 50;
 	double phu_last_year = ppftcrop.phu;
 
 	ppftcrop.husum = 0.0;	
@@ -2021,13 +2018,15 @@ void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 	ppftcrop.phu = pft.phu;
 	ppftcrop.tb = pft.tb;
 
-#if defined DYNAMIC_PHU
-	int years = min(date.year - patch.stand.first_year - 1, 9);
-
-	if(patch.stand.first_year != date.year)
-		ppftcrop.husum_max_10 = (ppftcrop.husum_max_10 * years + ppftcrop.husum_max) / (years + 1);
-	ppftcrop.husum_max = 0.0;
-#endif
+	// Calculation of potential heat units according to local climate.
+	if(ifcalcdynamic_phu) {
+		if(ppftcrop.husum_max) {
+			ppftcrop.nyears_hu_sample++;
+			int years = min(ppftcrop.nyears_hu_sample, 10);
+			ppftcrop.husum_max_10 = (ppftcrop.husum_max_10 * (years - 1) + ppftcrop.husum_max) / years;
+		}
+		ppftcrop.husum_max = 0.0;
+	}
 
 	if(pft.ifsdautumn) {	// TeWW,TeRa
 	
@@ -2101,15 +2100,16 @@ void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 		}
 	}
 
-#if defined DYNAMIC_PHU
-	ppftcrop.phu_old = ppftcrop.phu;						// phu_old mainly for printout
+	// Calculation of potential heat units according to local climate.
+	if(ifcalcdynamic_phu) {
+		ppftcrop.phu_old = ppftcrop.phu;		// phu_old for printout
 
-	if(patch.stand.first_year != date.year)					// Insert condition here to use dynamic phu for a limited time
-		ppftcrop.phu = max(900.0, 0.9 * ppftcrop.husum_max_10);
+		if(ppftcrop.nyears_hu_sample)
+			ppftcrop.phu = max(900.0, 0.9 * ppftcrop.husum_max_10);
 
-	if(dynamic_phu_limit && date.year >= patch.stand.first_year + 20 && date.year >= nyear_spinup + nyear_dyn_phu)
-		ppftcrop.phu = phu_last_year;
-#endif
+		if(ifdyn_phu_limit && date.year >= patch.stand.first_year + 20 && date.year >= nyear_spinup + nyear_dyn_phu)
+			ppftcrop.phu = phu_last_year;
+	}
 }
 
 /// Calculation of harvest index
@@ -2183,32 +2183,41 @@ void calc_hu(Patch& patch, Pft& pft) {
 	ppftcrop.prf = (1 - pft.psens) * min(1.0, max(0.0, (climate.daylength_save[date.day] - pft.pb) / (pft.ps - pft.pb))) + pft.psens;
 	hu *= ppftcrop.prf;
 
+	if(date.day == ppftcrop.sdate)
+		ppftcrop.husum = 0.0;
+
 	// Accumulate heat units during growing period
-	if (date.day == ppftcrop.sdate || ppftcrop.growingseason) {
+	if (ppftcrop.growingseason) {
 		// daily effective temperature sum (degree-days)
 		ppftcrop.husum += hu;
 
 		// phenological scale (fraction of growing season)
 		ppftcrop.fphu = min(1.0, ppftcrop.husum / ppftcrop.phu);		// SWAT 5:2.1.11
-
 	}
-#if defined DYNAMIC_PHU
-	// Continue if heat unit sampling period for dynamic phu is selected
-	else if(ppftcrop.growingseason == false && dayinperiod(date.day, ppftcrop.hdate, ppftcrop.hucountend) && ppftcrop.hdate >= 0)
-	{
-			if(date.day == ppftcrop.hdate)
-				ppftcrop.husum_max_postharv = 0.0;
-			ppftcrop.husum_max_postharv += hu;
+	
+	// Sample heat units for dynamic phu calculation
+	if(ifcalcdynamic_phu) {
 
+		if(date.day == ppftcrop.sdate) {
+			ppftcrop.hu_samplingperiod = true;
+			ppftcrop.hu_samplingdays = 0;
+			ppftcrop.husum_sampled = 0;
+		}
+
+		if(ppftcrop.hu_samplingperiod) {
+
+			ppftcrop.husum_sampled += hu;
+			ppftcrop.hu_samplingdays++;
+		
 			if(date.day == ppftcrop.hucountend) {
 
-				ppftcrop.husum_max = ppftcrop.husum_max_postharv + ppftcrop.husum;
-				ppftcrop.husum_max_hlim = ppftcrop.husum_max;
-				ppftcrop.husum_h = ppftcrop.husum;
-			}
-	}
-#endif
+				ppftcrop.husum_sampled -= hu;					// Don't count the hu's on last day
+				ppftcrop.husum_max = ppftcrop.husum_sampled;
 
+				ppftcrop.hu_samplingperiod=false;
+			}
+		}
+	}
 }
 
 /// Handles heat unit and harvest index calculation and identifies harvest, senescence and intercrop events.
@@ -2259,9 +2268,10 @@ if(patch.stand.pft[pft.id].active)
 				ppftcrop.fhi_phen = 0.0;
 				ppftcrop.fhi_water = 1.0;
 				ppftcrop.hdate = -1;
-				ppftcrop.bicdate = -1;	
+				ppftcrop.bicdate = -1;
 
 				ppftcrop.growingseason = true;
+				ppftcrop.growingdays = 0;
 				ppftcrop.nsow++;
 
 				if(ppftcrop.nsow == 1)
@@ -2278,7 +2288,8 @@ if(patch.stand.pft[pft.id].active)
 			{
 				ppftcrop.senescence_ystd = ppftcrop.senescence;
 				ppftcrop.hi_ystd = ppftcrop.hi;
-				ppftcrop.intercropseason = false;			
+				ppftcrop.intercropseason = false;
+				ppftcrop.growingdays++;
 
 				// check if harvest is prescribed
 				bool force_harvest = forceharvestdates && pft.forceharvestdate && gridcellpft.hdate_force > 0 && date.day == gridcellpft.hdate_force;
@@ -2313,25 +2324,14 @@ if(patch.stand.pft[pft.id].active)
 					// set start of intercrop grass growth
 					ppftcrop.bicdate = stepfromdate(ppftcrop.hdate, 15);
 
-					// resets
-					ppftcrop.lai_daily = 0.0;	// reset here to avoid leaf areas in interception and ndemand on harvest day
-					ppftcrop.fpc_daily = 0.0;
-
-					ppftcrop.demandsum_crop = 0.0;
-					ppftcrop.supplysum_crop = 0.0;
-
-					if(pft.ifsdprec) {	// TeCo,TrMi,TrMa,TrPe; with NEWSOWINGDATE: all crops			
-						ppftcrop.sdate = -1;
-						ppftcrop.eicdate = -1;
-					}
+					// count number of harvest events this year
+					ppftcrop.nharv++;
 
 					// Save phenological values and dates at harvest:
 					ppftcrop.fphu_harv = ppftcrop.fphu;
 					ppftcrop.fhi_harv = ppftcrop.fhi;
 					ppftcrop.sdate_harv = ppftcrop.sdate;
-
-					// count number of harvest events this year
-					ppftcrop.nharv++;
+					ppftcrop.lgp = ppftcrop.growingdays;
 
 					// allowing saving at two harvests per year
 					if(ppftcrop.nharv == 1) {
@@ -2349,15 +2349,24 @@ if(patch.stand.pft[pft.id].active)
 						//ppftcrop.fhi_harvest[1] = ppftcrop.fhi;
 					}
 
+					// resets
+					ppftcrop.lai_daily = 0.0;	// reset here to avoid leaf areas in interception and ndemand on harvest day
+					ppftcrop.fpc_daily = 0.0;
+
+					ppftcrop.demandsum_crop = 0.0;
+					ppftcrop.supplysum_crop = 0.0;
+
+					if(pft.ifsdprec) {	// TeCo,TrMi,TrMa,TrPe; with NEWSOWINGDATE: all crops			
+						ppftcrop.sdate = -1;
+						ppftcrop.eicdate = -1;
+					}
+
 				} //end harvest
 			}  //from sowing has taken place until harvest day
 
-
-#if defined DYNAMIC_PHU
-			// continue heat unit accumulation after harvest until last heat unit sampling date
-			if(ppftcrop.growingseason == false && dayinperiod(date.day, ppftcrop.hdate, ppftcrop.hucountend) && ppftcrop.hdate >= 0)
+			// continue sampling heat units from hdate until last sampling date
+			if(ifcalcdynamic_phu && ppftcrop.growingseason == false && ppftcrop.hu_samplingperiod)
 				calc_hu(patch, pft);
-#endif
 
 			if(pft.intercrop == NATURALGRASS && !ppftcrop.growingseason) {
 

@@ -921,8 +921,9 @@ void plib_callback(int callback) {
 		npft = 0;
 		pftlist.firstobj();
 		while (pftlist.isobj) {
-			pftlist.getobj().id = npft++;
-			if(ppft->landcover==CROPLAND)
+			Pft& pft = pftlist.getobj();
+			pft.id = npft++;
+			if(pft.landcover==CROPLAND)
 				ncft++;
 			pftlist.nextobj();
 		}

@@ -2018,15 +2018,6 @@ void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 	ppftcrop.phu = pft.phu;
 	ppftcrop.tb = pft.tb;
 
-	// Calculation of potential heat units according to local climate.
-	if(ifcalcdynamic_phu) {
-		if(ppftcrop.husum_max) {
-			ppftcrop.nyears_hu_sample++;
-			int years = min(ppftcrop.nyears_hu_sample, 10);
-			ppftcrop.husum_max_10 = (ppftcrop.husum_max_10 * (years - 1) + ppftcrop.husum_max) / years;
-		}
-		ppftcrop.husum_max = 0.0;
-	}
 
 	if(pft.ifsdautumn) {	// TeWW,TeRa
 	
@@ -2102,11 +2093,22 @@ void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 
 	// Calculation of potential heat units according to local climate.
 	if(ifcalcdynamic_phu) {
+
+		// add last year's husum_max to running mean
+		if(ppftcrop.husum_max) {
+			ppftcrop.nyears_hu_sample++;
+			int years = min(ppftcrop.nyears_hu_sample, 10);
+			ppftcrop.husum_max_10 = (ppftcrop.husum_max_10 * (years - 1) + ppftcrop.husum_max) / years;
+		}
+		ppftcrop.husum_max = 0.0;
+
 		ppftcrop.phu_old = ppftcrop.phu;		// phu_old for printout
 
+		// set phu according to running mean
 		if(ppftcrop.nyears_hu_sample)
 			ppftcrop.phu = max(900.0, 0.9 * ppftcrop.husum_max_10);
 
+		// ... unless past specified time period
 		if(ifdyn_phu_limit && date.year >= patch.stand.first_year + 20 && date.year >= nyear_spinup + nyear_dyn_phu)
 			ppftcrop.phu = phu_last_year;
 	}

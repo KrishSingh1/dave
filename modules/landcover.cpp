@@ -8,12 +8,11 @@
 
 #include "config.h"
 #include "landcover.h"
-#include "guessio.h"
 
-void landcover_init(Gridcell& gridcell) {
+void landcover_init(Gridcell& gridcell, InputModule* input_module) {
 	landcovertype landcover;
 
-	getlandcover(gridcell);		//Gets gridcell.landcoverfrac from landcover input file(s) or ins-file.
+	input_module->getlandcover(gridcell);		//Gets gridcell.landcoverfrac from landcover input file(s) or ins-file.
 
 	for(int i=0;i<NLANDCOVERTYPES;i++) { //For all landcover types without subclasses
 //		if(i!=CROPLAND) {					// cropland subclasses turned off in this version
@@ -74,7 +73,7 @@ void harvest_natural(double& cmass_leaf,double& cmass_root,double& cmass_sap,dou
 	cmass_sap=cmass_heart=cmass_debt=cmass_leaf=0.0;
 }
 
-void landcover_dynamics(Gridcell& gridcell)
+void landcover_dynamics(Gridcell& gridcell, InputModule* input_module)
 {	// Called first day of the year if run_landcover is set.
 	int i;	
 	landcovertype landcover;
@@ -96,7 +95,7 @@ void landcover_dynamics(Gridcell& gridcell)
 
 //Get new gridcell.landcoverfrac and/or gridcell.cftfrac from LUdata and CFTdata.
 	if(!all_fracs_const)
-		getlandcover(gridcell);	
+		input_module->getlandcover(gridcell);	
 	else return;
 
 	double changeLC=0.0;

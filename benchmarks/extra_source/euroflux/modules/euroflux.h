@@ -2,7 +2,7 @@
 /// \file euroflux.h
 /// \brief Extra code used by the Euroflux benchmarks
 ///
-/// \author Joe Lindström
+/// \author Joe Siltberg
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -10,9 +10,10 @@
 #ifndef LPJ_GUESS_EUROFLUX_H
 #define LPJ_GUESS_EUROFLUX_H
 
+#include "cruinput.h"
+#include "outputmodule.h"
 #include <gutil.h>
 
-// guess2008 - euroflux 
 /// The value used for missing data in the EUROFLUX files.
 const double MISSING_DATA = -9999.0;
 
@@ -24,6 +25,15 @@ struct EurofluxData {
 
 	xtring desc; 
 
+	xtring ver;
+	double tm;
+	double tc;
+	double pm;
+	double pc;
+
+	int isfluxdata[NFLUXYEARS];
+
+	double soildepth;
 	int plantation_year;
 	int num_dominant_species;
 	xtring dom_species[5];
@@ -57,6 +67,55 @@ struct EurofluxData {
 		desc = ""; 
 
 	}
+};
+
+/// Input module for EUROFLUX benchmark
+/** This is a subclass of the CRU input module. The subclass
+ *  will alter the CRU forcing data according to site data,
+ *  and also update the soiltype with soildepth information
+ *  after the base class has initialized it according to soil code.
+ */
+class EurofluxInput : public CRUInput {
+public:
+	void init();
+
+	bool getgridcell(Gridcell& gridcell);
+
+	bool getclimate(Gridcell& gridcell);
+
+protected:
+	void adjust_raw_forcing_data(double lon,
+	                             double lat,
+	                             double hist_mtemp[NYEAR_HIST][12],
+	                             double hist_mprec[NYEAR_HIST][12],
+	                             double hist_msun[NYEAR_HIST][12]);
+
+private:
+	std::map<std::pair<double, double>, EurofluxData> eurofluxdata;
+};
+
+
+/// Output module for the extra files for EUROFLUX
+class EurofluxOutput : public GuessOutput::OutputModule {
+public:
+	EurofluxOutput();
+
+	void init();
+
+	void outannual(Gridcell& gridcell);
+
+	void outdaily(Gridcell& gridcell);
+
+private:
+	// Files for EUROFLUX output and stats
+	xtring file_eurofluxannual;
+	xtring file_eurofluxmonthly_nee, file_eurofluxmonthly_aet, file_eurofluxmonthly_gpp;
+	xtring file_eurofluxstats_nee, file_eurofluxstats_aet, file_eurofluxstats_gpp;
+
+	// Output tables
+	GuessOutput::Table out_eurofluxannual;
+	GuessOutput::Table out_eurofluxmonthly_nee, out_eurofluxmonthly_aet, out_eurofluxmonthly_gpp;
+	GuessOutput::Table out_eurofluxstats_nee, out_eurofluxstats_aet, out_eurofluxstats_gpp;
 };
 
 #endif // LPJ_GUESS_EUROFLUX_H

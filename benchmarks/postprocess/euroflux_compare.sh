@@ -26,17 +26,19 @@ TITLE=$4
 # Create temporary files for only the data to plot
 OBS_DATA=$(mktemp)
 MOD_DATA=$(mktemp)
+TEMP_JOYNED=$(mktemp)
 TEMP_FILTERED=$(mktemp)
 
 # awk script for getting only the values from a monthly output file, one per line
-GET_ONLY_DATA='NR>1 { for (i=4; i <= NF; i++) print $i }'
+GET_ONLY_DATA='NR>1 { for (i=4; i <= NF; i++) print $1,$2,$3,i,$i }'
 
 # Get the data points into two separate files
 awk "$GET_ONLY_DATA" $DATA_FILE_OBS > $OBS_DATA
 awk "$GET_ONLY_DATA" $DATA_FILE_MOD > $MOD_DATA
 
 # Combine into one file with two columns for gnuplot, remove missing data
-paste $OBS_DATA $MOD_DATA | grep -v "\-9999.000" > $TEMP_FILTERED
+joyn $OBS_DATA $MOD_DATA -i 1 2 3 4 -o $TEMP_JOYNED
+grep -v "\-9999.000" $TEMP_JOYNED | awk 'NR > 1 {print $5,$6}' > $TEMP_FILTERED
 
 XLABEL=$TITLE"_obs"
 YLABEL=$TITLE"_mod"
@@ -46,5 +48,6 @@ scatter_plot "${TITLE}" "${XLABEL}" "${YLABEL}" ${TEMP_FILTERED} ${OUT_FILE}
 
 # Clean up temp files
 rm $TEMP_FILTERED
+rm $TEMP_JOYNED
 rm $OBS_DATA
 rm $MOD_DATA

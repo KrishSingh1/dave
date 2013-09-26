@@ -38,11 +38,13 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_cflux_cropland", &file_cflux_cropland, 300, "C fluxes output file");
 	declare_parameter("file_cflux_pasture", &file_cflux_pasture, 300, "C fluxes output file");
 	declare_parameter("file_cflux_natural", &file_cflux_natural, 300, "C fluxes output file");
+	declare_parameter("file_cflux_forest", &file_cflux_forest, 300, "C fluxes output file");
 	declare_parameter("file_dens", &file_dens, 300, "Tree density output file");
 	declare_parameter("file_cpool", &file_cpool, 300, "Soil C output file");
 	declare_parameter("file_cpool_cropland", &file_cpool_cropland, 300, "Soil C output file");
 	declare_parameter("file_cpool_pasture", &file_cpool_pasture, 300, "Soil C output file");
 	declare_parameter("file_cpool_natural", &file_cpool_natural, 300, "Soil C output file");
+	declare_parameter("file_cpool_forest", &file_cpool_forest, 300, "Soil C output file");
 	declare_parameter("file_runoff", &file_runoff, 300, "Runoff output file");
 	declare_parameter("file_firert", &file_firert, 300, "Fire retrun time output file");
 
@@ -323,10 +325,12 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_cflux_cropland, file_cflux_cropland, cflux_columns);
 	create_output_table(out_cflux_pasture,  file_cflux_pasture,  cflux_columns);
 	create_output_table(out_cflux_natural,  file_cflux_natural,  cflux_columns);
+	create_output_table(out_cflux_forest,	file_cflux_forest,	 cflux_columns);	
 	create_output_table(out_cpool,          file_cpool,          cpool_columns);
 	create_output_table(out_cpool_cropland, file_cpool_cropland, cpool_columns);
 	create_output_table(out_cpool_pasture,  file_cpool_pasture,  cpool_columns);
 	create_output_table(out_cpool_natural,  file_cpool_natural,  cpool_columns);
+	create_output_table(out_cpool_forest,	file_cpool_forest,	 cpool_columns);
 
 	if(run_landcover && run[CROPLAND])
 	{
@@ -1206,6 +1210,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					case NATURAL:
 						table_p=&out_cflux_natural;
 						break;
+					case FOREST:
+						table_p=&out_cflux_forest;
+						break;
 					default:
 						fail("Modify code to deal with landcover output!\n");
 					}
@@ -1294,6 +1301,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 						break;
 					case NATURAL:
 						table_p=&out_cpool_natural;
+						break;
+					case FOREST:
+						table_p=&out_cpool_forest;
 						break;
 					default:
 						fail("Modify code to deal with landcover output!\n");

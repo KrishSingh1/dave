@@ -461,7 +461,7 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 	double leachsum_cmass, leachsum_nmass;
 	double nmin_actual;	// actual (not net) nitrogen mineralisation
 	double nimmob;		// nitrogen immobilisation
-	bool ifnlim_stand = ifnlim && (patch.stand.landcover==NATURAL || ifnlim_pasture && patch.stand.landcover==PASTURE || ifnlim_crop && patch.stand.landcover==CROPLAND);
+	bool ifnlim_stand = ifnlim && (patch.stand.landcover==NATURAL || patch.stand.landcover == FOREST || ifnlim_pasture && patch.stand.landcover==PASTURE || ifnlim_crop && patch.stand.landcover==CROPLAND);
 
 	const double EPS = 1.0e-16;
 

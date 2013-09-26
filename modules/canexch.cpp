@@ -585,7 +585,7 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 	double apar;
 	double b, c1, c2;
 
-	bool ifnlim_pft = ifnlim && (pft.landcover==NATURAL || ifnlim_pasture && pft.landcover==PASTURE || ifnlim_crop && pft.landcover==CROPLAND);
+	bool ifnlim_pft = ifnlim && (pft.landcover==NATURAL || pft.landcover == FOREST || ifnlim_pasture && pft.landcover==PASTURE || ifnlim_crop && pft.landcover==CROPLAND);
 
 	if(pft.phenology==CROPGREEN)
 		apar = par * fpar * ALPHAA_CROP;
@@ -818,7 +818,7 @@ void nstore_usage(Vegetation& vegetation) {
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
 
-		bool ifnlim_pft = ifnlim && (indiv.pft.landcover==NATURAL || ifnlim_pasture && indiv.pft.landcover==PASTURE || ifnlim_crop && indiv.pft.landcover==CROPLAND);
+		bool ifnlim_pft = ifnlim && (indiv.pft.landcover==NATURAL || indiv.pft.landcover == FOREST || ifnlim_pasture && indiv.pft.landcover==PASTURE || ifnlim_crop && indiv.pft.landcover==CROPLAND);
 //		double cmass_leaf_phen=indiv.pft.phenology==CROPGREEN ? indiv.cropindiv->grs_cmass_leaf : indiv.cmass_leaf * indiv.phen;//crops
 //		double cmass_root_phen=indiv.pft.phenology==CROPGREEN ? indiv.cropindiv->grs_cmass_root : indiv.cmass_root * indiv.phen;//crops
 
@@ -903,7 +903,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
-		bool ifnlim_pft = ifnlim && (indiv.pft.landcover==NATURAL || ifnlim_pasture && indiv.pft.landcover==PASTURE || ifnlim_crop && indiv.pft.landcover==CROPLAND);
+		bool ifnlim_pft = ifnlim && (indiv.pft.landcover==NATURAL || indiv.pft.landcover == FOREST || ifnlim_pasture && indiv.pft.landcover==PASTURE || ifnlim_crop && indiv.pft.landcover==CROPLAND);
 //		double cmass_leaf_phen=indiv.pft.phenology==CROPGREEN ? indiv.cropindiv->grs_cmass_leaf : indiv.cmass_leaf * indiv.phen;//crops
 
 		// Rescaler of nitrogen uptake
@@ -1067,7 +1067,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 	// Supply function for nitrogen and determination of nitrogen stress leading
 	// to down-regulation of vmax.
 
-	bool ifnlim_stand = ifnlim && (patch.stand.landcover==NATURAL || ifnlim_pasture && patch.stand.landcover==PASTURE || ifnlim_crop && patch.stand.landcover==CROPLAND);
+	bool ifnlim_stand = ifnlim && (patch.stand.landcover==NATURAL || patch.stand.landcover == FOREST || ifnlim_pasture && patch.stand.landcover==PASTURE || ifnlim_crop && patch.stand.landcover==CROPLAND);
 
 	// Nitrogen within projective cover of all individuals
 	double tot_nmass_avail = patch.soil.nmass_avail * min(1.0, patch.fpc_total);
@@ -1915,7 +1915,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			// Water stress - derive assimilation by simultaneous solution
 			// of light- and conductance-based equations of photosynthesis
 
-			bool ifnlim_pft = ifnlim && (pft.landcover==NATURAL || ifnlim_pasture && pft.landcover==PASTURE || ifnlim_crop && pft.landcover==CROPLAND);
+			bool ifnlim_pft = ifnlim && (pft.landcover==NATURAL || pft.landcover == FOREST || ifnlim_pasture && pft.landcover==PASTURE || ifnlim_crop && pft.landcover==CROPLAND);
 
 			assimilation_wstress(pft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
 				ppft.gcbase, phot.vm, phot, lambda,

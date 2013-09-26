@@ -41,7 +41,7 @@ private:
 	// Output file names ...
 	xtring file_cmass,file_anpp,file_dens,file_lai,file_cflux,file_cpool,file_runoff;
 	xtring file_yield, file_yield1, file_yield2, file_sdate1, file_sdate2, file_hdate1, file_hdate2, file_lgp, file_phu, file_fphu, file_fhi, file_irrigation, file_seasonality;
-	xtring file_cflux_cropland, file_cflux_pasture, file_cflux_natural, file_cpool_cropland, file_cpool_pasture, file_cpool_natural;
+	xtring file_cflux_cropland, file_cflux_pasture, file_cflux_natural, file_cflux_forest, file_cpool_cropland, file_cpool_pasture, file_cpool_natural, file_cpool_forest;
 	xtring file_mnpp,file_mlai,file_mgpp,file_mra,file_maet,file_mpet,file_mevap,file_mrunoff,file_mintercep,file_mrh;
 	xtring file_mnee,file_mwcont_upper,file_mwcont_lower;
 	xtring file_firert,file_speciesheights;
@@ -55,7 +55,7 @@ private:
 	// Output tables
 	Table out_cmass, out_anpp, out_dens, out_lai, out_cflux, out_cpool, out_firert, out_runoff, out_speciesheights;
 	Table out_yield, out_yield1, out_yield2, out_sdate1, out_sdate2, out_hdate1, out_hdate2, out_lgp, out_phu, out_fhi, out_fphu, out_irrigation, out_seasonality;	
-	Table out_cflux_cropland, out_cflux_pasture, out_cflux_natural, out_cpool_cropland, out_cpool_pasture, out_cpool_natural;
+	Table out_cflux_cropland, out_cflux_pasture, out_cflux_natural, out_cflux_forest, out_cpool_cropland, out_cpool_pasture, out_cpool_natural, out_cpool_forest;
 	Table out_mnpp, out_mlai, out_mgpp, out_mra, out_maet, out_mpet, out_mevap, out_mrunoff, out_mintercep;
 	Table out_mrh, out_mnee, out_mwcont_upper, out_mwcont_lower;
 	

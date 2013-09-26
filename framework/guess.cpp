@@ -866,7 +866,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 double Individual::cton_leaf(bool use_phen /* = true*/) const {
 
-	bool ifnlim_pft = ifnlim && (pft.landcover==NATURAL || ifnlim_pasture && pft.landcover==PASTURE || ifnlim_crop && pft.landcover==CROPLAND);
+	bool ifnlim_pft = ifnlim && (pft.landcover==NATURAL || pft.landcover == FOREST || ifnlim_pasture && pft.landcover==PASTURE || ifnlim_crop && pft.landcover==CROPLAND);
 
 	if (ifnlim_pft) {
 		if (!negligible(cmass_leaf) && !negligible(nmass_leaf)) {
@@ -893,7 +893,7 @@ double Individual::cton_leaf(bool use_phen /* = true*/) const {
 
 double Individual::cton_root(bool use_phen /* = true*/) const {
 
-	bool ifnlim_pft = ifnlim && (pft.landcover==NATURAL || ifnlim_pasture && pft.landcover==PASTURE || ifnlim_crop && pft.landcover==CROPLAND);
+	bool ifnlim_pft = ifnlim && (pft.landcover==NATURAL || pft.landcover == FOREST || ifnlim_pasture && pft.landcover==PASTURE || ifnlim_crop && pft.landcover==CROPLAND);
 
 	if (ifnlim_pft) {
 		if (!negligible(cmass_root) && !negligible(nmass_root)) { 

@@ -346,7 +346,6 @@ void Patch::serialize(ArchiveStream& arch) {
 void Standpft::serialize(ArchiveStream& arch) {
 	arch & cmass_repr
 		& anetps_ff_max
-		& gpterm
 		& fpc_total
 		& active;
 }

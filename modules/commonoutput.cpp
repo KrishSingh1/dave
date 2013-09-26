@@ -131,6 +131,7 @@ void CommonOutput::define_output_tables() {
 	// CFLUX
 	ColumnDescriptors cflux_columns;
 	cflux_columns += ColumnDescriptor("Veg",               8, 3);
+	cflux_columns += ColumnDescriptor("Repr",              8, 3);
 	cflux_columns += ColumnDescriptor("Soil",              8, 3);
 	cflux_columns += ColumnDescriptor("Fire",              8, 3);
 	cflux_columns += ColumnDescriptor("Est",               8, 3);
@@ -321,7 +322,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	// provide any information to the framework.
 
 	int c, m, nclass;
-	double flux_veg, flux_soil, flux_fire, flux_est, flux_charvest;
+	double flux_veg, flux_repr, flux_soil, flux_fire, flux_est, flux_charvest;
 	double c_litter, c_fast, c_slow, c_harv_slow; 
 
 	double surfsoillitterc,surfsoillittern,cwdc,cwdn,centuryc,centuryn,n_litter,n_harv_slow,availn;
@@ -665,7 +666,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		} // *** End of PFT loop ***
 
-		flux_veg = flux_soil = flux_fire = flux_est = flux_charvest = 0.0;
+		flux_veg = flux_repr = flux_soil = flux_fire = flux_est = flux_charvest = 0.0;
 
 		// guess2008 - carbon pools
 		c_litter = c_fast = c_slow = c_harv_slow = 0.0;
@@ -691,6 +692,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
 
 				flux_veg+=-patch.fluxes.get_annual_flux(Fluxes::NPP)*to_gridcell_average;
+				flux_repr+=-patch.fluxes.get_annual_flux(Fluxes::REPR)*to_gridcell_average;
 				flux_soil+=patch.fluxes.get_annual_flux(Fluxes::SOILC)*to_gridcell_average;
 				flux_fire+=patch.fluxes.get_annual_flux(Fluxes::FIREC)*to_gridcell_average;
 				flux_est+=patch.fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;
@@ -913,10 +915,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			{
 				Stand& stand=gridcell.getobj();
 				plot("C flux [kg C/m2/yr]","flux_veg",  date.year, flux_veg);
+				plot("C flux [kg C/m2/yr]","flux_repr", date.year, flux_repr);
 				plot("C flux [kg C/m2/yr]","flux_soil", date.year, flux_soil);
 				plot("C flux [kg C/m2/yr]","flux_fire", date.year, flux_fire);
 				plot("C flux [kg C/m2/yr]","flux_est",  date.year, flux_est);
-				plot("C flux [kg C/m2/yr]","NEE",       date.year, flux_veg + flux_soil + flux_fire + flux_est);
+				plot("C flux [kg C/m2/yr]","NEE",       date.year, flux_veg + flux_repr + flux_soil + flux_fire + flux_est);
 
 				if (!ifcentury) {
 					plot("Soil C [kg C/m2]","slow", date.year, stand[0].soil.cpool_slow);
@@ -947,13 +950,14 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		// Write fluxes to file
 
 		out.add_value(out_cflux, flux_veg);
+		out.add_value(out_cflux, flux_repr);
 		out.add_value(out_cflux, flux_soil);
 		out.add_value(out_cflux, flux_fire);
 		out.add_value(out_cflux, flux_est);
 		if (run_landcover) {
 			 out.add_value(out_cflux, flux_charvest);
 		}
-		out.add_value(out_cflux, flux_veg + flux_soil + flux_fire + flux_est + flux_charvest);
+		out.add_value(out_cflux, flux_veg + flux_repr + flux_soil + flux_fire + flux_est + flux_charvest);
 
 		out.add_value(out_nflux, -andep_gridcell * m2toha);
 		out.add_value(out_nflux, -anfix_gridcell * m2toha);

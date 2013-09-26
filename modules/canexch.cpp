@@ -580,7 +580,7 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 	// Scale fractional PAR absorption at plant projective area level (FPAR) to
 	// fractional absorption at leaf level (APAR)
 	// Eqn 4, Haxeltine & Prentice 1996a
-	double apar = par * fpar * (ifnlimvmax ? ALPHAA_NLIM : ALPHAA);
+	double apar = par * fpar * (ifnlim ? ALPHAA_NLIM : ALPHAA);
 	double b, c1, c2;
 
 	// Calculate temperature-inhibition coefficient
@@ -689,31 +689,13 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 	// each Standpft, assuming FPAR=1. This is then later used in 
 	// forest_floor_conditions.
 	if (!patch.id) {
-		Stand& stand = patch.stand;
 
 		for (int p=0; p<npft; p++) {
-			Standpft& spft = stand.pft[p];
-			Pft& pft = spft.pft;
+			Standpft& spft = patch.stand.pft[p];
 
 			// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
 			photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
-				1.0, pft.lambda_max, pft, 1.0, false, spft.photosynthesis, -1);
-
-			if (date.diurnal()) {
-				spft.gpterms.assign(date.subdaily, 0);
-				PhotosynthesisResult res;
-				spft.phots.assign(date.subdaily, res);
-
-				for (int i=0; i<date.subdaily; i++) {
-					PhotosynthesisResult& result = spft.phots[i];
-					photosynthesis(climate.co2, climate.temps[i], climate.pars[i],
-						24, 1.0, pft.lambda_max, pft, 1.0, false, result, spft.photosynthesis.vm);
-
-					spft.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
-				}
-			}
-			spft.gpterm = gpterm(spft.photosynthesis.adtmm, climate.co2,
-				pft.lambda_max, climate.daylength);
+				1.0, spft.pft.lambda_max, spft.pft, 1.0, false, spft.photosynthesis, -1);
 		}
 	}
 
@@ -963,7 +945,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Calculate scalars to possible nitrogen uptake
 
 		// Current plant mobile nitrogen concentration
-		double ntoc = !negligible(indiv.phen) ? (indiv.nmass_leaf + indiv.nmass_root) / (indiv.cmass_leaf * indiv.phen + indiv.cmass_root) : 0.0;
+		double ntoc = !negligible(indiv.phen) ? (indiv.nmass_leaf + indiv.nmass_root) / (indiv.phen * (indiv.cmass_leaf + indiv.cmass_root)) : 0.0;
 
 		// Scale to maximum nitrogen concentrations
 		indiv.cton_status = max(0.0, (ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_avr - 1.0 / indiv.pft.cton_leaf_min));

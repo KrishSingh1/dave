@@ -563,6 +563,8 @@ public:
 		N2O_FIRE,
 		/// N flux from soil
 		N_SOIL,
+		/// Reproduction costs
+		REPR,
 		/// Number of types, must be last
 		NPERPATCHFLUXTYPES
 	};
@@ -1928,10 +1930,6 @@ public:
 	double anetps_ff_max;
 		// maximum value of anetpsff (potential annual net assimilation at forest
 		// floor) for this PFT in this stand so far in the simulation (kgC/m2/year)
-	double gpterm;
-		// non-FPAR-weighted value for canopy conductance component associated with
-		// photosynthesis for PFT under non-water-stress conditions (mm/s)
-	std::vector<double> gpterms;		// sub-daily version of the above variable (mm/s)
 
 	double fpc_total;
 		// FPC sum for this PFT as average for stand (used by some versions of
@@ -1939,8 +1937,6 @@ public:
 
 	/// Photosynthesis values for this PFT under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;
-	/// sub-daily version of the above variable (NB: daily units)
-	std::vector<PhotosynthesisResult> phots;
 
 	/// Is this PFT allowed to grow in this stand?
 	bool active;

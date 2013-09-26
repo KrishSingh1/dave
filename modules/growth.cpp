@@ -1056,7 +1056,7 @@ void flush_litter_repr(Patch& patch) {
 		Patchpft& pft = patch.pft.getobj();
 		
 		// Updated soil fluxes
-		patch.fluxes.report_flux(Fluxes::SOILC, pft.litter_repr);
+		patch.fluxes.report_flux(Fluxes::REPR, pft.litter_repr);
 		pft.litter_repr = 0.0;
 
 		patch.pft.nextobj();
@@ -1348,8 +1348,8 @@ void growth(Stand& stand, Patch& patch) {
 				indiv.nstore_longterm += litter_root_inc * indiv.densindiv / cton_root_bg * nrelocfrac;
 
 				// Subtracting litter nitrogen from individuals
-				indiv.nmass_leaf -= litter_leaf_inc * indiv.densindiv / cton_leaf_bg;
-				indiv.nmass_root -= litter_root_inc * indiv.densindiv / cton_root_bg;
+				indiv.nmass_leaf -= min(indiv.nmass_leaf, litter_leaf_inc * indiv.densindiv / cton_leaf_bg);
+				indiv.nmass_root -= min(indiv.nmass_root, litter_root_inc * indiv.densindiv / cton_root_bg);
 											
 				// If negative sap growth, then nrelocfrac of nitrogen will go to heart wood and 
 				// (1.0 - nreloctrac) will go to storage
@@ -1428,8 +1428,8 @@ void growth(Stand& stand, Patch& patch) {
 				indiv.nstore_longterm += litter_root_inc / cton_root_bg * nrelocfrac;
 				
 				// Subtracting litter nitrogen from individuals
-				indiv.nmass_leaf -= litter_leaf_inc * indiv.densindiv / cton_leaf_bg;
-				indiv.nmass_root -= litter_root_inc * indiv.densindiv / cton_root_bg;
+				indiv.nmass_leaf -= min(indiv.nmass_leaf, litter_leaf_inc * indiv.densindiv / cton_leaf_bg);
+				indiv.nmass_root -= min(indiv.nmass_root, litter_root_inc * indiv.densindiv / cton_root_bg);
 								
 				// Kill individual and transfer biomass to litter if either biomass
 				// compartment negative
@@ -1477,9 +1477,7 @@ void growth(Stand& stand, Patch& patch) {
 	}
 
 	// Flush nitrogen free litter from reproduction straight to atmosphere
-	if (ifnlim) {
-		flush_litter_repr(patch);
-	}
+	flush_litter_repr(patch);
 }
 
 

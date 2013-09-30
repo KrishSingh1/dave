@@ -295,7 +295,7 @@ void reduce_natural_stands(Gridcell& gridcell, double landcoverfrac_change[NLAND
 			young_stands_first=false;
 //////////////////////
 
-		for(int i=0; i<gridcell.nobj; i++) {
+		for(unsigned int i = 0; i < gridcell.nobj; i++) {
 			int index;
 
 			if(young_stands_first)

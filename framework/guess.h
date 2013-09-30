@@ -2596,7 +2596,7 @@ public:
 		// Constructor: initialises various members and builds list array
 		// of Patchpft objects.
 
-		for(int p=0;p<pftlist.nobj;p++) {
+		for(unsigned int p = 0; p < pftlist.nobj; p++) {
 			pft.createobj(pftlist[p]);
 		}
 

@@ -429,20 +429,18 @@ void Standpft::serialize(ArchiveStream& arch) {
 // Implementation of Stand member functions
 ////////////////////////////////////////////////////////////////////////////////
 
-cropphen_struct* Patchpft::get_cropphen() 
-{
-	if(pft.landcover!=CROPLAND)
+cropphen_struct* Patchpft::get_cropphen() {
+	if (pft.landcover != CROPLAND) {
 		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
-	else
-		return cropphen;
+	}
+	return cropphen;
 }
 
-cropphen_struct* Patchpft::set_cropphen()
-{
-	if(pft.landcover!=CROPLAND)
+cropphen_struct* Patchpft::set_cropphen() {
+	if (pft.landcover != CROPLAND) {
 		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
-	else
-		return cropphen;
+	}
+	return cropphen;
 }
 
 
@@ -707,17 +705,17 @@ Individual::~Individual() {
 }
 
 cropindiv_struct* Individual::get_cropindiv() {
-	if(pft.landcover!=CROPLAND)
+	if (pft.landcover != CROPLAND) {
 		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
-	else
-		return cropindiv;
+	}
+	return cropindiv;
 }
 
 cropindiv_struct* Individual::set_cropindiv() {
-	if(pft.landcover!=CROPLAND)
+	if (pft.landcover != CROPLAND) {
 		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
-	else
-		return cropindiv;
+	}
+	return cropindiv;
 }
 
 void cropindiv_struct::serialize(ArchiveStream& arch) {
@@ -1201,7 +1199,7 @@ void Gridcell::create_stand_lu(landcovertype lc, double fraction, int cftid)
 			if(cftid < 0)
 				fail("call to create_stand_lu() with landcover==CROPLAND must include a cftid\n");
 
-			int index;
+			unsigned int index;
 
 			for(index = 0; index < pftlist.nobj; index++) {
 				if(pftlist[index].cftid == cftid) {
@@ -1223,14 +1221,14 @@ void Gridcell::create_stand_lu(landcovertype lc, double fraction, int cftid)
 			if(pftlist[index].intercrop==NATURALGRASS && ifintercropgrass) {
 				stand.hasgrassintercrop = true;
 
-				for(int i=0; i<pftlist.nobj; i++) {
+				for(unsigned int i=0; i<pftlist.nobj; i++) {
 					if(pftlist[i].isintercropgrass)
 						stand.pft[pftlist[i].id].active = true;
 				}
 			}
 
 			// Set crop cycle dates to default values.
-			for(int i=0; i<stand.nobj; i++) {
+			for(unsigned int i = 0; i < stand.nobj; i++) {
 
 				stand[i].pft[pftlist[index].id].set_cropphen()->sdate = stand.gridcell.pft[pftlist[index].id].sdate_default;
 				stand[i].pft[pftlist[index].id].set_cropphen()->hlimitdate = stand.gridcell.pft[pftlist[index].id].hlimitdate_default;

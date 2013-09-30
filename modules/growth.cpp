@@ -1023,16 +1023,16 @@ bool allometry(Individual& indiv) {
 						strncpy(name_start, indiv.pft.name, 4);
 						sp = name_start + 1;										//NB: this works with current pft names. CC3G_ic and C3G_pasture
 
-						for(int i=0; i<gridcell.nobj && !done; i++)	{
+						for(unsigned int i = 0; i < gridcell.nobj && !done; i++) {
 
 							Stand& stand=gridcell[i];
 							if(stand.landcover == PASTURE)
 							{
-								for(int j=0; j<stand.nobj && !done; j++)
+								for(unsigned int j = 0; j < stand.nobj && !done; j++)
 								{
 									Patch& patch = stand[j];
 									Vegetation& vegetation = patch.vegetation;
-									for(int k=0; k<vegetation.nobj && !done; k++) {
+									for(unsigned int k = 0; k < vegetation.nobj && !done; k++) {
 										Individual& grass_indiv = vegetation[k];
 
 										if(!strncmp(sp, grass_indiv.pft.name, 3)) {	//NB: this works with current pft names. CC3G_ic and C3G_pasture
@@ -1053,14 +1053,14 @@ bool allometry(Individual& indiv) {
 						strncpy(name_start, indiv.pft.name, 4);
 						sp = name_start;											//NB: this works with current pft names. CC3G_ic and CC3G
 
-						for(int i=0; i<gridcell.nobj && !done; i++)	{
+						for(unsigned int i = 0; i < gridcell.nobj && !done; i++) {
 							Stand& stand = gridcell[i];
 							if(stand.landcover == CROPLAND)	{
-								for(int j=0; j<stand.nobj && !done; j++)
+								for(unsigned int j = 0; j < stand.nobj && !done; j++)
 								{
 									Patch& patch = stand[j];
 									Vegetation& vegetation = patch.vegetation;
-									for(int k=0; k<vegetation.nobj && !done; k++) {
+									for(unsigned int k = 0; k < vegetation.nobj && !done; k++) {
 										Individual& grass_indiv = vegetation[k];
 
 										if(!strncmp(sp, grass_indiv.pft.name, 3) && !grass_indiv.istruecrop_or_intercropgrass()) {	//NB: this works with current pft names. CC3G_ic and CC3G							

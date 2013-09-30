@@ -195,7 +195,7 @@ double TimeDataD::Get(int yearX, int column) const
 	return dataX;
 }
 
-double TimeDataD::Get(int yearX, char* name) const		//Returns a single value for column with header string name
+double TimeDataD::Get(int yearX, const char* name) const		//Returns a single value for column with header string name
 {
 	int column=-1;
 	double dataX=-1;
@@ -486,7 +486,7 @@ int TimeDataD::ParseFormat()	//Checks format, sets nRecords, ifheader and header
 	if(ifheader)
 	{
 		dprintf("header:\n");
-		for(i=0;i<count1 && *(header_arr[i])!='/0';i++)
+		for(i=0;i<count1 && *(header_arr[i])!='\0';i++)
 			dprintf("%s\t", header_arr[i]);
 		dprintf("\n");
 	}

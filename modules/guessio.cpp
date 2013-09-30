@@ -353,7 +353,7 @@ InData::Coord DemoInput::GetLonLat(Coord coord) {
 /// Transfers gridlist of coordinates from DemoInput::Coord to InData::Coord
 void DemoInput::GetLonLatList(ListArray_id<InData::Coord>&lonlatlist, ListArray_id<Coord>& gridlist) {
 
-	for(int i=0;i<gridlist.nobj;i++) {
+	for(unsigned int i = 0; i < gridlist.nobj; i++) {
 		InData::Coord& c= lonlatlist.createobj();
 		c.lon=gridlist[i].lon;
 		c.lat=gridlist[i].lat;
@@ -512,7 +512,7 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 				gridcell.climate.adjustlat=181;
 			}
 
-			for(int p=0;p<gridcell.pft.nobj;p++) {
+			for(unsigned int p = 0; p < gridcell.pft.nobj; p++) {
 				Gridcellpft& gcpft=gridcell.pft[p];
 
 				if (gridcell.get_lat()>=0.0) {

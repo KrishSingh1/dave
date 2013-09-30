@@ -611,14 +611,14 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("turnover_harv_prod",&ppft->turnover_harv_prod,0.0,1.0,1,CB_NONE,"Harvested products turnover (fraction/year)");
 		declareitem("res_outtake",&ppft->res_outtake,0.0,1.0,1,CB_NONE,"Fraction of residue outtake at harvest");
 
-		declareitem("cftid",&ppft->cftid,0,100.0,1,CB_NONE,"CFT id");
-		declareitem("sdatenh",&ppft->sdatenh,1,365.0,1,CB_NONE,"sowing day northern hemisphere");
-		declareitem("sdatesh",&ppft->sdatesh,1,365.0,1,CB_NONE,"sowing day southern hemisphere");
-		declareitem("hlimitdatenh",&ppft->hlimitdatenh,1,365.0,1,CB_NONE,"last harvest date in the northern hemisphere");
-		declareitem("hlimitdatesh",&ppft->hlimitdatesh,1,365.0,1,CB_NONE,"last harvest date in the southern hemisphere");
+		declareitem("cftid",&ppft->cftid,0,100,1,CB_NONE,"CFT id");
+		declareitem("sdatenh",&ppft->sdatenh,1,365,1,CB_NONE,"sowing day northern hemisphere");
+		declareitem("sdatesh",&ppft->sdatesh,1,365,1,CB_NONE,"sowing day southern hemisphere");
+		declareitem("hlimitdatenh",&ppft->hlimitdatenh,1,365,1,CB_NONE,"last harvest date in the northern hemisphere");
+		declareitem("hlimitdatesh",&ppft->hlimitdatesh,1,365,1,CB_NONE,"last harvest date in the southern hemisphere");
 		declareitem("tb",&ppft->tb,0.0,25.0,1,CB_NONE,"");
 		declareitem("trg",&ppft->trg,0.0,20.0,1,CB_NONE,"");
-		declareitem("pvd",&ppft->pvd,0.0,100.0,1,CB_NONE,"");
+		declareitem("pvd",&ppft->pvd,0,100,1,CB_NONE,"");
 		declareitem("isintercropgrass",&ppft->isintercropgrass,1,CB_NONE,"Whether this pft is allowed to grow in intercrop period");
 		declareitem("psens",&ppft->psens,0.0,1.0,1,CB_NONE,"");
 		declareitem("pb",&ppft->pb,0.0,24.0,1,CB_NONE,"");
@@ -636,8 +636,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifsdprec",&ppft->ifsdprec,1,CB_NONE,"Whether sowing date is to be calculated from 2-year precipitation data");
 		declareitem("tempautumn",&ppft->tempautumn,0.0,25.0,1,CB_NONE,"");
 		declareitem("tempspring",&ppft->tempspring,0.0,25.0,1,CB_NONE,"");
-		declareitem("firstsowdatenh_prec",&ppft->firstsowdatenh_prec,-1,365.0,1,CB_NONE,"precipitation-limited sowing date in the northern hemisphere");	// only used in Crop_sowing_date_prec()
-		declareitem("firstsowdatesh_prec",&ppft->firstsowdatesh_prec,-1,365.0,1,CB_NONE,"precipitation-limited sowing date in the southern hemisphere");	// only used in Crop_sowing_date_prec()
+		declareitem("firstsowdatenh_prec",&ppft->firstsowdatenh_prec,-1,365,1,CB_NONE,"precipitation-limited sowing date in the northern hemisphere");	// only used in Crop_sowing_date_prec()
+		declareitem("firstsowdatesh_prec",&ppft->firstsowdatesh_prec,-1,365,1,CB_NONE,"precipitation-limited sowing date in the southern hemisphere");	// only used in Crop_sowing_date_prec()
 		declareitem("hiopt",&ppft->hiopt,0.0,2.0,1,CB_NONE,"");
 		declareitem("himin",&ppft->himin,0.0,2.0,1,CB_NONE,"");
 		declareitem("frootstart",&ppft->frootstart,0.0,1.0,1,CB_NONE,"");

@@ -853,7 +853,7 @@ void mortality_lpj(Stand& stand, Patch& patch,Climate& climate, double fireprob)
 			if (indiv.pft.landcover==CROPLAND && patch.stand.landcover==CROPLAND) {
 				fpc_grass=0.0;
 
-				for(int i=0;i<vegetation.nobj;i++) {		//covegetation and secondary vegetation for future use
+				for(unsigned int i = 0; i < vegetation.nobj; i++) {		//covegetation and secondary vegetation for future use
 					if(indiv.cropindiv->isprimarycrop && (vegetation[i].cropindiv->isprimarycrop || vegetation[i].cropindiv->isprimarycovegetation))
 						fpc_grass+=vegetation[i].fpc_daily;
 					else if(indiv.cropindiv->isintercropgrass && vegetation[i].cropindiv->isintercropgrass)

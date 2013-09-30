@@ -138,7 +138,7 @@ public:
 	int LoadNext();								//For stepping through a data file, loading each coordinate data consecutively
 	void Output(char*);	
 	double Get(int year, int column) const;		//Returns a single value
-	double Get(int year, char* name) const;		//Returns a single value for column with header string name
+	double Get(int year, const char* name) const;		//Returns a single value for column with header string name
 	int Get(int year, double* dataX) const;		//Copies the values for one year data to the dataX array, returns 0 if wrong format.
 	int Get(double* dataX) const;				//Copies all data to the dataX array, returns 0 if wrong format.
 //	double* Get(int year) const;

@@ -60,7 +60,6 @@ int stepfromdate(int day, int step) {
 
 /// Creation of stands when run_landcover==true
 void landcover_init(Gridcell& gridcell, InputModule* input_module) {
-	landcovertype landcover;
 
 	// get landcover and crop area fractions from landcover input file(s) or ins-file.
 	input_module->getlandcover(gridcell);
@@ -908,7 +907,6 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
  */
 void check_crop_temp_limits(Climate& climate, Gridcellpft& gridcellpft) {
 
-	int y,startyear;
 	Pft& pft = gridcellpft.pft;
 
 	// check if spring conditions are present this day:
@@ -1303,7 +1301,7 @@ void calc_sowing_windows(Gridcell& gridcell)
  */
 void calc_m_climate_20y_mean(Climate& climate)
 {
-	int i, m, y;
+	int m, y;
 	int startyear = 20 - (int)min(19, date.year);
 	double var_temp = 0, var_prec = 0;
 	double mtemp20kelvin[12], prec_pet_ratio20[12];
@@ -1513,7 +1511,7 @@ void calc_seasonality(Gridcell& gridcell) {
 /// Monitors climate history relevant for sowing date calculation. Calculates initial sowing dates/windows.
 void crop_sowing_gridcell(Gridcell& gridcell) {
 
-	int d,y,startyear;
+	int d;
 	Climate& climate = gridcell.climate;
 
 	if (date.year==0 && date.day == 0) {
@@ -1796,7 +1794,7 @@ void Crop_sowing_date_new(Patch& patch, Pft& pft) {
 	Gridcellpft& gridcellpft = gridcell.pft[pft.id];
 	Climate& climate = gridcell.climate;
 	seasonality_type seasonality = climate.seasonality;
-	double length_growseas_def;
+	int length_growseas_def;
 	bool temp_sdate = false, prec_sdate = false, def_sdate = false;
 
 	// Different sowing date options for irrigated crops at sites with climate.seasonality == SEASONALITY_PRECTEMP:
@@ -1877,7 +1875,7 @@ void Crop_sowing_date_new(Patch& patch, Pft& pft) {
 			else
 				ppftcrop.hlimitdate = gridcellpft.hlimitdate_default;
 
-			length_growseas_def = min(length_growseas_def, 245.0);				// set an upper limit of 245 for the growing season
+			length_growseas_def = min(length_growseas_def, 245);				// set an upper limit of 245 for the growing season
 
 			if(pft.ifsdautumn) { // winter crops
 
@@ -1900,7 +1898,7 @@ void Crop_sowing_date_new(Patch& patch, Pft& pft) {
 					if(pft.hydrology == IRRIGATED)
 						ppftcrop.hucountend = stepfromdate(date.day, length_growseas_def);
 					else
-						ppftcrop.hucountend = stepfromdate(date.day, min(length_growseas_def, 210.0)); // shorter growing period when risk for water stress.
+						ppftcrop.hucountend = stepfromdate(date.day, min(length_growseas_def, 210)); // shorter growing period when risk for water stress.
 				}
 				else
 					ppftcrop.hucountend = stepfromdate(date.day, length_growseas_def);
@@ -2235,7 +2233,7 @@ void crop_phenology(Patch& patch)
 		Gridcell& gridcell = patch.stand.gridcell;
 		Climate& climate = gridcell.climate;
 		Gridcellpft& gridcellpft = gridcell.pft[pft.id];
-		double hu = 0.0, k, c;
+		double hu = 0.0;
 
 if(patch.stand.pft[pft.id].active)
 		if(pft.phenology == CROPGREEN) {
@@ -2712,7 +2710,6 @@ if(!SUPPRESSLARGEOUTPUT)
 void growth_crop_daily(Patch& patch) {
 
 	double froot, fleaf;
-	double grs_cmass_plant_old;
 	double grs_cmass_root_old;
 	double grs_cmass_leaf_old;
 	double grs_cmass_ho_old;
@@ -3078,7 +3075,7 @@ void harvest_pasture(double& cmass_leaf, double& cmass_root,
 		double& nmass_litter_leaf, double& nmass_litter_root, double& anflux_harvest, double& harvested_products_slow_nmass, double& retransn,
 		double& litter_leaf, double& litter_root, double& acflux_harvest, double& harvested_products_slow, Individual& indiv) {
 
-	double turnover, residue_outtake, harvest;
+	double turnover, harvest;
 	double scale = 1.0;
 	bool alive = indiv.alive;
 	Gridcell& gridcell = indiv.vegetation.patch.stand.gridcell;

@@ -1237,7 +1237,7 @@ void CRUInput::getsowingdates(Gridcell& gridcell) {
 		for(i=0; i<npft; i++) {
 			if(pftlist[i].cftid >= 0 && pftlist[i].forcesowingdate)	{ //natural pft:s have cftid=-1	
 #if defined DYNAMIC_LANDCOVER_INPUT
-				gridcell.pft[i].sdate_force = sdates.Get(year,pftlist[i].name);
+				gridcell.pft[i].sdate_force = (int)sdates.Get(year,pftlist[i].name);
 #endif
 			}
 		}
@@ -1257,7 +1257,7 @@ void CRUInput::getharvestdates(Gridcell& gridcell) {
  		for(i=0; i<npft; i++)	{
 			if(pftlist[i].cftid >= 0 && pftlist[i].forceharvestdate) {	//natural pft:s have cftid=-1			
 #if defined DYNAMIC_LANDCOVER_INPUT
-				gridcell.pft[pftlist[i].id].hdate_force = hdates.Get(year,pftlist[i].name);
+				gridcell.pft[pftlist[i].id].hdate_force = (int)hdates.Get(year,pftlist[i].name);
 #endif
 			}
 		}

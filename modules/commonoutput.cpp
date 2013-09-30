@@ -821,7 +821,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				int pft_hdate1=-1;
 				int pft_hdate2=-1;
 				int pft_lgp=-1;
-				int pft_phu=-1;
+				double pft_phu=-1;
 				double pft_fphu=-1;
 				double pft_fhi=-1;
 

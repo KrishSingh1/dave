@@ -82,7 +82,7 @@ void landcover_init(Gridcell& gridcell, InputModule* input_module) {
 			pftlist.firstobj();
 			while (pftlist.isobj) {
 				Pft& pft = pftlist.getobj();
-				if(pft.landcover == CROPLAND) {
+				if(pft.landcover == CROPLAND && pft.cftid >= 0) {
 					if(gridcell.cftfrac[pft.cftid] > 0.0) {
 						gridcell.create_stand_lu(CROPLAND, gridcell.cftfrac[pft.cftid] * gridcell.landcoverfrac[CROPLAND], pft.cftid);
 					}
@@ -654,7 +654,7 @@ void stand_dynamics(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTY
 			pftlist.firstobj();
 			while (pftlist.isobj) {
 				Pft& pft=pftlist.getobj();
-				if(pft.landcover == CROPLAND) {
+				if(pft.landcover == CROPLAND && pft.cftid >= 0) {
 
 					// Is this PFT already present in a crop stand ?
 					bool present = false;

@@ -401,14 +401,22 @@ void CRUInput::init() {
 		//Retrieve file names for landcover files and open them if static values from ins-file are not used
 		if (!lcfrac_fixed) {
 
-			if (run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST]) {
+			bool openLUfile = false;
+
+			for(int i=0; i<NLANDCOVERTYPES; i++) {
+				if(run[i] && i != NATURAL)
+					openLUfile = true;
+			}
+
+			if (openLUfile) {
 				file_lu=param["file_lu"].str;
 #if defined DYNAMIC_LANDCOVER_INPUT
 				// Open landcover area fraction file, return false if problem
 				if(!LUdata.Open(file_lu))
 					fail("initio: could not open %s for input",(char*)file_lu);
-				else if(LUdata.format==InData::LOCAL_YEARLY) {
-					all_fracs_const=false;				//Set all_fracs_const to false if yearly data
+				else {
+					if(LUdata.format==InData::LOCAL_YEARLY)
+						all_fracs_const=false;				//Set all_fracs_const to false if yearly data
 
 #ifdef LUTOMEMORY
 					// Save all landcover area fraction data in memory
@@ -441,21 +449,6 @@ void CRUInput::init() {
 				}
 #endif
 			}
-			// special case for peatland: separate fraction file
-			if (run[PEATLAND]) {
-				file_peat=param["file_peat"].str;
-#if defined DYNAMIC_LANDCOVER_INPUT	
-#ifdef LUTOMEMORY
-				fail("initio: Please modify code for use of LUTOMEMORY with extra land cover input file (needed for quick use of randomised gridlists) or turn option off!");
-#endif
-				// Open peatland area fraction file, return false if problem
-				if(!Peatdata.Open(file_peat))
-					fail("initio: could not open %s for input",(char*)file_peat);
-				else if(Peatdata.format==InData::LOCAL_YEARLY)
-					all_fracs_const=false;				//Set all_fracs_const to false if yearly data
-#endif
-			}
-
 		}
 
 		//Retrieve file names for crop fraction file and open them if static equal-size values are not used.
@@ -499,7 +492,7 @@ void CRUInput::init() {
 				}
 			}
 
-			if(CFTdata.format==InData::LOCAL_YEARLY) {
+			if(CFTdata.format==InData::LOCAL_YEARLY) 
 				all_fracs_const=false;				// Set all_fracs_const to false if yearly data
 
 #ifdef LUTOMEMORY
@@ -530,7 +523,6 @@ void CRUInput::init() {
 				}
 				delete[] celldata;
 #endif
-			}
 
 //			for(int i=0;i<CFTdata.nRecords;i++)
 //				dprintf("%s:CFTdata.active=%d\n", CFTdata.GetHeader(i), CFTdata.active[i]);
@@ -632,8 +624,15 @@ bool CRUInput::loadlandcover(Gridcell& gridcell, Coord cc) {
 		// Landcover fraction data: read from land use fraction file; dynamic, so data for all years are loaded to LUdata object and 
 		// transferred to gridcell.landcoverfrac each year in getlandcover()
 
+			bool loadLU = false;
+
+			for(int i=0; i<NLANDCOVERTYPES; i++) {
+				if(run[i] && i != NATURAL)
+					loadLU = true;
+			}
+
 #if defined DYNAMIC_LANDCOVER_INPUT
-		if (run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST]) {
+		if (loadLU) {
 			// Load landcover area fraction data from input file to data object
 #ifdef LUTOMEMORY
 			if (!LUdata_mem.Load(c)) {
@@ -642,14 +641,6 @@ bool CRUInput::loadlandcover(Gridcell& gridcell, Coord cc) {
 #endif		
 				dprintf("Problems with landcover fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;		// skip this stand
-			}
-		}
-
-		if (run[PEATLAND] && !LUerror) {
-			if(!Peatdata.Load(c))	//special case for peatland: separate fraction file
-			{
-				dprintf("Problems with natural fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
-				LUerror=true;	// skip this stand						
 			}
 		}
 #endif
@@ -1018,7 +1009,14 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 	}
 	else {	// landcover area fractions are read from input file(s)	
 #if defined DYNAMIC_LANDCOVER_INPUT
-		if(run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST]) {	
+		bool getLU = false;
+
+		for(i=0; i<NLANDCOVERTYPES; i++) {
+			if(run[i] && i != NATURAL)
+				getLU = true;
+		}
+
+		if(getLU) {	
 			// To allow run without LU data in landcover file (sets NATURAL to 1.0)
 #ifdef LUTOMEMORY
 			if(LUdata_mem.Get(year,0)==-9.999) {
@@ -1031,7 +1029,7 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 				sum_active=1.0;	//fix 110316
 			}
 			else {
-				for(i=0;i<PEATLAND;i++)	{	// peatland fraction data is not in this file, otherwise i<NLANDCOVERTYPES.				
+				for(i=0;i<NLANDCOVERTYPES;i++)	{				
 #ifdef LUTOMEMORY
 					sum_tot+=gridcell.landcoverfrac[i]=LUdata_mem.Get(year,i);					// count sum of all fractions (should be 1.0)
 #else
@@ -1042,7 +1040,7 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 				gridcell.landcoverfrac[PASTURE]+=gridcell.landcoverfrac[CROPLAND];
 				gridcell.landcoverfrac[CROPLAND]=0.0;
 #endif
-				for(i=0;i<PEATLAND;i++)	{	// peatland fraction data is not in this file, otherwise i<NLANDCOVERTYPES.				
+				for(i=0;i<NLANDCOVERTYPES;i++)	{				
 					if(gridcell.landcoverfrac[i]<0.0 || gridcell.landcoverfrac[i]>1.0) {		// discard unreasonable values							
 						if(date.year==0)
 							dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
@@ -1067,17 +1065,13 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 						if(!SUPPRESSLARGEOUTPUT)
 							dprintf("Rescaling landcover fractions year %d ! (sum is within 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
 
-					for(i=0;i<PEATLAND;i++)
+					for(i=0;i<NLANDCOVERTYPES;i++)
 						sum_active+=gridcell.landcoverfrac[i]/=sum_tot;
 				}
 			}
 		}
 		else
 			gridcell.landcoverfrac[NATURAL]=0.0;
-
-		if(run[PEATLAND]) {	// ToDo: Add code to cope with LUTOMEMORY !	
-			sum_active+=gridcell.landcoverfrac[PEATLAND]=Peatdata.Get(year,"PEATLAND");			//peatland fraction data is currently in a separate file
-		}
 
 		// NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
 		if(sum_active!=1.0)	{	// if landcover types are turned off in the ini-file, or if more landcover types are added in other input files, can be either less or more than 1.0

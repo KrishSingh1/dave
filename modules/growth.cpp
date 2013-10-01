@@ -99,7 +99,7 @@ void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
 			// Summergreen grasses have no maximum number of leaf-on days per
 			// growing season, and no chilling requirement
 
-			if(pft.landcover == NATURAL || pft.landcover == FOREST)
+			if(pft.landcover == NATURAL || pft.landcover == FOREST)	// All landcovers that include trees.
 				phen = min(1.0, climate.gdd5 / pft.phengdd5ramp);
 			else
 				phen = min(1.0, climate.gdd5_pasture / pft.phengdd5ramp);
@@ -160,7 +160,7 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 
 
 
-	if ((patch.stand.landcover==NATURAL || patch.stand.landcover == FOREST) && leafout) {
+	if ((patch.stand.landcover==NATURAL || patch.stand.landcover == FOREST) && leafout) { // All landcovers that include trees.
 		climate.ifsensechill = true; // CHILLDAYS
 	}
 
@@ -1341,7 +1341,7 @@ void growth(Stand& stand, Patch& patch) {
 			double retransn = 0.0;
 
 			// Tissue turnover and associated litter production
-			if(indiv.pft.landcover==NATURAL || indiv.pft.landcover == FOREST) {
+			if(indiv.pft.landcover != CROPLAND && indiv.pft.landcover != PASTURE) {
 				turnover(indiv.pft.turnover_leaf, indiv.pft.turnover_root,
 					indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
 					indiv.cmass_leaf, indiv.cmass_root, indiv.cmass_sap, indiv.cmass_heart,

@@ -159,14 +159,14 @@ fi
 for ((a=1; a <= $NPROCESS ; a++))
 do
   cd run\$a
-  if [-f local ]; then
+  if [ -h local ]; then
       rm local
   fi
   ln -s \$PBS_O_LOCAL local
   cd ..
 done
 
-mpiexec BINARY -parallel -input $INPUT_MODULE $INSFILE
+mpiexec -n $NPROCESS BINARY -parallel -input $INPUT_MODULE $INSFILE
 
 EOF
 

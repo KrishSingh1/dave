@@ -24,7 +24,7 @@ void interp_monthly_means_conserve(const double* mvals, double* dvals);
 void interp_monthly_totals_conserve(const double* mvals, double* dvals);
 void distribute_ndep(const double* mndry, const double* mnwet,
                      const double* dprec, double* dndep);
-void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12], long seed);
+void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12], long& seed);
 void dailyaccounting_gridcell(Gridcell& gridcell);
 void dailyaccounting_stand(Stand& stand);
 void dailyaccounting_patch(Patch& patch);

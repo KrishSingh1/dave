@@ -388,7 +388,7 @@ void distribute_ndep(const double* mndry, const double* mnwet,
  *  \param mval_wet   expected number of rain days for month
  *  \param seed       seed for generating random numbers (\see randfrac)
  */
-void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12], long seed) {
+void prdaily(double mval_prec[12], double dval_prec[365], double mval_wet[12], long& seed) {
 
 //  Distribution of monthly precipitation totals to quasi-daily values
 //  (From Dieter Gerten 021121)

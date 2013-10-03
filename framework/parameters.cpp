@@ -840,9 +840,6 @@ void plib_callback(int callback) {
 			if (!itemparsed("nyear_dyn_phu")) badins("nyear_dyn_phu");
 			if (!itemparsed("forcesowingdates")) badins("forcesowingdates");
 			if (!itemparsed("forceharvestdates")) badins("forceharvestdates");
-#ifdef HAVE_MPI
-			minimizecftlist=false;
-#endif
 
 #ifndef DYNAMIC_LANDCOVER_INPUT
 			if(!lcfrac_fixed || !cftfrac_fixed || forcesowingdates || forceharvestdates)

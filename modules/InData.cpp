@@ -2109,6 +2109,13 @@ void TimeDataD::Close()
 
 double TimeDataDmem::Get(int year, int column) const
 {
+	if(column>=nColumns)
+	{
+		if(year==1)
+			printf("WARNING: Trying to retreive more columns than available. Value set to 0.0 \n");
+		return 0.0;
+	}
+
 	if(currentCell>=0)
 		return data[currentCell][year*nColumns+column];
 	else

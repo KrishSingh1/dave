@@ -2751,6 +2751,10 @@ public:
 		return landcover==CROPLAND && pft[pftid].pft.phenology==CROPGREEN;
 	}
 
+	bool ifnlim_stand() const {
+		return ifnlim && ifnlim_lc[landcover];
+	}
+
 	void serialize(ArchiveStream& arch);
 
 private:

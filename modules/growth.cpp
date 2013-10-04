@@ -1230,8 +1230,6 @@ void growth(Stand& stand, Patch& patch) {
 	int p;
 	bool killed;
 
-	bool ifnlim_stand = ifnlim && (patch.stand.landcover==NATURAL || patch.stand.landcover == FOREST || ifnlim_pasture && patch.stand.landcover==PASTURE || ifnlim_crop && patch.stand.landcover==CROPLAND);
-
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation = patch.vegetation;
 	Gridcell& gridcell = vegetation.patch.stand.gridcell;
@@ -1276,7 +1274,7 @@ void growth(Stand& stand, Patch& patch) {
 		// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle and Friend 2010 SM eq 19) 	
 		double cton_leaf_aopt = max(indiv.cton_leaf_aopt ,indiv.pft.cton_leaf_avr);
 
-		if (ifnlim_stand)
+		if (stand.ifnlim_stand())
 			nscal = min(1.0, cton_leaf_aopt / indiv.cton_leaf_aavr);
 		else 
 			nscal = 1.0;
@@ -1634,7 +1632,7 @@ void growth(Stand& stand, Patch& patch) {
 	}
 
 	// Flush nitrogen free litter from reproduction straight to atmosphere
-	if (ifnlim_stand) {
+	if (stand.ifnlim_stand()) {
 		flush_litter_repr(patch);
 	}
 }

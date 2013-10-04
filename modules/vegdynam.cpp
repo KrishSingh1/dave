@@ -1473,7 +1473,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		if (stand.landcover!=CROPLAND) {
 #endif
 			// Disturbance for equilsom() to get century SOM pool to equilibrium faster
-			if (ifcentury && (date.year == (int)((patch.soil.solvesomcent_beginyr + patch.soil.solvesomcent_endyr)/2) || (date.year == freenyears && ifnlim))) {
+			if (ifcentury && (date.year == (int)((patch.soil.solvesomcent_beginyr + patch.soil.solvesomcent_endyr)/2) || (date.year == freenyears && stand.ifnlim_stand()))) {
 				disturbance(patch, 1.0);
 				if (patch.disturbed) {
 					return; // no mortality or establishment this year

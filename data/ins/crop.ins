@@ -25,9 +25,6 @@ file_cpool_pasture "cpool_pasture.out"
 file_cpool_natural "cpool_natural.out"
 file_cpool_forest "cpool_forest.out"
 
-ifdailynpp 1			! whether to calculate NPP daily (1) or monthly (0)
-ifdailydecomp 1			! whether to calculate soil respiration daily (1) or monthly (0)
-
 !!!!!!!!!!!! landcover parameters !!!!!!!!!!!!!!					
 
 run_landcover 1        ! whether to use (and change) landcover fractions (1) or not (0)						
@@ -120,7 +117,7 @@ group "crop" (
 	include 1
 	phenology "cropgreen"
 	rootdist 0.9 0.1  !Sitch et al give 0.9 0.1	Fraction of fine roots in the upper and lower soil layers.
-	sla 41.1      ! value overridden if "ifcalcsla 1" specified above
+!	sla 41.1      ! value overridden if "ifcalcsla 1" specified above
 	fireresist 0.5  ! 9.11.02  Alb (originally fireresist=1)						!Included in grass
 	respcoeff 1   ! Sitch et al 2001 specify 1.2				!090910 for cohort /ML; NB: guess2.1 grass value is 2.0. Keep 1.0 for crops ??
 	gmin 0.5

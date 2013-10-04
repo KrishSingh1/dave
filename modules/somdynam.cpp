@@ -461,10 +461,10 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 	double leachsum_cmass, leachsum_nmass;
 	double nmin_actual;	// actual (not net) nitrogen mineralisation
 	double nimmob;		// nitrogen immobilisation
-	bool ifnlim_stand = ifnlim && (patch.stand.landcover==NATURAL || patch.stand.landcover == FOREST || ifnlim_pasture && patch.stand.landcover==PASTURE || ifnlim_crop && patch.stand.landcover==CROPLAND);
 
 	const double EPS = 1.0e-16;
 
+	Stand& stand = patch.stand;
 	Fluxes& fluxes = patch.fluxes;
 	Soil& soil = patch.soil;
 
@@ -476,7 +476,7 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 	}
 
 	// Warning if soil available nitrogen is negative (if happens once or so no problem, but if it propagates through time then it is)
-	if (ifnlim_stand) {
+	if (stand.ifnlim_stand()) {
 		assert(soil.nmass_avail > -EPS);
 	}
 
@@ -646,7 +646,7 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 
 		// Estimate daily soil mineral nitrogen pool after decomposition
 		// (negative value = immobilisation) 
-		if ((tot_net_min + soil.nmass_avail + EPS >= 0.0) || !ifnlim_stand) {
+		if ((tot_net_min + soil.nmass_avail + EPS >= 0.0) || !stand.ifnlim_stand()) {
 
 			net_mineralization = true;
 		}
@@ -703,7 +703,7 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 
 	// If no nitrogen limitation or during free nitrogen years set soil 
 	// available nitrogen to its saturation level. 
-	if (!ifnlim_stand || date.year <= freenyears)
+	if (!stand.ifnlim_stand() || date.year <= freenyears)
 		soil.nmass_avail = NMASS_SAT;
 }
 

@@ -170,8 +170,8 @@ double TimeDataD::Get(int yearX, int column) const
 
 	if(column>=nRecords)
 	{
-		if(yearX==1)	//Set to 1 in crop branch, was 0.
-			printf("WARNING: Trying to retreive more columns than available in %s. Value set to 0.0 \n", fileName);
+//		if(yearX==1)	//Set to 1 in crop branch, was 0.
+//			printf("WARNING: Trying to retreive more columns than available in %s. Value set to 0.0 \n", fileName);
 		return 0.0;
 	}
 
@@ -244,7 +244,7 @@ int TimeDataD::Open(char* name)
 
 	if(ifp)
 	{
-		dprintf("\nOpened input file %s\n", name);	// Test
+//		dprintf("\nOpened input file %s\n", name);	// Test
 		fileName=new char[strlen(name)+1];
 		fileopened=true;
 
@@ -266,7 +266,7 @@ int TimeDataD::Open(char* name)
 		else if(format==GLOBAL_YEARLY || format==LOCAL_YEARLY)
 		{
 			nYears=ParseNYears();	// Parse numbers of years in input file
-			printf("nYears:%d\n", nYears);
+//			printf("nYears:%d\n", nYears);
 			if(nYears==0)
 			{
 				printf("Wrong format in file %s (nYears=0)!\n", name);
@@ -483,14 +483,14 @@ int TimeDataD::ParseFormat()	//Checks format, sets nRecords, ifheader and header
 	else
 		ifheader=false;
 
-	if(ifheader)
+/*	if(ifheader)
 	{
 		dprintf("header:\n");
 		for(i=0;i<count1 && *(header_arr[i])!='\0';i++)
 			dprintf("%s\t", header_arr[i]);
 		dprintf("\n");
 	}
-
+*/
 
 //Second line:
 	do			// Just in case there is a blank line at the beginning...
@@ -570,7 +570,7 @@ int TimeDataD::ParseFormat()	//Checks format, sets nRecords, ifheader and header
 		{
 			nRecords=count2-1-offset;
 //			printf("Format in input file is compatible with LOCAL_YEARLY flag\n");
-			dprintf("nRecords:%d\n", nRecords);
+//			dprintf("nRecords:%d\n", nRecords);
 			return LOCAL_YEARLY;
 		}
 		else
@@ -1558,8 +1558,8 @@ int TimeDataD::LoadNext()	//Only implemented for LOCAL_YEARLY (100106) and LOCAL
 
 	if(error)
 	{
-		if(feof(ifp))
-			printf("End of file reached for file %s\n", fileName);
+//		if(feof(ifp))
+//			printf("End of file reached for file %s\n", fileName);
 		return 0;
 	}
 	else
@@ -2109,15 +2109,8 @@ void TimeDataD::Close()
 
 double TimeDataDmem::Get(int year, int column) const
 {
-	if(column>=nColumns)
-	{
-		if(year==1)
-			printf("WARNING: Trying to retreive more columns than available. Value set to 0.0 \n");
-		return 0.0;
-	}
-
-	if(currentCell>=0)
-		return data[currentCell][year*nColumns+column];
+	if(currentCell >= 0 && column < nColumns)
+		return data[currentCell][year * nColumns + column];
 	else
 		return 0.0;
 }

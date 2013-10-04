@@ -38,8 +38,7 @@ bool ifcdebt;
 
 bool ifcentury;
 bool ifnlim;
-bool ifnlim_pasture;
-bool ifnlim_crop;
+bool ifnlim_lc[NLANDCOVERTYPES];
 int freenyears;
 double nrelocfrac;
 double nfix_a;
@@ -373,10 +372,18 @@ void plib_declarations(int id,xtring setname) {
 			"Whether to use CENTURY SOM dynamics (default standard LPJ)");
 		declareitem("ifnlim",&ifnlim,1,CB_NONE,
 			"Whether plant growth limited by available nitrogen");
-		declareitem("ifnlim_pasture",&ifnlim_pasture,1,CB_NONE,
+		declareitem("ifnlim_urban",&ifnlim_lc[URBAN],1,CB_NONE,
+			"Whether plant growth limited by available nitrogen in urban stands");
+		declareitem("ifnlim_natural",&ifnlim_lc[NATURAL],1,CB_NONE,
+			"Whether plant growth limited by available nitrogen in natural vegetation stands");
+		declareitem("ifnlim_forest",&ifnlim_lc[FOREST],1,CB_NONE,
+			"Whether plant growth limited by available nitrogen in managed forest stands");
+		declareitem("ifnlim_pasture",&ifnlim_lc[PASTURE],1,CB_NONE,
 			"Whether plant growth limited by available nitrogen in pasture stands");
-		declareitem("ifnlim_crop",&ifnlim_crop,1,CB_NONE,
+		declareitem("ifnlim_crop",&ifnlim_lc[CROPLAND],1,CB_NONE,
 			"Whether plant growth limited by available nitrogen in crop stands");
+		declareitem("ifnlim_peatland",&ifnlim_lc[PEATLAND],1,CB_NONE,
+			"Whether plant growth limited by available nitrogen in peatland stands");
 		declareitem("freenyears",&freenyears,0,1000,1,CB_NONE,
 			"Number of years to spinup without nitrogen limitation");
 
@@ -800,8 +807,12 @@ void plib_callback(int callback) {
 
 		if (!itemparsed("ifcentury")) badins("ifcentury");
 		if (!itemparsed("ifnlim")) badins("ifnlim");
+		if (!itemparsed("ifnlim_urban")) badins("ifnlim_urban");
+		if (!itemparsed("ifnlim_natural")) badins("ifnlim_natural");
+		if (!itemparsed("ifnlim_forest")) badins("ifnlim_forest");
 		if (!itemparsed("ifnlim_pasture")) badins("ifnlim_pasture");
 		if (!itemparsed("ifnlim_crop")) badins("ifnlim_crop");
+		if (!itemparsed("ifnlim_peatland")) badins("ifnlim_peatland");
 		if (!itemparsed("freenyears")) badins("freenyears");
 
 		if (nyear_spinup <= freenyears) {

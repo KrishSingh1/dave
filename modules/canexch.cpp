@@ -585,7 +585,12 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 	double apar;
 	double b, c1, c2;
 
-	bool ifnlim_pft = ifnlim && (pft.landcover==NATURAL || pft.landcover == FOREST || ifnlim_pasture && pft.landcover==PASTURE || ifnlim_crop && pft.landcover==CROPLAND);
+	bool ifnlim_pft = false;
+	if(ifnlim) {
+		for(int i=0; i<NLANDCOVERTYPES; i++) {	
+				ifnlim_pft = ifnlim_pft || ifnlim_lc[i] && pft.landcover == i;
+		}
+	}
 
 	if(pft.phenology==CROPGREEN)
 		apar = par * fpar * ALPHAA_CROP;
@@ -814,11 +819,11 @@ void fnuptake(Vegetation& vegetation, double nmass_avail) {
  */
 void nstore_usage(Vegetation& vegetation) {
 
+	Stand& stand = vegetation.patch.stand;
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
 
-		bool ifnlim_pft = ifnlim && (indiv.pft.landcover==NATURAL || indiv.pft.landcover == FOREST || ifnlim_pasture && indiv.pft.landcover==PASTURE || ifnlim_crop && indiv.pft.landcover==CROPLAND);
 //		double cmass_leaf_phen=indiv.pft.phenology==CROPGREEN ? indiv.cropindiv->grs_cmass_leaf : indiv.cmass_leaf * indiv.phen;//crops
 //		double cmass_root_phen=indiv.pft.phenology==CROPGREEN ? indiv.cropindiv->grs_cmass_root : indiv.cmass_root * indiv.phen;//crops
 
@@ -827,7 +832,7 @@ void nstore_usage(Vegetation& vegetation) {
 		                        + indiv.leafndemand_store + indiv.rootndemand_store;
 
 		// if individual is in need of using its labile nitrogen storage
-		if (!negligible(excess_ndemand) && ifnlim_pft) {
+		if (!negligible(excess_ndemand) && stand.ifnlim_stand()) {
 			
 			// if labile nitrogen storage is larger than excess nitrogen demand
 			if (excess_ndemand <= indiv.nstore_labile) {
@@ -888,6 +893,7 @@ void nstore_usage(Vegetation& vegetation) {
 void ndemand(Patch& patch, Vegetation& vegetation) {
 
 	Gridcell& gridcell = patch.stand.gridcell;
+	Stand& stand = patch.stand;
 	Soil& soil = patch.soil;
 
 	/// daily nitrogen demand for patch (kgN/m2)
@@ -903,7 +909,6 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
-		bool ifnlim_pft = ifnlim && (indiv.pft.landcover==NATURAL || indiv.pft.landcover == FOREST || ifnlim_pasture && indiv.pft.landcover==PASTURE || ifnlim_crop && indiv.pft.landcover==CROPLAND);
 //		double cmass_leaf_phen=indiv.pft.phenology==CROPGREEN ? indiv.cropindiv->grs_cmass_leaf : indiv.cmass_leaf * indiv.phen;//crops
 
 		// Rescaler of nitrogen uptake
@@ -923,7 +928,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 			indiv.nday_leafon++;
 
-			if (ifnlim_pft) {
+			if (stand.ifnlim_stand()) {
 
 				// Added a scalar depending on individual lai to slow down light optimization of newly shaded leafs
 				// Peltoniemi et al. 2012
@@ -1064,16 +1069,16 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
  */
 void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
+	Stand& stand = patch.stand;
+
 	// Supply function for nitrogen and determination of nitrogen stress leading
 	// to down-regulation of vmax.
-
-	bool ifnlim_stand = ifnlim && (patch.stand.landcover==NATURAL || patch.stand.landcover == FOREST || ifnlim_pasture && patch.stand.landcover==PASTURE || ifnlim_crop && patch.stand.landcover==CROPLAND);
 
 	// Nitrogen within projective cover of all individuals
 	double tot_nmass_avail = patch.soil.nmass_avail * min(1.0, patch.fpc_total);
 
 	// Calculate individual uptake fraction of nitrogen demand
-	if (patch.ndemand > tot_nmass_avail && ifnlim_stand) {
+	if (patch.ndemand > tot_nmass_avail && stand.ifnlim_stand()) {
 
 		// Determine individual nitrogen uptake fractions
 		fnuptake(vegetation, tot_nmass_avail);
@@ -1915,11 +1920,9 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			// Water stress - derive assimilation by simultaneous solution
 			// of light- and conductance-based equations of photosynthesis
 
-			bool ifnlim_pft = ifnlim && (pft.landcover==NATURAL || pft.landcover == FOREST || ifnlim_pasture && pft.landcover==PASTURE || ifnlim_crop && pft.landcover==CROPLAND);
-
 			assimilation_wstress(pft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
 				ppft.gcbase, phot.vm, phot, lambda,
-				indiv.nactive / indiv.nextin, ifnlim_pft);
+				indiv.nactive / indiv.nextin, stand.ifnlim_stand());
 		}
 
 		assim = phot.net_assimilation();
@@ -2042,6 +2045,7 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
  			for (int m=0; m<12; m++) {
 				indiv.mlai[m] = 0.0;
+				indiv.mlai_max[m]=0.0;
 			}
 
 			vegetation.nextobj();

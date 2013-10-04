@@ -606,6 +606,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	int m;
 	for (m=0; m<12; m++) {
 		mlai[m] = 0.0;
+		mlai_max[m] = 0.0;
 	}
 
 	// bvoc
@@ -864,9 +865,9 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 double Individual::cton_leaf(bool use_phen /* = true*/) const {
 
-	bool ifnlim_pft = ifnlim && (pft.landcover==NATURAL || pft.landcover == FOREST || ifnlim_pasture && pft.landcover==PASTURE || ifnlim_crop && pft.landcover==CROPLAND);
+	Stand& stand = vegetation.patch.stand;
 
-	if (ifnlim_pft) {
+	if (stand.ifnlim_stand()) {
 		if (!negligible(cmass_leaf) && !negligible(nmass_leaf)) {
 			if (use_phen) {
 				if (!negligible(phen)) {
@@ -891,9 +892,9 @@ double Individual::cton_leaf(bool use_phen /* = true*/) const {
 
 double Individual::cton_root(bool use_phen /* = true*/) const {
 
-	bool ifnlim_pft = ifnlim && (pft.landcover==NATURAL || pft.landcover == FOREST || ifnlim_pasture && pft.landcover==PASTURE || ifnlim_crop && pft.landcover==CROPLAND);
+	Stand& stand = vegetation.patch.stand;
 
-	if (ifnlim_pft) {
+	if (stand.ifnlim_stand()) {
 		if (!negligible(cmass_root) && !negligible(nmass_root)) { 
 			if (use_phen) {
 				if (!negligible(phen)) {
@@ -917,8 +918,11 @@ double Individual::cton_root(bool use_phen /* = true*/) const {
 }
 
 double Individual::cton_sap() const {
+
+	Stand& stand = vegetation.patch.stand;
+
 	if (pft.lifeform == TREE) {
-		if (ifnlim) {
+		if (stand.ifnlim_stand()) {
 			if (!negligible(cmass_sap) && !negligible(nmass_sap))
 				return cmass_sap / nmass_sap;
 			else

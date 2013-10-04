@@ -1426,7 +1426,13 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		}
 		
 		// Normal disturbance with probability interval of distinterval
-		if (ifdisturb && patch.age && ((ifcentury && (date.year < patch.soil.solvesomcent_beginyr || date.year > patch.soil.solvesomcent_endyr)) || !ifcentury)) {
+
+		// We don't allow disturbance while documenting for calculation of Century equilibrium
+		bool during_century_solvesom = ifcentury && 
+		                               date.year >= patch.soil.solvesomcent_beginyr && 
+		                               date.year <= patch.soil.solvesomcent_endyr;
+
+		if (ifdisturb && patch.age && !during_century_solvesom) {
 			disturbance(patch, 1.0 / distinterval);
 			if (patch.disturbed) {
 				return; // no mortality or establishment this year

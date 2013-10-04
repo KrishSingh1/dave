@@ -692,7 +692,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
 
 				flux_veg+=-patch.fluxes.get_annual_flux(Fluxes::NPP)*to_gridcell_average;
-				flux_repr+=-patch.fluxes.get_annual_flux(Fluxes::REPR)*to_gridcell_average;
+				flux_repr+=-patch.fluxes.get_annual_flux(Fluxes::REPRC)*to_gridcell_average;
 				flux_soil+=patch.fluxes.get_annual_flux(Fluxes::SOILC)*to_gridcell_average;
 				flux_fire+=patch.fluxes.get_annual_flux(Fluxes::FIREC)*to_gridcell_average;
 				flux_est+=patch.fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;

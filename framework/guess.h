@@ -564,7 +564,7 @@ public:
 		/// N flux from soil
 		N_SOIL,
 		/// Reproduction costs
-		REPR,
+		REPRC,
 		/// Number of types, must be last
 		NPERPATCHFLUXTYPES
 	};

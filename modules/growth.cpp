@@ -1056,7 +1056,7 @@ void flush_litter_repr(Patch& patch) {
 		Patchpft& pft = patch.pft.getobj();
 		
 		// Updated soil fluxes
-		patch.fluxes.report_flux(Fluxes::REPR, pft.litter_repr);
+		patch.fluxes.report_flux(Fluxes::REPRC, pft.litter_repr);
 		pft.litter_repr = 0.0;
 
 		patch.pft.nextobj();

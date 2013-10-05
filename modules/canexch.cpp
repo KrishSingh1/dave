@@ -585,12 +585,7 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 	double apar;
 	double b, c1, c2;
 
-	bool ifnlim_pft = false;
-	if(ifnlim) {
-		for(int i=0; i<NLANDCOVERTYPES; i++) {	
-				ifnlim_pft = ifnlim_pft || ifnlim_lc[i] && pft.landcover == i;
-		}
-	}
+	bool ifnlim_pft = ifnlim && ifnlim_lc[pft.landcover];
 
 	if(pft.phenology==CROPGREEN)
 		apar = par * fpar * ALPHAA_CROP;

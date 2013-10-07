@@ -1417,7 +1417,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 
 		// Patch-destroying disturbance
 
-		// Disturbance for equilsom() to get century SOM pool to equilibrium faster
+		// Disturbance when N limitation is switched on to get right pft composition under N limitation faster
 		if (ifcentury && ifnlim && date.year == freenyears){
 			disturbance(patch, 1.0);
 			if (patch.disturbed) {

@@ -280,9 +280,9 @@ function submit_job {
 
     pushd $workspace &> /dev/null
     if [ -f $submit_vars ]; then
-	jobid=$(sh submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars 2> /dev/null)
+	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars 2> /dev/null)
     else
-	jobid=$(sh submit.sh -i $insfile -n "bm_$test_name" 2> /dev/null)
+	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" 2> /dev/null)
     fi
 
     local submit_exit_status=$?
@@ -328,9 +328,9 @@ function run_single_machine_model {
 
     pushd $workspace &> /dev/null
     if [ -f $submit_vars ]; then
-		sh submit.sh -i $insfile -s $submit_vars
+		./submit.sh -i $insfile -s $submit_vars
     else
-		sh submit.sh -i $insfile
+		./submit.sh -i $insfile
     fi
 
     popd &> /dev/null

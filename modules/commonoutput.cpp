@@ -134,7 +134,6 @@ void CommonOutput::define_output_tables() {
 	ColumnDescriptors cflux_columns;
 	cflux_columns += ColumnDescriptor("Veg",               8, 3);
 	cflux_columns += ColumnDescriptor("Repr",              8, 3);
-	cflux_columns += ColumnDescriptor("Litter",            8, 3);
 	cflux_columns += ColumnDescriptor("Soil",              8, 3);
 	cflux_columns += ColumnDescriptor("Fire",              8, 3);
 	cflux_columns += ColumnDescriptor("Est",               8, 3);
@@ -240,7 +239,6 @@ void CommonOutput::define_output_tables() {
 	nflux_columns += ColumnDescriptor("dep",               8, 2);
 	nflux_columns += ColumnDescriptor("fix",               8, 2);
 	nflux_columns += ColumnDescriptor("fert",              8, 2);
-	nflux_columns += ColumnDescriptor("litter",            8, 2);
 	nflux_columns += ColumnDescriptor("flux",              8, 2);
 	nflux_columns += ColumnDescriptor("leach",             8, 2);
 	if (run_landcover) {
@@ -981,7 +979,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		out.add_value(out_cflux, flux_veg);
 		out.add_value(out_cflux, flux_repr);
-		out.add_value(out_cflux, clitter_gridcell); // Flux between Veg and Soil, so not included in NEE
 		out.add_value(out_cflux, flux_soil);
 		out.add_value(out_cflux, flux_fire);
 		out.add_value(out_cflux, flux_est);
@@ -993,7 +990,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		out.add_value(out_nflux, -andep_gridcell * m2toha);
 		out.add_value(out_nflux, -anfix_gridcell * m2toha);
 		out.add_value(out_nflux, -anfert_gridcell * m2toha);
-		out.add_value(out_nflux, nlitter_gridcell * m2toha); // Flux between Veg and Soil, so not included in NEE
 		out.add_value(out_nflux, flux_ntot * m2toha);
 		out.add_value(out_nflux, (n_min_leach_gridcell + n_org_leach_gridcell) * m2toha);
 		if (run_landcover) {

@@ -1248,8 +1248,10 @@ void growth(Stand& stand, Patch& patch) {
 				indiv.nstore_longterm -= nsurplus;
 
 				// Return surplus nitrogen to litter
-				patch.pft[indiv.pft.id].nmass_litter_leaf += nsurplus * (indiv.pft.turnover_leaf / (indiv.pft.turnover_leaf + indiv.pft.turnover_root));
-				patch.pft[indiv.pft.id].nmass_litter_root += nsurplus * (indiv.pft.turnover_root / (indiv.pft.turnover_leaf + indiv.pft.turnover_root));
+				if (indiv.pft.lifeform == TREE)
+					patch.soil.sompool[SURFFWD].nmass += nsurplus;
+				else
+					patch.soil.sompool[SOILSTRUCT].nmass += nsurplus;
 			}
 			
 			// Update stand record of reproduction by this PFT

@@ -3,7 +3,15 @@
 describe_benchmark "LPJ-GUESS - Global Benchmarks"
 
 common1961to1990.sh
-common1961to1990gmapall.sh -portrait
+
+gmapall lai1961to1990.txt -P lai_ -legend common/legend_lai_global.txt -portrait
+describe_images "LAI For All PFTs (1961-90 average). Units: m2 m-2"  lai_*.jpg
+
+gmapall cmass1961to1990.txt -P cmass_ -legend common/legend_cmass_global.txt -portrait
+describe_images "CMASS For All PFTs (1961-90 average). Units: kgC m-2" cmass_*.jpg
+
+gmapall cton_leaf1961to1990.txt -P cton_leaf_ -legend common/legend_cton.txt -portrait
+describe_images "Leaf C:N Ratio For All PFTs (1961-90 average). Units: kgC kgN-1" cton_leaf_*.jpg
 
 tslice cflux.out -o cflux1990to2000.txt -f 589 -t 599 -lon 1 -lat 2 -y 3
 aslice cflux1961to1990.txt -o cflux1961to1990_areaaverage.txt -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.25 0.25   

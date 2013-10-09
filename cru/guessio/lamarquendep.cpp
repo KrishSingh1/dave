@@ -17,28 +17,17 @@
 
 namespace Lamarque {
 
-void getndep(const char* file_ndep,
-             double lon, double lat, 
-             double NHxDryDep[NYEAR_HISTNDEP][12],
-             double NHxWetDep[NYEAR_HISTNDEP][12],
-             double NOyDryDep[NYEAR_HISTNDEP][12],
-             double NOyWetDep[NYEAR_HISTNDEP][12]) {
+const double convert = 1e-7;				// converting from gN ha-1 to kgN m-2
 
-	const double convert = 1e-7;				// converting from gN ha-1 to kgN m-2
+NDepData::NDepData() {
+	set_to_pre_industrial();
+}
+
+void NDepData::getndep(const char* file_ndep,
+					   double lon, double lat) {
 
 	if (std::string(file_ndep) == "") {
-
-		// pre-industrial total nitrogen depostion set to 2 kgN/ha/year [kgN m-2]
-		double dailyndep = 2000.0 / (4 * 365) * convert;
-
-		for (int y=0; y<NYEAR_HISTNDEP; y++) {
-			for (int m=0; m<12; m++) {
-				NHxDryDep[y][m] = dailyndep;
-				NHxWetDep[y][m] = dailyndep;
-				NOyDryDep[y][m] = dailyndep;
-				NOyWetDep[y][m] = dailyndep;
-			}
-		}
+		set_to_pre_industrial();
 	}
 	else {
 		GlobalNitrogenDepositionArchive ark;
@@ -68,13 +57,9 @@ void getndep(const char* file_ndep,
 	}
 }
 
-void get_one_calendar_year(int calendar_year,
-                           double NHxDryDep[NYEAR_HISTNDEP][12],
-                           double NHxWetDep[NYEAR_HISTNDEP][12],
-                           double NOyDryDep[NYEAR_HISTNDEP][12],
-                           double NOyWetDep[NYEAR_HISTNDEP][12],
-                           double mndrydep[12],
-                           double mnwetdep[12]) {
+void NDepData::get_one_calendar_year(int calendar_year,
+									 double mndrydep[12],
+									 double mnwetdep[12]) {
 	int ndep_year = 0;
 
 	if (calendar_year >= Lamarque::FIRSTHISTYEARNDEP) {
@@ -91,6 +76,20 @@ void get_one_calendar_year(int calendar_year,
 		
 		mnwetdep[m] = NHxWetDep[ndep_year][m] + NOyWetDep[ndep_year][m];
 	}	
+}
+
+void NDepData::set_to_pre_industrial() {
+	// pre-industrial total nitrogen depostion set to 2 kgN/ha/year [kgN m-2]
+	double dailyndep = 2000.0 / (4 * 365) * convert;
+
+	for (int y=0; y<NYEAR_HISTNDEP; y++) {
+		for (int m=0; m<12; m++) {
+			NHxDryDep[y][m] = dailyndep;
+			NHxWetDep[y][m] = dailyndep;
+			NOyDryDep[y][m] = dailyndep;
+			NOyWetDep[y][m] = dailyndep;
+		}
+	}
 }
 
 }

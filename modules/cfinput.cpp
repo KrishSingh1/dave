@@ -30,6 +30,7 @@ insoltype cf_standard_name_to_insoltype(const std::string& standard_name) {
 	}
 	else {
 		fail("Unknown insolation type: %s", standard_name.c_str());
+		return SUNSHINE; // To avoid compiler warning
 	}
 }
 
@@ -300,9 +301,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	}
 
 	// Get nitrogen deposition, using the found CRU coordinates
-	Lamarque::getndep(param["file_ndep"].str, cru_lon, cru_lat,
-	                  NHxDryDep, NHxWetDep,
-	                  NOyDryDep, NOyWetDep);
+	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat);
 
 	// Setup the soil type
 	soilparameters(gridcell.soiltype, soilcode);
@@ -429,10 +428,8 @@ void CFInput::populate_daily_arrays() {
 	double mnwetdep[12];
 
 	// The ndep data set only goes up to 2009, after that we use the 2009 data
-	Lamarque::get_one_calendar_year(min(2009, date.get_calendar_year()),
-	                                NHxDryDep, NHxWetDep,
-	                                NOyDryDep, NOyWetDep,
-	                                mndrydep, mnwetdep);
+	ndep.get_one_calendar_year(min(2009, date.get_calendar_year()),
+		mndrydep, mnwetdep);
 
 	// Distribute N deposition
 	distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
@@ -506,7 +503,7 @@ void CFInput::load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_va
 	for (int i = 0; i < NYEAR_SPINUP_DATA; ++i) {
 		std::vector<double> year(daily ? GenericSpinupData::DAYS_PER_YEAR : 12);
 
-		for (int i = 0; i < year.size(); ++i) {
+		for (size_t i = 0; i < year.size(); ++i) {
 			GuessNC::CF::DateTime dt = cf_var->get_date_time(timestep);
 
 			if (daily && dt.get_month() == 2 && dt.get_day() == 29) {

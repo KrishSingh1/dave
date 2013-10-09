@@ -104,14 +104,8 @@ private:
 	/// Path to CRU binary archive
 	xtring file_cru;
 
-	/// Monthly data on daily dry NHx deposition (kgN/m2/day)
-	double NHxDryDep[Lamarque::NYEAR_HISTNDEP][12];
-	/// Monthly data on daily wet NHx deposition (kgN/m2/day)
-	double NHxWetDep[Lamarque::NYEAR_HISTNDEP][12];
-	/// Monthly data on daily dry NOy deposition (kgN/m2/day)
-	double NOyDryDep[Lamarque::NYEAR_HISTNDEP][12];
-	/// Monthly data on daily wet NOy deposition (kgN/m2/day)
-	double NOyWetDep[Lamarque::NYEAR_HISTNDEP][12];
+	/// Nitrogen deposition forcing for current gridcell
+	Lamarque::NDepData ndep;
 
 	/// Landcover fractions read from ins-file (% area).
 	/** One entry for each land cover type */

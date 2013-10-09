@@ -173,10 +173,8 @@ void CRUInput::get_monthly_ndep(int calendar_year,
                                 double* mndrydep,
                                 double* mnwetdep) {
 
-	Lamarque::get_one_calendar_year(calendar_year,
-	                                NHxDryDep, NHxWetDep,
-	                                NOyDryDep, NOyWetDep,
-	                                mndrydep, mnwetdep);
+	ndep.get_one_calendar_year(calendar_year,
+	                           mndrydep, mnwetdep);
 }
 
 
@@ -349,9 +347,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
 		
 		// Get nitrogen deposition data
-		Lamarque::getndep(param["file_ndep"].str, lon, lat,
-		                  NHxDryDep, NHxWetDep,
-		                  NOyDryDep, NOyWetDep);
+		ndep.getndep(param["file_ndep"].str, lon, lat);
 
 		// The insolation data will be sent (in function getclimate, below)
 		// as percentage sunshine
@@ -612,20 +608,10 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 
 		// Extract N deposition to use for this year,
 		// monthly means to be distributed into daily values further down
-		int first_ndep_year = nyear_spinup + Lamarque::FIRSTHISTYEARNDEP - FIRSTHISTYEAR;
-
 		double mndrydep[12], mnwetdep[12];
-		int ndep_year = 0;
 
-		if (date.year >= first_ndep_year) {
-			ndep_year = (int)((date.year - first_ndep_year)/10);
-		}
-
-		for (int m = 0; m < 12; m++) {
-			mndrydep[m] = NHxDryDep[ndep_year][m] + NOyDryDep[ndep_year][m];
-
-			mnwetdep[m] = NHxWetDep[ndep_year][m] + NOyWetDep[ndep_year][m];
-		}
+		ndep.get_one_calendar_year(date.year - nyear_spinup + FIRSTHISTYEAR, 
+		                           mndrydep, mnwetdep);
 		
 		if (date.year < nyear_spinup) {
 

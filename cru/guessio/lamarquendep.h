@@ -12,10 +12,35 @@
 namespace Lamarque {
 
 /// number of years of historical nitrogen deposition 
+/** One year from each decade 1850-2009 */
 const int NYEAR_HISTNDEP = 16;
 
-/// calender year corresponding to first year nitrogen deposition
+/// number of years of scenario nitrogen deposition
+/** One year from each decade 2000-2109 */
+const int NYEAR_SCENNDEP = 11;
+
+/// total number of years of nitrogen deposition 
+/** historic and scenario overlap one decade */
+const int NYEAR_TOTNDEP = NYEAR_HISTNDEP + NYEAR_SCENNDEP - 1;
+
+/// calendar year corresponding to first year nitrogen deposition
 const int FIRSTHISTYEARNDEP=1850;
+
+/// Type of time series to use (historic/scenario/fixed)
+enum timeseriestype { 
+	/// Only the historic (1850-2009) data set
+	HISTORIC,
+	/// Historic + RCP 2.6
+	RCP26,
+	/// Historic + RCP 4.5
+	RCP45,
+	/// Historic + RCP 6.0
+	RCP60,
+	/// Historic + RCP 8.5
+	RCP85,
+	/// Fixed pre-industrial values
+	FIXED,
+};
 
 /// Nitrogen deposition forcing for a single grid cell
 class NDepData {
@@ -37,9 +62,11 @@ public:
 	 *  \param  file_ndep   Path to binary archive (empty gives pre-industrial values)
 	 *  \param  lon         Longitude
 	 *  \param  lat         Latitude
+	 *  \param  timeseries  Which time series to use
 	 */
 	void getndep(const char* file_ndep,
-		double lon, double lat);
+	             double lon, double lat,
+	             timeseriestype timeseries = HISTORIC);
 
 	/// Returns nitrogen deposition for one year
 	/** Given a calendar year, this function chooses values from the correct 
@@ -63,17 +90,20 @@ private:
 	/// Fills all arrays with pre-industrial level of 2 kgN/ha/year
 	void set_to_pre_industrial();
 
+	/// Currently chosen type of time series
+	timeseriestype timeseries;
+
 	/// Monthly data on daily dry NHx deposition (kgN/m2/day)
-	double NHxDryDep[NYEAR_HISTNDEP][12];
+	double NHxDryDep[NYEAR_TOTNDEP][12];
 
 	/// Monthly data on daily wet NHx deposition (kgN/m2/day)
-	double NHxWetDep[NYEAR_HISTNDEP][12];
+	double NHxWetDep[NYEAR_TOTNDEP][12];
 
 	/// Monthly data on daily dry NOy deposition (kgN/m2/day)
-	double NOyDryDep[NYEAR_HISTNDEP][12];
+	double NOyDryDep[NYEAR_TOTNDEP][12];
 
 	/// Monthly data on daily wet NOy deposition (kgN/m2/day)
-	double NOyWetDep[NYEAR_HISTNDEP][12];
+	double NOyWetDep[NYEAR_TOTNDEP][12];
 };
 
 

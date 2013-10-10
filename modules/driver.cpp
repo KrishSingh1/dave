@@ -601,7 +601,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 	const double W11DIV12 = 11.0 / 12.0;
 	const double W1DIV12 = 1.0 / 12.0;
-	int d, y, startyear;
+	int y, startyear;
 
 	// guess2008 - changed this from an int to a double
 	double mtemp_last;
@@ -620,7 +620,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 		if (date.year == 0) {
 			// First day of simulation - initialise running annual mean temperature and daily temperatures for the last month
-			for (d = 0; d < climate.dtemp_31.CAPACITY; d++) {
+			for (unsigned int d = 0; d < climate.dtemp_31.CAPACITY; d++) {
 				climate.dtemp_31.add(climate.temp);
 			}
 
@@ -653,8 +653,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			gridcell.nextobj();
 		}
 	}
-	else if (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE ||
-		climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE) {
+	else if ( (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE) ||
+	          (climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE) ) {
 		// In midwinter, reset GDD counter for summergreen phenology
 		climate.gdd5 = 0.0;
 		climate.ifsensechill = false; // guess2008 - CHILLDAYS
@@ -770,10 +770,8 @@ void dailyaccounting_patch(Patch& patch) {
 
 	// INPUT AND OUTPUT PARAMETER
 	// soil   = patch soil
-	// fluxes = current and accumulated C fluxes for patch
 
 	Soil& soil = patch.soil;
-	Fluxes& fluxes = patch.fluxes;
 
 	if (date.day == 0) {
 

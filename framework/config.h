@@ -12,7 +12,7 @@
 /// This file may also contain non-model related code for working around platform
 /// specific issues, such as non-standard conforming compilers.
 ///
-/// \author Joe Lindström
+/// \author Joe Siltberg
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////

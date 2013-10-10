@@ -2,7 +2,7 @@
 /// \file shell.h
 /// \brief The "shell" is the model's interface to the world
 ///
-/// \author Joe Lindström
+/// \author Joe Siltberg
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////

@@ -447,7 +447,7 @@ void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCO
 					double litter_leaf_cp = 0.0, litter_root_cp = 0.0, litter_sap_cp = 0.0, litter_heart_cp = 0.0,litter_repr_cp = 0.0;
 					double nmass_litter_leaf_cp = 0.0, nmass_litter_root_cp = 0.0, nmass_litter_sap_cp = 0.0, nmass_litter_heart_cp = 0.0;
 					double acflux_harvest_cp = 0.0, anflux_harvest_cp = 0.0;
-					double harvested_products_slow_cp = 0.0, harvested_products_slow_nmass_cp = 0.0, nstore_longterm_cp = 0.0;
+					double harvested_products_slow_cp = 0.0, harvested_products_slow_nmass_cp = 0.0, nstore_longterm_cp = 0.0, nstore_labile_cp = 0.0;
 
 					Individual& indiv = vegetation.getobj();
 					Patchpft& patchpft = patch.pft[indiv.pft.id];
@@ -458,9 +458,18 @@ void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCO
 					cmass_heart_cp = indiv.cmass_heart;
 					cmass_debt_cp = indiv.cmass_debt;
 
+					nmass_leaf_cp = indiv.nmass_leaf;
+					nmass_root_cp = indiv.nmass_root;
+					nmass_sap_cp = indiv.nmass_sap;
+					nmass_heart_cp = indiv.nmass_heart;
+					nstore_longterm_cp = indiv.nstore_longterm;
+					nstore_labile_cp = indiv.nstore_labile;
+
 					if(indiv.pft.landcover == CROPLAND) {
 						cmass_ho_cp = indiv.cropindiv->cmass_ho;
 						cmass_agpool_cp = indiv.cropindiv->cmass_agpool;
+						nmass_ho_cp = indiv.cropindiv->nmass_ho;
+						nmass_agpool_cp = indiv.cropindiv->nmass_agpool;
 					}
 	
 					// Harvest of transferred areas:
@@ -502,7 +511,6 @@ void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCO
 						nmass_litter_root_cp += nmass_root_cp;
 						nmass_litter_sap_cp += nmass_sap_cp;
 						nmass_litter_heart_cp += nmass_heart_cp;
-						nmass_litter_root_cp += nstore_longterm_cp;
 
 						if(indiv.pft.landcover == CROPLAND) {
 							if(indiv.pft.aboveground_ho) {
@@ -515,6 +523,8 @@ void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCO
 							}
 						}
 					}
+					nmass_litter_root_cp += nstore_longterm_cp;
+					nmass_litter_root_cp += nstore_labile_cp;
 
 					//Sum added litter C & N:
 					to.transfer_litter_leaf[indiv.pft.id] += litter_leaf_cp * scale;
@@ -3068,7 +3078,7 @@ void harvest_pasture(double& cmass_leaf, double& cmass_root,
 
 	nmass_root *= scale;	
 	nmass_leaf *= scale;
-
+	retransn *= scale;
 
 	// Root turnover
 
@@ -3197,7 +3207,7 @@ void harvest_crop(double& cmass_leaf, double& cmass_root, double& cmass_ho, doub
 	nmass_leaf *= scale;	
 	nmass_agpool *= scale;
 	nmass_ho *= scale;
-
+	retransn *= scale;
 
 	// Root turnover
 

@@ -10,6 +10,7 @@
 #define LPJ_GUESS_LANDCOVER_H
 
 #include "guess.h"
+#include "growth.h"
 #include "inputmodule.h"
 
 ///	Creates stands for landcovers present in the gridcell first year of the simulation

@@ -497,6 +497,17 @@ void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCO
 						fail("Modify code to deal with landcover harvest at landcover change!\n");
 					}
 
+					turnover(indiv.pft.turnover_leaf, indiv.pft.turnover_root,
+						indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
+						cmass_leaf_cp, cmass_root_cp, cmass_sap_cp, cmass_heart_cp,
+						nmass_leaf_cp, nmass_root_cp, nmass_sap_cp, nmass_heart_cp,
+						litter_leaf_cp,
+						litter_root_cp,
+						nmass_litter_leaf_cp,
+						nmass_litter_root_cp,
+						nstore_longterm_cp, 
+						indiv.alive, gridcell);
+
 					gridcell.LC_updated = true;
 
 					// In case any vegetation carbon left: (eg. cmass_root for CC3G/CC4G)
@@ -3061,7 +3072,7 @@ void harvest_pasture(double& cmass_leaf, double& cmass_root,
 		double& nmass_litter_leaf, double& nmass_litter_root, double& anflux_harvest, double& harvested_products_slow_nmass, double& retransn,
 		double& litter_leaf, double& litter_root, double& acflux_harvest, double& harvested_products_slow, Individual& indiv) {
 
-	double turnover, harvest;
+	double harvest;
 	double scale = 1.0;
 	bool alive = indiv.alive;
 	Gridcell& gridcell = indiv.vegetation.patch.stand.gridcell;
@@ -3080,19 +3091,6 @@ void harvest_pasture(double& cmass_leaf, double& cmass_root,
 	nmass_leaf *= scale;
 	retransn *= scale;
 
-	// Root turnover
-
-	// Carbon:
-	turnover = indiv.pft.turnover_root * cmass_root;	//turnover_root is typically 0.7
-	if(alive) 
-		litter_root += turnover;
-	cmass_root -= turnover;
-
-	// Nitrogen:
-	turnover = indiv.pft.turnover_root * nmass_root;
-	nmass_litter_root += turnover * (1.0 - nrelocfrac);
-	nmass_root -= turnover;
-	retransn += turnover * nrelocfrac;
 
 	// harvest of leaves (grazing)
 
@@ -3132,20 +3130,6 @@ void harvest_pasture(double& cmass_leaf, double& cmass_root,
 		nmass_leaf -= residue_outtake;
 	}
 #endif
-
-	// Leaf turnover
-
-	// carbon:
-	turnover = indiv.pft.turnover_leaf * cmass_leaf;	// turnover_leaf ypically 1.0
-	if(alive) 
-		litter_leaf += turnover;
-	cmass_leaf -= turnover;
-
-	// nitrogen:
-	turnover = indiv.pft.turnover_leaf * nmass_leaf;
-	nmass_litter_leaf += turnover * (1.0 - nrelocfrac);
-	nmass_leaf -= turnover;
-	retransn += turnover * nrelocfrac;
 }
 
 /// Harvest function for cropland, including true crops, intercrop grass 
@@ -3185,7 +3169,7 @@ void harvest_crop(double& cmass_leaf, double& cmass_root, double& cmass_ho, doub
 		double& nmass_litter_leaf, double& nmass_litter_root, double& anflux_harvest, double& harvested_products_slow_nmass, double& retransn,
 		double& litter_leaf, double& litter_root, double& acflux_harvest, double& harvested_products_slow, Individual& indiv) {
 
-	double turnover, residue_outtake, harvest;
+	double residue_outtake, harvest;
 	double scale = 1.0;	
 	bool alive = indiv.alive;
 	Stand& stand = indiv.vegetation.patch.stand;
@@ -3209,7 +3193,6 @@ void harvest_crop(double& cmass_leaf, double& cmass_root, double& cmass_ho, doub
 	nmass_ho *= scale;
 	retransn *= scale;
 
-	// Root turnover
 
 	if(indiv.pft.phenology==CROPGREEN) {
 
@@ -3249,8 +3232,8 @@ void harvest_crop(double& cmass_leaf, double& cmass_root, double& cmass_ho, doub
 		}
 
 		// Nitrogen:
-		if(nmass_ho>0.0)
-		{
+		if(nmass_ho > 0.0) {
+
 			// harvested products
 			harvest = indiv.pft.harv_eff * nmass_ho;
 
@@ -3300,8 +3283,6 @@ void harvest_crop(double& cmass_leaf, double& cmass_root, double& cmass_ho, doub
 		}
 		nmass_leaf = 0.0;
 		nmass_agpool = 0.0;
-
-		//No turnover (no remaining live plant tissue after harvest) for real crops.
 	}
 	else if(indiv.pft.phenology == ANY) {
 
@@ -3365,21 +3346,6 @@ void harvest_crop(double& cmass_leaf, double& cmass_root, double& cmass_ho, doub
 		}
 		else {	// pasture grass
 
-			// Root turnover
-
-			// Carbon:
-			turnover = indiv.pft.turnover_root * cmass_root;	//turnover_root is typically 0.7
-			if(alive) 
-				litter_root += turnover;
-			cmass_root -= turnover;
-
-			// Nitrogen:
-			turnover = indiv.pft.turnover_root * nmass_root;
-			nmass_litter_root += turnover * (1.0 - nrelocfrac);
-			nmass_root -= turnover;
-			retransn += turnover * nrelocfrac;
-
-
 			// harvest of leaves (grazing)
 
 			// Carbon:
@@ -3410,21 +3376,6 @@ void harvest_crop(double& cmass_leaf, double& cmass_root, double& cmass_ho, doub
 
 			nmass_ho=0.0;
 			nmass_agpool=0.0;
-
-
-			// Leaf turnover
-
-			// carbon:
-			turnover = indiv.pft.turnover_leaf * cmass_leaf;	// turnover_leaf ypically 1.0
-			if(alive) 
-				litter_leaf += turnover;
-			cmass_leaf -= turnover;
-
-			// nitrogen:
-			turnover = indiv.pft.turnover_leaf * nmass_leaf;
-			nmass_litter_leaf += turnover * (1.0 - nrelocfrac);
-			nmass_leaf -= turnover;
-			retransn += turnover * nrelocfrac;
 		}
 	}
 }

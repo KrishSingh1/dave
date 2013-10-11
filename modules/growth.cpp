@@ -1338,36 +1338,33 @@ void growth(Stand& stand, Patch& patch) {
 			// Retranslocated nitrogen in turnover
 			double retransn = 0.0;
 
-			// Tissue turnover and associated litter production
-			if(indiv.pft.landcover != CROPLAND && indiv.pft.landcover != PASTURE) {
-				turnover(indiv.pft.turnover_leaf, indiv.pft.turnover_root,
-					indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
-					indiv.cmass_leaf, indiv.cmass_root, indiv.cmass_sap, indiv.cmass_heart,
-					indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap, indiv.nmass_heart,
-					patch.pft[indiv.pft.id].litter_leaf,
-					patch.pft[indiv.pft.id].litter_root,
-					patch.pft[indiv.pft.id].nmass_litter_leaf,
-					patch.pft[indiv.pft.id].nmass_litter_root,
-					indiv.nstore_longterm, 
-					indiv.alive, gridcell);
-			}
-			else {
-				double acflux_harvest=0.0;
-				double anflux_harvest=0.0;
+			double acflux_harvest=0.0;
+			double anflux_harvest=0.0;
 
-				if(indiv.pft.landcover==CROPLAND)
-					harvest_crop(indiv.cmass_leaf,indiv.cmass_root,indiv.cropindiv->cmass_ho,indiv.cropindiv->cmass_agpool,
-						indiv.nmass_leaf,indiv.nmass_root,indiv.cropindiv->nmass_ho,indiv.cropindiv->nmass_agpool,
-						patch.pft[indiv.pft.id].nmass_litter_leaf,patch.pft[indiv.pft.id].nmass_litter_root,anflux_harvest,patch.pft[indiv.pft.id].harvested_products_slow_nmass,indiv.nstore_longterm,
-						patch.pft[indiv.pft.id].litter_leaf,patch.pft[indiv.pft.id].litter_root,acflux_harvest,patch.pft[indiv.pft.id].harvested_products_slow, indiv);
-				else if(indiv.pft.landcover==PASTURE)
-					harvest_pasture(indiv.cmass_leaf,indiv.cmass_root,
-						indiv.nmass_leaf,indiv.nmass_root,
-						patch.pft[indiv.pft.id].nmass_litter_leaf,patch.pft[indiv.pft.id].nmass_litter_root,anflux_harvest,patch.pft[indiv.pft.id].harvested_products_slow_nmass,indiv.nstore_longterm,
-						patch.pft[indiv.pft.id].litter_leaf,patch.pft[indiv.pft.id].litter_root,acflux_harvest,patch.pft[indiv.pft.id].harvested_products_slow, indiv);
-				patch.fluxes.report_flux(Fluxes::HARVESTC, acflux_harvest);
-				patch.fluxes.report_flux(Fluxes::HARVESTN, anflux_harvest);
-			}
+			if(indiv.pft.landcover==CROPLAND)
+				harvest_crop(indiv.cmass_leaf,indiv.cmass_root,indiv.cropindiv->cmass_ho,indiv.cropindiv->cmass_agpool,
+					indiv.nmass_leaf,indiv.nmass_root,indiv.cropindiv->nmass_ho,indiv.cropindiv->nmass_agpool,
+					patch.pft[indiv.pft.id].nmass_litter_leaf,patch.pft[indiv.pft.id].nmass_litter_root,anflux_harvest,patch.pft[indiv.pft.id].harvested_products_slow_nmass,indiv.nstore_longterm,
+					patch.pft[indiv.pft.id].litter_leaf,patch.pft[indiv.pft.id].litter_root,acflux_harvest,patch.pft[indiv.pft.id].harvested_products_slow, indiv);
+			else if(indiv.pft.landcover==PASTURE)
+				harvest_pasture(indiv.cmass_leaf,indiv.cmass_root,
+					indiv.nmass_leaf,indiv.nmass_root,
+					patch.pft[indiv.pft.id].nmass_litter_leaf,patch.pft[indiv.pft.id].nmass_litter_root,anflux_harvest,patch.pft[indiv.pft.id].harvested_products_slow_nmass,indiv.nstore_longterm,
+					patch.pft[indiv.pft.id].litter_leaf,patch.pft[indiv.pft.id].litter_root,acflux_harvest,patch.pft[indiv.pft.id].harvested_products_slow, indiv);
+			patch.fluxes.report_flux(Fluxes::HARVESTC, acflux_harvest);
+			patch.fluxes.report_flux(Fluxes::HARVESTN, anflux_harvest);
+
+			// Tissue turnover and associated litter production
+			turnover(indiv.pft.turnover_leaf, indiv.pft.turnover_root,
+				indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
+				indiv.cmass_leaf, indiv.cmass_root, indiv.cmass_sap, indiv.cmass_heart,
+				indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap, indiv.nmass_heart,
+				patch.pft[indiv.pft.id].litter_leaf,
+				patch.pft[indiv.pft.id].litter_root,
+				patch.pft[indiv.pft.id].nmass_litter_leaf,
+				patch.pft[indiv.pft.id].nmass_litter_root,
+				indiv.nstore_longterm, 
+				indiv.alive, gridcell);
 
 			if (indiv.nstore_longterm > indiv.max_n_storage) {
 				

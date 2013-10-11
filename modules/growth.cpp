@@ -1169,6 +1169,39 @@ void flush_litter_repr(Patch& patch) {
 	}
 }
 
+/// Scaling of last year's individual carbon and nitrogen member values in stands that have increased their area fraction this year.
+/** Called immediately before harvest functions in growth( ).
+ *  Alternatively, if harvest functions are after growth( ), called before turnover( ) in growth( ).
+ */
+void scale_indiv(Individual& indiv)
+{
+	double scale = 1.0;	
+	Stand& stand = indiv.vegetation.patch.stand;
+	Gridcell& gridcell = stand.gridcell;
+
+	// Scale individual's C and N mass in stands that have increased in area this year by (old area/new area):
+	if(stand.scale_LC_change < 1.0)	{
+		scale = stand.scale_LC_change;
+	else
+		return;
+
+	indiv.cmass_root *= scale;	
+	indiv.cmass_leaf *= scale;
+
+	if(indiv.pft.landcover == CROPLAND) {
+		indiv.cropindiv->cmass_agpool *= scale;
+		indiv.cropindiv->cmass_ho *= scale;
+
+		indiv.cropindiv->nmass_agpool *= scale;
+		indiv.cropindiv->nmass_ho *= scale;
+	}
+	indiv.nmass_root *= scale;	
+	indiv.nmass_leaf *= scale;	
+
+	indiv.nstore_labile *= scale;
+	indiv.nstore_longterm *= scale;
+
+}
 
 /// GROWTH
 /** Tissue turnover and allocation of fixed carbon to reproduction and new biomass
@@ -1340,6 +1373,10 @@ void growth(Stand& stand, Patch& patch) {
 
 			double acflux_harvest=0.0;
 			double anflux_harvest=0.0;
+
+			// Scale individual's C and N mass in stands that have increased in area this year by (old area/new area):
+			if(gridcell.LC_updated)
+				scale_indiv(indiv);
 
 			if(indiv.pft.landcover==CROPLAND)
 				harvest_crop(indiv.cmass_leaf,indiv.cmass_root,indiv.cropindiv->cmass_ho,indiv.cropindiv->cmass_agpool,

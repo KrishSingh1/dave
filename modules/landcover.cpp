@@ -334,7 +334,7 @@ void reduce_natural_stands(Gridcell& gridcell, double landcoverfrac_change[NLAND
 }
 
 
- /// Handles harvest of reduced stands at landcover change.
+ /// Handles harvest and turnover of reduced stands at landcover change.
 /** Updates stand.frac.
  *  Sets LC_updated to true
  *  Stores carbon, nitrogen and water of harvested area in a temporary struct.
@@ -860,6 +860,8 @@ void receiving_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLA
 					patch.fluxes.report_flux(Fluxes::HARVESTC, from.transfer_acflux_harvest * added_frac / new_frac); // no harvest C here anymore, goes to gridcell.acflux_harvest instead
 					patch.fluxes.report_flux(Fluxes::HARVESTN, from.transfer_anflux_harvest * added_frac / new_frac);
 
+					stand.scale_LC_change = old_frac / new_frac;
+
 					stand.nextobj();
 				}
 			}
@@ -889,6 +891,13 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 	gridcell.LC_updated=false;
 
+	gridcell.firstobj();
+	while (gridcell.isobj) {
+		Stand& stand=gridcell.getobj();
+		stand.scale_LC_change = 1.0;
+		gridcell.nextobj();
+	}
+
 	// get new landcover and crop stand area fractions from input files
 	if(!all_fracs_const) {
 		// this call returns 0, causing this function to return, if no significant landcover changes this year, 
@@ -904,7 +913,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	// if necessary, identify which natural stands to reduce in area
 	reduce_natural_stands(gridcell, landcoverfrac_change, nnaturalstands);
 
-	 // handle harvest of reduced stands at landcover change
+	 // handle harvest and turnover of reduced stands at landcover change
 	donor_stand_change(gridcell, landcoverfrac_change, cropstand_change, receiving_fraction, nnaturalstands, transfer);
 
 	// create and kill stands at landcover change
@@ -3073,24 +3082,8 @@ void harvest_pasture(double& cmass_leaf, double& cmass_root,
 		double& litter_leaf, double& litter_root, double& acflux_harvest, double& harvested_products_slow, Individual& indiv) {
 
 	double harvest;
-	double scale = 1.0;
 	bool alive = indiv.alive;
 	Gridcell& gridcell = indiv.vegetation.patch.stand.gridcell;
-
-	// scale harvest products of stands with increased area by (old area/new area) if landcover change has occurred:
-	if(gridcell.LC_updated) {
-		scale = gridcell.landcoverfrac_old[PASTURE] / gridcell.landcoverfrac[PASTURE];	
-		if(scale >= 1.0)
-			scale=1.0;
-	}
-
-	cmass_root *= scale;	
-	cmass_leaf *= scale;
-
-	nmass_root *= scale;	
-	nmass_leaf *= scale;
-	retransn *= scale;
-
 
 	// harvest of leaves (grazing)
 
@@ -3174,25 +3167,6 @@ void harvest_crop(double& cmass_leaf, double& cmass_root, double& cmass_ho, doub
 	bool alive = indiv.alive;
 	Stand& stand = indiv.vegetation.patch.stand;
 	Gridcell& gridcell = stand.gridcell;
-
-	// scale harvest products of stands with increased area by (old area/new area) if landcover change has occurred:
-	if(gridcell.LC_updated)	{
-		scale = gridcell.cftfrac_old[stand.cftid] * gridcell.landcoverfrac_old[CROPLAND] / (gridcell.cftfrac[stand.cftid] * gridcell.landcoverfrac[CROPLAND]);
-		if(scale > 1.0)
-			scale = 1.0;
-	}
-
-	cmass_root *= scale;	
-	cmass_leaf *= scale;	
-	cmass_agpool *= scale;
-	cmass_ho *= scale;	
-
-	nmass_root *= scale;	
-	nmass_leaf *= scale;	
-	nmass_agpool *= scale;
-	nmass_ho *= scale;
-	retransn *= scale;
-
 
 	if(indiv.pft.phenology==CROPGREEN) {
 

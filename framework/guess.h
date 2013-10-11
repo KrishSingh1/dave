@@ -2724,6 +2724,8 @@ public:
 	 */
 	int first_year;
 
+	/// scaling factor for stands that have grown in area this year (old fraction/new fraction)
+	double scale_LC_change;
 
 	// MEMBER FUNCTIONS
 

@@ -13,6 +13,7 @@
 #include "config.h"
 #include "landcover.h"
 #include "canexch.h"
+#include "guessmath.h"
 
 #define MAXHUTEMP					//30 degree limit for heat unit summation
 #define SD_TEMP_WINDOW				//Uses sowing window for temperature-dependent sowing.
@@ -1369,31 +1370,6 @@ void calc_m_climate_20y_mean(Climate& climate)
 	climate.mprec_petmin_20[19] = mprec_petmin_thisyear;
 	climate.mprec_petmax20 /= min(20, date.year + 1);
 	climate.mprec_petmax_20[19] = mprec_petmax_thisyear;
-}
-
-/// Calculates variation coefficient of values in an array
-static double variation_coefficient(double data[], int n)
-{
-	// 0 and 1 will give division with zero.
-	if(n>1){
-		  double avg,dev = 0, varcoe = 0, sum = 0;
-		  int i;
-		  double std = 0;
-
-		  for (i=0; i<n; i++)
-			  sum += data[i];
-		  avg = fabs(sum / n);
-		  for (i=0; i<n; i++)
-			  dev += (data[i]-avg) * (data[i] - avg);
-		  std = sqrt(fabs(dev / (n-1)));
-
-		  if (std > 0 && avg > 0)	// check that data appear in the array
-			  varcoe = std / avg;
-
-		  return varcoe;
-	}
-	else
-		return -1.0;
 }
 
 /// Determines climate seasonality of gridcell

@@ -49,3 +49,14 @@ TEST_CASE("Historic/add", "Some basic tests of adding values to a Historic") {
 	REQUIRE(history[2] == 4);
 	REQUIRE(history.mean() == Approx(3));
 }
+
+TEST_CASE("variation_coefficient", "Tests of variation coefficient") {
+
+	double single_value[] = { 7 };
+
+	REQUIRE(variation_coefficient(single_value, 1) == Approx(0));
+
+	double values[] = { 2, 4, 4, 4, 5, 5, 7, 9 };
+
+	REQUIRE(variation_coefficient(values, 8) == Approx(0.4));
+}

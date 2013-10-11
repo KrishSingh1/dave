@@ -17,6 +17,7 @@ set(headers
 
 set(source  
   guess.cpp 
+  guessmath.cpp
   outputchannel.cpp 
   archive.cpp 
   framework.cpp 

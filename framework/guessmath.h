@@ -51,6 +51,9 @@ inline double mean(double x, double y) {
 	return (x+y)/2.0;
 }
 
+/// Calculates variation coefficient of values in an array
+double variation_coefficient(double data[], int n);
+
 inline void regress(double* x, double* y, int n, double& a, double& b) {
 
 	// Performs a linear regression of array y on array x (n values)

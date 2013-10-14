@@ -978,14 +978,14 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		// Write fluxes to file
 
 		out.add_value(out_cflux, flux_veg);
-		out.add_value(out_cflux, flux_repr);
+		out.add_value(out_cflux, -flux_repr);
 		out.add_value(out_cflux, flux_soil);
 		out.add_value(out_cflux, flux_fire);
 		out.add_value(out_cflux, flux_est);
 		if (run_landcover) {
 			 out.add_value(out_cflux, flux_charvest);
 		}
-		out.add_value(out_cflux, flux_veg + flux_repr + flux_soil + flux_fire + flux_est + flux_charvest);
+		out.add_value(out_cflux, flux_veg - flux_repr + flux_soil + flux_fire + flux_est + flux_charvest);
 
 		out.add_value(out_nflux, -andep_gridcell * m2toha);
 		out.add_value(out_nflux, -anfix_gridcell * m2toha);

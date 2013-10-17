@@ -120,9 +120,6 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 	// Updated by Ben Smith 2002-07-24 for compatability with "fast" canopy exchange
 	// code (phenology assigned to patchpft for all vegetation modes)
 
-	// guess2008
-	bool leafout = true; // CHILLDAYS
-
 	// Obtain reference to Vegetation object
 	Vegetation& vegetation = patch.vegetation;
 
@@ -138,9 +135,6 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 		// For this PFT ...
 		if(patch.stand.pft[pft.id].active) {
 			leaf_phenology_pft(pft.pft, climate, pft.wscal, pft.aphen, pft.phen);
-
-			if (pft.pft.lifeform == TREE && (pft.pft.phenology == SUMMERGREEN || pft.pft.phenology == ANY))
-				if (pft.phen < 1.0) leafout = false; // CHILLDAYS
 		}
 		// Update annual leaf-on sum
 		if ( (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE) ||
@@ -151,11 +145,6 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 
 		// ... on to next PFT
 		patch.pft.nextobj();
-	}
-
-
-	if (leafout) {
-		climate.ifsensechill = true; // CHILLDAYS
 	}
 
 

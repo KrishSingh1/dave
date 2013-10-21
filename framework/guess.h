@@ -125,6 +125,12 @@ const int COLDEST_DAY_NHEMISPHERE = 14;
  */
 const int COLDEST_DAY_SHEMISPHERE = 195;
 
+/// Warmest day in N hemisphere (same as COLDEST_DAY_SHEMISPHERE)
+const int WARMEST_DAY_NHEMISPHERE = COLDEST_DAY_SHEMISPHERE;
+
+/// Warmest day in S hemisphere (same as COLDEST_DAY_NHEMISPHERE)
+const int WARMEST_DAY_SHEMISPHERE = COLDEST_DAY_NHEMISPHERE;
+
 /// number of years to average aaet over in function soilnadd
 const int NYEARAAET = 5;
 
@@ -543,7 +549,7 @@ public:
 		mtemp = 0.0;
 		gdd5 = 0.0;
 		chilldays = 0;
-		ifsensechill = true; //  guess2008 - CHILLDAYS
+		ifsensechill = true;
 		atemp_mean = 0.0;
 
 		lat = latitude;

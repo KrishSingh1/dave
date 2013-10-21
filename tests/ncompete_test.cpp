@@ -2,11 +2,12 @@
 /// \file ncompete_test.cpp
 /// \brief Unit tests for nitrogen uptake competition
 ///
-/// \author Joe Lindström
+/// \author Joe Siltberg
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
+#include "config.h"
 #include "catch.hpp"
 
 #include "ncompete.h"

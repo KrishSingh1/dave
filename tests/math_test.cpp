@@ -2,11 +2,12 @@
 /// \file math_test.cpp
 /// \brief Unit tests functionality in guessmath.h
 ///
-/// \author Joe Lindström
+/// \author Joe Siltberg
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
+#include "config.h"
 #include "catch.hpp"
 
 #include "guessmath.h"

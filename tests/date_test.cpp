@@ -2,11 +2,12 @@
 /// \file date_test.cpp
 /// \brief Unit tests for the Date class
 ///
-/// \author Joe Lindström
+/// \author Joe Siltberg
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
+#include "config.h"
 #include "catch.hpp"
 
 #include "guess.h"
@@ -57,6 +58,12 @@ TEST_CASE("date/stepping", "Tests Date::next()") {
 	 }
 }
 
+TEST_CASE("date/leap", "Tests isleap") {
+	REQUIRE(!Date::is_leap(1900));
+	REQUIRE(!Date::is_leap(1975));
+	REQUIRE(Date::is_leap(1904));
+	REQUIRE(Date::is_leap(2000));
+}
 
 TEST_CASE("date/months", "Tests prevmonth and nextmonth") {
 	 Date d;
@@ -68,7 +75,7 @@ TEST_CASE("date/months", "Tests prevmonth and nextmonth") {
 
 	 // Go to February
 	 take_n_steps(d, 31);
-	 
+
 	 REQUIRE(d.nextmonth() == 2);
 	 REQUIRE(d.prevmonth() == 0);
 

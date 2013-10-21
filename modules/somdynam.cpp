@@ -465,7 +465,6 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 	const double EPS = 1.0e-16;
 
 	Stand& stand = patch.stand;
-	Fluxes& fluxes = patch.fluxes;
 	Soil& soil = patch.soil;
 
 	if (date.day == 0) {
@@ -1017,7 +1016,6 @@ void leaching(Soil& soil) {
 void soilnadd(Patch& patch) {
 
 	Soil& soil = patch.soil;
-	Climate& climate = patch.stand.gridcell.climate;
 
 	if (date.day == 0) {
 

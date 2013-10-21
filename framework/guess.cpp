@@ -67,7 +67,6 @@ void Climate::serialize(ArchiveStream& arch) {
 		& mtemp_max20
 		& mtemp_max
 		& gdd5
-		& gdd5_pasture
 		& agdd5 
 		& chilldays
 		& ifsensechill
@@ -77,10 +76,6 @@ void Climate::serialize(ArchiveStream& arch) {
 		& mtemp_max_20
 		& mtemp_min
 		& atemp_mean
-		& temp_mean
-		& par_mean
-		& co2_mean
-		& daylength_mean
 		& sinelat
 		& cosinelat
 		& qo & u & v & hh & sinehh
@@ -450,7 +445,7 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),gridcell(gc),la
 		// builds list array of Standpft objects
 		
 	unsigned int p;
-	unsigned int npatchL;
+	unsigned int npatchL = 1;
 
 	for(p=0;p<pftlist.nobj;p++) {
 		pft.createobj(pftlist[p]);
@@ -463,8 +458,13 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),gridcell(gc),la
 #endif
 		npatchL=1;
 	}
-	else {
+	else if(landcover==NATURAL || landcover==FOREST) {
 		npatchL=::npatch; // use the global variable npatch (not Stand::npatch)
+	}
+	else {
+		// Someone has added a new landcover type, the code above needs to be updated and
+		// npatchL needs to be set properly.
+		fail("Unrecognized landcover type");
 	}
 
 	for (p=0;p<npatchL;p++) {

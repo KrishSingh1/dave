@@ -5,7 +5,7 @@
 /// Since these classes are templates, most of their implementation is in the
 /// header.
 ///
-/// \author Joe Lindström
+/// \author Joe Siltberg
 /// $Date$
 ///
 ////////////////////////////////////////////////////////////////////////////////

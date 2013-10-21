@@ -99,10 +99,7 @@ void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
 			// Summergreen grasses have no maximum number of leaf-on days per
 			// growing season, and no chilling requirement
 
-			if(pft.landcover == NATURAL || pft.landcover == FOREST)	// All landcovers that include trees.
-				phen = min(1.0, climate.gdd5 / pft.phengdd5ramp);
-			else
-				phen = min(1.0, climate.gdd5_pasture / pft.phengdd5ramp);
+			phen = min(1.0, climate.gdd5 / pft.phengdd5ramp);
 		}
 	}
 
@@ -123,9 +120,6 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 	// Updated by Ben Smith 2002-07-24 for compatability with "fast" canopy exchange
 	// code (phenology assigned to patchpft for all vegetation modes)
 
-	// guess2008
-	bool leafout = true; // CHILLDAYS
-
 	// Obtain reference to Vegetation object
 	Vegetation& vegetation = patch.vegetation;
 
@@ -145,23 +139,16 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 			else	//natural, urban, pasture, forest and peatland stands/pft:s
 				leaf_phenology_pft(pft.pft, climate, pft.wscal, pft.aphen, pft.phen);
 
-			if (pft.pft.lifeform == TREE && (pft.pft.phenology == SUMMERGREEN || pft.pft.phenology == ANY))
-				if (pft.phen < 1.0) leafout = false; // CHILLDAYS
-
 			// Update annual leaf-on sum
-			if (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE ||
-				climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE) pft.aphen = 0.0;
+			if ( (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE) ||
+				 (climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE) ) {
+				pft.aphen = 0.0;
+			}
 			pft.aphen += pft.phen;
 
 			// ... on to next PFT
 		}
 		patch.pft.nextobj();
-	}
-
-
-
-	if ((patch.stand.landcover==NATURAL || patch.stand.landcover == FOREST) && leafout) { // All landcovers that include trees.
-		climate.ifsensechill = true; // CHILLDAYS
 	}
 
 
@@ -527,8 +514,8 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 		}
 		else cmass_debt_inc=0.0;
 
-		if (cmass_root_inc_min >= 0.0 && cmass_leaf_inc_min >= 0.0 &&
-			cmass_root_inc_min + cmass_leaf_inc_min <= bminc || bminc<=0.0) {
+		if ( (cmass_root_inc_min >= 0.0 && cmass_leaf_inc_min >= 0.0 &&
+		      cmass_root_inc_min + cmass_leaf_inc_min <= bminc) || bminc<=0.0) {
 
 			// Normal allocation (positive increment to all living C compartments)
 
@@ -1180,7 +1167,7 @@ void scale_indiv(Individual& indiv)
 	Gridcell& gridcell = stand.gridcell;
 
 	// Scale individual's C and N mass in stands that have increased in area this year by (old area/new area):
-	if(stand.scale_LC_change < 1.0)	{
+	if(stand.scale_LC_change < 1.0)
 		scale = stand.scale_LC_change;
 	else
 		return;
@@ -1367,9 +1354,6 @@ void growth(Stand& stand, Patch& patch) {
 				// added alive check
 				if (indiv.alive) bminc -= cmass_excess;
 			}
-
-			// Retranslocated nitrogen in turnover
-			double retransn = 0.0;
 
 			double acflux_harvest=0.0;
 			double anflux_harvest=0.0;

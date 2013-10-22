@@ -2444,7 +2444,8 @@ void leaf_phenology_crop(Pft& pft, Patch& patch)
 			}
 
 			// reset stand.gdd0_intercrop same day as gdd5_pasture
-			if (climate.gdd5 == 0.0)
+			if (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE || climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE
+					|| climate.gdd5 == 0.0)
 				patch.stand.gdd0_intercrop = 0.0;
 
 			if(ppftcrop.growingseason) {	// includes bicdate, not eicdate
@@ -2941,7 +2942,7 @@ void crop_growth_daily(Patch& patch) {
 
 /// Harvest function used for clearing natural vegetation at land use change.
 /** A fraction of wood is harvested (pft.harv_eff) and returned as acflux_harvest
- *  A fraction of wood (pft.harvest_slow_frac) is returned as harvested_products_slow
+ *  A fraction of harvested wood (pft.harvest_slow_frac) is returned as harvested_products_slow
  *  The rest, including leaves and roots, is returned as litter.
  *  Called from landcover_dynamics() first day of the year if any natural vegetation is transferred to another land use.
  *  INPUT PARAMETERS 
@@ -3164,7 +3165,6 @@ void harvest_crop(double& cmass_leaf, double& cmass_root, double& cmass_ho, doub
 		double& litter_leaf, double& litter_root, double& acflux_harvest, double& harvested_products_slow, Individual& indiv) {
 
 	double residue_outtake, harvest;
-	double scale = 1.0;	
 	bool alive = indiv.alive;
 	Stand& stand = indiv.vegetation.patch.stand;
 	Gridcell& gridcell = stand.gridcell;

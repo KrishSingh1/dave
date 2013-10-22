@@ -2600,9 +2600,9 @@ public:
 	/// daily nitrogen demand
 	double ndemand;
 
-	/// daily value of irrigation water, set in irrigation(), derived from water_deficit_d
+	/// daily value of irrigation water (mm), set in irrigation(), derived from water_deficit_d
 	double irrigation_d;
-	/// yearly sum of irrigation water
+	/// yearly sum of irrigation water (mm)
 	double irrigation_y;
 
 	// MEMBER FUNCTIONS

@@ -379,18 +379,18 @@ void initial_infiltration(Patch& patch, Climate& climate) {
  */
 void irrigation(Patch& patch)
 {
-	patch.irrigation_d=0.0;
-	if(date.day==0)
-		patch.irrigation_y=0.0;
+	patch.irrigation_d = 0.0;
+	if(date.day == 0)
+		patch.irrigation_y = 0.0;
 
 	if(patch.stand.isirrigated) {
 		for(unsigned int i = 0; i < patch.pft.nobj; i++) {
-			if(patch.pft[i].pft.hydrology==IRRIGATED && patch.pft[i].cropphen->growingseason) {
-				patch.irrigation_d+=patch.pft[i].water_deficit_d;
-				if(patch.irrigation_d<0.0) {
+			if(patch.pft[i].pft.hydrology == IRRIGATED && patch.pft[i].cropphen->growingseason) {
+				patch.irrigation_d += patch.pft[i].water_deficit_d;
+				if(patch.irrigation_d < 0.0) {
 					dprintf("Negative irrigation_d !\n");
 				}
-				patch.irrigation_y+=patch.irrigation_d;
+				patch.irrigation_y += patch.irrigation_d;
 			}
 		}
 	}

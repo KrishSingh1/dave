@@ -210,7 +210,9 @@ void interp_single_month(double preceding_mean,
                          double this_mean,
                          double succeeding_mean,
                          int time_steps,
-                         double* result) {
+                         double* result,
+                         double minimum = -std::numeric_limits<double>::max(),
+                         double maximum = std::numeric_limits<double>::max()) {
 
 	// The values for the beginning and the end of the month are determined 
 	// from the average of the two adjacent monthly means
@@ -263,6 +265,56 @@ void interp_single_month(double preceding_mean,
 		// conserve the mean
 		result[time_steps/2] = time_steps*this_mean-sum;
 	}
+
+	// Go through all values and make sure they're all above the minimum
+	double added = 0;
+	double sum_above = 0;
+
+	for (int i = 0; i < time_steps; ++i) {
+		if (result[i] < minimum) {
+			added += minimum - result[i];
+			result[i] = minimum;
+		}
+		else {
+			sum_above += result[i] - minimum;
+		}
+	}
+
+	double fraction_to_remove = sum_above > 0 ? added / sum_above : 0;
+
+	for (int i = 0; i < time_steps; ++i) {
+		if (result[i] > minimum) {
+			result[i] -= fraction_to_remove * (result[i] - minimum);
+
+			// Needed (only) due to limited precision in floating point arithmetic
+			result[i] = max(result[i], minimum);
+		}
+	}
+
+	// Go through all values and make sure they're all below the maximum
+	double removed = 0;
+	double sum_below = 0;
+
+	for (int i = 0; i < time_steps; ++i) {
+		if (result[i] > maximum) {
+			removed += result[i] - maximum;
+			result[i] = maximum;
+		}
+		else {
+			sum_below += maximum - result[i];
+		}
+	}
+
+	double fraction_to_add = sum_below > 0 ? removed / sum_below : 0;
+
+	for (int i = 0; i < time_steps; ++i) {
+		if (result[i] < maximum) {
+			result[i] += fraction_to_add * (maximum - result[i]);
+
+			// Needed (only) due to limited precision in floating point arithmetic
+			result[i] = min(result[i], maximum);
+		}
+	}
 }
 
 
@@ -275,7 +327,8 @@ void interp_single_month(double preceding_mean,
  *  \param mvals The monthly means
  *  \param dvals The generated daily values
  */
-void interp_monthly_means_conserve(const double* mvals, double* dvals) {
+void interp_monthly_means_conserve(const double* mvals, double* dvals,
+                                   double minimum, double maximum) {
 
 	Date date;
 	int start_of_month = 0;
@@ -287,7 +340,8 @@ void interp_monthly_means_conserve(const double* mvals, double* dvals) {
 		int prev = (m+11)%12;
 
 		interp_single_month(mvals[prev], mvals[m], mvals[next], 
-		                    date.ndaymonth[m], dvals+start_of_month);
+		                    date.ndaymonth[m], dvals+start_of_month,
+		                    minimum, maximum);
 
 		start_of_month += date.ndaymonth[m];
 	}
@@ -304,7 +358,8 @@ void interp_monthly_means_conserve(const double* mvals, double* dvals) {
  *  \param mvals The monthly totals
  *  \param dvals The generated daily values
  */
-void interp_monthly_totals_conserve(const double* mvals, double* dvals) {
+void interp_monthly_totals_conserve(const double* mvals, double* dvals,
+                                    double minimum, double maximum) {
 	// Local date object just used to get number of days for each month
 	Date date;
 
@@ -313,7 +368,7 @@ void interp_monthly_totals_conserve(const double* mvals, double* dvals) {
 	for (int m=0; m<12; m++)
 		mvals_daily[m] = mvals[m] / (double)date.ndaymonth[m];
 
-	interp_monthly_means_conserve(mvals_daily, dvals);
+	interp_monthly_means_conserve(mvals_daily, dvals, minimum, maximum);
 }
 
 /// Distributes a single month of N deposition values

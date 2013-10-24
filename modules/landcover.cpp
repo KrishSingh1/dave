@@ -3188,6 +3188,14 @@ void harvest_crop(double& cmass_leaf, double& cmass_root, double& cmass_ho, doub
 			// harvested products
 			harvest = indiv.pft.harv_eff * cmass_ho;
 
+			// not removed harvestable organs are put into litter
+			if(indiv.pft.aboveground_ho)
+				litter_leaf += (cmass_ho - harvest);
+			else
+				litter_root += (cmass_ho - harvest);
+
+			cmass_ho = 0.0;
+
 			// harvested products not consumed (oxidised) this year put into harvested_products_slow
 			if(ifslowharvestpool) {
 				harvested_products_slow += harvest * indiv.pft.harvest_slow_frac;
@@ -3196,21 +3204,6 @@ void harvest_crop(double& cmass_leaf, double& cmass_root, double& cmass_ho, doub
 
 			// harvested products consumed (oxidised) this year put into acflux_harvest
 			acflux_harvest += harvest;
-
-			cmass_ho = (1 - indiv.pft.harv_eff) * cmass_ho;
-
-			// removed residues are oxidised
-			residue_outtake = indiv.pft.res_outtake * cmass_ho;
-			acflux_harvest += residue_outtake;
-
-			// not removed residues are put into litter
-			if(indiv.pft.aboveground_ho)
-				litter_leaf += (cmass_ho - residue_outtake);
-			else
-				litter_root += (cmass_ho - residue_outtake);
-
-			cmass_ho = 0.0;
-
 		}
 
 		// Nitrogen:
@@ -3218,6 +3211,12 @@ void harvest_crop(double& cmass_leaf, double& cmass_root, double& cmass_ho, doub
 
 			// harvested products
 			harvest = indiv.pft.harv_eff * nmass_ho;
+
+			// not removed harvestable organs are put into litter
+			if(indiv.pft.aboveground_ho)
+				nmass_litter_leaf += (nmass_ho - harvest);
+			else
+				nmass_litter_root += (nmass_ho - harvest);			
 
 			// harvested products not consumed this year put into harvested_products_slow_nmass
 			if(ifslowharvestpool) {
@@ -3227,18 +3226,6 @@ void harvest_crop(double& cmass_leaf, double& cmass_root, double& cmass_ho, doub
 
 			// harvested products consumed this year put into anflux_harvest
 			anflux_harvest += harvest;
-
-			nmass_ho = (1 - indiv.pft.harv_eff) * nmass_ho;
-
-			// removed residues are oxidised
-			residue_outtake = indiv.pft.res_outtake * nmass_ho;
-			anflux_harvest += residue_outtake;
-
-			// not removed harvestable organs are put into litter
-			if(indiv.pft.aboveground_ho)
-				nmass_litter_leaf += (nmass_ho - residue_outtake);
-			else
-				nmass_litter_root += (nmass_ho - residue_outtake);		
 		}
 		nmass_ho = 0.0;
 

@@ -5,7 +5,7 @@ set(headers
   )
 
 set(source  
-  guessio/guessio_cru.cpp
+  guessio/cruinput.cpp
   )
 
 include(add_guess_sources)

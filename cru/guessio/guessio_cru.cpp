@@ -229,6 +229,10 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 
 				mdtr[y][m] = data.mdtr[y*12+m]*0.1;  // degC
 
+				// For some reason there are negative dtr values in
+				// the CRU binaries(!). Set these to zero for now.
+				mdtr[y][m] = max(0.0, mdtr[y][m]);
+
 				/*
 				If vapour pressure is needed:
 				mvap[y][m] = data.mvap[y*12+m]*0.01;
@@ -646,7 +650,12 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		spinup_mfrs.get_data_from(hist_mfrs);
 		spinup_mwet.get_data_from(hist_mwet);
 		spinup_mdtr.get_data_from(hist_mdtr);
-		spinup_mdtr.detrend_data();
+
+		// We wont detrend dtr for now. Partly because dtr is at the moment only
+		// used for BVOC, so what happens during the spinup is not affecting
+		// results in the period thereafter, and partly because the detrending
+		// can give negative dtr values.
+		//spinup_mdtr.detrend_data();
 
 
 		dprintf("\nCommencing simulation for stand at (%g,%g)",gridlist.getobj().lon,

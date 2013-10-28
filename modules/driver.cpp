@@ -339,6 +339,14 @@ void interp_monthly_means_conserve(const double* mvals, double* dvals,
 		int next = (m+1)%12;
 		int prev = (m+11)%12;
 
+		// If a monthly mean value is outside of the allowed limits for daily
+		// values (for instance negative radiation), we'll fail to make sure
+		// the user knows the forcing data is broken.
+		if (mvals[m] < minimum || mvals[m] > maximum) {
+			fail("interp_monthly_means_conserve: Invalid monthly value given (%g), min = %g, max = %g", 
+				  mvals[m], minimum, maximum);
+		}
+
 		interp_single_month(mvals[prev], mvals[m], mvals[next], 
 		                    date.ndaymonth[m], dvals+start_of_month,
 		                    minimum, maximum);

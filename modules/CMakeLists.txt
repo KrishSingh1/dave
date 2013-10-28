@@ -19,7 +19,7 @@ set(source
   canexch.cpp 
   driver.cpp 
   growth.cpp 
-  guessio.cpp 
+  demoinput.cpp 
   soilwater.cpp 
   somdynam.cpp 
   landcover.cpp 

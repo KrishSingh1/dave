@@ -9,7 +9,7 @@
 ///        was compiled is hidden by this module by simply pretending to be a
 ///        "parallel" run with just one process.
 ///
-/// \author Joe Lindström
+/// \author Joe Siltberg
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////

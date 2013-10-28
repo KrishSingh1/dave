@@ -451,7 +451,7 @@ void distribute_ndep(const double* mndry, const double* mnwet,
  *  \param mval_wet   expected number of rain days for month
  *  \param seed       seed for generating random numbers (\see randfrac)
  */
-void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12], long seed) {
+void prdaily(double mval_prec[12], double dval_prec[365], double mval_wet[12], long& seed) {
 
 //  Distribution of monthly precipitation totals to quasi-daily values
 //  (From Dieter Gerten 021121)
@@ -664,7 +664,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 	const double W11DIV12 = 11.0 / 12.0;
 	const double W1DIV12 = 1.0 / 12.0;
-	int d, y, startyear;
+	int y, startyear;
 
 	// guess2008 - changed this from an int to a double
 	double mtemp_last;
@@ -683,7 +683,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 		if (date.year == 0) {
 			// First day of simulation - initialise running annual mean temperature and daily temperatures for the last month
-			for (d = 0; d < climate.dtemp_31.CAPACITY; d++) {
+			for (unsigned int d = 0; d < climate.dtemp_31.CAPACITY; d++) {
 				climate.dtemp_31.add(climate.temp);
 			}
 
@@ -716,11 +716,15 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			gridcell.nextobj();
 		}
 	}
-	else if (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE ||
-		climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE) {
+	else if ( (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE) ||
+	          (climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE) ) {
 		// In midwinter, reset GDD counter for summergreen phenology
 		climate.gdd5 = 0.0;
-		climate.ifsensechill = false; // guess2008 - CHILLDAYS
+		climate.ifsensechill = false;
+	}
+	else if ( (climate.lat >= 0.0 && date.day == WARMEST_DAY_NHEMISPHERE) ||
+	          (climate.lat < 0.0 && date.day == WARMEST_DAY_SHEMISPHERE) ) {
+		climate.ifsensechill = true;
 	}
 
 	// Update GDD counters and chill day count
@@ -756,7 +760,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 	// Reset GDD and chill day counter if mean monthly temperature falls below base
 	// temperature
-	if (mtemp_last >= 5.0 && climate.mtemp < 5.0 && climate.ifsensechill) { // guess2008 - CHILLDAYS
+	if (mtemp_last >= 5.0 && climate.mtemp < 5.0 && climate.ifsensechill) {
 		climate.gdd5 = 0.0;
 		climate.chilldays = 0;
 	}
@@ -833,10 +837,8 @@ void dailyaccounting_patch(Patch& patch) {
 
 	// INPUT AND OUTPUT PARAMETER
 	// soil   = patch soil
-	// fluxes = current and accumulated C fluxes for patch
 
 	Soil& soil = patch.soil;
-	Fluxes& fluxes = patch.fluxes;
 
 	if (date.day == 0) {
 

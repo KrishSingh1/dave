@@ -1117,7 +1117,6 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
 		Individual& indiv = vegetation.getobj();
 
 		Pft& pft = indiv.pft;
-		Standpft& spft = patch.stand.pft[pft.id];
 
 		// Calculate non-water-stressed canopy conductance assuming full leaf cover
 		//        - include canopy-conductance component not linked to
@@ -1308,14 +1307,11 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 	// Base value for actual canopy conductance calculated here for water-stressed
 	// individuals and used to derive actual photosynthesis in function npp (below)
 
-	Climate& climate = patch.stand.gridcell.climate;
-
 	// Calculate common point supply for each PFT in this patch
 	for (int p=0; p<npft; p++) {
 
 		// Retrieve next patch PFT
 		Patchpft& ppft = patch.pft[p];
-		Standpft& spft = patch.stand.pft[p];
 		// Retrieve PFT
 		Pft& pft = ppft.pft;
 
@@ -1704,8 +1700,6 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 	// conductance from function aet_water_stress (above).
 	// Plant respiration obtained by a call to function respiration (above).
 
-	Stand& stand = patch.stand;
-
 	double par, temp, assim, resp, lambda, rad, gtemp;
 	double hours = 24;			// diurnal "daylength" to convert to daily units
 
@@ -1733,7 +1727,6 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 		Pft& pft = indiv.pft;
 		Patchpft& ppft = patch.pft[pft.id];
-		Standpft& spft = stand.pft[pft.id];
 		PhotosynthesisResult phot = date.diurnal() ? indiv.phots[day.period] : indiv.photosynthesis;
 
 		if (indiv.wstress) {

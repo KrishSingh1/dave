@@ -33,9 +33,9 @@ OUTFILES='*.out'
 #                     extension, no directory.) Shell wildcards are allowed.
 #
 #   3. Run the script using the command:
-#        sh submit.sh
+#        ./submit.sh
 #      or:
-#        sh submit.sh [-n <name>] [-s <file>] [-i <ins-file>]
+#        ./submit.sh [-n <name>] [-s <file>] [-i <ins-file>]
 #
 #      All arguments are optional and interpreted as:
 #      name     = the name of the job (shown in PBS queue)
@@ -159,14 +159,14 @@ fi
 for ((a=1; a <= $NPROCESS ; a++))
 do
   cd run\$a
-  if [-f local ]; then
+  if [ -h local ]; then
       rm local
   fi
   ln -s \$PBS_O_LOCAL local
   cd ..
 done
 
-mpiexec BINARY -parallel -input $INPUT_MODULE $INSFILE
+mpiexec -n $NPROCESS BINARY -parallel -input $INPUT_MODULE $INSFILE
 
 EOF
 

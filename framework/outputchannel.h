@@ -2,7 +2,7 @@
 /// \file outputchannel.h
 /// \brief Classes for formatting and printing output from the model
 ///
-/// \author Joe Lindström
+/// \author Joe Siltberg
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////

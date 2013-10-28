@@ -2,7 +2,7 @@
 /// \file parallel.cpp
 /// \brief Functionality for parallel computation
 ///
-/// \author Joe Lindström
+/// \author Joe Siltberg
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////

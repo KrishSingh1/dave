@@ -32,7 +32,9 @@ bool verify_prdaily_single_month(double prec, double wetdays) {
 	double days[365];
 
 	long seed = 12345678;
-	prdaily(monthly_prec, days, monthly_wetdays, seed);
+	prdaily(monthly_prec, days, monthly_wetdays, seed, 
+			  false /* truncate set to false since we want to verify the sum */
+			  );
 
 	// Verify monthly sums and number of wet days
 	const double SUM_TOLERANCE = 0.1;

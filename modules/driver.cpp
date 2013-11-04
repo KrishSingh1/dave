@@ -450,8 +450,10 @@ void distribute_ndep(const double* mndry, const double* mnwet,
  *  \param dval_prec  actual rainfall (mm) for each day of year
  *  \param mval_wet   expected number of rain days for month
  *  \param seed       seed for generating random numbers (\see randfrac)
+ *  \param truncate   if set to true the function will set small daily values
+ *                    (< 0.1) to zero
  */
-void prdaily(double mval_prec[12], double dval_prec[365], double mval_wet[12], long& seed) {
+void prdaily(double mval_prec[12], double dval_prec[365], double mval_wet[12], long& seed, bool truncate /* = true */) {
 
 //  Distribution of monthly precipitation totals to quasi-daily values
 //  (From Dieter Gerten 021121)
@@ -535,7 +537,7 @@ void prdaily(double mval_prec[12], double dval_prec[365], double mval_wet[12], l
 					for (d=0; d<date.ndaymonth[m]; d++) {
 						dyy = daysum + d;
 						dval_prec[dyy] *= mval_prec[m] / mprec_sum;
-						if (dval_prec[dyy] < 0.1) dval_prec[dyy] = 0.0;
+						if (truncate && dval_prec[dyy] < 0.1) dval_prec[dyy] = 0.0;
 					}
 				}
 			}

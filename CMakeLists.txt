@@ -102,6 +102,7 @@ add_executable(${guess_command_name} ${guess_sources} command_line_version/main.
 # Rule for building the unit test binary
 if (UNIT_TESTS)
   add_executable(runtests ${guess_sources} ${test_sources})
+  target_link_libraries(runtests ${LIBS})
 endif()
 
 # Specify libraries to link to the executable

@@ -131,6 +131,7 @@ if (UNIX)
   add_custom_command(TARGET ${guess_command_name}
                      POST_BUILD
              COMMAND sed 's|BINARY|'${CMAKE_CURRENT_BINARY_DIR}/${guess_command_name}'|g\;s|DATE|'\"`date`\"'|g' ${submit_template} > ${CMAKE_BINARY_DIR}/submit.sh
+			 COMMAND chmod +x ${CMAKE_BINARY_DIR}/submit.sh
              COMMENT "Generating submit script")
 endif (UNIX)
 

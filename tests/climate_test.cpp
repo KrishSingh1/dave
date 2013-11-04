@@ -2,11 +2,12 @@
 /// \file climate_test.cpp
 /// \brief Unit tests for functions processing climate data
 ///
-/// \author Joe Lindström
+/// \author Joe Siltberg
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
+#include "config.h"
 #include "catch.hpp"
 
 #include "driver.h"
@@ -29,7 +30,8 @@ bool verify_prdaily_single_month(double prec, double wetdays) {
 
 	double days[365];
 
-	prdaily(monthly_prec, days, monthly_wetdays, 12345678);
+	long seed = 12345678;
+	prdaily(monthly_prec, days, monthly_wetdays, seed);
 
 	// Verify monthly sums and number of wet days
 	const double SUM_TOLERANCE = 0.1;

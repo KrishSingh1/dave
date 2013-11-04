@@ -18,7 +18,7 @@
 /// read in the index of each state file and read in the elements it wants in
 /// the order that minimizes disk seeks.
 ///
-/// \author Joe Lindström
+/// \author Joe Siltberg
 /// $Date$
 ///
 ////////////////////////////////////////////////////////////////////////////////
@@ -134,10 +134,6 @@ private:
 			throw PartitionedMapSerializerError("failed to write out index");
 		}
 	}
-
-
-	/// The file we're serializing to
-	std::ofstream file;
 	 
 	typedef std::pair<Key, std::streampos> IndexElement;
 	typedef std::vector<IndexElement> Index;
@@ -147,6 +143,9 @@ private:
 
 	ElementSerializer element_serializer;
 	KeySerializer key_serializer;
+
+	/// The file we're serializing to
+	std::ofstream file;
 };
 
 /// Class for deserializing a partitioned map

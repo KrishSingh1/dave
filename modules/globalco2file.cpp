@@ -2,7 +2,7 @@
 /// \file globalco2file.cpp
 /// \brief A class for reading in CO2 values from a text file
 ///
-/// \author Joe Lindström
+/// \author Joe Siltberg
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////

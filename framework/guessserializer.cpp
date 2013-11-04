@@ -130,7 +130,7 @@ void verify_meta_data(const char* directory) {
 	// Verify that the PFTs have the same names
 	for (int i = 0; i < npft; i++) {
 
-		const int PFT_NAME_MAX_SIZE = 256;
+		const size_t PFT_NAME_MAX_SIZE = 256;
 
 		unsigned long length;
 		file.read((char*)&length, sizeof(length));

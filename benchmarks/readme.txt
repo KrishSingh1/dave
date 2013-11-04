@@ -123,6 +123,6 @@ is accessible from each benchmark and post processing script through
 a symbolic link in the benchmarks working directory.
 
 
-Joe Lindström
-joe.lindstrom@nateko.lu.se
+Joe Siltberg
+joe.siltberg@nateko.lu.se
 2011-06-10

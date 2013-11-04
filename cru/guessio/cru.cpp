@@ -29,9 +29,6 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 	// Archive object. Definition in new header file, cru.h
 	Cru_1901_2006Archive ark;
 
-	int target_ilon=(int)(dlon*10.0);
-	int target_ilat=(int)(dlat*10.0);
-
 	int y,m;
 
 	// Try block to catch any unexpected errors

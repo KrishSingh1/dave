@@ -657,7 +657,11 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	          (climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE) ) {
 		// In midwinter, reset GDD counter for summergreen phenology
 		climate.gdd5 = 0.0;
-		climate.ifsensechill = false; // guess2008 - CHILLDAYS
+		climate.ifsensechill = false;
+	}
+	else if ( (climate.lat >= 0.0 && date.day == WARMEST_DAY_NHEMISPHERE) ||
+	          (climate.lat < 0.0 && date.day == WARMEST_DAY_SHEMISPHERE) ) {
+		climate.ifsensechill = true;
 	}
 
 	// Update GDD counters and chill day count
@@ -693,7 +697,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 	// Reset GDD and chill day counter if mean monthly temperature falls below base
 	// temperature
-	if (mtemp_last >= 5.0 && climate.mtemp < 5.0 && climate.ifsensechill) { // guess2008 - CHILLDAYS
+	if (mtemp_last >= 5.0 && climate.mtemp < 5.0 && climate.ifsensechill) {
 		climate.gdd5 = 0.0;
 		climate.chilldays = 0;
 	}

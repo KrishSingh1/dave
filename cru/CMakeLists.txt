@@ -9,7 +9,7 @@ set(headers
 set(source  
   guessio/cru.cpp
   guessio/lamarquendep.cpp
-  guessio/guessio_cru.cpp
+  guessio/cruinput.cpp
   )
 
 include(add_guess_sources)

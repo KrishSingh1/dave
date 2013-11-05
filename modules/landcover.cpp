@@ -45,8 +45,6 @@ bool dayinperiod(int day, int start, int end) {
 /// Step n days from a date.
 int stepfromdate(int day, int step) {
 
-	bool acrossnewyear = false;
-
 	if(day + step > 0)
 		return (day + step) % 365;
 	else if(day + step < 0)
@@ -816,10 +814,10 @@ void receiving_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLA
 						patchpft.litter_root = (patchpft.litter_root * old_frac + from.transfer_litter_root[i] * added_frac) / new_frac;
 						patchpft.litter_repr = (patchpft.litter_repr * old_frac + from.transfer_litter_repr[i] * added_frac) / new_frac;
 
-						patchpft.nmass_litter_leaf = (patchpft.litter_leaf * old_frac + from.transfer_nmass_litter_leaf[i] * added_frac) / new_frac;
-						patchpft.nmass_litter_root = (patchpft.litter_leaf * old_frac + from.transfer_nmass_litter_root[i] * added_frac) / new_frac;
-						patchpft.nmass_litter_sap = (patchpft.litter_leaf * old_frac + from.transfer_nmass_litter_sap[i] * added_frac) / new_frac;
-						patchpft.nmass_litter_heart = (patchpft.litter_leaf * old_frac + from.transfer_nmass_litter_heart[i] * added_frac) / new_frac;
+						patchpft.nmass_litter_leaf = (patchpft.nmass_litter_leaf * old_frac + from.transfer_nmass_litter_leaf[i] * added_frac) / new_frac;
+						patchpft.nmass_litter_root = (patchpft.nmass_litter_root * old_frac + from.transfer_nmass_litter_root[i] * added_frac) / new_frac;
+						patchpft.nmass_litter_sap = (patchpft.nmass_litter_sap * old_frac + from.transfer_nmass_litter_sap[i] * added_frac) / new_frac;
+						patchpft.nmass_litter_heart = (patchpft.nmass_litter_heart * old_frac + from.transfer_nmass_litter_heart[i] * added_frac) / new_frac;
 
 						if(ifslowharvestpool)
 							patchpft.harvested_products_slow = (patchpft.harvested_products_slow * old_frac + from.transfer_harvested_products_slow[i] * added_frac) / new_frac;

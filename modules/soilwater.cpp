@@ -377,8 +377,8 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 /// Calculate required irrigation according to water deficiency.
 /** Function to be called after canopy_exchange and before soilwater.
  */
-void irrigation(Patch& patch)
-{
+void irrigation(Patch& patch) {
+
 	patch.irrigation_d = 0.0;
 	if(date.day == 0)
 		patch.irrigation_y = 0.0;
@@ -387,8 +387,8 @@ void irrigation(Patch& patch)
 		for(unsigned int i = 0; i < patch.pft.nobj; i++) {
 			if(patch.pft[i].pft.hydrology == IRRIGATED && patch.pft[i].cropphen->growingseason) {
 				patch.irrigation_d += patch.pft[i].water_deficit_d;
-				if(patch.irrigation_d < 0.0) {
-					dprintf("Negative irrigation_d !\n");
+				if(patch.pft[i].water_deficit_d < 0.0) {
+					fail("irrigation(): Negative water deficit for PFT %s!\n", (char*)patch.pft[i].pft.name);
 				}
 				patch.irrigation_y += patch.irrigation_d;
 			}

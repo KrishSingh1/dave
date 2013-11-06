@@ -170,6 +170,7 @@ int framework(const CommandLineArguments& args) {
 					initial_infiltration(patch, gridcell.climate);
 					// Photosynthesis, respiration, evapotranspiration
 					canopy_exchange(patch, gridcell.climate);
+					// Sum total required irrigation
 					irrigation(patch);
 					// Soil water accounting, snow pack accounting
 					soilwater(patch, gridcell.climate);

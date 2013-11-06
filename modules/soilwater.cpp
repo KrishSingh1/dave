@@ -390,9 +390,9 @@ void irrigation(Patch& patch) {
 				if(patch.pft[i].water_deficit_d < 0.0) {
 					fail("irrigation(): Negative water deficit for PFT %s!\n", (char*)patch.pft[i].pft.name);
 				}
-				patch.irrigation_y += patch.irrigation_d;
 			}
 		}
+		patch.irrigation_y += patch.irrigation_d;
 	}
 }
 

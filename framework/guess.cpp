@@ -1217,11 +1217,11 @@ void Gridcell::create_stand_lu(landcovertype lc, double fraction, int cftid)
 			stand.set_gridcell_fraction(fraction);
 
 			stand.pft[pftlist[index].id].active = true;
-
+#ifdef IRRIGATION
 			if(pftlist[index].hydrology == IRRIGATED) {
 				stand.isirrigated = true;
 			}
-
+#endif
 			if(pftlist[index].intercrop==NATURALGRASS && ifintercropgrass) {
 				stand.hasgrassintercrop = true;
 

@@ -1447,11 +1447,10 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 				// (this then represents the average amount of water available over an
 				// individual's FPC, assuming individuals are equal in competition for water)
 				double wr;
-#ifdef IRRIGATION
+
 				if(patch.stand.isirrigated && pft.hydrology==IRRIGATED)
 					wr = irrigated_water_uptake(patch, pft);
 				else
-#endif
 					wr = water_uptake(patch.soil.wcont, patch.soil.soiltype.awc,
 								pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 								pft.lifeform == TREE, pft.drought_tolerance);

@@ -2772,6 +2772,24 @@ public:
 
 	void serialize(ArchiveStream& arch);
 
+	/// Returns whether we should model fire in this stand
+	bool has_fires() const {
+#ifdef NOPASTURESTOCH
+		return iffire && landcover != CROPLAND && landcover != PASTURE;
+#else
+		return iffire && landcover != CROPLAND;
+#endif
+	}
+
+	/// Returns whether we should model disturbances in this stand
+	bool has_disturbances() const {
+#ifdef NOPASTURESTOCH
+		return ifdisturb && landcover != CROPLAND && landcover != PASTURE;
+#else
+		return ifdisturb && landcover != CROPLAND;
+#endif
+	}
+
 private:
 
 	/// Fraction of this stand relative to the gridcell

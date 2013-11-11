@@ -835,7 +835,7 @@ void mortality_lpj(Stand& stand, Patch& patch,Climate& climate, double fireprob)
 				mort_shade=0.0;
 
 			// Mortality due to fire
-			if (stand.landcover!=CROPLAND && iffire) mort_fire=fireprob*(1.0-indiv.pft.fireresist);
+			if (stand.has_fires()) mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			else mort_fire=0.0;
 
 			// Sum mortality components to give total mortality (maximum 1)
@@ -876,11 +876,7 @@ void mortality_lpj(Stand& stand, Patch& patch,Climate& climate, double fireprob)
 			}
 
 			// Mortality due to fire
-#if defined NOPASTURESTOCH
-			if (stand.landcover!=CROPLAND && stand.landcover!=PASTURE && iffire)
-#else
-			if (stand.landcover!=CROPLAND && iffire)
-#endif
+			if (stand.has_fires())
 				mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			else mort_fire=0.0;
 
@@ -978,11 +974,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 	Vegetation& vegetation=patch.vegetation;
 
 	// FIRE MORTALITY
-#if defined NOPASTURESTOCH
-	if (stand.landcover!=CROPLAND && stand.landcover!=PASTURE && iffire) {
-#else
-	if (stand.landcover!=CROPLAND && iffire) {
-#endif
+	if (stand.has_fires()) {
 
 		// Impose fire in this patch with probability 'fireprob'
 
@@ -1443,11 +1435,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		// (in population mode: fraction of modelled area affected by fire this year)
 
 	// Calculate fire probability and volatilise litter
-#if defined NOPASTURESTOCH
-	if (stand.landcover!=CROPLAND && stand.landcover!=PASTURE && iffire) {
-#else
-	if (stand.landcover!=CROPLAND && iffire) {
-#endif
+	if (stand.has_fires()) {
 		fire(patch,fireprob);
 	}
 	patch.fireprob = fireprob;
@@ -1467,11 +1455,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 
 		// INDIVIDUAL AND COHORT MODES
 
-#if defined NOPASTURESTOCH
-		if (stand.landcover!=CROPLAND && stand.landcover!=PASTURE) {
-#else
-		if (stand.landcover!=CROPLAND) {
-#endif
+		if (stand.has_disturbances()) {
 			// Disturbance for equilsom() to get century SOM pool to equilibrium faster
 			if (ifcentury && (date.year == (int)((patch.soil.solvesomcent_beginyr + patch.soil.solvesomcent_endyr)/2) || (date.year == freenyears && stand.ifnlim_stand()))) {
 				disturbance(patch, 1.0);
@@ -1481,7 +1465,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 			}
 		
 			// Normal disturbance with probability interval of distinterval
-			if (ifdisturb && patch.age) {
+			if (patch.age) {
 				disturbance(patch,1.0 / distinterval);
 				if (patch.disturbed) {
 					return; // no mortality or establishment this year

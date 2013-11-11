@@ -587,7 +587,7 @@ void Individual::report_flux(Fluxes::PerPatchFluxType flux_type, double value) {
 	}
 }
 
-void Individual::reduce_biomass(double mortality, double mortality_fire) {
+/*void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 	// This function needs to be modified if a new lifeform is added,
 	// specifically to deal with nstore().
@@ -668,6 +668,113 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 	nmass_heart     *= remaining;
 	nstore_longterm *= remaining;
 	nstore_labile   *= remaining;
+}*/
+
+/// Help function for reduce_biomass(), partitions nstore into leafs and roots
+/** 
+ *  As leaf and roots can have a very low N concentration after growth and allocation, 
+ *  N in nstore() is split between them to saticfy relationship between their average C:N ratios
+ */
+void nstore_adjust(double& cmass_leaf,double& cmass_root, double& nmass_leaf, double& nmass_root, 
+				   double nstore, double cton_leaf, double cton_root) {
+
+	// (1) cmass_leaf / ((nmass_leaf + leaf_ndemand) * cton_leaf) = cmass_root / ((nmass_root + root_ndemand) * cton_root)
+	// (2) leaf_ndemand + root_ndemand = nstore
+
+	// (1) + (2) leaf_ndemand = (cmass_leaf * ratio (nmass_root + nstore) - cmass_root * nmass_leaf) / (cmass_root + cmass_leaf * ratio)
+	//
+	// where ratio = cton_root / cton_leaf
+
+	double ratio = cton_root / cton_leaf;
+
+	double leaf_ndemand = (cmass_leaf * ratio * (nmass_root + nstore) - cmass_root * nmass_leaf) / (cmass_root + cmass_leaf * ratio);
+	double root_ndemand = nstore - leaf_ndemand;
+
+	nmass_leaf += leaf_ndemand;
+	nmass_root += root_ndemand;
+}
+
+void Individual::reduce_biomass(double mortality, double mortality_fire) {
+
+	// This function needs to be modified if a new lifeform is added,
+	// specifically to deal with nstore().
+	assert(pft.lifeform == TREE || pft.lifeform == GRASS);
+
+	if (!negligible(mortality)) {
+
+		const double mortality_non_fire = mortality - mortality_fire;
+
+		// Transfer killed biomass to litter
+		// (above-ground biomass killed by fire enters atmosphere, not litter)
+
+		Patchpft& ppft = patchpft();
+
+		double cmass_leaf_litter = mortality * cmass_leaf;
+		double cmass_root_litter = mortality * cmass_root;
+
+		ppft.litter_leaf += cmass_leaf_litter * mortality_non_fire / mortality;
+		ppft.litter_root += cmass_root_litter;
+
+		if (cmass_debt <= cmass_heart + cmass_sap) {
+			if (cmass_debt <= cmass_heart) {
+				ppft.litter_sap   += mortality_non_fire * cmass_sap;
+				ppft.litter_heart += mortality_non_fire * (cmass_heart - cmass_debt);
+			}
+			else {
+				ppft.litter_sap   += mortality_non_fire * (cmass_sap + cmass_heart - cmass_debt);
+			}
+		}
+		else {
+			double debt_excess = mortality_non_fire * (cmass_debt - (cmass_sap + cmass_heart));
+			report_flux(Fluxes::NPP, debt_excess);
+			report_flux(Fluxes::RA, -debt_excess);
+		}
+
+		double nmass_leaf_litter = mortality * nmass_leaf;
+		double nmass_root_litter = mortality * nmass_root;
+
+		// stored N is partioned out to leaf and root biomass as new tissue after growth might have extremely low 
+		// N content (to get closer to relationship between compartment averages (cton_leaf, cton_root, cton_sap))
+		nstore_adjust(cmass_leaf_litter, cmass_root_litter, nmass_leaf_litter, nmass_root_litter,
+			mortality * nstore(), pft.cton_leaf_avr,pft.cton_root_avr);
+
+		ppft.nmass_litter_leaf  += nmass_leaf_litter * mortality_non_fire / mortality;
+		ppft.nmass_litter_root  += nmass_root_litter;
+		ppft.nmass_litter_sap   += mortality_non_fire * nmass_sap;
+		ppft.nmass_litter_heart += mortality_non_fire * nmass_heart;
+
+		// Flux to atmosphere from burnt above-ground biomass
+
+		double cflux_fire = mortality_fire * (cmass_leaf_litter / mortality + cmass_wood());
+		double nflux_fire = mortality_fire * (nmass_leaf_litter / mortality + nmass_wood());
+
+		report_flux(Fluxes::FIREC,    cflux_fire);
+
+		report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire); 
+		report_flux(Fluxes::NO_FIRE,  Fluxes::NO_FIRERATIO  * nflux_fire);
+		report_flux(Fluxes::NO2_FIRE, Fluxes::NO2_FIRERATIO * nflux_fire);
+		report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
+
+		// Reduce this Individual's biomass values
+
+		const double remaining = 1.0 - mortality;
+
+		if (pft.lifeform != GRASS) {
+			densindiv *= remaining;
+		}
+
+		cmass_leaf      *= remaining;
+		cmass_root      *= remaining;
+		cmass_sap       *= remaining;
+		cmass_heart     *= remaining;
+		cmass_debt      *= remaining;
+		nmass_leaf      *= remaining;
+		nmass_root      *= remaining;
+		nmass_sap       *= remaining;
+		nmass_heart     *= remaining;
+		nstore_longterm *= remaining;
+		nstore_labile   *= remaining;
+	}
 }
 
 double Individual::cton_leaf(bool use_phen /* = true*/) const {

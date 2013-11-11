@@ -1398,8 +1398,8 @@ public:
 		solvesom_begin = SOLVESOM_BEGIN;
 
 		sand_frac = 0.4;
-		clay_frac = 0.4;
-		silt_frac = 0.2;
+		clay_frac = 0.3;
+		silt_frac = 0.3;
 	}
 
 	/// Override the default SOM years with 70-80% of the spin-up period length

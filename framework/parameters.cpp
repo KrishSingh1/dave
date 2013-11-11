@@ -42,6 +42,7 @@ int freenyears;
 double nrelocfrac;
 double nfix_a;
 double nfix_b;
+bool ifmontranlitter;
 
 bool ifsmoothgreffmort;
 bool ifdroughtlimitedestab;
@@ -366,6 +367,8 @@ void plib_declarations(int id,xtring setname) {
 			"Whether plant growth limited by available nitrogen");
 		declareitem("freenyears",&freenyears,0,1000,1,CB_NONE,
 			"Number of years to spinup without nitrogen limitation");
+		declareitem("ifmontranlitter",&ifmontranlitter,1,CB_NONE,
+			"Whether to transfer litter monthly");
 
 		declareitem("ifsmoothgreffmort",&ifsmoothgreffmort,1,CB_NONE,
 			"Whether to vary mort_greff smoothly with growth efficiency (0,1)");
@@ -721,6 +724,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcentury")) badins("ifcentury");
 		if (!itemparsed("ifnlim")) badins("ifnlim");
 		if (!itemparsed("freenyears")) badins("freenyears");
+		if (!itemparsed("ifmontranlitter")) badins("ifmontranlitter");
 
 		if (nyear_spinup <= freenyears) {
 			sendmessage("Error", "freenyears must be smaller than nyear_spinup");

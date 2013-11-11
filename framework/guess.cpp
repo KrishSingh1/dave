@@ -618,11 +618,27 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	dnpp              = 0.0;
 	cropindiv         = NULL;
 
+	Stand& stand = vegetation.patch.stand;
+
 	if(pft.landcover==CROPLAND) {
 		cropindiv=new cropindiv_struct;
-	}
 
-//	dprintf("Year %d: Individual in stand %d created:id=%d, pft=%s\n", ::date.year-nyear_spinup+1901,vegetation.patch.stand.id,id,(char*)pft.name);
+		if(pft.phenology == CROPGREEN) {
+			fpc = 1.0;
+			patchpft().cropphen->fpc = fpc;
+			fpc_daily = 0.0;
+		}
+
+		if (stand.pftid == pft.id) {
+			cropindiv->isprimarycrop = true;
+			if(pft.phenology==ANY) {					// normal CC3G & CC4G (+ irrigated) growth
+				patchpft().cropphen->growingseason = true;
+			}
+		}
+		else if (ifintercropgrass && stand.hasgrassintercrop && pft.isintercropgrass) {	// grass intercrop growth
+			cropindiv->isintercropgrass = true;
+		}
+	}
 }
 
 void Individual::serialize(ArchiveStream& arch) {

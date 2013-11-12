@@ -51,7 +51,8 @@ static const double ATMFRAC=0.7;
 
 // Corresponds to the amount of soil available nitrogen where SOM C:N ratio reach
 // their minimum (nitrogen saturation) (Parton et al 1993, Fig. 4)
-static const double NMASS_SAT = 0.002;
+// Comment: NMASS_SAT is too high when considering BNF - Zaehle
+static const double NMASS_SAT = 0.002 * 0.05;// * 0.05;
 // Corresponds to the nitrogen concentration in litter where SOM C:N ratio reach
 // their minimum (nitrogen saturation) (Parton et al 1993, Fig. 4)
 static const double NCONC_SAT = 0.02;
@@ -487,6 +488,8 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 	setntoc(soil, soil.nmass_avail, SOILMICRO, 15.0, 6.0, 0.0, NMASS_SAT);
 
 	setntoc(soil, soil.nmass_avail, SURFHUMUS, 30.0, 15.0, 0.0, NMASS_SAT);
+
+	setntoc(soil, soil.nmass_avail, PASSIVESOM, 10.0, 7.0, 0.0, NMASS_SAT);
 
 	if (!ifequilsom) {
 
@@ -1298,19 +1301,17 @@ void soilnadd(Patch& patch) {
 	// Nitrogen fixation
 	// If soil available nitrogen is above the value for minimum SOM C:N ratio, then
 	// nitrogen fixation is reduced (nitrogen rich soils)
-	// Comment: NMASS_SAT is too high when considering BNF - Zaehle
-	double nmass_sat = NMASS_SAT * 0.05;
-	if (soil.nmass_avail < nmass_sat) {
+	if (soil.nmass_avail < NMASS_SAT) {
 
 		const double daily_nfix = soil.anfix_calc / 365.0;
 
-		if (soil.nmass_avail + daily_nfix < nmass_sat) {
+		if (soil.nmass_avail + daily_nfix < NMASS_SAT) {
 			soil.nmass_avail += daily_nfix;
 			soil.anfix += daily_nfix;
 		}
 		else {
-			soil.anfix += nmass_sat - soil.nmass_avail;
-			soil.nmass_avail = nmass_sat;
+			soil.anfix += NMASS_SAT - soil.nmass_avail;
+			soil.nmass_avail = NMASS_SAT;
 		} 
 	}
 

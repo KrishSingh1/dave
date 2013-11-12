@@ -2240,7 +2240,7 @@ void crop_phenology(Patch& patch)
 		Gridcellpft& gridcellpft = gridcell.pft[pft.id];
 		double hu = 0.0;
 
-if(patch.stand.pft[pft.id].active)
+		if(patch.stand.pft[pft.id].active) {
 		if(pft.phenology == CROPGREEN) {
 
 			cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
@@ -2354,10 +2354,6 @@ if(patch.stand.pft[pft.id].active)
 						//ppftcrop.fhi_harvest[1] = ppftcrop.fhi;
 					}
 
-					// resets
-					ppftcrop.lai_daily = 0.0;	// reset here to avoid leaf areas in interception and ndemand on harvest day
-					ppftcrop.fpc_daily = 0.0;
-
 					ppftcrop.demandsum_crop = 0.0;
 					ppftcrop.supplysum_crop = 0.0;
 
@@ -2385,7 +2381,7 @@ if(patch.stand.pft[pft.id].active)
 				}
 			}
 		}
-		else if(pft.phenology == ANY && patch.stand.pft[pft.id].active) { // crop grasses using standard guess phenology calculation
+		else if(pft.phenology == ANY) { // crop grasses using standard guess phenology calculation
 		
 			if(patch.stand.pftid != pft.id) {
 				cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
@@ -2396,14 +2392,16 @@ if(patch.stand.pft[pft.id].active)
 					ppftcrop.growingseason = false;
 			}
 		}
-
-			patch.pft.nextobj();
 		}
+
+		patch.pft.nextobj();
+	}
 }
 
 
 /// Updates crop phen from yesterday's lai_daily
-/** True crops derive phen from yesterday's fpc_daily.
+/** True crops derive phen from yesterday's fpc_daily,
+ *   assuming only one crop individual.
  *  Intercrop grass and pasture grass grown in crop stands use gdd5.
  *   and is treated similar to pasture grass.
  */ 
@@ -2416,10 +2414,22 @@ void leaf_phenology_crop(Pft& pft, Patch& patch)
 
 	if (pft.phenology == CROPGREEN && patch.stand.pft[pft.id].active) {
 		if (ppftcrop.growingseason) {
-			if(ppftcrop.fpc)
-				patchpft.phen = ppftcrop.fpc_daily / ppftcrop.fpc;
-			else
-				patchpft.phen = 0.0;
+
+			Vegetation& vegetation = patch.vegetation;
+
+			vegetation.firstobj();
+			while (vegetation.isobj) {
+				Individual& indiv = vegetation.getobj();
+
+				if(indiv.pft.id == pft.id) {
+					if(indiv.fpc)
+						patchpft.phen = indiv.fpc_daily / indiv.fpc;
+					else
+						patchpft.phen = 0.0;
+				}
+
+				vegetation.nextobj();
+			}
 		}
 		else if (date.day == ppftcrop.hdate)
 			patchpft.phen = 0.0;
@@ -2495,7 +2505,7 @@ void fpar_crop(Patch& patch) {
 			Individual& indiv=vegetation.getobj();
 		
 			// For this individual ...
-			indiv.fpar = indiv.fpc_daily;	// Eqn 1
+			indiv.fpar = indiv.fpc_today();	// Eqn 1
 			indiv.fpar_leafon = indiv.fpc;	// Eqn 2
 
 			vegetation.nextobj();
@@ -2523,8 +2533,6 @@ void fpar_crop(Patch& patch) {
 
 			if(patch.pft[indiv.pft.id].cropphen->growingseason == true) {
 
-				double lai_phen = indiv.pft.phenology == CROPGREEN ? indiv.lai_daily : indiv.lai * indiv.phen;
-
 				if (indiv.pft.lifeform == GRASS) {
 
 					if(patch.stand.gridcell.landcoverfrac[PASTURE] > 0.0) {
@@ -2535,7 +2543,7 @@ void fpar_crop(Patch& patch) {
 							highest_grass_lai = indiv.lai;
 						plai_leafon_grass = highest_grass_lai;	// avoids double lai count for intercrop grass (c3 and c4 grass competing, lai is for monocultures)
 					}
-					plai_grass += lai_phen;	
+					plai_grass += indiv.lai_today();	
 				}
 			}
 			vegetation.nextobj();
@@ -2628,24 +2636,6 @@ void fpar_crop(Patch& patch) {
 ////////////////////////////////////////////////////////////  Crop allocation  ///////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Transfers patchpft.cropphen lai and fpc-values to individuals
-void update_indiv_lai_fpc(Patch& patch) {
-
-	Vegetation& vegetation = patch.vegetation;
-
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv = vegetation.getobj();
-
-		if(patch.pft[indiv.pft.id].pft.phenology == CROPGREEN) {
-			indiv.lai_daily = patch.pft[indiv.pft.id].cropphen->lai_daily;
-			indiv.lai_indiv_daily = indiv.lai_daily;
-			indiv.fpc_daily = patch.pft[indiv.pft.id].cropphen->fpc_daily;
-		}
-		vegetation.nextobj();
-	}
-}
-
 /// Updates patch.members fpc_total and fpc_rescale for crops (to be called after crop_phenology())
 void update_patch_fpc(Patch& patch) {
 
@@ -2669,7 +2659,7 @@ void update_patch_fpc(Patch& patch) {
 }
 
 
-/// Updates patchpft variables lai_daily and fpc_daily from daily grs_cmass_leaf-value
+/// Updates lai_daily and fpc_daily from daily grs_cmass_leaf-value
 /** lai during senescence declines according the function senescence_curve()
  */
 void lai_crop(Patch& patch) {
@@ -2689,20 +2679,27 @@ void lai_crop(Patch& patch) {
 			if(ppftcrop.growingseason) {
 
 				if(!ppftcrop.senescence)
-					ppftcrop.lai_daily = cropindiv.grs_cmass_leaf * indiv.pft.sla;	
+					indiv.lai_daily = cropindiv.grs_cmass_leaf * indiv.pft.sla;
 				else
 					// Follow the senescence curve from leaf cmass at senescence (cmass_leaf_sen):
-					ppftcrop.lai_daily = cropindiv.cmass_leaf_sen * indiv.pft.sla * senescence_curve(indiv.pft, ppftcrop.fphu);
+					indiv.lai_daily = cropindiv.cmass_leaf_sen * indiv.pft.sla * senescence_curve(indiv.pft, ppftcrop.fphu);
 
-				ppftcrop.fpc_daily = 1.0 - lambertbeer(ppftcrop.lai_daily); //Try!
+				if(indiv.lai_daily < 0.0)
+					indiv.lai_daily = 0.0;
 
-				if(ppftcrop.lai_daily < 0.0)
-					ppftcrop.lai_daily = 0.0;
+				indiv.fpc_daily = 1.0 - lambertbeer(indiv.lai_daily);
+
+				indiv.lai_indiv_daily = indiv.lai_daily;
+			}
+			else if(date.day == ppftcrop.hdate) {
+				indiv.lai_daily = 0.0;
+				indiv.lai_indiv_daily = 0.0;
+				indiv.fpc_daily = 0.0;
 			}
 
-			if(!(ppftcrop.lai_daily>=0.0 && ppftcrop.lai_daily<=20.0))//Test for unrealistically high lai.
+			if(!(indiv.lai_daily>=0.0 && indiv.lai_daily<=20.0))//Test for unrealistically high lai.
 if(!SUPPRESSLARGEOUTPUT)	
-				dprintf("In lai_crop() stand %d pft %d year %d day %d: senescence=%d, grs_cmass_leaf=%f, grs_cmass_ho=%f, lai_daily=%f, out of bounds !\n", patch.stand.id, indiv.pft.id, date.year-nyear_spinup+1901, date.day, ppftcrop.senescence, cropindiv.grs_cmass_leaf, cropindiv.grs_cmass_ho, ppftcrop.lai_daily);
+				dprintf("In lai_crop() stand %d pft %d year %d day %d: senescence=%d, grs_cmass_leaf=%f, grs_cmass_ho=%f, lai_daily=%f, out of bounds !\n", patch.stand.id, indiv.pft.id, date.year-nyear_spinup+1901, date.day, ppftcrop.senescence, cropindiv.grs_cmass_leaf, cropindiv.grs_cmass_ho, indiv.lai_daily);
 		}
 		vegetation.nextobj();
 	}
@@ -2713,7 +2710,7 @@ if(!SUPPRESSLARGEOUTPUT)
  *  Requires updated value of fphu and hi.
  *  Equations are from Neitsch et al. 2002.
  */
-void growth_crop_daily(Patch& patch) {
+void allocation_crop_daily(Patch& patch) {
 
 	double froot, fleaf;
 	double grs_cmass_root_old;
@@ -2919,13 +2916,10 @@ void growth_crop_daily(Patch& patch) {
 void crop_growth_daily(Patch& patch) {
 
 	// allocate daily npp to leaf, roots and harvestable organs
-	growth_crop_daily(patch);
+	allocation_crop_daily(patch);
 
 	// update patchpft.lai_daily and fpc_daily
 	lai_crop(patch);
-
-	// transfer patchpft lai and fpc-values to individuals
-	update_indiv_lai_fpc(patch);
 
 }
 

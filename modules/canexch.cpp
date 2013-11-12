@@ -88,10 +88,8 @@ void interception(Patch& patch,Climate& climate) {
 
 		if (!negligible(pet)) {
 
-			double lai_indiv_phen=indiv.pft.phenology==CROPGREEN ? indiv.lai_indiv_daily : indiv.lai_indiv*indiv.phen;
-
 			// Storage capacity for precipitation by canopy (point scale)
-			scap=climate.prec*min(lai_indiv_phen*indiv.pft.intc,0.999);
+			scap=climate.prec*min(indiv.lai_indiv_today()*indiv.pft.intc,0.999);
 
 			// Fraction of day that canopy remains wet
 			fwet=min(scap/pet,patch.fpc_rescale);
@@ -928,7 +926,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 				// Added a scalar depending on individual lai to slow down light optimization of newly shaded leafs
 				// Peltoniemi et al. 2012
 				if(indiv.pft.landcover==CROPLAND)
-					indiv.nextin = exp(0.12 * min(10.0 * indiv.phen, indiv.lai_indiv_daily));//OK?..
+					indiv.nextin = exp(0.12 * min(10.0 * indiv.phen, indiv.lai_indiv_today()));//OK?..
 				else
 					indiv.nextin = exp(0.12 * min(10.0, indiv.lai_indiv) * indiv.phen);
 
@@ -1207,7 +1205,7 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
 
 
 			// Increment patch sums of non-water-stressed gp by individual value
-			gp_patch +=  (date.diurnal() ? indiv.gpterms[day.period] : indiv.gpterm) + pft.gmin * indiv.fpc * indiv.phen;
+			gp_patch +=  (date.diurnal() ? indiv.gpterms[day.period] : indiv.gpterm) + pft.gmin * indiv.fpc_today();
 			gp_leafon_patch += gp_leafon;
 		}
 
@@ -1944,7 +1942,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		indiv.report_flux(Fluxes::GPP, assim);
 		indiv.report_flux(Fluxes::RA, resp);
 
-		double lai_phen=indiv.pft.phenology==CROPGREEN ? indiv.lai_daily : indiv.lai*indiv.phen;
+		double lai_phen=indiv.lai_today();
 		if(lai_phen>indiv.mlai_max[date.month])
 			indiv.mlai_max[date.month]=lai_phen;
 

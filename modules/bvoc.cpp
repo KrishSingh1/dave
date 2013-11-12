@@ -233,7 +233,7 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 		return;
 	}
 
-	double lai_indiv=indiv.pft.phenology==CROPGREEN ? indiv.lai_daily : indiv.lai;
+	double lai_indiv=indiv.pft.phenology==CROPGREEN ? indiv.lai_today() : indiv.lai;
 	double phen_indiv=indiv.pft.phenology==CROPGREEN ? 1.0 : indiv.phen;
 
 	double temp_leaf_daytime;

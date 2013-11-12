@@ -159,7 +159,6 @@ int framework(const CommandLineArguments& args) {
 						// Crop phenology
 						crop_phenology(patch);
 						// necessary updates after changing growingperiod status
-						update_indiv_lai_fpc(patch);
 						update_patch_fpc(patch);
 					}
 

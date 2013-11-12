@@ -33,8 +33,6 @@ void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 void crop_phenology(Patch& patch);
 /// Updates crop phen from yesterday's lai_daily
 void leaf_phenology_crop(Pft& pft, Patch& patch);
-/// Transfers patchpft.cropphen lai and fpc-values to individuals
-void update_indiv_lai_fpc(Patch& patch);
 /// Updates patch.members fpc_total and fpc_rescale for crops (to be called after crop_phenology())
 void update_patch_fpc(Patch& patch);
 /// Calculates crop fpar for crops

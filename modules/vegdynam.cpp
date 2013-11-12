@@ -740,7 +740,7 @@ void mortality_lpj(Stand& stand, Patch& patch,Climate& climate, double fireprob)
 			deltafpc_tree_total+=indiv.deltafpc;
 
 		}
-		else if (indiv.pft.lifeform==GRASS && indiv.pft.landcover!=CROPLAND) fpc_grass+=indiv.fpc;
+		else if (indiv.pft.lifeform==GRASS) fpc_grass+=indiv.fpc;
 
 		vegetation.nextobj(); // ... on to next individual
 	}
@@ -824,16 +824,8 @@ void mortality_lpj(Stand& stand, Patch& patch,Climate& climate, double fireprob)
 			
 			// GRASS MORTALITY
 
-			if (indiv.pft.landcover==CROPLAND && patch.stand.landcover==CROPLAND) {
-				fpc_grass=0.0;
-
-				for(unsigned int i = 0; i < vegetation.nobj; i++) {		//covegetation and secondary vegetation for future use
-					if(indiv.cropindiv->isprimarycrop && (vegetation[i].cropindiv->isprimarycrop || vegetation[i].cropindiv->isprimarycovegetation))
-						fpc_grass+=vegetation[i].fpc_daily;
-					else if(indiv.cropindiv->isintercropgrass && vegetation[i].cropindiv->isintercropgrass)
-						fpc_grass+=vegetation[i].fpc;
-				}
-			}
+			if (indiv.pft.landcover==CROPLAND && patch.stand.landcover==CROPLAND)
+				fpc_grass=indiv.fpc;
 
 			// Shading mortality: grasses can persist only on regions not occupied
 			// by trees

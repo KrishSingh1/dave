@@ -1703,7 +1703,7 @@ public:
 	double cton_sap() const;
 
 	/// Gets the individual's Patchpft
-	Patchpft& patchpft();
+	Patchpft& patchpft() const;
 
 	/// Transfers the individual's biomass (C and N) to litter and harvest pools/fluxes
 	/** 
@@ -1714,15 +1714,15 @@ public:
 	void kill(bool harvest = false);
 
 	/// Gets the individual's daily cmass_leaf value
-	double cmass_leaf_phen() const {
-		double cmass_leaf_phen = pft.phenology==CROPGREEN ? cropindiv->grs_cmass_leaf : cmass_leaf * phen;
-		return cmass_leaf_phen;
-	}
-	/// Gets the individual's daily cmass_leaf value
-	double cmass_root_phen() const {
-		double cmass_root_phen = pft.phenology==CROPGREEN ? cropindiv->grs_cmass_root : cmass_root * phen;
-		return cmass_root_phen;
-	}
+	double cmass_leaf_today() const;
+	/// Gets the individual's daily cmass_root value
+	double cmass_root_today() const;
+	/// Gets the individual's daily lai value
+	double lai_today() const;
+	/// Gets the individual's daily lai_indiv value
+	double lai_indiv_today() const;
+	/// Gets the individual's daily fpc value
+	double fpc_today() const;
 };
 
 
@@ -2138,167 +2138,104 @@ public:
 
 	/// latest sowing date
 	int sdate;
-
 	/// sowing date of growing period ending in latest harvest this year
 	int sdate_harv;
-
 	/// sowing dates of growing periods ending in the two latest harvests this year
 	int sdate_harvest[2];
-
 	/// sowing dates of growing periods starting this year
 	int sdate_thisyear[2];
-
 	/// number of sowings this year
 	int nsow;
-
 	/// latest harvest date
 	int hdate;
-
 	/// two latest harvest dates this year
 	int hdate_harvest[2];
-
 	/// last date for harvest
 	int hlimitdate;
-
 	/// last day of heat unit sampling period, set in Crop_sowing_date_new()
 	int hucountend;
-
 	/// number of harvests this year
 	int nharv;
-
 	/// whether sdate_harvest[0] happened last year
 	bool sownlastyear;
-
 	/// latest senescence start date this year
 	int sendate;
-
 	/// latest beginning of intercropseason (2 weeks after the harvest date)
 	int bicdate;
-
 	/// latest end of intercropseason (2 weeks before the sowing date)
 	int eicdate;
-
 	/// number of growing days this growing period
 	int growingdays;
-
 	/// number of growing days this year (used for wscal_mean calculation)
 	int growingdays_y;
-
 	/// length of growingseason ending in last harvest
 	int lgp;
-
 	/// base temp for heat unit calculation (°C)
 	double tb;
-
 	/// number of vernalising days required
 	int pvd;
-
 	/// number of accumulated vernalizing days
 	int vdsum;
-
 	/// heat unit reduction factor due to vernalization [0-1]
 	double vrf;
-
 	/// heat unit reduction factor due to photoperiodism [0-1]
 	double prf;
-
 	/// potential heat units required for crop maturity (°Cd)
 	double phu;
-
 	/// potential heat units that would have been used without dynamic phu calculation
 	double phu_old;
-
 	/// heat unit sum aquired during last growing period (°Cd)
 	double husum;
-
 	/// heat unit sum aquired durin sampling period, starting with sdate
 	double husum_sampled;
-
 	/// this year's heat unit sum aquired from sdate to hucountend
 	double husum_max;
-
 	/// running mean of recent past's husum_max
 	double husum_max_10;
-
 	/// number of heat units sampling years
 	int nyears_hu_sample;
-
 	/// fraction of growing season [0-1] (husum/phu)
 	double fphu;
-
 	/// fraction of growing season at latest harvest
 	double fphu_harv;
-
 	/// fraction of growing season at the two latest harvests this year
 //	double fphu_harvest[2];	
-
 	bool hu_samplingperiod;
-
 	int hu_samplingdays;
-
 	/// harvest index today [0-1, >1 if below-ground ho], harvestable organ/above-ground C for above-ground harvestable organs, dependent on fphu, reduced by water stress 
 	double hi;
-
 	/// harvest index yesterday
 	double hi_ystd;
-
 	/// fraction of harvest index today
 	double fhi;
-
 	/// phenology (fphu) contribution of fraction of harvest index today
 	double fhi_phen;	//Phenology (fPHU) compoment of fhi
-
 	/// water stress contribution of fraction of harvest index today
 	double fhi_water;
-
 	/// fraction of harvest index at latest harvest
 	double fhi_harv;
-
 	/// acheived fraction of harvest index at the two latest harvests this year
 //	double fhi_harvest[2];
-
 	/// sum of crop patch demand (patch.wdemand) during crop growing period, reset on harvest day
 	double demandsum_crop;
-
 	/// sum of crop supply (patchpft.wsupply) during crop growing period, reset on harvest day
 	double supplysum_crop;
 
-	/// copy of indiv.lai, could be used in crop_phenology() to set phen
-	double lai;
-
-	/// daily lai value, set in lai_crop()
-	double lai_daily;
-
-	/// copy of indiv.fpc, used in crop_phenology() to set phen 
-	double fpc;
-
-	/// daily fpc value, set in crop_phenology()
-	double fpc_daily;
-
 	/// whether inside crop/intercrop grass growing period
 	bool growingseason;
-
 	/// whether yesterday was inside crop/intercrop grass growing period
 	bool growingseason_ystd;
-
 	/// whether inside crop senescence
 	bool senescence;
-
 	/// whether yesterday was inside crop senescence
 	bool senescence_ystd;
-
 	/// whether inside intercrop crass growing period (main crop pft variable)
 	bool intercropseason;
-
 	/// used to distinguish the two growing seasons for rice in some geographical regions
 	bool maincrop;
 
 	cropphen_struct()
 	{
-		lai=0.0;
-		lai_daily=0.0;
-		fpc=0.0;
-		fpc_daily=0.0;
 		sdate=-1;
 		sdate_harv=-1;
 		nsow=0;

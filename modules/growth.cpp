@@ -1069,8 +1069,6 @@ bool allometry(Individual& indiv) {
 				// Stand-level LAI
 				indiv.lai = indiv.lai_indiv;
 
-				ppftcrop.lai = indiv.lai;
-				ppftcrop.fpc = indiv.fpc;
 			}
 			else {	// cropgreen
 				if (!negligible(indiv.cropindiv->cmass_leaf_max)) {
@@ -1085,8 +1083,6 @@ bool allometry(Individual& indiv) {
 					// Stand-level LAI
 					indiv.lai = indiv.lai_indiv;
 
-					ppftcrop.lai = indiv.lai;
-					ppftcrop.fpc = indiv.fpc;
 				} 
 			}
 		}

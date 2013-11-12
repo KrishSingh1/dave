@@ -314,8 +314,7 @@ void Patchpft::serialize(ArchiveStream& arch) {
 }
 
 void cropphen_struct::serialize(ArchiveStream& arch) {
-	arch & lai_daily
-		& sdate
+	arch & sdate
 		& sdate_harv
 		& sdate_harvest
 		& sdate_thisyear 
@@ -343,8 +342,6 @@ void cropphen_struct::serialize(ArchiveStream& arch) {
 		& fphu_harv
 		& demandsum_crop
 		& supplysum_crop
-		& lai
-		& fpc
 		& growingseason 
 		& growingseason_ystd
 		& senescence
@@ -544,7 +541,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	anpp              = 0.0;
 	fpc               = 0.0;
-	fpc_daily       = 0.0;
+	fpc_daily		  = 0.0;
 	densindiv         = 0.0;
 	cmass_leaf        = 0.0;
 	cmass_root        = 0.0;
@@ -623,22 +620,14 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	if(pft.landcover==CROPLAND) {
 		cropindiv=new cropindiv_struct;
 
-		if(pft.phenology == CROPGREEN) {
-			fpc = 1.0;
-			patchpft().cropphen->fpc = fpc;
-			fpc_daily = 0.0;
-		}
-
 		if (stand.pftid == pft.id) {
 			cropindiv->isprimarycrop = true;
-			if(pft.phenology==ANY) {					// normal CC3G & CC4G (+ irrigated) growth
-				patchpft().cropphen->growingseason = true;
-			}
 		}
 		else if (ifintercropgrass && stand.hasgrassintercrop && pft.isintercropgrass) {	// grass intercrop growth
 			cropindiv->isintercropgrass = true;
 		}
 	}
+//	dprintf("Year %d: Individual in stand %d created:id=%d, pft=%s\n", ::date.year-nyear_spinup+1901,vegetation.patch.stand.id,id,(char*)pft.name);
 }
 
 void Individual::serialize(ArchiveStream& arch) {
@@ -954,8 +943,75 @@ double Individual::cton_sap() const {
 }
 
 
-Patchpft& Individual::patchpft() {
+Patchpft& Individual::patchpft() const {
 	return vegetation.patch.pft[pft.id];
+}
+
+/// Gets the individual's daily cmass_leaf value
+double Individual::cmass_leaf_today() const {
+
+	if(pft.phenology == CROPGREEN) {
+
+		if(patchpft().cropphen->growingseason)
+			return cropindiv->grs_cmass_leaf;
+		else
+			return 0.0;
+	}
+	else
+		return cmass_leaf * phen;
+}
+
+/// Gets the individual's daily cmass_root value
+double Individual::cmass_root_today() const {
+
+	if(pft.phenology == CROPGREEN) {
+
+		if(patchpft().cropphen->growingseason)
+			return cropindiv->grs_cmass_root;
+		else
+			return 0.0;
+	}
+	else
+		return cmass_root * phen;
+}
+
+double Individual::fpc_today() const {
+
+	if(pft.phenology == CROPGREEN) {
+
+		if(patchpft().cropphen->growingseason)
+			return fpc_daily;
+		else
+			return 0.0;
+	}
+	else
+		return fpc * phen;
+}
+
+double Individual::lai_today() const {
+
+	if(pft.phenology == CROPGREEN) {
+
+		if(patchpft().cropphen->growingseason)
+			return lai_daily;
+		else
+			return 0.0;
+	}
+	else
+		return lai * phen;
+}
+
+double Individual::lai_indiv_today() const {
+
+	if(pft.phenology == CROPGREEN) {
+
+		if(patchpft().cropphen->growingseason)
+			return lai_indiv_daily;
+		else
+			return 0.0;
+	}
+	else
+		return lai_indiv * phen;
 }
 
 /// Help function for kill(), partitions wood biomass into litter and harvest

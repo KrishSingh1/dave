@@ -918,12 +918,6 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 				// Added a scalar depending on individual lai to slow down light optimization of newly shaded leafs
 				// Peltoniemi et al. 2012
-/*				if(indiv.pft.landcover==CROPLAND)
-					indiv.nextin = exp(0.12 * min(10.0 * indiv.phen, indiv.lai_indiv_today()));//OK?..
-				else
-					indiv.nextin = exp(0.12 * min(10.0, indiv.lai_indiv) * indiv.phen);
-*/
-				// Not equivalent update:
 				indiv.nextin = exp(0.12 * min(10.0, indiv.lai_indiv_today()));
 
 				// Calculate optimal leaf nitrogen associated with photosynthesis and none photosynthetic 
@@ -983,8 +977,6 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Calculate scalars to possible nitrogen uptake
 
 		// Current plant mobile nitrogen concentration
-//		double ntoc = !negligible(indiv.phen) ? (indiv.nmass_leaf + indiv.nmass_root) / (indiv.cmass_leaf * indiv.phen + indiv.cmass_root) : 0.0;
-		// Not equivalent update:
 		double ntoc = !negligible(indiv.phen) ? (indiv.nmass_leaf + indiv.nmass_root) / (indiv.cmass_leaf_today() + indiv.cmass_root_today()) : 0.0;
 
 		// Scale to maximum nitrogen concentrations

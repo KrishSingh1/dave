@@ -127,13 +127,13 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 
 
 double leafT(double temp, double daylength, double ga, double rs_day, double aet,
-             double lai, double phen, double fpar, double fpc) {
+             double lai_today, double fpar, double fpc) {
 
 	// Canopy temperature is calculated from the air temperature and the energy balance (longwave
 	// radiation, shortwave radiation and sensible and latent heat loss). 
 	// Revised version compared to Arneth et al. (2007) and Schurgers et al. (2011).
 
-	if(lai*phen <= 1.e-2) {
+	if(lai_today <= 1.e-2) {
 		return temp;
 	}
 
@@ -155,7 +155,7 @@ double leafT(double temp, double daylength, double ga, double rs_day, double aet
 	//    H = deltaT*rhoair*cp*ga*phen*lai
 	//
 
-	return temp+(rs_day*fpar*fpc-aet*lam)/(3600.*daylength*lai*phen)/
+	return temp+(rs_day*fpar*fpc-aet*lam)/(3600.*daylength*lai_today)/
 		(4.*emiss_leaf*sigma*pow(temp+K2degC,3.)+rhoair*cp*ga);
 }
 
@@ -233,12 +233,9 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 		return;
 	}
 
-	double lai_indiv=indiv.pft.phenology==CROPGREEN ? indiv.lai_today() : indiv.lai;
-	double phen_indiv=indiv.pft.phenology==CROPGREEN ? 1.0 : indiv.phen;
-
 	double temp_leaf_daytime;
 	double temp_leaf = leafT(temp, hours, pft.ga, rad, indiv.aet,
-                                 lai_indiv,phen_indiv,indiv.fpar,indiv.fpc);
+                                 indiv.lai_today(),indiv.fpar,indiv.fpc);
 
 	if (date.diurnal()) {
 			temp_leaf_daytime = temp_leaf;
@@ -249,7 +246,7 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 		
 		// perform air temperature to leaf temperature correction
 		temp_leaf_daytime = leafT(temp_corrected, climate.daylength, pft.ga, rad, indiv.aet,
-		                          lai_indiv,phen_indiv,indiv.fpar,indiv.fpc);
+		                          indiv.lai_today(),indiv.fpar,indiv.fpc);
 
 	}
 

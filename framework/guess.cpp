@@ -623,7 +623,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 		if (stand.pftid == pft.id) {
 			cropindiv->isprimarycrop = true;
 		}
-		else if (ifintercropgrass && stand.hasgrassintercrop && pft.isintercropgrass) {	// grass intercrop growth
+		else if (stand.hasgrassintercrop && pft.isintercropgrass) {	// grass intercrop growth
 			cropindiv->isintercropgrass = true;
 		}
 	}

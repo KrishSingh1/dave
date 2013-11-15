@@ -824,7 +824,7 @@ void mortality_lpj(Stand& stand, Patch& patch,Climate& climate, double fireprob)
 			
 			// GRASS MORTALITY
 
-			if (indiv.pft.landcover==CROPLAND && patch.stand.landcover==CROPLAND)
+			if (indiv.pft.landcover==CROPLAND)
 				fpc_grass=indiv.fpc;
 
 			// Shading mortality: grasses can persist only on regions not occupied

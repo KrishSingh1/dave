@@ -1005,7 +1005,7 @@ bool allometry(Individual& indiv) {
 					//First look in PASTURE.
 					if(gridcell.landcoverfrac[PASTURE] > 0.0) {
 
-						char name_start[5] = {0};;
+						char name_start[5] = {0};
 						char* sp = NULL;
 						strncpy(name_start, indiv.pft.name, 4);
 						sp = name_start + 1;										//NB: this works with current pft names. CC3G_ic and C3G_pasture

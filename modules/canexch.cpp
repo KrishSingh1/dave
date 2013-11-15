@@ -1679,7 +1679,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	double respcoeff, double cton_sap, double cton_root,
-	double phen, double cmass_sap, double cmass_root, double assim, double& resp) {
+	double cmass_sap, double cmass_root_today, double assim, double& resp) {
 
 	// DESCRIPTION
 	// Calculation of daily maintenance and growth respiration for individual with
@@ -1787,7 +1787,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 		// Root respiration (Eqn 7)
 		// Assumed that root phenology follows leaf phenology
 
-		resp_root = respcoeff * K * cmass_root / cton_root * gtemp_soil * phen;
+		resp_root = respcoeff * K * cmass_root_today / cton_root * gtemp_soil;
 
 		// Growth respiration = 0.25 ( GPP - maintenance respiration)
 
@@ -1805,7 +1805,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 		// Root respiration
 
-		resp_root = respcoeff * K * cmass_root / cton_root * gtemp_soil * phen;
+		resp_root = respcoeff * K * cmass_root_today / cton_root * gtemp_soil;
 
 		// Growth respiration (see above)
 
@@ -1892,15 +1892,9 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		}
 		// Calculate autotrophic respiration
 
-		if(indiv.pft.phenology==CROPGREEN) {
-			respiration(gtemp,patch.soil.gtemp,indiv.pft.lifeform,	
-				indiv.pft.respcoeff, indiv.cton_sap(), indiv.cton_root(),
-				1.0, indiv.cmass_sap, indiv.cropindiv->grs_cmass_root, assim, resp);
-		}
-		else
-			respiration(gtemp,patch. soil.gtemp, indiv.pft.lifeform,
-				indiv.pft.respcoeff, indiv.cton_sap(), indiv.cton_root(),
-				indiv.phen, indiv.cmass_sap, indiv.cmass_root, assim, resp);
+		respiration(gtemp,patch. soil.gtemp, indiv.pft.lifeform,
+			indiv.pft.respcoeff, indiv.cton_sap(), indiv.cton_root(),
+			indiv.cmass_sap, indiv.cmass_root_today(), assim, resp);
 
 		// Convert to averages for this period for accounting purposes
 		assim /= date.subdaily;

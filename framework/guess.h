@@ -2707,7 +2707,7 @@ public:
 	/// Returns the number of patches in this Stand
 	unsigned int npatch() const { return nobj; }
 
-	/// Returns true if stand is tru crop stand, as opposed to pasture grass grown on cropland
+	/// Returns true if stand is true crop stand, as opposed to pasture grass grown on cropland
 	inline bool is_true_crop_stand() {
 		return landcover==CROPLAND && pft[pftid].pft.phenology==CROPGREEN;
 	}

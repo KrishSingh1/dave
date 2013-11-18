@@ -2535,14 +2535,7 @@ void fpar_crop(Patch& patch) {
 
 				if (indiv.pft.lifeform == GRASS) {
 
-					if(patch.stand.gridcell.landcoverfrac[PASTURE] > 0.0) {
-						plai_leafon_grass += indiv.lai;	// When growing pasture grass in PASTURE landcover
-					}
-					else {
-						if(indiv.lai > highest_grass_lai)
-							highest_grass_lai = indiv.lai;
-						plai_leafon_grass = highest_grass_lai;	// avoids double lai count for intercrop grass (c3 and c4 grass competing, lai is for monocultures)
-					}
+					plai_leafon_grass += indiv.lai;
 					plai_grass += indiv.lai_today();	
 				}
 			}

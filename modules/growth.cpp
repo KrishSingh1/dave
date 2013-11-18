@@ -988,6 +988,7 @@ bool allometry(Individual& indiv) {
 			}
 		}
 		else {
+
 			cropphen_struct& ppftcrop = *(indiv.vegetation.patch.pft[indiv.pft.id].get_cropphen());
 
 			// crop grass compatible with natural grass
@@ -1035,30 +1036,55 @@ bool allometry(Individual& indiv) {
 					else
 					{
 
-						char name_start[5] = {0};;
-						char* sp = NULL;
-						strncpy(name_start, indiv.pft.name, 4);
-						sp = name_start;											//NB: this works with current pft names. CC3G_ic and CC3G
+						double highest_grass_lai = 0.0;
+						double grass_cmass_leaf_sum = 0.0;
 
-						for(unsigned int i = 0; i < gridcell.nobj && !done; i++) {
+						// Get sum of intercrop grass cmass_leaf in this patch
+						Vegetation& vegetation_self = indiv.vegetation;
+
+						for(unsigned int k = 0; k < vegetation_self.nobj; k++) {
+
+							Individual& indiv_veg = vegetation_self[k];
+
+							if(indiv_veg.cropindiv->isintercropgrass)
+								grass_cmass_leaf_sum += indiv_veg.cmass_leaf;
+						}
+
+						// Find highest lai in crop grass stands
+						for(unsigned int i = 0; i < gridcell.nobj; i++) {
+
 							Stand& stand = gridcell[i];
-							if(stand.landcover == CROPLAND)	{
-								for(unsigned int j = 0; j < stand.nobj && !done; j++)
-								{
+
+							if(stand.landcover == CROPLAND && !stand.is_true_crop_stand())	{
+
+								for(unsigned int j = 0; j < stand.nobj && !done; j++) {
+
 									Patch& patch = stand[j];
 									Vegetation& vegetation = patch.vegetation;
+
 									for(unsigned int k = 0; k < vegetation.nobj && !done; k++) {
+
 										Individual& grass_indiv = vegetation[k];
 
-										if(!strncmp(sp, grass_indiv.pft.name, 3) && !grass_indiv.istruecrop_or_intercropgrass()) {	//NB: this works with current pft names. CC3G_ic and CC3G							
-											indiv.lai_indiv = grass_indiv.lai_indiv;
-											done = true;
+										if(grass_indiv.pft.phenology == ANY) {
+
+											if(grass_indiv.lai_indiv > highest_grass_lai)
+												highest_grass_lai = grass_indiv.lai_indiv;
 										}
 									}
 								}
 							}
 						}
+
+						if(grass_cmass_leaf_sum)
+							indiv.lai_indiv = indiv.cmass_leaf / grass_cmass_leaf_sum * highest_grass_lai;
+						else
+							indiv.lai_indiv = highest_grass_lai;
+
+						if(highest_grass_lai)
+							done = true;
 					}
+
 					//If no grass stand found in either cropland or pasture, use laimax value.
 					if(!done)
 						indiv.lai_indiv = indiv.pft.laimax;

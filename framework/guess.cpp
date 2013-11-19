@@ -1014,6 +1014,13 @@ double Individual::lai_indiv_today() const {
 		return lai_indiv * phen;
 }
 
+bool Individual::growingseason() const {
+	if(patchpft().cropphen)
+		return patchpft().cropphen->growingseason;
+	else
+		return true;
+}
+
 /// Help function for kill(), partitions wood biomass into litter and harvest
 /** 
  *  Wood biomass (either C or N) is partitioned into litter pools and

@@ -1732,6 +1732,9 @@ public:
 
 	/// Gets the individual's daily fpc value
 	double fpc_today() const;
+
+	// Gets the growingseason status for crop individual. Non-crop individuals always return true.
+	bool growingseason() const;
 };
 
 

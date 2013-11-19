@@ -221,7 +221,7 @@ void fpar(Patch& patch) {
 			// For this individual ...
 
 			indiv.fpar=indiv.fpc_today(); // Eqn 1
-			indiv.fpar_leafon=indiv.fpc; // Eqn 2
+			indiv.fpar_leafon=indiv.fpc * indiv.growingseason(); // Eqn 2
 
 			vegetation.nextobj(); // ... on to next individual
 		}
@@ -249,18 +249,21 @@ void fpar(Patch& patch) {
 
 			// For this individual ...
 
-			indiv.fpar=0.0;
-			indiv.fpar_leafon=0.0;
-			if (indiv.height>height_veg) height_veg=indiv.height;
-			plai_leafon+=indiv.lai;
+			if(indiv.growingseason()) {
 
-			if (indiv.pft.lifeform==GRASS) {
-				plai_leafon_grass+=indiv.lai;
-				plai_grass+=indiv.lai*indiv.phen;
+				indiv.fpar=0.0;
+				indiv.fpar_leafon=0.0;
+				if (indiv.height>height_veg) height_veg=indiv.height;
+				plai_leafon+=indiv.lai;
+
+				if (indiv.pft.lifeform==GRASS) {
+					plai_leafon_grass+=indiv.lai;
+					plai_grass+=indiv.lai_today();
+				}
+
+				// Accumulate LAI-weighted sum of individual leaf-out fractions
+				phen_veg+=indiv.lai_today();
 			}
-
-			// Accumulate LAI-weighted sum of individual leaf-out fractions
-			phen_veg+=indiv.lai_today();
 
 			vegetation.nextobj(); // ... on to next individual
 		}
@@ -2036,10 +2039,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 	init_canexch(patch, climate, vegetation);
 
 	// Canopy exchange processes
-	if(patch.stand.landcover==CROPLAND)
-		fpar_crop(patch);
-	else
-		fpar(patch);
+	fpar(patch);
 
 	// Calculates no-stress daily values of photosynthesis and gpterm
 	photosynthesis_nostress(patch, climate);

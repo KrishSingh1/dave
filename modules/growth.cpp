@@ -1033,8 +1033,7 @@ bool allometry(Individual& indiv) {
 						}
 					}
 					// If PASTURE landcover not used, look for crop stand with pasture grass. 
-					else
-					{
+					else {
 
 						double highest_grass_lai = 0.0;
 						double grass_cmass_leaf_sum = 0.0;
@@ -1086,8 +1085,33 @@ bool allometry(Individual& indiv) {
 					}
 
 					//If no grass stand found in either cropland or pasture, use laimax value.
-					if(!done)
-						indiv.lai_indiv = indiv.pft.laimax;
+					if(!done) {
+
+						double highest_grass_lai = 0.0;
+						double grass_cmass_leaf_sum = 0.0;
+
+						// Get sum of intercrop grass cmass_leaf and highest default laimax in this patch
+						Vegetation& vegetation_self = indiv.vegetation;
+
+						for(unsigned int k = 0; k < vegetation_self.nobj; k++) {
+
+							Individual& indiv_veg = vegetation_self[k];
+
+							if(indiv_veg.cropindiv->isintercropgrass) {
+
+								grass_cmass_leaf_sum += indiv_veg.cmass_leaf;
+
+								if(indiv_veg.pft.laimax > highest_grass_lai)
+									highest_grass_lai = indiv_veg.pft.laimax;
+							}
+						}
+
+						if(grass_cmass_leaf_sum)
+							indiv.lai_indiv = indiv.cmass_leaf / grass_cmass_leaf_sum * highest_grass_lai;
+						else
+							indiv.lai_indiv = highest_grass_lai;
+
+					}
 				}
 				// FPC (Eqn 10)
 				indiv.fpc = 1.0 - lambertbeer(indiv.lai_indiv);

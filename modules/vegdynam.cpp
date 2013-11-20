@@ -809,7 +809,7 @@ void mortality_lpj(Stand& stand, Patch& patch,Climate& climate, double fireprob)
 				mort_shade=0.0;
 
 			// Mortality due to fire
-			if (stand.has_fires()) mort_fire=fireprob*(1.0-indiv.pft.fireresist);
+			if (patch.has_fires()) mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			else mort_fire=0.0;
 
 			// Sum mortality components to give total mortality (maximum 1)
@@ -842,7 +842,7 @@ void mortality_lpj(Stand& stand, Patch& patch,Climate& climate, double fireprob)
 			}
 
 			// Mortality due to fire
-			if (stand.has_fires())
+			if (patch.has_fires())
 				mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			else mort_fire=0.0;
 
@@ -940,7 +940,7 @@ void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob)
 	Vegetation& vegetation=patch.vegetation;
 
 	// FIRE MORTALITY
-	if (stand.has_fires()) {
+	if (patch.has_fires()) {
 
 		// Impose fire in this patch with probability 'fireprob'
 
@@ -1401,7 +1401,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		// (in population mode: fraction of modelled area affected by fire this year)
 
 	// Calculate fire probability and volatilise litter
-	if (stand.has_fires()) {
+	if (patch.has_fires()) {
 		fire(patch,fireprob);
 	}
 	patch.fireprob = fireprob;
@@ -1421,7 +1421,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 
 		// INDIVIDUAL AND COHORT MODES
 
-		if (stand.has_disturbances()) {
+		if (patch.has_disturbances()) {
 			// Disturbance for equilsom() to get century SOM pool to equilibrium faster
 			if (ifcentury && (date.year == (int)((patch.soil.solvesomcent_beginyr + patch.soil.solvesomcent_endyr)/2) || (date.year == freenyears && stand.ifnlim_stand()))) {
 				disturbance(patch, 1.0);

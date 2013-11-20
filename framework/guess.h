@@ -2576,6 +2576,12 @@ public:
 	}
 
 	void serialize(ArchiveStream& arch);
+
+	/// Returns whether we should model fire in this patch
+	bool has_fires() const;
+
+	/// Returns whether we should model disturbances in this patch
+	bool has_disturbances() const;
 };
 
 /// Container for variables common to individuals of a particular PFT in a stand.
@@ -2720,24 +2726,6 @@ public:
 	}
 
 	void serialize(ArchiveStream& arch);
-
-	/// Returns whether we should model fire in this stand
-	bool has_fires() const {
-#ifdef NOPASTURESTOCH
-		return iffire && landcover != CROPLAND && landcover != PASTURE;
-#else
-		return iffire && landcover != CROPLAND;
-#endif
-	}
-
-	/// Returns whether we should model disturbances in this stand
-	bool has_disturbances() const {
-#ifdef NOPASTURESTOCH
-		return ifdisturb && landcover != CROPLAND && landcover != PASTURE;
-#else
-		return ifdisturb && landcover != CROPLAND;
-#endif
-	}
 
 private:
 

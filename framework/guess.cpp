@@ -403,6 +403,24 @@ void Patch::serialize(ArchiveStream& arch) {
 		& irrigation_y;
 }
 
+
+bool Patch::has_fires() const {
+#ifdef NOPASTURESTOCH
+	return iffire && stand.landcover != CROPLAND && stand.landcover != PASTURE;
+#else
+	return iffire && stand.landcover != CROPLAND;
+#endif
+}
+
+bool Patch::has_disturbances() const {
+#ifdef NOPASTURESTOCH
+	return ifdisturb && stand.landcover != CROPLAND && stand.landcover != PASTURE;
+#else
+	return ifdisturb && stand.landcover != CROPLAND;
+#endif
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Standpft member functions
 ////////////////////////////////////////////////////////////////////////////////

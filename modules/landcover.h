@@ -49,11 +49,11 @@ void harvest_crop(double& cmass_leaf,double& cmass_root,double& cmass_ho,double&
 	double& nmass_leaf,double& nmass_root,double& nmass_ho,double& nmass_agpool,
 	double& nmass_litter_leaf,double& nmass_litter_root,double& anflux_harvest,double& harvested_products_slow_nmass, double& retransn,
 	double& litter_leaf,double& litter_root, double& acflux_harvest,double& harvested_products_slow,Individual& indiv);
-/// Harvest function used for clearing natural vegetation at land use change.
-void harvest_natural(double& cmass_leaf,double& cmass_root,double& cmass_sap,double& cmass_heart,double& cmass_debt,
+/// Harvest function used for managed forest and for clearing natural vegetation at land use change.
+void harvest_wood(double& cmass_leaf,double& cmass_root,double& cmass_sap,double& cmass_heart,double& cmass_debt,
 	double& nmass_leaf,double& nmass_root,double& nmass_sap,double& nmass_heart,
 	double& nmass_litter_leaf,double& nmass_litter_root, double& nmass_litter_sap, double& nmass_litter_heart, double& anflux_harvest,double& harvested_products_slow_nmass,
-	double& litter_leaf,double& litter_root,double& litter_sap,double& litter_heart,double& acflux_harvest,double& harvested_products_slow,Individual& indiv);
+	double& litter_leaf,double& litter_root,double& litter_sap,double& litter_heart,double& acflux_harvest,double& harvested_products_slow,Individual& indiv,double frac_cut);
 /// Harvest function for pasture, representing grazing (previous year).
 void harvest_pasture(double& cmass_leaf,double& cmass_root,
 	double& nmass_leaf,double& nmass_root,

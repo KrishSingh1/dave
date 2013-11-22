@@ -737,7 +737,7 @@ double Individual::cton_sap() const {
 }
 
 
-Patchpft& Individual::patchpft() {
+Patchpft& Individual::patchpft() const {
 	return vegetation.patch.pft[pft.id];
 }
 

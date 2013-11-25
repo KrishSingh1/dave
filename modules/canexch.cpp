@@ -1074,7 +1074,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 					indiv.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
 				}
 			}
-		}			
+		}
 
 		// Sum annual average nitrogen limitation on vmax
 		if (indiv.phen)

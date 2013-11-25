@@ -52,7 +52,7 @@ static const double ATMFRAC=0.7;
 // Corresponds to the amount of soil available nitrogen where SOM C:N ratio reach
 // their minimum (nitrogen saturation) (Parton et al 1993, Fig. 4)
 // Comment: NMASS_SAT is too high when considering BNF - Zaehle
-static const double NMASS_SAT = 0.002 * 0.05;// * 0.05;
+static const double NMASS_SAT = 0.002 * 0.05;
 // Corresponds to the nitrogen concentration in litter where SOM C:N ratio reach
 // their minimum (nitrogen saturation) (Parton et al 1993, Fig. 4)
 static const double NCONC_SAT = 0.02;

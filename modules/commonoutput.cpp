@@ -152,6 +152,7 @@ void CommonOutput::define_output_tables() {
 		cpool_columns += ColumnDescriptor("SoilsC",        8, 3);
 	}
 	else {
+		cpool_columns += ColumnDescriptor("LitterC",       8, 3);
 		cpool_columns += ColumnDescriptor("SoilC",         8, 3);
 	}
 	if (run_landcover && ifslowharvestpool) {
@@ -208,6 +209,7 @@ void CommonOutput::define_output_tables() {
 	// NPOOL
 	ColumnDescriptors npool_columns;
 	npool_columns += ColumnDescriptor("VegN",              9, 4);
+	npool_columns += ColumnDescriptor("LitterN",           9, 4);
 	npool_columns += ColumnDescriptor("SoilN",             9, 4);
 
 	if (run_landcover && ifslowharvestpool) {
@@ -1004,7 +1006,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			out.add_value(out_cpool, c_slow);
 		}
 		else {
-			out.add_value(out_cpool, clitter_gridcell + surfsoillitterc + cwdc + centuryc);
+			out.add_value(out_cpool, clitter_gridcell + surfsoillitterc + cwdc);
+			out.add_value(out_cpool, centuryc);
 		}
 		
 		if (run_landcover && ifslowharvestpool) {
@@ -1031,7 +1034,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		if (ifcentury) {
 			out.add_value(out_npool, nmass_gridcell + nlitter_gridcell);
-			out.add_value(out_npool, surfsoillittern + cwdn + centuryn + availn);
+			out.add_value(out_npool, surfsoillittern + cwdn);
+			out.add_value(out_npool, centuryn + availn);
 
 			if(run_landcover && ifslowharvestpool) {
 				out.add_value(out_npool, n_harv_slow);

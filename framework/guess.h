@@ -1075,13 +1075,13 @@ public:
 	/// C "debt" (retrospective storage) (kgC/m2)
 	double cmass_debt;
 
-	/// nitrogen content of leaves on patch area basis (kgN/m2)
+	/// leaf N biomass on modelled area basis (kgC/m2)
 	double nmass_leaf;
-	/// nitrogen content of roots on patch area basis (kgN/m2)	
+	/// root N biomass on modelled area basis (kgC/m2)	
 	double nmass_root;
-	/// nitrogen content of sapwood on patch area basis (kgN/m2)	
+	/// sap N biomass on modelled area basis (kgC/m2)	
 	double nmass_sap;
-	/// nitrogen content of heartwood on patch area basis (kgN/m2)
+	/// heart N biomass on modelled area basis (kgC/m2)
 	double nmass_heart;	
 
 	/// foliar projective cover (FPC) under full leaf cover as fraction of modelled area

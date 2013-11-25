@@ -440,57 +440,44 @@ void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCO
 				Vegetation& vegetation = patch.vegetation;
 				vegetation.firstobj();
 				while(vegetation.isobj) {
-					double cmass_leaf_cp = 0.0, cmass_root_cp = 0.0, cmass_sap_cp = 0.0, cmass_heart_cp = 0.0, cmass_debt_cp = 0.0, cmass_ho_cp = 0.0, cmass_agpool_cp = 0.0;
-					double nmass_leaf_cp = 0.0, nmass_root_cp = 0.0, nmass_sap_cp = 0.0, nmass_heart_cp = 0.0, nmass_ho_cp = 0.0, nmass_agpool_cp = 0.0;
-					double litter_leaf_cp = 0.0, litter_root_cp = 0.0, litter_sap_cp = 0.0, litter_heart_cp = 0.0,litter_repr_cp = 0.0;
-					double nmass_litter_leaf_cp = 0.0, nmass_litter_root_cp = 0.0, nmass_litter_sap_cp = 0.0, nmass_litter_heart_cp = 0.0;
-					double acflux_harvest_cp = 0.0, anflux_harvest_cp = 0.0;
-					double harvested_products_slow_cp = 0.0, harvested_products_slow_nmass_cp = 0.0, nstore_longterm_cp = 0.0, nstore_labile_cp = 0.0;
+
+					Harvest_CN cp;
 
 					Individual& indiv = vegetation.getobj();
 					Patchpft& patchpft = patch.pft[indiv.pft.id];
 
-					cmass_leaf_cp = indiv.cmass_leaf;
-					cmass_root_cp = indiv.cmass_root;
-					cmass_sap_cp = indiv.cmass_sap;
-					cmass_heart_cp = indiv.cmass_heart;
-					cmass_debt_cp = indiv.cmass_debt;
+					cp.cmass_leaf = indiv.cmass_leaf;
+					cp.cmass_root = indiv.cmass_root;
+					cp.cmass_sap = indiv.cmass_sap;
+					cp.cmass_heart = indiv.cmass_heart;
+					cp.cmass_debt = indiv.cmass_debt;
 
-					nmass_leaf_cp = indiv.nmass_leaf;
-					nmass_root_cp = indiv.nmass_root;
-					nmass_sap_cp = indiv.nmass_sap;
-					nmass_heart_cp = indiv.nmass_heart;
-					nstore_longterm_cp = indiv.nstore_longterm;
-					nstore_labile_cp = indiv.nstore_labile;
+					cp.nmass_leaf = indiv.nmass_leaf;
+					cp.nmass_root = indiv.nmass_root;
+					cp.nmass_sap = indiv.nmass_sap;
+					cp.nmass_heart = indiv.nmass_heart;
+					cp.nstore_longterm = indiv.nstore_longterm;
+					cp.nstore_labile = indiv.nstore_labile;
 
 					if(indiv.pft.landcover == CROPLAND) {
-						cmass_ho_cp = indiv.cropindiv->cmass_ho;
-						cmass_agpool_cp = indiv.cropindiv->cmass_agpool;
-						nmass_ho_cp = indiv.cropindiv->nmass_ho;
-						nmass_agpool_cp = indiv.cropindiv->nmass_agpool;
+						cp.cmass_ho = indiv.cropindiv->cmass_ho;
+						cp.cmass_agpool = indiv.cropindiv->cmass_agpool;
+						cp.nmass_ho = indiv.cropindiv->nmass_ho;
+						cp.nmass_agpool = indiv.cropindiv->nmass_agpool;
 					}
-	
+
 					// Harvest of transferred areas:
 					switch (indiv.pft.landcover)
 					{
 					case CROPLAND:
-						harvest_crop(cmass_leaf_cp, cmass_root_cp, cmass_ho_cp, cmass_agpool_cp,
-							nmass_leaf_cp, nmass_root_cp, nmass_ho_cp, nmass_agpool_cp,
-							nmass_litter_leaf_cp, nmass_litter_root_cp, anflux_harvest_cp, harvested_products_slow_nmass_cp, nstore_longterm_cp,
-							litter_leaf_cp, litter_root_cp, acflux_harvest_cp, harvested_products_slow_cp, indiv);
+						harvest_crop(cp, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass);
 						break;
 					case PASTURE:
-						harvest_pasture(cmass_leaf_cp, cmass_root_cp,
-							nmass_leaf_cp, nmass_root_cp,
-							nmass_litter_leaf_cp, nmass_litter_root_cp, anflux_harvest_cp, harvested_products_slow_nmass_cp, nstore_longterm_cp,
-							litter_leaf_cp, litter_root_cp, acflux_harvest_cp, harvested_products_slow_cp, indiv);
+						harvest_pasture(cp, indiv.pft, indiv.alive);
 						break;
 					case NATURAL:
 					case FOREST:
-						harvest_wood(cmass_leaf_cp, cmass_root_cp, cmass_sap_cp, cmass_heart_cp, cmass_debt_cp,
-							nmass_leaf_cp, nmass_root_cp, nmass_sap_cp, nmass_heart_cp,
-							nmass_litter_leaf_cp, nmass_litter_root_cp, nmass_litter_sap_cp, nmass_litter_heart_cp, anflux_harvest_cp, harvested_products_slow_nmass_cp,
-							litter_leaf_cp, litter_root_cp, litter_sap_cp, litter_heart_cp, acflux_harvest_cp, harvested_products_slow_cp, indiv, 1.0);
+						harvest_wood(cp, indiv.pft, indiv.alive, 1.0);
 						break;
 					default:
 						fail("Modify code to deal with landcover harvest at landcover change!\n");
@@ -498,57 +485,59 @@ void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCO
 
 					turnover(indiv.pft.turnover_leaf, indiv.pft.turnover_root,
 						indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
-						cmass_leaf_cp, cmass_root_cp, cmass_sap_cp, cmass_heart_cp,
-						nmass_leaf_cp, nmass_root_cp, nmass_sap_cp, nmass_heart_cp,
-						litter_leaf_cp,
-						litter_root_cp,
-						nmass_litter_leaf_cp,
-						nmass_litter_root_cp,
-						nstore_longterm_cp, 
+						cp.cmass_leaf, cp.cmass_root, cp.cmass_sap, cp.cmass_heart,
+						cp.nmass_leaf, cp.nmass_root, cp.nmass_sap, cp.nmass_heart,
+						cp.litter_leaf,
+						cp.litter_root,
+						cp.nmass_litter_leaf,
+						cp.nmass_litter_root,
+						cp.nstore_longterm, 
 						indiv.alive, gridcell);
 
 					gridcell.LC_updated = true;
 
 					// In case any vegetation left: (eg. cmass_root for CC3G/CC4G or grass in woodland)
-					if((cmass_leaf_cp + cmass_root_cp + cmass_sap_cp + cmass_heart_cp - cmass_debt_cp + cmass_ho_cp) != 0.0)
+					if((cp.cmass_leaf + cp.cmass_root + cp.cmass_sap + cp.cmass_heart - cp.cmass_debt + cp.cmass_ho) != 0.0)
 					{
-						litter_leaf_cp += cmass_leaf_cp;
-						litter_root_cp += cmass_root_cp;
-						litter_sap_cp += cmass_sap_cp;
-						litter_heart_cp += cmass_heart_cp - cmass_debt_cp;
+						cp.litter_leaf += cp.cmass_leaf;
+						cp.litter_root += cp.cmass_root;
+						cp.litter_sap += cp.cmass_sap;
+						cp.litter_heart += cp.cmass_heart - cp.cmass_debt;
 
-						nmass_litter_leaf_cp += nmass_leaf_cp;
-						nmass_litter_root_cp += nmass_root_cp;
-						nmass_litter_sap_cp += nmass_sap_cp;
-						nmass_litter_heart_cp += nmass_heart_cp;
+						cp.nmass_litter_leaf += cp.nmass_leaf;
+						cp.nmass_litter_root += cp.nmass_root;
+						cp.nmass_litter_sap += cp.nmass_sap;
+						cp.nmass_litter_heart += cp.nmass_heart;
 
 						if(indiv.pft.landcover == CROPLAND) {
 							if(indiv.pft.aboveground_ho) {
-								litter_leaf_cp += cmass_ho_cp;
-								nmass_litter_leaf_cp += nmass_ho_cp;
+								cp.litter_leaf += cp.cmass_ho;
+								cp.nmass_litter_leaf += cp.nmass_ho;
 							}
 							else {
-								litter_root_cp += cmass_ho_cp;
-								nmass_litter_root_cp += nmass_ho_cp;
+								cp.litter_root += cp.cmass_ho;
+								cp.nmass_litter_root += cp.nmass_ho;
 							}
+							cp.litter_leaf += cp.cmass_agpool;
+							cp.nmass_litter_leaf += cp.nmass_agpool;
 						}
 					}
-					nmass_litter_root_cp += nstore_longterm_cp;
-					nmass_litter_root_cp += nstore_labile_cp;
+					cp.nmass_litter_root += cp.nstore_longterm;
+					cp.nmass_litter_root += cp.nstore_labile;
 
 					//Sum added litter C & N:
-					to.transfer_litter_leaf[indiv.pft.id] += litter_leaf_cp * scale;
-					to.transfer_litter_root[indiv.pft.id] += litter_root_cp * scale;
-					to.transfer_litter_sap[indiv.pft.id] += litter_sap_cp * scale;
-					to.transfer_litter_heart[indiv.pft.id] += litter_heart_cp * scale;
-					to.transfer_litter_repr[indiv.pft.id] += litter_repr_cp * scale;
+					to.transfer_litter_leaf[indiv.pft.id] += cp.litter_leaf * scale;
+					to.transfer_litter_root[indiv.pft.id] += cp.litter_root * scale;
+					to.transfer_litter_sap[indiv.pft.id] += cp.litter_sap * scale;
+					to.transfer_litter_heart[indiv.pft.id] += cp.litter_heart * scale;
 
-					to.transfer_nmass_litter_leaf[indiv.pft.id] += nmass_litter_leaf_cp * scale;
-					to.transfer_nmass_litter_root[indiv.pft.id] += nmass_litter_root_cp * scale;
-					to.transfer_nmass_litter_sap[indiv.pft.id] += nmass_litter_sap_cp * scale;
-					to.transfer_nmass_litter_heart[indiv.pft.id] += nmass_litter_heart_cp * scale;
+					to.transfer_nmass_litter_leaf[indiv.pft.id] += cp.nmass_litter_leaf * scale;
+					to.transfer_nmass_litter_root[indiv.pft.id] += cp.nmass_litter_root * scale;
+					to.transfer_nmass_litter_sap[indiv.pft.id] += cp.nmass_litter_sap * scale;
+					to.transfer_nmass_litter_heart[indiv.pft.id] += cp.nmass_litter_heart * scale;
 
-					to.transfer_anflux_harvest += anflux_harvest_cp * scale;
+					to.transfer_anflux_harvest += cp.anflux_harvest * scale;
+
 
 					double change_frac;
 					if(stand.landcover == NATURAL) {
@@ -562,12 +551,12 @@ void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCO
 					else
 						change_frac = landcoverfrac_change[stand.landcover];
 
-					gridcell.acflux_landuse_change += -acflux_harvest_cp * change_frac / (double)stand.nobj;
-					gridcell.acflux_landuse_change_lc[stand.landcover] += -acflux_harvest_cp * change_frac / (double)stand.nobj;
+					gridcell.acflux_landuse_change += -cp.acflux_harvest * change_frac / (double)stand.nobj;
+					gridcell.acflux_landuse_change_lc[stand.landcover] += -cp.acflux_harvest * change_frac / (double)stand.nobj;
 
 					if(ifslowharvestpool) {
-						to.transfer_harvested_products_slow[indiv.pft.id] += harvested_products_slow_cp * scale;
-						to.transfer_harvested_products_slow_nmass[indiv.pft.id] += harvested_products_slow_nmass_cp * scale;
+						to.transfer_harvested_products_slow[indiv.pft.id] += cp.harvested_products_slow * scale;
+						to.transfer_harvested_products_slow_nmass[indiv.pft.id] += cp.harvested_products_slow_nmass * scale;
 					}
 
 					vegetation.nextobj();
@@ -730,7 +719,7 @@ void stand_dynamics(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTY
  *
  *  \param landcoverfrac_change				array with this year's difference in area fractions of the different landcovers
  *  \param cropstand_change					array with this year's difference in area fractions of the different crop stands			
- *  \param landcover_change_transfer        struct containing the following pft-specific public members:
+ *  \param landcover_change_transfer& from  struct containing the following pft-specific public members:
  *   - transfer_litter_leaf         
  *   - transfer_litter_sap      
  *   - transfer_litter_heart      
@@ -2797,38 +2786,38 @@ void crop_growth_daily(Patch& patch) {
  *  INPUT PARAMETER
  *  \param frac_cut					fraction of trees cut   
  *  INPUT/OUTPUT PARAMETERS 
- *  \param cmass_leaf 					leaf C biomass (kgC/m2)       
- *  \param cmass_root					fine root C biomass (kgC/m2)         
- *  \param cmass_sap					sapwood C biomass (kgC/m2)
- *  \param cmass_heart   				heartwood C biomass (kgC/m2)     
- *  \param cmass_debt         
- *  \param nmass_leaf 					leaf nitrogen biomass (kgN/m2)  
- *  \param nmass_root 					fine root nitrogen biomass (kgN/m2)   
- *  \param nmass_sap   					sapwood nitrogen biomass (kgC/m2)
- *  \param nmass_heart    				heartwood nitrogen biomass (kgC/m2)
- *  OUTPUT PARAMETERS  
- *  \param litter_leaf    				new leaf C litter (kgC/m2)    
- *  \param litter_root 					new root C litter (kgC/m2)        
- *  \param litter_sap   				new sapwood C litter (kgC/m2) 
- *  \param litter_heart   				new heartwood C litter (kgC/m2)      
- *  \param acflux_harvest				harvest flux to atmosphere (kgC/m2)         
- *  \param harvested_products_slow		harvest products to slow pool (kgC/m2)    
- *  \param nmass_litter_leaf 			new leaf nitrogen litter (kgN/m2)       
- *  \param nmass_litter_root			new root nitrogen litter (kgN/m2)         
- *  \param nmass_litter_sap 			new sapwood nitrogen litter (kgN/m2) 
- *  \param litter_heart        			new heartwood nitrogen litter (kgN/m2) 
- *  \param anflux_harvest   			harvest nitrogen flux out of system (kgC/m2)       
- *  \param harvested_products_slow_nmass 	harvest nitrogen products to slow pool (kgC/m2) 
+ *  \param Harvest_CN& i			struct containing the following indiv-specific public members:
+ *   - cmass_leaf 					leaf C biomass (kgC/m2)       
+ *   - cmass_root					fine root C biomass (kgC/m2)         
+ *   - cmass_sap					sapwood C biomass (kgC/m2)
+ *   - cmass_heart   				heartwood C biomass (kgC/m2)     
+ *   - cmass_debt					C "debt" (retrospective storage) (kgC/m2)
+ *   - nmass_leaf 					leaf nitrogen biomass (kgN/m2)  
+ *   - nmass_root 					fine root nitrogen biomass (kgN/m2)   
+ *   - nmass_sap   					sapwood nitrogen biomass (kgC/m2)
+ *   - nmass_heart    				heartwood nitrogen biomass (kgC/m2)
+ *   - nstore_labile    			labile nitrogen storage (kgC/m2)
+ *   - nstore_longterm    			longterm nitrogen storage (kgC/m2)
+ *  OUTPUT PARAMETERS
+ *  \param Harvest_CN& i			struct containing the following patchpft-specific public members:
+ *   - litter_leaf    				new leaf C litter (kgC/m2)    
+ *   - litter_root 					new root C litter (kgC/m2)        
+ *   - litter_sap   				new sapwood C litter (kgC/m2) 
+ *   - litter_heart   				new heartwood C litter (kgC/m2)      
+ *   - nmass_litter_leaf 			new leaf nitrogen litter (kgN/m2)       
+ *   - nmass_litter_root			new root nitrogen litter (kgN/m2)         
+ *   - nmass_litter_sap 			new sapwood nitrogen litter (kgN/m2) 
+ *   - nmass_litter_heart        	new heartwood nitrogen litter (kgN/m2) 
+ *									,and the following patch-level public members:
+ *   - acflux_harvest				harvest flux to atmosphere (kgC/m2)         
+ *   - harvested_products_slow		harvest products to slow pool (kgC/m2)    
+ *   - anflux_harvest   			harvest nitrogen flux out of system (kgC/m2)       
+ *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgC/m2) 
  */
-void harvest_wood(double& cmass_leaf, double& cmass_root, double& cmass_sap, double& cmass_heart, double& cmass_debt,
-	double& nmass_leaf, double& nmass_root, double& nmass_sap, double& nmass_heart,
-	double& nmass_litter_leaf, double& nmass_litter_root, double& nmass_litter_sap, double& nmass_litter_heart, double& anflux_harvest, double& harvested_products_slow_nmass,
-	double& litter_leaf, double& litter_root, double& litter_sap, double& litter_heart, double& acflux_harvest, double& harvested_products_slow, Individual& indiv,double frac_cut) {
+void harvest_wood(Harvest_CN& i, Pft& pft, bool alive, double frac_cut) {
 
 	double harvest = 0.0;
 	double residue_outtake = 0.0;
-	bool alive = indiv.alive;
-	Pft& pft = indiv.pft;
 
 	// only harvest trees
 	if(pft.lifeform == GRASS)
@@ -2837,76 +2826,132 @@ void harvest_wood(double& cmass_leaf, double& cmass_root, double& cmass_sap, dou
 	// all root carbon and nitrogen goes to litter
 	if(alive) {
 
-		litter_root += cmass_root * frac_cut;
-		nmass_litter_root += nmass_root * frac_cut;
-		nmass_litter_root += indiv.nstore() * frac_cut;
+		i.litter_root += i.cmass_root * frac_cut;
+		i.nmass_litter_root += i.nmass_root * frac_cut;
+		i.nmass_litter_root += (i.nstore_labile + i.nstore_longterm) * frac_cut;
 	}
-	cmass_root *= (1.0 - frac_cut);
-	nmass_root *= (1.0 - frac_cut);
+	i.cmass_root *= (1.0 - frac_cut);
+	i.nmass_root *= (1.0 - frac_cut);
+	i.nstore_labile *= (1.0 - frac_cut);
+	i.nstore_longterm *= (1.0 - frac_cut);
 
 	if(alive) {	
 
 		// Carbon:
 
 		// harvested wood
-		harvest = pft.harv_eff * (cmass_sap + cmass_heart - cmass_debt) * frac_cut;
+		harvest = pft.harv_eff * (i.cmass_sap + i.cmass_heart - i.cmass_debt) * frac_cut;
 
 		// harvested products not consumed (oxidised) this year put into harvested_products_slow
 		if(ifslowharvestpool) {
-			harvested_products_slow += harvest * pft.harvest_slow_frac;
+			i.harvested_products_slow += harvest * pft.harvest_slow_frac;
 			harvest = harvest * (1 - pft.harvest_slow_frac);
 		}
 
 		// harvested products consumed (oxidised) this year put into acflux_harvest
-		acflux_harvest += harvest;				
+		i.acflux_harvest += harvest;				
 
 		// removed residues are oxidised
-		residue_outtake += pft.res_outtake * cmass_leaf * frac_cut;
-		residue_outtake += pft.res_outtake * (cmass_sap + cmass_heart - cmass_debt) * (1 - pft.harv_eff) * frac_cut;
-		acflux_harvest += residue_outtake;															
+		residue_outtake += pft.res_outtake * i.cmass_leaf * frac_cut;
+		residue_outtake += pft.res_outtake * (i.cmass_sap + i.cmass_heart - i.cmass_debt) * (1 - pft.harv_eff) * frac_cut;
+		i.acflux_harvest += residue_outtake;															
 
 		// not removed residues are put into litter
-		litter_leaf += cmass_leaf * (1-pft.res_outtake) * frac_cut;												
-		litter_sap += cmass_sap * (1-pft.res_outtake) * (1 - pft.harv_eff) * frac_cut;
-		litter_heart += (cmass_heart-cmass_debt) * (1-pft.res_outtake) * (1 - pft.harv_eff) * frac_cut;
+		i.litter_leaf += i.cmass_leaf * (1-pft.res_outtake) * frac_cut;												
+		i.litter_sap += i.cmass_sap * (1-pft.res_outtake) * (1 - pft.harv_eff) * frac_cut;
+		i.litter_heart += (i.cmass_heart-i.cmass_debt) * (1-pft.res_outtake) * (1 - pft.harv_eff) * frac_cut;
 
 		// unharvested trees:
-		cmass_leaf *= (1.0 - frac_cut);
-		cmass_sap *= (1.0 - frac_cut);
-		cmass_heart *= (1.0 - frac_cut);
-		cmass_debt *= (1.0 - frac_cut);		
+		i.cmass_leaf *= (1.0 - frac_cut);
+		i.cmass_sap *= (1.0 - frac_cut);
+		i.cmass_heart *= (1.0 - frac_cut);
+		i.cmass_debt *= (1.0 - frac_cut);		
 
 		//Nitrogen:
 
 		// harvested products
-		harvest = indiv.pft.harv_eff * (nmass_sap + nmass_heart) * frac_cut;
+		harvest = pft.harv_eff * (i.nmass_sap + i.nmass_heart) * frac_cut;
 
 		// harvested products not consumed this year put into harvested_products_slow_nmass
 		if(ifslowharvestpool) {
-			harvested_products_slow_nmass += harvest * pft.harvest_slow_frac;
+			i.harvested_products_slow_nmass += harvest * pft.harvest_slow_frac;
 			harvest = harvest * (1 - pft.harvest_slow_frac);
 		}
 
 		// harvested products consumed this year put into anflux_harvest
-		anflux_harvest += harvest;
+		i.anflux_harvest += harvest;
 
 		// removed residues are oxidised
 		residue_outtake = 0.0;
-		residue_outtake += pft.res_outtake * nmass_leaf * frac_cut;
-		residue_outtake += pft.res_outtake * (nmass_sap + nmass_heart) * (1 - pft.harv_eff) * frac_cut;
-		anflux_harvest += residue_outtake;															
+		residue_outtake += pft.res_outtake * i.nmass_leaf * frac_cut;
+		residue_outtake += pft.res_outtake * (i.nmass_sap + i.nmass_heart) * (1 - pft.harv_eff) * frac_cut;
+		i.anflux_harvest += residue_outtake;															
 
 		// not removed residues are put into litter
-		nmass_litter_leaf += nmass_leaf * (1 - pft.res_outtake) * frac_cut;												
-		nmass_litter_sap += nmass_sap * (1 - pft.res_outtake) * (1 - pft.harv_eff) * frac_cut;
-		nmass_litter_heart += nmass_heart * (1 - pft.res_outtake) * (1 - pft.harv_eff) * frac_cut;
+		i.nmass_litter_leaf += i.nmass_leaf * (1 - pft.res_outtake) * frac_cut;												
+		i.nmass_litter_sap += i.nmass_sap * (1 - pft.res_outtake) * (1 - pft.harv_eff) * frac_cut;
+		i.nmass_litter_heart += i.nmass_heart * (1 - pft.res_outtake) * (1 - pft.harv_eff) * frac_cut;
 
 		// unharvested trees:
-		nmass_leaf *= (1.0 - frac_cut);
-		nmass_sap *= (1.0 - frac_cut);
-		nmass_heart *= (1.0 - frac_cut);							
+		i.nmass_leaf *= (1.0 - frac_cut);
+		i.nmass_sap *= (1.0 - frac_cut);
+		i.nmass_heart *= (1.0 - frac_cut);							
 
 	}
+}
+
+/// Harvest function used for managed forest and for clearing natural vegetation at land use change
+/** A fraction of trees is cut down (frac_cut)
+ *  A fraction of wood is harvested (pft.harv_eff) and returned as acflux_harvest
+ *  A fraction of harvested wood (pft.harvest_slow_frac) is returned as harvested_products_slow
+ *  The rest, including leaves and roots, is returned as litter.
+ *  Called from landcover_dynamics() first day of the year if any natural vegetation is transferred to another land use.
+ *  
+ *  This function copies variables from an individual and it's associated patchpft and patch to
+ *  a Harvest_CN struct, which is then passed on to the main harvest_crop function.
+ *  After the execution of the main harvest_crop function, the output variables are copied
+ *  back to the individual and patchpft and the patch-level fluxes are updated.
+ *
+ *  INPUT PARAMETER
+ *  \param frac_cut					fraction of trees cut   
+ *  INPUT/OUTPUT PARAMETERS 
+ *  \param indiv					reference to an Individual containing the following indiv-specific public members:
+ *   - cmass_leaf 					leaf C biomass (kgC/m2)       
+ *   - cmass_root					fine root C biomass (kgC/m2)         
+ *   - cmass_sap					sapwood C biomass (kgC/m2)
+ *   - cmass_heart   				heartwood C biomass (kgC/m2)     
+ *   - cmass_debt					C "debt" (retrospective storage) (kgC/m2)
+ *   - nmass_leaf 					leaf nitrogen biomass (kgN/m2)  
+ *   - nmass_root 					fine root nitrogen biomass (kgN/m2)   
+ *   - nmass_sap   					sapwood nitrogen biomass (kgC/m2)
+ *   - nmass_heart    				heartwood nitrogen biomass (kgC/m2)
+ *   - nstore_labile    			labile nitrogen storage (kgC/m2)
+ *   - nstore_longterm    			longterm nitrogen storage (kgC/m2)
+ *  OUTPUT PARAMETERS
+ *  \param indiv					reference to an Individual containing the following patchpft-specific public members:
+ *   - litter_leaf    				new leaf C litter (kgC/m2)    
+ *   - litter_root 					new root C litter (kgC/m2)        
+ *   - litter_sap   				new sapwood C litter (kgC/m2) 
+ *   - litter_heart   				new heartwood C litter (kgC/m2)      
+ *   - nmass_litter_leaf 			new leaf nitrogen litter (kgN/m2)       
+ *   - nmass_litter_root			new root nitrogen litter (kgN/m2)         
+ *   - nmass_litter_sap 			new sapwood nitrogen litter (kgN/m2) 
+ *   - nmass_litter_heart        	new heartwood nitrogen litter (kgN/m2) 
+ *									,and the following patch-level public members:
+ *   - acflux_harvest				harvest flux to atmosphere (kgC/m2)         
+ *   - harvested_products_slow		harvest products to slow pool (kgC/m2)    
+ *   - anflux_harvest   			harvest nitrogen flux out of system (kgC/m2)       
+ *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgC/m2) 
+ */
+void harvest_wood(Individual& indiv,Pft& pft, bool alive, double frac_cut) {
+
+	Harvest_CN indiv_cp;
+
+	indiv_cp.copy_from_indiv(indiv);
+
+	harvest_wood(indiv_cp, pft, alive, frac_cut);
+
+	indiv_cp.copy_to_indiv(indiv);
 }
 
 /// Harvest function for pasture, representing grazing (previous year).
@@ -2919,70 +2964,111 @@ void harvest_wood(double& cmass_leaf, double& cmass_root, double& cmass_sap, dou
  *    is transferred to another land use.
  *  This calls for a scaling factor, when the pasture area has increased.
  *  
- *  INPUT PARAMETER
- *  \param retransn						retranslocated nitrogen (kgN/m2)
  *  INPUT/OUTPUT PARAMETERS 
- *  \param cmass_leaf					leaf C biomass (kgC/m2)
- *  \param cmass_root					fine root C biomass (kgC/m2)
- *  \param nmass_leaf					leaf nitrogen biomass (kgN/m2)
- *  \param nmass_root					fine root nitrogen biomass (kgN/m2)
+ *  \param Harvest_CN& i			struct containing the following indiv-specific public members:
+ *   - cmass_leaf 					leaf C biomass (kgC/m2)       
+ *   - cmass_root					fine root C biomass (kgC/m2)         
+ *   - nmass_leaf 					leaf nitrogen biomass (kgN/m2)  
+ *   - nmass_root 					fine root nitrogen biomass (kgN/m2)   
  *  OUTPUT PARAMETERS 
- *  \param litter_leaf					new leaf C litter (kgC/m2)
- *  \param litter_root					new root C litter (kgC/m2)
- *  \param acflux_harvest				harvest flux to atmosphere (kgC/m2)
- *  \param harvested_products_slow 		harvest products to slow pool (kgC/m2)   
- *  \param nmass_litter_leaf			new leaf nitrogen litter (kgN/m2)
- *  \param nmass_litter_root			new root nitrogen litter (kgN/m2)
- *  \param anflux_harvest 				harvest nitrogen flux out of system (kgC/m2)        
- *  \param harvested_products_slow_nmass		harvest nitrogen products to slow pool (kgC/m2) 
+ *  \param Harvest_CN& i			struct containing the following patchpft-specific public members:
+ *   - litter_leaf    				new leaf C litter (kgC/m2)    
+ *   - litter_root 					new root C litter (kgC/m2)        
+ *   - nmass_litter_leaf 			new leaf nitrogen litter (kgN/m2)       
+ *   - nmass_litter_root			new root nitrogen litter (kgN/m2)         
+ *									,and the following patch-level public members:
+ *   - acflux_harvest				harvest flux to atmosphere (kgC/m2)         
+ *   - harvested_products_slow		harvest products to slow pool (kgC/m2)    
+ *   - anflux_harvest   			harvest nitrogen flux out of system (kgC/m2)       
+ *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgC/m2) 
  */ 
-void harvest_pasture(double& cmass_leaf, double& cmass_root,
-		double& nmass_leaf,double&  nmass_root,
-		double& nmass_litter_leaf, double& nmass_litter_root, double& anflux_harvest, double& harvested_products_slow_nmass, double& retransn,
-		double& litter_leaf, double& litter_root, double& acflux_harvest, double& harvested_products_slow, Individual& indiv) {
+void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
 
 	double harvest;
-	bool alive = indiv.alive;
-	Pft& pft = indiv.pft;
 
 	// harvest of leaves (grazing)
 
 	// Carbon:
-	harvest = pft.harv_eff * cmass_leaf;
+	harvest = pft.harv_eff * i.cmass_leaf;
 
 	if(ifslowharvestpool) {
-		harvested_products_slow += harvest * pft.harvest_slow_frac;
+		i.harvested_products_slow += harvest * pft.harvest_slow_frac;
 		harvest = harvest * (1 - pft.harvest_slow_frac);
 	}
 	if(alive)
-		acflux_harvest += harvest;
-	cmass_leaf -= harvest;
+		i.acflux_harvest += harvest;
+	i.cmass_leaf -= harvest;
 
 	// Nitrogen:
 	// Reduced removal of N relative to C during grazing.
 	double N_harvest_scale = 0.25; // Value that works. Needs to be verified in literature.
-	harvest = pft.harv_eff * nmass_leaf * N_harvest_scale;
+	harvest = pft.harv_eff * i.nmass_leaf * N_harvest_scale;
 
 	if(ifslowharvestpool) {
-		harvested_products_slow_nmass += harvest * pft.harvest_slow_frac;
+		i.harvested_products_slow_nmass += harvest * pft.harvest_slow_frac;
 		harvest = harvest * (1 - pft.harvest_slow_frac);
 	}
-	anflux_harvest += harvest;
-	nmass_leaf -= harvest;
+	i.anflux_harvest += harvest;
+	i.nmass_leaf -= harvest;
 
 #if defined GRASSFORCROP
 	if (alive) {
 		// Carbon:
-		residue_outtake = pft.res_outtake * cmass_leaf;	// res_outtake currently set to 0.0, 
-		acflux_harvest += residue_outtake;						// could be used for burning		
-		cmass_leaf -= residue_outtake;
+		residue_outtake = pft.res_outtake * i.cmass_leaf;	// res_outtake currently set to 0.0, 
+		i.acflux_harvest += residue_outtake;						// could be used for burning		
+		i.cmass_leaf -= residue_outtake;
 
 		// Nitrogen:
-		residue_outtake = pft.res_outtake * nmass_leaf;
-		anflux_harvest += residue_outtake;								
-		nmass_leaf -= residue_outtake;
+		residue_outtake = pft.res_outtake * i.nmass_leaf;
+		i.anflux_harvest += residue_outtake;								
+		i.nmass_leaf -= residue_outtake;
 	}
 #endif
+}
+
+/// Harvest function for pasture, representing grazing (previous year).
+/*  Function for balancing carbon and nitrogen fluxes from last year's growth
+ *  A fraction of leaves is harvested (pft.harv_eff) and returned as acflux_harvest
+ *  This represents grazing minus return as manure.
+ *  The rest is handled like natural grass in turnover().
+ *  Called from growth() last day of the year for normal harvest/grazing.
+ *  Also called from landcover_dynamics() first day of the year if any natural vegetation 
+ *    is transferred to another land use.
+ *  This calls for a scaling factor, when the pasture area has increased.
+ *  
+ *  This function copies variables from an individual and it's associated patchpft and patch to
+ *  a Harvest_CN struct, which is then passed on to the main harvest_crop function.
+ *  After the execution of the main harvest_crop function, the output variables are copied
+ *  back to the individual and patchpft and the patch-level fluxes are updated.
+ *
+ *  INPUT/OUTPUT PARAMETERS 
+ *  \param indiv					reference to an Individual containing the following indiv-specific public members:
+ *   - cmass_leaf 					leaf C biomass (kgC/m2)       
+ *   - cmass_root					fine root C biomass (kgC/m2)         
+ *   - nmass_leaf 					leaf nitrogen biomass (kgN/m2)  
+ *   - nmass_root 					fine root nitrogen biomass (kgN/m2)   
+ *  OUTPUT PARAMETERS 
+ *  \param indiv					reference to an Individual containing the following patchpft-specific public members:
+ *   - litter_leaf    				new leaf C litter (kgC/m2)    
+ *   - litter_root 					new root C litter (kgC/m2)        
+ *   - nmass_litter_leaf 			new leaf nitrogen litter (kgN/m2)       
+ *   - nmass_litter_root			new root nitrogen litter (kgN/m2)         
+ *									,and the following patch-level public members:
+ *   - acflux_harvest				harvest flux to atmosphere (kgC/m2)         
+ *   - harvested_products_slow		harvest products to slow pool (kgC/m2)    
+ *   - anflux_harvest   			harvest nitrogen flux out of system (kgC/m2)       
+ *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgC/m2) 
+ */ 
+void harvest_pasture(Individual& indiv, Pft& pft, bool alive) {
+
+	Harvest_CN indiv_cp;
+
+	indiv_cp.copy_from_indiv(indiv);
+
+	harvest_pasture(indiv_cp, pft, alive);
+
+	indiv_cp.copy_to_indiv(indiv);
+
 }
 
 /// Harvest function for cropland, including true crops, intercrop grass 
@@ -2996,184 +3082,185 @@ void harvest_pasture(double& cmass_leaf, double& cmass_root,
  *    is transferred to another land use.
  *  This calls for a scaling factor, when the pasture area has increased.
  *
- *  INPUT PARAMETER
- *  \param retransn						retranslocated nitrogen (kgN/m2)
+ *  This function copies variables from an individual and it's associated patchpft and patch to
+ *  a Harvest_CN struct, which is then passed on to the main harvest_crop function.
+ *  After the execution of the main harvest_crop function, the output variables are copied
+ *  back to the individual and patchpft and the patch-level fluxes are updated.
+ *
  *  INPUT/OUTPUT PARAMETERS 
- *  \param cmass_leaf					leaf C biomass (kgC/m2)
- *  \param cmass_root					fine root C biomass (kgC/m2)
- *  \param cmass_ho						harvestable organ C biomass (kgC/m2)
- *  \param cmass_agpool					above-ground pool C biomass (kgC/m2)
- *  \param nmass_leaf					leaf nitrogen biomass (kgN/m2)
- *  \param nmass_root					fine root nitrogen biomass (kgN/m2)
- *  \param nmass_ho						harvestable organ nitrogen biomass (kgC/m2)
- *  \param nmass_agpool					above-ground pool nitrogen biomass (kgC/m2)
+ *  \param Harvest_CN& i			struct containing the following indiv-specific public members:
+ *   - cmass_leaf 					leaf C biomass (kgC/m2)       
+ *   - cmass_root					fine root C biomass (kgC/m2)         
+ *   - cmass_ho						harvestable organ C biomass (kgC/m2)
+ *   - cmass_agpool					above-ground pool C biomass (kgC/m2)
+ *   - nmass_leaf 					leaf nitrogen biomass (kgN/m2)  
+ *   - nmass_root 					fine root nitrogen biomass (kgN/m2)   
+ *   - param nmass_ho				harvestable organ nitrogen biomass (kgC/m2)
+ *   - param nmass_agpool			above-ground pool nitrogen biomass (kgC/m2)
  *  OUTPUT PARAMETERS 
- *  \param litter_leaf					new leaf C litter (kgC/m2)
- *  \param litter_root					new root C litter (kgC/m2)
- *  \param acflux_harvest				harvest flux to atmosphere (kgC/m2)
- *  \param harvested_products_slow 		harvest products to slow pool (kgC/m2)   
- *  \param nmass_litter_leaf			new leaf nitrogen litter (kgN/m2)
- *  \param nmass_litter_root			new root nitrogen litter (kgN/m2)
- *  \param acflux_harvest 				harvest nitrogen flux out of system (kgC/m2)        
- *  \param harvested_products_slow		harvest nitrogen products to slow pool (kgC/m2) 
+ *  \param Harvest_CN& i			struct containing the following patchpft-specific public members:
+ *   - litter_leaf    				new leaf C litter (kgC/m2)    
+ *   - litter_root 					new root C litter (kgC/m2)        
+ *   - nmass_litter_leaf 			new leaf nitrogen litter (kgN/m2)       
+ *   - nmass_litter_root			new root nitrogen litter (kgN/m2)         
+ *									,and the following patch-level public members:
+ *   - acflux_harvest				harvest flux to atmosphere (kgC/m2)         
+ *   - harvested_products_slow		harvest products to slow pool (kgC/m2)    
+ *   - anflux_harvest   			harvest nitrogen flux out of system (kgC/m2)       
+ *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgC/m2) 
  */ 
-void harvest_crop(double& cmass_leaf, double& cmass_root, double& cmass_ho, double& cmass_agpool,
-		double& nmass_leaf, double& nmass_root, double& nmass_ho, double& nmass_agpool,
-		double& nmass_litter_leaf, double& nmass_litter_root, double& anflux_harvest, double& harvested_products_slow_nmass, double& retransn,
-		double& litter_leaf, double& litter_root, double& acflux_harvest, double& harvested_products_slow, Individual& indiv) {
+void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 
 	double residue_outtake, harvest;
-	bool alive = indiv.alive;
-	Pft& pft = indiv.pft;
 
 	if(pft.phenology==CROPGREEN) {
 
 	// all root carbon and nitrogen goes to litter
-		if(cmass_root > 0.0)
-			litter_root += cmass_root;
-		if(nmass_root > 0.0)
-			nmass_litter_root += nmass_root;
+		if(i.cmass_root > 0.0)
+			i.litter_root += i.cmass_root;
+		if(i.nmass_root > 0.0)
+			i.nmass_litter_root += i.nmass_root;
 
-		cmass_root = 0.0;
-		nmass_root = 0.0;
+		i.cmass_root = 0.0;
+		i.nmass_root = 0.0;
 
 
 		// harvest of harvestable organs
 
 		// Carbon:
-		if(cmass_ho > 0.0) {
+		if(i.cmass_ho > 0.0) {
 			// harvested products
-			harvest = pft.harv_eff * cmass_ho;
+			harvest = pft.harv_eff * i.cmass_ho;
 
 			// not removed harvestable organs are put into litter
 			if(pft.aboveground_ho)
-				litter_leaf += (cmass_ho - harvest);
+				i.litter_leaf += (i.cmass_ho - harvest);
 			else
-				litter_root += (cmass_ho - harvest);
+				i.litter_root += (i.cmass_ho - harvest);
 
-			cmass_ho = 0.0;
+			i.cmass_ho = 0.0;
 
 			// harvested products not consumed (oxidised) this year put into harvested_products_slow
 			if(ifslowharvestpool) {
-				harvested_products_slow += harvest * pft.harvest_slow_frac;
+				i.harvested_products_slow += harvest * pft.harvest_slow_frac;
 				harvest = harvest * (1 - pft.harvest_slow_frac);
 			}
 
 			// harvested products consumed (oxidised) this year put into acflux_harvest
-			acflux_harvest += harvest;
+			i.acflux_harvest += harvest;
 		}
 
 		// Nitrogen:
-		if(nmass_ho > 0.0) {
+		if(i.nmass_ho > 0.0) {
 
 			// harvested products
-			harvest = pft.harv_eff * nmass_ho;
+			harvest = pft.harv_eff * i.nmass_ho;
 
 			// not removed harvestable organs are put into litter
 			if(pft.aboveground_ho)
-				nmass_litter_leaf += (nmass_ho - harvest);
+				i.nmass_litter_leaf += (i.nmass_ho - harvest);
 			else
-				nmass_litter_root += (nmass_ho - harvest);			
+				i.nmass_litter_root += (i.nmass_ho - harvest);			
 
 			// harvested products not consumed this year put into harvested_products_slow_nmass
 			if(ifslowharvestpool) {
-				harvested_products_slow_nmass += harvest * pft.harvest_slow_frac;
+				i.harvested_products_slow_nmass += harvest * pft.harvest_slow_frac;
 				harvest = harvest * (1 - pft.harvest_slow_frac);
 			}
 
 			// harvested products consumed this year put into anflux_harvest
-			anflux_harvest += harvest;
+			i.anflux_harvest += harvest;
 		}
-		nmass_ho = 0.0;
+		i.nmass_ho = 0.0;
 
 
 
 		// residues
 
 		// Carbon
-		if ((cmass_leaf + cmass_agpool) > 0.0) {
+		if ((i.cmass_leaf + i.cmass_agpool) > 0.0) {
 
 			// removed residues are oxidised
-			residue_outtake = pft.res_outtake * (cmass_leaf + cmass_agpool);
-			acflux_harvest += residue_outtake;
+			residue_outtake = pft.res_outtake * (i.cmass_leaf + i.cmass_agpool);
+			i.acflux_harvest += residue_outtake;
 
 			// not removed residues are put into litter
-			litter_leaf += cmass_leaf + cmass_agpool - residue_outtake;
+			i.litter_leaf += i.cmass_leaf + i.cmass_agpool - residue_outtake;
 		}
-		cmass_leaf = 0.0;
-		cmass_agpool = 0.0;
+		i.cmass_leaf = 0.0;
+		i.cmass_agpool = 0.0;
 
 		// Nitrogen:
-		if ((nmass_leaf + nmass_agpool) > 0.0) {
+		if ((i.nmass_leaf + i.nmass_agpool) > 0.0) {
 
 			// removed residues are oxidised
-			residue_outtake = pft.res_outtake * (nmass_leaf + nmass_agpool);
-			nmass_litter_leaf += nmass_leaf+nmass_agpool - residue_outtake;
+			residue_outtake = pft.res_outtake * (i.nmass_leaf + i.nmass_agpool);
+			i.nmass_litter_leaf += i.nmass_leaf + i.nmass_agpool - residue_outtake;
 
 			// not removed residues are put into litter
-			anflux_harvest += residue_outtake;
+			i.anflux_harvest += residue_outtake;
 		}
-		nmass_leaf = 0.0;
-		nmass_agpool = 0.0;
+		i.nmass_leaf = 0.0;
+		i.nmass_agpool = 0.0;
 	}
 	else if(pft.phenology == ANY) {
 
 		// Intercrop grass
-		if(indiv.cropindiv->isintercropgrass) {
+		if(isintercropgrass) {
 
 			// roots
 
 			// all root carbon and nitrogen goes to litter
-			if(cmass_root > 0.0)
-				litter_root += cmass_root;
-			if(nmass_root > 0.0)
-				nmass_litter_root += nmass_root;
+			if(i.cmass_root > 0.0)
+				i.litter_root += i.cmass_root;
+			if(i.nmass_root > 0.0)
+				i.nmass_litter_root += i.nmass_root;
 
-			cmass_root = 0.0;
-			nmass_root = 0.0;
+			i.cmass_root = 0.0;
+			i.nmass_root = 0.0;
 
 
 			// leaves
 
 			// Carbon:
-			if(cmass_leaf > 0.0) {
+			if(i.cmass_leaf > 0.0) {
 
 				// Harvest/Grazing of leaves:
-				harvest = pft.harv_eff_ic * cmass_leaf;	// currently no harvest of intercrtop grass
+				harvest = pft.harv_eff_ic * i.cmass_leaf;	// currently no harvest of intercrtop grass
 
 				// not removed grass is put into litter
-				litter_leaf += cmass_leaf-harvest;
+				i.litter_leaf += i.cmass_leaf - harvest;
 
 				if(ifslowharvestpool) {
-					harvested_products_slow += harvest * pft.harvest_slow_frac; // no slow harvest for grass
+					i.harvested_products_slow += harvest * pft.harvest_slow_frac; // no slow harvest for grass
 					harvest = harvest * (1 - pft.harvest_slow_frac);
 				}
 
-				acflux_harvest += harvest;
+				i.acflux_harvest += harvest;
 			}
-			cmass_leaf = 0.0;
-			cmass_ho = 0.0;
-			cmass_agpool = 0.0;
+			i.cmass_leaf = 0.0;
+			i.cmass_ho = 0.0;
+			i.cmass_agpool = 0.0;
 
 			// Nitrogen:
-			if(nmass_leaf > 0.0) {
+			if(i.nmass_leaf > 0.0) {
 
 				// Harvest/Grazing of leaves:
-				harvest = pft.harv_eff_ic * nmass_leaf;	// currently no harvest of intercrtop grass
+				harvest = pft.harv_eff_ic * i.nmass_leaf;	// currently no harvest of intercrtop grass
 
 				// not removed grass is put into litter
-				nmass_litter_leaf += nmass_leaf - harvest;
+				i.nmass_litter_leaf += i.nmass_leaf - harvest;
 
 				if(ifslowharvestpool) {
-					harvested_products_slow_nmass += harvest * pft.harvest_slow_frac; // no slow harvest for grass
+					i.harvested_products_slow_nmass += harvest * pft.harvest_slow_frac; // no slow harvest for grass
 					harvest = harvest * (1 - pft.harvest_slow_frac);
 				}
 
-				anflux_harvest += harvest;
+				i.anflux_harvest += harvest;
 			}
-			nmass_leaf = 0.0;
-			nmass_ho = 0.0;
-			nmass_agpool = 0.0;
+			i.nmass_leaf = 0.0;
+			i.nmass_ho = 0.0;
+			i.nmass_agpool = 0.0;
 
 		}
 		else {	// pasture grass
@@ -3181,35 +3268,85 @@ void harvest_crop(double& cmass_leaf, double& cmass_root, double& cmass_ho, doub
 			// harvest of leaves (grazing)
 
 			// Carbon:
-			harvest = pft.harv_eff * cmass_leaf;
+			harvest = pft.harv_eff * i.cmass_leaf;
 
 			if(ifslowharvestpool) {
-				harvested_products_slow += harvest * pft.harvest_slow_frac;
+				i.harvested_products_slow += harvest * pft.harvest_slow_frac;
 				harvest = harvest * (1 - pft.harvest_slow_frac);
 			}
 			if(alive)
-				acflux_harvest += harvest;
-			cmass_leaf -= harvest;
+				i.acflux_harvest += harvest;
+			i.cmass_leaf -= harvest;
 
-			cmass_ho = 0.0;
-			cmass_agpool = 0.0;
+			i.cmass_ho = 0.0;
+			i.cmass_agpool = 0.0;
 
 			// Nitrogen:
 			// Reduced removal of N relative to C during grazing.
 			double N_harvest_scale = 0.25; // Value that works. Needs to be verified in literature.
-			harvest = pft.harv_eff * nmass_leaf * N_harvest_scale;
+			harvest = pft.harv_eff * i.nmass_leaf * N_harvest_scale;
 
 			if(ifslowharvestpool) {
-				harvested_products_slow_nmass += harvest * pft.harvest_slow_frac;
+				i.harvested_products_slow_nmass += harvest * pft.harvest_slow_frac;
 				harvest = harvest * (1 - pft.harvest_slow_frac);
 			}
-			anflux_harvest += harvest;
-			nmass_leaf -= harvest;
+			i.anflux_harvest += harvest;
+			i.nmass_leaf -= harvest;
 
-			nmass_ho=0.0;
-			nmass_agpool=0.0;
+			i.nmass_ho=0.0;
+			i.nmass_agpool=0.0;
 		}
 	}
+}
+
+/// Harvest function for cropland, including true crops, intercrop grass 
+/**   and pasture grass grown in cropland.
+ *  Function for balancing carbon and nitrogen fluxes from last year's growth
+ *  A fraction of harvestable organs (grass:leaves) is harvested (pft.harv_eff) and returned as acflux_harvest.
+ *  A fraction of leaves is removed (pft.res_outtake) and returned as acflux_harvest
+ *  The rest, including roots, is returned as litter.
+ *  Called from growth() last day of the year for normal harvest/grazing.
+ *  Also called from landcover_dynamics() first day of the year if any natural vegetation 
+ *    is transferred to another land use.
+ *  This calls for a scaling factor, when the pasture area has increased.
+ *
+ *  This function copies variables from an individual and it's associated patchpft and patch to
+ *  a Harvest_CN struct, which is then passed on to the main harvest_crop function.
+ *  After the execution of the main harvest_crop function, the output variables are copied
+ *  back to the individual and patchpft and the patch-level fluxes are updated.
+ *
+ *  INPUT/OUTPUT PARAMETERS 
+ *  \param indiv					reference to an Individual containing the following indiv-specific public members:
+ *   - cmass_leaf 					leaf C biomass (kgC/m2)       
+ *   - cmass_root					fine root C biomass (kgC/m2)         
+ *   - cmass_ho						harvestable organ C biomass (kgC/m2)
+ *   - cmass_agpool					above-ground pool C biomass (kgC/m2)
+ *   - nmass_leaf 					leaf nitrogen biomass (kgN/m2)  
+ *   - nmass_root 					fine root nitrogen biomass (kgN/m2)   
+ *   - param nmass_ho				harvestable organ nitrogen biomass (kgC/m2)
+ *   - param nmass_agpool			above-ground pool nitrogen biomass (kgC/m2)
+ *  OUTPUT PARAMETERS 
+ *  \param indiv					reference to an Individual containing the following patchpft-specific public members:
+ *   - litter_leaf    				new leaf C litter (kgC/m2)    
+ *   - litter_root 					new root C litter (kgC/m2)        
+ *   - nmass_litter_leaf 			new leaf nitrogen litter (kgN/m2)       
+ *   - nmass_litter_root			new root nitrogen litter (kgN/m2)         
+ *									,and the following patch-level public members:
+ *   - acflux_harvest				harvest flux to atmosphere (kgC/m2)         
+ *   - harvested_products_slow		harvest products to slow pool (kgC/m2)    
+ *   - anflux_harvest   			harvest nitrogen flux out of system (kgC/m2)       
+ *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgC/m2) 
+ */ 
+void harvest_crop(Individual& indiv, Pft& pft, bool alive, bool isintercropgrass) {
+
+	Harvest_CN indiv_cp;
+
+	indiv_cp.copy_from_indiv(indiv);
+
+	harvest_crop(indiv_cp, pft, alive, isintercropgrass);
+
+	indiv_cp.copy_to_indiv(indiv);
+
 }
 
 /// Transfer of this year's growth (ycmass_xxx) to cmass_xxx_inc

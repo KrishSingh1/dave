@@ -54,9 +54,12 @@ void harvest_crop(Individual& indiv, Pft& pft, bool alive, bool isintercropgrass
 void harvest_wood(Harvest_CN& indiv_cp,Pft& pft, bool alive, double frac_cut);
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.
 void harvest_wood(Individual& indiv,Pft& pft, bool alive, double frac_cut);
-/// Harvest function for pasture, representing grazing (previous year).
+/// Harvest function for pasture, representing grazing.
 void harvest_pasture(Harvest_CN& indiv_cp, Pft& pft, bool alive);
+/// Harvest function for pasture, representing grazing.
 void harvest_pasture(Individual& indiv, Pft& pft, bool alive);
+/// Transfers all carbon and nitrogen from living tissue to litter.
+void kill_remaining_vegetation(Harvest_CN& indiv_cp, Pft& pft, bool alive, bool istruecrop_or_intercropgrass, bool burn);
 
 /// struct storing carbon, nitrogen and water during landcover change
 struct landcover_change_transfer {
@@ -135,6 +138,7 @@ struct Harvest_CN {
 		harvested_products_slow = harvested_products_slow_nmass = 0.0;
 	}
 
+// Copies C and N values from individual and patchpft tp struct. 
 	void copy_from_indiv(Individual& indiv) {
 
 		Patch& patch = indiv.vegetation.patch;
@@ -172,6 +176,7 @@ struct Harvest_CN {
 		harvested_products_slow_nmass = ppft.harvested_products_slow_nmass;
 	}
 
+// Copies C and N values from struct to individual, patchpft and patch (fluxes).
 	void copy_to_indiv(Individual& indiv) {
 
 		Patch& patch = indiv.vegetation.patch;

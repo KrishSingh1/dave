@@ -496,34 +496,8 @@ void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCO
 
 					gridcell.LC_updated = true;
 
-					// In case any vegetation left: (eg. cmass_root for CC3G/CC4G or grass in woodland)
-					if((cp.cmass_leaf + cp.cmass_root + cp.cmass_sap + cp.cmass_heart - cp.cmass_debt + cp.cmass_ho) != 0.0)
-					{
-						cp.litter_leaf += cp.cmass_leaf;
-						cp.litter_root += cp.cmass_root;
-						cp.litter_sap += cp.cmass_sap;
-						cp.litter_heart += cp.cmass_heart - cp.cmass_debt;
-
-						cp.nmass_litter_leaf += cp.nmass_leaf;
-						cp.nmass_litter_root += cp.nmass_root;
-						cp.nmass_litter_sap += cp.nmass_sap;
-						cp.nmass_litter_heart += cp.nmass_heart;
-
-						if(indiv.pft.landcover == CROPLAND) {
-							if(indiv.pft.aboveground_ho) {
-								cp.litter_leaf += cp.cmass_ho;
-								cp.nmass_litter_leaf += cp.nmass_ho;
-							}
-							else {
-								cp.litter_root += cp.cmass_ho;
-								cp.nmass_litter_root += cp.nmass_ho;
-							}
-							cp.litter_leaf += cp.cmass_agpool;
-							cp.nmass_litter_leaf += cp.nmass_agpool;
-						}
-					}
-					cp.nmass_litter_root += cp.nstore_longterm;
-					cp.nmass_litter_root += cp.nstore_labile;
+					// In case any vegetation left (eg. cmass_root in pasture or grass in woodland):
+					kill_remaining_vegetation(cp, indiv.pft, indiv.alive, indiv.istruecrop_or_intercropgrass(), false);
 
 					//Sum added litter C & N:
 					to.transfer_litter_leaf[indiv.pft.id] += cp.litter_leaf * scale;
@@ -3097,6 +3071,8 @@ void harvest_pasture(Individual& indiv, Pft& pft, bool alive) {
  *   - nmass_root 					fine root nitrogen biomass (kgN/m2)   
  *   - param nmass_ho				harvestable organ nitrogen biomass (kgC/m2)
  *   - param nmass_agpool			above-ground pool nitrogen biomass (kgC/m2)
+ *   - nstore_labile    			labile nitrogen storage (kgC/m2)
+ *   - nstore_longterm    			longterm nitrogen storage (kgC/m2)
  *  OUTPUT PARAMETERS 
  *  \param Harvest_CN& i			struct containing the following patchpft-specific public members:
  *   - litter_leaf    				new leaf C litter (kgC/m2)    
@@ -3120,10 +3096,15 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 			i.litter_root += i.cmass_root;
 		if(i.nmass_root > 0.0)
 			i.nmass_litter_root += i.nmass_root;
+		if(i.nstore_labile > 0.0)
+			i.nmass_litter_root += i.nstore_labile;
+		if(i.nstore_longterm > 0.0)
+			i.nmass_litter_root += i.nstore_longterm;
 
 		i.cmass_root = 0.0;
 		i.nmass_root = 0.0;
-
+		i.nstore_labile = 0.0;
+		i.nstore_longterm = 0.0;
 
 		// harvest of harvestable organs
 
@@ -3215,9 +3196,15 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 				i.litter_root += i.cmass_root;
 			if(i.nmass_root > 0.0)
 				i.nmass_litter_root += i.nmass_root;
+			if(i.nstore_labile > 0.0)
+				i.nmass_litter_root += i.nstore_labile;
+			if(i.nstore_longterm > 0.0)
+				i.nmass_litter_root += i.nstore_longterm;
 
 			i.cmass_root = 0.0;
 			i.nmass_root = 0.0;
+			i.nstore_labile = 0.0;
+			i.nstore_longterm = 0.0;
 
 
 			// leaves
@@ -3325,6 +3312,8 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
  *   - nmass_root 					fine root nitrogen biomass (kgN/m2)   
  *   - param nmass_ho				harvestable organ nitrogen biomass (kgC/m2)
  *   - param nmass_agpool			above-ground pool nitrogen biomass (kgC/m2)
+ *   - nstore_labile    			labile nitrogen storage (kgC/m2)
+ *   - nstore_longterm    			longterm nitrogen storage (kgC/m2)
  *  OUTPUT PARAMETERS 
  *  \param indiv					reference to an Individual containing the following patchpft-specific public members:
  *   - litter_leaf    				new leaf C litter (kgC/m2)    
@@ -3346,6 +3335,118 @@ void harvest_crop(Individual& indiv, Pft& pft, bool alive, bool isintercropgrass
 	harvest_crop(indiv_cp, pft, alive, isintercropgrass);
 
 	indiv_cp.copy_to_indiv(indiv);
+
+}
+
+
+/// Transfers all carbon and nitrogen from living tissue to litter
+/** Mainly used at land cover change when remaining vegetation after harvest (grass) is
+ *   killed by tillage, following an optional burning.
+ *   
+ *  INPUT PARAMETER
+ *  \param burn						whether above-ground vegetation C & N is sent to the atmosphere
+ *								     rather than to litter
+ *  INPUT/OUTPUT PARAMETERS 
+ *  \param Harvest_CN& i			struct containing the following indiv-specific public members:
+ *   - cmass_leaf 					leaf C biomass (kgC/m2)       
+ *   - cmass_root					fine root C biomass (kgC/m2)         
+ *   - cmass_ho						harvestable organ C biomass (kgC/m2)
+ *   - cmass_agpool					above-ground pool C biomass (kgC/m2)
+ *   - cmass_sap					sapwood C biomass (kgC/m2)
+ *   - cmass_heart   				heartwood C biomass (kgC/m2)     
+ *   - cmass_debt					C "debt" (retrospective storage) (kgC/m2)
+ *   - nmass_leaf 					leaf nitrogen biomass (kgN/m2)  
+ *   - nmass_root 					fine root nitrogen biomass (kgN/m2)   
+ *   - nmass_sap   					sapwood nitrogen biomass (kgC/m2)
+ *   - nmass_heart    				heartwood nitrogen biomass (kgC/m2)
+ *   - param nmass_ho				harvestable organ nitrogen biomass (kgC/m2)
+ *   - param nmass_agpool			above-ground pool nitrogen biomass (kgC/m2)
+ *   - nstore_labile    			labile nitrogen storage (kgC/m2)
+ *   - nstore_longterm    			longterm nitrogen storage (kgC/m2)
+ *  OUTPUT PARAMETERS 
+ *  \param Harvest_CN& i			struct containing the following patchpft-specific public members:
+ *   - litter_leaf    				new leaf C litter (kgC/m2)    
+ *   - litter_root 					new root C litter (kgC/m2)        
+ *   - nmass_litter_leaf 			new leaf nitrogen litter (kgN/m2)       
+ *   - nmass_litter_root			new root nitrogen litter (kgN/m2)         
+ *									,and the following patch-level public members:
+ *   - acflux_harvest				harvest flux to atmosphere (kgC/m2)            
+ *   - anflux_harvest   			harvest nitrogen flux out of system (kgC/m2)       
+ */ 
+void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istruecrop_or_intercropgrass, bool burn) {
+
+
+	if(alive || istruecrop_or_intercropgrass)  {
+		cp.litter_root += cp.cmass_root;
+
+		if(burn) {
+			cp.acflux_harvest += cp.cmass_leaf;
+			cp.acflux_harvest += cp.cmass_sap;
+			cp.acflux_harvest += cp.cmass_heart - cp.cmass_debt;
+		}
+		else {
+			cp.litter_leaf += cp.cmass_leaf;
+			cp.litter_sap += cp.cmass_sap;
+			cp.litter_heart += cp.cmass_heart - cp.cmass_debt;
+		}
+	}
+
+	cp.nmass_litter_root += cp.nmass_root;
+	cp.nmass_litter_root += cp.nstore_longterm;
+	cp.nmass_litter_root += cp.nstore_labile;
+
+	if(burn) {
+		cp.anflux_harvest += cp.nmass_leaf;
+		cp.anflux_harvest += cp.nmass_sap;
+		cp.anflux_harvest += cp.nmass_heart;
+	}
+	else {
+		cp.nmass_litter_leaf += cp.nmass_leaf;
+		cp.nmass_litter_sap += cp.nmass_sap;
+		cp.nmass_litter_heart += cp.nmass_heart;
+	}
+
+	if(pft.landcover == CROPLAND) {
+		if(pft.aboveground_ho) {
+			if(burn) {
+				cp.acflux_harvest += cp.cmass_ho;
+				cp.anflux_harvest += cp.nmass_ho;
+			}
+			else {
+				cp.litter_leaf += cp.cmass_ho;
+				cp.nmass_litter_leaf += cp.nmass_ho;
+			}
+		}
+		else {
+			cp.litter_root += cp.cmass_ho;
+			cp.nmass_litter_root += cp.nmass_ho;
+		}
+
+		if(burn) {
+			cp.acflux_harvest += cp.cmass_agpool;
+			cp.anflux_harvest += cp.nmass_agpool;
+		}
+		else {
+			cp.litter_leaf += cp.cmass_agpool;
+			cp.nmass_litter_leaf += cp.nmass_agpool;
+		}
+	}
+
+	cp.cmass_leaf = 0.0;
+	cp.cmass_root = 0.0;
+	cp.cmass_sap = 0.0;
+	cp.cmass_heart = 0.0;
+	cp.cmass_debt = 0.0;
+	cp.cmass_ho = 0.0;
+	cp.cmass_agpool = 0.0;
+	cp.nmass_leaf = 0.0;
+	cp.nmass_root = 0.0;
+	cp.nstore_longterm = 0.0;
+	cp.nstore_labile = 0.0;
+	cp.nmass_sap = 0.0;
+	cp.nmass_heart = 0.0;
+	cp.nmass_ho = 0.0;
+	cp.nmass_agpool = 0.0;
 
 }
 

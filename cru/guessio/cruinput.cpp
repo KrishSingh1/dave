@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-/// \file guessio_cru.cpp
+/// \file cruinput.cpp
 /// \brief LPJ-GUESS input module for CRU TS 3.0 data set
 ///
 /// This input module reads in CRU climate data in a customised binary format.
@@ -21,14 +21,6 @@
 #include <vector>
 #include <algorithm>
 #include "globalco2file.h"
-
-
-// guess2008 - header file for the CRU TS 3.0 data archives
-#include "cru_1901_2006.h"
-#include "cru_1901_2006misc.h"
-
-// header file for reading binary data archive of global nitrogen deposition
-#include "GlobalNitrogenDeposition.h"
 
 
 REGISTER_INPUT_MODULE("cru", CRUInput)
@@ -76,245 +68,6 @@ void interp_climate(double mtemp[12], double mprec[12], double msun[12], double 
 
 } // namespace
 
-///////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////
-// 
-// guess2008 - new functions for reading CRU TS 3.0 binary files.
-//
-///////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////////////////
-// SEARCHCRU
-// Determine temp, precip, sunshine & soilcode
- 
-bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
-               double mtemp[CRUInput::NYEAR_HIST][12],
-               double mprec[CRUInput::NYEAR_HIST][12],
-               double msun[CRUInput::NYEAR_HIST][12]) {
-
-	// !!!! NEW VERSION OF THIS FUNCTION - guess2008 - NEW VERSION OF THIS FUNCTION !!!!
-	// Please note the new function signature. 
-
-	// Archive object. Definition in new header file, cru.h
-	Cru_1901_2006Archive ark;
-
-	int y,m;
-
-	// Try block to catch any unexpected errors
-	try {
-
-		Cru_1901_2006 data; // struct to hold the data
-
-		bool success = ark.open(cruark);
-
-		if (success) {
-			bool flag = ark.rewind();
-			if (!flag) { 
-				ark.close(); // I.e. we opened it but we couldn't rewind
-				return false;
-			}
-		}
-		else
-			return false;
-
-
-		// The CRU archive index hold lons & lats as whole doubles * 10
-		data.lon = dlon * 10.0;
-		data.lat = dlat * 10.0;
-
-		// Read the CRU data into the data struct
-		success =ark.getindex(data);
-		if (!success) {
-			ark.close();
-			return false;
-		}
-
-		// Transfer the data from the data struct to the arrays. 
-		soilcode=(int)data.soilcode[0];
-
-
-		for (y = 0; y < CRUInput::NYEAR_HIST; y++) {
-			for (m=0;m<12;m++) {
-				mtemp[y][m] = data.mtemp[y*12+m]*0.1; // now degC
-				mprec[y][m] = data.mprec[y*12+m]*0.1; // mm (sum over month)
-				
-				// Limit very low precip amounts because negligible precipitation causes problems 
-				// in the prdaily function (infinite loops). 
-				if (mprec[y][m] <= 1.0) mprec[y][m] = 0.0;
-				
-				msun[y][m]  = data.msun[y*12+m]*0.1;   // % sun 
-
-			}
-		}
-
-
-		// Close the archive
-		ark.close();
-
-		return true;
-	
-	}
-	catch(...) {
-		// Unknown error.
-		return false;
-	}
-}
-
-
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-// SEARCHCRU_MISC
-// Determine elevation, frs frq, wet frq & DTR
-
-bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
-                    double mfrs[CRUInput::NYEAR_HIST][12],
-                    double mwet[CRUInput::NYEAR_HIST][12],
-                    double mdtr[CRUInput::NYEAR_HIST][12]) {
-	
-	// Please note the new function signature. 
-
-	// Archive object
-	Cru_1901_2006miscArchive ark; 
-	int y,m;
-
-	// Try block to catch any unexpected errors
-	try {
-
-		Cru_1901_2006misc data;
-
-		bool success = ark.open(cruark);
-
-		if (success) {
-			bool flag = ark.rewind();
-			if (!flag) { 
-				ark.close(); // I.e. we opened it but we couldn't rewind
-				return false;
-			}
-		}
-		else
-			return false;
-
-
-		// The CRU archive index hold lons & lats as whole doubles * 10
-		data.lon = dlon * 10.0;
-		data.lat = dlat * 10.0;
-
-		// Read the CRU data into the data struct
-		success =ark.getindex(data);
-		if (!success) {
-			ark.close();
-			return false;
-		}
-
-		// Transfer the data from the data struct to the arrays.
-		// Note that the multipliers are NOT the same as in searchcru above!
-		elevation=(int)data.elv[0]; // km * 1000
-
-		for (y = 0; y < CRUInput::NYEAR_HIST; y++) { 
-			for (m=0;m<12;m++) {
-
-				// guess2008 - catch rounding errors 
-				mfrs[y][m] = data.mfrs[y*12+m]*0.01; // days
-				if (mfrs[y][m] < 0.1) 
-					mfrs[y][m] = 0.0; // Catches rounding errors
-
-				mwet[y][m] = data.mwet[y*12+m]*0.01; // days
-				if (mwet[y][m] <= 0.1) 
-					mwet[y][m] = 0.0; // Catches rounding errors
-
-				mdtr[y][m] = data.mdtr[y*12+m]*0.1;  // degC
-
-				// For some reason there are negative dtr values in
-				// the CRU binaries(!). Set these to zero for now.
-				mdtr[y][m] = max(0.0, mdtr[y][m]);
-
-				/*
-				If vapour pressure is needed:
-				mvap[y][m] = data.mvap[y*12+m]*0.01;
-				*/
-			}
-		}
-
-		// Close the archive
-		ark.close();
-
-		return true;
-	
-	}
-	catch(...) {
-		// Unknown error.
-		return false;
-	}
-}
-
-
-// Utility function that returns the CRU data from the nearest cell to (lon,lat) within
-// a given search radius
-bool findnearestCRUdata(double searchradius, char* cruark, double& lon, double& lat, 
-                        int& scode, 
-                        double hist_mtemp1[CRUInput::NYEAR_HIST][12], 
-                        double hist_mprec1[CRUInput::NYEAR_HIST][12], 
-                        double hist_msun1[CRUInput::NYEAR_HIST][12]) {
-
-	// First try the exact coordinate
-	if (searchcru(cruark, lon, lat, scode, hist_mtemp1, hist_mprec1, hist_msun1)) {
-		return true;
-	}
-	
-	if (searchradius == 0) {
-		// Don't try to search
-		return false;
-	}
-
-	// Search all coordinates in a square around (lon, lat), but first go down to
-	// multiple of 0.5
-	double center_lon = floor(lon*2)/2;
-	double center_lat = floor(lat*2)/2;
-
-	// Enumerate all coordinates within the square, place them in a vector of
-	// pairs where the first element is distance from center to allow easy 
-	// sorting.
-	using std::pair;
-	using std::make_pair;
-	typedef pair<double, double> point;
-	std::vector<pair<double, point> > search_points;
-
-	const double STEP = 0.5;
-	const double EPS = 1e-15;
-
-	for (double y = center_lon-searchradius; y <= center_lon+searchradius+EPS; y += STEP) {
-		for (double x = center_lat-searchradius; x <= center_lat+searchradius+EPS; x += STEP) {
-			double xdist = x-center_lat;
-			double ydist = y-center_lon;
-			double dist = sqrt(xdist*xdist + ydist*ydist);
-			
-			if (dist <= searchradius + EPS) {
-				search_points.push_back(make_pair(dist, make_pair(y, x)));
-			}
-		}
-	}
-
-	// Sort by increasing distance
-	std::sort(search_points.begin(), search_points.end());
-
-	// Find closest coordinate which can be found in CRU
-	for (unsigned int i = 0; i < search_points.size(); i++) {
-		point search_point = search_points[i].second;
-		double search_lon = search_point.first;
-		double search_lat = search_point.second;
-
-		if (searchcru(cruark, search_lon, search_lat, scode, 
-		              hist_mtemp1, hist_mprec1, hist_msun1)) {
-			lon = search_lon;
-			lat = search_lat;
-			return true;
-		}
-	}
-
-	return false;
-}
 
 
 void CRUInput::init() {
@@ -420,17 +173,9 @@ void CRUInput::init() {
 void CRUInput::get_monthly_ndep(int calendar_year,
                                 double* mndrydep,
                                 double* mnwetdep) {
-	int ndep_year = 0;
 
-	if (calendar_year >= FIRSTHISTYEARNDEP) {
-		ndep_year = (int)((calendar_year - FIRSTHISTYEARNDEP)/10);
-	}
-
-	for (int m = 0; m < 12; m++) {
-		mndrydep[m] = NHxDryDep[ndep_year][m] + NOyDryDep[ndep_year][m];
-		
-		mnwetdep[m] = NHxWetDep[ndep_year][m] + NOyWetDep[ndep_year][m];
-	}
+	ndep.get_one_calendar_year(calendar_year,
+	                           mndrydep, mnwetdep);
 }
 
 
@@ -478,63 +223,6 @@ bool CRUInput::loadlandcover(Gridcell& gridcell, Coord c)	{
 	return LUerror;
 }
 
-/// Retrieves nitrogen deposition for a particular gridcell
-/** The values are either taken from a binary archive file or when it's not
- *  provided default to pre-industrial level of 2 kgN/ha/year.
- *
- *  The binary archive files have nitrogen deposition in gN/m2 on a monthly timestep
- *  for 16 years with 10 year interval starting from 1850 (Lamarque et. al., 2011).
- *
- *  \param  lon         Longitude
- *  \param  lat         Latitude
- */
-void CRUInput::getndep(double lon, double lat) {
-	
-	const double convert = 1e-7;				// converting from gN ha-1 to kgN m-2
-
-	xtring file_ndep = param["file_ndep"].str;
-
-	if (file_ndep == "") {
-
-		// pre-industrial total nitrogen depostion set to 2 kgN/ha/year [kgN m-2]
-		double dailyndep = 2000.0 / (4 * 365) * convert;
-
-		for (int y=0; y<NYEAR_HISTNDEP; y++) {
-			for (int m=0; m<12; m++) {
-				NHxDryDep[y][m] = dailyndep;
-				NHxWetDep[y][m] = dailyndep;
-				NOyDryDep[y][m] = dailyndep;
-				NOyWetDep[y][m] = dailyndep;
-			}
-		}
-	}
-	else {
-		GlobalNitrogenDepositionArchive ark;
-		if (!ark.open(file_ndep)) {
-			fail("Could not open %s for input", (char*)file_ndep);
-		}
-
-		GlobalNitrogenDeposition rec;
-		rec.longitude = lon;
-		rec.latitude = lat;
-
-		if (!ark.getindex(rec)) {
-			ark.close();
-			fail("Grid cell not found in %s", (char*)file_ndep);
-		}
-
-		// Found the record, get the values
-		for (int y=0; y<NYEAR_HISTNDEP; y++) {
-			for (int m=0; m<12; m++) {
-				NHxDryDep[y][m] = rec.NHxDry[y*12+m] * convert;
-				NHxWetDep[y][m] = rec.NHxWet[y*12+m] * convert;
-				NOyDryDep[y][m] = rec.NOyDry[y*12+m] * convert;
-				NOyWetDep[y][m] = rec.NOyWet[y*12+m] * convert;
-			}
-		}
-		ark.close();
-	}
-}
 
 /// Called by the framework at the start of the simulation for a particular grid cell
 bool CRUInput::getgridcell(Gridcell& gridcell) {
@@ -588,12 +276,12 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 		double lon = gridlist.getobj().lon;
 		double lat = gridlist.getobj().lat;
-		gridfound = findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode, 
-		                               hist_mtemp, hist_mprec, hist_msun);
+		gridfound = CRU_TS30::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode, 
+		                                         hist_mtemp, hist_mprec, hist_msun);
 
 		if (gridfound) // Get more historical CRU data for this grid cell
-			gridfound = searchcru_misc(file_cru_misc, lon, lat, elevation, 
-			                           hist_mfrs, hist_mwet, hist_mdtr);
+			gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation, 
+			                                     hist_mfrs, hist_mwet, hist_mdtr);
 
 		if (run_landcover) {
 			Coord& c=gridlist.getobj();
@@ -613,12 +301,12 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 			if (gridlist.isobj) {
 				lon = gridlist.getobj().lon;
 				lat = gridlist.getobj().lat;
-				gridfound = findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
-				                               hist_mtemp, hist_mprec, hist_msun);
+				gridfound = CRU_TS30::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
+				                                         hist_mtemp, hist_mprec, hist_msun);
 			  
 				if (gridfound) // Get more historical CRU data for this grid cell
-					gridfound = searchcru_misc(file_cru_misc, lon, lat, elevation,
-					                           hist_mfrs, hist_mwet, hist_mdtr);
+					gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation,
+					                                     hist_mfrs, hist_mwet, hist_mdtr);
 
 				if (run_landcover) {
 					Coord& c=gridlist.getobj();
@@ -665,7 +353,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
 		
 		// Get nitrogen deposition data
-		getndep(lon, lat);
+		ndep.getndep(param["file_ndep"].str, lon, lat);
 
 		// The insolation data will be sent (in function getclimate, below)
 		// as percentage sunshine
@@ -924,21 +612,10 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 
 		// Extract N deposition to use for this year,
 		// monthly means to be distributed into daily values further down
-		int first_ndep_year = nyear_spinup + FIRSTHISTYEARNDEP - FIRSTHISTYEAR;
-
 		double mndrydep[12], mnwetdep[12];
-		int ndep_year = 0;
+		ndep.get_one_calendar_year(date.year - nyear_spinup + FIRSTHISTYEAR, 
+		                           mndrydep, mnwetdep);
 
-		if (date.year >= first_ndep_year) {
-			ndep_year = (int)((date.year - first_ndep_year)/10);
-		}
-
-		for (int m = 0; m < 12; m++) {
-			mndrydep[m] = NHxDryDep[ndep_year][m] + NOyDryDep[ndep_year][m];
-
-			mnwetdep[m] = NHxWetDep[ndep_year][m] + NOyWetDep[ndep_year][m];
-		}
-		
 		if (date.year < nyear_spinup) {
 
 			// During spinup period

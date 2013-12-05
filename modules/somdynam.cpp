@@ -489,8 +489,6 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 
 	setntoc(soil, soil.nmass_avail, SURFHUMUS, 30.0, 15.0, 0.0, NMASS_SAT);
 
-	setntoc(soil, soil.nmass_avail, PASSIVESOM, 10.0, 7.0, 0.0, NMASS_SAT);
-
 	if (!ifequilsom) {
 
 		// Calculate potential fraction remaining following decay today for all pools

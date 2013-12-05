@@ -1416,9 +1416,10 @@ public:
 		solvesom_end = SOLVESOM_END;
 		solvesom_begin = SOLVESOM_BEGIN;
 
-		sand_frac = 0.4;
-		clay_frac = 0.3;
-		silt_frac = 0.3;
+		// No input data of sand, clay or silt fractions so using fixed values from Parton et al. (2010)
+		sand_frac = 0.28;
+		clay_frac = 0.12;
+		silt_frac = 0.60;
 	}
 
 	/// Override the default SOM years with 70-80% of the spin-up period length
@@ -2237,6 +2238,10 @@ private:
 //   defoliation. Annals of Botany, 89, 11-21.
 // Monsi M & Saeki T 1953 Ueber den Lichtfaktor in den Pflanzengesellschaften und
 //   seine Bedeutung fuer die Stoffproduktion. Japanese Journal of Botany 14: 22-52
+// Parton, W. J., Hanson, P. J., Swanston, C., Torn, M., Trumbore, S. E., Riley, W. 
+//   & Kelly, R. 2010. ForCent model development and testing using the Enriched 
+//   Background Isotope Study experiment. Journal of Geophysical 
+//   Research-Biogeosciences, 115.
 // Prentice, IC, Sykes, MT & Cramer W 1993 A simulation model for the transient
 //   effects of climate change on forest landscapes. Ecological Modelling 65: 51-70.
 // Reich, PB, Walters MB & Ellsworth DS 1992 Leaf Life-Span in Relation to Leaf,

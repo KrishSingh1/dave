@@ -2,12 +2,12 @@
 /// \file cru.cpp
 /// \brief Functions for reading the CRU TS 3.0 data set
 ///
-/// $Date$
+/// $Date: 2013-11-04 16:30:55 +0100 (Mon, 04 Nov 2013) $
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include "config.h"
-#include "cru.h"
+#include "cru_ts30.h"
 #include <stdio.h>
 #include <math.h>
 #include <vector>
@@ -16,7 +16,7 @@
 #include "cru_1901_2006.h"
 #include "cru_1901_2006misc.h"
 
-namespace CRU {
+namespace CRU_TS30 {
  
 bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
                double mtemp[NYEAR_HIST][12],

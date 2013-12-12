@@ -75,7 +75,7 @@ public:
 	 *
 	 *  If calendar_year is earlier than the first year in data set (1850),
 	 *  the values for the first year will be used. If later than the last
-	 *  year (2009), fail() is called and the program terminated.
+	 *  year, fail() is called and the program terminated.
 	 *
 	 *  \param calendar_year The year for which to get ndep data
 	 *  \param mndrydep      Monthly values for dry nitrogen deposition (kgN/m2/day)

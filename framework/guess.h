@@ -330,7 +330,7 @@ public:
 	}
 
 	/// Returns the calendar year corresponding to the current simulation year
-	/** Astronimical year numbering is used, so year 1 BC is represented by 0,
+	/** Astronomical year numbering is used, so year 1 BC is represented by 0,
 	 *  2 BC = -1 etc. See ISO 8601.
 	 */
 	int get_calendar_year() const {
@@ -1307,7 +1307,7 @@ public:
 	double cton_sap() const;
 
 	/// Gets the individual's Patchpft
-	Patchpft& patchpft();
+	Patchpft& patchpft() const;
 
 	/// Transfers the individual's biomass (C and N) to litter and harvest pools/fluxes
 	/** 

@@ -351,10 +351,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	if (vegmode == COHORT)
 		nclass = min(date.year / estinterval + 1, OUTPUT_MAXAGECLASS);
 
-	// guess2008 - yearly output after spinup
+	// yearly output after spinup
 		
 	// If only yearly output between, say 1961 and 1990 is requred, use: 
-	//	if (date.year>=nyear_spinup+60 && date.year<nyear_spinup+90) {
+	//  if (date.get_calendar_year() >= 1961 && date.get_calendar_year() <= 1990) {
+	//  (assuming the input module has set the first calendar year in the date object)
 
 	if (date.year >= nyear_spinup) {
 

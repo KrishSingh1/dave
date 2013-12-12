@@ -210,20 +210,20 @@ private:
 
 	void bitify(unsigned char buf[4],double fval,double offset,double scalar) {
 
-		long ival=(fval-offset)/scalar+0.5;
-		buf[0]=ival/0x1000000;
+		long ival = (long)((fval-offset)/scalar + 0.5);
+		buf[0]=(unsigned char)(ival/0x1000000);
 		ival-=buf[0]*0x1000000;
-		buf[1]=ival/0x10000;
+		buf[1]=(unsigned char)(ival/0x10000);
 		ival-=buf[1]*0x10000;
-		buf[2]=ival/0x100;
+		buf[2]=(unsigned char)(ival/0x100);
 		ival-=buf[2]*0x100;
-		buf[3]=ival;
+		buf[3]=(unsigned char)(ival);
 	}
 
 	void merge(unsigned char ptarget[3],unsigned char buf[4],int bits) {
 
 		int nb=bits/8;
-		int i,j;
+		int i;
 		unsigned char nib;
 		for (i=0;i<3;i++) {
 
@@ -258,7 +258,7 @@ private:
 		return 0;
 	}
 
-	bool initialise(char* filename) {
+	bool initialise(const char* filename) {
 
 		int i;
 		unsigned char* pheader;
@@ -308,7 +308,7 @@ public:
 		if (pfile) fclose(pfile);
 	}
 
-	bool open(char* filename) {
+	bool open(const char* filename) {
 		return initialise(filename);
 	}
 

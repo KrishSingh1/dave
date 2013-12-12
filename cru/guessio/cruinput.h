@@ -15,7 +15,7 @@
 #include "gutil.h"
 #include "globalco2file.h"
 #include "spinupdata.h"
-#include "cru.h"
+#include "cru_ts30.h"
 #include "lamarquendep.h"
 
 class CRUInput : public InputModule {
@@ -36,8 +36,11 @@ public:
 
 	// Constants associated with historical climate data set
 
-	// calender year corresponding to first year in CRU climate data set
-	static const int FIRSTHISTYEAR=1901;
+	/// number of years of historical climate
+	static const int NYEAR_HIST = CRU_TS30::NYEAR_HIST;
+
+	/// calendar year corresponding to first year in data set
+	static const int FIRSTHISTYEAR = CRU_TS30::FIRSTHISTYEAR;
 
 	// number of years to use for temperature-detrended spinup data set
 	// (not to be confused with the number of years to spinup model for, which
@@ -76,9 +79,9 @@ protected:
 	 */
 	virtual void adjust_raw_forcing_data(double lon,
 	                                     double lat,
-	                                     double hist_mtemp[CRU::NYEAR_HIST][12],
-	                                     double hist_mprec[CRU::NYEAR_HIST][12],
-	                                     double hist_msun[CRU::NYEAR_HIST][12]);
+	                                     double hist_mtemp[NYEAR_HIST][12],
+	                                     double hist_mprec[NYEAR_HIST][12],
+	                                     double hist_msun[NYEAR_HIST][12]);
 
 private:
 
@@ -124,15 +127,15 @@ private:
 
 	// Monthly temperature, precipitation and sunshine data for current grid cell
 	// and historical period
-	double hist_mtemp[CRU::NYEAR_HIST][12];
-	double hist_mprec[CRU::NYEAR_HIST][12];
-	double hist_msun[CRU::NYEAR_HIST][12];
+	double hist_mtemp[NYEAR_HIST][12];
+	double hist_mprec[NYEAR_HIST][12];
+	double hist_msun[NYEAR_HIST][12];
 
 	// Monthly frost days, precipitation days and DTR data for current grid cell
 	// and historical period
-	double hist_mfrs[CRU::NYEAR_HIST][12];
-	double hist_mwet[CRU::NYEAR_HIST][12];
-	double hist_mdtr[CRU::NYEAR_HIST][12];
+	double hist_mfrs[NYEAR_HIST][12];
+	double hist_mwet[NYEAR_HIST][12];
+	double hist_mdtr[NYEAR_HIST][12];
 
 	/// Nitrogen deposition forcing for current gridcell
 	Lamarque::NDepData ndep;

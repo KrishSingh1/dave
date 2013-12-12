@@ -291,11 +291,11 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 
 	int soilcode;
 	double cru_lon = lon, cru_lat = lat;
-	double dummy[CRU::NYEAR_HIST][12];
+	double dummy[CRU_TS30::NYEAR_HIST][12];
 
 	const double searchradius = 1;
 
-	if (!CRU::findnearestCRUdata(searchradius, file_cru, cru_lon, cru_lat, soilcode,
+	if (!CRU_TS30::findnearestCRUdata(searchradius, file_cru, cru_lon, cru_lat, soilcode,
 	                             dummy, dummy, dummy)) {
 		fail("Failed to find soil code from CRU archive, close to coordinates (%g,%g)", cru_lon, cru_lat);
 	}

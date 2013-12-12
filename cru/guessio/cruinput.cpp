@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-/// \file guessio_cru.cpp
+/// \file cruinput.cpp
 /// \brief LPJ-GUESS input module for CRU TS 3.0 data set
 ///
 /// This input module reads in CRU climate data in a customised binary format.
@@ -21,6 +21,7 @@
 #include <vector>
 #include <algorithm>
 #include "globalco2file.h"
+
 
 REGISTER_INPUT_MODULE("cru", CRUInput)
 
@@ -180,9 +181,9 @@ void CRUInput::get_monthly_ndep(int calendar_year,
 
 void CRUInput::adjust_raw_forcing_data(double lon,
                                        double lat,
-                                       double hist_mtemp[CRU::NYEAR_HIST][12],
-                                       double hist_mprec[CRU::NYEAR_HIST][12],
-                                       double hist_msun[CRU::NYEAR_HIST][12]) {
+                                       double hist_mtemp[NYEAR_HIST][12],
+                                       double hist_mprec[NYEAR_HIST][12],
+                                       double hist_msun[NYEAR_HIST][12]) {
 
 	// The default (base class) implementation does nothing here.
 }
@@ -275,12 +276,12 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 		double lon = gridlist.getobj().lon;
 		double lat = gridlist.getobj().lat;
-		gridfound = CRU::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode, 
-		                                    hist_mtemp, hist_mprec, hist_msun);
+		gridfound = CRU_TS30::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode, 
+		                                         hist_mtemp, hist_mprec, hist_msun);
 
 		if (gridfound) // Get more historical CRU data for this grid cell
-			gridfound = CRU::searchcru_misc(file_cru_misc, lon, lat, elevation, 
-			                                hist_mfrs, hist_mwet, hist_mdtr);
+			gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation, 
+			                                     hist_mfrs, hist_mwet, hist_mdtr);
 
 		if (run_landcover) {
 			Coord& c=gridlist.getobj();
@@ -300,12 +301,12 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 			if (gridlist.isobj) {
 				lon = gridlist.getobj().lon;
 				lat = gridlist.getobj().lat;
-				gridfound = CRU::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
-				                                    hist_mtemp, hist_mprec, hist_msun);
+				gridfound = CRU_TS30::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
+				                                         hist_mtemp, hist_mprec, hist_msun);
 			  
 				if (gridfound) // Get more historical CRU data for this grid cell
-					gridfound = CRU::searchcru_misc(file_cru_misc, lon, lat, elevation,
-					                                hist_mfrs, hist_mwet, hist_mdtr);
+					gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation,
+					                                     hist_mfrs, hist_mwet, hist_mdtr);
 
 				if (run_landcover) {
 					Coord& c=gridlist.getobj();
@@ -607,10 +608,9 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 		// Extract N deposition to use for this year,
 		// monthly means to be distributed into daily values further down
 		double mndrydep[12], mnwetdep[12];
-
 		ndep.get_one_calendar_year(date.year - nyear_spinup + FIRSTHISTYEAR, 
 		                           mndrydep, mnwetdep);
-		
+
 		if (date.year < nyear_spinup) {
 
 			// During spinup period
@@ -653,7 +653,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			spinup_mdtr.nextyear();
 
 		}
-		else if (date.year < nyear_spinup + CRU::NYEAR_HIST) {
+		else if (date.year < nyear_spinup + NYEAR_HIST) {
 
 			// Historical period
 
@@ -706,8 +706,8 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 		// Progress report to user and update timer
 
 		if (tmute.getprogress()>=1.0) {
-			progress=(double)(gridlist.getobj().id*(nyear_spinup+CRU::NYEAR_HIST)
-				+date.year)/(double)(ngridcell*(nyear_spinup+CRU::NYEAR_HIST));
+			progress=(double)(gridlist.getobj().id*(nyear_spinup+NYEAR_HIST)
+				+date.year)/(double)(ngridcell*(nyear_spinup+NYEAR_HIST));
 			tprogress.setprogress(progress);
 			dprintf("%3d%% complete, %s elapsed, %s remaining\n",(int)(progress*100.0),
 				tprogress.elapsed.str,tprogress.remaining.str);

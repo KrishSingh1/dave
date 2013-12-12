@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-/// \file cru.h
+/// \file cru_ts30.h
 /// \brief Functions for reading the CRU TS 3.0 data set
 ///
 /// The binary files contain CRU half-degree global historical climate data
@@ -9,14 +9,17 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef LPJ_GUESS_CRU_H
-#define LPJ_GUESS_CRU_H
+#ifndef LPJ_GUESS_CRU_TS30_H
+#define LPJ_GUESS_CRU_TS30_H
 
-namespace CRU {
+namespace CRU_TS30 {
 
 /// number of years of historical climate
 /** CRU TS 3.0 has 106 years of data (1901-2006) */
 const int NYEAR_HIST=106;
+
+// calendar year corresponding to first year in CRU climate data set
+static const int FIRSTHISTYEAR=1901;
 
 /// Determine temp, precip, sunshine & soilcode
 bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
@@ -40,4 +43,4 @@ bool findnearestCRUdata(double searchradius, char* cruark, double& lon, double& 
 
 }
 
-#endif // LPJ_GUESS_CRU_H
+#endif // LPJ_GUESS_CRU_TS30_H

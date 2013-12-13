@@ -945,23 +945,25 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			if(gridcell.isobj)	//Fixed bug here if no stands were present.
 			{
 				Stand& stand=gridcell.getobj();
-				plot("C flux [kg C/m2/yr]","flux_veg",  date.year, flux_veg);
-				plot("C flux [kg C/m2/yr]","flux_repr", date.year, flux_repr);
-				plot("C flux [kg C/m2/yr]","flux_soil", date.year, flux_soil);
-				plot("C flux [kg C/m2/yr]","flux_fire", date.year, flux_fire);
-				plot("C flux [kg C/m2/yr]","flux_est",  date.year, flux_est);
-				plot("C flux [kg C/m2/yr]","NEE",       date.year, flux_veg + flux_repr + flux_soil + flux_fire + flux_est);
+				plot("C flux [kg C/m2/yr]","veg",  date.year, flux_veg);
+				plot("C flux [kg C/m2/yr]","repr", date.year, flux_repr);
+				plot("C flux [kg C/m2/yr]","soil", date.year, flux_soil);
+				plot("C flux [kg C/m2/yr]","fire", date.year, flux_fire);
+				plot("C flux [kg C/m2/yr]","est",  date.year, flux_est);
+				plot("C flux [kg C/m2/yr]","NEE",  date.year, flux_veg + flux_repr + flux_soil + flux_fire + flux_est);
 
 				if (!ifcentury) {
 					plot("Soil C [kg C/m2]","slow", date.year, stand[0].soil.cpool_slow);
 					plot("Soil C [kg C/m2]","fast", date.year, stand[0].soil.cpool_fast);
 				}
 				else {
-					plot("N flux (kg N/ha/yr)","Fix",   date.year, -anfix_gridcell * m2toha);
-					plot("N flux (kg N/ha/yr)","Dep",   date.year, -andep_gridcell * m2toha);
-					plot("N flux (kg N/ha/yr)","Fert",  date.year, -anfert_gridcell * m2toha);
-					plot("N flux (kg N/ha/yr)","Leach", date.year, (n_min_leach_gridcell + n_org_leach_gridcell) * m2toha);
-					plot("N flux (kg N/ha/yr)","Flux",  date.year, flux_ntot * m2toha);
+					plot("N flux (kg N/ha/yr)","fix",   date.year, -anfix_gridcell * m2toha);
+					plot("N flux (kg N/ha/yr)","dep",   date.year, -andep_gridcell * m2toha);
+					plot("N flux (kg N/ha/yr)","fert",  date.year, -anfert_gridcell * m2toha);
+					plot("N flux (kg N/ha/yr)","leach", date.year, (n_min_leach_gridcell + n_org_leach_gridcell) * m2toha);
+					plot("N flux (kg N/ha/yr)","flux",  date.year, flux_ntot * m2toha);
+					plot("N flux (kg N/ha/yr)","NEE",   date.year, (flux_ntot + n_min_leach_gridcell + n_org_leach_gridcell - 
+						(anfix_gridcell + andep_gridcell + anfert_gridcell)) * m2toha);
 
 					plot("N mineralization [kg N/ha/yr]","N", date.year, (anmin_gridcell - animm_gridcell) * m2toha);
 

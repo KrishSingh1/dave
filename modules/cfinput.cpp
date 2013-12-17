@@ -281,32 +281,43 @@ void CFInput::init() {
 }
 
 bool CFInput::getgridcell(Gridcell& gridcell) {
+
+	int rlon, rlat, landid;
 	
-	if (current_gridcell == gridlist.end()) {
-		return false;
-	}
-
-	int rlon = current_gridcell->rlon;
-	int rlat = current_gridcell->rlat;
-	int landid = current_gridcell->landid;
-
-	if (cf_temp->is_reduced()) {
-		if (!cf_temp->load_data_for(landid) ||
-		    !cf_prec->load_data_for(landid) ||
-		    !cf_insol->load_data_for(landid) ||
-		    (cf_wetdays && !cf_wetdays->load_data_for(landid))) {
-			fail("Failed to load data for (%d) from NetCDF files", landid);
+	bool foundit = false;
+	while (!foundit) {
+		if (current_gridcell == gridlist.end()) {
+			return false;
 		}
 
-		
-	}
-	else {
-		if (!cf_temp->load_data_for(rlon, rlat) ||
-		    !cf_prec->load_data_for(rlon, rlat) ||
-		    !cf_insol->load_data_for(rlon, rlat) ||
-		    (cf_wetdays && !cf_wetdays->load_data_for(rlon, rlat))) {
-			fail("Failed to load data for (%d, %d) from NetCDF files", rlat, rlon);
-		}		
+		rlon = current_gridcell->rlon;
+		rlat = current_gridcell->rlat;
+		landid = current_gridcell->landid;
+
+		if (cf_temp->is_reduced()) {
+			if (!cf_temp->load_data_for(landid) ||
+			    !cf_prec->load_data_for(landid) ||
+			    !cf_insol->load_data_for(landid) ||
+			    (cf_wetdays && !cf_wetdays->load_data_for(landid))) {
+				dprintf("Failed to load data for (%d) from NetCDF files, skipping.\n", landid);
+				++current_gridcell;
+			}
+			else {
+				foundit = true;
+			}
+		}
+		else {
+			if (!cf_temp->load_data_for(rlon, rlat) ||
+			    !cf_prec->load_data_for(rlon, rlat) ||
+			    !cf_insol->load_data_for(rlon, rlat) ||
+			    (cf_wetdays && !cf_wetdays->load_data_for(rlon, rlat))) {
+				dprintf("Failed to load data for (%d, %d) from NetCDF files, skipping.\n", rlat, rlon);
+				++current_gridcell;
+			}
+			else {
+				foundit = true;
+			}
+		}
 	}
 
 	load_spinup_data(cf_temp, spinup_temp);

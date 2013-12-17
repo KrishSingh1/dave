@@ -13,6 +13,7 @@
 #include "driver.h"
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 
 REGISTER_INPUT_MODULE("cf", CFInput)
 
@@ -124,6 +125,7 @@ CFInput::CFInput()
 	: cf_temp(0),
 	  cf_prec(0),
 	  cf_insol(0),
+	  cf_wetdays(0),
 	  lc_fixed_frac(NLANDCOVERTYPES, 0),
 	  equal_landcover_area(false) {
 
@@ -144,6 +146,7 @@ CFInput::~CFInput() {
 	delete cf_temp;
 	delete cf_prec;
 	delete cf_insol;
+	delete cf_wetdays;
 }
 
 void CFInput::init() {
@@ -165,6 +168,10 @@ void CFInput::init() {
 		cf_temp = new GridcellOrderedVariable(param["file_temp"].str, param["variable_temp"].str);
 		cf_prec = new GridcellOrderedVariable(param["file_prec"].str, param["variable_prec"].str);
 		cf_insol = new GridcellOrderedVariable(param["file_insol"].str, param["variable_insol"].str);
+
+		if (param["file_wetdays"].str != "") {
+			cf_wetdays = new GridcellOrderedVariable(param["file_wetdays"].str, param["variable_wetdays"].str);
+		}
 	}
 	catch (const std::runtime_error& e) {
 		fail(e.what());
@@ -211,6 +218,13 @@ void CFInput::init() {
 		if (cf_insol->get_units() != "W m-2") {
 			fail("Insolation variable given as radiation but unit doesn't seem to be in W m-2");
 		}
+	}
+
+	const char* wetdays_standard_name = 
+		"number_of_days_with_lwe_thickness_of_precipitation_amount_above_threshold";
+
+	if (cf_wetdays && cf_wetdays->get_standard_name() != wetdays_standard_name) {
+		fail("Wetdays variable should have standard name %s", wetdays_standard_name);
 	}
 
 	// TODO: check that all variables have the same timespan
@@ -279,14 +293,18 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	if (cf_temp->is_reduced()) {
 		if (!cf_temp->load_data_for(landid) ||
 		    !cf_prec->load_data_for(landid) ||
-		    !cf_insol->load_data_for(landid)) {
+		    !cf_insol->load_data_for(landid) ||
+		    (cf_wetdays && !cf_wetdays->load_data_for(landid))) {
 			fail("Failed to load data for (%d) from NetCDF files", landid);
 		}
+
+		
 	}
 	else {
 		if (!cf_temp->load_data_for(rlon, rlat) ||
 		    !cf_prec->load_data_for(rlon, rlat) ||
-		    !cf_insol->load_data_for(rlon, rlat)) {
+		    !cf_insol->load_data_for(rlon, rlat) ||
+		    (cf_wetdays && !cf_wetdays->load_data_for(rlon, rlat))) {
 			fail("Failed to load data for (%d, %d) from NetCDF files", rlat, rlon);
 		}		
 	}
@@ -294,6 +312,10 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	load_spinup_data(cf_temp, spinup_temp);
 	load_spinup_data(cf_prec, spinup_prec);
 	load_spinup_data(cf_insol, spinup_insol);
+
+	if (cf_wetdays) {
+		load_spinup_data(cf_wetdays, spinup_wetdays);
+	}
 
 	spinup_temp.detrend_data();
 
@@ -332,6 +354,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	historic_timestep_temp = -1;
 	historic_timestep_prec = -1;
 	historic_timestep_insol = -1;
+	historic_timestep_wetdays = -1;
 
 	dprintf("\nCommencing simulation for stand at (%g,%g)", lon, lat);
 	if (current_gridcell->descrip != "") 
@@ -341,18 +364,18 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	return true;
 }
 
-void CFInput::populate_daily_array(double daily[365], 
-                                   const GenericSpinupData& spinup,
-                                   GridcellOrderedVariable* cf_historic,
-                                   int& historic_timestep,
-                                   bool extensive_to_intensive) {
-
-	// Extract daily values for all days in this year, for one variable,
+void CFInput::get_yearly_data(std::vector<double>& data,
+                              const GenericSpinupData& spinup,
+                              GridcellOrderedVariable* cf_historic,
+                              int& historic_timestep) {
+	// Extract all values for this year, for one variable,
 	// either from spinup dataset or historical dataset
 
 	int calendar_year = date.get_calendar_year();
 
 	if (is_daily(cf_historic)) {
+
+		data.resize(365);
 
 		// This function is called at the first day of the year, so current_day
 		// starts at Jan 1, then we step through the whole year, getting data
@@ -363,7 +386,7 @@ void CFInput::populate_daily_array(double daily[365],
 
 			// In the spinup?
 			if (earlier_day(current_day, calendar_year, cf_historic->get_date_time(0))) {
-				daily[current_day.day]  = spinup[current_day.day];
+				data[current_day.day]  = spinup[current_day.day];
 			}
 			else {
 				// Historical period
@@ -379,25 +402,22 @@ void CFInput::populate_daily_array(double daily[365],
 				}
 				
 				if (historic_timestep < cf_historic->get_timesteps()) {
-					daily[current_day.day]  = cf_historic->get_value(historic_timestep);
+					data[current_day.day]  = cf_historic->get_value(historic_timestep);
 				}
 				else {
 					// Past the end of the historical period, these days wont be simulated.
-					daily[current_day.day] = 0;
+					data[current_day.day] = 0;
 				}
-			}
-
-			if (extensive_to_intensive) {
-				daily[current_day.day] /= SECONDS_PER_DAY;
 			}
 
 			current_day.next();
 		}
 	}
 	else {
+		
 		// for now, assume that data set must be monthly since it isn't daily
 
-		double months[12];
+		data.resize(12);
 
 		for (int m = 0; m < 12; ++m) {
 
@@ -407,7 +427,7 @@ void CFInput::populate_daily_array(double daily[365],
 			if (calendar_year < first_date.get_year() ||
 			    (calendar_year == first_date.get_year() &&
 			     m+1 < first_date.get_month())) {
-				months[m] = spinup[m];
+				data[m] = spinup[m];
 			}
 			else {
 				// Historical period
@@ -416,37 +436,95 @@ void CFInput::populate_daily_array(double daily[365],
 				}
 
 				if (historic_timestep < cf_historic->get_timesteps()) {
-					months[m] = cf_historic->get_value(historic_timestep);
+					data[m] = cf_historic->get_value(historic_timestep);
 				}
 				else {
 					// Past the end of the historical period, these months wont be simulated.
-					months[m] = 0;
+					data[m] = 0;
 				}
 			}
-
-			if (extensive_to_intensive) {
-				// TODO: use the dataset's calendar type to figure out number of days in month?
-				months[m] /= SECONDS_PER_DAY * date.ndaymonth[m];
-			}
 		}
-
-		interp_monthly_means(months, daily);
 	}
 }
 
-void CFInput::populate_daily_arrays() {
+void CFInput::populate_daily_array(double daily[365], 
+                                   const GenericSpinupData& spinup,
+                                   GridcellOrderedVariable* cf_historic,
+                                   int& historic_timestep) {
+
+	// Get the data from spinup and/or historic
+	std::vector<double> data;
+	get_yearly_data(data, spinup, cf_historic, historic_timestep);
+
+	if (is_daily(cf_historic)) {
+		// Simply copy from data to daily
+
+		std::copy(data.begin(), data.end(), daily);
+	}
+	else {
+		// for now, assume that data set must be monthly since it isn't daily
+
+		// Interpolate from monthly to daily values
+
+		interp_monthly_means(&data.front(), daily);
+	}
+}
+
+void CFInput::populate_daily_prec_array(long& seed) {
+
+	// Get the data from spinup and/or historic
+	std::vector<double> prec_data;
+	get_yearly_data(prec_data, spinup_prec, cf_prec, historic_timestep_prec);
+
+	std::vector<double> wetdays_data;
+	if (cf_wetdays) {
+		get_yearly_data(wetdays_data, spinup_wetdays, cf_wetdays, historic_timestep_wetdays);
+	}
+
+	if (is_daily(cf_prec)) {
+		// Simply copy from data to daily, and if needed convert from
+		// precipitation rate to precipitation amount
+
+		for (size_t i = 0; i < 365; ++i) {
+			dprec[i] = prec_data[i];
+
+			if (!extensive_precipitation) {
+				dprec[i] *= SECONDS_PER_DAY;
+			}
+		}
+	}
+	else {
+		// for now, assume that data set must be monthly since it isn't daily
+		
+		// If needed convert from precipitation rate to precipitation amount
+		if (!extensive_precipitation) {
+			for (int m = 0; m < 12; ++m) {
+				// TODO: use the dataset's calendar type to figure out number of days in month?
+				prec_data[m] *= SECONDS_PER_DAY * date.ndaymonth[m];
+			}
+		}
+
+		if (cf_wetdays) {
+			prdaily(&prec_data.front(), dprec, &wetdays_data.front(), seed);
+		}
+		else {
+			interp_monthly_totals(&prec_data.front(), dprec);
+		}
+	}
+}
+
+void CFInput::populate_daily_arrays(long& seed) {
 	// Extract daily values for all days in this year, either from
 	// spinup dataset or historical dataset
 
-	populate_daily_array(dtemp, spinup_temp, cf_temp, historic_timestep_temp, false);
-	populate_daily_array(dprec, spinup_prec, cf_prec, historic_timestep_prec, extensive_precipitation);
-	populate_daily_array(dinsol, spinup_insol, cf_insol, historic_timestep_insol, false);
+	populate_daily_array(dtemp, spinup_temp, cf_temp, historic_timestep_temp);
+	populate_daily_prec_array(seed);
+	populate_daily_array(dinsol, spinup_insol, cf_insol, historic_timestep_insol);
 
 	// Convert to units the model expects
 	bool cloud_fraction_to_sunshine = (cf_standard_name_to_insoltype(cf_insol->get_standard_name()) == SUNSHINE);
 	for (int i = 0; i < 365; ++i) {
 		dtemp[i] -= K2degC;
-		dprec[i] *= SECONDS_PER_DAY;
 		
 		if (cloud_fraction_to_sunshine) {
 			dinsol[i] = 1-dinsol[i];
@@ -459,6 +537,9 @@ void CFInput::populate_daily_arrays() {
 	spinup_prec.nextyear();
 	spinup_insol.nextyear();
 
+	if (cf_wetdays) {
+		spinup_wetdays.nextyear();
+	}
 
 	// Get monthly ndep values and convert to daily
 
@@ -496,7 +577,7 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 	climate.co2 = co2[calendar_year];
 
 	if (date.day == 0) {
-		populate_daily_arrays();
+		populate_daily_arrays(gridcell.seed);
 	}
 
 	climate.temp = dtemp[date.day];

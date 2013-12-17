@@ -52,15 +52,25 @@ private:
 	void load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_var,
 	                      GenericSpinupData& spinup_data);
 
+	/// Gets data for one year, for one variable. Returns either 12 or 365 values
+	/** Gets the values either from spinup or historic period. */
+	void get_yearly_data(std::vector<double>& data,
+	                     const GenericSpinupData& spinup,
+	                     GuessNC::CF::GridcellOrderedVariable* cf_historic,
+	                     int& historic_timestep);
+
 	/// Fills one array of daily values with forcing data for the current year
 	void populate_daily_array(double daily[365],
 	                          const GenericSpinupData& spinup,
 	                          GuessNC::CF::GridcellOrderedVariable* cf_historic,
-	                          int& historic_timestep,
-	                          bool extensive_to_intensive);
+	                          int& historic_timestep);
+
+	/// Same as populate_daily_array, but for precipitation which is special
+	/** Uses number of wet days if available and handles extensive/intensive conversion */
+	void populate_daily_prec_array(long& seed);
 	
 	/// Fills dtemp, dprec, etc. with forcing data for the current year
-	void populate_daily_arrays();
+	void populate_daily_arrays(long& seed);
 
 	/// Yearly CO2 data read from file
 	/**
@@ -76,11 +86,15 @@ private:
 
 	GuessNC::CF::GridcellOrderedVariable* cf_insol;
 
+	GuessNC::CF::GridcellOrderedVariable* cf_wetdays;
+
 	GenericSpinupData spinup_temp;
 
 	GenericSpinupData spinup_prec;
 
 	GenericSpinupData spinup_insol;
+
+	GenericSpinupData spinup_wetdays;
 
 	/// Temperature for current gridcell and current year (deg C)
 	double dtemp[365];
@@ -95,8 +109,8 @@ private:
 	double dndep[365];
 
 	/// Whether the forcing data for precipitation is an extensive quantity
-	/** If given as an amount (kg m-2) per timestep it is extensive and needs
-	 *  to be converted to a mean rate (kg m-2 s-1) (intensive quantity) */
+	/** If given as an amount (kg m-2) per timestep it is extensive, if it's
+	 *  given as a mean rate (kg m-2 s-1) it is an intensive quantity */
 	bool extensive_precipitation;
 
 	// Current timestep in CF files
@@ -106,6 +120,8 @@ private:
 	int historic_timestep_prec;
 
 	int historic_timestep_insol;
+
+	int historic_timestep_wetdays;
 
 	/// Path to CRU binary archive
 	xtring file_cru;

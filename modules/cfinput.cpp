@@ -20,6 +20,8 @@ using namespace GuessNC::CF;
 
 namespace {
 
+const int SECONDS_PER_DAY = 24*60*60;
+
 insoltype cf_standard_name_to_insoltype(const std::string& standard_name) {
 	if (standard_name == "surface_downwelling_shortwave_flux_in_air" ||
 	    standard_name == "surface_downwelling_shortwave_flux") {
@@ -27,6 +29,9 @@ insoltype cf_standard_name_to_insoltype(const std::string& standard_name) {
 	}
 	else if (standard_name == "surface_net_downward_shortwave_flux") {
 		return NETSWRAD_TS;
+	}
+	else if (standard_name == "cloud_area_fraction") {
+		return SUNSHINE;
 	}
 	else {
 		fail("Unknown insolation type: %s", standard_name.c_str());
@@ -174,20 +179,38 @@ void CFInput::init() {
 		fail("Temperature variable doesn't seem to be in Kelvin");
 	}
 
-	if (cf_prec->get_standard_name() != "precipitation_flux") {
-		fail("Precipitation variable doesn't seem to contain precipitation flux data");
+	if (cf_prec->get_standard_name() == "precipitation_flux") {
+		extensive_precipitation = false;
+		if (cf_prec->get_units() != "kg m-2 s-1") {
+			fail("Precipitation is given as flux but does not have the correct unit (kg m-2 s-1)");
+		}
 	}
-	if (cf_prec->get_units() != "kg m-2 s-1") {
-		fail("Precipitation variable doesn't seem to be in kg m-2 s-1");
+	else if (cf_prec->get_standard_name() == "precipitation_amount") {
+		extensive_precipitation = true;
+		if (cf_prec->get_units() != "kg m-2") {
+			fail("Precipitation is given as amount but does not have the correc unit (kg m-2)");
+		}
+	}
+	else {
+		fail("Unrecognized precipitation type");
 	}
 
 	if (cf_insol->get_standard_name() != "surface_downwelling_shortwave_flux_in_air" &&
 	    cf_insol->get_standard_name() != "surface_downwelling_shortwave_flux" &&
-	    cf_insol->get_standard_name() != "surface_net_downward_shortwave_flux") {
+	    cf_insol->get_standard_name() != "surface_net_downward_shortwave_flux" &&
+	    cf_insol->get_standard_name() != "cloud_area_fraction") {
 		fail("Insolation variable doesn't seem to contain insolation data");
 	}
-	if (cf_insol->get_units() != "W m-2") {
-		fail("Insolation variable doesn't seem to be in W m-2");
+
+	if (cf_insol->get_standard_name() == "cloud_area_fraction") {
+		if (cf_insol->get_units() != "1") {
+			fail("Unrecognized unit for cloud cover");
+		}
+	}
+	else {
+		if (cf_insol->get_units() != "W m-2") {
+			fail("Insolation variable given as radiation but unit doesn't seem to be in W m-2");
+		}
 	}
 
 	// TODO: check that all variables have the same timespan
@@ -321,7 +344,8 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 void CFInput::populate_daily_array(double daily[365], 
                                    const GenericSpinupData& spinup,
                                    GridcellOrderedVariable* cf_historic,
-                                   int& historic_timestep) {
+                                   int& historic_timestep,
+                                   bool extensive_to_intensive) {
 
 	// Extract daily values for all days in this year, for one variable,
 	// either from spinup dataset or historical dataset
@@ -363,6 +387,10 @@ void CFInput::populate_daily_array(double daily[365],
 				}
 			}
 
+			if (extensive_to_intensive) {
+				daily[current_day.day] /= SECONDS_PER_DAY;
+			}
+
 			current_day.next();
 		}
 	}
@@ -395,6 +423,11 @@ void CFInput::populate_daily_array(double daily[365],
 					months[m] = 0;
 				}
 			}
+
+			if (extensive_to_intensive) {
+				// TODO: use the dataset's calendar type to figure out number of days in month?
+				months[m] /= SECONDS_PER_DAY * date.ndaymonth[m];
+			}
 		}
 
 		interp_monthly_means(months, daily);
@@ -405,14 +438,19 @@ void CFInput::populate_daily_arrays() {
 	// Extract daily values for all days in this year, either from
 	// spinup dataset or historical dataset
 
-	populate_daily_array(dtemp, spinup_temp, cf_temp, historic_timestep_temp);
-	populate_daily_array(dprec, spinup_prec, cf_prec, historic_timestep_prec);
-	populate_daily_array(dinsol, spinup_insol, cf_insol, historic_timestep_insol);
+	populate_daily_array(dtemp, spinup_temp, cf_temp, historic_timestep_temp, false);
+	populate_daily_array(dprec, spinup_prec, cf_prec, historic_timestep_prec, extensive_precipitation);
+	populate_daily_array(dinsol, spinup_insol, cf_insol, historic_timestep_insol, false);
 
 	// Convert to units the model expects
+	bool cloud_fraction_to_sunshine = (cf_standard_name_to_insoltype(cf_insol->get_standard_name()) == SUNSHINE);
 	for (int i = 0; i < 365; ++i) {
 		dtemp[i] -= K2degC;
-		dprec[i] *= 3600*24;
+		dprec[i] *= SECONDS_PER_DAY;
+		
+		if (cloud_fraction_to_sunshine) {
+			dinsol[i] = 1-dinsol[i];
+		}
 	}
 
 	// Move to next year in spinup dataset

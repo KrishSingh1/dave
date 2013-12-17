@@ -56,7 +56,8 @@ private:
 	void populate_daily_array(double daily[365],
 	                          const GenericSpinupData& spinup,
 	                          GuessNC::CF::GridcellOrderedVariable* cf_historic,
-	                          int& historic_timestep);
+	                          int& historic_timestep,
+	                          bool extensive_to_intensive);
 	
 	/// Fills dtemp, dprec, etc. with forcing data for the current year
 	void populate_daily_arrays();
@@ -90,8 +91,13 @@ private:
 	/// Insolation for current gridcell and current year (\see instype)
 	double dinsol[365];
 
-	// Daily N deposition for one year
+	/// Daily N deposition for one year
 	double dndep[365];
+
+	/// Whether the forcing data for precipitation is an extensive quantity
+	/** If given as an amount (kg m-2) per timestep it is extensive and needs
+	 *  to be converted to a mean rate (kg m-2 s-1) (intensive quantity) */
+	bool extensive_precipitation;
 
 	// Current timestep in CF files
 

@@ -119,6 +119,61 @@ GuessNC::CF::DateTime last_day_to_simulate(const GuessNC::CF::GridcellOrderedVar
 	}
 }
 
+// Verifies that a CF variable with air temperature data contains what we expect
+void check_temp_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
+	if (cf_var->get_standard_name() != "air_temperature") {
+		fail("Temperature variable doesn't seem to contain air temperature data");
+	}
+	if (cf_var->get_units() != "K") {
+		fail("Temperature variable doesn't seem to be in Kelvin");
+	}
+}
+
+void check_prec_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
+	if (cf_var->get_standard_name() == "precipitation_flux") {
+		if (cf_var->get_units() != "kg m-2 s-1") {
+			fail("Precipitation is given as flux but does not have the correct unit (kg m-2 s-1)");
+		}
+	}
+	else if (cf_var->get_standard_name() == "precipitation_amount") {
+		if (cf_var->get_units() != "kg m-2") {
+			fail("Precipitation is given as amount but does not have the correc unit (kg m-2)");
+		}
+	}
+	else {
+		fail("Unrecognized precipitation type");
+	}
+}
+
+void check_insol_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
+	if (cf_var->get_standard_name() != "surface_downwelling_shortwave_flux_in_air" &&
+	    cf_var->get_standard_name() != "surface_downwelling_shortwave_flux" &&
+	    cf_var->get_standard_name() != "surface_net_downward_shortwave_flux" &&
+	    cf_var->get_standard_name() != "cloud_area_fraction") {
+		fail("Insolation variable doesn't seem to contain insolation data");
+	}
+
+	if (cf_var->get_standard_name() == "cloud_area_fraction") {
+		if (cf_var->get_units() != "1") {
+			fail("Unrecognized unit for cloud cover");
+		}
+	}
+	else {
+		if (cf_var->get_units() != "W m-2") {
+			fail("Insolation variable given as radiation but unit doesn't seem to be in W m-2");
+		}
+	}
+}
+
+void check_wetdays_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
+	const char* wetdays_standard_name = 
+		"number_of_days_with_lwe_thickness_of_precipitation_amount_above_threshold";
+
+	if (cf_var && cf_var->get_standard_name() != wetdays_standard_name) {
+		fail("Wetdays variable should have standard name %s", wetdays_standard_name);
+	}
+}
+
 }
 
 CFInput::CFInput()
@@ -126,6 +181,8 @@ CFInput::CFInput()
 	  cf_prec(0),
 	  cf_insol(0),
 	  cf_wetdays(0),
+	  cf_min_temp(0),
+	  cf_max_temp(0),
 	  lc_fixed_frac(NLANDCOVERTYPES, 0),
 	  equal_landcover_area(false) {
 
@@ -147,6 +204,8 @@ CFInput::~CFInput() {
 	delete cf_prec;
 	delete cf_insol;
 	delete cf_wetdays;
+	delete cf_min_temp;
+	delete cf_max_temp;
 }
 
 void CFInput::init() {
@@ -172,6 +231,14 @@ void CFInput::init() {
 		if (param["file_wetdays"].str != "") {
 			cf_wetdays = new GridcellOrderedVariable(param["file_wetdays"].str, param["variable_wetdays"].str);
 		}
+
+		if (param["file_min_temp"].str != "") {
+			cf_min_temp = new GridcellOrderedVariable(param["file_min_temp"].str, param["variable_min_temp"].str);
+		}
+
+		if (param["file_max_temp"].str != "") {
+			cf_max_temp = new GridcellOrderedVariable(param["file_max_temp"].str, param["variable_max_temp"].str);
+		}
 	}
 	catch (const std::runtime_error& e) {
 		fail(e.what());
@@ -179,58 +246,27 @@ void CFInput::init() {
 
 	// Make sure they contain what we expect
 
-	if (cf_temp->get_standard_name() != "air_temperature") {
-		fail("Temperature variable doesn't seem to contain air temperature data");
-	}
-	if (cf_temp->get_units() != "K") {
-		fail("Temperature variable doesn't seem to be in Kelvin");
+	check_temp_variable(cf_temp);
+	
+	check_prec_variable(cf_prec);
+
+	check_insol_variable(cf_insol);
+
+	check_wetdays_variable(cf_wetdays);
+
+	if (cf_min_temp) {
+		check_temp_variable(cf_min_temp);
 	}
 
-	if (cf_prec->get_standard_name() == "precipitation_flux") {
-		extensive_precipitation = false;
-		if (cf_prec->get_units() != "kg m-2 s-1") {
-			fail("Precipitation is given as flux but does not have the correct unit (kg m-2 s-1)");
-		}
-	}
-	else if (cf_prec->get_standard_name() == "precipitation_amount") {
-		extensive_precipitation = true;
-		if (cf_prec->get_units() != "kg m-2") {
-			fail("Precipitation is given as amount but does not have the correc unit (kg m-2)");
-		}
-	}
-	else {
-		fail("Unrecognized precipitation type");
-	}
-
-	if (cf_insol->get_standard_name() != "surface_downwelling_shortwave_flux_in_air" &&
-	    cf_insol->get_standard_name() != "surface_downwelling_shortwave_flux" &&
-	    cf_insol->get_standard_name() != "surface_net_downward_shortwave_flux" &&
-	    cf_insol->get_standard_name() != "cloud_area_fraction") {
-		fail("Insolation variable doesn't seem to contain insolation data");
-	}
-
-	if (cf_insol->get_standard_name() == "cloud_area_fraction") {
-		if (cf_insol->get_units() != "1") {
-			fail("Unrecognized unit for cloud cover");
-		}
-	}
-	else {
-		if (cf_insol->get_units() != "W m-2") {
-			fail("Insolation variable given as radiation but unit doesn't seem to be in W m-2");
-		}
-	}
-
-	const char* wetdays_standard_name = 
-		"number_of_days_with_lwe_thickness_of_precipitation_amount_above_threshold";
-
-	if (cf_wetdays && cf_wetdays->get_standard_name() != wetdays_standard_name) {
-		fail("Wetdays variable should have standard name %s", wetdays_standard_name);
+	if (cf_max_temp) {
+		check_temp_variable(cf_max_temp);
 	}
 
 	// TODO: check that all variables have the same timespan
 	// check time resolution?
 	// other checks?
 
+	extensive_precipitation = cf_prec->get_standard_name() == "precipitation_amount";
 
 	// Read list of localities and store in gridlist member variable
 
@@ -298,7 +334,9 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 			if (!cf_temp->load_data_for(landid) ||
 			    !cf_prec->load_data_for(landid) ||
 			    !cf_insol->load_data_for(landid) ||
-			    (cf_wetdays && !cf_wetdays->load_data_for(landid))) {
+			    (cf_wetdays && !cf_wetdays->load_data_for(landid)) ||
+			    (cf_min_temp && !cf_min_temp->load_data_for(landid)) ||
+			    (cf_max_temp && !cf_max_temp->load_data_for(landid))) {
 				dprintf("Failed to load data for (%d) from NetCDF files, skipping.\n", landid);
 				++current_gridcell;
 			}
@@ -310,7 +348,9 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 			if (!cf_temp->load_data_for(rlon, rlat) ||
 			    !cf_prec->load_data_for(rlon, rlat) ||
 			    !cf_insol->load_data_for(rlon, rlat) ||
-			    (cf_wetdays && !cf_wetdays->load_data_for(rlon, rlat))) {
+			    (cf_wetdays && !cf_wetdays->load_data_for(rlon, rlat)) ||
+			    (cf_min_temp && !cf_min_temp->load_data_for(rlon, rlat)) ||
+			    (cf_max_temp && !cf_max_temp->load_data_for(rlon, rlat))) {
 				dprintf("Failed to load data for (%d, %d) from NetCDF files, skipping.\n", rlat, rlon);
 				++current_gridcell;
 			}
@@ -326,6 +366,14 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 
 	if (cf_wetdays) {
 		load_spinup_data(cf_wetdays, spinup_wetdays);
+	}
+
+	if (cf_min_temp) {
+		load_spinup_data(cf_min_temp, spinup_min_temp);
+	}
+
+	if (cf_max_temp) {
+		load_spinup_data(cf_max_temp, spinup_max_temp);
 	}
 
 	spinup_temp.detrend_data();
@@ -366,6 +414,8 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	historic_timestep_prec = -1;
 	historic_timestep_insol = -1;
 	historic_timestep_wetdays = -1;
+	historic_timestep_min_temp = -1;
+	historic_timestep_max_temp = -1;
 
 	dprintf("\nCommencing simulation for stand at (%g,%g)", lon, lat);
 	if (current_gridcell->descrip != "") 
@@ -532,10 +582,26 @@ void CFInput::populate_daily_arrays(long& seed) {
 	populate_daily_prec_array(seed);
 	populate_daily_array(dinsol, spinup_insol, cf_insol, historic_timestep_insol);
 
+	if (cf_min_temp) {
+		populate_daily_array(dmin_temp, spinup_min_temp, cf_min_temp, historic_timestep_min_temp);
+	}
+
+	if (cf_max_temp) {
+		populate_daily_array(dmax_temp, spinup_max_temp, cf_max_temp, historic_timestep_max_temp);
+	}
+
 	// Convert to units the model expects
 	bool cloud_fraction_to_sunshine = (cf_standard_name_to_insoltype(cf_insol->get_standard_name()) == SUNSHINE);
 	for (int i = 0; i < 365; ++i) {
 		dtemp[i] -= K2degC;
+
+		if (cf_min_temp) {
+			dmin_temp[i] -= K2degC;
+		}
+
+		if (cf_max_temp) {
+			dmax_temp[i] -= K2degC;
+		}
 		
 		if (cloud_fraction_to_sunshine) {
 			dinsol[i] = 1-dinsol[i];
@@ -550,6 +616,14 @@ void CFInput::populate_daily_arrays(long& seed) {
 
 	if (cf_wetdays) {
 		spinup_wetdays.nextyear();
+	}
+
+	if (cf_min_temp) {
+		spinup_min_temp.nextyear();
+	}
+
+	if (cf_max_temp) {
+		spinup_max_temp.nextyear();
 	}
 
 	// Get monthly ndep values and convert to daily
@@ -603,8 +677,12 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 
 	// bvoc
 	if(ifbvoc){
-		//	  climate.dtr=ddtr[date.day];
-		fail("bvoc not supported by this input module");
+		if (cf_min_temp && cf_max_temp) {
+			climate.dtr = dmax_temp[date.day] - dmin_temp[date.day];
+		}
+		else {
+			fail("When BVOC is switched on, valid paths for minimum and maximum temperature must be given.");
+		}
 	}
 
 	return true;

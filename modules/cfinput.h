@@ -88,6 +88,10 @@ private:
 
 	GuessNC::CF::GridcellOrderedVariable* cf_wetdays;
 
+	GuessNC::CF::GridcellOrderedVariable* cf_min_temp;
+
+	GuessNC::CF::GridcellOrderedVariable* cf_max_temp;
+
 	GenericSpinupData spinup_temp;
 
 	GenericSpinupData spinup_prec;
@@ -95,6 +99,10 @@ private:
 	GenericSpinupData spinup_insol;
 
 	GenericSpinupData spinup_wetdays;
+
+	GenericSpinupData spinup_min_temp;
+	
+	GenericSpinupData spinup_max_temp;
 
 	/// Temperature for current gridcell and current year (deg C)
 	double dtemp[365];
@@ -107,6 +115,12 @@ private:
 
 	/// Daily N deposition for one year
 	double dndep[365];
+
+	/// Minimum temperature for current gridcell and current year (deg C)
+	double dmin_temp[365];
+
+	/// Maximum temperature for current gridcell and current year (deg C)
+	double dmax_temp[365];
 
 	/// Whether the forcing data for precipitation is an extensive quantity
 	/** If given as an amount (kg m-2) per timestep it is extensive, if it's
@@ -122,6 +136,10 @@ private:
 	int historic_timestep_insol;
 
 	int historic_timestep_wetdays;
+
+	int historic_timestep_min_temp;
+
+	int historic_timestep_max_temp;
 
 	/// Path to CRU binary archive
 	xtring file_cru;

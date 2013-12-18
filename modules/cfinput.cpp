@@ -299,8 +299,8 @@ void CFInput::init() {
 			}
 		}
 		else {
-			if (iss >> rlat >> rlon) {
-				iss >> descrip;
+			if (iss >> rlon >> rlat) {
+				getline(iss, descrip);
 				
 				c.rlat = rlat;
 				c.rlon = rlon;

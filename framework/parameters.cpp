@@ -42,7 +42,6 @@ int freenyears;
 double nrelocfrac;
 double nfix_a;
 double nfix_b;
-bool ifmontranlitter;
 
 bool ifsmoothgreffmort;
 bool ifdroughtlimitedestab;
@@ -354,7 +353,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("wateruptake", &strparam, 20, CB_WATERUPTAKE, 
 			"Water uptake mode (\"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
 
-		declareitem("nrelocfrac",&nrelocfrac,0.0,1.0,1,CB_NONE,
+		declareitem("nrelocfrac",&nrelocfrac,0.0,0.99,1,CB_NONE,
 			"Fractional nitrogen relocation from shed leaves & roots");
 		declareitem("nfix_a",&nfix_a,0.0,0.4,1,CB_NONE,
 			"first term in nitrogen fixation eqn");
@@ -367,8 +366,6 @@ void plib_declarations(int id,xtring setname) {
 			"Whether plant growth limited by available nitrogen");
 		declareitem("freenyears",&freenyears,0,1000,1,CB_NONE,
 			"Number of years to spinup without nitrogen limitation");
-		declareitem("ifmontranlitter",&ifmontranlitter,1,CB_NONE,
-			"Whether to transfer litter monthly");
 
 		declareitem("ifsmoothgreffmort",&ifsmoothgreffmort,1,CB_NONE,
 			"Whether to vary mort_greff smoothly with growth efficiency (0,1)");
@@ -724,7 +721,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcentury")) badins("ifcentury");
 		if (!itemparsed("ifnlim")) badins("ifnlim");
 		if (!itemparsed("freenyears")) badins("freenyears");
-		if (!itemparsed("ifmontranlitter")) badins("ifmontranlitter");
 
 		if (nyear_spinup <= freenyears) {
 			sendmessage("Error", "freenyears must be smaller than nyear_spinup");

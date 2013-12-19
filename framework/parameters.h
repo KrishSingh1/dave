@@ -120,8 +120,6 @@ extern double nrelocfrac;
 extern double nfix_a;
 /// second term in nitrogen fixation eqn (Cleveland et al 1999)	
 extern double nfix_b;
-/// whether to transfer litter monthly	
-extern bool ifmontranlitter;
 
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;

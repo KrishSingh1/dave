@@ -575,7 +575,7 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 		// Donor pool SURFACE COARSE WOODY DEBRIS
 
 		transferdecomp(soil, SURFCWD, SURFMICRO, 1.0 - soil.sompool[SURFCWD].ligcfrac,	
-			0.90, respsum, nmin_actual, nimmob, net_min[SURFCWD]);
+			0.9, respsum, nmin_actual, nimmob, net_min[SURFCWD]);
 
 		transferdecomp(soil, SURFCWD, SURFHUMUS, soil.sompool[SURFCWD].ligcfrac, 0.5,
 			respsum, nmin_actual, nimmob, net_min[SURFCWD]);
@@ -706,268 +706,36 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 		soil.nmass_avail = NMASS_SAT;
 }
 
+/// Litter lignin to N ratio (for leaf and root litter)
+/** Specific lignin fractions for leaf and root
+ *  are specified in transfer_litter()
+ */
+double lignin_to_n_ratio(double cmass_litter, double nmass_litter, double LIGCFRAC, double cton_avr) {
+
+	if (!negligible(nmass_litter)) {
+		return max(0.0, LIGCFRAC * cmass_litter / nmass_litter);
+	}
+	else {
+		return max(0.0, LIGCFRAC * cton_avr / (1.0 - nrelocfrac));
+	}
+}
+
 /// Metabolic litter fraction (for leaf and root litter)
 /** Fm, Parton et al 1993, Eqn 1:
  *  NB: incorrect/out-of-date intercept and slope given in Eqn 1; values used in
- *  code of CENTURY 4.0 used instead
+ *  code of CENTURY 4.0 used instead (also correct in Parton et al. 1993, figure 1)
  *
  * \param lton  Litter lignin:N ratio
  */
 double metabolic_litter_fraction(double lton) {
-	assert(lton >= 0);
 	return max(0.0, 0.85 - lton * 0.013);
 }
 
-/// Transfers litter from this year's growth, mortality and fire   
-/** Call annually after growth, mortality and fire to transfer this year's litter   
- *  from vegetation to soil litter pools
+/// Transfers litter from last year's growth, mortality and fire   
+/** Called monthly to transfer last year's litter from vegetation
+ *  (turnover, mortality and fire) to soil litter pools
  */
 void transfer_litter(Patch& patch) {
-
-	Soil& soil = patch.soil;
-
-	LitterSolveSOM litterSolveSOM;
-
-	double EPS = -1.0e-16;
-
-	// Leaf, root and wood litter lignin fractions
-	// Leaf and root fractions: Comins & McMurtrie 1993; Friend et al 1997
-	// Not sure of wood fraction
-	const double LIGCFRAC_LEAF = 0.2;
-	const double LIGCFRAC_ROOT = 0.16;
-	const double LIGCFRAC_WOOD = 0.3;
-
-	// Fire
-	double litterme[NSOMPOOL];
-	litterme[SURFSTRUCT]   = soil.sompool[SURFSTRUCT].cmass * soil.sompool[SURFSTRUCT].litterme;
-	litterme[SURFMETA]     = soil.sompool[SURFMETA].cmass   * soil.sompool[SURFMETA].litterme;
-	litterme[SURFFWD]      = soil.sompool[SURFFWD].cmass    * soil.sompool[SURFFWD].litterme;
-	litterme[SURFCWD]      = soil.sompool[SURFCWD].cmass    * soil.sompool[SURFCWD].litterme;
-
-	double fireresist[NSOMPOOL];
-	fireresist[SURFSTRUCT] = soil.sompool[SURFSTRUCT].cmass * soil.sompool[SURFSTRUCT].fireresist;
-	fireresist[SURFMETA]   = soil.sompool[SURFMETA].cmass   * soil.sompool[SURFMETA].fireresist;
-	fireresist[SURFFWD]    = soil.sompool[SURFFWD].cmass    * soil.sompool[SURFFWD].fireresist;
-	fireresist[SURFCWD]    = soil.sompool[SURFCWD].cmass    * soil.sompool[SURFCWD].fireresist;
-
-	patch.pft.firstobj();
-	while (patch.pft.isobj) {
-		Patchpft& pft=patch.pft.getobj();
-
-		// LEAF
-
-		// Calculate inputs to surface structural and metabolic litter 
-
-		// Leaf litter lignin:N ratio
-		double leaf_lton;
-		if (!negligible(pft.nmass_litter_leaf)) {
-			leaf_lton = max(0.0, LIGCFRAC_LEAF * pft.litter_leaf / pft.nmass_litter_leaf);
-		}
-		else {
-			leaf_lton = max(0.0, LIGCFRAC_LEAF * pft.pft.cton_leaf_avr / (1.0 - nrelocfrac));
-		}
-
-		// Metabolic litter fraction for leaf litter 
-		double fm = metabolic_litter_fraction(leaf_lton);
-
-		double ligcmass_old = soil.sompool[SURFSTRUCT].cmass * soil.sompool[SURFSTRUCT].ligcfrac;
-
-		// Add to pools
-		soil.sompool[SURFSTRUCT].cmass += pft.litter_leaf       * (1.0 - fm);
-		soil.sompool[SURFSTRUCT].nmass += pft.nmass_litter_leaf * (1.0 - fm);
-		soil.sompool[SURFMETA].cmass   += pft.litter_leaf       * fm;
-		soil.sompool[SURFMETA].nmass   += pft.nmass_litter_leaf * fm;
-
-		// Save litter input for equilsom()
-		if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
-			litterSolveSOM.add_litter(pft.litter_leaf * (1.0 - fm), pft.nmass_litter_leaf * (1.0 - fm), SURFSTRUCT);
-			litterSolveSOM.add_litter(pft.litter_leaf * fm, pft.nmass_litter_leaf * fm, SURFMETA);
-		}
-
-		// Fire
-		litterme[SURFSTRUCT]   += pft.litter_leaf * (1.0 - fm) * pft.pft.litterme;
-		fireresist[SURFSTRUCT] += pft.litter_leaf * (1.0 - fm) * pft.pft.fireresist;
-
-		litterme[SURFMETA]     += pft.litter_leaf * fm * pft.pft.litterme;		
-		fireresist[SURFMETA]   += pft.litter_leaf * fm * pft.pft.fireresist;
-
-		// NB: reproduction litter cannot contain nitrogen!!
-
-		double ligcmass_new = pft.litter_leaf * (1.0 - fm) * LIGCFRAC_LEAF;
-
-		if (negligible(soil.sompool[SURFSTRUCT].cmass)) {
-			soil.sompool[SURFSTRUCT].ligcfrac = 0.0;
-		}
-		else {
-			soil.sompool[SURFSTRUCT].ligcfrac = (ligcmass_new + ligcmass_old)/
-				soil.sompool[SURFSTRUCT].cmass;
-		}
-
-		// Remove association with vegetation
-		pft.litter_leaf       = 0.0;
-		pft.nmass_litter_leaf = 0.0;
-		pft.litter_repr       = 0.0;
-
-		// ROOT
-
-		// Calculate inputs to soil structural and metabolic litter
-
-		// Root litter lignin:N ratio
-		double root_lton;
-		if (!negligible(pft.nmass_litter_root)) {
-			root_lton = max(0.0, LIGCFRAC_ROOT * pft.litter_root / pft.nmass_litter_root);
-		}
-		else {
-			root_lton = max(0.0, LIGCFRAC_ROOT * pft.pft.cton_root_avr / (1.0 - nrelocfrac));
-		}
-
-		// Metabolic litter fraction for root litter
-		fm = metabolic_litter_fraction(root_lton);
-
-		ligcmass_new = pft.litter_root * (1.0 - fm) * LIGCFRAC_ROOT;
-		ligcmass_old = soil.sompool[SOILSTRUCT].cmass * soil.sompool[SOILSTRUCT].ligcfrac;
-
-		// Add to pools and update lignin fraction in structural pool
-		soil.sompool[SOILSTRUCT].cmass += pft.litter_root       * (1.0 - fm);
-		soil.sompool[SOILSTRUCT].nmass += pft.nmass_litter_root * (1.0 - fm);
-		soil.sompool[SOILMETA].cmass   += pft.litter_root       * fm;
-		soil.sompool[SOILMETA].nmass   += pft.nmass_litter_root * fm;
-
-		// Save litter input for equilsom()
-		if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
-			litterSolveSOM.add_litter(pft.litter_root * (1.0 - fm), pft.nmass_litter_root * (1.0 - fm), SOILSTRUCT);
-			litterSolveSOM.add_litter(pft.litter_root * fm, pft.nmass_litter_root * fm, SOILMETA);
-		}
-
-		if (negligible(soil.sompool[SOILSTRUCT].cmass)) {
-			soil.sompool[SOILSTRUCT].ligcfrac = 0.0;
-		}
-		else {
-			soil.sompool[SOILSTRUCT].ligcfrac = (ligcmass_new + ligcmass_old) /
-				soil.sompool[SOILSTRUCT].cmass;
-		}
-		
-		// Remove association with vegetation
-		pft.litter_root       = 0.0;
-		pft.nmass_litter_root = 0.0;
-
-		// WOOD
-
-		if (pft.pft.lifeform == TREE) { 
-			// Woody debris enters two woody litter pools as described in
-			// Kirschbaum and Paul (2002).
-
-			if (!negligible(pft.litter_sap)) {
-
-				// Fine woody debris
-
-				assert(pft.litter_sap >= EPS);
-				ligcmass_new = pft.litter_sap * LIGCFRAC_WOOD;
-				ligcmass_old = soil.sompool[SURFFWD].cmass * soil.sompool[SURFFWD].ligcfrac;
-
-				// Add to structural pool and update lignin fraction in pool
-				soil.sompool[SURFFWD].cmass += pft.litter_sap;
-				soil.sompool[SURFFWD].nmass += pft.nmass_litter_sap;
-
-				// Save litter input for equilsom()
-				if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
-					litterSolveSOM.add_litter(pft.litter_sap, pft.nmass_litter_sap, SURFFWD);
-				}
-
-				if (negligible(soil.sompool[SURFFWD].cmass)) {
-					soil.sompool[SURFFWD].ligcfrac = 0.0;
-				}
-				else {
-					double ligcfrac = (ligcmass_new + ligcmass_old) /
-						soil.sompool[SURFFWD].cmass;
-					soil.sompool[SURFFWD].ligcfrac = ligcfrac;
-				}
-
-				// Fire
-				litterme[SURFFWD]   += pft.litter_sap * pft.pft.litterme;
-				fireresist[SURFFWD] += pft.litter_sap * pft.pft.fireresist;
-
-				// Update vegetation
-				pft.litter_sap       = 0.0;
-				pft.nmass_litter_sap = 0.0;
-			}
-
-			if (!negligible(pft.litter_heart)) {
-
-				// Coarse woody debris
-
-				assert(pft.litter_heart >= EPS);
-				ligcmass_new = pft.litter_heart * LIGCFRAC_WOOD;
-				ligcmass_old = soil.sompool[SURFCWD].cmass * soil.sompool[SURFCWD].ligcfrac;
-
-				// Add to structural pool and update lignin fraction in pool
-				soil.sompool[SURFCWD].cmass += pft.litter_heart;
-				soil.sompool[SURFCWD].nmass += pft.nmass_litter_heart;
-
-				// Save litter input for equilsom()
-				if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
-					litterSolveSOM.add_litter(pft.litter_heart, pft.nmass_litter_heart, SURFCWD);
-				}
-
-				if (negligible(soil.sompool[SURFCWD].cmass)) {
-					soil.sompool[SURFCWD].ligcfrac = 0.0;
-				}
-				else {
-					double ligcfrac = (ligcmass_new + ligcmass_old) /
-						soil.sompool[SURFCWD].cmass;
-					soil.sompool[SURFCWD].ligcfrac = ligcfrac;
-				}
-
-				// Fire
-				litterme[SURFCWD]   += pft.litter_heart * pft.pft.litterme;
-				fireresist[SURFCWD] += pft.litter_heart * pft.pft.fireresist;
-
-				// Update vegetation
-				pft.litter_heart       = 0.0;
-				pft.nmass_litter_heart = 0.0;
-			}
-		}
-
-		patch.pft.nextobj();
-	}
-
-	// FIRE
-	if (soil.sompool[SURFSTRUCT].cmass > 0.0) {
-		soil.sompool[SURFSTRUCT].litterme   = litterme[SURFSTRUCT]   / soil.sompool[SURFSTRUCT].cmass;
-		soil.sompool[SURFSTRUCT].fireresist = fireresist[SURFSTRUCT] / soil.sompool[SURFSTRUCT].cmass;
-	}
-	if (soil.sompool[SURFMETA].cmass > 0.0) {
-		soil.sompool[SURFMETA].litterme   = litterme[SURFMETA]   / soil.sompool[SURFMETA].cmass;
-		soil.sompool[SURFMETA].fireresist = fireresist[SURFMETA] / soil.sompool[SURFMETA].cmass;
-	}
-	if (soil.sompool[SURFFWD].cmass > 0.0) {
-		soil.sompool[SURFFWD].litterme    = litterme[SURFFWD]   / soil.sompool[SURFFWD].cmass;
-		soil.sompool[SURFFWD].fireresist  = fireresist[SURFFWD] / soil.sompool[SURFFWD].cmass;
-	}
-	if (soil.sompool[SURFCWD].cmass > 0.0) {
-		soil.sompool[SURFCWD].litterme    = litterme[SURFCWD]   / soil.sompool[SURFCWD].cmass;
-		soil.sompool[SURFCWD].fireresist  = fireresist[SURFCWD] / soil.sompool[SURFCWD].cmass;
-	}
-
-	// Calculate total litter carbon and nitrogen mass for set N:C ratio of surface microbial pool
-	double litter_cmass = soil.sompool[SURFSTRUCT].cmass + soil.sompool[SURFMETA].cmass + 
-	                      soil.sompool[SURFFWD].cmass + soil.sompool[SURFCWD].cmass;
-	double litter_nmass = soil.sompool[SURFSTRUCT].nmass + soil.sompool[SURFMETA].nmass + 
-	                      soil.sompool[SURFFWD].nmass + soil.sompool[SURFCWD].nmass;
-
-	// Set N:C ratio of surface microbial pool based on N:C ratio of litter from all PFTs
-	// Parton et al 1993 Fig 4. Dry mass litter == cmass litter * 2
-	if (!negligible(litter_cmass)) {
-		setntoc(soil, litter_nmass / (litter_cmass * 2.0), SURFMICRO, 20.0, 10.0, 0.0, NCONC_SAT);
-	}
-
-	// Add this year litter to 
-	if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
-		soil.solvesom.push_back(litterSolveSOM);
-	}
-}
-
-void transfer_litter_monthly(Patch& patch) {
 
 	Soil& soil = patch.soil;
 
@@ -1018,13 +786,7 @@ void transfer_litter_monthly(Patch& patch) {
 			// Calculate inputs to surface structural and metabolic litter 
 
 			// Leaf litter lignin:N ratio
-			double leaf_lton;
-			if (!negligible(pft.nmass_litter_leaf)) {
-				leaf_lton = max(0.0, LIGCFRAC_LEAF * pft.litter_leaf / pft.nmass_litter_leaf);
-			}
-			else {
-				leaf_lton = max(0.0, LIGCFRAC_LEAF * pft.pft.cton_leaf_avr / (1.0 - nrelocfrac));
-			}
+			double leaf_lton = lignin_to_n_ratio(pft.litter_leaf, pft.nmass_litter_leaf, LIGCFRAC_LEAF, pft.pft.cton_leaf_avr);
 
 			// Metabolic litter fraction for leaf litter 
 			double fm = metabolic_litter_fraction(leaf_lton);
@@ -1069,13 +831,7 @@ void transfer_litter_monthly(Patch& patch) {
 			// Calculate inputs to soil structural and metabolic litter
 
 			// Root litter lignin:N ratio
-			double root_lton;
-			if (!negligible(pft.nmass_litter_root)) {
-				root_lton = max(0.0, LIGCFRAC_ROOT * pft.litter_root / pft.nmass_litter_root);
-			}
-			else {
-				root_lton = max(0.0, LIGCFRAC_ROOT * pft.pft.cton_root_avr / (1.0 - nrelocfrac));
-			}
+			double root_lton = lignin_to_n_ratio(pft.litter_root, pft.nmass_litter_root, LIGCFRAC_ROOT, pft.pft.cton_root_avr);
 
 			// Metabolic litter fraction for root litter
 			fm = metabolic_litter_fraction(root_lton);
@@ -1438,16 +1194,17 @@ void equilsom(Soil& soil) {
 
 		// Which year in saved data set
 		int savedyear = yr%nyear;
-
-		if (!ifmontranlitter) {
+		
+		// Monthly time steps
+		for (int m = 0; m < 12; m++) {
 
 			// Transfer yearly mean litter on first day of year
-			add_litter(soil, savedyear, SURFSTRUCT);
-			add_litter(soil, savedyear, SURFMETA);
-			add_litter(soil, savedyear, SOILSTRUCT);
-			add_litter(soil, savedyear, SOILMETA);
-			add_litter(soil, savedyear, SURFFWD);
-			add_litter(soil, savedyear, SURFCWD);
+			add_litter(soil, savedyear*12+m, SURFSTRUCT);
+			add_litter(soil, savedyear*12+m, SURFMETA);
+			add_litter(soil, savedyear*12+m, SOILSTRUCT);
+			add_litter(soil, savedyear*12+m, SOILMETA);
+			add_litter(soil, savedyear*12+m, SURFFWD);
+			add_litter(soil, savedyear*12+m, SURFCWD);
 
 			// Calculate total litter carbon and nitrogen mass for set N:C ratio of surface microbial pool
 			double litter_cmass = soil.sompool[SURFSTRUCT].cmass + soil.sompool[SURFMETA].cmass + 
@@ -1458,32 +1215,6 @@ void equilsom(Soil& soil) {
 			// Set N:C ratio of surface microbial pool based on N:C ratio of litter from all PFTs
 			if (!negligible(litter_cmass)) {
 				setntoc(soil, litter_nmass / (litter_cmass * 2.0), SURFMICRO, 20.0, 10.0, 0.0, NCONC_SAT);
-			}
-		}
-		
-		// Monthly time steps
-		for (int m = 0; m < 12; m++) {
-
-			if (ifmontranlitter) {
-
-				// Transfer yearly mean litter on first day of year
-				add_litter(soil, savedyear*12+m, SURFSTRUCT);
-				add_litter(soil, savedyear*12+m, SURFMETA);
-				add_litter(soil, savedyear*12+m, SOILSTRUCT);
-				add_litter(soil, savedyear*12+m, SOILMETA);
-				add_litter(soil, savedyear*12+m, SURFFWD);
-				add_litter(soil, savedyear*12+m, SURFCWD);
-
-				// Calculate total litter carbon and nitrogen mass for set N:C ratio of surface microbial pool
-				double litter_cmass = soil.sompool[SURFSTRUCT].cmass + soil.sompool[SURFMETA].cmass + 
-					soil.sompool[SURFFWD].cmass + soil.sompool[SURFCWD].cmass;
-				double litter_nmass = soil.sompool[SURFSTRUCT].nmass + soil.sompool[SURFMETA].nmass + 
-					soil.sompool[SURFFWD].nmass + soil.sompool[SURFCWD].nmass;
-
-				// Set N:C ratio of surface microbial pool based on N:C ratio of litter from all PFTs
-				if (!negligible(litter_cmass)) {
-					setntoc(soil, litter_nmass / (litter_cmass * 2.0), SURFMICRO, 20.0, 10.0, 0.0, NCONC_SAT);
-				}
 			}
 			
 			// Monthly nitrogen uptake
@@ -1538,16 +1269,11 @@ void equilsom(Soil& soil) {
 void som_dynamics_century(Patch& patch) {
 
 	// First day of every month
-	if (date.dayofmonth == 0 && ifmontranlitter) { 	
+	if (date.dayofmonth == 0) { 	
 
 		// Transfer last year's litter to SOM pools
 		// Leaf and fine root liiter on first day of year (first day of july in SH)
 		// Woody litter transfers a portion first day of every month
-		transfer_litter_monthly(patch);
-	}
-	else if (date.day == 0 && !ifmontranlitter) {
-
-		// Transfer last year's litter to SOM pools
 		transfer_litter(patch);
 	}
 

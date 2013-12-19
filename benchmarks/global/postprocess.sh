@@ -38,8 +38,8 @@ gmap lai1961to1990max.txt -t 'Dominant PFT (greatest LAI)' -lon 1 -lat 2 -i 3 -l
 describe_image maxLAI.jpg "PFT With the Highest LAI in Each Gridcell (1961-90 average)"
 
 biomes lai1961to1990.txt
-gmap biomes_lai1961to1990.txt -t 'Biomes (Hickler et al. 2006)' -lon 1 -lat 2 -i 3 -legend legend_biomes.txt -portrait -o biomes.jpg
-describe_image biomes.jpg "Biomes in Each Gridcell (1961-90 average) (according to Hickler et al. 2006)"
+gmap biomes_lai1961to1990.txt -t 'Biomes (Smith et al. 2013)' -lon 1 -lat 2 -i 3 -legend legend_biomes.txt -portrait -o biomes.jpg
+describe_image biomes.jpg "Biomes in Each Gridcell (1961-90 average) (according to Smith et al. 2013)"
 
 tslice aiso.out -o aiso1961to1990.txt -f 560 -t 589 -lon 1 -lat 2 -y 3 
 tslice amon.out -o amon1961to1990.txt -f 560 -t 589 -lon 1 -lat 2 -y 3 

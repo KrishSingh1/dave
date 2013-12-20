@@ -103,14 +103,9 @@ landcover_change_transfer::landcover_change_transfer() {
 
 	memset(transfer_wcont,0,NSOILLAYER*sizeof(double));
 
-	for(int i=0; i<NSOMPOOL; i++) {
-		transfer_sompool[i].cmass = 0.0;
-		transfer_sompool[i].fireresist = 0.0;
-		transfer_sompool[i].fracremain = 0.0;
-		transfer_sompool[i].ligcfrac = 0.0;
-		transfer_sompool[i].litterme = 0.0;
+	for(int i=0; i<NSOMPOOL; i++)
 		transfer_sompool[i].ntoc = 0.0;
-	}
+
 }
 
 /// landcover_change_transfer deconstructor
@@ -821,9 +816,15 @@ void receiving_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLA
 					// add fluxes:
 					patch.fluxes.report_flux(Fluxes::HARVESTC, from.transfer_acflux_harvest * added_frac / new_frac); // no harvest C here anymore, goes to gridcell.acflux_harvest instead
 					patch.fluxes.report_flux(Fluxes::HARVESTN, from.transfer_anflux_harvest * added_frac / new_frac);
-
-					// set scaling factor to be used in growth( ):
+		
+					// set scaling factor to be used in growth() for scaling vegetation C and N:
 					stand.scale_LC_change = old_frac / new_frac;
+
+					// save individual N content for use in growth()
+					for(unsigned int i=0; i<patch.vegetation.nobj ;i++) {
+						Individual& indiv = patch.vegetation[i];
+						indiv.save_nmass_luc();
+					}
 
 					stand.nextobj();
 				}

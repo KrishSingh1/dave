@@ -1204,7 +1204,6 @@ void flush_litter_repr(Patch& patch) {
 
 /// Scaling of last year's individual carbon and nitrogen member values in stands that have increased their area fraction this year.
 /** Called immediately before harvest functions in growth( ).
- *  Alternatively, if harvest functions are after growth( ), called before turnover( ) in growth( ).
  */
 void scale_indiv(Individual& indiv)
 {
@@ -1224,16 +1223,22 @@ void scale_indiv(Individual& indiv)
 	if(indiv.pft.landcover == CROPLAND) {
 		indiv.cropindiv->cmass_agpool *= scale;
 		indiv.cropindiv->cmass_ho *= scale;
-
-		indiv.cropindiv->nmass_agpool *= scale;
-		indiv.cropindiv->nmass_ho *= scale;
 	}
-	indiv.nmass_root *= scale;	
-	indiv.nmass_leaf *= scale;	
 
-	indiv.nstore_labile *= scale;
-	indiv.nstore_longterm *= scale;
+	// Deduct individual N present day 0 this year in stands that have increased in area this year, scaled by (1 - old area/new area):
+	indiv.nmass_root = max(0.0, indiv.nmass_root - indiv.nmass_root_luc * (1.0 - scale));	
+	indiv.nmass_leaf = max(0.0, indiv.nmass_leaf - indiv.nmass_leaf_luc * (1.0 - scale));
 
+	if(indiv.pft.landcover == CROPLAND) {
+		indiv.cropindiv->nmass_agpool = max(0.0, indiv.cropindiv->nmass_agpool - indiv.cropindiv->nmass_agpool_luc * (1.0 - scale));
+		indiv.cropindiv->nmass_ho = max(0.0, indiv.cropindiv->nmass_ho - indiv.cropindiv->nmass_ho_luc * (1.0 - scale));
+	}
+
+	if(indiv.nstore_labile > indiv.nstore_labile_luc * (1.0 - scale))
+		indiv.nstore_labile -= indiv.nstore_labile_luc * (1.0 - scale);
+	else
+		indiv.nstore_longterm -= indiv.nstore_labile_luc * (1.0 - scale);	
+	indiv.nstore_longterm = max(0.0, indiv.nstore_longterm - indiv.nstore_longterm_luc * (1.0 - scale));
 }
 
 /// GROWTH
@@ -1401,10 +1406,7 @@ void growth(Stand& stand, Patch& patch) {
 				if (indiv.alive) bminc -= cmass_excess;
 			}
 
-			double acflux_harvest=0.0;
-			double anflux_harvest=0.0;
-
-			// Scale individual's C and N mass in stands that have increased in area this year by (old area/new area):
+			// Reduce individual's C and N mass in stands that have increased in area this year:
 			if(gridcell.LC_updated)
 				scale_indiv(indiv);
 

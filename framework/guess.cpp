@@ -965,6 +965,22 @@ Patchpft& Individual::patchpft() const {
 	return vegetation.patch.pft[pft.id];
 }
 
+/// Save nmass-values on first day of the year of land cover change in expanding stands
+void Individual::save_nmass_luc() {
+	Stand& stand = vegetation.patch.stand;
+
+	nmass_leaf_luc = nmass_leaf;
+	nmass_root_luc = nmass_root;
+	nmass_sap_luc = nmass_sap;
+	nmass_heart_luc = nmass_heart;
+	nstore_longterm_luc = nstore_longterm;
+	nstore_labile_luc = nstore_labile;
+	if(cropindiv) {
+		cropindiv->nmass_ho_luc = cropindiv->nmass_ho;
+		cropindiv->nmass_agpool_luc = cropindiv->nmass_agpool;
+	}
+}
+
 /// Gets the individual's daily cmass_leaf value
 double Individual::cmass_leaf_today() const {
 

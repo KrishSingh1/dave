@@ -1323,6 +1323,10 @@ public:
 	/// nitrogen content of above-ground pool
 	double nmass_agpool;
 
+	/// nitrogen content of harvestable organs saved on first day of land use change year
+	double nmass_ho_luc;
+	/// nitrogen content of above-ground pool saved on first day of land use change year
+	double nmass_agpool_luc;
 
 	/// year's maximum value of leaf C biomass
 	double cmass_leaf_max;
@@ -1477,6 +1481,15 @@ public:
 	/// nitrogen content of heartwood on patch area basis (kgN/m2)
 	double nmass_heart;	
 
+	/// nitrogen content of leaves on patch area basis saved on first day of land use change year
+	double nmass_leaf_luc;
+	/// nitrogen content of roots on patch area basis on first day of land use change year
+	double nmass_root_luc;
+	/// nitrogen content of sapwood on patch area basis on first day of land use change year
+	double nmass_sap_luc;
+	/// nitrogen content of heartwood on patch area basis on first day of land use change year
+	double nmass_heart_luc;	
+
 	/// foliar projective cover (FPC) under full leaf cover as fraction of modelled area
 	double fpc;
 	/// foliar projective cover (FPC) this day as fraction of modelled area
@@ -1566,6 +1579,10 @@ public:
 	double nstore_longterm;
 	/// storage of labile nitrogen
 	double nstore_labile;
+	/// long-term storage of labile nitrogen saved on first day of land use change year
+	double nstore_longterm_luc;
+	/// storage of labile nitrogen saved on first day of land use change year
+	double nstore_labile_luc;
 	/// daily total nitrogen demand
 	double ndemand;
 	/// fraction of individual nitrogen demand available for uptake
@@ -1684,6 +1701,9 @@ public:
 	double nmass_wood() const {
 		return nmass_sap + nmass_heart;
 	}
+
+	/// Save nmass-values on first day of the year of land cover change in expanding stands
+	void save_nmass_luc();
 
 	/// Current leaf C:N ratio
 	/**

@@ -224,7 +224,8 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	// Update water content in evaporation layer for tomorrow
 
 	// Add irrigation water
-	rain_melt+=patch.irrigation_d;
+	rain_melt += patch.irrigation_d;
+	max_rain_melt += patch.irrigation_d;
 
 	wcont_evap += (rain_melt-aet_layer[0]*SOILDEPTH_EVAP*K_AET_DEPTH/SOILDEPTH_UPPER-evap)
 		/awc[0];

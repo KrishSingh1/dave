@@ -11,6 +11,7 @@
 #include "cfinput.h"
 #include "guess.h"
 #include "driver.h"
+#include "guessstring.h"
 #include <fstream>
 #include <sstream>
 #include <algorithm>
@@ -137,7 +138,7 @@ void check_prec_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	}
 	else if (cf_var->get_standard_name() == "precipitation_amount") {
 		if (cf_var->get_units() != "kg m-2") {
-			fail("Precipitation is given as amount but does not have the correc unit (kg m-2)");
+			fail("Precipitation is given as amount but does not have the correct unit (kg m-2)");
 		}
 	}
 	else {
@@ -290,10 +291,10 @@ void CFInput::init() {
 
 		if (cf_temp->is_reduced()) {
 			if (iss >> landid) {
-				iss >> descrip;
+				getline(iss, descrip);
 
 				c.landid = landid;
-				c.descrip = descrip;
+				c.descrip = trim(descrip);
 
 				gridlist.push_back(c);
 			}
@@ -304,7 +305,7 @@ void CFInput::init() {
 				
 				c.rlat = rlat;
 				c.rlon = rlon;
-				c.descrip = descrip;
+				c.descrip = trim(descrip);
 
 				gridlist.push_back(c);
 			}

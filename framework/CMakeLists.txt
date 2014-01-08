@@ -13,6 +13,7 @@ set(headers
   parameters.h
   outputmodule.h
   inputmodule.h
+  guessstring.h
 )
 
 set(source  
@@ -28,6 +29,7 @@ set(source
   parameters.cpp
   outputmodule.cpp
   inputmodule.cpp
+  guessstring.cpp
 )
 
 include(add_guess_sources)

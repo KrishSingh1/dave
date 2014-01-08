@@ -1029,7 +1029,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 			indiv.leaffndemand  = indiv.leafndemand / indiv.ndemand;
 			indiv.rootfndemand  = indiv.rootndemand / indiv.ndemand;
 			indiv.sapfndemand   = indiv.sapndemand  / indiv.ndemand;
-			indiv.storefndemand = max(0.0, 1.0 - (indiv.leaffndemand + indiv.rootfndemand + indiv.sapfndemand));		
+			indiv.storefndemand = 1.0 - (indiv.leaffndemand + indiv.rootfndemand + indiv.sapfndemand);		
 		}
 
 		// Sum total patch nitrogen demand
@@ -1348,7 +1348,7 @@ inline double water_uptake(double wcont[NSOILLAYER], double awc[NSOILLAYER],
  *                   but with fractional uptake from different layers according
  *                   to prescribed root distribution
  */
-double irrigated_water_uptake(Patch& patch, Pft& pft)
+double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day)
 {
 	double wr;
 	Patchpft& ppft = patch.pft[pft.id];
@@ -1357,9 +1357,11 @@ double irrigated_water_uptake(Patch& patch, Pft& pft)
 	for(int i=0;i<NSOILLAYER;i++)
 		wcont_cp[i]=patch.soil.wcont[i];
 
-	ppft.water_deficit_d=0.0;
-	if(date.day==0)
-		ppft.water_deficit_y=0.0;
+	if (day.isstart) {
+		ppft.water_deficit_d = 0.0;
+		if(date.day == 0)
+			ppft.water_deficit_y = 0.0;
+	}
 
 	if (patch.soil.wcont[0]<0.9 && ppft.phen > 0.0)	{
 		double wcont_0_opt=0.0;
@@ -1381,12 +1383,14 @@ double irrigated_water_uptake(Patch& patch, Pft& pft)
 			fail("Irrigation soil water only balanced for WR_ROOTDIST currently !\n");
 
 		if(wcont_0_opt>patch.soil.wcont[0])	{
-			ppft.water_deficit_d=(wcont_0_opt-patch.soil.wcont[0])*patch.soil.soiltype.awc[0];
+			ppft.water_deficit_d += (wcont_0_opt-patch.soil.wcont[0])*patch.soil.soiltype.awc[0];
 			wcont_cp[0]=wcont_0_opt;
 		}
 
-		ppft.water_deficit_y+=ppft.water_deficit_d;
-
+		if (day.isend) {
+			ppft.water_deficit_d /= date.subdaily;
+			ppft.water_deficit_y += ppft.water_deficit_d;
+		}
 	}
 		wr = water_uptake(wcont_cp, patch.soil.soiltype.awc, pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 								pft.lifeform == TREE, pft.drought_tolerance);
@@ -1419,7 +1423,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			// Retrieve PFT
 			Pft& pft = ppft.pft;
 
-			if (day.isstart) {
+			if (day.isstart || pft.hydrology==IRRIGATED) {
 
 				// Calculate effective water supply from plant roots
 				// Rescale available water by patch FPC if exceeds 1
@@ -1428,7 +1432,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 				double wr;
 
 				if(patch.stand.isirrigated && pft.hydrology==IRRIGATED)
-					wr = irrigated_water_uptake(patch, pft);
+					wr = irrigated_water_uptake(patch, pft, day);
 				else
 					wr = water_uptake(patch.soil.wcont, patch.soil.soiltype.awc,
 								pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,

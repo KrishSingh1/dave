@@ -1232,7 +1232,7 @@ void calc_sowing_windows(Gridcell& gridcell)
 			else if((seasonality == SEASONALITY_PREC || seasonality == SEASONALITY_PRECTEMP && pft.hydrology != IRRIGATED) && climate.prec_range != WET)
 				prec_sdate = true;
 #else
-			if(seasonality == SEASONALITY_TEMP || .seasonality == SEASONALITY_TEMPPREC)
+			if(seasonality == SEASONALITY_TEMP || seasonality == SEASONALITY_TEMPPREC)
 				temp_sdate = true;
 			else if((seasonality == SEASONALITY_PREC || seasonality == SEASONALITY_PRECTEMP) && climate.prec_range != WET)
 				prec_sdate = true;
@@ -1780,7 +1780,7 @@ void Crop_sowing_date_new(Patch& patch, Pft& pft) {
 	else if((seasonality == SEASONALITY_PREC || seasonality == SEASONALITY_PRECTEMP && pft.hydrology != IRRIGATED) && climate.prec_range != WET)
 		prec_sdate = true;
 #else
-	if(seasonality == SEASONALITY_TEMP || .seasonality == SEASONALITY_TEMPPREC)
+	if(seasonality == SEASONALITY_TEMP || seasonality == SEASONALITY_TEMPPREC)
 		temp_sdate = true;
 	else if((seasonality == SEASONALITY_PREC || seasonality == SEASONALITY_PRECTEMP) && climate.prec_range != WET)
 		prec_sdate = true;

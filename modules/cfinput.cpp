@@ -425,11 +425,12 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	historic_timestep_min_temp = -1;
 	historic_timestep_max_temp = -1;
 
-	dprintf("\nCommencing simulation for stand at (%g,%g)", lon, lat);
-	if (current_gridcell->descrip != "") 
-		dprintf(" (%s)\n\n", current_gridcell->descrip.c_str());
-	else dprintf("\n\n");
-	
+	dprintf("\nCommencing simulation for gridcell at (%g,%g)\n", lon, lat);
+	if (current_gridcell->descrip != "") {
+		dprintf("Description: %s\n", current_gridcell->descrip.c_str());
+	}
+	dprintf("Using soil code and Nitrogen deposition for (%3.1f,%3.1f)\n", cru_lon, cru_lat);
+
 	return true;
 }
 

@@ -326,47 +326,20 @@ void CFInput::init() {
 
 bool CFInput::getgridcell(Gridcell& gridcell) {
 
-	int rlon, rlat, landid;
+	double lon, lat;
+	double cru_lon, cru_lat;
+	int soilcode;
 	
-	bool foundit = false;
-	while (!foundit) {
-		if (current_gridcell == gridlist.end()) {
-			return false;
-		}
-
-		rlon = current_gridcell->rlon;
-		rlat = current_gridcell->rlat;
-		landid = current_gridcell->landid;
-
-		if (cf_temp->is_reduced()) {
-			if (!cf_temp->load_data_for(landid) ||
-			    !cf_prec->load_data_for(landid) ||
-			    !cf_insol->load_data_for(landid) ||
-			    (cf_wetdays && !cf_wetdays->load_data_for(landid)) ||
-			    (cf_min_temp && !cf_min_temp->load_data_for(landid)) ||
-			    (cf_max_temp && !cf_max_temp->load_data_for(landid))) {
-				dprintf("Failed to load data for (%d) from NetCDF files, skipping.\n", landid);
-				++current_gridcell;
-			}
-			else {
-				foundit = true;
-			}
-		}
-		else {
-			if (!cf_temp->load_data_for(rlon, rlat) ||
-			    !cf_prec->load_data_for(rlon, rlat) ||
-			    !cf_insol->load_data_for(rlon, rlat) ||
-			    (cf_wetdays && !cf_wetdays->load_data_for(rlon, rlat)) ||
-			    (cf_min_temp && !cf_min_temp->load_data_for(rlon, rlat)) ||
-			    (cf_max_temp && !cf_max_temp->load_data_for(rlon, rlat))) {
-				dprintf("Failed to load data for (%d, %d) from NetCDF files, skipping.\n", rlat, rlon);
-				++current_gridcell;
-			}
-			else {
-				foundit = true;
-			}
-		}
+	while (current_gridcell != gridlist.end() &&
+	       !load_data_from_files(lon, lat, cru_lon, cru_lat, soilcode)) {
+		++current_gridcell;
 	}
+
+	if (current_gridcell == gridlist.end()) {
+		return false;
+	}
+
+	gridcell.set_coordinates(lon, lat);
 
 	load_spinup_data(cf_temp, spinup_temp);
 	load_spinup_data(cf_prec, spinup_prec);
@@ -388,30 +361,6 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 
 	gridcell.climate.instype = cf_standard_name_to_insoltype(cf_insol->get_standard_name());
 
-	double lon, lat;
-
-	if (cf_temp->is_reduced()) {
-		cf_temp->get_coords_for(landid, lon, lat);
-	}
-	else {
-		cf_temp->get_coords_for(rlon, rlat, lon, lat);
-	}
-
-	gridcell.set_coordinates(lon, lat);
-
-	// Find nearest CRU grid cell in order to get the soilcode
-
-	int soilcode;
-	double cru_lon = lon, cru_lat = lat;
-	double dummy[CRU_TS30::NYEAR_HIST][12];
-
-	const double searchradius = 1;
-
-	if (!CRU_TS30::findnearestCRUdata(searchradius, file_cru, cru_lon, cru_lat, soilcode,
-	                             dummy, dummy, dummy)) {
-		fail("Failed to find soil code from CRU archive, close to coordinates (%g,%g)", cru_lon, cru_lat);
-	}
-
 	// Get nitrogen deposition, using the found CRU coordinates
 	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat);
 
@@ -430,6 +379,62 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 		dprintf("Description: %s\n", current_gridcell->descrip.c_str());
 	}
 	dprintf("Using soil code and Nitrogen deposition for (%3.1f,%3.1f)\n", cru_lon, cru_lat);
+
+	return true;
+}
+
+bool CFInput::load_data_from_files(double& lon, double& lat,
+                                   double& cru_lon, double& cru_lat,
+                                   int& soilcode) {
+
+	int rlon = current_gridcell->rlon;
+	int rlat = current_gridcell->rlat;
+	int landid = current_gridcell->landid;
+
+	if (cf_temp->is_reduced()) {
+		if (!cf_temp->load_data_for(landid) ||
+		    !cf_prec->load_data_for(landid) ||
+		    !cf_insol->load_data_for(landid) ||
+		    (cf_wetdays && !cf_wetdays->load_data_for(landid)) ||
+		    (cf_min_temp && !cf_min_temp->load_data_for(landid)) ||
+		    (cf_max_temp && !cf_max_temp->load_data_for(landid))) {
+			dprintf("Failed to load data for (%d) from NetCDF files, skipping.\n", landid);
+			return false;
+		}
+	}
+	else {
+		if (!cf_temp->load_data_for(rlon, rlat) ||
+		    !cf_prec->load_data_for(rlon, rlat) ||
+		    !cf_insol->load_data_for(rlon, rlat) ||
+		    (cf_wetdays && !cf_wetdays->load_data_for(rlon, rlat)) ||
+		    (cf_min_temp && !cf_min_temp->load_data_for(rlon, rlat)) ||
+		    (cf_max_temp && !cf_max_temp->load_data_for(rlon, rlat))) {
+			dprintf("Failed to load data for (%d, %d) from NetCDF files, skipping.\n", rlat, rlon);
+			return false;
+		}
+	}
+
+	if (cf_temp->is_reduced()) {
+		cf_temp->get_coords_for(landid, lon, lat);
+	}
+	else {
+		cf_temp->get_coords_for(rlon, rlat, lon, lat);
+	}
+
+	// Find nearest CRU grid cell in order to get the soilcode
+
+	cru_lon = lon;
+	cru_lat = lat;
+	double dummy[CRU_TS30::NYEAR_HIST][12];
+
+	const double searchradius = 1;
+
+	if (!CRU_TS30::findnearestCRUdata(searchradius, file_cru, cru_lon, cru_lat, soilcode,
+	                                  dummy, dummy, dummy)) {
+		dprintf("Failed to find soil code from CRU archive, close to coordinates (%g,%g), skipping.\n", 
+		        cru_lon, cru_lat);
+		return false;
+	}
 
 	return true;
 }

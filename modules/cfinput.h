@@ -48,6 +48,14 @@ private:
 	/// The current grid cell to simulate
 	std::vector<Coord>::iterator current_gridcell;
 
+	/// Loads data from NetCDF files for current grid cell
+	/** Returns the coordinates for the current grid cell, for
+	 *  the closest CRU grid cell and the soilcode for the cell.
+	 *  \returns whether it was possible to load data and find nearby CRU cell */
+	bool load_data_from_files(double& lon, double& lat,
+	                          double& cru_lon, double& cru_lat,
+	                          int& soilcode);
+
 	/// Gets the first few years of data from cf_var and puts it into spinup_data
 	void load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_var,
 	                      GenericSpinupData& spinup_data);

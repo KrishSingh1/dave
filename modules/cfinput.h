@@ -153,6 +153,10 @@ private:
 
 	/// Whether gridcell is divided into equal active landcover fractions.
 	bool equal_landcover_area;
+
+	// Timers for keeping track of progress through the simulation
+	Timer tprogress,tmute;
+	static const int MUTESEC=20; // minimum number of sec to wait between progress messages
 };
 
 #endif // LPJ_GUESS_CFINPUT_H

@@ -315,6 +315,13 @@ void CFInput::init() {
 	current_gridcell = gridlist.begin();
 
 	date.set_first_calendar_year(cf_temp->get_date_time(0).get_year() - nyear_spinup);
+
+	// Set timers
+	tprogress.init();
+	tmute.init();
+
+	tprogress.settimer();
+	tmute.settimer(MUTESEC);
 }
 
 bool CFInput::getgridcell(Gridcell& gridcell) {
@@ -683,6 +690,31 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 		}
 		else {
 			fail("When BVOC is switched on, valid paths for minimum and maximum temperature must be given.");
+		}
+	}
+
+	// First day of year only ...
+
+	if (date.day == 0) {
+
+		// Progress report to user and update timer
+
+		if (tmute.getprogress()>=1.0) {
+
+			int first_historic_year = cf_temp->get_date_time(0).get_year();
+			int last_historic_year = cf_temp->get_date_time(cf_temp->get_timesteps()-1).get_year();
+			int historic_years = last_historic_year - first_historic_year + 1;
+
+			int years_to_simulate = nyear_spinup + historic_years;
+
+			int cells_done = distance(gridlist.begin(), current_gridcell);
+
+			double progress=(double)(cells_done*years_to_simulate+date.year)/
+				(double)(gridlist.size()*years_to_simulate);
+			tprogress.setprogress(progress);
+			dprintf("%3d%% complete, %s elapsed, %s remaining\n",(int)(progress*100.0),
+				tprogress.elapsed.str,tprogress.remaining.str);
+			tmute.settimer(MUTESEC);
 		}
 	}
 

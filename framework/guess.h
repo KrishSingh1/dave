@@ -2830,6 +2830,8 @@ public:
 	bool singlecrop;
 	/// first and last day of crop sowing window, calculated in calc_sowing_windows()
 	int swindow[2];
+	/// temperature limits precludes crop sowing
+	bool sowing_restriction;
 
 	// MEMBER FUNCTIONS
 
@@ -2869,6 +2871,7 @@ public:
 		singlecrop=true;
 		swindow[0]=-1;
 		swindow[1]=-1;
+		sowing_restriction = false;
 	}
 
 	void serialize(ArchiveStream& arch);

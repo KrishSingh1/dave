@@ -1270,8 +1270,8 @@ void Gridcellpft::serialize(ArchiveStream& arch) {
 		& hdate_force
 		& hlimitdate_default
 		& wintertype
-		& singlecrop
-		& swindow;
+		& swindow
+		& sowing_restriction;
 }
 
 

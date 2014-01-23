@@ -19,7 +19,8 @@
 #define SD_TEMP_WINDOW				//Uses sowing window for temperature-dependent sowing.
 #define IRRIGATED_USE_TEMP_SDATE	//Use temperature-dependent sowing date for irrigated crops at site with PRECTEMP seasonality.
 //#define DELAYED_SEEDCARBON		//Seed carbon allocation to leaves and roots are done over a 10-day period.
-
+//#define LOW_SOWING_TEMPERATURE_LIMIT	//Sowing not allowed when temperature is always below sowing limit. Intercrop grass groen instead year through.
+#define HIGH_SOWING_TEMPERATURE_LIMIT	//Sowing not allowed when mean temperature is above limit (TeWW).
 #define CMASS_SEED 0.01	// 10g/m2;	// Initial carbon allocated to crop organs at sowing.
 
 
@@ -1096,10 +1097,6 @@ void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft)
 				gridcellpft.wintertype = false;
 			gridcellpft.sdatecalc_temp = gridcellpft.sdate_force;
 		}
-
-		// Climatic limits for TeWW growth:	
-		if(!strncmp(pft.name,"TeWW", strlen("TeWW")) && climate.mtemp_min20 > 15.0)
-			gridcellpft.sdatecalc_temp = -1;
 	}
 	else if(pft.ifsdspring)	{							// TeCo,TeSf
 	
@@ -1111,7 +1108,22 @@ void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft)
 		else
 			gridcellpft.sdatecalc_temp = gridcellpft.last_springdate20;
 #endif
+
+#ifdef LOW_SOWING_TEMPERATURE_LIMIT
+		//Same lower temperature limit for sowing as for winter crops above.
+		if((gridcellpft.last_springdate20 == climate.testday_temp && 
+			gridcellpft.last_springdate == gridcellpft.last_springdate20)) {
+			// If spring has not occurred during the past 20 years.		
+			if(climate.maxtemp < pft.tempspring)	// Too cold to sow.
+				gridcellpft.sdatecalc_temp = -1;
+		}
+#endif
 	}
+#ifdef HIGH_SOWING_TEMPERATURE_LIMIT
+	// Climatic limits for TeWW growth:	
+	if(!strncmp(pft.name,"TeWW", strlen("TeWW")) && climate.mtemp_min20 > 15.0)
+		gridcellpft.sdatecalc_temp = -1;
+#endif
 
 	gridcellpft.springoccurred = false;	
 	gridcellpft.vernstartoccurred = false;	
@@ -1209,7 +1221,7 @@ void calc_sowing_windows(Gridcell& gridcell)
 		}
 	}
 
-	// Set gridcell-öevel sowing windows for crop pft:s
+	// Set gridcell-level sowing windows for crop pft:s
 	pftlist.firstobj();
 	while(pftlist.isobj) {
 
@@ -1241,7 +1253,7 @@ void calc_sowing_windows(Gridcell& gridcell)
 				def_sdate = true;
 
 
-			if(temp_sdate) {
+			if(temp_sdate && gridcellpft.sdatecalc_temp != -1) {
 
 				// Set sowing window around sdatecalc_temp
 				gridcellpft.swindow[0] = stepfromdate(gridcellpft.sdatecalc_temp, -15);
@@ -1262,11 +1274,6 @@ void calc_sowing_windows(Gridcell& gridcell)
 					if(dayinperiod(gridcellpft.swindow[0], climate.coldestday, stepfromdate(climate.coldestday, 100)))
 						gridcellpft.swindow[0] = climate.coldestday;
 				}
-
-				if(gridcellpft.sdatecalc_temp == -1) {
-					gridcellpft.swindow[0] = -1;
-					gridcellpft.swindow[1] = -1;
-				}
 			}
 
 			if(prec_sdate) {
@@ -1281,11 +1288,12 @@ void calc_sowing_windows(Gridcell& gridcell)
 				gridcellpft.swindow[1] = stepfromdate(gridcellpft.sdate_default, 15);
 			}
 
-			// Climatic limits for TeWW growth:	
-			if(!strncmp(pft.name,"TeWW", strlen("TeWW")) && climate.mtemp_min20>15.0) {
-				gridcellpft.swindow[0] = -1;	// sowing not possible
+			// Includes all temperature limits for sowing set in set_sdatecalc_temp() also for sites with any type of temperature seasonality
+			if(gridcellpft.sdatecalc_temp == -1) {
+				gridcellpft.swindow[0] = -1;
 				gridcellpft.swindow[1] = -1;
 			}
+
 		}
 		pftlist.nextobj();
 	}
@@ -1543,11 +1551,9 @@ void crop_sowing_gridcell(Gridcell& gridcell) {
 		pftlist.nextobj();
 	}
 
-#if defined NEWSOWINGDATE
 	if(date.day == climate.testday_temp)	// day 180/364
 		// Calculate sowing window for each crop pft
 		calc_sowing_windows(gridcell);
-#endif
 
 	if(date.islastmonth && date.islastday) {
 		// Update various climate 20-year means
@@ -1679,7 +1685,7 @@ void Crop_sowing_date_rice(Patch& patch, Pft& pft) {
 			else
 				ppftcrop.hlimitdate = gridcellpft.hlimitdate_default;
 		}
-		else if(date.day == ppftcrop.hdate + 1 && ppftcrop.hdate > 0) {
+		else if(date.day == stepfromdate(ppftcrop.hdate, 1) && ppftcrop.hdate > 0) {
 
 			if(ppftcrop.maincrop) {
 				ppftcrop.maincrop = false;
@@ -1741,7 +1747,7 @@ void Crop_sowing_date(Patch& patch, Pft& pft) {
 	if(pft.ifsdcalc) {
 
 		if(pft.ifsdtemp) {	//TeWW,TeCo,TeSf,TeRa		
-			if(date.day == ppftcrop.hdate + 1 && ppftcrop.hdate > 0 || date.day == ppftcrop.hlimitdate + 1 && ppftcrop.hlimitdate > 0)
+			if(date.day == stepfromdate(ppftcrop.hdate, 1) && ppftcrop.hdate > 0 || date.day == stepfromdate(ppftcrop.hlimitdate, 1) && ppftcrop.hlimitdate > 0)
 				Crop_sowing_date_temp(patch, pft);
 		}
 
@@ -1790,7 +1796,7 @@ void Crop_sowing_date_new(Patch& patch, Pft& pft) {
 
 
 	// adjust sowing window if too close to hlimitdate (before)
-	if(temp_sdate) {
+	if(temp_sdate && patchpft.swindow[0] != -1) {
 
 		if(dayinperiod(patchpft.swindow[0], stepfromdate(ppftcrop.hlimitdate, -100), ppftcrop.hlimitdate)) {
 
@@ -1803,7 +1809,7 @@ void Crop_sowing_date_new(Patch& patch, Pft& pft) {
 	// option not to constrain sowing to the sowing date window (as in the old sowing date method)
 #ifndef SD_TEMP_WINDOW
 	if(temp_sdate) {
-		if(date.day == ppftcrop.hdate + 1 && ppftcrop.hdate > 0 || date.day == ppftcrop.hlimitdate + 1 && ppftcrop.hlimitdate > 0)
+		if(date.day == stepfromdate(ppftcrop.hdate, 1) && ppftcrop.hdate > 0 || date.day == stepfromdate(ppftcrop.hlimitdate, 1) && ppftcrop.hlimitdate > 0)
 			Crop_sowing_date_temp(patch, pft);
 		return;
 	}
@@ -1899,34 +1905,48 @@ void crop_sowing_patch(Patch& patch) {
 
 			cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
 
-			if(!ppftcrop.growingseason) {
-#if defined NEWSOWINGDATE
-				// copy sowing window from gridcellpft
-				if(date.day == ppftcrop.hdate + 1 && ppftcrop.hdate > 0 || date.day == 0) {
+			if(date.day == climate.testday_temp) {
 
-					patchpft.swindow[0] = gridcellpft.swindow[0];
-					patchpft.swindow[1] = gridcellpft.swindow[1];
+				patchpft.swindow[0] = gridcellpft.swindow[0];
+				patchpft.swindow[1] = gridcellpft.swindow[1];
+			}
+
+			if(!ppftcrop.growingseason) {
+
+				// copy sowing window from gridcellpft
+				if(date.day == stepfromdate(ppftcrop.hdate, 1) && ppftcrop.hdate > 0 || date.day == climate.testday_temp) {
+
+					if(gridcellpft.swindow[0] == -1) {
+						gridcellpft.sowing_restriction = true;
+						ppftcrop.hdate = -1;
+						ppftcrop.eicdate = -1;	//redundant
+					}
+					else {
+						gridcellpft.sowing_restriction = false;
+					}
 				}
- 				// new sowing date method (Waha et al. 2010)
-				Crop_sowing_date_new(patch, pft);
-#else			// old sowing date method (Bondeau et al. 2007)
-				Crop_sowing_date(patch, pft);
+
+				if(!gridcellpft.sowing_restriction)	{
+
+#if defined NEWSOWINGDATE
+ 					// new sowing date method (Waha et al. 2010)
+					Crop_sowing_date_new(patch, pft);
+#else				// old sowing date method (Bondeau et al. 2007)
+					Crop_sowing_date(patch, pft);
 #endif
-				// use sowing date read from input file if (pft.forcesowingdate==true)
-				if(forcesowingdates)
-					Crop_sowing_date_forced(patch, pft);
+					// use sowing date read from input file if (pft.forcesowingdate==true)
+					if(forcesowingdates)
+						Crop_sowing_date_forced(patch, pft);
+				}
 			}
 
 			// set eicdate (last intercrop day)
 			if(ppftcrop.sdate != -1) {
 
-				ppftcrop.eicdate = ppftcrop.sdate - 15;
+				if(!ppftcrop.growingseason)
+					ppftcrop.eicdate = stepfromdate(ppftcrop.sdate, - 15);
 
-				if(ppftcrop.eicdate < 0)
-					ppftcrop.eicdate = 365 + ppftcrop.sdate - 15;
-
-				if(date.day > ppftcrop.eicdate && date.day <= ppftcrop.sdate
-					|| ppftcrop.sdate < ppftcrop.eicdate && date.day + 365 > ppftcrop.eicdate && date.day <= ppftcrop.sdate) {
+				if(dayinperiod(date.day, ppftcrop.eicdate, ppftcrop.sdate)) {
 
 					if(ppftcrop.intercropseason)
 						ppftcrop.eicdate = date.day;
@@ -2334,15 +2354,13 @@ void crop_phenology(Patch& patch)
 			if(ifcalcdynamic_phu && ppftcrop.growingseason == false && ppftcrop.hu_samplingperiod)
 				calc_hu(patch, pft);
 
-			if(pft.intercrop == NATURALGRASS && !ppftcrop.growingseason) {
+			if(pft.intercrop == NATURALGRASS) {
 
 				if(!ppftcrop.intercropseason && date.day == ppftcrop.bicdate)
 					ppftcrop.intercropseason = true;
 
-				if(ppftcrop.intercropseason && date.day == ppftcrop.eicdate) {
+				if(date.day == ppftcrop.eicdate) {
 					ppftcrop.intercropseason = false;
-					ppftcrop.demandsum_crop = 0.0;
-					ppftcrop.supplysum_crop = 0.0;
 				}
 			}
 		}
@@ -2416,14 +2434,14 @@ void leaf_phenology_crop(Pft& pft, Patch& patch)
 				}
 			}
 
-			// reset stand.gdd0_intercrop same day as gdd5_pasture
+			// reset stand.gdd0_intercrop same day as gdd5
 			if (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE || climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE
 					|| climate.gdd5 == 0.0)
 				patch.stand.gdd0_intercrop = 0.0;
 
 			if(ppftcrop.growingseason) {	// includes bicdate, not eicdate
 			
-				if(patch.stand.pftid == pft.id)	// Normal grass growth: gives identical result to natural stands.
+				if(patch.stand.pftid == pft.id || gridcell.pft[patch.stand.pftid].sowing_restriction)	// Normal grass growth: gives identical result to natural stands.
 					patchpft.phen = min(1.0, climate.gdd5 / pft.phengdd5ramp);
 				else if(patch.stand.gdd0_intercrop > 0.0)
 					patchpft.phen = min(1.0, (climate.gdd5 - patch.stand.gdd0_intercrop) / (pft.phengdd5ramp * 0.9)); // intercrop grass

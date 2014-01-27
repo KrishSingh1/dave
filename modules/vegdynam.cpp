@@ -496,7 +496,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						allometry(indiv);
 
 						// Calculate storage pool size
-						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
+						indiv.max_n_storage = indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr;
 						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
 
 						// Establishment flux is not debited for 'new' Individual
@@ -627,7 +627,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						allometry(indiv);
 
 						// Calculate storage pool size
-						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
+						indiv.max_n_storage = indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr;
 						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
 
 						// Establishment flux is not debited for 'new' Individual

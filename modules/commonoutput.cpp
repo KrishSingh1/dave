@@ -972,10 +972,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					plot("Soil C [kg C/m2]","soil",          date.year, centuryc); 
 					plot("Soil C [kg C/m2]","total",         date.year, surfsoillitterc + cwdc + centuryc); 
 
-					plot("Soil N [kg N/ha]","fine litter",   date.year, surfsoillittern);
-					plot("Soil N [kg N/ha]","coarse litter", date.year, cwdn);
-					plot("Soil N [kg N/ha]","soil",          date.year, centuryn); 
-					plot("Soil N [kg N/ha]","total",         date.year, surfsoillittern + cwdn + centuryn); 
+					plot("Soil N [kg N/m2]","fine litter",   date.year, surfsoillittern);
+					plot("Soil N [kg N/m2]","coarse litter", date.year, cwdn);
+					plot("Soil N [kg N/m2]","soil",          date.year, centuryn); 
+					plot("Soil N [kg N/m2]","total",         date.year, surfsoillittern + cwdn + centuryn); 
 				}
 			}
 		}

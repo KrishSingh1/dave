@@ -198,7 +198,7 @@ void CommonOutput::define_output_tables() {
 	if (run_landcover && ifslowharvestpool) {
 		 cpool_columns += ColumnDescriptor("HarvSlowC",   10, 3);
 	}
-	cpool_columns += ColumnDescriptor("Total",            10, 5);
+	cpool_columns += ColumnDescriptor("Total",            10, 3);
 
 	//CROP YIELD
 	ColumnDescriptors crop_columns;
@@ -447,8 +447,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	// If only yearly output between, say 1961 and 1990 is requred, use: 
 	//	if (date.year>=nyear_spinup+60 && date.year<nyear_spinup+90) {
 
-//	if (date.year >= nyear_spinup) {
-		{
+	if (date.year >= nyear_spinup) {
+
 		double lon = gridcell.get_lon();
 		double lat = gridcell.get_lat();
 

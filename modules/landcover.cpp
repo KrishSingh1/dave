@@ -18,11 +18,10 @@
 #define MAXHUTEMP					//30 degree limit for heat unit summation
 #define SD_TEMP_WINDOW				//Uses sowing window for temperature-dependent sowing.
 #define IRRIGATED_USE_TEMP_SDATE	//Use temperature-dependent sowing date for irrigated crops at site with PRECTEMP seasonality.
-//#define DELAYED_SEEDCARBON		//Seed carbon allocation to leaves and roots are done over a 10-day period.
 //#define LOW_SOWING_TEMPERATURE_LIMIT	//Sowing not allowed when temperature is always below sowing limit. Intercrop grass groen instead year through.
 #define HIGH_SOWING_TEMPERATURE_LIMIT	//Sowing not allowed when mean temperature is above limit (TeWW).
-#define CMASS_SEED 0.01	// 10g/m2;	// Initial carbon allocated to crop organs at sowing.
-
+//#define DELAYED_SEEDCARBON		//Seed carbon allocation to leaves and roots are done over a 10-day period.
+//#define GRASS_SEED_CMASS	// Carbon allocated to grass on bicdate or the day after turnover.
 
 /////////////////////////// Functions facilitating handling time periods spanning newyear //////////////////////////////////////
 
@@ -442,25 +441,10 @@ void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCO
 					Individual& indiv = vegetation.getobj();
 					Patchpft& patchpft = patch.pft[indiv.pft.id];
 
-					cp.cmass_leaf = indiv.cmass_leaf;
-					cp.cmass_root = indiv.cmass_root;
-					cp.cmass_sap = indiv.cmass_sap;
-					cp.cmass_heart = indiv.cmass_heart;
-					cp.cmass_debt = indiv.cmass_debt;
-
-					cp.nmass_leaf = indiv.nmass_leaf;
-					cp.nmass_root = indiv.nmass_root;
-					cp.nmass_sap = indiv.nmass_sap;
-					cp.nmass_heart = indiv.nmass_heart;
-					cp.nstore_longterm = indiv.nstore_longterm;
-					cp.nstore_labile = indiv.nstore_labile;
-
-					if(indiv.pft.landcover == CROPLAND) {
-						cp.cmass_ho = indiv.cropindiv->cmass_ho;
-						cp.cmass_agpool = indiv.cropindiv->cmass_agpool;
-						cp.nmass_ho = indiv.cropindiv->nmass_ho;
-						cp.nmass_agpool = indiv.cropindiv->nmass_agpool;
-					}
+					if(indiv.has_daily_turnover())
+						cp.copy_from_indiv(indiv, true, false);
+					else
+						cp.copy_from_indiv(indiv, false, false);
 
 					// Harvest of transferred areas:
 					switch (indiv.pft.landcover)
@@ -488,7 +472,7 @@ void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCO
 						cp.nmass_litter_leaf,
 						cp.nmass_litter_root,
 						cp.nstore_longterm, 
-						indiv.alive, gridcell);
+						indiv.alive);
 
 					gridcell.LC_updated = true;
 
@@ -815,15 +799,17 @@ void receiving_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLA
 					patch.soil.k_soilslow_mean = (patch.soil.k_soilslow_mean * old_frac + from.transfer_k_soilslow_mean * added_frac) / new_frac;
 
 					// add fluxes:
-					patch.fluxes.report_flux(Fluxes::HARVESTC, from.transfer_acflux_harvest * added_frac / new_frac); // no harvest C here anymore, goes to gridcell.acflux_harvest instead
+//					patch.fluxes.report_flux(Fluxes::HARVESTC, from.transfer_acflux_harvest * added_frac / new_frac); // no harvest C here anymore, goes to gridcell.acflux_harvest instead
 					patch.fluxes.report_flux(Fluxes::HARVESTN, from.transfer_anflux_harvest * added_frac / new_frac);
 		
 					// set scaling factor to be used in growth() for scaling vegetation C and N:
 					stand.scale_LC_change = old_frac / new_frac;
 
-					// save individual N content for use in growth()
+					// save individual C and N content for use in scale_indiv()
 					for(unsigned int i=0; i<patch.vegetation.nobj ;i++) {
 						Individual& indiv = patch.vegetation[i];
+
+						indiv.save_cmass_luc();
 						indiv.save_nmass_luc();
 					}
 
@@ -1407,29 +1393,29 @@ void calc_seasonality(Gridcell& gridcell) {
 	gridcell.climate.var_temp = var_temp;
 
 	if (var_prec <= 0.4 && var_temp <= 0.010)				// no seasonality
-		climate.seasonality = SEASONALITY_NO;				// 0
+		climate.seasonality_lastyear = SEASONALITY_NO;				// 0
 	else if (var_prec > 0.4) {
 
 		if(var_temp <= 0.010)								// precipitation seasonality only
-			climate.seasonality = SEASONALITY_PREC;			// 1
+			climate.seasonality_lastyear = SEASONALITY_PREC;			// 1
 		else if(var_temp > 0.010) {
 		
 			if(gridcell.climate.mtemp_min20 > TEMPMIN)		// both seasonalities, but "weak" temperature seasonality (coldest month > 10degC)
-				climate.seasonality = SEASONALITY_PRECTEMP;	// 2
+				climate.seasonality_lastyear = SEASONALITY_PRECTEMP;	// 2
 			else if(gridcell.climate.mtemp_min20 < TEMPMIN)	// both seasonalities, but temperature most important
-				climate.seasonality = SEASONALITY_TEMPPREC;	// 4
+				climate.seasonality_lastyear = SEASONALITY_TEMPPREC;	// 4
 		}
 	}
 	else if(var_prec <= 0.4) {
 
 		if (var_temp > 0.010)								// Temperature seasonality only
-			climate.seasonality = SEASONALITY_TEMP;			// 3
+			climate.seasonality_lastyear = SEASONALITY_TEMP;			// 3
 		 
 /*															// SEASONALITY_TEMPWARM currently not used, default sdate value is coldest day anyway when always above PFT limit.
 			if(gridcell.climate.mtemp_min20 < TEMPMIN)		// Temperature seasonality only
-				climate.seasonality = SEASONALITY_TEMP;		// 3
+				climate.seasonality_lastyear = SEASONALITY_TEMP;		// 3
 			else if(gridcell.climate.mtemp_min20 >= TEMPMIN))	// Temperature seasonality, always above 10 degrees
-				climate.seasonality = SEASONALITY_TEMPWARM;	// 5
+				climate.seasonality_lastyear = SEASONALITY_TEMPWARM;	// 5
 */
 	}
 
@@ -1441,49 +1427,57 @@ void calc_seasonality(Gridcell& gridcell) {
 	}
 
 	if(minprec_pet20 <= 0.5 && maxprec_pet20 <= 0.5)							//Extremes of monthly means
-		climate.prec_seasonality = DRY;						// 0
+		climate.prec_seasonality_lastyear = DRY;						// 0
 	else if(minprec_pet20 <= 0.5 && maxprec_pet20>0.5 && maxprec_pet20 <= 1.0)		
-		climate.prec_seasonality = DRY_INTERMEDIATE;		// 1
+		climate.prec_seasonality_lastyear = DRY_INTERMEDIATE;		// 1
 	else if(minprec_pet20 <= 0.5 && maxprec_pet20 > 1.0)
-		climate.prec_seasonality = DRY_WET;					// 2
+		climate.prec_seasonality_lastyear = DRY_WET;					// 2
 	else if(minprec_pet20 > 0.5 && minprec_pet20 <= 1.0 && maxprec_pet20 > 0.5 && maxprec_pet20 <= 1.0)
-		climate.prec_seasonality = INTERMEDIATE;			// 3
+		climate.prec_seasonality_lastyear = INTERMEDIATE;			// 3
 	else if(minprec_pet20 > 1.0 && maxprec_pet20 > 1.0)
-		climate.prec_seasonality = WET;						// 5
+		climate.prec_seasonality_lastyear = WET;						// 5
 	else if(minprec_pet20 > 0.5 && minprec_pet20 <= 1.0 && maxprec_pet20 > 1.0)		
-		climate.prec_seasonality = INTERMEDIATE_WET;		// 4
+		climate.prec_seasonality_lastyear = INTERMEDIATE_WET;		// 4
 	else
 		dprintf("Problem with calculating precipitation seasonality !\n");
 
 	if(climate.mprec_petmin20 <= 0.5 && climate.mprec_petmax20 <= 0.5)			//Average of extremes
-		climate.prec_range = DRY;							//0
+		climate.prec_range_lastyear = DRY;							//0
 	else if(climate.mprec_petmin20 <= 0.5 && climate.mprec_petmax20 > 0.5 && climate.mprec_petmax20 <= 1.0)
-		climate.prec_range = DRY_INTERMEDIATE;				//1
+		climate.prec_range_lastyear = DRY_INTERMEDIATE;				//1
 	else if(climate.mprec_petmin20 <= 0.5 && climate.mprec_petmax20 > 1.0)			
-		climate.prec_range = DRY_WET;						//2
+		climate.prec_range_lastyear = DRY_WET;						//2
 	else if(climate.mprec_petmin20 > 0.5 && climate.mprec_petmin20 <= 1.0 && climate.mprec_petmax20 > 0.5 && climate.mprec_petmax20 <= 1.0)
-		climate.prec_range = INTERMEDIATE;					//3
+		climate.prec_range_lastyear = INTERMEDIATE;					//3
 	else if(climate.mprec_petmin20 > 1.0 && climate.mprec_petmax20 > 1.0)
-		climate.prec_range = WET;							//5
+		climate.prec_range_lastyear = WET;							//5
 	else if(climate.mprec_petmin20 > 0.5 && climate.mprec_petmin20 <= 1.0 && climate.mprec_petmax20 > 1.0)
-		climate.prec_range = INTERMEDIATE_WET;				//4
+		climate.prec_range_lastyear = INTERMEDIATE_WET;				//4
 	else
 		dprintf("Problem with calculating precipitation range !\n");
 
 	if(climate.mtemp_max20 <= 10)
-		climate.temp_seasonality = COLD;					//0
+		climate.temp_seasonality_lastyear = COLD;					//0
 	else if(climate.mtemp_min20 <= 10 && climate.mtemp_max20 > 10 && climate.mtemp_max20 <= 30)
-		climate.temp_seasonality = COLD_WARM;				//1
+		climate.temp_seasonality_lastyear = COLD_WARM;				//1
 	else if(climate.mtemp_min20 <= 10 && climate.mtemp_max20 > 30)
-		climate.temp_seasonality=COLD_HOT;					//2
+		climate.temp_seasonality_lastyear = COLD_HOT;					//2
 	else if(climate.mtemp_min20 > 10 && climate.mtemp_max20 <= 30)
-		climate.temp_seasonality = WARM;					//3
+		climate.temp_seasonality_lastyear = WARM;					//3
 	else if(climate.mtemp_min20 > 30)
-		climate.temp_seasonality = HOT;						//5
+		climate.temp_seasonality_lastyear = HOT;						//5
 	else if(climate.mtemp_min20 > 10 && climate.mtemp_max20 > 30)	
-		climate.temp_seasonality = WARM_HOT;				//4
+		climate.temp_seasonality_lastyear = WARM_HOT;				//4
 	else
 		dprintf("Problem with calculating temperature seasonality !\n");
+}
+
+void update_seasonality(Climate& climate) {
+
+	climate.seasonality = climate.seasonality_lastyear;
+	climate.temp_seasonality = climate.temp_seasonality_lastyear;
+	climate.prec_seasonality = climate.prec_seasonality_lastyear;
+	climate.prec_range = climate.prec_range_lastyear;
 }
 
 /// Monitors climate history relevant for sowing date calculation. Calculates initial sowing dates/windows.
@@ -1551,15 +1545,19 @@ void crop_sowing_gridcell(Gridcell& gridcell) {
 		pftlist.nextobj();
 	}
 
-	if(date.day == climate.testday_temp)	// day 180/364
-		// Calculate sowing window for each crop pft
-		calc_sowing_windows(gridcell);
-
 	if(date.islastmonth && date.islastday) {
 		// Update various climate 20-year means
 		calc_m_climate_20y_mean(climate);
 		// Determines climate seasonality of gridcell
 		calc_seasonality(gridcell);
+	}
+
+	if(date.day == climate.testday_temp) {	// day 180/364
+
+		update_seasonality(climate);
+
+		// Calculate sowing window for each crop pft
+		calc_sowing_windows(gridcell);
 	}
 }
 
@@ -1685,7 +1683,7 @@ void Crop_sowing_date_rice(Patch& patch, Pft& pft) {
 			else
 				ppftcrop.hlimitdate = gridcellpft.hlimitdate_default;
 		}
-		else if(date.day == stepfromdate(ppftcrop.hdate, 1) && ppftcrop.hdate > 0) {
+		else if(date.day == stepfromdate(ppftcrop.hdate, 1) && ppftcrop.hdate != -1) {
 
 			if(ppftcrop.maincrop) {
 				ppftcrop.maincrop = false;
@@ -1747,7 +1745,7 @@ void Crop_sowing_date(Patch& patch, Pft& pft) {
 	if(pft.ifsdcalc) {
 
 		if(pft.ifsdtemp) {	//TeWW,TeCo,TeSf,TeRa		
-			if(date.day == stepfromdate(ppftcrop.hdate, 1) && ppftcrop.hdate > 0 || date.day == stepfromdate(ppftcrop.hlimitdate, 1) && ppftcrop.hlimitdate > 0)
+			if(date.day == stepfromdate(ppftcrop.hdate, 1) && ppftcrop.hdate != -1 || date.day == stepfromdate(ppftcrop.hlimitdate, 1) && ppftcrop.hlimitdate != -1)
 				Crop_sowing_date_temp(patch, pft);
 		}
 
@@ -1809,7 +1807,7 @@ void Crop_sowing_date_new(Patch& patch, Pft& pft) {
 	// option not to constrain sowing to the sowing date window (as in the old sowing date method)
 #ifndef SD_TEMP_WINDOW
 	if(temp_sdate) {
-		if(date.day == stepfromdate(ppftcrop.hdate, 1) && ppftcrop.hdate > 0 || date.day == stepfromdate(ppftcrop.hlimitdate, 1) && ppftcrop.hlimitdate > 0)
+		if(date.day == stepfromdate(ppftcrop.hdate, 1) && ppftcrop.hdate != -1 || date.day == stepfromdate(ppftcrop.hlimitdate, 1) && ppftcrop.hlimitdate > -1)
 			Crop_sowing_date_temp(patch, pft);
 		return;
 	}
@@ -1914,7 +1912,7 @@ void crop_sowing_patch(Patch& patch) {
 			if(!ppftcrop.growingseason) {
 
 				// copy sowing window from gridcellpft
-				if(date.day == stepfromdate(ppftcrop.hdate, 1) && ppftcrop.hdate > 0 || date.day == climate.testday_temp) {
+				if(date.day == stepfromdate(ppftcrop.hdate, 1) && ppftcrop.hdate != -1 || date.day == climate.testday_temp) {
 
 					if(gridcellpft.swindow[0] == -1) {
 						gridcellpft.sowing_restriction = true;
@@ -2282,7 +2280,7 @@ void crop_phenology(Patch& patch)
 				ppftcrop.growingdays++;
 
 				// check if harvest is prescribed
-				bool force_harvest = forceharvestdates && pft.forceharvestdate && gridcellpft.hdate_force > 0 && date.day == gridcellpft.hdate_force;
+				bool force_harvest = forceharvestdates && pft.forceharvestdate && gridcellpft.hdate_force != -1 && date.day == gridcellpft.hdate_force;
 
 				// before maturity is reached
 				if(ppftcrop.husum < ppftcrop.phu && dayinperiod(date.day, ppftcrop.sdate, stepfromdate(ppftcrop.hlimitdate, -1)) && !force_harvest) {
@@ -2303,7 +2301,7 @@ void crop_phenology(Patch& patch)
 
 				}
 				else {	// harvest
-				
+
 					// save today as harvest day
 					ppftcrop.hdate = date.day;
 
@@ -2368,6 +2366,9 @@ void crop_phenology(Patch& patch)
 		
 			if(patch.stand.pftid != pft.id) {
 				cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+
+				if(date.day == 0)
+					ppftcrop.nharv = 0;
 
 				if(date.day == patch.pft[patch.stand.pftid].cropphen->bicdate)
 					ppftcrop.growingseason = true;
@@ -2543,6 +2544,70 @@ if(!SUPPRESSLARGEOUTPUT)
 	}
 }
 
+/// Turnover function for continuous grass, to be called from any day of the year from allocation_crop_daily().
+void turnover_grass(Individual& indiv) {
+
+	cropindiv_struct& cropindiv = *(indiv.get_cropindiv());
+	Patchpft& patchpft = indiv.patchpft();
+
+	double cmass_leaf_inc = cropindiv.grs_cmass_leaf - indiv.cmass_leaf_post_turnover;
+	double cmass_root_inc = cropindiv.grs_cmass_root - indiv.cmass_root_post_turnover;
+
+	double grs_npp = cmass_leaf_inc + cmass_root_inc;
+#ifdef GRASS_SEED_CMASS
+	grs_npp -= CMASS_SEED;
+#endif
+	double cmass_leaf_pre_turnover = cropindiv.grs_cmass_leaf;
+	double cmass_root_pre_turnover = cropindiv.grs_cmass_root;
+	double cton_leaf_bg = indiv.cton_leaf(false);
+	double cton_root_bg = indiv.cton_root(false);
+
+	indiv.nstore_longterm += indiv.nstore_labile;
+	indiv.nstore_labile = 0.0;
+
+	turnover(indiv.pft.turnover_leaf, indiv.pft.turnover_root,
+		indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
+		indiv.cropindiv->grs_cmass_leaf, indiv.cropindiv->grs_cmass_root, indiv.cmass_sap, indiv.cmass_heart,
+		indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap, indiv.nmass_heart,
+		patchpft.litter_leaf,
+		patchpft.litter_root,
+		patchpft.nmass_litter_leaf,
+		patchpft.nmass_litter_root,
+		indiv.nstore_longterm, 
+		true);
+
+	indiv.cmass_leaf_post_turnover = cropindiv.grs_cmass_leaf;
+	indiv.cmass_root_post_turnover = cropindiv.grs_cmass_root;
+
+	if (indiv.nstore_longterm > indiv.max_n_storage) {
+						
+		// Nitrogen stored above maximum will be returned to litter
+		double nsurplus = indiv.nstore_longterm - indiv.max_n_storage;
+		indiv.nstore_longterm -= nsurplus;
+
+		// Return surplus nitrogen to litter
+		patchpft.nmass_litter_leaf += nsurplus * (indiv.pft.turnover_leaf / (indiv.pft.turnover_leaf + indiv.pft.turnover_root));
+		patchpft.nmass_litter_root += nsurplus * (indiv.pft.turnover_root / (indiv.pft.turnover_leaf + indiv.pft.turnover_root));
+	}
+
+	// Nitrogen longtime storage
+	// Nitrogen approx retranslocated next season
+	double retransn_nextyear = cmass_leaf_pre_turnover * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
+		cmass_root_pre_turnover * indiv.pft.turnover_root / cton_root_bg * nrelocfrac;
+
+	// Max longterm nitrogen storage
+	indiv.max_n_storage = min(cmass_root_pre_turnover * indiv.pft.fnstorage, 
+		(max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv) / cton_leaf_bg;
+
+	// Scale this year productivity to max storage
+	if (grs_npp > 0.0) {
+		indiv.scale_n_storage = max(0.5 * indiv.max_n_storage, indiv.max_n_storage - retransn_nextyear) * cton_leaf_bg / grs_npp;
+	}
+
+	indiv.nstore_labile = indiv.nstore_longterm;
+	indiv.nstore_longterm = 0.0;
+}
+
 /// Daily growth routine for crops
 /** Allocates daily npp to leaf, roots and harvestable organs
  *  Requires updated value of fphu and hi.
@@ -2657,6 +2722,11 @@ void allocation_crop_daily(Patch& patch) {
 				cropindiv.grs_cmass_agpool = cropindiv.grs_cmass_plant - cropindiv.grs_cmass_root - cropindiv.grs_cmass_leaf - cropindiv.grs_cmass_ho;
 				cropindiv.ycmass_agpool = cropindiv.ycmass_plant - cropindiv.ycmass_root - cropindiv.ycmass_leaf - cropindiv.ycmass_ho;
 
+				if(cropindiv.grs_cmass_agpool < 10e-10)
+					cropindiv.grs_cmass_agpool = 0,0;
+				if(cropindiv.ycmass_agpool < 10e-10)
+					cropindiv.ycmass_agpool = 0,0;
+
 				// save this year's maximum leaf carbon mass
 				if(cropindiv.grs_cmass_leaf > cropindiv.cmass_leaf_max)	
 					cropindiv.cmass_leaf_max = cropindiv.grs_cmass_leaf;
@@ -2664,6 +2734,9 @@ void allocation_crop_daily(Patch& patch) {
 				// save leaf carbon mass at the beginning of senescence
 				if(date.day == ppftcrop.sendate)
 					cropindiv.cmass_leaf_sen = cropindiv.grs_cmass_leaf;
+
+				// Check that no plant cmass is negative, if so, zero cmass and correct C fluxes
+				indiv.check_C_mass();
 			}
 			else if(date.day == ppftcrop.hdate) {
 
@@ -2678,6 +2751,13 @@ void allocation_crop_daily(Patch& patch) {
 				else if(ppftcrop.nharv == 2)
 					cropindiv.cmass_ho_harvest[1] = cropindiv.grs_cmass_ho;
 
+				if(indiv.has_daily_turnover()) {
+					if(patch.stand.gridcell.LC_updated && patchpft.cropphen->nharv == 1)
+						scale_indiv(indiv, true);
+					harvest_crop(indiv, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass, true);
+					patch.is_litter_day = true;
+				}
+
 				cropindiv.grs_cmass_plant = 0.0;
 				cropindiv.grs_cmass_root = 0.0;
 				cropindiv.grs_cmass_ho = 0.0;
@@ -2690,6 +2770,7 @@ void allocation_crop_daily(Patch& patch) {
 				cropindiv.dcmass_ho = 0.0;
 				cropindiv.dcmass_leaf = 0.0;
 				cropindiv.dcmass_agpool = 0.0;
+
 			}
 		}
 		// crop grass allocation
@@ -2698,11 +2779,27 @@ void allocation_crop_daily(Patch& patch) {
 
 			if(ppftcrop.growingseason) {
 
-				indiv.ltor = indiv.wscal_mean * indiv.pft.ltor_max;	
-										
-				cropindiv.dcmass_plant = indiv.dnpp;
+				cropindiv.dcmass_plant = 0.0;
+#ifdef GRASS_SEED_CMASS
+				// add seed carbon
+				if(!indiv.continous_grass() && date.day == patch.pft[patch.stand.pftid].cropphen->bicdate 
+					|| indiv.continous_grass() && date.day == stepfromdate(indiv.last_turnover_day, 1)) {
+
+					cropindiv.grs_cmass_plant += CMASS_SEED;
+					cropindiv.ycmass_plant += CMASS_SEED;
+					cropindiv.dcmass_plant += CMASS_SEED;
+
+					// This flux will be balancing litter fluxes for the NEXT year.
+					patch.fluxes.report_flux(Fluxes::SEEDC, -CMASS_SEED);
+
+					indiv.last_turnover_day = -1;
+				}
+#endif									
+				cropindiv.dcmass_plant += indiv.dnpp;
 				cropindiv.grs_cmass_plant += indiv.dnpp;		
 				cropindiv.ycmass_plant += indiv.dnpp;
+
+				indiv.ltor = indiv.wscal_mean * indiv.pft.ltor_max;
 
 				// allocation to roots
 				froot = 1.0 / (1.0 + indiv.ltor);
@@ -2719,6 +2816,9 @@ void allocation_crop_daily(Patch& patch) {
 				cropindiv.grs_cmass_leaf = cropindiv.grs_cmass_plant - cropindiv.grs_cmass_root;
 				cropindiv.dcmass_leaf = cropindiv.grs_cmass_leaf - grs_cmass_leaf_old;
 				cropindiv.ycmass_leaf += cropindiv.dcmass_leaf;
+
+				// Check that no plant cmass is negative, if so, zero cmass and correct C fluxes
+				indiv.check_C_mass();
 			}
 			else if(date.day == patch.pft[patch.stand.pftid].get_cropphen()->eicdate) {
 
@@ -2728,10 +2828,56 @@ void allocation_crop_daily(Patch& patch) {
 				cropindiv.harv_cmass_ho += cropindiv.grs_cmass_ho;		
 				cropindiv.harv_cmass_agpool += cropindiv.grs_cmass_agpool;
 
-				cropindiv.grs_cmass_plant = 0.0;
-				cropindiv.grs_cmass_root = 0.0;
-				cropindiv.grs_cmass_ho = 0.0;
-				cropindiv.grs_cmass_leaf = 0.0;
+				ppftcrop.nharv++;
+
+				if(indiv.has_daily_turnover()) {
+					if(patch.stand.gridcell.LC_updated && patchpft.cropphen->nharv == 1)
+						scale_indiv(indiv, true);
+					harvest_crop(indiv, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass, true);
+					patch.is_litter_day = true;
+				}
+				else {
+					cropindiv.grs_cmass_root = 0.0;
+					cropindiv.grs_cmass_ho = 0.0;
+					cropindiv.grs_cmass_leaf = 0.0;
+					cropindiv.grs_cmass_agpool = 0.0;
+				}
+
+				cropindiv.grs_cmass_plant = cropindiv.grs_cmass_root + cropindiv.grs_cmass_leaf;
+
+				cropindiv.dcmass_plant = 0.0;
+				cropindiv.dcmass_root = 0.0;
+				cropindiv.dcmass_ho = 0.0;
+				cropindiv.dcmass_leaf = 0.0;
+				cropindiv.dcmass_agpool = 0.0;
+			}
+			
+			if(indiv.continous_grass() && indiv.is_turnover_day()) {
+
+				indiv.last_turnover_day = date.day;
+
+				cropindiv.harv_cmass_plant += cropindiv.grs_cmass_plant;	
+				cropindiv.harv_cmass_root += cropindiv.grs_cmass_root;	
+				cropindiv.harv_cmass_leaf += cropindiv.grs_cmass_leaf;	
+				cropindiv.harv_cmass_ho += cropindiv.grs_cmass_ho;		
+				cropindiv.harv_cmass_agpool += cropindiv.grs_cmass_agpool;
+
+				ppftcrop.nharv++;
+
+				if(indiv.has_daily_turnover()) {
+					if(patch.stand.gridcell.LC_updated && patchpft.cropphen->nharv == 1)
+						scale_indiv(indiv, true);
+
+					turnover_grass(indiv);
+					patch.is_litter_day = true;
+				}
+				else {
+					cropindiv.grs_cmass_root = 0.0;
+					cropindiv.grs_cmass_ho = 0.0;
+					cropindiv.grs_cmass_leaf = 0.0;
+				}
+
+				cropindiv.grs_cmass_plant = cropindiv.grs_cmass_root + cropindiv.grs_cmass_leaf;
 				cropindiv.grs_cmass_agpool = 0.0;
 
 				cropindiv.dcmass_plant = 0.0;
@@ -3066,19 +3212,18 @@ void harvest_pasture(Individual& indiv, Pft& pft, bool alive) {
 
 /// Harvest function for cropland, including true crops, intercrop grass 
 /**   and pasture grass grown in cropland.
- *  Function for balancing carbon and nitrogen fluxes from last year's growth
+ *  Function for balancing carbon and nitrogen fluxes from last year's growth if old-style harvest is selected (HARVEST_GRSC defined),
+ *  or, alternatively, this years harvested carbon and nitrogen.
  *  A fraction of harvestable organs (grass:leaves) is harvested (pft.harv_eff) and returned as acflux_harvest.
  *  A fraction of leaves is removed (pft.res_outtake) and returned as acflux_harvest
- *  The rest, including roots, is returned as litter.
- *  Called from growth() last day of the year for normal harvest/grazing.
+ *  The rest, including roots, is returned as litter, leaving NO carbon or nitrogen in living tissue.
+ *  Called from growth() last day of the year for old-style harvest/grazing or, alternatively, from crop_growth_daily() at harvest day
+ *	(hdate) or last intercrop day (eicdate).
  *  Also called from landcover_dynamics() first day of the year if any natural vegetation 
  *    is transferred to another land use.
  *  This calls for a scaling factor, when the pasture area has increased.
  *
- *  This function copies variables from an individual and it's associated patchpft and patch to
- *  a Harvest_CN struct, which is then passed on to the main harvest_crop function.
- *  After the execution of the main harvest_crop function, the output variables are copied
- *  back to the individual and patchpft and the patch-level fluxes are updated.
+ *  This function takes a Harvest_CN struct as an input parameter, copied from an individual and it's associated patchpft and patch.
  *
  *  INPUT/OUTPUT PARAMETERS 
  *  \param Harvest_CN& i			struct containing the following indiv-specific public members:
@@ -3113,20 +3258,19 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 	// all root carbon and nitrogen goes to litter
 		if(i.cmass_root > 0.0)
 			i.litter_root += i.cmass_root;
+		i.cmass_root = 0.0;
+
 		if(i.nmass_root > 0.0)
 			i.nmass_litter_root += i.nmass_root;
 		if(i.nstore_labile > 0.0)
 			i.nmass_litter_root += i.nstore_labile;
 		if(i.nstore_longterm > 0.0)
 			i.nmass_litter_root += i.nstore_longterm;
-
-		i.cmass_root = 0.0;
 		i.nmass_root = 0.0;
 		i.nstore_labile = 0.0;
 		i.nstore_longterm = 0.0;
 
 		// harvest of harvestable organs
-
 		// Carbon:
 		if(i.cmass_ho > 0.0) {
 			// harvested products
@@ -3138,8 +3282,6 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 			else
 				i.litter_root += (i.cmass_ho - harvest);
 
-			i.cmass_ho = 0.0;
-
 			// harvested products not consumed (oxidised) this year put into harvested_products_slow
 			if(ifslowharvestpool) {
 				i.harvested_products_slow += harvest * pft.harvest_slow_frac;
@@ -3149,6 +3291,7 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 			// harvested products consumed (oxidised) this year put into acflux_harvest
 			i.acflux_harvest += harvest;
 		}
+		i.cmass_ho = 0.0;
 
 		// Nitrogen:
 		if(i.nmass_ho > 0.0) {
@@ -3173,10 +3316,7 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 		}
 		i.nmass_ho = 0.0;
 
-
-
 		// residues
-
 		// Carbon
 		if ((i.cmass_leaf + i.cmass_agpool) > 0.0) {
 
@@ -3307,17 +3447,19 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 
 /// Harvest function for cropland, including true crops, intercrop grass 
 /**   and pasture grass grown in cropland.
- *  Function for balancing carbon and nitrogen fluxes from last year's growth
+ *  Function for balancing carbon and nitrogen fluxes from last year's growth if old-style harvest is selected (HARVEST_GRSC defined),
+ *  or, alternatively, this years harvested carbon and nitrogen.
  *  A fraction of harvestable organs (grass:leaves) is harvested (pft.harv_eff) and returned as acflux_harvest.
  *  A fraction of leaves is removed (pft.res_outtake) and returned as acflux_harvest
- *  The rest, including roots, is returned as litter.
- *  Called from growth() last day of the year for normal harvest/grazing.
+ *  The rest, including roots, is returned as litter, leaving NO carbon or nitrogen in living tissue.
+ *  Called from growth() last day of the year for old-style harvest/grazing or, alternatively, from crop_growth_daily() at harvest day
+ *	(hdate) or last intercrop day (eicdate).
  *  Also called from landcover_dynamics() first day of the year if any natural vegetation 
  *    is transferred to another land use.
  *  This calls for a scaling factor, when the pasture area has increased.
  *
  *  This function copies variables from an individual and it's associated patchpft and patch to
- *  a Harvest_CN struct, which is then passed on to the main harvest_crop function.
+ *  a Harvest_CN struct, which is then passed on to the main harvest_crop() function.
  *  After the execution of the main harvest_crop function, the output variables are copied
  *  back to the individual and patchpft and the patch-level fluxes are updated.
  *
@@ -3345,15 +3487,15 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
  *   - anflux_harvest   			harvest nitrogen flux out of system (kgC/m2)       
  *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgC/m2) 
  */ 
-void harvest_crop(Individual& indiv, Pft& pft, bool alive, bool isintercropgrass) {
+void harvest_crop(Individual& indiv, Pft& pft, bool alive, bool isintercropgrass, bool harvest_grsC) {
 
 	Harvest_CN indiv_cp;
 
-	indiv_cp.copy_from_indiv(indiv);
+	indiv_cp.copy_from_indiv(indiv, harvest_grsC);
 
 	harvest_crop(indiv_cp, pft, alive, isintercropgrass);
 
-	indiv_cp.copy_to_indiv(indiv);
+	indiv_cp.copy_to_indiv(indiv, harvest_grsC);
 
 }
 
@@ -3491,6 +3633,38 @@ void growth_crop_year(double cmass_leaf, double cmass_root, double cmass_ho, dou
 	cmass_root_inc = cmass_root;
 	cmass_ho_inc = cmass_ho;
 	cmass_agpool_inc = cmass_agpool;
+
+	return;
+}
+
+void growth_crop_year(Individual& indiv, double& cmass_leaf_inc, double& cmass_root_inc, double& cmass_ho_inc, double& cmass_agpool_inc) {
+
+	// true crop growth and grass intercrop growth; NB: bminit (cmass_repr & cmass_excess subtracted) not used !
+
+	double cmass_leaf = indiv.cropindiv->ycmass_leaf;
+	double cmass_root = indiv.cropindiv->ycmass_root;
+	double cmass_ho = indiv.cropindiv->ycmass_ho;
+	double cmass_agpool = indiv.cropindiv->ycmass_agpool;
+
+	if(indiv.has_daily_turnover()) {
+
+		indiv.cmass_leaf = 0.0;
+		indiv.cmass_root = 0.0;
+		indiv.cropindiv->cmass_ho = 0.0;
+		indiv.cropindiv->cmass_agpool = 0.0;
+
+		// Not completely accurate here when comparing this year's cmass after turnover with cmass increase (ycmass),
+		// which could be from the preceding season, but probably OK, since values are not used for C balance.
+		if(indiv.continous_grass()) {
+			indiv.cmass_leaf = indiv.cmass_leaf_post_turnover;
+			indiv.cmass_root = indiv.cmass_root_post_turnover;
+		}
+	}
+
+	cmass_leaf_inc = indiv.cropindiv->ycmass_leaf;
+	cmass_root_inc = indiv.cropindiv->ycmass_root;
+	cmass_ho_inc = indiv.cropindiv->ycmass_ho;
+	cmass_agpool_inc = indiv.cropindiv->ycmass_agpool;
 
 	return;
 }

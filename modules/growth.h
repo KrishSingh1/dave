@@ -24,6 +24,7 @@ double fracmass_lpj(double fpc_low,double fpc_high,Individual& indiv);
 void leaf_phenology(Patch& patch,Climate& climate);
 bool allometry(Individual& indiv); // guess2008 - now returns bool instead of void
 void allocation_init(double bminit,double ltor,Individual& indiv);
+void scale_indiv(Individual& indiv, bool scale_grsC);
 void growth(Stand& stand,Patch& patch);
 void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	lifeformtype lifeform, landcovertype landcover, double& cmass_leaf, double& cmass_root, double& cmass_sap,
@@ -31,6 +32,6 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	double& nmass_heart, double& litter_leaf, double& litter_root,
 	double& nmass_litter_leaf, double& nmass_litter_root,
 	double& retransn,
-	bool alive, Gridcell& gridcell);
+	bool alive);
 
 #endif // LPJ_GUESS_GROWTH_H

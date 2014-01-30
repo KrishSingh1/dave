@@ -502,8 +502,14 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						allometry(indiv);
 
 						// Calculate storage pool size
-						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
-						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
+						if(indiv.pft.phenology == CROPGREEN) {
+							indiv.max_n_storage = CMASS_SEED / indiv.pft.cton_leaf_avr;
+							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / CMASS_SEED;
+						}
+						else {
+							indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
+							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
+						}
 
 						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()

@@ -726,8 +726,6 @@ void transfer_litter(Patch& patch) {
 
 	Soil& soil = patch.soil;
 
-	LitterSolveSOM litterSolveSOM;
-
 	double EPS = -1.0e-16;
 
 	// Leaf, root and wood litter lignin fractions
@@ -787,8 +785,8 @@ void transfer_litter(Patch& patch) {
 
 		// Save litter input for equilsom()
 		if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
-			litterSolveSOM.add_litter(pft.litter_leaf * (1.0 - fm), pft.nmass_litter_leaf * (1.0 - fm), SURFSTRUCT);
-			litterSolveSOM.add_litter(pft.litter_leaf * fm, pft.nmass_litter_leaf * fm, SURFMETA);
+			soil.litterSolveSOM.add_litter(pft.litter_leaf * (1.0 - fm), pft.nmass_litter_leaf * (1.0 - fm), SURFSTRUCT);
+			soil.litterSolveSOM.add_litter(pft.litter_leaf * fm, pft.nmass_litter_leaf * fm, SURFMETA);
 		}
 
 		// Fire
@@ -842,8 +840,8 @@ void transfer_litter(Patch& patch) {
 
 		// Save litter input for equilsom()
 		if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
-			litterSolveSOM.add_litter(pft.litter_root * (1.0 - fm), pft.nmass_litter_root * (1.0 - fm), SOILSTRUCT);
-			litterSolveSOM.add_litter(pft.litter_root * fm, pft.nmass_litter_root * fm, SOILMETA);
+			soil.litterSolveSOM.add_litter(pft.litter_root * (1.0 - fm), pft.nmass_litter_root * (1.0 - fm), SOILSTRUCT);
+			soil.litterSolveSOM.add_litter(pft.litter_root * fm, pft.nmass_litter_root * fm, SOILMETA);
 		}
 
 		if (negligible(soil.sompool[SOILSTRUCT].cmass)) {
@@ -878,7 +876,7 @@ void transfer_litter(Patch& patch) {
 
 				// Save litter input for equilsom()
 				if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
-					litterSolveSOM.add_litter(pft.litter_sap, pft.nmass_litter_sap, SURFFWD);
+					soil.litterSolveSOM.add_litter(pft.litter_sap, pft.nmass_litter_sap, SURFFWD);
 				}
 
 				if (negligible(soil.sompool[SURFFWD].cmass)) {
@@ -913,7 +911,7 @@ void transfer_litter(Patch& patch) {
 
 				// Save litter input for equilsom()
 				if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
-					litterSolveSOM.add_litter(pft.litter_heart, pft.nmass_litter_heart, SURFCWD);
+					soil.litterSolveSOM.add_litter(pft.litter_heart, pft.nmass_litter_heart, SURFCWD);
 				}
 
 				if (negligible(soil.sompool[SURFCWD].cmass)) {
@@ -964,7 +962,10 @@ void transfer_litter(Patch& patch) {
 
 	// Add this year litter to 
 	if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
-		soil.solvesom.push_back(litterSolveSOM);
+		if (date.day == 0) {
+			soil.solvesom.push_back(soil.litterSolveSOM);
+			soil.litterSolveSOM.clear();
+		}
 	}
 }
 
@@ -1250,8 +1251,7 @@ void equilsom(Soil& soil) {
 void som_dynamics_century(Patch& patch) {
 
 	// First day of year only
-	if (date.day == 0) { 	
-
+	if (date.day == 0 || patch.is_litter_day) {
 		// Transfer last year's litter to SOM pools
 		transfer_litter(patch);
 	}

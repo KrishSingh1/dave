@@ -850,6 +850,8 @@ void dailyaccounting_patch(Patch& patch) {
 
 	if (date.islastday)
 		soil.mtemp = mean(soil.dtemp,date.ndaymonth[date.month]);
+
+	patch.is_litter_day = false;
 }
 
 

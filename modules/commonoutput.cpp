@@ -198,7 +198,7 @@ void CommonOutput::define_output_tables() {
 	if (run_landcover && ifslowharvestpool) {
 		 cpool_columns += ColumnDescriptor("HarvSlowC",   10, 3);
 	}
-	cpool_columns += ColumnDescriptor("Total",            10, 3);
+	cpool_columns += ColumnDescriptor("Total",            10, 5);
 
 	//CROP YIELD
 	ColumnDescriptors crop_columns;
@@ -447,8 +447,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	// If only yearly output between, say 1961 and 1990 is requred, use: 
 	//	if (date.year>=nyear_spinup+60 && date.year<nyear_spinup+90) {
 
-	if (date.year >= nyear_spinup) {
-
+//	if (date.year >= nyear_spinup) {
+		{
 		double lon = gridcell.get_lon();
 		double lat = gridcell.get_lat();
 
@@ -624,8 +624,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 							if (indiv.id!=-1 && indiv.alive) { 
 								
 								if (indiv.pft.id==pft.id) {
-									standpft_cmass += indiv.cmass_leaf + indiv.cmass_root + 
-													  indiv.cmass_wood();
+
+									if(indiv.has_daily_turnover() && indiv.cropindiv)
+										standpft_cmass += indiv.cropindiv->grs_cmass_leaf + indiv.cropindiv->grs_cmass_root;
+									else
+										standpft_cmass += indiv.cmass_leaf + indiv.cmass_root +  indiv.cmass_wood();
 									standpft_nmass += indiv.nmass_leaf + indiv.nmass_root + 
 													  indiv.nmass_wood() + indiv.nstore();
 									standpft_cmass_leaf += indiv.cmass_leaf;
@@ -637,7 +640,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 									standpft_nuptake += indiv.anuptake;
 
 									if(pft.landcover == CROPLAND) {
-										standpft_cmass += indiv.cropindiv->cmass_ho + indiv.cropindiv->cmass_agpool;
+
+										if(indiv.has_daily_turnover())
+											standpft_cmass += indiv.cropindiv->grs_cmass_ho + indiv.cropindiv->grs_cmass_agpool;
+										else
+											standpft_cmass += indiv.cropindiv->cmass_ho + indiv.cropindiv->cmass_agpool;
 										standpft_nmass += indiv.cropindiv->nmass_ho + indiv.cropindiv->nmass_agpool;
 
 										standpft_yield += indiv.cropindiv->harv_yield;
@@ -977,22 +984,21 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				availn += (patch.soil.nmass_avail + patch.soil.snowpack_nmass) * to_gridcell_average;
 
 				for (int r = 0; r < NSOMPOOL-1; r++) {
-					if (patch.soil.sompool[r].nmass > 0.0) {
-						if(r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
-							surfsoillitterc += patch.soil.sompool[r].cmass * to_gridcell_average;
-							surfsoillitterc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
-							surfsoillittern += patch.soil.sompool[r].nmass * to_gridcell_average;
-						}
-						else if (r == SURFFWD || r == SURFCWD) {
-							cwdc += patch.soil.sompool[r].cmass * to_gridcell_average;
-							cwdc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
-							cwdn += patch.soil.sompool[r].nmass * to_gridcell_average;
-						}
-						else {	
-							centuryc += patch.soil.sompool[r].cmass * to_gridcell_average;
-							centuryc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
-							centuryn += patch.soil.sompool[r].nmass * to_gridcell_average;
-						}
+
+					if(r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
+						surfsoillitterc += patch.soil.sompool[r].cmass * to_gridcell_average;
+						surfsoillitterc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
+						surfsoillittern += patch.soil.sompool[r].nmass * to_gridcell_average;
+					}
+					else if (r == SURFFWD || r == SURFCWD) {
+						cwdc += patch.soil.sompool[r].cmass * to_gridcell_average;
+						cwdc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
+						cwdn += patch.soil.sompool[r].nmass * to_gridcell_average;
+					}
+					else {	
+						centuryc += patch.soil.sompool[r].cmass * to_gridcell_average;
+						centuryc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
+						centuryn += patch.soil.sompool[r].nmass * to_gridcell_average;
 					}
 				}
 

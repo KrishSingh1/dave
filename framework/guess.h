@@ -26,8 +26,11 @@
 #define IRRIGATION					// Crop irrigation on
 #define NOPASTURESTOCH				// Undefine for fire and disturbance for pasture grass. Number of patches will be the same as for natural stands.
 //#define GRASSFORCROP				// Transfer cropland to pasture landcover for simplified crop definition (harvested competing c3/c4 grass).
+#define HARVEST_GRSC				// Harvest and/or turnover at the end of the growing season.
 
 const bool SUPPRESSLARGEOUTPUT=true;
+
+#define CMASS_SEED 0.01	// 10g/m2;	// Initial carbon allocated to crop organs at sowing.
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // #INCLUDES FOR LIBRARY HEADER FILES
@@ -634,19 +637,23 @@ public:
 
 	/// seasonality type (SEASONALITY_NO, SEASONALITY_PREC, SEASONALITY_PRECTEMP, SEASONALITY_TEMP, SEASONALITY_TEMPPREC)
 	seasonality_type seasonality;
+	seasonality_type seasonality_lastyear;
 
 	/// precipitation seasonality type (DRY, DRY_INTERMEDIATE, DRY_WET, INTERMEDIATE, INTERMEDIATE_WET, WET)
 	/** based on the extremes of the 20-year monthly means
 	 */
 	prec_seasonality_type prec_seasonality;
+	prec_seasonality_type prec_seasonality_lastyear;
 
 	/// precipitation range (DRY, DRY_INTERMEDIATE, DRY_WET, INTERMEDIATE, INTERMEDIATE_WET, WET)
 	/** based on the average of the 20-year monthly extremes
 	 */
 	prec_seasonality_type prec_range;
+	prec_seasonality_type prec_range_lastyear;
 
 	/// temperature seasonality (COLD, COLD_WARM, COLD_HOT, WARM, WARM_HOT, HOT)
 	temp_seasonality_type temp_seasonality;
+	temp_seasonality_type temp_seasonality_lastyear;
 
 	/// whether several months with precipitation maxima exists (remains to be implemented)
 	bool biseasonal;
@@ -683,9 +690,13 @@ public:
 		mprec_petmax20=0.0;		//111115
 
 		seasonality=SEASONALITY_NO;
+		seasonality_lastyear=SEASONALITY_NO;
 		prec_seasonality=DRY;
+		prec_seasonality_lastyear=DRY;
 		prec_range=DRY;
+		prec_range_lastyear=DRY;
 		temp_seasonality=COLD;
+		temp_seasonality_lastyear=COLD;
 		biseasonal=false;
 
 		eet=0.0;
@@ -1317,7 +1328,7 @@ public:
 	/// year's harvestable organ C biomass (= ycmass_plant)
 	double cmass_ho;
 	/// above-ground pool C biomass (when calculating daily cmass_leaf from lai_crop) (= ycmass_agpool)
-	double cmass_agpool;		
+	double cmass_agpool;	
 	/// nitrogen content of harvestable organs
 	double nmass_ho;
 	/// nitrogen content of above-ground pool
@@ -1354,6 +1365,15 @@ public:
 	double grs_cmass_ho;
 	/// daily updated above-ground pool C biomass, reset at harvest day
 	double grs_cmass_agpool;
+
+	/// carbon content of harvestable organs saved on first day of land use change year
+	double grs_cmass_leaf_luc;
+	/// carbon content of harvestable organs saved on first day of land use change year
+	double grs_cmass_root_luc;
+	/// carbon content of harvestable organs saved on first day of land use change year
+	double grs_cmass_ho_luc;
+	/// carbon content of above-ground pool saved on first day of land use change year
+	double grs_cmass_agpool_luc;
 
 	/// daily updated whole plant C biomass, reset at day 0
 	double ycmass_plant;
@@ -1419,6 +1439,10 @@ public:
 		grs_cmass_plant=0.0;
 		grs_cmass_ho=0.0;
 		grs_cmass_agpool=0.0;
+		grs_cmass_leaf_luc=0.0;
+		grs_cmass_root_luc=0.0;
+		grs_cmass_ho_luc=0.0;
+		grs_cmass_agpool_luc=0.0;
 		ycmass_leaf=0.0;
 		ycmass_root=0.0;
 		ycmass_plant=0.0;
@@ -1471,6 +1495,10 @@ public:
 	double cmass_heart;
 	/// C "debt" (retrospective storage) (kgC/m2)
 	double cmass_debt;
+
+	double cmass_leaf_post_turnover;
+	double cmass_root_post_turnover;
+	int last_turnover_day;
 
 	/// nitrogen content of leaves on patch area basis (kgN/m2)
 	double nmass_leaf;
@@ -1677,6 +1705,12 @@ public:
 		return (pft.landcover==CROPLAND && (pft.phenology==CROPGREEN || cropindiv->isintercropgrass));
 	}
 
+	/// Whether harvest and turnover is done on actual C and N on harvest or turnover day, which can occur any day of the year.
+	bool has_daily_turnover() const;
+
+	/// Whether turnover of coninuous grass is to be done this day.
+	bool is_turnover_day() const;
+
 	/// Reduce current biomass due to mortality and/or fire
 	/** The removed biomass is put into litter pools and/or goes to fire fluxes.
 	 *
@@ -1702,6 +1736,14 @@ public:
 		return nmass_sap + nmass_heart;
 	}
 
+	/// Whether grass growth is uninterrupted by crop growth.
+	bool continous_grass() const;
+
+	/// Checks whether any grs_cmass part is negative, in which case it is zeroed and fluxes are corrected.
+	void check_C_mass();
+
+	/// Save cmass-values on first day of the year of land cover change in expanding stands
+	void save_cmass_luc();
 	/// Save nmass-values on first day of the year of land cover change in expanding stands
 	void save_nmass_luc();
 
@@ -2083,6 +2125,9 @@ public:
 	int solvesomcent_beginyr;
 	/// years at which to end documentation and start calculation of Century equilibrium
 	int solvesomcent_endyr;
+
+	/// Cumulative litter pools for one year.
+	LitterSolveSOM litterSolveSOM;
 
 	std::vector<LitterSolveSOM> solvesom;
 
@@ -2573,6 +2618,9 @@ public:
 	double irrigation_d;
 	/// yearly sum of irrigation water (mm)
 	double irrigation_y;
+
+	/// whether litter is to be sent to the soil today
+	bool is_litter_day;
 
 	// MEMBER FUNCTIONS
 

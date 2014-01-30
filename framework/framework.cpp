@@ -173,12 +173,11 @@ int framework(const CommandLineArguments& args) {
 					irrigation(patch);
 					// Soil water accounting, snow pack accounting
 					soilwater(patch, gridcell.climate);
-					// Soil organic matter and litter dynamics
-					som_dynamics(patch);
-
 					// Daily crop C allocation
 					if (stand.landcover == CROPLAND)
 						crop_growth_daily(patch);
+					// Soil organic matter and litter dynamics
+					som_dynamics(patch);
 
 					if (date.islastday && date.islastmonth) {
 

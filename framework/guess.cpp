@@ -9,7 +9,7 @@
 
 #include "config.h"
 #include "guess.h"
-
+#include "landcover.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES WITH EXTERNAL LINKAGE
@@ -496,6 +496,7 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),gridcell(gc),la
 	hasgrassintercrop=false;
 	gdd0_intercrop=0.0;
 	frac=1.0;
+	scale_LC_change = 1.0;
 }
 
 double Stand::get_gridcell_fraction() const {
@@ -566,6 +567,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_sap         = 0.0;
 	cmass_heart       = 0.0;
 	cmass_debt        = 0.0;
+	cmass_leaf_post_turnover      = 0.0;
+	cmass_root_post_turnover      = 0.0;
 	phen              = 0.0;
 	aphen             = 0.0;
 	deltafpc          = 0.0;
@@ -632,6 +635,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	dnpp              = 0.0;
 	cropindiv         = NULL;
+	last_turnover_day = -1;
 
 	Stand& stand = vegetation.patch.stand;
 
@@ -715,7 +719,9 @@ void Individual::serialize(ArchiveStream& arch) {
 		& storefndemand
 		& leafndemand_store
 		& rootndemand_store
-		
+		& cmass_leaf_post_turnover
+		& cmass_root_post_turnover
+		& last_turnover_day
 		& nday_leafon;
 
 	if(pft.landcover==CROPLAND)
@@ -960,9 +966,88 @@ double Individual::cton_sap() const {
 	}
 }
 
+bool Individual::continous_grass() const {
+
+	Stand& stand = vegetation.patch.stand;
+
+	if(pft.landcover == CROPLAND) {
+		if(cropindiv->isintercropgrass && stand.gridcell.pft[stand.pftid].sowing_restriction)
+			return true;
+		else
+			return false;
+	}
+	else
+		return false;
+}
+
+void Individual::check_C_mass() {
+
+	if(pft.landcover != CROPLAND)
+		return;
+
+	double negative_cmass = 0.0;
+
+	if(cropindiv->grs_cmass_leaf < 0.0) {
+		negative_cmass -= cropindiv->grs_cmass_leaf;
+		cropindiv->ycmass_leaf -= cropindiv->grs_cmass_leaf;
+		cropindiv->grs_cmass_plant -= cropindiv->grs_cmass_leaf;
+		cropindiv->grs_cmass_leaf = 0.0;
+	}
+	if(cropindiv->grs_cmass_root < 0.0) {
+		negative_cmass -= cropindiv->grs_cmass_root;
+		cropindiv->ycmass_root -= cropindiv->grs_cmass_root;
+		cropindiv->grs_cmass_plant -= cropindiv->grs_cmass_root;
+		cropindiv->grs_cmass_root = 0.0;
+	}
+	if(cropindiv->grs_cmass_ho < 0.0) {
+		negative_cmass -= cropindiv->grs_cmass_ho;
+		cropindiv->ycmass_ho -= cropindiv->grs_cmass_ho;
+		cropindiv->grs_cmass_plant -= cropindiv->grs_cmass_ho;
+		cropindiv->grs_cmass_ho = 0.0;
+	}
+	if(cropindiv->grs_cmass_agpool < 0.0) {
+		negative_cmass -= cropindiv->grs_cmass_agpool;
+		cropindiv->ycmass_agpool -= cropindiv->grs_cmass_agpool;
+		cropindiv->grs_cmass_plant -= cropindiv->grs_cmass_agpool;
+		cropindiv->grs_cmass_agpool = 0.0;
+	}
+
+	if(negative_cmass > 10e-10) {
+		anpp += negative_cmass;
+		report_flux(Fluxes::NPP, negative_cmass * densindiv);
+		report_flux(Fluxes::RA, -negative_cmass * densindiv);
+	}
+}
+
+bool Individual::is_turnover_day() const {
+
+	if(patchpft().cropphen && patchpft().cropphen->growingseason) {
+
+		Climate& climate = vegetation.patch.stand.gridcell.climate;
+
+		if(date.day == climate.testday_prec)
+			return true;
+		else
+			return false;
+	}
+	else 
+		return false;
+}
 
 Patchpft& Individual::patchpft() const {
 	return vegetation.patch.pft[pft.id];
+}
+
+/// Save nmass-values on first day of the year of land cover change in expanding stands
+void Individual::save_cmass_luc() {
+	Stand& stand = vegetation.patch.stand;
+
+	if(cropindiv) {
+		cropindiv->grs_cmass_leaf_luc = cropindiv->grs_cmass_leaf;
+		cropindiv->grs_cmass_root_luc = cropindiv->grs_cmass_root;
+		cropindiv->grs_cmass_ho_luc = cropindiv->grs_cmass_ho;
+		cropindiv->grs_cmass_agpool_luc = cropindiv->grs_cmass_agpool;
+	}
 }
 
 /// Save nmass-values on first day of the year of land cover change in expanding stands
@@ -1055,6 +1140,15 @@ bool Individual::growingseason() const {
 		return true;
 }
 
+bool Individual::has_daily_turnover() const {
+
+#ifdef HARVEST_GRSC
+		return istruecrop_or_intercropgrass();
+#else
+		return false;
+#endif
+}
+
 /// Help function for kill(), partitions wood biomass into litter and harvest
 /** 
  *  Wood biomass (either C or N) is partitioned into litter pools and
@@ -1134,21 +1228,44 @@ void Individual::kill(bool harvest /* = false */) {
 		// For leaf and root, catches small, negative values too
 
 		// Leaf: remove residue outtake and send the rest to litter
-		ppft.litter_leaf += cmass_leaf * (1 - res_outtake);
-		charvest_flux    += cmass_leaf * res_outtake;
-
+		if(has_daily_turnover() && cropindiv) {
+			ppft.litter_leaf += cropindiv->grs_cmass_leaf * (1 - res_outtake);
+			charvest_flux    += cropindiv->grs_cmass_leaf * res_outtake;
+		}
+		else {
+			ppft.litter_leaf += cmass_leaf * (1 - res_outtake);
+			charvest_flux    += cmass_leaf * res_outtake;
+		}
 		// Root: all goes to litter
-		ppft.litter_root += cmass_root;
+		if(has_daily_turnover() && cropindiv)
+			ppft.litter_root += cropindiv->grs_cmass_root;
+		else
+			ppft.litter_root += cmass_root;
 
 		if(pft.landcover==CROPLAND) {
-			if(pft.aboveground_ho) {
-				ppft.litter_leaf+=cropindiv->cmass_ho * (1 - res_outtake);
-				charvest_flux += cropindiv->cmass_ho * res_outtake;
+
+			if(has_daily_turnover()) {
+				if(pft.aboveground_ho) {
+					ppft.litter_leaf+=cropindiv->grs_cmass_ho * (1 - res_outtake);
+					charvest_flux += cropindiv->grs_cmass_ho * res_outtake;
+				}
+				else {
+					ppft.litter_root+=cropindiv->grs_cmass_ho;
+				}
+				ppft.litter_leaf+=cropindiv->grs_cmass_agpool * (1 - res_outtake);
+				charvest_flux += cropindiv->grs_cmass_agpool * res_outtake;
 			}
-			else
-				ppft.litter_root+=cropindiv->cmass_ho;
-			ppft.litter_leaf+=cropindiv->cmass_agpool * (1 - res_outtake);
-			charvest_flux += cropindiv->cmass_agpool * res_outtake;
+			else {
+				if(pft.aboveground_ho) {
+					ppft.litter_leaf+=cropindiv->cmass_ho * (1 - res_outtake);
+					charvest_flux += cropindiv->cmass_ho * res_outtake;
+				}
+				else {
+					ppft.litter_root+=cropindiv->cmass_ho;
+				}
+				ppft.litter_leaf+=cropindiv->cmass_agpool * (1 - res_outtake);
+				charvest_flux += cropindiv->cmass_agpool * res_outtake;
+			}
 		}
 
 		// Deal with the wood biomass and carbon debt for trees
@@ -1270,6 +1387,7 @@ void Gridcellpft::serialize(ArchiveStream& arch) {
 		& hdate_force
 		& hlimitdate_default
 		& wintertype
+		& singlecrop
 		& swindow
 		& sowing_restriction;
 }

@@ -1633,7 +1633,7 @@ void growth(Stand& stand, Patch& patch) {
 					indiv.cropindiv->cmass_agpool += cmass_agpool_inc;
 				}
 
-				if(indiv.pft.phenology != CROPGREEN && !indiv.continous_grass()) {
+				if(indiv.pft.phenology != CROPGREEN && !(indiv.has_daily_turnover() && indiv.continous_grass())) {
 
 					// Nitrogen longtime storage
 					// Nitrogen approx retranslocated next year

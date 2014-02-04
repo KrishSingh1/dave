@@ -1711,7 +1711,8 @@ public:
 	/// Whether harvest and turnover is done on actual C and N on harvest or turnover day, which can occur any day of the year.
 	bool has_daily_turnover() const;
 
-	/// Whether turnover of coninuous grass is to be done this day.
+	/// Whether resetting of grs_cmass and turnover (if has_daily_turnover() returns true) of continuous grass is to be done this day.
+	/** This should occur at the very end of the growing period */
 	bool is_turnover_day() const;
 
 	/// Reduce current biomass due to mortality and/or fire

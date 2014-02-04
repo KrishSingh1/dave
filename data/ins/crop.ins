@@ -44,6 +44,7 @@ ifintercropgrass 1	! Whether to grow grass as cover crop between growing periods
 
 forcesowingdates 0	! Whether to read sowing dates from an input file
 forceharvestdates 0	! Whether to read harvest dates from an input file	
+readNfert 0		! Whether to read nitrogen fertilization from input file
 !forceautumnsowing 0	
 ifcalcdynamic_phu 1	! Whether to calculate dynamic potential heat units
 ifdyn_phu_limit 0	! Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
@@ -157,6 +158,7 @@ group "crop" (
 !!	forcesowingdate 0
 !!	forceharvestdate 1
 !	forceautumnsowing 0
+	readNfert 1
 )
 
 pft "CC3G" (

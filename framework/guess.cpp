@@ -518,6 +518,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& aphen_raingreen
 		& anpp
 		& aet
+		& aaet
 		& ltor
 		& height
 		& crownarea

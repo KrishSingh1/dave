@@ -20,6 +20,9 @@ CommonOutput::CommonOutput() {
 	// Annual output variables
 	declare_parameter("file_cmass", &file_cmass, 300, "C biomass output file");
 	declare_parameter("file_anpp", &file_anpp, 300, "Annual NPP output file");
+	declare_parameter("file_agpp", &file_agpp, 300, "Annual GPP output file");
+	declare_parameter("file_fpc", &file_fpc, 300, "FPC output file");
+	declare_parameter("file_aaet", &file_aaet, 300, "Annual AET output file");
 	declare_parameter("file_lai", &file_lai, 300, "LAI output file");
 	declare_parameter("file_cflux", &file_cflux, 300, "C fluxes output file");
 	declare_parameter("file_dens", &file_dens, 300, "Tree density output file");
@@ -120,6 +123,18 @@ void CommonOutput::define_output_tables() {
 
 	// ANPP
 	ColumnDescriptors anpp_columns = cmass_columns;
+
+	// AGPP
+	ColumnDescriptors agpp_columns = cmass_columns;
+
+	// FPC
+	ColumnDescriptors fpc_columns = cmass_columns;
+
+	// AET
+	ColumnDescriptors aaet_columns;
+	aaet_columns += ColumnDescriptors(pfts,                8, 2);
+	aaet_columns += ColumnDescriptor("Total",              8, 2);
+	aaet_columns += ColumnDescriptors(landcovers,         13, 2);
 
 	// DENS
 	ColumnDescriptors dens_columns;
@@ -261,6 +276,9 @@ void CommonOutput::define_output_tables() {
 
 	create_output_table(out_cmass,          file_cmass,          cmass_columns);
 	create_output_table(out_anpp,           file_anpp,           anpp_columns);
+	create_output_table(out_agpp,           file_agpp,           agpp_columns);
+	create_output_table(out_fpc,            file_fpc,            fpc_columns);
+	create_output_table(out_aaet,           file_aaet,           aaet_columns);
 	create_output_table(out_dens,           file_dens,           dens_columns);
 	create_output_table(out_lai,            file_lai,            lai_columns);
 	create_output_table(out_cflux,          file_cflux,          cflux_columns);
@@ -391,6 +409,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		double landcover_clitter[NLANDCOVERTYPES]={0.0};
 		double landcover_nlitter[NLANDCOVERTYPES]={0.0};
 		double landcover_anpp[NLANDCOVERTYPES]={0.0};
+		double landcover_agpp[NLANDCOVERTYPES]={0.0};
+		double landcover_fpc[NLANDCOVERTYPES]={0.0};
+		double landcover_aaet[NLANDCOVERTYPES]={0.0};
 		double landcover_lai[NLANDCOVERTYPES]={0.0};
 		double landcover_densindiv_total[NLANDCOVERTYPES]={0.0};
 		double landcover_aiso[NLANDCOVERTYPES]={0.0};
@@ -407,6 +428,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		double gcpft_clitter=0.0;
 		double gcpft_nlitter=0.0;
 		double gcpft_anpp=0.0;
+		double gcpft_agpp=0.0;
+		double gcpft_fpc=0.0;
+		double gcpft_aaet=0.0;
 		double gcpft_lai=0.0;
 		double gcpft_densindiv_total=0.0;
 		double gcpft_densindiv_ageclass[OUTPUT_MAXAGECLASS]={0.0};
@@ -424,6 +448,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		double clitter_gridcell=0.0;
 		double nlitter_gridcell= 0.0;
 		double anpp_gridcell=0.0;
+		double agpp_gridcell=0.0;
+		double fpc_gridcell=0.0;
+		double aaet_gridcell=0.0;
 		double lai_gridcell=0.0;
 		double surfrunoff_gridcell=0.0;
 		double drainrunoff_gridcell=0.0;
@@ -453,6 +480,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		double standpft_clitter=0.0;
 		double standpft_nlitter=0.0;
 		double standpft_anpp=0.0;
+		double standpft_agpp=0.0;
+		double standpft_fpc=0.0;
+		double standpft_aaet=0.0;
 		double standpft_lai=0.0;
 		double standpft_densindiv_total=0.0;
 		double standpft_densindiv_ageclass[OUTPUT_MAXAGECLASS]={0.0};
@@ -480,6 +510,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			gcpft_clitter=0.0;
 			gcpft_nlitter=0.0;
 			gcpft_anpp=0.0;
+			gcpft_agpp=0.0;
+			gcpft_fpc=0.0;
+			gcpft_aaet=0.0;
 			gcpft_lai=0.0;
 			gcpft_densindiv_total=0.0;		
 			gcpft_aiso=0.0;
@@ -506,6 +539,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_clitter=0.0;
 				standpft_nlitter=0.0;
 				standpft_anpp=0.0;
+				standpft_agpp=0.0;
+				standpft_fpc=0.0;
+				standpft_aaet=0.0;
 				standpft_lai=0.0;
 				standpft_densindiv_total = 0.0;
 				standpft_aiso=0.0;
@@ -526,6 +562,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					Patch& patch = stand.getobj();
 
 					standpft_anpp += patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id);
+					standpft_agpp += patch.fluxes.get_annual_flux(Fluxes::GPP, pft.id);
 					standpft_aiso += patch.fluxes.get_annual_flux(Fluxes::ISO, pft.id);
 					standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MON, pft.id);
 
@@ -552,6 +589,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								standpft_nmass_leaf += indiv.cmass_leaf / indiv.cton_leaf_aavr;
 								standpft_cmass_veg += indiv.cmass_veg;
 								standpft_nmass_veg += indiv.nmass_veg;
+								standpft_fpc += indiv.fpc;
+								standpft_aaet += indiv.aaet;
 								standpft_lai += indiv.lai;
 								standpft_vmaxnlim += indiv.avmaxnlim * indiv.cmass_leaf;
 								standpft_nuptake += indiv.anuptake;
@@ -593,6 +632,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_clitter/=(double)stand.npatch();
 				standpft_nlitter/=(double)stand.npatch();
 				standpft_anpp/=(double)stand.npatch();
+				standpft_agpp/=(double)stand.npatch();
+				standpft_fpc/=(double)stand.npatch();
+				standpft_aaet/=(double)stand.npatch();
 				standpft_lai/=(double)stand.npatch();
 				standpft_densindiv_total/=(double)stand.npatch();
 				standpft_aiso/=(double)stand.npatch();
@@ -614,6 +656,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				landcover_clitter[stand.landcover]+=standpft_clitter*stand.get_landcover_fraction();
 				landcover_nlitter[stand.landcover]+=standpft_nlitter*stand.get_landcover_fraction();
 				landcover_anpp[stand.landcover]+=standpft_anpp*stand.get_landcover_fraction();
+				landcover_agpp[stand.landcover]+=standpft_agpp*stand.get_landcover_fraction();
+				landcover_fpc[stand.landcover]+=standpft_fpc*stand.get_landcover_fraction();
+				landcover_aaet[stand.landcover]+=standpft_aaet*stand.get_landcover_fraction();
 				landcover_lai[stand.landcover]+=standpft_lai*stand.get_landcover_fraction();
 				landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.get_landcover_fraction();
 				landcover_aiso[stand.landcover]+=standpft_aiso*stand.get_landcover_fraction();
@@ -631,6 +676,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				gcpft_clitter+=standpft_clitter;
 				gcpft_nlitter+=standpft_nlitter;
 				gcpft_anpp+=standpft_anpp;
+				gcpft_agpp+=standpft_agpp;
+				gcpft_fpc+=standpft_fpc;
+				gcpft_aaet+=standpft_aaet;
 				gcpft_lai+=standpft_lai;
 				gcpft_densindiv_total+=standpft_densindiv_total;
 				gcpft_aiso+=standpft_aiso;
@@ -654,6 +702,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				clitter_gridcell+=standpft_clitter*fraction_of_gridcell;
 				nlitter_gridcell+=standpft_nlitter*fraction_of_gridcell;
 				anpp_gridcell+=standpft_anpp*fraction_of_gridcell;
+				agpp_gridcell+=standpft_agpp*fraction_of_gridcell;
+				fpc_gridcell+=standpft_fpc*fraction_of_gridcell;
+				aaet_gridcell+=standpft_aaet*fraction_of_gridcell;
 				lai_gridcell+=standpft_lai*fraction_of_gridcell;
 				dens_gridcell+=standpft_densindiv_total*fraction_of_gridcell;
 				aiso_gridcell+=standpft_aiso*fraction_of_gridcell;
@@ -682,6 +733,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			
 			out.add_value(out_cmass,     gcpft_cmass);
 			out.add_value(out_anpp,      gcpft_anpp);
+			out.add_value(out_agpp,      gcpft_agpp);
+			out.add_value(out_fpc,       gcpft_fpc);
+			out.add_value(out_aaet,      gcpft_aaet);
 			out.add_value(out_clitter,   gcpft_clitter);
 			out.add_value(out_dens,	     gcpft_densindiv_total);
 			out.add_value(out_lai,       gcpft_lai);
@@ -865,6 +919,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		out.add_value(out_cmass,   cmass_gridcell);
 		out.add_value(out_anpp,    anpp_gridcell);
+		out.add_value(out_agpp,    agpp_gridcell);
+		out.add_value(out_fpc,     fpc_gridcell);
+		out.add_value(out_aaet,    aaet_gridcell);
 		out.add_value(out_dens,    dens_gridcell);
 		out.add_value(out_lai,     lai_gridcell);
 		out.add_value(out_clitter, clitter_gridcell);
@@ -896,6 +953,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				if(run[i]) {
 					out.add_value(out_cmass,   landcover_cmass[i]);
 					out.add_value(out_anpp,    landcover_anpp[i]);
+					out.add_value(out_agpp,    landcover_agpp[i]);
+					out.add_value(out_fpc,     landcover_fpc[i]);
+					out.add_value(out_aaet,    landcover_aaet[i]);
 					out.add_value(out_dens,    landcover_densindiv_total[i]);
 					out.add_value(out_lai,     landcover_lai[i]);
 					out.add_value(out_clitter, landcover_clitter[i]);

@@ -1130,6 +1130,8 @@ public:
 	double anpp;
 	/// actual evapotranspiration over projected area (mm/day)
 	double aet;
+	/// annual actual evapotranspiration over projected area (mm/year)
+	double aaet;
 	/// leaf to root mass ratio
 	double ltor;
 	/// plant height (m)

@@ -954,7 +954,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		double nmin_scale = kNmin + soil.nmass_avail / (soil.nmass_avail + gridcell.pft[indiv.pft.id].Km);
 
 		// Maximum available soil mineral nitrogen for this individual is base on its root area.
-		// This is considered to be related to FPC which is proportional to crown area which is appro
+		// This is considered to be related to FPC which is proportional to crown area which is approx
 		// 4 times smaller than the root area
 		double max_indiv_avail = min(1.0, indiv.fpc * 4.0) * soil.nmass_avail;
 
@@ -1356,6 +1356,9 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 		Patchpft& ppft = patch.pft[indiv.pft.id];
 		if (day.isstart) {
 			indiv.aet = 0;
+
+			if (date.day == 0)
+				indiv.aaet = 0.0;
 		}
 
 		indiv.wstress = ppft.wstress;
@@ -1368,6 +1371,10 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 		}
 		if (day.isend) {
 			indiv.aet *= indiv.fpc / date.subdaily;
+		}
+
+		if (day.isend) {
+			indiv.aaet += indiv.aet;
 		}
 
 		vegetation.nextobj();

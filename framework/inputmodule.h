@@ -89,6 +89,8 @@ public:
 	virtual void getsowingdates(Gridcell& gridcell) = 0;
 
 	virtual void getharvestdates(Gridcell& gridcell) = 0;
+
+	virtual void getNfert(Gridcell& gridcell) = 0;	
 };
 
 

@@ -40,6 +40,9 @@ public:
 	/// Gets harvest dates for one year
 	void getharvestdates(Gridcell& gridcell);
 
+	/// Gets N fertilization for one year
+	void getNfert(Gridcell& gridcell);
+
 private:
 
 	struct Coord {
@@ -105,21 +108,23 @@ private:
 	//Landuse input:
 
 #if defined DYNAMIC_LANDCOVER_INPUT
-
 	// Objects handling landcover fraction data input
 	InData::TimeDataD LUdata;
 	InData::TimeDataD Peatdata;
 	InData::TimeDataD CFTdata;
 	InData::TimeDataD sdates;
 	InData::TimeDataD hdates;
-
+	InData::TimeDataD Nfert;
 #ifdef LUTOMEMORY
 	InData::TimeDataDmem LUdata_mem;
 	InData::TimeDataDmem CFTdata_mem;
+	InData::TimeDataDmem sdates_mem;
+	InData::TimeDataDmem hdates_mem;
+	InData::TimeDataDmem Nfert_mem;
 #endif
 
 #endif
-	xtring file_lu, file_lucrop, file_peat, file_sdates, file_hdates;
+	xtring file_lu, file_lucrop, file_peat, file_sdates, file_hdates, file_Nfert;
 	// Number of years of landcover fraction data in input files
 	static const int NYEAR_LU=103;
 	// Number of years in sowing date and harvest date input files

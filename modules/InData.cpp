@@ -2109,10 +2109,40 @@ void TimeDataD::Close()
 
 double TimeDataDmem::Get(int year, int column) const
 {
-	if(currentCell >= 0 && column < nColumns)
-		return data[currentCell][year * nColumns + column];
+	if(currentCell >= 0 && column < nColumns) {
+		if(year>=nYears)
+			return data[currentCell][(nYears-1) * nColumns + column];
+		else
+			return data[currentCell][year * nColumns + column];
+	}
 	else
 		return 0.0;
+}
+
+double TimeDataDmem::Get(int yearX, const char* name) const		//Returns a single value for column with header string name
+{
+	int column=-1;
+	double dataX=-1;
+
+	for(int i=0;i<nColumns;i++)
+	{
+		if(!strncmp(name, header_arr[i], strlen(name)))
+		{
+			column=i;
+			break;
+		}
+	}
+
+	if(column==-1)
+	{
+		if(yearX==1)	//Set to 1 in crop branch, was 0.
+		printf("WARNING: Value for %s not found. Value set to 0.0\n", name);
+		return 0.0;
+	}
+	else
+		dataX=Get(yearX,column);
+
+	return dataX;
 }
 
 int TimeDataDmem::Load(Coord c)
@@ -2168,11 +2198,66 @@ void TimeDataDmem::Open(int nCellsX, int nColumnsX, int nYearsX)
 	}
 }
 
+void TimeDataDmem::Close()
+{
+	nCells = 0;
+	nColumns = 0;
+	nYears = 0;
+
+	if(gridlist)
+	{
+		delete []gridlist;
+		gridlist=NULL;
+	}
+	for(int i=0;i<nCells;i++)
+	{
+		if(data[i])
+			delete[] data[i];
+	}
+	if(data)
+	{
+		delete[] data; 
+		data=NULL;
+	}
+}
+
+void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridlistX)
+{
+	int cell_no=0;
+
+	if(Data.GetHeader(header_arr))
+		ifheader = true;
+
+	double *celldata;
+	celldata=new double[Data.nRecords*Data.nYears];
+
+	while(Data.LoadNext()) {
+		InData::Coord c;
+		c=Data.GetCoord();
+
+		gridlistX.firstobj();
+		while(gridlistX.isobj) {
+			Coord cc=gridlistX.getobj();
+			if(c.lon==cc.lon && c.lat==cc.lat) {
+				SetCoord(cell_no, c);
+				Data.Get(celldata);
+				SetData(cell_no, celldata);
+				cell_no++;
+				break;
+			}
+			gridlistX.nextobj();
+		}
+	}
+	delete[] celldata;
+}
+
 TimeDataDmem::TimeDataDmem()
 {
 	gridlist=NULL;
 	data=NULL;
 	nCells=0;
+	ifheader=false;
+	memset(header_arr,0,sizeof(char)*MAXRECORDS*MAXNAMESIZE);
 	currentCell=-1;
 }
 

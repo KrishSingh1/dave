@@ -1124,7 +1124,9 @@ public:
 	bool forcesowingdate;
 	/// whether harvest dates are read from input file
 	bool forceharvestdate;
-
+	/// whether N fertilization is read from input file
+	bool readNfert;
+	
 	// MEMBER FUNCTIONS
 
 public:
@@ -1171,6 +1173,7 @@ public:
 		frootend=0.0;
 		forcesowingdate=false;
 		forceharvestdate=false;
+		readNfert=false;
 	}
 
 	/// Calculates SLA given leaf longevity
@@ -2870,6 +2873,8 @@ public:
 	int sdate_force;
 	/// harvest date from input file
 	int hdate_force;
+	/// N fertilization from input file
+	double Nfert_read;
 	/// default harvest date (pft.hlimitdatenh/hlimitdatesh)
 	int hlimitdate_default;
 	/// whether autumn sowing is either calculated or prescribed
@@ -2912,6 +2917,7 @@ public:
 		sdate_default=-1;
 		sdate_force=-1;
 		hdate_force=-1;
+		Nfert_read=-1;
 		sdatecalc_temp=-1;
 		sdatecalc_prec=-1;
 		hlimitdate_default=-1;

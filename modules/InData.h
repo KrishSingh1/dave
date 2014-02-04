@@ -169,13 +169,18 @@ class TimeDataDmem
 	int nCells;
 	int nColumns;
 	int nYears;
+	bool ifheader;
+	char header_arr[MAXRECORDS][MAXNAMESIZE];
 	int currentCell;
 public:
-	double Get(int year, int column) const;	
+	double Get(int year, int column) const;
+	double Get(int year, const char* name) const;
 	int Load(Coord c);
 	void SetCoord(int index, Coord c);
 	void SetData(int index, double* data);
 	void Open(int nCells, int nColumns, int nYears);
+	void Close();
+	void CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridlistX);
 	TimeDataDmem();
 	~TimeDataDmem();
 };

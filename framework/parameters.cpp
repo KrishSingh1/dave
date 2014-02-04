@@ -71,6 +71,7 @@ int state_year;
 
 bool forcesowingdates = false;
 bool forceharvestdates = false;
+bool readNfert = false;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Implementation of the Paramlist class
@@ -410,7 +411,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifdyn_phu_limit",&ifdyn_phu_limit,1,CB_NONE,"Whether to limit dynamic phu calculation to a time period");
 		declareitem("nyear_dyn_phu",&nyear_dyn_phu,0,1000,1,CB_NONE, "Number of years to calculate dynamic phu");
 		declareitem("forcesowingdates",&forcesowingdates,1,CB_NONE,"Whether to use sowingdates from input file");
-		declareitem("forceharvestdates",&forceharvestdates,1,CB_NONE,"Whether touse harvestdates from input file");
+		declareitem("forceharvestdates",&forceharvestdates,1,CB_NONE,"Whether to use harvestdates from input file");
+		declareitem("readNfert",&readNfert,1,CB_NONE,"Whether to read N fertilization from input file");
 		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"Whether static landcover fractions are set in the ins-file (0,1)");
 		declareitem("cftfrac_fixed",&cftfrac_fixed,1,CB_NONE,"Whether static CFT fractions are set in the ins-file (0,1)");	
 
@@ -651,6 +653,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("frootend",&ppft->frootend,0.0,1.0,1,CB_NONE,"");
 		declareitem("forcesowingdate",&ppft->forcesowingdate,1,CB_NONE,"use sowingdate from input file");
 		declareitem("forceharvestdate",&ppft->forceharvestdate,1,CB_NONE,"use sowingdate from input file");
+		declareitem("readNfert",&ppft->readNfert,1,CB_NONE,"use N fertilization from input file");
 		declareitem("laimax",&ppft->laimax,0.0,10.0,1,CB_NONE,"");
 
 		callwhendone(CB_CHECKPFT);
@@ -851,6 +854,7 @@ void plib_callback(int callback) {
 			if (!itemparsed("nyear_dyn_phu")) badins("nyear_dyn_phu");
 			if (!itemparsed("forcesowingdates")) badins("forcesowingdates");
 			if (!itemparsed("forceharvestdates")) badins("forceharvestdates");
+			if (!itemparsed("readNfert")) badins("readNfert");
 
 #ifndef DYNAMIC_LANDCOVER_INPUT
 			if(!lcfrac_fixed || !cftfrac_fixed || forcesowingdates || forceharvestdates)
@@ -860,6 +864,7 @@ void plib_callback(int callback) {
 			cftfrac_fixed=true;
 			forcesowingdates=false;
 			forceharvestdates=false;
+			readNfert=false;
 #endif
 		}
 

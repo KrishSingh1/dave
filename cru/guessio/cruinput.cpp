@@ -419,29 +419,9 @@ void CRUInput::init() {
 					// Save all landcover area fraction data in memory
 					LUdata_mem.Open(gridlist.nobj, LUdata.nRecords,LUdata.nYears);
 
-					int cell_no=0;
-
-					double *celldata;
-					celldata=new double[LUdata.nRecords*LUdata.nYears];
-
-					while(LUdata.LoadNext()) {
-						InData::Coord c;
-						c=LUdata.GetCoord();
-
-						gridlist.firstobj();
-						while(gridlist.isobj) {
-							Coord cc=gridlist.getobj();
-							if(c.lon==cc.lon && c.lat==cc.lat) {
-								LUdata_mem.SetCoord(cell_no, c);
-								LUdata.Get(celldata);
-								LUdata_mem.SetData(cell_no, celldata);
-								cell_no++;
-								break;
-							}
-							gridlist.nextobj();
-						}
-					}
-					delete[] celldata;
+					ListArray_id<InData::Coord> lonlatlist;
+					GetLonLatList(lonlatlist, gridlist);
+					LUdata_mem.CopyFromTimeDataD(LUdata, lonlatlist);
 #endif
 				}
 #endif
@@ -496,29 +476,9 @@ void CRUInput::init() {
 				// Save all crop area fraction data in memory
 				CFTdata_mem.Open(gridlist.nobj, CFTdata.nRecords,CFTdata.nYears);
 
-				int cell_no=0;
-
-				double *celldata;
-				celldata=new double[CFTdata.nRecords*CFTdata.nYears];
-
-				while(CFTdata.LoadNext()) {
-					InData::Coord c;
-					c=CFTdata.GetCoord();
-
-					gridlist.firstobj();
-					while(gridlist.isobj) {
-						Coord cc=gridlist.getobj();
-						if(c.lon==cc.lon && c.lat==cc.lat) {
-							CFTdata_mem.SetCoord(cell_no, c);
-							CFTdata.Get(celldata);
-							CFTdata_mem.SetData(cell_no, celldata);
-							cell_no++;
-							break;
-						}
-						gridlist.nextobj();
-					}
-				}
-				delete[] celldata;
+				ListArray_id<InData::Coord> lonlatlist;
+				GetLonLatList(lonlatlist, gridlist);
+				CFTdata_mem.CopyFromTimeDataD(CFTdata, lonlatlist);
 #endif
 
 //			for(int i=0;i<CFTdata.nRecords;i++)
@@ -536,13 +496,43 @@ void CRUInput::init() {
 				file_sdates=param["file_sdates"].str;
 				if(!sdates.Open(file_sdates))
 					fail("initio: could not open %s for input",(char*)file_sdates);
+#ifdef LUTOMEMORY
+				// Save all harvest date data in memory
+				sdates_mem.Open(gridlist.nobj, sdates.nRecords,sdates.nYears);
+
+				ListArray_id<InData::Coord> lonlatlist;
+				GetLonLatList(lonlatlist, gridlist);
+				sdates_mem.CopyFromTimeDataD(sdates, lonlatlist);
+#endif
 			}
 			if(forceharvestdates)
 			{
 				file_hdates=param["file_hdates"].str;
 				if(!hdates.Open(file_hdates))
 					fail("initio: could not open %s for input",(char*)file_hdates);
+#ifdef LUTOMEMORY
+				// Save all harvest date data in memory
+				hdates_mem.Open(gridlist.nobj, hdates.nRecords,hdates.nYears);
+
+				ListArray_id<InData::Coord> lonlatlist;
+				GetLonLatList(lonlatlist, gridlist);
+				hdates_mem.CopyFromTimeDataD(hdates, lonlatlist);
+#endif
 			}
+			if(readNfert) {
+				file_Nfert=param["file_Nfert"].str;
+				if(!Nfert.Open(file_Nfert))
+					fail("initio: could not open %s for input",(char*)file_Nfert);
+#ifdef LUTOMEMORY
+				// Save all N fertilization data in memory
+				Nfert_mem.Open(gridlist.nobj, Nfert.nRecords,Nfert.nYears);
+
+				ListArray_id<InData::Coord> lonlatlist;
+				GetLonLatList(lonlatlist, gridlist);
+				Nfert_mem.CopyFromTimeDataD(Nfert, lonlatlist);
+#endif
+			}
+
 #endif
 		}
 	}
@@ -584,7 +574,7 @@ void CRUInput::adjust_raw_forcing_data(double lon,
 
 #if defined DYNAMIC_LANDCOVER_INPUT
 
-/// Transfers coordinates from DemoInput::Coord to InData::Coord
+/// Transfers coordinates from CRUInput::Coord to InData::Coord
 InData::Coord CRUInput::GetLonLat(Coord coord) {
 
 	InData::Coord lonlat;
@@ -594,7 +584,7 @@ InData::Coord CRUInput::GetLonLat(Coord coord) {
 	return lonlat;
 }
 
-/// Transfers gridlist of coordinates from DemoInput::Coord to InData::Coord
+/// Transfers gridlist of coordinates from CRUInput::Coord to InData::Coord
 void CRUInput::GetLonLatList(ListArray_id<InData::Coord>&lonlatlist, ListArray_id<Coord>& gridlist) {
 
 	for(unsigned int i = 0; i < gridlist.nobj; i++) {
@@ -662,14 +652,34 @@ bool CRUInput::loadlandcover(Gridcell& gridcell, Coord cc) {
 		}
 
 		if(forcesowingdates && !LUerror) { 
+#ifdef LUTOMEMORY
+			if(!sdates_mem.Load(c)) {
+#else
 			if(!sdates.Load(c)) {
+#endif
 				dprintf("Problems with sowing date input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;	// skip this stand
 			}
 		}
 		if(forceharvestdates && !LUerror) {
+#ifdef LUTOMEMORY
+			if(!hdates_mem.Load(c)) {
+#else
 			if(!hdates.Load(c)) {
+#endif
 				dprintf("Problems with harvest date input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
+				LUerror=true;	// skip this stand
+			}
+		}
+		if(readNfert && !LUerror) {
+
+
+#ifdef LUTOMEMORY
+			if(!Nfert_mem.Load(c)) {
+#else
+			if(!Nfert.Load(c)) {
+#endif
+				dprintf("Problems with N fertilization input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;	// skip this stand
 			}
 		}
@@ -1228,7 +1238,11 @@ void CRUInput::getsowingdates(Gridcell& gridcell) {
 		for(i=0; i<npft; i++) {
 			if(pftlist[i].cftid >= 0 && pftlist[i].forcesowingdate)	{ //natural pft:s have cftid=-1	
 #if defined DYNAMIC_LANDCOVER_INPUT
+#ifdef LUTOMEMORY
+				gridcell.pft[i].sdate_force = (int)sdates_mem.Get(year,pftlist[i].name);
+#else
 				gridcell.pft[i].sdate_force = (int)sdates.Get(year,pftlist[i].name);
+#endif
 #endif
 			}
 		}
@@ -1248,7 +1262,35 @@ void CRUInput::getharvestdates(Gridcell& gridcell) {
  		for(i=0; i<npft; i++)	{
 			if(pftlist[i].cftid >= 0 && pftlist[i].forceharvestdate) {	//natural pft:s have cftid=-1			
 #if defined DYNAMIC_LANDCOVER_INPUT
+#ifdef LUTOMEMORY
+				gridcell.pft[pftlist[i].id].hdate_force = (int)hdates_mem.Get(year,pftlist[i].name);
+#else
 				gridcell.pft[pftlist[i].id].hdate_force = (int)hdates.Get(year,pftlist[i].name);
+#endif
+#endif
+			}
+		}
+	}
+}
+
+/// Get N fertilization for one year
+void CRUInput::getNfert(Gridcell& gridcell) {
+	int i, year;
+
+	if(date.year < nyear_spinup)
+		year=0;
+	else
+		year = date.year - nyear_spinup;
+
+	if(date.year < nyear_spinup + NYEAR_HIST) {
+ 		for(i=0; i<npft; i++)	{
+			if(pftlist[i].cftid >= 0 && pftlist[i].readNfert) {	//natural pft:s have cftid=-1			
+#if defined DYNAMIC_LANDCOVER_INPUT
+#ifdef LUTOMEMORY
+				gridcell.pft[pftlist[i].id].Nfert_read = Nfert_mem.Get(year,pftlist[i].name);
+#else
+				gridcell.pft[pftlist[i].id].Nfert_read = Nfert.Get(year,pftlist[i].name);
+#endif
 #endif
 			}
 		}

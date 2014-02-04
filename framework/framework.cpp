@@ -133,6 +133,9 @@ int framework(const CommandLineArguments& args) {
 				//Read harvest dates from input file, put into gridcellpft.hdate_force
 				if(run[CROPLAND] && forceharvestdates)		
 					input_module->getharvestdates(gridcell);
+				//Read N fertilization from input file, put into xxx
+				if(run[CROPLAND] && readNfert)		
+					input_module->getNfert(gridcell);
 			}
 
 			gridcell.firstobj();

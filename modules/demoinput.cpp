@@ -244,6 +244,14 @@ void DemoInput::init() {
 					fail("initio: could not open %s for input",(char*)file_lu);
 				else if(LUdata.format==InData::LOCAL_YEARLY)
 					all_fracs_const=false;				// Set all_fracs_const to false if yearly data
+#ifdef LUTOMEMORY
+					// Save all landcover area fraction data in memory
+					LUdata_mem.Open(gridlist.nobj, LUdata.nRecords,LUdata.nYears);
+
+					ListArray_id<InData::Coord> lonlatlist;
+					GetLonLatList(lonlatlist, gridlist);
+					LUdata_mem.CopyFromTimeDataD(LUdata, lonlatlist);
+#endif
 #endif
 			}
 		}
@@ -295,6 +303,14 @@ void DemoInput::init() {
 //			for(int i=0;i<CFTdata.nRecords;i++)
 //				dprintf("%s:CFTdata.active=%d\n", CFTdata.GetHeader(i), CFTdata.active[i]);
 
+#ifdef LUTOMEMORY
+				// Save all crop area fraction data in memory
+				CFTdata_mem.Open(gridlist.nobj, CFTdata.nRecords,CFTdata.nYears);
+
+				ListArray_id<InData::Coord> lonlatlist;
+				GetLonLatList(lonlatlist, gridlist);
+				CFTdata_mem.CopyFromTimeDataD(CFTdata, lonlatlist);
+#endif
 			if(CFTdata.GetnRecords()!=NCROPSTANDS_MAX)
 				fail("\ninitio: NCROPSTANDS_MAX is incorrectly set in guess.h !\n");
 #endif
@@ -303,18 +319,48 @@ void DemoInput::init() {
 
 	if(run[CROPLAND]) {
 #if defined DYNAMIC_LANDCOVER_INPUT
-		if(forcesowingdates)
-		{
-			file_sdates=param["file_sdates"].str;
-			if(!sdates.Open(file_sdates))
-				fail("initio: could not open %s for input",(char*)file_sdates);
-		}
-		if(forceharvestdates)
-		{
-			file_hdates=param["file_hdates"].str;
-			if(!hdates.Open(file_hdates))
-				fail("initio: could not open %s for input",(char*)file_hdates);
-		}
+			if(forcesowingdates)
+			{
+				file_sdates=param["file_sdates"].str;
+				if(!sdates.Open(file_sdates))
+					fail("initio: could not open %s for input",(char*)file_sdates);
+#ifdef LUTOMEMORY
+				// Save all harvest date data in memory
+				sdates_mem.Open(gridlist.nobj, sdates.nRecords,sdates.nYears);
+
+				ListArray_id<InData::Coord> lonlatlist;
+				GetLonLatList(lonlatlist, gridlist);
+				sdates_mem.CopyFromTimeDataD(sdates, lonlatlist);
+#endif
+			}
+			if(forceharvestdates)
+			{
+				file_hdates=param["file_hdates"].str;
+				if(!hdates.Open(file_hdates))
+					fail("initio: could not open %s for input",(char*)file_hdates);
+#ifdef LUTOMEMORY
+				// Save all harvest date data in memory
+				hdates_mem.Open(gridlist.nobj, hdates.nRecords,hdates.nYears);
+
+				ListArray_id<InData::Coord> lonlatlist;
+				GetLonLatList(lonlatlist, gridlist);
+				hdates_mem.CopyFromTimeDataD(hdates, lonlatlist);
+#endif
+			}
+			if(readNfert) {
+				file_Nfert=param["file_Nfert"].str;
+				if(!Nfert.Open(file_Nfert))
+					fail("initio: could not open %s for input",(char*)file_Nfert);
+#ifdef LUTOMEMORY
+				// Save all N fertilization data in memory
+				Nfert_mem.Open(gridlist.nobj, Nfert.nRecords,Nfert.nYears);
+
+				ListArray_id<InData::Coord> lonlatlist;
+				GetLonLatList(lonlatlist, gridlist);
+				Nfert_mem.CopyFromTimeDataD(Nfert, lonlatlist);
+#endif
+			}
+
 #endif
 	}
 
@@ -383,7 +429,11 @@ bool DemoInput::loadlandcover(Gridcell& gridcell, Coord cc)	{
 #if defined DYNAMIC_LANDCOVER_INPUT
 		if (loadLU) {
 			// Load landcover area fraction data from input file to data object
+#ifdef LUTOMEMORY
+			if (!LUdata_mem.Load(c)) {
+#else
 			if (!LUdata.Load(c)) {
+#endif
 				dprintf("Problems with landcover fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;		// skip this stand
 			}
@@ -398,25 +448,45 @@ bool DemoInput::loadlandcover(Gridcell& gridcell, Coord cc)	{
 			// Crop fraction data: read from crop fraction file; dynamic, so data for all years are loaded to CFTdata object and 
 			// transferred to gridcell.cftfrac each year in getlandcover()
 
+#ifdef LUTOMEMORY
+			if(!CFTdata_mem.Load(c)) {
+#else
 			if(!CFTdata.Load(c)) {
+#endif
 				dprintf("Problems with CFT fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;	// skip this stand
 			}
 		}
 
-		if(forcesowingdates && !LUerror)
-		{ 
-			if(!sdates.Load(c))
-			{
+		if(forcesowingdates && !LUerror) { 
+#ifdef LUTOMEMORY
+			if(!sdates_mem.Load(c)) {
+#else
+			if(!sdates.Load(c)) {
+#endif
 				dprintf("Problems with sowing date input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;	// skip this stand
 			}
 		}
-		if(forceharvestdates && !LUerror)
-		{
-			if(!hdates.Load(c))
-			{
+		if(forceharvestdates && !LUerror) {
+#ifdef LUTOMEMORY
+			if(!hdates_mem.Load(c)) {
+#else
+			if(!hdates.Load(c)) {
+#endif
 				dprintf("Problems with harvest date input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
+				LUerror=true;	// skip this stand
+			}
+		}
+		if(readNfert && !LUerror) {
+
+
+#ifdef LUTOMEMORY
+			if(!Nfert_mem.Load(c)) {
+#else
+			if(!Nfert.Load(c)) {
+#endif
+				dprintf("Problems with N fertilization input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;	// skip this stand
 			}
 		}
@@ -846,7 +916,11 @@ void DemoInput::getsowingdates(Gridcell& gridcell) {
 		for(i=0; i<npft; i++) {
 			if(pftlist[i].cftid >= 0 && pftlist[i].forcesowingdate)	{ //natural pft:s have cftid=-1	
 #if defined DYNAMIC_LANDCOVER_INPUT
+#ifdef LUTOMEMORY
+				gridcell.pft[i].sdate_force = (int)sdates_mem.Get(year,pftlist[i].name);
+#else
 				gridcell.pft[i].sdate_force = (int)sdates.Get(year,pftlist[i].name);
+#endif
 #endif
 			}
 		}
@@ -866,7 +940,35 @@ void DemoInput::getharvestdates(Gridcell& gridcell) {
  		for(i=0; i<npft; i++)	{
 			if(pftlist[i].cftid >= 0 && pftlist[i].forceharvestdate) {	//natural pft:s have cftid=-1			
 #if defined DYNAMIC_LANDCOVER_INPUT
+#ifdef LUTOMEMORY
+				gridcell.pft[pftlist[i].id].hdate_force = (int)hdates_mem.Get(year,pftlist[i].name);
+#else
 				gridcell.pft[pftlist[i].id].hdate_force = (int)hdates.Get(year,pftlist[i].name);
+#endif
+#endif
+			}
+		}
+	}
+}
+
+/// Get N fertilization for one year
+void DemoInput::getNfert(Gridcell& gridcell) {
+	int i, year;
+
+	if(date.year < nyear_spinup)
+		year=0;
+	else
+		year = date.year - nyear_spinup;
+
+	if(date.year < nyear_spinup + NYEAR_HIST) {
+ 		for(i=0; i<npft; i++)	{
+			if(pftlist[i].cftid >= 0 && pftlist[i].readNfert) {	//natural pft:s have cftid=-1			
+#if defined DYNAMIC_LANDCOVER_INPUT
+#ifdef LUTOMEMORY
+				gridcell.pft[pftlist[i].id].Nfert_read = Nfert_mem.Get(year,pftlist[i].name);
+#else
+				gridcell.pft[pftlist[i].id].Nfert_read = Nfert.Get(year,pftlist[i].name);
+#endif
 #endif
 			}
 		}

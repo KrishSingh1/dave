@@ -163,6 +163,9 @@ extern bool forcesowingdates;
 //Whether to use harvestdates from input file
 extern bool forceharvestdates;
 
+//Whether to read N fertilization from input file
+extern bool readNfert;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Settings controlling the saving and loading from state files
 

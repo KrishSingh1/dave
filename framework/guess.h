@@ -276,6 +276,8 @@ public:
 	/// true if middle day of month, false otherwise
 	bool ismidday;
 
+	/// The calendar year corresponding to simulation year 0
+	int first_calendar_year;
 
 private:
 
@@ -297,6 +299,7 @@ public:
 			dayct += data[month];
 		}
 		subdaily = 1;
+		first_calendar_year = 0;
 	}
 
 	/// Initialises date to day 0 of year 0 and sets intended number of simulation years
@@ -368,6 +371,22 @@ public:
 	
 	/// Whether the current mode is diurnal
 	bool diurnal() const { return subdaily > 1; }
+
+	/// Sets calendar year for simulation year 0
+	/** Astronomical year numbering is used, so year 1 BC is represented by 0,
+	 *  2 BC = -1 etc. See ISO 8601.
+	 */
+	void set_first_calendar_year(int calendar_year) {
+		first_calendar_year = calendar_year;
+	}
+
+	/// Returns the calendar year corresponding to the current simulation year
+	/** Astronomical year numbering is used, so year 1 BC is represented by 0,
+	 *  2 BC = -1 etc. See ISO 8601.
+	 */
+	int get_calendar_year() const {
+		return year + first_calendar_year;
+	}
 };
 
 /// Object describing sub-daily periods

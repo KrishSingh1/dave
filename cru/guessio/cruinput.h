@@ -15,6 +15,8 @@
 #include "gutil.h"
 #include "globalco2file.h"
 #include "spinupdata.h"
+#include "cru_ts30.h"
+#include "lamarquendep.h"
 #include "guess.h"
 #if defined DYNAMIC_LANDCOVER_INPUT
 #include "InData.h"
@@ -47,18 +49,11 @@ public:
 	
 	// Constants associated with historical climate data set
 
-	// number of years of historical climate
-	// CRU TS 3.0 has 106 years of data (1901-2006)
-	static const int NYEAR_HIST=106;
+	/// number of years of historical climate
+	static const int NYEAR_HIST = CRU_TS30::NYEAR_HIST;
 
-	// calender year corresponding to first year in CRU climate data set
-	static const int FIRSTHISTYEAR=1901;
-
-	// calender year corresponding to first year nitrogen deposition
-	static const int FIRSTHISTYEARNDEP=1850;
-
-	// number of years of historical nitrogen deposition 
-	static const int NYEAR_HISTNDEP=16;
+	/// calendar year corresponding to first year in data set
+	static const int FIRSTHISTYEAR = CRU_TS30::FIRSTHISTYEAR;
 
 	// number of years to use for temperature-detrended spinup data set
 	// (not to be confused with the number of years to spinup model for, which
@@ -122,9 +117,6 @@ private:
 	/// Transfers gridlist of coordinates from CRUInput::Coord to InData::Coord
 	void GetLonLatList(ListArray_id<InData::Coord>& lonlatlist, ListArray_id<Coord>& gridlist);
 #endif
-
-	void getndep(double lon, double lat);
-
 	/// search radius to use when finding CRU data
 	double searchradius;
 
@@ -168,14 +160,8 @@ private:
 	double hist_mwet[NYEAR_HIST][12];
 	double hist_mdtr[NYEAR_HIST][12];
 
-	/// Monthly data on daily dry NHx deposition (kgN/m2/day)
-	double NHxDryDep[NYEAR_HISTNDEP][12];
-	/// Monthly data on daily wet NHx deposition (kgN/m2/day)
-	double NHxWetDep[NYEAR_HISTNDEP][12];
-	/// Monthly data on daily dry NOy deposition (kgN/m2/day)
-	double NOyDryDep[NYEAR_HISTNDEP][12];
-	/// Monthly data on daily wet NOy deposition (kgN/m2/day)
-	double NOyWetDep[NYEAR_HISTNDEP][12];
+	/// Nitrogen deposition forcing for current gridcell
+	Lamarque::NDepData ndep;
 
 	// Spinup data sets for current grid cell
 	Spinup_data spinup_mtemp;

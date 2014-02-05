@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-/// \file guessio.cpp
+/// \file demoinput.cpp
 /// \brief LPJ-GUESS input module for a toy data set (for demonstration purposes)
 ///
 ///

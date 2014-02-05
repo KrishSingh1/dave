@@ -1229,10 +1229,21 @@ void Individual::kill(bool harvest /* = false */) {
 
 		// Leaf: remove residue outtake and send the rest to litter
 		if(has_daily_turnover() && cropindiv) {
+
+			if(pft.lifeform == GRASS && pft.phenology != CROPGREEN) {
+				charvest_flux += cropindiv->grs_cmass_leaf * harv_eff;
+				cropindiv->grs_cmass_leaf *= (1 - harv_eff);
+			}
+
 			ppft.litter_leaf += cropindiv->grs_cmass_leaf * (1 - res_outtake);
 			charvest_flux    += cropindiv->grs_cmass_leaf * res_outtake;
 		}
 		else {
+
+			if(pft.lifeform == GRASS && pft.phenology != CROPGREEN) {
+				charvest_flux += cmass_leaf * harv_eff;
+				cmass_leaf *= (1 - harv_eff);
+			}
 			ppft.litter_leaf += cmass_leaf * (1 - res_outtake);
 			charvest_flux    += cmass_leaf * res_outtake;
 		}
@@ -1245,6 +1256,10 @@ void Individual::kill(bool harvest /* = false */) {
 		if(pft.landcover==CROPLAND) {
 
 			if(has_daily_turnover()) {
+
+				charvest_flux += cropindiv->grs_cmass_ho * harv_eff;
+				cropindiv->grs_cmass_ho *= (1 - harv_eff);
+
 				if(pft.aboveground_ho) {
 					ppft.litter_leaf+=cropindiv->grs_cmass_ho * (1 - res_outtake);
 					charvest_flux += cropindiv->grs_cmass_ho * res_outtake;
@@ -1256,6 +1271,10 @@ void Individual::kill(bool harvest /* = false */) {
 				charvest_flux += cropindiv->grs_cmass_agpool * res_outtake;
 			}
 			else {
+
+				charvest_flux += cropindiv->cmass_ho * harv_eff;
+				cropindiv->cmass_ho *= (1 - harv_eff);
+
 				if(pft.aboveground_ho) {
 					ppft.litter_leaf+=cropindiv->cmass_ho * (1 - res_outtake);
 					charvest_flux += cropindiv->cmass_ho * res_outtake;

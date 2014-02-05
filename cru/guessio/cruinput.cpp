@@ -817,7 +817,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		while (!gridfound) {
 
 			if (run_landcover && LUerror)
-				dprintf("\nError: could not find stand at (%g,%g) in landcover data file\n", gridlist.getobj().lon,gridlist.getobj().lat);
+				dprintf("\nError: could not find stand at (%g,%g) in landcover/management data file(s)\n", gridlist.getobj().lon,gridlist.getobj().lat);
 			else
 				dprintf("\nError: could not find stand at (%g,%g) in CRU data file\n", gridlist.getobj().lon,gridlist.getobj().lat);
 

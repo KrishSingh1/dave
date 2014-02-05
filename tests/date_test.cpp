@@ -2,11 +2,12 @@
 /// \file date_test.cpp
 /// \brief Unit tests for the Date class
 ///
-/// \author Joe Lindström
+/// \author Joe Siltberg
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
+#include "config.h"
 #include "catch.hpp"
 
 #include "guess.h"
@@ -57,6 +58,12 @@ TEST_CASE("date/stepping", "Tests Date::next()") {
 	 }
 }
 
+TEST_CASE("date/leap", "Tests isleap") {
+	REQUIRE(!Date::is_leap(1900));
+	REQUIRE(!Date::is_leap(1975));
+	REQUIRE(Date::is_leap(1904));
+	REQUIRE(Date::is_leap(2000));
+}
 
 TEST_CASE("date/months", "Tests prevmonth and nextmonth") {
 	 Date d;
@@ -68,7 +75,7 @@ TEST_CASE("date/months", "Tests prevmonth and nextmonth") {
 
 	 // Go to February
 	 take_n_steps(d, 31);
-	 
+
 	 REQUIRE(d.nextmonth() == 2);
 	 REQUIRE(d.prevmonth() == 0);
 
@@ -83,4 +90,20 @@ TEST_CASE("date/months", "Tests prevmonth and nextmonth") {
 
 	 REQUIRE(d.nextmonth() == 1);
 	 REQUIRE(d.prevmonth() == 11);
+}
+
+TEST_CASE("date/calendar_year", "Tests the calendar year concept") {
+	Date d;
+	d.init(1);
+
+	// If calendar year isn't set, the simulation year and calendar year will be the same
+	REQUIRE(d.get_calendar_year() == 0);
+
+	d.set_first_calendar_year(1900);
+	REQUIRE(d.get_calendar_year() == 1900);
+
+	// Go to next year
+	take_n_steps(d, 400);
+	REQUIRE(d.year == 1);
+	REQUIRE(d.get_calendar_year() == 1901);
 }

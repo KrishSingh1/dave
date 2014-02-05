@@ -125,6 +125,12 @@ const int COLDEST_DAY_NHEMISPHERE = 14;
  */
 const int COLDEST_DAY_SHEMISPHERE = 195;
 
+/// Warmest day in N hemisphere (same as COLDEST_DAY_SHEMISPHERE)
+const int WARMEST_DAY_NHEMISPHERE = COLDEST_DAY_SHEMISPHERE;
+
+/// Warmest day in S hemisphere (same as COLDEST_DAY_NHEMISPHERE)
+const int WARMEST_DAY_SHEMISPHERE = COLDEST_DAY_NHEMISPHERE;
+
 /// number of years to average aaet over in function soilnadd
 const int NYEARAAET = 5;
 
@@ -219,6 +225,8 @@ public:
 	/// true if middle day of month, false otherwise
 	bool ismidday;
 
+	/// The calendar year corresponding to simulation year 0
+	int first_calendar_year;
 
 private:
 
@@ -240,6 +248,7 @@ public:
 			dayct += data[month];
 		}
 		subdaily = 1;
+		first_calendar_year = 0;
 	}
 
 	/// Initialises date to day 0 of year 0 and sets intended number of simulation years
@@ -311,6 +320,22 @@ public:
 	
 	/// Whether the current mode is diurnal
 	bool diurnal() const { return subdaily > 1; }
+
+	/// Sets calendar year for simulation year 0
+	/** Astronomical year numbering is used, so year 1 BC is represented by 0,
+	 *  2 BC = -1 etc. See ISO 8601.
+	 */
+	void set_first_calendar_year(int calendar_year) {
+		first_calendar_year = calendar_year;
+	}
+
+	/// Returns the calendar year corresponding to the current simulation year
+	/** Astronomical year numbering is used, so year 1 BC is represented by 0,
+	 *  2 BC = -1 etc. See ISO 8601.
+	 */
+	int get_calendar_year() const {
+		return year + first_calendar_year;
+	}
 };
 
 /// Object describing sub-daily periods
@@ -401,22 +426,29 @@ class Climate : public Serializable {
 	// MEMBER VARIABLES
 
 public:
+	/// reference to parent Gridcell object
 	Gridcell& gridcell;
-		// reference to parent Gridcell object
+
+	/// mean air temperature today (deg C)
 	double temp;
-		// mean air temperature today (deg C)
+
+	/// total daily net downward shortwave solar radiation today (J/m2/day)
 	double rad;
-		// total daily net downward shortwave solar radiation today (J/m2/day)
+
+	/// total daily photosynthetically-active radiation today (J/m2/day)
 	double par;
-		// total daily photosynthetically-active radiation today (J/m2/day)
+
+	/// precipitation today (mm)
 	double prec;
-		// precipitation today (mm)
+
+	/// day length today (h)
 	double daylength;
-		// day length today (h)
+
+	/// atmospheric ambient CO2 concentration today (ppmv)
 	double co2;
-		// atmospheric ambient CO2 concentration today (ppmv)
+
+	/// latitude (degrees; +=north, -=south)
 	double lat;
-		// latitude (degrees; +=north, -=south)
 
 	/// Insolation today, see also instype
 	double insol;
@@ -427,37 +459,54 @@ public:
 	 */
 	insoltype instype;
 
+	/// equilibrium evapotranspiration today (mm/day)
 	double eet;
-		// equilibrium evapotranspiration today (mm/day)
+
+	/// mean temperature for the last 31 days (deg C)
 	double mtemp;
-		// mean temperature for the last 31 days (deg C)
+
+	/// mean of lowest mean monthly temperature for the last 20 years (deg C)
 	double mtemp_min20;
-		// lowest mean monthly temperature for the last 20 years (deg C)
+
+	/// mean of highest mean monthly temperature for the last 20 years (deg C)
 	double mtemp_max20;
+
+	/// highest mean monthly temperature for the last 12 months (deg C)
 	double mtemp_max;
-		// highest mean monthly temperature for the last 12 months (deg C)
+
+	/// accumulated growing degree day sum on 5 degree base 
+	/** reset when temperatures fall below 5 deg C */
 	double gdd5;
-		// accumulated growing degree day sum on 5 degree base (reset when temperatures
-		// fall below 5 deg C)
-	double agdd5; // total gdd5 (accumulated) for this year (reset 1 January)
+
+	/// total gdd5 (accumulated) for this year (reset 1 January)
+	double agdd5;
+
+	/// number of days with temperatures <5 deg C 
+	/** reset when temperatures fall below 5 deg C; maximum value 365 */
 	int chilldays;
-		// number of days with temperatures <5 deg C (reset when temperatures fall
-		// below 5 deg C; maximum value 365)
+
+	/// true if chill day count may be reset by temperature fall below 5 deg C
 	bool ifsensechill;
-		// guess2008 - CHILLDAYS - true if chill day count may be reset by temperature
-		// fall below 5 deg C
+
+	/** Respiration response to today's air temperature incorporating damping of Q10
+	 *  due to temperature acclimation (Lloyd & Taylor 1994)
+	 */
 	double gtemp;
-		// respiration response to today's air temperature incorporating damping of Q10
-		// due to temperature acclimation (Lloyd & Taylor 1994)
+
+	/// daily temperatures for the last 31 days (deg C)
 	Historic<double, 31> dtemp_31;
-		// daily temperatures for the last 31 days (deg C)
+
+	/// minimum monthly temperatures for the last 20 years (deg C)
 	double mtemp_min_20[20];
-		// minimum monthly temperatures for the last 20 years (deg C)
+
+	/// maximum monthly temperatures for the last 20 years (deg C)
 	double mtemp_max_20[20];
+
+	/// minimum monthly temperature for the last 12 months (deg C)
 	double mtemp_min;
-		// minimum monthly temperature for the last 12 months (deg C)
+		
+	/// mean of monthly temperatures for the last 12 months (deg C)
 	double atemp_mean;
-		// mean of monthly temperatures for the last 12 months (deg C)
 
 	/// annual nitrogen deposition (kgN/m2/year)
 	double andep;
@@ -469,43 +518,46 @@ public:
 	/// daily nitrogen fertilization (kgN/m2/year)
 	double dnfert;
 
-	// Monthly sums (converted to means) used by canopy exchange module
-
-	double temp_mean;
-		// accumulated mean temperature for this month (deg C)
-	double par_mean;
-		// accumulated mean daily net PAR sum (J/m2/day) for this month
-	double co2_mean;
-		// accumulated mean CO2 for this month (ppmv)
-	double daylength_mean;
-		// accumulated mean daylength for this month (h)
-
 	// Saved parameters used by function daylengthinsoleet
 
 	double sinelat;
 	double cosinelat;
 	double qo[365], u[365], v[365], hh[365], sinehh[365];
 	double daylength_save[365];
+	/// indicates whether saved values exist for this day
 	bool doneday[365];
-		// indicates whether saved values exist for this day
+		
+	/// diurnal temperature range, used in daily/monthly BVOC (deg C)
+	double dtr;
 
-	double dtr; // diurnal temperature range, used in daily/monthly BVOC (deg C)
+	// containers for sub-daily values of temperature, short-wave downward
+	// radiation, par, rad and gtemp (equivalent to temp, insol, par, rad and gtemp)
+	// NB: units of these variable are the same as their daily counterparts,
+	// i.e. representing daily averages (e.g. pars [J/m2/day])
 
-	std::vector<double> temps, insols, pars, rads, gtemps;
-		// containers for sub-daily values of temperature, short-wave downward
-		// radiation, par, rad and gtemp (equivalent to temp, insol, par, rad and gtemp)
-		// NB: units of these variable are the same as their daily counterparts,
-		// i.e. representing daily averages (e.g. pars [J/m2/day])
+	/// Sub-daily temperature (deg C) (\see temp)
+	std::vector<double> temps;
+
+	/// Sub-daily insolation (\see insol)
+	std::vector<double> insols;
+
+	/// Sub-daily PAR (\see par)
+	std::vector<double> pars;
+
+	/// Sub-daily net downward shortwave solar radiation (\see rad)
+	std::vector<double> rads;
+
+	/// Sub-daily respiration response (\see gtemp)
+	std::vector<double> gtemps;
 
 
 public:
+	/// constructor function: initialises gridcell member
 	Climate(Gridcell& gc):gridcell(gc) {};
-		// constructor function: initialises gridcell member
 
+	/// Initialises certain member variables
+	/** Should be called before Climate object is applied to a new grid cell */
 	void initdrivers(double latitude) {
-
-		// Initialises certain member variables
-		// Should be called before Climate object is applied to a new grid cell
 
 		int day, year;
 
@@ -516,7 +568,7 @@ public:
 		mtemp = 0.0;
 		gdd5 = 0.0;
 		chilldays = 0;
-		ifsensechill = true; //  guess2008 - CHILLDAYS
+		ifsensechill = true;
 		atemp_mean = 0.0;
 
 		lat = latitude;
@@ -642,55 +694,53 @@ private:
 };
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// PFT
-// Holds static functional parameters for a plant functional type (PFT). There should
-// be one Pft object for each potentially occurring PFT. The same Pft object may be
-// referenced (via the pft member of the Individual object; see below) by different
-// average individuals. Member functions are included for initialising SLA given leaf
-// longevity, and for initialising sapling/regen characteristics (required for
-// population mode).
-
+/// Holds static functional parameters for a plant functional type (PFT). 
+/** There should be one Pft object for each potentially occurring PFT. The same Pft object 
+ *  may be referenced (via the pft member of the Individual object; see below) by different
+ *  average individuals. Member functions are included for initialising SLA given leaf
+ *  longevity, and for initialising sapling/regen characteristics (required for
+ * population mode).
+ */
 class Pft {
 
 	// MEMBER VARIABLES
 
 public:
+	/// id code (should be zero based and sequential, 0...npft-1)
 	int id;
-		// id code (should be zero based and sequential, 0...npft-1)
+	/// name of PFT
 	xtring name;
-		// name of PFT
+	/// life form (tree or grass)
 	lifeformtype lifeform;
-		// life form (tree or grass)
+	/// leaf phenology (raingreen, summergreen, evergreen, rain+summergreen)
 	phenologytype phenology;
-		// leaf phenology (raingreen, summergreen, evergreen, rain+summergreen)
+	/// leaf physiognomy (needleleaf, broadleaf)
 	leafphysiognomytype leafphysiognomy;
-		// leaf physiognomy (needleleaf, broadleaf)
+	/// growing degree sum on 5 degree base required for full leaf cover
 	double phengdd5ramp;
-		// growing degree sum on 5 degree base required for full leaf cover
+	/// water stress threshold for leaf abscission (range 0-1; raingreen PFTs)
 	double wscal_min;
-		// water stress threshold for leaf abscission (range 0-1; raingreen PFTs)
+	/// biochemical pathway for photosynthesis (C3 or C4)
 	pathwaytype pathway;
-		// biochemical pathway for photosynthesis (C3 or C4)
+	/// approximate low temperature limit for photosynthesis (deg C)
 	double pstemp_min;
-		// approximate low temperature limit for photosynthesis (deg C)
+	/// approximate lower range of temperature optimum for photosynthesis (deg C)
 	double pstemp_low;
-		// approximate lower range of temperature optimum for photosynthesis (deg C)
+	/// approximate upper range of temperature optimum for photosynthesis (deg C)
 	double pstemp_high;
-		// approximate upper range of temperature optimum for photosynthesis (deg C)
+	/// maximum temperature limit for photosynthesis (deg C)
 	double pstemp_max;
-		// maximum temperature limit for photosynthesis (deg C)
+	/// non-water-stressed ratio of intercellular to ambient CO2 partial pressure
 	double lambda_max;
-		// non-water-stressed ratio of intercellular to ambient CO2 partial pressure
+	/// vegetation root profile 
+	/** array containing fraction of roots in each soil layer, [0=upper layer] */
 	double rootdist[NSOILLAYER];
-		// vegetation root profile (array containing fraction of roots in each soil
-		// layer, [0=upper layer])
+	/// canopy conductance component not associated with photosynthesis (mm/s)
 	double gmin;
-		// canopy conductance component not associated with photosynthesis (mm/s)
+	/// maximum evapotranspiration rate (mm/day)
 	double emax;
-		// maximum evapotranspiration rate (mm/day)
+	/// maintenance respiration coefficient (0-1)
 	double respcoeff;
-		// maintenance respiration coefficient (0-1)
 	
 	/// minimum leaf C:N mass ratio allowed when nitrogen demand is determined
 	double cton_leaf_min;
@@ -721,141 +771,142 @@ public:
 	/** Half saturation concentration for N uptake [kgN l-1] (Rothstein 2000) */
 	double km_volume;
 		
+	/// fraction of NPP allocated to reproduction
 	double reprfrac;
-		// fraction of NPP allocated to reproduction
+	/// annual leaf turnover as a proportion of leaf C biomass
 	double turnover_leaf;
-		// annual leaf turnover as a proportion of leaf C biomass
+	/// annual fine root turnover as a proportion of fine root C biomass
 	double turnover_root;
-		// annual fine root turnover as a proportion of fine root C biomass
+	/// annual sapwood turnover as a proportion of sapwood C biomass
 	double turnover_sap;
-		// annual sapwood turnover as a proportion of sapwood C biomass
+	/// sapwood and heartwood density (kgC/m3)
 	double wooddens;
-		// sapwood and heartwood density (kgC/m3)
+	/// maximum tree crown area (m2)
 	double crownarea_max;
-		// maximum tree crown area (m2)
+	/// constant in allometry equations
 	double k_allom1;
-		// constant in allometry equations
+	/// constant in allometry equations
 	double k_allom2;
-		// constant in allometry equations
+	/// constant in allometry equations
 	double k_allom3;
-		// constant in allometry equations
+	/// constant in allometry equations
 	double k_rp;
-		// constant in allometry equations
+	/// tree leaf to sapwood area ratio
 	double k_latosa;
-		// tree leaf to sapwood area ratio
+	/// specific leaf area (m2/kgC)
 	double sla;
-		// specific leaf area (m2/kgC)
+	/// leaf longevity (years)
 	double leaflong;
-		// leaf longevity (years)
+	/// leaf to root mass ratio under non-water-stressed conditions
 	double ltor_max;
-		// leaf to root mass ratio under non-water-stressed conditions
+	/// litter moisture flammability threshold (fraction of AWC)
 	double litterme;
-		// litter moisture flammability threshold (fraction of AWC)
+	/// fire resistance (0-1)
 	double fireresist;
-		// fire resistance (0-1)
+	/// minimum forest-floor PAR level for growth (grasses) or establishment (trees)
+	/** J/m2/day, individual and cohort modes */
 	double parff_min;
-		// minimum forest-floor PAR level for growth (grasses) or establishment (trees)
-		// (J/m2/day) (individual and cohort modes)
+	/** parameter capturing non-linearity in recruitment rate relative to
+	 *  understorey growing conditions for trees (Fulton 1991) (individual and
+	 *  cohort modes)
+	 */
 	double alphar;
-		// parameter capturing non-linearity in recruitment rate relative to
-		// understorey growing conditions for trees (Fulton 1991) (individual and
-		// cohort modes)
+	/// maximum sapling establishment rate (saplings/m2/year) (individual and cohort modes)
 	double est_max;
-		// maximum sapling establishment rate (saplings/m2/year) (individual and cohort
-		// modes)
+	/** constant used in calculation of sapling establishment rate when spatial
+	 *  mass effect enabled (individual and cohort modes)
+	 */
 	double kest_repr;
-		// constant used in calculation of sapling establishment rate when spatial
-		// mass effect enabled (individual and cohort modes)
+	/// constant affecting amount of background establishment
+	/** \see ifbgestab */
 	double kest_bg;
-		// constant affecting amount of background establishment (when enabled)
-		// (individual and cohort modes)
+	/** constant used in calculation of sapling establishment rate when spatial
+	 *  mass effect disabled (individual and cohort modes)
+	 */
 	double kest_pres;
-		// constant used in calculation of sapling establishment rate when spatial
-		// mass effect disabled (individual and cohort modes)
+	/// expected longevity under non-stressed conditions (individual and cohort modes)
 	double longevity;
-		// expected longevity under non-stressed conditions (individual and cohort
-		// modes)
+	/// threshold growth efficiency for imposition of growth suppression mortality
+	/** kgC/m2 leaf/year, individual and cohort modes */
 	double greff_min;
-		// threshold growth efficiency for imposition of growth suppression mortality
-		// (kgC/m2 leaf/year) (individual and cohort modes)
 
 	// Bioclimatic limits (all temperatures deg C)
 
+	/// minimum 20-year coldest month mean temperature for survival
 	double tcmin_surv;
-		// minimum 20-year coldest month mean temperature for survival
+	/// maximum 20-year coldest month mean temperature for establishment
 	double tcmax_est;
-		// maximum 20-year coldest month mean temperature for establishment
+	/// minimum degree day sum on 5 deg C base for establishment
 	double gdd5min_est;
-		// minimum degree day sum on 5 deg C base for establishment
+	/// minimum 20-year coldest month mean temperature for establishment
 	double tcmin_est;
-		// minimum 20-year coldest month mean temperature for establishment
+	/// minimum warmest month mean temperature for establishment
 	double twmin_est;
-		// minimum warmest month mean temperature for establishment
+	/// continentality parameter for boreal summergreen trees
 	double twminusc;
-		// continentality parameter for boreal summergreen trees
+	/// constant in equation for budburst chilling time requirement (Sykes et al 1996)
 	double k_chilla;
-		// constant in equation for budburst chilling time requirement (Sykes et al 1996)
+	/// coefficient in equation for budburst chilling time requirement
 	double k_chillb;
-		// coefficient in equation for budburst chilling time requirement
+	/// exponent in equation for budburst chilling time requirement
 	double k_chillk;
-		// exponent in equation for budburst chilling time requirement
+	/// array containing values for GDD0(c) given c=number of chill days (0-365)
+	/** Sykes et al 1996, Eqn 1 */
 	double gdd0[366];
-		// array containing values for GDD0(c) given c=number of chill days (0-365)
-		// (Sykes et al 1996, Eqn 1)
+	/// interception coefficient (unitless)
 	double intc;
-		// interception coefficient (unitless)
 
-	// guess2008 - drought-limited establishment (DLE)
+	/// Drought tolerance level (0 = very -> 1 = not at all) (unitless)
+	/** Used to implement drought-limited establishment */
 	double drought_tolerance;
-		// Drought tolerance level (0 = very -> 1 = not at all) (unitless)
 
 	// bvoc
+	
+	/// aerodynamic conductance (m s-1)
 	double ga;
-	        // aerodynamic conductance (m s-1)
+	/// isoprene emission capacity (ug C g-1 h-1)
 	double eps_iso;
- 	        // isoprene emission capacity (ug C g-1 h-1)
+	/// whether (1) or not (1) isoprene emissions show a seasonality
 	bool seas_iso;
-	        // whether (1) or not (1) isoprene emissions show a seasonality
+	/// monoterpene emission capacity (ug C g-1 h-1)
 	double eps_mon;
-	        // monoterpene emission capacity (ug C g-1 h-1)
+	/// fraction of monoterpene production that goes into storage pool (-)
 	double storfrac_mon;
-	        // fraction of monoterpene production that goes into storage pool (-)
 
 
-
-	// Sapling/regeneration characteristics (used only in population mode):
-	// for trees, on sapling individual basis (kgC); for grasses, on stand area basis,
-	// kgC/m2
-
+	/// Sapling/regeneration characteristics (used only in population mode)
+	/** For trees, on sapling individual basis (kgC); for grasses, on stand area basis,
+	 *  kgC/m2 */
 	struct {
+		/// leaf C biomass
 		double cmass_leaf;
-			// leaf C biomass
+		/// fine root C biomass
 		double cmass_root;
-			// fine root C biomass
+		/// sapwood C biomass
 		double cmass_sap;
-			// sapwood C biomass
+		/// heartwood C biomass
 		double cmass_heart;
-			// heartwood C biomass
 	} regen;
-
-	// Variables used by new hydrology (Dieter Gerten 2002-07)
 
 	/// specifies type of landcover
 	/** \see landcovertype */
 	landcovertype landcover;
 
-	double res_outtake;				// Fraction of residue outtake at harvest.
-	double harv_eff;				// Harvest efficiency.
-	double harvest_slow_frac;		// Fraction of harvested products that goes into patchpft.harvested_products_slow
-	double turnover_harv_prod;		// Yearly turnover fraction of patchpft.harvested_products_slow (goes to fluxes.acflux_harvest).
+	/// Fraction of residue outtake at harvest.
+	double res_outtake;
+	/// Harvest efficiency.
+	double harv_eff;
+	/// Fraction of harvested products that goes into patchpft.harvested_products_slow
+	double harvest_slow_frac;
+	/// Yearly turnover fraction of patchpft.harvested_products_slow (goes to fluxes.acflux_harvest).
+	double turnover_harv_prod;
 
 	// MEMBER FUNCTIONS
 
 public:
 
+	/// Constructor (initialises array gdd0)
 	Pft() {
-
-		// Constructor (initialises array gdd0)
 
 		int y;
 		for (y=0; y<366; y++)
@@ -883,9 +934,9 @@ public:
 		}
 	}
 
+	/// Calculates minimum leaf C:N ratio given leaf longevity
 	void init_cton_min() {
-
-		// Calculates minimum leaf C:N ratio given leaf longevity
+		
 		// Reich et al 1992, Table 1 (includes conversion x500 from mg/g_dry_weight to
 		// kgN/kgC)
 
@@ -931,9 +982,8 @@ public:
 			             cton_sap  / (cton_sap_avr  + cton_leaf_min * frac_leaftosap);
 	}
 
+	/// Calculates coefficient to compensate for different vertical distribution of fine root on nitrogen uptake
 	void init_nupscoeff() {
-
-		// Calculates coefficient to compensate for different vertical distribution of fine root on nitrogen uptake
 		
 		// Fraction fine root in upper soil layer should have higher possibility for mineralized nitrogen uptake
 		// Soil nitrogen profile is considered to have a exponential decline (Franzluebbers et al. 2009) giving 
@@ -944,10 +994,11 @@ public:
 
 	}
 
+	/// Initialises sapling/regen characteristics in population mode following LPJF formulation
 	void initregen() {
 
-		// Initialises sapling/regen characteristics in population mode
-		// following LPJF formulation; see function allometry in growth module.
+		// see function allometry in growth module.
+
 		// Note: primary PFT parameters, including SLA, must be set before this
 		//       function is called
 	
@@ -1012,35 +1063,34 @@ class Pftlist : public ListArray_id<Pft> {};
 extern Pftlist pftlist;
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// INDIVIDUAL
-// State variables for a vegetation individual. In population mode this is the average
-// individual of a PFT population; in cohort mode: the average individual of a cohort;
-// in individual mode: an individual plant. Each grass PFT is represented as a single
-// individual in all modes. Individual objects are collected within list arrays of
-// class Vegetation (defined below), of which there is one for each patch, and include
-// a reference to their 'parent' Vegetation object. Use the createobj member function
-// of class Vegetation to add new individuals.
-
+/// A vegetation individual.
+/** In population mode this is the average individual of a PFT population; 
+ *  in cohort mode: the average individual of a cohort;
+ *  in individual mode: an individual plant. Each grass PFT is represented as a single
+ *  individual in all modes. Individual objects are collected within list arrays of
+ *  class Vegetation (defined below), of which there is one for each patch, and include
+ *  a reference to their 'parent' Vegetation object. Use the createobj member function
+ *  of class Vegetation to add new individuals.
+ */
 class Individual : public Serializable {
 
 public:
+	/// reference to Pft object containing static parameters for this individual
 	Pft& pft;
-		// reference to Pft object containing static parameters for this individual
+	/// reference to Vegetation object to which this Individual belongs
 	Vegetation& vegetation;
-		// reference to Vegetation object to which this Individual belongs
+	/// id code (0-based, sequential)
 	int id;
-		// id code (0-based, sequential)
+	/// leaf C biomass on modelled area basis (kgC/m2)
 	double cmass_leaf;
-		// leaf C biomass on modelled area basis (kgC/m2)
+	/// fine root C biomass on modelled area basis (kgC/m2)
 	double cmass_root;
-		// fine root C biomass on modelled area basis (kgC/m2)
+	/// sapwood C biomass on modelled area basis (kgC/m2)
 	double cmass_sap;
-		// sapwood C biomass on modelled area basis (kgC/m2)
+	/// heartwood C biomass on modelled area basis (kgC/m2)
 	double cmass_heart;
-		// heartwood C biomass on modelled area basis (kgC/m2)
+	/// C "debt" (retrospective storage) (kgC/m2)
 	double cmass_debt;
-		// C "debt" (retrospective storage) (kgC/m2)
 
 	/// nitrogen content of leaves on patch area basis (kgN/m2)
 	double nmass_leaf;
@@ -1051,23 +1101,21 @@ public:
 	/// nitrogen content of heartwood on patch area basis (kgN/m2)
 	double nmass_heart;	
 
+	/// foliar projective cover (FPC) under full leaf cover as fraction of modelled area
 	double fpc;
-		// foliar projective cover (FPC) under full leaf cover as fraction of modelled
-		// area
+	/// fraction of PAR absorbed by foliage over projective area today, taking account of leaf phenological state
 	double fpar;
-		// fraction of PAR absorbed by foliage over projective area today, taking
-		// account of leaf phenological state
+	/// average density of individuals over patch (indiv/m2)
 	double densindiv;
-		// average density of individuals over patch (indiv/m2)
+	/// vegetation phenological state (fraction of potential leaf cover)
 	double phen;
-		// vegetation phenological state (fraction of potential leaf cover)
+	/// annual sum of daily fractional leaf cover
+	/** Equivalent number of days with full leaf cover
+	 *  (population mode only; reset on expected coldest day of year)
+	 */
 	double aphen;
-		// annual sum of daily fractional leaf cover (equivalent number of days with
-		// full leaf cover) (population mode only; reset on expected coldest day of
-		// year)
+	/// annual number of days with full leaf cover) (raingreen PFTs only; reset on 1 January)
 	int aphen_raingreen;
-		// annual number of days with full leaf cover) (raingreen PFTs only; reset on
-		// 1 January)
 
 	/// Photosynthesis values for this individual under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;
@@ -1075,55 +1123,53 @@ public:
 	/// sub-daily version of the above variable (NB: daily units)
 	std::vector<PhotosynthesisResult> phots;
 		
+	/// accumulated NPP over modelled area (kgC/m2/year); 
+	/** annual NPP following call to growth module on last day of simulation year */
 	double anpp;
-		// accumulated NPP over modelled area (kgC/m2/year); = annual NPP following
-		// call to growth module on last day of simulation year
+	/// actual evapotranspiration over projected area (mm/day)
 	double aet;
-		// actual evapotranspiration over projected area (mm/day)
+	/// leaf to root mass ratio
 	double ltor;
-		// leaf to root mass ratio
+	/// plant height (m)
 	double height;
-		// plant height (m)
+	/// plant crown area (m2)
 	double crownarea;
-		// plant crown area (m2)
+	/// increment in fpc since last simulation year
 	double deltafpc;
-		// increment in fpc since last simulation year
+	/// running sum (converted to annual mean) for wscal
 	double wscal_mean;
-		// running sum (converted to annual mean) for wscal
+	/// bole height, i.e. height above ground of bottom of crown cylinder (m)
+	/** (individual and cohort modes only) */
 	double boleht;
-		// bole height, i.e. height above ground of bottom of crown cylinder (m)
-		// (individual and cohort modes only)
+	/// patch-level lai for this individual or cohort (function fpar)
 	double lai;
-		// patch-level lai for this individual or cohort (function fpar)
+	/// patch-level lai for cohort in current vertical layer (function fpar)
 	double lai_layer;
-		// patch-level lai for cohort in current vertical layer (function fpar)
+	/// individual leaf area index (individual and cohort modes only)
 	double lai_indiv;
-		// individual leaf area index (individual and cohort modes only)
+	/// growth efficiency (NPP/leaf area) for each of the last five simulation years (kgC/m2/yr)
 	Historic<double, NYEARGREFF> greff_5;
-		// growth efficiency (NPP/leaf area) for each of the last five simulation years
-		// (kgC/m2/yr)
+	/// individual/cohort age (years)
 	double age;
-		// individual/cohort age (years)
+	/// monthly LAI (including phenology component)
 	double mlai[12];
-		// monthly LAI (including phenology component)
-
+	
+	/// FPAR assuming full leaf cover for all vegetation
 	double fpar_leafon;
-		// FPAR assuming full leaf cover for all vegetation
+	/// LAI for current layer in canopy (cohort/individual mode; see function fpar)
 	double lai_leafon_layer;
-		// LAI for current layer in canopy (cohort/individual mode; see function fpar)
+	/// non-water-stressed canopy conductance on FPC basis (mm/s)
 	double gpterm;
-		// non-water-stressed canopy conductance on FPC basis (mm/s)
-	std::vector<double> gpterms;		// sub-daily version of the above variable (mm/s)
+	/// sub-daily version of the above variable (mm/s)
+	std::vector<double> gpterms;
+	/// interception associated with this individual today (patch basis)
 	double intercep;
-		// interception associated with this individual today (patch basis)
 
-
-	// Monthly sums (converted to means) maintained by function canopy_exchange
-
+	/// accumulated mean fraction of potential leaf cover
 	double phen_mean;
-		// accumulated mean fraction of potential leaf cover
-
-	bool wstress; // whether individual subject to water stress
+		
+	/// whether individual subject to water stress
+	bool wstress;
 
 	/// leaf nitrogen that is photosyntetic active
 	double nactive;
@@ -1181,18 +1227,23 @@ public:
 	/// daily root nitrogen demand over possible uptake (storage demand)
 	double rootndemand_store;
 		
+	/// Number of days with non-negligible phenology this month
 	int nday_leafon;	
-		// Number of days with non-negligible phenology this month
+	// Whether this individual is truly alive. 
+	/** Set to false for first year after the Individual object is created, then true. */
 	bool alive; 
-		// guess2008 - whether this individual is truly alive. Set to false for first year 
-		// after the Individual object is created, then true.
 
 
 	// bvoc
-	double iso; // isoprene production (mg C m-2 d-1)
-	double mon; // monoterpene production (mg C m-2 d-1)
-	double monstor; // monoterpene storage pool (mg C m-2)
-	double fvocseas; // isoprene seasonality factor (-)
+
+	/// isoprene production (mg C m-2 d-1)
+	double iso;
+	/// monoterpene production (mg C m-2 d-1)
+	double mon;
+	/// monoterpene storage pool (mg C m-2)
+	double monstor;
+	/// isoprene seasonality factor (-)
+	double fvocseas;
 
 	// MEMBER FUNCTIONS
 
@@ -1256,7 +1307,7 @@ public:
 	double cton_sap() const;
 
 	/// Gets the individual's Patchpft
-	Patchpft& patchpft();
+	Patchpft& patchpft() const;
 
 	/// Transfers the individual's biomass (C and N) to litter and harvest pools/fluxes
 	/** 
@@ -1268,37 +1319,37 @@ public:
 };
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// VEGETATION
-// Functionality for building, maintaining, referencing and destroying a list array of
-// Individual objects. A single Vegetation object is defined for each patch. A
-// reference to the parent Patch object (defined below) is included as a member
-// variable.
-//
-// Functionality is inherited from the ListArray_idin1 template type in the GUTIL
-// Library. Sequential Individual objects can be referenced as array elements by id,
-// or by iteration through the linked list:
-//
-//   Vegetation vegetation
-//   ...
-//   vegetation.firstobj();
-//   while (vegetation.isobj) {
-//     Individual& thisindiv=vegetation.getobj();
-//     /* query or modify object thisindiv here */
-//     vegetation.nextobj();
-//   }
-
+/// The vegetation in a patch - a list of individuals
+/** Functionality for building, maintaining, referencing and destroying a list array of
+ *  Individual objects. A single Vegetation object is defined for each patch. A
+ *  reference to the parent Patch object (defined below) is included as a member
+ *  variable.
+ *
+ *  Functionality is inherited from the ListArray_idin1 template type in the GUTIL
+ *  Library. Sequential Individual objects can be referenced as array elements by id,
+ *  or by iteration through the linked list:
+ *
+ *    Vegetation vegetation
+ *    ...
+ *    vegetation.firstobj();
+ *    while (vegetation.isobj) {
+ *      Individual& thisindiv=vegetation.getobj();
+ *      // query or modify object thisindiv here
+ *      vegetation.nextobj();
+ *    }
+ */
 class Vegetation : public ListArray_idin2<Individual,Pft,Vegetation>, public Serializable {
 
 public:
 	// MEMBER VARIABLES
 
-	Patch& patch; // reference to parent Patch object
+	/// reference to parent Patch object
+	Patch& patch;
 
 	// MEMBER FUNCTIONS
 
+	/// constructor (initialises member variable patch)
 	Vegetation(Patch& p):patch(p) {};
-		// constructor (initialises member variable patch)
 
 	void serialize(ArchiveStream& arch);
 };
@@ -1315,31 +1366,32 @@ class Soiltype {
 
 public:
 
+	/// available water holding capacity as fraction of soil volume
 	double awc_frac;
-		// available water holding capacity as fraction of soil volume
+	/// available water holding capacity of soil layers [0=upper layer] (mm)
 	double awc[NSOILLAYER];
-		// available water holding capacity of soil layers [0=upper layer] (mm)
+
+	/// coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996)		
 	double perc_base;
-		// coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice
-		// 1996)
+	/// exponent in percolation calculation (=4 in Eqn 31, Haxeltine & Prentice 1996)
 	double perc_exp;
-		// exponent in percolation calculation (=4 in Eqn 31, Haxeltine & Prentice
-		// 1996)
+
+	/// thermal diffusivity at 0% WHC (mm2/s)
 	double thermdiff_0;
-		// thermal diffusivity at 0% WHC (mm2/s)
+	/// thermal diffusivity at 15% WHC (mm2/s)
 	double thermdiff_15;
-		// thermal diffusivity at 15% WHC (mm2/s)
+	/// thermal diffusivity at 100% WHC (mm2/s)
 	double thermdiff_100;
-		// thermal diffusivity at 100% WHC (mm2/s)
+
+	/// wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
 	double wp[NSOILLAYER];
-		// wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
+	/// saturation point. Cosby et al 1984
 	double wsats[NSOILLAYER];
-		// saturation point. Cosby et al 1984
+
+	/// year at which to calculate equilibrium soil carbon
 	int solvesom_end;
-		// year at which to calculate equilibrium soil carbon
+	/// year at which to begin documenting means for calculation of equilibrium soil carbon		
 	int solvesom_begin;
-		// year at which to begin documenting means for calculation of equilibrium
-		// soil carbon
 
 	/// water holding capacity plus wilting point for whole soil volume
 	double wtot; 
@@ -1356,9 +1408,8 @@ public:
 
 public:
 
+	/// Constructor: initialises certain member variables
 	Soiltype() {
-
-		// Constructor: initialises certain member variables
 
 		solvesom_end = SOLVESOM_END;
 		solvesom_begin = SOLVESOM_BEGIN;
@@ -1368,7 +1419,7 @@ public:
 		silt_frac = 0.2;
 	}
 
-	// guess2008 - override the default SOM years with 70-80% of the spin-up period length
+	/// Override the default SOM years with 70-80% of the spin-up period length
 	void updateSolveSOMvalues(const int& nyrspinup) {
 		
 		solvesom_end = static_cast<int>(0.8 * nyrspinup);
@@ -1464,10 +1515,10 @@ struct LitterSolveSOM : public Serializable {
 	void serialize(ArchiveStream& arch);
 
 private:
-	// Carbon litter
+	/// Carbon litter
 	double clitter[NSOMPOOL];
 	
-	// Nitrogen litter
+	/// Nitrogen litter
 	double nlitter[NSOMPOOL];
 };
 
@@ -1483,73 +1534,72 @@ class Soil : public Serializable {
 	// MEMBER VARIABLES
 
 public:
-
+	/// reference to parent Patch object
 	Patch& patch;
-		// reference to parent Patch object
+	/// reference to Soiltype object holding static parameters for this soil
 	Soiltype& soiltype;
-		// reference to Soiltype object holding static parameters for this soil
+	/// water content of soil layers [0=upper layer] as fraction of available water holding capacity;
 	double wcont[NSOILLAYER];
-		// water content of soil layers [0=upper layer] as fraction of available water
-		// holding capacity;
+	/// DLE - the average wcont over the growing season, for each soil layer
 	double awcont[NSOILLAYER];
-		// guess2008 - DLE - the average wcont over the growing season, for each soil layer
+	/// water content of sublayer of upper soil layer for which evaporation from the bare soil surface is possible 
+	/** fraction of available water holding capacity */
 	double wcont_evap;
-		// water content of sublayer of upper soil layer for which evaporation from
-		// the bare soil surface is possible (fraction of available water holding
-		// capacity)
+	/// daily water content in upper soil layer for each day of year
 	double dwcontupper[365];
-		// daily water content in upper soil layer for each day of year
+	/// mean water content in upper soil layer for last month
+	/** (valid only on last day of month following call to daily_accounting_patch) */
 	double mwcontupper;
-		// mean water content in upper soil layer for last month
-		// (valid only on last day of month following call to daily_accounting_patch)
+	/// stored snow as average over modelled area (mm rainfall equivalents)
 	double snowpack;
-		// stored snow as average over modelled area (mm rainfall equivalents)
+	/// total runoff today (mm/day)
 	double runoff;
-		// total runoff today (mm/day)
+	/// soil temperature today at 0.25 m depth (deg C)
 	double temp;
-		// soil temperature today at 0.25 m depth (deg C)
+	/// daily temperatures for the last month (deg C)
+	/** (valid only on last day of month following call to daily_accounting_patch) */
 	double dtemp[31];
-		// daily temperatures for the last month (deg C)
-		// (valid only on last day of month following call to daily_accounting_patch)
+	/// mean soil temperature for the last month (deg C)
+	/** (valid only on last day of month following call to daily_accounting_patch) */
 	double mtemp;
-		// mean soil temperature for the last month (deg C)
-		// (valid only on last day of month following call to daily_accounting_patch)
+	/** respiration response to today's soil temperature at 0.25 m depth
+	 *  incorporating damping of Q10 due to temperature acclimation (Lloyd & Taylor 1994)
+	 */
 	double gtemp;
-		// respiration response to today's soil temperature at 0.25 m depth
-		// incorporating damping of Q10 due to temperature acclimation (Lloyd & Taylor
-		// 1994)
+	/// soil organic matter (SOM) pool with c. 1000 yr turnover (kgC/m2)
 	double cpool_slow;
-		// soil organic matter (SOM) pool with c. 1000 yr turnover (kgC/m2)
+	/// soil organic matter (SOM) pool with c. 33 yr turnover (kgC/m2)
 	double cpool_fast;
-		// soil organic matter (SOM) pool with c. 33 yr turnover (kgC/m2)
 
 	// Running sums (converted to long term means) maintained by SOM dynamics module
 
+	/// mean annual litter decomposition (kgC/m2/yr)
 	double decomp_litter_mean;
-		// mean annual litter decomposition (kgC/m2/yr)
+	/// mean value of decay constant for fast SOM fraction
 	double k_soilfast_mean;
-		// mean value of decay constant for fast SOM fraction
+	/// mean value of decay constant for slow SOM fraction
 	double k_soilslow_mean;
-		// mean value of decay constant for slow SOM fraction
+		
 
 	// Parameters used by function soiltemp and updated monthly
 
 	double alag, exp_alag;
 
 
-	// guess2008 - 3 new soil water variables
+	/// water content of soil layers [0=upper layer] as fraction of available water holding capacity
 	double mwcont[12][NSOILLAYER];
-		// water content of soil layers [0=upper layer] as fraction of available water
-		// holding capacity;
+	/// daily water content in lower soil layer for each day of year
 	double dwcontlower[365];
-		// daily water content in lower soil layer for each day of year
+	/// mean water content in lower soil layer for last month
+	/** (valid only on last day of month following call to daily_accounting_patch) */
 	double mwcontlower;
-		// mean water content in lower soil layer for last month
-		// (valid only on last day of month following call to daily_accounting_patch)
 
-	double rain_melt;						// rainfall and snowmelt today (mm)
-	double max_rain_melt;					// upper limit for percolation (mm)
-	bool percolate;							// whether to percolate today
+	/// rainfall and snowmelt today (mm)
+	double rain_melt;
+	/// upper limit for percolation (mm)
+	double max_rain_melt;
+	/// whether to percolate today
+	bool percolate;
 
 //////////////////////////////////////////////////////////////////////////////////
 // CENTURY SOM pools and other variables
@@ -1626,7 +1676,6 @@ public:
 		orgleachfrac = 0.0;
 
 
-		// guess2008 - extra initialisation
 		mwcontupper = 0.0;
 		mwcontlower = 0.0;
 		for (int mth=0; mth<12; mth++) {
@@ -1676,56 +1725,51 @@ public:
 };
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// PATCHPFT
-// State variables common to all individuals of a particular PFT in a particular patch
-// Used in individual and cohort modes only.
-
+/// State variables common to all individuals of a particular PFT in a particular patch
+/** Used in individual and cohort modes only. */
 class Patchpft : public Serializable {
 
 	// MEMBER VARIABLES:
 
 public:
 
+	/// id code (equal to value of member variable id in corresponding Pft object)
 	int id;
-		// id code (equal to value of member variable id in corresponding Pft object)
+	/// reference to corresponding Pft object in PFT list
 	Pft& pft;
-		// reference to corresponding Pft object in PFT list
+	/// potential annual net assimilation (leaf-level net photosynthesis) at forest floor (kgC/m2/year)
 	double anetps_ff;
-		// potential annual net assimilation (leaf-level net photosynthesis) at forest
-		// floor (kgC/m2/year)
+	/// water stress parameter (0-1 range; 1=minimum stress)
 	double wscal;
-		// water stress parameter (0-1 range; 1=minimum stress)
+	/// running sum (converted to annual mean) for wscal
 	double wscal_mean;
-		// running sum (converted to annual mean) for wscal
+	/// potential annual net assimilation at forest floor averaged over establishment interval (kgC/m2/year)
 	double anetps_ff_est;
-		// potential annual net assimilation at forest floor averaged over
-		// establishment interval (kgC/m2/year)
+	/// first-year value of anetps_ff_est
 	double anetps_ff_est_initial;
-		// first-year value of anetps_ff_est
+	/// annual mean wscal averaged over establishment interval
 	double wscal_mean_est;
-		// annual mean wscal averaged over establishment interval
+	/// vegetation phenological state (fraction of potential leaf cover), updated daily		
 	double phen;
-		// vegetation phenological state (fraction of potential leaf cover)
-		// updated daily
+	/// annual sum of daily fractional leaf cover 
+	/** equivalent number of days with full leaf cover
+	 *  (reset on expected coldest day of year)
+	 */
 	double aphen;
-		// annual sum of daily fractional leaf cover (equivalent number of days with
-		// full leaf cover) (reset on expected coldest day of year)
+	/// whether PFT can establish in this patch under current conditions
 	bool establish;
-		// whether PFT can establish in this patch under current conditions
+	/// running total for number of saplings of this PFT to establish (cohort mode)
 	double nsapling;
-		// running total for number of saplings of this PFT to establish (cohort mode)
+	/// leaf-derived litter for PFT on modelled area basis (kgC/m2)
 	double litter_leaf;
-		// leaf-derived litter for PFT on modelled area basis (kgC/m2)
+	/// fine root-derived litter for PFT on modelled area basis (kgC/m2)
 	double litter_root;
-		// fine root-derived litter for PFT on modelled area basis (kgC/m2)
+	/// sapwood-derived litter for PFT on modelled area basis (kgC/m2)
 	double litter_sap;
-		// sapwood-derived litter for PFT on modelled area basis (kgC/m2)
+	/// heartwood-derived litter for PFT on modelled area basis (kgC/m2)
 	double litter_heart;
-		// heartwood-derived litter for PFT on modelled area basis (kgC/m2)
+	/// litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
 	double litter_repr;
-		// litter derived from allocation to reproduction for PFT on modelled area
-		// basis (kgC/m2)
 	
 	/// leaf-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_leaf;
@@ -1736,18 +1780,21 @@ public:
 	/// heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_heart;
 
+	/// non-FPC-weighted canopy conductance value for PFT under water-stress conditions (mm/s)
 	double gcbase;
-		// non-FPC-weighted canopy conductance value for PFT under water-stress
-		// conditions (mm/s)
-	double gcbase_day;				// daily value of the above variable (mm/s)
+	/// daily value of the above variable (mm/s)
+	double gcbase_day;
 
+	/// evapotranspirational "supply" function for this PFT today (mm/day)
 	double wsupply;
-		// evapotranspirational "supply" function for this PFT today (mm/day)
 	double wsupply_leafon;
+	/// fractional uptake of water from each soil layer today
 	double fwuptake[NSOILLAYER];
-		// fractional uptake of water from each soil layer today
-	bool wstress;				// whether water-stress conditions for this PFT
-	bool wstress_day;			// daily version of the above variable
+		
+	/// whether water-stress conditions for this PFT
+	bool wstress;
+	/// daily version of the above variable
+	bool wstress_day;
 
 	/// carbon depository for long-lived products like wood
 	double harvested_products_slow;	
@@ -1756,9 +1803,8 @@ public:
 
 	// MEMBER FUNCTIONS:
 
+	/// Constructor: initialises id, pft and data members
 	Patchpft(int i,Pft& p):id(i),pft(p) {
-
-		// Constructor: initialises id, pft and data members
 
 		litter_leaf  = 0.0;
 		litter_root  = 0.0;
@@ -1784,113 +1830,109 @@ public:
 };
 
 
-///////////////////////////////////////////////////////////////////////////////////////
-// PATCH
-// Stores data for a patch. In cohort and individual modes, replicate patches are
-// required in each stand to accomodate stochastic variation; in population mode there
-// should be just one Patch object, representing average conditions for the entire
-// stand. A reference to the parent Stand object (defined below) is included as a
-// member variable.
-
+/// Stores data for a patch. 
+/** In cohort and individual modes, replicate patches are
+ *  required in each stand to accomodate stochastic variation; in population mode there
+ *  should be just one Patch object, representing average conditions for the entire
+ *  stand. A reference to the parent Stand object (defined below) is included as a
+ *  member variable.
+ */
 class Patch : public Serializable {
 
 public:
 
 	// MEMBER VARIABLES
-
+	
+	/// id code in range 0-npatch for patch
 	int id;
-		// id code in range 0-npatch for patch
+	/// reference to parent Stand object
 	Stand& stand;
-		// reference to parent Stand object
+	/// list array [0...npft-1] of Patchpft objects (initialised in constructor)
 	ListArray_idin1<Patchpft,Pft> pft;
-		// list array [0...npft-1] of Patchpft objects (initialised in constructor)
+	/// vegetation for this patch
 	Vegetation vegetation;
-		// vegetation for this patch
+	/// soil for this patch
 	Soil soil;
-		// soil for this patch
+	/// fluxes for this patch
 	Fluxes fluxes;
-		// fluxes for this patch
+	/// FPAR at top of grass canopy today
 	double fpar_grass;
-		// FPAR at top of grass canopy today
+	/// FPAR at soil surface today
 	double fpar_ff;
-		// FPAR at soil surface today
+	/// mean growing season PAR at top of grass canopy (J/m2/day)
 	double par_grass_mean;
-		// mean growing season PAR at top of grass canopy (J/m2/day)
+	/// number of days in growing season, estimated from mean vegetation leaf-on fraction 
+	/** \see function fpar in canopy exchange module */
 	int nday_growingseason;
-		// number of days in growing season, estimated from mean vegetation leaf-on
-		// fraction (see function fpar in canopy exchange module)
+	/// total patch FPC
 	double fpc_total;
-		// total patch FPC
+	/// whether patch was disturbed last year
 	bool disturbed;
-		// whether patch was disturbed last year
+	/// patch age (years since last disturbance)
 	int age;
-		// patch age (years since last disturbance)
+	/// probability of fire this year
 	double fireprob;
-		// probability of fire this year
-
+		
+	/// DLE - the number of days over which wcont is averaged for this patch
+	/** i.e. those days for which daily temp > 5.0 degC */
 	int growingseasondays;
-		// guess2008 - DLE - the number of days over which wcont is averaged for this
-		// patch, i.e. those days for which daily temp > 5.0 degC
 
 
 	// Variables used by new hydrology (Dieter Gerten 2002-07)
-
+	
+	/// interception by vegetation today on patch basis (mm)
 	double intercep;
-		// interception by vegetation today on patch basis (mm)
+	/// annual sum of AET (mm/year)
 	double aaet;
-		// annual sum of AET (mm/year)
+	/// annual sum of AET (mm/year) for each of the last five simulation years
 	Historic<double, NYEARAAET> aaet_5;
-		// annual sum of AET (mm/year) for each of the last five simulation years
+	/// annual sum of soil evaporation (mm/year)
 	double aevap;
-		// annual sum of soil evaporation (mm/year)
+	/// annual sum of interception (mm/year)
 	double aintercep;
-		// annual sum of interception (mm/year)
+	/// annual sum of runoff (mm/year)
 	double asurfrunoff;
-		// annual sum of runoff (mm/year)
+	/// annual sum of runoff (mm/year)
 	double adrainrunoff;
-		// annual sum of runoff (mm/year)
+	/// annual sum of runoff (mm/year)
 	double abaserunoff;
-		// annual sum of runoff (mm/year)
+	/// annual sum of runoff (mm/year)
 	double arunoff;
-		// annual sum of runoff (mm/year)
+	/// annual sum of potential evapotranspiration (mm/year)
 	double apet;
-		// annual sum of potential evapotranspiration (mm/year)
-
+		
+	/// equilibrium evapotranspiration today, deducting interception (mm)
 	double eet_net_veg;
-		// equilibrium evapotranspiration today, deducting interception (mm)
-
+	
+	/// transpirative demand for patch, patch vegetative area basis (mm/day)
 	double wdemand;
-		// transpirative demand for patch, patch vegetative area basis (mm/day)
+	/// daily average of the above variable (mm/day)
 	double wdemand_day;			
-		// daily average of the above variable (mm/day)
+	/// transpirative demand for patch assuming full leaf cover today 
+	/** mm/day, patch vegetative area basis	*/
 	double wdemand_leafon;
-		// transpirative demand for patch assuming full leaf cover today, mm/day,
-		// patch vegetative area basis
+	/// rescaling factor to account for spatial overlap between individuals/cohorts populations
 	double fpc_rescale;
-		// rescaling factor to account for spatial overlap between individuals/cohorts
-		// populations
-
+	
+	/// monthly AET (mm/month)
 	double maet[12];
-		// monthly AET (mm/month)
+	/// monthly soil evaporation (mm/month)
 	double mevap[12];
-		// monthly soil evaporation (mm/month)
+	/// monthly interception (mm/month)
 	double mintercep[12];
-		// monthly interception (mm/month)
+	/// monthly runoff (mm/month)
 	double mrunoff[12];
-		// monthly runoff (mm/month)
+	/// monthly PET (mm/month)
 	double mpet[12];
-		// monthly PET (mm/month)
 
 	/// daily nitrogen demand
 	double ndemand;
 
 	// MEMBER FUNCTIONS
 
+	/// Constructor: initialises various members and builds list array of Patchpft objects.
 	Patch(int i,Stand& s,Soiltype& st):
 		id(i),stand(s),vegetation(*this),soil(*this,st),fluxes(*this) {
-
-		// Constructor: initialises various members and builds list array
-		// of Patchpft objects.
 
 		pftlist.firstobj();
 		while (pftlist.isobj) {
@@ -1901,7 +1943,6 @@ public:
 		age = 0;
 		disturbed = false;
 		
-		// guess2008 - initialise
 		growingseasondays = 0;
 
 		fireprob = 0.0;
@@ -1922,20 +1963,19 @@ public:
 
 	int id;
 	Pft& pft;
+	/// net C allocated to reproduction for this PFT in all patches of this stand this year (kgC/m2)
 	double cmass_repr;
-		// net C allocated to reproduction for this PFT in all patches of this stand
-		// this year (kgC/m2)
+	/// maximum value of Patchpft::anetps_ff for this PFT in this stand so far in the simulation (kgC/m2/year)
 	double anetps_ff_max;
-		// maximum value of anetpsff (potential annual net assimilation at forest
-		// floor) for this PFT in this stand so far in the simulation (kgC/m2/year)
+	/** non-FPAR-weighted value for canopy conductance component associated with
+	 *  photosynthesis for PFT under non-water-stress conditions (mm/s)
+	 */
 	double gpterm;
-		// non-FPAR-weighted value for canopy conductance component associated with
-		// photosynthesis for PFT under non-water-stress conditions (mm/s)
-	std::vector<double> gpterms;		// sub-daily version of the above variable (mm/s)
+	/// sub-daily version of the above variable (mm/s)
+	std::vector<double> gpterms;
 
+	/// FPC sum for this PFT as average for stand
 	double fpc_total;
-		// FPC sum for this PFT as average for stand (used by some versions of
-		// guessio.cpp)
 
 	/// Photosynthesis values for this PFT under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;
@@ -1947,9 +1987,9 @@ public:
 
 	// MEMBER FUNCTIONS
 
+	/// Constructor: initialises various data members
 	Standpft(int i,Pft& p):id(i),pft(p) {
 
-		// Constructor: initialises various data members
 		anetps_ff_max = 0.0;
 		active = !run_landcover;
 	}

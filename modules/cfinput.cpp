@@ -24,6 +24,8 @@ namespace {
 
 const int SECONDS_PER_DAY = 24*60*60;
 
+// Converts a CF standard name to one of our insolation types
+// Calls fail() if the standard name is invalid
 insoltype cf_standard_name_to_insoltype(const std::string& standard_name) {
 	if (standard_name == "surface_downwelling_shortwave_flux_in_air" ||
 	    standard_name == "surface_downwelling_shortwave_flux") {
@@ -130,6 +132,7 @@ void check_temp_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	}
 }
 
+// Verifies that a CF variable with precipitation data contains what we expect
 void check_prec_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() == "precipitation_flux") {
 		if (cf_var->get_units() != "kg m-2 s-1") {
@@ -146,6 +149,7 @@ void check_prec_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	}
 }
 
+// Verifies that a CF variable with insolation data contains what we expect
 void check_insol_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() != "surface_downwelling_shortwave_flux_in_air" &&
 	    cf_var->get_standard_name() != "surface_downwelling_shortwave_flux" &&
@@ -166,6 +170,7 @@ void check_insol_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	}
 }
 
+// Verifies that a CF variable with wetdays data contains what we expect
 void check_wetdays_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	const char* wetdays_standard_name = 
 		"number_of_days_with_lwe_thickness_of_precipitation_amount_above_threshold";
@@ -213,13 +218,6 @@ CFInput::~CFInput() {
 }
 
 void CFInput::init() {
-
-	// A warning about this input module not being proper from a scientific
-	// perspective yet. For instance we're using historical ndep values for 
-	// the future (if the NetCDF data set has a timespan that reaches further 
-	// than the CRU data set).
-	dprintf("Please note: this input module is a draft and not meant to be used for\n");
-	dprintf("anything except technical evaluation of the file format.\n");
 
 	// Read CO2 data from file
 	co2.load_file(param["file_co2"].str);
@@ -413,7 +411,7 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 		    (cf_wetdays && !cf_wetdays->load_data_for(rlon, rlat)) ||
 		    (cf_min_temp && !cf_min_temp->load_data_for(rlon, rlat)) ||
 		    (cf_max_temp && !cf_max_temp->load_data_for(rlon, rlat))) {
-			dprintf("Failed to load data for (%d, %d) from NetCDF files, skipping.\n", rlat, rlon);
+			dprintf("Failed to load data for (%d, %d) from NetCDF files, skipping.\n", rlon, rlat);
 			return false;
 		}
 	}

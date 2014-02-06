@@ -88,6 +88,8 @@ private:
 	 */
 	GlobalCO2File co2;
 
+	// The variables
+
 	GuessNC::CF::GridcellOrderedVariable* cf_temp;
 
 	GuessNC::CF::GridcellOrderedVariable* cf_prec;
@@ -99,6 +101,8 @@ private:
 	GuessNC::CF::GridcellOrderedVariable* cf_min_temp;
 
 	GuessNC::CF::GridcellOrderedVariable* cf_max_temp;
+
+	// Spinup data for each variable
 
 	GenericSpinupData spinup_temp;
 

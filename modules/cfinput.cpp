@@ -483,7 +483,7 @@ void CFInput::get_yearly_data(std::vector<double>& data,
 				}
 				else {
 					// Past the end of the historical period, these days wont be simulated.
-					data[current_day.day] = 0;
+					data[current_day.day] = data[max(0, current_day.day-1)];
 				}
 			}
 
@@ -517,7 +517,7 @@ void CFInput::get_yearly_data(std::vector<double>& data,
 				}
 				else {
 					// Past the end of the historical period, these months wont be simulated.
-					data[m] = 0;
+					data[m] = data[max(0, m-1)];
 				}
 			}
 		}

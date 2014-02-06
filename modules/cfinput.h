@@ -155,6 +155,9 @@ private:
 	/// Nitrogen deposition forcing for current gridcell
 	Lamarque::NDepData ndep;
 
+	/// Nitrogen deposition time series to use (historic,rcp26,...)
+	std::string ndep_timeseries;
+
 	/// Landcover fractions read from ins-file (% area).
 	/** One entry for each land cover type */
 	std::vector<int> lc_fixed_frac;

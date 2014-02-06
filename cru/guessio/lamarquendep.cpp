@@ -10,6 +10,7 @@
 #include "lamarquendep.h"
 #include "shell.h"
 #include "guessmath.h"
+#include "guessstring.h"
 #include <stdio.h>
 #include <string>
 
@@ -21,6 +22,33 @@
 #include "GlobalNitrogenDepositionRCP85.h"
 
 namespace Lamarque {
+
+timeseriestype parse_timeseries(const std::string& str) {
+	std::string strupper = to_upper(str);
+
+	if (strupper == "HISTORIC") {
+		return HISTORIC;
+	}
+	else if (strupper == "RCP26") {
+		return RCP26;
+	}
+	else if (strupper == "RCP45") {
+		return RCP45;
+	}
+	else if (strupper == "RCP60") {
+		return RCP60;
+	}
+	else if (strupper == "RCP85") {
+		return RCP85;
+	}
+	else if (strupper == "FIXED") {
+		return FIXED;
+	}
+	else {
+		fail("Unrecognized timeseries type: %s", str.c_str());
+		return FIXED;
+	}
+}
 
 const double convert = 1e-7;				// converting from gN ha-1 to kgN m-2
 

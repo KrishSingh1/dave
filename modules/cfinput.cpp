@@ -184,8 +184,11 @@ CFInput::CFInput()
 	  cf_wetdays(0),
 	  cf_min_temp(0),
 	  cf_max_temp(0),
+	  ndep_timeseries("historic"),
 	  lc_fixed_frac(NLANDCOVERTYPES, 0),
 	  equal_landcover_area(false) {
+
+	declare_parameter("ndep_timeseries", &ndep_timeseries, 10, "Nitrogen deposition time series to use (historic, rcp26, rcp45, rcp60 or rcp85");
 
 	// Not used by this input module currently, but included as parameters so
 	// common ins files can be used.
@@ -362,7 +365,8 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	gridcell.climate.instype = cf_standard_name_to_insoltype(cf_insol->get_standard_name());
 
 	// Get nitrogen deposition, using the found CRU coordinates
-	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat);
+	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat, 
+	             Lamarque::parse_timeseries(ndep_timeseries));
 
 	// Setup the soil type
 	soilparameters(gridcell.soiltype, soilcode);
@@ -645,9 +649,8 @@ void CFInput::populate_daily_arrays(long& seed) {
 	double mndrydep[12];
 	double mnwetdep[12];
 
-	// The ndep data set only goes up to 2009, after that we use the 2009 data
-	ndep.get_one_calendar_year(min(2009, date.get_calendar_year()),
-		mndrydep, mnwetdep);
+	ndep.get_one_calendar_year(date.get_calendar_year(),
+	                           mndrydep, mnwetdep);
 
 	// Distribute N deposition
 	distribute_ndep(mndrydep, mnwetdep, dprec, dndep);

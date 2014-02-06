@@ -479,15 +479,14 @@ bool DemoInput::loadlandcover(Gridcell& gridcell, Coord cc)	{
 			}
 		}
 		if(readNfert && !LUerror) {
-
-
 #ifdef LUTOMEMORY
 			if(!Nfert_mem.Load(c)) {
 #else
 			if(!Nfert.Load(c)) {
 #endif
-				dprintf("Problems with N fertilization input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
-				LUerror=true;	// skip this stand
+//				dprintf("Problems with N fertilization input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
+//				LUerror=true;	// skip this stand
+				dprintf("N fertilization data not found in input file for %.2f,%.2f.\n\n",c.lon,c.lat);
 			}
 		}
 #endif
@@ -907,6 +906,15 @@ void DemoInput::getlandcover(Gridcell& gridcell) {
 void DemoInput::getsowingdates(Gridcell& gridcell) {
 	int i, year;
 
+#if defined DYNAMIC_LANDCOVER_INPUT
+#ifdef LUTOMEMORY
+	if(!sdates_mem.isloaded())
+#else
+	if(!sdates.isloaded())
+#endif
+		return;
+#endif
+
 	if(date.year < nyear_spinup)
 		year=0;
 	else
@@ -931,6 +939,15 @@ void DemoInput::getsowingdates(Gridcell& gridcell) {
 void DemoInput::getharvestdates(Gridcell& gridcell) {
 	int i, year;
 
+#if defined DYNAMIC_LANDCOVER_INPUT
+#ifdef LUTOMEMORY
+	if(!hdates_mem.isloaded())
+#else
+	if(!hdates.isloaded())
+#endif
+		return;
+#endif
+
 	if(date.year < nyear_spinup)
 		year=0;
 	else
@@ -954,6 +971,15 @@ void DemoInput::getharvestdates(Gridcell& gridcell) {
 /// Get N fertilization for one year
 void DemoInput::getNfert(Gridcell& gridcell) {
 	int i, year;
+
+#if defined DYNAMIC_LANDCOVER_INPUT
+#ifdef LUTOMEMORY
+	if(!Nfert_mem.isloaded())
+#else
+	if(!Nfert.isloaded())
+#endif
+		return;
+#endif
 
 	if(date.year < nyear_spinup)
 		year=0;

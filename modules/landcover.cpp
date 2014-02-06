@@ -1716,10 +1716,7 @@ void Crop_sowing_date_forced(Patch& patch, Pft& pft) {
 			if (climate.lat >= 0.0 && gridcellpft.sdate_force <= pft.hlimitdatenh && gridcellpft.sdate_force > 180 
 					|| climate.lat < 0.0 && gridcellpft.sdate_force <= pft.hlimitdatesh) {
 
-				if(gridcellpft.sdate_force >= 0.0)
-					patchpft.cropphen->hlimitdate = gridcellpft.sdate_force - 1;
-				else
-					patchpft.cropphen->hlimitdate = 364;
+				patchpft.cropphen->hlimitdate = stepfromdate(gridcellpft.sdate_force, - 1);
 			}
 			else {
 				// reset hlimitdate to default (in case changed by Crop_sowing_date_new())
@@ -2280,7 +2277,7 @@ void crop_phenology(Patch& patch)
 				ppftcrop.growingdays++;
 
 				// check if harvest is prescribed
-				bool force_harvest = forceharvestdates && pft.forceharvestdate && gridcellpft.hdate_force != -1 && date.day == gridcellpft.hdate_force;
+				bool force_harvest = forceharvestdates && pft.forceharvestdate && gridcellpft.hdate_force >= 0 && date.day == gridcellpft.hdate_force;
 
 				// before maturity is reached
 				if(ppftcrop.husum < ppftcrop.phu && dayinperiod(date.day, ppftcrop.sdate, stepfromdate(ppftcrop.hlimitdate, -1)) && !force_harvest) {

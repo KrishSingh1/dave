@@ -16,9 +16,10 @@
 #include "cru_1901_2006.h"
 #include "cru_1901_2006misc.h"
 
-bool fixedtemp_hist=0;
-bool fixedprec_hist=0;
-bool fixedrad_hist=0;
+// Switches to keep climate at first historical year
+bool fixedtemp_hist = 0;
+bool fixedprec_hist = 0;
+bool fixedrad_hist = 0;
 
 namespace CRU_TS30 {
  

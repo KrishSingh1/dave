@@ -108,6 +108,7 @@ class TimeDataD									//Represents a set of double data over time (years).
 	bool ischeckingdata;
 	int firstyear;								//110601; set in ParseNYears() or ParseNYearsSpatial() to be used in FindRecord()
 	bool isfirstgrid;
+	bool loaded;
 
 	int ParseFormat();							//Called from Open(); Returns 0 if wrong format, sets nRecords, ifheader and header_arr[]
 	int ParseNYears();							//Called from Open()
@@ -134,11 +135,11 @@ public:
 	void Close();
 	int OutputConvertedSpatial(char*);
 	int Load();									//Loads global data
-	int Load(Coord c);							//Loads local data for a certain coordinate.
-	int LoadNext();								//For stepping through a data file, loading each coordinate data consecutively
+	int Load(Coord c);							//Loads local data for a certain coordinate. Returns 0 if coordinate not found.
+	int LoadNext();								//For stepping through a data file, loading each coordinate data consecutively. Returns 0 if error.
 	void Output(char*);	
-	double Get(int year, int column) const;		//Returns a single value
-	double Get(int year, const char* name) const;		//Returns a single value for column with header string name
+	double Get(int year, int column) const;		// Returns a single value
+	double Get(int year, const char* name) const;		// Returns a single value for column with header string name. Returns -999 if name not found.
 	int Get(int year, double* dataX) const;		//Copies the values for one year data to the dataX array, returns 0 if wrong format.
 	int Get(double* dataX) const;				//Copies all data to the dataX array, returns 0 if wrong format.
 //	double* Get(int year) const;
@@ -152,6 +153,7 @@ public:
 	void Rewind() {rewind(ifp);}
 	int GetNCells();
 	int GetFirstyear();
+	bool isloaded() { return loaded;}
 
 #if defined GUESS_VERSION
 	void CheckIfPresent(ListArray_id<Coord>& gridlist);
@@ -172,14 +174,16 @@ class TimeDataDmem
 	bool ifheader;
 	char header_arr[MAXRECORDS][MAXNAMESIZE];
 	int currentCell;
+	bool loaded;
 public:
-	double Get(int year, int column) const;
-	double Get(int year, const char* name) const;
-	int Load(Coord c);
+	double Get(int year, int column) const;			// Returns a single value.
+	double Get(int year, const char* name) const;	// Returns a single value for column with header string name. Returns -999 if name not found.
+	int Load(Coord c);	// Returns 0 if coordinate not found.
 	void SetCoord(int index, Coord c);
 	void SetData(int index, double* data);
 	void Open(int nCells, int nColumns, int nYears);
 	void Close();
+	bool isloaded() { return loaded;}
 	void CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridlistX);
 	TimeDataDmem();
 	~TimeDataDmem();

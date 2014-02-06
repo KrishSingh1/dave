@@ -198,11 +198,11 @@ double TimeDataD::Get(int yearX, int column) const
 double TimeDataD::Get(int yearX, const char* name) const		//Returns a single value for column with header string name
 {
 	int column=-1;
-	double dataX=-1;
+	double dataX=-999;
 
 	for(int i=0;i<nRecords;i++)
 	{
-		if(!strncmp(name, header_arr[i], strlen(name)))
+		if(!strcmp(name, header_arr[i]))
 		{
 			column=i;
 			break;
@@ -213,7 +213,6 @@ double TimeDataD::Get(int yearX, const char* name) const		//Returns a single val
 	{
 		if(yearX==1)	//Set to 1 in crop branch, was 0.
 		printf("WARNING: Value for %s not found in %s. Value set to 0.0\n", name, fileName);
-		return 0.0;
 	}
 	else
 		dataX=Get(yearX,column);
@@ -556,7 +555,7 @@ int TimeDataD::ParseFormat()	//Checks format, sets nRecords, ifheader and header
 		{
 			nRecords=count2-2;
 //			printf("Format in input file is compatible with LOCAL_STATIC flag\n");
-			dprintf("nRecords:%d\n", nRecords);
+//			dprintf("nRecords:%d\n", nRecords);
 			return LOCAL_STATIC;
 		}
 		else
@@ -1128,10 +1127,14 @@ int TimeDataD::Load()	// for GLOBAL_YEARLY and GLOBAL_STATIC data
 		ifp=NULL;
 	}
 
-	if(error)
+	if(error) {
+		loaded = false;
 		return 0;
-	else
+	}
+	else {
+		loaded = true;
 		return 1;
+	}
 }
 
 int TimeDataD::Load(Coord c)
@@ -2122,11 +2125,11 @@ double TimeDataDmem::Get(int year, int column) const
 double TimeDataDmem::Get(int yearX, const char* name) const		//Returns a single value for column with header string name
 {
 	int column=-1;
-	double dataX=-1;
+	double dataX=-999;
 
 	for(int i=0;i<nColumns;i++)
 	{
-		if(!strncmp(name, header_arr[i], strlen(name)))
+		if(!strcmp(name, header_arr[i]))
 		{
 			column=i;
 			break;
@@ -2136,8 +2139,7 @@ double TimeDataDmem::Get(int yearX, const char* name) const		//Returns a single 
 	if(column==-1)
 	{
 		if(yearX==1)	//Set to 1 in crop branch, was 0.
-		printf("WARNING: Value for %s not found. Value set to 0.0\n", name);
-		return 0.0;
+		printf("WARNING: Value for %s not found in input file\n", name);
 	}
 	else
 		dataX=Get(yearX,column);
@@ -2166,10 +2168,14 @@ int TimeDataDmem::Load(Coord c)
 			}
 		}
 	}
-	if(error)
+	if(error) {
+		loaded = false;
 		return 0;
-	else
+	}
+	else {
+		loaded = true;
 		return 1;
+	}
 }
 void TimeDataDmem::SetData(int index, double* dataX)
 {

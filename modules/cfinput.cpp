@@ -732,6 +732,10 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 void CFInput::load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_var,
                                GenericSpinupData& spinup_data) {
 
+	const std::string error_message = 
+		format_string("Not enough data to build spinup, at least %d years needed",
+		              NYEAR_SPINUP_DATA);
+
 	GenericSpinupData::RawData source;
 
 	int timestep = 0;
@@ -744,6 +748,10 @@ void CFInput::load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_va
 	while ((daily && !first_day_of_year(cf_var->get_date_time(timestep))) ||
 	       (monthly && !first_month_of_year(cf_var->get_date_time(timestep)))) {
 		++timestep;
+
+		if (timestep >= cf_var->get_timesteps()) {
+			fail(error_message.c_str());
+		}
 	}
 
 	// Get all the values for the first NYEAR_SPINUP_DATA years, 
@@ -752,10 +760,16 @@ void CFInput::load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_va
 		std::vector<double> year(daily ? GenericSpinupData::DAYS_PER_YEAR : 12);
 
 		for (size_t i = 0; i < year.size(); ++i) {
-			GuessNC::CF::DateTime dt = cf_var->get_date_time(timestep);
+			if (timestep < cf_var->get_timesteps()) {
+				GuessNC::CF::DateTime dt = cf_var->get_date_time(timestep);
 
-			if (daily && dt.get_month() == 2 && dt.get_day() == 29) {
-				++timestep;
+				if (daily && dt.get_month() == 2 && dt.get_day() == 29) {
+					++timestep;
+				}
+			}
+
+			if (timestep >= cf_var->get_timesteps()) {
+				fail(error_message.c_str());
 			}
 
 			year[i] = cf_var->get_value(timestep);

@@ -21,4 +21,7 @@ std::string to_upper(const std::string& str);
 /// Converts a string to lower case
 std::string to_lower(const std::string& str);
 
+/// Creates a string with printf style formatting
+std::string format_string(const char* format, ...);
+
 #endif // LPJ_GUESS_GUESSSTRING_H

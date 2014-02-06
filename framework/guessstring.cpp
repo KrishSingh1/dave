@@ -10,6 +10,8 @@
 #include "config.h"
 #include "guessstring.h"
 #include <cctype>
+#include <stdarg.h>
+#include <stdio.h>
 
 std::string trim(const std::string& str) {
 	size_t start_pos = 0;
@@ -51,4 +53,13 @@ std::string to_lower(const std::string& str) {
 	}
 	
 	return result;
+}
+
+std::string format_string(const char* format, ...) {
+	const size_t buffer_size = 4096;
+	char buffer[buffer_size];
+	va_list args;
+	va_start(args, format);
+	vsnprintf(buffer, buffer_size, format, args);
+	return std::string(buffer);
 }

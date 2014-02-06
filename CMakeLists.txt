@@ -12,7 +12,7 @@ project(guess)
 if (MSVC)
   # Disable warnings about using secure functions like sprintf_s instead of
   # regular sprintf etc.
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D _CRT_SECURE_NO_WARNINGS")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D _CRT_SECURE_NO_WARNINGS /D _SCL_SECURE_NO_WARNINGS")
 endif()
 
 # The following are configuration variables for the build. 

@@ -41,7 +41,7 @@ void GenericSpinupData::get_data_from(RawData& source) {
 }
 
 double GenericSpinupData::operator[](int ts) const {
-	if (ts < 0 || ts >= data[thisyear].size()) {
+	if (ts < 0 || ts >= int(data[thisyear].size())) {
 		fail("Trying to access data for timestep %d during spinup\n"\
 		     "(should be 0-%d)", ts, data[thisyear].size());
 	}

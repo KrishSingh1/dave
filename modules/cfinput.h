@@ -10,6 +10,8 @@
 #ifndef LPJ_GUESS_CFINPUT_H
 #define LPJ_GUESS_CFINPUT_H
 
+#ifdef HAVE_NETCDF
+
 #include "cruinput.h"
 #include "guessnc.h"
 #include <memory>
@@ -173,5 +175,7 @@ private:
 	Timer tprogress,tmute;
 	static const int MUTESEC=20; // minimum number of sec to wait between progress messages
 };
+
+#endif // HAVE_NETCDF
 
 #endif // LPJ_GUESS_CFINPUT_H

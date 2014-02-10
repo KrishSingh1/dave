@@ -9,6 +9,9 @@
 
 #include "config.h"
 #include "cfinput.h"
+
+#ifdef HAVE_NETCDF
+
 #include "guess.h"
 #include "driver.h"
 #include "guessstring.h"
@@ -781,3 +784,5 @@ void CFInput::load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_va
 
 	spinup_data.get_data_from(source);
 }
+
+#endif // HAVE_NETCDF

@@ -335,17 +335,22 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	double lon, lat;
 	double cru_lon, cru_lat;
 	int soilcode;
-	
+
+	// Load data for next gridcell, or if that fails, skip ahead until
+	// we find one that works.
 	while (current_gridcell != gridlist.end() &&
 	       !load_data_from_files(lon, lat, cru_lon, cru_lat, soilcode)) {
 		++current_gridcell;
 	}
 
 	if (current_gridcell == gridlist.end()) {
+		// simulation finished
 		return false;
 	}
 
 	gridcell.set_coordinates(lon, lat);
+
+	// Load spinup data for all variables
 
 	load_spinup_data(cf_temp, spinup_temp);
 	load_spinup_data(cf_prec, spinup_prec);
@@ -398,6 +403,8 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 	int rlat = current_gridcell->rlat;
 	int landid = current_gridcell->landid;
 
+	// Try to load the data from the NetCDF files
+
 	if (cf_temp->is_reduced()) {
 		if (!cf_temp->load_data_for(landid) ||
 		    !cf_prec->load_data_for(landid) ||
@@ -420,6 +427,8 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 			return false;
 		}
 	}
+
+	// Get lon/lat for the gridcell
 
 	if (cf_temp->is_reduced()) {
 		cf_temp->get_coords_for(landid, lon, lat);
@@ -660,6 +669,9 @@ void CFInput::populate_daily_arrays(long& seed) {
 }
 
 void CFInput::getlandcover(Gridcell& gridcell) {
+
+	// Only 100% natural land cover is supported by this input module for now
+
 	for (int i = 0; i < NLANDCOVERTYPES; ++i) {
 		gridcell.landcoverfrac[i] = 0;
 	}

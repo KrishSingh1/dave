@@ -74,11 +74,13 @@ bool earlier_day(const Date& date, int calendar_year,
 }
 
 // Compares a Date with a GuessNC::CF::DateTime to see if the Date is on a later day
-bool later_day(const Date& date, int calendar_year,
+// The date object must know about its calendar years (i.e. set_first_calendar_year must
+// have been called)
+bool later_day(const Date& date,
                const GuessNC::CF::DateTime& date_time) {
 	std::vector<int> d1(3),d2(3);
 
-	d1[0] = calendar_year;
+	d1[0] = date.get_calendar_year();
 	d2[0] = date_time.get_year();
 	
 	d1[1] = date.month+1;
@@ -668,16 +670,14 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 	
 	Climate& climate = gridcell.climate;
 
-	int calendar_year = date.get_calendar_year();
-
 	GuessNC::CF::DateTime last_date = last_day_to_simulate(cf_temp);
 
-	if (later_day(date, calendar_year, last_date)) {
+	if (later_day(date, last_date)) {
 		++current_gridcell;
 		return false;
 	}
 
-	climate.co2 = co2[calendar_year];
+	climate.co2 = co2[date.get_calendar_year()];
 
 	if (date.day == 0) {
 		populate_daily_arrays(gridcell.seed);

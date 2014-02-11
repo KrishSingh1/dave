@@ -634,7 +634,9 @@ void CFInput::populate_daily_arrays(long& seed) {
 		}
 		
 		if (cloud_fraction_to_sunshine) {
-			dinsol[i] = 1-dinsol[i];
+			// Invert from cloudiness to sunshine, 
+			// and convert fraction (0-1) to percent (0-100)
+			dinsol[i] = (1-dinsol[i]) * 100.0;
 		}
 	}
 

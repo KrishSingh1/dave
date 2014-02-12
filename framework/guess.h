@@ -19,19 +19,6 @@
 #ifndef LPJ_GUESS_GUESS_H
 #define LPJ_GUESS_GUESS_H
 
-// Defines for landcover version:
-#define DYNAMIC_LANDCOVER_INPUT		// Reads landcover data from text files, using the TimeDataD class.
-#define LUTOMEMORY					// Write land use fraction data to memory; enables efficient usage of randomized gridlists for parallell runs on Simba.
-#define NEWSOWINGDATE				// Use sowing date method based on climate seasonality (modified version of Waha et al. 2012), as opposed to old method used in Bondeau et al. 2007.
-#define IRRIGATION					// Crop irrigation on
-#define NOPASTURESTOCH				// Undefine for fire and disturbance for pasture grass. Number of patches will be the same as for natural stands.
-//#define GRASSFORCROP				// Transfer cropland to pasture landcover for simplified crop definition (harvested competing c3/c4 grass).
-#define HARVEST_GRSC				// Harvest and/or turnover at the end of the growing season.
-
-const bool SUPPRESSLARGEOUTPUT=true;
-
-#define CMASS_SEED 0.01	// 10g/m2;	// Initial carbon allocated to crop organs at sowing.
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // #INCLUDES FOR LIBRARY HEADER FILES
 // C/C++ libraries required for member functions of classes defined in this file.
@@ -2754,6 +2741,9 @@ public:
 	/// fraction removed from natural stand when converted to other landcover type
 	double natural_frac_change;
 
+	/// counter used for output from separate stands
+	double anpp;
+
 	/// Seed for generating random numbers within this Stand
 	/** The reason why Stand has its own seed, rather than using for instance
 	 *  a single global seed is to make it easier to compare results when using
@@ -2998,6 +2988,8 @@ public:
 	double acflux_harvest_slow_lc[NLANDCOVERTYPES];	
 	/// Landcover-level flux from harvest associated with landcover change (donating landcover)
 	double acflux_landuse_change_lc[NLANDCOVERTYPES];
+	/// Which landcover types create new stands when area increases.
+	int expand_to_new_stand[NLANDCOVERTYPES];
 
 	/// list array [0...npft-1] of Gridcellpft (initialised in constructor)
 	ListArray_idin1<Gridcellpft,Pft> pft;
@@ -3032,6 +3024,13 @@ public:
 		acflux_landuse_change=0.0;
 		memset(acflux_harvest_slow_lc, 0, sizeof(double)*NLANDCOVERTYPES);
 		memset(acflux_landuse_change_lc, 0, sizeof(double)*NLANDCOVERTYPES);
+
+		for(int i=0; i<NLANDCOVERTYPES; i++) {		
+			if(i == NATURAL || i == FOREST)
+				expand_to_new_stand[i] = 1;
+			else
+				expand_to_new_stand[i] = 0;
+		}
 
 		if(!run_landcover) {
 			landcover = NATURAL;

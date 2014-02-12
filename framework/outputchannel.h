@@ -133,6 +133,8 @@ public:
 	 virtual void finish_row(const Table& table, double lon, double lat, 
 	                         int year, int day) = 0;
 
+	 virtual void close_table(Table& table) = 0;
+
 protected:
 	 /// Get the table descriptor for a table
 	 const TableDescriptor& get_table_descriptor(const Table& table) const;
@@ -166,6 +168,8 @@ public:
 	 /// Creates an output file
 	 /** \see OutputChannel::create_table */
 	 Table create_table(const TableDescriptor& descriptor);
+
+	 void close_table(Table& table);
 
 	 /// Prints the values of the current row to the file
 	 /** \see OutputChannel::finish_row */

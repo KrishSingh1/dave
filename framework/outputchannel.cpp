@@ -191,6 +191,17 @@ void FileOutputChannel::finish_row(const Table& table,
 	 finish_row(table, lon, lat, year, day, true);
 }
 
+void FileOutputChannel::close_table(Table& table) {
+
+	 // do nothing for unused tables
+	 if (table.invalid()) {
+		  return;
+	 }
+
+	 FILE* file = files[table.id()];
+	 fclose(file);
+}
+
 void FileOutputChannel::finish_row(const Table& table, 
                                    double lon, 
                                    double lat,

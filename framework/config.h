@@ -20,6 +20,23 @@
 #ifndef LPJ_GUESS_CONFIG_H
 #define LPJ_GUESS_CONFIG_H
 
+// Defines for landcover version:
+#define DYNAMIC_LANDCOVER_INPUT		// Reads landcover data from text files, using the TimeDataD class.
+#define LUTOMEMORY					// Write land use fraction data to memory; enables efficient usage of randomized gridlists for parallell runs on Simba.
+#define NEWSOWINGDATE				// Use sowing date method based on climate seasonality (modified version of Waha et al. 2012), as opposed to old method used in Bondeau et al. 2007.
+#define IRRIGATION					// Crop irrigation on
+#define NOPASTURESTOCH				// Undefine for fire and disturbance for pasture grass. Number of patches will be the same as for natural stands.
+//#define GRASSFORCROP				// Transfer cropland to pasture landcover for simplified crop definition (harvested competing c3/c4 grass).
+#define HARVEST_GRSC				// Harvest and/or turnover at the end of the growing season.
+
+const bool SUPPRESSLARGEOUTPUT=true;
+
+#define CMASS_SEED 0.01	// 10g/m2;	// Initial carbon allocated to crop organs at sowing.
+
+//#define PRINTFIRSTSTANDFROM1901	// Only on when printout of whole period of first stand wanted.
+#define MAXNUMBER_STANDS 100		// Upper limit for multiple stand printout
+#define MAXNUMBER_GRIDCELLS 50		// To make sure that muliple stand printout is not active when running large simulations
+
 // Compiler specific checks, for instance for disabling specific warnings
 
 // All versions of Microsoft's compiler

@@ -170,6 +170,10 @@ void CRUInput::init() {
 					ListArray_id<InData::Coord> lonlatlist;
 					GetLonLatList(lonlatlist, gridlist);
 					LUdata_mem.CopyFromTimeDataD(LUdata, lonlatlist);
+
+					// Avoid large number of output files
+					if(LUdata.GetNCells() > 50)
+						printseparatestands = false;
 #endif
 				}
 #endif
@@ -184,7 +188,7 @@ void CRUInput::init() {
 			// Open crop fraction file, return false if problem
 			if(!CFTdata.Open(file_lucrop))
 				fail("initio: could not open %s for input",(char*)file_lucrop);
-			else if(minimizecftlist) {
+			else if(minimizecftlist && CFTdata.GetNCells() < 1000) {	// Reduce the risk of accidentally using minimized cft lists when using split gridlists.
 				// remove all crop pft:s from gridlist that always have zero area fraction
 				ListArray_id<InData::Coord> lonlatlist;
 				GetLonLatList(lonlatlist, gridlist);

@@ -731,6 +731,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 						stand_mean_nuptake+=standpft_nuptake*stand.get_landcover_fraction();
 						stand_mean_vmaxnlim+=standpft_vmaxnlim*stand.get_landcover_fraction();
 
+						stand.anpp += standpft_anpp;
+
 						if (vegmode==COHORT || vegmode==INDIVIDUAL)
 							for (c=0;c<nclass;c++)
 								stand_mean_densindiv_ageclass[c]+=standpft_densindiv_ageclass[c]*stand.get_landcover_fraction();
@@ -788,6 +790,23 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 							plot("leaf C:N ratio [kg C/kg N]",pft.name,date.year,stand_mean_cmass_leaf/stand_mean_nmass_leaf);
 						}
 					}
+
+					if(printseparatestands) {
+
+						int id = stand.id;
+
+						if(stand.landcover == NATURAL && pft.landcover == NATURAL) {
+
+							if(!out_anpp_stand_natural[id].invalid())
+								out.add_value(out_anpp_stand_natural[id],      standpft_anpp);
+						}
+						else if(stand.landcover == FOREST && pft.landcover == FOREST) {
+
+							if(!out_anpp_stand_forest[id].invalid())
+								out.add_value(out_anpp_stand_forest[id],      standpft_anpp);
+						}
+					}
+
 				}//if(active)
 				gridcell.nextobj();
 			}//End of loop through stands
@@ -1080,6 +1099,29 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		out.add_value(out_runoff, runoff_gridcell);
 		out.add_value(out_aiso,   aiso_gridcell);
 		out.add_value(out_amon,   amon_gridcell);
+
+		if(printseparatestands) {
+
+			gridcell.firstobj();
+			while (gridcell.isobj) {
+
+				Stand& stand=gridcell.getobj();
+				int id = stand.id;;
+
+				if(stand.landcover==NATURAL) {
+
+					if(!out_anpp_stand_natural[id].invalid())
+						out.add_value(out_anpp_stand_natural[id],   stand.anpp);
+				}
+				else if(stand.landcover == FOREST) {
+
+					if(!out_anpp_stand_forest[id].invalid())
+						out.add_value(out_anpp_stand_forest[id],    stand.anpp);
+				}
+
+				gridcell.nextobj();
+			}
+		}
 
 		out.add_value(out_cton_leaf, cton_leaf_gridcell);
 		out.add_value(out_vmaxnlim,  vmaxnlim_gridcell);
@@ -1427,12 +1469,139 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			out.add_value(out_seasonality,   gridcell.climate.prec_range);
 //			out.add_value(out_seasonality,   gridcell.climate.biseasonal);	//Not implemented in this version
 		}
-
 	}
 }
 
 void CommonOutput::outdaily(Gridcell& gridcell) {
 	
+}
+
+void CommonOutput::openlocalfiles(Gridcell& gridcell) {
+
+	if(!printseparatestands)
+		return;
+
+	if (date.year >= nyear_spinup) {
+
+		int nnaturalstands = 0;
+		int nforeststands = 0;
+		bool open_natural = false;
+		bool open_forest = false;
+		double lon = gridcell.get_lon();
+		double lat = gridcell.get_lat();
+
+
+		gridcell.firstobj();
+		while (gridcell.isobj) //Loop through stands:
+		{
+			Stand& stand=gridcell.getobj();
+			stand.anpp=0.0;
+
+			if(stand.landcover == NATURAL) {
+				nnaturalstands++;
+				if(stand.first_year == date.year) {
+					open_natural = true;
+				}
+			}
+			else if(stand.landcover == FOREST) {
+				nforeststands++;
+				if(stand.first_year == date.year) {
+					open_forest = true;
+				}
+			}
+
+			gridcell.nextobj();
+		}
+
+#ifdef PRINTFIRSTSTANDFROM1901
+		if(date.year == nyear_spinup) {
+			open_natural = true;
+			open_forest = true;
+		}
+#endif
+
+		if(open_natural || open_forest) {
+
+			gridcell.firstobj();
+			while(gridcell.isobj) {
+
+				Stand& stand=gridcell.getobj();
+
+				int id = stand.id;
+				char outfilename[100]={'\0'}, buffer[50]={'\0'};
+
+				if(open_natural && stand.landcover == NATURAL) {
+
+					strcpy(outfilename, "anpp_natural_");
+					sprintf(buffer, "%.1f_%.1f_%d",lon, lat, id);
+					strcat(outfilename, buffer);
+					strcat(outfilename, ".out");
+
+					// create a vector with the pft names
+					std::vector<std::string> pfts;
+
+					pftlist.firstobj();
+					while (pftlist.isobj) {
+
+						 Pft& pft=pftlist.getobj();	 
+
+						 if(pft.landcover == stand.landcover)
+							 pfts.push_back((char*)pft.name);
+
+						 pftlist.nextobj();
+					}
+					ColumnDescriptors anpp_columns;
+					anpp_columns += ColumnDescriptors(pfts,               8, 3);
+					anpp_columns += ColumnDescriptor("Total",             8, 3);
+
+					if(out_anpp_stand_natural[id].invalid())
+						create_output_table(out_anpp_stand_natural[id],           outfilename,           anpp_columns);
+				}
+				else if(open_forest && stand.landcover == FOREST) {
+
+					strcpy(outfilename, "anpp_forest_");
+					sprintf(buffer, "%.1f_%.1f_%d",lon, lat, id);
+					strcat(outfilename, buffer);
+					strcat(outfilename, ".out");
+
+					// create a vector with the pft names
+					std::vector<std::string> pfts;
+
+					pftlist.firstobj();
+					while (pftlist.isobj) {
+						 Pft& pft=pftlist.getobj();	 
+
+						 if(pft.landcover == stand.landcover)
+							 pfts.push_back((char*)pft.name);
+
+						 pftlist.nextobj();
+					}
+					ColumnDescriptors anpp_columns;
+					anpp_columns += ColumnDescriptors(pfts,               8, 3);
+					anpp_columns += ColumnDescriptor("Total",             8, 3);
+
+					if(out_anpp_stand_forest[id].invalid())
+						create_output_table(out_anpp_stand_forest[id],           outfilename,           anpp_columns);
+				}
+
+				gridcell.nextobj();
+			}
+		}
+	}
+}
+
+void CommonOutput::closelocalfiles(Gridcell& gridcell) {
+
+	if(!printseparatestands)
+		return;
+
+	for(int id=0;id<MAXNUMBER_STANDS;id++) {
+
+		if(!out_anpp_stand_natural[id].invalid())
+			close_output_table(out_anpp_stand_natural[id]);
+		if(!out_anpp_stand_forest[id].invalid())
+			close_output_table(out_anpp_stand_forest[id]);
+	}
 }
 
 } // namespace

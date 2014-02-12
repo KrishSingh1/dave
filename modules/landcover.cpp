@@ -251,79 +251,86 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
  *  OUTPUT PARAMETERS
  *
  *  \param landcoverfrac_change				array with this year's difference in area fractions of the different landcovers
- *  \param nnaturalstands					number of natural stands in the gridcell
+ *  \param nnaturalstands[lc]				number of stands of a land cover type in the gridcell
  */
-void reduce_natural_stands(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], int& nnaturalstands) {
+void reduce_natural_stands(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], int nnaturalstands[NLANDCOVERTYPES]) {
 
 	gridcell.firstobj();
 	while (gridcell.isobj) {
 		Stand& stand=gridcell.getobj();
 
-		if(stand.landcover == NATURAL) {
-			stand.natural_frac_change = 0.0;
-			nnaturalstands++;
-		}
+		stand.natural_frac_change = 0.0;
+		nnaturalstands[stand.landcover]++;
 
 		gridcell.nextobj();
 	}
 
-	if(nnaturalstands > 1  && landcoverfrac_change[NATURAL] < 0.0) {
-		double natural_change_remain = landcoverfrac_change[NATURAL];
+	double natural_change_remain[NLANDCOVERTYPES];
+	memset(natural_change_remain,0,NLANDCOVERTYPES*sizeof(double));
 
-		bool reduce_all_stands = false;	//convert equal percentage of area from all stands
-		bool young_stands_first = true;	//convert area from youngest stands first
+	for(unsigned int lc = 0; lc < NLANDCOVERTYPES; lc++) {
+
+		if(nnaturalstands[lc] > 1  && landcoverfrac_change[lc] < 0.0) {
+
+			natural_change_remain[lc] = landcoverfrac_change[lc];
+
+			bool reduce_all_stands = false;	//convert equal percentage of area from all stands
+			bool young_stands_first = true;	//convert area from youngest stands first
 
 // Remove this section and always use the default values ?
-		// convert equal percentage of area from all stands if both managed forest and other managed land expands
-		if((landcoverfrac_change[CROPLAND] > 0.0 || landcoverfrac_change[PASTURE] > 0.0 || landcoverfrac_change[URBAN] > 0.0 || landcoverfrac_change[PEATLAND] > 0.0) 
-				&& landcoverfrac_change[FOREST] > 0.0) {
-			reduce_all_stands=true;
-			young_stands_first=false;
-		}
-		// convert area from youngest stands first if managedforest does not expand
-		else if(landcoverfrac_change[CROPLAND]>0.0 || landcoverfrac_change[PASTURE]>0.0 || landcoverfrac_change[URBAN]>0.0 || landcoverfrac_change[PEATLAND]>0.0)
-			young_stands_first=true;
-		// convert area from oldest stands first if only managed forest expands
-		else if(landcoverfrac_change[FOREST]>0.0)	
-			young_stands_first=false;
+			if(lc == NATURAL || lc == FOREST) {
+				// convert equal percentage of area from all stands if both managed forest and other managed land expands
+				if((landcoverfrac_change[CROPLAND] > 0.0 || landcoverfrac_change[PASTURE] > 0.0 || landcoverfrac_change[URBAN] > 0.0 || landcoverfrac_change[PEATLAND] > 0.0) 
+						&& (landcoverfrac_change[FOREST] > 0.0) || landcoverfrac_change[NATURAL] > 0.0) {
+					reduce_all_stands=true;
+					young_stands_first=false;
+				}
+				// convert area from youngest stands first if managedforest does not expand
+				else if(landcoverfrac_change[CROPLAND] > 0.0 || landcoverfrac_change[PASTURE] > 0.0 || landcoverfrac_change[URBAN] > 0.0 || landcoverfrac_change[PEATLAND] > 0.0)
+					young_stands_first=true;
+				// convert area from oldest stands first if only managed forest expands
+				else if(landcoverfrac_change[FOREST] > 0.0 || landcoverfrac_change[NATURAL] > 0.0)
+					young_stands_first=false;
+			}
 //////////////////////
 
-		for(unsigned int i = 0; i < gridcell.nobj; i++) {
-			int index;
+			for(unsigned int i = 0; i < gridcell.nobj; i++) {
+				int index;
 
-			if(young_stands_first)
-				index = gridcell.nobj - 1 - i;
-			else
-				index = i;
+				if(young_stands_first)
+					index = gridcell.nobj - 1 - i;
+				else
+					index = i;
 
-			Stand& stand = gridcell[index];	
+				Stand& stand = gridcell[index];	
 
-			if(stand.landcover == NATURAL) {
-				// convert equal areas from all stands
-				if(reduce_all_stands) {
-					stand.natural_frac_change = landcoverfrac_change[NATURAL] * stand.get_gridcell_fraction() / gridcell.landcoverfrac_old[NATURAL];
-					stand.set_gridcell_fraction(stand.get_gridcell_fraction() + stand.natural_frac_change);
-				}
-				else {		
-					if(stand.get_gridcell_fraction() > 0.0) {
-						//all natural landcover decrease is taken from this stand
-						if(stand.get_gridcell_fraction() >= -natural_change_remain) {
-							stand.natural_frac_change = natural_change_remain;
-							stand.set_gridcell_fraction(stand.get_gridcell_fraction() + stand.natural_frac_change);
-							natural_change_remain = 0.0;
-							break;
+				if(gridcell.expand_to_new_stand[stand.landcover]) {
+					// convert equal areas from all stands
+					if(reduce_all_stands) {
+						stand.natural_frac_change = landcoverfrac_change[lc] * stand.get_gridcell_fraction() / gridcell.landcoverfrac_old[lc];
+						stand.set_gridcell_fraction(stand.get_gridcell_fraction() + stand.natural_frac_change);
+					}
+					else {		
+						if(stand.get_gridcell_fraction() > 0.0) {
+							//all natural landcover decrease is taken from this stand
+							if(stand.get_gridcell_fraction() >= -natural_change_remain[lc]) {
+								stand.natural_frac_change = natural_change_remain[lc];
+								stand.set_gridcell_fraction(stand.get_gridcell_fraction() + stand.natural_frac_change);
+								natural_change_remain[lc] = 0.0;
+								break;
+							}
+							//more stands will have to be reduced
+							else {						
+								stand.natural_frac_change = -stand.get_gridcell_fraction();
+								natural_change_remain[lc] += stand.get_gridcell_fraction();
+								stand.set_gridcell_fraction(0.0);	//will be killed below
+							}				
 						}
-						//more stands will have to be reduced
-						else {						
-							stand.natural_frac_change = -stand.get_gridcell_fraction();
-							natural_change_remain += stand.get_gridcell_fraction();
-							stand.set_gridcell_fraction(0.0);	//will be killed below
-						}				
 					}
 				}
 			}
 		}
-	}		
+	}
 }
 
 
@@ -339,7 +346,7 @@ void reduce_natural_stands(Gridcell& gridcell, double landcoverfrac_change[NLAND
  *  \param landcoverfrac_change				array with this year's difference in area fractions of the different landcovers
  *  \param cropstand_change					array with this year's difference in area fractions of the different crop stands
  *  \param receiving_fraction				sum of added area to expanding stands
- *  \param nnaturalstands					number of natural stands in the gridcell
+ *  \param nnaturalstands[lc]				number of stands of a land cover type in the gridcell
  *
  *  OUTPUT PARAMETERS
  *  \param landcover_change_transfer        struct containing the following pft-specific public members:
@@ -375,26 +382,27 @@ void reduce_natural_stands(Gridcell& gridcell, double landcoverfrac_change[NLAND
  *   - transfer_sompool.ntoc 
  */
 void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], double cropstand_change[NCROPSTANDS_MAX], double& receiving_fraction, 
-					int nnaturalstands, landcover_change_transfer& to) {
+					int nnaturalstands[NLANDCOVERTYPES], landcover_change_transfer& to) {
 
 	gridcell.firstobj();
 	while (gridcell.isobj) {
 		double scale;
 
 		Stand& stand = gridcell.getobj();
+		int expand_to_new_stand = gridcell.expand_to_new_stand[stand.landcover];
 
-		if(stand.landcover != CROPLAND && stand.landcover != NATURAL && landcoverfrac_change[stand.landcover] < 0.0						
-			|| stand.landcover == NATURAL && landcoverfrac_change[NATURAL] < 0.0 && (nnaturalstands == 1 || stand.natural_frac_change < 0.0)
+		if(stand.landcover != CROPLAND && !expand_to_new_stand && landcoverfrac_change[stand.landcover] < 0.0						
+			|| expand_to_new_stand && landcoverfrac_change[stand.landcover] < 0.0 && (nnaturalstands[stand.landcover] == 1 || stand.natural_frac_change < 0.0)
 			|| stand.landcover == CROPLAND && cropstand_change[stand.cftid] < 0.0) {
 
 			// All landcovers that only have one stand:
-			if(stand.landcover != CROPLAND && stand.landcover != NATURAL) {
+			if(stand.landcover != CROPLAND && !expand_to_new_stand) {
 				scale = -landcoverfrac_change[stand.landcover] / receiving_fraction / (double)stand.nobj;			
 				stand.set_gridcell_fraction(gridcell.landcoverfrac[stand.landcover]);
 			}
 			// Landcovers that may have several stands:
-			else if(stand.landcover == NATURAL) {
-				if(nnaturalstands > 1) {
+			else if(expand_to_new_stand) {
+				if(nnaturalstands[stand.landcover] > 1) {
 					scale = -stand.natural_frac_change / receiving_fraction / (double)stand.nobj;
 					//stand.frac already set in reduce_natural_stands() for these new stands
 				}
@@ -494,11 +502,11 @@ void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCO
 
 
 					double change_frac;
-					if(stand.landcover == NATURAL) {
-						if(nnaturalstands > 1)
+					if(gridcell.expand_to_new_stand[stand.landcover]) {
+						if(nnaturalstands[stand.landcover] > 1)
 							change_frac = stand.natural_frac_change;
 						else
-							change_frac = landcoverfrac_change[NATURAL];
+							change_frac = landcoverfrac_change[stand.landcover];
 					}
 					else if(stand.landcover == CROPLAND)
 						change_frac = cropstand_change[stand.cftid];
@@ -565,15 +573,18 @@ void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCO
  *  \param landcoverfrac_change				array with this year's difference in area fractions of the different landcovers
  *  \param changeLC							sum of all stands' absolute changes
  *  \param change_crop						sum of all crop stands' absolute changes		
- *  \param nnaturalstands					number of natural stands in the gridcell
+ *  \param nnaturalstands[lc]				number of stands of a land cover type in the gridcell
  */
-void stand_dynamics(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], double changeLC, double change_crop, int nnaturalstands) {
+void stand_dynamics(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], double changeLC, double change_crop, int nnaturalstands[NLANDCOVERTYPES]) {
 
 	// dynamics for stands other than cropland (from updated landcoverfrac):
 	if(!lcfrac_fixed && changeLC > 0.0) {
 		for(int i=0; i<NLANDCOVERTYPES; i++) {
 			if(i != CROPLAND) {
 				if(run[i]) {
+
+					int expand_to_new_stand = gridcell.expand_to_new_stand[i];
+
 					// stand created
 					if(gridcell.landcoverfrac_old[i] == 0.0 && gridcell.landcoverfrac[i] > 0.0) {
 						gridcell.create_stand_lu((landcovertype)i, gridcell.landcoverfrac[i]);
@@ -591,11 +602,11 @@ void stand_dynamics(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTY
 						}
 					}
 					// new NATURAL stand created from other landcover type
-					else if(i == NATURAL && landcoverfrac_change[i] > 0.0) {
+					else if(expand_to_new_stand && landcoverfrac_change[i] > 0.0) {
 						gridcell.create_stand_lu((landcovertype)i, landcoverfrac_change[i]);
 					}
 					// secondary natural stand killed if all of its area converted to other landcover type
-					else if(i == NATURAL && nnaturalstands > 1 && landcoverfrac_change[i] < 0.0) {
+					else if(expand_to_new_stand && nnaturalstands[i] > 1 && landcoverfrac_change[i] < 0.0) {
 						gridcell.firstobj();
 						while (gridcell.isobj) {
 							Stand& stand = gridcell.getobj();
@@ -716,15 +727,16 @@ void receiving_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLA
 		if(stand.landcover != CROPLAND && landcoverfrac_change[stand.landcover] > 0.0 || stand.landcover == CROPLAND && cropstand_change[stand.cftid] > 0.0)
 		{
 			double old_frac, added_frac, new_frac;
+			int expand_to_new_stand = gridcell.expand_to_new_stand[stand.landcover];
 
 			// define 
-			if(stand.landcover != CROPLAND && stand.landcover != NATURAL) {
+			if(stand.landcover != CROPLAND && !expand_to_new_stand) {
 				old_frac = gridcell.landcoverfrac_old[stand.landcover];
 				added_frac = landcoverfrac_change[stand.landcover];
 				new_frac = gridcell.landcoverfrac[stand.landcover];
 				stand.set_gridcell_fraction(gridcell.landcoverfrac[stand.landcover]);
 			}
-			else if(stand.landcover == NATURAL) {
+			else if(expand_to_new_stand) {
 				if(stand.first_year == date.year) {	// expanding natural area always results in a new stand
 					old_frac = 0.0;
 					added_frac = landcoverfrac_change[stand.landcover];
@@ -833,11 +845,12 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	double changeLC=0.0;
 	double change_crop=0.0;
 	double receiving_fraction=0.0;
-	int nnaturalstands=0;
+	int nnaturalstands[NLANDCOVERTYPES];
 	bool LCchangeCtransfer=true;
 	landcover_change_transfer transfer;
 
 	memset(landcoverfrac_change,0,NLANDCOVERTYPES*sizeof(double));
+	memset(nnaturalstands,0,NLANDCOVERTYPES*sizeof(int));
 	memset(cropstand_change,0,NCROPSTANDS_MAX*sizeof(double));
 
 	gridcell.LC_updated=false;

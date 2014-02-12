@@ -33,6 +33,10 @@ public:
 
 	void outdaily(Gridcell& gridcell);
 
+	void openlocalfiles(Gridcell& gridcell);
+
+	void closelocalfiles(Gridcell& gridcell);
+
 private:
 
 	/// Defines all output tables
@@ -58,7 +62,9 @@ private:
 	Table out_cflux_cropland, out_cflux_pasture, out_cflux_natural, out_cflux_forest, out_cpool_cropland, out_cpool_pasture, out_cpool_natural, out_cpool_forest;
 	Table out_mnpp, out_mlai, out_mgpp, out_mra, out_maet, out_mpet, out_mevap, out_mrunoff, out_mintercep;
 	Table out_mrh, out_mnee, out_mwcont_upper, out_mwcont_lower;
-	
+	Table out_anpp_stand_natural[MAXNUMBER_STANDS];
+	Table out_anpp_stand_forest[MAXNUMBER_STANDS];
+
 	// bvoc
 	Table out_aiso, out_miso, out_amon, out_mmon;
 	

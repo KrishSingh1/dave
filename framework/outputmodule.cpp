@@ -24,6 +24,10 @@ void OutputModule::create_output_table(Table& table, const char* file, const Col
 	 table = output_channel->create_table(TableDescriptor(file, columns));
 }
 
+void OutputModule::close_output_table(Table& table) {
+	 output_channel->close_table(table);
+	 table = Table();
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 /// OutputModuleContainer
@@ -71,6 +75,18 @@ void OutputModuleContainer::outannual(Gridcell& gridcell) {
 void OutputModuleContainer::outdaily(Gridcell& gridcell) {
 	for (size_t i = 0; i < modules.size(); ++i) {
 		modules[i]->outdaily(gridcell);
+	}
+}
+
+void OutputModuleContainer::openlocalfiles(Gridcell& gridcell) {
+	for (size_t i = 0; i < modules.size(); ++i) {
+		modules[i]->openlocalfiles(gridcell);
+	}
+}
+
+void OutputModuleContainer::closelocalfiles(Gridcell& gridcell) {
+	for (size_t i = 0; i < modules.size(); ++i) {
+		modules[i]->closelocalfiles(gridcell);
 	}
 }
 

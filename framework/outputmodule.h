@@ -52,12 +52,18 @@ public:
 	/** Similar to outannual but called every day */
 	virtual void outdaily(Gridcell& gridcell) = 0;
 
+	virtual void openlocalfiles(Gridcell& gridcell) = 0;
+
+	virtual void closelocalfiles(Gridcell& gridcell) = 0;
+
 protected:
 
 	/// Help function to define_output_tables, creates one output table
 	void create_output_table(Table& table, 
 	                         const char* file, 
 	                         const ColumnDescriptors& columns);
+
+	void close_output_table(Table& table);
 };
 
 
@@ -89,6 +95,10 @@ public:
 	
 	/// Calls outdaily on all output modules
 	void outdaily(Gridcell& gridcell);
+
+	void openlocalfiles(Gridcell& gridcell);
+
+	void closelocalfiles(Gridcell& gridcell);
 
 private:
 	

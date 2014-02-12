@@ -72,6 +72,7 @@ int state_year;
 bool forcesowingdates = false;
 bool forceharvestdates = false;
 bool readNfert = false;
+bool printseparatestands;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Implementation of the Paramlist class
@@ -166,7 +167,7 @@ void initsettings() {
 	npatch=1;
 	vegmode=COHORT;
 	run_landcover = false;
-
+	printseparatestands = false;
 	save_state = false;
 	restart = false;
 }
@@ -413,6 +414,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("forcesowingdates",&forcesowingdates,1,CB_NONE,"Whether to use sowingdates from input file");
 		declareitem("forceharvestdates",&forceharvestdates,1,CB_NONE,"Whether to use harvestdates from input file");
 		declareitem("readNfert",&readNfert,1,CB_NONE,"Whether to read N fertilization from input file");
+		declareitem("printseparatestands",&printseparatestands,1,CB_NONE,"Whether to print multiple stands within a land cover type (except cropland) separately");
 		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"Whether static landcover fractions are set in the ins-file (0,1)");
 		declareitem("cftfrac_fixed",&cftfrac_fixed,1,CB_NONE,"Whether static CFT fractions are set in the ins-file (0,1)");	
 
@@ -855,6 +857,7 @@ void plib_callback(int callback) {
 			if (!itemparsed("forcesowingdates")) badins("forcesowingdates");
 			if (!itemparsed("forceharvestdates")) badins("forceharvestdates");
 			if (!itemparsed("readNfert")) badins("readNfert");
+			if (!itemparsed("printseparatestands")) badins("printseparatestands");
 
 #ifndef DYNAMIC_LANDCOVER_INPUT
 			if(!lcfrac_fixed || !cftfrac_fixed || forcesowingdates || forceharvestdates)
@@ -904,6 +907,9 @@ void plib_callback(int callback) {
 		run[CROPLAND]=0;
 		run[PASTURE]=1;
 #endif
+
+		if (!run_landcover)
+			printseparatestands = false;
 
 		//	delete unused pft:s from pftlist
 

@@ -1447,31 +1447,31 @@ void growth(Stand& stand, Patch& patch) {
 				harvest_pasture(indiv, indiv.pft, indiv.alive);
 			}
 
-			if(!indiv.has_daily_turnover()) {
-				// Tissue turnover and associated litter production
-				turnover(indiv.pft.turnover_leaf, indiv.pft.turnover_root,
-					indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
-					indiv.cmass_leaf, indiv.cmass_root, indiv.cmass_sap, indiv.cmass_heart,
-					indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap, indiv.nmass_heart,
-					patch.pft[indiv.pft.id].litter_leaf,
-					patch.pft[indiv.pft.id].litter_root,
-					patch.pft[indiv.pft.id].nmass_litter_leaf,
-					patch.pft[indiv.pft.id].nmass_litter_root,
-					indiv.nstore_longterm, 
-					indiv.alive);
+				if(!indiv.has_daily_turnover()) {
+					// Tissue turnover and associated litter production
+					turnover(indiv.pft.turnover_leaf, indiv.pft.turnover_root,
+						indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
+						indiv.cmass_leaf, indiv.cmass_root, indiv.cmass_sap, indiv.cmass_heart,
+						indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap, indiv.nmass_heart,
+						patch.pft[indiv.pft.id].litter_leaf,
+						patch.pft[indiv.pft.id].litter_root,
+						patch.pft[indiv.pft.id].nmass_litter_leaf,
+						patch.pft[indiv.pft.id].nmass_litter_root,
+						indiv.nstore_longterm, 
+						indiv.alive);
 
-				if (indiv.nstore_longterm > indiv.max_n_storage) {
-					
-					// Nitrogen stored above maximum will be returned to litter
-					nsurplus = indiv.nstore_longterm - indiv.max_n_storage;
+					if (indiv.nstore_longterm > indiv.max_n_storage) {
+						
+						// Nitrogen stored above maximum will be returned to litter
+						nsurplus = indiv.nstore_longterm - indiv.max_n_storage;
 
-					indiv.nstore_longterm -= nsurplus;
+						indiv.nstore_longterm -= nsurplus;
 
-					// Return surplus nitrogen to litter
-					patch.pft[indiv.pft.id].nmass_litter_leaf += nsurplus * (indiv.pft.turnover_leaf / (indiv.pft.turnover_leaf + indiv.pft.turnover_root));
-					patch.pft[indiv.pft.id].nmass_litter_root += nsurplus * (indiv.pft.turnover_root / (indiv.pft.turnover_leaf + indiv.pft.turnover_root));
+						// Return surplus nitrogen to litter
+						patch.pft[indiv.pft.id].nmass_litter_leaf += nsurplus * (indiv.pft.turnover_leaf / (indiv.pft.turnover_leaf + indiv.pft.turnover_root));
+						patch.pft[indiv.pft.id].nmass_litter_root += nsurplus * (indiv.pft.turnover_root / (indiv.pft.turnover_leaf + indiv.pft.turnover_root));
+					}
 				}
-			}
 			// Update stand record of reproduction by this PFT
 			stand.pft[indiv.pft.id].cmass_repr += cmass_repr / (double)stand.npatch();
 
@@ -1633,48 +1633,48 @@ void growth(Stand& stand, Patch& patch) {
 					indiv.cropindiv->cmass_agpool += cmass_agpool_inc;
 				}
 
-				if(indiv.pft.phenology != CROPGREEN && !(indiv.has_daily_turnover() && indiv.continous_grass())) {
+					if(indiv.pft.phenology != CROPGREEN && !(indiv.has_daily_turnover() && indiv.continous_grass())) {
 
-					// Nitrogen longtime storage
-					// Nitrogen approx retranslocated next year
-					double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
-						indiv.cmass_root * indiv.pft.turnover_root / cton_root_bg * nrelocfrac;
+						// Nitrogen longtime storage
+						// Nitrogen approx retranslocated next year
+						double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
+							indiv.cmass_root * indiv.pft.turnover_root / cton_root_bg * nrelocfrac;
 
-					// Max longterm nitrogen storage
-					indiv.max_n_storage = min(indiv.cmass_root * indiv.pft.fnstorage, 
-						(max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv) / cton_leaf_bg;
+						// Max longterm nitrogen storage
+						indiv.max_n_storage = min(indiv.cmass_root * indiv.pft.fnstorage, 
+							(max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv) / cton_leaf_bg;
 
-					// Scale this year productivity to max storage
-					if (indiv.anpp > 0.0) {
-						indiv.scale_n_storage = max(0.5 * indiv.max_n_storage, indiv.max_n_storage - retransn_nextyear) * cton_leaf_bg / indiv.anpp;
+						// Scale this year productivity to max storage
+						if (indiv.anpp > 0.0) {
+							indiv.scale_n_storage = max(0.5 * indiv.max_n_storage, indiv.max_n_storage - retransn_nextyear) * cton_leaf_bg / indiv.anpp;
+						}
+
+						// alive check before ensuring C balance
+						if (indiv.alive && !indiv.istruecrop_or_intercropgrass()) {
+
+							patch.pft[indiv.pft.id].litter_leaf += litter_leaf_inc;
+							patch.pft[indiv.pft.id].litter_root += litter_root_inc;
+
+							// C litter exceeding existing biomass
+							indiv.report_flux(Fluxes::NPP, exceeds_cmass * indiv.densindiv);
+							indiv.report_flux(Fluxes::RA, -exceeds_cmass * indiv.densindiv);		
+						}
+
+						// Nitrogen always return to soil litter and storage
+						// Leaf
+						patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
+							cton_leaf_bg * (1.0 - nrelocfrac);
+						indiv.nstore_longterm += litter_leaf_inc * indiv.densindiv / cton_leaf_bg * nrelocfrac;
+
+						// Root
+						patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
+							cton_root_bg * (1.0 - nrelocfrac);
+						indiv.nstore_longterm += litter_root_inc / cton_root_bg * nrelocfrac;
+						
+						// Subtracting litter nitrogen from individuals
+						indiv.nmass_leaf -= litter_leaf_inc * indiv.densindiv / cton_leaf_bg;
+						indiv.nmass_root -= litter_root_inc * indiv.densindiv / cton_root_bg;
 					}
-
-					// alive check before ensuring C balance
-					if (indiv.alive && !indiv.istruecrop_or_intercropgrass()) {
-
-						patch.pft[indiv.pft.id].litter_leaf += litter_leaf_inc;
-						patch.pft[indiv.pft.id].litter_root += litter_root_inc;
-
-						// C litter exceeding existing biomass
-						indiv.report_flux(Fluxes::NPP, exceeds_cmass * indiv.densindiv);
-						indiv.report_flux(Fluxes::RA, -exceeds_cmass * indiv.densindiv);		
-					}
-
-					// Nitrogen always return to soil litter and storage
-					// Leaf
-					patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
-						cton_leaf_bg * (1.0 - nrelocfrac);
-					indiv.nstore_longterm += litter_leaf_inc * indiv.densindiv / cton_leaf_bg * nrelocfrac;
-
-					// Root
-					patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
-						cton_root_bg * (1.0 - nrelocfrac);
-					indiv.nstore_longterm += litter_root_inc / cton_root_bg * nrelocfrac;
-					
-					// Subtracting litter nitrogen from individuals
-					indiv.nmass_leaf -= litter_leaf_inc * indiv.densindiv / cton_leaf_bg;
-					indiv.nmass_root -= litter_root_inc * indiv.densindiv / cton_root_bg;
-				}
 				// Kill individual and transfer biomass to litter if either biomass
 				// compartment negative
 

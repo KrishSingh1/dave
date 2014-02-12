@@ -157,14 +157,17 @@ extern int nyear_dyn_phu;
 /// number of spinup years
 extern int nyear_spinup;
 
-//Whether to use sowingdates from input file
+/// Whether to use sowingdates from input file
 extern bool forcesowingdates;
 
-//Whether to use harvestdates from input file
+/// Whether to use harvestdates from input file
 extern bool forceharvestdates;
 
-//Whether to read N fertilization from input file
+/// Whether to read N fertilization from input file
 extern bool readNfert;
+
+/// Whether to print multiple stands within a land cover type (except cropland) separately
+extern bool printseparatestands;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Settings controlling the saving and loading from state files

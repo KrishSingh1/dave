@@ -922,7 +922,11 @@ void plib_callback(int callback) {
 				if (!run_landcover || !run[pft.landcover])
 					include = false;
 			}
+#ifdef NATURALPFTSINFOREST
+			else if (run_landcover && !run[NATURAL] && !run[FOREST]) {
+#else
 			else if (run_landcover && !run[NATURAL]) {
+#endif
 				if (pft.landcover==NATURAL)
 					include = false;
 			}

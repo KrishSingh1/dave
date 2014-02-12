@@ -472,6 +472,21 @@ void fpar(Patch& patch) {
 	}
 }
 
+double alphaa(Stand& stand, Pft& pft) {
+
+	double alphaa;
+	bool ifnlim_pft = ifnlim && ifnlim_lc[stand.landcover];
+
+	if(pft.phenology==CROPGREEN)
+		alphaa = ALPHAA_CROP;
+	else if (pft.isintercropgrass)
+		alphaa = ALPHAA;
+	else
+		alphaa = (ifnlim_pft ? ALPHAA_NLIM : ALPHAA);
+
+	return alphaa;
+}
+
 /// Non-water stressed rubisco capacity, with or without nitrogen limitation
 void vmax(double b, double c1, double c2, double apar, double tscal,
 		  double daylength, double temp, double nactive, bool ifnlimvmax, double& vm, double& vmaxnlim, double& nactive_opt) {
@@ -545,6 +560,7 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
  *  \param ifnlimvmax whether nitrogen should limit Vmax
  *  \param vm         pre-calculated value of Vmax for this stand for this day if
  *                    available, otherwise calculated
+ *  \param alphaa	  ALPHAA value dependent on landcover, phenology and nitrogen limitation
  *
  * OUTPUT PARAMETERS
  *
@@ -553,7 +569,7 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
 void photosynthesis(double co2, double temp, double par, double daylength,
                     double fpar, double lambda, const Pft& pft, 
                     double nactive, bool ifnlimvmax,
-                    PhotosynthesisResult& result, double vm) {
+                    PhotosynthesisResult& result, double vm, double alphaa) {
 
 	// NOTE: This function is identical to LPJF subroutine "photosynthesis" except for
 	// the formulation of low-temperature inhibition coefficient tscal (tstress; LPJF).
@@ -586,14 +602,7 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 	double apar;
 	double b, c1, c2;
 
-	bool ifnlim_pft = ifnlim && ifnlim_lc[pft.landcover];
-
-	if(pft.phenology==CROPGREEN)
-		apar = par * fpar * ALPHAA_CROP;
-	else if (pft.isintercropgrass)
-		apar = par * fpar * ALPHAA;
-	else
-		apar = par * fpar * (ifnlim_pft ? ALPHAA_NLIM : ALPHAA);
+	apar = par * fpar * alphaa;
 
 	// Calculate temperature-inhibition coefficient
 	// This function (tscal) is mathematically identical to function tstress in LPJF.
@@ -711,7 +720,7 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 
 				// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
 				photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
-						1.0, pft.lambda_max, pft, 1.0, false, spft.photosynthesis, -1);
+						1.0, pft.lambda_max, pft, 1.0, false, spft.photosynthesis, -1, alphaa(stand, pft));
 
 				if (date.diurnal()) {
 					spft.gpterms.assign(date.subdaily, 0);
@@ -721,7 +730,7 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 					for (int i=0; i<date.subdaily; i++) {
 						PhotosynthesisResult& result = spft.phots[i];
 						photosynthesis(climate.co2, climate.temps[i], climate.pars[i],
-							24, 1.0, pft.lambda_max, pft, 1.0, false, result, spft.photosynthesis.vm);
+							24, 1.0, pft.lambda_max, pft, 1.0, false, result, spft.photosynthesis.vm, alphaa(stand, pft));
 
 						spft.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
 					}
@@ -745,7 +754,7 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 		               indiv.fpar, pft.lambda_max, pft,
 		               1.0, false,
 		               indiv.photosynthesis,
-		               -1);
+		               -1, alphaa(patch.stand, pft));
 
 		indiv.gpterm = gpterm(indiv.photosynthesis.adtmm, climate.co2, pft.lambda_max, climate.daylength);
 
@@ -761,7 +770,7 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 				               indiv.fpar, pft.lambda_max, pft,
 				               1.0, false,
 				               result,
-				               indiv.photosynthesis.vm);
+				               indiv.photosynthesis.vm, alphaa(patch.stand, pft));
 
 				indiv.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
 			}
@@ -1095,7 +1104,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 				indiv.fpar, pft.lambda_max, pft,
 				indiv.nactive / indiv.nextin, true,
 				indiv.photosynthesis,
-				-1);
+				-1, alphaa(stand, pft));
 
 			indiv.gpterm = gpterm(indiv.photosynthesis.adtmm, climate.co2, pft.lambda_max, climate.daylength);
 
@@ -1106,7 +1115,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 						indiv.fpar, pft.lambda_max, pft,
 						indiv.nactive / indiv.nextin, true,
 						result,
-						indiv.photosynthesis.vm);
+						indiv.photosynthesis.vm, alphaa(stand, pft));
 
 					indiv.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
 				}
@@ -1180,7 +1189,7 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
 						   indiv.fpar_leafon, pft.lambda_max, pft,
 						   1.0, false,
 						   leafon_photosynthesis,
-						   -1);
+						   -1, alphaa(patch.stand, pft));
 
 			double gp_leafon = gpterm(leafon_photosynthesis.adtmm, climate.co2, pft.lambda_max, daylength) + pft.gmin * indiv.fpc;
 
@@ -1573,7 +1582,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 			double daylength, double fpar, double fpc, double gcbase,
 			double vmax, PhotosynthesisResult& phot_result, double& lambda,
-			double nactive, bool ifnlimvmax) {
+			double nactive, bool ifnlimvmax, double alphaa) {
 
 	// DESCRIPTION
 	// Calculation of net C-assimilation under water-stressed conditions
@@ -1625,7 +1634,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 	// Evaluate f(lambda_max) to see if there's a root 
 	// in the interval we're searching
-	photosynthesis(co2, temp, par, daylength, fpar, pft.lambda_max, pft, nactive, ifnlimvmax, phot_result, vmax);
+	photosynthesis(co2, temp, par, daylength, fpar, pft.lambda_max, pft, nactive, ifnlimvmax, phot_result, vmax, alphaa);
 	double f_lambda_max = phot_result.adtmm / fpc - gcphot * (1 - pft.lambda_max);
 
 	if (f_lambda_max <= 0) {
@@ -1660,7 +1669,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 		// for total daytime photosynthesis according to Eqns 2 & 19,
 		// Haxeltine & Prentice (1996), and current guess for lambda
 
-		photosynthesis(co2, temp, par, daylength, fpar, xmid, pft, nactive, ifnlimvmax, phot_result, vmax);
+		photosynthesis(co2, temp, par, daylength, fpar, xmid, pft, nactive, ifnlimvmax, phot_result, vmax, alphaa);
 
 		// Evaluate fmid at the point lambda=xmid
 		// fmid will be an increasing function of xmid, with a solution
@@ -1889,7 +1898,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 			assimilation_wstress(pft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
 				ppft.gcbase, phot.vm, phot, lambda,
-				indiv.nactive / indiv.nextin, stand.ifnlim_stand());
+				indiv.nactive / indiv.nextin, stand.ifnlim_stand(), alphaa(stand, pft));
 		}
 
 		assim = phot.net_assimilation();
@@ -1955,7 +1964,7 @@ void forest_floor_conditions(Patch& patch) {
 				if (ppft.wstress_day) {
 					assimilation_wstress(pft, climate.co2, climate.temp, climate.par,
 						climate.daylength, patch.fpar_grass * ppft.phen, 1., ppft.gcbase_day,
-						spft.photosynthesis.vm, phot, lambda, 1.0, false);
+						spft.photosynthesis.vm, phot, lambda, 1.0, false, alphaa(patch.stand, pft));
 					assim = phot.net_assimilation();
 				}
 				else {

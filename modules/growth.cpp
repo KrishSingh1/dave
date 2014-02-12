@@ -1440,10 +1440,11 @@ void growth(Stand& stand, Patch& patch) {
 			}
 
 			if(indiv.pft.landcover==CROPLAND) {
+			if(stand.landcover==CROPLAND) {
 				if(!indiv.has_daily_turnover())
 					harvest_crop(indiv, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass, false);
 			}
-			else if(indiv.pft.landcover==PASTURE) {
+			else if(stand.landcover==PASTURE) {
 				harvest_pasture(indiv, indiv.pft, indiv.alive);
 			}
 

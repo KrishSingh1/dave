@@ -763,8 +763,10 @@ void dailyaccounting_patch_lc(Patch& patch) {
 
 //				patch.fluxes.report_flux(Fluxes::HARVESTC, patchpft.harvested_products_slow*pft.turnover_harv_prod);
 				patch.stand.gridcell.acflux_harvest_slow+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.get_gridcell_fraction()/(double)patch.stand.nobj;
-				patch.stand.gridcell.acflux_harvest_slow_lc[pft.landcover]+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.get_gridcell_fraction()/(double)patch.stand.nobj;
-
+				// flux from slow pool in receiving landcover after land use change (1)
+				patch.stand.gridcell.acflux_harvest_slow_lc[patch.stand.landcover]+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.get_gridcell_fraction()/(double)patch.stand.nobj;
+				// flux from slow pool in donating landcover after land use change (2)
+//				patch.stand.gridcell.acflux_harvest_slow_lc[pft.landcover]+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.get_gridcell_fraction()/(double)patch.stand.nobj;
 				patchpft.harvested_products_slow = patchpft.harvested_products_slow * (1 - pft.turnover_harv_prod);
 
 				patch.fluxes.report_flux(Fluxes::HARVESTN, patchpft.harvested_products_slow_nmass*pft.turnover_harv_prod);

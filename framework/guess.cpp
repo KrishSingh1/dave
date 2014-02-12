@@ -1432,7 +1432,7 @@ void Gridcell::set_coordinates(double longitude, double latitude) {
 void Gridcell::create_stand_lu(landcovertype lc, double fraction, int cftid)
 {
 
-		if(lc!=CROPLAND) {				
+	if(lc!=CROPLAND) {
 			if(run[lc]) {
 				if(landcoverfrac[lc]>0.0) {
 					Stand& stand = createobj(*this,lc);
@@ -1441,7 +1441,11 @@ void Gridcell::create_stand_lu(landcovertype lc, double fraction, int cftid)
 					pftlist.firstobj();
 					while (pftlist.isobj) {
 						Pft& pft = pftlist.getobj();
+#ifdef NATURALPFTSINFOREST
+					if(pft.landcover == lc || lc == FOREST && pft.landcover == NATURAL) {
+#else
 						if(pft.landcover == lc) {
+#endif
 							stand.pft[pft.id].active = true;
 						}
 						pftlist.nextobj();

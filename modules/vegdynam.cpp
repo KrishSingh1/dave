@@ -424,7 +424,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	pftlist.firstobj();
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
-		if (establish(patch,stand.gridcell.climate,pft) && pft.lifeform==TREE && stand.landcover==pft.landcover)
+		Standpft& standpft=stand.pft[pft.id];
+
+		if (establish(patch,stand.gridcell.climate,pft) && pft.lifeform==TREE && standpft.active)
 			nwoodypfts_estab++;
 		pftlist.nextobj();
 	}

@@ -795,12 +795,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 						int id = stand.id;
 
-						if(stand.landcover == NATURAL && pft.landcover == NATURAL) {
+						if(stand.landcover == NATURAL) {
 
 							if(!out_anpp_stand_natural[id].invalid())
 								out.add_value(out_anpp_stand_natural[id],      standpft_anpp);
 						}
-						else if(stand.landcover == FOREST && pft.landcover == FOREST) {
+						else if(stand.landcover == FOREST) {
 
 							if(!out_anpp_stand_forest[id].invalid())
 								out.add_value(out_anpp_stand_forest[id],      standpft_anpp);
@@ -973,8 +973,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					for (int q=0;q<npft;q++) {
 						Patchpft& patchpft=patch.pft[q];
 						c_harv_slow+=patchpft.harvested_products_slow*to_gridcell_average;
-//						c_harv_slow_lc[stand.landcover]+=patchpft.harvested_products_slow*to_gridcell_average;		  //slow pool in receiving landcover (1)
-						c_harv_slow_lc[patchpft.pft.landcover]+=patchpft.harvested_products_slow*to_gridcell_average; //slow pool in donating landcover (2)
+						c_harv_slow_lc[stand.landcover]+=patchpft.harvested_products_slow*to_gridcell_average;		  //slow pool in receiving landcover (1)
+//						c_harv_slow_lc[patchpft.pft.landcover]+=patchpft.harvested_products_slow*to_gridcell_average; //slow pool in donating landcover (2)
 						n_harv_slow+=patchpft.harvested_products_slow_nmass*to_gridcell_average;
 					}
 				}
@@ -1530,58 +1530,42 @@ void CommonOutput::openlocalfiles(Gridcell& gridcell) {
 				int id = stand.id;
 				char outfilename[100]={'\0'}, buffer[50]={'\0'};
 
+				sprintf(buffer, "%.1f_%.1f_%d",lon, lat, id);
+				strcat(buffer, ".out");
+
+				// create a vector with the pft names
+				std::vector<std::string> pfts;
+
+				pftlist.firstobj();
+				while (pftlist.isobj) {
+
+					 Pft& pft=pftlist.getobj();	 
+					 Standpft& standpft=stand.pft[pft.id];
+
+					 if(standpft.active)
+						 pfts.push_back((char*)pft.name);
+
+					 pftlist.nextobj();
+				}
+				ColumnDescriptors anpp_columns;
+				anpp_columns += ColumnDescriptors(pfts,               8, 3);
+				anpp_columns += ColumnDescriptor("Total",             8, 3);
+
 				if(open_natural && stand.landcover == NATURAL) {
 
 					strcpy(outfilename, "anpp_natural_");
-					sprintf(buffer, "%.1f_%.1f_%d",lon, lat, id);
 					strcat(outfilename, buffer);
-					strcat(outfilename, ".out");
-
-					// create a vector with the pft names
-					std::vector<std::string> pfts;
-
-					pftlist.firstobj();
-					while (pftlist.isobj) {
-
-						 Pft& pft=pftlist.getobj();	 
-
-						 if(pft.landcover == stand.landcover)
-							 pfts.push_back((char*)pft.name);
-
-						 pftlist.nextobj();
-					}
-					ColumnDescriptors anpp_columns;
-					anpp_columns += ColumnDescriptors(pfts,               8, 3);
-					anpp_columns += ColumnDescriptor("Total",             8, 3);
 
 					if(out_anpp_stand_natural[id].invalid())
-						create_output_table(out_anpp_stand_natural[id],           outfilename,           anpp_columns);
+						create_output_table(out_anpp_stand_natural[id], outfilename, anpp_columns);
 				}
 				else if(open_forest && stand.landcover == FOREST) {
 
 					strcpy(outfilename, "anpp_forest_");
-					sprintf(buffer, "%.1f_%.1f_%d",lon, lat, id);
 					strcat(outfilename, buffer);
-					strcat(outfilename, ".out");
-
-					// create a vector with the pft names
-					std::vector<std::string> pfts;
-
-					pftlist.firstobj();
-					while (pftlist.isobj) {
-						 Pft& pft=pftlist.getobj();	 
-
-						 if(pft.landcover == stand.landcover)
-							 pfts.push_back((char*)pft.name);
-
-						 pftlist.nextobj();
-					}
-					ColumnDescriptors anpp_columns;
-					anpp_columns += ColumnDescriptors(pfts,               8, 3);
-					anpp_columns += ColumnDescriptor("Total",             8, 3);
 
 					if(out_anpp_stand_forest[id].invalid())
-						create_output_table(out_anpp_stand_forest[id],           outfilename,           anpp_columns);
+						create_output_table(out_anpp_stand_forest[id], outfilename, anpp_columns);
 				}
 
 				gridcell.nextobj();

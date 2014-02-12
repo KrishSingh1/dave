@@ -455,7 +455,7 @@ void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCO
 						cp.copy_from_indiv(indiv, false, false);
 
 					// Harvest of transferred areas:
-					switch (indiv.pft.landcover)
+					switch (stand.landcover)
 					{
 					case CROPLAND:
 						harvest_crop(cp, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass);

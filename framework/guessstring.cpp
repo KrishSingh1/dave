@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-/// \file guessstring.h
+/// \file guessstring.cpp
 /// \brief Utility functions for working with strings (std::string and char*)
 ///
 /// \author Joe Siltberg

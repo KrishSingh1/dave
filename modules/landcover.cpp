@@ -304,7 +304,7 @@ void reduce_natural_stands(Gridcell& gridcell, double landcoverfrac_change[NLAND
 
 				Stand& stand = gridcell[index];	
 
-				if(gridcell.expand_to_new_stand[stand.landcover]) {
+				if(stand.landcover == lc && gridcell.expand_to_new_stand[stand.landcover]) {
 					// convert equal areas from all stands
 					if(reduce_all_stands) {
 						stand.natural_frac_change = landcoverfrac_change[lc] * stand.get_gridcell_fraction() / gridcell.landcoverfrac_old[lc];

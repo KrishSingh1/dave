@@ -1439,7 +1439,6 @@ void growth(Stand& stand, Patch& patch) {
 					scale_indiv(indiv, false);
 			}
 
-			if(indiv.pft.landcover==CROPLAND) {
 			if(stand.landcover==CROPLAND) {
 				if(!indiv.has_daily_turnover())
 					harvest_crop(indiv, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass, false);

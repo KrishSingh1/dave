@@ -212,4 +212,47 @@ public:
 	}
 };
 
+
+/// Spinup data container supporting monthly, daily and sub-daily forcing
+/** Similar to Spinup_data, but forcing data can have 12, 365 or a multiple
+ *  of 365 values per year.
+ *
+ *  There's no support for leap years, get rid of leap days before sending
+ *  the raw forcing data to this class.
+ */
+class GenericSpinupData {
+public:
+	static const int DAYS_PER_YEAR = 365;
+
+	/// Datatype for the data, a 2D matrix of doubles
+	typedef std::vector<std::vector<double> > RawData;
+
+	GenericSpinupData();
+
+	/// Loads the underlying forcing data (and sets the "current" year to 0)
+	void get_data_from(RawData& source);
+
+	/// Gets the value for a given timestep in the "current" year
+	double operator[](int ts) const;
+
+	/// Goes to the next year
+	void nextyear();
+
+	/// Goes to the first year
+	void firstyear();
+
+	/// Removes trend from the original data
+	void detrend_data();
+
+	/// Returns the number of years used to construct the spinup dataset
+	size_t nbr_years() const;
+
+private:
+	/// The "current" year
+	int thisyear;
+
+	/// The forcing data which is used over and over during the spinup
+	RawData data;
+};
+
 #endif // LPJ_GUESS_SPINUP_DATA_H

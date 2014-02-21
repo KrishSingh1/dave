@@ -9,6 +9,8 @@
 #ifndef LPJ_GUESS_LAMARQUENDEP_H
 #define LPJ_GUESS_LAMARQUENDEP_H
 
+#include <string>
+
 namespace Lamarque {
 
 /// number of years of historical nitrogen deposition 
@@ -41,6 +43,10 @@ enum timeseriestype {
 	/// Fixed pre-industrial values
 	FIXED,
 };
+
+/// Converts a string ("historic", "rcp26" etc.) to a timeseriestype
+/** Case insensitive */
+timeseriestype parse_timeseries(const std::string& str);
 
 /// Nitrogen deposition forcing for a single grid cell
 class NDepData {

@@ -12,7 +12,7 @@ project(guess)
 if (MSVC)
   # Disable warnings about using secure functions like sprintf_s instead of
   # regular sprintf etc.
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D _CRT_SECURE_NO_WARNINGS")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D _CRT_SECURE_NO_WARNINGS /D _SCL_SECURE_NO_WARNINGS")
 endif()
 
 # The following are configuration variables for the build. 
@@ -74,7 +74,7 @@ if (MPI_FOUND)
 endif()
 
 # Where the compiler should search for header files
-include_directories(${guess_SOURCE_DIR}/framework ${guess_SOURCE_DIR}/libraries/gutil ${guess_SOURCE_DIR}/libraries/plib ${guess_SOURCE_DIR}/modules ${guess_SOURCE_DIR}/cru/guessio)
+include_directories(${guess_SOURCE_DIR}/framework ${guess_SOURCE_DIR}/libraries/gutil ${guess_SOURCE_DIR}/libraries/plib ${guess_SOURCE_DIR}/libraries/guessnc ${guess_SOURCE_DIR}/modules ${guess_SOURCE_DIR}/cru/guessio)
 
 # The following directories contain source code and 
 # additional CMakeLists.txt files

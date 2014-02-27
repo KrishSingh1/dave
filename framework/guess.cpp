@@ -904,7 +904,7 @@ void Individual::kill(bool harvest /* = false */) {
 }
 
 double Individual::wscal_mean() const {
-	return vegetation.patch.pft[pft.id].wscal_mean;
+	return patchpft().wscal_mean;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

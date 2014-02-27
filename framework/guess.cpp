@@ -523,7 +523,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& height
 		& crownarea
 		& deltafpc
-		& wscal_mean
 		& boleht
 		& lai
 		& lai_layer
@@ -902,6 +901,10 @@ void Individual::kill(bool harvest /* = false */) {
 	// Add to biomass depositories for long-lived products
 	ppft.harvested_products_slow += charvested_products_slow;
 	ppft.harvested_products_slow_nmass += nharvested_products_slow;
+}
+
+double Individual::wscal_mean() const {
+	return vegetation.patch.pft[pft.id].wscal_mean;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

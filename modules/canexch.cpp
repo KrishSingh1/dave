@@ -1429,15 +1429,6 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 			}
 		}
 	}
-
-	if (date.islastday && date.islastmonth && day.isend) {
-		vegetation.firstobj();
-		while (vegetation.isobj) {
-			Individual& indiv = vegetation.getobj();
-			indiv.wscal_mean = patch.pft[indiv.pft.id].wscal_mean;
-			vegetation.nextobj();
-		}
-	}
 }
 
 

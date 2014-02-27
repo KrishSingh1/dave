@@ -1136,8 +1136,6 @@ public:
 	double crownarea;
 	/// increment in fpc since last simulation year
 	double deltafpc;
-	/// running sum (converted to annual mean) for wscal
-	double wscal_mean;
 	/// bole height, i.e. height above ground of bottom of crown cylinder (m)
 	/** (individual and cohort modes only) */
 	double boleht;
@@ -1316,6 +1314,13 @@ public:
 	 *                 and residue outtake.
 	 */
 	void kill(bool harvest = false);
+
+	/// Annual mean wscal - water stress parameter (0-1 range; 1 = minimum stress)
+	/** Value only valid at end of year, after call to canopy_exchange().
+	 *
+	 *  Currently, all Individuals belonging to a Patchpft share the same water stress.
+	 */
+	double wscal_mean() const;
 };
 
 

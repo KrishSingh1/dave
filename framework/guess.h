@@ -613,6 +613,8 @@ public:
 		NO2_FIRE,
 		/// N2O flux to atmosphere from fire	
 		N2O_FIRE,
+		/// N2 flux to atmosphere from fire	
+		N2_FIRE,
 		/// N flux from soil
 		N_SOIL,
 		/// Reproduction costs
@@ -643,8 +645,8 @@ public:
 	static const double NH3_FIRERATIO;
 	static const double NO_FIRERATIO;
 	static const double NO2_FIRERATIO;
-	static const double N2O_FIRERATIO;	
-
+	static const double N2O_FIRERATIO;
+	static const double N2_FIRERATIO;
 
 	/// Reference to patch to which this Fluxes object belongs
 	Patch& patch;

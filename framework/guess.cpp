@@ -21,12 +21,13 @@ int npft; // number of possible PFTs
 
 Pftlist pftlist;
 
-// emission ratios from fire (NH3, NO, NO2, N2O) Delmas et al. 1995
+// emission ratios from fire (NH3, NO, NO2, N2O, N2) Levine et al. 1996
 
-const double Fluxes::NH3_FIRERATIO = 0.014;
-const double Fluxes::NO_FIRERATIO  = 0.531;
-const double Fluxes::NO2_FIRERATIO = 0.379;
-const double Fluxes::N2O_FIRERATIO = 0.076;
+const double Fluxes::NH3_FIRERATIO = 0.236;
+const double Fluxes::NO_FIRERATIO  = 0.303;
+const double Fluxes::NO2_FIRERATIO = 0.076;
+const double Fluxes::N2O_FIRERATIO = 0.035;
+const double Fluxes::N2_FIRERATIO  = 0.350;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -673,6 +674,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		report_flux(Fluxes::NO_FIRE,  Fluxes::NO_FIRERATIO  * nflux_fire);
 		report_flux(Fluxes::NO2_FIRE, Fluxes::NO2_FIRERATIO * nflux_fire);
 		report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
+		report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
 
 		// Reduce this Individual's biomass values
 
@@ -1016,6 +1018,6 @@ void Sompool::serialize(ArchiveStream& arch) {
 //
 // LPJF refers to the original FORTRAN implementation of LPJ as described by Sitch
 //   et al 2000
-// Delmas, R., Lacaux, J.P., Menaut, J.C., Abbadie, L., Le Roux, X., Helaa, G., Lobert, J., 1995. 
-//   Nitrogen compound emission from biomass burning in tropical African Savanna FOS/DECAFE 1991 
-//   experiment. Journal of Atmospheric Chemistry 22, 175-193.
+// Levine, J. S. (1996) Biomass Burning and Global Change. Remote Sensing, Modeling 
+//   and Inventory Development, and Biomass Burning in Africa, 1J. S. Levine, 
+//   XXXV–XLIII, MIT Press, Mass.

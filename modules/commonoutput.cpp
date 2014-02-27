@@ -269,6 +269,7 @@ void CommonOutput::define_output_tables() {
 	ngases_columns += ColumnDescriptor("NO",               9, 3);
 	ngases_columns += ColumnDescriptor("NO2",              9, 3);
 	ngases_columns += ColumnDescriptor("N2O",              9, 3);
+	ngases_columns += ColumnDescriptor("N2",               9, 3);
 	ngases_columns += ColumnDescriptor("NSoil",            9, 3);
 	ngases_columns += ColumnDescriptor("Total",            9, 3);
 
@@ -353,7 +354,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double c_fast, c_slow, c_harv_slow; 
 
 	double surfsoillitterc,surfsoillittern,cwdc,cwdn,centuryc,centuryn,n_harv_slow,availn;
-	double flux_nh3,flux_no,flux_no2,flux_n2o,flux_nsoil,flux_ntot,flux_nharvest;
+	double flux_nh3,flux_no,flux_no2,flux_n2o,flux_n2,flux_nsoil,flux_ntot,flux_nharvest;
 
 	// Nitrogen output is in kgN/ha instead of kgC/m2 as for carbon 
 	double m2toha = 10000.0;
@@ -766,7 +767,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		surfsoillitterc = surfsoillittern = cwdc = cwdn = centuryc = centuryn = n_harv_slow = availn = 0.0;
 		andep_gridcell = anfert_gridcell = anmin_gridcell = animm_gridcell = anfix_gridcell = 0.0;
 		n_org_leach_gridcell = n_min_leach_gridcell = 0.0;
-		flux_nh3 = flux_no = flux_no2 = flux_n2o = flux_nsoil = flux_ntot = flux_nharvest = 0.0;
+		flux_nh3 = flux_no = flux_no2 = flux_n2o = flux_n2 = flux_nsoil = flux_ntot = flux_nharvest = 0.0;
 
 		// Sum C fluxes, dead C pools and runoff across patches
 
@@ -794,11 +795,13 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				flux_no+=patch.fluxes.get_annual_flux(Fluxes::NO_FIRE)*to_gridcell_average;
 				flux_no2+=patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE)*to_gridcell_average;
 				flux_n2o+=patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE)*to_gridcell_average;
+				flux_n2+=patch.fluxes.get_annual_flux(Fluxes::N2_FIRE)*to_gridcell_average;
 				flux_nsoil+=patch.fluxes.get_annual_flux(Fluxes::N_SOIL)*to_gridcell_average;	
 				flux_ntot+=(patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE) + 
 				           patch.fluxes.get_annual_flux(Fluxes::NO_FIRE) + 
 				           patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE) +
 				           patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE) +
+						   patch.fluxes.get_annual_flux(Fluxes::N2_FIRE) +
 				           patch.fluxes.get_annual_flux(Fluxes::N_SOIL)) * to_gridcell_average;
 				
 				c_fast+=patch.soil.cpool_fast*to_gridcell_average;
@@ -1113,6 +1116,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		out.add_value(out_ngases, flux_no    * m2toha);
 		out.add_value(out_ngases, flux_no2   * m2toha);
 		out.add_value(out_ngases, flux_n2o   * m2toha);
+		out.add_value(out_ngases, flux_n2    * m2toha);
 		out.add_value(out_ngases, flux_nsoil * m2toha);
 		out.add_value(out_ngases, flux_ntot  * m2toha);
 

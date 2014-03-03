@@ -613,8 +613,12 @@ public:
 		NO2_FIRE,
 		/// N2O flux to atmosphere from fire	
 		N2O_FIRE,
+		/// N2 flux to atmosphere from fire	
+		N2_FIRE,
 		/// N flux from soil
 		N_SOIL,
+		/// Reproduction costs
+		REPRC,
 		/// Number of types, must be last
 		NPERPATCHFLUXTYPES
 	};
@@ -641,8 +645,8 @@ public:
 	static const double NH3_FIRERATIO;
 	static const double NO_FIRERATIO;
 	static const double NO2_FIRERATIO;
-	static const double N2O_FIRERATIO;	
-
+	static const double N2O_FIRERATIO;
+	static const double N2_FIRERATIO;
 
 	/// Reference to patch to which this Fluxes object belongs
 	Patch& patch;
@@ -1092,13 +1096,13 @@ public:
 	/// C "debt" (retrospective storage) (kgC/m2)
 	double cmass_debt;
 
-	/// nitrogen content of leaves on patch area basis (kgN/m2)
+	/// leaf N biomass on modelled area basis (kgC/m2)
 	double nmass_leaf;
-	/// nitrogen content of roots on patch area basis (kgN/m2)	
+	/// root N biomass on modelled area basis (kgC/m2)	
 	double nmass_root;
-	/// nitrogen content of sapwood on patch area basis (kgN/m2)	
+	/// sap N biomass on modelled area basis (kgC/m2)	
 	double nmass_sap;
-	/// nitrogen content of heartwood on patch area basis (kgN/m2)
+	/// heart N biomass on modelled area basis (kgC/m2)
 	double nmass_heart;	
 
 	/// foliar projective cover (FPC) under full leaf cover as fraction of modelled area
@@ -1128,6 +1132,8 @@ public:
 	double anpp;
 	/// actual evapotranspiration over projected area (mm/day)
 	double aet;
+	/// annual actual evapotranspiration over projected area (mm/year)
+	double aaet;
 	/// leaf to root mass ratio
 	double ltor;
 	/// plant height (m)
@@ -1414,9 +1420,10 @@ public:
 		solvesom_end = SOLVESOM_END;
 		solvesom_begin = SOLVESOM_BEGIN;
 
-		sand_frac = 0.4;
-		clay_frac = 0.4;
-		silt_frac = 0.2;
+		// No input data of sand, clay or silt fractions so using fixed values from Parton et al. (2010)
+		sand_frac = 0.28;
+		clay_frac = 0.12;
+		silt_frac = 0.60;
 	}
 
 	/// Override the default SOM years with 70-80% of the spin-up period length
@@ -1967,20 +1974,12 @@ public:
 	double cmass_repr;
 	/// maximum value of Patchpft::anetps_ff for this PFT in this stand so far in the simulation (kgC/m2/year)
 	double anetps_ff_max;
-	/** non-FPAR-weighted value for canopy conductance component associated with
-	 *  photosynthesis for PFT under non-water-stress conditions (mm/s)
-	 */
-	double gpterm;
-	/// sub-daily version of the above variable (mm/s)
-	std::vector<double> gpterms;
 
 	/// FPC sum for this PFT as average for stand
 	double fpc_total;
 
 	/// Photosynthesis values for this PFT under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;
-	/// sub-daily version of the above variable (NB: daily units)
-	std::vector<PhotosynthesisResult> phots;
 
 	/// Is this PFT allowed to grow in this stand?
 	bool active;
@@ -2243,6 +2242,10 @@ private:
 //   defoliation. Annals of Botany, 89, 11-21.
 // Monsi M & Saeki T 1953 Ueber den Lichtfaktor in den Pflanzengesellschaften und
 //   seine Bedeutung fuer die Stoffproduktion. Japanese Journal of Botany 14: 22-52
+// Parton, W. J., Hanson, P. J., Swanston, C., Torn, M., Trumbore, S. E., Riley, W. 
+//   & Kelly, R. 2010. ForCent model development and testing using the Enriched 
+//   Background Isotope Study experiment. Journal of Geophysical 
+//   Research-Biogeosciences, 115.
 // Prentice, IC, Sykes, MT & Cramer W 1993 A simulation model for the transient
 //   effects of climate change on forest landscapes. Ecological Modelling 65: 51-70.
 // Reich, PB, Walters MB & Ellsworth DS 1992 Leaf Life-Span in Relation to Leaf,

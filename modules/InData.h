@@ -120,13 +120,13 @@ class TimeDataD									//Represents a set of double data over time (years).
 	int FindRecord2(Coord c) const;				//Slower version, can handle blank lines
 	void ParseNCells();
 	int ParseNCellsSpatial();
+	int GetColumn(const char* name) const;		// Returns column number for header name.
 
 public:
 	int nRecords;								//Set in ParseFormat()
 	int nYears;									//Set in ParseNYears()
 	int *year;									//allocated in Allocate(), set in Load(), Load(Coord) or LoadNext()
 	int format;									//EMPTY, GLOBAL_STATIC, GLOBAL_YEARLY, LOCAL_STATIC, LOCAL_YEARLY
-	bool *active;								//allocated in Allocate()
 	bool fileopened;
 	TimeDataD(int format=EMPTY);				//default format value can only be used with header version input files !
 	~TimeDataD();
@@ -147,7 +147,6 @@ public:
 	int GetHeader(char cropnames[][MAXNAMESIZE]) const;
 	int GetHeaderFull(char *header_line) const;			//120124
 	int FindCoord(Coord c) const{return FindRecord(c);}	//120124
-//	int GetActive(bool *activeX) const;
 	char* GetHeader(int record) const;
 	Coord& GetCoord() {return currentStand;} //added 100106, added to GUESS version 120123	; updated to compile on Linux
 	void Rewind() {rewind(ifp);}
@@ -158,8 +157,9 @@ public:
 #if defined GUESS_VERSION
 	void CheckIfPresent(ListArray_id<Coord>& gridlist);
 #endif
-	bool CFTPresent(int cft){return checkdata[cft];}
-
+	bool item_has_data(int cft){return checkdata[cft];}
+	bool item_has_data(char* name);
+	bool item_in_header(char* name);
 };
 
 //Class for loading data from memory instead of file.

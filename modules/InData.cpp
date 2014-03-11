@@ -22,6 +22,24 @@ bool ascendinglongitudes=false;
 
 bool ascendinglongitudes=false;	//Not true for randomised gridlists; set to false for now 130902.
 
+bool TimeDataD::item_has_data(char* name){
+
+	int column = GetColumn(name);
+
+	if(column == -1)
+		return false;
+	else
+		return checkdata[column];
+}
+
+bool TimeDataD::item_in_header(char* name) {
+
+	if(GetColumn(name) == -1)
+		return false;
+	else
+		return true;
+};
+
 void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist)	//Requires gutil.h
 {
 	if(checkdata)
@@ -100,20 +118,6 @@ int TimeDataD::GetHeaderFull(char *header_line) const
 	else
 		return 0;
 }
-
-
-/*
-int TimeDataD::GetActive(bool *activeX) const
-{
-	if(active)
-	{
-		memcpy(activeX, active, nRecords*sizeof(bool));
-		return 1;
-	}
-	else
-		return 0;
-}
-*/
 
 char* TimeDataD::GetHeader(int record) const
 {
@@ -218,6 +222,28 @@ double TimeDataD::Get(int yearX, const char* name) const		//Returns a single val
 		dataX=Get(yearX,column);
 
 	return dataX;
+}
+
+int TimeDataD::GetColumn(const char* name) const
+{
+	int column = -1;
+
+	for(int i=0; i<nRecords; i++)
+	{
+		if(!strcmp(name, header_arr[i]))
+		{
+			column = i;
+			break;
+		}
+	}
+
+	if(column == -1)
+	{
+		printf("WARNING: Data for %s not found in %s.\n", name, fileName);
+		return -1;
+	}
+	else
+		return column;
 }
 
 int TimeDataD::Open(char* name)
@@ -923,15 +949,7 @@ int TimeDataD::Allocate()	// Allocates memory for dynamic data: format & nYears 
 		delete[] data;
 		data=NULL;
 	}
-	if(active)
-	{
-		delete[] active;
-		active=NULL;
-	}
 //	printf("\nAllocating memory for data in TimeDataD::Allocate()\n\n");
-
-	active=new bool[nRecords];
-	memset(active, 0, nRecords*sizeof(bool));
 
 	switch(format)
 	{
@@ -2025,7 +2043,6 @@ TimeDataD::TimeDataD(int formatX)
 	data=NULL;
 	checkdata=NULL;
 	ischeckingdata=false;
-	active=NULL;
 	isfirstgrid=true;
 
 	nRecords=0;
@@ -2068,11 +2085,6 @@ TimeDataD::~TimeDataD()
 		delete []checkdata;
 		checkdata=NULL;
 	}
-	if(active)
-	{
-		delete []active;
-		active=NULL;
-	}
 }
 
 void TimeDataD::Close()
@@ -2101,11 +2113,6 @@ void TimeDataD::Close()
 	{
 		delete []checkdata;
 		checkdata=NULL;
-	}
-	if(active)
-	{
-		delete []active;
-		active=NULL;
 	}
 }
 

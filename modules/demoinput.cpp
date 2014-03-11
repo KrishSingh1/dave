@@ -264,17 +264,32 @@ void DemoInput::init() {
 			// Open crop fraction file, return false if problem
 			if(!CFTdata.Open(file_lucrop))
 				fail("initio: could not open %s for input",(char*)file_lucrop);
-			else if(minimizecftlist) {
-				// remove all crop pft:s from gridlist that always have zero area fraction
-				ListArray_id<InData::Coord> lonlatlist;
-				GetLonLatList(lonlatlist, gridlist);
-				CFTdata.CheckIfPresent(lonlatlist);
+			else {
+
+				bool do_minimize = false;
+
+				if(minimizecftlist && CFTdata.GetNCells() < 1000) {	// Reduce the risk of accidentally using minimized cft lists when using split gridlists.
+					// remove all crop pft:s from gridlist that always have zero area fraction
+					ListArray_id<InData::Coord> lonlatlist;
+					GetLonLatList(lonlatlist, gridlist);
+					CFTdata.CheckIfPresent(lonlatlist);
+					do_minimize = true;
+				}
 				
 				int n=0;
 				pftlist.firstobj();
-				while(pftlist.isobj) {		
-					if(pftlist.getobj().cftid>=0 && !CFTdata.CFTPresent(pftlist.getobj().cftid) && 
-						!(pftlist.getobj().isintercropgrass && ifintercropgrass)) {
+				while(pftlist.isobj) {	
+
+					bool remove = false;
+
+					if(pftlist.getobj().cftid>=0) {
+						if(do_minimize)
+							remove = !CFTdata.item_has_data(pftlist.getobj().name);
+						else
+							remove = !CFTdata.item_in_header(pftlist.getobj().name);
+					}
+
+					if(remove && !(pftlist.getobj().isintercropgrass && ifintercropgrass)) {
 						n+=1;
 						pftlist.killobj();
 						npft--;
@@ -282,26 +297,13 @@ void DemoInput::init() {
 					}
 					else {
 						pftlist.getobj().id-=n;
-						if(pftlist.getobj().cftid>=0)
-							CFTdata.active[pftlist.getobj().cftid]=1;
 						pftlist.nextobj();
 					}			
-				}
-			}
-			else {
-				pftlist.firstobj();
-				while(pftlist.isobj) {
-					if(pftlist.getobj().cftid>=0)
-						CFTdata.active[pftlist.getobj().cftid]=1;
-					pftlist.nextobj();
 				}
 			}
 
 			if(CFTdata.format==InData::LOCAL_YEARLY)
 				all_fracs_const=false;				// Set all_fracs_const to false if yearly data
-
-//			for(int i=0;i<CFTdata.nRecords;i++)
-//				dprintf("%s:CFTdata.active=%d\n", CFTdata.GetHeader(i), CFTdata.active[i]);
 
 #ifdef LUTOMEMORY
 				// Save all crop area fraction data in memory
@@ -311,7 +313,7 @@ void DemoInput::init() {
 				GetLonLatList(lonlatlist, gridlist);
 				CFTdata_mem.CopyFromTimeDataD(CFTdata, lonlatlist);
 #endif
-			if(CFTdata.GetnRecords()!=NCROPSTANDS_MAX)
+			if(CFTdata.GetnRecords() > NCROPSTANDS_MAX)
 				fail("\ninitio: NCROPSTANDS_MAX is incorrectly set in guess.h !\n");
 #endif
 		}
@@ -811,6 +813,8 @@ void DemoInput::getlandcover(Gridcell& gridcell) {
 
 	if(run[CROPLAND]) {
 		sum=0.0;
+		memset(gridcell.cftfrac, 0, sizeof(double)*NCROPSTANDS_MAX);
+
 		if(cftfrac_fixed) {		// If static equal crop fractions
 			if(date.year==0) {	// Year 0: called by landcover_init
 				for(int i=0;i<npft;i++)	{
@@ -831,16 +835,15 @@ void DemoInput::getlandcover(Gridcell& gridcell) {
 			if(CFTdata.Get(year,0)==-9.999) {		// to cope with missing Bondeau fraction data
 #endif		
 				dprintf("WARNING ! missing crop fraction data  for year %d, all set to 0.0\n", year+FIRSTHISTYEAR);
-				memset(gridcell.cftfrac, 0, sizeof(double)*NCROPSTANDS_MAX);
 			}
 			else {
 				// sum fractions for active crop pft:s and discard unreasonable values
-				for(i=0;i<NCROPSTANDS_MAX;i++) {
-					if(CFTdata.active[i]) {		// forces rescaling of fractions of active pft:s					
+				for(i=0; i<npft; i++) {
+					if(pftlist[i].cftid >= 0)	{ //natural pft:s have cftid=-1	
 #ifdef LUTOMEMORY
-						sum+=gridcell.cftfrac[i]=CFTdata_mem.Get(year,i);
+						sum += gridcell.cftfrac[pftlist[i].cftid] = CFTdata_mem.Get(year,pftlist[i].name);
 #else
-						sum+=gridcell.cftfrac[i]=CFTdata.Get(year,i);
+						sum += gridcell.cftfrac[pftlist[i].cftid] = CFTdata.Get(year,pftlist[i].name);
 #endif
 						if(gridcell.cftfrac[i]<0.0 || gridcell.cftfrac[i]>1.0) {
 							dprintf("WARNING ! crop fraction size out of limits, set to 0.0\n");

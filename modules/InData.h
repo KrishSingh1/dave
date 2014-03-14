@@ -169,13 +169,14 @@ class TimeDataDmem
 	Coord *gridlist;
 	double **data;
 	int nCells;
-	int nColumns;
-	int nYears;
+	int nColumns;	//Same as nRecords in TimeDataD
 	bool ifheader;
 	char header_arr[MAXRECORDS][MAXNAMESIZE];
 	int currentCell;
+	int firstyear;
 	bool loaded;
 public:
+	int nYears;
 	double Get(int year, int column) const;			// Returns a single value.
 	double Get(int year, const char* name) const;	// Returns a single value for column with header string name. Returns -999 if name not found.
 	int Load(Coord c);	// Returns 0 if coordinate not found.
@@ -183,6 +184,7 @@ public:
 	void SetData(int index, double* data);
 	void Open(int nCells, int nColumns, int nYears);
 	void Close();
+	int GetFirstyear();
 	bool isloaded() { return loaded;}
 	void CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridlistX);
 	TimeDataDmem();

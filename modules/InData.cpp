@@ -2241,6 +2241,8 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 	if(Data.GetHeader(header_arr))
 		ifheader = true;
 
+	firstyear = Data.GetFirstyear();
+
 	double *celldata;
 	celldata=new double[Data.nRecords*Data.nYears];
 
@@ -2262,6 +2264,12 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 		}
 	}
 	delete[] celldata;
+}
+
+int TimeDataDmem::GetFirstyear()
+{
+	return
+		firstyear;
 }
 
 TimeDataDmem::TimeDataDmem()

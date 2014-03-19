@@ -45,6 +45,7 @@ void report_fire_nfluxes(Patch& patch, double nflux_fire) {
 	patch.fluxes.report_flux(Fluxes::NO_FIRE,  Fluxes::NO_FIRERATIO  * nflux_fire);
 	patch.fluxes.report_flux(Fluxes::NO2_FIRE, Fluxes::NO2_FIRERATIO * nflux_fire);
 	patch.fluxes.report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
+	patch.fluxes.report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
 }
 
 
@@ -97,7 +98,7 @@ int randpoisson(double expectation, long& seed) {
 // BIOCLIMATIC LIMITS ON ESTABLISHMENT AND SURVIVAL
 // Internal functions (do not call directly from framework)
 
-bool establish(Patch& patch, Climate& climate, Pft& pft) {
+bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 
 	// DESCRIPTION
 	// Determines whether specified PFT is within its bioclimatic limits for
@@ -140,7 +141,7 @@ bool establish(Patch& patch, Climate& climate, Pft& pft) {
 }
 
 
-bool survive(Climate& climate, Pft& pft) {
+bool survive(const Climate& climate, Pft& pft) {
 
 	// DESCRIPTION
 	// Determines whether specified PFT is within its bioclimatic limits for survival
@@ -212,7 +213,7 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 			}
 
 			if (!present) {
-				if (establish(patch,stand.gridcell.climate,pft)) {
+				if (establish(patch,stand.get_climate(),pft)) {
 
 					// Not present but can establish, so introduce as new average
 					// individual
@@ -247,12 +248,12 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 		// For this individual ...
 
 		if (indiv.pft.lifeform==TREE) {
-			if (establish(patch,stand.gridcell.climate,indiv.pft)) ntree_est++;	
+			if (establish(patch, stand.get_climate(), indiv.pft)) ntree_est++;	
 			fpc_tree+=indiv.fpc;
 		}
 		else if (indiv.pft.lifeform==GRASS) {
 			fpc_grass+=indiv.fpc;
-			if (establish(patch,stand.gridcell.climate,indiv.pft)) ngrass_est++;
+			if (establish(patch, stand.get_climate(), indiv.pft)) ngrass_est++;
 		}
 
 		vegetation.nextobj(); // ... on to next individual
@@ -275,7 +276,7 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 
 		Individual& indiv=vegetation.getobj();
 
-		if (indiv.pft.lifeform==TREE && establish(patch,stand.gridcell.climate,indiv.pft)) {
+		if (indiv.pft.lifeform==TREE && establish(patch, stand.get_climate(), indiv.pft)) {
 
 			// ESTABLISHMENT OF NEW TREE SAPLINGS
 			// Partition overall establishment equally among establishing PFTs
@@ -314,7 +315,7 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 					indiv.pft.regen.cmass_sap +	indiv.pft.regen.cmass_heart) * est_pft);
 		}
 		else if (indiv.pft.lifeform==GRASS &&
-			establish(patch,stand.gridcell.climate,indiv.pft)) {
+		         establish(patch, stand.get_climate(), indiv.pft)) {
 			
 			// ESTABLISHMENT OF GRASSES
 			// Grasses establish throughout unoccupied regions of the grid cell
@@ -429,7 +430,7 @@ void establishment_guess(Stand& stand,Patch& patch, int century_year) {
 	pftlist.firstobj();
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
-		if (establish(patch,stand.gridcell.climate,pft) && pft.lifeform==TREE)
+		if (establish(patch, stand.get_climate(), pft) && pft.lifeform == TREE)
 			nwoodypfts_estab++;
 		pftlist.nextobj();
 	}
@@ -502,7 +503,7 @@ void establishment_guess(Stand& stand,Patch& patch, int century_year) {
 			bool should_establish;
 
 			if (century_year < plantation_year) {
-				should_establish = establish(patch,stand.gridcell.climate,pft);
+				should_establish = establish(patch,stand.get_climate(),pft);
 			}
 			else {
 				should_establish = pft.lifeform==GRASS || (isplantationyear && is_dominant_species) /*|| (!isplantationyear && is_other_species)*/;
@@ -556,7 +557,7 @@ void establishment_guess(Stand& stand,Patch& patch, int century_year) {
 						allometry(indiv);
 
 						// Calculate storage pool size
-						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
+						indiv.max_n_storage = indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr;
 						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
 
 						// Establishment flux is not debited for 'new' Individual
@@ -695,7 +696,7 @@ void establishment_guess(Stand& stand,Patch& patch, int century_year) {
 						allometry(indiv);
 
 						// Calculate storage pool size
-						indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
+						indiv.max_n_storage = indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr;
 						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
 
 						// Establishment flux is not debited for 'new' Individual
@@ -725,7 +726,7 @@ void establishment_guess(Stand& stand,Patch& patch, int century_year) {
 // MORTALITY
 // Internal functions (do not call directly from framework)
 
-void mortality_lpj(Stand& stand, Patch& patch, Climate& climate, double fireprob) {
+void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fireprob) {
 
 	// DESCRIPTION
 	// Mortality in population (standard LPJ) mode.
@@ -932,7 +933,7 @@ void mortality_lpj(Stand& stand, Patch& patch, Climate& climate, double fireprob
 }
 
 
-void mortality_guess(Stand& stand,Patch& patch,Climate& climate,double fireprob) {
+void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double fireprob) {
 
 	// DESCRIPTION
 	// Mortality in cohort and individual modes.
@@ -1504,7 +1505,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		// POPULATION MODE
 		
 		// Mortality
-		mortality_lpj(stand, patch, stand.gridcell.climate, fireprob);
+		mortality_lpj(stand, patch, stand.get_climate(), fireprob);
 
 		// Establishment
 		establishment_lpj(stand,patch);
@@ -1516,8 +1517,8 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 
 		// Patch-destroying disturbance
 
-		// Disturbance for equilsom() to get century SOM pool to equilibrium faster
-		if (ifcentury && (date.year == (int)((patch.soil.solvesomcent_beginyr + patch.soil.solvesomcent_endyr)/2) || (date.year == freenyears && ifnlim))) {
+		// Disturbance when N limitation is switched on to get right pft composition under N limitation faster
+		if (ifcentury && ifnlim && date.year == freenyears){
 			disturbance(patch, 1.0);
 			if (patch.disturbed) {
 				return; // no mortality or establishment this year
@@ -1525,7 +1526,13 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		}
 		
 		// Normal disturbance with probability interval of distinterval
-		if (ifdisturb && patch.age && century_year<plantation_year /* euroflux - eval */) {
+
+		// We don't allow disturbance while documenting for calculation of Century equilibrium
+		bool during_century_solvesom = ifcentury && 
+		                               date.year >= patch.soil.solvesomcent_beginyr && 
+		                               date.year <= patch.soil.solvesomcent_endyr;
+
+		if (ifdisturb && patch.age && !during_century_solvesom && century_year<plantation_year /* euroflux - eval */) {
 			disturbance(patch, 1.0 / distinterval);
 			if (patch.disturbed) {
 				return; // no mortality or establishment this year
@@ -1543,7 +1550,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		// No mortality after management starts
 
 		if (century_year<plantation_year /* euroflux - eval */)
-			mortality_guess(stand,patch,stand.gridcell.climate,fireprob);
+			mortality_guess(stand, patch, stand.get_climate(), fireprob);
 
 
 		// eval - euroflux

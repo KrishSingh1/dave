@@ -21,12 +21,13 @@ int npft; // number of possible PFTs
 
 Pftlist pftlist;
 
-// emission ratios from fire (NH3, NO, NO2, N2O) Delmas et al. 1995
+// emission ratios from fire (NH3, NO, NO2, N2O, N2) Levine et al. 1996
 
-const double Fluxes::NH3_FIRERATIO = 0.014;
-const double Fluxes::NO_FIRERATIO  = 0.531;
-const double Fluxes::NO2_FIRERATIO = 0.379;
-const double Fluxes::N2O_FIRERATIO = 0.076;
+const double Fluxes::NH3_FIRERATIO = 0.236;
+const double Fluxes::NO_FIRERATIO  = 0.303;
+const double Fluxes::NO2_FIRERATIO = 0.076;
+const double Fluxes::N2O_FIRERATIO = 0.035;
+const double Fluxes::N2_FIRERATIO  = 0.350;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -334,6 +335,11 @@ void Patch::serialize(ArchiveStream& arch) {
 		& ndemand;
 }
 
+const Climate& Patch::get_climate() const {
+	// All patches within a stand share the same climate
+	return stand.get_climate();
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Standpft member functions
 ////////////////////////////////////////////////////////////////////////////////
@@ -342,7 +348,6 @@ void Patch::serialize(ArchiveStream& arch) {
 void Standpft::serialize(ArchiveStream& arch) {
 	arch & cmass_repr
 		& anetps_ff_max
-		& gpterm
 		& fpc_total
 		& active;
 }
@@ -352,7 +357,12 @@ void Standpft::serialize(ArchiveStream& arch) {
 // Implementation of Stand member functions
 ////////////////////////////////////////////////////////////////////////////////
 
-Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),gridcell(gc),landcover(landcoverX),frac(1.0) {
+Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX)
+ : id(i),
+   gridcell(gc),
+   soiltype(st),
+   landcover(landcoverX),
+   frac(1.0) {
 
 		// Constructor: initialises reference member of climate and
 		// builds list array of Standpft objects
@@ -378,7 +388,7 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),gridcell(gc),la
 	}
 
 	for (p=0;p<npatchL;p++) {
-		createobj(*this,gc.soiltype);
+		createobj(*this, soiltype);
 	}
 
 	first_year=date.year;
@@ -386,7 +396,7 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),gridcell(gc),la
 }
 
 double Stand::get_gridcell_fraction() const {
-	return frac*gridcell.landcoverfrac[landcover];
+	return frac*get_gridcell().landcoverfrac[landcover];
 }
 
 double Stand::get_landcover_fraction() const {
@@ -419,7 +429,7 @@ void Stand::serialize(ArchiveStream& arch) {
 		unsigned int npatch;
 		arch & npatch;
 		for (unsigned int k = 0; k < npatch; k++) {
-			Patch& patch = createobj(*this, gridcell.soiltype);
+			Patch& patch = createobj(*this, soiltype);
 			arch & patch;
 		}
 	}
@@ -429,6 +439,20 @@ void Stand::serialize(ArchiveStream& arch) {
 		& seed;
 }
 
+const Climate& Stand::get_climate() const {
+
+	// In this implementation all stands within a grid cell
+	// share the same climate. Note that this might not be
+	// true in all versions of LPJ-GUESS, some may have
+	// different climate per landcover type for instance.
+
+	return get_gridcell().climate;
+}
+
+Gridcell& Stand::get_gridcell() const {
+	assert(gridcell);
+	return *gridcell;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Individual member functions
@@ -519,6 +543,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& aphen_raingreen
 		& anpp
 		& aet
+		& aaet
 		& ltor
 		& height
 		& crownarea
@@ -588,87 +613,113 @@ void Individual::report_flux(Fluxes::PerPatchFluxType flux_type, double value) {
 	}
 }
 
+
+/// Help function for reduce_biomass(), partitions nstore into leafs and roots
+/** 
+ *  As leaf and roots can have a very low N concentration after growth and allocation, 
+ *  N in nstore() is split between them to saticfy relationship between their average C:N ratios
+ */
+void nstore_adjust(double& cmass_leaf,double& cmass_root, double& nmass_leaf, double& nmass_root, 
+				   double nstore, double cton_leaf, double cton_root) {
+
+	// (1) cmass_leaf / ((nmass_leaf + leaf_ndemand) * cton_leaf) = cmass_root / ((nmass_root + root_ndemand) * cton_root)
+	// (2) leaf_ndemand + root_ndemand = nstore
+
+	// (1) + (2) leaf_ndemand = (cmass_leaf * ratio (nmass_root + nstore) - cmass_root * nmass_leaf) / (cmass_root + cmass_leaf * ratio)
+	//
+	// where ratio = cton_root / cton_leaf
+
+	double ratio = cton_root / cton_leaf;
+
+	double leaf_ndemand = (cmass_leaf * ratio * (nmass_root + nstore) - cmass_root * nmass_leaf) / (cmass_root + cmass_leaf * ratio);
+	double root_ndemand = nstore - leaf_ndemand;
+
+	nmass_leaf += leaf_ndemand;
+	nmass_root += root_ndemand;
+}
+
 void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 	// This function needs to be modified if a new lifeform is added,
 	// specifically to deal with nstore().
 	assert(pft.lifeform == TREE || pft.lifeform == GRASS);
 
-	const double mortality_non_fire = mortality - mortality_fire;
+	if (!negligible(mortality)) {
 
-	// Transfer killed biomass to litter
-	// (above-ground biomass killed by fire enters atmosphere, not litter)
+		const double mortality_non_fire = mortality - mortality_fire;
 
-	Patchpft& ppft = patchpft();
+		// Transfer killed biomass to litter
+		// (above-ground biomass killed by fire enters atmosphere, not litter)
 
-	ppft.litter_leaf  += mortality_non_fire * cmass_leaf;
-	ppft.litter_root  += mortality * cmass_root;
+		Patchpft& ppft = patchpft();
 
-	if (cmass_debt <= cmass_heart + cmass_sap) {
-		if (cmass_debt <= cmass_heart) {
-			ppft.litter_sap   += mortality_non_fire * cmass_sap;
-			ppft.litter_heart += mortality_non_fire * (cmass_heart - cmass_debt);
+		double cmass_leaf_litter = mortality * cmass_leaf;
+		double cmass_root_litter = mortality * cmass_root;
+
+		ppft.litter_leaf += cmass_leaf_litter * mortality_non_fire / mortality;
+		ppft.litter_root += cmass_root_litter;
+
+		if (cmass_debt <= cmass_heart + cmass_sap) {
+			if (cmass_debt <= cmass_heart) {
+				ppft.litter_sap   += mortality_non_fire * cmass_sap;
+				ppft.litter_heart += mortality_non_fire * (cmass_heart - cmass_debt);
+			}
+			else {
+				ppft.litter_sap   += mortality_non_fire * (cmass_sap + cmass_heart - cmass_debt);
+			}
 		}
 		else {
-			ppft.litter_sap   += mortality_non_fire * (cmass_sap + cmass_heart - cmass_debt);
+			double debt_excess = mortality_non_fire * (cmass_debt - (cmass_sap + cmass_heart));
+			report_flux(Fluxes::NPP, debt_excess);
+			report_flux(Fluxes::RA, -debt_excess);
 		}
+
+		double nmass_leaf_litter = mortality * nmass_leaf;
+		double nmass_root_litter = mortality * nmass_root;
+
+		// stored N is partioned out to leaf and root biomass as new tissue after growth might have extremely low 
+		// N content (to get closer to relationship between compartment averages (cton_leaf, cton_root, cton_sap))
+		nstore_adjust(cmass_leaf_litter, cmass_root_litter, nmass_leaf_litter, nmass_root_litter,
+			mortality * nstore(), pft.cton_leaf_avr,pft.cton_root_avr);
+
+		ppft.nmass_litter_leaf  += nmass_leaf_litter * mortality_non_fire / mortality;
+		ppft.nmass_litter_root  += nmass_root_litter;
+		ppft.nmass_litter_sap   += mortality_non_fire * nmass_sap;
+		ppft.nmass_litter_heart += mortality_non_fire * nmass_heart;
+
+		// Flux to atmosphere from burnt above-ground biomass
+
+		double cflux_fire = mortality_fire * (cmass_leaf_litter / mortality + cmass_wood());
+		double nflux_fire = mortality_fire * (nmass_leaf_litter / mortality + nmass_wood());
+
+		report_flux(Fluxes::FIREC,    cflux_fire);
+
+		report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire); 
+		report_flux(Fluxes::NO_FIRE,  Fluxes::NO_FIRERATIO  * nflux_fire);
+		report_flux(Fluxes::NO2_FIRE, Fluxes::NO2_FIRERATIO * nflux_fire);
+		report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
+		report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
+
+		// Reduce this Individual's biomass values
+
+		const double remaining = 1.0 - mortality;
+
+		if (pft.lifeform != GRASS) {
+			densindiv *= remaining;
+		}
+
+		cmass_leaf      *= remaining;
+		cmass_root      *= remaining;
+		cmass_sap       *= remaining;
+		cmass_heart     *= remaining;
+		cmass_debt      *= remaining;
+		nmass_leaf      *= remaining;
+		nmass_root      *= remaining;
+		nmass_sap       *= remaining;
+		nmass_heart     *= remaining;
+		nstore_longterm *= remaining;
+		nstore_labile   *= remaining;
 	}
-	else {
-		double debt_excess = mortality_non_fire * (cmass_debt - (cmass_sap + cmass_heart));
-		report_flux(Fluxes::NPP, debt_excess);
-		report_flux(Fluxes::RA, -debt_excess);
-	}
-		
-	ppft.nmass_litter_leaf  += mortality_non_fire * nmass_leaf;
-	ppft.nmass_litter_root  += mortality * nmass_root;
-	ppft.nmass_litter_sap   += mortality_non_fire * nmass_sap;
-	ppft.nmass_litter_heart += mortality_non_fire * nmass_heart;
-
-	if (pft.lifeform == TREE) {				
-		// Transfer nitrogen storage to wood nitrogen litter for now 	
-		ppft.nmass_litter_sap += mortality_non_fire * nstore();
-	}
-	else { // GRASS
-		// Transfer nitrogen storage to root nitrogen litter for now
-		ppft.nmass_litter_root += mortality * nstore();			
-	}
-
-
-	// Flux to atmosphere from burnt above-ground biomass
-
-	double cflux_fire = mortality_fire * (cmass_leaf + cmass_wood());
-	double nflux_fire = mortality_fire * (nmass_leaf + nmass_wood());
-
-	if (pft.lifeform == TREE) {
-		nflux_fire += mortality_fire * nstore();
-	}
-
-	report_flux(Fluxes::FIREC,    cflux_fire);
-
-	report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire); 
-	report_flux(Fluxes::NO_FIRE,  Fluxes::NO_FIRERATIO  * nflux_fire);
-	report_flux(Fluxes::NO2_FIRE, Fluxes::NO2_FIRERATIO * nflux_fire);
-	report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
-
-	// Reduce this Individual's biomass values
-
-	const double remaining = 1.0 - mortality;
-
-	if (pft.lifeform != GRASS) {
-		densindiv *= remaining;
-	}
-
-	cmass_leaf      *= remaining;
-	cmass_root      *= remaining;
-	cmass_sap       *= remaining;
-	cmass_heart     *= remaining;
-	cmass_debt      *= remaining;
-	nmass_leaf      *= remaining;
-	nmass_root      *= remaining;
-	nmass_sap       *= remaining;
-	nmass_heart     *= remaining;
-	nstore_longterm *= remaining;
-	nstore_labile   *= remaining;
 }
 
 double Individual::cton_leaf(bool use_phen /* = true*/) const {
@@ -944,8 +995,9 @@ void Gridcell::serialize(ArchiveStream& arch) {
 			arch & pft[i];
 		}
 
-		arch & nobj;
-		for (unsigned int s = 0; s < nobj; s++) {
+		unsigned int nstands = nbr_stands();
+		arch & nstands;
+		for (unsigned int s = 0; s < nstands; s++) {
 			arch & (*this)[s].landcover
 				& (*this)[s];
 		}
@@ -958,17 +1010,33 @@ void Gridcell::serialize(ArchiveStream& arch) {
 			arch & pft[i];
 		}
 
-		killall();
+		clear();
 		unsigned int number_of_stands;
 		arch & number_of_stands;
 				
 		for (unsigned int s = 0; s < number_of_stands; s++) {
 			landcovertype landcover;
 			arch & landcover;
-			createobj(*this, landcover);
+			create_stand(landcover);
 			arch & (*this)[s];
 		}
 	}
+}
+
+Stand& Gridcell::create_stand(landcovertype landcover) {
+	Stand* stand = new Stand(get_next_id(), this, soiltype, landcover);
+
+	push_back(stand);
+
+	return *stand;
+}
+
+Gridcell::iterator Gridcell::delete_stand(iterator itr) {
+	return erase(itr);
+}
+
+unsigned int Gridcell::nbr_stands() const {
+	return size();
 }
 
 void Sompool::serialize(ArchiveStream& arch) {
@@ -991,6 +1059,6 @@ void Sompool::serialize(ArchiveStream& arch) {
 //
 // LPJF refers to the original FORTRAN implementation of LPJ as described by Sitch
 //   et al 2000
-// Delmas, R., Lacaux, J.P., Menaut, J.C., Abbadie, L., Le Roux, X., Helaa, G., Lobert, J., 1995. 
-//   Nitrogen compound emission from biomass burning in tropical African Savanna FOS/DECAFE 1991 
-//   experiment. Journal of Atmospheric Chemistry 22, 175-193.
+// Levine, J. S. (1996) Biomass Burning and Global Change. Remote Sensing, Modeling 
+//   and Inventory Development, and Biomass Burning in Africa, 1J. S. Levine, 
+//   XXXV–XLIII, MIT Press, Mass.

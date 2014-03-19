@@ -353,7 +353,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("wateruptake", &strparam, 20, CB_WATERUPTAKE, 
 			"Water uptake mode (\"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
 
-		declareitem("nrelocfrac",&nrelocfrac,0.0,1.0,1,CB_NONE,
+		declareitem("nrelocfrac",&nrelocfrac,0.0,0.99,1,CB_NONE,
 			"Fractional nitrogen relocation from shed leaves & roots");
 		declareitem("nfix_a",&nfix_a,0.0,0.4,1,CB_NONE,
 			"first term in nitrogen fixation eqn");

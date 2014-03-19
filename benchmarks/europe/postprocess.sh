@@ -2,7 +2,15 @@
 describe_benchmark "LPJ-GUESS - European Benchmarks"
 
 common1961to1990.sh
-common1961to1990gmapall.sh
+
+gmapall lai1961to1990.txt -P lai_ -legend common/legend_lai_europe.txt -portrait
+describe_images "LAI For All Species (1961-90 average). Units: m2 m-2"  lai_*.jpg
+
+gmapall cmass1961to1990.txt -P cmass_ -legend common/legend_cmass_europe.txt -portrait
+describe_images "CMASS For All Species (1961-90 average). Units: kgC m-2" cmass_*.jpg
+
+gmapall cton_leaf1961to1990.txt -P cton_leaf_ -legend common/legend_cton.txt -portrait
+describe_images "Leaf C:N Ratio For All Species (1961-90 average). Units: kgC kgN-1" cton_leaf_*.jpg
 
 gmap lai1961to1990max.txt -t 'Dominant Species (greatest LAI)' -lon 1 -lat 2 -i 3 -legend legend_europe.txt -o maxLAIeurope.jpg
 describe_image maxLAIeurope.jpg "Species With the Highest LAI in Each Gridcell (1961-90 average)"

@@ -12,6 +12,8 @@
 #include "cftime.h"
 #include <time.h>
 
+#ifdef HAVE_NETCDF
+
 using namespace GuessNC::CF;
 
 namespace {
@@ -129,3 +131,5 @@ TEST_CASE("CF::TimeUnitSpecification", "Tests CF time unit specifications") {
 	REQUIRE(verify_datetime(tus.get_date_time(1, STANDARD),
 	                        1980,02,29,0,0,0));
 }
+
+#endif // HAVE_NETCDF

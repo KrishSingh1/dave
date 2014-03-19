@@ -206,7 +206,7 @@ void fpar(Patch& patch) {
 	Vegetation& vegetation=patch.vegetation;
 
 	// And to Climate object
-	Climate& climate=patch.stand.gridcell.climate;
+	const Climate& climate = patch.get_climate();
 
 	if (vegmode==POPULATION) {
 
@@ -849,7 +849,7 @@ void nstore_usage(Vegetation& vegetation) {
  */
 void ndemand(Patch& patch, Vegetation& vegetation) {
 
-	Gridcell& gridcell = patch.stand.gridcell;
+	Gridcell& gridcell = patch.stand.get_gridcell();
 	Soil& soil = patch.soil;
 
 	/// daily nitrogen demand for patch (kgN/m2)
@@ -1787,7 +1787,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
  */
 void forest_floor_conditions(Patch& patch) {
 
-	Climate& climate = patch.stand.gridcell.climate;
+	const Climate& climate = patch.get_climate();
 	double lambda;			// not used here
 	PhotosynthesisResult phot;
 

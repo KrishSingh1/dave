@@ -587,7 +587,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// Apply bisection to find root on new interval (x1,x2)
 
-			if (f(x1) >= 0.0) sign =- 1.0;
+			if (f(x1) >= 0.0) sign = -1.0;
 			else sign = 1.0;
 
 			rtbis = x1;
@@ -1135,7 +1135,7 @@ void growth(Stand& stand, Patch& patch) {
 
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation = patch.vegetation;
-	Gridcell& gridcell = vegetation.patch.stand.gridcell;
+	Gridcell& gridcell = vegetation.patch.stand.get_gridcell();
 
 	// On first call to function growth this year (patch #0), initialise stand-PFT
 	// record of summed allocation to reproduction

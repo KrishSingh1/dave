@@ -19,7 +19,7 @@ void landcover_init(Gridcell& gridcell, InputModule* input_module) {
 			if(run[i]) {
 				if(gridcell.landcoverfrac[i]>0.0) {
 					landcover=(landcovertype)i;
-					Stand& stand=gridcell.createobj(gridcell,landcover);
+					Stand& stand = gridcell.create_stand(landcover);
 
 					pftlist.firstobj();
 					while (pftlist.isobj) {
@@ -183,12 +183,12 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module)
 	memset(transfer_harvested_products_slow,0,sizeof(double)*npft);
 
 //Keep track of carbon and water in lost areas.
-	gridcell.firstobj();
-	while (gridcell.isobj) //Loop through stands:
+	Gridcell::iterator gc_itr = gridcell.begin();
+	while (gc_itr != gridcell.end()) //Loop through stands:
 	{
 		double scale;
 
-		Stand& stand=gridcell.getobj();
+		Stand& stand = *gc_itr;
 
 //		if(stand.landcover!=CROPLAND && landcoverfrac_change[stand.landcover]<0.0 || stand.landcover==CROPLAND && cropstand_change[stand.cftid]<0.0)
 		if(landcoverfrac_change[stand.landcover]<0.0)
@@ -295,7 +295,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module)
 				stand.nextobj();
 			}
 		}
-		gridcell.nextobj();
+		++gc_itr;
 	}
 #endif
 
@@ -314,7 +314,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module)
 					if(gridcell.landcoverfrac_old[i]==0.0 && gridcell.landcoverfrac[i]>0.0)
 					{
 						landcover=(landcovertype)i;
-						Stand& stand=gridcell.createobj(gridcell,landcover);
+						Stand& stand = gridcell.create_stand(landcover);
 
 						pftlist.firstobj();
 						while (pftlist.isobj) 
@@ -329,16 +329,16 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module)
 					}
 					else if(gridcell.landcoverfrac_old[i]>0.0 && gridcell.landcoverfrac[i]==0.0)
 					{
-						gridcell.firstobj();
-						while (gridcell.isobj) //Loop through stands:
+						Gridcell::iterator gc_itr = gridcell.begin();
+						while (gc_itr != gridcell.end()) //Loop through stands:
 						{
-							Stand& stand=gridcell.getobj();
+							Stand& stand = *gc_itr;
 							if(stand.landcover==i)
 							{
-								gridcell.killobj();
+								gc_itr = gridcell.delete_stand(gc_itr);
 							}
 							else
-								gridcell.nextobj();
+								++gc_itr;
 						}
 					}
 				}
@@ -349,10 +349,10 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module)
 //Crop stand dynamics to be put here.
 
 //update C-pools for receiving stands:
-	gridcell.firstobj();
-	while (gridcell.isobj) //Loop through stands:
+	gc_itr = gridcell.begin();
+	while (gc_itr != gridcell.end()) //Loop through stands:
 	{
-		Stand& stand=gridcell.getobj();
+		Stand& stand = *gc_itr;
 
 //		if(stand.landcover!=CROPLAND && landcoverfrac_change[stand.landcover]>0.0 || stand.landcover==CROPLAND && cropstand_change[stand.cftid]>0.0)
 		if(landcoverfrac_change[stand.landcover]>0.0)
@@ -410,7 +410,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module)
 			}
 #endif
 		}
-		gridcell.nextobj();
+		++gc_itr;
 	}
 #if defined cropLUchangeCtransfer
 	if(transfer_litter_leaf) delete[] transfer_litter_leaf;

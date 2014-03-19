@@ -43,6 +43,7 @@
 #include "guessmath.h"
 #include "archive.h"
 #include "parameters.h"
+#include "guesscontainer.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL ENUMERATED TYPE DEFINITIONS
@@ -1957,6 +1958,13 @@ public:
 	}
 
 	void serialize(ArchiveStream& arch);
+
+	/// Returns the Climate for this Patch
+	/** This function returns a const reference to prevent code which operates
+	 *  on a patch basis to modify the climate and thereby affect other 
+	 *  patches/stands.
+	 */
+	const Climate& get_climate() const;
 };
 
 /// Container for variables common to individuals of a particular PFT in a stand.
@@ -2024,9 +2032,6 @@ public:
 	 */
 	long seed;
 
-	/// reference to parent object
-	Gridcell& gridcell;
-
 	/// type of landcover
 	/** \see landcovertype
 	 *  initialised in constructor
@@ -2047,9 +2052,10 @@ public:
 	/// Constructs a Stand
 	/** \param i         The id for the stand within the grid cell
 	 *  \param gc        The parent grid cell
+	 *  \param st        The soil type to be used within this Stand
 	 *  \param landcover The type of landcover to use for this stand
 	 */
-	Stand(int i, Gridcell& gc,landcovertype landcover); 
+	Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcover); 
 
 	/// Gives the fraction of this Stand relative to the whole grid cell
 	double get_gridcell_fraction() const;
@@ -2065,7 +2071,26 @@ public:
 
 	void serialize(ArchiveStream& arch);
 
+	/// Returns the Climate for this Stand
+	/** This function returns a const reference to prevent code which operates
+	 *  on a stand basis to modify the climate and thereby affect other 
+	 *  stands.
+	 */
+	const Climate& get_climate() const;
+
+	/// Returns the Gridcell containing this Stand
+	Gridcell& get_gridcell() const;
+
 private:
+
+	/// Pointer to parent object, could be a null pointer
+	/** Prefer to access the gridcell through get_gridcell(), even internally
+	 *  within the Stand class.
+	 */
+	Gridcell* gridcell;
+
+	/// Soil type to be used in this Stand
+	Soiltype& soiltype;
 
 	/// Fraction of this stand relative to its landcover
 	/** used by crop stands; initialized in constructor to 1,
@@ -2121,7 +2146,7 @@ public:
  *  with patches, not gridcells. A separate Gridcell object must be declared for each modelled
  *  locality or grid cell.
  */
-class Gridcell : public ListArray_idin2<Stand,Gridcell,landcovertype>, public Serializable {
+class Gridcell : public GuessContainer<Stand>, public Serializable {
 
 public:
 
@@ -2180,7 +2205,7 @@ public:
 
 		if(!run_landcover) {
 			landcover = NATURAL;
-			createobj(*this,landcover);
+			create_stand(landcover);
 			landcoverfrac[NATURAL] = 1.0;
 		}
 
@@ -2197,6 +2222,17 @@ public:
 	void set_coordinates(double longitude, double latitude);
 
 	void serialize(ArchiveStream& arch);
+
+	/// Creates a new Stand in this grid cell
+	Stand& create_stand(landcovertype landcover);
+
+	/// Deletes the stand which the iterator is pointing at
+	/** Returns an iterator pointing to the object following the erased object.
+	 */
+	iterator delete_stand(iterator itr);
+
+	/// Returns number of stands
+	unsigned int nbr_stands() const;
 
 private:
 

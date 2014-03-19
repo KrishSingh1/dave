@@ -523,11 +523,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			double heightindiv_total = 0.0;
 
-			gridcell.firstobj();
+			Gridcell::iterator gc_itr = gridcell.begin();
 
 			// Loop through Stands
-			while (gridcell.isobj) {
-				Stand& stand=gridcell.getobj();
+			while (gc_itr != gridcell.end()) {
+				Stand& stand = *gc_itr;
 
 				Standpft& standpft=stand.pft[pft.id];
 				// Sum C biomass, NPP, LAI and BVOC fluxes across patches and PFTs
@@ -725,7 +725,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 						plot("leaf C:N ratio [kg C/kg N]",pft.name,date.year,gcpft_cmass_leaf/gcpft_nmass_leaf);
 					}
 				}
-				gridcell.nextobj();
+				++gc_itr;
 			}//End of loop through stands
 
 			// Print PFT sums to files
@@ -771,11 +771,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		// Sum C fluxes, dead C pools and runoff across patches
 
-		gridcell.firstobj();
+		Gridcell::iterator gc_itr = gridcell.begin();
 
 		// Loop through Stands
-		while (gridcell.isobj) {
-			Stand& stand = gridcell.getobj();
+		while (gc_itr != gridcell.end()) {
+			Stand& stand = *gc_itr;
 			stand.firstobj();
 
 			//Loop through Patches
@@ -830,8 +830,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					firert_gridcell+=(1.0/patch.fireprob)/(double)stand.npatch();
 
 
-				andep_gridcell += stand.gridcell.climate.andep / (double)stand.npatch();
-				anfert_gridcell += stand.gridcell.climate.anfert / (double)stand.npatch();
+				andep_gridcell += stand.get_climate().andep / (double)stand.npatch();
+				anfert_gridcell += stand.get_climate().anfert / (double)stand.npatch();
 				anmin_gridcell += patch.soil.anmin / (double)stand.npatch();
 				animm_gridcell += patch.soil.animmob / (double)stand.npatch();
 				anfix_gridcell += patch.soil.anfix / (double)stand.npatch();
@@ -899,7 +899,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				} // while/vegetation loop
 				stand.nextobj();
 			} // patch loop
-			gridcell.nextobj();
+			++gc_itr;
 		} // stand loop
 
 
@@ -1004,10 +1004,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		// (Windows shell only - no effect otherwise)
 
 		if (!(date.year%10)) {
-			gridcell.firstobj();
-			if(gridcell.isobj)	//Fixed bug here if no stands were present.
+			if(gridcell.nbr_stands() > 0)	//Fixed bug here if no stands were present.
 			{
-				Stand& stand=gridcell.getobj();
+				Stand& stand = gridcell[0];
 				plot("C flux [kg C/m2/yr]","veg",  date.year, flux_veg);
 				plot("C flux [kg C/m2/yr]","repr", date.year, flux_repr);
 				plot("C flux [kg C/m2/yr]","soil", date.year, flux_soil);

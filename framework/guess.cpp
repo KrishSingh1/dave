@@ -335,6 +335,11 @@ void Patch::serialize(ArchiveStream& arch) {
 		& ndemand;
 }
 
+const Climate& Patch::get_climate() const {
+	// All patches within a stand share the same climate
+	return stand.get_climate();
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Standpft member functions
 ////////////////////////////////////////////////////////////////////////////////
@@ -352,7 +357,12 @@ void Standpft::serialize(ArchiveStream& arch) {
 // Implementation of Stand member functions
 ////////////////////////////////////////////////////////////////////////////////
 
-Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),gridcell(gc),landcover(landcoverX),frac(1.0) {
+Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX)
+ : id(i),
+   gridcell(gc),
+   soiltype(st),
+   landcover(landcoverX),
+   frac(1.0) {
 
 		// Constructor: initialises reference member of climate and
 		// builds list array of Standpft objects
@@ -378,7 +388,7 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),gridcell(gc),la
 	}
 
 	for (p=0;p<npatchL;p++) {
-		createobj(*this,gc.soiltype);
+		createobj(*this, soiltype);
 	}
 
 	first_year=date.year;
@@ -386,7 +396,7 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),gridcell(gc),la
 }
 
 double Stand::get_gridcell_fraction() const {
-	return frac*gridcell.landcoverfrac[landcover];
+	return frac*get_gridcell().landcoverfrac[landcover];
 }
 
 double Stand::get_landcover_fraction() const {
@@ -419,7 +429,7 @@ void Stand::serialize(ArchiveStream& arch) {
 		unsigned int npatch;
 		arch & npatch;
 		for (unsigned int k = 0; k < npatch; k++) {
-			Patch& patch = createobj(*this, gridcell.soiltype);
+			Patch& patch = createobj(*this, soiltype);
 			arch & patch;
 		}
 	}
@@ -429,6 +439,20 @@ void Stand::serialize(ArchiveStream& arch) {
 		& seed;
 }
 
+const Climate& Stand::get_climate() const {
+
+	// In this implementation all stands within a grid cell
+	// share the same climate. Note that this might not be
+	// true in all versions of LPJ-GUESS, some may have
+	// different climate per landcover type for instance.
+
+	return get_gridcell().climate;
+}
+
+Gridcell& Stand::get_gridcell() const {
+	assert(gridcell);
+	return *gridcell;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Individual member functions
@@ -971,8 +995,9 @@ void Gridcell::serialize(ArchiveStream& arch) {
 			arch & pft[i];
 		}
 
-		arch & nobj;
-		for (unsigned int s = 0; s < nobj; s++) {
+		unsigned int nstands = nbr_stands();
+		arch & nstands;
+		for (unsigned int s = 0; s < nstands; s++) {
 			arch & (*this)[s].landcover
 				& (*this)[s];
 		}
@@ -985,17 +1010,33 @@ void Gridcell::serialize(ArchiveStream& arch) {
 			arch & pft[i];
 		}
 
-		killall();
+		clear();
 		unsigned int number_of_stands;
 		arch & number_of_stands;
 				
 		for (unsigned int s = 0; s < number_of_stands; s++) {
 			landcovertype landcover;
 			arch & landcover;
-			createobj(*this, landcover);
+			create_stand(landcover);
 			arch & (*this)[s];
 		}
 	}
+}
+
+Stand& Gridcell::create_stand(landcovertype landcover) {
+	Stand* stand = new Stand(get_next_id(), this, soiltype, landcover);
+
+	push_back(stand);
+
+	return *stand;
+}
+
+Gridcell::iterator Gridcell::delete_stand(iterator itr) {
+	return erase(itr);
+}
+
+unsigned int Gridcell::nbr_stands() const {
+	return size();
 }
 
 void Sompool::serialize(ArchiveStream& arch) {

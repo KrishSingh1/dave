@@ -741,7 +741,7 @@ void transfer_litter(Patch& patch) {
 
 	LitterSolveSOM litterSolveSOM;
 
-	double lat = patch.stand.gridcell.climate.lat;
+	double lat = patch.stand.get_gridcell().get_lat();
 
 	double EPS = -1.0e-16;
 
@@ -1160,7 +1160,7 @@ void equilsom(Soil& soil) {
 	const int EQUILSOM_YEARS = 40000;
 
 	Patch& patch = soil.patch;
-	Climate& climate = soil.patch.stand.gridcell.climate;
+	const Climate& climate = soil.patch.get_climate();
 
 	// Save nmass_avail status
 	double save_nmass_avail = soil.nmass_avail;

@@ -25,6 +25,24 @@
 
 REGISTER_INPUT_MODULE("cru", CRUInput)
 
+// Anonymous namespace for variables and functions with file scope
+namespace {
+
+xtring file_cru;
+xtring file_cru_misc;
+
+/// Interpolates monthly data to quasi-daily values.
+void interp_climate(double mtemp[12], double mprec[12], double msun[12], double mdtr[12],
+					double dtemp[365], double dprec[365], double dsun[365], double ddtr[365]) {
+	interp_monthly_means_conserve(mtemp, dtemp);
+	interp_monthly_totals_conserve(mprec, dprec, 0);
+	interp_monthly_means_conserve(msun, dsun, 0, 100);
+	interp_monthly_means_conserve(mdtr, ddtr, 0);
+}
+
+} // namespace
+
+
 CRUInput::CRUInput()
 	: searchradius(0),
 	  lc_fixed_frac(NLANDCOVERTYPES, 0),
@@ -51,44 +69,11 @@ CRUInput::CRUInput()
 }
 
 
-// guess2008 - make file_cru and file_cru_misc global variables
-xtring file_cru;
-xtring file_cru_misc;
-
-namespace {
-
-/// Interpolates monthly data to quasi-daily values.
-void interp_climate(double mtemp[12], double mprec[12], double msun[12], double mdtr[12],
-					double dtemp[365], double dprec[365], double dsun[365], double ddtr[365]) {
-	interp_monthly_means_conserve(mtemp, dtemp);
-	interp_monthly_totals_conserve(mprec, dprec, 0);
-	interp_monthly_means_conserve(msun, dsun, 0, 100);
-	interp_monthly_means_conserve(mdtr, ddtr, 0);
-}
-
-} // namespace
-
-
-
 void CRUInput::init() {
 
 	// DESCRIPTION
 	// Initialises input (e.g. opening files), and reads in the gridlist
 
-	///////////////////////////////////////////////////////////////////////////////////
-	// GENERIC SECTION - DO NOT MODIFY
-
-	xtring header;
-
-	unixtime(header);
-	header=(xtring)"[LPJ-GUESS  "+header+"]\n\n";
-	dprintf((char*)header);
-
-	// Print the title of this run
-	dprintf("\n\n-----------------------------------------------\n%s\n-----------------------------------------------\n",(char*)title);
-
-	///////////////////////////////////////////////////////////////////////////////////
-	// USER-SPECIFIC SECTION (Modify as necessary or supply own code)
 	//
 	// Reads list of grid cells and (optional) description text from grid list file
 	// This file should consist of any number of one-line records in the format:
@@ -188,10 +173,6 @@ void CRUInput::adjust_raw_forcing_data(double lon,
 	// The default (base class) implementation does nothing here.
 }
 
-
-///	Loads landcover area fraction data from file(s) for a gridcell.
-/** Called from getgridcell() if run_landcover is true. 
-  */
 bool CRUInput::loadlandcover(Gridcell& gridcell, Coord c)	{
 	bool LUerror=false;
 
@@ -224,30 +205,11 @@ bool CRUInput::loadlandcover(Gridcell& gridcell, Coord c)	{
 }
 
 
-/// Called by the framework at the start of the simulation for a particular grid cell
 bool CRUInput::getgridcell(Gridcell& gridcell) {
 
-	// DESCRIPTION
-	// Obtains coordinates and soil static parameters for the next grid cell to
-	// simulate. The function should return false if no grid cells remain to be simulated,
-	// otherwise true. Currently the following member variables of Gridcell should be
-	// initialised: longitude, latitude and climate.instype; the following members of
-	// member soiltype: awc[0], awc[1], perc_base, perc_exp, thermdiff_0, thermdiff_15,
-	// thermdiff_100. The soil parameters can be set indirectly based on an lpj soil
-	// code (Sitch et al 2000) by a call to function soilparameters in the driver
-	// module (driver.cpp):
-	//
-	// soilparameters(gridcell.soiltype,soilcode);
-	//
-	// If the model is to be driven by quasi-daily values of the climate variables
-	// derived from monthly means, this function may be the appropriate place to
-	// perform the required interpolations. The utility functions interp_monthly_means
-	// and interp_monthly_totals in driver.cpp may be called for this purpose.
+	// See base class for documentation about this function's responsibilities
 
-	// Select coordinates for next grid cell in linked list
-	
 	int soilcode;
-	// guess2008 - elevation
 	int elevation;
 
 	bool gridfound;
@@ -267,12 +229,6 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 	else gridlist.nextobj();
 
 	if (gridlist.isobj) {
-
-		
-		// guess2008 - New searchcru functions takee the CRU filenames as their first 
-		// argument, i.e. cru_1901_2002.bin and cru_1901_2002_misc.bin
-
-		// New code:
 
 		double lon = gridlist.getobj().lon;
 		double lat = gridlist.getobj().lat;
@@ -374,7 +330,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 	return false; // no more stands
 }
 
-///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
+
 void CRUInput::getlandcover(Gridcell& gridcell) {
 	int i, year;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
@@ -567,40 +523,9 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 }
 
 
-/// Called by the framework each simulation day before any process modelling is performed for this day
-/** Obtains climate data (including atmospheric CO2 and insolation) for this day. */
 bool CRUInput::getclimate(Gridcell& gridcell) {
 
-	// DESCRIPTION
-	// The function should returns false if the simulation is complete for this grid cell,
-	// otherwise true. This will normally require querying the year and day member
-	// variables of the global class object date:
-	//
-	// if (date.day==0 && date.year==nyear) return false;
-	// // else
-	// return true;
-	//
-	// Currently the following member variables of the climate member of gridcell must be
-	// initialised: co2, temp, prec, insol. If the model is to be driven by quasi-daily
-	// values of the climate variables derived from monthly means, this day's values
-	// will presumably be extracted from arrays containing the interpolated daily
-	// values (see function getgridcell):
-	//
-	// gridcell.climate.temp=dtemp[date.day];
-	// gridcell.climate.prec=dprec[date.day];
-	// gridcell.climate.insol=dsun[date.day];
-	// 
-	// Diurnal temperature range (dtr) added for calculation of leaf temperatures in 
-	// BVOC:
-	// gridcell.climate.dtr=ddtr[date.day]; 
-	//
-	// If model is run in diurnal mode, which requires appropriate climate forcing data, 
-	// additional members of the climate must be initialised: temps, insols. Both of the
-	// variables must be of type std::vector. The length of these vectors should be equal
-	// to value of date.subdaily which also needs to be set either in getclimate or 
-	// getgridcell functions. date.subdaily is a number of sub-daily period in a single 
-	// day. Irrespective of the BVOC settings, climate.dtr variable is not required in 
-	// diurnal mode.
+	// See base class for documentation about this function's responsibilities
 
 	double progress;
 
@@ -629,7 +554,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 				mprec[m] = spinup_mprec[m];
 				msun[m]	 = spinup_msun[m];
 
-				// guess2008
 				mfrs[m] = spinup_mfrs[m];
 				mwet[m] = spinup_mwet[m];
 				mdtr[m] = spinup_mdtr[m];
@@ -638,7 +562,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			// Interpolate monthly spinup data to quasi-daily values
 			interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
 
-			// guess2008 - only recalculate precipitation values using weather generator
+			// Only recalculate precipitation values using weather generator
 			// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
 			if (ifrainonwetdaysonly) { 
 				// (from Dieter Gerten 021121)
@@ -652,7 +576,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			spinup_mprec.nextyear();
 			spinup_msun.nextyear();
 
-			// guess2008
 			spinup_mfrs.nextyear();
 			spinup_mwet.nextyear();
 			spinup_mdtr.nextyear();
@@ -668,7 +591,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 					   hist_mdtr[date.year-nyear_spinup],
 				       dtemp,dprec,dsun,ddtr);
 
-			// guess2008 - only recalculate precipitation values using weather generator
+			// Only recalculate precipitation values using weather generator
 			// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
 			if (ifrainonwetdaysonly) { 
 				// (from Dieter Gerten 021121)

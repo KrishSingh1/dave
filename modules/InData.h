@@ -121,6 +121,7 @@ class TimeDataD									//Represents a set of double data over time (years).
 	void ParseNCells();
 	int ParseNCellsSpatial();
 	int GetColumn(const char* name) const;		// Returns column number for header name.
+	int CalenderYearToPosition(int calender_year) const;	// Returns valid year position in data array from calender year input.
 
 public:
 	int nRecords;								//Set in ParseFormat()
@@ -138,10 +139,10 @@ public:
 	int Load(Coord c);							//Loads local data for a certain coordinate. Returns 0 if coordinate not found.
 	int LoadNext();								//For stepping through a data file, loading each coordinate data consecutively. Returns 0 if error.
 	void Output(char*);	
-	double Get(int year, int column) const;		// Returns a single value
-	double Get(int year, const char* name) const;		// Returns a single value for column with header string name. Returns -999 if name not found.
-	int Get(int year, double* dataX) const;		//Copies the values for one year data to the dataX array, returns 0 if wrong format.
-	int Get(double* dataX) const;				//Copies all data to the dataX array, returns 0 if wrong format.
+	double Get(int calender_year, int column) const;		// Returns a single value
+	double Get(int calender_year, const char* name) const;	// Returns a single value for column with header string name. Returns -999 if name not found.
+	int Get(int calender_year, double* dataX) const;		//Copies the values for one year data to the dataX array, returns 0 if wrong format.
+	int Get(double* dataX) const;							//Copies all data to the dataX array, returns 0 if wrong format.
 //	double* Get(int year) const;
 	int GetnRecords() const {return nRecords;}
 	int GetHeader(char cropnames[][MAXNAMESIZE]) const;
@@ -175,10 +176,11 @@ class TimeDataDmem
 	int currentCell;
 	int firstyear;
 	bool loaded;
+	int CalenderYearToPosition(int calender_year) const;	// Returns valid year position in data array from calender year input.
 public:
 	int nYears;
-	double Get(int year, int column) const;			// Returns a single value.
-	double Get(int year, const char* name) const;	// Returns a single value for column with header string name. Returns -999 if name not found.
+	double Get(int calender_year, int column) const;		// Returns a single value.
+	double Get(int calender_year, const char* name) const;	// Returns a single value for column with header string name. Returns -999 if name not found.
 	int Load(Coord c);	// Returns 0 if coordinate not found.
 	void SetCoord(int index, Coord c);
 	void SetData(int index, double* data);

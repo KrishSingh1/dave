@@ -143,34 +143,34 @@ int TimeDataD::Get(double* dataX) const
 	return 1;
 }
 
-int TimeDataD::Get(int yearX, double* dataX) const
+int TimeDataD::CalenderYearToPosition(int calender_year) const {
+
+	int year = calender_year - firstyear;
+
+	// Use first or last year's data if calender year is not within data period.
+	if(year < 0)
+		year = 0;
+	else if(year >= nYears)
+		year = nYears -1;
+	else
+		year = calender_year - firstyear;
+
+	return year;
+}
+
+int TimeDataD::Get(int calender_year, double* dataX) const
 {
-/*
-	if(format==LOCAL_YEARLY || format==GLOBAL_YEARLY)
-	{
-		if(yearX>nYears)
-			memcpy(dataX, &data[(nYears-1)*nRecords], nRecords * sizeof(double));	//use last year's value if land use data miss years at the end. Bugfix 100103
-		else
-			memcpy(dataX, &data[yearX*nRecords], nRecords * sizeof(double));
-	}
-	else
-	{
-		printf("Wrong usage of TimeDataD::Get(int year, double* dataX).\n");
-		return 0;
-	}
-*/
-	//This code handles all four formats (TEST STATIC formats !):
-	if(yearX>=nYears)
-		memcpy(dataX, &data[(nYears-1)*nRecords], nRecords * sizeof(double));	//use last year's value if land use data miss years at the end. Bugfix 100103
-	else
-		memcpy(dataX, &data[yearX*nRecords], nRecords * sizeof(double));
+	int yearX = CalenderYearToPosition(calender_year);
+
+	memcpy(dataX, &data[yearX*nRecords], nRecords * sizeof(double));
 
 	return 1;
 }
 
-double TimeDataD::Get(int yearX, int column) const
+double TimeDataD::Get(int calender_year, int column) const
 {
 	double dataX=0.0;
+	int yearX = CalenderYearToPosition(calender_year);
 
 	if(column>=nRecords)
 	{
@@ -179,27 +179,13 @@ double TimeDataD::Get(int yearX, int column) const
 		return 0.0;
 	}
 
-/*	if(format==LOCAL_YEARLY || format==GLOBAL_YEARLY)
-	{
-		if(yearX>=nYears)
-			dataX=data[nRecords*(nYears-1)+column];		//Bugfixes 100103, 101231
-		else
-			dataX=data[nRecords*yearX+column];
-	}
-	else if(format==LOCAL_STATIC || format==GLOBAL_STATIC)
-		dataX=data[column];		
-*/
-	//This code handles all four formats:
-	if(yearX>=nYears)
-		dataX=data[nRecords*(nYears-1)+column];		//Bugfixes 100103, 101231
-	else
-		dataX=data[nRecords*yearX+column];
+	dataX=data[nRecords*yearX+column];
 
 //printf("yearX=%d, nYears=%d\n",yearX, nYears);	//test 100719
 	return dataX;
 }
 
-double TimeDataD::Get(int yearX, const char* name) const		//Returns a single value for column with header string name
+double TimeDataD::Get(int calender_year, const char* name) const		//Returns a single value for column with header string name
 {
 	int column=-1;
 	double dataX=-999;
@@ -215,11 +201,11 @@ double TimeDataD::Get(int yearX, const char* name) const		//Returns a single val
 
 	if(column==-1)
 	{
-		if(yearX==1)	//Set to 1 in crop branch, was 0.
+		if(calender_year == firstyear + 1)	//Set to 1 in crop branch, was 0.
 		printf("WARNING: Value for %s not found in %s. Value set to 0.0\n", name, fileName);
 	}
 	else
-		dataX=Get(yearX,column);
+		dataX=Get(calender_year, column);
 
 	return dataX;
 }
@@ -2116,40 +2102,53 @@ void TimeDataD::Close()
 	}
 }
 
+int TimeDataDmem::CalenderYearToPosition(int calender_year) const {
 
-double TimeDataDmem::Get(int year, int column) const
+	int yearX = calender_year - firstyear;
+
+	// Use first or last year's data if calender year is not within data period.
+	if(yearX < 0)
+		yearX = 0;
+	else if(yearX >= nYears)
+		yearX = nYears -1;
+	else
+		yearX = calender_year - firstyear;
+
+	return yearX;
+}
+
+double TimeDataDmem::Get(int calender_year, int column) const
 {
-	if(currentCell >= 0 && column < nColumns) {
-		if(year>=nYears)
-			return data[currentCell][(nYears-1) * nColumns + column];
-		else
-			return data[currentCell][year * nColumns + column];
-	}
+
+	int yearX = CalenderYearToPosition(calender_year);
+
+	if(currentCell >= 0 && column < nColumns)
+		return data[currentCell][yearX * nColumns + column];
 	else
 		return 0.0;
 }
 
-double TimeDataDmem::Get(int yearX, const char* name) const		//Returns a single value for column with header string name
+double TimeDataDmem::Get(int calender_year, const char* name) const		//Returns a single value for column with header string name
 {
-	int column=-1;
-	double dataX=-999;
+	int column = -1;
+	double dataX = -999;
 
-	for(int i=0;i<nColumns;i++)
+	for(int i=0; i<nColumns; i++)
 	{
 		if(!strcmp(name, header_arr[i]))
 		{
-			column=i;
+			column = i;
 			break;
 		}
 	}
 
-	if(column==-1)
+	if(column == -1)
 	{
-		if(yearX==1)	//Set to 1 in crop branch, was 0.
+		if(calender_year == firstyear + 1)	//Set to 1 in crop branch, was 0.
 		printf("WARNING: Value for %s not found in input file\n", name);
 	}
 	else
-		dataX=Get(yearX,column);
+		dataX = Get(calender_year, column);
 
 	return dataX;
 }

@@ -615,20 +615,21 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 ///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
 void CRUInput::getlandcover(Gridcell& gridcell) {
+
 	int i, year, year_saved;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
 
-	if(date.year<nyear_spinup)					// Use values for first historic year during spinup period.
-		year=0;
-	else if(date.year>=nyear_spinup+NYEAR_LU) {	// scenario adaptation
-		year=NYEAR_LU-1;
-	}
+	// Calender year of start of simulation (after spinup)
+	int first_historic_year = FIRSTHISTYEAR;	// For paleo runs, use firstpaleoyear (from ins-file)
+
+	if(date.year < nyear_spinup)					// Use values for first historic year during spinup period.
+		year = first_historic_year;
 	else
-		year=date.year-nyear_spinup;
+		year = date.year - nyear_spinup + first_historic_year;
 
 	if(fixedlu_hist) {
 		year_saved=year;
-		year=0;
+		year=first_historic_year;
 	}
 
 	if(lcfrac_fixed) {		// If landcover area fractions are set in the ins-file.
@@ -834,7 +835,7 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 		else {					// crop area fractions are read from input file(s)
 #if defined DYNAMIC_LANDCOVER_INPUT
 			if(fixedcrop_hist)
-				year=0;
+				year=first_historic_year;
 			else if(fixedlu_hist)
 				year=year_saved;
 #ifdef LUTOMEMORY
@@ -917,6 +918,7 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 /// Get sowing dates for one year
 void CRUInput::getsowingdates(Gridcell& gridcell) {
 	int i, year;
+	int first_historic_year = FIRSTHISTYEAR;
 
 #if defined DYNAMIC_LANDCOVER_INPUT
 #ifdef LUTOMEMORY
@@ -928,9 +930,9 @@ void CRUInput::getsowingdates(Gridcell& gridcell) {
 #endif
 
 	if(date.year < nyear_spinup)
-		year=0;
+		year = first_historic_year;
 	else
-		year = date.year - nyear_spinup;
+		year = date.year - nyear_spinup + first_historic_year;
 
 	if(date.year < nyear_spinup + NYEAR_HIST) {
 		for(i=0; i<npft; i++) {
@@ -950,6 +952,7 @@ void CRUInput::getsowingdates(Gridcell& gridcell) {
 /// Get harvest dates for one year
 void CRUInput::getharvestdates(Gridcell& gridcell) {
 	int i, year;
+	int first_historic_year = FIRSTHISTYEAR;
 
 #if defined DYNAMIC_LANDCOVER_INPUT
 #ifdef LUTOMEMORY
@@ -961,9 +964,9 @@ void CRUInput::getharvestdates(Gridcell& gridcell) {
 #endif
 
 	if(date.year < nyear_spinup)
-		year=0;
+		year = first_historic_year;
 	else
-		year = date.year - nyear_spinup;
+		year = date.year - nyear_spinup + first_historic_year;
 
 	if(date.year < nyear_spinup + NYEAR_HIST) {
  		for(i=0; i<npft; i++)	{
@@ -983,6 +986,7 @@ void CRUInput::getharvestdates(Gridcell& gridcell) {
 /// Get N fertilization for one year
 void CRUInput::getNfert(Gridcell& gridcell) {
 	int i, year;
+	int first_historic_year = FIRSTHISTYEAR;
 
 #if defined DYNAMIC_LANDCOVER_INPUT
 #ifdef LUTOMEMORY
@@ -994,9 +998,9 @@ void CRUInput::getNfert(Gridcell& gridcell) {
 #endif
 
 	if(date.year < nyear_spinup)
-		year=0;
+		year = first_historic_year;
 	else
-		year = date.year - nyear_spinup;
+		year = date.year - nyear_spinup + first_historic_year;
 
 	if(date.year < nyear_spinup + NYEAR_HIST) {
  		for(i=0; i<npft; i++)	{

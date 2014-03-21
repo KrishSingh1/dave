@@ -30,6 +30,12 @@ public:
 
 	void getlandcover(Gridcell& gridcell);
 
+	void getsowingdates(Gridcell& gridcell);
+
+	void getharvestdates(Gridcell& gridcell);
+
+	void getNfert(Gridcell& gridcell);
+
 	static const int NYEAR_SPINUP_DATA=30;
 
 private:

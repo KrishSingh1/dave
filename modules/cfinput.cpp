@@ -680,6 +680,11 @@ void CFInput::getlandcover(Gridcell& gridcell) {
 	gridcell.landcoverfrac[NATURAL] = 1;
 }
 
+// Crop input functions not supported by this input module for now
+void CFInput::getsowingdates(Gridcell& gridcell) {}
+void CFInput::getharvestdates(Gridcell& gridcell) {}
+void CFInput::getNfert(Gridcell& gridcell) {}
+
 bool CFInput::getclimate(Gridcell& gridcell) {
 	
 	Climate& climate = gridcell.climate;

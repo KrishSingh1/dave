@@ -1184,7 +1184,7 @@ int TimeDataD::Load(Coord c)
 							sscanf(p, "%f", &latX);			//110607
 							p=strtok(NULL, " \t");	//year
 
-							if(lonX!=c.lon || latX!=c.lat)	//110607
+							if(fabs(lonX - c.lon) > 0.001 || fabs(latX - c.lat) > 0.001) 	//110607
 							{
 								printf("FORMAT ERROR in input file %s for stand at Coordinate %.2f,%.2f: Load(). Wrong coordinates in data file !\n", fileName,c.lon,c.lat);
 								error=1;
@@ -2157,7 +2157,7 @@ int TimeDataDmem::Load(Coord c)
 {
 	bool error=true;
 
-	if(gridlist[currentCell+1].lon==c.lon && gridlist[currentCell+1].lat==c.lat)	//In case gridlist cell order is same as in land use files.
+	if(fabs(gridlist[currentCell+1].lon - c.lon) < 0.001 && fabs(gridlist[currentCell+1].lat - c.lat) < 0.001)	//In case gridlist cell order is same as in land use files.
 	{
 		currentCell++;
 		error=false;
@@ -2166,7 +2166,7 @@ int TimeDataDmem::Load(Coord c)
 	{
 		for(int i=0;i<nCells;i++)
 		{
-			if(gridlist[i].lon==c.lon && gridlist[i].lat==c.lat)
+			if(fabs(gridlist[i].lon - c.lon) < 0.001 && fabs(gridlist[i].lat - c.lat) < 0.001)
 			{
 				currentCell=i;
 				error=false;

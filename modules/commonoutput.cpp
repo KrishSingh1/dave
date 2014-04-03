@@ -770,6 +770,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					mean_standpft_nmass_veg += standpft_nmass_veg * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_anpp += standpft_anpp * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_lai += standpft_lai * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_yield += standpft_yield * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_yield1 += standpft_yield1 * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_yield2 += standpft_yield2 * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_densindiv_total += standpft_densindiv_total * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_asio += standpft_aiso * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_amon += standpft_amon * stand.get_gridcell_fraction() / active_fraction;

@@ -479,7 +479,7 @@ void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCO
 						cp.litter_root,
 						cp.nmass_litter_leaf,
 						cp.nmass_litter_root,
-						cp.nstore_longterm, 
+						cp.nstore_longterm, cp.max_n_storage,
 						indiv.alive);
 
 					gridcell.LC_updated = true;
@@ -2583,22 +2583,11 @@ void turnover_grass(Individual& indiv) {
 		patchpft.litter_root,
 		patchpft.nmass_litter_leaf,
 		patchpft.nmass_litter_root,
-		indiv.nstore_longterm, 
+		indiv.nstore_longterm, indiv.max_n_storage,
 		true);
 
 	indiv.cmass_leaf_post_turnover = cropindiv.grs_cmass_leaf;
 	indiv.cmass_root_post_turnover = cropindiv.grs_cmass_root;
-
-	if (indiv.nstore_longterm > indiv.max_n_storage) {
-						
-		// Nitrogen stored above maximum will be returned to litter
-		double nsurplus = indiv.nstore_longterm - indiv.max_n_storage;
-		indiv.nstore_longterm -= nsurplus;
-
-		// Return surplus nitrogen to litter
-		patchpft.nmass_litter_leaf += nsurplus * (indiv.pft.turnover_leaf / (indiv.pft.turnover_leaf + indiv.pft.turnover_root));
-		patchpft.nmass_litter_root += nsurplus * (indiv.pft.turnover_root / (indiv.pft.turnover_leaf + indiv.pft.turnover_root));
-	}
 
 	// Nitrogen longtime storage
 	// Nitrogen approx retranslocated next season

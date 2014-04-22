@@ -117,6 +117,7 @@ struct Harvest_CN {
 	double nmass_agpool;
 	double nstore_longterm;
 	double nstore_labile;
+	double max_n_storage;
 
 	double litter_leaf;
 	double litter_root;
@@ -134,7 +135,7 @@ struct Harvest_CN {
 	Harvest_CN() {
 
 		cmass_leaf = cmass_root = cmass_sap = cmass_heart = cmass_debt = cmass_ho = cmass_agpool = 0.0;
-		nmass_leaf = nmass_root = nmass_sap = nmass_heart = nmass_ho = nmass_agpool = nstore_longterm = nstore_labile = 0.0;
+		nmass_leaf = nmass_root = nmass_sap = nmass_heart = nmass_ho = nmass_agpool = nstore_longterm = nstore_labile = max_n_storage = 0.0;
 		litter_leaf = litter_root = litter_sap = litter_heart = 0.0;
 		nmass_litter_leaf = nmass_litter_root = nmass_litter_sap = nmass_litter_heart = 0.0;
 		acflux_harvest = anflux_harvest = 0.0;
@@ -181,6 +182,7 @@ struct Harvest_CN {
 		nmass_heart = indiv.nmass_heart;
 		nstore_longterm = indiv.nstore_longterm;
 		nstore_labile = indiv.nstore_labile;
+		max_n_storage = indiv.max_n_storage;
 
 		if(indiv.pft.landcover == CROPLAND) {
 			nmass_ho = indiv.cropindiv->nmass_ho;

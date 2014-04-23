@@ -82,6 +82,9 @@ private:
 	/// Fills dtemp, dprec, etc. with forcing data for the current year
 	void populate_daily_arrays(long& seed);
 
+	/// \returns all variables
+	std::vector<GuessNC::CF::GridcellOrderedVariable*> all_variables() const;
+
 	/// Yearly CO2 data read from file
 	/**
 	 * This object is indexed with calendar years, so to get co2 value for

@@ -68,10 +68,10 @@ namespace {
 /// Interpolates monthly data to quasi-daily values.
 void interp_climate(double mtemp[12], double mprec[12], double msun[12], double mdtr[12],
 					double dtemp[365], double dprec[365], double dsun[365], double ddtr[365]) {
-	interp_monthly_means(mtemp, dtemp);
-	interp_monthly_totals(mprec, dprec);
-	interp_monthly_means(msun, dsun);
-	interp_monthly_means(mdtr, ddtr);
+	interp_monthly_means_conserve(mtemp, dtemp);
+	interp_monthly_totals_conserve(mprec, dprec, 0);
+	interp_monthly_means_conserve(msun, dsun, 0, 100);
+	interp_monthly_means_conserve(mdtr, ddtr, 0);
 }
 
 } // namespace
@@ -546,7 +546,12 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		spinup_mfrs.get_data_from(hist_mfrs);
 		spinup_mwet.get_data_from(hist_mwet);
 		spinup_mdtr.get_data_from(hist_mdtr);
-		spinup_mdtr.detrend_data();
+
+		// We wont detrend dtr for now. Partly because dtr is at the moment only
+		// used for BVOC, so what happens during the spinup is not affecting
+		// results in the period thereafter, and partly because the detrending
+		// can give negative dtr values.
+		//spinup_mdtr.detrend_data();
 
 
 		dprintf("\nCommencing simulation for stand at (%g,%g)",gridlist.getobj().lon,

@@ -231,7 +231,6 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	// nmass_litter_root	= new root nitrogen litter (kgN/m2)
 	// cmass_heart			= heartwood C biomass (kgC/m2)
 	// nmass_heart			= heartwood nitrogen biomass (kgC/m2)
-	// retransn				= retranslocated nitrogen (kgN/m2)
 	// longterm_nstore		= longterm nitrogen storage (kgN/m2)
 
 	double turnover = 0.0;
@@ -1217,8 +1216,7 @@ void flush_litter_repr(Patch& patch) {
 		Patchpft& pft = patch.pft.getobj();
 		
 		// Updated soil fluxes
-		patch.fluxes.report_flux(Fluxes::SOILC, pft.litter_repr);
-//		patch.fluxes.report_flux(Fluxes::REPRC, pft.litter_repr);
+		patch.fluxes.report_flux(Fluxes::REPRC, pft.litter_repr);
 		pft.litter_repr = 0.0;
 
 		patch.pft.nextobj();
@@ -1543,22 +1541,7 @@ void growth(Stand& stand, Patch& patch) {
 
 				// C debt
 				indiv.cmass_debt += cmass_debt_inc * indiv.densindiv;
-//
-				// Nitrogen longtime storage
-				// Nitrogen approx retranslocated next year
-				double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
-					indiv.cmass_root * indiv.pft.turnover_root / cton_root_bg * nrelocfrac +
-					indiv.cmass_sap * indiv.pft.turnover_sap / cton_sap_bg * nrelocfrac;
-				
-				// Max longterm nitrogen storage
-				indiv.max_n_storage = min(indiv.cmass_sap * indiv.pft.fnstorage, 
-					(max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv) / cton_leaf_bg;
 
-				// Scale this year productivity to max storage
-				if (indiv.anpp > 0.0) {
-					indiv.scale_n_storage = max(0.5 * indiv.max_n_storage, indiv.max_n_storage - retransn_nextyear) * cton_leaf_bg / indiv.anpp;
-				}
-//
 				// alive check before ensuring C balance
 				if (indiv.alive) {
 					patch.pft[indiv.pft.id].litter_leaf += litter_leaf_inc * indiv.densindiv;
@@ -1646,21 +1629,7 @@ void growth(Stand& stand, Patch& patch) {
 				}
 
 				if(indiv.pft.phenology != CROPGREEN && !(indiv.has_daily_turnover() && indiv.continous_grass())) {
-//
-					// Nitrogen longtime storage
-					// Nitrogen approx retranslocated next year
-					double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
-						indiv.cmass_root * indiv.pft.turnover_root / cton_root_bg * nrelocfrac;
 
-					// Max longterm nitrogen storage
-					indiv.max_n_storage = min(indiv.cmass_root * indiv.pft.fnstorage, 
-						(max(0.0, cmass_leaf_inc) + max(0.0, cmass_root_inc)) * indiv.densindiv) / cton_leaf_bg;
-
-					// Scale this year productivity to max storage
-					if (indiv.anpp > 0.0) {
-						indiv.scale_n_storage = max(0.5 * indiv.max_n_storage, indiv.max_n_storage - retransn_nextyear) * cton_leaf_bg / indiv.anpp;
-					}
-//
 					// alive check before ensuring C balance
 					if (indiv.alive && !indiv.istruecrop_or_intercropgrass()) {
 
@@ -1697,6 +1666,32 @@ void growth(Stand& stand, Patch& patch) {
 					vegetation.killobj();
 					killed = true;
 				}
+			}
+
+			if (!killed && indiv.pft.phenology != CROPGREEN && !(indiv.has_daily_turnover() && indiv.continous_grass())) {
+				// Update nitrogen longtime storage
+
+				// Nitrogen approx retranslocated next year
+				double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
+					indiv.cmass_root * indiv.pft.turnover_root / cton_root_bg * nrelocfrac;
+
+				if (indiv.pft.lifeform == TREE)
+					retransn_nextyear += indiv.cmass_sap * indiv.pft.turnover_sap / cton_sap_bg * nrelocfrac;
+
+				// Assume that raingreen will lose same amount of N through extra leaves next year
+				if (indiv.alive && bminc >= 0 && (indiv.pft.phenology == RAINGREEN || indiv.pft.phenology == ANY))
+					retransn_nextyear -= min(raingreen_ndemand, retransn_nextyear);
+
+				// Max longterm nitrogen storage
+				if (indiv.pft.lifeform == TREE)
+					indiv.max_n_storage = max(0.0, min(indiv.cmass_sap * indiv.pft.fnstorage / cton_leaf_bg, retransn_nextyear));
+				else // GRASS
+					indiv.max_n_storage = max(0.0, min(indiv.cmass_root * indiv.pft.fnstorage / cton_leaf_bg, retransn_nextyear));
+
+				// Scale this year productivity to max storage
+				if (indiv.anpp > 0.0) {
+					indiv.scale_n_storage = max(indiv.max_n_storage * 0.1, indiv.max_n_storage - retransn_nextyear) * cton_leaf_bg / indiv.anpp;
+				} // else use last years scaling factor
 			}
 		}
 

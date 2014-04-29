@@ -706,12 +706,13 @@ inline double gpterm(double adtmm, double co2, double lambda, double daylength) 
  */
 void photosynthesis_nostress(Patch& patch, Climate& climate) {
 
+	Stand& stand = patch.stand;
+
 	// If this is the first patch, calculate no-stress assimilation for
 	// each Standpft, assuming FPAR=1. This is then later used in 
 	// forest_floor_conditions.
 	if (!patch.id) {
-		Stand& stand = patch.stand;
-
+		
 		for (int p=0; p<npft; p++) {
 			Standpft& spft = stand.pft[p];
 			if(spft.active)
@@ -721,22 +722,6 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 				// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
 				photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
 						1.0, pft.lambda_max, pft, 1.0, false, spft.photosynthesis, -1, alphaa(stand, pft));
-
-				if (date.diurnal()) {
-					spft.gpterms.assign(date.subdaily, 0);
-					PhotosynthesisResult res;
-					spft.phots.assign(date.subdaily, res);
-
-					for (int i=0; i<date.subdaily; i++) {
-						PhotosynthesisResult& result = spft.phots[i];
-						photosynthesis(climate.co2, climate.temps[i], climate.pars[i],
-							24, 1.0, pft.lambda_max, pft, 1.0, false, result, spft.photosynthesis.vm, alphaa(stand, pft));
-
-						spft.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
-					}
-				}
-				spft.gpterm = gpterm(spft.photosynthesis.adtmm, climate.co2,
-											pft.lambda_max, climate.daylength);
 			}
 		}
 	}
@@ -770,7 +755,7 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 				               indiv.fpar, pft.lambda_max, pft,
 				               1.0, false,
 				               result,
-				               indiv.photosynthesis.vm, alphaa(patch.stand, pft));
+				               indiv.photosynthesis.vm, alphaa(stand, pft));
 
 				indiv.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
 			}
@@ -998,13 +983,13 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		double nmin_scale = kNmin + soil.nmass_avail / (soil.nmass_avail + gridcell.pft[indiv.pft.id].Km);
 
 		// Maximum available soil mineral nitrogen for this individual is base on its root area.
-		// This is considered to be related to FPC which is proportional to crown area which is appro
+		// This is considered to be related to FPC which is proportional to crown area which is approx
 		// 4 times smaller than the root area
 		double max_indiv_avail = min(1.0, indiv.fpc * 4.0) * soil.nmass_avail;
 
 		// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake) 
 		// and soil available nitrogen within individual projectived coverage
-		double maxnup = min(2.0 * indiv.pft.nuptoroot * nmin_scale * temp_scale * indiv.cton_status * indiv.cmass_root, max_indiv_avail);
+		double maxnup = min(2.0 * indiv.pft.nuptoroot * nmin_scale * temp_scale * indiv.cton_status * indiv.cmass_root_today(), max_indiv_avail);
 
 		// Nitrogen demand limitation due to maximum nitrogen uptake capacity
 		double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot,1.0) : 0.0;
@@ -1038,7 +1023,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 			indiv.leaffndemand  = indiv.leafndemand / indiv.ndemand;
 			indiv.rootfndemand  = indiv.rootndemand / indiv.ndemand;
 			indiv.sapfndemand   = indiv.sapndemand  / indiv.ndemand;
-			indiv.storefndemand = 1.0 - (indiv.leaffndemand + indiv.rootfndemand + indiv.sapfndemand);		
+			indiv.storefndemand = max(0.0, 1.0 - (indiv.leaffndemand + indiv.rootfndemand + indiv.sapfndemand));		
 		}
 
 		// Sum total patch nitrogen demand
@@ -1120,7 +1105,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 					indiv.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
 				}
 			}
-		}			
+		}
 
 		// Sum annual average nitrogen limitation on vmax
 		if (indiv.phen)
@@ -1491,6 +1476,9 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 		Patchpft& ppft = patch.pft[indiv.pft.id];
 		if (day.isstart) {
 			indiv.aet = 0;
+
+			if (date.day == 0)
+				indiv.aaet = 0.0;
 		}
 
 		indiv.wstress = ppft.wstress;
@@ -1503,6 +1491,10 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 		}
 		if (day.isend) {
 			indiv.aet *= indiv.fpc / date.subdaily;
+		}
+
+		if (day.isend) {
+			indiv.aaet += indiv.aet;
 		}
 
 		vegetation.nextobj();

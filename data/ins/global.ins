@@ -21,21 +21,26 @@ outputdirectory "./"
 ! These files may be outcommented if their output is not required. 
 file_cmass "cmass.out"
 file_anpp "anpp.out"
+file_agpp "agpp.out"
+file_fpc "fpc.out"
+file_aaet "aaet.out"
 file_lai "lai.out"
 file_cflux "cflux.out"
 file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
+file_clitter "clitter.out"
 !file_firert "firert.out"
 !file_aiso "aiso.out"
 !file_amon "amon.out"
 !file_speciesheights "height.out"
 
+file_nmass "nmass.out"
 file_cton_leaf "cton_leaf.out"
-file_cton_veg "cton_veg.out"
 file_ngases "ngases.out"
 file_nsources "nsources.out"
 file_npool "npool.out"
+file_nlitter "nlitter.out"
 file_nuptake "nuptake.out"
 file_nflux "nflux.out"
 file_vmaxnlim "vmaxnlim.out"
@@ -245,7 +250,7 @@ group "grass" (
 	gmin 0.5
 	phenology "any"
 	phengdd5ramp 100		! C3 har 50 hos Thomas
-	leaflong 1				! Leaf longevity (years)
+	leaflong 0.5				! Leaf longevity (years)
 	turnover_leaf 1
 	turnover_root 0.7		! 0.5 hos guess2008
 	!cton_leaf_min 16

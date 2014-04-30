@@ -1430,16 +1430,16 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 
 		// INDIVIDUAL AND COHORT MODES
 
-		if (patch.has_disturbances()) {
-			// Disturbance when N limitation is switched on to get right pft composition under N limitation faster
-			if (ifcentury && stand.ifnlim_stand() && date.year == freenyears){
-				disturbance(patch, 1.0);
-				if (patch.disturbed) {
-					return; // no mortality or establishment this year
-				}
+		// Disturbance when N limitation is switched on to get right pft composition under N limitation faster
+		if (ifcentury && stand.ifnlim_stand() && date.year == freenyears){
+			disturbance(patch, 1.0);
+			if (patch.disturbed) {
+				return; // no mortality or establishment this year
 			}
-//		if (patch.has_disturbances()) {
-			// Normal disturbance with probability interval of distinterval
+		}
+
+		// Normal disturbance with probability interval of distinterval
+		if (patch.has_disturbances()) {
 
 			// We don't allow disturbance while documenting for calculation of Century equilibrium
 			bool during_century_solvesom = ifcentury && 

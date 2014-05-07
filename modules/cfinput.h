@@ -73,7 +73,9 @@ private:
 	void populate_daily_array(double daily[365],
 	                          const GenericSpinupData& spinup,
 	                          GuessNC::CF::GridcellOrderedVariable* cf_historic,
-	                          int& historic_timestep);
+	                          int& historic_timestep,
+	                          double minimum = -std::numeric_limits<double>::max(),
+	                          double maximum = std::numeric_limits<double>::max());
 
 	/// Same as populate_daily_array, but for precipitation which is special
 	/** Uses number of wet days if available and handles extensive/intensive conversion */

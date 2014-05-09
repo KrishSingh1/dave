@@ -1149,7 +1149,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				runoff_gridcell+=patch.arunoff*to_gridcell_average;
 	
 				// Fire return time
-				if (!iffire || patch.fireprob < 0.001)
+				if (!patch.has_fires() || patch.fireprob < 0.001)
 					firert_gridcell+=1000.0 * to_gridcell_average; // Set a limit of 1000 years
 				else	
 					firert_gridcell+=(1.0/patch.fireprob) * to_gridcell_average;

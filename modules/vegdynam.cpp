@@ -488,7 +488,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						bminit=SAPSIZE*patch.pft[pft.id].anetps_ff;
 
-						if (ifdisturb && patch.disturbed)
+						if (patch.has_disturbances() && patch.disturbed)
 							bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est_initial;
 
 						// Initial leaf to fine root biomass ratio based on
@@ -578,7 +578,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 					if (vegmode==COHORT) {
 
 						// BLARP added for OECD experiment (is this sensible?)
-						if (ifdisturb && patch.disturbed) {
+						if (patch.has_disturbances() && patch.disturbed) {
 
 							patch.pft[pft.id].anetps_ff_est=
 								patch.pft[pft.id].anetps_ff_est_initial;

@@ -46,6 +46,17 @@ insoltype cf_standard_name_to_insoltype(const std::string& standard_name) {
 	}
 }
 
+// Gives the maximum allowed value for insolation, given an insolation type
+// Used as an upper limit when interpolating from monthly to daily values
+double max_insolation(insoltype instype) {
+	if (instype == SUNSHINE) {
+		return 100;
+	}
+	else {
+		return std::numeric_limits<double>::max();
+	}
+}
+
 // Checks if a DateTime is at the first day of the year
 bool first_day_of_year(GuessNC::CF::DateTime dt) {
 	return dt.get_month() == 1 && dt.get_day() == 1;
@@ -185,6 +196,62 @@ void check_wetdays_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) 
 	}
 }
 
+// Checks if two variables contain data for the same time period
+//
+// Compares start and end of time series, the day numbers are only compared if
+// both variables are daily.
+void check_compatible_timeseries(const GuessNC::CF::GridcellOrderedVariable* var1,
+                                 const GuessNC::CF::GridcellOrderedVariable* var2) {
+	GuessNC::CF::DateTime start1, start2, end1, end2;
+
+	const std::string error_message = format_string("%s and %s have incompatible timeseries", 
+		var1->get_variable_name().c_str(), var2->get_variable_name().c_str());
+
+	start1 = var1->get_date_time(0);
+	start2 = var2->get_date_time(0);
+
+	end1 = var1->get_date_time(var1->get_timesteps() - 1);
+	end2 = var2->get_date_time(var2->get_timesteps() - 1);
+
+	if (start1.get_year() != start2.get_year() ||
+		start1.get_month() != start2.get_month()) {
+		fail(error_message.c_str());
+	}
+
+	if (end1.get_year() != end2.get_year() ||
+		end1.get_month() != end2.get_month()) {
+		fail(error_message.c_str());
+	}
+
+	if (is_daily(var1) && is_daily(var2)) {
+		if (start1.get_day() != start2.get_day() ||
+			end1.get_day() != end2.get_day()) {
+			fail(error_message.c_str());
+		}
+	}
+}
+
+// Makes sure all variables have compatible time series
+void check_compatible_timeseries(const std::vector<GuessNC::CF::GridcellOrderedVariable*> variables) {
+
+	for (size_t i = 0; i < variables.size(); ++i) {
+		for (size_t j = i + 1; j < variables.size(); ++j) {
+			check_compatible_timeseries(variables[i], variables[j]);
+		}
+	}
+}
+
+void check_same_spatial_domains(const std::vector<GuessNC::CF::GridcellOrderedVariable*> variables) {
+	
+	for (size_t i = 1; i < variables.size(); ++i) {
+		if (!variables[0]->same_spatial_domain(*variables[i])) {
+			fail("%s and %s don't have the same spatial domain",
+				variables[0]->get_variable_name().c_str(),
+				variables[1]->get_variable_name().c_str());
+		}
+	}
+}
+
 }
 
 CFInput::CFInput()
@@ -269,9 +336,9 @@ void CFInput::init() {
 		check_temp_variable(cf_max_temp);
 	}
 
-	// TODO: check that all variables have the same timespan
-	// check time resolution?
-	// other checks?
+	check_compatible_timeseries(all_variables());
+
+	check_same_spatial_domains(all_variables());
 
 	extensive_precipitation = cf_prec->get_standard_name() == "precipitation_amount";
 
@@ -541,7 +608,9 @@ void CFInput::get_yearly_data(std::vector<double>& data,
 void CFInput::populate_daily_array(double daily[365], 
                                    const GenericSpinupData& spinup,
                                    GridcellOrderedVariable* cf_historic,
-                                   int& historic_timestep) {
+                                   int& historic_timestep,
+                                   double minimum,
+                                   double maximum) {
 
 	// Get the data from spinup and/or historic
 	std::vector<double> data;
@@ -557,7 +626,7 @@ void CFInput::populate_daily_array(double daily[365],
 
 		// Interpolate from monthly to daily values
 
-		interp_monthly_means(&data.front(), daily);
+		interp_monthly_means_conserve(&data.front(), daily, minimum, maximum);
 	}
 }
 
@@ -599,7 +668,7 @@ void CFInput::populate_daily_prec_array(long& seed) {
 			prdaily(&prec_data.front(), dprec, &wetdays_data.front(), seed);
 		}
 		else {
-			interp_monthly_totals(&prec_data.front(), dprec);
+			interp_monthly_totals_conserve(&prec_data.front(), dprec, 0);
 		}
 	}
 }
@@ -608,16 +677,17 @@ void CFInput::populate_daily_arrays(long& seed) {
 	// Extract daily values for all days in this year, either from
 	// spinup dataset or historical dataset
 
-	populate_daily_array(dtemp, spinup_temp, cf_temp, historic_timestep_temp);
+	populate_daily_array(dtemp, spinup_temp, cf_temp, historic_timestep_temp, 0);
 	populate_daily_prec_array(seed);
-	populate_daily_array(dinsol, spinup_insol, cf_insol, historic_timestep_insol);
+	populate_daily_array(dinsol, spinup_insol, cf_insol, historic_timestep_insol, 0, 
+	                     max_insolation(cf_standard_name_to_insoltype(cf_insol->get_standard_name())));
 
 	if (cf_min_temp) {
-		populate_daily_array(dmin_temp, spinup_min_temp, cf_min_temp, historic_timestep_min_temp);
+		populate_daily_array(dmin_temp, spinup_min_temp, cf_min_temp, historic_timestep_min_temp, 0);
 	}
 
 	if (cf_max_temp) {
-		populate_daily_array(dmax_temp, spinup_max_temp, cf_max_temp, historic_timestep_max_temp);
+		populate_daily_array(dmax_temp, spinup_max_temp, cf_max_temp, historic_timestep_max_temp, 0);
 	}
 
 	// Convert to units the model expects
@@ -802,6 +872,17 @@ void CFInput::load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_va
 	}
 
 	spinup_data.get_data_from(source);
+}
+
+std::vector<GuessNC::CF::GridcellOrderedVariable*> CFInput::all_variables() const {
+	std::vector<GuessNC::CF::GridcellOrderedVariable*> result;
+	result.push_back(cf_temp);
+	result.push_back(cf_prec);
+	result.push_back(cf_insol);
+	result.push_back(cf_wetdays);
+	result.push_back(cf_min_temp);
+	result.push_back(cf_max_temp);
+	return result;
 }
 
 #endif // HAVE_NETCDF

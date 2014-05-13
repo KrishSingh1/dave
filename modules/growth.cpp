@@ -1423,7 +1423,7 @@ void growth(Stand& stand, Patch& patch) {
 			//
 			// cmass_excess-code inactivated for grass pft:s, due to frequent oscillations between high bminc and zero bminc in 
 			// certain grasslands using updated leaflong-value for grass-pft:s (0.5)
-			if (bminc >= 0 && (indiv.pft.phenology == RAINGREEN)) {
+			if (bminc >= 0 && indiv.pft.phenology == RAINGREEN) {
 
 				// Raingreen PFTs: reduce biomass increment to account for NPP
 				// allocated to extra leaves during the past year.

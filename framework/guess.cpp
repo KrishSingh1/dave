@@ -473,10 +473,11 @@ Stand::Stand(int i, Gridcell& gc,landcovertype landcoverX):id(i),gridcell(gc),la
 #endif
 		npatchL=1;
 	}
-	else if(landcover==NATURAL || landcover==FOREST) {
+	else {
 		npatchL=::npatch; // use the global variable npatch (not Stand::npatch)
 	}
-	else {
+
+	if(!(landcover==CROPLAND || landcover==PASTURE || landcover==URBAN || landcover==PEATLAND || landcover==NATURAL || landcover==FOREST)) {
 		// Someone has added a new landcover type, the code above needs to be updated and
 		// npatchL needs to be set properly.
 		fail("Unrecognized landcover type");

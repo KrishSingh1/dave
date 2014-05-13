@@ -26,6 +26,8 @@ class Gridcell;
  */
 class InputModule {
 public:
+	virtual ~InputModule() {}
+
 	/// Called after the instruction file has been read
 	/** Initialises the input module (e.g. opening files). Typically
 	 *  reads in a gridlist.
@@ -83,13 +85,16 @@ public:
 	 */
 	virtual bool getclimate(Gridcell& gridcell) = 0;
 
-	/// Sets land cover fractions for the gridcell for the current year
+	///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
 	virtual void getlandcover(Gridcell& gridcell) = 0;
 
+	/// Gets sowing dates for one year
 	virtual void getsowingdates(Gridcell& gridcell) = 0;
 
+	/// Gets harvest dates for one year
 	virtual void getharvestdates(Gridcell& gridcell) = 0;
 
+	/// Gets N fertilization for one year
 	virtual void getNfert(Gridcell& gridcell) = 0;	
 };
 

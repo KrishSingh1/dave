@@ -1,6 +1,7 @@
 set(headers 
   config.h 
   guess.h 
+  guesscontainer.h
   guessmath.h
   outputchannel.h 
   archive.h 

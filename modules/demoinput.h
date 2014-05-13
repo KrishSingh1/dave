@@ -18,37 +18,52 @@
 #include "InData.h"
 #endif
 
+/// An input module for a toy data set (for demonstration purposes)
+/** This input module is provided as an example of an input module.
+ *  Included together with the LPJ-GUESS source code is a small
+ *  toy data set (text based) which can be used to test the model,
+ *  or to learn about how to write input modules.
+ *
+ *  \see InputModule for more documentation about writing input modules.
+ */
 class DemoInput : public InputModule {
 public:
 
+	/// Constructor
+	/** Declares the instruction file parameters used by the input module.
+	 */
 	DemoInput();
 
+	/// Destructor, cleans up used resources
 	~DemoInput();
 
+	/// Reads in gridlist and initialises the input module
+	/** Gets called after the instruction file has been read */
 	void init();
 
+	/// See base class for documentation about this function's responsibilities
 	bool getgridcell(Gridcell& gridcell);
 
+	/// See base class for documentation about this function's responsibilities
 	bool getclimate(Gridcell& gridcell);
 
-	/// Gets landcover and crop fractions for one year
+	/// See base class for documentation about this function's responsibilities
 	void getlandcover(Gridcell& gridcell);
 
-	/// Gets sowing dates for one year
+	/// See base class for documentation about this function's responsibilities
 	void getsowingdates(Gridcell& gridcell);
 
-	/// Gets harvest dates for one year
+	/// See base class for documentation about this function's responsibilities
 	void getharvestdates(Gridcell& gridcell);
 
-	/// Gets N fertilization for one year
+	/// See base class for documentation about this function's responsibilities
 	void getNfert(Gridcell& gridcell);
 
 private:
 
+	/// Type for storing grid cell longitude, latitude and description text
 	struct Coord {
 
-		// Type for storing grid cell longitude, latitude and description text
-		
 		int id;
 		double lon;
 		double lat;
@@ -65,9 +80,11 @@ private:
 	void GetLonLatList(ListArray_id<InData::Coord>& lonlatlist, ListArray_id<Coord>& gridlist);
 #endif
 
+	/// Help function to readenv, reads in 12 monthly values from a text file
 	void read_from_file(Coord coord, xtring fname, const char* format,
 	                    double monthly[12], bool soil = false);
 
+	/// Reads in environmental data for a location
 	bool readenv(Coord coord, long& seed);
 
 	/// number of simulation years to run after spinup

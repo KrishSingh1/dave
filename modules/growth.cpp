@@ -582,7 +582,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// Apply bisection to find root on new interval (x1,x2)
 
-			if (f(x1) >= 0.0) sign =- 1.0;
+			if (f(x1) >= 0.0) sign = -1.0;
 			else sign = 1.0;
 
 			rtbis = x1;
@@ -1022,7 +1022,7 @@ bool allometry(Individual& indiv) {
 
 					bool done = false;
 
-					Gridcell& gridcell = indiv.vegetation.patch.stand.gridcell;
+					Gridcell& gridcell = indiv.vegetation.patch.stand.get_gridcell();
 
 					//First look in PASTURE.
 					if(gridcell.landcoverfrac[PASTURE] > 0.0) {
@@ -1032,7 +1032,7 @@ bool allometry(Individual& indiv) {
 						strncpy(name_start, indiv.pft.name, 4);
 						sp = name_start + 1;										//NB: this works with current pft names. CC3G_ic and C3G_pasture
 
-						for(unsigned int i = 0; i < gridcell.nobj && !done; i++) {
+						for(unsigned int i = 0; i < gridcell.size() && !done; i++) {
 
 							Stand& stand=gridcell[i];
 							if(stand.landcover == PASTURE)
@@ -1071,7 +1071,7 @@ bool allometry(Individual& indiv) {
 						}
 
 						// Find highest lai in crop grass stands
-						for(unsigned int i = 0; i < gridcell.nobj; i++) {
+						for(unsigned int i = 0; i < gridcell.size(); i++) {
 
 							Stand& stand = gridcell[i];
 
@@ -1230,7 +1230,7 @@ void scale_indiv(Individual& indiv, bool scale_grsC)
 {
 	double scale = 1.0;	
 	Stand& stand = indiv.vegetation.patch.stand;
-	Gridcell& gridcell = stand.gridcell;
+	Gridcell& gridcell = stand.get_gridcell();
 
 	// Scale individual's C and N mass in stands that have increased in area this year by (old area/new area):
 	if(stand.scale_LC_change < 1.0)
@@ -1347,7 +1347,7 @@ void growth(Stand& stand, Patch& patch) {
 
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation = patch.vegetation;
-	Gridcell& gridcell = vegetation.patch.stand.gridcell;
+	Gridcell& gridcell = vegetation.patch.stand.get_gridcell();
 
 	// On first call to function growth this year (patch #0), initialise stand-PFT
 	// record of summed allocation to reproduction

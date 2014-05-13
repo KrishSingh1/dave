@@ -255,14 +255,14 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
  */
 void reduce_natural_stands(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], int nnaturalstands[NLANDCOVERTYPES]) {
 
-	gridcell.firstobj();
-	while (gridcell.isobj) {
-		Stand& stand=gridcell.getobj();
+	Gridcell::iterator gc_itr = gridcell.begin();
+	while (gc_itr != gridcell.end()) {
+		Stand& stand = *gc_itr;
 
 		stand.natural_frac_change = 0.0;
 		nnaturalstands[stand.landcover]++;
 
-		gridcell.nextobj();
+		++gc_itr;
 	}
 
 	double natural_change_remain[NLANDCOVERTYPES];
@@ -294,11 +294,11 @@ void reduce_natural_stands(Gridcell& gridcell, double landcoverfrac_change[NLAND
 			}
 //////////////////////
 
-			for(unsigned int i = 0; i < gridcell.nobj; i++) {
+			for(unsigned int i = 0; i < gridcell.size(); i++) {
 				int index;
 
 				if(young_stands_first)
-					index = gridcell.nobj - 1 - i;
+					index = gridcell.size() - 1 - i;
 				else
 					index = i;
 
@@ -384,11 +384,11 @@ void reduce_natural_stands(Gridcell& gridcell, double landcoverfrac_change[NLAND
 void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], double cropstand_change[NCROPSTANDS_MAX], double& receiving_fraction, 
 					int nnaturalstands[NLANDCOVERTYPES], landcover_change_transfer& to) {
 
-	gridcell.firstobj();
-	while (gridcell.isobj) {
+	Gridcell::iterator gc_itr = gridcell.begin();
+	while (gc_itr != gridcell.end()) {
 		double scale;
 
-		Stand& stand = gridcell.getobj();
+		Stand& stand = *gc_itr;
 		int expand_to_new_stand = gridcell.expand_to_new_stand[stand.landcover];
 
 		if(stand.landcover != CROPLAND && !expand_to_new_stand && landcoverfrac_change[stand.landcover] < 0.0						
@@ -557,7 +557,7 @@ void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCO
 				stand.nextobj();
 			}
 		}
-		gridcell.nextobj();
+		++gc_itr;
 	}
 }
 
@@ -591,14 +591,14 @@ void stand_dynamics(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTY
 					}
 					// stand killed
 					else if(gridcell.landcoverfrac_old[i] > 0.0 && gridcell.landcoverfrac[i] == 0.0) {
-						gridcell.firstobj();
-						while (gridcell.isobj) {
-							Stand& stand = gridcell.getobj();
+						Gridcell::iterator gc_itr = gridcell.begin();
+						while (gc_itr != gridcell.end()) {
+							Stand& stand = *gc_itr;
 							if(stand.landcover == i) {
-								gridcell.killobj();
+								gc_itr = gridcell.delete_stand(gc_itr);
 							}
 							else
-								gridcell.nextobj();
+								++gc_itr;
 						}
 					}
 					// new NATURAL stand created from other landcover type
@@ -607,14 +607,14 @@ void stand_dynamics(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTY
 					}
 					// secondary natural stand killed if all of its area converted to other landcover type
 					else if(expand_to_new_stand && nnaturalstands[i] > 1 && landcoverfrac_change[i] < 0.0) {
-						gridcell.firstobj();
-						while (gridcell.isobj) {
-							Stand& stand = gridcell.getobj();
+						Gridcell::iterator gc_itr = gridcell.begin();
+						while (gc_itr != gridcell.end()) {
+							Stand& stand = *gc_itr;
 							if(stand.landcover == i && stand.get_gridcell_fraction() == 0) {
-								gridcell.killobj();
+								gc_itr = gridcell.delete_stand(gc_itr);
 							}
 							else
-								gridcell.nextobj();
+								++gc_itr;
 						}
 					}
 				}
@@ -633,13 +633,13 @@ void stand_dynamics(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTY
 
 					// Is this PFT already present in a crop stand ?
 					bool present = false;
-					gridcell.firstobj();
-					while (gridcell.isobj && !present) {
-						Stand& stand = gridcell.getobj();
+					Gridcell::iterator gc_itr = gridcell.begin();
+					while (gc_itr != gridcell.end() && !present) {
+						Stand& stand = *gc_itr;
 						if (stand.landcover == CROPLAND && stand.pftid == pft.id)
 							present = true;
 						else
-							gridcell.nextobj();
+							++gc_itr;
 					}
 
 					// Should this crop PFT be present in the gridcell this year ? 
@@ -652,8 +652,8 @@ void stand_dynamics(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTY
 					else {
 						// if not, and is present, kill stand
 						if(present) {
-							Stand& stand=gridcell.getobj();
-							gridcell.killobj();
+							Stand& stand = *gc_itr;
+							gc_itr = gridcell.delete_stand(gc_itr);
 						}
 					}
 				}
@@ -661,15 +661,15 @@ void stand_dynamics(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTY
 			}
 		}
 		else if(gridcell.landcoverfrac_old[CROPLAND]>0.0) {	//(if !(gridcell.landcoverfrac[CROPLAND]>0.0))	
-			gridcell.firstobj();
-			while (gridcell.isobj) {
-				Stand& stand=gridcell.getobj();
+			Gridcell::iterator gc_itr = gridcell.begin();
+			while (gc_itr != gridcell.end()) {
+				Stand& stand = *gc_itr;
 				if(stand.landcover==CROPLAND) {
 					stand.firstobj();
-					gridcell.killobj();
+					gc_itr = gridcell.delete_stand(gc_itr);
 				}
 				else
-					gridcell.nextobj();
+					++gc_itr;
 			}
 		}
 	}
@@ -721,9 +721,9 @@ void stand_dynamics(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTY
 void receiving_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], double cropstand_change[NCROPSTANDS_MAX], 
 							 landcover_change_transfer& from, bool LCchangeCtransfer) {
 
-	gridcell.firstobj();
-	while (gridcell.isobj) {
-		Stand& stand = gridcell.getobj();
+	Gridcell::iterator gc_itr = gridcell.begin();
+	while (gc_itr != gridcell.end()) {
+		Stand& stand = *gc_itr;
 		if(stand.landcover != CROPLAND && landcoverfrac_change[stand.landcover] > 0.0 || stand.landcover == CROPLAND && cropstand_change[stand.cftid] > 0.0)
 		{
 			double old_frac, added_frac, new_frac;
@@ -744,7 +744,7 @@ void receiving_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLA
 					// stand.frac already set for new natural stands in stand_dynamics()
 				}
 				else {
-					gridcell.nextobj();
+					++gc_itr;
 					continue;
 				}					
 			}
@@ -829,7 +829,7 @@ void receiving_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLA
 				}
 			}
 		}
-		gridcell.nextobj();
+		++gc_itr;
 	}
 }
 
@@ -855,11 +855,11 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 	gridcell.LC_updated=false;
 
-	gridcell.firstobj();
-	while (gridcell.isobj) {
-		Stand& stand=gridcell.getobj();
+	Gridcell::iterator gc_itr = gridcell.begin();
+	while (gc_itr != gridcell.end()) {
+		Stand& stand = *gc_itr;
 		stand.scale_LC_change = 1.0;
-		gridcell.nextobj();
+		++gc_itr;
 	}
 
 	// get new landcover and crop stand area fractions from input files
@@ -1577,7 +1577,7 @@ void crop_sowing_gridcell(Gridcell& gridcell) {
 /// old temperature-dependent sowing date method (Bondeau et al. 2007)
 void Crop_sowing_date_temp(Patch& patch, Pft& pft) {
 
-	Gridcell& gridcell = patch.stand.gridcell;
+	Gridcell& gridcell = patch.stand.get_gridcell();
 	Climate& climate = gridcell.climate;
 	Patchpft& patchpft = patch.pft[pft.id];
 	Gridcellpft& gridcellpft = gridcell.pft[pft.id];
@@ -1588,7 +1588,7 @@ void Crop_sowing_date_temp(Patch& patch, Pft& pft) {
 /// old precipitation-dependent sowing date method (Bondeau et al. 2007)
 void Crop_sowing_date_prec(Patch& patch, Pft& pft) {
 
-	Gridcell& gridcell = patch.stand.gridcell;
+	Gridcell& gridcell = patch.stand.get_gridcell();
 	Climate& climate = gridcell.climate;
 	Patchpft& patchpft = patch.pft[pft.id];
 	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
@@ -1677,7 +1677,7 @@ void Crop_sowing_date_prec(Patch& patch, Pft& pft) {
 
 /// sowing date calculatation with two growing seasons
 void Crop_sowing_date_rice(Patch& patch, Pft& pft) {
-	Gridcell& gridcell = patch.stand.gridcell;
+	Gridcell& gridcell = patch.stand.get_gridcell();
 	Climate& climate = gridcell.climate;
 	Patchpft& patchpft = patch.pft[pft.id];
 	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
@@ -1714,7 +1714,7 @@ void Crop_sowing_date_rice(Patch& patch, Pft& pft) {
 /** Calculated value used if value for pft not found in file.
  */
 void Crop_sowing_date_forced(Patch& patch, Pft& pft) {
-	Gridcell& gridcell = patch.stand.gridcell;
+	Gridcell& gridcell = patch.stand.get_gridcell();
 	Climate& climate = gridcell.climate;
 	Patchpft& patchpft = patch.pft[pft.id];
 	Gridcellpft& gridcellpft = gridcell.pft[pft.id];
@@ -1774,7 +1774,7 @@ void Crop_sowing_date_new(Patch& patch, Pft& pft) {
 
 	Patchpft& patchpft = patch.pft[pft.id];
 	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
-	Gridcell& gridcell = patch.stand.gridcell;
+	Gridcell& gridcell = patch.stand.get_gridcell();
 	Gridcellpft& gridcellpft = gridcell.pft[pft.id];
 	Climate& climate = gridcell.climate;
 	seasonality_type seasonality = climate.seasonality;
@@ -1899,7 +1899,7 @@ void Crop_sowing_date_new(Patch& patch, Pft& pft) {
 void crop_sowing_patch(Patch& patch) {
 
 	pftlist.firstobj();
-	Gridcell& gridcell = patch.stand.gridcell;
+	Gridcell& gridcell = patch.stand.get_gridcell();
 	Climate& climate = gridcell.climate;
 
 	// Loop through PFTs
@@ -2002,7 +2002,7 @@ double senescence_curve(Pft& pft, double fphu) {
 void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch) {
 
 	Pft& pft = gridcellpft.pft;
-	Climate& climate = patch.stand.gridcell.climate;
+	const Climate& climate = patch.get_climate();
 	double phu_last_year = ppftcrop.phu;
 
 	ppftcrop.husum = 0.0;	
@@ -2082,7 +2082,7 @@ void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 			ppftcrop.phu = min(2000.0, max(1300.0, -700.0 / 90.0 * (ppftcrop.sdate - climate.adjustlat) + 2460.0));
 
 		if (!strncmp(pft.name,"TrRi", strlen("TrRi")) && date.year <= 1) {
-			if (patch.stand.gridcell.get_lon() < 60.0 || patch.stand.gridcell.get_lat() > 30.0)
+			if (patch.stand.get_gridcell().get_lon() < 60.0 || patch.stand.get_gridcell().get_lat() > 30.0)
 				ppftcrop.phu = 1600.0;
 		}
 	}
@@ -2157,7 +2157,7 @@ void calc_hu(Patch& patch, Pft& pft) {
 	double hu;
 	Patchpft& patchpft = patch.pft[pft.id];
 	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
-	Climate& climate = patch.stand.gridcell.climate;
+	const Climate& climate = patch.get_climate();
 
 	// calculation av fphu:
 #if defined MAXHUTEMP
@@ -2228,7 +2228,7 @@ void crop_phenology(Patch& patch)
 	while (patch.pft.isobj) {
 		Patchpft& patchpft = patch.pft.getobj();
 		Pft& pft=patchpft.pft;
-		Gridcell& gridcell = patch.stand.gridcell;
+		Gridcell& gridcell = patch.stand.get_gridcell();
 		Climate& climate = gridcell.climate;
 		Gridcellpft& gridcellpft = gridcell.pft[pft.id];
 		double hu = 0.0;
@@ -2401,7 +2401,7 @@ void crop_phenology(Patch& patch)
  */ 
 void leaf_phenology_crop(Pft& pft, Patch& patch) 
 {
-	Gridcell& gridcell = patch.stand.gridcell;
+	Gridcell& gridcell = patch.stand.get_gridcell();
 	Climate& climate = gridcell.climate;
 	Patchpft& patchpft = patch.pft[pft.id];
 	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
@@ -2750,7 +2750,7 @@ void allocation_crop_daily(Patch& patch) {
 					cropindiv.cmass_ho_harvest[1] = cropindiv.grs_cmass_ho;
 
 				if(indiv.has_daily_turnover()) {
-					if(patch.stand.gridcell.LC_updated && patchpft.cropphen->nharv == 1)
+					if(patch.stand.get_gridcell().LC_updated && patchpft.cropphen->nharv == 1)
 						scale_indiv(indiv, true);
 					harvest_crop(indiv, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass, true);
 					patch.is_litter_day = true;
@@ -2829,7 +2829,7 @@ void allocation_crop_daily(Patch& patch) {
 				ppftcrop.nharv++;
 
 				if(indiv.has_daily_turnover()) {
-					if(patch.stand.gridcell.LC_updated && patchpft.cropphen->nharv == 1)
+					if(patch.stand.get_gridcell().LC_updated && patchpft.cropphen->nharv == 1)
 						scale_indiv(indiv, true);
 					harvest_crop(indiv, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass, true);
 					patch.is_litter_day = true;
@@ -2863,7 +2863,7 @@ void allocation_crop_daily(Patch& patch) {
 				ppftcrop.nharv++;
 
 				if(indiv.has_daily_turnover()) {
-					if(patch.stand.gridcell.LC_updated && patchpft.cropphen->nharv == 1)
+					if(patch.stand.get_gridcell().LC_updated && patchpft.cropphen->nharv == 1)
 						scale_indiv(indiv, true);
 
 					turnover_grass(indiv);

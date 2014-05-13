@@ -22,29 +22,41 @@
 #include "InData.h"
 #endif
 
+/// An input module for CRU climate data
+/** This input module gets climate data from binary archives built from
+ *  CRU TS 3.0 (1901-2006).
+ */
 class CRUInput : public InputModule {
 public:
 
+	/// Constructor
+	/** Declares the instruction file parameters used by the input module.
+	 */
 	CRUInput();
 
+	/// Destructor, cleans up used resources
 	~CRUInput();
 
+	/// Reads in gridlist and initialises the input module
+	/** Gets called after the instruction file has been read */
 	void init();
 
+	/// See base class for documentation about this function's responsibilities
 	bool getgridcell(Gridcell& gridcell);
 
+	/// See base class for documentation about this function's responsibilities
 	bool getclimate(Gridcell& gridcell);
 
-	/// Gets landcover and crop fractions for one year
+	/// See base class for documentation about this function's responsibilities
 	void getlandcover(Gridcell& gridcell);
 
-	/// Gets sowing dates for one year
+	/// See base class for documentation about this function's responsibilities
 	void getsowingdates(Gridcell& gridcell);
 
-	/// Gets harvest dates for one year
+	/// See base class for documentation about this function's responsibilities
 	void getharvestdates(Gridcell& gridcell);
 
-	/// Gets N fertilization for one year
+	/// See base class for documentation about this function's responsibilities
 	void getNfert(Gridcell& gridcell);
 	
 	// Constants associated with historical climate data set
@@ -55,9 +67,10 @@ public:
 	/// calendar year corresponding to first year in data set
 	static const int FIRSTHISTYEAR = CRU_TS30::FIRSTHISTYEAR;
 
-	// number of years to use for temperature-detrended spinup data set
-	// (not to be confused with the number of years to spinup model for, which
-	// is read from the ins file)	
+	/// number of years to use for temperature-detrended spinup data set
+	/** (not to be confused with the number of years to spinup model for, which
+	 * is read from the ins file)
+	 */
 	static const int NYEAR_SPINUP_DATA=30;
 
 protected:
@@ -98,10 +111,9 @@ protected:
 
 private:
 
+	/// Type for storing grid cell longitude, latitude and description text
 	struct Coord {
-
-		// Type for storing grid cell longitude, latitude and description text
-		
+	
 		int id;
 		double lon;
 		double lat;
@@ -148,41 +160,50 @@ private:
 	 */
 	GlobalCO2File co2;
 
-	// Monthly temperature, precipitation and sunshine data for current grid cell
-	// and historical period
+	/// Monthly temperature for current grid cell and historical period
 	double hist_mtemp[NYEAR_HIST][12];
+
+	/// Monthly precipitation for current grid cell and historical period
 	double hist_mprec[NYEAR_HIST][12];
+
+	/// Monthly sunshine for current grid cell and historical period
 	double hist_msun[NYEAR_HIST][12];
 
-	// Monthly frost days, precipitation days and DTR data for current grid cell
-	// and historical period
+	/// Monthly frost days for current grid cell and historical period
 	double hist_mfrs[NYEAR_HIST][12];
+
+	/// Monthly precipitation days for current grid cell and historical period
 	double hist_mwet[NYEAR_HIST][12];
+
+	/// Monthly DTR (diurnal temperature range) for current grid cell and historical period
 	double hist_mdtr[NYEAR_HIST][12];
 
 	/// Nitrogen deposition forcing for current gridcell
 	Lamarque::NDepData ndep;
 
-	// Spinup data sets for current grid cell
+	/// Spinup data for current grid cell - temperature
 	Spinup_data spinup_mtemp;
+	/// Spinup data for current grid cell - precipitation
 	Spinup_data spinup_mprec;
+	/// Spinup data for current grid cell - sunshine
 	Spinup_data spinup_msun;
 
-	// guess2008
-	// Spinup data sets for monthly frost days, precipitation days and DTR data for 
-	// current grid cell
+	/// Spinup data for current grid cell - frost days
 	Spinup_data spinup_mfrs;
+	/// Spinup data for current grid cell - precipitation days
 	Spinup_data spinup_mwet;
+	/// Spinup data for current grid cell - DTR (diurnal temperature range)
 	Spinup_data spinup_mdtr;
 
-
-	// Daily temperature, precipitation and sunshine for one year
-	double dtemp[365],dprec[365],dsun[365];
-	// bvoc
-	// Daily diurnal temperature range for one year
+	/// Daily temperature for current year
+	double dtemp[365];
+	/// Daily precipitation for current year
+	double dprec[365];
+	/// Daily sunshine for current year
+	double dsun[365];
+	// Daily diurnal temperature range for current year
 	double ddtr[365];
-
-	// Daily N deposition for one year
+	/// Daily N deposition for current year
 	double dndep[365];
 
 	//Landuse input:

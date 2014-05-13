@@ -30,6 +30,8 @@ namespace GuessOutput {
  */
 class OutputModule {
 public:
+	virtual ~OutputModule() {};
+
 	/// Called after the instruction file has been read
 	/**
 	 *  If an output module needs to declare its own instruction

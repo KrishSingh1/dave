@@ -663,23 +663,25 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			// Determine area fraction of stands where this pft is active:
 			double active_fraction = 0.0;
 			double active_fraction_lc[NLANDCOVERTYPES]={0.0};
-			gridcell.firstobj();
-			while (gridcell.isobj) {
-				Stand& stand=gridcell.getobj();
+
+			Gridcell::iterator gc_itr = gridcell.begin();
+
+			while (gc_itr != gridcell.end()) {
+				Stand& stand = *gc_itr;
 
 				if(stand.pft[pft.id].active) {
 					active_fraction += stand.get_gridcell_fraction();
 					active_fraction_lc[stand.landcover] += stand.get_gridcell_fraction();
 				}
 
-				gridcell.nextobj();
+				++gc_itr;
 			}
 
-			gridcell.firstobj();
-
 			// Loop through Stands
-			while (gridcell.isobj) {
-				Stand& stand=gridcell.getobj();
+			gc_itr = gridcell.begin();
+
+			while (gc_itr != gridcell.end()) {
+				Stand& stand = *gc_itr;
 
 				Standpft& standpft=stand.pft[pft.id];
 				if(standpft.active) {
@@ -926,7 +928,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					}
 
 				}//if(active)
-				gridcell.nextobj();
+				++gc_itr;
 			}//End of loop through stands
 
 			// Print PFT sums to files
@@ -1016,9 +1018,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				double pft_fphu=-1;
 				double pft_fhi=-1;
 
-				gridcell.firstobj();
-				while (gridcell.isobj) {
-					Stand& stand=gridcell.getobj();
+				Gridcell::iterator gc_itr = gridcell.begin();
+				while (gc_itr != gridcell.end()) {
+					Stand& stand = *gc_itr;
 
 					if(stand.cftid==pft.cftid) {
 						pft_sdate1=stand[0].pft[pft.id].cropphen->sdate_thisyear[0];
@@ -1030,7 +1032,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 						pft_fphu=stand[0].pft[pft.id].cropphen->fphu_harv;
 						pft_fhi=stand[0].pft[pft.id].cropphen->fhi_harv;
 					}
-					gridcell.nextobj();
+					++gc_itr;
 				}
 				out.add_value(out_sdate1, pft_sdate1);
 				out.add_value(out_sdate2, pft_sdate2);
@@ -1081,11 +1083,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		// Sum C fluxes, dead C pools and runoff across patches
 
-		gridcell.firstobj();
+		Gridcell::iterator gc_itr = gridcell.begin();
 
 		// Loop through Stands
-		while (gridcell.isobj) {
-			Stand& stand = gridcell.getobj();
+		while (gc_itr != gridcell.end()) {
+			Stand& stand = *gc_itr;
 			stand.firstobj();
 
 			//Loop through Patches
@@ -1155,8 +1157,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					firert_gridcell+=(1.0/patch.fireprob) * to_gridcell_average;
 
 
-				andep_gridcell += stand.gridcell.climate.andep * to_gridcell_average;
-				anfert_gridcell += stand.gridcell.climate.anfert * to_gridcell_average;
+				andep_gridcell += stand.get_climate().andep * to_gridcell_average;
+				anfert_gridcell += stand.get_climate().anfert * to_gridcell_average;
 				anmin_gridcell += patch.soil.anmin * to_gridcell_average;
 				animm_gridcell += patch.soil.animmob * to_gridcell_average;
 				anfix_gridcell += patch.soil.anfix * to_gridcell_average;
@@ -1225,7 +1227,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				} // while/vegetation loop
 				stand.nextobj();
 			} // patch loop
-			gridcell.nextobj();
+			++gc_itr;
 		} // stand loop
 
 
@@ -1264,10 +1266,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		if(printseparatestands) {
 
-			gridcell.firstobj();
-			while (gridcell.isobj) {
+			Gridcell::iterator gc_itr = gridcell.begin();
+			while (gc_itr != gridcell.end()) {	
 
-				Stand& stand=gridcell.getobj();
+				Stand& stand = *gc_itr;
 				int id = stand.id;;
 
 				if(stand.landcover==NATURAL) {
@@ -1281,7 +1283,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 						out.add_value(out_anpp_stand_forest[id],    stand.anpp);
 				}
 
-				gridcell.nextobj();
+				++gc_itr;
 			}
 		}
 
@@ -1392,10 +1394,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		// (Windows shell only - no effect otherwise)
 
 		if (!(date.year%10)) {
-			gridcell.firstobj();
-			if(gridcell.isobj)	//Fixed bug here if no stands were present.
+			if(gridcell.nbr_stands() > 0)	//Fixed bug here if no stands were present.
 			{
-				Stand& stand=gridcell.getobj();
+				Stand& stand = gridcell[0];
 				plot("C flux [kg C/m2/yr]","veg",  date.year, flux_veg);
 				plot("C flux [kg C/m2/yr]","repr", date.year, flux_repr);
 				plot("C flux [kg C/m2/yr]","soil", date.year, flux_soil);
@@ -1694,10 +1695,12 @@ void CommonOutput::openlocalfiles(Gridcell& gridcell) {
 		double lat = gridcell.get_lat();
 
 
-		gridcell.firstobj();
-		while (gridcell.isobj) //Loop through stands:
-		{
-			Stand& stand=gridcell.getobj();
+		Gridcell::iterator gc_itr = gridcell.begin();
+
+		// Loop through Stands
+		while (gc_itr != gridcell.end()) {
+			Stand& stand = *gc_itr;
+
 			stand.anpp=0.0;
 
 			if(stand.landcover == NATURAL) {
@@ -1713,7 +1716,7 @@ void CommonOutput::openlocalfiles(Gridcell& gridcell) {
 				}
 			}
 
-			gridcell.nextobj();
+			++gc_itr;
 		}
 
 #ifdef PRINTFIRSTSTANDFROM1901
@@ -1725,10 +1728,11 @@ void CommonOutput::openlocalfiles(Gridcell& gridcell) {
 
 		if(open_natural || open_forest) {
 
-			gridcell.firstobj();
-			while(gridcell.isobj) {
+			gc_itr = gridcell.begin();
 
-				Stand& stand=gridcell.getobj();
+			while (gc_itr != gridcell.end()) {
+
+				Stand& stand = *gc_itr;
 
 				int id = stand.id;
 				char outfilename[100]={'\0'}, buffer[50]={'\0'};
@@ -1771,7 +1775,7 @@ void CommonOutput::openlocalfiles(Gridcell& gridcell) {
 						create_output_table(out_anpp_stand_forest[id], outfilename, anpp_columns);
 				}
 
-				gridcell.nextobj();
+				++gc_itr;
 			}
 		}
 	}

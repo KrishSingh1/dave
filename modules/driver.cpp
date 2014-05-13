@@ -552,7 +552,7 @@ void prdaily(double mval_prec[12], double dval_prec[365], double mval_wet[12], l
 //  Call each simulation day following update of daily air temperature prior to canopy
 //  exchange and SOM dynamics
 
-void soiltemp(Climate& climate, Soil& soil) {
+void soiltemp(const Climate& climate, Soil& soil) {
 
 	// DESCRIPTION
 	// Calculation of soil temperature at 0.25 m depth (middle of upper soil layer).
@@ -712,9 +712,9 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 		// Belongs perhaps in dailyaccounting_patch, but needs to be done before 
 		// landcover_dynamics because harvest flux is generated there.
-		gridcell.firstobj();
-		while (gridcell.isobj) {
-			Stand& stand = gridcell.getobj();
+		Gridcell::iterator gc_itr = gridcell.begin();
+		while (gc_itr != gridcell.end()) {
+			Stand& stand = *gc_itr;
 		
 			stand.firstobj();
 			while (stand.isobj) {
@@ -724,7 +724,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 				stand.nextobj();
 			}
 			
-			gridcell.nextobj();
+			++gc_itr;
 		}
 	}
 	else if ( (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE) ||
@@ -827,9 +827,9 @@ void dailyaccounting_patch_lc(Patch& patch) {
 				Patchpft& patchpft = patch.pft[pft.id];
 
 //				patch.fluxes.report_flux(Fluxes::HARVESTC, patchpft.harvested_products_slow*pft.turnover_harv_prod);
-				patch.stand.gridcell.acflux_harvest_slow+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.get_gridcell_fraction()/(double)patch.stand.nobj;
+				patch.stand.get_gridcell().acflux_harvest_slow+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.get_gridcell_fraction()/(double)patch.stand.nobj;
 				// flux from slow pool in receiving landcover after land use change (1)
-				patch.stand.gridcell.acflux_harvest_slow_lc[patch.stand.landcover]+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.get_gridcell_fraction()/(double)patch.stand.nobj;
+				patch.stand.get_gridcell().acflux_harvest_slow_lc[patch.stand.landcover]+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.get_gridcell_fraction()/(double)patch.stand.nobj;
 				// flux from slow pool in donating landcover after land use change (2)
 //				patch.stand.gridcell.acflux_harvest_slow_lc[pft.landcover]+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.get_gridcell_fraction()/(double)patch.stand.nobj;
 				patchpft.harvested_products_slow = patchpft.harvested_products_slow * (1 - pft.turnover_harv_prod);
@@ -908,7 +908,7 @@ void dailyaccounting_patch(Patch& patch) {
 	}
 
 	// Calculate soil temperatures
-	soiltemp(patch.stand.gridcell.climate,soil);
+	soiltemp(patch.get_climate(), soil);
 	respiration_temperature_response(soil.temp, soil.gtemp);
 
 	// On last day of month, calculate mean soil temperature for last month

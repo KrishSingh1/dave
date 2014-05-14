@@ -783,7 +783,6 @@ void DemoInput::getlandcover(Gridcell& gridcell) {
 
 	if(run[CROPLAND]) {
 		sum=0.0;
-		memset(gridcell.cftfrac, 0, sizeof(double)*NCROPSTANDS_MAX);
 
 		if(cftfrac_fixed) {		// If static equal crop fractions
 			if(date.year==0) {	// Year 0: called by landcover_init
@@ -805,6 +804,7 @@ void DemoInput::getlandcover(Gridcell& gridcell) {
 			if(CFTdata.Get(year,0)==-9.999) {		// to cope with missing Bondeau fraction data
 #endif		
 				dprintf("WARNING ! missing crop fraction data  for year %d, all set to 0.0\n", year+FIRSTHISTYEAR);
+				memset(gridcell.cftfrac, 0, sizeof(double)*NCROPSTANDS_MAX);
 			}
 			else {
 				// sum fractions for active crop pft:s and discard unreasonable values

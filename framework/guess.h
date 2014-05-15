@@ -1002,7 +1002,6 @@ public:
 		// Note: primary PFT parameters, including SLA, must be set before this
 		//       function is called
 	
-		const double PI = 3.14159265;
 		const double REGENLAI_TREE = 1.5;
 		const double REGENLAI_GRASS = 0.001;
 		const double SAPLINGHW = 0.2;

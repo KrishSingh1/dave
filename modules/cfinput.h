@@ -15,6 +15,7 @@
 #include "cruinput.h"
 #include "guessnc.h"
 #include <memory>
+#include <limits>
 
 class CFInput : public InputModule {
 public:
@@ -73,7 +74,9 @@ private:
 	void populate_daily_array(double daily[365],
 	                          const GenericSpinupData& spinup,
 	                          GuessNC::CF::GridcellOrderedVariable* cf_historic,
-	                          int& historic_timestep);
+	                          int& historic_timestep,
+	                          double minimum = -std::numeric_limits<double>::max(),
+	                          double maximum = std::numeric_limits<double>::max());
 
 	/// Same as populate_daily_array, but for precipitation which is special
 	/** Uses number of wet days if available and handles extensive/intensive conversion */
@@ -81,6 +84,9 @@ private:
 	
 	/// Fills dtemp, dprec, etc. with forcing data for the current year
 	void populate_daily_arrays(long& seed);
+
+	/// \returns all variables
+	std::vector<GuessNC::CF::GridcellOrderedVariable*> all_variables() const;
 
 	/// Yearly CO2 data read from file
 	/**

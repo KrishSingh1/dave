@@ -26,6 +26,8 @@ class Gridcell;
  */
 class InputModule {
 public:
+	virtual ~InputModule() {}
+
 	/// Called after the instruction file has been read
 	/** Initialises the input module (e.g. opening files). Typically
 	 *  reads in a gridlist.

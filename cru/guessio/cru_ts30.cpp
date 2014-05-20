@@ -151,6 +151,10 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 
 				mdtr[y][m] = data.mdtr[y*12+m]*0.1;  // degC
 
+				// For some reason there are negative dtr values in
+				// the CRU binaries(!). Set these to zero for now.
+				mdtr[y][m] = max(0.0, mdtr[y][m]);
+
 				/*
 				If vapour pressure is needed:
 				mvap[y][m] = data.mvap[y*12+m]*0.01;

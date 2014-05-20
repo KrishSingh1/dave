@@ -18,6 +18,27 @@
 
 REGISTER_INPUT_MODULE("demo", DemoInput)
 
+// Anonymous namespace for variables and functions with file scope
+namespace {
+
+// File names for temperature, precipitation, sunshine and soil code driver files
+xtring file_temp,file_prec,file_sun,file_soil;
+
+// LPJ soil code
+int soilcode;
+
+/// Interpolates monthly data to quasi-daily values.
+void interp_climate(double mtemp[12], double mprec[12], double msun[12], double mdtr[12],
+					double dtemp[365], double dprec[365], double dsun[365], double ddtr[365]) {
+	interp_monthly_means_conserve(mtemp, dtemp);
+	interp_monthly_totals_conserve(mprec, dprec, 0);
+	interp_monthly_means_conserve(msun, dsun, 0, 100);
+	interp_monthly_means_conserve(mdtr, ddtr, 0);
+}
+
+} // namespace
+
+
 DemoInput::DemoInput() 
 	: nyear(1),
 	  lc_fixed_frac(NLANDCOVERTYPES, 0),
@@ -36,25 +57,6 @@ DemoInput::DemoInput()
 	declare_parameter("lc_fixed_peatland", &lc_fixed_frac[PEATLAND], 0, 100, "% lc_fixed_peatland");
 }
 
-
-// File names for temperature, precipitation, sunshine and soil code driver files
-xtring file_temp,file_prec,file_sun,file_soil;
-
-// LPJ soil code
-int soilcode;
-
-namespace {
-
-/// Interpolates monthly data to quasi-daily values.
-void interp_climate(double mtemp[12], double mprec[12], double msun[12], double mdtr[12],
-					double dtemp[365], double dprec[365], double dsun[365], double ddtr[365]) {
-	interp_monthly_means(mtemp, dtemp);
-	interp_monthly_totals(mprec, dprec);
-	interp_monthly_means(msun, dsun);
-	interp_monthly_means(mdtr, ddtr);
-}
-
-} // namespace
 
 void DemoInput::read_from_file(Coord coord, xtring fname, const char* format,
                                double monthly[12], bool soil /* = false */) {
@@ -166,20 +168,6 @@ void DemoInput::init() {
 	// DESCRIPTION
 	// Initialises input (e.g. opening files), and reads in the gridlist
 
-	///////////////////////////////////////////////////////////////////////////////////
-	// GENERIC SECTION - DO NOT MODIFY
-
-	xtring header;
-
-	unixtime(header);
-	header=(xtring)"[LPJ-GUESS  "+header+"]\n\n";
-	dprintf((char*)header);
-
-	// Print the title of this run
-	dprintf("\n\n-----------------------------------------------\n%s\n-----------------------------------------------\n",(char*)title);
-
-	///////////////////////////////////////////////////////////////////////////////////
-	// USER-SPECIFIC SECTION (Modify as necessary or supply own code)
 	//
 	// Reads list of grid cells and (optional) description text from grid list file
 	// This file should consist of any number of one-line records in the format:
@@ -267,9 +255,6 @@ void DemoInput::init() {
 	tmute.settimer(MUTESEC);
 }
 
-///	Loads landcover area fraction data from file(s) for a gridcell.
-/** Called from getgridcell() if run_landcover is true. 
-  */
 bool DemoInput::loadlandcover(Gridcell& gridcell, Coord c)	{
 	bool LUerror=false;
 
@@ -301,25 +286,10 @@ bool DemoInput::loadlandcover(Gridcell& gridcell, Coord c)	{
 	return LUerror;
 }
 
-/// Called by the framework at the start of the simulation for a particular grid cell
+
 bool DemoInput::getgridcell(Gridcell& gridcell) {
 
-	// DESCRIPTION
-	// Obtains coordinates and soil static parameters for the next grid cell to
-	// simulate. The function should return false if no grid cells remain to be simulated,
-	// otherwise true. Currently the following member variables of Gridcell should be
-	// initialised: longitude, latitude and climate.instype; the following members of
-	// member soiltype: awc[0], awc[1], perc_base, perc_exp, thermdiff_0, thermdiff_15,
-	// thermdiff_100. The soil parameters can be set indirectly based on an lpj soil
-	// code (Sitch et al 2000) by a call to function soilparameters in the driver
-	// module (driver.cpp):
-	//
-	// soilparameters(gridcell.soiltype,soilcode);
-	//
-	// If the model is to be driven by quasi-daily values of the climate variables
-	// derived from monthly means, this function may be the appropriate place to
-	// perform the required interpolations. The utility functions interp_monthly_means
-	// and interp_monthly_totals in driver.cpp may be called for this purpose.
+	// See base class for documentation about this function's responsibilities
 
 	// Select coordinates for next grid cell in linked list
 	bool gridfound = false;
@@ -388,7 +358,7 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 	return false; // no more stands
 }
 
-///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
+
 void DemoInput::getlandcover(Gridcell& gridcell) {
 	int i, year;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
@@ -581,40 +551,9 @@ void DemoInput::getlandcover(Gridcell& gridcell) {
 }
 
 
-/// Called by the framework each simulation day before any process modelling is performed for this day
-/** Obtains climate data (including atmospheric CO2 and insolation) for this day. */
 bool DemoInput::getclimate(Gridcell& gridcell) {
 
-	// DESCRIPTION
-	// The function should returns false if the simulation is complete for this grid cell,
-	// otherwise true. This will normally require querying the year and day member
-	// variables of the global class object date:
-	//
-	// if (date.day==0 && date.year==nyear) return false;
-	// // else
-	// return true;
-	//
-	// Currently the following member variables of the climate member of gridcell must be
-	// initialised: co2, temp, prec, insol. If the model is to be driven by quasi-daily
-	// values of the climate variables derived from monthly means, this day's values
-	// will presumably be extracted from arrays containing the interpolated daily
-	// values (see function getgridcell):
-	//
-	// gridcell.climate.temp=dtemp[date.day];
-	// gridcell.climate.prec=dprec[date.day];
-	// gridcell.climate.insol=dsun[date.day];
-	// 
-	// Diurnal temperature range (dtr) added for calculation of leaf temperatures in 
-	// BVOC:
-	// gridcell.climate.dtr=ddtr[date.day]; 
-	//
-	// If model is run in diurnal mode, which requires appropriate climate forcing data, 
-	// additional members of the climate must be initialised: temps, insols. Both of the
-	// variables must be of type std::vector. The length of these vectors should be equal
-	// to value of date.subdaily which also needs to be set either in getclimate or 
-	// getgridcell functions. date.subdaily is a number of sub-daily period in a single 
-	// day. Irrespective of the BVOC settings, climate.dtr variable is not required in 
-	// diurnal mode.
+	// See base class for documentation about this function's responsibilities
 
 	double progress;
 

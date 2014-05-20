@@ -811,11 +811,11 @@ void EurofluxOutput::outannual(Gridcell& gridcell) {
 		std::vector<double> maet(12);
 		std::vector<double> mnee(12);
 
-		gridcell.firstobj();
+		Gridcell::iterator gc_itr = gridcell.begin();
 
-		while (gridcell.isobj) {
+		while (gc_itr != gridcell.end()) {
 
-			Stand& stand = gridcell.getobj();
+			Stand& stand = *gc_itr;
 			stand.firstobj();
 			
 			while (stand.isobj) {
@@ -836,7 +836,7 @@ void EurofluxOutput::outannual(Gridcell& gridcell) {
 				stand.nextobj();
 			}
 
-			gridcell.nextobj();
+			++gc_itr;
 		}
 
 		// euroflux

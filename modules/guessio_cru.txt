@@ -1,2 +1,0 @@
-If you're looking for guessio_cru.cpp, it is located
-in ../cru/guessio/guessio_cru.cpp

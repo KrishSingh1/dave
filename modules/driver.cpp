@@ -210,7 +210,9 @@ void interp_single_month(double preceding_mean,
                          double this_mean,
                          double succeeding_mean,
                          int time_steps,
-                         double* result) {
+                         double* result,
+                         double minimum = -std::numeric_limits<double>::max(),
+                         double maximum = std::numeric_limits<double>::max()) {
 
 	// The values for the beginning and the end of the month are determined 
 	// from the average of the two adjacent monthly means
@@ -263,6 +265,56 @@ void interp_single_month(double preceding_mean,
 		// conserve the mean
 		result[time_steps/2] = time_steps*this_mean-sum;
 	}
+
+	// Go through all values and make sure they're all above the minimum
+	double added = 0;
+	double sum_above = 0;
+
+	for (int i = 0; i < time_steps; ++i) {
+		if (result[i] < minimum) {
+			added += minimum - result[i];
+			result[i] = minimum;
+		}
+		else {
+			sum_above += result[i] - minimum;
+		}
+	}
+
+	double fraction_to_remove = sum_above > 0 ? added / sum_above : 0;
+
+	for (int i = 0; i < time_steps; ++i) {
+		if (result[i] > minimum) {
+			result[i] -= fraction_to_remove * (result[i] - minimum);
+
+			// Needed (only) due to limited precision in floating point arithmetic
+			result[i] = max(result[i], minimum);
+		}
+	}
+
+	// Go through all values and make sure they're all below the maximum
+	double removed = 0;
+	double sum_below = 0;
+
+	for (int i = 0; i < time_steps; ++i) {
+		if (result[i] > maximum) {
+			removed += result[i] - maximum;
+			result[i] = maximum;
+		}
+		else {
+			sum_below += maximum - result[i];
+		}
+	}
+
+	double fraction_to_add = sum_below > 0 ? removed / sum_below : 0;
+
+	for (int i = 0; i < time_steps; ++i) {
+		if (result[i] < maximum) {
+			result[i] += fraction_to_add * (maximum - result[i]);
+
+			// Needed (only) due to limited precision in floating point arithmetic
+			result[i] = min(result[i], maximum);
+		}
+	}
 }
 
 
@@ -275,7 +327,8 @@ void interp_single_month(double preceding_mean,
  *  \param mvals The monthly means
  *  \param dvals The generated daily values
  */
-void interp_monthly_means_conserve(const double* mvals, double* dvals) {
+void interp_monthly_means_conserve(const double* mvals, double* dvals,
+                                   double minimum, double maximum) {
 
 	Date date;
 	int start_of_month = 0;
@@ -286,8 +339,17 @@ void interp_monthly_means_conserve(const double* mvals, double* dvals) {
 		int next = (m+1)%12;
 		int prev = (m+11)%12;
 
+		// If a monthly mean value is outside of the allowed limits for daily
+		// values (for instance negative radiation), we'll fail to make sure
+		// the user knows the forcing data is broken.
+		if (mvals[m] < minimum || mvals[m] > maximum) {
+			fail("interp_monthly_means_conserve: Invalid monthly value given (%g), min = %g, max = %g", 
+				  mvals[m], minimum, maximum);
+		}
+
 		interp_single_month(mvals[prev], mvals[m], mvals[next], 
-		                    date.ndaymonth[m], dvals+start_of_month);
+		                    date.ndaymonth[m], dvals+start_of_month,
+		                    minimum, maximum);
 
 		start_of_month += date.ndaymonth[m];
 	}
@@ -304,7 +366,8 @@ void interp_monthly_means_conserve(const double* mvals, double* dvals) {
  *  \param mvals The monthly totals
  *  \param dvals The generated daily values
  */
-void interp_monthly_totals_conserve(const double* mvals, double* dvals) {
+void interp_monthly_totals_conserve(const double* mvals, double* dvals,
+                                    double minimum, double maximum) {
 	// Local date object just used to get number of days for each month
 	Date date;
 
@@ -313,7 +376,7 @@ void interp_monthly_totals_conserve(const double* mvals, double* dvals) {
 	for (int m=0; m<12; m++)
 		mvals_daily[m] = mvals[m] / (double)date.ndaymonth[m];
 
-	interp_monthly_means_conserve(mvals_daily, dvals);
+	interp_monthly_means_conserve(mvals_daily, dvals, minimum, maximum);
 }
 
 /// Distributes a single month of N deposition values
@@ -387,8 +450,10 @@ void distribute_ndep(const double* mndry, const double* mnwet,
  *  \param dval_prec  actual rainfall (mm) for each day of year
  *  \param mval_wet   expected number of rain days for month
  *  \param seed       seed for generating random numbers (\see randfrac)
+ *  \param truncate   if set to true the function will set small daily values
+ *                    (< 0.1) to zero
  */
-void prdaily(double mval_prec[12], double dval_prec[365], double mval_wet[12], long& seed) {
+void prdaily(double mval_prec[12], double dval_prec[365], double mval_wet[12], long& seed, bool truncate /* = true */) {
 
 //  Distribution of monthly precipitation totals to quasi-daily values
 //  (From Dieter Gerten 021121)
@@ -472,7 +537,7 @@ void prdaily(double mval_prec[12], double dval_prec[365], double mval_wet[12], l
 					for (d=0; d<date.ndaymonth[m]; d++) {
 						dyy = daysum + d;
 						dval_prec[dyy] *= mval_prec[m] / mprec_sum;
-						if (dval_prec[dyy] < 0.1) dval_prec[dyy] = 0.0;
+						if (truncate && dval_prec[dyy] < 0.1) dval_prec[dyy] = 0.0;
 					}
 				}
 			}
@@ -487,7 +552,7 @@ void prdaily(double mval_prec[12], double dval_prec[365], double mval_wet[12], l
 //  Call each simulation day following update of daily air temperature prior to canopy
 //  exchange and SOM dynamics
 
-void soiltemp(Climate& climate, Soil& soil) {
+void soiltemp(const Climate& climate, Soil& soil) {
 
 	// DESCRIPTION
 	// Calculation of soil temperature at 0.25 m depth (middle of upper soil layer).
@@ -638,9 +703,9 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 		// Belongs perhaps in dailyaccounting_patch, but needs to be done before 
 		// landcover_dynamics because harvest flux is generated there.
-		gridcell.firstobj();
-		while (gridcell.isobj) {
-			Stand& stand = gridcell.getobj();
+		Gridcell::iterator gc_itr = gridcell.begin();
+		while (gc_itr != gridcell.end()) {
+			Stand& stand = *gc_itr;
 		
 			stand.firstobj();
 			while (stand.isobj) {
@@ -650,7 +715,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 				stand.nextobj();
 			}
 			
-			gridcell.nextobj();
+			++gc_itr;
 		}
 	}
 	else if ( (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE) ||
@@ -827,7 +892,7 @@ void dailyaccounting_patch(Patch& patch) {
 	}
 
 	// Calculate soil temperatures
-	soiltemp(patch.stand.gridcell.climate,soil);
+	soiltemp(patch.get_climate(), soil);
 	respiration_temperature_response(soil.temp, soil.gtemp);
 
 	// On last day of month, calculate mean soil temperature for last month

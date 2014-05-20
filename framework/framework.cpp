@@ -26,6 +26,20 @@
 
 #include <memory>
 
+/// Prints the date and time together with the name of this simulation
+void print_logfile_heading() {
+	xtring datetime;
+	unixtime(datetime);
+
+	xtring header = xtring("[LPJ-GUESS  ") + datetime + "]\n\n";
+	dprintf((char*)header);
+
+	// Print the title of this run
+	std::string dashed_line(50, '-');
+	dprintf("\n\n%s\n%s\n%s\n", 
+	        dashed_line.c_str(), (char*)title, dashed_line.c_str());
+}
+
 int framework(const CommandLineArguments& args) {
 
 	// The 'mission control' of the model, responsible for maintaining the 
@@ -44,6 +58,8 @@ int framework(const CommandLineArguments& args) {
 	// Read the instruction file to obtain PFT static parameters and
 	// simulation settings
 	read_instruction_file(args.get_instruction_file());
+
+	print_logfile_heading();
 
 	// Initialise input/output
 	input_module->init();
@@ -124,12 +140,12 @@ int framework(const CommandLineArguments& args) {
 				landcover_dynamics(gridcell, input_module.get());
 			}
 
-			gridcell.firstobj();
-			while (gridcell.isobj) {
+			Gridcell::iterator gc_itr = gridcell.begin();
+			while (gc_itr != gridcell.end()) {
 
 				// START OF LOOP THROUGH STANDS
 
-				Stand& stand = gridcell.getobj();
+				Stand& stand = *gc_itr;
 
 				dailyaccounting_stand(stand);
 
@@ -176,7 +192,7 @@ int framework(const CommandLineArguments& args) {
 					}
 				}
 
-				gridcell.nextobj();			
+				++gc_itr;
 			}	// End of loop through stands
 
 			output_modules.outdaily(gridcell);

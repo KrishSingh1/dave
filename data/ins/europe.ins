@@ -28,21 +28,26 @@ outputdirectory "./"
 ! These files may be outcommented if their output is not required. 
 file_cmass "cmass.out"
 file_anpp "anpp.out"
+file_agpp "agpp.out"
+file_fpc "fpc.out"
+file_aaet "aaet.out"
 file_lai "lai.out"
 file_cflux "cflux.out"
 file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
+file_nlitter "nlitter.out"
 !file_firert "firert.out"
 !file_aiso "aiso.out"
 !file_amon "amon.out"
 !file_speciesheights "height.out"
 
+file_nmass "nmass.out"
 file_cton_leaf "cton_leaf.out"
-!file_cton_veg "cton_veg.out"
 file_ngases "ngases.out"
 file_nsources "nsources.out"
 file_npool "npool.out"
+file_nlitter "nlitter.out"
 file_nuptake "nuptake.out"
 file_nflux "nflux.out"
 file_vmaxnlim "vmaxnlim.out"
@@ -210,7 +215,6 @@ group "shrub" (
 	k_allom3 0.67
 	k_rp 1.6
 	wooddens 250
-	!cton_leaf_min 16	
 	cton_root 29
 	cton_sap 330
 	nuptoroot 0.0028
@@ -227,7 +231,6 @@ group "shrub" (
 
 group "needle_leaved" (
 	leafphysiognomy "needleleaf"
-	!cton_leaf_min 28
 	k_allom1 150
 	k_latosa 4000
 	ga 0.140
@@ -235,7 +238,6 @@ group "needle_leaved" (
 
 group "broad_leaved" (
 	leafphysiognomy "broadleaf"
-	!cton_leaf_min 16
 	k_allom1 250 
 	k_latosa 5000
 	leaflong 0.5		! PMxx: new default
@@ -251,7 +253,6 @@ group "grass" (
 	lifeform "grass"
 	leafphysiognomy "broadleaf"
 	ltor_max 0.5
-	!cton_leaf_min 16
 	cton_root 29
 	nuptoroot 0.00551
 	km_volume 0.000001876
@@ -1044,7 +1045,7 @@ pft "C3_gr" (
 	gmin 0.5
 	phenology "any"
 !	sla 32.4				! Not used if ifcalcsla is set
-	leaflong 1
+	leaflong 0.5
 	turnover_leaf 1
 	turnover_root 0.7
 	phengdd5ramp 100
@@ -1076,7 +1077,7 @@ pft "C4_gr" (
 	rootdist 0.9 0.1
 	gmin 0.5
 	phenology "any"
-	leaflong 1
+	leaflong 0.5
 	turnover_leaf 1
 	turnover_root 0.7 ! PM_Dec2012, was 0.5
 	phengdd5ramp 100

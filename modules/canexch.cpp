@@ -206,7 +206,7 @@ void fpar(Patch& patch) {
 	Vegetation& vegetation=patch.vegetation;
 
 	// And to Climate object
-	Climate& climate=patch.stand.gridcell.climate;
+	const Climate& climate = patch.get_climate();
 
 	if (vegmode==POPULATION) {
 
@@ -461,7 +461,7 @@ void fpar(Patch& patch) {
 			patch.nday_growingseason=0;
 		}
 
-		if (phen_veg>PHEN_GROWINGSEASON && patch.stand.gridcell.climate.daylength >= 11.0) {
+		if (phen_veg>PHEN_GROWINGSEASON && patch.get_climate().daylength >= 11.0) {
 			patch.par_grass_mean+=par_grass;
 			patch.nday_growingseason++;
 		}
@@ -585,7 +585,7 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 	// Scale fractional PAR absorption at plant projective area level (FPAR) to
 	// fractional absorption at leaf level (APAR)
 	// Eqn 4, Haxeltine & Prentice 1996a
-	double apar = par * fpar * (ifnlimvmax ? ALPHAA_NLIM : ALPHAA);
+	double apar = par * fpar * (ifnlim ? ALPHAA_NLIM : ALPHAA);
 	double b, c1, c2;
 
 	// Calculate temperature-inhibition coefficient
@@ -694,31 +694,13 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 	// each Standpft, assuming FPAR=1. This is then later used in 
 	// forest_floor_conditions.
 	if (!patch.id) {
-		Stand& stand = patch.stand;
 
 		for (int p=0; p<npft; p++) {
-			Standpft& spft = stand.pft[p];
-			Pft& pft = spft.pft;
+			Standpft& spft = patch.stand.pft[p];
 
 			// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
 			photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
-				1.0, pft.lambda_max, pft, 1.0, false, spft.photosynthesis, -1);
-
-			if (date.diurnal()) {
-				spft.gpterms.assign(date.subdaily, 0);
-				PhotosynthesisResult res;
-				spft.phots.assign(date.subdaily, res);
-
-				for (int i=0; i<date.subdaily; i++) {
-					PhotosynthesisResult& result = spft.phots[i];
-					photosynthesis(climate.co2, climate.temps[i], climate.pars[i],
-						24, 1.0, pft.lambda_max, pft, 1.0, false, result, spft.photosynthesis.vm);
-
-					spft.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
-				}
-			}
-			spft.gpterm = gpterm(spft.photosynthesis.adtmm, climate.co2,
-				pft.lambda_max, climate.daylength);
+				1.0, spft.pft.lambda_max, spft.pft, 1.0, false, spft.photosynthesis, -1);
 		}
 	}
 
@@ -872,7 +854,7 @@ void nstore_usage(Vegetation& vegetation) {
  */
 void ndemand(Patch& patch, Vegetation& vegetation) {
 
-	Gridcell& gridcell = patch.stand.gridcell;
+	Gridcell& gridcell = patch.stand.get_gridcell();
 	Soil& soil = patch.soil;
 
 	/// daily nitrogen demand for patch (kgN/m2)
@@ -968,7 +950,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Calculate scalars to possible nitrogen uptake
 
 		// Current plant mobile nitrogen concentration
-		double ntoc = !negligible(indiv.phen) ? (indiv.nmass_leaf + indiv.nmass_root) / (indiv.cmass_leaf * indiv.phen + indiv.cmass_root) : 0.0;
+		double ntoc = !negligible(indiv.phen) ? (indiv.nmass_leaf + indiv.nmass_root) / (indiv.phen * (indiv.cmass_leaf + indiv.cmass_root)) : 0.0;
 
 		// Scale to maximum nitrogen concentrations
 		indiv.cton_status = max(0.0, (ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_avr - 1.0 / indiv.pft.cton_leaf_min));
@@ -977,13 +959,13 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		double nmin_scale = kNmin + soil.nmass_avail / (soil.nmass_avail + gridcell.pft[indiv.pft.id].Km);
 
 		// Maximum available soil mineral nitrogen for this individual is base on its root area.
-		// This is considered to be related to FPC which is proportional to crown area which is appro
+		// This is considered to be related to FPC which is proportional to crown area which is approx
 		// 4 times smaller than the root area
 		double max_indiv_avail = min(1.0, indiv.fpc * 4.0) * soil.nmass_avail;
 
 		// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake) 
 		// and soil available nitrogen within individual projectived coverage
-		double maxnup = min(2.0 * indiv.pft.nuptoroot * nmin_scale * temp_scale * indiv.cton_status * indiv.cmass_root, max_indiv_avail);
+		double maxnup = min(2.0 * indiv.pft.nuptoroot * nmin_scale * temp_scale * indiv.cton_status * indiv.cmass_root * indiv.phen, max_indiv_avail);
 
 		// Nitrogen demand limitation due to maximum nitrogen uptake capacity
 		double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot,1.0) : 0.0;
@@ -1017,7 +999,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 			indiv.leaffndemand  = indiv.leafndemand / indiv.ndemand;
 			indiv.rootfndemand  = indiv.rootndemand / indiv.ndemand;
 			indiv.sapfndemand   = indiv.sapndemand  / indiv.ndemand;
-			indiv.storefndemand = 1.0 - (indiv.leaffndemand + indiv.rootfndemand + indiv.sapfndemand);		
+			indiv.storefndemand = max(0.0, 1.0 - (indiv.leaffndemand + indiv.rootfndemand + indiv.sapfndemand));		
 		}
 
 		// Sum total patch nitrogen demand
@@ -1097,7 +1079,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 					indiv.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
 				}
 			}
-		}			
+		}
 
 		// Sum annual average nitrogen limitation on vmax
 		if (indiv.phen)
@@ -1379,6 +1361,9 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 		Patchpft& ppft = patch.pft[indiv.pft.id];
 		if (day.isstart) {
 			indiv.aet = 0;
+
+			if (date.day == 0)
+				indiv.aaet = 0.0;
 		}
 
 		indiv.wstress = ppft.wstress;
@@ -1391,6 +1376,10 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 		}
 		if (day.isend) {
 			indiv.aet *= indiv.fpc / date.subdaily;
+		}
+
+		if (day.isend) {
+			indiv.aaet += indiv.aet;
 		}
 
 		vegetation.nextobj();
@@ -1795,7 +1784,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
  */
 void forest_floor_conditions(Patch& patch) {
 
-	Climate& climate = patch.stand.gridcell.climate;
+	const Climate& climate = patch.get_climate();
 	double lambda;			// not used here
 	PhotosynthesisResult phot;
 

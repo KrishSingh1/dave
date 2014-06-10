@@ -59,6 +59,8 @@ public:
 	/// See base class for documentation about this function's responsibilities
 	void getNfert(Gridcell& gridcell);
 
+	int getfirsthistyear();	
+
 private:
 
 	/// Type for storing grid cell longitude, latitude and description text

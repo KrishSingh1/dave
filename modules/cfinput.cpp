@@ -754,6 +754,7 @@ void CFInput::getlandcover(Gridcell& gridcell) {
 void CFInput::getsowingdates(Gridcell& gridcell) {}
 void CFInput::getharvestdates(Gridcell& gridcell) {}
 void CFInput::getNfert(Gridcell& gridcell) {}
+void CFInput::getfirsthistyear() {}
 
 bool CFInput::getclimate(Gridcell& gridcell) {
 	

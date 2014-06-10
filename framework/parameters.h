@@ -133,8 +133,8 @@ extern bool run[NLANDCOVERTYPES];
 /// Whether landcover fractions are read from ins-file.
 extern bool lcfrac_fixed;
 
-/// Whether crop fractions are read from ins-file.
-extern bool cftfrac_fixed;
+/// Whether fractions of stand types of a specific land cover are read from input file.
+extern bool frac_fixed[NLANDCOVERTYPES];
 
 /// Set to false by initio( ) if fraction input files have yearly data.
 extern bool all_fracs_const;

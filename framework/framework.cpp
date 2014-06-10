@@ -143,15 +143,9 @@ int framework(const CommandLineArguments& args) {
 				if(date.year >= nyear_spinup)
 					landcover_dynamics(gridcell, input_module.get());
 
-				//Read sowing dates from input file, put into gridcellpft.sdate_force
-				if(run[CROPLAND] && forcesowingdates)		
-					input_module->getsowingdates(gridcell);
-				//Read harvest dates from input file, put into gridcellpft.hdate_force
-				if(run[CROPLAND] && forceharvestdates)		
-					input_module->getharvestdates(gridcell);
-				//Read N fertilization from input file, put into xxx
-				if(run[CROPLAND] && readNfert)		
-					input_module->getNfert(gridcell);
+				// Update dynamic management options
+				if(run[CROPLAND])
+					getmanagement(gridcell, input_module.get());
 			}
 
 			Gridcell::iterator gc_itr = gridcell.begin();
@@ -207,6 +201,9 @@ int framework(const CommandLineArguments& args) {
 					}
 					stand.nextobj();
 				}// End of loop through patches
+
+				// Update crop rotation status
+				crop_rotation(stand, input_module.get()->getfirsthistyear());
 
 				if (date.islastday && date.islastmonth) {
 					// LAST DAY OF YEAR

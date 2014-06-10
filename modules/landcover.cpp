@@ -63,32 +63,15 @@ void landcover_init(Gridcell& gridcell, InputModule* input_module) {
 	// get landcover and crop area fractions from landcover input file(s) or ins-file.
 	input_module->getlandcover(gridcell);
 
-	// create stands for landcovers with only one (initial) stand
-	for(int i=0; i<NLANDCOVERTYPES; i++) { //For all landcover types without subclasses
-		if(i != CROPLAND) {				
-			if(run[i]) {
-				if(gridcell.landcoverfrac[i] > 0.0) {
-					gridcell.create_stand_lu((landcovertype)i, gridcell.landcoverfrac[i]);
-				}
-			}
-		}
-	}
+	stlist.firstobj();
+	while (stlist.isobj) {
+		StandType& st = stlist.getobj();
 
-	if(run[CROPLAND]) {
-		// create crop stands
-		if(gridcell.landcoverfrac[CROPLAND] > 0.0)
-		{
-			pftlist.firstobj();
-			while (pftlist.isobj) {
-				Pft& pft = pftlist.getobj();
-				if(pft.landcover == CROPLAND && pft.cftid >= 0) {
-					if(gridcell.cftfrac[pft.cftid] > 0.0) {
-						gridcell.create_stand_lu(CROPLAND, gridcell.cftfrac[pft.cftid] * gridcell.landcoverfrac[CROPLAND], pft.cftid);
-					}
-				}
-				pftlist.nextobj();
-			}
+		if(st.frac > 0.0) {
+			gridcell.create_stand_lu(st, st.frac);
 		}
+
+		stlist.nextobj();
 	}
 }
 
@@ -160,29 +143,32 @@ void landcover_change_transfer::allocate() {
  *
  *  OUTPUT PARAMETERS
  *  \param landcoverfrac_change				array with this year's difference in area fractions of the different landcovers
- *  \param cropstand_change					array with this year's difference in area fractions of the different crop stands
- *  \param changeLC							sum of all stands' absolute changes
- *  \param change_crop						sum of all crop stands' absolute changes
  *  \param receiving_fraction				sum of added area to expanding stands
  *  \param LCchangeCtransfer				whether to transfer carbon, nitrogen and water of reduced stands to expanding stands
  */
-bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], double cropstand_change[NCROPSTANDS_MAX], 
-				   double& changeLC, double& change_crop, double& receiving_fraction, bool& LCchangeCtransfer, InputModule* input_module) {
+bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], 
+				   double& receiving_fraction, bool& LCchangeCtransfer, InputModule* input_module) {
 
-	double cropfrac_change[NCROPSTANDS_MAX];
 	double cropfrac_sum_old = 0.0;
 	double change_stand = 0.0;
+	double changeLC = 0.0;
+	double change_crop = 0.0;
 	double transferred_fraction = 0.0;
+	bool change = true;
 
-	memset(cropfrac_change, 0, NCROPSTANDS_MAX * sizeof(double));
 
 	//Save old fraction values:									
 	for(int i=0; i<NLANDCOVERTYPES; i++)
 		gridcell.landcoverfrac_old[i] = gridcell.landcoverfrac[i];
-	for(int i=0; i<NCROPSTANDS_MAX; i++)
-		cropfrac_sum_old += gridcell.cftfrac_old[i] = gridcell.cftfrac[i];
+	for(int i=0; i<nst; i++) {
+		StandType& st = stlist[i];
 
-	//Get new gridcell.landcoverfrac and/or gridcell.cftfrac from LUdata and CFTdata.		
+		st.frac_old = st.frac;
+		if(st.landcover == CROPLAND)
+			cropfrac_sum_old += st.frac_old;
+	}
+
+	//Get new gridcell.landcoverfrac and/or standtype.frac from LUdata and CFTdata.		
 	input_module->getlandcover(gridcell);	
 
 	if(!lcfrac_fixed) {
@@ -199,29 +185,35 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
 		}
 	}
 
-	if(run[CROPLAND] && (!cftfrac_fixed || !lcfrac_fixed)) {
-		for(int i=0;i<NCROPSTANDS_MAX;i++) {
-			cropfrac_change[i] = gridcell.cftfrac[i] - gridcell.cftfrac_old[i];
-			cropstand_change[i] = gridcell.cftfrac[i] * gridcell.landcoverfrac[CROPLAND] - gridcell.cftfrac_old[i] * gridcell.landcoverfrac_old[CROPLAND];
+	if(run[CROPLAND] && (!frac_fixed[CROPLAND] || !lcfrac_fixed)) {
+		for(int i=0;i<nst;i++) {
 
-			if(cropstand_change[i] < 0.0)
-				transferred_fraction -= cropstand_change[i];
-			if(cropstand_change[i] > 0.0)
-				receiving_fraction += cropstand_change[i];
+			double stfrac_change = 0.0;
+			double stfrac_change_abs = 0.0;
 
-			if(cropfrac_sum_old != 0.0) {
-				change_crop += fabs(cropfrac_change[i]) / 2.0;
+			if(stlist[i].landcover == CROPLAND) {
+				stfrac_change = stlist[i].frac - stlist[i].frac_old;
+				stfrac_change_abs = stfrac_change;
+
+				if(stfrac_change_abs < 0.0)
+					transferred_fraction -= stfrac_change_abs;
+				if(stfrac_change_abs > 0.0)
+					receiving_fraction += stfrac_change_abs;
+
+				if(cropfrac_sum_old != 0.0) {
+					change_crop += fabs(stfrac_change) / 2.0;
+				}
+				else {
+					change_crop += fabs(stfrac_change);
+				}
+				change_stand += fabs(stfrac_change_abs) / 2.0;
 			}
-			else {
-				change_crop += fabs(cropfrac_change[i]);
-			}
-			change_stand += fabs(cropstand_change[i]) / 2.0;	//cropfrac_sum_old+gridcell.landcoverfrac[NATURAL] should never be 0.0
 		}
 	}
 
 	// if no changes, do nothing.
 	if(changeLC < 0.00001 && change_crop < 0.00001) {
-		return false;
+		change = false;
 	}
 	// check for balance of reduced and increased stand fractions
 	else {
@@ -237,48 +229,55 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
 					dprintf("Transferred landcover fractions not balanced !\nLandcover change carbon flux not calculated.\n");
 			}
 		}
-		return true;
+		change = true;
 	}
+
+	return change;
 }
 
 
-/// identifies which natural stands to reduce in area, sets new fractions for these and sets nnaturalstands
-/** Updates stand.frac. for reduced natural stands
+/// identifies which stands to reduce in area, sets new stand fractions and sets standtype.nstands
+/** Updates frac_change, frac_old and frac for all stands
  *  Stores carbon, nitrogen and water of harvested area in a temporary struct.
  *  Should be followed by a call to stand_dynamics() to kill stands with a new area of 0 
- *  Do not call from loop with call to gridcell.nextobj.
  *
  *  OUTPUT PARAMETERS
  *
  *  \param landcoverfrac_change				array with this year's difference in area fractions of the different landcovers
- *  \param nnaturalstands[lc]				number of stands of a land cover type in the gridcell
  */
-void reduce_natural_stands(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], int nnaturalstands[NLANDCOVERTYPES]) {
+void reduce_stands(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES]) {
 
-	Gridcell::iterator gc_itr = gridcell.begin();
-	while (gc_itr != gridcell.end()) {
-		Stand& stand = *gc_itr;
 
-		stand.natural_frac_change = 0.0;
-		nnaturalstands[stand.landcover]++;
+	for(int i=0; i<nst; i++)
+		stlist[i].nstands = 0;
 
-		++gc_itr;
+	for(unsigned int i = 0; i < gridcell.nbr_stands(); i++) {
+		Stand& stand = gridcell[i];
+
+		stand.frac_old = stand.get_gridcell_fraction();
+		stand.frac_change = 0.0;
+		stlist[stand.stid].nstands++;
 	}
 
-	double natural_change_remain[NLANDCOVERTYPES];
-	memset(natural_change_remain,0,NLANDCOVERTYPES*sizeof(double));
+	double* st_change_remain;
+	st_change_remain = new double[nst];
+	memset(st_change_remain,0, nst * sizeof(double));
 
-	for(unsigned int lc = 0; lc < NLANDCOVERTYPES; lc++) {
+	for(int i=0; i<nst; i++) {
 
-		if(nnaturalstands[lc] > 1  && landcoverfrac_change[lc] < 0.0) {
+		StandType& st = stlist[i];
 
-			natural_change_remain[lc] = landcoverfrac_change[lc];
+		double stfrac_change_abs = st.frac - st.frac_old;
+
+		if(st.nstands > 1  && stfrac_change_abs < 0.0) {
+
+			st_change_remain[st.id] = stfrac_change_abs;
 
 			bool reduce_all_stands = false;	//convert equal percentage of area from all stands
 			bool young_stands_first = true;	//convert area from youngest stands first
 
 // Remove this section and always use the default values ?
-			if(lc == NATURAL || lc == FOREST) {
+			if(st.landcover == NATURAL || st.landcover == FOREST) {
 				// convert equal percentage of area from all stands if both managed forest and other managed land expands
 				if((landcoverfrac_change[CROPLAND] > 0.0 || landcoverfrac_change[PASTURE] > 0.0 || landcoverfrac_change[URBAN] > 0.0 || landcoverfrac_change[PEATLAND] > 0.0) 
 						&& (landcoverfrac_change[FOREST] > 0.0) || landcoverfrac_change[NATURAL] > 0.0) {
@@ -304,25 +303,25 @@ void reduce_natural_stands(Gridcell& gridcell, double landcoverfrac_change[NLAND
 
 				Stand& stand = gridcell[index];	
 
-				if(stand.landcover == lc && gridcell.expand_to_new_stand[stand.landcover]) {
+				if(stand.stid == st.id && gridcell.expand_to_new_stand[stand.landcover]) {
 					// convert equal areas from all stands
 					if(reduce_all_stands) {
-						stand.natural_frac_change = landcoverfrac_change[lc] * stand.get_gridcell_fraction() / gridcell.landcoverfrac_old[lc];
-						stand.set_gridcell_fraction(stand.get_gridcell_fraction() + stand.natural_frac_change);
+						stand.frac_change = stfrac_change_abs * stand.get_gridcell_fraction() / st.frac_old;
+						stand.set_gridcell_fraction(stand.get_gridcell_fraction() + stand.frac_change);
 					}
 					else {		
 						if(stand.get_gridcell_fraction() > 0.0) {
 							//all natural landcover decrease is taken from this stand
-							if(stand.get_gridcell_fraction() >= -natural_change_remain[lc]) {
-								stand.natural_frac_change = natural_change_remain[lc];
-								stand.set_gridcell_fraction(stand.get_gridcell_fraction() + stand.natural_frac_change);
-								natural_change_remain[lc] = 0.0;
+							if(stand.get_gridcell_fraction() >= -st_change_remain[st.id]) {
+								stand.frac_change = st_change_remain[st.id];
+								stand.set_gridcell_fraction(stand.get_gridcell_fraction() + stand.frac_change);
+								st_change_remain[st.id] = 0.0;
 								break;
 							}
 							//more stands will have to be reduced
 							else {						
-								stand.natural_frac_change = -stand.get_gridcell_fraction();
-								natural_change_remain[lc] += stand.get_gridcell_fraction();
+								stand.frac_change = -stand.get_gridcell_fraction();
+								st_change_remain[st.id] += stand.get_gridcell_fraction();
 								stand.set_gridcell_fraction(0.0);	//will be killed below
 							}				
 						}
@@ -330,23 +329,32 @@ void reduce_natural_stands(Gridcell& gridcell, double landcoverfrac_change[NLAND
 				}
 			}
 		}
+		else if(!gridcell.expand_to_new_stand[st.landcover] || st.nstands == 1 && stfrac_change_abs < 0.0) {
+
+			for(unsigned int i = 0; i < gridcell.size(); i++) {
+				Stand& stand = gridcell[i];
+				if(stand.stid == st.id) {
+					stand.frac_change = stfrac_change_abs;
+					stand.set_gridcell_fraction(st.frac);
+				}
+			}
+		}
 	}
+
+	if(st_change_remain)
+		delete[] st_change_remain;
 }
 
 
  /// Handles harvest and turnover of reduced stands at landcover change.
-/** Updates stand.frac.
- *  Sets LC_updated to true
+/** Sets LC_updated to true
  *  Stores carbon, nitrogen and water of harvested area in a temporary struct.
  *  Should be followed by a call to stand_dynamics() to kill stands with a new area of 0 
- *  Do not call from loop with call to gridcell.nextobj.
  *
  *  INPUT PARAMETERS
  *
  *  \param landcoverfrac_change				array with this year's difference in area fractions of the different landcovers
- *  \param cropstand_change					array with this year's difference in area fractions of the different crop stands
  *  \param receiving_fraction				sum of added area to expanding stands
- *  \param nnaturalstands[lc]				number of stands of a land cover type in the gridcell
  *
  *  OUTPUT PARAMETERS
  *  \param landcover_change_transfer        struct containing the following pft-specific public members:
@@ -381,41 +389,18 @@ void reduce_natural_stands(Gridcell& gridcell, double landcoverfrac_change[NLAND
  *   - transfer_sompool.nmass 
  *   - transfer_sompool.ntoc 
  */
-void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], double cropstand_change[NCROPSTANDS_MAX], double& receiving_fraction, 
-					int nnaturalstands[NLANDCOVERTYPES], landcover_change_transfer& to) {
+void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], double& receiving_fraction, landcover_change_transfer& to) {
 
 	Gridcell::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
 		double scale;
 
 		Stand& stand = *gc_itr;
-		int expand_to_new_stand = gridcell.expand_to_new_stand[stand.landcover];
 
-		if(stand.landcover != CROPLAND && !expand_to_new_stand && landcoverfrac_change[stand.landcover] < 0.0						
-			|| expand_to_new_stand && landcoverfrac_change[stand.landcover] < 0.0 && (nnaturalstands[stand.landcover] == 1 || stand.natural_frac_change < 0.0)
-			|| stand.landcover == CROPLAND && cropstand_change[stand.cftid] < 0.0) {
+		if(stand.frac_change < 0.0) {
 
-			// All landcovers that only have one stand:
-			if(stand.landcover != CROPLAND && !expand_to_new_stand) {
-				scale = -landcoverfrac_change[stand.landcover] / receiving_fraction / (double)stand.nobj;			
-				stand.set_gridcell_fraction(gridcell.landcoverfrac[stand.landcover]);
-			}
-			// Landcovers that may have several stands:
-			else if(expand_to_new_stand) {
-				if(nnaturalstands[stand.landcover] > 1) {
-					scale = -stand.natural_frac_change / receiving_fraction / (double)stand.nobj;
-					//stand.frac already set in reduce_natural_stands() for these new stands
-				}
-				else {
-					scale = -landcoverfrac_change[stand.landcover] / receiving_fraction / (double)stand.nobj;
-					stand.set_gridcell_fraction(gridcell.landcoverfrac[stand.landcover]);
-				}
-			}
-			else if(stand.landcover == CROPLAND) {
-				scale = -cropstand_change[stand.cftid] / receiving_fraction / (double)stand.nobj;
-				stand.set_gridcell_fraction(gridcell.cftfrac[stand.cftid] * gridcell.landcoverfrac[CROPLAND]);
-			}	
-	
+			scale = -stand.frac_change / receiving_fraction / (double)stand.nobj;
+
 			stand.firstobj();
 			while(stand.isobj) {
 				Patch& patch = stand.getobj();
@@ -500,18 +485,7 @@ void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCO
 
 					to.transfer_anflux_harvest += cp.anflux_harvest * scale;
 
-
-					double change_frac;
-					if(gridcell.expand_to_new_stand[stand.landcover]) {
-						if(nnaturalstands[stand.landcover] > 1)
-							change_frac = stand.natural_frac_change;
-						else
-							change_frac = landcoverfrac_change[stand.landcover];
-					}
-					else if(stand.landcover == CROPLAND)
-						change_frac = cropstand_change[stand.cftid];
-					else
-						change_frac = landcoverfrac_change[stand.landcover];
+					double change_frac = stand.frac_change;
 
 					gridcell.acflux_landuse_change += -cp.acflux_harvest * change_frac / (double)stand.nobj;
 					gridcell.acflux_landuse_change_lc[stand.landcover] += -cp.acflux_harvest * change_frac / (double)stand.nobj;
@@ -566,112 +540,58 @@ void donor_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCO
 /** Harvest of reduced stands need to be done before with donor_stand_change().
  *  Should be followed by a call to receiving_stand_change() for transfer of 
  *  carbon, nitrogen and water.
- *  Do not call from loop with call to gridcell.nextobj.
  * 
  *  INPUT PARAMETERS
  *
  *  \param landcoverfrac_change				array with this year's difference in area fractions of the different landcovers
- *  \param changeLC							sum of all stands' absolute changes
- *  \param change_crop						sum of all crop stands' absolute changes		
- *  \param nnaturalstands[lc]				number of stands of a land cover type in the gridcell
  */
-void stand_dynamics(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], double changeLC, double change_crop, int nnaturalstands[NLANDCOVERTYPES]) {
+void stand_dynamics(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES]) {
 
-	// dynamics for stands other than cropland (from updated landcoverfrac):
-	if(!lcfrac_fixed && changeLC > 0.0) {
-		for(int i=0; i<NLANDCOVERTYPES; i++) {
-			if(i != CROPLAND) {
-				if(run[i]) {
+	stlist.firstobj();
+	while (stlist.isobj) {
+		StandType& st=stlist.getobj();
+		landcovertype lc = st.landcover;
 
-					int expand_to_new_stand = gridcell.expand_to_new_stand[i];
+		double stfrac_change_abs = st.frac - st.frac_old;
 
-					// stand created
-					if(gridcell.landcoverfrac_old[i] == 0.0 && gridcell.landcoverfrac[i] > 0.0) {
-						gridcell.create_stand_lu((landcovertype)i, gridcell.landcoverfrac[i]);
+		int expand_to_new_stand = gridcell.expand_to_new_stand[lc];
+
+		if(stfrac_change_abs) {
+			// first stand created
+			if(st.frac_old == 0.0 && st.frac > 0.0) {
+				gridcell.create_stand_lu(st, st.frac);
+			}
+			// last stand killed
+			else if(st.frac_old > 0.0 && st.frac == 0.0) {
+				Gridcell::iterator gc_itr = gridcell.begin();
+				while (gc_itr != gridcell.end()) {
+					Stand& stand = *gc_itr;
+					if(stand.stid == st.id) {
+						gc_itr = gridcell.delete_stand(gc_itr);
 					}
-					// stand killed
-					else if(gridcell.landcoverfrac_old[i] > 0.0 && gridcell.landcoverfrac[i] == 0.0) {
-						Gridcell::iterator gc_itr = gridcell.begin();
-						while (gc_itr != gridcell.end()) {
-							Stand& stand = *gc_itr;
-							if(stand.landcover == i) {
-								gc_itr = gridcell.delete_stand(gc_itr);
-							}
-							else
-								++gc_itr;
-						}
+					else
+						++gc_itr;
+				}
+			}
+			// new stand created from other landcover type
+			else if(expand_to_new_stand && stfrac_change_abs > 0.0) {
+				gridcell.create_stand_lu(st, stfrac_change_abs);
+			}
+			// secondary natural stand killed if all of its area converted to other landcover type
+			else if(expand_to_new_stand && st.nstands > 1 && stfrac_change_abs < 0.0) {
+				Gridcell::iterator gc_itr = gridcell.begin();
+				while (gc_itr != gridcell.end()) {
+					Stand& stand = *gc_itr;
+					if(stand.stid == st.id && stand.get_gridcell_fraction() == 0) {
+						gc_itr = gridcell.delete_stand(gc_itr);
 					}
-					// new NATURAL stand created from other landcover type
-					else if(expand_to_new_stand && landcoverfrac_change[i] > 0.0) {
-						gridcell.create_stand_lu((landcovertype)i, landcoverfrac_change[i]);
-					}
-					// secondary natural stand killed if all of its area converted to other landcover type
-					else if(expand_to_new_stand && nnaturalstands[i] > 1 && landcoverfrac_change[i] < 0.0) {
-						Gridcell::iterator gc_itr = gridcell.begin();
-						while (gc_itr != gridcell.end()) {
-							Stand& stand = *gc_itr;
-							if(stand.landcover == i && stand.get_gridcell_fraction() == 0) {
-								gc_itr = gridcell.delete_stand(gc_itr);
-							}
-							else
-								++gc_itr;
-						}
-					}
+					else
+						++gc_itr;
 				}
 			}
 		}
-	}
 
-	// crop stand dynamics (from updated cftfrac):
-	if(run[CROPLAND] && (change_crop>0.0 || landcoverfrac_change[CROPLAND]!=0.0)) {
-		if(gridcell.landcoverfrac[CROPLAND]>0.0) {
-
-			pftlist.firstobj();
-			while (pftlist.isobj) {
-				Pft& pft=pftlist.getobj();
-				if(pft.landcover == CROPLAND && pft.cftid >= 0) {
-
-					// Is this PFT already present in a crop stand ?
-					bool present = false;
-					Gridcell::iterator gc_itr = gridcell.begin();
-					while (gc_itr != gridcell.end() && !present) {
-						Stand& stand = *gc_itr;
-						if (stand.landcover == CROPLAND && stand.pftid == pft.id)
-							present = true;
-						else
-							++gc_itr;
-					}
-
-					// Should this crop PFT be present in the gridcell this year ? 
-					if(gridcell.cftfrac[pft.cftid]>0.0) {
-						// if so, and not already present, create new crop stand
-						if(!present) {
-							gridcell.create_stand_lu(CROPLAND, gridcell.cftfrac[pft.cftid] * gridcell.landcoverfrac[CROPLAND], pft.cftid);
-						}
-					}
-					else {
-						// if not, and is present, kill stand
-						if(present) {
-							Stand& stand = *gc_itr;
-							gc_itr = gridcell.delete_stand(gc_itr);
-						}
-					}
-				}
-				pftlist.nextobj(); // ... on to next PFT
-			}
-		}
-		else if(gridcell.landcoverfrac_old[CROPLAND]>0.0) {	//(if !(gridcell.landcoverfrac[CROPLAND]>0.0))	
-			Gridcell::iterator gc_itr = gridcell.begin();
-			while (gc_itr != gridcell.end()) {
-				Stand& stand = *gc_itr;
-				if(stand.landcover==CROPLAND) {
-					stand.firstobj();
-					gc_itr = gridcell.delete_stand(gc_itr);
-				}
-				else
-					++gc_itr;
-			}
-		}
+		stlist.nextobj();
 	}
 }
 
@@ -683,7 +603,6 @@ void stand_dynamics(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTY
  *  INPUT PARAMETERS
  *
  *  \param landcoverfrac_change				array with this year's difference in area fractions of the different landcovers
- *  \param cropstand_change					array with this year's difference in area fractions of the different crop stands			
  *  \param landcover_change_transfer& from  struct containing the following pft-specific public members:
  *   - transfer_litter_leaf         
  *   - transfer_litter_sap      
@@ -718,42 +637,20 @@ void stand_dynamics(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTY
  *   - transfer_sompool.ntoc 
  *  \param LCchangeCtransfer				whether to transfer carbon, nitrogen and water of reduced stands to expanding stands
  */
-void receiving_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], double cropstand_change[NCROPSTANDS_MAX], 
-							 landcover_change_transfer& from, bool LCchangeCtransfer) {
+void receiving_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], landcover_change_transfer& from, bool LCchangeCtransfer) {
 
 	Gridcell::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
 		Stand& stand = *gc_itr;
-		if(stand.landcover != CROPLAND && landcoverfrac_change[stand.landcover] > 0.0 || stand.landcover == CROPLAND && cropstand_change[stand.cftid] > 0.0)
-		{
+
+		if(stand.frac_change > 0.0) {
+
 			double old_frac, added_frac, new_frac;
 			int expand_to_new_stand = gridcell.expand_to_new_stand[stand.landcover];
 
-			// define 
-			if(stand.landcover != CROPLAND && !expand_to_new_stand) {
-				old_frac = gridcell.landcoverfrac_old[stand.landcover];
-				added_frac = landcoverfrac_change[stand.landcover];
-				new_frac = gridcell.landcoverfrac[stand.landcover];
-				stand.set_gridcell_fraction(gridcell.landcoverfrac[stand.landcover]);
-			}
-			else if(expand_to_new_stand) {
-				if(stand.first_year == date.year) {	// expanding natural area always results in a new stand
-					old_frac = 0.0;
-					added_frac = landcoverfrac_change[stand.landcover];
-					new_frac = landcoverfrac_change[stand.landcover];
-					// stand.frac already set for new natural stands in stand_dynamics()
-				}
-				else {
-					++gc_itr;
-					continue;
-				}					
-			}
-			else if(stand.landcover == CROPLAND) {
-				old_frac = gridcell.landcoverfrac_old[CROPLAND] * gridcell.cftfrac_old[stand.cftid];
-				added_frac = cropstand_change[stand.cftid];
-				new_frac = gridcell.landcoverfrac[CROPLAND] * gridcell.cftfrac[stand.cftid];
-				stand.set_gridcell_fraction(gridcell.cftfrac[stand.cftid] * gridcell.landcoverfrac[CROPLAND]);
-			}	
+			old_frac = stand.frac_old;
+			added_frac = stand.frac_change;
+			new_frac = stand.get_gridcell_fraction();
 
 			if(LCchangeCtransfer) {
 				stand.firstobj();
@@ -836,55 +733,64 @@ void receiving_stand_change (Gridcell& gridcell, double landcoverfrac_change[NLA
 /// Updates all landcover and crop stand area fractions each year, possibly resulting in the creation and killing of stands.
 /** Harvests transferred areas and transfers litter etc. of reduced stands to expanding stands.
  *  Transfers litter etc. of reduced stands to expanding stands at landcover change.
- *  Do not call from loop with call to gridcell.nextobj.
  */
 void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 	double landcoverfrac_change[NLANDCOVERTYPES];
-	double cropstand_change[NCROPSTANDS_MAX];
-	double changeLC=0.0;
-	double change_crop=0.0;
 	double receiving_fraction=0.0;
-	int nnaturalstands[NLANDCOVERTYPES];
 	bool LCchangeCtransfer=true;
 	landcover_change_transfer transfer;
 
 	memset(landcoverfrac_change,0,NLANDCOVERTYPES*sizeof(double));
-	memset(nnaturalstands,0,NLANDCOVERTYPES*sizeof(int));
-	memset(cropstand_change,0,NCROPSTANDS_MAX*sizeof(double));
 
 	gridcell.LC_updated=false;
 
-	Gridcell::iterator gc_itr = gridcell.begin();
-	while (gc_itr != gridcell.end()) {
-		Stand& stand = *gc_itr;
-		stand.scale_LC_change = 1.0;
-		++gc_itr;
-	}
+	for(unsigned int i=0; i<gridcell.nbr_stands(); ++i)
+		gridcell[i].scale_LC_change = 1.0;
 
-	// get new landcover and crop stand area fractions from input files
+	// get new landcover and stand type area fractions from input files, set standtype.frac_change
 	if(!all_fracs_const) {
 		// this call returns 0, causing this function to return, if no significant landcover changes this year, 
 		// sets LCchangeCtransfer to 0 if unbalanced landcover changes (if some landcovers are inactivated), thus inactivating transfer of C and N
-		if(!checkLCchange(gridcell, landcoverfrac_change, cropstand_change, changeLC, change_crop, receiving_fraction, LCchangeCtransfer, input_module))
+		if(!checkLCchange(gridcell, landcoverfrac_change, receiving_fraction, LCchangeCtransfer, input_module))
 			return;
 	}
 	else return;
 
 	transfer.allocate();
 
-	// check how many natural stands exist
-	// if necessary, identify which natural stands to reduce in area
-	reduce_natural_stands(gridcell, landcoverfrac_change, nnaturalstands);
+	// check how many stands of each stand type exist
+	// if necessary, identify which stands to reduce in area
+	reduce_stands(gridcell, landcoverfrac_change);
 
 	 // handle harvest and turnover of reduced stands at landcover change
-	donor_stand_change(gridcell, landcoverfrac_change, cropstand_change, receiving_fraction, nnaturalstands, transfer);
+	donor_stand_change(gridcell, landcoverfrac_change, receiving_fraction, transfer);
 
 	// create and kill stands at landcover change
-	stand_dynamics(gridcell, landcoverfrac_change, changeLC, change_crop, nnaturalstands);
+	stand_dynamics(gridcell, landcoverfrac_change);
 
 	// transfer litter etc. of reduced stands to expanding stands at landcover change
-	receiving_stand_change(gridcell, landcoverfrac_change, cropstand_change, transfer, LCchangeCtransfer);
+	receiving_stand_change(gridcell, landcoverfrac_change, transfer, LCchangeCtransfer);
+
+}
+
+/// Updates dynamic management options each year
+/** 
+ */
+void getmanagement(Gridcell& gridcell, InputModule* input_module) {
+
+	if(run[CROPLAND]) {
+
+		//Read sowing dates from input file, put into gridcellpft.sdate_force
+		if(forcesowingdates)		
+			input_module->getsowingdates(gridcell);
+		//Read harvest dates from input file, put into gridcellpft.hdate_force
+		if(forceharvestdates)		
+			input_module->getharvestdates(gridcell);
+		//Read N fertilization from input file, put into xxx
+		if(readNfert)		
+			input_module->getNfert(gridcell);
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1130,39 +1036,32 @@ void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft)
 	gridcellpft.autumnoccurred = false;
 }
 
-/// Sets sdatecalc_prec first day of the rain period if NEWSOWINGDATE is defined
-/** Called from crop_sowing_gridcell() each day 
+/// Sets sdatecalc_prec first day of the rain period
+/** Called from crop_sowing_gridcell() each day if NEWSOWINGDATE is not defined
  */
 void set_sdatecalc_prec(Climate& climate, Gridcellpft& gridcellpft)
 {
 	Pft& pft = gridcellpft.pft;
 
-	if(pft.hydrology == IRRIGATED) {
-		gridcellpft.sdatecalc_prec = gridcellpft.sdate_default;
+	bool SOAsia;
+
+	if(climate.lat > -15.0 && climate.lat < 20.0 && climate.lon > 90.0)
+		SOAsia = true;
+	else
+		SOAsia = false;
+
+	if(!gridcellpft.precoccurred && (SOAsia && climate.sprec_2[1] >= 110.0 && climate.sprec_2[0] < 110.0
+									|| !SOAsia && climate.sprec_2[1] >= 40.0 && climate.sprec_2[0] < 40.0)) {
+
+		gridcellpft.first_precdate = date.day;
+		gridcellpft.sdatecalc_prec = gridcellpft.first_precdate;
 		gridcellpft.precoccurred = true;
 	}
-	else {
 
-		bool SOAsia;
-
-		if(climate.lat > -15.0 && climate.lat < 20.0 && climate.lon > 90.0)
-			SOAsia = true;
-		else
-			SOAsia = false;
-
-		if(!gridcellpft.precoccurred && (SOAsia && climate.sprec_2[1] >= 110.0 && climate.sprec_2[0] < 110.0
-										|| !SOAsia && climate.sprec_2[1] >= 40.0 && climate.sprec_2[0] < 40.0)) {
-
-			gridcellpft.first_precdate = date.day;
-			gridcellpft.sdatecalc_prec = gridcellpft.first_precdate;
-			gridcellpft.precoccurred = true;
-		}
-
-		if(date.day == climate.testday_prec) {	// December 31(364) north, June 30(180) in the south; just resets precoccurred and fcalc_prec.
+	if(date.day == climate.testday_prec) {	// December 31(364) north, June 30(180) in the south; just resets precoccurred and fcalc_prec.
 		
-			gridcellpft.precoccurred = false;
-			gridcellpft.sdatecalc_prec = -1;
-		}
+		gridcellpft.precoccurred = false;
+		gridcellpft.sdatecalc_prec = -1;
 	}
 }
 
@@ -1229,63 +1128,86 @@ void calc_sowing_windows(Gridcell& gridcell)
 
 		if(pft.phenology == CROPGREEN) {
 
+			int swindow_temp[2];
+			int swindow_prec[2];
+
+			// Calculate temperature-dependent sowing windows
+			if(gridcellpft.sdatecalc_temp != -1) {
+
+				// Set sowing window around sdatecalc_temp
+				swindow_temp[0] = stepfromdate(gridcellpft.sdatecalc_temp, -15);
+				swindow_temp[1] = stepfromdate(gridcellpft.sdatecalc_temp, 15);
+
+				if(!gridcellpft.wintertype && dayinperiod(swindow_temp[0], stepfromdate(climate.coldestday, -100), climate.coldestday)) {
+
+					swindow_temp[0] = climate.coldestday;
+//					swindow_temp[0] = gridcellpft.sdatecalc_temp;	//gives better yields, but sdate transition not smooth
+					if(dayinperiod(swindow_temp[1], stepfromdate(climate.coldestday, -100), climate.coldestday))
+						swindow_temp[1] = climate.coldestday;
+				}
+
+				if(gridcellpft.wintertype && dayinperiod(swindow_temp[1], climate.coldestday, stepfromdate(climate.coldestday, 100))) {
+
+					swindow_temp[1] = climate.coldestday;
+//					swindow_temp[1] = gridcellpft.sdatecalc_temp;	//gives better yields, but sdate transition not smooth
+					if(dayinperiod(swindow_temp[0], climate.coldestday, stepfromdate(climate.coldestday, 100)))
+						swindow_temp[0] = climate.coldestday;
+				}
+			}
+
+			// Calculate precipitation-dependent sowing windows
+			monthdates(swindow_prec[0],swindow_prec[1],sow_month);
+			// A conservative choice to expand the sowing window
+			swindow_prec[0] = stepfromdate(swindow_prec[0], -15);
+
+
+			// Determine, based upon site climate seasonality, if sowing in rainfed stands should be triggered by 
+			// temperature or precipitation, or whether to use a default sowing date.
+
 			bool temp_sdate = false, prec_sdate = false, def_sdate = false;
 
-			// Different sowing date options for irrigated crops at sites with climate.seasonality == SEASONALITY_PRECTEMP:
-			// 1. use temperature-dependent sowing limits (define IRRIGATED_USE_TEMP_SDATE)
-			// 2. use precipitation-triggered sowing (IRRIGATED_USE_TEMP_SDATE undefined)
-
-			// Determine, based upon site climate seasonality and sowing preferences for irrigated crops, if sowing should be triggered by 
-			// temperature or precipitation, or whether to use a default sowing date.
-#if defined IRRIGATED_USE_TEMP_SDATE
-			if(seasonality == SEASONALITY_TEMP || seasonality == SEASONALITY_TEMPPREC || seasonality == SEASONALITY_PRECTEMP && pft.hydrology == IRRIGATED)
-				temp_sdate = true;
-			else if((seasonality == SEASONALITY_PREC || seasonality == SEASONALITY_PRECTEMP && pft.hydrology != IRRIGATED) && climate.prec_range != WET)
-				prec_sdate = true;
-#else
 			if(seasonality == SEASONALITY_TEMP || seasonality == SEASONALITY_TEMPPREC)
 				temp_sdate = true;
 			else if((seasonality == SEASONALITY_PREC || seasonality == SEASONALITY_PRECTEMP) && climate.prec_range != WET)
 				prec_sdate = true;
-#endif
 			else // if(seasonality == SEASONALITY_NO) || (seasonality == SEASONALITY_PREC || seasonality == SEASONALITY_PRECTEMP) && climate.prec_range == WET)
 				def_sdate = true;
 
-
-			if(temp_sdate && gridcellpft.sdatecalc_temp != -1) {
-
-				// Set sowing window around sdatecalc_temp
-				gridcellpft.swindow[0] = stepfromdate(gridcellpft.sdatecalc_temp, -15);
-				gridcellpft.swindow[1] = stepfromdate(gridcellpft.sdatecalc_temp, 15);
-
-				if(!gridcellpft.wintertype && dayinperiod(gridcellpft.swindow[0], stepfromdate(climate.coldestday, -100), climate.coldestday)) {
-
-					gridcellpft.swindow[0] = climate.coldestday;
-//					gridcellpft.swindow[0] = gridcellpft.sdatecalc_temp;	//gives better yields, but sdate transition not smooth
-					if(dayinperiod(gridcellpft.swindow[1], stepfromdate(climate.coldestday, -100), climate.coldestday))
-						gridcellpft.swindow[1] = climate.coldestday;
-				}
-
-				if(gridcellpft.wintertype && dayinperiod(gridcellpft.swindow[1], climate.coldestday, stepfromdate(climate.coldestday, 100))) {
-
-					gridcellpft.swindow[1] = climate.coldestday;
-//					gridcellpft.swindow[1] = gridcellpft.sdatecalc_temp;	//gives better yields, but sdate transition not smooth
-					if(dayinperiod(gridcellpft.swindow[0], climate.coldestday, stepfromdate(climate.coldestday, 100)))
-						gridcellpft.swindow[0] = climate.coldestday;
-				}
+			if(temp_sdate) {
+				gridcellpft.swindow[0] = swindow_temp[0];
+				gridcellpft.swindow[1] = swindow_temp[1];
 			}
-
-			if(prec_sdate) {
-
-					monthdates(gridcellpft.swindow[0], gridcellpft.swindow[1],sow_month);
-
-					// A conservative choice to expand the month  that is used for the search
-					gridcellpft.swindow[0] = stepfromdate(gridcellpft.swindow[0], -15);
+			else if(prec_sdate) {
+				gridcellpft.swindow[0] = swindow_prec[0];
+				gridcellpft.swindow[1] = swindow_prec[1];
 			}
 			else if(def_sdate) {
 				gridcellpft.swindow[0] = gridcellpft.sdate_default;
 				gridcellpft.swindow[1] = stepfromdate(gridcellpft.sdate_default, 15);
 			}
+
+			// Rules for irrigated crops:
+
+			// Different sowing date options for irrigated crops at sites with climate.seasonality == SEASONALITY_PRECTEMP:
+			// 1. use temperature-dependent sowing limits (define IRRIGATED_USE_TEMP_SDATE)
+			// 2. use precipitation-triggered sowing (IRRIGATED_USE_TEMP_SDATE undefined)
+
+			bool irr_use_temp_sdate = false;
+
+#if defined IRRIGATED_USE_TEMP_SDATE
+			if(seasonality == SEASONALITY_PRECTEMP)
+				irr_use_temp_sdate = true;
+#endif
+
+			if(irr_use_temp_sdate) {
+				gridcellpft.swindow_irr[0] = swindow_temp[0];
+				gridcellpft.swindow_irr[1] = swindow_temp[1];
+			}
+			else {
+				gridcellpft.swindow_irr[0] = gridcellpft.swindow[0];
+				gridcellpft.swindow_irr[1] = gridcellpft.swindow[1];
+			}
+
 
 			// Includes all temperature limits for sowing set in set_sdatecalc_temp() also for sites with any type of temperature seasonality
 			if(gridcellpft.sdatecalc_temp == -1) {
@@ -1596,6 +1518,11 @@ void Crop_sowing_date_prec(Patch& patch, Pft& pft) {
 	int first_sowdate;
 	int last_sowdate;
 
+	if(patch.stand.pft[pft.id].irrigated)  {
+		gridcellpft.sdatecalc_prec = gridcellpft.sdate_default;
+		gridcellpft.precoccurred = true;
+	}
+
 	// Limits here (dates, latitudes) derive from Bondeau code.
 
 	if(!strncmp(pft.name,"TeCo", strlen("TeCo"))) {	// Sådd mellan sdatecalc_temp och sdate_default (140)
@@ -1696,7 +1623,7 @@ void Crop_sowing_date_rice(Patch& patch, Pft& pft) {
 			else
 				ppftcrop.hlimitdate = gridcellpft.hlimitdate_default;
 		}
-		else if(date.day == stepfromdate(ppftcrop.hdate, 1) && ppftcrop.hdate != -1) {
+		else if(date.day == stepfromdate(ppftcrop.hdate, 1) && ppftcrop.hdate != -1) {	//NB: this code is not compatible with new rotations
 
 			if(ppftcrop.maincrop) {
 				ppftcrop.maincrop = false;
@@ -1776,6 +1703,7 @@ void Crop_sowing_date_new(Patch& patch, Pft& pft) {
 	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
 	Gridcell& gridcell = patch.stand.get_gridcell();
 	Gridcellpft& gridcellpft = gridcell.pft[pft.id];
+	Standpft& standpft = patch.stand.pft[pft.id];
 	Climate& climate = gridcell.climate;
 	seasonality_type seasonality = climate.seasonality;
 	int length_growseas_def;
@@ -1789,9 +1717,9 @@ void Crop_sowing_date_new(Patch& patch, Pft& pft) {
 	// Determine, based upon site climate seasonality and sowing preferences for irrigated crops, if sowing should be triggered by 
 	// temperature or precipitation, or whether to use a default sowing date.
 #if defined IRRIGATED_USE_TEMP_SDATE
-	if(seasonality == SEASONALITY_TEMP || seasonality == SEASONALITY_TEMPPREC || seasonality == SEASONALITY_PRECTEMP && pft.hydrology == IRRIGATED)
+	if(seasonality == SEASONALITY_TEMP || seasonality == SEASONALITY_TEMPPREC || seasonality == SEASONALITY_PRECTEMP && standpft.irrigated)
 		temp_sdate = true;
-	else if((seasonality == SEASONALITY_PREC || seasonality == SEASONALITY_PRECTEMP && pft.hydrology != IRRIGATED) && climate.prec_range != WET)
+	else if((seasonality == SEASONALITY_PREC || seasonality == SEASONALITY_PRECTEMP && !standpft.irrigated) && climate.prec_range != WET)
 		prec_sdate = true;
 #else
 	if(seasonality == SEASONALITY_TEMP || seasonality == SEASONALITY_TEMPPREC)
@@ -1835,7 +1763,7 @@ void Crop_sowing_date_new(Patch& patch, Pft& pft) {
 #endif
 			}
 			else if(prec_sdate) {	
-				if(climate.prec > 0.1 || pft.hydrology == IRRIGATED)
+				if(climate.prec > 0.1 || standpft.irrigated)
 					ppftcrop.sdate = date.day;
 			}
 			else // if(def_sdate)
@@ -1866,7 +1794,7 @@ void Crop_sowing_date_new(Patch& patch, Pft& pft) {
 				if(temp_sdate)
 					ppftcrop.hucountend = stepfromdate(ppftcrop.hlimitdate, -20);
 				else if(prec_sdate && climate.prec_seasonality <= DRY_WET) { // dry some time during the year
-					if(pft.hydrology == IRRIGATED)
+					if(standpft.irrigated)
 						ppftcrop.hucountend = stepfromdate(date.day, 230);
 					else
 						ppftcrop.hucountend = stepfromdate(date.day, 210);		 // shorter growing period when risk for water stress.
@@ -1879,7 +1807,7 @@ void Crop_sowing_date_new(Patch& patch, Pft& pft) {
 			else { // all other crops
 				if(prec_sdate && climate.prec_seasonality <= DRY_WET) {	// dry some time during the year
 
-					if(pft.hydrology == IRRIGATED)
+					if(standpft.irrigated)
 						ppftcrop.hucountend = stepfromdate(date.day, length_growseas_def);
 					else
 						ppftcrop.hucountend = stepfromdate(date.day, min(length_growseas_def, 210)); // shorter growing period when risk for water stress.
@@ -1915,19 +1843,26 @@ void crop_sowing_patch(Patch& patch) {
 
 			if(date.day == climate.testday_temp) {
 
-				patchpft.swindow[0] = gridcellpft.swindow[0];
-				patchpft.swindow[1] = gridcellpft.swindow[1];
+				if(patch.stand.pft[pft.id].irrigated) {
+					patchpft.swindow[0] = gridcellpft.swindow_irr[0];
+					patchpft.swindow[1] = gridcellpft.swindow_irr[1];
+				}
+				else {
+					patchpft.swindow[0] = gridcellpft.swindow[0];
+					patchpft.swindow[1] = gridcellpft.swindow[1];
+				}
 			}
 
-			if(!ppftcrop.growingseason) {
+			if(patch.stand.pftid == pft.id && !ppftcrop.growingseason) {
 
 				// copy sowing window from gridcellpft
 				if(date.day == stepfromdate(ppftcrop.hdate, 1) && ppftcrop.hdate != -1 || date.day == climate.testday_temp) {
 
-					if(gridcellpft.swindow[0] == -1) {
+					if(gridcellpft.swindow[0] == -1 && date.year) {
 						gridcellpft.sowing_restriction = true;
 						ppftcrop.hdate = -1;
 						ppftcrop.eicdate = -1;	//redundant
+						patch.stand.isrotationday = true;
 					}
 					else {
 						gridcellpft.sowing_restriction = false;
@@ -2362,7 +2297,7 @@ void crop_phenology(Patch& patch)
 			if(ifcalcdynamic_phu && ppftcrop.growingseason == false && ppftcrop.hu_samplingperiod)
 				calc_hu(patch, pft);
 
-			if(pft.intercrop == NATURALGRASS) {
+			if(patch.stand.pftid == pft.id && stlist[patch.stand.stid].intercrop == NATURALGRASS) {
 
 				if(!ppftcrop.intercropseason && date.day == ppftcrop.bicdate)
 					ppftcrop.intercropseason = true;
@@ -2406,7 +2341,7 @@ void leaf_phenology_crop(Pft& pft, Patch& patch)
 	Patchpft& patchpft = patch.pft[pft.id];
 	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
 
-	if (pft.phenology == CROPGREEN && patch.stand.pft[pft.id].active) {
+	if (pft.phenology == CROPGREEN) {
 		if (ppftcrop.growingseason) {
 
 			Vegetation& vegetation = patch.vegetation;
@@ -2428,7 +2363,7 @@ void leaf_phenology_crop(Pft& pft, Patch& patch)
 		else if (date.day == ppftcrop.hdate)
 			patchpft.phen = 0.0;
 	}
-	else if(pft.phenology == ANY && patch.stand.pft[pft.id].active) { // crop grasses using standard guess phenology calculation
+	else if(pft.phenology == ANY) { // crop grasses using standard guess phenology calculation
 
 		if(patch.stand.pftid == pft.id // pasture grass in crop stand
 			|| patch.stand.hasgrassintercrop && (patch.pft[patch.stand.pftid].cropphen->intercropseason // intercrop grass
@@ -2496,7 +2431,7 @@ void update_patch_fpc(Patch& patch) {
 		while (vegetation.isobj) {
 			Individual& indiv = vegetation.getobj();
 
-			if(patch.pft[indiv.pft.id].cropphen->growingseason == true)
+			if(indiv.growingseason())
 				patch.fpc_total += indiv.fpc;
 			vegetation.nextobj();
 		}
@@ -2738,6 +2673,8 @@ void allocation_crop_daily(Patch& patch) {
 			}
 			else if(date.day == ppftcrop.hdate) {
 
+				patch.stand.isrotationday = true;
+
 				cropindiv.harv_cmass_plant += cropindiv.grs_cmass_plant;
 				cropindiv.harv_cmass_root += cropindiv.grs_cmass_root;
 				cropindiv.harv_cmass_ho += cropindiv.grs_cmass_ho;
@@ -2904,6 +2841,64 @@ void crop_growth_daily(Patch& patch) {
 	lai_crop(patch);
 
 }
+
+
+// Updates crop rotation status
+/** Sets new crop management variables, typically on harvest day
+ */
+void crop_rotation(Stand& stand, int firsthistyear) {
+
+	if(stand.landcover == CROPLAND) {
+
+		CropRotation& rotation = stlist[stand.stid].rotation;
+		bool postpone_rotation = false;
+
+		if(rotation.ncrops > 1 && stand.isrotationday) {
+
+			int firstrotyear = rotation.firstrotyear + nyear_spinup - firsthistyear;
+
+			// Alternative uses of firstrotyear:
+/*			// 1. Before firstrotyear, grow only crop1:
+			if(date.year < firstrotyear)
+				postpone_rotation = true;
+*/
+			// 2. Synchronise rotation with firstrotyear:
+
+			// A. At the creation of the stand:
+//			if(date.year < stand.first_year + 3)
+			// B. At firstrotyear
+//			if(date.year == firstrotyear - 1)
+			// C. Continuously:
+			{
+				if((abs(firstrotyear - date.year) % rotation.ncrops) != stand.current_rot)
+					postpone_rotation = true;
+			}
+
+
+			if(!postpone_rotation) {
+
+				int old_pftid = stand.pftid;
+
+				stand.rotate();
+
+				for(unsigned int p=0; p<stand.nobj; p++) {
+
+					cropphen_struct& previous = *(stand[p].pft[old_pftid].get_cropphen());
+					cropphen_struct& current = *(stand[p].pft[stand.pftid].get_cropphen());
+
+					previous.bicdate = -1;
+					current.bicdate = stepfromdate(date.day, 15);
+					previous.eicdate = -1;
+					current.eicdate = -1;
+					previous.hdate = -1;
+				}
+			}
+
+			stand.isrotationday = false;
+		}
+	}
+}
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////  End of crop allocation  //////////////////////////////////////////////////////////////////////
@@ -3090,6 +3085,88 @@ void harvest_wood(Individual& indiv,Pft& pft, bool alive, double frac_cut) {
 
 	indiv_cp.copy_to_indiv(indiv);
 }
+
+void clearcut(Individual& indiv, Pft& pft, bool alive, double anpp, bool& killed) {
+
+	Patch& patch = indiv.vegetation.patch;
+	Patchpft& ppft = patch.pft[indiv.pft.id];
+
+	if (indiv.pft.lifeform==TREE) {
+
+		ppft.litter_sap += anpp;
+		harvest_wood(indiv, indiv.pft, indiv.alive, 1.0);
+//		indiv.kill(true);
+		indiv.vegetation.killobj();
+		killed = true;
+	}
+
+//	patch.age=0;	//important for results
+	patch.managed=true;
+}
+
+double forest_management(Patch& patch,bool age_class_run, int age_class) {
+
+	Stand& stand = patch.stand;
+	const double minbon=2.351; //The minimum average "bonitet" for a county in Sweden
+	const double maxbon=11.311; //The maximum average "bonitet" for a county in Sweden
+
+		// Code used for contineous forestry
+	const int first_cutyear = nyear_spinup; //Simulation year when continues forestry harvesting starts
+	int cut_int; //Interval between cuttings
+	int patch_order; //Which year in a cutting interval the patch belongs to
+	div_t cut_check;
+//	cut_int=30-(int)(15.0*(stand.bonitet-minbon)/(maxbon-minbon));
+	cut_int=30-(int)(15.0*(maxbon-minbon)/(maxbon-minbon));
+	patch_order = (int)(patch.id * cut_int * 1.0 / (1.0 * npatch));
+	cut_check = div(date.year - first_cutyear - patch_order, cut_int);
+
+	if (date.year>=first_cutyear && cut_check.rem==0)
+		return 0.40;
+	else 
+		return 0.00;
+
+}
+
+void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& killed) {
+
+	Patch& patch = indiv.vegetation.patch;
+	Patchpft& ppft = patch.pft[indiv.pft.id];
+	const double minbon=2.351; //The minimum average "bonitet" for a county in Sweden
+	const double maxbon=11.311; //The maximum average "bonitet" for a county in Sweden
+		
+	int age_class = 0;
+	double man_strength = 0.0;
+	if(date.year > nyear_spinup && indiv.pft.lifeform == TREE)		
+		man_strength = forest_management(patch, true, age_class);
+	bool management_done=false;
+		// Will tell the program to skip establishment and mortality if management has been
+		// performed on this patch, Management add, FL 081127 (not implemented in this code yet ML, needs to be at patch-level)
+
+	if (pft.lifeform==TREE && man_strength>0.00) {
+
+		if (man_strength == 1.00) {
+			clearcut(indiv, pft, alive, anpp, killed);
+//			planting(stand,patch,pftlist);
+		}
+		else {
+
+			double diam=pow(indiv.height/indiv.pft.k_allom2, 1.0/indiv.pft.k_allom3);
+//			double diam_limit=0.13+0.07*(stand.bonitet-minbon)/(maxbon-minbon); //Harvest of trees > 13-20 cm
+			double diam_limit=0.13+0.07*(maxbon-minbon)/(maxbon-minbon); //Harvest of trees > 13-20 cm
+			double diam_max = diam_limit * 2.0;
+
+			if (diam>diam_limit) {
+				if(diam > diam_max)
+					man_strength = 0.9;
+				harvest_wood(indiv, pft, alive, man_strength);
+				indiv.densindiv *= (1.0 - man_strength);
+			}
+		}
+		management_done = true;	
+		patch.managed = true;
+	}
+}
+
 
 /// Harvest function for pasture, representing grazing (previous year).
 /*  Function for balancing carbon and nitrogen fluxes from last year's growth

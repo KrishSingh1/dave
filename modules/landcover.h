@@ -24,6 +24,9 @@ void landcover_init(Gridcell& gridcell, InputModule* input_module);
  */
 void landcover_dynamics(Gridcell& gridcell, InputModule* input_module);
 
+/// Updates dynamic management options each year
+void getmanagement(Gridcell& gridcell, InputModule* input_module);
+
 /// Monitors climate history relevant for sowing date calculation. Calculates initial sowing dates/windows
 void crop_sowing_gridcell(Gridcell& gridcell);
 
@@ -39,6 +42,8 @@ void leaf_phenology_crop(Pft& pft, Patch& patch);
 void update_patch_fpc(Patch& patch);
 /// Handles daily crop allocation and daily lai calculation
 void crop_growth_daily(Patch& patch);
+/// Updates crop rotation status
+void crop_rotation(Stand& stand, int firsthistyear);
 /// Transfer of this year's growth (ycmass_xxx) to cmass_xxx_inc
 void growth_crop_year(Individual& indiv, double& cmass_leaf_inc,double& cmass_root_inc,double& cmass_ho_inc,double& cmass_agpool_inc);
 /// Yield function for true crops and intercrop grass
@@ -57,6 +62,7 @@ void harvest_wood(Individual& indiv,Pft& pft, bool alive, double frac_cut);
 void harvest_pasture(Harvest_CN& indiv_cp, Pft& pft, bool alive);
 /// Harvest function for pasture, representing grazing.
 void harvest_pasture(Individual& indiv, Pft& pft, bool alive);
+void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& killed);
 /// Turnover function for continuous grass.
 void turnover_grass(Individual& indiv);
 /// Transfers all carbon and nitrogen from living tissue to litter.
@@ -163,11 +169,11 @@ struct Harvest_CN {
 		}
 		else {
 
-			cmass_leaf = indiv.cmass_leaf;
-			cmass_root = indiv.cmass_root;
-			cmass_sap = indiv.cmass_sap;
-			cmass_heart = indiv.cmass_heart;
-			cmass_debt = indiv.cmass_debt;
+		cmass_leaf = indiv.cmass_leaf;
+		cmass_root = indiv.cmass_root;
+		cmass_sap = indiv.cmass_sap;
+		cmass_heart = indiv.cmass_heart;
+		cmass_debt = indiv.cmass_debt;
 
 			if(indiv.pft.landcover == CROPLAND) {
 				cmass_ho = indiv.cropindiv->cmass_ho;
@@ -191,20 +197,20 @@ struct Harvest_CN {
 
 		if(copy_dead_C) {
 
-			litter_leaf = ppft.litter_leaf;
-			litter_root = ppft.litter_root;
-			litter_sap = ppft.litter_sap;
-			litter_heart = ppft.litter_heart;
+		litter_leaf = ppft.litter_leaf;
+		litter_root = ppft.litter_root;
+		litter_sap = ppft.litter_sap;
+		litter_heart = ppft.litter_heart;
 
-			nmass_litter_leaf = ppft.nmass_litter_leaf;
-			nmass_litter_root = ppft.nmass_litter_root;
-			nmass_litter_sap = ppft.nmass_litter_sap;
-			nmass_litter_heart = ppft.nmass_litter_heart;
+		nmass_litter_leaf = ppft.nmass_litter_leaf;
+		nmass_litter_root = ppft.nmass_litter_root;
+		nmass_litter_sap = ppft.nmass_litter_sap;
+		nmass_litter_heart = ppft.nmass_litter_heart;
 
-			// acflux_harvest and anflux_harvest only for output
-			harvested_products_slow = ppft.harvested_products_slow;
-			harvested_products_slow_nmass = ppft.harvested_products_slow_nmass;
-		}
+		// acflux_harvest and anflux_harvest only for output
+		harvested_products_slow = ppft.harvested_products_slow;
+		harvested_products_slow_nmass = ppft.harvested_products_slow_nmass;
+	}
 	}
 
 	/// Copies C and N values from struct to individual, patchpft and patch (fluxes).
@@ -225,11 +231,11 @@ struct Harvest_CN {
 		}
 		else {
 
-			indiv.cmass_leaf = cmass_leaf;
-			indiv.cmass_root = cmass_root;
-			indiv.cmass_sap = cmass_sap;
-			indiv.cmass_heart = cmass_heart;
-			indiv.cmass_debt = cmass_debt;
+		indiv.cmass_leaf = cmass_leaf;
+		indiv.cmass_root = cmass_root;
+		indiv.cmass_sap = cmass_sap;
+		indiv.cmass_heart = cmass_heart;
+		indiv.cmass_debt = cmass_debt;
 
 			if(indiv.pft.landcover == CROPLAND) {
 				indiv.cropindiv->cmass_ho = cmass_ho;

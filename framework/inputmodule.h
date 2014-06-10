@@ -95,7 +95,9 @@ public:
 	virtual void getharvestdates(Gridcell& gridcell) = 0;
 
 	/// Gets N fertilization for one year
-	virtual void getNfert(Gridcell& gridcell) = 0;	
+	virtual void getNfert(Gridcell& gridcell) = 0;
+
+	virtual int getfirsthistyear() = 0;	
 };
 
 

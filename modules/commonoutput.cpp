@@ -951,6 +951,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			out.add_value(out_nuptake,   mean_standpft_nuptake * m2toha);
 			out.add_value(out_nlitter,   mean_standpft_nlitter * m2toha);
 
+#if defined PRINTCOMMONPFTSINSEPARATEFILES
 			// Print to landcover files in case pft:s are common to several landcovers (currently only used in NATURAL and FOREST)
 			if (run_landcover) {
 				for(int i=0;i<NLANDCOVERTYPES;i++) {
@@ -967,22 +968,18 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 //							out.add_value(out_cmass_pasture,		mean_standpft_cmass_lc[i]);
 							break;
 						case NATURAL:
-#if defined NATURALPFTSINFOREST
 							if(run[FOREST]) {
 								out.add_value(out_anpp_natural,			mean_standpft_anpp_lc[i]);
 								out.add_value(out_cmass_natural,		mean_standpft_cmass_lc[i]);
 								out.add_value(out_dens_natural,			mean_standpft_densindiv_total_lc[i]);
 							}
-#endif
 							break;
 						case FOREST:
-#if defined NATURALPFTSINFOREST
 							if(run[NATURAL]) {
 								out.add_value(out_anpp_forest,			mean_standpft_anpp_lc[i]);
 								out.add_value(out_cmass_forest,			mean_standpft_cmass_lc[i]);
 								out.add_value(out_dens_forest,			mean_standpft_densindiv_total_lc[i]);
 							}
-#endif
 							break;
 						default:
 							if(date.year == nyear_spinup)
@@ -991,7 +988,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					}
 				}
 			}
-
+#endif
 
 			if (pft.landcover == CROPLAND)
 			{
@@ -1022,16 +1019,15 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				while (gc_itr != gridcell.end()) {
 					Stand& stand = *gc_itr;
 
-					if(stand.cftid==pft.cftid) {
-						pft_sdate1=stand[0].pft[pft.id].cropphen->sdate_thisyear[0];
-						pft_sdate2=stand[0].pft[pft.id].cropphen->sdate_thisyear[1];
-						pft_hdate1=stand[0].pft[pft.id].cropphen->hdate_harvest[0];
-						pft_hdate2=stand[0].pft[pft.id].cropphen->hdate_harvest[1];
-						pft_lgp=stand[0].pft[pft.id].cropphen->lgp;
-						pft_phu=stand[0].pft[pft.id].cropphen->phu;
-						pft_fphu=stand[0].pft[pft.id].cropphen->fphu_harv;
-						pft_fhi=stand[0].pft[pft.id].cropphen->fhi_harv;
-					}
+					pft_sdate1=stand[0].pft[pft.id].cropphen->sdate_thisyear[0];
+					pft_sdate2=stand[0].pft[pft.id].cropphen->sdate_thisyear[1];
+					pft_hdate1=stand[0].pft[pft.id].cropphen->hdate_harvest[0];
+					pft_hdate2=stand[0].pft[pft.id].cropphen->hdate_harvest[1];
+					pft_lgp=stand[0].pft[pft.id].cropphen->lgp;
+					pft_phu=stand[0].pft[pft.id].cropphen->phu;
+					pft_fphu=stand[0].pft[pft.id].cropphen->fphu_harv;
+					pft_fhi=stand[0].pft[pft.id].cropphen->fhi_harv;
+
 					++gc_itr;
 				}
 				out.add_value(out_sdate1, pft_sdate1);
@@ -1321,6 +1317,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					out.add_value(out_aiso,  landcover_aiso[i]);
 					out.add_value(out_amon,  landcover_amon[i]);
 
+#if defined PRINTCOMMONPFTSINSEPARATEFILES
 				// Print to landcover files in case pft:s are common to several landcovers (currently only used in NATURAL and FOREST)
 					switch (i)
 					{
@@ -1333,28 +1330,24 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 //						out.add_value(out_cmass_pasture,	landcover_cmass[i]);
 						break;
 					case NATURAL:
-#if defined NATURALPFTSINFOREST
 						if(run[FOREST]) {
 							out.add_value(out_anpp_natural,     landcover_anpp[i]);
 							out.add_value(out_cmass_natural,	landcover_cmass[i]);
 							out.add_value(out_dens_natural,		landcover_densindiv_total[i]);
 						}
-#endif
 						break;
 					case FOREST:
-#if defined NATURALPFTSINFOREST
 						if(run[NATURAL]) {
 							out.add_value(out_anpp_forest,      landcover_anpp[i]);
 							out.add_value(out_cmass_forest,		landcover_cmass[i]);
 							out.add_value(out_dens_forest,		landcover_densindiv_total[i]);
 						}
-#endif
 						break;
 					default:
 						if(date.year == nyear_spinup)
 							dprintf("Modify code to deal with landcover output!\n");
 					}
-
+#endif
 					double landcover_cton_leaf = limited_cton(landcover_cmass_leaf[i], landcover_nmass_leaf[i]);
 
 					if (landcover_cmass_leaf[i] > 0.0) {

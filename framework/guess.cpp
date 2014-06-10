@@ -18,8 +18,10 @@
 
 Date date; // object describing timing stage of simulation
 int npft; // number of possible PFTs
-int ncft=0; // number of crop PFTs in Pftlist
+int nst;
+int nst_lc[NLANDCOVERTYPES];
 
+StandTypelist stlist;
 Pftlist pftlist;
 
 // emission ratios from fire (NH3, NO, NO2, N2O, N2) Levine et al. 1996
@@ -314,6 +316,20 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		
 }
 
+cropphen_struct* Patchpft::get_cropphen() {
+	if (pft.landcover != CROPLAND) {
+		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
+	}
+	return cropphen;
+}
+
+cropphen_struct* Patchpft::set_cropphen() {
+	if (pft.landcover != CROPLAND) {
+		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
+	}
+	return cropphen;
+}
+
 void cropphen_struct::serialize(ArchiveStream& arch) {
 	arch & sdate
 		& sdate_harv
@@ -380,6 +396,7 @@ void Patch::serialize(ArchiveStream& arch) {
 		& nday_growingseason
 		& fpc_total
 		& disturbed
+		& managed
 		& age
 		& fireprob
 		& growingseasondays
@@ -411,17 +428,17 @@ const Climate& Patch::get_climate() const {
 
 bool Patch::has_fires() const {
 #ifdef NOPASTURESTOCH
-	return iffire && stand.landcover != CROPLAND && stand.landcover != PASTURE;
+	return iffire && stand.landcover != CROPLAND && stand.landcover != PASTURE && !managed;
 #else
-	return iffire && stand.landcover != CROPLAND;
+	return iffire && stand.landcover != CROPLAND && !managed;
 #endif
 }
 
 bool Patch::has_disturbances() const {
 #ifdef NOPASTURESTOCH
-	return ifdisturb && stand.landcover != CROPLAND && stand.landcover != PASTURE;
+	return ifdisturb && stand.landcover != CROPLAND && stand.landcover != PASTURE && !managed;
 #else
-	return ifdisturb && stand.landcover != CROPLAND;
+	return ifdisturb && stand.landcover != CROPLAND && !managed;
 #endif
 }
 
@@ -442,21 +459,6 @@ void Standpft::serialize(ArchiveStream& arch) {
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Stand member functions
 ////////////////////////////////////////////////////////////////////////////////
-
-cropphen_struct* Patchpft::get_cropphen() {
-	if (pft.landcover != CROPLAND) {
-		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
-	}
-	return cropphen;
-}
-
-cropphen_struct* Patchpft::set_cropphen() {
-	if (pft.landcover != CROPLAND) {
-		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
-	}
-	return cropphen;
-}
-
 
 Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX)
  : id(i),
@@ -496,21 +498,42 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX)
 		createobj(*this, soiltype);
 	}
 
-	first_year=date.year;
-	natural_frac_change=0.0;
-	seed=12345678;
+	first_year = date.year;
+	frac_change = 0.0;
+	seed = 12345678;
 
-	pftid=-1;
-	cftid=-1;
-	isirrigated=false;
-	hasgrassintercrop=false;
-	gdd0_intercrop=0.0;
-	frac=1.0;
+	stid = -1;
+	pftid = -1;
+	current_rot = 0;
+	isrotationday = false;
+	isirrigated = false;
+	hasgrassintercrop = false;
+	gdd0_intercrop = 0.0;
+	frac = 1.0;
+	frac_old = 0.0;
 	scale_LC_change = 1.0;
 }
 
 double Stand::get_gridcell_fraction() const {
 	return frac;
+}
+
+void Stand::rotate() {
+
+	if(pftid >= 0 && stid >= 0) {
+
+		current_rot = (current_rot + 1) % stlist[stid].rotation.ncrops;
+		pftid = pftlist.getpftid(stlist[stid].management[current_rot].pftname);
+
+		if(stlist[stid].management[current_rot].hydrology == IRRIGATED) {
+			isirrigated = true;					
+			pft[pftid].irrigated = true;
+		}
+		else {
+			isirrigated = false;					
+			pft[pftid].irrigated = false;
+		}
+	}
 }
 
 double Stand::get_landcover_fraction() const {
@@ -553,8 +576,9 @@ void Stand::serialize(ArchiveStream& arch) {
 
 	arch & first_year
 		& frac
+		& stid
 		& pftid
-		& cftid
+		& current_rot
 		& isirrigated
 		& hasgrassintercrop
 		& gdd0_intercrop
@@ -1012,7 +1036,17 @@ bool Individual::continous_grass() const {
 	Stand& stand = vegetation.patch.stand;
 
 	if(pft.landcover == CROPLAND) {
-		if(cropindiv->isintercropgrass && stand.get_gridcell().pft[stand.pftid].sowing_restriction)
+
+		StandType& st = stlist[stand.stid];
+		bool sowing_restriction = true;
+
+		for(int i=0; i<st.rotation.ncrops; i++) {
+			int pftid = pftlist.getpftid(st.management[i].pftname);
+			if(!stand.get_gridcell().pft[pftid].sowing_restriction)
+				sowing_restriction = false;
+		}
+
+		if(cropindiv->isintercropgrass && sowing_restriction)
 			return true;
 		else
 			return false;
@@ -1448,7 +1482,7 @@ void Gridcellpft::serialize(ArchiveStream& arch) {
 		& hlimitdate_default
 		& wintertype
 		& singlecrop
-		& swindow
+		& swindow	// ?
 		& sowing_restriction;
 }
 
@@ -1470,85 +1504,86 @@ void Gridcell::set_coordinates(double longitude, double latitude) {
 	lat = latitude;
 }
 
-void Gridcell::create_stand_lu(landcovertype lc, double fraction, int cftid)
-{
+Stand& Gridcell::create_stand_lu(StandType& st, double fraction) {
 
-	if(lc!=CROPLAND) {
-			if(run[lc]) {
-				if(landcoverfrac[lc]>0.0) {
-					Stand& stand = create_stand(lc);
-					stand.set_gridcell_fraction(fraction);
+	landcovertype lc = st.landcover;
 
-					pftlist.firstobj();
-					while (pftlist.isobj) {
-						Pft& pft = pftlist.getobj();
-#ifdef NATURALPFTSINFOREST
-					if(pft.landcover == lc || lc == FOREST && pft.landcover == NATURAL) {
-#else
-						if(pft.landcover == lc) {
+	Stand& stand = create_stand(lc);
+	stand.stid = st.id;
+	stand.set_gridcell_fraction(fraction);
+	stand.frac_old = 0.0;
+	stand.frac_change = fraction;
+
+	pftlist.firstobj();
+	while (pftlist.isobj) {
+		Pft& pft = pftlist.getobj();
+
+		if(!st.restrictpfts && pft.landcover == lc
+			|| st.naturalveg && pft.landcover == NATURAL
+			|| st.naturalgrass && pft.landcover == NATURAL && pft.lifeform == GRASS) {
+
+			stand.pft[pft.id].active = true;
+		}
+		pftlist.nextobj();
+	}
+
+	if(lc == CROPLAND) {
+
+		stand.pftid = pftlist.getpftid(st.management[0].pftname);	// First main crop, will change during crop rotation
+		stand.current_rot = 0;
+
+#ifdef IRRIGATION
+		if(st.management[0].hydrology == IRRIGATED) {
+			stand.isirrigated = true;								// First main crop, may change during crop rotation
+			stand.pft[stand.pftid].irrigated = true;
+		}
 #endif
-							stand.pft[pft.id].active = true;
+		if(st.intercrop==NATURALGRASS && ifintercropgrass) {
+			stand.hasgrassintercrop = true;
+
+			for(unsigned int i=0; i<pftlist.nobj; i++) {
+				if(pftlist[i].isintercropgrass)
+					stand.pft[pftlist[i].id].active = true;
+			}
+		}
+
+		// Set standpft- and patchpft-variables for all active crops in all rotations
+		for(int rot=0; rot<st.rotation.ncrops; rot++) {
+
+			int id = pftlist.getpftid(st.management[rot].pftname);
+
+			if(id >=0) {
+				stand.pft[id].active = true;
+
+				if(rot == 0) 
+				{
+					// Set crop cycle dates to default values only for first crop in a rotation.
+					for(unsigned int p = 0; p < stand.nobj; p++) {
+
+						Gridcellpft& gcpft = stand.get_gridcell().pft[id]; 
+						Patchpft& ppft = stand[p].pft[id];
+
+						ppft.set_cropphen()->sdate = gcpft.sdate_default;
+						ppft.set_cropphen()->hlimitdate = gcpft.hlimitdate_default;
+				
+						if(pftlist[id].phenology == ANY)
+							ppft.set_cropphen()->growingseason = true;
+						else if(pftlist[id].phenology == CROPGREEN) {
+							ppft.set_cropphen()->eicdate = stepfromdate(ppft.get_cropphen()->sdate, -15);
 						}
-						pftlist.nextobj();
 					}
 				}
 			}
 		}
-		else {
-			if(cftid < 0)
-				fail("call to create_stand_lu() with landcover==CROPLAND must include a cftid\n");
+	}
 
-			unsigned int index;
-
-			for(index = 0; index < pftlist.nobj; index++) {
-				if(pftlist[index].cftid == cftid) {
-					break;
-				}
-			}
-
-			Stand& stand = create_stand(lc);
-			stand.pftid = pftlist[index].id;
-			stand.cftid = pftlist[index].cftid;
-			stand.set_gridcell_fraction(fraction);
-
-			stand.pft[pftlist[index].id].active = true;
-#ifdef IRRIGATION
-			if(pftlist[index].hydrology == IRRIGATED) {
-				stand.isirrigated = true;
-			}
-#endif
-			if(pftlist[index].intercrop==NATURALGRASS && ifintercropgrass) {
-				stand.hasgrassintercrop = true;
-
-				for(unsigned int i=0; i<pftlist.nobj; i++) {
-					if(pftlist[i].isintercropgrass)
-						stand.pft[pftlist[i].id].active = true;
-				}
-			}
-
-			// Set crop cycle dates to default values.
-			for(unsigned int i = 0; i < stand.nobj; i++) {
-
-				stand[i].pft[pftlist[index].id].set_cropphen()->sdate = stand.get_gridcell().pft[pftlist[index].id].sdate_default;
-				stand[i].pft[pftlist[index].id].set_cropphen()->hlimitdate = stand.get_gridcell().pft[pftlist[index].id].hlimitdate_default;
-	
-				if(pftlist[index].phenology == ANY)
-					stand[i].pft[stand.pftid].set_cropphen()->growingseason = true;
-				else if(pftlist[index].phenology == CROPGREEN) {
-					stand[i].pft[pftlist[index].id].set_cropphen()->eicdate = stand[i].pft[pftlist[index].id].get_cropphen()->sdate - 15;
-					if(stand[i].pft[pftlist[index].id].get_cropphen()->eicdate < 0)
-						stand[i].pft[pftlist[index].id].set_cropphen()->eicdate = 365 + stand[i].pft[pftlist[index].id].get_cropphen()->sdate - 15;
-				}
-			}
-		}
+	return stand;
 }
 
 void Gridcell::serialize(ArchiveStream& arch) {
 	arch & climate
 		& landcoverfrac
 		& landcoverfrac_old
-		& cftfrac
-		& cftfrac_old
 		& LC_updated
 		& seed;
 

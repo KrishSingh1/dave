@@ -187,25 +187,25 @@ double TimeDataD::Get(int calender_year, int column) const
 
 double TimeDataD::Get(int calender_year, const char* name) const		//Returns a single value for column with header string name
 {
-	int column=-1;
-	double dataX=-999;
+	int column = -1;
+	double dataX = -999;
 
-	for(int i=0;i<nRecords;i++)
+	for(int i=0; i<nRecords; i++)
 	{
 		if(!strcmp(name, header_arr[i]))
 		{
-			column=i;
+			column = i;
 			break;
 		}
 	}
 
-	if(column==-1)
+	if(column == -1)
 	{
-		if(calender_year == firstyear + 1)	//Set to 1 in crop branch, was 0.
-		printf("WARNING: Value for %s not found in %s. Value set to 0.0\n", name, fileName);
+		if(calender_year == firstyear)
+		printf("WARNING: Value for %s not found in %s.\n", name, fileName);
 	}
 	else
-		dataX=Get(calender_year, column);
+		dataX = Get(calender_year, column);
 
 	return dataX;
 }
@@ -2144,7 +2144,7 @@ double TimeDataDmem::Get(int calender_year, const char* name) const		//Returns a
 
 	if(column == -1)
 	{
-		if(calender_year == firstyear + 1)	//Set to 1 in crop branch, was 0.
+		if(calender_year == firstyear)
 		printf("WARNING: Value for %s not found in input file\n", name);
 	}
 	else

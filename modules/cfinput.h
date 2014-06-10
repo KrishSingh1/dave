@@ -37,6 +37,8 @@ public:
 
 	void getNfert(Gridcell& gridcell);
 
+	int getfirsthistyear();	
+
 	static const int NYEAR_SPINUP_DATA=30;
 
 private:

@@ -186,7 +186,9 @@ const double SOLVESOMCENT_SPINEND    = 0.3;
 
 /// Kelvin to deg c conversion
 const double K2degC = 273.15;
-const int NCROPSTANDS_MAX=26;
+
+/// Maximum number of crop rotation items
+const int NROTATIONPERIODS_MAX = 2;
 
 /// Conversion factor for CO2 from ppmv to mole fraction
 const double CO2_CONV = 1.0e-6;
@@ -214,7 +216,10 @@ extern Date date;
 
 /// Number of possible PFTs
 extern int npft;
-extern int ncft;
+/// Number of stand types in stlist
+extern int nst;
+/// Number of stand types per land cover
+extern int nst_lc[NLANDCOVERTYPES];
 
 
 /// General purpose object for handling simulation timing.
@@ -856,6 +861,107 @@ private:
 	double monthly_fluxes_pft[12][NPERPFTFLUXTYPES];
 };
 
+/// Crop management type
+class Management {
+
+public:
+	xtring pftname;
+	/// hydrology (RAINFED,IRRIGATED) 
+	hydrologytype hydrology;
+	/// irrigation efficiency
+//	double firr;
+	/// Nitrogen fertilisation amount
+	double nfert;
+
+	Management() {
+
+		pftname = "";
+		hydrology = RAINFED;
+//		firr = 0.0;
+		nfert = 0.0;
+	}
+};
+
+///
+class CropRotation {
+
+public:
+	/// Number of crops in rotation
+	int ncrops;
+	/// Rotation period in years
+//	double nyears;
+	int firstrotyear;
+
+	CropRotation() {
+		ncrops = 1;
+//		nyears = 1.0;
+		firstrotyear = 0;
+	}
+};
+
+class StandType {
+
+public:
+	/// id code (should be zero based and sequential, 0...nst-1)
+	int id;
+	xtring name;
+
+	/// specifies type of landcover
+	/** \see landcovertype */
+	landcovertype landcover;	// specifies type of landcover (0 = URBAN, 1 = CROP, 2 = PASTURE, 3 = FOREST, 4 = NATURAL, 5 = PEATLAND)
+	/// hydrology (RAINFED,IRRIGATED) 
+//	hydrologytype hydrology;
+	///
+	CropRotation rotation;
+	// List of management types in a rotation cycle
+	Management management[NROTATIONPERIODS_MAX];
+
+	/// intercrop (NOINTERCROP,NATURALGRASS)
+	intercroptype intercrop;
+	/// whether natural pft:s are allowed to grow in stand type
+	bool naturalveg; // or NONE, GRASSONLY, ALL
+	/// whether natural grass pft:s are allowed to grow in stand type
+	bool naturalgrass;
+	// whether only pft:s defined in management are allowed (plus intercrop or naturalveg/grass)
+	bool restrictpfts;
+
+	/// fraction of this stand type relative to the gridcell
+	double frac;
+	/// old fraction of this stand type relative to the gridcell before update
+	double frac_old;
+
+	// current number of stands of this stand type
+	int nstands;
+
+	StandType() {
+
+		frac = 1.0;
+		frac_old = 0.0;
+		nstands = 0;
+		intercrop = NOINTERCROP;
+		naturalveg = false;
+		naturalgrass = false;
+		restrictpfts = false;
+	}
+
+	/// Returns position of crop in rotation list if present. Returns -1 if not.
+	int pftinrotation(xtring name) {
+
+		int cropno = -1;
+		for(int i=0; i<rotation.ncrops; i++) {
+			if(name == management[i].pftname)
+				cropno = i;
+		}
+
+		return cropno;
+	}
+};
+
+class StandTypelist : public ListArray_id<StandType> {};
+
+/// The one and only linked list of StandType objects	
+extern StandTypelist stlist;
+
 
 /// Holds static functional parameters for a plant functional type (PFT). 
 /** There should be one Pft object for each potentially occurring PFT. The same Pft object 
@@ -1054,10 +1160,6 @@ public:
 	/// specifies type of landcover
 	/** \see landcovertype */
 	landcovertype landcover;	// specifies type of landcover (0 = URBAN, 1 = CROP, 2 = PASTURE, 3 = FOREST, 4 = NATURAL, 5 = PEATLAND); initialized in constructor
-	/// hydrology (RAINFED,IRRIGATED) 
-	hydrologytype hydrology;
-	/// intercrop (NOINTERCROP,NATURALGRASS)
-	intercroptype intercrop;
 
 	/// fraction of residue outtake at harvest
 	double res_outtake;
@@ -1069,8 +1171,6 @@ public:
 	double harvest_slow_frac;
 	/// yearly turnover fraction of patchpft.harvested_products_slow (goes to gridcell.acflux_harvest_slow)
 	double turnover_harv_prod;
-	/// crop pft id defined in the insfile (numbered 0-25, corresponding to columns 0-25 in crop cover input file)
-	int cftid;
 	/// whether pft may grow as cover crop 
 	bool isintercropgrass;
 	/// whether sowing date is calculated
@@ -1157,7 +1257,6 @@ public:
 		harv_eff_ic = 0.0;
 		turnover_harv_prod = 1.0;	// default 1 year turnover time
 
-		cftid=-1;
 		isintercropgrass=false;
 		ifsdcalc=false;
 		ifsdtemp=false;
@@ -1324,7 +1423,30 @@ public:
  *     pftlist.nextobj();
  *   }
  */
-class Pftlist : public ListArray_id<Pft> {};
+class Pftlist : public ListArray_id<Pft> {
+
+public:
+	int getpftid(xtring pftname) {
+
+		int id = -1;
+		bool found = false;
+
+		this->firstobj();
+
+		while(this->isobj) {
+
+			Pft& pft = this->getobj();
+			if(pft.name == pftname) {
+				id = pft.id;
+				found = true;
+				break;
+			}
+			this->nextobj();
+		}
+
+		return id;
+	}
+};
 
 /// The one and only linked list of Pft objects	
 extern Pftlist pftlist;
@@ -2577,6 +2699,9 @@ public:
 	/// probability of fire this year
 	double fireprob;
 
+	/// whether management has started on this patch
+	bool managed;
+
 	/// DLE - the number of days over which wcont is averaged for this patch
 	/** i.e. those days for which daily temp > 5.0 degC */
 	int growingseasondays;
@@ -2652,6 +2777,7 @@ public:
 
 		age = 0;
 		disturbed = false;
+		managed = false;
 		wdemand = 0.0;
 		wdemand_leafon = 0.0;
 		
@@ -2699,8 +2825,11 @@ public:
 	/// Photosynthesis values for this PFT under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;
 
-	/// Is this PFT allowed to grow in this stand?
+	/// Whether this PFT is allowed to grow in this stand
 	bool active;
+
+	/// Whether this PFT is irrigated in this stand
+	bool irrigated;
 
 	// MEMBER FUNCTIONS
 
@@ -2709,6 +2838,7 @@ public:
 
 		anetps_ff_max = 0.0;
 		active = !run_landcover;
+		irrigated = false;
 	}
 
 	void serialize(ArchiveStream& arch);
@@ -2730,13 +2860,19 @@ public:
 	/// A number identifying this Stand within the grid cell
 	int id;
 
-	/// pft id of main crop
+	/// stand type id
+	int stid;
+
+	/// pft id of main crop, updated during rotation
 	int pftid;
 
-	/// crop id of main crop pft (crop pft:s numbered 0-25, corresponding to columns 0-25 in crop cover input file)
-	int cftid;
+	/// current crop rotation item
+	int current_rot;
 
-	// true if main crop pft.hydrology==irrigated
+	/// whether crop rotation item is to be updated today
+	bool isrotationday;
+
+	// true if current crop management hydrology == irrigated, updated during rotation
 	bool isirrigated;
 
 	/// true if the stand's main crop pft intercrop==naturalgrass and a pft with isintercrop==true is in the pftlist.
@@ -2744,9 +2880,12 @@ public:
 
 	/// gdd5-value at first intercrop grass growth
 	double gdd0_intercrop;
+
+	/// old fraction of this stand relative to the gridcell before update
+	double frac_old;
 	
 	/// fraction removed from natural stand when converted to other landcover type
-	double natural_frac_change;
+	double frac_change;
 
 	/// counter used for output from separate stands
 	double anpp;
@@ -2810,6 +2949,9 @@ public:
 	bool ifnlim_stand() const {
 		return ifnlim && ifnlim_lc[landcover];
 	}
+
+	/// Moves crop rotation forward
+	void rotate();
 
 	void serialize(ArchiveStream& arch);
 
@@ -2917,6 +3059,8 @@ public:
 	bool singlecrop;
 	/// first and last day of crop sowing window, calculated in calc_sowing_windows()
 	int swindow[2];
+	/// first and last day of crop sowing window for irrigated crops, calculated in calc_sowing_windows()
+	int swindow_irr[2];
 	/// temperature limits precludes crop sowing
 	bool sowing_restriction;
 
@@ -2990,14 +3134,12 @@ public:
 	 *  instruction file in getlandcover().
 	 */
 	double landcoverfrac[NLANDCOVERTYPES];
-	double cftfrac[NCROPSTANDS_MAX];
 
 	/// The land cover fractions from the previous year
 	/** Used to keep track of the changes when running with dynamic
 	 *  land cover.
 	 */
 	double landcoverfrac_old[NLANDCOVERTYPES];
-	double cftfrac_old[NCROPSTANDS_MAX];
 
 	/// Whether the land cover fractions changed for this grid cell this year
 	/** \see landcover_dynamics
@@ -3042,8 +3184,6 @@ public:
 
 		memset(landcoverfrac, 0, sizeof(double) * NLANDCOVERTYPES);
 		memset(landcoverfrac_old, 0, sizeof(double) * NLANDCOVERTYPES);
-		memset(cftfrac, 0, sizeof(double) * NCROPSTANDS_MAX);
-		memset(cftfrac_old, 0, sizeof(double) * NCROPSTANDS_MAX);
 		acflux_harvest_slow=0.0;
 		acflux_landuse_change=0.0;
 		memset(acflux_harvest_slow_lc, 0, sizeof(double)*NLANDCOVERTYPES);
@@ -3080,7 +3220,7 @@ public:
 	Stand& create_stand(landcovertype landcover);
 
 	/// Creates new stand and initiates land cover settings
-	void create_stand_lu(landcovertype landcover, double fraction, int cftid=-2);
+	Stand& create_stand_lu(StandType& st, double fraction);
 
 	/// Deletes the stand which the iterator is pointing at
 	/** Returns an iterator pointing to the object following the erased object.

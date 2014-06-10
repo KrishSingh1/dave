@@ -58,6 +58,8 @@ public:
 
 	/// See base class for documentation about this function's responsibilities
 	void getNfert(Gridcell& gridcell);
+
+	int getfirsthistyear();	
 	
 	// Constants associated with historical climate data set
 

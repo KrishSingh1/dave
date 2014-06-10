@@ -1157,7 +1157,7 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
 		// Call photosynthesis for individual assuming stomates fully open
 		// (lambda = lambda_max)
 
-		if(patch.stand.landcover!=CROPLAND || patch.pft[indiv.pft.id].cropphen->growingseason) {
+		if(indiv.growingseason()) {
 
 			PhotosynthesisResult leafon_photosynthesis;
 
@@ -1417,7 +1417,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			// Retrieve PFT
 			Pft& pft = ppft.pft;
 
-			if (day.isstart || pft.hydrology==IRRIGATED) {
+			if (day.isstart || spft.irrigated && pft.id == patch.stand.pftid) {
 
 				// Calculate effective water supply from plant roots
 				// Rescale available water by patch FPC if exceeds 1
@@ -1425,7 +1425,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 				// individual's FPC, assuming individuals are equal in competition for water)
 				double wr;
 
-				if(patch.stand.isirrigated && pft.hydrology==IRRIGATED)
+				if(spft.irrigated && pft.id == patch.stand.pftid)
 					wr = irrigated_water_uptake(patch, pft, day);
 				else
 					wr = water_uptake(patch.soil.wcont, patch.soil.soiltype.awc,
@@ -1875,7 +1875,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		Patchpft& ppft = patch.pft[pft.id];
 
 		//Don't do calculations for crops outside their growingseason
-		if(stand.landcover==CROPLAND && !ppft.cropphen->growingseason) {
+		if(!indiv.growingseason()) {
 			indiv.dnpp=0.0;
 			vegetation.nextobj();
 			continue;

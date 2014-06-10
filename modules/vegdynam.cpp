@@ -401,6 +401,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	const double SAPSIZE=0.1;
 		// coefficient in calculation of initial sapling size and initial
 		// grass biomass (see comment above)
+	const double SAPSIZEPM=0.01;
+		//Fixed sapsize (g C) for naturally regenerated seedlings after management have started on patch
+		//Management add, FL
 
 	bool present; // whether PFT already present in this patch
 	double c; // constant in equation for number of new saplings (Eqn 5)
@@ -585,10 +588,11 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							patch.pft[pft.id].wscal_mean_est=patch.pft[pft.id].wscal_mean;
 							newindiv=!negligible(nsapling);
 						}
-						else if (patch.age%estinterval) {
+						else if (patch.age%estinterval && !patch.managed) {
 
 							// Not an establishment year - save sapling count for
 							// establishment the next establishment year
+							// Establishment each year in managed patches
 
 							patch.pft[pft.id].nsapling+=nsapling;
 							newindiv=0;
@@ -626,7 +630,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Initial biomass proportional to potential forest floor net
 						// assimilation for this PFT in this patch
 
-						bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est;
+						if (patch.managed) //Management add, FL
+							bminit=SAPSIZEPM; //Fixed sap size post management
+						else
+							bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est;
 
 						// Initial leaf to fine root biomass ratio based on hypothetical
 						// value of water stress parameter

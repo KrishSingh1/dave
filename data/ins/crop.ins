@@ -150,9 +150,11 @@ st "TeWW" (
 	crop1 "TeWW"
 	hydrology1 "rainfed"
 	nfert1 50
-	crop2 "TeWW"
+	crop2 "TeCo"
 	hydrology2 "irrigated"
 	nfert2 0
+	crop3 "TeCo"
+	fallow3 1
 )
 
 st "TrRi" (
@@ -1140,6 +1142,7 @@ pft "TeWW" (
 	tempspring 5
 	forcesowingdate 1
 	forceharvestdate 1
+	forceautumnsowing 0
 )
 
 pft "TrRi" (
@@ -1586,6 +1589,7 @@ pft "TeRa" (
 	ifsdprec 0
 	tempautumn 17
 	tempspring 5	! 12 in Bondeau's code, ändra till 11 och 5
+	forceautumnsowing 0
 )
 
 pft "CC3G_ic" (

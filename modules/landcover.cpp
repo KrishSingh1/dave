@@ -5,7 +5,7 @@
 /// Landcover change, crop and pasture definitions.
 ///
 /// \author Mats Lindeskog,
-/// \based on LPJ-mL C++ code received from Alberte Bondeau in 2008.
+/// \based on LPJ-mL C++ code recieved from Alberte Bondeau in 2008.
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -23,6 +23,9 @@
 //#define DELAYED_SEEDCARBON		//Seed carbon allocation to leaves and roots are done over a 10-day period.
 //#define GRASS_SEED_CMASS	// Carbon allocated to grass on bicdate or the day after turnover.
 
+/// Autumn sowing types for crops
+enum {NOFORCING, AUTUMNSOWING, SPRINGSOWING};
+
 /////////////////////////// Functions facilitating handling time periods spanning newyear //////////////////////////////////////
 
 /// Query whether a date is within a period spanned by two dates.
@@ -30,7 +33,7 @@ bool dayinperiod(int day, int start, int end) {
 
 	bool acrossnewyear = false;
 
-	if(start  <0 || end < 0)	// a negative value should not be a valid day
+	if(day < 0 || start < 0 || end < 0)	// a negative value should not be a valid day
 		return false;
 
 	if(start > end)
@@ -954,7 +957,7 @@ void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft)
 {
 	Pft& pft = gridcellpft.pft;
 
-	if(pft.ifsdautumn) {							// TeWW,TeRa:
+	if(pft.ifsdautumn  && pft.forceautumnsowing != SPRINGSOWING) {							// TeWW,TeRa:
 	
 		// Use autumn sowing if first_autumndate20 is set (autumn conditions met during the past 20 years):
 		if(!((gridcellpft.first_autumndate20 == climate.testday_temp || gridcellpft.first_autumndate20 == climate.coldestday) && 
@@ -967,7 +970,8 @@ void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft)
 		else {	// if(gridcellpft.first_autumndate20==climate.coldestday)
 		
 			if(!((gridcellpft.last_springdate20 == climate.testday_temp || gridcellpft.last_springdate20 == climate.coldestday) && 
-					gridcellpft.last_springdate == gridcellpft.last_springdate20)) {
+					gridcellpft.last_springdate == gridcellpft.last_springdate20)
+					 && pft.forceautumnsowing != AUTUMNSOWING) {
 
 				gridcellpft.sdatecalc_temp = gridcellpft.last_springdate20;
 				gridcellpft.wintertype = false;
@@ -985,8 +989,8 @@ void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft)
 		}
 
 		// If autumn first_autumndate20 is earlier than hlimitdate, use last_springdate20 (winter is too long):
-		if (climate.lat >= 0.0 && gridcellpft.sdatecalc_temp <= pft.hlimitdatenh && gridcellpft.sdatecalc_temp > 180 
-			|| climate.lat < 0.0 && gridcellpft.sdatecalc_temp <= pft.hlimitdatesh) {
+		if(dayinperiod(gridcellpft.sdatecalc_temp, climate.testday_temp, gridcellpft.hlimitdate_default)
+			 && pft.forceautumnsowing != AUTUMNSOWING) {
 
 			gridcellpft.sdatecalc_temp = gridcellpft.last_springdate20;	// use last_springdate20 disregarding earlier choices	
 			gridcellpft.wintertype = false;
@@ -1505,6 +1509,9 @@ void Crop_sowing_date_temp(Patch& patch, Pft& pft) {
 	Gridcellpft& gridcellpft = gridcell.pft[pft.id];
 
 	patchpft.set_cropphen()->sdate = gridcellpft.sdatecalc_temp;
+
+	if(dayinperiod(gridcellpft.sdatecalc_temp, climate.testday_temp, gridcellpft.hlimitdate_default) && pft.forceautumnsowing == AUTUMNSOWING)
+		patchpft.cropphen->hlimitdate = stepfromdate(patchpft.cropphen->sdate, - 1);
 }
 
 /// old precipitation-dependent sowing date method (Bondeau et al. 2007)
@@ -1652,19 +1659,12 @@ void Crop_sowing_date_forced(Patch& patch, Pft& pft) {
 
 			patchpft.cropphen->sdate = gridcellpft.sdate_force;
 
-			// avoid hlimitdate to cut growing period too early
-			if (climate.lat >= 0.0 && gridcellpft.sdate_force <= pft.hlimitdatenh && gridcellpft.sdate_force > 180 
-					|| climate.lat < 0.0 && gridcellpft.sdate_force <= pft.hlimitdatesh) {
-
+				// avoid hlimitdate to cut growing period too early
+			if(dayinperiod(gridcellpft.sdate_force, climate.testday_temp, gridcellpft.hlimitdate_default))
 				patchpft.cropphen->hlimitdate = stepfromdate(gridcellpft.sdate_force, - 1);
-			}
-			else {
+			else 
 				// reset hlimitdate to default (in case changed by Crop_sowing_date_new())
-				if (climate.lat >= 0.0)
-					patchpft.cropphen->hlimitdate = pft.hlimitdatenh;
-				else
-					patchpft.cropphen->hlimitdate = pft.hlimitdatesh;
-			}
+				patchpft.cropphen->hlimitdate = gridcellpft.hlimitdate_default;
 		}
 	}
 	else if(pft.forcesowingdate && (!strncmp(pft.name,"TrRi", strlen("TrRi")) && !gridcellpft.singlecrop))
@@ -1865,7 +1865,10 @@ void crop_sowing_patch(Patch& patch) {
 						patch.stand.isrotationday = true;
 					}
 					else {
-						gridcellpft.sowing_restriction = false;
+						if(!patch.stand.infallow)
+							gridcellpft.sowing_restriction = false;
+						else if(patch.stand.ndays_inrotation > 180)
+							patch.stand.isrotationday = true;
 					}
 				}
 
@@ -2853,6 +2856,8 @@ void crop_rotation(Stand& stand, int firsthistyear) {
 		CropRotation& rotation = stlist[stand.stid].rotation;
 		bool postpone_rotation = false;
 
+		stand.ndays_inrotation++;
+
 		if(rotation.ncrops > 1 && stand.isrotationday) {
 
 			int firstrotyear = rotation.firstrotyear + nyear_spinup - firsthistyear;
@@ -2865,7 +2870,7 @@ void crop_rotation(Stand& stand, int firsthistyear) {
 			// 2. Synchronise rotation with firstrotyear:
 
 			// A. At the creation of the stand:
-//			if(date.year < stand.first_year + 3)
+			if(date.year < stand.first_year + 3)
 			// B. At firstrotyear
 //			if(date.year == firstrotyear - 1)
 			// C. Continuously:
@@ -2874,8 +2879,12 @@ void crop_rotation(Stand& stand, int firsthistyear) {
 					postpone_rotation = true;
 			}
 
-
 			if(!postpone_rotation) {
+
+				if(stand.infallow) {
+					stand.infallow = false;
+					stand.get_gridcell().pft[stand.pftid].sowing_restriction = false;
+				}
 
 				int old_pftid = stand.pftid;
 
@@ -2887,10 +2896,17 @@ void crop_rotation(Stand& stand, int firsthistyear) {
 					cropphen_struct& current = *(stand[p].pft[stand.pftid].get_cropphen());
 
 					previous.bicdate = -1;
-					current.bicdate = stepfromdate(date.day, 15);
+					if(!previous.intercropseason)
+						current.bicdate = stepfromdate(date.day, 15);
 					previous.eicdate = -1;
 					current.eicdate = -1;
 					previous.hdate = -1;
+					current.intercropseason = previous.intercropseason;
+				}
+
+				if(stlist[stand.stid].management[stand.current_rot].fallow) {
+					stand.infallow = true;
+					stand.get_gridcell().pft[stand.pftid].sowing_restriction = true;
 				}
 			}
 

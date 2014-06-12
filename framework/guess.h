@@ -188,7 +188,7 @@ const double SOLVESOMCENT_SPINEND    = 0.3;
 const double K2degC = 273.15;
 
 /// Maximum number of crop rotation items
-const int NROTATIONPERIODS_MAX = 2;
+const int NROTATIONPERIODS_MAX = 3;
 
 /// Conversion factor for CO2 from ppmv to mole fraction
 const double CO2_CONV = 1.0e-6;
@@ -873,12 +873,15 @@ public:
 	/// Nitrogen fertilisation amount
 	double nfert;
 
+	bool fallow;
+
 	Management() {
 
 		pftname = "";
 		hydrology = RAINFED;
 //		firr = 0.0;
 		nfert = 0.0;
+		fallow = false;
 	}
 };
 
@@ -1235,9 +1238,11 @@ public:
 	bool forcesowingdate;
 	/// whether harvest dates are read from input file
 	bool forceharvestdate;
+	/// autumn/spring sowing of pft:s with tempautumn = 1
+	int forceautumnsowing;	//0 = NOFORCING,  1 = AUTUMNSOWING, 2 = SPRINGSOWING
 	/// whether N fertilization is read from input file
 	bool readNfert;
-	
+
 	// MEMBER FUNCTIONS
 
 public:
@@ -1283,6 +1288,7 @@ public:
 		frootend=0.0;
 		forcesowingdate=false;
 		forceharvestdate=false;
+		forceautumnsowing = 0;
 		readNfert=false;
 	}
 
@@ -1429,19 +1435,14 @@ public:
 	int getpftid(xtring pftname) {
 
 		int id = -1;
-		bool found = false;
 
-		this->firstobj();
+		for(unsigned int i=0; i< this->nobj; i++) {
 
-		while(this->isobj) {
-
-			Pft& pft = this->getobj();
+			Pft& pft = (*this)[i];
 			if(pft.name == pftname) {
 				id = pft.id;
-				found = true;
 				break;
 			}
-			this->nextobj();
 		}
 
 		return id;
@@ -2868,6 +2869,10 @@ public:
 
 	/// current crop rotation item
 	int current_rot;
+
+	int ndays_inrotation;
+
+	bool infallow;
 
 	/// whether crop rotation item is to be updated today
 	bool isrotationday;

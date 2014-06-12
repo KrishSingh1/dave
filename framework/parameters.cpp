@@ -125,7 +125,7 @@ Paramtype* Paramlist::find(xtring name) {
 
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM,BLOCK_ST};
 enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,	
-	CB_STLANDCOVER,CB_STINTERCROP,CB_STNATURALVEG,CB_CHECKST,CB_CROP1,CB_CROP2,CB_STHYDROLOGY1,CB_STHYDROLOGY2,
+	CB_STLANDCOVER,CB_STINTERCROP,CB_STNATURALVEG,CB_CHECKST,CB_CROP1,CB_CROP2,CB_CROP3,CB_STHYDROLOGY1,CB_STHYDROLOGY2,CB_STHYDROLOGY3,
 	CB_PATHWAY,CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE};
 
 // File local variables
@@ -670,6 +670,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("forceharvestdate",&ppft->forceharvestdate,1,CB_NONE,"use sowingdate from input file");
 		declareitem("readNfert",&ppft->readNfert,1,CB_NONE,"use N fertilization from input file");
 		declareitem("laimax",&ppft->laimax,0.0,10.0,1,CB_NONE,"");
+		declareitem("forceautumnsowing",&ppft->forceautumnsowing,0,2,1,CB_NONE,"Whether autumn sowing is forced independent of climate");
 
 		callwhendone(CB_CHECKPFT);
 		
@@ -716,12 +717,21 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("hydrology1",&strparam,16,CB_STHYDROLOGY1, "Hydrology of crop 1 (\"RAINFED\" or \"IRRIGATED\")");
 //				declareitem("irrigation1",&pst->management[i].firr,0.0,1.0,1,CB_NONE,"Irrigation of crop 1");
 				declareitem("nfert1",&pst->management[i].nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop 1");
+				declareitem("fallow1",&pst->management[i].fallow,1,CB_NONE,"Fallow in place of crop 1");
 			}
 			else if(i == 1) {
 				declareitem("crop2",&strparam,16,CB_CROP2,"");
 				declareitem("hydrology2",&strparam,16,CB_STHYDROLOGY2, "Hydrology of crop 2 (\"RAINFED\" or \"IRRIGATED\")");
 //				declareitem("irrigation2",&pst->management[i].firr,0.0,1.0,1,CB_NONE,"Irrigation of crop 2");
 				declareitem("nfert2",&pst->management[i].nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop 2");
+				declareitem("fallow2",&pst->management[i].fallow,1,CB_NONE,"Fallow in place of crop 2");
+			}
+			else if(i == 2) {
+				declareitem("crop3",&strparam,16,CB_CROP3,"");
+				declareitem("hydrology3",&strparam,16,CB_STHYDROLOGY3, "Hydrology of crop 3 (\"RAINFED\" or \"IRRIGATED\")");
+//				declareitem("irrigation3",&pst->management[i].firr,0.0,1.0,1,CB_NONE,"Irrigation of crop 3");
+				declareitem("nfert3",&pst->management[i].nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop 3");
+				declareitem("fallow3",&pst->management[i].fallow,1,CB_NONE,"Fallow in place of crop 3");
 			}
 		}
 		callwhendone(CB_CHECKST);
@@ -846,6 +856,9 @@ void plib_callback(int callback) {
 	case CB_CROP2:
 		pst->management[1].pftname = strparam;
 		break;
+	case CB_CROP3:
+		pst->management[2].pftname = strparam;
+		break;
 	case CB_STHYDROLOGY1:
 		if (strparam.upper()=="RAINFED") pst->management[0].hydrology = RAINFED;
 		else if (strparam.upper()=="IRRIGATED") pst->management[0].hydrology = IRRIGATED;
@@ -859,6 +872,16 @@ void plib_callback(int callback) {
 	case CB_STHYDROLOGY2:
 		if (strparam.upper()=="RAINFED") pst->management[1].hydrology = RAINFED;
 		else if (strparam.upper()=="IRRIGATED") pst->management[1].hydrology = IRRIGATED;
+		else 
+		{
+			sendmessage("Error",
+				"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\")");
+			plibabort();
+		}
+		break;
+	case CB_STHYDROLOGY3:
+		if (strparam.upper()=="RAINFED") pst->management[2].hydrology = RAINFED;
+		else if (strparam.upper()=="IRRIGATED") pst->management[2].hydrology = IRRIGATED;
 		else 
 		{
 			sendmessage("Error",
@@ -1047,6 +1070,13 @@ void plib_callback(int callback) {
 				stlist.killobj();
 			}
 			else {
+
+				if(	st.rotation.ncrops == 0 ||
+					st.rotation.ncrops == 1 && st.management[0].pftname == "" ||
+					st.rotation.ncrops == 2 && st.management[1].pftname == "" ||
+					st.rotation.ncrops == 3 && st.management[2].pftname == "")
+					fail("Check stand type rotation parameter setting\n");
+
 				stlist.nextobj();
 			}
 		}

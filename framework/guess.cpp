@@ -505,6 +505,8 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX)
 	stid = -1;
 	pftid = -1;
 	current_rot = 0;
+	ndays_inrotation = 0;
+	infallow = false;
 	isrotationday = false;
 	isirrigated = false;
 	hasgrassintercrop = false;
@@ -521,6 +523,8 @@ double Stand::get_gridcell_fraction() const {
 void Stand::rotate() {
 
 	if(pftid >= 0 && stid >= 0) {
+
+		ndays_inrotation = 0;
 
 		current_rot = (current_rot + 1) % stlist[stid].rotation.ncrops;
 		pftid = pftlist.getpftid(stlist[stid].management[current_rot].pftname);

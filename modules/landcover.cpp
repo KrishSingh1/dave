@@ -5,7 +5,7 @@
 /// Landcover change, crop and pasture definitions.
 ///
 /// \author Mats Lindeskog,
-/// \based on LPJ-mL C++ code recieved from Alberte Bondeau in 2008.
+/// \based on LPJ-mL C++ code received from Alberte Bondeau in 2008.
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////

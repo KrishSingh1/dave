@@ -1400,8 +1400,8 @@ void growth(Stand& stand, Patch& patch) {
 
 		// Move leftover compartment nitrogen storage to longterm storage
 		if(!indiv.has_daily_turnover())	{
-		indiv.nstore_longterm += indiv.nstore_labile;
-		indiv.nstore_labile = 0.0;
+			indiv.nstore_longterm += indiv.nstore_labile;
+			indiv.nstore_labile = 0.0;
 		}
 
 		indiv.deltafpc = 0.0;
@@ -1603,7 +1603,7 @@ void growth(Stand& stand, Patch& patch) {
 					//True crops do not use bminc.or cmass_leaf etc.
 					if(indiv.istruecrop_or_intercropgrass()) {
 						// transfer crop cmass increase values to common variables
-					growth_crop_year(indiv, cmass_leaf_inc, cmass_root_inc, cmass_ho_inc, cmass_agpool_inc);
+						growth_crop_year(indiv, cmass_leaf_inc, cmass_root_inc, cmass_ho_inc, cmass_agpool_inc);
 
 						exceeds_cmass = 0.0;	//exceeds_cmass not used for true crops
 					}

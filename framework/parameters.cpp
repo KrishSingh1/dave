@@ -1072,9 +1072,9 @@ void plib_callback(int callback) {
 			else {
 				if(	st.landcover == CROPLAND && 
 					(st.rotation.ncrops == 0 ||
-					st.rotation.ncrops == 1 && st.management[0].pftname == "" ||
-					st.rotation.ncrops == 2 && st.management[1].pftname == "" ||
-					st.rotation.ncrops == 3 && st.management[2].pftname == ""))
+					st.rotation.ncrops >= 1 && st.management[0].pftname == "" ||
+					st.rotation.ncrops >= 2 && st.management[1].pftname == "" ||
+					st.rotation.ncrops >= 3 && st.management[2].pftname == ""))
 					fail("Check stand type rotation parameter setting\n");
 
 				stlist.nextobj();

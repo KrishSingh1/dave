@@ -37,8 +37,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <gutil.h>
+#include "gutil.h"
 #include <vector>
+#include <algorithm>
 #include "shell.h"
 #include "guessmath.h"
 #include "archive.h"
@@ -193,6 +194,10 @@ class Date {
 
 public:
 
+	/// Maximum number of days in an LPJ-GUESS simulation year
+	/** The standard version doesn't yet support leap years. */
+	static const int MAX_YEAR_LENGTH = 365;
+
 	/// number of days in each month (0=January - 11=December)
 	int ndaymonth[12];
 
@@ -336,6 +341,16 @@ public:
 	 */
 	int get_calendar_year() const {
 		return year + first_calendar_year;
+	}
+
+	/// \returns the number of days in the current simulation year
+	/** For this function to work properly in simulations with varying number
+	 *  of days per year, the set_first_calendar_year must have been called first.
+	 *
+	 *  Currently there is no support for leap years, so this function
+	 *  always returns 365. */
+	int year_length() const {
+		return 365;
 	}
 };
 
@@ -483,7 +498,8 @@ public:
 	double agdd5;
 
 	/// number of days with temperatures <5 deg C 
-	/** reset when temperatures fall below 5 deg C; maximum value 365 */
+	/** reset when temperatures fall below 5 deg C; 
+	 *  maximum value is number of days in the year */
 	int chilldays;
 
 	/// true if chill day count may be reset by temperature fall below 5 deg C
@@ -523,10 +539,14 @@ public:
 
 	double sinelat;
 	double cosinelat;
-	double qo[365], u[365], v[365], hh[365], sinehh[365];
-	double daylength_save[365];
+	double qo[Date::MAX_YEAR_LENGTH];
+	double u[Date::MAX_YEAR_LENGTH];
+	double v[Date::MAX_YEAR_LENGTH];
+	double hh[Date::MAX_YEAR_LENGTH];
+	double sinehh[Date::MAX_YEAR_LENGTH];
+	double daylength_save[Date::MAX_YEAR_LENGTH];
 	/// indicates whether saved values exist for this day
-	bool doneday[365];
+	bool doneday[Date::MAX_YEAR_LENGTH];
 		
 	/// diurnal temperature range, used in daily/monthly BVOC (deg C)
 	double dtr;
@@ -560,12 +580,9 @@ public:
 	/** Should be called before Climate object is applied to a new grid cell */
 	void initdrivers(double latitude) {
 
-		int day, year;
+		std::fill_n(mtemp_min_20, 20, 0.0);
+		std::fill_n(mtemp_max_20, 20, 0.0);
 
-		for (year=0; year<20; year++) {
-			mtemp_min_20[year] = 0.0;
-			mtemp_max_20[year] = 0.0;
-		}
 		mtemp = 0.0;
 		gdd5 = 0.0;
 		chilldays = 0;
@@ -573,7 +590,7 @@ public:
 		atemp_mean = 0.0;
 
 		lat = latitude;
-		for (day=0; day<365; day++) doneday[day] = false;
+		std::fill_n(doneday, Date::MAX_YEAR_LENGTH, false);
 		sinelat = sin(lat * DEGTORAD);
 		cosinelat = cos(lat * DEGTORAD);
 	}
@@ -855,9 +872,11 @@ public:
 	double k_chillb;
 	/// exponent in equation for budburst chilling time requirement
 	double k_chillk;
-	/// array containing values for GDD0(c) given c=number of chill days (0-365)
-	/** Sykes et al 1996, Eqn 1 */
-	double gdd0[366];
+	/// array containing values for GDD0(c) given c=number of chill days
+	/** Sykes et al 1996, Eqn 1
+	 *  gdd0 has one element for each possible value for number of chill days
+	 */
+	double gdd0[Date::MAX_YEAR_LENGTH + 1];
 	/// interception coefficient (unitless)
 	double intc;
 
@@ -913,9 +932,7 @@ public:
 	/// Constructor (initialises array gdd0)
 	Pft() {
 
-		int y;
-		for (y=0; y<366; y++)
-			gdd0[y] = -1.0; // value<0 signifies "unknown"; see function phenology()
+		std::fill_n(gdd0, Date::MAX_YEAR_LENGTH + 1, -1.0); // value<0 signifies "unknown"; see function phenology()
 
 		// guess2008 - DLE
 		drought_tolerance = 0.0; // Default, means that the PFT will never be limited by drought.
@@ -1558,7 +1575,7 @@ public:
 	/** fraction of available water holding capacity */
 	double wcont_evap;
 	/// daily water content in upper soil layer for each day of year
-	double dwcontupper[365];
+	double dwcontupper[Date::MAX_YEAR_LENGTH];
 	/// mean water content in upper soil layer for last month
 	/** (valid only on last day of month following call to daily_accounting_patch) */
 	double mwcontupper;
@@ -1601,7 +1618,7 @@ public:
 	/// water content of soil layers [0=upper layer] as fraction of available water holding capacity
 	double mwcont[12][NSOILLAYER];
 	/// daily water content in lower soil layer for each day of year
-	double dwcontlower[365];
+	double dwcontlower[Date::MAX_YEAR_LENGTH];
 	/// mean water content in lower soil layer for last month
 	/** (valid only on last day of month following call to daily_accounting_patch) */
 	double mwcontlower;
@@ -1698,10 +1715,8 @@ public:
 			mminleach_mean[mth] = 0.0;
 		}
 
-		for (int d=0; d<365; d++) {
-			dwcontupper[d] = 0.0;
-			dwcontlower[d] = 0.0;
-		}
+		std::fill_n(dwcontupper, Date::MAX_YEAR_LENGTH, 0.0);
+		std::fill_n(dwcontlower, Date::MAX_YEAR_LENGTH, 0.0);
 
 		/////////////////////////////////////////////////////
 		// Initialise CENTURY pools

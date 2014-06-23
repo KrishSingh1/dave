@@ -938,7 +938,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		
 		// Sap wood nitrogen demand. Demand is ramped up throughout the year.
 		if (indiv.pft.lifeform == TREE) {
-			indiv.sapndemand = max(0.0, indiv.cmass_sap / (cton_leaf_opt * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_sap) * ((1.0 + (double)date.day)/365.0);
+			indiv.sapndemand = max(0.0, indiv.cmass_sap / (cton_leaf_opt * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_sap) * ((1.0 + (double)date.day)/date.year_length());
 		}
 
 		// Labile nitrogen storage demand
@@ -1419,7 +1419,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 			// Convert from sum to mean on last day of year
 			if (date.islastday && date.islastmonth) {
-				ppft.wscal_mean /= 365.0;
+				ppft.wscal_mean /= date.year_length();
 			}
 		}
 	}

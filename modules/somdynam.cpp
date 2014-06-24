@@ -129,10 +129,10 @@ void decayrates(double wcont,double gtemp_soil,double& k_soilfast,double& k_soil
 	// temperature responses and converting from annual to daily basis
 	// NB: Temperature response (gtemp; Lloyd & Taylor 1994) set by framework
 
-	k_soilfast=k_soilfast10*gtemp_soil*moist_response/365.0;
-	k_soilslow=k_soilslow10*gtemp_soil*moist_response/365.0;
+	k_soilfast=k_soilfast10*gtemp_soil*moist_response/date.year_length();
+	k_soilslow=k_soilslow10*gtemp_soil*moist_response/date.year_length();
 
-	fr_litter=exp(-k_litter10*gtemp_soil*moist_response/365.0);
+	fr_litter=exp(-k_litter10*gtemp_soil*moist_response/date.year_length());
 	fr_soilfast=exp(-k_soilfast);
 	fr_soilslow=exp(-k_soilslow);
 }
@@ -1057,7 +1057,7 @@ void soilnadd(Patch& patch) {
 	// nitrogen fixation is reduced (nitrogen rich soils)
 	if (soil.nmass_avail < NMASS_SAT) {
 
-		const double daily_nfix = soil.anfix_calc / 365.0;
+		const double daily_nfix = soil.anfix_calc / date.year_length();
 
 		if (soil.nmass_avail + daily_nfix < NMASS_SAT) {
 			soil.nmass_avail += daily_nfix;

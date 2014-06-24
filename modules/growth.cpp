@@ -62,7 +62,7 @@ void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
 	// PFTs) and water stress coefficient (raingreen PFTs)
 
 	// INPUT PARAMETER
-	// wscal = water stress coefficient (0-1; 1=maximum stress)
+	// wscal = water stress coefficient (0-1; 1=minimum stress)
 	// aphen = sum of daily fractional leaf cover (equivalent number of days with
 	//         full leaf cover) so far this growing season
 
@@ -1184,7 +1184,7 @@ void growth(Stand& stand, Patch& patch) {
 
 		// Set leaf:root mass ratio based on water stress parameter 
 		// or nitrogen stress scalar 
-		indiv.ltor = min(indiv.wscal_mean, nscal) * indiv.pft.ltor_max;
+		indiv.ltor = min(indiv.wscal_mean(), nscal) * indiv.pft.ltor_max;
 
 		// Move leftover compartment nitrogen storage to longterm storage
 		indiv.nstore_longterm += indiv.nstore_labile;
@@ -1210,13 +1210,13 @@ void growth(Stand& stand, Patch& patch) {
 				// Raingreen PFTs: reduce biomass increment to account for NPP
 				// allocated to extra leaves during the past year.
 				// Excess allocation to leaves given by:
-				//   aphen_raingreen / ( leaf_longevity * 365) * cmass_leaf -
+				//   aphen_raingreen / ( leaf_longevity * year_length) * cmass_leaf -
 				//   cmass_leaf
 
 				// BLARP! excess allocation to roots now also included (assumes leaf longevity = root longevity)
 
 				cmass_excess = max((double)indiv.aphen_raingreen /
-					(indiv.pft.leaflong * 365.0) * (indiv.cmass_leaf + indiv.cmass_root) -
+					(indiv.pft.leaflong * date.year_length()) * (indiv.cmass_leaf + indiv.cmass_root) -
 					indiv.cmass_leaf - indiv.cmass_root, 0.0);
 
 				if (cmass_excess > bminc) cmass_excess = bminc;

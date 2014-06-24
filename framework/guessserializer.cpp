@@ -73,7 +73,7 @@ std::string meta_file_path(const char* directory) {
  *  basic checking when we restart and fail if for instance
  *  new instruction file has different PFTs
  */
-void create_meta_data(const char* directory) {
+void create_meta_data(const char* directory, int num_processes) {
 
 	// Create the file
 	std::ofstream file(meta_file_path(directory).c_str(),
@@ -82,6 +82,11 @@ void create_meta_data(const char* directory) {
 	if (file.fail()) {
 		fail("Failed to open meta data file for writing");
 	}
+
+	// Write number of processes involved,
+	// we need to know this when we restart so we know how many
+	// state files to try and open
+	file.write((const char*)&num_processes, sizeof(num_processes));
 
 	// Write out the vegetation mode and number of PFTs
 	file.write((const char*)&vegmode, sizeof(vegmode));
@@ -101,7 +106,7 @@ void create_meta_data(const char* directory) {
  *  a lot of other things that are unwise to change
  *  before restarting from state files.
  */
-void verify_meta_data(const char* directory) {
+void verify_meta_data(const char* directory, int& num_processes) {
 
 	// Open the file
 	std::ifstream file(meta_file_path(directory).c_str(),
@@ -110,6 +115,10 @@ void verify_meta_data(const char* directory) {
 	if (file.fail()) {
 		fail("Failed to open meta data file for reading");
 	}
+
+	// Read number of processes involved in the old simulation
+	// (not necessarily the same number as in the current job)
+	file.read((char*)&num_processes, sizeof(num_processes));
 
 	// Verify vegetation mode
 	vegmodetype vegmode_from_file;
@@ -171,13 +180,13 @@ struct GuessSerializer::Impl {
 };
 
 
-GuessSerializer::GuessSerializer(const char* directory, int my_rank /* = 0*/) {
+GuessSerializer::GuessSerializer(const char* directory, int my_rank, int num_processes) {
 	try {
 		pimpl = new Impl(directory, my_rank);
 
 		// In a parallel job, only the first process creates the meta data
 		if (my_rank == 0) {
-			create_meta_data(directory);
+			create_meta_data(directory, num_processes);
 		}
 	}
 	catch (const PartitionedMapSerializerError& e) {
@@ -205,8 +214,9 @@ void GuessSerializer::serialize_gridcell(const Gridcell& gridcell) {
 
 // Contains members of GuessDeserializer which we don't want in the header
 struct GuessDeserializer::Impl {
-	Impl(const char* directory)
+	Impl(const char* directory, int max_rank)
 		: pmd(directory,
+		      max_rank,
 		      GridcellDeserializer(),
 		      CoordDeserializer()) {
 	}
@@ -220,9 +230,10 @@ struct GuessDeserializer::Impl {
 
 GuessDeserializer::GuessDeserializer(const char* directory) {
 	try {
-		pimpl = new Impl(directory);
+		int num_processes;
+		verify_meta_data(directory, num_processes);
 
-		verify_meta_data(directory);
+		pimpl = new Impl(directory, num_processes - 1);
 	}
 	catch (const PartitionedMapSerializerError& e) {
 		fail(e.what());

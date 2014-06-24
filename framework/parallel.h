@@ -31,6 +31,10 @@ void init(int& argc, char**& argv);
 /** Returns zero when no MPI library is available/used. */
 int get_rank();
 
+/// The number of processes involved in the parallel run
+/** Returns 1 when no MPI library is available/used. */
+int get_num_processes();
+
 }
 
 #endif // LPJ_GUESS_PARALLEL_H

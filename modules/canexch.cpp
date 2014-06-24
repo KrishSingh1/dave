@@ -446,7 +446,12 @@ void fpar(Patch& patch) {
 
 		// Save grass canopy FPAR and update mean growing season grass canopy PAR
 		// Growing season defined here as days when mean vegetation leaf-on fraction
-		// exceeds 50%
+		// exceeds 50% and we're in the light half of the year (daylength >= 11).
+		//
+		// The daylength condition was added because sites with evergreens can have
+		// a mean vegetation leaf-on fraction over 50% even during polar night.
+		// 11 hours was chosen because some sites never reach exactly 12 hours, the
+		// exact limit shouldn't matter much.
 
 		patch.fpar_grass=fpar_grass;
 		par_grass=fpar_grass*climate.par;
@@ -456,7 +461,7 @@ void fpar(Patch& patch) {
 			patch.nday_growingseason=0;
 		}
 
-		if (phen_veg>PHEN_GROWINGSEASON) {
+		if (phen_veg>PHEN_GROWINGSEASON && patch.get_climate().daylength >= 11.0) {
 			patch.par_grass_mean+=par_grass;
 			patch.nday_growingseason++;
 		}
@@ -933,7 +938,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		
 		// Sap wood nitrogen demand. Demand is ramped up throughout the year.
 		if (indiv.pft.lifeform == TREE) {
-			indiv.sapndemand = max(0.0, indiv.cmass_sap / (cton_leaf_opt * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_sap) * ((1.0 + (double)date.day)/365.0);
+			indiv.sapndemand = max(0.0, indiv.cmass_sap / (cton_leaf_opt * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_sap) * ((1.0 + (double)date.day)/date.year_length());
 		}
 
 		// Labile nitrogen storage demand
@@ -1414,17 +1419,8 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 			// Convert from sum to mean on last day of year
 			if (date.islastday && date.islastmonth) {
-				ppft.wscal_mean /= 365.0;
+				ppft.wscal_mean /= date.year_length();
 			}
-		}
-	}
-
-	if (date.islastday && date.islastmonth && day.isend) {
-		vegetation.firstobj();
-		while (vegetation.isobj) {
-			Individual& indiv = vegetation.getobj();
-			indiv.wscal_mean = patch.pft[indiv.pft.id].wscal_mean;
-			vegetation.nextobj();
 		}
 	}
 }
@@ -1748,7 +1744,8 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		assim = phot.net_assimilation();
 
 		if (ifbvoc) {
-			bvoc(temp, hours, rad, climate, patch, indiv, pft, phot, phot.adtmm, day);
+			PhotosynthesisResult phot_nostress = date.diurnal() ? indiv.phots[day.period] : indiv.photosynthesis;
+			bvoc(temp, hours, rad, climate, patch, indiv, pft, phot_nostress, phot.adtmm, day);
 		}
 		// Calculate autotrophic respiration
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,

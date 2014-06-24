@@ -77,4 +77,14 @@ int get_rank() {
 #endif
 }
 
+int get_num_processes() {
+#ifdef HAVE_MPI
+	int size;
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
+	return size;
+#else
+	return 1;
+#endif
+}
+
 }

@@ -44,7 +44,7 @@ void load_gridlist(const char* dir_name, std::vector<landpoint>& landpoints) {
 	size_t num_gridcells;
 	status = nc_inq_dimlen(ncid, landid, &num_gridcells);
 	handle_error(status, "land dimension length");
-	
+
 	// Read in all longitudes and latitudes into two vectors
 
 	vector<double> lons(num_gridcells), lats(num_gridcells);
@@ -55,7 +55,7 @@ void load_gridlist(const char* dir_name, std::vector<landpoint>& landpoints) {
 
 	status = nc_inq_varid(ncid, "Latitude", &latid);
 	handle_error(status, "Latitude variable id");
-	
+
 	nc_get_var_double(ncid, lonid, &lons.front());
 	nc_get_var_double(ncid, latid, &lats.front());
 
@@ -85,11 +85,11 @@ int get_cell_id(double lon, double lat, const std::vector<landpoint>& landpoints
 
 void load_watch_data(const char* dir_name,
                      const char* var_name,
-                     int cell_id, 
+                     int cell_id,
                      std::vector<double>& data,
                      bool diurnal) {
 	using std::vector;
-	
+
 	// Open the NetCDF file for this variable and grid cell
 
 	xtring fname;
@@ -152,13 +152,13 @@ void load_watch_data(const char* dir_name,
 
 WATCHDiurnalInput::WATCHDiurnalInput()
 	: diurnal(false) {
-	
+
 	declare_parameter("diurnal", &diurnal, "If specified, diurnal version will be run (0,1)");
 }
 
 void WATCHDiurnalInput::init() {
 	CRUInput::init();
-	
+
 	watch_dir = param["watch_dir"].str;
 	load_gridlist(watch_dir, landpoints);
 }
@@ -173,8 +173,8 @@ bool WATCHDiurnalInput::getgridcell(Gridcell& gridcell) {
 		load_watch_data(watch_dir, "Rainf",  cell_id, watch_rainf,  false);
 		load_watch_data(watch_dir, "Snowf",  cell_id, watch_snowf,  false);
 
-		gridcell.climate.instype=NETSWRAD_TS;
-		
+		gridcell.climate.instype=SWRAD_TS;
+
 		return true;
 	}
 	else {
@@ -199,7 +199,7 @@ bool WATCHDiurnalInput::getclimate(Gridcell& gridcell) {
 			distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
 		}
 
-		int year = date.year < nyear_spinup ? 
+		int year = date.year < nyear_spinup ?
 			date.year % NYEAR_SPINUP_DATA : date.year - nyear_spinup;
 
 		size_t daily_index = year * 365 + date.day;
@@ -211,7 +211,7 @@ bool WATCHDiurnalInput::getclimate(Gridcell& gridcell) {
 			return false;
 		}
 
-		climate.temps.assign(watch_temp.begin()+subdaily_index, 
+		climate.temps.assign(watch_temp.begin()+subdaily_index,
 		                     watch_temp.begin()+subdaily_end);
 		climate.insols.assign(watch_swdown.begin()+subdaily_index,
 		                      watch_swdown.begin()+subdaily_end);
@@ -236,7 +236,7 @@ bool WATCHDiurnalInput::getclimate(Gridcell& gridcell) {
 
 		// Nitrogen deposition
 		climate.dndep = dndep[date.day];
-		
+
 		// Nitrogen fertilization
 		climate.dnfert = 0.0;
 

@@ -13,7 +13,7 @@
 #include "guess.h"
 #include <stdio.h>
 #include <limits>
-#include <gutil.h>
+#include "gutil.h"
 
 namespace {
 

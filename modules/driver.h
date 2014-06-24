@@ -19,8 +19,6 @@
 
 double randfrac(long& seed);
 void soilparameters(Soiltype& soiltype,int soilcode);
-void interp_monthly_means(double mvals[12], double dvals[365]);
-void interp_monthly_totals(double mvals[12], double dvals[365]);
 void interp_monthly_means_conserve(const double* mvals, double* dvals,
                                    double minimum = -std::numeric_limits<double>::max(),
                                    double maximum = std::numeric_limits<double>::max());
@@ -29,7 +27,7 @@ void interp_monthly_totals_conserve(const double* mvals, double* dvals,
                                    double maximum = std::numeric_limits<double>::max());
 void distribute_ndep(const double* mndry, const double* mnwet,
                      const double* dprec, double* dndep);
-void prdaily(double mval_prec[12],double dval_prec[365],double mval_wet[12], long& seed, bool truncate = true);
+void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed, bool truncate = true);
 void dailyaccounting_gridcell(Gridcell& gridcell);
 void dailyaccounting_stand(Stand& stand);
 void dailyaccounting_patch(Patch& patch);

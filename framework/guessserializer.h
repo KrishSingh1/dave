@@ -17,11 +17,12 @@ class Gridcell;
 class GuessSerializer {
 public:
 	/// Constructor, creates state file and meta data
-	/** \param directory Where to create the files
-	 *  \param my_rank   Unique integer identifying this process in a multi
-	 *                   process job.
+	/** \param directory     Where to create the files
+	 *  \param my_rank       Unique integer identifying this process in a multi
+	 *                       process job.
+	 *  \param num_processes The number of processes involved in the job
 	 */
-	GuessSerializer(const char* directory, int my_rank = 0);
+	GuessSerializer(const char* directory, int my_rank, int num_processes);
 
 	/// Finalizes and closes the state file
 	virtual ~GuessSerializer();

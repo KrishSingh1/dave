@@ -40,6 +40,84 @@ void print_logfile_heading() {
 	        dashed_line.c_str(), (char*)title, dashed_line.c_str());
 }
 
+/// Simulate one day for a given Gridcell
+/**
+ * The climate object in the gridcell needs to be set up with
+ * the day's forcing data before calling this function.
+ *
+ * \param gridcell            The gridcell to simulate
+ * \param input_module        Used to get land cover fractions
+ */
+void simulate_day(Gridcell& gridcell, InputModule* input_module) {
+
+	// Update daily climate drivers etc
+	dailyaccounting_gridcell(gridcell);
+
+	// Calculate daylength, insolation and potential evapotranspiration
+	daylengthinsoleet(gridcell.climate);
+
+	if (run_landcover && date.day == 0 && date.year >= nyear_spinup) {
+		// Update dynamic landcover and crop fraction data during historical
+		// period and create/kill stands.
+		landcover_dynamics(gridcell, input_module);
+	}
+
+	Gridcell::iterator gc_itr = gridcell.begin();
+	while (gc_itr != gridcell.end()) {
+
+		// START OF LOOP THROUGH STANDS
+
+		Stand& stand = *gc_itr;
+
+		dailyaccounting_stand(stand);
+
+		stand.firstobj();
+		while (stand.isobj) {
+			// START OF LOOP THROUGH PATCHES
+
+			// Get reference to this patch
+			Patch& patch = stand.getobj();
+			// Update daily soil drivers including soil temperature
+			dailyaccounting_patch(patch);
+			// Leaf phenology for PFTs and individuals
+			leaf_phenology(patch, gridcell.climate);
+			// Interception
+			interception(patch, gridcell.climate);
+			initial_infiltration(patch, gridcell.climate);
+			// Photosynthesis, respiration, evapotranspiration
+			canopy_exchange(patch, gridcell.climate);
+			// Soil water accounting, snow pack accounting
+			soilwater(patch, gridcell.climate);
+			// Soil organic matter and litter dynamics
+			som_dynamics(patch);
+
+			if (date.islastday && date.islastmonth) {
+
+				// LAST DAY OF YEAR
+				// Tissue turnover, allocation to new biomass and reproduction,
+				// updated allometry
+				growth(stand, patch);
+			}
+			stand.nextobj();
+		}// End of loop through patches
+
+		if (date.islastday && date.islastmonth) {
+			// LAST DAY OF YEAR
+			stand.firstobj();
+			while (stand.isobj) {
+
+				// For each patch ...
+				Patch& patch = stand.getobj();
+				// Establishment, mortality and disturbance by fire
+				vegetation_dynamics(stand, patch);
+				stand.nextobj();
+			}
+		}
+
+		++gc_itr;
+	}	// End of loop through stands
+}
+
 int framework(const CommandLineArguments& args) {
 
 	// The 'mission control' of the model, responsible for maintaining the 
@@ -80,7 +158,7 @@ int framework(const CommandLineArguments& args) {
 	auto_ptr<GuessDeserializer> deserializer;
 
 	if (save_state) {
-		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(state_path, GuessParallel::get_rank()));
+		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes()));
 	}
 
 	if (restart) {
@@ -127,73 +205,8 @@ int framework(const CommandLineArguments& args) {
 		while (input_module->getclimate(gridcell)) {
 
 			// START OF LOOP THROUGH SIMULATION DAYS
-			
-			// Update daily climate drivers etc
-			dailyaccounting_gridcell(gridcell);
 
-			// Calculate daylength, insolation and potential evapotranspiration
-			daylengthinsoleet(gridcell.climate);
-
-			if(run_landcover && date.day == 0 && date.year >= nyear_spinup) {
-				// Update dynamic landcover and crop fraction data during historical
-				// period and create/kill stands.
-				landcover_dynamics(gridcell, input_module.get());
-			}
-
-			Gridcell::iterator gc_itr = gridcell.begin();
-			while (gc_itr != gridcell.end()) {
-
-				// START OF LOOP THROUGH STANDS
-
-				Stand& stand = *gc_itr;
-
-				dailyaccounting_stand(stand);
-
-				stand.firstobj();
-				while (stand.isobj) {
-					// START OF LOOP THROUGH PATCHES
-
-					// Get reference to this patch
-					Patch& patch = stand.getobj();
-					// Update daily soil drivers including soil temperature
-					dailyaccounting_patch(patch);
-					// Leaf phenology for PFTs and individuals
-					leaf_phenology(patch, gridcell.climate);
-					// Interception
-					interception(patch, gridcell.climate);
-					initial_infiltration(patch, gridcell.climate);
-					// Photosynthesis, respiration, evapotranspiration
-					canopy_exchange(patch, gridcell.climate);
-					// Soil water accounting, snow pack accounting
-					soilwater(patch, gridcell.climate);
-					// Soil organic matter and litter dynamics
-					som_dynamics(patch);
-
-					if (date.islastday && date.islastmonth) {
-
-						// LAST DAY OF YEAR
-						// Tissue turnover, allocation to new biomass and reproduction,
-						// updated allometry
-						growth(stand, patch);
-					}
-					stand.nextobj();
-				}// End of loop through patches
-
-				if (date.islastday && date.islastmonth) {
-					// LAST DAY OF YEAR
-					stand.firstobj();
-					while (stand.isobj) {
-
-						// For each patch ...
-						Patch& patch = stand.getobj();
-						// Establishment, mortality and disturbance by fire
-						vegetation_dynamics(stand, patch);
-						stand.nextobj();
-					}
-				}
-
-				++gc_itr;
-			}	// End of loop through stands
+			simulate_day(gridcell, input_module.get());
 
 			output_modules.outdaily(gridcell);
 

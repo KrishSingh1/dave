@@ -1,4 +1,4 @@
-                        LPJ-GUESS Version 2.1
+                        LPJ-GUESS Version 3.0
                         =====================
 
                         PLEASE READ CAREFULLY
@@ -51,15 +51,18 @@ Structure of this directory:
 
 ./modules
      - Source code and header files for model modules (except "Main"
-       module). Input/output module (guessio.cpp/guessio.h) is a
-       demonstration version compatible with the input data supplied in
-       directory ../data. Most users will be able to write an input/output
-       module customised to their own study by modifying the demonstration
-       version supplied. Further explanations in the technical manual.
+       module). An input module (demoinput.*) is provided for demonstration
+       purposes, compatible with the input data supplied in
+       directory ../data. There's also an input module for NetCDF data
+       (must comply with the CF metadata standard). Most users will be able
+       to write an input module customised to their own study by modifying 
+       the demonstration version supplied. A standard output module is also
+       provided (commonoutput.*), with many standard outputs.
+       Further explanations in the technical manual.
 
 ./libraries
-     - Source code and header files for the custom libraries gutil and plib, 
-       required by LPJ-GUESS.
+     - Source code and header files for the custom libraries gutil, plib, 
+       and guessnc required by LPJ-GUESS.
 
 ./command_line_version
      - Files required specifically to install LPJ-GUESS as a command-line
@@ -76,16 +79,16 @@ Structure of this directory:
        ./env
             - historical climate data, soil data. See "readme" file.
        ./ins
-            - sample instruction script (ins) files for cohort ("guess")
-              and population ("lpj") modes, compatible with demonstration
-              input/output module. See commenting in files.
+            - sample instruction script (ins) files for global and european
+              simulations, compatible with demonstration input. 
+              See commenting in files.
        ./gridlist
             - sample grid cell coordinate list files compatible with
-              demonstration input/output module and instruction script
+              demonstration input module and instruction script
               files under directory ../ins
 
 ./cru
-     - Input/output module version for reading in CRU historical climate data
+     - Input module version for reading in CRU historical climate data
        for 1901-2006 in custom binary format used by LPJ-GUESS. The data 
        files themselves (GZIP-compressed) are located in directory cru at the 
        same level as this version of LPJ-GUESS was downloaded from.
@@ -93,8 +96,6 @@ Structure of this directory:
        NOTE: The CRU data set is not in the public domain and should not be
        downloaded without specific permission. Note also that the file is
        very large and may take many hours to transfer.
-       Direct enquiries to Joe Siltberg (e-mail below).
-       
 
 Joe Siltberg
-joe.siltberg@nateko.lu.se
+2014-06-27

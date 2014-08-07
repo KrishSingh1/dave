@@ -1019,14 +1019,16 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				while (gc_itr != gridcell.end()) {
 					Stand& stand = *gc_itr;
 
-					pft_sdate1=stand[0].pft[pft.id].cropphen->sdate_thisyear[0];
-					pft_sdate2=stand[0].pft[pft.id].cropphen->sdate_thisyear[1];
-					pft_hdate1=stand[0].pft[pft.id].cropphen->hdate_harvest[0];
-					pft_hdate2=stand[0].pft[pft.id].cropphen->hdate_harvest[1];
-					pft_lgp=stand[0].pft[pft.id].cropphen->lgp;
-					pft_phu=stand[0].pft[pft.id].cropphen->phu;
-					pft_fphu=stand[0].pft[pft.id].cropphen->fphu_harv;
-					pft_fhi=stand[0].pft[pft.id].cropphen->fhi_harv;
+					if(stlist[stand.stid].pftinrotation(pft.name) >= 0) {
+						pft_sdate1=stand[0].pft[pft.id].cropphen->sdate_thisyear[0];
+						pft_sdate2=stand[0].pft[pft.id].cropphen->sdate_thisyear[1];
+						pft_hdate1=stand[0].pft[pft.id].cropphen->hdate_harvest[0];
+						pft_hdate2=stand[0].pft[pft.id].cropphen->hdate_harvest[1];
+						pft_lgp=stand[0].pft[pft.id].cropphen->lgp;
+						pft_phu=stand[0].pft[pft.id].cropphen->phu;
+						pft_fphu=stand[0].pft[pft.id].cropphen->fphu_harv;
+						pft_fhi=stand[0].pft[pft.id].cropphen->fhi_harv;
+					}
 
 					++gc_itr;
 				}

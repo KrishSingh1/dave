@@ -716,61 +716,63 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 
 			for(i=0; i<NLANDCOVERTYPES; i++) {
 
-				double lcfrac = 0.0;
-				switch (i)
-				{
+				if(run[i]) {
+					double lcfrac = 0.0;
+					switch (i)
+					{
 #ifdef LUTOMEMORY
-				case URBAN:
-					lcfrac = LUdata_mem.Get(year,"URBAN");
-					break;
-				case CROPLAND:
-					lcfrac = LUdata_mem.Get(year,"CROPLAND");
-					break;
-				case PASTURE:
-					lcfrac = LUdata_mem.Get(year,"PASTURE");
-					break;
-				case FOREST:
-					lcfrac = LUdata_mem.Get(year,"FOREST");
-					break;
-				case NATURAL:
-					lcfrac = LUdata_mem.Get(year,"NATURAL");
-					break;
-				case PEATLAND:
-//					lcfrac = LUdata_mem.Get(year,"PEATLAND");	//peatland currently not in input file; commented out to avoid warning
-					break;
+					case URBAN:
+						lcfrac = LUdata_mem.Get(year,"URBAN");
+						break;
+					case CROPLAND:
+						lcfrac = LUdata_mem.Get(year,"CROPLAND");
+						break;
+					case PASTURE:
+						lcfrac = LUdata_mem.Get(year,"PASTURE");
+						break;
+					case FOREST:
+						lcfrac = LUdata_mem.Get(year,"FOREST");
+						break;
+					case NATURAL:
+						lcfrac = LUdata_mem.Get(year,"NATURAL");
+						break;
+					case PEATLAND:
+//						lcfrac = LUdata_mem.Get(year,"PEATLAND");	//peatland currently not in input file; commented out to avoid warning
+						break;
 #else
-				case URBAN:
-					lcfrac = LUdata.Get(year,"URBAN");
-					break;
-				case CROPLAND:
-					lcfrac = LUdata.Get(year,"CROPLAND");
-					break;
-				case PASTURE:
-					lcfrac = LUdata.Get(year,"PASTURE");
-					break;
-				case FOREST:
-					lcfrac = LUdata.Get(year,"FOREST");
-					break;
-				case NATURAL:
-					lcfrac = LUdata.Get(year,"NATURAL");
-					break;
-				case PEATLAND:
-//					lcfrac = LUdata.Get(year,"PEATLAND");
-					break;
+					case URBAN:
+						lcfrac = LUdata.Get(year,"URBAN");
+						break;
+					case CROPLAND:
+						lcfrac = LUdata.Get(year,"CROPLAND");
+						break;
+					case PASTURE:
+						lcfrac = LUdata.Get(year,"PASTURE");
+						break;
+					case FOREST:
+						lcfrac = LUdata.Get(year,"FOREST");
+						break;
+					case NATURAL:
+						lcfrac = LUdata.Get(year,"NATURAL");
+						break;
+					case PEATLAND:
+//						lcfrac = LUdata.Get(year,"PEATLAND");
+						break;
 #endif
-				default:
-					if(date.year == 0)
-						dprintf("Modify code to deal with landcover input!\n");
+					default:
+						if(date.year == 0)
+							dprintf("Modify code to deal with landcover input!\n");
+					}
+						
+					if(lcfrac == NOTFOUND)	// land cover not found in input file
+						lcfrac = 0.0;
+					else if(gridcell.landcoverfrac[i] < 0.0 || gridcell.landcoverfrac[i] > 1.0)	{	// discard unreasonable values	
+						dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
+						lcfrac = 0.0;
+					}
+					sum_tot += gridcell.landcoverfrac[i] = lcfrac;
+					sum_active += run[i] * gridcell.landcoverfrac[i];
 				}
-					
-				if(lcfrac == NOTFOUND)	// land cover not found in input file
-					lcfrac = 0.0;
-				else if(gridcell.landcoverfrac[i] < 0.0 || gridcell.landcoverfrac[i] > 1.0)	{	// discard unreasonable values	
-					dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
-					lcfrac = 0.0;
-				}
-				sum_tot += gridcell.landcoverfrac[i] = lcfrac;
-				sum_active += run[i] * gridcell.landcoverfrac[i];
 			}
 
 #ifdef GRASSFORCROP

@@ -55,7 +55,8 @@ lc_fixed_natural  0 	! NATURAL
 lc_fixed_peatland 0 	! PEATLAND
 equal_landcover_area 1	! divide gridcell into equal active landcover fractions
 
-minimizecftlist 0	! Checks cft fraction file for cft:s with fractions>0.0 at any time or place; if cftfrac_fixed is 1, this option is not functional.
+minimizecftlist 1	! Checks st fraction file for st:s with fractions>0.0 at any time or place; other st:s are exluded from the stlist
+			! Only active pft:s in these st:s are kept in the pftlist
 cftfrac_fixed 0       	! whether to force CFT % (1) or just read CFT file (0) ; all active crop pft:s have equal area
 
 ifslowharvestpool 1	! If a slow harvested product pool is included in patchpft.

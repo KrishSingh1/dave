@@ -177,8 +177,10 @@ void CRUInput::init() {
 
 				bool do_minimize = false;
 
+				// Remove crop stand types from stlist that always have zero area fraction in all cells in grid list
+
 				if(minimizecftlist && CFTdata.GetNCells() < 1000) {	// Reduce the risk of accidentally using minimized cft lists when using split gridlists.
-					// remove all crop pft:s from gridlist that always have zero area fraction
+
 					ListArray_id<InData::Coord> lonlatlist;
 					GetLonLatList(lonlatlist, gridlist);
 					CFTdata.CheckIfPresent(lonlatlist);
@@ -209,43 +211,6 @@ void CRUInput::init() {
 						stlist.nextobj();
 					}			
 				}
-
-				n = 0;
-				pftlist.firstobj();
-				while(pftlist.isobj) {	
-
-					bool remove = false;
-					Pft& pft = pftlist.getobj();
-
-					if(pft.landcover == CROPLAND) {
-
-						bool found = false;
-
-						stlist.firstobj();
-						while(stlist.isobj) {
-							StandType& st = stlist.getobj();
-
-							if(st.pftinrotation(pft.name) >= 0) {
-								found = true;
-								break;
-							}
-							stlist.nextobj();
-						}
-
-						if(!found)
-							remove = true;
-					}
-
-					if(remove && !(pft.isintercropgrass && ifintercropgrass)) {
-						n+=1;
-						pftlist.killobj();
-						npft--;
-					}
-					else {
-						pft.id-=n;
-						pftlist.nextobj();
-					}			
-				}
 			}
 
 			if(CFTdata.format==InData::LOCAL_YEARLY) 
@@ -261,6 +226,44 @@ void CRUInput::init() {
 #endif
 
 #endif
+		}
+
+		// Remove pft:s from pftlist that are not grown in simulkated stand types
+		int n = 0;
+		pftlist.firstobj();
+		while(pftlist.isobj) {	
+
+			bool remove = false;
+			Pft& pft = pftlist.getobj();
+
+			if(pft.landcover == CROPLAND) {
+
+				bool found = false;
+
+				stlist.firstobj();
+				while(stlist.isobj) {
+					StandType& st = stlist.getobj();
+
+					if(st.pftinrotation(pft.name) >= 0) {
+						found = true;
+						break;
+					}
+					stlist.nextobj();
+				}
+
+				if(!found)
+					remove = true;
+			}
+
+			if(remove && !(pft.isintercropgrass && ifintercropgrass)) {
+				n+=1;
+				pftlist.killobj();
+				npft--;
+			}
+			else {
+				pft.id-=n;
+				pftlist.nextobj();
+			}			
 		}
 
 		if(run[CROPLAND]) {

@@ -873,7 +873,7 @@ void transfer_litter(Patch& patch) {
 
 		// WOOD
 
-		if (pft.pft.lifeform == TREE) { 
+		if (pft.pft.lifeform == TREE && date.dayofmonth == 0) { 
 
 			// Woody debris enters two woody litter pools as described in
 			// Kirschbaum and Paul (2002).

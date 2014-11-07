@@ -271,6 +271,7 @@ CFInput::CFInput()
 	// common ins files can be used.
 
 	declare_parameter("equal_landcover_area", &equal_landcover_area, "Whether enforced static landcover fractions are equal-sized stands of all included landcovers (0,1)");
+	declare_parameter("minimizecftlist", &minimizecftlist, "Whether pfts not in crop fraction input file are removed from pftlist (0,1)");
 	declare_parameter("lc_fixed_urban", &lc_fixed_frac[URBAN], 0, 100, "% lc_fixed_urban");
 	declare_parameter("lc_fixed_cropland", &lc_fixed_frac[CROPLAND], 0, 100, "% lc_fixed_cropland");
 	declare_parameter("lc_fixed_pasture", &lc_fixed_frac[PASTURE], 0, 100, "% lc_fixed_pasture");
@@ -754,7 +755,7 @@ void CFInput::getlandcover(Gridcell& gridcell) {
 void CFInput::getsowingdates(Gridcell& gridcell) {}
 void CFInput::getharvestdates(Gridcell& gridcell) {}
 void CFInput::getNfert(Gridcell& gridcell) {}
-void CFInput::getfirsthistyear() {}
+int CFInput::getfirsthistyear() { return -1;}
 
 bool CFInput::getclimate(Gridcell& gridcell) {
 	

@@ -345,7 +345,7 @@ void DemoInput::init() {
 
 	if(run[CROPLAND]) {
 #if defined DYNAMIC_LANDCOVER_INPUT
-			if(forcesowingdates)
+			if(readsowingdates)
 			{
 				file_sdates=param["file_sdates"].str;
 				if(!sdates.Open(file_sdates))
@@ -359,7 +359,7 @@ void DemoInput::init() {
 				sdates_mem.CopyFromTimeDataD(sdates, lonlatlist);
 #endif
 			}
-			if(forceharvestdates)
+			if(readharvestdates)
 			{
 				file_hdates=param["file_hdates"].str;
 				if(!hdates.Open(file_hdates))
@@ -481,7 +481,7 @@ bool DemoInput::loadlandcover(Gridcell& gridcell, Coord cc)	{
 			}
 		}
 
-		if(forcesowingdates && !LUerror) { 
+		if(readsowingdates && !LUerror) { 
 #ifdef LUTOMEMORY
 			if(!sdates_mem.Load(c)) {
 #else
@@ -491,7 +491,7 @@ bool DemoInput::loadlandcover(Gridcell& gridcell, Coord cc)	{
 				LUerror=true;	// skip this stand
 			}
 		}
-		if(forceharvestdates && !LUerror) {
+		if(readharvestdates && !LUerror) {
 #ifdef LUTOMEMORY
 			if(!hdates_mem.Load(c)) {
 #else
@@ -597,7 +597,7 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 				}
 				// double cropping in China and Japan.
 				if (!strncmp(gcpft.pft.name,"TrRi", strlen("TrRi")) && gridcell.get_lon()>=60.0 && gridcell.get_lat()<=30.0)
-					gcpft.singlecrop=false;
+					gcpft.multicrop=true;
 			}
 		}
 
@@ -942,6 +942,8 @@ void DemoInput::getlandcover(Gridcell& gridcell) {
 		StandType& st = stlist.getobj();
 
 		st.frac = st.frac * gridcell.landcoverfrac[st.landcover];
+		if(fabs(st.frac_old - st.frac) < 10e-15)
+			st.frac = st.frac_old;
 		stlist.nextobj();
 	}
 }
@@ -965,7 +967,7 @@ void DemoInput::getsowingdates(Gridcell& gridcell) {
 
 	if(date.year < nyear_spinup + NYEAR_HIST) {
 		for(i=0; i<npft; i++) {
-			if(pftlist[i].landcover == CROPLAND && pftlist[i].forcesowingdate)	{
+			if(pftlist[i].landcover == CROPLAND && pftlist[i].readsowingdate)	{
 #if defined DYNAMIC_LANDCOVER_INPUT
 #ifdef LUTOMEMORY
 				gridcell.pft[i].sdate_force = (int)sdates_mem.Get(year,pftlist[i].name);
@@ -973,6 +975,12 @@ void DemoInput::getsowingdates(Gridcell& gridcell) {
 				gridcell.pft[i].sdate_force = (int)sdates.Get(year,pftlist[i].name);
 #endif
 #endif
+				// Copy gridcellpft-value to standpft-value. If standtype values are required, modify code and input files.
+				for(unsigned int j=0; j<gridcell.nbr_stands(); j++) {
+					Standpft& standpft = gridcell[j].pft[i];
+					if(standpft.active)
+						standpft.sdate_force = gridcell.pft[i].sdate_force;
+				}
 			}
 		}
 	}
@@ -997,7 +1005,7 @@ void DemoInput::getharvestdates(Gridcell& gridcell) {
 
 	if(date.year < nyear_spinup + NYEAR_HIST) {
  		for(i=0; i<npft; i++)	{
-			if(pftlist[i].landcover == CROPLAND && pftlist[i].forceharvestdate) {			
+			if(pftlist[i].landcover == CROPLAND && pftlist[i].readharvestdate) {			
 #if defined DYNAMIC_LANDCOVER_INPUT
 #ifdef LUTOMEMORY
 				gridcell.pft[pftlist[i].id].hdate_force = (int)hdates_mem.Get(year,pftlist[i].name);
@@ -1005,6 +1013,12 @@ void DemoInput::getharvestdates(Gridcell& gridcell) {
 				gridcell.pft[pftlist[i].id].hdate_force = (int)hdates.Get(year,pftlist[i].name);
 #endif
 #endif
+				// Copy gridcellpft-value to standpft-value. If standtype values are required, modify code and input files.
+				for(unsigned int j=0; j<gridcell.nbr_stands(); j++) {
+					Standpft& standpft = gridcell[j].pft[i];
+					if(standpft.active)
+						standpft.hdate_force = gridcell.pft[i].hdate_force;
+				}
 			}
 		}
 	}

@@ -69,6 +69,15 @@ extern vegmodetype vegmode;
  */
 extern int npatch;
 
+/// Number of patches in each stand for secondary stands
+extern int npatch_secondarystand;
+
+/// Whether to reduce equal percentage of all stands of a stand type at land cover change
+extern bool reduce_all_stands;
+
+/// Minimum age of stands to reduce at land cover change
+extern int age_limit_reduce;
+
 /// Patch area (m2) (individual and cohort mode only)
 extern double patcharea;
 
@@ -148,6 +157,12 @@ extern bool ifintercropgrass;
 // Whether to calculate dynamic potential heat units
 extern bool ifcalcdynamic_phu;
 
+// Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); read stand type transfer matrix input file (3), or not (0)
+extern int gross_land_transfer;
+
+// Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
+extern int transfer_level;
+
 // Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
 extern bool ifdyn_phu_limit;
 
@@ -158,10 +173,10 @@ extern int nyear_dyn_phu;
 extern int nyear_spinup;
 
 /// Whether to use sowingdates from input file
-extern bool forcesowingdates;
+extern bool readsowingdates;
 
 /// Whether to use harvestdates from input file
-extern bool forceharvestdates;
+extern bool readharvestdates;
 
 /// Whether to read N fertilization from input file
 extern bool readNfert;

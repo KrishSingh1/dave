@@ -18,14 +18,14 @@ file_irrigation "irrigation.out"
 file_seasonality "seasonality.out"
 file_cmass_cropland ""
 file_cmass_pasture ""
-file_cmass_natural ""
-file_cmass_forest ""
+file_cmass_natural "cmass_natural.out"
+file_cmass_forest "cmass_forest.out"
 file_anpp_cropland ""
 file_anpp_pasture ""
-file_anpp_natural ""
-file_anpp_forest ""
-file_dens_natural ""
-file_dens_forest ""
+file_anpp_natural "anpp_natural.out"
+file_anpp_forest "anpp_forest.out"
+file_dens_natural "dens_natural.out"
+file_dens_forest "dens_forest.out"
 file_cflux_cropland "cflux_cropland.out"
 file_cflux_pasture "cflux_pasture.out"
 file_cflux_natural "cflux_natural.out"
@@ -34,6 +34,14 @@ file_cpool_cropland "cpool_cropland.out"
 file_cpool_pasture "cpool_pasture.out"
 file_cpool_natural "cpool_natural.out"
 file_cpool_forest "cpool_forest.out"
+
+!///////////////////////////////////////////////////////////////////////////////////////
+!// RUN PARAMETERS AND OPTIONS 
+!
+
+npatch_secondarystand 5		! number of replicate patches to simulate in secondary stands
+reduce_all_stands 0		! Whether to reduce equal percentage of all stands of a stand type at land cover change
+age_limit_reduce 0		! Minimum age of stands to reduce at land cover change
 
 !!!!!!!!!!!! landcover parameters !!!!!!!!!!!!!!					
 
@@ -62,14 +70,16 @@ cftfrac_fixed 0       	! whether to force CFT % (1) or just read CFT file (0) ; 
 ifslowharvestpool 1	! If a slow harvested product pool is included in patchpft.
 ifintercropgrass 1	! Whether to grow grass as cover crop between growing periods
 
-forcesowingdates 0	! Whether to read sowing dates from an input file
-forceharvestdates 0	! Whether to read harvest dates from an input file	
+readsowingdates 0	! Whether to read sowing dates from an input file
+readharvestdates 0	! Whether to read harvest dates from an input file	
 readNfert 0		! Whether to read nitrogen fertilization from input file
 printseparatestands 0	! Whether to print multiple stands within a land cover type (except cropland) separately
 !forceautumnsowing 0	
 ifcalcdynamic_phu 1	! Whether to calculate dynamic potential heat units
 ifdyn_phu_limit 0	! Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
 nyear_dyn_phu 50	! Number of years to calculate dynamic phu if dynamic_phu_limit is 1
+gross_land_transfer 0	! Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); read stand type transfer matrix input file (3), or not (0)
+transfer_level 1	! Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
 
 !///////////////////////////////////////////////////////////////////////////////////////
 
@@ -87,7 +97,7 @@ group "common_stand" (
 
 group "crop_stand" (
 
-	stinclude 0
+!	stinclude 0
 	landcover "cropland"
 	rotation 1
 !	rottime 1
@@ -95,6 +105,7 @@ group "crop_stand" (
 	intercrop "naturalgrass"
 	restrictpfts 1
 )
+
 st "Peatland" (
 
 	common_stand
@@ -123,37 +134,42 @@ st "Forest" (
 	common_stand
 	stinclude 1
 	landcover "forest"
-!	naturalveg "all"
+	naturalveg "all"
 )
 
 st "CC3G" (
 
 	crop_stand
-	stinclude 1
+!	stinclude 1
 	crop1 "CC3G"
 )
 
 st "CC4G" (
 
 	crop_stand
-	stinclude 1
+!	stinclude 1
 	crop1 "CC4G"
 )
 
 st "TeWW" (
 
 	crop_stand
-	stinclude 1
+!	stinclude 1
 
 	rotation 1
-!	rottime 1
+	rottime 1
+	firstrotyear 1901
 
 	crop1 "TeWW"
 	hydrology1 "rainfed"
 	nfert1 50
+!	sdate1 55
+!	hdate1 145
 	crop2 "TeCo"
 	hydrology2 "irrigated"
 	nfert2 0
+!	sdate2 160
+!	hdate2 300
 	crop3 "TeCo"
 	fallow3 1
 )
@@ -161,35 +177,35 @@ st "TeWW" (
 st "TrRi" (
 
 	crop_stand
-	stinclude 1
+!	stinclude 1
 	crop1 "TrRi"
 )
 
 st "TeCo" (
 
 	crop_stand
-	stinclude 1
+!	stinclude 1
 	crop1 "TeCo"
 )
 
 st "TrMi" (
 
 	crop_stand
-	stinclude 1
+!	stinclude 1
 	crop1 "TrMi"
 )
 
 st "TePu" (
 
 	crop_stand
-	stinclude 1
+!	stinclude 1
 	crop1 "TePu"
 )
 
 st "TeSb" (
 
 	crop_stand
-	stinclude 1
+!	stinclude 1
 	crop1 "TeSb"
 )
 
@@ -197,7 +213,7 @@ st "TeSb" (
 st "TrMa" (
 
 	crop_stand
-	stinclude 1
+!	stinclude 1
 	crop1 "TrMa"
 )
 
@@ -205,7 +221,7 @@ st "TrMa" (
 st "TeSf" (
 
 	crop_stand
-	stinclude 1
+!	stinclude 1
 	crop1 "TeSf"
 )
 
@@ -213,7 +229,7 @@ st "TeSf" (
 st "TeSo" (
 
 	crop_stand
-	stinclude 1
+!	stinclude 1
 	crop1 "TeSo"
 )
 
@@ -221,7 +237,7 @@ st "TeSo" (
 st "TrPe" (
 
 	crop_stand
-	stinclude 1
+!	stinclude 1
 	crop1 "TrPe"
 )
 
@@ -229,7 +245,7 @@ st "TrPe" (
 st "TeRa" (
 
 	crop_stand
-	stinclude 1
+!	stinclude 1
 	crop1 "TeRa"
 )
 
@@ -237,24 +253,25 @@ st "TeRa" (
 st "CC3Girr" (
 
 	crop_stand
-	stinclude 1
-	crop1 "CC3G"
+!	stinclude 1
+	crop1 "CC3Girr"
 	hydrology1 "irrigated"
 )
 
 st "CC4Girr" (
 
 	crop_stand
-	stinclude 1
-	crop1 "CC4G"
+!	stinclude 1
+	crop1 "CC4Girr"
 	hydrology1 "irrigated"
 )
 
 st "TeWWirr" (
 
 	crop_stand
-	stinclude 1
-	crop1 "TeWW"
+!	stinclude 1
+!	crop1 "TeWW"
+	crop1 "TeWWirr"
 	hydrology1 "irrigated"
 )
 
@@ -262,41 +279,60 @@ st "TrRiirr" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TrRi"
-!	crop1 "TrRiirr"
+!	crop1 "TrRi"
+	crop1 "TrRiirr"
 	hydrology1 "irrigated"
+
+	rotation 1
+	rottime 1
+	multicrop 0
+	firstrotyear 1901
+
+	crop1 "TrRiirr"
+	hydrology1 "irrigated"
+	nfert1 50
+!	sdate1 50
+!	hdate1 155
+	crop2 "TrRiirr2"
+	hydrology2 "irrigated"
+	nfert2 0
+!	sdate2 160
+!	hdate2 300
 )
 
 st "TeCoirr" (
 
 	crop_stand
-	stinclude 1
-	crop1 "TeCo"
+!	stinclude 1
+!	crop1 "TeCo"
+	crop1 "TeCoirr"
 	hydrology1 "irrigated"
 )
 
 st "TrMiirr" (
 
 	crop_stand
-	stinclude 1
-	crop1 "TrMi"
-!	crop1 "TrMiirr"
+!	stinclude 1
+!	crop1 "TrMi"
+	crop1 "TrMiirr"
 	hydrology1 "irrigated"
 )
 
 st "TePuirr" (
 
 	crop_stand
-	stinclude 1
-	crop1 "TePu"
+!	stinclude 1
+!	crop1 "TePu"
+	crop1 "TePuirr"
 	hydrology1 "irrigated"
 )
 
 st "TeSbirr" (
 
 	crop_stand
-	stinclude 1
-	crop1 "TeSb"
+!	stinclude 1
+!	crop1 "TeSb"
+	crop1 "TeSbirr"
 	hydrology1 "irrigated"
 )
 
@@ -304,8 +340,9 @@ st "TeSbirr" (
 st "TrMairr" (
 
 	crop_stand
-	stinclude 1
-	crop1 "TrMa"
+!	stinclude 1
+!	crop1 "TrMa"
+	crop1 "TrMairr"
 	hydrology1 "irrigated"
 )
 
@@ -313,8 +350,9 @@ st "TrMairr" (
 st "TeSfirr" (
 
 	crop_stand
-	stinclude 1
-	crop1 "TeSf"
+!	stinclude 1
+!	crop1 "TeSf"
+	crop1 "TeSfirr"
 	hydrology1 "irrigated"
 )
 
@@ -322,8 +360,9 @@ st "TeSfirr" (
 st "TeSoirr" (
 
 	crop_stand
-	stinclude 1
-	crop1 "TeSo"
+!	stinclude 1
+!	crop1 "TeSo"
+	crop1 "TeSoirr"
 	hydrology1 "irrigated"
 )
 
@@ -331,8 +370,9 @@ st "TeSoirr" (
 st "TrPeirr" (
 
 	crop_stand
-	stinclude 1
-	crop1 "TrPe"
+!	stinclude 1
+!	crop1 "TrPe"
+	crop1 "TrPeirr"
 	hydrology1 "irrigated"
 )
 
@@ -340,8 +380,9 @@ st "TrPeirr" (
 st "TeRairr" (
 
 	crop_stand
-	stinclude 1
-	crop1 "TeRa"
+!	stinclude 1
+!	crop1 "TeRa"
+	crop1 "TeRairr"
 	hydrology1 "irrigated"
 )
 
@@ -399,6 +440,7 @@ group "tree" (
 
 	turnover_harv_prod 0.04 ! Turnover rate for long-lived harvested products (wood) : 0.04 corresponds to a 25-year turnover time (as in Bondeau 2007)
 	harvest_slow_frac 0.33	! Bondeau 0.33
+	harv_eff 0.95
 )
 
 group "shrub" (	
@@ -507,8 +549,8 @@ group "crop" (
 	res_outtake 0.75	! Part of residues after harvest removed from stand; goes into fluxes.acflux_harvest
 	aboveground_ho 1	! 
 	isintercropgrass 0
-	forcesowingdate 0
-	forceharvestdate 0
+	readsowingdate 0
+	readharvestdate 0
 !	forceautumnsowing 0
 	readNfert 1
 )
@@ -1075,7 +1117,7 @@ pft "C3G_peat" (
 	harv_eff 0
 )
 
-pft "CC3G" (
+group "CC3G" (
 	C3G
 	landcover "cropland"
 	laimax 4
@@ -1086,7 +1128,7 @@ pft "CC3G" (
 	res_outtake 0.0			! not used by crop grass
 )
 
-pft "CC4G" (
+group "CC4G" (
 	C4G
 	landcover "cropland"
 	laimax 4	
@@ -1097,7 +1139,7 @@ pft "CC4G" (
 	res_outtake 0.0			! not used by crop grass
 )
 
-pft "TeWW" (
+group "TeWW" (
 
 	! Winter cereals, Triticum spp. (wheat), Hordeum vulgare (barley), Secale cereale (rye), Avena sativa (oat)
 	
@@ -1141,12 +1183,12 @@ pft "TeWW" (
 	ifsdspring 1
 	tempautumn 12
 	tempspring 5
-	forcesowingdate 1
-	forceharvestdate 1
-	forceautumnsowing 0
+	readsowingdate 1
+	readharvestdate 1
+	forceautumnsowing 0	! 0 No forcing, 1 Autumn, 2 Spring
 )
 
-pft "TrRi" (
+group "TrRi" (
 
 	! rice, Oryza sativa
 
@@ -1186,9 +1228,11 @@ pft "TrRi" (
 !	intercrop "nointercrop"	
 	ifsdcalc 1
 	tempspring 18
+	readsowingdate 1
+	readharvestdate 1
 )
 
-pft "TeCo" (
+group "TeCo" (
 
 	! maize; Zea mays
 
@@ -1235,11 +1279,11 @@ pft "TeCo" (
 	ifsdspring 1
 	ifsdprec 1
 	tempspring 14
-	forcesowingdate 1
-	forceharvestdate 1
+	readsowingdate 1
+	readharvestdate 1
 )
 
-pft "TrMi" (
+group "TrMi" (
 
 	! Tropical cereals; Pennisetum glaucum (pearl millet), Setaria italica (foxtail millet), Panicum miliaceum (common millet), Eleucine coracana (finger millet), Sorghum
 
@@ -1285,7 +1329,7 @@ pft "TrMi" (
 	tempspring 12	
 )
 
-pft "TePu" (
+group "TePu" (
 
 	! Lentils
 
@@ -1324,11 +1368,11 @@ pft "TePu" (
 	himin 0.01
 	ifsdcalc 0
 	tempspring 10
-	forcesowingdate 1
-	forceharvestdate 1
+	readsowingdate 1
+	readharvestdate 1
 )
 
-pft "TeSb" (
+group "TeSb" (
 
 	! Sugarbeet   Pascalle; Beta vulgaris
 
@@ -1370,7 +1414,7 @@ pft "TeSb" (
 	aboveground_ho 0
 )
 
-pft "TrMa" (
+group "TrMa" (
 
 	! Roots and tubers (Africa); Manihot esculenta; aka. cassava, yuka
 
@@ -1415,7 +1459,7 @@ pft "TrMa" (
 	aboveground_ho 0
 )
 
-pft "TeSf" (
+group "TeSf" (
 
 	! Sunflower; Helianthus annuus
 
@@ -1461,7 +1505,7 @@ pft "TeSf" (
 !	tempspring 13	! New sowing date algorithm, new value	: use ??????
 )
 
-pft "TeSo" (
+group "TeSo" (
 
 	! Soybean;   Glycine max
 
@@ -1503,7 +1547,7 @@ pft "TeSo" (
 	tempspring 13	! New sowing date algorithm
 )
 
-pft "TrPe" (
+group "TrPe" (
 
 	! Peanut for part of RIVM's oil crops (Africa and Asia ?)   Arachis hypogaea; aka groundnut
 
@@ -1546,7 +1590,7 @@ pft "TrPe" (
 	tempspring 15	
 )
 
-pft "TeRa" (
+group "TeRa" (
 
 	! Rape for part of RIVM's oil crops  pheno Pascalle; Brassica napus; aka canola
 
@@ -1590,14 +1634,191 @@ pft "TeRa" (
 	ifsdprec 0
 	tempautumn 17
 	tempspring 5	! 12 in Bondeau's code, ändra till 11 och 5
-	forceautumnsowing 0
+	forceautumnsowing 0	! 0 No forcing, 1 Autumn, 2 Spring
 )
+
+pft "CC3G" (
+	CC3G
+	include 1
+)
+
+pft "CC4G" (
+	CC4G
+	include 1
+)
+
+pft "TeWW" (
+
+	TeWW
+	include 1
+)
+
+pft "TrRi" (
+
+	TrRi
+	include 1
+)
+
+pft "TeCo" (
+
+	TeCo
+!	include 1
+)
+
+pft "TrMi" (
+
+	TrMi
+!	include 1
+)
+
+pft "TePu" (
+
+	TePu
+!	include 1
+)
+
+pft "TeSb" (
+
+	TeSb
+!	include 1
+)
+
+pft "TrMa" (
+
+	TrMa
+!	include 1
+)
+
+pft "TeSf" (
+	
+	TeSf
+!	include 1	
+)
+
+pft "TeSo" (
+
+	TeSo
+!	include 1	
+)
+
+pft "TrPe" (
+
+	TrPe
+!	include 1
+)
+
+pft "TeRa" (
+
+	TeRa
+!	include 1
+)
+
+pft "CC3Girr" (
+
+	CC3G
+	include 1
+!	hydrology "irrigated"	
+)
+
+pft "CC4Girr" (
+
+	CC4G
+	include 1	
+!	hydrology "irrigated"	
+)
+
+pft "TeWWirr" (
+
+	TeWW
+	include 1
+!	hydrology "irrigated"	
+)
+
+pft "TrRiirr" (
+
+	TrRi
+	include 1
+!	hydrology "irrigated"	
+)
+
+pft "TrRiirr2" (
+
+	TrRi
+	include 1
+!	tb 8
+!	hydrology "irrigated"	
+)
+
+pft "TeCoirr" (
+
+	TeCo
+!	include 1	
+!	hydrology "irrigated"	
+)
+
+pft "TrMiirr" (
+
+	TrMi
+!	include 1	
+!	hydrology "irrigated"	
+)
+
+pft "TePuirr" (
+
+	TePu
+!	include 1	
+!	hydrology "irrigated"	
+)
+
+pft "TeSbirr" (
+
+	TeSb
+!	include 1	
+!	hydrology "irrigated"	
+)
+
+pft "TrMairr" (
+
+	TrMa
+!	include 1	
+!	hydrology "irrigated"	
+)
+
+pft "TeSfirr" (
+	
+	TeSf
+!	include 1	
+!	hydrology "irrigated"		
+)
+
+pft "TeSoirr" (
+
+	TeSo
+!	include 1
+!	hydrology "irrigated"		
+)
+
+pft "TrPeirr" (
+
+	TrPe
+!	include 1
+!	hydrology "irrigated"	
+)
+
+pft "TeRairr" (
+
+	TeRa
+!	include 1
+!	hydrology "irrigated"	
+)
+
+
 
 pft "CC3G_ic" (
 	C3G
 	landcover "cropland"
 	laimax 4
-	intercrop "nointercrop"	
+!	intercrop "nointercrop"	
 	isintercropgrass 1
 	harv_eff 0.0
 	harv_eff_ic 0.0
@@ -1616,4 +1837,3 @@ pft "CC4G_ic" (
 	res_outtake 0.0			! not used by crop grass
 	leaflong 1			! as in crop
 )
-

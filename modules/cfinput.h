@@ -53,6 +53,9 @@ private:
 		std::string descrip;
 	};
 
+	/// Whether pfts not in crop fraction input file are removed from pftlist (0,1)
+	bool minimizecftlist;
+
 	/// The grid cells to simulate
 	std::vector<Coord> gridlist;
 

@@ -1514,17 +1514,17 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 		// Retrieve next patch PFT
 		Patchpft& ppft = patch.pft[p];
 
-		if (day.isstart) {
-			ppft.wscal = 0;
-			if (date.day == 0) {
-				ppft.wscal_mean = 0;
-				if(ppft.pft.phenology==CROPGREEN || ppft.pft.isintercropgrass)
-					ppft.cropphen->growingdays_y=0;
-			}
-		}
-
 		if(patch.stand.pft[ppft.pft.id].active)
 		{
+			if (day.isstart) {
+				ppft.wscal = 0;
+				if (date.day == 0) {
+					ppft.wscal_mean = 0;
+					if(ppft.pft.phenology==CROPGREEN || ppft.pft.isintercropgrass)
+						ppft.cropphen->growingdays_y=0;
+				}
+			}
+
 			// Calculate patch PFT water scalar value
 		
 			if (!negligible(patch.wdemand_leafon)) {

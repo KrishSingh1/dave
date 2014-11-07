@@ -1262,13 +1262,13 @@ void scale_indiv(Individual& indiv, bool scale_grsC)
 	}
 	else {
 
-	indiv.cmass_root *= scale;	
-	indiv.cmass_leaf *= scale;
+		indiv.cmass_root *= scale;	
+		indiv.cmass_leaf *= scale;
 
-	if(indiv.pft.landcover == CROPLAND) {
-		indiv.cropindiv->cmass_agpool *= scale;
-		indiv.cropindiv->cmass_ho *= scale;
-	}
+		if(indiv.pft.landcover == CROPLAND) {
+			indiv.cropindiv->cmass_agpool *= scale;
+			indiv.cropindiv->cmass_ho *= scale;
+		}
 	}
 
 	// Deduct individual N present day 0 this year in stands that have increased in area this year, scaled by (1 - old area/new area):

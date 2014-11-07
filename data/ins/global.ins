@@ -82,6 +82,9 @@ ifcalccton 1			! whether to calculate leaf C:N min from leaf longevity
 						! (PFT-specific value can be specified in this file instead)
 iffire 1				! whether to implement fire (1) or not (0)
 npatch 5				! number of replicate patches to simulate
+npatch_secondarystand 1			! number of replicate patches to simulate in secondary stands
+reduce_all_stands 0		! Whether to reduce equal percentage of all stands of a stand type at land cover change
+age_limit_reduce 5		! Minimum age of stands to reduce at land cover change
 patcharea 1000			! patch area (m2)
 estinterval 5			! years between establishment events in cohort mode
 ifdisturb 1				! whether generic patch-destroying disturbances enabled

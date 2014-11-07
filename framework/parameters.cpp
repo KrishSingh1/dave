@@ -23,6 +23,9 @@
 xtring title;
 vegmodetype vegmode;
 int npatch;
+int npatch_secondarystand;
+bool reduce_all_stands;
+int age_limit_reduce;
 double patcharea;
 bool ifbgestab;
 bool ifsme;
@@ -60,6 +63,8 @@ bool all_fracs_const;
 bool ifslowharvestpool;
 bool ifintercropgrass;
 bool ifcalcdynamic_phu;
+int gross_land_transfer;
+int transfer_level;
 bool ifdyn_phu_limit;
 int nyear_dyn_phu;
 int nyear_spinup;
@@ -69,8 +74,8 @@ bool restart;
 bool save_state;
 int state_year;
 
-bool forcesowingdates = false;
-bool forceharvestdates = false;
+bool readsowingdates = false;
+bool readharvestdates = false;
 bool readNfert = false;
 bool printseparatestands;
 
@@ -375,6 +380,12 @@ void plib_declarations(int id,xtring setname) {
 			"Whether to allow C storage");
 		declareitem("npatch",&npatch,1,1000,1,CB_NONE,
 			"Number of patches simulated");
+		declareitem("npatch_secondarystand",&npatch_secondarystand,1,1000,1,CB_NONE,
+			"Number of patches simulated in secondary stands");
+		declareitem("reduce_all_stands",&reduce_all_stands,1,CB_NONE,
+			"Whether to reduce equal percentage of all stands of a stand type at land cover change");
+		declareitem("age_limit_reduce",&age_limit_reduce,0,1000,1,CB_NONE,
+			"Minimum age of stands to reduce at land cover change");
 		declareitem("patcharea",&patcharea,1.0,1.0e4,1,CB_NONE,
 			"Patch area (m2)");
 		declareitem("wateruptake", &strparam, 20, CB_WATERUPTAKE, 
@@ -426,10 +437,12 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifslowharvestpool",&ifslowharvestpool,1,CB_NONE,"If a slow harvested product pool is included in patchpft.");
 		declareitem("ifintercropgrass",&ifintercropgrass,1,CB_NONE,"Whether intercrop growth is allowed");
 		declareitem("ifcalcdynamic_phu",&ifcalcdynamic_phu,1,CB_NONE,"Whether to calculate dynamic potential heat units");
+		declareitem("gross_land_transfer",&gross_land_transfer,0,3,1,CB_NONE,"Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); read stand type transfer matrix input file (3), or not (0)");
+		declareitem("transfer_level",&transfer_level,0,3,1,CB_NONE,"Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level");
 		declareitem("ifdyn_phu_limit",&ifdyn_phu_limit,1,CB_NONE,"Whether to limit dynamic phu calculation to a time period");
 		declareitem("nyear_dyn_phu",&nyear_dyn_phu,0,1000,1,CB_NONE, "Number of years to calculate dynamic phu");
-		declareitem("forcesowingdates",&forcesowingdates,1,CB_NONE,"Whether to use sowingdates from input file");
-		declareitem("forceharvestdates",&forceharvestdates,1,CB_NONE,"Whether to use harvestdates from input file");
+		declareitem("readsowingdates",&readsowingdates,1,CB_NONE,"Whether to use sowingdates from input file");
+		declareitem("readharvestdates",&readharvestdates,1,CB_NONE,"Whether to use harvestdates from input file");
 		declareitem("readNfert",&readNfert,1,CB_NONE,"Whether to read N fertilization from input file");
 		declareitem("printseparatestands",&printseparatestands,1,CB_NONE,"Whether to print multiple stands within a land cover type (except cropland) separately");
 		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"Whether static landcover fractions are set in the ins-file (0,1)");
@@ -666,8 +679,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("himin",&ppft->himin,0.0,2.0,1,CB_NONE,"");
 		declareitem("frootstart",&ppft->frootstart,0.0,1.0,1,CB_NONE,"");
 		declareitem("frootend",&ppft->frootend,0.0,1.0,1,CB_NONE,"");
-		declareitem("forcesowingdate",&ppft->forcesowingdate,1,CB_NONE,"use sowingdate from input file");
-		declareitem("forceharvestdate",&ppft->forceharvestdate,1,CB_NONE,"use sowingdate from input file");
+		declareitem("readsowingdate",&ppft->readsowingdate,1,CB_NONE,"use sowing date from input file");
+		declareitem("readharvestdate",&ppft->readharvestdate,1,CB_NONE,"use harvest date from input file");
 		declareitem("readNfert",&ppft->readNfert,1,CB_NONE,"use N fertilization from input file");
 		declareitem("laimax",&ppft->laimax,0.0,10.0,1,CB_NONE,"");
 		declareitem("forceautumnsowing",&ppft->forceautumnsowing,0,2,1,CB_NONE,"Whether autumn sowing is forced independent of climate");
@@ -707,7 +720,8 @@ void plib_declarations(int id,xtring setname) {
 			"Intercrop (\"NONE\", \"GRASSONLY\" or \"ALL\")");
 		
 		declareitem("rotation",&pst->rotation.ncrops,0,100,1,CB_NONE,"Rotation type (no of crops)");
-//		declareitem("rottime",&pst->rotation.nyears,0.0,10.0,1,CB_NONE,"Rotation time (years)");
+		declareitem("rottime",&pst->rotation.nyears,0.0,10.0,1,CB_NONE,"Rotation time (years)");
+		declareitem("multicrop",&pst->rotation.multicrop,1,CB_NONE,"Whether to grow several crops in a year ");
 		declareitem("firstrotyear",&pst->rotation.firstrotyear,0,3000,1,CB_NONE,"First calender year of rotation");
 		declareitem("restrictpfts",&pst->restrictpfts,1,CB_NONE,"Whether to only allow pft:s specified in stand type");
 
@@ -716,6 +730,8 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("crop1",&strparam,16,CB_CROP1,"");
 				declareitem("hydrology1",&strparam,16,CB_STHYDROLOGY1, "Hydrology of crop 1 (\"RAINFED\" or \"IRRIGATED\")");
 //				declareitem("irrigation1",&pst->management[i].firr,0.0,1.0,1,CB_NONE,"Irrigation of crop 1");
+				declareitem("sdate1",&pst->management[i].sdate,0,364,1,CB_NONE,"Sowing date of crop 1");
+				declareitem("hdate1",&pst->management[i].hdate,0,364,1,CB_NONE,"Harvest date of crop 1");
 				declareitem("nfert1",&pst->management[i].nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop 1");
 				declareitem("fallow1",&pst->management[i].fallow,1,CB_NONE,"Fallow in place of crop 1");
 			}
@@ -723,6 +739,8 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("crop2",&strparam,16,CB_CROP2,"");
 				declareitem("hydrology2",&strparam,16,CB_STHYDROLOGY2, "Hydrology of crop 2 (\"RAINFED\" or \"IRRIGATED\")");
 //				declareitem("irrigation2",&pst->management[i].firr,0.0,1.0,1,CB_NONE,"Irrigation of crop 2");
+				declareitem("sdate2",&pst->management[i].sdate,0,364,1,CB_NONE,"Sowing date of crop 2");
+				declareitem("hdate2",&pst->management[i].hdate,0,364,1,CB_NONE,"Harvest date of crop 2");
 				declareitem("nfert2",&pst->management[i].nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop 2");
 				declareitem("fallow2",&pst->management[i].fallow,1,CB_NONE,"Fallow in place of crop 2");
 			}
@@ -730,6 +748,8 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("crop3",&strparam,16,CB_CROP3,"");
 				declareitem("hydrology3",&strparam,16,CB_STHYDROLOGY3, "Hydrology of crop 3 (\"RAINFED\" or \"IRRIGATED\")");
 //				declareitem("irrigation3",&pst->management[i].firr,0.0,1.0,1,CB_NONE,"Irrigation of crop 3");
+				declareitem("sdate3",&pst->management[i].sdate,0,364,1,CB_NONE,"Sowing date of crop 3");
+				declareitem("hdate3",&pst->management[i].hdate,0,364,1,CB_NONE,"Harvest date of crop 3");
 				declareitem("nfert3",&pst->management[i].nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop 3");
 				declareitem("fallow3",&pst->management[i].fallow,1,CB_NONE,"Fallow in place of crop 3");
 			}
@@ -972,6 +992,9 @@ void plib_callback(int callback) {
 
 		if (!itemparsed("run_landcover")) badins("run_landcover");
 		if (run_landcover) {
+			if (!itemparsed("npatch_secondarystand")) badins("npatch_secondarystand");
+			if (!itemparsed("reduce_all_stands")) badins("reduce_all_stands");
+			if (!itemparsed("age_limit_reduce")) badins("age_limit_reduce");
 			if (!itemparsed("minimizecftlist")) badins("minimizecftlist");	
 			if (!itemparsed("lcfrac_fixed")) badins("lcfrac_fixed");
 			if (!itemparsed("cftfrac_fixed")) badins("cftfrac_fixed");
@@ -990,21 +1013,23 @@ void plib_callback(int callback) {
 			if (!itemparsed("ifslowharvestpool")) badins("ifslowharvestpool");
 			if (!itemparsed("ifintercropgrass")) badins("ifintercropgrass");
 			if (!itemparsed("ifcalcdynamic_phu")) badins("ifcalcdynamic_phu");
+			if (!itemparsed("gross_land_transfer")) badins("gross_land_transfer");
+			if (!itemparsed("transfer_level")) badins("transfer_level");
 			if (!itemparsed("ifdyn_phu_limit")) badins("ifdyn_phu_limit");
 			if (!itemparsed("nyear_dyn_phu")) badins("nyear_dyn_phu");
-			if (!itemparsed("forcesowingdates")) badins("forcesowingdates");
-			if (!itemparsed("forceharvestdates")) badins("forceharvestdates");
+			if (!itemparsed("readsowingdates")) badins("readsowingdates");
+			if (!itemparsed("readharvestdates")) badins("readharvestdates");
 			if (!itemparsed("readNfert")) badins("readNfert");
 			if (!itemparsed("printseparatestands")) badins("printseparatestands");
 
 #ifndef DYNAMIC_LANDCOVER_INPUT
-			if(!lcfrac_fixed || !frac_fixed[CROPLAND] || forcesowingdates || forceharvestdates)
+			if(!lcfrac_fixed || !frac_fixed[CROPLAND] || readsowingdates || readharvestdates)
 				dprintf("Input of landcover fractions and sowing-/harvest dates requires the InDataD class. Equal landcover/crop fractions enforced. Sowing-/harvest dates calculated.\n");
 			lcfrac_fixed=true;
 			equal_landcover_area=true;
 			frac_fixed[CROPLAND]=true;
-			forcesowingdates=false;
-			forceharvestdates=false;
+			readsowingdates=false;
+			readharvestdates=false;
 			readNfert=false;
 #endif
 		}

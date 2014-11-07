@@ -119,6 +119,8 @@ int framework(const CommandLineArguments& args) {
 			// ...and jump to the restart year
 			date.year = state_year;
 		}
+
+		MassBalance balance(nyear_spinup);
 		
 		// Call input/output to obtain climate, insolation and CO2 for this
 		// day of the simulation. Function getclimate returns false if last year
@@ -230,7 +232,9 @@ int framework(const CommandLineArguments& args) {
 				// Call output module to output results for end of year
 				// or end of simulation for this grid cell
 				output_modules.outannual(gridcell);
-				
+
+				balance.check_year(gridcell);
+
 				// Time to save state?
 				if (date.year == state_year-1 && save_state) {
 					serializer->serialize_gridcell(gridcell);
@@ -250,6 +254,8 @@ int framework(const CommandLineArguments& args) {
 
 		if(printseparatestands)
 			output_modules.closelocalfiles(gridcell);
+
+		balance.check_period();
 
 	}		// End of loop through grid cells
 

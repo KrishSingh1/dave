@@ -227,7 +227,7 @@ void CommonOutput::define_output_tables() {
 	if (run_landcover && ifslowharvestpool) {
 		 cpool_columns += ColumnDescriptor("HarvSlowC",   10, 3);
 	}
-	cpool_columns += ColumnDescriptor("Total",            10, 3);
+	cpool_columns += ColumnDescriptor("Total",            10, 5);
 
 	// CLITTER
 	ColumnDescriptors clitter_columns = cmass_columns;
@@ -338,6 +338,7 @@ void CommonOutput::define_output_tables() {
 	nflux_columns += ColumnDescriptor("flux",              8, 2);
 	nflux_columns += ColumnDescriptor("leach",             8, 2);
 	if (run_landcover) {
+		nflux_columns += ColumnDescriptor("seed",		   8, 2);
 		nflux_columns += ColumnDescriptor("harvest",       8, 2);
 	}
 	nflux_columns += ColumnDescriptor("NEE",               8, 2);
@@ -468,7 +469,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double c_fast, c_slow, c_harv_slow; 
 
 	double surfsoillitterc,surfsoillittern,cwdc,cwdn,centuryc,centuryn,n_harv_slow,availn;
-	double flux_nh3,flux_no,flux_no2,flux_n2o,flux_n2,flux_nsoil,flux_ntot,flux_nharvest;
+	double flux_nh3,flux_no,flux_no2,flux_n2o,flux_n2,flux_nsoil,flux_ntot,flux_nharvest, flux_nseed;
 
 	// Nitrogen output is in kgN/ha instead of kgC/m2 as for carbon 
 	double m2toha = 10000.0;
@@ -964,10 +965,13 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 //							out.add_value(out_cmass_cropland,		mean_standpft_cmass_lc[i]);
 							break;
 						case PASTURE:
-//							out.add_value(out_anpp_pasture,			mean_standpft_anpp_lc[i]);
-//							out.add_value(out_cmass_pasture,		mean_standpft_cmass_lc[i]);
+							if(run[NATURAL]) {
+//								out.add_value(out_anpp_pasture,			mean_standpft_anpp_lc[i]);
+//								out.add_value(out_cmass_pasture,		mean_standpft_cmass_lc[i]);
+							}
 							break;
 						case NATURAL:
+//							if(run[FOREST] || run[PASTURE]) {
 							if(run[FOREST]) {
 								out.add_value(out_anpp_natural,			mean_standpft_anpp_lc[i]);
 								out.add_value(out_cmass_natural,		mean_standpft_cmass_lc[i]);
@@ -1054,7 +1058,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		surfsoillitterc = surfsoillittern = cwdc = cwdn = centuryc = centuryn = n_harv_slow = availn = 0.0;
 		andep_gridcell = anfert_gridcell = anmin_gridcell = animm_gridcell = anfix_gridcell = 0.0;
 		n_org_leach_gridcell = n_min_leach_gridcell = 0.0;
-		flux_nh3 = flux_no = flux_no2 = flux_n2o = flux_n2 = flux_nsoil = flux_ntot = flux_nharvest = 0.0;
+		flux_nh3 = flux_no = flux_no2 = flux_n2o = flux_n2 = flux_nsoil = flux_ntot = flux_nharvest = flux_nseed = 0.0;
 
 		double flux_veg_lc[NLANDCOVERTYPES], flux_repr_lc[NLANDCOVERTYPES], flux_soil_lc[NLANDCOVERTYPES], flux_fire_lc[NLANDCOVERTYPES], flux_est_lc[NLANDCOVERTYPES], flux_seed_lc[NLANDCOVERTYPES];
 		double flux_charvest_lc[NLANDCOVERTYPES];
@@ -1101,6 +1105,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				flux_est+=patch.fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;
 				flux_seed+=patch.fluxes.get_annual_flux(Fluxes::SEEDC)*to_gridcell_average;
 				flux_charvest+=patch.fluxes.get_annual_flux(Fluxes::HARVESTC)*to_gridcell_average;
+				flux_nseed+=patch.fluxes.get_annual_flux(Fluxes::SEEDN)*to_gridcell_average;
 				flux_nharvest+=patch.fluxes.get_annual_flux(Fluxes::HARVESTN)*to_gridcell_average;
 				flux_nh3+=patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE)*to_gridcell_average;
 				flux_no+=patch.fluxes.get_annual_flux(Fluxes::NO_FIRE)*to_gridcell_average;
@@ -1328,10 +1333,13 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 //						out.add_value(out_cmass_cropland,   landcover_cmass[i]);
 						break;
 					case PASTURE:
-//						out.add_value(out_anpp_pasture,     landcover_anpp[i]);
-//						out.add_value(out_cmass_pasture,	landcover_cmass[i]);
+						if(run[NATURAL]) {
+//							out.add_value(out_anpp_pasture,     landcover_anpp[i]);
+//							out.add_value(out_cmass_pasture,	landcover_cmass[i]);
+						}
 						break;
 					case NATURAL:
+//						if(run[FOREST] || run[PASTURE]) {
 						if(run[FOREST]) {
 							out.add_value(out_anpp_natural,     landcover_anpp[i]);
 							out.add_value(out_cmass_natural,	landcover_cmass[i]);
@@ -1501,9 +1509,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		out.add_value(out_nflux, flux_ntot * m2toha);
 		out.add_value(out_nflux, (n_min_leach_gridcell + n_org_leach_gridcell) * m2toha);
 		if (run_landcover) {
+			 out.add_value(out_nflux, flux_nseed * m2toha);
 			 out.add_value(out_nflux, flux_nharvest * m2toha);
 		}
-		out.add_value(out_nflux, (flux_nharvest + flux_ntot + n_min_leach_gridcell + n_org_leach_gridcell - (andep_gridcell + anfix_gridcell + anfert_gridcell)) * m2toha);
+		out.add_value(out_nflux, (flux_nharvest + flux_nseed + flux_ntot + n_min_leach_gridcell + n_org_leach_gridcell - (andep_gridcell + anfix_gridcell + anfert_gridcell)) * m2toha);
 
 		out.add_value(out_cpool, cmass_gridcell);
 		if (!ifcentury) {

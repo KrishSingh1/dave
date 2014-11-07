@@ -406,6 +406,47 @@ public:
 	}
 };
 
+/// Object updating gridcell mass balance; currently used in framework()
+class MassBalance : public Serializable  {
+
+	int start_year;
+	double ccont;
+	double ccont_zero;
+	double cflux;
+	double cflux_zero;
+
+	double ncont;
+	double ncont_zero;
+	double nflux;
+	double nflux_zero;
+
+public:
+	MassBalance() {
+
+		start_year = 10000000;
+		ccont = 0.0;
+		cflux = 0.0;
+		ncont = 0.0;
+		nflux = 0.0;
+	}
+
+	MassBalance(int start_yearX) {
+
+		start_year = start_yearX;
+		ccont = 0.0;
+		cflux = 0.0;
+		ncont = 0.0;
+		nflux = 0.0;
+	}
+
+	void init(Gridcell& gridcell);
+	void check(Gridcell& gridcell);
+	void check_year(Gridcell& gridcell);
+	void check_period();
+
+	void serialize(ArchiveStream& arch);
+};
+
 /// This struct contains the result of a photosynthesis calculation.
 /** \see photosynthesis */  
 struct PhotosynthesisResult : public Serializable {
@@ -767,8 +808,10 @@ public:
 		HARVESTC,
 		/// Flux from atmosphere to vegetation associated with sowing (kgC/m2)
 		SEEDC,
-		/// Flux to atmosphere from consumed harvested products (kgN/m2)
+		/// Nitrogen flux to atmosphere from consumed harvested products (kgN/m2)
 		HARVESTN,
+		/// Nitrogen flux from atmosphere to vegetation associated with sowing (kgC/m2)
+		SEEDN,
 		/// NH3 flux to atmosphere from fire
 		NH3_FIRE,
 		/// NO flux to atmosphere from fire	
@@ -870,6 +913,8 @@ public:
 	hydrologytype hydrology;
 	/// irrigation efficiency
 //	double firr;
+	int sdate;
+	int hdate;
 	/// Nitrogen fertilisation amount
 	double nfert;
 
@@ -880,6 +925,8 @@ public:
 		pftname = "";
 		hydrology = RAINFED;
 //		firr = 0.0;
+		sdate = -1;
+		hdate = -1;
 		nfert = 0.0;
 		fallow = false;
 	}
@@ -892,13 +939,15 @@ public:
 	/// Number of crops in rotation
 	int ncrops;
 	/// Rotation period in years
-//	double nyears;
+	double nyears;
 	int firstrotyear;
+	bool multicrop;
 
 	CropRotation() {
 		ncrops = 1;
-//		nyears = 1.0;
+		nyears = 1.0;
 		firstrotyear = 0;
+		multicrop = false;
 	}
 };
 
@@ -933,6 +982,14 @@ public:
 	/// old fraction of this stand type relative to the gridcell before update
 	double frac_old;
 
+	double protected_frac;
+
+	/// net fraction change
+	double frac_change;
+
+	double gross_frac_increase;
+	double gross_frac_decrease;
+
 	// current number of stands of this stand type
 	int nstands;
 
@@ -940,6 +997,10 @@ public:
 
 		frac = 1.0;
 		frac_old = 0.0;
+		protected_frac = 0.0;
+		frac_change = 0.0;
+		gross_frac_increase = 0.0;
+		gross_frac_decrease = 0.0;
 		nstands = 0;
 		intercrop = NOINTERCROP;
 		naturalveg = false;
@@ -1235,9 +1296,9 @@ public:
 	/// final fraction of growing season's npp allocated to roots
 	double frootend;
 	/// whether sowing dates are read from input file
-	bool forcesowingdate;
+	bool readsowingdate;
 	/// whether harvest dates are read from input file
-	bool forceharvestdate;
+	bool readharvestdate;
 	/// autumn/spring sowing of pft:s with tempautumn = 1
 	int forceautumnsowing;	//0 = NOFORCING,  1 = AUTUMNSOWING, 2 = SPRINGSOWING
 	/// whether N fertilization is read from input file
@@ -1286,8 +1347,8 @@ public:
 		aboveground_ho=true;
 		frootstart=0.0;
 		frootend=0.0;
-		forcesowingdate=false;
-		forceharvestdate=false;
+		readsowingdate=false;
+		readharvestdate=false;
 		forceautumnsowing = 0;
 		readNfert=false;
 	}
@@ -2449,8 +2510,6 @@ public:
 	bool senescence_ystd;
 	/// whether inside intercrop crass growing period (main crop pft variable)
 	bool intercropseason;
-	/// used to distinguish the two growing seasons for rice in some geographical regions
-	bool maincrop;
 
 	cropphen_struct()
 	{
@@ -2496,7 +2555,6 @@ public:
 		intercropseason=false;
 		bicdate=-1;
 		eicdate=-1;
-		maincrop=true;
 		growingdays=0;
 		growingdays_y=0;
 		lgp=0;
@@ -2802,6 +2860,11 @@ public:
 
 	/// Returns whether we should model disturbances in this patch
 	bool has_disturbances() const;
+
+	double ccont(double scale_indiv = 1.0);
+	double ncont(double scale_indiv = 1.0);
+	double cflux();
+	double nflux();
 };
 
 /// Container for variables common to individuals of a particular PFT in a stand.
@@ -2832,6 +2895,9 @@ public:
 	/// Whether this PFT is irrigated in this stand
 	bool irrigated;
 
+	int sdate_force;
+	int hdate_force;
+
 	// MEMBER FUNCTIONS
 
 	/// Constructor: initialises various data members
@@ -2840,6 +2906,8 @@ public:
 		anetps_ff_max = 0.0;
 		active = !run_landcover;
 		irrigated = false;
+		sdate_force = -1;
+		hdate_force = -1;
 	}
 
 	void serialize(ArchiveStream& arch);
@@ -2888,9 +2956,26 @@ public:
 
 	/// old fraction of this stand relative to the gridcell before update
 	double frac_old;
+
+	/// used during land cover change involving several calls to reveiving_stand_change()
+	/** Set to frac_old in reduce_stands(), then modified in donor_stand_change() and receiving_stand_change().
+	 */
+	double frac_temp;
+
+	double protected_frac;
 	
-	/// fraction removed from natural stand when converted to other landcover type
+	/// net stand fraction change
 	double frac_change;
+
+	double gross_frac_increase;
+	double gross_frac_decrease;
+
+	double cloned_fraction;
+
+	bool cloned;
+
+	double *transfer_area_st;
+//	landcovertype origin; 
 
 	/// counter used for output from separate stands
 	double anpp;
@@ -2932,7 +3017,9 @@ public:
 	 *  \param st        The soil type to be used within this Stand
 	 *  \param landcover The type of landcover to use for this stand
 	 */
-	Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcover); 
+	Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcover, int no_patch = 0);
+
+	~Stand();
 
 	/// Gives the fraction of this Stand relative to the whole grid cell
 	double get_gridcell_fraction() const;
@@ -2957,6 +3044,23 @@ public:
 
 	/// Moves crop rotation forward
 	void rotate();
+
+	double transfer_area_lc(int to);
+
+	/// Initiates new stand land cover settings
+	void init_stand_lu(StandType& st, double fraction);
+
+	double ccont(double scale_indiv = 1.0);
+	double ncont(double scale_indiv = 1.0);
+	double cflux();
+	double nflux();
+
+    /// Creates a duplicate stand with a new landcovertype
+    /** The new stand is added to this stand's gridcell.
+     *
+     *  \returns reference to the new stand
+     */
+    Stand& clone(StandType& st, double fraction);
 
 	void serialize(ArchiveStream& arch);
 
@@ -3060,8 +3164,8 @@ public:
 	int hlimitdate_default;
 	/// whether autumn sowing is either calculated or prescribed
 	bool wintertype;
-	/// whether only one sowing season per year is allowed (currently used only for rice, based on geograhical limits defined in getgridcell() )
-	bool singlecrop;
+	/// whether two sowing seasons per year is allowed (currently used only for rice, based on geograhical limits defined in getgridcell() )
+	bool multicrop;
 	/// first and last day of crop sowing window, calculated in calc_sowing_windows()
 	int swindow[2];
 	/// first and last day of crop sowing window for irrigated crops, calculated in calc_sowing_windows()
@@ -3105,7 +3209,7 @@ public:
 		sdatecalc_prec=-1;
 		hlimitdate_default=-1;
 		wintertype=false;
-		singlecrop=true;
+		multicrop=false;
 		swindow[0]=-1;
 		swindow[1]=-1;
 		sowing_restriction = false;
@@ -3160,7 +3264,10 @@ public:
 	/// Landcover-level flux from harvest associated with landcover change (donating landcover)
 	double acflux_landuse_change_lc[NLANDCOVERTYPES];
 	/// Which landcover types create new stands when area increases.
-	int expand_to_new_stand[NLANDCOVERTYPES];
+	bool expand_to_new_stand[NLANDCOVERTYPES];
+
+	bool pool_to_all_landcovers[NLANDCOVERTYPES];	// ...from a donor landcover (overrides different landcover targets of different stand types and stands in a landcover)
+	bool pool_from_all_landcovers[NLANDCOVERTYPES];	// ...to a receptor landcover (crop and pasture stands to new natural stand: pool!)
 
 	/// list array [0...npft-1] of Gridcellpft (initialised in constructor)
 	ListArray_idin1<Gridcellpft,Pft> pft;
@@ -3196,9 +3303,22 @@ public:
 
 		for(int i=0; i<NLANDCOVERTYPES; i++) {		
 			if(i == NATURAL || i == FOREST)
-				expand_to_new_stand[i] = 1;
+				expand_to_new_stand[i] = true;
 			else
-				expand_to_new_stand[i] = 0;
+				expand_to_new_stand[i] = false;
+
+			pool_to_all_landcovers[i] = false;		// from a donor landcover; alt.c
+			pool_from_all_landcovers[i] = false;		// to a receptor landcover; alt.a
+
+/*			if(i == CROPLAND) {
+				pool_to_all_landcovers[i] = true;
+				pool_to_all_standtypes[i] = true;
+			}
+			else {
+				pool_to_all_landcovers[i] = false;
+				pool_to_all_standtypes[i] = false;
+			}
+*/
 		}
 
 		if(!run_landcover) {
@@ -3222,10 +3342,15 @@ public:
 	void serialize(ArchiveStream& arch);
 
 	/// Creates a new Stand in this grid cell
-	Stand& create_stand(landcovertype landcover);
+	Stand& create_stand(landcovertype landcover, int no_patch = 0);
 
 	/// Creates new stand and initiates land cover settings
-	Stand& create_stand_lu(StandType& st, double fraction);
+	Stand& create_stand_lu(StandType& st, double fraction, int no_patch = 0);
+
+	double ccont();
+	double ncont();
+	double cflux();
+	double nflux();
 
 	/// Deletes the stand which the iterator is pointing at
 	/** Returns an iterator pointing to the object following the erased object.

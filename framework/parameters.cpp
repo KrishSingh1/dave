@@ -77,7 +77,8 @@ int state_year;
 bool readsowingdates = false;
 bool readharvestdates = false;
 bool readNfert = false;
-bool printseparatestands;
+bool printseparatestands = false;
+bool iftillage = false;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Implementation of the Paramlist class
@@ -445,6 +446,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("readharvestdates",&readharvestdates,1,CB_NONE,"Whether to use harvestdates from input file");
 		declareitem("readNfert",&readNfert,1,CB_NONE,"Whether to read N fertilization from input file");
 		declareitem("printseparatestands",&printseparatestands,1,CB_NONE,"Whether to print multiple stands within a land cover type (except cropland) separately");
+		declareitem("iftillage",&iftillage,1,CB_NONE,"Whether to simulate tillage by increasing soil respiration");
 		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"Whether static landcover fractions are set in the ins-file (0,1)");
 		declareitem("cftfrac_fixed",&frac_fixed[CROPLAND],1,CB_NONE,"Whether static crop fractions are read from input file (0,1)");	
 
@@ -1021,6 +1023,7 @@ void plib_callback(int callback) {
 			if (!itemparsed("readharvestdates")) badins("readharvestdates");
 			if (!itemparsed("readNfert")) badins("readNfert");
 			if (!itemparsed("printseparatestands")) badins("printseparatestands");
+			if (!itemparsed("iftillage")) badins("iftillage");
 
 #ifndef DYNAMIC_LANDCOVER_INPUT
 			if(!lcfrac_fixed || !frac_fixed[CROPLAND] || readsowingdates || readharvestdates)

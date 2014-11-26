@@ -43,6 +43,7 @@
 static const double TAU_LITTER=2.85; // Thonicke, Sitch, pers comm, 26/11/01
 static const double TAU_SOILFAST=33.0; 
 static const double TAU_SOILSLOW=1000.0;
+static const double TILLAGE_FACTOR = 33.0 / 17.0; // (Inverse of "tillage factor" in Chatskikh et al. 2009, Value selected by T.Pugh)
 
 static const double FASTFRAC=0.985;
 	// fraction of litter decomposition entering fast SOM pool
@@ -94,7 +95,7 @@ void setconstants() {
 // used by som_dynamic_lpj()
 
 void decayrates(double wcont,double gtemp_soil,double& k_soilfast,double& k_soilslow,
-	double& fr_litter,double& fr_soilfast,double& fr_soilslow) {
+	double& fr_litter,double& fr_soilfast,double& fr_soilslow, bool tillage) {
 
 	// DESCRIPTION
 	// Calculation of fractional decay amounts for litter and fast and slow SOM
@@ -130,6 +131,8 @@ void decayrates(double wcont,double gtemp_soil,double& k_soilfast,double& k_soil
 	// NB: Temperature response (gtemp; Lloyd & Taylor 1994) set by framework
 
 	k_soilfast=k_soilfast10*gtemp_soil*moist_response/365.0;
+	if(tillage)
+		k_soilfast *= TILLAGE_FACTOR; // Increased HR for crops (tillage)
 	k_soilslow=k_soilslow10*gtemp_soil*moist_response/365.0;
 
 	fr_litter=exp(-k_litter10*gtemp_soil*moist_response/365.0);
@@ -200,7 +203,7 @@ void som_dynamics_lpj(Patch& patch) {
 	// temperature
 
 	decayrates(soil.wcont[0],soil.gtemp,k_soilfast,k_soilslow,fr_litter,
-		fr_soilfast,fr_soilslow);
+		fr_soilfast,fr_soilslow, iftillage && patch.stand.landcover == CROPLAND);
 
 	// From year soil.solvesom_begin, update running means for later solution
 	// (at year soil.solvesom_end) of equilibrium SOM pool sizes
@@ -402,6 +405,10 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil) {
 		else if (p == SOILMICRO) {
 			k *= texture_mod;
 		}
+
+		// Increased HR for crops (tillage)
+		if(iftillage && soil.patch.stand.landcover == CROPLAND && (p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM))
+			k *= TILLAGE_FACTOR; 
 
 		// Calculate fraction of carbon pool remaining after today's decomposition
 		soil.sompool[p].fracremain = exp(-k);	
@@ -1314,6 +1321,8 @@ void som_dynamics(Patch& patch) {
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
 //
+// Chatskikh, D., Hansen, S., Olesen, J.E. & Petersen, B.M. 2009. A simplified modelling approach
+//	 for quantifying tillage effects on soil carbon stocks. Eur.J.Soil.Sci., 60:924-934.
 // Comins, H. N. & McMurtrie, R. E. 1993. Long-Term Response of Nutrient-Limited 
 //   Forests to CO2 Enrichment - Equilibrium Behavior of Plant-Soil Models. 
 //   Ecological Applications, 3, 666-681.

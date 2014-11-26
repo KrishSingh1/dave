@@ -184,6 +184,9 @@ extern bool readNfert;
 /// Whether to print multiple stands within a land cover type (except cropland) separately
 extern bool printseparatestands;
 
+/// Whether to simulate tillage by increasing soil respiration
+extern bool iftillage;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Settings controlling the saving and loading from state files
 

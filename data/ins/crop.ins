@@ -78,10 +78,14 @@ printseparatestands 0	! Whether to print multiple stands within a land cover typ
 ifcalcdynamic_phu 1	! Whether to calculate dynamic potential heat units
 ifdyn_phu_limit 0	! Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
 nyear_dyn_phu 50	! Number of years to calculate dynamic phu if dynamic_phu_limit is 1
+iftillage 0		! Whether to simulate tillage by increasing soil respiration
 gross_land_transfer 0	! Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); read stand type transfer matrix input file (3), or not (0)
 transfer_level 1	! Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
-iftillage 0		! Whether to simulate tillage by increasing soil respiration
 iftransfer_to_new_stand 0	! Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
+ifexpand_to_new_stand 1	! Whether to create new stands in stand_dynamics() according to the rules in the gridcell constructor
+scaling_mode 1		! Scaling mode; 0: no scaling of expanded stands, 1: downscaling of living C mass only (smaller individuals), 2: downscaling of living tree C mass and densindiv (less dense forest)
+			! NB: applies to stands not affected by the rules in the gridcell constructor even if ifexpand_to_new_stand is 1 (e.g. pasture)
+transfer_mode 2		! C, N and water transfer mode; 0: no transfer; 1: transfer of soil; 2: transfer of soil and living mass (after killing)
 
 !///////////////////////////////////////////////////////////////////////////////////////
 

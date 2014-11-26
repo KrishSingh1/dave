@@ -1233,8 +1233,12 @@ void scale_indiv(Individual& indiv, bool scale_grsC)
 	Gridcell& gridcell = stand.get_gridcell();
 
 	// Scale individual's C and N mass in stands that have increased in area this year by (old area/new area):
-	if(stand.scale_LC_change < 1.0)
-		scale = stand.scale_LC_change;
+	if(stand.scale_LC_change < 1.0) {
+		if(scaling_mode == 0)
+			return;
+		else
+			scale = stand.scale_LC_change;
+	}
 	else
 		return;
 
@@ -1264,6 +1268,9 @@ void scale_indiv(Individual& indiv, bool scale_grsC)
 
 		indiv.cmass_root *= scale;	
 		indiv.cmass_leaf *= scale;
+		indiv.cmass_heart *= scale;	
+		indiv.cmass_sap *= scale;
+		indiv.cmass_debt *= scale;
 
 		if(indiv.pft.landcover == CROPLAND) {
 			indiv.cropindiv->cmass_agpool *= scale;
@@ -1274,6 +1281,8 @@ void scale_indiv(Individual& indiv, bool scale_grsC)
 	// Deduct individual N present day 0 this year in stands that have increased in area this year, scaled by (1 - old area/new area):
 	indiv.nmass_root = max(0.0, indiv.nmass_root - indiv.nmass_root_luc * (1.0 - scale));	
 	indiv.nmass_leaf = max(0.0, indiv.nmass_leaf - indiv.nmass_leaf_luc * (1.0 - scale));
+	indiv.nmass_heart = max(0.0, indiv.nmass_heart - indiv.nmass_heart_luc * (1.0 - scale));	
+	indiv.nmass_sap = max(0.0, indiv.nmass_sap - indiv.nmass_sap_luc * (1.0 - scale));
 
 	if(indiv.pft.landcover == CROPLAND) {
 		indiv.cropindiv->nmass_agpool = max(0.0, indiv.cropindiv->nmass_agpool - indiv.cropindiv->nmass_agpool_luc * (1.0 - scale));
@@ -1595,6 +1604,9 @@ void growth(Stand& stand, Patch& patch) {
 						vegetation.killobj();
 						killed = true;
 					}
+
+					if(scaling_mode == 2)
+						indiv.densindiv *= stand.scale_LC_change;
 				}
 				else if (indiv.pft.lifeform == GRASS) {
 

@@ -454,7 +454,7 @@ void expand_stands(Gridcell& gridcell, double* st_frac_transfer) {
 
 		StandType& st = stlist[i];
 		landcovertype lc = st.landcover;
-		bool expand_to_new_stand = gridcell.expand_to_new_stand[lc];
+		bool expand_to_new_stand = ifexpand_to_new_stand && gridcell.expand_to_new_stand[lc];
 
 		if(st.gross_frac_increase > 0.0) {	// Not cloned stands
 
@@ -941,7 +941,7 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 			ccont_stand_pre_orig = stand.ccont();
 			to_ccont_pre = to.ccont();
 			double dif = ccont_stand_pre_orig - stand.ccont(0);
-
+if(transfer_mode != 0) {
 			// Harvest and turnover of copies of individuals, add to transfer copy:
 			stand.firstobj();
 			while(stand.isobj) {
@@ -959,7 +959,7 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 						cp.copy_from_indiv(indiv, true, false);
 					else
 						cp.copy_from_indiv(indiv, false, false);
-
+if(transfer_mode != 1) {
 					// Harvest of transferred areas:
 					switch (stand.landcover)
 					{
@@ -992,7 +992,7 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 					// In case any vegetation left (eg. cmass_root in pasture or grass in woodland):
 					if(killgrass)
 						kill_remaining_vegetation(cp, indiv.pft, indiv.alive, indiv.istruecrop_or_intercropgrass(), false);
-
+}
 					//Sum added litter C & N:
 					to.transfer_litter_leaf[indiv.pft.id] += cp.litter_leaf * scale;
 					to.transfer_litter_root[indiv.pft.id] += cp.litter_root * scale;
@@ -1021,6 +1021,17 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 
 				stand.nextobj();
 			}
+}
+if(transfer_mode == 0) {	// No transfer
+	//Test mode 1:
+	gridcell.acflux_landuse_change += stand.ccont() * donor_area;
+	gridcell.acflux_landuse_change_lc[stand.landcover] += stand.ccont() * donor_area;
+}
+else if(transfer_mode == 1) {	// Transfer of soil only
+	//Test mode 2 (no harvest):
+	gridcell.acflux_landuse_change += (stand.ccont() - stand.ccont(0)) * donor_area;
+	gridcell.acflux_landuse_change_lc[stand.landcover] += (stand.ccont() - stand.ccont(0)) * donor_area;
+}
 
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 /*
@@ -1082,7 +1093,7 @@ void stand_dynamics(Gridcell& gridcell) {
 		StandType& st=stlist.getobj();
 		landcovertype lc = st.landcover;
 
-		bool expand_to_new_stand = gridcell.expand_to_new_stand[lc];
+		bool expand_to_new_stand = ifexpand_to_new_stand && gridcell.expand_to_new_stand[lc];
 
 		if(st.gross_frac_increase || st.gross_frac_decrease) {
 			// first stand created
@@ -1204,7 +1215,7 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 			added_frac = donorfrac_rel * stand.gross_frac_increase;
 			new_frac = old_frac + added_frac;
 			stand.frac_temp += added_frac;
-
+if(transfer_mode != 0)
 			if(LCchangeCtransfer) {
 				stand.firstobj();
 				while(stand.isobj) {
@@ -1288,7 +1299,18 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 				// set scaling factor to be used in growth() for scaling vegetation C and N:
 				stand.scale_LC_change = (stand.frac_old - stand.gross_frac_decrease) / stand.get_gridcell_fraction();
 				gridcell.LC_updated = true;
+
+if(transfer_mode == 1 || transfer_mode == 2 && scaling_mode == 0) {
+	gridcell.acflux_landuse_change -= (stand.ccont() - stand.ccont(0)) * added_frac; // living C
+	gridcell.acflux_landuse_change_lc[stand.landcover] -= (stand.ccont() - stand.ccont(0)) * added_frac;
+//	N and water not balanced in these tests !
+}
 			}
+if(transfer_mode == 0) {
+	gridcell.acflux_landuse_change -= stand.ccont() * added_frac;
+	gridcell.acflux_landuse_change_lc[stand.landcover] -= stand.ccont() * added_frac;
+//	N and water not balanced in these tests !
+}
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 			if(fabs(ccont_stand_post - (ccont_stand_pre * old_frac + from.ccont() * added_frac) / new_frac) > 1.0e-12)
 				dprintf("WARNING: C balance in receiving_stand_change() = %.10f\n", ccont_stand_post - (ccont_stand_pre * old_frac + from.ccont() * added_frac) / new_frac);

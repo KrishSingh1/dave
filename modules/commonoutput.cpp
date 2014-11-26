@@ -876,6 +876,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 					//Update stand totals
 					stand.anpp += standpft_anpp;
+					stand.cmass += standpft_cmass;
 
 					// Update gridcell totals
 					double fraction_of_gridcell = stand.get_gridcell_fraction();
@@ -920,11 +921,15 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 							if(!out_anpp_stand_natural[id].invalid())
 								out.add_value(out_anpp_stand_natural[id],      standpft_anpp);
+							if(!out_cmass_stand_natural[id].invalid())
+								out.add_value(out_cmass_stand_natural[id],      standpft_cmass);
 						}
 						else if(stand.landcover == FOREST) {
 
 							if(!out_anpp_stand_forest[id].invalid())
 								out.add_value(out_anpp_stand_forest[id],      standpft_anpp);
+							if(!out_cmass_stand_forest[id].invalid())
+								out.add_value(out_cmass_stand_forest[id],      standpft_cmass);
 						}
 					}
 
@@ -1279,11 +1284,15 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 					if(!out_anpp_stand_natural[id].invalid())
 						out.add_value(out_anpp_stand_natural[id],   stand.anpp);
+					if(!out_cmass_stand_natural[id].invalid())
+						out.add_value(out_cmass_stand_natural[id],  stand.cmass);
 				}
 				else if(stand.landcover == FOREST) {
 
 					if(!out_anpp_stand_forest[id].invalid())
 						out.add_value(out_anpp_stand_forest[id],    stand.anpp);
+					if(!out_cmass_stand_forest[id].invalid())
+						out.add_value(out_cmass_stand_forest[id],    stand.cmass);
 				}
 
 				++gc_itr;
@@ -1706,6 +1715,7 @@ void CommonOutput::openlocalfiles(Gridcell& gridcell) {
 			Stand& stand = *gc_itr;
 
 			stand.anpp=0.0;
+			stand.cmass=0.0;
 
 			if(stand.landcover == NATURAL) {
 				nnaturalstands++;
@@ -1769,6 +1779,13 @@ void CommonOutput::openlocalfiles(Gridcell& gridcell) {
 
 					if(out_anpp_stand_natural[id].invalid())
 						create_output_table(out_anpp_stand_natural[id], outfilename, anpp_columns);
+
+					outfilename[0] = '\0';
+					strcpy(outfilename, "cmass_natural_");
+					strcat(outfilename, buffer);
+
+					if(out_cmass_stand_natural[id].invalid())
+						create_output_table(out_cmass_stand_natural[id], outfilename, anpp_columns);
 				}
 				else if(open_forest && stand.landcover == FOREST) {
 
@@ -1777,6 +1794,13 @@ void CommonOutput::openlocalfiles(Gridcell& gridcell) {
 
 					if(out_anpp_stand_forest[id].invalid())
 						create_output_table(out_anpp_stand_forest[id], outfilename, anpp_columns);
+
+					outfilename[0] = '\0';
+					strcpy(outfilename, "cmass_forest_");
+					strcat(outfilename, buffer);
+
+					if(out_cmass_stand_forest[id].invalid())
+						create_output_table(out_cmass_stand_forest[id], outfilename, anpp_columns);
 				}
 
 				++gc_itr;
@@ -1794,8 +1818,12 @@ void CommonOutput::closelocalfiles(Gridcell& gridcell) {
 
 		if(!out_anpp_stand_natural[id].invalid())
 			close_output_table(out_anpp_stand_natural[id]);
+		if(!out_cmass_stand_natural[id].invalid())
+			close_output_table(out_cmass_stand_natural[id]);
 		if(!out_anpp_stand_forest[id].invalid())
 			close_output_table(out_anpp_stand_forest[id]);
+		if(!out_cmass_stand_forest[id].invalid())
+			close_output_table(out_cmass_stand_forest[id]);
 	}
 }
 

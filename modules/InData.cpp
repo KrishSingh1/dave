@@ -201,7 +201,7 @@ double TimeDataD::Get(int calender_year, const char* name) const		//Returns a si
 
 	if(column == -1)
 	{
-		if(calender_year == firstyear)
+		if(calender_year == firstyear || firstyear == -1) // firstyear set to -1 for static inputs
 		printf("WARNING: Value for %s not found in %s.\n", name, fileName);
 	}
 	else
@@ -2034,6 +2034,7 @@ TimeDataD::TimeDataD(int formatX)
 	nRecords=0;
 	nYears=0;
 	nCells=0;
+	firstyear = -1;
 	year=NULL;
 	format=formatX;
 	fileopened=false;
@@ -2144,7 +2145,7 @@ double TimeDataDmem::Get(int calender_year, const char* name) const		//Returns a
 
 	if(column == -1)
 	{
-		if(calender_year == firstyear)
+		if(calender_year == firstyear || firstyear == -1)	// firstyear set to -1 for static inputs
 		printf("WARNING: Value for %s not found in input file\n", name);
 	}
 	else

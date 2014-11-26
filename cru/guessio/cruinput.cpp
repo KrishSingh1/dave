@@ -788,8 +788,8 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 
 				if(sum_tot < 0.99 || sum_tot > 1.01) {
 					if(date.year == 0) {
-						dprintf("WARNING ! landcover fraction sum is %4.2f for year %d\n", sum_tot, year+FIRSTHISTYEAR);
-						dprintf("Rescaling landcover fractions year %d ! (sum is beyond 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
+						dprintf("WARNING ! landcover fraction sum is %4.2f for input year %d\n", sum_tot, year);
+						dprintf("Rescaling landcover fractions ! (sum is beyond 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
 					}
 				}
 				else				// sum often !=1.0 in input file
@@ -804,7 +804,7 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 			gridcell.landcoverfrac[NATURAL]=0.0;
 
 		// NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
-		if(sum_active!=1.0)	{	// if landcover types are turned off in the ini-file, or if more landcover types are added in other input files, can be either less or more than 1.0
+		if(fabs(sum_active - 1.0) > 10e-15)	{	// if landcover types are turned off in the ini-file, or if more landcover types are added in other input files, can be either less or more than 1.0
 			if(!SUPPRESSLARGEOUTPUT)
 				if(date.year==0)
 					dprintf("Landcover fraction sum not 1.0 !\n");
@@ -897,13 +897,13 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 
 		if(gridcell.landcoverfrac[CROPLAND]==0.0) {
 			if(sum!=0.0) {
-				dprintf("WARNING ! crop landcover fraction is 0.0 for year %d while crop data exist !\n", year+FIRSTHISTYEAR);
+				dprintf("WARNING ! crop landcover fraction is 0.0 for year %d while crop data exist !\n", year);
 			}
 		}
 		else {
 			if(sum==0.0) {
 				if(!SUPPRESSLARGEOUTPUT)
-					dprintf("WARNING ! crop fraction sum is 0.0 for year %d while LU[CROPLAND] is > 0 !\n", year+FIRSTHISTYEAR);
+					dprintf("WARNING ! crop fraction sum is 0.0 for year %d while LU[CROPLAND] is > 0 !\n", year);
 
 				//	Set to most common crop according to Bondeau
 				stlist.firstobj();
@@ -935,7 +935,7 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 				}
 				if(sum < 0.99 || sum > 1.01) {	// warn if sum is significantly different from 1.0 
 					if(!SUPPRESSLARGEOUTPUT) {
-						dprintf("WARNING ! crop fraction sum is %5.3f for year %d\n", sum, date.year-nyear_spinup+FIRSTHISTYEAR);
+						dprintf("WARNING ! crop fraction sum is %5.3f for input year %d\n", sum, year);
 						dprintf("Rescaling crop fractions year %d ! (sum is beyond 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
 					}
 				}

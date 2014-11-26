@@ -665,6 +665,8 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int no
 	gross_frac_decrease = 0.0;
 	cloned_fraction = 0.0;
 	cloned = false;
+	anpp = 0.0;
+	cmass = 0.0;
 	scale_LC_change = 1.0;
 }
 
@@ -1366,7 +1368,7 @@ Patchpft& Individual::patchpft() const {
 	return vegetation.patch.pft[pft.id];
 }
 
-/// Save nmass-values on first day of the year of land cover change in expanding stands
+/// Save cmass-values on first day of the year of land cover change in expanding stands
 void Individual::save_cmass_luc() {
 	Stand& stand = vegetation.patch.stand;
 

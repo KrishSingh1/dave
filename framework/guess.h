@@ -2979,6 +2979,7 @@ public:
 
 	/// counter used for output from separate stands
 	double anpp;
+	double cmass;
 
 	/// Seed for generating random numbers within this Stand
 	/** The reason why Stand has its own seed, rather than using for instance

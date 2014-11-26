@@ -70,6 +70,7 @@ void landcover_init(Gridcell& gridcell, InputModule* input_module) {
 	stlist.firstobj();
 	while (stlist.isobj) {
 		StandType& st = stlist.getobj();
+		st.frac_old = st.frac;
 
 		if(st.frac > 0.0) {
 			gridcell.create_stand_lu(st, st.frac);
@@ -264,8 +265,8 @@ int copy_stand_type(int landcover_donor, int landcover_receptor) {
 
 	if(landcover_donor == NATURAL) {
 		
-//		if(landcover_receptor == FOREST)
-//			copy_type = CLONESTAND;
+		if(landcover_receptor == FOREST)
+			copy_type = CLONESTAND;
 
 //		if(landcover_receptor == PASTURE)
 //			copy_type = CLONESTAND_KILLTREES;
@@ -276,6 +277,10 @@ int copy_stand_type(int landcover_donor, int landcover_receptor) {
 //		if(landcover_receptor == PASTURE)
 //			copy_type = NEWSTAND_KILLALL;
 
+	}
+	else if(landcover_donor == FOREST) {
+		if(landcover_receptor == NATURAL)
+			copy_type = CLONESTAND;
 	}
 
 	return copy_type;
@@ -448,10 +453,12 @@ void expand_stands(Gridcell& gridcell, double* st_frac_transfer) {
 	for(int i=0; i<nst; i++) {
 
 		StandType& st = stlist[i];
+		landcovertype lc = st.landcover;
+		bool expand_to_new_stand = gridcell.expand_to_new_stand[lc];
 
 		if(st.gross_frac_increase > 0.0) {	// Not cloned stands
 
-			if(!gridcell.expand_to_new_stand[st.landcover]) {
+			if(!expand_to_new_stand) {
 
 				for(unsigned int i = 0; i < gridcell.size(); i++) {
 
@@ -1075,7 +1082,7 @@ void stand_dynamics(Gridcell& gridcell) {
 		StandType& st=stlist.getobj();
 		landcovertype lc = st.landcover;
 
-		int expand_to_new_stand = gridcell.expand_to_new_stand[lc];
+		bool expand_to_new_stand = gridcell.expand_to_new_stand[lc];
 
 		if(st.gross_frac_increase || st.gross_frac_decrease) {
 			// first stand created
@@ -1499,6 +1506,10 @@ void simulate_gross_lc_transfer(Gridcell& gridcell, double lc_frac_transfer[][NL
 	gross_lc_change_frac[PASTURE][CROPLAND] = 0.05;
 	gross_lc_change_frac[PASTURE][NATURAL] = 0.05;
 	gross_lc_change_frac[NATURAL][PASTURE] = 0.05;
+	gross_lc_change_frac[FOREST][NATURAL] = 0.05;
+	gross_lc_change_frac[NATURAL][FOREST] = 0.05;
+	gross_lc_change_frac[FOREST][PASTURE] = 0.05;
+	gross_lc_change_frac[PASTURE][FOREST] = 0.05;
 
 	for(int from=0; from<NLANDCOVERTYPES; from++) {
 
@@ -1521,6 +1532,10 @@ void simulate_gross_st_transfer(double* st_frac_transfer) {
 	gross_lc_change_frac[PASTURE][CROPLAND] = 0.05;
 	gross_lc_change_frac[PASTURE][NATURAL] = 0.05;
 	gross_lc_change_frac[NATURAL][PASTURE] = 0.05;
+	gross_lc_change_frac[FOREST][NATURAL] = 0.05;
+	gross_lc_change_frac[NATURAL][FOREST] = 0.05;
+	gross_lc_change_frac[FOREST][PASTURE] = 0.05;
+	gross_lc_change_frac[PASTURE][FOREST] = 0.05;
 
 	for(int from=0; from<nst; from++) {
 
@@ -1841,28 +1856,30 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		dprintf("Fraction error after reduce_stands()\n\n");
 
 	// Create new stands for land cover transitions when natural vegetation remains or when each transition requires a new stand:
-	bool new_stand = false;
-	for(int from=0; from<nst; from++) {
-		for(int to=0; to<nst; to++) {
-			if(st_frac_transfer[index(from, to)] > 0.0) {
-				double new_stand_frac = 0.0;
-				new_stand_frac = transfer_to_new_stand(gridcell, from, to);
-				if(new_stand_frac) {
-					st_frac_transfer[index(from, to)] -= new_stand_frac;
-					if(st_frac_transfer[index(from, to)] < 10e-15)
-						st_frac_transfer[index(from, to)] = 0.0;
-					new_stand = true;
+	if(iftransfer_to_new_stand) {
+		bool new_stand = false;
+		for(int from=0; from<nst; from++) {
+			for(int to=0; to<nst; to++) {
+				if(st_frac_transfer[index(from, to)] > 0.0) {
+					double new_stand_frac = 0.0;
+					new_stand_frac = transfer_to_new_stand(gridcell, from, to);
+					if(new_stand_frac) {
+						st_frac_transfer[index(from, to)] -= new_stand_frac;
+						if(st_frac_transfer[index(from, to)] < 10e-15)
+							st_frac_transfer[index(from, to)] = 0.0;
+						new_stand = true;
+					}
 				}
 			}
 		}
-	}
 
-	if(new_stand) {
-		error = 0;
-		error += check_fractions(gridcell, landcoverfrac_change, lc_frac_transfer, st_frac_transfer);
-		error += check_fractions2(gridcell, st_frac_transfer);
-		if(error)
-			dprintf("Fraction error after transfer_to_new_stand()\n\n");
+		if(new_stand) {
+			error = 0;
+			error += check_fractions(gridcell, landcoverfrac_change, lc_frac_transfer, st_frac_transfer);
+			error += check_fractions2(gridcell, st_frac_transfer);
+			if(error)
+				dprintf("Fraction error after transfer_to_new_stand()\n\n");
+		}
 	}
 
 	// set stand variables frac, frac_change and gross_frac_increase for expanding stands and stand types

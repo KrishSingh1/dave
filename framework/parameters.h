@@ -163,6 +163,9 @@ extern int gross_land_transfer;
 // Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
 extern int transfer_level;
 
+// Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
+extern bool iftransfer_to_new_stand;
+
 // Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
 extern bool ifdyn_phu_limit;
 

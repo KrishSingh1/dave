@@ -66,6 +66,7 @@ bool ifcalcdynamic_phu;
 int gross_land_transfer;
 int transfer_level;
 bool ifdyn_phu_limit;
+bool iftransfer_to_new_stand;
 int nyear_dyn_phu;
 int nyear_spinup;
 
@@ -441,6 +442,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("gross_land_transfer",&gross_land_transfer,0,3,1,CB_NONE,"Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); read stand type transfer matrix input file (3), or not (0)");
 		declareitem("transfer_level",&transfer_level,0,3,1,CB_NONE,"Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level");
 		declareitem("ifdyn_phu_limit",&ifdyn_phu_limit,1,CB_NONE,"Whether to limit dynamic phu calculation to a time period");
+		declareitem("iftransfer_to_new_stand",&iftransfer_to_new_stand,1,CB_NONE,"");
 		declareitem("nyear_dyn_phu",&nyear_dyn_phu,0,1000,1,CB_NONE, "Number of years to calculate dynamic phu");
 		declareitem("readsowingdates",&readsowingdates,1,CB_NONE,"Whether to use sowingdates from input file");
 		declareitem("readharvestdates",&readharvestdates,1,CB_NONE,"Whether to use harvestdates from input file");
@@ -1018,6 +1020,7 @@ void plib_callback(int callback) {
 			if (!itemparsed("gross_land_transfer")) badins("gross_land_transfer");
 			if (!itemparsed("transfer_level")) badins("transfer_level");
 			if (!itemparsed("ifdyn_phu_limit")) badins("ifdyn_phu_limit");
+			if (!itemparsed("iftransfer_to_new_stand")) badins("iftransfer_to_new_stand");
 			if (!itemparsed("nyear_dyn_phu")) badins("nyear_dyn_phu");
 			if (!itemparsed("readsowingdates")) badins("readsowingdates");
 			if (!itemparsed("readharvestdates")) badins("readharvestdates");

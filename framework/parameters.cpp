@@ -726,8 +726,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifnlim")) badins("ifnlim");
 		if (!itemparsed("freenyears")) badins("freenyears");
 
-		if (!itemparsed("textured_soil")) badins("textured_soil");
-
 		if (nyear_spinup <= freenyears) {
 			sendmessage("Error", "freenyears must be smaller than nyear_spinup");
 			plibabort();

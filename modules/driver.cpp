@@ -73,7 +73,7 @@ void soilparameters(Soiltype& soiltype, int soilcode) {
 		// (Eqn 31, Haxeltine & Prentice 1996)
 		// Changed from 4 to 2 (Sitch, Thonicke, pers comm 26/11/01)
 	
-	double data[9][7] = {
+	double data[9][9] = {
 
 		//    0  empirical parameter in percolation equation (k1) (mm/day)
 		//    1  volumetric water holding capacity at field capacity minus vol water
@@ -93,15 +93,15 @@ void soilparameters(Soiltype& soiltype, int soilcode) {
 		//    0      1      2      3      4      5      6          soilcode
 		//  ------------------------------------------------------------------
 
-		{   5.0, 0.110,   0.2, 0.800,   0.4,	0.074,	0.395},    // 1	Coarse		
-		{   4.0, 0.150,   0.2, 0.650,   0.4,	0.184,	0.439},    // 2	Medium		
-		{   3.0, 0.120,   0.2, 0.500,   0.4,	0.274,	0.454},    // 3	Fine
-		{   4.5, 0.130,   0.2, 0.725,   0.4,	0.129,	0.417},    // 4	Medium-coarse
-		{   4.0, 0.115,   0.2, 0.650,   0.4,	0.174,	0.425},    // 5	Fine-coarse
-		{   3.5, 0.135,   0.2, 0.575,   0.4,	0.229,	0.447},    // 6	Fine-medium 
-		{   4.0, 0.127,   0.2, 0.650,   0.4,	0.177,	0.430},    // 7	Fine-medium-coarse
-		{   9.0, 0.300,   0.1, 0.100,   0.1,	0.200,	0.600},    // 8	Organic (values not know for wp)
-		{   0.2, 0.100,   0.2, 0.500,   0.4,	0.100,	0.250}     // 9	Vertisols (values not know for wp)
+		{   5.0, 0.110,   0.2, 0.800,   0.4,	0.074,	0.395,	0.900,	0.050},    // 1	Coarse		
+		{   4.0, 0.150,   0.2, 0.650,   0.4,	0.184,	0.439,	0.400,	0.200},    // 2	Medium		
+		{   3.0, 0.120,   0.2, 0.500,   0.4,	0.274,	0.454,	0.200,	0.600},    // 3	Fine
+		{   4.5, 0.130,   0.2, 0.725,   0.4,	0.129,	0.417,	0.600,	0.150},    // 4	Medium-coarse
+		{   4.0, 0.115,   0.2, 0.650,   0.4,	0.174,	0.425,	0.600,	0.300},    // 5	Fine-coarse
+		{   3.5, 0.135,   0.2, 0.575,   0.4,	0.229,	0.447,	0.100,	0.450},    // 6	Fine-medium 
+		{   4.0, 0.127,   0.2, 0.650,   0.4,	0.177,	0.430,	0.300,	0.350},    // 7	Fine-medium-coarse
+		{   9.0, 0.300,   0.1, 0.100,   0.1,	0.200,	0.600,	0.280,	0.120},    // 8	Organic (values not know for wp), sand and clay are from Parton 2010
+		{   0.2, 0.100,   0.2, 0.500,   0.4,	0.100,	0.250,	0.100,	0.800}     // 9	Vertisols (values not know for wp)
 	};
 
 	if (soilcode<1 || soilcode>9)

@@ -139,6 +139,9 @@ extern bool ifslowharvestpool;
 /// number of spinup years
 extern int nyear_spinup;
 
+/// silt/sand fractions per soiltype
+extern bool textured_soil;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Settings controlling the saving and loading from state files
 

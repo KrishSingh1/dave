@@ -57,6 +57,7 @@ bool lcfrac_fixed;
 bool all_fracs_const;
 bool ifslowharvestpool;
 int nyear_spinup;
+bool textured_soil;
 
 xtring state_path;
 bool restart;
@@ -160,6 +161,7 @@ void initsettings() {
 
 	save_state = false;
 	restart = false;
+	textured_soil = false;
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -386,6 +388,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("run_peatland",&run[PEATLAND],1,CB_NONE,"Whether peatland is to be simulated");
 		declareitem("ifslowharvestpool",&ifslowharvestpool,1,CB_NONE,"If a slow harvested product pool is included in patchpft.");
 		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"Whether static landcover fractions are set in the ins-file (0,1)");
+
+		declareitem("textured_soil",&textured_soil,1,CB_NONE,"Use silt/sand fractions specific to soiltype");
 
 		declareitem("state_path", &state_path, 300, CB_NONE, "State files directory (for restarting from, or saving state files)");
 		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
@@ -721,6 +725,8 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcentury")) badins("ifcentury");
 		if (!itemparsed("ifnlim")) badins("ifnlim");
 		if (!itemparsed("freenyears")) badins("freenyears");
+
+		if (!itemparsed("textured_soil")) badins("textured_soil");
 
 		if (nyear_spinup <= freenyears) {
 			sendmessage("Error", "freenyears must be smaller than nyear_spinup");

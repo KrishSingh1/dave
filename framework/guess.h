@@ -1442,10 +1442,6 @@ public:
 		solvesom_end = SOLVESOM_END;
 		solvesom_begin = SOLVESOM_BEGIN;
 
-		// No input data of sand, clay or silt fractions so using fixed values from Parton et al. (2010)
-		sand_frac = 0.28;
-		clay_frac = 0.12;
-		silt_frac = 0.60;
 	}
 
 	/// Override the default SOM years with 70-80% of the spin-up period length

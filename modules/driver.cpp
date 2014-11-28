@@ -87,6 +87,8 @@ void soilparameters(Soiltype& soiltype, int soilcode) {
 		//    5  wilting point as fraction of depth (calculation method described in 
 		//       Prentice et al 1992)
 		//    6  saturation capacity following Cosby (1984)
+		//    7  sand fraction
+		//    8  clay fraction
 
 		//    0      1      2      3      4      5      6          soilcode
 		//  ------------------------------------------------------------------
@@ -106,6 +108,16 @@ void soilparameters(Soiltype& soiltype, int soilcode) {
 		fail("soilparameters: invalid LPJ soil code (%d)",soilcode);
 
 
+	if (textured_soil) {
+		soiltype.sand_frac = data[soilcode-1][7];
+		soiltype.clay_frac = data[soilcode-1][8];
+	} else {
+		// Using fixed values from Parton et al. (2010)
+		soiltype.sand_frac = 0.28;
+		soiltype.clay_frac = 0.12;
+	}
+
+	soiltype.silt_frac = 1 - soiltype.sand_frac - soiltype.clay_frac;
 	soiltype.perc_base = data[soilcode-1][0];
 	soiltype.perc_exp = PERC_EXP;
 	soiltype.awc[0] = SOILDEPTH_UPPER * data[soilcode-1][1];
@@ -1139,6 +1151,10 @@ void daylengthinsoleet(Climate& climate) {
 // Jury WA, Gardner WR & Gardner WH 1991 Soil Physics 5th ed, John Wiley, NY
 // Lloyd, J & Taylor JA 1994 On the temperature dependence of soil respiration
 //   Functional Ecology 8: 315-323
+// Parton, W. J., Hanson, P. J., Swanston, C., Torn, M., Trumbore, S. E., Riley, W.
+//   & Kelly, R. 2010. ForCent model development and testing using the Enriched
+//   Background Isotope Study experiment. Journal of Geophysical
+//   Research-Biogeosciences, 115.
 // Prentice, IC, Sykes, MT & Cramer W 1993 A simulation model for the transient
 //   effects of climate change on forest landscapes. Ecological Modelling 65:
 //   51-70.

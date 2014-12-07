@@ -695,6 +695,63 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("laimax",&ppft->laimax,0.0,10.0,1,CB_NONE,"");
 		declareitem("forceautumnsowing",&ppft->forceautumnsowing,0,2,1,CB_NONE,"Whether autumn sowing is forced independent of climate");
 
+		declareitem("nlim",&ppft->nlim,1,CB_NONE,"N limited version of pft");
+		declareitem("fertdates",ppft->fertdates,0,365,2,CB_NONE,
+			"Fertilisation dates, relative to sowing");
+		declareitem("fertrate",ppft->fertrate,0.0,1.0,2,CB_NONE,
+			"Fertilisation dates, relative to sowing");
+		declareitem("N_appfert",&ppft->N_appfert,0.0,300.0,1,CB_NONE,
+			"Fertilisation dates, relative to sowing");
+
+		declareitem("T_vn_min",&ppft->T_vn_min,-1000.0,1000.0,1,CB_NONE,
+			"Min temperature for vernalization");
+		declareitem("T_vn_opt",&ppft->T_vn_opt,-1000.0,1000.0,1,CB_NONE,
+			"Opt temperature for vernalization");
+		declareitem("T_vn_max",&ppft->T_vn_max,-1000.0,1000.0,1,CB_NONE,
+			"Max temperature for vernalization");
+		declareitem("T_veg_min",&ppft->T_veg_min,-1000.0,1000.0,1,CB_NONE,
+			"Min temperature for the vegetative phase");
+		declareitem("T_veg_opt",&ppft->T_veg_opt,-1000.0,1000.0,1,CB_NONE,
+			"Opt temperature for the vegetative phase");
+		declareitem("T_veg_max",&ppft->T_veg_max,-1000.0,1000.0,1,CB_NONE,
+			"Max temperature for the vegetative phase");
+		declareitem("T_rep_min",&ppft->T_rep_min,-1000.0,1000.0,1,CB_NONE,
+			"Min temperature for the vegetative phase");
+		declareitem("T_rep_opt",&ppft->T_rep_opt,-1000.0,1000.0,1,CB_NONE,
+			"Opt temperature for the vegetative phase");
+		declareitem("T_rep_max",&ppft->T_rep_max,-1000.0,1000.0,1,CB_NONE,
+			"Max temperature for the vegetative phase");
+		declareitem("photo",ppft->photo,-1000.0,1000.0,3,CB_NONE,
+			"Parameters for photoperiod");
+		declareitem("dev_rate_veg",&ppft->dev_rate_veg,-1000.0,1000.0,1,CB_NONE,
+			"Maximal vegetative develoment rate");
+		declareitem("dev_rate_rep",&ppft->dev_rate_rep,-1000.0,1000.0,1,CB_NONE,
+			"Maximal reproductive develoment rate");
+		declareitem("a1",&ppft->a1,-1000.0,1000.0,1,CB_NONE,
+			"a1 parater for allocation with N stress");
+		declareitem("b1",&ppft->b1,-1000.0,1000.0,1,CB_NONE,
+			"b1 parater for allocation with N stress");
+		declareitem("c1",&ppft->c1,-1000.0,1000.0,1,CB_NONE,
+			"c1 parater for allocation with N stress");
+		declareitem("d1",&ppft->d1,-1000.0,1000.0,1,CB_NONE,
+			"d1 parater for allocation with N stress");
+		declareitem("a2",&ppft->a2,-1000.0,1000.0,1,CB_NONE,
+			"a2 parater for allocation with N stress");
+		declareitem("b2",&ppft->b2,-1000.0,1000.0,1,CB_NONE,
+			"b2 parater for allocation with N stress");
+		declareitem("c2",&ppft->c2,-1000.0,1000.0,1,CB_NONE,
+			"c2 parater for allocation with N stress");
+		declareitem("d2",&ppft->d2,-1000.0,1000.0,1,CB_NONE,
+			"d2 parater for allocation with N stress");
+		declareitem("a3",&ppft->a3,-1000.0,1000.0,1,CB_NONE,
+			"a3 parater for allocation with N stress");
+		declareitem("b3",&ppft->b3,-1000.0,1000.0,1,CB_NONE,
+			"b3 parater for allocation with N stress");
+		declareitem("c3",&ppft->c3,-1000.0,1000.0,1,CB_NONE,
+			"c3 parater for allocation with N stress");
+		declareitem("d3",&ppft->d3,-1000.0,1000.0,1,CB_NONE,
+			"d3 parater for allocation with N stress");
+
 		callwhendone(CB_CHECKPFT);
 		
 		break;
@@ -705,7 +762,7 @@ void plib_declarations(int id,xtring setname) {
 
 			pst = 0;
 
-			// Was this pft already created?
+			// Was this st already created?
 			for (size_t p = 0; p < stlist.nobj; ++p) {
 				if (stlist[p].name == setname) {
 					pst = &stlist[p];
@@ -713,7 +770,7 @@ void plib_declarations(int id,xtring setname) {
 			}
 
 			if (pst == 0) {
-				// Create and initialise a new Pft object and obtain a reference to it
+				// Create and initialise a new st object and obtain a reference to it
 			
 				pst=&stlist.createobj();
 				initst(*pst,setname);
@@ -1089,6 +1146,9 @@ void plib_callback(int callback) {
 		if (!run_landcover)
 			printseparatestands = false;
 
+		if(ifnlim_lc[CROPLAND] && ifintercropgrass == true)
+			dprintf("\nWarning: covercrop grass growth not currently working properly with N limitation on cropland\\n");
+
 		//	delete unused stand types from stlist
 
 		stlist.firstobj();
@@ -1096,12 +1156,12 @@ void plib_callback(int callback) {
 			StandType& st = stlist.getobj();
 			bool include = includest_map[st.name];
 
-			if (st.landcover!=NATURAL) {
+			if (st.landcover != NATURAL) {
 				if (!run_landcover || !run[st.landcover])
 					include = false;
 			}
 			else if (run_landcover && !run[NATURAL]) {
-				if (st.landcover==NATURAL)
+				if (st.landcover == NATURAL)
 					include = false;
 			}
 
@@ -1125,6 +1185,7 @@ void plib_callback(int callback) {
 
 		// first check if natural pft:s are included in other land cover stand types
 		bool include_natural_pfts;
+		bool include_natural_grass_pfts;		
 
 		if(run_landcover && !run[NATURAL]) {
 
@@ -1134,15 +1195,22 @@ void plib_callback(int callback) {
 			while(stlist.isobj) {
 				StandType& st = stlist.getobj();
 
-				if(st.naturalveg) {
-					include_natural_pfts = true;
-					break;
+				if(st.naturalveg || st.naturalgrass) {
+
+					if(st.naturalveg) {
+						include_natural_pfts = true;
+						break;
+					}
+					if(st.naturalgrass)
+						include_natural_grass_pfts = true;
 				}
 				stlist.nextobj();
 			}
 		}
-		else
+		else {
 			include_natural_pfts = true;
+			include_natural_grass_pfts = true;
+		}
 
 		pftlist.firstobj();
 		while (pftlist.isobj) {
@@ -1150,7 +1218,9 @@ void plib_callback(int callback) {
 			bool include = includepft_map[pft.name];
 
 			if(pft.landcover == NATURAL) {
-				if(!include_natural_pfts)
+				if(!include_natural_grass_pfts && pft.lifeform == GRASS)
+					include = false;
+				else if(!include_natural_pfts)
 					include = false;
 			}
 			else {
@@ -1167,6 +1237,50 @@ void plib_callback(int callback) {
 			}
 		}
 
+		// Remove pft:s that do not conform to nlim status
+		pftlist.firstobj();
+		while (pftlist.isobj) {
+			Pft& pft = pftlist.getobj();
+			bool remove = pft.landcover == CROPLAND && !pft.isintercropgrass && (ifnlim && ifnlim_lc[CROPLAND] && !pft.nlim || !(ifnlim && ifnlim_lc[CROPLAND]) && pft.nlim);
+
+			if (remove) {
+				// Remove this PFT from list
+				pftlist.killobj();
+			}
+			else {
+				pftlist.nextobj();
+			}
+		}
+
+		// Remove crop st:s with pft:s that are not found in the pftlist
+		dprintf("\n");
+		stlist.firstobj();
+		while (stlist.isobj) {
+			StandType& st = stlist.getobj();
+
+			bool include = true;
+
+			if(st.landcover == CROPLAND) {
+
+				for(int i=0; i<st.rotation.ncrops; i++) {
+
+					if(pftlist.getpftid(st.management[i].pftname) < 0) {
+						include = false;
+						dprintf("Stand type %d not used; pft %s not in pftlist !\n", st.id, (char*)st.management[i].pftname);;
+					}
+				}
+			}
+
+			if (!include) {
+				// Remove this stand type from list
+				stlist.killobj();
+			}
+			else {
+				stlist.nextobj();
+			}
+		}
+		dprintf("\n");
+
 		// Set ids and npft variable after removing unused pfts	; NB: minimizecftlist may remove more pfts
 		npft = 0;
 		pftlist.firstobj();
@@ -1176,7 +1290,7 @@ void plib_callback(int callback) {
 			pftlist.nextobj();
 		}
 
-		// Set ids and nst variable after removing unused pfts	; 
+		// Set ids and nst variable after removing unused sts
 		nst = 0;
 		memset(nst_lc, 0, sizeof(int) * NLANDCOVERTYPES);
 		stlist.firstobj();
@@ -1185,6 +1299,15 @@ void plib_callback(int callback) {
 			st.id = nst++;
 			nst_lc[st.landcover]++;
 			stlist.nextobj();
+		}
+
+		stlist.firstobj();
+		while (stlist.isobj) {
+			StandType& st = stlist.getobj();
+
+			if(st.intercrop == NATURALGRASS && pftlist[pftlist.getpftid(st.management[0].pftname)].phenology != CROPGREEN)
+				dprintf("Warning: covercrop grass should not be activated in stand types without true crops\n");
+				stlist.nextobj();
 		}
 
 		// Check that stand type exists for all active land covers when run_landcover==true.
@@ -1202,13 +1325,15 @@ void plib_callback(int callback) {
 			ppft = &pftlist.getobj();
 
 			if (ifcalcsla) {
-				// Calculate SLA
-				ppft->initsla();
+				if(!(ppft->phenology == CROPGREEN && run_landcover && ifnlim_lc[CROPLAND]))
+					// Calculate SLA
+					ppft->initsla();
 			}
 
 			if (ifcalccton) {
-				// Calculate leaf C:N ratio minimum
-				ppft->init_cton_min();
+				if(!(ppft->phenology == CROPGREEN && run_landcover && ifnlim_lc[CROPLAND]))
+					// Calculate leaf C:N ratio minimum
+					ppft->init_cton_min();
 			}
 
 			// Calculate C:N ratio limits
@@ -1245,8 +1370,12 @@ void plib_callback(int callback) {
 			if (!itemparsed("gmin")) badins("gmin");
 			if (!itemparsed("emax")) badins("emax");
 			if (!itemparsed("respcoeff")) badins("respcoeff");
-			if (!itemparsed("sla") && !ifcalcsla) badins("sla");
-			if (!itemparsed("cton_leaf_min") && !ifcalccton) badins("cton_leaf_min");
+
+			if (!ifcalcsla || (ppft->phenology == CROPGREEN && run_landcover && ifnlim_lc[CROPLAND] && ppft->nlim))
+				if (!itemparsed("sla")) badins("sla");
+			if (!ifcalccton || (ppft->phenology == CROPGREEN && run_landcover && ifnlim_lc[CROPLAND] && ppft->nlim))
+				if (!itemparsed("cton_leaf_min")) badins("cton_leaf_min");
+
 
 			if (!itemparsed("cton_root")) badins("cton_root");
 			if (!itemparsed("nuptoroot")) badins("nuptoroot");
@@ -1302,11 +1431,44 @@ void plib_callback(int callback) {
 							if (!itemparsed("firstsowdatesh_prec")) badins("firstsowdatesh_prec");	// only used in Crop_sowing_date_prec()
 						}
 
+						if(ifnlim_lc[CROPLAND]) {
+							if(ppft->nlim) {
+								if (!itemparsed("readNfert")) badins("readNfert");
+								if (!itemparsed("nlim")) badins("nlim");
+								if (!itemparsed("fertrate")) badins("fertrate");
+								if (!itemparsed("N_appfert")) badins("N_appfert");
+								if (!itemparsed("T_vn_min")) badins("T_vn_min");
+								if (!itemparsed("T_vn_opt")) badins("T_vn_opt");
+								if (!itemparsed("T_vn_max")) badins("T_vn_max");
+								if (!itemparsed("T_veg_min")) badins("T_veg_min");
+								if (!itemparsed("T_veg_opt")) badins("T_veg_opt");
+								if (!itemparsed("T_veg_max")) badins("T_veg_max");
+								if (!itemparsed("T_rep_min")) badins("T_rep_min");
+								if (!itemparsed("T_rep_opt")) badins("T_rep_opt");
+								if (!itemparsed("T_rep_max")) badins("T_rep_max");
+								if (!itemparsed("photo")) badins("photo");
+								if (!itemparsed("dev_rate_veg")) badins("dev_rate_veg");
+								if (!itemparsed("dev_rate_rep")) badins("dev_rate_rep");
+								if (!itemparsed("a1")) badins("a1");
+								if (!itemparsed("b1")) badins("b1");
+								if (!itemparsed("c1")) badins("c1");
+								if (!itemparsed("d1")) badins("d1");
+								if (!itemparsed("a2")) badins("a2");
+								if (!itemparsed("b2")) badins("b2");
+								if (!itemparsed("c2")) badins("c2");
+								if (!itemparsed("d2")) badins("d2");
+								if (!itemparsed("a3")) badins("a3");
+								if (!itemparsed("b3")) badins("b3");
+								if (!itemparsed("c3")) badins("c3");
+								if (!itemparsed("d3")) badins("d3");
+							}
+						}
+
 #if defined NEWSOWINGDATE
-							ppft->ifsdcalc=true;
-							ppft->ifsdtemp=true;
-							ppft->ifsdspring=true;
-							ppft->ifsdprec=true;
+						ppft->ifsdcalc=true;
+						ppft->ifsdtemp=true;
+						ppft->ifsdspring=true;
+						ppft->ifsdprec=true;
 #endif
 					}
 					else if (ppft->phenology==ANY) {
@@ -1361,7 +1523,7 @@ void plib_callback(int callback) {
 					            "Value required for leaflong when ifcalcsla enabled");
 					plibabort();
 				}
-				if (itemparsed("sla"))
+				if (itemparsed("sla") && !(ppft->phenology == CROPGREEN && ppft->nlim == true))
 					sendmessage("Warning",
 					            "Specified sla value not used when ifcalcsla enabled");
 			}
@@ -1375,7 +1537,7 @@ void plib_callback(int callback) {
 					            "Value required for leaflong when ifcalccton enabled");
 					plibabort();
 				}
-				if (itemparsed("cton_leaf_min"))
+				if (itemparsed("cton_leaf_min") && !(ppft->phenology == CROPGREEN && ppft->nlim == true))
 					sendmessage("Warning",
 					            "Specified cton_leaf_min value not used when ifcalccton enabled");
 			}

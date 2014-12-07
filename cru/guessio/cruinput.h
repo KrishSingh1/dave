@@ -59,6 +59,8 @@ public:
 	/// See base class for documentation about this function's responsibilities
 	void getNfert(Gridcell& gridcell);
 
+	bool getsoil(Gridcell& gridcell, const int soilmap_index);
+
 	int getfirsthistyear();	
 	
 	// Constants associated with historical climate data set

@@ -54,6 +54,9 @@ inline double mean(double x, double y) {
 /// Calculates variation coefficient of values in an array
 double variation_coefficient(double data[], int n);
 
+/// Calculates where on a sigmoid function defined by parameters a..d a given x is 
+double richards_curve(double a, double b, double c, double d, double x);
+
 inline void regress(double* x, double* y, int n, double& a, double& b) {
 
 	// Performs a linear regression of array y on array x (n values)
@@ -121,9 +124,7 @@ public:
 	/// Calculates arithmetic mean of the stored values
 	T mean() const {
 		const size_t nvalues = size();
-
 		assert(nvalues != 0);
-
 		return sum()/nvalues;
 	}
 
@@ -134,6 +135,62 @@ public:
 		const size_t nvalues = size();
 		for (size_t i = 0; i < nvalues; ++i) {
 			result += values[i];
+		}
+		return result;
+	}
+
+	/// Returnes the latest of the stored values
+	T lastadd() const {	//latest
+		return (*this)[size()-1];
+	}
+
+	/// Returns the maximum of the stored values
+	T max() const {
+		T result = -999999.0;
+
+		const size_t nvalues = size();
+		for (size_t i = 0; i < nvalues; ++i) {
+			if (values[i]>result) {
+				result = values[i];
+			}
+		}
+		return result;
+	}
+
+	/// Returns the minimum of the stored values
+	T min() const {
+		T result = 999999.0;
+
+		const size_t nvalues = size();
+		for (size_t i = 0; i < nvalues; ++i) {
+			if (values[i]<result) {
+				result = values[i];
+			}
+		}
+		return result;
+	}
+
+	/// Calculates arithmetic mean of the stored values for a period from current position and backwards nsteps
+	T periodicmean(const size_t nsteps) const {
+
+		assert(nsteps != 0);
+		if (nsteps > size()){
+			return mean();
+		} else {
+			return periodicsum(nsteps)/nsteps;
+		}
+	}
+
+	/// Sum of stored values for a period from current position and backwards nsteps
+	T periodicsum(const size_t nsteps) const {
+		T result = 0.0;
+
+		if (nsteps >= size()){
+			return sum();
+		} else {
+			for (size_t i = size()-1; i >=size()-nsteps; --i) {
+				result += (*this)[i];
+			}
 		}
 
 		return result;

@@ -412,6 +412,7 @@ class MassBalance : public Serializable  {
 	int start_year;
 	double ccont;
 	double ccont_zero;
+	double ccont_zero_scaled;
 	double cflux;
 	double cflux_zero;
 
@@ -441,6 +442,8 @@ public:
 
 	void init(Gridcell& gridcell);
 	void check(Gridcell& gridcell);
+	void init_patch(Patch& patch);
+	bool check_patch(Patch& patch, bool check_harvest = false);
 	void check_year(Gridcell& gridcell);
 	void check_period();
 
@@ -583,6 +586,12 @@ public:
 	/// daily temperatures for the last 31 days (deg C)
 	Historic<double, 31> dtemp_31;
 
+	/// daily precipitation for the last 31 days (deg C)
+	Historic<double, 31> dprec_31;
+
+	/// daily eet for the last 31 days (deg C)
+	Historic<double, 31> deet_31;
+
 	/// minimum monthly temperatures for the last 20 years (deg C)
 	double mtemp_min_20[20];
 
@@ -599,11 +608,6 @@ public:
 	double andep;
 	/// daily nitrogen deposition (kgN/m2)
 	double dndep;
-
-	/// annual nitrogen fertilization (kgN/m2/year)
-	double anfert;
-	/// daily nitrogen fertilization (kgN/m2/year)
-	double dnfert;
 
 	// Saved parameters used by function daylengthinsoleet
 
@@ -687,6 +691,11 @@ public:
 	double mprec_petmin20;
 	/// 20-year running average of maximum monthly precipitation to PET ratios
 	double mprec_petmax20;
+
+	//Test with the historic class instead
+	Historic<double, 20> hmtemp_20[12];
+	Historic<double, 20> hmprec_20[12];
+	Historic<double, 20> hmeet_20[12];
 
 	/// seasonality type (SEASONALITY_NO, SEASONALITY_PREC, SEASONALITY_PRECTEMP, SEASONALITY_TEMP, SEASONALITY_TEMPPREC)
 	seasonality_type seasonality;
@@ -902,6 +911,12 @@ private:
 	/// Stores one flux value per month and flux type
 	/** For the fluxes stored per pft for annual values */
 	double monthly_fluxes_pft[12][NPERPFTFLUXTYPES];
+
+	/// Stores one flux value per day and flux type
+	double daily_fluxes_patch[365][NPERPATCHFLUXTYPES];
+
+	/// Stores one flux value per day and flux type
+	double daily_fluxes_pft[365][NPERPFTFLUXTYPES];
 };
 
 /// Crop management type
@@ -1189,6 +1204,39 @@ public:
 	/// interception coefficient (unitless)
 	double intc;
 
+	//the amount of N that is applied (kg N m-2)
+	double N_appfert;
+	// 0 - 1 how much of the fertiliser is applied the first date, default 1.
+	double fertrate[2];
+	// dates relative to sowing date
+	int fertdates[2];
+	double fert_stages[2];
+	bool fertilised[2];
+
+	/// development stage
+	double dev_stage;
+
+	double T_vn_min;
+	double T_vn_opt;
+	double T_vn_max;
+
+	double T_veg_min;
+	double T_veg_opt;
+	double T_veg_max;
+
+	double T_rep_min;
+	double T_rep_opt;
+	double T_rep_max;
+
+	double photo[3];
+
+	double dev_rate_veg;
+	double dev_rate_rep;
+
+	double a1, b1, c1, d1, a2, b2, c2, d2, a3, b3, c3, d3;
+	double cton_stem_avr;
+	double cton_stem_max;
+
 	/// Drought tolerance level (0 = very -> 1 = not at all) (unitless)
 	/** Used to implement drought-limited establishment */
 	double drought_tolerance;
@@ -1303,6 +1351,8 @@ public:
 	int forceautumnsowing;	//0 = NOFORCING,  1 = AUTUMNSOWING, 2 = SPRINGSOWING
 	/// whether N fertilization is read from input file
 	bool readNfert;
+	/// N limited version of pft
+	bool nlim;
 
 	// MEMBER FUNCTIONS
 
@@ -1351,38 +1401,86 @@ public:
 		readharvestdate=false;
 		forceautumnsowing = 0;
 		readNfert=false;
+		nlim = false;
+
+		fertrate[0] = 0.0;
+		fertrate[1] = 1.0;
+		fertdates[0] = 0;
+		fertdates[1] = 30;
+
+		fert_stages[0] = 0.5;
+		fert_stages[1] = 0.9;
+		fertilised[0] = false;
+		fertilised[1] = false;
+
+//		N_appfert = 0.01;
+		N_appfert = 0.0;	//ML
+		dev_stage = 0.0;	//ML
+
+		T_vn_min=0.0;
+		T_vn_opt=0.0;
+		T_vn_max=0.0;
+		T_veg_min=0.0;
+		T_veg_opt=0.0;
+		T_veg_max=0.0;
+		T_rep_min=0.0;
+		T_rep_opt=0.0;
+		T_rep_max=0.0;
+
+		a1=0.0;
+		b1=0.0; 
+		c1=0.0;
+		d1=0.0;
+		a2=0.0;
+		b2=0.0;
+		c2=0.0;
+		d2=0.0;
+		a3=0.0;
+		b3=0.0;
+		c3=0.0;
+		d3=0.0;
+
+		for (int i=0; i<3; i++)	
+			photo[i]=0.0;
 	}
 
 	/// Calculates SLA given leaf longevity
 	void initsla() {
 
-		// Reich et al 1992, Table 1 (includes conversion x2.0 from m2/kg_dry_weight to
-		// m2/kgC)
+		// SLA has to be supplied in the insfile for crops with N limitation
+		if (phenology != CROPGREEN || !ifnlim_lc[CROPLAND]) {
 
-		if (leafphysiognomy == BROADLEAF) {
-			sla = 0.2 * pow(10.0, 2.41 - 0.38 * log10(12.0 * leaflong));
-		}
-		else if (leafphysiognomy == NEEDLELEAF) {
-			sla = 0.2 * pow(10.0, 2.29 - 0.4 * log10(12.0 * leaflong));
+			// Reich et al 1992, Table 1 (includes conversion x2.0 from m2/kg_dry_weight to
+			// m2/kgC)
+
+			if (leafphysiognomy == BROADLEAF) {
+				sla = 0.2 * pow(10.0, 2.41 - 0.38 * log10(12.0 * leaflong));
+			}
+			else if (leafphysiognomy == NEEDLELEAF) {
+				sla = 0.2 * pow(10.0, 2.29 - 0.4 * log10(12.0 * leaflong));
+			}
 		}
 	}
 
 	/// Calculates minimum leaf C:N ratio given leaf longevity
 	void init_cton_min() {
 
-		// Reich et al 1992, Table 1 (includes conversion x500 from mg/g_dry_weight to
-		// kgN/kgC)
+		// cton_leaf_min has to be supplied in the insfile for crops with N limitation
+		if (phenology != CROPGREEN || !ifnlim_lc[CROPLAND]) {
+			// Reich et al 1992, Table 1 (includes conversion x500 from mg/g_dry_weight to
+			// kgN/kgC)
 
-		if (leafphysiognomy == BROADLEAF)
-			cton_leaf_min = 500.0 / pow(10.0, 1.75 - 0.33 * log10(12.0 * leaflong));
-		else if (leafphysiognomy == NEEDLELEAF)
-			cton_leaf_min = 500.0 / pow(10.0, 1.52 - 0.26 * log10(12.0 * leaflong));
+			if (leafphysiognomy == BROADLEAF)
+				cton_leaf_min = 500.0 / pow(10.0, 1.75 - 0.33 * log10(12.0 * leaflong));
+			else if (leafphysiognomy == NEEDLELEAF)
+				cton_leaf_min = 500.0 / pow(10.0, 1.52 - 0.26 * log10(12.0 * leaflong));
+		}
 	}
 
 	void init_cton_limits() {
 
 		// Fraction between min and max C:N ratio White et al. 2000
-		double frac_mintomax = 2.78;
+		double frac_mintomax = (phenology == CROPGREEN && ifnlim_lc[CROPLAND]) ? 5.0 : 2.78;	// Use value also without nlim ?
 
 		// Fraction between leaf and root C:N ratio
 		double frac_leaftoroot = 1.16; // Friend et al. 1997
@@ -1407,6 +1505,9 @@ public:
 
 		// Maximum sap C:N ratio
 		cton_sap_max  = cton_leaf_min * frac_leaftosap * frac_mintomax;
+
+		cton_stem_max = 1.0/(2.0*0.0034); //Maize params
+		cton_stem_avr = 1.0/(2.0*0.0068);
 
 		if (lifeform == GRASS)
 			respcoeff /= 2.0 * cton_root / (cton_root_avr + cton_leaf_min * frac_leaftoroot);
@@ -1526,16 +1627,8 @@ public:
 	/// year's harvestable organ C biomass (= ycmass_plant)
 	double cmass_ho;
 	/// above-ground pool C biomass (when calculating daily cmass_leaf from lai_crop) (= ycmass_agpool)
-	double cmass_agpool;	
-	/// nitrogen content of harvestable organs
-	double nmass_ho;
-	/// nitrogen content of above-ground pool
-	double nmass_agpool;
-
-	/// nitrogen content of harvestable organs saved on first day of land use change year
-	double nmass_ho_luc;
-	/// nitrogen content of above-ground pool saved on first day of land use change year
-	double nmass_agpool_luc;
+	double cmass_agpool;
+	double cmass_stem;
 
 	/// year's maximum value of leaf C biomass
 	double cmass_leaf_max;
@@ -1552,7 +1645,18 @@ public:
 	double dcmass_ho;
 	/// today's increase of above-ground pool C biomass
 	double dcmass_agpool;
+	double dcmass_stem;
 
+	/// today's increase of leaf N biomass
+	double dnmass_leaf;
+	/// today's increase of root N biomass
+	double dnmass_root;
+	/// today's increase of harvestable organ N biomass
+	double dnmass_ho;
+	/// today's increase of above-ground pool N biomass
+	double dnmass_agpool;
+
+	///CARBON
 	/// daily updated whole plant C biomass, reset at harvest day
 	double grs_cmass_plant;
 	/// daily updated leaf C biomass, reset at harvest day
@@ -1563,6 +1667,8 @@ public:
 	double grs_cmass_ho;
 	/// daily updated above-ground pool C biomass, reset at harvest day
 	double grs_cmass_agpool;
+	double grs_cmass_dead_leaf;
+	double grs_cmass_stem;
 
 	/// carbon content of harvestable organs saved on first day of land use change year
 	double grs_cmass_leaf_luc;
@@ -1572,6 +1678,8 @@ public:
 	double grs_cmass_ho_luc;
 	/// carbon content of above-ground pool saved on first day of land use change year
 	double grs_cmass_agpool_luc;
+	double grs_cmass_dead_leaf_luc;
+	double grs_cmass_stem_luc;
 
 	/// daily updated whole plant C biomass, reset at day 0
 	double ycmass_plant;
@@ -1583,6 +1691,8 @@ public:
 	double ycmass_ho;
 	/// daily updated above-ground pool C biomass, reset at day 0
 	double ycmass_agpool;
+	double ycmass_dead_leaf;
+	double ycmass_stem;
 
 	/// year's whole plant C biomass at time of harvest (cumulative if several harvest events)
 	double harv_cmass_plant;
@@ -1594,12 +1704,47 @@ public:
 	double harv_cmass_ho;
 	/// year's above-ground pool C biomass at time of harvest (cumulative if several harvest events)
 	double harv_cmass_agpool;
+	double harv_cmass_stem;
+
+	///NITROGEN
+	/// nitrogen content of harvestable organs
+	double nmass_ho;
+	/// nitrogen content of above-ground pool
+	double nmass_agpool;
+	double nmass_dead_leaf;
+
+	/// nitrogen content of harvestable organs saved on first day of land use change year
+	double nmass_ho_luc;
+	/// nitrogen content of above-ground pool saved on first day of land use change year
+	double nmass_agpool_luc;
+	double nmass_dead_leaf_luc;
+
+	/// daily updated leaf N biomass, reset at day 0
+	double ynmass_leaf;
+	/// daily updated root N biomass, reset at day 0
+	double ynmass_root;
+	/// daily updated harvestable organ N biomass, reset at day 0
+	double ynmass_ho;
+	/// daily updated above-ground pool N biomass, reset at day 0
+	double ynmass_agpool;
+	double ynmass_dead_leaf;
+
+	/// year's leaf N biomass at time of harvest (cumulative if several harvest events)
+	double harv_nmass_leaf;
+	/// year's root N biomass at time of harvest (cumulative if several harvest events)
+	double harv_nmass_root;
+	/// year's harvestable organ N biomass at time of harvest (cumulative if several harvest events)
+	double harv_nmass_ho;
+	/// year's above-ground pool N biomass at time of harvest (cumulative if several harvest events)
+	double harv_nmass_agpool;
 
 	/// dry weight crop yield harvested this year (cumulative if several harvest events), based on harv_cmass_xx
 	double harv_yield;
 
 	/// harvestable organ C biomass at the last two harvest events this year
 	double cmass_ho_harvest[2];
+	/// harvestable organ N biomass at the last two harvest events this year
+	double nmass_ho_harvest[2];
 	/// dry weight crop yield at the last two harvest events this year
 	double yield_harvest[2];	
 
@@ -1620,8 +1765,7 @@ public:
 	{
 		cmass_ho=0.0;
 		cmass_agpool=0.0;
-		nmass_ho=0.0;
-		nmass_agpool=0.0;
+		cmass_stem = 0.0;
 		cmass_leaf_max=0.0;
 		cmass_leaf_sen=0.0;
 		yield=0.0;
@@ -1637,23 +1781,52 @@ public:
 		grs_cmass_plant=0.0;
 		grs_cmass_ho=0.0;
 		grs_cmass_agpool=0.0;
+		grs_cmass_stem = 0.0;
+		grs_cmass_dead_leaf = 0.0;
 		grs_cmass_leaf_luc=0.0;
 		grs_cmass_root_luc=0.0;
 		grs_cmass_ho_luc=0.0;
 		grs_cmass_agpool_luc=0.0;
+		grs_cmass_dead_leaf_luc = 0.0;
+		grs_cmass_stem_luc = 0.0;
+		nmass_ho=0.0;
+		nmass_agpool=0.0;
+		nmass_dead_leaf = 0.0;
 		ycmass_leaf=0.0;
 		ycmass_root=0.0;
 		ycmass_plant=0.0;
 		ycmass_ho=0.0;
 		ycmass_agpool=0.0;
+		ycmass_stem = 0.0;
+		ycmass_dead_leaf = 0.0;
 		harv_cmass_leaf=0.0;
 		harv_cmass_root=0.0;
 		harv_cmass_root=0.0;
 		harv_cmass_ho=0.0;
 		harv_yield=0.0;
 		harv_cmass_agpool=0.0;
+		harv_cmass_stem = 0.0;
 		cmass_ho_harvest[0]=0.0;
 		cmass_ho_harvest[1]=0.0;
+
+		//Nitrogen
+		dnmass_leaf=0.0;
+		dnmass_root=0.0;
+		dnmass_ho=0.0;
+		dnmass_agpool=0.0;
+		ynmass_leaf=0.0;
+		ynmass_root=0.0;
+		ynmass_ho=0.0;
+		ynmass_agpool=0.0;
+		ynmass_dead_leaf = 0.0;
+		harv_nmass_leaf=0.0;
+		harv_nmass_root=0.0;
+		harv_nmass_root=0.0;
+		harv_nmass_ho=0.0;
+		harv_nmass_agpool=0.0;
+		nmass_dead_leaf_luc = 0.0;
+		nmass_ho_harvest[0]=0.0;
+		nmass_ho_harvest[1]=0.0;
 
 		isprimarycrop=false;
 		isprimarycovegetation=false;
@@ -1698,13 +1871,13 @@ public:
 	double cmass_root_post_turnover;
 	int last_turnover_day;
 
-	/// leaf N biomass on modelled area basis (kgC/m2)
+	/// leaf N biomass on modelled area basis (kgN/m2)
 	double nmass_leaf;
-	/// root N biomass on modelled area basis (kgC/m2)	
+	/// root N biomass on modelled area basis (kgN/m2)	
 	double nmass_root;
-	/// sap N biomass on modelled area basis (kgC/m2)	
+	/// sap N biomass on modelled area basis (kgN/m2)	
 	double nmass_sap;
-	/// heart N biomass on modelled area basis (kgC/m2)
+	/// heart N biomass on modelled area basis (kgN/m2)
 	double nmass_heart;	
 
 	/// leaf N biomass on modelled area basis saved on first day of land use change year
@@ -1843,6 +2016,8 @@ public:
 	double sapndemand;
 	/// daily labile nitrogen demand based on npp
 	double storendemand;
+	/// daily harvestable organ nitrogen demand
+	double hondemand;
 	/// leaf fraction of total nitrogen demand
 	double leaffndemand;
 	/// root fraction of total nitrogen demand
@@ -1855,7 +2030,12 @@ public:
 	double leafndemand_store;
 	/// daily root nitrogen demand over possible uptake (storage demand)
 	double rootndemand_store;
-		
+	
+	double daily_cmass_leafloss;
+	double daily_nmass_leafloss;
+	double daily_cmass_rootloss;
+	double daily_nmass_rootloss;
+
 	/// Number of days with non-negligible phenology this month
 	int nday_leafon;	
 	// Whether this individual is truly alive. 
@@ -1993,11 +2173,16 @@ public:
 	 */
 	double lai_indiv_today() const;
 
+	/// Gets the Nitrigen limited LAI
+	double lai_nitrogen_today() const;
+
 	/// Gets the individual's daily fpc value
 	double fpc_today() const;
 
 	// Gets the growingseason status for crop individual. Non-crop individuals always return true.
 	bool growingseason() const;
+
+	double ndemand_storage(double cton_leaf_opt);
 };
 
 
@@ -2086,6 +2271,8 @@ public:
 	/// fraction of soil that is silt plus clay	
 	double silt_frac;
 
+	double organic_frac;
+
 	// MEMBER FUNCTIONS
 
 public:
@@ -2100,6 +2287,7 @@ public:
 		sand_frac = 0.28;
 		clay_frac = 0.12;
 		silt_frac = 0.60;
+		organic_frac = 0.02;
 	}
 
 	/// Override the default SOM years with 70-80% of the spin-up period length
@@ -2511,6 +2699,22 @@ public:
 	/// whether inside intercrop crass growing period (main crop pft variable)
 	bool intercropseason;
 
+	double vdsum_alloc;
+	double vd;
+
+	double f_alloc_root;
+	double f_alloc_leaf;
+	double f_alloc_horg;
+	double f_alloc_stem;
+	double dev_stage; //development stage, w&e
+
+	double sen_day;
+	double sen_nr_days;
+	double sen_start;
+	double sen_day_old;
+
+	bool fertilised[3];
+
 	cropphen_struct()
 	{
 		sdate=-1;
@@ -2567,6 +2771,22 @@ public:
 //			fhi_harvest[j]=-1.0;		
 //			fphu_harvest[j]=-1.0;		
 		}
+
+		vdsum_alloc=0.0;
+		vd = 0.0;
+		f_alloc_root=0.0;
+		f_alloc_leaf=0.0;
+		f_alloc_horg=0.0;
+		f_alloc_stem=0.0;
+		dev_stage = 0.0;
+
+		sen_day=0.0;
+		sen_day_old=0.0;
+		sen_nr_days=0.0;
+		sen_start=0.0;
+		fertilised[0] = false;
+		fertilised[1] = false;
+		fertilised[2] = false;
 	}
 
 	void serialize(ArchiveStream& arch);
@@ -2612,10 +2832,14 @@ public:
 	double litter_leaf;
 	/// fine root-derived litter for PFT on modelled area basis (kgC/m2)
 	double litter_root;
-	/// sapwood-derived litter for PFT on modelled area basis (kgC/m2)
+	/// remaining sapwood-derived litter for PFT on modelled area basis (kgC/m2)
 	double litter_sap;
-	/// heartwood-derived litter for PFT on modelled area basis (kgC/m2)
+	/// year's sapwood-derived litter for PFT on modelled area basis (kgC/m2)
+	double litter_sap_year;
+	/// remaining heartwood-derived litter for PFT on modelled area basis (kgC/m2)
 	double litter_heart;
+	/// year's heartwood-derived litter for PFT on modelled area basis (kgC/m2)
+	double litter_heart_year;
 	/// litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
 	double litter_repr;
 
@@ -2623,10 +2847,14 @@ public:
 	double nmass_litter_leaf;
 	/// root-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_root;
-	/// sapwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
+	/// remaining sapwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_sap;
-	/// heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
+	/// year's sapwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
+	double nmass_litter_sap_year;
+	/// remaining heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_heart;
+	/// year's heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
+	double nmass_litter_heart_year;
 
 	/// non-FPC-weighted canopy conductance value for PFT under water-stress conditions (mm/s)
 	double gcbase;
@@ -2668,13 +2896,17 @@ public:
 		litter_leaf = 0.0;
 		litter_root = 0.0;
 		litter_sap   = 0.0;
+		litter_sap_year = 0.0;
 		litter_heart = 0.0;
+		litter_heart_year = 0.0;
 		litter_repr = 0.0;
 
 		nmass_litter_leaf  = 0.0;
 		nmass_litter_root  = 0.0;
 		nmass_litter_sap   = 0.0;
+		nmass_litter_sap_year   = 0.0;
 		nmass_litter_heart = 0.0;
+		nmass_litter_heart_year = 0.0;
 
 		wscal = 1.0;
 		wscal_mean = 1.0;
@@ -2816,6 +3048,11 @@ public:
 	/// daily nitrogen demand
 	double ndemand;
 
+	/// annual nitrogen fertilization (kgN/m2/year)
+	double anfert;
+	/// daily nitrogen fertilization (kgN/m2/year)
+	double dnfert;
+
 	/// daily value of irrigation water (mm), set in irrigation(), derived from water_deficit_d
 	double irrigation_d;
 	/// yearly sum of irrigation water (mm)
@@ -2823,6 +3060,9 @@ public:
 
 	/// whether litter is to be sent to the soil today
 	bool is_litter_day;
+
+	int nharv;
+	bool isharvestday;
 
 	// MEMBER FUNCTIONS
 
@@ -2844,6 +3084,9 @@ public:
 
 		fireprob = 0.0;
 		ndemand = 0.0;
+		dnfert = 0.0;
+		anfert = 0.0;
+		nharv = 0;
 	}
 
 	void serialize(ArchiveStream& arch);
@@ -2861,8 +3104,8 @@ public:
 	/// Returns whether we should model disturbances in this patch
 	bool has_disturbances() const;
 
-	double ccont(double scale_indiv = 1.0);
-	double ncont(double scale_indiv = 1.0);
+	double ccont(double scale_indiv = 1.0, bool luc = false);
+	double ncont(double scale_indiv = 1.0, bool luc = false);
 	double cflux();
 	double nflux();
 };

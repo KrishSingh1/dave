@@ -121,7 +121,7 @@ int framework(const CommandLineArguments& args) {
 		}
 
 		MassBalance balance(nyear_spinup);
-		
+
 		// Call input/output to obtain climate, insolation and CO2 for this
 		// day of the simulation. Function getclimate returns false if last year
 		// has already been simulated for this grid cell
@@ -169,6 +169,7 @@ int framework(const CommandLineArguments& args) {
 					dailyaccounting_patch(patch);
 
 					if(stand.landcover == CROPLAND) {
+						crop_nfert(patch);
 						// Calculate crop sowing dates
 						crop_sowing_patch(patch);
 						// Crop phenology
@@ -188,9 +189,8 @@ int framework(const CommandLineArguments& args) {
 					irrigation(patch);
 					// Soil water accounting, snow pack accounting
 					soilwater(patch, gridcell.climate);
-					// Daily crop C allocation
-					if (stand.landcover == CROPLAND)
-						crop_growth_daily(patch);
+					// Daily C allocation (cropland)
+					growth_daily(patch);
 					// Soil organic matter and litter dynamics
 					som_dynamics(patch);
 

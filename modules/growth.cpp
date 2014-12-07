@@ -1252,6 +1252,8 @@ void scale_indiv(Individual& indiv, bool scale_grsC)
 				indiv.cropindiv->grs_cmass_root -= indiv.cropindiv->grs_cmass_root_luc * (1.0 - scale);
 				indiv.cropindiv->grs_cmass_ho -= indiv.cropindiv->grs_cmass_ho_luc * (1.0 - scale);
 				indiv.cropindiv->grs_cmass_agpool -= indiv.cropindiv->grs_cmass_agpool_luc * (1.0 - scale);
+				indiv.cropindiv->grs_cmass_dead_leaf -= indiv.cropindiv->grs_cmass_dead_leaf_luc * (1.0 - scale);
+				indiv.cropindiv->grs_cmass_stem -= indiv.cropindiv->grs_cmass_stem_luc * (1.0 - scale);
 
 				indiv.check_C_mass();
 			}
@@ -1261,6 +1263,8 @@ void scale_indiv(Individual& indiv, bool scale_grsC)
 				indiv.cropindiv->grs_cmass_ho *= scale;
 				indiv.cropindiv->grs_cmass_agpool *= scale;
 				indiv.cropindiv->grs_cmass_plant *= scale;	//grs_cmass_plant not used
+				indiv.cropindiv->grs_cmass_dead_leaf *= scale;
+				indiv.cropindiv->grs_cmass_stem *= scale;
 			}
 		}
 	}
@@ -1287,6 +1291,7 @@ void scale_indiv(Individual& indiv, bool scale_grsC)
 	if(indiv.pft.landcover == CROPLAND) {
 		indiv.cropindiv->nmass_agpool = max(0.0, indiv.cropindiv->nmass_agpool - indiv.cropindiv->nmass_agpool_luc * (1.0 - scale));
 		indiv.cropindiv->nmass_ho = max(0.0, indiv.cropindiv->nmass_ho - indiv.cropindiv->nmass_ho_luc * (1.0 - scale));
+		indiv.cropindiv->nmass_dead_leaf = max(0.0, indiv.cropindiv->nmass_ho - indiv.cropindiv->nmass_dead_leaf_luc * (1.0 - scale));
 	}
 
 	if(indiv.nstore_labile > indiv.nstore_labile_luc * (1.0 - scale))
@@ -1331,6 +1336,7 @@ void growth(Stand& stand, Patch& patch) {
 	// increment in harvestable organ C biomass following allocation, on individual basis (kgC)
 	double cmass_ho_inc = 0.0;
 	double cmass_agpool_inc = 0.0;
+	double cmass_stem_inc = 0.0;
 	// increment in leaf litter following allocation, on individual basis (kgC)
 	double litter_leaf_inc = 0.0;
 	// increment in root litter following allocation, on individual basis (kgC)
@@ -1615,7 +1621,7 @@ void growth(Stand& stand, Patch& patch) {
 					//True crops do not use bminc.or cmass_leaf etc.
 					if(indiv.istruecrop_or_intercropgrass()) {
 						// transfer crop cmass increase values to common variables
-						growth_crop_year(indiv, cmass_leaf_inc, cmass_root_inc, cmass_ho_inc, cmass_agpool_inc);
+						growth_crop_year(indiv, cmass_leaf_inc, cmass_root_inc, cmass_ho_inc, cmass_agpool_inc, cmass_stem_inc);
 
 						exceeds_cmass = 0.0;	//exceeds_cmass not used for true crops
 					}
@@ -1645,6 +1651,7 @@ void growth(Stand& stand, Patch& patch) {
 					if(indiv.pft.landcover == CROPLAND)	{
 						indiv.cropindiv->cmass_ho += cmass_ho_inc;
 						indiv.cropindiv->cmass_agpool += cmass_agpool_inc;
+						indiv.cropindiv->cmass_stem += cmass_stem_inc;
 					}
 
 					if(indiv.pft.phenology != CROPGREEN && !(indiv.has_daily_turnover() && indiv.continous_grass())) {
@@ -1678,7 +1685,7 @@ void growth(Stand& stand, Patch& patch) {
 					// Kill individual and transfer biomass to litter if either biomass
 					// compartment negative
 
-					if (indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS) {
+					if ((indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS) && indiv.pft.landcover != CROPLAND) {
 
 						indiv.kill();
 
@@ -1742,8 +1749,8 @@ void growth(Stand& stand, Patch& patch) {
 
 				// Move long-term nitrogen storage pool to labile storage pool for usage next year
 				if(!indiv.has_daily_turnover()) {
-				indiv.nstore_labile = indiv.nstore_longterm;
-				indiv.nstore_longterm = 0.0;	
+					indiv.nstore_labile = indiv.nstore_longterm;
+					indiv.nstore_longterm = 0.0;	
 				}
 
 				// ... on to next individual

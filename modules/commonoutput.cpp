@@ -93,6 +93,49 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_miso", &file_miso, 300, "monthly isoprene flux output file");
 	declare_parameter("file_amon", &file_amon, 300, "annual monoterpene flux output file");
 	declare_parameter("file_mmon", &file_mmon, 300, "monthly monoterpene flux output file");
+
+	//daily
+	declare_parameter("file_daily_lai",&file_daily_lai,300,"Daily output.");
+	declare_parameter("file_daily_npp",&file_daily_npp,300,"Daily output.");
+	declare_parameter("file_daily_nmass",&file_daily_nmass,300,"Daily output.");
+	declare_parameter("file_daily_ndemand",&file_daily_ndemand,300,"Daily output.");
+	declare_parameter("file_daily_cmass",&file_daily_cmass,300,"Daily output.");
+	declare_parameter("file_daily_cton",&file_daily_cton,300,"Daily output.");
+	declare_parameter("file_daily_cmass_leaf",&file_daily_cmass_leaf,300,"Daily output.");
+	declare_parameter("file_daily_nmass_leaf",&file_daily_nmass_leaf,300,"Daily output.");
+	declare_parameter("file_daily_cmass_root",&file_daily_cmass_root,300,"Daily output.");
+	declare_parameter("file_daily_nmass_root",&file_daily_nmass_root,300,"Daily output.");
+	declare_parameter("file_daily_cmass_stem",&file_daily_cmass_stem,300,"Daily output.");
+	declare_parameter("file_daily_nmass_stem",&file_daily_nmass_stem,300,"Daily output.");
+	declare_parameter("file_daily_cmass_storage",&file_daily_cmass_storage,300,"Daily output.");
+	declare_parameter("file_daily_nmass_storage",&file_daily_nmass_storage,300,"Daily output.");
+
+	declare_parameter("file_daily_cmass_dead_leaf",&file_daily_cmass_dead_leaf,300,"Daily output.");
+	declare_parameter("file_daily_nmass_dead_leaf",&file_daily_nmass_dead_leaf,300,"Daily output.");
+
+	declare_parameter("file_daily_n_input_soil",&file_daily_n_input_soil,300,"Daily output.");
+	declare_parameter("file_daily_avail_nmass_soil",&file_daily_avail_nmass_soil,300,"Daily output.");
+	declare_parameter("file_daily_upper_wcont",&file_daily_upper_wcont,300,"Daily output.");
+	declare_parameter("file_daily_lower_wcont",&file_daily_lower_wcont,300,"Daily output.");
+	declare_parameter("file_daily_irrigation",&file_daily_irrigation,300,"Daily output.");
+
+	declare_parameter("file_daily_nminleach",&file_daily_nminleach,300,"Daily output.");
+	declare_parameter("file_daily_norgleach",&file_daily_norgleach,300,"Daily output.");
+	declare_parameter("file_daily_nuptake",&file_daily_nuptake,300,"Daily output.");
+
+	declare_parameter("file_daily_temp",&file_daily_temp,300,"Daily output.");
+	declare_parameter("file_daily_prec",&file_daily_prec,300,"Daily output.");
+	declare_parameter("file_daily_rad",&file_daily_rad,300,"Daily output.");
+
+	declare_parameter("file_daily_fphu",&file_daily_fphu,300,"Daily DS output file"); //daglig ds
+
+	if(ifnlim_lc[CROPLAND]) {
+		declare_parameter("file_daily_ds",&file_daily_ds,300,"Daily DS output file"); //daglig ds
+		declare_parameter("file_daily_stem",&file_daily_stem,300,"Daily stem allocation output file");
+		declare_parameter("file_daily_leaf",&file_daily_leaf,300,"Daily leaf allocation output file");
+		declare_parameter("file_daily_root",&file_daily_root,300,"Daily root allocation output file");
+		declare_parameter("file_daily_storage",&file_daily_storage,300,"Daily storage allocation output file");
+	}
 }
 
 
@@ -256,6 +299,9 @@ void CommonOutput::define_output_tables() {
 	seasonality_columns += ColumnDescriptor("prec",       10, 1);
 	seasonality_columns += ColumnDescriptor("prec_range", 12, 0);
 //	seasonality_columns += ColumnDescriptor("biseasonal", 12, 0);
+
+	ColumnDescriptors daily_columns;
+	daily_columns += ColumnDescriptors(crop_pfts, 13, 3);
 
 	// FIRERT
 	ColumnDescriptors firert_columns;
@@ -433,6 +479,50 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mwcont_lower,   file_mwcont_lower,   month_columns);
 	create_output_table(out_miso,           file_miso,           month_columns_wide);
 	create_output_table(out_mmon,           file_mmon,           month_columns_wide);
+
+	// *** DAILY OUTPUT VARIABLES ***
+
+	create_output_table(out_daily_lai,					file_daily_lai,					daily_columns);
+	create_output_table(out_daily_npp,					file_daily_npp,					daily_columns);
+	create_output_table(out_daily_ndemand,				file_daily_ndemand,				daily_columns);
+	create_output_table(out_daily_nmass,				file_daily_nmass,				daily_columns);
+	create_output_table(out_daily_cmass,				file_daily_cmass,				daily_columns);
+	create_output_table(out_daily_nmass_leaf,			file_daily_nmass_leaf,			daily_columns);
+	create_output_table(out_daily_cmass_leaf,			file_daily_cmass_leaf,			daily_columns);
+	create_output_table(out_daily_nmass_root,			file_daily_nmass_root,			daily_columns);
+	create_output_table(out_daily_cmass_root,			file_daily_cmass_root,			daily_columns);
+	create_output_table(out_daily_nmass_stem,			file_daily_nmass_stem,			daily_columns);
+	create_output_table(out_daily_cmass_stem,			file_daily_cmass_stem,			daily_columns);
+	create_output_table(out_daily_nmass_storage,        file_daily_nmass_storage,       daily_columns);
+	create_output_table(out_daily_cmass_storage,        file_daily_cmass_storage,       daily_columns);
+	create_output_table(out_daily_nmass_dead_leaf,      file_daily_nmass_dead_leaf,     daily_columns);
+	create_output_table(out_daily_cmass_dead_leaf,      file_daily_cmass_dead_leaf,     daily_columns);
+	create_output_table(out_daily_n_input_soil,         file_daily_n_input_soil,        daily_columns);
+	create_output_table(out_daily_avail_nmass_soil,     file_daily_avail_nmass_soil,    daily_columns);
+
+	create_output_table(out_daily_upper_wcont,			file_daily_upper_wcont,         daily_columns);
+	create_output_table(out_daily_lower_wcont,			file_daily_lower_wcont,         daily_columns);
+	create_output_table(out_daily_irrigation,			file_daily_irrigation,			daily_columns);
+
+	create_output_table(out_daily_temp,					file_daily_temp,				daily_columns);
+	create_output_table(out_daily_prec,					file_daily_prec,				daily_columns);
+	create_output_table(out_daily_rad,					file_daily_rad,					daily_columns);
+
+	create_output_table(out_daily_cton,					file_daily_cton,				daily_columns);
+
+	create_output_table(out_daily_nminleach,			file_daily_nminleach,			daily_columns);
+	create_output_table(out_daily_norgleach,			file_daily_norgleach,			daily_columns);
+	create_output_table(out_daily_nuptake,				file_daily_nuptake,				daily_columns);
+
+	if(ifnlim_lc[CROPLAND]) {
+		create_output_table(out_daily_ds,				file_daily_ds,					daily_columns);
+		create_output_table(out_daily_fphu,				file_daily_fphu,				daily_columns);
+		create_output_table(out_daily_stem,				file_daily_stem,				daily_columns);
+		create_output_table(out_daily_leaf,				file_daily_leaf,				daily_columns);
+		create_output_table(out_daily_root,				file_daily_root,				daily_columns);
+		create_output_table(out_daily_storage,			file_daily_storage,				daily_columns);
+	}
+
 }
 
 
@@ -469,7 +559,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double c_fast, c_slow, c_harv_slow; 
 
 	double surfsoillitterc,surfsoillittern,cwdc,cwdn,centuryc,centuryn,n_harv_slow,availn;
-	double flux_nh3,flux_no,flux_no2,flux_n2o,flux_n2,flux_nsoil,flux_ntot,flux_nharvest, flux_nseed;
+	double flux_nh3, flux_no, flux_no2, flux_n2o, flux_n2, flux_nsoil, flux_ntot, flux_nharvest, flux_nseed;
 
 	// Nitrogen output is in kgN/ha instead of kgC/m2 as for carbon 
 	double m2toha = 10000.0;
@@ -618,8 +708,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		double standpft_amon=0.0;
 		double standpft_nuptake=0.0;
 		double standpft_vmaxnlim=0.0;
-		double standpft_ic_nuptake=0.0;
-		double standpft_ic_vmaxnlim=0.0;
 
 
 		// *** Loop through PFTs ***
@@ -708,8 +796,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_amon=0.0;
 				standpft_nuptake=0.0;
 				standpft_vmaxnlim=0.0;
-				standpft_ic_nuptake=0.0;
-				standpft_ic_vmaxnlim=0.0;
 
 				// Initialise age structure array
 
@@ -737,34 +823,41 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 						while (vegetation.isobj) {
 							Individual& indiv=vegetation.getobj();
 								
-							// guess2008 - alive check added
 							if (indiv.id!=-1 && indiv.alive) { 
 								
 								if (indiv.pft.id==pft.id) {
 
-									if(indiv.has_daily_turnover() && indiv.cropindiv)
+									if(indiv.has_daily_turnover() && indiv.cropindiv) {
 										standpft_cmass += indiv.cropindiv->grs_cmass_leaf + indiv.cropindiv->grs_cmass_root;
-									else
-										standpft_cmass += indiv.cmass_leaf + indiv.cmass_root +  indiv.cmass_wood();
-									standpft_nmass += indiv.nmass_leaf + indiv.nmass_root + 
-													  indiv.nmass_wood() + indiv.nstore();
-									standpft_cmass_leaf += indiv.cmass_leaf;
-									standpft_nmass_leaf += indiv.cmass_leaf / indiv.cton_leaf_aavr;
-									standpft_cmass_veg += indiv.cmass_veg;
+										standpft_cmass_leaf += indiv.cropindiv->grs_cmass_leaf;
+										standpft_cmass_veg += indiv.cropindiv->grs_cmass_leaf + indiv.cropindiv->grs_cmass_root;
+									}
+									else {
+										standpft_cmass += indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood();
+										standpft_cmass_leaf += indiv.cmass_leaf;
+										standpft_cmass_veg += indiv.cmass_veg;
+									}
+									standpft_nmass += indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_wood() + indiv.nstore();
+									standpft_nmass_leaf += indiv.cmass_leaf / indiv.cton_leaf_aavr;																	
 									standpft_nmass_veg += indiv.nmass_veg;
 									standpft_fpc += indiv.fpc;
 									standpft_aaet += indiv.aaet;
-									standpft_lai+=indiv.lai;
+									standpft_lai += indiv.lai;
 									standpft_vmaxnlim += indiv.avmaxnlim * indiv.cmass_leaf;
 									standpft_nuptake += indiv.anuptake;
 
 									if(pft.landcover == CROPLAND) {
 
-										if(indiv.has_daily_turnover())
-											standpft_cmass += indiv.cropindiv->grs_cmass_ho + indiv.cropindiv->grs_cmass_agpool;
-										else
+										if(indiv.has_daily_turnover() && indiv.cropindiv) {
+											standpft_cmass += indiv.cropindiv->grs_cmass_ho + indiv.cropindiv->grs_cmass_agpool + indiv.cropindiv->grs_cmass_dead_leaf + indiv.cropindiv->grs_cmass_stem;
+											standpft_cmass_veg += indiv.cropindiv->grs_cmass_dead_leaf + indiv.cropindiv->grs_cmass_ho + indiv.cropindiv->grs_cmass_agpool + indiv.cropindiv->grs_cmass_stem;
+											standpft_cmass_leaf += indiv.cropindiv->grs_cmass_dead_leaf;
+										}
+										else { // cmass_dead_leaf and cmass_stem not defined for yearly allocation
 											standpft_cmass += indiv.cropindiv->cmass_ho + indiv.cropindiv->cmass_agpool;
-										standpft_nmass += indiv.cropindiv->nmass_ho + indiv.cropindiv->nmass_agpool;
+											standpft_cmass_veg += indiv.cropindiv->cmass_ho + indiv.cropindiv->cmass_agpool;
+										}
+										standpft_nmass += indiv.cropindiv->nmass_ho + indiv.cropindiv->nmass_agpool + indiv.cropindiv->nmass_dead_leaf;
 
 										standpft_yield += indiv.cropindiv->harv_yield;
 										standpft_yield1 += indiv.cropindiv->yield_harvest[0];
@@ -833,9 +926,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					landcover_nlitter[stand.landcover]+=standpft_nlitter*stand.get_landcover_fraction();
 					landcover_anpp[stand.landcover]+=standpft_anpp*stand.get_landcover_fraction();
 					landcover_agpp[stand.landcover]+=standpft_agpp*stand.get_landcover_fraction();
-					landcover_fpc[stand.landcover]+=standpft_fpc*stand.get_landcover_fraction();
+					if(!pft.isintercropgrass) {
+						landcover_fpc[stand.landcover]+=standpft_fpc*stand.get_landcover_fraction();
+						landcover_lai[stand.landcover]+=standpft_lai*stand.get_landcover_fraction();
+					}
 					landcover_aaet[stand.landcover]+=standpft_aaet*stand.get_landcover_fraction();
-					landcover_lai[stand.landcover]+=standpft_lai*stand.get_landcover_fraction();
 					landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.get_landcover_fraction();
 					landcover_aiso[stand.landcover]+=standpft_aiso*stand.get_landcover_fraction();
 					landcover_amon[stand.landcover]+=standpft_amon*stand.get_landcover_fraction();
@@ -891,9 +986,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					nlitter_gridcell+=standpft_nlitter*fraction_of_gridcell;
 					anpp_gridcell+=standpft_anpp*fraction_of_gridcell;
 					agpp_gridcell+=standpft_agpp*fraction_of_gridcell;
-					fpc_gridcell+=standpft_fpc*fraction_of_gridcell;
+					if(!pft.isintercropgrass) {
+						fpc_gridcell+=standpft_fpc*fraction_of_gridcell;
+						lai_gridcell+=standpft_lai*fraction_of_gridcell;
+					}
 					aaet_gridcell+=standpft_aaet*fraction_of_gridcell;
-					lai_gridcell+=standpft_lai*fraction_of_gridcell;
 					dens_gridcell+=standpft_densindiv_total*fraction_of_gridcell;
 					aiso_gridcell+=standpft_aiso*fraction_of_gridcell;
 					amon_gridcell+=standpft_amon*fraction_of_gridcell;
@@ -1166,7 +1263,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 
 				andep_gridcell += stand.get_climate().andep * to_gridcell_average;
-				anfert_gridcell += stand.get_climate().anfert * to_gridcell_average;
+				anfert_gridcell += patch.anfert * to_gridcell_average;
 				anmin_gridcell += patch.soil.anmin * to_gridcell_average;
 				animm_gridcell += patch.soil.animmob * to_gridcell_average;
 				anfix_gridcell += patch.soil.anfix * to_gridcell_average;
@@ -1689,10 +1786,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	}
 }
 
-void CommonOutput::outdaily(Gridcell& gridcell) {
-	
-}
-
 void CommonOutput::openlocalfiles(Gridcell& gridcell) {
 
 	if(!printseparatestands)
@@ -1825,6 +1918,131 @@ void CommonOutput::closelocalfiles(Gridcell& gridcell) {
 		if(!out_cmass_stand_forest[id].invalid())
 			close_output_table(out_cmass_stand_forest[id]);
 	}
+}
+
+void CommonOutput::outdaily(Gridcell& gridcell) {
+
+	double lon = gridcell.get_lon();
+	double lat = gridcell.get_lat();
+	OutputRows out(output_channel, lon, lat, date.get_calendar_year(), date.day);
+
+	if (date.year>nyear_spinup) {
+
+		pftlist.firstobj();
+		while (pftlist.isobj) {
+			bool croppresent=false;
+			Pft& pft=pftlist.getobj();
+			Gridcellpft& gridcellpft=gridcell.pft[pft.id];
+
+			Gridcell::iterator gc_itr = gridcell.begin();
+
+			while (gc_itr != gridcell.end()) {
+
+				Stand& stand = *gc_itr;
+
+				Standpft& standpft=stand.pft[pft.id];
+				stand.firstobj();
+				if (stand.landcover != CROPLAND || stand.npatch() > 1) {
+//					dprintf("\nOutdaily as it is implemented only support daily output for one individual per patch.\n");
+					break;
+				}
+				while (stand.isobj) {//Loop through Patches
+					Patch& patch=stand.getobj();
+					Vegetation& vegetation=patch.vegetation;
+					Patchpft& patchpft=patch.pft[pft.id];
+
+					vegetation.firstobj();
+					while (vegetation.isobj) {
+						Individual& indiv=vegetation.getobj();
+						//						if (indiv.id!=-1 && indiv.alive)
+						if (indiv.id!=-1) {//To be able to print values for the year after establishment of crops !
+							// (if not dead and has existed for at least one year)
+							// Ben 2007-11-28
+							if (indiv.pft.id == pft.id) {							//101124
+								//								if (indiv.alive) //???
+								if(pft.landcover==CROPLAND) {
+									////////////////////////////
+									if(!indiv.cropindiv->isintercropgrass) {
+										double centuryn = 0.0;
+										double cwdn = 0.0;
+										double surfsoillittern = 0.0;
+										for (int r = 0; r < NSOMPOOL-1; r++) {
+
+											if(r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
+												surfsoillittern += patch.soil.sompool[r].nmass;
+											}
+											else if (r == SURFFWD || r == SURFCWD) {
+												cwdn += patch.soil.sompool[r].nmass;
+											}
+											else {
+												centuryn += patch.soil.sompool[r].nmass;
+											}
+										}
+										double scale_out = 10000.0;
+										plot("daily leaf N [g/m2]",pft.name,date.day,indiv.nmass_leaf*scale_out);
+										plot("daily leaf C [kg/m2]",pft.name,date.day,indiv.cmass_leaf_today()*scale_out);
+										out.add_value(out_daily_lai,indiv.lai_today());
+										out.add_value(out_daily_npp,indiv.dnpp*scale_out);
+										out.add_value(out_daily_cmass_leaf,indiv.cmass_leaf_today()*scale_out);
+										out.add_value(out_daily_nmass_leaf,indiv.nmass_leaf*scale_out);
+										out.add_value(out_daily_cmass_root,indiv.cmass_root_today()*scale_out);
+										out.add_value(out_daily_nmass_root,indiv.nmass_root*scale_out);
+										out.add_value(out_daily_avail_nmass_soil,scale_out*(patch.soil.nmass_avail+cwdn));
+										out.add_value(out_daily_n_input_soil,patch.soil.ninput*scale_out);
+
+										double uw = patch.soil.dwcontupper[date.day];
+										if (uw < 0.0000000000000000000001) {
+											uw = 0.0;
+										}
+										double lw = patch.soil.dwcontlower[date.day];
+										if (lw < 0.0000000000000000000001) {
+											lw = 0.0;
+										}
+										out.add_value(out_daily_upper_wcont,uw);
+										out.add_value(out_daily_lower_wcont,lw);
+										out.add_value(out_daily_irrigation,patch.irrigation_d);
+
+										out.add_value(out_daily_cmass_storage,indiv.cropindiv->grs_cmass_ho*scale_out);
+										out.add_value(out_daily_nmass_storage,indiv.cropindiv->nmass_ho*scale_out);
+
+										out.add_value(out_daily_ndemand,indiv.ndemand);
+										out.add_value(out_daily_cton,limited_cton(indiv.cmass_leaf_today(),indiv.nmass_leaf*scale_out));
+
+										if(ifnlim_lc[CROPLAND]) {
+											out.add_value(out_daily_ds,patch.pft[pft.id].cropphen->dev_stage); // daglig ds
+											out.add_value(out_daily_cmass_stem,(indiv.cropindiv->grs_cmass_agpool+indiv.cropindiv->grs_cmass_stem)*scale_out);
+											out.add_value(out_daily_nmass_stem,indiv.cropindiv->nmass_agpool*scale_out);
+
+											out.add_value(out_daily_cmass_dead_leaf,indiv.cropindiv->grs_cmass_dead_leaf*scale_out);
+											out.add_value(out_daily_nmass_dead_leaf,indiv.cropindiv->nmass_dead_leaf*scale_out);
+
+											out.add_value(out_daily_fphu,patch.pft[pft.id].cropphen->fphu);
+											out.add_value(out_daily_stem,patch.pft[pft.id].cropphen->f_alloc_stem);
+											out.add_value(out_daily_leaf,patch.pft[pft.id].cropphen->f_alloc_leaf);
+											out.add_value(out_daily_root,patch.pft[pft.id].cropphen->f_alloc_root);
+											out.add_value(out_daily_storage,patch.pft[pft.id].cropphen->f_alloc_horg);
+										}
+									}
+								}
+							}
+
+						}
+						vegetation.nextobj();
+					}
+					stand.nextobj();
+				}
+				++gc_itr;				
+				//gridcell.nextobj();
+			}
+			pftlist.nextobj();
+		}
+
+		out.add_value(out_daily_temp,gridcell.climate.temp);
+		out.add_value(out_daily_prec,gridcell.climate.prec);
+		out.add_value(out_daily_rad,gridcell.climate.rad);
+
+	}
+	return;
 }
 
 } // namespace

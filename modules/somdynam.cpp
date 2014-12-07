@@ -885,9 +885,16 @@ void transfer_litter(Patch& patch) {
 			// Woody debris enters two woody litter pools as described in
 			// Kirschbaum and Paul (2002).
 
+			if(date.month == 0) {
+				pft.litter_sap_year = pft.litter_sap;
+				pft.nmass_litter_sap_year = pft.nmass_litter_sap;
+			}
 			// Monthly fraction of last years litter
-			double litter_sap = pft.litter_sap / 12.0;
-			double nmass_litter_sap = pft.nmass_litter_sap / 12.0;
+			double litter_sap = pft.litter_sap_year / 12.0;
+			double nmass_litter_sap = pft.nmass_litter_sap_year / 12.0;
+
+			pft.litter_sap -= pft.litter_sap_year / 12.0;
+			pft.nmass_litter_sap -= pft.nmass_litter_sap_year / 12.0;
 
 			if (!negligible(litter_sap)) {
 
@@ -922,11 +929,18 @@ void transfer_litter(Patch& patch) {
 				fireresist[SURFFWD] += litter_sap * pft.pft.fireresist;
 			}
 
+			if(date.month == 0) {
+				pft.litter_heart_year = pft.litter_heart;
+				pft.nmass_litter_heart_year = pft.nmass_litter_heart;
+			}
 			// Monthly fraction of last years litter
-			double litter_heart = pft.litter_heart / 12.0;
-			double nmass_litter_heart = pft.nmass_litter_heart / 12.0;
+			double litter_heart = pft.litter_heart_year / 12.0;
+			double nmass_litter_heart = pft.nmass_litter_heart_year / 12.0;
 
-			if (!negligible(pft.litter_heart)) {
+			pft.litter_heart -= pft.litter_heart_year / 12.0;
+			pft.nmass_litter_heart -= pft.nmass_litter_heart_year / 12.0;
+
+			if (!negligible(litter_heart)) {
 
 				// Coarse woody debris
 
@@ -1142,7 +1156,10 @@ void vegetation_n_uptake(Patch& patch) {
 		indiv.nmass_leaf      += indiv.leaffndemand  * nuptake_day;
 		indiv.nmass_root      += indiv.rootfndemand  * nuptake_day;
 		indiv.nmass_sap       += indiv.sapfndemand   * nuptake_day;
-		indiv.nstore_longterm += indiv.storefndemand * nuptake_day;
+		if(indiv.pft.phenology == CROPGREEN && ifnlim_lc[CROPLAND])
+			indiv.cropindiv->nmass_agpool+= indiv.storefndemand * nuptake_day;
+		else
+			indiv.nstore_longterm += indiv.storefndemand * nuptake_day;
 		soil.nmass_avail      -= nuptake_day;
 
 		if (!negligible(indiv.phen))

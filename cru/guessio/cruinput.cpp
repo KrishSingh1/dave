@@ -228,7 +228,7 @@ void CRUInput::init() {
 #endif
 		}
 
-		// Remove pft:s from pftlist that are not grown in simulkated stand types
+		// Remove pft:s from pftlist that are not grown in simulated stand types
 		int n = 0;
 		pftlist.firstobj();
 		while(pftlist.isobj) {	
@@ -256,12 +256,12 @@ void CRUInput::init() {
 			}
 
 			if(remove && !(pft.isintercropgrass && ifintercropgrass)) {
-				n+=1;
+				n += 1;
 				pftlist.killobj();
 				npft--;
 			}
 			else {
-				pft.id-=n;
+				pft.id -= n;
 				pftlist.nextobj();
 			}			
 		}
@@ -1189,9 +1189,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	// Nitrogen deposition
 	climate.dndep = dndep[date.day];
 
-	// Nitrogen fertilization
-	climate.dnfert = 0.0;
-
 	// bvoc
 	if(ifbvoc){
 	  climate.dtr = ddtr[date.day];
@@ -1216,6 +1213,9 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	return true;
 }
 
+bool CRUInput::getsoil(Gridcell& gridcell, const int soilmap_index){
+	return true;
+}
 
 CRUInput::~CRUInput() {
 

@@ -781,9 +781,6 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 	// Nitrogen deposition
 	climate.dndep = dndep[date.day];
 		
-	// Nitrogen fertilization
-	climate.dnfert = 0.0;
-
 	// bvoc
 	if(ifbvoc){
 		if (cf_min_temp && cf_max_temp) {

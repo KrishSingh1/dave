@@ -147,6 +147,7 @@ st "CC3G" (
 
 	crop_stand
 !	stinclude 1
+	intercrop "nointercrop"
 	crop1 "CC3G"
 )
 
@@ -154,6 +155,7 @@ st "CC4G" (
 
 	crop_stand
 !	stinclude 1
+	intercrop "nointercrop"
 	crop1 "CC4G"
 )
 
@@ -192,6 +194,13 @@ st "TeCo" (
 	crop_stand
 !	stinclude 1
 	crop1 "TeCo"
+)
+
+st "TeCo_Nlim" (
+
+	crop_stand
+!	stinclude 1
+	crop1 "TeCo_Nlim"
 )
 
 st "TrMi" (
@@ -260,6 +269,7 @@ st "CC3Girr" (
 
 	crop_stand
 !	stinclude 1
+	intercrop "nointercrop"
 	crop1 "CC3Girr"
 	hydrology1 "irrigated"
 )
@@ -268,6 +278,7 @@ st "CC4Girr" (
 
 	crop_stand
 !	stinclude 1
+	intercrop "nointercrop"
 	crop1 "CC4Girr"
 	hydrology1 "irrigated"
 )
@@ -559,6 +570,7 @@ group "crop" (
 	readharvestdate 0
 !	forceautumnsowing 0
 	readNfert 1
+	nlim 0
 )
 
 group "broadleaved" (
@@ -1669,6 +1681,53 @@ pft "TeCo" (
 
 	TeCo
 !	include 1
+)
+
+pft "TeCo_Nlim" (
+
+	TeCo
+!	include 1
+	nlim 1
+
+	sla 43.2
+	cton_leaf_min 10.0
+
+	a1 0.24 
+	b1 1.22 
+	c1 18.10 
+	d1 1.12
+	a2 0.68 
+	b2 -0.06 
+	c2 12.45 
+	d2 0.81
+	a3 0.00 
+	b3 1.00 
+	c3 28.52 
+	d3 1.03
+
+
+	T_vn_min 0
+	T_vn_opt 0
+	T_vn_max 0
+
+	T_veg_min 10.0 !
+	T_veg_opt 28.0 !
+	T_veg_max 47.0 !
+
+	T_rep_min 10.0 !
+	T_rep_opt 28.0 !
+	T_rep_max 47.0 !
+
+	dev_rate_veg 0.0265
+	dev_rate_rep 0.017
+
+!photoperiod, critical omega short-day-plant
+	photo 12.0 0.02619 1.0
+
+
+	fertrate 0.4 0.5
+	fertdates 0 30
+	N_appfert 0.005
 )
 
 pft "TrMi" (

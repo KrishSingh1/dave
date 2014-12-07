@@ -489,10 +489,12 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Initial grass biomass proportional to potential forest floor
 						// net assimilation this year on patch area basis
 
-						bminit=SAPSIZE*patch.pft[pft.id].anetps_ff;
-
-						if (patch.has_disturbances() && patch.disturbed)
-							bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est_initial;
+						if(pft.phenology == CROPGREEN)
+							bminit = SAPSIZE * 0.01;
+						else if(patch.has_disturbances() && patch.disturbed)
+							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff_est_initial;
+						else
+							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;
 
 						// Initial leaf to fine root biomass ratio based on
 						// hypothetical value of water stress parameter

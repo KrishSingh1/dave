@@ -475,12 +475,10 @@ void fpar(Patch& patch) {
 double alphaa(Stand& stand, Pft& pft) {
 
 	double alphaa;
-	bool ifnlim_pft = ifnlim && ifnlim_lc[stand.landcover];
+	bool ifnlim_pft = stand.ifnlim_stand();
 
-	if(pft.phenology==CROPGREEN)
-		alphaa = ALPHAA_CROP;
-	else if (pft.isintercropgrass)
-		alphaa = ALPHAA;
+	if(pft.phenology == CROPGREEN)
+		alphaa = (ifnlim_pft ? ALPHAA_CROP_NLIM : ALPHAA_CROP);
 	else
 		alphaa = (ifnlim_pft ? ALPHAA_NLIM : ALPHAA);
 
@@ -966,10 +964,12 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		}
 
 		// Labile nitrogen storage demand
-		indiv.storendemand = max(0.0, min(indiv.anpp * indiv.scale_n_storage / indiv.cton_leaf(), indiv.max_n_storage) - indiv.nstore());
+		indiv.storendemand = indiv.ndemand_storage(cton_leaf_opt);
+		//TODO HO demand
+		indiv.hondemand = 0.0;
 
 		// Total nitrogen demand
-		double ndemand_tot = indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand;
+		double ndemand_tot = indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand + indiv.hondemand;
 
 		// Calculate scalars to possible nitrogen uptake
 
@@ -979,7 +979,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Scale to maximum nitrogen concentrations
 		indiv.cton_status = max(0.0, (ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_avr - 1.0 / indiv.pft.cton_leaf_min));
 
-		// Nitrogen availablilty scalar due to saturating Michealis-Menten kinetics
+		// Nitrogen availablilty scalar due to saturating Michaelis-Menten kinetics
 		double nmin_scale = kNmin + soil.nmass_avail / (soil.nmass_avail + gridcell.pft[indiv.pft.id].Km);
 
 		// Maximum available soil mineral nitrogen for this individual is base on its root area.
@@ -1047,6 +1047,11 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 	// Nitrogen within projective cover of all individuals
 	double tot_nmass_avail = patch.soil.nmass_avail * min(1.0, patch.fpc_total);
 
+	if(patch.stand.landcover == CROPLAND && ifnlim_lc[CROPLAND])	// Also for other landcovers ??
+		// Take soil wcont into account
+		tot_nmass_avail*=((patch.soil.wcont[0]*0.9+patch.soil.wcont[1]*0.1));
+
+
 	// Calculate individual uptake fraction of nitrogen demand
 	if (patch.ndemand > tot_nmass_avail && stand.ifnlim_stand()) {
 
@@ -1075,7 +1080,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 		double nmass_leaf = indiv.nmass_leaf + indiv.leafndemand * indiv.fnuptake;
 
 		if (indiv.phen > 0.0) {
-			indiv.nactive = max(0.0, nmass_leaf - N0 * indiv.cmass_leaf_today());
+			indiv.nactive = max(0.0, nmass_leaf - N0 * indiv.cmass_leaf_today());	// ??
 		}
 		else {
 			indiv.nactive = 0.0;
@@ -1927,6 +1932,67 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 	}
 }
 
+//Yin et al, Modelling leaf senescence
+void leaf_senescence(Individual& indiv){
+	double Ln = 0.0;
+	double Lnld = 0.0;
+	double r = 0.0;
+	double k = 0.5;
+	double ktn = 0.52*k+0.01; //Yin et al 2003
+
+	if(indiv.cmass_leaf_today()>0.0){
+		Ln = indiv.lai_nitrogen_today();
+		Lnld = indiv.lai_today();
+		r = (Lnld - min(Lnld,Ln))/indiv.pft.sla;
+	} else {
+		r = 0.0;
+	}
+#define SLOWLEAFDEATH
+//#undef SLOWLEAFDEATH
+#ifdef SLOWLEAFDEATH
+	r/=10.0;
+#endif
+	indiv.daily_cmass_leafloss = max(0.0,r);
+	indiv.daily_nmass_leafloss = 0.0;
+
+}
+
+void leaf_senescence_frame(Vegetation& vegetation) {
+
+	if(!(vegetation.patch.stand.landcover == CROPLAND && ifnlim_lc[CROPLAND]))
+		return;
+
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv = vegetation.getobj();
+#define AGESEN
+//#undef AGESEN
+#ifdef AGESEN
+		double senN = 0.0;
+		double senNr = 0.07;
+		if(indiv.patchpft().cropphen->dev_stage>1.0){
+			senN = senNr*(indiv.nmass_leaf-indiv.cmass_leaf_today()/(indiv.pft.cton_leaf_max));
+			if (date.year>500) {
+				if (senN > 0.0) {
+					indiv.nmass_leaf-=senN;
+					indiv.cropindiv->nmass_agpool+=senN;
+				}
+			}
+		}
+#endif
+		leaf_senescence(indiv);
+
+//		if(indiv.patchpft().cropphen->dev_stage<0.5){
+		if(indiv.patchpft().cropphen->fphu<0.05){
+
+			indiv.daily_cmass_leafloss = 0.0;
+			indiv.daily_nmass_leafloss = 0.0;
+		}
+
+		vegetation.nextobj();
+	}
+}
+
 /// Forest-floor conditions
 /** Called in cohort/individual mode (not population mode) to quantify growth
  *  conditions at the forest floor for each PFT
@@ -1994,6 +2060,7 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			indiv.rootndemand    = 0.0;
 			indiv.sapndemand     = 0.0;
 			indiv.storendemand   = 0.0;
+			indiv.hondemand		 = 0.0;
 
 			indiv.nday_leafon    = 0;
 			indiv.avmaxnlim      = 1.0;
@@ -2062,6 +2129,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		aet_water_stress(patch, vegetation, day);
 		water_scalar(patch, vegetation, day);
 		npp(patch, climate, vegetation, day);
+		leaf_senescence_frame(vegetation);
 	}
 
 	// Forest-floor conditions

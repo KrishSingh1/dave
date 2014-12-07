@@ -227,6 +227,10 @@ void NDepData::get_one_calendar_year(int calendar_year,
 		ndep_year = (int)((calendar_year - Lamarque::FIRSTHISTYEARNDEP)/10);
 	}
 
+	if (ndep_year >= NYEAR_HISTNDEP) {
+		ndep_year = NYEAR_HISTNDEP-1;
+	}
+
 	if (timeseries == HISTORIC && ndep_year >= NYEAR_HISTNDEP) {
 		fail("Tried to get ndep for year %d (not included in Lamarque historic ndep data set)",
 		     calendar_year);

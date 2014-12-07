@@ -61,6 +61,8 @@ public:
 
 	int getfirsthistyear();	
 
+	bool getsoil(Gridcell& gridcell, const int soilmap_index);
+
 private:
 
 	/// Type for storing grid cell longitude, latitude and description text

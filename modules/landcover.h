@@ -32,7 +32,7 @@ void crop_sowing_gridcell(Gridcell& gridcell);
 
 /// handles sowing date calculations for crop pft:s on patch level
 void crop_sowing_patch(Patch& patch);
-
+void crop_nfert(Patch& patch);
 void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch);
 //void crop_phenology(Pft& pft, Patch& patch);
 void crop_phenology(Patch& patch);
@@ -41,11 +41,11 @@ void leaf_phenology_crop(Pft& pft, Patch& patch);
 /// Updates patch.members fpc_total and fpc_rescale for crops (to be called after crop_phenology())
 void update_patch_fpc(Patch& patch);
 /// Handles daily crop allocation and daily lai calculation
-void crop_growth_daily(Patch& patch);
+void growth_daily(Patch& patch);
 /// Updates crop rotation status
 void crop_rotation(Stand& stand, int firsthistyear);
 /// Transfer of this year's growth (ycmass_xxx) to cmass_xxx_inc
-void growth_crop_year(Individual& indiv, double& cmass_leaf_inc,double& cmass_root_inc,double& cmass_ho_inc,double& cmass_agpool_inc);
+void growth_crop_year(Individual& indiv, double& cmass_leaf_inc,double& cmass_root_inc,double& cmass_ho_inc,double& cmass_agpool_inc, double& cmass_stem_inc);
 /// Yield function for true crops and intercrop grass
 void yield_crop(Individual& indiv);
 /// Yield function for pasture grass grown in cropland landcover
@@ -320,6 +320,8 @@ struct Harvest_CN {
 	double cmass_debt;
 	double cmass_ho;
 	double cmass_agpool;
+	double cmass_stem;
+	double cmass_dead_leaf;
 	double debt_excess;
 	double nmass_leaf;
 	double nmass_root;
@@ -327,6 +329,7 @@ struct Harvest_CN {
 	double nmass_heart;
 	double nmass_ho;
 	double nmass_agpool;
+	double nmass_dead_leaf;
 	double nstore_longterm;
 	double nstore_labile;
 	double max_n_storage;
@@ -346,8 +349,8 @@ struct Harvest_CN {
 
 	Harvest_CN() {
 
-		cmass_leaf = cmass_root = cmass_sap = cmass_heart = cmass_debt = cmass_ho = cmass_agpool = debt_excess = 0.0;
-		nmass_leaf = nmass_root = nmass_sap = nmass_heart = nmass_ho = nmass_agpool = nstore_longterm = nstore_labile = max_n_storage = 0.0;
+		cmass_leaf = cmass_root = cmass_sap = cmass_heart = cmass_debt = cmass_ho = cmass_agpool = cmass_stem = cmass_dead_leaf = debt_excess = 0.0;
+		nmass_leaf = nmass_root = nmass_sap = nmass_heart = nmass_ho = nmass_agpool = nmass_dead_leaf = nstore_longterm = nstore_labile = max_n_storage = 0.0;
 		litter_leaf = litter_root = litter_sap = litter_heart = 0.0;
 		nmass_litter_leaf = nmass_litter_root = nmass_litter_sap = nmass_litter_heart = 0.0;
 		acflux_harvest = anflux_harvest = 0.0;
@@ -370,6 +373,8 @@ struct Harvest_CN {
 				if(indiv.pft.landcover == CROPLAND) {
 					cmass_ho = indiv.cropindiv->grs_cmass_ho;
 					cmass_agpool = indiv.cropindiv->grs_cmass_agpool;
+					cmass_stem = indiv.cropindiv->grs_cmass_stem;
+					cmass_dead_leaf = indiv.cropindiv->grs_cmass_dead_leaf;
 				}
 			}
 		}
@@ -384,6 +389,8 @@ struct Harvest_CN {
 			if(indiv.pft.landcover == CROPLAND) {
 				cmass_ho = indiv.cropindiv->cmass_ho;
 				cmass_agpool = indiv.cropindiv->cmass_agpool;
+//				cmass_stem = indiv.cropindiv->grs_cmass_stem;			// We can't use grs_cmass here !
+//				cmass_dead_leaf = indiv.cropindiv->grs_cmass_dead_leaf;
 			}
 		}
 
@@ -399,6 +406,7 @@ struct Harvest_CN {
 		if(indiv.pft.landcover == CROPLAND) {
 			nmass_ho = indiv.cropindiv->nmass_ho;
 			nmass_agpool = indiv.cropindiv->nmass_agpool;
+			nmass_dead_leaf = indiv.cropindiv->nmass_dead_leaf;
 		}
 
 		if(copy_dead_C) {
@@ -433,6 +441,8 @@ struct Harvest_CN {
 			if(indiv.pft.landcover == CROPLAND) {
 				indiv.cropindiv->grs_cmass_ho = cmass_ho;
 				indiv.cropindiv->grs_cmass_agpool = cmass_agpool;
+				indiv.cropindiv->grs_cmass_dead_leaf = cmass_dead_leaf;
+				indiv.cropindiv->grs_cmass_stem = cmass_stem;
 			}
 		}
 		else {
@@ -446,6 +456,8 @@ struct Harvest_CN {
 			if(indiv.pft.landcover == CROPLAND) {
 				indiv.cropindiv->cmass_ho = cmass_ho;
 				indiv.cropindiv->cmass_agpool = cmass_agpool;
+//				indiv.cropindiv->grs_cmass_dead_leaf = cmass_dead_leaf;	// We can't use grs_cmass here !
+//				indiv.cropindiv->grs_cmass_stem = cmass_stem;
 			}
 		}
 
@@ -459,6 +471,7 @@ struct Harvest_CN {
 		if(indiv.pft.landcover == CROPLAND) {
 			indiv.cropindiv->nmass_ho = nmass_ho;
 			indiv.cropindiv->nmass_agpool = nmass_agpool;
+			indiv.cropindiv->nmass_dead_leaf = nmass_dead_leaf;
 		}
 
 		ppft.litter_leaf = litter_leaf;

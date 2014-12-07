@@ -57,6 +57,16 @@ private:
 	// nitrogen
 	xtring file_nmass, file_cton_leaf, file_nsources, file_npool, file_nlitter, file_nuptake, file_vmaxnlim, file_nflux, file_ngases;
 	
+	// daily
+	xtring file_daily_lai,file_daily_npp,file_daily_nmass,file_daily_cmass,file_daily_cton,file_daily_ndemand;
+	xtring file_daily_cmass_leaf,file_daily_nmass_leaf,file_daily_cmass_root,file_daily_nmass_root,file_daily_cmass_stem,file_daily_nmass_stem,file_daily_cmass_storage,file_daily_nmass_storage,file_daily_n_input_soil;
+	xtring file_daily_avail_nmass_soil,file_daily_upper_wcont,file_daily_lower_wcont,file_daily_irrigation;
+	xtring file_daily_temp,file_daily_prec,file_daily_rad;
+	xtring file_daily_cmass_dead_leaf,file_daily_nmass_dead_leaf,file_daily_fphu;
+	xtring file_daily_nminleach, file_daily_norgleach, file_daily_nuptake;
+	xtring file_daily_ds,file_daily_stem,file_daily_leaf,file_daily_root,file_daily_storage;
+
+
 	// Output tables
 	Table out_cmass, out_anpp, out_agpp, out_fpc, out_aaet, out_dens, out_lai, out_cflux, out_cpool, out_clitter, out_firert, out_runoff, out_speciesheights;
 	Table out_yield, out_yield1, out_yield2, out_sdate1, out_sdate2, out_hdate1, out_hdate2, out_lgp, out_phu, out_fhi, out_fphu, out_irrigation, out_seasonality;	
@@ -73,6 +83,15 @@ private:
 	Table out_aiso, out_miso, out_amon, out_mmon;
 	
 	Table out_nmass, out_cton_leaf, out_nsources, out_npool, out_nlitter, out_nuptake, out_vmaxnlim, out_nflux, out_ngases;
+
+	//daily
+	Table out_daily_lai,out_daily_npp,out_daily_cton,out_daily_nmass,out_daily_cmass,out_daily_ndemand;
+	Table out_daily_cmass_leaf,out_daily_nmass_leaf,out_daily_cmass_root,out_daily_nmass_root,out_daily_cmass_stem,out_daily_nmass_stem,out_daily_cmass_storage,out_daily_nmass_storage,out_daily_n_input_soil;
+	Table out_daily_cmass_dead_leaf,out_daily_nmass_dead_leaf,out_daily_fphu;
+	Table out_daily_avail_nmass_soil,out_daily_upper_wcont,out_daily_lower_wcont,out_daily_irrigation;
+	Table out_daily_temp,out_daily_prec,out_daily_rad;
+	Table out_daily_nminleach, out_daily_norgleach, out_daily_nuptake;
+	Table out_daily_ds,out_daily_stem,out_daily_leaf,out_daily_root,out_daily_storage;
 };
 
 }

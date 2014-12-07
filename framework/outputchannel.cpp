@@ -256,6 +256,7 @@ void FileOutputChannel::finish_row(const Table& table,
 		  fprintf(file, format(table, i), row[i]);
 	 }
 	 fprintf(file, "\n");
+	 fflush(file);
 
 	 // start on a new row
 	 clear_current_row(table);

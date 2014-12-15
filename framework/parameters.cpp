@@ -1146,8 +1146,8 @@ void plib_callback(int callback) {
 		if (!run_landcover)
 			printseparatestands = false;
 
-		if(ifnlim_lc[CROPLAND] && ifintercropgrass == true)
-			dprintf("\nWarning: covercrop grass growth not currently working properly with N limitation on cropland\\n");
+		if(run_landcover && run[CROPLAND] && ifnlim_lc[CROPLAND] && ifintercropgrass == true)
+			dprintf("\nWarning: covercrop grass growth not currently working properly with N limitation on cropland\n");
 
 		//	delete unused stand types from stlist
 
@@ -1170,7 +1170,7 @@ void plib_callback(int callback) {
 				stlist.killobj();
 			}
 			else {
-				if(	st.landcover == CROPLAND && 
+				if(st.landcover == CROPLAND && 
 					(st.rotation.ncrops == 0 ||
 					st.rotation.ncrops >= 1 && st.management[0].pftname == "" ||
 					st.rotation.ncrops >= 2 && st.management[1].pftname == "" ||

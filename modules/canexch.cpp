@@ -974,7 +974,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Calculate scalars to possible nitrogen uptake
 
 		// Current plant mobile nitrogen concentration
-		double ntoc = !negligible(indiv.phen) ? (indiv.nmass_leaf + indiv.nmass_root) / (indiv.cmass_leaf_today() + indiv.cmass_root_today()) : 0.0;
+		double ntoc = !negligible(indiv.cmass_leaf_today() + indiv.cmass_root_today()) ? (indiv.nmass_leaf + indiv.nmass_root) / (indiv.cmass_leaf_today() + indiv.cmass_root_today()) : 0.0;
 
 		// Scale to maximum nitrogen concentrations
 		indiv.cton_status = max(0.0, (ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_avr - 1.0 / indiv.pft.cton_leaf_min));

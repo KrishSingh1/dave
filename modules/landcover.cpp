@@ -900,6 +900,9 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 	double ccont_pre_orig_tot = 0.0;
 	double dif_tot = 0.0;
 	double acflux_landuse_change_tot = 0.0;
+	double ncont_pre_orig_tot = 0.0;
+	double ndif_tot = 0.0;
+	double anflux_landuse_change_tot = 0.0;
 	int count = 0;
 
 	for(unsigned int i=0; i<gridcell.nbr_stands(); i++) {
@@ -923,6 +926,10 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 			double ccont_stand_pre_orig = 0.0;
 			double zero_to_ccont_pre = to.ccont();
 			double to_ccont_pre = 0.0;
+			double zero_gridcell_luc_nflux = gridcell.anflux_landuse_change;
+			double ncont_stand_pre_orig = 0.0;
+			double zero_to_ncont_pre = to.ncont();
+			double to_ncont_pre = 0.0;
 			bool single_stand = true;
 
 			if(fabs(donor_area - receiving_fraction) > 1.0e-10)
@@ -941,6 +948,9 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 			ccont_stand_pre_orig = stand.ccont();
 			to_ccont_pre = to.ccont();
 			double dif = ccont_stand_pre_orig - stand.ccont(0);
+			ncont_stand_pre_orig = stand.ncont();
+			to_ncont_pre = to.ncont();
+			double ndif = ncont_stand_pre_orig - stand.ncont(0);
 if(transfer_mode != 0) {
 			// Harvest and turnover of copies of individuals, add to transfer copy:
 			stand.firstobj();
@@ -1004,10 +1014,9 @@ if(transfer_mode != 1) {
 					to.transfer_nmass_litter_sap[indiv.pft.id] += cp.nmass_litter_sap * scale;
 					to.transfer_nmass_litter_heart[indiv.pft.id] += cp.nmass_litter_heart * scale;
 
-					to.transfer_anflux_harvest += cp.anflux_harvest * scale;
-
 					gridcell.acflux_landuse_change += cp.acflux_harvest * donor_area / (double)stand.nobj;
 					gridcell.acflux_landuse_change_lc[stand.landcover] += cp.acflux_harvest * donor_area / (double)stand.nobj;
+					gridcell.anflux_landuse_change += cp.anflux_harvest * donor_area / (double)stand.nobj;
 
 //					gridcell.acflux_landuse_change += -cp.debt_excess * donor_area / (double)stand.nobj;
 
@@ -1026,11 +1035,13 @@ if(transfer_mode == 0) {	// No transfer
 	//Test mode 1:
 	gridcell.acflux_landuse_change += stand.ccont() * donor_area;
 	gridcell.acflux_landuse_change_lc[stand.landcover] += stand.ccont() * donor_area;
+	gridcell.anflux_landuse_change += stand.ncont() * donor_area;
 }
 else if(transfer_mode == 1) {	// Transfer of soil only
 	//Test mode 2 (no harvest):
 	gridcell.acflux_landuse_change += (stand.ccont() - stand.ccont(0)) * donor_area;
 	gridcell.acflux_landuse_change_lc[stand.landcover] += (stand.ccont() - stand.ccont(0)) * donor_area;
+	gridcell.anflux_landuse_change += (stand.ncont() - stand.ncont(0)) * donor_area;
 }
 
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
@@ -1054,11 +1065,33 @@ else if(transfer_mode == 1) {	// Transfer of soil only
 			else {
 				dprintf("C balance = %.15f\n", (to.ccont() - zero_to_ccont_pre) / (donor_area / receiving_fraction) - ccont_stand_pre_orig + (gridcell.acflux_landuse_change - zero_gridcell_luc_cflux) / donor_area);
 			}
+
+			dprintf("\nNcont of donor stand %d before = %.15f\n", stand.id, ncont_stand_pre_orig);
+			if(single_stand)
+				dprintf("Ncont of donor stand copy before harvest = %.15f\n", to_ncont_pre);
+			else
+				dprintf("Ncont of donor stand copy before harvest = %.15f\n", (to_ncont_pre - zero_to_ncont_pre) / (donor_area / receiving_fraction));
+			dprintf("Living N of stand %d = %.15f\n", stand.id, ndif);
+			if(single_stand)
+				dprintf("Ncont of donor stand copy AFTER = %.15f\n", to.ncont());
+			else
+				dprintf("Ncont of donor stand copy AFTER = %.15f\n", (to.ncont() - zero_to_ncont_pre) / (donor_area / receiving_fraction));
+			dprintf("N lost to atmosphere = %.15f\n", (gridcell.anflux_landuse_change - zero_gridcell_luc_nflux) / donor_area);
+			if(single_stand) {
+				dprintf("N balance = %.15f\n", to.ncont() - ncont_stand_pre_orig + (gridcell.anflux_landuse_change - zero_gridcell_luc_nflux) / donor_area);
+			}
+			else {
+				dprintf("N balance = %.15f\n", (to.ncont() - zero_to_ncont_pre) / (donor_area / receiving_fraction) - ncont_stand_pre_orig + (gridcell.anflux_landuse_change - zero_gridcell_luc_nflux) / donor_area);
+			}
 */
+#endif
 			ccont_pre_orig_tot += ccont_stand_pre_orig * donor_area / receiving_fraction;
 			dif_tot += dif;
 			acflux_landuse_change_tot += (gridcell.acflux_landuse_change - zero_gridcell_luc_cflux) / receiving_fraction;
-#endif
+			ncont_pre_orig_tot += ncont_stand_pre_orig * donor_area / receiving_fraction;
+			ndif_tot += ndif;
+			anflux_landuse_change_tot += (gridcell.anflux_landuse_change - zero_gridcell_luc_nflux) / receiving_fraction;
+
 		}
 	}
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
@@ -1071,12 +1104,24 @@ else if(transfer_mode == 1) {	// Transfer of soil only
 		dprintf("C lost to atmosphere = %.15f\n", acflux_landuse_change_tot);
 		dprintf("C balance = %.15f\n", to.ccont() - ccont_pre_orig_tot + acflux_landuse_change_tot);
 	}
+
+	if(count > 1) {
+		dprintf("\nMultiple stands to transfer copy:\n");
+		dprintf("Ncont of donor stands before = %.15f\n", ncont_pre_orig_tot);
+		dprintf("Living N of stands = %.15f\n", ndif_tot);
+		dprintf("Ncont of donor transfer copy = %.15f\n", to.ccont());
+		dprintf("N lost = %.15f\n", anflux_landuse_change_tot);
+		dprintf("N balance = %.15f\n", to.ncont() - ncont_pre_orig_tot + anflux_landuse_change_tot);
+	}
 */
+#endif
 	if(count) {
 		if(fabs(to.ccont() - ccont_pre_orig_tot + acflux_landuse_change_tot) > 1.0e-10)
 			dprintf("WARNING: C balance in donor_stand_change() = %.15f\n", to.ccont() - ccont_pre_orig_tot + acflux_landuse_change_tot);
+		if(fabs(to.ncont() - ncont_pre_orig_tot + anflux_landuse_change_tot) > 1.0e-10)
+			dprintf("WARNING: N balance in donor_stand_change() = %.15f\n", to.ncont() - ncont_pre_orig_tot + anflux_landuse_change_tot);
 	}
-#endif
+
 }
 
 
@@ -1272,10 +1317,6 @@ if(transfer_mode != 0)
 					patch.soil.k_soilfast_mean = (patch.soil.k_soilfast_mean * old_frac + from.transfer_k_soilfast_mean * added_frac) / new_frac;
 					patch.soil.k_soilslow_mean = (patch.soil.k_soilslow_mean * old_frac + from.transfer_k_soilslow_mean * added_frac) / new_frac;
 
-					// add fluxes:
-//					patch.fluxes.report_flux(Fluxes::HARVESTC, from.transfer_acflux_harvest * added_frac / new_frac); // no harvest C here anymore, goes to gridcell.acflux_harvest instead
-					patch.fluxes.report_flux(Fluxes::HARVESTN, from.transfer_anflux_harvest * added_frac / new_frac);
-
 					double aaet_5_cp[NYEARAAET] = {0.0};
 					patch.aaet_5.to_array(aaet_5_cp);
 					for(unsigned int i=0;i<NYEARAAET;i++)
@@ -1303,13 +1344,15 @@ if(transfer_mode != 0)
 if(transfer_mode == 1 || transfer_mode == 2 && scaling_mode == 0) {
 	gridcell.acflux_landuse_change -= (stand.ccont() - stand.ccont(0)) * added_frac; // living C
 	gridcell.acflux_landuse_change_lc[stand.landcover] -= (stand.ccont() - stand.ccont(0)) * added_frac;
-//	N and water not balanced in these tests !
+	gridcell.anflux_landuse_change -= (stand.ncont() - stand.ncont(0)) * added_frac; // living N
+//	water not balanced in these tests !
 }
 			}
 if(transfer_mode == 0) {
 	gridcell.acflux_landuse_change -= stand.ccont() * added_frac;
 	gridcell.acflux_landuse_change_lc[stand.landcover] -= stand.ccont() * added_frac;
-//	N and water not balanced in these tests !
+	gridcell.anflux_landuse_change -= stand.ncont() * added_frac;
+//	water not balanced in these tests !
 }
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 			if(fabs(ccont_stand_post - (ccont_stand_pre * old_frac + from.ccont() * added_frac) / new_frac) > 1.0e-12)
@@ -1859,13 +1902,24 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 	print_fractions(landcoverfrac_change, lc_frac_transfer, st_frac_transfer);
-
+#endif
 	double ccont_tot_1 = 0.0;
 	for(unsigned int i=0; i<gridcell.size(); i++) {
 		Stand& stand = gridcell[i];
 		ccont_tot_1 += stand.ccont(stand.scale_LC_change) * stand.get_gridcell_fraction(); // fluxer är fortfarande 0 här
 	}
+
+	double ncont_tot_1 = 0.0;
+	double nflux_tot_1 = 0.0;
+	for(unsigned int i=0; i<gridcell.size(); i++) {
+		Stand& stand = gridcell[i];
+		ncont_tot_1 += stand.ncont(stand.scale_LC_change) * stand.get_gridcell_fraction();
+		nflux_tot_1 += stand.nflux() * stand.get_gridcell_fraction();
+	}
+	nflux_tot_1 += gridcell.anflux_landuse_change + gridcell.anflux_harvest_slow; // dessa fluxer är fortfarande 0 här
+#ifdef PRINT_GROSS_LC_CHANGE_INFO
 	dprintf("\nYear %d: ccont_tot before luc=%.15f\n", date.year, ccont_tot_1);
+	dprintf("\nYear %d: ncont_tot before luc=%.15f\n", date.year, ncont_tot_1);
 #endif
 	// check how many stands of each stand type exist
 	// identify which stands to reduce in area
@@ -2209,20 +2263,20 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 			delete[] transfer_st_from;
 	}
 
-#ifdef PRINT_GROSS_LC_CHANGE_INFO
+
 	double ccont_tot = 0.0;
 	double cflux_tot = 0.0;
-	dprintf("\n");
+
 	for(unsigned int i=0; i<gridcell.size(); i++) {
 		Stand& stand = gridcell[i];
 
 		double ccont_stand = stand.ccont(stand.scale_LC_change);
 		ccont_tot += ccont_stand * stand.get_gridcell_fraction();
-
+#ifdef PRINT_GROSS_LC_CHANGE_INFO
 		if(stand.landcover == NATURAL) 
-			dprintf("Year %d: natural stand %d ccont=%.15f; age=%d, frac=%f", date.year, stand.id, ccont_stand, date.year - stand.first_year, stand.get_gridcell_fraction());
+			dprintf("\nYear %d: natural stand %d ccont=%.15f; age=%d, frac=%f", date.year, stand.id, ccont_stand, date.year - stand.first_year, stand.get_gridcell_fraction());
 		else
-			dprintf("Year %d: stand %d st %d, ccont=%.15f; age=%d, frac=%f", date.year, stand.id, stand.stid, ccont_stand, date.year - stand.first_year, stand.get_gridcell_fraction());
+			dprintf("\nYear %d: stand %d st %d, ccont=%.15f; age=%d, frac=%f", date.year, stand.id, stand.stid, ccont_stand, date.year - stand.first_year, stand.get_gridcell_fraction());
 		if(stand.gross_frac_decrease)
 			dprintf(", red %f", stand.gross_frac_decrease - stand.cloned_fraction);
 		else
@@ -2230,31 +2284,45 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		if(stand.gross_frac_increase)
 			dprintf(", inc %f", stand.gross_frac_increase + stand.cloned_fraction);
 		dprintf("\n");
+#endif
 	}
-
 	cflux_tot += gridcell.acflux_landuse_change + gridcell.acflux_harvest_slow;
-
+#ifdef PRINT_GROSS_LC_CHANGE_INFO
 	dprintf("\nYear %d: ccont_tot after luc=%.15f\n", date.year, ccont_tot);
 	dprintf("Year %d: cflux_tot after luc=%.15f\n", date.year, cflux_tot);
 	dprintf("Year %d: total C after luc=%.15f\n", date.year, ccont_tot + cflux_tot);
 	dprintf("Year %d: c balance after luc=%.15f\n\n", date.year, cflux_tot + ccont_tot - ccont_tot_1);
+#endif
 	if(fabs(cflux_tot + ccont_tot - ccont_tot_1) > 1.0e-12)
 		dprintf("WARNING ! C balance after lcc off\n");
+
+	double ncont_tot = 0.0;
+	double nflux_tot = 0.0;
 
 	for(unsigned int i=0; i<gridcell.size(); i++) {
 		Stand& stand = gridcell[i];
 
-		double ncont_stand = 0.0;
-		for(unsigned int j=0; j<stand.npatch(); j++) {
-			Patch& patch = stand[j];
-			ncont_stand += patch.ncont() / stand.npatch();
-		}
+		double ncont_stand = stand.ncont(stand.scale_LC_change);
+		ncont_tot += ncont_stand * stand.get_gridcell_fraction();
+#ifdef PRINT_GROSS_LC_CHANGE_INFO
 		if(stand.landcover == NATURAL) 
-			dprintf("Year %d: natural stand %d ncont=%.15f\n", date.year, stand.id, ncont_stand);
+			dprintf("\nYear %d: natural stand %d ncont=%.15f\n", date.year, stand.id, ncont_stand);
 		else
-			dprintf("Year %d: stand %d st %d, ncont=%.15f\n", date.year, stand.id, stand.stid, ncont_stand);
-	}
+			dprintf("\nYear %d: stand %d st %d, ncont=%.15f\n", date.year, stand.id, stand.stid, ncont_stand);
 #endif
+		nflux_tot += stand.nflux() * stand.get_gridcell_fraction();
+	}
+
+	nflux_tot_1 = nflux_tot;	// Disregard fluxes not already reset this year and the associated scaling problems 
+	nflux_tot += gridcell.anflux_landuse_change + gridcell.anflux_harvest_slow;
+#ifdef PRINT_GROSS_LC_CHANGE_INFO
+	dprintf("\nYear %d: ncont_tot after luc=%.15f\n", date.year, ncont_tot);
+	dprintf("Year %d: nflux from luc=%.15f\n", date.year, gridcell.anflux_landuse_change + gridcell.anflux_harvest_slow);
+	dprintf("Year %d: total N after luc=%.15f\n", date.year, ncont_tot + nflux_tot);
+	dprintf("Year %d: N balance after luc=%.15f\n\n", date.year, nflux_tot - nflux_tot_1 + ncont_tot - ncont_tot_1);
+#endif
+	if(fabs(nflux_tot - nflux_tot_1 + ncont_tot - ncont_tot_1) > 1.0e-12)
+		dprintf("WARNING ! N balance after lcc off\n");
 
 	if(st_frac_transfer)
 		delete[] st_frac_transfer;
@@ -2286,9 +2354,6 @@ void getmanagement(Gridcell& gridcell, InputModule* input_module) {
 void crop_nfert(Patch& patch) {
 
 	Gridcell& gridcell = patch.stand.get_gridcell();
-
-	if (date.day == 0)
-		patch.anfert = 0.0;
 
 	pftlist.firstobj();
 	// Loop through PFTs
@@ -4437,6 +4502,7 @@ void growth_crop_daily(Patch& patch) {
 	if(date.day == 0)
 		patch.nharv = 0;
 	patch.isharvestday = false;
+	double nharv_today = 0;
 
 	Vegetation& vegetation = patch.vegetation;
 	vegetation.firstobj();
@@ -4523,8 +4589,13 @@ void growth_crop_daily(Patch& patch) {
 				if(date.day == ppftcrop.sendate)
 					cropindiv.cmass_leaf_sen = cropindiv.grs_cmass_leaf;
 
-				// Check that no plant cmass is negative, if so, zero cmass and correct C fluxes
-				indiv.check_C_mass();
+				// Check that no plant cmass or nmass is negative, if so, and correct fluxes
+				double negative_cmass = indiv.check_C_mass();
+				if(negative_cmass > 10e-15)
+					dprintf("Year %d day %d Stand %d indiv %d: Negative main crop C mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, negative_cmass);
+				double negative_nmass = indiv.check_N_mass();
+				if(negative_nmass > 10e-15)
+					dprintf("Year %d day %d Stand %d indiv %d: Negative main crop N mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, negative_nmass);
 			}
 			else if(date.day == ppftcrop.hdate) {
 
@@ -4537,12 +4608,17 @@ void growth_crop_daily(Patch& patch) {
 				cropindiv.harv_cmass_agpool += cropindiv.grs_cmass_agpool;
 				cropindiv.harv_cmass_stem += cropindiv.grs_cmass_stem;
 
+				cropindiv.harv_nmass_root += indiv.nmass_root;
+				cropindiv.harv_nmass_ho += cropindiv.nmass_ho;
+				cropindiv.harv_nmass_leaf += indiv.nmass_leaf;
+				cropindiv.harv_nmass_agpool += cropindiv.nmass_agpool;
+				// dead_leaf to be addad
+
 				if(ppftcrop.nharv == 1)
 					cropindiv.cmass_ho_harvest[0] = cropindiv.grs_cmass_ho;
 				else if(ppftcrop.nharv == 2)
 					cropindiv.cmass_ho_harvest[1] = cropindiv.grs_cmass_ho;
 
-				patch.nharv++;
 				patch.isharvestday = true;
 
 				if(indiv.has_daily_turnover()) {
@@ -4551,6 +4627,7 @@ void growth_crop_daily(Patch& patch) {
 					harvest_crop(indiv, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass, true);
 					patch.is_litter_day = true;
 				}
+				patch.nharv++;
 
 				cropindiv.grs_cmass_plant = 0.0;
 				cropindiv.grs_cmass_root = 0.0;
@@ -4613,7 +4690,10 @@ void growth_crop_daily(Patch& patch) {
 				cropindiv.ycmass_leaf += cropindiv.dcmass_leaf;
 
 				// Check that no plant cmass is negative, if so, zero cmass and correct C fluxes
-				indiv.check_C_mass();
+				double negative_cmass = indiv.check_C_mass();
+//				if(negative_cmass > 10e-15)
+//					dprintf("Year %d day %d Stand %d indiv %d: Negative intercrop C mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, negative_cmass);
+
 			}
 			else if(date.day == patch.pft[patch.stand.pftid].get_cropphen()->eicdate) {
 
@@ -4623,9 +4703,16 @@ void growth_crop_daily(Patch& patch) {
 				cropindiv.harv_cmass_ho += cropindiv.grs_cmass_ho;		
 				cropindiv.harv_cmass_agpool += cropindiv.grs_cmass_agpool;
 
+				cropindiv.harv_nmass_root += indiv.nmass_root;
+				cropindiv.harv_nmass_ho += cropindiv.nmass_ho;
+				cropindiv.harv_nmass_leaf += indiv.nmass_leaf;
+				cropindiv.harv_nmass_agpool += cropindiv.nmass_agpool;
+
 				ppftcrop.nharv++;
-				patch.nharv++;
 				patch.isharvestday = true;
+				nharv_today++;
+				if(nharv_today > 1)	// In case of both C3 and C4 growing
+					patch.nharv--;
 
 				if(indiv.has_daily_turnover()) {
 					if(patch.stand.get_gridcell().LC_updated && patchpft.cropphen->nharv == 1)
@@ -4639,6 +4726,7 @@ void growth_crop_daily(Patch& patch) {
 					cropindiv.grs_cmass_leaf = 0.0;
 					cropindiv.grs_cmass_agpool = 0.0;
 				}
+				patch.nharv++;
 
 				cropindiv.grs_cmass_plant = cropindiv.grs_cmass_root + cropindiv.grs_cmass_leaf;
 			}
@@ -4653,9 +4741,16 @@ void growth_crop_daily(Patch& patch) {
 				cropindiv.harv_cmass_ho += cropindiv.grs_cmass_ho;		
 				cropindiv.harv_cmass_agpool += cropindiv.grs_cmass_agpool;
 
+				cropindiv.harv_nmass_root += indiv.nmass_root;
+				cropindiv.harv_nmass_ho += cropindiv.nmass_ho;
+				cropindiv.harv_nmass_leaf += indiv.nmass_leaf;
+				cropindiv.harv_nmass_agpool += cropindiv.nmass_agpool;
+
 				ppftcrop.nharv++;
-				patch.nharv++;
 				patch.isharvestday = true;
+				nharv_today++;
+				if(nharv_today > 1)	// In case of both C3 and C4 growing
+					patch.nharv--;
 
 				if(indiv.has_daily_turnover()) {
 					if(patch.stand.get_gridcell().LC_updated && patchpft.cropphen->nharv == 1)
@@ -4669,6 +4764,7 @@ void growth_crop_daily(Patch& patch) {
 					cropindiv.grs_cmass_ho = 0.0;
 					cropindiv.grs_cmass_leaf = 0.0;
 				}
+				patch.nharv++;
 
 				cropindiv.grs_cmass_plant = cropindiv.grs_cmass_root + cropindiv.grs_cmass_leaf;
 				cropindiv.grs_cmass_agpool = 0.0;
@@ -4844,9 +4940,9 @@ void harvest_wood(Harvest_CN& i, Pft& pft, bool alive, double frac_cut, double h
 		i.cmass_root *= (1.0 - frac_cut);
 	}
 
-	i.nmass_root *= (1.0 - frac_cut);
 	i.nmass_litter_root += i.nmass_root * frac_cut;
 	i.nmass_litter_root += (i.nstore_labile + i.nstore_longterm) * frac_cut;
+	i.nmass_root *= (1.0 - frac_cut);
 	i.nstore_labile *= (1.0 - frac_cut);
 	i.nstore_longterm *= (1.0 - frac_cut);
 
@@ -4911,6 +5007,8 @@ void harvest_wood(Harvest_CN& i, Pft& pft, bool alive, double frac_cut, double h
 		i.cmass_debt *= (1.0 - frac_cut);		
 
 		//Nitrogen:
+
+		harvest = 0.0;
 
 		// harvested products
 		harvest += harv_eff * stem_frac * (i.nmass_sap + i.nmass_heart) * frac_cut;

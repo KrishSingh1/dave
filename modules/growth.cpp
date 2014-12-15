@@ -1255,7 +1255,9 @@ void scale_indiv(Individual& indiv, bool scale_grsC)
 				indiv.cropindiv->grs_cmass_dead_leaf -= indiv.cropindiv->grs_cmass_dead_leaf_luc * (1.0 - scale);
 				indiv.cropindiv->grs_cmass_stem -= indiv.cropindiv->grs_cmass_stem_luc * (1.0 - scale);
 
-				indiv.check_C_mass();
+				double negative_cmass = indiv.check_C_mass();
+//				if(negative_cmass > 10e-15)
+//					dprintf("Year %d day %d Stand %d indiv %d: Negative C mass in scale_indiv: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, negative_cmass);
 			}
 			else {
 				indiv.cropindiv->grs_cmass_leaf *= scale;
@@ -1283,22 +1285,27 @@ void scale_indiv(Individual& indiv, bool scale_grsC)
 	}
 
 	// Deduct individual N present day 0 this year in stands that have increased in area this year, scaled by (1 - old area/new area):
-	indiv.nmass_root = max(0.0, indiv.nmass_root - indiv.nmass_root_luc * (1.0 - scale));	
-	indiv.nmass_leaf = max(0.0, indiv.nmass_leaf - indiv.nmass_leaf_luc * (1.0 - scale));
-	indiv.nmass_heart = max(0.0, indiv.nmass_heart - indiv.nmass_heart_luc * (1.0 - scale));	
-	indiv.nmass_sap = max(0.0, indiv.nmass_sap - indiv.nmass_sap_luc * (1.0 - scale));
+	indiv.nmass_root = indiv.nmass_root - indiv.nmass_root_luc * (1.0 - scale);	
+	indiv.nmass_leaf = indiv.nmass_leaf - indiv.nmass_leaf_luc * (1.0 - scale);
+	indiv.nmass_heart = indiv.nmass_heart - indiv.nmass_heart_luc * (1.0 - scale);	
+	indiv.nmass_sap = indiv.nmass_sap - indiv.nmass_sap_luc * (1.0 - scale);
 
 	if(indiv.pft.landcover == CROPLAND) {
-		indiv.cropindiv->nmass_agpool = max(0.0, indiv.cropindiv->nmass_agpool - indiv.cropindiv->nmass_agpool_luc * (1.0 - scale));
-		indiv.cropindiv->nmass_ho = max(0.0, indiv.cropindiv->nmass_ho - indiv.cropindiv->nmass_ho_luc * (1.0 - scale));
-		indiv.cropindiv->nmass_dead_leaf = max(0.0, indiv.cropindiv->nmass_ho - indiv.cropindiv->nmass_dead_leaf_luc * (1.0 - scale));
+		indiv.cropindiv->nmass_agpool = indiv.cropindiv->nmass_agpool - indiv.cropindiv->nmass_agpool_luc * (1.0 - scale);
+		indiv.cropindiv->nmass_ho = indiv.cropindiv->nmass_ho - indiv.cropindiv->nmass_ho_luc * (1.0 - scale);
+		indiv.cropindiv->nmass_dead_leaf =indiv.cropindiv->nmass_dead_leaf - indiv.cropindiv->nmass_dead_leaf_luc * (1.0 - scale);
 	}
 
 	if(indiv.nstore_labile > indiv.nstore_labile_luc * (1.0 - scale))
 		indiv.nstore_labile -= indiv.nstore_labile_luc * (1.0 - scale);
 	else
 		indiv.nstore_longterm -= indiv.nstore_labile_luc * (1.0 - scale);	
-	indiv.nstore_longterm = max(0.0, indiv.nstore_longterm - indiv.nstore_longterm_luc * (1.0 - scale));
+	indiv.nstore_longterm = indiv.nstore_longterm - indiv.nstore_longterm_luc * (1.0 - scale);
+
+	double negative_nmass = indiv.check_N_mass();
+//	if(negative_nmass > 10e-15)
+//		dprintf("Year %d day %d Stand %d indiv %d: Negative N mass in scale_indiv: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, negative_nmass);
+
 }
 
 /// GROWTH

@@ -126,6 +126,27 @@ struct landcover_change_transfer {
 		return ccont;
 	}
 
+	double ncont() {
+
+		double ncont = transfer_anflux_harvest;
+
+		for(int i=0; i<npft; i++) {
+			ncont += transfer_nmass_litter_leaf[i];
+			ncont += transfer_nmass_litter_sap[i];
+			ncont += transfer_nmass_litter_heart[i];
+			ncont += transfer_nmass_litter_root[i];
+			ncont += transfer_harvested_products_slow_nmass[i];
+		}
+
+		for(int i=0; i<NSOMPOOL-1; i++)
+			ncont += transfer_sompool[i].nmass;
+
+		ncont += transfer_nmass_avail;
+		ncont += transfer_snowpack_nmass;
+
+		return ncont;
+	}
+
 	// Adds non-living C, N and water from a stand
 	void add_from_stand(Stand& stand, double scale) {
 
@@ -483,9 +504,10 @@ struct Harvest_CN {
 		ppft.nmass_litter_sap = nmass_litter_sap;
 		ppft.nmass_litter_heart = nmass_litter_heart;
 
-		if(!lc_change)
+		if(!lc_change) {
 			patch.fluxes.report_flux(Fluxes::HARVESTC, acflux_harvest);	// Put into gridcell.acflux_landuse_change instead at land use change
-		patch.fluxes.report_flux(Fluxes::HARVESTN, anflux_harvest);
+			patch.fluxes.report_flux(Fluxes::HARVESTN, anflux_harvest);	// Put into gridcell.anflux_landuse_change instead at land use change
+		}
 
 //		indiv.report_flux(Fluxes::NPP, debt_excess);
 //		indiv.report_flux(Fluxes::RA, -debt_excess);

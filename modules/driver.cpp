@@ -810,6 +810,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		// reset gridcell-level harvest fluxes
 		gridcell.acflux_landuse_change=0.0;
 		gridcell.acflux_harvest_slow=0.0;
+		gridcell.anflux_landuse_change=0.0;
+		gridcell.anflux_harvest_slow=0.0;
 
 		for(int i=0;i<NLANDCOVERTYPES;i++) {
 			gridcell.acflux_landuse_change_lc[i]=0.0;
@@ -836,6 +838,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 		// Belongs perhaps in dailyaccounting_patch, but needs to be done before 
 		// landcover_dynamics because harvest flux is generated there.
+		// N-flux variables moved here for easier balance accounting
 		Gridcell::iterator gc_itr = gridcell.begin();
 		while (gc_itr != gridcell.end()) {
 			Stand& stand = *gc_itr;
@@ -845,6 +848,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 				Patch& patch = stand.getobj();
 
 				patch.fluxes.reset();
+				patch.soil.anfix = 0.0;
+				patch.anfert = 0.0;
 				stand.nextobj();
 			}
 			
@@ -955,7 +960,6 @@ void dailyaccounting_patch_lc(Patch& patch) {
 				Pft& pft = pftlist.getobj();
 				Patchpft& patchpft = patch.pft[pft.id];
 
-//				patch.fluxes.report_flux(Fluxes::HARVESTC, patchpft.harvested_products_slow*pft.turnover_harv_prod);
 				patch.stand.get_gridcell().acflux_harvest_slow+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.get_gridcell_fraction()/(double)patch.stand.nobj;
 				// flux from slow pool in receiving landcover after land use change (1)
 				patch.stand.get_gridcell().acflux_harvest_slow_lc[patch.stand.landcover]+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.get_gridcell_fraction()/(double)patch.stand.nobj;
@@ -963,7 +967,7 @@ void dailyaccounting_patch_lc(Patch& patch) {
 //				patch.stand.gridcell.acflux_harvest_slow_lc[pft.landcover]+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.get_gridcell_fraction()/(double)patch.stand.nobj;
 				patchpft.harvested_products_slow = patchpft.harvested_products_slow * (1 - pft.turnover_harv_prod);
 
-				patch.fluxes.report_flux(Fluxes::HARVESTN, patchpft.harvested_products_slow_nmass*pft.turnover_harv_prod);
+				patch.stand.get_gridcell().anflux_harvest_slow += patchpft.harvested_products_slow_nmass * pft.turnover_harv_prod * patch.stand.get_gridcell_fraction() / (double)patch.stand.nobj;
 				patchpft.harvested_products_slow_nmass = patchpft.harvested_products_slow_nmass * (1 - pft.turnover_harv_prod);
 
 				pftlist.nextobj();
@@ -1048,6 +1052,7 @@ void dailyaccounting_patch(Patch& patch) {
 		soil.mtemp = mean(soil.dtemp,date.ndaymonth[date.month]);
 
 	patch.is_litter_day = false;
+	patch.isharvestday = false;
 }
 
 

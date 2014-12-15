@@ -203,6 +203,7 @@ class Date;
 class Stand;
 class Patch;
 class Vegetation;
+class Individual;
 class Gridcell;
 class Patchpft;
 
@@ -418,6 +419,7 @@ class MassBalance : public Serializable  {
 
 	double ncont;
 	double ncont_zero;
+	double ncont_zero_scaled;
 	double nflux;
 	double nflux_zero;
 
@@ -426,9 +428,15 @@ public:
 
 		start_year = 10000000;
 		ccont = 0.0;
+		ccont_zero = 0.0;
+		ccont_zero_scaled = 0.0;
 		cflux = 0.0;
+		cflux_zero = 0.0;
 		ncont = 0.0;
+		ncont_zero = 0.0;
+		ncont_zero_scaled = 0.0;
 		nflux = 0.0;
+		nflux_zero = 0.0;
 	}
 
 	MassBalance(int start_yearX) {
@@ -442,8 +450,14 @@ public:
 
 	void init(Gridcell& gridcell);
 	void check(Gridcell& gridcell);
+	void init_indiv(Individual& indiv);
+	bool check_indiv(Individual& indiv, bool check_harvest = false);
+	bool check_indiv_C(Individual& indiv, bool check_harvest = false);
+	bool check_indiv_N(Individual& indiv, bool check_harvest = false);
 	void init_patch(Patch& patch);
 	bool check_patch(Patch& patch, bool check_harvest = false);
+	bool check_patch_C(Patch& patch, bool check_harvest = false);
+	bool check_patch_N(Patch& patch, bool check_harvest = false);
 	void check_year(Gridcell& gridcell);
 	void check_period();
 
@@ -1866,6 +1880,7 @@ public:
 	double cmass_heart;
 	/// C "debt" (retrospective storage) (kgC/m2)
 	double cmass_debt;
+	double cmass_tot_luc;
 
 	double cmass_leaf_post_turnover;
 	double cmass_root_post_turnover;
@@ -1888,6 +1903,7 @@ public:
 	double nmass_sap_luc;
 	/// heart N biomass on modelled area basis on first day of land use change year
 	double nmass_heart_luc;	
+	double nmass_tot_luc;
 
 	/// foliar projective cover (FPC) under full leaf cover as fraction of modelled area
 	double fpc;
@@ -2117,11 +2133,15 @@ public:
 		return nmass_sap + nmass_heart;
 	}
 
+	double ccont(double scale_indiv = 1.0, bool luc = false) const;
+	double ncont(double scale_indiv = 1.0, bool luc = false) const;
+
 	/// Whether grass growth is uninterrupted by crop growth.
 	bool continous_grass() const;
 
 	/// Checks whether any grs_cmass part is negative, in which case it is zeroed and fluxes are corrected.
-	void check_C_mass();
+	double check_C_mass();
+	double check_N_mass();
 
 	/// Save cmass-values on first day of the year of land cover change in expanding stands
 	void save_cmass_luc();
@@ -3503,6 +3523,10 @@ public:
 	double acflux_harvest_slow;
 	/// Gridcell-level flux from harvest associated with landcover change
 	double acflux_landuse_change;
+	/// Gridcell-level N flux from slow harvested products
+	double anflux_harvest_slow;
+	/// Gridcell-level N flux from harvest associated with landcover change
+	double anflux_landuse_change;
 	/// Landcover-level flux from slow harvested products (donating landcover)
 	double acflux_harvest_slow_lc[NLANDCOVERTYPES];	
 	/// Landcover-level flux from harvest associated with landcover change (donating landcover)
@@ -3542,6 +3566,8 @@ public:
 		memset(landcoverfrac_old, 0, sizeof(double) * NLANDCOVERTYPES);
 		acflux_harvest_slow=0.0;
 		acflux_landuse_change=0.0;
+		anflux_harvest_slow=0.0;
+		anflux_landuse_change=0.0;
 		memset(acflux_harvest_slow_lc, 0, sizeof(double)*NLANDCOVERTYPES);
 		memset(acflux_landuse_change_lc, 0, sizeof(double)*NLANDCOVERTYPES);
 

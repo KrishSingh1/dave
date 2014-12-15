@@ -895,6 +895,7 @@ void transfer_litter(Patch& patch) {
 
 			pft.litter_sap -= pft.litter_sap_year / 12.0;
 			pft.nmass_litter_sap -= pft.nmass_litter_sap_year / 12.0;
+			soil.sompool[SURFFWD].nmass += nmass_litter_sap;
 
 			if (!negligible(litter_sap)) {
 
@@ -908,7 +909,6 @@ void transfer_litter(Patch& patch) {
 
 				// Add to structural pool and update lignin fraction in pool
 				soil.sompool[SURFFWD].cmass += litter_sap;
-				soil.sompool[SURFFWD].nmass += nmass_litter_sap;
 
 				// Save litter input for equilsom()
 				if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
@@ -939,6 +939,7 @@ void transfer_litter(Patch& patch) {
 
 			pft.litter_heart -= pft.litter_heart_year / 12.0;
 			pft.nmass_litter_heart -= pft.nmass_litter_heart_year / 12.0;
+			soil.sompool[SURFCWD].nmass += nmass_litter_heart;
 
 			if (!negligible(litter_heart)) {
 
@@ -952,7 +953,6 @@ void transfer_litter(Patch& patch) {
 
 				// Add to structural pool and update lignin fraction in pool
 				soil.sompool[SURFCWD].cmass += litter_heart;
-				soil.sompool[SURFCWD].nmass += nmass_litter_heart;
 
 				// Save litter input for equilsom()
 				if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
@@ -1073,11 +1073,6 @@ void soilnadd(Patch& patch) {
 
 	Soil& soil = patch.soil;
 
-	if (date.day == 0) {
-
-		soil.anfix = 0.0;
-	}
-
 	// Nitrogen deposition and fertilization input to the soil (calculated in snow_ninput())
 	soil.nmass_avail += soil.ninput;
 
@@ -1157,7 +1152,7 @@ void vegetation_n_uptake(Patch& patch) {
 		indiv.nmass_root      += indiv.rootfndemand  * nuptake_day;
 		indiv.nmass_sap       += indiv.sapfndemand   * nuptake_day;
 		if(indiv.pft.phenology == CROPGREEN && ifnlim_lc[CROPLAND])
-			indiv.cropindiv->nmass_agpool+= indiv.storefndemand * nuptake_day;
+			indiv.cropindiv->nmass_agpool += indiv.storefndemand * nuptake_day;
 		else
 			indiv.nstore_longterm += indiv.storefndemand * nuptake_day;
 		soil.nmass_avail      -= nuptake_day;

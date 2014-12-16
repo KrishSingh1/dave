@@ -729,7 +729,7 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 
 				StandType& st = stlist[from];
 				if(st.landcover == i) {
-					abs_frac_change_sum += abs(st.frac_change);
+					abs_frac_change_sum += fabs(st.frac_change);
 					frac_change_sum += st.frac_change;
 					if(st.frac_change < 0.0)
 						donor_sum -= st.frac_change;
@@ -737,7 +737,7 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 						receptor_sum += st.frac_change;
 				}
 			}
-			if(abs_frac_change_sum != abs(frac_change_sum)) {
+			if(abs_frac_change_sum != fabs(frac_change_sum)) {
 
 				double intraLCtransferx = min(donor_sum, receptor_sum);
 				net_lc_frac_transfer[i][i] += intraLCtransferx;
@@ -1628,7 +1628,7 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 	for(int i=0; i<NLANDCOVERTYPES; i++)
 		lc_frac_sum += gridcell.landcoverfrac[i];
 
-	if(abs(lc_frac_sum - 1.0)  > 1.0e-15) {
+	if(fabs(lc_frac_sum - 1.0)  > 1.0e-15) {
 		dprintf("\nCheck 1: Year %d: landcover fraction sum: %.15f", date.year, lc_frac_sum);
 		error = true;
 	}
@@ -1638,7 +1638,7 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 	double st_frac_sum = 0.0;
 	for(int i=0; i<nst; i++)
 		st_frac_sum += stlist[i].frac;
-	if(abs(st_frac_sum - 1.0)  > 1.0e-14) {
+	if(fabs(st_frac_sum - 1.0)  > 1.0e-14) {
 		dprintf("\nCheck 2: Year %d: stand type fraction sum: %.15f", date.year, st_frac_sum);
 		error = true;
 	}
@@ -1658,10 +1658,10 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 
 	for(int i=0; i<NLANDCOVERTYPES; i++) {
 
-		if(abs(test_lc_change[i] - landcoverfrac_change[i]) > 1.0e-15) {
+		if(fabs(test_lc_change[i] - landcoverfrac_change[i]) > 1.0e-15) {
 
 			dprintf("\nCheck 3: Year %d: lc_change_array sum not equal to landcoverfrac_change value for landcover %d\n", date.year, i);
-			dprintf("dif=%.15f", abs(test_lc_change[i] - landcoverfrac_change[i]));
+			dprintf("dif=%.15f", fabs(test_lc_change[i] - landcoverfrac_change[i]));
 			error = true;
 		}
 	}
@@ -1685,9 +1685,9 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 
 		StandType& st = stlist[i];
 
-		if(abs(test_st_change[i] - st.frac_change) > 1.0e-15) {
+		if(fabs(test_st_change[i] - st.frac_change) > 1.0e-15) {
 			dprintf("\nCheck 4: Year %d: st_change_array sum not equal to st.frac_change value for stand type %d\n", date.year, i);
-			dprintf("dif=%.15f", abs(test_st_change[i] - st.frac_change));
+			dprintf("dif=%.15f", fabs(test_st_change[i] - st.frac_change));
 			error = true;
 		}
 	}
@@ -1735,9 +1735,9 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 
 		for(int i=0; i<NLANDCOVERTYPES; i++) {
 		
-			if(abs(lc_change[i] - landcoverfrac_change[i]) > 1.0e-15) {
+			if(fabs(lc_change[i] - landcoverfrac_change[i]) > 1.0e-15) {
 				dprintf("\nCheck 6: Year %d: st_change_array LC sum not equal to LC value for %d\n", date.year, i);
-				dprintf("dif=%.15f", abs(lc_change[i] - landcoverfrac_change[i]));
+				dprintf("dif=%.15f", fabs(lc_change[i] - landcoverfrac_change[i]));
 				error = true;
 			}
 		}
@@ -1746,9 +1746,9 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 
 			for(int to=0; to<NLANDCOVERTYPES; to++) {
 
-				if(abs(lc_change_arr[from][to] - lc_change_array[from][to]) > 1.0e-15) {
+				if(fabs(lc_change_arr[from][to] - lc_change_array[from][to]) > 1.0e-15) {
 					dprintf("\nCheck 7: Year %d: lc_change_arr sum not equal to lc_change_array value for %d, %d\n", date.year, from, to);
-					dprintf("dif=%.15f", abs(lc_change_arr[from][to] - lc_change_array[from][to]));
+					dprintf("dif=%.15f", fabs(lc_change_arr[from][to] - lc_change_array[from][to]));
 					error = true;
 				}
 			}
@@ -1783,9 +1783,9 @@ bool check_fractions2(Gridcell& gridcell, double* st_change_array) {
 					test_st_change[to] += stand.transfer_area_st[to];
 			}
 
-			if(abs(test_st_change[to] - st_change_array[index(from, to)]) > 1.0e-15) {
+			if(fabs(test_st_change[to] - st_change_array[index(from, to)]) > 1.0e-15) {
 				dprintf("\nCheck 8: Year %d: stand transfer area sum not equal to stand type value for stand types %d and %d\n", date.year, from, to);
-				dprintf("dif=%.15f", abs(test_st_change[to] - st_change_array[index(from, to)]));
+				dprintf("dif=%.15f", fabs(test_st_change[to] - st_change_array[index(from, to)]));
 				error = true;
 			}
 
@@ -1800,9 +1800,9 @@ bool check_fractions2(Gridcell& gridcell, double* st_change_array) {
 
 		Stand& stand = gridcell[i];
 
-		if(abs(stand.frac_change - (stand.gross_frac_increase - stand.gross_frac_decrease)) > 1.0e-15) {
+		if(fabs(stand.frac_change - (stand.gross_frac_increase - stand.gross_frac_decrease)) > 1.0e-15) {
 			dprintf("\nCheck 9: Year %d: frac_change is not equal to gross_frac_increase + gross_frac_decrease for stand %d\n", date.year, stand.id);
-			dprintf("dif=%.15f\n", abs(stand.frac_change - (stand.gross_frac_increase - stand.gross_frac_decrease)));
+			dprintf("dif=%.15f\n", fabs(stand.frac_change - (stand.gross_frac_increase - stand.gross_frac_decrease)));
 			dprintf("frac_change=%.15f, gross_frac_increase=%.15f, gross_frac_decrease=%.15f", stand.frac_change, stand.gross_frac_increase, stand.gross_frac_decrease);
 			error = true;
 		}

@@ -596,7 +596,7 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 					gcpft.hlimitdate_default=gcpft.pft.hlimitdatesh;
 				}
 				// double cropping in China and Japan.
-				if (!strncmp(gcpft.pft.name,"TrRi", strlen("TrRi")) && gridcell.get_lon()>=60.0 && gridcell.get_lat()<=30.0)
+				if (!strncmp((char*)gcpft.pft.name,"TrRi", strlen("TrRi")) && gridcell.get_lon()>=60.0 && gridcell.get_lat()<=30.0)
 					gcpft.multicrop=true;
 			}
 		}

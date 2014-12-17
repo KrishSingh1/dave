@@ -1560,7 +1560,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 					if (ppft.cropphen->growingdays_y == 1)
 						ppft.wscal_mean = ppft.wscal;
 					else
-						ppft.wscal_mean = ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / (ppft.cropphen->growingdays_y + 1);
+						ppft.wscal_mean = max(0.0, ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / (ppft.cropphen->growingdays_y + 1));
 				}
 			}
 		}

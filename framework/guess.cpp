@@ -2156,14 +2156,14 @@ void MassBalance::check_year(Gridcell& gridcell) {
 					dprintf("C pool change: %.5f\n", ccont_year - ccont);
 					dprintf("C flux: %.5f\n",  cflux_year);
 				}
-
+if(ifnlim_lc[CROPLAND]) {
 				// N balance check:
 				if(fabs(ncont_year - ncont + nflux_year) > 1.0e-3) {
 					dprintf("\nN balance year %d: %.4f\n", date.year, ncont_year - ncont + nflux_year);
 					dprintf("N pool change: %.4f\n", ncont_year - ncont);
 					dprintf("N flux: %.4f\n",  nflux_year);
 				}
-
+}
 			}
 			ccont = ccont_year;
 			ncont = ncont_year;
@@ -2179,14 +2179,14 @@ void MassBalance::check_period() {
 		dprintf("C pool change: %.5f\n", ccont - ccont_zero);
 		dprintf("C fluxes: %.5f\n",  cflux);
 	}
-
+if(ifnlim_lc[CROPLAND]) {
 	// N balance check:
 	if(fabs(ncont - ncont_zero + nflux) > 1.0e-3) {
 		dprintf("\nWARNING: Period N balance: %.4f\n", ncont - ncont_zero + nflux);
 		dprintf("N pool change: %.4f\n", ncont - ncont_zero);
 		dprintf("N fluxes: %.4f\n",  nflux);
 	}
-
+}
 }
 
 void MassBalance::init(Gridcell& gridcell) {

@@ -1551,12 +1551,19 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 						ppft.wscal_mean /= 365.0;
 					}
 				}
-				else if(ppft.cropphen->growingseason								// true crops and intercrop grass
+				else if(ppft.cropphen->growingseason	// true crops and intercrop grass
 						|| ppft.pft.phenology == CROPGREEN && date.day == ppft.cropphen->hdate
 						|| ppft.pft.isintercropgrass && date.day == patch.pft[patch.stand.pftid].cropphen->eicdate) {
 
 					ppft.cropphen->growingdays_y++;
 					ppft.wscal_mean = max(0.0, ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / ppft.cropphen->growingdays_y);
+					vegetation.firstobj();
+					while(vegetation.isobj) {
+						Individual& indiv = vegetation.getobj();
+						if(indiv.pft.id == ppft.pft.id)
+							indiv.wscal_mean = patch.pft[indiv.pft.id].wscal_mean;
+						vegetation.nextobj();
+					}
 				}
 			}
 		}

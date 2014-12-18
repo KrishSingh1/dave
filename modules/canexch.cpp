@@ -1556,11 +1556,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 						|| ppft.pft.isintercropgrass && date.day == patch.pft[patch.stand.pftid].cropphen->eicdate) {
 
 					ppft.cropphen->growingdays_y++;
-
-					if (ppft.cropphen->growingdays_y == 1)
-						ppft.wscal_mean = ppft.wscal;
-					else
-						ppft.wscal_mean = max(0.0, ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / (ppft.cropphen->growingdays_y + 1));
+					ppft.wscal_mean = max(0.0, ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / ppft.cropphen->growingdays_y);
 				}
 			}
 		}

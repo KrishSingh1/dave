@@ -1551,12 +1551,12 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 						ppft.wscal_mean /= 365.0;
 					}
 				}
-				else if(ppft.cropphen->growingseason	// true crops and intercrop grass
+				else if(ppft.cropphen->growingseason									// true crops and intercrop grass
 						|| ppft.pft.phenology == CROPGREEN && date.day == ppft.cropphen->hdate
 						|| ppft.pft.isintercropgrass && date.day == patch.pft[patch.stand.pftid].cropphen->eicdate) {
 
 					ppft.cropphen->growingdays_y++;
-					ppft.wscal_mean = max(0.0, ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / ppft.cropphen->growingdays_y);
+					ppft.wscal_mean = ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / ppft.cropphen->growingdays_y;
 					vegetation.firstobj();
 					while(vegetation.isobj) {
 						Individual& indiv = vegetation.getobj();
@@ -1912,10 +1912,15 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			bvoc(temp, hours, rad, climate, patch, indiv, pft, phot, phot.adtmm, day);
 		}
 		// Calculate autotrophic respiration
+		double cmass_root;
+		if(indiv.cropindiv && indiv.cropindiv->isintercropgrass && indiv.phen == 0.0)
+			cmass_root = 0.0;
+		else
+			cmass_root = indiv.cmass_root_today();
 
 		respiration(gtemp,patch. soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, indiv.cton_sap(), indiv.cton_root(),
-			indiv.cmass_sap, indiv.cmass_root_today(), assim, resp);
+			indiv.cmass_sap, cmass_root, assim, resp);
 
 		// Convert to averages for this period for accounting purposes
 		assim /= date.subdaily;
@@ -1967,7 +1972,7 @@ void leaf_senescence(Individual& indiv){
 
 void leaf_senescence_frame(Vegetation& vegetation) {
 
-	if(!(vegetation.patch.stand.landcover == CROPLAND && ifnlim_lc[CROPLAND]))
+	if(!(vegetation.patch.stand.is_true_crop_stand() && ifnlim_lc[CROPLAND]))
 		return;
 
 	vegetation.firstobj();
@@ -1978,20 +1983,20 @@ void leaf_senescence_frame(Vegetation& vegetation) {
 #ifdef AGESEN
 		double senN = 0.0;
 		double senNr = 0.07;
-		if(indiv.patchpft().cropphen->dev_stage>1.0){
-			senN = senNr*(indiv.nmass_leaf-indiv.cmass_leaf_today()/(indiv.pft.cton_leaf_max));
-			if (date.year>500) {
+		if(indiv.patchpft().cropphen->dev_stage > 1.0){
+			senN = senNr * (indiv.nmass_leaf-indiv.cmass_leaf_today() / (indiv.pft.cton_leaf_max));
+			if (date.year > 500) {
 				if (senN > 0.0) {
-					indiv.nmass_leaf-=senN;
-					indiv.cropindiv->nmass_agpool+=senN;
+					indiv.nmass_leaf -= senN;
+					indiv.cropindiv->nmass_agpool += senN;
 				}
 			}
 		}
 #endif
 		leaf_senescence(indiv);
 
-//		if(indiv.patchpft().cropphen->dev_stage<0.5){
-		if(indiv.patchpft().cropphen->fphu<0.05){
+//		if(indiv.patchpft().cropphen->dev_stage < 0.5){
+		if(indiv.patchpft().cropphen->fphu < 0.05){
 
 			indiv.daily_cmass_leafloss = 0.0;
 			indiv.daily_nmass_leafloss = 0.0;

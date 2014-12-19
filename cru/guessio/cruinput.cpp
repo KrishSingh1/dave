@@ -905,6 +905,12 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 				if(!SUPPRESSLARGEOUTPUT)
 					dprintf("WARNING ! crop fraction sum is 0.0 for year %d while LU[CROPLAND] is > 0 !\n", year);
 
+
+			}
+		}
+
+		if(sum==0.0) {
+
 				//	Set to most common crop according to Bondeau
 				stlist.firstobj();
 				while(stlist.isobj) {
@@ -922,22 +928,21 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 					}
 					stlist.nextobj();	
 				}				
-			}
-			else {
-				// rescale active crop fraction so sum is 1.0
+		}
+		else {
+			// rescale active crop fraction so sum is 1.0
 
-				stlist.firstobj();
-				while(stlist.isobj) {
-					StandType& st = stlist.getobj();
-					if(st.landcover==CROPLAND)
-						st.frac /= sum;
-					stlist.nextobj();
-				}
-				if(sum < 0.99 || sum > 1.01) {	// warn if sum is significantly different from 1.0 
-					if(!SUPPRESSLARGEOUTPUT) {
-						dprintf("WARNING ! crop fraction sum is %5.3f for input year %d\n", sum, year);
-						dprintf("Rescaling crop fractions year %d ! (sum is beyond 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
-					}
+			stlist.firstobj();
+			while(stlist.isobj) {
+				StandType& st = stlist.getobj();
+				if(st.landcover==CROPLAND)
+					st.frac /= sum;
+				stlist.nextobj();
+			}
+			if(sum < 0.99 || sum > 1.01) {	// warn if sum is significantly different from 1.0 
+				if(!SUPPRESSLARGEOUTPUT) {
+					dprintf("WARNING ! crop fraction sum is %5.3f for input year %d\n", sum, year);
+					dprintf("Rescaling crop fractions year %d ! (sum is beyond 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
 				}
 			}
 		}

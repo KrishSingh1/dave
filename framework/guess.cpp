@@ -1207,10 +1207,10 @@ double Individual::cton_leaf(bool use_phen /* = true*/) const {
 
 	if (stand.ifnlim_stand()) {
 
-		if(stand.landcover == CROPLAND && !negligible(cmass_leaf_today()) && !negligible(nmass_leaf)) {	//Detta kan möjligen tas bort
+		if(stand.is_true_crop_stand() && !negligible(cmass_leaf_today()) && !negligible(nmass_leaf)) {	//Detta kan möjligen tas bort
 			return cmass_leaf_today() / nmass_leaf;
 		}
-		else if (stand.landcover != CROPLAND && !negligible(cmass_leaf) && !negligible(nmass_leaf)) {
+		else if (!stand.is_true_crop_stand() && !negligible(cmass_leaf) && !negligible(nmass_leaf)) {
 			if (use_phen) {
 				if (!negligible(phen)) {
 					return cmass_leaf_today() / nmass_leaf;
@@ -1239,7 +1239,7 @@ double Individual::cton_root(bool use_phen /* = true*/) const {
 	if (stand.ifnlim_stand()) {
 		if (!negligible(cmass_root) && !negligible(nmass_root)) { 
 			if (use_phen) {
-				if (!negligible(phen)) {
+				if (!negligible(cmass_root_today())) {
 					return cmass_root_today() / nmass_root;
 				}
 				else {
@@ -1413,7 +1413,7 @@ bool Individual::continous_grass() const {
 
 double Individual::ndemand_storage(double cton_leaf_opt) {
 
-	if (vegetation.patch.stand.landcover == CROPLAND && ifnlim_lc[CROPLAND])	// only CROPGREEN, only ifnlim ?
+	if (vegetation.patch.stand.is_true_crop_stand() && ifnlim_lc[CROPLAND])	// only CROPGREEN, only ifnlim ?
 		// analogous with root demand
 		storendemand = max(0.0, cropindiv->grs_cmass_stem / (cton_leaf_opt * pft.cton_stem_avr / pft.cton_leaf_avr) - cropindiv->nmass_agpool);
 	else
@@ -1608,7 +1608,7 @@ void Individual::save_nmass_luc() {
 /// Gets the individual's daily cmass_leaf value
 double Individual::cmass_leaf_today() const {
 
-	if(pft.phenology == CROPGREEN) {
+	if(istruecrop_or_intercropgrass()) {
 
 		if(patchpft().cropphen->growingseason)
 			return cropindiv->grs_cmass_leaf;
@@ -1622,7 +1622,7 @@ double Individual::cmass_leaf_today() const {
 /// Gets the individual's daily cmass_root value
 double Individual::cmass_root_today() const {
 
-	if(pft.phenology == CROPGREEN) {
+	if(istruecrop_or_intercropgrass()) {
 
 		if(patchpft().cropphen->growingseason)
 			return cropindiv->grs_cmass_root;

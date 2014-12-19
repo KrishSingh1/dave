@@ -372,9 +372,9 @@ void CommonOutput::define_output_tables() {
 
 	// VMAXNLIM
 	ColumnDescriptors vmaxnlim_columns;
-	vmaxnlim_columns += ColumnDescriptors(pfts,            6, 2);
-	vmaxnlim_columns += ColumnDescriptor("Total",          6, 2);
-	vmaxnlim_columns += ColumnDescriptors(landcovers,      9, 2);
+	vmaxnlim_columns += ColumnDescriptors(pfts,            8, 2);
+	vmaxnlim_columns += ColumnDescriptor("Total",          8, 2);
+	vmaxnlim_columns += ColumnDescriptors(landcovers,     13, 2);
 
 	// NFLUX
 	ColumnDescriptors nflux_columns;
@@ -829,17 +829,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								
 								if (indiv.pft.id==pft.id) {
 
-									if(indiv.has_daily_turnover() && indiv.cropindiv) {
-										standpft_cmass_leaf += indiv.cropindiv->grs_cmass_leaf;
-										standpft_cmass_veg += indiv.cropindiv->grs_cmass_leaf + indiv.cropindiv->grs_cmass_root;
-									}
-									else {
-										standpft_cmass_leaf += indiv.cmass_leaf;
-										standpft_cmass_veg += indiv.cmass_veg;
-									}
+									standpft_cmass_leaf += indiv.cmass_leaf;
 									standpft_cmass += indiv.ccont();
 									standpft_nmass += indiv.ncont();
-									standpft_nmass_leaf += indiv.cmass_leaf / indiv.cton_leaf_aavr;																	
+									standpft_nmass_leaf += indiv.cmass_leaf / indiv.cton_leaf_aavr;														
 									standpft_nmass_veg += indiv.nmass_veg;
 									standpft_fpc += indiv.fpc;
 									standpft_aaet += indiv.aaet;
@@ -848,20 +841,20 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 									standpft_nuptake += indiv.anuptake;
 
 									if(pft.landcover == CROPLAND) {
-
-										if(indiv.has_daily_turnover() && indiv.cropindiv) {
-											standpft_cmass_veg += indiv.cropindiv->grs_cmass_dead_leaf + indiv.cropindiv->grs_cmass_ho + indiv.cropindiv->grs_cmass_agpool + indiv.cropindiv->grs_cmass_stem;
-											standpft_cmass_leaf += indiv.cropindiv->grs_cmass_dead_leaf;
+										standpft_cmass_veg += indiv.cmass_leaf + indiv.cmass_root;
+										if(indiv.cropindiv) {
+											standpft_cmass_veg += indiv.cropindiv->cmass_ho + indiv.cropindiv->cmass_agpool + indiv.cropindiv->cmass_stem;
+											standpft_nmass_leaf += indiv.cropindiv->ynmass_leaf + indiv.cropindiv->ynmass_dead_leaf;
+											standpft_nmass_veg += indiv.cropindiv->ycmass_leaf + indiv.cropindiv->ynmass_dead_leaf + indiv.cropindiv->ynmass_root + indiv.cropindiv->ynmass_ho + indiv.cropindiv->ynmass_agpool;
 										}
-										else { // cmass_dead_leaf and cmass_stem not defined for yearly allocation
-											standpft_cmass_veg += indiv.cropindiv->cmass_ho + indiv.cropindiv->cmass_agpool;
-										}
-
 										standpft_yield += indiv.cropindiv->harv_yield;
 										standpft_yield1 += indiv.cropindiv->yield_harvest[0];
 										standpft_yield2 += indiv.cropindiv->yield_harvest[1];
 									}
 									else {
+
+										standpft_cmass_veg += indiv.cmass_veg;
+
 										if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 											
 											// Age structure

@@ -21,7 +21,7 @@
 //#define LOW_SOWING_TEMPERATURE_LIMIT	//Sowing not allowed when temperature is always below sowing limit. Intercrop grass groen instead year through.
 #define HIGH_SOWING_TEMPERATURE_LIMIT	//Sowing not allowed when mean temperature is above limit (TeWW).
 //#define DELAYED_SEEDCARBON		//Seed carbon allocation to leaves and roots are done over a 10-day period.
-//#define GRASS_SEED_CMASS	// Carbon allocated to grass on bicdate or the day after turnover.
+#define GRASS_SEED_CMASS	// Carbon allocated to cover-crop grass on bicdate or the day after turnover.
 //#define PRINT_GROSS_LC_CHANGE_INFO
 
 /// Autumn sowing types for crops
@@ -49,7 +49,9 @@ bool dayinperiod(int day, int start, int end) {
 /// Step n days from a date.
 int stepfromdate(int day, int step) {
 
-	if(day + step > 0)
+	if(day < 0)							// a negative value should not be a valid day
+		return -1;
+	else if(day + step > 0)
 		return (day + step) % 365;
 	else if(day + step < 0)
 		return day + step + 365;
@@ -2386,6 +2388,8 @@ void crop_nfert(Patch& patch) {
 			else {
 				patch.dnfert = 0.0;
 			}
+//			if(date.day == ppftcrop.bicdate)
+//				patch.dnfert = 0.003;
 			patch.anfert += patch.dnfert;
 		}
 		pftlist.nextobj();
@@ -2621,6 +2625,7 @@ void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft)
 #ifdef HIGH_SOWING_TEMPERATURE_LIMIT
 	// Climatic limits for TeWW growth:	
 	if(!strncmp(pft.name,"TeWW", strlen("TeWW")) && climate.mtemp_min20 > 15.0)
+//	if(!strncmp(pft.name,"TeWW", strlen("TeWW")) && climate.mtemp_min20 > -20.0)	//Test continuous grass
 		gridcellpft.sdatecalc_temp = -1;
 #endif
 
@@ -4657,16 +4662,20 @@ void growth_crop_daily(Patch& patch) {
 				if(!indiv.continous_grass() && date.day == patch.pft[patch.stand.pftid].cropphen->bicdate 
 					|| indiv.continous_grass() && date.day == stepfromdate(indiv.last_turnover_day, 1)) {
 
-					cropindiv.grs_cmass_plant += CMASS_SEED;
-					cropindiv.ycmass_plant += CMASS_SEED;
-					cropindiv.dcmass_plant += CMASS_SEED;
+					double cmass_seed = CMASS_SEED;
+					cropindiv.grs_cmass_plant += cmass_seed;
+					cropindiv.ycmass_plant += cmass_seed;
+					cropindiv.dcmass_plant += cmass_seed;
+					double nmass_seed = cmass_seed / indiv.pft.cton_leaf_min;
+					indiv.nmass_leaf += nmass_seed / 2.0;
+					indiv.nmass_root += nmass_seed / 2.0;
 
-					// This flux will be balancing litter fluxes for the NEXT year.
-					patch.fluxes.report_flux(Fluxes::SEEDC, -CMASS_SEED);
+					indiv.report_flux(Fluxes::SEEDC, -cmass_seed);
+					indiv.report_flux(Fluxes::SEEDN, -nmass_seed);
 
 					indiv.last_turnover_day = -1;
 				}
-#endif									
+#endif
 				cropindiv.dcmass_plant += indiv.dnpp;
 				cropindiv.grs_cmass_plant += indiv.dnpp;		
 				cropindiv.ycmass_plant += indiv.dnpp;
@@ -4693,7 +4702,13 @@ void growth_crop_daily(Patch& patch) {
 				double negative_cmass = indiv.check_C_mass();
 //				if(negative_cmass > 10e-15)
 //					dprintf("Year %d day %d Stand %d indiv %d: Negative intercrop C mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, negative_cmass);
+				double negative_nmass = indiv.check_N_mass();
+				if(negative_nmass > 10e-15)
+					dprintf("Year %d day %d Stand %d indiv %d: Negative intercrop N mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, negative_nmass);
 
+				// save this year's maximum leaf carbon mass
+				if(cropindiv.grs_cmass_leaf > cropindiv.cmass_leaf_max)	
+					cropindiv.cmass_leaf_max = cropindiv.grs_cmass_leaf;
 			}
 			else if(date.day == patch.pft[patch.stand.pftid].get_cropphen()->eicdate) {
 
@@ -5765,7 +5780,7 @@ void growth_crop_year(Individual& indiv, double& cmass_leaf_inc, double& cmass_r
 		}
 	}
 
-	cmass_leaf_inc = indiv.cropindiv->ycmass_leaf;
+	cmass_leaf_inc = indiv.cropindiv->ycmass_leaf + indiv.cropindiv->ycmass_dead_leaf;
 	cmass_root_inc = indiv.cropindiv->ycmass_root;
 	cmass_ho_inc = indiv.cropindiv->ycmass_ho;
 	cmass_agpool_inc = indiv.cropindiv->ycmass_agpool;

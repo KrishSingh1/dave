@@ -1733,7 +1733,7 @@ public:
 	double nmass_agpool_luc;
 	double nmass_dead_leaf_luc;
 
-	/// daily updated leaf N biomass, reset at day 0
+	/// daily updated leaf N biomass, reset at day 0		// These are not used
 	double ynmass_leaf;
 	/// daily updated root N biomass, reset at day 0
 	double ynmass_root;
@@ -1741,6 +1741,7 @@ public:
 	double ynmass_ho;
 	/// daily updated above-ground pool N biomass, reset at day 0
 	double ynmass_agpool;
+
 	double ynmass_dead_leaf;
 
 	/// year's leaf N biomass at time of harvest (cumulative if several harvest events)
@@ -3299,7 +3300,7 @@ public:
 
 	/// Returns true if stand is true crop stand, as opposed to pasture grass grown on cropland
 	inline bool is_true_crop_stand() {
-		return landcover==CROPLAND && pft[pftid].pft.phenology==CROPGREEN;
+		return landcover==CROPLAND && pft[pftid].pft.phenology==CROPGREEN;	// OK also for fallow (pftid always cropgreen)
 	}
 
 	bool ifnlim_stand() const {

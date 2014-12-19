@@ -1067,7 +1067,7 @@ bool allometry(Individual& indiv) {
 							Individual& indiv_veg = vegetation_self[k];
 
 							if(indiv_veg.cropindiv->isintercropgrass)
-								grass_cmass_leaf_sum += indiv_veg.cmass_leaf;
+								grass_cmass_leaf_sum += indiv_veg.cropindiv->cmass_leaf_max;
 						}
 
 						// Find highest lai in crop grass stands
@@ -1096,8 +1096,8 @@ bool allometry(Individual& indiv) {
 							}
 						}
 
-						if(grass_cmass_leaf_sum)
-							indiv.lai_indiv = indiv.cmass_leaf / grass_cmass_leaf_sum * highest_grass_lai;
+						if(grass_cmass_leaf_sum > 0.0)
+							indiv.lai_indiv = indiv.cropindiv->cmass_leaf_max / grass_cmass_leaf_sum * highest_grass_lai;
 						else
 							indiv.lai_indiv = highest_grass_lai;
 
@@ -1120,20 +1120,22 @@ bool allometry(Individual& indiv) {
 
 							if(indiv_veg.cropindiv->isintercropgrass) {
 
-								grass_cmass_leaf_sum += indiv_veg.cmass_leaf;
+								grass_cmass_leaf_sum += indiv_veg.cropindiv->cmass_leaf_max;
 
 								if(indiv_veg.pft.laimax > highest_grass_lai)
 									highest_grass_lai = indiv_veg.pft.laimax;
 							}
 						}
 
-						if(grass_cmass_leaf_sum)
-							indiv.lai_indiv = indiv.cmass_leaf / grass_cmass_leaf_sum * highest_grass_lai;
+						if(grass_cmass_leaf_sum > 0.0)
+							indiv.lai_indiv = indiv.cropindiv->cmass_leaf_max / grass_cmass_leaf_sum * highest_grass_lai;
 						else
 							indiv.lai_indiv = highest_grass_lai;
-
 					}
 				}
+				if(indiv.lai_indiv < 0.0)
+					fail("lai_indiv negative for %s in stand %d year %d in growth: %f\n", (char*)indiv.pft.name, indiv.vegetation.patch.stand.id, date.year, indiv.lai_indiv);
+
 				// FPC (Eqn 10)
 				indiv.fpc = 1.0 - lambertbeer(indiv.lai_indiv);
 
@@ -1409,7 +1411,7 @@ void growth(Stand& stand, Patch& patch) {
 			indiv.cton_leaf_aavr = indiv.pft.cton_leaf_max;
 
 		// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle and Friend 2010 SM eq 19) 	
-		double cton_leaf_aopt = max(indiv.cton_leaf_aopt ,indiv.pft.cton_leaf_avr);
+		double cton_leaf_aopt = max(indiv.cton_leaf_aopt, indiv.pft.cton_leaf_avr);
 
 		if (stand.ifnlim_stand())
 			nscal = min(1.0, cton_leaf_aopt / indiv.cton_leaf_aavr);
@@ -1692,7 +1694,7 @@ void growth(Stand& stand, Patch& patch) {
 					// Kill individual and transfer biomass to litter if either biomass
 					// compartment negative
 
-					if ((indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS) && indiv.pft.landcover != CROPLAND) {
+					if ((indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS) && !indiv.istruecrop_or_intercropgrass()) {
 
 						indiv.kill();
 

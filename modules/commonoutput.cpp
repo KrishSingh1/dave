@@ -1676,12 +1676,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 						out.add_value(*table_p, landcover_cmass[i] * gridcell.landcoverfrac[i]);
 
 						if (!ifcentury) {
-							out.add_value(*table_p, landcover_clitter[i]);
+							out.add_value(*table_p, landcover_clitter[i] * gridcell.landcoverfrac[i]);
 							out.add_value(*table_p, c_fast_lc[i]);
 							out.add_value(*table_p, c_slow_lc[i]);
 						}
 						else {
-							out.add_value(*table_p, landcover_clitter[i] + surfsoillitterc_lc[i] + cwdc_lc[i]);
+							out.add_value(*table_p, landcover_clitter[i] * gridcell.landcoverfrac[i] + surfsoillitterc_lc[i] + cwdc_lc[i]);
 							out.add_value(*table_p, centuryc_lc[i]);
 						}
 
@@ -1691,7 +1691,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					}
 
 					// Calculate total cpool, starting with cmass and litter...
-					double cpool_total = landcover_cmass[i] * gridcell.landcoverfrac[i] + landcover_clitter[i];
+					double cpool_total = (landcover_cmass[i] + landcover_clitter[i]) * gridcell.landcoverfrac[i];
 
 					// Add SOM pools
 					if (!ifcentury) {

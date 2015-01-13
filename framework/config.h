@@ -34,7 +34,7 @@ const bool SUPPRESSLARGEOUTPUT=true;
 
 #define CMASS_SEED 0.01	// 10g/m2;	// Initial carbon allocated to crop organs at sowing.
 
-//#define PRINTFIRSTSTANDFROM1901	// Only on when printout of whole period of first stand wanted.
+#define PRINTFIRSTSTANDFROM1901	// Only on when printout of whole period of first stand wanted.
 #define MAXNUMBER_STANDS 100		// Upper limit for multiple stand printout
 #define MAXNUMBER_GRIDCELLS 50		// To make sure that muliple stand printout is not active when running large simulations
 

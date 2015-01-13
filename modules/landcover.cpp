@@ -227,7 +227,7 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
 	}
 
 	// if no changes, do nothing.
-	if(changeLC < 0.00001 && change_crop < 0.00001) {
+	if(changeLC < 10e-15 && change_crop < 10e-15) {
 		change = false;
 	}
 	// check for balance of reduced and increased stand fractions
@@ -322,6 +322,15 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer) {
 
 		if(st.gross_frac_decrease > 0.0) {
 
+			double stands_frac_sum = 0.0;
+
+			for(unsigned int i = 0; i < gridcell.nbr_stands(); i++) {
+				Stand& stand = gridcell[i];
+
+				if(stand.stid == st.id)
+					stands_frac_sum += stand.get_gridcell_fraction();
+			}
+
 			if(st.nstands > 1) {
 
 				for(int to=0; to<nst; to++) {
@@ -349,7 +358,7 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer) {
 							for(unsigned int i = 0; i < gridcell.size(); i++) {
 								int index;
 
-								if(st_change_remain > -10e-15) {
+								if(st_change_remain > -10e-15 || stands_frac_sum == 0.0) {
 									st_change_remain = 0.0;
 									break;
 								}
@@ -384,8 +393,11 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer) {
 												stand.gross_frac_decrease -= st_change_remain;
 												stand.transfer_area_st[to] = -st_change_remain;
 												stand.set_gridcell_fraction(stand.get_gridcell_fraction() + st_change_remain);
-												if(stand.get_gridcell_fraction() > 0.0 && stand.get_gridcell_fraction() < 1.0e-10)	// check if less stands with this option 
+
+												if(stand.get_gridcell_fraction() < 1.0e-15)
 													stand.set_gridcell_fraction(0.0);
+
+												stands_frac_sum += st_change_remain;
 												st_change_remain = 0.0;
 												break;
 											}
@@ -395,6 +407,7 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer) {
 												stand.gross_frac_decrease += stand.get_gridcell_fraction();
 												stand.transfer_area_st[to] = stand.get_gridcell_fraction();
 												st_change_remain += stand.get_gridcell_fraction();
+												stands_frac_sum -= stand.get_gridcell_fraction();
 												stand.set_gridcell_fraction(0.0);	//will be killed below
 											}				
 										}
@@ -427,6 +440,9 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer) {
 						stand.frac_change = -st.gross_frac_decrease;
 						stand.gross_frac_decrease = st.gross_frac_decrease;
 						stand.set_gridcell_fraction(stand.get_gridcell_fraction() + stand.frac_change);
+
+						if(stand.get_gridcell_fraction() < 1.0e-15)
+							stand.set_gridcell_fraction(0.0);
 
 						for(int to=0; to<nst; to++) {
 
@@ -1482,7 +1498,7 @@ double transfer_to_new_stand(Gridcell& gridcell, int stid_donor = -1, int stid_r
 }
 
 /// Test function. Prints landcover change and transfers, called from landcover_dynamics()
-void print_fractions( double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES],double* st_frac_transfer) {
+void print_fractions( Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES],double* st_frac_transfer) {
 
 	char landcovernames[NLANDCOVERTYPES][10] = {"URBAN", "CROPLAND", "PASTURE", "FOREST", "NATURAL", "PEATLAND"};
 
@@ -1529,6 +1545,19 @@ void print_fractions( double landcoverfrac_change[], double lc_frac_transfer[][N
 		}
 		dprintf("\n");
 	}
+
+	dprintf("landcover fractions:\n");
+	dprintf("%10s","");
+	for(int i=0;i<NLANDCOVERTYPES;i++)
+		dprintf("%10s", landcovernames[i]);
+	dprintf("\n");
+	dprintf("%10s","Old");
+	for(int i=0;i<NLANDCOVERTYPES;i++)
+		dprintf("%10.5f", gridcell.landcoverfrac_old[i]);
+	dprintf("\n");
+	dprintf("%10s","New");
+	for(int i=0;i<NLANDCOVERTYPES;i++)
+		dprintf("%10.5f", gridcell.landcoverfrac[i]);
 	dprintf("\n\n");
 
 	dprintf("standtype_change year %d:\n", date.year);
@@ -1557,6 +1586,19 @@ void print_fractions( double landcoverfrac_change[], double lc_frac_transfer[][N
 			dprintf("%10.5f", st_frac_transfer[index(i, j)]);
 		dprintf("\n");
 	}
+
+	dprintf("stand type fractions:\n");
+	dprintf("%10s","");
+	for(int i=0;i<nst;i++)
+		dprintf("%10s", stlist[i].name);
+	dprintf("\n");
+	dprintf("%10s","Old");
+	for(int i=0;i<nst;i++)
+		dprintf("%10.5f", stlist[i].frac_old);
+	dprintf("\n");
+	dprintf("%10s","New");
+	for(int i=0;i<nst;i++)
+		dprintf("%10.5f", stlist[i].frac);
 	dprintf("\n\n");
 }
 
@@ -1621,6 +1663,7 @@ void simulate_gross_st_transfer(double* st_frac_transfer) {
 	}
 }
 
+/// Called after update of st fraction and transfer values
 bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double lc_change_array[][NLANDCOVERTYPES], double* st_change_array, bool check_lc_st_transfer = false) {
 
 	bool error = false;
@@ -1762,6 +1805,41 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 	return error;
 }
 
+/// Called before updating stand.frac (reduce_stands)
+bool check_fractions1(Gridcell& gridcell) {
+
+	bool error = false;
+
+	// Test if the stand type reduction is smaller than the remaining stand sum:
+	for(int s=0; s<nst; s++) {
+
+		StandType& st = stlist[s];
+
+		if(st.frac_change < 0.0){
+
+			double stands_frac_sum = 0.0;
+
+			for(unsigned int i = 0; i < gridcell.nbr_stands(); i++) {
+				Stand& stand = gridcell[i];
+
+				if(stand.stid == st.id)
+					stands_frac_sum += stand.get_gridcell_fraction();
+			}
+
+			if(-st.frac_change - stands_frac_sum > 1.0e-15) {
+				dprintf("\nCheck 8: Year %d: stand type %d fraction reduction bigger than sum of stands\n", date.year, s);
+				dprintf("dif=%.15f", -st.frac_change - stands_frac_sum);
+				error = true;
+			}
+		}
+	}
+	if(error)
+		dprintf("\n\n");
+
+	return error;
+}
+
+/// Called after updating stand.frac and transfer values (reduce_stands)
 bool check_fractions2(Gridcell& gridcell, double* st_change_array) {
 
 	bool error = false;
@@ -1776,7 +1854,7 @@ bool check_fractions2(Gridcell& gridcell, double* st_change_array) {
 			double *test_st_change;
 			test_st_change = new double[nst];
 			memset(test_st_change,0,nst * sizeof(double));
-
+			
 			for(unsigned int i=0; i<gridcell.nbr_stands(); i++) {
 
 				Stand& stand = gridcell[i];
@@ -1786,7 +1864,7 @@ bool check_fractions2(Gridcell& gridcell, double* st_change_array) {
 			}
 
 			if(fabs(test_st_change[to] - st_change_array[index(from, to)]) > 1.0e-15) {
-				dprintf("\nCheck 8: Year %d: stand transfer area sum not equal to stand type value for stand types %d and %d\n", date.year, from, to);
+				dprintf("\nCheck 9: Year %d: stand transfer area sum not equal to stand type value for stand types %d and %d\n", date.year, from, to);
 				dprintf("dif=%.15f", fabs(test_st_change[to] - st_change_array[index(from, to)]));
 				error = true;
 			}
@@ -1803,13 +1881,102 @@ bool check_fractions2(Gridcell& gridcell, double* st_change_array) {
 		Stand& stand = gridcell[i];
 
 		if(fabs(stand.frac_change - (stand.gross_frac_increase - stand.gross_frac_decrease)) > 1.0e-15) {
-			dprintf("\nCheck 9: Year %d: frac_change is not equal to gross_frac_increase + gross_frac_decrease for stand %d\n", date.year, stand.id);
+			dprintf("\nCheck 10: Year %d: frac_change is not equal to gross_frac_increase + gross_frac_decrease for stand %d\n", date.year, stand.id);
 			dprintf("dif=%.15f\n", fabs(stand.frac_change - (stand.gross_frac_increase - stand.gross_frac_decrease)));
 			dprintf("frac_change=%.15f, gross_frac_increase=%.15f, gross_frac_decrease=%.15f", stand.frac_change, stand.gross_frac_increase, stand.gross_frac_decrease);
 			error = true;
 		}
 	}
 	////////////
+
+	// Test that no stands remain when stand type fraction is 0 (after reduce_stands, so stands may remain, but with frac 0):
+	for(int s=0; s<nst; s++) {
+
+		StandType& st = stlist[s];
+
+		if(st.frac == 0.0) {
+
+			double stands_frac_sum = 0.0;
+
+			for(unsigned int i = 0; i < gridcell.nbr_stands(); i++) {
+				Stand& stand = gridcell[i];
+
+				if(stand.stid == st.id)
+					stands_frac_sum += stand.get_gridcell_fraction();
+			}
+
+			if(stands_frac_sum) {
+				dprintf("\nCheck 11: Year %d: remaining stand when stand type %d fraction is 0\n", date.year, s);
+				dprintf("remain=%.20f", stands_frac_sum);
+				error = true;
+			}
+		}
+	}
+
+	if(error)
+		dprintf("\n\n");
+
+	return error;
+}
+
+/// Called after updating stand.frac and transfer values of reduced stands (reduce_stands)
+bool check_fractions3(Gridcell& gridcell) {
+
+	bool error = false;
+
+	// Test if sum of stands not equal to stand type value for stand type for reduced stands
+	for(int s=0; s<nst; s++) {
+
+		StandType& st = stlist[s];
+
+		double stands_frac_sum = 0.0;
+
+		for(unsigned int i = 0; i < gridcell.nbr_stands(); i++) {
+			Stand& stand = gridcell[i];
+
+			if(stand.stid == st.id)
+				stands_frac_sum += stand.get_gridcell_fraction();
+		}
+
+		if(st.frac_change < 0.0)
+		if(fabs(st.frac - stands_frac_sum) > 1.0e-15) {
+			dprintf("\nCheck 12: Year %d: fraction sum of stands not equal to stand type value for stand type %d\n", date.year, s);
+			dprintf("dif=%.15f", fabs(st.frac - stands_frac_sum));
+			error = true;
+		}
+	}
+	if(error)
+		dprintf("\n\n");
+
+	return error;
+}
+
+/// Called after creating new stands (stand_dynamics)
+bool check_fractions4(Gridcell& gridcell) {
+
+	bool error = false;
+
+	// Test if sum of stands not equal to stand type value for stand type for increased or new stands
+	for(int s=0; s<nst; s++) {
+
+		StandType& st = stlist[s];
+
+		double stands_frac_sum = 0.0;
+
+		for(unsigned int i = 0; i < gridcell.nbr_stands(); i++) {
+			Stand& stand = gridcell[i];
+
+			if(stand.stid == st.id)
+				stands_frac_sum += stand.get_gridcell_fraction();
+		}
+
+		if(st.frac_change >= 0.0)
+		if(fabs(st.frac - stands_frac_sum) > 1.0e-15) {
+			dprintf("\nCheck 13: Year %d: fraction sum of stands not equal to stand type value for stand type %d\n", date.year, s);
+			dprintf("dif=%.15f", fabs(st.frac - stands_frac_sum));
+			error = true;
+		}
+	}
 	if(error)
 		dprintf("\n\n");
 
@@ -1884,6 +2051,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	}
 
 	check_fractions(gridcell, landcoverfrac_change, lc_frac_transfer, st_frac_transfer);
+	check_fractions1(gridcell);
 
 	for(int i=0; i<nst; i++) {
 
@@ -1903,7 +2071,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	}
 
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
-	print_fractions(landcoverfrac_change, lc_frac_transfer, st_frac_transfer);
+	print_fractions(gridcell, landcoverfrac_change, lc_frac_transfer, st_frac_transfer);
 #endif
 	double ccont_tot_1 = 0.0;
 	for(unsigned int i=0; i<gridcell.size(); i++) {
@@ -1921,7 +2089,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	nflux_tot_1 += gridcell.anflux_landuse_change + gridcell.anflux_harvest_slow; // dessa fluxer är fortfarande 0 här
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 	dprintf("\nYear %d: ccont_tot before luc=%.15f\n", date.year, ccont_tot_1);
-	dprintf("\nYear %d: ncont_tot before luc=%.15f\n", date.year, ncont_tot_1);
+	dprintf("Year %d: ncont_tot before luc=%.15f\n\n", date.year, ncont_tot_1);
 #endif
 	// check how many stands of each stand type exist
 	// identify which stands to reduce in area
@@ -1930,8 +2098,10 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 	int error = 0;
 	error += check_fractions2(gridcell, st_frac_transfer);
+	error += check_fractions3(gridcell);
 	if(error)
-		dprintf("Fraction error after reduce_stands()\n\n");
+//		dprintf("Fraction error after reduce_stands()\n\n");
+		fail("Fraction error after reduce_stands()\n\n");
 
 	// Create new stands for land cover transitions when natural vegetation remains or when each transition requires a new stand:
 	if(iftransfer_to_new_stand) {
@@ -1966,7 +2136,6 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	error += check_fractions(gridcell, landcoverfrac_change, lc_frac_transfer, st_frac_transfer);
 	error += check_fractions2(gridcell, st_frac_transfer);
 	if(error)
-//		dprintf("Fraction error after expand_stands()\n\n");
 		fail("Fraction error after expand_stands()\n");
 
 
@@ -1992,6 +2161,9 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 		// create and kill stands at landcover change
 		stand_dynamics(gridcell);
+		error += check_fractions4(gridcell);
+		if(error)
+			fail("Fraction error after expand_stands()\n");
 
 		// transfer litter etc. of reduced stands to expanding stands at landcover change
 		receiving_stand_change(gridcell, transfer, LCchangeCtransfer);
@@ -2092,6 +2264,9 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 		// create and kill stands at landcover change
 		stand_dynamics(gridcell);
+		error += check_fractions4(gridcell);
+		if(error)
+			fail("Fraction error after expand_stands()\n");
 
 		// transfer litter etc. of reduced stands to expanding stands at landcover change
 		for(int to=0; to<NLANDCOVERTYPES; to++) {
@@ -2216,6 +2391,9 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 		// create and kill stands at landcover change
 		stand_dynamics(gridcell);
+		error += check_fractions4(gridcell);
+		if(error)
+			fail("Fraction error after expand_stands()\n");
 
 		// transfer litter etc. of reduced stands to expanding stands at landcover change
 		for(int to=0; to<nst; to++) {
@@ -2265,6 +2443,9 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 			delete[] transfer_st_from;
 	}
 
+#ifdef PRINT_GROSS_LC_CHANGE_INFO
+	dprintf("\n");
+#endif
 
 	double ccont_tot = 0.0;
 	double cflux_tot = 0.0;
@@ -2276,9 +2457,9 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		ccont_tot += ccont_stand * stand.get_gridcell_fraction();
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 		if(stand.landcover == NATURAL) 
-			dprintf("\nYear %d: natural stand %d ccont=%.15f; age=%d, frac=%f", date.year, stand.id, ccont_stand, date.year - stand.first_year, stand.get_gridcell_fraction());
+			dprintf("Year %d: natural stand %d ccont=%.15f; age=%d, frac=%f", date.year, stand.id, ccont_stand, date.year - stand.first_year, stand.get_gridcell_fraction());
 		else
-			dprintf("\nYear %d: stand %d st %d, ccont=%.15f; age=%d, frac=%f", date.year, stand.id, stand.stid, ccont_stand, date.year - stand.first_year, stand.get_gridcell_fraction());
+			dprintf("Year %d: stand %d st %d, ccont=%.15f; age=%d, frac=%f", date.year, stand.id, stand.stid, ccont_stand, date.year - stand.first_year, stand.get_gridcell_fraction());
 		if(stand.gross_frac_decrease)
 			dprintf(", red %f", stand.gross_frac_decrease - stand.cloned_fraction);
 		else
@@ -2308,9 +2489,9 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		ncont_tot += ncont_stand * stand.get_gridcell_fraction();
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 		if(stand.landcover == NATURAL) 
-			dprintf("\nYear %d: natural stand %d ncont=%.15f\n", date.year, stand.id, ncont_stand);
+			dprintf("Year %d: natural stand %d ncont=%.15f\n", date.year, stand.id, ncont_stand);
 		else
-			dprintf("\nYear %d: stand %d st %d, ncont=%.15f\n", date.year, stand.id, stand.stid, ncont_stand);
+			dprintf("Year %d: stand %d st %d, ncont=%.15f\n", date.year, stand.id, stand.stid, ncont_stand);
 #endif
 		nflux_tot += stand.nflux() * stand.get_gridcell_fraction();
 	}
@@ -4700,8 +4881,8 @@ void growth_crop_daily(Patch& patch) {
 
 				// Check that no plant cmass is negative, if so, zero cmass and correct C fluxes
 				double negative_cmass = indiv.check_C_mass();
-//				if(negative_cmass > 10e-15)
-//					dprintf("Year %d day %d Stand %d indiv %d: Negative intercrop C mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, negative_cmass);
+				if(negative_cmass > 10e-15)
+					dprintf("Year %d day %d Stand %d indiv %d: Negative intercrop C mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, negative_cmass);
 				double negative_nmass = indiv.check_N_mass();
 				if(negative_nmass > 10e-15)
 					dprintf("Year %d day %d Stand %d indiv %d: Negative intercrop N mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, negative_nmass);

@@ -1561,7 +1561,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 					while(vegetation.isobj) {
 						Individual& indiv = vegetation.getobj();
 						if(indiv.pft.id == ppft.pft.id)
-							indiv.wscal_mean = patch.pft[indiv.pft.id].wscal_mean;
+							indiv.wscal_mean = ppft.wscal_mean;
 						vegetation.nextobj();
 					}
 				}

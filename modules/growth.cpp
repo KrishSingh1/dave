@@ -1258,8 +1258,8 @@ void scale_indiv(Individual& indiv, bool scale_grsC)
 				indiv.cropindiv->grs_cmass_stem -= indiv.cropindiv->grs_cmass_stem_luc * (1.0 - scale);
 
 				double negative_cmass = indiv.check_C_mass();
-//				if(negative_cmass > 10e-15)
-//					dprintf("Year %d day %d Stand %d indiv %d: Negative C mass in scale_indiv: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, negative_cmass);
+//				if(negative_cmass > 1.0e-14)
+//					dprintf("Year %d day %d Stand %d indiv %d: Negative C mass in scale_indiv: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_cmass);
 			}
 			else {
 				indiv.cropindiv->grs_cmass_leaf *= scale;
@@ -1305,8 +1305,8 @@ void scale_indiv(Individual& indiv, bool scale_grsC)
 	indiv.nstore_longterm = indiv.nstore_longterm - indiv.nstore_longterm_luc * (1.0 - scale);
 
 	double negative_nmass = indiv.check_N_mass();
-//	if(negative_nmass > 10e-15)
-//		dprintf("Year %d day %d Stand %d indiv %d: Negative N mass in scale_indiv: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, negative_nmass);
+//	if(negative_nmass > 1.0e-14)
+//		dprintf("Year %d day %d Stand %d indiv %d: Negative N mass in scale_indiv: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_nmass);
 
 }
 

@@ -800,7 +800,7 @@ void DemoInput::getlandcover(Gridcell& gridcell) {
 			gridcell.landcoverfrac[NATURAL]=0.0;
 
 		// NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
-		if(fabs(sum_active - 1.0) > 10e-15)	{	// if landcover types are turned off in the ini-file, or if more landcover types are added in other input files, can be either less or more than 1.0
+		if(fabs(sum_active - 1.0) > 1.0e-14)	{	// if landcover types are turned off in the ini-file, or if more landcover types are added in other input files, can be either less or more than 1.0
 			if(!SUPPRESSLARGEOUTPUT)
 				if(date.year==0)
 					dprintf("Landcover fraction sum not 1.0 !\n");
@@ -942,7 +942,7 @@ void DemoInput::getlandcover(Gridcell& gridcell) {
 		StandType& st = stlist.getobj();
 
 		st.frac = st.frac * gridcell.landcoverfrac[st.landcover];
-		if(fabs(st.frac_old - st.frac) < 10e-15)
+		if(fabs(st.frac_old - st.frac) < 1.0e-14)
 			st.frac = st.frac_old;
 		stlist.nextobj();
 	}

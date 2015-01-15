@@ -632,17 +632,17 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 		year = date.year - nyear_spinup + first_historic_year;
 
 	if(fixedlu_hist) {
-		year_saved=year;
-		year=first_historic_year;
+		year_saved = year;
+		year = first_historic_year;
 	}
 
 	if(lcfrac_fixed) {		// If landcover area fractions are set in the ins-file.
-		if(date.year==0) {	// Year 0: called by landcover_init
+		if(date.year == 0) {	// Year 0: called by landcover_init
 	
-			int nactive_landcovertypes=0;
+			int nactive_landcovertypes = 0;
 
 			if(equal_landcover_area) {
-				for(i=0;i<NLANDCOVERTYPES;i++) {
+				for(i=0; i<NLANDCOVERTYPES; i++) {
 					if(run[i])
 						nactive_landcovertypes++;
 				}
@@ -650,58 +650,64 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 
 			for(i=0;i<NLANDCOVERTYPES;i++) {
 				if(equal_landcover_area) {
-					sum_active+=gridcell.landcoverfrac[i]=1.0*run[i]/(double)nactive_landcovertypes;	// only set fractions that are active
-					sum_tot=sum_active;
+					gridcell.landcoverfrac[i] = 1.0 * run[i] / (double)nactive_landcovertypes;	// only set fractions that are active
+					sum_active += gridcell.landcoverfrac[i];
+					sum_tot = sum_active;
 				}
 				else {
 #if defined GRASSFORCROP
-					if(i==PASTURE)
-						sum_tot+=gridcell.landcoverfrac[PASTURE]=(double)lc_fixed_frac[CROPLAND]/100.0;
-					else if(i==CROPLAND)
-						gridcell.landcoverfrac[CROPLAND]=0.0;
+					if(i==PASTURE) {
+						gridcell.landcoverfrac[PASTURE] = (double)lc_fixed_frac[CROPLAND] / 100.0;
+						sum_tot += gridcell.landcoverfrac[PASTURE];
+					}
+					else if(i == CROPLAND)
+						gridcell.landcoverfrac[CROPLAND] = 0.0;
 					else
 #endif
-					sum_tot+=gridcell.landcoverfrac[i]=(double)lc_fixed_frac[i]/100.0;					// count sum of all fractions (should be 1.0)
+					sum_tot += gridcell.landcoverfrac[i] = (double)lc_fixed_frac[i] / 100.0;					// count sum of all fractions (should be 1.0)
 
-					if(gridcell.landcoverfrac[i]<0.0 || gridcell.landcoverfrac[i]>1.0) {				// discard unreasonable values					
-						if(date.year==0)
+					if(gridcell.landcoverfrac[i] < 0.0 || gridcell.landcoverfrac[i] > 1.0) {				// discard unreasonable values					
+						if(date.year == 0)
 							dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
-						sum_tot-=gridcell.landcoverfrac[i];
-						gridcell.landcoverfrac[i]=0.0;
+						sum_tot -= gridcell.landcoverfrac[i];
+						gridcell.landcoverfrac[i] = 0.0;
 					}
 
-					sum_active+=gridcell.landcoverfrac[i]=run[i]*gridcell.landcoverfrac[i];				// only set fractions that are active
+					gridcell.landcoverfrac[i] = run[i] * gridcell.landcoverfrac[i];				// only set fractions that are active
+					sum_active += gridcell.landcoverfrac[i];
 				}
 			}
 			
-			if(sum_tot<0.99 || sum_tot>1.01) {	// Check input data, rescale if sum !=1.0
+			if(sum_tot < 0.99 || sum_tot > 1.01) {	// Check input data, rescale if sum !=1.0
 			
-				sum_active=0.0;					// reset sum of active landcover fractions
-				if(date.year==0)
+				sum_active = 0.0;					// reset sum of active landcover fractions
+				if(date.year == 0)
 					dprintf("WARNING ! landcover fixed fraction sum is %4.2f, rescaling landcover fractions !\n", sum_tot);
 
-				for(i=0;i<NLANDCOVERTYPES;i++)
-					sum_active+=gridcell.landcoverfrac[i]/=sum_tot;
+				for(i=0; i<NLANDCOVERTYPES; i++) {
+					gridcell.landcoverfrac[i] /= sum_tot;
+					sum_active += gridcell.landcoverfrac[i];
+				}
 			}
 
 			// NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
-			if(sum_active<0.99)	{	// if landcover types are turned off in the ini-file, always <=1.0 here		
-				if(date.year==0)
+			if(sum_active < 0.99)	{	// if landcover types are turned off in the ini-file, always <=1.0 here		
+				if(date.year == 0)
 					dprintf("WARNING ! landcover active fraction sum is %4.2f.\n", sum_active);
 
 				if(run[NATURAL]) {	// Transfer landcover areas not simulated to NATURAL fraction, if simulated.				
-					if(date.year==0)
-						dprintf("Inactive fractions (%4.2f) transferred to NATURAL fraction.\n", 1.0-sum_active);
+					if(date.year == 0)
+						dprintf("Inactive fractions (%4.2f) transferred to NATURAL fraction.\n", 1.0 - sum_active);
 
-					gridcell.landcoverfrac[NATURAL]+=1.0-sum_active;	// difference 1.0-(sum of active landcover fractions) are added to the natural fraction
+					gridcell.landcoverfrac[NATURAL] += (1.0-sum_active);	// difference 1.0-(sum of active landcover fractions) are added to the natural fraction
 				}
 				else {
-/*					if(date.year==0)
+/*					if(date.year == 0)
 						dprintf("Rescaling landcover fractions !\n");
-					for(i=0;i<NLANDCOVERTYPES;i++)
-						gridcell.landcoverfrac[i]/=sum_active;					// if NATURAL not simulated, rescale active fractions to 1.0
-*/					if(date.year==0)
-						dprintf("Non-unity fraction sum retained.\n");			// OR let sum remain non-unity
+					for(i=0; i<NLANDCOVERTYPES; i++)
+						gridcell.landcoverfrac[i] /= sum_active;			// if NATURAL not simulated, rescale active fractions to 1.0
+*/					if(date.year == 0)
+						dprintf("Non-unity fraction sum retained.\n");		// OR let sum remain non-unity
 				}																
 			}
 		}
@@ -721,7 +727,7 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 
 				if(run[i]) {
 					double lcfrac = 0.0;
-					switch (i)
+					switch(i)
 					{
 #ifdef LUTOMEMORY
 					case URBAN:
@@ -773,7 +779,8 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 						dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
 						lcfrac = 0.0;
 					}
-					sum_tot += gridcell.landcoverfrac[i] = lcfrac;
+					gridcell.landcoverfrac[i] = lcfrac;
+					sum_tot += lcfrac;
 					sum_active += run[i] * gridcell.landcoverfrac[i];
 				}
 			}
@@ -796,55 +803,57 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 					if(!SUPPRESSLARGEOUTPUT)
 						dprintf("Rescaling landcover fractions year %d ! (sum is within 0.99-1.01)\n", date.year-nyear_spinup+FIRSTHISTYEAR);
 
-				for(i=0; i<NLANDCOVERTYPES; i++)
-					sum_active+=gridcell.landcoverfrac[i]/=sum_tot;
+				for(i=0; i<NLANDCOVERTYPES; i++) {
+					gridcell.landcoverfrac[i] /= sum_tot;
+					sum_active += gridcell.landcoverfrac[i];
+				}
 			}
 		}
 		else
-			gridcell.landcoverfrac[NATURAL]=0.0;
+			gridcell.landcoverfrac[NATURAL] = 0.0;
 
 		// NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
-		if(fabs(sum_active - 1.0) > 10e-15)	{	// if landcover types are turned off in the ini-file, or if more landcover types are added in other input files, can be either less or more than 1.0
+		if(fabs(sum_active - 1.0) > 1.0e-14)	{	// if landcover types are turned off in the ini-file, or if more landcover types are added in other input files, can be either less or more than 1.0
 			if(!SUPPRESSLARGEOUTPUT)
-				if(date.year==0)
+				if(date.year == 0)
 					dprintf("Landcover fraction sum not 1.0 !\n");
 
 			if(run[NATURAL]) {	// Transfer landcover areas not simulated to NATURAL fraction, if simulated.		
-				if(date.year==0) {
-					if(sum_active<1.0)
+				if(date.year == 0) {
+					if(sum_active < 1.0)
 						dprintf("Inactive fractions (%4.3f) transferred to NATURAL fraction.\n", 1.0-sum_active);
 					else
 						dprintf("New landcover type fraction (%4.3f) subtracted from NATURAL fraction (%4.3f).\n", sum_active-1.0, gridcell.landcoverfrac[NATURAL]);
 				}
 
-				gridcell.landcoverfrac[NATURAL]+=1.0-sum_active;	// difference (can be negative) 1.0-(sum of active landcover fractions) are added to the natural fraction
+				gridcell.landcoverfrac[NATURAL] += (1.0 - sum_active);	// difference (can be negative) 1.0-(sum of active landcover fractions) are added to the natural fraction
 				
 				if(date.year==0)
 					dprintf("New NATURAL fraction is %4.3f.\n", gridcell.landcoverfrac[NATURAL]);
 
-				sum_active=1.0;		// sum_active should now be 1.0
+				sum_active = 1.0;		// sum_active should now be 1.0
 
-				if(gridcell.landcoverfrac[NATURAL]<0.0) {	// If new landcover type fraction is bigger than the natural fraction (something wrong in the distribution of input file area fractions)						
-					if(date.year==0)
+				if(gridcell.landcoverfrac[NATURAL] < 0.0) {	// If new landcover type fraction is bigger than the natural fraction (something wrong in the distribution of input file area fractions)						
+					if(date.year == 0)
 						dprintf("New landcover type fraction is bigger than NATURAL fraction, rescaling landcover fractions !.\n");
 
-					sum_active-=gridcell.landcoverfrac[NATURAL];	// fraction not possible to transfer moved back to sum_active, which will now be >1.0 again
-					gridcell.landcoverfrac[NATURAL]=0.0;
+					sum_active -= gridcell.landcoverfrac[NATURAL];	// fraction not possible to transfer moved back to sum_active, which will now be >1.0 again
+					gridcell.landcoverfrac[NATURAL] = 0.0;
 
-					for(i=0;i<NLANDCOVERTYPES;i++) {
-						gridcell.landcoverfrac[i]/=sum_active;		// fraction rescaled to unity sum
+					for(i=0; i<NLANDCOVERTYPES; i++) {
+						gridcell.landcoverfrac[i] /= sum_active;		// fraction rescaled to unity sum
 						if(run[i])
-							if(date.year==0)
+							if(date.year == 0)
 								dprintf("Landcover type %d fraction is %4.3f\n", i, gridcell.landcoverfrac[i]);
 					}
 				}
 			}
 			else {
-//				if(date.year==0)
+//				if(date.year == 0)
 //					dprintf("Rescaling landcover fractions !\n");
-//				for(i=0;i<NLANDCOVERTYPES;i++)
-//					gridcell.landcoverfrac[i]/=sum_active;						// 1) if NATURAL not simulated, rescale active fractions to 1.0
-				if(date.year==0)
+//				for(i=0; i<NLANDCOVERTYPES; i++)
+//					gridcell.landcoverfrac[i] /= sum_active;						// 1) if NATURAL not simulated, rescale active fractions to 1.0
+				if(date.year == 0)
 					dprintf("Non-unity fraction sum retained.\n");				// 2) let sum remain non-unity
 			}
 		}
@@ -955,7 +964,7 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 		StandType& st = stlist.getobj();
 
 		st.frac = st.frac * gridcell.landcoverfrac[st.landcover];
-		if(fabs(st.frac_old - st.frac) < 10e-15)
+		if(fabs(st.frac_old - st.frac) < 1.0e-14)
 			st.frac = st.frac_old;
 		stlist.nextobj();
 	}

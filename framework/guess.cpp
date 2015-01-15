@@ -1467,7 +1467,7 @@ double Individual::check_C_mass() {
 		cropindiv->grs_cmass_stem = 0.0;
 	}
 
-	if(negative_cmass > 10e-15) {
+	if(negative_cmass > 1.0e-14) {
 		anpp += negative_cmass;
 		report_flux(Fluxes::NPP, negative_cmass);
 		report_flux(Fluxes::RA, -negative_cmass);
@@ -1523,7 +1523,7 @@ double Individual::check_N_mass() {
 		nstore_longterm = 0,0;
 	}	
 
-	if(negative_nmass > 10e-15) {
+	if(negative_nmass > 1.0e-14) {
 		double pos_nmass = ncont();
 		if(pos_nmass > negative_nmass) {
 			nmass_leaf -= negative_nmass * nmass_leaf / pos_nmass;

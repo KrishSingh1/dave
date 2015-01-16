@@ -38,7 +38,7 @@ bool TimeDataD::item_in_header(char* name) {
 		return false;
 	else
 		return true;
-};
+}
 
 void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist)	//Requires gutil.h
 {
@@ -169,6 +169,9 @@ int TimeDataD::Get(int calender_year, double* dataX) const
 
 double TimeDataD::Get(int calender_year, int column) const
 {
+	if(memory_copy)
+		return memory_copy->Get(calender_year, column);
+
 	double dataX=0.0;
 	int yearX = CalenderYearToPosition(calender_year);
 
@@ -187,6 +190,9 @@ double TimeDataD::Get(int calender_year, int column) const
 
 double TimeDataD::Get(int calender_year, const char* name) const		//Returns a single value for column with header string name
 {
+	if(memory_copy)
+		return memory_copy->Get(calender_year, name);
+
 	int column = -1;
 	double dataX = -999;
 
@@ -1143,6 +1149,9 @@ int TimeDataD::Load()	// for GLOBAL_YEARLY and GLOBAL_STATIC data
 
 int TimeDataD::Load(Coord c)
 {
+	if(memory_copy)
+		return memory_copy->Load(c);
+
 	char line[MAXLINE], *p=NULL;
 	int i=0, j=0, k=0, count1=0, nyears=0, yearX=0, yearX_previous;
 	float lonX=0.0, latX=0.0;
@@ -1325,14 +1334,24 @@ int TimeDataD::Load(Coord c)
 		error=1;
 	}
 
-	if(error)
+	if(error) {
+		loaded = false;
 		return 0;
-	else
-	{
+	}
+	else {
 if(!SUPPRESSLARGEOUTPUT)
 		dprintf("Loading all data for %.2f,%.2f in %s into memory\n", c.lon, c.lat,fileName);
+		loaded = true;
 		return 1;
 	}
+}
+
+bool TimeDataD::isloaded() { 
+
+	if(memory_copy)
+		return memory_copy->isloaded(); 
+	else
+		return loaded;
 }
 
 int TimeDataD::LoadNext()	//Only implemented for LOCAL_YEARLY (100106) and LOCAL_STATIC (121016)	; Needs to be modified to handle missing lines in data files with header ! (see Load)
@@ -2038,6 +2057,7 @@ TimeDataD::TimeDataD(int formatX)
 	year=NULL;
 	format=formatX;
 	fileopened=false;
+	memory_copy=NULL;
 }
 
 //Deconstructor
@@ -2264,6 +2284,8 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 		}
 	}
 	delete[] celldata;
+
+	Data.register_memory_copy(this);
 }
 
 int TimeDataDmem::GetFirstyear()

@@ -96,6 +96,9 @@ public:
 };
 #endif
 
+//Forward declaration of TimeDataDmem
+class TimeDataDmem;
+
 class TimeDataD									//Represents a set of double data over time (years).
 {												//Data can be global or for a specific stand. Also static. set by format flag
 	FILE *ifp;
@@ -110,6 +113,7 @@ class TimeDataD									//Represents a set of double data over time (years).
 	int firstyear;								//110601; set in ParseNYears() or ParseNYearsSpatial() to be used in FindRecord()
 	bool isfirstgrid;
 	bool loaded;
+	TimeDataDmem *memory_copy;
 
 	int ParseFormat();							//Called from Open(); Returns 0 if wrong format, sets nRecords, ifheader and header_arr[]
 	int ParseNYears();							//Called from Open()
@@ -144,7 +148,6 @@ public:
 	double Get(int calender_year, const char* name) const;	// Returns a single value for column with header string name. Returns -999 if name not found.
 	int Get(int calender_year, double* dataX) const;		//Copies the values for one year data to the dataX array, returns 0 if wrong format.
 	int Get(double* dataX) const;							//Copies all data to the dataX array, returns 0 if wrong format.
-//	double* Get(int year) const;
 	int GetnRecords() const {return nRecords;}
 	int GetHeader(char cropnames[][MAXNAMESIZE]) const;
 	int GetHeaderFull(char *header_line) const;			//120124
@@ -154,14 +157,14 @@ public:
 	void Rewind() {rewind(ifp);}
 	int GetNCells();
 	int GetFirstyear();
-	bool isloaded() { return loaded;}
-
+	bool isloaded();
 #if defined GUESS_VERSION
 	void CheckIfPresent(ListArray_id<Coord>& gridlist);
 #endif
 	bool item_has_data(int cft){return checkdata[cft];}
 	bool item_has_data(char* name);
 	bool item_in_header(char* name);
+	void register_memory_copy(TimeDataDmem* mem_copy) {memory_copy = mem_copy;}
 };
 
 //Class for loading data from memory instead of file.

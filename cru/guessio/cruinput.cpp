@@ -150,7 +150,7 @@ void CRUInput::init() {
 
 #ifdef LUTOMEMORY
 					// Save all landcover area fraction data in memory
-					LUdata_mem.Open(gridlist.nobj, LUdata.nRecords,LUdata.nYears);
+					LUdata_mem.Open(gridlist.nobj, LUdata.nRecords, LUdata.nYears);
 
 					ListArray_id<InData::Coord> lonlatlist;
 					GetLonLatList(lonlatlist, gridlist);
@@ -218,7 +218,7 @@ void CRUInput::init() {
 
 #ifdef LUTOMEMORY
 				// Save all crop area fraction data in memory
-				CFTdata_mem.Open(gridlist.nobj, CFTdata.nRecords,CFTdata.nYears);
+				CFTdata_mem.Open(gridlist.nobj, CFTdata.nRecords, CFTdata.nYears);
 
 				ListArray_id<InData::Coord> lonlatlist;
 				GetLonLatList(lonlatlist, gridlist);
@@ -275,7 +275,7 @@ void CRUInput::init() {
 					fail("initio: could not open %s for input",(char*)file_sdates);
 #ifdef LUTOMEMORY
 				// Save all harvest date data in memory
-				sdates_mem.Open(gridlist.nobj, sdates.nRecords,sdates.nYears);
+				sdates_mem.Open(gridlist.nobj, sdates.nRecords, sdates.nYears);
 
 				ListArray_id<InData::Coord> lonlatlist;
 				GetLonLatList(lonlatlist, gridlist);
@@ -289,7 +289,7 @@ void CRUInput::init() {
 					fail("initio: could not open %s for input",(char*)file_hdates);
 #ifdef LUTOMEMORY
 				// Save all harvest date data in memory
-				hdates_mem.Open(gridlist.nobj, hdates.nRecords,hdates.nYears);
+				hdates_mem.Open(gridlist.nobj, hdates.nRecords, hdates.nYears);
 
 				ListArray_id<InData::Coord> lonlatlist;
 				GetLonLatList(lonlatlist, gridlist);
@@ -302,7 +302,7 @@ void CRUInput::init() {
 					fail("initio: could not open %s for input",(char*)file_Nfert);
 #ifdef LUTOMEMORY
 				// Save all N fertilization data in memory
-				Nfert_mem.Open(gridlist.nobj, Nfert.nRecords,Nfert.nYears);
+				Nfert_mem.Open(gridlist.nobj, Nfert.nRecords, Nfert.nYears);
 
 				ListArray_id<InData::Coord> lonlatlist;
 				GetLonLatList(lonlatlist, gridlist);
@@ -390,11 +390,7 @@ bool CRUInput::loadlandcover(Gridcell& gridcell, Coord cc) {
 #if defined DYNAMIC_LANDCOVER_INPUT
 		if (loadLU) {
 			// Load landcover area fraction data from input file to data object
-#ifdef LUTOMEMORY
-			if (!LUdata_mem.Load(c)) {
-#else
 			if (!LUdata.Load(c)) {
-#endif		
 				dprintf("Problems with landcover fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;		// skip this stand
 			}
@@ -410,42 +406,26 @@ bool CRUInput::loadlandcover(Gridcell& gridcell, Coord cc) {
 			// Crop fraction data: read from crop fraction file; dynamic, so data for all years are loaded to CFTdata object and 
 			// transferred to gridcell.cftfrac each year in getlandcover()			
 
-#ifdef LUTOMEMORY
-			if(!CFTdata_mem.Load(c)) {
-#else
 			if(!CFTdata.Load(c)) {
-#endif		
 				dprintf("Problems with CFT fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;	// skip this stand
 			}
 		}
 
 		if(readsowingdates && !LUerror) { 
-#ifdef LUTOMEMORY
-			if(!sdates_mem.Load(c)) {
-#else
 			if(!sdates.Load(c)) {
-#endif
 				dprintf("Problems with sowing date input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;	// skip this stand
 			}
 		}
 		if(readharvestdates && !LUerror) {
-#ifdef LUTOMEMORY
-			if(!hdates_mem.Load(c)) {
-#else
 			if(!hdates.Load(c)) {
-#endif
 				dprintf("Problems with harvest date input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;	// skip this stand
 			}
 		}
 		if(readNfert && !LUerror) {
-#ifdef LUTOMEMORY
-			if(!Nfert_mem.Load(c)) {
-#else
 			if(!Nfert.Load(c)) {
-#endif
 //				dprintf("Problems with N fertilization input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 //				LUerror=true;	// skip this stand
 				dprintf("N fertilization data not found in input file for %.2f,%.2f.\n\n",c.lon,c.lat);
@@ -729,26 +709,6 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 					double lcfrac = 0.0;
 					switch(i)
 					{
-#ifdef LUTOMEMORY
-					case URBAN:
-						lcfrac = LUdata_mem.Get(year,"URBAN");
-						break;
-					case CROPLAND:
-						lcfrac = LUdata_mem.Get(year,"CROPLAND");
-						break;
-					case PASTURE:
-						lcfrac = LUdata_mem.Get(year,"PASTURE");
-						break;
-					case FOREST:
-						lcfrac = LUdata_mem.Get(year,"FOREST");
-						break;
-					case NATURAL:
-						lcfrac = LUdata_mem.Get(year,"NATURAL");
-						break;
-					case PEATLAND:
-//						lcfrac = LUdata_mem.Get(year,"PEATLAND");	//peatland currently not in input file; commented out to avoid warning
-						break;
-#else
 					case URBAN:
 						lcfrac = LUdata.Get(year,"URBAN");
 						break;
@@ -767,7 +727,6 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 					case PEATLAND:
 //						lcfrac = LUdata.Get(year,"PEATLAND");
 						break;
-#endif
 					default:
 						if(date.year == 0)
 							dprintf("Modify code to deal with landcover input!\n");
@@ -888,12 +847,8 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 		for(i=0; i<nst; i++) {
 			if(stlist[i].landcover == CROPLAND)	{
 
-				double cropfrac = 0.0;
-#ifdef LUTOMEMORY
-				cropfrac = CFTdata_mem.Get(year,stlist[i].name);
-#else
-				cropfrac = CFTdata.Get(year,stlist[i].name);
-#endif
+				double cropfrac = CFTdata.Get(year,stlist[i].name);
+
 				if(cropfrac == NOTFOUND)	// land cover not found in input file
 					cropfrac = 0.0;
 				else if(cropfrac < 0.0 || cropfrac > 1.0)	{	// discard unreasonable values	
@@ -976,11 +931,7 @@ void CRUInput::getsowingdates(Gridcell& gridcell) {
 	int first_historic_year = FIRSTHISTYEAR;
 
 #if defined DYNAMIC_LANDCOVER_INPUT
-#ifdef LUTOMEMORY
-	if(!sdates_mem.isloaded())
-#else
 	if(!sdates.isloaded())
-#endif
 		return;
 #endif
 
@@ -993,11 +944,7 @@ void CRUInput::getsowingdates(Gridcell& gridcell) {
 		for(i=0; i<npft; i++) {
 			if(pftlist[i].landcover == CROPLAND && pftlist[i].readsowingdate)	{
 #if defined DYNAMIC_LANDCOVER_INPUT
-#ifdef LUTOMEMORY
-				gridcell.pft[i].sdate_force = (int)sdates_mem.Get(year,pftlist[i].name);
-#else
 				gridcell.pft[i].sdate_force = (int)sdates.Get(year,pftlist[i].name);
-#endif
 #endif
 				// Copy gridcellpft-value to standpft-value. If standtype values are required, modify code and input files.
 				for(unsigned int j=0; j<gridcell.nbr_stands(); j++) {
@@ -1015,11 +962,7 @@ void CRUInput::getharvestdates(Gridcell& gridcell) {
 	int first_historic_year = FIRSTHISTYEAR;
 
 #if defined DYNAMIC_LANDCOVER_INPUT
-#ifdef LUTOMEMORY
-	if(!hdates_mem.isloaded())
-#else
 	if(!hdates.isloaded())
-#endif
 		return;
 #endif
 
@@ -1032,11 +975,7 @@ void CRUInput::getharvestdates(Gridcell& gridcell) {
  		for(i=0; i<npft; i++)	{
 			if(pftlist[i].landcover == CROPLAND && pftlist[i].readharvestdate) {		
 #if defined DYNAMIC_LANDCOVER_INPUT
-#ifdef LUTOMEMORY
-				gridcell.pft[pftlist[i].id].hdate_force = (int)hdates_mem.Get(year,pftlist[i].name);
-#else
 				gridcell.pft[pftlist[i].id].hdate_force = (int)hdates.Get(year,pftlist[i].name);
-#endif
 #endif
 				// Copy gridcellpft-value to standpft-value. If standtype values are required, modify code and input files.
 				for(unsigned int j=0; j<gridcell.nbr_stands(); j++) {
@@ -1054,11 +993,7 @@ void CRUInput::getNfert(Gridcell& gridcell) {
 	int first_historic_year = FIRSTHISTYEAR;
 
 #if defined DYNAMIC_LANDCOVER_INPUT
-#ifdef LUTOMEMORY
-	if(!Nfert_mem.isloaded())
-#else
 	if(!Nfert.isloaded())
-#endif
 		return;
 #endif
 
@@ -1071,11 +1006,7 @@ void CRUInput::getNfert(Gridcell& gridcell) {
  		for(i=0; i<npft; i++)	{
 			if(pftlist[i].landcover == CROPLAND && pftlist[i].readNfert) {		
 #if defined DYNAMIC_LANDCOVER_INPUT
-#ifdef LUTOMEMORY
-				gridcell.pft[pftlist[i].id].Nfert_read = Nfert_mem.Get(year,pftlist[i].name);
-#else
 				gridcell.pft[pftlist[i].id].Nfert_read = Nfert.Get(year,pftlist[i].name);
-#endif
 #endif
 			}
 		}

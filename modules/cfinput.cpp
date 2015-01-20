@@ -751,6 +751,11 @@ void CFInput::getlandcover(Gridcell& gridcell) {
 	gridcell.landcoverfrac[NATURAL] = 1;
 }
 
+bool CFInput::get_lc_transfer(double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES]) {
+
+	return false;
+}
+
 // Crop input functions not supported by this input module for now
 void CFInput::getsowingdates(Gridcell& gridcell) {}
 void CFInput::getharvestdates(Gridcell& gridcell) {}

@@ -176,7 +176,7 @@ void CommonOutput::define_output_tables() {
 	std::vector<std::string> landcovers;
 
 	if (run_landcover) {
-		 const char* landcover_string[]={"Urban_sum", "Crop_sum", "Pasture_sum", "Forest_sum", "Natural_sum", "Peatland_sum"};
+		 const char* landcover_string[]={"Urban_sum", "Crop_sum", "Pasture_sum", "Forest_sum", "Natural_sum", "Peatland_sum", "Barren sum"};
 		 for (int i=0; i<NLANDCOVERTYPES; i++) {
 			  if(run[i]) {
 					landcovers.push_back(landcover_string[i]);
@@ -1078,6 +1078,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								out.add_value(out_dens_forest,			mean_standpft_densindiv_total_lc[i]);
 							}
 							break;
+						case BARREN:
+							break;
 						default:
 							if(date.year == nyear_spinup)
 								dprintf("Modify code to deal with landcover output!\n");
@@ -1450,6 +1452,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 							out.add_value(out_dens_forest,		landcover_densindiv_total[i]);
 						}
 						break;
+					case BARREN:
+						break;
 					default:
 						if(date.year == nyear_spinup)
 							dprintf("Modify code to deal with landcover output!\n");
@@ -1568,6 +1572,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					case FOREST:
 						table_p=&out_cflux_forest;
 						break;
+					case BARREN:
+						break;
 					default:
 						if(date.year == nyear_spinup)
 							dprintf("Modify code to deal with landcover output!\n");
@@ -1666,6 +1672,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 						break;
 					case FOREST:
 						table_p=&out_cpool_forest;
+						break;
+					case BARREN:
 						break;
 					default:
 						if(date.year == nyear_spinup)

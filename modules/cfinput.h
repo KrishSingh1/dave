@@ -31,6 +31,8 @@ public:
 
 	void getlandcover(Gridcell& gridcell);
 
+	bool get_lc_transfer(double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES]);
+
 	void getsowingdates(Gridcell& gridcell);
 
 	void getharvestdates(Gridcell& gridcell);

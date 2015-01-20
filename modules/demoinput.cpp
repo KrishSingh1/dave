@@ -948,6 +948,11 @@ void DemoInput::getlandcover(Gridcell& gridcell) {
 	}
 }
 
+bool DemoInput::get_lc_transfer(double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES]) {
+
+	return false;
+}
+
 void DemoInput::getsowingdates(Gridcell& gridcell) {
 	int i, year;
 

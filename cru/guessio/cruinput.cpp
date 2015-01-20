@@ -74,6 +74,7 @@ CRUInput::CRUInput()
 	declare_parameter("lc_fixed_forest", &lc_fixed_frac[FOREST], 0, 100, "% lc_fixed_forest");
 	declare_parameter("lc_fixed_natural", &lc_fixed_frac[NATURAL], 0, 100, "% lc_fixed_natural");
 	declare_parameter("lc_fixed_peatland", &lc_fixed_frac[PEATLAND], 0, 100, "% lc_fixed_peatland");
+	declare_parameter("lc_fixed_barren", &lc_fixed_frac[BARREN], 0, 100, "% lc_fixed_barren");
 }
 
  
@@ -163,6 +164,24 @@ void CRUInput::init() {
 				}
 #endif
 			}
+
+			//Read LUC transitions
+			if(gross_land_transfer == 2) {
+				file_grossLUC=param["file_grossLUC"].str;
+#if defined DYNAMIC_LANDCOVER_INPUT
+				if(!grossLUC.Open(file_grossLUC))
+					fail("initio: could not open %s for input",(char*)file_grossLUC);
+#ifdef LUTOMEMORY
+				// Save all gross transition data in memory
+				grossLUC_mem.Open(gridlist.nobj, grossLUC.nRecords, grossLUC.nYears);
+
+				ListArray_id<InData::Coord> lonlatlist;
+				GetLonLatList(lonlatlist, gridlist);
+				grossLUC_mem.CopyFromTimeDataD(grossLUC, lonlatlist);
+#endif
+#endif
+			}
+
 		}
 
 		//Retrieve file names for crop fraction file and open them if static equal-size values are not used.
@@ -393,6 +412,15 @@ bool CRUInput::loadlandcover(Gridcell& gridcell, Coord cc) {
 			if (!LUdata.Load(c)) {
 				dprintf("Problems with landcover fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror=true;		// skip this stand
+			}
+		}
+
+		//Read LUC transitions
+		if(gross_land_transfer == 2 && !LUerror) {
+
+			if(!grossLUC.Load(c)) {
+				dprintf("Problems with gross LUC transitions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
+				LUerror=true;	// skip this stand
 			}
 		}
 #endif
@@ -727,6 +755,9 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 					case PEATLAND:
 //						lcfrac = LUdata.Get(year,"PEATLAND");
 						break;
+					case BARREN:
+						lcfrac = LUdata.Get(year,"BARREN");
+						break;
 					default:
 						if(date.year == 0)
 							dprintf("Modify code to deal with landcover input!\n");
@@ -924,6 +955,78 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 		stlist.nextobj();
 	}
 
+}
+
+/// Read LUC transitions
+bool CRUInput::get_lc_transfer(double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES]) {
+
+	int year;
+	int first_historic_year = FIRSTHISTYEAR;
+	double tot_frac_ch = 0.0;
+
+#if defined DYNAMIC_LANDCOVER_INPUT
+	if(!grossLUC.isloaded())
+		return false;
+#endif
+
+	if((date.year >= nyear_spinup+1) & (date.year < nyear_spinup + NYEAR_HIST)) {
+		//If have not reached second year of simulation (after spin-up) then gross_lc_change_frac must be zero (no land-use change in spin-up).
+
+		year = date.year - nyear_spinup + first_historic_year -1; 
+		// Assume that transitions in file are correct at end of year, therefore want to get 
+		// "last year's" transitions, as landcover_dynamics is called at the beginning of the year.
+		// Transfers from primary (v) and secondary (s) land preferentially reduces the oldest and the 
+		// youngest stands, respectively. Transitions from primary to secondary NATURAL land result 
+		// in killing of vegetation and creating a new NATURAL stand.
+
+		const bool primary_to_secondary = false;
+
+#if defined DYNAMIC_LANDCOVER_INPUT
+		lc_frac_transfer[CROPLAND][PASTURE] += grossLUC.Get(year,"cp");
+		lc_frac_transfer[PASTURE][CROPLAND] += grossLUC.Get(year,"pc");
+		lc_frac_transfer[PASTURE][NATURAL] += grossLUC.Get(year,"pv");
+		lc_frac_transfer[NATURAL][PASTURE] += grossLUC.Get(year,"vp");
+		lc_frac_transfer[NATURAL][CROPLAND] += grossLUC.Get(year,"vc");
+		lc_frac_transfer[CROPLAND][NATURAL] += grossLUC.Get(year,"cv");
+		lc_frac_transfer[NATURAL][CROPLAND] += grossLUC.Get(year,"sc");
+		lc_frac_transfer[CROPLAND][NATURAL] += grossLUC.Get(year,"cs");
+		lc_frac_transfer[NATURAL][PASTURE] += grossLUC.Get(year,"sp");
+		lc_frac_transfer[PASTURE][NATURAL] += grossLUC.Get(year,"ps");
+
+		if(ifprimary_lc_transfer) {
+			primary_lc_frac_transfer[NATURAL][PASTURE] += grossLUC.Get(year,"vp");
+			primary_lc_frac_transfer[NATURAL][CROPLAND] += grossLUC.Get(year,"vc");
+			if(primary_to_secondary) {
+				lc_frac_transfer[NATURAL][NATURAL] += grossLUC.Get(year,"vs");
+				primary_lc_frac_transfer[NATURAL][NATURAL] += grossLUC.Get(year,"vs");
+			}
+		}
+#endif
+
+		for(int from=0; from<NLANDCOVERTYPES; from++) {
+
+			double net_frac_ch = 0.0;
+
+			if(run[from]) {
+
+				for(int to=0; to<NLANDCOVERTYPES; to++) {
+
+					if(run[to]) {
+						
+						net_frac_ch -= lc_frac_transfer[from][to];
+						net_frac_ch += lc_frac_transfer[to][from];
+						tot_frac_ch += lc_frac_transfer[to][from];
+					}
+				}
+
+			}
+
+		}
+	}
+	if(tot_frac_ch > 1.0e-14)
+		return true;
+	else
+		return false;
 }
 
 void CRUInput::getsowingdates(Gridcell& gridcell) {

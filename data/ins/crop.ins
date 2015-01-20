@@ -53,6 +53,7 @@ run_forest 0	      ! whether to simulate managed forest (1) or not (0)
 run_pasture 1	      ! whether to simulate pasture (1) or not (0)
 run_natural 1	      ! whether to simulate natural vegetation (1) or not (0)
 run_peatland 0	      ! whether to simulate peatland (1) or not (0)
+run_barren 0	      ! whether to simulate barren land (1) or not (0)
 
 lcfrac_fixed 0        	! use landcover fractions (%) below (1) or read from input file (0)
 lc_fixed_urban 0   	! URBAN
@@ -61,9 +62,10 @@ lc_fixed_pasture 0   	! PASTURE
 lc_fixed_forest 100   	! FOREST
 lc_fixed_natural  0 	! NATURAL
 lc_fixed_peatland 0 	! PEATLAND
+lc_fixed_barren  0 	! BARREN
 equal_landcover_area 1	! divide gridcell into equal active landcover fractions
 
-minimizecftlist 1	! Checks st fraction file for st:s with fractions>0.0 at any time or place; other st:s are exluded from the stlist
+minimizecftlist 0	! Checks st fraction file for st:s with fractions>0.0 at any time or place; other st:s are exluded from the stlist
 			! Only active pft:s in these st:s are kept in the pftlist
 cftfrac_fixed 0       	! whether to force CFT % (1) or just read CFT file (0) ; all active crop pft:s have equal area
 
@@ -80,6 +82,7 @@ ifdyn_phu_limit 0	! Whether to limit dynamic phu calculation to a period specifi
 nyear_dyn_phu 50	! Number of years to calculate dynamic phu if dynamic_phu_limit is 1
 iftillage 0		! Whether to simulate tillage by increasing soil respiration
 gross_land_transfer 0	! Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); read stand type transfer matrix input file (3), or not (0)
+ifprimary_lc_transfer 0	! Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)
 transfer_level 1	! Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
 iftransfer_to_new_stand 0	! Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
 ifexpand_to_new_stand 1	! Whether to create new stands in stand_dynamics() according to the rules in the gridcell constructor
@@ -141,6 +144,14 @@ st "Forest" (
 	stinclude 1
 	landcover "forest"
 	naturalveg "all"
+)
+
+st "Barren" (
+
+	common_stand
+	stinclude 1
+	landcover "barren"
+	naturalveg "none"
 )
 
 st "CC3G" (

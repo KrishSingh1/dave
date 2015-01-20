@@ -50,6 +50,8 @@ public:
 	/// See base class for documentation about this function's responsibilities
 	void getlandcover(Gridcell& gridcell);
 
+	bool get_lc_transfer(double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES]);
+
 	/// See base class for documentation about this function's responsibilities
 	void getsowingdates(Gridcell& gridcell);
 
@@ -216,12 +218,14 @@ private:
 	// Objects handling landcover fraction data input
 	InData::TimeDataD LUdata;
 	InData::TimeDataD Peatdata;
+	InData::TimeDataD grossLUC;
 	InData::TimeDataD CFTdata;
 	InData::TimeDataD sdates;
 	InData::TimeDataD hdates;
 	InData::TimeDataD Nfert;
 #ifdef LUTOMEMORY
 	InData::TimeDataDmem LUdata_mem;
+	InData::TimeDataDmem grossLUC_mem;
 	InData::TimeDataDmem CFTdata_mem;
 	InData::TimeDataDmem sdates_mem;
 	InData::TimeDataDmem hdates_mem;
@@ -229,7 +233,7 @@ private:
 #endif
 
 #endif
-	xtring file_lu, file_lucrop, file_peat, file_sdates, file_hdates, file_Nfert;
+	xtring file_lu, file_grossLUC, file_lucrop, file_peat, file_sdates, file_hdates, file_Nfert;
 	// Number of years of landcover fraction data in input files
 	static const int NYEAR_LU=103;
 };

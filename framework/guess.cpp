@@ -606,9 +606,9 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int no
 	}
 
 #if defined NOPASTURESTOCH
-	if(landcover==CROPLAND || landcover==PASTURE || landcover==URBAN || landcover==PEATLAND) {
+	if(landcover==CROPLAND || landcover==PASTURE || landcover==URBAN || landcover==PEATLAND || landcover== BARREN) {
 #else
-	if(landcover==CROPLAND || landcover==URBAN || landcover==PEATLAND) {
+	if(landcover==CROPLAND || landcover==URBAN || landcover==PEATLAND || landcover== BARREN) {
 #endif
 		npatchL=1;
 	}
@@ -616,7 +616,7 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int no
 		npatchL=::npatch; // use the global variable npatch (not Stand::npatch)
 	}
 
-	if(!(landcover==CROPLAND || landcover==PASTURE || landcover==URBAN || landcover==PEATLAND || landcover==NATURAL || landcover==FOREST)) {
+	if(!(landcover==CROPLAND || landcover==PASTURE || landcover==URBAN || landcover==PEATLAND || landcover==NATURAL || landcover==FOREST || landcover== BARREN)) {
 		// Someone has added a new landcover type, the code above needs to be updated and
 		// npatchL needs to be set properly.
 		fail("Unrecognized landcover type");

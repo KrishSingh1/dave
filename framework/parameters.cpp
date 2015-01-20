@@ -64,6 +64,7 @@ bool ifslowharvestpool;
 bool ifintercropgrass;
 bool ifcalcdynamic_phu;
 int gross_land_transfer;
+bool ifprimary_lc_transfer;
 int transfer_level;
 bool ifdyn_phu_limit;
 bool iftransfer_to_new_stand;
@@ -419,6 +420,8 @@ void plib_declarations(int id,xtring setname) {
 			"Whether plant growth limited by available nitrogen in crop stands");
 		declareitem("ifnlim_peatland",&ifnlim_lc[PEATLAND],1,CB_NONE,
 			"Whether plant growth limited by available nitrogen in peatland stands");
+		declareitem("ifnlim_barren",&ifnlim_lc[BARREN],1,CB_NONE,
+			"Whether plant growth limited by available nitrogen in barren stands");
 		declareitem("freenyears",&freenyears,0,1000,1,CB_NONE,
 			"Number of years to spinup without nitrogen limitation");
 
@@ -439,10 +442,12 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("run_forest",&run[FOREST],1,CB_NONE,"Whether managed forest is to be simulated");
 		declareitem("run_natural",&run[NATURAL],1,CB_NONE,"Whether natural vegetation is to be simulated");
 		declareitem("run_peatland",&run[PEATLAND],1,CB_NONE,"Whether peatland is to be simulated");
+		declareitem("run_barren",&run[BARREN],1,CB_NONE,"Whether barren land is to be simulated");
 		declareitem("ifslowharvestpool",&ifslowharvestpool,1,CB_NONE,"If a slow harvested product pool is included in patchpft.");
 		declareitem("ifintercropgrass",&ifintercropgrass,1,CB_NONE,"Whether intercrop growth is allowed");
 		declareitem("ifcalcdynamic_phu",&ifcalcdynamic_phu,1,CB_NONE,"Whether to calculate dynamic potential heat units");
 		declareitem("gross_land_transfer",&gross_land_transfer,0,3,1,CB_NONE,"Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); read stand type transfer matrix input file (3), or not (0)");
+		declareitem("ifprimary_lc_transfer",&ifprimary_lc_transfer,1,CB_NONE,"Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)");
 		declareitem("transfer_level",&transfer_level,0,3,1,CB_NONE,"Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level");
 		declareitem("ifdyn_phu_limit",&ifdyn_phu_limit,1,CB_NONE,"Whether to limit dynamic phu calculation to a time period");
 		declareitem("iftransfer_to_new_stand",&iftransfer_to_new_stand,1,CB_NONE,"");
@@ -523,7 +528,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("lifeform",&strparam,16,CB_LIFEFORM,
 			"Lifeform (\"TREE\" or \"GRASS\")");
 		declareitem("landcover",&strparam,16,CB_LANDCOVER,
-			"Landcovertype (\"URBAN\", \"CROP\", \"PASTURE\", \"FOREST\", \"NATURAL\" or \"PEATLAND\")");
+			"Landcovertype (\"URBAN\", \"CROP\", \"PASTURE\", \"FOREST\", \"NATURAL\", \"PEATLAND\" or \"BARREN\")");
 		declareitem("phenology",&strparam,16,CB_PHENOLOGY,
 			"Phenology (\"EVERGREEN\", \"SUMMERGREEN\", \"RAINGREEN\", \"CROPGREEN\" or \"ANY\")");
 		declareitem("leafphysiognomy",&strparam,16,CB_LEAFPHYSIOGNOMY,
@@ -780,7 +785,7 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("stinclude",&includest,1,CB_NONE,"Include StandType in analysis");
 		declareitem("landcover",&strparam,16,CB_STLANDCOVER,
-			"Landcovertype (\"URBAN\", \"CROP\", \"PASTURE\", \"FOREST\", \"NATURAL\" or \"PEATLAND\")");
+			"Landcovertype (\"URBAN\", \"CROP\", \"PASTURE\", \"FOREST\", \"NATURAL\", \"PEATLAND\" or \"BARREN\")");
 		declareitem("intercrop",&strparam,16,CB_STINTERCROP,
 			"Intercrop (\"NOINTERCROP\" or \"NATURALGRASS\")");
 		declareitem("naturalveg",&strparam,16,CB_STNATURALVEG,
@@ -886,11 +891,12 @@ void plib_callback(int callback) {
 		else if (strparam.upper()=="URBAN") ppft->landcover=URBAN;
 		else if (strparam.upper()=="CROPLAND") ppft->landcover=CROPLAND;
 		else if (strparam.upper()=="PASTURE") ppft->landcover=PASTURE;
-		else if (strparam.upper()=="FOREST") ppft->landcover=FOREST;			
+		else if (strparam.upper()=="FOREST") ppft->landcover=FOREST;
 		else if (strparam.upper()=="PEATLAND") ppft->landcover=PEATLAND;
+		else if (strparam.upper()=="BARREN") ppft->landcover=BARREN;
 		else {
 			sendmessage("Error",
-				"Unknown landcover type (valid types: \"URBAN\", \"CROPLAND\", \"PASTURE\", \"FOREST\", \"NATURAL\" or \"PEATLAND\")");
+				"Unknown landcover type (valid types: \"URBAN\", \"CROPLAND\", \"PASTURE\", \"FOREST\", \"NATURAL\", \"PEATLAND\" or \"BARREN\")");
 			plibabort();
 		}
 		break;
@@ -899,11 +905,12 @@ void plib_callback(int callback) {
 		else if (strparam.upper()=="URBAN") pst->landcover=URBAN;
 		else if (strparam.upper()=="CROPLAND") pst->landcover=CROPLAND;
 		else if (strparam.upper()=="PASTURE") pst->landcover=PASTURE;
-		else if (strparam.upper()=="FOREST") pst->landcover=FOREST;			
+		else if (strparam.upper()=="FOREST") pst->landcover=FOREST;
 		else if (strparam.upper()=="PEATLAND") pst->landcover=PEATLAND;
+		else if (strparam.upper()=="BARREN") pst->landcover=BARREN;
 		else {
 			sendmessage("Error",
-				"Unknown landcover type (valid types: \"URBAN\", \"CROPLAND\", \"PASTURE\", \"FOREST\", \"NATURAL\" or \"PEATLAND\")");
+				"Unknown landcover type (valid types: \"URBAN\", \"CROPLAND\", \"PASTURE\", \"FOREST\", \"NATURAL\", \"PEATLAND\" or \"BARREN\")");
 			plibabort();
 		}
 		break;
@@ -1043,6 +1050,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifnlim_pasture")) badins("ifnlim_pasture");
 		if (!itemparsed("ifnlim_crop")) badins("ifnlim_crop");
 		if (!itemparsed("ifnlim_peatland")) badins("ifnlim_peatland");
+		if (!itemparsed("ifnlim_barren")) badins("ifnlim_barren");
 		if (!itemparsed("freenyears")) badins("freenyears");
 
 		if (nyear_spinup <= freenyears) {
@@ -1072,15 +1080,18 @@ void plib_callback(int callback) {
 			if (!itemparsed("lc_fixed_forest")) badins("lc_fixed_forest");
 			if (!itemparsed("lc_fixed_natural")) badins("lc_fixed_natural");
 			if (!itemparsed("lc_fixed_peatland")) badins("lc_fixed_peatland");
+			if (!itemparsed("lc_fixed_barren")) badins("lc_fixed_barren");
 			if (!itemparsed("run_natural")) badins("run_natural");
 			if (!itemparsed("run_crop")) badins("run_crop");
 			if (!itemparsed("run_forest")) badins("run_forest");
 			if (!itemparsed("run_urban")) badins("run_urban");
 			if (!itemparsed("run_pasture")) badins("run_pasture");
+			if (!itemparsed("run_barren")) badins("run_barren");
 			if (!itemparsed("ifslowharvestpool")) badins("ifslowharvestpool");
 			if (!itemparsed("ifintercropgrass")) badins("ifintercropgrass");
 			if (!itemparsed("ifcalcdynamic_phu")) badins("ifcalcdynamic_phu");
 			if (!itemparsed("gross_land_transfer")) badins("gross_land_transfer");
+			if (!itemparsed("ifprimary_lc_transfer")) badins("ifprimary_lc_transfer");
 			if (!itemparsed("transfer_level")) badins("transfer_level");
 			if (!itemparsed("ifdyn_phu_limit")) badins("ifdyn_phu_limit");
 			if (!itemparsed("iftransfer_to_new_stand")) badins("iftransfer_to_new_stand");

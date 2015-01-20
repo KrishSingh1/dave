@@ -46,7 +46,7 @@
 typedef enum {NOVEGMODE, INDIVIDUAL, COHORT, POPULATION} vegmodetype;
 
 /// Land cover type of a stand. NLANDCOVERTYPES keeps count of number of items.
-typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, NLANDCOVERTYPES} landcovertype;
+typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, BARREN, NLANDCOVERTYPES} landcovertype;
 
 /// Water uptake parameterisations
 /** \see water_uptake in canexch.cpp
@@ -121,7 +121,7 @@ extern wateruptaketype wateruptake;
 extern bool ifcentury;
 /// whether plant growth limited by available N	
 extern bool ifnlim;
-/// Whether plant growth limited by available N in a specific landcover type (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND).
+/// Whether plant growth limited by available N in a specific landcover type (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, BARREN).
 extern bool ifnlim_lc[NLANDCOVERTYPES];
 
 /// number of years to allow spinup without nitrogen limitation	
@@ -136,7 +136,7 @@ extern double nfix_b;
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;
 
-/// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND).
+/// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, BARREN).
 extern bool run[NLANDCOVERTYPES];
 
 /// Whether landcover fractions are read from ins-file.
@@ -159,6 +159,9 @@ extern bool ifcalcdynamic_phu;
 
 // Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); read stand type transfer matrix input file (3), or not (0)
 extern int gross_land_transfer;
+
+// Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)
+extern bool ifprimary_lc_transfer;
 
 // Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
 extern int transfer_level;

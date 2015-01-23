@@ -50,7 +50,7 @@ public:
 	/// See base class for documentation about this function's responsibilities
 	void getlandcover(Gridcell& gridcell);
 
-	bool get_lc_transfer(double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES]);
+	bool get_lc_transfer(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES]);
 
 	/// See base class for documentation about this function's responsibilities
 	void getsowingdates(Gridcell& gridcell);

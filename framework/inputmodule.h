@@ -91,7 +91,7 @@ public:
 	///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
 	virtual void getlandcover(Gridcell& gridcell) = 0;
 
-	virtual bool get_lc_transfer(double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES]) = 0;
+	virtual bool get_lc_transfer(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES]) = 0;
 
 	/// Gets sowing dates for one year
 	virtual void getsowingdates(Gridcell& gridcell) = 0;

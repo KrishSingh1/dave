@@ -948,7 +948,7 @@ void DemoInput::getlandcover(Gridcell& gridcell) {
 	}
 }
 
-bool DemoInput::get_lc_transfer(double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES]) {
+bool DemoInput::get_lc_transfer(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES]) {
 
 	return false;
 }

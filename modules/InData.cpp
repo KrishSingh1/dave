@@ -420,6 +420,9 @@ int TimeDataD::OpenSpatial(char* name, bool replace_original_file)
 	else
 		Open(outFileName);
 
+	if(outFileName)
+		delete []outFileName;
+
 	return 1;
 }
 

@@ -68,6 +68,7 @@ equal_landcover_area 1	! divide gridcell into equal active landcover fractions
 minimizecftlist 0	! Checks st fraction file for st:s with fractions>0.0 at any time or place; other st:s are exluded from the stlist
 			! Only active pft:s in these st:s are kept in the pftlist
 cftfrac_fixed 0       	! whether to force CFT % (1) or just read CFT file (0) ; all active crop pft:s have equal area
+!nyears_cropland_ramp 300 ! Number of years to increase cropland fraction linearly from 0 to first year's value
 
 ifslowharvestpool 1	! If a slow harvested product pool is included in patchpft.
 ifintercropgrass 1	! Whether to grow grass as cover crop between growing periods

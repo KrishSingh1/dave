@@ -16,10 +16,11 @@
 #include "guessnc.h"
 #include <memory>
 #include <limits>
+#include "input.h"
 
 class CFInput : public InputModule {
 public:
-	CFInput();
+	CFInput(Input&);
 
 	~CFInput();
 
@@ -29,23 +30,27 @@ public:
 
 	bool getclimate(Gridcell& gridcell);
 
-	void getlandcover(Gridcell& gridcell);
-
-	bool get_lc_transfer(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES]);
-
-	void getsowingdates(Gridcell& gridcell);
-
-	void getharvestdates(Gridcell& gridcell);
-
 	void getNfert(Gridcell& gridcell);
 
-	int getfirsthistyear();	
+	bool getsoil(Gridcell& gridcell, const int soilmap_index);
+///
+	int getfirsthistyear();
+
+	int getnyear_hist();
+
+	double* getdprec() {return dprec;};
 
 	static const int NYEAR_SPINUP_DATA=30;
 
 private:
+	/// Reference to input container object
+	Input& input;
 
-	struct Coord {
+	/// Reference to the list of Coord objects containing coordinates of the grid cells to simulate
+	ListArray_id<Coord>& gridlist;
+
+// Not sure how to solve this, loop through gridlist now in Input container
+	struct CoordCF {
 
 		// Type for storing grid cell longitude, latitude and description text
 		
@@ -55,14 +60,12 @@ private:
 		std::string descrip;
 	};
 
-	/// Whether pfts not in crop fraction input file are removed from pftlist (0,1)
-	bool minimizecftlist;
-
+/// ???
 	/// The grid cells to simulate
-	std::vector<Coord> gridlist;
+	std::vector<CoordCF> gridlistCF;
 
 	/// The current grid cell to simulate
-	std::vector<Coord>::iterator current_gridcell;
+	std::vector<CoordCF>::iterator current_gridcell;
 
 	/// Loads data from NetCDF files for current grid cell
 	/** Returns the coordinates for the current grid cell, for
@@ -101,14 +104,6 @@ private:
 	/// \returns all variables
 	std::vector<GuessNC::CF::GridcellOrderedVariable*> all_variables() const;
 
-	/// Yearly CO2 data read from file
-	/**
-	 * This object is indexed with calendar years, so to get co2 value for
-	 * year 1990, use co2[1990]. See documentation for GlobalCO2File for
-	 * more information.
-	 */
-	GlobalCO2File co2;
-
 	// The variables
 
 	GuessNC::CF::GridcellOrderedVariable* cf_temp;
@@ -145,10 +140,10 @@ private:
 
 	/// Insolation for current gridcell and current year (\see instype)
 	double dinsol[365];
-
+// Remove:
 	/// Daily N deposition for one year
 	double dndep[365];
-
+///
 	/// Minimum temperature for current gridcell and current year (deg C)
 	double dmin_temp[365];
 
@@ -176,23 +171,17 @@ private:
 
 	/// Path to CRU binary archive
 	xtring file_cru;
-
+	// Remove ??
 	/// Nitrogen deposition forcing for current gridcell
 	Lamarque::NDepData ndep;
 
 	/// Nitrogen deposition time series to use (historic,rcp26,...)
 	std::string ndep_timeseries;
 
-	/// Landcover fractions read from ins-file (% area).
-	/** One entry for each land cover type */
-	std::vector<int> lc_fixed_frac;
-
-	/// Whether gridcell is divided into equal active landcover fractions.
-	bool equal_landcover_area;
-
 	// Timers for keeping track of progress through the simulation
 	Timer tprogress,tmute;
 	static const int MUTESEC=20; // minimum number of sec to wait between progress messages
+///
 };
 
 #endif // HAVE_NETCDF

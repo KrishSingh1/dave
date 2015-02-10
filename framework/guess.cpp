@@ -391,6 +391,28 @@ void cropphen_struct::serialize(ArchiveStream& arch) {
 ////////////////////////////////////////////////////////////////////////////////
 
 
+Patch::Patch(int i,Stand& s,Soiltype& st):
+	id(i),stand(s),vegetation(*this),soil(*this,st),fluxes(*this) {
+
+	for(unsigned int p = 0; p < pftlist.nobj; p++) {
+		pft.createobj(pftlist[p]);
+	}
+
+	age = 0;
+	disturbed = false;
+	managed = false;
+	wdemand = 0.0;
+	wdemand_leafon = 0.0;
+		
+	growingseasondays = 0;
+
+	fireprob = 0.0;
+	ndemand = 0.0;
+	dnfert = 0.0;
+	anfert = 0.0;
+	nharv = 0;
+}
+
 void Patch::serialize(ArchiveStream& arch) {
 	if (arch.save()) {
 		for (unsigned int i = 0; i < pft.nobj; i++) {
@@ -2247,6 +2269,52 @@ void Gridcellpft::serialize(ArchiveStream& arch) {
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Gridcell member functions
 ////////////////////////////////////////////////////////////////////////////////
+
+Gridcell::Gridcell():climate(*this) {
+	landcovertype landcover;
+	LC_updated = false;
+
+	for(unsigned int p=0; p<pftlist.nobj; p++) {
+		pft.createobj(pftlist[p]);
+	}
+
+	memset(landcoverfrac, 0, sizeof(double) * NLANDCOVERTYPES);
+	memset(landcoverfrac_old, 0, sizeof(double) * NLANDCOVERTYPES);
+	acflux_harvest_slow=0.0;
+	acflux_landuse_change=0.0;
+	anflux_harvest_slow=0.0;
+	anflux_landuse_change=0.0;
+	memset(acflux_harvest_slow_lc, 0, sizeof(double)*NLANDCOVERTYPES);
+	memset(acflux_landuse_change_lc, 0, sizeof(double)*NLANDCOVERTYPES);
+
+	for(int i=0; i<NLANDCOVERTYPES; i++) {		
+		if(i == NATURAL || i == FOREST)
+			expand_to_new_stand[i] = true;
+		else
+			expand_to_new_stand[i] = false;
+
+		pool_to_all_landcovers[i] = false;		// from a donor landcover; alt.c
+		pool_from_all_landcovers[i] = false;		// to a receptor landcover; alt.a
+
+/*		if(i == CROPLAND) {
+			pool_to_all_landcovers[i] = true;
+			pool_to_all_standtypes[i] = true;
+		}
+		else {
+			pool_to_all_landcovers[i] = false;
+			pool_to_all_standtypes[i] = false;
+		}
+*/
+	}
+
+	if(!run_landcover) {
+		landcover = NATURAL;
+		create_stand(landcover);
+		landcoverfrac[NATURAL] = 1.0;
+	}
+
+	seed = 12345678;
+}
 
 double Gridcell::get_lon() const {
 	return lon;

@@ -76,12 +76,12 @@ double GlobalCO2File::operator[](int year) const {
 		  return co2.front();
 	 }
 	 else if (year >= first_year+static_cast<int>(co2.size())) {
-		  fail("GlobalCO2File::operator[]: "\
-				 "Tried to get CO2 value after last year in file\n"\
-				 "Last year: %d, tried to get CO2 for: %d",
-				 first_year+co2.size()-1, year);
 
-		  return 0.0; // to avoid compiler warning
+		  if (date.day == 0 && year == first_year + static_cast<int>(co2.size()))
+			  dprintf("CO2 value for year %d used from year %d and onwards\n",
+					 first_year+co2.size()-1, year);
+
+		  return co2.back();
 	 }
 	 else {
 		  return co2[year-first_year];

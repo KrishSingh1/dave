@@ -801,6 +801,20 @@ public:
 		for (day=0; day<365; day++) doneday[day] = false;
 		sinelat = sin(lat * DEGTORAD);
 		cosinelat = cos(lat * DEGTORAD);
+
+		// Set crop-specific members
+		if (latitude >= 0) {
+			testday_temp = 180;		//June 30(day 180)
+			testday_prec = 364;		//Dec.31(day 364)
+			coldestday = COLDEST_DAY_NHEMISPHERE;
+			adjustlat = 0;
+		}
+		else {
+			testday_temp = 364;		//Dec.31(day 364)
+			testday_prec = 180;		//June 30(day 180)
+			coldestday = COLDEST_DAY_SHEMISPHERE;
+			adjustlat = 181;
+		}
 	}
 
 	void serialize(ArchiveStream& arch);
@@ -3088,27 +3102,7 @@ public:
 	// MEMBER FUNCTIONS
 
 	/// Constructor: initialises various members and builds list array of Patchpft objects.
-	Patch(int i,Stand& s,Soiltype& st):
-		id(i),stand(s),vegetation(*this),soil(*this,st),fluxes(*this) {
-
-		for(unsigned int p = 0; p < pftlist.nobj; p++) {
-			pft.createobj(pftlist[p]);
-		}
-
-		age = 0;
-		disturbed = false;
-		managed = false;
-		wdemand = 0.0;
-		wdemand_leafon = 0.0;
-		
-		growingseasondays = 0;
-
-		fireprob = 0.0;
-		ndemand = 0.0;
-		dnfert = 0.0;
-		anfert = 0.0;
-		nharv = 0;
-	}
+	Patch(int i,Stand& s,Soiltype& st);
 
 	void serialize(ArchiveStream& arch);
 
@@ -3555,51 +3549,7 @@ public:
 	// MEMBER FUNCTIONS
 
 	/// Constructs a Gridcell object
-	Gridcell():climate(*this) {
-		landcovertype landcover;
-		LC_updated = false;
-
-		for(unsigned int p=0; p<pftlist.nobj; p++) {
-			pft.createobj(pftlist[p]);
-		}
-
-		memset(landcoverfrac, 0, sizeof(double) * NLANDCOVERTYPES);
-		memset(landcoverfrac_old, 0, sizeof(double) * NLANDCOVERTYPES);
-		acflux_harvest_slow=0.0;
-		acflux_landuse_change=0.0;
-		anflux_harvest_slow=0.0;
-		anflux_landuse_change=0.0;
-		memset(acflux_harvest_slow_lc, 0, sizeof(double)*NLANDCOVERTYPES);
-		memset(acflux_landuse_change_lc, 0, sizeof(double)*NLANDCOVERTYPES);
-
-		for(int i=0; i<NLANDCOVERTYPES; i++) {		
-			if(i == NATURAL || i == FOREST)
-				expand_to_new_stand[i] = true;
-			else
-				expand_to_new_stand[i] = false;
-
-			pool_to_all_landcovers[i] = false;		// from a donor landcover; alt.c
-			pool_from_all_landcovers[i] = false;		// to a receptor landcover; alt.a
-
-/*			if(i == CROPLAND) {
-				pool_to_all_landcovers[i] = true;
-				pool_to_all_standtypes[i] = true;
-			}
-			else {
-				pool_to_all_landcovers[i] = false;
-				pool_to_all_standtypes[i] = false;
-			}
-*/
-		}
-
-		if(!run_landcover) {
-			landcover = NATURAL;
-			create_stand(landcover);
-			landcoverfrac[NATURAL] = 1.0;
-		}
-
-		seed = 12345678;
-	}
+	Gridcell();
 
 	/// Longitude for this grid cell
 	double get_lon() const;

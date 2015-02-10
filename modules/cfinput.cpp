@@ -254,7 +254,7 @@ void check_same_spatial_domains(const std::vector<GuessNC::CF::GridcellOrderedVa
 
 }
 
-CFInput::CFInput()
+CFInput::CFInput(Input& in)
 	: cf_temp(0),
 	  cf_prec(0),
 	  cf_insol(0),
@@ -262,22 +262,11 @@ CFInput::CFInput()
 	  cf_min_temp(0),
 	  cf_max_temp(0),
 	  ndep_timeseries("historic"),
-	  lc_fixed_frac(NLANDCOVERTYPES, 0),
-	  equal_landcover_area(false) {
+	  input(in),
+	  gridlist(in.gridlist) 
+{
 
 	declare_parameter("ndep_timeseries", &ndep_timeseries, 10, "Nitrogen deposition time series to use (historic, rcp26, rcp45, rcp60 or rcp85");
-
-	// Not used by this input module currently, but included as parameters so
-	// common ins files can be used.
-
-	declare_parameter("equal_landcover_area", &equal_landcover_area, "Whether enforced static landcover fractions are equal-sized stands of all included landcovers (0,1)");
-	declare_parameter("minimizecftlist", &minimizecftlist, "Whether pfts not in crop fraction input file are removed from pftlist (0,1)");
-	declare_parameter("lc_fixed_urban", &lc_fixed_frac[URBAN], 0, 100, "% lc_fixed_urban");
-	declare_parameter("lc_fixed_cropland", &lc_fixed_frac[CROPLAND], 0, 100, "% lc_fixed_cropland");
-	declare_parameter("lc_fixed_pasture", &lc_fixed_frac[PASTURE], 0, 100, "% lc_fixed_pasture");
-	declare_parameter("lc_fixed_forest", &lc_fixed_frac[FOREST], 0, 100, "% lc_fixed_forest");
-	declare_parameter("lc_fixed_natural", &lc_fixed_frac[NATURAL], 0, 100, "% lc_fixed_natural");
-	declare_parameter("lc_fixed_peatland", &lc_fixed_frac[PEATLAND], 0, 100, "% lc_fixed_peatland");
 
 }
 
@@ -293,7 +282,7 @@ CFInput::~CFInput() {
 void CFInput::init() {
 
 	// Read CO2 data from file
-	co2.load_file(param["file_co2"].str);
+//	co2.load_file(param["file_co2"].str);
 
 	file_cru = param["file_cru"].str;
 	
@@ -359,7 +348,7 @@ void CFInput::init() {
 		int rlat, rlon;
 		int landid;
 		std::string descrip;
-		Coord c;
+		CoordCF c;
 
 		std::istringstream iss(line);
 
@@ -370,7 +359,7 @@ void CFInput::init() {
 				c.landid = landid;
 				c.descrip = trim(descrip);
 
-				gridlist.push_back(c);
+				gridlistCF.push_back(c);
 			}
 		}
 		else {
@@ -381,12 +370,12 @@ void CFInput::init() {
 				c.rlon = rlon;
 				c.descrip = trim(descrip);
 
-				gridlist.push_back(c);
+				gridlistCF.push_back(c);
 			}
 		}
 	}
 
-	current_gridcell = gridlist.begin();
+	current_gridcell = gridlistCF.begin();
 
 	date.set_first_calendar_year(cf_temp->get_date_time(0).get_year() - nyear_spinup);
 
@@ -406,12 +395,12 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 
 	// Load data for next gridcell, or if that fails, skip ahead until
 	// we find one that works.
-	while (current_gridcell != gridlist.end() &&
+	while (current_gridcell != gridlistCF.end() &&
 	       !load_data_from_files(lon, lat, cru_lon, cru_lat, soilcode)) {
 		++current_gridcell;
 	}
 
-	if (current_gridcell == gridlist.end()) {
+	if (current_gridcell == gridlistCF.end()) {
 		// simulation finished
 		return false;
 	}
@@ -741,27 +730,6 @@ void CFInput::populate_daily_arrays(long& seed) {
 	distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
 }
 
-void CFInput::getlandcover(Gridcell& gridcell) {
-
-	// Only 100% natural land cover is supported by this input module for now
-
-	for (int i = 0; i < NLANDCOVERTYPES; ++i) {
-		gridcell.landcoverfrac[i] = 0;
-	}
-	gridcell.landcoverfrac[NATURAL] = 1;
-}
-
-bool CFInput::get_lc_transfer(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES]) {
-
-	return false;
-}
-
-// Crop input functions not supported by this input module for now
-void CFInput::getsowingdates(Gridcell& gridcell) {}
-void CFInput::getharvestdates(Gridcell& gridcell) {}
-void CFInput::getNfert(Gridcell& gridcell) {}
-int CFInput::getfirsthistyear() { return -1;}
-
 bool CFInput::getclimate(Gridcell& gridcell) {
 	
 	Climate& climate = gridcell.climate;
@@ -773,7 +741,7 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 		return false;
 	}
 
-	climate.co2 = co2[date.get_calendar_year()];
+//	climate.co2 = co2[date.get_calendar_year()];
 
 	if (date.day == 0) {
 		populate_daily_arrays(gridcell.seed);
@@ -810,10 +778,10 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 
 			int years_to_simulate = nyear_spinup + historic_years;
 
-			int cells_done = distance(gridlist.begin(), current_gridcell);
+			int cells_done = distance(gridlistCF.begin(), current_gridcell);
 
 			double progress=(double)(cells_done*years_to_simulate+date.year)/
-				(double)(gridlist.size()*years_to_simulate);
+				(double)(gridlistCF.size()*years_to_simulate);
 			tprogress.setprogress(progress);
 			dprintf("%3d%% complete, %s elapsed, %s remaining\n",(int)(progress*100.0),
 				tprogress.elapsed.str,tprogress.remaining.str);
@@ -887,6 +855,22 @@ std::vector<GuessNC::CF::GridcellOrderedVariable*> CFInput::all_variables() cons
 	result.push_back(cf_min_temp);
 	result.push_back(cf_max_temp);
 	return result;
+}
+
+bool CFInput::getsoil(Gridcell& gridcell, const int soilmap_index){
+	return true;
+}
+
+int CFInput::getfirsthistyear() {
+
+//	return FIRSTHISTYEAR;
+	return 0;
+}
+
+int CFInput::getnyear_hist() {
+
+//	return NYEAR_HIST;
+	return 0;
 }
 
 #endif // HAVE_NETCDF

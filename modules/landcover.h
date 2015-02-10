@@ -8,24 +8,21 @@
 
 #ifndef LPJ_GUESS_LANDCOVER_H
 #define LPJ_GUESS_LANDCOVER_H
-
+#include "config.h"	//Remove
 #include "guess.h"
 #include "growth.h"
-#include "inputmodule.h"
+#include "input.h"
 
 struct Harvest_CN;
 
 ///	Creates stands for landcovers present in the gridcell first year of the simulation
-void landcover_init(Gridcell& gridcell, InputModule* input_module);
+void landcover_init(Gridcell& gridcell, LandcoverInputModule* input_module);
 
 /// Handles changes in the landcover fractions from year to year
 /** This function will for instance kill or create new stands
  *  if needed.
  */
-void landcover_dynamics(Gridcell& gridcell, InputModule* input_module);
-
-/// Updates dynamic management options each year
-void getmanagement(Gridcell& gridcell, InputModule* input_module);
+void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* input_module);
 
 /// Monitors climate history relevant for sowing date calculation. Calculates initial sowing dates/windows
 void crop_sowing_gridcell(Gridcell& gridcell);

@@ -25,11 +25,11 @@ void InputModuleRegistry::register_input_module(const char* name,
 	modules.insert(make_pair(std::string(name), imc));
 }
             
-InputModule* InputModuleRegistry::create_input_module(const char* name) const {
+InputModule* InputModuleRegistry::create_input_module(const char* name, Input& in) const {
 	std::map<std::string, InputModuleCreator>::const_iterator itr = modules.find(name);
 	
 	if (itr != modules.end()) {
-		return (itr->second)();
+		return (itr->second)(in);
 	}
 	else {
 		fail("Couldn't find input module %s\n", name);

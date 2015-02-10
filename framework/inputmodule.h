@@ -15,6 +15,7 @@
 #include "parameters.h"
 
 class Gridcell;
+class Input;
 
 /// Base class from which any input module must inherit
 /** An input module supplies LPJ-GUESS with the forcing data it needs. The
@@ -88,21 +89,12 @@ public:
 	 */
 	virtual bool getclimate(Gridcell& gridcell) = 0;
 
-	///	Gets gridcell.landcoverfrac from landcover input file(s) for one year or from ins-file .
-	virtual void getlandcover(Gridcell& gridcell) = 0;
+	virtual int getfirsthistyear() = 0;
 
-	virtual bool get_lc_transfer(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES]) = 0;
+	virtual int getnyear_hist() = 0;
 
-	/// Gets sowing dates for one year
-	virtual void getsowingdates(Gridcell& gridcell) = 0;
+	virtual double* getdprec() = 0;
 
-	/// Gets harvest dates for one year
-	virtual void getharvestdates(Gridcell& gridcell) = 0;
-
-	/// Gets N fertilization for one year
-	virtual void getNfert(Gridcell& gridcell) = 0;
-
-	virtual int getfirsthistyear() = 0;	
 };
 
 
@@ -123,7 +115,7 @@ public:
 	 *  creates an instance of that input module. The function is
 	 *  created by the REGISTER_INPUT_MODULE macro below.
 	 */
-	typedef InputModule* (*InputModuleCreator)();
+	typedef InputModule* (*InputModuleCreator)(Input& in);
 
 	/// Returns the one and only input module registry
 	static InputModuleRegistry& get_instance();
@@ -136,7 +128,7 @@ public:
 
 	/// Creates an input module given its name
 	/** Used by the framework to instantiate the chosen input module. */
-	InputModule* create_input_module(const char* name) const;
+	InputModule* create_input_module(const char* name, Input& in) const;
 
 private:
 
@@ -163,8 +155,8 @@ private:
 #define REGISTER_INPUT_MODULE(name, class_name) \
 namespace class_name##_registration { \
 \
-InputModule* class_name##_creator() {\
-	return new class_name();\
+InputModule* class_name##_creator(Input& in) {\
+	return new class_name(in);\
 }\
 \
 int dummy() {\

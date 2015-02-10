@@ -9,10 +9,10 @@
 // NB. The header format is much slower when searching for coordinates in global files.
 
 #include "config.h"
-#include "guess.h" //??
+#include "guess.h"
 //#include "gutil.h"
-#include "InData.h"
 //#include "math.h"
+#include "InData.h"
 
 using namespace InData;
 
@@ -40,8 +40,8 @@ bool TimeDataD::item_in_header(char* name) {
 		return true;
 }
 
-void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist)	//Requires gutil.h
-{
+void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist) { //Requires gutil.h
+
 	if(checkdata)
 	{
 		delete[] checkdata;
@@ -51,6 +51,7 @@ void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist)	//Requires gutil.h
 	checkdata=new bool[nRecords];
 	memset(checkdata, 0, nRecords*sizeof(bool));
 	ischeckingdata=true;
+	rewind(ifp);
 
 	gridlist.firstobj();
 	while(gridlist.isobj)
@@ -313,6 +314,18 @@ int TimeDataD::Open(char* name)
 	}
 
 	return 1;
+}
+
+int TimeDataD::Open(char* name, ListArray_id<Coord>& gridlist){
+
+	if(Open(name)) {
+#ifdef LUTOMEMORY
+		CopyToMemory(gridlist.nobj, gridlist);
+#endif
+		return 1;
+	}
+	else
+		return 0;
 }
 
 int TimeDataD::OpenSpatial(char* name, bool replace_original_file)
@@ -1152,7 +1165,7 @@ int TimeDataD::Load()	// for GLOBAL_YEARLY and GLOBAL_STATIC data
 
 int TimeDataD::Load(Coord c)
 {
-	if(memory_copy)
+	if(memory_copy && !ischeckingdata)
 		return memory_copy->Load(c);
 
 	char line[MAXLINE], *p=NULL;
@@ -1176,8 +1189,8 @@ int TimeDataD::Load(Coord c)
 
 				yearX_previous=firstyear-1;
 
-				currentStand.lon=c.lon;
-				currentStand.lat=c.lat;
+//				currentStand.lon=c.lon;	// coordinates in gridlist or in found record if searchradius used ?
+//				currentStand.lat=c.lat;
 
 //				for(i=0;i<nYears ;)
 				while(i<nYears && yearX<firstyear+nYears-1)
@@ -1196,11 +1209,16 @@ int TimeDataD::Load(Coord c)
 							sscanf(p, "%f", &latX);			//110607
 							p=strtok(NULL, " \t");	//year
 
-							if(fabs(lonX - c.lon) > 0.001 || fabs(latX - c.lat) > 0.001) 	//110607
+//							if(fabs(lonX - c.lon) > 0.001 || fabs(latX - c.lat) > 0.001) 	//110607	//searchradius here !
+							if(fabs(lonX - c.lon) > input_precision / 2.0 || fabs(latX - c.lat) > input_precision / 2.0) 
 							{
 								printf("FORMAT ERROR in input file %s for stand at Coordinate %.2f,%.2f: Load(). Wrong coordinates in data file !\n", fileName,c.lon,c.lat);
 								error=1;
 								break;
+							}
+							else {
+								currentStand.lon = lonX;
+								currentStand.lat = latX;
 							}
 						}
 						else
@@ -1273,8 +1291,7 @@ int TimeDataD::Load(Coord c)
 			{
 				if(data)
 					memset(data, 0, nRecords*sizeof(double));
-				currentStand.lon=c.lon;
-				currentStand.lat=c.lat;
+
 				if(fgets(line, sizeof(line), ifp))
 				{
 					memset(d, 0, nRecords*sizeof(double));
@@ -1282,6 +1299,9 @@ int TimeDataD::Load(Coord c)
 					sscanf(p, "%f", &lonX);
 					p=strtok(NULL, " \t");	//lat
 					sscanf(p, "%f", &latX);
+
+					currentStand.lon = lonX;
+					currentStand.lat = latX;
 
 					do
 					{
@@ -1389,8 +1409,8 @@ int TimeDataD::LoadNext()	//Only implemented for LOCAL_YEARLY (100106) and LOCAL
 				{
 					if(count==2 || count>2 && (format==LOCAL_STATIC || ifheader))	//added LOCAL_STATIC compatibility 091207 (not used, use SoilData instead for soilcode)
 					{																//Bugfix 110607 (was =2)
-						currentStand.lon=d1;
-						currentStand.lat=d2;				
+						currentStand.lon = d1;
+						currentStand.lat = d2;				
 					}
 					else
 					{
@@ -1497,8 +1517,8 @@ int TimeDataD::LoadNext()	//Only implemented for LOCAL_YEARLY (100106) and LOCAL
 				{
 					if(count==2 || count>2 && (format==LOCAL_STATIC || ifheader))	//added LOCAL_STATIC compatibility 091207 (not used, use SoilData instead for soilcode)
 					{																//Bugfix 110607 (was =2)
-						currentStand.lon=d1;
-						currentStand.lat=d2;				
+						currentStand.lon = d1;
+						currentStand.lat = d2;				
 					}
 					else
 					{
@@ -1647,7 +1667,8 @@ int TimeDataD::FindRecord(Coord c) const
 						if(count==2 || count>2 && (d3==firstyear || format==LOCAL_STATIC) && (format==LOCAL_STATIC || ifheader))	//added LOCAL_STATIC compatibility 091207 (not used, use SoilData instead for soilcode)
 //						if(count==2 || count>2 && d3==firstyear && (format==LOCAL_STATIC || ifheader))	//added LOCAL_STATIC compatibility 091207 (not used, use SoilData instead for soilcode)
 						{
-							if(c.lon==d1 && c.lat==d2)
+//							if(c.lon==d1 && c.lat==d2)	//searchradius here !
+							if(fabs(d1 - c.lon) <= input_precision / 2.0 && fabs(d2 - c.lat) <= input_precision / 2.0)
 							{
 								if(!ischeckingdata)
 if(!SUPPRESSLARGEOUTPUT)
@@ -1755,7 +1776,8 @@ int TimeDataD::FindRecord2(Coord c) const	//No need for FindRecord2()
 					{
 						if(count==2 || count>2 && d3==firstyear && (format==LOCAL_STATIC || ifheader))	//added LOCAL_STATIC compatibility 091207 (not used, use SoilData instead for soilcode)
 						{
-							if(c.lon==d1 && c.lat==d2)
+//							if(c.lon==d1 && c.lat==d2) //searchradius here !
+							if(fabs(d1 - c.lon) <= input_precision / 2.0 && fabs(d2 - c.lat) <= input_precision / 2.0)
 							{
 								if(!ischeckingdata)
 if(!SUPPRESSLARGEOUTPUT)
@@ -2061,40 +2083,13 @@ TimeDataD::TimeDataD(int formatX)
 	format=formatX;
 	fileopened=false;
 	memory_copy=NULL;
+	input_precision = 0.5; // Default 0,5 deg.
 }
 
 //Deconstructor
 TimeDataD::~TimeDataD()
 {
-//	printf("\nIn TimeDataD destructor\n");	
-	if(ifp)
-	{
-		fclose(ifp);
-		printf("Closing input file %s \n", fileName);	// Test
-	}
-	if(fileName)
-	{
-		delete []fileName;
-		fileName=NULL;
-//		printf("deleting fileName[] in TimeDataD::~TimeDataD()\n");	// Test
-	}
-	if(year)
-	{
-		delete[] year; 
-		year=NULL;
-//		printf("deleting year[] in TimeDataD::~TimeDataD()\n");	// Test
-	}
-	if(data)
-	{
-		delete[] data; 
-		data=NULL;
-//		printf("deleting data[] in TimeDataD::~TimeDataD()\n");	// Test
-	}
-	if(checkdata)
-	{
-		delete []checkdata;
-		checkdata=NULL;
-	}
+	Close();
 }
 
 void TimeDataD::Close()
@@ -2102,7 +2097,7 @@ void TimeDataD::Close()
 	if(ifp)
 	{
 		fclose(ifp);
-		printf("Closing input file %s \n", fileName);	// Test
+//		printf("Closing input file %s \n", fileName);	// Test
 	}
 	if(fileName)
 	{
@@ -2118,13 +2113,27 @@ void TimeDataD::Close()
 	{
 		delete[] data; 
 		data=NULL;
+//		dprintf("Freeing TimeDataD memory in Close()\n");
 	}
 	if(checkdata)
 	{
 		delete []checkdata;
 		checkdata=NULL;
 	}
+	if(memory_copy) {
+		memory_copy->Close();
+		delete memory_copy;
+	}
 }
+
+void TimeDataD::CopyToMemory(int ncells, ListArray_id<Coord>& lonlatlist) { //Requires gutil.h
+
+	memory_copy = new TimeDataDmem;
+	memory_copy->Open(ncells, this->nRecords, this->nYears);
+	memory_copy->CopyFromTimeDataD(*this, lonlatlist);
+	rewind(ifp);
+}
+
 
 int TimeDataDmem::CalenderYearToPosition(int calender_year) const {
 
@@ -2190,7 +2199,8 @@ int TimeDataDmem::Load(Coord c)
 	{
 		for(int i=0;i<nCells;i++)
 		{
-			if(fabs(gridlist[i].lon - c.lon) < 0.001 && fabs(gridlist[i].lat - c.lat) < 0.001)
+//			if(fabs(gridlist[i].lon - c.lon) < 0.001 && fabs(gridlist[i].lat - c.lat) < 0.001) //searchradius here !
+			if(fabs(gridlist[i].lon - c.lon) <= input_precision / 2.0 && fabs(gridlist[i].lat - c.lat) <= input_precision / 2.0)
 			{
 				currentCell=i;
 				error=false;
@@ -2254,29 +2264,33 @@ void TimeDataDmem::Close()
 	{
 		delete[] data; 
 		data=NULL;
+//		dprintf("Freeing TimeDataDmem memory in Close()\n");
 	}
 }
 
-void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridlistX)
-{
+void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridlistX) { //Requires gutil.h
+
 	int cell_no=0;
 
 	if(Data.GetHeader(header_arr))
 		ifheader = true;
 
 	firstyear = Data.GetFirstyear();
+	input_precision = Data.GetPrecision();
 
 	double *celldata;
 	celldata=new double[Data.nRecords*Data.nYears];
 
 	while(Data.LoadNext()) {
-		InData::Coord c;
+//		InData::Coord c;
+		Coord c;
 		c=Data.GetCoord();
 
 		gridlistX.firstobj();
 		while(gridlistX.isobj) {
 			Coord cc=gridlistX.getobj();
-			if(c.lon==cc.lon && c.lat==cc.lat) {
+//			if(c.lon==cc.lon && c.lat==cc.lat) {	//searchradius here ! should be OK with 0.25
+			if(fabs(cc.lon - c.lon) <= input_precision / 2.0 && fabs(cc.lat - c.lat) <= input_precision / 2.0) {
 				SetCoord(cell_no, c);
 				Data.Get(celldata);
 				SetData(cell_no, celldata);
@@ -2309,15 +2323,7 @@ TimeDataDmem::TimeDataDmem()
 
 TimeDataDmem::~TimeDataDmem()
 {
-	for(int i=0;i<nCells;i++)
-	{
-		if(data[i])
-			delete[] data[i];
-	}
-	if(data)
-		delete[] data;
-	if(gridlist)
-		delete[] gridlist;
+	Close();
 }
 
 

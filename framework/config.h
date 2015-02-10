@@ -22,7 +22,6 @@
 
 // Defines for landcover version:
 #define DYNAMIC_LANDCOVER_INPUT		// Reads landcover data from text files, using the TimeDataD class.
-#define LUTOMEMORY					// Write land use fraction data to memory; enables efficient usage of randomized gridlists for parallell runs on Simba.
 #define NEWSOWINGDATE				// Use sowing date method based on climate seasonality (modified version of Waha et al. 2012), as opposed to old method used in Bondeau et al. 2007.
 #define IRRIGATION					// Crop irrigation on
 #define NOPASTURESTOCH				// Undefine for fire and disturbance for pasture grass. Number of patches will be the same as for natural stands.

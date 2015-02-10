@@ -64,10 +64,27 @@ int stepfromdate(int day, int step) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Creation of stands when run_landcover==true
-void landcover_init(Gridcell& gridcell, InputModule* input_module) {
+void landcover_init(Gridcell& gridcell, LandcoverInputModule* landcover_input_module) {
+
+	// Set CFT-specific members of gridcellpft:
+	for(unsigned int p = 0; p < gridcell.pft.nobj; p++) {
+		Gridcellpft& gcpft = gridcell.pft[p];
+
+		if (gridcell.get_lat() >= 0.0) {
+			gcpft.sdate_default = gcpft.pft.sdatenh;
+			gcpft.hlimitdate_default = gcpft.pft.hlimitdatenh;
+		}
+		else {
+			gcpft.sdate_default = gcpft.pft.sdatesh;
+			gcpft.hlimitdate_default = gcpft.pft.hlimitdatesh;
+		}
+		// double cropping in China and Japan.
+		if (!strncmp((char*)gcpft.pft.name, "TrRi", strlen("TrRi")) && gridcell.get_lon() >= 60.0 && gridcell.get_lat() <= 30.0)
+			gcpft.multicrop = true;
+	}
 
 	// get landcover and crop area fractions from landcover input file(s) or ins-file.
-	input_module->getlandcover(gridcell);
+	landcover_input_module->getlandcover(gridcell);
 
 	stlist.firstobj();
 	while (stlist.isobj) {
@@ -158,7 +175,7 @@ int index(int from, int to, int ncols = nst) {
  *  \param landcoverfrac_change				array with this year's difference in area fractions of the different landcovers
  *  \param LCchangeCtransfer				whether to transfer carbon, nitrogen and water of reduced stands to expanding stands
  */
-bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], bool& LCchangeCtransfer, InputModule* input_module) {
+bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], bool& LCchangeCtransfer, LandcoverInputModule* input_module) {
 
 	double cropfrac_sum_old = 0.0;
 	double change_stand = 0.0;
@@ -2057,7 +2074,7 @@ bool check_fractions4(Gridcell& gridcell) {
 /** Harvests transferred areas and transfers litter etc. of reduced stands to expanding stands.
  *  Transfers litter etc. of reduced stands to expanding stands at landcover change.
  */
-void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
+void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* landcover_input_module) {
 
 	double landcoverfrac_change[NLANDCOVERTYPES];
 	double lc_frac_transfer[NLANDCOVERTYPES][NLANDCOVERTYPES];
@@ -2086,7 +2103,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	if(!all_fracs_const) {
 		// this call returns 0, causing this function to return, if no significant landcover changes this year, 
 		// sets LCchangeCtransfer to 0 if unbalanced landcover changes (if some landcovers are inactivated), thus inactivating transfer of C and N
-		if(checkLCchange(gridcell, landcoverfrac_change, LCchangeCtransfer, input_module))
+		if(checkLCchange(gridcell, landcoverfrac_change, LCchangeCtransfer, landcover_input_module))
 			no_changes = false;
 	}
 
@@ -2109,7 +2126,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		// Read landcover transfer fractions from file here (or in checkLCchange) and put them into the st_frac_transfer array.
 		// Landcover and stand type net fractions still need to be read from file as previously.
 
-		if(input_module->get_lc_transfer(gridcell, landcoverfrac_change, lc_frac_transfer, primary_lc_frac_transfer)) {
+		if(landcover_input_module->get_lc_transfer(gridcell, landcoverfrac_change, lc_frac_transfer, primary_lc_frac_transfer)) {
 			no_changes = false;
 			set_st_change_array(gridcell, lc_frac_transfer, st_frac_transfer, primary_lc_frac_transfer, primary_st_frac_transfer);
 		}
@@ -2598,25 +2615,6 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		delete[] st_frac_transfer;
 	if(primary_st_frac_transfer)
 		delete[] primary_st_frac_transfer;
-}
-
-/// Updates dynamic management options each year
-/** 
- */
-void getmanagement(Gridcell& gridcell, InputModule* input_module) {
-
-	if(run[CROPLAND]) {
-
-		//Read sowing dates from input file, put into gridcellpft.sdate_force
-		if(readsowingdates)		
-			input_module->getsowingdates(gridcell);
-		//Read harvest dates from input file, put into gridcellpft.hdate_force
-		if(readharvestdates)		
-			input_module->getharvestdates(gridcell);
-		//Read N fertilization from input file, put into xxx
-		if(readNfert)		
-			input_module->getNfert(gridcell);
-	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -4970,11 +4968,13 @@ void growth_crop_daily(Patch& patch) {
 
 				// Check that no plant cmass is negative, if so, zero cmass and correct C fluxes
 				double negative_cmass = indiv.check_C_mass();
-				if(negative_cmass > 1.0e-14)
-					dprintf("Year %d day %d Stand %d indiv %d: Negative intercrop C mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_cmass);
-				double negative_nmass = indiv.check_N_mass();
-				if(negative_nmass > 1.0e-14)
-					dprintf("Year %d day %d Stand %d indiv %d: Negative intercrop N mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_nmass);
+				if(!SUPPRESSLARGEOUTPUT) {
+					if(negative_cmass > 1.0e-14)
+						dprintf("Year %d day %d Stand %d indiv %d: Negative intercrop C mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_cmass);
+					double negative_nmass = indiv.check_N_mass();
+					if(negative_nmass > 1.0e-14)
+						dprintf("Year %d day %d Stand %d indiv %d: Negative intercrop N mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_nmass);
+				}
 
 				// save this year's maximum leaf carbon mass
 				if(cropindiv.grs_cmass_leaf > cropindiv.cmass_leaf_max)	

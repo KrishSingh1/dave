@@ -5,12 +5,15 @@
 
 #ifndef INDATA_H
 #define INDATA_H
-
-namespace InData {
+#include "inputdefinitions.h"
+namespace InData 
+{
 
 //#include <algorithm>
 using std::min;
 using std::max;
+
+//using namespace inputdef;
 
 #define GUESS_VERSION
 #define MAXLINE 20000	//Ändrat från 400 091227
@@ -20,42 +23,41 @@ using std::max;
 #define NOTFOUND -999
 
 enum {EMPTY, GLOBAL_STATIC, GLOBAL_YEARLY, LOCAL_STATIC, LOCAL_YEARLY};
-
+/*
 struct Coord 
 {
-	// Type for storing grid cell longitude, latitude and description text
+	// Type for storing grid cell longitude and latitude
 	int id;
 	double lon;
 	double lat;
 };
-
+*/
 #ifndef GUESS_VERSION
 
 #define dprintf printf
 #define SUPPRESSLARGEOUTPUT true
 
-struct Coord 
-{
-	// Type for storing grid cell longitude, latitude and description text
+struct Coord {
+
+	// Type for storing grid cell longitude and latitude
 	double lon;
 	double lat;
 };
 
-struct Neighbour
-{
+struct Neighbour {
+
 	int layer;
 	double dist;
 	Coord coord;
 };
 
-class NeighbourList
-{
+class NeighbourList {
+
 	double resolution;
 	Coord currentStand;
 	Neighbour *neighbours;
 
 public:
-
 	int nNeighbours;
 	void SetCurrentStand(Coord c) {currentStand=c;}
 	void SetNeighbours(int layers);
@@ -67,13 +69,8 @@ public:
 
 };
 
+class Gridlist {
 
-#endif
-
-
-#ifndef GUESS_VERSION
-class Gridlist
-{
 	FILE *ifp;
 	char *fileName;
 	Coord currentStand;
@@ -99,8 +96,8 @@ public:
 //Forward declaration of TimeDataDmem
 class TimeDataDmem;
 
-class TimeDataD									//Represents a set of double data over time (years).
-{												//Data can be global or for a specific stand. Also static. set by format flag
+class TimeDataD	{								//Represents a set of double data over time (years).
+												//Data can be global or for a specific stand. Also static. set by format flag
 	FILE *ifp;
 	char *fileName;
 	int nCells;									//Set in ParseNCells() or ParseNCellsSpatial()
@@ -114,6 +111,7 @@ class TimeDataD									//Represents a set of double data over time (years).
 	bool isfirstgrid;
 	bool loaded;
 	TimeDataDmem *memory_copy;
+	double input_precision;
 
 	int ParseFormat();							//Called from Open(); Returns 0 if wrong format, sets nRecords, ifheader and header_arr[]
 	int ParseNYears();							//Called from Open()
@@ -137,6 +135,9 @@ public:
 	TimeDataD(int format=EMPTY);				//default format value can only be used with header version input files !
 	~TimeDataD();
 	int Open(char* name);						//Returns 0 if error; opens file, checks format, sets fileName, nRecords and nYears and allocates memory for data[] and year[].
+#if defined GUESS_VERSION
+	int Open(char* name, ListArray_id<Coord>& gridlist); // As above, but copies all data for the gridlist into memory
+#endif
 	int OpenSpatial(char* name, bool replace_original_file=false);
 	void Close();
 	int OutputConvertedSpatial(char*);
@@ -165,12 +166,17 @@ public:
 	bool item_has_data(char* name);
 	bool item_in_header(char* name);
 	void register_memory_copy(TimeDataDmem* mem_copy) {memory_copy = mem_copy;}
+#if defined GUESS_VERSION
+	void CopyToMemory(int ncells, ListArray_id<Coord>& lonlatlist);
+#endif
+	void SetPrecision(double precision) {input_precision = precision;}
+	double GetPrecision() {return input_precision;}
 };
 
 //Class for loading data from memory instead of file.
 
-class TimeDataDmem
-{
+class TimeDataDmem {
+
 	Coord *gridlist;
 	double **data;
 	int nCells;
@@ -181,6 +187,7 @@ class TimeDataDmem
 	int firstyear;
 	bool loaded;
 	int CalenderYearToPosition(int calender_year) const;	// Returns valid year position in data array from calender year input.
+	double input_precision;
 public:
 	int nYears;
 	double Get(int calender_year, int column) const;		// Returns a single value.
@@ -192,15 +199,18 @@ public:
 	void Close();
 	int GetFirstyear();
 	bool isloaded() { return loaded;}
+#if defined GUESS_VERSION
 	void CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridlistX);
+#endif
+	void SetPrecision(double precision) {input_precision = precision;}
 	TimeDataDmem();
 	~TimeDataDmem();
 };
 
 //
 
-class SoilData
-{
+class SoilData {
+
 	FILE *ifp;
 	char *fileName;
 	int soilcode;
@@ -215,6 +225,6 @@ public:
 	void Rewind() {rewind (ifp);}
 };
 
-}
+} // namespace InData
 
 #endif//INDATA_H

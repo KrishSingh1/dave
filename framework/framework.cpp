@@ -23,6 +23,7 @@
 #include "landcover.h"
 #include "bvoc.h"
 #include "commonoutput.h"
+#include "input.h"
 
 #include <memory>
 
@@ -50,7 +51,7 @@ int framework(const CommandLineArguments& args) {
 
 	const char* input_module_name = args.get_input_module();
 
-	auto_ptr<InputModule> input_module(InputModuleRegistry::get_instance().create_input_module(input_module_name));
+	Input input_modules(input_module_name, "");	//landcover input name currently not used
 
 	GuessOutput::OutputModuleContainer output_modules;
 	GuessOutput::OutputModuleRegistry::get_instance().create_all_modules(output_modules);
@@ -62,7 +63,7 @@ int framework(const CommandLineArguments& args) {
 	print_logfile_heading();
 
 	// Initialise input/output
-	input_module->init();
+	input_modules.init();
 	output_modules.init();
 
 	// Nitrogen limitation
@@ -98,10 +99,9 @@ int framework(const CommandLineArguments& args) {
 		// Create and initialise a new Gridcell object for each locality
 		Gridcell gridcell;
 
-		// Call input/output to obtain latitude and soil driver data for this grid cell.
+		// Call input modules to obtain latitude and driver data for this grid cell.
 		// Function getgridcell returns false if no further grid cells remain to be simulated
-
-		if (!input_module->getgridcell(gridcell)) {
+		if (!input_modules.getgridcell(gridcell)) {
 			break;
 		}
 
@@ -110,7 +110,7 @@ int framework(const CommandLineArguments& args) {
 
 		if(run_landcover) {
 			// Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
-			landcover_init(gridcell, input_module.get());
+			landcover_init(gridcell, input_modules.get_landcover_module());
 		}
 
 		if (restart) {
@@ -126,7 +126,7 @@ int framework(const CommandLineArguments& args) {
 		// day of the simulation. Function getclimate returns false if last year
 		// has already been simulated for this grid cell
 
-		while (input_module->getclimate(gridcell)) {
+		while (input_modules.getclimate(gridcell)) {
 
 			// START OF LOOP THROUGH SIMULATION DAYS
 			
@@ -142,12 +142,10 @@ int framework(const CommandLineArguments& args) {
 
 			if(run_landcover && date.day == 0) {
 				// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
-				if(date.year >= nyear_spinup)
-					landcover_dynamics(gridcell, input_module.get());
+				landcover_dynamics(gridcell, input_modules.get_landcover_module());
 
 				// Update dynamic management options
-				if(run[CROPLAND])
-					getmanagement(gridcell, input_module.get());
+				input_modules.getmanagement(gridcell);
 			}
 
 			Gridcell::iterator gc_itr = gridcell.begin();
@@ -205,7 +203,7 @@ int framework(const CommandLineArguments& args) {
 				}// End of loop through patches
 
 				// Update crop rotation status
-				crop_rotation(stand, input_module.get()->getfirsthistyear());
+				crop_rotation(stand, input_modules.getfirsthistyear());
 
 				if (date.islastday && date.islastmonth) {
 					// LAST DAY OF YEAR

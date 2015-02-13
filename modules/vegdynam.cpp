@@ -457,7 +457,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 			}
 			else {
 				patch.pft[pft.id].anetps_ff_est+=patch.pft[pft.id].anetps_ff;
-				patch.pft[pft.id].wscal_mean_est+=patch.pft[pft.id].wscal_mean;					
+				patch.pft[pft.id].wscal_mean_est+=patch.pft[pft.id].wscal_mean;		
+
+				if (date.year == stand.first_year && pft.landcover == stand.landcover)
+					patch.pft[pft.id].anetps_ff_est_initial=patch.pft[pft.id].anetps_ff;
 			}
 
 			if (establish(patch, stand.get_climate(), pft)) {

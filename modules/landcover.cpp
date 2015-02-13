@@ -1213,7 +1213,7 @@ void stand_dynamics(Gridcell& gridcell) {
 
 		bool expand_to_new_stand = ifexpand_to_new_stand && gridcell.expand_to_new_stand[lc];
 
-		if(st.gross_frac_increase || st.gross_frac_decrease) {
+		if(st.gross_frac_increase || st.gross_frac_decrease || st.frac == 0.0) {
 			// first stand created
 			if(st.frac_old == 0.0 && st.frac > 0.0) {
 				Stand& stand = gridcell.create_stand_lu(st, st.frac);
@@ -1490,8 +1490,10 @@ double transfer_to_new_stand(Gridcell& gridcell, int stid_donor = -1, int stid_r
 							Individual& indiv = vegetation.getobj();
 							Standpft& standpft = new_stand.pft[indiv.pft.id];
 
-							if(!standpft.active)
+							if(!standpft.active) {
+								indiv.kill();
 								vegetation.killobj();
+							}
 							else
 								vegetation.nextobj();
 						}

@@ -2950,6 +2950,9 @@ public:
 		phen = 0.0;
 		wsupply = 0.0;
 		wsupply_leafon = 0.0;
+		anetps_ff_est = 0.0;
+		wscal_mean_est = 0.0;
+		nsapling = 0;
 
 		for(int i=0;i<NSOILLAYER;i++)
 			fwuptake[i]=0.0;

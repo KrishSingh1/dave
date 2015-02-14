@@ -3237,7 +3237,7 @@ public:
 	bool cloned;
 
 	double *transfer_area_st;
-//	landcovertype origin; 
+	landcovertype origin; 
 
 	/// counter used for output from separate stands
 	double anpp;

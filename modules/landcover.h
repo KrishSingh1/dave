@@ -54,7 +54,7 @@ void harvest_crop(Individual& indiv, Pft& pft, bool alive, bool isintercropgrass
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.
 void harvest_wood(Harvest_CN& indiv_cp,Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0);
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.
-void harvest_wood(Individual& indiv,Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0);
+void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0, bool lc_change = false);
 /// Harvest function for pasture, representing grazing.
 void harvest_pasture(Harvest_CN& indiv_cp, Pft& pft, bool alive);
 /// Harvest function for pasture, representing grazing.
@@ -64,7 +64,7 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 void turnover_grass(Individual& indiv);
 /// Transfers all carbon and nitrogen from living tissue to litter.
 void kill_remaining_vegetation(Harvest_CN& indiv_cp, Pft& pft, bool alive, bool istruecrop_or_intercropgrass, bool burn = false);
-void kill_remaining_vegetation(Individual& indiv, Pft& pft, bool alive, bool istruecrop_or_intercropgrass, bool burn = false);
+void kill_remaining_vegetation(Individual& indiv, bool burn = false, bool lc_change = false);
 /// Step n days from a date.
 int stepfromdate(int day, int step);
 

@@ -1471,7 +1471,7 @@ double transfer_to_new_stand(Gridcell& gridcell, int stid_donor = -1, int stid_r
 					Stand& new_stand = stand.clone(stlist[stid_receptor], transfer_area);
 
 					if(stand.landcover == NATURAL && (!stlist[stid_receptor].naturalveg || !stlist[stid_receptor].naturalgrass))
-						dprintf("WARNING: cloning natural stand without allowing natural pft:s to grow in the new stand. Is this intended ?\n");
+						dprintf("WARNING: cloning natural stand without allowing natural pft:s to grow in the new stand. Was this intended ?\n");
 
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 					dprintf("Year %d: stand %d (st %d) cloned from stand %d (st %d): ccont=%.15f; frac=%f\n", date.year, new_stand.id, new_stand.stid, stand.id, stand.stid, new_stand.ccont(), new_stand.get_gridcell_fraction());
@@ -1483,6 +1483,13 @@ double transfer_to_new_stand(Gridcell& gridcell, int stid_donor = -1, int stid_r
 						receiving_stand_change(gridcell, transfer, true, -1, -1, 1.0, new_stand.id);
 					}
 	
+
+					new_stand.cloned = true;
+					new_stand.gross_frac_increase = 0.0;
+					new_stand.frac_change = 0.0;
+					new_stand.cloned_fraction = transfer_area;
+					new_stand.origin = stand.landcover;
+
 					new_stand.firstobj();
 					while(new_stand.isobj) {
 						Patch& patch = new_stand.getobj();
@@ -1494,7 +1501,11 @@ double transfer_to_new_stand(Gridcell& gridcell, int stid_donor = -1, int stid_r
 							Standpft& standpft = new_stand.pft[indiv.pft.id];
 
 							if(!standpft.active) {
-								indiv.kill(true);
+								// Treatment of pft individuals not allowed to grow anymore in the new stand:
+								// Clearcut
+								harvest_wood(indiv, 1.0, 1.0, 0.95, 0.9, true);	// frac_cut=1, harv_eff=1, res_outtake_twig=0.95, res_outtake_coarse_root=0.9
+								// Grass killed, C+N goes to soil
+								kill_remaining_vegetation(indiv);
 								vegetation.killobj();
 							}
 							else
@@ -1502,11 +1513,6 @@ double transfer_to_new_stand(Gridcell& gridcell, int stid_donor = -1, int stid_r
 						}
 						new_stand.nextobj();
 					}
-
-					new_stand.cloned = true;
-					new_stand.gross_frac_increase = 0.0;
-					new_stand.frac_change = 0.0;
-					new_stand.cloned_fraction = transfer_area;
 
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 					dprintf("Year %d: cloned stand after harvest: %d ccont=%.15f\n", date.year, new_stand.id, new_stand.ccont());
@@ -5163,7 +5169,10 @@ void crop_rotation(Stand& stand, int firsthistyear) {
  *  The rest, including leaves and roots, is returned as litter.
  *  Called from landcover_dynamics() first day of the year if any natural vegetation is transferred to another land use.
  *  INPUT PARAMETER
- *  \param frac_cut					fraction of trees cut   
+ *  \param frac_cut					fraction of trees cut 
+ *  \param harv_eff					harvest efficiency   
+ *  \param res_outtake_twig			removed twig fraction   
+ *  \param res_outtake_coarse_root	removed course root fraction  
  *  INPUT/OUTPUT PARAMETERS 
  *  \param Harvest_CN& i			struct containing the following indiv-specific public members:
  *   - cmass_leaf 					leaf C biomass (kgC/m2)       
@@ -5336,6 +5345,10 @@ void harvest_wood(Harvest_CN& i, Pft& pft, bool alive, double frac_cut, double h
  *
  *  INPUT PARAMETER
  *  \param frac_cut					fraction of trees cut   
+ *  \param harv_eff					harvest efficiency   
+ *  \param res_outtake_twig			removed twig fraction   
+ *  \param res_outtake_coarse_root	removed course root fraction  
+ *  \param lc_change				whether to save harvest in gridcell-level luc variable
  *  INPUT/OUTPUT PARAMETERS 
  *  \param indiv					reference to an Individual containing the following indiv-specific public members:
  *   - cmass_leaf 					leaf C biomass (kgC/m2)       
@@ -5365,33 +5378,40 @@ void harvest_wood(Harvest_CN& i, Pft& pft, bool alive, double frac_cut, double h
  *   - anflux_harvest   			harvest nitrogen flux out of system (kgC/m2)       
  *   - harvested_products_slow_nmass harvest nitrogen products to slow pool (kgC/m2) 
  */
-void harvest_wood(Individual& indiv, Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig, double res_outtake_coarse_root) {
+void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double res_outtake_twig, double res_outtake_coarse_root, bool lc_change) {
 
 	Harvest_CN indiv_cp;
 
 	indiv_cp.copy_from_indiv(indiv);
 
-	harvest_wood(indiv_cp, pft, alive, frac_cut, harv_eff, res_outtake_twig, res_outtake_coarse_root);
+	harvest_wood(indiv_cp, indiv.pft, indiv.alive, frac_cut, harv_eff, res_outtake_twig, res_outtake_coarse_root);
 
-	indiv_cp.copy_to_indiv(indiv);
+	indiv_cp.copy_to_indiv(indiv, false, lc_change);
+
+	if(lc_change) {
+		Stand& stand = indiv.vegetation.patch.stand;
+		stand.get_gridcell().acflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+		stand.get_gridcell().acflux_landuse_change_lc[stand.origin] += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+		stand.get_gridcell().anflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+	}
 }
 
+// Use for normal forest management in calls from growth(). For clearcut during landcover change, use harvest_wood() and kill_remaining_vegetation()
 void clearcut(Individual& indiv, Pft& pft, bool alive, double anpp, bool& killed) {
 
 	Patch& patch = indiv.vegetation.patch;
 	Patchpft& ppft = patch.pft[indiv.pft.id];
 
-	if (indiv.pft.lifeform==TREE) {
+	if (indiv.pft.lifeform == TREE) {
 
 		ppft.litter_sap += anpp;
-		harvest_wood(indiv, indiv.pft, indiv.alive, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake); // frac_cut=1, harv_eff=pft.harv_eff, res_outtake_twig=pft.res_outtake, res_outtake_coarse_root=0
-//		indiv.kill(true);
+		harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake); // frac_cut=1, harv_eff=pft.harv_eff, res_outtake_twig=pft.res_outtake, res_outtake_coarse_root=0
 		indiv.vegetation.killobj();
 		killed = true;
 	}
 
-//	patch.age=0;	//important for results
-	patch.managed=true;
+	patch.age = 0;	//important for results
+	patch.managed = true;
 }
 
 double forest_management(Patch& patch,bool age_class_run, int age_class) {
@@ -5450,7 +5470,7 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 			if (diam>diam_limit) {
 				if(diam > diam_max)
 					man_strength = 0.9;
-				harvest_wood(indiv, pft, alive, man_strength, indiv.pft.harv_eff, indiv.pft.res_outtake); // frac_cut=man_strength, harv_eff=pft.harv_eff, res_outtake_twig=pft.res_outtake, res_outtake_coarse_root=0
+				harvest_wood(indiv, man_strength, indiv.pft.harv_eff, indiv.pft.res_outtake); // frac_cut=man_strength, harv_eff=pft.harv_eff, res_outtake_twig=pft.res_outtake, res_outtake_coarse_root=0
 				indiv.densindiv *= (1.0 - man_strength);
 			}
 		}
@@ -5981,15 +6001,22 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 
 }
 
-void kill_remaining_vegetation(Individual& indiv, Pft& pft, bool alive, bool istruecrop_or_intercropgrass, bool burn) {
+void kill_remaining_vegetation(Individual& indiv, bool burn, bool lc_change) {
 
 	Harvest_CN indiv_cp;
 
 	indiv_cp.copy_from_indiv(indiv);
 
-	kill_remaining_vegetation(indiv_cp, pft, alive, istruecrop_or_intercropgrass, burn);
+	kill_remaining_vegetation(indiv_cp, indiv.pft, indiv.alive, indiv.istruecrop_or_intercropgrass(), burn);
 
-	indiv_cp.copy_to_indiv(indiv);
+	indiv_cp.copy_to_indiv(indiv, false, lc_change);
+
+	if(burn && lc_change) {
+		Stand& stand = indiv.vegetation.patch.stand;
+		stand.get_gridcell().acflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+		stand.get_gridcell().acflux_landuse_change_lc[stand.origin] += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+		stand.get_gridcell().anflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+	}
 
 }
 

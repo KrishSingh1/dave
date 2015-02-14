@@ -1470,6 +1470,9 @@ double transfer_to_new_stand(Gridcell& gridcell, int stid_donor = -1, int stid_r
 
 					Stand& new_stand = stand.clone(stlist[stid_receptor], transfer_area);
 
+					if(stand.landcover == NATURAL && (!stlist[stid_receptor].naturalveg || !stlist[stid_receptor].naturalgrass))
+						dprintf("WARNING: cloning natural stand without allowing natural pft:s to grow in the new stand. Is this intended ?\n");
+
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 					dprintf("Year %d: stand %d (st %d) cloned from stand %d (st %d): ccont=%.15f; frac=%f\n", date.year, new_stand.id, new_stand.stid, stand.id, stand.stid, new_stand.ccont(), new_stand.get_gridcell_fraction());
 #endif

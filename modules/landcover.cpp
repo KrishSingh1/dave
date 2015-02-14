@@ -1491,7 +1491,7 @@ double transfer_to_new_stand(Gridcell& gridcell, int stid_donor = -1, int stid_r
 							Standpft& standpft = new_stand.pft[indiv.pft.id];
 
 							if(!standpft.active) {
-								indiv.kill();
+								indiv.kill(true);
 								vegetation.killobj();
 							}
 							else
@@ -2179,20 +2179,10 @@ void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* landcover_inpu
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 	print_fractions(gridcell, landcoverfrac_change, lc_frac_transfer, st_frac_transfer, primary_lc_frac_transfer, primary_st_frac_transfer);
 #endif
-	double ccont_tot_1 = 0.0;
-	for(unsigned int i=0; i<gridcell.size(); i++) {
-		Stand& stand = gridcell[i];
-		ccont_tot_1 += stand.ccont(stand.scale_LC_change) * stand.get_gridcell_fraction(); // fluxer är fortfarande 0 här
-	}
-
-	double ncont_tot_1 = 0.0;
-	double nflux_tot_1 = 0.0;
-	for(unsigned int i=0; i<gridcell.size(); i++) {
-		Stand& stand = gridcell[i];
-		ncont_tot_1 += stand.ncont(stand.scale_LC_change) * stand.get_gridcell_fraction();
-		nflux_tot_1 += stand.nflux() * stand.get_gridcell_fraction();
-	}
-	nflux_tot_1 += gridcell.anflux_landuse_change + gridcell.anflux_harvest_slow; // dessa fluxer är fortfarande 0 här
+	double ccont_tot_1 = gridcell.ccont();
+	double cflux_tot_1 = gridcell.cflux();
+	double ncont_tot_1 = gridcell.ncont();
+	double nflux_tot_1 = gridcell.nflux();
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 	dprintf("\nYear %d: ccont_tot before luc=%.15f\n", date.year, ccont_tot_1);
 	dprintf("Year %d: ncont_tot before luc=%.15f\n\n", date.year, ncont_tot_1);
@@ -2553,14 +2543,13 @@ void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* landcover_inpu
 	dprintf("\n");
 #endif
 
-	double ccont_tot = 0.0;
-	double cflux_tot = 0.0;
+	double ccont_tot = gridcell.ccont();
+	double cflux_tot = gridcell.cflux();
 
 	for(unsigned int i=0; i<gridcell.size(); i++) {
 		Stand& stand = gridcell[i];
 
 		double ccont_stand = stand.ccont(stand.scale_LC_change);
-		ccont_tot += ccont_stand * stand.get_gridcell_fraction();
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 		if(stand.landcover == NATURAL) 
 			dprintf("Year %d: natural stand %d ccont=%.15f; age=%d, frac=%f", date.year, stand.id, ccont_stand, date.year - stand.first_year, stand.get_gridcell_fraction());
@@ -2575,35 +2564,30 @@ void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* landcover_inpu
 		dprintf("\n");
 #endif
 	}
-	cflux_tot += gridcell.acflux_landuse_change + gridcell.acflux_harvest_slow;
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 	dprintf("\nYear %d: ccont_tot after luc=%.15f\n", date.year, ccont_tot);
 	dprintf("Year %d: cflux_tot after luc=%.15f\n", date.year, cflux_tot);
 	dprintf("Year %d: total C after luc=%.15f\n", date.year, ccont_tot + cflux_tot);
 	dprintf("Year %d: c balance after luc=%.15f\n\n", date.year, cflux_tot + ccont_tot - ccont_tot_1);
 #endif
-	if(fabs(cflux_tot + ccont_tot - ccont_tot_1) > 1.0e-12)
+	if(fabs(cflux_tot - cflux_tot_1 + ccont_tot - ccont_tot_1) > 1.0e-12)
 		dprintf("WARNING ! C balance after lcc off\n");
 
-	double ncont_tot = 0.0;
-	double nflux_tot = 0.0;
+	double ncont_tot = gridcell.ncont();
+	double nflux_tot = gridcell.nflux();;
 
 	for(unsigned int i=0; i<gridcell.size(); i++) {
 		Stand& stand = gridcell[i];
 
 		double ncont_stand = stand.ncont(stand.scale_LC_change);
-		ncont_tot += ncont_stand * stand.get_gridcell_fraction();
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 		if(stand.landcover == NATURAL) 
 			dprintf("Year %d: natural stand %d ncont=%.15f\n", date.year, stand.id, ncont_stand);
 		else
 			dprintf("Year %d: stand %d st %d, ncont=%.15f\n", date.year, stand.id, stand.stid, ncont_stand);
 #endif
-		nflux_tot += stand.nflux() * stand.get_gridcell_fraction();
 	}
 
-	nflux_tot_1 = nflux_tot;	// Disregard fluxes not already reset this year and the associated scaling problems 
-	nflux_tot += gridcell.anflux_landuse_change + gridcell.anflux_harvest_slow;
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 	dprintf("\nYear %d: ncont_tot after luc=%.15f\n", date.year, ncont_tot);
 	dprintf("Year %d: nflux from luc=%.15f\n", date.year, gridcell.anflux_landuse_change + gridcell.anflux_harvest_slow);

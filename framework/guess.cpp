@@ -653,6 +653,7 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int no
 	}
 
 	first_year = date.year;
+	clone_year = -1;
 	transfer_area_st = new double[nst];
 	memset(transfer_area_st, 0, nst * sizeof(double));
 	seed = 12345678;
@@ -788,7 +789,7 @@ Stand& Stand::clone(StandType& st, double fraction) {
 	ArchiveInStream ais(ss);
 	new_stand.serialize(ais);
 
-	new_stand.first_year = date.year;
+	new_stand.clone_year = date.year;
 //	new_stand.seed = new_seed;	// ?
 
 	// Set land use settings for new stand

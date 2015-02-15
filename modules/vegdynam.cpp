@@ -445,13 +445,15 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 		// For this PFT ...
 
+		bool init_clone = date.year == stand.clone_year && pft.landcover == stand.landcover;
+
 		if (stand.pft[pft.id].active) {
-			if (patch.age==0) {
+			if (patch.age==0 || init_clone) {
 				patch.pft[pft.id].anetps_ff_est=patch.pft[pft.id].anetps_ff;
 				patch.pft[pft.id].wscal_mean_est=patch.pft[pft.id].wscal_mean;
 
 				// BLARP
-				if (date.year==0 || date.year==stand.first_year)
+				if (date.year==0 || date.year==stand.first_year || init_clone)
 					patch.pft[pft.id].anetps_ff_est_initial=patch.pft[pft.id].anetps_ff;
 
 			}
@@ -459,8 +461,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 				patch.pft[pft.id].anetps_ff_est+=patch.pft[pft.id].anetps_ff;
 				patch.pft[pft.id].wscal_mean_est+=patch.pft[pft.id].wscal_mean;		
 
-				if (date.year == stand.first_year && pft.landcover == stand.landcover)
-					patch.pft[pft.id].anetps_ff_est_initial=patch.pft[pft.id].anetps_ff;
 			}
 
 			if (establish(patch, stand.get_climate(), pft)) {
@@ -531,7 +531,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 					// ESTABLISHMENT OF NEW TREE SAPLINGS
 
-					if (patch.age == 0){
+					if (patch.age == 0 || init_clone){
 						
 						// First simulation year - initialising patch
 						// Eqn 1
@@ -593,7 +593,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							patch.pft[pft.id].wscal_mean_est=patch.pft[pft.id].wscal_mean;
 							newindiv=!negligible(nsapling);
 						}
-						else if (patch.age%estinterval && !patch.managed) {
+						else if (patch.age%estinterval && !patch.managed && !init_clone) {
 
 							// Not an establishment year - save sapling count for
 							// establishment the next establishment year
@@ -603,7 +603,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							newindiv=0;
 						}
 						else {
-							if (patch.age) {// all except first year after disturbance
+							if (patch.age && !init_clone) {// all except first year after disturbance
 								nsapling+=patch.pft[pft.id].nsapling;
 								patch.pft[pft.id].anetps_ff_est/=(double)estinterval;
 								patch.pft[pft.id].wscal_mean_est/=(double)estinterval;
@@ -635,7 +635,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Initial biomass proportional to potential forest floor net
 						// assimilation for this PFT in this patch
 
-						if (patch.managed) //Management add, FL
+						if (patch.managed)
 							bminit=SAPSIZEPM; //Fixed sap size post management
 						else
 							bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est;
@@ -1458,7 +1458,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 										   date.year >= patch.soil.solvesomcent_beginyr && 
 										   date.year <= patch.soil.solvesomcent_endyr;
 
-			if (patch.age && !during_century_solvesom && date.year != stand.first_year) {
+			if (patch.age && !during_century_solvesom && date.year != stand.clone_year) {
 				disturbance(patch,1.0 / distinterval);
 				if (patch.disturbed) {
 					return; // no mortality or establishment this year

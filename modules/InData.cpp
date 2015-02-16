@@ -1187,13 +1187,13 @@ int TimeDataD::Load(Coord c)
 				if(data)
 					memset(data, 0, nRecords*nYears*sizeof(double));
 
-				yearX_previous=firstyear-1;
+				yearX_previous = firstyear - 1;
 
 //				currentStand.lon=c.lon;	// coordinates in gridlist or in found record if searchradius used ?
 //				currentStand.lat=c.lat;
 
 //				for(i=0;i<nYears ;)
-				while(i<nYears && yearX<firstyear+nYears-1)
+				while(i < nYears && yearX < firstyear + nYears - 1)
 				{
 					k=0;
 					if(fgets(line, sizeof(line), ifp))
@@ -2190,7 +2190,7 @@ int TimeDataDmem::Load(Coord c)
 {
 	bool error=true;
 
-	if(fabs(gridlist[currentCell+1].lon - c.lon) < 0.001 && fabs(gridlist[currentCell+1].lat - c.lat) < 0.001)	//In case gridlist cell order is same as in land use files.
+	if(currentCell < (nCells - 1) && fabs(gridlist[currentCell+1].lon - c.lon) < 0.001 && fabs(gridlist[currentCell+1].lat - c.lat) < 0.001)	//In case gridlist cell order is same as in land use files.
 	{
 		currentCell++;
 		error=false;

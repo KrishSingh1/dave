@@ -279,10 +279,62 @@ CFInput::~CFInput() {
 	delete cf_max_temp;
 }
 
-void CFInput::init() {
+bool CFInput::create_cf_gridlist() {
 
-	// Read CO2 data from file
-//	co2.load_file(param["file_co2"].str);
+	return false;
+}
+
+bool CFInput::create_gridlist_from_cflist(xtring& file_gridlist) {
+
+	std::ifstream ifs(file_gridlist, std::ifstream::in);
+
+	if (!ifs.good()) fail("CFInput::init: could not open %s for input",(char*)file_gridlist);
+
+	std::string line;
+	while (getline(ifs, line)) {
+
+		Coord& ci = gridlist.createobj(); // add new coordinate to master grid list
+		CoordCF c;						  // added to cf gridlist below
+
+		// Read next record in file
+		int rlat, rlon;
+		int landid;
+		std::string descrip;
+
+		std::istringstream iss(line);
+
+		if (cf_temp->is_reduced()) {
+			if (iss >> landid) {
+				getline(iss, descrip);
+
+				c.landid = landid;
+				// Get lon/lat for the gridcell
+				cf_temp->get_coords_for(landid, ci.lon, ci.lat);
+			}
+		}
+		else {
+			if (iss >> rlon >> rlat) {
+				getline(iss, descrip);
+				
+				c.rlat = rlat;
+				c.rlon = rlon;
+				// Get lon/lat for the gridcell
+				cf_temp->get_coords_for(rlon, rlat, ci.lon, ci.lat);			
+			}
+		}
+		ci.descrip = descrip.c_str();
+		input.ngridcell++;
+		c.descrip = trim(descrip);
+		gridlistCF.push_back(c);
+
+		ifs.close();
+	}
+	current_gridcell = gridlistCF.begin();
+
+	return true;
+}
+
+void CFInput::init() {
 
 	file_cru = param["file_cru"].str;
 	
@@ -334,57 +386,20 @@ void CFInput::init() {
 
 	// Read list of localities and store in gridlist member variable
 
-	// Retrieve name of grid list file as read from ins file
-	xtring file_gridlist=param["file_gridlist"].str;
+	// Retrieve name of rc grid list file as read from ins file
+	xtring file_gridlist=param["file_gridlist_rc"].str;
 
-	std::ifstream ifs(file_gridlist, std::ifstream::in);
+	if(file_gridlist != "") {
 
-	if (!ifs.good()) fail("CFInput::init: could not open %s for input",(char*)file_gridlist);
-
-	std::string line;
-	while (getline(ifs, line)) {
-
-		// Read next record in file
-		int rlat, rlon;
-		int landid;
-		std::string descrip;
-		CoordCF c;
-
-		std::istringstream iss(line);
-
-		if (cf_temp->is_reduced()) {
-			if (iss >> landid) {
-				getline(iss, descrip);
-
-				c.landid = landid;
-				c.descrip = trim(descrip);
-
-				gridlistCF.push_back(c);
-			}
-		}
-		else {
-			if (iss >> rlon >> rlat) {
-				getline(iss, descrip);
-				
-				c.rlat = rlat;
-				c.rlon = rlon;
-				c.descrip = trim(descrip);
-
-				gridlistCF.push_back(c);
-			}
-		}
+		create_gridlist_from_cflist(file_gridlist);
 	}
+/*	else {
 
-	current_gridcell = gridlistCF.begin();
-
-	date.set_first_calendar_year(cf_temp->get_date_time(0).get_year() - nyear_spinup);
-
-	// Set timers
-	tprogress.init();
-	tmute.init();
-
-	tprogress.settimer();
-	tmute.settimer(MUTESEC);
+		input.read_gridlist();
+		if(!create_cf_gridlist())
+			fail("Unable to use NetCDF climate with specified gridlist,\n");
+	}
+*/
 }
 
 bool CFInput::getgridcell(Gridcell& gridcell) {
@@ -393,19 +408,25 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	double cru_lon, cru_lat;
 	int soilcode;
 
-	// Load data for next gridcell, or if that fails, skip ahead until
-	// we find one that works.
-	while (current_gridcell != gridlistCF.end() &&
-	       !load_data_from_files(lon, lat, cru_lon, cru_lat, soilcode)) {
-		++current_gridcell;
-	}
+	// Make sure we use the first gridcell in the first call to this function,
+	// and then step through the gridlist in subsequent calls.
+	static bool first_call = true;
 
-	if (current_gridcell == gridlistCF.end()) {
-		// simulation finished
+	if (first_call) {
+		current_gridcell = gridlistCF.begin();
+
+		// Note that first_call is static, so this assignment is remembered
+		// across function calls.
+		first_call = false;
+	}
+	else ++current_gridcell;
+
+	if(current_gridcell == gridlistCF.end() ||
+	       !load_data_from_files(lon, lat, cru_lon, cru_lat, soilcode)) {
 		return false;
 	}
-
-	gridcell.set_coordinates(lon, lat);
+	if(lon != gridcell.get_lon() || lat != gridcell.get_lat())	// 
+		fail("");
 
 	// Load spinup data for all variables
 
@@ -429,13 +450,15 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 
 	gridcell.climate.instype = cf_standard_name_to_insoltype(cf_insol->get_standard_name());
 
+#ifdef NDEP_INPUT_IN_CLIMATE_MODULE
 	// Get nitrogen deposition, using the found CRU coordinates
 	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat, 
 	             Lamarque::parse_timeseries(ndep_timeseries));
-
+#endif
+#ifdef SOIL_INPUT_IN_CLIMATE_MODULE
 	// Setup the soil type
 	soilparameters(gridcell.soiltype, soilcode);
-
+#endif
 	historic_timestep_temp = -1;
 	historic_timestep_prec = -1;
 	historic_timestep_insol = -1;
@@ -443,11 +466,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	historic_timestep_min_temp = -1;
 	historic_timestep_max_temp = -1;
 
-	dprintf("\nCommencing simulation for gridcell at (%g,%g)\n", lon, lat);
-	if (current_gridcell->descrip != "") {
-		dprintf("Description: %s\n", current_gridcell->descrip.c_str());
-	}
-	dprintf("Using soil code and Nitrogen deposition for (%3.1f,%3.1f)\n", cru_lon, cru_lat);
+//	dprintf("Using soil code and Nitrogen deposition for (%3.1f,%3.1f)\n", cru_lon, cru_lat);
 
 	return true;
 }
@@ -493,7 +512,7 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 	else {
 		cf_temp->get_coords_for(rlon, rlat, lon, lat);
 	}
-
+#ifdef NDEP_INPUT_IN_CLIMATE_MODULE
 	// Find nearest CRU grid cell in order to get the soilcode
 
 	cru_lon = lon;
@@ -508,7 +527,7 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 		        cru_lon, cru_lat);
 		return false;
 	}
-
+#endif
 	return true;
 }
 
@@ -717,7 +736,7 @@ void CFInput::populate_daily_arrays(long& seed) {
 	if (cf_max_temp) {
 		spinup_max_temp.nextyear();
 	}
-
+#ifdef NDEP_INPUT_IN_CLIMATE_MODULE
 	// Get monthly ndep values and convert to daily
 
 	double mndrydep[12];
@@ -728,6 +747,7 @@ void CFInput::populate_daily_arrays(long& seed) {
 
 	// Distribute N deposition
 	distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
+#endif
 }
 
 bool CFInput::getclimate(Gridcell& gridcell) {
@@ -737,7 +757,7 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 	GuessNC::CF::DateTime last_date = last_day_to_simulate(cf_temp);
 
 	if (later_day(date, last_date)) {
-		++current_gridcell;
+//		++current_gridcell;
 		return false;
 	}
 
@@ -750,10 +770,10 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 	climate.temp = dtemp[date.day];
 	climate.prec = dprec[date.day];
 	climate.insol = dinsol[date.day];
-
+#ifdef NDEP_INPUT_IN_CLIMATE_MODULE
 	// Nitrogen deposition
 	climate.dndep = dndep[date.day];
-		
+#endif		
 	// bvoc
 	if(ifbvoc){
 		if (cf_min_temp && cf_max_temp) {
@@ -764,33 +784,7 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 		}
 	}
 
-	// First day of year only ...
-
-	if (date.day == 0) {
-
-		// Progress report to user and update timer
-
-		if (tmute.getprogress()>=1.0) {
-
-			int first_historic_year = cf_temp->get_date_time(0).get_year();
-			int last_historic_year = cf_temp->get_date_time(cf_temp->get_timesteps()-1).get_year();
-			int historic_years = last_historic_year - first_historic_year + 1;
-
-			int years_to_simulate = nyear_spinup + historic_years;
-
-			int cells_done = distance(gridlistCF.begin(), current_gridcell);
-
-			double progress=(double)(cells_done*years_to_simulate+date.year)/
-				(double)(gridlistCF.size()*years_to_simulate);
-			tprogress.setprogress(progress);
-			dprintf("%3d%% complete, %s elapsed, %s remaining\n",(int)(progress*100.0),
-				tprogress.elapsed.str,tprogress.remaining.str);
-			tmute.settimer(MUTESEC);
-		}
-	}
-
 	return true;
-
 }
 
 void CFInput::load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_var,
@@ -863,14 +857,12 @@ bool CFInput::getsoil(Gridcell& gridcell, const int soilmap_index){
 
 int CFInput::getfirsthistyear() {
 
-//	return FIRSTHISTYEAR;
-	return 0;
+	return  cf_temp->get_date_time(0).get_year();
 }
 
 int CFInput::getnyear_hist() {
 
-//	return NYEAR_HIST;
-	return 0;
+	return cf_temp->get_date_time(cf_temp->get_timesteps()-1).get_year() - cf_temp->get_date_time(0).get_year() + 1;
 }
 
 #endif // HAVE_NETCDF

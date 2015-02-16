@@ -181,6 +181,7 @@ public:
 	InputModule* get_climate_module();
 	LandcoverInputModule* get_landcover_module();
 	ManagementInputModule* get_management_module();
+	void read_gridlist();
 
 private:
 

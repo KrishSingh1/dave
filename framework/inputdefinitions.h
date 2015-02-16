@@ -15,6 +15,5 @@ struct Coord {
 	double lat;
 	xtring descrip;
 };
-
 //}
 #endif

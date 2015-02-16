@@ -17,6 +17,7 @@ Input::Input(const char* climate_input_module_name, const char* landcover_input_
 	lasthistyear = -1;
 	nyear_hist = 0;
 	co2_fixed = 0;
+	ngridcell = 0;
 
 	climate_input_module = auto_ptr<InputModule>(InputModuleRegistry::get_instance().create_input_module(climate_input_module_name, *this));
 	landcover_input_module = auto_ptr<LandcoverInputModule>(new LandcoverInputModule(landcover_input_module_name, *this));
@@ -37,47 +38,54 @@ Input::~Input() {
 	gridlist.killall();
 }
 
+void Input::read_gridlist() {
+
+		// Reads list of grid cells and (optional) description text from grid list file
+		// This file should consist of any number of one-line records in the format:
+		//   <longitude> <latitude> [<description>]
+
+		double dlon, dlat;
+		bool eof = false;
+		xtring descrip;
+
+		// Read list of grid coordinates and store in Coord object 'gridlist'
+
+		// Retrieve name of grid list file as read from ins file
+		xtring file_gridlist=param["file_gridlist"].str;
+
+		FILE* in_grid = fopen(file_gridlist,"r");
+		if (!in_grid) fail("initio: could not open %s for input", (char*)file_gridlist);
+
+		ngridcell = 0;
+		while (!eof) {
+			
+			// Read next record in file
+			eof =! readfor(in_grid, "f,f,a#", &dlon, &dlat, &descrip);
+
+			if (!eof && !(dlon == 0.0 && dlat == 0.0)) { // ignore blank lines at end (if any)
+				Coord& c = gridlist.createobj(); // add new coordinate to grid list
+
+				c.lon = dlon;
+				c.lat = dlat;
+				c.descrip = descrip;
+				ngridcell++;
+			}
+		}
+		fclose(in_grid);
+}
+
 void Input::init() {
 
-	// Reads list of grid cells and (optional) description text from grid list file
-	// This file should consist of any number of one-line records in the format:
-	//   <longitude> <latitude> [<description>]
 
-	double dlon, dlat;
-	bool eof = false;
-	xtring descrip;
+	climate_input_module->init(); // Allow climate module to read gridlist
 
-
-	// Read list of grid coordinates and store in global Coord object 'gridlist'
-
-	// Retrieve name of grid list file as read from ins file
-	xtring file_gridlist=param["file_gridlist"].str;
-
-	FILE* in_grid = fopen(file_gridlist,"r");
-	if (!in_grid) fail("initio: could not open %s for input", (char*)file_gridlist);
-
-	ngridcell = 0;
-	while (!eof) {
-		
-		// Read next record in file
-		eof =! readfor(in_grid, "f,f,a#", &dlon, &dlat, &descrip);
-
-		if (!eof && !(dlon == 0.0 && dlat == 0.0)) { // ignore blank lines at end (if any)
-			Coord& c = gridlist.createobj(); // add new coordinate to grid list
-
-			c.lon = dlon;
-			c.lat = dlat;
-			c.descrip = descrip;
-			ngridcell++;
-		}
-	}
-	fclose(in_grid);
+	if(!ngridcell)
+		read_gridlist();
 
 	if(co2_fixed == 0.0)
 		// Read CO2 data from file if fixed CO2 not defined in instruction file
 		co2.load_file(param["file_co2"].str);
 
-	climate_input_module->init();
 	landcover_input_module->init();
 	management_input_module->init();
 #ifndef SOIL_INPUT_IN_CLIMATE_MODULE
@@ -118,6 +126,7 @@ void Input::init() {
 			fail("firsthistyear or nyear_hist not defined\n");
 
 	}
+//	date.set_first_calendar_year(firsthistyear - nyear_spinup);	// Will print historical years in output files
 
 	// Set timers
 	tprogress.init();
@@ -219,7 +228,8 @@ bool Input::getclimate(Gridcell& gridcell) {
 			progress=(double)(gridlist.getobj().id * (nyear_spinup + nyear_hist)
 				+ date.year) / (double)(ngridcell * (nyear_spinup + nyear_hist));
 			tprogress.setprogress(progress);
-			dprintf("%3d%% complete, %s elapsed, %s remaining\n",(int)(progress * 100.0),
+//			dprintf("%3d%% complete, %s elapsed, %s remaining\n",(int)(progress * 100.0),
+			printf("%3d%% complete, %s elapsed, %s remaining\n",(int)(progress * 100.0),
 				tprogress.elapsed.str, tprogress.remaining.str);
 			tmute.settimer(MUTESEC);
 		}

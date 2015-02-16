@@ -233,9 +233,11 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
 
 	// Calender year of start of simulation (after spinup)
-	int first_historic_year = input.firsthistyear;	// For paleo runs, use firstpaleoyear (from ins-file)
+	int first_historic_year = input.firsthistyear;
 
-	// Use values for first historic year during spinup period, unless data exist before firsthistyear.
+	// Use values for first historic year during spinup period, unless data exist before firsthistyear
+	// Use values for last historic year during the time after that
+	// This is handled by the text input class.
 	int year = date.year - nyear_spinup + first_historic_year;
 
 	if(fixedlu_histX) {
@@ -329,6 +331,9 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 		}
 
 		if(getLU) {	
+
+			if(year == LUdata.GetFirstyear() + LUdata.nYears - 1)
+				dprintf("Last year of landcover fraction data used from year %d and onwards\n", year);
 
 			for(i=0; i<NLANDCOVERTYPES; i++) {
 
@@ -485,6 +490,9 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 			year=first_historic_year;
 		else if(fixedlu_histX)
 			year=year_saved;
+
+			if(year == CFTdata.GetFirstyear() + CFTdata.nYears - 1)
+				dprintf("Last year of cropland fraction data used from year %d and onwards\n", year);
 
 		// sum fractions for active crop pft:s and discard unreasonable values
 		for(i=0; i<nst; i++) {

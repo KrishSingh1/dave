@@ -289,6 +289,9 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			extended_mfrs.nextyear();
 			extended_mwet.nextyear();
 			extended_mdtr.nextyear();
+
+			if(calender_year == FIRSTHISTYEAR + NYEAR_HIST)
+				dprintf("Last %d years of CRU climate data used from year %d and onwards\n", NYEAR_FUTURE_DATA, calender_year);
 		}
 		else {
 			// Return false if last year was the last for the simulation

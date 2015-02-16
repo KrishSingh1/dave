@@ -46,7 +46,7 @@ public:
 
 	int getnyear_hist();
 
-	double* getdprec() {return dprec;};
+	double* getdprec() {return dprec;}
 
 	// Constants associated with historical climate data set
 

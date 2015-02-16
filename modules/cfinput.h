@@ -18,6 +18,16 @@
 #include <limits>
 #include "input.h"
 
+struct CoordCF {
+
+	// Type for storing grid cell longitude, latitude and description text
+
+	int rlon;
+	int rlat;
+	int landid;
+	std::string descrip;
+};
+
 class CFInput : public InputModule {
 public:
 	CFInput(Input&);
@@ -38,7 +48,11 @@ public:
 
 	int getnyear_hist();
 
-	double* getdprec() {return dprec;};
+	double* getdprec() {return dprec;}
+
+	bool create_gridlist_from_cflist(xtring& file_gridlist);
+
+	bool create_cf_gridlist();
 
 	static const int NYEAR_SPINUP_DATA=30;
 
@@ -48,8 +62,7 @@ private:
 
 	/// Reference to the list of Coord objects containing coordinates of the grid cells to simulate
 	ListArray_id<Coord>& gridlist;
-
-// Not sure how to solve this, loop through gridlist now in Input container
+/*
 	struct CoordCF {
 
 		// Type for storing grid cell longitude, latitude and description text
@@ -59,8 +72,8 @@ private:
 		int landid;
 		std::string descrip;
 	};
+*/
 
-/// ???
 	/// The grid cells to simulate
 	std::vector<CoordCF> gridlistCF;
 
@@ -140,10 +153,10 @@ private:
 
 	/// Insolation for current gridcell and current year (\see instype)
 	double dinsol[365];
-// Remove:
+
 	/// Daily N deposition for one year
 	double dndep[365];
-///
+
 	/// Minimum temperature for current gridcell and current year (deg C)
 	double dmin_temp[365];
 
@@ -171,17 +184,13 @@ private:
 
 	/// Path to CRU binary archive
 	xtring file_cru;
-	// Remove ??
+
 	/// Nitrogen deposition forcing for current gridcell
 	Lamarque::NDepData ndep;
 
 	/// Nitrogen deposition time series to use (historic,rcp26,...)
 	std::string ndep_timeseries;
 
-	// Timers for keeping track of progress through the simulation
-	Timer tprogress,tmute;
-	static const int MUTESEC=20; // minimum number of sec to wait between progress messages
-///
 };
 
 #endif // HAVE_NETCDF

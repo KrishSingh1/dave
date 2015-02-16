@@ -406,10 +406,11 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, double* primary
 
 									if(stand.stid == st.id) {
 										count_st++;
+										int first_year = max(stand.first_year, stand.clone_year);
 
 										// Don't reduce stands younger than the age limit, unless this is the last stand in the loop or the initial stand has been killed
-	//									if(gross_land_transfer && date.year - stand.first_year < age_limit_reduce && count_st != st.nstands && !reduce_all_stands && !restart) continue;
-										if(date.year - stand.first_year < age_limit_reduce && count_st != st.nstands && !reduce_all_stands && !restart) continue;
+//										if(gross_land_transfer && date.year - first_year < age_limit_reduce && count_st != st.nstands && !reduce_all_stands && !restart) continue;
+										if(date.year - first_year < age_limit_reduce && count_st != st.nstands && !reduce_all_stands && !restart) continue;
 							
 										// convert equal percentage of areas from all stands
 										if(reduce_all_stands) {
@@ -5419,7 +5420,7 @@ double forest_management(Patch& patch,bool age_class_run, int age_class) {
 	Stand& stand = patch.stand;
 	const double minbon=2.351; //The minimum average "bonitet" for a county in Sweden
 	const double maxbon=11.311; //The maximum average "bonitet" for a county in Sweden
-	const double bonitet = 10.0;	// Temporary atatic value
+	const double bonitet = 10.0;	// Temporary static value
 
 		// Code used for contineous forestry
 	const int first_cutyear = nyear_spinup; //Simulation year when continues forestry harvesting starts

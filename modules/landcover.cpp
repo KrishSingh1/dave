@@ -301,6 +301,10 @@ int copy_stand_type(int landcover_donor, int landcover_receptor) {
 		if(landcover_receptor == NATURAL)
 			copy_type = CLONESTAND;
 	}
+	else if(landcover_donor == PASTURE) {
+//		if(landcover_receptor == NATURAL)
+//			copy_type = CLONESTAND;
+	}
 
 	return copy_type;
 }
@@ -1091,6 +1095,7 @@ if(transfer_mode != 1) {
 					gridcell.acflux_landuse_change += cp.acflux_harvest * donor_area / (double)stand.nobj;
 					gridcell.acflux_landuse_change_lc[stand.landcover] += cp.acflux_harvest * donor_area / (double)stand.nobj;
 					gridcell.anflux_landuse_change += cp.anflux_harvest * donor_area / (double)stand.nobj;
+					gridcell.anflux_landuse_change_lc[stand.landcover] += cp.anflux_harvest * donor_area / (double)stand.nobj;
 
 //					gridcell.acflux_landuse_change += -cp.debt_excess * donor_area / (double)stand.nobj;
 
@@ -1110,12 +1115,14 @@ if(transfer_mode == 0) {	// No transfer
 	gridcell.acflux_landuse_change += stand.ccont() * donor_area;
 	gridcell.acflux_landuse_change_lc[stand.landcover] += stand.ccont() * donor_area;
 	gridcell.anflux_landuse_change += stand.ncont() * donor_area;
+	gridcell.anflux_landuse_change_lc[stand.landcover] += stand.ncont() * donor_area;
 }
 else if(transfer_mode == 1) {	// Transfer of soil only
 	//Test mode 2 (no harvest):
 	gridcell.acflux_landuse_change += (stand.ccont() - stand.ccont(0)) * donor_area;
 	gridcell.acflux_landuse_change_lc[stand.landcover] += (stand.ccont() - stand.ccont(0)) * donor_area;
 	gridcell.anflux_landuse_change += (stand.ncont() - stand.ncont(0)) * donor_area;
+	gridcell.anflux_landuse_change_lc[stand.landcover] += (stand.ncont() - stand.ncont(0)) * donor_area;
 }
 
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
@@ -1419,6 +1426,7 @@ if(transfer_mode == 1 || transfer_mode == 2 && scaling_mode == 0) {
 	gridcell.acflux_landuse_change -= (stand.ccont() - stand.ccont(0)) * added_frac; // living C
 	gridcell.acflux_landuse_change_lc[stand.landcover] -= (stand.ccont() - stand.ccont(0)) * added_frac;
 	gridcell.anflux_landuse_change -= (stand.ncont() - stand.ncont(0)) * added_frac; // living N
+	gridcell.anflux_landuse_change_lc[stand.landcover] -= (stand.ncont() - stand.ncont(0)) * added_frac;
 //	water not balanced in these tests !
 }
 			}
@@ -1426,6 +1434,7 @@ if(transfer_mode == 0) {
 	gridcell.acflux_landuse_change -= stand.ccont() * added_frac;
 	gridcell.acflux_landuse_change_lc[stand.landcover] -= stand.ccont() * added_frac;
 	gridcell.anflux_landuse_change -= stand.ncont() * added_frac;
+	gridcell.anflux_landuse_change_lc[stand.landcover] -= stand.ncont() * added_frac;
 //	water not balanced in these tests !
 }
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
@@ -5394,6 +5403,7 @@ void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double re
 		stand.get_gridcell().acflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
 		stand.get_gridcell().acflux_landuse_change_lc[stand.origin] += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
 		stand.get_gridcell().anflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+		stand.get_gridcell().anflux_landuse_change_lc[stand.origin] += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
 	}
 }
 
@@ -5415,7 +5425,7 @@ void clearcut(Individual& indiv, Pft& pft, bool alive, double anpp, bool& killed
 	patch.managed = true;
 }
 
-double forest_management(Patch& patch,bool age_class_run, int age_class) {
+double forest_management(Patch& patch, bool age_class_run, int age_class) {
 
 	Stand& stand = patch.stand;
 	const double minbon=2.351; //The minimum average "bonitet" for a county in Sweden
@@ -5423,16 +5433,15 @@ double forest_management(Patch& patch,bool age_class_run, int age_class) {
 	const double bonitet = 10.0;	// Temporary static value
 
 		// Code used for contineous forestry
-	const int first_cutyear = nyear_spinup; //Simulation year when continues forestry harvesting starts
+	const int first_cutyear = nyear_spinup; //Simulation year when continuous forestry harvesting starts
 	int cut_int; //Interval between cuttings
 	int patch_order; //Which year in a cutting interval the patch belongs to
-	div_t cut_check;
+
 //	cut_int=30-(int)(15.0*(stand.bonitet-minbon)/(maxbon-minbon));
 	cut_int=30-(int)(15.0*(bonitet-minbon)/(maxbon-minbon));
 	patch_order = (int)(patch.id * cut_int * 1.0 / (1.0 * stand.npatch()));
-	cut_check = div(date.year - first_cutyear - patch_order, cut_int);
 
-	if (date.year>=first_cutyear && cut_check.rem==0)
+	if (date.year >= first_cutyear && !((date.year - first_cutyear - patch_order) % cut_int))
 		return 0.40;
 	else 
 		return 0.00;
@@ -6017,6 +6026,7 @@ void kill_remaining_vegetation(Individual& indiv, bool burn, bool lc_change) {
 		stand.get_gridcell().acflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
 		stand.get_gridcell().acflux_landuse_change_lc[stand.origin] += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
 		stand.get_gridcell().anflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+		stand.get_gridcell().anflux_landuse_change_lc[stand.origin] += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
 	}
 
 }

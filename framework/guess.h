@@ -3520,18 +3520,22 @@ public:
 	 */
 	bool LC_updated;
 
-	/// Gridcell-level flux from slow harvested products
+	/// Gridcell-level C flux from slow harvested products
 	double acflux_harvest_slow;
-	/// Gridcell-level flux from harvest associated with landcover change
+	/// Gridcell-level C flux from harvest associated with landcover change
 	double acflux_landuse_change;
 	/// Gridcell-level N flux from slow harvested products
 	double anflux_harvest_slow;
 	/// Gridcell-level N flux from harvest associated with landcover change
 	double anflux_landuse_change;
-	/// Landcover-level flux from slow harvested products (donating landcover)
+	/// Landcover-level C flux from slow harvested products (donating landcover)
 	double acflux_harvest_slow_lc[NLANDCOVERTYPES];	
-	/// Landcover-level flux from harvest associated with landcover change (donating landcover)
+	/// Landcover-level C flux from harvest associated with landcover change (donating landcover)
 	double acflux_landuse_change_lc[NLANDCOVERTYPES];
+	/// Landcover-level N flux from slow harvested products (donating landcover)
+	double anflux_harvest_slow_lc[NLANDCOVERTYPES];	
+	/// Landcover-level N flux from harvest associated with landcover change (donating landcover)
+	double anflux_landuse_change_lc[NLANDCOVERTYPES];
 	/// Which landcover types create new stands when area increases.
 	bool expand_to_new_stand[NLANDCOVERTYPES];
 

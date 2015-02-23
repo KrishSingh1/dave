@@ -2288,6 +2288,8 @@ Gridcell::Gridcell():climate(*this) {
 	anflux_landuse_change=0.0;
 	memset(acflux_harvest_slow_lc, 0, sizeof(double)*NLANDCOVERTYPES);
 	memset(acflux_landuse_change_lc, 0, sizeof(double)*NLANDCOVERTYPES);
+	memset(anflux_harvest_slow_lc, 0, sizeof(double)*NLANDCOVERTYPES);
+	memset(anflux_landuse_change_lc, 0, sizeof(double)*NLANDCOVERTYPES);
 
 	for(int i=0; i<NLANDCOVERTYPES; i++) {		
 		if(i == NATURAL || i == FOREST)

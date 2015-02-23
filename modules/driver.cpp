@@ -816,6 +816,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		for(int i=0;i<NLANDCOVERTYPES;i++) {
 			gridcell.acflux_landuse_change_lc[i]=0.0;
 			gridcell.acflux_harvest_slow_lc[i]=0.0;
+			gridcell.anflux_landuse_change_lc[i]=0.0;
+			gridcell.anflux_harvest_slow_lc[i]=0.0;
 		}
 
 		if (date.year == 0) {
@@ -960,14 +962,15 @@ void dailyaccounting_patch_lc(Patch& patch) {
 				Pft& pft = pftlist.getobj();
 				Patchpft& patchpft = patch.pft[pft.id];
 
-				patch.stand.get_gridcell().acflux_harvest_slow+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.get_gridcell_fraction()/(double)patch.stand.nobj;
+				patch.stand.get_gridcell().acflux_harvest_slow += patchpft.harvested_products_slow * pft.turnover_harv_prod * patch.stand.get_gridcell_fraction() / (double)patch.stand.nobj;
 				// flux from slow pool in receiving landcover after land use change (1)
-				patch.stand.get_gridcell().acflux_harvest_slow_lc[patch.stand.landcover]+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.get_gridcell_fraction()/(double)patch.stand.nobj;
+				patch.stand.get_gridcell().acflux_harvest_slow_lc[patch.stand.landcover] += patchpft.harvested_products_slow * pft.turnover_harv_prod * patch.stand.get_gridcell_fraction() / (double)patch.stand.nobj;
 				// flux from slow pool in donating landcover after land use change (2)
 //				patch.stand.gridcell.acflux_harvest_slow_lc[pft.landcover]+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.get_gridcell_fraction()/(double)patch.stand.nobj;
 				patchpft.harvested_products_slow = patchpft.harvested_products_slow * (1 - pft.turnover_harv_prod);
 
 				patch.stand.get_gridcell().anflux_harvest_slow += patchpft.harvested_products_slow_nmass * pft.turnover_harv_prod * patch.stand.get_gridcell_fraction() / (double)patch.stand.nobj;
+				patch.stand.get_gridcell().anflux_harvest_slow_lc[patch.stand.landcover] += patchpft.harvested_products_slow_nmass * pft.turnover_harv_prod * patch.stand.get_gridcell_fraction() / (double)patch.stand.nobj;
 				patchpft.harvested_products_slow_nmass = patchpft.harvested_products_slow_nmass * (1 - pft.turnover_harv_prod);
 
 				pftlist.nextobj();

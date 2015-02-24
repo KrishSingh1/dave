@@ -457,14 +457,16 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 			bool doramp = false;
 			int firstyear;
 			if(LUdata.GetFirstyear() >= 0) {
-				firstyear = LUdata.GetFirstyear();
-				if(year < LUdata.GetFirstyear())
+				if(year < LUdata.GetFirstyear()) {
 					doramp = true;
+					firstyear = LUdata.GetFirstyear();
+				}
 			}
-			else {
-				firstyear = input.getfirsthistyear();
-				if(year < input.getfirsthistyear())			
+			else {			
+				if(year < input.getfirsthistyear()) {		
 					doramp = true;
+					firstyear = input.getfirsthistyear();
+				}
 			}
 
 			if(doramp) {

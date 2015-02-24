@@ -854,12 +854,20 @@ bool LandcoverInputModule::get_lc_transfer(Gridcell& gridcell, double landcoverf
 		return false;
 }
 
+
 int LandcoverInputModule::getfirsthistyear() {
-
+#ifdef DYNAMIC_LANDCOVER_INPUT
 	return LUdata.GetFirstyear();
+#else
+	return -1;
+#endif
 }
-int LandcoverInputModule::getnyear_hist() {
 
+int LandcoverInputModule::getnyear_hist() {
+#ifdef DYNAMIC_LANDCOVER_INPUT
 	return LUdata.nYears;
+#else
+	return -1;
+#endif
 }
 

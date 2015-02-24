@@ -4,9 +4,10 @@
 
 #include "guess.h"
 #include "config.h"
-#if defined DYNAMIC_LANDCOVER_INPUT
+#ifdef DYNAMIC_LANDCOVER_INPUT
 #include "InData.h"
 #endif
+#include "inputdefinitions.h"
 #include "lamarquendep.h"
 #include "globalco2file.h"
 #include "inputmodule.h"

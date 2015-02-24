@@ -1109,7 +1109,6 @@ void plib_callback(int callback) {
 			if(!lcfrac_fixed || !frac_fixed[CROPLAND] || readsowingdates || readharvestdates)
 				dprintf("Input of landcover fractions and sowing-/harvest dates requires the InDataD class. Equal landcover/crop fractions enforced. Sowing-/harvest dates calculated.\n");
 			lcfrac_fixed=true;
-			equal_landcover_area=true;
 			frac_fixed[CROPLAND]=true;
 			readsowingdates=false;
 			readharvestdates=false;

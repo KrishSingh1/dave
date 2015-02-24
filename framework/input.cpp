@@ -363,13 +363,15 @@ void SoilInput::init() {
 
 bool SoilInput::loadsoilcode(Gridcell& gridcell, Coord c) {
 
-	bool gridfound = true;
-
+	bool gridfound = false;
+#ifdef DYNAMIC_LANDCOVER_INPUT
 	if(!soilcode.Load(c)) {
 		dprintf("Problems with soil code input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
 		gridfound = false;	// skip this stand
 	}
-
+	else
+		gridfound = true;
+#endif
 	return gridfound;
 }
 
@@ -386,7 +388,10 @@ bool SoilInput::getgridcell(Gridcell& gridcell) {
 };
 
 int SoilInput::getsoilcode() {
-
+#ifdef DYNAMIC_LANDCOVER_INPUT
 	return (int)soilcode.Get(0, "soilcode");
+#else
+	return -1;
+#endif
 }
 

@@ -39,6 +39,7 @@ bool ManagementInputModule::loadmanagement(Gridcell& gridcell, Coord c) {
 
 	bool LUerror = false;
 
+#if defined DYNAMIC_LANDCOVER_INPUT
 	if(readsowingdates) { 
 		if(!sdates.Load(c)) {
 			dprintf("Problems with sowing date input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
@@ -58,7 +59,7 @@ bool ManagementInputModule::loadmanagement(Gridcell& gridcell, Coord c) {
 			dprintf("N fertilization data not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
 		}
 	}
-
+#endif
 	return LUerror;
 }
 

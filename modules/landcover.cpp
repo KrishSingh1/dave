@@ -2562,13 +2562,14 @@ void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* landcover_inpu
 	dprintf("\n");
 #endif
 
-	double ccont_tot = gridcell.ccont();
+	double ccont_tot = 0.0;
 	double cflux_tot = gridcell.cflux();
 
 	for(unsigned int i=0; i<gridcell.size(); i++) {
 		Stand& stand = gridcell[i];
 
 		double ccont_stand = stand.ccont(stand.scale_LC_change);
+		ccont_tot += ccont_stand * stand.get_gridcell_fraction();
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 		if(stand.landcover == NATURAL) 
 			dprintf("Year %d: natural stand %d ccont=%.15f; age=%d, frac=%f", date.year, stand.id, ccont_stand, date.year - stand.first_year, stand.get_gridcell_fraction());
@@ -2592,21 +2593,25 @@ void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* landcover_inpu
 	if(fabs(cflux_tot - cflux_tot_1 + ccont_tot - ccont_tot_1) > 1.0e-12)
 		dprintf("WARNING ! C balance after lcc off\n");
 
-	double ncont_tot = gridcell.ncont();
-	double nflux_tot = gridcell.nflux();;
+	double ncont_tot = 0.0;
+	double nflux_tot = 0.0;
 
 	for(unsigned int i=0; i<gridcell.size(); i++) {
 		Stand& stand = gridcell[i];
 
 		double ncont_stand = stand.ncont(stand.scale_LC_change);
+		ncont_tot += ncont_stand * stand.get_gridcell_fraction();
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 		if(stand.landcover == NATURAL) 
 			dprintf("Year %d: natural stand %d ncont=%.15f\n", date.year, stand.id, ncont_stand);
 		else
 			dprintf("Year %d: stand %d st %d, ncont=%.15f\n", date.year, stand.id, stand.stid, ncont_stand);
 #endif
+		nflux_tot += stand.nflux() * stand.get_gridcell_fraction();
 	}
 
+	nflux_tot_1 = nflux_tot;	// Disregard fluxes not already reset this year and the associated scaling problems 
+	nflux_tot += gridcell.anflux_landuse_change + gridcell.anflux_harvest_slow;
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 	dprintf("\nYear %d: ncont_tot after luc=%.15f\n", date.year, ncont_tot);
 	dprintf("Year %d: nflux from luc=%.15f\n", date.year, gridcell.anflux_landuse_change + gridcell.anflux_harvest_slow);
@@ -5432,7 +5437,7 @@ double forest_management(Patch& patch, bool age_class_run, int age_class) {
 	const double maxbon=11.311; //The maximum average "bonitet" for a county in Sweden
 	const double bonitet = 10.0;	// Temporary static value
 
-		// Code used for contineous forestry
+	// Continuous forestry
 	const int first_cutyear = nyear_spinup; //Simulation year when continuous forestry harvesting starts
 	int cut_int; //Interval between cuttings
 	int patch_order; //Which year in a cutting interval the patch belongs to

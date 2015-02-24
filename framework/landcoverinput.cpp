@@ -452,17 +452,33 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 			}
 		}
 
-		if(nyears_cropland_ramp && year < LUdata.GetFirstyear()) {
+		if(nyears_cropland_ramp) {
 
-			int first_reduction_year = input.firsthistyear - nyear_spinup + (int)(SOLVESOMCENT_SPINEND * (nyear_spinup - freenyears) + freenyears) + 1;
-			int max_ramp_years = LUdata.GetFirstyear() - first_reduction_year;
-			if(nyears_cropland_ramp > max_ramp_years)
-				dprintf("Requested cropland ramp period too long for given nyear_spinup. Maximum is %d.\n", max_ramp_years);
+			bool doramp = false;
+			int firstyear;
+			if(LUdata.GetFirstyear() >= 0) {
+				firstyear = LUdata.GetFirstyear();
+				if(year < LUdata.GetFirstyear())
+					doramp = true;
+			}
+			else {
+				firstyear = input.getfirsthistyear();
+				if(year < input.getfirsthistyear())			
+					doramp = true;
+			}
 
-			double reduce_cropland = min((double)(LUdata.GetFirstyear() - year) / min(nyears_cropland_ramp, max_ramp_years), 1.0) * gridcell.landcoverfrac[CROPLAND];
-			gridcell.landcoverfrac[CROPLAND] -= reduce_cropland;
-			gridcell.landcoverfrac[NATURAL] += reduce_cropland;
+			if(doramp) {
+				int first_reduction_year = input.firsthistyear - nyear_spinup + (int)(SOLVESOMCENT_SPINEND * (nyear_spinup - freenyears) + freenyears) + 1;
+				int max_ramp_years = firstyear - first_reduction_year;
+				if(nyears_cropland_ramp > max_ramp_years)
+					dprintf("Requested cropland ramp period too long for given nyear_spinup. Maximum is %d.\n", max_ramp_years);
 
+				double reduce_cropland = min((double)(firstyear - year) / min(nyears_cropland_ramp, max_ramp_years), 1.0) * gridcell.landcoverfrac[CROPLAND];
+				gridcell.landcoverfrac[CROPLAND] -= reduce_cropland;
+				gridcell.landcoverfrac[NATURAL] += reduce_cropland;
+//				if(gridcell.landcoverfrac[CROPLAND])
+//					dprintf("Year %d Cropland frac=%.3f\n", year, gridcell.landcoverfrac[CROPLAND]);
+			}
 		}
 #endif
 	}
@@ -511,7 +527,7 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 		}
 
 		if(gridcell.landcoverfrac[CROPLAND]==0.0) {
-			if(sum!=0.0 && year >= LUdata.GetFirstyear()) {
+			if(sum!=0.0 && year >= LUdata.GetFirstyear() && LUdata.GetFirstyear() >= 0) {
 				dprintf("WARNING ! crop landcover fraction is 0.0 for year %d while crop data exist !\n", year);
 			}
 		}

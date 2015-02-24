@@ -1802,7 +1802,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					}
 					else {
 						cpool_total += centuryc_lc[i] + surfsoillitterc_lc[i] + cwdc_lc[i];
-						npool_total += centuryn_lc[i] + surfsoillittern_lc[i] + cwdn_lc[i];
+						npool_total += centuryn_lc[i] + surfsoillittern_lc[i] + cwdn_lc[i] + availn_lc[i];
 					}
 
 					// Add slow harvest pool if needed

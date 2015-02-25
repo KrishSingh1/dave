@@ -795,8 +795,10 @@ Stand& Stand::clone(StandType& st, double fraction) {
 	// Set land use settings for new stand
 	new_stand.init_stand_lu(st, fraction);
 
-//	for(unsigned int p = 0; p < nobj; p++)	// probably not what we want
-//		new_stand[p].age = 0;
+	for(unsigned int p = 0; p < nobj; p++) {
+//		new_stand[p].age = 0;				// probably not what we want
+		new_stand[p].managed = false;
+	}
 
 	return new_stand;
 }

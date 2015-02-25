@@ -15,9 +15,6 @@
 #include "gutil.h"
 #include "guess.h"
 #include "input.h"
-#if defined DYNAMIC_LANDCOVER_INPUT
-#include "InData.h"
-#endif
 
 /// An input module for a toy data set (for demonstration purposes)
 /** This input module is provided as an example of an input module.

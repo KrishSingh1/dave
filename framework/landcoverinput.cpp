@@ -27,6 +27,9 @@ LandcoverInputModule::LandcoverInputModule(const char* input_module_name, Input&
 
 void LandcoverInputModule::init() {
 
+	if(!run_landcover)
+		return;
+
 	all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
 
 	//Retrieve file names for landcover files and open them if static values from ins-file are not used

@@ -10,7 +10,7 @@ ManagementInputModule::ManagementInputModule(Input& in)
 
 void ManagementInputModule::init() {
 
-	if(run[CROPLAND]) {
+	if(run_landcover && run[CROPLAND]) {
 #if defined DYNAMIC_LANDCOVER_INPUT
 
 		if(readsowingdates)	{

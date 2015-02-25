@@ -358,7 +358,6 @@ void SoilInput::init() {
 		if(!soilcode.Open(file_soilcode, gridlist))
 			fail("initio: could not open %s for input", (char*)file_soilcode);
 #endif
-
 }
 
 bool SoilInput::loadsoilcode(Gridcell& gridcell, Coord c) {
@@ -379,13 +378,13 @@ bool SoilInput::getgridcell(Gridcell& gridcell) {
 	
 	Coord& c = gridlist.getobj();
 	bool gridfound = loadsoilcode(gridcell, c);
-// New soil data input here
+	// New soil data input here
 
 	if(!gridfound)
 		dprintf("\nError: could not find stand at (%g,%g) in soil input data files\n", gridlist.getobj().lon,gridlist.getobj().lat);
 
 	return gridfound;
-};
+}
 
 int SoilInput::getsoilcode() {
 #ifdef DYNAMIC_LANDCOVER_INPUT

@@ -10,7 +10,7 @@
 #ifndef LPJ_GUESS_SHELL_H
 #define LPJ_GUESS_SHELL_H
 
-#include <gutil.h>
+#include "gutil.h"
 
 /// A printf-style function for sending messages from LPJ-GUESS to the user.
 /**

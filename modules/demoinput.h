@@ -10,6 +10,7 @@
 #ifndef LPJ_GUESS_DEMOINPUT_H
 #define LPJ_GUESS_DEMOINPUT_H
 
+#include "guess.h"
 #include "inputmodule.h"
 #include <vector>
 #include "gutil.h"
@@ -67,10 +68,12 @@ private:
 	bool readenv(Coord coord, long& seed);
 
 	// Daily temperature, precipitation and sunshine for one year
-	double dtemp[365],dprec[365],dsun[365];
+	double dtemp[Date::MAX_YEAR_LENGTH];
+	double dprec[Date::MAX_YEAR_LENGTH];
+	double dsun[Date::MAX_YEAR_LENGTH];
 	// bvoc
 	// Daily diurnal temperature range for one year
-	double ddtr[365];
+	double ddtr[Date::MAX_YEAR_LENGTH];
 
 	/// atmospheric nitrogen deposition (kgN/yr/ha) (read from ins file)
 	double ndep_fixed;

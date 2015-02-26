@@ -92,15 +92,16 @@ private:
 	void load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_var,
 	                      GenericSpinupData& spinup_data);
 
-	/// Gets data for one year, for one variable. Returns either 12 or 365 values
-	/** Gets the values either from spinup or historic period. */
+	/// Gets data for one year, for one variable.
+	/** Returns either 12 or 365/366 values (depending on LPJ-GUESS year length, not 
+	 *  data set year length). Gets the values from spinup and/or historic period. */
 	void get_yearly_data(std::vector<double>& data,
 	                     const GenericSpinupData& spinup,
 	                     GuessNC::CF::GridcellOrderedVariable* cf_historic,
 	                     int& historic_timestep);
 
 	/// Fills one array of daily values with forcing data for the current year
-	void populate_daily_array(double daily[365],
+	void populate_daily_array(double* daily,
 	                          const GenericSpinupData& spinup,
 	                          GuessNC::CF::GridcellOrderedVariable* cf_historic,
 	                          int& historic_timestep,
@@ -146,22 +147,22 @@ private:
 	GenericSpinupData spinup_max_temp;
 
 	/// Temperature for current gridcell and current year (deg C)
-	double dtemp[365];
+	double dtemp[Date::MAX_YEAR_LENGTH];
 
 	/// Precipitation for current gridcell and current year (mm/day)
-	double dprec[365];
+	double dprec[Date::MAX_YEAR_LENGTH];
 
 	/// Insolation for current gridcell and current year (\see instype)
-	double dinsol[365];
+	double dinsol[Date::MAX_YEAR_LENGTH];
 
 	/// Daily N deposition for one year
-	double dndep[365];
+	double dndep[Date::MAX_YEAR_LENGTH];
 
 	/// Minimum temperature for current gridcell and current year (deg C)
-	double dmin_temp[365];
+	double dmin_temp[Date::MAX_YEAR_LENGTH];
 
 	/// Maximum temperature for current gridcell and current year (deg C)
-	double dmax_temp[365];
+	double dmax_temp[Date::MAX_YEAR_LENGTH];
 
 	/// Whether the forcing data for precipitation is an extensive quantity
 	/** If given as an amount (kg m-2) per timestep it is extensive, if it's

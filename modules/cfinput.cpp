@@ -542,7 +542,7 @@ void CFInput::get_yearly_data(std::vector<double>& data,
 
 	if (is_daily(cf_historic)) {
 
-		data.resize(365);
+		data.resize(date.year_length());
 
 		// This function is called at the first day of the year, so current_day
 		// starts at Jan 1, then we step through the whole year, getting data
@@ -553,7 +553,13 @@ void CFInput::get_yearly_data(std::vector<double>& data,
 
 			// In the spinup?
 			if (earlier_day(current_day, calendar_year, cf_historic->get_date_time(0))) {
-				data[current_day.day]  = spinup[current_day.day];
+
+				int spinup_day = current_day.day;
+				// spinup object always has 365 days, deal with leap years
+				if (current_day.ndaymonth[1] == 29 && current_day.month > 1) {
+					--spinup_day;
+				}
+				data[current_day.day]  = spinup[spinup_day];
 			}
 			else {
 				// Historical period
@@ -563,13 +569,22 @@ void CFInput::get_yearly_data(std::vector<double>& data,
 					++historic_timestep;
 					GuessNC::CF::DateTime dt = cf_historic->get_date_time(historic_timestep);
 
-					if (dt.get_month() == 2 && dt.get_day() == 29) {
+					// Deal with calendar mismatch
+
+					// Leap day in NetCDF variable but not in LPJ-GUESS?
+					if (dt.get_month() == 2 && dt.get_day() == 29 &&
+						current_day.ndaymonth[1] == 28) {
 						++historic_timestep;
+					}
+					// Leap day in LPJ-GUESS but not in NetCDF variable?
+					else if (current_day.month == 1 && current_day.dayofmonth == 28 &&
+						cf_historic->get_calendar_type() == NO_LEAP) {
+						--historic_timestep;
 					}
 				}
 				
 				if (historic_timestep < cf_historic->get_timesteps()) {
-					data[current_day.day]  = cf_historic->get_value(historic_timestep);
+					data[current_day.day]  = cf_historic->get_value(max(0, historic_timestep));
 				}
 				else {
 					// Past the end of the historical period, these days wont be simulated.
@@ -614,7 +629,7 @@ void CFInput::get_yearly_data(std::vector<double>& data,
 	}
 }
 
-void CFInput::populate_daily_array(double daily[365], 
+void CFInput::populate_daily_array(double* daily, 
                                    const GenericSpinupData& spinup,
                                    GridcellOrderedVariable* cf_historic,
                                    int& historic_timestep,
@@ -654,7 +669,7 @@ void CFInput::populate_daily_prec_array(long& seed) {
 		// Simply copy from data to daily, and if needed convert from
 		// precipitation rate to precipitation amount
 
-		for (size_t i = 0; i < 365; ++i) {
+		for (size_t i = 0; i < prec_data.size(); ++i) {
 			dprec[i] = prec_data[i];
 
 			if (!extensive_precipitation) {
@@ -701,7 +716,7 @@ void CFInput::populate_daily_arrays(long& seed) {
 
 	// Convert to units the model expects
 	bool cloud_fraction_to_sunshine = (cf_standard_name_to_insoltype(cf_insol->get_standard_name()) == SUNSHINE);
-	for (int i = 0; i < 365; ++i) {
+	for (int i = 0; i < date.year_length(); ++i) {
 		dtemp[i] -= K2degC;
 
 		if (cf_min_temp) {

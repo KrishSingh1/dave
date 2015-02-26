@@ -1237,7 +1237,6 @@ void fire(Patch& patch,double& fireprob) {
 		// fire_index; LPJF]
 	double sm; // s-1
 	double mort_fire; // fire mortality as fraction of current FPC
-	int day;
 	int p;
 
 	// Calculate fuel load (total aboveground litter)
@@ -1284,7 +1283,7 @@ void fire(Patch& patch,double& fireprob) {
 	// NOTE: error in Eqn 2, Thonicke et al - multiplier should be PI/4, not PI
 
 	n=0.0;
-	for (day=0;day<365;day++) {
+	for (int day = 0; day < date.year_length(); day++) {
 
 		// Eqn 2
 		pm=exp(-PI*patch.soil.dwcontupper[day]/me_mean*patch.soil.dwcontupper[day]/
@@ -1297,7 +1296,7 @@ void fire(Patch& patch,double& fireprob) {
 	// Calculate fraction of grid cell burnt
 	// Thonicke et al 2001, Eqn 9
 
-	s=n/365.0;
+	s=n/date.year_length();
 	sm=s-1;
 
 	fireprob=s*exp(sm/(0.45*sm*sm*sm+2.83*sm*sm+2.96*sm+1.04));

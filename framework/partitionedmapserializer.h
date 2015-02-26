@@ -167,29 +167,26 @@ class PartitionedMapDeserializer {
 public:
 	/// Construct a deserializer
 	/** \param directory Where to find the state files
+	 *  \param max_rank  The rank of the process with highest rank
 	 *  \param ed        Functor for deserializing an element
 	 *  \param kd        Functor for deserializing a key
 	 */
 	PartitionedMapDeserializer(const char* directory,
+	                           int max_rank,
 	                           ElementDeserializer ed,
 	                           KeyDeserializer kd)
 		: element_deserializer(ed), key_deserializer(kd) {
 
-		// kind of ugly way to open all state files, 
-		// enumerate the files properly?
+		// we'll simply try to open all files between 0 and max_rank (inclusive)
 		int rank = 0;
-		bool done = false;
 
-		while (!done) {
+		while (rank <= max_rank) {
 			std::string path = create_path(directory, rank);
 
 			std::auto_ptr<std::ifstream> stream(
 			                                    new std::ifstream(path.c_str(), std::ios::binary | std::ios::in));
 
-			if (stream->fail()) {
-				done = true;
-			}
-			else {
+			if (!stream->fail()) {
 				File* file = new File;
 				// read index
 
@@ -218,8 +215,8 @@ public:
 
 				file->stream = stream;
 				files.push_back(file);
-				rank++;
 			}
+			rank++;
 		}
 
 		if (files.empty()) {
@@ -260,7 +257,7 @@ public:
 			}
 		}
 
-		PartitionedMapSerializerError("failed to find element to deserialize");
+		throw PartitionedMapSerializerError("failed to find element to deserialize");
 	}
 
 	/// Reads in several elements from disk

@@ -9,6 +9,7 @@
 
 #ifndef LPJ_GUESS_CRUINPUT_H
 #define LPJ_GUESS_CRUINPUT_H
+#include "guess.h"
 #include "inputmodule.h"
 #include <vector>
 #include "gutil.h"
@@ -162,15 +163,15 @@ private:
 	Spinup_data extended_mdtr;
 
 	/// Daily temperature for current year
-	double dtemp[365];
+	double dtemp[Date::MAX_YEAR_LENGTH];
 	/// Daily precipitation for current year
-	double dprec[365];
+	double dprec[Date::MAX_YEAR_LENGTH];
 	/// Daily sunshine for current year
-	double dsun[365];
+	double dsun[Date::MAX_YEAR_LENGTH];
 	// Daily diurnal temperature range for current year
-	double ddtr[365];
+	double ddtr[Date::MAX_YEAR_LENGTH];
 	/// Daily N deposition for current year
-	double dndep[365];
+	double dndep[Date::MAX_YEAR_LENGTH];
 };
 
 #endif // LPJ_GUESS_CRUINPUT_H

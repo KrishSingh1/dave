@@ -30,8 +30,8 @@ xtring file_cru;
 xtring file_cru_misc;
 
 /// Interpolates monthly data to quasi-daily values.
-void interp_climate(double mtemp[12], double mprec[12], double msun[12], double mdtr[12],
-					double dtemp[365], double dprec[365], double dsun[365], double ddtr[365]) {
+void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
+					double* dtemp, double* dprec, double* dsun, double* ddtr) {
 	interp_monthly_means_conserve(mtemp, dtemp);
 	interp_monthly_totals_conserve(mprec, dprec, 0);
 	interp_monthly_means_conserve(msun, dsun, 0, 100);

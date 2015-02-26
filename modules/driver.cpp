@@ -251,66 +251,6 @@ void soilparameters(Soiltype& soiltype, int soilcode) {
 }
 
 
-/// Climate interpolation from monthly means to quasi-daily values
-/** May be called from input/output module to generate daily climate values when
- *  raw data are on monthly basis.
- *
- *  \param mvals The monthly means
- *  \param dvals The generated daily values
- */
-void interp_monthly_means(double mvals[12], double dvals[365]) {
-
-	Date date; // Date object used for interpolation (local to this function)
-	double nday, dayct;
-	int thismonth, lastmonth;
-
-	date.init(1);
-
-	nday = (double)(date.middaymonth[0] - (date.middaymonth[11] - 365));
-	thismonth = 0;
-	lastmonth = 11;
-	dayct = (double)(366 - date.middaymonth[11]);
-
-	// Perform interpolation
-
-	while (date.year == 0) {
-		if (date.day == date.middaymonth[date.month]) {
-			if (date.month == 11) // December
-				nday = (double)(date.middaymonth[0] + 365 - date.middaymonth[11]);
-			else
-				nday = (double)(date.middaymonth[date.nextmonth()] -
-					date.middaymonth[date.month]);
-			thismonth = date.nextmonth();
-			lastmonth = date.month;
-			dayct = 0.0;
-		}
-		dvals[date.day] = (mvals[thismonth]-mvals[lastmonth]) / nday * dayct +
-			mvals[lastmonth];
-		date.next();
-		dayct++;
-	}
-}
-
-/// Climate interpolation from monthly totals to quasi-daily values
-/** May be called from input/output module to generate daily climate values when
- *  raw data are on monthly basis.
- *
- *  \param mvals The monthly totals
- *  \param dvals The generated daily values
- */
-void interp_monthly_totals(double mvals[12], double dvals[365]) {
-	// Local date object just used to get number of days for each month
-	Date date;
-
-	// Convert monthly totals to mean daily values
-	double mvals_daily[12];
-	for (int m=0; m<12; m++)
-		mvals_daily[m] = mvals[m] / (double)date.ndaymonth[m];
-
-	interp_monthly_means(mvals_daily, dvals);
-}
-
-
 /// Generates quasi-daily values for a single month, based on monthly means
 /** 
  *  The generated daily values will conserve the monthly mean.
@@ -578,7 +518,7 @@ void distribute_ndep(const double* mndry, const double* mnwet,
  *  \param truncate   if set to true the function will set small daily values
  *                    (< 0.1) to zero
  */
-void prdaily(double mval_prec[12], double dval_prec[365], double mval_wet[12], long& seed, bool truncate /* = true */) {
+void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed, bool truncate /* = true */) {
 
 	//  Distribution of monthly precipitation totals to quasi-daily values
 	//  (From Dieter Gerten 021121)
@@ -872,7 +812,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	// Update GDD counters and chill day count
 	climate.gdd5 += max(0.0, climate.temp - 5.0);
 	climate.agdd5 += max(0.0, climate.temp - 5.0);
-	if (climate.temp < 5.0 && climate.chilldays <= 365)
+	if (climate.temp < 5.0 && climate.chilldays <= Date::MAX_YEAR_LENGTH)
 		climate.chilldays++;
 
 	// Calculate gtemp (daily/sub-daily depending on the mode)
@@ -1182,8 +1122,8 @@ void daylengthinsoleet(Climate& climate) {
 
 		// Calculate values of saved parameters for this day
 		climate.qo[date.day] = QOO * (1.0 + 2.0 * 0.01675 *
-							cos(2.0 * PI * ((double)date.day + 0.5) / 365.0)); // Eqn 2
-		double delta = -23.4 * DEGTORAD * cos(2.0 * PI * ((double)date.day + 10.5) / 365.0);
+							cos(2.0 * PI * ((double)date.day + 0.5) / date.year_length())); // Eqn 2
+		double delta = -23.4 * DEGTORAD * cos(2.0 * PI * ((double)date.day + 10.5) / date.year_length());
 				// Eqn 4, solar declination angle (radians)
 		climate.u[date.day] = climate.sinelat * sin(delta); // Eqn 9
 		climate.v[date.day] = climate.cosinelat * cos(delta); // Eqn 10

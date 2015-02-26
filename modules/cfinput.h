@@ -115,7 +115,7 @@ private:
 	/// Fills dtemp, dprec, etc. with forcing data for the current year
 	void populate_daily_arrays(long& seed);
 
-	/// \returns all variables
+	/// \returns all (used) variables
 	std::vector<GuessNC::CF::GridcellOrderedVariable*> all_variables() const;
 
 	// The variables

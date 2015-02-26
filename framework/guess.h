@@ -1564,7 +1564,6 @@ public:
 		// Note: primary PFT parameters, including SLA, must be set before this
 		//       function is called
 
-		const double PI = 3.14159265;
 		const double REGENLAI_TREE = 1.5;
 		const double REGENLAI_GRASS = 0.001;
 		const double SAPLINGHW = 0.2;
@@ -1959,8 +1958,6 @@ public:
 	double crownarea;
 	/// increment in fpc since last simulation year
 	double deltafpc;
-	/// running sum (converted to annual mean) for wscal
-	double wscal_mean;
 	/// bole height, i.e. height above ground of bottom of crown cylinder (m)
 	/** (individual and cohort modes only) */
 	double boleht;
@@ -2190,6 +2187,13 @@ public:
 	 *                 and residue outtake.
 	 */
 	void kill(bool harvest = false);
+
+	/// Annual mean wscal - water stress parameter (0-1 range; 1 = minimum stress)
+	/** Value only valid at end of year, after call to canopy_exchange().
+	 *
+	 *  Currently, all Individuals belonging to a Patchpft share the same water stress.
+	 */
+	double wscal_mean() const;
 
 	/// Gets the individual's daily cmass_leaf value
 	double cmass_leaf_today() const;

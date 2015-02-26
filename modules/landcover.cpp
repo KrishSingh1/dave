@@ -4958,7 +4958,7 @@ void growth_crop_daily(Patch& patch) {
 				cropindiv.grs_cmass_plant += indiv.dnpp;		
 				cropindiv.ycmass_plant += indiv.dnpp;
 
-				indiv.ltor = indiv.wscal_mean * indiv.pft.ltor_max;
+				indiv.ltor = indiv.wscal_mean() * indiv.pft.ltor_max;
 
 				// allocation to roots
 				double froot = 1.0 / (1.0 + indiv.ltor);

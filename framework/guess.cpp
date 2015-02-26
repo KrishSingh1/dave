@@ -937,7 +937,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	lai_daily       = 0.0;
 	lai_indiv_daily = 0.0;
 	alive             = false;
-	wscal_mean        = 1.0;
 
 	int m;
 	for (m=0; m<12; m++) {
@@ -989,7 +988,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& height
 		& crownarea
 		& deltafpc
-		& wscal_mean
 		& boleht
 		& lai
 		& lai_layer
@@ -1968,6 +1966,10 @@ void Individual::kill(bool harvest /* = false */) {
 	// Add to biomass depositories for long-lived products
 	ppft.harvested_products_slow += charvested_products_slow;
 	ppft.harvested_products_slow_nmass += nharvested_products_slow;
+}
+
+double Individual::wscal_mean() const {
+	return patchpft().wscal_mean;
 }
 
 /// Should be used together with check_patch() e.g. in framework()

@@ -114,6 +114,7 @@ void NDepData::getndep(const char* file_ndep,
 
 	if (std::string(file_ndep) == "" || timeseries == FIXED) {
 		set_to_pre_industrial();
+		this->timeseries = FIXED;
 	}
 	else {
 		// read in historic (and possibly scenario)
@@ -144,7 +145,7 @@ void NDepData::getndep(const char* file_ndep,
 		ark.close();
 		
 		// scenario?
-		if (timeseries != HISTORIC) {
+		if (timeseries != HISTORIC && timeseries != FIXED) {
 
 			double scen_NHxDryDep[NYEAR_SCENNDEP][12];
 			double scen_NHxWetDep[NYEAR_SCENNDEP][12];

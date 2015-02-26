@@ -1367,6 +1367,7 @@ void plib_callback(int callback) {
 				if (!itemparsed("phengdd5ramp")) badins("phengdd5ramp");
 			if (ppft->phenology==RAINGREEN || ppft->phenology==ANY)
 				if (!itemparsed("wscal_min")) badins("wscal_min");
+			if (!itemparsed("leafphysiognomy")) badins("leafphysiognomy");
 			if (!itemparsed("pathway")) badins("pathway");
 			if (!itemparsed("pstemp_min")) badins("pstemp_min");
 			if (!itemparsed("pstemp_low")) badins("pstemp_low");

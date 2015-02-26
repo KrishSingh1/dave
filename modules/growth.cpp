@@ -62,7 +62,7 @@ void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
 	// PFTs) and water stress coefficient (raingreen PFTs)
 
 	// INPUT PARAMETER
-	// wscal = water stress coefficient (0-1; 1=maximum stress)
+	// wscal = water stress coefficient (0-1; 1=minimum stress)
 	// aphen = sum of daily fractional leaf cover (equivalent number of days with
 	//         full leaf cover) so far this growing season
 
@@ -1420,7 +1420,7 @@ void growth(Stand& stand, Patch& patch) {
 
 		// Set leaf:root mass ratio based on water stress parameter 
 		// or nitrogen stress scalar 
-		indiv.ltor = min(indiv.wscal_mean, nscal) * indiv.pft.ltor_max;
+		indiv.ltor = min(indiv.wscal_mean(), nscal) * indiv.pft.ltor_max;
 
 		// Move leftover compartment nitrogen storage to longterm storage
 		if(!indiv.has_daily_turnover())	{

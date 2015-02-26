@@ -449,7 +449,12 @@ void fpar(Patch& patch) {
 
 		// Save grass canopy FPAR and update mean growing season grass canopy PAR
 		// Growing season defined here as days when mean vegetation leaf-on fraction
-		// exceeds 50%
+		// exceeds 50% and we're in the light half of the year (daylength >= 11).
+		//
+		// The daylength condition was added because sites with evergreens can have
+		// a mean vegetation leaf-on fraction over 50% even during polar night.
+		// 11 hours was chosen because some sites never reach exactly 12 hours, the
+		// exact limit shouldn't matter much.
 
 		patch.fpar_grass=fpar_grass;
 		par_grass=fpar_grass*climate.par;
@@ -459,7 +464,7 @@ void fpar(Patch& patch) {
 			patch.nday_growingseason=0;
 		}
 
-		if (phen_veg>PHEN_GROWINGSEASON) {
+		if (phen_veg>PHEN_GROWINGSEASON && patch.get_climate().daylength >= 11.0) {
 			patch.par_grass_mean+=par_grass;
 			patch.nday_growingseason++;
 		}
@@ -1557,24 +1562,8 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 					ppft.cropphen->growingdays_y++;
 					ppft.wscal_mean = ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / ppft.cropphen->growingdays_y;
-					vegetation.firstobj();
-					while(vegetation.isobj) {
-						Individual& indiv = vegetation.getobj();
-						if(indiv.pft.id == ppft.pft.id)
-							indiv.wscal_mean = ppft.wscal_mean;
-						vegetation.nextobj();
-					}
 				}
 			}
-		}
-	}
-
-	if (date.islastday && date.islastmonth && day.isend) {
-		vegetation.firstobj();
-		while (vegetation.isobj) {
-			Individual& indiv = vegetation.getobj();
-			indiv.wscal_mean = patch.pft[indiv.pft.id].wscal_mean;
-			vegetation.nextobj();
 		}
 	}
 }
@@ -1909,7 +1898,8 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		assim = phot.net_assimilation();
 
 		if (ifbvoc) {
-			bvoc(temp, hours, rad, climate, patch, indiv, pft, phot, phot.adtmm, day);
+			PhotosynthesisResult phot_nostress = date.diurnal() ? indiv.phots[day.period] : indiv.photosynthesis;
+			bvoc(temp, hours, rad, climate, patch, indiv, pft, phot_nostress, phot.adtmm, day);
 		}
 		// Calculate autotrophic respiration
 		double cmass_root;

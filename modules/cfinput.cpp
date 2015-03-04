@@ -322,13 +322,14 @@ bool CFInput::create_gridlist_from_cflist(xtring& file_gridlist) {
 				cf_temp->get_coords_for(rlon, rlat, ci.lon, ci.lat);			
 			}
 		}
+		ci.lon -= 0.25;
+		ci.lat -= 0.25;
 		ci.descrip = descrip.c_str();
 		input.ngridcell++;
 		c.descrip = trim(descrip);
 		gridlistCF.push_back(c);
-
-		ifs.close();
 	}
+	ifs.close();
 	current_gridcell = gridlistCF.begin();
 
 	return true;
@@ -393,13 +394,6 @@ void CFInput::init() {
 
 		create_gridlist_from_cflist(file_gridlist);
 	}
-/*	else {
-
-		input.read_gridlist();
-		if(!create_cf_gridlist())
-			fail("Unable to use NetCDF climate with specified gridlist,\n");
-	}
-*/
 }
 
 bool CFInput::getgridcell(Gridcell& gridcell) {
@@ -419,14 +413,15 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 		// across function calls.
 		first_call = false;
 	}
-	else ++current_gridcell;
+	else if(param["file_gridlist_rc"].str != "") ++current_gridcell;
 
-	if(current_gridcell == gridlistCF.end() ||
+	if((current_gridcell == gridlistCF.end() && param["file_gridlist_rc"].str != "") ||
 	       !load_data_from_files(lon, lat, cru_lon, cru_lat, soilcode)) {
 		return false;
 	}
-	if(lon != gridcell.get_lon() || lat != gridcell.get_lat())	// 
-		fail("");
+
+	if(lon - 0.25 != gridlist.getobj().lon || lat - 0.25 != gridlist.getobj().lat)
+		fail("Gridlists are not coordinated !\n");
 
 	// Load spinup data for all variables
 
@@ -475,9 +470,21 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
                                    double& cru_lon, double& cru_lat,
                                    int& soilcode) {
 
-	int rlon = current_gridcell->rlon;
-	int rlat = current_gridcell->rlat;
-	int landid = current_gridcell->landid;
+	int rlon;
+	int rlat;
+	int landid;
+
+	if(param["file_gridlist_rc"].str != "") {
+		rlon = current_gridcell->rlon;
+		rlat = current_gridcell->rlat;
+		landid = current_gridcell->landid;
+	}
+	else {
+		size_t x, y;
+		cf_temp->get_index_for_coords(input.gridlist.getobj().lon + 0.25, input.gridlist.getobj().lat + 0.25, x, y);
+		rlon = x;
+		rlat = y;
+	}
 
 	// Try to load the data from the NetCDF files
 
@@ -512,7 +519,7 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 	else {
 		cf_temp->get_coords_for(rlon, rlat, lon, lat);
 	}
-#ifdef NDEP_INPUT_IN_CLIMATE_MODULE
+#ifdef SOIL_INPUT_IN_CLIMATE_MODULE
 	// Find nearest CRU grid cell in order to get the soilcode
 
 	cru_lon = lon;
@@ -772,7 +779,6 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 	GuessNC::CF::DateTime last_date = last_day_to_simulate(cf_temp);
 
 	if (later_day(date, last_date)) {
-//		++current_gridcell;
 		return false;
 	}
 

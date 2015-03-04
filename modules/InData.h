@@ -21,17 +21,19 @@ using std::max;
 #define MAXRECORDS 500
 #define MAXLINESPARSE 30000
 #define NOTFOUND -999
+#define MAPFILE	// Mapping of input file data when LUTOMEMORY not defined
 
 enum {EMPTY, GLOBAL_STATIC, GLOBAL_YEARLY, LOCAL_STATIC, LOCAL_YEARLY};
-/*
-struct Coord 
+
+struct CoordPos 
 {
 	// Type for storing grid cell longitude and latitude
-	int id;
+//	int id;
 	double lon;
 	double lat;
+	long int pos;
 };
-*/
+
 #ifndef GUESS_VERSION
 
 #define dprintf printf
@@ -111,6 +113,7 @@ class TimeDataD	{								//Represents a set of double data over time (years).
 	bool isfirstgrid;
 	bool loaded;
 	TimeDataDmem *memory_copy;
+	CoordPos *filemap;
 	double input_precision;
 
 	int ParseFormat();							//Called from Open(); Returns 0 if wrong format, sets nRecords, ifheader and header_arr[]
@@ -118,6 +121,7 @@ class TimeDataD	{								//Represents a set of double data over time (years).
 	int ParseNYearsGlobal();					//Called from ParseNYears()
 	int ParseNYearsLocal();						//Called from ParseNYears()
 	int ParseNYearsSpatial();					//Called from OpenSpatial()
+	double ParsePrecision();					//Called from Open()
 	int Allocate();								//Called from Open() or OpenSpatial()
 	int FindRecord(Coord c) const;				//Quick version
 	int FindRecord2(Coord c) const;				//Slower version, can handle blank lines
@@ -125,6 +129,7 @@ class TimeDataD	{								//Represents a set of double data over time (years).
 	int ParseNCellsSpatial();
 	int GetColumn(const char* name) const;		// Returns column number for header name.
 	int CalenderYearToPosition(int calender_year) const;	// Returns valid year position in data array from calender year input.
+	void CreateFileMap();
 
 public:
 	int nRecords;								//Set in ParseFormat()
@@ -143,7 +148,8 @@ public:
 	int OutputConvertedSpatial(char*);
 	int Load();									//Loads global data
 	int Load(Coord c);							//Loads local data for a certain coordinate. Returns 0 if coordinate not found.
-	int LoadNext();								//For stepping through a data file, loading each coordinate data consecutively. Returns 0 if error.
+	int LoadFromMap(Coord c);
+	int LoadNext(long int *pos = NULL);								//For stepping through a data file, loading each coordinate data consecutively. Returns 0 if error.
 	void Output(char*);	
 	double Get(int calender_year, int column) const;		// Returns a single value
 	double Get(int calender_year, const char* name) const;	// Returns a single value for column with header string name. Returns -999 if name not found.
@@ -156,6 +162,7 @@ public:
 	char* GetHeader(int record) const;
 	Coord& GetCoord() {return currentStand;} //added 100106, added to GUESS version 120123	; updated to compile on Linux
 	void Rewind() {rewind(ifp);}
+	void SetPosition(long int pos) {fseek(ifp, pos, 0);}
 	int GetNCells();
 	int GetFirstyear();
 	bool isloaded();

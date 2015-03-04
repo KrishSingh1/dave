@@ -63,7 +63,7 @@ void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist) { //Requires gutil
 			{
 				for(int j=0;j<nRecords;j++)
 				{
-					if(data[i*nRecords+j]>0.0)
+					if(Get(firstyear + i, j) > 0.0)
 						checkdata[j]=1;
 				}
 			}
@@ -306,6 +306,7 @@ int TimeDataD::Open(char* name)
 			printf("Could not allocate memory for data from file %s!\n", name);
 			return 0;
 		}
+		input_precision = ParsePrecision();
 	}
 	else
 	{
@@ -316,11 +317,32 @@ int TimeDataD::Open(char* name)
 	return 1;
 }
 
+void TimeDataD::CreateFileMap() {
+
+	long int pos;
+	int i = 0;
+	nCells = GetNCells();
+
+	filemap = new CoordPos[nCells];
+
+//	dprintf("Mapping data in input file %s\n", fileName);
+
+	while(LoadNext(&pos) && i < nCells) {
+		Coord c = GetCoord();
+		filemap[i].lon = c.lon;
+		filemap[i].lat = c.lat;
+		filemap[i].pos = pos;
+		i++;
+	}
+}
+
 int TimeDataD::Open(char* name, ListArray_id<Coord>& gridlist){
 
 	if(Open(name)) {
 #ifdef LUTOMEMORY
 		CopyToMemory(gridlist.nobj, gridlist);
+#else if MAPFILE
+		CreateFileMap();
 #endif
 		return 1;
 	}
@@ -646,6 +668,35 @@ int TimeDataD::ParseNYears()
 	}
 
 	return n_yearsX;
+}
+
+double TimeDataD::ParsePrecision() {
+
+	double precision = 100;
+	double dif_lon;
+	double dif_lat;
+
+	Coord cvect[100];
+
+	for (int i=0; i<100; i++) {
+		LoadNext();
+		Coord c = GetCoord();
+		cvect[i].lon = c.lon;
+		cvect[i].lat = c.lat;
+	}
+	for (int i=0; i<100; i++) {
+		for (int j=0; j<100; j++) {
+
+			dif_lon = fabs(cvect[i].lon - cvect[j].lon);
+			dif_lat = fabs(cvect[i].lat - cvect[j].lat);
+			if(dif_lon)
+				precision = min(precision, dif_lon);
+			if(dif_lat)
+				precision = min(precision, dif_lat);
+		}
+	}
+	Rewind();
+	return precision;
 }
 
 int TimeDataD::GetNCells()
@@ -1163,10 +1214,38 @@ int TimeDataD::Load()	// for GLOBAL_YEARLY and GLOBAL_STATIC data
 	}
 }
 
+int TimeDataD::LoadFromMap(Coord c) {
+
+	double searchradius = input_precision / 2.0;
+	double min_dist = 1000;
+	long int found_pos = -1;
+
+	for(int i=0; i<nCells; i++) {
+
+		double dif_lon = fabs(filemap[i].lon - c.lon);
+		double dif_lat = fabs(filemap[i].lat - c.lat);
+		if(dif_lon <= searchradius && dif_lat <= searchradius) {
+			if(min_dist > (dif_lon + dif_lat)) {
+				min_dist = dif_lon + dif_lat;
+				found_pos = filemap[i].pos;
+			}
+		}
+	}
+	if(found_pos > -1) {
+		SetPosition(found_pos);
+		LoadNext();
+		return 1;
+	}
+	else
+		return 0;
+}
+
 int TimeDataD::Load(Coord c)
 {
-	if(memory_copy && !ischeckingdata)
+	if(memory_copy)
 		return memory_copy->Load(c);
+	else if(filemap)
+		return LoadFromMap(c);
 
 	char line[MAXLINE], *p=NULL;
 	int i=0, j=0, k=0, count1=0, nyears=0, yearX=0, yearX_previous;
@@ -1377,7 +1456,8 @@ bool TimeDataD::isloaded() {
 		return loaded;
 }
 
-int TimeDataD::LoadNext()	//Only implemented for LOCAL_YEARLY (100106) and LOCAL_STATIC (121016)	; Needs to be modified to handle missing lines in data files with header ! (see Load)
+// To be called after ParseFormat(), ParseNYears() and Allocate()
+int TimeDataD::LoadNext(long int *pos)	//Only implemented for LOCAL_YEARLY (100106) and LOCAL_STATIC (121016)	; Needs to be modified to handle missing lines in data files with header ! (see Load)
 {
 
 	char line[MAXLINE], *p=NULL;
@@ -1398,8 +1478,12 @@ int TimeDataD::LoadNext()	//Only implemented for LOCAL_YEARLY (100106) and LOCAL
 			if(ifheader)
 			{
 				fpos=ftell(ifp);
-				if(fpos==0)
+				if(fpos==0) {
 					fgets(line,sizeof(line),ifp);	//ignore header line
+					fpos=ftell(ifp);
+				}
+				if(pos)
+					*pos = fpos;
 			}
 
 			if(fgets(line,sizeof(line),ifp))	//OBS! behövs, annars läser scanf in gammal line igen efter sista raden
@@ -1437,7 +1521,7 @@ int TimeDataD::LoadNext()	//Only implemented for LOCAL_YEARLY (100106) and LOCAL
 					fgets(line, sizeof(line), ifp);
 
 				if(line)
-				{
+				{				
 					memset(d, 0, nRecords*sizeof(double));
 
 					if(ifheader)
@@ -1506,8 +1590,12 @@ int TimeDataD::LoadNext()	//Only implemented for LOCAL_YEARLY (100106) and LOCAL
 			if(ifheader)
 			{
 				fpos=ftell(ifp);
-				if(fpos==0)
+				if(fpos==0) {
 					fgets(line,sizeof(line),ifp);	//ignore header line
+					fpos=ftell(ifp);
+				}
+				if(pos)
+					*pos = fpos;
 			}
 
 			if(fgets(line,sizeof(line),ifp))	//OBS! behövs, annars läser scanf in gammal line igen efter sista raden
@@ -1709,6 +1797,7 @@ if(!SUPPRESSLARGEOUTPUT)
 			if(error)
 				break;
 			else
+if(!SUPPRESSLARGEOUTPUT)
 				dprintf("Rewinding and searching from the beginning of the file...\n");
 		}
 
@@ -1813,6 +1902,7 @@ if(!SUPPRESSLARGEOUTPUT)
 			lap++;
 			rewind(ifp);
 			if(lap<2)
+if(!SUPPRESSLARGEOUTPUT)
 				dprintf("Rewinding and searching from the beginning of the file...\n");
 		}
 
@@ -2083,6 +2173,7 @@ TimeDataD::TimeDataD(int formatX)
 	format=formatX;
 	fileopened=false;
 	memory_copy=NULL;
+	filemap=NULL;
 	input_precision = 0.5; // Default 0,5 deg.
 }
 
@@ -2124,6 +2215,8 @@ void TimeDataD::Close()
 		memory_copy->Close();
 		delete memory_copy;
 	}
+	if(filemap)
+		delete[] filemap;
 }
 
 void TimeDataD::CopyToMemory(int ncells, ListArray_id<Coord>& lonlatlist) { //Requires gutil.h
@@ -2189,8 +2282,9 @@ double TimeDataDmem::Get(int calender_year, const char* name) const		//Returns a
 int TimeDataDmem::Load(Coord c)
 {
 	bool error=true;
+	double searchradius = input_precision / 2.0;
 
-	if(currentCell < (nCells - 1) && fabs(gridlist[currentCell+1].lon - c.lon) < 0.001 && fabs(gridlist[currentCell+1].lat - c.lat) < 0.001)	//In case gridlist cell order is same as in land use files.
+	if(currentCell < (nCells - 1) && fabs(gridlist[currentCell+1].lon - c.lon) <= searchradius && fabs(gridlist[currentCell+1].lat - c.lat) <= searchradius)	//In case gridlist cell order is same as in land use files.
 	{
 		currentCell++;
 		error=false;
@@ -2199,8 +2293,7 @@ int TimeDataDmem::Load(Coord c)
 	{
 		for(int i=0;i<nCells;i++)
 		{
-//			if(fabs(gridlist[i].lon - c.lon) < 0.001 && fabs(gridlist[i].lat - c.lat) < 0.001) //searchradius here !
-			if(fabs(gridlist[i].lon - c.lon) <= input_precision / 2.0 && fabs(gridlist[i].lat - c.lat) <= input_precision / 2.0)
+			if(fabs(gridlist[i].lon - c.lon) <= searchradius && fabs(gridlist[i].lat - c.lat) <= searchradius)
 			{
 				currentCell=i;
 				error=false;
@@ -2277,29 +2370,64 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 
 	firstyear = Data.GetFirstyear();
 	input_precision = Data.GetPrecision();
+	double searchradius = input_precision / 2.0;
 
 	double *celldata;
-	celldata=new double[Data.nRecords*Data.nYears];
+	celldata = new double[Data.nRecords * Data.nYears];
 
-	while(Data.LoadNext()) {
-//		InData::Coord c;
+	gridlistX.firstobj();
+
+	while(Data.LoadNext() && cell_no < nCells) {
 		Coord c;
 		c=Data.GetCoord();
 
-		gridlistX.firstobj();
-		while(gridlistX.isobj) {
-			Coord cc=gridlistX.getobj();
-//			if(c.lon==cc.lon && c.lat==cc.lat) {	//searchradius here ! should be OK with 0.25
-			if(fabs(cc.lon - c.lon) <= input_precision / 2.0 && fabs(cc.lat - c.lat) <= input_precision / 2.0) {
-				SetCoord(cell_no, c);
-				Data.Get(celldata);
-				SetData(cell_no, celldata);
-				cell_no++;
-				break;
+		double dif_lon;
+		double dif_lat;
+		unsigned int no = 0;
+		while(no < gridlistX.nobj) {
+
+			Coord cc = gridlistX.getobj();
+			// data coord close to gridlist coord ?
+			dif_lon = fabs(c.lon - cc.lon);
+			dif_lat = fabs(c.lat - cc.lat);
+
+			if(dif_lon <= searchradius && dif_lat <= searchradius) {
+				bool done = false;
+				double dif_lon_saved;
+				double dif_lat_saved;
+
+				for(int i=cell_no-1; i>=0;i--) {
+					// has data close to the gridlist coord already been saved ?
+					dif_lon_saved = fabs(gridlist[i].lon - cc.lon);
+					dif_lat_saved = fabs(gridlist[i].lat - cc.lat);
+					if(dif_lon_saved <= searchradius && dif_lat_saved <= searchradius) {	// 2
+						// is the new data coord closer to the gridlist coord than the already saved coord is ?
+						if((dif_lon_saved + dif_lat_saved) > (dif_lon + dif_lat)) {	
+							SetCoord(i, c);
+							Data.Get(celldata);
+							SetData(i, celldata);
+						}
+						done = true;
+						break;	// from saved gridlist loop
+					}
+				}
+				if(!done) {
+					SetCoord(cell_no, c);		// 2
+					Data.Get(celldata);
+					SetData(cell_no, celldata);
+					cell_no++;
+//					dprintf("lc coord %.2f, %.2f used\n", c.lon, c.lat);
+					break;	// from gridlist loop
+				}
 			}
 			gridlistX.nextobj();
+			no++;
+			if(!gridlistX.isobj)
+				gridlistX.firstobj();
 		}
 	}
+
+//	dprintf("Found %d cells with data out of %d\n", cell_no, nCells);
 	delete[] celldata;
 
 	Data.register_memory_copy(this);

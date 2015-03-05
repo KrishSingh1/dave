@@ -114,14 +114,14 @@ class TimeDataD	{								//Represents a set of double data over time (years).
 	bool loaded;
 	TimeDataDmem *memory_copy;
 	CoordPos *filemap;
-	double input_precision;
+	double spacial_resolution;
 
 	int ParseFormat();							//Called from Open(); Returns 0 if wrong format, sets nRecords, ifheader and header_arr[]
 	int ParseNYears();							//Called from Open()
 	int ParseNYearsGlobal();					//Called from ParseNYears()
 	int ParseNYearsLocal();						//Called from ParseNYears()
 	int ParseNYearsSpatial();					//Called from OpenSpatial()
-	double ParsePrecision();					//Called from Open()
+	double ParseSpacialResolution();					//Called from Open()
 	int Allocate();								//Called from Open() or OpenSpatial()
 	int FindRecord(Coord c) const;				//Quick version
 	int FindRecord2(Coord c) const;				//Slower version, can handle blank lines
@@ -176,8 +176,8 @@ public:
 #if defined GUESS_VERSION
 	void CopyToMemory(int ncells, ListArray_id<Coord>& lonlatlist);
 #endif
-	void SetPrecision(double precision) {input_precision = precision;}
-	double GetPrecision() {return input_precision;}
+	void SetSpacialResolution(double resolution) {spacial_resolution = resolution;}
+	double GetSpacialResolution() {return spacial_resolution;}
 };
 
 //Class for loading data from memory instead of file.
@@ -194,7 +194,7 @@ class TimeDataDmem {
 	int firstyear;
 	bool loaded;
 	int CalenderYearToPosition(int calender_year) const;	// Returns valid year position in data array from calender year input.
-	double input_precision;
+	double spacial_resolution;
 public:
 	int nYears;
 	double Get(int calender_year, int column) const;		// Returns a single value.
@@ -209,7 +209,7 @@ public:
 #if defined GUESS_VERSION
 	void CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridlistX);
 #endif
-	void SetPrecision(double precision) {input_precision = precision;}
+	void SetSpacialResolution(double resolution) {spacial_resolution = resolution;}
 	TimeDataDmem();
 	~TimeDataDmem();
 };

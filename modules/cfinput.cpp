@@ -284,6 +284,11 @@ bool CFInput::create_cf_gridlist() {
 	return false;
 }
 
+double CFInput::offset_cru_to_cf_coord() {
+
+	return spacial_resolution / 2.0;
+}
+
 bool CFInput::create_gridlist_from_cflist(xtring& file_gridlist) {
 
 	std::ifstream ifs(file_gridlist, std::ifstream::in);
@@ -322,8 +327,8 @@ bool CFInput::create_gridlist_from_cflist(xtring& file_gridlist) {
 				cf_temp->get_coords_for(rlon, rlat, ci.lon, ci.lat);			
 			}
 		}
-		ci.lon -= 0.25;
-		ci.lat -= 0.25;
+		ci.lon -= offset_cru_to_cf_coord();
+		ci.lat -= offset_cru_to_cf_coord();
 		ci.descrip = descrip.c_str();
 		input.ngridcell++;
 		c.descrip = trim(descrip);
@@ -333,6 +338,20 @@ bool CFInput::create_gridlist_from_cflist(xtring& file_gridlist) {
 	current_gridcell = gridlistCF.begin();
 
 	return true;
+}
+
+double CFInput::parse_spacial_resolution() {
+
+	double dif_lon, dif_lat, lon, lat, lon2, lat2;
+
+	cf_temp->get_coords_for(0, 0, lon, lat);
+	cf_temp->get_coords_for(1, 1, lon2, lat2);
+	dif_lon = fabs(lon2 - lon);
+	dif_lat = fabs(lat2 - lat);
+	if(dif_lon != dif_lat)
+		fail("Spatial resolution not symmetrical\n");
+
+	return dif_lon;
 }
 
 void CFInput::init() {
@@ -392,6 +411,7 @@ void CFInput::init() {
 
 	if(file_gridlist != "") {
 
+		spacial_resolution = parse_spacial_resolution();
 		create_gridlist_from_cflist(file_gridlist);
 	}
 }
@@ -420,7 +440,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 		return false;
 	}
 
-	if(lon - 0.25 != gridlist.getobj().lon || lat - 0.25 != gridlist.getobj().lat)
+	if(lon - offset_cru_to_cf_coord() != gridlist.getobj().lon || lat - offset_cru_to_cf_coord() != gridlist.getobj().lat)
 		fail("Gridlists are not coordinated !\n");
 
 	// Load spinup data for all variables
@@ -481,7 +501,7 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 	}
 	else {
 		size_t x, y;
-		cf_temp->get_index_for_coords(input.gridlist.getobj().lon + 0.25, input.gridlist.getobj().lat + 0.25, x, y);
+		cf_temp->get_index_for_coords(input.gridlist.getobj().lon + offset_cru_to_cf_coord(), input.gridlist.getobj().lat + offset_cru_to_cf_coord(), x, y);
 		rlon = x;
 		rlat = y;
 	}

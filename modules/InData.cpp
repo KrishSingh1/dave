@@ -306,7 +306,7 @@ int TimeDataD::Open(char* name)
 			printf("Could not allocate memory for data from file %s!\n", name);
 			return 0;
 		}
-		input_precision = ParsePrecision();
+		spacial_resolution = ParseSpacialResolution();
 	}
 	else
 	{
@@ -670,7 +670,7 @@ int TimeDataD::ParseNYears()
 	return n_yearsX;
 }
 
-double TimeDataD::ParsePrecision() {
+double TimeDataD::ParseSpacialResolution() {
 
 	double precision = 100;
 	double dif_lon;
@@ -678,7 +678,7 @@ double TimeDataD::ParsePrecision() {
 
 	Coord cvect[100];
 
-	for (int i=0; i<100; i++) {
+	for (int i=0; i<100 && i<GetNCells(); i++) {
 		LoadNext();
 		Coord c = GetCoord();
 		cvect[i].lon = c.lon;
@@ -689,9 +689,9 @@ double TimeDataD::ParsePrecision() {
 
 			dif_lon = fabs(cvect[i].lon - cvect[j].lon);
 			dif_lat = fabs(cvect[i].lat - cvect[j].lat);
-			if(dif_lon)
+			if(dif_lon > 1.0e-12)
 				precision = min(precision, dif_lon);
-			if(dif_lat)
+			if(dif_lat > 1.0e-12)
 				precision = min(precision, dif_lat);
 		}
 	}
@@ -1216,7 +1216,7 @@ int TimeDataD::Load()	// for GLOBAL_YEARLY and GLOBAL_STATIC data
 
 int TimeDataD::LoadFromMap(Coord c) {
 
-	double searchradius = input_precision / 2.0;
+	double searchradius = spacial_resolution / 2.0;
 	double min_dist = 1000;
 	long int found_pos = -1;
 
@@ -1289,7 +1289,7 @@ int TimeDataD::Load(Coord c)
 							p=strtok(NULL, " \t");	//year
 
 //							if(fabs(lonX - c.lon) > 0.001 || fabs(latX - c.lat) > 0.001) 	//110607	//searchradius here !
-							if(fabs(lonX - c.lon) > input_precision / 2.0 || fabs(latX - c.lat) > input_precision / 2.0) 
+							if(fabs(lonX - c.lon) > spacial_resolution / 2.0 || fabs(latX - c.lat) > spacial_resolution / 2.0) 
 							{
 								printf("FORMAT ERROR in input file %s for stand at Coordinate %.2f,%.2f: Load(). Wrong coordinates in data file !\n", fileName,c.lon,c.lat);
 								error=1;
@@ -1756,7 +1756,7 @@ int TimeDataD::FindRecord(Coord c) const
 //						if(count==2 || count>2 && d3==firstyear && (format==LOCAL_STATIC || ifheader))	//added LOCAL_STATIC compatibility 091207 (not used, use SoilData instead for soilcode)
 						{
 //							if(c.lon==d1 && c.lat==d2)	//searchradius here !
-							if(fabs(d1 - c.lon) <= input_precision / 2.0 && fabs(d2 - c.lat) <= input_precision / 2.0)
+							if(fabs(d1 - c.lon) <= spacial_resolution / 2.0 && fabs(d2 - c.lat) <= spacial_resolution / 2.0)
 							{
 								if(!ischeckingdata)
 if(!SUPPRESSLARGEOUTPUT)
@@ -1866,7 +1866,7 @@ int TimeDataD::FindRecord2(Coord c) const	//No need for FindRecord2()
 						if(count==2 || count>2 && d3==firstyear && (format==LOCAL_STATIC || ifheader))	//added LOCAL_STATIC compatibility 091207 (not used, use SoilData instead for soilcode)
 						{
 //							if(c.lon==d1 && c.lat==d2) //searchradius here !
-							if(fabs(d1 - c.lon) <= input_precision / 2.0 && fabs(d2 - c.lat) <= input_precision / 2.0)
+							if(fabs(d1 - c.lon) <= spacial_resolution / 2.0 && fabs(d2 - c.lat) <= spacial_resolution / 2.0)
 							{
 								if(!ischeckingdata)
 if(!SUPPRESSLARGEOUTPUT)
@@ -2174,7 +2174,7 @@ TimeDataD::TimeDataD(int formatX)
 	fileopened=false;
 	memory_copy=NULL;
 	filemap=NULL;
-	input_precision = 0.5; // Default 0,5 deg.
+	spacial_resolution = 0.5; // Default 0,5 deg.
 }
 
 //Deconstructor
@@ -2282,7 +2282,7 @@ double TimeDataDmem::Get(int calender_year, const char* name) const		//Returns a
 int TimeDataDmem::Load(Coord c)
 {
 	bool error=true;
-	double searchradius = input_precision / 2.0;
+	double searchradius = spacial_resolution / 2.0;
 
 	if(currentCell < (nCells - 1) && fabs(gridlist[currentCell+1].lon - c.lon) <= searchradius && fabs(gridlist[currentCell+1].lat - c.lat) <= searchradius)	//In case gridlist cell order is same as in land use files.
 	{
@@ -2339,7 +2339,6 @@ void TimeDataDmem::Open(int nCellsX, int nColumnsX, int nYearsX)
 
 void TimeDataDmem::Close()
 {
-	nCells = 0;
 	nColumns = 0;
 	nYears = 0;
 
@@ -2359,6 +2358,7 @@ void TimeDataDmem::Close()
 		data=NULL;
 //		dprintf("Freeing TimeDataDmem memory in Close()\n");
 	}
+	nCells = 0;
 }
 
 void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridlistX) { //Requires gutil.h
@@ -2369,8 +2369,8 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 		ifheader = true;
 
 	firstyear = Data.GetFirstyear();
-	input_precision = Data.GetPrecision();
-	double searchradius = input_precision / 2.0;
+	spacial_resolution = Data.GetSpacialResolution();
+	double searchradius = spacial_resolution / 2.0;
 
 	double *celldata;
 	celldata = new double[Data.nRecords * Data.nYears];

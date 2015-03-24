@@ -66,7 +66,7 @@ public:
 	 *  return true;
 	 *
 	 *  Currently the following member variables of the climate member of gridcell must be
-	 *  initialised: co2, temp, prec, insol. If the model is to be driven by quasi-daily
+	 *  initialised: temp, prec, insol. If the model is to be driven by quasi-daily
 	 *  values of the climate variables derived from monthly means, this day's values
 	 *  will presumably be extracted from arrays containing the interpolated daily
 	 *  values (see function getgridcell):

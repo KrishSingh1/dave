@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \file input.h
+/// \brief Master class for all environmental input
+/// \author Mats Lindeskog
+/// $Date$
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef INPUT_H
 #define INPUT_H
@@ -10,6 +16,8 @@
 #include "InData.h"
 #endif
 #include "inputdefinitions.h"
+#include "landcoverinput.h"
+#include "managementinput.h"
 #include "lamarquendep.h"
 #include "globalco2file.h"
 #include "inputmodule.h"
@@ -20,179 +28,125 @@
 
 using std::auto_ptr;
 
+// Forward declaration of Input
 class Input;
 
-class LandcoverInputModule {
-
-public:
-
-	LandcoverInputModule(const char* input_module_name, Input& in);
-
-	void init();
-
-	bool getgridcell(Gridcell& gridcell);
-	void getlandcover(Gridcell& gridcell);
-	bool get_lc_transfer(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES]);
-	int getfirsthistyear();
-	int getnyear_hist();
-
-private:
-
-	/// Reference to input container object
-	Input& input;
-
-	/// Reference to the list of Coord objects containing coordinates of the grid cells to simulate
-	ListArray_id<Coord>& gridlist;
-
-#if defined DYNAMIC_LANDCOVER_INPUT
-	// Objects handling landcover fraction data input
-	InData::TimeDataD LUdata;
-	InData::TimeDataD Peatdata;
-	InData::TimeDataD grossLUC;
-	InData::TimeDataD CFTdata;
-#endif
-
-	xtring file_lu, file_grossLUC, file_lucrop, file_peat;
-
-	/// Landcover fractions read from ins-file (% area).
-	/** One entry for each land cover type */
-	std::vector<int> lc_fixed_frac;
-
-	/// Whether enforced static landcover fractions are equal-sized stands of all included landcovers
-	bool equal_landcover_area;
-
-	/// Whether pfts not in crop fraction input file are removed from pftlist (0,1)
-	bool minimizecftlist;
-
-	/// Number of years to increase cropland fraction linearly from 0 to first year's value
-	int nyears_cropland_ramp;
-
-	/// Loads landcover and crop fractions plus sowing and harvest dates from input files
-	bool loadlandcover(Gridcell& gridcell, Coord c);
-};
-
-
-
-class ManagementInputModule {
-
-public:
-
-	ManagementInputModule(Input& in);
-
-	void init();
-
-	bool getgridcell(Gridcell& gridcell);
-	void getmanagement(Gridcell& gridcell);
-	void getsowingdates(Gridcell& gridcell);
-	void getharvestdates(Gridcell& gridcell);
-	void getNfert(Gridcell& gridcell);
-
-private:
-
-	/// Reference to input container object
-	Input& input;
-
-	/// Reference to the list of Coord objects containing coordinates of the grid cells to simulate
-	ListArray_id<Coord>& gridlist;
-
-#if defined DYNAMIC_LANDCOVER_INPUT
-	InData::TimeDataD sdates;
-	InData::TimeDataD hdates;
-	InData::TimeDataD Nfert;
-#endif
-
-	xtring file_sdates, file_hdates, file_Nfert;
-
-	/// Loads fertilisation, sowing and harvest dates from input files
-	bool loadmanagement(Gridcell& gridcell, Coord c);
-};
-
+/// Class for nitrogen deposition input
 class NdepInput {
 
 public:
-
+	/// Constructor
 	NdepInput(Input& in);
+	/// Obtains nitrogen deposition data for current grid cell
 	bool getgridcell(Gridcell& gridcell);
+	/// Returns nitrogen deposition today
 	double getndep(Gridcell& gridcell);
 
 private:
 
 	/// Reference to input container object
 	Input& input;
-
 	/// Reference to the list of Coord objects containing coordinates of the grid cells to simulate
 	ListArray_id<Coord>& gridlist;
-
 	/// Nitrogen deposition forcing for current gridcell
 	Lamarque::NDepData ndep;
+	/// Static nitrogen deposition value optionally set in instruction file
 	double ndep_fixed;
-
-	/// Daily N deposition for current year
+	/// Daily nitrogen deposition for current year
 	double dndep[365];
 };
 
+/// Class for soil code and auxilliary code structure input
 class SoilInput {
 
 public:
-
+	/// Constructor
 	SoilInput(Input& in);
+	/// Opens soilcode input file
 	void init();
+	/// Obtains soil data for current grid cell
 	bool getgridcell(Gridcell& gridcell);
+	/// Returns soil code for current grid cell
 	int getsoilcode();
 
 private:
 
 	/// Reference to input container object
 	Input& input;
-
 	/// Reference to the list of Coord objects containing coordinates of the grid cells to simulate
 	ListArray_id<Coord>& gridlist;
-
 #if defined DYNAMIC_LANDCOVER_INPUT
+	/// Soil code input object
 	InData::TimeDataD soilcode;
 #endif
-
+	/// Soil code input file name
 	xtring file_soilcode;
 
+	/// Loads soilcode for current grid cell
 	bool loadsoilcode(Gridcell& gridcell, Coord c);
 };
 
-
+/// Class containing all different environmental inputs
 class Input {
 
 public:
 
+	/// Gridlist used by all different input classes
 	ListArray_id<Coord> gridlist;
 	/// The number of grid cells to simulate
 	int ngridcell;
-	int firsthistyear;
-	int lasthistyear;
-	int nyear_hist;
 
+	/// Constructor
 	Input(const char* climate_input_module_name, const char* landcover_input_module_name);
+	/// Deconstructor
 	~Input();
 
+	/// Initiates all input classes
 	void init();
+	/// Obtains coordinates and loads environmental input for tcurrent grid cell
 	bool getgridcell(Gridcell& gridcell);
+	/// Obtains climate data, atmospheric (and nitrogen deposition) for one day
 	bool getclimate(Gridcell& gridcell);
-	void getmanagement(Gridcell& gridcell);
+	/// Obtains land management data for one day
+	void getmanagement(Gridcell& gridcell) {management_input_module->getmanagement(gridcell);}
+	/// Obtains soil data for the next grid cell to simulate
 	bool getsoil(Gridcell& gridcell, const int soilmap_index);
+	/// Obtains atmospheric CO2 for one day
 	double getco2(Gridcell& gridcell);
-	double getndep(Gridcell& gridcell);
-	int getfirsthistyear();
-	InputModule* get_climate_module();
-	LandcoverInputModule* get_landcover_module();
-	ManagementInputModule* get_management_module();
+	/// Obtains nitrogen deposition for one day
+	double getndep(Gridcell& gridcell) {return ndep_input.getndep(gridcell);}
+
+	/// Returns the first historic year of simulation
+	int getfirsthistyear() {return firsthistyear;}
+	/// Returns the first historic year of simulation
+	int getnyear_hist() {return nyear_hist;}
+
+	/// Returns pointer to climate input module
+	InputModule* get_climate_module() {return climate_input_module.get();}
+	/// Returns pointer to land cover input module
+	LandcoverInputModule* get_landcover_module() {return landcover_input_module.get();}
+	/// Returns pointer to land management input module
+	ManagementInputModule* get_management_module() {return management_input_module.get();}
+	/// Reads gridlist from file
 	void read_gridlist();
 
 private:
+	/// First historic year in simulation. May be set in instruction file.
+	int firsthistyear;
+	/// Last historic year in simulation. May be set in instruction file.
+	int lasthistyear;
+	/// Number of historic years in simulation. May be set in instruction file.
+	int nyear_hist;
 
-	// Timers for keeping track of progress through the simulation
+	/// Timer for keeping track of progress through the simulation
 	Timer tprogress,tmute;
 	static const int MUTESEC=20; // minimum number of sec to wait between progress messages
 
+	/// Pointer to climate input module
 	auto_ptr<InputModule> climate_input_module;
+	/// Pointer to land cover input module
 	auto_ptr<LandcoverInputModule> landcover_input_module;
+	/// Pointer to land management input module
 	auto_ptr<ManagementInputModule> management_input_module;
 
 	/// Yearly CO2 data read from file
@@ -202,9 +156,11 @@ private:
 	 * more information.
 	 */
 	GlobalCO2File co2;
+	/// Static CO2 value optionally set in instruction file
 	double co2_fixed;
-
+	/// Nitrogen deposition input
 	NdepInput ndep_input;
+	/// Soil input
 	SoilInput soil_input;
 
 };

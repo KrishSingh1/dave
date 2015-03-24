@@ -1,6 +1,12 @@
-
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \file managementinput.cpp
+/// \brief Input code for land cover management	from text files					
+/// \author Mats Lindeskog
+/// $Date: $
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "input.h"
+#include "managementinput.h"
 
 ManagementInputModule::ManagementInputModule(Input& in)
 	: input(in), 
@@ -78,9 +84,9 @@ void ManagementInputModule::getsowingdates(Gridcell& gridcell) {
 		return;
 #endif
 
-	int year = date.year - nyear_spinup + input.firsthistyear;
+	int year = date.year - nyear_spinup + input.getfirsthistyear();
 
-	if(date.year < nyear_spinup + input.nyear_hist) {
+	if(date.year < nyear_spinup + input.getnyear_hist()) {
 		for(int i=0; i<npft; i++) {
 			if(pftlist[i].landcover == CROPLAND && pftlist[i].readsowingdate)	{
 #if defined DYNAMIC_LANDCOVER_INPUT
@@ -104,9 +110,9 @@ void ManagementInputModule::getharvestdates(Gridcell& gridcell) {
 		return;
 #endif
 
-	int year = date.year - nyear_spinup + input.firsthistyear;
+	int year = date.year - nyear_spinup + input.getfirsthistyear();
 
-	if(date.year < nyear_spinup + input.nyear_hist) {
+	if(date.year < nyear_spinup + input.getnyear_hist()) {
  		for(int i=0; i<npft; i++)	{
 			if(pftlist[i].landcover == CROPLAND && pftlist[i].readharvestdate) {		
 #if defined DYNAMIC_LANDCOVER_INPUT
@@ -130,9 +136,9 @@ void ManagementInputModule::getNfert(Gridcell& gridcell) {
 		return;
 #endif
 
-	int year = date.year - nyear_spinup + input.firsthistyear;
+	int year = date.year - nyear_spinup + input.getfirsthistyear();
 
-	if(date.year < nyear_spinup + input.nyear_hist) {
+	if(date.year < nyear_spinup + input.getnyear_hist()) {
  		for(int i=0; i<npft; i++)	{
 			if(pftlist[i].landcover == CROPLAND && pftlist[i].readNfert) {		
 #if defined DYNAMIC_LANDCOVER_INPUT

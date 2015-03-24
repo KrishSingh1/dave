@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \file input.cpp
+/// \brief Master class for all environmental input		
+/// \author Mats Lindeskog
+/// $Date: $
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "input.h"
 #include "driver.h"
@@ -6,6 +12,9 @@
 // Switch to keep CO2 level at first historical year
 bool fixedco2_histX = 0;
 
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Input member functions
+////////////////////////////////////////////////////////////////////////////////
 
 Input::Input(const char* climate_input_module_name, const char* landcover_input_module_name) 
 	:
@@ -76,7 +85,6 @@ void Input::read_gridlist() {
 
 void Input::init() {
 
-
 	climate_input_module->init(); // Allow climate module to read gridlist
 
 	if(!ngridcell)
@@ -135,7 +143,6 @@ void Input::init() {
 	tprogress.settimer();
 	tmute.settimer(MUTESEC);
 }
-
 
 bool Input::getgridcell(Gridcell& gridcell) {
 
@@ -245,17 +252,6 @@ bool Input::getclimate(Gridcell& gridcell) {
 	return true;
 }
 
-void Input::getmanagement(Gridcell& gridcell) {
-
-	management_input_module->getmanagement(gridcell);
-}
-
-
-int Input::getfirsthistyear() {
-
-	return firsthistyear;
-}
-
 bool Input::getsoil(Gridcell& gridcell, const int soilmap_index) {
 
 	bool error = soil_input.getgridcell(gridcell);
@@ -281,23 +277,9 @@ double Input::getco2(Gridcell& gridcell) {
 	return climate.co2;
 }
 
-/// Nitrogen deposition today
-double Input::getndep(Gridcell& gridcell) {
-
-	return ndep_input.getndep(gridcell);
-}
-
-InputModule* Input::get_climate_module() {
-	return climate_input_module.get();
-}
-
-LandcoverInputModule* Input::get_landcover_module() {
-	return landcover_input_module.get();
-}
-
-ManagementInputModule* Input::get_management_module() {
-	return management_input_module.get();
-}
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of NdepInput member functions
+////////////////////////////////////////////////////////////////////////////////
 
 NdepInput::NdepInput(Input& in)
 	: input(in), 
@@ -317,7 +299,6 @@ bool NdepInput::getgridcell(Gridcell& gridcell) {
 	return true;	// No info about success from NDepData
 }
 
-/// Nitrogen deposition today
 double NdepInput::getndep(Gridcell& gridcell) {
 
 	Climate& climate = gridcell.climate;
@@ -329,7 +310,7 @@ double NdepInput::getndep(Gridcell& gridcell) {
 
 		if(date.day == 0) {
 
-			int calender_year = date.year - nyear_spinup + input.firsthistyear;
+			int calender_year = date.year - nyear_spinup + input.getnyear_hist();
 
 			// Extract N deposition to use for this year,
 			// monthly means to be distributed into daily values further down
@@ -345,6 +326,10 @@ double NdepInput::getndep(Gridcell& gridcell) {
 
 	return climate.dndep;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of SoilInput member functions
+////////////////////////////////////////////////////////////////////////////////
 
 SoilInput::SoilInput(Input& in)
 	: input(in), 

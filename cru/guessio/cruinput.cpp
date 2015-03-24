@@ -179,7 +179,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 
 	/// See base class for documentation about this function's responsibilities
 
-	int calender_year = date.year - nyear_spinup + input.firsthistyear;
+	int calender_year = date.year - nyear_spinup + input.getfirsthistyear();
 	Climate& climate = gridcell.climate;
 
 	if (date.day == 0) {
@@ -253,7 +253,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 				climate.mprec_year[m] = hist_mprec[data_year][m];
 			}
 		}
-		else if(date.year < nyear_spinup + input.nyear_hist) {
+		else if(date.year < nyear_spinup + input.getnyear_hist()) {
 
 			// Extended period
 

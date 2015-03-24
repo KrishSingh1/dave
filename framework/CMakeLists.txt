@@ -17,6 +17,8 @@ set(headers
   guessstring.h
   input.h
   inputdefinitions.h
+  landcoverinput.h
+  managementinput.h
 )
 
 set(source  

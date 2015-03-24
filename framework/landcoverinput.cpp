@@ -5,8 +5,8 @@
 /// $Date: $
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//#include "landcoverinput.h"
 #include "input.h"
+#include "landcoverinput.h"
 
 // Switches to keep landcover area fractions at first historical year
 bool fixedlu_histX = 0;
@@ -245,7 +245,7 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
 
 	// Calender year of start of simulation (after spinup)
-	int first_historic_year = input.firsthistyear;
+	int first_historic_year = input.getfirsthistyear();
 
 	// Use values for first historic year during spinup period, unless data exist before firsthistyear
 	// Use values for last historic year during the time after that
@@ -411,12 +411,12 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 					if(sum_tot < 0.99 || sum_tot > 1.01) {
 						if(date.year == 0) {
 							dprintf("WARNING ! landcover fraction sum is %4.2f for input year %d\n", sum_tot, year);
-							dprintf("Rescaling landcover fractions ! (sum is beyond 0.99-1.01)\n", date.year-nyear_spinup+input.firsthistyear);
+							dprintf("Rescaling landcover fractions ! (sum is beyond 0.99-1.01)\n", date.year-nyear_spinup+input.getfirsthistyear());
 						}
 					}
 					else				// sum often !=1.0 in input file
 						if(!SUPPRESSLARGEOUTPUT)
-							dprintf("Rescaling landcover fractions year %d ! (sum is within 0.99-1.01)\n", date.year-nyear_spinup+input.firsthistyear);
+							dprintf("Rescaling landcover fractions year %d ! (sum is within 0.99-1.01)\n", date.year-nyear_spinup+input.getfirsthistyear());
 
 					for(i=0; i<NLANDCOVERTYPES; i++) {
 						gridcell.landcoverfrac[i] /= sum_tot;
@@ -492,7 +492,7 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 			}
 
 			if(doramp) {
-				int first_reduction_year = input.firsthistyear - nyear_spinup + (int)(SOLVESOMCENT_SPINEND * (nyear_spinup - freenyears) + freenyears) + 1;
+				int first_reduction_year = input.getfirsthistyear() - nyear_spinup + (int)(SOLVESOMCENT_SPINEND * (nyear_spinup - freenyears) + freenyears) + 1;
 				int max_ramp_years = firstyear - first_reduction_year;
 				if(nyears_cropland_ramp > max_ramp_years)
 					dprintf("Requested cropland ramp period too long for given nyear_spinup. Maximum is %d.\n", max_ramp_years);
@@ -600,7 +600,7 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 			if(sum < 0.99 || sum > 1.01) {	// warn if sum is significantly different from 1.0 
 				if(!SUPPRESSLARGEOUTPUT) {
 					dprintf("WARNING ! crop fraction sum is %5.3f for input year %d\n", sum, year);
-					dprintf("Rescaling crop fractions year %d ! (sum is beyond 0.99-1.01)\n", date.year-nyear_spinup + input.firsthistyear);
+					dprintf("Rescaling crop fractions year %d ! (sum is beyond 0.99-1.01)\n", date.year-nyear_spinup + input.getfirsthistyear());
 				}
 			}
 		}
@@ -623,7 +623,7 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 bool LandcoverInputModule::get_lc_transfer(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES]) {
 
 	int year;
-	int first_historic_year = input.firsthistyear;
+	int first_historic_year = input.getfirsthistyear();
 	double tot_frac_ch = 0.0;
 	const bool print_adjustment_info = false;
 
@@ -632,7 +632,7 @@ bool LandcoverInputModule::get_lc_transfer(Gridcell& gridcell, double landcoverf
 		return false;
 #endif
 
-	if((date.year >= nyear_spinup + 1) & (date.year < nyear_spinup + input.nyear_hist)) {
+	if((date.year >= nyear_spinup + 1) & (date.year < nyear_spinup + input.getnyear_hist())) {
 		//If have not reached second year of simulation (after spin-up) then gross_lc_change_frac must be zero (no land-use change in spin-up).
 
 		year = date.year - nyear_spinup + first_historic_year -1; 

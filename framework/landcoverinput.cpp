@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \file landcoverinput.cpp
+/// \brief Input code for land cover area fractions	from text files					
+/// \author Mats Lindeskog
+/// $Date: $
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //#include "landcoverinput.h"
 #include "input.h"
@@ -49,7 +55,7 @@ void LandcoverInputModule::init() {
 			if(!LUdata.Open(file_lu, gridlist))
 				fail("initio: could not open %s for input",(char*)file_lu);
 			else {
-				if(LUdata.format==InData::LOCAL_YEARLY)
+				if(LUdata.GetFormat()==InData::LOCAL_YEARLY)
 					all_fracs_const=false;				//Set all_fracs_const to false if yearly data
 
 				// Avoid large number of output files
@@ -119,7 +125,7 @@ void LandcoverInputModule::init() {
 			}
 		}
 
-		if(CFTdata.format==InData::LOCAL_YEARLY) 
+		if(CFTdata.GetFormat()==InData::LOCAL_YEARLY) 
 			all_fracs_const=false;				// Set all_fracs_const to false if yearly data
 
 #endif
@@ -347,7 +353,7 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 			}
 			else {
 
-				if(year == LUdata.GetFirstyear() + LUdata.nYears - 1)
+				if(year == LUdata.GetFirstyear() + LUdata.GetnYears() - 1)
 					dprintf("Last year of landcover fraction data used from year %d and onwards\n", year);
 
 				for(i=0; i<NLANDCOVERTYPES; i++) {
@@ -525,7 +531,7 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 		else if(fixedlu_histX)
 			year=year_saved;
 
-		if(year == CFTdata.GetFirstyear() + CFTdata.nYears - 1)
+		if(year == CFTdata.GetFirstyear() + CFTdata.GetnYears() - 1)
 			dprintf("Last year of cropland fraction data used from year %d and onwards\n", year);
 
 		// sum fractions for active crop pft:s and discard unreasonable values
@@ -611,7 +617,6 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 			st.frac = st.frac_old;
 		stlist.nextobj();
 	}
-
 }
 
 /// Read LUC transitions
@@ -886,7 +891,7 @@ int LandcoverInputModule::getfirsthistyear() {
 
 int LandcoverInputModule::getnyear_hist() {
 #ifdef DYNAMIC_LANDCOVER_INPUT
-	return LUdata.nYears;
+	return LUdata.GetnYears();
 #else
 	return -1;
 #endif

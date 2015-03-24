@@ -3,7 +3,7 @@
 /// \brief Classes for text input data (used mainly for landcover input).									
 /// File format can be either line 1:lon lat, line 2: year data OR line 1: header, line 2: lon lat year data   
 /// \author Mats Lindeskog
-/// $Date: 
+/// $Date: $
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "InData.h"

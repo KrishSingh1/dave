@@ -2,6 +2,8 @@
 #ifndef INPUT_H
 #define INPUT_H
 
+#define DYNAMIC_LANDCOVER_INPUT		// Reads landcover data from text files, using the TimeDataD class.
+
 #include "guess.h"
 #include "config.h"
 #ifdef DYNAMIC_LANDCOVER_INPUT
@@ -17,7 +19,6 @@
 #define NDEP_INPUT_IN_CLIMATE_MODULE
 
 using std::auto_ptr;
-//using namespace inputdef;
 
 class Input;
 

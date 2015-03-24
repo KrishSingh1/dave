@@ -21,7 +21,6 @@
 #define LPJ_GUESS_CONFIG_H
 
 // Defines for landcover version:
-#define DYNAMIC_LANDCOVER_INPUT		// Reads landcover data from text files, using the TimeDataD class.
 #define NEWSOWINGDATE				// Use sowing date method based on climate seasonality (modified version of Waha et al. 2012), as opposed to old method used in Bondeau et al. 2007.
 #define IRRIGATION					// Crop irrigation on
 #define NOPASTURESTOCH				// Undefine for fire and disturbance for pasture grass. Number of patches will be the same as for natural stands.
@@ -33,7 +32,7 @@ const bool SUPPRESSLARGEOUTPUT=true;
 
 #define CMASS_SEED 0.01	// 10g/m2;	// Initial carbon allocated to crop organs at sowing.
 
-#define PRINTFIRSTSTANDFROM1901	// Only on when printout of whole period of first stand wanted.
+#define PRINTFIRSTSTANDFROM1901		// Only on when printout of whole period of first stand wanted.
 #define MAXNUMBER_STANDS 100		// Upper limit for multiple stand printout
 #define MAXNUMBER_GRIDCELLS 50		// To make sure that muliple stand printout is not active when running large simulations
 

@@ -2,13 +2,13 @@
 /// \file landcover.h
 /// \brief Functions handling landcover aspects, such as creating or resizing Stands
 ///
+/// \author Mats Lindeskog
 /// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef LPJ_GUESS_LANDCOVER_H
 #define LPJ_GUESS_LANDCOVER_H
-#include "config.h"	//Remove
 #include "guess.h"
 #include "growth.h"
 #include "input.h"

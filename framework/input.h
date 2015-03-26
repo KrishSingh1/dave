@@ -8,8 +8,6 @@
 #ifndef INPUT_H
 #define INPUT_H
 
-#define DYNAMIC_LANDCOVER_INPUT		// Reads landcover data from text files, using the TimeDataD class.
-
 #include "guess.h"
 #include "config.h"
 #ifdef DYNAMIC_LANDCOVER_INPUT

@@ -1091,7 +1091,7 @@ int TimeDataD::Load() {	// for GLOBAL_YEARLY and GLOBAL_STATIC data
 
 int TimeDataD::LoadFromMap(Coord c) {
 
-	double searchradius = spacial_resolution / 2.0;
+	double searchradius = min(spacial_resolution / 2.0, MAX_SEARCHRADIUS);
 	double min_dist = 1000;
 	long int found_pos = -1;
 
@@ -2004,7 +2004,7 @@ double TimeDataDmem::Get(int calender_year, const char* name) const {
 int TimeDataDmem::Load(Coord c) {
 
 	bool error=true;
-	double searchradius = spacial_resolution / 2.0;
+	double searchradius = min(spacial_resolution / 2.0, MAX_SEARCHRADIUS);
 
 	//In case gridlist cell order is same as in land use files
 	if(currentCell < (nCells - 1) && fabs(gridlist[currentCell+1].lon - c.lon) <= searchradius && fabs(gridlist[currentCell+1].lat - c.lat) <= searchradius) {
@@ -2085,7 +2085,7 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 
 	firstyear = Data.GetFirstyear();
 	spacial_resolution = Data.GetSpacialResolution();
-	double searchradius = spacial_resolution / 2.0;
+	double searchradius = min(spacial_resolution / 2.0, MAX_SEARCHRADIUS);
 
 	double *celldata;
 	celldata = new double[Data.GetnColumns() * Data.GetnYears()];

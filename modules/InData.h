@@ -31,6 +31,7 @@ namespace InData
 #define MAXRECORDS 500
 #define MAXLINESPARSE 30000
 #define NOTFOUND -999
+#define MAX_SEARCHRADIUS 1.0
 
 /// Formats in text input file
 enum {EMPTY, GLOBAL_STATIC, GLOBAL_YEARLY, LOCAL_STATIC, LOCAL_YEARLY};

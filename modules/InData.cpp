@@ -293,14 +293,40 @@ void TimeDataD::CreateFileMap() {
 
 	filemap = new CoordPos[nCells];
 
-//	dprintf("Mapping data in input file %s\n", fileName);
+	char mapname[300];
+	strcpy(mapname, fileName);
+	strcat(mapname, ".map.bin");
+	FILE *ifp_map = fopen(mapname,"rb");
+	long lSize;
+	if(ifp_map) {
+		fseek(ifp_map, 0 ,SEEK_END);
+		lSize = ftell(ifp_map);
+		rewind(ifp_map);
+	}
 
-	while(LoadNext(&pos) && i < nCells) {
-		Coord c = GetCoord();
-		filemap[i].lon = c.lon;
-		filemap[i].lat = c.lat;
-		filemap[i].pos = pos;
-		i++;
+	if(!ifp_map || !lSize) {
+//		dprintf("Mapping data in input file %s\n", fileName);
+		rewind(ifp);
+		while(LoadNext(&pos) && i < nCells) {
+			Coord c = GetCoord();
+			filemap[i].lon = c.lon;
+			filemap[i].lat = c.lat;
+			filemap[i].pos = pos;
+			i++;
+		}
+		rewind(ifp);
+
+		// Save the file map to file
+		if(ifp_map)
+			fclose(ifp_map);
+		FILE *ofp_map = fopen(mapname,"wb");
+		fwrite(filemap, sizeof(CoordPos), nCells, ofp_map);
+		fclose(ofp_map);
+	}
+	else {
+		// File is already mapped, read map from file.
+		fread(filemap, sizeof(CoordPos), nCells, ifp_map);
+		fclose(ifp_map);
 	}
 }
 
@@ -1083,6 +1109,8 @@ int TimeDataD::LoadFromMap(Coord c) {
 	if(found_pos > -1) {
 		SetPosition(found_pos);
 		LoadNext();
+		if(currentStand.lon != c.lon || currentStand.lat != c.lat)
+			fail("Error in saved file map for %s. Delete map.bin file and retry\n", fileName);
 		return 1;
 	}
 	else
@@ -2089,7 +2117,7 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 					dif_lat_saved = fabs(gridlist[i].lat - cc.lat);
 					if(dif_lon_saved <= searchradius && dif_lat_saved <= searchradius) {
 						// is the new data coord closer to the gridlist coord than the already saved coord is ?
-						if((dif_lon_saved + dif_lat_saved) > (dif_lon + dif_lat)) {	
+						if((dif_lon_saved + dif_lat_saved) > (dif_lon + dif_lat)) {	// This part is probably not needed
 							SetCoord(i, c);
 							Data.Get(celldata);
 							SetData(i, celldata);

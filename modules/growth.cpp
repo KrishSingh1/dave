@@ -36,6 +36,7 @@
 #include "config.h"
 #include "growth.h"
 #include "canexch.h"
+#include "landcover.h"
 #include <assert.h>
 
 
@@ -1225,91 +1226,6 @@ void flush_litter_repr(Patch& patch) {
 	}
 }
 
-/// Scaling of last year's or harvest day individual carbon and nitrogen member values in stands that have increased their area fraction this year.
-/** Called immediately before harvest functions in growth() or allocation_crop_daily().
- */
-void scale_indiv(Individual& indiv, bool scale_grsC)
-{
-	double scale = 1.0;	
-	Stand& stand = indiv.vegetation.patch.stand;
-	Gridcell& gridcell = stand.get_gridcell();
-
-	// Scale individual's C and N mass in stands that have increased in area this year by (old area/new area):
-	if(stand.scale_LC_change < 1.0) {
-		if(scaling_mode == 0)
-			return;
-		else
-			scale = stand.scale_LC_change;
-	}
-	else
-		return;
-
-	if(scale_grsC) {
-
-		if(indiv.pft.landcover == CROPLAND) {
-
-			if(indiv.has_daily_turnover()) {
-
-				indiv.cropindiv->grs_cmass_leaf -= indiv.cropindiv->grs_cmass_leaf_luc * (1.0 - scale);
-				indiv.cropindiv->grs_cmass_root -= indiv.cropindiv->grs_cmass_root_luc * (1.0 - scale);
-				indiv.cropindiv->grs_cmass_ho -= indiv.cropindiv->grs_cmass_ho_luc * (1.0 - scale);
-				indiv.cropindiv->grs_cmass_agpool -= indiv.cropindiv->grs_cmass_agpool_luc * (1.0 - scale);
-				indiv.cropindiv->grs_cmass_dead_leaf -= indiv.cropindiv->grs_cmass_dead_leaf_luc * (1.0 - scale);
-				indiv.cropindiv->grs_cmass_stem -= indiv.cropindiv->grs_cmass_stem_luc * (1.0 - scale);
-
-				double negative_cmass = indiv.check_C_mass();
-//				if(negative_cmass > 1.0e-14)
-//					dprintf("Year %d day %d Stand %d indiv %d: Negative C mass in scale_indiv: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_cmass);
-			}
-			else {
-				indiv.cropindiv->grs_cmass_leaf *= scale;
-				indiv.cropindiv->grs_cmass_root *= scale;
-				indiv.cropindiv->grs_cmass_ho *= scale;
-				indiv.cropindiv->grs_cmass_agpool *= scale;
-				indiv.cropindiv->grs_cmass_plant *= scale;	//grs_cmass_plant not used
-				indiv.cropindiv->grs_cmass_dead_leaf *= scale;
-				indiv.cropindiv->grs_cmass_stem *= scale;
-			}
-		}
-	}
-	else {
-
-		indiv.cmass_root *= scale;	
-		indiv.cmass_leaf *= scale;
-		indiv.cmass_heart *= scale;	
-		indiv.cmass_sap *= scale;
-		indiv.cmass_debt *= scale;
-
-		if(indiv.pft.landcover == CROPLAND) {
-			indiv.cropindiv->cmass_agpool *= scale;
-			indiv.cropindiv->cmass_ho *= scale;
-		}
-	}
-
-	// Deduct individual N present day 0 this year in stands that have increased in area this year, scaled by (1 - old area/new area):
-	indiv.nmass_root = indiv.nmass_root - indiv.nmass_root_luc * (1.0 - scale);	
-	indiv.nmass_leaf = indiv.nmass_leaf - indiv.nmass_leaf_luc * (1.0 - scale);
-	indiv.nmass_heart = indiv.nmass_heart - indiv.nmass_heart_luc * (1.0 - scale);	
-	indiv.nmass_sap = indiv.nmass_sap - indiv.nmass_sap_luc * (1.0 - scale);
-
-	if(indiv.pft.landcover == CROPLAND) {
-		indiv.cropindiv->nmass_agpool = indiv.cropindiv->nmass_agpool - indiv.cropindiv->nmass_agpool_luc * (1.0 - scale);
-		indiv.cropindiv->nmass_ho = indiv.cropindiv->nmass_ho - indiv.cropindiv->nmass_ho_luc * (1.0 - scale);
-		indiv.cropindiv->nmass_dead_leaf =indiv.cropindiv->nmass_dead_leaf - indiv.cropindiv->nmass_dead_leaf_luc * (1.0 - scale);
-	}
-
-	if(indiv.nstore_labile > indiv.nstore_labile_luc * (1.0 - scale))
-		indiv.nstore_labile -= indiv.nstore_labile_luc * (1.0 - scale);
-	else
-		indiv.nstore_longterm -= indiv.nstore_labile_luc * (1.0 - scale);	
-	indiv.nstore_longterm = indiv.nstore_longterm - indiv.nstore_longterm_luc * (1.0 - scale);
-
-	double negative_nmass = indiv.check_N_mass();
-//	if(negative_nmass > 1.0e-14)
-//		dprintf("Year %d day %d Stand %d indiv %d: Negative N mass in scale_indiv: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_nmass);
-
-}
-
 /// GROWTH
 /** Tissue turnover and allocation of fixed carbon to reproduction and new biomass
  *	Accumulated NPP (assimilation minus maintenance and growth respiration) on
@@ -1367,7 +1283,6 @@ void growth(Stand& stand, Patch& patch) {
 
 	double dval = 0.0;
 	int p;
-	bool killed;
 
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation = patch.vegetation;
@@ -1430,7 +1345,7 @@ void growth(Stand& stand, Patch& patch) {
 
 		indiv.deltafpc = 0.0;
 
-		killed = false;
+		bool killed = false;
 
 		if (negligible(indiv.densindiv))
 //			fail("growth: negligible densindiv for %s",(char*)indiv.pft.name);// ???
@@ -1482,21 +1397,8 @@ void growth(Stand& stand, Patch& patch) {
 				if (indiv.alive) bminc -= cmass_excess;
 			}
 
-			// Reduce individual's C and N mass in stands that have increased in area this year:
-			if(gridcell.LC_updated)	{
-				if(!indiv.has_daily_turnover())
-					scale_indiv(indiv, false);
-			}
-
-			if(stand.landcover==CROPLAND) {
-				if(!indiv.has_daily_turnover())
-					harvest_crop(indiv, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass, false);
-			}
-			else if(stand.landcover==PASTURE) {
-				harvest_pasture(indiv, indiv.pft, indiv.alive);
-			}
-			else if(stand.landcover==FOREST)
-				harvest_forest(indiv, indiv.pft, indiv.alive, indiv.anpp, killed);
+			// All yearly harvest events
+			killed = harvest_year(indiv);
 
 			if (!killed) {
 

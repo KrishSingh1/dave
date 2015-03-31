@@ -1,0 +1,762 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \file cropallocation.cpp
+/// \brief Crop allocation and growth				
+/// \author Mats Lindeskog
+/// $Date:  $
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include "landcover.h"
+#include "cropallocation.h"
+
+//#define DELAYED_SEEDCARBON		//Seed carbon allocation to leaves and roots are done over a 10-day period.
+#define GRASS_SEED_CMASS	// Carbon allocated to cover-crop grass on bicdate or the day after turnover.
+
+/// Updates patch.members fpc_total and fpc_rescale for crops (to be called after crop_phenology())
+void update_patch_fpc(Patch& patch) {
+
+	if(patch.stand.landcover == CROPLAND) {
+		Vegetation& vegetation = patch.vegetation;
+		patch.fpc_total = 0.0;
+
+		vegetation.firstobj();
+		while (vegetation.isobj) {
+			Individual& indiv = vegetation.getobj();
+
+			if(indiv.growingseason())
+				patch.fpc_total += indiv.fpc;
+			vegetation.nextobj();
+		}
+		// Calculate rescaling factor to account for overlap between populations/
+		// cohorts/individuals (i.e. total FPC > 1)
+		// necessary to undate here after growingseason updated
+		patch.fpc_rescale = 1.0 / max(patch.fpc_total, 1.0);
+	}
+}
+
+
+/// Updates lai_daily and fpc_daily from daily grs_cmass_leaf-value
+/** lai during senescence declines according the function senescence_curve()
+ */
+void lai_crop(Patch& patch) {
+
+	Vegetation& vegetation = patch.vegetation;
+	vegetation.firstobj();
+
+	while (vegetation.isobj)
+	{
+		Individual& indiv = vegetation.getobj();
+		cropindiv_struct& cropindiv = *(indiv.get_cropindiv());
+		Patchpft& patchpft = patch.pft[indiv.pft.id];
+		cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+
+		if(indiv.pft.phenology == CROPGREEN) {
+
+			if(ppftcrop.growingseason) {
+
+				if(!ppftcrop.senescence || ifnlim_lc[CROPLAND])
+					indiv.lai_daily = cropindiv.grs_cmass_leaf * indiv.pft.sla;
+				else
+					// Follow the senescence curve from leaf cmass at senescence (cmass_leaf_sen):
+					indiv.lai_daily = cropindiv.cmass_leaf_sen * indiv.pft.sla * senescence_curve(indiv.pft, ppftcrop.fphu);
+
+				if(indiv.lai_daily < 0.0)
+					indiv.lai_daily = 0.0;
+
+				indiv.fpc_daily = 1.0 - lambertbeer(indiv.lai_daily);
+
+				indiv.lai_indiv_daily = indiv.lai_daily;
+			}
+			else if(date.day == ppftcrop.hdate) {
+				indiv.lai_daily = 0.0;
+				indiv.lai_indiv_daily = 0.0;
+				indiv.fpc_daily = 0.0;
+			}
+
+			if(!(indiv.lai_daily>=0.0 && indiv.lai_daily<=20.0))//Test for unrealistically high lai.
+if(!SUPPRESSLARGEOUTPUT)	
+				dprintf("In lai_crop() stand %d pft %d year %d day %d: senescence=%d, grs_cmass_leaf=%f, grs_cmass_ho=%f, lai_daily=%f, out of bounds !\n", patch.stand.id, indiv.pft.id, date.year-nyear_spinup+1901, date.day, ppftcrop.senescence, cropindiv.grs_cmass_leaf, cropindiv.grs_cmass_ho, indiv.lai_daily);
+		}
+		vegetation.nextobj();
+	}
+}
+
+/// Turnover function for continuous grass, to be called from any day of the year from allocation_crop_daily().
+void turnover_grass(Individual& indiv) {
+
+	cropindiv_struct& cropindiv = *(indiv.get_cropindiv());
+	Patchpft& patchpft = indiv.patchpft();
+
+	double cmass_leaf_inc = cropindiv.grs_cmass_leaf - indiv.cmass_leaf_post_turnover;
+	double cmass_root_inc = cropindiv.grs_cmass_root - indiv.cmass_root_post_turnover;
+
+	double grs_npp = cmass_leaf_inc + cmass_root_inc;
+#ifdef GRASS_SEED_CMASS
+	grs_npp -= CMASS_SEED;
+#endif
+	double cmass_leaf_pre_turnover = cropindiv.grs_cmass_leaf;
+	double cmass_root_pre_turnover = cropindiv.grs_cmass_root;
+	double cton_leaf_bg = indiv.cton_leaf(false);
+	double cton_root_bg = indiv.cton_root(false);
+
+	indiv.nstore_longterm += indiv.nstore_labile;
+	indiv.nstore_labile = 0.0;
+
+	turnover(indiv.pft.turnover_leaf, indiv.pft.turnover_root,
+		indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
+		indiv.cropindiv->grs_cmass_leaf, indiv.cropindiv->grs_cmass_root, indiv.cmass_sap, indiv.cmass_heart,
+		indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap, indiv.nmass_heart,
+		patchpft.litter_leaf,
+		patchpft.litter_root,
+		patchpft.nmass_litter_leaf,
+		patchpft.nmass_litter_root,
+		indiv.nstore_longterm, indiv.max_n_storage,
+		true);
+
+	indiv.cmass_leaf_post_turnover = cropindiv.grs_cmass_leaf;
+	indiv.cmass_root_post_turnover = cropindiv.grs_cmass_root;
+
+	// Nitrogen longtime storage
+	// Nitrogen approx retranslocated next season
+	double retransn_nextyear = cmass_leaf_pre_turnover * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
+		cmass_root_pre_turnover * indiv.pft.turnover_root / cton_root_bg * nrelocfrac;
+
+	// Max longterm nitrogen storage
+	indiv.max_n_storage = max(0.0, min(cmass_root_pre_turnover * indiv.pft.fnstorage / cton_leaf_bg, retransn_nextyear));
+
+	// Scale this year productivity to max storage
+	if (grs_npp > 0.0) {
+		indiv.scale_n_storage = max(indiv.max_n_storage * 0.1, indiv.max_n_storage - retransn_nextyear) * cton_leaf_bg / grs_npp;
+	}
+
+	indiv.nstore_labile = indiv.nstore_longterm;
+	indiv.nstore_longterm = 0.0;
+}
+
+void crop_allocation_WE(cropphen_struct& ppftcrop, Individual& indiv) {
+
+	ppftcrop.dev_stage = max(0.0,min(2.0, -0.595 * pow(ppftcrop.fphu, 2.0) + 2.595 * ppftcrop.fphu));
+
+	double t = 0.0;
+	if(ppftcrop.fphu < 0.4367) {
+		t = -0.07 + 2.45 * ppftcrop.fphu;
+	} 
+	else {
+		t = 0.06 + 2.0 * ppftcrop.fphu;
+		t = 0.2247 + 1.7753 * ppftcrop.fphu;
+	}
+	ppftcrop.dev_stage = max(0.0,min(2.0,t));
+
+	double f1 = min(1.0, max(0.0, richards_curve(indiv.pft.a1, indiv.pft.b1, indiv.pft.c1, indiv.pft.d1, ppftcrop.dev_stage)));
+	double f2 = min(1.0, max(0.0, richards_curve(indiv.pft.a2, indiv.pft.b2, indiv.pft.c2, indiv.pft.d2, ppftcrop.dev_stage)));
+	double f3 = min(1.0, max(0.0, richards_curve(indiv.pft.a3, indiv.pft.b3, indiv.pft.c3, indiv.pft.d3, ppftcrop.dev_stage)));
+
+	if(indiv.daily_cmass_leafloss > 0.0)
+		f2 *= f2 * f2;
+
+	ppftcrop.f_alloc_root = f1 * (1-f3);
+	ppftcrop.f_alloc_leaf = f2 * (1-f1)*(1-f3);
+	ppftcrop.f_alloc_stem = (1.0 - f2)*(1.0 - f1)*(1.0 - f3);
+	ppftcrop.f_alloc_horg = f3;
+}
+
+/// Daily allocation routine for crops with nitrogen limitation
+/** Allocates daily npp to leaf, roots and harvestable organs
+ *  Equations are from Neitsch et al. 2002.
+ */
+void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_seed) {
+
+	cropindiv_struct& cropindiv = *(indiv.get_cropindiv());
+	Patch& patch = indiv.vegetation.patch;
+	Patchpft& patchpft = patch.pft[indiv.pft.id];
+	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+	double cmass_extra = 0.0;
+
+	if(ppftcrop.growingseason) {
+
+		// report seed fluxes
+		indiv.report_flux(Fluxes::SEEDC, -cmass_seed);
+		indiv.report_flux(Fluxes::SEEDN, -nmass_seed);
+
+		// add seed carbon
+		cmass_extra += cmass_seed;
+
+		// add seed nitrogen
+		indiv.nmass_leaf += nmass_seed / 2.0;
+		indiv.nmass_root += nmass_seed / 2.0;
+
+		crop_allocation_WE(ppftcrop, indiv);
+
+		if(indiv.dnpp < 0.0){
+#define STEMSUGAR
+			//#undef STEMSUGAR
+#ifdef STEMSUGAR
+			if(-indiv.dnpp < cropindiv.grs_cmass_agpool) {
+				cropindiv.grs_cmass_agpool -= -indiv.dnpp;
+				cropindiv.ycmass_agpool -= -indiv.dnpp;
+				indiv.dnpp = 0.0;
+			} 
+			else {
+				indiv.report_flux(Fluxes::NPP, (-indiv.dnpp - cropindiv.grs_cmass_agpool));
+				cropindiv.ycmass_agpool -= cropindiv.grs_cmass_agpool;
+				//TODO Kill the individual if ag pool is zero.
+				cropindiv.grs_cmass_agpool = 0.0;
+				indiv.dnpp = 0.0;
+			}
+#else
+			indiv.report_flux(Fluxes::NPP, -indiv.dnpp);
+			indiv.dnpp = 0.0;
+#endif
+		}
+
+#ifdef STEMSUGAR
+#define USESTEMSUGAR
+#ifdef USESTEMSUGAR
+
+		if (cropindiv.grs_cmass_agpool > 0.0 && patchpft.cropphen->f_alloc_horg > 0.95) {
+			cmass_extra += 0.1 * cropindiv.grs_cmass_agpool;
+			cropindiv.ycmass_agpool -= 0.1 * cropindiv.grs_cmass_agpool;
+			cropindiv.grs_cmass_agpool *= 0.9;
+		}
+
+#endif
+#endif
+		indiv.daily_cmass_rootloss = 0.0;
+		indiv.daily_nmass_rootloss = 0.0;
+
+		if (indiv.daily_cmass_leafloss > 0.0) {
+
+			cropindiv.dcmass_leaf = (indiv.dnpp + cmass_extra) * patchpft.cropphen->f_alloc_leaf - indiv.daily_cmass_leafloss;
+			cropindiv.grs_cmass_dead_leaf += indiv.daily_cmass_leafloss;
+			cropindiv.ycmass_dead_leaf += indiv.daily_cmass_leafloss;
+			if (indiv.daily_cmass_leafloss / 100.0<indiv.nmass_leaf) {
+				cropindiv.nmass_dead_leaf += indiv.daily_cmass_leafloss / 100.0; //TODO super low C:N in the dead leaf
+				cropindiv.ynmass_dead_leaf += indiv.daily_cmass_leafloss / 100.0;
+				indiv.nmass_leaf -= indiv.daily_cmass_leafloss / 100.0;
+			}
+			//cropindiv.grs_cmass_leaf -= indiv.daily_cmass_leafloss;
+			double new_CN = (cropindiv.grs_cmass_leaf + cropindiv.dcmass_leaf) / indiv.nmass_leaf;
+			// If the result is smaller (higher [N]) than the min C:N then that N is
+			// put in to the ag N pool
+			if( new_CN < indiv.pft.cton_leaf_min ) {
+
+#define THREEQUARTER
+#ifdef THREEQUARTER
+				indiv.daily_nmass_leafloss = max(0.0, indiv.nmass_leaf - (cropindiv.grs_cmass_leaf + cropindiv.dcmass_leaf) / (1.33 * indiv.pft.cton_leaf_min));
+#else
+				indiv.daily_nmass_leafloss = max(0.0, indiv.nmass_leaf - (cropindiv.grs_cmass_leaf + cropindiv.dcmass_leaf) / indiv.pft.cton_leaf_min);
+#endif
+				if(indiv.daily_nmass_leafloss > indiv.nmass_leaf) {
+					indiv.daily_nmass_leafloss = 0.0;
+				}
+			} else {
+				indiv.daily_nmass_leafloss = 0.0;
+			}
+			// Very experimental root senescence
+			// N and C loss when root senescence is allowed f_HO > 0.5
+#define ROOTLOSS
+			//#undef ROOTLOSS
+#ifdef ROOTLOSS
+			//d3, the DS after which more than half of the daily assimilates are going to the grains.
+			if(patchpft.cropphen->dev_stage > indiv.pft.d3) {
+				//only have root senescence when leaf scenescence har occured
+				if (indiv.daily_nmass_leafloss > 0.0) {
+					double kC = 0.0;
+					double kN = 0.0;
+					//The root senescence is proportional to that of the leaves
+					if(indiv.nmass_leaf > 0.0) {
+						kN = indiv.daily_nmass_leafloss / indiv.nmass_leaf;
+					}
+					if (indiv.cmass_leaf_today() > 0.0) {
+						kC = indiv.daily_cmass_leafloss / indiv.cmass_leaf_today();
+					}
+					indiv.daily_cmass_rootloss = indiv.cmass_root_today() * kC;
+					indiv.daily_nmass_rootloss = indiv.nmass_root * kN;
+				}
+			}
+#endif
+			indiv.nmass_leaf -= indiv.daily_nmass_leafloss;
+			cropindiv.nmass_agpool += indiv.daily_nmass_leafloss;
+		} 
+		else {
+			cropindiv.dcmass_leaf = (indiv.dnpp + cmass_extra) * patchpft.cropphen->f_alloc_leaf;
+		}
+		cropindiv.dcmass_stem = (indiv.dnpp + cmass_extra) * patchpft.cropphen->f_alloc_stem;
+
+		if (indiv.daily_cmass_rootloss > indiv.cmass_root_today())
+			indiv.daily_cmass_rootloss = 0.0;
+
+		cropindiv.dcmass_root = (indiv.dnpp + cmass_extra) * patchpft.cropphen->f_alloc_root - indiv.daily_cmass_rootloss;
+
+		//TODO
+		patch.soil.sompool[SOILMETA].cmass += indiv.daily_cmass_rootloss;
+
+		if (indiv.daily_nmass_rootloss < indiv.nmass_root) {
+			indiv.nmass_root -= indiv.daily_nmass_rootloss;
+			cropindiv.nmass_agpool += indiv.daily_nmass_rootloss * 0.5; // 50% of the N in the lost root is retranslocated.
+			patch.soil.sompool[SOILMETA].nmass += indiv.daily_nmass_rootloss * 0.5;//The rest is going in to litter
+		}
+		if (indiv.daily_cmass_rootloss > 0.0){
+			patch.is_litter_day = true;
+		}
+
+		cropindiv.dcmass_ho = (indiv.dnpp + cmass_extra) * patchpft.cropphen->f_alloc_horg;
+		cropindiv.dcmass_plant = cropindiv.dcmass_ho + cropindiv.dcmass_root + cropindiv.dcmass_stem + cropindiv.dcmass_leaf;
+
+		cropindiv.ycmass_leaf += cropindiv.dcmass_leaf;
+		cropindiv.ycmass_root += cropindiv.dcmass_root;
+		cropindiv.ycmass_ho += cropindiv.dcmass_ho;
+		cropindiv.ycmass_plant += cropindiv.dcmass_plant;
+
+		cropindiv.grs_cmass_leaf += cropindiv.dcmass_leaf;
+#ifdef STEMSUGAR
+		cropindiv.grs_cmass_stem += (1.0 - 0.4) * cropindiv.dcmass_stem;
+		cropindiv.ycmass_stem += (1.0 - 0.4) * cropindiv.dcmass_stem;
+		cropindiv.grs_cmass_agpool += 0.4 * cropindiv.dcmass_stem;
+		cropindiv.ycmass_agpool += 0.4 * cropindiv.dcmass_stem;
+#else
+		cropindiv.grs_cmass_stem += cropindiv.dcmass_stem;
+		cropindiv.ycmass_stem += cropindiv.dcmass_stem;
+#endif
+		cropindiv.grs_cmass_root += cropindiv.dcmass_root;
+		cropindiv.grs_cmass_ho += cropindiv.dcmass_ho;
+		cropindiv.grs_cmass_plant += cropindiv.dcmass_plant;
+
+		double ndemand_ho = 0.0;
+		double avail_leaf_N = max(0.0, (1.0 / indiv.cton_leaf(false) - 1.0 / indiv.pft.cton_leaf_max) * indiv.cmass_leaf_today());
+		double avail_root_N = max(0.0, (1.0 / indiv.cton_root(false) - 1.0 / indiv.pft.cton_root_max) * indiv.cmass_root_today());
+		double avail_stem_N = max(0.0,cropindiv.nmass_agpool - 1.0 / indiv.pft.cton_stem_max * cropindiv.grs_cmass_stem);
+		double avail_N = avail_leaf_N + avail_root_N + avail_stem_N;
+		if (avail_N > 0.0 && cropindiv.dcmass_ho > 0.0) {
+			ndemand_ho = cropindiv.dcmass_ho / indiv.pft.cton_leaf_avr;
+		}
+		//N mass to be translocated from leaves and roots
+		double trans_leaf_N = 0.0;
+		double trans_root_N = 0.0;
+		if (ndemand_ho > 0.0) {
+			if(avail_stem_N > 0.0) {
+				if (ndemand_ho > avail_stem_N) {
+					ndemand_ho -= avail_stem_N;
+					cropindiv.dnmass_ho += avail_stem_N;
+					cropindiv.nmass_agpool -= avail_stem_N;
+				} 
+				else {
+					cropindiv.nmass_agpool -= ndemand_ho;
+					cropindiv.dnmass_ho += ndemand_ho;
+					ndemand_ho = 0.0;
+				}
+			}
+			//Seligman 1975
+			//"willingness" to let go of the N in the organ to meet the demand from the storage organ
+			double w = 0.0;
+			double w_r = 0.0;
+			double w_l = 0.0;
+			double w_s = 0.0;
+			double y0 = (1.0 / indiv.pft.cton_leaf_min + 1.0 / indiv.pft.cton_leaf_avr) / 2.0;
+			double y = 1.0 / indiv.cton_leaf(false);
+			double y2 = 1.0 / (1.0 * indiv.pft.cton_leaf_max);
+			double z = (y0 - y)/(y0 - y2);
+			w_l = 1.0 - max(0.0, min(1.0, pow(1.0 - z, 2.0)));
+			y0 = 1,0 / indiv.pft.cton_root_avr;
+			y = 1.0/ indiv.cton_root(false);
+			y2 = 1.0 / (1.0 * indiv.pft.cton_root_max);
+			z = (y0 - y) / (y0 - y2);
+			w_r = 1.0 - max(0.0, min(1.0, pow(1.0 - z, 2.0)));
+			w_s = w_r + w_l;
+			w = min(1.0, w_s);
+			if(w_s > 0.0) {
+				trans_leaf_N = max(0.0, w_l * w * ndemand_ho / w_s);
+				trans_root_N = max(0.0, w_r * w * ndemand_ho / w_s);
+				if(trans_leaf_N > avail_leaf_N) {
+					trans_leaf_N = avail_leaf_N;
+				}
+				if(trans_root_N > avail_root_N) {
+					trans_root_N = avail_root_N;
+				}
+				cropindiv.dnmass_ho += trans_leaf_N;
+				cropindiv.dnmass_ho += trans_root_N;
+			}
+		}
+		indiv.nmass_leaf -= trans_leaf_N;
+		indiv.nmass_root -= trans_root_N;
+		cropindiv.nmass_ho += cropindiv.dnmass_ho;
+	}
+	return;
+}
+
+void allocation_crop(Individual& indiv, double cmass_seed, double nmass_seed) {
+
+	cropindiv_struct& cropindiv = *(indiv.get_cropindiv());
+	Patch& patch = indiv.vegetation.patch;
+	Patchpft& patchpft = patch.pft[indiv.pft.id];
+	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+
+	nmass_seed = 0.0;	//temporary ?
+
+	// report seed flux
+	indiv.report_flux(Fluxes::SEEDC, -cmass_seed);
+	indiv.report_flux(Fluxes::SEEDN, -nmass_seed);
+
+	// add seed carbon
+	cropindiv.grs_cmass_plant += cmass_seed;
+	cropindiv.ycmass_plant += cmass_seed;
+	cropindiv.dcmass_plant += cmass_seed;
+
+	// add seed nitrogen
+	indiv.nmass_leaf += nmass_seed / 2.0;
+	indiv.nmass_root += nmass_seed / 2.0;
+
+	// add today's npp
+	cropindiv.dcmass_plant += indiv.dnpp;
+	cropindiv.grs_cmass_plant += indiv.dnpp;
+	cropindiv.ycmass_plant += indiv.dnpp;
+
+	// allocation to roots
+	double froot = indiv.pft.frootstart -(indiv.pft.frootstart - indiv.pft.frootend) * ppftcrop.fphu;	// SWAT 5:2,1,21	
+	double grs_cmass_root_old = cropindiv.grs_cmass_root;
+	cropindiv.grs_cmass_root = froot * cropindiv.grs_cmass_plant;
+	cropindiv.dcmass_root = cropindiv.grs_cmass_root - grs_cmass_root_old;
+	cropindiv.ycmass_root += cropindiv.dcmass_root;
+
+	// allocation to harvestable organs
+	double grs_cmass_ag = (1.0-froot) * cropindiv.grs_cmass_plant;
+	double grs_cmass_ho_old = cropindiv.grs_cmass_ho;
+
+	if(indiv.pft.hiopt <= 1.0)
+		cropindiv.grs_cmass_ho = ppftcrop.hi * grs_cmass_ag;									// SWAT 5:2.4.2, 5:2.4.4
+	else	// below-ground harvestable organs
+		cropindiv.grs_cmass_ho = (1.0 - 1.0 / (1.0 + ppftcrop.hi)) * cropindiv.grs_cmass_plant;	// SWAT 5:2.4.3 8 
+
+	cropindiv.dcmass_ho = cropindiv.grs_cmass_ho - grs_cmass_ho_old;	
+	cropindiv.ycmass_ho += cropindiv.dcmass_ho;	
+
+	// allocation to leaves
+	double grs_cmass_leaf_old = cropindiv.grs_cmass_leaf;	
+	cropindiv.grs_cmass_leaf = cropindiv.grs_cmass_plant - cropindiv.grs_cmass_root - cropindiv.grs_cmass_ho;
+ 
+	cropindiv.dcmass_leaf = cropindiv.grs_cmass_leaf - grs_cmass_leaf_old;
+	cropindiv.ycmass_leaf += cropindiv.dcmass_leaf;
+
+	// allocation to above-ground pool (currently not used)
+	cropindiv.dcmass_agpool = cropindiv.dcmass_plant - cropindiv.dcmass_root - cropindiv.dcmass_leaf - cropindiv.dcmass_ho;		
+	cropindiv.grs_cmass_agpool = cropindiv.grs_cmass_plant - cropindiv.grs_cmass_root - cropindiv.grs_cmass_leaf - cropindiv.grs_cmass_ho;
+	cropindiv.ycmass_agpool = cropindiv.ycmass_plant - cropindiv.ycmass_root - cropindiv.ycmass_leaf - cropindiv.ycmass_ho;
+
+	if(cropindiv.grs_cmass_agpool < 1.0e-9)
+		cropindiv.grs_cmass_agpool = 0,0;
+	if(cropindiv.ycmass_agpool < 1.0e-9)
+		cropindiv.ycmass_agpool = 0,0;
+
+	return;
+}
+
+/// Daily growth routine for crops
+/** Allocates daily npp to leaf, roots and harvestable organs
+ *  Requires updated value of fphu and hi.
+ *  Equations are from Neitsch et al. 2002.
+ */
+void growth_crop_daily(Patch& patch) {
+
+	if(date.day == 0)
+		patch.nharv = 0;
+	patch.isharvestday = false;
+	double nharv_today = 0;
+
+	Vegetation& vegetation = patch.vegetation;
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+
+		Individual& indiv = vegetation.getobj();
+		cropindiv_struct& cropindiv = *(indiv.get_cropindiv());
+		Patchpft& patchpft = patch.pft[indiv.pft.id];
+		cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+
+		if(date.day == 0) {
+
+			cropindiv.ycmass_plant = 0.0;
+			cropindiv.ycmass_leaf = 0.0;
+			cropindiv.ycmass_root = 0.0;
+			cropindiv.ycmass_ho = 0.0;
+			cropindiv.ycmass_agpool = 0.0;
+			cropindiv.ycmass_dead_leaf = 0.0;	
+			cropindiv.ycmass_stem = 0.0;	
+
+			cropindiv.harv_cmass_plant = 0.0;
+			cropindiv.harv_cmass_root = 0.0;
+			cropindiv.harv_cmass_leaf = 0.0;
+			cropindiv.harv_cmass_ho = 0.0;
+			cropindiv.harv_cmass_agpool = 0.0;
+
+			cropindiv.cmass_ho_harvest[0] = 0.0;
+			cropindiv.cmass_ho_harvest[1] = 0.0;
+
+			cropindiv.cmass_leaf_max = 0.0;
+
+			if(indiv.pft.phenology == ANY && !cropindiv.isintercropgrass) {		//zero of normal cc3g/cc4g-growth arbitrarily at new year
+			
+				cropindiv.grs_cmass_plant = 0.0;
+				cropindiv.grs_cmass_root = 0.0;
+				cropindiv.grs_cmass_ho = 0.0;
+				cropindiv.grs_cmass_leaf = 0.0;
+				cropindiv.grs_cmass_agpool = 0.0;
+			}
+		}
+
+		cropindiv.dcmass_plant = 0.0;
+		cropindiv.dcmass_leaf = 0.0;
+		cropindiv.dcmass_root = 0.0;
+		cropindiv.dcmass_ho = 0.0;
+		cropindiv.dcmass_agpool = 0.0;
+		cropindiv.dcmass_stem = 0.0;
+		cropindiv.dnmass_ho = 0.0;
+
+		// true crop allocation
+		if(indiv.pft.phenology == CROPGREEN) {
+
+			if(ppftcrop.growingseason) {
+
+				double cmass_seed = 0.0;
+				double nmass_seed = 0.0;
+
+#ifdef DELAYED_SEEDCARBON
+				// Seed carbon; portion the seed carbon over a 10-day period.
+				if(dayinperiod(date.day, pppftcrop.sdate, (patchpft.cropphen->sdate + 9)) % 365 ) {			
+
+					cmass_seed = 0.1 * CMASS_SEED;
+					nmass_seed = 0.1 * CMASS_SEED / indiv.pft.cton_leaf_min;
+				}
+#else
+				// add seed carbon on sowing date
+				if(date.day == ppftcrop.sdate) {
+
+					cmass_seed = CMASS_SEED;
+					nmass_seed = CMASS_SEED / indiv.pft.cton_leaf_min;
+				}
+#endif
+
+				if(ifnlim_lc[CROPLAND])
+					allocation_crop_nlim(indiv, cmass_seed, nmass_seed);
+				else
+					allocation_crop(indiv, cmass_seed, nmass_seed);
+
+				// save this year's maximum leaf carbon mass
+				if(cropindiv.grs_cmass_leaf > cropindiv.cmass_leaf_max)	
+					cropindiv.cmass_leaf_max = cropindiv.grs_cmass_leaf;
+
+				// save leaf carbon mass at the beginning of senescence
+				if(date.day == ppftcrop.sendate)
+					cropindiv.cmass_leaf_sen = cropindiv.grs_cmass_leaf;
+
+				// Check that no plant cmass or nmass is negative, if so, and correct fluxes
+				double negative_cmass = indiv.check_C_mass();
+				if(negative_cmass > 1.0e-14)
+					dprintf("Year %d day %d Stand %d indiv %d: Negative main crop C mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_cmass);
+				double negative_nmass = indiv.check_N_mass();
+				if(negative_nmass > 1.0e-14)
+					dprintf("Year %d day %d Stand %d indiv %d: Negative main crop N mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_nmass);
+			}
+			else if(date.day == ppftcrop.hdate) {
+
+				patch.stand.isrotationday = true;
+
+				cropindiv.harv_cmass_plant += cropindiv.grs_cmass_plant;
+				cropindiv.harv_cmass_root += cropindiv.grs_cmass_root;
+				cropindiv.harv_cmass_ho += cropindiv.grs_cmass_ho;
+				cropindiv.harv_cmass_leaf += cropindiv.grs_cmass_leaf;
+				cropindiv.harv_cmass_agpool += cropindiv.grs_cmass_agpool;
+				cropindiv.harv_cmass_stem += cropindiv.grs_cmass_stem;
+
+				cropindiv.harv_nmass_root += indiv.nmass_root;
+				cropindiv.harv_nmass_ho += cropindiv.nmass_ho;
+				cropindiv.harv_nmass_leaf += indiv.nmass_leaf;
+				cropindiv.harv_nmass_agpool += cropindiv.nmass_agpool;
+				// dead_leaf to be addad
+
+				if(ppftcrop.nharv == 1)
+					cropindiv.cmass_ho_harvest[0] = cropindiv.grs_cmass_ho;
+				else if(ppftcrop.nharv == 2)
+					cropindiv.cmass_ho_harvest[1] = cropindiv.grs_cmass_ho;
+
+				patch.isharvestday = true;
+
+				if(indiv.has_daily_turnover()) {
+					if(patch.stand.get_gridcell().LC_updated && patchpft.cropphen->nharv == 1)
+						scale_indiv(indiv, true);
+					harvest_crop(indiv, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass, true);
+					patch.is_litter_day = true;
+				}
+				patch.nharv++;
+
+				cropindiv.grs_cmass_plant = 0.0;
+				cropindiv.grs_cmass_root = 0.0;
+				cropindiv.grs_cmass_ho = 0.0;
+				cropindiv.grs_cmass_leaf = 0.0;
+				cropindiv.grs_cmass_agpool = 0.0;
+				cropindiv.cmass_leaf_sen = 0.0;	
+
+				cropindiv.grs_cmass_stem = 0.0;
+				cropindiv.grs_cmass_dead_leaf = 0.0;
+				cropindiv.nmass_dead_leaf = 0.0;
+				cropindiv.nmass_agpool = 0.0;
+				indiv.nmass_leaf = 0.0;
+				indiv.nmass_root = 0.0;
+				cropindiv.nmass_ho = 0.0;
+			}
+		}
+		// crop grass allocation
+		// NB: Only intercrop grass enters here ! normal cc3g/cc4g grass is treated just like natural grass 
+		else if(indiv.pft.phenology == ANY && indiv.pft.id != patch.stand.pftid) {
+
+			if(ppftcrop.growingseason) {
+
+				cropindiv.dcmass_plant = 0.0;
+#ifdef GRASS_SEED_CMASS
+				// add seed carbon
+				if(!indiv.continous_grass() && date.day == patch.pft[patch.stand.pftid].cropphen->bicdate 
+					|| indiv.continous_grass() && date.day == stepfromdate(indiv.last_turnover_day, 1)) {
+
+					double cmass_seed = CMASS_SEED;
+					cropindiv.grs_cmass_plant += cmass_seed;
+					cropindiv.ycmass_plant += cmass_seed;
+					cropindiv.dcmass_plant += cmass_seed;
+					double nmass_seed = cmass_seed / indiv.pft.cton_leaf_min;
+					indiv.nmass_leaf += nmass_seed / 2.0;
+					indiv.nmass_root += nmass_seed / 2.0;
+
+					indiv.report_flux(Fluxes::SEEDC, -cmass_seed);
+					indiv.report_flux(Fluxes::SEEDN, -nmass_seed);
+
+					indiv.last_turnover_day = -1;
+				}
+#endif
+				cropindiv.dcmass_plant += indiv.dnpp;
+				cropindiv.grs_cmass_plant += indiv.dnpp;		
+				cropindiv.ycmass_plant += indiv.dnpp;
+
+				indiv.ltor = indiv.wscal_mean() * indiv.pft.ltor_max;
+
+				// allocation to roots
+				double froot = 1.0 / (1.0 + indiv.ltor);
+				double grs_cmass_root_old = cropindiv.grs_cmass_root;	
+
+				//Cumulative wscal-dependent root increase						
+				cropindiv.grs_cmass_root = froot * cropindiv.grs_cmass_plant;
+				cropindiv.dcmass_root = cropindiv.grs_cmass_root - grs_cmass_root_old;
+				cropindiv.ycmass_root += cropindiv.dcmass_root;
+
+				// allocation to leaves
+				double fleaf = 1.0 - froot;
+				double grs_cmass_leaf_old = cropindiv.grs_cmass_leaf;
+				cropindiv.grs_cmass_leaf = cropindiv.grs_cmass_plant - cropindiv.grs_cmass_root;
+				cropindiv.dcmass_leaf = cropindiv.grs_cmass_leaf - grs_cmass_leaf_old;
+				cropindiv.ycmass_leaf += cropindiv.dcmass_leaf;
+
+				// Check that no plant cmass is negative, if so, zero cmass and correct C fluxes
+				double negative_cmass = indiv.check_C_mass();
+				if(!SUPPRESSLARGEOUTPUT) {
+					if(negative_cmass > 1.0e-14)
+						dprintf("Year %d day %d Stand %d indiv %d: Negative intercrop C mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_cmass);
+					double negative_nmass = indiv.check_N_mass();
+					if(negative_nmass > 1.0e-14)
+						dprintf("Year %d day %d Stand %d indiv %d: Negative intercrop N mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_nmass);
+				}
+
+				// save this year's maximum leaf carbon mass
+				if(cropindiv.grs_cmass_leaf > cropindiv.cmass_leaf_max)	
+					cropindiv.cmass_leaf_max = cropindiv.grs_cmass_leaf;
+			}
+			else if(date.day == patch.pft[patch.stand.pftid].get_cropphen()->eicdate) {
+
+				cropindiv.harv_cmass_plant += cropindiv.grs_cmass_plant;	
+				cropindiv.harv_cmass_root += cropindiv.grs_cmass_root;	
+				cropindiv.harv_cmass_leaf += cropindiv.grs_cmass_leaf;	
+				cropindiv.harv_cmass_ho += cropindiv.grs_cmass_ho;		
+				cropindiv.harv_cmass_agpool += cropindiv.grs_cmass_agpool;
+
+				cropindiv.harv_nmass_root += indiv.nmass_root;
+				cropindiv.harv_nmass_ho += cropindiv.nmass_ho;
+				cropindiv.harv_nmass_leaf += indiv.nmass_leaf;
+				cropindiv.harv_nmass_agpool += cropindiv.nmass_agpool;
+
+				ppftcrop.nharv++;
+				patch.isharvestday = true;
+				nharv_today++;
+				if(nharv_today > 1)	// In case of both C3 and C4 growing
+					patch.nharv--;
+
+				if(indiv.has_daily_turnover()) {
+					if(patch.stand.get_gridcell().LC_updated && patchpft.cropphen->nharv == 1)
+						scale_indiv(indiv, true);
+					harvest_crop(indiv, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass, true);
+					patch.is_litter_day = true;
+				}
+				else {
+					cropindiv.grs_cmass_root = 0.0;
+					cropindiv.grs_cmass_ho = 0.0;
+					cropindiv.grs_cmass_leaf = 0.0;
+					cropindiv.grs_cmass_agpool = 0.0;
+				}
+				patch.nharv++;
+
+				cropindiv.grs_cmass_plant = cropindiv.grs_cmass_root + cropindiv.grs_cmass_leaf;
+			}
+			
+			if(indiv.continous_grass() && indiv.is_turnover_day()) {
+
+				indiv.last_turnover_day = date.day;
+
+				cropindiv.harv_cmass_plant += cropindiv.grs_cmass_plant;	
+				cropindiv.harv_cmass_root += cropindiv.grs_cmass_root;	
+				cropindiv.harv_cmass_leaf += cropindiv.grs_cmass_leaf;	
+				cropindiv.harv_cmass_ho += cropindiv.grs_cmass_ho;		
+				cropindiv.harv_cmass_agpool += cropindiv.grs_cmass_agpool;
+
+				cropindiv.harv_nmass_root += indiv.nmass_root;
+				cropindiv.harv_nmass_ho += cropindiv.nmass_ho;
+				cropindiv.harv_nmass_leaf += indiv.nmass_leaf;
+				cropindiv.harv_nmass_agpool += cropindiv.nmass_agpool;
+
+				ppftcrop.nharv++;
+				patch.isharvestday = true;
+				nharv_today++;
+				if(nharv_today > 1)	// In case of both C3 and C4 growing
+					patch.nharv--;
+
+				if(indiv.has_daily_turnover()) {
+					if(patch.stand.get_gridcell().LC_updated && patchpft.cropphen->nharv == 1)
+						scale_indiv(indiv, true);
+
+					turnover_grass(indiv);
+					patch.is_litter_day = true;
+				}
+				else {
+					cropindiv.grs_cmass_root = 0.0;
+					cropindiv.grs_cmass_ho = 0.0;
+					cropindiv.grs_cmass_leaf = 0.0;
+				}
+				patch.nharv++;
+
+				cropindiv.grs_cmass_plant = cropindiv.grs_cmass_root + cropindiv.grs_cmass_leaf;
+				cropindiv.grs_cmass_agpool = 0.0;
+			}
+		}
+		vegetation.nextobj();
+	}
+
+	return;
+}
+
+/// Handles daily crop allocation and daily lai calculation
+/** Simple allocation based on heat unit accumulation.
+ *  LAI is set directly after allocation from leaf carbon mass.
+ */
+void growth_daily(Patch& patch) {
+
+	if(patch.stand.landcover == CROPLAND) {
+
+		// allocate daily npp to leaf, roots and harvestable organs
+		growth_crop_daily(patch);
+
+		// update patchpft.lai_daily and fpc_daily
+		lai_crop(patch);
+	}
+}

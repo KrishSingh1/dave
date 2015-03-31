@@ -1,0 +1,17 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// \file cropsowing.h
+/// \brief Seasonality and sowing date calculations				
+/// \author Mats Lindeskog
+/// $Date$
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#ifndef CROPSOWING_H
+#define CROPSOWING_H
+
+
+/// Monitors climate history relevant for sowing date calculation. Calculates initial sowing dates/windows
+void crop_sowing_gridcell(Gridcell& gridcell);
+/// handles sowing date calculations for crop pft:s on patch level
+void crop_sowing_patch(Patch& patch);
+
+#endif // CROPSOWING_H

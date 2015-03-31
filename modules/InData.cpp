@@ -36,7 +36,7 @@ bool TimeDataD::item_in_header(char* name) {
 		return true;
 }
 
-void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist) { //Requires gutil.h
+void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist, double offset) { //Requires gutil.h
 
 	if(checkdata) {
 		delete[] checkdata;
@@ -52,7 +52,7 @@ void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist) { //Requires gutil
 	while(gridlist.isobj)
 	{
 		Coord& c=gridlist.getobj();
-		if(Load(c))
+		if(Load(c, offset))
 		{
 			for(int i=0;i<nYears;i++)
 			{
@@ -275,7 +275,7 @@ int TimeDataD::Open(char* name) {
 			printf("Could not allocate memory for data from file %s!\n", name);
 			return 0;
 		}
-		spacial_resolution = ParseSpacialResolution();
+		spatial_resolution = ParseSpatialResolution();
 	}
 	else {
 		printf("TimeDataD::Open: File %s could not be opened for input !\n\n", name);
@@ -302,9 +302,14 @@ void TimeDataD::CreateFileMap() {
 		fseek(ifp_map, 0 ,SEEK_END);
 		lSize = ftell(ifp_map);
 		rewind(ifp_map);
+		if(lSize != nCells * sizeof(CoordPos)) {
+			dprintf("Text data map file format is not up to date. New mapping started.\n");
+			fclose(ifp_map);
+			ifp_map = NULL;
+		}
 	}
 
-	if(!ifp_map || !lSize) {
+	if(!ifp_map) {
 //		dprintf("Mapping data in input file %s\n", fileName);
 		rewind(ifp);
 		while(LoadNext(&pos) && i < nCells) {
@@ -612,7 +617,7 @@ int TimeDataD::ParseNYears() {
 	return n_yearsX;
 }
 
-double TimeDataD::ParseSpacialResolution() {
+double TimeDataD::ParseSpatialResolution() {
 
 	double precision = 100;
 	double dif_lon;
@@ -1091,9 +1096,10 @@ int TimeDataD::Load() {	// for GLOBAL_YEARLY and GLOBAL_STATIC data
 
 int TimeDataD::LoadFromMap(Coord c) {
 
-	double searchradius = min(spacial_resolution / 2.0, MAX_SEARCHRADIUS);
+	double searchradius = min(spatial_resolution / 2.0, MAX_SEARCHRADIUS);
 	double min_dist = 1000;
 	long int found_pos = -1;
+	int found_i;
 
 	for(int i=0; i<nCells; i++) {
 
@@ -1103,13 +1109,14 @@ int TimeDataD::LoadFromMap(Coord c) {
 			if(min_dist > (dif_lon + dif_lat)) {
 				min_dist = dif_lon + dif_lat;
 				found_pos = filemap[i].pos;
+				found_i = i;
 			}
 		}
 	}
 	if(found_pos > -1) {
 		SetPosition(found_pos);
 		LoadNext();
-		if(currentStand.lon != c.lon || currentStand.lat != c.lat)
+		if(currentStand.lon != filemap[found_i].lon || currentStand.lat != filemap[found_i].lat)
 			fail("Error in saved file map for %s. Delete map.bin file and retry\n", fileName);
 		return 1;
 	}
@@ -1117,8 +1124,12 @@ int TimeDataD::LoadFromMap(Coord c) {
 		return 0;
 }
 
-int TimeDataD::Load(Coord c) {
+int TimeDataD::Load(Coord c, double offset) {
 
+	if(offset) {
+		c.lon +=(offset - min(spatial_resolution / 2.0, MAX_SEARCHRADIUS));
+		c.lat +=(offset - min(spatial_resolution / 2.0, MAX_SEARCHRADIUS));
+	}
 	if(memory_copy)
 		return memory_copy->Load(c);
 	else if(filemap)
@@ -1159,7 +1170,7 @@ int TimeDataD::Load(Coord c) {
 							sscanf(p, "%f", &latX);
 							p=strtok(NULL, " \t");	//year
 
-							if(fabs(lonX - c.lon) > spacial_resolution / 2.0 || fabs(latX - c.lat) > spacial_resolution / 2.0) {
+							if(fabs(lonX - c.lon) > spatial_resolution / 2.0 || fabs(latX - c.lat) > spatial_resolution / 2.0) {
 								printf("FORMAT ERROR in input file %s for stand at Coordinate %.2f,%.2f: Load(). Wrong coordinates in data file !\n", fileName,c.lon,c.lat);
 								error=1;
 								break;
@@ -1354,7 +1365,7 @@ int TimeDataD::LoadNext(long int *pos) {
 			else
 				error=1;
 
-			for(i=0;i<nYears && error==0;) {
+			for(i=0;i<nYears && error==0 && count>0;) {
 
 				k=0;
 				count1=0;
@@ -1448,7 +1459,7 @@ int TimeDataD::LoadNext(long int *pos) {
 				error=1;
 			}
 
-			for(i=0;i<nYears && error==0;) {
+			for(i=0;i<nYears && error==0 && count>0;) {
 
 				k=0;
 				count1=0;
@@ -1546,7 +1557,7 @@ int TimeDataD::FindRecord(Coord c) const {
 					
 						if(count==2 || count>2 && (d3==firstyear || format==LOCAL_STATIC) && (format==LOCAL_STATIC || ifheader)) {
 
-							if(fabs(d1 - c.lon) <= spacial_resolution / 2.0 && fabs(d2 - c.lat) <= spacial_resolution / 2.0) {
+							if(fabs(d1 - c.lon) <= spatial_resolution / 2.0 && fabs(d2 - c.lat) <= spatial_resolution / 2.0) {
 								if(!ischeckingdata)
 if(!SUPPRESSLARGEOUTPUT)
 										dprintf("Coordinate <%.2f,%.2f> found in %s\n", d1, d2, fileName);
@@ -1637,7 +1648,7 @@ int TimeDataD::FindRecord2(Coord c) const {
 				
 					if(count==2 || count>2 && d3==firstyear && (format==LOCAL_STATIC || ifheader)) {
 
-						if(fabs(d1 - c.lon) <= spacial_resolution / 2.0 && fabs(d2 - c.lat) <= spacial_resolution / 2.0) {
+						if(fabs(d1 - c.lon) <= spatial_resolution / 2.0 && fabs(d2 - c.lat) <= spatial_resolution / 2.0) {
 
 							if(!ischeckingdata)
 if(!SUPPRESSLARGEOUTPUT)
@@ -1907,7 +1918,7 @@ TimeDataD::TimeDataD(int formatX) {
 	fileopened=false;
 	memory_copy=NULL;
 	filemap=NULL;
-	spacial_resolution = 0.5; // Default 0,5 deg.
+	spatial_resolution = 0.5; // Default 0,5 deg.
 }
 
 //Deconstructor
@@ -2004,7 +2015,7 @@ double TimeDataDmem::Get(int calender_year, const char* name) const {
 int TimeDataDmem::Load(Coord c) {
 
 	bool error=true;
-	double searchradius = min(spacial_resolution / 2.0, MAX_SEARCHRADIUS);
+	double searchradius = min(spatial_resolution / 2.0, MAX_SEARCHRADIUS);
 
 	//In case gridlist cell order is same as in land use files
 	if(currentCell < (nCells - 1) && fabs(gridlist[currentCell+1].lon - c.lon) <= searchradius && fabs(gridlist[currentCell+1].lat - c.lat) <= searchradius) {
@@ -2084,8 +2095,8 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 		ifheader = true;
 
 	firstyear = Data.GetFirstyear();
-	spacial_resolution = Data.GetSpacialResolution();
-	double searchradius = min(spacial_resolution / 2.0, MAX_SEARCHRADIUS);
+	spatial_resolution = Data.GetSpacialResolution();
+	double searchradius = min(spatial_resolution / 2.0, MAX_SEARCHRADIUS);
 
 	double *celldata;
 	celldata = new double[Data.GetnColumns() * Data.GetnYears()];

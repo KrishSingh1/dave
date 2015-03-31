@@ -77,7 +77,7 @@ class TimeDataD	{
 	/// Number of data gridcells
 	int nCells;									//Set in ParseNCells() or ParseNCellsSpatial()
 	// Spacial resolution of input data in degrees
-	double spacial_resolution;
+	double spatial_resolution;
 	/// Whether the input file structure includes a header line with column names and coordinates on each line of data
 	bool ifheader;
 	/// String array of data column names
@@ -116,7 +116,7 @@ class TimeDataD	{
 	int ParseNYearsSpatial();					//Called from OpenSpatial()
 	void ParseNCells();
 	int ParseNCellsSpatial();
-	double ParseSpacialResolution();			//Called from Open()
+	double ParseSpatialResolution();			//Called from Open()
 
 	/// Allocates memory for dynamic data structures
 	int Allocate();								//Called from Open() or OpenSpatial()
@@ -165,7 +165,7 @@ public:
 	/// Loads global data
 	int Load();
 	/// Loads data for a certain coordinate. Returns 0 if coordinate not found.
-	int Load(Coord c);
+	int Load(Coord c, double offset = 0.0);
 	/// Steps through a data file, loading each coordinate's data consecutively. Returns 0 if error.
 	int LoadNext(long int *pos = NULL);
 	/// Returns a single data value for a certain year and data column
@@ -205,14 +205,14 @@ public:
 	/// Returns true if data for requested coordinates are found, false if not.
 	bool isloaded();
 	/// Sets spacial resolution
-	void SetSpacialResolution(double resolution) {spacial_resolution = resolution;}
+	void SetSpacialResolution(double resolution) {spatial_resolution = resolution;}
 	/// Returns spacial resolution
-	double GetSpacialResolution() const {return spacial_resolution;}
+	double GetSpacialResolution() const {return spatial_resolution;}
 
 // Functions for finding out if data columns contain sensible data for a specified gridlist 
 #ifdef GUESS_VERSION
 	/// Checks if data column has any values > 0 in any of the gridcells in the gridlist
-	void CheckIfPresent(ListArray_id<Coord>& gridlist);
+	void CheckIfPresent(ListArray_id<Coord>& gridlist, double offset = 0.0);
 #endif
 	// Returns true if data column has any values > 0 in any of the gridcells in the gridlist (after CheckIfPresent() call)
 	bool item_has_data(char* name);
@@ -239,7 +239,7 @@ class TimeDataDmem {
 	/// Number of data gridcells
 	int nCells;
 	// Spacial resolution of input data in degrees
-	double spacial_resolution;
+	double spatial_resolution;
 	/// Whether the input file structure includes a header line with column names and coordinates on each line of data
 	bool ifheader;
 	/// String array of data column names
@@ -289,7 +289,7 @@ public:
 	/// Returns true if data for requested coordinates are found, false if not.
 	bool isloaded() const { return loaded;}
 	/// Sets spacial resolution
-	void SetSpacialResolution(double resolution) {spacial_resolution = resolution;}
+	void SetSpacialResolution(double resolution) {spatial_resolution = resolution;}
 };
 
 } // namespace InData

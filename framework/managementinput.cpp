@@ -44,22 +44,23 @@ void ManagementInputModule::init() {
 bool ManagementInputModule::loadmanagement(Gridcell& gridcell, Coord c) {
 
 	bool LUerror = false;
+	double offset = search_for_centre_of_gridcell * input.gridlist_spatial_resolution / 2.0;
 
 #if defined DYNAMIC_LANDCOVER_INPUT
 	if(readsowingdates) { 
-		if(!sdates.Load(c)) {
+		if(!sdates.Load(c, offset)) {
 			dprintf("Problems with sowing date input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
 			LUerror = true;	// skip this stand
 		}
 	}
 	if(readharvestdates && !LUerror) {
-		if(!hdates.Load(c)) {
+		if(!hdates.Load(c, offset)) {
 			dprintf("Problems with harvest date input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
 			LUerror = true;	// skip this stand
 		}
 	}
 	if(readNfert && !LUerror) {
-		if(!Nfert.Load(c)) {
+		if(!Nfert.Load(c, offset)) {
 //				dprintf("Problems with N fertilization input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
 //				LUerror = true;	// skip this stand
 			dprintf("N fertilization data not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);

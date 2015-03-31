@@ -60,6 +60,8 @@ void DemoInput::init() {
 #ifdef SOIL_INPUT_IN_CLIMATE_MODULE
 	file_soil=param["file_soil"].str;
 #endif
+	if(search_for_centre_of_gridcell)
+		fail("Demo input does not support searchradius\n");
 }
 
 

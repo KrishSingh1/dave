@@ -28,6 +28,8 @@ const int NYEAR_TOTNDEP = NYEAR_HISTNDEP + NYEAR_SCENNDEP - 1;
 /// calendar year corresponding to first year nitrogen deposition
 const int FIRSTHISTYEARNDEP=1850;
 
+const double SPATIAL_RESOLUTION = 0.5;
+
 /// Type of time series to use (historic/scenario/fixed)
 enum timeseriestype { 
 	/// Only the historic (1850-2009) data set

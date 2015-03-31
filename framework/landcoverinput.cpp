@@ -91,8 +91,9 @@ void LandcoverInputModule::init() {
 			// Remove crop stand types from stlist that always have zero area fraction in all cells in grid list
 
 			if(minimizecftlist && gridlist.nobj < 100) {	// Reduce the risk of accidentally using minimized cft lists when using split gridlists.
-					
-				CFTdata.CheckIfPresent(gridlist);
+
+				double offset = search_for_centre_of_gridcell * input.gridlist_spatial_resolution / 2.0;
+				CFTdata.CheckIfPresent(gridlist, offset);
 				do_minimize = true;
 			}
 
@@ -183,10 +184,8 @@ bool LandcoverInputModule::getgridcell(Gridcell& gridcell) {
 
 bool LandcoverInputModule::loadlandcover(Gridcell& gridcell, Coord c) {
 
-#if defined DYNAMIC_LANDCOVER_INPUT
-//	InData::Coord c = GetLonLat(cc);
-#endif
 	bool LUerror = false;
+	double offset = search_for_centre_of_gridcell * input.gridlist_spatial_resolution / 2.0;
 
 	if (!lcfrac_fixed) {
 
@@ -203,7 +202,7 @@ bool LandcoverInputModule::loadlandcover(Gridcell& gridcell, Coord c) {
 #if defined DYNAMIC_LANDCOVER_INPUT
 		if (loadLU) {
 			// Load landcover area fraction data from input file to data object
-			if (!LUdata.Load(c)) {
+			if (!LUdata.Load(c, offset)) {
 				dprintf("Problems with landcover fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror = true;		// skip this stand
 			}
@@ -212,7 +211,7 @@ bool LandcoverInputModule::loadlandcover(Gridcell& gridcell, Coord c) {
 		//Read LUC transitions
 		if(gross_land_transfer == 2 && !LUerror) {
 
-			if(!grossLUC.Load(c)) {
+			if(!grossLUC.Load(c, offset)) {
 				dprintf("Problems with gross LUC transitions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror = true;	// skip this stand
 			}
@@ -228,7 +227,7 @@ bool LandcoverInputModule::loadlandcover(Gridcell& gridcell, Coord c) {
 			// Crop fraction data: read from crop fraction file; dynamic, so data for all years are loaded to CFTdata object and 
 			// transferred to gridcell.cftfrac each year in getlandcover()			
 
-			if(!CFTdata.Load(c)) {
+			if(!CFTdata.Load(c, offset)) {
 				dprintf("Problems with CFT fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror = true;	// skip this stand
 			}

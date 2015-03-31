@@ -30,6 +30,7 @@
 #define PRINTCOMMONPFTSINSEPARATEFILES
 
 const bool SUPPRESSLARGEOUTPUT=true;
+const bool search_for_centre_of_gridcell = true;	// Needed for finding the correct input coordinates with a finer-scaled gridlist.
 
 #define CMASS_SEED 0.01	// 10g/m2;	// Initial carbon allocated to crop organs at sowing.
 

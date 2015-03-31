@@ -91,6 +91,7 @@ public:
 
 	/// Gridlist used by all different input classes
 	ListArray_id<Coord> gridlist;
+	double gridlist_spatial_resolution;
 	/// The number of grid cells to simulate
 	int ngridcell;
 

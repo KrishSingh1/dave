@@ -118,7 +118,7 @@ private:
 	/// \returns all (used) variables
 	std::vector<GuessNC::CF::GridcellOrderedVariable*> all_variables() const;
 
-	double parse_spacial_resolution();
+	double parse_spatial_resolution();
 
 	double offset_cru_to_cf_coord();
 
@@ -196,7 +196,7 @@ private:
 	/// Nitrogen deposition time series to use (historic,rcp26,...)
 	std::string ndep_timeseries;
 
-	double spacial_resolution;
+	double spatial_resolution;
 
 };
 

@@ -27,6 +27,7 @@ Input::Input(const char* climate_input_module_name, const char* landcover_input_
 	nyear_hist = 0;
 	co2_fixed = 0;
 	ngridcell = 0;
+	gridlist_spatial_resolution = 0.5;
 
 	climate_input_module = auto_ptr<InputModule>(InputModuleRegistry::get_instance().create_input_module(climate_input_module_name, *this));
 	landcover_input_module = auto_ptr<LandcoverInputModule>(new LandcoverInputModule(landcover_input_module_name, *this));
@@ -81,6 +82,27 @@ void Input::read_gridlist() {
 			}
 		}
 		fclose(in_grid);
+		gridlist.firstobj();
+
+		// Parse spatial resolution
+		double precision = 100;
+		double dif_lon;
+		double dif_lat;
+		const int maxnsample = 200;
+		int nsample = min((unsigned)maxnsample, gridlist.nobj);
+
+		for (int i=0; i<nsample; i++) {
+			for (int j=0; j<nsample; j++) {
+
+				dif_lon = fabs(gridlist[i].lon - gridlist[j].lon);
+				dif_lat = fabs(gridlist[i].lat - gridlist[j].lat);
+				if(dif_lon > 1.0e-12)
+					precision = min(precision, dif_lon);
+				if(dif_lat > 1.0e-12)
+					precision = min(precision, dif_lat);
+			}
+		}
+		gridlist_spatial_resolution = precision;
 }
 
 void Input::init() {
@@ -291,8 +313,10 @@ NdepInput::NdepInput(Input& in)
 
 bool NdepInput::getgridcell(Gridcell& gridcell) {
 
-	double lon = gridlist.getobj().lon;
-	double lat = gridlist.getobj().lat;
+	double offset = 0.0;
+	offset = search_for_centre_of_gridcell * (input.gridlist_spatial_resolution - Lamarque::SPATIAL_RESOLUTION) / 2.0;	// Assuming 0.5 deg. resolution for now.
+	double lon = gridlist.getobj().lon + offset;
+	double lat = gridlist.getobj().lat + offset;
 
 	ndep.getndep(param["file_ndep"].str, lon, lat);
 
@@ -304,13 +328,13 @@ double NdepInput::getndep(Gridcell& gridcell) {
 	Climate& climate = gridcell.climate;
 
 	if(ndep_fixed) {
-		climate.dndep = ndep_fixed / (365.0 * 10000.0);	// Compatibility with the old demo input module
+		climate.dndep = ndep_fixed / (365.0 * 10000.0);	// Compatibility with the old demo input module. No distribution by prec.
 	}
 	else {
 
 		if(date.day == 0) {
 
-			int calender_year = date.year - nyear_spinup + input.getnyear_hist();
+			int calender_year = date.year - nyear_spinup + input.getfirsthistyear();
 
 			// Extract N deposition to use for this year,
 			// monthly means to be distributed into daily values further down
@@ -348,8 +372,10 @@ void SoilInput::init() {
 bool SoilInput::loadsoilcode(Gridcell& gridcell, Coord c) {
 
 	bool gridfound = false;
+	double offset = search_for_centre_of_gridcell * input.gridlist_spatial_resolution / 2.0;
+
 #ifdef DYNAMIC_LANDCOVER_INPUT
-	if(!soilcode.Load(c)) {
+	if(!soilcode.Load(c, offset)) {
 		dprintf("Problems with soil code input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
 		gridfound = false;	// skip this stand
 	}

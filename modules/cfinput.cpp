@@ -286,7 +286,7 @@ bool CFInput::create_cf_gridlist() {
 
 double CFInput::offset_cru_to_cf_coord() {
 
-	return spacial_resolution / 2.0;
+	return spatial_resolution / 2.0;
 }
 
 bool CFInput::create_gridlist_from_cflist(xtring& file_gridlist) {
@@ -340,7 +340,7 @@ bool CFInput::create_gridlist_from_cflist(xtring& file_gridlist) {
 	return true;
 }
 
-double CFInput::parse_spacial_resolution() {
+double CFInput::parse_spatial_resolution() {
 
 	double dif_lon, dif_lat, lon, lat, lon2, lat2;
 
@@ -411,7 +411,7 @@ void CFInput::init() {
 
 	if(file_gridlist != "") {
 
-		spacial_resolution = parse_spacial_resolution();
+		spatial_resolution = parse_spatial_resolution();
 		create_gridlist_from_cflist(file_gridlist);
 	}
 }
@@ -421,6 +421,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	double lon, lat;
 	double cru_lon, cru_lat;
 	int soilcode;
+	double offset = search_for_centre_of_gridcell *  (input.gridlist_spatial_resolution - spatial_resolution) / 2.0;	// This is unfinished code !
 
 	// Make sure we use the first gridcell in the first call to this function,
 	// and then step through the gridlist in subsequent calls.

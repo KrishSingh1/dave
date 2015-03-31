@@ -102,7 +102,7 @@ public:
 
 	/// Initiates all input classes
 	void init();
-	/// Obtains coordinates and loads environmental input for tcurrent grid cell
+	/// Obtains coordinates and loads environmental input for current grid cell
 	bool getgridcell(Gridcell& gridcell);
 	/// Obtains climate data, atmospheric (and nitrogen deposition) for one day
 	bool getclimate(Gridcell& gridcell);
@@ -117,7 +117,7 @@ public:
 
 	/// Returns the first historic year of simulation
 	int getfirsthistyear() {return firsthistyear;}
-	/// Returns the first historic year of simulation
+	/// Returns the number of historic years of simulation
 	int getnyear_hist() {return nyear_hist;}
 
 	/// Returns pointer to climate input module
@@ -130,11 +130,11 @@ public:
 	void read_gridlist();
 
 private:
-	/// First historic year in simulation. May be set in instruction file.
+	/// First historic year in simulation. Optionally set in instruction file.
 	int firsthistyear;
-	/// Last historic year in simulation. May be set in instruction file.
+	/// Last historic year in simulation. Optionally set in instruction file.
 	int lasthistyear;
-	/// Number of historic years in simulation. May be set in instruction file.
+	/// Number of historic years in simulation. Optionally set in instruction file.
 	int nyear_hist;
 
 	/// Timer for keeping track of progress through the simulation

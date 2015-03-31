@@ -10,7 +10,7 @@
 #include "inputdefinitions.h"
 
 // Switch to keep CO2 level at first historical year
-bool fixedco2_histX = 0;
+const bool fixedco2_hist = 0;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Input member functions
@@ -290,7 +290,7 @@ double Input::getco2(Gridcell& gridcell) {
 	}
 	else {
 		
-		if(fixedco2_histX)
+		if(fixedco2_hist)
 			climate.co2 = co2[firsthistyear];
 		else
 			climate.co2 = co2[firsthistyear + date.year - nyear_spinup];
@@ -314,7 +314,7 @@ NdepInput::NdepInput(Input& in)
 bool NdepInput::getgridcell(Gridcell& gridcell) {
 
 	double offset = 0.0;
-	offset = search_for_centre_of_gridcell * (input.gridlist_spatial_resolution - Lamarque::SPATIAL_RESOLUTION) / 2.0;	// Assuming 0.5 deg. resolution for now.
+	offset = search_for_centre_of_gridcell * (input.gridlist_spatial_resolution - Lamarque::SPATIAL_RESOLUTION) / 2.0;
 	double lon = gridlist.getobj().lon + offset;
 	double lat = gridlist.getobj().lat + offset;
 

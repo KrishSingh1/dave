@@ -566,8 +566,6 @@ public:
 
 	/// latitude (degrees; +=north, -=south)
 	double lat;
-	/// longitude
-	double lon; 
 
 	/// Insolation today, see also instype
 	double insol;
@@ -692,10 +690,6 @@ public:
 	/// used to adapt equations to hemisphere, set in getgridcell()
 	int adjustlat;
 
-	/// copy of monthly historical or spinup temperature values for one year (from local guessio.cpp-variables hist_mtemp or spinup_mtemp).
-	double mtemp_year[12];
-	/// copy of monthly historical or spinup precipitation values for one year (from local guessio.cpp-variables hist_mtemp or spinup_mtemp).
-	double mprec_year[12];
 	/// accumulated monthly pet values for this year
 	double mpet_year[12];
 
@@ -767,11 +761,9 @@ public:
 	Climate(Gridcell& gc):gridcell(gc) {
 		memset(mtemp_20, 0, sizeof(double)*20*12);
 		memset(mtemp20, 0, sizeof(double)*12);
-		memset(mtemp_year, 0, sizeof(double)*12);
 
 		memset(mprec_20, 0, sizeof(double)*20*12);
 		memset(mprec20, 0, sizeof(double)*12);
-		memset(mprec_year, 0, sizeof(double)*12);
 
 		memset(mpet_20, 0, sizeof(double)*20*12);
 		memset(mpet20, 0, sizeof(double)*12);

@@ -77,7 +77,6 @@ void Climate::serialize(ArchiveStream& arch) {
 		& daylength
 		& co2
 		& lat
-		& lon
 		& insol
 		& instype
 		& eet

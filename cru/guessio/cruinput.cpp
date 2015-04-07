@@ -203,8 +203,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			for (m=0;m<12;m++) {
 				mtemp[m] = spinup_mtemp[m];
 				mprec[m] = spinup_mprec[m];
-				climate.mtemp_year[m] = spinup_mtemp[m];	
-				climate.mprec_year[m] = spinup_mprec[m];	
 				msun[m] = spinup_msun[m];
 
 				mfrs[m] = spinup_mfrs[m];
@@ -246,12 +244,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 				// (from Dieter Gerten 021121)
 				prdaily(hist_mprec[data_year], dprec, hist_mwet[data_year], gridcell.seed);
 			}
-
-			// save climate date for calculation of seasonality
-			for(int m=0;m<12;m++) {
-				climate.mtemp_year[m] = hist_mtemp[data_year][m];
-				climate.mprec_year[m] = hist_mprec[data_year][m];
-			}
 		}
 		else if(date.year < nyear_spinup + input.getnyear_hist()) {
 
@@ -264,8 +256,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			for (m=0;m<12;m++) {
 				mtemp[m] = extended_mtemp[m];
 				mprec[m] = extended_mprec[m];
-				climate.mtemp_year[m] = extended_mtemp[m];	
-				climate.mprec_year[m] = extended_mprec[m];	
 				msun[m] = extended_msun[m];
 
 				mfrs[m] = extended_mfrs[m];
@@ -305,12 +295,9 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	}
 
 	if(date.day == 0) {
-		climate.aprec = 0.0;
 
-		for(int m=0; m<12; m++) {
-			climate.aprec += climate.mprec_year[m];
+		for(int m=0; m<12; m++)
 			climate.mpet_year[m] = 0.0;
-		}
 	}
 	climate.mpet_year[date.month] += climate.eet * PRIESTLEY_TAYLOR;
 

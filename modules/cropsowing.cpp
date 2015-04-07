@@ -260,7 +260,7 @@ void set_sdatecalc_prec(Climate& climate, Gridcellpft& gridcellpft)
 
 	bool SOAsia;
 
-	if(climate.lat > -15.0 && climate.lat < 20.0 && climate.lon > 90.0)
+	if(climate.lat > -15.0 && climate.lat < 20.0 && climate.gridcell.get_lon() > 90.0)
 		SOAsia = true;
 	else
 		SOAsia = false;
@@ -455,9 +455,6 @@ void calc_m_climate_20y_mean(Climate& climate)
 	for(m=0; m<12; m++) {
 
 		// 1) this year
-		climate.mtemp20[m] = climate.mtemp_year[m];
-		climate.mprec20[m] = climate.mprec_year[m];
-		//historic
 		climate.mtemp20[m] = climate.hmtemp_20[m].lastadd();
 		climate.mprec20[m] = climate.hmprec_20[m].lastadd();
 		climate.aprec += climate.hmprec_20[m].lastadd();
@@ -465,16 +462,10 @@ void calc_m_climate_20y_mean(Climate& climate)
 		//
 		climate.mpet20[m] = climate.mpet_year[m];
 		if(climate.mpet_year[m] > 0.0)
-			climate.mprec_pet20[m] = climate.mprec_year[m] / climate.mpet_year[m];
+			climate.mprec_pet20[m] = climate.hmprec_20[m].lastadd() / climate.mpet_year[m];
 		else
 			climate.mprec_pet20[m] = 0.0;
 
-
-/*		if(climate.mprec_year[m] / climate.mpet_year[m] < mprec_petmin_thisyear)
-			mprec_petmin_thisyear = climate.mprec_year[m] / climate.mpet_year[m];
-		if(climate.mprec_year[m] / climate.mpet_year[m] > mprec_petmax_thisyear)
-			mprec_petmax_thisyear = climate.mprec_year[m] / climate.mpet_year[m];
-*/
 		if(climate.hmprec_20[m].lastadd() / climate.mpet_year[m] < mprec_petmin_thisyear)
 			mprec_petmin_thisyear = climate.hmprec_20[m].lastadd() / climate.mpet_year[m];
 		if(climate.hmprec_20[m].lastadd() / climate.mpet_year[m] > mprec_petmax_thisyear)
@@ -500,15 +491,11 @@ void calc_m_climate_20y_mean(Climate& climate)
 		climate.mpet20[m] /= min(20, date.year + 1);
 		climate.mprec_pet20[m] /= min(20, date.year + 1);
 
-/*		climate.mtemp_20[19][m] = climate.mtemp_year[m];
-		climate.mprec_20[19][m] = climate.mprec_year[m];
-*/
 		climate.mtemp_20[19][m] = climate.hmtemp_20[m].lastadd();
 		climate.mprec_20[19][m] = climate.hmprec_20[m].lastadd();
 
 		climate.mpet_20[19][m] = climate.mpet_year[m];
 		if(climate.mpet_year[m] > 0.0)
-//			climate.mprec_pet_20[19][m] = climate.mprec_year[m] / climate.mpet_year[m];
 			climate.mprec_pet_20[19][m] = climate.hmprec_20[m].lastadd() / climate.mpet_year[m];
 		else
 			climate.mprec_pet_20[19][m] = 0.0;

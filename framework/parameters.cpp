@@ -73,6 +73,7 @@ int scaling_mode;
 int transfer_mode;
 int nyear_dyn_phu;
 int nyear_spinup;
+bool textured_soil;
 
 xtring state_path;
 bool restart;
@@ -188,6 +189,7 @@ void initsettings() {
 	restart = false;
 	for(int lc=0; lc<NLANDCOVERTYPES; lc++)
 		frac_fixed[lc] = true;
+	textured_soil = false;
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -462,6 +464,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("iftillage",&iftillage,1,CB_NONE,"Whether to simulate tillage by increasing soil respiration");
 		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"Whether static landcover fractions are set in the ins-file (0,1)");
 		declareitem("cftfrac_fixed",&frac_fixed[CROPLAND],1,CB_NONE,"Whether static crop fractions are read from input file (0,1)");	
+		declareitem("textured_soil",&textured_soil,1,CB_NONE,"Use silt/sand fractions specific to soiltype");
 
 		declareitem("state_path", &state_path, 300, CB_NONE, "State files directory (for restarting from, or saving state files)");
 		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");

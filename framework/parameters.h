@@ -197,6 +197,9 @@ extern bool printseparatestands;
 /// Whether to simulate tillage by increasing soil respiration
 extern bool iftillage;
 
+/// Use silt/sand fractions per soiltype
+extern bool textured_soil;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Settings controlling the saving and loading from state files
 

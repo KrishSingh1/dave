@@ -9,7 +9,6 @@
 #include "cropallocation.h"
 
 //#define DELAYED_SEEDCARBON		//Seed carbon allocation to leaves and roots are done over a 10-day period.
-#define GRASS_SEED_CMASS	// Carbon allocated to cover-crop grass on bicdate or the day after turnover.
 
 /// Updates patch.members fpc_total and fpc_rescale for crops (to be called after crop_phenology())
 void update_patch_fpc(Patch& patch) {
@@ -89,10 +88,7 @@ void turnover_grass(Individual& indiv) {
 	double cmass_leaf_inc = cropindiv.grs_cmass_leaf - indiv.cmass_leaf_post_turnover;
 	double cmass_root_inc = cropindiv.grs_cmass_root - indiv.cmass_root_post_turnover;
 
-	double grs_npp = cmass_leaf_inc + cmass_root_inc;
-#ifdef GRASS_SEED_CMASS
-	grs_npp -= CMASS_SEED;
-#endif
+	double grs_npp = cmass_leaf_inc + cmass_root_inc - CMASS_SEED;
 	double cmass_leaf_pre_turnover = cropindiv.grs_cmass_leaf;
 	double cmass_root_pre_turnover = cropindiv.grs_cmass_root;
 	double cton_leaf_bg = indiv.cton_leaf(false);
@@ -132,6 +128,7 @@ void turnover_grass(Individual& indiv) {
 	indiv.nstore_longterm = 0.0;
 }
 
+/// Help function used by allocation_crop_nlim()
 void crop_allocation_WE(cropphen_struct& ppftcrop, Individual& indiv) {
 
 	ppftcrop.dev_stage = max(0.0,min(2.0, -0.595 * pow(ppftcrop.fphu, 2.0) + 2.595 * ppftcrop.fphu));
@@ -187,9 +184,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 		crop_allocation_WE(ppftcrop, indiv);
 
 		if(indiv.dnpp < 0.0){
-#define STEMSUGAR
-			//#undef STEMSUGAR
-#ifdef STEMSUGAR
+
 			if(-indiv.dnpp < cropindiv.grs_cmass_agpool) {
 				cropindiv.grs_cmass_agpool -= -indiv.dnpp;
 				cropindiv.ycmass_agpool -= -indiv.dnpp;
@@ -202,15 +197,8 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 				cropindiv.grs_cmass_agpool = 0.0;
 				indiv.dnpp = 0.0;
 			}
-#else
-			indiv.report_flux(Fluxes::NPP, -indiv.dnpp);
-			indiv.dnpp = 0.0;
-#endif
-		}
 
-#ifdef STEMSUGAR
-#define USESTEMSUGAR
-#ifdef USESTEMSUGAR
+		}
 
 		if (cropindiv.grs_cmass_agpool > 0.0 && patchpft.cropphen->f_alloc_horg > 0.95) {
 			cmass_extra += 0.1 * cropindiv.grs_cmass_agpool;
@@ -218,8 +206,6 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 			cropindiv.grs_cmass_agpool *= 0.9;
 		}
 
-#endif
-#endif
 		indiv.daily_cmass_rootloss = 0.0;
 		indiv.daily_nmass_rootloss = 0.0;
 
@@ -239,12 +225,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 			// put in to the ag N pool
 			if( new_CN < indiv.pft.cton_leaf_min ) {
 
-#define THREEQUARTER
-#ifdef THREEQUARTER
 				indiv.daily_nmass_leafloss = max(0.0, indiv.nmass_leaf - (cropindiv.grs_cmass_leaf + cropindiv.dcmass_leaf) / (1.33 * indiv.pft.cton_leaf_min));
-#else
-				indiv.daily_nmass_leafloss = max(0.0, indiv.nmass_leaf - (cropindiv.grs_cmass_leaf + cropindiv.dcmass_leaf) / indiv.pft.cton_leaf_min);
-#endif
 				if(indiv.daily_nmass_leafloss > indiv.nmass_leaf) {
 					indiv.daily_nmass_leafloss = 0.0;
 				}
@@ -253,9 +234,6 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 			}
 			// Very experimental root senescence
 			// N and C loss when root senescence is allowed f_HO > 0.5
-#define ROOTLOSS
-			//#undef ROOTLOSS
-#ifdef ROOTLOSS
 			//d3, the DS after which more than half of the daily assimilates are going to the grains.
 			if(patchpft.cropphen->dev_stage > indiv.pft.d3) {
 				//only have root senescence when leaf scenescence har occured
@@ -273,7 +251,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 					indiv.daily_nmass_rootloss = indiv.nmass_root * kN;
 				}
 			}
-#endif
+
 			indiv.nmass_leaf -= indiv.daily_nmass_leafloss;
 			cropindiv.nmass_agpool += indiv.daily_nmass_leafloss;
 		} 
@@ -308,15 +286,11 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 		cropindiv.ycmass_plant += cropindiv.dcmass_plant;
 
 		cropindiv.grs_cmass_leaf += cropindiv.dcmass_leaf;
-#ifdef STEMSUGAR
 		cropindiv.grs_cmass_stem += (1.0 - 0.4) * cropindiv.dcmass_stem;
 		cropindiv.ycmass_stem += (1.0 - 0.4) * cropindiv.dcmass_stem;
 		cropindiv.grs_cmass_agpool += 0.4 * cropindiv.dcmass_stem;
 		cropindiv.ycmass_agpool += 0.4 * cropindiv.dcmass_stem;
-#else
-		cropindiv.grs_cmass_stem += cropindiv.dcmass_stem;
-		cropindiv.ycmass_stem += cropindiv.dcmass_stem;
-#endif
+
 		cropindiv.grs_cmass_root += cropindiv.dcmass_root;
 		cropindiv.grs_cmass_ho += cropindiv.dcmass_ho;
 		cropindiv.grs_cmass_plant += cropindiv.dcmass_plant;
@@ -326,6 +300,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 		double avail_root_N = max(0.0, (1.0 / indiv.cton_root(false) - 1.0 / indiv.pft.cton_root_max) * indiv.cmass_root_today());
 		double avail_stem_N = max(0.0,cropindiv.nmass_agpool - 1.0 / indiv.pft.cton_stem_max * cropindiv.grs_cmass_stem);
 		double avail_N = avail_leaf_N + avail_root_N + avail_stem_N;
+
 		if (avail_N > 0.0 && cropindiv.dcmass_ho > 0.0) {
 			ndemand_ho = cropindiv.dcmass_ho / indiv.pft.cton_leaf_avr;
 		}
@@ -383,6 +358,9 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 	return;
 }
 
+/// Daily allocation routine for crops without nitrogen limitation
+/** Allocates daily npp to leaf, roots and harvestable organs
+ */
 void allocation_crop(Individual& indiv, double cmass_seed, double nmass_seed) {
 
 	cropindiv_struct& cropindiv = *(indiv.get_cropindiv());
@@ -450,9 +428,9 @@ void allocation_crop(Individual& indiv, double cmass_seed, double nmass_seed) {
 }
 
 /// Daily growth routine for crops
-/** Allocates daily npp to leaf, roots and harvestable organs
+/** Allocates daily npp to leaf, roots and harvestable organs by calling
+ *  allocation_crop_nlim() or allocation_crop()
  *  Requires updated value of fphu and hi.
- *  Equations are from Neitsch et al. 2002.
  */
 void growth_crop_daily(Patch& patch) {
 
@@ -609,7 +587,7 @@ void growth_crop_daily(Patch& patch) {
 			if(ppftcrop.growingseason) {
 
 				cropindiv.dcmass_plant = 0.0;
-#ifdef GRASS_SEED_CMASS
+
 				// add seed carbon
 				if(!indiv.continous_grass() && date.day == patch.pft[patch.stand.pftid].cropphen->bicdate 
 					|| indiv.continous_grass() && date.day == stepfromdate(indiv.last_turnover_day, 1)) {
@@ -627,7 +605,7 @@ void growth_crop_daily(Patch& patch) {
 
 					indiv.last_turnover_day = -1;
 				}
-#endif
+
 				cropindiv.dcmass_plant += indiv.dnpp;
 				cropindiv.grs_cmass_plant += indiv.dnpp;		
 				cropindiv.ycmass_plant += indiv.dnpp;
@@ -758,5 +736,161 @@ void growth_daily(Patch& patch) {
 
 		// update patchpft.lai_daily and fpc_daily
 		lai_crop(patch);
+	}
+}
+
+/// Handles yearly cropland lai and fpc calculation, called from allometry()
+/** Uses cmass_leaf_max for true crops and lai from whole-year grass stands for
+ *  cover-crop grass if present.
+ */
+void allometry_crop(Individual& indiv) {
+
+	cropphen_struct& ppftcrop = *(indiv.vegetation.patch.pft[indiv.pft.id].get_cropphen());
+
+	// crop grass compatible with natural grass
+	if(indiv.pft.phenology == ANY) {
+
+		indiv.lai_indiv = indiv.cmass_leaf * indiv.pft.sla;
+
+		// For intercrop grass, use LAI of parent grass in its own stand.
+		if(indiv.cropindiv->isintercropgrass) {
+
+			bool done = false;
+
+			Gridcell& gridcell = indiv.vegetation.patch.stand.get_gridcell();
+
+			//First look in PASTURE.
+			if(gridcell.landcoverfrac[PASTURE] > 0.0) {
+
+				char name_start[5] = {0};
+				char* sp = NULL;
+				strncpy(name_start, indiv.pft.name, 4);
+				sp = name_start + 1;										//NB: this works with current pft names. CC3G_ic and C3G_pasture
+
+				for(unsigned int i = 0; i < gridcell.size() && !done; i++) {
+
+					Stand& stand=gridcell[i];
+					if(stand.landcover == PASTURE)
+					{
+						for(unsigned int j = 0; j < stand.nobj && !done; j++)
+						{
+							Patch& patch = stand[j];
+							Vegetation& vegetation = patch.vegetation;
+							for(unsigned int k = 0; k < vegetation.nobj && !done; k++) {
+								Individual& grass_indiv = vegetation[k];
+
+								if(!strncmp(sp, grass_indiv.pft.name, 3)) {	//NB: this works with current pft names. CC3G_ic and C3G_pasture
+									indiv.lai_indiv = grass_indiv.lai_indiv;
+									done = true;
+								}
+							}
+						}
+					}
+				}
+			}
+			// If PASTURE landcover not used, look for crop stand with pasture grass. 
+			else {
+
+				double highest_grass_lai = 0.0;
+				double grass_cmass_leaf_sum = 0.0;
+
+				// Get sum of intercrop grass cmass_leaf in this patch
+				Vegetation& vegetation_self = indiv.vegetation;
+
+				for(unsigned int k = 0; k < vegetation_self.nobj; k++) {
+
+					Individual& indiv_veg = vegetation_self[k];
+
+					if(indiv_veg.cropindiv->isintercropgrass)
+						grass_cmass_leaf_sum += indiv_veg.cropindiv->cmass_leaf_max;
+				}
+
+				// Find highest lai in crop grass stands
+				for(unsigned int i = 0; i < gridcell.size(); i++) {
+
+					Stand& stand = gridcell[i];
+
+					if(stand.landcover == CROPLAND && !stand.is_true_crop_stand())	{
+
+						for(unsigned int j = 0; j < stand.nobj && !done; j++) {
+
+							Patch& patch = stand[j];
+							Vegetation& vegetation = patch.vegetation;
+
+							for(unsigned int k = 0; k < vegetation.nobj && !done; k++) {
+
+								Individual& grass_indiv = vegetation[k];
+
+								if(grass_indiv.pft.phenology == ANY) {
+
+									if(grass_indiv.lai_indiv > highest_grass_lai)
+										highest_grass_lai = grass_indiv.lai_indiv;
+								}
+							}
+						}
+					}
+				}
+
+				if(grass_cmass_leaf_sum > 0.0)
+					indiv.lai_indiv = indiv.cropindiv->cmass_leaf_max / grass_cmass_leaf_sum * highest_grass_lai;
+				else
+					indiv.lai_indiv = highest_grass_lai;
+
+				if(highest_grass_lai)
+					done = true;
+			}
+
+			//If no grass stand found in either cropland or pasture, use laimax value.
+			if(!done) {
+
+				double highest_grass_lai = 0.0;
+				double grass_cmass_leaf_sum = 0.0;
+
+				// Get sum of intercrop grass cmass_leaf and highest default laimax in this patch
+				Vegetation& vegetation_self = indiv.vegetation;
+
+				for(unsigned int k = 0; k < vegetation_self.nobj; k++) {
+
+					Individual& indiv_veg = vegetation_self[k];
+
+					if(indiv_veg.cropindiv->isintercropgrass) {
+
+						grass_cmass_leaf_sum += indiv_veg.cropindiv->cmass_leaf_max;
+
+						if(indiv_veg.pft.laimax > highest_grass_lai)
+							highest_grass_lai = indiv_veg.pft.laimax;
+					}
+				}
+
+				if(grass_cmass_leaf_sum > 0.0)
+					indiv.lai_indiv = indiv.cropindiv->cmass_leaf_max / grass_cmass_leaf_sum * highest_grass_lai;
+				else
+					indiv.lai_indiv = highest_grass_lai;
+			}
+		}
+		if(indiv.lai_indiv < 0.0)
+			fail("lai_indiv negative for %s in stand %d year %d in growth: %f\n", (char*)indiv.pft.name, indiv.vegetation.patch.stand.id, date.year, indiv.lai_indiv);
+
+		// FPC (Eqn 10)
+		indiv.fpc = 1.0 - lambertbeer(indiv.lai_indiv);
+
+		// Stand-level LAI
+		indiv.lai = indiv.lai_indiv;
+
+	}
+	else {	// cropgreen
+		if (!negligible(indiv.cropindiv->cmass_leaf_max)) {
+
+			// Grass "individual" LAI (Eqn 11)
+			indiv.lai_indiv = indiv.cropindiv->cmass_leaf_max * indiv.pft.sla;
+
+			// FPC (Eqn 10)
+//			indiv.fpc = 1.0 - lambertbeer(indiv.lai_indiv);
+			indiv.fpc = 1.0;
+
+			// Stand-level LAI
+			indiv.lai = indiv.lai_indiv;
+
+		} 
 	}
 }

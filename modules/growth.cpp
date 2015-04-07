@@ -1011,154 +1011,8 @@ bool allometry(Individual& indiv) {
 		}
 		else {
 
-			cropphen_struct& ppftcrop = *(indiv.vegetation.patch.pft[indiv.pft.id].get_cropphen());
-
-			// crop grass compatible with natural grass
-			if(indiv.pft.phenology == ANY) {
-
-				indiv.lai_indiv = indiv.cmass_leaf * indiv.pft.sla;
-
-				// For intercrop grass, use LAI of parent grass in its own stand.
-				if(indiv.cropindiv->isintercropgrass) {
-
-					bool done = false;
-
-					Gridcell& gridcell = indiv.vegetation.patch.stand.get_gridcell();
-
-					//First look in PASTURE.
-					if(gridcell.landcoverfrac[PASTURE] > 0.0) {
-
-						char name_start[5] = {0};
-						char* sp = NULL;
-						strncpy(name_start, indiv.pft.name, 4);
-						sp = name_start + 1;										//NB: this works with current pft names. CC3G_ic and C3G_pasture
-
-						for(unsigned int i = 0; i < gridcell.size() && !done; i++) {
-
-							Stand& stand=gridcell[i];
-							if(stand.landcover == PASTURE)
-							{
-								for(unsigned int j = 0; j < stand.nobj && !done; j++)
-								{
-									Patch& patch = stand[j];
-									Vegetation& vegetation = patch.vegetation;
-									for(unsigned int k = 0; k < vegetation.nobj && !done; k++) {
-										Individual& grass_indiv = vegetation[k];
-
-										if(!strncmp(sp, grass_indiv.pft.name, 3)) {	//NB: this works with current pft names. CC3G_ic and C3G_pasture
-											indiv.lai_indiv = grass_indiv.lai_indiv;
-											done = true;
-										}
-									}
-								}
-							}
-						}
-					}
-					// If PASTURE landcover not used, look for crop stand with pasture grass. 
-					else {
-
-						double highest_grass_lai = 0.0;
-						double grass_cmass_leaf_sum = 0.0;
-
-						// Get sum of intercrop grass cmass_leaf in this patch
-						Vegetation& vegetation_self = indiv.vegetation;
-
-						for(unsigned int k = 0; k < vegetation_self.nobj; k++) {
-
-							Individual& indiv_veg = vegetation_self[k];
-
-							if(indiv_veg.cropindiv->isintercropgrass)
-								grass_cmass_leaf_sum += indiv_veg.cropindiv->cmass_leaf_max;
-						}
-
-						// Find highest lai in crop grass stands
-						for(unsigned int i = 0; i < gridcell.size(); i++) {
-
-							Stand& stand = gridcell[i];
-
-							if(stand.landcover == CROPLAND && !stand.is_true_crop_stand())	{
-
-								for(unsigned int j = 0; j < stand.nobj && !done; j++) {
-
-									Patch& patch = stand[j];
-									Vegetation& vegetation = patch.vegetation;
-
-									for(unsigned int k = 0; k < vegetation.nobj && !done; k++) {
-
-										Individual& grass_indiv = vegetation[k];
-
-										if(grass_indiv.pft.phenology == ANY) {
-
-											if(grass_indiv.lai_indiv > highest_grass_lai)
-												highest_grass_lai = grass_indiv.lai_indiv;
-										}
-									}
-								}
-							}
-						}
-
-						if(grass_cmass_leaf_sum > 0.0)
-							indiv.lai_indiv = indiv.cropindiv->cmass_leaf_max / grass_cmass_leaf_sum * highest_grass_lai;
-						else
-							indiv.lai_indiv = highest_grass_lai;
-
-						if(highest_grass_lai)
-							done = true;
-					}
-
-					//If no grass stand found in either cropland or pasture, use laimax value.
-					if(!done) {
-
-						double highest_grass_lai = 0.0;
-						double grass_cmass_leaf_sum = 0.0;
-
-						// Get sum of intercrop grass cmass_leaf and highest default laimax in this patch
-						Vegetation& vegetation_self = indiv.vegetation;
-
-						for(unsigned int k = 0; k < vegetation_self.nobj; k++) {
-
-							Individual& indiv_veg = vegetation_self[k];
-
-							if(indiv_veg.cropindiv->isintercropgrass) {
-
-								grass_cmass_leaf_sum += indiv_veg.cropindiv->cmass_leaf_max;
-
-								if(indiv_veg.pft.laimax > highest_grass_lai)
-									highest_grass_lai = indiv_veg.pft.laimax;
-							}
-						}
-
-						if(grass_cmass_leaf_sum > 0.0)
-							indiv.lai_indiv = indiv.cropindiv->cmass_leaf_max / grass_cmass_leaf_sum * highest_grass_lai;
-						else
-							indiv.lai_indiv = highest_grass_lai;
-					}
-				}
-				if(indiv.lai_indiv < 0.0)
-					fail("lai_indiv negative for %s in stand %d year %d in growth: %f\n", (char*)indiv.pft.name, indiv.vegetation.patch.stand.id, date.year, indiv.lai_indiv);
-
-				// FPC (Eqn 10)
-				indiv.fpc = 1.0 - lambertbeer(indiv.lai_indiv);
-
-				// Stand-level LAI
-				indiv.lai = indiv.lai_indiv;
-
-			}
-			else {	// cropgreen
-				if (!negligible(indiv.cropindiv->cmass_leaf_max)) {
-
-					// Grass "individual" LAI (Eqn 11)
-					indiv.lai_indiv = indiv.cropindiv->cmass_leaf_max * indiv.pft.sla;
-
-					// FPC (Eqn 10)
-//					indiv.fpc = 1.0 - lambertbeer(indiv.lai_indiv);
-					indiv.fpc = 1.0;
-
-					// Stand-level LAI
-					indiv.lai = indiv.lai_indiv;
-
-				} 
-			}
+			// True crops use cmass_leaf_max, cover-crop grass uses lai of stands with whole-year grass growth
+			allometry_crop(indiv);
 		}
 	}
 
@@ -1256,11 +1110,13 @@ void growth(Stand& stand, Patch& patch) {
 	double cmass_sap_inc = 0.0;
 	// increment in heartwood C biomass following allocation, on individual basis (kgC)
 	double cmass_heart_inc = 0.0;
-	//
+	// increment in heartwood C biomass following allocation, on individual basis (kgC)
 	double cmass_debt_inc = 0.0; 
-	// increment in harvestable organ C biomass following allocation, on individual basis (kgC)
+	// increment in crop harvestable organ C biomass following allocation, on individual basis (kgC)
 	double cmass_ho_inc = 0.0;
+	// increment in crop above-ground pool C biomass following allocation, on individual basis (kgC)
 	double cmass_agpool_inc = 0.0;
+	// increment in crop stem C biomass following allocation, on individual basis (kgC)
 	double cmass_stem_inc = 0.0;
 	// increment in leaf litter following allocation, on individual basis (kgC)
 	double litter_leaf_inc = 0.0;
@@ -1414,7 +1270,7 @@ void growth(Stand& stand, Patch& patch) {
 						patch.pft[indiv.pft.id].nmass_litter_root,
 						indiv.nstore_longterm,indiv.max_n_storage, 
 						indiv.alive);
-					}
+				}
 				// Update stand record of reproduction by this PFT
 				stand.pft[indiv.pft.id].cmass_repr += cmass_repr / (double)stand.npatch();
 
@@ -1463,7 +1319,6 @@ void growth(Stand& stand, Patch& patch) {
 
 					// Heartwood
 					indiv.cmass_heart += cmass_heart_inc * indiv.densindiv;
-
 
 					// If negative sap growth, then nrelocfrac of nitrogen will go to heart wood and 
 					// (1.0 - nreloctrac) will go to storage
@@ -1636,7 +1491,7 @@ void growth(Stand& stand, Patch& patch) {
 
 		if (!killed) {
 
-			if (!allometry(indiv)) {	// crops never enter this code
+			if (!allometry(indiv)) {
 
 				indiv.kill();
 

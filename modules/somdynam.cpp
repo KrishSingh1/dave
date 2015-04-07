@@ -835,7 +835,6 @@ void transfer_litter(Patch& patch) {
 					soil.sompool[SURFSTRUCT].cmass;
 			}
 
-
 			// ROOT
 
 			root_littter += pft.litter_root;

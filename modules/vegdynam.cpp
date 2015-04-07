@@ -191,7 +191,6 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 	pftlist.firstobj();
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
-		Patchpft& patchpft=patch.pft[pft.id];
 
 		if (stand.pft[pft.id].active) {	//standpft.active is set in landcover_init according to rules for each stand
 
@@ -403,7 +402,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 		// grass biomass (see comment above)
 	const double SAPSIZEPM=0.01;
 		//Fixed sapsize (g C) for naturally regenerated seedlings after management have started on patch
-		//Management add, FL
 
 	bool present; // whether PFT already present in this patch
 	double c; // constant in equation for number of new saplings (Eqn 5)
@@ -445,6 +443,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 		// For this PFT ...
 
+		// Stands cloned this year to be treated here as first year
 		bool init_clone = date.year == stand.clone_year && pft.landcover == stand.landcover;
 
 		if (stand.pft[pft.id].active) {
@@ -460,7 +459,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 			else {
 				patch.pft[pft.id].anetps_ff_est+=patch.pft[pft.id].anetps_ff;
 				patch.pft[pft.id].wscal_mean_est+=patch.pft[pft.id].wscal_mean;		
-
 			}
 
 			if (establish(patch, stand.get_climate(), pft)) {
@@ -830,6 +828,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 				mort_shade=0.0;
 
 			// Mortality due to fire
+
 			if (patch.has_fires()) mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			else mort_fire=0.0;
 
@@ -853,7 +852,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 
 			if (fpc_grass>1.0-min(fpc_tree,FPC_TREE_MAX)) {
 				fpc_dec=(fpc_grass-1.0+min(fpc_tree,FPC_TREE_MAX))*indiv.fpc/fpc_grass;
-				mort_shade=1.0-fracmass_lpj(indiv.fpc-fpc_dec,indiv.fpc,indiv);
+				mort_shade=1.0-fracmass_lpj(indiv	.fpc-fpc_dec,indiv.fpc,indiv);
 			}
 			else
 				mort_shade=0.0;
@@ -863,6 +862,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			}
 
 			// Mortality due to fire
+
 			if (patch.has_fires())
 				mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			else mort_fire=0.0;
@@ -1440,6 +1440,8 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 	else {
 
 		// INDIVIDUAL AND COHORT MODES
+
+		// Patch-destroying disturbance
 
 		// Disturbance when N limitation is switched on to get right pft composition under N limitation faster
 		if (ifcentury && stand.ifnlim_stand() && date.year == freenyears){

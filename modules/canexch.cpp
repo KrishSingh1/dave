@@ -1257,7 +1257,7 @@ inline double water_uptake(double wcont[NSOILLAYER], double awc[NSOILLAYER],
 
 
 	// OUTPUT PARAMETER:
-	//   fuptake     = fraction of total uptake originating from each layer
+	//   fwuptake     = fraction of total uptake originating from each layer
 
 	double wr;
 	int s;
@@ -1548,7 +1548,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 				ppft.wscal /= (double)date.subdaily;
 
 				if(patch.stand.landcover!=CROPLAND										//natural, urban, pasture, forest and peatland stands
-						|| ppft.pft.phenology==ANY && ppft.pft.id==patch.stand.pftid) {	//normal cc3g/cc4g-growth 
+						|| ppft.pft.phenology==ANY && ppft.pft.id==patch.stand.pftid) {	//normal grass growth 
 					ppft.wscal_mean += ppft.wscal;
 
 					// Convert from sum to mean on last day of year
@@ -1556,7 +1556,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 						ppft.wscal_mean /= date.year_length();
 					}
 				}
-				else if(ppft.cropphen->growingseason									// true crops and intercrop grass
+				else if(ppft.cropphen->growingseason									// true crops and cover-crop grass
 						|| ppft.pft.phenology == CROPGREEN && date.day == ppft.cropphen->hdate
 						|| ppft.pft.isintercropgrass && date.day == patch.pft[patch.stand.pftid].cropphen->eicdate) {
 
@@ -1935,32 +1935,8 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 	}
 }
 
-//Yin et al, Modelling leaf senescence
-void leaf_senescence(Individual& indiv){
-	double Ln = 0.0;
-	double Lnld = 0.0;
-	double r = 0.0;
-	double k = 0.5;
-	double ktn = 0.52*k+0.01; //Yin et al 2003
-
-	if(indiv.cmass_leaf_today()>0.0){
-		Ln = indiv.lai_nitrogen_today();
-		Lnld = indiv.lai_today();
-		r = (Lnld - min(Lnld,Ln))/indiv.pft.sla;
-	} else {
-		r = 0.0;
-	}
-#define SLOWLEAFDEATH
-//#undef SLOWLEAFDEATH
-#ifdef SLOWLEAFDEATH
-	r/=10.0;
-#endif
-	indiv.daily_cmass_leafloss = max(0.0,r);
-	indiv.daily_nmass_leafloss = 0.0;
-
-}
-
-void leaf_senescence_frame(Vegetation& vegetation) {
+/// Yin et al, Modelling leaf senescence
+void leaf_senescence(Vegetation& vegetation) {
 
 	if(!(vegetation.patch.stand.is_true_crop_stand() && ifnlim_lc[CROPLAND]))
 		return;
@@ -1968,9 +1944,7 @@ void leaf_senescence_frame(Vegetation& vegetation) {
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
-#define AGESEN
-//#undef AGESEN
-#ifdef AGESEN
+
 		double senN = 0.0;
 		double senNr = 0.07;
 		if(indiv.patchpft().cropphen->dev_stage > 1.0){
@@ -1982,10 +1956,21 @@ void leaf_senescence_frame(Vegetation& vegetation) {
 				}
 			}
 		}
-#endif
-		leaf_senescence(indiv);
 
-//		if(indiv.patchpft().cropphen->dev_stage < 0.5){
+		double Ln = 0.0;
+		double Lnld = 0.0;
+		double r = 0.0;
+
+		if(indiv.cmass_leaf_today()>0.0){
+			Ln = indiv.lai_nitrogen_today();
+			Lnld = indiv.lai_today();
+			r = (Lnld - min(Lnld,Ln))/indiv.pft.sla/10.0;
+		} else {
+			r = 0.0;
+		}
+		indiv.daily_cmass_leafloss = max(0.0,r);
+		indiv.daily_nmass_leafloss = 0.0;
+
 		if(indiv.patchpft().cropphen->fphu < 0.05){
 
 			indiv.daily_cmass_leafloss = 0.0;
@@ -2132,7 +2117,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		aet_water_stress(patch, vegetation, day);
 		water_scalar(patch, vegetation, day);
 		npp(patch, climate, vegetation, day);
-		leaf_senescence_frame(vegetation);
+		leaf_senescence(vegetation);
 	}
 
 	// Forest-floor conditions

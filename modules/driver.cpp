@@ -898,7 +898,7 @@ void dailyaccounting_patch_lc(Patch& patch) {
 	if(date.day == 0) {
 		if(ifslowharvestpool) {
 			pftlist.firstobj();
-			while(pftlist.isobj) {				// NB. also unactive pft's	
+			while(pftlist.isobj) {				// NB. also inactive pft's	
 				Pft& pft = pftlist.getobj();
 				Patchpft& patchpft = patch.pft[pft.id];
 

@@ -12,7 +12,7 @@
 void update_patch_fpc(Patch& patch);
 /// Handles daily crop allocation and daily lai calculation
 void growth_daily(Patch& patch);
-/// Turnover function for continuous grass.
-//void turnover_grass(Individual& indiv);
+/// Updates yearly lai and fpc for cropland
+void allometry_crop(Individual& indiv);
 
 #endif // CROPALLOCATION_H

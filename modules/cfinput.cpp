@@ -884,6 +884,15 @@ void CFInput::load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_va
 	spinup_data.get_data_from(source);
 }
 
+namespace {
+
+// Help function for call to remove_if below - checks if a pointer is null
+bool is_null(const GuessNC::CF::GridcellOrderedVariable* ptr) {
+	return ptr == 0;
+}
+
+}
+
 std::vector<GuessNC::CF::GridcellOrderedVariable*> CFInput::all_variables() const {
 	std::vector<GuessNC::CF::GridcellOrderedVariable*> result;
 	result.push_back(cf_temp);
@@ -892,6 +901,11 @@ std::vector<GuessNC::CF::GridcellOrderedVariable*> CFInput::all_variables() cons
 	result.push_back(cf_wetdays);
 	result.push_back(cf_min_temp);
 	result.push_back(cf_max_temp);
+
+	// Get rid of null pointers
+	result.erase(std::remove_if(result.begin(), result.end(), is_null), 
+	             result.end());
+
 	return result;
 }
 

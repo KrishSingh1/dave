@@ -34,14 +34,6 @@ bool dayinperiod(int day, int start, int end);
 /// Step n days from a date.
 int stepfromdate(int day, int step);
 
-void crop_nfert(Patch& patch);
-
-/// Updates crop rotation status
-void crop_rotation(Stand& stand, int firsthistyear);
-/// Transfer of this year's growth (ycmass_xxx) to cmass_xxx_inc
-void growth_crop_year(Individual& indiv, double& cmass_leaf_inc,double& cmass_root_inc,double& cmass_ho_inc,double& cmass_agpool_inc, double& cmass_stem_inc);
-
-
 /// struct storing carbon, nitrogen and water (plus aaet_5 and anfix_calc) during landcover change
 struct landcover_change_transfer {
 

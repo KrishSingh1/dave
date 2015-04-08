@@ -14,5 +14,7 @@ void update_patch_fpc(Patch& patch);
 void growth_daily(Patch& patch);
 /// Updates yearly lai and fpc for cropland
 void allometry_crop(Individual& indiv);
+/// Transfer of this year's growth (ycmass_xxx) to cmass_xxx_inc
+void growth_crop_year(Individual& indiv, double& cmass_leaf_inc,double& cmass_root_inc,double& cmass_ho_inc,double& cmass_agpool_inc, double& cmass_stem_inc);
 
 #endif // CROPALLOCATION_H

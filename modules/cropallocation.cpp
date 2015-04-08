@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \file cropallocation.cpp
 /// \brief Crop allocation and growth				
-/// \author Mats Lindeskog
+/// \author Mats Lindeskog, Stefan Olin
 /// $Date:  $
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -158,7 +158,6 @@ void crop_allocation_WE(cropphen_struct& ppftcrop, Individual& indiv) {
 
 /// Daily allocation routine for crops with nitrogen limitation
 /** Allocates daily npp to leaf, roots and harvestable organs
- *  Equations are from Neitsch et al. 2002.
  */
 void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_seed) {
 
@@ -360,6 +359,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 
 /// Daily allocation routine for crops without nitrogen limitation
 /** Allocates daily npp to leaf, roots and harvestable organs
+ *  Equations are from Neitsch et al. 2002.
  */
 void allocation_crop(Individual& indiv, double cmass_seed, double nmass_seed) {
 
@@ -894,3 +894,50 @@ void allometry_crop(Individual& indiv) {
 		} 
 	}
 }
+
+/// Transfer of this year's growth (ycmass_xxx) to cmass_xxx_inc
+/**   and pasture grass grown in cropland.
+ *  OUTPUT PARAMETERS 
+ *  \param cmass_leaf_inc				leaf C biomass (kgC/m2)
+ *  \param cmass_root_inc				fine root C biomass (kgC/m2)
+ *  \param cmass_ho_inc					harvestable organ C biomass (kgC/m2)
+ *  \param cmass_agpool_inc 			above-ground pool C biomass (kgC/m2)  
+ *  \param cmass_stem_inc 				stem C biomass (kgC/m2)  
+ */ 
+
+void growth_crop_year(Individual& indiv, double& cmass_leaf_inc, double& cmass_root_inc, double& cmass_ho_inc, double& cmass_agpool_inc, double& cmass_stem_inc) {
+
+	// true crop growth and grass intercrop growth; NB: bminit (cmass_repr & cmass_excess subtracted) not used !
+
+	if(indiv.has_daily_turnover()) {
+
+		indiv.cmass_leaf = 0.0;
+		indiv.cmass_root = 0.0;
+		indiv.cropindiv->cmass_ho = 0.0;
+		indiv.cropindiv->cmass_agpool = 0.0;
+		indiv.cropindiv->cmass_stem = 0.0;
+
+		// Not completely accurate here when comparing this year's cmass after turnover with cmass increase (ycmass),
+		// which could be from the preceding season, but probably OK, since values are not used for C balance.
+		if(indiv.continous_grass()) {
+			indiv.cmass_leaf = indiv.cmass_leaf_post_turnover;
+			indiv.cmass_root = indiv.cmass_root_post_turnover;
+		}
+	}
+
+	cmass_leaf_inc = indiv.cropindiv->ycmass_leaf + indiv.cropindiv->ycmass_dead_leaf;
+	cmass_root_inc = indiv.cropindiv->ycmass_root;
+	cmass_ho_inc = indiv.cropindiv->ycmass_ho;
+	cmass_agpool_inc = indiv.cropindiv->ycmass_agpool;
+	cmass_stem_inc = indiv.cropindiv->ycmass_stem;
+
+	return;
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// REFERENCES
+//
+// Neitsch SL, Arnold JG, Kiniry JR et al.2002 Soil and Water Assessment Tool, Theorethical 
+//   Documentation + User's Manual. USDA_ARS-SR Grassland, Soil and Water Research Laboratory.
+//   Agricultural Reasearch Service, Temple,Tx, US.

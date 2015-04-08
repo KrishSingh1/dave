@@ -23,7 +23,7 @@ void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double re
 void harvest_pasture(Harvest_CN& indiv_cp, Pft& pft, bool alive);
 /// Harvest function for pasture, representing grazing.
 void harvest_pasture(Individual& indiv, Pft& pft, bool alive);
-/// 
+/// Harvest function for managed forest
 void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& killed);
 /// Transfers all carbon and nitrogen from living tissue to litter.
 void kill_remaining_vegetation(Harvest_CN& indiv_cp, Pft& pft, bool alive, bool istruecrop_or_intercropgrass, bool burn = false);
@@ -37,6 +37,10 @@ bool harvest_year(Individual& indiv);
 void yield_crop(Individual& indiv);
 /// Yield function for pasture grass grown in cropland landcover
 void yield_pasture(Individual& indiv, double cmass_leaf_inc);
+/// Determines amount of nitrogen applied today
+void crop_nfert(Patch& patch);
+/// Updates crop rotation status
+void crop_rotation(Stand& stand, int firsthistyear);
 
 
 /// Struct for copies of carbon and nitrogen of an individual and associated litter and fluxes resulting from harvest

@@ -689,10 +689,8 @@ public:
 	int coldestday;
 	/// used to adapt equations to hemisphere, set in getgridcell()
 	int adjustlat;
-
 	/// accumulated monthly pet values for this year
 	double mpet_year[12];
-
 	/// past 20 years monthly temperature values
 	double mtemp_20[20][12];
 	/// past 20 years monthly precipitation values
@@ -705,7 +703,6 @@ public:
 	double mprec_petmin_20[20];
 	/// past 20 years maximum of monthly precipitation to PET ratios
 	double mprec_petmax_20[20];
-
 	/// 20-year running average monthly temperature values 
 	double mtemp20[12];
 	/// 20-year running average monthly precipitation values 
@@ -714,13 +711,11 @@ public:
 	double mpet20[12];
 	/// 20-year running average monthly precipitation to PET ratios 
 	double mprec_pet20[12];
-
 	/// 20-year running average of minimum monthly precipitation to PET ratios
 	double mprec_petmin20;
 	/// 20-year running average of maximum monthly precipitation to PET ratios
 	double mprec_petmax20;
 
-	//Test with the historic class instead
 	Historic<double, 20> hmtemp_20[12];
 	Historic<double, 20> hmprec_20[12];
 	Historic<double, 20> hmeet_20[12];
@@ -772,10 +767,10 @@ public:
 		memset(mprec_pet_20, 0, sizeof(double)*20*12);
 		memset(mprec_pet20, 0, sizeof(double)*12);
 
-		memset(mprec_petmin_20, 0, sizeof(double)*20);		//111005
-		mprec_petmin20=0.0;		//111005
-		memset(mprec_petmax_20, 0, sizeof(double)*20);		//111115
-		mprec_petmax20=0.0;		//111115
+		memset(mprec_petmin_20, 0, sizeof(double)*20);
+		mprec_petmin20=0.0;
+		memset(mprec_petmax_20, 0, sizeof(double)*20);
+		mprec_petmax20=0.0;
 
 		seasonality=SEASONALITY_NO;
 		seasonality_lastyear=SEASONALITY_NO;
@@ -956,20 +951,23 @@ private:
 	double daily_fluxes_pft[365][NPERPFTFLUXTYPES];
 };
 
-/// Crop management type
+/// Storage class of crop management information for one rotation period for a stand type, read from the instruction file.
 class Management {
 
 public:
+	/// name of crop pft 
 	xtring pftname;
 	/// hydrology (RAINFED,IRRIGATED) 
 	hydrologytype hydrology;
 	/// irrigation efficiency
 //	double firr;
+	/// forced sowing date, unless sdate_force read from file
 	int sdate;
+	/// forced harvest date, unless hdate_force read from file
 	int hdate;
-	/// Nitrogen fertilisation amount
+	/// Nitrogen fertilisation amount, unless Nfert_read read from file
 	double nfert;
-
+	/// Whether grass is grown in fallow
 	bool fallow;
 
 	Management() {
@@ -984,7 +982,7 @@ public:
 	}
 };
 
-///
+/// Storage class of crop rotation information for a stand type, read from the instruction file.
 class CropRotation {
 
 public:
@@ -992,7 +990,9 @@ public:
 	int ncrops;
 	/// Rotation period in years
 	double nyears;
+	/// First rotation year
 	int firstrotyear;
+	/// Double cropping of one crop (e.g. rice)
 	bool multicrop;
 
 	CropRotation() {
@@ -1003,21 +1003,24 @@ public:
 	}
 };
 
-class StandType {
+/// Stand type class for storing both static parameters, read from the instruction file,
+/*	and dynamic variables, updated in landcover_change()
+ *  Active stand types are stored in the stlist analogous to the pftlist.
+ */
+class StandType : public Serializable {
 
 public:
 	/// id code (should be zero based and sequential, 0...nst-1)
 	int id;
+	/// name of stand type
 	xtring name;
 
 	/// specifies type of landcover
 	/** \see landcovertype */
 	landcovertype landcover;	// specifies type of landcover (0 = URBAN, 1 = CROP, 2 = PASTURE, 3 = FOREST, 4 = NATURAL, 5 = PEATLAND)
-	/// hydrology (RAINFED,IRRIGATED) 
-//	hydrologytype hydrology;
-	///
+	/// Rotation information, read from the instruction file
 	CropRotation rotation;
-	// List of management types in a rotation cycle
+	/// List of management types in a rotation cycle
 	Management management[NROTATIONPERIODS_MAX];
 
 	/// intercrop (NOINTERCROP,NATURALGRASS)
@@ -1033,13 +1036,14 @@ public:
 	double frac;
 	/// old fraction of this stand type relative to the gridcell before update
 	double frac_old;
-
+	/// fraction unavailable for transfer to other stand types
 	double protected_frac;
 
 	/// net fraction change
 	double frac_change;
-
+	/// gross fraction increase
 	double gross_frac_increase;
+	/// gross fraction decrease
 	double gross_frac_decrease;
 
 	// current number of stands of this stand type
@@ -1071,9 +1075,37 @@ public:
 
 		return cropno;
 	}
+
+	void serialize(ArchiveStream& arch);
 };
 
-class StandTypelist : public ListArray_id<StandType> {};
+/// A list of stand types
+/** Functionality for building, maintaining, referencing and destroying a list array of
+ *  stand types objects.
+ *
+ * Functionality is inherited from the ListArray_id template type in the GUTIL
+ * Library. Sequential stand type objects can be referenced as array elements by id:
+ *
+ *   StandTypelist stlist;
+ *   ...
+ *   for (i=0; i<nst; i++) {
+ *     StandType& thisst=stlist[i];
+ *     // query or modify object thisst here
+ *   }
+ *
+ * or by iteration through the linked list:
+ *
+ *   stlist.firstobj();
+ *   while (stlist.isobj) {
+ *     StandType& thisst=stlist.getobj();
+ *     // query or modify object thisst here
+ *     stlist.nextobj();
+ *   }
+ */
+class StandTypelist : public ListArray_id<StandType>, public Serializable {
+
+void serialize(ArchiveStream& arch);
+};	// Will serialisation work with ListArray_id ?
 
 /// The one and only linked list of StandType objects	
 extern StandTypelist stlist;
@@ -1243,17 +1275,14 @@ public:
 	/// interception coefficient (unitless)
 	double intc;
 
-	//the amount of N that is applied (kg N m-2)
+	/// the amount of N that is applied (kg N m-2)
 	double N_appfert;
-	// 0 - 1 how much of the fertiliser is applied the first date, default 1.
+	/// 0 - 1 how much of the fertiliser is applied the first date, default 1.
 	double fertrate[2];
-	// dates relative to sowing date
+	/// dates relative to sowing date
 	int fertdates[2];
 	double fert_stages[2];
 	bool fertilised[2];
-
-	/// development stage
-	double dev_stage;
 
 	double T_vn_min;
 	double T_vn_opt;
@@ -1308,10 +1337,8 @@ public:
 		double cmass_heart;
 	} regen;
 
-	/// specifies type of landcover
-	/** \see landcovertype */
-	landcovertype landcover;	// specifies type of landcover (0 = URBAN, 1 = CROP, 2 = PASTURE, 3 = FOREST, 4 = NATURAL, 5 = PEATLAND); initialized in constructor
-
+	/// specifies type of landcover pft is allowed to grow in (0 = URBAN, 1 = CROP, 2 = PASTURE, 3 = FOREST, 4 = NATURAL, 5 = PEATLAND)
+	landcovertype landcover;
 	/// fraction of residue outtake at harvest
 	double res_outtake;
 	/// harvest efficiency
@@ -1450,9 +1477,7 @@ public:
 		fertilised[0] = false;
 		fertilised[1] = false;
 
-//		N_appfert = 0.01;
-		N_appfert = 0.0;	//ML
-		dev_stage = 0.0;	//ML
+		N_appfert = 0.0;
 
 		T_vn_min=0.0;
 		T_vn_opt=0.0;
@@ -1650,10 +1675,7 @@ public:
 /// The one and only linked list of Pft objects	
 extern Pftlist pftlist;
 
-///////////////////////////////////////////////////////////////////////////////////////
-//cropindiv_struct
-//container for crop-specific data at the individual level
-
+/// Container for crop-specific data at the individual level
 class cropindiv_struct : public Serializable {
 
 public:
@@ -1703,7 +1725,9 @@ public:
 	double grs_cmass_ho;
 	/// daily updated above-ground pool C biomass, reset at harvest day
 	double grs_cmass_agpool;
+	/// daily updated dead leaf C biomass, reset at harvest day
 	double grs_cmass_dead_leaf;
+	/// daily updated stem pool C biomass, reset at harvest day
 	double grs_cmass_stem;
 
 	/// carbon content of harvestable organs saved on first day of land use change year
@@ -1714,7 +1738,9 @@ public:
 	double grs_cmass_ho_luc;
 	/// carbon content of above-ground pool saved on first day of land use change year
 	double grs_cmass_agpool_luc;
+	/// carbon content of dead leaves saved on first day of land use change year
 	double grs_cmass_dead_leaf_luc;
+	/// carbon content of stem saved on first day of land use change year
 	double grs_cmass_stem_luc;
 
 	/// daily updated whole plant C biomass, reset at day 0
@@ -1727,7 +1753,9 @@ public:
 	double ycmass_ho;
 	/// daily updated above-ground pool C biomass, reset at day 0
 	double ycmass_agpool;
+	/// daily updated dead leaf C biomass, reset at day 0
 	double ycmass_dead_leaf;
+	/// daily updated stem C biomass, reset at day 0
 	double ycmass_stem;
 
 	/// year's whole plant C biomass at time of harvest (cumulative if several harvest events)
@@ -1740,6 +1768,7 @@ public:
 	double harv_cmass_ho;
 	/// year's above-ground pool C biomass at time of harvest (cumulative if several harvest events)
 	double harv_cmass_agpool;
+	/// year's stem C biomass at time of harvest (cumulative if several harvest events)
 	double harv_cmass_stem;
 
 	///NITROGEN
@@ -1747,15 +1776,17 @@ public:
 	double nmass_ho;
 	/// nitrogen content of above-ground pool
 	double nmass_agpool;
+	/// nitrogen content of dead leaves
 	double nmass_dead_leaf;
 
 	/// nitrogen content of harvestable organs saved on first day of land use change year
 	double nmass_ho_luc;
 	/// nitrogen content of above-ground pool saved on first day of land use change year
 	double nmass_agpool_luc;
+	/// nitrogen content of dead leaves saved on first day of land use change year
 	double nmass_dead_leaf_luc;
 
-	/// daily updated leaf N biomass, reset at day 0		// These are not used
+	/// daily updated leaf N biomass, reset at day 0
 	double ynmass_leaf;
 	/// daily updated root N biomass, reset at day 0
 	double ynmass_root;
@@ -1763,7 +1794,7 @@ public:
 	double ynmass_ho;
 	/// daily updated above-ground pool N biomass, reset at day 0
 	double ynmass_agpool;
-
+	/// daily updated dead leaf N biomass, reset at day 0
 	double ynmass_dead_leaf;
 
 	/// year's leaf N biomass at time of harvest (cumulative if several harvest events)
@@ -1903,10 +1934,13 @@ public:
 	double cmass_heart;
 	/// C "debt" (retrospective storage) (kgC/m2)
 	double cmass_debt;
+	/// Total C mass at land use change (kgC/m2)
 	double cmass_tot_luc;
-
+	/// leaf C mass after tunrnover
 	double cmass_leaf_post_turnover;
+	/// root C mass after turnover
 	double cmass_root_post_turnover;
+	/// Latest tunover day for this individual
 	int last_turnover_day;
 
 	/// leaf N biomass on modelled area basis (kgN/m2)
@@ -1926,6 +1960,7 @@ public:
 	double nmass_sap_luc;
 	/// heart N biomass on modelled area basis on first day of land use change year
 	double nmass_heart_luc;	
+	/// total N biomass on modelled area basis on first day of land use change year
 	double nmass_tot_luc;
 
 	/// foliar projective cover (FPC) under full leaf cover as fraction of modelled area
@@ -1976,7 +2011,6 @@ public:
 	double lai_layer;
 	/// individual leaf area index (individual and cohort modes only)
 	double lai_indiv;
-
 	/// patch-level individual leaf area index (individual and cohort modes only)
 	double lai_daily;
 	/// daily individual leaf area index (individual and cohort modes only)
@@ -2078,6 +2112,7 @@ public:
 	// Whether this individual is truly alive. 
 	/** Set to false for first year after the Individual object is created, then true. */
 	bool alive;
+	/// NPP this day
 	double dnpp;
 
 	// bvoc
@@ -2091,7 +2126,7 @@ public:
 	/// isoprene seasonality factor (-)
 	double fvocseas;
 
-//private:
+	/// Pointer to struct with crop-specific data
 	cropindiv_struct *cropindiv;
 
 	// MEMBER FUNCTIONS
@@ -2104,8 +2139,8 @@ public:
 	Individual(int i,Pft& p,Vegetation& v);
 	~Individual();
 
-//	const cropindiv_struct* get_cropindiv();
-	cropindiv_struct* get_cropindiv();
+	/// Access functions for cropindiv:
+	cropindiv_struct* get_cropindiv() const;
 	cropindiv_struct* set_cropindiv();
 
 	void serialize(ArchiveStream& arch);
@@ -2118,6 +2153,7 @@ public:
 	/** Fluxes from 'new' Individuals (alive == false) will not be reported */
 	void report_flux(Fluxes::PerPatchFluxType flux_type, double value);
 
+	/// Whether an individual is either a true crop or a cover crop grass
 	inline bool istruecrop_or_intercropgrass() const {
 		return (pft.landcover==CROPLAND && (pft.phenology==CROPGREEN || cropindiv->isintercropgrass));
 	}
@@ -2154,14 +2190,17 @@ public:
 		return nmass_sap + nmass_heart;
 	}
 
+	/// Total carbon biomass
 	double ccont(double scale_indiv = 1.0, bool luc = false) const;
+	/// Total nitrogen biomass
 	double ncont(double scale_indiv = 1.0, bool luc = false) const;
 
 	/// Whether grass growth is uninterrupted by crop growth.
 	bool continous_grass() const;
 
-	/// Checks whether any grs_cmass part is negative, in which case it is zeroed and fluxes are corrected.
+	/// Checks whether any grs_cmass is negative, in which case it is zeroed and fluxes are corrected (only cropland).
 	double check_C_mass();
+	/// Checks whether any nmass is negative, in which case it is zeroed and fluxes are corrected (only cropland).
 	double check_N_mass();
 
 	/// Save cmass-values on first day of the year of land cover change in expanding stands
@@ -2227,7 +2266,7 @@ public:
 	/// Gets the individual's daily fpc value
 	double fpc_today() const;
 
-	// Gets the growingseason status for crop individual. Non-crop individuals always return true.
+	/// Gets the growingseason status for crop individual. Non-crop individuals always return true.
 	bool growingseason() const;
 
 	double ndemand_storage(double cton_leaf_opt);
@@ -2318,7 +2357,7 @@ public:
 	double clay_frac;
 	/// fraction of soil that is silt plus clay	
 	double silt_frac;
-
+	/// fraction of soil that is organic	
 	double organic_frac;
 
 	// MEMBER FUNCTIONS
@@ -2644,7 +2683,7 @@ public:
 	void serialize(ArchiveStream& arch);
 };
 
-
+/// Container for crop-specific data at patchpft level
 class cropphen_struct : public Serializable {
 
 public:
@@ -2713,7 +2752,9 @@ public:
 	double fphu_harv;
 	/// fraction of growing season at the two latest harvests this year
 //	double fphu_harvest[2];	
+	/// whether in period of heat unit sampling
 	bool hu_samplingperiod;
+	/// number of heat unit sampling days
 	int hu_samplingdays;
 	/// harvest index today [0-1, >1 if below-ground ho], harvestable organ/above-ground C for above-ground harvestable organs, dependent on fphu, reduced by water stress 
 	double hi;
@@ -2753,12 +2794,6 @@ public:
 	double f_alloc_horg;
 	double f_alloc_stem;
 	double dev_stage; //development stage, w&e
-
-	double sen_day;
-	double sen_nr_days;
-	double sen_start;
-	double sen_day_old;
-
 	bool fertilised[3];
 
 	cropphen_struct()
@@ -2826,10 +2861,6 @@ public:
 		f_alloc_stem=0.0;
 		dev_stage = 0.0;
 
-		sen_day=0.0;
-		sen_day_old=0.0;
-		sen_nr_days=0.0;
-		sen_start=0.0;
 		fertilised[0] = false;
 		fertilised[1] = false;
 		fertilised[2] = false;
@@ -3110,8 +3141,9 @@ public:
 
 	/// whether litter is to be sent to the soil today
 	bool is_litter_day;
-
+	/// number of harvests and/or cover-crop killing or turnover events 
 	int nharv;
+	/// whether today is a harvest day and/or cover-crop killing or turnover day 
 	bool isharvestday;
 
 	// MEMBER FUNCTIONS
@@ -3133,10 +3165,13 @@ public:
 
 	/// Returns whether we should model disturbances in this patch
 	bool has_disturbances() const;
-
+	/// Total patch carbon biomass and litter
 	double ccont(double scale_indiv = 1.0, bool luc = false);
+	/// Total patch nitrogen biomass and litter
 	double ncont(double scale_indiv = 1.0, bool luc = false);
+	/// Total patch carbon fluxes so far this year
 	double cflux();
+	/// Total patch nitrogen fluxes so far this year
 	double nflux();
 };
 
@@ -3167,8 +3202,9 @@ public:
 
 	/// Whether this PFT is irrigated in this stand
 	bool irrigated;
-
+	/// sowing date specified in stand type or read from input file
 	int sdate_force;
+	/// harvest date specified in stand type or read from input file
 	int hdate_force;
 
 	// MEMBER FUNCTIONS
@@ -3210,20 +3246,16 @@ public:
 
 	/// current crop rotation item
 	int current_rot;
-
+	/// number of days passed in current rotation item
 	int ndays_inrotation;
-
+	/// Returns true if stand is in fallow (with cover crop grass)
 	bool infallow;
-
-	/// whether crop rotation item is to be updated today
+	/// Returns true if crop rotation item is to be updated today
 	bool isrotationday;
-
-	// true if current crop management hydrology == irrigated, updated during rotation
+	/// Returns true if current crop management hydrology == irrigated, updated during rotation
 	bool isirrigated;
-
-	/// true if the stand's main crop pft intercrop==naturalgrass and a pft with isintercrop==true is in the pftlist.
+	/// Returns true if the stand's main crop pft intercrop==naturalgrass and a pft with isintercrop==true is in the pftlist.
 	bool hasgrassintercrop;
-
 	/// gdd5-value at first intercrop grass growth
 	double gdd0_intercrop;
 
@@ -3234,24 +3266,25 @@ public:
 	/** Set to frac_old in reduce_stands(), then modified in donor_stand_change() and receiving_stand_change().
 	 */
 	double frac_temp;
-
+	/// fraction unavailable for transfer to other stand types
 	double protected_frac;
-	
 	/// net stand fraction change
 	double frac_change;
-
+	/// gross fraction increase
 	double gross_frac_increase;
+	/// gross fraction decrease
 	double gross_frac_decrease;
-
+	/// fraction that has been cloned from another stand
 	double cloned_fraction;
-
+	/// Returns true if this stand is cloned from another stand
 	bool cloned;
-
+	/// pointer to array of fractions transferred from this stand to other stand types
 	double *transfer_area_st;
+	/// land cover origin of this stand
 	landcovertype origin; 
-
-	/// counter used for output from separate stands
+	/// used for output from separate stands
 	double anpp;
+	/// used for output from separate stands
 	double cmass;
 
 	/// Seed for generating random numbers within this Stand
@@ -3279,9 +3312,8 @@ public:
 	 *  Needed to set patchpft.anetps_ff_est_initial
 	 */
 	int first_year;
-
+	// The year this stand was cloned from another stand
 	int clone_year;
-
 	/// scaling factor for stands that have grown in area this year (old fraction/new fraction)
 	double scale_LC_change;
 
@@ -3309,26 +3341,27 @@ public:
 	/// Returns the number of patches in this Stand
 	unsigned int npatch() const { return nobj; }
 
-	/// Returns true if stand is true crop stand, as opposed to pasture grass grown on cropland
+	/// Returns true if stand is true crop stand, as opposed to pasture grass grown on cropland or other land cover
 	inline bool is_true_crop_stand() {
 		return landcover==CROPLAND && pft[pftid].pft.phenology==CROPGREEN;	// OK also for fallow (pftid always cropgreen)
 	}
-
+	/// Returns true if growth in stand is nitrogen-limited
 	bool ifnlim_stand() const {
 		return ifnlim && ifnlim_lc[landcover];
 	}
-
 	/// Moves crop rotation forward
 	void rotate();
-
-	double transfer_area_lc(int to);
-
+	/// Returns area transferred to other land cover during land cover change
+	double transfer_area_lc(landcovertype to);
 	/// Initiates new stand land cover settings
 	void init_stand_lu(StandType& st, double fraction);
-
+	/// Total stand carbon biomass and litter
 	double ccont(double scale_indiv = 1.0);
+	/// Total stand nitrogen biomass and litter
 	double ncont(double scale_indiv = 1.0);
+	/// Total stand carbon fluxes so far this year
 	double cflux();
+	/// Total stand nitrogen fluxes so far this year
 	double nflux();
 
     /// Creates a duplicate stand with a new landcovertype
@@ -3440,8 +3473,6 @@ public:
 	int hlimitdate_default;
 	/// whether autumn sowing is either calculated or prescribed
 	bool wintertype;
-	/// whether two sowing seasons per year is allowed (currently used only for rice, based on geograhical limits defined in getgridcell() )
-	bool multicrop;
 	/// first and last day of crop sowing window, calculated in calc_sowing_windows()
 	int swindow[2];
 	/// first and last day of crop sowing window for irrigated crops, calculated in calc_sowing_windows()
@@ -3485,7 +3516,6 @@ public:
 		sdatecalc_prec=-1;
 		hlimitdate_default=-1;
 		wintertype=false;
-		multicrop=false;
 		swindow[0]=-1;
 		swindow[1]=-1;
 		sowing_restriction = false;
@@ -3549,9 +3579,10 @@ public:
 	double anflux_landuse_change_lc[NLANDCOVERTYPES];
 	/// Which landcover types create new stands when area increases.
 	bool expand_to_new_stand[NLANDCOVERTYPES];
-
-	bool pool_to_all_landcovers[NLANDCOVERTYPES];	// ...from a donor landcover (overrides different landcover targets of different stand types and stands in a landcover)
-	bool pool_from_all_landcovers[NLANDCOVERTYPES];	// ...to a receptor landcover (crop and pasture stands to new natural stand: pool!)
+	/// Whether to pool all transferred land from a donor landcover (overrides different landcover targets of different stand types and stands in a landcover)
+	bool pool_to_all_landcovers[NLANDCOVERTYPES];
+	/// Whether to pool transferred land to a receptor landcover (crop and pasture stands to new natural stand: pool!)
+	bool pool_from_all_landcovers[NLANDCOVERTYPES];
 
 	/// list array [0...npft-1] of Gridcellpft (initialised in constructor)
 	ListArray_idin1<Gridcellpft,Pft> pft;
@@ -3588,10 +3619,14 @@ public:
 
 	/// Creates new stand and initiates land cover settings
 	Stand& create_stand_lu(StandType& st, double fraction, int no_patch = 0);
-
+	
+	/// Total gridcell carbon biomass and litter
 	double ccont();
+	/// Total gridcell nitrogen biomass and litter
 	double ncont();
+	/// Total gridcell carbon fluxes so far this year
 	double cflux();
+	/// Total gridcell nitrogen fluxes so far this year
 	double nflux();
 
 	/// Deletes the stand which the iterator is pointing at

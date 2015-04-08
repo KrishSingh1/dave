@@ -19,8 +19,8 @@
 
 Date date; // object describing timing stage of simulation
 int npft; // number of possible PFTs
-int nst;
-int nst_lc[NLANDCOVERTYPES];
+int nst;  // number of possible stand types
+int nst_lc[NLANDCOVERTYPES];  // number of possible stand types in each land cover type
 
 StandTypelist stlist;
 Pftlist pftlist;
@@ -33,21 +33,6 @@ const double Fluxes::NO2_FIRERATIO = 0.076;
 const double Fluxes::N2O_FIRERATIO = 0.035;
 const double Fluxes::N2_FIRERATIO  = 0.350;
 
-
-////////////////////////////////////////////////////////////////////////////////
-// Implementation of MassBalance member functions
-////////////////////////////////////////////////////////////////////////////////
-
-
-void MassBalance::serialize(ArchiveStream& arch) {
-	arch & start_year
-		& ccont_zero
-		& cflux_zero
-		& ncont_zero
-		& nflux_zero
-		& cflux
-		& nflux;
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of PhotosynthesisResult member functions
@@ -90,6 +75,8 @@ void Climate::serialize(ArchiveStream& arch) {
 		& ifsensechill
 		& gtemp
 		& dtemp_31
+		& dprec_31
+		& deet_31
 		& mtemp_min_20
 		& mtemp_max_20
 		& mtemp_min
@@ -104,10 +91,9 @@ void Climate::serialize(ArchiveStream& arch) {
 		& dprec_10
 		& sprec_2
 		& maxtemp
-		& testday_temp
-		& testday_prec
-		& coldestday
-		& adjustlat
+		& dprec_10
+		& sprec_2
+		& maxtemp
 		& mtemp_20
 		& mprec_20
 		& mpet_20
@@ -120,8 +106,17 @@ void Climate::serialize(ArchiveStream& arch) {
 		& mprec_pet20
 		& mprec_petmin20
 		& mprec_petmax20
+		& hmtemp_20
+		& hmprec_20
+		& hmeet_20
 		& seasonality
+		& seasonality_lastyear
 		& prec_seasonality
+		& prec_seasonality_lastyear
+		& prec_range
+		& prec_range_lastyear
+		& temp_seasonality
+		& temp_seasonality_lastyear
 		& var_prec
 		& var_temp
 		& aprec;
@@ -197,6 +192,35 @@ double Fluxes::get_annual_flux(PerPatchFluxType flux_type) const {
 		sum += monthly_fluxes_patch[m][flux_type];
 	}
 	return sum;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of StandType member functions
+////////////////////////////////////////////////////////////////////////////////
+
+void StandType::serialize(ArchiveStream& arch) {
+	arch & frac_old;
+		& nstands;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of StandTypelist member functions
+////////////////////////////////////////////////////////////////////////////////
+
+void StandTypelist::serialize(ArchiveStream& arch) {
+	if (arch.save()) {
+		for (unsigned int i = 0; i < this->nobj; i++) {
+			arch & this[i];
+		}
+	}
+	else {
+		this->killall();
+				
+		for (unsigned int i = 0; i < stlist.nobj; i++) {
+			this->createobj();
+			arch & this[i];
+		}
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -295,6 +319,50 @@ void Soil::serialize(ArchiveStream& arch) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Implementation of cropphen_struct member functions
+////////////////////////////////////////////////////////////////////////////////
+
+void cropphen_struct::serialize(ArchiveStream& arch) {
+	arch & sdate
+		& sdate_harv
+		& sdate_harvest
+		& hdate
+		& hlimitdate
+		& hucountend
+		& bicdate 
+		& eicdate
+		& growingdays
+		& tb
+		& pvd
+		& vdsum
+		& vrf
+		& prf
+		& phu 
+		& phu_old
+		& husum
+		& husum_max
+		& husum_sampled
+		& husum_max_10
+		& nyears_hu_sample
+		& husum
+		& hu_samplingperiod
+		& hu_samplingdays
+		& fphu 
+		& fphu_harv
+		& hi
+		& fhi_harv
+		& demandsum_crop
+		& supplysum_crop
+		& growingseason 
+		& growingseason_ystd
+		& senescence
+		& senescence_ystd
+		& intercropseason
+		& dev_stage;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 // Implementation of Patchpft member functions
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -347,42 +415,6 @@ cropphen_struct* Patchpft::set_cropphen() {
 		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
 	}
 	return cropphen;
-}
-
-void cropphen_struct::serialize(ArchiveStream& arch) {
-	arch & sdate
-		& sdate_harv
-		& sdate_harvest
-		& sdate_thisyear 
-		& hdate
-		& hdate_harvest
-		& hlimitdate
-		& hucountend
-		& nharv
-		& sendate
-		& bicdate 
-		& eicdate
-		& tb
-		& pvd
-		& vdsum
-		& vrf
-		& prf
-		& phu 
-		& phu_old
-		& husum_max
-		& husum_sampled
-		& husum_max_10
-		& nyears_hu_sample
-		& husum
-		& fphu 
-		& fphu_harv
-		& demandsum_crop
-		& supplysum_crop
-		& growingseason 
-		& growingseason_ystd
-		& senescence
-		& senescence_ystd
-		& intercropseason;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -690,6 +722,89 @@ double Stand::get_gridcell_fraction() const {
 	return frac;
 }
 
+void Stand::init_stand_lu(StandType& st, double fraction) {
+
+	int error = 0;
+	landcovertype lc = st.landcover;
+	landcover = lc;
+
+	stid = st.id;
+	set_gridcell_fraction(fraction);
+	frac_old = 0.0;
+	frac_change = fraction;
+	gross_frac_increase = fraction;
+
+	pftlist.firstobj();
+	while (pftlist.isobj) {
+		Pft& pftx = pftlist.getobj();
+
+		if(!st.restrictpfts && pftx.landcover == lc
+			|| st.naturalveg && pftx.landcover == NATURAL
+			|| st.naturalgrass && pftx.landcover == NATURAL && pftx.lifeform == GRASS) {
+
+			pft[pftx.id].active = true;
+		}
+		else {
+			pft[pftx.id].active = false;
+		}
+		pftlist.nextobj();
+	}
+
+	if(lc == CROPLAND) {
+
+		pftid = pftlist.getpftid(st.management[0].pftname);	// First main crop, will change during crop rotation
+		current_rot = 0;
+
+#ifdef IRRIGATION
+		if(st.management[0].hydrology == IRRIGATED) {
+			isirrigated = true;								// First main crop, may change during crop rotation
+			if(pftid >= 0)
+				pft[pftid].irrigated = true;
+		}
+#endif
+		if(st.intercrop==NATURALGRASS && ifintercropgrass) {
+			hasgrassintercrop = true;
+
+			for(unsigned int i=0; i<pftlist.nobj; i++) {
+				if(pftlist[i].isintercropgrass)
+					pft[pftlist[i].id].active = true;
+			}
+		}
+
+		// Set standpft- and patchpft-variables for all active crops in all rotations
+		for(int rot=0; rot<st.rotation.ncrops; rot++) {
+
+			int id = pftlist.getpftid(st.management[rot].pftname);
+
+			if(id >=0) {
+				pft[id].active = true;
+
+				if(rot == 0) {
+					// Set crop cycle dates to default values only for first crop in a rotation.
+					for(unsigned int p = 0; p < nobj; p++) {
+
+						Gridcellpft& gcpft = get_gridcell().pft[id]; 
+						Patchpft& ppft = (*this)[p].pft[id];
+
+						ppft.set_cropphen()->sdate = gcpft.sdate_default;
+						ppft.set_cropphen()->hlimitdate = gcpft.hlimitdate_default;
+				
+						if(pftlist[id].phenology == ANY)
+							ppft.set_cropphen()->growingseason = true;
+						else if(pftlist[id].phenology == CROPGREEN) {
+							ppft.set_cropphen()->eicdate = stepfromdate(ppft.get_cropphen()->sdate, -15);
+						}
+					}
+				}
+			}
+			else {
+				dprintf("Warning: stand type %d pft %s not in pftlist !\n", stid, (char*)st.management[rot].pftname);;
+				break;
+			}
+		}
+	}
+}
+
 void Stand::rotate() {
 
 	if(pftid >= 0 && stid >= 0) {
@@ -717,7 +832,7 @@ void Stand::rotate() {
 	}
 }
 
-double Stand::transfer_area_lc(int to) {
+double Stand::transfer_area_lc(landcovertype to) {
 
 	double area = 0.0;
 
@@ -824,7 +939,7 @@ void Stand::serialize(ArchiveStream& arch) {
 			arch & (*this)[k];
 		}
 	}
-	else {	//NB. needs to be modified for use with land cover change (?)
+	else {
 		pft.killall();
 		for (unsigned int i = 0; i < pftlist.nobj; i++) {
 			Standpft& standpft = pft.createobj(pftlist[i]);
@@ -841,13 +956,18 @@ void Stand::serialize(ArchiveStream& arch) {
 	}
 
 	arch & first_year
+		& clone_year
 		& frac
 		& stid
 		& pftid
 		& current_rot
+		& ndays_inrotation
+		& infallow
 		& isirrigated
 		& hasgrassintercrop
 		& gdd0_intercrop
+		& cloned
+		& origin
 		& landcover
 		& seed;
 }
@@ -865,6 +985,23 @@ const Climate& Stand::get_climate() const {
 Gridcell& Stand::get_gridcell() const {
 	assert(gridcell);
 	return *gridcell;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of cropindiv_struct member functions
+////////////////////////////////////////////////////////////////////////////////
+
+void cropindiv_struct::serialize(ArchiveStream& arch) {
+	arch & grs_cmass_plant
+		& grs_cmass_leaf
+		& grs_cmass_root
+		& grs_cmass_ho
+		& grs_cmass_agpool
+		& grs_cmass_dead_leaf
+		& grs_cmass_stem
+		& nmass_ho
+		& nmass_agpool
+		& nmass_dead_leaf;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -961,7 +1098,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 		if (stand.pftid == pft.id) {
 			cropindiv->isprimarycrop = true;
 		}
-		else if (stand.hasgrassintercrop && pft.isintercropgrass) {	// grass intercrop growth
+		else if (stand.hasgrassintercrop && pft.isintercropgrass) {	// grass cover crop growth
 			cropindiv->isintercropgrass = true;
 		}
 	}
@@ -974,6 +1111,9 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_sap 
 		& cmass_heart
 		& cmass_debt
+		& cmass_leaf_post_turnover
+		& cmass_root_post_turnover
+		& last_turnover_day
 		& fpc
 		& fpar
 		& densindiv
@@ -1050,7 +1190,8 @@ Individual::~Individual() {
 //	dprintf("Year %d: Individual  in stand %d destroyed:id=%d, pft=%s, age=%.0f\n",::date.year-nyear_spinup+1901,vegetation.patch.stand.id,id,(char*)pft.name, age);
 }
 
-cropindiv_struct* Individual::get_cropindiv() {
+/// Access functions for cropindiv
+cropindiv_struct* Individual::get_cropindiv() const {
 	if (pft.landcover != CROPLAND) {
 		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
 	}
@@ -1063,19 +1204,6 @@ cropindiv_struct* Individual::set_cropindiv() {
 	}
 	return cropindiv;
 }
-
-void cropindiv_struct::serialize(ArchiveStream& arch) {
-	arch & grs_cmass_plant
-		& grs_cmass_leaf
-		& grs_cmass_root
-		& grs_cmass_ho
-		& grs_cmass_agpool 
-		& isprimarycrop
-		& isprimarycovegetation
-		& isintercropgrass;
-}
-
-
 
 void Individual::report_flux(Fluxes::PerPFTFluxType flux_type, double value) {
 	if (alive || istruecrop_or_intercropgrass()) {
@@ -1410,6 +1538,7 @@ double Individual::ncont(double scale_indiv, bool luc) const {
 	return ncont;
 }
 
+/// Whether grass growth is uninterrupted by crop growth.
 bool Individual::continous_grass() const {
 
 	Stand& stand = vegetation.patch.stand;
@@ -1500,7 +1629,7 @@ double Individual::check_C_mass() {
 	return negative_cmass;
 }
 
-/// Checks C mass and zeroes any negative value, balancing by reducing C mass of other organs and (if needed) reducing anflux_landuse_change
+/// Checks N mass and zeroes any negative value, balancing by reducing N mass of other organs and (if needed) reducing anflux_landuse_change
 double Individual::check_N_mass() {
 
 	if(pft.landcover != CROPLAND && pft.landcover != PASTURE)
@@ -1573,6 +1702,7 @@ double Individual::check_N_mass() {
 	return negative_nmass;
 }
 
+/// Whether resetting of grs_cmass and turnover (if has_daily_turnover() returns true) of continuous grass is to be done this day.
 bool Individual::is_turnover_day() const {
 
 	if(patchpft().cropphen && patchpft().cropphen->growingseason) {
@@ -1656,6 +1786,7 @@ double Individual::cmass_root_today() const {
 		return cmass_root * phen;
 }
 
+/// Gets the individual's daily fpc value
 double Individual::fpc_today() const {
 
 	if(pft.phenology == CROPGREEN) {
@@ -1669,6 +1800,7 @@ double Individual::fpc_today() const {
 		return fpc * phen;
 }
 
+/// Gets the individual's daily lai value
 double Individual::lai_today() const {
 
 	if(pft.phenology == CROPGREEN) {
@@ -1682,6 +1814,7 @@ double Individual::lai_today() const {
 		return lai * phen;
 }
 
+/// Gets the individual's daily lai_indiv value
 double Individual::lai_indiv_today() const {
 
 	if(pft.phenology == CROPGREEN) {
@@ -1695,7 +1828,7 @@ double Individual::lai_indiv_today() const {
 		return lai_indiv * phen;
 }
 
-/// Get the Nitrigen limited LAI
+/// Gets the Nitrigen limited LAI
 double Individual::lai_nitrogen_today() const{
 	if(pft.phenology==CROPGREEN) {
 
@@ -1716,6 +1849,7 @@ double Individual::lai_nitrogen_today() const{
 	}
 }
 
+/// Gets the growingseason status for crop individual. Non-crop individuals always return true.
 bool Individual::growingseason() const {
 	if(patchpft().cropphen)
 		return patchpft().cropphen->growingseason;
@@ -1723,6 +1857,7 @@ bool Individual::growingseason() const {
 		return true;
 }
 
+/// Whether harvest and turnover is done on actual C and N on harvest or turnover day, which can occur any day of the year.
 bool Individual::has_daily_turnover() const {
 
 #ifdef HARVEST_GRSC
@@ -1971,6 +2106,257 @@ double Individual::wscal_mean() const {
 	return patchpft().wscal_mean;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Gridcellpft member functions
+////////////////////////////////////////////////////////////////////////////////
+
+
+void Gridcellpft::serialize(ArchiveStream& arch) {
+	arch & addtw
+		& Km
+		& autumnoccurred
+		& springoccurred
+		& vernstartoccurred
+		& vernendoccurred 
+		& precoccurred
+		& first_autumndate
+		& first_autumndate20
+		& first_autumndate_20
+		& last_springdate
+		& last_springdate20
+		& last_springdate_20 
+		& last_verndate
+		& last_verndate20
+		& last_verndate_20
+		& first_precdate
+		& sdate_default
+		& sdatecalc_temp
+		& sdatecalc_prec 
+		& sdate_force
+		& hdate_force
+		& hlimitdate_default
+		& wintertype
+		& swindow
+		& swindow_irr
+		& sowing_restriction;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Gridcell member functions
+////////////////////////////////////////////////////////////////////////////////
+
+Gridcell::Gridcell():climate(*this) {
+	landcovertype landcover;
+	LC_updated = false;
+
+	for(unsigned int p=0; p<pftlist.nobj; p++) {
+		pft.createobj(pftlist[p]);
+	}
+
+	memset(landcoverfrac, 0, sizeof(double) * NLANDCOVERTYPES);
+	memset(landcoverfrac_old, 0, sizeof(double) * NLANDCOVERTYPES);
+	acflux_harvest_slow=0.0;
+	acflux_landuse_change=0.0;
+	anflux_harvest_slow=0.0;
+	anflux_landuse_change=0.0;
+	memset(acflux_harvest_slow_lc, 0, sizeof(double)*NLANDCOVERTYPES);
+	memset(acflux_landuse_change_lc, 0, sizeof(double)*NLANDCOVERTYPES);
+	memset(anflux_harvest_slow_lc, 0, sizeof(double)*NLANDCOVERTYPES);
+	memset(anflux_landuse_change_lc, 0, sizeof(double)*NLANDCOVERTYPES);
+
+	for(int i=0; i<NLANDCOVERTYPES; i++) {		
+		if(i == NATURAL || i == FOREST)
+			expand_to_new_stand[i] = true;
+		else
+			expand_to_new_stand[i] = false;
+
+		pool_to_all_landcovers[i] = false;		// from a donor landcover; alt.c
+		pool_from_all_landcovers[i] = false;	// to a receptor landcover; alt.a
+
+/*		if(i == CROPLAND) {
+			pool_to_all_landcovers[i] = true;
+			pool_to_all_standtypes[i] = true;
+		}
+		else {
+			pool_to_all_landcovers[i] = false;
+			pool_to_all_standtypes[i] = false;
+		}
+*/
+	}
+
+	if(!run_landcover) {
+		landcover = NATURAL;
+		create_stand(landcover);
+		landcoverfrac[NATURAL] = 1.0;
+	}
+
+	seed = 12345678;
+}
+
+double Gridcell::get_lon() const {
+	return lon;
+}
+
+double Gridcell::get_lat() const {
+	return lat;
+}
+
+void Gridcell::set_coordinates(double longitude, double latitude) {
+	lon = longitude;
+	lat = latitude;
+}
+
+Stand& Gridcell::create_stand_lu(StandType& st, double fraction, int no_patch) {
+
+	landcovertype lc = st.landcover;
+
+	Stand& stand = create_stand(lc, no_patch);
+	stand.init_stand_lu(st, fraction);
+
+	return stand;
+}
+
+double Gridcell::ccont() {
+
+	double ccont = 0.0;
+
+	for(unsigned int s = 0; s < nbr_stands(); s++) {
+		Stand& stand = (*this)[s];
+		ccont += stand.ccont() * stand.get_gridcell_fraction();
+	}
+
+	return ccont;
+}
+
+double Gridcell::ncont() {
+
+	double ncont = 0.0;
+
+	for(unsigned int s = 0; s < nbr_stands(); s++) {
+		Stand& stand = (*this)[s];
+		ncont += stand.ncont() * stand.get_gridcell_fraction();
+	}
+
+	return ncont;
+}
+
+double Gridcell::cflux() {
+
+	double cflux = 0.0;
+
+	for(unsigned int s = 0; s < nbr_stands(); s++) {
+		Stand& stand = (*this)[s];
+		cflux += stand.cflux() * stand.get_gridcell_fraction();
+	}
+
+	cflux += acflux_landuse_change;
+	cflux += acflux_harvest_slow;
+
+	return cflux;
+}
+
+double Gridcell::nflux() {
+
+	double nflux = 0.0;
+
+	for(unsigned int s = 0; s < nbr_stands(); s++) {
+		Stand& stand = (*this)[s];
+		nflux += stand.nflux() * stand.get_gridcell_fraction();
+	}
+
+	nflux += anflux_landuse_change;
+	nflux += anflux_harvest_slow;
+
+	return nflux;
+}
+
+void Gridcell::serialize(ArchiveStream& arch) {
+	arch & climate
+		& landcoverfrac
+		& landcoverfrac_old
+		& LC_updated
+		& seed;
+
+	if (arch.save()) {
+		for (unsigned int i = 0; i < pft.nobj; i++) {
+			arch & pft[i];
+		}
+
+		unsigned int nstands = nbr_stands();
+		arch & nstands;
+		for (unsigned int s = 0; s < nstands; s++) {
+			arch & (*this)[s].landcover
+				& (*this)[s];
+		}
+	}
+	else {
+		pft.killall();
+
+		for (unsigned int i = 0; i < pftlist.nobj; i++) {
+			pft.createobj(pftlist[i]);
+			arch & pft[i];
+		}
+
+		clear();
+		unsigned int number_of_stands;
+		arch & number_of_stands;
+				
+		for (unsigned int s = 0; s < number_of_stands; s++) {
+			landcovertype landcover;
+			arch & landcover;
+			create_stand(landcover);
+			arch & (*this)[s];
+		}
+	}
+}
+
+Stand& Gridcell::create_stand(landcovertype landcover, int no_patch) {
+	Stand* stand = new Stand(get_next_id(), this, soiltype, landcover, no_patch);
+
+	push_back(stand);
+
+	return *stand;
+}
+
+Gridcell::iterator Gridcell::delete_stand(iterator itr) {
+	return erase(itr);
+}
+
+unsigned int Gridcell::nbr_stands() const {
+	return size();
+}
+
+void Sompool::serialize(ArchiveStream& arch) {
+	arch & cmass
+		& nmass
+		& cdec 
+		& ndec 
+		& delta_cmass
+		& delta_nmass
+		& ligcfrac
+		& fracremain
+		& ntoc
+		& litterme
+		& fireresist
+		& mfracremain_mean;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of MassBalance member functions
+////////////////////////////////////////////////////////////////////////////////
+
+void MassBalance::serialize(ArchiveStream& arch) {
+	arch & start_year
+		& ccont_zero
+		& cflux_zero
+		& ncont_zero
+		& nflux_zero
+		& cflux
+		& nflux;
+}
+
 /// Should be used together with check_patch() e.g. in framework()
 void MassBalance::init_indiv(Individual& indiv) {
 
@@ -2183,14 +2569,14 @@ void MassBalance::check_year(Gridcell& gridcell) {
 					dprintf("C pool change: %.5f\n", ccont_year - ccont);
 					dprintf("C flux: %.5f\n",  cflux_year);
 				}
-if(ifnlim_lc[CROPLAND]) {
-				// N balance check:
-				if(fabs(ncont_year - ncont + nflux_year) > 1.0e-3) {
-					dprintf("\nN balance year %d: %.4f\n", date.year, ncont_year - ncont + nflux_year);
-					dprintf("N pool change: %.4f\n", ncont_year - ncont);
-					dprintf("N flux: %.4f\n",  nflux_year);
+				if(ifnlim_lc[CROPLAND]) {
+					// N balance check:
+					if(fabs(ncont_year - ncont + nflux_year) > 1.0e-3) {
+						dprintf("\nN balance year %d: %.4f\n", date.year, ncont_year - ncont + nflux_year);
+						dprintf("N pool change: %.4f\n", ncont_year - ncont);
+						dprintf("N flux: %.4f\n",  nflux_year);
+					}
 				}
-}
 			}
 			ccont = ccont_year;
 			ncont = ncont_year;
@@ -2206,14 +2592,14 @@ void MassBalance::check_period() {
 		dprintf("C pool change: %.5f\n", ccont - ccont_zero);
 		dprintf("C fluxes: %.5f\n",  cflux);
 	}
-if(ifnlim_lc[CROPLAND]) {
-	// N balance check:
-	if(fabs(ncont - ncont_zero + nflux) > 1.0e-3) {
-		dprintf("\nWARNING: Period N balance: %.4f\n", ncont - ncont_zero + nflux);
-		dprintf("N pool change: %.4f\n", ncont - ncont_zero);
-		dprintf("N fluxes: %.4f\n",  nflux);
+	if(ifnlim_lc[CROPLAND]) {
+		// N balance check:
+		if(fabs(ncont - ncont_zero + nflux) > 1.0e-3) {
+			dprintf("\nWARNING: Period N balance: %.4f\n", ncont - ncont_zero + nflux);
+			dprintf("N pool change: %.4f\n", ncont - ncont_zero);
+			dprintf("N fluxes: %.4f\n",  nflux);
+		}
 	}
-}
 }
 
 void MassBalance::init(Gridcell& gridcell) {
@@ -2233,325 +2619,6 @@ void MassBalance::check(Gridcell& gridcell) {
 		dprintf("C pool change: %.5f\n", ccont - ccont_zero);
 		dprintf("C flux: %.5f\n\n",  cflux);
 	}
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Implementation of Gridcellpft member functions
-////////////////////////////////////////////////////////////////////////////////
-
-
-void Gridcellpft::serialize(ArchiveStream& arch) {
-	arch & addtw
-		& Km
-		& autumnoccurred
-		& springoccurred
-		& vernstartoccurred
-		& vernendoccurred 
-		& precoccurred
-		& first_autumndate
-		& first_autumndate20
-		& first_autumndate_20
-		& last_springdate
-		& last_springdate20
-		& last_springdate_20 
-		& last_verndate
-		& last_verndate20
-		& last_verndate_20
-		& first_precdate
-		& sdate_default
-		& sdatecalc_temp
-		& sdatecalc_prec 
-		& sdate_force
-		& hdate_force
-		& hlimitdate_default
-		& wintertype
-		& multicrop
-		& swindow	// ?
-		& sowing_restriction;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Implementation of Gridcell member functions
-////////////////////////////////////////////////////////////////////////////////
-
-Gridcell::Gridcell():climate(*this) {
-	landcovertype landcover;
-	LC_updated = false;
-
-	for(unsigned int p=0; p<pftlist.nobj; p++) {
-		pft.createobj(pftlist[p]);
-	}
-
-	memset(landcoverfrac, 0, sizeof(double) * NLANDCOVERTYPES);
-	memset(landcoverfrac_old, 0, sizeof(double) * NLANDCOVERTYPES);
-	acflux_harvest_slow=0.0;
-	acflux_landuse_change=0.0;
-	anflux_harvest_slow=0.0;
-	anflux_landuse_change=0.0;
-	memset(acflux_harvest_slow_lc, 0, sizeof(double)*NLANDCOVERTYPES);
-	memset(acflux_landuse_change_lc, 0, sizeof(double)*NLANDCOVERTYPES);
-	memset(anflux_harvest_slow_lc, 0, sizeof(double)*NLANDCOVERTYPES);
-	memset(anflux_landuse_change_lc, 0, sizeof(double)*NLANDCOVERTYPES);
-
-	for(int i=0; i<NLANDCOVERTYPES; i++) {		
-		if(i == NATURAL || i == FOREST)
-			expand_to_new_stand[i] = true;
-		else
-			expand_to_new_stand[i] = false;
-
-		pool_to_all_landcovers[i] = false;		// from a donor landcover; alt.c
-		pool_from_all_landcovers[i] = false;		// to a receptor landcover; alt.a
-
-/*		if(i == CROPLAND) {
-			pool_to_all_landcovers[i] = true;
-			pool_to_all_standtypes[i] = true;
-		}
-		else {
-			pool_to_all_landcovers[i] = false;
-			pool_to_all_standtypes[i] = false;
-		}
-*/
-	}
-
-	if(!run_landcover) {
-		landcover = NATURAL;
-		create_stand(landcover);
-		landcoverfrac[NATURAL] = 1.0;
-	}
-
-	seed = 12345678;
-}
-
-double Gridcell::get_lon() const {
-	return lon;
-}
-
-double Gridcell::get_lat() const {
-	return lat;
-}
-
-void Gridcell::set_coordinates(double longitude, double latitude) {
-	lon = longitude;
-	lat = latitude;
-}
-
-Stand& Gridcell::create_stand_lu(StandType& st, double fraction, int no_patch) {
-
-	landcovertype lc = st.landcover;
-
-	Stand& stand = create_stand(lc, no_patch);
-	stand.init_stand_lu(st, fraction);
-
-	return stand;
-}
-
-void Stand::init_stand_lu(StandType& st, double fraction) {
-
-	int error = 0;
-	landcovertype lc = st.landcover;
-	landcover = lc;
-
-	stid = st.id;
-	set_gridcell_fraction(fraction);
-	frac_old = 0.0;
-	frac_change = fraction;
-	gross_frac_increase = fraction;
-
-	pftlist.firstobj();
-	while (pftlist.isobj) {
-		Pft& pftx = pftlist.getobj();
-
-		if(!st.restrictpfts && pftx.landcover == lc
-			|| st.naturalveg && pftx.landcover == NATURAL
-			|| st.naturalgrass && pftx.landcover == NATURAL && pftx.lifeform == GRASS) {
-
-			pft[pftx.id].active = true;
-		}
-		else {
-			pft[pftx.id].active = false;
-		}
-		pftlist.nextobj();
-	}
-
-	if(lc == CROPLAND) {
-
-		pftid = pftlist.getpftid(st.management[0].pftname);	// First main crop, will change during crop rotation
-		current_rot = 0;
-
-#ifdef IRRIGATION
-		if(st.management[0].hydrology == IRRIGATED) {
-			isirrigated = true;								// First main crop, may change during crop rotation
-			if(pftid >= 0)
-				pft[pftid].irrigated = true;
-		}
-#endif
-		if(st.intercrop==NATURALGRASS && ifintercropgrass) {
-			hasgrassintercrop = true;
-
-			for(unsigned int i=0; i<pftlist.nobj; i++) {
-				if(pftlist[i].isintercropgrass)
-					pft[pftlist[i].id].active = true;
-			}
-		}
-
-		// Set standpft- and patchpft-variables for all active crops in all rotations
-		for(int rot=0; rot<st.rotation.ncrops; rot++) {
-
-			int id = pftlist.getpftid(st.management[rot].pftname);
-
-			if(id >=0) {
-				pft[id].active = true;
-
-				if(rot == 0) {
-					// Set crop cycle dates to default values only for first crop in a rotation.
-					for(unsigned int p = 0; p < nobj; p++) {
-
-						Gridcellpft& gcpft = get_gridcell().pft[id]; 
-						Patchpft& ppft = (*this)[p].pft[id];
-
-						ppft.set_cropphen()->sdate = gcpft.sdate_default;
-						ppft.set_cropphen()->hlimitdate = gcpft.hlimitdate_default;
-				
-						if(pftlist[id].phenology == ANY)
-							ppft.set_cropphen()->growingseason = true;
-						else if(pftlist[id].phenology == CROPGREEN) {
-							ppft.set_cropphen()->eicdate = stepfromdate(ppft.get_cropphen()->sdate, -15);
-						}
-					}
-				}
-			}
-			else {
-				dprintf("Warning: stand type %d pft %s not in pftlist !\n", stid, (char*)st.management[rot].pftname);;
-				break;
-			}
-		}
-	}
-}
-
-double Gridcell::ccont() {
-
-	double ccont = 0.0;
-
-	for(unsigned int s = 0; s < nbr_stands(); s++) {
-		Stand& stand = (*this)[s];
-		ccont += stand.ccont() * stand.get_gridcell_fraction();
-	}
-
-	return ccont;
-}
-
-double Gridcell::ncont() {
-
-	double ncont = 0.0;
-
-	for(unsigned int s = 0; s < nbr_stands(); s++) {
-		Stand& stand = (*this)[s];
-		ncont += stand.ncont() * stand.get_gridcell_fraction();
-	}
-
-	return ncont;
-}
-
-double Gridcell::cflux() {
-
-	double cflux = 0.0;
-
-	for(unsigned int s = 0; s < nbr_stands(); s++) {
-		Stand& stand = (*this)[s];
-		cflux += stand.cflux() * stand.get_gridcell_fraction();
-	}
-
-	cflux += acflux_landuse_change;
-	cflux += acflux_harvest_slow;
-
-	return cflux;
-}
-
-double Gridcell::nflux() {
-
-	double nflux = 0.0;
-
-	for(unsigned int s = 0; s < nbr_stands(); s++) {
-		Stand& stand = (*this)[s];
-		nflux += stand.nflux() * stand.get_gridcell_fraction();
-	}
-
-	nflux += anflux_landuse_change;
-	nflux += anflux_harvest_slow;
-
-	return nflux;
-}
-
-void Gridcell::serialize(ArchiveStream& arch) {
-	arch & climate
-		& landcoverfrac
-		& landcoverfrac_old
-		& LC_updated
-		& seed;
-
-	if (arch.save()) {
-		for (unsigned int i = 0; i < pft.nobj; i++) {
-			arch & pft[i];
-		}
-
-		unsigned int nstands = nbr_stands();
-		arch & nstands;
-		for (unsigned int s = 0; s < nstands; s++) {
-			arch & (*this)[s].landcover
-				& (*this)[s];
-		}
-	}
-	else {
-		pft.killall();
-
-		for (unsigned int i = 0; i < pftlist.nobj; i++) {
-			pft.createobj(pftlist[i]);
-			arch & pft[i];
-		}
-
-		clear();
-		unsigned int number_of_stands;
-		arch & number_of_stands;
-				
-		for (unsigned int s = 0; s < number_of_stands; s++) {
-			landcovertype landcover;
-			arch & landcover;
-			create_stand(landcover);
-			arch & (*this)[s];
-		}
-	}
-}
-
-Stand& Gridcell::create_stand(landcovertype landcover, int no_patch) {
-	Stand* stand = new Stand(get_next_id(), this, soiltype, landcover, no_patch);
-
-	push_back(stand);
-
-	return *stand;
-}
-
-Gridcell::iterator Gridcell::delete_stand(iterator itr) {
-	return erase(itr);
-}
-
-unsigned int Gridcell::nbr_stands() const {
-	return size();
-}
-
-void Sompool::serialize(ArchiveStream& arch) {
-	arch & cmass
-		& nmass
-		& cdec 
-		& ndec 
-		& delta_cmass
-		& delta_nmass
-		& ligcfrac
-		& fracremain
-		& ntoc
-		& litterme
-		& fireresist
-		& mfracremain_mean;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

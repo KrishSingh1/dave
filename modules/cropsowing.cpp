@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \file cropsowing.h
 /// \brief Seasonality and sowing date calculations				
-/// \author Mats Lindeskog
+/// \author Mats Lindeskog, Stefan Olin
 /// $Date:  $
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -161,7 +161,7 @@ void calc_crop_dates_20y_mean(Climate& climate, Gridcellpft& gridcellpft) {
 }
 
 /// Calculates sdatecalc_temp
-/** Called from crop_sowing_gridcell() once a year
+/** Called from crop_sowing_gridcell() once a year (June 30(180) in the north, December 31(364) in the south)
  */
 void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft)
 {
@@ -516,7 +516,7 @@ void calc_m_climate_20y_mean(Climate& climate)
 }
 
 /// Determines climate seasonality of gridcell
-/** Called from crop_sowing_gridcell() once a year
+/** Called from crop_sowing_gridcell() last day of the year
  */
 void calc_seasonality(Gridcell& gridcell) {
 
@@ -938,7 +938,6 @@ void Crop_sowing_date_new(Patch& patch, Pft& pft) {
 		else
 			length_growseas_def = gridcellpft.hlimitdate_default - gridcellpft.sdate_default;
 
-//		if(stlist[patch.stand.stid].rotation.multicrop && gridcellpft.multicrop)
 		if(stlist[patch.stand.stid].rotation.multicrop)
 			length_growseas_def = 150;
 
@@ -1065,3 +1064,13 @@ void crop_sowing_patch(Patch& patch) {
 		pftlist.nextobj();
 	}
 }
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// REFERENCES
+//
+// Bondeau A, Smith PC, Zaehle S, Schaphoff S, Lucht W, Cramer W, Gerten D, Lotze-Campen H,
+//   Müller C, Reichstein M & Smith B 2007. Modelling the role of agriculture for the 
+//   20th century global terrestrial carbon balance. Global Change Biology, 13:679-706.
+// Waha K, van Bussel LGJ, Müller C, and Bondeau A.2012. Climate-driven simulation of global 
+//   crop sowing dates, Global Ecol Biogeogr 21:247-259

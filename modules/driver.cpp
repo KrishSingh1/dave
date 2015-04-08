@@ -823,7 +823,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			climate.mtemp_min_20[19] = climate.mtemp_min;
 			climate.mtemp_max_20[19] = climate.mtemp_max;
 		}
-		climate.hmtemp_20[date.month].add(climate.dtemp_31.periodicmean(date.ndaymonth[date.month]));	// Stefan test
+		climate.hmtemp_20[date.month].add(climate.dtemp_31.periodicmean(date.ndaymonth[date.month]));
 		climate.hmprec_20[date.month].add(climate.dprec_31.periodicsum(date.ndaymonth[date.month]));
 		climate.hmeet_20[date.month].add(climate.deet_31.periodicsum(date.ndaymonth[date.month]));
 	}

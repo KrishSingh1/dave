@@ -68,9 +68,6 @@ void landcover_init(Gridcell& gridcell, LandcoverInputModule* landcover_input_mo
 			gcpft.sdate_default = gcpft.pft.sdatesh;
 			gcpft.hlimitdate_default = gcpft.pft.hlimitdatesh;
 		}
-		// double cropping in China and Japan.
-		if (!strncmp((char*)gcpft.pft.name, "TrRi", strlen("TrRi")) && gridcell.get_lon() >= 60.0 && gridcell.get_lat() <= 30.0)
-			gcpft.multicrop = true;
 	}
 
 	// get landcover and crop area fractions from landcover input file(s) or ins-file.
@@ -984,7 +981,7 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 		if(stid_receptor >= 0)
 			donor_area = stand.transfer_area_st[stid_receptor];
 		else if(landcover_receptor >= 0)
-			donor_area = stand.transfer_area_lc(landcover_receptor);
+			donor_area = stand.transfer_area_lc((landcovertype)landcover_receptor);
 		else
 			donor_area = stand.gross_frac_decrease;
 
@@ -2617,184 +2614,6 @@ void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* landcover_inpu
 		delete[] primary_st_frac_transfer;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////  End of Landcover stand dynamics and C&N-partitioning  /////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void crop_nfert(Patch& patch) {
-
-	Gridcell& gridcell = patch.stand.get_gridcell();
-
-	pftlist.firstobj();
-	// Loop through PFTs
-	while(pftlist.isobj) {
-
-		Pft& pft = pftlist.getobj();
-		Patchpft& patchpft = patch.pft[pft.id];
-		Gridcellpft& gridcellpft = gridcell.pft[pft.id];
-
-		if(patch.stand.pft[pft.id].active && pft.phenology == CROPGREEN) {
-
-			cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
-
-			double nfert = pft.N_appfert;
-			if(gridcellpft.Nfert_read >= 0.0) {
-				nfert = gridcellpft.Nfert_read;
-			}
-			if(!ppftcrop.fertilised[0] && ppftcrop.dev_stage > 0.0 && ppftcrop.growingseason){
-				patch.dnfert = nfert * (1.0 - pft.fertrate[0] - pft.fertrate[1]);
-				ppftcrop.fertilised[0] = true;
-			}
-			else if(!ppftcrop.fertilised[1] && ppftcrop.dev_stage > pft.fert_stages[0] && ppftcrop.growingseason){
-				patch.dnfert = nfert * pft.fertrate[0];
-				ppftcrop.fertilised[1] = true;
-			}
-			else if(!ppftcrop.fertilised[2] && ppftcrop.dev_stage > pft.fert_stages[1] && ppftcrop.growingseason ){
-				patch.dnfert = nfert * (pft.fertrate[1]);
-				ppftcrop.fertilised[2] = true;
-			}
-			else {
-				patch.dnfert = 0.0;
-			}
-//			if(date.day == ppftcrop.bicdate)
-//				patch.dnfert = 0.003;
-			patch.anfert += patch.dnfert;
-		}
-		pftlist.nextobj();
-	}
-}
-
-
-
-
-// Updates crop rotation status
-/** Sets new crop management variables, typically on harvest day
- */
-void crop_rotation(Stand& stand, int firsthistyear) {
-
-	if(stand.landcover == CROPLAND) {
-
-		CropRotation& rotation = stlist[stand.stid].rotation;
-		bool postpone_rotation = false;
-
-		stand.ndays_inrotation++;
-
-		if(rotation.ncrops > 1 && stand.isrotationday) {
-
-			int firstrotyear = rotation.firstrotyear + nyear_spinup - firsthistyear;
-
-			// Alternative uses of firstrotyear:
-/*			// 1. Before firstrotyear, grow only crop1:
-			if(date.year < firstrotyear)
-				postpone_rotation = true;
-*/
-			// 2. Synchronise rotation with firstrotyear:
-
-			// A. At the creation of the stand:
-			if(date.year < stand.first_year + 3)
-			// B. At firstrotyear
-//			if(date.year == firstrotyear - 1)
-			// C. Continuously:
-			{
-				if((abs(firstrotyear - date.year) % rotation.ncrops) != stand.current_rot)
-					postpone_rotation = true;
-			}
-
-			if(!postpone_rotation) {
-
-				if(stand.infallow) {
-					stand.infallow = false;
-					stand.get_gridcell().pft[stand.pftid].sowing_restriction = false;
-				}
-
-				int old_pftid = stand.pftid;
-
-				stand.rotate();
-
-				for(unsigned int p=0; p<stand.nobj; p++) {
-
-					cropphen_struct& previous = *(stand[p].pft[old_pftid].get_cropphen());
-					cropphen_struct& current = *(stand[p].pft[stand.pftid].get_cropphen());
-
-					previous.bicdate = -1;
-					if(!previous.intercropseason)
-						current.bicdate = stepfromdate(date.day, 15);
-					previous.eicdate = -1;
-					current.eicdate = -1;
-					previous.hdate = -1;
-					current.intercropseason = previous.intercropseason;
-				}
-
-				// Adds sowing and harvest dates for the second crop in a double cropping system
-//				if((rotation.multicrop && stand.get_gridcell().pft[stand.pftid].multicrop) && rotation.ncrops == 2 && stand.current_rot == 1) {
-				if(rotation.multicrop && rotation.ncrops == 2 && stand.current_rot == 1) {
-					if(stand.pft[stand.pftid].sdate_force < 0)
-						stand.pft[stand.pftid].sdate_force = stepfromdate(date.day, 10);
-					if(stand.pft[stand.pftid].hdate_force < 0) {
-						stand.pft[stand.pftid].hdate_force = stepfromdate(stand.pft[old_pftid].sdate_force, -10);
-					}
-				}
-
-				if(stlist[stand.stid].management[stand.current_rot].fallow) {
-					stand.infallow = true;
-					stand.get_gridcell().pft[stand.pftid].sowing_restriction = true;
-				}
-			}
-
-			stand.isrotationday = false;
-		}
-	}
-}
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////  End of crop allocation  //////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-/// Transfer of this year's growth (ycmass_xxx) to cmass_xxx_inc
-/**   and pasture grass grown in cropland.
- *  OUTPUT PARAMETERS 
- *  \param cmass_leaf_inc				leaf C biomass (kgC/m2)
- *  \param cmass_root_inc				fine root C biomass (kgC/m2)
- *  \param cmass_ho_inc					harvestable organ C biomass (kgC/m2)
- *  \param cmass_agpool_inc 			above-ground pool C biomass (kgC/m2)  
- *  \param cmass_stem_inc 				stem C biomass (kgC/m2)  
- */ 
-
-void growth_crop_year(Individual& indiv, double& cmass_leaf_inc, double& cmass_root_inc, double& cmass_ho_inc, double& cmass_agpool_inc, double& cmass_stem_inc) {
-
-	// true crop growth and grass intercrop growth; NB: bminit (cmass_repr & cmass_excess subtracted) not used !
-
-	if(indiv.has_daily_turnover()) {
-
-		indiv.cmass_leaf = 0.0;
-		indiv.cmass_root = 0.0;
-		indiv.cropindiv->cmass_ho = 0.0;
-		indiv.cropindiv->cmass_agpool = 0.0;
-		indiv.cropindiv->cmass_stem = 0.0;
-
-		// Not completely accurate here when comparing this year's cmass after turnover with cmass increase (ycmass),
-		// which could be from the preceding season, but probably OK, since values are not used for C balance.
-		if(indiv.continous_grass()) {
-			indiv.cmass_leaf = indiv.cmass_leaf_post_turnover;
-			indiv.cmass_root = indiv.cmass_root_post_turnover;
-		}
-	}
-
-	cmass_leaf_inc = indiv.cropindiv->ycmass_leaf + indiv.cropindiv->ycmass_dead_leaf;
-	cmass_root_inc = indiv.cropindiv->ycmass_root;
-	cmass_ho_inc = indiv.cropindiv->ycmass_ho;
-	cmass_agpool_inc = indiv.cropindiv->ycmass_agpool;
-	cmass_stem_inc = indiv.cropindiv->ycmass_stem;
-
-	return;
-}
-
-
-
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
@@ -2805,8 +2624,3 @@ void growth_crop_year(Individual& indiv, double& cmass_leaf_inc, double& cmass_r
 // Lindeskog M, Arneth A, Bondeau A, Waha K, Seaquist J, Olin S, & Smith B 2013. 
 //   Implications of accounting for land use in simulations of ecosystem services and  
 //   carbon cycling in Africa. Earth Syst Dynam Discuss 4:235-278.
-// Neitsch SL, Arnold JG, Kiniry JR et al.2002 Soil and Water Assessment Tool, Theorethical 
-//   Documentation + User's Manual. USDA_ARS-SR Grassland, Soil and Water Research Laboratory.
-//   Agricultural Reasearch Service, Temple,Tx, US.
-// Waha K, van Bussel LGJ, Müller C, and Bondeau A.2012. Climate-driven simulation of global 
-//   crop sowing dates, Global Ecol Biogeogr 21:247-259

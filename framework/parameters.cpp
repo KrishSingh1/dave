@@ -4,7 +4,7 @@
 ///
 /// New instructions (PLIB keywords) may be added (this would require addition of a
 /// declareitem call in function plib_declarations, and possibly some additional code in
-/// function plib_callback). 
+/// function plib_callback).
 ///
 /// \author Joe Siltberg
 /// $Date$
@@ -57,6 +57,7 @@ bool lcfrac_fixed;
 bool all_fracs_const;
 bool ifslowharvestpool;
 int nyear_spinup;
+bool textured_soil;
 
 xtring state_path;
 bool restart;
@@ -136,7 +137,7 @@ std::map<xtring, bool> includepft_map;
 // Whether each PFT has had their parameters checked.
 // We only check a PFT:s parameters (in plib_callback) the first time the PFT is
 // parsed. If the same PFT occurs again (probably in a different file with a few
-// minor modifications) we don't check again (because plib's itemparsed() function 
+// minor modifications) we don't check again (because plib's itemparsed() function
 // doesn't remember the old parsed parameters).
 std::map<xtring, bool> checked_pft;
 
@@ -160,6 +161,7 @@ void initsettings() {
 
 	save_state = false;
 	restart = false;
+	textured_soil = true;
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -350,7 +352,7 @@ void plib_declarations(int id,xtring setname) {
 			"Number of patches simulated");
 		declareitem("patcharea",&patcharea,1.0,1.0e4,1,CB_NONE,
 			"Patch area (m2)");
-		declareitem("wateruptake", &strparam, 20, CB_WATERUPTAKE, 
+		declareitem("wateruptake", &strparam, 20, CB_WATERUPTAKE,
 			"Water uptake mode (\"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
 
 		declareitem("nrelocfrac",&nrelocfrac,0.0,0.99,1,CB_NONE,
@@ -374,7 +376,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifrainonwetdaysonly",&ifrainonwetdaysonly,1,CB_NONE,
 			"Whether it rains on wet days only (1), or a little every day (0);");
 
-		// bvoc 
+		// bvoc
 		declareitem("ifbvoc",&ifbvoc,1,CB_NONE,
 			"Whether or not BVOC calculations are performed (0,1)");
 		declareitem("run_landcover",&run_landcover,1,CB_NONE,"Landcover version");
@@ -386,6 +388,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("run_peatland",&run[PEATLAND],1,CB_NONE,"Whether peatland is to be simulated");
 		declareitem("ifslowharvestpool",&ifslowharvestpool,1,CB_NONE,"If a slow harvested product pool is included in patchpft.");
 		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"Whether static landcover fractions are set in the ins-file (0,1)");
+
+		declareitem("textured_soil",&textured_soil,1,CB_NONE,"Use silt/sand fractions specific to soiltype");
 
 		declareitem("state_path", &state_path, 300, CB_NONE, "State files directory (for restarting from, or saving state files)");
 		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
@@ -424,7 +428,7 @@ void plib_declarations(int id,xtring setname) {
 
 
 		break;
-	
+
 	case BLOCK_PFT:
 
 		if (!ifhelp) {
@@ -440,7 +444,7 @@ void plib_declarations(int id,xtring setname) {
 
 			if (ppft == 0) {
 				// Create and initialise a new Pft object and obtain a reference to it
-			
+
 				ppft=&pftlist.createobj();
 				initpft(*ppft,setname);
 				includepft_map[setname] = true;
@@ -564,11 +568,11 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("leaflong",&ppft->leaflong,0.1,100.0,1,CB_NONE,
 			"Leaf longevity (years)");
 		declareitem("intc",&ppft->intc,0.0,1.0,1,CB_NONE,"Interception coefficient");
-		
+
 		// guess2008 - DLE
 		declareitem("drought_tolerance",&ppft->drought_tolerance,0.0,1.0,1,CB_NONE,
 			"Drought tolerance level (0 = very -> 1 = not at all) (unitless)");
-		
+
 		// bvoc
 		declareitem("ga",&ppft->ga,0.0,1.0,1,CB_NONE,
 			"aerodynamic conductance (m/s)");
@@ -580,7 +584,7 @@ void plib_declarations(int id,xtring setname) {
 			"monoterpene emission capacity (ug C g-1 h-1)");
 		declareitem("storfrac_mon",&ppft->storfrac_mon,0.,1.,1,CB_NONE,
 			"fraction of monoterpene production that goes into storage pool (-)");
-		
+
 		declareitem("harv_eff",&ppft->harv_eff,0.0,1.0,1,CB_NONE,"Harvest efficiency");
 		declareitem("harvest_slow_frac",&ppft->harvest_slow_frac,0.0,1.0,1,CB_NONE,
 			"Fraction of harvested products that goes into carbon depository for long-lived products like wood");
@@ -588,7 +592,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("res_outtake",&ppft->res_outtake,0.0,1.0,1,CB_NONE,"Fraction of residue outtake at harvest");
 
 		callwhendone(CB_CHECKPFT);
-		
+
 		break;
 
 	case BLOCK_PARAM:
@@ -598,7 +602,7 @@ void plib_declarations(int id,xtring setname) {
 			"String value for custom parameter");
 		declareitem("num",&numparam,-1.0e38,1.0e38,1,CB_NUMPARAM,
 			"Numerical value for custom parameter");
-		
+
 		break;
 	}
 }
@@ -652,7 +656,7 @@ void plib_callback(int callback) {
 		else if (strparam.upper()=="URBAN") ppft->landcover=URBAN;
 		else if (strparam.upper()=="CROPLAND") ppft->landcover=CROPLAND;
 		else if (strparam.upper()=="PASTURE") ppft->landcover=PASTURE;
-		else if (strparam.upper()=="FOREST") ppft->landcover=FOREST;			
+		else if (strparam.upper()=="FOREST") ppft->landcover=FOREST;
 		else if (strparam.upper()=="PEATLAND") ppft->landcover=PEATLAND;
 		else {
 			sendmessage("Error",
@@ -917,7 +921,7 @@ void plib_callback(int callback) {
 					if (!itemparsed("kest_bg")) badins("kest_bg");
 					if (!itemparsed("kest_pres")) badins("kest_pres");
 					if (!itemparsed("longevity")) badins("longevity");
-					if (!itemparsed("greff_min")) badins("greff_min");		
+					if (!itemparsed("greff_min")) badins("greff_min");
 					if (!itemparsed("alphar")) badins("alphar");
 					if (!itemparsed("est_max")) badins("est_max");
 				}
@@ -937,7 +941,7 @@ void plib_callback(int callback) {
 					            "Specified sla value not used when ifcalcsla enabled");
 			}
 			if (vegmode==COHORT || vegmode==INDIVIDUAL) {
-				if (!itemparsed("parff_min")) badins("parff_min");	
+				if (!itemparsed("parff_min")) badins("parff_min");
 			}
 
 			if (ifcalccton) {
@@ -956,7 +960,7 @@ void plib_callback(int callback) {
 			// which would have incurred different checks above.
 			if (itemparsed("lifeform") ||
 			    itemparsed("phenology")) {
-				sendmessage("Error", 
+				sendmessage("Error",
 				            "Not allowed to redefine lifeform or phenology in second PFT definition");
 				plibabort();
 			}
@@ -991,7 +995,7 @@ void read_instruction_file(const char* insfilename) {
 	// Initialise simulation settings and PFT parameters from instruction script
 	if (!plib(insfilename)) {
 		fail("Bad instruction file!");
-	}	
+	}
 }
 
 void printhelp() {

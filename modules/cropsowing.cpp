@@ -10,7 +10,7 @@
 
 #define SD_TEMP_WINDOW				//Uses sowing window for temperature-dependent sowing.
 #define IRRIGATED_USE_TEMP_SDATE	//Use temperature-dependent sowing date for irrigated crops at site with PRECTEMP seasonality.
-//#define LOW_SOWING_TEMPERATURE_LIMIT	//Sowing not allowed when temperature is always below sowing limit. Intercrop grass groen instead year through.
+//#define LOW_SOWING_TEMPERATURE_LIMIT	//Sowing not allowed when temperature is always below sowing limit. Intercrop grass grows instead year through.
 #define HIGH_SOWING_TEMPERATURE_LIMIT	//Sowing not allowed when mean temperature is above limit (TeWW).
 
 /// Autumn sowing types for crops

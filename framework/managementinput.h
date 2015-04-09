@@ -30,11 +30,9 @@ private:
 	/// Reference to the list of Coord objects containing coordinates of the grid cells to simulate
 	ListArray_id<Coord>& gridlist;
 
-#if defined DYNAMIC_LANDCOVER_INPUT
 	InData::TimeDataD sdates;
 	InData::TimeDataD hdates;
 	InData::TimeDataD Nfert;
-#endif
 
 	xtring file_sdates, file_hdates, file_Nfert;
 

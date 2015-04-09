@@ -50,7 +50,7 @@ void LandcoverInputModule::init() {
 
 		if (openLUfile) {
 			file_lu=param["file_lu"].str;
-#if defined DYNAMIC_LANDCOVER_INPUT
+
 			// Open landcover area fraction file, return false if problem
 			if(!LUdata.Open(file_lu, gridlist))
 				fail("initio: could not open %s for input",(char*)file_lu);
@@ -62,25 +62,21 @@ void LandcoverInputModule::init() {
 				if(LUdata.GetNCells() > 50)
 					printseparatestands = false;
 			}
-#endif
 		}
 
 		//Read LUC transitions
 		if(gross_land_transfer == 2) {
 			file_grossLUC=param["file_grossLUC"].str;
-#if defined DYNAMIC_LANDCOVER_INPUT
 			if(!grossLUC.Open(file_grossLUC, gridlist))
 				fail("initio: could not open %s for input",(char*)file_grossLUC);
-#endif
 		}
-
 	}
 
 	//Retrieve file names for crop fraction file and open them if static equal-size values are not used.
 	if(run[CROPLAND] && !frac_fixed[CROPLAND])
 	{
 		file_lucrop=param["file_lucrop"].str;
-#if defined DYNAMIC_LANDCOVER_INPUT
+
 		// Open crop fraction file, return false if problem
 		if(!CFTdata.Open(file_lucrop, gridlist))
 			fail("initio: could not open %s for input",(char*)file_lucrop);
@@ -129,7 +125,6 @@ void LandcoverInputModule::init() {
 		if(CFTdata.GetFormat()==InData::LOCAL_YEARLY) 
 			all_fracs_const=false;				// Set all_fracs_const to false if yearly data
 
-#endif
 		}
 
 	// Remove pft:s from pftlist that are not grown in simulated stand types
@@ -199,7 +194,6 @@ bool LandcoverInputModule::loadlandcover(Gridcell& gridcell, Coord c) {
 					loadLU = true;
 			}
 
-#if defined DYNAMIC_LANDCOVER_INPUT
 		if (loadLU) {
 			// Load landcover area fraction data from input file to data object
 			if (!LUdata.Load(c, offset)) {
@@ -216,12 +210,10 @@ bool LandcoverInputModule::loadlandcover(Gridcell& gridcell, Coord c) {
 				LUerror = true;	// skip this stand
 			}
 		}
-#endif
 	}
 
 	if(run[CROPLAND] && !LUerror)
 	{
-#if defined DYNAMIC_LANDCOVER_INPUT
 		if(!frac_fixed[CROPLAND]) {
 			
 			// Crop fraction data: read from crop fraction file; dynamic, so data for all years are loaded to CFTdata object and 
@@ -232,7 +224,6 @@ bool LandcoverInputModule::loadlandcover(Gridcell& gridcell, Coord c) {
 				LUerror = true;	// skip this stand
 			}
 		}
-#endif
 	}
 
 	return LUerror;
@@ -333,7 +324,7 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 		}
 	}
 	else {	// landcover area fractions are read from input file(s)	
-#if defined DYNAMIC_LANDCOVER_INPUT
+
 		bool getLU = false;
 
 		for(i=0; i<NLANDCOVERTYPES; i++) {
@@ -503,7 +494,6 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 //					dprintf("Year %d Cropland frac=%.3f\n", year, gridcell.landcoverfrac[CROPLAND]);
 			}
 		}
-#endif
 	}
 
 	// Set fractions for static stand types
@@ -524,7 +514,6 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 
 		sum=0.0;
 
-#if defined DYNAMIC_LANDCOVER_INPUT
 		if(fixedcrop_histX)
 			year=first_historic_year;
 		else if(fixedlu_histX)
@@ -603,7 +592,6 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 				}
 			}
 		}
-#endif
 	}
 
 	// Convert fractions from landcover-based to gridcell-based
@@ -626,10 +614,8 @@ bool LandcoverInputModule::get_lc_transfer(Gridcell& gridcell, double landcoverf
 	double tot_frac_ch = 0.0;
 	const bool print_adjustment_info = false;
 
-#if defined DYNAMIC_LANDCOVER_INPUT
 	if(!grossLUC.isloaded())
 		return false;
-#endif
 
 	if((date.year >= nyear_spinup + 1) & (date.year < nyear_spinup + input.getnyear_hist())) {
 		//If have not reached second year of simulation (after spin-up) then gross_lc_change_frac must be zero (no land-use change in spin-up).
@@ -643,7 +629,6 @@ bool LandcoverInputModule::get_lc_transfer(Gridcell& gridcell, double landcoverf
 
 		const bool primary_to_secondary = false;
 
-#if defined DYNAMIC_LANDCOVER_INPUT
 		lc_frac_transfer[CROPLAND][PASTURE] += grossLUC.Get(year,"cp");
 		lc_frac_transfer[PASTURE][CROPLAND] += grossLUC.Get(year,"pc");
 		lc_frac_transfer[PASTURE][NATURAL] += grossLUC.Get(year,"pv");
@@ -663,7 +648,6 @@ bool LandcoverInputModule::get_lc_transfer(Gridcell& gridcell, double landcoverf
 				primary_lc_frac_transfer[NATURAL][NATURAL] += grossLUC.Get(year,"vs");
 			}
 		}
-#endif
 
 		// Check if gross lcc input data are consistent with net lcc input file. Try to adjust if not.
 		bool error = false;
@@ -881,18 +865,12 @@ bool LandcoverInputModule::get_lc_transfer(Gridcell& gridcell, double landcoverf
 
 
 int LandcoverInputModule::getfirsthistyear() {
-#ifdef DYNAMIC_LANDCOVER_INPUT
+
 	return LUdata.GetFirstyear();
-#else
-	return -1;
-#endif
 }
 
 int LandcoverInputModule::getnyear_hist() {
-#ifdef DYNAMIC_LANDCOVER_INPUT
+
 	return LUdata.GetnYears();
-#else
-	return -1;
-#endif
 }
 

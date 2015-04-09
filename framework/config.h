@@ -21,7 +21,6 @@
 #define LPJ_GUESS_CONFIG_H
 
 // Defines for landcover version:
-#define DYNAMIC_LANDCOVER_INPUT		// Reads landcover data from text files, using the TimeDataD class.
 #define IRRIGATION					// Crop irrigation on
 #define NOPASTURESTOCH				// Undefine for fire and disturbance for pasture grass. Number of patches will be the same as for natural stands.
 //#define GRASSFORCROP				// Transfer cropland to pasture landcover for simplified crop definition (harvested competing c3/c4 grass).

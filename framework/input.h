@@ -10,9 +10,7 @@
 
 #include "guess.h"
 #include "config.h"
-#ifdef DYNAMIC_LANDCOVER_INPUT
 #include "InData.h"
-#endif
 #include "inputdefinitions.h"
 #include "landcoverinput.h"
 #include "managementinput.h"
@@ -73,10 +71,8 @@ private:
 	Input& input;
 	/// Reference to the list of Coord objects containing coordinates of the grid cells to simulate
 	ListArray_id<Coord>& gridlist;
-#if defined DYNAMIC_LANDCOVER_INPUT
 	/// Soil code input object
 	InData::TimeDataD soilcode;
-#endif
 	/// Soil code input file name
 	xtring file_soilcode;
 

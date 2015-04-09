@@ -17,7 +17,6 @@ ManagementInputModule::ManagementInputModule(Input& in)
 void ManagementInputModule::init() {
 
 	if(run_landcover && run[CROPLAND]) {
-#if defined DYNAMIC_LANDCOVER_INPUT
 
 		if(readsowingdates)	{
 			file_sdates=param["file_sdates"].str;
@@ -36,8 +35,6 @@ void ManagementInputModule::init() {
 			if(!Nfert.Open(file_Nfert, gridlist))
 				fail("initio: could not open %s for input",(char*)file_Nfert);
 		}
-
-#endif
 	}
 }
 
@@ -46,7 +43,6 @@ bool ManagementInputModule::loadmanagement(Gridcell& gridcell, Coord c) {
 	bool LUerror = false;
 	double offset = search_for_centre_of_gridcell * input.gridlist_spatial_resolution / 2.0;
 
-#if defined DYNAMIC_LANDCOVER_INPUT
 	if(readsowingdates) { 
 		if(!sdates.Load(c, offset)) {
 			dprintf("Problems with sowing date input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
@@ -66,7 +62,6 @@ bool ManagementInputModule::loadmanagement(Gridcell& gridcell, Coord c) {
 			dprintf("N fertilization data not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
 		}
 	}
-#endif
 	return LUerror;
 }
 
@@ -80,19 +75,17 @@ bool ManagementInputModule::getgridcell(Gridcell& gridcell) {
 
 void ManagementInputModule::getsowingdates(Gridcell& gridcell) {
 
-#if defined DYNAMIC_LANDCOVER_INPUT
 	if(!sdates.isloaded())
 		return;
-#endif
 
 	int year = date.year - nyear_spinup + input.getfirsthistyear();
 
 	if(date.year < nyear_spinup + input.getnyear_hist()) {
 		for(int i=0; i<npft; i++) {
 			if(pftlist[i].landcover == CROPLAND && pftlist[i].readsowingdate)	{
-#if defined DYNAMIC_LANDCOVER_INPUT
+
 				gridcell.pft[i].sdate_force = (int)sdates.Get(year,pftlist[i].name);
-#endif
+
 				// Copy gridcellpft-value to standpft-value. If standtype values are required, modify code and input files.
 				for(unsigned int j=0; j<gridcell.nbr_stands(); j++) {
 					Standpft& standpft = gridcell[j].pft[i];
@@ -106,19 +99,17 @@ void ManagementInputModule::getsowingdates(Gridcell& gridcell) {
 
 void ManagementInputModule::getharvestdates(Gridcell& gridcell) {
 
-#if defined DYNAMIC_LANDCOVER_INPUT
 	if(!hdates.isloaded())
 		return;
-#endif
 
 	int year = date.year - nyear_spinup + input.getfirsthistyear();
 
 	if(date.year < nyear_spinup + input.getnyear_hist()) {
  		for(int i=0; i<npft; i++)	{
 			if(pftlist[i].landcover == CROPLAND && pftlist[i].readharvestdate) {		
-#if defined DYNAMIC_LANDCOVER_INPUT
+
 				gridcell.pft[pftlist[i].id].hdate_force = (int)hdates.Get(year,pftlist[i].name);
-#endif
+
 				// Copy gridcellpft-value to standpft-value. If standtype values are required, modify code and input files.
 				for(unsigned int j=0; j<gridcell.nbr_stands(); j++) {
 					Standpft& standpft = gridcell[j].pft[i];
@@ -132,19 +123,15 @@ void ManagementInputModule::getharvestdates(Gridcell& gridcell) {
 
 void ManagementInputModule::getNfert(Gridcell& gridcell) {
 
-#if defined DYNAMIC_LANDCOVER_INPUT
 	if(!Nfert.isloaded())
 		return;
-#endif
 
 	int year = date.year - nyear_spinup + input.getfirsthistyear();
 
 	if(date.year < nyear_spinup + input.getnyear_hist()) {
  		for(int i=0; i<npft; i++)	{
 			if(pftlist[i].landcover == CROPLAND && pftlist[i].readNfert) {		
-#if defined DYNAMIC_LANDCOVER_INPUT
 				gridcell.pft[pftlist[i].id].Nfert_read = Nfert.Get(year,pftlist[i].name);
-#endif
 			}
 		}
 	}

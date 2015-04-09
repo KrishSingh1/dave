@@ -33,13 +33,11 @@ private:
 	/// Reference to the list of Coord objects containing coordinates of the grid cells to simulate
 	ListArray_id<Coord>& gridlist;
 
-#if defined DYNAMIC_LANDCOVER_INPUT
 	// Objects handling landcover fraction data input
 	InData::TimeDataD LUdata;
 	InData::TimeDataD Peatdata;
 	InData::TimeDataD grossLUC;
 	InData::TimeDataD CFTdata;
-#endif
 
 	xtring file_lu, file_grossLUC, file_lucrop, file_peat;
 

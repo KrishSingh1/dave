@@ -1101,16 +1101,6 @@ void plib_callback(int callback) {
 			if (!itemparsed("readNfert")) badins("readNfert");
 			if (!itemparsed("printseparatestands")) badins("printseparatestands");
 			if (!itemparsed("iftillage")) badins("iftillage");
-
-#ifndef DYNAMIC_LANDCOVER_INPUT
-			if(!lcfrac_fixed || !frac_fixed[CROPLAND] || readsowingdates || readharvestdates)
-				dprintf("Input of landcover fractions and sowing-/harvest dates requires the InDataD class. Equal landcover/crop fractions enforced. Sowing-/harvest dates calculated.\n");
-			lcfrac_fixed=true;
-			frac_fixed[CROPLAND]=true;
-			readsowingdates=false;
-			readharvestdates=false;
-			readNfert=false;
-#endif
 		}
 
 		if (!itemparsed("pft")) badins("pft");

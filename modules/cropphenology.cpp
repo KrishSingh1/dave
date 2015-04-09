@@ -8,7 +8,7 @@
 #include "landcover.h"
 #include "cropphenology.h"
 
-#define MAXHUTEMP					//30 degree limit for heat unit summation
+#define MAXHUTEMP	// 30 degree limit for heat unit summation
 
 /// Calculation of down-scaling of lai during crop senescence
 /** Follows Bondeau et al. 2007.
@@ -147,7 +147,7 @@ void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 
 /// Calculation of harvest index
 /** Based on fphu. Restricted by water stress.
- *  Equations are from Neitsch et al. 2002.
+ *  SWAT equations are from Neitsch et al. 2002.
  */ 
 void calc_hi(Patch& patch, Pft& pft) {
 
@@ -185,7 +185,7 @@ void calc_hi(Patch& patch, Pft& pft) {
 
 /// Calculation of accumulated of heat units
 /** Accumulation of heat units during sampling period used for calculation of dynamic phu if DYNAMIC_PHU defined.
- *  Equation is from Neitsch et al. 2002.
+ *  SWAT equation is from Neitsch et al. 2002.
  */ 
 void calc_hu(Patch& patch, Pft& pft) {
 
@@ -335,167 +335,168 @@ void crop_phenology(Patch& patch)
 		double hu = 0.0;
 
 		if(patch.stand.pft[pft.id].active) {
-		if(pft.phenology == CROPGREEN) {
 
-			cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
-			ppftcrop.growingseason_ystd = ppftcrop.growingseason;
+			if(pft.phenology == CROPGREEN) {
 
-			// resets on first day of the year:	
-			if(date.day == 0) {
-				ppftcrop.fphu_harv = -1.0;
-				ppftcrop.fhi_harv = -1.0;
-				ppftcrop.sdate_harv = -1;
-				ppftcrop.nsow = 0;
-				ppftcrop.sendate = -1;
-				ppftcrop.nharv = 0;
-
-				ppftcrop.sownlastyear=false;
-
-				for(int i=0;i<2;i++) {
-					ppftcrop.sdate_harvest[i] = -1;
-					ppftcrop.hdate_harvest[i] = -1;
-					//ppftcrop.fphu_harvest[i] = -1.0;
-					//ppftcrop.fhi_harvest[i] = -1.0;
-					ppftcrop.sdate_thisyear[i] = -1;
-				}
-			}
-
-			// initiations on sowing day:
-			if(date.day == ppftcrop.sdate) {
-				ppftcrop.fphu = 0.0;
-				ppftcrop.fhi = 0.0;
-				ppftcrop.fhi_phen = 0.0;
-				ppftcrop.fhi_water = 1.0;
-				ppftcrop.hdate = -1;
-				ppftcrop.bicdate = -1;
-
-				ppftcrop.growingseason = true;
-				ppftcrop.growingdays = 0;
-				ppftcrop.nsow++;
-
-				if(ppftcrop.nsow == 1)
-					ppftcrop.sdate_thisyear[0] = ppftcrop.sdate;	
-				else if(ppftcrop.nsow == 2)
-					ppftcrop.sdate_thisyear[1] = ppftcrop.sdate;
-
-				// calculate pvd, phu & tb
-				phu_init(ppftcrop, gridcellpft, patch);
-			}
-
-			// Calculation of accumulated heat units and harvest index from sowing to maturity
-			if (ppftcrop.growingseason) 
-			{
-				ppftcrop.senescence_ystd = ppftcrop.senescence;
-				ppftcrop.hi_ystd = ppftcrop.hi;
-				ppftcrop.intercropseason = false;
-				ppftcrop.growingdays++;
-
-				// check if harvest is prescribed
-				bool force_harvest = date.day == standpft.hdate_force;
-
-				// before maturity is reached
-				bool pre_maturity = (ifnlim_lc[CROPLAND]) ? ppftcrop.dev_stage < 2.0 : ppftcrop.husum < ppftcrop.phu;
-
-				if(pre_maturity && dayinperiod(date.day, ppftcrop.sdate, stepfromdate(ppftcrop.hlimitdate, -1)) && !force_harvest) {
-
-					// count accumulated heat units after sowing date
-					calc_hu(patch, pft);
-
-					if(ifnlim_lc[CROPLAND])
-						calc_ds(patch, pft);
-
-					//  test for senescence
-					if (ppftcrop.fphu >= pft.fphusen) {
-
-						if(ppftcrop.senescence_ystd == false)
-							ppftcrop.sendate = date.day;
-						ppftcrop.senescence = true;
-					}
-
-					// calculated harvest index
-					calc_hi(patch, pft);
-
-				}
-				else {	// harvest
-
-					// save today as harvest day
-					ppftcrop.hdate = date.day;
-
-					ppftcrop.growingseason = false;
-					ppftcrop.intercropseason = false;		
-					ppftcrop.senescence = false;
-
-					ppftcrop.fertilised[0] = false;
-					ppftcrop.fertilised[1] = false;
-					ppftcrop.fertilised[2] = false;
-
-					// set start of intercrop grass growth
-					ppftcrop.bicdate = stepfromdate(ppftcrop.hdate, 15);
-
-					// count number of harvest events this year
-					ppftcrop.nharv++;
-
-					// Save phenological values and dates at harvest:
-					ppftcrop.fphu_harv = ppftcrop.fphu;
-					ppftcrop.fhi_harv = ppftcrop.fhi;
-					ppftcrop.sdate_harv = ppftcrop.sdate;
-					ppftcrop.lgp = ppftcrop.growingdays;
-
-					// allowing saving at two harvests per year
-					if(ppftcrop.nharv == 1) {
-						ppftcrop.sdate_harvest[0] = ppftcrop.sdate;
-						ppftcrop.hdate_harvest[0] = date.day;
-						//ppftcrop.fphu_harvest[0] = ppftcrop.fphu;
-						//ppftcrop.fhi_harvest[0] = ppftcrop.fhi;
-						if(ppftcrop.sdate > date.day)							
-							ppftcrop.sownlastyear = true;
-					}
-					else if(ppftcrop.nharv == 2) {
-						ppftcrop.sdate_harvest[1] = ppftcrop.sdate;
-						ppftcrop.hdate_harvest[1] = date.day;
-						//ppftcrop.fphu_harvest[1] = ppftcrop.fphu;
-						//ppftcrop.fhi_harvest[1] = ppftcrop.fhi;
-					}
-
-					ppftcrop.demandsum_crop = 0.0;
-					ppftcrop.supplysum_crop = 0.0;
-
-					if(pft.ifsdprec) {	// TeCo,TrMi,TrMa,TrPe; with NEWSOWINGDATE: all crops			
-						ppftcrop.sdate = -1;
-						ppftcrop.eicdate = -1;
-					}
-
-				} //end harvest
-			}  //from sowing has taken place until harvest day
-
-			// continue sampling heat units from hdate until last sampling date
-			if(ifcalcdynamic_phu && ppftcrop.growingseason == false && ppftcrop.hu_samplingperiod)
-				calc_hu(patch, pft);
-
-			if(patch.stand.pftid == pft.id && stlist[patch.stand.stid].intercrop == NATURALGRASS) {
-
-				if(!ppftcrop.intercropseason && date.day == ppftcrop.bicdate)
-					ppftcrop.intercropseason = true;
-
-				if(date.day == ppftcrop.eicdate) {
-					ppftcrop.intercropseason = false;
-				}
-			}
-		}
-		else if(pft.phenology == ANY) { // crop grasses using standard guess phenology calculation
-		
-			if(patch.stand.pftid != pft.id) {
 				cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+				ppftcrop.growingseason_ystd = ppftcrop.growingseason;
 
-				if(date.day == 0)
+				// resets on first day of the year:	
+				if(date.day == 0) {
+					ppftcrop.fphu_harv = -1.0;
+					ppftcrop.fhi_harv = -1.0;
+					ppftcrop.sdate_harv = -1;
+					ppftcrop.nsow = 0;
+					ppftcrop.sendate = -1;
 					ppftcrop.nharv = 0;
 
-				if(date.day == patch.pft[patch.stand.pftid].cropphen->bicdate)
+					ppftcrop.sownlastyear=false;
+
+					for(int i=0;i<2;i++) {
+						ppftcrop.sdate_harvest[i] = -1;
+						ppftcrop.hdate_harvest[i] = -1;
+						//ppftcrop.fphu_harvest[i] = -1.0;
+						//ppftcrop.fhi_harvest[i] = -1.0;
+						ppftcrop.sdate_thisyear[i] = -1;
+					}
+				}
+
+				// initiations on sowing day:
+				if(date.day == ppftcrop.sdate) {
+					ppftcrop.fphu = 0.0;
+					ppftcrop.fhi = 0.0;
+					ppftcrop.fhi_phen = 0.0;
+					ppftcrop.fhi_water = 1.0;
+					ppftcrop.hdate = -1;
+					ppftcrop.bicdate = -1;
+
 					ppftcrop.growingseason = true;
-				else if(date.day == patch.pft[patch.stand.pftid].cropphen->eicdate)
-					ppftcrop.growingseason = false;
+					ppftcrop.growingdays = 0;
+					ppftcrop.nsow++;
+
+					if(ppftcrop.nsow == 1)
+						ppftcrop.sdate_thisyear[0] = ppftcrop.sdate;	
+					else if(ppftcrop.nsow == 2)
+						ppftcrop.sdate_thisyear[1] = ppftcrop.sdate;
+
+					// calculate pvd, phu & tb
+					phu_init(ppftcrop, gridcellpft, patch);
+				}
+
+				// Calculation of accumulated heat units and harvest index from sowing to maturity
+				if (ppftcrop.growingseason) 
+				{
+					ppftcrop.senescence_ystd = ppftcrop.senescence;
+					ppftcrop.hi_ystd = ppftcrop.hi;
+					ppftcrop.intercropseason = false;
+					ppftcrop.growingdays++;
+
+					// check if harvest is prescribed
+					bool force_harvest = date.day == standpft.hdate_force;
+
+					// before maturity is reached
+					bool pre_maturity = (ifnlim_lc[CROPLAND]) ? ppftcrop.dev_stage < 2.0 : ppftcrop.husum < ppftcrop.phu;
+
+					if(pre_maturity && dayinperiod(date.day, ppftcrop.sdate, stepfromdate(ppftcrop.hlimitdate, -1)) && !force_harvest) {
+
+						// count accumulated heat units after sowing date
+						calc_hu(patch, pft);
+
+						if(ifnlim_lc[CROPLAND])
+							calc_ds(patch, pft);
+
+						//  test for senescence
+						if (ppftcrop.fphu >= pft.fphusen) {
+
+							if(ppftcrop.senescence_ystd == false)
+								ppftcrop.sendate = date.day;
+							ppftcrop.senescence = true;
+						}
+
+						// calculated harvest index
+						calc_hi(patch, pft);
+
+					}
+					else {	// harvest
+
+						// save today as harvest day
+						ppftcrop.hdate = date.day;
+
+						ppftcrop.growingseason = false;
+						ppftcrop.intercropseason = false;		
+						ppftcrop.senescence = false;
+
+						ppftcrop.fertilised[0] = false;
+						ppftcrop.fertilised[1] = false;
+						ppftcrop.fertilised[2] = false;
+
+						// set start of intercrop grass growth
+						ppftcrop.bicdate = stepfromdate(ppftcrop.hdate, 15);
+
+						// count number of harvest events this year
+						ppftcrop.nharv++;
+
+						// Save phenological values and dates at harvest:
+						ppftcrop.fphu_harv = ppftcrop.fphu;
+						ppftcrop.fhi_harv = ppftcrop.fhi;
+						ppftcrop.sdate_harv = ppftcrop.sdate;
+						ppftcrop.lgp = ppftcrop.growingdays;
+
+						// allowing saving at two harvests per year
+						if(ppftcrop.nharv == 1) {
+							ppftcrop.sdate_harvest[0] = ppftcrop.sdate;
+							ppftcrop.hdate_harvest[0] = date.day;
+							//ppftcrop.fphu_harvest[0] = ppftcrop.fphu;
+							//ppftcrop.fhi_harvest[0] = ppftcrop.fhi;
+							if(ppftcrop.sdate > date.day)							
+								ppftcrop.sownlastyear = true;
+						}
+						else if(ppftcrop.nharv == 2) {
+							ppftcrop.sdate_harvest[1] = ppftcrop.sdate;
+							ppftcrop.hdate_harvest[1] = date.day;
+							//ppftcrop.fphu_harvest[1] = ppftcrop.fphu;
+							//ppftcrop.fhi_harvest[1] = ppftcrop.fhi;
+						}
+
+						ppftcrop.demandsum_crop = 0.0;
+						ppftcrop.supplysum_crop = 0.0;
+
+						if(pft.ifsdprec) {	// TeCo,TrMi,TrMa,TrPe; with NEWSOWINGDATE: all crops			
+							ppftcrop.sdate = -1;
+							ppftcrop.eicdate = -1;
+						}
+
+					} //end harvest
+				}  //from sowing has taken place until harvest day
+
+				// continue sampling heat units from hdate until last sampling date
+				if(ifcalcdynamic_phu && ppftcrop.growingseason == false && ppftcrop.hu_samplingperiod)
+					calc_hu(patch, pft);
+
+				if(patch.stand.pftid == pft.id && stlist[patch.stand.stid].intercrop == NATURALGRASS) {
+
+					if(!ppftcrop.intercropseason && date.day == ppftcrop.bicdate)
+						ppftcrop.intercropseason = true;
+
+					if(date.day == ppftcrop.eicdate) {
+						ppftcrop.intercropseason = false;
+					}
+				}
 			}
-		}
+			else if(pft.phenology == ANY) { // crop grasses using standard guess phenology calculation
+			
+				if(patch.stand.pftid != pft.id) {
+					cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+
+					if(date.day == 0)
+						ppftcrop.nharv = 0;
+
+					if(date.day == patch.pft[patch.stand.pftid].cropphen->bicdate)
+						ppftcrop.growingseason = true;
+					else if(date.day == patch.pft[patch.stand.pftid].cropphen->eicdate)
+						ppftcrop.growingseason = false;
+				}
+			}
 		}
 
 		patch.pft.nextobj();
@@ -593,3 +594,6 @@ void leaf_phenology_crop(Pft& pft, Patch& patch)
 // Lindeskog M, Arneth A, Bondeau A, Waha K, Seaquist J, Olin S, & Smith B 2013. 
 //   Implications of accounting for land use in simulations of ecosystem services and  
 //   carbon cycling in Africa. Earth Syst Dynam Discuss 4:235-278.
+// Neitsch SL, Arnold JG, Kiniry JR et al.2002 Soil and Water Assessment Tool, Theorethical 
+//   Documentation + User's Manual. USDA_ARS-SR Grassland, Soil and Water Research Laboratory.
+//   Agricultural Reasearch Service, Temple,Tx, US.

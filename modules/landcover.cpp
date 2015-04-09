@@ -17,8 +17,6 @@
 
 //#define PRINT_GROSS_LC_CHANGE_INFO
 
-/////////////////////////// Functions facilitating handling time periods spanning newyear //////////////////////////////////////
-
 /// Query whether a date is within a period spanned by two dates.
 bool dayinperiod(int day, int start, int end) {
 
@@ -49,9 +47,12 @@ int stepfromdate(int day, int step) {
 		return 0;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////  Landcover stand dynamics and C-partitioning  /////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Help function to access two-dimentional arrays that have been created dynamically
+int index(int from, int to, int ncols = nst) {
+
+	return from * ncols + to;
+}
+
 
 /// Creation of stands when run_landcover==true
 void landcover_init(Gridcell& gridcell, LandcoverInputModule* landcover_input_module) {
@@ -84,75 +85,6 @@ void landcover_init(Gridcell& gridcell, LandcoverInputModule* landcover_input_mo
 
 		stlist.nextobj();
 	}
-}
-
-/// landcover_change_transfer constructor
-landcover_change_transfer::landcover_change_transfer() {
-
-	transfer_litter_leaf = transfer_litter_sap = transfer_litter_heart = transfer_litter_root = transfer_litter_repr = transfer_harvested_products_slow = NULL;
-	transfer_nmass_litter_leaf = transfer_nmass_litter_sap = transfer_nmass_litter_heart = transfer_nmass_litter_root = transfer_harvested_products_slow_nmass = NULL;
-
-	transfer_acflux_harvest = transfer_anflux_harvest = transfer_cpool_fast = transfer_cpool_slow = transfer_wcont_evap = transfer_decomp_litter_mean = 0.0;
-	transfer_k_soilfast_mean = transfer_k_soilslow_mean = transfer_nmass_avail = transfer_snowpack = transfer_snowpack_nmass = transfer_anfix_calc = 0.0;
-
-	memset(transfer_wcont,0,NSOILLAYER*sizeof(double));
-
-	for(int i=0; i<NSOMPOOL; i++)
-		transfer_sompool[i].ntoc = 0.0;
-
-	allocate();
-
-}
-
-/// landcover_change_transfer deconstructor
-landcover_change_transfer::~landcover_change_transfer() {
-
-	if(transfer_litter_leaf) delete[] transfer_litter_leaf;
-	if(transfer_litter_sap) delete[] transfer_litter_sap;
-	if(transfer_litter_heart) delete[] transfer_litter_heart;
-	if(transfer_litter_root) delete[] transfer_litter_root;
-	if(transfer_litter_repr) delete[] transfer_litter_repr;
-	if(transfer_harvested_products_slow) delete[] transfer_harvested_products_slow;
-	if(transfer_nmass_litter_leaf) delete[] transfer_nmass_litter_leaf;
-	if(transfer_nmass_litter_sap) delete[] transfer_nmass_litter_sap;
-	if(transfer_nmass_litter_heart) delete[] transfer_nmass_litter_heart;
-	if(transfer_nmass_litter_root) delete[] transfer_nmass_litter_root;
-	if(transfer_harvested_products_slow_nmass) delete[] transfer_harvested_products_slow_nmass;
-}
-
-/// allocates memory for landcover_change_transfer object
-void landcover_change_transfer::allocate() {
-
-	transfer_litter_leaf = new double[npft];
-	transfer_litter_sap = new double[npft];
-	transfer_litter_heart = new double[npft];
-	transfer_litter_root = new double[npft];
-	transfer_litter_repr = new double[npft];
-	transfer_harvested_products_slow = new double[npft];
-
-	transfer_nmass_litter_leaf = new double[npft];
-	transfer_nmass_litter_sap = new double[npft];
-	transfer_nmass_litter_heart = new double[npft];
-	transfer_nmass_litter_root = new double[npft];
-	transfer_harvested_products_slow_nmass = new double[npft];
-
-	memset(transfer_litter_leaf, 0, sizeof(double) * npft);
-	memset(transfer_litter_sap, 0, sizeof(double) * npft);
-	memset(transfer_litter_heart, 0, sizeof(double) * npft);
-	memset(transfer_litter_root, 0, sizeof(double) * npft);
-	memset(transfer_litter_repr, 0, sizeof(double) * npft);
-	memset(transfer_harvested_products_slow, 0, sizeof(double) * npft);
-
-	memset(transfer_nmass_litter_leaf,0,sizeof(double)*npft);
-	memset(transfer_nmass_litter_sap,0,sizeof(double)*npft);
-	memset(transfer_nmass_litter_heart,0,sizeof(double)*npft);
-	memset(transfer_nmass_litter_root,0,sizeof(double)*npft);
-	memset(transfer_harvested_products_slow_nmass,0,sizeof(double)*npft);
-}
-
-int index(int from, int to, int ncols = nst) {
-
-	return from * ncols + to;
 }
 
 /// Gets this year's landcover and crop area fractions, checks that area changes are significant and that the net changes are zero.
@@ -252,48 +184,6 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
 	}
 
 	return change;
-}
-
-enum {NONEWSTAND, CLONESTAND, CLONESTAND_KILLTREES, NEWSTAND_KILLALL};
-
-/// contains rules for creation of new stands at land cover change
-/** Options CLONESTAND and CLONESTAND_KILLTREES require that the receptor landcover
- *  allows growth of natural grass and/or tree PFTs
- *
- *  INTPUT PARAMETERS
- *
- *  \param landcover_donor				landcover type of donor stand
- *  \param landcover_receptor			landcover type of rexeptor stand
- */
-int copy_stand_type(int landcover_donor, int landcover_receptor) {
-
-	int copy_type = NONEWSTAND;
-
-	if(landcover_donor == NATURAL) {
-		
-		if(landcover_receptor == FOREST)
-			copy_type = CLONESTAND;
-
-//		if(landcover_receptor == PASTURE)
-//			copy_type = CLONESTAND_KILLTREES;
-
-//		if(landcover_receptor == CROPLAND)
-//			copy_type = NEWSTAND_KILLALL;
-
-//		if(landcover_receptor == PASTURE)
-//			copy_type = NEWSTAND_KILLALL;
-
-	}
-	else if(landcover_donor == FOREST) {
-		if(landcover_receptor == NATURAL)
-			copy_type = CLONESTAND;
-	}
-	else if(landcover_donor == PASTURE) {
-//		if(landcover_receptor == NATURAL)
-//			copy_type = CLONESTAND;
-	}
-
-	return copy_type;
 }
 
 /// identifies which stands to reduce in area and sets standtype.nstands
@@ -1440,6 +1330,48 @@ if(transfer_mode == 0) {
 	}
 }
 
+enum {NONEWSTAND, CLONESTAND, CLONESTAND_KILLTREES, NEWSTAND_KILLALL};
+
+/// contains rules for creation of new stands at land cover change
+/** Options CLONESTAND and CLONESTAND_KILLTREES require that the receptor landcover
+ *  allows growth of natural grass and/or tree PFTs
+ *
+ *  INTPUT PARAMETERS
+ *
+ *  \param landcover_donor				landcover type of donor stand
+ *  \param landcover_receptor			landcover type of rexeptor stand
+ */
+int copy_stand_type(int landcover_donor, int landcover_receptor) {
+
+	int copy_type = NONEWSTAND;
+
+	if(landcover_donor == NATURAL) {
+		
+		if(landcover_receptor == FOREST)
+			copy_type = CLONESTAND;
+
+//		if(landcover_receptor == PASTURE)
+//			copy_type = CLONESTAND_KILLTREES;
+
+//		if(landcover_receptor == CROPLAND)
+//			copy_type = NEWSTAND_KILLALL;
+
+//		if(landcover_receptor == PASTURE)
+//			copy_type = NEWSTAND_KILLALL;
+
+	}
+	else if(landcover_donor == FOREST) {
+		if(landcover_receptor == NATURAL)
+			copy_type = CLONESTAND;
+	}
+	else if(landcover_donor == PASTURE) {
+//		if(landcover_receptor == NATURAL)
+//			copy_type = CLONESTAND;
+	}
+
+	return copy_type;
+}
+
 /// Creates unique stands from transfer events if copy_stand_type() returns >= 1 for landcovers combination
 /** Either clones donor stand or creates new stand from scratch
  *
@@ -2079,8 +2011,32 @@ bool check_fractions4(Gridcell& gridcell) {
 }
 
 /// Updates all landcover and crop stand area fractions each year, possibly resulting in the creation and killing of stands.
-/** Harvests transferred areas and transfers litter etc. of reduced stands to expanding stands.
- *  Transfers litter etc. of reduced stands to expanding stands at landcover change.
+/** Harvests transferred areas and transfers litter etc. of reduced stands to expanding stands and harvested matter to fluxes
+ *  and (in the case of wood) to long-lived pools.
+ *
+ *  The instruction file parameters lcfrac_fixed and cftfrac_fixed will determine if land fractions are read from input files 
+ *  (gridcell static or dynamic) or from the instruction file (global static) and if any land cover change is possible.
+ *
+ *  The instruction file parameter gross_land_transfer determines whether gross land transfer fractions are to be read from an input  
+ *  file (2) or simulated by an amount set in simulate_gross_lc_transfer() (1) or simulate_gross_st_transfer() or be turned off (0).
+ *
+ *  Land cover fraction files need to be read together with gross land transition files. Net and gross land cover change is 
+ *  expected to be compatible, although rounding errors are handled by the input code.
+ *
+ *  If instruction file parameter iftransfer_to_new_stand is true, new stands may be created for separate land transfers  
+ *  in transfer_to_new_stand(), according to rules in copy_stand_type().
+ *
+ *  Otherwise, new transferred areas are pooled according to instruction file parameter transfer_level (0: one big pool; 1: land cover-level; 
+ *  2: stand type-level) and rules in the gridcell arrays pool_from_all_landcovers[to] and pool_to_all_landcovers[from], set
+ *  in the Gridcell constructor.
+ *  New stands may then be created in stand_dynamics() from the pooled land if the instruction file parameter ifexpand_to_new_stand is true, 
+ *  and the gridcell array expand_to_new_stand[lc] value for the receiving land cover, set in the Gridcell constructor, is true (natural and forest).
+ *  If not, soil and litter carbon and nitrogen as well as water is pooled with the receiving stands (cropland, pasture).
+ *
+ *  Transferred land with living plant mass after land cover change should be put in new stands, using the stand cloning mode in 
+ *  transfer_to_new_stand(). Stands with living plant mass should not be pooled with newly transferred land, unconditionally so 
+ *  if they contain trees (pasture can be expanded without too much problems). New stands should instead be created, either in stand_dynamics()
+ *  or transfer_to_new_stand() as described above.
  */
 void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* landcover_input_module) {
 
@@ -2614,6 +2570,74 @@ void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* landcover_inpu
 		delete[] primary_st_frac_transfer;
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of landcover_change_transfer member functions
+////////////////////////////////////////////////////////////////////////////////
+
+/// landcover_change_transfer constructor
+landcover_change_transfer::landcover_change_transfer() {
+
+	transfer_litter_leaf = transfer_litter_sap = transfer_litter_heart = transfer_litter_root = transfer_litter_repr = transfer_harvested_products_slow = NULL;
+	transfer_nmass_litter_leaf = transfer_nmass_litter_sap = transfer_nmass_litter_heart = transfer_nmass_litter_root = transfer_harvested_products_slow_nmass = NULL;
+
+	transfer_acflux_harvest = transfer_anflux_harvest = transfer_cpool_fast = transfer_cpool_slow = transfer_wcont_evap = transfer_decomp_litter_mean = 0.0;
+	transfer_k_soilfast_mean = transfer_k_soilslow_mean = transfer_nmass_avail = transfer_snowpack = transfer_snowpack_nmass = transfer_anfix_calc = 0.0;
+
+	memset(transfer_wcont,0,NSOILLAYER*sizeof(double));
+
+	for(int i=0; i<NSOMPOOL; i++)
+		transfer_sompool[i].ntoc = 0.0;
+
+	allocate();
+
+}
+
+/// landcover_change_transfer deconstructor
+landcover_change_transfer::~landcover_change_transfer() {
+
+	if(transfer_litter_leaf) delete[] transfer_litter_leaf;
+	if(transfer_litter_sap) delete[] transfer_litter_sap;
+	if(transfer_litter_heart) delete[] transfer_litter_heart;
+	if(transfer_litter_root) delete[] transfer_litter_root;
+	if(transfer_litter_repr) delete[] transfer_litter_repr;
+	if(transfer_harvested_products_slow) delete[] transfer_harvested_products_slow;
+	if(transfer_nmass_litter_leaf) delete[] transfer_nmass_litter_leaf;
+	if(transfer_nmass_litter_sap) delete[] transfer_nmass_litter_sap;
+	if(transfer_nmass_litter_heart) delete[] transfer_nmass_litter_heart;
+	if(transfer_nmass_litter_root) delete[] transfer_nmass_litter_root;
+	if(transfer_harvested_products_slow_nmass) delete[] transfer_harvested_products_slow_nmass;
+}
+
+/// allocates memory for landcover_change_transfer object
+void landcover_change_transfer::allocate() {
+
+	transfer_litter_leaf = new double[npft];
+	transfer_litter_sap = new double[npft];
+	transfer_litter_heart = new double[npft];
+	transfer_litter_root = new double[npft];
+	transfer_litter_repr = new double[npft];
+	transfer_harvested_products_slow = new double[npft];
+
+	transfer_nmass_litter_leaf = new double[npft];
+	transfer_nmass_litter_sap = new double[npft];
+	transfer_nmass_litter_heart = new double[npft];
+	transfer_nmass_litter_root = new double[npft];
+	transfer_harvested_products_slow_nmass = new double[npft];
+
+	memset(transfer_litter_leaf, 0, sizeof(double) * npft);
+	memset(transfer_litter_sap, 0, sizeof(double) * npft);
+	memset(transfer_litter_heart, 0, sizeof(double) * npft);
+	memset(transfer_litter_root, 0, sizeof(double) * npft);
+	memset(transfer_litter_repr, 0, sizeof(double) * npft);
+	memset(transfer_harvested_products_slow, 0, sizeof(double) * npft);
+
+	memset(transfer_nmass_litter_leaf,0,sizeof(double)*npft);
+	memset(transfer_nmass_litter_sap,0,sizeof(double)*npft);
+	memset(transfer_nmass_litter_heart,0,sizeof(double)*npft);
+	memset(transfer_nmass_litter_root,0,sizeof(double)*npft);
+	memset(transfer_harvested_products_slow_nmass,0,sizeof(double)*npft);
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES

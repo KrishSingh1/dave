@@ -10,8 +10,7 @@
 
 /// Calculation of down-scaling of lai during crop senescence
 double senescence_curve(Pft& pft, double fphu);
-void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch);
-//void crop_phenology(Pft& pft, Patch& patch);
+/// Handles heat unit and harvest index calculation and identifies harvest, senescence and intercrop events.
 void crop_phenology(Patch& patch);
 /// Updates crop phen from yesterday's lai_daily
 void leaf_phenology_crop(Pft& pft, Patch& patch);

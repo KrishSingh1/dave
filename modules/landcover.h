@@ -18,8 +18,6 @@
 #include "cropallocation.h"
 #include "management.h"
 
-struct Harvest_CN;
-
 ///	Creates stands for landcovers present in the gridcell first year of the simulation
 void landcover_init(Gridcell& gridcell, LandcoverInputModule* input_module);
 

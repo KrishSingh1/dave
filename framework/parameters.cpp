@@ -1255,6 +1255,7 @@ void plib_callback(int callback) {
 
 			if (remove) {
 				// Remove this PFT from list
+				dprintf("pft %s not compatible with ifnlim_crop setting; removed from pftlist !\n", (char*)pft.name);
 				pftlist.killobj();
 			}
 			else {
@@ -1276,7 +1277,7 @@ void plib_callback(int callback) {
 
 					if(pftlist.getpftid(st.management[i].pftname) < 0) {
 						include = false;
-						dprintf("Stand type %d not used; pft %s not in pftlist !\n", st.id, (char*)st.management[i].pftname);;
+						dprintf("Stand type %s not used; pft %s not in pftlist !\n", (char*)st.name, (char*)st.management[i].pftname);
 					}
 				}
 			}

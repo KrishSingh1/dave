@@ -1351,16 +1351,8 @@ public:
 	double turnover_harv_prod;
 	/// whether pft may grow as cover crop 
 	bool isintercropgrass;
-	/// whether sowing date is calculated
-	bool ifsdcalc;
-	/// whether temperature dependent sowing date is calculated
-	bool ifsdtemp;
 	/// whether autumn temperature dependent sowing date is calculated
 	bool ifsdautumn;
-	/// whether spring temperature dependent sowing date is calculated
-	bool ifsdspring;
-	/// whether precipitation dependent sowing date is calculated
-	bool ifsdprec;
 	/// upper temperature limit for autumn sowing
 	double tempautumn;
 	/// lower temperature limit for spring sowing
@@ -1375,10 +1367,6 @@ public:
 	int hlimitdatesh;
 	/// default base temperature (°C) for heat unit (hu) calculation
 	double tb;
-	/// early sowing limit for precipitation-limited crops (northern hemisphere); only used in Crop_sowing_date_prec()
-	int firstsowdatenh_prec;
-	/// early sowing limit for precipitation-limited crops (southern hemisphere); only used in Crop_sowing_date_prec()
-	int firstsowdatesh_prec;
 	/// temperature under which vernalisation is possible (°C)
 	double trg;
 	/// default number of vernalising days required
@@ -1438,11 +1426,7 @@ public:
 		turnover_harv_prod = 1.0;	// default 1 year turnover time
 
 		isintercropgrass=false;
-		ifsdcalc=false;
-		ifsdtemp=false;
 		ifsdautumn=false;
-		ifsdspring=false;
-		ifsdprec=false;
 		sdatenh=-1;
 		sdatesh=-1;
 		hlimitdatenh=-1;

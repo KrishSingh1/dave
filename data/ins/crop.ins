@@ -579,11 +579,7 @@ group "crop" (
 
 	landcover "cropland"
 !	intercrop "naturalgrass"	! ML CFT
-	ifsdcalc 0
-	ifsdtemp 0
 	ifsdautumn 0
-	ifsdspring 0
-	ifsdprec 0
 	tempautumn 12
 	tempspring 12
 
@@ -1222,10 +1218,7 @@ group "TeWW" (
 	hiopt 0.5	! FAO/IIASA AEZ				
 	himin 0.2						
 
-	ifsdcalc 1
-	ifsdtemp 1
 	ifsdautumn 1
-	ifsdspring 1
 	tempautumn 12
 	tempspring 5
 	readsowingdate 1
@@ -1271,7 +1264,6 @@ group "TrRi" (
 	himin 0.25
 
 !	intercrop "nointercrop"	
-	ifsdcalc 1
 	tempspring 18
 	readsowingdate 1
 	readharvestdate 1
@@ -1304,8 +1296,6 @@ group "TeCo" (
 	phu 1400	! test alberte
 	hlimitdatenh 360 ! for initialization
 	hlimitdatesh 176 ! idem; changed from 175 111115
-	firstsowdatenh_prec -1		! not used
-	firstsowdatesh_prec -1		! not used
 
 !!	fphuc 0.10						! SWAT 0.15
 !!	flaimaxc 0.05
@@ -1319,10 +1309,6 @@ group "TeCo" (
 	hiopt 0.5	! SWAT (silage 0.9)
 	himin 0.3
 
-	ifsdcalc 1
-	ifsdtemp 1
-	ifsdspring 1
-	ifsdprec 1
 	tempspring 14
 	readsowingdate 1
 	readharvestdate 1
@@ -1354,9 +1340,7 @@ group "TrMi" (
 	ps 24		! not yet implemented
 	phu 2000
 	hlimitdatenh 50		! for initialization
-	hlimitdatesh 230	! for initialization
-	firstsowdatenh_prec 120
-	firstsowdatesh_prec 300			
+	hlimitdatesh 230	! for initialization	
 
 !!	fphuc 0.15				! values for pearl millet (P. glaucum)
 !!	flaimaxc 0.01
@@ -1369,8 +1353,6 @@ group "TrMi" (
 !!	laimax 2.5	! SWAT						;  Increase to 4(Akponikpe 2004)-5.5(
 	hiopt 0.25	! SWAT
 	himin 0.1
-	ifsdcalc 1
-	ifsdprec 1
 	tempspring 12	
 )
 
@@ -1411,7 +1393,6 @@ group "TePu" (
 !!	laimax 4	! SWAT						; Increase to 5 (cowpea, Bastos 2011), 5(chickpea)-6(bean, cowpea): Tesfaye 2006
 	hiopt 0.6	! SWAT 0.61
 	himin 0.01
-	ifsdcalc 0
 	tempspring 10
 	readsowingdate 1
 	readharvestdate 1
@@ -1454,7 +1435,6 @@ group "TeSb" (
 !!	laimax 5	! SWAT									; Increase ? 8 (Monreal 2007)
 	hiopt 2.0	! SWAT (Achtung below-ground) ! 0.15 AEZ (fraction of total biomass)
 	himin 1.1
-	ifsdcalc 0
 	tempspring 8	
 	aboveground_ho 0
 )
@@ -1484,8 +1464,6 @@ group "TrMa" (
 	phu 2000
 	hlimitdatenh 330! for initialization
 	hlimitdatesh 146! for initialization
-	firstsowdatenh_prec 80
-	firstsowdatesh_prec 260 		
 
 !!	fphuc 0.15
 !!	flaimaxc 0.05
@@ -1498,8 +1476,6 @@ group "TrMa" (
 !!	laimax 5	! like sugarbeet ?				;	4-8 (Cock 1984) (highest 10)
 	hiopt 2.0	! like sugarbeet ?
 	himin 1.1
-	ifsdcalc 1
-	ifsdprec 1
 	tempspring 22	! New sowing date algorithm
 	aboveground_ho 0
 )
@@ -1541,11 +1517,6 @@ group "TeSf" (
 !!	laimax 3	! SWAT						;	Increase to 7 (Howell)
 	hiopt 0.3	! SWAT
 	himin 0.2	! SWAT 0.18
-	ifsdcalc 1
-	ifsdtemp 1
-	ifsdautumn 0
-	ifsdspring 1
-	ifsdprec 0
 	tempspring 15	!NB Bondeau 13, paper 15 changed to 15 100104
 !	tempspring 13	! New sowing date algorithm, new value	: use ??????
 )
@@ -1588,7 +1559,6 @@ group "TeSo" (
 !!	laimax 3	! SWAT							; Too small: increase to at least 5.5 (Oliver 1979 (5.6), Liu 2005)
 	hiopt 0.3	! SWAT 0.31
 	himin 0.01
-	ifsdcalc 0
 	tempspring 13	! New sowing date algorithm
 )
 
@@ -1616,8 +1586,6 @@ group "TrPe" (
 	phu 1500
 	hlimitdatenh 330	! for initialization
 	hlimitdatesh 146	! for initialization; 
-	firstsowdatenh_prec 100
-	firstsowdatesh_prec 280		
 
 !!	fphuc 0.15
 !!	flaimaxc 0.01
@@ -1630,8 +1598,6 @@ group "TrPe" (
 !!	laimax 4	! SWAT							;	Increase to 8.5 ? (Kiniry 2005)
 	hiopt 0.4	! SWAT
 	himin 0.3
-	ifsdcalc 1
-	ifsdprec 1
 	tempspring 15	
 )
 
@@ -1672,11 +1638,7 @@ group "TeRa" (
 !!	laimax 4.5	!SWIM		SWAT Argentina			;		 increase to 5 ? (Wright, Australia 1988; Franzaring, Stuttgart 2008)
 	hiopt 0.3	!?		SWAT Argentina			;			winter rapeseed 0.4 (Frick et al. 1994)
 	himin 0.15			! SWAT 0.01 !!
-	ifsdcalc 1
-	ifsdtemp 1
 	ifsdautumn 1
-	ifsdspring 1
-	ifsdprec 0
 	tempautumn 17
 	tempspring 5	! 12 in Bondeau's code, ändra till 11 och 5
 	forceautumnsowing 0	! 0 No forcing, 1 Autumn, 2 Spring

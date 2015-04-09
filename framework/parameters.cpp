@@ -684,15 +684,9 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("flaimaxharvest",&ppft->flaimaxharvest,0.0,1.0,1,CB_NONE,"");
 		declareitem("aboveground_ho",&ppft->aboveground_ho,1,CB_NONE,"Whether aboveground structures are harvested");
 		declareitem("harv_eff_ic",&ppft->harv_eff_ic,0.0,1.0,1,CB_NONE,"");
-		declareitem("ifsdcalc",&ppft->ifsdcalc,1,CB_NONE,"Whether sowing date is to be calculated");
-		declareitem("ifsdtemp",&ppft->ifsdtemp,1,CB_NONE,"Whether sowing date is to be calculated from 20-year temperature data");
 		declareitem("ifsdautumn",&ppft->ifsdautumn,1,CB_NONE,"Whether sowing date in autumn is to be calculated");
-		declareitem("ifsdspring",&ppft->ifsdspring,1,CB_NONE,"Whether sowing date in spring is to be calculated");
-		declareitem("ifsdprec",&ppft->ifsdprec,1,CB_NONE,"Whether sowing date is to be calculated from 2-year precipitation data");
 		declareitem("tempautumn",&ppft->tempautumn,0.0,25.0,1,CB_NONE,"");
 		declareitem("tempspring",&ppft->tempspring,0.0,25.0,1,CB_NONE,"");
-		declareitem("firstsowdatenh_prec",&ppft->firstsowdatenh_prec,-1,365,1,CB_NONE,"precipitation-limited sowing date in the northern hemisphere");	// only used in Crop_sowing_date_prec()
-		declareitem("firstsowdatesh_prec",&ppft->firstsowdatesh_prec,-1,365,1,CB_NONE,"precipitation-limited sowing date in the southern hemisphere");	// only used in Crop_sowing_date_prec()
 		declareitem("hiopt",&ppft->hiopt,0.0,2.0,1,CB_NONE,"");
 		declareitem("himin",&ppft->himin,0.0,2.0,1,CB_NONE,"");
 		declareitem("frootstart",&ppft->frootstart,0.0,1.0,1,CB_NONE,"");
@@ -1425,11 +1419,7 @@ void plib_callback(int callback) {
 						if (!itemparsed("shapesenescencenorm")) badins("shapesenescencenorm");
 						if (!itemparsed("flaimaxharvest")) badins("flaimaxharvest");
 						if (!itemparsed("aboveground_ho")) badins("aboveground_ho");
-						if (!itemparsed("ifsdcalc")) badins("ifsdcalc");
-						if (!itemparsed("ifsdtemp")) badins("ifsdtemp");
 						if (!itemparsed("ifsdautumn")) badins("ifsdautumn");
-						if (!itemparsed("ifsdspring")) badins("ifsdspring");
-						if (!itemparsed("ifsdprec")) badins("ifsdprec");
 						if (!itemparsed("tempautumn")) badins("tempautumn");
 						if (!itemparsed("tempspring")) badins("tempspring");
 						if (!itemparsed("hiopt")) badins("hiopt");
@@ -1438,10 +1428,6 @@ void plib_callback(int callback) {
 						if (!itemparsed("frootstart")) badins("frootstart");
 						if (!itemparsed("frootend")) badins("frootend");
 						if (!itemparsed("turnover_harv_prod")) badins("turnover_harv_prod");
-						if(ppft->ifsdprec) {
-							if (!itemparsed("firstsowdatenh_prec")) badins("firstsowdatenh_prec");	// only used in Crop_sowing_date_prec()
-							if (!itemparsed("firstsowdatesh_prec")) badins("firstsowdatesh_prec");	// only used in Crop_sowing_date_prec()
-						}
 
 						if(ifnlim_lc[CROPLAND]) {
 							if(ppft->nlim) {
@@ -1475,11 +1461,6 @@ void plib_callback(int callback) {
 								if (!itemparsed("d3")) badins("d3");
 							}
 						}
-
-						ppft->ifsdcalc=true;
-						ppft->ifsdtemp=true;
-						ppft->ifsdspring=true;
-						ppft->ifsdprec=true;
 					}
 					else if (ppft->phenology==ANY) {
 						if(ppft->phenology==ANY)

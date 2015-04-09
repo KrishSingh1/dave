@@ -24,7 +24,7 @@ void check_crop_temp_limits(Climate& climate, Gridcellpft& gridcellpft) {
 	Pft& pft = gridcellpft.pft;
 
 	// check if spring conditions are present this day:
-	if(pft.ifsdspring && climate.temp > pft.tempspring && climate.dtemp_31[29] <= pft.tempspring) {	// NB. after updating dtemp_31 with today's value
+	if(climate.temp > pft.tempspring && climate.dtemp_31[29] <= pft.tempspring) {	// NB. after updating dtemp_31 with today's value
 		// TeWW,TeCo,TeSf,TeRa: 12,14,13,12 (NB 5,14,15,5 in Bondeau 2007);
 		if (climate.lat >= 0.0 && date.day > 300)
 			gridcellpft.last_springdate=date.day-365;
@@ -73,7 +73,7 @@ void calc_crop_dates_20y_mean(Climate& climate, Gridcellpft& gridcellpft) {
 	/////////////////////////////////////////////////////////////////////////////////
 
 	// if no spring occured during last year 
-	if (pft.ifsdspring && !gridcellpft.springoccurred) {	//TeWW,TeCo,TeSf,TeRa
+	if (!gridcellpft.springoccurred) {
 	
 		if(climate.temp <= pft.tempspring)
 			gridcellpft.last_springdate = date.day;	
@@ -107,8 +107,7 @@ void calc_crop_dates_20y_mean(Climate& climate, Gridcellpft& gridcellpft) {
 	///////////////////////////////////////////////////////////////////////////////////////
 
 	// 1) this year
-	if(pft.ifsdspring)									// TeWW,TeCo,TeSf,TeRa
-		gridcellpft.last_springdate20=gridcellpft.last_springdate;
+	gridcellpft.last_springdate20=gridcellpft.last_springdate;
 
 	if(pft.ifsdautumn) {								// TeWW,TeRa
 	
@@ -124,11 +123,10 @@ void calc_crop_dates_20y_mean(Climate& climate, Gridcellpft& gridcellpft) {
 
 	// 3) past 20 years or less
 	for (y=startyear; y<20; y++) {
-		if(pft.ifsdspring) {										// TeWW,TeCo,TeSf,TeRa
 
-			gridcellpft.last_springdate_20[y-1] = gridcellpft.last_springdate_20[y];
-			gridcellpft.last_springdate20 += gridcellpft.last_springdate_20[y];
-		}
+		gridcellpft.last_springdate_20[y-1] = gridcellpft.last_springdate_20[y];
+		gridcellpft.last_springdate20 += gridcellpft.last_springdate_20[y];
+
 		if (pft.ifsdautumn)	{										// TeWW,TeRa
 		
 			gridcellpft.first_autumndate_20[y-1] = gridcellpft.first_autumndate_20[y];
@@ -140,12 +138,11 @@ void calc_crop_dates_20y_mean(Climate& climate, Gridcellpft& gridcellpft) {
 	}
 
 	// 4) 20 years average means:
-	if(pft.ifsdspring) {											// TeWW,TeCo,TeSf,TeRa
-		gridcellpft.last_springdate20 /= (int)min(20,date.year + 1);
-		if (gridcellpft.last_springdate20 < 0)
-			gridcellpft.last_springdate20 += 365;	
-		gridcellpft.last_springdate_20[19] = gridcellpft.last_springdate;
-	}
+
+	gridcellpft.last_springdate20 /= (int)min(20,date.year + 1);
+	if (gridcellpft.last_springdate20 < 0)
+		gridcellpft.last_springdate20 += 365;	
+	gridcellpft.last_springdate_20[19] = gridcellpft.last_springdate;
 
 	if(pft.ifsdautumn) {											// TeWW,TeRa	
 		gridcellpft.first_autumndate20 /= (int)min(20,date.year + 1);
@@ -217,7 +214,7 @@ void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft)
 			gridcellpft.sdatecalc_temp = gridcellpft.sdate_force;
 		}
 	}
-	else if(pft.ifsdspring)	{							// TeCo,TeSf
+	else {
 	
 		if(!strncmp(pft.name,"TeCo", strlen("TeCo")))
 			gridcellpft.sdatecalc_temp = (int)(60.0 / 85.0 * (gridcellpft.last_springdate20 - climate.adjustlat) + 29.5 + climate.adjustlat);
@@ -636,26 +633,20 @@ void crop_sowing_gridcell(Gridcell& gridcell) {
 		Gridcellpft& gridcellpft = gridcell.pft[pft.id];
 
 		if(pft.landcover == CROPLAND) {
-
-			if(pft.ifsdcalc) {		// TeWW,TrRi,TeCo,TrMi,TrMa,TeSf,TrPe,TeRa; sdate set in getgridcell() kept for the rest;  (no code here for TrRi)
-			
-				if(pft.ifsdtemp) {	// TeWW,TeCo,TeSf,TeRa
 	
-					// Check whether temperature limits have been attained today
-					check_crop_temp_limits(climate, gridcellpft);
+			// Check whether temperature limits have been attained today
+			check_crop_temp_limits(climate, gridcellpft);
 
-					if(date.day == climate.testday_temp) {	// June 30(180) in the north, December 31(364) in the south
-					
-						// Update 20-year mean of dates when temperature limits obtained
-						calc_crop_dates_20y_mean(climate, gridcellpft);
+			if(date.day == climate.testday_temp) {	// June 30(180) in the north, December 31(364) in the south
+			
+				// Update 20-year mean of dates when temperature limits obtained
+				calc_crop_dates_20y_mean(climate, gridcellpft);
 
-						// Determine sdatecalc_temp:						
-						set_sdatecalc_temp(climate, gridcellpft);
+				// Determine sdatecalc_temp:						
+				set_sdatecalc_temp(climate, gridcellpft);
 
-						// Reset maxtemp to today's value
-						climate.maxtemp = climate.temp;
-					}
-				}
+				// Reset maxtemp to today's value
+				climate.maxtemp = climate.temp;
 			}
 		}
 

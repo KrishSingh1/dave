@@ -20,13 +20,14 @@
 #ifndef LPJ_GUESS_CONFIG_H
 #define LPJ_GUESS_CONFIG_H
 
-// Defines for landcover version:
-#define NOPASTURESTOCH				// Undefine for fire and disturbance for pasture grass. Number of patches will be the same as for natural stands.
-//#define GRASSFORCROP				// Transfer cropland to pasture landcover for simplified crop definition (harvested competing c3/c4 grass).
+// Definitions for landcover version:
 
-const bool search_for_centre_of_gridcell = true;	// Needed for finding the correct input coordinates with a finer-scaled gridlist.
-
-#define CMASS_SEED 0.01	// 10g/m2;	// Initial carbon allocated to crop organs at sowing.
+/// Undefine for fire and disturbance for pasture grass. Number of patches will be the same as for natural stands.
+#define NOPASTURESTOCH
+/// Transfer cropland to pasture landcover for simplified crop definition (harvested competing c3/c4 grass).
+//#define GRASSFORCROP
+/// Initial carbon allocated to crop organs at sowing.
+#define CMASS_SEED 0.01	// 10g/m2;
 
 // Compiler specific checks, for instance for disabling specific warnings
 

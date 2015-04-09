@@ -755,13 +755,12 @@ void Stand::init_stand_lu(StandType& st, double fraction) {
 		pftid = pftlist.getpftid(st.management[0].pftname);	// First main crop, will change during crop rotation
 		current_rot = 0;
 
-#ifdef IRRIGATION
 		if(st.management[0].hydrology == IRRIGATED) {
 			isirrigated = true;								// First main crop, may change during crop rotation
 			if(pftid >= 0)
 				pft[pftid].irrigated = true;
 		}
-#endif
+
 		if(st.intercrop==NATURALGRASS && ifintercropgrass) {
 			hasgrassintercrop = true;
 

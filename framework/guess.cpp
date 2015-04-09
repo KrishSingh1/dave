@@ -1859,11 +1859,7 @@ bool Individual::growingseason() const {
 /// Whether harvest and turnover is done on actual C and N on harvest or turnover day, which can occur any day of the year.
 bool Individual::has_daily_turnover() const {
 
-#ifdef HARVEST_GRSC
 		return istruecrop_or_intercropgrass();
-#else
-		return false;
-#endif
 }
 
 /// Help function for kill(), partitions wood biomass into litter and harvest

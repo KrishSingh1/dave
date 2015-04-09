@@ -457,8 +457,7 @@ void harvest_pasture(Individual& indiv, Pft& pft, bool alive) {
 
 /// Harvest function for cropland, including true crops, intercrop grass 
 /**   and pasture grass grown in cropland.
- *  Function for balancing carbon and nitrogen fluxes from last year's growth if old-style harvest is selected (HARVEST_GRSC defined),
- *  or, alternatively, this years harvested carbon and nitrogen.
+ *  Function for balancing carbon and nitrogen fluxes from this year's harvested carbon and nitrogen.
  *  A fraction of harvestable organs (grass:leaves) is harvested (pft.harv_eff) and returned as acflux_harvest.
  *  A fraction of leaves is removed (pft.res_outtake) and returned as acflux_harvest
  *  The rest, including roots, is returned as litter, leaving NO carbon or nitrogen in living tissue.
@@ -699,8 +698,7 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 
 /// Harvest function for cropland, including true crops, intercrop grass 
 /**   and pasture grass grown in cropland.
- *  Function for balancing carbon and nitrogen fluxes from last year's growth if old-style harvest is selected (HARVEST_GRSC defined),
- *  or, alternatively, this years harvested carbon and nitrogen.
+ *  Function for balancing carbon and nitrogen fluxes from this year's harvested carbon and nitrogen.
  *  A fraction of harvestable organs (grass:leaves) is harvested (pft.harv_eff) and returned as acflux_harvest.
  *  A fraction of leaves is removed (pft.res_outtake) and returned as acflux_harvest
  *  The rest, including roots, is returned as litter, leaving NO carbon or nitrogen in living tissue.

@@ -1061,7 +1061,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			out.add_value(out_nuptake,   mean_standpft_nuptake * m2toha);
 			out.add_value(out_nlitter,   mean_standpft_nlitter * m2toha);
 
-#if defined PRINTCOMMONPFTSINSEPARATEFILES
 			// Print to landcover files in case pft:s are common to several landcovers (currently only used in NATURAL and FOREST)
 			if (run_landcover) {
 				for(int i=0;i<NLANDCOVERTYPES;i++) {
@@ -1103,7 +1102,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					}
 				}
 			}
-#endif
 
 			if (pft.landcover == CROPLAND)
 			{
@@ -1484,7 +1482,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					out.add_value(out_aiso,  landcover_aiso[i]);
 					out.add_value(out_amon,  landcover_amon[i]);
 
-#if defined PRINTCOMMONPFTSINSEPARATEFILES
 				// Print to landcover files in case pft:s are common to several landcovers (currently only used in NATURAL and FOREST)
 					switch (i)
 					{
@@ -1519,7 +1516,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 						if(date.year == nyear_spinup)
 							dprintf("Modify code to deal with landcover output!\n");
 					}
-#endif
+
 					double landcover_cton_leaf = limited_cton(landcover_cmass_leaf[i], landcover_nmass_leaf[i]);
 
 					if (landcover_cmass_leaf[i] > 0.0) {

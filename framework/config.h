@@ -23,7 +23,6 @@
 // Defines for landcover version:
 #define NOPASTURESTOCH				// Undefine for fire and disturbance for pasture grass. Number of patches will be the same as for natural stands.
 //#define GRASSFORCROP				// Transfer cropland to pasture landcover for simplified crop definition (harvested competing c3/c4 grass).
-#define PRINTCOMMONPFTSINSEPARATEFILES
 
 const bool search_for_centre_of_gridcell = true;	// Needed for finding the correct input coordinates with a finer-scaled gridlist.
 

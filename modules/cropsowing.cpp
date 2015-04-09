@@ -8,7 +8,6 @@
 #include "landcover.h"
 #include "cropsowing.h"
 
-#define SD_TEMP_WINDOW				//Uses sowing window for temperature-dependent sowing.
 #define IRRIGATED_USE_TEMP_SDATE	//Use temperature-dependent sowing date for irrigated crops at site with PRECTEMP seasonality.
 //#define LOW_SOWING_TEMPERATURE_LIMIT	//Sowing not allowed when temperature is always below sowing limit. Intercrop grass grows instead year through.
 #define HIGH_SOWING_TEMPERATURE_LIMIT	//Sowing not allowed when mean temperature is above limit (TeWW).
@@ -669,20 +668,6 @@ void crop_sowing_gridcell(Gridcell& gridcell) {
 	}
 }
 
-/// old temperature-dependent sowing date method (Bondeau et al. 2007)
-void Crop_sowing_date_temp(Patch& patch, Pft& pft) {
-
-	Gridcell& gridcell = patch.stand.get_gridcell();
-	Climate& climate = gridcell.climate;
-	Patchpft& patchpft = patch.pft[pft.id];
-	Gridcellpft& gridcellpft = gridcell.pft[pft.id];
-
-	patchpft.set_cropphen()->sdate = gridcellpft.sdatecalc_temp;
-
-	if(dayinperiod(gridcellpft.sdatecalc_temp, climate.testday_temp, gridcellpft.hlimitdate_default) && pft.forceautumnsowing == AUTUMNSOWING)
-		patchpft.cropphen->hlimitdate = stepfromdate(patchpft.cropphen->sdate, - 1);
-}
-
 /// Sowing date method from Waha et al. 2010
 /** Enters here every day when growingseason==false
  */
@@ -701,7 +686,6 @@ void Crop_sowing_date(Patch& patch, Pft& pft) {
 	// Different sowing date options for irrigated crops at sites with climate.seasonality == SEASONALITY_PRECTEMP:
 	// 1. use temperature-dependent sowing limits (define IRRIGATED_USE_TEMP_SDATE)
 	// 2. use precipitation-triggered sowing (IRRIGATED_USE_TEMP_SDATE undefined)
-	// Option not to constrain sowing to the sowing date window (as in the old sowing date method); SD_TEMP_WINDOW undefied
 
 	// Determine, based upon site climate seasonality and sowing preferences for irrigated crops, if sowing should be triggered by 
 	// temperature or precipitation, or whether to use a default sowing date.
@@ -731,25 +715,14 @@ void Crop_sowing_date(Patch& patch, Pft& pft) {
 		}
 	}
 
-	// option not to constrain sowing to the sowing date window (as in the old sowing date method)
-#ifndef SD_TEMP_WINDOW
-	if(temp_sdate) {
-		if(date.day == stepfromdate(ppftcrop.hdate, 1) && ppftcrop.hdate != -1 || date.day == stepfromdate(ppftcrop.hlimitdate, 1) && ppftcrop.hlimitdate > -1)
-			Crop_sowing_date_temp(patch, pft);
-		return;
-	}
-#endif
-
 	// monitor climate triggers within the sowing window
 	if(dayinperiod(date.day, patchpft.swindow[0],patchpft.swindow[1])) {
 
 		if(date.day != patchpft.swindow[1]) {
 
 			if(temp_sdate) {
-#if defined SD_TEMP_WINDOW
 				if(gridcellpft.wintertype && climate.temp < pft.tempautumn || !gridcellpft.wintertype && climate.temp > pft.tempspring)
 					ppftcrop.sdate = date.day;
-#endif
 			}
 			else if(prec_sdate) {	
 				if(climate.prec > 0.1 || standpft.irrigated)

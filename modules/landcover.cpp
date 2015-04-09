@@ -905,7 +905,7 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 			ncont_stand_pre_orig = stand.ncont();
 			to_ncont_pre = to.ncont();
 			double ndif = ncont_stand_pre_orig - stand.ncont(0);
-if(transfer_mode != 0) {
+
 			// Harvest and turnover of copies of individuals, add to transfer copy:
 			stand.firstobj();
 			while(stand.isobj) {
@@ -923,7 +923,7 @@ if(transfer_mode != 0) {
 						cp.copy_from_indiv(indiv, true, false);
 					else
 						cp.copy_from_indiv(indiv, false, false);
-if(transfer_mode != 1) {
+
 					// Harvest of transferred areas:
 					switch (stand.landcover)
 					{
@@ -956,7 +956,7 @@ if(transfer_mode != 1) {
 					// In case any vegetation left (eg. cmass_root in pasture or grass in woodland):
 					if(killgrass)
 						kill_remaining_vegetation(cp, indiv.pft, indiv.alive, indiv.istruecrop_or_intercropgrass(), false);
-}
+
 					//Sum added litter C & N:
 					to.transfer_litter_leaf[indiv.pft.id] += cp.litter_leaf * scale;
 					to.transfer_litter_root[indiv.pft.id] += cp.litter_root * scale;
@@ -985,21 +985,6 @@ if(transfer_mode != 1) {
 
 				stand.nextobj();
 			}
-}
-if(transfer_mode == 0) {	// No transfer
-	//Test mode 1:
-	gridcell.acflux_landuse_change += stand.ccont() * donor_area;
-	gridcell.acflux_landuse_change_lc[stand.landcover] += stand.ccont() * donor_area;
-	gridcell.anflux_landuse_change += stand.ncont() * donor_area;
-	gridcell.anflux_landuse_change_lc[stand.landcover] += stand.ncont() * donor_area;
-}
-else if(transfer_mode == 1) {	// Transfer of soil only
-	//Test mode 2 (no harvest):
-	gridcell.acflux_landuse_change += (stand.ccont() - stand.ccont(0)) * donor_area;
-	gridcell.acflux_landuse_change_lc[stand.landcover] += (stand.ccont() - stand.ccont(0)) * donor_area;
-	gridcell.anflux_landuse_change += (stand.ncont() - stand.ncont(0)) * donor_area;
-	gridcell.anflux_landuse_change_lc[stand.landcover] += (stand.ncont() - stand.ncont(0)) * donor_area;
-}
 
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 /*
@@ -1217,7 +1202,7 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 			added_frac = donorfrac_rel * stand.gross_frac_increase;
 			new_frac = old_frac + added_frac;
 			stand.frac_temp += added_frac;
-if(transfer_mode != 0)
+
 			if(LCchangeCtransfer) {
 				stand.firstobj();
 				while(stand.isobj) {
@@ -1297,22 +1282,7 @@ if(transfer_mode != 0)
 				// set scaling factor to be used in growth() for scaling vegetation C and N:
 				stand.scale_LC_change = (stand.frac_old - stand.gross_frac_decrease) / stand.get_gridcell_fraction();
 				gridcell.LC_updated = true;
-
-if(transfer_mode == 1 || transfer_mode == 2 && scaling_mode == 0) {
-	gridcell.acflux_landuse_change -= (stand.ccont() - stand.ccont(0)) * added_frac; // living C
-	gridcell.acflux_landuse_change_lc[stand.landcover] -= (stand.ccont() - stand.ccont(0)) * added_frac;
-	gridcell.anflux_landuse_change -= (stand.ncont() - stand.ncont(0)) * added_frac; // living N
-	gridcell.anflux_landuse_change_lc[stand.landcover] -= (stand.ncont() - stand.ncont(0)) * added_frac;
-//	water not balanced in these tests !
-}
 			}
-if(transfer_mode == 0) {
-	gridcell.acflux_landuse_change -= stand.ccont() * added_frac;
-	gridcell.acflux_landuse_change_lc[stand.landcover] -= stand.ccont() * added_frac;
-	gridcell.anflux_landuse_change -= stand.ncont() * added_frac;
-	gridcell.anflux_landuse_change_lc[stand.landcover] -= stand.ncont() * added_frac;
-//	water not balanced in these tests !
-}
 #ifdef PRINT_GROSS_LC_CHANGE_INFO
 			if(fabs(ccont_stand_post - (ccont_stand_pre * old_frac + from.ccont() * added_frac) / new_frac) > 1.0e-12)
 				dprintf("WARNING: C balance in receiving_stand_change() = %.10f\n", ccont_stand_post - (ccont_stand_pre * old_frac + from.ccont() * added_frac) / new_frac);

@@ -1376,9 +1376,6 @@ void growth(Stand& stand, Patch& patch) {
 						vegetation.killobj();
 						killed = true;
 					}
-
-					if(scaling_mode == 2)
-						indiv.densindiv *= stand.scale_LC_change;
 				}
 				else if (indiv.pft.lifeform == GRASS) {
 

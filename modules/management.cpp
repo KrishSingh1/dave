@@ -941,12 +941,8 @@ void scale_indiv(Individual& indiv, bool scale_grsC)
 	Gridcell& gridcell = stand.get_gridcell();
 
 	// Scale individual's C and N mass in stands that have increased in area this year by (old area/new area):
-	if(stand.scale_LC_change < 1.0) {
-		if(scaling_mode == 0)
-			return;
-		else
-			scale = stand.scale_LC_change;
-	}
+	if(stand.scale_LC_change < 1.0)
+		scale = stand.scale_LC_change;
 	else
 		return;
 

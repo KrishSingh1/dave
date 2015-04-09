@@ -1476,12 +1476,10 @@ void plib_callback(int callback) {
 							}
 						}
 
-#if defined NEWSOWINGDATE
 						ppft->ifsdcalc=true;
 						ppft->ifsdtemp=true;
 						ppft->ifsdspring=true;
 						ppft->ifsdprec=true;
-#endif
 					}
 					else if (ppft->phenology==ANY) {
 						if(ppft->phenology==ANY)

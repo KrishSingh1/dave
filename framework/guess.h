@@ -3435,8 +3435,6 @@ public:
 	bool vernstartoccurred;
 	/// whether the daily temperature rises over the vernalization limit (trg) this year
 	bool vernendoccurred;
-	/// whether the precipitation sum rises over the limit (defined in set_sdatecalc_prec), not used if NEWSOWINGDATE is defined
-	bool precoccurred;
 	/// first day when temperature fell below the autumn temperature limit (tempautumn) this year
 	int first_autumndate;
 	/// 20-year mean
@@ -3455,8 +3453,6 @@ public:
 	int last_verndate20; 
 	/// memory of the last 20 years' values
 	int last_verndate_20[20];
-	/// first day when 10-day precipitation sum rises over the limit (defined in set_sdatecalc_prec), not used if NEWSOWINGDATE is defined
-	int first_precdate;
 	/// default sowing date (pft.sdatenh/sdatesh)
 	int sdate_default;
 	/// calculated sowing date from temperature limits
@@ -3494,14 +3490,12 @@ public:
 		springoccurred=false;
 		vernstartoccurred=false;
 		vernendoccurred=false;
-		precoccurred=false;
 		first_autumndate=-1;
 		first_autumndate20=-1;
 		last_springdate=-1;
 		last_springdate20=-1;
 		last_verndate=-1;
 		last_verndate20=-1;
-		first_precdate=-1;
 		for (int year=0;year<20;year++) 
 		{
 			first_autumndate_20[year]=-1;

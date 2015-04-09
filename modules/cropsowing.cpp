@@ -221,12 +221,9 @@ void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft)
 	
 		if(!strncmp(pft.name,"TeCo", strlen("TeCo")))
 			gridcellpft.sdatecalc_temp = (int)(60.0 / 85.0 * (gridcellpft.last_springdate20 - climate.adjustlat) + 29.5 + climate.adjustlat);
-		else if(!strncmp(pft.name,"TeSf", strlen("TeSf")))
-			gridcellpft.sdatecalc_temp = gridcellpft.last_springdate20;
-#if defined NEWSOWINGDATE
 		else
 			gridcellpft.sdatecalc_temp = gridcellpft.last_springdate20;
-#endif
+
 
 #ifdef LOW_SOWING_TEMPERATURE_LIMIT
 		//Same lower temperature limit for sowing as for winter crops above.
@@ -249,35 +246,6 @@ void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft)
 	gridcellpft.vernstartoccurred = false;	
 	gridcellpft.vernendoccurred = false;	
 	gridcellpft.autumnoccurred = false;
-}
-
-/// Sets sdatecalc_prec first day of the rain period
-/** Called from crop_sowing_gridcell() each day if NEWSOWINGDATE is not defined
- */
-void set_sdatecalc_prec(Climate& climate, Gridcellpft& gridcellpft)
-{
-	Pft& pft = gridcellpft.pft;
-
-	bool SOAsia;
-
-	if(climate.lat > -15.0 && climate.lat < 20.0 && climate.gridcell.get_lon() > 90.0)
-		SOAsia = true;
-	else
-		SOAsia = false;
-
-	if(!gridcellpft.precoccurred && (SOAsia && climate.sprec_2[1] >= 110.0 && climate.sprec_2[0] < 110.0
-									|| !SOAsia && climate.sprec_2[1] >= 40.0 && climate.sprec_2[0] < 40.0)) {
-
-		gridcellpft.first_precdate = date.day;
-		gridcellpft.sdatecalc_prec = gridcellpft.first_precdate;
-		gridcellpft.precoccurred = true;
-	}
-
-	if(date.day == climate.testday_prec) {	// December 31(364) north, June 30(180) in the south; just resets precoccurred and fcalc_prec.
-		
-		gridcellpft.precoccurred = false;
-		gridcellpft.sdatecalc_prec = -1;
-	}
 }
 
 /// Calculates the Julian start and end day of a month.
@@ -669,7 +637,6 @@ void crop_sowing_gridcell(Gridcell& gridcell) {
 
 		if(pft.landcover == CROPLAND) {
 
-			// If NEWSOWINGDATE is defined, all pft:s enter this code
 			if(pft.ifsdcalc) {		// TeWW,TrRi,TeCo,TrMi,TrMa,TeSf,TrPe,TeRa; sdate set in getgridcell() kept for the rest;  (no code here for TrRi)
 			
 				if(pft.ifsdtemp) {	// TeWW,TeCo,TeSf,TeRa
@@ -689,11 +656,6 @@ void crop_sowing_gridcell(Gridcell& gridcell) {
 						climate.maxtemp = climate.temp;
 					}
 				}
-#ifndef NEWSOWINGDATE
-				// Determine sdatecalc_prec:
-				if(pft.ifsdprec)	//TeCo,TrMi,TrMa,TrPe:
-					set_sdatecalc_prec(climate, gridcellpft);
-#endif
 			}
 		}
 
@@ -730,125 +692,10 @@ void Crop_sowing_date_temp(Patch& patch, Pft& pft) {
 		patchpft.cropphen->hlimitdate = stepfromdate(patchpft.cropphen->sdate, - 1);
 }
 
-/// old precipitation-dependent sowing date method (Bondeau et al. 2007)
-void Crop_sowing_date_prec(Patch& patch, Pft& pft) {
-
-	Gridcell& gridcell = patch.stand.get_gridcell();
-	Climate& climate = gridcell.climate;
-	Patchpft& patchpft = patch.pft[pft.id];
-	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
-	Gridcellpft& gridcellpft = gridcell.pft[pft.id];
-	int first_sowdate;
-	int last_sowdate;
-
-	if(patch.stand.pft[pft.id].irrigated)  {
-		gridcellpft.sdatecalc_prec = gridcellpft.sdate_default;
-		gridcellpft.precoccurred = true;
-	}
-
-	// Limits here (dates, latitudes) derive from Bondeau code.
-
-	if(!strncmp(pft.name,"TeCo", strlen("TeCo"))) {	// Sådd mellan sdatecalc_temp och sdate_default (140)
-	
-		first_sowdate = gridcellpft.sdatecalc_temp;
-		last_sowdate = gridcellpft.sdate_default;
-
-#if defined ALLOW_TWOSEASONSPREC
-		// allows for two growing seasons; may sow outside the window ! eg. sow 140 - harvest 360 - sow 361
-		if(climate.lat < 45.0) {	// Precipitation only determines sdate at latitudes < 45.0
-		
-			if(date.day == ppftcrop.sdate) {
-
-				if(gridcellpft.precoccurred)
-					return;							// use gridcellpft.sdatecalc_temp as sdate
-				else
-					patchpft.cropphen->sdate = -1;	// wait for rain period to begin
-			}
-			else if(dayinperiod(date.day,first_sowdate,last_sowdate) && gridcellpft.precoccurred)	// sow when rain period begins
-				ppftcrop.sdate = date.day;
-			else if(date.day == last_sowdate && !gridcellpft.precoccurred)							// if rainperiod has not begun at last_sowdate, sow anyway
-				ppftcrop.sdate = date.day;
-		}
-		else
-			return;									//use gridcellpft.sdatecalc_temp as sdate
-#else
-		// Sowing window starts here at sdatecalc_temp:
-		if (date.day == ppftcrop.sdate && !gridcellpft.precoccurred && climate.lat < 45.0)		// sdatecalc_temp: if rain period not yet started, wait for rain
-			ppftcrop.sdate = -1;																
-		// Sowing occurred when rain has triggered sdatecalc_prec to be set:
-		if (date.day == gridcellpft.sdatecalc_prec && ppftcrop.sdate == -1 && climate.lat < 45.0) {	// sdatecalc_temp not set (sdate set to -1 at hdate)
-		
-			if(dayinperiod(date.day,first_sowdate,last_sowdate))
-				ppftcrop.sdate = date.day;
-		}
-		// If sdatecalc_prec has not been set by rain at sdate_default, sow anyway:
-		if(date.day == gridcellpft.sdate_default && !gridcellpft.precoccurred && climate.lat < 45.0)	// if no rain at occurred before day 140, sow anyway 
-			ppftcrop.sdate = date.day;
-#endif
-
-	}
-	else {			//TrMi,TrMa,TrPe:					// sowing has to occur between firstsowdatenh/sh and day 210/30
-	
-		if(climate.lat >= 0.0) {
-			first_sowdate = pft.firstsowdatenh_prec;
-			last_sowdate = 210;
-		}
-		else {
-			first_sowdate = pft.firstsowdatesh_prec;
-			last_sowdate = 30;
-		}
-
-#if defined ALLOW_TWOSEASONSPREC
-		// allows for two growing seasons
-		if (date.day == first_sowdate) {	
-			// if rain period has started before first_sowdate, sow immediately
-			if(gridcellpft.precoccurred)
-				ppftcrop.sdate = first_sowdate;
-		}
-		else if(dayinperiod(date.day,first_sowdate,last_sowdate) && gridcellpft.precoccurred)	// two seasons if hdate < last_sowdate
-			ppftcrop.sdate = date.day;
-		else if(date.day == last_sowdate && !gridcellpft.precoccurred)
-			ppftcrop.sdate = date.day;
-#else
-		if (date.day == gridcellpft.sdatecalc_prec)	{ //firstsowdatenh_prec = sdatenh-(20 to 40)
-		
-			if(date.day <= pft.firstsowdatenh_prec && climate.lat >= 0.0 || date.day <= pft.firstsowdatesh_prec && date.day > 180 && climate.lat < 0.0)
-				//if calculated sowing date is earlier than 20-40 days before the default sdate, use the latter
-				ppftcrop.sdate=first_sowdate;
-			else if (date.day <= 210 && climate.lat >= 0.0 || (date.day <= 30 || date.day > 180) && climate.lat < 0.0)
-				ppftcrop.sdate = gridcellpft.sdatecalc_prec;
-		}
-
-		if (gridcellpft.sdatecalc_prec == -1 && (date.day == 210 && climate.lat >= 0.0 || date.day == 30 && climate.lat < 0.0))
-			ppftcrop.sdate = date.day;
-#endif
-	}
-}
-
-/// Sowing date method from Bondeau et al. 2007
-/** Enters here every day when growingseason==false
- */
-void Crop_sowing_date(Patch& patch, Pft& pft) {
-	Patchpft& patchpft=patch.pft[pft.id];
-	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
-
-	// for crop pft:s with calculated sowing dates; all others use pft default values
-	if(pft.ifsdcalc) {
-
-		if(pft.ifsdtemp) {	//TeWW,TeCo,TeSf,TeRa		
-			if(date.day == stepfromdate(ppftcrop.hdate, 1) && ppftcrop.hdate != -1 || date.day == stepfromdate(ppftcrop.hlimitdate, 1) && ppftcrop.hlimitdate != -1)
-				Crop_sowing_date_temp(patch, pft);
-		}
-
-		if(pft.ifsdprec)	//TeCo,TrMi,TrMa,TrPe:
-			Crop_sowing_date_prec(patch, pft);
-	}
-}
-
 /// Sowing date method from Waha et al. 2010
 /** Enters here every day when growingseason==false
  */
-void Crop_sowing_date_new(Patch& patch, Pft& pft) {
+void Crop_sowing_date(Patch& patch, Pft& pft) {
 
 	Patchpft& patchpft = patch.pft[pft.id];
 	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
@@ -1036,13 +883,8 @@ void crop_sowing_patch(Patch& patch) {
 				}
 
 				if(!gridcellpft.sowing_restriction)	{
-
-#if defined NEWSOWINGDATE
  					// new sowing date method (Waha et al. 2010)
-					Crop_sowing_date_new(patch, pft);
-#else				// old sowing date method (Bondeau et al. 2007)
 					Crop_sowing_date(patch, pft);
-#endif
 				}
 			}
 

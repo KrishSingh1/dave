@@ -460,12 +460,8 @@ void crop_phenology(Patch& patch)
 
 						ppftcrop.demandsum_crop = 0.0;
 						ppftcrop.supplysum_crop = 0.0;
-
-						if(pft.ifsdprec) {	// TeCo,TrMi,TrMa,TrPe; with NEWSOWINGDATE: all crops			
-							ppftcrop.sdate = -1;
-							ppftcrop.eicdate = -1;
-						}
-
+						ppftcrop.sdate = -1;
+						ppftcrop.eicdate = -1;
 					} //end harvest
 				}  //from sowing has taken place until harvest day
 

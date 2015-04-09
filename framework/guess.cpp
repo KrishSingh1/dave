@@ -2118,7 +2118,6 @@ void Gridcellpft::serialize(ArchiveStream& arch) {
 		& springoccurred
 		& vernstartoccurred
 		& vernendoccurred 
-		& precoccurred
 		& first_autumndate
 		& first_autumndate20
 		& first_autumndate_20
@@ -2128,7 +2127,6 @@ void Gridcellpft::serialize(ArchiveStream& arch) {
 		& last_verndate
 		& last_verndate20
 		& last_verndate_20
-		& first_precdate
 		& sdate_default
 		& sdatecalc_temp
 		& sdatecalc_prec 

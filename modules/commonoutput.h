@@ -16,6 +16,11 @@
 
 namespace GuessOutput {
 
+// Definitions for separate output files per NATURAL and FOREST stand (when instruction file parameter printseparatestands == true,
+// printseparatestands is set to false in LandcoverInputModule::init() when input land cover fraction data file has data for > 50 gridcells)
+#define PRINTFIRSTSTANDFROM1901		// Printout of first stand from first historic year
+#define MAXNUMBER_STANDS 100		// Upper limit for files in multiple stand printout
+
 /// Output module for the most commonly needed output files
 class CommonOutput : public OutputModule {
 public:

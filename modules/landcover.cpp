@@ -176,8 +176,7 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
 			else {
 				// allow program to continue, but inactivate landcover change mass transfer 
 				LCchangeCtransfer = false;
-				if(!SUPPRESSLARGEOUTPUT)
-					dprintf("Transferred landcover fractions not balanced !\nLandcover change carbon flux not calculated.\n");
+				dprintf("Transferred landcover fractions not balanced !\nLandcover change carbon flux not calculated.\n");
 			}
 		}
 		change = true;

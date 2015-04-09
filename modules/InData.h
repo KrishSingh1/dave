@@ -47,7 +47,6 @@ struct CoordPos
 #ifndef GUESS_VERSION
 
 #define dprintf printf
-#define SUPPRESSLARGEOUTPUT true
 
 /// Type for storing grid cell longitude and latitude
 struct Coord {

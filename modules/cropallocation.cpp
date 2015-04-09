@@ -70,10 +70,6 @@ void lai_crop(Patch& patch) {
 				indiv.lai_indiv_daily = 0.0;
 				indiv.fpc_daily = 0.0;
 			}
-
-			if(!(indiv.lai_daily>=0.0 && indiv.lai_daily<=20.0))//Test for unrealistically high lai.
-if(!SUPPRESSLARGEOUTPUT)	
-				dprintf("In lai_crop() stand %d pft %d year %d day %d: senescence=%d, grs_cmass_leaf=%f, grs_cmass_ho=%f, lai_daily=%f, out of bounds !\n", patch.stand.id, indiv.pft.id, date.year-nyear_spinup+1901, date.day, ppftcrop.senescence, cropindiv.grs_cmass_leaf, cropindiv.grs_cmass_ho, indiv.lai_daily);
 		}
 		vegetation.nextobj();
 	}
@@ -631,13 +627,6 @@ void growth_crop_daily(Patch& patch) {
 
 				// Check that no plant cmass is negative, if so, zero cmass and correct C fluxes
 				double negative_cmass = indiv.check_C_mass();
-				if(!SUPPRESSLARGEOUTPUT) {
-					if(negative_cmass > 1.0e-14)
-						dprintf("Year %d day %d Stand %d indiv %d: Negative intercrop C mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_cmass);
-					double negative_nmass = indiv.check_N_mass();
-					if(negative_nmass > 1.0e-14)
-						dprintf("Year %d day %d Stand %d indiv %d: Negative intercrop N mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_nmass);
-				}
 
 				// save this year's maximum leaf carbon mass
 				if(cropindiv.grs_cmass_leaf > cropindiv.cmass_leaf_max)	

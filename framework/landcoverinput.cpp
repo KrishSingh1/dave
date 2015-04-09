@@ -325,6 +325,7 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 	}
 	else {	// landcover area fractions are read from input file(s)	
 
+		bool printyear = year >= LUdata.GetFirstyear() && LUdata.GetFirstyear() >= 0;	
 		bool getLU = false;
 
 		for(i=0; i<NLANDCOVERTYPES; i++) {
@@ -380,7 +381,7 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 							
 						if(lcfrac == NOTFOUND)	// land cover not found in input file
 							lcfrac = 0.0;
-						else if(gridcell.landcoverfrac[i] < 0.0 || gridcell.landcoverfrac[i] > 1.0)	{	// discard unreasonable values	
+						else if(gridcell.landcoverfrac[i] < 0.0 || gridcell.landcoverfrac[i] > 1.0 && printyear) {	// discard unreasonable values	
 							dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
 							lcfrac = 0.0;
 						}
@@ -399,14 +400,11 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 					sum_active = 0.0;		// reset sum of active landcover fractions
 
 					if(sum_tot < 0.99 || sum_tot > 1.01) {
-						if(date.year == 0) {
+						if(printyear) {
 							dprintf("WARNING ! landcover fraction sum is %4.2f for input year %d\n", sum_tot, year);
-							dprintf("Rescaling landcover fractions ! (sum is beyond 0.99-1.01)\n", date.year-nyear_spinup+input.getfirsthistyear());
+							dprintf("Rescaling landcover fractions year %d !\n", date.year-nyear_spinup + input.getfirsthistyear());
 						}
 					}
-					else				// sum often !=1.0 in input file
-						if(!SUPPRESSLARGEOUTPUT)
-							dprintf("Rescaling landcover fractions year %d ! (sum is within 0.99-1.01)\n", date.year-nyear_spinup+input.getfirsthistyear());
 
 					for(i=0; i<NLANDCOVERTYPES; i++) {
 						gridcell.landcoverfrac[i] /= sum_tot;
@@ -420,9 +418,9 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 
 		// NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
 		if(fabs(sum_active - 1.0) > 1.0e-14)	{	// if landcover types are turned off in the ini-file, or if more landcover types are added in other input files, can be either less or more than 1.0
-			if(!SUPPRESSLARGEOUTPUT)
-				if(date.year == 0)
-					dprintf("Landcover fraction sum not 1.0 !\n");
+
+			if(date.year == 0)
+				dprintf("Landcover fraction sum not 1.0 !\n");
 
 			if(run[NATURAL]) {	// Transfer landcover areas not simulated to NATURAL fraction, if simulated.		
 				if(date.year == 0) {
@@ -522,6 +520,8 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 		if(year == CFTdata.GetFirstyear() + CFTdata.GetnYears() - 1)
 			dprintf("Last year of cropland fraction data used from year %d and onwards\n", year);
 
+		bool printyear = year >= CFTdata.GetFirstyear() && CFTdata.GetFirstyear() >= 0;
+
 		// sum fractions for active crop pft:s and discard unreasonable values
 		for(i=0; i<nst; i++) {
 			if(stlist[i].landcover == CROPLAND)	{
@@ -531,15 +531,13 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 				if(cropfrac == NOTFOUND)	// land cover not found in input file
 					cropfrac = 0.0;
 				else if(cropfrac < 0.0 || cropfrac > 1.0)	{	// discard unreasonable values
-					if(!(!gridcell.landcoverfrac[CROPLAND] && cropfrac < 0.0))	// Ramankutty missing data
+					if(!(!gridcell.landcoverfrac[CROPLAND] && cropfrac < 0.0) && printyear)	// Ramankutty missing data
 						dprintf("WARNING ! crop fraction size out of limits, set to 0.0\n");
 					cropfrac = 0.0;
 				}
 				sum += stlist[i].frac = cropfrac;
 			}
 		}
-
-		bool printyear = year >= LUdata.GetFirstyear() && LUdata.GetFirstyear() >= 0;
 
 		if(printyear) {
 			if(gridcell.landcoverfrac[CROPLAND]==0.0) {
@@ -548,8 +546,7 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 				}
 			}
 			else if(sum==0.0) {
-//				if(!SUPPRESSLARGEOUTPUT)
-					dprintf("WARNING ! crop fraction sum is 0.0 for year %d while LU[CROPLAND] is > 0 !\n", year);
+				dprintf("WARNING ! crop fraction sum is 0.0 for year %d while LU[CROPLAND] is > 0 !\n", year);
 			}
 		}
 
@@ -585,11 +582,9 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 					st.frac /= sum;
 				stlist.nextobj();
 			}
-			if(sum < 0.99 || sum > 1.01) {	// warn if sum is significantly different from 1.0 
-				if(!SUPPRESSLARGEOUTPUT) {
-					dprintf("WARNING ! crop fraction sum is %5.3f for input year %d\n", sum, year);
-					dprintf("Rescaling crop fractions year %d ! (sum is beyond 0.99-1.01)\n", date.year-nyear_spinup + input.getfirsthistyear());
-				}
+			if(sum < 0.99 || sum > 1.01 && printyear) {	// warn if sum is significantly different from 1.0 
+				dprintf("WARNING ! crop fraction sum is %5.3f for input year %d\n", sum, year);
+				dprintf("Rescaling crop fractions year %d !\n", date.year-nyear_spinup + input.getfirsthistyear());
 			}
 		}
 	}

@@ -62,8 +62,6 @@ void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist, double offset) { /
 						checkdata[j]=1;
 				}
 			}
-		if(!SUPPRESSLARGEOUTPUT)
-			dprintf("Done checking for crop pft:s in input file at %.2f,%.2f.\n", c.lon, c.lat);
 		}
 		gridlist.nextobj();
 	}
@@ -1297,8 +1295,6 @@ int TimeDataD::Load(Coord c, double offset) {
 		return 0;
 	}
 	else {
-		if(!SUPPRESSLARGEOUTPUT)
-			dprintf("Loading all data for %.2f,%.2f in %s into memory\n", c.lon, c.lat,fileName);
 		loaded = true;
 		return 1;
 	}
@@ -1558,9 +1554,6 @@ int TimeDataD::FindRecord(Coord c) const {
 						if(count==2 || count>2 && (d3==firstyear || format==LOCAL_STATIC) && (format==LOCAL_STATIC || ifheader)) {
 
 							if(fabs(d1 - c.lon) <= spatial_resolution / 2.0 && fabs(d2 - c.lat) <= spatial_resolution / 2.0) {
-								if(!ischeckingdata)
-if(!SUPPRESSLARGEOUTPUT)
-										dprintf("Coordinate <%.2f,%.2f> found in %s\n", d1, d2, fileName);
 								found=1;
 								break;
 							}
@@ -1593,9 +1586,6 @@ if(!SUPPRESSLARGEOUTPUT)
 			rewind(ifp);
 			if(error)
 				break;
-			else
-if(!SUPPRESSLARGEOUTPUT)
-				dprintf("Rewinding and searching from the beginning of the file...\n");
 		}
 
 	} while(!found && lap<2);
@@ -1649,10 +1639,6 @@ int TimeDataD::FindRecord2(Coord c) const {
 					if(count==2 || count>2 && d3==firstyear && (format==LOCAL_STATIC || ifheader)) {
 
 						if(fabs(d1 - c.lon) <= spatial_resolution / 2.0 && fabs(d2 - c.lat) <= spatial_resolution / 2.0) {
-
-							if(!ischeckingdata)
-if(!SUPPRESSLARGEOUTPUT)
-								dprintf("Coordinate <%.2f,%.2f> found in %s\n", d1, d2, fileName);
 							found=1;
 							break;
 						}
@@ -1673,9 +1659,6 @@ if(!SUPPRESSLARGEOUTPUT)
 		if(!found) {
 			lap++;
 			rewind(ifp);
-			if(lap<2)
-if(!SUPPRESSLARGEOUTPUT)
-				dprintf("Rewinding and searching from the beginning of the file...\n");
 		}
 
 	} while(!found && lap<2);

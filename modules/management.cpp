@@ -12,7 +12,7 @@
 /** A fraction of trees is cut down (frac_cut)
  *  A fraction of wood is harvested (pft.harv_eff) and returned as acflux_harvest
  *  A fraction of harvested wood (pft.harvest_slow_frac) is returned as harvested_products_slow
- *  The rest, including leaves and roots, is returned as litter.
+ *  The rest, including leaves and roots, is returned as litter, unless a fraction of twigs or roots removed.
  *  Called from landcover_dynamics() first day of the year if any natural vegetation is transferred to another land use.
  *  INPUT PARAMETER
  *  \param frac_cut					fraction of trees cut 
@@ -52,10 +52,13 @@ void harvest_wood(Harvest_CN& i, Pft& pft, bool alive, double frac_cut, double h
 
 	double harvest = 0.0;
 	double residue_outtake = 0.0;
+	/// Fraction of wood cmass that are stems
 	double stem_frac = 0.65;	// Temporary values, should be pft-specific
+	/// Fraction of wood cmass that are twigs
 	double twig_frac = 0.13;
-//	double coarse_root_frac = 0.22;
-	double coarse_root_frac = 1.0 - stem_frac - twig_frac;
+	/// Fraction of wood cmass that are coarse roots
+	double coarse_root_frac = 1.0 - stem_frac - twig_frac;	// 0.22 with default stem_frac and twig_frac values
+	/// Fraction of leaves adhering to twigs at the time of removal
 	double adhering_leaf_frac = 0.75;
 
 	// only harvest trees
@@ -121,12 +124,12 @@ void harvest_wood(Harvest_CN& i, Pft& pft, bool alive, double frac_cut, double h
 			}
 			i.litter_sap += to_partition_sap * (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac - harv_eff * stem_frac) * frac_cut;
 			i.litter_heart += to_partition_heart * (1.0 - res_outtake_twig * twig_frac - res_outtake_coarse_root * coarse_root_frac - harv_eff * stem_frac) * frac_cut;
-		// debt larger than existing wood biomass
 		}
+		// debt larger than existing wood biomass
 		else {
 			double debt_excess = i.cmass_debt - (i.cmass_sap + i.cmass_heart);
 			dprintf("ATTENTION: cmass_debt > i.cmass_sap + i.cmass_heart; debt_excess=%f\n", debt_excess);
-//			i.debt_excess += debt_excess * frac_cut;
+//			i.debt_excess += debt_excess * frac_cut;	// debt_excess currently not dealt with during wood harvest
 		}
 
 		// unharvested trees:
@@ -243,7 +246,7 @@ void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double re
 	}
 }
 
-// Use for normal forest management in calls from growth(). For clearcut during landcover change, use harvest_wood() and kill_remaining_vegetation()
+/// Use for normal forest management in calls from growth(). For clearcut during landcover change, use harvest_wood() and kill_remaining_vegetation()
 void clearcut(Individual& indiv, Pft& pft, bool alive, double anpp, bool& killed) {
 
 	Patch& patch = indiv.vegetation.patch;
@@ -261,7 +264,12 @@ void clearcut(Individual& indiv, Pft& pft, bool alive, double anpp, bool& killed
 	patch.managed = true;
 }
 
-double forest_management(Patch& patch, bool age_class_run, int age_class) {
+// The following two functions are simplified adaptations (continous cutting) from Swedish forest management code by Fredrik Lagergren and should be
+// developed further. Specifically, the productivity values, which should ideally be observed values for each gridcell, are set to a static value.
+// Also, the calculated diameter limits and rotation times (which are dependent on productivity) are for Swedish forests.
+
+/// Determines whether this patch should be cut this year.
+double cut_fraction(Patch& patch, bool age_class_run, int age_class) {
 
 	Stand& stand = patch.stand;
 	const double minbon=2.351; //The minimum average "bonitet" for a county in Sweden
@@ -281,26 +289,30 @@ double forest_management(Patch& patch, bool age_class_run, int age_class) {
 		return 0.40;
 	else 
 		return 0.00;
-
 }
 
+/// Determines if and how much of this (average) individual is to be cut.
+/*	Individual is cut by a fraction, determined by cut_fraction(), if diameter is above a calculated limit and
+ *  by 90 % if above a calculated maximum diameter.
+ *  If clearcut is selected (depending on result from cut_fraction()), individual is killed
+ */
 void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& killed) {
 
 	Patch& patch = indiv.vegetation.patch;
 	Patchpft& ppft = patch.pft[indiv.pft.id];
-	const double minbon=2.351; //The minimum average "bonitet" for a county in Sweden
-	const double maxbon=11.311; //The maximum average "bonitet" for a county in Sweden
+	const double minbon=2.351;		// The minimum average "bonitet" for a county in Sweden
+	const double maxbon=11.311;		// The maximum average "bonitet" for a county in Sweden
 	const double bonitet = 10.0;	// Temporary static value
 		
 	int age_class = 0;
 	double man_strength = 0.0;
 	if(date.year > nyear_spinup && indiv.pft.lifeform == TREE)		
-		man_strength = forest_management(patch, true, age_class);
+		man_strength = cut_fraction(patch, true, age_class);
 	bool management_done=false;
 		// Will tell the program to skip establishment and mortality if management has been
-		// performed on this patch, Management add, FL 081127 (not implemented in this code yet ML, needs to be at patch-level)
+		// performed on this patch, (not implemented in this code yet ML, needs to be at patch-level)
 
-	if (pft.lifeform==TREE && man_strength>0.00) {
+	if (pft.lifeform==TREE && man_strength > 0.00) {
 
 		if (man_strength == 1.00) {
 			clearcut(indiv, pft, alive, anpp, killed);
@@ -309,8 +321,8 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 		else {
 
 			double diam=pow(indiv.height/indiv.pft.k_allom2, 1.0/indiv.pft.k_allom3);
-//			double diam_limit=0.13+0.07*(stand.bonitet-minbon)/(maxbon-minbon); //Harvest of trees > 13-20 cm
-			double diam_limit=0.13+0.07*(bonitet-minbon)/(maxbon-minbon); //Harvest of trees > 13-20 cm
+//			double diam_limit=0.13+0.07*(stand.bonitet-minbon)/(maxbon-minbon); // Harvest of trees > 13-20 cm
+			double diam_limit=0.13+0.07*(bonitet-minbon)/(maxbon-minbon); // Harvest of trees > 19 cm
 			double diam_max = diam_limit * 2.0;
 
 			if (diam>diam_limit) {
@@ -371,7 +383,7 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
 		i.acflux_harvest += harvest;
 	i.cmass_leaf -= harvest;
 
-	// Nitrogen:
+	// Nitrogen
 	// Reduced removal of N relative to C during grazing.
 	double N_harvest_scale = 0.25; // Value that works. Needs to be verified in literature.
 	harvest = pft.harv_eff * i.nmass_leaf * N_harvest_scale;
@@ -387,7 +399,7 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
 	if (alive) {
 		// Carbon:
 		residue_outtake = pft.res_outtake * i.cmass_leaf;	// res_outtake currently set to 0.0, 
-		i.acflux_harvest += residue_outtake;						// could be used for burning		
+		i.acflux_harvest += residue_outtake;				// could be used for burning		
 		i.cmass_leaf -= residue_outtake;
 
 		// Nitrogen:
@@ -457,6 +469,10 @@ void harvest_pasture(Individual& indiv, Pft& pft, bool alive) {
  *  This calls for a scaling factor, when the pasture area has increased.
  *
  *  This function takes a Harvest_CN struct as an input parameter, copied from an individual and it's associated patchpft and patch.
+ *
+ *  INPUT PARAMETERS
+ *  \param alive					whether individual has survived the first year
+ *  \param isintercropgrass			whether individual is cover crop grass
  *
  *  INPUT/OUTPUT PARAMETERS 
  *  \param Harvest_CN& i			struct containing the following indiv-specific public members:
@@ -699,6 +715,11 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
  *  After the execution of the main harvest_crop function, the output variables are copied
  *  back to the individual and patchpft and the patch-level fluxes are updated.
  *
+ *  INPUT PARAMETERS
+ *  \param alive					whether individual has survived the first year
+ *  \param isintercropgrass			whether individual is cover crop grass
+ *  \param harvest_grsC				whether harvest daily carbon values are harvested
+ *
  *  INPUT/OUTPUT PARAMETERS 
  *  \param indiv					reference to an Individual containing the following indiv-specific public members:
  *   - cmass_leaf 					leaf C biomass (kgC/m2)       
@@ -739,8 +760,12 @@ void harvest_crop(Individual& indiv, Pft& pft, bool alive, bool isintercropgrass
 /// Transfers all carbon and nitrogen from living tissue to litter
 /** Mainly used at land cover change when remaining vegetation after harvest (grass) is
  *   killed by tillage, following an optional burning.
+ *
+ *  This function takes a Harvest_CN struct as an input parameter, copied from an individual and it's associated patchpft and patch.
  *   
- *  INPUT PARAMETER
+ *  INPUT PARAMETERS
+ *  \param alive					whether individual has survived the first year
+ *  \param isintercropgrass			whether individual is cover crop grass
  *  \param burn						whether above-ground vegetation C & N is sent to the atmosphere
  *								     rather than to litter
  *  INPUT/OUTPUT PARAMETERS 
@@ -847,6 +872,47 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 
 }
 
+/// Transfers all carbon and nitrogen from living tissue to litter
+/** Mainly used at land cover change when remaining vegetation after harvest (grass) is
+ *   killed by tillage, following an optional burning. 
+ *
+ *  This function copies variables from an individual and it's associated patchpft and patch to
+ *  a Harvest_CN struct, which is then passed on to the main harvest_crop() function.
+ *  After the execution of the main harvest_crop function, the output variables are copied
+ *  back to the individual and patchpft and the patch-level fluxes are updated.
+ * 
+ *  INPUT PARAMETERS
+ *  \param alive					whether individual has survived the first year
+ *  \param isintercropgrass			whether individual is cover crop grass
+ *  \param burn						whether above-ground vegetation C & N is sent to the atmosphere
+ *								     rather than to litter
+ *  INPUT/OUTPUT PARAMETERS 
+ *  \param Harvest_CN& i			struct containing the following indiv-specific public members:
+ *   - cmass_leaf 					leaf C biomass (kgC/m2)       
+ *   - cmass_root					fine root C biomass (kgC/m2)         
+ *   - cmass_ho						harvestable organ C biomass (kgC/m2)
+ *   - cmass_agpool					above-ground pool C biomass (kgC/m2)
+ *   - cmass_sap					sapwood C biomass (kgC/m2)
+ *   - cmass_heart   				heartwood C biomass (kgC/m2)     
+ *   - cmass_debt					C "debt" (retrospective storage) (kgC/m2)
+ *   - nmass_leaf 					leaf nitrogen biomass (kgN/m2)  
+ *   - nmass_root 					fine root nitrogen biomass (kgN/m2)   
+ *   - nmass_sap   					sapwood nitrogen biomass (kgC/m2)
+ *   - nmass_heart    				heartwood nitrogen biomass (kgC/m2)
+ *   - param nmass_ho				harvestable organ nitrogen biomass (kgC/m2)
+ *   - param nmass_agpool			above-ground pool nitrogen biomass (kgC/m2)
+ *   - nstore_labile    			labile nitrogen storage (kgC/m2)
+ *   - nstore_longterm    			longterm nitrogen storage (kgC/m2)
+ *  OUTPUT PARAMETERS 
+ *  \param Harvest_CN& i			struct containing the following patchpft-specific public members:
+ *   - litter_leaf    				new leaf C litter (kgC/m2)    
+ *   - litter_root 					new root C litter (kgC/m2)        
+ *   - nmass_litter_leaf 			new leaf nitrogen litter (kgN/m2)       
+ *   - nmass_litter_root			new root nitrogen litter (kgN/m2)         
+ *									,and the following patch-level public members:
+ *   - acflux_harvest				harvest flux to atmosphere (kgC/m2)            
+ *   - anflux_harvest   			harvest nitrogen flux out of system (kgC/m2)       
+ */ 
 void kill_remaining_vegetation(Individual& indiv, bool burn, bool lc_change) {
 
 	Harvest_CN indiv_cp;
@@ -1044,6 +1110,7 @@ void yield_pasture(Individual& indiv, double cmass_leaf_inc) {
 	return;
 }
 
+/// Function that determines amount of nitrogen applied today
 void crop_nfert(Patch& patch) {
 
 	Gridcell& gridcell = patch.stand.get_gridcell();
@@ -1084,9 +1151,6 @@ void crop_nfert(Patch& patch) {
 		pftlist.nextobj();
 	}
 }
-
-
-
 
 // Updates crop rotation status
 /** Sets new crop management variables, typically on harvest day

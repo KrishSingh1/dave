@@ -10,7 +10,7 @@
 
 //#define DELAYED_SEEDCARBON		//Seed carbon allocation to leaves and roots are done over a 10-day period.
 
-/// Updates patch.members fpc_total and fpc_rescale for crops (to be called after crop_phenology())
+/// Updates patch members fpc_total and fpc_rescale for crops (to be called after crop_phenology())
 void update_patch_fpc(Patch& patch) {
 
 	if(patch.stand.landcover == CROPLAND) {
@@ -158,6 +158,7 @@ void crop_allocation_WE(cropphen_struct& ppftcrop, Individual& indiv) {
 
 /// Daily allocation routine for crops with nitrogen limitation
 /** Allocates daily npp to leaf, roots and harvestable organs
+ *  according to Olin et al. 2015.
  */
 void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_seed) {
 
@@ -359,7 +360,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 
 /// Daily allocation routine for crops without nitrogen limitation
 /** Allocates daily npp to leaf, roots and harvestable organs
- *  Equations are from Neitsch et al. 2002.
+ *  SWAT equations are from Neitsch et al. 2002.
  */
 void allocation_crop(Individual& indiv, double cmass_seed, double nmass_seed) {
 
@@ -368,7 +369,7 @@ void allocation_crop(Individual& indiv, double cmass_seed, double nmass_seed) {
 	Patchpft& patchpft = patch.pft[indiv.pft.id];
 	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
 
-	nmass_seed = 0.0;	//temporary ?
+	nmass_seed = 0.0;	// for compatibility with previous code, doesn't affect crop growth
 
 	// report seed flux
 	indiv.report_flux(Fluxes::SEEDC, -cmass_seed);
@@ -469,7 +470,7 @@ void growth_crop_daily(Patch& patch) {
 
 			cropindiv.cmass_leaf_max = 0.0;
 
-			if(indiv.pft.phenology == ANY && !cropindiv.isintercropgrass) {		//zero of normal cc3g/cc4g-growth arbitrarily at new year
+			if(indiv.pft.phenology == ANY && !cropindiv.isintercropgrass) {		// zero of normal cc3g/cc4g cmass arbitrarily at new year
 			
 				cropindiv.grs_cmass_plant = 0.0;
 				cropindiv.grs_cmass_root = 0.0;
@@ -741,7 +742,8 @@ void growth_daily(Patch& patch) {
 
 /// Handles yearly cropland lai and fpc calculation, called from allometry()
 /** Uses cmass_leaf_max for true crops and lai from whole-year grass stands for
- *  cover-crop grass if present.
+ *  cover-crop grass if present (NB. grass pft names must be as described in code !).
+ *  If grass pft not present or found in other stands, pft laimax is used.
  */
 void allometry_crop(Individual& indiv) {
 
@@ -941,3 +943,7 @@ void growth_crop_year(Individual& indiv, double& cmass_leaf_inc, double& cmass_r
 // Neitsch SL, Arnold JG, Kiniry JR et al.2002 Soil and Water Assessment Tool, Theorethical 
 //   Documentation + User's Manual. USDA_ARS-SR Grassland, Soil and Water Research Laboratory.
 //   Agricultural Reasearch Service, Temple,Tx, US.
+// S. Olin, G. Schurgers, M. Lindeskog, D. Wårlind, B. Smith, P. Bodin, J. Holmér, and A. Arneth. 2015
+//   Biogeosciences Discuss., 12, 1047-1111. The impact of atmospheric CO2 and N management on yields 
+//   and tissue C:N in the main wheat regions of Western Europe
+   

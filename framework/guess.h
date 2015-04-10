@@ -1670,6 +1670,9 @@ public:
 	/// years at which to end documentation and start calculation of Century equilibrium
 	int solvesomcent_endyr;
 
+	/// Cumulative litter pools for one year.
+	LitterSolveSOM litterSolveSOM;
+
 	std::vector<LitterSolveSOM> solvesom;
 
 	/// stored nitrogen deposition in snowpack

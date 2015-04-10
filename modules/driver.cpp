@@ -1102,24 +1102,21 @@ void daylengthinsoleet(Climate& climate) {
 			averaging_period = climate.daylength_save[date.day] * 3600.0;
 		}
 
-		if (climate.instype == NETSWRAD || climate.instype == NETSWRAD_TS) {
-			// net radiation known
-			climate.rad = climate.insol * averaging_period;
-			
-			// If using diurnal data with SWRAD or SWRAD_TS insolation type move
-			// the following if-clause outside and below this if-else clause.
-			if (date.diurnal()) {
-				climate.pars.resize(date.subdaily);
-				climate.rads.resize(date.subdaily);
-				for (int i=0; i<date.subdaily; i++) {
-					climate.rads[i] = climate.insols[i] * averaging_period;
-					climate.pars[i] = climate.rads[i] * FRADPAR;
-				}
-			}
+		double net_coeff = 1;
+		if (climate.instype == SWRAD || climate.instype == SWRAD_TS) {
+			net_coeff = 1 - BETA; 			// albedo correction
 		}
-		else {
-			// include correction for albedo
-			climate.rad = climate.insol * (1.0 - BETA) * averaging_period;
+		climate.rad = climate.insol * net_coeff * averaging_period;
+			
+		// If using diurnal data with SWRAD or SWRAD_TS insolation type move
+		// the following if-clause outside and below this if-else clause.
+		if (date.diurnal()) {
+			climate.pars.resize(date.subdaily);
+			climate.rads.resize(date.subdaily);
+			for (int i=0; i<date.subdaily; i++) {
+				climate.rads[i] = climate.insols[i] * net_coeff * averaging_period;
+				climate.pars[i] = climate.rads[i] * FRADPAR;
+			}
 		}
 
 		// special case for polar night

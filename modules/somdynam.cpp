@@ -882,6 +882,7 @@ void transfer_litter(Patch& patch) {
 
 			pft.litter_sap -= pft.litter_sap_year / 12.0;
 			pft.nmass_litter_sap -= pft.nmass_litter_sap_year / 12.0;
+			soil.sompool[SURFFWD].nmass += nmass_litter_sap;
 
 			if (!negligible(litter_sap)) {
 
@@ -895,7 +896,6 @@ void transfer_litter(Patch& patch) {
 
 				// Add to structural pool and update lignin fraction in pool
 				soil.sompool[SURFFWD].cmass += litter_sap;
-				soil.sompool[SURFFWD].nmass += nmass_litter_sap;
 
 				// Save litter input for equilsom()
 				if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
@@ -927,6 +927,7 @@ void transfer_litter(Patch& patch) {
 
 			pft.litter_heart -= pft.litter_heart_year / 12.0;
 			pft.nmass_litter_heart -= pft.nmass_litter_heart_year / 12.0;
+			soil.sompool[SURFCWD].nmass += nmass_litter_heart;
 
 			if (!negligible(litter_heart)) {
 
@@ -940,7 +941,6 @@ void transfer_litter(Patch& patch) {
 
 				// Add to structural pool and update lignin fraction in pool
 				soil.sompool[SURFCWD].cmass += litter_heart;
-				soil.sompool[SURFCWD].nmass += nmass_litter_heart;
 
 				// Save litter input for equilsom()
 				if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {

@@ -168,10 +168,6 @@ extern int transfer_level;
 
 // Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
 extern bool iftransfer_to_new_stand;
-// Parameters for testing different land-cover change options
-extern bool ifexpand_to_new_stand;
-extern int scaling_mode;
-extern int transfer_mode;
 
 // Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
 extern bool ifdyn_phu_limit;

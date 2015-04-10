@@ -386,7 +386,7 @@ void expand_stands(Gridcell& gridcell, double* st_frac_transfer) {
 
 		StandType& st = stlist[i];
 		landcovertype lc = st.landcover;
-		bool expand_to_new_stand = ifexpand_to_new_stand && gridcell.expand_to_new_stand[lc];
+		bool expand_to_new_stand = gridcell.expand_to_new_stand[lc];
 
 		if(st.gross_frac_increase > 0.0) {	// Not cloned stands
 
@@ -1080,7 +1080,7 @@ void stand_dynamics(Gridcell& gridcell) {
 		StandType& st=stlist.getobj();
 		landcovertype lc = st.landcover;
 
-		bool expand_to_new_stand = ifexpand_to_new_stand && gridcell.expand_to_new_stand[lc];
+		bool expand_to_new_stand = gridcell.expand_to_new_stand[lc];
 
 		if(st.gross_frac_increase || st.gross_frac_decrease || st.frac == 0.0) {
 			// first stand created
@@ -1998,8 +1998,8 @@ bool check_fractions4(Gridcell& gridcell) {
  *  Otherwise, new transferred areas are pooled according to instruction file parameter transfer_level (0: one big pool; 1: land cover-level; 
  *  2: stand type-level) and rules in the gridcell arrays pool_from_all_landcovers[to] and pool_to_all_landcovers[from], set
  *  in the Gridcell constructor.
- *  New stands may then be created in stand_dynamics() from the pooled land if the instruction file parameter ifexpand_to_new_stand is true, 
- *  and the gridcell array expand_to_new_stand[lc] value for the receiving land cover, set in the Gridcell constructor, is true (natural and forest).
+ *  New stands may then be created in stand_dynamics() from the pooled land if the gridcell array expand_to_new_stand[lc] value for the 
+ *  receiving land cover, set in the Gridcell constructor, is true (natural and forest).
  *  If not, soil and litter carbon and nitrogen as well as water is pooled with the receiving stands (cropland, pasture).
  *
  *  Transferred land with living plant mass after land cover change should be put in new stands, using the stand cloning mode in 

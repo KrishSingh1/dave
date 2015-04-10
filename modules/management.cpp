@@ -1015,7 +1015,7 @@ void scale_indiv(Individual& indiv, bool scale_grsC)
 /// Yearly function for harvest of all land covers that have yearly allocation, turnover and gridcell.expand_to_new_stand[lc] = false. 
 /** Should only be called from growth().
 //  Harvest functions are preceded by rescaling of living C.
-//  Only affects natural stands if ifexpand_to_new_stand or gridcell.expand_to_new_stand[NATURAL] is false.
+//  Only affects natural stands if gridcell.expand_to_new_stand[NATURAL] is false.
  */
 bool harvest_year(Individual& indiv) {
 

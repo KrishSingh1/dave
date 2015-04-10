@@ -1792,8 +1792,12 @@ public:
 	double litter_root;
 	/// sapwood-derived litter for PFT on modelled area basis (kgC/m2)
 	double litter_sap;
+	/// year's sapwood-derived litter for PFT on modelled area basis (kgC/m2)
+	double litter_sap_year;
 	/// heartwood-derived litter for PFT on modelled area basis (kgC/m2)
 	double litter_heart;
+	/// year's heartwood-derived litter for PFT on modelled area basis (kgC/m2)
+	double litter_heart_year;
 	/// litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
 	double litter_repr;
 	
@@ -1803,8 +1807,12 @@ public:
 	double nmass_litter_root;
 	/// sapwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_sap;
+	/// year's sapwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
+	double nmass_litter_sap_year;
 	/// heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_heart;
+	/// year's heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
+	double nmass_litter_heart_year;
 
 	/// non-FPC-weighted canopy conductance value for PFT under water-stress conditions (mm/s)
 	double gcbase;
@@ -1835,13 +1843,17 @@ public:
 		litter_leaf  = 0.0;
 		litter_root  = 0.0;
 		litter_sap   = 0.0;
+		litter_sap_year = 0.0;
 		litter_heart = 0.0;
+		litter_heart_year = 0.0;
 		litter_repr  = 0.0;
 
 		nmass_litter_leaf  = 0.0;
 		nmass_litter_root  = 0.0;
 		nmass_litter_sap   = 0.0;
+		nmass_litter_sap_year   = 0.0;
 		nmass_litter_heart = 0.0;
+		nmass_litter_heart_year = 0.0;
 
 		wscal = 1.0;
 		wscal_mean = 0.0;

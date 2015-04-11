@@ -786,9 +786,89 @@ double Individual::cton_sap() const {
 	}
 }
 
+double Individual::ndemand_storage(double cton_leaf_opt) {
+
+/*	if (vegetation.patch.stand.is_true_crop_stand() && ifnlim_lc[CROPLAND])	// only CROPGREEN, only ifnlim ?
+		// analogous with root demand
+		storendemand = max(0.0, cropindiv->grs_cmass_stem / (cton_leaf_opt * pft.cton_stem_avr / pft.cton_leaf_avr) - cropindiv->nmass_agpool);
+	else
+*/		storendemand = max(0.0, min(anpp * scale_n_storage / cton_leaf(), max_n_storage) - nstore());
+
+	return storendemand;
+}
 
 Patchpft& Individual::patchpft() const {
 	return vegetation.patch.pft[pft.id];
+}
+
+/// Gets the individual's daily cmass_leaf value
+double Individual::cmass_leaf_today() const {
+
+/*	if(istruecrop_or_intercropgrass()) {
+
+		if(patchpft().cropphen->growingseason)
+			return cropindiv->grs_cmass_leaf;
+		else
+			return 0.0;
+	}
+	else
+*/		return cmass_leaf * phen;
+}
+
+/// Gets the individual's daily cmass_root value
+double Individual::cmass_root_today() const {
+
+/*	if(istruecrop_or_intercropgrass()) {
+
+		if(patchpft().cropphen->growingseason)
+			return cropindiv->grs_cmass_root;
+		else
+			return 0.0;
+	}
+	else
+*/		return cmass_root * phen;
+}
+
+/// Gets the individual's daily fpc value
+double Individual::fpc_today() const {
+
+/*	if(pft.phenology == CROPGREEN) {
+
+		if(patchpft().cropphen->growingseason)
+			return fpc_daily;
+		else
+			return 0.0;
+	}
+	else
+*/		return fpc * phen;
+}
+
+/// Gets the individual's daily lai value
+double Individual::lai_today() const {
+
+/*	if(pft.phenology == CROPGREEN) {
+
+		if(patchpft().cropphen->growingseason)
+			return lai_daily;
+		else
+			return 0.0;
+	}
+	else
+*/		return lai * phen;
+}
+
+/// Gets the individual's daily lai_indiv value
+double Individual::lai_indiv_today() const {
+
+/*	if(pft.phenology == CROPGREEN) {
+
+		if(patchpft().cropphen->growingseason)
+			return lai_indiv_daily;
+		else
+			return 0.0;
+	}
+	else
+*/		return lai_indiv * phen;
 }
 
 /// Help function for kill(), partitions wood biomass into litter and harvest

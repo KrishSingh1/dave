@@ -1344,6 +1344,28 @@ public:
 	 *  Currently, all Individuals belonging to a Patchpft share the same water stress.
 	 */
 	double wscal_mean() const;
+
+	/// Gets the individual's daily cmass_leaf value
+	double cmass_leaf_today() const;
+	/// Gets the individual's daily cmass_root value
+	double cmass_root_today() const;
+
+	/// Gets the individual'sIndividual daily LAI value (patch-level)
+	/** Based on total leaf area for whatever the individual represents
+	 *  (individual, cohort, population), over the whole patch.
+	 */
+	double lai_today() const;
+
+	/// Gets the individual's daily LAI value (individual-level)
+	/** Based on the leaf area for the average individual and
+	 *  the average individual's crown area.
+	 */
+	double lai_indiv_today() const;
+
+	/// Gets the individual's daily fpc value
+	double fpc_today() const;
+
+	double ndemand_storage(double cton_leaf_opt);
 };
 
 

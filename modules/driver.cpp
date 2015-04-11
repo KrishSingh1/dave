@@ -1230,6 +1230,10 @@ void daylengthinsoleet(Climate& climate) {
 // Jury WA, Gardner WR & Gardner WH 1991 Soil Physics 5th ed, John Wiley, NY
 // Lloyd, J & Taylor JA 1994 On the temperature dependence of soil respiration
 //   Functional Ecology 8: 315-323
+// Parton, W. J., Hanson, P. J., Swanston, C., Torn, M., Trumbore, S. E., Riley, W.
+//   & Kelly, R. 2010. ForCent model development and testing using the Enriched
+//   Background Isotope Study experiment. Journal of Geophysical
+//   Research-Biogeosciences, 115.
 // Prentice, IC, Sykes, MT & Cramer W 1993 A simulation model for the transient
 //   effects of climate change on forest landscapes. Ecological Modelling 65:
 //   51-70.

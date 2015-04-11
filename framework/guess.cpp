@@ -2562,7 +2562,9 @@ void MassBalance::check_year(Gridcell& gridcell) {
 					dprintf("C pool change: %.5f\n", ccont_year - ccont);
 					dprintf("C flux: %.5f\n",  cflux_year);
 				}
-				if(ifnlim_lc[CROPLAND]) {
+				// Cropland without N-limitation is not balanced in N, fertilisation gives poorer N-balance
+				// For natural vegetation or unfertilised N-limited cropland, the check can be much stricter 
+				if(!run[CROPLAND] || ifnlim_lc[CROPLAND]) {
 					// N balance check:
 					if(fabs(ncont_year - ncont + nflux_year) > 1.0e-3) {
 						dprintf("\nN balance year %d: %.4f\n", date.year, ncont_year - ncont + nflux_year);
@@ -2585,7 +2587,9 @@ void MassBalance::check_period() {
 		dprintf("C pool change: %.5f\n", ccont - ccont_zero);
 		dprintf("C fluxes: %.5f\n",  cflux);
 	}
-	if(ifnlim_lc[CROPLAND]) {
+	// Cropland without N-limitation is not balanced in N, fertilisation gives poorer N-balance
+	// For natural vegetation or unfertilised N-limited cropland, the check can be much stricter 
+	if(!run[CROPLAND] || ifnlim_lc[CROPLAND]) {
 		// N balance check:
 		if(fabs(ncont - ncont_zero + nflux) > 1.0e-3) {
 			dprintf("\nWARNING: Period N balance: %.4f\n", ncont - ncont_zero + nflux);

@@ -86,18 +86,23 @@ void interception(Patch& patch,Climate& climate) {
 
 		// For this individual ...
 
-		if (!negligible(pet)) {
+		if (!negligible(pet)) { 
 
-			// Storage capacity for precipitation by canopy (point scale)
-			scap=climate.prec*min(indiv.lai_indiv_today()*indiv.pft.intc,0.999);
+			if (indiv.alive) { //Alive check - TP 010914
+				// Storage capacity for precipitation by canopy (point scale)
+				scap=climate.prec*min(indiv.lai_indiv_today()*indiv.pft.intc,0.999);
 
-			// Fraction of day that canopy remains wet
-			fwet=min(scap/pet,patch.fpc_rescale);
+				// Fraction of day that canopy remains wet
+				fwet=min(scap/pet,patch.fpc_rescale);
 
-			// Calculate interception by this individual, and increment patch total
+				// Calculate interception by this individual, and increment patch total
 
-			indiv.intercep=fwet*pet*indiv.fpc;
-			patch.intercep+=indiv.intercep;
+				indiv.intercep=fwet*pet*indiv.fpc;
+				patch.intercep+=indiv.intercep;
+			}
+			else {
+				indiv.intercep=0.0;
+			}
 		}
 		else {
 
@@ -1368,11 +1373,13 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 		indiv.wstress = ppft.wstress;
 
-		if (indiv.wstress) {
-			indiv.aet += ppft.wsupply;
-		}
-		else {
-			indiv.aet += negligible(indiv.phen) ? 0.0 : patch.wdemand;
+		if (indiv.alive) { // Alive check - TP 210814
+			if (indiv.wstress) {
+				indiv.aet += ppft.wsupply;
+			}
+			else {
+				indiv.aet += negligible(indiv.phen) ? 0.0 : patch.wdemand;
+			}
 		}
 		if (day.isend) {
 			indiv.aet *= indiv.fpc / date.subdaily;

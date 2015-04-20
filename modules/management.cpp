@@ -1126,6 +1126,7 @@ void crop_nfert(Patch& patch) {
 				nfert = gridcellpft.Nfert_read;
 			}
 			if(!ppftcrop.fertilised[0] && ppftcrop.dev_stage > 0.0 && ppftcrop.growingseason){
+				// Fertiliser application at dev_stage = 0, sowing.
 				patch.dnfert = nfert * (1.0 - pft.fertrate[0] - pft.fertrate[1]);
 				ppftcrop.fertilised[0] = true;
 			}

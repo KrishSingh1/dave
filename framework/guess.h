@@ -1365,9 +1365,9 @@ public:
 	int hlimitdatenh;
 	/// latest date for harvesting in the southern hemisphere
 	int hlimitdatesh;
-	/// default base temperature (°C) for heat unit (hu) calculation
+	/// default base temperature (Â°C) for heat unit (hu) calculation
 	double tb;
-	/// temperature under which vernalisation is possible (°C)
+	/// temperature under which vernalisation is possible (Â°C)
 	double trg;
 	/// default number of vernalising days required
 	int pvd;
@@ -2086,9 +2086,13 @@ public:
 	/// daily root nitrogen demand over possible uptake (storage demand)
 	double rootndemand_store;
 	
+	/// The daily C lossed from leaves due to senescense, only crops.
 	double daily_cmass_leafloss;
+	/// The daily N lossed from leaves due to senescense, only crops.
 	double daily_nmass_leafloss;
+	/// The daily C lossed from roots due to senescense, only crops.
 	double daily_cmass_rootloss;
+	/// The daily N lossed from roots due to senescense, only crops.
 	double daily_nmass_rootloss;
 
 	/// Number of days with non-negligible phenology this month
@@ -2244,7 +2248,7 @@ public:
 	 */
 	double lai_indiv_today() const;
 
-	/// Gets the Nitrigen limited LAI
+	/// Gets the Nitrogen limited LAI, Eq. 8 Olin 2015
 	double lai_nitrogen_today() const;
 
 	/// Gets the individual's daily fpc value
@@ -2253,6 +2257,7 @@ public:
 	/// Gets the growingseason status for crop individual. Non-crop individuals always return true.
 	bool growingseason() const;
 
+	/// The N demand of the storage, only used for PNV.
 	double ndemand_storage(double cton_leaf_opt);
 };
 
@@ -2339,7 +2344,7 @@ public:
 	double sand_frac;
 	/// fraction of soil that is clay
 	double clay_frac;
-	/// fraction of soil that is silt plus clay	
+	/// fraction of soil that is silt
 	double silt_frac;
 	/// fraction of soil that is organic	
 	double organic_frac;
@@ -2702,7 +2707,7 @@ public:
 	int growingdays_y;
 	/// length of growingseason ending in last harvest
 	int lgp;
-	/// base temp for heat unit calculation (°C)
+	/// base temp for heat unit calculation (Â°C)
 	double tb;
 	/// number of vernalising days required
 	int pvd;
@@ -2712,11 +2717,11 @@ public:
 	double vrf;
 	/// heat unit reduction factor due to photoperiodism [0-1]
 	double prf;
-	/// potential heat units required for crop maturity (°Cd)
+	/// potential heat units required for crop maturity (Â°Cd)
 	double phu;
 	/// potential heat units that would have been used without dynamic phu calculation
 	double phu_old;
-	/// heat unit sum aquired during last growing period (°Cd)
+	/// heat unit sum aquired during last growing period (Â°Cd)
 	double husum;
 	/// heat unit sum aquired durin sampling period, starting with sdate
 	double husum_sampled;
@@ -2769,11 +2774,17 @@ public:
 	double vdsum_alloc;
 	double vd;
 
+	/// The fraction of the daily assimilates allocated to roots.
 	double f_alloc_root;
+	/// The fraction of the daily assimilates allocated to leaves.
 	double f_alloc_leaf;
+	/// The fraction of the daily assimilates allocated to harvestable organs, seeds.
 	double f_alloc_horg;
+	/// The fraction of the daily assimilates allocated to stem.
 	double f_alloc_stem;
-	double dev_stage; //development stage, w&e
+	/// Development stage from Wang & Engel 1998
+	double dev_stage;
+	// A variable holding the memory of whether this field was fertilised or not.
 	bool fertilised[3];
 
 	cropphen_struct()
@@ -3111,7 +3122,7 @@ public:
 
 	/// annual nitrogen fertilization (kgN/m2/year)
 	double anfert;
-	/// daily nitrogen fertilization (kgN/m2/year)
+	/// daily nitrogen fertilization (kgN/m2/day)
 	double dnfert;
 
 	/// daily value of irrigation water (mm), set in irrigation(), derived from water_deficit_d
@@ -3655,6 +3666,9 @@ private:
 //   defoliation. Annals of Botany, 89, 11-21.
 // Monsi M & Saeki T 1953 Ueber den Lichtfaktor in den Pflanzengesellschaften und
 //   seine Bedeutung fuer die Stoffproduktion. Japanese Journal of Botany 14: 22-52
+// S. Olin, G. Schurgers, M. Lindeskog, D. Wï¿½rlind, B. Smith, P. Bodin, J. Holmï¿½r, and A. Arneth. 2015
+//   Biogeosciences Discuss., 12, 1047-1111. The impact of atmospheric CO2 and N management on yields
+//   and tissue C:N in the main wheat regions of Western Europe
 // Parton, W. J., Hanson, P. J., Swanston, C., Torn, M., Trumbore, S. E., Riley, W. 
 //   & Kelly, R. 2010. ForCent model development and testing using the Enriched 
 //   Background Isotope Study experiment. Journal of Geophysical 
@@ -3671,6 +3685,8 @@ private:
 // Sykes, MT, Prentice IC & Cramer W 1996 A bioclimatic model for the potential
 //   distributions of north European tree species under present and future climates.
 //   Journal of Biogeography 23: 209-233.
+// Wang, E, Engel, T, 1998 Simulation of phenological development of wheat crops
+//   Agricultural Systems 58:1-24
 // White, M A, Thornton, P E, Running, S. & Nemani, R 2000 Parameterization and 
 //   Sensitivity Analysis of the BIOME-BGC Terrestrial Ecosystem Model: Net Primary 
 //   Production Controls. Earth Interactions, 4, 1-55.

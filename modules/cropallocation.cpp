@@ -124,28 +124,31 @@ void turnover_grass(Individual& indiv) {
 	indiv.nstore_longterm = 0.0;
 }
 
-/// Help function used by allocation_crop_nlim()
-void crop_allocation_WE(cropphen_struct& ppftcrop, Individual& indiv) {
-
-	ppftcrop.dev_stage = max(0.0,min(2.0, -0.595 * pow(ppftcrop.fphu, 2.0) + 2.595 * ppftcrop.fphu));
+/// Help function used by allocation_crop_nlim(), described in Olin et al. 2015.
+void crop_allocation_devries(cropphen_struct& ppftcrop, Individual& indiv) {
+	// Currently, the development stage (ds) calculations are done using a linear relationship
+	// between ds and fphu to allow for dynamic variety selection (Lindeskog 2013).
 
 	double t = 0.0;
 	if(ppftcrop.fphu < 0.4367) {
 		t = -0.07 + 2.45 * ppftcrop.fphu;
 	} 
 	else {
-		t = 0.06 + 2.0 * ppftcrop.fphu;
 		t = 0.2247 + 1.7753 * ppftcrop.fphu;
 	}
+	// Comment out this line if ds should be calculated according to Olin et al. 2015.
 	ppftcrop.dev_stage = max(0.0,min(2.0,t));
 
+	// Eq. 3-5, Olin 2015
 	double f1 = min(1.0, max(0.0, richards_curve(indiv.pft.a1, indiv.pft.b1, indiv.pft.c1, indiv.pft.d1, ppftcrop.dev_stage)));
 	double f2 = min(1.0, max(0.0, richards_curve(indiv.pft.a2, indiv.pft.b2, indiv.pft.c2, indiv.pft.d2, ppftcrop.dev_stage)));
 	double f3 = min(1.0, max(0.0, richards_curve(indiv.pft.a3, indiv.pft.b3, indiv.pft.c3, indiv.pft.d3, ppftcrop.dev_stage)));
 
+	// Eq. 15, Olin 2015
 	if(indiv.daily_cmass_leafloss > 0.0)
 		f2 *= f2 * f2;
 
+	// Eq. 6, Olin 2015
 	ppftcrop.f_alloc_root = f1 * (1-f3);
 	ppftcrop.f_alloc_leaf = f2 * (1-f1)*(1-f3);
 	ppftcrop.f_alloc_stem = (1.0 - f2)*(1.0 - f1)*(1.0 - f3);
@@ -177,8 +180,9 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 		indiv.nmass_leaf += nmass_seed / 2.0;
 		indiv.nmass_root += nmass_seed / 2.0;
 
-		crop_allocation_WE(ppftcrop, indiv);
+		crop_allocation_devries(ppftcrop, indiv);
 
+		// Use the fast C pool when NPP is negative.
 		if(indiv.dnpp < 0.0){
 
 			if(-indiv.dnpp < cropindiv.grs_cmass_agpool) {
@@ -196,6 +200,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 
 		}
 
+		// Retranslocation from the fast C pool to the grains towards the end of the grainfilling period, TODO only works for cereals.
 		if (cropindiv.grs_cmass_agpool > 0.0 && patchpft.cropphen->f_alloc_horg > 0.95) {
 			cmass_extra += 0.1 * cropindiv.grs_cmass_agpool;
 			cropindiv.ycmass_agpool -= 0.1 * cropindiv.grs_cmass_agpool;
@@ -205,13 +210,15 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 		indiv.daily_cmass_rootloss = 0.0;
 		indiv.daily_nmass_rootloss = 0.0;
 
+		// If senescense have occured this day.
 		if (indiv.daily_cmass_leafloss > 0.0) {
 
+			// Daily C mass leaf increment.
 			cropindiv.dcmass_leaf = (indiv.dnpp + cmass_extra) * patchpft.cropphen->f_alloc_leaf - indiv.daily_cmass_leafloss;
 			cropindiv.grs_cmass_dead_leaf += indiv.daily_cmass_leafloss;
 			cropindiv.ycmass_dead_leaf += indiv.daily_cmass_leafloss;
 			if (indiv.daily_cmass_leafloss / 100.0<indiv.nmass_leaf) {
-				cropindiv.nmass_dead_leaf += indiv.daily_cmass_leafloss / 100.0; //TODO super low C:N in the dead leaf
+				cropindiv.nmass_dead_leaf += indiv.daily_cmass_leafloss / 100.0; // TODO super low C:N in the dead leaf
 				cropindiv.ynmass_dead_leaf += indiv.daily_cmass_leafloss / 100.0;
 				indiv.nmass_leaf -= indiv.daily_cmass_leafloss / 100.0;
 			}
@@ -228,15 +235,15 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 			} else {
 				indiv.daily_nmass_leafloss = 0.0;
 			}
-			// Very experimental root senescence
-			// N and C loss when root senescence is allowed f_HO > 0.5
-			//d3, the DS after which more than half of the daily assimilates are going to the grains.
+			// Very experimental, root senescence
+			// N and C loss when root senescence is allowed (f_HO > 0.5)
+			// d3, the DS after which more than half of the daily assimilates are going to the grains.
 			if(patchpft.cropphen->dev_stage > indiv.pft.d3) {
 				//only have root senescence when leaf scenescence har occured
 				if (indiv.daily_nmass_leafloss > 0.0) {
 					double kC = 0.0;
 					double kN = 0.0;
-					//The root senescence is proportional to that of the leaves
+					//The root senescence is proportional to that of the leaves, Eq. 10 Olin 2015
 					if(indiv.nmass_leaf > 0.0) {
 						kN = indiv.daily_nmass_leafloss / indiv.nmass_leaf;
 					}
@@ -261,13 +268,13 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 
 		cropindiv.dcmass_root = (indiv.dnpp + cmass_extra) * patchpft.cropphen->f_alloc_root - indiv.daily_cmass_rootloss;
 
-		//TODO
+		// The lost root C is directly put into the litter, TODO should this go into only metabolic?
 		patch.soil.sompool[SOILMETA].cmass += indiv.daily_cmass_rootloss;
 
 		if (indiv.daily_nmass_rootloss < indiv.nmass_root) {
 			indiv.nmass_root -= indiv.daily_nmass_rootloss;
 			cropindiv.nmass_agpool += indiv.daily_nmass_rootloss * 0.5; // 50% of the N in the lost root is retranslocated.
-			patch.soil.sompool[SOILMETA].nmass += indiv.daily_nmass_rootloss * 0.5;//The rest is going in to litter
+			patch.soil.sompool[SOILMETA].nmass += indiv.daily_nmass_rootloss * 0.5;//The rest is going in to litter, TODO see above for C.
 		}
 		if (indiv.daily_cmass_rootloss > 0.0){
 			patch.is_litter_day = true;
@@ -282,6 +289,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 		cropindiv.ycmass_plant += cropindiv.dcmass_plant;
 
 		cropindiv.grs_cmass_leaf += cropindiv.dcmass_leaf;
+		// 40% of the assimilates that goes to stem is put into the fast C pool (Sec. 2.1.1 Olin 2015)
 		cropindiv.grs_cmass_stem += (1.0 - 0.4) * cropindiv.dcmass_stem;
 		cropindiv.ycmass_stem += (1.0 - 0.4) * cropindiv.dcmass_stem;
 		cropindiv.grs_cmass_agpool += 0.4 * cropindiv.dcmass_stem;
@@ -292,6 +300,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 		cropindiv.grs_cmass_plant += cropindiv.dcmass_plant;
 
 		double ndemand_ho = 0.0;
+		// The non-structural N that is potentially  available for retranslocation in leaves, roots and stem.
 		double avail_leaf_N = max(0.0, (1.0 / indiv.cton_leaf(false) - 1.0 / indiv.pft.cton_leaf_max) * indiv.cmass_leaf_today());
 		double avail_root_N = max(0.0, (1.0 / indiv.cton_root(false) - 1.0 / indiv.pft.cton_root_max) * indiv.cmass_root_today());
 		double avail_stem_N = max(0.0,cropindiv.nmass_agpool - 1.0 / indiv.pft.cton_stem_max * cropindiv.grs_cmass_stem);
@@ -316,8 +325,8 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 					ndemand_ho = 0.0;
 				}
 			}
-			//Seligman 1975
-			//"willingness" to let go of the N in the organ to meet the demand from the storage organ
+			// Seligman 1975
+			//"willingness" to let go of the N in the organ to meet the demand from the storage organ, Eq. 17 Olin 2015
 			double w = 0.0;
 			double w_r = 0.0;
 			double w_l = 0.0;

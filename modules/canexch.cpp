@@ -1935,7 +1935,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 	}
 }
 
-/// Yin et al, Modelling leaf senescence
+/// Leaf senescence for crops Eqs. 8,9,13 and 14 in Olin 2015
 void leaf_senescence(Vegetation& vegetation) {
 
 	if(!(vegetation.patch.stand.is_true_crop_stand() && ifnlim_lc[CROPLAND]))
@@ -1945,10 +1945,12 @@ void leaf_senescence(Vegetation& vegetation) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
+		// Age dependent N retranslocation, Sec. 2.1.3 Olin 2015
 		double senN = 0.0;
-		double senNr = 0.07;
+		double senNr = 0.1;
 		if(indiv.patchpft().cropphen->dev_stage > 1.0){
 			senN = senNr * (indiv.nmass_leaf-indiv.cmass_leaf_today() / (indiv.pft.cton_leaf_max));
+			// Senescence is not done during spinup TODO
 			if (date.year > 500) {
 				if (senN > 0.0) {
 					indiv.nmass_leaf -= senN;
@@ -1960,7 +1962,7 @@ void leaf_senescence(Vegetation& vegetation) {
 		double Ln = 0.0;
 		double Lnld = 0.0;
 		double r = 0.0;
-
+		// N dependant C mass loss, with an inertia of 1/10, Eq. 13 Olin 2015
 		if(indiv.cmass_leaf_today()>0.0){
 			Ln = indiv.lai_nitrogen_today();
 			Lnld = indiv.lai_today();
@@ -1968,14 +1970,14 @@ void leaf_senescence(Vegetation& vegetation) {
 		} else {
 			r = 0.0;
 		}
-		indiv.daily_cmass_leafloss = max(0.0,r);
-		indiv.daily_nmass_leafloss = 0.0;
-
+		// No senescence during the initial growing period
 		if(indiv.patchpft().cropphen->fphu < 0.05){
 
 			indiv.daily_cmass_leafloss = 0.0;
-			indiv.daily_nmass_leafloss = 0.0;
+		} else {
+			indiv.daily_cmass_leafloss = max(0.0,r);
 		}
+		indiv.daily_nmass_leafloss = 0.0;
 
 		vegetation.nextobj();
 	}
@@ -2174,6 +2176,9 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 //   seine Bedeutung fuer die Stoffproduktion. Japanese Journal of Botany 14: 22-52
 // Monteith, JL, 1995. Accomodation between transpiring vegetation and the convective
 //   boundary layer. Journal of Hydrology 166: 251-263.
+// S. Olin, G. Schurgers, M. Lindeskog, D. W�rlind, B. Smith, P. Bodin, J. Holm�r, and A. Arneth. 2015
+//   Biogeosciences Discuss., 12, 1047-1111. The impact of atmospheric CO2 and N management on yields
+//   and tissue C:N in the main wheat regions of Western Europe
 // Peltoniemi, MS, Duursma, RA & Medlyn, BE. 2012. Co-optimal distribution of leaf
 //   nitrogen and hydraulic conductance in plant canopies. Tree Physiology, 32, 510-519.
 // Prentice, IC, Sykes, MT & Cramer W (1993) A simulation model for the transient

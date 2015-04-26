@@ -36,7 +36,7 @@ bool TimeDataD::item_in_header(char* name) {
 		return true;
 }
 
-void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist, double offset) { //Requires gutil.h
+void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist) { //Requires gutil.h
 
 	if(checkdata) {
 		delete[] checkdata;
@@ -52,7 +52,7 @@ void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist, double offset) { /
 	while(gridlist.isobj)
 	{
 		Coord& c=gridlist.getobj();
-		if(Load(c, offset))
+		if(Load(c))
 		{
 			for(int i=0;i<nYears;i++)
 			{
@@ -334,9 +334,10 @@ void TimeDataD::CreateFileMap() {
 }
 
 #ifdef GUESS_VERSION
-int TimeDataD::Open(char* name, ListArray_id<Coord>& gridlist) {
+int TimeDataD::Open(char* name, ListArray_id<Coord>& gridlist, double gridlist_offset) {
 
 	if(Open(name)) {
+		SetOffset(gridlist_offset);
 #ifdef LUTOMEMORY
 		CopyToMemory(gridlist.nobj, gridlist);
 #else if MAPFILE
@@ -643,7 +644,7 @@ double TimeDataD::ParseSpatialResolution() {
 		}
 	}
 	Rewind();
-	return precision;
+	return min(precision, spatial_resolution);
 }
 
 int TimeDataD::GetNCells() {
@@ -1122,11 +1123,11 @@ int TimeDataD::LoadFromMap(Coord c) {
 		return 0;
 }
 
-int TimeDataD::Load(Coord c, double offset) {
+int TimeDataD::Load(Coord c) {
 
 	if(offset) {
-		c.lon +=(offset - min(spatial_resolution / 2.0, MAX_SEARCHRADIUS));
-		c.lat +=(offset - min(spatial_resolution / 2.0, MAX_SEARCHRADIUS));
+		c.lon +=offset;
+		c.lat +=offset;
 	}
 	if(memory_copy)
 		return memory_copy->Load(c);
@@ -1901,7 +1902,8 @@ TimeDataD::TimeDataD(int formatX) {
 	fileopened=false;
 	memory_copy=NULL;
 	filemap=NULL;
-	spatial_resolution = 0.5; // Default 0,5 deg.
+	spatial_resolution = DEFAULT_SPATIAL_RESOLUTION;
+	offset = 0.0;
 }
 
 //Deconstructor
@@ -2080,6 +2082,7 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 	firstyear = Data.GetFirstyear();
 	spatial_resolution = Data.GetSpacialResolution();
 	double searchradius = min(spatial_resolution / 2.0, MAX_SEARCHRADIUS);
+	double offset = Data.GetOffset();
 
 	double *celldata;
 	celldata = new double[Data.GetnColumns() * Data.GetnYears()];
@@ -2097,8 +2100,8 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 
 			Coord cc = gridlistX.getobj();
 			// data coord close to gridlist coord ?
-			dif_lon = fabs(c.lon - cc.lon);
-			dif_lat = fabs(c.lat - cc.lat);
+			dif_lon = fabs(c.lon - (cc.lon + offset));
+			dif_lat = fabs(c.lat - (cc.lat + offset));
 
 			if(dif_lon <= searchradius && dif_lat <= searchradius) {
 				bool done = false;
@@ -2107,8 +2110,8 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 
 				for(int i=cell_no-1; i>=0;i--) {
 					// has data close to the gridlist coord already been saved ?
-					dif_lon_saved = fabs(gridlist[i].lon - cc.lon);
-					dif_lat_saved = fabs(gridlist[i].lat - cc.lat);
+					dif_lon_saved = fabs(gridlist[i].lon - (cc.lon + offset));
+					dif_lat_saved = fabs(gridlist[i].lat - (cc.lat + offset));
 					if(dif_lon_saved <= searchradius && dif_lat_saved <= searchradius) {
 						// is the new data coord closer to the gridlist coord than the already saved coord is ?
 						if((dif_lon_saved + dif_lat_saved) > (dif_lon + dif_lat)) {	// This part is probably not needed

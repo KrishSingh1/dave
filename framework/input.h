@@ -124,6 +124,8 @@ public:
 	ManagementInputModule* get_management_module() {return management_input_module.get();}
 	/// Reads gridlist from file
 	void read_gridlist();
+	/// Parses the spatial resolution for a lon-lat Coord gridlist
+	double parse_gridlist_spatial_resolution(ListArray_id<Coord>& gridlist);
 
 private:
 	/// First historic year in simulation. Optionally set in instruction file.

@@ -27,7 +27,7 @@ Input::Input(const char* climate_input_module_name, const char* landcover_input_
 	nyear_hist = 0;
 	co2_fixed = 0;
 	ngridcell = 0;
-	gridlist_spatial_resolution = 0.5;
+	gridlist_spatial_resolution = DEFAULT_SPATIAL_RESOLUTION;
 
 	climate_input_module = auto_ptr<InputModule>(InputModuleRegistry::get_instance().create_input_module(climate_input_module_name, *this));
 	landcover_input_module = auto_ptr<LandcoverInputModule>(new LandcoverInputModule(landcover_input_module_name, *this));
@@ -84,25 +84,30 @@ void Input::read_gridlist() {
 		fclose(in_grid);
 		gridlist.firstobj();
 
-		// Parse spatial resolution
-		double precision = 100;
-		double dif_lon;
-		double dif_lat;
-		const int maxnsample = 200;
-		int nsample = min((unsigned)maxnsample, gridlist.nobj);
+		gridlist_spatial_resolution = min(parse_gridlist_spatial_resolution(gridlist), gridlist_spatial_resolution);
+}
 
-		for (int i=0; i<nsample; i++) {
-			for (int j=0; j<nsample; j++) {
+double Input::parse_gridlist_spatial_resolution(ListArray_id<Coord>& gridlist) {
 
-				dif_lon = fabs(gridlist[i].lon - gridlist[j].lon);
-				dif_lat = fabs(gridlist[i].lat - gridlist[j].lat);
-				if(dif_lon > 1.0e-12)
-					precision = min(precision, dif_lon);
-				if(dif_lat > 1.0e-12)
-					precision = min(precision, dif_lat);
-			}
+	// Parse spatial resolution
+	double precision = 100;
+	double dif_lon;
+	double dif_lat;
+	const int maxnsample = 200;
+	int nsample = min((unsigned)maxnsample, gridlist.nobj);
+
+	for (int i=0; i<nsample; i++) {
+		for (int j=0; j<nsample; j++) {
+
+			dif_lon = fabs(gridlist[i].lon - gridlist[j].lon);
+			dif_lat = fabs(gridlist[i].lat - gridlist[j].lat);
+			if(dif_lon > 1.0e-12)
+				precision = min(precision, dif_lon);
+			if(dif_lat > 1.0e-12)
+				precision = min(precision, dif_lat);
 		}
-		gridlist_spatial_resolution = precision;
+	}
+	return precision;
 }
 
 void Input::init() {
@@ -111,6 +116,8 @@ void Input::init() {
 
 	if(!ngridcell)
 		read_gridlist();
+	// Set gridlist_spatial_resolution here manually if needed (if other than DEFAULT_SPATIAL_RESOLUTION or if 
+	// gridlist too short to be sucessfully parsed for spatial resolution)
 
 	if(co2_fixed == 0.0)
 		// Read CO2 data from file if fixed CO2 not defined in instruction file
@@ -362,17 +369,17 @@ SoilInput::SoilInput(Input& in)
 
 void SoilInput::init() {
 
+	double offset = search_for_centre_of_gridcell * input.gridlist_spatial_resolution / 2.0;
 	file_soilcode = param["file_soilcode"].str;
-	if(!soilcode.Open(file_soilcode, gridlist))
+	if(!soilcode.Open(file_soilcode, gridlist, offset))
 		fail("initio: could not open %s for input", (char*)file_soilcode);
 }
 
 bool SoilInput::loadsoilcode(Gridcell& gridcell, Coord c) {
 
 	bool gridfound = false;
-	double offset = search_for_centre_of_gridcell * input.gridlist_spatial_resolution / 2.0;
 
-	if(!soilcode.Load(c, offset)) {
+	if(!soilcode.Load(c)) {
 		dprintf("Problems with soil code input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
 		gridfound = false;	// skip this stand
 	}

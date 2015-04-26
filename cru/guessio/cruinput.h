@@ -66,6 +66,8 @@ public:
 	/// number of years to use for temperature-detrended future data set (cycled last 
 	static const int NYEAR_FUTURE_DATA=30;
 
+	double spatial_resolution;
+
 protected:
 
 	/// Gets monthly ndep values for a given calendar year

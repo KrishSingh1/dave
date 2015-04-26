@@ -43,6 +43,7 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 
 CRUInput::CRUInput(Input& in)
 	: searchradius(0),
+	  spatial_resolution(CRU_TS30::SPATIAL_RESOLUTION),
 	  gridlist(in.gridlist),
 	  input(in),
 	  spinup_mtemp(NYEAR_SPINUP_DATA),
@@ -100,6 +101,9 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 	int elevation;
 
 	bool gridfound;
+
+	if(spatial_resolution != input.gridlist_spatial_resolution && !search_for_centre_of_gridcell)
+		fail("We must use a searchradius and search for centre of a gridcell when using different spatial resolution in input data\n");
 
 	double lon = gridlist.getobj().lon;
 	double lat = gridlist.getobj().lat;

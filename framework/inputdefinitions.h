@@ -4,10 +4,15 @@
 #define INPUTDEFINITIONS
 #include "guess.h"
 
-#define LUTOMEMORY		// Write land use fraction data to memory; enables efficient usage of randomized gridlists for parallell runs on Simba.
+/// Write land use fraction data to memory; enables efficient usage of randomised gridlists for parallell simulations
+#define LUTOMEMORY
+
+/// Default value for gridlist and text input spatial resolution.
+/*  Input data will be parsed for finer resolution than the default value. For coarser resolutions, raise default value.or set manually */
+const double DEFAULT_SPATIAL_RESOLUTION = 0.5;
 
 /// Needed for finding the correct input coordinates with a finer-scaled gridlist.
-const bool search_for_centre_of_gridcell = true;
+const bool search_for_centre_of_gridcell = false;
 
 /// Type for storing grid cell longitude, latitude and description text
 struct Coord {

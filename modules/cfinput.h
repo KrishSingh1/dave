@@ -62,6 +62,10 @@ private:
 
 	/// Reference to the list of Coord objects containing coordinates of the grid cells to simulate
 	ListArray_id<Coord>& gridlist;
+
+	/// search radius to use when finding soil data
+	double searchradius;
+
 /*
 	struct CoordCF {
 
@@ -119,8 +123,6 @@ private:
 	std::vector<GuessNC::CF::GridcellOrderedVariable*> all_variables() const;
 
 	double parse_spatial_resolution();
-
-	double offset_cru_to_cf_coord();
 
 	// The variables
 

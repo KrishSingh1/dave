@@ -36,6 +36,8 @@ void LandcoverInputModule::init() {
 	if(!run_landcover)
 		return;
 
+	double offset = search_for_centre_of_gridcell * input.gridlist_spatial_resolution / 2.0;
+
 	all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
 
 	//Retrieve file names for landcover files and open them if static values from ins-file are not used
@@ -52,7 +54,7 @@ void LandcoverInputModule::init() {
 			file_lu=param["file_lu"].str;
 
 			// Open landcover area fraction file, return false if problem
-			if(!LUdata.Open(file_lu, gridlist))
+			if(!LUdata.Open(file_lu, gridlist, offset))
 				fail("initio: could not open %s for input",(char*)file_lu);
 			else {
 				if(LUdata.GetFormat()==InData::LOCAL_YEARLY)
@@ -67,7 +69,7 @@ void LandcoverInputModule::init() {
 		//Read LUC transitions
 		if(gross_land_transfer == 2) {
 			file_grossLUC=param["file_grossLUC"].str;
-			if(!grossLUC.Open(file_grossLUC, gridlist))
+			if(!grossLUC.Open(file_grossLUC, gridlist, offset))
 				fail("initio: could not open %s for input",(char*)file_grossLUC);
 		}
 	}
@@ -78,7 +80,7 @@ void LandcoverInputModule::init() {
 		file_lucrop=param["file_lucrop"].str;
 
 		// Open crop fraction file, return false if problem
-		if(!CFTdata.Open(file_lucrop, gridlist))
+		if(!CFTdata.Open(file_lucrop, gridlist, offset))
 			fail("initio: could not open %s for input",(char*)file_lucrop);
 		else {
 
@@ -88,8 +90,7 @@ void LandcoverInputModule::init() {
 
 			if(minimizecftlist && gridlist.nobj < 100) {	// Reduce the risk of accidentally using minimized cft lists when using split gridlists.
 
-				double offset = search_for_centre_of_gridcell * input.gridlist_spatial_resolution / 2.0;
-				CFTdata.CheckIfPresent(gridlist, offset);
+				CFTdata.CheckIfPresent(gridlist);
 				do_minimize = true;
 			}
 
@@ -180,7 +181,6 @@ bool LandcoverInputModule::getgridcell(Gridcell& gridcell) {
 bool LandcoverInputModule::loadlandcover(Gridcell& gridcell, Coord c) {
 
 	bool LUerror = false;
-	double offset = search_for_centre_of_gridcell * input.gridlist_spatial_resolution / 2.0;
 
 	if (!lcfrac_fixed) {
 
@@ -196,7 +196,7 @@ bool LandcoverInputModule::loadlandcover(Gridcell& gridcell, Coord c) {
 
 		if (loadLU) {
 			// Load landcover area fraction data from input file to data object
-			if (!LUdata.Load(c, offset)) {
+			if (!LUdata.Load(c)) {
 				dprintf("Problems with landcover fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror = true;		// skip this stand
 			}
@@ -205,7 +205,7 @@ bool LandcoverInputModule::loadlandcover(Gridcell& gridcell, Coord c) {
 		//Read LUC transitions
 		if(gross_land_transfer == 2 && !LUerror) {
 
-			if(!grossLUC.Load(c, offset)) {
+			if(!grossLUC.Load(c)) {
 				dprintf("Problems with gross LUC transitions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror = true;	// skip this stand
 			}
@@ -219,7 +219,7 @@ bool LandcoverInputModule::loadlandcover(Gridcell& gridcell, Coord c) {
 			// Crop fraction data: read from crop fraction file; dynamic, so data for all years are loaded to CFTdata object and 
 			// transferred to gridcell.cftfrac each year in getlandcover()			
 
-			if(!CFTdata.Load(c, offset)) {
+			if(!CFTdata.Load(c)) {
 				dprintf("Problems with CFT fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
 				LUerror = true;	// skip this stand
 			}

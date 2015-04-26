@@ -16,23 +16,25 @@ ManagementInputModule::ManagementInputModule(Input& in)
 
 void ManagementInputModule::init() {
 
+	double offset = search_for_centre_of_gridcell * input.gridlist_spatial_resolution / 2.0;
+
 	if(run_landcover && run[CROPLAND]) {
 
 		if(readsowingdates)	{
 			file_sdates=param["file_sdates"].str;
-			if(!sdates.Open(file_sdates, gridlist))
+			if(!sdates.Open(file_sdates, gridlist, offset))
 				fail("initio: could not open %s for input",(char*)file_sdates);
 		}
 
 		if(readharvestdates) {
 			file_hdates=param["file_hdates"].str;
-			if(!hdates.Open(file_hdates, gridlist))
+			if(!hdates.Open(file_hdates, gridlist, offset))
 				fail("initio: could not open %s for input",(char*)file_hdates);
 		}
 
 		if(readNfert) {
 			file_Nfert=param["file_Nfert"].str;
-			if(!Nfert.Open(file_Nfert, gridlist))
+			if(!Nfert.Open(file_Nfert, gridlist, offset))
 				fail("initio: could not open %s for input",(char*)file_Nfert);
 		}
 	}
@@ -41,22 +43,21 @@ void ManagementInputModule::init() {
 bool ManagementInputModule::loadmanagement(Gridcell& gridcell, Coord c) {
 
 	bool LUerror = false;
-	double offset = search_for_centre_of_gridcell * input.gridlist_spatial_resolution / 2.0;
 
 	if(readsowingdates) { 
-		if(!sdates.Load(c, offset)) {
+		if(!sdates.Load(c)) {
 			dprintf("Problems with sowing date input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
 			LUerror = true;	// skip this stand
 		}
 	}
 	if(readharvestdates && !LUerror) {
-		if(!hdates.Load(c, offset)) {
+		if(!hdates.Load(c)) {
 			dprintf("Problems with harvest date input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
 			LUerror = true;	// skip this stand
 		}
 	}
 	if(readNfert && !LUerror) {
-		if(!Nfert.Load(c, offset)) {
+		if(!Nfert.Load(c)) {
 //				dprintf("Problems with N fertilization input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
 //				LUerror = true;	// skip this stand
 			dprintf("N fertilization data not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);

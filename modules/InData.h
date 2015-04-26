@@ -55,6 +55,9 @@ struct Coord {
 	double lat;
 };
 
+/// Input data will be parsed for finer resolution than the default value. For coarser resolutions, raise default value.
+const double DEFAULT_SPATIAL_RESOLUTION = 0.5;
+
 #endif
 
 // Forward declaration of TimeDataDmem
@@ -77,6 +80,8 @@ class TimeDataD	{
 	int nCells;									//Set in ParseNCells() or ParseNCellsSpatial()
 	// Spacial resolution of input data in degrees
 	double spatial_resolution;
+	/// Offset to be used when searching for coordinates
+	double offset;
 	/// Whether the input file structure includes a header line with column names and coordinates on each line of data
 	bool ifheader;
 	/// String array of data column names
@@ -135,6 +140,8 @@ class TimeDataD	{
 	void Rewind() {rewind(ifp);}
 	/// Loads local data for a certain coordinate from a file map. Returns 0 if coordinate not found.
 	int LoadFromMap(Coord c);
+	/// Sets offset to be used when searching for coordinates.
+	void SetOffset(double gridlist_offset) { if(gridlist_offset) offset = gridlist_offset - spatial_resolution / 2.0;}
 
 #ifdef GUESS_VERSION
 	/// Copies all data for the specified gridlist to memory
@@ -155,7 +162,7 @@ public:
 	int Open(char* name);
 #ifdef GUESS_VERSION
 	/// Opens input file, checks format and allocates memory. Copies all data for the gridlist into memory if LUTOMEMORY is defined. Returns 0 if error.
-	int Open(char* name, ListArray_id<Coord>& gridlist);
+	int Open(char* name, ListArray_id<Coord>& gridlist, double gridlist_offset = 0.0);
 #endif
 	/// Releases dynamically allocated memory.
 	void Close();
@@ -164,7 +171,7 @@ public:
 	/// Loads global data
 	int Load();
 	/// Loads data for a certain coordinate. Returns 0 if coordinate not found.
-	int Load(Coord c, double offset = 0.0);
+	int Load(Coord c);
 	/// Steps through a data file, loading each coordinate's data consecutively. Returns 0 if error.
 	int LoadNext(long int *pos = NULL);
 	/// Returns a single data value for a certain year and data column
@@ -207,11 +214,12 @@ public:
 	void SetSpacialResolution(double resolution) {spatial_resolution = resolution;}
 	/// Returns spacial resolution
 	double GetSpacialResolution() const {return spatial_resolution;}
+	double GetOffset() const { return offset;}
 
 // Functions for finding out if data columns contain sensible data for a specified gridlist 
 #ifdef GUESS_VERSION
 	/// Checks if data column has any values > 0 in any of the gridcells in the gridlist
-	void CheckIfPresent(ListArray_id<Coord>& gridlist, double offset = 0.0);
+	void CheckIfPresent(ListArray_id<Coord>& gridlist);
 #endif
 	// Returns true if data column has any values > 0 in any of the gridcells in the gridlist (after CheckIfPresent() call)
 	bool item_has_data(char* name);

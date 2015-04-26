@@ -263,10 +263,12 @@ CFInput::CFInput(Input& in)
 	  cf_max_temp(0),
 	  ndep_timeseries("historic"),
 	  input(in),
-	  gridlist(in.gridlist) 
+	  gridlist(in.gridlist),
+	  searchradius(0)
 {
 
 	declare_parameter("ndep_timeseries", &ndep_timeseries, 10, "Nitrogen deposition time series to use (historic, rcp26, rcp45, rcp60 or rcp85");
+	declare_parameter("searchradius", &searchradius, 0, 100, "If specified, CRU data will be searched for in a circle");
 
 }
 
@@ -282,11 +284,6 @@ CFInput::~CFInput() {
 bool CFInput::create_cf_gridlist() {
 
 	return false;
-}
-
-double CFInput::offset_cru_to_cf_coord() {
-
-	return spatial_resolution / 2.0;
 }
 
 bool CFInput::create_gridlist_from_cflist(xtring& file_gridlist) {
@@ -327,8 +324,9 @@ bool CFInput::create_gridlist_from_cflist(xtring& file_gridlist) {
 				cf_temp->get_coords_for(rlon, rlat, ci.lon, ci.lat);			
 			}
 		}
-		ci.lon -= offset_cru_to_cf_coord();
-		ci.lat -= offset_cru_to_cf_coord();
+		double offset_cru = spatial_resolution / 2.0;
+		ci.lon -= offset_cru;
+		ci.lat -= offset_cru;
 		ci.descrip = descrip.c_str();
 		input.ngridcell++;
 		c.descrip = trim(descrip);
@@ -336,6 +334,7 @@ bool CFInput::create_gridlist_from_cflist(xtring& file_gridlist) {
 	}
 	ifs.close();
 	current_gridcell = gridlistCF.begin();
+	gridlist.firstobj();
 
 	return true;
 }
@@ -404,15 +403,17 @@ void CFInput::init() {
 
 	extensive_precipitation = cf_prec->get_standard_name() == "precipitation_amount";
 
+	spatial_resolution = parse_spatial_resolution();
+
 	// Read list of localities and store in gridlist member variable
 
 	// Retrieve name of rc grid list file as read from ins file
-	xtring file_gridlist=param["file_gridlist_rc"].str;
+	xtring file_gridlist=param["file_gridlist_cf"].str;
 
 	if(file_gridlist != "") {
 
-		spatial_resolution = parse_spatial_resolution();
 		create_gridlist_from_cflist(file_gridlist);
+		input.gridlist_spatial_resolution = min(input.parse_gridlist_spatial_resolution(gridlist), input.gridlist_spatial_resolution);
 	}
 }
 
@@ -421,7 +422,12 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	double lon, lat;
 	double cru_lon, cru_lat;
 	int soilcode;
-	double offset = search_for_centre_of_gridcell *  (input.gridlist_spatial_resolution - spatial_resolution) / 2.0;	// This is unfinished code !
+	double offset = input.gridlist_spatial_resolution / 2.0;
+
+	if(spatial_resolution != input.gridlist_spatial_resolution) {
+		if(!search_for_centre_of_gridcell || !searchradius)
+		fail("We must use a searchradius and search for centre of a gridcell when using different spatial resolution in input data\n");
+	}
 
 	// Make sure we use the first gridcell in the first call to this function,
 	// and then step through the gridlist in subsequent calls.
@@ -434,15 +440,12 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 		// across function calls.
 		first_call = false;
 	}
-	else if(param["file_gridlist_rc"].str != "") ++current_gridcell;
+	else if(param["file_gridlist_cf"].str != "") ++current_gridcell;
 
-	if((current_gridcell == gridlistCF.end() && param["file_gridlist_rc"].str != "") ||
+	if((current_gridcell == gridlistCF.end() && param["file_gridlist_cf"].str != "") ||
 	       !load_data_from_files(lon, lat, cru_lon, cru_lat, soilcode)) {
 		return false;
 	}
-
-	if(lon - offset_cru_to_cf_coord() != gridlist.getobj().lon || lat - offset_cru_to_cf_coord() != gridlist.getobj().lat)
-		fail("Gridlists are not coordinated !\n");
 
 	// Load spinup data for all variables
 
@@ -495,14 +498,17 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 	int rlat;
 	int landid;
 
-	if(param["file_gridlist_rc"].str != "") {
+	double offset_cru = input.gridlist_spatial_resolution / 2.0;
+	double searchradius_climate = search_for_centre_of_gridcell * min(spatial_resolution / 2.0, searchradius);
+
+	if(param["file_gridlist_cf"].str != "") {
 		rlon = current_gridcell->rlon;
 		rlat = current_gridcell->rlat;
 		landid = current_gridcell->landid;
 	}
 	else {
 		size_t x, y;
-		cf_temp->get_index_for_coords(input.gridlist.getobj().lon + offset_cru_to_cf_coord(), input.gridlist.getobj().lat + offset_cru_to_cf_coord(), x, y);
+		cf_temp->get_index_for_coords(input.gridlist.getobj().lon + offset_cru, input.gridlist.getobj().lat + offset_cru, x, y, searchradius_climate);
 		rlon = x;
 		rlat = y;
 	}
@@ -543,11 +549,9 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 #ifdef SOIL_INPUT_IN_CLIMATE_MODULE
 	// Find nearest CRU grid cell in order to get the soilcode
 
-	cru_lon = lon;
-	cru_lat = lat;
+	cru_lon = lon - offset_cru;
+	cru_lat = lat - offset_cru;
 	double dummy[CRU_TS30::NYEAR_HIST][12];
-
-	const double searchradius = 1;
 
 	if (!CRU_TS30::findnearestCRUdata(searchradius, file_cru, cru_lon, cru_lat, soilcode,
 	                                  dummy, dummy, dummy)) {

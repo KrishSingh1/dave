@@ -110,7 +110,8 @@ public:
 	double getco2(Gridcell& gridcell);
 	/// Obtains nitrogen deposition for one day
 	double getndep(Gridcell& gridcell) {return ndep_input.getndep(gridcell);}
-
+	/// Setting of firsthistyear_sim and nyear_hist_sim
+	void set_simulation_years();
 	/// Returns the first historic year of simulation
 	int getfirsthistyear() {return firsthistyear;}
 	/// Returns the number of historic years of simulation

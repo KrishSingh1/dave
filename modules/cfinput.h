@@ -56,6 +56,8 @@ public:
 
 	static const int NYEAR_SPINUP_DATA=30;
 
+	bool supports_firsthistyear_in_insfile() { return false;}
+
 private:
 	/// Reference to input container object
 	Input& input;

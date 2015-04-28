@@ -89,11 +89,16 @@ public:
 	 */
 	virtual bool getclimate(Gridcell& gridcell) = 0;
 
+	/// Returns first historic year of simulation
 	virtual int getfirsthistyear() = 0;
 
+	/// Returns number of historic years of simulation
 	virtual int getnyear_hist() = 0;
 
 	virtual double* getdprec() = 0;
+
+	/// Returns true if module supports setting of firsthistyear and nyear_hist
+	virtual bool supports_firsthistyear_in_insfile() = 0;
 
 };
 

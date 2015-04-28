@@ -66,6 +66,8 @@ public:
 	/// number of years to use for temperature-detrended future data set (cycled last 
 	static const int NYEAR_FUTURE_DATA=30;
 
+	bool supports_firsthistyear_in_insfile() { return true;}
+
 	double spatial_resolution;
 
 protected:

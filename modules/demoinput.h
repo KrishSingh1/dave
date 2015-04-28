@@ -51,6 +51,8 @@ public:
 
 	double* getdprec() {return dprec;};
 
+	bool supports_firsthistyear_in_insfile() { return true;}
+
 ///
 private:
 

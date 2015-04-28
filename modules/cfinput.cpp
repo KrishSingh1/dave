@@ -422,7 +422,6 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	double lon, lat;
 	double cru_lon, cru_lat;
 	int soilcode;
-	double offset = input.gridlist_spatial_resolution / 2.0;
 
 	if(spatial_resolution != input.gridlist_spatial_resolution) {
 		if(!search_for_centre_of_gridcell || !searchradius)
@@ -485,7 +484,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	historic_timestep_min_temp = -1;
 	historic_timestep_max_temp = -1;
 
-//	dprintf("Using soil code and Nitrogen deposition for (%3.1f,%3.1f)\n", cru_lon, cru_lat);
+	dprintf("Using soil code and Nitrogen deposition for (%3.1f,%3.1f)\n", cru_lon, cru_lat);
 
 	return true;
 }
@@ -549,8 +548,14 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 #ifdef SOIL_INPUT_IN_CLIMATE_MODULE
 	// Find nearest CRU grid cell in order to get the soilcode
 
-	cru_lon = lon - offset_cru;
-	cru_lat = lat - offset_cru;
+	if(gridlistCF.size()) {
+		cru_lon = lon - offset_cru;
+		cru_lat = lat - offset_cru;
+	}
+	else {
+		cru_lon = gridlist.getobj().lon;
+		cru_lat = gridlist.getobj().lat;
+	}
 	double dummy[CRU_TS30::NYEAR_HIST][12];
 
 	if (!CRU_TS30::findnearestCRUdata(searchradius, file_cru, cru_lon, cru_lat, soilcode,

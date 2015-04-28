@@ -110,28 +110,16 @@ double Input::parse_gridlist_spatial_resolution(ListArray_id<Coord>& gridlist) {
 	return precision;
 }
 
-void Input::init() {
+/// Setting of firsthistyear_sim and nyear_hist_sim; firsthistyear_sim and lasthistyear_sim are initialised to -1, nyear_hist_sim to 0.
+void Input::set_simulation_years() {
 
-	climate_input_module->init(); // Allow climate module to read gridlist
-
-	if(!ngridcell)
-		read_gridlist();
-	// Set gridlist_spatial_resolution here manually if needed (if other than DEFAULT_SPATIAL_RESOLUTION or if 
-	// gridlist too short to be sucessfully parsed for spatial resolution)
-
-	if(co2_fixed == 0.0)
-		// Read CO2 data from file if fixed CO2 not defined in instruction file
-		co2.load_file(param["file_co2"].str);
-
-	landcover_input_module->init();
-	management_input_module->init();
-#ifndef SOIL_INPUT_IN_CLIMATE_MODULE
-	soil_input.init();
-#endif
-	// Setting of firsthistyear and nyear_hist; firsthistyear and lasthistyear are initiated to -1, nyear_hist to 0.
-
+	// Let climate input module set firsthistyear and nyear_hist
+	if(!climate_input_module->supports_firsthistyear_in_insfile()) {
+		firsthistyear = climate_input_module->getfirsthistyear();
+		nyear_hist = (climate_input_module->getfirsthistyear() + climate_input_module->getnyear_hist() - 1) - firsthistyear + 1;
+	}
 	// First look for firsthistyear and lasthistyear in instruction file
-	if(firsthistyear > -1 && lasthistyear > -1) {
+	else if(firsthistyear > -1 && lasthistyear > -1) {
 		nyear_hist = lasthistyear - firsthistyear + 1;
 	}
 	else if(firsthistyear < 0 || nyear_hist == 0) {
@@ -163,7 +151,30 @@ void Input::init() {
 			fail("firsthistyear or nyear_hist not defined\n");
 
 	}
-//	date.set_first_calendar_year(firsthistyear - nyear_spinup);	// Will print historical years in output files
+}
+
+void Input::init() {
+
+	climate_input_module->init(); // Allow climate module to read gridlist
+
+	if(!ngridcell)
+		read_gridlist();
+	// Set gridlist_spatial_resolution here manually if needed (if other than DEFAULT_SPATIAL_RESOLUTION or if 
+	// gridlist too short to be sucessfully parsed for spatial resolution)
+
+	if(co2_fixed == 0.0)
+		// Read CO2 data from file if fixed CO2 not defined in instruction file
+		co2.load_file(param["file_co2"].str);
+
+	landcover_input_module->init();
+	management_input_module->init();
+#ifndef SOIL_INPUT_IN_CLIMATE_MODULE
+	soil_input.init();
+#endif
+	// Setting of firsthistyear and nyear_hist
+	set_simulation_years();
+
+	date.set_first_calendar_year(firsthistyear - nyear_spinup);	// Must be set for cfinput
 
 	// Set timers
 	tprogress.init();

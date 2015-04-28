@@ -1205,7 +1205,10 @@ void growth(Stand& stand, Patch& patch) {
 			raingreen_ndemand = 0.0;
 
 			// added bminc check. Otherwise we get -ve litter_leaf for grasses when indiv.anpp < 0.
-			if (bminc >= 0 && (indiv.pft.phenology == RAINGREEN || indiv.pft.phenology == ANY)) {
+			//
+			// cmass_excess-code inactivated for grass pft:s, due to frequent oscillations between high bminc and zero bminc in 
+			// certain grasslands using updated leaflong-value for grass-pft:s (0.5)
+			if (bminc >= 0 && indiv.pft.phenology == RAINGREEN) {
 
 				// Raingreen PFTs: reduce biomass increment to account for NPP
 				// allocated to extra leaves during the past year.

@@ -1344,6 +1344,28 @@ public:
 	 *  Currently, all Individuals belonging to a Patchpft share the same water stress.
 	 */
 	double wscal_mean() const;
+
+	/// Gets the individual's daily cmass_leaf value
+	double cmass_leaf_today() const;
+	/// Gets the individual's daily cmass_root value
+	double cmass_root_today() const;
+
+	/// Gets the individual'sIndividual daily LAI value (patch-level)
+	/** Based on total leaf area for whatever the individual represents
+	 *  (individual, cohort, population), over the whole patch.
+	 */
+	double lai_today() const;
+
+	/// Gets the individual's daily LAI value (individual-level)
+	/** Based on the leaf area for the average individual and
+	 *  the average individual's crown area.
+	 */
+	double lai_indiv_today() const;
+
+	/// Gets the individual's daily fpc value
+	double fpc_today() const;
+
+	double ndemand_storage(double cton_leaf_opt);
 };
 
 
@@ -1670,6 +1692,9 @@ public:
 	/// years at which to end documentation and start calculation of Century equilibrium
 	int solvesomcent_endyr;
 
+	/// Cumulative litter pools for one year.
+	LitterSolveSOM litterSolveSOM;
+
 	std::vector<LitterSolveSOM> solvesom;
 
 	/// stored nitrogen deposition in snowpack
@@ -1789,8 +1814,12 @@ public:
 	double litter_root;
 	/// sapwood-derived litter for PFT on modelled area basis (kgC/m2)
 	double litter_sap;
+	/// year's sapwood-derived litter for PFT on modelled area basis (kgC/m2)
+	double litter_sap_year;
 	/// heartwood-derived litter for PFT on modelled area basis (kgC/m2)
 	double litter_heart;
+	/// year's heartwood-derived litter for PFT on modelled area basis (kgC/m2)
+	double litter_heart_year;
 	/// litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
 	double litter_repr;
 	
@@ -1800,8 +1829,12 @@ public:
 	double nmass_litter_root;
 	/// sapwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_sap;
+	/// year's sapwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
+	double nmass_litter_sap_year;
 	/// heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_heart;
+	/// year's heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
+	double nmass_litter_heart_year;
 
 	/// non-FPC-weighted canopy conductance value for PFT under water-stress conditions (mm/s)
 	double gcbase;
@@ -1832,13 +1865,17 @@ public:
 		litter_leaf  = 0.0;
 		litter_root  = 0.0;
 		litter_sap   = 0.0;
+		litter_sap_year = 0.0;
 		litter_heart = 0.0;
+		litter_heart_year = 0.0;
 		litter_repr  = 0.0;
 
 		nmass_litter_leaf  = 0.0;
 		nmass_litter_root  = 0.0;
 		nmass_litter_sap   = 0.0;
+		nmass_litter_sap_year   = 0.0;
 		nmass_litter_heart = 0.0;
+		nmass_litter_heart_year = 0.0;
 
 		wscal = 1.0;
 		wscal_mean = 0.0;

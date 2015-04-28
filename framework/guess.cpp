@@ -66,7 +66,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& mtemp_max20
 		& mtemp_max
 		& gdd5
-		& agdd5 
+		& agdd5
 		& chilldays
 		& ifsensechill
 		& gtemp
@@ -90,10 +90,10 @@ void Climate::serialize(ArchiveStream& arch) {
 // Implementation of Fluxes member functions
 ////////////////////////////////////////////////////////////////////////////////
 
-Fluxes::Fluxes(Patch& p) 		
-  : patch(p), 
+Fluxes::Fluxes(Patch& p)
+  : patch(p),
     annual_fluxes_per_pft(npft, std::vector<double>(NPERPFTFLUXTYPES)) {
-	
+
 	reset();
 }
 
@@ -110,7 +110,7 @@ void Fluxes::reset() {
 }
 
 void Fluxes::serialize(ArchiveStream& arch) {
-	arch & annual_fluxes_per_pft 
+	arch & annual_fluxes_per_pft
 		& monthly_fluxes_patch
 		& monthly_fluxes_pft;
 }
@@ -225,16 +225,16 @@ void Soil::serialize(ArchiveStream& arch) {
 
 	for (int i = 0; i<NSOMPOOL; i++) {
 		arch & sompool[i];
-	} 
+	}
 
-	arch & dperc		
+	arch & dperc
 		& orgleachfrac
-		& nmass_avail	
+		& nmass_avail
 		& ninput
-		& anmin			
-		& animmob			
-		& aminleach		
-		& aorgleach					
+		& anmin
+		& animmob
+		& aminleach
+		& aorgleach
 		& anfix
 		& anfix_calc
 		& anfix_mean
@@ -244,7 +244,7 @@ void Soil::serialize(ArchiveStream& arch) {
 		& solvesom
 		& fnuptake_mean
 		& morgleach_mean
-		& mminleach_mean; 
+		& mminleach_mean;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -296,7 +296,7 @@ void Patch::serialize(ArchiveStream& arch) {
 	}
 	else {
 		pft.killall();
-				
+
 		for (unsigned int i = 0; i < pftlist.nobj; i++) {
 			pft.createobj(pftlist[i]);
 			arch & pft[i];
@@ -366,7 +366,7 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX)
 
 		// Constructor: initialises reference member of climate and
 		// builds list array of Standpft objects
-		
+
 	unsigned int p;
 	unsigned int npatchL = 1;
 
@@ -532,7 +532,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 void Individual::serialize(ArchiveStream& arch) {
 	arch & cmass_leaf
 		& cmass_root
-		& cmass_sap 
+		& cmass_sap
 		& cmass_heart
 		& cmass_debt
 		& fpc
@@ -559,12 +559,12 @@ void Individual::serialize(ArchiveStream& arch) {
 		& lai_leafon_layer
 		& intercep
 		& phen_mean
-		& wstress 
-		& alive 
-		& iso 
-		& mon 
-		& monstor 
-		& fvocseas 
+		& wstress
+		& alive
+		& iso
+		& mon
+		& monstor
+		& fvocseas
 		& nmass_leaf
 		& nmass_root
 		& nmass_sap
@@ -596,7 +596,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& storefndemand
 		& leafndemand_store
 		& rootndemand_store
-		
+
 		& nday_leafon;
 }
 
@@ -614,11 +614,11 @@ void Individual::report_flux(Fluxes::PerPatchFluxType flux_type, double value) {
 
 
 /// Help function for reduce_biomass(), partitions nstore into leafs and roots
-/** 
- *  As leaf and roots can have a very low N concentration after growth and allocation, 
+/**
+ *  As leaf and roots can have a very low N concentration after growth and allocation,
  *  N in nstore() is split between them to saticfy relationship between their average C:N ratios
  */
-void nstore_adjust(double& cmass_leaf,double& cmass_root, double& nmass_leaf, double& nmass_root, 
+void nstore_adjust(double& cmass_leaf,double& cmass_root, double& nmass_leaf, double& nmass_root,
 				   double nstore, double cton_leaf, double cton_root) {
 
 	// (1) cmass_leaf / ((nmass_leaf + leaf_ndemand) * cton_leaf) = cmass_root / ((nmass_root + root_ndemand) * cton_root)
@@ -676,7 +676,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		double nmass_leaf_litter = mortality * nmass_leaf;
 		double nmass_root_litter = mortality * nmass_root;
 
-		// stored N is partioned out to leaf and root biomass as new tissue after growth might have extremely low 
+		// stored N is partioned out to leaf and root biomass as new tissue after growth might have extremely low
 		// N content (to get closer to relationship between compartment averages (cton_leaf, cton_root, cton_sap))
 		nstore_adjust(cmass_leaf_litter, cmass_root_litter, nmass_leaf_litter, nmass_root_litter,
 			mortality * nstore(), pft.cton_leaf_avr,pft.cton_root_avr);
@@ -693,7 +693,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 		report_flux(Fluxes::FIREC,    cflux_fire);
 
-		report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire); 
+		report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire);
 		report_flux(Fluxes::NO_FIRE,  Fluxes::NO_FIRERATIO  * nflux_fire);
 		report_flux(Fluxes::NO2_FIRE, Fluxes::NO2_FIRERATIO * nflux_fire);
 		report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
@@ -747,7 +747,7 @@ double Individual::cton_leaf(bool use_phen /* = true*/) const {
 
 double Individual::cton_root(bool use_phen /* = true*/) const {
 	if (ifnlim) {
-		if (!negligible(cmass_root) && !negligible(nmass_root)) { 
+		if (!negligible(cmass_root) && !negligible(nmass_root)) {
 			if (use_phen) {
 				if (!negligible(phen)) {
 					return cmass_root * phen / nmass_root;
@@ -786,13 +786,41 @@ double Individual::cton_sap() const {
 	}
 }
 
+double Individual::ndemand_storage(double cton_leaf_opt) {
+	return  max(0.0, min(anpp * scale_n_storage / cton_leaf(), max_n_storage) - nstore());
+}
 
 Patchpft& Individual::patchpft() const {
 	return vegetation.patch.pft[pft.id];
 }
 
+/// Gets the individual's daily cmass_leaf value
+double Individual::cmass_leaf_today() const {
+	return cmass_leaf * phen;
+}
+
+/// Gets the individual's daily cmass_root value
+double Individual::cmass_root_today() const {
+	return cmass_root * phen;
+}
+
+/// Gets the individual's daily fpc value
+double Individual::fpc_today() const {
+	return fpc * phen;
+}
+
+/// Gets the individual's daily lai value
+double Individual::lai_today() const {
+	return lai * phen;
+}
+
+/// Gets the individual's daily lai_indiv value
+double Individual::lai_indiv_today() const {
+	return lai_indiv * phen;
+}
+
 /// Help function for kill(), partitions wood biomass into litter and harvest
-/** 
+/**
  *  Wood biomass (either C or N) is partitioned into litter pools and
  *  harvest, according to PFT specific harvest fractions.
  *
@@ -829,7 +857,7 @@ void partition_wood_biomass(double mass_sap, double mass_heart,
 
 	// Remove residue outtake
 	fast_harvest += res_outtake * (sap_left + heart_left);
-				
+
 	sap_left   *= 1 - res_outtake;
 	heart_left *= 1 - res_outtake;
 
@@ -860,7 +888,7 @@ void Individual::kill(bool harvest /* = false */) {
 		if (ifslowharvestpool) {
 			harvest_slow_frac = pft.harvest_slow_frac;
 		}
-		
+
 		res_outtake = pft.res_outtake;
 	}
 
@@ -902,7 +930,7 @@ void Individual::kill(bool harvest /* = false */) {
 				                       harv_eff, harvest_slow_frac, res_outtake,
 				                       clitter_sap, clitter_heart,
 				                       cwood_harvest, charvested_products_slow);
-				
+
 				ppft.litter_sap   += clitter_sap;
 				ppft.litter_heart += clitter_heart;
 
@@ -1016,7 +1044,7 @@ void Gridcell::serialize(ArchiveStream& arch) {
 		clear();
 		unsigned int number_of_stands;
 		arch & number_of_stands;
-				
+
 		for (unsigned int s = 0; s < number_of_stands; s++) {
 			landcovertype landcover;
 			arch & landcover;
@@ -1045,8 +1073,8 @@ unsigned int Gridcell::nbr_stands() const {
 void Sompool::serialize(ArchiveStream& arch) {
 	arch & cmass
 		& nmass
-		& cdec 
-		& ndec 
+		& cdec
+		& ndec
 		& delta_cmass
 		& delta_nmass
 		& ligcfrac
@@ -1062,6 +1090,6 @@ void Sompool::serialize(ArchiveStream& arch) {
 //
 // LPJF refers to the original FORTRAN implementation of LPJ as described by Sitch
 //   et al 2000
-// Levine, J. S. (1996) Biomass Burning and Global Change. Remote Sensing, Modeling 
-//   and Inventory Development, and Biomass Burning in Africa, 1J. S. Levine, 
+// Levine, J. S. (1996) Biomass Burning and Global Change. Remote Sensing, Modeling
+//   and Inventory Development, and Biomass Burning in Africa, 1J. S. Levine,
 //   XXXV–XLIII, MIT Press, Mass.

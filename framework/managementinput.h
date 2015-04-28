@@ -8,36 +8,39 @@
 #ifndef MANAGEMENTINPUT_H
 #define MANAGEMENTINPUT_H
 
+/// Class that deals with all crop management input from text files
 class ManagementInputModule {
 
 public:
 
-	ManagementInputModule(Input& in);
-
+	/// Constructor
+	ManagementInputModule(InputModule& in);
+	/// Opens management data files
 	void init();
-
-	bool getgridcell(Gridcell& gridcell);
+	/// Loads fertilisation, sowing and harvest dates from input files
+	bool loadmanagement(Gridcell& gridcell, Coord c);
+	/// Gets management data for a year
 	void getmanagement(Gridcell& gridcell);
-	void getsowingdates(Gridcell& gridcell);
-	void getharvestdates(Gridcell& gridcell);
-	void getNfert(Gridcell& gridcell);
 
 private:
 
-	/// Reference to input container object
-	Input& input;
+	/// Reference to the InputModule object
+	InputModule& input;
 
-	/// Reference to the list of Coord objects containing coordinates of the grid cells to simulate
-	ListArray_id<Coord>& gridlist;
-
+	/// Input objects for each management text input file
 	InData::TimeDataD sdates;
 	InData::TimeDataD hdates;
 	InData::TimeDataD Nfert;
 
+	/// Files names for management input file
 	xtring file_sdates, file_hdates, file_Nfert;
 
-	/// Loads fertilisation, sowing and harvest dates from input files
-	bool loadmanagement(Gridcell& gridcell, Coord c);
+	/// Gets sowing date data for a year
+	void getsowingdates(Gridcell& gridcell);
+	/// Gets harvest date data for a year
+	void getharvestdates(Gridcell& gridcell);
+	/// Gets nitrogen fertilisation data for a year
+	void getNfert(Gridcell& gridcell);
 };
 
 #endif // MANAGEMENTINPUT_H

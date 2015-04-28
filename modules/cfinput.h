@@ -18,58 +18,67 @@
 #include <limits>
 #include "input.h"
 
-struct CoordCF {
-
-	// Type for storing grid cell longitude, latitude and description text
-
-	int rlon;
-	int rlat;
-	int landid;
-	std::string descrip;
-};
-
 class CFInput : public InputModule {
 public:
-	CFInput(Input&);
+	CFInput();
 
 	~CFInput();
 
 	void init();
 
+	/// See base class for documentation about this function's responsibilities
 	bool getgridcell(Gridcell& gridcell);
 
+	/// See base class for documentation about this function's responsibilities
 	bool getclimate(Gridcell& gridcell);
 
-	void getNfert(Gridcell& gridcell);
+	// Creates lon-lat gridlist in calling function from cf gridlist
+	void getgridlist(ListArray_id<inputdef::Coord>& outlist);
+
+	/// Returns hte spatial resolution of the gridlist
+	double getgridlist_spatial_resolution() { return gridlist_spatial_resolution;}
+
+	/// Obtains land management data for one day
+	void getmanagement(Gridcell& gridcell) {management_input_module.getmanagement(gridcell);}
 
 	bool getsoil(Gridcell& gridcell, const int soilmap_index);
-///
+
+	/// Returns first historic year of climate input data
+	int getfirsthistyear_climate();
+
+	/// Returns number of years of climate input data
+	int getnyear_hist_climate();
+
+	/// Returns first historic year of simulation
 	int getfirsthistyear();
 
+	/// Returns number of historic years of simulation
 	int getnyear_hist();
-
-	double* getdprec() {return dprec;}
-
-	bool create_gridlist_from_cflist(xtring& file_gridlist);
-
-	bool create_cf_gridlist();
-
-	static const int NYEAR_SPINUP_DATA=30;
 
 	bool supports_firsthistyear_in_insfile() { return false;}
 
-private:
-	/// Reference to input container object
-	Input& input;
+	/// Returns pointer to land cover input module
+	LandcoverInputModule* get_landcover_module() {return &landcover_input_module;}
+	/// Returns pointer to land management input module
+	ManagementInputModule* get_management_module() {return &management_input_module;}
 
-	/// Reference to the list of Coord objects containing coordinates of the grid cells to simulate
-	ListArray_id<Coord>& gridlist;
+	static const int NYEAR_SPINUP_DATA=30;
+
+private:
+
+	/// Land cover input module
+	LandcoverInputModule landcover_input_module;
+	/// Management input module
+	ManagementInputModule management_input_module;
+
+	/// Spatial resolution of gridlist (degrees)
+	double gridlist_spatial_resolution;
 
 	/// search radius to use when finding soil data
 	double searchradius;
 
-/*
-	struct CoordCF {
+	/// cf-specific Coord defenition
+	struct Coord {
 
 		// Type for storing grid cell longitude, latitude and description text
 		
@@ -78,13 +87,12 @@ private:
 		int landid;
 		std::string descrip;
 	};
-*/
 
-	/// The grid cells to simulate
-	std::vector<CoordCF> gridlistCF;
+	/// List of cf Coord objects containing NetCDF indeces and description of the grid cells
+	std::vector<Coord> gridlist;
 
 	/// The current grid cell to simulate
-	std::vector<CoordCF>::iterator current_gridcell;
+	std::vector<Coord>::iterator current_gridcell;
 
 	/// Loads data from NetCDF files for current grid cell
 	/** Returns the coordinates for the current grid cell, for
@@ -124,7 +132,16 @@ private:
 	/// \returns all (used) variables
 	std::vector<GuessNC::CF::GridcellOrderedVariable*> all_variables() const;
 
-	double parse_spatial_resolution();
+	/// Sets the spatial resolution of the climate data
+	double parse_climate_spatial_resolution();
+
+	/// Yearly CO2 data read from file
+	/**
+	 * This object is indexed with calendar years, so to get co2 value for
+	 * year 1990, use co2[1990]. See documentation for GlobalCO2File for
+	 * more information.
+	 */
+	GlobalCO2File co2;
 
 	// The variables
 
@@ -200,8 +217,12 @@ private:
 	/// Nitrogen deposition time series to use (historic,rcp26,...)
 	std::string ndep_timeseries;
 
-	double spatial_resolution;
+	/// Spatial resolution of gridlist (degrees)
+	double climate_spatial_resolution;
 
+	// Timers for keeping track of progress through the simulation
+	Timer tprogress,tmute;
+	static const int MUTESEC=20; // minimum number of sec to wait between progress messages
 };
 
 #endif // HAVE_NETCDF

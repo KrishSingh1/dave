@@ -21,6 +21,9 @@
 #include <vector>
 #include <algorithm>
 
+// Switch to keep CO2 level at first historical year
+bool fixedco2_hist=0;
+
 REGISTER_INPUT_MODULE("cru", CRUInput)
 
 // Anonymous namespace for variables and functions with file scope
@@ -41,11 +44,12 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 } // namespace
 
 
-CRUInput::CRUInput(Input& in)
+CRUInput::CRUInput()
 	: searchradius(0),
-	  spatial_resolution(CRU_TS30::SPATIAL_RESOLUTION),
-	  gridlist(in.gridlist),
-	  input(in),
+	  climate_spatial_resolution(CRU_TS30::SPATIAL_RESOLUTION),
+	  gridlist_spatial_resolution(DEFAULT_SPATIAL_RESOLUTION),
+	  landcover_input_module(*this),
+	  management_input_module(*this),
 	  spinup_mtemp(NYEAR_SPINUP_DATA),
 	  spinup_mprec(NYEAR_SPINUP_DATA),
 	  spinup_msun(NYEAR_SPINUP_DATA),
@@ -68,10 +72,40 @@ CRUInput::CRUInput(Input& in)
 void CRUInput::init() {
 
 	// DESCRIPTION
-	// Initialises input
+	// Initialises input (e.g. opening files), and reads in the gridlist
 
 	file_cru = param["file_cru"].str;
 	file_cru_misc = param["file_cru_misc"].str;
+
+	// Reads list of grid cells and (optional) description text from grid list file
+	// This file should consist of any number of one-line records in the format:
+	//   <longitude> <latitude> [<description>]
+	read_gridlist(gridlist, param["file_gridlist"].str);
+
+	// Set the spatial resolution of the gridlist (needed when using data with different spatial resolution).
+	gridlist_spatial_resolution = min(parse_gridlist_spatial_resolution(gridlist), gridlist_spatial_resolution);
+	// Set gridlist_spatial_resolution here manually if needed (if higher than DEFAULT_SPATIAL_RESOLUTION or if 
+	// gridlist too short to be sucessfully parsed for spatial resolution)
+
+	// Read CO2 data from file
+	co2.load_file(param["file_co2"].str);
+
+	// Open landcover files
+	landcover_input_module.init();
+	// Open management files
+	management_input_module.init();
+
+	// Set the simulation period accoring to instruction file settings and/or climate time period
+	set_simulation_years(this);
+
+//	date.set_first_calendar_year(getfirsthistyear() - nyear_spinup);
+
+	// Set timers
+	tprogress.init();
+	tmute.init();
+
+	tprogress.settimer();
+	tmute.settimer(MUTESEC);
 }
 
 
@@ -100,20 +134,58 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 	int soilcode;
 	int elevation;
 
-	bool gridfound;
-
-	if(spatial_resolution != input.gridlist_spatial_resolution && !search_for_centre_of_gridcell)
+	if(climate_spatial_resolution != gridlist_spatial_resolution && !search_for_centre_of_gridcell)
 		fail("We must use a searchradius and search for centre of a gridcell when using different spatial resolution in input data\n");
 
-	double lon = gridlist.getobj().lon;
-	double lat = gridlist.getobj().lat;
-	gridfound = CRU_TS30::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode, 
-	                               hist_mtemp, hist_mprec, hist_msun);
+	// Make sure we use the first gridcell in the first call to this function,
+	// and then step through the gridlist in subsequent calls.
+	static bool first_call = true;
 
-	if (gridfound) // Get more historical CRU data for this grid cell
-		gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation, 
-			                           hist_mfrs, hist_mwet, hist_mdtr);
-	if(gridfound) {
+	if (first_call) {
+		gridlist.firstobj();
+
+		// Note that first_call is static, so this assignment is remembered
+		// across function calls.
+		first_call = false;
+	}
+	else gridlist.nextobj();
+
+	if (gridlist.isobj) {
+
+		bool gridfound = false;
+		bool LUerror = false;
+		double lon = gridlist.getobj().lon;
+		double lat = gridlist.getobj().lat;
+
+		while(!gridfound) {
+
+			if(gridlist.isobj) {
+
+				gridfound = CRU_TS30::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode, 
+											   hist_mtemp, hist_mprec, hist_msun);
+
+				if (gridfound) // Get more historical CRU data for this grid cell
+					gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation, 
+												   hist_mfrs, hist_mwet, hist_mdtr);
+
+				if (run_landcover && gridfound) {
+					LUerror = landcover_input_module.loadlandcover(gridcell, gridlist.getobj());
+					if(!LUerror)
+						LUerror = management_input_module.loadmanagement(gridcell, gridlist.getobj());
+				}
+
+				if(!gridfound || LUerror) {
+					if(!gridfound)
+						dprintf("\nError: could not find stand at (%g,%g) in climate data files\n", gridlist.getobj().lon,gridlist.getobj().lat);
+					else if(LUerror)
+						dprintf("\nError: could not find stand at (%g,%g) in landcover/management data file(s)\n", gridlist.getobj().lon,gridlist.getobj().lat);
+					gridfound = false;
+					gridlist.nextobj();
+				}
+			}
+			else return false;
+		}
+
 
 		// Give sub-classes a chance to modify the data
 		adjust_raw_forcing_data(gridlist.getobj().lon,
@@ -125,13 +197,13 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		spinup_mprec.get_data_from(hist_mprec);
 		spinup_msun.get_data_from(hist_msun);
 
+		// Detrend spinup temperature data
+		spinup_mtemp.detrend_data();
+
 		// guess2008 - new spinup data sets
 		spinup_mfrs.get_data_from(hist_mfrs);
 		spinup_mwet.get_data_from(hist_mwet);
 		spinup_mdtr.get_data_from(hist_mdtr);
-
-		// Detrend spinup temperature data
-		spinup_mtemp.detrend_data();
 
 		// We wont detrend dtr for now. Partly because dtr is at the moment only
 		// used for BVOC, so what happens during the spinup is not affecting
@@ -152,150 +224,178 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		// Detrend extended temperature data
 		extended_mtemp.detrend_data(true);
 
-		// The insolation data will be sent (in function getclimate, below)
-		// as percentage sunshine			
-		gridcell.climate.instype = SUNSHINE;
+		dprintf("\nCommencing simulation for stand at (%g,%g)",gridlist.getobj().lon,
+			gridlist.getobj().lat);
+		if (gridlist.getobj().descrip!="") dprintf(" (%s)\n\n",
+			(char*)gridlist.getobj().descrip);
+		else dprintf("\n\n");
+		
+		// Tell framework the coordinates of this grid cell
+//		double offset = gridlist_spatial_resolution / 2.0;
+//		gridcell.set_coordinates(gridlist.getobj().lon + offset, gridlist.getobj().lat + offset);	// Corrects previous errror
+		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
 
-#ifdef NDEP_INPUT_IN_CLIMATE_MODULE
 		// Get nitrogen deposition data
 		ndep.getndep(param["file_ndep"].str, lon, lat);
-#endif
 
-#ifdef SOIL_INPUT_IN_CLIMATE_MODULE
+		// The insolation data will be sent (in function getclimate, below)
+		// as percentage sunshine
+
+		gridcell.climate.instype = SUNSHINE;
+
 		// Tell framework the soil type of this grid cell
 		soilparameters(gridcell.soiltype, soilcode);
-#endif
+
+		// For Windows shell - clear graphical output
+		// (ignored on other platforms)
+		
+		clear_all_graphs();
+
+		return true; // simulate this stand
 	}
-	return gridfound;
+
+	return false; // no more stands
 }
 
-int CRUInput::getfirsthistyear() {
+int CRUInput::getfirsthistyear_climate() {
 
 	return FIRSTHISTYEAR;
 }
 
-int CRUInput::getnyear_hist() {
+int CRUInput::getnyear_hist_climate() {
 
 	return NYEAR_HIST;
+}
+
+int CRUInput::getfirsthistyear() {
+
+	return firsthistyear_sim;
+}
+
+int CRUInput::getnyear_hist() {
+
+	return nyear_hist_sim;
 }
 
 bool CRUInput::getclimate(Gridcell& gridcell) {
 
 	/// See base class for documentation about this function's responsibilities
 
-	int calender_year = date.year - nyear_spinup + input.getfirsthistyear();
+	double progress;
+
+	int calender_year = date.year - nyear_spinup + firsthistyear_sim;
 	Climate& climate = gridcell.climate;
 
 	if (date.day == 0) {
 
 		// First day of year ...
 	
-#ifdef NDEP_INPUT_IN_CLIMATE_MODULE
 		// Extract N deposition to use for this year,
 		// monthly means to be distributed into daily values further down
 		double mndrydep[12], mnwetdep[12];
 		ndep.get_one_calendar_year(calender_year, mndrydep, mnwetdep);
-#endif
-		if (calender_year < FIRSTHISTYEAR) {
 
-			// During spinup period
+		if(date.year < nyear_spinup + nyear_hist_sim) {
 
-			int m;
-			double mtemp[12],mprec[12],msun[12];
-			double mfrs[12],mwet[12],mdtr[12];
+			if (calender_year < FIRSTHISTYEAR) {
 
-			for (m=0;m<12;m++) {
-				mtemp[m] = spinup_mtemp[m];
-				mprec[m] = spinup_mprec[m];
-				msun[m] = spinup_msun[m];
+				// During spinup period
 
-				mfrs[m] = spinup_mfrs[m];
-				mwet[m] = spinup_mwet[m];
-				mdtr[m] = spinup_mdtr[m];
+				int m;
+				double mtemp[12],mprec[12],msun[12];
+				double mfrs[12],mwet[12],mdtr[12];
+
+				for (m=0;m<12;m++) {
+					mtemp[m] = spinup_mtemp[m];
+					mprec[m] = spinup_mprec[m];
+					msun[m] = spinup_msun[m];
+
+					mfrs[m] = spinup_mfrs[m];
+					mwet[m] = spinup_mwet[m];
+					mdtr[m] = spinup_mdtr[m];
+				}
+
+				// Interpolate monthly spinup data to quasi-daily values
+				interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
+
+				// Only recalculate precipitation values using weather generator
+				// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
+				if (ifrainonwetdaysonly) { 
+					// (from Dieter Gerten 021121)
+					prdaily(mprec, dprec, mwet, gridcell.seed);
+				}
+
+				spinup_mtemp.nextyear();
+				spinup_mprec.nextyear();
+				spinup_msun.nextyear();
+
+				spinup_mfrs.nextyear();
+				spinup_mwet.nextyear();
+				spinup_mdtr.nextyear();
 			}
+			else if (calender_year < FIRSTHISTYEAR + NYEAR_HIST) {
 
-			// Interpolate monthly spinup data to quasi-daily values
-			interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
+				// Historical period
 
-			// Only recalculate precipitation values using weather generator
-			// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
-			if (ifrainonwetdaysonly) { 
-				// (from Dieter Gerten 021121)
-				prdaily(mprec, dprec, mwet, gridcell.seed);
+				int data_year = calender_year - FIRSTHISTYEAR;
+
+				// Interpolate this year's monthly data to quasi-daily values
+				interp_climate(hist_mtemp[data_year], hist_mprec[data_year], hist_msun[data_year],
+						   hist_mdtr[data_year], dtemp, dprec, dsun, ddtr);
+
+				// Only recalculate precipitation values using weather generator
+				// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
+				if (ifrainonwetdaysonly) { 
+					// (from Dieter Gerten 021121)
+					prdaily(hist_mprec[data_year], dprec, hist_mwet[data_year], gridcell.seed);
+				}
 			}
+			else {
 
-			spinup_mtemp.nextyear();
-			spinup_mprec.nextyear();
-			spinup_msun.nextyear();
+				// Extended period
 
-			spinup_mfrs.nextyear();
-			spinup_mwet.nextyear();
-			spinup_mdtr.nextyear();
-		}
-		else if (calender_year < FIRSTHISTYEAR + NYEAR_HIST) {
+				int m;
+				double mtemp[12],mprec[12],msun[12];
+				double mfrs[12],mwet[12],mdtr[12];
 
-			// Historical period
+				for (m=0;m<12;m++) {
+					mtemp[m] = extended_mtemp[m];
+					mprec[m] = extended_mprec[m];
+					msun[m] = extended_msun[m];
 
-			int data_year = calender_year - FIRSTHISTYEAR;
+					mfrs[m] = extended_mfrs[m];
+					mwet[m] = extended_mwet[m];
+					mdtr[m] = extended_mdtr[m];
+				}
 
-			// Interpolate this year's monthly data to quasi-daily values
-			interp_climate(hist_mtemp[data_year], hist_mprec[data_year], hist_msun[data_year],
-					   hist_mdtr[data_year], dtemp, dprec, dsun, ddtr);
+				// Interpolate monthly spinup data to quasi-daily values
+				interp_climate(mtemp, mprec, msun, mdtr, dtemp, dprec, dsun, ddtr);
 
-			// Only recalculate precipitation values using weather generator
-			// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
-			if (ifrainonwetdaysonly) { 
-				// (from Dieter Gerten 021121)
-				prdaily(hist_mprec[data_year], dprec, hist_mwet[data_year], gridcell.seed);
+				// Only recalculate precipitation values using weather generator
+				// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
+				if (ifrainonwetdaysonly) { 
+					// (from Dieter Gerten 021121)
+					prdaily(mprec, dprec, mwet, gridcell.seed);
+				}
+
+				extended_mtemp.nextyear();
+				extended_mprec.nextyear();
+				extended_msun.nextyear();
+				extended_mfrs.nextyear();
+				extended_mwet.nextyear();
+				extended_mdtr.nextyear();
+
+				if(calender_year == FIRSTHISTYEAR + NYEAR_HIST)
+					dprintf("Last %d years of CRU climate data used from year %d and onwards\n", NYEAR_FUTURE_DATA, calender_year);
 			}
-		}
-		else if(date.year < nyear_spinup + input.getnyear_hist()) {
-
-			// Extended period
-
-			int m;
-			double mtemp[12],mprec[12],msun[12];
-			double mfrs[12],mwet[12],mdtr[12];
-
-			for (m=0;m<12;m++) {
-				mtemp[m] = extended_mtemp[m];
-				mprec[m] = extended_mprec[m];
-				msun[m] = extended_msun[m];
-
-				mfrs[m] = extended_mfrs[m];
-				mwet[m] = extended_mwet[m];
-				mdtr[m] = extended_mdtr[m];
-			}
-
-			// Interpolate monthly spinup data to quasi-daily values
-			interp_climate(mtemp, mprec, msun, mdtr, dtemp, dprec, dsun, ddtr);
-
-			// Only recalculate precipitation values using weather generator
-			// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
-			if (ifrainonwetdaysonly) { 
-				// (from Dieter Gerten 021121)
-				prdaily(mprec, dprec, mwet, gridcell.seed);
-			}
-
-			extended_mtemp.nextyear();
-			extended_mprec.nextyear();
-			extended_msun.nextyear();
-			extended_mfrs.nextyear();
-			extended_mwet.nextyear();
-			extended_mdtr.nextyear();
-
-			if(calender_year == FIRSTHISTYEAR + NYEAR_HIST)
-				dprintf("Last %d years of CRU climate data used from year %d and onwards\n", NYEAR_FUTURE_DATA, calender_year);
 		}
 		else {
 			// Return false if last year was the last for the simulation
 			return false;
 		}
 
-#ifdef NDEP_INPUT_IN_CLIMATE_MODULE
 		// Distribute N deposition
 		distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
-#endif
 	}
 
 	if(date.day == 0) {
@@ -305,18 +405,38 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	}
 	climate.mpet_year[date.month] += climate.eet * PRIESTLEY_TAYLOR;
 
+	// Send environmental values for today to framework
+	if(fixedco2_hist)
+		climate.co2 = co2[firsthistyear_sim];
+	else
+		climate.co2 = co2[calender_year];
+
 	climate.temp = dtemp[date.day];
 	climate.prec = dprec[date.day];
 	climate.insol = dsun[date.day];
 
-#ifdef NDEP_INPUT_IN_CLIMATE_MODULE
 	// Nitrogen deposition
 	climate.dndep = dndep[date.day];
-#endif
 
 	// bvoc
 	if(ifbvoc){
 	  climate.dtr = ddtr[date.day];
+	}
+
+	// First day of year only ...
+
+	if (date.day == 0) {
+
+		// Progress report to user and update timer
+
+		if (tmute.getprogress()>=1.0) {
+			progress=(double)(gridlist.getobj().id*(nyear_spinup+getnyear_hist())
+				+date.year)/(double)(gridlist.nobj*(nyear_spinup+getnyear_hist()));
+			tprogress.setprogress(progress);
+			dprintf("%3d%% complete, %s elapsed, %s remaining\n",(int)(progress*100.0),
+				tprogress.elapsed.str,tprogress.remaining.str);
+			tmute.settimer(MUTESEC);
+		}
 	}
 
 	return true;
@@ -326,6 +446,27 @@ bool CRUInput::getsoil(Gridcell& gridcell, const int soilmap_index){
 	return true;
 }
 
+CRUInput::~CRUInput() {
+
+	// Performs memory deallocation, closing of files or other "cleanup" functions.
+
+	// Clean up
+	gridlist.killall();
+}
+
+// Copies gridlist to calling function's gridlist
+void CRUInput::getgridlist(ListArray_id<Coord>& outlist) {
+
+	gridlist.firstobj();
+	while(gridlist.isobj) {
+		Coord& c = outlist.createobj();
+		c.lon = gridlist.getobj().lon;
+		c.lat = gridlist.getobj().lat;
+		c.descrip = gridlist.getobj().descrip;
+		gridlist.nextobj();
+	}
+	gridlist.firstobj();
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES

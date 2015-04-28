@@ -12,7 +12,11 @@
 #define GUESS_VERSION
 
 #ifdef GUESS_VERSION
+
 #include "inputdefinitions.h"
+
+using namespace inputdef;
+
 #define MAPFILE	// Mapping of input file data when LUTOMEMORY not defined
 #else
 #include <stdio.h>
@@ -141,7 +145,10 @@ class TimeDataD	{
 	/// Loads local data for a certain coordinate from a file map. Returns 0 if coordinate not found.
 	int LoadFromMap(Coord c);
 	/// Sets offset to be used when searching for coordinates.
-	void SetOffset(double gridlist_offset) { if(gridlist_offset) offset = gridlist_offset - spatial_resolution / 2.0;}
+	void SetOffset(double gridlist_offset) { 
+		if(gridlist_offset)
+			offset = gridlist_offset - spatial_resolution / 2.0;
+	}
 
 #ifdef GUESS_VERSION
 	/// Copies all data for the specified gridlist to memory

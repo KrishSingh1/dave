@@ -38,31 +38,12 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 } // namespace
 
 
-DemoInput::DemoInput(Input& in) 
-	: gridlist(in.gridlist),
-	  input(in) {
-#ifdef NDEP_INPUT_IN_CLIMATE_MODULE
-	// Retrieve specified N value as read from ins file
-	declare_parameter("ndep_fixed", &ndep_fixed, 0.0, 2000.0,"Fixed ndep value");
-#endif
+DemoInput::DemoInput() 
+	: gridlist_spatial_resolution(DEFAULT_SPATIAL_RESOLUTION),
+	  landcover_input_module(*this),
+	  management_input_module(*this) {
 }
 
-void DemoInput::init() {
-
-	// DESCRIPTION
-	// Initialises input (e.g. opening files), and reads in the gridlist
-
-	// Retrieve input file names as read from ins file
-
-	file_temp=param["file_temp"].str;
-	file_prec=param["file_prec"].str;
-	file_sun=param["file_sun"].str;
-#ifdef SOIL_INPUT_IN_CLIMATE_MODULE
-	file_soil=param["file_soil"].str;
-#endif
-	if(search_for_centre_of_gridcell)
-		fail("Demo input does not support searchradius\n");
-}
 
 
 bool DemoInput::read_from_file(Coord coord, xtring fname, const char* format,
@@ -158,9 +139,9 @@ bool DemoInput::readenv(Coord coord, long& seed) {
 		gridfound = read_from_file(coord, file_prec, "f6.2,f5.2,i4,12f4", mprec);
 	if(gridfound)
 		gridfound = read_from_file(coord, file_sun, "f6.2,f5.2,i4,12f3", msun);
-#ifdef SOIL_INPUT_IN_CLIMATE_MODULE
+
 	read_from_file(coord, file_soil, "f,f,i", msun, true);	// msun is not used here: just dummy
-#endif
+
 	if(gridfound) {
 		// Interpolate monthly values for environmental drivers to daily values
 		// (relevant daily values will be sent to the framework each simulation
@@ -175,68 +156,212 @@ bool DemoInput::readenv(Coord coord, long& seed) {
 	return gridfound;
 }
 
+void DemoInput::init() {
+
+	// DESCRIPTION
+	// Initialises input (e.g. opening files), and reads in the gridlist
+
+	// Reads list of grid cells and (optional) description text from grid list file
+	// This file should consist of any number of one-line records in the format:
+	//   <longitude> <latitude> [<description>]
+	read_gridlist(gridlist, param["file_gridlist"].str);
+
+	// Retrieve specified CO2 value as read from ins file
+	co2=param["co2"].num;
+
+	// Retrieve specified N value as read from ins file
+	ndep=param["ndep"].num;
+
+	// Open landcover files
+	landcover_input_module.init();
+	// Open management files
+	management_input_module.init();
+
+	// Set simulation period
+	set_simulation_years(this);
+
+	// Retrieve input file names as read from ins file
+
+	file_temp=param["file_temp"].str;
+	file_prec=param["file_prec"].str;
+	file_sun=param["file_sun"].str;
+	file_soil=param["file_soil"].str;
+
+	if(search_for_centre_of_gridcell)
+		fail("Demo input does not support searchradius\n");
+
+	// Set timers
+	tprogress.init();
+	tmute.init();
+
+	tprogress.settimer();
+	tmute.settimer(MUTESEC);
+}
 
 bool DemoInput::getgridcell(Gridcell& gridcell) {
 
 	// See base class for documentation about this function's responsibilities
 
 	// Select coordinates for next grid cell in linked list
-	Coord& c = gridlist.getobj();
+	bool gridfound = false;
 
-	// Load climate data for this grid cell from files
-	bool gridfound = readenv(c, gridcell.seed);
+	bool LUerror = false;
 
-	if(gridfound) {
+	// Make sure we use the first gridcell in the first call to this function,
+	// and then step through the gridlist in subsequent calls.
+	static bool first_call = true;
+
+	if (first_call) {
+		gridlist.firstobj();
+
+		// Note that first_call is static, so this assignment is remembered
+		// across function calls.
+		first_call = false;
+	}
+	else gridlist.nextobj();
+
+	if (gridlist.isobj) {
+
+		while(!gridfound) {
+
+			// Retrieve coordinate of next grid cell from linked list
+			Coord& c = gridlist.getobj();
+
+			// Load environmental data for this grid cell from files
+			if(run_landcover) {
+				LUerror = landcover_input_module.loadlandcover(gridcell, gridlist.getobj());
+				if(!LUerror)
+					LUerror = management_input_module.loadmanagement(gridcell, gridlist.getobj());
+			}
+			if (!LUerror) {
+				gridfound = readenv(c, gridcell.seed);
+			} else {
+				gridlist.nextobj();
+				if(!gridlist.isobj)
+					return false;
+			}
+		}
+
+		dprintf("\nCommencing simulation for stand at (%g,%g)",gridlist.getobj().lon,
+			gridlist.getobj().lat);
+		if (gridlist.getobj().descrip!="") dprintf(" (%s)\n\n",
+			(char*)gridlist.getobj().descrip);
+		else dprintf("\n\n");
+		
+		// Tell framework the coordinates of this grid cell
+//		double offset = gridlist_spatial_resolution / 2.0;
+//		gridcell.set_coordinates(gridlist.getobj().lon + offset, gridlist.getobj().lat + offset);	// Corrects previous errror
+		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
+
 		// The insolation data will be sent (in function getclimate, below)
-		// as percentage sunshine	
-		gridcell.climate.instype = SUNSHINE;
-#ifdef SOIL_INPUT_IN_CLIMATE_MODULE
+		// as percentage sunshine
+		
+		gridcell.climate.instype=SUNSHINE;
+
 		// Tell framework the soil type of this grid cell
-		soilparameters(gridcell.soiltype, soilcode);
-#endif
+		soilparameters(gridcell.soiltype,soilcode);
+
+		// For Windows shell - clear graphical output
+		// (ignored on other platforms)
+		
+		clear_all_graphs();
+
+		return true; // simulate this stand
 	}
 
-	return gridfound;
+	return false; // no more stands
 }
 
 
-int DemoInput::getfirsthistyear() {
+int DemoInput::getfirsthistyear_climate() {
 
 	return -1;
 }
 
-int DemoInput::getnyear_hist() {
+int DemoInput::getnyear_hist_climate() {
 
 	return 0;
+}
+
+int DemoInput::getfirsthistyear() {
+
+	return firsthistyear_sim;
+}
+
+int DemoInput::getnyear_hist() {
+
+	return nyear_hist_sim;
 }
 
 bool DemoInput::getclimate(Gridcell& gridcell) {
 
 	// See base class for documentation about this function's responsibilities
 
+	double progress;
+
 	Climate& climate = gridcell.climate;
 
 
 	// Send environmental values for today to framework
-#ifdef NDEP_INPUT_IN_CLIMATE_MODULE
-	climate.dndep  = ndep_fixed / (365.0 * 10000.0);
-#endif
+
+	climate.dndep  = ndep / (365.0 * 10000.0);
+
+	climate.co2 = co2;
+
 	climate.temp  = dtemp[date.day];
 	climate.prec  = dprec[date.day];
 	climate.insol = dsun[date.day];
 
 	// bvoc
+
 	climate.dtr=ddtr[date.day];
 
-/*	if (date.day == 0) {
+	// First day of year only ...
+
+	if (date.day == 0) {
 
 		// Return false if last year was the last for the simulation
-		if (date.year == nyear_spinup + nyear) return false;
+		if (date.year==nyear_spinup+getnyear_hist()) return false;
+
+		// Progress report to user and update timer
+
+		if (tmute.getprogress()>=1.0) {
+			progress=(double)(gridlist.getobj().id*(nyear_spinup+getnyear_hist())
+				+date.year)/(double)(gridlist.nobj*(nyear_spinup+getnyear_hist()));
+
+
+			tprogress.setprogress(progress);
+			dprintf("%3d%% complete, %s elapsed, %s remaining\n",(int)(progress*100.0),
+				tprogress.elapsed.str,tprogress.remaining.str);
+			tmute.settimer(MUTESEC);
+		}
 	}
-*/
+
 	return true;
 }
 
 bool DemoInput::getsoil(Gridcell& gridcell, const int soilmap_index){
 	return true;
+}
+
+DemoInput::~DemoInput() {
+
+	// Performs memory deallocation, closing of files or other "cleanup" functions.
+
+	// Clean up
+	gridlist.killall();
+}
+
+// Copies gridlist to calling function's gridlist
+void DemoInput::getgridlist(ListArray_id<Coord>& outlist) {
+
+	gridlist.firstobj();
+	while(gridlist.isobj) {
+		Coord& c = outlist.createobj();
+		c.lon = gridlist.getobj().lon;
+		c.lat = gridlist.getobj().lat;
+		c.descrip = gridlist.getobj().descrip;
+		gridlist.nextobj();
+	}
+	gridlist.firstobj();
 }

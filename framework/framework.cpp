@@ -49,7 +49,7 @@ void print_logfile_heading() {
  * \param gridcell            The gridcell to simulate
  * \param input_modules       Used to get land cover fractions
  */
-void simulate_day(Gridcell& gridcell, Input& input_modules) {
+void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 			// Update daily climate drivers etc
 			dailyaccounting_gridcell(gridcell);
@@ -63,10 +63,10 @@ void simulate_day(Gridcell& gridcell, Input& input_modules) {
 
 			if(run_landcover && date.day == 0) {
 				// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
-				landcover_dynamics(gridcell, input_modules.get_landcover_module());
+				landcover_dynamics(gridcell, input_module->get_landcover_module());
 
 				// Update dynamic management options
-				input_modules.getmanagement(gridcell);
+				input_module->getmanagement(gridcell);
 			}
 
 			Gridcell::iterator gc_itr = gridcell.begin();
@@ -123,7 +123,7 @@ void simulate_day(Gridcell& gridcell, Input& input_modules) {
 				}// End of loop through patches
 
 				// Update crop rotation status
-				crop_rotation(stand, input_modules.getfirsthistyear());
+				crop_rotation(stand, input_module->getfirsthistyear());
 
 				if (date.islastday && date.islastmonth) {
 					// LAST DAY OF YEAR
@@ -153,7 +153,7 @@ int framework(const CommandLineArguments& args) {
 
 	const char* input_module_name = args.get_input_module();
 
-	Input input_modules(input_module_name, "");	//landcover input name currently not used
+	auto_ptr<InputModule> input_module(InputModuleRegistry::get_instance().create_input_module(input_module_name));
 
 	GuessOutput::OutputModuleContainer output_modules;
 	GuessOutput::OutputModuleRegistry::get_instance().create_all_modules(output_modules);
@@ -165,7 +165,7 @@ int framework(const CommandLineArguments& args) {
 	print_logfile_heading();
 
 	// Initialise input/output
-	input_modules.init();
+	input_module->init();
 	output_modules.init();
 
 	// Nitrogen limitation
@@ -201,9 +201,8 @@ int framework(const CommandLineArguments& args) {
 		// Create and initialise a new Gridcell object for each locality
 		Gridcell gridcell;
 
-		// Call input modules to obtain latitude and driver data for this grid cell.
-		// Function getgridcell returns false if no further grid cells remain to be simulated
-		if (!input_modules.getgridcell(gridcell)) {
+		// Call input module to obtain latitude and driver data for this grid cell.
+		if (!input_module->getgridcell(gridcell)) {
 			break;
 		}
 
@@ -212,7 +211,7 @@ int framework(const CommandLineArguments& args) {
 
 		if(run_landcover) {
 			// Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
-			landcover_init(gridcell, input_modules.get_landcover_module());
+			landcover_init(gridcell, input_module->get_landcover_module());
 		}
 
 		if (restart) {
@@ -228,11 +227,11 @@ int framework(const CommandLineArguments& args) {
 		// day of the simulation. Function getclimate returns false if last year
 		// has already been simulated for this grid cell
 
-		while (input_modules.getclimate(gridcell)) {
+		while (input_module->getclimate(gridcell)) {
 
 			// START OF LOOP THROUGH SIMULATION DAYS
 
-			simulate_day(gridcell, input_modules);			
+			simulate_day(gridcell, input_module.get());
 
 			output_modules.outdaily(gridcell);
 

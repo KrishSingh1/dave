@@ -83,6 +83,10 @@ bool readNfert = false;
 bool printseparatestands = false;
 bool iftillage = false;
 
+int firsthistyear_sim = -1;
+int lasthistyear_sim = -1;
+int nyear_hist_sim = 0;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Implementation of the Paramlist class
 
@@ -359,6 +363,9 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("title",&title,80,CB_NONE,"Title for run");
 		declareitem("nyear_spinup",&nyear_spinup,1,10000,1,CB_NONE,"Number of simulation years to spinup for");
+		declare_parameter("firsthistyear", &firsthistyear_sim, 1, 10000, "First historic year after spinup");
+		declare_parameter("lasthistyear", &lasthistyear_sim, 1, 10000, "Last historic year of simulation");
+		declare_parameter("nyear_hist", &nyear_hist_sim, 1, 10000, "Number of simulation years to run after spinup");
 		declareitem("vegmode",&strparam,16,CB_VEGMODE,
 			"Vegetation mode (\"INDIVIDUAL\", \"COHORT\", \"POPULATION\")");
 		declareitem("ifbgestab",&ifbgestab,1,CB_NONE,

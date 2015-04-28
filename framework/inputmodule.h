@@ -13,9 +13,12 @@
 #include <map>
 #include <string>
 #include "parameters.h"
-
+#include "inputdefinitions.h"
+using namespace inputdef;
 class Gridcell;
 class Input;
+class LandcoverInputModule;
+class ManagementInputModule;
 
 /// Base class from which any input module must inherit
 /** An input module supplies LPJ-GUESS with the forcing data it needs. The
@@ -89,17 +92,35 @@ public:
 	 */
 	virtual bool getclimate(Gridcell& gridcell) = 0;
 
+	/// Obtains land management data for one day
+	virtual void getmanagement(Gridcell& gridcell) = 0;
+
+	/// Returns pointer to land cover input module
+	virtual LandcoverInputModule* get_landcover_module() = 0;
+
+	/// Returns pointer to land management input module
+	virtual ManagementInputModule* get_management_module() = 0;
+
+	/// Returns first historic year of climate input data
+	virtual int getfirsthistyear_climate() = 0;
+
+	/// Returns number of years of climate input data
+	virtual int getnyear_hist_climate() = 0;
+
 	/// Returns first historic year of simulation
 	virtual int getfirsthistyear() = 0;
 
 	/// Returns number of historic years of simulation
 	virtual int getnyear_hist() = 0;
 
-	virtual double* getdprec() = 0;
+	/// Copies lon-lat gridlist to outlist, if necessary after conversion from other Coord or list formats
+	virtual void getgridlist(ListArray_id<Coord>& outlist) = 0;
 
-	/// Returns true if module supports setting of firsthistyear and nyear_hist
+	/// Returns the spatial resolution of the gridlist
+	virtual double getgridlist_spatial_resolution() = 0;
+
+	/// Returns true if module supports setting of firsthistyear_sim and nyear_hist_sim
 	virtual bool supports_firsthistyear_in_insfile() = 0;
-
 };
 
 
@@ -120,7 +141,7 @@ public:
 	 *  creates an instance of that input module. The function is
 	 *  created by the REGISTER_INPUT_MODULE macro below.
 	 */
-	typedef InputModule* (*InputModuleCreator)(Input& in);
+	typedef InputModule* (*InputModuleCreator)();
 
 	/// Returns the one and only input module registry
 	static InputModuleRegistry& get_instance();
@@ -133,7 +154,7 @@ public:
 
 	/// Creates an input module given its name
 	/** Used by the framework to instantiate the chosen input module. */
-	InputModule* create_input_module(const char* name, Input& in) const;
+	InputModule* create_input_module(const char* name) const;
 
 private:
 
@@ -157,11 +178,12 @@ private:
  *  input module to use), and CRUInputModule is the class to associate
  *  with that name.
  */
+
 #define REGISTER_INPUT_MODULE(name, class_name) \
 namespace class_name##_registration { \
 \
-InputModule* class_name##_creator(Input& in) {\
-	return new class_name(in);\
+InputModule* class_name##_creator() {\
+	return new class_name();\
 }\
 \
 int dummy() {\

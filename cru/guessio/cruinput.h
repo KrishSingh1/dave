@@ -29,7 +29,10 @@ public:
 	/// Constructor
 	/** Declares the instruction file parameters used by the input module.
 	 */
-	CRUInput(Input&);
+	CRUInput();
+
+	/// Destructor, cleans up used resources
+	~CRUInput();
 
 	/// Reads in gridlist and initialises the input module
 	/** Gets called after the instruction file has been read */
@@ -39,15 +42,45 @@ public:
 	bool getgridcell(Gridcell& gridcell);
 
 	/// See base class for documentation about this function's responsibilities
+	/** This module supports the setting of the first historic date before or after the data period in the instruction file.
+	 *  Spinup data will be used before the first data year as usual but the spinup period will be started earlier,
+	 *  at nyear_spinup before firsthistyear_sim. After the last data year, extended data created from the cycled 
+	 *  last NYEAR_FUTURE_DATA years (detrended temperature).
+	 */
 	bool getclimate(Gridcell& gridcell);
+
+	bool supports_firsthistyear_in_insfile() { return true;}
+
+	/// Returns reference to gridlist
+	ListArray_id<Coord>& getgridlist() { return gridlist;}
+
+	/// Copies gridlist to outlist
+	void getgridlist(ListArray_id<Coord>& outlist);
+
+	/// Returns hte spatial resolution of the gridlist
+	double getgridlist_spatial_resolution() { return gridlist_spatial_resolution;}
+
+	/// Obtains land management data for one day
+	void getmanagement(Gridcell& gridcell) {management_input_module.getmanagement(gridcell);}
 
 	bool getsoil(Gridcell& gridcell, const int soilmap_index);
 
+	/// Returns first historic year of climate input data
+	int getfirsthistyear_climate();
+
+	/// Returns number of years of climate input data
+	int getnyear_hist_climate();
+
+	/// Returns first historic year of simulation
 	int getfirsthistyear();
 
+	/// Returns number of historic years of simulation
 	int getnyear_hist();
 
-	double* getdprec() {return dprec;}
+	/// Returns pointer to land cover input module
+	LandcoverInputModule* get_landcover_module() {return &landcover_input_module;}
+	/// Returns pointer to land management input module
+	ManagementInputModule* get_management_module() {return &management_input_module;}
 
 	// Constants associated with historical climate data set
 
@@ -66,9 +99,8 @@ public:
 	/// number of years to use for temperature-detrended future data set (cycled last 
 	static const int NYEAR_FUTURE_DATA=30;
 
-	bool supports_firsthistyear_in_insfile() { return true;}
-
-	double spatial_resolution;
+	/// Spatial resolution of gridlist (degrees)
+	double climate_spatial_resolution;
 
 protected:
 
@@ -108,14 +140,31 @@ protected:
 
 private:
 
-	/// Reference to input container object
-	Input& input;
+	/// Land cover input module
+	LandcoverInputModule landcover_input_module;
+	/// Management input module
+	ManagementInputModule management_input_module;
 
-	/// Reference to the list of Coord objects containing coordinates of the grid cells to simulate
-	ListArray_id<Coord>& gridlist;
+	/// A list of Lon-Lat Coord objects containing coordinates of the grid cells to simulate
+	ListArray_id<Coord> gridlist;
+
+	/// Spatial resolution of gridlist (degrees)
+	double gridlist_spatial_resolution;
 
 	/// search radius to use when finding CRU data
 	double searchradius;
+
+	// Timers for keeping track of progress through the simulation
+	Timer tprogress,tmute;
+	static const int MUTESEC=20; // minimum number of sec to wait between progress messages
+
+	/// Yearly CO2 data read from file
+	/**
+	 * This object is indexed with calendar years, so to get co2 value for
+	 * year 1990, use co2[1990]. See documentation for GlobalCO2File for
+	 * more information.
+	 */
+	GlobalCO2File co2;
 
 	/// Monthly temperature for current grid cell and historical period
 	double hist_mtemp[NYEAR_HIST][12];

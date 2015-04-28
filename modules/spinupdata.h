@@ -57,7 +57,7 @@ public:
 	void get_data_from(double source[][12]) {
 		
 		int y,m;
-		thisyear=0; // guess2008 - ML bugfix
+		thisyear=0;
 		for (y=0;y<nyear;y++) {
 			for (m=0;m<12;m++) {
 				data[y*12+m]=source[y][m];

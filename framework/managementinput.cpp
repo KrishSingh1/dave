@@ -8,15 +8,19 @@
 #include "input.h"
 #include "managementinput.h"
 
-ManagementInputModule::ManagementInputModule(Input& in)
-	: input(in), 
-	  gridlist(in.gridlist) {
-
+ManagementInputModule::ManagementInputModule(InputModule& in)
+	: input(in) {
 }
 
 void ManagementInputModule::init() {
 
-	double offset = search_for_centre_of_gridcell * input.gridlist_spatial_resolution / 2.0;
+	if(!run_landcover)
+		return;
+
+	ListArray_id<Coord> gridlist;
+	input.getgridlist(gridlist);
+	
+	double offset = search_for_centre_of_gridcell * input.getgridlist_spatial_resolution() / 2.0;
 
 	if(run_landcover && run[CROPLAND]) {
 
@@ -38,6 +42,7 @@ void ManagementInputModule::init() {
 				fail("initio: could not open %s for input",(char*)file_Nfert);
 		}
 	}
+	gridlist.killall();
 }
 
 bool ManagementInputModule::loadmanagement(Gridcell& gridcell, Coord c) {
@@ -63,14 +68,6 @@ bool ManagementInputModule::loadmanagement(Gridcell& gridcell, Coord c) {
 			dprintf("N fertilization data not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
 		}
 	}
-	return LUerror;
-}
-
-bool ManagementInputModule::getgridcell(Gridcell& gridcell) {
-
-	Coord& c=gridlist.getobj();
-	bool LUerror = loadmanagement(gridcell, c);
-
 	return LUerror;
 }
 

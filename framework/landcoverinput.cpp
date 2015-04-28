@@ -8,13 +8,13 @@
 #include "input.h"
 #include "landcoverinput.h"
 
+
 // Switches to keep landcover area fractions at first historical year
 bool fixedlu_histX = 0;
 bool fixedcrop_histX = 0;
 
-LandcoverInputModule::LandcoverInputModule(const char* input_module_name, Input& in)
+LandcoverInputModule::LandcoverInputModule(InputModule& in)
 	: input(in), 
-	  gridlist(in.gridlist),
 	  lc_fixed_frac(NLANDCOVERTYPES, 0),
 	  equal_landcover_area(false),
 	  nyears_cropland_ramp(0) {
@@ -36,7 +36,10 @@ void LandcoverInputModule::init() {
 	if(!run_landcover)
 		return;
 
-	double offset = search_for_centre_of_gridcell * input.gridlist_spatial_resolution / 2.0;
+	ListArray_id<Coord> gridlist;
+	input.getgridlist(gridlist);
+	
+	double offset = search_for_centre_of_gridcell * input.getgridlist_spatial_resolution() / 2.0;
 
 	all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
 
@@ -165,18 +168,8 @@ void LandcoverInputModule::init() {
 			pftlist.nextobj();
 		}			
 	}
-
-//	lonlatlist.killall();
+	gridlist.killall();
 }
-
-bool LandcoverInputModule::getgridcell(Gridcell& gridcell) {
-
-	Coord& c=gridlist.getobj();
-	bool LUerror = loadlandcover(gridcell, c);
-
-	return LUerror;
-}
-
 
 bool LandcoverInputModule::loadlandcover(Gridcell& gridcell, Coord c) {
 
@@ -187,12 +180,12 @@ bool LandcoverInputModule::loadlandcover(Gridcell& gridcell, Coord c) {
 		// Landcover fraction data: read from land use fraction file; dynamic, so data for all years are loaded to LUdata object and 
 		// transferred to gridcell.landcoverfrac each year in getlandcover()
 
-			bool loadLU = false;
+		bool loadLU = false;
 
-			for(int i=0; i<NLANDCOVERTYPES; i++) {
-				if(run[i] && i != NATURAL)
-					loadLU = true;
-			}
+		for(int i=0; i<NLANDCOVERTYPES; i++) {
+			if(run[i] && i != NATURAL)
+				loadLU = true;
+		}
 
 		if (loadLU) {
 			// Load landcover area fraction data from input file to data object
@@ -857,7 +850,6 @@ bool LandcoverInputModule::get_lc_transfer(Gridcell& gridcell, double landcoverf
 	else
 		return false;
 }
-
 
 int LandcoverInputModule::getfirsthistyear() {
 

@@ -32,11 +32,17 @@ public:
 	/// See base class for documentation about this function's responsibilities
 	bool getclimate(Gridcell& gridcell);
 
+	// Creates lon-lat gridlist in cfinput from cf gridlist
+	ListArray_id<inputdef::Coord>& getgridlist();
+
 	// Creates lon-lat gridlist in calling function from cf gridlist
 	void getgridlist(ListArray_id<inputdef::Coord>& outlist);
 
 	/// Returns hte spatial resolution of the gridlist
 	double getgridlist_spatial_resolution() { return gridlist_spatial_resolution;}
+
+	// Creates cf gridlist from lon-lat gridlist
+	void create_cf_gridlist();
 
 	/// Obtains land management data for one day
 	void getmanagement(Gridcell& gridcell) {management_input_module.getmanagement(gridcell);}
@@ -70,6 +76,9 @@ private:
 	LandcoverInputModule landcover_input_module;
 	/// Management input module
 	ManagementInputModule management_input_module;
+	
+	/// List of Lon-Lat Coord objects containing coordinates of the grid cells to simulate (used to initate land cover and management input)
+	ListArray_id<inputdef::Coord> gridlist;
 
 	/// Spatial resolution of gridlist (degrees)
 	double gridlist_spatial_resolution;
@@ -89,7 +98,7 @@ private:
 	};
 
 	/// List of cf Coord objects containing NetCDF indeces and description of the grid cells
-	std::vector<Coord> gridlist;
+	std::vector<Coord> gridlistCF;
 
 	/// The current grid cell to simulate
 	std::vector<Coord>::iterator current_gridcell;

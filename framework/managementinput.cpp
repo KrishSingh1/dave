@@ -17,8 +17,7 @@ void ManagementInputModule::init() {
 	if(!run_landcover)
 		return;
 
-	ListArray_id<Coord> gridlist;
-	input.getgridlist(gridlist);
+	ListArray_id<Coord>& gridlist = input.getgridlist();
 	
 	double offset = search_for_centre_of_gridcell * input.getgridlist_spatial_resolution() / 2.0;
 
@@ -42,7 +41,6 @@ void ManagementInputModule::init() {
 				fail("initio: could not open %s for input",(char*)file_Nfert);
 		}
 	}
-	gridlist.killall();
 }
 
 bool ManagementInputModule::loadmanagement(Gridcell& gridcell, Coord c) {

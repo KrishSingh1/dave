@@ -36,8 +36,7 @@ void LandcoverInputModule::init() {
 	if(!run_landcover)
 		return;
 
-	ListArray_id<Coord> gridlist;
-	input.getgridlist(gridlist);
+	ListArray_id<Coord>& gridlist = input.getgridlist();
 	
 	double offset = search_for_centre_of_gridcell * input.getgridlist_spatial_resolution() / 2.0;
 
@@ -168,7 +167,6 @@ void LandcoverInputModule::init() {
 			pftlist.nextobj();
 		}			
 	}
-	gridlist.killall();
 }
 
 bool LandcoverInputModule::loadlandcover(Gridcell& gridcell, Coord c) {

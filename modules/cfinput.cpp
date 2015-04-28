@@ -406,7 +406,6 @@ void CFInput::init() {
 		gridlist_spatial_resolution = min(parse_gridlist_spatial_resolution(gridlist), gridlist_spatial_resolution);
 		// Set gridlist_spatial_resolution here manually if needed (if other than DEFAULT_SPATIAL_RESOLUTION or if 
 		// gridlist too short to be sucessfully parsed for spatial resolution)
-		create_cf_gridlist();
 	}
 	
 	current_gridcell = gridlistCF.begin();
@@ -444,20 +443,29 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 
 	// Load data for next gridcell, or if that fails, skip ahead until
 	// we find one that works.
-	while (current_gridcell != gridlistCF.end() &&
+	while (!(current_gridcell == gridlistCF.end() && gridlistCF.size()) && !(!gridlist.isobj && !gridlistCF.size()) &&
 	       !load_data_from_files(lon, lat, cru_lon, cru_lat, soilcode)) {
+		if(gridlistCF.size())
 			++current_gridcell;
+		else
+			gridlist.nextobj();
 	}
 
-	if (current_gridcell == gridlistCF.end()) {
+	if (gridlistCF.size() && current_gridcell == gridlistCF.end() || !gridlistCF.size() && !gridlist.isobj) {
 		// simulation finished
 		return false;
 	}
 
 	if(run_landcover) {
 		inputdef::Coord c;
-		c.lon = cru_lon;
-		c.lat = cru_lat;
+		if(gridlistCF.size()) {
+			c.lon = cru_lon;
+			c.lat = cru_lat;
+		}
+		else {
+			c.lon = gridlist.getobj().lon;
+			c.lat = gridlist.getobj().lat;
+		}
 		bool LUerror = false;
 		LUerror = landcover_input_module.loadlandcover(gridcell, c);
 		if(!LUerror)
@@ -468,8 +476,12 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 		}
 	}
 
-//	gridcell.set_coordinates(lon, lat);
-	gridcell.set_coordinates(cru_lon, cru_lat);
+	if(gridlistCF.size())
+//		gridcell.set_coordinates(lon, lat);
+		gridcell.set_coordinates(cru_lon, cru_lat);
+	else
+//		gridcell.set_coordinates(gridlist.getobj().lon + offset, gridlist.getobj().lat + offset);
+		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
 
 	// Load spinup data for all variables
 
@@ -507,11 +519,13 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	historic_timestep_min_temp = -1;
 	historic_timestep_max_temp = -1;
 
-//	dprintf("\nCommencing simulation for gridcell at (%g,%g)\n", lon, lat);
-	dprintf("\nCommencing simulation for gridcell at (%g,%g)\n", cru_lon, cru_lat);
+	dprintf("\nCommencing simulation for gridcell at (%g,%g)\n", gridlist.getobj().lon, gridlist.getobj().lat);
 
-	if (current_gridcell->descrip != "") {
+	if (gridlistCF.size() && current_gridcell->descrip != "") {
 		dprintf("Description: %s\n", current_gridcell->descrip.c_str());
+	}
+	else if(!gridlistCF.size() && gridlist.getobj().descrip != "") {
+		dprintf("Description: %s\n", (char*)gridlist.getobj().descrip);
 	}
 	dprintf("Using soil code and Nitrogen deposition for (%3.1f,%3.1f)\n", cru_lon, cru_lat);
 
@@ -521,13 +535,25 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 bool CFInput::load_data_from_files(double& lon, double& lat,
                                    double& cru_lon, double& cru_lat,
                                    int& soilcode) {
+	int rlon;
+	int rlat;
+	int landid;
 
 	double offset_cru = gridlist_spatial_resolution / 2.0;
 	double searchradius_climate = search_for_centre_of_gridcell * min(climate_spatial_resolution / 2.0, searchradius);
 
-	int rlon = current_gridcell->rlon;
-	int rlat = current_gridcell->rlat;
-	int landid = current_gridcell->landid;
+	if(gridlistCF.size()) {
+		rlon = current_gridcell->rlon;
+		rlat = current_gridcell->rlat;
+		landid = current_gridcell->landid;
+	}
+	else {
+		size_t x, y;
+		cf_temp->get_index_for_coords(gridlist.getobj().lon + offset_cru, gridlist.getobj().lat + offset_cru, x, y, searchradius_climate);
+		rlon = x;
+		rlat = y;
+	}
+
 
 	// Try to load the data from the NetCDF files
 
@@ -565,8 +591,14 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 
 	// Find nearest CRU grid cell in order to get the soilcode
 
-	cru_lon = lon - offset_cru;
-	cru_lat = lat - offset_cru;
+	if(gridlistCF.size()) {
+		cru_lon = lon - offset_cru;
+		cru_lat = lat - offset_cru;
+	}
+	else {
+		cru_lon = gridlist.getobj().lon;
+		cru_lat = gridlist.getobj().lat;
+	}
 
 	double dummy[CRU_TS30::NYEAR_HIST][12];
 
@@ -820,7 +852,10 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 	GuessNC::CF::DateTime last_date = last_day_to_simulate(cf_temp);
 
 	if (later_day(date, last_date)) {
-		++current_gridcell;
+		if(gridlistCF.size())
+			++current_gridcell;
+		else
+			gridlist.nextobj();
 		return false;
 	}
 
@@ -861,8 +896,12 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 
 			double progress;
 
-			progress=(double)(cells_done*years_to_simulate+date.year)/
-				(double)(gridlistCF.size()*years_to_simulate);
+			if(gridlistCF.size())
+				progress=(double)(cells_done*years_to_simulate+date.year)/
+					(double)(gridlistCF.size()*years_to_simulate);
+			else if(gridlist.isobj)
+				progress=(double)(gridlist.getobj().id*years_to_simulate
+					+date.year)/(double)(gridlist.nobj*years_to_simulate);
 
 			tprogress.setprogress(progress);
 			printf("%3d%% complete, %s elapsed, %s remaining\n",(int)(progress*100.0),

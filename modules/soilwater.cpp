@@ -69,12 +69,12 @@ void snow(double prec, double temp, double& snowpack, double& rain_melt) {
 	rain_melt = prec + melt;
 }
 
-/// SNOW_NINPUT   
-/** Nitrogen deposition and fertilization on a snowpack stays in snowpack 
- *  until it starts melting. If no snowpack daily nitrogen deposition and 
+/// SNOW_NINPUT
+/** Nitrogen deposition and fertilization on a snowpack stays in snowpack
+ *  until it starts melting. If no snowpack daily nitrogen deposition and
  *  fertilization goes to the soil available mineral nitrogen pool.
  */
-void snow_ninput(double prec, double snowpack_after, double rain_melt, 
+void snow_ninput(double prec, double snowpack_after, double rain_melt,
 	           double dndep, double dnfert, double& snowpack_nmass, double& ninput) {
 
 	// calculates this day melt and original snowpack size
@@ -83,8 +83,8 @@ void snow_ninput(double prec, double snowpack_after, double rain_melt,
 
 	// snow exist
 	if (!negligible(snowpack)) {
-		
-		// if some snow is melted, fraction of nitrogen in snowpack 
+
+		// if some snow is melted, fraction of nitrogen in snowpack
 		// will go to soil available nitrogen pool
 		if (melt > 0.0) {
 			double frac_melt  = melt / snowpack;
@@ -92,7 +92,7 @@ void snow_ninput(double prec, double snowpack_after, double rain_melt,
 			ninput            = melt_nmass + dndep + dnfert;
 			snowpack_nmass   -= melt_nmass;
 		}
-		// if no snow is melted, then add daily nitrogen deposition 
+		// if no snow is melted, then add daily nitrogen deposition
 		// and fertilization to snowpack nitrogen pool
 		else {
 			snowpack_nmass += (dndep + dnfert);
@@ -362,7 +362,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 			soil.rain_melt = (soil.wcont[0] - 1) * soil.soiltype.awc[0];
 			soil.wcont[0] = 1;
 		} else {
-			soil.rain_melt = 0;			
+			soil.rain_melt = 0;
 		}
 
 		soil.wcont_evap = soil.wcont[0];
@@ -390,7 +390,7 @@ void soilwater(Patch& patch, Climate& climate) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
-		fpc_phen_total += indiv.fpc * indiv.phen;
+		fpc_phen_total += indiv.fpc_today();
 
 		vegetation.nextobj();
 	}

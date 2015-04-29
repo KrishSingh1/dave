@@ -519,7 +519,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	historic_timestep_min_temp = -1;
 	historic_timestep_max_temp = -1;
 
-	dprintf("\nCommencing simulation for gridcell at (%g,%g)\n", gridlist.getobj().lon, gridlist.getobj().lat);
+	dprintf("\nCommencing simulation for gridcell at (%g,%g)\n", gridcell.get_lon(), gridcell.get_lat());
 
 	if (gridlistCF.size() && current_gridcell->descrip != "") {
 		dprintf("Description: %s\n", current_gridcell->descrip.c_str());

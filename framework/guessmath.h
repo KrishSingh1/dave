@@ -52,10 +52,35 @@ inline double mean(double x, double y) {
 }
 
 /// Calculates variation coefficient of values in an array
-double variation_coefficient(double data[], int n);
+inline double variation_coefficient(double* data, int n) {
+	// 0 and 1 will give division with zero.
+	if (n <= 1) {
+		return -1;
+	}
 
-/// Calculates where on a sigmoid function defined by parameters a..d a given x is 
-double richards_curve(double a, double b, double c, double d, double x);
+	double avg = mean(data, n);
+	double dev = 0;
+	for (int i=0; i<n; i++) {
+		dev += (data[i]-avg) * (data[i] - avg);
+	}
+	double std = sqrt(dev / (n-1));
+
+	if (std > 0 && avg > 0) {	// check that data appear in the array
+		return std / avg;
+	}
+	return 0;
+}
+
+/// A short version of Richards curve where:
+/** a is the lower asymptote,
+ *  b is the upper asymptote. If a=0 then b is called the carrying capacity,
+ *  c the growth rate,
+ *  d is the time of maximum growth
+ *  Source: https://en.wikipedia.org/wiki/Generalised_logistic_function, 2013-11-11
+ */
+inline double richards_curve(double a, double b, double c, double d, double x) {
+	return a + (b - a) / (1 + exp(-c * (x - d)));
+}
 
 inline void regress(double* x, double* y, int n, double& a, double& b) {
 
@@ -101,7 +126,7 @@ public:
 	/// The maximum number of elements stored, given as template parameter
 	static const size_t CAPACITY = capacity;
 
-	Historic() 
+	Historic()
 		: current_index(0), full(false) {
 	}
 
@@ -124,7 +149,9 @@ public:
 	/// Calculates arithmetic mean of the stored values
 	T mean() const {
 		const size_t nvalues = size();
+
 		assert(nvalues != 0);
+
 		return sum()/nvalues;
 	}
 
@@ -241,7 +268,7 @@ private:
 };
 
 /// Serialization support for Historic
-/** We have a friend serialization operator instead of 
+/** We have a friend serialization operator instead of
  *  implementing Serializable, to avoid overhead of a
  *  vtable in Historic (since serialize() is virtual).
  *

@@ -106,7 +106,7 @@ textured_soil 1	     		! whether to use silt/sand fractions specific to soiltype
 ifcentury 1				! whether to use CENTURY SOM dynamics (mandatory for N cycling)
 ifnlim 1				! whether plant growth limited by available N
 ifnlim_urban 0				! whether growth in urban areas limited by available N
-ifnlim_crop 0				! whether growth in cropland limited by available N
+ifnlim_crop 1				! whether growth in cropland limited by available N
 ifnlim_pasture 1			! whether growth in pasture limited by available N
 ifnlim_forest 1				! whether growth in managed forest limited by available N
 ifnlim_natural 1			! whether growth in natural vegetation limited by available N
@@ -176,8 +176,8 @@ group "common" (
 	! default value - ensures that this has little effect even if  
 	! ifdroughtlimitedestab is turned on
 	landcover "natural"
-	hydrology "rainfed"
-	intercrop "nointercrop"	
+	!hydrology "rainfed"
+	!intercrop "nointercrop"	
 	harv_eff 0.7
 	res_outtake 0.75
 )

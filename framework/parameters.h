@@ -46,6 +46,8 @@
 typedef enum {NOVEGMODE, INDIVIDUAL, COHORT, POPULATION} vegmodetype;
 
 /// Land cover type of a stand. NLANDCOVERTYPES keeps count of number of items.
+/*  NB. set_lc_change_array() must be modified when adding new land cover types
+ */
 typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, BARREN, NLANDCOVERTYPES} landcovertype;
 
 /// Water uptake parameterisations

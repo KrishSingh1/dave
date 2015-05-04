@@ -286,7 +286,7 @@ CFInput::CFInput()
 	// Declare instruction file parameters
 
 	declare_parameter("ndep_timeseries", &ndep_timeseries, 10, "Nitrogen deposition time series to use (historic, rcp26, rcp45, rcp60 or rcp85");
-	declare_parameter("searchradius", &searchradius, 0, 100, "If specified, CRU data will be searched for in a circle");
+	declare_parameter("searchradius", &searchradius, 0, 100, "If specified, cf data will be searched for in a circle");
 
 }
 

@@ -415,7 +415,8 @@ void expand_stands(Gridcell& gridcell, double* st_frac_transfer) {
 
 /// sets land cover transfer matrix from gross land cover change data when no input is available
 /** Uses rules to select preferred transfers between land covers
- *
+ *  NB. New land cover types must be included in the preference arrays !
+ *  Also, PEATLAND, URBAN and BARREN needs to be included when using dynamic fractions for these land cover types.
  *  INPUT PARAMETERS
  *  \param landcoverfrac_change			array with this year's difference in area fractions of the different landcovers
  *

@@ -50,6 +50,7 @@ void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 	ppftcrop.vd=0.0;
 	ppftcrop.dev_stage=0.0;
 
+	// Calculation of phu and pvd according to Bondeau et al. 2007
 	if(pft.ifsdautumn) {	// TeWW,TeRa
 	
 		if(gridcellpft.wintertype) {	// Autumn sowing

@@ -113,6 +113,7 @@ void LandcoverInputModule::init() {
 						remove = !CFTdata.item_in_header(st.name);
 				}
 
+//				if(remove && !keep) {
 				if(remove) {
 					n+=1;
 					stlist.killobj();
@@ -543,25 +544,52 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 
 		if(sum==0.0) {
 
-				//	Set to most common crop according to Bondeau
-				stlist.firstobj();
-				while(stlist.isobj) {
-					StandType& st = stlist.getobj();
-					if(st.landcover==CROPLAND)	{
-							
-						if(!strcmp(st.name,"TeWW") && (gridcell.get_lat()>30 || gridcell.get_lat()<-30)) {
+/*			// Use equal areas of rainfed stand types with tropical or temperate crop pft:s based on base temperatures
+			int nsts = 0;
+			stlist.firstobj();
+			while(stlist.isobj) {
+				StandType& st = stlist.getobj();
+				if(st.management[0].hydrology == RAINFED) {
+					if(gridcell.get_lat()>30 || gridcell.get_lat()<-30) {
+						if(pftlist[pftlist.getpftid(st.management[0].pftname)].tb >= 5) {
 							st.frac = 1.0;
-							if(gridcell.landcoverfrac[CROPLAND] && printyear)
-								dprintf("Wheat fraction set to 1.0.\n");
-						}
-						else if(!strcmp(st.name,"TrMi") && (gridcell.get_lat()<=30 && gridcell.get_lat()>=-30)) {
-							st.frac = 1.0;
-							if(gridcell.landcoverfrac[CROPLAND] && printyear)
-								dprintf("Millet fraction set to 1.0.\n");
+							nsts++;
 						}
 					}
-					stlist.nextobj();	
-				}				
+					else {
+						if(pftlist[pftlist.getpftid(st.management[0].pftname)].tb < 5) {
+							st.frac = 1.0;
+							nsts++;
+						}
+					}
+				}
+				stlist.nextobj();
+			}
+			while(stlist.isobj) {
+				StandType& st = stlist.getobj();
+				st.frac /= nsts;
+				stlist.nextobj();
+			}
+*/
+			//	Set to most common crop according to Bondeau
+			stlist.firstobj();
+			while(stlist.isobj) {
+				StandType& st = stlist.getobj();
+				if(st.landcover==CROPLAND)	{
+						
+					if(!strcmp(st.name,"TeWW") && (gridcell.get_lat()>30 || gridcell.get_lat()<-30)) {
+						st.frac = 1.0;
+						if(gridcell.landcoverfrac[CROPLAND] && printyear)
+							dprintf("Wheat fraction set to 1.0.\n");
+					}
+					else if(!strcmp(st.name,"TrMi") && (gridcell.get_lat()<=30 && gridcell.get_lat()>=-30)) {
+						st.frac = 1.0;
+						if(gridcell.landcoverfrac[CROPLAND] && printyear)
+							dprintf("Millet fraction set to 1.0.\n");
+					}
+				}
+				stlist.nextobj();	
+			}				
 		}
 		else {
 			// rescale active crop fraction so sum is 1.0

@@ -190,7 +190,7 @@ void initsettings() {
 	restart = false;
 	for(int lc=0; lc<NLANDCOVERTYPES; lc++)
 		frac_fixed[lc] = true;
-	textured_soil = false;
+	textured_soil = true;
 }
 
 void initpft(Pft& pft,xtring& setname) {

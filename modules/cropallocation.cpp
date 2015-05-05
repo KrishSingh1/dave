@@ -336,7 +336,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 			double y2 = 1.0 / (1.0 * indiv.pft.cton_leaf_max);
 			double z = (y0 - y)/(y0 - y2);
 			w_l = 1.0 - max(0.0, min(1.0, pow(1.0 - z, 2.0)));
-			y0 = 1,0 / indiv.pft.cton_root_avr;
+			y0 = 1.0 / indiv.pft.cton_root_avr;
 			y = 1.0/ indiv.cton_root(false);
 			y2 = 1.0 / (1.0 * indiv.pft.cton_root_max);
 			z = (y0 - y) / (y0 - y2);

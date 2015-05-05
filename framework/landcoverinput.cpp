@@ -522,7 +522,7 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 
 				if(cropfrac == NOTFOUND)	// land cover not found in input file
 					cropfrac = 0.0;
-				else if(cropfrac < 0.0 || cropfrac > 1.0)	{	// discard unreasonable values
+				else if(cropfrac < 0.0 || cropfrac > 1.01)	{	// discard unreasonable values
 					if(!(!gridcell.landcoverfrac[CROPLAND] && cropfrac < 0.0) && printyear)	// Ramankutty missing data
 						dprintf("WARNING ! crop fraction size out of limits, set to 0.0\n");
 					cropfrac = 0.0;
@@ -582,10 +582,12 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 						if(gridcell.landcoverfrac[CROPLAND] && printyear)
 							dprintf("Wheat fraction set to 1.0.\n");
 					}
-					else if(!strcmp(st.name,"TrMi") && (gridcell.get_lat()<=30 && gridcell.get_lat()>=-30)) {
+//					else if(!strcmp(st.name,"TrMi") && (gridcell.get_lat()<=30 && gridcell.get_lat()>=-30)) {
+					else if(!strcmp(st.name,"TrCo") && (gridcell.get_lat()<=30 && gridcell.get_lat()>=-30)) {	// Temporary fix for crop_global benchmark
 						st.frac = 1.0;
 						if(gridcell.landcoverfrac[CROPLAND] && printyear)
-							dprintf("Millet fraction set to 1.0.\n");
+//							dprintf("Millet fraction set to 1.0.\n");
+							dprintf("Maize fraction set to 1.0.\n");
 					}
 				}
 				stlist.nextobj();	

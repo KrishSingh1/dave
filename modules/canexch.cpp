@@ -477,15 +477,14 @@ void fpar(Patch& patch) {
 	}
 }
 
-double alphaa(Stand& stand, Pft& pft) {
+double alphaa(const Pft& pft) {
 
 	double alphaa;
-	bool ifnlim_pft = stand.ifnlim_stand();
 
 	if(pft.phenology == CROPGREEN)
-		alphaa = (ifnlim_pft ? ALPHAA_CROP_NLIM : ALPHAA_CROP);
+		alphaa = (ifnlim ? ALPHAA_CROP_NLIM : ALPHAA_CROP);
 	else
-		alphaa = (ifnlim_pft ? ALPHAA_NLIM : ALPHAA);
+		alphaa = (ifnlim ? ALPHAA_NLIM : ALPHAA);
 
 	return alphaa;
 }
@@ -563,7 +562,6 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
  *  \param ifnlimvmax whether nitrogen should limit Vmax
  *  \param vm         pre-calculated value of Vmax for this stand for this day if
  *                    available, otherwise calculated
- *  \param alphaa	  ALPHAA value dependent on landcover, phenology and nitrogen limitation
  *
  * OUTPUT PARAMETERS
  *
@@ -572,7 +570,7 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
 void photosynthesis(double co2, double temp, double par, double daylength,
                     double fpar, double lambda, const Pft& pft, 
                     double nactive, bool ifnlimvmax,
-                    PhotosynthesisResult& result, double vm, double alphaa) {
+                    PhotosynthesisResult& result, double vm) {
 
 	// NOTE: This function is identical to LPJF subroutine "photosynthesis" except for
 	// the formulation of low-temperature inhibition coefficient tscal (tstress; LPJF).
@@ -602,10 +600,8 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 	// Scale fractional PAR absorption at plant projective area level (FPAR) to
 	// fractional absorption at leaf level (APAR)
 	// Eqn 4, Haxeltine & Prentice 1996a
-	double apar;
+	double apar = par * fpar * alphaa(pft);
 	double b, c1, c2;
-
-	apar = par * fpar * alphaa;
 
 	// Calculate temperature-inhibition coefficient
 	// This function (tscal) is mathematically identical to function tstress in LPJF.
@@ -724,7 +720,7 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 
 				// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
 				photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
-						1.0, pft.lambda_max, pft, 1.0, false, spft.photosynthesis, -1, alphaa(stand, pft));
+						1.0, pft.lambda_max, pft, 1.0, false, spft.photosynthesis, -1);
 			}
 		}
 	}
@@ -740,9 +736,7 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 		// Individual photosynthesis with no nitrogen limitation
 		photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
 		               indiv.fpar, pft.lambda_max, pft,
-		               1.0, false,
-		               indiv.photosynthesis,
-		               -1, alphaa(patch.stand, pft));
+		               1.0, false, indiv.photosynthesis, -1);
 
 		indiv.gpterm = gpterm(indiv.photosynthesis.adtmm, climate.co2, pft.lambda_max, climate.daylength);
 
@@ -756,9 +750,7 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 				PhotosynthesisResult& result = indiv.phots[i];
 				photosynthesis(climate.co2, climate.temps[i], climate.pars[i], 24,
 				               indiv.fpar, pft.lambda_max, pft,
-				               1.0, false,
-				               result,
-				               indiv.photosynthesis.vm, alphaa(stand, pft));
+				               1.0, false, result, indiv.photosynthesis.vm);
 
 				indiv.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
 			}
@@ -822,7 +814,7 @@ void nstore_usage(Vegetation& vegetation) {
 		                        + indiv.leafndemand_store + indiv.rootndemand_store;
 
 		// if individual is in need of using its labile nitrogen storage
-		if (!negligible(excess_ndemand) && stand.ifnlim_stand()) {
+		if (!negligible(excess_ndemand) && ifnlim) {
 			
 			// if labile nitrogen storage is larger than excess nitrogen demand
 			if (excess_ndemand <= indiv.nstore_labile) {
@@ -881,7 +873,6 @@ void nstore_usage(Vegetation& vegetation) {
 void ndemand(Patch& patch, Vegetation& vegetation) {
 
 	Gridcell& gridcell = patch.stand.get_gridcell();
-	Stand& stand = patch.stand;
 	Soil& soil = patch.soil;
 
 	/// daily nitrogen demand for patch (kgN/m2)
@@ -914,7 +905,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 			indiv.nday_leafon++;
 
-			if (stand.ifnlim_stand()) {
+			if (ifnlim) {
 
 				// Added a scalar depending on individual lai to slow down light optimization of newly shaded leafs
 				// Peltoniemi et al. 2012
@@ -1044,21 +1035,19 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
  */
 void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
-	Stand& stand = patch.stand;
-
 	// Supply function for nitrogen and determination of nitrogen stress leading
 	// to down-regulation of vmax.
 
 	// Nitrogen within projective cover of all individuals
 	double tot_nmass_avail = patch.soil.nmass_avail * min(1.0, patch.fpc_total);
 
-	if(patch.stand.landcover == CROPLAND && ifnlim_lc[CROPLAND])	// Also for other landcovers ??
+	if(patch.stand.landcover == CROPLAND && ifnlim)	// Also for other landcovers ??
 		// Take soil wcont into account
 		tot_nmass_avail*=((patch.soil.wcont[0]*0.9+patch.soil.wcont[1]*0.1));
 
 
 	// Calculate individual uptake fraction of nitrogen demand
-	if (patch.ndemand > tot_nmass_avail && stand.ifnlim_stand()) {
+	if (patch.ndemand > tot_nmass_avail && ifnlim) {
 
 		// Determine individual nitrogen uptake fractions
 		fnuptake(vegetation, tot_nmass_avail);
@@ -1098,8 +1087,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 			photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
 				indiv.fpar, pft.lambda_max, pft,
 				indiv.nactive / indiv.nextin, true,
-				indiv.photosynthesis,
-				-1, alphaa(stand, pft));
+				indiv.photosynthesis, -1);
 
 			indiv.gpterm = gpterm(indiv.photosynthesis.adtmm, climate.co2, pft.lambda_max, climate.daylength);
 
@@ -1109,8 +1097,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 					photosynthesis(climate.co2, climate.temps[i], climate.pars[i], 24,
 						indiv.fpar, pft.lambda_max, pft,
 						indiv.nactive / indiv.nextin, true,
-						result,
-						indiv.photosynthesis.vm, alphaa(stand, pft));
+						result, indiv.photosynthesis.vm);
 
 					indiv.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
 				}
@@ -1182,9 +1169,7 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
 			// No nitrogen limitation when calculating gp_leafon
 			photosynthesis(climate.co2, temp, par, daylength,
 						   indiv.fpar_leafon, pft.lambda_max, pft,
-						   1.0, false,
-						   leafon_photosynthesis,
-						   -1, alphaa(patch.stand, pft));
+						   1.0, false, leafon_photosynthesis, -1);
 
 			double gp_leafon = gpterm(leafon_photosynthesis.adtmm, climate.co2, pft.lambda_max, daylength) + pft.gmin * indiv.fpc;
 
@@ -1576,7 +1561,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 			double daylength, double fpar, double fpc, double gcbase,
 			double vmax, PhotosynthesisResult& phot_result, double& lambda,
-			double nactive, bool ifnlimvmax, double alphaa) {
+			double nactive, bool ifnlimvmax) {
 
 	// DESCRIPTION
 	// Calculation of net C-assimilation under water-stressed conditions
@@ -1628,7 +1613,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 	// Evaluate f(lambda_max) to see if there's a root 
 	// in the interval we're searching
-	photosynthesis(co2, temp, par, daylength, fpar, pft.lambda_max, pft, nactive, ifnlimvmax, phot_result, vmax, alphaa);
+	photosynthesis(co2, temp, par, daylength, fpar, pft.lambda_max, pft, nactive, ifnlimvmax, phot_result, vmax);
 	double f_lambda_max = phot_result.adtmm / fpc - gcphot * (1 - pft.lambda_max);
 
 	if (f_lambda_max <= 0) {
@@ -1663,7 +1648,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 		// for total daytime photosynthesis according to Eqns 2 & 19,
 		// Haxeltine & Prentice (1996), and current guess for lambda
 
-		photosynthesis(co2, temp, par, daylength, fpar, xmid, pft, nactive, ifnlimvmax, phot_result, vmax, alphaa);
+		photosynthesis(co2, temp, par, daylength, fpar, xmid, pft, nactive, ifnlimvmax, phot_result, vmax);
 
 		// Evaluate fmid at the point lambda=xmid
 		// fmid will be an increasing function of xmid, with a solution
@@ -1892,7 +1877,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 			assimilation_wstress(pft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
 				ppft.gcbase, phot.vm, phot, lambda,
-				indiv.nactive / indiv.nextin, stand.ifnlim_stand(), alphaa(stand, pft));
+				indiv.nactive / indiv.nextin, ifnlim);
 		}
 
 		assim = phot.net_assimilation();
@@ -1938,7 +1923,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 /// Leaf senescence for crops Eqs. 8,9,13 and 14 in Olin 2015
 void leaf_senescence(Vegetation& vegetation) {
 
-	if(!(vegetation.patch.stand.is_true_crop_stand() && ifnlim_lc[CROPLAND]))
+	if(!(vegetation.patch.stand.is_true_crop_stand() && ifnlim))
 		return;
 
 	vegetation.firstobj();
@@ -2012,7 +1997,7 @@ void forest_floor_conditions(Patch& patch) {
 				if (ppft.wstress_day) {
 					assimilation_wstress(pft, climate.co2, climate.temp, climate.par,
 						climate.daylength, patch.fpar_grass * ppft.phen, 1., ppft.gcbase_day,
-						spft.photosynthesis.vm, phot, lambda, 1.0, false, alphaa(patch.stand, pft));
+						spft.photosynthesis.vm, phot, lambda, 1.0, false);
 					assim = phot.net_assimilation();
 				}
 				else {

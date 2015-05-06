@@ -154,7 +154,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 		bool gridfound = false;
 		bool LUerror = false;
-		double lon;;
+		double lon;
 		double lat;
 
 		while(!gridfound) {

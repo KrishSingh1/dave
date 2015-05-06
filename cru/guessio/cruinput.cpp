@@ -154,12 +154,15 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 		bool gridfound = false;
 		bool LUerror = false;
-		double lon = gridlist.getobj().lon;
-		double lat = gridlist.getobj().lat;
+		double lon;;
+		double lat;
 
 		while(!gridfound) {
 
 			if(gridlist.isobj) {
+
+				lon = gridlist.getobj().lon;
+				lat = gridlist.getobj().lat;
 
 				gridfound = CRU_TS30::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode, 
 											   hist_mtemp, hist_mprec, hist_msun);

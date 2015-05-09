@@ -1049,14 +1049,6 @@ void plib_callback(int callback) {
 			if (!itemparsed("minimizecftlist")) badins("minimizecftlist");	
 			if (!itemparsed("lcfrac_fixed")) badins("lcfrac_fixed");
 			if (!itemparsed("cftfrac_fixed")) badins("cftfrac_fixed");
-			if (!itemparsed("equal_landcover_area")) badins("equal_landcover_area");
-			if (!itemparsed("lc_fixed_urban")) badins("lc_fixed_urban");
-			if (!itemparsed("lc_fixed_cropland")) badins("lc_fixed_cropland");
-			if (!itemparsed("lc_fixed_pasture")) badins("lc_fixed_pasture");
-			if (!itemparsed("lc_fixed_forest")) badins("lc_fixed_forest");
-			if (!itemparsed("lc_fixed_natural")) badins("lc_fixed_natural");
-			if (!itemparsed("lc_fixed_peatland")) badins("lc_fixed_peatland");
-			if (!itemparsed("lc_fixed_barren")) badins("lc_fixed_barren");
 			if (!itemparsed("run_natural")) badins("run_natural");
 			if (!itemparsed("run_crop")) badins("run_crop");
 			if (!itemparsed("run_forest")) badins("run_forest");

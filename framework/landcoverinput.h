@@ -45,13 +45,6 @@ private:
 	/// Files names for land cover fraction input files
 	xtring file_lu, file_grossLUC, file_lucrop, file_peat;
 
-	/// Landcover fractions read from ins-file (% area).
-	/** One entry for each land cover type */
-	std::vector<int> lc_fixed_frac;
-
-	/// Whether enforced static landcover fractions are equal-sized stands of all included landcovers
-	bool equal_landcover_area;
-
 	/// Whether pfts not in crop fraction input file are removed from pftlist (0,1)
 	bool minimizecftlist;
 

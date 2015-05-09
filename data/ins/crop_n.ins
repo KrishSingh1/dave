@@ -60,19 +60,11 @@ run_natural 1	      ! whether to simulate natural vegetation (1) or not (0)
 run_peatland 0	      ! whether to simulate peatland (1) or not (0)
 run_barren 0	      ! whether to simulate barren land (1) or not (0)
 
-lcfrac_fixed 0        	! use landcover fractions (%) below (1) or read from input file (0)
-lc_fixed_urban 0   	! URBAN
-lc_fixed_cropland 0	! CROPLAND
-lc_fixed_pasture 0   	! PASTURE
-lc_fixed_forest 100   	! FOREST
-lc_fixed_natural  0 	! NATURAL
-lc_fixed_peatland 0 	! PEATLAND
-lc_fixed_barren  0 	! BARREN
-equal_landcover_area 1	! divide gridcell into equal active landcover fractions
+lcfrac_fixed 0        	! whether to use fixed landcover fractions (all landcovers have equal area) (1) or read landcover fractions from a file (0)
 
 minimizecftlist 0	! Checks st fraction file for st:s with fractions>0.0 at any time or place; other st:s are exluded from the stlist
 			! Only active pft:s in these st:s are kept in the pftlist
-cftfrac_fixed 0       	! whether to force CFT % (1) or just read CFT file (0) ; all active crop pft:s have equal area
+cftfrac_fixed 0       	! whether to use fixed CFT fractions (all active crop pft:s have equal area) (1) or read CFT fractions from a file (0)
 !nyears_cropland_ramp 300 ! Number of years to increase cropland fraction linearly from 0 to first year's value
 
 ifslowharvestpool 1	! If a slow harvested product pool is included in patchpft.

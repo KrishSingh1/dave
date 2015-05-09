@@ -15,19 +15,9 @@ bool fixedcrop_histX = 0;
 
 LandcoverInputModule::LandcoverInputModule(InputModule& in)
 	: input(in), 
-	  lc_fixed_frac(NLANDCOVERTYPES, 0),
-	  equal_landcover_area(false),
 	  nyears_cropland_ramp(0) {
 
-	declare_parameter("equal_landcover_area", &equal_landcover_area, "Whether enforced static landcover fractions are equal-sized stands of all included landcovers (0,1)");
 	declare_parameter("minimizecftlist", &minimizecftlist, "Whether pfts not in crop fraction input file are removed from pftlist (0,1)");
-	declare_parameter("lc_fixed_urban", &lc_fixed_frac[URBAN], 0, 100, "% lc_fixed_urban");
-	declare_parameter("lc_fixed_cropland", &lc_fixed_frac[CROPLAND], 0, 100, "% lc_fixed_cropland");
-	declare_parameter("lc_fixed_pasture", &lc_fixed_frac[PASTURE], 0, 100, "% lc_fixed_pasture");
-	declare_parameter("lc_fixed_forest", &lc_fixed_frac[FOREST], 0, 100, "% lc_fixed_forest");
-	declare_parameter("lc_fixed_natural", &lc_fixed_frac[NATURAL], 0, 100, "% lc_fixed_natural");
-	declare_parameter("lc_fixed_peatland", &lc_fixed_frac[PEATLAND], 0, 100, "% lc_fixed_peatland");
-	declare_parameter("lc_fixed_barren", &lc_fixed_frac[BARREN], 0, 100, "% lc_fixed_barren");
 	declare_parameter("nyears_cropland_ramp", &nyears_cropland_ramp, 1, 10000, "Number of years to increase cropland fraction linearly from 0 to first year's value");
 }
 
@@ -240,75 +230,16 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 	
 			int nactive_landcovertypes = 0;
 
-			if(equal_landcover_area) {
-				for(i=0; i<NLANDCOVERTYPES; i++) {
-					if(run[i])
-						nactive_landcovertypes++;
-				}
+			for(i=0; i<NLANDCOVERTYPES; i++) {
+				if(run[i])
+					nactive_landcovertypes++;
 			}
 
 			for(i=0;i<NLANDCOVERTYPES;i++) {
-				if(equal_landcover_area) {
-					gridcell.landcoverfrac[i] = 1.0 * run[i] / (double)nactive_landcovertypes;	// only set fractions that are active
-					sum_active += gridcell.landcoverfrac[i];
-					sum_tot = sum_active;
-				}
-				else {
-#if defined GRASSFORCROP
-					if(i==PASTURE) {
-						gridcell.landcoverfrac[PASTURE] = (double)lc_fixed_frac[CROPLAND] / 100.0;
-						sum_tot += gridcell.landcoverfrac[PASTURE];
-					}
-					else if(i == CROPLAND)
-						gridcell.landcoverfrac[CROPLAND] = 0.0;
-					else
-#endif
-					sum_tot += gridcell.landcoverfrac[i] = (double)lc_fixed_frac[i] / 100.0;					// count sum of all fractions (should be 1.0)
-
-					if(gridcell.landcoverfrac[i] < 0.0 || gridcell.landcoverfrac[i] > 1.0) {				// discard unreasonable values					
-						if(date.year == 0)
-							dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
-						sum_tot -= gridcell.landcoverfrac[i];
-						gridcell.landcoverfrac[i] = 0.0;
-					}
-
-					gridcell.landcoverfrac[i] = run[i] * gridcell.landcoverfrac[i];				// only set fractions that are active
-					sum_active += gridcell.landcoverfrac[i];
-				}
-			}
-			
-			if(sum_tot < 0.99 || sum_tot > 1.01) {	// Check input data, rescale if sum !=1.0
-			
-				sum_active = 0.0;					// reset sum of active landcover fractions
-				if(date.year == 0)
-					dprintf("WARNING ! landcover fixed fraction sum is %4.2f, rescaling landcover fractions !\n", sum_tot);
-
-				for(i=0; i<NLANDCOVERTYPES; i++) {
-					gridcell.landcoverfrac[i] /= sum_tot;
-					sum_active += gridcell.landcoverfrac[i];
-				}
-			}
-
-			// NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
-			if(sum_active < 0.99)	{	// if landcover types are turned off in the ini-file, always <=1.0 here		
-				if(date.year == 0)
-					dprintf("WARNING ! landcover active fraction sum is %4.2f.\n", sum_active);
-
-				if(run[NATURAL]) {	// Transfer landcover areas not simulated to NATURAL fraction, if simulated.				
-					if(date.year == 0)
-						dprintf("Inactive fractions (%4.2f) transferred to NATURAL fraction.\n", 1.0 - sum_active);
-
-					gridcell.landcoverfrac[NATURAL] += (1.0-sum_active);	// difference 1.0-(sum of active landcover fractions) are added to the natural fraction
-				}
-				else {
-/*					if(date.year == 0)
-						dprintf("Rescaling landcover fractions !\n");
-					for(i=0; i<NLANDCOVERTYPES; i++)
-						gridcell.landcoverfrac[i] /= sum_active;			// if NATURAL not simulated, rescale active fractions to 1.0
-*/					if(date.year == 0)
-						dprintf("Non-unity fraction sum retained.\n");		// OR let sum remain non-unity
-				}																
-			}
+				gridcell.landcoverfrac[i] = 1.0 * run[i] / (double)nactive_landcovertypes;	// only set fractions that are active
+				sum_active += gridcell.landcoverfrac[i];
+				sum_tot = sum_active;
+			}		
 		}
 	}
 	else {	// landcover area fractions are read from input file(s)	

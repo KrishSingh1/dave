@@ -483,7 +483,7 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 	}
 
 	// Warning if soil available nitrogen is negative (if happens once or so no problem, but if it propagates through time then it is)
-	if (stand.ifnlim_stand()) {
+	if (ifnlim) {
 		assert(soil.nmass_avail > -EPS);
 	}
 
@@ -653,7 +653,7 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 
 		// Estimate daily soil mineral nitrogen pool after decomposition
 		// (negative value = immobilisation)
-		if ((tot_net_min + soil.nmass_avail + EPS >= 0.0) || !stand.ifnlim_stand()) {
+		if ((tot_net_min + soil.nmass_avail + EPS >= 0.0) || !ifnlim) {
 
 			net_mineralization = true;
 		}
@@ -710,7 +710,7 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 
 	// If no nitrogen limitation or during free nitrogen years set soil
 	// available nitrogen to its saturation level.
-	if (!stand.ifnlim_stand() || date.year <= freenyears)
+	if (!ifnlim || date.year <= freenyears)
 		soil.nmass_avail = NMASS_SAT;
 }
 
@@ -1150,7 +1150,7 @@ void vegetation_n_uptake(Patch& patch) {
 		indiv.nmass_leaf      += indiv.leaffndemand  * nuptake_day;
 		indiv.nmass_root      += indiv.rootfndemand  * nuptake_day;
 		indiv.nmass_sap       += indiv.sapfndemand   * nuptake_day;
-		if(indiv.pft.phenology == CROPGREEN && ifnlim_lc[CROPLAND])
+		if(indiv.pft.phenology == CROPGREEN && ifnlim)
 			indiv.cropindiv->nmass_agpool += indiv.storefndemand * nuptake_day;
 		else
 			indiv.nstore_longterm += indiv.storefndemand * nuptake_day;

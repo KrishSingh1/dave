@@ -123,8 +123,6 @@ extern wateruptaketype wateruptake;
 extern bool ifcentury;
 /// whether plant growth limited by available N	
 extern bool ifnlim;
-/// Whether plant growth limited by available N in a specific landcover type (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, BARREN).
-extern bool ifnlim_lc[NLANDCOVERTYPES];
 
 /// number of years to allow spinup without nitrogen limitation	
 extern int freenyears;

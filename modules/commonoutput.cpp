@@ -137,7 +137,7 @@ CommonOutput::CommonOutput() {
 
 	declare_parameter("file_daily_fphu",&file_daily_fphu,300,"Daily DS output file"); //daglig ds
 
-	if(ifnlim_lc[CROPLAND]) {
+	if(ifnlim) {
 		declare_parameter("file_daily_ds",&file_daily_ds,300,"Daily DS output file"); //daglig ds
 		declare_parameter("file_daily_stem",&file_daily_stem,300,"Daily stem allocation output file");
 		declare_parameter("file_daily_leaf",&file_daily_leaf,300,"Daily leaf allocation output file");
@@ -532,7 +532,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_daily_norgleach,			file_daily_norgleach,			daily_columns);
 	create_output_table(out_daily_nuptake,				file_daily_nuptake,				daily_columns);
 
-	if(ifnlim_lc[CROPLAND]) {
+	if(ifnlim) {
 		create_output_table(out_daily_ds,				file_daily_ds,					daily_columns);
 		create_output_table(out_daily_fphu,				file_daily_fphu,				daily_columns);
 		create_output_table(out_daily_stem,				file_daily_stem,				daily_columns);
@@ -2050,14 +2050,10 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 					vegetation.firstobj();
 					while (vegetation.isobj) {
 						Individual& indiv=vegetation.getobj();
-						//						if (indiv.id!=-1 && indiv.alive)
+						// if (indiv.id!=-1 && indiv.alive)
 						if (indiv.id!=-1) {//To be able to print values for the year after establishment of crops !
-							// (if not dead and has existed for at least one year)
-							// Ben 2007-11-28
-							if (indiv.pft.id == pft.id) {							//101124
-								//								if (indiv.alive) //???
+							if (indiv.pft.id == pft.id) {
 								if(pft.landcover==CROPLAND) {
-									////////////////////////////
 									if(!indiv.cropindiv->isintercropgrass) {
 										double centuryn = 0.0;
 										double cwdn = 0.0;
@@ -2104,7 +2100,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 										out.add_value(out_daily_ndemand,indiv.ndemand);
 										out.add_value(out_daily_cton,limited_cton(indiv.cmass_leaf_today(),indiv.nmass_leaf*scale_out));
 
-										if(ifnlim_lc[CROPLAND]) {
+										if(ifnlim) {
 											out.add_value(out_daily_ds,patch.pft[pft.id].cropphen->dev_stage); // daglig ds
 											out.add_value(out_daily_cmass_stem,(indiv.cropindiv->grs_cmass_agpool+indiv.cropindiv->grs_cmass_stem)*scale_out);
 											out.add_value(out_daily_nmass_stem,indiv.cropindiv->nmass_agpool*scale_out);

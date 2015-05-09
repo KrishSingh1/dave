@@ -1494,7 +1494,7 @@ public:
 	void initsla() {
 
 		// SLA has to be supplied in the insfile for crops with N limitation
-		if (phenology != CROPGREEN || !ifnlim_lc[CROPLAND]) {
+		if (!(phenology == CROPGREEN && ifnlim)) {
 
 			// Reich et al 1992, Table 1 (includes conversion x2.0 from m2/kg_dry_weight to
 			// m2/kgC)
@@ -1512,7 +1512,7 @@ public:
 	void init_cton_min() {
 
 		// cton_leaf_min has to be supplied in the insfile for crops with N limitation
-		if (phenology != CROPGREEN || !ifnlim_lc[CROPLAND]) {
+		if (!(phenology == CROPGREEN && ifnlim)) {
 			// Reich et al 1992, Table 1 (includes conversion x500 from mg/g_dry_weight to
 			// kgN/kgC)
 
@@ -1526,7 +1526,7 @@ public:
 	void init_cton_limits() {
 
 		// Fraction between min and max C:N ratio White et al. 2000
-		double frac_mintomax = (phenology == CROPGREEN && ifnlim_lc[CROPLAND]) ? 5.0 : 2.78;	// Use value also without nlim ?
+		double frac_mintomax = (phenology == CROPGREEN && ifnlim) ? 5.0 : 2.78;	// Use value also without nlim ?
 
 		// Fraction between leaf and root C:N ratio
 		double frac_leaftoroot = 1.16; // Friend et al. 1997
@@ -3335,10 +3335,6 @@ public:
 	/// Returns true if stand is true crop stand, as opposed to pasture grass grown on cropland or other land cover
 	inline bool is_true_crop_stand() {
 		return landcover==CROPLAND && pft[pftid].pft.phenology==CROPGREEN;	// OK also for fallow (pftid always cropgreen)
-	}
-	/// Returns true if growth in stand is nitrogen-limited
-	bool ifnlim_stand() const {
-		return ifnlim && ifnlim_lc[landcover];
 	}
 	/// Moves crop rotation forward
 	void rotate();

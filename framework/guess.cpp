@@ -1355,7 +1355,7 @@ double Individual::cton_leaf(bool use_phen /* = true*/) const {
 
 	Stand& stand = vegetation.patch.stand;
 
-	if (stand.ifnlim_stand()) {
+	if (ifnlim) {
 
 		if(stand.is_true_crop_stand() && !negligible(cmass_leaf_today()) && !negligible(nmass_leaf)) {	//Detta kan möjligen tas bort
 			return cmass_leaf_today() / nmass_leaf;
@@ -1386,7 +1386,7 @@ double Individual::cton_root(bool use_phen /* = true*/) const {
 
 	Stand& stand = vegetation.patch.stand;
 
-	if (stand.ifnlim_stand()) {
+	if (ifnlim) {
 		if (!negligible(cmass_root) && !negligible(nmass_root)) { 
 			if (use_phen) {
 				if (!negligible(cmass_root_today())) {
@@ -1414,7 +1414,7 @@ double Individual::cton_sap() const {
 	Stand& stand = vegetation.patch.stand;
 
 	if (pft.lifeform == TREE) {
-		if (stand.ifnlim_stand()) {
+		if (ifnlim) {
 			if (!negligible(cmass_sap) && !negligible(nmass_sap))
 				return cmass_sap / nmass_sap;
 			else
@@ -1564,7 +1564,7 @@ bool Individual::continous_grass() const {
 
 double Individual::ndemand_storage(double cton_leaf_opt) {
 
-	if (vegetation.patch.stand.is_true_crop_stand() && ifnlim_lc[CROPLAND])	// only CROPGREEN, only ifnlim ?
+	if (vegetation.patch.stand.is_true_crop_stand() && ifnlim)	// only CROPGREEN, only ifnlim ?
 		// analogous with root demand
 		storendemand = max(0.0, cropindiv->grs_cmass_stem / (cton_leaf_opt * pft.cton_stem_avr / pft.cton_leaf_avr) - cropindiv->nmass_agpool);
 	else
@@ -2564,7 +2564,7 @@ void MassBalance::check_year(Gridcell& gridcell) {
 				}
 				// Cropland without N-limitation is not balanced in N, fertilisation gives poorer N-balance
 				// For natural vegetation or unfertilised N-limited cropland, the check can be much stricter 
-				if(!run[CROPLAND] || ifnlim_lc[CROPLAND]) {
+				if(!run[CROPLAND] || ifnlim) {
 					// N balance check:
 					if(fabs(ncont_year - ncont + nflux_year) > 1.0e-3) {
 						dprintf("\nN balance year %d: %.4f\n", date.year, ncont_year - ncont + nflux_year);
@@ -2589,7 +2589,7 @@ void MassBalance::check_period() {
 	}
 	// Cropland without N-limitation is not balanced in N, fertilisation gives poorer N-balance
 	// For natural vegetation or unfertilised N-limited cropland, the check can be much stricter 
-	if(!run[CROPLAND] || ifnlim_lc[CROPLAND]) {
+	if(!run[CROPLAND] || ifnlim) {
 		// N balance check:
 		if(fabs(ncont - ncont_zero + nflux) > 1.0e-3) {
 			dprintf("\nWARNING: Period N balance: %.4f\n", ncont - ncont_zero + nflux);

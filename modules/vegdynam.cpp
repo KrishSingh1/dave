@@ -1444,7 +1444,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		// Patch-destroying disturbance
 
 		// Disturbance when N limitation is switched on to get right pft composition under N limitation faster
-		if (ifcentury && stand.ifnlim_stand() && date.year == freenyears){
+		if (ifcentury && ifnlim && date.year == freenyears){
 			disturbance(patch, 1.0);
 			if (patch.disturbed) {
 				return; // no mortality or establishment this year

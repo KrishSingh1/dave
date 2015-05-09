@@ -396,14 +396,14 @@ void crop_phenology(Patch& patch)
 					bool force_harvest = date.day == standpft.hdate_force;
 
 					// before maturity is reached
-					bool pre_maturity = (ifnlim_lc[CROPLAND]) ? ppftcrop.dev_stage < 2.0 : ppftcrop.husum < ppftcrop.phu;
+					bool pre_maturity = (ifnlim) ? ppftcrop.dev_stage < 2.0 : ppftcrop.husum < ppftcrop.phu;
 
 					if(pre_maturity && dayinperiod(date.day, ppftcrop.sdate, stepfromdate(ppftcrop.hlimitdate, -1)) && !force_harvest) {
 
 						// count accumulated heat units after sowing date
 						calc_hu(patch, pft);
 
-						if(ifnlim_lc[CROPLAND])
+						if(ifnlim)
 							calc_ds(patch, pft);
 
 						//  test for senescence

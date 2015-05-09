@@ -1184,7 +1184,7 @@ void growth(Stand& stand, Patch& patch) {
 		// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle and Friend 2010 SM eq 19) 	
 		double cton_leaf_aopt = max(indiv.cton_leaf_aopt, indiv.pft.cton_leaf_avr);
 
-		if (stand.ifnlim_stand())
+		if (ifnlim)
 			nscal = min(1.0, cton_leaf_aopt / indiv.cton_leaf_aavr);
 		else 
 			nscal = 1.0;

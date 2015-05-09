@@ -52,7 +52,7 @@ void lai_crop(Patch& patch) {
 
 			if(ppftcrop.growingseason) {
 
-				if(!ppftcrop.senescence || ifnlim_lc[CROPLAND])
+				if(!ppftcrop.senescence || ifnlim)
 					indiv.lai_daily = cropindiv.grs_cmass_leaf * indiv.pft.sla;
 				else
 					// Follow the senescence curve from leaf cmass at senescence (cmass_leaf_sen):
@@ -517,7 +517,7 @@ void growth_crop_daily(Patch& patch) {
 				}
 #endif
 
-				if(ifnlim_lc[CROPLAND])
+				if(ifnlim)
 					allocation_crop_nlim(indiv, cmass_seed, nmass_seed);
 				else
 					allocation_crop(indiv, cmass_seed, nmass_seed);

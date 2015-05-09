@@ -41,7 +41,6 @@ bool ifcdebt;
 
 bool ifcentury;
 bool ifnlim;
-bool ifnlim_lc[NLANDCOVERTYPES];
 int freenyears;
 double nrelocfrac;
 double nfix_a;
@@ -414,20 +413,6 @@ void plib_declarations(int id,xtring setname) {
 			"Whether to use CENTURY SOM dynamics (default standard LPJ)");
 		declareitem("ifnlim",&ifnlim,1,CB_NONE,
 			"Whether plant growth limited by available nitrogen");
-		declareitem("ifnlim_urban",&ifnlim_lc[URBAN],1,CB_NONE,
-			"Whether plant growth limited by available nitrogen in urban stands");
-		declareitem("ifnlim_natural",&ifnlim_lc[NATURAL],1,CB_NONE,
-			"Whether plant growth limited by available nitrogen in natural vegetation stands");
-		declareitem("ifnlim_forest",&ifnlim_lc[FOREST],1,CB_NONE,
-			"Whether plant growth limited by available nitrogen in managed forest stands");
-		declareitem("ifnlim_pasture",&ifnlim_lc[PASTURE],1,CB_NONE,
-			"Whether plant growth limited by available nitrogen in pasture stands");
-		declareitem("ifnlim_crop",&ifnlim_lc[CROPLAND],1,CB_NONE,
-			"Whether plant growth limited by available nitrogen in crop stands");
-		declareitem("ifnlim_peatland",&ifnlim_lc[PEATLAND],1,CB_NONE,
-			"Whether plant growth limited by available nitrogen in peatland stands");
-		declareitem("ifnlim_barren",&ifnlim_lc[BARREN],1,CB_NONE,
-			"Whether plant growth limited by available nitrogen in barren stands");
 		declareitem("freenyears",&freenyears,0,1000,1,CB_NONE,
 			"Number of years to spinup without nitrogen limitation");
 
@@ -1042,13 +1027,6 @@ void plib_callback(int callback) {
 
 		if (!itemparsed("ifcentury")) badins("ifcentury");
 		if (!itemparsed("ifnlim")) badins("ifnlim");
-		if (!itemparsed("ifnlim_urban")) badins("ifnlim_urban");
-		if (!itemparsed("ifnlim_natural")) badins("ifnlim_natural");
-		if (!itemparsed("ifnlim_forest")) badins("ifnlim_forest");
-		if (!itemparsed("ifnlim_pasture")) badins("ifnlim_pasture");
-		if (!itemparsed("ifnlim_crop")) badins("ifnlim_crop");
-		if (!itemparsed("ifnlim_peatland")) badins("ifnlim_peatland");
-		if (!itemparsed("ifnlim_barren")) badins("ifnlim_barren");
 		if (!itemparsed("freenyears")) badins("freenyears");
 
 		if (nyear_spinup <= freenyears) {
@@ -1233,11 +1211,11 @@ void plib_callback(int callback) {
 		pftlist.firstobj();
 		while (pftlist.isobj) {
 			Pft& pft = pftlist.getobj();
-			bool remove = pft.landcover == CROPLAND && !pft.isintercropgrass && (ifnlim && ifnlim_lc[CROPLAND] && !pft.nlim || !(ifnlim && ifnlim_lc[CROPLAND]) && pft.nlim);
+			bool remove = pft.landcover == CROPLAND && !pft.isintercropgrass && (ifnlim && !pft.nlim || !ifnlim && pft.nlim);
 
 			if (remove) {
 				// Remove this PFT from list
-				dprintf("pft %s not compatible with ifnlim_crop setting; removed from pftlist !\n", (char*)pft.name);
+				dprintf("pft %s not compatible with ifnlim setting; removed from pftlist !\n", (char*)pft.name);
 				pftlist.killobj();
 			}
 			else {
@@ -1318,13 +1296,13 @@ void plib_callback(int callback) {
 			ppft = &pftlist.getobj();
 
 			if (ifcalcsla) {
-				if(!(ppft->phenology == CROPGREEN && run_landcover && ifnlim_lc[CROPLAND]))
+				if(!(ppft->phenology == CROPGREEN && run_landcover && ifnlim))
 					// Calculate SLA
 					ppft->initsla();
 			}
 
 			if (ifcalccton) {
-				if(!(ppft->phenology == CROPGREEN && run_landcover && ifnlim_lc[CROPLAND]))
+				if(!(ppft->phenology == CROPGREEN && run_landcover && ifnlim))
 					// Calculate leaf C:N ratio minimum
 					ppft->init_cton_min();
 			}
@@ -1365,9 +1343,9 @@ void plib_callback(int callback) {
 			if (!itemparsed("emax")) badins("emax");
 			if (!itemparsed("respcoeff")) badins("respcoeff");
 
-			if (!ifcalcsla || (ppft->phenology == CROPGREEN && run_landcover && ifnlim_lc[CROPLAND] && ppft->nlim))
+			if (!ifcalcsla || (ppft->phenology == CROPGREEN && run_landcover && ifnlim && ppft->nlim))
 				if (!itemparsed("sla")) badins("sla");
-			if (!ifcalccton || (ppft->phenology == CROPGREEN && run_landcover && ifnlim_lc[CROPLAND] && ppft->nlim))
+			if (!ifcalccton || (ppft->phenology == CROPGREEN && run_landcover && ifnlim && ppft->nlim))
 				if (!itemparsed("cton_leaf_min")) badins("cton_leaf_min");
 
 
@@ -1417,7 +1395,7 @@ void plib_callback(int callback) {
 						if (!itemparsed("frootend")) badins("frootend");
 						if (!itemparsed("turnover_harv_prod")) badins("turnover_harv_prod");
 
-						if(ifnlim_lc[CROPLAND]) {
+						if(ifnlim) {
 							if(ppft->nlim) {
 								if (!itemparsed("readNfert")) badins("readNfert");
 								if (!itemparsed("nlim")) badins("nlim");

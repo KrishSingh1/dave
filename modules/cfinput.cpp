@@ -477,11 +477,9 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	}
 
 	if(gridlistCF.size())
-//		gridcell.set_coordinates(lon, lat);
-		gridcell.set_coordinates(cru_lon, cru_lat);
+		gridcell.set_coordinates(lon, lat);
 	else
-//		gridcell.set_coordinates(gridlist.getobj().lon + offset, gridlist.getobj().lat + offset);
-		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
+		gridcell.set_coordinates(gridlist.getobj().lon + offset, gridlist.getobj().lat + offset);
 
 	// Load spinup data for all variables
 

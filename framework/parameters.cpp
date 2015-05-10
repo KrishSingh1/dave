@@ -451,8 +451,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("readNfert",&readNfert,1,CB_NONE,"Whether to read N fertilization from input file");
 		declareitem("printseparatestands",&printseparatestands,1,CB_NONE,"Whether to print multiple stands within a land cover type (except cropland) separately");
 		declareitem("iftillage",&iftillage,1,CB_NONE,"Whether to simulate tillage by increasing soil respiration");
-		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"Whether static landcover fractions are set in the ins-file (0,1)");
-		declareitem("cftfrac_fixed",&frac_fixed[CROPLAND],1,CB_NONE,"Whether static crop fractions are read from input file (0,1)");
+		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"whether to use fixed landcover fractions (all landcovers have equal area) (1) or read landcover fractions from a file (0)");
+		declareitem("cftfrac_fixed",&frac_fixed[CROPLAND],1,CB_NONE,"whether to use fixed crop fractions (active crop stand types have equal area) (1) or read crop fractions from a file (0)");
 		declareitem("textured_soil",&textured_soil,1,CB_NONE,"Use silt/sand fractions specific to soiltype");
 
 		declareitem("state_path", &state_path, 300, CB_NONE, "State files directory (for restarting from, or saving state files)");
@@ -690,9 +690,9 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("fertdates",ppft->fertdates,0,365,2,CB_NONE,
 			"Fertilisation dates, relative to sowing");
 		declareitem("fertrate",ppft->fertrate,0.0,1.0,2,CB_NONE,
-			"Fertilisation dates, relative to sowing");
+			"Fraction of total fertilisation at fertilisation event");
 		declareitem("N_appfert",&ppft->N_appfert,0.0,300.0,1,CB_NONE,
-			"Fertilisation dates, relative to sowing");
+			"Fertilisation rate");
 
 		declareitem("T_vn_min",&ppft->T_vn_min,-1000.0,1000.0,1,CB_NONE,
 			"Min temperature for vernalization");
@@ -707,11 +707,11 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("T_veg_max",&ppft->T_veg_max,-1000.0,1000.0,1,CB_NONE,
 			"Max temperature for the vegetative phase");
 		declareitem("T_rep_min",&ppft->T_rep_min,-1000.0,1000.0,1,CB_NONE,
-			"Min temperature for the vegetative phase");
+			"Min temperature for the reproductive phase");
 		declareitem("T_rep_opt",&ppft->T_rep_opt,-1000.0,1000.0,1,CB_NONE,
-			"Opt temperature for the vegetative phase");
+			"Opt temperature for the reproductive phase");
 		declareitem("T_rep_max",&ppft->T_rep_max,-1000.0,1000.0,1,CB_NONE,
-			"Max temperature for the vegetative phase");
+			"Max temperature for the reproductive phase");
 		declareitem("photo",ppft->photo,-1000.0,1000.0,3,CB_NONE,
 			"Parameters for photoperiod");
 		declareitem("dev_rate_veg",&ppft->dev_rate_veg,-1000.0,1000.0,1,CB_NONE,
@@ -719,29 +719,29 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("dev_rate_rep",&ppft->dev_rate_rep,-1000.0,1000.0,1,CB_NONE,
 			"Maximal reproductive develoment rate");
 		declareitem("a1",&ppft->a1,-1000.0,1000.0,1,CB_NONE,
-			"a1 parater for allocation with N stress");
+			"a1 parameter for allocation with N stress");
 		declareitem("b1",&ppft->b1,-1000.0,1000.0,1,CB_NONE,
-			"b1 parater for allocation with N stress");
+			"b1 parameter for allocation with N stress");
 		declareitem("c1",&ppft->c1,-1000.0,1000.0,1,CB_NONE,
-			"c1 parater for allocation with N stress");
+			"c1 parameter for allocation with N stress");
 		declareitem("d1",&ppft->d1,-1000.0,1000.0,1,CB_NONE,
-			"d1 parater for allocation with N stress");
+			"d1 parameter for allocation with N stress");
 		declareitem("a2",&ppft->a2,-1000.0,1000.0,1,CB_NONE,
-			"a2 parater for allocation with N stress");
+			"a2 parameter for allocation with N stress");
 		declareitem("b2",&ppft->b2,-1000.0,1000.0,1,CB_NONE,
-			"b2 parater for allocation with N stress");
+			"b2 parameter for allocation with N stress");
 		declareitem("c2",&ppft->c2,-1000.0,1000.0,1,CB_NONE,
-			"c2 parater for allocation with N stress");
+			"c2 parameter for allocation with N stress");
 		declareitem("d2",&ppft->d2,-1000.0,1000.0,1,CB_NONE,
-			"d2 parater for allocation with N stress");
+			"d2 parameter for allocation with N stress");
 		declareitem("a3",&ppft->a3,-1000.0,1000.0,1,CB_NONE,
-			"a3 parater for allocation with N stress");
+			"a3 parameter for allocation with N stress");
 		declareitem("b3",&ppft->b3,-1000.0,1000.0,1,CB_NONE,
-			"b3 parater for allocation with N stress");
+			"b3 parameter for allocation with N stress");
 		declareitem("c3",&ppft->c3,-1000.0,1000.0,1,CB_NONE,
-			"c3 parater for allocation with N stress");
+			"c3 parameter for allocation with N stress");
 		declareitem("d3",&ppft->d3,-1000.0,1000.0,1,CB_NONE,
-			"d3 parater for allocation with N stress");
+			"d3 parameter for allocation with N stress");
 
 		callwhendone(CB_CHECKPFT);
 		

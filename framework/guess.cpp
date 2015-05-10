@@ -2350,7 +2350,7 @@ void MassBalance::serialize(ArchiveStream& arch) {
 		& nflux;
 }
 
-/// Should be used together with check_patch() e.g. in framework()
+/// Should be used together with check_indiv()
 void MassBalance::init_indiv(Individual& indiv) {
 
 	Patch& patch = indiv.vegetation.patch;
@@ -2428,7 +2428,7 @@ if(date.year >= nyear_spinup)
 	return balance;
 }
 
-/// Should be preceded by init_patch() e.g. i framework()
+/// Should be preceded by init_indiv()
 /** check_harvest must be true if growth_daily() is tested
  *  canopy_exchange() and growth_daily() and functions in between cannot be tested separately
  */
@@ -2524,6 +2524,7 @@ if(date.year >= nyear_spinup)
 /// Should be preceded by init_patch() e.g. i framework()
 /** check_harvest must be true if growth_daily() is tested
  *  canopy_exchange() and growth_daily() and functions in between cannot be tested separately
+ *  (init_patch() must be before canopy_exchange() and check_patch() after growth_daily()
  */
 bool MassBalance::check_patch(Patch& patch, bool check_harvest) {
 

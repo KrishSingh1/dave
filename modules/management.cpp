@@ -566,7 +566,7 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 
 		// residues
 		// Carbon
-		if ((i.cmass_leaf + i.cmass_agpool) > 0.0) {
+		if ((i.cmass_leaf + i.cmass_agpool + i.cmass_dead_leaf + i.cmass_stem) > 0.0) {
 
 			// removed residues are oxidised
 			residue_outtake = pft.res_outtake * (i.cmass_leaf + i.cmass_agpool + i.cmass_dead_leaf + i.cmass_stem);
@@ -581,7 +581,7 @@ void harvest_crop(Harvest_CN& i, Pft& pft, bool alive, bool isintercropgrass) {
 		i.cmass_stem = 0.0;
 
 		// Nitrogen:
-		if ((i.nmass_leaf + i.nmass_agpool) > 0.0) {
+		if ((i.nmass_leaf + i.nmass_agpool + i.nmass_dead_leaf) > 0.0) {
 
 			// removed residues are oxidised
 			residue_outtake = pft.res_outtake * (i.nmass_leaf + i.nmass_agpool + i.nmass_dead_leaf);

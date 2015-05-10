@@ -465,6 +465,7 @@ public:
 
 	void init(Gridcell& gridcell);
 	void check(Gridcell& gridcell);
+	// indiv and patch-level functions are for use with true crop stands only
 	void init_indiv(Individual& indiv);
 	bool check_indiv(Individual& indiv, bool check_harvest = false);
 	bool check_indiv_C(Individual& indiv, bool check_harvest = false);

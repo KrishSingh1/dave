@@ -203,6 +203,13 @@ extern int lasthistyear_sim;
 /// Number of historic years in simulation. Optionally set in instruction file.
 extern int nyear_hist_sim;
 
+/// Activates the conversion of coordinates to the centre of the gridcell before searching for the nearest data point.
+/**	The gridlist spatial resolution is needed for finding the correct input coordinates with a finer-scaled gridlist.
+ *	Make sure that the input module supports different spatial resolutions and that the gridlist is sufficiently large 
+ *	to be parsed successfully or set gridlist_spatial_resolution manually in the code.
+ */
+extern bool search_for_centre_of_gridcell;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Settings controlling the saving and loading from state files
 

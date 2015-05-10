@@ -75,7 +75,7 @@ xtring state_path;
 bool restart;
 bool save_state;
 int state_year;
-
+	
 bool readsowingdates = false;
 bool readharvestdates = false;
 bool readNfert = false;
@@ -86,6 +86,7 @@ int firsthistyear_sim = -1;
 int lasthistyear_sim = -1;
 int nyear_hist_sim = 0;
 
+bool search_for_centre_of_gridcell = false;
 ///////////////////////////////////////////////////////////////////////////////////////
 // Implementation of the Paramlist class
 
@@ -365,6 +366,8 @@ void plib_declarations(int id,xtring setname) {
 		declare_parameter("firsthistyear", &firsthistyear_sim, 1, 10000, "First historic year after spinup");
 		declare_parameter("lasthistyear", &lasthistyear_sim, 1, 10000, "Last historic year of simulation");
 		declare_parameter("nyear_hist", &nyear_hist_sim, 1, 10000, "Number of simulation years to run after spinup");
+		declareitem("search_for_centre_of_gridcell", &search_for_centre_of_gridcell,1,CB_NONE, 
+			"If specified, the centre of the gridcell will be used when searching for data for a gridcell");
 		declareitem("vegmode",&strparam,16,CB_VEGMODE,
 			"Vegetation mode (\"INDIVIDUAL\", \"COHORT\", \"POPULATION\")");
 		declareitem("ifbgestab",&ifbgestab,1,CB_NONE,
@@ -449,7 +452,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("printseparatestands",&printseparatestands,1,CB_NONE,"Whether to print multiple stands within a land cover type (except cropland) separately");
 		declareitem("iftillage",&iftillage,1,CB_NONE,"Whether to simulate tillage by increasing soil respiration");
 		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"Whether static landcover fractions are set in the ins-file (0,1)");
-		declareitem("cftfrac_fixed",&frac_fixed[CROPLAND],1,CB_NONE,"Whether static crop fractions are read from input file (0,1)");	
+		declareitem("cftfrac_fixed",&frac_fixed[CROPLAND],1,CB_NONE,"Whether static crop fractions are read from input file (0,1)");
 		declareitem("textured_soil",&textured_soil,1,CB_NONE,"Use silt/sand fractions specific to soiltype");
 
 		declareitem("state_path", &state_path, 300, CB_NONE, "State files directory (for restarting from, or saving state files)");

@@ -134,8 +134,11 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 	int soilcode;
 	int elevation;
 
-	if(climate_spatial_resolution != gridlist_spatial_resolution && !search_for_centre_of_gridcell)
+	// Ensure that settings are correct when using input data with different spatial resolution (only needed for land cover input in this module)
+	if(run_landcover && climate_spatial_resolution != gridlist_spatial_resolution) {
+		if(!search_for_centre_of_gridcell || !searchradius)
 		fail("We must use a searchradius and search for centre of a gridcell when using different spatial resolution in input data\n");
+	}
 
 	// Make sure we use the first gridcell in the first call to this function,
 	// and then step through the gridlist in subsequent calls.
@@ -235,7 +238,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		
 		// Tell framework the coordinates of this grid cell
 //		double offset = gridlist_spatial_resolution / 2.0;
-//		gridcell.set_coordinates(gridlist.getobj().lon + offset, gridlist.getobj().lat + offset);	// Corrects previous errror
+//		gridcell.set_coordinates(gridlist.getobj().lon + offset, gridlist.getobj().lat + offset); // Corrects previous error (centre of gridcell should be used)
 		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
 
 		// Get nitrogen deposition data

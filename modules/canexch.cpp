@@ -88,7 +88,7 @@ void interception(Patch& patch,Climate& climate) {
 
 		if (!negligible(pet)) {
 
-			if (indiv.alive) { //Alive check - TP 010914
+			if (indiv.alive) {
 				// Storage capacity for precipitation by canopy (point scale)
 				scap=climate.prec*min(indiv.lai_indiv_today()*indiv.pft.intc,0.999);
 
@@ -1483,7 +1483,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 		indiv.wstress = ppft.wstress;
 
-		if (indiv.alive) { // Alive check - TP 210814
+		if (indiv.alive) {
 			if (indiv.wstress) {
 				indiv.aet += ppft.wsupply;
 			}

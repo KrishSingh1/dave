@@ -50,6 +50,9 @@ private:
 
 	/// Number of years to increase cropland fraction linearly from 0 to first year's value
 	int nyears_cropland_ramp;
+
+	/// whether to use stand types with suitable rainfed crops (based on crop pft tb and gridcell latitude) when using fixed crop fractions
+	bool frac_fixed_default_crops;
 };
 
 #endif // LANDCOVERINPUT_H

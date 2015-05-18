@@ -278,7 +278,7 @@ void CommonOutput::define_output_tables() {
 	if (run_landcover && ifslowharvestpool) {
 		 cpool_columns += ColumnDescriptor("HarvSlowC",   10, 3);
 	}
-	cpool_columns += ColumnDescriptor("Total",            10, 5);
+	cpool_columns += ColumnDescriptor("Total",            10, 3);
 
 	// CLITTER
 	ColumnDescriptors clitter_columns = cmass_columns;

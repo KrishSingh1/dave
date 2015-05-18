@@ -914,7 +914,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 				// Added a scalar depending on individual lai to slow down light optimization of newly shaded leafs
 				// Peltoniemi et al. 2012
-				indiv.nextin = exp(0.12 * min(10.0, indiv.lai_indiv_today()));
+				indiv.nextin = exp(0.12 * min(10.0*indiv.phen, indiv.lai_indiv_today()));
 
 				// Calculate optimal leaf nitrogen associated with photosynthesis and none photosynthetic 
 				// active nitrogen (Haxeltine et al. 1996 eqn 27/28)

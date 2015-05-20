@@ -16,7 +16,6 @@
 #include "inputdefinitions.h"
 using namespace inputdef;
 class Gridcell;
-class Input;
 class LandcoverInputModule;
 class ManagementInputModule;
 
@@ -69,7 +68,7 @@ public:
 	 *  return true;
 	 *
 	 *  Currently the following member variables of the climate member of gridcell must be
-	 *  initialised: temp, prec, insol. If the model is to be driven by quasi-daily
+	 *  initialised: co2, temp, prec, insol. If the model is to be driven by quasi-daily
 	 *  values of the climate variables derived from monthly means, this day's values
 	 *  will presumably be extracted from arrays containing the interpolated daily
 	 *  values (see function getgridcell):
@@ -181,7 +180,6 @@ private:
  *  input module to use), and CRUInputModule is the class to associate
  *  with that name.
  */
-
 #define REGISTER_INPUT_MODULE(name, class_name) \
 namespace class_name##_registration { \
 \

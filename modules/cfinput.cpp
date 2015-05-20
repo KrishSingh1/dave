@@ -263,9 +263,10 @@ void check_same_spatial_domains(const std::vector<GuessNC::CF::GridcellOrderedVa
 			fail("%s and %s don't have the same spatial domain",
 				variables[0]->get_variable_name().c_str(),
 				variables[1]->get_variable_name().c_str());
-			}
 		}
 	}
+}
+
 }
 
 CFInput::CFInput()

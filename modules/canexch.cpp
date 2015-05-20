@@ -1178,7 +1178,6 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
 
 			double gp_leafon = gpterm(leafon_photosynthesis.adtmm, climate.co2, pft.lambda_max, daylength) + pft.gmin * indiv.fpc;
 
-
 			// Increment patch sums of non-water-stressed gp by individual value
 			gp_patch +=  (date.diurnal() ? indiv.gpterms[day.period] : indiv.gpterm) + pft.gmin * indiv.fpc_today();
 			gp_leafon_patch += gp_leafon;

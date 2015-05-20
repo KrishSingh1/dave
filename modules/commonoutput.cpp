@@ -380,9 +380,9 @@ void CommonOutput::define_output_tables() {
 
 	// VMAXNLIM
 	ColumnDescriptors vmaxnlim_columns;
-	vmaxnlim_columns += ColumnDescriptors(pfts,            6, 2);
-	vmaxnlim_columns += ColumnDescriptor("Total",          6, 2);
-	vmaxnlim_columns += ColumnDescriptors(landcovers,      9, 2);
+	vmaxnlim_columns += ColumnDescriptors(pfts,            8, 2);
+	vmaxnlim_columns += ColumnDescriptor("Total",          8, 2);
+	vmaxnlim_columns += ColumnDescriptors(landcovers,     13, 2);
 
 	// NFLUX
 	ColumnDescriptors nflux_columns;

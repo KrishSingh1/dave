@@ -1,12 +1,12 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \file cropphenology.h
-/// \brief Crop phenology including phu calculations					
+/// \brief Crop phenology including phu calculations
 /// \author Mats Lindeskog
 /// $Date$
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef CROPPHENOLOGY_H
-#define CROPPHENOLOGY_H
+#ifndef LPJ_GUESS_CROPPHENOLOGY_H
+#define LPJ_GUESS_CROPPHENOLOGY_H
 
 /// Calculation of down-scaling of lai during crop senescence
 double senescence_curve(Pft& pft, double fphu);
@@ -15,4 +15,4 @@ void crop_phenology(Patch& patch);
 /// Updates crop phen from yesterday's lai_daily
 void leaf_phenology_crop(Pft& pft, Patch& patch);
 
-#endif // CROPPHENOLOGY_H
+#endif // LPJ_GUESS_CROPPHENOLOGY_H

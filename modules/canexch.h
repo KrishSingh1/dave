@@ -26,6 +26,9 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 					double nactive, bool ifnlimvmax,
 					PhotosynthesisResult& result, double vm);
 
+/// Nitrogen- and landuse specific alpha a
+double alphaa(const Pft& pft);
+
 // Constants for photosynthesis calculations
 
 /// conversion factor for solar radiation at 550 nm from J/m2 to mol_quanta/m2 (E=mol quanta); mol J-1

@@ -49,14 +49,14 @@ void initbvoc(){
 	const double frabs_Q = 0.35;    // fraction of light absorbed in the first
 	                                // canopy layer (for standard measurements),
 	                                // 25% to 35% (Almut)
-	const double par = frabs_Q * Qstand * 3600 / ALPHAA / CQ;
-			// par for the standard condition, J m-2 d-1
+	double par;						// par for the standard condition, J m-2 d-1
 	const double daylength = 12;
 
 	PhotosynthesisResult phot;
  	pftlist.firstobj();
  	while (pftlist.isobj) {
  		Pft& pft = pftlist.getobj();
+		par= frabs_Q * Qstand * 3600 / alphaa(pft) / CQ;
 
 		photosynthesis(CO2, Tstand, par, daylength, 1.0, pft.lambda_max, pft, 1.0, false, phot, -1);
 

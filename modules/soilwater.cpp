@@ -2,7 +2,7 @@
 /// \file soilwater.cpp
 /// \brief Soil hydrology and snow
 ///
-/// Version including evaporation from soil surface, based on work by Dieter Gerten, 
+/// Version including evaporation from soil surface, based on work by Dieter Gerten,
 /// Sibyll Schaphoff and Wolfgang Lucht, Potsdam
 ///
 /// Includes baseflow runoff
@@ -69,12 +69,12 @@ void snow(double prec, double temp, double& snowpack, double& rain_melt) {
 	rain_melt = prec + melt;
 }
 
-/// SNOW_NINPUT   
-/** Nitrogen deposition and fertilization on a snowpack stays in snowpack 
- *  until it starts melting. If no snowpack daily nitrogen deposition and 
+/// SNOW_NINPUT
+/** Nitrogen deposition and fertilization on a snowpack stays in snowpack
+ *  until it starts melting. If no snowpack daily nitrogen deposition and
  *  fertilization goes to the soil available mineral nitrogen pool.
  */
-void snow_ninput(double prec, double snowpack_after, double rain_melt, 
+void snow_ninput(double prec, double snowpack_after, double rain_melt,
 	           double dndep, double dnfert, double& snowpack_nmass, double& ninput) {
 
 	// calculates this day melt and original snowpack size
@@ -83,8 +83,8 @@ void snow_ninput(double prec, double snowpack_after, double rain_melt,
 
 	// snow exist
 	if (!negligible(snowpack)) {
-		
-		// if some snow is melted, fraction of nitrogen in snowpack 
+
+		// if some snow is melted, fraction of nitrogen in snowpack
 		// will go to soil available nitrogen pool
 		if (melt > 0.0) {
 			double frac_melt  = melt / snowpack;
@@ -92,7 +92,7 @@ void snow_ninput(double prec, double snowpack_after, double rain_melt,
 			ninput            = melt_nmass + dndep + dnfert;
 			snowpack_nmass   -= melt_nmass;
 		}
-		// if no snow is melted, then add daily nitrogen deposition 
+		// if no snow is melted, then add daily nitrogen deposition
 		// and fertilization to snowpack nitrogen pool
 		else {
 			snowpack_nmass += (dndep + dnfert);
@@ -362,7 +362,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 			soil.rain_melt = (soil.wcont[0] - 1) * soil.soiltype.awc[0];
 			soil.wcont[0] = 1;
 		} else {
-			soil.rain_melt = 0;			
+			soil.rain_melt = 0;
 		}
 
 		soil.wcont_evap = soil.wcont[0];
@@ -377,24 +377,26 @@ void irrigation(Patch& patch) {
 	Soil& soil = patch.soil;
 
 	patch.irrigation_d = 0.0;
-	if(date.day == 0)
+	if (date.day == 0) {
 		patch.irrigation_y = 0.0;
-
-	if(patch.stand.isirrigated) {
-		for(unsigned int i = 0; i < patch.pft.nobj; i++) {
-
-			Patchpft& ppft = patch.pft[i];
-			if(patch.stand.pft[i].irrigated && ppft.cropphen->growingseason) {
-				patch.irrigation_d += ppft.water_deficit_d;
-				if(ppft.water_deficit_d < 0.0) {
-					fail("irrigation(): Negative water deficit for PFT %s!\n", (char*)ppft.pft.name);
-				}
-			}
-		}
-		patch.irrigation_y += patch.irrigation_d;
-		soil.rain_melt += patch.irrigation_d;
-		soil.max_rain_melt += patch.irrigation_d;
 	}
+
+	if (!patch.stand.isirrigated) {
+		return;
+	}
+	for (int i = 0; i < npft; i++) {
+
+		Patchpft& ppft = patch.pft[i];
+		if (patch.stand.pft[i].irrigated && ppft.cropphen->growingseason) {
+			if (ppft.water_deficit_d < 0.0) {
+				fail("irrigation: Negative water deficit for PFT %s!\n", (char*)ppft.pft.name);
+			}
+			patch.irrigation_d += ppft.water_deficit_d;
+		}
+	}
+	patch.irrigation_y += patch.irrigation_d;
+	soil.rain_melt += patch.irrigation_d;
+	soil.max_rain_melt += patch.irrigation_d;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

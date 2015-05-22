@@ -1439,7 +1439,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 				ppft.wsupply = ppft.wsupply_leafon * ppft.phen;
 			}
 
-			ppft.wstress = ppft.wsupply < patch.wdemand && !negligible(ppft.phen);
+			ppft.wstress = ppft.wsupply < patch.wdemand && !negligible(ppft.phen) && !(pft.phenology==CROPGREEN && (patch.wdemand-ppft.wsupply)<=1.0e-10);
 
 			// Calculate water-stressed canopy conductance on FPC basis assuming
 			// FPAR=1 and deducting canopy conductance component not associated
@@ -1460,7 +1460,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			}
 			else if (day.isend) {
 
-				ppft.wstress_day = ppft.wsupply < patch.wdemand_day && !negligible(ppft.phen);
+				ppft.wstress_day = ppft.wsupply < patch.wdemand_day && !negligible(ppft.phen) && !(pft.phenology==CROPGREEN && (patch.wdemand-ppft.wsupply)<=1.0e-10);
 
 				ppft.gcbase_day = ppft.wstress_day ? max(gc_monteith(ppft.wsupply,
 						patch.eet_net_veg) - gmin * ppft.wsupply / patch.wdemand_day, 0.0) : 0;

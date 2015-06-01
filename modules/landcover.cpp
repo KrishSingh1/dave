@@ -75,10 +75,12 @@ void landcover_init(Gridcell& gridcell, LandcoverInputModule* landcover_input_mo
 	stlist.firstobj();
 	while (stlist.isobj) {
 		StandType& st = stlist.getobj();
-		st.frac_old = st.frac;
+		Gridcellst& gcst = gridcell.st[st.id];
 
-		if(st.frac > 0.0) {
-			gridcell.create_stand_lu(st, st.frac);
+		gcst.frac_old = gcst.frac;
+
+		if(gcst.frac > 0.0) {
+			gridcell.create_stand_lu(st, gcst.frac);
 		}
 
 		stlist.nextobj();
@@ -106,21 +108,20 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
 	//Save old fraction values:									
 	for(int i=0; i<NLANDCOVERTYPES; i++)
 		gridcell.landcoverfrac_old[i] = gridcell.landcoverfrac[i];
-	for(int i=0; i<nst; i++) {
-		StandType& st = stlist[i];
+	for(unsigned int i = 0; i < gridcell.st.nobj; i++) {
+		Gridcellst& gcst = gridcell.st[i];
 
-		st.frac_old = st.frac;
-		if(st.landcover == CROPLAND)
-			cropfrac_sum_old += st.frac_old;
+		gcst.frac_old = gcst.frac;
+		if(gcst.st.landcover == CROPLAND)
+			cropfrac_sum_old += gcst.frac_old;
 	}
 
 	//Get new gridcell.landcoverfrac and/or standtype.frac from LUdata and CFTdata.		
 	input_module->getlandcover(gridcell);	
 
-	for(int i=0; i<nst; i++) {
-		StandType& st = stlist[i];
-
-		st.frac_change = st.frac - st.frac_old ;
+	for(unsigned int i = 0; i < gridcell.st.nobj; i++) {
+		Gridcellst& gcst = gridcell.st[i];
+		gcst.frac_change = gcst.frac - gcst.frac_old ;
 	}
 
 	if(!lcfrac_fixed) {
@@ -138,11 +139,12 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
 	}
 
 	if(run[CROPLAND] && (!frac_fixed[CROPLAND] || !lcfrac_fixed)) {
-		for(int i=0;i<nst;i++) {
+		for(unsigned int i = 0; i < gridcell.st.nobj; i++) {
+			Gridcellst& gcst = gridcell.st[i];
 
-			if(stlist[i].landcover == CROPLAND) {
+			if(gcst.st.landcover == CROPLAND) {
 
-				double stfrac_change = stlist[i].frac_change;
+				double stfrac_change = gcst.frac_change;
 
 				if(stfrac_change < 0.0)
 					transferred_fraction -= stfrac_change;
@@ -193,8 +195,10 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
  */
 void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, double* primary_st_frac_transfer) {
 
-	for(int i=0; i<nst; i++)
-		stlist[i].nstands = 0;
+	for(unsigned int i = 0; i < gridcell.st.nobj; i++) {
+		Gridcellst& gcst = gridcell.st[i];
+		gcst.nstands = 0;
+	}
 
 	for(unsigned int i = 0; i < gridcell.nbr_stands(); i++) {
 		Stand& stand = gridcell[i];
@@ -207,17 +211,18 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, double* primary
 		stand.cloned_fraction = 0.0;
 		if(stand.transfer_area_st)
 			memset(stand.transfer_area_st, 0, nst * sizeof(double));
-		stlist[stand.stid].nstands++;
+		gridcell.st[stand.stid].nstands++;
 	}
 
 
 	for(int from=0; from<nst; from++) {
 
 		StandType& st = stlist[from];
+		Gridcellst& gcst = gridcell.st[from];
 
-		if(st.gross_frac_decrease > 0.0) {
+		if(gcst.gross_frac_decrease > 0.0) {
 
-			if(st.nstands > 1) {
+			if(gcst.nstands > 1) {
 
 				int nlaps = 1;
 				if(ifprimary_lc_transfer)
@@ -288,14 +293,14 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, double* primary
 
 										// Don't reduce stands younger than the age limit, unless this is the last stand in the loop or the initial stand has been killed
 //										if(gross_land_transfer && date.year - first_year < age_limit_reduce && count_st != st.nstands && !reduce_all_stands && !restart) continue;
-										if(date.year - first_year < age_limit_reduce && count_st != st.nstands && !reduce_all_stands && !restart) continue;
+										if(date.year - first_year < age_limit_reduce && count_st != gcst.nstands && !reduce_all_stands && !restart) continue;
 							
 										// convert equal percentage of areas from all stands
 										if(reduce_all_stands) {
-											stand.frac_change += st_change_remain * stand.get_gridcell_fraction() / st.frac;
-											stand.gross_frac_decrease -= st_change_remain * stand.get_gridcell_fraction() / st.frac;
-											stand.transfer_area_st[to] = -st_change_remain * stand.get_gridcell_fraction() / st.frac;
-											stand.set_gridcell_fraction(stand.get_gridcell_fraction() + st_change_remain * stand.get_gridcell_fraction() / st.frac);
+											stand.frac_change += st_change_remain * stand.get_gridcell_fraction() / gcst.frac;
+											stand.gross_frac_decrease -= st_change_remain * stand.get_gridcell_fraction() / gcst.frac;
+											stand.transfer_area_st[to] = -st_change_remain * stand.get_gridcell_fraction() / gcst.frac;
+											stand.set_gridcell_fraction(stand.get_gridcell_fraction() + st_change_remain * stand.get_gridcell_fraction() / gcst.frac);
 										}
 										else {
 											if(stand.get_gridcell_fraction() > 0.0) {
@@ -307,7 +312,7 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, double* primary
 													stand.transfer_area_st[to] -= st_change_remain;
 													stand.set_gridcell_fraction(stand.get_gridcell_fraction() + st_change_remain);
 
-													if(stand.get_gridcell_fraction() < 1.0e-15 || st.frac == 0.0 && stand.get_gridcell_fraction() < 1.0e-14)
+													if(stand.get_gridcell_fraction() < 1.0e-15 || gcst.frac == 0.0 && stand.get_gridcell_fraction() < 1.0e-14)
 														stand.set_gridcell_fraction(0.0);
 
 													st_change_remain = 0.0;
@@ -341,19 +346,19 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, double* primary
 					}
 				}
 			}
-			else if(st.nstands == 1 ) {
+			else if(gcst.nstands == 1 ) {
 
 				for(unsigned int i = 0; i < gridcell.size(); i++) {
 
 					Stand& stand = gridcell[i];
 
-					if(stand.stid == st.id) {
+					if(stand.stid == gcst.id) {
 
-						stand.frac_change = -st.gross_frac_decrease;
-						stand.gross_frac_decrease = st.gross_frac_decrease;
+						stand.frac_change = -gcst.gross_frac_decrease;
+						stand.gross_frac_decrease = gcst.gross_frac_decrease;
 						stand.set_gridcell_fraction(stand.get_gridcell_fraction() + stand.frac_change);
 
-						if(stand.get_gridcell_fraction() < 1.0e-15 || st.frac == 0.0 && stand.get_gridcell_fraction() < 1.0e-14)
+						if(stand.get_gridcell_fraction() < 1.0e-15 || gcst.frac == 0.0 && stand.get_gridcell_fraction() < 1.0e-14)
 							stand.set_gridcell_fraction(0.0);
 
 						for(int to=0; to<nst; to++) {
@@ -383,10 +388,11 @@ void expand_stands(Gridcell& gridcell, double* st_frac_transfer) {
 	for(int i=0; i<nst; i++) {
 
 		StandType& st = stlist[i];
+		Gridcellst& gcst = gridcell.st[i];
 		landcovertype lc = st.landcover;
 		bool expand_to_new_stand = gridcell.expand_to_new_stand[lc];
 
-		if(st.gross_frac_increase > 0.0) {	// Not cloned stands
+		if(gcst.gross_frac_increase > 0.0) {	// Not cloned stands
 
 			if(!expand_to_new_stand) {
 
@@ -400,9 +406,9 @@ void expand_stands(Gridcell& gridcell, double* st_frac_transfer) {
  
 						if(!stand.cloned) {
 
-							stand.frac_change += st.gross_frac_increase;
-							stand.gross_frac_increase = st.gross_frac_increase;
-							stand.set_gridcell_fraction(stand.get_gridcell_fraction() + st.gross_frac_increase);
+							stand.frac_change += gcst.gross_frac_increase;
+							stand.gross_frac_increase = gcst.gross_frac_increase;
+							stand.set_gridcell_fraction(stand.get_gridcell_fraction() + gcst.gross_frac_increase);
 							if(fabs(stand.frac_change) < 1.0e-15)
 								stand.frac_change = 0.0;
 						}
@@ -603,19 +609,20 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 	for(int i=0; i<nst; i++) {
 
 		StandType& st = stlist[i];
+		Gridcellst& gcst = gridcell.st[i];
 
-		if(st.frac_change > 0.0) {
-			net_receptor_remain[i] = st.frac_change;
+		if(gcst.frac_change > 0.0) {
+			net_receptor_remain[i] = gcst.frac_change;
 			nreceptor_st++;
 		}
-		else if(st.frac_change < 0.0){
-			net_donor_remain[i] = -st.frac_change;
+		else if(gcst.frac_change < 0.0){
+			net_donor_remain[i] = -gcst.frac_change;
 			ndonor_st++;
 		}
 
 		if(recip_lc_change[st.landcover] > 0.0) {
-			recip_receptor_remain[i] = recip_lc_change[st.landcover] * st.frac_old / gridcell.landcoverfrac_old[st.landcover];
-			recip_donor_remain[i] = recip_lc_change[st.landcover] * st.frac_old / gridcell.landcoverfrac_old[st.landcover];
+			recip_receptor_remain[i] = recip_lc_change[st.landcover] * gcst.frac_old / gridcell.landcoverfrac_old[st.landcover];
+			recip_donor_remain[i] = recip_lc_change[st.landcover] * gcst.frac_old / gridcell.landcoverfrac_old[st.landcover];
 		}
 	}
 
@@ -628,22 +635,24 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 		for(int from=0; from<nst; from++) {
 
 			StandType& st_donor = stlist[from];
+			Gridcellst& gcst_donor = gridcell.st[from];
 
-			if(st_donor.frac_change < 0.0) {
+			if(gcst_donor.frac_change < 0.0) {
 
 				for(int to=0; to<nst; to++) {
 
 					StandType& st_receptor = stlist[to];
+					Gridcellst& gcst_receptor = gridcell.st[to];
 		
 					if(ndonor_st == 1) {
 
-						if(st_receptor.frac_change > 0.0)
-							st_frac_transfer[index(from, to)] =  st_receptor.frac_change;
+						if(gcst_receptor.frac_change > 0.0)
+							st_frac_transfer[index(from, to)] =  gcst_receptor.frac_change;
 					}
 					else if(nreceptor_st == 1) {
 
-						if(st_receptor.frac_change > 0.0)
-							st_frac_transfer[index(from, to)] = - st_donor.frac_change;
+						if(gcst_receptor.frac_change > 0.0)
+							st_frac_transfer[index(from, to)] = - gcst_donor.frac_change;
 					}
 				}
 			}
@@ -661,13 +670,14 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 			for(int from=0; from<nst; from++) {
 
 				StandType& st = stlist[from];
+				Gridcellst& gcst = gridcell.st[from];
 				if(st.landcover == i) {
-					abs_frac_change_sum += fabs(st.frac_change);
-					frac_change_sum += st.frac_change;
-					if(st.frac_change < 0.0)
-						donor_sum -= st.frac_change;
-					else if(st.frac_change > 0.0)
-						receptor_sum += st.frac_change;
+					abs_frac_change_sum += fabs(gcst.frac_change);
+					frac_change_sum += gcst.frac_change;
+					if(gcst.frac_change < 0.0)
+						donor_sum -= gcst.frac_change;
+					else if(gcst.frac_change > 0.0)
+						receptor_sum += gcst.frac_change;
 				}
 			}
 			if(abs_frac_change_sum != fabs(frac_change_sum)) {
@@ -731,18 +741,20 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 	for(int from=0; from<nst; from++) {
 
 		StandType& st_donor = stlist[from];
+		Gridcellst& gcst_donor = gridcell.st[from];
 
 		if(recip_donor_remain[from] > 1.0e-14) {
 
 			for(int to=0; to<nst; to++) {
 
 				StandType& st_receptor = stlist[to];
+				Gridcellst& gcst_receptor = gridcell.st[to];
 
 				if(recip_transfer_remain[st_donor.landcover][st_receptor.landcover]  > 1.0e-14 
 					&& recip_receptor_remain[to] > 1.0e-14 && recip_donor_remain[from] > 1.0e-14) {
 
 					if(equal_distribution) {
-						st_frac_transfer[index(from, to)] += recip_lc_frac_transfer[st_donor.landcover][st_receptor.landcover] * st_donor.frac_old / gridcell.landcoverfrac_old[st_donor.landcover] * st_receptor.frac_old / gridcell.landcoverfrac_old[st_receptor.landcover];
+						st_frac_transfer[index(from, to)] += recip_lc_frac_transfer[st_donor.landcover][st_receptor.landcover] * gcst_donor.frac_old / gridcell.landcoverfrac_old[st_donor.landcover] * gcst_receptor.frac_old / gridcell.landcoverfrac_old[st_receptor.landcover];
 					}
 					else {
 
@@ -1016,17 +1028,18 @@ void stand_dynamics(Gridcell& gridcell) {
 	stlist.firstobj();
 	while (stlist.isobj) {
 		StandType& st=stlist.getobj();
+		Gridcellst& gcst = gridcell.st[st.id];
 		landcovertype lc = st.landcover;
 
 		bool expand_to_new_stand = gridcell.expand_to_new_stand[lc];
 
-		if(st.gross_frac_increase || st.gross_frac_decrease || st.frac == 0.0) {
+		if(gcst.gross_frac_increase || gcst.gross_frac_decrease || gcst.frac == 0.0) {
 			// first stand created
-			if(st.frac_old == 0.0 && st.frac > 0.0)
-				Stand& stand = gridcell.create_stand_lu(st, st.frac);
+			if(gcst.frac_old == 0.0 && gcst.frac > 0.0)
+				Stand& stand = gridcell.create_stand_lu(st, gcst.frac);
 
 			// last stand killed
-			else if(st.frac_old > 0.0 && st.frac == 0.0) {
+			else if(gcst.frac_old > 0.0 && gcst.frac == 0.0) {
 				Gridcell::iterator gc_itr = gridcell.begin();
 				while (gc_itr != gridcell.end()) {
 					Stand& stand = *gc_itr;
@@ -1039,13 +1052,13 @@ void stand_dynamics(Gridcell& gridcell) {
 			else {
 				if(expand_to_new_stand) {
 					// new stand created from other landcover types (pooled option, not created in transfer_to_new_stand())
-					if(st.gross_frac_increase > 0.0) {
+					if(gcst.gross_frac_increase > 0.0) {
 						// Fewer patches in secondary stands if npatch_secondarystand < npatch:
-						Stand& stand = gridcell.create_stand_lu(st, st.gross_frac_increase, npatch_secondarystand);
+						Stand& stand = gridcell.create_stand_lu(st, gcst.gross_frac_increase, npatch_secondarystand);
 					}
 				}
 				// secondary stand killed if all of its area converted to other landcover types
-				if(st.nstands > 1 && st.gross_frac_decrease > 0.0) {
+				if(gcst.nstands > 1 && gcst.gross_frac_decrease > 0.0) {
 					Gridcell::iterator gc_itr = gridcell.begin();
 					while (gc_itr != gridcell.end()) {
 						Stand& stand = *gc_itr;
@@ -1336,22 +1349,22 @@ double transfer_to_new_stand(Gridcell& gridcell, int stid_donor = -1, int stid_r
 
 				cloned_area += transfer_area;
 				stand.cloned_fraction -= transfer_area;
-				stlist[stid_donor].gross_frac_decrease -= transfer_area;
-				stlist[stid_donor].frac_change += transfer_area;
+				gridcell.st[stid_donor].gross_frac_decrease -= transfer_area;
+				gridcell.st[stid_donor].frac_change += transfer_area;
 				stand.gross_frac_decrease -= transfer_area;
 				stand.frac_change += transfer_area;
 				stand.transfer_area_st[stid_receptor] -= transfer_area;
-				stlist[stid_receptor].gross_frac_increase -= transfer_area;
-				stlist[stid_receptor].frac_change -= transfer_area;
+				gridcell.st[stid_receptor].gross_frac_increase -= transfer_area;
+				gridcell.st[stid_receptor].frac_change -= transfer_area;
 
-				if(stlist[stid_donor].gross_frac_decrease < 1.0e-15)
-					stlist[stid_donor].gross_frac_decrease = 0.0;
+				if(gridcell.st[stid_donor].gross_frac_decrease < 1.0e-15)
+					gridcell.st[stid_donor].gross_frac_decrease = 0.0;
 				if(stand.gross_frac_decrease < 1.0e-15)
 					stand.gross_frac_decrease = 0.0;
 				if(stand.transfer_area_st[stid_receptor] < 1.0e-15)
 					stand.transfer_area_st[stid_receptor] = 0.0;
-				if(stlist[stid_receptor].gross_frac_increase < 1.0e-15)
-					stlist[stid_receptor].gross_frac_increase = 0.0;
+				if(gridcell.st[stid_receptor].gross_frac_increase < 1.0e-15)
+					gridcell.st[stid_receptor].gross_frac_increase = 0.0;
 			}
 		}
 	}
@@ -1386,7 +1399,7 @@ void simulate_gross_lc_transfer(Gridcell& gridcell, double lc_frac_transfer[][NL
 
 
 /// Simulates gross landcover change by adding a specified fraction to the st_frac_transfer array
-void simulate_gross_st_transfer(double* st_frac_transfer) {
+void simulate_gross_st_transfer(Gridcell& gridcell, double* st_frac_transfer) {
 
 	// Added gross fraction transfer as percentage of the lesser of two stand types belonging to certain landcover types
 	double gross_lc_change_frac[NLANDCOVERTYPES][NLANDCOVERTYPES] = {0.0};
@@ -1404,15 +1417,17 @@ void simulate_gross_st_transfer(double* st_frac_transfer) {
 	for(int from=0; from<nst; from++) {
 
 		StandType& st_donor = stlist[from];
+		Gridcellst& gcst_donor = gridcell.st[from];
 
 		for(int to=0; to<nst; to++) {
 
 			StandType& st_receptor = stlist[to];
+			Gridcellst& gcst_receptor = gridcell.st[to];
 
 			if(gross_lc_change_frac[st_donor.landcover][st_receptor.landcover]) {
 
 				// All stand types with an area:
-				st_frac_transfer[index(from, to)] += gross_lc_change_frac[st_donor.landcover][st_receptor.landcover] * min(min(st_donor.frac_old, st_donor.frac), min(st_receptor.frac_old, st_receptor.frac));
+				st_frac_transfer[index(from, to)] += gross_lc_change_frac[st_donor.landcover][st_receptor.landcover] * min(min(gcst_donor.frac_old, gcst_donor.frac), min(gcst_receptor.frac_old, gcst_receptor.frac));
 			}
 		}
 	}
@@ -1437,7 +1452,7 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 	// Check that stand type sum is 1:
 	double st_frac_sum = 0.0;
 	for(int i=0; i<nst; i++)
-		st_frac_sum += stlist[i].frac;
+		st_frac_sum += gridcell.st[i].frac;
 	if(fabs(st_frac_sum - 1.0)  > 1.0e-14) {
 		dprintf("\nCheck 2: Year %d: stand type fraction sum: %.15f", date.year, st_frac_sum);
 		error = true;
@@ -1484,10 +1499,11 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 	for(int i=0; i<nst; i++) {
 
 		StandType& st = stlist[i];
+		Gridcellst& gcst = gridcell.st[i];
 
-		if(fabs(test_st_change[i] - st.frac_change) > 1.0e-14) {
+		if(fabs(test_st_change[i] - gcst.frac_change) > 1.0e-14) {
 			dprintf("\nCheck 4: Year %d: st_change_array sum not equal to st.frac_change value for stand type %d\n", date.year, i);
-			dprintf("dif=%.15f", fabs(test_st_change[i] - st.frac_change));
+			dprintf("dif=%.15f", fabs(test_st_change[i] - gcst.frac_change));
 			error = true;
 		}
 	}
@@ -1499,13 +1515,15 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 	for(int from=0; from<nst; from++) {
 
 		StandType& st_donor = stlist[from];
+		Gridcellst& gcst_donor = gridcell.st[from];
 
 		for(int to=0; to<nst; to++) {
 
 			StandType& st_receptor = stlist[to];
-			if(st_change_array[index(from, to)] > (st_donor.frac_old + 1.0e-14) || st_change_array[index(from, to)] > (st_receptor.frac + 1.0e-14)) {
+			Gridcellst& gcst_receptor = gridcell.st[to];
+			if(st_change_array[index(from, to)] > (gcst_donor.frac_old + 1.0e-14) || st_change_array[index(from, to)] > (gcst_receptor.frac + 1.0e-14)) {
 				dprintf("\nCheck 5: Year %d: st_change_array sum not compatible with st.frac_old/frac values for stand types %d and %d\n", date.year, from, to);
-				dprintf("st_change_array=%.15f, st_donor.frac_old=%.15f, st_receptor.frac=%.15f", st_change_array[index(from, to)], st_donor.frac_old, st_receptor.frac);
+				dprintf("st_change_array=%.15f, st_donor.frac_old=%.15f, st_receptor.frac=%.15f", st_change_array[index(from, to)], gcst_donor.frac_old, gcst_receptor.frac);
 				error = true;
 			}
 		}
@@ -1569,8 +1587,9 @@ bool check_fractions1(Gridcell& gridcell) {
 	for(int s=0; s<nst; s++) {
 
 		StandType& st = stlist[s];
+		Gridcellst& gcst = gridcell.st[s];
 
-		if(st.frac_change < 0.0){
+		if(gcst.frac_change < 0.0){
 
 			double stands_frac_sum = 0.0;
 
@@ -1581,9 +1600,9 @@ bool check_fractions1(Gridcell& gridcell) {
 					stands_frac_sum += stand.get_gridcell_fraction();
 			}
 
-			if(-st.frac_change - stands_frac_sum > 1.0e-14) {
+			if(-gcst.frac_change - stands_frac_sum > 1.0e-14) {
 				dprintf("\nCheck 8: Year %d: stand type %d fraction reduction bigger than sum of stands\n", date.year, s);
-				dprintf("dif=%.15f", -st.frac_change - stands_frac_sum);
+				dprintf("dif=%.15f", -gcst.frac_change - stands_frac_sum);
 				error = true;
 			}
 		}
@@ -1648,8 +1667,9 @@ bool check_fractions2(Gridcell& gridcell, double* st_change_array) {
 	for(int s=0; s<nst; s++) {
 
 		StandType& st = stlist[s];
+		Gridcellst& gcst = gridcell.st[s];
 
-		if(st.frac == 0.0) {
+		if(gcst.frac == 0.0) {
 
 			double stands_frac_sum = 0.0;
 
@@ -1683,6 +1703,7 @@ bool check_fractions3(Gridcell& gridcell) {
 	for(int s=0; s<nst; s++) {
 
 		StandType& st = stlist[s];
+		Gridcellst& gcst = gridcell.st[s];
 
 		double stands_frac_sum = 0.0;
 
@@ -1693,10 +1714,10 @@ bool check_fractions3(Gridcell& gridcell) {
 				stands_frac_sum += stand.get_gridcell_fraction();
 		}
 
-		if(st.frac_change < 0.0) {
-			if(fabs(st.frac - stands_frac_sum - st.gross_frac_increase) > 1.0e-14) {
+		if(gcst.frac_change < 0.0) {
+			if(fabs(gcst.frac - stands_frac_sum - gcst.gross_frac_increase) > 1.0e-14) {
 				dprintf("\nCheck 12: Year %d: fraction sum of stands not equal to stand type value for stand type %d\n", date.year, s);
-				dprintf("dif=%.15f", fabs(st.frac - stands_frac_sum - st.gross_frac_increase));
+				dprintf("dif=%.15f", fabs(gcst.frac - stands_frac_sum - gcst.gross_frac_increase));
 				error = true;
 			}
 		}
@@ -1716,6 +1737,7 @@ bool check_fractions4(Gridcell& gridcell) {
 	for(int s=0; s<nst; s++) {
 
 		StandType& st = stlist[s];
+		Gridcellst& gcst = gridcell.st[s];
 
 		double stands_frac_sum = 0.0;
 
@@ -1726,10 +1748,10 @@ bool check_fractions4(Gridcell& gridcell) {
 				stands_frac_sum += stand.get_gridcell_fraction();
 		}
 
-		if(st.frac_change >= 0.0)
-		if(fabs(st.frac - stands_frac_sum) > 1.0e-14) {
+		if(gcst.frac_change >= 0.0)
+		if(fabs(gcst.frac - stands_frac_sum) > 1.0e-14) {
 			dprintf("\nCheck 13: Year %d: fraction sum of stands not equal to stand type value for stand type %d\n", date.year, s);
-			dprintf("dif=%.15f", fabs(st.frac - stands_frac_sum));
+			dprintf("dif=%.15f", fabs(gcst.frac - stands_frac_sum));
 			error = true;
 		}
 	}
@@ -1838,7 +1860,7 @@ void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* landcover_inpu
 		check_fractions(gridcell, landcoverfrac_change, lc_frac_transfer, st_frac_transfer, true);
 
 		if(gross_land_transfer && simulate_st)
-			simulate_gross_st_transfer(st_frac_transfer);
+			simulate_gross_st_transfer(gridcell, st_frac_transfer);
 	}
 
 	if(no_changes) {
@@ -1852,8 +1874,8 @@ void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* landcover_inpu
 
 	for(int i=0; i<nst; i++) {
 
-		stlist[i].gross_frac_increase = 0.0;
-		stlist[i].gross_frac_decrease = 0.0;
+		gridcell.st[i].gross_frac_increase = 0.0;
+		gridcell.st[i].gross_frac_decrease = 0.0;
 	}
 
 	for(int from=0; from<nst; from++) {
@@ -1861,8 +1883,8 @@ void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* landcover_inpu
 		for(int to=0; to<nst; to++) {
 
 			if(st_frac_transfer[index(from, to)] > 0.0) {
-				stlist[to].gross_frac_increase += st_frac_transfer[index(from, to)];
-				stlist[from].gross_frac_decrease += st_frac_transfer[index(from, to)];
+				gridcell.st[to].gross_frac_increase += st_frac_transfer[index(from, to)];
+				gridcell.st[from].gross_frac_decrease += st_frac_transfer[index(from, to)];
 			}
 		}
 	}
@@ -2066,11 +2088,12 @@ void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* landcover_inpu
 		for(int from=0; from<nst; from++) {
 
 			StandType& st = stlist[from];
+			Gridcellst& gcst = gridcell.st[from];
 
 			// Pooling of donor stands within a stand type
-			if(gridcell.pool_to_all_landcovers[st.landcover] || st.nstands == 1) { // alt.c
-				if(st.gross_frac_decrease > 0.0) {
-					donor_stand_change(gridcell, st.gross_frac_decrease, transfer_st_from[from], -1, -1, -1, from);
+			if(gridcell.pool_to_all_landcovers[st.landcover] || gcst.nstands == 1) { // alt.c
+				if(gcst.gross_frac_decrease > 0.0) {
+					donor_stand_change(gridcell, gcst.gross_frac_decrease, transfer_st_from[from], -1, -1, -1, from);
 				}
 			}
 		}
@@ -2078,17 +2101,19 @@ void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* landcover_inpu
 		for(int to=0;to<nst;to++) {
 
 			StandType& st_to = stlist[to];
-			double receiving_fraction = st_to.gross_frac_increase;
+			Gridcellst& gcst_to = gridcell.st[to];
+			double receiving_fraction = gcst_to.gross_frac_increase;
 
 			for(int from=0; from<nst; from++) {
 
 				StandType& st_from = stlist[from];
+				Gridcellst& gcst_from = gridcell.st[from];
 				double receiving_fraction_2d = st_frac_transfer[index(from, to)];
 
 				if(receiving_fraction_2d > 0.0) {
 
 					if(gridcell.pool_from_all_landcovers[st_to.landcover]) {
-						if(!(gridcell.pool_to_all_landcovers[st_from.landcover] || st_from.nstands == 1)) {	// alt.a
+						if(!(gridcell.pool_to_all_landcovers[st_from.landcover] || gcst_from.nstands == 1)) {	// alt.a
 							// Add from->to transfer to to-pool:
 							donor_stand_change(gridcell, receiving_fraction, transfer_st[to], -1, -1, to, from);
 						}
@@ -2098,7 +2123,7 @@ void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* landcover_inpu
 						}
 					}
 					else {
-						if(!(gridcell.pool_to_all_landcovers[st_from.landcover] || st_from.nstands == 1)) {	// alt.b
+						if(!(gridcell.pool_to_all_landcovers[st_from.landcover] || gcst_from.nstands == 1)) {	// alt.b
 							// Add from->to transfer to [from][to] place in 2d-array:
 							donor_stand_change(gridcell, receiving_fraction_2d, transfer_st_2d[index(from, to)], -1, -1, to, from);
 						}
@@ -2117,10 +2142,11 @@ void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* landcover_inpu
 		for(int to=0; to<nst; to++) {
 
 			StandType& st = stlist[to];
+			Gridcellst& gcst = gridcell.st[to];
 
 			if(gridcell.pool_from_all_landcovers[st.landcover]) {
 				// Alt.a: All donor st:s are pooled into receiving st:s
-				if(st.gross_frac_increase > 0.0) {
+				if(gcst.gross_frac_increase > 0.0) {
 					receiving_stand_change(gridcell, transfer_st[to], LCchangeCtransfer, -1, to);
 				}
 			}
@@ -2130,13 +2156,14 @@ void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* landcover_inpu
 
 					if(st_frac_transfer[index(from, to)] > 0.0) {
 						StandType& st_from = stlist[from];
-						if(!(gridcell.pool_to_all_landcovers[st_from.landcover] || st_from.nstands == 1)) {
+						Gridcellst& gcst_from = gridcell.st[from];
+						if(!(gridcell.pool_to_all_landcovers[st_from.landcover] || gcst_from.nstands == 1)) {
 							// Alt.b: Transfers between donor and receptor st:s are independent:
-							receiving_stand_change(gridcell, transfer_st_2d[index(from, to)], LCchangeCtransfer, st.landcover, to, st_frac_transfer[index(from, to)] / st.gross_frac_increase);
+							receiving_stand_change(gridcell, transfer_st_2d[index(from, to)], LCchangeCtransfer, st.landcover, to, st_frac_transfer[index(from, to)] / gcst.gross_frac_increase);
 						}
 						else {
 							// Alt.c: Donor stands in a stand type are pooled before transfer to recipients:
-							receiving_stand_change(gridcell, transfer_st_from[from], LCchangeCtransfer, st.landcover, to, st_frac_transfer[index(from, to)] / st.gross_frac_increase);
+							receiving_stand_change(gridcell, transfer_st_from[from], LCchangeCtransfer, st.landcover, to, st_frac_transfer[index(from, to)] / gcst.gross_frac_increase);
 						}
 					}
 				}

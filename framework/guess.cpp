@@ -195,15 +195,6 @@ double Fluxes::get_annual_flux(PerPatchFluxType flux_type) const {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Implementation of StandType member functions
-////////////////////////////////////////////////////////////////////////////////
-
-void StandType::serialize(ArchiveStream& arch) {
-	arch & frac_old;
-		& nstands;
-}
-
-////////////////////////////////////////////////////////////////////////////////
 // Implementation of StandTypelist member functions
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -2134,6 +2125,14 @@ void Gridcellpft::serialize(ArchiveStream& arch) {
 		& sowing_restriction;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Gridcellst member functions
+////////////////////////////////////////////////////////////////////////////////
+
+void Gridcellst::serialize(ArchiveStream& arch) {
+	arch & frac_old;
+		& nstands;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Gridcell member functions
@@ -2145,6 +2144,10 @@ Gridcell::Gridcell():climate(*this) {
 
 	for(unsigned int p=0; p<pftlist.nobj; p++) {
 		pft.createobj(pftlist[p]);
+	}
+
+	for(unsigned int s=0; s<stlist.nobj; s++) {
+		st.createobj(stlist[s]);
 	}
 
 	memset(landcoverfrac, 0, sizeof(double) * NLANDCOVERTYPES);

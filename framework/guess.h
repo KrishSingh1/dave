@@ -1008,7 +1008,7 @@ public:
 /*	and dynamic variables, updated in landcover_change()
  *  Active stand types are stored in the stlist analogous to the pftlist.
  */
-class StandType : public Serializable {
+class StandType {
 
 public:
 	/// id code (should be zero based and sequential, 0...nst-1)
@@ -1033,32 +1033,8 @@ public:
 	// whether only pft:s defined in management are allowed (plus intercrop or naturalveg/grass)
 	bool restrictpfts;
 
-	/// fraction of this stand type relative to the gridcell
-	double frac;
-	/// old fraction of this stand type relative to the gridcell before update
-	double frac_old;
-	/// fraction unavailable for transfer to other stand types
-	double protected_frac;
-
-	/// net fraction change
-	double frac_change;
-	/// gross fraction increase
-	double gross_frac_increase;
-	/// gross fraction decrease
-	double gross_frac_decrease;
-
-	// current number of stands of this stand type
-	int nstands;
-
 	StandType() {
 
-		frac = 1.0;
-		frac_old = 0.0;
-		protected_frac = 0.0;
-		frac_change = 0.0;
-		gross_frac_increase = 0.0;
-		gross_frac_decrease = 0.0;
-		nstands = 0;
 		intercrop = NOINTERCROP;
 		naturalveg = false;
 		naturalgrass = false;
@@ -3506,6 +3482,54 @@ public:
 	void serialize(ArchiveStream& arch);
 };
 
+/// State variables common to all individuals of a particular STANDTYPE in a GRIDCELL.
+class Gridcellst : public Serializable {
+
+public:
+
+	// MEMBER VARIABLES
+
+	/// A number identifying this object within its list array
+	int id;
+
+	/// A reference to the Pft object for this Gridcellpft
+	StandType& st;
+
+	/// fraction of this stand type relative to the gridcell
+	double frac;
+	/// old fraction of this stand type relative to the gridcell before update
+	double frac_old;
+	/// fraction unavailable for transfer to other stand types
+	double protected_frac;
+
+	/// net fraction change
+	double frac_change;
+	/// gross fraction increase
+	double gross_frac_increase;
+	/// gross fraction decrease
+	double gross_frac_decrease;
+
+	// current number of stands of this stand type
+	int nstands;
+
+	// MEMBER FUNCTIONS
+
+	/// Constructs a Gridcellst object
+	/** \param i   The id for this object
+	 *  \param s   A reference to the StandType for this Gridcellst
+	 */
+	Gridcellst(int i,StandType& s):id(i),st(s) {
+		frac = 1.0;
+		frac_old = 0.0;
+		protected_frac = 0.0;
+		frac_change = 0.0;
+		gross_frac_increase = 0.0;
+		gross_frac_decrease = 0.0;
+		nstands = 0;
+	}
+
+	void serialize(ArchiveStream& arch);
+};
 
 /// The Gridcell class corresponds to a modelled locality or grid cell.
 /** Member variables include an object of type Climate (holding climate, insolation and
@@ -3568,6 +3592,9 @@ public:
 
 	/// list array [0...npft-1] of Gridcellpft (initialised in constructor)
 	ListArray_idin1<Gridcellpft,Pft> pft;
+
+	/// list array [0...nst-1] of Gridcellst (initialised in constructor)
+	ListArray_idin1<Gridcellst,StandType> st;
 
 	/// Seed for generating random numbers within this Gridcell
 	/** The reason why Gridcell has its own seed, rather than using for instance

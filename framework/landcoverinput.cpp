@@ -419,12 +419,13 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 	stlist.firstobj();
 	while (stlist.isobj) {
 		StandType& st = stlist.getobj();
+		Gridcellst& gcst = gridcell.st[st.id];
 
-		st.frac = 0.0;
+		gcst.frac = 0.0;
 		if(nst_lc[st.landcover] == 1)
-			st.frac = 1.0;
+			gcst.frac = 1.0;
 		else if(frac_fixed[st.landcover] && !frac_fixed_default_crops)
-			st.frac = 1.0 / (double)nst_lc[st.landcover];
+			gcst.frac = 1.0 / (double)nst_lc[st.landcover];
 
 		stlist.nextobj();
 	}
@@ -459,7 +460,7 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 							dprintf("WARNING ! crop fraction size out of limits, set to 0.0\n");
 						cropfrac = 0.0;
 					}
-					sum += stlist[i].frac = cropfrac;
+					sum += gridcell.st[i].frac = cropfrac;
 				}
 			}
 
@@ -484,17 +485,18 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 				stlist.firstobj();
 				while(stlist.isobj) {
 					StandType& st = stlist.getobj();
+					Gridcellst& gcst = gridcell.st[st.id];
 					if(st.landcover == CROPLAND) {
 						if(st.management[0].hydrology == RAINFED) {
 							if(gridcell.get_lat() > 30 || gridcell.get_lat() < -30) {
 								if(pftlist[pftlist.getpftid(st.management[0].pftname)].tb <= 5) {
-									st.frac = 1.0;
+									gcst.frac = 1.0;
 									nsts++;
 								}
 							}
 							else {
 								if(pftlist[pftlist.getpftid(st.management[0].pftname)].tb > 5) {
-									st.frac = 1.0;
+									gcst.frac = 1.0;
 									nsts++;
 								}
 							}
@@ -512,8 +514,9 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 				stlist.firstobj();
 				while(stlist.isobj) {
 					StandType& st = stlist.getobj();
+					Gridcellst& gcst = gridcell.st[st.id];
 					if(st.landcover == CROPLAND)
-						st.frac /= nsts;
+						gcst.frac /= nsts;
 					stlist.nextobj();
 				}
 			}
@@ -524,8 +527,9 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 			stlist.firstobj();
 			while(stlist.isobj) {
 				StandType& st = stlist.getobj();
+				Gridcellst& gcst = gridcell.st[st.id];
 				if(st.landcover == CROPLAND)
-					st.frac /= sum;
+					gcst.frac /= sum;
 				stlist.nextobj();
 			}
 			if((sum < 0.99 || sum > 1.01) && printyear) {	// warn if sum is significantly different from 1.0 
@@ -539,10 +543,11 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 	stlist.firstobj();
 	while (stlist.isobj) {
 		StandType& st = stlist.getobj();
+		Gridcellst& gcst = gridcell.st[st.id];
 
-		st.frac = st.frac * gridcell.landcoverfrac[st.landcover];
-		if(fabs(st.frac_old - st.frac) < 1.0e-14)
-			st.frac = st.frac_old;
+		gcst.frac = gcst.frac * gridcell.landcoverfrac[st.landcover];
+		if(fabs(gcst.frac_old - gcst.frac) < 1.0e-14)
+			gcst.frac = gcst.frac_old;
 		stlist.nextobj();
 	}
 }

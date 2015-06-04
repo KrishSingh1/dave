@@ -805,6 +805,7 @@ void Stand::rotate() {
 		pftid = pftlist.getpftid(stlist[stid].management[current_rot].pftname);
 
 		Standpft& standpft = pft[pftid];
+		Gridcellpft& gridcellpft = gridcell->pft[pftid];
 
 		if(stlist[stid].management[current_rot].hydrology == IRRIGATED) {
 			isirrigated = true;					
@@ -815,6 +816,8 @@ void Stand::rotate() {
 			standpft.irrigated = false;
 		}
 
+		if(!readNfert)
+			gridcellpft.Nfert_read = stlist[stid].management[current_rot].nfert;
 		if(!readsowingdates)
 			standpft.sdate_force = stlist[stid].management[current_rot].sdate;
 		if(!readharvestdates)

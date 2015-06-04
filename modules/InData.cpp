@@ -46,7 +46,17 @@ void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist) { //Requires gutil
 	checkdata=new bool[nColumns];
 	memset(checkdata, 0, nColumns*sizeof(bool));
 	ischeckingdata=true;
-	rewind(ifp);
+	Rewind();
+
+	if(format == GLOBAL_STATIC) {
+
+		for(int j=0;j<nColumns;j++)
+		{
+			if(data[j] > 0.0)
+				checkdata[j]=1;
+		}
+		return;
+	}
 
 	gridlist.firstobj();
 	while(gridlist.isobj)
@@ -168,7 +178,7 @@ double TimeDataD::Get(int calender_year, int column) const {
 
 double TimeDataD::Get(int calender_year, const char* name) const {
 
-	if(memory_copy)
+	if(memory_copy && format != GLOBAL_STATIC)
 		return memory_copy->Get(calender_year, name);
 
 	int column = -1;
@@ -285,6 +295,9 @@ int TimeDataD::Open(char* name) {
 
 void TimeDataD::CreateFileMap() {
 
+	if(format == GLOBAL_STATIC)
+		return;
+
 	long int pos;
 	int i = 0;
 	nCells = GetNCells();
@@ -323,6 +336,8 @@ void TimeDataD::CreateFileMap() {
 		if(ifp_map)
 			fclose(ifp_map);
 		FILE *ofp_map = fopen(mapname,"wb");
+		if(!ofp_map)
+			fail("File could not be opened for output, quitting\n");
 		fwrite(filemap, sizeof(CoordPos), nCells, ofp_map);
 		fclose(ofp_map);
 	}
@@ -338,10 +353,16 @@ int TimeDataD::Open(char* name, ListArray_id<Coord>& gridlist, double gridlist_o
 
 	if(Open(name)) {
 		SetOffset(gridlist_offset);
+		if(format == GLOBAL_STATIC) {
+			Load();
+			return 1;
+		}
 #ifdef LUTOMEMORY
 		CopyToMemory(gridlist.nobj, gridlist);
-#else if MAPFILE
+#else 
+#ifdef MAPFILE
 		CreateFileMap();
+#endif
 #endif
 		return 1;
 	}
@@ -657,6 +678,11 @@ int TimeDataD::GetNCells() {
 }
 
 void TimeDataD::ParseNCells() {
+
+	if(format == GLOBAL_STATIC) {
+		nCells = 1;
+		return;
+	}
 
 	float d1;
 	long int oldpos;
@@ -1124,6 +1150,11 @@ int TimeDataD::LoadFromMap(Coord c) {
 }
 
 int TimeDataD::Load(Coord c) {
+
+	if(format == GLOBAL_STATIC) {
+		loaded = true;
+		return 1;
+	}
 
 	if(offset) {
 		c.lon +=offset;
@@ -1942,10 +1973,12 @@ void TimeDataD::Close() {
 #ifdef GUESS_VERSION
 void TimeDataD::CopyToMemory(int ncells, ListArray_id<Coord>& lonlatlist) { //Requires gutil.h
 
+	if(format == GLOBAL_STATIC)
+		ncells = 1;
 	memory_copy = new TimeDataDmem;
 	memory_copy->Open(ncells, this->nColumns, this->nYears);
 	memory_copy->CopyFromTimeDataD(*this, lonlatlist);
-	rewind(ifp);
+	Rewind();
 }
 #endif
 
@@ -1970,6 +2003,8 @@ double TimeDataDmem::Get(int calender_year, int column) const {
 
 	if(currentCell >= 0 && column < nColumns)
 		return data[currentCell][yearX * nColumns + column];
+	else if(nCells == 1)
+		return data[0][yearX * nColumns + column];
 	else
 		return 0.0;
 }
@@ -2086,6 +2121,12 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 
 	double *celldata;
 	celldata = new double[Data.GetnColumns() * Data.GetnYears()];
+
+	if(Data.GetFormat() == GLOBAL_STATIC) {
+		Data.Get(celldata);
+		SetData(0, celldata);
+		return;
+	}
 
 	gridlistX.firstobj();
 

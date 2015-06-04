@@ -17,7 +17,7 @@
 
 using namespace inputdef;
 
-#define MAPFILE	// Mapping of input file data when LUTOMEMORY not defined
+//#define MAPFILE	// Mapping of input file data when LUTOMEMORY not defined
 #else
 #include <stdio.h>
 #include <math.h>
@@ -141,7 +141,7 @@ class TimeDataD	{
 	/// Sets the file pointer to required position (found in the file map)
 	void SetPosition(long int pos) {fseek(ifp, pos, 0);}
 	/// Rewinds the file pointer
-	void Rewind() {rewind(ifp);}
+	void Rewind() {if(ifp) rewind(ifp);}
 	/// Loads local data for a certain coordinate from a file map. Returns 0 if coordinate not found.
 	int LoadFromMap(Coord c);
 	/// Sets offset to be used when searching for coordinates.

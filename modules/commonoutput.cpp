@@ -1889,8 +1889,6 @@ void CommonOutput::openlocalfiles(Gridcell& gridcell) {
 
 	if (date.year >= nyear_spinup) {
 
-		int nnaturalstands = 0;
-		int nforeststands = 0;
 		bool open_natural = false;
 		bool open_forest = false;
 		double lon = gridcell.get_lon();
@@ -1906,15 +1904,11 @@ void CommonOutput::openlocalfiles(Gridcell& gridcell) {
 			stand.anpp=0.0;
 			stand.cmass=0.0;
 
-			if(stand.landcover == NATURAL) {
-				nnaturalstands++;
-				if(stand.first_year == date.year) {
+			if(stand.first_year == date.year || stand.clone_year == date.year) {
+				if(stand.landcover == NATURAL) {
 					open_natural = true;
 				}
-			}
-			else if(stand.landcover == FOREST) {
-				nforeststands++;
-				if(stand.first_year == date.year) {
+				else if(stand.landcover == FOREST) {
 					open_forest = true;
 				}
 			}

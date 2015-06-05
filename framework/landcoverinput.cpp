@@ -28,8 +28,9 @@ void LandcoverInputModule::init() {
 		return;
 
 	ListArray_id<Coord>& gridlist = input.getgridlist();
-	
-	double offset = search_for_centre_of_gridcell * input.getgridlist_spatial_resolution() / 2.0;
+
+	// The offset can be skipped once coordinates of the cell centre are used in gridlist and all datafiles
+	double offset = input.getgridlist_spatial_resolution() / 2.0;
 
 	all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
 

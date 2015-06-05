@@ -86,7 +86,6 @@ int firsthistyear_sim = -1;
 int lasthistyear_sim = -1;
 int nyear_hist_sim = 0;
 
-bool search_for_centre_of_gridcell = false;
 ///////////////////////////////////////////////////////////////////////////////////////
 // Implementation of the Paramlist class
 
@@ -366,8 +365,6 @@ void plib_declarations(int id,xtring setname) {
 		declare_parameter("firsthistyear", &firsthistyear_sim, 1, 10000, "First historic year after spinup");
 		declare_parameter("lasthistyear", &lasthistyear_sim, 1, 10000, "Last historic year of simulation");
 		declare_parameter("nyear_hist", &nyear_hist_sim, 1, 10000, "Number of simulation years to run after spinup");
-		declareitem("search_for_centre_of_gridcell", &search_for_centre_of_gridcell,1,CB_NONE, 
-			"If specified, the centre of the gridcell will be used when searching for data for a gridcell");
 		declareitem("vegmode",&strparam,16,CB_VEGMODE,
 			"Vegetation mode (\"INDIVIDUAL\", \"COHORT\", \"POPULATION\")");
 		declareitem("ifbgestab",&ifbgestab,1,CB_NONE,
@@ -942,8 +939,7 @@ void plib_callback(int callback) {
 	case CB_STHYDROLOGY1:
 		if (strparam.upper()=="RAINFED") pst->management[0].hydrology = RAINFED;
 		else if (strparam.upper()=="IRRIGATED") pst->management[0].hydrology = IRRIGATED;
-		else 
-		{
+		else {
 			sendmessage("Error",
 				"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\")");
 			plibabort();
@@ -952,8 +948,7 @@ void plib_callback(int callback) {
 	case CB_STHYDROLOGY2:
 		if (strparam.upper()=="RAINFED") pst->management[1].hydrology = RAINFED;
 		else if (strparam.upper()=="IRRIGATED") pst->management[1].hydrology = IRRIGATED;
-		else 
-		{
+		else {
 			sendmessage("Error",
 				"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\")");
 			plibabort();
@@ -962,8 +957,7 @@ void plib_callback(int callback) {
 	case CB_STHYDROLOGY3:
 		if (strparam.upper()=="RAINFED") pst->management[2].hydrology = RAINFED;
 		else if (strparam.upper()=="IRRIGATED") pst->management[2].hydrology = IRRIGATED;
-		else 
-		{
+		else {
 			sendmessage("Error",
 				"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\")");
 			plibabort();

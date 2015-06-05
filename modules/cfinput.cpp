@@ -422,12 +422,6 @@ void CFInput::init() {
 
 	date.set_first_calendar_year(getfirsthistyear() - nyear_spinup);	// Must be set for cfinput
 
-	// Ensure that settings are correct when using input data with different spatial resolution
-	if(climate_spatial_resolution != gridlist_spatial_resolution) {
-		if(!search_for_centre_of_gridcell || !searchradius)
-		fail("We must use a searchradius and search for centre of a gridcell when using different spatial resolution in input data\n");
-	}
-
 	// Set timers
 	tprogress.init();
 	tmute.init();
@@ -522,7 +516,6 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
                                    int& soilcode) {
 
 	double offset_cru = gridlist_spatial_resolution / 2.0;
-	double searchradius_climate = search_for_centre_of_gridcell * min(climate_spatial_resolution / 2.0, searchradius);
 
 	int rlon = current_gridcell->rlon;
 	int rlat = current_gridcell->rlat;
@@ -1054,9 +1047,8 @@ void CFInput::getgridlist(ListArray_id<inputdef::Coord>& outlist) {
 void CFInput::create_cf_gridlist() {
 
 	double offset_cru = gridlist_spatial_resolution / 2.0;
-	double searchradius_climate = search_for_centre_of_gridcell * min(climate_spatial_resolution / 2.0, searchradius);
-
 	climate_spatial_resolution = parse_climate_spatial_resolution();
+	double searchradius_climate = min(climate_spatial_resolution / 2.0, searchradius);
 
 	gridlist.firstobj();
 	while(gridlist.isobj) {

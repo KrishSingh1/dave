@@ -187,9 +187,6 @@ void DemoInput::init() {
 	file_sun=param["file_sun"].str;
 	file_soil=param["file_soil"].str;
 
-	if(search_for_centre_of_gridcell)
-		fail("Demo input does not support searchradius\n");
-
 	// Set timers
 	tprogress.init();
 	tmute.init();

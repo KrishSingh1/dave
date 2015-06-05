@@ -134,10 +134,10 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 	int soilcode;
 	int elevation;
 
-	// Ensure that settings are correct when using input data with different spatial resolution (only needed for land cover input in this module)
+	// Ensure that settings are correct when using input data with different spatial resolution
 	if(run_landcover && climate_spatial_resolution != gridlist_spatial_resolution) {
-		if(!search_for_centre_of_gridcell || !searchradius)
-		fail("We must use a searchradius and search for centre of a gridcell when using different spatial resolution in input data\n");
+		if(!searchradius)
+			fail("We must use a searchradius when using different spatial resolution in input data\n");
 	}
 
 	// Make sure we use the first gridcell in the first call to this function,

@@ -985,6 +985,8 @@ public:
 		// Average leaf C:N ratio
 		cton_leaf_avr = 1.0 / ((1.0 / cton_leaf_min + 1.0 / cton_leaf_max) / 2.0);
 
+		frac_mintomax = 1.1;
+
 		// Average fine root C:N ratio
 		cton_root_avr = cton_leaf_avr * frac_leaftoroot;
 

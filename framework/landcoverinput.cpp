@@ -27,7 +27,8 @@ void LandcoverInputModule::init() {
 	if(!run_landcover)
 		return;
 
-	ListArray_id<Coord>& gridlist = input.getgridlist();
+	ListArray_id<Coord> gridlist;
+	read_gridlist(gridlist, param["file_gridlist"].str);
 
 	// The offset can be skipped once coordinates of the cell centre are used in gridlist and all datafiles
 	double offset = input.getgridlist_spatial_resolution() / 2.0;
@@ -156,6 +157,7 @@ void LandcoverInputModule::init() {
 			pftlist.nextobj();
 		}			
 	}
+	gridlist.killall();
 }
 
 bool LandcoverInputModule::loadlandcover(Gridcell& gridcell, Coord c) {

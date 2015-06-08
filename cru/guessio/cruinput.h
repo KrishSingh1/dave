@@ -51,9 +51,6 @@ public:
 
 	bool supports_firsthistyear_in_insfile() { return true;}
 
-	/// Returns reference to gridlist
-	ListArray_id<Coord>& getgridlist() { return gridlist;}
-
 	/// Returns hte spatial resolution of the gridlist
 	double getgridlist_spatial_resolution() { return gridlist_spatial_resolution;}
 

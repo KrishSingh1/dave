@@ -112,9 +112,6 @@ public:
 	/// Returns number of historic years of simulation
 	virtual int getnyear_hist() = 0;
 
-	/// Returns reference to lon-lat gridlist, if necessary after creation from other Coord or list formats
-	virtual ListArray_id<Coord>& getgridlist() = 0;
-
 	/// Returns the spatial resolution of the gridlist
 	virtual double getgridlist_spatial_resolution() = 0;
 

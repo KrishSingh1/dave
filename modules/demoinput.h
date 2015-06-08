@@ -46,9 +46,6 @@ public:
 	/// See base class for documentation about this function's responsibilities
 	bool getclimate(Gridcell& gridcell);
 
-	// Returns reference to gridlist
-	ListArray_id<Coord>& getgridlist() { return gridlist;}
-
 	/// Returns hte spatial resolution of the gridlist
 	double getgridlist_spatial_resolution() { return gridlist_spatial_resolution;}
 

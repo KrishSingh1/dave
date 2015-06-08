@@ -32,9 +32,6 @@ public:
 	/// See base class for documentation about this function's responsibilities
 	bool getclimate(Gridcell& gridcell);
 
-	// Creates lon-lat gridlist in cfinput from cf gridlist
-	ListArray_id<inputdef::Coord>& getgridlist();
-
 	/// Returns hte spatial resolution of the gridlist
 	double getgridlist_spatial_resolution() { return gridlist_spatial_resolution;}
 

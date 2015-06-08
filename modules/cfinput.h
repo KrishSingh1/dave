@@ -35,9 +35,6 @@ public:
 	// Creates lon-lat gridlist in cfinput from cf gridlist
 	ListArray_id<inputdef::Coord>& getgridlist();
 
-	// Creates lon-lat gridlist in calling function from cf gridlist
-	void getgridlist(ListArray_id<inputdef::Coord>& outlist);
-
 	/// Returns hte spatial resolution of the gridlist
 	double getgridlist_spatial_resolution() { return gridlist_spatial_resolution;}
 

@@ -348,17 +348,3 @@ DemoInput::~DemoInput() {
 	// Clean up
 	gridlist.killall();
 }
-
-// Copies gridlist to calling function's gridlist
-void DemoInput::getgridlist(ListArray_id<Coord>& outlist) {
-
-	gridlist.firstobj();
-	while(gridlist.isobj) {
-		Coord& c = outlist.createobj();
-		c.lon = gridlist.getobj().lon;
-		c.lat = gridlist.getobj().lat;
-		c.descrip = gridlist.getobj().descrip;
-		gridlist.nextobj();
-	}
-	gridlist.firstobj();
-}

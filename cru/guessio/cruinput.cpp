@@ -460,20 +460,6 @@ CRUInput::~CRUInput() {
 	gridlist.killall();
 }
 
-// Copies gridlist to calling function's gridlist
-void CRUInput::getgridlist(ListArray_id<Coord>& outlist) {
-
-	gridlist.firstobj();
-	while(gridlist.isobj) {
-		Coord& c = outlist.createobj();
-		c.lon = gridlist.getobj().lon;
-		c.lat = gridlist.getobj().lat;
-		c.descrip = gridlist.getobj().descrip;
-		gridlist.nextobj();
-	}
-	gridlist.firstobj();
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
 // Lamarque, J.-F., Kyle, G. P., Meinshausen, M., Riahi, K., Smith, S. J., Van Vuuren, 

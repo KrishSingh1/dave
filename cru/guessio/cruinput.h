@@ -54,9 +54,6 @@ public:
 	/// Returns reference to gridlist
 	ListArray_id<Coord>& getgridlist() { return gridlist;}
 
-	/// Copies gridlist to outlist
-	void getgridlist(ListArray_id<Coord>& outlist);
-
 	/// Returns hte spatial resolution of the gridlist
 	double getgridlist_spatial_resolution() { return gridlist_spatial_resolution;}
 

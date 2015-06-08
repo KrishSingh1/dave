@@ -1010,39 +1010,6 @@ ListArray_id<inputdef::Coord>& CFInput::getgridlist() {
 	return gridlist;
 }
 
-// Creates lon-lat gridlist in calling function from cf gridlist
-void CFInput::getgridlist(ListArray_id<inputdef::Coord>& outlist) { 
-
-	climate_spatial_resolution = parse_climate_spatial_resolution();
-	double offset_cru = climate_spatial_resolution / 2.0;
-
-	std::vector<Coord>::iterator current_gridcell = gridlistCF.begin();
-
-	while(current_gridcell != gridlistCF.end()) {
-
-		inputdef::Coord& c = outlist.createobj();
-
-		int rlon = current_gridcell->rlon;
-		int rlat = current_gridcell->rlat;
-		int landid = current_gridcell->landid;
-
-		if (cf_temp->is_reduced()) {
-			// Get lon/lat for the gridcell
-			cf_temp->get_coords_for(landid, c.lon, c.lat);
-		}
-		else {			
-			// Get lon/lat for the gridcell
-			cf_temp->get_coords_for(rlon, rlat, c.lon, c.lat);			
-		}
-		c.lon -= offset_cru;
-		c.lat -= offset_cru;
-		c.descrip = current_gridcell->descrip.c_str();
-
-		++current_gridcell;
-	}
-	outlist.firstobj();
-}
-
 // Creates cf gridlist from lon-lat gridlist
 void CFInput::create_cf_gridlist() {
 

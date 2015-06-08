@@ -448,10 +448,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	return true;
 }
 
-bool CRUInput::getsoil(Gridcell& gridcell, const int soilmap_index){
-	return true;
-}
-
 CRUInput::~CRUInput() {
 
 	// Performs memory deallocation, closing of files or other "cleanup" functions.

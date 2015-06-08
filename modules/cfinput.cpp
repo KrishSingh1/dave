@@ -945,10 +945,6 @@ std::vector<GuessNC::CF::GridcellOrderedVariable*> CFInput::all_variables() cons
 	return result;
 }
 
-bool CFInput::getsoil(Gridcell& gridcell, const int soilmap_index){
-	return true;
-}
-
 int CFInput::getfirsthistyear_climate() {
 
 	return  cf_temp->get_date_time(0).get_year();

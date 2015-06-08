@@ -41,8 +41,6 @@ public:
 	/// Obtains land management data for one day
 	void getmanagement(Gridcell& gridcell) {management_input_module.getmanagement(gridcell);}
 
-	bool getsoil(Gridcell& gridcell, const int soilmap_index);
-
 	/// Returns first historic year of climate input data
 	int getfirsthistyear_climate();
 

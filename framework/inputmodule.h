@@ -56,8 +56,6 @@ public:
 	 */
 	virtual bool getgridcell(Gridcell& gridcell) = 0;
 
-	virtual bool getsoil(Gridcell& gridcell, const int soilmap_index) = 0;
-
 	/// Obtains climate data (including atmospheric CO2 and insolation) for this day
 	/** The function should return false if the simulation is complete for this grid cell,
 	 *  otherwise true. This will normally require querying the year and day member

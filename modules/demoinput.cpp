@@ -337,10 +337,6 @@ bool DemoInput::getclimate(Gridcell& gridcell) {
 	return true;
 }
 
-bool DemoInput::getsoil(Gridcell& gridcell, const int soilmap_index){
-	return true;
-}
-
 DemoInput::~DemoInput() {
 
 	// Performs memory deallocation, closing of files or other "cleanup" functions.

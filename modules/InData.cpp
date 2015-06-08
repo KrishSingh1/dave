@@ -1143,10 +1143,13 @@ int TimeDataD::LoadFromMap(Coord c) {
 		LoadNext();
 		if(currentStand.lon != filemap[found_i].lon || currentStand.lat != filemap[found_i].lat)
 			fail("Error in saved file map for %s. Delete map.bin file and retry\n", fileName);
+		loaded = true;
 		return 1;
 	}
-	else
+	else {
+		loaded = false;
 		return 0;
+	}
 }
 
 int TimeDataD::Load(Coord c) {

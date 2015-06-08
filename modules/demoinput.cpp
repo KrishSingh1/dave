@@ -226,9 +226,9 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 
 			// Load environmental data for this grid cell from files
 			if(run_landcover) {
-				LUerror = landcover_input_module.loadlandcover(gridcell, gridlist.getobj());
+				LUerror = landcover_input_module.loadlandcover(gridlist.getobj());
 				if(!LUerror)
-					LUerror = management_input_module.loadmanagement(gridcell, gridlist.getobj());
+					LUerror = management_input_module.loadmanagement(gridlist.getobj());
 			}
 			if (!LUerror) {
 				gridfound = readenv(c, gridcell.seed);

@@ -160,7 +160,7 @@ void LandcoverInputModule::init() {
 	gridlist.killall();
 }
 
-bool LandcoverInputModule::loadlandcover(Gridcell& gridcell, Coord c) {
+bool LandcoverInputModule::loadlandcover(Coord c) {
 
 	bool LUerror = false;
 

@@ -175,9 +175,9 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 												   hist_mfrs, hist_mwet, hist_mdtr);
 
 				if (run_landcover && gridfound) {
-					LUerror = landcover_input_module.loadlandcover(gridcell, gridlist.getobj());
+					LUerror = landcover_input_module.loadlandcover(gridlist.getobj());
 					if(!LUerror)
-						LUerror = management_input_module.loadmanagement(gridcell, gridlist.getobj());
+						LUerror = management_input_module.loadmanagement(gridlist.getobj());
 				}
 
 				if(!gridfound || LUerror) {

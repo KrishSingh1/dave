@@ -21,7 +21,7 @@ public:
 	/// Opens management data files
 	void init();
 	/// Loads landcover and crop fractions from input files
-	bool loadlandcover(Gridcell& gridcell, Coord c);
+	bool loadlandcover(Coord c);
 	/// Gets land cover data for a year
 	void getlandcover(Gridcell& gridcell);
 	/// Gets land cover transition data for a year

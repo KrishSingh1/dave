@@ -46,7 +46,7 @@ void ManagementInputModule::init() {
 	gridlist.killall();
 }
 
-bool ManagementInputModule::loadmanagement(Gridcell& gridcell, Coord c) {
+bool ManagementInputModule::loadmanagement(Coord c) {
 
 	bool LUerror = false;
 

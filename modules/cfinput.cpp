@@ -454,9 +454,9 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 		c.lon = cru_lon;
 		c.lat = cru_lat;
 		bool LUerror = false;
-		LUerror = landcover_input_module.loadlandcover(gridcell, c);
+		LUerror = landcover_input_module.loadlandcover(c);
 		if(!LUerror)
-			LUerror = management_input_module.loadmanagement(gridcell, c);
+			LUerror = management_input_module.loadmanagement(c);
 		if(LUerror) {
 			dprintf("\nError: could not find stand at (%g,%g) in landcover/management data file(s)\n", c.lon, c.lat);
 			return false;

@@ -18,7 +18,7 @@ public:
 	/// Opens management data files
 	void init();
 	/// Loads fertilisation, sowing and harvest dates from input files
-	bool loadmanagement(Gridcell& gridcell, Coord c);
+	bool loadmanagement(Coord c);
 	/// Gets management data for a year
 	void getmanagement(Gridcell& gridcell);
 

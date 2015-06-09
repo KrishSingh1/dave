@@ -25,22 +25,25 @@ void ManagementInputModule::init() {
 
 	if(run_landcover && run[CROPLAND]) {
 
-		if(readsowingdates)	{
-			file_sdates=param["file_sdates"].str;
+		file_sdates=param["file_sdates"].str;
+		if(file_sdates != "")	{
 			if(!sdates.Open(file_sdates, gridlist, offset))
 				fail("initio: could not open %s for input",(char*)file_sdates);
+			readsowingdates = true;
 		}
 
-		if(readharvestdates) {
-			file_hdates=param["file_hdates"].str;
+		file_hdates=param["file_hdates"].str;
+		if(file_hdates != "")	{
 			if(!hdates.Open(file_hdates, gridlist, offset))
 				fail("initio: could not open %s for input",(char*)file_hdates);
+			readharvestdates = true;
 		}
 
-		if(readNfert) {
-			file_Nfert=param["file_Nfert"].str;
+		file_Nfert=param["file_Nfert"].str;
+		if(file_Nfert != "")	{
 			if(!Nfert.Open(file_Nfert, gridlist, offset))
 				fail("initio: could not open %s for input",(char*)file_Nfert);
+			readNfert = true;
 		}
 	}
 	gridlist.killall();
@@ -81,7 +84,7 @@ void ManagementInputModule::getsowingdates(Gridcell& gridcell) {
 
 	if(date.year < nyear_spinup + input.getnyear_hist()) {
 		for(int i=0; i<npft; i++) {
-			if(pftlist[i].landcover == CROPLAND)	{
+			if(pftlist[i].phenology == CROPGREEN) {	
 
 				gridcell.pft[i].sdate_force = (int)sdates.Get(year,pftlist[i].name);
 
@@ -105,7 +108,7 @@ void ManagementInputModule::getharvestdates(Gridcell& gridcell) {
 
 	if(date.year < nyear_spinup + input.getnyear_hist()) {
  		for(int i=0; i<npft; i++)	{
-			if(pftlist[i].landcover == CROPLAND) {		
+			if(pftlist[i].phenology == CROPGREEN) {		
 
 				gridcell.pft[pftlist[i].id].hdate_force = (int)hdates.Get(year,pftlist[i].name);
 
@@ -129,7 +132,7 @@ void ManagementInputModule::getNfert(Gridcell& gridcell) {
 
 	if(date.year < nyear_spinup + input.getnyear_hist()) {
  		for(int i=0; i<npft; i++)	{
-			if(pftlist[i].landcover == CROPLAND) {		
+			if(pftlist[i].phenology == CROPGREEN) {		
 				gridcell.pft[pftlist[i].id].Nfert_read = Nfert.Get(year,pftlist[i].name);
 			}
 		}

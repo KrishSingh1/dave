@@ -443,9 +443,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifdyn_phu_limit",&ifdyn_phu_limit,1,CB_NONE,"Whether to limit dynamic phu calculation to a time period");
 		declareitem("iftransfer_to_new_stand",&iftransfer_to_new_stand,1,CB_NONE,"Whether to create new stands in transfer_to_new_stand()");
 		declareitem("nyear_dyn_phu",&nyear_dyn_phu,0,1000,1,CB_NONE, "Number of years to calculate dynamic phu");
-		declareitem("readsowingdates",&readsowingdates,1,CB_NONE,"Whether to use sowingdates from input file");
-		declareitem("readharvestdates",&readharvestdates,1,CB_NONE,"Whether to use harvestdates from input file");
-		declareitem("readNfert",&readNfert,1,CB_NONE,"Whether to read N fertilization from input file");
 		declareitem("printseparatestands",&printseparatestands,1,CB_NONE,"Whether to print multiple stands within a land cover type (except cropland) separately");
 		declareitem("iftillage",&iftillage,1,CB_NONE,"Whether to simulate tillage by increasing soil respiration");
 		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"whether to use fixed landcover fractions (all landcovers have equal area) (1) or read landcover fractions from a file (0)");
@@ -1058,9 +1055,6 @@ void plib_callback(int callback) {
 			if (!itemparsed("ifdyn_phu_limit")) badins("ifdyn_phu_limit");
 			if (!itemparsed("iftransfer_to_new_stand")) badins("iftransfer_to_new_stand");
 			if (!itemparsed("nyear_dyn_phu")) badins("nyear_dyn_phu");
-			if (!itemparsed("readsowingdates")) badins("readsowingdates");
-			if (!itemparsed("readharvestdates")) badins("readharvestdates");
-			if (!itemparsed("readNfert")) badins("readNfert");
 			if (!itemparsed("printseparatestands")) badins("printseparatestands");
 			if (!itemparsed("iftillage")) badins("iftillage");
 		}

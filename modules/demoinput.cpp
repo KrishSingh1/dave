@@ -159,11 +159,13 @@ bool DemoInput::readenv(Coord coord, long& seed) {
 	return gridfound;
 }
 
+
 void DemoInput::init() {
 
 	// DESCRIPTION
 	// Initialises input (e.g. opening files), and reads in the gridlist
 
+	//
 	// Reads list of grid cells and (optional) description text from grid list file
 	// This file should consist of any number of one-line records in the format:
 	//   <longitude> <latitude> [<description>]
@@ -292,6 +294,7 @@ bool DemoInput::getclimate(Gridcell& gridcell) {
 
 	climate.dtr=ddtr[date.day];
 
+
 	// First day of year only ...
 
 	if (date.day == 0) {
@@ -315,6 +318,7 @@ bool DemoInput::getclimate(Gridcell& gridcell) {
 
 	return true;
 }
+
 
 DemoInput::~DemoInput() {
 

@@ -42,11 +42,6 @@ public:
 	bool getgridcell(Gridcell& gridcell);
 
 	/// See base class for documentation about this function's responsibilities
-	/** This module supports the setting of the first historic date before or after the data period in the instruction file.
-	 *  Spinup data will be used before the first data year as usual but the spinup period will be started earlier,
-	 *  at nyear_spinup before firsthistyear_sim. After the last data year, extended data created from the cycled 
-	 *  last NYEAR_FUTURE_DATA years (detrended temperature).
-	 */
 	bool getclimate(Gridcell& gridcell);
 
 	/// Returns hte spatial resolution of the gridlist
@@ -73,9 +68,6 @@ public:
 	 * is read from the ins file)
 	 */
 	static const int NYEAR_SPINUP_DATA=30;
-
-	/// number of years to use for temperature-detrended future data set (cycled last 
-	static const int NYEAR_FUTURE_DATA=30;
 
 	/// Spatial resolution of gridlist (degrees)
 	double climate_spatial_resolution;

@@ -499,7 +499,6 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	historic_timestep_max_temp = -1;
 
 	dprintf("\nCommencing simulation for gridcell at (%g,%g)\n", lon, lat);
-
 	if (current_gridcell->descrip != "") {
 		dprintf("Description: %s\n", current_gridcell->descrip.c_str());
 	}
@@ -852,13 +851,11 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 
 			int cells_done = distance(gridlistCF.begin(), current_gridcell);
 
-			double progress;
-
-			progress=(double)(cells_done*years_to_simulate+date.year)/
+			double progress=(double)(cells_done*years_to_simulate+date.year)/
 				(double)(gridlistCF.size()*years_to_simulate);
 
 			tprogress.setprogress(progress);
-			printf("%3d%% complete, %s elapsed, %s remaining\n",(int)(progress*100.0),
+			dprintf("%3d%% complete, %s elapsed, %s remaining\n",(int)(progress*100.0),
 				tprogress.elapsed.str,tprogress.remaining.str);
 			tmute.settimer(MUTESEC);
 		}

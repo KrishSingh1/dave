@@ -182,7 +182,6 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 			else return false;
 		}
 
-
 		// Give sub-classes a chance to modify the data
 		adjust_raw_forcing_data(gridlist.getobj().lon,
 								gridlist.getobj().lat,
@@ -206,6 +205,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		// results in the period thereafter, and partly because the detrending
 		// can give negative dtr values.
 		//spinup_mdtr.detrend_data();
+
 
 		dprintf("\nCommencing simulation for stand at (%g,%g)",gridlist.getobj().lon,
 			gridlist.getobj().lat);
@@ -242,7 +242,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 bool CRUInput::getclimate(Gridcell& gridcell) {
 
-	/// See base class for documentation about this function's responsibilities
+	// See base class for documentation about this function's responsibilities
 
 	double progress;
 
@@ -293,6 +293,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			spinup_mfrs.nextyear();
 			spinup_mwet.nextyear();
 			spinup_mdtr.nextyear();
+
 		}
 		else if (date.year < nyear_spinup + NYEAR_HIST) {
 
@@ -319,13 +320,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 		// Distribute N deposition
 		distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
 	}
-
-	if(date.day == 0) {
-
-		for(int m=0; m<12; m++)
-			climate.mpet_year[m] = 0.0;
-	}
-	climate.mpet_year[date.month] += climate.eet * PRIESTLEY_TAYLOR;
 
 	// Send environmental values for today to framework
 	if(fixedco2_hist)
@@ -364,6 +358,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	return true;
 }
 
+
 CRUInput::~CRUInput() {
 
 	// Performs memory deallocation, closing of files or other "cleanup" functions.
@@ -371,6 +366,7 @@ CRUInput::~CRUInput() {
 	// Clean up
 	gridlist.killall();
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES

@@ -1374,14 +1374,8 @@ public:
 	double frootstart;
 	/// final fraction of growing season's npp allocated to roots
 	double frootend;
-	/// whether sowing dates are read from input file
-	bool readsowingdate;
-	/// whether harvest dates are read from input file
-	bool readharvestdate;
 	/// autumn/spring sowing of pft:s with tempautumn = 1
 	int forceautumnsowing;	//0 = NOFORCING,  1 = AUTUMNSOWING, 2 = SPRINGSOWING
-	/// whether N fertilization is read from input file
-	bool readNfert;
 	/// N limited version of pft
 	bool nlim;
 
@@ -1422,10 +1416,7 @@ public:
 		aboveground_ho=true;
 		frootstart=0.0;
 		frootend=0.0;
-		readsowingdate=false;
-		readharvestdate=false;
 		forceautumnsowing = 0;
-		readNfert=false;
 		nlim = false;
 
 		fertrate[0] = 0.0;

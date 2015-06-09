@@ -434,10 +434,7 @@ group "crop" (
 	res_outtake 0.75	! Part of residues after harvest removed from stand; goes into fluxes.acflux_harvest
 	aboveground_ho 1	! 
 	isintercropgrass 0
-	readsowingdate 0
-	readharvestdate 0
 !	forceautumnsowing 0
-	readNfert 1
 	nlim 0
 )
 
@@ -570,8 +567,6 @@ group "TeWW" (
 	ifsdautumn 1
 	tempautumn 12
 	tempspring 5
-	readsowingdate 1
-	readharvestdate 1
 	forceautumnsowing 0	! 0 No forcing, 1 Autumn, 2 Spring
 )
 
@@ -608,8 +603,6 @@ group "TrRi" (
 	himin 0.25
 
 	tempspring 18
-	readsowingdate 1
-	readharvestdate 1
 )
 
 group "TeCo" (
@@ -648,8 +641,6 @@ group "TeCo" (
 	himin 0.3
 
 	tempspring 14
-	readsowingdate 1
-	readharvestdate 1
 )
 
 group "TrMi" (
@@ -722,8 +713,6 @@ group "TePu" (
 	hiopt 0.6	! SWAT 0.61
 	himin 0.01
 	tempspring 10
-	readsowingdate 1
-	readharvestdate 1
 )
 
 group "TeSb" (

@@ -677,9 +677,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("himin",&ppft->himin,0.0,2.0,1,CB_NONE,"Minimal harvest index");
 		declareitem("frootstart",&ppft->frootstart,0.0,1.0,1,CB_NONE,"Initial root mass fraction of total plant");
 		declareitem("frootend",&ppft->frootend,0.0,1.0,1,CB_NONE,"Root mass fraction of total plant at harvest");
-		declareitem("readsowingdate",&ppft->readsowingdate,1,CB_NONE,"use sowing date from input file");
-		declareitem("readharvestdate",&ppft->readharvestdate,1,CB_NONE,"use harvest date from input file");
-		declareitem("readNfert",&ppft->readNfert,1,CB_NONE,"use N fertilization from input file");
 		declareitem("laimax",&ppft->laimax,0.0,10.0,1,CB_NONE,"Maximum lai (crop grass only)");
 		declareitem("forceautumnsowing",&ppft->forceautumnsowing,0,2,1,CB_NONE,"Whether autumn sowing is forced independent of climate");
 
@@ -1386,7 +1383,6 @@ void plib_callback(int callback) {
 
 						if(ifnlim) {
 							if(ppft->nlim) {
-								if (!itemparsed("readNfert")) badins("readNfert");
 								if (!itemparsed("nlim")) badins("nlim");
 								if (!itemparsed("fertrate")) badins("fertrate");
 								if (!itemparsed("N_appfert")) badins("N_appfert");

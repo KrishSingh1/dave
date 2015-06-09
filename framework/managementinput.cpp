@@ -81,7 +81,7 @@ void ManagementInputModule::getsowingdates(Gridcell& gridcell) {
 
 	if(date.year < nyear_spinup + input.getnyear_hist()) {
 		for(int i=0; i<npft; i++) {
-			if(pftlist[i].landcover == CROPLAND && pftlist[i].readsowingdate)	{
+			if(pftlist[i].landcover == CROPLAND)	{
 
 				gridcell.pft[i].sdate_force = (int)sdates.Get(year,pftlist[i].name);
 
@@ -105,7 +105,7 @@ void ManagementInputModule::getharvestdates(Gridcell& gridcell) {
 
 	if(date.year < nyear_spinup + input.getnyear_hist()) {
  		for(int i=0; i<npft; i++)	{
-			if(pftlist[i].landcover == CROPLAND && pftlist[i].readharvestdate) {		
+			if(pftlist[i].landcover == CROPLAND) {		
 
 				gridcell.pft[pftlist[i].id].hdate_force = (int)hdates.Get(year,pftlist[i].name);
 
@@ -129,7 +129,7 @@ void ManagementInputModule::getNfert(Gridcell& gridcell) {
 
 	if(date.year < nyear_spinup + input.getnyear_hist()) {
  		for(int i=0; i<npft; i++)	{
-			if(pftlist[i].landcover == CROPLAND && pftlist[i].readNfert) {		
+			if(pftlist[i].landcover == CROPLAND) {		
 				gridcell.pft[pftlist[i].id].Nfert_read = Nfert.Get(year,pftlist[i].name);
 			}
 		}

@@ -215,8 +215,7 @@ void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft) {
 
 		// Forced sowing date read from input file.
 		// Calculated value used if value for pft not found in file.
-		if(readsowingdates && pft.readsowingdate && gridcellpft.sdate_force >= 0) {
-
+		if(gridcellpft.sdate_force >= 0) {
 			if((abs(gridcellpft.sdate_force - gridcellpft.first_autumndate20) <= abs(gridcellpft.sdate_force - gridcellpft.last_springdate20)))
 				gridcellpft.wintertype = true;
 			else

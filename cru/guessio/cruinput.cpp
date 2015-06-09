@@ -55,13 +55,7 @@ CRUInput::CRUInput()
 	  spinup_msun(NYEAR_SPINUP_DATA),
 	  spinup_mfrs(NYEAR_SPINUP_DATA),
 	  spinup_mwet(NYEAR_SPINUP_DATA),
-	  spinup_mdtr(NYEAR_SPINUP_DATA),
-	  extended_mtemp(NYEAR_FUTURE_DATA),
-	  extended_mprec(NYEAR_FUTURE_DATA),
-	  extended_msun(NYEAR_FUTURE_DATA),
-	  extended_mfrs(NYEAR_FUTURE_DATA),
-	  extended_mwet(NYEAR_FUTURE_DATA),
-	  extended_mdtr(NYEAR_FUTURE_DATA) {
+	  spinup_mdtr(NYEAR_SPINUP_DATA) {
 
 	// Declare instruction file parameters
 
@@ -95,11 +89,7 @@ void CRUInput::init() {
 	// Open management files
 	management_input_module.init();
 
-	// Set the simulation period accoring to instruction file settings and/or climate time period
-	set_simulation_years(this);
-
-//	date.set_first_calendar_year(getfirsthistyear() - nyear_spinup);
-
+	date.set_first_calendar_year(FIRSTHISTYEAR - nyear_spinup);
 	// Set timers
 	tprogress.init();
 	tmute.init();
@@ -217,19 +207,6 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		// can give negative dtr values.
 		//spinup_mdtr.detrend_data();
 
-		// Build extended data sets
-		int lastyear = NYEAR_HIST; // Year count from 1 here.
-		int firstyear = lastyear - NYEAR_FUTURE_DATA + 1;
-		extended_mtemp.extract_data(hist_mtemp, firstyear, lastyear);
-		extended_mprec.extract_data(hist_mprec, firstyear, lastyear);
-		extended_msun.extract_data(hist_msun, firstyear, lastyear);
-		extended_mfrs.extract_data(hist_mfrs, firstyear, lastyear);
-		extended_mwet.extract_data(hist_mwet, firstyear, lastyear);
-		extended_mdtr.extract_data(hist_mdtr, firstyear, lastyear);
-
-		// Detrend extended temperature data
-		extended_mtemp.detrend_data(true);
-
 		dprintf("\nCommencing simulation for stand at (%g,%g)",gridlist.getobj().lon,
 			gridlist.getobj().lat);
 		if (gridlist.getobj().descrip!="") dprintf(" (%s)\n\n",
@@ -263,33 +240,12 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 	return false; // no more stands
 }
 
-int CRUInput::getfirsthistyear_climate() {
-
-	return FIRSTHISTYEAR;
-}
-
-int CRUInput::getnyear_hist_climate() {
-
-	return NYEAR_HIST;
-}
-
-int CRUInput::getfirsthistyear() {
-
-	return firsthistyear_sim;
-}
-
-int CRUInput::getnyear_hist() {
-
-	return nyear_hist_sim;
-}
-
 bool CRUInput::getclimate(Gridcell& gridcell) {
 
 	/// See base class for documentation about this function's responsibilities
 
 	double progress;
 
-	int calender_year = date.year - nyear_spinup + firsthistyear_sim;
 	Climate& climate = gridcell.climate;
 
 	if (date.day == 0) {
@@ -299,100 +255,60 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 		// Extract N deposition to use for this year,
 		// monthly means to be distributed into daily values further down
 		double mndrydep[12], mnwetdep[12];
-		ndep.get_one_calendar_year(calender_year, mndrydep, mnwetdep);
+		ndep.get_one_calendar_year(date.year - nyear_spinup + FIRSTHISTYEAR,
+		                           mndrydep, mnwetdep);
 
-		if(date.year < nyear_spinup + nyear_hist_sim) {
+		if (date.year < nyear_spinup) {
 
-			if (calender_year < FIRSTHISTYEAR) {
+			// During spinup period
 
-				// During spinup period
+			int m;
+			double mtemp[12],mprec[12],msun[12];
+			double mfrs[12],mwet[12],mdtr[12];
 
-				int m;
-				double mtemp[12],mprec[12],msun[12];
-				double mfrs[12],mwet[12],mdtr[12];
+			for (m=0;m<12;m++) {
+				mtemp[m] = spinup_mtemp[m];
+				mprec[m] = spinup_mprec[m];
+				msun[m] = spinup_msun[m];
 
-				for (m=0;m<12;m++) {
-					mtemp[m] = spinup_mtemp[m];
-					mprec[m] = spinup_mprec[m];
-					msun[m] = spinup_msun[m];
-
-					mfrs[m] = spinup_mfrs[m];
-					mwet[m] = spinup_mwet[m];
-					mdtr[m] = spinup_mdtr[m];
-				}
-
-				// Interpolate monthly spinup data to quasi-daily values
-				interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
-
-				// Only recalculate precipitation values using weather generator
-				// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
-				if (ifrainonwetdaysonly) { 
-					// (from Dieter Gerten 021121)
-					prdaily(mprec, dprec, mwet, gridcell.seed);
-				}
-
-				spinup_mtemp.nextyear();
-				spinup_mprec.nextyear();
-				spinup_msun.nextyear();
-
-				spinup_mfrs.nextyear();
-				spinup_mwet.nextyear();
-				spinup_mdtr.nextyear();
+				mfrs[m] = spinup_mfrs[m];
+				mwet[m] = spinup_mwet[m];
+				mdtr[m] = spinup_mdtr[m];
 			}
-			else if (calender_year < FIRSTHISTYEAR + NYEAR_HIST) {
 
-				// Historical period
+			// Interpolate monthly spinup data to quasi-daily values
+			interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
 
-				int data_year = calender_year - FIRSTHISTYEAR;
+			// Only recalculate precipitation values using weather generator
+			// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
+			if (ifrainonwetdaysonly) { 
+				// (from Dieter Gerten 021121)
+				prdaily(mprec, dprec, mwet, gridcell.seed);
+			}
+
+			spinup_mtemp.nextyear();
+			spinup_mprec.nextyear();
+			spinup_msun.nextyear();
+
+			spinup_mfrs.nextyear();
+			spinup_mwet.nextyear();
+			spinup_mdtr.nextyear();
+		}
+		else if (date.year < nyear_spinup + NYEAR_HIST) {
+
+			// Historical period
 
 				// Interpolate this year's monthly data to quasi-daily values
-				interp_climate(hist_mtemp[data_year], hist_mprec[data_year], hist_msun[data_year],
-						   hist_mdtr[data_year], dtemp, dprec, dsun, ddtr);
+			interp_climate(hist_mtemp[date.year-nyear_spinup],
+				hist_mprec[date.year-nyear_spinup],hist_msun[date.year-nyear_spinup],
+					   hist_mdtr[date.year-nyear_spinup],
+				       dtemp,dprec,dsun,ddtr);
 
-				// Only recalculate precipitation values using weather generator
-				// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
-				if (ifrainonwetdaysonly) { 
-					// (from Dieter Gerten 021121)
-					prdaily(hist_mprec[data_year], dprec, hist_mwet[data_year], gridcell.seed);
-				}
-			}
-			else {
-
-				// Extended period
-
-				int m;
-				double mtemp[12],mprec[12],msun[12];
-				double mfrs[12],mwet[12],mdtr[12];
-
-				for (m=0;m<12;m++) {
-					mtemp[m] = extended_mtemp[m];
-					mprec[m] = extended_mprec[m];
-					msun[m] = extended_msun[m];
-
-					mfrs[m] = extended_mfrs[m];
-					mwet[m] = extended_mwet[m];
-					mdtr[m] = extended_mdtr[m];
-				}
-
-				// Interpolate monthly spinup data to quasi-daily values
-				interp_climate(mtemp, mprec, msun, mdtr, dtemp, dprec, dsun, ddtr);
-
-				// Only recalculate precipitation values using weather generator
-				// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
-				if (ifrainonwetdaysonly) { 
-					// (from Dieter Gerten 021121)
-					prdaily(mprec, dprec, mwet, gridcell.seed);
-				}
-
-				extended_mtemp.nextyear();
-				extended_mprec.nextyear();
-				extended_msun.nextyear();
-				extended_mfrs.nextyear();
-				extended_mwet.nextyear();
-				extended_mdtr.nextyear();
-
-				if(calender_year == FIRSTHISTYEAR + NYEAR_HIST)
-					dprintf("Last %d years of CRU climate data used from year %d and onwards\n", NYEAR_FUTURE_DATA, calender_year);
+			// Only recalculate precipitation values using weather generator
+			// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
+			if (ifrainonwetdaysonly) { 
+				// (from Dieter Gerten 021121)
+				prdaily(hist_mprec[date.year-nyear_spinup], dprec, hist_mwet[date.year-nyear_spinup], gridcell.seed);
 			}
 		}
 		else {
@@ -413,9 +329,9 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 
 	// Send environmental values for today to framework
 	if(fixedco2_hist)
-		climate.co2 = co2[firsthistyear_sim];
+		climate.co2 = co2[FIRSTHISTYEAR];
 	else
-		climate.co2 = co2[calender_year];
+		climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
 
 	climate.temp = dtemp[date.day];
 	climate.prec = dprec[date.day];
@@ -436,8 +352,8 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 		// Progress report to user and update timer
 
 		if (tmute.getprogress()>=1.0) {
-			progress=(double)(gridlist.getobj().id*(nyear_spinup+getnyear_hist())
-				+date.year)/(double)(gridlist.nobj*(nyear_spinup+getnyear_hist()));
+			progress=(double)(gridlist.getobj().id*(nyear_spinup+NYEAR_HIST)
+				+date.year)/(double)(gridlist.nobj*(nyear_spinup+NYEAR_HIST));
 			tprogress.setprogress(progress);
 			dprintf("%3d%% complete, %s elapsed, %s remaining\n",(int)(progress*100.0),
 				tprogress.elapsed.str,tprogress.remaining.str);

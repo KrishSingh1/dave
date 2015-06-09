@@ -26,10 +26,6 @@ public:
 	void getlandcover(Gridcell& gridcell);
 	/// Gets land cover transition data for a year
 	bool get_lc_transfer(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES]);
-	/// Gets first year of land cover data
-	int getfirsthistyear();
-	/// Gets number of years of land cover data
-	int getnyear_hist();
 
 private:
 

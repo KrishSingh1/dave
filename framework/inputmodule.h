@@ -98,23 +98,8 @@ public:
 	/// Returns pointer to land management input module
 	virtual ManagementInputModule* get_management_module() = 0;
 
-	/// Returns first historic year of climate input data
-	virtual int getfirsthistyear_climate() = 0;
-
-	/// Returns number of years of climate input data
-	virtual int getnyear_hist_climate() = 0;
-
-	/// Returns first historic year of simulation
-	virtual int getfirsthistyear() = 0;
-
-	/// Returns number of historic years of simulation
-	virtual int getnyear_hist() = 0;
-
 	/// Returns the spatial resolution of the gridlist
 	virtual double getgridlist_spatial_resolution() = 0;
-
-	/// Returns true if module supports setting of firsthistyear_sim and nyear_hist_sim
-	virtual bool supports_firsthistyear_in_insfile() = 0;
 };
 
 

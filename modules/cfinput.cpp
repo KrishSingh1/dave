@@ -417,10 +417,7 @@ void CFInput::init() {
 	// Open management files
 	management_input_module.init();
 
-	// Selecting firsthistyear and nyear_hist in instruction file not yet supported for this input module
-	set_simulation_years(this);
-
-	date.set_first_calendar_year(getfirsthistyear() - nyear_spinup);	// Must be set for cfinput
+	date.set_first_calendar_year(cf_temp->get_date_time(0).get_year() - nyear_spinup);
 
 	// Set timers
 	tprogress.init();
@@ -847,7 +844,11 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 
 		if (tmute.getprogress()>=1.0) {
 
-			int years_to_simulate = nyear_spinup + getnyear_hist();
+			int first_historic_year = cf_temp->get_date_time(0).get_year();
+			int last_historic_year = cf_temp->get_date_time(cf_temp->get_timesteps()-1).get_year();
+			int historic_years = last_historic_year - first_historic_year + 1;
+
+			int years_to_simulate = nyear_spinup + historic_years;
 
 			int cells_done = distance(gridlistCF.begin(), current_gridcell);
 
@@ -943,30 +944,6 @@ std::vector<GuessNC::CF::GridcellOrderedVariable*> CFInput::all_variables() cons
 	             result.end());
 
 	return result;
-}
-
-int CFInput::getfirsthistyear_climate() {
-
-	return  cf_temp->get_date_time(0).get_year();
-}
-
-int CFInput::getnyear_hist_climate() {
-
-	return cf_temp->get_date_time(cf_temp->get_timesteps()-1).get_year() - cf_temp->get_date_time(0).get_year() + 1;
-}
-
-int CFInput::getfirsthistyear() {
-
-	// Selecting firsthistyear in instruction file not supported for this input module, use climate first year
-//	return firsthistyear_sim;
-	return getfirsthistyear_climate();
-}
-
-int CFInput::getnyear_hist() {
-
-	// Selecting nyear_hist in instruction file not supported for this input module, use climate period
-//	return nyear_hist_sim;
-	return getnyear_hist_climate();
 }
 
 // Creates cf gridlist from lon-lat gridlist

@@ -39,9 +39,12 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 
 
 DemoInput::DemoInput() 
-	: gridlist_spatial_resolution(DEFAULT_SPATIAL_RESOLUTION),
+	: nyear(1),
+	  gridlist_spatial_resolution(DEFAULT_SPATIAL_RESOLUTION),
 	  landcover_input_module(*this),
 	  management_input_module(*this) {
+
+	declare_parameter("nyear", &nyear, 1, 10000, "Number of simulation years to run after spinup");
 }
 
 
@@ -177,9 +180,6 @@ void DemoInput::init() {
 	// Open management files
 	management_input_module.init();
 
-	// Set simulation period
-	set_simulation_years(this);
-
 	// Retrieve input file names as read from ins file
 
 	file_temp=param["file_temp"].str;
@@ -269,27 +269,6 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 	return false; // no more stands
 }
 
-
-int DemoInput::getfirsthistyear_climate() {
-
-	return -1;
-}
-
-int DemoInput::getnyear_hist_climate() {
-
-	return 0;
-}
-
-int DemoInput::getfirsthistyear() {
-
-	return firsthistyear_sim;
-}
-
-int DemoInput::getnyear_hist() {
-
-	return nyear_hist_sim;
-}
-
 bool DemoInput::getclimate(Gridcell& gridcell) {
 
 	// See base class for documentation about this function's responsibilities
@@ -318,13 +297,13 @@ bool DemoInput::getclimate(Gridcell& gridcell) {
 	if (date.day == 0) {
 
 		// Return false if last year was the last for the simulation
-		if (date.year==nyear_spinup+getnyear_hist()) return false;
+		if (date.year==nyear_spinup+nyear) return false;
 
 		// Progress report to user and update timer
 
 		if (tmute.getprogress()>=1.0) {
-			progress=(double)(gridlist.getobj().id*(nyear_spinup+getnyear_hist())
-				+date.year)/(double)(gridlist.nobj*(nyear_spinup+getnyear_hist()));
+			progress=(double)(gridlist.getobj().id*(nyear_spinup+nyear)
+				+date.year)/(double)(gridlist.nobj*(nyear_spinup+nyear));
 
 
 			tprogress.setprogress(progress);

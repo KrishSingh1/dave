@@ -22,7 +22,5 @@
 void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist);
 /// Parses the spatial resolution for a lon-lat Coord gridlist
 double parse_gridlist_spatial_resolution(ListArray_id<Coord>& gridlist);
-/// Sets simulation period accoring to instruction file settings and/or climate time period
-void set_simulation_years(InputModule* input_module);
 
 #endif // INPUT_H

@@ -196,13 +196,6 @@ extern bool iftillage;
 /// Use silt/sand fractions per soiltype
 extern bool textured_soil;
 
-/// First historic year in simulation. Optionally set in instruction file.
-extern int firsthistyear_sim;
-/// Last historic year in simulation. Optionally set in instruction file.
-extern int lasthistyear_sim;
-/// Number of historic years in simulation. Optionally set in instruction file.
-extern int nyear_hist_sim;
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // Settings controlling the saving and loading from state files
 

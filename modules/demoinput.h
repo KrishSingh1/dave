@@ -52,20 +52,6 @@ public:
 	/// Obtains land management data for one day
 	void getmanagement(Gridcell& gridcell) {management_input_module.getmanagement(gridcell);}
 
-	/// Returns first historic year of climate input data
-	int getfirsthistyear_climate();
-
-	/// Returns number of years of climate input data
-	int getnyear_hist_climate();
-
-	/// Returns first historic year of simulation
-	int getfirsthistyear();
-
-	/// Returns number of historic years of simulation
-	int getnyear_hist();
-
-	bool supports_firsthistyear_in_insfile() { return true;}
-
 	/// Returns pointer to land cover input module
 	LandcoverInputModule* get_landcover_module() {return &landcover_input_module;}
 	/// Returns pointer to land management input module
@@ -85,6 +71,9 @@ private:
 
 	/// Reads in environmental data for a location
 	bool readenv(Coord coord, long& seed);
+
+	/// number of simulation years to run after spinup
+	int nyear;
 
 	/// A list of Lon-Lat Coord objects containing coordinates of the grid cells to simulate
 	ListArray_id<Coord> gridlist;

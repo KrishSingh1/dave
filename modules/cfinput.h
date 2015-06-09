@@ -41,20 +41,6 @@ public:
 	/// Obtains land management data for one day
 	void getmanagement(Gridcell& gridcell) {management_input_module.getmanagement(gridcell);}
 
-	/// Returns first historic year of climate input data
-	int getfirsthistyear_climate();
-
-	/// Returns number of years of climate input data
-	int getnyear_hist_climate();
-
-	/// Returns first historic year of simulation
-	int getfirsthistyear();
-
-	/// Returns number of historic years of simulation
-	int getnyear_hist();
-
-	bool supports_firsthistyear_in_insfile() { return false;}
-
 	/// Returns pointer to land cover input module
 	LandcoverInputModule* get_landcover_module() {return &landcover_input_module;}
 	/// Returns pointer to land management input module

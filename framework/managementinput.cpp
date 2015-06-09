@@ -80,20 +80,18 @@ void ManagementInputModule::getsowingdates(Gridcell& gridcell) {
 	if(!sdates.isloaded())
 		return;
 
-	int year = date.year - nyear_spinup + input.getfirsthistyear();
+	int year = date.get_calendar_year();
 
-	if(date.year < nyear_spinup + input.getnyear_hist()) {
-		for(int i=0; i<npft; i++) {
-			if(pftlist[i].phenology == CROPGREEN) {	
+	for(int i=0; i<npft; i++) {
+		if(pftlist[i].phenology == CROPGREEN) {	
 
-				gridcell.pft[i].sdate_force = (int)sdates.Get(year,pftlist[i].name);
+			gridcell.pft[i].sdate_force = (int)sdates.Get(year,pftlist[i].name);
 
-				// Copy gridcellpft-value to standpft-value. If standtype values are required, modify code and input files.
-				for(unsigned int j=0; j<gridcell.nbr_stands(); j++) {
-					Standpft& standpft = gridcell[j].pft[i];
-					if(standpft.active)
-						standpft.sdate_force = gridcell.pft[i].sdate_force;
-				}
+			// Copy gridcellpft-value to standpft-value. If standtype values are required, modify code and input files.
+			for(unsigned int j=0; j<gridcell.nbr_stands(); j++) {
+				Standpft& standpft = gridcell[j].pft[i];
+				if(standpft.active)
+					standpft.sdate_force = gridcell.pft[i].sdate_force;
 			}
 		}
 	}
@@ -104,20 +102,18 @@ void ManagementInputModule::getharvestdates(Gridcell& gridcell) {
 	if(!hdates.isloaded())
 		return;
 
-	int year = date.year - nyear_spinup + input.getfirsthistyear();
+	int year = date.get_calendar_year();
 
-	if(date.year < nyear_spinup + input.getnyear_hist()) {
- 		for(int i=0; i<npft; i++)	{
-			if(pftlist[i].phenology == CROPGREEN) {		
+	for(int i=0; i<npft; i++)	{
+		if(pftlist[i].phenology == CROPGREEN) {		
 
-				gridcell.pft[pftlist[i].id].hdate_force = (int)hdates.Get(year,pftlist[i].name);
+			gridcell.pft[pftlist[i].id].hdate_force = (int)hdates.Get(year,pftlist[i].name);
 
-				// Copy gridcellpft-value to standpft-value. If standtype values are required, modify code and input files.
-				for(unsigned int j=0; j<gridcell.nbr_stands(); j++) {
-					Standpft& standpft = gridcell[j].pft[i];
-					if(standpft.active)
-						standpft.hdate_force = gridcell.pft[i].hdate_force;
-				}
+			// Copy gridcellpft-value to standpft-value. If standtype values are required, modify code and input files.
+			for(unsigned int j=0; j<gridcell.nbr_stands(); j++) {
+				Standpft& standpft = gridcell[j].pft[i];
+				if(standpft.active)
+					standpft.hdate_force = gridcell.pft[i].hdate_force;
 			}
 		}
 	}
@@ -128,13 +124,11 @@ void ManagementInputModule::getNfert(Gridcell& gridcell) {
 	if(!Nfert.isloaded())
 		return;
 
-	int year = date.year - nyear_spinup + input.getfirsthistyear();
+	int year = date.get_calendar_year();
 
-	if(date.year < nyear_spinup + input.getnyear_hist()) {
- 		for(int i=0; i<npft; i++)	{
-			if(pftlist[i].phenology == CROPGREEN) {		
-				gridcell.pft[pftlist[i].id].Nfert_read = Nfert.Get(year,pftlist[i].name);
-			}
+	for(int i=0; i<npft; i++)	{
+		if(pftlist[i].phenology == CROPGREEN) {		
+			gridcell.pft[pftlist[i].id].Nfert_read = Nfert.Get(year,pftlist[i].name);
 		}
 	}
 }

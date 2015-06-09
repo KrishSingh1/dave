@@ -123,7 +123,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 				}// End of loop through patches
 
 				// Update crop rotation status
-				crop_rotation(stand, input_module->getfirsthistyear());
+				crop_rotation(stand, date.first_calendar_year + nyear_spinup);
 
 				if (date.islastday && date.islastmonth) {
 					// LAST DAY OF YEAR

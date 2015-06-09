@@ -49,25 +49,11 @@ public:
 	 */
 	bool getclimate(Gridcell& gridcell);
 
-	bool supports_firsthistyear_in_insfile() { return true;}
-
 	/// Returns hte spatial resolution of the gridlist
 	double getgridlist_spatial_resolution() { return gridlist_spatial_resolution;}
 
 	/// Obtains land management data for one day
 	void getmanagement(Gridcell& gridcell) {management_input_module.getmanagement(gridcell);}
-
-	/// Returns first historic year of climate input data
-	int getfirsthistyear_climate();
-
-	/// Returns number of years of climate input data
-	int getnyear_hist_climate();
-
-	/// Returns first historic year of simulation
-	int getfirsthistyear();
-
-	/// Returns number of historic years of simulation
-	int getnyear_hist();
 
 	/// Returns pointer to land cover input module
 	LandcoverInputModule* get_landcover_module() {return &landcover_input_module;}
@@ -192,20 +178,6 @@ private:
 	Spinup_data spinup_mwet;
 	/// Spinup data for current grid cell - DTR (diurnal temperature range)
 	Spinup_data spinup_mdtr;
-
-	/// Extended data for current grid cell - temperature
-	Spinup_data extended_mtemp;
-	/// Extended data for current grid cell - precipitation
-	Spinup_data extended_mprec;
-	/// Extended data for current grid cell - sunshine
-	Spinup_data extended_msun;
-
-	/// Extended data for current grid cell - frost days
-	Spinup_data extended_mfrs;
-	/// Extended data for current grid cell - precipitation days
-	Spinup_data extended_mwet;
-	/// Extended data for current grid cell - DTR (diurnal temperature range)
-	Spinup_data extended_mdtr;
 
 	/// Daily temperature for current year
 	double dtemp[Date::MAX_YEAR_LENGTH];

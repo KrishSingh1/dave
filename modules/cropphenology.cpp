@@ -356,8 +356,6 @@ void crop_phenology(Patch& patch)
 					for(int i=0;i<2;i++) {
 						ppftcrop.sdate_harvest[i] = -1;
 						ppftcrop.hdate_harvest[i] = -1;
-						//ppftcrop.fphu_harvest[i] = -1.0;
-						//ppftcrop.fhi_harvest[i] = -1.0;
 						ppftcrop.sdate_thisyear[i] = -1;
 					}
 				}
@@ -447,16 +445,12 @@ void crop_phenology(Patch& patch)
 						if(ppftcrop.nharv == 1) {
 							ppftcrop.sdate_harvest[0] = ppftcrop.sdate;
 							ppftcrop.hdate_harvest[0] = date.day;
-							//ppftcrop.fphu_harvest[0] = ppftcrop.fphu;
-							//ppftcrop.fhi_harvest[0] = ppftcrop.fhi;
 							if(ppftcrop.sdate > date.day)							
 								ppftcrop.sownlastyear = true;
 						}
 						else if(ppftcrop.nharv == 2) {
 							ppftcrop.sdate_harvest[1] = ppftcrop.sdate;
 							ppftcrop.hdate_harvest[1] = date.day;
-							//ppftcrop.fphu_harvest[1] = ppftcrop.fphu;
-							//ppftcrop.fhi_harvest[1] = ppftcrop.fhi;
 						}
 
 						ppftcrop.demandsum_crop = 0.0;

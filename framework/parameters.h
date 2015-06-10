@@ -196,6 +196,12 @@ extern bool iftillage;
 /// Use silt/sand fractions per soiltype
 extern bool textured_soil;
 
+/// Whether pastures are affected by disturbance and fire (affects pastures' npatch)
+extern bool disturb_pasture;
+
+/// Whether to simulate cropland as pasture
+extern bool grassforcrop;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Settings controlling the saving and loading from state files
 

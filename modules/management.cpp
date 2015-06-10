@@ -395,10 +395,9 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
 	i.anflux_harvest += harvest;
 	i.nmass_leaf -= harvest;
 
-#if defined GRASSFORCROP
-	if (alive) {
+	if (grassforcrop && alive) {
 		// Carbon:
-		residue_outtake = pft.res_outtake * i.cmass_leaf;	// res_outtake currently set to 0.0, 
+		double residue_outtake = pft.res_outtake * i.cmass_leaf;	// res_outtake currently set to 0.0, 
 		i.acflux_harvest += residue_outtake;				// could be used for burning		
 		i.cmass_leaf -= residue_outtake;
 
@@ -407,7 +406,6 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
 		i.anflux_harvest += residue_outtake;								
 		i.nmass_leaf -= residue_outtake;
 	}
-#endif
 }
 
 /// Harvest function for pasture, representing grazing (previous year).

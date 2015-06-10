@@ -14,7 +14,6 @@
 #include "inputmodule.h"
 #include <vector>
 #include "gutil.h"
-#include "guess.h"
 #include "input.h"
 
 /// An input module for a toy data set (for demonstration purposes)

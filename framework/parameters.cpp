@@ -70,6 +70,8 @@ bool iftransfer_to_new_stand;
 int nyear_dyn_phu;
 int nyear_spinup;
 bool textured_soil;
+bool disturb_pasture;
+bool grassforcrop;
 
 xtring state_path;
 bool restart;
@@ -186,6 +188,8 @@ void initsettings() {
 	for(int lc=0; lc<NLANDCOVERTYPES; lc++)
 		frac_fixed[lc] = true;
 	textured_soil = true;
+	disturb_pasture = false;
+	grassforcrop = false;
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -441,6 +445,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"whether to use fixed landcover fractions (all landcovers have equal area) (1) or read landcover fractions from a file (0)");
 		declareitem("cftfrac_fixed",&frac_fixed[CROPLAND],1,CB_NONE,"whether to use fixed crop fractions (active crop stand types have equal area) (1) or read crop fractions from a file (0)");
 		declareitem("textured_soil",&textured_soil,1,CB_NONE,"Use silt/sand fractions specific to soiltype");
+		declareitem("disturb_pasture",&disturb_pasture,1,CB_NONE,"Whether fire and disturbances enabled on pastures (0,1)");
+		declareitem("grassforcrop",&grassforcrop,1,CB_NONE,"grassforcrop");
 
 		declareitem("state_path", &state_path, 300, CB_NONE, "State files directory (for restarting from, or saving state files)");
 		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
@@ -1084,10 +1090,10 @@ void plib_callback(int callback) {
 			badins("state_path");
 		}
 
-#if defined GRASSFORCROP
-		run[CROPLAND]=0;
-		run[PASTURE]=1;
-#endif
+		if (grassforcrop) {
+			run[CROPLAND]=0;
+			run[PASTURE]=1;
+		}
 
 		if (!run_landcover)
 			printseparatestands = false;

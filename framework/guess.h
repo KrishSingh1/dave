@@ -194,6 +194,9 @@ const int NROTATIONPERIODS_MAX = 3;
 /// Conversion factor for CO2 from ppmv to mole fraction
 const double CO2_CONV = 1.0e-6;
 
+/// Initial carbon allocated to crop organs at sowing, kg m-2
+const double CMASS_SEED = 0.01;
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FORWARD DECLARATIONS OF CLASSES DEFINED IN THIS FILE
@@ -438,6 +441,18 @@ class MassBalance : public Serializable  {
 	double nflux;
 	double nflux_zero;
 
+	void init(Gridcell& gridcell);
+	void check(Gridcell& gridcell);
+	// indiv and patch-level functions are for use with true crop stands only
+	void init_indiv(Individual& indiv);
+	bool check_indiv(Individual& indiv, bool check_harvest = false);
+	bool check_indiv_C(Individual& indiv, bool check_harvest = false);
+	bool check_indiv_N(Individual& indiv, bool check_harvest = false);
+	void init_patch(Patch& patch);
+	bool check_patch(Patch& patch, bool check_harvest = false);
+	bool check_patch_C(Patch& patch, bool check_harvest = false);
+	bool check_patch_N(Patch& patch, bool check_harvest = false);
+
 public:
 	MassBalance() {
 
@@ -463,20 +478,8 @@ public:
 		nflux = 0.0;
 	}
 
-	void init(Gridcell& gridcell);
-	void check(Gridcell& gridcell);
-	// indiv and patch-level functions are for use with true crop stands only
-	void init_indiv(Individual& indiv);
-	bool check_indiv(Individual& indiv, bool check_harvest = false);
-	bool check_indiv_C(Individual& indiv, bool check_harvest = false);
-	bool check_indiv_N(Individual& indiv, bool check_harvest = false);
-	void init_patch(Patch& patch);
-	bool check_patch(Patch& patch, bool check_harvest = false);
-	bool check_patch_C(Patch& patch, bool check_harvest = false);
-	bool check_patch_N(Patch& patch, bool check_harvest = false);
 	void check_year(Gridcell& gridcell);
 	void check_period();
-
 	void serialize(ArchiveStream& arch);
 };
 
@@ -953,15 +956,12 @@ private:
 };
 
 /// Storage class of crop management information for one rotation period for a stand type, read from the instruction file.
-class Management {
+struct Management {
 
-public:
 	/// name of crop pft 
 	xtring pftname;
 	/// hydrology (RAINFED,IRRIGATED) 
 	hydrologytype hydrology;
-	/// irrigation efficiency
-//	double firr;
 	/// forced sowing date, unless sdate_force read from file
 	int sdate;
 	/// forced harvest date, unless hdate_force read from file
@@ -975,7 +975,6 @@ public:
 
 		pftname = "";
 		hydrology = RAINFED;
-//		firr = 0.0;
 		sdate = -1;
 		hdate = -1;
 		nfert = 0.0;
@@ -2314,8 +2313,6 @@ public:
 	double clay_frac;
 	/// fraction of soil that is silt
 	double silt_frac;
-	/// fraction of soil that is organic	
-	double organic_frac;
 
 	// MEMBER FUNCTIONS
 
@@ -2326,8 +2323,6 @@ public:
 
 		solvesom_end = SOLVESOM_END;
 		solvesom_begin = SOLVESOM_BEGIN;
-
-		organic_frac = 0.02;
 	}
 
 	/// Override the default SOM years with 70-80% of the spin-up period length
@@ -2703,8 +2698,6 @@ public:
 	double fphu;
 	/// fraction of growing season at latest harvest
 	double fphu_harv;
-	/// fraction of growing season at the two latest harvests this year
-//	double fphu_harvest[2];	
 	/// whether in period of heat unit sampling
 	bool hu_samplingperiod;
 	/// number of heat unit sampling days
@@ -2755,8 +2748,7 @@ public:
 	// A variable holding the memory of whether this field was fertilised or not.
 	bool fertilised[3];
 
-	cropphen_struct()
-	{
+	cropphen_struct() {
 		sdate=-1;
 		sdate_harv=-1;
 		nsow=0;
@@ -2803,13 +2795,10 @@ public:
 		growingdays_y=0;
 		lgp=0;
 
-		for(int j=0;j<2;j++)			
-		{
+		for(int j=0;j<2;j++) {
 			sdate_harvest[j]=-1;	
 			hdate_harvest[j]=-1;
 			sdate_thisyear[j]=-1;		
-//			fhi_harvest[j]=-1.0;		
-//			fphu_harvest[j]=-1.0;		
 		}
 
 		vdsum_alloc=0.0;
@@ -2919,8 +2908,6 @@ public:
 	/// yearly sum of water deficit
 	double water_deficit_y;
 
-//private:
-
 	/// Struct for crop-specific variables
 	cropphen_struct *cropphen;
 
@@ -2972,8 +2959,7 @@ public:
 		}
 	}
 
-	~Patchpft()
-	{
+	~Patchpft()	{
 		if(cropphen)
 			delete cropphen;
 	}
@@ -3451,8 +3437,7 @@ public:
 		last_springdate20=-1;
 		last_verndate=-1;
 		last_verndate20=-1;
-		for (int year=0;year<20;year++) 
-		{
+		for (int year=0;year<20;year++) {
 			first_autumndate_20[year]=-1;
 			last_springdate_20[year]=-1;
 			last_verndate_20[year]=-1;
@@ -3702,9 +3687,10 @@ private:
 //   defoliation. Annals of Botany, 89, 11-21.
 // Monsi M & Saeki T 1953 Ueber den Lichtfaktor in den Pflanzengesellschaften und
 //   seine Bedeutung fuer die Stoffproduktion. Japanese Journal of Botany 14: 22-52
-// S. Olin, G. Schurgers, M. Lindeskog, D. W�rlind, B. Smith, P. Bodin, J. Holm�r, and A. Arneth. 2015
-//   Biogeosciences Discuss., 12, 1047-1111. The impact of atmospheric CO2 and N management on yields
-//   and tissue C:N in the main wheat regions of Western Europe
+// Olin S., G. Schurgers, M. Lindeskog, D. Wårlind, B. Smith, P. Bodin, J.
+//    Holmér, and A. Arneth. 2015 Biogeosciences Discuss., 12, 1047-1111. The
+//    impact of atmospheric CO2 and N management on yields and tissue C:N in
+//    the main wheat regions of Western Europe
 // Parton, W. J., Hanson, P. J., Swanston, C., Torn, M., Trumbore, S. E., Riley, W. 
 //   & Kelly, R. 2010. ForCent model development and testing using the Enriched 
 //   Background Isotope Study experiment. Journal of Geophysical 

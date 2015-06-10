@@ -20,15 +20,6 @@
 #ifndef LPJ_GUESS_CONFIG_H
 #define LPJ_GUESS_CONFIG_H
 
-// Definitions for landcover version:
-
-/// Undefine for fire and disturbance for pasture grass. Number of patches will be the same as for natural stands.
-#define NOPASTURESTOCH
-/// Transfer cropland to pasture landcover for simplified crop definition (harvested competing c3/c4 grass).
-//#define GRASSFORCROP
-/// Initial carbon allocated to crop organs at sowing.
-#define CMASS_SEED 0.01	// 10g/m2;
-
 // Compiler specific checks, for instance for disabling specific warnings
 
 // All versions of Microsoft's compiler

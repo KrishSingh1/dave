@@ -490,19 +490,13 @@ const Climate& Patch::get_climate() const {
 }
 
 bool Patch::has_fires() const {
-#ifdef NOPASTURESTOCH
-	return iffire && stand.landcover != CROPLAND && stand.landcover != PASTURE && !managed;
-#else
-	return iffire && stand.landcover != CROPLAND && !managed;
-#endif
+	return iffire && stand.landcover != CROPLAND && !managed &&
+		(stand.landcover != PASTURE || disturb_pasture);
 }
 
 bool Patch::has_disturbances() const {
-#ifdef NOPASTURESTOCH
-	return ifdisturb && stand.landcover != CROPLAND && stand.landcover != PASTURE && !managed;
-#else
-	return ifdisturb && stand.landcover != CROPLAND && !managed;
-#endif
+	return ifdisturb && stand.landcover != CROPLAND && !managed &&
+		(stand.landcover != PASTURE || disturb_pasture);
 }
 
 /// C content of patch
@@ -632,7 +626,7 @@ void Standpft::serialize(ArchiveStream& arch) {
 // Implementation of Stand member functions
 ////////////////////////////////////////////////////////////////////////////////
 
-Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int no_patch)
+Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int npatch)
  : id(i),
    gridcell(gc),
    soiltype(st),
@@ -640,37 +634,26 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int no
    origin(landcoverX),
    frac(1.0) {
 
-		// Constructor: initialises reference member of climate and
-		// builds list array of Standpft objects
-		
-	unsigned int p;
-	unsigned int npatchL = 1;
+	// Constructor: initialises reference member of climate and
+	// builds list array of Standpft objects
 
-	for(p=0;p<pftlist.nobj;p++) {
+	if (landcover >= NLANDCOVERTYPES) {
+		fail("Unrecognized landcover type\n");
+	}
+
+	for(unsigned int p=0;p<pftlist.nobj;p++) {
 		pft.createobj(pftlist[p]);
 	}
 
-#if defined NOPASTURESTOCH
-	if(landcover==CROPLAND || landcover==PASTURE || landcover==URBAN || landcover==PEATLAND || landcover== BARREN) {
-#else
-	if(landcover==CROPLAND || landcover==URBAN || landcover==PEATLAND || landcover== BARREN) {
-#endif
-		npatchL=1;
+	unsigned int num_patches = 1;
+	if (landcover == FOREST || landcover == NATURAL || (disturb_pasture && landcover == PASTURE)) {
+		num_patches = ::npatch; // use the global variable npatch for stands with stochastic events
 	}
-	else {
-		npatchL=::npatch; // use the global variable npatch (not Stand::npatch)
+	if (npatch > 0) {
+		num_patches = npatch;	// use patch number provided by calling funciton
 	}
 
-	if(!(landcover==CROPLAND || landcover==PASTURE || landcover==URBAN || landcover==PEATLAND || landcover==NATURAL || landcover==FOREST || landcover== BARREN)) {
-		// Someone has added a new landcover type, the code above needs to be updated and
-		// npatchL needs to be set properly.
-		fail("Unrecognized landcover type");
-	}
-
-	if(no_patch > 0)
-		npatchL = no_patch;
-
-	for (p=0;p<npatchL;p++) {
+	for (unsigned int p=0;p<num_patches;p++) {
 		createobj(*this, soiltype);
 	}
 
@@ -705,8 +688,9 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int no
 
 Stand::~Stand() {
 
-	if(transfer_area_st)
+	if (transfer_area_st) {
 		delete[] transfer_area_st;
+	}
 }
 
 double Stand::get_gridcell_fraction() const {
@@ -802,12 +786,13 @@ void Stand::rotate() {
 		ndays_inrotation = 0;
 
 		current_rot = (current_rot + 1) % stlist[stid].rotation.ncrops;
-		pftid = pftlist.getpftid(stlist[stid].management[current_rot].pftname);
+		Management current_man = stlist[stid].management[current_rot];
+		pftid = pftlist.getpftid(current_man.pftname);
 
 		Standpft& standpft = pft[pftid];
 		Gridcellpft& gridcellpft = gridcell->pft[pftid];
 
-		if(stlist[stid].management[current_rot].hydrology == IRRIGATED) {
+		if(current_man.hydrology == IRRIGATED) {
 			isirrigated = true;					
 			standpft.irrigated = true;
 		}
@@ -817,11 +802,11 @@ void Stand::rotate() {
 		}
 
 		if(!readNfert)
-			gridcellpft.Nfert_read = stlist[stid].management[current_rot].nfert;
+			gridcellpft.Nfert_read = current_man.nfert;
 		if(!readsowingdates)
-			standpft.sdate_force = stlist[stid].management[current_rot].sdate;
+			standpft.sdate_force = current_man.sdate;
 		if(!readharvestdates)
-			standpft.hdate_force = stlist[stid].management[current_rot].hdate;
+			standpft.hdate_force = current_man.hdate;
 	}
 }
 
@@ -1661,11 +1646,11 @@ double Individual::check_N_mass() {
 	}
 	if(nstore_labile < 0.0) {
 		negative_nmass -= nstore_labile;
-		nstore_labile = 0,0;
+		nstore_labile = 0.0;
 	}	
 	if(nstore_longterm < 0.0) {
 		negative_nmass -= nstore_longterm;
-		nstore_longterm = 0,0;
+		nstore_longterm = 0.0;
 	}	
 
 	if(negative_nmass > 1.0e-14) {
@@ -1681,12 +1666,12 @@ double Individual::check_N_mass() {
 		}
 		else {
 			vegetation.patch.stand.get_gridcell().landcover.anflux_landuse_change -= (negative_nmass - pos_nmass) * vegetation.patch.stand.get_gridcell_fraction();
-			nmass_leaf = 0,0;
-			nmass_leaf = 0,0;
+			nmass_leaf = 0.0;
+			nmass_leaf = 0.0;
 			if(cropindiv) {
-				cropindiv->nmass_ho = 0,0;
-				cropindiv->nmass_agpool = 0,0;
-				cropindiv->nmass_dead_leaf = 0,0;
+				cropindiv->nmass_ho = 0.0;
+				cropindiv->nmass_agpool = 0.0;
+				cropindiv->nmass_dead_leaf = 0.0;
 			}
 		}
 //		dprintf("Year %d day %d Stand %d indiv %d: Negative N mass: %.15f\n", date.year, date.day, vegetation.patch.stand.id, id, negative_nmass);
@@ -2157,7 +2142,7 @@ Landcover::Landcover() {
 	memset(anflux_landuse_change_lc, 0, sizeof(double)*NLANDCOVERTYPES);
 
 	for (int i=0; i<NLANDCOVERTYPES; i++) {
-		expand_to_new_stand[i] = i == NATURAL || i == FOREST;
+		expand_to_new_stand[i] = (i == NATURAL || i == FOREST);
 
 		pool_to_all_landcovers[i] = false;		// from a donor landcover; alt.c
 		pool_from_all_landcovers[i] = false;	// to a receptor landcover; alt.a
@@ -2539,46 +2524,44 @@ bool MassBalance::check_patch(Patch& patch, bool check_harvest) {
 
 void MassBalance::check_year(Gridcell& gridcell) {
 
-	if(date.year >= start_year) {
+	if (date.year < start_year) {
+		return;
+	}
 
-		double ccont_year = gridcell.ccont();
-		double cflux_year = gridcell.cflux();
+	double ccont_year = gridcell.ccont();
+	double cflux_year = gridcell.cflux();
 
-		double ncont_year = gridcell.ncont();
-		double nflux_year = gridcell.nflux();
+	double ncont_year = gridcell.ncont();
+	double nflux_year = gridcell.nflux();
 
-		if(date.year >= start_year) {
+	if(date.year == start_year) {
+		ccont_zero = ccont_year;
+		ncont_zero = ncont_year;
+	}
+	else {
 
-			if(date.year == start_year) {
-				ccont_zero = ccont_year;
-				ncont_zero = ncont_year;
+		cflux += cflux_year;
+		nflux += nflux_year;
+
+		// C balance check:
+		if(fabs(ccont_year - ccont + cflux_year) > 1.0e-9) {
+			dprintf("\nC balance year %d: %.10f\n", date.year, ccont_year - ccont + cflux_year);
+			dprintf("C pool change: %.5f\n", ccont_year - ccont);
+			dprintf("C flux: %.5f\n",  cflux_year);
+		}
+		// Cropland without N-limitation is not balanced in N, fertilisation gives poorer N-balance
+		// For natural vegetation or unfertilised N-limited cropland, the check can be much stricter 
+		if(!run[CROPLAND] || ifnlim) {
+			// N balance check:
+			if(fabs(ncont_year - ncont + nflux_year) > 1.0e-3) {
+				dprintf("\nN balance year %d: %.4f\n", date.year, ncont_year - ncont + nflux_year);
+				dprintf("N pool change: %.4f\n", ncont_year - ncont);
+				dprintf("N flux: %.4f\n",  nflux_year);
 			}
-			else if(date.year > start_year) {
-
-				cflux += cflux_year;
-				nflux += nflux_year;
-
-				// C balance check:
-				if(fabs(ccont_year - ccont + cflux_year) > 1.0e-9) {
-					dprintf("\nC balance year %d: %.10f\n", date.year, ccont_year - ccont + cflux_year);
-					dprintf("C pool change: %.5f\n", ccont_year - ccont);
-					dprintf("C flux: %.5f\n",  cflux_year);
-				}
-				// Cropland without N-limitation is not balanced in N, fertilisation gives poorer N-balance
-				// For natural vegetation or unfertilised N-limited cropland, the check can be much stricter 
-				if(!run[CROPLAND] || ifnlim) {
-					// N balance check:
-					if(fabs(ncont_year - ncont + nflux_year) > 1.0e-3) {
-						dprintf("\nN balance year %d: %.4f\n", date.year, ncont_year - ncont + nflux_year);
-						dprintf("N pool change: %.4f\n", ncont_year - ncont);
-						dprintf("N flux: %.4f\n",  nflux_year);
-					}
-				}
-			}
-			ccont = ccont_year;
-			ncont = ncont_year;
 		}
 	}
+	ccont = ccont_year;
+	ncont = ncont_year;
 }
 
 void MassBalance::check_period() {

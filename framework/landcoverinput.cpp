@@ -315,10 +315,10 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 					}
 				}
 
-#ifdef GRASSFORCROP
-				gridcell.landcoverfrac[PASTURE]+=gridcell.landcoverfrac[CROPLAND];
-				gridcell.landcoverfrac[CROPLAND]=0.0;
-#endif
+				if (grassforcrop) {
+					gridcell.landcover.frac[PASTURE]+=gridcell.landcover.frac[CROPLAND];
+					gridcell.landcover.frac[CROPLAND]=0.0;
+				}
 				if(sum_tot != 1.0 && sum_tot != 0.0) {		// Check input data, rescale if sum !=1.0	
 
 					sum_active = 0.0;		// reset sum of active landcover fractions

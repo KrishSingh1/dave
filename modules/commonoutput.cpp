@@ -1604,10 +1604,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		if (run_landcover) {
 			 out.add_value(out_cflux, flux_seed);
 			 out.add_value(out_cflux, flux_charvest);
-			 out.add_value(out_cflux, gridcell.acflux_landuse_change);
-			 out.add_value(out_cflux, gridcell.acflux_harvest_slow);
+			 out.add_value(out_cflux, gridcell.landcover.acflux_landuse_change);
+			 out.add_value(out_cflux, gridcell.landcover.acflux_harvest_slow);
 		}
-		out.add_value(out_cflux, flux_veg - flux_repr + flux_soil + flux_fire + flux_est + flux_seed + flux_charvest + gridcell.acflux_landuse_change + gridcell.acflux_harvest_slow);
+		out.add_value(out_cflux, flux_veg - flux_repr + flux_soil + flux_fire + flux_est + flux_seed + flux_charvest + gridcell.landcover.acflux_landuse_change + gridcell.landcover.acflux_harvest_slow);
 
 		// Print C fluxes to per-landcover files
 		if (run_landcover) {
@@ -1658,12 +1658,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 						if (run_landcover) {
 							 out.add_value(*table_p, flux_seed_lc[i]);
 							 out.add_value(*table_p, flux_charvest_lc[i]);
-							 out.add_value(*table_p, gridcell.acflux_landuse_change_lc[i]);
-							 out.add_value(*table_p, gridcell.acflux_harvest_slow_lc[i]);
+							 out.add_value(*table_p, gridcell.landcover.acflux_landuse_change_lc[i]);
+							 out.add_value(*table_p, gridcell.landcover.acflux_harvest_slow_lc[i]);
 							 out.add_value(*table_p_N, flux_nseed_lc[i] * m2toha);
 							 out.add_value(*table_p_N, flux_nharvest_lc[i] * m2toha);
-							 out.add_value(*table_p_N, gridcell.anflux_landuse_change_lc[i] * m2toha);
-							 out.add_value(*table_p_N, gridcell.anflux_harvest_slow_lc[i] * m2toha);
+							 out.add_value(*table_p_N, gridcell.landcover.anflux_landuse_change_lc[i] * m2toha);
+							 out.add_value(*table_p_N, gridcell.landcover.anflux_harvest_slow_lc[i] * m2toha);
 						}
 					}
 
@@ -1673,12 +1673,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					if (run_landcover) {
 						cflux_total += flux_seed_lc[i];
 						cflux_total += flux_charvest_lc[i];
-						cflux_total += gridcell.acflux_landuse_change_lc[i];
-						cflux_total += gridcell.acflux_harvest_slow_lc[i];
+						cflux_total += gridcell.landcover.acflux_landuse_change_lc[i];
+						cflux_total += gridcell.landcover.acflux_harvest_slow_lc[i];
 						nflux_total += flux_nseed_lc[i];
 						nflux_total += flux_nharvest_lc[i];
-						nflux_total += gridcell.anflux_landuse_change_lc[i];
-						nflux_total += gridcell.anflux_harvest_slow_lc[i];
+						nflux_total += gridcell.landcover.anflux_landuse_change_lc[i];
+						nflux_total += gridcell.landcover.anflux_harvest_slow_lc[i];
 					}
 					if(table_p) {
 						out.add_value(*table_p,  cflux_total);
@@ -1696,10 +1696,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		if (run_landcover) {
 			 out.add_value(out_nflux, flux_nseed * m2toha);
 			 out.add_value(out_nflux, flux_nharvest * m2toha);
-			 out.add_value(out_nflux, gridcell.anflux_landuse_change * m2toha);
-			 out.add_value(out_nflux, gridcell.anflux_harvest_slow * m2toha);
+			 out.add_value(out_nflux, gridcell.landcover.anflux_landuse_change * m2toha);
+			 out.add_value(out_nflux, gridcell.landcover.anflux_harvest_slow * m2toha);
 		}
-		out.add_value(out_nflux, (flux_nharvest + gridcell.anflux_landuse_change + gridcell.anflux_harvest_slow + flux_nseed + flux_ntot + n_min_leach_gridcell + n_org_leach_gridcell - (andep_gridcell + anfix_gridcell + anfert_gridcell)) * m2toha);
+		out.add_value(out_nflux, (flux_nharvest + gridcell.landcover.anflux_landuse_change + gridcell.landcover.anflux_harvest_slow + flux_nseed + flux_ntot + n_min_leach_gridcell + n_org_leach_gridcell - (andep_gridcell + anfix_gridcell + anfert_gridcell)) * m2toha);
 
 		out.add_value(out_cpool, cmass_gridcell);
 		if (!ifcentury) {
@@ -1768,16 +1768,16 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					}
 
 					if(table_p) {
-						out.add_value(*table_p, landcover_cmass[i] * gridcell.landcoverfrac[i]);
-						out.add_value(*table_p_N, (landcover_nmass[i] + landcover_nlitter[i]) * gridcell.landcoverfrac[i]);
+						out.add_value(*table_p, landcover_cmass[i] * gridcell.landcover.frac[i]);
+						out.add_value(*table_p_N, (landcover_nmass[i] + landcover_nlitter[i]) * gridcell.landcover.frac[i]);
 
 						if (!ifcentury) {
-							out.add_value(*table_p, landcover_clitter[i] * gridcell.landcoverfrac[i]);
+							out.add_value(*table_p, landcover_clitter[i] * gridcell.landcover.frac[i]);
 							out.add_value(*table_p, c_fast_lc[i]);
 							out.add_value(*table_p, c_slow_lc[i]);
 						}
 						else {
-							out.add_value(*table_p, landcover_clitter[i] * gridcell.landcoverfrac[i] + surfsoillitterc_lc[i] + cwdc_lc[i]);
+							out.add_value(*table_p, landcover_clitter[i] * gridcell.landcover.frac[i] + surfsoillitterc_lc[i] + cwdc_lc[i]);
 							out.add_value(*table_p, centuryc_lc[i]);
 							out.add_value(*table_p_N, surfsoillittern_lc[i] + cwdn_lc[i]);
 							out.add_value(*table_p_N, centuryn_lc[i] + availn_lc[i]);
@@ -1790,8 +1790,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					}
 
 					// Calculate total cpool, starting with cmass and litter...
-					double cpool_total = (landcover_cmass[i] + landcover_clitter[i]) * gridcell.landcoverfrac[i];
-					double npool_total = (landcover_nmass[i] + landcover_nlitter[i]) * gridcell.landcoverfrac[i];
+					double cpool_total = (landcover_cmass[i] + landcover_clitter[i]) * gridcell.landcover.frac[i];
+					double npool_total = (landcover_nmass[i] + landcover_nlitter[i]) * gridcell.landcover.frac[i];
 
 					// Add SOM pools
 					if (!ifcentury) {

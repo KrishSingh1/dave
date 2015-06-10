@@ -3522,6 +3522,64 @@ public:
 	void serialize(ArchiveStream& arch);
 };
 
+class Landcover : public Serializable {
+
+public:
+	Landcover();
+
+	/// The fractions of the different land cover types.
+	/** landcoverfrac is read in from land cover input file or from
+	 *  instruction file in getlandcover().
+	 */
+	double frac[NLANDCOVERTYPES];
+
+	/// The land cover fractions from the previous year
+	/** Used to keep track of the changes when running with dynamic
+	 *  land cover.
+	 */
+	double frac_old[NLANDCOVERTYPES];
+
+	/// Whether the land cover fractions changed for this grid cell this year
+	/** \see landcover_dynamics
+	 */
+	bool LC_updated;
+
+	/// Gridcell-level C flux from slow harvested products
+	double acflux_harvest_slow;
+
+	/// Gridcell-level C flux from harvest associated with landcover change
+	double acflux_landuse_change;
+
+	/// Gridcell-level N flux from slow harvested products
+	double anflux_harvest_slow;
+
+	/// Gridcell-level N flux from harvest associated with landcover change
+	double anflux_landuse_change;
+
+	/// Landcover-level C flux from slow harvested products (donating landcover)
+	double acflux_harvest_slow_lc[NLANDCOVERTYPES];
+
+	/// Landcover-level C flux from harvest associated with landcover change (donating landcover)
+	double acflux_landuse_change_lc[NLANDCOVERTYPES];
+
+	/// Landcover-level N flux from slow harvested products (donating landcover)
+	double anflux_harvest_slow_lc[NLANDCOVERTYPES];
+
+	/// Landcover-level N flux from harvest associated with landcover change (donating landcover)
+	double anflux_landuse_change_lc[NLANDCOVERTYPES];
+
+	/// Which landcover types create new stands when area increases.
+	bool expand_to_new_stand[NLANDCOVERTYPES];
+
+	/// Whether to pool all transferred land from a donor landcover (overrides different landcover targets of different stand types and stands in a landcover)
+	bool pool_to_all_landcovers[NLANDCOVERTYPES];
+
+	/// Whether to pool transferred land to a receptor landcover (crop and pasture stands to new natural stand: pool!)
+	bool pool_from_all_landcovers[NLANDCOVERTYPES];
+
+	void serialize(ArchiveStream& arch);
+};
+
 /// The Gridcell class corresponds to a modelled locality or grid cell.
 /** Member variables include an object of type Climate (holding climate, insolation and
  *  CO2 data), a object of type Soiltype (holding soil static parameters) and a list
@@ -3541,45 +3599,8 @@ public:
     /// soil static parameters for this grid cell
 	Soiltype soiltype;
 
-	/// The fractions of the different land cover types.
-	/** landcoverfrac is read in from land cover input file or from
-	 *  instruction file in getlandcover().
-	 */
-	double landcoverfrac[NLANDCOVERTYPES];
-
-	/// The land cover fractions from the previous year
-	/** Used to keep track of the changes when running with dynamic
-	 *  land cover.
-	 */
-	double landcoverfrac_old[NLANDCOVERTYPES];
-
-	/// Whether the land cover fractions changed for this grid cell this year
-	/** \see landcover_dynamics
-	 */
-	bool LC_updated;
-
-	/// Gridcell-level C flux from slow harvested products
-	double acflux_harvest_slow;
-	/// Gridcell-level C flux from harvest associated with landcover change
-	double acflux_landuse_change;
-	/// Gridcell-level N flux from slow harvested products
-	double anflux_harvest_slow;
-	/// Gridcell-level N flux from harvest associated with landcover change
-	double anflux_landuse_change;
-	/// Landcover-level C flux from slow harvested products (donating landcover)
-	double acflux_harvest_slow_lc[NLANDCOVERTYPES];	
-	/// Landcover-level C flux from harvest associated with landcover change (donating landcover)
-	double acflux_landuse_change_lc[NLANDCOVERTYPES];
-	/// Landcover-level N flux from slow harvested products (donating landcover)
-	double anflux_harvest_slow_lc[NLANDCOVERTYPES];	
-	/// Landcover-level N flux from harvest associated with landcover change (donating landcover)
-	double anflux_landuse_change_lc[NLANDCOVERTYPES];
-	/// Which landcover types create new stands when area increases.
-	bool expand_to_new_stand[NLANDCOVERTYPES];
-	/// Whether to pool all transferred land from a donor landcover (overrides different landcover targets of different stand types and stands in a landcover)
-	bool pool_to_all_landcovers[NLANDCOVERTYPES];
-	/// Whether to pool transferred land to a receptor landcover (crop and pasture stands to new natural stand: pool!)
-	bool pool_from_all_landcovers[NLANDCOVERTYPES];
+	/// landcover fractions and landcover-specific variables
+	Landcover landcover;
 
 	/// list array [0...npft-1] of Gridcellpft (initialised in constructor)
 	ListArray_idin1<Gridcellpft,Pft> pft;

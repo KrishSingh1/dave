@@ -563,7 +563,7 @@ void growth_crop_daily(Patch& patch) {
 				patch.isharvestday = true;
 
 				if(indiv.has_daily_turnover()) {
-					if(patch.stand.get_gridcell().LC_updated && patchpft.cropphen->nharv == 1)
+					if(patch.stand.get_gridcell().landcover.LC_updated && patchpft.cropphen->nharv == 1)
 						scale_indiv(indiv, true);
 					harvest_crop(indiv, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass, true);
 					patch.is_litter_day = true;
@@ -661,7 +661,7 @@ void growth_crop_daily(Patch& patch) {
 					patch.nharv--;
 
 				if(indiv.has_daily_turnover()) {
-					if(patch.stand.get_gridcell().LC_updated && patchpft.cropphen->nharv == 1)
+					if(patch.stand.get_gridcell().landcover.LC_updated && patchpft.cropphen->nharv == 1)
 						scale_indiv(indiv, true);
 					harvest_crop(indiv, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass, true);
 					patch.is_litter_day = true;
@@ -699,7 +699,7 @@ void growth_crop_daily(Patch& patch) {
 					patch.nharv--;
 
 				if(indiv.has_daily_turnover()) {
-					if(patch.stand.get_gridcell().LC_updated && patchpft.cropphen->nharv == 1)
+					if(patch.stand.get_gridcell().landcover.LC_updated && patchpft.cropphen->nharv == 1)
 						scale_indiv(indiv, true);
 
 					turnover_grass(indiv);
@@ -760,7 +760,7 @@ void allometry_crop(Individual& indiv) {
 			Gridcell& gridcell = indiv.vegetation.patch.stand.get_gridcell();
 
 			//First look in PASTURE.
-			if(gridcell.landcoverfrac[PASTURE] > 0.0) {
+			if(gridcell.landcover.frac[PASTURE] > 0.0) {
 
 				char name_start[5] = {0};
 				char* sp = NULL;

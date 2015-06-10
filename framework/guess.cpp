@@ -911,8 +911,8 @@ Stand& Stand::clone(StandType& st, double fraction) {
 }
 
 double Stand::get_landcover_fraction() const {
-	if(get_gridcell().landcoverfrac[landcover])
-		return frac / get_gridcell().landcoverfrac[landcover];
+	if(get_gridcell().landcover.frac[landcover])
+		return frac / get_gridcell().landcover.frac[landcover];
 	else
 		return 0.0;
 }
@@ -1680,7 +1680,7 @@ double Individual::check_N_mass() {
 			}
 		}
 		else {
-			vegetation.patch.stand.get_gridcell().anflux_landuse_change -= (negative_nmass - pos_nmass) * vegetation.patch.stand.get_gridcell_fraction();
+			vegetation.patch.stand.get_gridcell().landcover.anflux_landuse_change -= (negative_nmass - pos_nmass) * vegetation.patch.stand.get_gridcell_fraction();
 			nmass_leaf = 0,0;
 			nmass_leaf = 0,0;
 			if(cropindiv) {
@@ -2138,12 +2138,41 @@ void Gridcellst::serialize(ArchiveStream& arch) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Implementation of Landcover member functions
+////////////////////////////////////////////////////////////////////////////////
+
+Landcover::Landcover() {
+
+	LC_updated = false;
+
+	memset(frac, 0, sizeof(double) * NLANDCOVERTYPES);
+	memset(frac_old, 0, sizeof(double) * NLANDCOVERTYPES);
+	acflux_harvest_slow = 0.0;
+	acflux_landuse_change = 0.0;
+	anflux_harvest_slow = 0.0;
+	anflux_landuse_change = 0.0;
+	memset(acflux_harvest_slow_lc, 0, sizeof(double)*NLANDCOVERTYPES);
+	memset(acflux_landuse_change_lc, 0, sizeof(double)*NLANDCOVERTYPES);
+	memset(anflux_harvest_slow_lc, 0, sizeof(double)*NLANDCOVERTYPES);
+	memset(anflux_landuse_change_lc, 0, sizeof(double)*NLANDCOVERTYPES);
+
+	for (int i=0; i<NLANDCOVERTYPES; i++) {
+		expand_to_new_stand[i] = i == NATURAL || i == FOREST;
+
+		pool_to_all_landcovers[i] = false;		// from a donor landcover; alt.c
+		pool_from_all_landcovers[i] = false;	// to a receptor landcover; alt.a
+	}
+}
+
+void Landcover::serialize(ArchiveStream& arch) {
+	arch & frac;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // Implementation of Gridcell member functions
 ////////////////////////////////////////////////////////////////////////////////
 
 Gridcell::Gridcell():climate(*this) {
-	landcovertype landcover;
-	LC_updated = false;
 
 	for(unsigned int p=0; p<pftlist.nobj; p++) {
 		pft.createobj(pftlist[p]);
@@ -2153,41 +2182,9 @@ Gridcell::Gridcell():climate(*this) {
 		st.createobj(stlist[s]);
 	}
 
-	memset(landcoverfrac, 0, sizeof(double) * NLANDCOVERTYPES);
-	memset(landcoverfrac_old, 0, sizeof(double) * NLANDCOVERTYPES);
-	acflux_harvest_slow=0.0;
-	acflux_landuse_change=0.0;
-	anflux_harvest_slow=0.0;
-	anflux_landuse_change=0.0;
-	memset(acflux_harvest_slow_lc, 0, sizeof(double)*NLANDCOVERTYPES);
-	memset(acflux_landuse_change_lc, 0, sizeof(double)*NLANDCOVERTYPES);
-	memset(anflux_harvest_slow_lc, 0, sizeof(double)*NLANDCOVERTYPES);
-	memset(anflux_landuse_change_lc, 0, sizeof(double)*NLANDCOVERTYPES);
-
-	for(int i=0; i<NLANDCOVERTYPES; i++) {		
-		if(i == NATURAL || i == FOREST)
-			expand_to_new_stand[i] = true;
-		else
-			expand_to_new_stand[i] = false;
-
-		pool_to_all_landcovers[i] = false;		// from a donor landcover; alt.c
-		pool_from_all_landcovers[i] = false;	// to a receptor landcover; alt.a
-
-/*		if(i == CROPLAND) {
-			pool_to_all_landcovers[i] = true;
-			pool_to_all_standtypes[i] = true;
-		}
-		else {
-			pool_to_all_landcovers[i] = false;
-			pool_to_all_standtypes[i] = false;
-		}
-*/
-	}
-
 	if(!run_landcover) {
-		landcover = NATURAL;
-		create_stand(landcover);
-		landcoverfrac[NATURAL] = 1.0;
+		create_stand(NATURAL);
+		landcover.frac[NATURAL] = 1.0;
 	}
 
 	seed = 12345678;
@@ -2249,8 +2246,8 @@ double Gridcell::cflux() {
 		cflux += stand.cflux() * stand.get_gridcell_fraction();
 	}
 
-	cflux += acflux_landuse_change;
-	cflux += acflux_harvest_slow;
+	cflux += landcover.acflux_landuse_change;
+	cflux += landcover.acflux_harvest_slow;
 
 	return cflux;
 }
@@ -2264,17 +2261,15 @@ double Gridcell::nflux() {
 		nflux += stand.nflux() * stand.get_gridcell_fraction();
 	}
 
-	nflux += anflux_landuse_change;
-	nflux += anflux_harvest_slow;
+	nflux += landcover.anflux_landuse_change;
+	nflux += landcover.anflux_harvest_slow;
 
 	return nflux;
 }
 
 void Gridcell::serialize(ArchiveStream& arch) {
 	arch & climate
-		& landcoverfrac
-		& landcoverfrac_old
-		& LC_updated
+		& landcover
 		& seed;
 
 	if (arch.save()) {
@@ -2366,7 +2361,7 @@ void MassBalance::init_indiv(Individual& indiv) {
 	Gridcell& gridcell = stand.get_gridcell();
 
 	double scale = 1.0;
-	if(patch.stand.get_gridcell().LC_updated && (patch.nharv == 0 || date.day == 0))
+	if(patch.stand.get_gridcell().landcover.LC_updated && (patch.nharv == 0 || date.day == 0))
 		scale = stand.scale_LC_change;
 
 	ccont_zero = indiv.ccont();
@@ -2457,7 +2452,7 @@ void MassBalance::init_patch(Patch& patch) {
 	Gridcell& gridcell = stand.get_gridcell();
 
 	double scale = 1.0;
-	if(patch.stand.get_gridcell().LC_updated && (patch.nharv == 0 || date.day == 0))
+	if(patch.stand.get_gridcell().landcover.LC_updated && (patch.nharv == 0 || date.day == 0))
 		scale = stand.scale_LC_change;
 
 	ccont_zero = patch.ccont();
@@ -2465,14 +2460,14 @@ void MassBalance::init_patch(Patch& patch) {
 	cflux_zero = patch.cflux();
 
 	if(stand.get_gridcell_fraction())
-		cflux_zero += gridcell.acflux_harvest_slow / stand.get_gridcell_fraction();
+		cflux_zero += gridcell.landcover.acflux_harvest_slow / stand.get_gridcell_fraction();
 
 	ncont_zero = patch.ncont();
 	ncont_zero_scaled = patch.ncont(scale, true);
 	nflux_zero = patch.nflux();
 
 	if(stand.get_gridcell_fraction())
-		nflux_zero += gridcell.anflux_harvest_slow / stand.get_gridcell_fraction();
+		nflux_zero += gridcell.landcover.anflux_harvest_slow / stand.get_gridcell_fraction();
 }
 
 bool MassBalance::check_patch_C(Patch& patch, bool check_harvest) {
@@ -2486,7 +2481,7 @@ bool MassBalance::check_patch_C(Patch& patch, bool check_harvest) {
 	double cflux = patch.cflux();
 
 	if(stand.get_gridcell_fraction())
-		cflux += gridcell.acflux_harvest_slow / stand.get_gridcell_fraction();
+		cflux += gridcell.landcover.acflux_harvest_slow / stand.get_gridcell_fraction();
 
 	if(check_harvest && patch.isharvestday)
 		ccont_zero = ccont_zero_scaled;
@@ -2512,7 +2507,7 @@ bool MassBalance::check_patch_N(Patch& patch, bool check_harvest) {
 	double nflux = patch.nflux();
 
 	if(stand.get_gridcell_fraction())
-		nflux += gridcell.anflux_harvest_slow / stand.get_gridcell_fraction();
+		nflux += gridcell.landcover.anflux_harvest_slow / stand.get_gridcell_fraction();
 
 	if(check_harvest && patch.isharvestday)
 		ncont_zero = ncont_zero_scaled;

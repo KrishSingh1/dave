@@ -239,10 +239,10 @@ void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double re
 
 	if(lc_change) {
 		Stand& stand = indiv.vegetation.patch.stand;
-		stand.get_gridcell().acflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
-		stand.get_gridcell().acflux_landuse_change_lc[stand.origin] += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
-		stand.get_gridcell().anflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
-		stand.get_gridcell().anflux_landuse_change_lc[stand.origin] += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+		stand.get_gridcell().landcover.acflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+		stand.get_gridcell().landcover.acflux_landuse_change_lc[stand.origin] += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+		stand.get_gridcell().landcover.anflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+		stand.get_gridcell().landcover.anflux_landuse_change_lc[stand.origin] += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
 	}
 }
 
@@ -923,10 +923,10 @@ void kill_remaining_vegetation(Individual& indiv, bool burn, bool lc_change) {
 
 	if(burn && lc_change) {
 		Stand& stand = indiv.vegetation.patch.stand;
-		stand.get_gridcell().acflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
-		stand.get_gridcell().acflux_landuse_change_lc[stand.origin] += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
-		stand.get_gridcell().anflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
-		stand.get_gridcell().anflux_landuse_change_lc[stand.origin] += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+		stand.get_gridcell().landcover.acflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+		stand.get_gridcell().landcover.acflux_landuse_change_lc[stand.origin] += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+		stand.get_gridcell().landcover.anflux_landuse_change += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
+		stand.get_gridcell().landcover.anflux_landuse_change_lc[stand.origin] += stand.get_gridcell_fraction() * indiv_cp.anflux_harvest / (double)stand.nobj;
 	}
 
 }
@@ -1024,7 +1024,7 @@ bool harvest_year(Individual& indiv) {
 	bool killed = false;
 
 	// Reduce individual's C and N mass in stands that have increased in area this year:	
-	if(gridcell.LC_updated)	{
+	if(gridcell.landcover.LC_updated)	{
 		if(!indiv.has_daily_turnover())
 			scale_indiv(indiv, false);
 	}

@@ -647,7 +647,7 @@ double TimeDataD::ParseSpatialResolution() {
 
 	Coord cvect[maxnsample];
 
-	for (int i=0; i<100 && i<nsample; i++) {
+	for (int i=0; i<nsample; i++) {
 		LoadNext();
 		Coord c = GetCoord();
 		cvect[i].lon = c.lon;
@@ -2077,12 +2077,12 @@ void TimeDataDmem::SetCoord(int index, Coord c) {
 
 void TimeDataDmem::Open(int nCellsX, int nColumnsX, int nYearsX) {
 
-	nCells=nCellsX;
+	nCells=0;
 	nColumns=nColumnsX;
 	nYears=nYearsX;
-	gridlist=new Coord[nCells];
-	data=new double*[nCells];
-	for(int i=0;i<nCells;i++) {
+	gridlist=new Coord[nCellsX];
+	data=new double*[nCellsX];
+	for(int i=0;i<nCellsX;i++) {
 		data[i]=new double[nColumns*nYears];
 		if(data[i])
 			memset(data[i], 0, nColumns*nYears*sizeof(double));
@@ -2133,7 +2133,7 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 
 	gridlistX.firstobj();
 
-	while(Data.LoadNext() && cell_no < nCells) {
+	while(Data.LoadNext() && cell_no < Data.GetNCells()) {
 		Coord c;
 		c=Data.GetCoord();
 
@@ -2172,6 +2172,7 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 					Data.Get(celldata);
 					SetData(cell_no, celldata);
 					cell_no++;
+					nCells++;
 //					dprintf("lc coord %.2f, %.2f used\n", c.lon, c.lat);
 					break;	// from gridlist loop
 				}

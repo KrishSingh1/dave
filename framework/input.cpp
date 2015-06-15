@@ -39,27 +39,3 @@ void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist) {
 	fclose(in_grid);
 	gridlist.firstobj();
 }
-
-double parse_gridlist_spatial_resolution(ListArray_id<Coord>& gridlist) {
-
-	// Parse spatial resolution
-	double precision = 100;
-	double dif_lon;
-	double dif_lat;
-	const int maxnsample = 200;
-	int nsample = min((unsigned)maxnsample, gridlist.nobj);
-
-	for (int i=0; i<nsample; i++) {
-		for (int j=0; j<nsample; j++) {
-
-			dif_lon = fabs(gridlist[i].lon - gridlist[j].lon);
-			dif_lat = fabs(gridlist[i].lat - gridlist[j].lat);
-			if(dif_lon > 1.0e-12)
-				precision = min(precision, dif_lon);
-			if(dif_lat > 1.0e-12)
-				precision = min(precision, dif_lat);
-		}
-	}
-	return precision;
-}
-

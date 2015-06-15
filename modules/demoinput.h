@@ -45,9 +45,6 @@ public:
 	/// See base class for documentation about this function's responsibilities
 	bool getclimate(Gridcell& gridcell);
 
-	/// Returns hte spatial resolution of the gridlist
-	double getgridlist_spatial_resolution() { return gridlist_spatial_resolution;}
-
 	/// Obtains land management data for one day
 	void getmanagement(Gridcell& gridcell) {management_input_module.getmanagement(gridcell);}
 
@@ -76,9 +73,6 @@ private:
 
 	/// A list of Lon-Lat Coord objects containing coordinates of the grid cells to simulate
 	ListArray_id<Coord> gridlist;
-
-	/// Spatial resolution of gridlist (degrees)
-	double gridlist_spatial_resolution;
 
 	// Timers for keeping track of progress through the simulation
 	Timer tprogress,tmute;

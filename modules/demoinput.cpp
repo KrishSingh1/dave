@@ -40,7 +40,6 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 
 DemoInput::DemoInput() 
 	: nyear(1),
-	  gridlist_spatial_resolution(DEFAULT_SPATIAL_RESOLUTION),
 	  landcover_input_module(*this),
 	  management_input_module(*this) {
 
@@ -248,8 +247,6 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 		else dprintf("\n\n");
 		
 		// Tell framework the coordinates of this grid cell
-//		double offset = gridlist_spatial_resolution / 2.0;
-//		gridcell.set_coordinates(gridlist.getobj().lon + offset, gridlist.getobj().lat + offset);	// Corrects previous errror
 		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
 
 		// The insolation data will be sent (in function getclimate, below)

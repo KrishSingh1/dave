@@ -20,28 +20,25 @@ void ManagementInputModule::init() {
 	ListArray_id<Coord> gridlist;
 	read_gridlist(gridlist, param["file_gridlist"].str);
 
-	// The offset can be skipped once coordinates of the cell centre are used in gridlist and all datafiles
-	double offset = input.getgridlist_spatial_resolution() / 2.0;
-
 	if(run_landcover && run[CROPLAND]) {
 
 		file_sdates=param["file_sdates"].str;
 		if(file_sdates != "")	{
-			if(!sdates.Open(file_sdates, gridlist, offset))
+			if(!sdates.Open(file_sdates, gridlist))
 				fail("initio: could not open %s for input",(char*)file_sdates);
 			readsowingdates = true;
 		}
 
 		file_hdates=param["file_hdates"].str;
 		if(file_hdates != "")	{
-			if(!hdates.Open(file_hdates, gridlist, offset))
+			if(!hdates.Open(file_hdates, gridlist))
 				fail("initio: could not open %s for input",(char*)file_hdates);
 			readharvestdates = true;
 		}
 
 		file_Nfert=param["file_Nfert"].str;
 		if(file_Nfert != "")	{
-			if(!Nfert.Open(file_Nfert, gridlist, offset))
+			if(!Nfert.Open(file_Nfert, gridlist))
 				fail("initio: could not open %s for input",(char*)file_Nfert);
 			readNfert = true;
 		}

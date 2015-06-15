@@ -255,8 +255,7 @@ void check_same_spatial_domains(const std::vector<GuessNC::CF::GridcellOrderedVa
 }
 
 CFInput::CFInput()
-	: gridlist_spatial_resolution(DEFAULT_SPATIAL_RESOLUTION),
-	  landcover_input_module(*this),
+	: landcover_input_module(*this),
 	  management_input_module(*this),
 	  cf_temp(0),
 	  cf_prec(0),
@@ -264,8 +263,7 @@ CFInput::CFInput()
 	  cf_wetdays(0),
 	  cf_min_temp(0),
 	  cf_max_temp(0),
-	  ndep_timeseries("historic")
-{
+	  ndep_timeseries("historic") {
 
 	// Declare instruction file parameters
 

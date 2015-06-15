@@ -21,9 +21,6 @@ const int NYEAR_HIST=106;
 /// calendar year corresponding to first year in CRU climate data set
 static const int FIRSTHISTYEAR=1901;
 
-/// Spatial resolution of data in degrees
-static const double SPATIAL_RESOLUTION = 0.5;
-
 /// Determine temp, precip, sunshine & soilcode
 bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
                double mtemp[NYEAR_HIST][12],

@@ -20,7 +20,5 @@
 
 /// Reads gridlist in lon-lat-description format from text unput file
 void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist);
-/// Parses the spatial resolution for a lon-lat Coord gridlist
-double parse_gridlist_spatial_resolution(ListArray_id<Coord>& gridlist);
 
 #endif // INPUT_H

@@ -46,8 +46,6 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 
 CRUInput::CRUInput()
 	: searchradius(0),
-	  climate_spatial_resolution(CRU_TS30::SPATIAL_RESOLUTION),
-	  gridlist_spatial_resolution(DEFAULT_SPATIAL_RESOLUTION),
 	  landcover_input_module(*this),
 	  management_input_module(*this),
 	  spinup_mtemp(NYEAR_SPINUP_DATA),
@@ -75,11 +73,6 @@ void CRUInput::init() {
 	// This file should consist of any number of one-line records in the format:
 	//   <longitude> <latitude> [<description>]
 	read_gridlist(gridlist, param["file_gridlist"].str);
-
-	// Set the spatial resolution of the gridlist (needed when using data with different spatial resolution).
-	gridlist_spatial_resolution = min(parse_gridlist_spatial_resolution(gridlist), gridlist_spatial_resolution);
-	// Set gridlist_spatial_resolution here manually if needed (if higher than DEFAULT_SPATIAL_RESOLUTION or if 
-	// gridlist too short to be sucessfully parsed for spatial resolution)
 
 	// Read CO2 data from file
 	co2.load_file(param["file_co2"].str);
@@ -123,12 +116,6 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 	
 	int soilcode;
 	int elevation;
-
-	// Ensure that settings are correct when using input data with different spatial resolution
-	if(run_landcover && climate_spatial_resolution != gridlist_spatial_resolution) {
-		if(!searchradius)
-			fail("We must use a searchradius when using different spatial resolution in input data\n");
-	}
 
 	// Make sure we use the first gridcell in the first call to this function,
 	// and then step through the gridlist in subsequent calls.
@@ -214,8 +201,6 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		else dprintf("\n\n");
 		
 		// Tell framework the coordinates of this grid cell
-//		double offset = gridlist_spatial_resolution / 2.0;
-//		gridcell.set_coordinates(gridlist.getobj().lon + offset, gridlist.getobj().lat + offset); // Corrects previous error (centre of gridcell should be used)
 		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
 
 		// Get nitrogen deposition data

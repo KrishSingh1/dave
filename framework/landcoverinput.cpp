@@ -30,9 +30,6 @@ void LandcoverInputModule::init() {
 	ListArray_id<Coord> gridlist;
 	read_gridlist(gridlist, param["file_gridlist"].str);
 
-	// The offset can be skipped once coordinates of the cell centre are used in gridlist and all datafiles
-	double offset = input.getgridlist_spatial_resolution() / 2.0;
-
 	all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
 
 	//Retrieve file names for landcover files and open them if static values from ins-file are not used
@@ -49,7 +46,7 @@ void LandcoverInputModule::init() {
 			file_lu=param["file_lu"].str;
 
 			// Open landcover area fraction file, return false if problem
-			if(!LUdata.Open(file_lu, gridlist, offset))
+			if(!LUdata.Open(file_lu, gridlist))
 				fail("initio: could not open %s for input",(char*)file_lu);
 			else {
 				if(LUdata.GetFormat()==InData::LOCAL_YEARLY)
@@ -64,7 +61,7 @@ void LandcoverInputModule::init() {
 		//Read LUC transitions
 		if(gross_land_transfer == 2) {
 			file_grossLUC=param["file_grossLUC"].str;
-			if(!grossLUC.Open(file_grossLUC, gridlist, offset))
+			if(!grossLUC.Open(file_grossLUC, gridlist))
 				fail("initio: could not open %s for input",(char*)file_grossLUC);
 		}
 	}
@@ -75,7 +72,7 @@ void LandcoverInputModule::init() {
 		file_lucrop=param["file_lucrop"].str;
 
 		// Open crop fraction file, return false if problem
-		if(!CFTdata.Open(file_lucrop, gridlist, offset))
+		if(!CFTdata.Open(file_lucrop, gridlist))
 			fail("initio: could not open %s for input",(char*)file_lucrop);
 		else {
 

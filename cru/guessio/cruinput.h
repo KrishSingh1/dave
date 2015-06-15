@@ -9,6 +9,7 @@
 
 #ifndef LPJ_GUESS_CRUINPUT_H
 #define LPJ_GUESS_CRUINPUT_H
+
 #include "guess.h"
 #include "inputmodule.h"
 #include <vector>
@@ -23,7 +24,6 @@
  *  CRU TS 3.0 (1901-2006).
  */
 class CRUInput : public InputModule {
-
 public:
 
 	/// Constructor
@@ -43,9 +43,6 @@ public:
 
 	/// See base class for documentation about this function's responsibilities
 	bool getclimate(Gridcell& gridcell);
-
-	/// Returns hte spatial resolution of the gridlist
-	double getgridlist_spatial_resolution() { return gridlist_spatial_resolution;}
 
 	/// Obtains land management data for one day
 	void getmanagement(Gridcell& gridcell) {management_input_module.getmanagement(gridcell);}
@@ -68,9 +65,6 @@ public:
 	 * is read from the ins file)
 	 */
 	static const int NYEAR_SPINUP_DATA=30;
-
-	/// Spatial resolution of gridlist (degrees)
-	double climate_spatial_resolution;
 
 protected:
 
@@ -117,9 +111,6 @@ private:
 
 	/// A list of Lon-Lat Coord objects containing coordinates of the grid cells to simulate
 	ListArray_id<Coord> gridlist;
-
-	/// Spatial resolution of gridlist (degrees)
-	double gridlist_spatial_resolution;
 
 	/// search radius to use when finding CRU data
 	double searchradius;

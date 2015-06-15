@@ -97,9 +97,6 @@ public:
 
 	/// Returns pointer to land management input module
 	virtual ManagementInputModule* get_management_module() = 0;
-
-	/// Returns the spatial resolution of the gridlist
-	virtual double getgridlist_spatial_resolution() = 0;
 };
 
 

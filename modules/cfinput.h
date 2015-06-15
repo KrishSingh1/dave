@@ -32,9 +32,6 @@ public:
 	/// See base class for documentation about this function's responsibilities
 	bool getclimate(Gridcell& gridcell);
 
-	/// Returns hte spatial resolution of the gridlist
-	double getgridlist_spatial_resolution() { return gridlist_spatial_resolution;}
-
 	/// Obtains land management data for one day
 	void getmanagement(Gridcell& gridcell) {management_input_module.getmanagement(gridcell);}
 
@@ -51,12 +48,6 @@ private:
 	LandcoverInputModule landcover_input_module;
 	/// Management input module
 	ManagementInputModule management_input_module;
-
-	/// Spatial resolution of gridlist (degrees)
-	double gridlist_spatial_resolution;
-
-	/// search radius to use when finding soil data
-	double searchradius;
 
 	struct Coord {
 
@@ -193,9 +184,6 @@ private:
 
 	/// Nitrogen deposition time series to use (historic,rcp26,...)
 	std::string ndep_timeseries;
-
-	/// Spatial resolution of gridlist (degrees)
-	double climate_spatial_resolution;
 
 	// Timers for keeping track of progress through the simulation
 	Timer tprogress,tmute;

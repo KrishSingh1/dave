@@ -35,9 +35,6 @@ public:
 	/// Returns hte spatial resolution of the gridlist
 	double getgridlist_spatial_resolution() { return gridlist_spatial_resolution;}
 
-	// Creates cf gridlist from lon-lat gridlist
-	void create_cf_gridlist();
-
 	/// Obtains land management data for one day
 	void getmanagement(Gridcell& gridcell) {management_input_module.getmanagement(gridcell);}
 
@@ -54,9 +51,6 @@ private:
 	LandcoverInputModule landcover_input_module;
 	/// Management input module
 	ManagementInputModule management_input_module;
-	
-	/// List of Lon-Lat Coord objects containing coordinates of the grid cells to simulate (used to initate land cover and management input)
-	ListArray_id<inputdef::Coord> gridlist;
 
 	/// Spatial resolution of gridlist (degrees)
 	double gridlist_spatial_resolution;
@@ -64,7 +58,6 @@ private:
 	/// search radius to use when finding soil data
 	double searchradius;
 
-	/// cf-specific Coord defenition
 	struct Coord {
 
 		// Type for storing grid cell longitude, latitude and description text
@@ -75,8 +68,8 @@ private:
 		std::string descrip;
 	};
 
-	/// List of cf Coord objects containing NetCDF indeces and description of the grid cells
-	std::vector<Coord> gridlistCF;
+	/// The grid cells to simulate
+	std::vector<Coord> gridlist;
 
 	/// The current grid cell to simulate
 	std::vector<Coord>::iterator current_gridcell;
@@ -118,9 +111,6 @@ private:
 
 	/// \returns all (used) variables
 	std::vector<GuessNC::CF::GridcellOrderedVariable*> all_variables() const;
-
-	/// Sets the spatial resolution of the climate data
-	double parse_climate_spatial_resolution();
 
 	/// Yearly CO2 data read from file
 	/**

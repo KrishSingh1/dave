@@ -23,21 +23,6 @@ REGISTER_INPUT_MODULE("cf", CFInput)
 
 using namespace GuessNC::CF;
 
-
-double CFInput::parse_climate_spatial_resolution() {
-
-	double dif_lon, dif_lat, lon, lat, lon2, lat2;
-
-	cf_temp->get_coords_for(0, 0, lon, lat);
-	cf_temp->get_coords_for(1, 1, lon2, lat2);
-	dif_lon = fabs(lon2 - lon);
-	dif_lat = fabs(lat2 - lat);
-	if(dif_lon != dif_lat)
-		fail("Not possible to determine spatial resolution\n");
-
-	return dif_lon;
-}
-
 namespace {
 
 const int SECONDS_PER_DAY = 24*60*60;
@@ -270,8 +255,7 @@ void check_same_spatial_domains(const std::vector<GuessNC::CF::GridcellOrderedVa
 }
 
 CFInput::CFInput()
-	: climate_spatial_resolution(DEFAULT_SPATIAL_RESOLUTION),
-	  gridlist_spatial_resolution(DEFAULT_SPATIAL_RESOLUTION),
+	: gridlist_spatial_resolution(DEFAULT_SPATIAL_RESOLUTION),
 	  landcover_input_module(*this),
 	  management_input_module(*this),
 	  cf_temp(0),
@@ -295,8 +279,6 @@ CFInput::~CFInput() {
 	delete cf_wetdays;
 	delete cf_min_temp;
 	delete cf_max_temp;
-
-	gridlist.killall();
 }
 
 void CFInput::init() {
@@ -352,62 +334,47 @@ void CFInput::init() {
 
 	extensive_precipitation = cf_prec->get_standard_name() == "precipitation_amount";
 
-	climate_spatial_resolution = parse_climate_spatial_resolution();
-
 	// Read list of localities and store in gridlist member variable
 
-	// Retrieve name of rc grid list file as read from ins file
+	// Retrieve name of grid list file as read from ins file
 	xtring file_gridlist=param["file_gridlist_cf"].str;
 
-	if(file_gridlist != "") {
+	std::ifstream ifs(file_gridlist, std::ifstream::in);
 
-		std::ifstream ifs(file_gridlist, std::ifstream::in);
+	if (!ifs.good()) fail("CFInput::init: could not open %s for input",(char*)file_gridlist);
 
-		if (!ifs.good()) fail("CFInput::init: could not open %s for input",(char*)file_gridlist);
+	std::string line;
+	while (getline(ifs, line)) {
 
-		std::string line;
-		while (getline(ifs, line)) {
+		// Read next record in file
+		int rlat, rlon;
+		int landid;
+		std::string descrip;
+		Coord c;
 
-			// Read next record in file
-			int rlat, rlon;
-			int landid;
-			std::string descrip;
-			Coord c;
+		std::istringstream iss(line);
 
-			std::istringstream iss(line);
+		if (cf_temp->is_reduced()) {
+			if (iss >> landid) {
+				getline(iss, descrip);
 
-			if (cf_temp->is_reduced()) {
-				if (iss >> landid) {
-					getline(iss, descrip);
-
-					c.landid = landid;
-				}
+				c.landid = landid;
 			}
-			else {
-				if (iss >> rlon >> rlat) {
-					getline(iss, descrip);
-					
-					c.rlat = rlat;
-					c.rlon = rlon;
-		
-				}
-			}
-			c.descrip = trim(descrip);
-			gridlistCF.push_back(c);
 		}
-		ifs.close();
-		gridlist_spatial_resolution = climate_spatial_resolution;
-	}
-	else {
-		// If rc gridlist not defined, use lon-lat gridlist
-		read_gridlist(gridlist, param["file_gridlist"].str);
-		gridlist_spatial_resolution = min(parse_gridlist_spatial_resolution(gridlist), gridlist_spatial_resolution);
-		// Set gridlist_spatial_resolution here manually if needed (if other than DEFAULT_SPATIAL_RESOLUTION or if 
-		// gridlist too short to be sucessfully parsed for spatial resolution)
-		create_cf_gridlist();
+		else {
+			if (iss >> rlon >> rlat) {
+				getline(iss, descrip);
+				
+				c.rlat = rlat;
+				c.rlon = rlon;
+	
+			}
+		}
+		c.descrip = trim(descrip);
+		gridlist.push_back(c);
 	}
 	
-	current_gridcell = gridlistCF.begin();
+	current_gridcell = gridlist.begin();
 
 	// Open landcover files
 	landcover_input_module.init();
@@ -432,12 +399,12 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 
 	// Load data for next gridcell, or if that fails, skip ahead until
 	// we find one that works.
-	while (current_gridcell != gridlistCF.end() &&
+	while (current_gridcell != gridlist.end() &&
 	       !load_data_from_files(lon, lat, cru_lon, cru_lat, soilcode)) {
 			++current_gridcell;
 	}
 
-	if (current_gridcell == gridlistCF.end()) {
+	if (current_gridcell == gridlist.end()) {
 		// simulation finished
 		return false;
 	}
@@ -507,8 +474,6 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
                                    double& cru_lon, double& cru_lat,
                                    int& soilcode) {
 
-	double offset_cru = gridlist_spatial_resolution / 2.0;
-
 	int rlon = current_gridcell->rlon;
 	int rlat = current_gridcell->rlat;
 	int landid = current_gridcell->landid;
@@ -549,9 +514,8 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 
 	// Find nearest CRU grid cell in order to get the soilcode
 
-	cru_lon = lon - offset_cru;
-	cru_lat = lat - offset_cru;
-
+	cru_lon = lon;
+	cru_lat = lat;
 	double dummy[CRU_TS30::NYEAR_HIST][12];
 
 	const double searchradius = 1;
@@ -847,11 +811,10 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 
 			int years_to_simulate = nyear_spinup + historic_years;
 
-			int cells_done = distance(gridlistCF.begin(), current_gridcell);
+			int cells_done = distance(gridlist.begin(), current_gridcell);
 
 			double progress=(double)(cells_done*years_to_simulate+date.year)/
-				(double)(gridlistCF.size()*years_to_simulate);
-
+				(double)(gridlist.size()*years_to_simulate);
 			tprogress.setprogress(progress);
 			dprintf("%3d%% complete, %s elapsed, %s remaining\n",(int)(progress*100.0),
 				tprogress.elapsed.str,tprogress.remaining.str);
@@ -940,31 +903,5 @@ std::vector<GuessNC::CF::GridcellOrderedVariable*> CFInput::all_variables() cons
 
 	return result;
 }
-
-// Creates cf gridlist from lon-lat gridlist
-void CFInput::create_cf_gridlist() {
-
-	double offset_cru = gridlist_spatial_resolution / 2.0;
-
-	gridlist.firstobj();
-	while(gridlist.isobj) {
-
-		int rlat, rlon;
-		size_t x, y;
-		cf_temp->get_index_for_coords(gridlist.getobj().lon + offset_cru, gridlist.getobj().lat + offset_cru, x, y);
-		rlon = x;
-		rlat = y;
-
-		Coord c;
-		c.rlat = rlat;
-		c.rlon = rlon;
-		gridlistCF.push_back(c);
-	
-		gridlist.nextobj();
-	}
-	gridlist.firstobj();
-	current_gridcell = gridlistCF.begin();
-}
-
 
 #endif // HAVE_NETCDF

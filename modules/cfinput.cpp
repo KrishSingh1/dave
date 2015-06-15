@@ -270,8 +270,7 @@ void check_same_spatial_domains(const std::vector<GuessNC::CF::GridcellOrderedVa
 }
 
 CFInput::CFInput()
-	: searchradius(0),
-	  climate_spatial_resolution(DEFAULT_SPATIAL_RESOLUTION),
+	: climate_spatial_resolution(DEFAULT_SPATIAL_RESOLUTION),
 	  gridlist_spatial_resolution(DEFAULT_SPATIAL_RESOLUTION),
 	  landcover_input_module(*this),
 	  management_input_module(*this),
@@ -287,8 +286,6 @@ CFInput::CFInput()
 	// Declare instruction file parameters
 
 	declare_parameter("ndep_timeseries", &ndep_timeseries, 10, "Nitrogen deposition time series to use (historic, rcp26, rcp45, rcp60 or rcp85");
-	declare_parameter("searchradius", &searchradius, 0, 100, "If specified, cf data will be searched for in a circle");
-
 }
 
 CFInput::~CFInput() {
@@ -432,7 +429,6 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	double lon, lat;
 	double cru_lon, cru_lat;
 	int soilcode;
-	double offset = gridlist_spatial_resolution / 2.0;
 
 	// Load data for next gridcell, or if that fails, skip ahead until
 	// we find one that works.
@@ -557,6 +553,8 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 	cru_lat = lat - offset_cru;
 
 	double dummy[CRU_TS30::NYEAR_HIST][12];
+
+	const double searchradius = 1;
 
 	if (!CRU_TS30::findnearestCRUdata(searchradius, file_cru, cru_lon, cru_lat, soilcode,
 	                                  dummy, dummy, dummy)) {
@@ -947,15 +945,13 @@ std::vector<GuessNC::CF::GridcellOrderedVariable*> CFInput::all_variables() cons
 void CFInput::create_cf_gridlist() {
 
 	double offset_cru = gridlist_spatial_resolution / 2.0;
-	climate_spatial_resolution = parse_climate_spatial_resolution();
-	double searchradius_climate = min(climate_spatial_resolution / 2.0, searchradius);
 
 	gridlist.firstobj();
 	while(gridlist.isobj) {
 
 		int rlat, rlon;
 		size_t x, y;
-		cf_temp->get_index_for_coords(gridlist.getobj().lon + offset_cru, gridlist.getobj().lat + offset_cru, x, y, searchradius_climate);
+		cf_temp->get_index_for_coords(gridlist.getobj().lon + offset_cru, gridlist.getobj().lat + offset_cru, x, y);
 		rlon = x;
 		rlat = y;
 

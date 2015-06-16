@@ -439,7 +439,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	pftlist.firstobj();
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
-		Patchpft& patchpft=patch.pft[pft.id];	
 
 		// For this PFT ...
 

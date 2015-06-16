@@ -1095,119 +1095,11 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 	if(!printseparatestands)
 		return;
 
-	if (date.year >= nyear_spinup) {
-
-		bool open_natural = false;
-		bool open_forest = false;
-		double lon = gridcell.get_lon();
-		double lat = gridcell.get_lat();
-
-
-		Gridcell::iterator gc_itr = gridcell.begin();
-
-		// Loop through Stands
-		while (gc_itr != gridcell.end()) {
-			Stand& stand = *gc_itr;
-
-			stand.anpp=0.0;
-			stand.cmass=0.0;
-
-			if(stand.first_year == date.year || stand.clone_year == date.year) {
-				if(stand.landcover == NATURAL) {
-					open_natural = true;
-				}
-				else if(stand.landcover == FOREST) {
-					open_forest = true;
-				}
-			}
-
-			++gc_itr;
-		}
-
-		if(PRINTFIRSTSTANDFROM1901 && date.year == nyear_spinup) {
-			open_natural = true;
-			open_forest = true;
-		}
-
-		if(open_natural || open_forest) {
-
-			gc_itr = gridcell.begin();
-
-			while (gc_itr != gridcell.end()) {
-
-				Stand& stand = *gc_itr;
-
-				int id = stand.id;
-				char outfilename[100]={'\0'}, buffer[50]={'\0'};
-
-				sprintf(buffer, "%.1f_%.1f_%d",lon, lat, id);
-				strcat(buffer, ".out");
-
-				// create a vector with the pft names
-				std::vector<std::string> pfts;
-
-				pftlist.firstobj();
-				while (pftlist.isobj) {
-
-					 Pft& pft=pftlist.getobj();	 
-					 Standpft& standpft=stand.pft[pft.id];
-
-					 if(standpft.active)
-						 pfts.push_back((char*)pft.name);
-
-					 pftlist.nextobj();
-				}
-				ColumnDescriptors anpp_columns;
-				anpp_columns += ColumnDescriptors(pfts,               8, 3);
-				anpp_columns += ColumnDescriptor("Total",             8, 3);
-
-				if(open_natural && stand.landcover == NATURAL) {
-
-					strcpy(outfilename, "anpp_natural_");
-					strcat(outfilename, buffer);
-
-					if(out_anpp_stand_natural[id].invalid())
-						create_output_table(out_anpp_stand_natural[id], outfilename, anpp_columns);
-
-					outfilename[0] = '\0';
-					strcpy(outfilename, "cmass_natural_");
-					strcat(outfilename, buffer);
-
-					if(out_cmass_stand_natural[id].invalid())
-						create_output_table(out_cmass_stand_natural[id], outfilename, anpp_columns);
-				}
-				else if(open_forest && stand.landcover == FOREST) {
-
-					strcpy(outfilename, "anpp_forest_");
-					strcat(outfilename, buffer);
-
-					if(out_anpp_stand_forest[id].invalid())
-						create_output_table(out_anpp_stand_forest[id], outfilename, anpp_columns);
-
-					outfilename[0] = '\0';
-					strcpy(outfilename, "cmass_forest_");
-					strcat(outfilename, buffer);
-
-					if(out_cmass_stand_forest[id].invalid())
-						create_output_table(out_cmass_stand_forest[id], outfilename, anpp_columns);
-				}
-
-				++gc_itr;
-			}
-		}
-	}
-}
-/*
-void MiscOutput::openlocalfiles(Gridcell& gridcell) {
-
-	if (!printseparatestands) {
-		return;
-	}
-
 	bool open_natural = false;
 	bool open_forest = false;
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
+
 
 	Gridcell::iterator gc_itr = gridcell.begin();
 
@@ -1218,13 +1110,11 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 		stand.anpp=0.0;
 		stand.cmass=0.0;
 
-		if (stand.landcover == NATURAL) {
-			if (stand.first_year == date.year) {
+		if(stand.first_year == date.year || stand.clone_year == date.year) {
+			if(stand.landcover == NATURAL) {
 				open_natural = true;
 			}
-		}
-		else if (stand.landcover == FOREST) {
-			if (stand.first_year == date.year) {
+			else if(stand.landcover == FOREST) {
 				open_forest = true;
 			}
 		}
@@ -1232,80 +1122,79 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 		++gc_itr;
 	}
 
-	if (PRINTFIRSTSTANDFROM1901 && date.year == nyear_spinup) {
+	if(PRINTFIRSTSTANDFROM1901 && date.year == nyear_spinup) {
 		open_natural = true;
 		open_forest = true;
 	}
 
-	if (!open_natural || !open_forest) {
-		return;
-	}
+	if(open_natural || open_forest) {
 
-	gc_itr = gridcell.begin();
+		gc_itr = gridcell.begin();
 
-	while (gc_itr != gridcell.end()) {
+		while (gc_itr != gridcell.end()) {
 
-		Stand& stand = *gc_itr;
+			Stand& stand = *gc_itr;
 
-		int id = stand.id;
-		char outfilename[100]={'\0'}, buffer[50]={'\0'};
+			int id = stand.id;
+			char outfilename[100]={'\0'}, buffer[50]={'\0'};
 
-		sprintf(buffer, "%.1f_%.1f_%d",lon, lat, id);
-		strcat(buffer, ".out");
+			sprintf(buffer, "%.1f_%.1f_%d",lon, lat, id);
+			strcat(buffer, ".out");
 
-		// create a vector with the pft names
-		std::vector<std::string> pfts;
+			// create a vector with the pft names
+			std::vector<std::string> pfts;
 
-		pftlist.firstobj();
-		while (pftlist.isobj) {
+			pftlist.firstobj();
+			while (pftlist.isobj) {
 
-			 Pft& pft=pftlist.getobj();
-			 Standpft& standpft=stand.pft[pft.id];
+				 Pft& pft=pftlist.getobj();	 
+				 Standpft& standpft=stand.pft[pft.id];
 
-			 if (standpft.active)
-				 pfts.push_back((char*)pft.name);
+				 if(standpft.active)
+					 pfts.push_back((char*)pft.name);
 
-			 pftlist.nextobj();
+				 pftlist.nextobj();
+			}
+			ColumnDescriptors anpp_columns;
+			anpp_columns += ColumnDescriptors(pfts,               8, 3);
+			anpp_columns += ColumnDescriptor("Total",             8, 3);
+
+			if(open_natural && stand.landcover == NATURAL) {
+
+				strcpy(outfilename, "anpp_natural_");
+				strcat(outfilename, buffer);
+
+				if(out_anpp_stand_natural[id].invalid())
+					create_output_table(out_anpp_stand_natural[id], outfilename, anpp_columns);
+
+				outfilename[0] = '\0';
+				strcpy(outfilename, "cmass_natural_");
+				strcat(outfilename, buffer);
+
+				if(out_cmass_stand_natural[id].invalid())
+					create_output_table(out_cmass_stand_natural[id], outfilename, anpp_columns);
+			}
+			else if(open_forest && stand.landcover == FOREST) {
+
+				strcpy(outfilename, "anpp_forest_");
+				strcat(outfilename, buffer);
+
+				if(out_anpp_stand_forest[id].invalid())
+					create_output_table(out_anpp_stand_forest[id], outfilename, anpp_columns);
+
+				outfilename[0] = '\0';
+				strcpy(outfilename, "cmass_forest_");
+				strcat(outfilename, buffer);
+
+				if(out_cmass_stand_forest[id].invalid())
+					create_output_table(out_cmass_stand_forest[id], outfilename, anpp_columns);
+			}
+
+			++gc_itr;
 		}
-		ColumnDescriptors anpp_columns;
-		anpp_columns += ColumnDescriptors(pfts,               8, 3);
-		anpp_columns += ColumnDescriptor("Total",             8, 3);
-
-		if (open_natural && stand.landcover == NATURAL) {
-
-			strcpy(outfilename, "anpp_natural_");
-			strcat(outfilename, buffer);
-
-			if (out_anpp_stand_natural[id].invalid())
-				create_output_table(out_anpp_stand_natural[id], outfilename, anpp_columns);
-
-			outfilename[0] = '\0';
-			strcpy(outfilename, "cmass_natural_");
-			strcat(outfilename, buffer);
-
-			if (out_cmass_stand_natural[id].invalid())
-				create_output_table(out_cmass_stand_natural[id], outfilename, anpp_columns);
-		}
-		else if (open_forest && stand.landcover == FOREST) {
-
-			strcpy(outfilename, "anpp_forest_");
-			strcat(outfilename, buffer);
-
-			if (out_anpp_stand_forest[id].invalid())
-				create_output_table(out_anpp_stand_forest[id], outfilename, anpp_columns);
-
-			outfilename[0] = '\0';
-			strcpy(outfilename, "cmass_forest_");
-			strcat(outfilename, buffer);
-
-			if (out_cmass_stand_forest[id].invalid())
-				create_output_table(out_cmass_stand_forest[id], outfilename, anpp_columns);
-		}
-
-		++gc_itr;
 	}
 }
-*/
+
 void MiscOutput::closelocalfiles(Gridcell& gridcell) {
 
 	if(!printseparatestands)

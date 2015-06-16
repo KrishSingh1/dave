@@ -14,10 +14,12 @@
 #include "inputmodule.h"
 #include <vector>
 #include "gutil.h"
+#include "globalco2file.h"
 #include "spinupdata.h"
 #include "cru_ts30.h"
 #include "guess.h"
-#include "input.h"
+#include "lamarquendep.h"
+#include "landcoverinput.h"
 
 /// An input module for CRU climate data
 /** This input module gets climate data from binary archives built from

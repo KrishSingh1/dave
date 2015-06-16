@@ -8,8 +8,10 @@
 #ifndef LANDCOVERINPUT_H
 #define LANDCOVERINPUT_H
 
-// Forward declaration
-class InputModule;
+#include "InData.h"
+
+/// Reads gridlist in lon-lat-description format from text unput file
+void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist);
 
 /// Class that deals with all land cover input from text files
 class LandcoverInputModule {
@@ -46,6 +48,38 @@ private:
 
 	/// whether to use stand types with suitable rainfed crops (based on crop pft tb and gridcell latitude) when using fixed crop fractions
 	bool frac_fixed_default_crops;
+};
+
+/// Class that deals with all crop management input from text files
+class ManagementInputModule {
+
+public:
+
+	/// Constructor
+	ManagementInputModule();
+	/// Opens management data files
+	void init();
+	/// Loads fertilisation, sowing and harvest dates from input files
+	bool loadmanagement(Coord c);
+	/// Gets management data for a year
+	void getmanagement(Gridcell& gridcell);
+
+private:
+
+	/// Input objects for each management text input file
+	InData::TimeDataD sdates;
+	InData::TimeDataD hdates;
+	InData::TimeDataD Nfert;
+
+	/// Files names for management input file
+	xtring file_sdates, file_hdates, file_Nfert;
+
+	/// Gets sowing date data for a year
+	void getsowingdates(Gridcell& gridcell);
+	/// Gets harvest date data for a year
+	void getharvestdates(Gridcell& gridcell);
+	/// Gets nitrogen fertilisation data for a year
+	void getNfert(Gridcell& gridcell);
 };
 
 #endif // LANDCOVERINPUT_H

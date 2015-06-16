@@ -16,7 +16,6 @@
 #include "guessnc.h"
 #include <memory>
 #include <limits>
-#include "input.h"
 
 class CFInput : public InputModule {
 public:

@@ -23,7 +23,6 @@
 #include "landcover.h"
 #include "bvoc.h"
 #include "commonoutput.h"
-#include "input.h"
 
 #include <memory>
 

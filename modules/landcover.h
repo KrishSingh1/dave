@@ -12,11 +12,11 @@
 #include "guess.h"
 #include "growth.h"
 #include "canexch.h"
-#include "input.h"
 #include "cropsowing.h"
 #include "cropphenology.h"
 #include "cropallocation.h"
 #include "management.h"
+#include "landcoverinput.h"
 
 ///	Creates stands for landcovers present in the gridcell first year of the simulation
 void landcover_init(Gridcell& gridcell, LandcoverInputModule* input_module);

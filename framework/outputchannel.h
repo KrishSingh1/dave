@@ -232,6 +232,27 @@ private:
 	 std::vector<bool> used_tables;
 };
 
+/// Help function to prepare C:N values for output
+/** Avoids division by zero and limits the results to a maximum
+ *  value to avoid inf or values large enough to ruin the alignment
+ *  in the output.
+ *
+ *  If both cmass and nmass is 0, the function returns 0.
+ */
+inline double limited_cton(double cmass, double nmass) {
+	const double MAX_CTON = 1000;
+
+	if (nmass > 0.0) {
+		return min(MAX_CTON, cmass / nmass);
+	}
+	else if (cmass > 0.0) {
+		return MAX_CTON;
+	}
+	else {
+		return 0.0;
+	}
+}
+
 }
 
 #endif // LPJ_GUESS_OUTPUT_CHANNEL_H

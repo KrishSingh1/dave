@@ -81,10 +81,6 @@ private:
 	Table out_anpp_cropland, out_anpp_pasture, out_anpp_natural, out_anpp_forest, out_cmass_cropland, out_cmass_pasture, out_cmass_natural, out_cmass_forest, out_dens_natural, out_dens_forest;
 	Table out_mnpp, out_mlai, out_mgpp, out_mra, out_maet, out_mpet, out_mevap, out_mrunoff, out_mintercep;
 	Table out_mrh, out_mnee, out_mwcont_upper, out_mwcont_lower;
-	Table out_anpp_stand_natural[MAXNUMBER_STANDS];
-	Table out_cmass_stand_natural[MAXNUMBER_STANDS];
-	Table out_anpp_stand_forest[MAXNUMBER_STANDS];
-	Table out_cmass_stand_forest[MAXNUMBER_STANDS];
 
 	// bvoc
 	Table out_aiso, out_miso, out_amon, out_mmon;

@@ -54,10 +54,6 @@ public:
 	/** Similar to outannual but called every day */
 	virtual void outdaily(Gridcell& gridcell) = 0;
 
-	virtual void openlocalfiles(Gridcell& gridcell) = 0;
-
-	virtual void closelocalfiles(Gridcell& gridcell) = 0;
-
 protected:
 
 	/// Help function to define_output_tables, creates one output table

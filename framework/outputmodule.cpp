@@ -78,18 +78,6 @@ void OutputModuleContainer::outdaily(Gridcell& gridcell) {
 	}
 }
 
-void OutputModuleContainer::openlocalfiles(Gridcell& gridcell) {
-	for (size_t i = 0; i < modules.size(); ++i) {
-		modules[i]->openlocalfiles(gridcell);
-	}
-}
-
-void OutputModuleContainer::closelocalfiles(Gridcell& gridcell) {
-	for (size_t i = 0; i < modules.size(); ++i) {
-		modules[i]->closelocalfiles(gridcell);
-	}
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////
 /// OutputModuleRegistry
 ///

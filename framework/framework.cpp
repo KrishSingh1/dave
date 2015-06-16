@@ -237,8 +237,6 @@ int framework(const CommandLineArguments& args) {
 
 			if (date.islastday && date.islastmonth) {
 				// LAST DAY OF YEAR
-				if(printseparatestands)
-					output_modules.openlocalfiles(gridcell);
 				// Call output module to output results for end of year
 				// or end of simulation for this grid cell
 				output_modules.outannual(gridcell);
@@ -261,9 +259,6 @@ int framework(const CommandLineArguments& args) {
 
 			// End of loop through simulation days
 		}	//while (getclimate())
-
-		if(printseparatestands)
-			output_modules.closelocalfiles(gridcell);
 
 		balance.check_period();
 

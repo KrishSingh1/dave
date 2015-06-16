@@ -14,7 +14,7 @@ class ManagementInputModule {
 public:
 
 	/// Constructor
-	ManagementInputModule(InputModule& in);
+	ManagementInputModule();
 	/// Opens management data files
 	void init();
 	/// Loads fertilisation, sowing and harvest dates from input files
@@ -23,9 +23,6 @@ public:
 	void getmanagement(Gridcell& gridcell);
 
 private:
-
-	/// Reference to the InputModule object
-	InputModule& input;
 
 	/// Input objects for each management text input file
 	InData::TimeDataD sdates;

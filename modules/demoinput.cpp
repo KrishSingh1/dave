@@ -39,9 +39,7 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 
 
 DemoInput::DemoInput() 
-	: nyear(1),
-	  landcover_input_module(*this),
-	  management_input_module(*this) {
+	: nyear(1) {
 
 	declare_parameter("nyear", &nyear, 1, 10000, "Number of simulation years to run after spinup");
 }

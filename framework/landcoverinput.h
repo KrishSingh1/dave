@@ -17,7 +17,7 @@ class LandcoverInputModule {
 public:
 
 	/// Constructor
-	LandcoverInputModule(InputModule& in);
+	LandcoverInputModule();
 	/// Opens management data files
 	void init();
 	/// Loads landcover and crop fractions from input files
@@ -28,9 +28,6 @@ public:
 	bool get_lc_transfer(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES]);
 
 private:
-
-	/// Reference to the InputModule object
-	InputModule& input;
 
 	// Objects handling land cover fraction data input
 	InData::TimeDataD LUdata;

@@ -8,8 +8,7 @@
 #include "input.h"
 #include "managementinput.h"
 
-ManagementInputModule::ManagementInputModule(InputModule& in)
-	: input(in) {
+ManagementInputModule::ManagementInputModule() {
 }
 
 void ManagementInputModule::init() {

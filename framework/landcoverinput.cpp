@@ -13,9 +13,8 @@
 bool fixedlu_histX = 0;
 bool fixedcrop_histX = 0;
 
-LandcoverInputModule::LandcoverInputModule(InputModule& in)
-	: input(in), 
-	  nyears_cropland_ramp(0) {
+LandcoverInputModule::LandcoverInputModule()
+	: nyears_cropland_ramp(0) {
 
 	declare_parameter("minimizecftlist", &minimizecftlist, "Whether pfts not in crop fraction input file are removed from pftlist (0,1)");
 	declare_parameter("nyears_cropland_ramp", &nyears_cropland_ramp, 1, 10000, "Number of years to increase cropland fraction linearly from 0 to first year's value");

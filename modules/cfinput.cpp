@@ -255,9 +255,7 @@ void check_same_spatial_domains(const std::vector<GuessNC::CF::GridcellOrderedVa
 }
 
 CFInput::CFInput()
-	: landcover_input_module(*this),
-	  management_input_module(*this),
-	  cf_temp(0),
+	: cf_temp(0),
 	  cf_prec(0),
 	  cf_insol(0),
 	  cf_wetdays(0),

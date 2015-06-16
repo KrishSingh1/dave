@@ -46,8 +46,6 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 
 CRUInput::CRUInput()
 	: searchradius(0),
-	  landcover_input_module(*this),
-	  management_input_module(*this),
 	  spinup_mtemp(NYEAR_SPINUP_DATA),
 	  spinup_mprec(NYEAR_SPINUP_DATA),
 	  spinup_msun(NYEAR_SPINUP_DATA),

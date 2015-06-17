@@ -44,7 +44,7 @@ void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist) {
 	gridlist.firstobj();
 }
 
-LandcoverInputModule::LandcoverInputModule()
+LandcoverInput::LandcoverInput()
 	: nyears_cropland_ramp(0) {
 
 	declare_parameter("minimizecftlist", &minimizecftlist, "Whether pfts not in crop fraction input file are removed from pftlist (0,1)");
@@ -52,7 +52,7 @@ LandcoverInputModule::LandcoverInputModule()
 	declare_parameter("frac_fixed_default_crops", &frac_fixed_default_crops, " whether to use all active crop stand types (0) or only stand types with suitable rainfed crops (based on crop pft tb and gridcell latitude) (1) when using fixed crop fractions");
 }
 
-void LandcoverInputModule::init() {
+void LandcoverInput::init() {
 
 	if(!run_landcover)
 		return;
@@ -187,7 +187,7 @@ void LandcoverInputModule::init() {
 	gridlist.killall();
 }
 
-bool LandcoverInputModule::loadlandcover(Coord c) {
+bool LandcoverInput::loadlandcover(Coord c) {
 
 	bool LUerror = false;
 
@@ -238,7 +238,7 @@ bool LandcoverInputModule::loadlandcover(Coord c) {
 	return LUerror;
 }
 
-void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
+void LandcoverInput::getlandcover(Gridcell& gridcell) {
 
 	int i, year_saved;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
@@ -583,7 +583,7 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 }
 
 /// Read LUC transitions
-bool LandcoverInputModule::get_lc_transfer(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES]) {
+bool LandcoverInput::get_lc_transfer(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES]) {
 
 	int year;
 	double tot_frac_ch = 0.0;
@@ -839,10 +839,10 @@ bool LandcoverInputModule::get_lc_transfer(Gridcell& gridcell, double landcoverf
 		return false;
 }
 
-ManagementInputModule::ManagementInputModule() {
+ManagementInput::ManagementInput() {
 }
 
-void ManagementInputModule::init() {
+void ManagementInput::init() {
 
 	if(!run_landcover)
 		return;
@@ -876,7 +876,7 @@ void ManagementInputModule::init() {
 	gridlist.killall();
 }
 
-bool ManagementInputModule::loadmanagement(Coord c) {
+bool ManagementInput::loadmanagement(Coord c) {
 
 	bool LUerror = false;
 
@@ -902,7 +902,7 @@ bool ManagementInputModule::loadmanagement(Coord c) {
 	return LUerror;
 }
 
-void ManagementInputModule::getsowingdates(Gridcell& gridcell) {
+void ManagementInput::getsowingdates(Gridcell& gridcell) {
 
 	if(!sdates.isloaded())
 		return;
@@ -924,7 +924,7 @@ void ManagementInputModule::getsowingdates(Gridcell& gridcell) {
 	}
 }
 
-void ManagementInputModule::getharvestdates(Gridcell& gridcell) {
+void ManagementInput::getharvestdates(Gridcell& gridcell) {
 
 	if(!hdates.isloaded())
 		return;
@@ -946,7 +946,7 @@ void ManagementInputModule::getharvestdates(Gridcell& gridcell) {
 	}
 }
 
-void ManagementInputModule::getNfert(Gridcell& gridcell) {
+void ManagementInput::getNfert(Gridcell& gridcell) {
 
 	if(!Nfert.isloaded())
 		return;
@@ -960,7 +960,7 @@ void ManagementInputModule::getNfert(Gridcell& gridcell) {
 	}
 }
 
-void ManagementInputModule::getmanagement(Gridcell& gridcell) {
+void ManagementInput::getmanagement(Gridcell& gridcell) {
 
 	if(run[CROPLAND]) {
 

@@ -70,8 +70,8 @@ void landcover_init(Gridcell& gridcell, InputModule* input_module) {
 	}
 
 	// get landcover and crop area fractions from landcover input file(s) or ins-file.
-	LandcoverInputModule *landcover_input_module = input_module->get_landcover_module();
-	landcover_input_module->getlandcover(gridcell);
+	LandcoverInput *landcover_input = input_module->get_landcover_input();
+	landcover_input->getlandcover(gridcell);
 
 	stlist.firstobj();
 	while (stlist.isobj) {
@@ -1686,7 +1686,7 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
 	double transferred_fraction = 0.0;
 	double receiving_fraction = 0.0;
 	bool change = true, gross_LCC = false;
-	LandcoverInputModule *landcover_input_module = input_module->get_landcover_module();
+	LandcoverInput *landcover_input = input_module->get_landcover_input();
 
 
 	//Save old fraction values:									
@@ -1701,7 +1701,7 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
 	}
 
 	//Get new gridcell.landcoverfrac and/or standtype.frac from LUdata and CFTdata.
-	landcover_input_module->getlandcover(gridcell);	
+	landcover_input->getlandcover(gridcell);	
 
 	for(unsigned int i = 0; i < gridcell.st.nobj; i++) {
 		Gridcellst& gcst = gridcell.st[i];
@@ -1759,7 +1759,7 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
 		// Read landcover transfer fractions from file here and put them into the st_frac_transfer array.
 		// Landcover and stand type net fractions still need to be read from file as previously.
 
-		if(landcover_input_module->get_lc_transfer(gridcell, landcoverfrac_change, lc_frac_transfer, primary_lc_frac_transfer)) {
+		if(landcover_input->get_lc_transfer(gridcell, landcoverfrac_change, lc_frac_transfer, primary_lc_frac_transfer)) {
 			gross_LCC = false;
 			set_st_change_array(gridcell, lc_frac_transfer, st_frac_transfer, primary_lc_frac_transfer, primary_st_frac_transfer);
 		}

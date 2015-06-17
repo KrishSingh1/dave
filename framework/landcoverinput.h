@@ -14,12 +14,12 @@
 void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist);
 
 /// Class that deals with all land cover input from text files
-class LandcoverInputModule {
+class LandcoverInput {
 
 public:
 
 	/// Constructor
-	LandcoverInputModule();
+	LandcoverInput();
 	/// Opens management data files
 	void init();
 	/// Loads landcover and crop fractions from input files
@@ -51,12 +51,12 @@ private:
 };
 
 /// Class that deals with all crop management input from text files
-class ManagementInputModule {
+class ManagementInput {
 
 public:
 
 	/// Constructor
-	ManagementInputModule();
+	ManagementInput();
 	/// Opens management data files
 	void init();
 	/// Loads fertilisation, sowing and harvest dates from input files

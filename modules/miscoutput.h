@@ -18,7 +18,7 @@ namespace GuessOutput {
 
 // Definitions for separate output files per NATURAL and FOREST stand (when
 // instruction file parameter printseparatestands == true, printseparatestands
-// is set to false in LandcoverInputModule::init() when input land cover
+// is set to false in LandcoverInput::init() when input land cover
 // fraction data file has data for > 50 gridcells)
 
 /// Output module for the most commonly needed output files

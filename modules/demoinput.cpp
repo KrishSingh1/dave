@@ -175,9 +175,9 @@ void DemoInput::init() {
 	ndep=param["ndep"].num;
 
 	// Open landcover files
-	landcover_input_module.init();
+	landcover_input.init();
 	// Open management files
-	management_input_module.init();
+	management_input.init();
 
 	// Retrieve input file names as read from ins file
 
@@ -225,9 +225,9 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 
 			// Load environmental data for this grid cell from files
 			if(run_landcover) {
-				LUerror = landcover_input_module.loadlandcover(gridlist.getobj());
+				LUerror = landcover_input.loadlandcover(gridlist.getobj());
 				if(!LUerror)
-					LUerror = management_input_module.loadmanagement(gridlist.getobj());
+					LUerror = management_input.loadmanagement(gridlist.getobj());
 			}
 			if (!LUerror) {
 				gridfound = readenv(c, gridcell.seed);

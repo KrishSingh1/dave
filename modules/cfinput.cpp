@@ -373,9 +373,9 @@ void CFInput::init() {
 	current_gridcell = gridlist.begin();
 
 	// Open landcover files
-	landcover_input_module.init();
+	landcover_input.init();
 	// Open management files
-	management_input_module.init();
+	management_input.init();
 
 	date.set_first_calendar_year(cf_temp->get_date_time(0).get_year() - nyear_spinup);
 
@@ -410,9 +410,9 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 		c.lon = cru_lon;
 		c.lat = cru_lat;
 		bool LUerror = false;
-		LUerror = landcover_input_module.loadlandcover(c);
+		LUerror = landcover_input.loadlandcover(c);
 		if(!LUerror)
-			LUerror = management_input_module.loadmanagement(c);
+			LUerror = management_input.loadmanagement(c);
 		if(LUerror) {
 			dprintf("\nError: could not find stand at (%g,%g) in landcover/management data file(s)\n", c.lon, c.lat);
 			return false;

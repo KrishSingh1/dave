@@ -76,9 +76,9 @@ void CRUInput::init() {
 	co2.load_file(param["file_co2"].str);
 
 	// Open landcover files
-	landcover_input_module.init();
+	landcover_input.init();
 	// Open management files
-	management_input_module.init();
+	management_input.init();
 
 	date.set_first_calendar_year(FIRSTHISTYEAR - nyear_spinup);
 	// Set timers
@@ -150,9 +150,9 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 												   hist_mfrs, hist_mwet, hist_mdtr);
 
 				if (run_landcover && gridfound) {
-					LUerror = landcover_input_module.loadlandcover(gridlist.getobj());
+					LUerror = landcover_input.loadlandcover(gridlist.getobj());
 					if(!LUerror)
-						LUerror = management_input_module.loadmanagement(gridlist.getobj());
+						LUerror = management_input.loadmanagement(gridlist.getobj());
 				}
 
 				if(!gridfound || LUerror) {

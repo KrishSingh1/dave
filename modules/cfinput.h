@@ -32,21 +32,21 @@ public:
 	bool getclimate(Gridcell& gridcell);
 
 	/// Obtains land management data for one day
-	void getmanagement(Gridcell& gridcell) {management_input_module.getmanagement(gridcell);}
+	void getmanagement(Gridcell& gridcell) {management_input.getmanagement(gridcell);}
 
 	/// Returns pointer to land cover input module
-	LandcoverInputModule* get_landcover_module() {return &landcover_input_module;}
+	LandcoverInput* get_landcover_input() {return &landcover_input;}
 	/// Returns pointer to land management input module
-	ManagementInputModule* get_management_module() {return &management_input_module;}
+	ManagementInput* get_management_input() {return &management_input;}
 
 	static const int NYEAR_SPINUP_DATA=30;
 
 private:
 
 	/// Land cover input module
-	LandcoverInputModule landcover_input_module;
+	LandcoverInput landcover_input;
 	/// Management input module
-	ManagementInputModule management_input_module;
+	ManagementInput management_input;
 
 	struct Coord {
 

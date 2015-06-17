@@ -40,7 +40,7 @@ void yield_pasture(Individual& indiv, double cmass_leaf_inc);
 /// Determines amount of nitrogen applied today
 void crop_nfert(Patch& patch);
 /// Updates crop rotation status
-void crop_rotation(Stand& stand, int firsthistyear);
+void crop_rotation(Stand& stand);
 
 
 /// Struct for copies of carbon and nitrogen of an individual and associated litter and fluxes resulting from harvest

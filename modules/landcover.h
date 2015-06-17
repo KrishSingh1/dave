@@ -17,15 +17,16 @@
 #include "cropallocation.h"
 #include "management.h"
 #include "landcoverinput.h"
+#include "inputmodule.h"
 
 ///	Creates stands for landcovers present in the gridcell first year of the simulation
-void landcover_init(Gridcell& gridcell, LandcoverInputModule* input_module);
+void landcover_init(Gridcell& gridcell, InputModule* input_module);
 
 /// Handles changes in the landcover fractions from year to year
 /** This function will for instance kill or create new stands
  *  if needed.
  */
-void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* input_module);
+void landcover_dynamics(Gridcell& gridcell, InputModule* input_module);
 
 /// Query whether a date is within a period spanned by two dates.
 bool dayinperiod(int day, int start, int end);

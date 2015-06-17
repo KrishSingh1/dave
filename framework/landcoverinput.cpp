@@ -294,7 +294,7 @@ void LandcoverInputModule::getlandcover(Gridcell& gridcell) {
 			}
 			else {
 
-				if(year == LUdata.GetFirstyear() + LUdata.GetnYears())
+				if(year == LUdata.GetFirstyear() + LUdata.GetnYears() + 1)
 					dprintf("Last year of landcover fraction data used from year %d and onwards\n", year);
 
 				for(i=0; i<NLANDCOVERTYPES; i++) {

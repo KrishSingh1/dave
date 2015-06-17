@@ -1148,7 +1148,7 @@ void crop_nfert(Patch& patch) {
 // Updates crop rotation status
 /** Sets new crop management variables, typically on harvest day
  */
-void crop_rotation(Stand& stand, int firsthistyear) {
+void crop_rotation(Stand& stand) {
 
 	if(stand.landcover == CROPLAND) {
 
@@ -1159,7 +1159,7 @@ void crop_rotation(Stand& stand, int firsthistyear) {
 
 		if(rotation.ncrops > 1 && stand.isrotationday) {
 
-			int firstrotyear = rotation.firstrotyear + nyear_spinup - firsthistyear;
+			int firstrotyear = rotation.firstrotyear - date.first_calendar_year;
 
 			// Alternative uses of firstrotyear:
 /*			// 1. Before firstrotyear, grow only crop1:

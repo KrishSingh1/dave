@@ -36,7 +36,7 @@ void print_logfile_heading() {
 
 	// Print the title of this run
 	std::string dashed_line(50, '-');
-	dprintf("\n\n%s\n%s\n%s\n", 
+	dprintf("\n\n%s\n%s\n%s\n",
 	        dashed_line.c_str(), (char*)title, dashed_line.c_str());
 }
 
@@ -46,106 +46,110 @@ void print_logfile_heading() {
  * the day's forcing data before calling this function.
  *
  * \param gridcell            The gridcell to simulate
- * \param input_modules       Used to get land cover fractions
+ * \param input_module        Used to get land cover fractions
  */
 void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
-			// Update daily climate drivers etc
-			dailyaccounting_gridcell(gridcell);
+	// Update daily climate drivers etc
+	dailyaccounting_gridcell(gridcell);
 
+	// Calculate daylength, insolation and potential evapotranspiration
+	daylengthinsoleet(gridcell.climate);
+
+	if (run_landcover) {
+		if (run[CROPLAND]) {
 			// Update crop sowing date calculation framework
-			if (run_landcover && run[CROPLAND])
-				crop_sowing_gridcell(gridcell);
+			crop_sowing_gridcell(gridcell);
+		}
+		if (date.day == 0) {
+			// Dynamic landcover and crop fraction data during historical
+			// period and create/kill stands.
+			landcover_dynamics(gridcell, input_module);
 
-			// Calculate daylength, insolation and potential evapotranspiration
-			daylengthinsoleet(gridcell.climate);
+			// Update dynamic management options
+			input_module->getmanagement(gridcell);
+		}
+	}
 
-			if(run_landcover && date.day == 0) {
-				// Update dynamic landcover and crop fraction data during historical period and create/kill stands.
-				landcover_dynamics(gridcell, input_module->get_landcover_module());
 
-				// Update dynamic management options
-				input_module->getmanagement(gridcell);
+	Gridcell::iterator gc_itr = gridcell.begin();
+	while (gc_itr != gridcell.end()) {
+
+		// START OF LOOP THROUGH STANDS
+		Stand& stand = *gc_itr;
+
+		dailyaccounting_stand(stand);
+
+		stand.firstobj();
+		while (stand.isobj) {
+			// START OF LOOP THROUGH PATCHES
+
+			// Get reference to this patch
+			Patch& patch = stand.getobj();
+			// Update daily soil drivers including soil temperature
+			dailyaccounting_patch(patch);
+
+			if (stand.landcover == CROPLAND) {
+				crop_nfert(patch);
+				// Calculate crop sowing dates
+				crop_sowing_patch(patch);
+				// Crop phenology
+				crop_phenology(patch);
+				// necessary updates after changing growingperiod status
+				update_patch_fpc(patch);
 			}
 
-			Gridcell::iterator gc_itr = gridcell.begin();
-			while (gc_itr != gridcell.end()) {
+			// Leaf phenology for PFTs and individuals
+			leaf_phenology(patch, gridcell.climate);
+			// Interception
+			interception(patch, gridcell.climate);
+			initial_infiltration(patch, gridcell.climate);
+			// Photosynthesis, respiration, evapotranspiration
+			canopy_exchange(patch, gridcell.climate);
+			// Sum total required irrigation
+			irrigation(patch);
+			// Soil water accounting, snow pack accounting
+			soilwater(patch, gridcell.climate);
+			// Daily C allocation (cropland)
+			growth_daily(patch);
+			// Soil organic matter and litter dynamics
+			som_dynamics(patch);
 
-				// START OF LOOP THROUGH STANDS
-				Stand& stand = *gc_itr;
+			if (date.islastday && date.islastmonth) {
 
-				dailyaccounting_stand(stand);
+				// LAST DAY OF YEAR
+				// Tissue turnover, allocation to new biomass and reproduction,
+				// updated allometry
+				growth(stand, patch);
+			}
+			stand.nextobj();
+		}// End of loop through patches
 
-				stand.firstobj();
-				while (stand.isobj) {
-					// START OF LOOP THROUGH PATCHES
+		// Update crop rotation status
+		crop_rotation(stand);
 
-					// Get reference to this patch
-					Patch& patch = stand.getobj();
-					// Update daily soil drivers including soil temperature
-					dailyaccounting_patch(patch);
+		if (date.islastday && date.islastmonth) {
+			// LAST DAY OF YEAR
+			stand.firstobj();
+			while (stand.isobj) {
 
-					if(stand.landcover == CROPLAND) {
-						crop_nfert(patch);
-						// Calculate crop sowing dates
-						crop_sowing_patch(patch);
-						// Crop phenology
-						crop_phenology(patch);
-						// necessary updates after changing growingperiod status
-						update_patch_fpc(patch);
-					}
+				// For each patch ...
+				Patch& patch = stand.getobj();
+				// Establishment, mortality and disturbance by fire
+				vegetation_dynamics(stand, patch);
+				stand.nextobj();
+			}
+		}
 
-					// Leaf phenology for PFTs and individuals
-					leaf_phenology(patch, gridcell.climate);
-					// Interception
-					interception(patch, gridcell.climate);
-					initial_infiltration(patch, gridcell.climate);
-					// Photosynthesis, respiration, evapotranspiration
-					canopy_exchange(patch, gridcell.climate);
-					// Sum total required irrigation
-					irrigation(patch);
-					// Soil water accounting, snow pack accounting
-					soilwater(patch, gridcell.climate);
-					// Daily C allocation (cropland)
-					growth_daily(patch);
-					// Soil organic matter and litter dynamics
-					som_dynamics(patch);
-
-					if (date.islastday && date.islastmonth) {
-
-						// LAST DAY OF YEAR
-						// Tissue turnover, allocation to new biomass and reproduction,
-						// updated allometry
-						growth(stand, patch);
-					}
-					stand.nextobj();
-				}// End of loop through patches
-
-				// Update crop rotation status
-				crop_rotation(stand, date.first_calendar_year + nyear_spinup);
-
-				if (date.islastday && date.islastmonth) {
-					// LAST DAY OF YEAR
-					stand.firstobj();
-					while (stand.isobj) {
-
-						// For each patch ...
-						Patch& patch = stand.getobj();
-						// Establishment, mortality and disturbance by fire
-						vegetation_dynamics(stand, patch);
-						stand.nextobj();
-					}
-				}
-
-				++gc_itr;		
-			}	// End of loop through stands
+		++gc_itr;
+	}	// End of loop through stands
 }
 
 
 int framework(const CommandLineArguments& args) {
 
-	// The 'mission control' of the model, responsible for maintaining the 
-	// primary model data structures and containing all explicit loops through 
+	// The 'mission control' of the model, responsible for maintaining the
+	// primary model data structures and containing all explicit loops through
 	// space (grid cells/stands) and time (days and years).
 
 	using std::auto_ptr;
@@ -174,7 +178,7 @@ int framework(const CommandLineArguments& args) {
 
 	// bvoc
 	if (ifbvoc) {
-	  initbvoc();
+		initbvoc();
 	}
 
 	// Create objects for (de)serializing grid cells
@@ -208,9 +212,10 @@ int framework(const CommandLineArguments& args) {
 		// Initialise certain climate and soil drivers
 		gridcell.climate.initdrivers(gridcell.get_lat());
 
-		if(run_landcover) {
-			// Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
-			landcover_init(gridcell, input_module->get_landcover_module());
+		if (run_landcover) {
+			// Read static landcover and cft fraction data from ins-file and/or
+			// from data files for the spinup period and create stands
+			landcover_init(gridcell, input_module.get());
 		}
 
 		if (restart) {

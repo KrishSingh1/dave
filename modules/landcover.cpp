@@ -53,7 +53,7 @@ int index(int from, int to, int ncols = nst) {
 
 
 /// Creation of stands when run_landcover==true
-void landcover_init(Gridcell& gridcell, LandcoverInputModule* landcover_input_module) {
+void landcover_init(Gridcell& gridcell, InputModule* input_module) {
 
 	// Set CFT-specific members of gridcellpft:
 	for(unsigned int p = 0; p < gridcell.pft.nobj; p++) {
@@ -70,6 +70,7 @@ void landcover_init(Gridcell& gridcell, LandcoverInputModule* landcover_input_mo
 	}
 
 	// get landcover and crop area fractions from landcover input file(s) or ins-file.
+	LandcoverInputModule *landcover_input_module = input_module->get_landcover_module();
 	landcover_input_module->getlandcover(gridcell);
 
 	stlist.firstobj();
@@ -85,104 +86,6 @@ void landcover_init(Gridcell& gridcell, LandcoverInputModule* landcover_input_mo
 
 		stlist.nextobj();
 	}
-}
-
-/// Gets this year's landcover and crop area fractions, checks that area changes are significant and that the net changes are zero.
-/** Stores changes in area fractions for the stand types
- *
- *  OUTPUT PARAMETERS
- *  \param landcoverfrac_change				array with this year's difference in area fractions of the different landcovers
- *  \param LCchangeCtransfer				whether to transfer carbon, nitrogen and water of reduced stands to expanding stands
- */
-bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], bool& LCchangeCtransfer, LandcoverInputModule* input_module) {
-
-	double cropfrac_sum_old = 0.0;
-	double change_stand = 0.0;
-	double changeLC = 0.0;
-	double change_crop = 0.0;
-	double transferred_fraction = 0.0;
-	double receiving_fraction = 0.0;
-	bool change = true;
-
-
-	//Save old fraction values:									
-	for(int i=0; i<NLANDCOVERTYPES; i++)
-		gridcell.landcover.frac_old[i] = gridcell.landcover.frac[i];
-	for(unsigned int i = 0; i < gridcell.st.nobj; i++) {
-		Gridcellst& gcst = gridcell.st[i];
-
-		gcst.frac_old = gcst.frac;
-		if(gcst.st.landcover == CROPLAND)
-			cropfrac_sum_old += gcst.frac_old;
-	}
-
-	//Get new gridcell.landcoverfrac and/or standtype.frac from LUdata and CFTdata.		
-	input_module->getlandcover(gridcell);	
-
-	for(unsigned int i = 0; i < gridcell.st.nobj; i++) {
-		Gridcellst& gcst = gridcell.st[i];
-		gcst.frac_change = gcst.frac - gcst.frac_old ;
-	}
-
-	if(!lcfrac_fixed) {
-		for(int i=0; i<NLANDCOVERTYPES; i++) {
-			landcoverfrac_change[i] = gridcell.landcover.frac[i] - gridcell.landcover.frac_old[i];
-			changeLC += fabs(landcoverfrac_change[i]) / 2.0;
-			if(i != CROPLAND) {
-				if(landcoverfrac_change[i] < 0.0)
-					transferred_fraction -= landcoverfrac_change[i];
-				if(landcoverfrac_change[i] > 0.0)
-					receiving_fraction += landcoverfrac_change[i];
-				change_stand += fabs(landcoverfrac_change[i]) / 2.0;
-			}
-		}
-	}
-
-	if(run[CROPLAND] && (!frac_fixed[CROPLAND] || !lcfrac_fixed)) {
-		for(unsigned int i = 0; i < gridcell.st.nobj; i++) {
-			Gridcellst& gcst = gridcell.st[i];
-
-			if(gcst.st.landcover == CROPLAND) {
-
-				double stfrac_change = gcst.frac_change;
-
-				if(stfrac_change < 0.0)
-					transferred_fraction -= stfrac_change;
-				if(stfrac_change > 0.0)
-					receiving_fraction += stfrac_change;
-
-				if(cropfrac_sum_old != 0.0) {
-					change_crop += fabs(stfrac_change) / 2.0;
-				}
-				else {
-					change_crop += fabs(stfrac_change);
-				}
-				change_stand += fabs(stfrac_change) / 2.0;
-			}
-		}
-	}
-
-	// if no changes, do nothing.
-	if(changeLC < 1.0e-15 && change_crop < 1.0e-15) {
-		change = false;
-	}
-	// check for balance of reduced and increased stand fractions
-	else {
-		if(fabs(transferred_fraction - receiving_fraction) > 0.0001 || fabs(change_stand-receiving_fraction) > 0.0001) {
-			if(run[CROPLAND] && run[NATURAL] && run[PASTURE]) {
-				// end program if balance is expected (no landcovers inactivated)
-				fail("Transferred landcover fractions not balanced !\n");
-			}
-			else {
-				// allow program to continue, but inactivate landcover change mass transfer 
-				LCchangeCtransfer = false;
-				dprintf("Transferred landcover fractions not balanced !\nLandcover change carbon flux not calculated.\n");
-			}
-		}
-		change = true;
-	}
-
-	return change;
 }
 
 /// identifies which stands to reduce in area and sets standtype.nstands
@@ -1761,7 +1664,150 @@ bool check_fractions4(Gridcell& gridcell) {
 	return error;
 }
 
-/// Updates all landcover and crop stand area fractions each year, possibly resulting in the creation and killing of stands.
+/// Gets this year's landcover and crop area fractions, landcover transitions and checks that area changes are significant.
+/** Stores changes in area fractions for the stand types
+ *
+ *  OUTPUT PARAMETERS
+ *  \param landcoverfrac_change				array with this year's difference in area fractions of the different landcovers
+ *  \param lc_frac_transfer					array with this year's transitions in area fractions between the different landcovers
+ *  \param st_frac_transfer					array with this year's transitions in area fractions between the different landcovers
+ *  \param primary_lc_frac_transfer			array with this year's transitions in area fractions from primary landcovers
+ *  \param primary_st_frac_transfer			array with this year's transitions in area fractions from primary stand types
+ *  \param LCchangeCtransfer				whether to transfer carbon, nitrogen and water of reduced stands to expanding stands
+ */
+bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], double lc_frac_transfer[][NLANDCOVERTYPES], 
+				   double* st_frac_transfer, double primary_lc_frac_transfer[][NLANDCOVERTYPES], double* primary_st_frac_transfer, 
+				   bool& LCchangeCtransfer, InputModule* input_module) {
+
+	double cropfrac_sum_old = 0.0;
+	double change_stand = 0.0;
+	double changeLC = 0.0;
+	double change_crop = 0.0;
+	double transferred_fraction = 0.0;
+	double receiving_fraction = 0.0;
+	bool change = true, gross_LCC = false;
+	LandcoverInputModule *landcover_input_module = input_module->get_landcover_module();
+
+
+	//Save old fraction values:									
+	for(int i=0; i<NLANDCOVERTYPES; i++)
+		gridcell.landcover.frac_old[i] = gridcell.landcover.frac[i];
+	for(unsigned int i = 0; i < gridcell.st.nobj; i++) {
+		Gridcellst& gcst = gridcell.st[i];
+
+		gcst.frac_old = gcst.frac;
+		if(gcst.st.landcover == CROPLAND)
+			cropfrac_sum_old += gcst.frac_old;
+	}
+
+	//Get new gridcell.landcoverfrac and/or standtype.frac from LUdata and CFTdata.
+	landcover_input_module->getlandcover(gridcell);	
+
+	for(unsigned int i = 0; i < gridcell.st.nobj; i++) {
+		Gridcellst& gcst = gridcell.st[i];
+		gcst.frac_change = gcst.frac - gcst.frac_old ;
+	}
+
+	if(!lcfrac_fixed) {
+		for(int i=0; i<NLANDCOVERTYPES; i++) {
+			landcoverfrac_change[i] = gridcell.landcover.frac[i] - gridcell.landcover.frac_old[i];
+			changeLC += fabs(landcoverfrac_change[i]) / 2.0;
+			if(i != CROPLAND) {
+				if(landcoverfrac_change[i] < 0.0)
+					transferred_fraction -= landcoverfrac_change[i];
+				if(landcoverfrac_change[i] > 0.0)
+					receiving_fraction += landcoverfrac_change[i];
+				change_stand += fabs(landcoverfrac_change[i]) / 2.0;
+			}
+		}
+	}
+
+	if(run[CROPLAND] && (!frac_fixed[CROPLAND] || !lcfrac_fixed)) {
+		for(unsigned int i = 0; i < gridcell.st.nobj; i++) {
+			Gridcellst& gcst = gridcell.st[i];
+
+			if(gcst.st.landcover == CROPLAND) {
+
+				double stfrac_change = gcst.frac_change;
+
+				if(stfrac_change < 0.0)
+					transferred_fraction -= stfrac_change;
+				if(stfrac_change > 0.0)
+					receiving_fraction += stfrac_change;
+
+				if(cropfrac_sum_old != 0.0) {
+					change_crop += fabs(stfrac_change) / 2.0;
+				}
+				else {
+					change_crop += fabs(stfrac_change);
+				}
+				change_stand += fabs(stfrac_change) / 2.0;
+			}
+		}
+	}
+
+	if(gross_land_transfer == 3) {
+
+		// Read stand type transfer fractions from file here and put them into the st_frac_transfer array.
+		// Landcover and stand type net fractions still need to be read from file as previously.
+
+		// input_module->get_st_transfer();
+		dprintf("Currently no code for option gross_land_transfer==3\n");
+	}
+	else if(gross_land_transfer == 2) {
+
+		// Read landcover transfer fractions from file here and put them into the st_frac_transfer array.
+		// Landcover and stand type net fractions still need to be read from file as previously.
+
+		if(landcover_input_module->get_lc_transfer(gridcell, landcoverfrac_change, lc_frac_transfer, primary_lc_frac_transfer)) {
+			gross_LCC = false;
+			set_st_change_array(gridcell, lc_frac_transfer, st_frac_transfer, primary_lc_frac_transfer, primary_st_frac_transfer);
+		}
+	}
+	else {
+
+		const bool simulate_st = true;	// gcc simulation at land cover level (false) or stand type level (true)
+
+		set_lc_change_array(landcoverfrac_change, lc_frac_transfer); // the lc_frac_transfer-array is only used in set_st_change_array()
+
+		if(gross_land_transfer && !simulate_st)
+			simulate_gross_lc_transfer(gridcell, lc_frac_transfer);
+
+		set_st_change_array(gridcell, lc_frac_transfer, st_frac_transfer, primary_lc_frac_transfer, primary_st_frac_transfer);
+
+		check_fractions(gridcell, landcoverfrac_change, lc_frac_transfer, st_frac_transfer, true);
+
+		if(gross_land_transfer && simulate_st)
+			simulate_gross_st_transfer(gridcell, st_frac_transfer);
+	}
+
+	check_fractions(gridcell, landcoverfrac_change, lc_frac_transfer, st_frac_transfer);
+	check_fractions1(gridcell);
+
+	// if no changes, do nothing.
+	if(changeLC < 1.0e-15 && change_crop < 1.0e-15 && !gross_LCC) {
+		change = false;
+	}
+	// check for balance of reduced and increased stand fractions
+	else {
+		if(fabs(transferred_fraction - receiving_fraction) > 0.0001 || fabs(change_stand-receiving_fraction) > 0.0001) {
+			if(run[CROPLAND] && run[NATURAL] && run[PASTURE]) {
+				// end program if balance is expected (no landcovers inactivated)
+				fail("Transferred landcover fractions not balanced !\n");
+			}
+			else {
+				// allow program to continue, but inactivate landcover change mass transfer 
+				LCchangeCtransfer = false;
+				dprintf("Transferred landcover fractions not balanced !\nLandcover change carbon flux not calculated.\n");
+			}
+		}
+		change = true;
+	}
+
+	return change;
+}
+
+/// Updates all landcover, stand type and stand area fractions each year, possibly resulting in the creation and killing of stands.
 /** Harvests transferred areas and transfers litter etc. of reduced stands to expanding stands and harvested matter to fluxes
  *  and (in the case of wood) to long-lived pools.
  *
@@ -1789,7 +1835,7 @@ bool check_fractions4(Gridcell& gridcell) {
  *  if they contain trees (pasture can be expanded without too much problems). New stands should instead be created, either in stand_dynamics()
  *  or transfer_to_new_stand() as described above.
  */
-void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* landcover_input_module) {
+void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 	double landcoverfrac_change[NLANDCOVERTYPES];
 	double lc_frac_transfer[NLANDCOVERTYPES][NLANDCOVERTYPES];
@@ -1812,65 +1858,17 @@ void landcover_dynamics(Gridcell& gridcell, LandcoverInputModule* landcover_inpu
 	for(unsigned int i=0; i<gridcell.nbr_stands(); ++i)
 		gridcell[i].scale_LC_change = 1.0;
 
-	bool no_changes = true;
-
-	// get new landcover and stand type area fractions from input files, set standtype frac_change
+	// get new landcover and stand type area fractions from input files, set transition arrays
 	if(!all_fracs_const) {
 		// this call returns 0, causing this function to return, if no significant landcover changes this year, 
 		// sets LCchangeCtransfer to 0 if unbalanced landcover changes (if some landcovers are inactivated), thus inactivating transfer of C and N
-		if(checkLCchange(gridcell, landcoverfrac_change, LCchangeCtransfer, landcover_input_module))
-			no_changes = false;
-	}
-
-	if(no_changes && !gross_land_transfer) {
-		delete[] st_frac_transfer;
-		delete[] primary_st_frac_transfer;
-		return;
-	}
-
-	if(gross_land_transfer == 3) {
-
-		// Read stand type transfer fractions from file here and put them into the st_frac_transfer array.
-		// Landcover and stand type net fractions still need to be read from file as previously.
-
-		// input_module->get_st_transfer();
-		dprintf("Currently no code for option gross_land_transfer==3\n");
-	}
-	else if(gross_land_transfer == 2) {
-
-		// Read landcover transfer fractions from file here and put them into the st_frac_transfer array.
-		// Landcover and stand type net fractions still need to be read from file as previously.
-
-		if(landcover_input_module->get_lc_transfer(gridcell, landcoverfrac_change, lc_frac_transfer, primary_lc_frac_transfer)) {
-			no_changes = false;
-			set_st_change_array(gridcell, lc_frac_transfer, st_frac_transfer, primary_lc_frac_transfer, primary_st_frac_transfer);
+		if(!checkLCchange(gridcell, landcoverfrac_change, lc_frac_transfer, st_frac_transfer, primary_lc_frac_transfer, 
+				primary_st_frac_transfer, LCchangeCtransfer, input_module)) {
+			delete[] st_frac_transfer;
+			delete[] primary_st_frac_transfer;
+			return;
 		}
 	}
-	else {
-
-		const bool simulate_st = true;	// gcc simulation at land cover level (false) or stand type level (true)
-
-		set_lc_change_array(landcoverfrac_change, lc_frac_transfer); // the lc_frac_transfer-array is only used in set_st_change_array()
-
-		if(gross_land_transfer && !simulate_st)
-			simulate_gross_lc_transfer(gridcell, lc_frac_transfer);
-
-		set_st_change_array(gridcell, lc_frac_transfer, st_frac_transfer, primary_lc_frac_transfer, primary_st_frac_transfer);
-
-		check_fractions(gridcell, landcoverfrac_change, lc_frac_transfer, st_frac_transfer, true);
-
-		if(gross_land_transfer && simulate_st)
-			simulate_gross_st_transfer(gridcell, st_frac_transfer);
-	}
-
-	if(no_changes) {
-		delete[] st_frac_transfer;
-		delete[] primary_st_frac_transfer;
-		return;
-	}
-
-	check_fractions(gridcell, landcoverfrac_change, lc_frac_transfer, st_frac_transfer);
-	check_fractions1(gridcell);
 
 	for(int i=0; i<nst; i++) {
 

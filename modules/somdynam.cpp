@@ -700,6 +700,14 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 	// Adding mineral nitrogen to soil available pool
 	soil.nmass_avail += nmin_actual - nimmob;
 
+	// Estimate of N flux from soil (simple CLM-CN approach)
+	double nflux = nmin_actual - nimmob > 0.0 ? (nmin_actual - nimmob) * 0.01 : 0.0;
+	soil.nmass_avail -= nflux;
+
+	if (!ifequilsom) {
+		patch.fluxes.report_flux(Fluxes::N_SOIL, nflux);
+	}
+
 	// If no nitrogen limitation or during free nitrogen years set soil
 	// available nitrogen to its saturation level.
 	if (!ifnlim || date.year <= freenyears)
@@ -1063,11 +1071,6 @@ void leaching(Soil& soil) {
 void soilnadd(Patch& patch) {
 
 	Soil& soil = patch.soil;
-
-	double nflux = .01 * soil.ninput;
-	soil.ninput -= nflux;
-
-	patch.fluxes.report_flux(Fluxes::N_SOIL, nflux);
 
 	// Nitrogen deposition and fertilization input to the soil (calculated in snow_ninput())
 	soil.nmass_avail += soil.ninput;

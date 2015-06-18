@@ -242,6 +242,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 
 	int i, year_saved;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
+	Landcover& lc = gridcell.landcover;
 
 	// Calender year of start of simulation (after spinup)
 	int first_historic_year = date.first_calendar_year + nyear_spinup;
@@ -256,6 +257,14 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 		year = first_historic_year;
 	}
 
+	//Save old fraction values:									
+	for(int i=0; i<NLANDCOVERTYPES; i++)
+		lc.frac_old[i] = lc.frac[i];
+	for(unsigned int i = 0; i < gridcell.st.nobj; i++) {
+		Gridcellst& gcst = gridcell.st[i];
+		gcst.frac_old = gcst.frac;
+	}
+
 	if(lcfrac_fixed) {		// If landcover area fractions are set in the ins-file.
 		if(date.year == 0) {	// Year 0: called by landcover_init
 	
@@ -267,7 +276,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 			}
 
 			for(i=0;i<NLANDCOVERTYPES;i++) {
-				gridcell.landcover.frac[i] = 1.0 * run[i] / (double)nactive_landcovertypes;	// only set fractions that are active
+				lc.frac[i] = 1.0 * run[i] / (double)nactive_landcovertypes;	// only set fractions that are active
 				sum_active += gridcell.landcover.frac[i];
 				sum_tot = sum_active;
 			}		
@@ -288,7 +297,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 			if(LUdata.Get(year, 0) < 0.0) {		// Missing data (negative values)
 				if(date.year == 1)
 					dprintf("Missing landcover fraction data for year %d, natural vegetation fraction set to 1.0\n", year);
-				memset(gridcell.landcover.frac, 0, sizeof(double) * NLANDCOVERTYPES);
+				memset(lc.frac, 0, sizeof(double) * NLANDCOVERTYPES);
 				gridcell.landcover.frac[NATURAL] = 1.0;
 				sum_active = 1.0;
 			}
@@ -331,20 +340,20 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 							
 						if(lcfrac == NOTFOUND)	// land cover not found in input file
 							lcfrac = 0.0;
-						else if(gridcell.landcover.frac[i] < 0.0 || gridcell.landcover.frac[i] > 1.0) {	// discard unreasonable values	
+						else if(lc.frac[i] < 0.0 || gridcell.landcover.frac[i] > 1.0) {	// discard unreasonable values	
 							if(printyear)
 								dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
 							lcfrac = 0.0;
 						}
-						gridcell.landcover.frac[i] = lcfrac;
+						lc.frac[i] = lcfrac;
 						sum_tot += lcfrac;
 						sum_active += run[i] * gridcell.landcover.frac[i];
 					}
 				}
 
 				if (grassforcrop) {
-					gridcell.landcover.frac[PASTURE]+=gridcell.landcover.frac[CROPLAND];
-					gridcell.landcover.frac[CROPLAND]=0.0;
+					lc.frac[PASTURE]+=lc.frac[CROPLAND];
+					lc.frac[CROPLAND]=0.0;
 				}
 				if(sum_tot != 1.0 && sum_tot != 0.0) {		// Check input data, rescale if sum !=1.0	
 
@@ -358,14 +367,15 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 					}
 
 					for(i=0; i<NLANDCOVERTYPES; i++) {
-						gridcell.landcover.frac[i] /= sum_tot;
-						sum_active += gridcell.landcover.frac[i];
+						lc.frac[i] /= sum_tot;
+						sum_active += lc.frac[i];
 					}
 				}
 			}
 		}
-		else
-			gridcell.landcover.frac[NATURAL] = 0.0;
+		else {
+			lc.frac[NATURAL] = 0.0;
+		}
 
 		// NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
 		if(fabs(sum_active - 1.0) > 1.0e-14)	{	// if landcover types are turned off in the instruction file, or if more landcover types are added in other input files, can be either less or more than 1.0
@@ -378,25 +388,25 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 					if(sum_active < 1.0)
 						dprintf("Inactive fractions (%4.3f) transferred to NATURAL fraction.\n", 1.0-sum_active);
 					else
-						dprintf("New landcover type fraction (%4.3f) subtracted from NATURAL fraction (%4.3f).\n", sum_active-1.0, gridcell.landcover.frac[NATURAL]);
+						dprintf("New landcover type fraction (%4.3f) subtracted from NATURAL fraction (%4.3f).\n", sum_active-1.0, lc.frac[NATURAL]);
 				}
 
-				gridcell.landcover.frac[NATURAL] += (1.0 - sum_active);	// difference (can be negative) 1.0-(sum of active landcover fractions) are added to the natural fraction
+				lc.frac[NATURAL] += (1.0 - sum_active);	// difference (can be negative) 1.0-(sum of active landcover fractions) are added to the natural fraction
 				
 				if(date.year==0)
 					dprintf("New NATURAL fraction is %4.3f.\n", gridcell.landcover.frac[NATURAL]);
 
 				sum_active = 1.0;		// sum_active should now be 1.0
 
-				if(gridcell.landcover.frac[NATURAL] < 0.0) {	// If new landcover type fraction is bigger than the natural fraction (something wrong in the distribution of input file area fractions)						
+				if(lc.frac[NATURAL] < 0.0) {	// If new landcover type fraction is bigger than the natural fraction (something wrong in the distribution of input file area fractions)						
 					if(date.year == 0)
 						dprintf("New landcover type fraction is bigger than NATURAL fraction, rescaling landcover fractions !.\n");
 
-					sum_active -= gridcell.landcover.frac[NATURAL];	// fraction not possible to transfer moved back to sum_active, which will now be >1.0 again
-					gridcell.landcover.frac[NATURAL] = 0.0;
+					sum_active -= lc.frac[NATURAL];	// fraction not possible to transfer moved back to sum_active, which will now be >1.0 again
+					lc.frac[NATURAL] = 0.0;
 
 					for(i=0; i<NLANDCOVERTYPES; i++) {
-						gridcell.landcover.frac[i] /= sum_active;		// fraction rescaled to unity sum
+						lc.frac[i] /= sum_active;		// fraction rescaled to unity sum
 						if(run[i])
 							if(date.year == 0)
 								dprintf("Landcover type %d fraction is %4.3f\n", i, gridcell.landcover.frac[i]);
@@ -407,7 +417,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 //				if(date.year == 0)
 //					dprintf("Rescaling landcover fractions !\n");
 //				for(i=0; i<NLANDCOVERTYPES; i++)
-//					gridcell.landcoverfrac[i] /= sum_active;					// 1) if NATURAL not simulated, rescale active fractions to 1.0
+//					lc.frac[i] /= sum_active;					// 1) if NATURAL not simulated, rescale active fractions to 1.0
 				if(date.year == 0)
 					dprintf("Non-unity fraction sum retained.\n");				// 2) let sum remain non-unity
 			}
@@ -436,11 +446,11 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 				if(nyears_cropland_ramp > max_ramp_years)
 					dprintf("Requested cropland ramp period too long for given nyear_spinup. Maximum is %d.\n", max_ramp_years);
 
-				double reduce_cropland = min((double)(firstyear - year) / min(nyears_cropland_ramp, max_ramp_years), 1.0) * gridcell.landcover.frac[CROPLAND];
-				gridcell.landcover.frac[CROPLAND] -= reduce_cropland;
-				gridcell.landcover.frac[NATURAL] += reduce_cropland;
-//				if(gridcell.landcoverfrac[CROPLAND])
-//					dprintf("Year %d Cropland frac=%.3f\n", year, gridcell.landcoverfrac[CROPLAND]);
+				double reduce_cropland = min((double)(firstyear - year) / min(nyears_cropland_ramp, max_ramp_years), 1.0) * lc.frac[CROPLAND];
+				lc.frac[CROPLAND] -= reduce_cropland;
+				lc.frac[NATURAL] += reduce_cropland;
+//				if(lc.frac[CROPLAND])
+//					dprintf("Year %d Cropland frac=%.3f\n", year, lc.frac[CROPLAND]);
 			}
 		}
 	}
@@ -495,7 +505,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 			}
 
 			if(printyear) {
-				if(gridcell.landcover.frac[CROPLAND]==0.0) {
+				if(lc.frac[CROPLAND]==0.0) {
 					if(sum!=0.0) {
 	//					dprintf("WARNING ! crop landcover fraction is 0.0 for year %d while crop data exist !\n", year);
 					}
@@ -509,7 +519,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 		// If crop fraction data are missing or if fixed default crops are used, try to find suitable stand types to use.
 		if(sum==0.0) {
 
-			if(gridcell.landcover.frac[CROPLAND]) {
+			if(lc.frac[CROPLAND]) {
 				// Use equal areas of rainfed stand types with tropical or temperate crop pft:s based on base temperatures
 				int nsts = 0;
 				stlist.firstobj();
@@ -535,7 +545,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 					stlist.nextobj();
 				}
 				if(nsts) {
-					if(gridcell.landcover.frac[CROPLAND] && printyear && !(frac_fixed[CROPLAND] && frac_fixed_default_crops))
+					if(lc.frac[CROPLAND] && printyear && !(frac_fixed[CROPLAND] && frac_fixed_default_crops))
 						dprintf("Missing crop fraction data. Using available suitable stand types for year %d\n", year);
 				}
 				else {
@@ -569,7 +579,12 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 		}
 	}
 
-	// Convert fractions from landcover-based to gridcell-based
+	// Update landcover frac_change arrays
+	for(int i=0; i<NLANDCOVERTYPES; i++) {
+		lc.frac_change[i] = lc.frac[i] - lc.frac_old[i];
+	}
+
+	// Convert fractions from landcover-based to gridcell-based and update gridcellst frac_change arrays
 	stlist.firstobj();
 	while (stlist.isobj) {
 		StandType& st = stlist.getobj();
@@ -578,161 +593,247 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 		gcst.frac = gcst.frac * gridcell.landcover.frac[st.landcover];
 		if(fabs(gcst.frac_old - gcst.frac) < 1.0e-14)
 			gcst.frac = gcst.frac_old;
+		gcst.frac_change = gcst.frac - gcst.frac_old ;
 		stlist.nextobj();
 	}
 }
 
+bool LandcoverInput::get_land_transitions(Gridcell& gridcell) {
+
+	bool result = false;
+	if(gross_land_transfer == 3) {
+
+		// Read stand type transfer fractions from file here and put them into the st_frac_transfer array.
+		// Landcover and stand type net fractions still need to be read from file as previously.
+		// return get_st_transfer(gridcell);
+		dprintf("Currently no code for option gross_land_transfer==3\n");
+	}
+	else if(gross_land_transfer == 2) {
+
+		// Read landcover transfer fractions from file here and put them into the st_frac_transfer array.
+		// Landcover and stand type net fractions still need to be read from file as previously.
+		result = get_lc_transfer(gridcell);
+	}
+	return result;
+}
+
+
 /// Read LUC transitions
-bool LandcoverInput::get_lc_transfer(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES]) {
+bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 
 	int year;
 	double tot_frac_ch = 0.0;
 	const bool print_adjustment_info = false;
+	Landcover& lc = gridcell.landcover;
 
-	if(!grossLUC.isloaded())
+	if(!grossLUC.isloaded() || date.year < nyear_spinup + 1)
 		return false;
 
-	if(date.year >= nyear_spinup + 1) {
-		//If have not reached second year of simulation (after spin-up) then gross_lc_change_frac must be zero (no land-use change in spin-up).
+	//If have not reached second year of simulation (after spin-up) then gross_lc_change_frac must be zero (no land-use change in spin-up).
 
-		year = date.get_calendar_year() - 1;
+	year = date.get_calendar_year() - 1;
 
-		// Assume that transitions in file are correct at end of year, therefore want to get 
-		// "last year's" transitions, as landcover_dynamics is called at the beginning of the year.
-		// Transfers from primary (v) and secondary (s) land preferentially reduces the oldest and the 
-		// youngest stands, respectively. Transitions from primary to secondary NATURAL land result 
-		// in killing of vegetation and creating a new NATURAL stand.
+	// Assume that transitions in file are correct at end of year, therefore want to get 
+	// "last year's" transitions, as landcover_dynamics is called at the beginning of the year.
+	// Transfers from primary (v) and secondary (s) land preferentially reduces the oldest and the 
+	// youngest stands, respectively. Transitions from primary to secondary NATURAL land result 
+	// in killing of vegetation and creating a new NATURAL stand.
 
-		const bool primary_to_secondary = false;
+	const bool primary_to_secondary = false;
 
-		lc_frac_transfer[CROPLAND][PASTURE] += grossLUC.Get(year,"cp");
-		lc_frac_transfer[PASTURE][CROPLAND] += grossLUC.Get(year,"pc");
-		lc_frac_transfer[PASTURE][NATURAL] += grossLUC.Get(year,"pv");
-		lc_frac_transfer[NATURAL][PASTURE] += grossLUC.Get(year,"vp");
-		lc_frac_transfer[NATURAL][CROPLAND] += grossLUC.Get(year,"vc");
-		lc_frac_transfer[CROPLAND][NATURAL] += grossLUC.Get(year,"cv");
-		lc_frac_transfer[NATURAL][CROPLAND] += grossLUC.Get(year,"sc");
-		lc_frac_transfer[CROPLAND][NATURAL] += grossLUC.Get(year,"cs");
-		lc_frac_transfer[NATURAL][PASTURE] += grossLUC.Get(year,"sp");
-		lc_frac_transfer[PASTURE][NATURAL] += grossLUC.Get(year,"ps");
+	lc.frac_transfer[CROPLAND][PASTURE] += grossLUC.Get(year,"cp");
+	lc.frac_transfer[PASTURE][CROPLAND] += grossLUC.Get(year,"pc");
+	lc.frac_transfer[PASTURE][NATURAL] += grossLUC.Get(year,"pv");
+	lc.frac_transfer[NATURAL][PASTURE] += grossLUC.Get(year,"vp");
+	lc.frac_transfer[NATURAL][CROPLAND] += grossLUC.Get(year,"vc");
+	lc.frac_transfer[CROPLAND][NATURAL] += grossLUC.Get(year,"cv");
+	lc.frac_transfer[NATURAL][CROPLAND] += grossLUC.Get(year,"sc");
+	lc.frac_transfer[CROPLAND][NATURAL] += grossLUC.Get(year,"cs");
+	lc.frac_transfer[NATURAL][PASTURE] += grossLUC.Get(year,"sp");
+	lc.frac_transfer[PASTURE][NATURAL] += grossLUC.Get(year,"ps");
 
-		if(ifprimary_lc_transfer) {
-			primary_lc_frac_transfer[NATURAL][PASTURE] += grossLUC.Get(year,"vp");
-			primary_lc_frac_transfer[NATURAL][CROPLAND] += grossLUC.Get(year,"vc");
-			if(primary_to_secondary) {
-				lc_frac_transfer[NATURAL][NATURAL] += grossLUC.Get(year,"vs");
-				primary_lc_frac_transfer[NATURAL][NATURAL] += grossLUC.Get(year,"vs");
-			}
+	if(ifprimary_lc_transfer) {
+		lc.primary_frac_transfer[NATURAL][PASTURE] += grossLUC.Get(year,"vp");
+		lc.primary_frac_transfer[NATURAL][CROPLAND] += grossLUC.Get(year,"vc");
+		if(primary_to_secondary) {
+			lc.frac_transfer[NATURAL][NATURAL] += grossLUC.Get(year,"vs");
+			lc.primary_frac_transfer[NATURAL][NATURAL] += grossLUC.Get(year,"vs");
 		}
+	}
 
-		// Check if gross lcc input data are consistent with net lcc input file. Try to adjust if not.
-		bool error = false;
-		double net_lc_change[NLANDCOVERTYPES] = {0.0};
-		double gross_lc_increase[NLANDCOVERTYPES] = {0.0};
-		double gross_lc_decrease[NLANDCOVERTYPES] = {0.0};
-		double pos_error = 0.0;
-		double neg_error = 0.0;
+	// Check if gross lcc input data are consistent with net lcc input file. Try to adjust if not.
+	bool error = false;
+	double net_lc_change[NLANDCOVERTYPES] = {0.0};
+	double gross_lc_increase[NLANDCOVERTYPES] = {0.0};
+	double gross_lc_decrease[NLANDCOVERTYPES] = {0.0};
+	double pos_error = 0.0;
+	double neg_error = 0.0;
+
+	for(int from=0; from<NLANDCOVERTYPES; from++) {
+
+		if(run[from]) {
+
+			for(int to=0; to<NLANDCOVERTYPES; to++) {
+
+				if(run[to]) {
+					
+					net_lc_change[from] -= lc.frac_transfer[from][to];
+					net_lc_change[from] += lc.frac_transfer[to][from];
+					gross_lc_decrease[from] += lc.frac_transfer[from][to];
+					gross_lc_increase[from] += lc.frac_transfer[to][from];
+					tot_frac_ch += lc.frac_transfer[to][from];
+				}
+			}
+			if(fabs(lc.frac_change[from] - net_lc_change[from])  > 1.0e-14) {
+				error = true;
+				if(print_adjustment_info) {
+					dprintf("\nIn get_lc_transfer: Year %d: lc_change_array sum not equal to landcoverfrac_change value for landcover %d\n", date.year, from);
+					dprintf("dif=%.15f\n", net_lc_change[from] - lc.frac_change[from]);
+					dprintf("lc_change_array sum=%.15f\n", net_lc_change[from]);
+					dprintf("landcoverfrac_change=%.15f\n", lc.frac_change[from]);
+				}
+			}
+
+		}
+	}
+
+	if(error) {
+
+		int n_adjust_from[NLANDCOVERTYPES] = {0};
+		int n_adjust_to[NLANDCOVERTYPES] = {0};
+		double partition_adjustment[NLANDCOVERTYPES][NLANDCOVERTYPES];
+		double prim_sec_ratio[NLANDCOVERTYPES][NLANDCOVERTYPES];
+		double original_error[NLANDCOVERTYPES] = {0.0};
+
+		memset(partition_adjustment, 0, NLANDCOVERTYPES * NLANDCOVERTYPES * sizeof(double));
+		memset(prim_sec_ratio, 0, NLANDCOVERTYPES * NLANDCOVERTYPES * sizeof(double));
 
 		for(int from=0; from<NLANDCOVERTYPES; from++) {
 
-			if(run[from]) {
+			for(int to=0; to<NLANDCOVERTYPES; to++) {
+
+				if(lc.frac_transfer[from][to])
+					prim_sec_ratio[from][to] = lc.primary_frac_transfer[from][to] / lc.frac_transfer[from][to];
+
+				if((lc.frac_transfer[from][to] + lc.frac_transfer[to][from]) > 0.0) {
+
+					if(gridcell.landcover.frac_old[from] - gross_lc_decrease[from] < 0.0 || gridcell.landcover.frac_old[from] + gross_lc_increase[from] > 1.0) {
+						partition_adjustment[from][to] = 1.0;
+						partition_adjustment[to][from] = 0.0;
+					}
+					else if(gridcell.landcover.frac_old[to] - gross_lc_decrease[to] < 0.0 || gridcell.landcover.frac_old[to] + gross_lc_increase[to] > 1.0) {
+						partition_adjustment[from][to] = 0.0;
+						partition_adjustment[to][from] = 1.0;
+					}
+					else {
+						partition_adjustment[from][to] = lc.frac_transfer[from][to] / (lc.frac_transfer[from][to] + lc.frac_transfer[to][from]);
+					}
+				}
+			}
+
+			if(run[from])
+				original_error[from] = net_lc_change[from] - lc.frac_change[from];
+
+			if(original_error[from] > 0.0)
+				pos_error += original_error[from];
+			else if(original_error[from] < 0.0)
+				neg_error += original_error[from];
+		}
+
+		if(fabs(pos_error + neg_error) > 1.0e-15)
+			fail("\nYear %d: pos_error + neg_error = %.15f\n\n", date.year, pos_error + neg_error);
+
+		// Determine number of possible adjustments to and from a lc
+		for(int from=0; from<NLANDCOVERTYPES; from++) {
+
+			if(fabs(original_error[from]) > 1.0e-14) {
 
 				for(int to=0; to<NLANDCOVERTYPES; to++) {
 
-					if(run[to]) {
-						
-						net_lc_change[from] -= lc_frac_transfer[from][to];
-						net_lc_change[from] += lc_frac_transfer[to][from];
-						gross_lc_decrease[from] += lc_frac_transfer[from][to];
-						gross_lc_increase[from] += lc_frac_transfer[to][from];
-						tot_frac_ch += lc_frac_transfer[to][from];
-					}
-				}
-				if(fabs(landcoverfrac_change[from] - net_lc_change[from])  > 1.0e-14) {
-					error = true;
-					if(print_adjustment_info) {
-						dprintf("\nIn get_lc_transfer: Year %d: lc_change_array sum not equal to landcoverfrac_change value for landcover %d\n", date.year, from);
-						dprintf("dif=%.15f\n", net_lc_change[from] - landcoverfrac_change[from]);
-						dprintf("lc_change_array sum=%.15f\n", net_lc_change[from]);
-						dprintf("landcoverfrac_change=%.15f\n", landcoverfrac_change[from]);
-					}
-				}
+					if(fabs(original_error[to]) > 1.0e-14) {
 
+						// Errors must have opposite signs
+						if(fabs(original_error[from] + original_error[to]) - (fabs(original_error[from]) + fabs(original_error[to])) < -1.0e-14) {
+
+							if((lc.frac_transfer[from][to] + lc.frac_transfer[to][from]) > 0.0) {
+
+								if(lc.frac_transfer[from][to])
+									n_adjust_from[from]++;
+								if(lc.frac_transfer[to][from])
+									n_adjust_to[to]++;
+							}
+							else {
+
+								for(int third=0; third<NLANDCOVERTYPES; third++) {
+
+									if(lc.frac_transfer[from][third] + lc.frac_transfer[third][from] > 0.0 && lc.frac_transfer[to][third] + lc.frac_transfer[third][to]) {
+										n_adjust_from[from]++;
+										n_adjust_to[to]++;
+									}
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 
-		if(error) {
+		// Adjust transfers for lc:s with transition input rounding errors
+		for(int from=0; from<NLANDCOVERTYPES; from++) {
 
-			int n_adjust_from[NLANDCOVERTYPES] = {0};
-			int n_adjust_to[NLANDCOVERTYPES] = {0};
-			double partition_adjustment[NLANDCOVERTYPES][NLANDCOVERTYPES];
-			double prim_sec_ratio[NLANDCOVERTYPES][NLANDCOVERTYPES];
-			double original_error[NLANDCOVERTYPES] = {0.0};
-
-			memset(partition_adjustment, 0, NLANDCOVERTYPES * NLANDCOVERTYPES * sizeof(double));
-			memset(prim_sec_ratio, 0, NLANDCOVERTYPES * NLANDCOVERTYPES * sizeof(double));
-
-			for(int from=0; from<NLANDCOVERTYPES; from++) {
+			if(run[from] && fabs(lc.frac_change[from] - net_lc_change[from]) > 1.0e-14) {
 
 				for(int to=0; to<NLANDCOVERTYPES; to++) {
 
-					if(lc_frac_transfer[from][to])
-						prim_sec_ratio[from][to] = primary_lc_frac_transfer[from][to] / lc_frac_transfer[from][to];
+					if(run[to] && fabs(lc.frac_change[to] - net_lc_change[to])  > 1.0e-14 && from != to) {
 
-					if((lc_frac_transfer[from][to] + lc_frac_transfer[to][from]) > 0.0) {
+						// Errors must have opposite signs
+						if(fabs(net_lc_change[from] - lc.frac_change[from] + net_lc_change[to] - lc.frac_change[to]) - (fabs(net_lc_change[from] - lc.frac_change[from]) + fabs(net_lc_change[to] - lc.frac_change[to])) < -1.0e-14)	{
 
-						if(gridcell.landcover.frac_old[from] - gross_lc_decrease[from] < 0.0 || gridcell.landcover.frac_old[from] + gross_lc_increase[from] > 1.0) {
-							partition_adjustment[from][to] = 1.0;
-							partition_adjustment[to][from] = 0.0;
-						}
-						else if(gridcell.landcover.frac_old[to] - gross_lc_decrease[to] < 0.0 || gridcell.landcover.frac_old[to] + gross_lc_increase[to] > 1.0) {
-							partition_adjustment[from][to] = 0.0;
-							partition_adjustment[to][from] = 1.0;
-						}
-						else {
-							partition_adjustment[from][to] = lc_frac_transfer[from][to] / (lc_frac_transfer[from][to] + lc_frac_transfer[to][from]);
-						}
-					}
-				}
+							// Correct transfer between two lc:s
+							if((lc.frac_transfer[from][to] + lc.frac_transfer[to][from]) > 0.0) {
 
-				if(run[from])
-					original_error[from] = net_lc_change[from] - landcoverfrac_change[from];
-
-				if(original_error[from] > 0.0)
-					pos_error += original_error[from];
-				else if(original_error[from] < 0.0)
-					neg_error += original_error[from];
-			}
-
-			if(fabs(pos_error + neg_error) > 1.0e-15)
-				fail("\nYear %d: pos_error + neg_error = %.15f\n\n", date.year, pos_error + neg_error);
-
-			// Determine number of possible adjustments to and from a lc
-			for(int from=0; from<NLANDCOVERTYPES; from++) {
-
-				if(fabs(original_error[from]) > 1.0e-14) {
-
-					for(int to=0; to<NLANDCOVERTYPES; to++) {
-
-						if(fabs(original_error[to]) > 1.0e-14) {
-
-							// Errors must have opposite signs
-							if(fabs(original_error[from] + original_error[to]) - (fabs(original_error[from]) + fabs(original_error[to])) < -1.0e-14) {
-
-								if((lc_frac_transfer[from][to] + lc_frac_transfer[to][from]) > 0.0) {
-
-									if(lc_frac_transfer[from][to])
-										n_adjust_from[from]++;
-									if(lc_frac_transfer[to][from])
-										n_adjust_to[to]++;
+								if(print_adjustment_info) {
+									dprintf("Before: transfer lc %d to %d: %.15f\n", from, to, lc.frac_transfer[from][to]);
+									dprintf("Before: transfer lc %d to %d: %.15f\n", to, from, lc.frac_transfer[to][from]);
 								}
-								else {
+								if(n_adjust_from[from]) {
+									lc.frac_transfer[from][to] += (net_lc_change[from] - lc.frac_change[from]) / (double)n_adjust_from[from]	* partition_adjustment[from][to];
+									n_adjust_from[from]--;
+								}
+								if(n_adjust_to[to]) {
+									lc.frac_transfer[to][from] += (net_lc_change[to] - lc.frac_change[to]) / (double)n_adjust_to[to]	* partition_adjustment[to][from];
+									n_adjust_to[to]--;
+								}
+								if(print_adjustment_info) {
+									dprintf("After: transfer lc %d to %d: %.15f\n", from, to, lc.frac_transfer[from][to]);
+									dprintf("After: transfer lc %d to %d: %.15f\n", to, from, lc.frac_transfer[to][from]);
+								}
+							}
+							// Third lc used
+							else {
 
-									for(int third=0; third<NLANDCOVERTYPES; third++) {
+								for(int third=0; third<NLANDCOVERTYPES; third++) {
 
-										if(lc_frac_transfer[from][third] + lc_frac_transfer[third][from] > 0.0 && lc_frac_transfer[to][third] + lc_frac_transfer[third][to]) {
-											n_adjust_from[from]++;
-											n_adjust_to[to]++;
+									if(lc.frac_transfer[from][third] + lc.frac_transfer[third][from] > 0.0 && lc.frac_transfer[to][third] + lc.frac_transfer[third][to]) {
+
+										if(print_adjustment_info) {
+											dprintf("Before: transfer lc %d to %d: %.15f\n", from, third, lc.frac_transfer[from][third]);
+											dprintf("Before: transfer lc %d to %d: %.15f\n", third, from, lc.frac_transfer[third][from]);
+											dprintf("Before: transfer lc %d to %d: %.15f\n", to, third, lc.frac_transfer[to][third]);
+											dprintf("Before: transfer lc %d to %d: %.15f\n", third, to, lc.frac_transfer[third][to]);
+										}
+
+										lc.frac_transfer[from][third] += (net_lc_change[from] - lc.frac_change[from]) * partition_adjustment[from][third];
+										lc.frac_transfer[third][from] -= (net_lc_change[from] - lc.frac_change[from]) * partition_adjustment[third][from];
+										lc.frac_transfer[to][third] += (net_lc_change[to] - lc.frac_change[to]) * partition_adjustment[to][third];
+										lc.frac_transfer[third][to] -= (net_lc_change[to] - lc.frac_change[to]) * partition_adjustment[third][to];
+
+										if(print_adjustment_info) {
+											dprintf("After: transfer lc %d to %d: %.15f\n", from, third, lc.frac_transfer[from][third]);
+											dprintf("After: transfer lc %d to %d: %.15f\n", third, from, lc.frac_transfer[third][from]);
+											dprintf("After: transfer lc %d to %d: %.15f\n", to, third, lc.frac_transfer[to][third]);
+											dprintf("After: transfer lc %d to %d: %.15f\n", third, to, lc.frac_transfer[third][to]);
 										}
 									}
 								}
@@ -740,99 +841,34 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell, double landcoverfrac_ch
 						}
 					}
 				}
-			}
 
-			// Adjust transfers for lc:s with transition input rounding errors
-			for(int from=0; from<NLANDCOVERTYPES; from++) {
+				// Update net_lc_change-values:
+				for(int from=0; from<NLANDCOVERTYPES; from++) {
 
-				if(run[from] && fabs(landcoverfrac_change[from] - net_lc_change[from]) > 1.0e-14) {
+					if(run[from]) {
 
-					for(int to=0; to<NLANDCOVERTYPES; to++) {
+						net_lc_change[from] = 0.0;
 
-						if(run[to] && fabs(landcoverfrac_change[to] - net_lc_change[to])  > 1.0e-14 && from != to) {
+						for(int to=0; to<NLANDCOVERTYPES; to++) {
 
-							// Errors must have opposite signs
-							if(fabs(net_lc_change[from] - landcoverfrac_change[from] + net_lc_change[to] - landcoverfrac_change[to]) - (fabs(net_lc_change[from] - landcoverfrac_change[from]) + fabs(net_lc_change[to] - landcoverfrac_change[to])) < -1.0e-14)	{
-
-								// Correct transfer between two lc:s
-								if((lc_frac_transfer[from][to] + lc_frac_transfer[to][from]) > 0.0) {
-
-									if(print_adjustment_info) {
-										dprintf("Before: transfer lc %d to %d: %.15f\n", from, to, lc_frac_transfer[from][to]);
-										dprintf("Before: transfer lc %d to %d: %.15f\n", to, from, lc_frac_transfer[to][from]);
-									}
-									if(n_adjust_from[from]) {
-										lc_frac_transfer[from][to] += (net_lc_change[from] - landcoverfrac_change[from]) / (double)n_adjust_from[from]	* partition_adjustment[from][to];
-										n_adjust_from[from]--;
-									}
-									if(n_adjust_to[to]) {
-										lc_frac_transfer[to][from] += (net_lc_change[to] - landcoverfrac_change[to]) / (double)n_adjust_to[to]	* partition_adjustment[to][from];
-										n_adjust_to[to]--;
-									}
-									if(print_adjustment_info) {
-										dprintf("After: transfer lc %d to %d: %.15f\n", from, to, lc_frac_transfer[from][to]);
-										dprintf("After: transfer lc %d to %d: %.15f\n", to, from, lc_frac_transfer[to][from]);
-									}
-								}
-								// Third lc used
-								else {
-
-									for(int third=0; third<NLANDCOVERTYPES; third++) {
-
-										if(lc_frac_transfer[from][third] + lc_frac_transfer[third][from] > 0.0 && lc_frac_transfer[to][third] + lc_frac_transfer[third][to]) {
-
-											if(print_adjustment_info) {
-												dprintf("Before: transfer lc %d to %d: %.15f\n", from, third, lc_frac_transfer[from][third]);
-												dprintf("Before: transfer lc %d to %d: %.15f\n", third, from, lc_frac_transfer[third][from]);
-												dprintf("Before: transfer lc %d to %d: %.15f\n", to, third, lc_frac_transfer[to][third]);
-												dprintf("Before: transfer lc %d to %d: %.15f\n", third, to, lc_frac_transfer[third][to]);
-											}
-
-											lc_frac_transfer[from][third] += (net_lc_change[from] - landcoverfrac_change[from]) * partition_adjustment[from][third];
-											lc_frac_transfer[third][from] -= (net_lc_change[from] - landcoverfrac_change[from]) * partition_adjustment[third][from];
-											lc_frac_transfer[to][third] += (net_lc_change[to] - landcoverfrac_change[to]) * partition_adjustment[to][third];
-											lc_frac_transfer[third][to] -= (net_lc_change[to] - landcoverfrac_change[to]) * partition_adjustment[third][to];
-
-											if(print_adjustment_info) {
-												dprintf("After: transfer lc %d to %d: %.15f\n", from, third, lc_frac_transfer[from][third]);
-												dprintf("After: transfer lc %d to %d: %.15f\n", third, from, lc_frac_transfer[third][from]);
-												dprintf("After: transfer lc %d to %d: %.15f\n", to, third, lc_frac_transfer[to][third]);
-												dprintf("After: transfer lc %d to %d: %.15f\n", third, to, lc_frac_transfer[third][to]);
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-
-					// Update net_lc_change-values:
-					for(int from=0; from<NLANDCOVERTYPES; from++) {
-
-						if(run[from]) {
-
-							net_lc_change[from] = 0.0;
-
-							for(int to=0; to<NLANDCOVERTYPES; to++) {
-
-								if(run[to]) {
-												
-									net_lc_change[from] -= lc_frac_transfer[from][to];
-									net_lc_change[from] += lc_frac_transfer[to][from];
-								}
+							if(run[to]) {
+											
+								net_lc_change[from] -= lc.frac_transfer[from][to];
+								net_lc_change[from] += lc.frac_transfer[to][from];
 							}
 						}
 					}
 				}
 			}
+		}
 
-			// Adjust primary land fractions
-			for(int from=0; from<NLANDCOVERTYPES; from++) {
-				for(int to=0; to<NLANDCOVERTYPES; to++)
-					primary_lc_frac_transfer[from][to] = prim_sec_ratio[from][to] * lc_frac_transfer[from][to];
-			}
+		// Adjust primary land fractions
+		for(int from=0; from<NLANDCOVERTYPES; from++) {
+			for(int to=0; to<NLANDCOVERTYPES; to++)
+				lc.primary_frac_transfer[from][to] = prim_sec_ratio[from][to] * lc.frac_transfer[from][to];
 		}
 	}
+
 	if(tot_frac_ch > 1.0e-14)
 		return true;
 	else
@@ -970,7 +1006,7 @@ void ManagementInput::getmanagement(Gridcell& gridcell) {
 		//Read harvest dates from input file, put into gridcellpft.hdate_force
 		if(readharvestdates)		
 			getharvestdates(gridcell);
-		//Read N fertilization from input file, put into xxx
+		//Read N fertilization from input file, put into gridcellpft.Nfert_read
 		if(readNfert)		
 			getNfert(gridcell);
 	}

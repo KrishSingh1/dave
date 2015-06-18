@@ -20,14 +20,28 @@ public:
 
 	/// Constructor
 	LandcoverInput();
-	/// Opens management data files
+
+	/// Opens land cover input files
 	void init();
-	/// Loads landcover and crop fractions from input files
+
+	/// Loads land cover and stand type area fractions from input files
 	bool loadlandcover(Coord c);
-	/// Gets land cover data for a year
+
+	/// Gets land cover and stand type fractions for a year.
+	/** Updates landcover and stand type variables frac, frac_old and frac_change
+	 *  Area fractions are re-scaled if sum is not 1.0
+	 */ 
 	void getlandcover(Gridcell& gridcell);
-	/// Gets land cover transition data for a year
-	bool get_lc_transfer(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES]);
+
+	/// Gets land cover or stand type transitions for a year
+	bool get_land_transitions(Gridcell& gridcell);
+
+	/// Gets land cover transitions for a year
+	/** Updates landcover frac_transfer array
+	 *  Transition values are checked against net lcc fractions and 
+	 *  rescaled if necessary. 
+	 */ 
+	bool get_lc_transfer(Gridcell& gridcell);
 
 private:
 

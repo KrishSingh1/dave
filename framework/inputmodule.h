@@ -16,8 +16,6 @@
 #include "inputdefinitions.h"
 using namespace inputdef;
 class Gridcell;
-class LandcoverInput;
-class ManagementInput;
 
 /// Base class from which any input module must inherit
 /** An input module supplies LPJ-GUESS with the forcing data it needs. The
@@ -89,14 +87,11 @@ public:
 	 */
 	virtual bool getclimate(Gridcell& gridcell) = 0;
 
+	/// Obtains land transitions for one year
+	virtual void getlandcover(Gridcell& gridcell) = 0;
+
 	/// Obtains land management data for one day
 	virtual void getmanagement(Gridcell& gridcell) = 0;
-
-	/// Returns pointer to land cover input module
-	virtual LandcoverInput* get_landcover_input() = 0;
-
-	/// Returns pointer to land management input module
-	virtual ManagementInput* get_management_input() = 0;
 };
 
 

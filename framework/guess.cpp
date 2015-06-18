@@ -2132,14 +2132,18 @@ Landcover::Landcover() {
 
 	memset(frac, 0, sizeof(double) * NLANDCOVERTYPES);
 	memset(frac_old, 0, sizeof(double) * NLANDCOVERTYPES);
+	memset(frac_change, 0, sizeof(double) * NLANDCOVERTYPES);
+	memset(frac_transfer, 0, sizeof(double) * NLANDCOVERTYPES * NLANDCOVERTYPES);
+	memset(primary_frac_transfer, 0, sizeof(double) * NLANDCOVERTYPES * NLANDCOVERTYPES);
+
 	acflux_harvest_slow = 0.0;
 	acflux_landuse_change = 0.0;
 	anflux_harvest_slow = 0.0;
 	anflux_landuse_change = 0.0;
-	memset(acflux_harvest_slow_lc, 0, sizeof(double)*NLANDCOVERTYPES);
-	memset(acflux_landuse_change_lc, 0, sizeof(double)*NLANDCOVERTYPES);
-	memset(anflux_harvest_slow_lc, 0, sizeof(double)*NLANDCOVERTYPES);
-	memset(anflux_landuse_change_lc, 0, sizeof(double)*NLANDCOVERTYPES);
+	memset(acflux_harvest_slow_lc, 0, sizeof(double) * NLANDCOVERTYPES);
+	memset(acflux_landuse_change_lc, 0, sizeof(double) * NLANDCOVERTYPES);
+	memset(anflux_harvest_slow_lc, 0, sizeof(double) * NLANDCOVERTYPES);
+	memset(anflux_landuse_change_lc, 0, sizeof(double) * NLANDCOVERTYPES);
 
 	for (int i=0; i<NLANDCOVERTYPES; i++) {
 		expand_to_new_stand[i] = (i == NATURAL || i == FOREST);

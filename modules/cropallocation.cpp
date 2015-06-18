@@ -8,7 +8,8 @@
 #include "landcover.h"
 #include "cropallocation.h"
 
-//#define DELAYED_SEEDCARBON		//Seed carbon allocation to leaves and roots are done over a 10-day period.
+//Seed carbon allocation to leaves and roots are done over a 10-day period
+const bool DELAYED_SEEDCARBON = false;
 
 /// Updates patch members fpc_total and fpc_rescale for crops (to be called after crop_phenology())
 void update_patch_fpc(Patch& patch) {
@@ -501,21 +502,21 @@ void growth_crop_daily(Patch& patch) {
 				double cmass_seed = 0.0;
 				double nmass_seed = 0.0;
 
-#ifdef DELAYED_SEEDCARBON
-				// Seed carbon; portion the seed carbon over a 10-day period.
-				if(dayinperiod(date.day, pppftcrop.sdate, (patchpft.cropphen->sdate + 9)) % 365 ) {			
+				if (DELAYED_SEEDCARBON) {
+					// Seed carbon; portion the seed carbon over a 10-day period.
+					if(dayinperiod(date.day, ppftcrop.sdate, stepfromdate(ppftcrop.sdate, 9))) {			
 
-					cmass_seed = 0.1 * CMASS_SEED;
-					nmass_seed = 0.1 * CMASS_SEED / indiv.pft.cton_leaf_min;
-				}
-#else
+						cmass_seed = 0.1 * CMASS_SEED;
+						nmass_seed = 0.1 * CMASS_SEED / indiv.pft.cton_leaf_min;
+					}
+				} else {
 				// add seed carbon on sowing date
 				if(date.day == ppftcrop.sdate) {
 
 					cmass_seed = CMASS_SEED;
 					nmass_seed = CMASS_SEED / indiv.pft.cton_leaf_min;
 				}
-#endif
+			}
 
 				if(ifnlim)
 					allocation_crop_nlim(indiv, cmass_seed, nmass_seed);

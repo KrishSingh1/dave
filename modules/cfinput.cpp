@@ -822,6 +822,12 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 
 }
 
+void CFInput::getlandcover(Gridcell& gridcell) {
+
+	landcover_input.getlandcover(gridcell);
+	landcover_input.get_land_transitions(gridcell);
+}
+
 void CFInput::load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_var,
                                GenericSpinupData& spinup_data) {
 

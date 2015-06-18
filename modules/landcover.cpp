@@ -70,8 +70,7 @@ void landcover_init(Gridcell& gridcell, InputModule* input_module) {
 	}
 
 	// get landcover and crop area fractions from landcover input file(s) or ins-file.
-	LandcoverInput *landcover_input = input_module->get_landcover_input();
-	landcover_input->getlandcover(gridcell);
+	input_module->getlandcover(gridcell);
 
 	stlist.firstobj();
 	while (stlist.isobj) {
@@ -1668,16 +1667,11 @@ bool check_fractions4(Gridcell& gridcell) {
 /** Stores changes in area fractions for the stand types
  *
  *  OUTPUT PARAMETERS
- *  \param landcoverfrac_change				array with this year's difference in area fractions of the different landcovers
- *  \param lc_frac_transfer					array with this year's transitions in area fractions between the different landcovers
  *  \param st_frac_transfer					array with this year's transitions in area fractions between the different landcovers
- *  \param primary_lc_frac_transfer			array with this year's transitions in area fractions from primary landcovers
  *  \param primary_st_frac_transfer			array with this year's transitions in area fractions from primary stand types
  *  \param LCchangeCtransfer				whether to transfer carbon, nitrogen and water of reduced stands to expanding stands
  */
-bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYPES], double lc_frac_transfer[][NLANDCOVERTYPES], 
-				   double* st_frac_transfer, double primary_lc_frac_transfer[][NLANDCOVERTYPES], double* primary_st_frac_transfer, 
-				   bool& LCchangeCtransfer, InputModule* input_module) {
+bool checkLCchange(Gridcell& gridcell, double* st_frac_transfer, double* primary_st_frac_transfer, bool& LCchangeCtransfer, InputModule* input_module) {
 
 	double cropfrac_sum_old = 0.0;
 	double change_stand = 0.0;
@@ -1685,39 +1679,30 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
 	double change_crop = 0.0;
 	double transferred_fraction = 0.0;
 	double receiving_fraction = 0.0;
-	bool change = true, gross_LCC = false;
-	LandcoverInput *landcover_input = input_module->get_landcover_input();
+	bool change = true;
+	Landcover& lc = gridcell.landcover;
 
+	// Get new gridcell.landcoverfrac and/or standtype.frac from LUdata and CFTdata
 
-	//Save old fraction values:									
-	for(int i=0; i<NLANDCOVERTYPES; i++)
-		gridcell.landcover.frac_old[i] = gridcell.landcover.frac[i];
+	input_module->getlandcover(gridcell);	
+
+	// Check if any changes in land fractions have been made
+
 	for(unsigned int i = 0; i < gridcell.st.nobj; i++) {
 		Gridcellst& gcst = gridcell.st[i];
-
-		gcst.frac_old = gcst.frac;
 		if(gcst.st.landcover == CROPLAND)
 			cropfrac_sum_old += gcst.frac_old;
 	}
 
-	//Get new gridcell.landcoverfrac and/or standtype.frac from LUdata and CFTdata.
-	landcover_input->getlandcover(gridcell);	
-
-	for(unsigned int i = 0; i < gridcell.st.nobj; i++) {
-		Gridcellst& gcst = gridcell.st[i];
-		gcst.frac_change = gcst.frac - gcst.frac_old ;
-	}
-
 	if(!lcfrac_fixed) {
 		for(int i=0; i<NLANDCOVERTYPES; i++) {
-			landcoverfrac_change[i] = gridcell.landcover.frac[i] - gridcell.landcover.frac_old[i];
-			changeLC += fabs(landcoverfrac_change[i]) / 2.0;
+			changeLC += fabs(lc.frac_change[i]) / 2.0;
 			if(i != CROPLAND) {
-				if(landcoverfrac_change[i] < 0.0)
-					transferred_fraction -= landcoverfrac_change[i];
-				if(landcoverfrac_change[i] > 0.0)
-					receiving_fraction += landcoverfrac_change[i];
-				change_stand += fabs(landcoverfrac_change[i]) / 2.0;
+				if(lc.frac_change[i] < 0.0)
+					transferred_fraction -= lc.frac_change[i];
+				if(lc.frac_change[i] > 0.0)
+					receiving_fraction += lc.frac_change[i];
+				change_stand += fabs(lc.frac_change[i]) / 2.0;
 			}
 		}
 	}
@@ -1746,46 +1731,19 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
 		}
 	}
 
-	if(gross_land_transfer == 3) {
-
-		// Read stand type transfer fractions from file here and put them into the st_frac_transfer array.
-		// Landcover and stand type net fractions still need to be read from file as previously.
-
-		// input_module->get_st_transfer();
-		dprintf("Currently no code for option gross_land_transfer==3\n");
-	}
-	else if(gross_land_transfer == 2) {
-
-		// Read landcover transfer fractions from file here and put them into the st_frac_transfer array.
-		// Landcover and stand type net fractions still need to be read from file as previously.
-
-		if(landcover_input->get_lc_transfer(gridcell, landcoverfrac_change, lc_frac_transfer, primary_lc_frac_transfer)) {
-			gross_LCC = true;
-			set_st_change_array(gridcell, lc_frac_transfer, st_frac_transfer, primary_lc_frac_transfer, primary_st_frac_transfer);
+	double change_gross_lcc = 0.0;
+	for(int from=0; from<NLANDCOVERTYPES; from++) {
+		if(run[from]) {
+			for(int to=0; to<NLANDCOVERTYPES; to++) {
+				if(run[to]) {
+					change_gross_lcc += lc.frac_transfer[to][from];
+				}
+			}
 		}
 	}
-	else {
-
-		const bool simulate_st = true;	// gross lcc simulation at land cover level (false) or stand type level (true)
-
-		set_lc_change_array(landcoverfrac_change, lc_frac_transfer); // the lc_frac_transfer-array is only used in set_st_change_array()
-
-		if(gross_land_transfer && !simulate_st)
-			simulate_gross_lc_transfer(gridcell, lc_frac_transfer);
-
-		set_st_change_array(gridcell, lc_frac_transfer, st_frac_transfer, primary_lc_frac_transfer, primary_st_frac_transfer);
-
-		check_fractions(gridcell, landcoverfrac_change, lc_frac_transfer, st_frac_transfer, true);
-
-		if(gross_land_transfer && simulate_st)
-			simulate_gross_st_transfer(gridcell, st_frac_transfer);
-	}
-
-	check_fractions(gridcell, landcoverfrac_change, lc_frac_transfer, st_frac_transfer);
-	check_fractions1(gridcell);
 
 	// if no changes, do nothing.
-	if(changeLC < 1.0e-15 && change_crop < 1.0e-15 && !gross_LCC) {
+	if(changeLC < 1.0e-15 && change_crop < 1.0e-15 && change_gross_lcc < 1.0e-14) {
 		change = false;
 	}
 	// check for balance of reduced and increased stand fractions
@@ -1837,19 +1795,17 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
  */
 void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
-	double landcoverfrac_change[NLANDCOVERTYPES];
-	double lc_frac_transfer[NLANDCOVERTYPES][NLANDCOVERTYPES];
-	double primary_lc_frac_transfer[NLANDCOVERTYPES][NLANDCOVERTYPES];
 	double* st_frac_transfer = NULL;
 	double* primary_st_frac_transfer = NULL;
 	bool LCchangeCtransfer = true;
+	Landcover& lc = gridcell.landcover;
 
 	st_frac_transfer = new double[nst * nst];
 	primary_st_frac_transfer = new double[nst * nst];
 
-	memset(landcoverfrac_change, 0, NLANDCOVERTYPES * sizeof(double));
-	memset(lc_frac_transfer, 0, NLANDCOVERTYPES * NLANDCOVERTYPES * sizeof(double));
-	memset(primary_lc_frac_transfer, 0, NLANDCOVERTYPES * NLANDCOVERTYPES * sizeof(double));
+	memset(lc.frac_change, 0, NLANDCOVERTYPES * sizeof(double));
+	memset(lc.frac_transfer, 0, NLANDCOVERTYPES * NLANDCOVERTYPES * sizeof(double));
+	memset(lc.primary_frac_transfer, 0, NLANDCOVERTYPES * NLANDCOVERTYPES * sizeof(double));
 	memset(st_frac_transfer, 0, nst * nst * sizeof(double));
 	memset(primary_st_frac_transfer, 0, nst * nst * sizeof(double));
 
@@ -1858,17 +1814,58 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	for(unsigned int i=0; i<gridcell.nbr_stands(); ++i)
 		gridcell[i].scale_LC_change = 1.0;
 
-	// get new landcover and stand type area fractions from input files, set transition arrays
+	bool no_changes = true;
+
+	// Get new landcover and stand type area fractions from input files, read transition arrays.
 	if(!all_fracs_const) {
 		// this call returns 0, causing this function to return, if no significant landcover changes this year, 
 		// sets LCchangeCtransfer to 0 if unbalanced landcover changes (if some landcovers are inactivated), thus inactivating transfer of C and N
-		if(!checkLCchange(gridcell, landcoverfrac_change, lc_frac_transfer, st_frac_transfer, primary_lc_frac_transfer, 
-				primary_st_frac_transfer, LCchangeCtransfer, input_module)) {
-			delete[] st_frac_transfer;
-			delete[] primary_st_frac_transfer;
-			return;
+		if(checkLCchange(gridcell, st_frac_transfer, primary_st_frac_transfer, LCchangeCtransfer, input_module)) {
+			no_changes = false;
 		}
 	}
+
+	if(no_changes) {
+		delete[] st_frac_transfer;
+		delete[] primary_st_frac_transfer;
+		return;
+	}
+
+	// Transfer all landcover changes to stand type transition matrix, if not already done.
+
+	if(gross_land_transfer == 3) {
+
+		// Option to read stand type transitions from file.
+		fail("Currently no code for option gross_land_transfer==3\n");
+	}
+	else if(gross_land_transfer == 2) {
+
+		// Option to read landcover transitions from file. Update the st_frac_transfer array.
+		set_st_change_array(gridcell, lc.frac_transfer, st_frac_transfer, lc.primary_frac_transfer, primary_st_frac_transfer);
+	}
+	else {
+
+		// Option not to read landcover or stand type transitions or to simulate these.
+		// The st_frac_transfer array always needs to be updated.
+
+		const bool simulate_st = true;	// gross lcc simulation at land cover level (false) or stand type level (true)
+
+		set_lc_change_array(lc.frac_change, lc.frac_transfer); // the lc_frac_transfer-array is only used in set_st_change_array()
+
+		if(gross_land_transfer && !simulate_st)
+			simulate_gross_lc_transfer(gridcell, lc.frac_transfer);
+
+		set_st_change_array(gridcell, lc.frac_transfer, st_frac_transfer, lc.primary_frac_transfer, primary_st_frac_transfer);
+
+		check_fractions(gridcell, lc.frac_change, lc.frac_transfer, st_frac_transfer, true);
+
+		if(gross_land_transfer && simulate_st)
+			simulate_gross_st_transfer(gridcell, st_frac_transfer);
+	}
+
+	check_fractions(gridcell, lc.frac_change, lc.frac_transfer, st_frac_transfer);
+	check_fractions1(gridcell);
+
 
 	for(int i=0; i<nst; i++) {
 
@@ -1924,7 +1921,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 		if(new_stand) {
 			error = 0;
-			error += check_fractions(gridcell, landcoverfrac_change, lc_frac_transfer, st_frac_transfer);
+			error += check_fractions(gridcell, lc.frac_change, lc.frac_transfer, st_frac_transfer);
 			error += check_fractions2(gridcell, st_frac_transfer);
 			if(error)
 				dprintf("Fraction error after transfer_to_new_stand()\n\n");
@@ -1934,7 +1931,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	// set stand variables frac, frac_change and gross_frac_increase for expanding stands and stand types
 	expand_stands(gridcell, st_frac_transfer);
 
-	error += check_fractions(gridcell, landcoverfrac_change, lc_frac_transfer, st_frac_transfer);
+	error += check_fractions(gridcell, lc.frac_change, lc.frac_transfer, st_frac_transfer);
 	error += check_fractions2(gridcell, st_frac_transfer);
 	if(error)
 		fail("Fraction error after expand_stands()\n");

@@ -46,13 +46,11 @@ public:
 	/// See base class for documentation about this function's responsibilities
 	bool getclimate(Gridcell& gridcell);
 
+	/// See base class for documentation about this function's responsibilities
+	void getlandcover(Gridcell& gridcell);
+
 	/// Obtains land management data for one day
 	void getmanagement(Gridcell& gridcell) {management_input.getmanagement(gridcell);}
-
-	/// Returns pointer to land cover input module
-	LandcoverInput* get_landcover_input() {return &landcover_input;}
-	/// Returns pointer to land management input module
-	ManagementInput* get_management_input() {return &management_input;}
 
 	// Constants associated with historical climate data set
 

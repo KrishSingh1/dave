@@ -341,6 +341,11 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	return true;
 }
 
+void CRUInput::getlandcover(Gridcell& gridcell) {
+
+	landcover_input.getlandcover(gridcell);
+	landcover_input.get_land_transitions(gridcell);
+}
 
 CRUInput::~CRUInput() {
 

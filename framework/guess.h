@@ -3524,6 +3524,12 @@ public:
 	 */
 	double frac_old[NLANDCOVERTYPES];
 
+	double frac_change[NLANDCOVERTYPES];
+
+	/// Transfer matrices
+	double frac_transfer[NLANDCOVERTYPES][NLANDCOVERTYPES];
+	double primary_frac_transfer[NLANDCOVERTYPES][NLANDCOVERTYPES];
+
 	/// Whether the land cover fractions changed for this grid cell this year
 	/** \see landcover_dynamics
 	 */

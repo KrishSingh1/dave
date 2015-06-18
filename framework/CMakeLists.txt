@@ -17,7 +17,6 @@ set(headers
   guessstring.h
   inputdefinitions.h
   landcoverinput.h
-  managementinput.h
 )
 
 set(source
@@ -35,7 +34,6 @@ set(source
   inputmodule.cpp
   guessstring.cpp
   landcoverinput.cpp
-  managementinput.cpp
 )
 
 include(add_guess_sources)

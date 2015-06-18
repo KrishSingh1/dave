@@ -1766,7 +1766,7 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
 	}
 	else {
 
-		const bool simulate_st = true;	// gcc simulation at land cover level (false) or stand type level (true)
+		const bool simulate_st = true;	// gross lcc simulation at land cover level (false) or stand type level (true)
 
 		set_lc_change_array(landcoverfrac_change, lc_frac_transfer); // the lc_frac_transfer-array is only used in set_st_change_array()
 
@@ -1786,7 +1786,7 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
 
 	// if no changes, do nothing.
 	if(changeLC < 1.0e-15 && change_crop < 1.0e-15 && !gross_LCC) {
-		change = false;
+		change = true;
 	}
 	// check for balance of reduced and increased stand fractions
 	else {
@@ -1798,7 +1798,7 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
 			else {
 				// allow program to continue, but inactivate landcover change mass transfer 
 				LCchangeCtransfer = false;
-				dprintf("Transferred landcover fractions not balanced !\nLandcover change carbon flux not calculated.\n");
+				dprintf("Transferred landcover fractions not balanced !\nLandcover change fluxes not calculated.\n");
 			}
 		}
 		change = true;

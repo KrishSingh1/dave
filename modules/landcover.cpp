@@ -1760,7 +1760,7 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
 		// Landcover and stand type net fractions still need to be read from file as previously.
 
 		if(landcover_input->get_lc_transfer(gridcell, landcoverfrac_change, lc_frac_transfer, primary_lc_frac_transfer)) {
-			gross_LCC = false;
+			gross_LCC = true;
 			set_st_change_array(gridcell, lc_frac_transfer, st_frac_transfer, primary_lc_frac_transfer, primary_st_frac_transfer);
 		}
 	}
@@ -1786,7 +1786,7 @@ bool checkLCchange(Gridcell& gridcell, double landcoverfrac_change[NLANDCOVERTYP
 
 	// if no changes, do nothing.
 	if(changeLC < 1.0e-15 && change_crop < 1.0e-15 && !gross_LCC) {
-		change = true;
+		change = false;
 	}
 	// check for balance of reduced and increased stand fractions
 	else {

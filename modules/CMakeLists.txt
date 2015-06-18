@@ -11,6 +11,7 @@ set(headers
   globalco2file.h
   ncompete.h
   commonoutput.h
+  miscoutput.h
   spinupdata.h
   demoinput.h
   cfinput.h
@@ -34,6 +35,7 @@ set(source
   globalco2file.cpp
   ncompete.cpp
   commonoutput.cpp
+  miscoutput.cpp
   spinupdata.cpp
   cfinput.cpp
   InData.cpp

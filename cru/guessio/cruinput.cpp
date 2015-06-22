@@ -21,9 +21,6 @@
 #include <vector>
 #include <algorithm>
 
-// Switch to keep CO2 level at first historical year
-bool fixedco2_hist=0;
-
 REGISTER_INPUT_MODULE("cru", CRUInput)
 
 // Anonymous namespace for variables and functions with file scope
@@ -342,10 +339,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	}
 
 	// Send environmental values for today to framework
-	if(fixedco2_hist)
-		climate.co2 = co2[FIRSTHISTYEAR];
-	else
-		climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
+	climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
 
 	climate.temp = dtemp[date.day];
 	climate.prec = dprec[date.day];

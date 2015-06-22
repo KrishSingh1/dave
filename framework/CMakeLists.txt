@@ -16,7 +16,7 @@ set(headers
   inputmodule.h
   guessstring.h
   inputdefinitions.h
-  landcoverinput.h
+  externalinput.h
 )
 
 set(source
@@ -33,7 +33,7 @@ set(source
   outputmodule.cpp
   inputmodule.cpp
   guessstring.cpp
-  landcoverinput.cpp
+  externalinput.cpp
 )
 
 include(add_guess_sources)

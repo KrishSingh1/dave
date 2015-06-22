@@ -33,6 +33,9 @@ public:
 	 */ 
 	void getlandcover(Gridcell& gridcell);
 
+	/// Gets crop stand type fractions for a year, called from getlandcover() 
+	void get_crop_fractions(Gridcell& gridcell, int year);
+
 	/// Gets land cover or stand type transitions for a year
 	bool get_land_transitions(Gridcell& gridcell);
 

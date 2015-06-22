@@ -56,7 +56,6 @@ wateruptaketype wateruptake;
 
 bool run_landcover;
 bool run[NLANDCOVERTYPES];
-bool lcfrac_fixed;
 bool frac_fixed[NLANDCOVERTYPES];
 bool all_fracs_const;
 bool ifslowharvestpool;
@@ -442,7 +441,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("nyear_dyn_phu",&nyear_dyn_phu,0,1000,1,CB_NONE, "Number of years to calculate dynamic phu");
 		declareitem("printseparatestands",&printseparatestands,1,CB_NONE,"Whether to print multiple stands within a land cover type (except cropland) separately");
 		declareitem("iftillage",&iftillage,1,CB_NONE,"Whether to simulate tillage by increasing soil respiration");
-		declareitem("lcfrac_fixed",&lcfrac_fixed,1,CB_NONE,"whether to use fixed landcover fractions (all landcovers have equal area) (1) or read landcover fractions from a file (0)");
 		declareitem("cftfrac_fixed",&frac_fixed[CROPLAND],1,CB_NONE,"whether to use fixed crop fractions (active crop stand types have equal area) (1) or read crop fractions from a file (0)");
 		declareitem("textured_soil",&textured_soil,1,CB_NONE,"Use silt/sand fractions specific to soiltype");
 		declareitem("disturb_pasture",&disturb_pasture,1,CB_NONE,"Whether fire and disturbances enabled on pastures (0,1)");
@@ -1037,7 +1035,6 @@ void plib_callback(int callback) {
 			if (!itemparsed("reduce_all_stands")) badins("reduce_all_stands");
 			if (!itemparsed("age_limit_reduce")) badins("age_limit_reduce");
 			if (!itemparsed("minimizecftlist")) badins("minimizecftlist");	
-			if (!itemparsed("lcfrac_fixed")) badins("lcfrac_fixed");
 			if (!itemparsed("cftfrac_fixed")) badins("cftfrac_fixed");
 			if (!itemparsed("run_natural")) badins("run_natural");
 			if (!itemparsed("run_crop")) badins("run_crop");

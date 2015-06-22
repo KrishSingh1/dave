@@ -139,9 +139,6 @@ extern bool run_landcover;
 /// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, BARREN).
 extern bool run[NLANDCOVERTYPES];
 
-/// Whether landcover fractions are read from ins-file.
-extern bool lcfrac_fixed;
-
 /// Whether fractions of stand types of a specific land cover are read from input file.
 extern bool frac_fixed[NLANDCOVERTYPES];
 

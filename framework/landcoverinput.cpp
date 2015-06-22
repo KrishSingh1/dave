@@ -58,37 +58,35 @@ void LandcoverInput::init() {
 	all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
 
 	//Retrieve file names for landcover files and open them if static values from ins-file are not used
-	if (!lcfrac_fixed) {
 
-		bool openLUfile = false;
+	bool openLUfile = false;
 
-		for(int i=0; i<NLANDCOVERTYPES; i++) {
-			if(run[i] && i != NATURAL)
-				openLUfile = true;
+	for(int i=0; i<NLANDCOVERTYPES; i++) {
+		if(run[i] && i != NATURAL)
+			openLUfile = true;
+	}
+
+	if (openLUfile) {
+		file_lu=param["file_lu"].str;
+
+		// Open landcover area fraction file, return false if problem
+		if(!LUdata.Open(file_lu, gridlist))
+			fail("initio: could not open %s for input",(char*)file_lu);
+		else {
+			if(LUdata.GetFormat()==InData::LOCAL_YEARLY)
+				all_fracs_const=false;				//Set all_fracs_const to false if yearly data
+
+			// Avoid large number of output files
+			if(LUdata.GetNCells() > 50)
+				printseparatestands = false;
 		}
+	}
 
-		if (openLUfile) {
-			file_lu=param["file_lu"].str;
-
-			// Open landcover area fraction file, return false if problem
-			if(!LUdata.Open(file_lu, gridlist))
-				fail("initio: could not open %s for input",(char*)file_lu);
-			else {
-				if(LUdata.GetFormat()==InData::LOCAL_YEARLY)
-					all_fracs_const=false;				//Set all_fracs_const to false if yearly data
-
-				// Avoid large number of output files
-				if(LUdata.GetNCells() > 50)
-					printseparatestands = false;
-			}
-		}
-
-		//Read LUC transitions
-		if(gross_land_transfer == 2) {
-			file_grossLUC=param["file_grossLUC"].str;
-			if(!grossLUC.Open(file_grossLUC, gridlist))
-				fail("initio: could not open %s for input",(char*)file_grossLUC);
-		}
+	//Read LUC transitions
+	if(gross_land_transfer == 2) {
+		file_grossLUC=param["file_grossLUC"].str;
+		if(!grossLUC.Open(file_grossLUC, gridlist))
+			fail("initio: could not open %s for input",(char*)file_grossLUC);
 	}
 
 	//Retrieve file names for crop fraction file and open them if static equal-size values are not used.
@@ -189,33 +187,31 @@ bool LandcoverInput::loadlandcover(double lon, double lat) {
 	c.lat = lat;
 	bool LUerror = false;
 
-	if (!lcfrac_fixed) {
 
-		// Landcover fraction data: read from land use fraction file; dynamic, so data for all years are loaded to LUdata object and 
-		// transferred to gridcell.landcoverfrac each year in getlandcover()
+	// Landcover fraction data: read from land use fraction file; dynamic, so data for all years are loaded to LUdata object and 
+	// transferred to gridcell.landcoverfrac each year in getlandcover()
 
-		bool loadLU = false;
+	bool loadLU = false;
 
-		for(int i=0; i<NLANDCOVERTYPES; i++) {
-			if(run[i] && i != NATURAL)
-				loadLU = true;
+	for(int i=0; i<NLANDCOVERTYPES; i++) {
+		if(run[i] && i != NATURAL)
+			loadLU = true;
+	}
+
+	if (loadLU) {
+		// Load landcover area fraction data from input file to data object
+		if (!LUdata.Load(c)) {
+			dprintf("Problems with landcover fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
+			LUerror = true;		// skip this stand
 		}
+	}
 
-		if (loadLU) {
-			// Load landcover area fraction data from input file to data object
-			if (!LUdata.Load(c)) {
-				dprintf("Problems with landcover fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
-				LUerror = true;		// skip this stand
-			}
-		}
+	//Read LUC transitions
+	if(gross_land_transfer == 2 && !LUerror) {
 
-		//Read LUC transitions
-		if(gross_land_transfer == 2 && !LUerror) {
-
-			if(!grossLUC.Load(c)) {
-				dprintf("Problems with gross LUC transitions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
-				LUerror = true;	// skip this stand
-			}
+		if(!grossLUC.Load(c)) {
+			dprintf("Problems with gross LUC transitions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
+			LUerror = true;	// skip this stand
 		}
 	}
 
@@ -257,189 +253,173 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 		gcst.frac_old = gcst.frac;
 	}
 
-	if(lcfrac_fixed) {		// If landcover area fractions are set in the ins-file.
-		if(date.year == 0) {	// Year 0: called by landcover_init
-	
-			int nactive_landcovertypes = 0;
+
+	// landcover area fractions are read from input file(s)	
+
+	bool printyear = year >= LUdata.GetFirstyear() && LUdata.GetFirstyear() >= 0;	
+	bool getLU = false;
+
+	for(int i=0; i<NLANDCOVERTYPES; i++) {
+		if(run[i] && i != NATURAL)
+			getLU = true;
+	}
+
+	if(getLU) {	
+
+		if(LUdata.Get(year, 0) < 0.0) {		// Missing data (negative values)
+			if(date.year == 1)
+				dprintf("Missing landcover fraction data for year %d, natural vegetation fraction set to 1.0\n", year);
+			memset(lc.frac, 0, sizeof(double) * NLANDCOVERTYPES);
+			lc.frac[NATURAL] = 1.0;
+			sum_active = 1.0;
+		}
+		else {
+
+			if(year == LUdata.GetFirstyear() + LUdata.GetnYears() + 1)
+				dprintf("Last year of landcover fraction data used from year %d and onwards\n", year);
 
 			for(int i=0; i<NLANDCOVERTYPES; i++) {
-				if(run[i])
-					nactive_landcovertypes++;
+
+				if(run[i]) {
+					double lcfrac = 0.0;
+					switch(i)
+					{
+					case URBAN:
+						lcfrac = LUdata.Get(year,"URBAN");
+						break;
+					case CROPLAND:
+						lcfrac = LUdata.Get(year,"CROPLAND");
+						break;
+					case PASTURE:
+						lcfrac = LUdata.Get(year,"PASTURE");
+						break;
+					case FOREST:
+						lcfrac = LUdata.Get(year,"FOREST");
+						break;
+					case NATURAL:
+						lcfrac = LUdata.Get(year,"NATURAL");
+						break;
+					case PEATLAND:
+//						lcfrac = LUdata.Get(year,"PEATLAND");
+						break;
+					case BARREN:
+						lcfrac = LUdata.Get(year,"BARREN");
+						break;
+					default:
+						if(date.year == 0)
+							dprintf("Modify code to deal with landcover input!\n");
+					}
+						
+					if(lcfrac == NOTFOUND)	// land cover not found in input file
+						lcfrac = 0.0;
+					else if(lc.frac[i] < 0.0 || lc.frac[i] > 1.0) {	// discard unreasonable values	
+						if(printyear)
+							dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
+						lcfrac = 0.0;
+					}
+					lc.frac[i] = lcfrac;
+					sum_tot += lcfrac;
+					sum_active += run[i] * lc.frac[i];
+				}
 			}
 
-			for(int i=0;i<NLANDCOVERTYPES;i++) {
-				lc.frac[i] = 1.0 * run[i] / (double)nactive_landcovertypes;	// only set fractions that are active
-				sum_active += lc.frac[i];
-				sum_tot = sum_active;
-			}		
-		}
-	}
-	else {	// landcover area fractions are read from input file(s)	
-
-		bool printyear = year >= LUdata.GetFirstyear() && LUdata.GetFirstyear() >= 0;	
-		bool getLU = false;
-
-		for(int i=0; i<NLANDCOVERTYPES; i++) {
-			if(run[i] && i != NATURAL)
-				getLU = true;
-		}
-
-		if(getLU) {	
-
-			if(LUdata.Get(year, 0) < 0.0) {		// Missing data (negative values)
-				if(date.year == 1)
-					dprintf("Missing landcover fraction data for year %d, natural vegetation fraction set to 1.0\n", year);
-				memset(lc.frac, 0, sizeof(double) * NLANDCOVERTYPES);
-				lc.frac[NATURAL] = 1.0;
-				sum_active = 1.0;
+			if (grassforcrop) {
+				lc.frac[PASTURE]+=lc.frac[CROPLAND];
+				lc.frac[CROPLAND]=0.0;
 			}
-			else {
+			if(sum_tot != 1.0 && sum_tot != 0.0) {		// Check input data, rescale if sum !=1.0	
 
-				if(year == LUdata.GetFirstyear() + LUdata.GetnYears() + 1)
-					dprintf("Last year of landcover fraction data used from year %d and onwards\n", year);
+				sum_active = 0.0;		// reset sum of active landcover fractions
+
+				if(sum_tot < 0.99 || sum_tot > 1.01) {
+					if(printyear) {
+						dprintf("WARNING ! landcover fraction sum is %4.2f for input year %d\n", sum_tot, year);
+						dprintf("Rescaling landcover fractions year %d !\n", date.get_calendar_year());
+					}
+				}
 
 				for(int i=0; i<NLANDCOVERTYPES; i++) {
-
-					if(run[i]) {
-						double lcfrac = 0.0;
-						switch(i)
-						{
-						case URBAN:
-							lcfrac = LUdata.Get(year,"URBAN");
-							break;
-						case CROPLAND:
-							lcfrac = LUdata.Get(year,"CROPLAND");
-							break;
-						case PASTURE:
-							lcfrac = LUdata.Get(year,"PASTURE");
-							break;
-						case FOREST:
-							lcfrac = LUdata.Get(year,"FOREST");
-							break;
-						case NATURAL:
-							lcfrac = LUdata.Get(year,"NATURAL");
-							break;
-						case PEATLAND:
-	//						lcfrac = LUdata.Get(year,"PEATLAND");
-							break;
-						case BARREN:
-							lcfrac = LUdata.Get(year,"BARREN");
-							break;
-						default:
-							if(date.year == 0)
-								dprintf("Modify code to deal with landcover input!\n");
-						}
-							
-						if(lcfrac == NOTFOUND)	// land cover not found in input file
-							lcfrac = 0.0;
-						else if(lc.frac[i] < 0.0 || lc.frac[i] > 1.0) {	// discard unreasonable values	
-							if(printyear)
-								dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
-							lcfrac = 0.0;
-						}
-						lc.frac[i] = lcfrac;
-						sum_tot += lcfrac;
-						sum_active += run[i] * lc.frac[i];
-					}
+					lc.frac[i] /= sum_tot;
+					sum_active += lc.frac[i];
 				}
+			}
+		}
+	}
+	else {
+		lc.frac[NATURAL] = 0.0;
+	}
 
-				if (grassforcrop) {
-					lc.frac[PASTURE]+=lc.frac[CROPLAND];
-					lc.frac[CROPLAND]=0.0;
-				}
-				if(sum_tot != 1.0 && sum_tot != 0.0) {		// Check input data, rescale if sum !=1.0	
+	// NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
+	if(fabs(sum_active - 1.0) > 1.0e-14)	{	// if landcover types are turned off in the instruction file, or if more landcover types are added in other input files, can be either less or more than 1.0
 
-					sum_active = 0.0;		// reset sum of active landcover fractions
+		if(date.year == 0)
+			dprintf("Landcover fraction sum not 1.0 !\n");
 
-					if(sum_tot < 0.99 || sum_tot > 1.01) {
-						if(printyear) {
-							dprintf("WARNING ! landcover fraction sum is %4.2f for input year %d\n", sum_tot, year);
-							dprintf("Rescaling landcover fractions year %d !\n", date.get_calendar_year());
-						}
-					}
+		if(run[NATURAL]) {	// Transfer landcover areas not simulated to NATURAL fraction, if simulated.		
+			if(date.year == 0) {
+				if(sum_active < 1.0)
+					dprintf("Inactive fractions (%4.3f) transferred to NATURAL fraction.\n", 1.0-sum_active);
+				else
+					dprintf("New landcover type fraction (%4.3f) subtracted from NATURAL fraction (%4.3f).\n", sum_active-1.0, lc.frac[NATURAL]);
+			}
 
-					for(int i=0; i<NLANDCOVERTYPES; i++) {
-						lc.frac[i] /= sum_tot;
-						sum_active += lc.frac[i];
-					}
+			lc.frac[NATURAL] += (1.0 - sum_active);	// difference (can be negative) 1.0-(sum of active landcover fractions) are added to the natural fraction
+			
+			if(date.year==0)
+				dprintf("New NATURAL fraction is %4.3f.\n", lc.frac[NATURAL]);
+
+			sum_active = 1.0;		// sum_active should now be 1.0
+
+			if(lc.frac[NATURAL] < 0.0) {	// If new landcover type fraction is bigger than the natural fraction (something wrong in the distribution of input file area fractions)						
+				if(date.year == 0)
+					dprintf("New landcover type fraction is bigger than NATURAL fraction, rescaling landcover fractions !.\n");
+
+				sum_active -= lc.frac[NATURAL];	// fraction not possible to transfer moved back to sum_active, which will now be >1.0 again
+				lc.frac[NATURAL] = 0.0;
+
+				for(int i=0; i<NLANDCOVERTYPES; i++) {
+					lc.frac[i] /= sum_active;		// fraction rescaled to unity sum
+					if(run[i])
+						if(date.year == 0)
+							dprintf("Landcover type %d fraction is %4.3f\n", i, lc.frac[i]);
 				}
 			}
 		}
 		else {
-			lc.frac[NATURAL] = 0.0;
-		}
-
-		// NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
-		if(fabs(sum_active - 1.0) > 1.0e-14)	{	// if landcover types are turned off in the instruction file, or if more landcover types are added in other input files, can be either less or more than 1.0
-
 			if(date.year == 0)
-				dprintf("Landcover fraction sum not 1.0 !\n");
-
-			if(run[NATURAL]) {	// Transfer landcover areas not simulated to NATURAL fraction, if simulated.		
-				if(date.year == 0) {
-					if(sum_active < 1.0)
-						dprintf("Inactive fractions (%4.3f) transferred to NATURAL fraction.\n", 1.0-sum_active);
-					else
-						dprintf("New landcover type fraction (%4.3f) subtracted from NATURAL fraction (%4.3f).\n", sum_active-1.0, lc.frac[NATURAL]);
-				}
-
-				lc.frac[NATURAL] += (1.0 - sum_active);	// difference (can be negative) 1.0-(sum of active landcover fractions) are added to the natural fraction
-				
-				if(date.year==0)
-					dprintf("New NATURAL fraction is %4.3f.\n", lc.frac[NATURAL]);
-
-				sum_active = 1.0;		// sum_active should now be 1.0
-
-				if(lc.frac[NATURAL] < 0.0) {	// If new landcover type fraction is bigger than the natural fraction (something wrong in the distribution of input file area fractions)						
-					if(date.year == 0)
-						dprintf("New landcover type fraction is bigger than NATURAL fraction, rescaling landcover fractions !.\n");
-
-					sum_active -= lc.frac[NATURAL];	// fraction not possible to transfer moved back to sum_active, which will now be >1.0 again
-					lc.frac[NATURAL] = 0.0;
-
-					for(int i=0; i<NLANDCOVERTYPES; i++) {
-						lc.frac[i] /= sum_active;		// fraction rescaled to unity sum
-						if(run[i])
-							if(date.year == 0)
-								dprintf("Landcover type %d fraction is %4.3f\n", i, lc.frac[i]);
-					}
-				}
-			}
-			else {
-				if(date.year == 0)
-					dprintf("Non-unity fraction sum retained.\n");				// let sum remain non-unity
-			}
-		}
-
-		if(nyears_cropland_ramp) {
-
-			bool doramp = false;
-			int firstyear;
-			if(LUdata.GetFirstyear() >= 0) {
-				if(year < LUdata.GetFirstyear()) {
-					doramp = true;
-					firstyear = LUdata.GetFirstyear();
-				}
-			}
-			else {			
-				if(year < first_historic_year) {		
-					doramp = true;
-					firstyear = first_historic_year;
-				}
-			}
-
-			if(doramp) {
-				int first_reduction_year = first_historic_year - nyear_spinup + (int)(SOLVESOMCENT_SPINEND * (nyear_spinup - freenyears) + freenyears) + 1;
-				int max_ramp_years = firstyear - first_reduction_year;
-				if(nyears_cropland_ramp > max_ramp_years)
-					dprintf("Requested cropland ramp period too long for given nyear_spinup. Maximum is %d.\n", max_ramp_years);
-
-				double reduce_cropland = min((double)(firstyear - year) / min(nyears_cropland_ramp, max_ramp_years), 1.0) * lc.frac[CROPLAND];
-				lc.frac[CROPLAND] -= reduce_cropland;
-				lc.frac[NATURAL] += reduce_cropland;
-			}
+				dprintf("Non-unity fraction sum retained.\n");				// let sum remain non-unity
 		}
 	}
+
+	if(nyears_cropland_ramp) {
+
+		bool doramp = false;
+		int firstyear;
+		if(LUdata.GetFirstyear() >= 0) {
+			if(year < LUdata.GetFirstyear()) {
+				doramp = true;
+				firstyear = LUdata.GetFirstyear();
+			}
+		}
+		else {			
+			if(year < first_historic_year) {		
+				doramp = true;
+				firstyear = first_historic_year;
+			}
+		}
+
+		if(doramp) {
+			int first_reduction_year = first_historic_year - nyear_spinup + (int)(SOLVESOMCENT_SPINEND * (nyear_spinup - freenyears) + freenyears) + 1;
+			int max_ramp_years = firstyear - first_reduction_year;
+			if(nyears_cropland_ramp > max_ramp_years)
+				dprintf("Requested cropland ramp period too long for given nyear_spinup. Maximum is %d.\n", max_ramp_years);
+
+			double reduce_cropland = min((double)(firstyear - year) / min(nyears_cropland_ramp, max_ramp_years), 1.0) * lc.frac[CROPLAND];
+			lc.frac[CROPLAND] -= reduce_cropland;
+			lc.frac[NATURAL] += reduce_cropland;
+		}
+	}
+
 
 	// Set fractions for static stand types
 	stlist.firstobj();

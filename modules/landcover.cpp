@@ -1694,20 +1694,20 @@ bool checkLCchange(Gridcell& gridcell, double* st_frac_transfer, double* primary
 			cropfrac_sum_old += gcst.frac_old;
 	}
 
-	if(!lcfrac_fixed) {
-		for(int i=0; i<NLANDCOVERTYPES; i++) {
-			changeLC += fabs(lc.frac_change[i]) / 2.0;
-			if(i != CROPLAND) {
-				if(lc.frac_change[i] < 0.0)
-					transferred_fraction -= lc.frac_change[i];
-				if(lc.frac_change[i] > 0.0)
-					receiving_fraction += lc.frac_change[i];
-				change_stand += fabs(lc.frac_change[i]) / 2.0;
-			}
+
+	for(int i=0; i<NLANDCOVERTYPES; i++) {
+		changeLC += fabs(lc.frac_change[i]) / 2.0;
+		if(i != CROPLAND) {
+			if(lc.frac_change[i] < 0.0)
+				transferred_fraction -= lc.frac_change[i];
+			if(lc.frac_change[i] > 0.0)
+				receiving_fraction += lc.frac_change[i];
+			change_stand += fabs(lc.frac_change[i]) / 2.0;
 		}
 	}
 
-	if(run[CROPLAND] && (!frac_fixed[CROPLAND] || !lcfrac_fixed)) {
+
+	if(run[CROPLAND]) {
 		for(unsigned int i = 0; i < gridcell.st.nobj; i++) {
 			Gridcellst& gcst = gridcell.st[i];
 
@@ -1769,8 +1769,8 @@ bool checkLCchange(Gridcell& gridcell, double* st_frac_transfer, double* primary
 /** Harvests transferred areas and transfers litter etc. of reduced stands to expanding stands and harvested matter to fluxes
  *  and (in the case of wood) to long-lived pools.
  *
- *  The instruction file parameters lcfrac_fixed and cftfrac_fixed will determine if land fractions are read from input files 
- *  (gridcell static or dynamic) or from the instruction file (global static) and if any land cover change is possible.
+ *  The instruction file parameter cftfrac_fixed will determine if crop fractions are read from input files (gridcell static
+ *  or dynamic) or if active crops suitable for gridcell climate (temperature) are simulated in equal area fractions.
  *
  *  The instruction file parameter gross_land_transfer determines whether gross land transfer fractions are to be read from an input  
  *  file (2,3) or simulated by an amount set in simulate_gross_lc_transfer() or simulate_gross_st_transfer() (1) or be turned off (0).

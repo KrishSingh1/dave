@@ -94,10 +94,6 @@ public:
 	/// Calls outdaily on all output modules
 	void outdaily(Gridcell& gridcell);
 
-	void openlocalfiles(Gridcell& gridcell);
-
-	void closelocalfiles(Gridcell& gridcell);
-
 private:
 	
 	/// The output modules

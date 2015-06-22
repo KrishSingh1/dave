@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \file managementinput.h
-/// \brief Input code for land cover management	from text files					
+/// \file externalinput.h
+/// \brief Input code for land cover, management and other data from text files.
 /// \author Mats Lindeskog
 /// $Date$
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -10,7 +10,7 @@
 
 #include "InData.h"
 
-/// Reads gridlist in lon-lat-description format from text unput file
+/// Reads gridlist in lon-lat-description format from text input file
 void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist);
 
 /// Class that deals with all land cover input from text files

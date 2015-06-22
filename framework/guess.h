@@ -2714,8 +2714,6 @@ public:
 	double fhi_water;
 	/// fraction of harvest index at latest harvest
 	double fhi_harv;
-	/// acheived fraction of harvest index at the two latest harvests this year
-//	double fhi_harvest[2];
 	/// sum of crop patch demand (patch.wdemand) during crop growing period, reset on harvest day
 	double demandsum_crop;
 	/// sum of crop supply (patchpft.wsupply) during crop growing period, reset on harvest day

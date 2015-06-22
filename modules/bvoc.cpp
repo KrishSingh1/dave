@@ -49,15 +49,15 @@ void initbvoc(){
 	const double frabs_Q = 0.35;    // fraction of light absorbed in the first
 	                                // canopy layer (for standard measurements),
 	                                // 25% to 35% (Almut)
-	double par;						// par for the standard condition, J m-2 d-1
 	const double daylength = 12;
 
 	PhotosynthesisResult phot;
  	pftlist.firstobj();
  	while (pftlist.isobj) {
  		Pft& pft = pftlist.getobj();
-		par= frabs_Q * Qstand * 3600 / alphaa(pft) / CQ;
 
+		double par = frabs_Q * Qstand * 3600 / alphaa(pft) / CQ;
+				// par for the standard condition, J m-2 d-1
 		photosynthesis(CO2, Tstand, par, daylength, 1.0, pft.lambda_max, pft, 1.0, false, phot, -1);
 
 		double coeff = 1e-3 / (phot.je + phot.rd_g/24) / daylength / pft.sla / Cfrac;
@@ -125,12 +125,11 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 	indiv.mon -= rmonstor;
 }
 
-
 double leafT(double temp, double daylength, double ga, double rs_day, double aet,
              double lai_today, double fpar, double fpc) {
 
 	// Canopy temperature is calculated from the air temperature and the energy balance (longwave
-	// radiation, shortwave radiation and sensible and latent heat loss). 
+	// radiation, shortwave radiation and sensible and latent heat loss).
 	// Revised version compared to Arneth et al. (2007) and Schurgers et al. (2011).
 
 	if(lai_today <= 1.e-2) {
@@ -209,12 +208,12 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 	// of isoprene seasonality (which requires a GDD sum twice as large as
 	// required for phenology, and decreases with a relative rate at the end of
 	// the growing season).
-	
+
 	// Changes made to accommodate diurnal mode, include re-calculating seasonality
 	// irrespective of the possibility of BVOC emissions, and switching to
 	// photosynthesis pre-calculated with air temperature (instead of leaf
 	// temperature previously).
-	
+
 	// (selected) INPUT PARAMETERS
 	// temp      = temperature for this calculation period (deg C)
 	// hours     = in diurnal mode should equal 24 (to convert to daily units),
@@ -243,7 +242,7 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 	else {
 		// perform daily to daytime correction
 		double temp_corrected = daytime_temp(climate.temp, climate.daylength, climate.dtr);
-		
+
 		// perform air temperature to leaf temperature correction
 		temp_leaf_daytime = leafT(temp_corrected, climate.daylength, pft.ga, rad, indiv.aet,
 		                          indiv.lai_today(),indiv.fpar,indiv.fpc);
@@ -276,5 +275,5 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 //	 based modelling of biogenic monoterpene emissions combining production
 //	 and release from storage. Atmospheric Chemistry and Physics, 9, 3409-3423.
 // Schurgers, G., Arneth, A., Hickler, T., 2011. Effect of climate-driven changes
-//       in species composition on regional emission capacities of biogenic 
+//       in species composition on regional emission capacities of biogenic
 //       compounds. Journal of Geophysical Research, 116, D22304.

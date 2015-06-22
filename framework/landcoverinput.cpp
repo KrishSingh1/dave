@@ -7,11 +7,6 @@
 
 #include "landcoverinput.h"
 
-
-// Switches to keep landcover area fractions at first historical year
-bool fixedlu_histX = 0;
-bool fixedcrop_histX = 0;
-
 void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist) {
 
 	// Reads list of grid cells and (optional) description text from grid list file
@@ -243,7 +238,6 @@ bool LandcoverInput::loadlandcover(double lon, double lat) {
 
 void LandcoverInput::getlandcover(Gridcell& gridcell) {
 
-	int i, year_saved;
 	double sum=0.0, sum_tot=0.0, sum_active=0.0;
 	Landcover& lc = gridcell.landcover;
 
@@ -254,11 +248,6 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 	// Use values for last historic year during the time after that
 	// This is handled by the text input class.
 	int year = date.get_calendar_year();
-
-	if(fixedlu_histX) {
-		year_saved = year;
-		year = first_historic_year;
-	}
 
 	//Save old fraction values:									
 	for(int i=0; i<NLANDCOVERTYPES; i++)
@@ -273,12 +262,12 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 	
 			int nactive_landcovertypes = 0;
 
-			for(i=0; i<NLANDCOVERTYPES; i++) {
+			for(int i=0; i<NLANDCOVERTYPES; i++) {
 				if(run[i])
 					nactive_landcovertypes++;
 			}
 
-			for(i=0;i<NLANDCOVERTYPES;i++) {
+			for(int i=0;i<NLANDCOVERTYPES;i++) {
 				lc.frac[i] = 1.0 * run[i] / (double)nactive_landcovertypes;	// only set fractions that are active
 				sum_active += gridcell.landcover.frac[i];
 				sum_tot = sum_active;
@@ -290,7 +279,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 		bool printyear = year >= LUdata.GetFirstyear() && LUdata.GetFirstyear() >= 0;	
 		bool getLU = false;
 
-		for(i=0; i<NLANDCOVERTYPES; i++) {
+		for(int i=0; i<NLANDCOVERTYPES; i++) {
 			if(run[i] && i != NATURAL)
 				getLU = true;
 		}
@@ -309,7 +298,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 				if(year == LUdata.GetFirstyear() + LUdata.GetnYears() + 1)
 					dprintf("Last year of landcover fraction data used from year %d and onwards\n", year);
 
-				for(i=0; i<NLANDCOVERTYPES; i++) {
+				for(int i=0; i<NLANDCOVERTYPES; i++) {
 
 					if(run[i]) {
 						double lcfrac = 0.0;
@@ -369,7 +358,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 						}
 					}
 
-					for(i=0; i<NLANDCOVERTYPES; i++) {
+					for(int i=0; i<NLANDCOVERTYPES; i++) {
 						lc.frac[i] /= sum_tot;
 						sum_active += lc.frac[i];
 					}
@@ -408,7 +397,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 					sum_active -= lc.frac[NATURAL];	// fraction not possible to transfer moved back to sum_active, which will now be >1.0 again
 					lc.frac[NATURAL] = 0.0;
 
-					for(i=0; i<NLANDCOVERTYPES; i++) {
+					for(int i=0; i<NLANDCOVERTYPES; i++) {
 						lc.frac[i] /= sum_active;		// fraction rescaled to unity sum
 						if(run[i])
 							if(date.year == 0)
@@ -482,16 +471,11 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 		// Get fractions for dynamic stand types within a land cover
 		if(!(frac_fixed[CROPLAND] && frac_fixed_default_crops)) {
 
-			if(fixedcrop_histX)
-				year=first_historic_year;
-			else if(fixedlu_histX)
-				year=year_saved;
-
 			if(year == CFTdata.GetFirstyear() + CFTdata.GetnYears())
 				dprintf("Last year of cropland fraction data used from year %d and onwards\n", year);
 
 			// sum fractions for active crop pft:s and discard unreasonable values
-			for(i=0; i<nst; i++) {
+			for(int i=0; i<nst; i++) {
 				if(stlist[i].landcover == CROPLAND)	{
 
 					double cropfrac = CFTdata.Get(year,stlist[i].name);

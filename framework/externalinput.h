@@ -5,8 +5,8 @@
 /// $Date$
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef LANDCOVERINPUT_H
-#define LANDCOVERINPUT_H
+#ifndef LPJ_GUESS_EXTERNALINPUT_H
+#define LPJ_GUESS_EXTERNALINPUT_H
 
 #include "InData.h"
 
@@ -99,4 +99,4 @@ private:
 	void getNfert(Gridcell& gridcell);
 };
 
-#endif // LANDCOVERINPUT_H
+#endif // LPJ_GUESS_EXTERNALINPUT_H

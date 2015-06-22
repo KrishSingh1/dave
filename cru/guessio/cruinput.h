@@ -18,7 +18,7 @@
 #include "spinupdata.h"
 #include "cru_ts30.h"
 #include "lamarquendep.h"
-#include "landcoverinput.h"
+#include "externalinput.h"
 
 /// An input module for CRU climate data
 /** This input module gets climate data from binary archives built from

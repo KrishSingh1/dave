@@ -16,7 +16,7 @@
 #include "cropphenology.h"
 #include "cropallocation.h"
 #include "management.h"
-#include "landcoverinput.h"
+#include "externalinput.h"
 #include "inputmodule.h"
 
 ///	Creates stands for landcovers present in the gridcell first year of the simulation

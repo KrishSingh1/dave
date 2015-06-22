@@ -14,7 +14,7 @@
 #include "inputmodule.h"
 #include <vector>
 #include "gutil.h"
-#include "landcoverinput.h"
+#include "externalinput.h"
 
 /// An input module for a toy data set (for demonstration purposes)
 /** This input module is provided as an example of an input module.

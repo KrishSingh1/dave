@@ -5,7 +5,7 @@
 /// $Date: $
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include "landcoverinput.h"
+#include "externalinput.h"
 
 void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist) {
 

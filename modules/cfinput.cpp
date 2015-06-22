@@ -369,7 +369,7 @@ void CFInput::init() {
 		c.descrip = trim(descrip);
 		gridlist.push_back(c);
 	}
-	
+
 	current_gridcell = gridlist.begin();
 
 	// Open landcover files
@@ -397,7 +397,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	// we find one that works.
 	while (current_gridcell != gridlist.end() &&
 	       !load_data_from_files(lon, lat, cru_lon, cru_lat, soilcode)) {
-			++current_gridcell;
+		++current_gridcell;
 	}
 
 	if (current_gridcell == gridlist.end()) {
@@ -406,15 +406,12 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	}
 
 	if(run_landcover) {
-		inputdef::Coord c;
-		c.lon = cru_lon;
-		c.lat = cru_lat;
 		bool LUerror = false;
-		LUerror = landcover_input.loadlandcover(c);
+		LUerror = landcover_input.loadlandcover(cru_lon, cru_lat);
 		if(!LUerror)
-			LUerror = management_input.loadmanagement(c);
+			LUerror = management_input.loadmanagement(cru_lon, cru_lat);
 		if(LUerror) {
-			dprintf("\nError: could not find stand at (%g,%g) in landcover/management data file(s)\n", c.lon, c.lat);
+			dprintf("\nError: could not find stand at (%g,%g) in landcover/management data file(s)\n", cru_lon, cru_lat);
 			return false;
 		}
 	}
@@ -444,7 +441,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	gridcell.climate.instype = cf_standard_name_to_insoltype(cf_insol->get_standard_name());
 
 	// Get nitrogen deposition, using the found CRU coordinates
-	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat,
+	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat, 
 	             Lamarque::parse_timeseries(ndep_timeseries));
 
 	// Setup the soil type
@@ -759,6 +756,12 @@ void CFInput::populate_daily_arrays(long& seed) {
 	distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
 }
 
+void CFInput::getlandcover(Gridcell& gridcell) {
+
+	landcover_input.getlandcover(gridcell);
+	landcover_input.get_land_transitions(gridcell);
+}
+
 bool CFInput::getclimate(Gridcell& gridcell) {
 	
 	Climate& climate = gridcell.climate;
@@ -820,12 +823,6 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 
 	return true;
 
-}
-
-void CFInput::getlandcover(Gridcell& gridcell) {
-
-	landcover_input.getlandcover(gridcell);
-	landcover_input.get_land_transitions(gridcell);
 }
 
 void CFInput::load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_var,

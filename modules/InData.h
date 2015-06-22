@@ -143,7 +143,7 @@ class TimeDataD	{
 	/// Rewinds the file pointer
 	void Rewind() {if(ifp) rewind(ifp);}
 	/// Loads local data for a certain coordinate from a file map. Returns 0 if coordinate not found.
-	int LoadFromMap(Coord c);
+	bool LoadFromMap(Coord c);
 	/// Sets offset to be used when searching for coordinates.
 	void SetOffset(double gridlist_offset) { 
 		if(gridlist_offset)
@@ -292,7 +292,7 @@ public:
 	void CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridlistX);
 #endif
 	/// Loads data for a certain coordinate. Returns 0 if coordinate not found.
-	int Load(Coord c);
+	bool Load(Coord c);
 	/// Returns a single data value for a certain year and data column
 	double Get(int calender_year, int column) const;		// Returns a single value.
 	/// Returns a single data value for column with header string name. Returns -999 if name not found.

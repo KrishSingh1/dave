@@ -25,7 +25,7 @@ public:
 	void init();
 
 	/// Loads land cover and stand type area fractions from input files
-	bool loadlandcover(Coord c);
+	bool loadlandcover(double lon, double lat);
 
 	/// Gets land cover and stand type fractions for a year.
 	/** Updates landcover and stand type variables frac, frac_old and frac_change
@@ -74,7 +74,7 @@ public:
 	/// Opens management data files
 	void init();
 	/// Loads fertilisation, sowing and harvest dates from input files
-	bool loadmanagement(Coord c);
+	bool loadmanagement(double lon, double lat);
 	/// Gets management data for a year
 	void getmanagement(Gridcell& gridcell);
 

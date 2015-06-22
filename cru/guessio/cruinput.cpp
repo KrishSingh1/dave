@@ -64,13 +64,42 @@ void CRUInput::init() {
 	// DESCRIPTION
 	// Initialises input (e.g. opening files), and reads in the gridlist
 
-	file_cru = param["file_cru"].str;
-	file_cru_misc = param["file_cru_misc"].str;
-
+	//
 	// Reads list of grid cells and (optional) description text from grid list file
 	// This file should consist of any number of one-line records in the format:
 	//   <longitude> <latitude> [<description>]
-	read_gridlist(gridlist, param["file_gridlist"].str);
+
+	double dlon,dlat;
+	bool eof=false;
+	xtring descrip;
+
+	// Read list of grid coordinates and store in global Coord object 'gridlist'
+
+	// Retrieve name of grid list file as read from ins file
+	xtring file_gridlist=param["file_gridlist"].str;
+
+	FILE* in_grid=fopen(file_gridlist,"r");
+	if (!in_grid) fail("initio: could not open %s for input",(char*)file_gridlist);
+
+	file_cru=param["file_cru"].str;
+	file_cru_misc=param["file_cru_misc"].str;
+
+	while (!eof) {
+		
+		// Read next record in file
+		eof=!readfor(in_grid,"f,f,a#",&dlon,&dlat,&descrip);
+
+		if (!eof && !(dlon==0.0 && dlat==0.0)) { // ignore blank lines at end (if any)
+			Coord& c=gridlist.createobj(); // add new coordinate to grid list
+
+			c.lon=dlon;
+			c.lat=dlat;
+			c.descrip=descrip;
+		}
+	}
+
+
+	fclose(in_grid);
 
 	// Read CO2 data from file
 	co2.load_file(param["file_co2"].str);
@@ -94,10 +123,11 @@ void CRUInput::get_monthly_ndep(int calendar_year,
                                 double* mndrydep,
                                 double* mnwetdep) {
 
-	ndep.get_one_calendar_year(calendar_year, mndrydep, mnwetdep);
+	ndep.get_one_calendar_year(calendar_year,
+	                           mndrydep, mnwetdep);
 }
 
-		
+
 void CRUInput::adjust_raw_forcing_data(double lon,
                                        double lat,
                                        double hist_mtemp[NYEAR_HIST][12],
@@ -110,8 +140,8 @@ void CRUInput::adjust_raw_forcing_data(double lon,
 
 bool CRUInput::getgridcell(Gridcell& gridcell) {
 
-	/// See base class for documentation about this function's responsibilities
-	
+	// See base class for documentation about this function's responsibilities
+
 	int soilcode;
 	int elevation;
 
@@ -141,18 +171,17 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 				lon = gridlist.getobj().lon;
 				lat = gridlist.getobj().lat;
-
-				gridfound = CRU_TS30::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode, 
-											   hist_mtemp, hist_mprec, hist_msun);
-
+				gridfound = CRU_TS30::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
+				                                         hist_mtemp, hist_mprec, hist_msun);
+			  
 				if (gridfound) // Get more historical CRU data for this grid cell
-					gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation, 
-												   hist_mfrs, hist_mwet, hist_mdtr);
+					gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation,
+					                                     hist_mfrs, hist_mwet, hist_mdtr);
 
 				if (run_landcover && gridfound) {
-					LUerror = landcover_input.loadlandcover(gridlist.getobj());
+					LUerror = landcover_input.loadlandcover(lon, lat);
 					if(!LUerror)
-						LUerror = management_input.loadmanagement(gridlist.getobj());
+						LUerror = management_input.loadmanagement(lon, lat);
 				}
 
 				if(!gridfound || LUerror) {
@@ -169,8 +198,8 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 		// Give sub-classes a chance to modify the data
 		adjust_raw_forcing_data(gridlist.getobj().lon,
-								gridlist.getobj().lat,
-								hist_mtemp, hist_mprec, hist_msun);
+		                        gridlist.getobj().lat,
+		                        hist_mtemp, hist_mprec, hist_msun);
 
 		// Build spinup data sets
 		spinup_mtemp.get_data_from(hist_mtemp);
@@ -200,17 +229,17 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		
 		// Tell framework the coordinates of this grid cell
 		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
-
+		
 		// Get nitrogen deposition data
 		ndep.getndep(param["file_ndep"].str, lon, lat);
 
 		// The insolation data will be sent (in function getclimate, below)
 		// as percentage sunshine
-
-		gridcell.climate.instype = SUNSHINE;
+		
+		gridcell.climate.instype=SUNSHINE;
 
 		// Tell framework the soil type of this grid cell
-		soilparameters(gridcell.soiltype, soilcode);
+		soilparameters(gridcell.soiltype,soilcode);
 
 		// For Windows shell - clear graphical output
 		// (ignored on other platforms)
@@ -223,6 +252,14 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 	return false; // no more stands
 }
 
+
+void CRUInput::getlandcover(Gridcell& gridcell) {
+
+	landcover_input.getlandcover(gridcell);
+	landcover_input.get_land_transitions(gridcell);
+}
+
+
 bool CRUInput::getclimate(Gridcell& gridcell) {
 
 	// See base class for documentation about this function's responsibilities
@@ -234,11 +271,11 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	if (date.day == 0) {
 
 		// First day of year ...
-	
+
 		// Extract N deposition to use for this year,
 		// monthly means to be distributed into daily values further down
 		double mndrydep[12], mnwetdep[12];
-		ndep.get_one_calendar_year(date.year - nyear_spinup + FIRSTHISTYEAR,
+		ndep.get_one_calendar_year(date.year - nyear_spinup + FIRSTHISTYEAR, 
 		                           mndrydep, mnwetdep);
 
 		if (date.year < nyear_spinup) {
@@ -252,7 +289,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			for (m=0;m<12;m++) {
 				mtemp[m] = spinup_mtemp[m];
 				mprec[m] = spinup_mprec[m];
-				msun[m] = spinup_msun[m];
+				msun[m]	 = spinup_msun[m];
 
 				mfrs[m] = spinup_mfrs[m];
 				mwet[m] = spinup_mwet[m];
@@ -282,7 +319,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 
 			// Historical period
 
-				// Interpolate this year's monthly data to quasi-daily values
+			// Interpolate this year's monthly data to quasi-daily values
 			interp_climate(hist_mtemp[date.year-nyear_spinup],
 				hist_mprec[date.year-nyear_spinup],hist_msun[date.year-nyear_spinup],
 					   hist_mdtr[date.year-nyear_spinup],
@@ -341,11 +378,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	return true;
 }
 
-void CRUInput::getlandcover(Gridcell& gridcell) {
-
-	landcover_input.getlandcover(gridcell);
-	landcover_input.get_land_transitions(gridcell);
-}
 
 CRUInput::~CRUInput() {
 

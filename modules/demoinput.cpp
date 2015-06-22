@@ -166,7 +166,35 @@ void DemoInput::init() {
 	// Reads list of grid cells and (optional) description text from grid list file
 	// This file should consist of any number of one-line records in the format:
 	//   <longitude> <latitude> [<description>]
-	read_gridlist(gridlist, param["file_gridlist"].str);
+
+	double dlon,dlat;
+	bool eof=false;
+	xtring descrip;
+
+	// Read list of grid coordinates and store in global Coord object 'gridlist'
+
+	// Retrieve name of grid list file as read from ins file
+	xtring file_gridlist=param["file_gridlist"].str;
+
+	FILE* in_grid=fopen(file_gridlist,"r");
+	if (!in_grid) fail("initio: could not open %s for input",(char*)file_gridlist);
+
+	while (!eof) {
+		
+		// Read next record in file
+		eof=!readfor(in_grid,"f,f,a#",&dlon,&dlat,&descrip);
+
+		if (!eof && !(dlon==0.0 && dlat==0.0)) { // ignore blank lines at end (if any)
+			Coord& c=gridlist.createobj(); // add new coordinate to grid list
+
+			c.lon=dlon;
+			c.lat=dlat;
+			c.descrip=descrip;
+		}
+	}
+
+
+	fclose(in_grid);
 
 	// Retrieve specified CO2 value as read from ins file
 	co2=param["co2"].num;
@@ -225,9 +253,9 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 
 			// Load environmental data for this grid cell from files
 			if(run_landcover) {
-				LUerror = landcover_input.loadlandcover(gridlist.getobj());
+				LUerror = landcover_input.loadlandcover(gridlist.getobj().lon, gridlist.getobj().lat);
 				if(!LUerror)
-					LUerror = management_input.loadmanagement(gridlist.getobj());
+					LUerror = management_input.loadmanagement(gridlist.getobj().lon, gridlist.getobj().lat);
 			}
 			if (!LUerror) {
 				gridfound = readenv(c, gridcell.seed);
@@ -264,6 +292,13 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 	}
 
 	return false; // no more stands
+}
+
+
+void DemoInput::getlandcover(Gridcell& gridcell) {
+
+	landcover_input.getlandcover(gridcell);
+	landcover_input.get_land_transitions(gridcell);
 }
 
 bool DemoInput::getclimate(Gridcell& gridcell) {
@@ -314,11 +349,6 @@ bool DemoInput::getclimate(Gridcell& gridcell) {
 	return true;
 }
 
-void DemoInput::getlandcover(Gridcell& gridcell) {
-
-	landcover_input.getlandcover(gridcell);
-	landcover_input.get_land_transitions(gridcell);
-}
 
 DemoInput::~DemoInput() {
 

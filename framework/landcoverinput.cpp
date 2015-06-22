@@ -187,8 +187,11 @@ void LandcoverInput::init() {
 	gridlist.killall();
 }
 
-bool LandcoverInput::loadlandcover(Coord c) {
+bool LandcoverInput::loadlandcover(double lon, double lat) {
 
+	Coord c;
+	c.lon = lon;
+	c.lat = lat;
 	bool LUerror = false;
 
 	if (!lcfrac_fixed) {
@@ -912,8 +915,11 @@ void ManagementInput::init() {
 	gridlist.killall();
 }
 
-bool ManagementInput::loadmanagement(Coord c) {
+bool ManagementInput::loadmanagement(double lon, double lat) {
 
+	Coord c;
+	c.lon = lon;
+	c.lat = lat;
 	bool LUerror = false;
 
 	if(readsowingdates) { 

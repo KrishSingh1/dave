@@ -13,8 +13,7 @@
 #include <map>
 #include <string>
 #include "parameters.h"
-#include "inputdefinitions.h"
-using namespace inputdef;
+
 class Gridcell;
 
 /// Base class from which any input module must inherit

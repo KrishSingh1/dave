@@ -17,7 +17,6 @@
 #include "globalco2file.h"
 #include "spinupdata.h"
 #include "cru_ts30.h"
-#include "guess.h"
 #include "lamarquendep.h"
 #include "landcoverinput.h"
 
@@ -104,16 +103,25 @@ protected:
 
 private:
 
+	/// Type for storing grid cell longitude, latitude and description text
+	struct Coord {
+		
+		int id;
+		double lon;
+		double lat;
+		xtring descrip;
+	};
+
 	/// Land cover input module
 	LandcoverInput landcover_input;
 	/// Management input module
 	ManagementInput management_input;
 
-	/// A list of Lon-Lat Coord objects containing coordinates of the grid cells to simulate
-	ListArray_id<Coord> gridlist;
-
 	/// search radius to use when finding CRU data
 	double searchradius;
+
+	/// A list of Lon-Lat Coord objects containing coordinates of the grid cells to simulate
+	ListArray_id<Coord> gridlist;
 
 	// Timers for keeping track of progress through the simulation
 	Timer tprogress,tmute;

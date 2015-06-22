@@ -53,6 +53,15 @@ public:
 
 private:
 
+	/// Type for storing grid cell longitude, latitude and description text
+	struct Coord {
+		
+		int id;
+		double lon;
+		double lat;
+		xtring descrip;
+	};
+
 	/// Land cover input module
 	LandcoverInput landcover_input;
 	/// Management input module
@@ -68,7 +77,7 @@ private:
 	/// number of simulation years to run after spinup
 	int nyear;
 
-	/// A list of Lon-Lat Coord objects containing coordinates of the grid cells to simulate
+	/// A list of Coord objects containing coordinates of the grid cells to simulate
 	ListArray_id<Coord> gridlist;
 
 	// Timers for keeping track of progress through the simulation
@@ -88,6 +97,7 @@ private:
 
 	/// atmospheric nitrogen deposition (kgN/yr/ha) (read from ins file)
 	double ndep;
+
 };
 
 #endif // LPJ_GUESS_DEMOINPUT_H

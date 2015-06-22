@@ -1119,7 +1119,7 @@ int TimeDataD::Load() {	// for GLOBAL_YEARLY and GLOBAL_STATIC data
 	}
 }
 
-int TimeDataD::LoadFromMap(Coord c) {
+bool TimeDataD::LoadFromMap(Coord c) {
 
 	double searchradius = min(spatial_resolution / 2.0, MAX_SEARCHRADIUS);
 	double min_dist = 1000;
@@ -1144,12 +1144,11 @@ int TimeDataD::LoadFromMap(Coord c) {
 		if(currentStand.lon != filemap[found_i].lon || currentStand.lat != filemap[found_i].lat)
 			fail("Error in saved file map for %s. Delete map.bin file and retry\n", fileName);
 		loaded = true;
-		return 1;
 	}
 	else {
 		loaded = false;
-		return 0;
 	}
+	return loaded;
 }
 
 int TimeDataD::Load(Coord c) {
@@ -2035,7 +2034,7 @@ double TimeDataDmem::Get(int calender_year, const char* name) const {
 	return dataX;
 }
 
-int TimeDataDmem::Load(Coord c) {
+bool TimeDataDmem::Load(Coord c) {
 
 	bool error=true;
 	double searchradius = min(spatial_resolution / 2.0, MAX_SEARCHRADIUS);
@@ -2056,12 +2055,11 @@ int TimeDataDmem::Load(Coord c) {
 	}
 	if(error) {
 		loaded = false;
-		return 0;
 	}
 	else {
 		loaded = true;
-		return 1;
 	}
+	return loaded;
 }
 void TimeDataDmem::SetData(int index, double* dataX) {
 

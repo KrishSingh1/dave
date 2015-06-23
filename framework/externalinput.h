@@ -46,7 +46,7 @@ public:
 	 */ 
 	bool get_lc_transfer(Gridcell& gridcell);
 
-//private:
+private:
 
 	// Objects handling land cover fraction data input
 	InData::TimeDataD LUdata;

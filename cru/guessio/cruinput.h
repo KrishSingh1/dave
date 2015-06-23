@@ -111,7 +111,7 @@ private:
 		double lat;
 		xtring descrip;
 	};
-
+bool loaddata(Coord& c, int& soilcode);
 	/// Land cover input module
 	LandcoverInput landcover_input;
 	/// Management input module

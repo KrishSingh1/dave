@@ -215,8 +215,8 @@ bool LandcoverInput::loadlandcover(double lon, double lat) {
 		}
 	}
 
-	if(run[CROPLAND] && !LUerror)
-	{
+	if(run[CROPLAND] && !LUerror) {
+
 		if(!frac_fixed[CROPLAND]) {
 			
 			// Crop fraction data: read from crop fraction file; dynamic, so data for all years are loaded to CFTdata object and 

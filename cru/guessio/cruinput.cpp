@@ -56,6 +56,7 @@ CRUInput::CRUInput()
 		"If specified, CRU data will be searched for in a circle");
 }
 
+
 void CRUInput::init() {
 
 	// DESCRIPTION
@@ -82,7 +83,7 @@ void CRUInput::init() {
 	file_cru_misc=param["file_cru_misc"].str;
 
 	while (!eof) {
-		
+
 		// Read next record in file
 		eof=!readfor(in_grid,"f,f,a#",&dlon,&dlat,&descrip);
 
@@ -233,7 +234,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		// The insolation data will be sent (in function getclimate, below)
 		// as percentage sunshine
 		
-		gridcell.climate.instype=SUNSHINE;
+		gridcell.climate.instype = SUNSHINE;
 
 		// Tell framework the soil type of this grid cell
 		soilparameters(gridcell.soiltype,soilcode);
@@ -272,7 +273,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 		// Extract N deposition to use for this year,
 		// monthly means to be distributed into daily values further down
 		double mndrydep[12], mnwetdep[12];
-		ndep.get_one_calendar_year(date.year - nyear_spinup + FIRSTHISTYEAR, 
+		ndep.get_one_calendar_year(date.year - nyear_spinup + FIRSTHISTYEAR,
 		                           mndrydep, mnwetdep);
 
 		if (date.year < nyear_spinup) {
@@ -298,7 +299,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 
 			// Only recalculate precipitation values using weather generator
 			// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
-			if (ifrainonwetdaysonly) { 
+			if (ifrainonwetdaysonly) {
 				// (from Dieter Gerten 021121)
 				prdaily(mprec, dprec, mwet, gridcell.seed);
 			}
@@ -324,7 +325,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 
 			// Only recalculate precipitation values using weather generator
 			// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
-			if (ifrainonwetdaysonly) { 
+			if (ifrainonwetdaysonly) {
 				// (from Dieter Gerten 021121)
 				prdaily(hist_mprec[date.year-nyear_spinup], dprec, hist_mwet[date.year-nyear_spinup], gridcell.seed);
 			}
@@ -339,10 +340,11 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	}
 
 	// Send environmental values for today to framework
+
 	climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
 
-	climate.temp = dtemp[date.day];
-	climate.prec = dprec[date.day];
+	climate.temp  = dtemp[date.day];
+	climate.prec  = dprec[date.day];
 	climate.insol = dsun[date.day];
 
 	// Nitrogen deposition
@@ -384,9 +386,9 @@ CRUInput::~CRUInput() {
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
-// Lamarque, J.-F., Kyle, G. P., Meinshausen, M., Riahi, K., Smith, S. J., Van Vuuren, 
+// Lamarque, J.-F., Kyle, G. P., Meinshausen, M., Riahi, K., Smith, S. J., Van Vuuren,
 //   D. P., Conley, A. J. & Vitt, F. 2011. Global and regional evolution of short-lived
-//   radiatively-active gases and aerosols in the Representative Concentration Pathways. 
+//   radiatively-active gases and aerosols in the Representative Concentration Pathways.
 //   Climatic Change, 109, 191-212.
 // Nakai, T., Sumida, A., Kodama, Y., Hara, T., Ohta, T. (2010). A comparison between
 //   various definitions of forest stand height and aerodynamic canopy height.

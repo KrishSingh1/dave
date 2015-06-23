@@ -90,7 +90,7 @@ void soilparameters(Soiltype& soiltype, int soilcode) {
 		//    7  sand fraction
 		//    8  clay fraction
 
-		//    0      1      2      3      4      5      6		7		8		    soilcode
+		//    0      1      2      3      4      5      6       7       8         soilcode
 		//  ------------------------------------------------------------------
 
 		{   5.0, 0.110,   0.2, 0.800,   0.4,	0.074,	0.395,	0.90,	0.05},    // 1	Coarse
@@ -407,8 +407,8 @@ void distribute_ndep(const double* mndry, const double* mnwet,
  */
 void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed, bool truncate /* = true */) {
 
-	//  Distribution of monthly precipitation totals to quasi-daily values
-	//  (From Dieter Gerten 021121)
+//  Distribution of monthly precipitation totals to quasi-daily values
+//  (From Dieter Gerten 021121)
 
 	const double c1 = 1.0; // normalising coefficient for exponential distribution
 	const double c2 = 1.2; // power for exponential distribution
@@ -782,27 +782,27 @@ void dailyaccounting_stand(Stand& stand) {
 
 /// Manages C and N fluxes from slow harvest pools
 void dailyaccounting_patch_lc(Patch& patch) {
-	if(date.day == 0) {
-		if(ifslowharvestpool) {
-			pftlist.firstobj();
-			while(pftlist.isobj) {				// NB. also inactive pft's
-				Pft& pft = pftlist.getobj();
-				Patchpft& patchpft = patch.pft[pft.id];
 
-				patch.stand.get_gridcell().landcover.acflux_harvest_slow += patchpft.harvested_products_slow * pft.turnover_harv_prod * patch.stand.get_gridcell_fraction() / (double)patch.stand.nobj;
-				// flux from slow pool in receiving landcover after land use change (1)
-				patch.stand.get_gridcell().landcover.acflux_harvest_slow_lc[patch.stand.landcover] += patchpft.harvested_products_slow * pft.turnover_harv_prod * patch.stand.get_gridcell_fraction() / (double)patch.stand.nobj;
-				// flux from slow pool in donating landcover after land use change (2)
-//				patch.stand.gridcell.landcover.acflux_harvest_slow_lc[pft.landcover]+=patchpft.harvested_products_slow*pft.turnover_harv_prod*patch.stand.get_gridcell_fraction()/(double)patch.stand.nobj;
-				patchpft.harvested_products_slow = patchpft.harvested_products_slow * (1 - pft.turnover_harv_prod);
+	if (date.day > 0 || !ifslowharvestpool)
+		return;
 
-				patch.stand.get_gridcell().landcover.anflux_harvest_slow += patchpft.harvested_products_slow_nmass * pft.turnover_harv_prod * patch.stand.get_gridcell_fraction() / (double)patch.stand.nobj;
-				patch.stand.get_gridcell().landcover.anflux_harvest_slow_lc[patch.stand.landcover] += patchpft.harvested_products_slow_nmass * pft.turnover_harv_prod * patch.stand.get_gridcell_fraction() / (double)patch.stand.nobj;
-				patchpft.harvested_products_slow_nmass = patchpft.harvested_products_slow_nmass * (1 - pft.turnover_harv_prod);
+	Landcover& lc = patch.stand.get_gridcell().landcover;
+	double scale = patch.stand.get_gridcell_fraction() / (double)patch.stand.nobj;
 
-				pftlist.nextobj();
-			}
-		}
+	pftlist.firstobj();
+	while(pftlist.isobj) {				// NB. also inactive pft's
+		Pft& pft = pftlist.getobj();
+		Patchpft& patchpft = patch.pft[pft.id];
+
+		lc.acflux_harvest_slow += patchpft.harvested_products_slow * pft.turnover_harv_prod * scale;
+		lc.acflux_harvest_slow_lc[patch.stand.landcover] += patchpft.harvested_products_slow * pft.turnover_harv_prod * scale;
+		patchpft.harvested_products_slow = patchpft.harvested_products_slow * (1 - pft.turnover_harv_prod);
+
+		lc.anflux_harvest_slow += patchpft.harvested_products_slow_nmass * pft.turnover_harv_prod * scale;
+		lc.anflux_harvest_slow_lc[patch.stand.landcover] += patchpft.harvested_products_slow_nmass * pft.turnover_harv_prod * scale;
+		patchpft.harvested_products_slow_nmass = patchpft.harvested_products_slow_nmass * (1 - pft.turnover_harv_prod);
+
+		pftlist.nextobj();
 	}
 }
 
@@ -820,8 +820,6 @@ void dailyaccounting_patch(Patch& patch) {
 	if (date.day == 0) {
 
 		patch.aaet = 0.0;
-		patch.aevap = 0.0;
-		patch.arunoff = 0.0;
 		patch.aintercep = 0.0;
 		patch.apet = 0.0;
 
@@ -841,8 +839,6 @@ void dailyaccounting_patch(Patch& patch) {
 	if (date.dayofmonth == 0) {
 
 		patch.maet[date.month] = 0.0;
-		patch.mevap[date.month] = 0.0;
-		patch.mrunoff[date.month] = 0.0;
 		patch.mintercep[date.month] = 0.0;
 		patch.mpet[date.month]=0.0;
 	}

@@ -37,14 +37,12 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 
 } // namespace
 
-
-DemoInput::DemoInput() 
+DemoInput::DemoInput()
 	: nyear(1) {
 
+	// Declare instruction file parameters
 	declare_parameter("nyear", &nyear, 1, 10000, "Number of simulation years to run after spinup");
 }
-
-
 
 bool DemoInput::read_from_file(Coord coord, xtring fname, const char* format,
                                double monthly[12], bool soil /* = false */) {
@@ -180,7 +178,7 @@ void DemoInput::init() {
 	if (!in_grid) fail("initio: could not open %s for input",(char*)file_gridlist);
 
 	while (!eof) {
-		
+
 		// Read next record in file
 		eof=!readfor(in_grid,"f,f,a#",&dlon,&dlat,&descrip);
 
@@ -271,13 +269,13 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 		if (gridlist.getobj().descrip!="") dprintf(" (%s)\n\n",
 			(char*)gridlist.getobj().descrip);
 		else dprintf("\n\n");
-		
+
 		// Tell framework the coordinates of this grid cell
 		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
 
 		// The insolation data will be sent (in function getclimate, below)
 		// as percentage sunshine
-		
+
 		gridcell.climate.instype=SUNSHINE;
 
 		// Tell framework the soil type of this grid cell
@@ -285,7 +283,7 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 
 		// For Windows shell - clear graphical output
 		// (ignored on other platforms)
-		
+
 		clear_all_graphs();
 
 		return true; // simulate this stand
@@ -348,7 +346,6 @@ bool DemoInput::getclimate(Gridcell& gridcell) {
 
 	return true;
 }
-
 
 DemoInput::~DemoInput() {
 

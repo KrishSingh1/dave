@@ -937,15 +937,16 @@ void kill_remaining_vegetation(Individual& indiv, bool burn, bool lc_change) {
  */
 void scale_indiv(Individual& indiv, bool scale_grsC) {
 
-	double scale = 1.0;	
 	Stand& stand = indiv.vegetation.patch.stand;
 	Gridcell& gridcell = stand.get_gridcell();
 
-	// Scale individual's C and N mass in stands that have increased in area this year by (old area/new area):
-	if (stand.scale_LC_change < 1.0)
-		scale = stand.scale_LC_change;
-	else
+	if (stand.scale_LC_change >= 1.0) {
 		return;
+	}
+
+	// Scale individual's C and N mass in stands that have increased in area
+	// this year by (old area/new area):
+	double scale = stand.scale_LC_change;
 
 	if (scale_grsC) {
 

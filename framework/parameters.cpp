@@ -4,7 +4,7 @@
 ///
 /// New instructions (PLIB keywords) may be added (this would require addition of a
 /// declareitem call in function plib_declarations, and possibly some additional code in
-/// function plib_callback). 
+/// function plib_callback).
 ///
 /// \author Joe Siltberg
 /// $Date$
@@ -133,7 +133,7 @@ Paramtype* Paramlist::find(xtring name) {
 // ENUM DECLARATIONS OF INTEGER CONSTANTS FOR PLIB INTERFACE
 
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM,BLOCK_ST};
-enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,	
+enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,
 	CB_STLANDCOVER,CB_STINTERCROP,CB_STNATURALVEG,CB_CHECKST,CB_CROP1,CB_CROP2,CB_CROP3,CB_STHYDROLOGY1,CB_STHYDROLOGY2,CB_STHYDROLOGY3,
 	CB_PATHWAY,CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE};
 
@@ -160,7 +160,7 @@ std::map<xtring, bool> includest_map;
 // Whether each PFT has had their parameters checked.
 // We only check a PFT:s parameters (in plib_callback) the first time the PFT is
 // parsed. If the same PFT occurs again (probably in a different file with a few
-// minor modifications) we don't check again (because plib's itemparsed() function 
+// minor modifications) we don't check again (because plib's itemparsed() function
 // doesn't remember the old parsed parameters).
 std::map<xtring, bool> checked_pft;
 std::map<xtring, bool> checked_st;
@@ -395,7 +395,7 @@ void plib_declarations(int id,xtring setname) {
 			"Minimum age of stands to reduce at land cover change");
 		declareitem("patcharea",&patcharea,1.0,1.0e4,1,CB_NONE,
 			"Patch area (m2)");
-		declareitem("wateruptake", &strparam, 20, CB_WATERUPTAKE, 
+		declareitem("wateruptake", &strparam, 20, CB_WATERUPTAKE,
 			"Water uptake mode (\"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
 
 		declareitem("nrelocfrac",&nrelocfrac,0.0,0.99,1,CB_NONE,
@@ -433,8 +433,10 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifslowharvestpool",&ifslowharvestpool,1,CB_NONE,"If a slow harvested product pool is included in patchpft.");
 		declareitem("ifintercropgrass",&ifintercropgrass,1,CB_NONE,"Whether intercrop growth is allowed");
 		declareitem("ifcalcdynamic_phu",&ifcalcdynamic_phu,1,CB_NONE,"Whether to calculate dynamic potential heat units");
-		declareitem("gross_land_transfer",&gross_land_transfer,0,3,1,CB_NONE,"Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); read stand type transfer matrix input file (3), or not (0)");
-		declareitem("ifprimary_lc_transfer",&ifprimary_lc_transfer,1,CB_NONE,"Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)");
+		declareitem("gross_land_transfer",&gross_land_transfer,0,3,1,CB_NONE,
+			"Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); read stand type transfer matrix input file (3), or not (0)");
+		declareitem("ifprimary_lc_transfer",&ifprimary_lc_transfer,1,CB_NONE,
+			"Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)");
 		declareitem("transfer_level",&transfer_level,0,3,1,CB_NONE,"Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level");
 		declareitem("ifdyn_phu_limit",&ifdyn_phu_limit,1,CB_NONE,"Whether to limit dynamic phu calculation to a time period");
 		declareitem("iftransfer_to_new_stand",&iftransfer_to_new_stand,1,CB_NONE,"Whether to create new stands in transfer_to_new_stand()");
@@ -484,7 +486,7 @@ void plib_declarations(int id,xtring setname) {
 
 
 		break;
-	
+
 	case BLOCK_PFT:
 
 		if (!ifhelp) {
@@ -500,7 +502,7 @@ void plib_declarations(int id,xtring setname) {
 
 			if (ppft == 0) {
 				// Create and initialise a new Pft object and obtain a reference to it
-			
+
 				ppft=&pftlist.createobj();
 				initpft(*ppft,setname);
 				includepft_map[setname] = true;
@@ -624,11 +626,11 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("leaflong",&ppft->leaflong,0.1,100.0,1,CB_NONE,
 			"Leaf longevity (years)");
 		declareitem("intc",&ppft->intc,0.0,1.0,1,CB_NONE,"Interception coefficient");
-		
+
 		// guess2008 - DLE
 		declareitem("drought_tolerance",&ppft->drought_tolerance,0.0,1.0,1,CB_NONE,
 			"Drought tolerance level (0 = very -> 1 = not at all) (unitless)");
-		
+
 		// bvoc
 		declareitem("ga",&ppft->ga,0.0,1.0,1,CB_NONE,
 			"aerodynamic conductance (m/s)");
@@ -640,7 +642,7 @@ void plib_declarations(int id,xtring setname) {
 			"monoterpene emission capacity (ug C g-1 h-1)");
 		declareitem("storfrac_mon",&ppft->storfrac_mon,0.,1.,1,CB_NONE,
 			"fraction of monoterpene production that goes into storage pool (-)");
-		
+
 		declareitem("harv_eff",&ppft->harv_eff,0.0,1.0,1,CB_NONE,"Harvest efficiency");
 		declareitem("harvest_slow_frac",&ppft->harvest_slow_frac,0.0,1.0,1,CB_NONE,
 			"Fraction of harvested products that goes into carbon depository for long-lived products like wood");
@@ -732,7 +734,7 @@ void plib_declarations(int id,xtring setname) {
 			"d3 parameter for allocation with N stress");
 
 		callwhendone(CB_CHECKPFT);
-		
+
 		break;
 
 	case BLOCK_ST:
@@ -750,7 +752,7 @@ void plib_declarations(int id,xtring setname) {
 
 			if (pst == 0) {
 				// Create and initialise a new st object and obtain a reference to it
-			
+
 				pst=&stlist.createobj();
 				initst(*pst,setname);
 				includest_map[setname] = true;
@@ -761,10 +763,10 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("landcover",&strparam,16,CB_STLANDCOVER,
 			"Landcovertype (\"URBAN\", \"CROP\", \"PASTURE\", \"FOREST\", \"NATURAL\", \"PEATLAND\" or \"BARREN\")");
 		declareitem("intercrop",&strparam,16,CB_STINTERCROP,
-			"Intercrop (\"NOINTERCROP\" or \"NATURALGRASS\")");
+			"Cover crop (\"NOINTERCROP\" or \"NATURALGRASS\")");
 		declareitem("naturalveg",&strparam,16,CB_STNATURALVEG,
-			"Intercrop (\"NONE\", \"GRASSONLY\" or \"ALL\")");
-		
+			"Natural pfts (\"NONE\", \"GRASSONLY\" or \"ALL\")");
+
 		declareitem("rotation",&pst->rotation.ncrops,0,100,1,CB_NONE,"Rotation type (no of crops)");
 		declareitem("rottime",&pst->rotation.nyears,0.0,10.0,1,CB_NONE,"Rotation time (years)");
 		declareitem("multicrop",&pst->rotation.multicrop,1,CB_NONE,"Whether to grow several crops in a year ");
@@ -775,7 +777,6 @@ void plib_declarations(int id,xtring setname) {
 			if(i == 0) {
 				declareitem("crop1",&strparam,16,CB_CROP1,"");
 				declareitem("hydrology1",&strparam,16,CB_STHYDROLOGY1, "Hydrology of crop 1 (\"RAINFED\" or \"IRRIGATED\")");
-//				declareitem("irrigation1",&pst->management[i].firr,0.0,1.0,1,CB_NONE,"Irrigation of crop 1");
 				declareitem("sdate1",&pst->management[i].sdate,0,364,1,CB_NONE,"Sowing date of crop 1");
 				declareitem("hdate1",&pst->management[i].hdate,0,364,1,CB_NONE,"Harvest date of crop 1");
 				declareitem("nfert1",&pst->management[i].nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop 1");
@@ -784,7 +785,6 @@ void plib_declarations(int id,xtring setname) {
 			else if(i == 1) {
 				declareitem("crop2",&strparam,16,CB_CROP2,"");
 				declareitem("hydrology2",&strparam,16,CB_STHYDROLOGY2, "Hydrology of crop 2 (\"RAINFED\" or \"IRRIGATED\")");
-//				declareitem("irrigation2",&pst->management[i].firr,0.0,1.0,1,CB_NONE,"Irrigation of crop 2");
 				declareitem("sdate2",&pst->management[i].sdate,0,364,1,CB_NONE,"Sowing date of crop 2");
 				declareitem("hdate2",&pst->management[i].hdate,0,364,1,CB_NONE,"Harvest date of crop 2");
 				declareitem("nfert2",&pst->management[i].nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop 2");
@@ -793,7 +793,6 @@ void plib_declarations(int id,xtring setname) {
 			else if(i == 2) {
 				declareitem("crop3",&strparam,16,CB_CROP3,"");
 				declareitem("hydrology3",&strparam,16,CB_STHYDROLOGY3, "Hydrology of crop 3 (\"RAINFED\" or \"IRRIGATED\")");
-//				declareitem("irrigation3",&pst->management[i].firr,0.0,1.0,1,CB_NONE,"Irrigation of crop 3");
 				declareitem("sdate3",&pst->management[i].sdate,0,364,1,CB_NONE,"Sowing date of crop 3");
 				declareitem("hdate3",&pst->management[i].hdate,0,364,1,CB_NONE,"Harvest date of crop 3");
 				declareitem("nfert3",&pst->management[i].nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop 3");
@@ -811,7 +810,7 @@ void plib_declarations(int id,xtring setname) {
 			"String value for custom parameter");
 		declareitem("num",&numparam,-1.0e38,1.0e38,1,CB_NUMPARAM,
 			"Numerical value for custom parameter");
-		
+
 		break;
 	}
 }
@@ -891,8 +890,7 @@ void plib_callback(int callback) {
 	case CB_STINTERCROP:
 		if (strparam.upper()=="NOINTERCROP") pst->intercrop=NOINTERCROP;
 		else if (strparam.upper()=="NATURALGRASS") pst->intercrop=NATURALGRASS;
-		else 
-		{
+		else {
 			sendmessage("Error",
 				"Unknown intercrop type (valid types: \"NOINTERCROP\", \"NATURALGRASS\")");
 			plibabort();
@@ -911,8 +909,7 @@ void plib_callback(int callback) {
 			pst->naturalveg = 1;
 			pst->naturalgrass = 1;
 		}
-		else 
-		{
+		else {
 			sendmessage("Error",
 				"Unknown intercrop type (valid types: \"NONE\", \"GRASSONLY\", \"ALL\")");
 			plibabort();
@@ -1088,8 +1085,8 @@ void plib_callback(int callback) {
 		}
 
 		if (grassforcrop) {
-			run[CROPLAND]=0;
-			run[PASTURE]=1;
+			run[CROPLAND] = 0;
+			run[PASTURE] = 1;
 		}
 
 		if (!run_landcover)
@@ -1116,7 +1113,7 @@ void plib_callback(int callback) {
 				stlist.killobj();
 			}
 			else {
-				if(st.landcover == CROPLAND && 
+				if(st.landcover == CROPLAND &&
 					(st.rotation.ncrops == 0 ||
 					st.rotation.ncrops >= 1 && st.management[0].pftname == "" ||
 					st.rotation.ncrops >= 2 && st.management[1].pftname == "" ||
@@ -1131,7 +1128,7 @@ void plib_callback(int callback) {
 
 		// first check if natural pft:s are included in other land cover stand types
 		bool include_natural_pfts;
-		bool include_natural_grass_pfts;		
+		bool include_natural_grass_pfts;
 
 		if(run_landcover && !run[NATURAL]) {
 
@@ -1172,7 +1169,7 @@ void plib_callback(int callback) {
 			else {
 				if (!run_landcover || !run[pft.landcover])
 					include = false;
-			}		 
+			}
 
 			if (!include) {
 				// Remove this PFT from list
@@ -1440,7 +1437,7 @@ void plib_callback(int callback) {
 					if (!itemparsed("kest_bg")) badins("kest_bg");
 					if (!itemparsed("kest_pres")) badins("kest_pres");
 					if (!itemparsed("longevity")) badins("longevity");
-					if (!itemparsed("greff_min")) badins("greff_min");		
+					if (!itemparsed("greff_min")) badins("greff_min");
 					if (!itemparsed("alphar")) badins("alphar");
 					if (!itemparsed("est_max")) badins("est_max");
 				}
@@ -1460,7 +1457,7 @@ void plib_callback(int callback) {
 					            "Specified sla value not used when ifcalcsla enabled");
 			}
 			if (vegmode==COHORT || vegmode==INDIVIDUAL) {
-				if (!itemparsed("parff_min")) badins("parff_min");	
+				if (!itemparsed("parff_min")) badins("parff_min");
 			}
 
 			if (ifcalccton) {
@@ -1479,7 +1476,7 @@ void plib_callback(int callback) {
 			// which would have incurred different checks above.
 			if (itemparsed("lifeform") ||
 			    itemparsed("phenology")) {
-				sendmessage("Error", 
+				sendmessage("Error",
 				            "Not allowed to redefine lifeform or phenology in second PFT definition");
 				plibabort();
 			}
@@ -1526,7 +1523,7 @@ void read_instruction_file(const char* insfilename) {
 	// Initialise simulation settings and PFT parameters from instruction script
 	if (!plib(insfilename)) {
 		fail("Bad instruction file!");
-	}	
+	}
 }
 
 void printhelp() {

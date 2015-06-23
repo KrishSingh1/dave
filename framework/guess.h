@@ -53,7 +53,7 @@
 typedef enum {NOLIFEFORM, TREE, GRASS} lifeformtype;
 
 /// Phenology class for PFTs
-typedef enum {NOPHENOLOGY,EVERGREEN,RAINGREEN,SUMMERGREEN,CROPGREEN,ANY} phenologytype;
+typedef enum {NOPHENOLOGY, EVERGREEN, RAINGREEN, SUMMERGREEN, CROPGREEN, ANY} phenologytype;
 
 /// Biochemical pathway for photosynthesis (C3 or C4)
 typedef enum {NOPATHWAY, C3, C4} pathwaytype;
@@ -91,7 +91,7 @@ typedef enum {
 
 /// CENTURY pool names, NSOMPOOL number of SOM pools
 typedef enum {SURFSTRUCT, SOILSTRUCT, SOILMICRO, SURFHUMUS, SURFMICRO, SURFMETA, SURFFWD, SURFCWD,
-	SOILMETA, SLOWSOM, PASSIVESOM, LEACHED, NSOMPOOL} pooltype;	
+	SOILMETA, SLOWSOM, PASSIVESOM, LEACHED, NSOMPOOL} pooltype;
 
 /// Irrigation type for PFTs
 typedef enum {RAINFED, IRRIGATED} hydrologytype;
@@ -152,13 +152,13 @@ const int SOLVESOM_BEGIN = 350;
 const int NYEARGREFF = 5;
 
 /// Coldest day in N hemisphere (January 15)
-/** Used to decide when to start counting GDD's and leaf-on days 
+/** Used to decide when to start counting GDD's and leaf-on days
  *  for summergreen phenology.
  */
 const int COLDEST_DAY_NHEMISPHERE = 14;
 
 /// Coldest day in S hemisphere (July 15)
-/** Used to decide when to start counting GDD's and leaf-on days 
+/** Used to decide when to start counting GDD's and leaf-on days
  *  for summergreen phenology.
  */
 const int COLDEST_DAY_SHEMISPHERE = 195;
@@ -178,7 +178,7 @@ const int OUTPUT_MAXAGECLASS = 40;
 /// Priestley-Taylor coefficient (conversion factor from equilibrium evapotranspiration to PET)
 const double PRIESTLEY_TAYLOR = 1.32;
 
-// Solving Century SOM pools 
+// Solving Century SOM pools
 
 /// fraction of nyear_spinup minus freenyears at which to begin documenting for calculation of Century equilibrium
 const double SOLVESOMCENT_SPINBEGIN  = 0.1;
@@ -196,7 +196,6 @@ const double CO2_CONV = 1.0e-6;
 
 /// Initial carbon allocated to crop organs at sowing, kg m-2
 const double CMASS_SEED = 0.01;
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FORWARD DECLARATIONS OF CLASSES DEFINED IN THIS FILE
@@ -370,7 +369,7 @@ public:
 	static bool is_leap(int year) {
 		return (!(year % 4) && (year % 100 | !(year % 400)));
 	}
-	
+
 	/// Whether the current mode is diurnal
 	bool diurnal() const { return subdaily > 1; }
 
@@ -406,7 +405,7 @@ class Day {
 public:
 	/// Whether sub-daily period first/last within day (both true in daily mode)
 	bool isstart, isend;
-	
+
 	/// Ordinal number of the sub-daily period [0, date.subdaily)
 	int period;
 
@@ -480,11 +479,12 @@ public:
 
 	void check_year(Gridcell& gridcell);
 	void check_period();
+
 	void serialize(ArchiveStream& arch);
 };
 
 /// This struct contains the result of a photosynthesis calculation.
-/** \see photosynthesis */  
+/** \see photosynthesis */
 struct PhotosynthesisResult : public Serializable {
 	/// Constructs an empty result
 	PhotosynthesisResult() {
@@ -595,15 +595,15 @@ public:
 	/// highest mean monthly temperature for the last 12 months (deg C)
 	double mtemp_max;
 
-	/// accumulated growing degree day sum on 5 degree base 
+	/// accumulated growing degree day sum on 5 degree base
 	/** reset when temperatures fall below 5 deg C */
 	double gdd5;
 
 	/// total gdd5 (accumulated) for this year (reset 1 January)
 	double agdd5;
 
-	/// number of days with temperatures <5 deg C 
-	/** reset when temperatures fall below 5 deg C; 
+	/// number of days with temperatures <5 deg C
+	/** reset when temperatures fall below 5 deg C;
 	 *  maximum value is number of days in the year */
 	int chilldays;
 
@@ -632,7 +632,7 @@ public:
 
 	/// minimum monthly temperature for the last 12 months (deg C)
 	double mtemp_min;
-		
+
 	/// mean of monthly temperatures for the last 12 months (deg C)
 	double atemp_mean;
 
@@ -657,10 +657,10 @@ public:
 	/// diurnal temperature range, used in daily/monthly BVOC (deg C)
 	double dtr;
 
-		// containers for sub-daily values of temperature, short-wave downward
-		// radiation, par, rad and gtemp (equivalent to temp, insol, par, rad and gtemp)
-		// NB: units of these variable are the same as their daily counterparts,
-		// i.e. representing daily averages (e.g. pars [J/m2/day])
+	// containers for sub-daily values of temperature, short-wave downward
+	// radiation, par, rad and gtemp (equivalent to temp, insol, par, rad and gtemp)
+	// NB: units of these variable are the same as their daily counterparts,
+	// i.e. representing daily averages (e.g. pars [J/m2/day])
 
 	/// Sub-daily temperature (deg C) (\see temp)
 	std::vector<double> temps;
@@ -707,13 +707,13 @@ public:
 	double mprec_petmin_20[20];
 	/// past 20 years maximum of monthly precipitation to PET ratios
 	double mprec_petmax_20[20];
-	/// 20-year running average monthly temperature values 
+	/// 20-year running average monthly temperature values
 	double mtemp20[12];
-	/// 20-year running average monthly precipitation values 
+	/// 20-year running average monthly precipitation values
 	double mprec20[12];
-	/// 20-year running average monthly PET values 
+	/// 20-year running average monthly PET values
 	double mpet20[12];
-	/// 20-year running average monthly precipitation to PET ratios 
+	/// 20-year running average monthly precipitation to PET ratios
 	double mprec_pet20[12];
 	/// 20-year running average of minimum monthly precipitation to PET ratios
 	double mprec_petmin20;
@@ -842,7 +842,7 @@ class Fluxes : public Serializable {
 public:
 
 	/// Fluxes stored as totals for the whole patch
-	enum PerPatchFluxType { 
+	enum PerPatchFluxType {
 		/// Carbon flux to atmosphere from burnt vegetation and litter (kgC/m2)
 		FIREC,
 		/// Carbon flux to atmosphere from soil respiration (kgC/m2)
@@ -859,13 +859,13 @@ public:
 		SEEDN,
 		/// NH3 flux to atmosphere from fire
 		NH3_FIRE,
-		/// NO flux to atmosphere from fire	
+		/// NO flux to atmosphere from fire
 		NO_FIRE,
 		/// NO2 flux to atmosphere from fire
 		NO2_FIRE,
-		/// N2O flux to atmosphere from fire	
+		/// N2O flux to atmosphere from fire
 		N2O_FIRE,
-		/// N2 flux to atmosphere from fire	
+		/// N2 flux to atmosphere from fire
 		N2_FIRE,
 		/// N flux from soil
 		N_SOIL,
@@ -876,7 +876,7 @@ public:
 	};
 
 	/// Fluxes stored per pft
-	enum PerPFTFluxType { 
+	enum PerPFTFluxType {
 		/// NPP (kgC/m2)
 		NPP,
 		/// GPP (kgC/m2)
@@ -958,9 +958,9 @@ private:
 /// Storage class of crop management information for one rotation period for a stand type, read from the instruction file.
 struct Management {
 
-	/// name of crop pft 
+	/// name of crop pft
 	xtring pftname;
-	/// hydrology (RAINFED,IRRIGATED) 
+	/// hydrology (RAINFED,IRRIGATED)
 	hydrologytype hydrology;
 	/// forced sowing date, unless sdate_force read from file
 	int sdate;
@@ -1083,12 +1083,12 @@ class StandTypelist : public ListArray_id<StandType>, public Serializable {
 void serialize(ArchiveStream& arch);
 };	// Will serialisation work with ListArray_id ?
 
-/// The one and only linked list of StandType objects	
+/// The one and only linked list of StandType objects
 extern StandTypelist stlist;
 
 
-/// Holds static functional parameters for a plant functional type (PFT). 
-/** There should be one Pft object for each potentially occurring PFT. The same Pft object 
+/// Holds static functional parameters for a plant functional type (PFT).
+/** There should be one Pft object for each potentially occurring PFT. The same Pft object
  *  may be referenced (via the pft member of the Individual object; see below) by different
  *  average individuals. Member functions are included for initialising SLA given leaf
  *  longevity, and for initialising sapling/regen characteristics (required for
@@ -1125,7 +1125,7 @@ public:
 	double pstemp_max;
 	/// non-water-stressed ratio of intercellular to ambient CO2 partial pressure
 	double lambda_max;
-	/// vegetation root profile 
+	/// vegetation root profile
 	/** array containing fraction of roots in each soil layer, [0=upper layer] */
 	double rootdist[NSOILLAYER];
 	/// canopy conductance component not associated with photosynthesis (mm/s)
@@ -1143,15 +1143,15 @@ public:
 	double cton_leaf_avr;
 	/// average fine root C:N mass ratio (connected cton_leaf_avr)
 	double cton_root_avr;
-	/// maximum fine root C:N mass ratio (used when mass is negligible) 	
+	/// maximum fine root C:N mass ratio (used when mass is negligible)
 	double cton_root_max;
 	/// average sapwood C:N mass ratio (connected cton_leaf_avr)
 	double cton_sap_avr;
-	/// maximum sapwood C:N mass ratio (used when mass is negligible) 
+	/// maximum sapwood C:N mass ratio (used when mass is negligible)
 	double cton_sap_max;
-	/// reference fine root C:N mass ratio	
+	/// reference fine root C:N mass ratio
 	double cton_root;
-	/// reference sapwood C:N mass ratio	
+	/// reference sapwood C:N mass ratio
 	double cton_sap;
 	/// Maximum nitrogen (NH4+ and NO3- seperatly) uptake per fine root [kgN kgC-1 day-1]
 	double nuptoroot;
@@ -1160,7 +1160,7 @@ public:
 	/// fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen longterm storage scalar
 	double fnstorage;
 
-	/// Michaelis-Menten kinetic parameters 
+	/// Michaelis-Menten kinetic parameters
 	/** Half saturation concentration for N uptake [kgN l-1] (Rothstein 2000) */
 	double km_volume;
 
@@ -1286,7 +1286,7 @@ public:
 	double drought_tolerance;
 
 	// bvoc
-	
+
 	/// aerodynamic conductance (m s-1)
 	double ga;
 	/// isoprene emission capacity (ug C g-1 h-1)
@@ -1325,7 +1325,7 @@ public:
 	double harvest_slow_frac;
 	/// yearly turnover fraction of patchpft.harvested_products_slow (goes to gridcell.acflux_harvest_slow)
 	double turnover_harv_prod;
-	/// whether pft may grow as cover crop 
+	/// whether pft may grow as cover crop
 	bool isintercropgrass;
 	/// whether autumn temperature dependent sowing date is calculated
 	bool ifsdautumn;
@@ -1362,7 +1362,7 @@ public:
 	/// fraction of maximal LAI still present at harvest [0-1]
 	double flaimaxharvest;
 	/// default maximum LAI (only used for intercrop grass in the case where no pasture is present in any stand)
-	double laimax; 
+	double laimax;
 	/// whether harvestable organs are above ground
 	bool aboveground_ho;
 	/// optimum harvest index
@@ -1441,7 +1441,7 @@ public:
 		T_rep_max=0.0;
 
 		a1=0.0;
-		b1=0.0; 
+		b1=0.0;
 		c1=0.0;
 		d1=0.0;
 		a2=0.0;
@@ -1453,7 +1453,7 @@ public:
 		c3=0.0;
 		d3=0.0;
 
-		for (int i=0; i<3; i++)	
+		for (int i=0; i<3; i++)
 			photo[i]=0.0;
 	}
 
@@ -1497,13 +1497,13 @@ public:
 
 		// Fraction between leaf and root C:N ratio
 		double frac_leaftoroot = 1.16; // Friend et al. 1997
-		
+
 		// Fraction between leaf and sap wood C:N ratio
 		double frac_leaftosap = 6.9;   // Friend et al. 1997
 
 		// Max leaf C:N ratio
 		cton_leaf_max = cton_leaf_min * frac_mintomax;
-		
+
 		// Average leaf C:N ratio
 		cton_leaf_avr = 1.0 / ((1.0 / cton_leaf_min + 1.0 / cton_leaf_max) / 2.0);
 
@@ -1533,7 +1533,7 @@ public:
 	void init_nupscoeff() {
 
 		// Fraction fine root in upper soil layer should have higher possibility for mineralized nitrogen uptake
-		// Soil nitrogen profile is considered to have a exponential decline (Franzluebbers et al. 2009) giving 
+		// Soil nitrogen profile is considered to have a exponential decline (Franzluebbers et al. 2009) giving
 		// an approximate advantage of 2 of having more roots in the upper soil layer
 		const double upper_adv = 2.0;
 
@@ -1623,7 +1623,7 @@ public:
 	}
 };
 
-/// The one and only linked list of Pft objects	
+/// The one and only linked list of Pft objects
 extern Pftlist pftlist;
 
 /// Container for crop-specific data at the individual level
@@ -1765,10 +1765,10 @@ public:
 	/// harvestable organ N biomass at the last two harvest events this year
 	double nmass_ho_harvest[2];
 	/// dry weight crop yield at the last two harvest events this year
-	double yield_harvest[2];	
+	double yield_harvest[2];
 
 	/// dry weight crop yield grown this year (cumulative if several harvest events), based on ycmass_xx
-	double yield;				
+	double yield;
 
 	/// whether this pft is the main crop in the stand (pft.id==stand.pftid)
 	bool isprimarycrop;
@@ -1858,7 +1858,7 @@ public:
 
 
 /// A vegetation individual.
-/** In population mode this is the average individual of a PFT population; 
+/** In population mode this is the average individual of a PFT population;
  *  in cohort mode: the average individual of a cohort;
  *  in individual mode: an individual plant. Each grass PFT is represented as a single
  *  individual in all modes. Individual objects are collected within list arrays of
@@ -1896,12 +1896,12 @@ public:
 
 	/// leaf N biomass on modelled area basis (kgN/m2)
 	double nmass_leaf;
-	/// root N biomass on modelled area basis (kgN/m2)	
+	/// root N biomass on modelled area basis (kgN/m2)
 	double nmass_root;
-	/// sap N biomass on modelled area basis (kgN/m2)	
+	/// sap N biomass on modelled area basis (kgN/m2)
 	double nmass_sap;
 	/// heart N biomass on modelled area basis (kgN/m2)
-	double nmass_heart;	
+	double nmass_heart;
 
 	/// leaf N biomass on modelled area basis saved on first day of land use change year
 	double nmass_leaf_luc;
@@ -1910,7 +1910,7 @@ public:
 	/// sap N biomass on modelled area basis on first day of land use change year
 	double nmass_sap_luc;
 	/// heart N biomass on modelled area basis on first day of land use change year
-	double nmass_heart_luc;	
+	double nmass_heart_luc;
 	/// total N biomass on modelled area basis on first day of land use change year
 	double nmass_tot_luc;
 
@@ -1938,7 +1938,7 @@ public:
 	/// sub-daily version of the above variable (NB: daily units)
 	std::vector<PhotosynthesisResult> phots;
 
-	/// accumulated NPP over modelled area (kgC/m2/year); 
+	/// accumulated NPP over modelled area (kgC/m2/year);
 	/** annual NPP following call to growth module on last day of simulation year */
 	double anpp;
 	/// actual evapotranspiration over projected area (mm/day)
@@ -1994,7 +1994,7 @@ public:
 	/// leaf nitrogen that is photosyntetic active
 	double nactive;
 	/// Nitrogen extinction scalar
-	/** Scalar to account for leaf nitrogen not following the optimal light 
+	/** Scalar to account for leaf nitrogen not following the optimal light
 	  * extinction, but is shallower.
 	  */
 	double nextin;
@@ -2052,7 +2052,7 @@ public:
 	double leafndemand_store;
 	/// daily root nitrogen demand over possible uptake (storage demand)
 	double rootndemand_store;
-	
+
 	/// The daily C lossed from leaves due to senescense, only crops.
 	double daily_cmass_leafloss;
 	/// The daily N lossed from leaves due to senescense, only crops.
@@ -2063,8 +2063,8 @@ public:
 	double daily_nmass_rootloss;
 
 	/// Number of days with non-negligible phenology this month
-	int nday_leafon;	
-	// Whether this individual is truly alive. 
+	int nday_leafon;
+	// Whether this individual is truly alive.
 	/** Set to false for first year after the Individual object is created, then true. */
 	bool alive;
 	/// NPP this day
@@ -2184,7 +2184,7 @@ public:
 	Patchpft& patchpft() const;
 
 	/// Transfers the individual's biomass (C and N) to litter and harvest pools/fluxes
-	/** 
+	/**
 	 *  \param harvest Set to true if some of the biomass should be harvested,
 	 *                 harvest will be done according to the PFT's harvest efficiency
 	 *                 and residue outtake.
@@ -2281,7 +2281,7 @@ public:
 	/// available water holding capacity of soil layers [0=upper layer] (mm)
 	double awc[NSOILLAYER];
 
-	/// coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996)		
+	/// coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996)
 	double perc_base;
 	/// exponent in percolation calculation (=4 in Eqn 31, Haxeltine & Prentice 1996)
 	double perc_exp;
@@ -2300,11 +2300,11 @@ public:
 
 	/// year at which to calculate equilibrium soil carbon
 	int solvesom_end;
-	/// year at which to begin documenting means for calculation of equilibrium soil carbon		
+	/// year at which to begin documenting means for calculation of equilibrium soil carbon
 	int solvesom_begin;
 
 	/// water holding capacity plus wilting point for whole soil volume
-	double wtot; 
+	double wtot;
 
 	// For CENTURY ...
 	/// fraction of soil that is sand
@@ -2341,9 +2341,9 @@ public:
 
 	/// Constructor
 	Sompool() {
-		
+
 		// Initialise pool
-		
+
 		cmass = 0.0;
 		nmass = 0.0;
 		ligcfrac = 0.0;
@@ -2363,9 +2363,9 @@ public:
 	/// Nitrogen mass in pool kgN/m2
 	double nmass;
 	/// (potential) decrease in C following decomposition today (kgC/m2)
-	double cdec; 
+	double cdec;
 	/// (potential) decrease in nitrogen following decomposition today (kgN/m2)
-	double ndec; 
+	double ndec;
 	/// daily change in carbon and nitrogen
 	double delta_cmass,delta_nmass;
 	/// lignin fractions
@@ -2390,7 +2390,7 @@ public:
 };
 
 /// This struct contains litter for solving Century SOM pools.
-/** \see equilsom() */  
+/** \see equilsom() */
 struct LitterSolveSOM : public Serializable {
 	/// Constructs an empty result
 	LitterSolveSOM() {
@@ -2423,7 +2423,7 @@ struct LitterSolveSOM : public Serializable {
 private:
 	/// Carbon litter
 	double clitter[NSOMPOOL];
-	
+
 	/// Nitrogen litter
 	double nlitter[NSOMPOOL];
 };
@@ -2448,7 +2448,7 @@ public:
 	double wcont[NSOILLAYER];
 	/// DLE - the average wcont over the growing season, for each soil layer
 	double awcont[NSOILLAYER];
-	/// water content of sublayer of upper soil layer for which evaporation from the bare soil surface is possible 
+	/// water content of sublayer of upper soil layer for which evaporation from the bare soil surface is possible
 	/** fraction of available water holding capacity */
 	double wcont_evap;
 	/// daily water content in upper soil layer for each day of year
@@ -2517,22 +2517,22 @@ public:
 	/// fraction of decayed organic nitrogen leached each day;
 	double orgleachfrac;
 	/// soil mineral nitrogen pool (kgN/m2)
-	double nmass_avail;		
+	double nmass_avail;
 	/// soil nitrogen input (kgN/m2)
 	double ninput;
 	/// annual sum of nitrogen mineralisation
-	double anmin;			
+	double anmin;
 	/// annual sum of nitrogen immobilisation
-	double animmob;			
+	double animmob;
 	/// annual leaching from available nitrogen pool
-	double aminleach;		
+	double aminleach;
 	/// annual leaching of organics from active nitrogen pool
-	double aorgleach;		
-	/// total annual nitrogen fixation 
+	double aorgleach;
+	/// total annual nitrogen fixation
 	double anfix;
 	/// calculated annual mean nitrogen fixation
 	double anfix_calc;
-	
+
 	// Variables for fast spinup of SOM pools
 
 	/// monthly fraction of available mineral nitrogen taken up
@@ -2544,7 +2544,7 @@ public:
 	/// annual nitrogen fixation
 	double anfix_mean;
 
-	// Solving Century SOM pools 
+	// Solving Century SOM pools
 
 	/// years at which to begin documenting for calculation of Century equilibrium
 	int solvesomcent_beginyr;
@@ -2601,7 +2601,7 @@ public:
 		/////////////////////////////////////////////////////
 		// Initialise CENTURY pools
 
-		// Set initial CENTURY pool N:C ratios 
+		// Set initial CENTURY pool N:C ratios
 		// Parton et al 1993, Fig 4
 
 		sompool[SOILMICRO].ntoc = 1.0 / 15.0;
@@ -2614,8 +2614,8 @@ public:
 
 		nmass_avail = 0.0;
 		ninput = 0.0;
-		anmin = 0.0;			
-		animmob = 0.0;		
+		anmin = 0.0;
+		animmob = 0.0;
 		aminleach = 0.0;
 		aorgleach = 0.0;
 		anfix = 0.0;
@@ -2702,7 +2702,7 @@ public:
 	bool hu_samplingperiod;
 	/// number of heat unit sampling days
 	int hu_samplingdays;
-	/// harvest index today [0-1, >1 if below-ground ho], harvestable organ/above-ground C for above-ground harvestable organs, dependent on fphu, reduced by water stress 
+	/// harvest index today [0-1, >1 if below-ground ho], harvestable organ/above-ground C for above-ground harvestable organs, dependent on fphu, reduced by water stress
 	double hi;
 	/// harvest index yesterday
 	double hi_ystd;
@@ -2750,9 +2750,9 @@ public:
 		sdate=-1;
 		sdate_harv=-1;
 		nsow=0;
-		sownlastyear=false;	
-		sendate=-1;		
-		hdate=-1;				
+		sownlastyear=false;
+		sendate=-1;
+		hdate=-1;
 		hlimitdate=-1;
 		hucountend=-1;
 		nharv=0;
@@ -2794,9 +2794,9 @@ public:
 		lgp=0;
 
 		for(int j=0;j<2;j++) {
-			sdate_harvest[j]=-1;	
+			sdate_harvest[j]=-1;
 			hdate_harvest[j]=-1;
-			sdate_thisyear[j]=-1;		
+			sdate_thisyear[j]=-1;
 		}
 
 		vdsum_alloc=0.0;
@@ -2840,9 +2840,9 @@ public:
 	double anetps_ff_est_initial;
 	/// annual mean wscal averaged over establishment interval
 	double wscal_mean_est;
-	/// vegetation phenological state (fraction of potential leaf cover), updated daily		
+	/// vegetation phenological state (fraction of potential leaf cover), updated daily
 	double phen;
-	/// annual sum of daily fractional leaf cover 
+	/// annual sum of daily fractional leaf cover
 	/** equivalent number of days with full leaf cover
 	 *  (reset on expected coldest day of year)
 	 */
@@ -2896,9 +2896,9 @@ public:
 	bool wstress_day;
 
 	/// carbon depository for long-lived products like wood
-	double harvested_products_slow;	
+	double harvested_products_slow;
 	/// nitrogen depository for long-lived products like wood
-	double harvested_products_slow_nmass; 
+	double harvested_products_slow_nmass;
 	/// first and last day of crop sowing window, calculated in crop_sowing_patch() or Crop_sowing_date_new()
 	int swindow[2];
 	/// daily value of water deficit, calculated in irrigated_water_uptake()
@@ -2971,7 +2971,7 @@ public:
 };
 
 
-/// Stores data for a patch. 
+/// Stores data for a patch.
 /** In cohort and individual modes, replicate patches are
  *  required in each stand to accomodate stochastic variation; in population mode there
  *  should be just one Patch object, representing average conditions for the entire
@@ -3002,7 +3002,7 @@ public:
 	double fpar_ff;
 	/// mean growing season PAR at top of grass canopy (J/m2/day)
 	double par_grass_mean;
-	/// number of days in growing season, estimated from mean vegetation leaf-on fraction 
+	/// number of days in growing season, estimated from mean vegetation leaf-on fraction
 	/** \see function fpar in canopy exchange module */
 	int nday_growingseason;
 	/// total patch FPC
@@ -3051,8 +3051,8 @@ public:
 	/// transpirative demand for patch, patch vegetative area basis (mm/day)
 	double wdemand;
 	/// daily average of the above variable (mm/day)
-	double wdemand_day;			
-	/// transpirative demand for patch assuming full leaf cover today 
+	double wdemand_day;
+	/// transpirative demand for patch assuming full leaf cover today
 	/** mm/day, patch vegetative area basis	*/
 	double wdemand_leafon;
 	/// rescaling factor to account for spatial overlap between individuals/cohorts populations
@@ -3084,9 +3084,9 @@ public:
 
 	/// whether litter is to be sent to the soil today
 	bool is_litter_day;
-	/// number of harvests and/or cover-crop killing or turnover events 
+	/// number of harvests and/or cover-crop killing or turnover events
 	int nharv;
-	/// whether today is a harvest day and/or cover-crop killing or turnover day 
+	/// whether today is a harvest day and/or cover-crop killing or turnover day
 	bool isharvestday;
 
 	// MEMBER FUNCTIONS
@@ -3098,7 +3098,7 @@ public:
 
 	/// Returns the Climate for this Patch
 	/** This function returns a const reference to prevent code which operates
-	 *  on a patch basis to modify the climate and thereby affect other 
+	 *  on a patch basis to modify the climate and thereby affect other
 	 *  patches/stands.
 	 */
 	const Climate& get_climate() const;
@@ -3224,7 +3224,7 @@ public:
 	/// pointer to array of fractions transferred from this stand to other stand types
 	double *transfer_area_st;
 	/// land cover origin of this stand
-	landcovertype origin; 
+	landcovertype origin;
 	/// used for output from separate stands
 	double anpp;
 	/// used for output from separate stands
@@ -3314,7 +3314,7 @@ public:
 
 	/// Returns the Climate for this Stand
 	/** This function returns a const reference to prevent code which operates
-	 *  on a stand basis to modify the climate and thereby affect other 
+	 *  on a stand basis to modify the climate and thereby affect other
 	 *  stands.
 	 */
 	const Climate& get_climate() const;
@@ -3360,8 +3360,8 @@ public:
 	 */
 	double addtw;
 
-	/// Michaelis-Menten kinetic parameters 
-	/** Half saturation concentration for N uptake (Rothstein 2000, Macduff 2002) 
+	/// Michaelis-Menten kinetic parameters
+	/** Half saturation concentration for N uptake (Rothstein 2000, Macduff 2002)
 	 */
 	double Km;
 
@@ -3389,7 +3389,7 @@ public:
 	/// last day when temperature has fallen below the vernilisation temperature limit (trg) this year (if vernstartoccurred==true)
 	int last_verndate;
 	/// 20-year mean
-	int last_verndate20; 
+	int last_verndate20;
 	/// memory of the last 20 years' values
 	int last_verndate_20[20];
 	/// default sowing date (pft.sdatenh/sdatesh)
@@ -3625,11 +3625,11 @@ public:
 	void serialize(ArchiveStream& arch);
 
 	/// Creates a new Stand in this grid cell
-	Stand& create_stand(landcovertype landcover, int no_patch = 0);
+	Stand& create_stand(landcovertype lc, int no_patch = 0);
 
 	/// Creates new stand and initiates land cover settings
 	Stand& create_stand_lu(StandType& st, double fraction, int no_patch = 0);
-	
+
 	/// Total gridcell carbon biomass and litter
 	double ccont();
 	/// Total gridcell nitrogen biomass and litter
@@ -3665,18 +3665,18 @@ private:
 //
 // LPJF refers to the original FORTRAN implementation of LPJ as described by Sitch
 //   et al 2000
-// Delmas, R., Lacaux, J.P., Menaut, J.C., Abbadie, L., Le Roux, X., Helaa, G., Lobert, J., 1995. 
-//   Nitrogen compound emission from biomass burning in tropical African Savanna FOS/DECAFE 1991 
+// Delmas, R., Lacaux, J.P., Menaut, J.C., Abbadie, L., Le Roux, X., Helaa, G., Lobert, J., 1995.
+//   Nitrogen compound emission from biomass burning in tropical African Savanna FOS/DECAFE 1991
 //   experiment. Journal of Atmospheric Chemistry 22, 175-193.
-// Cosby, B. J., Hornberger, C. M., Clapp, R. B., & Ginn, T. R. 1984 A statistical 
-//   exploration of the relationships of soil moisture characteristic to the 
+// Cosby, B. J., Hornberger, C. M., Clapp, R. B., & Ginn, T. R. 1984 A statistical
+//   exploration of the relationships of soil moisture characteristic to the
 //   physical properties of soil.
 //   Water Resources Research, 20: 682-690.
-// Franzlubbers, AJ & Stuedemann, JA 2009 Soil-profile organic carbon and total 
-//   nitrogen during 12 years of pasture management in the Southern Piedmont USA. 
+// Franzlubbers, AJ & Stuedemann, JA 2009 Soil-profile organic carbon and total
+//   nitrogen during 12 years of pasture management in the Southern Piedmont USA.
 //   Agriculture Ecosystems & Environment, 129, 28-36.
-// Friend, A. D., Stevens, A. K., Knox, R. G. & Cannell, M. G. R. 1997. A 
-//   process-based, terrestrial biosphere model of ecosystem dynamics 
+// Friend, A. D., Stevens, A. K., Knox, R. G. & Cannell, M. G. R. 1997. A
+//   process-based, terrestrial biosphere model of ecosystem dynamics
 //   (Hybrid v3.0). Ecological Modelling, 95, 249-287.
 // Fulton, MR 1991 Adult recruitment rate as a function of juvenile growth in size-
 //   structured plant populations. Oikos 61: 102-105.
@@ -3687,7 +3687,7 @@ private:
 // Lloyd, J & Taylor JA 1994 On the temperature dependence of soil respiration
 //   Functional Ecology 8: 315-323
 // Macduff, JH, Humphreys, MO & Thomas, H 2002. Effects of a stay-green mutation on
-//   plant nitrogen relations in Lolium perenne during N starvation and after 
+//   plant nitrogen relations in Lolium perenne during N starvation and after
 //   defoliation. Annals of Botany, 89, 11-21.
 // Monsi M & Saeki T 1953 Ueber den Lichtfaktor in den Pflanzengesellschaften und
 //   seine Bedeutung fuer die Stoffproduktion. Japanese Journal of Botany 14: 22-52
@@ -3695,14 +3695,14 @@ private:
 //    Holmér, and A. Arneth. 2015 Biogeosciences Discuss., 12, 1047-1111. The
 //    impact of atmospheric CO2 and N management on yields and tissue C:N in
 //    the main wheat regions of Western Europe
-// Parton, W. J., Hanson, P. J., Swanston, C., Torn, M., Trumbore, S. E., Riley, W. 
-//   & Kelly, R. 2010. ForCent model development and testing using the Enriched 
-//   Background Isotope Study experiment. Journal of Geophysical 
+// Parton, W. J., Hanson, P. J., Swanston, C., Torn, M., Trumbore, S. E., Riley, W.
+//   & Kelly, R. 2010. ForCent model development and testing using the Enriched
+//   Background Isotope Study experiment. Journal of Geophysical
 //   Research-Biogeosciences, 115.
 // Prentice, IC, Sykes, MT & Cramer W 1993 A simulation model for the transient
 //   effects of climate change on forest landscapes. Ecological Modelling 65: 51-70.
 // Reich, PB, Walters MB & Ellsworth DS 1992 Leaf Life-Span in Relation to Leaf,
-//   Plant, and Stand Characteristics among Diverse Ecosystems. 
+//   Plant, and Stand Characteristics among Diverse Ecosystems.
 //   Ecological Monographs 62: 365-392.
 // Sitch, S, Prentice IC, Smith, B & Other LPJ Consortium Members (2000) LPJ - a
 //   coupled model of vegetation dynamics and the terrestrial carbon cycle. In:
@@ -3713,6 +3713,6 @@ private:
 //   Journal of Biogeography 23: 209-233.
 // Wang, E, Engel, T, 1998 Simulation of phenological development of wheat crops
 //   Agricultural Systems 58:1-24
-// White, M A, Thornton, P E, Running, S. & Nemani, R 2000 Parameterization and 
-//   Sensitivity Analysis of the BIOME-BGC Terrestrial Ecosystem Model: Net Primary 
+// White, M A, Thornton, P E, Running, S. & Nemani, R 2000 Parameterization and
+//   Sensitivity Analysis of the BIOME-BGC Terrestrial Ecosystem Model: Net Primary
 //   Production Controls. Earth Interactions, 4, 1-55.

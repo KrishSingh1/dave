@@ -228,7 +228,7 @@ void som_dynamics_lpj(Patch& patch, bool tillage) {
 	// Loop through PFTs
 
 	for (p=0;p<npft;p++) {	//NB. also inactive pft's
-		
+
 		// For this PFT ...
 
 		decomp_litter+=(patch.pft[p].litter_leaf+
@@ -411,7 +411,7 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil, bool tillage) {
 
 		// Increased HR for crops (tillage)
 		if (tillage && (p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM)) {
-			k *= TILLAGE_FACTOR; 
+			k *= TILLAGE_FACTOR;
 		}
 
 		// Calculate fraction of carbon pool remaining after today's decomposition
@@ -742,8 +742,8 @@ double metabolic_litter_fraction(double lton) {
 	return max(0.0, 0.85 - lton * 0.013);
 }
 
-/// Transfers litter from growth, mortality and fire   
-/** Called monthly to transfer last year's litter from vegetation   
+/// Transfers litter from growth, mortality and fire
+/** Called monthly to transfer last year's litter from vegetation
  *  (turnover, mortality and fire) to soil litter pools.
  *  Alternatively, with daily allocation and harvest/turnover,
  *  the litter produced a certain day.
@@ -784,7 +784,7 @@ void transfer_litter(Patch& patch) {
 
 	bool drop_leaf_root_litter = (lat >= 0.0 && date.month == 0) || (lat < 0.0 && date.month == 6) || patch.is_litter_day;
 
-	patch.pft.firstobj();	
+	patch.pft.firstobj();
 	while (patch.pft.isobj) {
 		Patchpft& pft=patch.pft.getobj();
 
@@ -872,7 +872,7 @@ void transfer_litter(Patch& patch) {
 				soil.sompool[SOILSTRUCT].ligcfrac = (ligcmass_new + ligcmass_old) /
 					soil.sompool[SOILSTRUCT].cmass;
 			}
-			
+
 			// Remove association with vegetation
 			pft.litter_leaf = 0.0;
 			pft.litter_root = 0.0;
@@ -882,7 +882,7 @@ void transfer_litter(Patch& patch) {
 
 		// WOOD
 
-		if (pft.pft.lifeform == TREE && date.dayofmonth == 0) { 
+		if (pft.pft.lifeform == TREE && date.dayofmonth == 0) {
 
 			// Woody debris enters two woody litter pools as described in
 			// Kirschbaum and Paul (2002).
@@ -1338,8 +1338,8 @@ void som_dynamics(Patch& patch) {
 //
 // Chatskikh, D., Hansen, S., Olesen, J.E. & Petersen, B.M. 2009. A simplified modelling approach
 //	 for quantifying tillage effects on soil carbon stocks. Eur.J.Soil.Sci., 60:924-934.
-// Comins, H. N. & McMurtrie, R. E. 1993. Long-Term Response of Nutrient-Limited 
-//   Forests to CO2 Enrichment - Equilibrium Behavior of Plant-Soil Models. 
+// Comins, H. N. & McMurtrie, R. E. 1993. Long-Term Response of Nutrient-Limited
+//   Forests to CO2 Enrichment - Equilibrium Behavior of Plant-Soil Models.
 //   Ecological Applications, 3, 666-681.
 // Cosby, B. J., Hornberger, C. M., Clapp, R. B., & Ginn, T. R. 1984 A statistical exploration
 //   of the relationships of soil moisture characteristic to the physical properties of soil.

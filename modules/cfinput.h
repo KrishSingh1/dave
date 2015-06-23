@@ -49,7 +49,7 @@ private:
 	struct Coord {
 
 		// Type for storing grid cell longitude, latitude and description text
-		
+
 		int rlon;
 		int rlat;
 		int landid;
@@ -75,7 +75,7 @@ private:
 	                      GenericSpinupData& spinup_data);
 
 	/// Gets data for one year, for one variable.
-	/** Returns either 12 or 365/366 values (depending on LPJ-GUESS year length, not 
+	/** Returns either 12 or 365/366 values (depending on LPJ-GUESS year length, not
 	 *  data set year length). Gets the values from spinup and/or historic period. */
 	void get_yearly_data(std::vector<double>& data,
 	                     const GenericSpinupData& spinup,
@@ -93,7 +93,7 @@ private:
 	/// Same as populate_daily_array, but for precipitation which is special
 	/** Uses number of wet days if available and handles extensive/intensive conversion */
 	void populate_daily_prec_array(long& seed);
-	
+
 	/// Fills dtemp, dprec, etc. with forcing data for the current year
 	void populate_daily_arrays(long& seed);
 
@@ -133,7 +133,7 @@ private:
 	GenericSpinupData spinup_wetdays;
 
 	GenericSpinupData spinup_min_temp;
-	
+
 	GenericSpinupData spinup_max_temp;
 
 	/// Temperature for current gridcell and current year (deg C)

@@ -87,13 +87,13 @@ void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
 			if (pft.gdd0[climate.chilldays] < 0.0)
 				pft.gdd0[climate.chilldays] = pft.k_chilla +
 					pft.k_chillb * exp(-pft.k_chillk * (double)climate.chilldays);
-			
+
 			if (climate.gdd5 > pft.gdd0[climate.chilldays] && aphen < APHEN_MAX)
 				phen = min(1.0,
 					(climate.gdd5 - pft.gdd0[climate.chilldays]) / pft.phengdd5ramp);
 			else
 				phen = 0.0;
-		
+
 		}
 		else if (pft.lifeform == GRASS) {
 
@@ -174,10 +174,10 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 }
 
 /// Calculates nitrogen retranslocation fraction
-/* Calculates actual nitrogen retranslocation fraction so maximum  
+/* Calculates actual nitrogen retranslocation fraction so maximum
  * nitrogen storage capacity is not exceeded
  */
-double calc_nrelocfrac(lifeformtype lifeform, double turnover_leaf, double nmass_leaf, 
+double calc_nrelocfrac(lifeformtype lifeform, double turnover_leaf, double nmass_leaf,
 	double turnover_root, double nmass_root, double turnover_sap, double nmass_sap, double max_n_storage, double longterm_nstore) {
 
 	double turnover_nmass = turnover_leaf * nmass_leaf + turnover_root * nmass_root;
@@ -237,7 +237,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	double turnover = 0.0;
 
 	// Calculate actual nitrogen retranslocation so maximum nitrogen storage capacity is not exceeded
-	double actual_nrelocfrac = calc_nrelocfrac(lifeform, turnover_leaf, nmass_leaf, turnover_root, nmass_root, 
+	double actual_nrelocfrac = calc_nrelocfrac(lifeform, turnover_leaf, nmass_leaf, turnover_root, nmass_root,
 	                                           turnover_sap, nmass_sap, max_n_storage, longterm_nstore);
 
 	// TREES AND GRASSES:
@@ -252,7 +252,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	nmass_litter_leaf += turnover * (1.0 - actual_nrelocfrac);
 	longterm_nstore += turnover * actual_nrelocfrac;
 
-	// Root turnover 
+	// Root turnover
 	turnover = turnover_root * cmass_root;
 	cmass_root -= turnover;
 	if (alive) litter_root += turnover;
@@ -274,12 +274,12 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 		// NB: assumes nitrogen is translocated from sapwood prior to conversion to
 		//     heartwood and that this is the same fraction that is conserved
 		//     in conjunction with leaf and root shedding
-		
+
 		turnover = turnover_sap * nmass_sap;
 		nmass_sap -= turnover;
 		nmass_heart += turnover * (1.0 - actual_nrelocfrac);
 		longterm_nstore += turnover * actual_nrelocfrac;
-	}	
+	}
 }
 
 
@@ -383,7 +383,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	// cmass_sap_inc   = increment (may be negative) in sapwood C biomass following
 	//                   allocation (kgC)
 	// cmass_heart_inc = increment in heartwood C biomass following allocation (kgC)
-	// litter_leaf_inc = increment in leaf litter following allocation, on individual 
+	// litter_leaf_inc = increment in leaf litter following allocation, on individual
 	//                   basis (kgC)
 	// litter_root_inc = increment in root litter following allocation, on individual
 	//                   basis (kgC)
@@ -407,7 +407,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	//   (6) diam_new = 2 * [ ( cmass_sap + cmass_sap_inc + cmass_heart )
 	//         / wooddens / height_new / PI ]**(1/2)
 	// From (4), (6) and (5),
-	//   (7) height_new**(1+2/k_allom3) = 
+	//   (7) height_new**(1+2/k_allom3) =
 	//         k_allom2**(2/k_allom3) * 4 * [cmass_sap + bminc - cmass_leaf_inc
 	//         - (cmass_leaf + cmass_leaf_inc) / ltor + cmass_root + cmass_heart]
 	//         / wooddens / PI
@@ -471,7 +471,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	cmass_heart_inc = 0.0;
 
 	if (ltor < 1.0e-10) {
-		
+
 		// No leaf production possible - put all biomass into roots
 		// (Individual will die next time period)
 
@@ -645,15 +645,15 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 				// If biomass of roots and leafs can't meet biomass decrease then
 				// sapwood also needs to decrease
-				cmass_sap_inc = bminc - cmass_leaf_inc - cmass_root_inc; 
+				cmass_sap_inc = bminc - cmass_leaf_inc - cmass_root_inc;
 
 				// Make sure we don't end up with negative cmass_sap
 				if (cmass_sap_inc < -cmass_sap) {
 					exceeds_cmass = -(cmass_sap + cmass_sap_inc);
-					cmass_sap_inc = -cmass_sap;					
+					cmass_sap_inc = -cmass_sap;
 				}
 
-				// Comment: Can happen that biomass decrease is larger than biomass in all compartments. 
+				// Comment: Can happen that biomass decrease is larger than biomass in all compartments.
 				// Then bminc is more negative than there is biomass to respire
 			}
 		}
@@ -779,7 +779,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// Abnormal allocation: negative biomass increment
 
-			// Negative increment is respiration (neg bminc) or/and increment in other 
+			// Negative increment is respiration (neg bminc) or/and increment in other
 			// compartments leading to no litter production
 
 			if (bminc < -(cmass_leaf + cmass_root)) {
@@ -810,7 +810,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 					cmass_root_inc = bminc + cmass_leaf;
 					cmass_leaf_inc = -cmass_leaf;
 				}
-			} 
+			}
 		}
 	}
 
@@ -850,10 +850,10 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 
 	indiv.nmass_leaf = 0.0;
 	indiv.nmass_root = 0.0;
-		
+
 	if (indiv.pft.lifeform == TREE) {
 		indiv.cmass_sap = cmass_sap_ind * indiv.densindiv;
-		indiv.nmass_sap = 0.0; 
+		indiv.nmass_sap = 0.0;
 	}
 }
 
@@ -918,7 +918,7 @@ bool allometry(Individual& indiv) {
 	double fpc_new; // updated FPC
 
 	// guess2008 - max tree height allowed (metre).
-	const double HEIGHT_MAX = 150.0; 
+	const double HEIGHT_MAX = 150.0;
 
 
 	if (indiv.pft.lifeform == TREE) {
@@ -927,7 +927,6 @@ bool allometry(Individual& indiv) {
 
 		// Height (Eqn 4)
 
-		// guess2008 - new allometry check 
 		if (!negligible(indiv.cmass_leaf)) {
 
 			indiv.height = indiv.cmass_sap / indiv.cmass_leaf / indiv.pft.sla * indiv.pft.k_latosa / indiv.pft.wooddens;
@@ -966,18 +965,18 @@ bool allometry(Individual& indiv) {
 			// Individual LAI (Eqn 9)
 			indiv.lai_indiv = indiv.cmass_leaf / indiv.densindiv *
 				indiv.pft.sla / indiv.crownarea;
-			
+
 			// FPC (Eqn 8)
-			
+
 			fpc_new = indiv.crownarea * indiv.densindiv *
 				(1.0 - lambertbeer(indiv.lai_indiv));
-				
+
 			// Increment deltafpc
 			indiv.deltafpc += fpc_new - indiv.fpc;
 			indiv.fpc = fpc_new;
 		}
 		else {
-			indiv.lai_indiv = 0.0;	
+			indiv.lai_indiv = 0.0;
 			indiv.fpc = 0.0;
 		}
 
@@ -988,12 +987,11 @@ bool allometry(Individual& indiv) {
 		indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
 	}
 	else if (indiv.pft.lifeform == GRASS) {
-		
+
 		// GRASSES
 
 		if(indiv.pft.landcover != CROPLAND) {
 
-			// guess2008 - bugfix - added if 
 			if (!negligible(indiv.cmass_leaf)) {
 
 				// Grass "individual" LAI (Eqn 11)
@@ -1004,7 +1002,7 @@ bool allometry(Individual& indiv) {
 
 				// Stand-level LAI
 				indiv.lai = indiv.lai_indiv;
-			} 
+			}
 			else {
 				return false;
 			}
@@ -1071,7 +1069,7 @@ void flush_litter_repr(Patch& patch) {
 	patch.pft.firstobj();
 	while (patch.pft.isobj) {
 		Patchpft& pft = patch.pft.getobj();
-		
+
 		// Updated soil fluxes
 		patch.fluxes.report_flux(Fluxes::REPRC, pft.litter_repr);
 		pft.litter_repr = 0.0;
@@ -1111,7 +1109,7 @@ void growth(Stand& stand, Patch& patch) {
 	// increment in heartwood C biomass following allocation, on individual basis (kgC)
 	double cmass_heart_inc = 0.0;
 	// increment in heartwood C biomass following allocation, on individual basis (kgC)
-	double cmass_debt_inc = 0.0; 
+	double cmass_debt_inc = 0.0;
 	// increment in crop harvestable organ C biomass following allocation, on individual basis (kgC)
 	double cmass_ho_inc = 0.0;
 	// increment in crop above-ground pool C biomass following allocation, on individual basis (kgC)
@@ -1181,16 +1179,16 @@ void growth(Stand& stand, Patch& patch) {
 		else
 			indiv.cton_leaf_aavr = indiv.pft.cton_leaf_max;
 
-		// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle and Friend 2010 SM eq 19) 	
+		// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle and Friend 2010 SM eq 19)
 		double cton_leaf_aopt = max(indiv.cton_leaf_aopt, indiv.pft.cton_leaf_avr);
 
 		if (ifnlim)
 			nscal = min(1.0, cton_leaf_aopt / indiv.cton_leaf_aavr);
-		else 
+		else
 			nscal = 1.0;
 
-		// Set leaf:root mass ratio based on water stress parameter 
-		// or nitrogen stress scalar 
+		// Set leaf:root mass ratio based on water stress parameter
+		// or nitrogen stress scalar
 		indiv.ltor = min(indiv.wscal_mean(), nscal) * indiv.pft.ltor_max;
 
 		// Move leftover compartment nitrogen storage to longterm storage
@@ -1215,7 +1213,7 @@ void growth(Stand& stand, Patch& patch) {
 
 			// added bminc check. Otherwise we get -ve litter_leaf for grasses when indiv.anpp < 0.
 			//
-			// cmass_excess-code inactivated for grass pft:s, due to frequent oscillations between high bminc and zero bminc in 
+			// cmass_excess-code inactivated for grass pft:s, due to frequent oscillations between high bminc and zero bminc in
 			// certain grasslands using updated leaflong-value for grass-pft:s (0.5)
 			if (bminc >= 0 && indiv.pft.phenology == RAINGREEN) {
 
@@ -1267,7 +1265,7 @@ void growth(Stand& stand, Patch& patch) {
 						patch.pft[indiv.pft.id].litter_root,
 						patch.pft[indiv.pft.id].nmass_litter_leaf,
 						patch.pft[indiv.pft.id].nmass_litter_root,
-						indiv.nstore_longterm,indiv.max_n_storage, 
+						indiv.nstore_longterm,indiv.max_n_storage,
 						indiv.alive);
 				}
 				// Update stand record of reproduction by this PFT
@@ -1319,7 +1317,7 @@ void growth(Stand& stand, Patch& patch) {
 					// Heartwood
 					indiv.cmass_heart += cmass_heart_inc * indiv.densindiv;
 
-					// If negative sap growth, then nrelocfrac of nitrogen will go to heart wood and 
+					// If negative sap growth, then nrelocfrac of nitrogen will go to heart wood and
 					// (1.0 - nreloctrac) will go to storage
 					if (cmass_sap_inc < 0.0) {
 						indiv.nmass_heart -= cmass_sap_inc * indiv.densindiv / cton_sap_bg * nrelocfrac;
@@ -1333,7 +1331,7 @@ void growth(Stand& stand, Patch& patch) {
 					if (indiv.alive) {
 						patch.pft[indiv.pft.id].litter_leaf += litter_leaf_inc * indiv.densindiv;
 						patch.pft[indiv.pft.id].litter_root += litter_root_inc * indiv.densindiv;
-						
+
 						// C litter exceeding existing biomass
 						indiv.report_flux(Fluxes::NPP, exceeds_cmass * indiv.densindiv);
 						indiv.report_flux(Fluxes::RA, -exceeds_cmass * indiv.densindiv);
@@ -1353,8 +1351,8 @@ void growth(Stand& stand, Patch& patch) {
 					// Subtracting litter nitrogen from individuals
 					indiv.nmass_leaf -= min(indiv.nmass_leaf, litter_leaf_inc * indiv.densindiv / cton_leaf_bg);
 					indiv.nmass_root -= min(indiv.nmass_root, litter_root_inc * indiv.densindiv / cton_root_bg);
-												
-					// If negative sap growth, then nrelocfrac of nitrogen will go to heart wood and 
+
+					// If negative sap growth, then nrelocfrac of nitrogen will go to heart wood and
 					// (1.0 - nreloctrac) will go to storage
 					if (cmass_sap_inc < 0.0) {
 						indiv.nstore_longterm -= cmass_sap_inc * indiv.densindiv / cton_sap_bg * (1.0 - nrelocfrac);
@@ -1367,7 +1365,7 @@ void growth(Stand& stand, Patch& patch) {
 					// Kill individual and transfer biomass to litter if any biomass
 					// compartment negative
 
-					if (indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS || 
+					if (indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS ||
 						indiv.cmass_sap < MINCMASS) {
 
 						indiv.kill();
@@ -1426,7 +1424,7 @@ void growth(Stand& stand, Patch& patch) {
 
 							// C litter exceeding existing biomass
 							indiv.report_flux(Fluxes::NPP, exceeds_cmass * indiv.densindiv);
-							indiv.report_flux(Fluxes::RA, -exceeds_cmass * indiv.densindiv);		
+							indiv.report_flux(Fluxes::RA, -exceeds_cmass * indiv.densindiv);
 						}
 
 						// Nitrogen always return to soil litter and storage
@@ -1439,7 +1437,7 @@ void growth(Stand& stand, Patch& patch) {
 						patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
 							cton_root_bg * (1.0 - nrelocfrac);
 						indiv.nstore_longterm += litter_root_inc / cton_root_bg * nrelocfrac;
-						
+
 						// Subtracting litter nitrogen from individuals
 						indiv.nmass_leaf -= min(indiv.nmass_leaf, litter_leaf_inc * indiv.densindiv / cton_leaf_bg);
 						indiv.nmass_root -= min(indiv.nmass_root, litter_root_inc * indiv.densindiv / cton_root_bg);
@@ -1503,7 +1501,7 @@ void growth(Stand& stand, Patch& patch) {
 					// ...now we can start counting its fluxes,
 					// debit current biomass as establishment flux
 					if (!indiv.istruecrop_or_intercropgrass()) {
-						indiv.report_flux(Fluxes::ESTC, 
+						indiv.report_flux(Fluxes::ESTC,
 					                  - (indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap +
 									  indiv.cmass_heart - indiv.cmass_debt));
 					}
@@ -1512,14 +1510,14 @@ void growth(Stand& stand, Patch& patch) {
 				// Move long-term nitrogen storage pool to labile storage pool for usage next year
 				if(!indiv.has_daily_turnover()) {
 					indiv.nstore_labile = indiv.nstore_longterm;
-					indiv.nstore_longterm = 0.0;	
+					indiv.nstore_longterm = 0.0;
 				}
 
 				// ... on to next individual
 				vegetation.nextobj();
 			}
 		}
-		
+
 	}
 
 	// Flush nitrogen free litter from reproduction straight to atmosphere
@@ -1556,8 +1554,8 @@ void growth(Stand& stand, Patch& patch) {
 //   Journal of Biogeography 23: 209-233.
 // Waring, RH Schroeder, PE & Oren, R (1982) Application of the pipe model theory
 //   to predict canopy leaf area. Canadian Journal of Forest Research 12:
-//   556-560  
+//   556-560
 // Zaehle, S. & Friend, A. D. 2010. Carbon and nitrogen cycle dynamics in the O-CN
-//   land surface model: 1. Model description, site-scale evaluation, and sensitivity 
+//   land surface model: 1. Model description, site-scale evaluation, and sensitivity
 //   to parameter estimates. Global Biogeochemical Cycles, 24.
 // Zeide, B (1993) Primary unit of the tree crown. Ecology 74: 1598-1602.

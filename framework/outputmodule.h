@@ -20,7 +20,7 @@ class Gridcell;
 namespace GuessOutput {
 
 /// Base class for output modules
-/** 
+/**
  *  An output module should inherit from this class and implement
  *  the pure virtual functions.
  *
@@ -39,7 +39,7 @@ public:
 	 *  (which will be called before the instrction file is read).
 	 *
 	 *  Typically, some of the output module's initialization
-	 *  can't be done until the instruction file parameters are 
+	 *  can't be done until the instruction file parameters are
 	 *  available, and is therefore done in this init function.
 	 */
 	virtual void init() = 0;
@@ -57,8 +57,8 @@ public:
 protected:
 
 	/// Help function to define_output_tables, creates one output table
-	void create_output_table(Table& table, 
-	                         const char* file, 
+	void create_output_table(Table& table,
+	                         const char* file,
 	                         const ColumnDescriptors& columns);
 
 	void close_output_table(Table& table);
@@ -67,7 +67,7 @@ protected:
 
 /// Manages a list of output modules
 /**
- *  Apart from simply storing the output modules, 
+ *  Apart from simply storing the output modules,
  *  this class is also a place for things used by all output
  *  modules (for instance creating the OutputChannel or
  *  declaring the 'outputdirectory' parameter).
@@ -90,12 +90,12 @@ public:
 
 	/// Calls outannual on all output modules
 	void outannual(Gridcell& gridcell);
-	
+
 	/// Calls outdaily on all output modules
 	void outdaily(Gridcell& gridcell);
 
 private:
-	
+
 	/// The output modules
 	std::vector<OutputModule*> modules;
 
@@ -140,7 +140,7 @@ public:
 	void create_all_modules(OutputModuleContainer& container) const;
 
 private:
-	
+
 	/// Private constructor to make sure we only have one instance
 	OutputModuleRegistry() {}
 
@@ -179,7 +179,7 @@ int x = dummy();\
 
 /// The output channel through which all output is sent
 /** Currently a global for legacy reasons (in order to not break
- *  existing outannual functions). Should be a member of 
+ *  existing outannual functions). Should be a member of
  *  OutputModuleContainer, which is already responsible for
  *  creating and destroying the output_channel.
  */

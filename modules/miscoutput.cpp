@@ -822,155 +822,157 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	}
 
 	// Print C fluxes to per-landcover files
-	for (int i=0;i<NLANDCOVERTYPES;i++) {
-		if (run[i]) {
+	if (run_landcover) {
+		for (int i=0;i<NLANDCOVERTYPES;i++) {
+			if (run[i]) {
 
-			GuessOutput::Table* table_p=NULL;
-			GuessOutput::Table* table_p_N=NULL;
+				GuessOutput::Table* table_p=NULL;
+				GuessOutput::Table* table_p_N=NULL;
 
-			switch (i) {
-			case CROPLAND:
-				table_p=&out_cflux_cropland;
-				table_p_N=&out_nflux_cropland;
-				break;
-			case PASTURE:
-				table_p=&out_cflux_pasture;
-				table_p_N=&out_nflux_pasture;
-				break;
-			case NATURAL:
-				table_p=&out_cflux_natural;
-				table_p_N=&out_nflux_natural;
-				break;
-			case FOREST:
-				table_p=&out_cflux_forest;
-				table_p_N=&out_nflux_forest;
-				break;
-			case BARREN:
-				break;
-			default:
-				if (date.year == nyear_spinup)
-					dprintf("Modify code to deal with landcover output!\n");
-			}
+				switch (i) {
+				case CROPLAND:
+					table_p=&out_cflux_cropland;
+					table_p_N=&out_nflux_cropland;
+					break;
+				case PASTURE:
+					table_p=&out_cflux_pasture;
+					table_p_N=&out_nflux_pasture;
+					break;
+				case NATURAL:
+					table_p=&out_cflux_natural;
+					table_p_N=&out_nflux_natural;
+					break;
+				case FOREST:
+					table_p=&out_cflux_forest;
+					table_p_N=&out_nflux_forest;
+					break;
+				case BARREN:
+					break;
+				default:
+					if (date.year == nyear_spinup)
+						dprintf("Modify code to deal with landcover output!\n");
+				}
 
-			if (table_p) {
-				out.add_value(*table_p, flux_veg_lc[i]);
-				out.add_value(*table_p, -flux_repr_lc[i]);
-				out.add_value(*table_p, flux_soil_lc[i]);
-				out.add_value(*table_p, flux_fire_lc[i]);
-				out.add_value(*table_p, flux_est_lc[i]);
+				if (table_p) {
+					out.add_value(*table_p, flux_veg_lc[i]);
+					out.add_value(*table_p, -flux_repr_lc[i]);
+					out.add_value(*table_p, flux_soil_lc[i]);
+					out.add_value(*table_p, flux_fire_lc[i]);
+					out.add_value(*table_p, flux_est_lc[i]);
 
-				out.add_value(*table_p_N, -andep_lc[i] * m2toha);
-				out.add_value(*table_p_N, -anfix_lc[i] * m2toha);
-				out.add_value(*table_p_N, -anfert_lc[i] * m2toha);
-				out.add_value(*table_p_N, flux_ntot_lc[i] * m2toha);
-				out.add_value(*table_p_N, (n_min_leach_lc[i] + n_org_leach_lc[i]) * m2toha);
+					out.add_value(*table_p_N, -andep_lc[i] * m2toha);
+					out.add_value(*table_p_N, -anfix_lc[i] * m2toha);
+					out.add_value(*table_p_N, -anfert_lc[i] * m2toha);
+					out.add_value(*table_p_N, flux_ntot_lc[i] * m2toha);
+					out.add_value(*table_p_N, (n_min_leach_lc[i] + n_org_leach_lc[i]) * m2toha);
+
+					if (run_landcover) {
+						 out.add_value(*table_p, flux_seed_lc[i]);
+						 out.add_value(*table_p, flux_charvest_lc[i]);
+						 out.add_value(*table_p, lc.acflux_landuse_change_lc[i]);
+						 out.add_value(*table_p, lc.acflux_harvest_slow_lc[i]);
+						 out.add_value(*table_p_N, flux_nseed_lc[i] * m2toha);
+						 out.add_value(*table_p_N, flux_nharvest_lc[i] * m2toha);
+						 out.add_value(*table_p_N, lc.anflux_landuse_change_lc[i] * m2toha);
+						 out.add_value(*table_p_N, lc.anflux_harvest_slow_lc[i] * m2toha);
+					}
+				}
+
+				double cflux_total = flux_veg_lc[i] - flux_repr_lc[i] + flux_soil_lc[i] + flux_fire_lc[i] + flux_est_lc[i];
+				double nflux_total = -andep_lc[i] - anfix_lc[i] - anfert_lc[i] + flux_ntot_lc[i] + n_min_leach_lc[i] + n_org_leach_lc[i];
 
 				if (run_landcover) {
-					 out.add_value(*table_p, flux_seed_lc[i]);
-					 out.add_value(*table_p, flux_charvest_lc[i]);
-					 out.add_value(*table_p, lc.acflux_landuse_change_lc[i]);
-					 out.add_value(*table_p, lc.acflux_harvest_slow_lc[i]);
-					 out.add_value(*table_p_N, flux_nseed_lc[i] * m2toha);
-					 out.add_value(*table_p_N, flux_nharvest_lc[i] * m2toha);
-					 out.add_value(*table_p_N, lc.anflux_landuse_change_lc[i] * m2toha);
-					 out.add_value(*table_p_N, lc.anflux_harvest_slow_lc[i] * m2toha);
+					cflux_total += flux_seed_lc[i];
+					cflux_total += flux_charvest_lc[i];
+					cflux_total += lc.acflux_landuse_change_lc[i];
+					cflux_total += lc.acflux_harvest_slow_lc[i];
+					nflux_total += flux_nseed_lc[i];
+					nflux_total += flux_nharvest_lc[i];
+					nflux_total += lc.anflux_landuse_change_lc[i];
+					nflux_total += lc.anflux_harvest_slow_lc[i];
 				}
-			}
-
-			double cflux_total = flux_veg_lc[i] - flux_repr_lc[i] + flux_soil_lc[i] + flux_fire_lc[i] + flux_est_lc[i];
-			double nflux_total = -andep_lc[i] - anfix_lc[i] - anfert_lc[i] + flux_ntot_lc[i] + n_min_leach_lc[i] + n_org_leach_lc[i];
-
-			if (run_landcover) {
-				cflux_total += flux_seed_lc[i];
-				cflux_total += flux_charvest_lc[i];
-				cflux_total += lc.acflux_landuse_change_lc[i];
-				cflux_total += lc.acflux_harvest_slow_lc[i];
-				nflux_total += flux_nseed_lc[i];
-				nflux_total += flux_nharvest_lc[i];
-				nflux_total += lc.anflux_landuse_change_lc[i];
-				nflux_total += lc.anflux_harvest_slow_lc[i];
-			}
-			if (table_p) {
-				out.add_value(*table_p,  cflux_total);
-				out.add_value(*table_p_N,  nflux_total * m2toha);
+				if (table_p) {
+					out.add_value(*table_p,  cflux_total);
+					out.add_value(*table_p_N,  nflux_total * m2toha);
+				}
 			}
 		}
-	}
 
-	// Print C pools to per-landcover files
-	for (int i=0;i<NLANDCOVERTYPES;i++) {
-		if (run[i]) {
+		// Print C pools to per-landcover files
+		for (int i=0;i<NLANDCOVERTYPES;i++) {
+			if (run[i]) {
 
-			GuessOutput::Table* table_p=NULL;
-			GuessOutput::Table* table_p_N=NULL;
+				GuessOutput::Table* table_p=NULL;
+				GuessOutput::Table* table_p_N=NULL;
 
-			switch (i) {
-			case CROPLAND:
-				table_p=&out_cpool_cropland;
-				table_p_N=&out_npool_cropland;
-				break;
-			case PASTURE:
-				table_p=&out_cpool_pasture;
-				table_p_N=&out_npool_pasture;
-				break;
-			case NATURAL:
-				table_p=&out_cpool_natural;
-				table_p_N=&out_npool_natural;
-				break;
-			case FOREST:
-				table_p=&out_cpool_forest;
-				table_p_N=&out_npool_forest;
-				break;
-			case BARREN:
-				break;
-			default:
-				if (date.year == nyear_spinup)
-					dprintf("Modify code to deal with landcover output!\n");
-			}
+				switch (i) {
+				case CROPLAND:
+					table_p=&out_cpool_cropland;
+					table_p_N=&out_npool_cropland;
+					break;
+				case PASTURE:
+					table_p=&out_cpool_pasture;
+					table_p_N=&out_npool_pasture;
+					break;
+				case NATURAL:
+					table_p=&out_cpool_natural;
+					table_p_N=&out_npool_natural;
+					break;
+				case FOREST:
+					table_p=&out_cpool_forest;
+					table_p_N=&out_npool_forest;
+					break;
+				case BARREN:
+					break;
+				default:
+					if (date.year == nyear_spinup)
+						dprintf("Modify code to deal with landcover output!\n");
+				}
 
-			if (table_p) {
-				out.add_value(*table_p, landcover_cmass[i] * lc.frac[i]);
-				out.add_value(*table_p_N, (landcover_nmass[i] + landcover_nlitter[i]) * lc.frac[i]);
+				if (table_p) {
+					out.add_value(*table_p, landcover_cmass[i] * lc.frac[i]);
+					out.add_value(*table_p_N, (landcover_nmass[i] + landcover_nlitter[i]) * lc.frac[i]);
 
+					if (!ifcentury) {
+						out.add_value(*table_p, landcover_clitter[i] * lc.frac[i]);
+						out.add_value(*table_p, c_fast_lc[i]);
+						out.add_value(*table_p, c_slow_lc[i]);
+					}
+					else {
+						out.add_value(*table_p, landcover_clitter[i] * lc.frac[i] + surfsoillitterc_lc[i] + cwdc_lc[i]);
+						out.add_value(*table_p, centuryc_lc[i]);
+						out.add_value(*table_p_N, surfsoillittern_lc[i] + cwdn_lc[i]);
+						out.add_value(*table_p_N, centuryn_lc[i] + availn_lc[i]);
+					}
+
+					if (run_landcover && ifslowharvestpool) {
+						out.add_value(*table_p, c_harv_slow_lc[i]);
+						out.add_value(*table_p_N, n_harv_slow_lc[i]);
+					}
+				}
+
+				// Calculate total cpool, starting with cmass and litter...
+				double cpool_total = (landcover_cmass[i] + landcover_clitter[i]) * lc.frac[i];
+				double npool_total = (landcover_nmass[i] + landcover_nlitter[i]) * lc.frac[i];
+
+				// Add SOM pools
 				if (!ifcentury) {
-					out.add_value(*table_p, landcover_clitter[i] * lc.frac[i]);
-					out.add_value(*table_p, c_fast_lc[i]);
-					out.add_value(*table_p, c_slow_lc[i]);
+					cpool_total += c_fast_lc[i] + c_slow_lc[i];
 				}
 				else {
-					out.add_value(*table_p, landcover_clitter[i] * lc.frac[i] + surfsoillitterc_lc[i] + cwdc_lc[i]);
-					out.add_value(*table_p, centuryc_lc[i]);
-					out.add_value(*table_p_N, surfsoillittern_lc[i] + cwdn_lc[i]);
-					out.add_value(*table_p_N, centuryn_lc[i] + availn_lc[i]);
+					cpool_total += centuryc_lc[i] + surfsoillitterc_lc[i] + cwdc_lc[i];
+					npool_total += centuryn_lc[i] + surfsoillittern_lc[i] + cwdn_lc[i] + availn_lc[i];
 				}
 
+				// Add slow harvest pool if needed
 				if (run_landcover && ifslowharvestpool) {
-					out.add_value(*table_p, c_harv_slow_lc[i]);
-					out.add_value(*table_p_N, n_harv_slow_lc[i]);
+					cpool_total += c_harv_slow_lc[i];
+					npool_total += n_harv_slow_lc[i];
 				}
-			}
-
-			// Calculate total cpool, starting with cmass and litter...
-			double cpool_total = (landcover_cmass[i] + landcover_clitter[i]) * lc.frac[i];
-			double npool_total = (landcover_nmass[i] + landcover_nlitter[i]) * lc.frac[i];
-
-			// Add SOM pools
-			if (!ifcentury) {
-				cpool_total += c_fast_lc[i] + c_slow_lc[i];
-			}
-			else {
-				cpool_total += centuryc_lc[i] + surfsoillitterc_lc[i] + cwdc_lc[i];
-				npool_total += centuryn_lc[i] + surfsoillittern_lc[i] + cwdn_lc[i] + availn_lc[i];
-			}
-
-			// Add slow harvest pool if needed
-			if (run_landcover && ifslowharvestpool) {
-				cpool_total += c_harv_slow_lc[i];
-				npool_total += n_harv_slow_lc[i];
-			}
-			if (table_p) {
-				out.add_value(*table_p, cpool_total);
-				out.add_value(*table_p_N, npool_total);
+				if (table_p) {
+					out.add_value(*table_p, cpool_total);
+					out.add_value(*table_p_N, npool_total);
+				}
 			}
 		}
 	}

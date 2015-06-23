@@ -64,7 +64,7 @@ const double ALPHAA = 0.55;		// value chosen to give global carbon pool and flux
 const double ALPHAA_NLIM = 0.7; // Same as ALPHAA above but chosen to give pools and flux values
 								// that agree with published estimates when Nitrogen limitation is
 								// switched on.
-	
+
 const double ALPHAA_CROP = 0.75;		// Value for crops without N limitation.
 const double ALPHAA_CROP_NLIM = 1.0;	// Value for crops with N limitation
 

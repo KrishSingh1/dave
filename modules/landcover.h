@@ -112,8 +112,6 @@ struct landcover_change_transfer {
 	// Adds non-living C, N and water from a stand
 	void add_from_stand(Stand& stand, double scale) {
 
-		double ccont_stand = 0.0;
-
 		stand.firstobj();
 		while(stand.isobj) {
 			Patch& patch = stand.getobj();
@@ -174,8 +172,6 @@ struct landcover_change_transfer {
 				transfer_aaet_5.add(aaet_5_cp[i] + patch.aaet_5[i] * scale);
 
 			transfer_anfix_calc += patch.soil.anfix_calc * scale;
-
-			ccont_stand += patch.ccont() / (double)stand.npatch();
 
 			stand.nextobj();
 		}

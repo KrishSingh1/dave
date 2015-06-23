@@ -254,7 +254,7 @@ void fpar(Patch& patch) {
 
 			// For this individual ...
 
-			if(indiv.growingseason()) {
+			if (indiv.growingseason()) {
 
 				indiv.fpar=0.0;
 				indiv.fpar_leafon=0.0;
@@ -484,10 +484,10 @@ void fpar(Patch& patch) {
 
 double alphaa(const Pft& pft) {
 
-	if(pft.phenology == CROPGREEN)
-		return (ifnlim ? ALPHAA_CROP_NLIM : ALPHAA_CROP);
+	if (pft.phenology == CROPGREEN)
+		return ifnlim ? ALPHAA_CROP_NLIM : ALPHAA_CROP;
 	else
-		return (ifnlim ? ALPHAA_NLIM : ALPHAA);
+		return ifnlim ? ALPHAA_NLIM : ALPHAA;
 }
 
 /// Non-water stressed rubisco capacity, with or without nitrogen limitation
@@ -603,6 +603,7 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 	// Eqn 4, Haxeltine & Prentice 1996a
 	double apar = par * fpar * alphaa(pft);
 	double b, c1, c2;
+
 
 	// Calculate temperature-inhibition coefficient
 	// This function (tscal) is mathematically identical to function tstress in LPJF.
@@ -1043,7 +1044,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 
 	if (patch.stand.landcover == CROPLAND && ifnlim) { // Also for other landcovers ??
 		// Take soil wcont into account
-		tot_nmass_avail *= (patch.soil.wcont[0] * 0.9 + patch.soil.wcont[1] * 0.1);
+		tot_nmass_avail *= patch.soil.wcont[0] * 0.9 + patch.soil.wcont[1] * 0.1;
 	}
 
 	// Calculate individual uptake fraction of nitrogen demand
@@ -1156,27 +1157,26 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
 		// Call photosynthesis for individual assuming stomates fully open
 		// (lambda = lambda_max)
 
-		if(indiv.growingseason()) {
+		if (indiv.growingseason()) {
 
 			PhotosynthesisResult leafon_photosynthesis;
 
 			// Call photosynthesis first with fpar_leafon to get gp_leafon below.
 			// Should hopefully not be needed in future, demand_leafon only used
 			// by raingreen phenology.
-		
+
 			double temp = date.diurnal() ? climate.temps[day.period] : climate.temp;
 			double par = date.diurnal() ? climate.pars[day.period] : climate.par;
 			double daylength = date.diurnal() ? 24 : climate.daylength;
 
 			// No nitrogen limitation when calculating gp_leafon
 			photosynthesis(climate.co2, temp, par, daylength,
-						   indiv.fpar_leafon, pft.lambda_max, pft,
-						   1.0, false,
-						   leafon_photosynthesis,
-						   -1);
+			               indiv.fpar_leafon, pft.lambda_max, pft,
+			               1.0, false,
+			               leafon_photosynthesis,
+			               -1);
 
 			double gp_leafon = gpterm(leafon_photosynthesis.adtmm, climate.co2, pft.lambda_max, daylength) + pft.gmin * indiv.fpc;
-
 
 			// Increment patch sums of non-water-stressed gp by individual value
 			gp_patch +=  (date.diurnal() ? indiv.gpterms[day.period] : indiv.gpterm) + pft.gmin * indiv.fpc_today();
@@ -1409,6 +1409,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 		// Retrieve next patch PFT
 		Patchpft& ppft = patch.pft[p];
+
 		// Retrieve PFT
 		Pft& pft = ppft.pft;
 
@@ -1435,6 +1436,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 				ppft.wsupply_leafon = 0.0;
 			ppft.wsupply = ppft.wsupply_leafon * ppft.phen;
 		}
+
 		ppft.wstress = ppft.wsupply < patch.wdemand && !negligible(ppft.phen) && !(pft.phenology==CROPGREEN && (patch.wdemand-ppft.wsupply)<=1.0e-10);
 
 		// Calculate water-stressed canopy conductance on FPC basis assuming
@@ -1455,6 +1457,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 			ppft.gcbase_day = ppft.gcbase;
 		}
 		else if (day.isend) {
+
 			ppft.wstress_day = ppft.wsupply < patch.wdemand_day && !negligible(ppft.phen) && !(pft.phenology==CROPGREEN && (patch.wdemand-ppft.wsupply)<=1.0e-10);
 
 			ppft.gcbase_day = ppft.wstress_day ? max(gc_monteith(ppft.wsupply,
@@ -1522,6 +1525,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 		}
 
 		// Calculate patch PFT water scalar value
+
 		if (!negligible(patch.wdemand_leafon)) {
 			ppft.wscal += min(1.0, ppft.wsupply_leafon/patch.wdemand_leafon);
 		}
@@ -1533,7 +1537,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 			ppft.wscal /= (double)date.subdaily;
 
 			if (patch.stand.landcover!=CROPLAND										//natural, urban, pasture, forest and peatland stands
-					|| ppft.pft.phenology==ANY && ppft.pft.id==patch.stand.pftid) {	//normal grass growth 
+					|| ppft.pft.phenology==ANY && ppft.pft.id==patch.stand.pftid) {	//normal grass growth
 				ppft.wscal_mean += ppft.wscal;
 
 				// Convert from sum to mean on last day of year
@@ -1871,6 +1875,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 			// Water stress - derive assimilation by simultaneous solution
 			// of light- and conductance-based equations of photosynthesis
+
 			assimilation_wstress(pft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
 				ppft.gcbase, phot.vm, phot, lambda,
 				indiv.nactive / indiv.nextin, ifnlim);

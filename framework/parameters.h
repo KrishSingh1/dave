@@ -14,7 +14,7 @@
 /// Sometimes, adding a new parameter shouldn't (or can't) be done here however.
 /// A parameter specific for a certain input module, should only be declared if
 /// that input module is used. In this case the input module should declare its
-/// own parameters when it is created. This can also be a good idea simply to 
+/// own parameters when it is created. This can also be a good idea simply to
 /// make modules more independent. For parameters like this, we can either use
 /// the "custom" parameters (\see Paramlist) which don't need to be declared at
 /// all, or the parameters can be declared with the declare_parameter family of
@@ -37,7 +37,7 @@
 
 
 /// Vegetation 'mode', i.e. what each Individual object represents
-/** Can be one of: 
+/** Can be one of:
  *  1. The average characteristics of all individuals comprising a PFT
  *     population over the modelled area (standard LPJ mode)
  *  2. A cohort of individuals of a PFT that are roughly the same age
@@ -121,16 +121,16 @@ extern wateruptaketype wateruptake;
 
 /// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
 extern bool ifcentury;
-/// whether plant growth limited by available N	
+/// whether plant growth limited by available N
 extern bool ifnlim;
 
-/// number of years to allow spinup without nitrogen limitation	
+/// number of years to allow spinup without nitrogen limitation
 extern int freenyears;
-/// fraction of nitrogen relocated by plants from roots and leaves	
+/// fraction of nitrogen relocated by plants from roots and leaves
 extern double nrelocfrac;
-/// first term in nitrogen fixation eqn (Cleveland et al 1999)	
+/// first term in nitrogen fixation eqn (Cleveland et al 1999)
 extern double nfix_a;
-/// second term in nitrogen fixation eqn (Cleveland et al 1999)	
+/// second term in nitrogen fixation eqn (Cleveland et al 1999)
 extern double nfix_b;
 
 /// Whether other landcovers than natural vegetation are simulated.
@@ -228,7 +228,7 @@ extern bool ifbvoc;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
-// The Paramlist class (and Paramtype) 
+// The Paramlist class (and Paramtype)
 //
 
 /// Represents one custom "param" item
@@ -241,7 +241,7 @@ struct Paramtype {
 
 /// List for the "custom" parameters
 /** Functionality for storing and retrieving custom "param" items from the instruction
- *  script. "Custom" parameters can be accessed by other modules without the need to 
+ *  script. "Custom" parameters can be accessed by other modules without the need to
  *  define them beforehand. This of course also means there is no help text associated
  *  with these parameters, so the user can't get any documentation about them from
  *  the command line.

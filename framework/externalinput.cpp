@@ -310,8 +310,9 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 							dprintf("Modify code to deal with landcover input!\n");
 					}
 						
-					if(lcfrac == NOTFOUND)	// land cover not found in input file
+					if(lcfrac == NOTFOUND) {	// land cover not found in input file
 						lcfrac = 0.0;
+					}
 					else if(lc.frac[i] < 0.0 || lc.frac[i] > 1.0) {	// discard unreasonable values	
 						if(printyear)
 							dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
@@ -480,9 +481,10 @@ void LandcoverInput::get_crop_fractions(Gridcell& gridcell, int year) {
 
 				double cropfrac = CFTdata.Get(year,stlist[i].name);
 
-				if(cropfrac == NOTFOUND)	// crop not found in input file
+				if(cropfrac == NOTFOUND) {	// crop not found in input file
 					cropfrac = 0.0;
-				else if(cropfrac < 0.0 || cropfrac > 1.0)	{	// discard unreasonable values
+				}
+				else if(cropfrac < 0.0 || cropfrac > 1.0) {	// discard unreasonable values
 					if(!(!lc.frac[CROPLAND] && cropfrac < 0.0) && printyear)
 						dprintf("WARNING ! crop fraction size out of limits, set to 0.0\n");
 					cropfrac = 0.0;

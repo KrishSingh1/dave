@@ -10,6 +10,8 @@
 
 #include "indata.h"
 
+using namespace InData;
+
 /// Reads gridlist in lon-lat-description format from text input file
 void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist);
 

@@ -1,7 +1,9 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \file indata.h
-/// \brief Classes for text input data (used mainly for landcover input).											  
-/// File format can be either line 1:lon lat, line 2: year data OR line 1: header, line 2: lon lat year data  
+/// \brief Classes for text input data (used mainly for landcover input).
+/// File format can be either line 1:lon lat, line 2 etc.: year data-columns OR line 1: header, 
+/// line 2 etc.: lon lat year data-columns. For local static data, use: lon lat data-columns,
+/// for global static data, use: dummy data-columns (with "static" as first word in header).
 /// \author Mats Lindeskog
 /// $Date$
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -9,60 +11,31 @@
 #ifndef INDATA_H
 #define INDATA_H
 
-#define GUESS_VERSION
-
-#ifdef GUESS_VERSION
-
 #include "inputdefinitions.h"
 
 using namespace inputdef;
 
-//#define MAPFILE	// Mapping of input file data when LUTOMEMORY not defined
-#else
-#include <stdio.h>
-#include <math.h>
-#include <algorithm>
-#endif
-
 using std::min;
 using std::max;
 
-namespace InData 
-{
+namespace InData {
 
-#define MAXLINE 20000
-#define MAXNAMESIZE 50
-#define MAXRECORDS 500
-#define MAXLINESPARSE 30000
-#define NOTFOUND -999
-#define MAX_SEARCHRADIUS 1.0
+const int MAXLINE = 20000;
+const int MAXNAMESIZE = 50;
+const int MAXRECORDS = 500;
+const int MAXLINESPARSE = 30000;
+const int NOTFOUND = -999;
+const double MAX_SEARCHRADIUS = 1.0;
 
 /// Formats in text input file
-enum {EMPTY, GLOBAL_STATIC, GLOBAL_YEARLY, LOCAL_STATIC, LOCAL_YEARLY};
+typedef enum {EMPTY, GLOBAL_STATIC, GLOBAL_YEARLY, LOCAL_STATIC, LOCAL_YEARLY} fileformat;
 
 /// Type for storing grid cell longitude, latitude and associated data position on disk
-struct CoordPos 
-{
+struct CoordPos {
 	double lon;
 	double lat;
 	long int pos;
 };
-
-#ifndef GUESS_VERSION
-
-#define dprintf printf
-
-/// Type for storing grid cell longitude and latitude
-struct Coord {
-
-	double lon;
-	double lat;
-};
-
-/// Input data will be parsed for finer resolution than the default value. For coarser resolutions, raise default value.
-const double DEFAULT_SPATIAL_RESOLUTION = 0.5;
-
-#endif
 
 // Forward declaration of TimeDataDmem
 class TimeDataDmem;
@@ -70,7 +43,7 @@ class TimeDataDmem;
 /// Class for reading a set of double data at coordinate positions over time (years), alternatively static or/and global.
 class TimeDataD	{
 
-	// PRIVATE VARIABLES	
+	// PRIVATE VARIABLES
 
 	/// File pointer to input file
 	FILE *ifp;
@@ -81,7 +54,7 @@ class TimeDataD	{
 	/// Number of data years
 	int nYears;									//Set in ParseNYears()
 	/// Number of data gridcells
-	int nCells;									//Set in ParseNCells() or ParseNCellsSpatial()
+	int nCells;									//Set in ParseNCells()
 	// Spacial resolution of input data in degrees
 	double spatial_resolution;
 	/// Offset to be used when searching for coordinates
@@ -99,13 +72,11 @@ class TimeDataD	{
 	/// Pointer to array with indication whether data column contains values > 0 or not
 	bool *checkdata;							//allocated in CheckIfPresent()
 	/// Format of input data
-	int format;									//EMPTY, GLOBAL_STATIC, GLOBAL_YEARLY, LOCAL_STATIC, LOCAL_YEARLY
+	fileformat format;
 	/// First year of data
 	int firstyear;								//set in ParseNYears() or ParseNYearsSpatial()
 	/// Whether data is currently being checked by CheckIfPresent()
 	bool ischeckingdata;
-	/// Whether data file is opened
-	bool fileopened;
 	/// Whether data for the requested coordinates have been found and loaded
 	bool loaded;
 
@@ -117,25 +88,23 @@ class TimeDataD	{
 	// PRIVATE METHODS
 
 	/// Methods for parsing input file data format and structure
-	int ParseFormat();							//Called from Open(); Returns 0 if wrong format, sets nColumns, ifheader and header_arr[]
+	fileformat ParseFormat();					//Called from Open(); Returns 0 if wrong format, sets nColumns, ifheader and header_arr[]
 	int ParseNYears();							//Called from Open()
 	int ParseNYearsGlobal();					//Called from ParseNYears()
 	int ParseNYearsLocal();						//Called from ParseNYears()
-	int ParseNYearsSpatial();					//Called from OpenSpatial()
 	void ParseNCells();
-	int ParseNCellsSpatial();
 	double ParseSpatialResolution();			//Called from Open()
 
 	/// Allocates memory for dynamic data structures
-	int Allocate();								//Called from Open() or OpenSpatial()
+	bool Allocate();							//Called from Open()
 	/// Finds data for a gridcell in input file. Quick version
-	int FindRecord(Coord c) const;
+	bool FindRecord(Coord c) const;
 	/// Finds data for a gridcell in input file. Slower version, can handle blank lines
-	int FindRecord2(Coord c) const;
+	bool FindRecord2(Coord c) const;
 	/// Converts data column name to data column index
 	int GetColumn(const char* name) const;		// Returns column number for header name.
 	/// Converts calender year to valid year position in data array.
-	int CalenderYearToPosition(int calender_year) const;	
+	int CalenderYearToPosition(int calender_year) const;
 	/// Creates map of the file positions of all gridcells' data
 	void CreateFileMap();
 	/// Sets the file pointer to required position (found in the file map)
@@ -145,64 +114,52 @@ class TimeDataD	{
 	/// Loads local data for a certain coordinate from a file map. Returns 0 if coordinate not found.
 	bool LoadFromMap(Coord c);
 	/// Sets offset to be used when searching for coordinates.
-	void SetOffset(double gridlist_offset) { 
-		if(gridlist_offset)
-			offset = gridlist_offset - spatial_resolution / 2.0;
-	}
-
-#ifdef GUESS_VERSION
+	void SetOffset(double gridlist_offset);
 	/// Copies all data for the specified gridlist to memory
 	void CopyToMemory(int ncells, ListArray_id<Coord>& lonlatlist);
-#endif
 
 public:
 
 	// PUBLIC METHODS
 
 	/// Constructor
-	TimeDataD(int format=EMPTY);		// default format value can only be used with header version input files !
+	TimeDataD(fileformat format=EMPTY);		// default format value can only be used with header version input files !
 	/// Deconstructor
 	~TimeDataD();
 
-// Methods to open input files and access data
-	/// Opens input file, checks format and allocates memory. Returns 0 if error
-	int Open(char* name);
-#ifdef GUESS_VERSION
-	/// Opens input file, checks format and allocates memory. Copies all data for the gridlist into memory if LUTOMEMORY is defined. Returns 0 if error.
-	int Open(char* name, ListArray_id<Coord>& gridlist, double gridlist_offset = 0.0);
-#endif
+	// Methods to open input files and access data
+
+	/// Opens input file, checks format and allocates memory. Returns false if error
+	bool Open(const char* name);
+	/// Opens input file, checks format and allocates memory. Copies all data for the gridlist into memory if LUTOMEMORY is defined. Returns false if error.
+	bool Open(const char* name, ListArray_id<Coord>& gridlist, double gridlist_offset = 0.0);
 	/// Releases dynamically allocated memory.
 	void Close();
 	/// Writes the data of the current coordinate to an output file
 	void Output(char* outfile);
 	/// Loads global data
-	int Load();
-	/// Loads data for a certain coordinate. Returns 0 if coordinate not found.
-	int Load(Coord c);
-	/// Steps through a data file, loading each coordinate's data consecutively. Returns 0 if error.
-	int LoadNext(long int *pos = NULL);
+	bool Load();
+	/// Loads data for a certain coordinate. Returns false if coordinate not found.
+	bool Load(Coord c);
+	/// Steps through a data file, loading each coordinate's data consecutively. Returns false if error.
+	bool LoadNext(long int *pos = NULL);
 	/// Returns a single data value for a certain year and data column
 	double Get(int calender_year, int column) const;
 	/// Returns a single data value for column with header string name. Returns -999 if name not found.
 	double Get(int calender_year, const char* name) const;
-	/// Copies the data for the current gridcell for one year to an array, returns 0 if wrong format.
-	int Get(int calender_year, double* dataX) const;
-	/// Copies all data for the current gridcell to an array, returns 0 if wrong format.
-	int Get(double* dataX) const;
+	/// Copies the data for the current gridcell for one year to an array.
+	void Get(int calender_year, double* dataX) const;
+	/// Copies all data for the current gridcell to an array.
+	void Get(double* dataX) const;
 
-// Methods used when reordering data from gridcell-timestep to timestep-gridcell structure
-	int OpenSpatial(char* name, bool replace_original_file=false);
-	int OutputConvertedSpatial(char*);
+	// Methods to access private data
 
-// Methods to access private data
-	/// Returns 1 if data for a gridcell is found in the input file, 0 if not.
-	int FindCoord(Coord c) const {return FindRecord(c);}
 	/// Returns the number of data columns
 	int GetnColumns() const {return nColumns;}
 	/// Copies the data column names to a string array
-	int GetHeader(char cropnames[][MAXNAMESIZE]) const;
+	bool GetHeader(char cropnames[][MAXNAMESIZE]) const;
 	/// Copies the whole header to a string
-	int GetHeaderFull(char *header_line) const;
+	bool GetHeaderFull(char *header_line) const;
 	/// Returns a pointer to a data name string for a column by its index
 	char* GetHeader(int record) const;
 	/// Returns the current coordinates
@@ -223,11 +180,10 @@ public:
 	double GetSpacialResolution() const {return spatial_resolution;}
 	double GetOffset() const { return offset;}
 
-// Functions for finding out if data columns contain sensible data for a specified gridlist 
-#ifdef GUESS_VERSION
+// Functions for finding out if data columns contain sensible data for a specified gridlist
+
 	/// Checks if data column has any values > 0 in any of the gridcells in the gridlist
 	void CheckIfPresent(ListArray_id<Coord>& gridlist);
-#endif
 	// Returns true if data column has any values > 0 in any of the gridcells in the gridlist (after CheckIfPresent() call)
 	bool item_has_data(char* name);
 	// Returns true if data name is in header
@@ -283,15 +239,13 @@ public:
 	/// Deconstructor
 	~TimeDataDmem();
 
-	/// Allocates memory. Returns 0 if error
+	/// Allocates memory.
 	void Open(int nCells, int nColumns, int nYears);
 	/// Releases dynamically allocated memory.
 	void Close();
-#if defined GUESS_VERSION
 	/// Copies all data for gridlist to memory
 	void CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridlistX);
-#endif
-	/// Loads data for a certain coordinate. Returns 0 if coordinate not found.
+	/// Loads data for a certain coordinate. Returns false if coordinate not found.
 	bool Load(Coord c);
 	/// Returns a single data value for a certain year and data column
 	double Get(int calender_year, int column) const;		// Returns a single value.

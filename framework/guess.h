@@ -2957,9 +2957,10 @@ public:
 		}
 	}
 
-	~Patchpft()	{
-		if(cropphen)
+	~Patchpft() {
+		if(cropphen) {
 			delete cropphen;
+		}
 	}
 
 	/// safe method to obtain cropphen_struct pointer
@@ -3531,7 +3532,7 @@ public:
 	/// Whether the land cover fractions changed for this grid cell this year
 	/** \see landcover_dynamics
 	 */
-	bool LC_updated;
+	bool updated;
 
 	/// Gridcell-level C flux from slow harvested products
 	double acflux_harvest_slow;

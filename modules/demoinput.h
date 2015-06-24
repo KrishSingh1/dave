@@ -55,7 +55,7 @@ private:
 
 	/// Type for storing grid cell longitude, latitude and description text
 	struct Coord {
-		
+
 		int id;
 		double lon;
 		double lat;

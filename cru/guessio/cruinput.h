@@ -105,13 +105,13 @@ private:
 
 	/// Type for storing grid cell longitude, latitude and description text
 	struct Coord {
-		
+
 		int id;
 		double lon;
 		double lat;
 		xtring descrip;
 	};
-bool loaddata(Coord& c, int& soilcode);
+
 	/// Land cover input module
 	LandcoverInput landcover_input;
 	/// Management input module
@@ -120,7 +120,7 @@ bool loaddata(Coord& c, int& soilcode);
 	/// search radius to use when finding CRU data
 	double searchradius;
 
-	/// A list of Lon-Lat Coord objects containing coordinates of the grid cells to simulate
+	/// A list of Coord objects containing coordinates of the grid cells to simulate
 	ListArray_id<Coord> gridlist;
 
 	// Timers for keeping track of progress through the simulation

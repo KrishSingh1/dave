@@ -183,11 +183,11 @@ void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft) {
 			gridcellpft.wintertype = true;
 		}
 		// if not, use spring sowing
-		else {	// if(gridcellpft.first_autumndate20==climate.coldestday)
+		else {	// if (gridcellpft.first_autumndate20==climate.coldestday)
 
 			if (!((gridcellpft.last_springdate20 == climate.testday_temp || gridcellpft.last_springdate20 == climate.coldestday) &&
 					gridcellpft.last_springdate == gridcellpft.last_springdate20)
-					 && pft.forceautumnsowing != AUTUMNSOWING) {
+					&& pft.forceautumnsowing != AUTUMNSOWING) {
 
 				gridcellpft.sdatecalc_temp = gridcellpft.last_springdate20;
 				gridcellpft.wintertype = false;
@@ -207,15 +207,16 @@ void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft) {
 
 		// If autumn first_autumndate20 is earlier than hlimitdate, use last_springdate20 (winter is too long):
 		if (dayinperiod(gridcellpft.sdatecalc_temp, climate.testday_temp, gridcellpft.hlimitdate_default)
-			 && pft.forceautumnsowing != AUTUMNSOWING) {
+			&& pft.forceautumnsowing != AUTUMNSOWING) {
 
-			gridcellpft.sdatecalc_temp = gridcellpft.last_springdate20;	// use last_springdate20 disregarding earlier choices	
+			gridcellpft.sdatecalc_temp = gridcellpft.last_springdate20;	// use last_springdate20 disregarding earlier choices
 			gridcellpft.wintertype = false;
 		}
 
 		// Forced sowing date read from input file.
 		// Calculated value used if value for pft not found in file.
 		if (gridcellpft.sdate_force >= 0) {
+
 			if ((abs(gridcellpft.sdate_force - gridcellpft.first_autumndate20) <= abs(gridcellpft.sdate_force - gridcellpft.last_springdate20)))
 				gridcellpft.wintertype = true;
 			else
@@ -352,7 +353,7 @@ void calc_sowing_windows(Gridcell& gridcell) {
 				temp_sdate = true;
 			else if ((seasonality == SEASONALITY_PREC || seasonality == SEASONALITY_PRECTEMP) && climate.prec_range != WET)
 				prec_sdate = true;
-			else // if(seasonality == SEASONALITY_NO) || (seasonality == SEASONALITY_PREC || seasonality == SEASONALITY_PRECTEMP) && climate.prec_range == WET)
+			else // if (seasonality == SEASONALITY_NO) || (seasonality == SEASONALITY_PREC || seasonality == SEASONALITY_PRECTEMP) && climate.prec_range == WET)
 				def_sdate = true;
 
 			if (temp_sdate) {
@@ -480,7 +481,7 @@ void calc_seasonality(Gridcell& gridcell) {
 	Climate& climate = gridcell.climate;
 	double var_temp = 0, var_prec = 0;
 	const double TEMPMIN = 10.0; // temperature limit of coldest month used to determine type of temperature seasonality
-	const int NMONTH = 12;												
+	const int NMONTH = 12;
 	double mtempKelvin[NMONTH], prec_pet_ratio20[NMONTH];
 	double maxprec_pet20 = 0.0;
 	double minprec_pet20 = 1000;
@@ -490,7 +491,7 @@ void calc_seasonality(Gridcell& gridcell) {
 
 	// calculate absolute temperature and prec/pet ratio for each month this year
 	for(int i=0; i < NMONTH; ++i) {
-		 // The temperature has got to be in Kelvin, the limit 0.010 is based on that.
+		// The temperature has got to be in Kelvin, the limit 0.010 is based on that.
 		mtempKelvin[i] = gridcell.climate.mtemp20[i] + K2degC;
 		// Calculate precipitation/PET ratio if monthly PET is above zero
 		prec_pet_ratio20[i] = (gridcell.climate.mpet20[i] > 0) ? gridcell.climate.mprec20[i] / gridcell.climate.mpet20[i] : 0;
@@ -706,7 +707,7 @@ void crop_sowing_date(Patch& patch, Pft& pft) {
 				if (climate.prec > 0.1 || standpft.irrigated)
 					ppftcrop.sdate = date.day;
 			}
-			else // if(def_sdate)
+			else // if (def_sdate)
 				ppftcrop.sdate = date.day; // first day of sowing window
 		}
 		else	 // last day of sowing window
@@ -828,7 +829,7 @@ void crop_sowing_patch(Patch& patch) {
 				}
 
 				if (!gridcellpft.sowing_restriction)	{
- 					// new sowing date method (Waha et al. 2010)
+					// new sowing date method (Waha et al. 2010)
 					crop_sowing_date(patch, pft);
 				}
 			}

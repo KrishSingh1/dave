@@ -5,7 +5,7 @@
 /// Landcover change.
 ///
 /// \author Mats Lindeskog,
-/// \Part of code in this file as well as in cropphenology.cpp, cropallocation.cpp and 
+/// \Part of code in this file as well as in cropphenology.cpp, cropallocation.cpp and
 /// \management.cpp based on LPJ-mL C++ code received from Alberte Bondeau in 2008.
 /// $Date$
 ///
@@ -490,7 +490,6 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 	memset(recip_donor_remain, 0, nst * sizeof(double));
 	memset(recip_receptor_remain, 0, nst * sizeof(double));
 
-
 	// Quantify "reciprocal" lc change (gross lc change - net lc change)
 
 	// The special case when donor and recipient lc are the same (primary to secondary land) is treated as a "reciprocal" transfer.
@@ -717,7 +716,7 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 }
 
 /// Handles harvest and turnover of reduced stands at landcover change.
-/** Sets LC_updated to true
+/** Sets landcover.updated to true
  *  Stores carbon, nitrogen and water of harvested area in a temporary struct.
  *  Should be followed by a call to stand_dynamics() to kill stands with a new area of 0
  *
@@ -763,11 +762,11 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
  *   - transfer_sompool.nmass
  *   - transfer_sompool.ntoc
  */
-void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcover_change_transfer& to, 
-		int landcover_receptor = -1, int landcover_donor = -1, int stid_receptor = -1, 
-		int stid_donor = -1, int standid = -1, bool killgrass = true) {
+void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcover_change_transfer& to,
+		int landcover_receptor = -1, int landcover_donor = -1,
+		int stid_receptor = -1, int stid_donor = -1,
+		int standid = -1, bool killgrass = true) {
 
-	Landcover& lc = gridcell.landcover;
 	double ccont_pre_orig_tot = 0.0;
 	double dif_tot = 0.0;
 	double acflux_landuse_change_tot = 0.0;
@@ -775,6 +774,7 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 	double ndif_tot = 0.0;
 	double anflux_landuse_change_tot = 0.0;
 	int count = 0;
+	Landcover& lc = gridcell.landcover;
 
 	for(unsigned int i=0; i<gridcell.nbr_stands(); i++) {
 
@@ -1024,15 +1024,16 @@ void stand_dynamics(Gridcell& gridcell) {
  *  \param donorfrac_rel					relative part of fraction (to a receiving stand) from a particular donor
  *  \param standid							restricts receiving stands to a certain stand, default no restriction
  */
-void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from, bool LCchangeCtransfer, 
-		int landcover = -1, int stid = -1, double donorfrac_rel = 1.0, int standid = -1) {
+void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
+		bool LCchangeCtransfer, int landcover = -1, int stid = -1,
+		double donorfrac_rel = 1.0, int standid = -1) {
 
 	Gridcell::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
 		Stand& stand = *gc_itr;
 
-		if(stand.gross_frac_increase > 0.0 && (stand.landcover == landcover || landcover < 0) && 
-			(stand.stid == stid || stid < 0 && (stand.id == standid || standid < 0))) {
+		if(stand.gross_frac_increase > 0.0 && (stand.landcover == landcover || landcover < 0) &&
+				(stand.stid == stid || stid < 0 && (stand.id == standid || standid < 0))) {
 
 			double old_frac = stand.frac_temp;
 			double added_frac = donorfrac_rel * stand.gross_frac_increase;
@@ -1115,7 +1116,7 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 
 				// set scaling factor to be used in growth() for scaling vegetation C and N:
 				stand.scale_LC_change = (stand.frac_old - stand.gross_frac_decrease) / stand.get_gridcell_fraction();
-				gridcell.landcover.LC_updated = true;
+				gridcell.landcover.updated = true;
 			}
 		}
 		++gc_itr;
@@ -1336,7 +1337,7 @@ void simulate_gross_st_transfer(Gridcell& gridcell, double* st_frac_transfer) {
 
 /// Called after update of st fraction and transfer values
 bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double lc_change_array[][NLANDCOVERTYPES], 
-			double* st_change_array, bool check_lc_st_transfer = false) {
+		double* st_change_array, bool check_lc_st_transfer = false) {
 
 	bool error = false;
 
@@ -1647,8 +1648,9 @@ bool check_fractions4(Gridcell& gridcell) {
 		for(unsigned int i = 0; i < gridcell.nbr_stands(); i++) {
 			Stand& stand = gridcell[i];
 
-			if(stand.stid == st.id)
+			if(stand.stid == st.id) {
 				stands_frac_sum += stand.get_gridcell_fraction();
+			}
 		}
 
 		if(gcst.frac_change >= 0.0 && fabs(gcst.frac - stands_frac_sum) > 1.0e-14) {
@@ -1809,7 +1811,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	memset(st_frac_transfer, 0, nst * nst * sizeof(double));
 	memset(primary_st_frac_transfer, 0, nst * nst * sizeof(double));
 
-	gridcell.landcover.LC_updated = false;
+	gridcell.landcover.updated = false;
 
 	for(unsigned int i=0; i<gridcell.nbr_stands(); ++i)
 		gridcell[i].scale_LC_change = 1.0;
@@ -1896,8 +1898,9 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 	int error = check_fractions2(gridcell, st_frac_transfer);
 	error += check_fractions3(gridcell);
-	if(error)
+	if(error) {
 		fail("Fraction error after reduce_stands()\n\n");
+	}
 
 	// Create new stands for land cover transitions when natural vegetation remains or when each transition requires a new stand:
 	if(iftransfer_to_new_stand) {
@@ -2213,17 +2216,17 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 /// landcover_change_transfer constructor
 landcover_change_transfer::landcover_change_transfer() {
 
-	transfer_litter_leaf = transfer_litter_sap = transfer_litter_heart = transfer_litter_root = NULL;
-	transfer_litter_repr = transfer_harvested_products_slow = NULL;
+	transfer_litter_leaf = transfer_litter_sap = transfer_litter_heart = NULL;
+	transfer_litter_root = transfer_litter_repr = transfer_harvested_products_slow = NULL;
 	transfer_nmass_litter_leaf = transfer_nmass_litter_sap = transfer_nmass_litter_heart = NULL;
 	transfer_nmass_litter_root = transfer_harvested_products_slow_nmass = NULL;
 
-	transfer_acflux_harvest = transfer_anflux_harvest = transfer_cpool_fast = transfer_cpool_slow = 0.0;
-	transfer_wcont_evap = transfer_decomp_litter_mean = 0.0;
+	transfer_acflux_harvest = transfer_anflux_harvest = transfer_cpool_fast = 0.0;
+	transfer_cpool_slow = transfer_wcont_evap = transfer_decomp_litter_mean = 0.0;
 	transfer_k_soilfast_mean = transfer_k_soilslow_mean = transfer_nmass_avail = 0.0;
 	transfer_snowpack = transfer_snowpack_nmass = transfer_anfix_calc = 0.0;
 
-	memset(transfer_wcont,0,NSOILLAYER*sizeof(double));
+	memset(transfer_wcont, 0, NSOILLAYER*sizeof(double));
 
 	for(int i=0; i<NSOMPOOL; i++)
 		transfer_sompool[i].ntoc = 0.0;

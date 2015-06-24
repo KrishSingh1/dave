@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \file cropallocation.cpp
-/// \brief Crop allocation and growth				
+/// \brief Crop allocation and growth
 /// \author Mats Lindeskog, Stefan Olin
 /// $Date:  $
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -14,8 +14,9 @@ const bool DELAYED_SEEDCARBON = false;
 /// Updates patch members fpc_total and fpc_rescale for crops (to be called after crop_phenology())
 void update_patch_fpc(Patch& patch) {
 
-	if(patch.stand.landcover != CROPLAND)
+	if(patch.stand.landcover != CROPLAND) {
 		return;
+	}
 
 	Vegetation& vegetation = patch.vegetation;
 	patch.fpc_total = 0.0;
@@ -24,8 +25,9 @@ void update_patch_fpc(Patch& patch) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
-		if(indiv.growingseason())
+		if(indiv.growingseason()) {
 			patch.fpc_total += indiv.fpc;
+		}
 		vegetation.nextobj();
 	}
 	// Calculate rescaling factor to account for overlap between populations/
@@ -168,8 +170,9 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 	Patchpft& patchpft = patch.pft[indiv.pft.id];
 	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
 
-	if (!ppftcrop.growingseason)
+	if (!ppftcrop.growingseason) {
 		return;
+	}
 
 	// report seed fluxes
 	indiv.report_flux(Fluxes::SEEDC, -cmass_seed);
@@ -558,7 +561,7 @@ void growth_crop_daily(Patch& patch) {
 				patch.isharvestday = true;
 
 				if(indiv.has_daily_turnover()) {
-					if(lc.LC_updated && patchpft.cropphen->nharv == 1)
+					if(lc.updated && patchpft.cropphen->nharv == 1)
 						scale_indiv(indiv, true);
 					harvest_crop(indiv, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass, true);
 					patch.is_litter_day = true;
@@ -655,7 +658,7 @@ void growth_crop_daily(Patch& patch) {
 					patch.nharv--;
 
 				if(indiv.has_daily_turnover()) {
-					if(lc.LC_updated && patchpft.cropphen->nharv == 1)
+					if(lc.updated && patchpft.cropphen->nharv == 1)
 						scale_indiv(indiv, true);
 					harvest_crop(indiv, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass, true);
 					patch.is_litter_day = true;
@@ -693,7 +696,7 @@ void growth_crop_daily(Patch& patch) {
 					patch.nharv--;
 
 				if(indiv.has_daily_turnover()) {
-					if(lc.LC_updated && patchpft.cropphen->nharv == 1)
+					if(lc.updated && patchpft.cropphen->nharv == 1)
 						scale_indiv(indiv, true);
 
 					turnover_grass(indiv);

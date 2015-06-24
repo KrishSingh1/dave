@@ -790,7 +790,7 @@ void Stand::rotate() {
 
 		Standpft& standpft = pft[pftid];
 
-		if(current_man.hydrology == IRRIGATED) {
+		if (current_man.hydrology == IRRIGATED) {
 			isirrigated = true;					
 			standpft.irrigated = true;
 		}
@@ -799,11 +799,11 @@ void Stand::rotate() {
 			standpft.irrigated = false;
 		}
 
-		if(!readNfert)
+		if (!readNfert)
 			gridcell->pft[pftid].Nfert_read = current_man.nfert;
-		if(!readsowingdates)
+		if (!readsowingdates)
 			standpft.sdate_force = current_man.sdate;
-		if(!readharvestdates)
+		if (!readharvestdates)
 			standpft.hdate_force = current_man.hdate;
 	}
 }
@@ -1512,8 +1512,9 @@ double Individual::ncont(double scale_indiv, bool luc) const {
 /// Whether grass growth is uninterrupted by crop growth.
 bool Individual::continous_grass() const {
 
-	if (pft.landcover != CROPLAND)
+	if (pft.landcover != CROPLAND) {
 		return false;
+	}
 
 	Stand& stand = vegetation.patch.stand;
 	StandType& st = stlist[stand.stid];
@@ -1521,8 +1522,9 @@ bool Individual::continous_grass() const {
 
 	for (int i=0; i<st.rotation.ncrops; i++) {
 		int pftid = pftlist.getpftid(st.management[i].pftname);
-		if (!stand.get_gridcell().pft[pftid].sowing_restriction)
+		if (!stand.get_gridcell().pft[pftid].sowing_restriction) {
 			sowing_restriction = false;
+		}
 	}
 
 	return cropindiv->isintercropgrass && sowing_restriction;
@@ -2079,7 +2081,7 @@ void Gridcellst::serialize(ArchiveStream& arch) {
 
 Landcover::Landcover() {
 
-	LC_updated = false;
+	updated = false;
 
 	memset(frac, 0, sizeof(double) * NLANDCOVERTYPES);
 	memset(frac_old, 0, sizeof(double) * NLANDCOVERTYPES);
@@ -2299,7 +2301,7 @@ void MassBalance::init_indiv(Individual& indiv) {
 	Gridcell& gridcell = stand.get_gridcell();
 
 	double scale = 1.0;
-	if (patch.stand.get_gridcell().landcover.LC_updated && (patch.nharv == 0 || date.day == 0))
+	if (patch.stand.get_gridcell().landcover.updated && (patch.nharv == 0 || date.day == 0))
 		scale = stand.scale_LC_change;
 
 	ccont_zero = indiv.ccont();
@@ -2385,7 +2387,7 @@ void MassBalance::init_patch(Patch& patch) {
 	Gridcell& gridcell = stand.get_gridcell();
 
 	double scale = 1.0;
-	if (patch.stand.get_gridcell().landcover.LC_updated && (patch.nharv == 0 || date.day == 0))
+	if (patch.stand.get_gridcell().landcover.updated && (patch.nharv == 0 || date.day == 0))
 		scale = stand.scale_LC_change;
 
 	ccont_zero = patch.ccont();

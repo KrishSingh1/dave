@@ -5,15 +5,15 @@
 /// $Date$
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef MANAGEMENT_H
-#define MANAGEMENT_H
+#ifndef LPJ_GUESS_MANAGEMENT_H
+#define LPJ_GUESS_MANAGEMENT_H
 
 // Forward declaration
 struct Harvest_CN;
 
-/// Harvest function for cropland, including true crops, intercrop grass 
+/// Harvest function for cropland, including true crops, intercrop grass
 void harvest_crop(Harvest_CN& indiv_cp, Pft& pft, bool alive, bool isintercropgrass);
-/// Harvest function for cropland, including true crops, intercrop grass 
+/// Harvest function for cropland, including true crops, intercrop grass
 void harvest_crop(Individual& indiv, Pft& pft, bool alive, bool isintercropgrass, bool harvest_grs);
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.
 void harvest_wood(Harvest_CN& indiv_cp,Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0);
@@ -91,7 +91,7 @@ struct Harvest_CN {
 		harvested_products_slow = harvested_products_slow_nmass = 0.0;
 	}
 
-	/// Copies C and N values from individual and patchpft tp struct. 
+	/// Copies C and N values from individual and patchpft tp struct.
 	void copy_from_indiv(Individual& indiv, bool copy_grsC = false, bool copy_dead_C = true) {
 
 		Patch& patch = indiv.vegetation.patch;
@@ -230,4 +230,4 @@ struct Harvest_CN {
 	}
 };
 
-#endif // MANAGEMENT_H
+#endif // LPJ_GUESS_MANAGEMENT_H

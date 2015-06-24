@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \file cropphenology.cpp
-/// \brief Crop phenology including phu calculations				
+/// \brief Crop phenology including phu calculations
 /// \author Mats Lindeskog
 /// $Date:  $
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -8,7 +8,7 @@
 #include "landcover.h"
 #include "cropphenology.h"
 
-const double MAXHUTEMP = 30;	// Degree limit for heat unit summation
+const double MAXHUTEMP = 30;         // Degree limit for heat unit summation
 
 /// Calculation of down-scaling of lai during crop senescence
 /** Follows Bondeau et al. 2007.
@@ -82,10 +82,12 @@ void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 
 				// phu:
 				if (ppftcrop.sdate < 184 + climate.adjustlat) {
-					if (!strncmp(pft.name,"TeWW", strlen("TeWW")))
+					if (!strncmp(pft.name,"TeWW", strlen("TeWW"))) {
 						ppftcrop.phu = max(1700.0, -0.1081 * pow((double)(ppftcrop.sdate - climate.adjustlat),2) + 3.1633 * ((double)(ppftcrop.sdate - climate.adjustlat)) + 2876.9);
-					else if (!strncmp(pft.name,"TeRa", strlen("TeRa")))
+					}
+					else if (!strncmp(pft.name,"TeRa", strlen("TeRa"))) {
 						ppftcrop.phu = max(2100.0, -0.1081 * pow((double)(ppftcrop.sdate - climate.adjustlat),2) + 3.1633 * ((double)(ppftcrop.sdate - climate.adjustlat)) + 3279.7);
+					}
 				}
 				else {
 					if (!strncmp(pft.name,"TeWW", strlen("TeWW"))) {
@@ -148,8 +150,8 @@ void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 /// Calculation of harvest index
 /** Based on fphu. Restricted by water stress.
  *  SWAT equations are from Neitsch et al. 2002.
- */ 
-void calc_hi(Patch& patch, Pft& pft) {
+ */
+void harvest_index(Patch& patch, Pft& pft) {
 
 	double wdf, fwdf, hi_save;
 	Patchpft& patchpft = patch.pft[pft.id];
@@ -184,9 +186,9 @@ void calc_hi(Patch& patch, Pft& pft) {
 
 /// Calculation of accumulated of heat units
 /** Accumulation of heat units during sampling period used for calculation of
- *  dynamic phu if DYNAMIC_PHU defined. SWAT equation is from Neitsch et al. 2002.
+ *  dynamic phu if DYNAMIC_PHU defined. SWAT equation is from Neitsch et al. 2002
  */
-void calc_hu(Patch& patch, Pft& pft) {
+void heat_units(Patch& patch, Pft& pft) {
 
 	Patchpft& patchpft = patch.pft[pft.id];
 	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
@@ -210,8 +212,9 @@ void calc_hu(Patch& patch, Pft& pft) {
 	ppftcrop.prf = (1 - pft.psens) * min(1.0, max(0.0, (climate.daylength_save[date.day] - pft.pb) / (pft.ps - pft.pb))) + pft.psens;
 	hu *= ppftcrop.prf;
 
-	if (date.day == ppftcrop.sdate)
+	if (date.day == ppftcrop.sdate) {
 		ppftcrop.husum = 0.0;
+	}
 
 	// Accumulate heat units during growing period
 	if (ppftcrop.growingseason) {
@@ -249,11 +252,10 @@ void calc_hu(Patch& patch, Pft& pft) {
 
 /// Calculation of development stage
 /** Accumulation of development during sampling period. TODO Add reference
- */ 
-void calc_ds(Patch& patch, Pft& pft) {
+ */
+void development_stage(Patch& patch, Pft& pft) {
 
 	Patchpft& patchpft = patch.pft[pft.id];
-
 	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
 	const Climate& climate = patch.get_climate();
 	double T = climate.temp;
@@ -273,7 +275,7 @@ void calc_ds(Patch& patch, Pft& pft) {
 	double P = climate.daylength_save[date.day];
 	double fP = 0;
 
-	if(pft.photo[2] > 0) //short day plant 
+	if (pft.photo[2] > 0) //short day plant 
 	{
 		if(P < pft.photo[0])
 			fP = 1;
@@ -292,7 +294,7 @@ void calc_ds(Patch& patch, Pft& pft) {
 	double T_opt = pft.T_veg_opt;
 	double T_max = pft.T_veg_max;
 
-	if(ppftcrop.dev_stage >= 1) {
+	if (ppftcrop.dev_stage >= 1) {
 		T_min = pft.T_rep_min;
 		T_opt = pft.T_rep_opt;
 		T_max = pft.T_rep_max;
@@ -391,10 +393,10 @@ void crop_phenology(Patch& patch) {
 					if (pre_maturity && dayinperiod(date.day, ppftcrop.sdate, stepfromdate(ppftcrop.hlimitdate, -1)) && !force_harvest) {
 
 						// count accumulated heat units after sowing date
-						calc_hu(patch, pft);
+						heat_units(patch, pft);
 
 						if (ifnlim)
-							calc_ds(patch, pft);
+							development_stage(patch, pft);
 
 						//  test for senescence
 						if (ppftcrop.fphu >= pft.fphusen) {
@@ -405,7 +407,7 @@ void crop_phenology(Patch& patch) {
 						}
 
 						// calculated harvest index
-						calc_hi(patch, pft);
+						harvest_index(patch, pft);
 
 					}
 					else {	// harvest
@@ -453,13 +455,15 @@ void crop_phenology(Patch& patch) {
 				}  //from sowing has taken place until harvest day
 
 				// continue sampling heat units from hdate until last sampling date
-				if (ifcalcdynamic_phu && ppftcrop.growingseason == false && ppftcrop.hu_samplingperiod)
-					calc_hu(patch, pft);
+				if (ifcalcdynamic_phu && ppftcrop.growingseason == false && ppftcrop.hu_samplingperiod) {
+					heat_units(patch, pft);
+				}
 
 				if (patch.stand.pftid == pft.id && stlist[patch.stand.stid].intercrop == NATURALGRASS) {
 
-					if (!ppftcrop.intercropseason && date.day == ppftcrop.bicdate)
+					if (!ppftcrop.intercropseason && date.day == ppftcrop.bicdate) {
 						ppftcrop.intercropseason = true;
+					}
 
 					if (date.day == ppftcrop.eicdate) {
 						ppftcrop.intercropseason = false;
@@ -471,13 +475,16 @@ void crop_phenology(Patch& patch) {
 				if (patch.stand.pftid != pft.id) {
 					cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
 
-					if (date.day == 0)
+					if (date.day == 0) {
 						ppftcrop.nharv = 0;
+					}
 
-					if (date.day == patch.pft[patch.stand.pftid].cropphen->bicdate)
+					if (date.day == patch.pft[patch.stand.pftid].cropphen->bicdate) {
 						ppftcrop.growingseason = true;
-					else if (date.day == patch.pft[patch.stand.pftid].cropphen->eicdate)
+					}
+					else if (date.day == patch.pft[patch.stand.pftid].cropphen->eicdate) {
 						ppftcrop.growingseason = false;
+					}
 				}
 			}
 		}
@@ -545,15 +552,19 @@ void leaf_phenology_crop(Pft& pft, Patch& patch) {
 
 			if (ppftcrop.growingseason) {	// includes bicdate, not eicdate
 
-				if (patch.stand.pftid == pft.id || gridcell.pft[patch.stand.pftid].sowing_restriction)	// Normal grass growth: gives identical result to natural stands.
+				if (patch.stand.pftid == pft.id || gridcell.pft[patch.stand.pftid].sowing_restriction) { // Normal grass growth: gives identical result to natural stands.
 					patchpft.phen = min(1.0, climate.gdd5 / pft.phengdd5ramp);
-				else if (patch.stand.gdd0_intercrop > 0.0)
+				}
+				else if (patch.stand.gdd0_intercrop > 0.0) {
 					patchpft.phen = min(1.0, (climate.gdd5 - patch.stand.gdd0_intercrop) / (pft.phengdd5ramp * 0.9)); // intercrop grass
-				else
+				}
+				else {
 					patchpft.phen = min(1.0, (climate.gdd5 - patch.stand.gdd0_intercrop) / pft.phengdd5ramp); // intercrop grass
+				}
 
-				if (patchpft.phen < 0.0)
+				if (patchpft.phen < 0.0) {
 					patchpft.phen = 0.0;
+				}
 
 				// raingreen phenology
 				if (patchpft.wscal < pft.wscal_min) {

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// \file management.cpp
-/// \brief Harvest functions for cropland, managed forest and pasture			
+/// \brief Harvest functions for cropland, managed forest and pasture
 /// \author Mats Lindeskog
 /// $Date:  $
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -251,7 +251,7 @@ void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double re
 }
 
 /// Use for normal forest management in calls from growth(). For clearcut during landcover change, use harvest_wood() and kill_remaining_vegetation()
-void clearcut(Individual& indiv, bool alive, double anpp, bool& killed) {
+void clearcut(Individual& indiv, double anpp, bool& killed) {
 
 	Patch& patch = indiv.vegetation.patch;
 	Patchpft& ppft = patch.pft[indiv.pft.id];
@@ -319,7 +319,7 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 	if (pft.lifeform==TREE && man_strength > 0.00) {
 
 		if (man_strength == 1.00) {
-			clearcut(indiv, alive, anpp, killed);
+			clearcut(indiv, anpp, killed);
 		}
 		else {
 
@@ -1021,7 +1021,7 @@ bool harvest_year(Individual& indiv) {
 	bool killed = false;
 
 	// Reduce individual's C and N mass in stands that have increased in area this year:
-	if (landcover.LC_updated && !indiv.has_daily_turnover()) {
+	if (landcover.updated && !indiv.has_daily_turnover()) {
 		scale_indiv(indiv, false);
 	}
 
@@ -1144,7 +1144,7 @@ void crop_nfert(Patch& patch) {
  */
 void crop_rotation(Stand& stand) {
 
-	if(stand.landcover != CROPLAND) {
+	if (stand.landcover != CROPLAND) {
 		return;
 	}
 
@@ -1152,68 +1152,69 @@ void crop_rotation(Stand& stand) {
 
 	stand.ndays_inrotation++;
 
-	if(rotation.ncrops > 1 && stand.isrotationday) {
-
-		int firstrotyear = rotation.firstrotyear - date.first_calendar_year;
-		bool postpone_rotation = false;
-
-		// Alternative uses of firstrotyear:
-/*		// 1. Before firstrotyear, grow only crop1:
-		if(date.year < firstrotyear)
-			postpone_rotation = true;
-*/
-		// 2. Synchronise rotation with firstrotyear:
-
-		// A. At the creation of the stand:
-		if(date.year < stand.first_year + 3)
-		// B. At firstrotyear
-//		if(date.year == firstrotyear - 1)
-		// C. Continuously:
-		{
-			if((abs(firstrotyear - date.year) % rotation.ncrops) != stand.current_rot)
-				postpone_rotation = true;
-		}
-
-		if(!postpone_rotation) {
-
-			if(stand.infallow) {
-				stand.infallow = false;
-				stand.get_gridcell().pft[stand.pftid].sowing_restriction = false;
-			}
-
-			int old_pftid = stand.pftid;
-
-			stand.rotate();
-
-			for(unsigned int p=0; p<stand.nobj; p++) {
-
-				cropphen_struct& previous = *(stand[p].pft[old_pftid].get_cropphen());
-				cropphen_struct& current = *(stand[p].pft[stand.pftid].get_cropphen());
-
-				previous.bicdate = -1;
-				if(!previous.intercropseason)
-					current.bicdate = stepfromdate(date.day, 15);
-				previous.eicdate = -1;
-				current.eicdate = -1;
-				previous.hdate = -1;
-				current.intercropseason = previous.intercropseason;
-			}
-
-			// Adds sowing and harvest dates for the second crop in a double cropping system
-			if(rotation.multicrop && rotation.ncrops == 2 && stand.current_rot == 1) {
-				if(stand.pft[stand.pftid].sdate_force < 0)
-					stand.pft[stand.pftid].sdate_force = stepfromdate(date.day, 10);
-				if(stand.pft[stand.pftid].hdate_force < 0) {
-					stand.pft[stand.pftid].hdate_force = stepfromdate(stand.pft[old_pftid].sdate_force, -10);
-				}
-			}
-
-			if(stlist[stand.stid].management[stand.current_rot].fallow) {
-				stand.infallow = true;
-				stand.get_gridcell().pft[stand.pftid].sowing_restriction = true;
-			}
-		}
-
-		stand.isrotationday = false;
+	if (rotation.ncrops < 2 || !stand.isrotationday) {
+		return;
 	}
+
+	int firstrotyear = rotation.firstrotyear - date.first_calendar_year;
+	bool postpone_rotation = false;
+
+	// Alternative uses of firstrotyear:
+	// 1. Before firstrotyear, grow only crop1:
+//	if(date.year < firstrotyear)
+//		postpone_rotation = true;
+
+	// 2. Synchronise rotation with firstrotyear:
+
+	// A. At the creation of the stand:
+	if (date.year < stand.first_year + 3)
+	// B. At firstrotyear
+//		if(date.year == firstrotyear - 1)
+	// C. Continuously:
+	{
+		if ((abs(firstrotyear - date.year) % rotation.ncrops) != stand.current_rot)
+			postpone_rotation = true;
+	}
+
+	if (!postpone_rotation) {
+
+		if(stand.infallow) {
+			stand.infallow = false;
+			stand.get_gridcell().pft[stand.pftid].sowing_restriction = false;
+		}
+
+		int old_pftid = stand.pftid;
+
+		stand.rotate();
+
+		for (unsigned int p=0; p<stand.nobj; p++) {
+
+			cropphen_struct& previous = *(stand[p].pft[old_pftid].get_cropphen());
+			cropphen_struct& current = *(stand[p].pft[stand.pftid].get_cropphen());
+
+			previous.bicdate = -1;
+			if(!previous.intercropseason)
+				current.bicdate = stepfromdate(date.day, 15);
+			previous.eicdate = -1;
+			current.eicdate = -1;
+			previous.hdate = -1;
+			current.intercropseason = previous.intercropseason;
+		}
+
+		// Adds sowing and harvest dates for the second crop in a double cropping system
+		if (rotation.multicrop && rotation.ncrops == 2 && stand.current_rot == 1) {
+			if (stand.pft[stand.pftid].sdate_force < 0)
+				stand.pft[stand.pftid].sdate_force = stepfromdate(date.day, 10);
+			if (stand.pft[stand.pftid].hdate_force < 0) {
+				stand.pft[stand.pftid].hdate_force = stepfromdate(stand.pft[old_pftid].sdate_force, -10);
+			}
+		}
+
+		if(stlist[stand.stid].management[stand.current_rot].fallow) {
+			stand.infallow = true;
+			stand.get_gridcell().pft[stand.pftid].sowing_restriction = true;
+		}
+	}
+
+	stand.isrotationday = false;
 }

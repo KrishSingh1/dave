@@ -783,8 +783,9 @@ void dailyaccounting_stand(Stand& stand) {
 /// Manages C and N fluxes from slow harvest pools
 void dailyaccounting_patch_lc(Patch& patch) {
 
-	if (date.day > 0 || !ifslowharvestpool)
+	if (date.day > 0 || !ifslowharvestpool) {
 		return;
+	}
 
 	Landcover& lc = patch.stand.get_gridcell().landcover;
 	double scale = patch.stand.get_gridcell_fraction() / (double)patch.stand.nobj;
@@ -792,15 +793,15 @@ void dailyaccounting_patch_lc(Patch& patch) {
 	pftlist.firstobj();
 	while(pftlist.isobj) {				// NB. also inactive pft's
 		Pft& pft = pftlist.getobj();
-		Patchpft& patchpft = patch.pft[pft.id];
+		Patchpft& ppft = patch.pft[pft.id];
 
-		lc.acflux_harvest_slow += patchpft.harvested_products_slow * pft.turnover_harv_prod * scale;
-		lc.acflux_harvest_slow_lc[patch.stand.landcover] += patchpft.harvested_products_slow * pft.turnover_harv_prod * scale;
-		patchpft.harvested_products_slow = patchpft.harvested_products_slow * (1 - pft.turnover_harv_prod);
+		lc.acflux_harvest_slow += ppft.harvested_products_slow * pft.turnover_harv_prod * scale;
+		lc.acflux_harvest_slow_lc[patch.stand.landcover] += ppft.harvested_products_slow * pft.turnover_harv_prod * scale;
+		ppft.harvested_products_slow = ppft.harvested_products_slow * (1 - pft.turnover_harv_prod);
 
-		lc.anflux_harvest_slow += patchpft.harvested_products_slow_nmass * pft.turnover_harv_prod * scale;
-		lc.anflux_harvest_slow_lc[patch.stand.landcover] += patchpft.harvested_products_slow_nmass * pft.turnover_harv_prod * scale;
-		patchpft.harvested_products_slow_nmass = patchpft.harvested_products_slow_nmass * (1 - pft.turnover_harv_prod);
+		lc.anflux_harvest_slow += ppft.harvested_products_slow_nmass * pft.turnover_harv_prod * scale;
+		lc.anflux_harvest_slow_lc[patch.stand.landcover] += ppft.harvested_products_slow_nmass * pft.turnover_harv_prod * scale;
+		ppft.harvested_products_slow_nmass = ppft.harvested_products_slow_nmass * (1 - pft.turnover_harv_prod);
 
 		pftlist.nextobj();
 	}

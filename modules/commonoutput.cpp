@@ -1200,7 +1200,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 }
 
 void CommonOutput::outdaily(Gridcell& gridcell) {
-
 }
 
 } // namespace

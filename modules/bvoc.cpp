@@ -232,6 +232,7 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 		return;
 	}
 
+
 	double temp_leaf_daytime;
 	double temp_leaf = leafT(temp, hours, pft.ga, rad, indiv.aet,
                                  indiv.lai_today(),indiv.fpar,indiv.fpc);

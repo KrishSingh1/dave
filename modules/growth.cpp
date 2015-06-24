@@ -927,6 +927,7 @@ bool allometry(Individual& indiv) {
 
 		// Height (Eqn 4)
 
+		// guess2008 - new allometry check
 		if (!negligible(indiv.cmass_leaf)) {
 
 			indiv.height = indiv.cmass_sap / indiv.cmass_leaf / indiv.pft.sla * indiv.pft.k_latosa / indiv.pft.wooddens;
@@ -992,6 +993,7 @@ bool allometry(Individual& indiv) {
 
 		if(indiv.pft.landcover != CROPLAND) {
 
+			// guess2008 - bugfix - added if
 			if (!negligible(indiv.cmass_leaf)) {
 
 				// Grass "individual" LAI (Eqn 11)

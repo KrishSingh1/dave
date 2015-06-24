@@ -419,7 +419,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifrainonwetdaysonly",&ifrainonwetdaysonly,1,CB_NONE,
 			"Whether it rains on wet days only (1), or a little every day (0);");
 
-		// bvoc 
+		// bvoc
 		declareitem("ifbvoc",&ifbvoc,1,CB_NONE,
 			"Whether or not BVOC calculations are performed (0,1)");
 		declareitem("run_landcover",&run_landcover,1,CB_NONE,"Landcover version");
@@ -1031,7 +1031,7 @@ void plib_callback(int callback) {
 			if (!itemparsed("npatch_secondarystand")) badins("npatch_secondarystand");
 			if (!itemparsed("reduce_all_stands")) badins("reduce_all_stands");
 			if (!itemparsed("age_limit_reduce")) badins("age_limit_reduce");
-			if (!itemparsed("minimizecftlist")) badins("minimizecftlist");	
+			if (!itemparsed("minimizecftlist")) badins("minimizecftlist");
 			if (!itemparsed("cftfrac_fixed")) badins("cftfrac_fixed");
 			if (!itemparsed("run_natural")) badins("run_natural");
 			if (!itemparsed("run_crop")) badins("run_crop");

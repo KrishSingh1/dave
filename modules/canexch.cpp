@@ -714,12 +714,12 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 
 		for (int p=0; p<npft; p++) {
 			Standpft& spft = patch.stand.pft[p];
-			if(!spft.active)
-				continue;
+			if (spft.active) {
 
-			// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
-			photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
-				1.0, spft.pft.lambda_max, spft.pft, 1.0, false, spft.photosynthesis, -1);
+				// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
+				photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
+					1.0, spft.pft.lambda_max, spft.pft, 1.0, false, spft.photosynthesis, -1);
+			}
 		}
 	}
 

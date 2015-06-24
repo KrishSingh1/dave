@@ -137,8 +137,8 @@ bool DemoInput::readenv(Coord coord, long& seed) {
 		gridfound = read_from_file(coord, file_prec, "f6.2,f5.2,i4,12f4", mprec);
 	if(gridfound)
 		gridfound = read_from_file(coord, file_sun, "f6.2,f5.2,i4,12f3", msun);
-
-	read_from_file(coord, file_soil, "f,f,i", msun, true);	// msun is not used here: just dummy
+	if(gridfound)
+		gridfound = read_from_file(coord, file_soil, "f,f,i", msun, true);	// msun is not used here: just dummy
 
 	if(gridfound) {
 		// Interpolate monthly values for environmental drivers to daily values

@@ -1153,7 +1153,7 @@ bool TimeDataD::LoadNext(long int *pos) {
 
 			if(fgets(line,sizeof(line), ifp)) {
 
-				int count = sscanf(line,"%lf%lf%lf", &d1, &d2, &d3);
+				count = sscanf(line,"%lf%lf%lf", &d1, &d2, &d3);
 				if(count > 0)	{ // Avoid blank lines at the end of the file
 				
 					if(count == 2 || count > 2 && (format == LOCAL_STATIC || ifheader)) {

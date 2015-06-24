@@ -15,7 +15,6 @@ set(headers
   spinupdata.h
   demoinput.h
   cfinput.h
-  InData.h
   management.h
   cropallocation.h
   cropsowing.h
@@ -38,7 +37,6 @@ set(source
   miscoutput.cpp
   spinupdata.cpp
   cfinput.cpp
-  InData.cpp
   management.cpp
   cropallocation.cpp
   cropsowing.cpp

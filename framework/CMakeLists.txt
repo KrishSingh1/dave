@@ -17,6 +17,7 @@ set(headers
   guessstring.h
   inputdefinitions.h
   externalinput.h
+  indata.h
 )
 
 set(source
@@ -34,6 +35,7 @@ set(source
   inputmodule.cpp
   guessstring.cpp
   externalinput.cpp
+  indata.cpp
 )
 
 include(add_guess_sources)

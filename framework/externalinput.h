@@ -8,7 +8,7 @@
 #ifndef LPJ_GUESS_EXTERNALINPUT_H
 #define LPJ_GUESS_EXTERNALINPUT_H
 
-#include "InData.h"
+#include "indata.h"
 
 /// Reads gridlist in lon-lat-description format from text input file
 void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist);

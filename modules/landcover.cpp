@@ -1673,7 +1673,7 @@ bool check_fractions4(Gridcell& gridcell) {
  *  \param primary_st_frac_transfer			array with this year's transitions in area fractions from primary stand types
  *  \param LCchangeCtransfer				whether to transfer carbon, nitrogen and water of reduced stands to expanding stands
  */
-bool checkLCchange(Gridcell& gridcell, double* st_frac_transfer, double* primary_st_frac_transfer, bool& LCchangeCtransfer, InputModule* input_module) {
+bool lc_changed(Gridcell& gridcell, double* st_frac_transfer, double* primary_st_frac_transfer, bool& LCchangeCtransfer, InputModule* input_module) {
 
 	double cropfrac_sum_old = 0.0;
 	double change_stand = 0.0;
@@ -1822,7 +1822,7 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	if(!all_fracs_const) {
 		// this call returns 0, causing this function to return, if no significant landcover changes this year, 
 		// sets LCchangeCtransfer to 0 if unbalanced landcover changes (if some landcovers are inactivated), thus inactivating transfer of C and N
-		if(checkLCchange(gridcell, st_frac_transfer, primary_st_frac_transfer, LCchangeCtransfer, input_module)) {
+		if(lc_changed(gridcell, st_frac_transfer, primary_st_frac_transfer, LCchangeCtransfer, input_module)) {
 			no_changes = false;
 		}
 	}

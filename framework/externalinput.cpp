@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \file landcoverinput.cpp
+/// \file externalinput.cpp
 /// \brief Input code for land cover area fractions	from text files					
 /// \author Mats Lindeskog
 /// $Date: $
@@ -275,7 +275,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 		}
 		else {
 
-			if(year == LUdata.GetFirstyear() + LUdata.GetnYears() + 1)
+			if(year == LUdata.GetFirstyear() + LUdata.GetnYears())
 				dprintf("Last year of landcover fraction data used from year %d and onwards\n", year);
 
 			for(int i=0; i<NLANDCOVERTYPES; i++) {

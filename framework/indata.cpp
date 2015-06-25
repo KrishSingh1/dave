@@ -1189,7 +1189,7 @@ bool TimeDataD::LoadNext(long int *pos) {
 
 					if(ifheader) {
 
-						p = strtok(line," \t");	//lon
+						p = strtok(line," \t");		//lon
 						p = strtok(NULL, " \t");	//lat
 						p = strtok(NULL, " \t");	//year
 					}

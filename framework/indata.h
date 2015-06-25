@@ -171,7 +171,7 @@ public:
 	/// Returns the first year in the input data
 	int GetFirstyear() const {return firstyear;}
 	/// Returns the data format (EMPTY, GLOBAL_STATIC, GLOBAL_YEARLY, LOCAL_STATIC, LOCAL_YEARLY)
-	int GetFormat() const {return format;}
+	fileformat GetFormat() const {return format;}
 	/// Returns true if data for requested coordinates are found, false if not.
 	bool isloaded();
 	/// Sets spacial resolution

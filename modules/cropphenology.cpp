@@ -250,6 +250,17 @@ void heat_units(Patch& patch, Pft& pft) {
 	}
 }
 
+/// Temperature factor used in development stage calculation
+inline double temperature_factor(double temp, double min, double opt, double max) {
+	if (temp <= min || temp >= max) {
+		return 0;
+	}
+	double _opt = opt - min;
+	double alpha = log(2.) / log((max - min) / _opt);
+	return (2 * pow(temp - min, alpha) * pow(_opt, alpha) - pow(temp - min, 2*alpha))/
+		pow(_opt, 2*alpha);
+}
+
 /// Calculation of development stage
 /** Accumulation of development during sampling period. TODO Add reference
  */
@@ -258,38 +269,18 @@ void development_stage(Patch& patch, Pft& pft) {
 	Patchpft& patchpft = patch.pft[pft.id];
 	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
 	const Climate& climate = patch.get_climate();
-	double T = climate.temp;
 
 	// account for vernalization if needs for vernalization not yet satisfied	//trg=tb for crops other than TeWW and TeRa and don't enter here
-	if (ppftcrop.vdsum_alloc < 1)	{				
-
-		if (T > pft.T_vn_min && T < pft.T_vn_max) {
-			double alpha_v = log(2.0) / (log((pft.T_vn_max - pft.T_vn_min) / (pft.T_vn_opt - pft.T_vn_min)));
-			double fT_v = (2.0 * pow((T - pft.T_vn_min),alpha_v) * pow((pft.T_vn_opt - pft.T_vn_min), alpha_v) - pow((T - pft.T_vn_min), 2.0 * alpha_v)) / pow((pft.T_vn_opt - pft.T_vn_min),2.0 * alpha_v);
-			ppftcrop.vd = ppftcrop.vd + fT_v;
-			ppftcrop.vdsum_alloc = min(1.0, pow((double)ppftcrop.vd, 5.0) / (pow(22.5, 5.0) + pow((double)ppftcrop.vd, 5.0)));
-		}																	
+	if (ppftcrop.vdsum_alloc < 1 && climate.temp > pft.T_vn_min && climate.temp < pft.T_vn_max)	{
+		ppftcrop.vd += temperature_factor(climate.temp, pft.T_vn_min, pft.T_vn_opt, pft.T_vn_max);
+		double vd5 = pow(ppftcrop.vd, 5.);
+		ppftcrop.vdsum_alloc = min(1.0, vd5 / (pow(22.5, 5.0) + vd5));
 	}
 
-	double e = 2.71828183;
-	double P = climate.daylength_save[date.day];
-	double fP = 0;
+	double daylength = max(0.0, climate.daylength_save[date.day] - pft.photo[0]);
+	double e = exp(-pft.photo[1] * daylength);
+	double fP = min(1.0, pft.photo[2] > 0 ? e : 1.0 - e);
 
-	if (pft.photo[2] > 0) //short day plant 
-	{
-		if(P < pft.photo[0])
-			fP = 1;
-		else
-			fP = min(1.0, pow(e,(-pft.photo[1] * (P - pft.photo[0]))));
-	} 
-	else //long day plant
-	{
-		if(P < pft.photo[0])
-			fP = 0;
-		else
-			fP = min(1.0, 1.0 - pow(e,(-pft.photo[1] * (P - pft.photo[0]))));
-	}
-	double fT = 0.0;
 	double T_min = pft.T_veg_min;
 	double T_opt = pft.T_veg_opt;
 	double T_max = pft.T_veg_max;
@@ -300,18 +291,14 @@ void development_stage(Patch& patch, Pft& pft) {
 		T_max = pft.T_rep_max;
 	}
 
-	double alpha = log(2.0) / (log((T_max - T_min) / (T_opt - T_min)));
-
-	if(T > T_min && T < T_max)
-		fT = min(1.0, (2.0 * pow((T - T_min), alpha) * pow((T_opt - T_min), alpha) - pow((T - T_min), 2.0 * alpha)) / pow((T_opt - T_min), 2.0 * alpha));
-
-	double DR = 0.0;
+	double fT = min(1.0, temperature_factor(climate.temp, T_min, T_opt, T_max));
+	double dev_rate = 0.0;
 	if (ppftcrop.dev_stage < 1.0)
-		DR = pft.dev_rate_veg * ppftcrop.vdsum_alloc * fP * fT;
+		dev_rate = pft.dev_rate_veg * ppftcrop.vdsum_alloc * fP * fT;
 	else
-		DR = pft.dev_rate_rep * fT;
+		dev_rate = pft.dev_rate_rep * fT;
 
-	ppftcrop.dev_stage = min(2.0, ppftcrop.dev_stage + DR);			
+	ppftcrop.dev_stage = min(2.0, ppftcrop.dev_stage + dev_rate);
 }
 
 /// Handles heat unit and harvest index calculation and identifies harvest, senescence and intercrop events.

@@ -1360,8 +1360,6 @@ double Individual::cton_leaf(bool use_phen /* = true*/) const {
 
 double Individual::cton_root(bool use_phen /* = true*/) const {
 
-	Stand& stand = vegetation.patch.stand;
-
 	if (ifnlim) {
 		if (!negligible(cmass_root) && !negligible(nmass_root)) {
 			if (use_phen) {
@@ -1386,8 +1384,6 @@ double Individual::cton_root(bool use_phen /* = true*/) const {
 }
 
 double Individual::cton_sap() const {
-
-	Stand& stand = vegetation.patch.stand;
 
 	if (pft.lifeform == TREE) {
 		if (ifnlim) {

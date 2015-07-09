@@ -556,31 +556,33 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		}//End of loop through stands
 
 		// Print to landcover files in case pft:s are common to several landcovers (currently only used in NATURAL and FOREST)
-		for (int i=0;i<NLANDCOVERTYPES;i++) {
-			if (run[i]) {
+		if (run_landcover) {
+			for (int i=0;i<NLANDCOVERTYPES;i++) {
+				if (run[i]) {
 
-				switch (i) {
-				case CROPLAND:
-				case PASTURE:
-				case BARREN:
-					break;
-				case NATURAL:
-					if (run[FOREST]) {
-						out.add_value(out_anpp_natural,			mean_standpft_anpp_lc[i]);
-						out.add_value(out_cmass_natural,		mean_standpft_cmass_lc[i]);
-						out.add_value(out_dens_natural,			mean_standpft_densindiv_total_lc[i]);
+					switch (i) {
+					case CROPLAND:
+					case PASTURE:
+					case BARREN:
+						break;
+					case NATURAL:
+						if (run[FOREST]) {
+							out.add_value(out_anpp_natural,			mean_standpft_anpp_lc[i]);
+							out.add_value(out_cmass_natural,		mean_standpft_cmass_lc[i]);
+							out.add_value(out_dens_natural,			mean_standpft_densindiv_total_lc[i]);
+						}
+						break;
+					case FOREST:
+						if (run[NATURAL]) {
+							out.add_value(out_anpp_forest,			mean_standpft_anpp_lc[i]);
+							out.add_value(out_cmass_forest,			mean_standpft_cmass_lc[i]);
+							out.add_value(out_dens_forest,			mean_standpft_densindiv_total_lc[i]);
+						}
+						break;
+					default:
+						if (date.year == nyear_spinup)
+							dprintf("Modify code to deal with landcover output!\n");
 					}
-					break;
-				case FOREST:
-					if (run[NATURAL]) {
-						out.add_value(out_anpp_forest,			mean_standpft_anpp_lc[i]);
-						out.add_value(out_cmass_forest,			mean_standpft_cmass_lc[i]);
-						out.add_value(out_dens_forest,			mean_standpft_densindiv_total_lc[i]);
-					}
-					break;
-				default:
-					if (date.year == nyear_spinup)
-						dprintf("Modify code to deal with landcover output!\n");
 				}
 			}
 		}
@@ -793,30 +795,32 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	}
 
 	// Print landcover totals to files
-	for (int i=0;i<NLANDCOVERTYPES;i++) {
-		if (run[i]) {
-			switch (i) {
-			case CROPLAND:
-			case PASTURE:
-			case BARREN:
-				break;
-			case NATURAL:
-				if (run[FOREST]) {
-					out.add_value(out_anpp_natural,     landcover_anpp[i]);
-					out.add_value(out_cmass_natural,	landcover_cmass[i]);
-					out.add_value(out_dens_natural,		landcover_densindiv_total[i]);
+	if (run_landcover) {
+		for (int i=0;i<NLANDCOVERTYPES;i++) {
+			if (run[i]) {
+				switch (i) {
+				case CROPLAND:
+				case PASTURE:
+				case BARREN:
+					break;
+				case NATURAL:
+					if (run[FOREST]) {
+						out.add_value(out_anpp_natural,     landcover_anpp[i]);
+						out.add_value(out_cmass_natural,	landcover_cmass[i]);
+						out.add_value(out_dens_natural,		landcover_densindiv_total[i]);
+					}
+					break;
+				case FOREST:
+					if (run[NATURAL]) {
+						out.add_value(out_anpp_forest,      landcover_anpp[i]);
+						out.add_value(out_cmass_forest,		landcover_cmass[i]);
+						out.add_value(out_dens_forest,		landcover_densindiv_total[i]);
+					}
+					break;
+				default:
+					if (date.year == nyear_spinup)
+						dprintf("Modify code to deal with landcover output!\n");
 				}
-				break;
-			case FOREST:
-				if (run[NATURAL]) {
-					out.add_value(out_anpp_forest,      landcover_anpp[i]);
-					out.add_value(out_cmass_forest,		landcover_cmass[i]);
-					out.add_value(out_dens_forest,		landcover_densindiv_total[i]);
-				}
-				break;
-			default:
-				if (date.year == nyear_spinup)
-					dprintf("Modify code to deal with landcover output!\n");
 			}
 		}
 	}

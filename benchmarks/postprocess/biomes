@@ -4,7 +4,7 @@ root=`dirname $0`
 
 function process {
 	dominance "$1" dom.txt
-	compute $1 -i 'Btrees=BNE+BINE+IBS+BNS' 'Trtrees=TrBE+TrIBE+TrBR' 'Ttrees=TeBS+TeBE' 'Grass=C3G+C4G' 'Trees=Btrees+Trtrees+Ttrees' 'BNEE=BNE+BINE' 'TrBEE=TrBE+TrIBE' -o biome.txt
+	compute $1 -i 'Btrees=BNE+BINE+IBS+BNS' 'Trtrees=TrBE+TrIBE+TrBR' 'Ttrees=TeBS+TeBE+TeNE' 'Grass=C3G+C4G' 'Trees=Btrees+Trtrees+Ttrees' 'BNEE=BNE+BINE' 'TrBEE=TrBE+TrIBE' -o biome.txt
 	awk '{print $4}' dom.txt | paste biome.txt - > biome1.txt
 	awk -f $root/rules.awk biome1.txt > map.txt
 	echo "Lon Lat Biome" > biomes_$1

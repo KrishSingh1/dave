@@ -4,21 +4,23 @@
 1.0	1.0	0.0
 3 BNS
 1.0	0.5	0.0
-4 TeBS
-0.1	1.0	0.0
-5 IBS
+4 TeNE
+1.0	0.5	0.0
+5 TeBS
+0.4	0.4	0.4
+6 IBS
 1.0	0.0	0.1
-6 TeBE
+7 TeBE
 0.0	0.0	0.0
-7 TrBE
+8 TrBE
 0.0	0.6	1.0
-8 TrIBE
+9 TrIBE
 1.0	0.7	0.4
-9 TrBR
+10 TrBR
 0.9	0.0	1.0
-10 C3G
+11 C3G
 1.0	0.9	0.6
-11 C4G
+12 C4G
 0.2	0.0	0.2
-12 No vegetation
+13 No vegetation
 1.0	1.0	1.0

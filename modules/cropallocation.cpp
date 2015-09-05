@@ -462,6 +462,12 @@ void growth_crop_daily(Patch& patch) {
 			cropindiv.ycmass_dead_leaf = 0.0;
 			cropindiv.ycmass_stem = 0.0;
 
+			cropindiv.ynmass_leaf = 0.0;
+			cropindiv.ynmass_root = 0.0;
+			cropindiv.ynmass_ho = 0.0;
+			cropindiv.ynmass_agpool = 0.0;
+			cropindiv.ynmass_dead_leaf = 0.0;
+
 			cropindiv.harv_cmass_plant = 0.0;
 			cropindiv.harv_cmass_root = 0.0;
 			cropindiv.harv_cmass_leaf = 0.0;

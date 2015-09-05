@@ -212,9 +212,9 @@ int framework(const CommandLineArguments& args) {
 		// Initialise certain climate and soil drivers
 		gridcell.climate.initdrivers(gridcell.get_lat());
 
-		if (run_landcover) {
-			// Read static landcover and cft fraction data from ins-file and/or
-			// from data files for the spinup period and create stands
+		if (run_landcover && !restart) {
+			// Read landcover and cft fraction data from 
+			// data files for the spinup period and create stands
 			landcover_init(gridcell, input_module.get());
 		}
 
@@ -224,8 +224,6 @@ int framework(const CommandLineArguments& args) {
 			// ...and jump to the restart year
 			date.year = state_year;
 		}
-
-		MassBalance balance(nyear_spinup);
 
 		// Call input/output to obtain climate, insolation and CO2 for this
 		// day of the simulation. Function getclimate returns false if last year
@@ -245,7 +243,7 @@ int framework(const CommandLineArguments& args) {
 				// or end of simulation for this grid cell
 				output_modules.outannual(gridcell);
 
-				balance.check_year(gridcell);
+				gridcell.balance.check_year(gridcell);
 
 				// Time to save state?
 				if (date.year == state_year-1 && save_state) {
@@ -264,7 +262,7 @@ int framework(const CommandLineArguments& args) {
 			// End of loop through simulation days
 		}	//while (getclimate())
 
-		balance.check_period();
+		gridcell.balance.check_period();
 
 	}		// End of loop through grid cells
 

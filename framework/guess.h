@@ -455,7 +455,7 @@ class MassBalance : public Serializable  {
 public:
 	MassBalance() {
 
-		start_year = 10000000;
+		start_year = nyear_spinup;
 		ccont = 0.0;
 		ccont_zero = 0.0;
 		ccont_zero_scaled = 0.0;
@@ -472,9 +472,15 @@ public:
 
 		start_year = start_yearX;
 		ccont = 0.0;
+		ccont_zero = 0.0;
+		ccont_zero_scaled = 0.0;
 		cflux = 0.0;
+		cflux_zero = 0.0;
 		ncont = 0.0;
+		ncont_zero = 0.0;
+		ncont_zero_scaled = 0.0;
 		nflux = 0.0;
+		nflux_zero = 0.0;
 	}
 
 	void check_year(Gridcell& gridcell);
@@ -1051,8 +1057,6 @@ public:
 
 		return cropno;
 	}
-
-	void serialize(ArchiveStream& arch);
 };
 
 /// A list of stand types
@@ -1078,10 +1082,9 @@ public:
  *     stlist.nextobj();
  *   }
  */
-class StandTypelist : public ListArray_id<StandType>, public Serializable {
+class StandTypelist : public ListArray_id<StandType> {
 
-void serialize(ArchiveStream& arch);
-};	// Will serialisation work with ListArray_id ?
+};
 
 /// The one and only linked list of StandType objects
 extern StandTypelist stlist;
@@ -3467,7 +3470,7 @@ public:
 	/// A number identifying this object within its list array
 	int id;
 
-	/// A reference to the Pft object for this Gridcellpft
+	/// A reference to the StandType object for this Gridcellst
 	StandType& st;
 
 	/// fraction of this stand type relative to the gridcell
@@ -3597,6 +3600,9 @@ public:
 
 	/// list array [0...nst-1] of Gridcellst (initialised in constructor)
 	ListArray_idin1<Gridcellst,StandType> st;
+
+	/// object for keeping track of carbon and nitrogen balance
+	MassBalance balance;
 
 	/// Seed for generating random numbers within this Gridcell
 	/** The reason why Gridcell has its own seed, rather than using for instance

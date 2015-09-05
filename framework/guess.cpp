@@ -195,26 +195,6 @@ double Fluxes::get_annual_flux(PerPatchFluxType flux_type) const {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Implementation of StandTypelist member functions
-////////////////////////////////////////////////////////////////////////////////
-
-void StandTypelist::serialize(ArchiveStream& arch) {
-	if (arch.save()) {
-		for (unsigned int i = 0; i < this->nobj; i++) {
-			arch & this[i];
-		}
-	}
-	else {
-		this->killall();
-
-		for (unsigned int i = 0; i < stlist.nobj; i++) {
-			this->createobj();
-			arch & this[i];
-		}
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////
 // Implementation of Vegetation member functions
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -320,9 +300,11 @@ void cropphen_struct::serialize(ArchiveStream& arch) {
 		& hdate
 		& hlimitdate
 		& hucountend
+		& sendate
 		& bicdate
 		& eicdate
 		& growingdays
+		& growingdays_y
 		& tb
 		& pvd
 		& vdsum
@@ -349,6 +331,9 @@ void cropphen_struct::serialize(ArchiveStream& arch) {
 		& senescence
 		& senescence_ystd
 		& intercropseason
+		& fertilised
+		& vdsum_alloc
+		& vd
 		& dev_stage;
 }
 
@@ -618,7 +603,8 @@ void Standpft::serialize(ArchiveStream& arch) {
 	arch & cmass_repr
 		& anetps_ff_max
 		& fpc_total
-		& active;
+		& active
+		& irrigated;
 }
 
 
@@ -977,7 +963,8 @@ void cropindiv_struct::serialize(ArchiveStream& arch) {
 		& grs_cmass_stem
 		& nmass_ho
 		& nmass_agpool
-		& nmass_dead_leaf;
+		& nmass_dead_leaf
+		& isintercropgrass;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1091,6 +1078,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_root_post_turnover
 		& last_turnover_day
 		& fpc
+		& fpc_daily
 		& fpar
 		& densindiv
 		& phen
@@ -1107,6 +1095,8 @@ void Individual::serialize(ArchiveStream& arch) {
 		& lai
 		& lai_layer
 		& lai_indiv
+		& lai_daily
+		& lai_indiv_daily
 		& greff_5
 		& age
 		& mlai
@@ -1140,6 +1130,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_veg
 		& nmass_veg
 
+		& photosynthesis
 		& nstress
 		& leafndemand
 		& rootndemand
@@ -1151,8 +1142,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& storefndemand
 		& leafndemand_store
 		& rootndemand_store
-		& cmass_leaf_post_turnover
-		& cmass_root_post_turnover
 		& last_turnover_day
 		& nday_leafon;
 
@@ -2067,7 +2056,7 @@ void Gridcellpft::serialize(ArchiveStream& arch) {
 ////////////////////////////////////////////////////////////////////////////////
 
 void Gridcellst::serialize(ArchiveStream& arch) {
-	arch & frac_old;
+	arch & frac
 		& nstands;
 }
 
@@ -2206,11 +2195,16 @@ double Gridcell::nflux() {
 void Gridcell::serialize(ArchiveStream& arch) {
 	arch & climate
 		& landcover
-		& seed;
+		& seed
+		& balance;
 
 	if (arch.save()) {
 		for (unsigned int i = 0; i < pft.nobj; i++) {
 			arch & pft[i];
+		}
+
+		for (unsigned int i = 0; i < st.nobj; i++) {
+			arch & st[i];
 		}
 
 		unsigned int nstands = nbr_stands();
@@ -2226,6 +2220,13 @@ void Gridcell::serialize(ArchiveStream& arch) {
 		for (unsigned int i = 0; i < pftlist.nobj; i++) {
 			pft.createobj(pftlist[i]);
 			arch & pft[i];
+		}
+
+		st.killall();
+
+		for (unsigned int i = 0; i < stlist.nobj; i++) {
+			st.createobj(stlist[i]);
+			arch & st[i];
 		}
 
 		clear();
@@ -2280,9 +2281,13 @@ void Sompool::serialize(ArchiveStream& arch) {
 void MassBalance::serialize(ArchiveStream& arch) {
 	arch & start_year
 		& ccont_zero
+		& ccont_zero_scaled
 		& cflux_zero
 		& ncont_zero
+		& ncont_zero_scaled
 		& nflux_zero
+		& ccont
+		& ncont
 		& cflux
 		& nflux;
 }

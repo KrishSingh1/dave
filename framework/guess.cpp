@@ -961,6 +961,7 @@ void cropindiv_struct::serialize(ArchiveStream& arch) {
 		& grs_cmass_agpool
 		& grs_cmass_dead_leaf
 		& grs_cmass_stem
+		& cmass_leaf_sen
 		& nmass_ho
 		& nmass_agpool
 		& nmass_dead_leaf

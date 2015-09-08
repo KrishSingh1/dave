@@ -590,7 +590,6 @@ bool LandcoverInput::get_land_transitions(Gridcell& gridcell) {
 /// Read LUC transitions
 bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 
-	int year;
 	double tot_frac_ch = 0.0;
 	const bool print_adjustment_info = false;
 	Landcover& lc = gridcell.landcover;
@@ -600,7 +599,7 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 
 	//If have not reached second year of simulation (after spin-up) then gross_lc_change_frac must be zero (no land-use change in spin-up).
 
-	year = date.get_calendar_year() - 1;
+	int year = date.get_calendar_year() - 1;
 
 	// Assume that transitions in file are correct at end of year, therefore want to get 
 	// "last year's" transitions, as landcover_dynamics is called at the beginning of the year.
@@ -608,25 +607,37 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 	// youngest stands, respectively. Transitions from primary to secondary NATURAL land result 
 	// in killing of vegetation and creating a new NATURAL stand.
 
-	const bool primary_to_secondary = false;
+	const bool primary_to_secondary = false; // Use transitions from virgin to secondary natural land.
+	double frac_transfer;
 
-	lc.frac_transfer[CROPLAND][PASTURE] += grossLUC.Get(year,"cp");
-	lc.frac_transfer[PASTURE][CROPLAND] += grossLUC.Get(year,"pc");
-	lc.frac_transfer[PASTURE][NATURAL] += grossLUC.Get(year,"pv");
-	lc.frac_transfer[NATURAL][PASTURE] += grossLUC.Get(year,"vp");
-	lc.frac_transfer[NATURAL][CROPLAND] += grossLUC.Get(year,"vc");
-	lc.frac_transfer[CROPLAND][NATURAL] += grossLUC.Get(year,"cv");
-	lc.frac_transfer[NATURAL][CROPLAND] += grossLUC.Get(year,"sc");
-	lc.frac_transfer[CROPLAND][NATURAL] += grossLUC.Get(year,"cs");
-	lc.frac_transfer[NATURAL][PASTURE] += grossLUC.Get(year,"sp");
-	lc.frac_transfer[PASTURE][NATURAL] += grossLUC.Get(year,"ps");
+	lc.frac_transfer[CROPLAND][PASTURE] += (frac_transfer = grossLUC.Get(year,"cp")) != NOTFOUND ? frac_transfer : 0.0;
+	lc.frac_transfer[PASTURE][CROPLAND] += (frac_transfer = grossLUC.Get(year,"pc")) != NOTFOUND ? frac_transfer : 0.0;
+	lc.frac_transfer[PASTURE][NATURAL] += (frac_transfer = grossLUC.Get(year,"pv")) != NOTFOUND ? frac_transfer : 0.0;
+	lc.frac_transfer[NATURAL][PASTURE] += (frac_transfer = grossLUC.Get(year,"vp")) != NOTFOUND ? frac_transfer : 0.0;
+	lc.frac_transfer[NATURAL][CROPLAND] += (frac_transfer = grossLUC.Get(year,"vc")) != NOTFOUND ? frac_transfer : 0.0;
+	lc.frac_transfer[CROPLAND][NATURAL] += (frac_transfer = grossLUC.Get(year,"cv")) != NOTFOUND ? frac_transfer : 0.0;
+	lc.frac_transfer[NATURAL][CROPLAND] += (frac_transfer = grossLUC.Get(year,"sc")) != NOTFOUND ? frac_transfer : 0.0;
+	lc.frac_transfer[CROPLAND][NATURAL] += (frac_transfer = grossLUC.Get(year,"cs")) != NOTFOUND ? frac_transfer : 0.0;
+	lc.frac_transfer[NATURAL][PASTURE] += (frac_transfer = grossLUC.Get(year,"sp")) != NOTFOUND ? frac_transfer : 0.0;
+	lc.frac_transfer[PASTURE][NATURAL] += (frac_transfer = grossLUC.Get(year,"ps")) != NOTFOUND ? frac_transfer : 0.0;
+
+	lc.frac_transfer[BARREN][CROPLAND] += (frac_transfer = grossLUC.Get(year,"bc")) != NOTFOUND ? frac_transfer : 0.0;
+	lc.frac_transfer[CROPLAND][BARREN] += (frac_transfer = grossLUC.Get(year,"cb")) != NOTFOUND ? frac_transfer : 0.0;
+	lc.frac_transfer[BARREN][PASTURE] += (frac_transfer = grossLUC.Get(year,"bp")) != NOTFOUND ? frac_transfer : 0.0;
+	lc.frac_transfer[PASTURE][BARREN] += (frac_transfer = grossLUC.Get(year,"pb")) != NOTFOUND ? frac_transfer : 0.0;
+
+	lc.frac_transfer[BARREN][NATURAL] += (frac_transfer = grossLUC.Get(year,"bs")) != NOTFOUND ? frac_transfer : 0.0;
+	lc.frac_transfer[NATURAL][BARREN] += (frac_transfer = grossLUC.Get(year,"sb")) != NOTFOUND ? frac_transfer : 0.0;
+	lc.frac_transfer[NATURAL][BARREN] += (frac_transfer = grossLUC.Get(year,"vb")) != NOTFOUND ? frac_transfer : 0.0;
+
 
 	if(ifprimary_lc_transfer) {
-		lc.primary_frac_transfer[NATURAL][PASTURE] += grossLUC.Get(year,"vp");
-		lc.primary_frac_transfer[NATURAL][CROPLAND] += grossLUC.Get(year,"vc");
+		lc.primary_frac_transfer[NATURAL][PASTURE] += (frac_transfer = grossLUC.Get(year,"vp")) != NOTFOUND ? frac_transfer : 0.0;
+		lc.primary_frac_transfer[NATURAL][CROPLAND] += (frac_transfer = grossLUC.Get(year,"vc")) != NOTFOUND ? frac_transfer : 0.0;
+		lc.primary_frac_transfer[NATURAL][BARREN] += (frac_transfer = grossLUC.Get(year,"vb")) != NOTFOUND ? frac_transfer : 0.0;
 		if(primary_to_secondary) {
-			lc.frac_transfer[NATURAL][NATURAL] += grossLUC.Get(year,"vs");
-			lc.primary_frac_transfer[NATURAL][NATURAL] += grossLUC.Get(year,"vs");
+			lc.frac_transfer[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
+			lc.primary_frac_transfer[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
 		}
 	}
 

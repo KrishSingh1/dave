@@ -2707,8 +2707,6 @@ public:
 	int hu_samplingdays;
 	/// harvest index today [0-1, >1 if below-ground ho], harvestable organ/above-ground C for above-ground harvestable organs, dependent on fphu, reduced by water stress
 	double hi;
-	/// harvest index yesterday
-	double hi_ystd;
 	/// fraction of harvest index today
 	double fhi;
 	/// phenology (fphu) contribution of fraction of harvest index today
@@ -2777,7 +2775,6 @@ public:
 		hu_samplingperiod=false;
 
 		hi=0.0;
-		hi_ystd=0.0;
 		fhi=0.0;
 		fhi_phen=0.0;
 		fhi_water=1.0;

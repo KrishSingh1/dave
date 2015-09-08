@@ -103,7 +103,7 @@ void CommonOutput::define_output_tables() {
 
 	if (run_landcover) {
 		 const char* landcover_string[]={"Urban_sum", "Crop_sum", "Pasture_sum",
-			 "Forest_sum", "Natural_sum", "Peatland_sum", "Barren sum"};
+			 "Forest_sum", "Natural_sum", "Peatland_sum", "Barren_sum"};
 		 for (int i=0; i<NLANDCOVERTYPES; i++) {
 			  if(run[i]) {
 					landcovers.push_back(landcover_string[i]);

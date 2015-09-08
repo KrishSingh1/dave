@@ -367,7 +367,6 @@ void crop_phenology(Patch& patch) {
 				if (ppftcrop.growingseason) {
 
 					ppftcrop.senescence_ystd = ppftcrop.senescence;
-					ppftcrop.hi_ystd = ppftcrop.hi;
 					ppftcrop.intercropseason = false;
 					ppftcrop.growingdays++;
 

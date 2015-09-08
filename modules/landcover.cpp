@@ -584,7 +584,7 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 		if(abs_frac_change_sum != fabs(frac_change_sum)) {
 
 			net_transfer_remain[i][i] = donor_sum;
-//			lc_frac_transfer[i][i] = donor_sum;
+			lc_frac_transfer[i][i] = donor_sum;
 		}
 
 	}
@@ -1614,11 +1614,9 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 
 				StandType& st_dest = stlist[to];
 
-				if(st.landcover != st_dest.landcover) {
-					lc_change[st.landcover] -= st_change_array[index(from, to)];
-					lc_change[st_dest.landcover] += st_change_array[index(from, to)];
-					lc_change_arr[st.landcover][st_dest.landcover] += st_change_array[index(from, to)];
-				}
+				lc_change[st.landcover] -= st_change_array[index(from, to)];
+				lc_change[st_dest.landcover] += st_change_array[index(from, to)];
+				lc_change_arr[st.landcover][st_dest.landcover] += st_change_array[index(from, to)];
 			}
 		}
 

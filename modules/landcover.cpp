@@ -542,8 +542,6 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 
 	for(int i=0; i<NLANDCOVERTYPES; i++) {
 
-		double abs_frac_change_sum = 0.0;
-		double frac_change_sum = 0.0;
 		double donor_sum = 0.0;
 		double lc_change = gridcell.landcover.frac[i] - gridcell.landcover.frac_old[i];
 
@@ -552,8 +550,6 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 			StandType& st = stlist[from];
 			Gridcellst& gcst = gridcell.st[from];
 			if(st.landcover == i) {
-				abs_frac_change_sum += fabs(gcst.frac_change);
-				frac_change_sum += gcst.frac_change;
 
 				double interLC_change = 0.0;
 

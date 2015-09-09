@@ -989,9 +989,8 @@ struct Management {
 };
 
 /// Storage class of crop rotation information for a stand type, read from the instruction file.
-class CropRotation {
+struct CropRotation {
 
-public:
 	/// Number of crops in rotation
 	int ncrops;
 	/// Rotation period in years
@@ -1630,9 +1629,7 @@ public:
 extern Pftlist pftlist;
 
 /// Container for crop-specific data at the individual level
-class cropindiv_struct : public Serializable {
-
-public:
+struct cropindiv_struct : public Serializable {
 
 	//Plant carbon biomass variables are all on patch area basis (kgC/m2)
 
@@ -1783,8 +1780,7 @@ public:
 	/// set to true if pft.isintercropgrass is true and the stand's main crop pft.intercrop is "naturalgrass"
 	bool isintercropgrass;
 
-	cropindiv_struct()
-	{
+	cropindiv_struct() {
 		cmass_ho=0.0;
 		cmass_agpool=0.0;
 		cmass_stem = 0.0;
@@ -2635,9 +2631,7 @@ public:
 };
 
 /// Container for crop-specific data at patchpft level
-class cropphen_struct : public Serializable {
-
-public:
+struct cropphen_struct : public Serializable {
 
 	/// latest sowing date
 	int sdate;
@@ -3506,9 +3500,9 @@ public:
 	void serialize(ArchiveStream& arch);
 };
 
-class Landcover : public Serializable {
+/// Storage of land cover fraction data and some land cover change-related pools and fluxes
+struct Landcover : public Serializable {
 
-public:
 	Landcover();
 
 	/// The fractions of the different land cover types.

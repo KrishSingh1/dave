@@ -577,16 +577,12 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 				else
 					net_donor_intraLC_remain[from] = -intraLC_change;
 
-				if(gcst.frac_change - interLC_change < 0.0)
-					donor_sum -= gcst.frac_change - interLC_change;
+				if(intraLC_change < 0.0)
+					donor_sum -= intraLC_change;
 			}
 		}
-		if(abs_frac_change_sum != fabs(frac_change_sum)) {
-
-			net_transfer_remain[i][i] = donor_sum;
-			lc_frac_transfer[i][i] = donor_sum;
-		}
-
+		net_transfer_remain[i][i] = donor_sum;
+		lc_frac_transfer[i][i] = donor_sum;
 	}
 
 	for(int from=0; from<nst; from++) {

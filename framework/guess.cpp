@@ -305,6 +305,7 @@ void cropphen_struct::serialize(ArchiveStream& arch) {
 		& eicdate
 		& growingdays
 		& growingdays_y
+		& lgp
 		& tb
 		& pvd
 		& vdsum

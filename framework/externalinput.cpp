@@ -476,31 +476,35 @@ void LandcoverInput::get_crop_fractions(Gridcell& gridcell, int year) {
 			dprintf("Last year of cropland fraction data used from year %d and onwards\n", year);
 
 		// sum fractions for active crop pft:s and discard unreasonable values
-		for(int i=0; i<nst; i++) {
-			if(stlist[i].landcover == CROPLAND)	{
+		// if crop fraction sum is 0 this year, try the following years 
+		for(int y=year;y<CFTdata.GetFirstyear()+CFTdata.GetnYears();y++) {
 
-				double cropfrac = CFTdata.Get(year,stlist[i].name);
+			for(int i=0; i<nst; i++) {
+				if(stlist[i].landcover == CROPLAND)	{
 
-				if(cropfrac == NOTFOUND) {	// crop not found in input file
-					cropfrac = 0.0;
+					double cropfrac = CFTdata.Get(y,stlist[i].name);
+
+					if(cropfrac == NOTFOUND) {	// crop not found in input file
+						cropfrac = 0.0;
+					}
+					else if(cropfrac < 0.0 || cropfrac > 1.0) {	// discard unreasonable values
+						if(!(!lc.frac[CROPLAND] && cropfrac < 0.0) && printyear)
+							dprintf("WARNING ! crop fraction size out of limits, set to 0.0\n");
+						cropfrac = 0.0;
+					}
+					sum += gridcell.st[i].frac = cropfrac;
 				}
-				else if(cropfrac < 0.0 || cropfrac > 1.0) {	// discard unreasonable values
-					if(!(!lc.frac[CROPLAND] && cropfrac < 0.0) && printyear)
-						dprintf("WARNING ! crop fraction size out of limits, set to 0.0\n");
-					cropfrac = 0.0;
+			}
+			if(sum) {
+				if(printyear && y != year) {
+					dprintf("WARNING ! crop fraction sum is 0.0 for year %d while LU[CROPLAND] is > 0 !\n", year);
+					dprintf("Using values for year %d.\n", y);					
 				}
-				sum += gridcell.st[i].frac = cropfrac;
+				break;
 			}
 		}
-
-		if(printyear) {
-			if(lc.frac[CROPLAND]==0.0) {
-				if(sum!=0.0) {
-				}
-			}
-			else if(sum==0.0) {
-				dprintf("WARNING ! crop fraction sum is 0.0 for year %d while LU[CROPLAND] is > 0 !\n", year);
-			}
+		if(printyear && !sum) {
+			dprintf("WARNING ! crop fraction sum is 0.0 for year %d while LU[CROPLAND] is > 0 !\n", year);		
 		}
 	}
 

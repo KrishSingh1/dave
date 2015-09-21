@@ -698,10 +698,8 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 				double net_st_decrease = net_st_increase - gcst_donor.frac_change;
 
 				reduce[from] = (influx_st[from] - outflux_st[from]) + net_st_decrease;
-
-				if(reduce[from] > gcst_donor.frac_old && (reduce[from] - gcst_donor.frac_old)  > 1.0e-14) {
-
-					double remain = reduce[from] - gcst_donor.frac_old;
+				double remain = reduce[from] - gcst_donor.frac_old;
+				if(remain > 1.0e-14) {
 					exclude_frac_0 += gcst_donor.frac;
 					exclude_frac += receptor_weight[from] * net_lc_receptor_remain[st_donor.landcover] - remain;
 					if(net_lc_receptor_remain[st_donor.landcover])
@@ -721,7 +719,7 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 
 				if(nsts[st_donor.landcover] >=2) {
 
-					if(receptor_weight[from] == gcst_donor.frac / gridcell.landcover.frac[st_donor.landcover]) {
+					if(receptor_weight[from] == gcst_donor.frac / gridcell.landcover.frac[st_donor.landcover] && gridcell.landcover.frac[st_donor.landcover] != exclude_frac_0) {
 						receptor_weight[from] = gcst_donor.frac / (gridcell.landcover.frac[st_donor.landcover] - exclude_frac_0) * (net_lc_receptor_remain[st_donor.landcover] - exclude_frac) / net_lc_receptor_remain[st_donor.landcover];
 						double net_st_increase = net_lc_receptor_remain[st_donor.landcover] * receptor_weight[from];
 						double net_st_decrease = net_st_increase - gcst_donor.frac_change;

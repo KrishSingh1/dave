@@ -477,7 +477,11 @@ void LandcoverInput::get_crop_fractions(Gridcell& gridcell, int year) {
 
 		// sum fractions for active crop pft:s and discard unreasonable values
 		// if crop fraction sum is 0 this year, try the following years 
-		for(int y=year;y<CFTdata.GetFirstyear()+CFTdata.GetnYears();y++) {
+		int first_data_year = CFTdata.GetFirstyear();
+		// first_data_year is -1 for static data
+		if(first_data_year == -1)
+			first_data_year = year;
+		for(int y=year;y<first_data_year+CFTdata.GetnYears();y++) {
 
 			for(int i=0; i<nst; i++) {
 				if(stlist[i].landcover == CROPLAND)	{

@@ -943,7 +943,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		// or establishment fluxes
 		for (m=0;m<12;m++) {
 			mnpp[m] = mgpp[m] - mra[m];
-			mnee[m] = mnpp[m] - mrh[m];
+			mnee[m] = mrh[m] - mnpp[m];
 		}
 
 		// Print gridcell totals to files

@@ -47,10 +47,10 @@ gmap aiso1961to1990.txt -t 'Isoprene flux (mg C/m2/y)' -legend legend_bvoc_globa
 gmap amon1961to1990.txt -t 'Monoterpene flux (mg C/m2/y)' -legend legend_bvoc_global.txt -portrait -lon 1 -lat 2 -i 'Total' -o amon_tot.jpg
 describe_image aiso_tot.jpg "Annual isoprene flux (1961-90 average)"
 describe_image amon_tot.jpg "Annual monoterpene flux (1961-90 average)"
-aslice aiso1961to1990.txt -o aiso1961to1990_sums.txt -n -sums
-aslice amon1961to1990.txt -o amon1961to1990_sums.txt -n -sums
-describe_textfile aiso1961to1990_sums.txt "Global terrestrial isoprene emissions, 1961 to 1990. Units: mg C/y"
-describe_textfile amon1961to1990_sums.txt "Global terrestrial monoterpene emissions, 1961 to 1990. Units: mg C/y"
+aslice aiso1961to1990.txt -o aiso1961to1990_sums.txt -n -sum 'mg/m2->Tg'
+aslice amon1961to1990.txt -o amon1961to1990_sums.txt -n -sum 'mg/m2->Tg'
+describe_textfile aiso1961to1990_sums.txt "Global terrestrial isoprene emissions, 1961 to 1990. Units: Tg C/y"
+describe_textfile amon1961to1990_sums.txt "Global terrestrial monoterpene emissions, 1961 to 1990. Units: Tg C/y"
 
 compute cpool.out -n -o cpool_total.out -i Lon Lat Year Total
 compute cflux.out -n -o cflux_nee.out -i Lon Lat Year NEE

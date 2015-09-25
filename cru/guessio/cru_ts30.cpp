@@ -13,8 +13,8 @@
 #include <vector>
 
 // header files for the CRU TS 3.0 data archives
-#include "cru_1901_2006.h"
-#include "cru_1901_2006misc.h"
+#include "cruncep_1901_2013.h"
+#include "cruncep_1901_2013misc.h"
 
 namespace CRU_TS30 {
  
@@ -27,14 +27,14 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 	// Please note the new function signature. 
 
 	// Archive object. Definition in new header file, cru.h
-	Cru_1901_2006Archive ark;
+	Cruncep_1901_2013Archive ark;
 
 	int y,m;
 
 	// Try block to catch any unexpected errors
 	try {
 
-		Cru_1901_2006 data; // struct to hold the data
+		Cruncep_1901_2013 data; // struct to hold the data
 
 		bool success = ark.open(cruark);
 
@@ -101,13 +101,13 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 	// Please note the new function signature. 
 
 	// Archive object
-	Cru_1901_2006miscArchive ark; 
+	Cruncep_1901_2013miscArchive ark; 
 	int y,m;
 
 	// Try block to catch any unexpected errors
 	try {
 
-		Cru_1901_2006misc data;
+		Cruncep_1901_2013misc data;
 
 		bool success = ark.open(cruark);
 

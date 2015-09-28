@@ -80,6 +80,9 @@ private:
 	/// A list of Coord objects containing coordinates of the grid cells to simulate
 	ListArray_id<Coord> gridlist;
 
+	/// Flag for getgridcell(). True indicates that the first gridcell has not been read yet by getgridcell()
+	bool first_call;
+
 	// Timers for keeping track of progress through the simulation
 	Timer tprogress,tmute;
 	static const int MUTESEC=20; // minimum number of sec to wait between progress messages

@@ -1133,20 +1133,19 @@ void plib_callback(int callback) {
 		if(run_landcover && !run[NATURAL]) {
 
 			include_natural_pfts = false;
+			include_natural_grass_pfts = false;
 
 			stlist.firstobj();
 			while(stlist.isobj) {
 				StandType& st = stlist.getobj();
 
-				if(st.naturalveg || st.naturalgrass) {
-
-					if(st.naturalveg) {
-						include_natural_pfts = true;
-						break;
-					}
-					if(st.naturalgrass)
-						include_natural_grass_pfts = true;
+				if(st.naturalveg) {
+					include_natural_pfts = true;
+					include_natural_grass_pfts = true;
+					break;
 				}
+				if(st.naturalgrass)
+					include_natural_grass_pfts = true;
 				stlist.nextobj();
 			}
 		}
@@ -1163,7 +1162,7 @@ void plib_callback(int callback) {
 			if(pft.landcover == NATURAL) {
 				if(!include_natural_grass_pfts && pft.lifeform == GRASS)
 					include = false;
-				else if(!include_natural_pfts)
+				else if(!include_natural_pfts && pft.lifeform != GRASS)
 					include = false;
 			}
 			else {

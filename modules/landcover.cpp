@@ -578,7 +578,8 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 			}
 		}
 		net_transfer_remain[i][i] = donor_sum;
-		lc_frac_transfer[i][i] = donor_sum;
+		// lc_frac_transfer is filled in get_lc_transfer() for natural landcover and here for cropland
+		lc_frac_transfer[i][i] += donor_sum;
 	}
 
 	for(int from=0; from<nst; from++) {

@@ -66,7 +66,7 @@ inline double variation_coefficient(double* data, int n) {
 	double std = sqrt(dev / (n-1));
 
 	if (std > 0 && avg > 0) {	// check that data appear in the array
-		return fabs(std / avg);
+		return std / avg;
 	}
 	return 0;
 }

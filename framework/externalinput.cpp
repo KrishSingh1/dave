@@ -43,7 +43,7 @@ LandcoverInput::LandcoverInput()
 	: nyears_cropland_ramp(0) {
 
 	declare_parameter("minimizecftlist", &minimizecftlist, "Whether pfts not in crop fraction input file are removed from pftlist (0,1)");
-	declare_parameter("nyears_cropland_ramp", &nyears_cropland_ramp, 1, 10000, "Number of years to increase cropland fraction linearly from 0 to first year's value");
+	declare_parameter("nyears_cropland_ramp", &nyears_cropland_ramp, 0, 10000, "Number of years to increase cropland fraction linearly from 0 to first year's value");
 	declare_parameter("frac_fixed_default_crops", &frac_fixed_default_crops, " whether to use all active crop stand types (0) or only stand types with suitable rainfed crops (based on crop pft tb and gridcell latitude) (1) when using fixed crop fractions");
 }
 
@@ -463,7 +463,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 
 void LandcoverInput::get_crop_fractions(Gridcell& gridcell, int year) {
 
-	if(!run[CROPLAND] || frac_fixed[CROPLAND] && !frac_fixed_default_crops)
+	if(!run[CROPLAND] || !gridcell.landcover.frac[CROPLAND] || frac_fixed[CROPLAND] && !frac_fixed_default_crops)
 		return;
 
 	bool printyear = year >= CFTdata.GetFirstyear() && CFTdata.GetFirstyear() >= 0;
@@ -484,7 +484,7 @@ void LandcoverInput::get_crop_fractions(Gridcell& gridcell, int year) {
 		if(first_data_year != -1 && year == last_data_year + 1)
 			dprintf("Last year of cropland fraction data used from year %d and onwards\n", year);
 
-		for(int y=year;y<last_data_year + 1;y++) {
+		for(int y=year;y<=max(year,last_data_year) + 1;y++) {
 
 			for(int i=0; i<nst; i++) {
 				if(stlist[i].landcover == CROPLAND)	{

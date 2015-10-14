@@ -676,7 +676,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("laimax",&ppft->laimax,0.0,10.0,1,CB_NONE,"Maximum lai (crop grass only)");
 		declareitem("forceautumnsowing",&ppft->forceautumnsowing,0,2,1,CB_NONE,"Whether autumn sowing is forced independent of climate");
 
-		declareitem("nlim",&ppft->nlim,1,CB_NONE,"N limited version of pft");
 		declareitem("fertdates",ppft->fertdates,0,365,2,CB_NONE,
 			"Fertilisation dates, relative to sowing");
 		declareitem("fertrate",ppft->fertrate,0.0,1.0,2,CB_NONE,
@@ -1179,22 +1178,6 @@ void plib_callback(int callback) {
 			}
 		}
 
-		// Remove pft:s that do not conform to nlim status
-		pftlist.firstobj();
-		while (pftlist.isobj) {
-			Pft& pft = pftlist.getobj();
-			bool remove = pft.landcover == CROPLAND && !pft.isintercropgrass && (ifnlim && !pft.nlim || !ifnlim && pft.nlim);
-
-			if (remove) {
-				// Remove this PFT from list
-				dprintf("pft %s not compatible with ifnlim setting; removed from pftlist !\n", (char*)pft.name);
-				pftlist.killobj();
-			}
-			else {
-				pftlist.nextobj();
-			}
-		}
-
 		// Remove crop st:s with pft:s that are not found in the pftlist
 		dprintf("\n");
 		stlist.firstobj();
@@ -1315,9 +1298,9 @@ void plib_callback(int callback) {
 			if (!itemparsed("emax")) badins("emax");
 			if (!itemparsed("respcoeff")) badins("respcoeff");
 
-			if (!ifcalcsla || (ppft->phenology == CROPGREEN && run_landcover && ifnlim && ppft->nlim))
+			if (!ifcalcsla || (ppft->phenology == CROPGREEN && run_landcover && ifnlim))
 				if (!itemparsed("sla")) badins("sla");
-			if (!ifcalccton || (ppft->phenology == CROPGREEN && run_landcover && ifnlim && ppft->nlim))
+			if (!ifcalccton || (ppft->phenology == CROPGREEN && run_landcover && ifnlim))
 				if (!itemparsed("cton_leaf_min")) badins("cton_leaf_min");
 
 
@@ -1368,35 +1351,32 @@ void plib_callback(int callback) {
 						if (!itemparsed("turnover_harv_prod")) badins("turnover_harv_prod");
 
 						if(ifnlim) {
-							if(ppft->nlim) {
-								if (!itemparsed("nlim")) badins("nlim");
-								if (!itemparsed("fertrate")) badins("fertrate");
-								if (!itemparsed("N_appfert")) badins("N_appfert");
-								if (!itemparsed("T_vn_min")) badins("T_vn_min");
-								if (!itemparsed("T_vn_opt")) badins("T_vn_opt");
-								if (!itemparsed("T_vn_max")) badins("T_vn_max");
-								if (!itemparsed("T_veg_min")) badins("T_veg_min");
-								if (!itemparsed("T_veg_opt")) badins("T_veg_opt");
-								if (!itemparsed("T_veg_max")) badins("T_veg_max");
-								if (!itemparsed("T_rep_min")) badins("T_rep_min");
-								if (!itemparsed("T_rep_opt")) badins("T_rep_opt");
-								if (!itemparsed("T_rep_max")) badins("T_rep_max");
-								if (!itemparsed("photo")) badins("photo");
-								if (!itemparsed("dev_rate_veg")) badins("dev_rate_veg");
-								if (!itemparsed("dev_rate_rep")) badins("dev_rate_rep");
-								if (!itemparsed("a1")) badins("a1");
-								if (!itemparsed("b1")) badins("b1");
-								if (!itemparsed("c1")) badins("c1");
-								if (!itemparsed("d1")) badins("d1");
-								if (!itemparsed("a2")) badins("a2");
-								if (!itemparsed("b2")) badins("b2");
-								if (!itemparsed("c2")) badins("c2");
-								if (!itemparsed("d2")) badins("d2");
-								if (!itemparsed("a3")) badins("a3");
-								if (!itemparsed("b3")) badins("b3");
-								if (!itemparsed("c3")) badins("c3");
-								if (!itemparsed("d3")) badins("d3");
-							}
+							if (!itemparsed("fertrate")) badins("fertrate");
+							if (!itemparsed("N_appfert")) badins("N_appfert");
+							if (!itemparsed("T_vn_min")) badins("T_vn_min");
+							if (!itemparsed("T_vn_opt")) badins("T_vn_opt");
+							if (!itemparsed("T_vn_max")) badins("T_vn_max");
+							if (!itemparsed("T_veg_min")) badins("T_veg_min");
+							if (!itemparsed("T_veg_opt")) badins("T_veg_opt");
+							if (!itemparsed("T_veg_max")) badins("T_veg_max");
+							if (!itemparsed("T_rep_min")) badins("T_rep_min");
+							if (!itemparsed("T_rep_opt")) badins("T_rep_opt");
+							if (!itemparsed("T_rep_max")) badins("T_rep_max");
+							if (!itemparsed("photo")) badins("photo");
+							if (!itemparsed("dev_rate_veg")) badins("dev_rate_veg");
+							if (!itemparsed("dev_rate_rep")) badins("dev_rate_rep");
+							if (!itemparsed("a1")) badins("a1");
+							if (!itemparsed("b1")) badins("b1");
+							if (!itemparsed("c1")) badins("c1");
+							if (!itemparsed("d1")) badins("d1");
+							if (!itemparsed("a2")) badins("a2");
+							if (!itemparsed("b2")) badins("b2");
+							if (!itemparsed("c2")) badins("c2");
+							if (!itemparsed("d2")) badins("d2");
+							if (!itemparsed("a3")) badins("a3");
+							if (!itemparsed("b3")) badins("b3");
+							if (!itemparsed("c3")) badins("c3");
+							if (!itemparsed("d3")) badins("d3");
 						}
 					}
 					else if (ppft->phenology==ANY) {
@@ -1451,7 +1431,7 @@ void plib_callback(int callback) {
 					            "Value required for leaflong when ifcalcsla enabled");
 					plibabort();
 				}
-				if (itemparsed("sla") && !(ppft->phenology == CROPGREEN && ppft->nlim == true))
+				if (itemparsed("sla") && !(ppft->phenology == CROPGREEN && ifnlim))
 					sendmessage("Warning",
 					            "Specified sla value not used when ifcalcsla enabled");
 			}
@@ -1465,7 +1445,7 @@ void plib_callback(int callback) {
 					            "Value required for leaflong when ifcalccton enabled");
 					plibabort();
 				}
-				if (itemparsed("cton_leaf_min") && !(ppft->phenology == CROPGREEN && ppft->nlim == true))
+				if (itemparsed("cton_leaf_min") && !(ppft->phenology == CROPGREEN && ifnlim))
 					sendmessage("Warning",
 					            "Specified cton_leaf_min value not used when ifcalccton enabled");
 			}

@@ -607,7 +607,7 @@ pft "TrBR" (
 	storfrac_mon 0.
 )
 
-pft "C3G" (
+group "C3G" (
 
 	! Cool (C3) grass
 
@@ -630,7 +630,11 @@ pft "C3G" (
 	storfrac_mon 0.5
 )
 
-pft "C4G" (
+pft "C3G" (
+	C3G
+)
+
+group "C4G" (
 
 	! Warm (C3) grass
 
@@ -653,3 +657,6 @@ pft "C4G" (
 	storfrac_mon 0.5
 )
 
+pft "C4G" (
+	C4G
+)

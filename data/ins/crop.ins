@@ -1,19 +1,8 @@
 !///////////////////////////////////////////////////////////////////////////////////////
 !// CROP-SPECIFIC ADDITIONS TO LPJ-GUESS INSTRUCTION SCRIPT
-!// Mats Lindeskog 2015-10-14
+!// Mats Lindeskog 2012-09-18
 !///////////////////////////////////////////////////////////////////////////////////////
 
-import "landcover.ins"
-
-!///////////////////////////////////////////////////////////////////////////////////////
-
-! Output files
-!
-
-! Prefined yearly output
-! These files may be outcommented if their output is not required. 
-
-file_npool_forest "npool_forest.out"
 file_yield "yield.out"
 file_yield1 "yield1.out"
 file_yield2 "yield2.out"
@@ -27,30 +16,378 @@ file_fphu "fphu.out"
 file_fhi "fhi.out"
 file_irrigation "irrigation.out"
 file_seasonality "seasonality.out"
-
+file_cmass_cropland ""
+file_cmass_pasture ""
+file_cmass_natural "cmass_natural.out"
+file_cmass_forest "cmass_forest.out"
+file_anpp_cropland ""
+file_anpp_pasture ""
+file_anpp_natural "anpp_natural.out"
+file_anpp_forest "anpp_forest.out"
+file_dens_natural "dens_natural.out"
+file_dens_forest "dens_forest.out"
+file_cflux_cropland "cflux_cropland.out"
+file_cflux_pasture "cflux_pasture.out"
+file_cflux_natural "cflux_natural.out"
+file_cflux_forest "cflux_forest.out"
+file_cpool_cropland "cpool_cropland.out"
+file_cpool_pasture "cpool_pasture.out"
+file_cpool_natural "cpool_natural.out"
+file_cpool_forest "cpool_forest.out"
+file_nflux_cropland "nflux_cropland.out"
+file_nflux_pasture "nflux_pasture.out"
+file_nflux_natural "nflux_natural.out"
+file_nflux_forest "nflux_forest.out"
+file_npool_cropland "npool_cropland.out"
+file_npool_pasture "npool_pasture.out"
+file_npool_natural "npool_natural.out"
+file_npool_forest "npool_forest.out"
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// RUN PARAMETERS AND OPTIONS 
 !
 
-minimizecftlist 1	   ! Checks st fraction file for st:s with fractions>0.0 at any time or place; other st:s are exluded from the stlist
-cftfrac_fixed 0       	   ! whether to use fixed crop fractions (active crop stand types have equal area) (1) or read crop fractions from a file (0)
-frac_fixed_default_crops 0 ! whether to use all active crop stand types (0) or only stand types with suitable rainfed crops
-			   ! (based on crop pft tb and gridcell latitude) (1) when using fixed crop fractions
+npatch_secondarystand 5		! number of replicate patches to simulate in secondary stands
+reduce_all_stands 0		! Whether to reduce equal percentage of all stands of a stand type at land cover change
+age_limit_reduce 0		! Minimum age of stands to reduce at land cover change
 
-nyears_cropland_ramp 	0 ! Number of years to increase cropland fraction linearly from 0 to first year's value
-ifintercropgrass 0	  ! Whether to grow grass as cover crop between growing periods
-iftillage 0		  ! Whether to simulate tillage by increasing soil respiration
+!!!!!!!!!!!! landcover parameters !!!!!!!!!!!!!!					
 
-ifcalcdynamic_phu 1	  ! Whether to calculate dynamic potential heat units
-ifdyn_phu_limit 0	  ! Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
-nyear_dyn_phu 50	  ! Number of years to calculate dynamic phu if dynamic_phu_limit is 1
+run_landcover 1        ! whether to use (and change) landcover fractions (1) or not (0)						
+
+run_urban 0	      ! whether to simulate barren land (1) or not (0)	
+run_crop 1	      ! whether to simulate crop vegetation (1) or not (0)
+run_forest 0	      ! whether to simulate managed forest (1) or not (0)
+run_pasture 1	      ! whether to simulate pasture (1) or not (0)
+run_natural 1	      ! whether to simulate natural vegetation (1) or not (0)
+run_peatland 0	      ! whether to simulate peatland (1) or not (0)
+run_barren 0	      ! whether to simulate barren land (1) or not (0)
+
+minimizecftlist 0	! Checks st fraction file for st:s with fractions>0.0 at any time or place; other st:s are exluded from the stlist
+			! Only active pft:s in these st:s are kept in the pftlist
+cftfrac_fixed 0       	! whether to use fixed CFT fractions (all active crop pft:s have equal area) (1) or read CFT fractions from a file (0)
+frac_fixed_default_crops 0 ! whether to use all active crop stand types (0) or only stand types with suitable rainfed crops (based on crop pft tb and gridcell latitude) (1) when using fixed crop fractions
+!nyears_cropland_ramp 300 ! Number of years to increase cropland fraction linearly from 0 to first year's value
+
+ifslowharvestpool 1	! If a slow harvested product pool is included in patchpft.
+ifintercropgrass 1	! Whether to grow grass as cover crop between growing periods
+
+printseparatestands 0	! Whether to print multiple stands within a land cover type (except cropland) separately
+!forceautumnsowing 0	! Whether autumn sowing is forced independent of climate
+ifcalcdynamic_phu 1	! Whether to calculate dynamic potential heat units
+ifdyn_phu_limit 0	! Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
+nyear_dyn_phu 50	! Number of years to calculate dynamic phu if dynamic_phu_limit is 1
+iftillage 0		! Whether to simulate tillage by increasing soil respiration
+gross_land_transfer 0	! Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); read stand type transfer matrix input file (3), or not (0)
+ifprimary_lc_transfer 0	! Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)
+transfer_level 1	! Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
+iftransfer_to_new_stand 0	! Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
+
 
 !///////////////////////////////////////////////////////////////////////////////////////
+
 !// PARAMETERS FOR STAND TYPES
 
+group "common_stand" (
+
+	intercrop "nointercrop"
+	rotation 0
+	naturalveg "none"
+	restrictpfts 0		! Use all pft:s defined for a land cover (pft parameter landcover)
+)
+
+group "crop_stand" (
+
+	landcover "cropland"
+	rotation 1		! Only one crop
+	hydrology1 "rainfed"
+	intercrop "naturalgrass" ! Use natural grass pft:s as covercrop
+	restrictpfts 1		! Use only pft:s specified in stand type
+)
+
+st "Peatland" (
+
+	common_stand
+	stinclude 1
+	landcover "peatland"
+)
+
+st "Natural" (
+
+	common_stand
+	stinclude 1
+	landcover "natural"
+)
+
+st "Pasture" (
+
+	common_stand
+	stinclude 1
+	landcover "pasture"
+!	naturalveg "grassonly"	! Use natural grass pft:s
+
+)
+
+st "Forest" (
+
+	common_stand
+	stinclude 1
+	landcover "forest"
+	naturalveg "all"	! Use natural pft:s
+)
+
+st "Barren" (
+
+	common_stand
+	stinclude 1
+	landcover "barren"
+	naturalveg "none"
+)
+
+st "CC3G" (
+
+	crop_stand
+	stinclude 1
+	intercrop "nointercrop"
+	crop1 "CC3G"
+)
+
+st "CC4G" (
+
+	crop_stand
+	stinclude 1
+	intercrop "nointercrop"
+	crop1 "CC4G"
+)
+
+st "TeWW" (
+	! Example of settings for crop rotation
+
+	crop_stand
+	stinclude 1
+
+	rotation 1		! Change according to no. of crops in rotation (if 1, crop2 etc. will be ignored)
+	firstrotyear 1901	! First years of rotation scheme
+
+	crop1 "TeWW"		! First crop in rotation
+	hydrology1 "rainfed"	! Rainfed crop
+	nfert1 50		! Fixed nitrogen fertilisation
+!	sdate1 55		! Fixed sowing date
+!	hdate1 145		! Fixed (approximate) harvest date
+	crop2 "TeCo"		! Second crop in rotation
+	hydrology2 "irrigated"	! Irrigated crop
+	nfert2 0
+!	sdate2 160
+!	hdate2 300
+	crop3 "TeCo"		! Third crop in rotation (needs to be set also for fallow)
+	fallow3 1		! One year of fallow with natural grass
+)
+
+st "TrRi" (
+
+	crop_stand
+	stinclude 1
+	crop1 "TrRi"
+)
+
+st "TeCo" (
+
+	crop_stand
+	stinclude 1
+	crop1 "TeCo"
+)
+
+st "TrMi" (
+
+	crop_stand
+	stinclude 1
+	crop1 "TrMi"
+)
+
+st "TePu" (
+
+	crop_stand
+	stinclude 1
+	crop1 "TePu"
+)
+
+st "TeSb" (
+
+	crop_stand
+	stinclude 1
+	crop1 "TeSb"
+)
 
 
+st "TrMa" (
+
+	crop_stand
+	stinclude 1
+	crop1 "TrMa"
+)
+
+
+st "TeSf" (
+
+	crop_stand
+	stinclude 1
+	crop1 "TeSf"
+)
+
+
+st "TeSo" (
+
+	crop_stand
+	stinclude 1
+	crop1 "TeSo"
+)
+
+
+st "TrPe" (
+
+	crop_stand
+	stinclude 1
+	crop1 "TrPe"
+)
+
+
+st "TeRa" (
+
+	crop_stand
+	stinclude 1
+	crop1 "TeRa"
+)
+
+
+st "CC3Girr" (
+
+	crop_stand
+	stinclude 1
+	intercrop "nointercrop"
+	crop1 "CC3Girr"
+	hydrology1 "irrigated"
+)
+
+st "CC4Girr" (
+
+	crop_stand
+	stinclude 1
+	intercrop "nointercrop"
+	crop1 "CC4Girr"
+	hydrology1 "irrigated"
+)
+
+st "TeWWirr" (
+
+	crop_stand
+	stinclude 1
+!	crop1 "TeWW"
+	crop1 "TeWWirr"
+	hydrology1 "irrigated"
+)
+
+st "TrRiirr" (
+
+	crop_stand
+	stinclude 1
+
+	rotation 1
+	rottime 1
+	multicrop 0
+	firstrotyear 1901
+
+	crop1 "TrRiirr"
+	hydrology1 "irrigated"
+	nfert1 50
+!	sdate1 50
+!	hdate1 155
+)
+
+st "TeCoirr" (
+
+	crop_stand
+	stinclude 1
+!	crop1 "TeCo"
+	crop1 "TeCoirr"
+	hydrology1 "irrigated"
+)
+
+st "TrMiirr" (
+
+	crop_stand
+	stinclude 1
+!	crop1 "TrMi"
+	crop1 "TrMiirr"
+	hydrology1 "irrigated"
+)
+
+st "TePuirr" (
+
+	crop_stand
+	stinclude 1
+!	crop1 "TePu"
+	crop1 "TePuirr"
+	hydrology1 "irrigated"
+)
+
+st "TeSbirr" (
+
+	crop_stand
+	stinclude 1
+!	crop1 "TeSb"
+	crop1 "TeSbirr"
+	hydrology1 "irrigated"
+)
+
+
+st "TrMairr" (
+
+	crop_stand
+	stinclude 1
+!	crop1 "TrMa"
+	crop1 "TrMairr"
+	hydrology1 "irrigated"
+)
+
+
+st "TeSfirr" (
+
+	crop_stand
+	stinclude 1
+!	crop1 "TeSf"
+	crop1 "TeSfirr"
+	hydrology1 "irrigated"
+)
+
+
+st "TeSoirr" (
+
+	crop_stand
+	stinclude 1
+!	crop1 "TeSo"
+	crop1 "TeSoirr"
+	hydrology1 "irrigated"
+)
+
+
+st "TrPeirr" (
+
+	crop_stand
+	stinclude 1
+!	crop1 "TrPe"
+	crop1 "TrPeirr"
+	hydrology1 "irrigated"
+)
+
+
+st "TeRairr" (
+
+	crop_stand
+	stinclude 1
+!	crop1 "TeRa"
+	crop1 "TeRairr"
+	hydrology1 "irrigated"
+)
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR PFTS
@@ -62,24 +399,24 @@ group "crop" (
 
 	include 1
 	phenology "cropgreen"
-	rootdist 0.9 0.1	! Fraction of fine roots in the upper and lower soil layers.
-	fireresist 0.5
-	respcoeff 1
+	rootdist 0.9 0.1  !Sitch et al give 0.9 0.1	Fraction of fine roots in the upper and lower soil layers.
+	fireresist 0.5  ! 9.11.02  Alb (originally fireresist=1)						!Included in grass
+	respcoeff 1   ! Sitch et al 2001 specify 1.2				!090910 for cohort /ML; NB: guess2.1 grass value is 2.0. Keep 1.0 for crops ??
 	gmin 0.5
 	turnover_leaf 1
 	turnover_root 0.7
 	intc 0.01
-	leaflong 1
+	leaflong 1			! Leaf longevity (years)
 	frootstart 0.40
 	frootend 0.20
 
-	tcmin_surv -1000
-	tcmin_est -1000 
-	tcmax_est 1000 	
-	twmin_est -1000
-	gdd5min_est 0
+	tcmin_surv -1000 ! limit not implemented					! value not relevant for non-autumn-sown crops
+	tcmin_est -1000  ! limit not implemented					! value not relevant for non-autumn-sown crops
+	tcmax_est 1000  	!no limit	
+	twmin_est -1000  ! limit not implemented
+	gdd5min_est 0   	!no limit; previously initiated to 1000 in initpft()
 
-	parff_min 0
+	parff_min 0	!110302: true crops, reset to 1000000 for crop grass
 
 	landcover "cropland"
 	ifsdautumn 0
@@ -90,8 +427,83 @@ group "crop" (
 	harvest_slow_frac 0	! Part of harvest that goes into patchpft.harvested_products_slow, the rest goes into fluxes.acflux_harvest
 	turnover_harv_prod 1 	! Turnover rate for long-lived harvested products (wood) : 1-year turnover time for crops
 	res_outtake 0.75	! Part of residues after harvest removed from stand; goes into fluxes.acflux_harvest
-	aboveground_ho 1 
+	aboveground_ho 1	! 
 	isintercropgrass 0
+!	forceautumnsowing 0
+	nlim 0
+)
+
+group "C3G" (
+
+	! Cool (C3) grass
+
+	include 1
+	grass
+	pathway "c3"
+	respcoeff 1.0
+	pstemp_min -5
+	pstemp_low 10
+	pstemp_high 30
+	pstemp_max 45
+	tcmin_surv -1000	!no limit
+	tcmin_est -1000 	!no limit
+	tcmax_est 1000  	!no limit
+	twmin_est -1000 	!no limit
+	gdd5min_est 0   	!no limit
+	eps_iso 16.0
+	seas_iso 1
+	eps_mon 1.6
+	storfrac_mon 0.5
+)
+
+group "C4G" (
+
+	! Warm (C3) grass
+
+	include 1
+	grass
+	pathway "c4"
+	respcoeff 0.15
+	pstemp_min 6
+	pstemp_low 20
+	pstemp_high 45
+	pstemp_max 55
+	tcmin_surv 15.5
+	tcmin_est 15.5
+	tcmax_est 1000  !no limit
+	twmin_est -1000 !no limit
+	gdd5min_est 0   !no limit
+	eps_iso 8.0
+	seas_iso 0
+	eps_mon 2.4
+	storfrac_mon 0.5
+)
+
+pft "C3G_past" (
+	C3G
+	landcover "pasture"
+	harv_eff 0.5			! old value; intensive grazing: 90% grazed, 25-60 % returned to soil as faeces (0.36-0.675 removed, 0.5 OK average)
+	res_outtake 0.0			! not used by crop grass
+
+)
+
+pft "C4G_past" (
+	C4G
+	landcover "pasture"
+	harv_eff 0.5			! old value; intensive grazing: 90% grazed, 25-60 % returned to soil as faeces (0.36-0.675 removed, 0.5 OK average)
+	res_outtake 0.0			! not used by crop grass
+)
+
+pft "C3G_urban" (
+	C3G
+	landcover "urban"
+	harv_eff 0
+)
+
+pft "C3G_peat" (
+	C3G
+	landcover "peatland"
+	harv_eff 0
 )
 
 group "CC3G" (
@@ -101,7 +513,7 @@ group "CC3G" (
 	isintercropgrass 0
 	harv_eff 0.5
 	harv_eff_ic 0.0
-	res_outtake 0.0		! not used by crop grass
+	res_outtake 0.0			! not used by crop grass
 )
 
 group "CC4G" (
@@ -109,12 +521,12 @@ group "CC4G" (
 	landcover "cropland"
 	laimax 4	
 	isintercropgrass 0
-	harv_eff 0.5		! old value; intensive grazing: 90% grazed, 25-60 % returned to soil as faeces (0.36-0.675 removed, 0.5 OK average)
+	harv_eff 0.5			! old value; intensive grazing: 90% grazed, 25-60 % returned to soil as faeces (0.36-0.675 removed, 0.5 OK average)
 	harv_eff_ic 0.0
-	res_outtake 0.0		! not used by crop grass
+	res_outtake 0.0			! not used by crop grass
 )
 
-group "TeW" (
+group "TeWW" (
 
 	! Winter cereals, Triticum spp. (wheat), Hordeum vulgare (barley), Secale cereale (rye), Avena sativa (oat)
 	
@@ -128,19 +540,19 @@ group "TeW" (
 	pstemp_high 30	
 	pstemp_max 45	
 
-	sdatenh 330
-	sdatesh 150
+	sdatenh 330	! for initialization, otherwise calculated to be adapted to climate and precocity
+	sdatesh 150	! idem
 	tb 0		! base temperature
 	trg 12		! temperatures have a vernalizing effect until trg
-	pvd 0
-	psens 0.5
-	pb 8
-	ps 20
-	phu 2900
-	hlimitdatenh 269
-	hlimitdatesh 89
+	pvd 0		! not implemented since calculated to be adapted to climate
+	psens 0.5		! temporary, should be adapted to climate and precocity ?
+	pb 8		! not yet implemented
+	ps 20		! not yet implemented
+	phu 2900	! not implemented since calculated to be adapted to climate
+	hlimitdatenh 269! for initialization
+	hlimitdatesh 89	! idem
 
-	fphusen 0.7	! SWAT 0.9
+	fphusen 0.7							! SWAT 0.9
 
 	shapesenescencenorm 1
 	flaimaxharvest 0
@@ -167,16 +579,16 @@ group "TrRi" (
 	pstemp_max 45	
 
 	sdatenh 120	! for initialization, otherwise calculated, possibly several growing seasons in one year
-	sdatesh 300	! idem
+	sdatesh 300	! idem	new value 1004 /ML
 	tb 10		! base temperature
 	trg 10		! temperatures have a vernalizing effect until trg
 	pvd 0
-	psens 1
-	pb 24
-	ps 0
+	psens 1		! temporary, should be adapted to climate and precocity ?
+	pb 24		! not yet implemented
+	ps 0		! not yet implemented
 	phu 1800
-	hlimitdatenh 60
-	hlimitdatesh 240
+	hlimitdatenh 60		! for initialization
+	hlimitdatesh 240	! for initialization
 
 	fphusen 0.80		! SWAT 0.9
 
@@ -204,19 +616,19 @@ group "TeCo" (
 
 	respcoeff 0.15	! 110301
 
-	sdatenh 140
-	sdatesh 320
-	tb 8		! SWAT
+	sdatenh 140	! for initialization, otherwise calculated to be adapted to climate and precocity
+	sdatesh 320	! idem
+	tb 8		! SWAT: test 110527
 	trg 8		! temperatures have a vernalizing effect until trg
 	pvd 0
-	psens 1	
-	pb 0
-	ps 24	
-	phu 1400
+	psens 1		! temporary, should be adapted to climate and precocity
+	pb 0		! not yet implemented
+	ps 24		! not yet implemented
+	phu 1400	! test alberte
 	hlimitdatenh 360 ! for initialization
 	hlimitdatesh 176 ! idem; changed from 175 111115
 
-	fphusen 0.75	! SWAT 0.9
+	fphusen 0.75						! SWAT 0.9
 
 	shapesenescencenorm 1
 	flaimaxharvest 0
@@ -228,8 +640,7 @@ group "TeCo" (
 
 group "TrMi" (
 
-	! Tropical cereals; Pennisetum glaucum (pearl millet), Setaria italica (foxtail millet), 
-	! Panicum miliaceum (common millet), Eleucine coracana (finger millet), Sorghum
+	! Tropical cereals; Pennisetum glaucum (pearl millet), Setaria italica (foxtail millet), Panicum miliaceum (common millet), Eleucine coracana (finger millet), Sorghum
 
 	grass
 	crop
@@ -241,21 +652,21 @@ group "TrMi" (
 	pstemp_high 45
 	pstemp_max 55
 
-	respcoeff 0.15
+	respcoeff 0.15	! 110301
 
-	sdatenh 150
-	sdatesh 330
+	sdatenh 150	! for initialization
+	sdatesh 330	! for initialization
 	tb 10		! base temperature
 	trg 10		! temperatures have a vernalizing effect until trg
 	pvd 0
-	psens 1	
-	pb 0
-	ps 24	
+	psens 1		! temporary, should be adapted to climate and precocity ?
+	pb 0		! not yet implemented
+	ps 24		! not yet implemented
 	phu 2000
-	hlimitdatenh 50	
-	hlimitdatesh 230	
+	hlimitdatenh 50		! for initialization
+	hlimitdatesh 230	! for initialization	
 
-	fphusen 0.85	! SWAT 0.9
+	fphusen 0.85				! SWAT 0.9
 
 	shapesenescencenorm 1
 	flaimaxharvest 0
@@ -278,17 +689,17 @@ group "TePu" (
 	pstemp_high 30	
 	pstemp_max 45	
 
-	sdatenh 100
-	sdatesh 280
+	sdatenh 100	! for initialization
+	sdatesh 280	! for initialization
 	tb 3		! base temperature
 	trg 3		! temperatures have a vernalizing effect until trg
 	pvd 0
-	psens 1
-	pb 0
-	ps 24
+	psens 1		! temporary, should be adapted to climate and precocity ?
+	pb 0		! not yet implemented
+	ps 24		! not yet implemented
 	phu 2000
 	hlimitdatenh 364	
-	hlimitdatesh 180
+	hlimitdatesh 180! for initialization
 
 	fphusen 0.90
 
@@ -313,8 +724,8 @@ group "TeSb" (
 	pstemp_high 30
 	pstemp_max 45
 
-	sdatenh 90
-	sdatesh 270
+	sdatenh 90	! temporary, should be adapted to climate
+	sdatesh 270	! temporary, should be adapted to climate
 	tb 3		! base temperature
 	trg 3		! temperatures have a vernalizing effect until trg
 	pvd 0
@@ -322,10 +733,10 @@ group "TeSb" (
 	pb 0
 	ps 24
 	phu 2700
-	hlimitdatenh 330
-	hlimitdatesh 146
+	hlimitdatenh 330	! temporary, should be adapted to climate
+	hlimitdatesh 146	! temporary, should be adapted to climate; changed from 145 111115
 
-	fphusen 0.75	! SWAT 0.9
+	fphusen 0.75		! SWAT 0.9
 
 	shapesenescencenorm 0
 	flaimaxharvest 0.75
@@ -349,26 +760,26 @@ group "TrMa" (
 	pstemp_high 30
 	pstemp_max 45
 
-	sdatenh 100
-	sdatesh 280
+	sdatenh 100	! for initialization
+	sdatesh 280	! for initialization
 	tb 15		! base temperature
 	trg 15		! temperatures have a vernalizing effect until trg
 	pvd 0
-	psens 1
-	pb 0
-	ps 24
+	psens 1		! temporary, should be adapted to climate and precocity 
+	pb 0		! not yet implemented
+	ps 24		! not yet implemented
 	phu 2000
-	hlimitdatenh 330
-	hlimitdatesh 146
+	hlimitdatenh 330! for initialization
+	hlimitdatesh 146! for initialization
 
 
 	fphusen 0.75
 
 	shapesenescencenorm 0
 	flaimaxharvest 0.75
-	hiopt 2.0
+	hiopt 2.0	! like sugarbeet ?
 	himin 1.1
-	tempspring 22
+	tempspring 22	! New sowing date algorithm
 	aboveground_ho 0
 )
 
@@ -386,26 +797,26 @@ group "TeSf" (
 	pstemp_high 30	
 	pstemp_max 45	
 
-	sdatenh 120
-	sdatesh 300
+	sdatenh 120	! for initialization, otherwise calculated to be adapted to climate and precocity
+	sdatesh 300	! idem
 	tb 6		! base temperature
 	trg 6		! temperatures have a vernalizing effect until trg
 	pvd 0
-	psens 1
-	pb 0
-	ps 24
-	phu 1500
-	hlimitdatenh 300
-	hlimitdatesh 116
+	psens 1		! temporary, should be adapted to climate and precocity ?
+	pb 0		! not yet implemented
+	ps 24		! not yet implemented
+	phu 1500	! not implemented since calculated to be adapted to climate and precocity
+	hlimitdatenh 300 ! for initialization, otherwise calculated to be adapted to climate and precocity
+	hlimitdatesh 116 ! idem; changed from 115 111115
 
-	fphusen 0.7	! SWAT 0.9
+	fphusen 0.7			! SWAT 0.9
 
 	shapesenescencenorm 1
 	flaimaxharvest 0
 	hiopt 0.3	! SWAT
 	himin 0.2	! SWAT 0.18
-	tempspring 15
-!	tempspring 13
+	tempspring 15	!NB Bondeau 13, paper 15 changed to 15 100104
+!	tempspring 13	! New sowing date algorithm, new value	: use ??????
 )
 
 group "TeSo" (
@@ -432,21 +843,21 @@ group "TeSo" (
 	pb 0
 	ps 24
 	phu 1500
-	hlimitdatenh 330
-	hlimitdatesh 146
+	hlimitdatenh 330	! temporary, should be adapted to climate
+	hlimitdatesh 146	! temporary, should be adapted to climate; changed from 150 111115
 
-	fphusen 0.6	! SWAT 0.9
+	fphusen 0.6		! SWAT 0.9
 
 	shapesenescencenorm 0
 	flaimaxharvest 0
 	hiopt 0.3	! SWAT 0.31
 	himin 0.01
-	tempspring 13
+	tempspring 13	! New sowing date algorithm
 )
 
 group "TrPe" (
 
-	! Peanut  (groundnut) for part of RIVM's oil crops; Arachis hypogaea
+	! Peanut for part of RIVM's oil crops (Africa and Asia ?)   Arachis hypogaea; aka groundnut
 
 	grass
 	crop
@@ -457,19 +868,19 @@ group "TrPe" (
 	pstemp_high 30	
 	pstemp_max 45	
 
-	sdatenh 140
-	sdatesh 320
+	sdatenh 140	! for initialization
+	sdatesh 320	! for initialization
 	tb 14		! base temperature
 	trg 14		! temperatures have a vernalizing effect until trg
 	pvd 0
-	psens 1
-	pb 0
-	ps 24
+	psens 1		! temporary, should be adapted to climate and precocity ?
+	pb 0		! not yet implemented
+	ps 24		! not yet implemented
 	phu 1500
-	hlimitdatenh 330
-	hlimitdatesh 146 
+	hlimitdatenh 330	! for initialization
+	hlimitdatesh 146	! for initialization; 
 
-	fphusen 0.75	! SWAT 0.9
+	fphusen 0.75			! SWAT 0.9
 
 	shapesenescencenorm 0
 	flaimaxharvest 0
@@ -480,7 +891,7 @@ group "TrPe" (
 
 group "TeRa" (
 
-	! Rape for part of RIVM's oil crops; Brassica napus
+	! Rape for part of RIVM's oil crops  pheno Pascalle; Brassica napus; aka canola
 
 	grass
 	crop
@@ -492,26 +903,205 @@ group "TeRa" (
 	pstemp_high 30	
 	pstemp_max 45	
 
-	sdatenh 300
-	sdatesh 120
+	sdatenh 300	! for initialization, otherwise calculated to be adapted to climate and precocity
+	sdatesh 120	! idem
 	tb 0		! base temperature
 	trg 12		! temperatures have a vernalizing effect until trg
-	pvd 0
-	psens 1
-	pb 8
-	ps 20
-	phu 2500
-	hlimitdatenh 240
-	hlimitdatesh 60
+	pvd 0		! not implemented since calculated to be adapted to climate
+	psens 1		! temporary, should be adapted to climate and precocity ?
+	pb 8		! not yet implemented
+	ps 20		! not yet implemented
+	phu 2500	! not implemented since calculated to be adapted to climate
+	hlimitdatenh 240! for initialization
+	hlimitdatesh 60	! idem
 
-	fphusen 0.85	! SWAT 0.9
+	fphusen 0.85			! SWAT 0.9
 
 	shapesenescencenorm 1
 	flaimaxharvest 0
-	hiopt 0.3	! SWAT Argentina	; winter rapeseed 0.4 (Frick et al. 1994)
-	himin 0.15	! SWAT 0.01
+	hiopt 0.3	!?		SWAT Argentina			;			winter rapeseed 0.4 (Frick et al. 1994)
+	himin 0.15			! SWAT 0.01 !!
 	ifsdautumn 1
 	tempautumn 17
-	tempspring 5
+	tempspring 5	! 12 in Bondeau's code, ändra till 11 och 5
 	forceautumnsowing 0	! 0 No forcing, 1 Autumn, 2 Spring
+)
+
+pft "CC3G" (
+	CC3G
+	include 1
+)
+
+pft "CC4G" (
+	CC4G
+	include 1
+)
+
+pft "TeWW" (
+
+	TeWW
+	include 1
+)
+
+pft "TrRi" (
+
+	TrRi
+	include 1
+)
+
+pft "TeCo" (
+
+	TeCo
+	include 1
+)
+
+pft "TrMi" (
+
+	TrMi
+	include 1
+)
+
+pft "TePu" (
+
+	TePu
+	include 1
+)
+
+pft "TeSb" (
+
+	TeSb
+!	include 1
+)
+
+pft "TrMa" (
+
+	TrMa
+	include 1
+)
+
+pft "TeSf" (
+	
+	TeSf
+	include 1	
+)
+
+pft "TeSo" (
+
+	TeSo
+	include 1	
+)
+
+pft "TrPe" (
+
+	TrPe
+	include 1
+)
+
+pft "TeRa" (
+
+	TeRa
+	include 1
+)
+
+! Irrigated pft:s are convenient in output files, but technically not necessary
+pft "CC3Girr" (
+
+	CC3G
+	include 1
+)
+
+pft "CC4Girr" (
+
+	CC4G
+	include 1	
+)
+
+pft "TeWWirr" (
+
+	TeWW
+	include 1
+)
+
+pft "TrRiirr" (
+
+	TrRi
+	include 1
+)
+
+pft "TeCoirr" (
+
+	TeCo
+	include 1	
+)
+
+pft "TrMiirr" (
+
+	TrMi
+	include 1	
+)
+
+pft "TePuirr" (
+
+	TePu
+	include 1	
+)
+
+pft "TeSbirr" (
+
+	TeSb
+	include 1	
+)
+
+pft "TrMairr" (
+
+	TrMa
+	include 1	
+)
+
+pft "TeSfirr" (
+	
+	TeSf
+	include 1	
+)
+
+pft "TeSoirr" (
+
+	TeSo
+	include 1
+)
+
+pft "TrPeirr" (
+
+	TrPe
+	include 1
+)
+
+pft "TeRairr" (
+
+	TeRa
+	include 1
+)
+
+
+
+pft "CC3G_ic" (
+	C3G
+	landcover "cropland"
+	laimax 4
+	isintercropgrass 1
+	harv_eff 0.0
+	harv_eff_ic 0.0
+	res_outtake 0.0			! not used by crop grass
+	leaflong 1			! as in crop
+)
+
+pft "CC4G_ic" (
+	C4G
+	landcover "cropland"
+	laimax 4
+	isintercropgrass 1
+	harv_eff 0.0
+	harv_eff_ic 0.0
+	res_outtake 0.0			! not used by crop grass
+	leaflong 1			! as in crop
 )

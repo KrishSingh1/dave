@@ -61,7 +61,7 @@ inline double variation_coefficient(double* data, int n) {
 	double avg = mean(data, n);
 	double dev = 0;
 	for (int i=0; i<n; i++) {
-		dev += (data[i] - avg) * (data[i] - avg);
+		dev += (data[i]-avg) * (data[i] - avg);
 	}
 	double std = sqrt(dev / (n-1));
 

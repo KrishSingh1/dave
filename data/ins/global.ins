@@ -27,9 +27,9 @@ file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 file_clitter "clitter.out"
-file_firert "firert.out"
-file_aiso "aiso.out"
-file_amon "amon.out"
+!file_firert "firert.out"
+!file_aiso "aiso.out"
+!file_amon "amon.out"
 !file_speciesheights "height.out"
 
 file_nmass "nmass.out"
@@ -43,21 +43,21 @@ file_nflux "nflux.out"
 file_vmaxnlim "vmaxnlim.out"
 
 ! Monthly outputs
-file_mnpp "mnpp.out"
-file_mlai "mlai.out"
-file_mrh "mrh.out"
-file_mgpp "mgpp.out"
-file_mra "mra.out"
-file_mnee "mnee.out"
-file_maet "maet.out"
-file_mpet "mpet.out"
-file_mevap "mevap.out"
-file_mintercep "mintercep.out"
-file_mrunoff "mrunoff.out"
-file_mwcont_upper "mwcont_upper.out"
-file_mwcont_lower "mwcont_lower.out"
-file_miso "miso.out"
-file_mmon "mmon.out"
+!file_mnpp "mnpp.out"
+!file_mlai "mlai.out"
+!file_mrh "mrh.out"
+!file_mgpp "mgpp.out"
+!file_mra "mra.out"
+!file_mnee "mnee.out"
+!file_maet "maet.out"
+!file_mpet "mpet.out"
+!file_mevap "mevap.out"
+!file_mintercep "mintercep.out"
+!file_mrunoff "mrunoff.out"
+!file_mwcont_upper "mwcont_upper.out"
+!file_mwcont_lower "mwcont_lower.out"
+!file_miso "miso.out"
+!file_mmon "mmon.out"
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -79,9 +79,9 @@ ifcalccton 1			! whether to calculate leaf C:N min from leaf longevity
 						! (PFT-specific value can be specified in this file instead)
 iffire 1				! whether to implement fire (1) or not (0)
 npatch 5				! number of replicate patches to simulate
-!npatch_secondarystand 1			! number of replicate patches to simulate in secondary stands
-!reduce_all_stands 0		! Whether to reduce equal percentage of all stands of a stand type at land cover change
-!age_limit_reduce 5		! Minimum age of stands to reduce at land cover change
+npatch_secondarystand 1			! number of replicate patches to simulate in secondary stands
+reduce_all_stands 0		! Whether to reduce equal percentage of all stands of a stand type at land cover change
+age_limit_reduce 5		! Minimum age of stands to reduce at land cover change
 patcharea 1000			! patch area (m2)
 estinterval 5			! years between establishment events in cohort mode
 ifdisturb 1				! whether generic patch-destroying disturbances enabled
@@ -607,7 +607,7 @@ pft "TrBR" (
 	storfrac_mon 0.
 )
 
-group "C3G" (
+pft "C3G" (
 
 	! Cool (C3) grass
 
@@ -630,11 +630,7 @@ group "C3G" (
 	storfrac_mon 0.5
 )
 
-pft "C3G" (
-	C3G
-)
-
-group "C4G" (
+pft "C4G" (
 
 	! Warm (C3) grass
 
@@ -657,6 +653,3 @@ group "C4G" (
 	storfrac_mon 0.5
 )
 
-pft "C4G" (
-	C4G
-)

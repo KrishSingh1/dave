@@ -16,28 +16,6 @@ ifintercropgrass 1	! Whether to grow grass as cover crop between growing periods
 
 npatch 20             ! number of replicate patches to simulate
 
-pft "CC3G_ic" (
-	C3G
-	landcover "cropland"
-	laimax 4
-	isintercropgrass 1
-	harv_eff 0.0
-	harv_eff_ic 0.0
-	res_outtake 0.0			! not used by crop grass
-	leaflong 1			! as in crop
-)
-
-pft "CC4G_ic" (
-	C4G
-	landcover "cropland"
-	laimax 4
-	isintercropgrass 1
-	harv_eff 0.0
-	harv_eff_ic 0.0
-	res_outtake 0.0			! not used by crop grass
-	leaflong 1			! as in crop
-)
-
 st "TeCoicc" (
 
 	crop_stand

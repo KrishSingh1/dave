@@ -10,7 +10,7 @@ vmaxnlim mnpp mlai mrh mgpp mra mnee maet mpet mevap mintercep mrunoff mwcont_up
 
 # Go through each file in the list and run tslice                                                                
 for file in $files_to_tslice ; do
-    tslice ${file}.out -o ${file}1961to1990.txt -f 560 -t 589 -lon 1 -lat 2 -y 3
+    tslice ${file}.out -o ${file}1961to1990.txt -f 1961 -t 1990 -lon 1 -lat 2 -y 3
 done
 
 dominance lai1961to1990.txt lai1961to1990max.txt

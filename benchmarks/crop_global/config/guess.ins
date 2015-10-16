@@ -1,0 +1,21 @@
+import "../../../data/ins/crop_n.ins"
+
+param "file_gridlist" (str "gridlist.txt")
+
+!Landcover area fraction files
+	param "file_lu"      (str "/scratch/johan/Benchmarks/Landuse_data/landuse_hurtt_1901_2006_global.txt")
+	param "file_lucrop"  (str "/scratch/johan/Benchmarks/Landuse_data/cropland_hurtt_mirca_1901_2006_global.txt")
+	param "file_Nfert"   (str "/scratch/johan/Benchmarks/Landuse_data/n_fert_zaehle_1901_2006_global.txt")
+	param "file_sdates" (str "")
+	param "file_hdates" (str "")
+
+!Climate data and co2
+	import "../../paths.ins"
+	
+file_aiso "aiso.out"
+file_amon "amon.out"
+
+file_miso "miso.out"
+file_mmon "mmon.out"
+
+ifbvoc 1

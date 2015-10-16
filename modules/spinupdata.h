@@ -57,7 +57,7 @@ public:
 	void get_data_from(double source[][12]) {
 		
 		int y,m;
-		thisyear=0; // guess2008 - ML bugfix
+		thisyear=0;
 		for (y=0;y<nyear;y++) {
 			for (m=0;m<12;m++) {
 				data[y*12+m]=source[y][m];
@@ -184,7 +184,7 @@ public:
 	// guess2008 - END OF NEW METHODS
 
 
-	void detrend_data() {
+	void detrend_data(bool future = false) {
 
 		int y,m;
 		double a,b,anomaly;
@@ -201,7 +201,10 @@ public:
 		regress(year_number,annual_mean,nyear,a,b);
 
 		for (y=0;y<nyear;y++) {
-			anomaly=b*(double)y;
+			if(future)
+				anomaly = b * (double)(y - (nyear - 1));
+			else
+				anomaly=b*(double)y;
 			for (m=0;m<12;m++)
 				data[y*12+m]-=anomaly;
 		}

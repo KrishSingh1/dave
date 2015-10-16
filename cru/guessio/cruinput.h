@@ -18,6 +18,7 @@
 #include "spinupdata.h"
 #include "cru_ts30.h"
 #include "lamarquendep.h"
+#include "externalinput.h"
 
 /// An input module for CRU climate data
 /** This input module gets climate data from binary archives built from
@@ -47,6 +48,8 @@ public:
 	/// See base class for documentation about this function's responsibilities
 	void getlandcover(Gridcell& gridcell);
 
+	/// Obtains land management data for one day
+	void getmanagement(Gridcell& gridcell) {management_input.getmanagement(gridcell);}
 
 	// Constants associated with historical climate data set
 
@@ -102,33 +105,23 @@ private:
 
 	/// Type for storing grid cell longitude, latitude and description text
 	struct Coord {
-		
+
 		int id;
 		double lon;
 		double lat;
 		xtring descrip;
 	};
 
-	///	Loads landcover area fraction data from file(s) for a gridcell.
-	/** Called from getgridcell() if run_landcover is true. 
-	 */
-	bool loadlandcover(Gridcell& gridcell, Coord c);
+	/// Land cover input module
+	LandcoverInput landcover_input;
+	/// Management input module
+	ManagementInput management_input;
 
 	/// search radius to use when finding CRU data
 	double searchradius;
 
-	/// Landcover fractions read from ins-file (% area).
-	/** One entry for each land cover type */
-	std::vector<int> lc_fixed_frac;
-
-	/// Whether gridcell is divided into equal active landcover fractions.
-	bool equal_landcover_area;
-
 	/// A list of Coord objects containing coordinates of the grid cells to simulate
 	ListArray_id<Coord> gridlist;
-
-	/// The number of grid cells to simulate
-	int ngridcell;
 
 	// Timers for keeping track of progress through the simulation
 	Timer tprogress,tmute;
@@ -187,17 +180,6 @@ private:
 	double ddtr[Date::MAX_YEAR_LENGTH];
 	/// Daily N deposition for current year
 	double dndep[Date::MAX_YEAR_LENGTH];
-
-	//Landuse:
-
-	//#define DYNAMIC_LANDCOVER_INPUT
-#if defined DYNAMIC_LANDCOVER_INPUT
-	//TimeDataD input code may be put here
-	TimeDataD LUdata(LOCAL_YEARLY);
-	TimeDataD Peatdata;
-#endif
-	xtring file_lu, file_peat;
-	static const int NYEAR_LU=103;	//only used to get LU data after historical period (after 2003) : only used in AR4-runs, but causes no harm otherwise
 };
 
 #endif // LPJ_GUESS_CRUINPUT_H

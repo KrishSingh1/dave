@@ -227,7 +227,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 		/awc[0];
 
 	if (wcont_evap < 0) {
-		 wcont_evap = 0;
+		wcont_evap = 0;
 	}
 
 	if (wcont_evap > wcont[0]) {
@@ -351,7 +351,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 
 	Soil& soil = patch.soil;
 	snow(climate.prec - patch.intercep, climate.temp, soil.snowpack, soil.rain_melt);
-	snow_ninput(climate.prec - patch.intercep, soil.snowpack, soil.rain_melt, climate.dndep, climate.dnfert, soil.snowpack_nmass, soil.ninput);
+	snow_ninput(climate.prec - patch.intercep, soil.snowpack, soil.rain_melt, climate.dndep, patch.dnfert, soil.snowpack_nmass, soil.ninput);
 	soil.percolate = soil.rain_melt >= 0.1;
 	soil.max_rain_melt = soil.rain_melt;
 
@@ -367,6 +367,36 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 
 		soil.wcont_evap = soil.wcont[0];
 	}
+}
+
+/// Calculate required irrigation according to water deficiency.
+/** Function to be called after canopy_exchange and before soilwater.
+ */
+void irrigation(Patch& patch) {
+
+	Soil& soil = patch.soil;
+
+	patch.irrigation_d = 0.0;
+	if (date.day == 0) {
+		patch.irrigation_y = 0.0;
+	}
+
+	if (!patch.stand.isirrigated) {
+		return;
+	}
+	for (int i = 0; i < npft; i++) {
+
+		Patchpft& ppft = patch.pft[i];
+		if (patch.stand.pft[i].irrigated && ppft.cropphen->growingseason) {
+			if (ppft.water_deficit_d < 0.0) {
+				fail("irrigation: Negative water deficit for PFT %s!\n", (char*)ppft.pft.name);
+			}
+			patch.irrigation_d += ppft.water_deficit_d;
+		}
+	}
+	patch.irrigation_y += patch.irrigation_d;
+	soil.rain_melt += patch.irrigation_d;
+	soil.max_rain_melt += patch.irrigation_d;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

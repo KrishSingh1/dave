@@ -86,9 +86,9 @@ void interception(Patch& patch,Climate& climate) {
 
 		// For this individual ...
 
-		if (!negligible(pet)) { 
+		if (!negligible(pet)) {
 
-			if (indiv.alive) { //Alive check - TP 010914
+			if (indiv.alive) {
 				// Storage capacity for precipitation by canopy (point scale)
 				scap=climate.prec*min(indiv.lai_indiv_today()*indiv.pft.intc,0.999);
 
@@ -226,7 +226,7 @@ void fpar(Patch& patch) {
 			// For this individual ...
 
 			indiv.fpar=indiv.fpc_today(); // Eqn 1
-			indiv.fpar_leafon=indiv.fpc; // Eqn 2
+			indiv.fpar_leafon=indiv.fpc * indiv.growingseason(); // Eqn 2
 
 			vegetation.nextobj(); // ... on to next individual
 		}
@@ -254,18 +254,21 @@ void fpar(Patch& patch) {
 
 			// For this individual ...
 
-			indiv.fpar=0.0;
-			indiv.fpar_leafon=0.0;
-			if (indiv.height>height_veg) height_veg=indiv.height;
-			plai_leafon+=indiv.lai;
+			if (indiv.growingseason()) {
 
-			if (indiv.pft.lifeform==GRASS) {
-				plai_leafon_grass+=indiv.lai;
-				plai_grass+=indiv.lai_today();
+				indiv.fpar=0.0;
+				indiv.fpar_leafon=0.0;
+				if (indiv.height>height_veg) height_veg=indiv.height;
+				plai_leafon+=indiv.lai;
+
+				if (indiv.pft.lifeform==GRASS) {
+					plai_leafon_grass+=indiv.lai;
+					plai_grass+=indiv.lai_today();
+				}
+
+				// Accumulate LAI-weighted sum of individual leaf-out fractions
+				phen_veg+=indiv.lai_today();
 			}
-
-			// Accumulate LAI-weighted sum of individual leaf-out fractions
-			phen_veg+=indiv.lai_today();
 
 			vegetation.nextobj(); // ... on to next individual
 		}
@@ -479,6 +482,14 @@ void fpar(Patch& patch) {
 	}
 }
 
+double alphaa(const Pft& pft) {
+
+	if (pft.phenology == CROPGREEN)
+		return ifnlim ? ALPHAA_CROP_NLIM : ALPHAA_CROP;
+	else
+		return ifnlim ? ALPHAA_NLIM : ALPHAA;
+}
+
 /// Non-water stressed rubisco capacity, with or without nitrogen limitation
 void vmax(double b, double c1, double c2, double apar, double tscal,
 		  double daylength, double temp, double nactive, bool ifnlimvmax, double& vm, double& vmaxnlim, double& nactive_opt) {
@@ -558,7 +569,7 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
  * \param result      see documentation of PhotosynthesisResult struct
  */
 void photosynthesis(double co2, double temp, double par, double daylength,
-                    double fpar, double lambda, const Pft& pft, 
+                    double fpar, double lambda, const Pft& pft,
                     double nactive, bool ifnlimvmax,
                     PhotosynthesisResult& result, double vm) {
 
@@ -590,8 +601,9 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 	// Scale fractional PAR absorption at plant projective area level (FPAR) to
 	// fractional absorption at leaf level (APAR)
 	// Eqn 4, Haxeltine & Prentice 1996a
-	double apar = par * fpar * (ifnlim ? ALPHAA_NLIM : ALPHAA);
+	double apar = par * fpar * alphaa(pft);
 	double b, c1, c2;
+
 
 	// Calculate temperature-inhibition coefficient
 	// This function (tscal) is mathematically identical to function tstress in LPJF.
@@ -643,7 +655,7 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 		b = BC4;
 	}
 	if (vm < 0) {
-		
+
 		// Calculation of non-water-stressed rubisco capacity (Eqn 11, Haxeltine & Prentice 1996a)
 		vmax(b, c1, c2, apar, tscal, daylength, temp, nactive, ifnlimvmax, result.vm, result.vmaxnlim, result.nactive_opt);
 	}
@@ -696,16 +708,18 @@ inline double gpterm(double adtmm, double co2, double lambda, double daylength) 
 void photosynthesis_nostress(Patch& patch, Climate& climate) {
 
 	// If this is the first patch, calculate no-stress assimilation for
-	// each Standpft, assuming FPAR=1. This is then later used in 
+	// each Standpft, assuming FPAR=1. This is then later used in
 	// forest_floor_conditions.
 	if (!patch.id) {
 
 		for (int p=0; p<npft; p++) {
 			Standpft& spft = patch.stand.pft[p];
+			if (spft.active) {
 
-			// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
-			photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
-				1.0, spft.pft.lambda_max, spft.pft, 1.0, false, spft.photosynthesis, -1);
+				// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
+				photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
+					1.0, spft.pft.lambda_max, spft.pft, 1.0, false, spft.photosynthesis, -1);
+			}
 		}
 	}
 
@@ -749,17 +763,17 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 
 /// Calculates individual fnuptake based on surface of fine root
 /** Calculates individual fraction nitrogen uptake based on surface of fine root
- *  Roots are cone formed with height == radie. 
+ *  Roots are cone formed with height == radius.
  *  V = PI * r^3 / 3
  *  A = (2^1/2 + 1) * PI * r^2
- *  -> A = const * cmass_root^2/3 
+ *  -> A = const * cmass_root^2/3
  */
 double nitrogen_uptake_strength(const Individual& indiv) {
 	return pow(indiv.cmass_root * indiv.pft.nupscoeff * indiv.cton_status / indiv.densindiv, 2.0 / 3.0) * indiv.densindiv;
 }
 
 /// Individual nitrogen uptake fraction
-/** Determining individual nitrogen uptake as a fraction of its nitrogen demand. 
+/** Determining individual nitrogen uptake as a fraction of its nitrogen demand.
  *
  *  \see ncompete
  *
@@ -770,7 +784,7 @@ void fnuptake(Vegetation& vegetation, double nmass_avail) {
 
 	// Create vector describing the individuals to ncompete()
 	std::vector<NCompetingIndividual> individuals(vegetation.nobj);
-	
+
 	for (unsigned int i = 0; i < vegetation.nobj; i++) {
 		individuals[i].ndemand = vegetation[i].ndemand;
 		individuals[i].strength = nitrogen_uptake_strength(vegetation[i]);
@@ -782,12 +796,12 @@ void fnuptake(Vegetation& vegetation, double nmass_avail) {
 	// Get the results, nitrogen uptake fraction for each individual
 	for (unsigned int i = 0; i < vegetation.nobj; i++) {
 		vegetation[i].fnuptake = individuals[i].fnuptake;
-	}	
+	}
 }
 
 
 /// Use nitrogen storage to limit stress
-/** Retranslocated nitrogen from last year is used to 
+/** Retranslocated nitrogen from last year is used to
  *  limit nitrogen stress in leaves, roots, and sap wood
  */
 void nstore_usage(Vegetation& vegetation) {
@@ -797,12 +811,12 @@ void nstore_usage(Vegetation& vegetation) {
 		Individual& indiv=vegetation.getobj();
 
 		// individual excess nitrogen demand after uptake
-		double excess_ndemand = (indiv.leafndemand + indiv.rootndemand) * (1.0 - indiv.fnuptake) 
+		double excess_ndemand = (indiv.leafndemand + indiv.rootndemand) * (1.0 - indiv.fnuptake)
 		                        + indiv.leafndemand_store + indiv.rootndemand_store;
 
 		// if individual is in need of using its labile nitrogen storage
 		if (!negligible(excess_ndemand) && ifnlim) {
-			
+
 			// if labile nitrogen storage is larger than excess nitrogen demand
 			if (excess_ndemand <= indiv.nstore_labile) {
 
@@ -819,9 +833,9 @@ void nstore_usage(Vegetation& vegetation) {
 				indiv.nstress = false;
 			}
 			else {
-				
+
 				if (!negligible(indiv.nstore_labile)) {
-					
+
 					// calculate total nitrogen mass
 					double tot_nmass = indiv.nmass_leaf + indiv.nmass_root + indiv.fnuptake * (indiv.leafndemand + indiv.rootndemand) + indiv.nstore_labile;
 
@@ -852,10 +866,10 @@ void nstore_usage(Vegetation& vegetation) {
 }
 
 /// Nitrogen demand
-/** Determines nitrogen demand based on vmax for leaves. 
- *  Roots and sap wood nitrogen concentration follows leaf 
- *  nitrogen concentration. 
- *  Also determines individual nitrogen uptake capability 
+/** Determines nitrogen demand based on vmax for leaves.
+ *  Roots and sap wood nitrogen concentration follows leaf
+ *  nitrogen concentration.
+ *  Also determines individual nitrogen uptake capability
  */
 void ndemand(Patch& patch, Vegetation& vegetation) {
 
@@ -898,9 +912,9 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 				// Peltoniemi et al. 2012
 				indiv.nextin = exp(0.12 * min(10.0*indiv.phen, indiv.lai_indiv_today()));
 
-				// Calculate optimal leaf nitrogen associated with photosynthesis and none photosynthetic 
+				// Calculate optimal leaf nitrogen associated with photosynthesis and none photosynthetic
 				// active nitrogen (Haxeltine et al. 1996 eqn 27/28)
-				
+
 				leafoptn = indiv.photosynthesis.nactive_opt * indiv.nextin + N0 * indiv.cmass_leaf_today();
 			}
 			else {
@@ -940,7 +954,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 		// Root nitrogen demand
 		indiv.rootndemand = max(0.0, indiv.cmass_root_today() / (cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root);
-		
+
 		// Sap wood nitrogen demand. Demand is ramped up throughout the year.
 		if (indiv.pft.lifeform == TREE) {
 			indiv.sapndemand = max(0.0, indiv.cmass_sap / (cton_leaf_opt * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_sap) * ((1.0 + (double)date.day)/date.year_length());
@@ -948,9 +962,11 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 		// Labile nitrogen storage demand
 		indiv.storendemand = indiv.ndemand_storage(cton_leaf_opt);
+		//TODO HO demand
+		indiv.hondemand = 0.0;
 
 		// Total nitrogen demand
-		double ndemand_tot = indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand;
+		double ndemand_tot = indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand + indiv.hondemand;
 
 		// Calculate scalars to possible nitrogen uptake
 
@@ -968,7 +984,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// 4 times smaller than the root area
 		double max_indiv_avail = min(1.0, indiv.fpc * 4.0) * soil.nmass_avail;
 
-		// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake) 
+		// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake)
 		// and soil available nitrogen within individual projectived coverage
 		double maxnup = min(2.0 * indiv.pft.nuptoroot * nmin_scale * temp_scale * indiv.cton_status * indiv.cmass_root_today(), max_indiv_avail);
 
@@ -1004,12 +1020,12 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 			indiv.leaffndemand  = indiv.leafndemand / indiv.ndemand;
 			indiv.rootfndemand  = indiv.rootndemand / indiv.ndemand;
 			indiv.sapfndemand   = indiv.sapndemand  / indiv.ndemand;
-			indiv.storefndemand = max(0.0, 1.0 - (indiv.leaffndemand + indiv.rootfndemand + indiv.sapfndemand));		
+			indiv.storefndemand = max(0.0, 1.0 - (indiv.leaffndemand + indiv.rootfndemand + indiv.sapfndemand));
 		}
 
 		// Sum total patch nitrogen demand
 		patch.ndemand += indiv.ndemand;
-			
+
 		vegetation.nextobj();
 	}
 }
@@ -1025,6 +1041,11 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 
 	// Nitrogen within projective cover of all individuals
 	double tot_nmass_avail = patch.soil.nmass_avail * min(1.0, patch.fpc_total);
+
+	if (patch.stand.landcover == CROPLAND && ifnlim) { // Also for other landcovers ??
+		// Take soil wcont into account
+		tot_nmass_avail *= patch.soil.wcont[0] * 0.9 + patch.soil.wcont[1] * 0.1;
+	}
 
 	// Calculate individual uptake fraction of nitrogen demand
 	if (patch.ndemand > tot_nmass_avail && ifnlim) {
@@ -1054,13 +1075,13 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 		double nmass_leaf = indiv.nmass_leaf + indiv.leafndemand * indiv.fnuptake;
 
 		if (indiv.phen > 0.0) {
-			indiv.nactive = max(0.0, nmass_leaf - N0 * indiv.cmass_leaf_today());	// ??
+			indiv.nactive = max(0.0, nmass_leaf - N0 * indiv.cmass_leaf_today());
 		}
 		else {
 			indiv.nactive = 0.0;
 		}
 
-		// Individuals photosynthesis is nitrogen stressed 
+		// Individuals photosynthesis is nitrogen stressed
 		if (indiv.nstress) {
 
 			// Individual photosynthesis
@@ -1099,7 +1120,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 			}
 			else {
 				indiv.avmaxnlim = 0.0;
-			}			
+			}
 		}
 		vegetation.nextobj();
 	}
@@ -1136,29 +1157,31 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
 		// Call photosynthesis for individual assuming stomates fully open
 		// (lambda = lambda_max)
 
-		PhotosynthesisResult leafon_photosynthesis;
+		if (indiv.growingseason()) {
 
-		// Call photosynthesis first with fpar_leafon to get gp_leafon below.
-		// Should hopefully not be needed in future, demand_leafon only used
-		// by raingreen phenology.
-	
-		double temp = date.diurnal() ? climate.temps[day.period] : climate.temp;
-		double par = date.diurnal() ? climate.pars[day.period] : climate.par;
-		double daylength = date.diurnal() ? 24 : climate.daylength;
+			PhotosynthesisResult leafon_photosynthesis;
 
-		// No nitrogen limitation when calculating gp_leafon
-		photosynthesis(climate.co2, temp, par, daylength,
-		               indiv.fpar_leafon, pft.lambda_max, pft,
-		               1.0, false,
-		               leafon_photosynthesis,
-		               -1);
+			// Call photosynthesis first with fpar_leafon to get gp_leafon below.
+			// Should hopefully not be needed in future, demand_leafon only used
+			// by raingreen phenology.
 
-		double gp_leafon = gpterm(leafon_photosynthesis.adtmm, climate.co2, pft.lambda_max, daylength) + pft.gmin * indiv.fpc;
+			double temp = date.diurnal() ? climate.temps[day.period] : climate.temp;
+			double par = date.diurnal() ? climate.pars[day.period] : climate.par;
+			double daylength = date.diurnal() ? 24 : climate.daylength;
 
+			// No nitrogen limitation when calculating gp_leafon
+			photosynthesis(climate.co2, temp, par, daylength,
+			               indiv.fpar_leafon, pft.lambda_max, pft,
+			               1.0, false,
+			               leafon_photosynthesis,
+			               -1);
 
-		// Increment patch sums of non-water-stressed gp by individual value
-		gp_patch +=  (date.diurnal() ? indiv.gpterms[day.period] : indiv.gpterm) + pft.gmin * indiv.fpc_today();
-		gp_leafon_patch += gp_leafon;
+			double gp_leafon = gpterm(leafon_photosynthesis.adtmm, climate.co2, pft.lambda_max, daylength) + pft.gmin * indiv.fpc;
+
+			// Increment patch sums of non-water-stressed gp by individual value
+			gp_patch +=  (date.diurnal() ? indiv.gpterms[day.period] : indiv.gpterm) + pft.gmin * indiv.fpc_today();
+			gp_leafon_patch += gp_leafon;
+		}
 
 		vegetation.nextobj();
 	}
@@ -1305,6 +1328,66 @@ inline double water_uptake(double wcont[NSOILLAYER], double awc[NSOILLAYER],
 	return wr;
 }
 
+/// Plant water uptake for irrigated crops
+/**
+ * Returns plant water uptake (point scale, or mean for patch) as a fraction of
+ * maximum possible (daily basis), after adding required water to obtain maximum
+ * water uptake.
+ * Irrigation water is added to the soil in hydrology_lpjf
+ *
+ * Only ROOTDIST currently supported plant water uptake parameterisation:
+ *
+ * ROOTDIST        = uptake rate independent of water content (to wilting point)
+ *                   but with fractional uptake from different layers according
+ *                   to prescribed root distribution
+ */
+double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
+	Patchpft& ppft = patch.pft[pft.id];
+	double* awc = patch.soil.soiltype.awc;
+
+	double wcont_cp[NSOILLAYER];
+	for (int i=0;i<NSOILLAYER;i++) {
+		wcont_cp[i] = patch.soil.wcont[i];
+	}
+
+	if (day.isstart) {
+		ppft.water_deficit_d = 0.0;
+		if (date.day == 0) {
+			ppft.water_deficit_y = 0.0;
+		}
+	}
+
+	if (patch.soil.wcont[0]<0.9 && ppft.phen > 0.0)	{
+		double wcont_0_opt = 0.0;
+		double wr_opt = min(1.0, patch.wdemand / ppft.phen / pft.emax);
+
+		if (wateruptake == WR_ROOTDIST) {
+
+			wcont_0_opt = (wr_opt * pft.emax - min(patch.soil.wcont[1] * awc[1] * patch.fpc_rescale, pft.emax * pft.rootdist[1])) / awc[0] / patch.fpc_rescale;
+
+			if (wcont_0_opt * awc[0] * patch.fpc_rescale > pft.emax * pft.rootdist[0]) {
+				wcont_0_opt = pft.emax * pft.rootdist[0] / awc[0] / patch.fpc_rescale;
+			}
+		}
+		else {
+			fail("Irrigation soil water only balanced for WR_ROOTDIST currently !\n");
+		}
+
+		if (wcont_0_opt > patch.soil.wcont[0]) {
+			ppft.water_deficit_d += (wcont_0_opt-patch.soil.wcont[0]) * awc[0];
+			wcont_cp[0] = wcont_0_opt;
+		}
+
+		if (day.isend) {
+			ppft.water_deficit_d /= date.subdaily;
+			ppft.water_deficit_y += ppft.water_deficit_d;
+		}
+	}
+	return water_uptake(wcont_cp, awc, pft.rootdist, pft.emax, patch.fpc_rescale,
+			ppft.fwuptake, pft.lifeform == TREE, pft.drought_tolerance);
+};
+
+
 /// Actual evapotranspiration and water stress
 /** Soil water supply at the roots available to meet the transpirational demand
  *  Fundamentally, water stress = supply < demand
@@ -1320,42 +1403,65 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 	// Calculate common point supply for each PFT in this patch
 	for (int p=0; p<npft; p++) {
 
+		Standpft& spft = patch.stand.pft[p];
+		if (!spft.active)
+			continue;
+
 		// Retrieve next patch PFT
 		Patchpft& ppft = patch.pft[p];
+
 		// Retrieve PFT
 		Pft& pft = ppft.pft;
 
-		if (day.isstart) {
+		if (day.isstart || spft.irrigated && pft.id == patch.stand.pftid) {
+
 			// Calculate effective water supply from plant roots
 			// Rescale available water by patch FPC if exceeds 1
 			// (this then represents the average amount of water available over an
 			// individual's FPC, assuming individuals are equal in competition for water)
-			double wr = water_uptake(patch.soil.wcont, patch.soil.soiltype.awc,
+			double wr;
+
+			if (spft.irrigated && pft.id == patch.stand.pftid) {
+				wr = irrigated_water_uptake(patch, pft, day);
+			} else {
+				wr = water_uptake(patch.soil.wcont, patch.soil.soiltype.awc,
 							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance);
+			}
 
 			// Calculate supply (Eqn 24, Haxeltine & Prentice 1996)
-			ppft.wsupply_leafon = pft.emax * wr;
+			if (patch.stand.landcover!=CROPLAND || ppft.cropphen->growingseason)
+				ppft.wsupply_leafon = pft.emax * wr;
+			else
+				ppft.wsupply_leafon = 0.0;
 			ppft.wsupply = ppft.wsupply_leafon * ppft.phen;
 		}
-		ppft.wstress = ppft.wsupply < patch.wdemand && !negligible(ppft.phen);
+
+		ppft.wstress = ppft.wsupply < patch.wdemand && !negligible(ppft.phen) && !(pft.phenology==CROPGREEN && (patch.wdemand-ppft.wsupply)<=1.0e-10);
 
 		// Calculate water-stressed canopy conductance on FPC basis assuming
 		// FPAR=1 and deducting canopy conductance component not associated
 		// with CO2 uptake; valid for all individuals of this PFT in this patch
 		// today.
 		// Eqn 25, Haxeltine & Prentice 1996
+
+		// Fix, valid for monocultures, for faulty equation, manifesting itself in problems with crops in high scenario CO2-levels.
+		// No fix for natural vegetation yet.
+		double gmin = pft.phenology==CROPGREEN ? ppft.phen * pft.gmin : pft.gmin;
+
 		ppft.gcbase = ppft.wstress ? max(gc_monteith(ppft.wsupply, patch.eet_net_veg)-
-					pft.gmin * ppft.wsupply / patch.wdemand, 0.0) : 0;
+					gmin * ppft.wsupply / patch.wdemand, 0.0) : 0;
 
 		if (!date.diurnal()) {
 			ppft.wstress_day = ppft.wstress;
 			ppft.gcbase_day = ppft.gcbase;
 		}
 		else if (day.isend) {
-			ppft.wstress_day = ppft.wsupply < patch.wdemand_day && !negligible(ppft.phen);
+
+			ppft.wstress_day = ppft.wsupply < patch.wdemand_day && !negligible(ppft.phen) && !(pft.phenology==CROPGREEN && (patch.wdemand-ppft.wsupply)<=1.0e-10);
+
 			ppft.gcbase_day = ppft.wstress_day ? max(gc_monteith(ppft.wsupply,
-					patch.eet_net_veg) - pft.gmin * ppft.wsupply / patch.wdemand_day, 0.0) : 0;
+					patch.eet_net_veg) - gmin * ppft.wsupply / patch.wdemand_day, 0.0) : 0;
 		}
 	}
 
@@ -1373,7 +1479,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 		indiv.wstress = ppft.wstress;
 
-		if (indiv.alive) { // Alive check - TP 210814
+		if (indiv.alive) {
 			if (indiv.wstress) {
 				indiv.aet += ppft.wsupply;
 			}
@@ -1406,13 +1512,20 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 		// Retrieve next patch PFT
 		Patchpft& ppft = patch.pft[p];
 
+		if (!patch.stand.pft[p].active)
+			continue;
+
 		if (day.isstart) {
 			ppft.wscal = 0;
 			if (date.day == 0) {
 				ppft.wscal_mean = 0;
+				if (ppft.pft.phenology==CROPGREEN || ppft.pft.isintercropgrass)
+					ppft.cropphen->growingdays_y=0;
 			}
 		}
+
 		// Calculate patch PFT water scalar value
+
 		if (!negligible(patch.wdemand_leafon)) {
 			ppft.wscal += min(1.0, ppft.wsupply_leafon/patch.wdemand_leafon);
 		}
@@ -1422,11 +1535,22 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 		if (day.isend) {
 			ppft.wscal /= (double)date.subdaily;
-			ppft.wscal_mean += ppft.wscal;
 
-			// Convert from sum to mean on last day of year
-			if (date.islastday && date.islastmonth) {
-				ppft.wscal_mean /= date.year_length();
+			if (patch.stand.landcover!=CROPLAND										//natural, urban, pasture, forest and peatland stands
+					|| ppft.pft.phenology==ANY && ppft.pft.id==patch.stand.pftid) {	//normal grass growth
+				ppft.wscal_mean += ppft.wscal;
+
+				// Convert from sum to mean on last day of year
+				if (date.islastday && date.islastmonth) {
+					ppft.wscal_mean /= date.year_length();
+				}
+			}
+			else if (ppft.cropphen->growingseason									// true crops and cover-crop grass
+					|| ppft.pft.phenology == CROPGREEN && date.day == ppft.cropphen->hdate
+					|| ppft.pft.isintercropgrass && date.day == patch.pft[patch.stand.pftid].cropphen->eicdate) {
+
+				ppft.cropphen->growingdays_y++;
+				ppft.wscal_mean = ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / ppft.cropphen->growingdays_y;
 			}
 		}
 	}
@@ -1450,12 +1574,12 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 	// satisfies simulataneously a canopy-conductance based and light-based
 	// formulation of photosynthesis (Eqns 2, 18 and 19, Haxeltine & Prentice (1996)).
 
-	// Numerical method is a tailored implementation of the bisection method, 
+	// Numerical method is a tailored implementation of the bisection method,
 	// assuming root (f(lambda)=0) bracketed by f(0.02)<0 and
 	// f(lambda_max)>0 (Press et al 1986)
 
 	// The bisection method terminates when we're close enough to a root
-	// (absolute value of f(lambda) < EPS), or after a maximum number of 
+	// (absolute value of f(lambda) < EPS), or after a maximum number of
 	// iterations.
 
 	// Note that the function sometimes doesn't search for a lambda,
@@ -1490,7 +1614,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 	// g(x) = phot_result.adtmm / fpc (after a call to photosynthesis with lambda x)
 	// h(x) = gcphot * (1 - x)
 
-	// Evaluate f(lambda_max) to see if there's a root 
+	// Evaluate f(lambda_max) to see if there's a root
 	// in the interval we're searching
 	photosynthesis(co2, temp, par, daylength, fpar, pft.lambda_max, pft, nactive, ifnlimvmax, phot_result, vmax);
 	double f_lambda_max = phot_result.adtmm / fpc - gcphot * (1 - pft.lambda_max);
@@ -1553,7 +1677,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	double respcoeff, double cton_sap, double cton_root,
-	double cmass_sap, double cmass_root_today, double assim, double& resp) {	
+	double cmass_sap, double cmass_root_today, double assim, double& resp) {
 
 	// DESCRIPTION
 	// Calculation of daily maintenance and growth respiration for individual with
@@ -1666,8 +1790,8 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 		// Growth respiration = 0.25 ( GPP - maintenance respiration)
 
 		resp_growth = (assim - resp_sap - resp_root) * 0.25;
-		
-		// guess2008 - disallow negative growth respiration 
+
+		// guess2008 - disallow negative growth respiration
 		// (following a comment (060823) from Annett Wolf)
 		if(resp_growth < 0.0) resp_growth = 0.0;
 
@@ -1737,12 +1861,21 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 		Pft& pft = indiv.pft;
 		Patchpft& ppft = patch.pft[pft.id];
+
+		//Don't do calculations for crops outside their growingseason
+		if (!indiv.growingseason()) {
+			indiv.dnpp=0.0;
+			vegetation.nextobj();
+			continue;
+		}
+
 		PhotosynthesisResult phot = date.diurnal() ? indiv.phots[day.period] : indiv.photosynthesis;
 
 		if (indiv.wstress) {
 
 			// Water stress - derive assimilation by simultaneous solution
 			// of light- and conductance-based equations of photosynthesis
+
 			assimilation_wstress(pft, climate.co2, temp, par, hours, indiv.fpar, indiv.fpc,
 				ppft.gcbase, phot.vm, phot, lambda,
 				indiv.nactive / indiv.nextin, ifnlim);
@@ -1755,7 +1888,11 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			bvoc(temp, hours, rad, climate, patch, indiv, pft, phot_nostress, phot.adtmm, day);
 		}
 		// Calculate autotrophic respiration
-		double cmass_root = indiv.cmass_root_today();
+		double cmass_root;
+		if (indiv.cropindiv && indiv.cropindiv->isintercropgrass && indiv.phen == 0.0)
+			cmass_root = 0.0;
+		else
+			cmass_root = indiv.cmass_root_today();
 
 		respiration(gtemp,patch. soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, indiv.cton_sap(), indiv.cton_root(),
@@ -1766,20 +1903,60 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		resp /= date.subdaily;
 
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux
-		double ind_npp = assim - resp;
-		indiv.anpp += ind_npp;
+		indiv.dnpp = assim - resp;
+		indiv.anpp += indiv.dnpp;
 
-		indiv.report_flux(Fluxes::NPP, ind_npp);
+		indiv.report_flux(Fluxes::NPP, indiv.dnpp);
 		indiv.report_flux(Fluxes::GPP, assim);
 		indiv.report_flux(Fluxes::RA, resp);
 
+		if (indiv.lai_today() > indiv.mlai_max[date.month])
+			indiv.mlai_max[date.month] = indiv.lai_today();
+
 		if (day.isend) {
-			indiv.mlai[date.month] += indiv.lai_today();
-			// On last day of month - convert monthly LAI from sum to mean
-			if (date.islastday) {
-				indiv.mlai[date.month] /= (double)date.ndaymonth[date.month];
+			indiv.mlai[date.month] += indiv.lai_today() / (double)date.ndaymonth[date.month];
+		}
+
+		vegetation.nextobj();
+	}
+}
+
+/// Leaf senescence for crops Eqs. 8,9,13 and 14 in Olin 2015
+void leaf_senescence(Vegetation& vegetation) {
+
+	if (!(vegetation.patch.stand.is_true_crop_stand() && ifnlim)) {
+		return;
+	}
+
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv = vegetation.getobj();
+
+		// Age dependent N retranslocation, Sec. 2.1.3 Olin 2015
+		if (indiv.patchpft().cropphen->dev_stage > 1.0) {
+			const double senNr = 0.1;
+			double senN = senNr * (indiv.nmass_leaf-indiv.cmass_leaf_today() / (indiv.pft.cton_leaf_max));
+			// Senescence is not done during spinup TODO
+			if (date.year > nyear_spinup && senN > 0) {
+				indiv.nmass_leaf -= senN;
+				indiv.cropindiv->nmass_agpool += senN;
 			}
 		}
+
+		double r = 0.0;
+		// N dependant C mass loss, with an inertia of 1/10, Eq. 13 Olin 2015
+		if (indiv.cmass_leaf_today() > 0.0) {
+			double Ln = indiv.lai_nitrogen_today();
+			double Lnld = indiv.lai_today();
+			r = (Lnld - min(Lnld, Ln))/indiv.pft.sla/10.0;
+		}
+		// No senescence during the initial growing period
+		if (indiv.patchpft().cropphen->fphu < 0.05) {
+			indiv.daily_cmass_leafloss = 0.0;
+		} else {
+			indiv.daily_cmass_leafloss = max(0.0, r);
+		}
+		indiv.daily_nmass_leafloss = 0.0;
 
 		vegetation.nextobj();
 	}
@@ -1801,26 +1978,30 @@ void forest_floor_conditions(Patch& patch) {
 
 		Patchpft& ppft = patch.pft[p];
 		Standpft& spft = patch.stand.pft[p];
+		if (!spft.active) {
+			continue;
+		}
 		Pft& pft = spft.pft;
-
 		// Initialise net photosynthesis sum on first day of year
 		if (date.day == 0) {
 			ppft.anetps_ff = 0.0;
 		}
-		double assim = 0;
+		if (patch.stand.landcover != CROPLAND || pft.phenology != CROPGREEN && ppft.cropphen->growingseason) {
+			double assim = 0;
 
-		if (ppft.wstress_day) {
-			assimilation_wstress(pft, climate.co2, climate.temp, climate.par,
-				climate.daylength, patch.fpar_grass * ppft.phen, 1., ppft.gcbase_day,
-				spft.photosynthesis.vm, phot, lambda, 1.0, false);
-			assim = phot.net_assimilation();
-		} 
-		else {
-			assim = spft.photosynthesis.net_assimilation() * ppft.phen * patch.fpar_grass;
+			if (ppft.wstress_day) {
+				assimilation_wstress(pft, climate.co2, climate.temp, climate.par,
+					climate.daylength, patch.fpar_grass * ppft.phen, 1., ppft.gcbase_day,
+					spft.photosynthesis.vm, phot, lambda, 1.0, false);
+				assim = phot.net_assimilation();
+			}
+			else {
+				assim = spft.photosynthesis.net_assimilation() * ppft.phen * patch.fpar_grass;
+			}
+
+			// Accumulate annual value
+			ppft.anetps_ff += assim;
 		}
-
-		// Accumulate annual value
-		ppft.anetps_ff += assim;
 
 		if (date.islastmonth && date.islastday) {
 
@@ -1848,6 +2029,7 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			indiv.rootndemand    = 0.0;
 			indiv.sapndemand     = 0.0;
 			indiv.storendemand   = 0.0;
+			indiv.hondemand      = 0.0;
 
 			indiv.nday_leafon    = 0;
 			indiv.avmaxnlim      = 1.0;
@@ -1860,6 +2042,7 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
  			for (int m=0; m<12; m++) {
 				indiv.mlai[m] = 0.0;
+				indiv.mlai_max[m] = 0.0;
 			}
 
 			vegetation.nextobj();
@@ -1916,6 +2099,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		water_scalar(patch, vegetation, day);
 		npp(patch, climate, vegetation, day);
 	}
+	leaf_senescence(vegetation);
 
 	// Forest-floor conditions
 	forest_floor_conditions(patch);
@@ -1946,15 +2130,15 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 // Collatz, GJ, Ribas-Carbo, M & Berry, JA 1992 Coupled photosynthesis-stomatal
 //   conductance models for leaves of C4 plants. Australian Journal of Plant
 //   Physiology 19: 519-538
-// Comins, H. N. & McMurtrie, R. E. 1993. Long-Term Response of Nutrient-Limited 
-//   Forests to CO2 Enrichment - Equilibrium Behavior of Plant-Soil Models. 
+// Comins, H. N. & McMurtrie, R. E. 1993. Long-Term Response of Nutrient-Limited
+//   Forests to CO2 Enrichment - Equilibrium Behavior of Plant-Soil Models.
 //   Ecological Applications, 3, 666-681.
 // Farquhar GD & von Caemmerer 1982 Modelling of photosynthetic response to
 //   environmental conditions. In: Lange, OL, Nobel PS, Osmond CB, Ziegler H
 //   (eds) Physiological Plant Ecology II: Water Relations and Carbon
 //   Assimilation, Vol 12B. Springer, Berlin, pp 549-587.
-// Friend, A. D., Stevens, A. K., Knox, R. G. & Cannell, M. G. R. 1997. A 
-//   process-based, terrestrial biosphere model of ecosystem dynamics 
+// Friend, A. D., Stevens, A. K., Knox, R. G. & Cannell, M. G. R. 1997. A
+//   process-based, terrestrial biosphere model of ecosystem dynamics
 //   (Hybrid v3.0). Ecological Modelling, 95, 249-287.
 // Haxeltine A & Prentice IC 1996a BIOME3: an equilibrium terrestrial biosphere
 //   model based on ecophysiological constraints, resource availability, and
@@ -1971,6 +2155,9 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 //   seine Bedeutung fuer die Stoffproduktion. Japanese Journal of Botany 14: 22-52
 // Monteith, JL, 1995. Accomodation between transpiring vegetation and the convective
 //   boundary layer. Journal of Hydrology 166: 251-263.
+// S. Olin, G. Schurgers, M. Lindeskog, D. Wårlind, B. Smith, P. Bodin, J. Holmér, and A. Arneth. 2015
+//   Biogeosciences Discuss., 12, 1047-1111. The impact of atmospheric CO2 and N management on yields
+//   and tissue C:N in the main wheat regions of Western Europe
 // Peltoniemi, MS, Duursma, RA & Medlyn, BE. 2012. Co-optimal distribution of leaf
 //   nitrogen and hydraulic conductance in plant canopies. Tree Physiology, 32, 510-519.
 // Prentice, IC, Sykes, MT & Cramer W (1993) A simulation model for the transient
@@ -1985,6 +2172,6 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 //   from the organ level to the stand. In: Smith, WK & Hinckley, TM (eds),
 //   Physiological Ecology of Coniferous Forests.
 // Zaehle, S. & Friend, A. D. 2010. Carbon and nitrogen cycle dynamics in the O-CN
-//   land surface model: 1. Model description, site-scale evaluation, and sensitivity 
+//   land surface model: 1. Model description, site-scale evaluation, and sensitivity
 //   to parameter estimates. Global Biogeochemical Cycles, 24.
 

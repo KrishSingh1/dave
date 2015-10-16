@@ -19,6 +19,7 @@
 
 #include "guess.h"
 void initial_infiltration(Patch& patch, Climate& climate);
+void irrigation(Patch& patch);
 void soilwater(Patch& patch, Climate& climate);
 
 #endif // LPJ_GUESS_SOILWATER_H

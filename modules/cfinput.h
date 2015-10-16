@@ -25,20 +25,31 @@ public:
 
 	void init();
 
+	/// See base class for documentation about this function's responsibilities
 	bool getgridcell(Gridcell& gridcell);
 
+	/// See base class for documentation about this function's responsibilities
 	bool getclimate(Gridcell& gridcell);
-
+	
+	/// See base class for documentation about this function's responsibilities
 	void getlandcover(Gridcell& gridcell);
+
+	/// Obtains land management data for one day
+	void getmanagement(Gridcell& gridcell) {management_input.getmanagement(gridcell);}
 
 	static const int NYEAR_SPINUP_DATA=30;
 
 private:
 
+	/// Land cover input module
+	LandcoverInput landcover_input;
+	/// Management input module
+	ManagementInput management_input;
+
 	struct Coord {
 
 		// Type for storing grid cell longitude, latitude and description text
-		
+
 		int rlon;
 		int rlat;
 		int landid;
@@ -64,7 +75,7 @@ private:
 	                      GenericSpinupData& spinup_data);
 
 	/// Gets data for one year, for one variable.
-	/** Returns either 12 or 365/366 values (depending on LPJ-GUESS year length, not 
+	/** Returns either 12 or 365/366 values (depending on LPJ-GUESS year length, not
 	 *  data set year length). Gets the values from spinup and/or historic period. */
 	void get_yearly_data(std::vector<double>& data,
 	                     const GenericSpinupData& spinup,
@@ -82,7 +93,7 @@ private:
 	/// Same as populate_daily_array, but for precipitation which is special
 	/** Uses number of wet days if available and handles extensive/intensive conversion */
 	void populate_daily_prec_array(long& seed);
-	
+
 	/// Fills dtemp, dprec, etc. with forcing data for the current year
 	void populate_daily_arrays(long& seed);
 
@@ -122,7 +133,7 @@ private:
 	GenericSpinupData spinup_wetdays;
 
 	GenericSpinupData spinup_min_temp;
-	
+
 	GenericSpinupData spinup_max_temp;
 
 	/// Temperature for current gridcell and current year (deg C)
@@ -170,13 +181,6 @@ private:
 
 	/// Nitrogen deposition time series to use (historic,rcp26,...)
 	std::string ndep_timeseries;
-
-	/// Landcover fractions read from ins-file (% area).
-	/** One entry for each land cover type */
-	std::vector<int> lc_fixed_frac;
-
-	/// Whether gridcell is divided into equal active landcover fractions.
-	bool equal_landcover_area;
 
 	// Timers for keeping track of progress through the simulation
 	Timer tprogress,tmute;

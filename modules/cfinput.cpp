@@ -68,13 +68,13 @@ bool first_month_of_year(GuessNC::CF::DateTime dt) {
 }
 
 // Compares a Date with a GuessNC::CF::DateTime to see if the Date is on an earlier day
-bool earlier_day(const Date& date, int calendar_year, 
+bool earlier_day(const Date& date, int calendar_year,
                  const GuessNC::CF::DateTime& date_time) {
 	std::vector<int> d1(3),d2(3);
 
 	d1[0] = calendar_year;
 	d2[0] = date_time.get_year();
-	
+
 	d1[1] = date.month+1;
 	d2[1] = date_time.get_month();
 
@@ -93,14 +93,14 @@ bool later_day(const Date& date,
 
 	d1[0] = date.get_calendar_year();
 	d2[0] = date_time.get_year();
-	
+
 	d1[1] = date.month+1;
 	d2[1] = date_time.get_month();
 
 	d1[2] = date.dayofmonth+1;
 	d2[2] = date_time.get_day();
 
-	return d1 > d2;	
+	return d1 > d2;
 }
 
 // Checks if the variable contains daily data
@@ -188,7 +188,7 @@ void check_insol_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 
 // Verifies that a CF variable with wetdays data contains what we expect
 void check_wetdays_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
-	const char* wetdays_standard_name = 
+	const char* wetdays_standard_name =
 		"number_of_days_with_lwe_thickness_of_precipitation_amount_above_threshold";
 
 	if (cf_var && cf_var->get_standard_name() != wetdays_standard_name) {
@@ -204,7 +204,7 @@ void check_compatible_timeseries(const GuessNC::CF::GridcellOrderedVariable* var
                                  const GuessNC::CF::GridcellOrderedVariable* var2) {
 	GuessNC::CF::DateTime start1, start2, end1, end2;
 
-	const std::string error_message = format_string("%s and %s have incompatible timeseries", 
+	const std::string error_message = format_string("%s and %s have incompatible timeseries",
 		var1->get_variable_name().c_str(), var2->get_variable_name().c_str());
 
 	start1 = var1->get_date_time(0);
@@ -242,7 +242,7 @@ void check_compatible_timeseries(const std::vector<GuessNC::CF::GridcellOrderedV
 }
 
 void check_same_spatial_domains(const std::vector<GuessNC::CF::GridcellOrderedVariable*> variables) {
-	
+
 	for (size_t i = 1; i < variables.size(); ++i) {
 		if (!variables[0]->same_spatial_domain(*variables[i])) {
 			fail("%s and %s don't have the same spatial domain",
@@ -261,22 +261,9 @@ CFInput::CFInput()
 	  cf_wetdays(0),
 	  cf_min_temp(0),
 	  cf_max_temp(0),
-	  ndep_timeseries("historic"),
-	  lc_fixed_frac(NLANDCOVERTYPES, 0),
-	  equal_landcover_area(false) {
+	  ndep_timeseries("historic") {
 
 	declare_parameter("ndep_timeseries", &ndep_timeseries, 10, "Nitrogen deposition time series to use (historic, rcp26, rcp45, rcp60 or rcp85");
-
-	// Not used by this input module currently, but included as parameters so
-	// common ins files can be used.
-
-	declare_parameter("equal_landcover_area", &equal_landcover_area, "Whether enforced static landcover fractions are equal-sized stands of all included landcovers (0,1)");
-	declare_parameter("lc_fixed_urban", &lc_fixed_frac[URBAN], 0, 100, "% lc_fixed_urban");
-	declare_parameter("lc_fixed_cropland", &lc_fixed_frac[CROPLAND], 0, 100, "% lc_fixed_cropland");
-	declare_parameter("lc_fixed_pasture", &lc_fixed_frac[PASTURE], 0, 100, "% lc_fixed_pasture");
-	declare_parameter("lc_fixed_forest", &lc_fixed_frac[FOREST], 0, 100, "% lc_fixed_forest");
-	declare_parameter("lc_fixed_natural", &lc_fixed_frac[NATURAL], 0, 100, "% lc_fixed_natural");
-	declare_parameter("lc_fixed_peatland", &lc_fixed_frac[PEATLAND], 0, 100, "% lc_fixed_peatland");
 
 }
 
@@ -295,7 +282,7 @@ void CFInput::init() {
 	co2.load_file(param["file_co2"].str);
 
 	file_cru = param["file_cru"].str;
-	
+
 	// Try to open the NetCDF files
 	try {
 		cf_temp = new GridcellOrderedVariable(param["file_temp"].str, param["variable_temp"].str);
@@ -321,7 +308,7 @@ void CFInput::init() {
 	// Make sure they contain what we expect
 
 	check_temp_variable(cf_temp);
-	
+
 	check_prec_variable(cf_prec);
 
 	check_insol_variable(cf_insol);
@@ -345,7 +332,7 @@ void CFInput::init() {
 	// Read list of localities and store in gridlist member variable
 
 	// Retrieve name of grid list file as read from ins file
-	xtring file_gridlist=param["file_gridlist"].str;
+	xtring file_gridlist=param["file_gridlist_cf"].str;
 
 	std::ifstream ifs(file_gridlist, std::ifstream::in);
 
@@ -367,25 +354,27 @@ void CFInput::init() {
 				getline(iss, descrip);
 
 				c.landid = landid;
-				c.descrip = trim(descrip);
-
-				gridlist.push_back(c);
 			}
 		}
 		else {
 			if (iss >> rlon >> rlat) {
 				getline(iss, descrip);
-				
+
 				c.rlat = rlat;
 				c.rlon = rlon;
-				c.descrip = trim(descrip);
-
-				gridlist.push_back(c);
+	
 			}
 		}
+		c.descrip = trim(descrip);
+		gridlist.push_back(c);
 	}
 
 	current_gridcell = gridlist.begin();
+
+	// Open landcover files
+	landcover_input.init();
+	// Open management files
+	management_input.init();
 
 	date.set_first_calendar_year(cf_temp->get_date_time(0).get_year() - nyear_spinup);
 
@@ -415,6 +404,17 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 		return false;
 	}
 
+	if (run_landcover) {
+		bool LUerror = false;
+		LUerror = landcover_input.loadlandcover(cru_lon, cru_lat);
+		if (!LUerror)
+			LUerror = management_input.loadmanagement(cru_lon, cru_lat);
+		if (LUerror) {
+			dprintf("\nError: could not find stand at (%g,%g) in landcover/management data file(s)\n", cru_lon, cru_lat);
+			return false;
+		}
+	}
+
 	gridcell.set_coordinates(lon, lat);
 
 	// Load spinup data for all variables
@@ -440,7 +440,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	gridcell.climate.instype = cf_standard_name_to_insoltype(cf_insol->get_standard_name());
 
 	// Get nitrogen deposition, using the found CRU coordinates
-	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat, 
+	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat,
 	             Lamarque::parse_timeseries(ndep_timeseries));
 
 	// Setup the soil type
@@ -514,7 +514,7 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 
 	if (!CRU_TS30::findnearestCRUdata(searchradius, file_cru, cru_lon, cru_lat, soilcode,
 	                                  dummy, dummy, dummy)) {
-		dprintf("Failed to find soil code from CRU archive, close to coordinates (%g,%g), skipping.\n", 
+		dprintf("Failed to find soil code from CRU archive, close to coordinates (%g,%g), skipping.\n",
 		        cru_lon, cru_lat);
 		return false;
 	}
@@ -573,7 +573,7 @@ void CFInput::get_yearly_data(std::vector<double>& data,
 						--historic_timestep;
 					}
 				}
-				
+
 				if (historic_timestep < cf_historic->get_timesteps()) {
 					data[current_day.day]  = cf_historic->get_value(max(0, historic_timestep));
 				}
@@ -587,7 +587,7 @@ void CFInput::get_yearly_data(std::vector<double>& data,
 		}
 	}
 	else {
-		
+
 		// for now, assume that data set must be monthly since it isn't daily
 
 		data.resize(12);
@@ -620,7 +620,7 @@ void CFInput::get_yearly_data(std::vector<double>& data,
 	}
 }
 
-void CFInput::populate_daily_array(double* daily, 
+void CFInput::populate_daily_array(double* daily,
                                    const GenericSpinupData& spinup,
                                    GridcellOrderedVariable* cf_historic,
                                    int& historic_timestep,
@@ -670,7 +670,7 @@ void CFInput::populate_daily_prec_array(long& seed) {
 	}
 	else {
 		// for now, assume that data set must be monthly since it isn't daily
-		
+
 		// If needed convert from precipitation rate to precipitation amount
 		if (!extensive_precipitation) {
 			for (int m = 0; m < 12; ++m) {
@@ -694,7 +694,7 @@ void CFInput::populate_daily_arrays(long& seed) {
 
 	populate_daily_array(dtemp, spinup_temp, cf_temp, historic_timestep_temp, 0);
 	populate_daily_prec_array(seed);
-	populate_daily_array(dinsol, spinup_insol, cf_insol, historic_timestep_insol, 0, 
+	populate_daily_array(dinsol, spinup_insol, cf_insol, historic_timestep_insol, 0,
 	                     max_insolation(cf_standard_name_to_insoltype(cf_insol->get_standard_name())));
 
 	if (cf_min_temp) {
@@ -717,9 +717,9 @@ void CFInput::populate_daily_arrays(long& seed) {
 		if (cf_max_temp) {
 			dmax_temp[i] -= K2degC;
 		}
-		
+
 		if (cloud_fraction_to_sunshine) {
-			// Invert from cloudiness to sunshine, 
+			// Invert from cloudiness to sunshine,
 			// and convert fraction (0-1) to percent (0-100)
 			dinsol[i] = (1-dinsol[i]) * 100.0;
 		}
@@ -757,16 +757,12 @@ void CFInput::populate_daily_arrays(long& seed) {
 
 void CFInput::getlandcover(Gridcell& gridcell) {
 
-	// Only 100% natural land cover is supported by this input module for now
-
-	for (int i = 0; i < NLANDCOVERTYPES; ++i) {
-		gridcell.landcoverfrac[i] = 0;
-	}
-	gridcell.landcoverfrac[NATURAL] = 1;
+	landcover_input.getlandcover(gridcell);
+	landcover_input.get_land_transitions(gridcell);
 }
 
 bool CFInput::getclimate(Gridcell& gridcell) {
-	
+
 	Climate& climate = gridcell.climate;
 
 	GuessNC::CF::DateTime last_date = last_day_to_simulate(cf_temp);
@@ -788,9 +784,6 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 
 	// Nitrogen deposition
 	climate.dndep = dndep[date.day];
-		
-	// Nitrogen fertilization
-	climate.dnfert = 0.0;
 
 	// bvoc
 	if(ifbvoc){
@@ -834,7 +827,7 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 void CFInput::load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_var,
                                GenericSpinupData& spinup_data) {
 
-	const std::string error_message = 
+	const std::string error_message =
 		format_string("Not enough data to build spinup, at least %d years needed",
 		              NYEAR_SPINUP_DATA);
 
@@ -856,7 +849,7 @@ void CFInput::load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_va
 		}
 	}
 
-	// Get all the values for the first NYEAR_SPINUP_DATA years, 
+	// Get all the values for the first NYEAR_SPINUP_DATA years,
 	// and put them into source
 	for (int i = 0; i < NYEAR_SPINUP_DATA; ++i) {
 		std::vector<double> year(daily ? GenericSpinupData::DAYS_PER_YEAR : 12);
@@ -877,7 +870,7 @@ void CFInput::load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_va
 			year[i] = cf_var->get_value(timestep);
 			++timestep;
 		}
-		
+
 		source.push_back(year);
 	}
 
@@ -903,7 +896,7 @@ std::vector<GuessNC::CF::GridcellOrderedVariable*> CFInput::all_variables() cons
 	result.push_back(cf_max_temp);
 
 	// Get rid of null pointers
-	result.erase(std::remove_if(result.begin(), result.end(), is_null), 
+	result.erase(std::remove_if(result.begin(), result.end(), is_null),
 	             result.end());
 
 	return result;

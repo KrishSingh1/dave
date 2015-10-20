@@ -489,8 +489,10 @@ void calc_seasonality(Gridcell& gridcell) {
 	double maxprec_pet20 = 0.0;
 	double minprec_pet20 = 1000;
 
-	memset(mtempKelvin, 0, NMONTH * sizeof(double));
-	memset(prec_pet_ratio20, 0, NMONTH * sizeof(double));
+	for(int m=0;m<NMONTH;m++) {
+		mtempKelvin[m] = 0.0;
+		prec_pet_ratio20[m] = 0.0;
+	}
 
 	// calculate absolute temperature and prec/pet ratio for each month this year
 	for(int i=0; i < NMONTH; ++i) {

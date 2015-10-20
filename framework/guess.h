@@ -764,22 +764,30 @@ public:
 public:
 	/// constructor function: initialises gridcell member
 	Climate(Gridcell& gc):gridcell(gc) {
-		memset(mtemp_20, 0, sizeof(double)*20*12);
-		memset(mtemp20, 0, sizeof(double)*12);
 
-		memset(mprec_20, 0, sizeof(double)*20*12);
-		memset(mprec20, 0, sizeof(double)*12);
+		for(int m=0;m<12;m++) {
 
-		memset(mpet_20, 0, sizeof(double)*20*12);
-		memset(mpet20, 0, sizeof(double)*12);
-		memset(mpet_year, 0, sizeof(double)*12);
+			mtemp20[m] = 0.0;
+			mprec20[m] = 0.0;
+			mpet20[m] = 0.0;
+			mpet_year[m] = 0.0;
+			mprec_pet20[m] = 0.0;
 
-		memset(mprec_pet_20, 0, sizeof(double)*20*12);
-		memset(mprec_pet20, 0, sizeof(double)*12);
+			for(int y=0;y<20;y++) {
+				mtemp_20[m][y] = 0.0;
+				mprec_20[m][y] = 0.0;
+				mpet_20[m][y] = 0.0;
+				mprec_pet_20[m][y] = 0.0;
+			}		
+		}
 
-		memset(mprec_petmin_20, 0, sizeof(double)*20);
+		for(int y=0;y<20;y++) {
+
+			mprec_petmin_20[y] = 0.0;
+			mprec_petmax_20[y] = 0.0;
+		}
+
 		mprec_petmin20=0.0;
-		memset(mprec_petmax_20, 0, sizeof(double)*20);
 		mprec_petmax20=0.0;
 
 		seasonality=SEASONALITY_NO;

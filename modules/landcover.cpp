@@ -111,8 +111,10 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, double* primary
 		stand.gross_frac_increase = 0.0;
 		stand.gross_frac_decrease = 0.0;
 		stand.cloned_fraction = 0.0;
-		if(stand.transfer_area_st)
-			memset(stand.transfer_area_st, 0, nst * sizeof(double));
+		if(stand.transfer_area_st) {
+			for(int i=0;i<nst;i++)
+				stand.transfer_area_st[i] = 0.0;
+		}
 		gridcell.st[stand.stid].nstands++;
 	}
 
@@ -341,17 +343,12 @@ void expand_stands(Gridcell& gridcell, double* st_frac_transfer) {
 void set_lc_change_array(double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES]) {
 
 	const int NRANK = 4;
-	int target_preference[NLANDCOVERTYPES][NLANDCOVERTYPES];
-	int origin_preference[NLANDCOVERTYPES][NLANDCOVERTYPES];
-	double receptor_remain[NLANDCOVERTYPES];
-	double donor_remain[NLANDCOVERTYPES];
+	int target_preference[NLANDCOVERTYPES][NLANDCOVERTYPES] = {0};
+	int origin_preference[NLANDCOVERTYPES][NLANDCOVERTYPES] = {0};
+	double receptor_remain[NLANDCOVERTYPES] = {0.0};
+	double donor_remain[NLANDCOVERTYPES] = {0.0};
 	int ndonor_lc = 0;
 	int nreceptor_lc = 0;
-
-	memset(target_preference, 0, NLANDCOVERTYPES * NLANDCOVERTYPES * sizeof(int));
-	memset(origin_preference, 0, NLANDCOVERTYPES * NLANDCOVERTYPES * sizeof(int));
-	memset(donor_remain, 0, NLANDCOVERTYPES * sizeof(double));
-	memset(receptor_remain, 0, NLANDCOVERTYPES * sizeof(double));
 
 	target_preference[CROPLAND][PASTURE] = 3;
 	target_preference[CROPLAND][NATURAL] = 4;
@@ -489,11 +486,12 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 	double net_transfer_remain[NLANDCOVERTYPES][NLANDCOVERTYPES] = {0.0};
 	double net_lc_decrease[NLANDCOVERTYPES] = {0.0};
 
-	memset(net_donor_intraLC_remain, 0, nst * sizeof(double));
-	memset(net_receptor_intraLC_remain, 0, nst * sizeof(double));
-	memset(recip_donor_remain, 0, nst * sizeof(double));
-	memset(recip_receptor_remain, 0, nst * sizeof(double));
-
+	for(int i=0;i<nst;i++) {
+		net_donor_intraLC_remain[i] = 0.0;
+		net_receptor_intraLC_remain[i] = 0.0;
+		recip_donor_remain[i] = 0.0;
+		recip_receptor_remain[i] = 0.0;
+	}
 
 	// Quantify "reciprocal" lc change (gross lc change - net lc change)
 
@@ -654,8 +652,11 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 
 		double* influx_st = new double[nst];
 		double* outflux_st = new double[nst];
-		memset(influx_st, 0, nst * sizeof(double));
-		memset(outflux_st, 0, nst * sizeof(double));
+
+		for(int i=0;i<nst;i++) {
+			influx_st[i] = 0.0;
+			outflux_st[i] = 0.0;
+		}
 
 		for(int from=0; from<nst; from++) {
 
@@ -672,8 +673,11 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 
 		double* reduce = new double[nst];
 		double* receptor_weight = new double[nst];
-		memset(reduce, 0, nst * sizeof(double));
-		memset(receptor_weight, 0, nst * sizeof(double));
+
+		for(int i=0;i<nst;i++) {
+			reduce[i] = 0.0;
+			receptor_weight[i] = 0.0;
+		}
 
 		double exclude_frac = 0.0;
 		double exclude_frac_0 = 0.0;
@@ -1546,7 +1550,9 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 	// Test if the sum of gross lcc for a stand type is the same as net lcc:
 	double *test_st_change;
 	test_st_change = new double[nst];
-	memset(test_st_change,0,nst * sizeof(double));
+	for(int i=0;i<nst;i++) {
+		test_st_change[i] = 0.0;
+	}
 
 	for(int from=0; from<nst; from++) {
 
@@ -1594,8 +1600,7 @@ bool check_fractions(Gridcell& gridcell, double landcoverfrac_change[], double l
 	// Test if stand type and landcover transfer matrices match each other:
 	if(check_lc_st_transfer) {
 		double lc_change[NLANDCOVERTYPES] = {0.0};
-		double lc_change_arr[NLANDCOVERTYPES][NLANDCOVERTYPES];
-		memset(lc_change_arr, 0, NLANDCOVERTYPES * NLANDCOVERTYPES * sizeof(double));
+		double lc_change_arr[NLANDCOVERTYPES][NLANDCOVERTYPES] = {0.0};
 
 		for(int from=0; from<nst; from++) {
 
@@ -1687,7 +1692,8 @@ bool check_fractions2(Gridcell& gridcell, double* st_change_array) {
 
 			double *test_st_change;
 			test_st_change = new double[nst];
-			memset(test_st_change,0,nst * sizeof(double));
+			for(int i=0;i<nst;i++)
+				test_st_change[i] = 0.0;
 
 			for(unsigned int i=0; i<gridcell.nbr_stands(); i++) {
 
@@ -1961,11 +1967,19 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 	st_frac_transfer = new double[nst * nst];
 	primary_st_frac_transfer = new double[nst * nst];
 
-	memset(lc.frac_change, 0, NLANDCOVERTYPES * sizeof(double));
-	memset(lc.frac_transfer, 0, NLANDCOVERTYPES * NLANDCOVERTYPES * sizeof(double));
-	memset(lc.primary_frac_transfer, 0, NLANDCOVERTYPES * NLANDCOVERTYPES * sizeof(double));
-	memset(st_frac_transfer, 0, nst * nst * sizeof(double));
-	memset(primary_st_frac_transfer, 0, nst * nst * sizeof(double));
+	for(int i=0;i<NLANDCOVERTYPES;i++) {
+
+		lc.frac_change[i] = 0.0;
+
+		for(int j=0;j<NLANDCOVERTYPES;j++) {
+			lc.frac_transfer[i][j] = 0.0;
+			lc.primary_frac_transfer[i][j] = 0.0;
+		}
+	}
+	for(int i=0;i<nst*nst;i++) {
+		st_frac_transfer[i] = 0.0;
+		primary_st_frac_transfer[i] = 0.0;
+	}
 
 	gridcell.landcover.updated = false;
 
@@ -2385,7 +2399,8 @@ landcover_change_transfer::landcover_change_transfer() {
 	transfer_k_soilfast_mean = transfer_k_soilslow_mean = transfer_nmass_avail = 0.0;
 	transfer_snowpack = transfer_snowpack_nmass = transfer_anfix_calc = 0.0;
 
-	memset(transfer_wcont, 0, NSOILLAYER*sizeof(double));
+	for(int i=0;i<NSOILLAYER;i++)
+		transfer_wcont[i] = 0.0;
 
 	for(int i=0; i<NSOMPOOL; i++)
 		transfer_sompool[i].ntoc = 0.0;
@@ -2425,18 +2440,19 @@ void landcover_change_transfer::allocate() {
 	transfer_nmass_litter_root = new double[npft];
 	transfer_harvested_products_slow_nmass = new double[npft];
 
-	memset(transfer_litter_leaf, 0, sizeof(double) * npft);
-	memset(transfer_litter_sap, 0, sizeof(double) * npft);
-	memset(transfer_litter_heart, 0, sizeof(double) * npft);
-	memset(transfer_litter_root, 0, sizeof(double) * npft);
-	memset(transfer_litter_repr, 0, sizeof(double) * npft);
-	memset(transfer_harvested_products_slow, 0, sizeof(double) * npft);
-
-	memset(transfer_nmass_litter_leaf,0,sizeof(double)*npft);
-	memset(transfer_nmass_litter_sap,0,sizeof(double)*npft);
-	memset(transfer_nmass_litter_heart,0,sizeof(double)*npft);
-	memset(transfer_nmass_litter_root,0,sizeof(double)*npft);
-	memset(transfer_harvested_products_slow_nmass,0,sizeof(double)*npft);
+	for(int i=0;i<npft;i++) {
+		transfer_litter_leaf[i] = 0.0;
+		transfer_litter_sap[i] = 0.0;
+		transfer_litter_heart[i] = 0.0;
+		transfer_litter_root[i] = 0.0;
+		transfer_litter_repr[i] = 0.0;
+		transfer_harvested_products_slow[i] = 0.0;
+		transfer_nmass_litter_leaf[i] = 0.0;
+		transfer_nmass_litter_sap[i] = 0.0;
+		transfer_nmass_litter_heart[i] = 0.0;
+		transfer_nmass_litter_root[i] = 0.0;
+		transfer_harvested_products_slow_nmass[i] = 0.0;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////

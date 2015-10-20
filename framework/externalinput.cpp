@@ -269,7 +269,8 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 		if(LUdata.Get(year, 0) < 0.0) {		// Missing data (negative values)
 			if(date.year == 1)
 				dprintf("Missing landcover fraction data for year %d, natural vegetation fraction set to 1.0\n", year);
-			memset(lc.frac, 0, sizeof(double) * NLANDCOVERTYPES);
+			for(int i=0;i<NLANDCOVERTYPES;i++)
+				lc.frac[i] = 0.0;
 			lc.frac[NATURAL] = 1.0;
 			sum_active = 1.0;
 		}
@@ -706,12 +707,9 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 
 		int n_adjust_from[NLANDCOVERTYPES] = {0};
 		int n_adjust_to[NLANDCOVERTYPES] = {0};
-		double partition_adjustment[NLANDCOVERTYPES][NLANDCOVERTYPES];
-		double prim_sec_ratio[NLANDCOVERTYPES][NLANDCOVERTYPES];
+		double partition_adjustment[NLANDCOVERTYPES][NLANDCOVERTYPES] = {0.0};
+		double prim_sec_ratio[NLANDCOVERTYPES][NLANDCOVERTYPES] = {0.0};
 		double original_error[NLANDCOVERTYPES] = {0.0};
-
-		memset(partition_adjustment, 0, NLANDCOVERTYPES * NLANDCOVERTYPES * sizeof(double));
-		memset(prim_sec_ratio, 0, NLANDCOVERTYPES * NLANDCOVERTYPES * sizeof(double));
 
 		for(int from=0; from<NLANDCOVERTYPES; from++) {
 

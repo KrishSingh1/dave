@@ -647,7 +647,8 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int np
 	first_year = date.year;
 	clone_year = -1;
 	transfer_area_st = new double[nst];
-	memset(transfer_area_st, 0, nst * sizeof(double));
+	for(int i=0;i<nst;i++)
+		transfer_area_st[i] = 0.0;
 	seed = 12345678;
 
 	stid = -1;
@@ -2070,22 +2071,26 @@ Landcover::Landcover() {
 
 	updated = false;
 
-	memset(frac, 0, sizeof(double) * NLANDCOVERTYPES);
-	memset(frac_old, 0, sizeof(double) * NLANDCOVERTYPES);
-	memset(frac_change, 0, sizeof(double) * NLANDCOVERTYPES);
-	memset(frac_transfer, 0, sizeof(double) * NLANDCOVERTYPES * NLANDCOVERTYPES);
-	memset(primary_frac_transfer, 0, sizeof(double) * NLANDCOVERTYPES * NLANDCOVERTYPES);
-
 	acflux_harvest_slow = 0.0;
 	acflux_landuse_change = 0.0;
 	anflux_harvest_slow = 0.0;
 	anflux_landuse_change = 0.0;
-	memset(acflux_harvest_slow_lc, 0, sizeof(double) * NLANDCOVERTYPES);
-	memset(acflux_landuse_change_lc, 0, sizeof(double) * NLANDCOVERTYPES);
-	memset(anflux_harvest_slow_lc, 0, sizeof(double) * NLANDCOVERTYPES);
-	memset(anflux_landuse_change_lc, 0, sizeof(double) * NLANDCOVERTYPES);
 
 	for (int i=0; i<NLANDCOVERTYPES; i++) {
+
+		frac[i] = 0.0;
+		frac_old[i] = 0.0;
+		frac_change[i] = 0.0;
+		acflux_harvest_slow_lc[i] = 0.0;
+		acflux_landuse_change_lc[i] = 0.0;
+		anflux_harvest_slow_lc[i] = 0.0;
+		anflux_landuse_change_lc[i] = 0.0;
+
+		for(int j=0;j<NLANDCOVERTYPES;j++) {
+			frac_transfer[i][j] = 0.0;
+			primary_frac_transfer[i][j] = 0.0;
+		}
+
 		expand_to_new_stand[i] = (i == NATURAL || i == FOREST);
 
 		pool_to_all_landcovers[i] = false;		// from a donor landcover; alt.c

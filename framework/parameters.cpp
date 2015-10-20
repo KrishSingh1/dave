@@ -1231,7 +1231,8 @@ void plib_callback(int callback) {
 
 		// Set ids and nst variable after removing unused sts
 		nst = 0;
-		memset(nst_lc, 0, sizeof(int) * NLANDCOVERTYPES);
+		for(int i=0;i<NLANDCOVERTYPES;i++)
+			nst_lc[i] = 0;
 		stlist.firstobj();
 		while (stlist.isobj) {
 			StandType& st = stlist.getobj();

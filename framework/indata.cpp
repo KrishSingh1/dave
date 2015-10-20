@@ -52,7 +52,8 @@ void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist) { //Requires gutil
 	}
 
 	checkdata = new bool[nColumns];
-	memset(checkdata, 0, nColumns * sizeof(bool));
+	for(int i=0;i<nColumns;i++)
+		checkdata[i] = false;
 	ischeckingdata = true;
 	Rewind();
 
@@ -726,10 +727,14 @@ bool TimeDataD::Allocate() {	// Allocates memory for dynamic data: format & nYea
 	case GLOBAL_YEARLY:
 		year = new int[nYears];
 		data = new double[nColumns * nYears];
-		if(year)
-			memset(year, 0, nYears * sizeof(int));
-		if(data)
-			memset(data, 0, nColumns * nYears * sizeof(double));
+		if(year) {
+			for(int i=0;i<nYears;i++)
+				year[i] = 0;
+		}
+		if(data) {
+			for(int i=0;i<nColumns*nYears;i++)
+				data[i] = 0.0;
+		}
 		break;
 	case LOCAL_STATIC:
 		year = new int;
@@ -737,15 +742,20 @@ bool TimeDataD::Allocate() {	// Allocates memory for dynamic data: format & nYea
 		if(year)
 			*year = 0;
 		if(data)
-			memset(data, 0, nColumns * sizeof(double));
+			for(int j=0;j<nColumns;j++)
+				data[j] = 0;
 		break;
 	case LOCAL_YEARLY:
 		year = new int[nYears];
 		data = new double[nColumns * nYears];
-		if(year)
-			memset(year, 0, nYears * sizeof(int));
-		if(data)
-			memset(data, 0, nColumns * nYears * sizeof(double));
+		if(year) {
+			for(int i=0;i<nYears;i++)
+				year[i] = 0;
+		}
+		if(data) {
+			for(int i=0;i<nColumns*nYears;i++)
+				data[i] = 0.0;
+		}
 		break;
 	default:
 		;
@@ -774,10 +784,14 @@ bool TimeDataD::Load() {	// for GLOBAL_YEARLY and GLOBAL_STATIC data
 
 		if(format == GLOBAL_YEARLY) {
 
-			if(year)
-				memset(year, 0, nYears * sizeof(int));
-			if(data)
-				memset(data, 0, nColumns * nYears * sizeof(double));
+			if(year) {
+				for(int i=0;i<nYears;i++)
+					year[i] = 0;
+			}
+			if(data) {
+				for(int i=0;i<nColumns*nYears;i++)
+					data[i] = 0.0;
+			}
 
 			yearX_previous = firstyear - 1;
 
@@ -789,7 +803,8 @@ bool TimeDataD::Load() {	// for GLOBAL_YEARLY and GLOBAL_STATIC data
 				k = 0;
 				if(fgets(line, sizeof(line), ifp)) {
 
-					memset(d, 0, nColumns * sizeof(double));
+					for(int j=0;j<nColumns;j++)
+						d[j] = 0.0;
 					count = 0;
 
 					p=strtok(line, "\t\n ");	// year
@@ -955,11 +970,14 @@ bool TimeDataD::Load(Coord c) {
 
 			if(FindRecord(c)) {
 
-				if(year)
-					memset(year, 0, nYears * sizeof(int));
-				if(data)
-					memset(data, 0, nColumns * nYears * sizeof(double));
-
+				if(year) {
+					for(int i=0;i<nYears;i++)
+						year[i] = 0;
+				}
+				if(data) {
+					for(int i=0;i<nColumns*nYears;i++)
+						data[i] = 0.0;
+				}
 				yearX_previous = firstyear - 1;
 
 				while(i < nYears && yearX < firstyear + nYears - 1) {
@@ -967,7 +985,8 @@ bool TimeDataD::Load(Coord c) {
 					k = 0;
 					if(fgets(line, sizeof(line), ifp)) {
 
-						memset(d, 0, nColumns * sizeof(double));
+						for(int q=0;q<nColumns;q++)
+							d[q] = 0.0;;
 						count1 = 0;
 
 						if(ifheader) {
@@ -1045,12 +1064,17 @@ bool TimeDataD::Load(Coord c) {
 
 			if(FindRecord(c)) {
 
-				if(data)
-					memset(data, 0, nColumns * sizeof(double));
+				if(data) {
+					for(int i=0;i<nColumns;i++)
+						data[i] = 0.0;;
+				}
 
 				if(fgets(line, sizeof(line), ifp)) {
 
-					memset(d, 0, nColumns * sizeof(double));
+					if(d) {
+						for(int i=0;i<nColumns;i++)
+							d[i] = 0.0;;
+					}
 					p=strtok(line," \t");	//lon
 					sscanf(p, "%f", &lonX);
 					p=strtok(NULL, " \t");	//lat
@@ -1133,11 +1157,14 @@ bool TimeDataD::LoadNext(long int *pos) {
 
 		if(format == LOCAL_YEARLY) {
 
-			if(year)
-				memset(year, 0, nYears * sizeof(int));
-			if(data)
-				memset(data, 0, nColumns * nYears * sizeof(double));
-
+			if(year) {
+				for(int i=0;i<nYears;i++)
+					year[i] = 0;
+			}
+			if(data) {
+				for(int i=0;i<nColumns*nYears;i++)
+					data[i] = 0.0;
+			}
 			if(ifheader) {
 
 				fpos = ftell(ifp);
@@ -1185,7 +1212,8 @@ bool TimeDataD::LoadNext(long int *pos) {
 					int k = 0;
 					int count1 = 0;
 					int yearX = 0;
-					memset(d, 0, nColumns * sizeof(double));
+					for(int q=0;q<nColumns;q++)
+						d[q] = 0.0;;
 
 					if(ifheader) {
 
@@ -1232,8 +1260,10 @@ bool TimeDataD::LoadNext(long int *pos) {
 		}
 		else if(format == LOCAL_STATIC) {
 
-			if(data)
-				memset(data, 0, nColumns * nYears * sizeof(double));
+			if(data) {
+				for(int i=0;i<nColumns*nYears;i++)
+					data[i] = 0.0;
+			}
 
 			if(ifheader) {
 				fpos = ftell(ifp);
@@ -1281,7 +1311,8 @@ bool TimeDataD::LoadNext(long int *pos) {
 
 				if(line) {
 
-					memset(d, 0, nColumns * sizeof(double));
+					for(int q=0;q<nColumns;q++)
+						d[q] = 0.0;;
 
 					if(ifheader) {
 						p = strtok(line," \t");	//lon
@@ -1570,7 +1601,11 @@ TimeDataD::TimeDataD(fileformat formatX) {
 	ifp = NULL;
 	fileName = NULL;
 	ifheader = true;
-	memset(header_arr, 0, sizeof(char) * MAXRECORDS * MAXNAMESIZE);
+	for(int i=0;i<MAXRECORDS;i++) {
+		for(int j=0;j<MAXNAMESIZE;j++) {
+			header_arr[i][j] = 0;
+		}
+	}
 	currentStand.lon = 0;
 	currentStand.lat = 0;
 	data = NULL;
@@ -1729,8 +1764,10 @@ void TimeDataDmem::Open(int nCellsX, int nColumnsX, int nYearsX) {
 	data = new double*[nCellsX];
 	for(int i=0; i<nCellsX; i++) {
 		data[i] = new double[nColumns * nYears];
-		if(data[i])
-			memset(data[i], 0, nColumns * nYears * sizeof(double));
+		if(data[i]) {
+			for(int y=0;y<nColumns*nYears;y++)
+				data[i][y] = 0.0;
+		}
 	}
 }
 
@@ -1838,7 +1875,11 @@ TimeDataDmem::TimeDataDmem() {
 	data = NULL;
 	nCells = 0;
 	ifheader = false;
-	memset(header_arr, 0, sizeof(char) * MAXRECORDS * MAXNAMESIZE);
+	for(int i=0;i<MAXRECORDS;i++) {
+		for(int j=0;j<MAXNAMESIZE;j++) {
+			header_arr[i][j] = 0;
+		}
+	}
 	currentCell = -1;
 }
 

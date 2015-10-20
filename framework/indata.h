@@ -10,13 +10,19 @@
 
 #ifndef INDATA_H
 #define INDATA_H
-
-#include "inputdefinitions.h"
-
-using namespace inputdef;
+#include "guess.h"
 
 using std::min;
 using std::max;
+
+/// Type for storing grid cell longitude, latitude and description text
+struct Coord {
+	
+	int id;
+	double lon;
+	double lat;
+	xtring descrip;
+};
 
 namespace InData {
 

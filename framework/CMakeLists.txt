@@ -15,7 +15,6 @@ set(headers
   outputmodule.h
   inputmodule.h
   guessstring.h
-  inputdefinitions.h
   externalinput.h
   indata.h
 )

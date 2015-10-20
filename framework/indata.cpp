@@ -540,9 +540,9 @@ double TimeDataD::ParseSpatialResolution() {
 
 			dif_lon = fabs(cvect[i].lon - cvect[j].lon);
 			dif_lat = fabs(cvect[i].lat - cvect[j].lat);
-			if(dif_lon > 1.0e-12)
+			if(largerthanzero(dif_lon, -12))
 				precision = min(precision, dif_lon);
-			if(dif_lat > 1.0e-12)
+			if(largerthanzero(dif_lat, -12))
 				precision = min(precision, dif_lat);
 		}
 	}

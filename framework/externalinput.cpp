@@ -352,7 +352,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 	}
 
 	// NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
-	if(fabs(sum_active - 1.0) > 1.0e-14)	{	// if landcover types are turned off in the instruction file, or if more landcover types are added in other input files, can be either less or more than 1.0
+	if(!negligible(sum_active - 1.0, -14))	{	// if landcover types are turned off in the instruction file, or if more landcover types are added in other input files, can be either less or more than 1.0
 
 		if(date.year == 0)
 			dprintf("Landcover fraction sum not 1.0 !\n");
@@ -455,7 +455,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 		Gridcellst& gcst = gridcell.st[st.id];
 
 		gcst.frac = gcst.frac * lc.frac[st.landcover];
-		if(fabs(gcst.frac_old - gcst.frac) < 1.0e-14)
+		if(negligible(gcst.frac_old - gcst.frac, -14))
 			gcst.frac = gcst.frac_old;
 		gcst.frac_change = gcst.frac - gcst.frac_old ;
 		stlist.nextobj();
@@ -690,7 +690,7 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 					tot_frac_ch += lc.frac_transfer[to][from];
 				}
 			}
-			if(fabs(lc.frac_change[from] - net_lc_change[from])  > 1.0e-14) {
+			if(!negligible(lc.frac_change[from] - net_lc_change[from], -14)) {
 				error = true;
 				if(print_adjustment_info) {
 					dprintf("\nIn get_lc_transfer: Year %d: lc_change_array sum not equal to landcoverfrac_change value for landcover %d\n", date.year, from);
@@ -743,20 +743,20 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 				neg_error += original_error[from];
 		}
 
-		if(fabs(pos_error + neg_error) > 1.0e-15)
+		if(!negligible(pos_error + neg_error, -15))
 			fail("\nYear %d: pos_error + neg_error = %.15f\n\n", date.year, pos_error + neg_error);
 
 		// Determine number of possible adjustments to and from a lc
 		for(int from=0; from<NLANDCOVERTYPES; from++) {
 
-			if(fabs(original_error[from]) > 1.0e-14) {
+			if(!negligible(original_error[from], -14)) {
 
 				for(int to=0; to<NLANDCOVERTYPES; to++) {
 
-					if(fabs(original_error[to]) > 1.0e-14) {
+					if(!negligible(original_error[to], -14)) {
 
 						// Errors must have opposite signs
-						if(fabs(original_error[from] + original_error[to]) - (fabs(original_error[from]) + fabs(original_error[to])) < -1.0e-14) {
+						if(negligible(original_error[from] + original_error[to]) - (fabs(original_error[from]) + fabs(original_error[to]), -14)) {
 
 							if((lc.frac_transfer[from][to] + lc.frac_transfer[to][from]) > 0.0) {
 
@@ -784,14 +784,14 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 		// Adjust transfers for lc:s with transition input rounding errors
 		for(int from=0; from<NLANDCOVERTYPES; from++) {
 
-			if(run[from] && fabs(lc.frac_change[from] - net_lc_change[from]) > 1.0e-14) {
+			if(run[from] && !negligible(lc.frac_change[from] - net_lc_change[from], -14)) {
 
 				for(int to=0; to<NLANDCOVERTYPES; to++) {
 
-					if(run[to] && fabs(lc.frac_change[to] - net_lc_change[to])  > 1.0e-14 && from != to) {
+					if(run[to] && !negligible(lc.frac_change[to] - net_lc_change[to], -14) && from != to) {
 
 						// Errors must have opposite signs
-						if(fabs(net_lc_change[from] - lc.frac_change[from] + net_lc_change[to] - lc.frac_change[to]) - (fabs(net_lc_change[from] - lc.frac_change[from]) + fabs(net_lc_change[to] - lc.frac_change[to])) < -1.0e-14)	{
+						if(fabs(net_lc_change[from] - lc.frac_change[from] + net_lc_change[to] - lc.frac_change[to]) - (negligible(net_lc_change[from] - lc.frac_change[from]) + fabs(net_lc_change[to] - lc.frac_change[to]), -14))	{
 
 							// Correct transfer between two lc:s
 							if((lc.frac_transfer[from][to] + lc.frac_transfer[to][from]) > 0.0) {
@@ -872,7 +872,7 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 		}
 	}
 
-	if(tot_frac_ch > 1.0e-14)
+	if(largerthanzero(tot_frac_ch, -14))
 		return true;
 	else
 		return false;

@@ -27,9 +27,14 @@ double const PI = M_PI;
 #endif
 const double DEGTORAD = PI / 180.;
 
-inline bool negligible(double dval) {
+inline bool negligible(double dval, int limit = 0) {
 	// Returns true if |dval| < EPSILON, otherwise false
-	return fabs(dval) < 1.0e-30;
+	return limit ? fabs(dval) < pow(10.0, limit) : fabs(dval) < 1.0e-30;
+}
+
+inline bool largerthanzero(double dval, int limit = 0) {
+	// Returns true if |dval| < EPSILON, otherwise false
+	return limit ? dval > pow(10.0, limit) : dval > 1.0e-30;
 }
 
 inline bool equal(double dval1, double dval2) {

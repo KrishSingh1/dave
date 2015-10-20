@@ -424,9 +424,9 @@ void allocation_crop(Individual& indiv, double cmass_seed, double nmass_seed) {
 	cropindiv.grs_cmass_agpool = cropindiv.grs_cmass_plant - cropindiv.grs_cmass_root - cropindiv.grs_cmass_leaf - cropindiv.grs_cmass_ho;
 	cropindiv.ycmass_agpool = cropindiv.ycmass_plant - cropindiv.ycmass_root - cropindiv.ycmass_leaf - cropindiv.ycmass_ho;
 
-	if (cropindiv.grs_cmass_agpool < 1.0e-9)
+	if (!largerthanzero(cropindiv.grs_cmass_agpool, -9))
 		cropindiv.grs_cmass_agpool = 0,0;
-	if (cropindiv.ycmass_agpool < 1.0e-9)
+	if (!largerthanzero(cropindiv.ycmass_agpool, -9))
 		cropindiv.ycmass_agpool = 0,0;
 }
 
@@ -536,10 +536,10 @@ void growth_crop_daily(Patch& patch) {
 
 				// Check that no plant cmass or nmass is negative, if so, and correct fluxes
 				double negative_cmass = indiv.check_C_mass();
-				if(negative_cmass > 1.0e-14)
+				if(largerthanzero(negative_cmass, -14))
 					dprintf("Year %d day %d Stand %d indiv %d: Negative main crop C mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_cmass);
 				double negative_nmass = indiv.check_N_mass();
-				if(negative_nmass > 1.0e-14)
+				if(largerthanzero(negative_nmass, -14))
 					dprintf("Year %d day %d Stand %d indiv %d: Negative main crop N mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_nmass);
 			}
 			else if(date.day == ppftcrop.hdate) {

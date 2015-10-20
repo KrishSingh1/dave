@@ -470,7 +470,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	cmass_sap_inc   = 0.0;
 	cmass_heart_inc = 0.0;
 
-	if (ltor < 1.0e-10) {
+	if (!largerthanzero(ltor, -10)) {
 
 		// No leaf production possible - put all biomass into roots
 		// (Individual will die next time period)

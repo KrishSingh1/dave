@@ -1574,7 +1574,7 @@ double Individual::check_C_mass() {
 		cropindiv->grs_cmass_stem = 0.0;
 	}
 
-	if (negative_cmass > 1.0e-14) {
+	if (largerthanzero(negative_cmass, -14)) {
 		anpp += negative_cmass;
 		report_flux(Fluxes::NPP, negative_cmass);
 		report_flux(Fluxes::RA, -negative_cmass);
@@ -1629,7 +1629,7 @@ double Individual::check_N_mass() {
 		nstore_longterm = 0.0;
 	}
 
-	if (negative_nmass > 1.0e-14) {
+	if (largerthanzero(negative_nmass, -14)) {
 		double pos_nmass = ncont();
 		if (pos_nmass > negative_nmass) {
 			nmass_leaf -= negative_nmass * nmass_leaf / pos_nmass;
@@ -2342,7 +2342,7 @@ bool MassBalance::check_indiv_C(Individual& indiv, bool check_harvest) {
 	if(check_harvest && patch.isharvestday)
 		ccont_zero = ccont_zero_scaled;
 
-	if(date.year >= nyear_spinup && fabs(ccont - ccont_zero + cflux - cflux_zero) > 1.0e-10) {
+	if(date.year >= nyear_spinup && !negligible(ccont - ccont_zero + cflux - cflux_zero, -10)) {
 		dprintf("\nStand %d Patch %d Indiv %d C balance year %d day %d: %.10f\n", patch.stand.id, patch.id, indiv.id, date.year, date.day, ccont - ccont_zero + cflux - cflux_zero);
 		dprintf("C pool change: %.10f\n", ccont - ccont_zero);
 		dprintf("C flux: %.10f\n\n",  cflux - cflux_zero);
@@ -2367,7 +2367,7 @@ bool MassBalance::check_indiv_N(Individual& indiv, bool check_harvest) {
 	if(check_harvest && patch.isharvestday)
 		ncont_zero = ncont_zero_scaled;
 
-	if(date.year >= nyear_spinup && fabs(ncont - ncont_zero + nflux - nflux_zero) > 1.0e-14) {
+	if(date.year >= nyear_spinup && !negligible(ncont - ncont_zero + nflux - nflux_zero, -14)) {
 		dprintf("\nStand %d Patch %d Indiv %d N balance year %d day %d: %.10f\n", patch.stand.id, patch.id, indiv.id, date.year, date.day, ncont - ncont_zero + nflux - nflux_zero);
 		dprintf("N pool change: %.14f\n", ncont - ncont_zero);
 		dprintf("N flux: %.14f\n\n",  nflux - nflux_zero);
@@ -2429,7 +2429,7 @@ bool MassBalance::check_patch_C(Patch& patch, bool check_harvest) {
 	if (check_harvest && patch.isharvestday)
 		ccont_zero = ccont_zero_scaled;
 
-	if (date.year >= nyear_spinup && fabs(ccont - ccont_zero + cflux - cflux_zero) > 1.0e-10) {
+	if (date.year >= nyear_spinup && !negligible(ccont - ccont_zero + cflux - cflux_zero, -10)) {
 		dprintf("\nStand %d Patch %d C balance year %d day %d: %.10f\n", patch.stand.id, patch.id, date.year, date.day, ccont - ccont_zero + cflux - cflux_zero);
 		dprintf("C pool change: %.10f\n", ccont - ccont_zero);
 		dprintf("C flux: %.10f\n\n",  cflux - cflux_zero);
@@ -2455,7 +2455,7 @@ bool MassBalance::check_patch_N(Patch& patch, bool check_harvest) {
 	if (check_harvest && patch.isharvestday)
 		ncont_zero = ncont_zero_scaled;
 
-	if (date.year >= nyear_spinup && fabs(ncont - ncont_zero + nflux - nflux_zero) > 1.0e-14) {
+	if (date.year >= nyear_spinup && !negligible(ncont - ncont_zero + nflux - nflux_zero, -14)) {
 		dprintf("\nStand %d Patch %d N balance year %d day %d: %.14f\n", patch.stand.id, patch.id, date.year, date.day, ncont - ncont_zero + nflux - nflux_zero);
 		dprintf("N pool change: %.14f\n", ncont - ncont_zero);
 		dprintf("N flux: %.14f\n\n",  nflux - nflux_zero);
@@ -2497,7 +2497,7 @@ void MassBalance::check_year(Gridcell& gridcell) {
 		nflux += nflux_year;
 
 		// C balance check:
-		if (fabs(ccont_year - ccont + cflux_year) > 1.0e-9) {
+		if (!negligible(ccont_year - ccont + cflux_year, -9)) {
 			dprintf("\nC balance year %d: %.10f\n", date.year, ccont_year - ccont + cflux_year);
 			dprintf("C pool change: %.5f\n", ccont_year - ccont);
 			dprintf("C flux: %.5f\n",  cflux_year);
@@ -2506,7 +2506,7 @@ void MassBalance::check_year(Gridcell& gridcell) {
 		// For natural vegetation or unfertilised N-limited cropland, the check can be much stricter
 		if (!run[CROPLAND] || ifnlim) {
 			// N balance check:
-			if (fabs(ncont_year - ncont + nflux_year) > 1.0e-3) {
+			if (!negligible(ncont_year - ncont + nflux_year, -3)) {
 				dprintf("\nN balance year %d: %.4f\n", date.year, ncont_year - ncont + nflux_year);
 				dprintf("N pool change: %.4f\n", ncont_year - ncont);
 				dprintf("N flux: %.4f\n",  nflux_year);
@@ -2520,7 +2520,7 @@ void MassBalance::check_year(Gridcell& gridcell) {
 void MassBalance::check_period() {
 
 	// C balance check:
-	if (fabs(ccont - ccont_zero + cflux) > 1.0e-9) {
+	if (!negligible(ccont - ccont_zero + cflux, -9)) {
 		dprintf("\nWARNING: Period C balance: %.10f\n", ccont - ccont_zero + cflux);
 		dprintf("C pool change: %.5f\n", ccont - ccont_zero);
 		dprintf("C fluxes: %.5f\n",  cflux);
@@ -2529,7 +2529,7 @@ void MassBalance::check_period() {
 	// For natural vegetation or unfertilised N-limited cropland, the check can be much stricter
 	if (!run[CROPLAND] || ifnlim) {
 		// N balance check:
-		if (fabs(ncont - ncont_zero + nflux) > 1.0e-3) {
+		if (!negligible(ncont - ncont_zero + nflux, -3)) {
 			dprintf("\nWARNING: Period N balance: %.4f\n", ncont - ncont_zero + nflux);
 			dprintf("N pool change: %.4f\n", ncont - ncont_zero);
 			dprintf("N fluxes: %.4f\n",  nflux);
@@ -2549,7 +2549,7 @@ void MassBalance::check(Gridcell& gridcell) {
 	double ccont = gridcell.ccont();
 	double cflux = gridcell.cflux();
 
-	if (fabs(ccont - ccont_zero + cflux) > 1.0e-5) {
+	if (!negligible(ccont - ccont_zero + cflux, -5)) {
 		dprintf("\nC balance year %d: %.5f\n", date.year, ccont - ccont_zero + cflux);
 		dprintf("C pool change: %.5f\n", ccont - ccont_zero);
 		dprintf("C flux: %.5f\n\n",  cflux);

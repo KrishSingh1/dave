@@ -11,8 +11,8 @@
 /// Use temperature-dependent sowing date for irrigated crops at site with PRECTEMP seasonality.
 const bool IRRIGATED_USE_TEMP_SDATE = true;
 
+/// Use lower temperature limit for sowing for all crops
 const bool LOW_SOWING_TEMPERATURE_LIMIT	= false;
-const bool HIGH_SOWING_TEMPERATURE_LIMIT = true;
 
 /// Autumn sowing types for crops
 enum {NOFORCING, AUTUMNSOWING, SPRINGSOWING};
@@ -28,7 +28,7 @@ void check_crop_temp_limits(Climate& climate, Gridcellpft& gridcellpft) {
 	if (climate.temp > pft.tempspring && climate.dtemp_31[29] <= pft.tempspring) {	// NB. after updating dtemp_31 with today's value
 		// TeWW,TeCo,TeSf,TeRa: 12,14,13,12 (NB 5,14,15,5 in Bondeau 2007);
 		if (climate.lat >= 0.0 && date.day > 300) {
-			gridcellpft.last_springdate = date.day-365;
+			gridcellpft.last_springdate = date.day - date.year_length();
 		} else {
 			gridcellpft.last_springdate = date.day;
 		}
@@ -42,7 +42,7 @@ void check_crop_temp_limits(Climate& climate, Gridcellpft& gridcellpft) {
 
 	if (climate.temp<pft.tempautumn && climate.dtemp_31[29]>=pft.tempautumn && !gridcellpft.autumnoccurred) { //TeWW,TeRa: 12,17
 		if (climate.lat >= 0.0 && date.day<100) {
-			gridcellpft.first_autumndate = date.day + 365;
+			gridcellpft.first_autumndate = date.day + date.year_length();
 		} else {
 			gridcellpft.first_autumndate = date.day;
 		}
@@ -57,7 +57,7 @@ void check_crop_temp_limits(Climate& climate, Gridcellpft& gridcellpft) {
 
 	if (climate.temp>pft.trg && climate.dtemp_31[29] <= pft.trg) { //TeWW,TeRa: 12,12
 		if (climate.lat >= 0.0 && date.day > 300) {
-			gridcellpft.last_verndate = date.day - 365;
+			gridcellpft.last_verndate = date.day - date.year_length();
 		} else {
 			gridcellpft.last_verndate = date.day;
 		}
@@ -98,7 +98,7 @@ void calc_crop_dates_20y_mean(Climate& climate, Gridcellpft& gridcellpft) {
 			gridcellpft.first_autumndate = climate.coldestday;
 
 			if (climate.lat >= 0.0 && gridcellpft.first_autumndate < 180)
-				gridcellpft.first_autumndate += 365;
+				gridcellpft.first_autumndate += date.year_length();
 		}
 	}
 
@@ -106,7 +106,7 @@ void calc_crop_dates_20y_mean(Climate& climate, Gridcellpft& gridcellpft) {
 	// to avoid last_verndate20 to precede last_springdate20 (Bondeau used coldest day)
 	// 60 days is the maximum number of vernalization days
 	if (pft.ifsdautumn && !gridcellpft.vernendoccurred) {		//TeWW,TeRa
-		gridcellpft.last_verndate = gridcellpft.last_springdate + 60;
+		gridcellpft.last_verndate = gridcellpft.last_springdate + def_verndate_ndays_after_last_springdate;
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////
@@ -148,20 +148,20 @@ void calc_crop_dates_20y_mean(Climate& climate, Gridcellpft& gridcellpft) {
 
 	gridcellpft.last_springdate20 /= (int)min(20,date.year + 1);
 	if (gridcellpft.last_springdate20 < 0) {
-		gridcellpft.last_springdate20 += 365;
+		gridcellpft.last_springdate20 += date.year_length();
 	}
 	gridcellpft.last_springdate_20[19] = gridcellpft.last_springdate;
 
 	if (pft.ifsdautumn) {											// TeWW,TeRa
 		gridcellpft.first_autumndate20 /= (int)min(20,date.year + 1);
-		if (gridcellpft.first_autumndate20 > 364) {
-			gridcellpft.first_autumndate20 -= 365;
+		if (gridcellpft.first_autumndate20 > date.year_length() - 1) {
+			gridcellpft.first_autumndate20 -= date.year_length();
 		}
 		gridcellpft.first_autumndate_20[19] = gridcellpft.first_autumndate;
 
 		gridcellpft.last_verndate20 /= (int)min(20,date.year + 1);
 		if (gridcellpft.last_verndate20 < 0) {
-			gridcellpft.last_verndate20 += 365;
+			gridcellpft.last_verndate20 += date.year_length();
 		}
 		gridcellpft.last_verndate_20[19] = gridcellpft.last_verndate;
 	}
@@ -177,7 +177,7 @@ void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft) {
 
 		// Use autumn sowing if first_autumndate20 is set (autumn conditions met during the past 20 years):
 		if (!((gridcellpft.first_autumndate20 == climate.testday_temp || gridcellpft.first_autumndate20 == climate.coldestday) &&
-				gridcellpft.first_autumndate % 365 == gridcellpft.first_autumndate20)) {
+				gridcellpft.first_autumndate % date.year_length() == gridcellpft.first_autumndate20)) {
 
 			gridcellpft.sdatecalc_temp = gridcellpft.first_autumndate20;
 			gridcellpft.wintertype = true;
@@ -225,10 +225,13 @@ void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft) {
 		}
 	} else {
 
-		if (!strncmp(pft.name,"TeCo", strlen("TeCo")))
-			gridcellpft.sdatecalc_temp = (int)(60.0 / 85.0 * (gridcellpft.last_springdate20 - climate.adjustlat) + 29.5 + climate.adjustlat);
-		else
+		if (pft.sd_adjust) {	// will force sdate towards a certain day (71 for TeCo)
+			gridcellpft.sdatecalc_temp = (int)(pft.sd_adjust_par1 / pft.sd_adjust_par2 * (gridcellpft.last_springdate20 - climate.adjustlat) 
+				+ pft.sd_adjust_par3 + climate.adjustlat);
+		}
+		else {
 			gridcellpft.sdatecalc_temp = gridcellpft.last_springdate20;
+		}
 
 
 		//Same lower temperature limit for sowing as for winter crops above.
@@ -240,8 +243,8 @@ void set_sdatecalc_temp(Climate& climate, Gridcellpft& gridcellpft) {
 			gridcellpft.sdatecalc_temp = -1;
 		}
 	}
-	// Climatic limits for TeWW growth:
-	if (HIGH_SOWING_TEMPERATURE_LIMIT && !strncmp(pft.name,"TeWW", strlen("TeWW")) && climate.mtemp_min20 > 15.0) {
+	// Climatic limits for crop sowing:
+	if (climate.mtemp_min20 > pft.maxtemp_sowing) {
 		gridcellpft.sdatecalc_temp = -1;
 	}
 
@@ -666,6 +669,7 @@ void crop_sowing_date(Patch& patch, Pft& pft) {
 	Climate& climate = gridcell.climate;
 	seasonality_type seasonality = climate.seasonality;
 	bool temp_sdate = false, prec_sdate = false, def_sdate = false;
+	const double prec_limit = 0.1;
 
 	// Different sowing date options for irrigated crops at sites with climate.seasonality == SEASONALITY_PRECTEMP:
 	// 1. use temperature-dependent sowing limits (IRRIGATED_USE_TEMP_SDATE == true)
@@ -704,7 +708,7 @@ void crop_sowing_date(Patch& patch, Pft& pft) {
 					ppftcrop.sdate = date.day;
 			}
 			else if (prec_sdate) {
-				if (climate.prec > 0.1 || standpft.irrigated)
+				if (climate.prec > prec_limit || standpft.irrigated)
 					ppftcrop.sdate = date.day;
 			}
 			else // if (def_sdate)
@@ -728,11 +732,7 @@ void crop_sowing_date(Patch& patch, Pft& pft) {
 
 	int length_growseas_def = gridcellpft.hlimitdate_default - gridcellpft.sdate_default;
 	if (gridcellpft.sdate_default > gridcellpft.hlimitdate_default) {
-		length_growseas_def += 365;
-	}
-
-	if (stlist[patch.stand.stid].rotation.multicrop) {
-		length_growseas_def = 150;
+		length_growseas_def += date.year_length();
 	}
 
 	if (prec_sdate)
@@ -740,25 +740,37 @@ void crop_sowing_date(Patch& patch, Pft& pft) {
 	else
 		ppftcrop.hlimitdate = gridcellpft.hlimitdate_default;
 
-	length_growseas_def = min(length_growseas_def, 245);				// set an upper limit of 245 for the growing season
+	// default growth period length for crops in a rotation with several growing periods
+	const int lgp_def_multicrop = 150;
+	// default upper limit for the growing season length
+	const int lgp_max_def = 230;
+	// maximum upper limit for the growing season length
+	const int lgp_max_extreme = 245;
+	/// reduced length of growing season when risk of water stress (days)
+	const int reduce_lgp_wstress = 20;
+	/// reduced hucountend for winter crops relative to hlimitdate (days)
+	const int reduce_hucountend_winter_crops = 20;
+
+	if (stlist[patch.stand.stid].rotation.multicrop) {
+		length_growseas_def = 150;
+	}
+	length_growseas_def = min(length_growseas_def, lgp_max_extreme);
 
 	if (pft.ifsdautumn) { // winter crops
 
 		if (temp_sdate) {
-			ppftcrop.hucountend = stepfromdate(ppftcrop.hlimitdate, -20);
+			ppftcrop.hucountend = stepfromdate(ppftcrop.hlimitdate, -reduce_hucountend_winter_crops);
 		}
 		else if (prec_sdate && climate.prec_seasonality <= DRY_WET) { // dry some time during the year
 			if (standpft.irrigated)
-				ppftcrop.hucountend = stepfromdate(date.day, min(length_growseas_def, 230));
+				ppftcrop.hucountend = stepfromdate(date.day, min(length_growseas_def, lgp_max_def));
 			else
-				ppftcrop.hucountend = stepfromdate(date.day, min(length_growseas_def, 210));		 // shorter growing period when risk for water stress.
+				// shorter growing period when risk for water stress.
+				ppftcrop.hucountend = stepfromdate(date.day, min(length_growseas_def, lgp_max_def - reduce_lgp_wstress));
 		}
 		else if (def_sdate) {
-			ppftcrop.hucountend = stepfromdate(date.day, 230);
+			ppftcrop.hucountend = stepfromdate(date.day, lgp_max_def);
 		}
-	}
-	else if (!strncmp(pft.name,"TrRi", strlen("TrRi"))) { // rice
-		ppftcrop.hucountend = stepfromdate(date.day, min(length_growseas_def, 230));
 	}
 	else { // all other crops
 		if (prec_sdate && climate.prec_seasonality <= DRY_WET) {	// dry some time during the year
@@ -766,7 +778,8 @@ void crop_sowing_date(Patch& patch, Pft& pft) {
 			if (standpft.irrigated)
 				ppftcrop.hucountend = stepfromdate(date.day, length_growseas_def);
 			else
-				ppftcrop.hucountend = stepfromdate(date.day, min(length_growseas_def, 210)); // shorter growing period when risk for water stress.
+				// shorter growing period when risk for water stress.
+				ppftcrop.hucountend = stepfromdate(date.day, min(length_growseas_def, lgp_max_def - reduce_lgp_wstress));
 		}
 		else {
 			ppftcrop.hucountend = stepfromdate(date.day, length_growseas_def);

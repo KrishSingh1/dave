@@ -651,16 +651,28 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("sdatenh",&ppft->sdatenh,1,365,1,CB_NONE,"sowing day northern hemisphere");
 		declareitem("sdatesh",&ppft->sdatesh,1,365,1,CB_NONE,"sowing day southern hemisphere");
+		declareitem("sd_adjust",&ppft->sd_adjust,1,CB_NONE,"whether sowing date adjusting equation is used");
+		declareitem("sd_adjust_par1",&ppft->sd_adjust_par1,1,365,1,CB_NONE,"parameter 1 in sowing date adjusting equation");
+		declareitem("sd_adjust_par2",&ppft->sd_adjust_par2,1,365,1,CB_NONE,"parameter 2 in sowing date adjusting equation");
+		declareitem("sd_adjust_par3",&ppft->sd_adjust_par3,1,365,1,CB_NONE,"parameter 3 in sowing date adjusting equation");
 		declareitem("hlimitdatenh",&ppft->hlimitdatenh,1,365,1,CB_NONE,"last harvest date in the northern hemisphere");
 		declareitem("hlimitdatesh",&ppft->hlimitdatesh,1,365,1,CB_NONE,"last harvest date in the southern hemisphere");
 		declareitem("tb",&ppft->tb,0.0,25.0,1,CB_NONE,"base temperature for heat unit calculation");
 		declareitem("trg",&ppft->trg,0.0,20.0,1,CB_NONE,"upper temperature limit for vernalisation effect");
 		declareitem("pvd",&ppft->pvd,0,100,1,CB_NONE,"number of vernalising days required");
+		declareitem("vern_lag",&ppft->vern_lag,0,100,1,CB_NONE,"lag in days after sowing before vernalization starts");
 		declareitem("isintercropgrass",&ppft->isintercropgrass,1,CB_NONE,"Whether this pft is allowed to grow in intercrop period");
 		declareitem("psens",&ppft->psens,0.0,1.0,1,CB_NONE,"sensitivity to the photoperiod effect [0-1]");
 		declareitem("pb",&ppft->pb,0.0,24.0,1,CB_NONE,"basal photoperiod (h)");
 		declareitem("ps",&ppft->ps,0.0,24.0,1,CB_NONE,"saturating photoperiod (h)");
 		declareitem("phu",&ppft->phu,0.0,4000.0,1,CB_NONE,"default potential heat units for crop maturity");
+		declareitem("phu_calc_quad",&ppft->phu_calc_quad,1,CB_NONE,"whether linear equation used for calculating potential heat units (Bondeau method)");
+		declareitem("phu_calc_lin",&ppft->phu_calc_lin,1,CB_NONE,"minimum potential heat units required for crop maturity (Bondeau method) (degree-days)");
+		declareitem("phu_min",&ppft->phu_min,0.0,4000.0,1,CB_NONE,"minimum potential heat units for crop maturity (Bondeau method)");
+		declareitem("phu_max",&ppft->phu_max,0.0,4000.0,1,CB_NONE,"maximum potential heat units for crop maturity (Bondeau method)");
+		declareitem("phu_red_spring_sow",&ppft->phu_red_spring_sow,0.0,1.0,1,CB_NONE,"reduction factor of potential heat units in spring crops (Bondeau method)");
+		declareitem("phu_interc",&ppft->phu_interc,0.0,4000.0,1,CB_NONE,"intercept for the linear phu equation (Bondeau method)");
+		declareitem("ndays_ramp_phu",&ppft->ndays_ramp_phu,0.0,365.0,1,CB_NONE,"number of days of phu decrease in the linear phu equation (Bondeau method)");
 		declareitem("fphusen",&ppft->fphusen,0.0,1.0,1,CB_NONE,"growing season fract. when lai starts decreasing");
 		declareitem("shapesenescencenorm",&ppft->shapesenescencenorm,1,CB_NONE,"Type of senescence curve");
 		declareitem("flaimaxharvest",&ppft->flaimaxharvest,0.0,1.0,1,CB_NONE,"Fraction of maximum lai when harvest prescribed");
@@ -669,6 +681,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifsdautumn",&ppft->ifsdautumn,1,CB_NONE,"Whether sowing date in autumn is to be calculated");
 		declareitem("tempautumn",&ppft->tempautumn,0.0,25.0,1,CB_NONE,"Upper temperature limit for winter sowing");
 		declareitem("tempspring",&ppft->tempspring,0.0,25.0,1,CB_NONE,"Lower temperature limt for spring sowing");
+		declareitem("maxtemp_sowing",&ppft->maxtemp_sowing,0.0,60.0,1,CB_NONE,"Upper minimum temperature limit for crop sowing");	
 		declareitem("hiopt",&ppft->hiopt,0.0,2.0,1,CB_NONE,"Optimal harvest index");
 		declareitem("himin",&ppft->himin,0.0,2.0,1,CB_NONE,"Minimal harvest index");
 		declareitem("frootstart",&ppft->frootstart,0.0,1.0,1,CB_NONE,"Initial root mass fraction of total plant");
@@ -1326,16 +1339,36 @@ void plib_callback(int callback) {
 					if (ppft->phenology==CROPGREEN) {
 						if (!itemparsed("sdatenh")) badins("sdatenh");
 						if (!itemparsed("sdatesh")) badins("sdatesh");
+						if (!itemparsed("sd_adjust")) badins("sd_adjust");
+						if (ppft->sd_adjust) {
+							if (!itemparsed("sd_adjust_par1")) badins("sd_adjust_par1");
+							if (!itemparsed("sd_adjust_par2")) badins("sd_adjust_par2");
+							if (!itemparsed("sd_adjust_par3")) badins("sd_adjust_par3");						
+						}
 						if (!itemparsed("hlimitdatenh")) badins("hlimitdatenh");
 						if (!itemparsed("hlimitdatesh")) badins("hlimitdatesh");
 						if (!itemparsed("tb")) badins("tb");
 						if (!itemparsed("trg")) badins("trg");
 						if (!itemparsed("pvd")) badins("pvd");
+						if (!itemparsed("vern_lag")) badins("vern_lag");
 						if (!itemparsed("isintercropgrass")) badins("isintercropgrass");
 						if (!itemparsed("psens")) badins("psens");
 						if (!itemparsed("pb")) badins("pb");
 						if (!itemparsed("ps")) badins("ps");
 						if (!itemparsed("phu")) badins("phu");
+						if (!itemparsed("phu_calc_quad")) badins("phu_calc_quad");
+						if (!itemparsed("phu_calc_lin")) badins("phu_calc_lin");
+						if (ppft->phu_calc_quad || ppft->phu_calc_lin) {
+							if (!itemparsed("phu_min")) badins("phu_min");
+							if (!itemparsed("phu_max")) badins("phu_max");
+						}
+						if (ppft->phu_calc_quad) {
+							if (!itemparsed("phu_red_spring_sow")) badins("phu_red_spring_sow");
+						}
+						else if (ppft->phu_calc_lin) {
+							if (!itemparsed("phu_interc")) badins("phu_interc");
+							if (!itemparsed("ndays_ramp_phu")) badins("ndays_ramp_phu");
+						}
 						if (!itemparsed("fphusen")) badins("fphusen");
 						if (!itemparsed("shapesenescencenorm")) badins("shapesenescencenorm");
 						if (!itemparsed("flaimaxharvest")) badins("flaimaxharvest");
@@ -1343,6 +1376,7 @@ void plib_callback(int callback) {
 						if (!itemparsed("ifsdautumn")) badins("ifsdautumn");
 						if (!itemparsed("tempautumn")) badins("tempautumn");
 						if (!itemparsed("tempspring")) badins("tempspring");
+						if (!itemparsed("maxtemp_sowing")) badins("maxtemp_sowing");
 						if (!itemparsed("hiopt")) badins("hiopt");
 						if (!itemparsed("himin")) badins("himin");
 						if (!itemparsed("res_outtake")) badins("res_outtake");

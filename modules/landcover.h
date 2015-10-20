@@ -19,6 +19,8 @@
 #include "externalinput.h"
 #include "inputmodule.h"
 
+const int def_verndate_ndays_after_last_springdate = 60;
+
 ///	Creates stands for landcovers present in the gridcell first year of the simulation
 void landcover_init(Gridcell& gridcell, InputModule* input_module);
 

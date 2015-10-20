@@ -49,10 +49,13 @@ void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 	// Calculation of phu and pvd according to Bondeau et al. 2007
 	if (pft.ifsdautumn) {	// TeWW,TeRa
 
+		// maximum pvd allowed
+		const int max_pvd = 60;
+
 		if (gridcellpft.wintertype) {	// Autumn sowing
 			// if neither spring or winter conditions for the past 20 years
 			if ((gridcellpft.first_autumndate20 == climate.testday_temp || gridcellpft.first_autumndate20 == climate.coldestday)
-				&& gridcellpft.first_autumndate % 365 == gridcellpft.first_autumndate20
+				&& gridcellpft.first_autumndate % date.year_length() == gridcellpft.first_autumndate20
 				&& (gridcellpft.last_springdate20 == climate.testday_temp || gridcellpft.last_springdate20 == climate.coldestday)
 				&& gridcellpft.last_springdate == gridcellpft.last_springdate20) {
 
@@ -60,74 +63,73 @@ void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 				ppftcrop.phu = pft.phu;
 			}
 			// not all past 20 years without vernendoccurred: too cold
-			else if (!(gridcellpft.last_verndate20 == gridcellpft.last_springdate20 + 60 && gridcellpft.last_verndate == gridcellpft.last_verndate20)) {
+			else if (!(gridcellpft.last_verndate20 == gridcellpft.last_springdate20 + def_verndate_ndays_after_last_springdate 
+						&& gridcellpft.last_verndate == gridcellpft.last_verndate20)) {
 
-				// pvd:
-				// vernalization (below 12 degrees) is supposed to occur directly at sowing (trg=tempautumn) for TeWW, for TeRa a 20-day lag (tempautumn=17) ??
+				// pvd (required vernalising days): undocumented equations from Bondeau's code
+
+				// vernalization (below 12 degrees) is supposed to occur directly at sowing (trg=tempautumn) for TeWW, for TeRa a 20-day lag (tempautumn=17)
 				// first_autumndate20 occurred before last_verndate20
 				if ((ppftcrop.sdate < 180 || gridcellpft.last_verndate20 >= 180) && climate.lat >= 0.0 || climate.lat < 0.0) {
-					if (!strncmp(pft.name,"TeWW", strlen("TeWW")))
-						ppftcrop.pvd = (int)min(60, gridcellpft.last_verndate20 - ppftcrop.sdate);
-					else if (!strncmp(pft.name,"TeRa", strlen("TeRa")))
-						ppftcrop.pvd = (int)max(0, min(60, gridcellpft.last_verndate20 - ppftcrop.sdate - 20));
+					ppftcrop.pvd = (int)max(0, min(max_pvd, gridcellpft.last_verndate20 - ppftcrop.sdate - pft.vern_lag));
 				}
 				// first_autumndate20 occurred after last_verndate20
-				else if (!strncmp(pft.name,"TeWW", strlen("TeWW"))) {
-					ppftcrop.pvd = (int)min(60, gridcellpft.last_verndate20 + 365 - ppftcrop.sdate);
-				}
-				// first_autumndate20 occurred after last_verndate20
-				else if (!strncmp(pft.name,"TeRa", strlen("TeRa"))) {
-					ppftcrop.pvd = (int)max(0, min(60, gridcellpft.last_verndate20 + 365 - ppftcrop.sdate - 20));
+				else {
+					ppftcrop.pvd = (int)max(0, min(max_pvd, gridcellpft.last_verndate20 + date.year_length() - ppftcrop.sdate - pft.vern_lag));
 				}
 
-				// phu:
+				// phu (potential heat units): quadratic calculation according to sowing month; see Fig.2 in Bondeau et al.2007
+
+				const double k1 = -0.1081;
+				const double k2 = 3.1633;
+
 				if (ppftcrop.sdate < 184 + climate.adjustlat) {
-					if (!strncmp(pft.name,"TeWW", strlen("TeWW"))) {
-						ppftcrop.phu = max(1700.0, -0.1081 * pow((double)(ppftcrop.sdate - climate.adjustlat),2) + 3.1633 * ((double)(ppftcrop.sdate - climate.adjustlat)) + 2876.9);
-					}
-					else if (!strncmp(pft.name,"TeRa", strlen("TeRa"))) {
-						ppftcrop.phu = max(2100.0, -0.1081 * pow((double)(ppftcrop.sdate - climate.adjustlat),2) + 3.1633 * ((double)(ppftcrop.sdate - climate.adjustlat)) + 3279.7);
-					}
+					ppftcrop.phu = max(pft.phu_min, k1 * pow((double)(ppftcrop.sdate - climate.adjustlat),2) + k2 * ((double)(ppftcrop.sdate - climate.adjustlat)) + pft.phu_max);
 				}
 				else {
-					if (!strncmp(pft.name,"TeWW", strlen("TeWW"))) {
-						ppftcrop.phu = max(1700.0, -0.1081 * pow((double)ppftcrop.sdate - 365,2) + 3.1633 * ((double)ppftcrop.sdate - 365) + 2876.9);
-						ppftcrop.phu *= 0.8;
-					}
-					else if (!strncmp(pft.name,"TeRa", strlen("TeRa"))) {
-						ppftcrop.phu = max(2100.0, -0.1081 * pow((double)ppftcrop.sdate - 365,2) + 3.1633 * ((double)ppftcrop.sdate - 365) + 3279.7);
-					}
+					ppftcrop.phu = max(pft.phu_min, k1 * pow((double)ppftcrop.sdate - date.year_length(),2) + k2 * ((double)ppftcrop.sdate - 365) + pft.phu_max);
+					ppftcrop.phu *= pft.phu_red_spring_sow;	// undocumented reduction in spring variants from Bondeau's code
 				}
 			}
 		}
 		else {	// spring sowing
-			// If last_verndate has occurred during the past 20 year (or too warm):
-			if (!(gridcellpft.last_verndate20 == ppftcrop.sdate + 60 && gridcellpft.last_verndate == gridcellpft.last_verndate20)) {
-				ppftcrop.pvd = (int)min(60, gridcellpft.last_verndate20 - ppftcrop.sdate);
-				ppftcrop.phu = 1300.0;
+
+			// default pvd of spring varieties when vernalisation has not occurred during the past 20 years
+			const int pvd_def_spring = 30;
+			// phu of spring varieties when vernalisation has occurred during the past 20 years
+			const double phu_spring_ifvern = 1300.0;
+			// phu of spring varieties when vernalisation has not occurred during the past 20 years
+			const double phu_spring_ifnvern = 1500.0;
+
+			// If last_verndate has occurred during the past 20 years (or too warm):
+			if (!(gridcellpft.last_verndate20 == ppftcrop.sdate + def_verndate_ndays_after_last_springdate 
+					&& gridcellpft.last_verndate == gridcellpft.last_verndate20)) {
+				ppftcrop.pvd = (int)min(max_pvd, gridcellpft.last_verndate20 - ppftcrop.sdate);
+				ppftcrop.phu = phu_spring_ifvern;
 			}
 			// If no last_verndate occurred during the past 20 year (too cold):
 			else {
-				ppftcrop.pvd = 30;
-				ppftcrop.phu = 1500.0;
+				ppftcrop.pvd = pvd_def_spring;
+				ppftcrop.phu = phu_spring_ifnvern;
 			}
 		}
 	}
-	else if (!strncmp(pft.name,"TrRi", strlen("TrRi")) || !strncmp(pft.name,"TeSf", strlen("TeSf"))) {
+	else {
 
-		if (!strncmp(pft.name,"TeSf", strlen("TeSf")))
-			ppftcrop.phu = min(2000.0, max(1300.0, -700.0 / 90.0 * (double)(ppftcrop.sdate - climate.adjustlat) + 2460.0));
+		// phu: Linear calculation according to sowing month; see Fig.2 in Bondeau et al.2007
 
-		if (!strncmp(pft.name,"TrRi", strlen("TrRi")) && date.year <= 1) {
-			if (patch.stand.get_gridcell().get_lon() < 60.0 || patch.stand.get_gridcell().get_lat() > 30.0)
-				ppftcrop.phu = 1600.0;
+		if (pft.phu_calc_lin) {
+			ppftcrop.phu = min(pft.phu_max, max(pft.phu_min, -(pft.phu_max - pft.phu_min) / pft.ndays_ramp_phu * (double)(ppftcrop.sdate - climate.adjustlat) + pft.phu_interc));
 		}
 	}
 
 	// Calculation of potential heat units according to local climate.
 	if (ifcalcdynamic_phu) {
 
-		// add last year's husum_max to running mean
+		const double min_phu = 900.0;	// minimum allowed phu based on phu range in the literature
+		const int min_phu_sample_period = 20;	// minimum no. of years of the phu sample period
+
+		// add last year's husum_max to running 10-year mean
 		if (ppftcrop.husum_max) {
 			ppftcrop.nyears_hu_sample++;
 			int years = min(ppftcrop.nyears_hu_sample, 10);
@@ -139,10 +141,10 @@ void phu_init(cropphen_struct& ppftcrop, Gridcellpft& gridcellpft, Patch& patch)
 
 		// set phu according to running mean
 		if (ppftcrop.nyears_hu_sample)
-			ppftcrop.phu = max(900.0, 0.9 * ppftcrop.husum_max_10);
+			ppftcrop.phu = max(min_phu, 0.9 * ppftcrop.husum_max_10);
 
 		// ... unless past specified time period
-		if (ifdyn_phu_limit && date.year >= patch.stand.first_year + 20 && date.year >= nyear_spinup + nyear_dyn_phu)
+		if (ifdyn_phu_limit && date.year >= patch.stand.first_year + min_phu_sample_period && date.year >= nyear_spinup + nyear_dyn_phu)
 			ppftcrop.phu = phu_last_year;
 	}
 }

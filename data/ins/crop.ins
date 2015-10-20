@@ -82,9 +82,14 @@ group "crop" (
 	parff_min 0
 
 	landcover "cropland"
+	sd_adjust 0
 	ifsdautumn 0
 	tempautumn 12
 	tempspring 12
+	maxtemp_sowing 60
+	vern_lag 0
+	phu_calc_quad 0
+	phu_calc_lin 0
 
 	harv_eff 0.9		! Part of harvestable organs actually harvested
 	harvest_slow_frac 0	! Part of harvest that goes into patchpft.harvested_products_slow, the rest goes into fluxes.acflux_harvest
@@ -137,6 +142,10 @@ group "TeW" (
 	pb 8
 	ps 20
 	phu 2900
+	phu_calc_quad 1
+	phu_min 1700
+	phu_max 2876.9
+	phu_red_spring_sow 0.8
 	hlimitdatenh 269
 	hlimitdatesh 89
 
@@ -150,6 +159,7 @@ group "TeW" (
 	ifsdautumn 1
 	tempautumn 12
 	tempspring 5
+	maxtemp_sowing 15
 	forceautumnsowing 0	! 0 No forcing, 1 Autumn, 2 Spring
 )
 
@@ -206,6 +216,10 @@ group "TeCo" (
 
 	sdatenh 140
 	sdatesh 320
+	sd_adjust 1
+	sd_adjust_par1 60.0
+	sd_adjust_par2 85.0
+	sd_adjust_par3 29.5
 	tb 8		! SWAT
 	trg 8		! temperatures have a vernalizing effect until trg
 	pvd 0
@@ -395,6 +409,11 @@ group "TeSf" (
 	pb 0
 	ps 24
 	phu 1500
+	phu_calc_lin 1
+	phu_min 1300
+	phu_max 2000
+	ndays_ramp_phu 90.0
+	phu_interc 2460.0
 	hlimitdatenh 300
 	hlimitdatesh 116
 
@@ -501,6 +520,10 @@ group "TeRa" (
 	pb 8
 	ps 20
 	phu 2500
+	phu_calc_quad 1
+	phu_min 2100
+	phu_max 3279.7
+	phu_red_spring_sow 0
 	hlimitdatenh 240
 	hlimitdatesh 60
 
@@ -513,5 +536,6 @@ group "TeRa" (
 	ifsdautumn 1
 	tempautumn 17
 	tempspring 5
+	vern_lag 20
 	forceautumnsowing 0	! 0 No forcing, 1 Autumn, 2 Spring
 )

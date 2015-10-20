@@ -38,9 +38,9 @@ int stepfromdate(int day, int step) {
 	if(day < 0)							// a negative value should not be a valid day
 		return -1;
 	else if(day + step > 0)
-		return (day + step) % 365;
+		return (day + step) % date.year_length();
 	else if(day + step < 0)
-		return day + step + 365;
+		return day + step + date.year_length();
 	else
 		return 0;
 }

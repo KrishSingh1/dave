@@ -396,7 +396,7 @@ public:
 	 *  Currently there is no support for leap years, so this function
 	 *  always returns 365. */
 	int year_length() const {
-		return 365;
+		return MAX_YEAR_LENGTH;
 	}
 };
 
@@ -1335,10 +1335,20 @@ public:
 	double tempautumn;
 	/// lower temperature limit for spring sowing
 	double tempspring;
+	/// upper minimum temperature limit for crop sowing
+	double maxtemp_sowing;
 	/// default sowing date in the northern hemisphere (julian day)
 	int sdatenh;
 	/// default sowing date in the southern hemisphere
 	int sdatesh;
+	/// whether sowing date adjusting equation is used
+	bool sd_adjust;
+	/// parameter 1 in sowing date adjusting equation
+	double sd_adjust_par1;
+	/// parameter 2 in sowing date adjusting equation
+	double sd_adjust_par2;
+	/// parameter 3 in sowing date adjusting equation
+	double sd_adjust_par3;
 	/// latest date for harvesting in the northern hemisphere
 	int hlimitdatenh;
 	/// latest date for harvesting in the southern hemisphere
@@ -1353,10 +1363,26 @@ public:
 	double psens;
 	/// basal photoperiod (h) (pb<ps for longer days plants)
 	double pb;
+	// lag in days after sowing before vernalization starts
+	int vern_lag;
 	/// saturating photoperiod (h) (ps<pb for shorter days plants)
 	double ps;
 	/// default potential heat units required for crop maturity (degree-days)
 	double phu;
+	/// whether quadratic equation used for calculating potential heat units (Bondeau method)
+	bool phu_calc_quad;
+	/// whether linear equation used for calculating potential heat units (Bondeau method)
+	bool phu_calc_lin;
+	/// minimum potential heat units required for crop maturity (Bondeau method) (degree-days)
+	double phu_min;
+	/// maximum potential heat units required for crop maturity (Bondeau method) (degree-days)
+	double phu_max;
+	/// reduction factor of potential heat units in spring crops (Bondeau method) (degree-days)
+	double phu_red_spring_sow;
+	/// number of days of phu decrease in the linear phu equation (Bondeau method)
+	double ndays_ramp_phu;
+	/// intercept for the linear phu equation (Bondeau method)
+	double phu_interc;
 	/// fraction of growing season (phu) at which senescence starts [0-1]
 	double fphusen;
 	/// type of senescence curve (see Bondeau et al. 2007)
@@ -1397,26 +1423,29 @@ public:
 		harv_eff_ic = 0.0;
 		turnover_harv_prod = 1.0;	// default 1 year turnover time
 
-		isintercropgrass=false;
-		ifsdautumn=false;
-		sdatenh=-1;
-		sdatesh=-1;
-		hlimitdatenh=-1;
-		hlimitdatesh=-1;
-		tb=-999.9;
-		trg=-999.9;
-		pvd=-1;
-		psens=-1.0;
-		pb=-1.0;
-		ps=-1.0;
-		phu=-1.0;
-		fphusen=-1.0;
-		shapesenescencenorm=0;
-		flaimaxharvest=-1.0;
-		laimax=0.0;
-		aboveground_ho=true;
-		frootstart=0.0;
-		frootend=0.0;
+		isintercropgrass = false;
+		ifsdautumn = false;
+		maxtemp_sowing = 60;
+		sdatenh = -1;
+		sdatesh = -1;
+		hlimitdatenh = -1;
+		hlimitdatesh = -1;
+		tb = -999.9;
+		trg = -999.9;
+		pvd = -1;
+		psens = -1.0;
+		pb = -1.0;
+		vern_lag=0;
+		ps = -1.0;
+		phu = -1.0;
+		phu_red_spring_sow = 0.0;
+		fphusen = -1.0;
+		shapesenescencenorm = 0;
+		flaimaxharvest = -1.0;
+		laimax = 0.0;
+		aboveground_ho = true;
+		frootstart = 0.0;
+		frootend = 0.0;
 		forceautumnsowing = 0;
 		nlim = false;
 

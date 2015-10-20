@@ -177,8 +177,8 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, double* primary
 											stands_frac_sum += stand.get_gridcell_fraction();
 									}
 
-									if(largerthanzero(st_change_remain, -15) || stands_frac_sum == 0.0) {
-										if(negligible(st_change_remain, -15) && stands_frac_sum == 0.0)
+									if(negligible(st_change_remain, -15) || st_change_remain > 0.0 || stands_frac_sum == 0.0) {
+										if(!negligible(st_change_remain, -15) && st_change_remain < 0.0 && stands_frac_sum == 0.0)
 											dprintf("\nWarning: no more stand area left of stand type %d ! Residual reduction demand %.15f ignored.\n", st.id, st_change_remain);
 										st_change_remain = 0.0;
 										break;
@@ -216,8 +216,8 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, double* primary
 													stand.transfer_area_st[to] -= st_change_remain;
 													stand.set_gridcell_fraction(stand.get_gridcell_fraction() + st_change_remain);
 
-													if(!largerthanzero(stand.get_gridcell_fraction(), -15) || gcst.frac == 0.0 && !largerthanzero(stand.get_gridcell_fraction(), -12)) {
-														if(!negligible(stand.get_gridcell_fraction(), -13))
+													if(!largerthanzero(stand.get_gridcell_fraction(), -14) || gcst.frac == 0.0 && !largerthanzero(stand.get_gridcell_fraction(), -12)) {
+														if(largerthanzero(stand.get_gridcell_fraction(), -13))
 															dprintf("\nYear %d: remaining stand when stand type %d fraction is 0. Residual fraction %.15f ignored. Stand killed.\n", date.year, st.id, stand.get_gridcell_fraction());
 														stand.set_gridcell_fraction(0.0);
 													}
@@ -265,8 +265,8 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, double* primary
 						stand.gross_frac_decrease = gcst.gross_frac_decrease;
 						stand.set_gridcell_fraction(stand.get_gridcell_fraction() + stand.frac_change);
 
-						if(!largerthanzero(stand.get_gridcell_fraction(), -15) || gcst.frac == 0.0 && !largerthanzero(stand.get_gridcell_fraction(), -12)) {
-							if(!negligible(stand.get_gridcell_fraction(), -13))
+						if(!largerthanzero(stand.get_gridcell_fraction(), -14) || gcst.frac == 0.0 && !largerthanzero(stand.get_gridcell_fraction(), -12)) {
+							if(largerthanzero(stand.get_gridcell_fraction(), -13))
 								dprintf("\nYear %d: remaining stand when stand type %d fraction is 0. Residual fraction %.15f ignored. Stand killed.\n", date.year, st.id, stand.get_gridcell_fraction());
 							stand.set_gridcell_fraction(0.0);
 						}

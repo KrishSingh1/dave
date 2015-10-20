@@ -319,7 +319,6 @@ void expand_stands(Gridcell& gridcell, double* st_frac_transfer) {
 							stand.frac_change += gcst.gross_frac_increase;
 							stand.gross_frac_increase = gcst.gross_frac_increase;
 							stand.set_gridcell_fraction(stand.get_gridcell_fraction() + gcst.gross_frac_increase);
-//							if(fabs(stand.frac_change) < 1.0e-15)
 							if(negligible(stand.frac_change, -15))
 								stand.frac_change = 0.0;
 						}

@@ -82,6 +82,9 @@ void CRUInput::init() {
 	file_cru=param["file_cru"].str;
 	file_cru_misc=param["file_cru_misc"].str;
 
+	gridlist.killall();
+	first_call = true;	
+
 	while (!eof) {
 
 		// Read next record in file
@@ -145,8 +148,6 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 	// Make sure we use the first gridcell in the first call to this function,
 	// and then step through the gridlist in subsequent calls.
-	static bool first_call = true;
-
 	if (first_call) {
 		gridlist.firstobj();
 
@@ -379,8 +380,6 @@ CRUInput::~CRUInput() {
 
 	// Performs memory deallocation, closing of files or other "cleanup" functions.
 
-	// Clean up
-	gridlist.killall();
 }
 
 

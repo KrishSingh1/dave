@@ -177,6 +177,9 @@ void DemoInput::init() {
 	FILE* in_grid=fopen(file_gridlist,"r");
 	if (!in_grid) fail("initio: could not open %s for input",(char*)file_gridlist);
 
+	gridlist.killall();
+	first_call = true;
+
 	while (!eof) {
 
 		// Read next record in file
@@ -231,7 +234,6 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 
 	// Make sure we use the first gridcell in the first call to this function,
 	// and then step through the gridlist in subsequent calls.
-	static bool first_call = true;
 
 	if (first_call) {
 		gridlist.firstobj();
@@ -351,6 +353,4 @@ DemoInput::~DemoInput() {
 
 	// Performs memory deallocation, closing of files or other "cleanup" functions.
 
-	// Clean up
-	gridlist.killall();
 }

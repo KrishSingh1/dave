@@ -1,4 +1,4 @@
-///////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////
 /// \file parameters.cpp
 /// \brief Implementation of the parameters module
 ///
@@ -1495,6 +1495,11 @@ void read_instruction_file(const char* insfilename) {
 	// Initialise PFT count
 	npft=0;
 	nst=0;
+
+	checked_pft.clear();
+	includepft_map.clear();
+	
+	pftlist.killall();
 
 	initsettings();
 	param.killall();

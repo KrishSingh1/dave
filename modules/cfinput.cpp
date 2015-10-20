@@ -268,12 +268,19 @@ CFInput::CFInput()
 }
 
 CFInput::~CFInput() {
-	delete cf_temp;
-	delete cf_prec;
-	delete cf_insol;
-	delete cf_wetdays;
-	delete cf_min_temp;
-	delete cf_max_temp;
+	delete cf_temp;		
+	delete cf_prec;		
+	delete cf_insol;	
+	delete cf_wetdays;	
+	delete cf_min_temp; 
+	delete cf_max_temp; 
+
+	cf_temp = 0;
+	cf_prec = 0;
+	cf_insol = 0;
+	cf_wetdays = 0;
+	cf_min_temp = 0;
+	cf_max_temp = 0;
 }
 
 void CFInput::init() {

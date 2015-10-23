@@ -761,11 +761,6 @@ void allometry_crop(Individual& indiv) {
 			//First look in PASTURE.
 			if(gridcell.landcover.frac[PASTURE] > 0.0) {
 
-				char name_start[5] = {0};
-				char* sp = NULL;
-				strncpy(name_start, indiv.pft.name, 4);
-				sp = name_start + 1;										//NB: this works with current pft names. CC3G_ic and C3G_pasture
-
 				for(unsigned int i = 0; i < gridcell.size() && !done; i++) {
 
 					Stand& stand=gridcell[i];
@@ -776,7 +771,7 @@ void allometry_crop(Individual& indiv) {
 							for(unsigned int k = 0; k < vegetation.nobj && !done; k++) {
 								Individual& grass_indiv = vegetation[k];
 
-								if(!strncmp(sp, grass_indiv.pft.name, 3)) {	//NB: this works with current pft names. CC3G_ic and C3G_pasture
+								if(grass_indiv.pft.phenology == ANY && grass_indiv.pft.pathway == indiv.pft.pathway) {
 									indiv.lai_indiv = grass_indiv.lai_indiv;
 									done = true;
 								}

@@ -651,6 +651,7 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("sdatenh",&ppft->sdatenh,1,365,1,CB_NONE,"sowing day northern hemisphere");
 		declareitem("sdatesh",&ppft->sdatesh,1,365,1,CB_NONE,"sowing day southern hemisphere");
+		declareitem("lgp_def",&ppft->lgp_def,1,365,1,CB_NONE,"default lgp");
 		declareitem("sd_adjust",&ppft->sd_adjust,1,CB_NONE,"whether sowing date adjusting equation is used");
 		declareitem("sd_adjust_par1",&ppft->sd_adjust_par1,1,365,1,CB_NONE,"parameter 1 in sowing date adjusting equation");
 		declareitem("sd_adjust_par2",&ppft->sd_adjust_par2,1,365,1,CB_NONE,"parameter 2 in sowing date adjusting equation");
@@ -1340,6 +1341,7 @@ void plib_callback(int callback) {
 					if (ppft->phenology==CROPGREEN) {
 						if (!itemparsed("sdatenh")) badins("sdatenh");
 						if (!itemparsed("sdatesh")) badins("sdatesh");
+						if (!itemparsed("lgp_def")) badins("lgp_def");
 						if (!itemparsed("sd_adjust")) badins("sd_adjust");
 						if (ppft->sd_adjust) {
 							if (!itemparsed("sd_adjust_par1")) badins("sd_adjust_par1");

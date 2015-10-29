@@ -745,7 +745,7 @@ void growth_daily(Patch& patch) {
  *  If grass pft not present or found in other stands, pft laimax is used.
  */
 void allometry_crop(Individual& indiv) {
-
+ 
 	// crop grass compatible with natural grass
 	if(indiv.pft.phenology == ANY) {
 

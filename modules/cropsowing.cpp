@@ -732,59 +732,35 @@ void crop_sowing_date(Patch& patch, Pft& pft) {
 		return;
 	}
 
-	int length_growseas_def = gridcellpft.hlimitdate_default - gridcellpft.sdate_default;
+	int max_lgp = gridcellpft.hlimitdate_default - gridcellpft.sdate_default;
 	if (gridcellpft.sdate_default > gridcellpft.hlimitdate_default) {
-		length_growseas_def += date.year_length();
+		max_lgp += date.year_length();
 	}
 
 	if (prec_sdate)
-		ppftcrop.hlimitdate = stepfromdate(date.day, length_growseas_def);
+		ppftcrop.hlimitdate = stepfromdate(date.day, max_lgp);
 	else
 		ppftcrop.hlimitdate = gridcellpft.hlimitdate_default;
 
 	// default growth period length for crops in a rotation with several growing periods
 	const int lgp_def_multicrop = 150;
-	// default upper limit for the growing season length
-	const int lgp_max_def = 230;
-	// maximum upper limit for the growing season length
-	const int lgp_max_extreme = 245;
-	/// reduced length of growing season when risk of water stress (days)
-	const int reduce_lgp_wstress = 20;
-	/// reduced hucountend for winter crops relative to hlimitdate (days)
+	// reduced hucountend for winter crops relative to hlimitdate (days)
 	const int reduce_hucountend_winter_crops = 20;
+	// upper water stress lgp limit
+	const int max_lgp_wstress = 210;
 
 	if (stlist[patch.stand.stid].rotation.multicrop) {
-		length_growseas_def = 150;
+		ppftcrop.hucountend = stepfromdate(date.day, lgp_def_multicrop);
 	}
-	length_growseas_def = min(length_growseas_def, lgp_max_extreme);
-
-	if (pft.ifsdautumn) { // winter crops
-
-		if (temp_sdate) {
-			ppftcrop.hucountend = stepfromdate(ppftcrop.hlimitdate, -reduce_hucountend_winter_crops);
-		}
-		else if (prec_sdate && climate.prec_seasonality <= DRY_WET) { // dry some time during the year
-			if (standpft.irrigated)
-				ppftcrop.hucountend = stepfromdate(date.day, min(length_growseas_def, lgp_max_def));
-			else
-				// shorter growing period when risk for water stress.
-				ppftcrop.hucountend = stepfromdate(date.day, min(length_growseas_def, lgp_max_def - reduce_lgp_wstress));
-		}
-		else if (def_sdate) {
-			ppftcrop.hucountend = stepfromdate(date.day, lgp_max_def);
-		}
+	else if (pft.ifsdautumn && temp_sdate) {
+		ppftcrop.hucountend = stepfromdate(ppftcrop.hlimitdate, -reduce_hucountend_winter_crops);
 	}
-	else { // all other crops
-		if (prec_sdate && climate.prec_seasonality <= DRY_WET) {	// dry some time during the year
-
-			if (standpft.irrigated)
-				ppftcrop.hucountend = stepfromdate(date.day, length_growseas_def);
-			else
-				// shorter growing period when risk for water stress.
-				ppftcrop.hucountend = stepfromdate(date.day, min(length_growseas_def, lgp_max_def - reduce_lgp_wstress));
+	else {
+		if (!(prec_sdate && climate.prec_seasonality <= DRY_WET) || standpft.irrigated) {// No water stress
+			ppftcrop.hucountend = stepfromdate(date.day, pft.lgp_def);
 		}
 		else {
-			ppftcrop.hucountend = stepfromdate(date.day, length_growseas_def);
+			ppftcrop.hucountend = stepfromdate(date.day, min(pft.lgp_def, max_lgp_wstress));// upper limit for growing period when risk for water stress.
 		}
 	}
 

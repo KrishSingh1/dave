@@ -1343,6 +1343,8 @@ public:
 	double tempautumn;
 	/// lower temperature limit for spring sowing
 	double tempspring;
+	/// default length of growing period
+	int lgp_def;
 	/// upper minimum temperature limit for crop sowing
 	double maxtemp_sowing;
 	/// default sowing date in the northern hemisphere (julian day)
@@ -1436,6 +1438,7 @@ public:
 		maxtemp_sowing = 60;
 		sdatenh = -1;
 		sdatesh = -1;
+		lgp_def = 190;
 		hlimitdatenh = -1;
 		hlimitdatesh = -1;
 		tb = -999.9;
@@ -1446,7 +1449,7 @@ public:
 		vern_lag=0;
 		ps = -1.0;
 		phu = -1.0;
-		phu_red_spring_sow = 0.0;
+		phu_red_spring_sow = 1.0;
 		fphusen = -1.0;
 		shapesenescencenorm = 0;
 		flaimaxharvest = -1.0;

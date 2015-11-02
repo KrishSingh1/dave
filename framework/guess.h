@@ -1373,7 +1373,7 @@ public:
 	double psens;
 	/// basal photoperiod (h) (pb<ps for longer days plants)
 	double pb;
-	// lag in days after sowing before vernalization starts
+	/// lag in days after sowing before vernalization starts
 	int vern_lag;
 	/// saturating photoperiod (h) (ps<pb for shorter days plants)
 	double ps;

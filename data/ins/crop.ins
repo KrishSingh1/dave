@@ -7,6 +7,14 @@ import "landcover.ins"
 
 !///////////////////////////////////////////////////////////////////////////////////////
 
+! Crop management input files
+!
+param "file_sdates" (str "")
+param "file_hdates" (str "")
+param "file_Nfert" (str "")
+
+!///////////////////////////////////////////////////////////////////////////////////////
+
 ! Output files
 !
 
@@ -38,8 +46,8 @@ cftfrac_fixed 0       	   ! whether to use fixed crop fractions (active crop sta
 frac_fixed_default_crops 0 ! whether to use all active crop stand types (0) or only stand types with suitable rainfed crops
 			   ! (based on crop pft tb and gridcell latitude) (1) when using fixed crop fractions
 
-nyears_cropland_ramp 	0 ! Number of years to increase cropland fraction linearly from 0 to first year's value
-ifintercropgrass 0	  ! Whether to grow grass as cover crop between growing periods
+nyears_cropland_ramp 0 	  ! Number of years to increase cropland fraction linearly from 0 to first year's value
+ifintercropgrass 1	  ! Whether to grow grass as cover crop between growing periods
 iftillage 0		  ! Whether to simulate tillage by increasing soil respiration
 
 ifcalcdynamic_phu 1	  ! Whether to calculate dynamic potential heat units
@@ -135,6 +143,7 @@ group "TeW" (
 
 	sdatenh 330
 	sdatesh 150
+	lgp_def 230
 	tb 0		! base temperature
 	trg 12		! temperatures have a vernalizing effect until trg
 	pvd 0
@@ -178,6 +187,7 @@ group "TrRi" (
 
 	sdatenh 120	! for initialization, otherwise calculated, possibly several growing seasons in one year
 	sdatesh 300	! idem
+	lgp_def 230
 	tb 10		! base temperature
 	trg 10		! temperatures have a vernalizing effect until trg
 	pvd 0
@@ -216,6 +226,7 @@ group "TeCo" (
 
 	sdatenh 140
 	sdatesh 320
+	lgp_def 220
 	sd_adjust 1
 	sd_adjust_par1 60.0
 	sd_adjust_par2 85.0
@@ -259,6 +270,7 @@ group "TrMi" (
 
 	sdatenh 150
 	sdatesh 330
+	lgp_def 245
 	tb 10		! base temperature
 	trg 10		! temperatures have a vernalizing effect until trg
 	pvd 0
@@ -294,6 +306,7 @@ group "TePu" (
 
 	sdatenh 100
 	sdatesh 280
+	lgp_def 245
 	tb 3		! base temperature
 	trg 3		! temperatures have a vernalizing effect until trg
 	pvd 0
@@ -329,6 +342,7 @@ group "TeSb" (
 
 	sdatenh 90
 	sdatesh 270
+	lgp_def 240
 	tb 3		! base temperature
 	trg 3		! temperatures have a vernalizing effect until trg
 	pvd 0
@@ -365,6 +379,7 @@ group "TrMa" (
 
 	sdatenh 100
 	sdatesh 280
+	lgp_def 230
 	tb 15		! base temperature
 	trg 15		! temperatures have a vernalizing effect until trg
 	pvd 0
@@ -402,6 +417,7 @@ group "TeSf" (
 
 	sdatenh 120
 	sdatesh 300
+	lgp_def 180
 	tb 6		! base temperature
 	trg 6		! temperatures have a vernalizing effect until trg
 	pvd 0
@@ -443,6 +459,7 @@ group "TeSo" (
 
 	sdatenh 140
 	sdatesh 320
+	lgp_def 190
 	tb 10		! base temperature
 
 	trg 10		! temperatures have a vernalizing effect until trg
@@ -478,6 +495,7 @@ group "TrPe" (
 
 	sdatenh 140
 	sdatesh 320
+	lgp_def 190
 	tb 14		! base temperature
 	trg 14		! temperatures have a vernalizing effect until trg
 	pvd 0
@@ -513,6 +531,7 @@ group "TeRa" (
 
 	sdatenh 300
 	sdatesh 120
+	lgp_def 230
 	tb 0		! base temperature
 	trg 12		! temperatures have a vernalizing effect until trg
 	pvd 0

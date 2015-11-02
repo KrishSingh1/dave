@@ -889,7 +889,7 @@ void ManagementInput::init() {
 	ListArray_id<Coord> gridlist;
 	read_gridlist(gridlist, param["file_gridlist"].str);
 
-	if(run_landcover && run[CROPLAND]) {
+	if(run[CROPLAND]) {
 
 		file_sdates=param["file_sdates"].str;
 		if(file_sdates != "")	{
@@ -906,7 +906,7 @@ void ManagementInput::init() {
 		}
 
 		file_Nfert=param["file_Nfert"].str;
-		if(file_Nfert != "")	{
+		if(	file_Nfert != "")	{
 			if(!Nfert.Open(file_Nfert, gridlist))
 				fail("initio: could not open %s for input",(char*)file_Nfert);
 			readNfert = true;

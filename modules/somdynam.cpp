@@ -1076,7 +1076,7 @@ void soilnadd(Patch& patch) {
 
 	Soil& soil = patch.soil;
 
-	double nflux = .01 * soil.ninput;
+	double nflux = 0.01 * soil.ninput;
 	soil.ninput -= nflux;
 
 	patch.fluxes.report_flux(Fluxes::N_SOIL, nflux);

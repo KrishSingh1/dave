@@ -188,7 +188,7 @@ void harvest_index(Patch& patch, Pft& pft) {
 
 /// Calculation of accumulated of heat units
 /** Accumulation of heat units during sampling period used for calculation of
- *  dynamic phu if DYNAMIC_PHU defined. SWAT equation is from Neitsch et al. 2002
+ *  dynamic phu if ifcalcdynamic_phu = true. SWAT equation is from Neitsch et al. 2002
  */
 void heat_units(Patch& patch, Pft& pft) {
 

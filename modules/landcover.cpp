@@ -1100,9 +1100,9 @@ void stand_dynamics(Gridcell& gridcell) {
 
 		if(gcst.gross_frac_increase || gcst.gross_frac_decrease || gcst.frac == 0.0) {
 			// first stand created
-			if(gcst.frac_old == 0.0 && gcst.frac > 0.0)
-				Stand& stand = gridcell.create_stand_lu(st, gcst.frac);
-
+			if(gcst.frac_old == 0.0 && gcst.gross_frac_increase > 0.0) {
+				Stand& stand = gridcell.create_stand_lu(st, gcst.gross_frac_increase);;
+			}
 			// last stand killed
 			else if(gcst.frac_old > 0.0 && gcst.frac == 0.0) {
 				Gridcell::iterator gc_itr = gridcell.begin();
@@ -1277,7 +1277,7 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 				}
 
 				// set scaling factor to be used in growth() for scaling vegetation C and N:
-				stand.scale_LC_change = (stand.frac_old - stand.gross_frac_decrease) / stand.get_gridcell_fraction();
+				stand.scale_LC_change = (stand.frac_old - stand.gross_frac_decrease + min(0.0, stand.cloned_fraction)) / stand.get_gridcell_fraction();
 				gridcell.landcover.updated = true;
 			}
 		}
@@ -1300,28 +1300,24 @@ int copy_stand_type(int landcover_donor, int landcover_receptor) {
 
 	int copy_type = NONEWSTAND;
 
-	if(landcover_donor == NATURAL) {
+	if(landcover_donor == CROPLAND) {
 
-		if(landcover_receptor == FOREST)
-			copy_type = CLONESTAND;
-
-//		if(landcover_receptor == PASTURE)
-//			copy_type = CLONESTAND_KILLTREES;
-
-//		if(landcover_receptor == CROPLAND)
-//			copy_type = NEWSTAND_KILLALL;
-
-//		if(landcover_receptor == PASTURE)
-//			copy_type = NEWSTAND_KILLALL;
-
-	}
-	else if(landcover_donor == FOREST) {
-		if(landcover_receptor == NATURAL)
-			copy_type = CLONESTAND;
+		if(landcover_receptor == NATURAL || landcover_receptor == FOREST || landcover_receptor == PASTURE)
+			copy_type = NEWSTAND_KILLALL;
 	}
 	else if(landcover_donor == PASTURE) {
-//		if(landcover_receptor == NATURAL)
-//			copy_type = CLONESTAND;
+
+		if(landcover_receptor == NATURAL || landcover_receptor == FOREST)
+			copy_type = CLONESTAND;
+		else if(landcover_receptor == CROPLAND)
+			copy_type = NEWSTAND_KILLALL;
+	}
+	else if(landcover_donor == NATURAL || landcover_donor == FOREST) {
+		
+		if(landcover_receptor == FOREST || landcover_receptor == NATURAL)
+			copy_type = CLONESTAND;	// or CLONESTAND_KILLTREES for clearcut
+		else if(landcover_receptor == CROPLAND || landcover_receptor == PASTURE)
+			copy_type = NEWSTAND_KILLALL; // or CLONESTAND_KILLTREES (pasture)
 	}
 
 	return copy_type;
@@ -1359,12 +1355,6 @@ double transfer_to_new_stand(Gridcell& gridcell, int stid_donor = -1, int stid_r
 
 					landcover_change_transfer transfer;
 
-					if(copy_type == CLONESTAND_KILLTREES) {
-						donor_stand_change(gridcell, transfer_area, transfer, -1,-1, stid_receptor, -1, stand.id, false);
-						receiving_stand_change(gridcell, transfer, true, -1, -1, 1.0, new_stand.id);
-					}
-
-
 					new_stand.cloned = true;
 					new_stand.gross_frac_increase = 0.0;
 					new_stand.frac_change = 0.0;
@@ -1389,8 +1379,13 @@ double transfer_to_new_stand(Gridcell& gridcell, int stid_donor = -1, int stid_r
 								kill_remaining_vegetation(indiv);
 								vegetation.killobj();
 							}
-							else
+							else if(copy_type == CLONESTAND_KILLTREES && indiv.pft.lifeform != GRASS) {
+								harvest_wood(indiv, 1.0, 1.0, 0.95, 0.9, true);	// frac_cut=1, harv_eff=1, res_outtake_twig=0.95, res_outtake_coarse_root=0.9
+								vegetation.killobj();
+							}
+							else {
 								vegetation.nextobj();
+							}
 						}
 						new_stand.nextobj();
 					}

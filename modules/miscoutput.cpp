@@ -562,11 +562,17 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 					switch (i) {
 					case CROPLAND:
+						break;
 					case PASTURE:
+						if (run[NATURAL]) {
+							out.add_value(out_anpp_pasture,			mean_standpft_anpp_lc[i]);
+							out.add_value(out_cmass_pasture,		mean_standpft_cmass_lc[i]);
+						}
+						break;
 					case BARREN:
 						break;
 					case NATURAL:
-						if (run[FOREST]) {
+						if (run[FOREST] || run[PASTURE]) {
 							out.add_value(out_anpp_natural,			mean_standpft_anpp_lc[i]);
 							out.add_value(out_cmass_natural,		mean_standpft_cmass_lc[i]);
 							out.add_value(out_dens_natural,			mean_standpft_densindiv_total_lc[i]);
@@ -800,11 +806,17 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			if (run[i]) {
 				switch (i) {
 				case CROPLAND:
+					break;
 				case PASTURE:
+					if (run[NATURAL]) {
+						out.add_value(out_anpp_pasture,     landcover_anpp[i]);
+						out.add_value(out_cmass_pasture,	landcover_cmass[i]);
+					}
+					break;
 				case BARREN:
 					break;
 				case NATURAL:
-					if (run[FOREST]) {
+					if (run[FOREST] || run[PASTURE]) {
 						out.add_value(out_anpp_natural,     landcover_anpp[i]);
 						out.add_value(out_cmass_natural,	landcover_cmass[i]);
 						out.add_value(out_dens_natural,		landcover_densindiv_total[i]);

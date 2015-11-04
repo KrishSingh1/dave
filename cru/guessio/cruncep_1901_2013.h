@@ -18,7 +18,7 @@
 //   exactly compatible with this version of Cruncep_1901_2013.h (normally the archive and
 //   header file should have been produced together by the same program using class
 //   CFastArchive). Returns false if the file could not be opened or had format
-//   errors. open() with no argument is equivalent to open("cruncep_1901_2013.bin").
+//   errors. open() with no argument is equivalent to open("Cruncep_1901_2013.bin").
 //
 // void close()
 //   Closes the archive (if open).
@@ -47,7 +47,7 @@
 //
 //   // Retrieve all records in sequence and print values of lon and lat:
 //
-//   success=ark.open("cruncep_1901_2013.bin");
+//   success=ark.open("Cruncep_1901_2013.bin");
 //   if (success) {
 //      flag=ark.rewind();
 //      while (flag) {
@@ -79,7 +79,7 @@ struct Cruncep_1901_2013 {
 
 	double mtemp[1356];
 	double mprec[1356];
-	double msun[1356];
+	double mswrad[1356];
 	double soilcode[1];
 };
 
@@ -209,20 +209,20 @@ private:
 
 	void bitify(unsigned char buf[4],double fval,double offset,double scalar) {
 
-		long ival=(long)((fval-offset)/scalar+0.5);
-		buf[0]=(unsigned char)(ival/0x1000000);
+		long ival=(fval-offset)/scalar+0.5;
+		buf[0]=ival/0x1000000;
 		ival-=buf[0]*0x1000000;
-		buf[1]=(unsigned char)(ival/0x10000);
+		buf[1]=ival/0x10000;
 		ival-=buf[1]*0x10000;
-		buf[2]=(unsigned char)(ival/0x100);
+		buf[2]=ival/0x100;
 		ival-=buf[2]*0x100;
-		buf[3]=(unsigned char)ival;
+		buf[3]=ival;
 	}
 
 	void merge(unsigned char ptarget[4],unsigned char buf[4],int bits) {
 
 		int nb=bits/8;
-		int i;
+		int i,j;
 		unsigned char nib;
 		for (i=0;i<4;i++) {
 
@@ -312,7 +312,7 @@ public:
 	}
 
 	bool open() {
-		return open("cruncep_1901_2013.bin");
+		return open("Cruncep_1901_2013.bin");
 	}
 
 	void close() {
@@ -347,7 +347,7 @@ public:
 		obj.lon=popreal(pindex,4,16,1,-18000);
 
 		for (i=0;i>=0;i--) obj.soilcode[i]=popreal(pdata,CRUNCEP_1901_2013_DATA_LENGTH,9,0.1,0);
-		for (i=1355;i>=0;i--) obj.msun[i]=popreal(pdata,CRUNCEP_1901_2013_DATA_LENGTH,24,0.01,0);
+		for (i=1355;i>=0;i--) obj.mswrad[i]=popreal(pdata,CRUNCEP_1901_2013_DATA_LENGTH,24,0.01,0);
 		for (i=1355;i>=0;i--) obj.mprec[i]=popreal(pdata,CRUNCEP_1901_2013_DATA_LENGTH,27,0.001,0);
 		for (i=1355;i>=0;i--) obj.mtemp[i]=popreal(pdata,CRUNCEP_1901_2013_DATA_LENGTH,18,0.01,-1000);
 
@@ -388,7 +388,7 @@ public:
 			else { // found
 
 				for (i=0;i>=0;i--) obj.soilcode[i]=popreal(pdata,CRUNCEP_1901_2013_DATA_LENGTH,9,0.1,0);
-				for (i=1355;i>=0;i--) obj.msun[i]=popreal(pdata,CRUNCEP_1901_2013_DATA_LENGTH,24,0.01,0);
+				for (i=1355;i>=0;i--) obj.mswrad[i]=popreal(pdata,CRUNCEP_1901_2013_DATA_LENGTH,24,0.01,0);
 				for (i=1355;i>=0;i--) obj.mprec[i]=popreal(pdata,CRUNCEP_1901_2013_DATA_LENGTH,27,0.001,0);
 				for (i=1355;i>=0;i--) obj.mtemp[i]=popreal(pdata,CRUNCEP_1901_2013_DATA_LENGTH,18,0.01,-1000);
 

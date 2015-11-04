@@ -18,7 +18,7 @@
 //   exactly compatible with this version of Cruncep_1901_2013misc.h (normally the archive and
 //   header file should have been produced together by the same program using class
 //   CFastArchive). Returns false if the file could not be opened or had format
-//   errors. open() with no argument is equivalent to open("Cruncep_1901_2013misc.bin").
+//   errors. open() with no argument is equivalent to open("cruncep_1901_2013misc.bin").
 //
 // void close()
 //   Closes the archive (if open).
@@ -47,7 +47,7 @@
 //
 //   // Retrieve all records in sequence and print values of lon and lat:
 //
-//   success=ark.open("Cruncep_1901_2013misc.bin");
+//   success=ark.open("cruncep_1901_2013misc.bin");
 //   if (success) {
 //      flag=ark.rewind();
 //      while (flag) {
@@ -209,20 +209,20 @@ private:
 
 	void bitify(unsigned char buf[4],double fval,double offset,double scalar) {
 
-		long ival=(fval-offset)/scalar+0.5;
-		buf[0]=ival/0x1000000;
+		long ival=(long)((fval-offset)/scalar+0.5);
+		buf[0]=(unsigned char)(ival/0x1000000);
 		ival-=buf[0]*0x1000000;
-		buf[1]=ival/0x10000;
+		buf[1]=(unsigned char)(ival/0x10000);
 		ival-=buf[1]*0x10000;
-		buf[2]=ival/0x100;
+		buf[2]=(unsigned char)(ival/0x100);
 		ival-=buf[2]*0x100;
-		buf[3]=ival;
+		buf[3]=(unsigned char)ival;
 	}
 
 	void merge(unsigned char ptarget[4],unsigned char buf[4],int bits) {
 
 		int nb=bits/8;
-		int i,j;
+		int i;
 		unsigned char nib;
 		for (i=0;i<4;i++) {
 
@@ -312,7 +312,7 @@ public:
 	}
 
 	bool open() {
-		return open("Cruncep_1901_2013misc.bin");
+		return open("cruncep_1901_2013misc.bin");
 	}
 
 	void close() {

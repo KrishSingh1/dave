@@ -50,8 +50,8 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 
 
 		// The CRU archive index hold lons & lats as whole doubles * 10
-		data.lon = dlon * 10.0;
-		data.lat = dlat * 10.0;
+		data.lon = dlon * 100.0;
+		data.lat = dlat * 100.0;
 
 		// Read the CRU data into the data struct
 		success =ark.getindex(data);
@@ -123,8 +123,8 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 
 
 		// The CRU archive index hold lons & lats as whole doubles * 10
-		data.lon = dlon * 10.0;
-		data.lat = dlat * 10.0;
+		data.lon = dlon * 100.0;
+		data.lat = dlat * 100.0;
 
 		// Read the CRU data into the data struct
 		success =ark.getindex(data);
@@ -204,7 +204,7 @@ bool findnearestCRUdata(double searchradius, char* cruark, double& lon, double& 
 	typedef pair<double, double> point;
 	std::vector<pair<double, point> > search_points;
 
-	const double STEP = 0.5;
+	const double STEP = 0.25;
 	const double EPS = 1e-15;
 
 	for (double y = center_lon-searchradius; y <= center_lon+searchradius+EPS; y += STEP) {

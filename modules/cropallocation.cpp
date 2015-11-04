@@ -181,10 +181,11 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 	// add seed carbon
 	double cmass_extra = cmass_seed;
 
-	// add seed nitrogen
+	// add seed nitrogen, with the assumption that the seedling is initiated with 50% in roots and 50% in the leaves. 
 	indiv.nmass_leaf += nmass_seed / 2.0;
 	indiv.nmass_root += nmass_seed / 2.0;
 
+	// Get the daily allocation strategy.
 	crop_allocation_devries(ppftcrop, indiv);
 
 	// Use the fast C pool when NPP is negative.
@@ -198,14 +199,14 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 		else {
 			indiv.report_flux(Fluxes::NPP, (-indiv.dnpp - cropindiv.grs_cmass_agpool));
 			cropindiv.ycmass_agpool -= cropindiv.grs_cmass_agpool;
-			//TODO Kill the individual if ag pool is zero.
 			cropindiv.grs_cmass_agpool = 0.0;
 			indiv.dnpp = 0.0;
 		}
 
 	}
 
-	// Retranslocation from the fast C pool to the grains towards the end of the grainfilling period, TODO only works for cereals.
+	// Retranslocation from the fast C pool to the grains towards the end of the grainfilling period. 
+	// NB, only works for cereals (grasses), needs to be adjusted to work for herb and tuber crops.
 	if (cropindiv.grs_cmass_agpool > 0.0 && patchpft.cropphen->f_alloc_horg > 0.95) {
 		cmass_extra += 0.1 * cropindiv.grs_cmass_agpool;
 		cropindiv.ycmass_agpool -= 0.1 * cropindiv.grs_cmass_agpool;
@@ -223,11 +224,10 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 		cropindiv.grs_cmass_dead_leaf += indiv.daily_cmass_leafloss;
 		cropindiv.ycmass_dead_leaf += indiv.daily_cmass_leafloss;
 		if (indiv.daily_cmass_leafloss / 100.0<indiv.nmass_leaf) {
-			cropindiv.nmass_dead_leaf += indiv.daily_cmass_leafloss / 100.0; // TODO super low C:N in the dead leaf
+			cropindiv.nmass_dead_leaf += indiv.daily_cmass_leafloss / 100.0; // Fixed low C:N in the dead leaf
 			cropindiv.ynmass_dead_leaf += indiv.daily_cmass_leafloss / 100.0;
 			indiv.nmass_leaf -= indiv.daily_cmass_leafloss / 100.0;
 		}
-		//cropindiv.grs_cmass_leaf -= indiv.daily_cmass_leafloss;
 		double new_CN = (cropindiv.grs_cmass_leaf + cropindiv.dcmass_leaf) / indiv.nmass_leaf;
 		// If the result is smaller (higher [N]) than the min C:N then that N is
 		// put in to the ag N pool
@@ -273,13 +273,13 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 
 	cropindiv.dcmass_root = (indiv.dnpp + cmass_extra) * patchpft.cropphen->f_alloc_root - indiv.daily_cmass_rootloss;
 
-	// The lost root C is directly put into the litter, TODO should this go into only metabolic?
+	// The lost root C is directly put into the litter.
 	patch.soil.sompool[SOILMETA].cmass += indiv.daily_cmass_rootloss;
 
 	if (indiv.daily_nmass_rootloss < indiv.nmass_root) {
 		indiv.nmass_root -= indiv.daily_nmass_rootloss;
 		cropindiv.nmass_agpool += indiv.daily_nmass_rootloss * 0.5; // 50% of the N in the lost root is retranslocated.
-		patch.soil.sompool[SOILMETA].nmass += indiv.daily_nmass_rootloss * 0.5;//The rest is going in to litter, TODO see above for C.
+		patch.soil.sompool[SOILMETA].nmass += indiv.daily_nmass_rootloss * 0.5;//The rest is going in to litter.
 	}
 	if (indiv.daily_cmass_rootloss > 0.0){
 		patch.is_litter_day = true;
@@ -288,6 +288,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 	cropindiv.dcmass_ho = (indiv.dnpp + cmass_extra) * patchpft.cropphen->f_alloc_horg;
 	cropindiv.dcmass_plant = cropindiv.dcmass_ho + cropindiv.dcmass_root + cropindiv.dcmass_stem + cropindiv.dcmass_leaf;
 
+	// Add the daily increments to the annual and growing season variables.
 	cropindiv.ycmass_leaf += cropindiv.dcmass_leaf;
 	cropindiv.ycmass_root += cropindiv.dcmass_root;
 	cropindiv.ycmass_ho += cropindiv.dcmass_ho;
@@ -330,33 +331,39 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 				ndemand_ho = 0.0;
 			}
 		}
-		// Seligman 1975
 		//"willingness" to let go of the N in the organ to meet the demand from the storage organ, Eq. 17 Olin 2015
 		double y0 = (1.0 / indiv.pft.cton_leaf_min + 1.0 / indiv.pft.cton_leaf_avr) / 2.0;
 		double y = 1.0 / indiv.cton_leaf(false);
 		double y2 = 1.0 / (1.0 * indiv.pft.cton_leaf_max);
 		double z = (y0 - y)/(y0 - y2);
+		// The leaves willingness to contribute to meet the storage organs N demand.
 		double w_l = 1.0 - max(0.0, min(1.0, pow(1.0 - z, 2.0)));
 		y0 = 1.0 / indiv.pft.cton_root_avr;
 		y = 1.0 / indiv.cton_root(false);
 		y2 = 1.0 / (1.0 * indiv.pft.cton_root_max);
 		z = (y0 - y) / (y0 - y2);
+		// The roots willingness to contribute to meet the storage organs N demand.
 		double w_r = 1.0 - max(0.0, min(1.0, pow(1.0 - z, 2.0)));
 		double w_s = w_r + w_l;
+		// The total willingness to contribute to meet the storage organs N demand.
 		double w = min(1.0, w_s);
+		// If there is N availble for retranslocation in the roots or leaves
 		if(w_s > 0.0) {
 			trans_leaf_N = max(0.0, w_l * w * ndemand_ho / w_s);
 			trans_root_N = max(0.0, w_r * w * ndemand_ho / w_s);
+			// Compare the N the organ is willing to let go of to N available in the organ, based on the C:N.
 			if(trans_leaf_N > avail_leaf_N) {
 				trans_leaf_N = avail_leaf_N;
 			}
 			if(trans_root_N > avail_root_N) {
 				trans_root_N = avail_root_N;
 			}
+			// Add the N to the havestable organ
 			cropindiv.dnmass_ho += trans_leaf_N;
 			cropindiv.dnmass_ho += trans_root_N;
 		}
 	}
+	// Subtract the N that has been added to theharvestable organ from the donor organs
 	indiv.nmass_leaf -= trans_leaf_N;
 	indiv.nmass_root -= trans_root_N;
 	cropindiv.nmass_ho += cropindiv.dnmass_ho;
@@ -934,6 +941,6 @@ void growth_crop_year(Individual& indiv, double& cmass_leaf_inc, double& cmass_r
 //   Documentation + User's Manual. USDA_ARS-SR Grassland, Soil and Water Research Laboratory.
 //   Agricultural Reasearch Service, Temple,Tx, US.
 // S. Olin, G. Schurgers, M. Lindeskog, D. Wårlind, B. Smith, P. Bodin, J. Holmér, and A. Arneth. 2015
-//   Biogeosciences Discuss., 12, 1047-1111. The impact of atmospheric CO2 and N management on yields
-//   and tissue C:N in the main wheat regions of Western Europe
+//   Biogeosciences 12, 2489-2515. Modelling the response of yields and tissue C:N to changes in
+//   atmospheric CO2 and N management in the main wheat regions of western Europe
    

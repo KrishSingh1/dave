@@ -264,7 +264,7 @@ inline double temperature_factor(double temp, double min, double opt, double max
 }
 
 /// Calculation of development stage
-/** Accumulation of development during sampling period. TODO Add reference
+/** Accumulation of development during sampling period, based on Wang & Engel 1998.
  */
 void development_stage(Patch& patch, Pft& pft) {
 
@@ -578,3 +578,5 @@ void leaf_phenology_crop(Pft& pft, Patch& patch) {
 // Neitsch SL, Arnold JG, Kiniry JR et al.2002 Soil and Water Assessment Tool, Theorethical
 //   Documentation + User's Manual. USDA_ARS-SR Grassland, Soil and Water Research Laboratory.
 //   Agricultural Reasearch Service, Temple,Tx, US.
+// Wang, E. and Engel, T. 1998 Simulation of phenological development
+//   of wheat crops, Agr. Syst., 58, 1-24

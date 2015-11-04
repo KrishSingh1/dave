@@ -8,17 +8,17 @@
 //   #include <stdio.h>
 //   #include <stdlib.h>
 //   #include <string.h>
-//   #include "E:\Libs\Large_files_(no_bu)\ndep_cc\binfiles\GlobalNitrogenDepositionRCP26cc.h"
+//   #include "E:\Libs\Large_files_(no_bu)\ndep_cc\binfiles\GlobalNitrogenDepositionRCP26.h"
 //
-// Functionality to retrieve data from the archive is provided by class GlobalNitrogenDepositionRCP26ccArchive.
+// Functionality to retrieve data from the archive is provided by class GlobalNitrogenDepositionRCP26Archive.
 // The following public functions are provided:
 //
 // bool open(char* filename)
 //   Attempts to open the specified file as a fast data archive. The format must be
-//   exactly compatible with this version of GlobalNitrogenDepositionRCP26cc.h (normally the archive and
+//   exactly compatible with this version of GlobalNitrogenDepositionRCP26.h (normally the archive and
 //   header file should have been produced together by the same program using class
 //   CFastArchive). Returns false if the file could not be opened or had format
-//   errors. open() with no argument is equivalent to open("GlobalNitrogenDepositionRCP26cc.bin").
+//   errors. open() with no argument is equivalent to open("GlobalNitrogenDepositionRCP26.bin").
 //
 // void close()
 //   Closes the archive (if open).
@@ -27,13 +27,13 @@
 //   Sets the file pointer to the first record in the archive file. Returns false if
 //   no archive file is currently open.
 //
-// bool getnext(GlobalNitrogenDepositionRCP26cc& obj)
+// bool getnext(GlobalNitrogenDepositionRCP26& obj)
 //   Retrieves the next record in the archive file and advances the file pointer to
 //   the next record. Data are written to the member variables of obj. Returns false if
 //   no archive file is currently open or if the file pointer is beyond the last
 //   record. Use rewind() and getnext() to retrieve data sequentially from the archive.
 //
-// bool getindex(GlobalNitrogenDepositionRCP26cc& obj)
+// bool getindex(GlobalNitrogenDepositionRCP26& obj)
 //   Searches the archive for a record matching the values specified for the index
 //   items (longitude and latitude) in obj. If a matching record is found, the data are
 //   written to the member variables of obj. Returns true if the archive was open and
@@ -41,13 +41,13 @@
 //
 // Sample program:
 //
-//   GlobalNitrogenDepositionRCP26ccArchive ark;
-//   GlobalNitrogenDepositionRCP26cc data;
+//   GlobalNitrogenDepositionRCP26Archive ark;
+//   GlobalNitrogenDepositionRCP26 data;
 //   bool success,flag;
 //
 //   // Retrieve all records in sequence and print values of longitude and latitude:
 //
-//   success=ark.open("GlobalNitrogenDepositionRCP26cc.bin");
+//   success=ark.open("GlobalNitrogenDepositionRCP26.bin");
 //   if (success) {
 //      flag=ark.rewind();
 //      while (flag) {
@@ -68,7 +68,7 @@
 //   ark.close();
 
 
-struct GlobalNitrogenDepositionRCP26cc {
+struct GlobalNitrogenDepositionRCP26 {
 
 	// Index part
 
@@ -84,11 +84,11 @@ struct GlobalNitrogenDepositionRCP26cc {
 };
 
 
-const long GLOBALNITROGENDEPOSITIONRCP26CC_NRECORD=59191;
-const int GLOBALNITROGENDEPOSITIONRCP26CC_DATA_LENGTH=1650;
-const int GLOBALNITROGENDEPOSITIONRCP26CC_INDEX_LENGTH=7;
-const int GLOBALNITROGENDEPOSITIONRCP26CC_HEADERSIZE=670;
-unsigned char GLOBALNITROGENDEPOSITIONRCP26CC_HEADER[GLOBALNITROGENDEPOSITIONRCP26CC_HEADERSIZE-4]={
+const long GLOBALNITROGENDEPOSITIONRCP26_NRECORD=59191;
+const int GLOBALNITROGENDEPOSITIONRCP26_DATA_LENGTH=1650;
+const int GLOBALNITROGENDEPOSITIONRCP26_INDEX_LENGTH=7;
+const int GLOBALNITROGENDEPOSITIONRCP26_HEADERSIZE=670;
+unsigned char GLOBALNITROGENDEPOSITIONRCP26_HEADER[GLOBALNITROGENDEPOSITIONRCP26_HEADERSIZE-4]={
 	0x01,0x02,0x9E,0x00,0x00,0x00,0x07,0x00,0x02,0x0A,0x6C,0x6F,0x6E,0x67,0x69,0x74,0x75,0x64,0x65,0x00,
 	0x2D,0x31,0x38,0x30,0x00,0xF4,0x18,0x00,0x01,0x00,0x00,0x00,0x74,0xFE,0x18,0x00,0x5A,0xB6,0x60,0x72,
 	0x10,0xEA,0x27,0xDF,0xFE,0xFF,0xFF,0xFF,0x70,0x13,0x5A,0x72,0x31,0x38,0x30,0x00,0x00,0xF4,0x18,0x00,
@@ -125,15 +125,15 @@ unsigned char GLOBALNITROGENDEPOSITIONRCP26CC_HEADER[GLOBALNITROGENDEPOSITIONRCP
 	0x72,0x17,0x00,0x00,0x00,0x84};
 
 
-class GlobalNitrogenDepositionRCP26ccArchive {
+class GlobalNitrogenDepositionRCP26Archive {
 
 private:
 
 	FILE* pfile;
 	long recno;
 	long datano;
-	unsigned char pindex[GLOBALNITROGENDEPOSITIONRCP26CC_INDEX_LENGTH];
-	unsigned char pdata[GLOBALNITROGENDEPOSITIONRCP26CC_DATA_LENGTH];
+	unsigned char pindex[GLOBALNITROGENDEPOSITIONRCP26_INDEX_LENGTH];
+	unsigned char pdata[GLOBALNITROGENDEPOSITIONRCP26_DATA_LENGTH];
 	bool iseof;
 
 	long readbin(int nbyte) {
@@ -154,19 +154,19 @@ private:
 
 	void getindex(long n) {
 
-		fseek(pfile,GLOBALNITROGENDEPOSITIONRCP26CC_INDEX_LENGTH*(n-recno),SEEK_CUR);
-		fread(pindex,GLOBALNITROGENDEPOSITIONRCP26CC_INDEX_LENGTH,1,pfile);
-		datano=pindex[GLOBALNITROGENDEPOSITIONRCP26CC_INDEX_LENGTH-4]*0x1000000+pindex[GLOBALNITROGENDEPOSITIONRCP26CC_INDEX_LENGTH-3]*0x10000+
-			pindex[GLOBALNITROGENDEPOSITIONRCP26CC_INDEX_LENGTH-2]*0x100+pindex[GLOBALNITROGENDEPOSITIONRCP26CC_INDEX_LENGTH-1];
+		fseek(pfile,GLOBALNITROGENDEPOSITIONRCP26_INDEX_LENGTH*(n-recno),SEEK_CUR);
+		fread(pindex,GLOBALNITROGENDEPOSITIONRCP26_INDEX_LENGTH,1,pfile);
+		datano=pindex[GLOBALNITROGENDEPOSITIONRCP26_INDEX_LENGTH-4]*0x1000000+pindex[GLOBALNITROGENDEPOSITIONRCP26_INDEX_LENGTH-3]*0x10000+
+			pindex[GLOBALNITROGENDEPOSITIONRCP26_INDEX_LENGTH-2]*0x100+pindex[GLOBALNITROGENDEPOSITIONRCP26_INDEX_LENGTH-1];
 		recno=n+1;
-		iseof=(recno==GLOBALNITROGENDEPOSITIONRCP26CC_NRECORD);
+		iseof=(recno==GLOBALNITROGENDEPOSITIONRCP26_NRECORD);
 	}
 
 	void getdata() {
 
-		fseek(pfile,GLOBALNITROGENDEPOSITIONRCP26CC_INDEX_LENGTH*-recno+(datano-GLOBALNITROGENDEPOSITIONRCP26CC_NRECORD)*GLOBALNITROGENDEPOSITIONRCP26CC_DATA_LENGTH,SEEK_CUR);
-		fread(pdata,GLOBALNITROGENDEPOSITIONRCP26CC_DATA_LENGTH,1,pfile);
-		fseek(pfile,GLOBALNITROGENDEPOSITIONRCP26CC_DATA_LENGTH*(GLOBALNITROGENDEPOSITIONRCP26CC_NRECORD-datano-1)+GLOBALNITROGENDEPOSITIONRCP26CC_INDEX_LENGTH*recno,SEEK_CUR);
+		fseek(pfile,GLOBALNITROGENDEPOSITIONRCP26_INDEX_LENGTH*-recno+(datano-GLOBALNITROGENDEPOSITIONRCP26_NRECORD)*GLOBALNITROGENDEPOSITIONRCP26_DATA_LENGTH,SEEK_CUR);
+		fread(pdata,GLOBALNITROGENDEPOSITIONRCP26_DATA_LENGTH,1,pfile);
+		fseek(pfile,GLOBALNITROGENDEPOSITIONRCP26_DATA_LENGTH*(GLOBALNITROGENDEPOSITIONRCP26_NRECORD-datano-1)+GLOBALNITROGENDEPOSITIONRCP26_INDEX_LENGTH*recno,SEEK_CUR);
 	}
 
 	double popreal(unsigned char* bits,int nbyte,int nbit,double scalar,double offset) {
@@ -270,7 +270,7 @@ private:
 			return false;
 		}
 
-		pheader=new unsigned char[GLOBALNITROGENDEPOSITIONRCP26CC_HEADERSIZE-4];
+		pheader=new unsigned char[GLOBALNITROGENDEPOSITIONRCP26_HEADERSIZE-4];
 		if (!pheader) {
 			printf("Out of memory\n");
 			fclose(pfile);
@@ -278,10 +278,10 @@ private:
 			return false;
 		}
 		::rewind(pfile);
-		fread(pheader,GLOBALNITROGENDEPOSITIONRCP26CC_HEADERSIZE-4,1,pfile);
-		for (i=0;i<GLOBALNITROGENDEPOSITIONRCP26CC_HEADERSIZE-4;i++) {
-			if (pheader[i]!=GLOBALNITROGENDEPOSITIONRCP26CC_HEADER[i]) {
-				printf("Format of %s incompatible with this version of GlobalNitrogenDepositionRCP26cc.h\n",filename);
+		fread(pheader,GLOBALNITROGENDEPOSITIONRCP26_HEADERSIZE-4,1,pfile);
+		for (i=0;i<GLOBALNITROGENDEPOSITIONRCP26_HEADERSIZE-4;i++) {
+			if (pheader[i]!=GLOBALNITROGENDEPOSITIONRCP26_HEADER[i]) {
+				printf("Format of %s incompatible with this version of GlobalNitrogenDepositionRCP26.h\n",filename);
 				fclose(pfile);
 				pfile=NULL;
 				delete pheader;
@@ -291,7 +291,7 @@ private:
 		delete[] pheader;
 
 		::rewind(pfile);
-		fseek(pfile,GLOBALNITROGENDEPOSITIONRCP26CC_HEADERSIZE+GLOBALNITROGENDEPOSITIONRCP26CC_DATA_LENGTH*GLOBALNITROGENDEPOSITIONRCP26CC_NRECORD,SEEK_CUR);
+		fseek(pfile,GLOBALNITROGENDEPOSITIONRCP26_HEADERSIZE+GLOBALNITROGENDEPOSITIONRCP26_DATA_LENGTH*GLOBALNITROGENDEPOSITIONRCP26_NRECORD,SEEK_CUR);
 		recno=0;
 		iseof=false;
 
@@ -300,11 +300,11 @@ private:
 
 public:
 
-	GlobalNitrogenDepositionRCP26ccArchive() {
+	GlobalNitrogenDepositionRCP26Archive() {
 		pfile=NULL;
 	}
 
-	~GlobalNitrogenDepositionRCP26ccArchive() {
+	~GlobalNitrogenDepositionRCP26Archive() {
 		if (pfile) fclose(pfile);
 	}
 
@@ -313,7 +313,7 @@ public:
 	}
 
 	bool open() {
-		return open("GlobalNitrogenDepositionRCP26cc.bin");
+		return open("GlobalNitrogenDepositionRCP26.bin");
 	}
 
 	void close() {
@@ -328,14 +328,14 @@ public:
 		if (!pfile) return false;
 
 		::rewind(pfile);
-		fseek(pfile,GLOBALNITROGENDEPOSITIONRCP26CC_HEADERSIZE+GLOBALNITROGENDEPOSITIONRCP26CC_DATA_LENGTH*GLOBALNITROGENDEPOSITIONRCP26CC_NRECORD,SEEK_CUR);
+		fseek(pfile,GLOBALNITROGENDEPOSITIONRCP26_HEADERSIZE+GLOBALNITROGENDEPOSITIONRCP26_DATA_LENGTH*GLOBALNITROGENDEPOSITIONRCP26_NRECORD,SEEK_CUR);
 		recno=0;
 		iseof=false;
 
 		return true;
 	}
 
-	bool getnext(GlobalNitrogenDepositionRCP26cc& obj) {
+	bool getnext(GlobalNitrogenDepositionRCP26& obj) {
 
 		if (!pfile || iseof) return false;
 
@@ -347,17 +347,17 @@ public:
 		obj.latitude=popreal(pindex,3,10,0.25,-90);
 		obj.longitude=popreal(pindex,3,11,0.25,-180);
 
-		for (i=131;i>=0;i--) obj.NOyWet[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26CC_DATA_LENGTH,23,1e-005,0);
-		for (i=131;i>=0;i--) obj.NOyDry[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26CC_DATA_LENGTH,23,1e-005,0);
-		for (i=131;i>=0;i--) obj.NHxWet[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26CC_DATA_LENGTH,27,1e-005,0);
-		for (i=131;i>=0;i--) obj.NHxDry[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26CC_DATA_LENGTH,27,1e-005,9e-005);
+		for (i=131;i>=0;i--) obj.NOyWet[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26_DATA_LENGTH,23,1e-005,0);
+		for (i=131;i>=0;i--) obj.NOyDry[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26_DATA_LENGTH,23,1e-005,0);
+		for (i=131;i>=0;i--) obj.NHxWet[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26_DATA_LENGTH,27,1e-005,0);
+		for (i=131;i>=0;i--) obj.NHxDry[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26_DATA_LENGTH,27,1e-005,9e-005);
 
 		return true;
 	}
 
-	bool getindex(GlobalNitrogenDepositionRCP26cc& obj) {
+	bool getindex(GlobalNitrogenDepositionRCP26& obj) {
 
-		if (!GLOBALNITROGENDEPOSITIONRCP26CC_NRECORD || !pfile) return false;
+		if (!GLOBALNITROGENDEPOSITIONRCP26_NRECORD || !pfile) return false;
 
 		// else
 
@@ -369,7 +369,7 @@ public:
 		merge(ptarget,buf,10);
 
 		long begin = 0;
-		long end = GLOBALNITROGENDEPOSITIONRCP26CC_NRECORD;
+		long end = GLOBALNITROGENDEPOSITIONRCP26_NRECORD;
 
 		while (begin < end) {
 			long middle = (begin+end)/2;
@@ -387,10 +387,10 @@ public:
 			}
 			else {
 
-				for (int i=131;i>=0;i--) obj.NOyWet[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26CC_DATA_LENGTH,23,1e-005,0);
-				for (int i=131;i>=0;i--) obj.NOyDry[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26CC_DATA_LENGTH,23,1e-005,0);
-				for (int i=131;i>=0;i--) obj.NHxWet[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26CC_DATA_LENGTH,27,1e-005,0);
-				for (int i=131;i>=0;i--) obj.NHxDry[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26CC_DATA_LENGTH,27,1e-005,9e-005);
+				for (int i=131;i>=0;i--) obj.NOyWet[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26_DATA_LENGTH,23,1e-005,0);
+				for (int i=131;i>=0;i--) obj.NOyDry[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26_DATA_LENGTH,23,1e-005,0);
+				for (int i=131;i>=0;i--) obj.NHxWet[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26_DATA_LENGTH,27,1e-005,0);
+				for (int i=131;i>=0;i--) obj.NHxDry[i]=popreal(pdata,GLOBALNITROGENDEPOSITIONRCP26_DATA_LENGTH,27,1e-005,9e-005);
 
 				return true;
 			}

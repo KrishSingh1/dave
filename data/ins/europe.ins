@@ -136,14 +136,6 @@ ifbvoc 0              ! whether to include BVOC calculations (1) or not (0)
 
 run_landcover 0        ! whether to use (and change) landcover fractions (1) or not (0)						
 
-run_urban 0	      ! whether to simulate barren land (1) or not (0)	
-run_crop 1	      ! whether to simulate crop vegetation (1) or not (0)
-run_forest 0	      ! whether to simulate managed forest (1) or not (0)
-run_pasture 1	      ! whether to simulate pasture (1) or not (0)
-run_natural 1	      ! whether to simulate natural vegetation (1) or not (0)
-run_peatland 1	      ! whether to simulate peatland (1) or not (0)
-run_barren 0	      ! whether to simulate barren land (1) or not (0)
-
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -163,7 +155,8 @@ group "common" (
 	! default value - ensures that this has little effect even if  
 	! ifdroughtlimitedestab is turned on
 	landcover "natural"
-	turnover_harv_prod 1
+	harv_eff 0
+	res_outtake 0
 )
 
 
@@ -190,10 +183,11 @@ group "tree" (
 	kest_pres 1
 	litterme 0.3
 	rootdist 0.6 0.4
+
 	harv_eff 0.95
 	res_outtake 0.75
-	harvest_slow_frac 0.33
-	turnover_harv_prod 0.04
+	turnover_harv_prod 0.04 ! Turnover rate for long-lived harvested products (wood) : 0.04 corresponds to a 25-year turnover time (as in Bondeau 2007)
+	harvest_slow_frac 0.33	! Bondeau 0.33
 )
 
 group "shrub" (
@@ -220,6 +214,9 @@ group "shrub" (
 	litterme 0.3
 	rootdist 0.6 0.4
 	longevity 100
+
+	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time
+	harvest_slow_frac 0
 )
 
 group "needle_leaved" (
@@ -253,6 +250,8 @@ group "grass" (
 	respcoeff 1.0 ! PM_Dec2012, was 2.0 
 	litterme 0.2
 	ga 0.030
+	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time for GRASS
+	harvest_slow_frac 0
 )
 
 
@@ -1028,8 +1027,7 @@ pft "Ulm_gla" (
 	storfrac_mon 0.
 )
 
-
-pft "C3_gr" (
+group "C3G" (
 
 	include 1
 	grass
@@ -1062,8 +1060,11 @@ pft "C3_gr" (
 	harv_eff 0.5
 )
 
+pft "C3_gr" (
+	C3G
+)
 
-pft "C4_gr" (
+group "C4G" (
 
 	include 0
 	grass
@@ -1095,6 +1096,9 @@ pft "C4_gr" (
 	harv_eff 0.5
 )
 
+pft "C4_gr" (
+	C4G
+)
 
 ! Reference: Savill's silviculture book:
 ! The Silviculture of Trees used in British Forestry, Peter S. Savill 

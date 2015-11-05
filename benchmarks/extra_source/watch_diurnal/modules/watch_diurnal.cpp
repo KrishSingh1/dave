@@ -72,10 +72,8 @@ void load_gridlist(const char* dir_name, std::vector<landpoint>& landpoints) {
 }
 
 int get_cell_id(double lon, double lat, const std::vector<landpoint>& landpoints) {
-	double c_lon = lon + .25;	// offset between a centre of the cell (WATCH) and
-	double c_lat = lat + .25;	// lower-left corner (LPJ-GUESS)
 	for (size_t i = 0; i < landpoints.size(); i++) {
-		if (landpoints[i].first == c_lon && landpoints[i].second == c_lat) {
+		if (landpoints[i].first == lon && landpoints[i].second == lat) {
 			return i;
 		}
 	}

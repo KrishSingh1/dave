@@ -535,6 +535,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			if (printseparatestands) {
 
 				int id = stand.id;
+				if(stand.id > MAXNUMBER_STANDS)
+					fail("Number of stands to high, increase MAXNUMBER_STANDS for output of individual stands !\n");
 
 				if (stand.landcover == NATURAL) {
 

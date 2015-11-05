@@ -1302,22 +1302,18 @@ int copy_stand_type(int landcover_donor, int landcover_receptor) {
 
 	if(landcover_donor == CROPLAND) {
 
-		if(landcover_receptor == NATURAL || landcover_receptor == FOREST || landcover_receptor == PASTURE)
+		if(landcover_receptor == NATURAL || landcover_receptor == FOREST)
 			copy_type = NEWSTAND_KILLALL;
 	}
 	else if(landcover_donor == PASTURE) {
 
 		if(landcover_receptor == NATURAL || landcover_receptor == FOREST)
 			copy_type = CLONESTAND;
-		else if(landcover_receptor == CROPLAND)
-			copy_type = NEWSTAND_KILLALL;
 	}
 	else if(landcover_donor == NATURAL || landcover_donor == FOREST) {
 		
 		if(landcover_receptor == FOREST || landcover_receptor == NATURAL)
 			copy_type = CLONESTAND;	// or CLONESTAND_KILLTREES for clearcut
-		else if(landcover_receptor == CROPLAND || landcover_receptor == PASTURE)
-			copy_type = NEWSTAND_KILLALL; // or CLONESTAND_KILLTREES (pasture)
 	}
 
 	return copy_type;

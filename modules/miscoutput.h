@@ -41,7 +41,7 @@ public:
 private:
 
 	/// Upper limit for files in multiple stand printout
-	static const int MAXNUMBER_STANDS = 100;
+	static const int MAXNUMBER_STANDS = 1000;
 
 	/// Printout of first stand from first historic year
 	static const bool PRINTFIRSTSTANDFROM1901 = true;

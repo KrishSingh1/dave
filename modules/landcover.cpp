@@ -507,14 +507,22 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 		}
 	}
 
+	double max_transfer_lc[NLANDCOVERTYPES] = {0.0};
+	for(int i=0; i<nst; i++) {
+		StandType& st = stlist[i];
+		Gridcellst& gcst = gridcell.st[i];
+		max_transfer_lc[st.landcover] += min(gcst.frac, gcst.frac_old);
+	}
+
 	for(int i=0; i<nst; i++) {
 
 		StandType& st = stlist[i];
 		Gridcellst& gcst = gridcell.st[i];
 
 		if(recip_lc_change[st.landcover] > 0.0) {
-			recip_receptor_remain[i] = recip_lc_change[st.landcover] * gcst.frac_old / gridcell.landcover.frac_old[st.landcover];
-			recip_donor_remain[i] = recip_lc_change[st.landcover] * gcst.frac_old / gridcell.landcover.frac_old[st.landcover];
+			double max_transfer_st = min(gcst.frac, gcst.frac_old);
+			recip_receptor_remain[i] = recip_lc_change[st.landcover] * max_transfer_st / max_transfer_lc[st.landcover];
+			recip_donor_remain[i] = recip_lc_change[st.landcover] * max_transfer_st / max_transfer_lc[st.landcover];
 		}
 	}
 

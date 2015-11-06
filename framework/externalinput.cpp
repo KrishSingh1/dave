@@ -504,7 +504,7 @@ void LandcoverInput::get_crop_fractions(Gridcell& gridcell, int year) {
 				}
 			}
 			if(sum) {
-				if(y != year && printyear) {
+				if(y != year && (printyear || !date.year)) {
 					dprintf("WARNING ! crop fraction sum is 0.0 for year %d while LU[CROPLAND] is > 0 !\n", year);
 					dprintf("Using values for year %d.\n", y);					
 				}
@@ -620,7 +620,8 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 	const bool print_adjustment_info = false;
 	Landcover& lc = gridcell.landcover;
 
-	if(!grossLUC.isloaded() || date.year < nyear_spinup + 1)
+	// Transition input must start the year after the first year of net land cover fraction input.
+	if(!grossLUC.isloaded() || date.get_calendar_year() < grossLUC.GetFirstyear())
 		return false;
 
 	//If have not reached second year of simulation (after spin-up) then gross_lc_change_frac must be zero (no land-use change in spin-up).

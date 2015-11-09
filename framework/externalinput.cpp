@@ -620,11 +620,10 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 	const bool print_adjustment_info = false;
 	Landcover& lc = gridcell.landcover;
 
-	// Transition input must start the year after the first year of net land cover fraction input.
-	if(!grossLUC.isloaded() || date.get_calendar_year() < grossLUC.GetFirstyear())
+	if(!grossLUC.isloaded() || date.get_calendar_year() < getfirsthistyear() + 1)
 		return false;
 
-	//If have not reached second year of simulation (after spin-up) then gross_lc_change_frac must be zero (no land-use change in spin-up).
+	// Before second year of net land cover input gross_lc_change_frac must be zero.
 
 	int year = date.get_calendar_year() - 1;
 
@@ -634,7 +633,6 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 	// youngest stands, respectively. Transitions from primary to secondary NATURAL land result 
 	// in killing of vegetation and creating a new NATURAL stand.
 
-	const bool primary_to_secondary = false; // Use transitions from virgin to secondary natural land.
 	double frac_transfer;
 
 	lc.frac_transfer[CROPLAND][PASTURE] += (frac_transfer = grossLUC.Get(year,"cp")) != NOTFOUND ? frac_transfer : 0.0;
@@ -662,7 +660,8 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 		lc.primary_frac_transfer[NATURAL][PASTURE] += (frac_transfer = grossLUC.Get(year,"vp")) != NOTFOUND ? frac_transfer : 0.0;
 		lc.primary_frac_transfer[NATURAL][CROPLAND] += (frac_transfer = grossLUC.Get(year,"vc")) != NOTFOUND ? frac_transfer : 0.0;
 		lc.primary_frac_transfer[NATURAL][BARREN] += (frac_transfer = grossLUC.Get(year,"vb")) != NOTFOUND ? frac_transfer : 0.0;
-		if(primary_to_secondary) {
+		// Use transitions from virgin to secondary natural land.
+		if(ifprimary_to_secondary_transfer) {
 			lc.frac_transfer[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
 			lc.primary_frac_transfer[NATURAL][NATURAL] += (frac_transfer = grossLUC.Get(year,"vs")) != NOTFOUND ? frac_transfer : 0.0;
 		}
@@ -877,6 +876,11 @@ bool LandcoverInput::get_lc_transfer(Gridcell& gridcell) {
 		return true;
 	else
 		return false;
+}
+
+int LandcoverInput::getfirsthistyear() {
+
+	return LUdata.GetFirstyear();
 }
 
 ManagementInput::ManagementInput() {

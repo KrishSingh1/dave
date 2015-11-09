@@ -63,6 +63,7 @@ bool ifintercropgrass;
 bool ifcalcdynamic_phu;
 int gross_land_transfer;
 bool ifprimary_lc_transfer;
+bool ifprimary_to_secondary_transfer;
 int transfer_level;
 bool ifdyn_phu_limit;
 bool iftransfer_to_new_stand;
@@ -437,6 +438,8 @@ void plib_declarations(int id,xtring setname) {
 			"Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); read stand type transfer matrix input file (3), or not (0)");
 		declareitem("ifprimary_lc_transfer",&ifprimary_lc_transfer,1,CB_NONE,
 			"Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)");
+		declareitem("ifprimary_to_secondary_transfer",&ifprimary_to_secondary_transfer,1,CB_NONE,
+			"Whether to use primary-to-secondary land transition info (within land cover type) in landcover transfer input file (1). or not (0)");
 		declareitem("transfer_level",&transfer_level,0,3,1,CB_NONE,"Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level");
 		declareitem("ifdyn_phu_limit",&ifdyn_phu_limit,1,CB_NONE,"Whether to limit dynamic phu calculation to a time period");
 		declareitem("iftransfer_to_new_stand",&iftransfer_to_new_stand,1,CB_NONE,"Whether to create new stands in transfer_to_new_stand()");
@@ -1057,6 +1060,7 @@ void plib_callback(int callback) {
 			if (!itemparsed("ifcalcdynamic_phu")) badins("ifcalcdynamic_phu");
 			if (!itemparsed("gross_land_transfer")) badins("gross_land_transfer");
 			if (!itemparsed("ifprimary_lc_transfer")) badins("ifprimary_lc_transfer");
+			if (!itemparsed("ifprimary_to_secondary_transfer")) badins("ifprimary_to_secondary_transfer");
 			if (!itemparsed("transfer_level")) badins("transfer_level");
 			if (!itemparsed("ifdyn_phu_limit")) badins("ifdyn_phu_limit");
 			if (!itemparsed("iftransfer_to_new_stand")) badins("iftransfer_to_new_stand");

@@ -160,6 +160,9 @@ extern int gross_land_transfer;
 // Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)
 extern bool ifprimary_lc_transfer;
 
+// Whether to use primary-to-secondary land transition info (within land cover type) in landcover transfer input file (1). or not (0)
+extern bool ifprimary_to_secondary_transfer;
+
 // Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
 extern int transfer_level;
 

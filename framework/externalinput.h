@@ -48,6 +48,9 @@ public:
 	 */ 
 	bool get_lc_transfer(Gridcell& gridcell);
 
+	/// Gets first historic year of net land cover fraction input data
+	int getfirsthistyear();
+
 private:
 
 	// Objects handling land cover fraction data input

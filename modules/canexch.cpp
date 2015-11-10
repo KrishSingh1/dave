@@ -1936,7 +1936,8 @@ void leaf_senescence(Vegetation& vegetation) {
 		if (indiv.patchpft().cropphen->dev_stage > 1.0) {
 			const double senNr = 0.1;
 			double senN = senNr * (indiv.nmass_leaf-indiv.cmass_leaf_today() / (indiv.pft.cton_leaf_max));
-			// Senescence is not done during spinup TODO
+
+			// Senescence is not done during spinup
 			if (date.year > nyear_spinup && senN > 0) {
 				indiv.nmass_leaf -= senN;
 				indiv.cropindiv->nmass_agpool += senN;
@@ -1944,6 +1945,7 @@ void leaf_senescence(Vegetation& vegetation) {
 		}
 
 		double r = 0.0;
+
 		// N dependant C mass loss, with an inertia of 1/10, Eq. 13 Olin 2015
 		if (indiv.cmass_leaf_today() > 0.0) {
 			double Ln = indiv.lai_nitrogen_today();

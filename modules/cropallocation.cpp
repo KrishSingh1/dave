@@ -8,7 +8,7 @@
 #include "landcover.h"
 #include "cropallocation.h"
 
-//Seed carbon allocation to leaves and roots are done over a 10-day period
+// Seed carbon allocation to leaves and roots are done over a 10-day period
 const bool DELAYED_SEEDCARBON = false;
 
 /// Updates patch members fpc_total and fpc_rescale for crops (to be called after crop_phenology())
@@ -229,6 +229,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 			indiv.nmass_leaf -= indiv.daily_cmass_leafloss / 100.0;
 		}
 		double new_CN = (cropindiv.grs_cmass_leaf + cropindiv.dcmass_leaf) / indiv.nmass_leaf;
+
 		// If the result is smaller (higher [N]) than the min C:N then that N is
 		// put in to the ag N pool
 		if( new_CN < indiv.pft.cton_leaf_min ) {
@@ -240,15 +241,18 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 		} else {
 			indiv.daily_nmass_leafloss = 0.0;
 		}
+
 		// Very experimental, root senescence
 		// N and C loss when root senescence is allowed (f_HO > 0.5)
 		// d3, the DS after which more than half of the daily assimilates are going to the grains.
 		if(patchpft.cropphen->dev_stage > indiv.pft.d3) {
-			//only have root senescence when leaf scenescence har occured
+
+			// only have root senescence when leaf scenescence has occured
 			if (indiv.daily_nmass_leafloss > 0.0) {
 				double kC = 0.0;
 				double kN = 0.0;
-				//The root senescence is proportional to that of the leaves, Eq. 10 Olin 2015
+
+				// The root senescence is proportional to that of the leaves, Eq. 10 Olin 2015
 				if(indiv.nmass_leaf > 0.0) {
 					kN = indiv.daily_nmass_leafloss / indiv.nmass_leaf;
 				}
@@ -278,8 +282,10 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 
 	if (indiv.daily_nmass_rootloss < indiv.nmass_root) {
 		indiv.nmass_root -= indiv.daily_nmass_rootloss;
-		cropindiv.nmass_agpool += indiv.daily_nmass_rootloss * 0.5; // 50% of the N in the lost root is retranslocated.
-		patch.soil.sompool[SOILMETA].nmass += indiv.daily_nmass_rootloss * 0.5;//The rest is going in to litter.
+
+		// 50% of the N in the lost root is retranslocated, the rest is going to litter.
+		cropindiv.nmass_agpool += indiv.daily_nmass_rootloss * 0.5;
+		patch.soil.sompool[SOILMETA].nmass += indiv.daily_nmass_rootloss * 0.5;
 	}
 	if (indiv.daily_cmass_rootloss > 0.0){
 		patch.is_litter_day = true;
@@ -295,6 +301,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 	cropindiv.ycmass_plant += cropindiv.dcmass_plant;
 
 	cropindiv.grs_cmass_leaf += cropindiv.dcmass_leaf;
+
 	// 40% of the assimilates that goes to stem is put into the fast C pool (Sec. 2.1.1 Olin 2015)
 	cropindiv.grs_cmass_stem += (1.0 - 0.4) * cropindiv.dcmass_stem;
 	cropindiv.ycmass_stem += (1.0 - 0.4) * cropindiv.dcmass_stem;
@@ -315,7 +322,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 	if (avail_N > 0.0 && cropindiv.dcmass_ho > 0.0) {
 		ndemand_ho = cropindiv.dcmass_ho / indiv.pft.cton_leaf_avr;
 	}
-	//N mass to be translocated from leaves and roots
+	// N mass to be translocated from leaves and roots
 	double trans_leaf_N = 0.0;
 	double trans_root_N = 0.0;
 	if (ndemand_ho > 0.0) {
@@ -331,26 +338,31 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 				ndemand_ho = 0.0;
 			}
 		}
-		//"willingness" to let go of the N in the organ to meet the demand from the storage organ, Eq. 17 Olin 2015
+		// "willingness" to let go of the N in the organ to meet the demand from the storage organ, Eq. 17 Olin 2015
 		double y0 = (1.0 / indiv.pft.cton_leaf_min + 1.0 / indiv.pft.cton_leaf_avr) / 2.0;
 		double y = 1.0 / indiv.cton_leaf(false);
 		double y2 = 1.0 / (1.0 * indiv.pft.cton_leaf_max);
 		double z = (y0 - y)/(y0 - y2);
+
 		// The leaves willingness to contribute to meet the storage organs N demand.
 		double w_l = 1.0 - max(0.0, min(1.0, pow(1.0 - z, 2.0)));
 		y0 = 1.0 / indiv.pft.cton_root_avr;
 		y = 1.0 / indiv.cton_root(false);
 		y2 = 1.0 / (1.0 * indiv.pft.cton_root_max);
 		z = (y0 - y) / (y0 - y2);
+
 		// The roots willingness to contribute to meet the storage organs N demand.
 		double w_r = 1.0 - max(0.0, min(1.0, pow(1.0 - z, 2.0)));
 		double w_s = w_r + w_l;
+
 		// The total willingness to contribute to meet the storage organs N demand.
 		double w = min(1.0, w_s);
+
 		// If there is N availble for retranslocation in the roots or leaves
 		if(w_s > 0.0) {
 			trans_leaf_N = max(0.0, w_l * w * ndemand_ho / w_s);
 			trans_root_N = max(0.0, w_r * w * ndemand_ho / w_s);
+
 			// Compare the N the organ is willing to let go of to N available in the organ, based on the C:N.
 			if(trans_leaf_N > avail_leaf_N) {
 				trans_leaf_N = avail_leaf_N;
@@ -765,7 +777,7 @@ void allometry_crop(Individual& indiv) {
 
 			Gridcell& gridcell = indiv.vegetation.patch.stand.get_gridcell();
 
-			//First look in PASTURE.
+			// First look in PASTURE.
 			if(gridcell.landcover.frac[PASTURE] > 0.0) {
 
 				for(unsigned int i = 0; i < gridcell.size() && !done; i++) {
@@ -839,7 +851,7 @@ void allometry_crop(Individual& indiv) {
 					done = true;
 			}
 
-			//If no grass stand found in either cropland or pasture, use laimax value.
+			// If no grass stand found in either cropland or pasture, use laimax value.
 			if(!done) {
 
 				double highest_grass_lai = 0.0;
@@ -940,7 +952,7 @@ void growth_crop_year(Individual& indiv, double& cmass_leaf_inc, double& cmass_r
 // Neitsch SL, Arnold JG, Kiniry JR et al.2002 Soil and Water Assessment Tool, Theorethical
 //   Documentation + User's Manual. USDA_ARS-SR Grassland, Soil and Water Research Laboratory.
 //   Agricultural Reasearch Service, Temple,Tx, US.
-// S. Olin, G. Schurgers, M. Lindeskog, D. Wårlind, B. Smith, P. Bodin, J. Holmér, and A. Arneth. 2015
+// S. Olin, G. Schurgers, M. Lindeskog, D. Wï¿½rlind, B. Smith, P. Bodin, J. Holmï¿½r, and A. Arneth. 2015
 //   Biogeosciences 12, 2489-2515. Modelling the response of yields and tissue C:N to changes in
 //   atmospheric CO2 and N management in the main wheat regions of western Europe
    

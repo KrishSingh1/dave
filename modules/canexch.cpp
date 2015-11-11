@@ -62,6 +62,10 @@ LookupQ10 lookup_kc(2.1, 30.0);
 ///////////////////////////////////////////////////////////////////////////////////////
 // INTERCEPTION
 
+/// Daily loss of water and energy through evaporation of rain or snow intercepted by the vegetation canopy
+/** Gerten et al. (2004) Eq 2-4.
+
+  */
 void interception(Patch& patch,Climate& climate) {
 
 	// Calculates daily loss of water and energy through evaporation of rainfall
@@ -2142,6 +2146,9 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 // Friend, A. D., Stevens, A. K., Knox, R. G. & Cannell, M. G. R. 1997. A
 //   process-based, terrestrial biosphere model of ecosystem dynamics
 //   (Hybrid v3.0). Ecological Modelling, 95, 249-287.
+// Gerten, D., Schaphoff, S., Haberlandt, U., Lucht, W. & Sitch, S. 2004.
+//   Terrestrial vegetation and water balance - hydrological evaluation of a
+//   dynamic global vegetation model. Journal of Hydrology 286: 249-270.
 // Haxeltine A & Prentice IC 1996a BIOME3: an equilibrium terrestrial biosphere
 //   model based on ecophysiological constraints, resource availability, and
 //   competition among plant functional types. Global Biogeochemical Cycles 10:

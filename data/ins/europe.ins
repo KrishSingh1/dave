@@ -87,6 +87,9 @@ ifcalccton 1          ! whether to calculate leaf C:N min from leaf longevity
                       ! (PFT-specific value can be specified in this file instead)
 iffire 1              ! whether to implement fire (1) or not (0)
 npatch 25             ! number of replicate patches to simulate
+npatch_secondarystand 1	! number of replicate patches to simulate in secondary stands
+reduce_all_stands 0		! Whether to reduce equal percentage of all stands of a stand type at land cover change
+age_limit_reduce 5		! Minimum age of stands to reduce at land cover change
 patcharea 1000        ! patch area (m2)
 estinterval 5         ! years between establishment events in cohort mode
 ifdisturb 1           ! whether generic patch-destroying disturbances enabled
@@ -99,6 +102,7 @@ ifstochmort 1         ! whether mortality stochastic
 ifcdebt 1             ! whether to allow vegetation C storage (1) or not (0)
 wateruptake "rootdist"! "wcont", "rootdist", "smart" or "speciesspecific",
                       ! see documentation for water_uptake()
+textured_soil 1	      ! whether to use silt/sand fractions specific to soiltype
 
 !///////////////////////////////////////////////////////////////////////////////
 ! PROCESS SETTINGS SPECIFIC TO NITROGEN
@@ -132,22 +136,6 @@ ifbvoc 0              ! whether to include BVOC calculations (1) or not (0)
 
 run_landcover 0        ! whether to use (and change) landcover fractions (1) or not (0)						
 
-run_urban 0	      ! whether to simulate barren land (1) or not (0)	
-run_crop 1	      ! whether to simulate crop vegetation (1) or not (0)
-run_forest 0	      ! whether to simulate managed forest (1) or not (0)
-run_pasture 0	      ! whether to simulate pasture (1) or not (0)
-run_natural 1	      ! whether to simulate natural vegetation (1) or not (0)
-run_peatland 1	      ! whether to simulate peatland (1) or not (0)
-
-lcfrac_fixed 0        	! use landcover fractions (%) below (1) or read from input file (0)
-lc_fixed_urban 0   	! URBAN
-lc_fixed_cropland 50	! CROPLAND
-lc_fixed_pasture 0   	! PASTURE
-lc_fixed_forest 0   	! FOREST
-lc_fixed_natural 25 	! NATURAL
-lc_fixed_peatland 25 	! PEATLAND
-equal_landcover_area 0	! divide gridcell into equal active landcover fractions
-
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -167,7 +155,8 @@ group "common" (
 	! default value - ensures that this has little effect even if  
 	! ifdroughtlimitedestab is turned on
 	landcover "natural"
-	turnover_harv_prod 1
+	harv_eff 0
+	res_outtake 0
 )
 
 
@@ -194,10 +183,11 @@ group "tree" (
 	kest_pres 1
 	litterme 0.3
 	rootdist 0.6 0.4
-	harv_eff 0.7
+
+	harv_eff 0.95
 	res_outtake 0.75
-	harvest_slow_frac 0.33
-	turnover_harv_prod 0.04
+	turnover_harv_prod 0.04 ! Turnover rate for long-lived harvested products (wood) : 0.04 corresponds to a 25-year turnover time (as in Bondeau 2007)
+	harvest_slow_frac 0.33	! Bondeau 0.33
 )
 
 group "shrub" (
@@ -224,6 +214,9 @@ group "shrub" (
 	litterme 0.3
 	rootdist 0.6 0.4
 	longevity 100
+
+	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time
+	harvest_slow_frac 0
 )
 
 group "needle_leaved" (
@@ -257,6 +250,8 @@ group "grass" (
 	respcoeff 1.0 ! PM_Dec2012, was 2.0 
 	litterme 0.2
 	ga 0.030
+	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time for GRASS
+	harvest_slow_frac 0
 )
 
 
@@ -1032,8 +1027,7 @@ pft "Ulm_gla" (
 	storfrac_mon 0.
 )
 
-
-pft "C3_gr" (
+group "C3G" (
 
 	include 1
 	grass
@@ -1063,10 +1057,14 @@ pft "C3_gr" (
 	seas_iso 1
 	eps_mon 1.0
 	storfrac_mon 0.5
+	harv_eff 0.5
 )
 
+pft "C3_gr" (
+	C3G
+)
 
-pft "C4_gr" (
+group "C4G" (
 
 	include 0
 	grass
@@ -1095,8 +1093,12 @@ pft "C4_gr" (
 	seas_iso 1
 	eps_mon 1.0
 	storfrac_mon 0.5
+	harv_eff 0.5
 )
 
+pft "C4_gr" (
+	C4G
+)
 
 ! Reference: Savill's silviculture book:
 ! The Silviculture of Trees used in British Forestry, Peter S. Savill 

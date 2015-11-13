@@ -778,7 +778,7 @@ public:
 				mprec_20[m][y] = 0.0;
 				mpet_20[m][y] = 0.0;
 				mprec_pet_20[m][y] = 0.0;
-			}		
+			}
 		}
 
 		for(int y=0;y<20;y++) {
@@ -1417,6 +1417,9 @@ public:
 	/// N limited version of pft
 	bool nlim;
 
+	double avg_cton(const double& min, const double& max) {
+		return 2.0 / (1. / min + 1. / max);
+	}
 	// MEMBER FUNCTIONS
 
 public:
@@ -1520,7 +1523,6 @@ public:
 
 	/// Calculates minimum leaf C:N ratio given leaf longevity
 	void init_cton_min() {
-
 		// cton_leaf_min has to be supplied in the insfile for crops with N limitation
 		if (!(phenology == CROPGREEN && ifnlim)) {
 			// Reich et al 1992, Table 1 (includes conversion x500 from mg/g_dry_weight to
@@ -1548,28 +1550,35 @@ public:
 		cton_leaf_max = cton_leaf_min * frac_mintomax;
 
 		// Average leaf C:N ratio
-		cton_leaf_avr = 1.0 / ((1.0 / cton_leaf_min + 1.0 / cton_leaf_max) / 2.0);
+		cton_leaf_avr = avg_cton(cton_leaf_min, cton_leaf_max);
 
-		// Average fine root C:N ratio
-		cton_root_avr = cton_leaf_avr * frac_leaftoroot;
+		// Tighter C:N ratio range for roots and sapwood: picked out thin air
+		double frac_maxtomin = .9;
 
 		// Maximum fine root C:N ratio
-		cton_root_max = cton_leaf_min * frac_leaftoroot * frac_mintomax;
+		cton_root_max = cton_leaf_max * frac_leaftoroot;
 
-		// Average sap C:N ratio
-		cton_sap_avr  = cton_leaf_avr * frac_leaftosap;
+		double cton_root_min = cton_root_max * frac_maxtomin;
+
+		// Average fine root C:N ratio
+		cton_root_avr = avg_cton(cton_root_min, cton_root_max);
 
 		// Maximum sap C:N ratio
-		cton_sap_max  = cton_leaf_min * frac_leaftosap * frac_mintomax;
+		cton_sap_max  = cton_leaf_max * frac_leaftosap;
 
+		double cton_sap_min = cton_sap_max * frac_maxtomin;
+
+		// Average sap C:N ratio
+		cton_sap_avr  = avg_cton(cton_sap_min, cton_sap_max);
+
+		if (lifeform == GRASS) {
+			respcoeff /= 2.0 * cton_root / (cton_root_avr + cton_root_min);
+		} else {
+			respcoeff /= cton_root / (cton_root_avr + cton_root_min) +
+			             cton_sap  / (cton_sap_avr  + cton_sap_min);
+		}
 		cton_stem_max = 1.0/(2.0*0.0034); //Maize params
 		cton_stem_avr = 1.0/(2.0*0.0068);
-
-		if (lifeform == GRASS)
-			respcoeff /= 2.0 * cton_root / (cton_root_avr + cton_leaf_min * frac_leaftoroot);
-		else
-			respcoeff /= cton_root / (cton_root_avr + cton_leaf_min * frac_leaftoroot) +
-			             cton_sap  / (cton_sap_avr  + cton_leaf_min * frac_leaftosap);
 	}
 
 	/// Calculates coefficient to compensate for different vertical distribution of fine root on nitrogen uptake
@@ -1648,6 +1657,7 @@ public:
  */
 class Pftlist : public ListArray_id<Pft> {
 
+/// The one and only linked list of Pft objects
 public:
 	int getpftid(xtring pftname) {
 
@@ -1666,7 +1676,6 @@ public:
 	}
 };
 
-/// The one and only linked list of Pft objects
 extern Pftlist pftlist;
 
 /// Container for crop-specific data at the individual level
@@ -1936,11 +1945,11 @@ public:
 
 	/// leaf N biomass on modelled area basis (kgN/m2)
 	double nmass_leaf;
-	/// root N biomass on modelled area basis (kgN/m2)
+	/// root N biomass on modelled area basis (kgC/m2)
 	double nmass_root;
-	/// sap N biomass on modelled area basis (kgN/m2)
+	/// sap N biomass on modelled area basis (kgC/m2)
 	double nmass_sap;
-	/// heart N biomass on modelled area basis (kgN/m2)
+	/// heart N biomass on modelled area basis (kgC/m2)
 	double nmass_heart;
 
 	/// leaf N biomass on modelled area basis saved on first day of land use change year

@@ -1044,7 +1044,7 @@ void leaching(Soil& soil) {
 
 		// Leaching from decayed organic carbon/nitrogen
 		// using Parton et al. eqn. 8
-		soil.orgleachfrac = min(1.0, soil.dperc * 0.1 / 18.0 * (0.01 + 0.04 * soil.soiltype.sand_frac) * 12.0 / 365.0);
+		soil.orgleachfrac = min(1.0, soil.dperc * 0.1 / 18.0 * (0.01 + 0.04 * soil.soiltype.sand_frac));
 	}
 	else {
 		minleachfrac = 0.0;

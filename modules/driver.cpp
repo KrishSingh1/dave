@@ -633,7 +633,19 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 		// reset annual nitrogen input variables
 		climate.andep  = 0.0;
-		climate.anfert = 0.0;
+
+		// reset gridcell-level harvest fluxes
+		gridcell.landcover.acflux_landuse_change=0.0;
+		gridcell.landcover.acflux_harvest_slow=0.0;
+		gridcell.landcover.anflux_landuse_change=0.0;
+		gridcell.landcover.anflux_harvest_slow=0.0;
+
+		for(int i=0;i<NLANDCOVERTYPES;i++) {
+			gridcell.landcover.acflux_landuse_change_lc[i]=0.0;
+			gridcell.landcover.acflux_harvest_slow_lc[i]=0.0;
+			gridcell.landcover.anflux_landuse_change_lc[i]=0.0;
+			gridcell.landcover.anflux_harvest_slow_lc[i]=0.0;
+		}
 
 		if (date.year == 0) {
 			// First day of simulation - initialise running annual mean temperature and daily temperatures for the last month
@@ -655,6 +667,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 		// Belongs perhaps in dailyaccounting_patch, but needs to be done before
 		// landcover_dynamics because harvest flux is generated there.
+		// N-flux variables moved here for easier balance accounting
 		Gridcell::iterator gc_itr = gridcell.begin();
 		while (gc_itr != gridcell.end()) {
 			Stand& stand = *gc_itr;
@@ -664,6 +677,9 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 				Patch& patch = stand.getobj();
 
 				patch.fluxes.reset();
+				patch.soil.anfix = 0.0;
+				patch.soil.aorgleach = 0.0;
+				patch.anfert = 0.0;
 				stand.nextobj();
 			}
 
@@ -698,12 +714,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		respiration_temperature_response(climate.temp, climate.gtemp);
 	}
 
-///	if (run_landuse && run_crop)
-///		dailyaccounting_gridcell_crop(gridcell,pftlist);
-
 	// Sum annual nitrogen addition to system
 	climate.andep  += climate.dndep;
-	climate.anfert += climate.dnfert;
 
 	// Save yesterday's mean temperature for the last month
 	mtemp_last = climate.mtemp;
@@ -711,6 +723,9 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	// Update daily temperatures, and mean overall temperature, for last 31 days
 	climate.dtemp_31.add(climate.temp);
 	climate.mtemp = climate.dtemp_31.mean();
+
+	climate.dprec_31.add(climate.prec);
+	climate.deet_31.add(climate.eet);
 
 	// Reset GDD and chill day counter if mean monthly temperature falls below base
 	// temperature
@@ -757,29 +772,39 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			climate.mtemp_min_20[19] = climate.mtemp_min;
 			climate.mtemp_max_20[19] = climate.mtemp_max;
 		}
+		climate.hmtemp_20[date.month].add(climate.dtemp_31.periodicmean(date.ndaymonth[date.month]));
+		climate.hmprec_20[date.month].add(climate.dprec_31.periodicsum(date.ndaymonth[date.month]));
+		climate.hmeet_20[date.month].add(climate.deet_31.periodicsum(date.ndaymonth[date.month]));
 	}
 }
 
 void dailyaccounting_stand(Stand& stand) {
 }
 
+/// Manages C and N fluxes from slow harvest pools
 void dailyaccounting_patch_lc(Patch& patch) {
-	if(date.day == 0) {
-		if(ifslowharvestpool) {
-			pftlist.firstobj();
-			while(pftlist.isobj) {
-				Pft& pft = pftlist.getobj();
-				Patchpft& patchpft = patch.pft[pft.id];
 
-				patch.fluxes.report_flux(Fluxes::HARVESTC, patchpft.harvested_products_slow*pft.turnover_harv_prod);
-				patchpft.harvested_products_slow = patchpft.harvested_products_slow * (1 - pft.turnover_harv_prod);
+	if (date.day > 0 || !ifslowharvestpool) {
+		return;
+	}
 
-				patch.fluxes.report_flux(Fluxes::HARVESTN, patchpft.harvested_products_slow_nmass*pft.turnover_harv_prod);
-				patchpft.harvested_products_slow_nmass = patchpft.harvested_products_slow_nmass * (1 - pft.turnover_harv_prod);
+	Landcover& lc = patch.stand.get_gridcell().landcover;
+	double scale = patch.stand.get_gridcell_fraction() / (double)patch.stand.nobj;
 
-				pftlist.nextobj();
-			}
-		}
+	pftlist.firstobj();
+	while(pftlist.isobj) {				// NB. also inactive pft's
+		Pft& pft = pftlist.getobj();
+		Patchpft& ppft = patch.pft[pft.id];
+
+		lc.acflux_harvest_slow += ppft.harvested_products_slow * pft.turnover_harv_prod * scale;
+		lc.acflux_harvest_slow_lc[patch.stand.landcover] += ppft.harvested_products_slow * pft.turnover_harv_prod * scale;
+		ppft.harvested_products_slow = ppft.harvested_products_slow * (1 - pft.turnover_harv_prod);
+
+		lc.anflux_harvest_slow += ppft.harvested_products_slow_nmass * pft.turnover_harv_prod * scale;
+		lc.anflux_harvest_slow_lc[patch.stand.landcover] += ppft.harvested_products_slow_nmass * pft.turnover_harv_prod * scale;
+		ppft.harvested_products_slow_nmass = ppft.harvested_products_slow_nmass * (1 - pft.turnover_harv_prod);
+
+		pftlist.nextobj();
 	}
 }
 
@@ -798,7 +823,7 @@ void dailyaccounting_patch(Patch& patch) {
 
 		patch.aaet = 0.0;
 		patch.aintercep = 0.0;
-		patch.apet=0.0;
+		patch.apet = 0.0;
 
 		// Calculate total FPC
 		patch.fpc_total = 0;
@@ -853,6 +878,9 @@ void dailyaccounting_patch(Patch& patch) {
 
 	if (date.islastday)
 		soil.mtemp = mean(soil.dtemp,date.ndaymonth[date.month]);
+
+	patch.is_litter_day = false;
+	patch.isharvestday = false;
 }
 
 

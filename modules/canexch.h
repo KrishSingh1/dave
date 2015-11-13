@@ -22,9 +22,12 @@
 void interception(Patch& patch, Climate& climate);
 void canopy_exchange(Patch& patch, Climate& climate);
 void photosynthesis(double co2, double temp, double par, double daylength,
-					double fpar, double lambda, const Pft& pft, 
+					double fpar, double lambda, const Pft& pft,
 					double nactive, bool ifnlimvmax,
 					PhotosynthesisResult& result, double vm);
+
+/// Nitrogen- and landuse specific alpha a
+double alphaa(const Pft& pft);
 
 // Constants for photosynthesis calculations
 
@@ -52,15 +55,18 @@ const double BC3 = 0.015;
 /// leaf respiration as fraction of maximum rubisco, C4 plants
 const double BC4 = 0.02;
 
-const double CMASS = 12.0;		 // atomic mass of carbon
-const double ALPHAA = 0.55;		 // value chosen to give global carbon pool and flux values that
-								 // agree with published estimates.
-								 // scaling factor for PAR absorption from leaf to plant projective area level
-								 // alias "twigloss". Should normally be in the range 0-1
+const double CMASS = 12.0;		// atomic mass of carbon
+const double ALPHAA = 0.55;		// value chosen to give global carbon pool and flux values that
+								// agree with published estimates.
+								// scaling factor for PAR absorption from leaf to plant projective area level
+								// alias "twigloss". Should normally be in the range 0-1
 
-const double ALPHAA_NLIM = 0.7;  // Same as ALPHAA above but chosen to give pools and flux values
-								 // that agree with published estimates when Nitrogen limitation is
-								 // switched on.
+const double ALPHAA_NLIM = 0.7; // Same as ALPHAA above but chosen to give pools and flux values
+								// that agree with published estimates when Nitrogen limitation is
+								// switched on.
+
+const double ALPHAA_CROP = 0.75;		// Value for crops without N limitation.
+const double ALPHAA_CROP_NLIM = 1.0;	// Value for crops with N limitation
 
 /// Lambert-Beer extinction law (Prentice et al 1993; Monsi & Saeki 1953)
 inline double lambertbeer(double lai) {

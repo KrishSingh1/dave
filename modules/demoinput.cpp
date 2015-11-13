@@ -37,51 +37,39 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 
 } // namespace
 
-
-DemoInput::DemoInput() 
-	: nyear(1),
-	  lc_fixed_frac(NLANDCOVERTYPES, 0),
-	  equal_landcover_area(false) {
+DemoInput::DemoInput()
+	: nyear(1) {
 
 	// Declare instruction file parameters
-
 	declare_parameter("nyear", &nyear, 1, 10000, "Number of simulation years to run after spinup");
-
-	declare_parameter("equal_landcover_area", &equal_landcover_area, "Whether enforced static landcover fractions are equal-sized stands of all included landcovers (0,1)");
-	declare_parameter("lc_fixed_urban", &lc_fixed_frac[URBAN], 0, 100, "% lc_fixed_urban");
-	declare_parameter("lc_fixed_cropland", &lc_fixed_frac[CROPLAND], 0, 100, "% lc_fixed_cropland");
-	declare_parameter("lc_fixed_pasture", &lc_fixed_frac[PASTURE], 0, 100, "% lc_fixed_pasture");
-	declare_parameter("lc_fixed_forest", &lc_fixed_frac[FOREST], 0, 100, "% lc_fixed_forest");
-	declare_parameter("lc_fixed_natural", &lc_fixed_frac[NATURAL], 0, 100, "% lc_fixed_natural");
-	declare_parameter("lc_fixed_peatland", &lc_fixed_frac[PEATLAND], 0, 100, "% lc_fixed_peatland");
 }
 
-
-void DemoInput::read_from_file(Coord coord, xtring fname, const char* format,
+bool DemoInput::read_from_file(Coord coord, xtring fname, const char* format,
                                double monthly[12], bool soil /* = false */) {
-		double dlon, dlat;
-		int elev;
-		FILE* in = fopen(fname, "r");
-		if (!in) {
-			fail("readenv: could not open %s for input", (char*)fname);
-		}
+	double dlon, dlat;
+	int elev;
+	FILE* in = fopen(fname, "r");
+	if (!in) {
+		fail("readenv: could not open %s for input", (char*)fname);
+	}
 
-		bool foundgrid = false;
-		while (!feof(in) && !foundgrid) {
-			if (!soil) {
-				readfor(in, format, &dlon, &dlat, &elev, monthly);
-			} else {
-				readfor(in, format, &dlon, &dlat, &soilcode);
-			}
-			foundgrid = equal(coord.lon, dlon) && equal(coord.lat, dlat);
+	bool foundgrid = false;
+	while (!feof(in) && !foundgrid) {
+		if (!soil) {
+			readfor(in, format, &dlon, &dlat, &elev, monthly);
+		} else {
+			readfor(in, format, &dlon, &dlat, &soilcode);
 		}
+		foundgrid = equal(coord.lon, dlon) && equal(coord.lat, dlat);
+	}
 
 
-		fclose(in);
-		if (!foundgrid) {
-			fail("readenv: could not find record for (%g,%g) in %s",
-				coord.lon, coord.lat, (char*)fname);
-		}
+	fclose(in);
+	if (!foundgrid) {
+		dprintf("readenv: could not find record for (%g,%g) in %s",
+										coord.lon, coord.lat, (char*)fname);
+	}
+	return foundgrid;
 }
 
 bool DemoInput::readenv(Coord coord, long& seed) {
@@ -144,21 +132,26 @@ bool DemoInput::readenv(Coord coord, long& seed) {
 		}
 	}
 
-	read_from_file(coord, file_temp, "f6.2,f5.2,i4,12f4.1", mtemp);
-	read_from_file(coord, file_prec, "f6.2,f5.2,i4,12f4", mprec);
-	read_from_file(coord, file_sun, "f6.2,f5.2,i4,12f3", msun);
-	read_from_file(coord, file_soil, "f,f,i", msun, true);	// msun is not used here: just dummy
+	bool gridfound = read_from_file(coord, file_temp, "f6.2,f5.2,i4,12f4.1", mtemp);
+	if(gridfound)
+		gridfound = read_from_file(coord, file_prec, "f6.2,f5.2,i4,12f4", mprec);
+	if(gridfound)
+		gridfound = read_from_file(coord, file_sun, "f6.2,f5.2,i4,12f3", msun);
+	if(gridfound)
+		gridfound = read_from_file(coord, file_soil, "f,f,i", msun, true);	// msun is not used here: just dummy
 
-	// Interpolate monthly values for environmental drivers to daily values
-	// (relevant daily values will be sent to the framework each simulation
-	// day in function getclimate, below)
-	interp_climate(mtemp, mprec, msun, mdtr, dtemp, dprec, dsun, ddtr);
+	if(gridfound) {
+		// Interpolate monthly values for environmental drivers to daily values
+		// (relevant daily values will be sent to the framework each simulation
+		// day in function getclimate, below)
+		interp_climate(mtemp, mprec, msun, mdtr, dtemp, dprec, dsun, ddtr);
 
-	// Recalculate precipitation values using weather generator
-	// (from Dieter Gerten 021121)
-	prdaily(mprec, dprec, mwet, seed);
+		// Recalculate precipitation values using weather generator
+		// (from Dieter Gerten 021121)
+		prdaily(mprec, dprec, mwet, seed);
+	}
 
-	return true;
+	return gridfound;
 }
 
 
@@ -184,9 +177,11 @@ void DemoInput::init() {
 	FILE* in_grid=fopen(file_gridlist,"r");
 	if (!in_grid) fail("initio: could not open %s for input",(char*)file_gridlist);
 
-	ngridcell=0;
+	gridlist.killall();
+	first_call = true;
+
 	while (!eof) {
-		
+
 		// Read next record in file
 		eof=!readfor(in_grid,"f,f,a#",&dlon,&dlat,&descrip);
 
@@ -196,7 +191,6 @@ void DemoInput::init() {
 			c.lon=dlon;
 			c.lat=dlat;
 			c.descrip=descrip;
-			ngridcell++;
 		}
 	}
 
@@ -209,35 +203,10 @@ void DemoInput::init() {
 	// Retrieve specified N value as read from ins file
 	ndep=param["ndep"].num;
 
-	if (run_landcover) {
-		all_fracs_const=true;	//If any of the opened files have yearly data, all_fracs_const will be set to false and landcover_dynamics will call get_landcover() each year
-
-		//Retrieve file names for landcover files and open them if static values from ins-file are not used !
-		if (!lcfrac_fixed) {	//This version does not support dynamic landcover fraction data
-
-			if (run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST]) {
-				file_lu=param["file_lu"].str;
-#if defined DYNAMIC_LANDCOVER_INPUT
-				if(!LUdata.Open(file_lu))				//Open Bondeau area fraction file, returned false if problem
-					fail("initio: could not open %s for input",(char*)file_lu);
-				else if(LUdata.format==LOCAL_YEARLY)
-					all_fracs_const=false;				//Set all_fracs_const to false if yearly data
-#endif
-			}
-
-			if (run[PEATLAND]) {	//special case for peatland: separate fraction file
-				file_peat=param["file_peat"].str;
-#if defined DYNAMIC_LANDCOVER_INPUT				
-				if(!Peatdata.Open(file_peat))			//Open peatland area fraction file, returned false if problem
-					fail("initio: could not open %s for input",(char*)file_peat);
-				else if(Peatdata.format==LOCAL_YEARLY)
-					all_fracs_const=false;				//Set all_fracs_const to false if yearly data
-#endif
-			}
-
-		}
-	}
-
+	// Open landcover files
+	landcover_input.init();
+	// Open management files
+	management_input.init();
 
 	// Retrieve input file names as read from ins file
 
@@ -254,38 +223,6 @@ void DemoInput::init() {
 	tmute.settimer(MUTESEC);
 }
 
-bool DemoInput::loadlandcover(Gridcell& gridcell, Coord c)	{
-	bool LUerror=false;
-
-	if (!lcfrac_fixed) {
-		// Landcover fraction data: read from land use fraction file; dynamic, so data for all years are loaded to LUdata object and 
-		// transferred to gridcell.landcoverfrac each year in getlandcover()
-
-		if (run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST]) {
-#if defined DYNAMIC_LANDCOVER_INPUT					
-			if (!LUdata.Load(c))		//Load area fraction data from Bondeau input file to data object
-			{
-				dprintf("Problems with landcover fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
-				LUerror=true;		// skip this stand
-			}
-#endif
-		}
-
-		if (run[PEATLAND] && !LUerror) {
-#if defined DYNAMIC_LANDCOVER_INPUT
-			if(!Peatdata.Load(c))	//special case for peatland: separate fraction file
-			{
-				dprintf("Problems with natural fractions input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n",c.lon,c.lat);
-				LUerror=true;	// skip this stand						
-			}
-#endif
-		}
-	}
-
-	return LUerror;
-}
-
-
 bool DemoInput::getgridcell(Gridcell& gridcell) {
 
 	// See base class for documentation about this function's responsibilities
@@ -297,7 +234,6 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 
 	// Make sure we use the first gridcell in the first call to this function,
 	// and then step through the gridlist in subsequent calls.
-	static bool first_call = true;
 
 	if (first_call) {
 		gridlist.firstobj();
@@ -316,31 +252,32 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 			Coord& c = gridlist.getobj();
 
 			// Load environmental data for this grid cell from files
-			// (these will be the same for every year of the simulation, but must be sent
-			// anew to the framework each year in function getclimate, below)
 			if(run_landcover) {
-				LUerror = loadlandcover(gridcell, c);
+				LUerror = landcover_input.loadlandcover(gridlist.getobj().lon, gridlist.getobj().lat);
+				if(!LUerror)
+					LUerror = management_input.loadmanagement(gridlist.getobj().lon, gridlist.getobj().lat);
 			}
 			if (!LUerror) {
 				gridfound = readenv(c, gridcell.seed);
 			} else {
 				gridlist.nextobj();
+				if(!gridlist.isobj)
+					return false;
 			}
 		}
-
 
 		dprintf("\nCommencing simulation for stand at (%g,%g)",gridlist.getobj().lon,
 			gridlist.getobj().lat);
 		if (gridlist.getobj().descrip!="") dprintf(" (%s)\n\n",
 			(char*)gridlist.getobj().descrip);
 		else dprintf("\n\n");
-		
+
 		// Tell framework the coordinates of this grid cell
 		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
 
 		// The insolation data will be sent (in function getclimate, below)
 		// as percentage sunshine
-		
+
 		gridcell.climate.instype=SUNSHINE;
 
 		// Tell framework the soil type of this grid cell
@@ -348,7 +285,7 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 
 		// For Windows shell - clear graphical output
 		// (ignored on other platforms)
-		
+
 		clear_all_graphs();
 
 		return true; // simulate this stand
@@ -359,196 +296,10 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 
 
 void DemoInput::getlandcover(Gridcell& gridcell) {
-	int i, year;
-	double sum=0.0, sum_tot=0.0, sum_active=0.0;
 
-	if(date.year<nyear_spinup)					//Use values for first historic year during spinup period !
-		year=0;
-	else if(date.year>=nyear_spinup+NYEAR_LU)	//AR4 adaptation
-	{
-//		dprintf("setting LU data for scenario period\n");
-		year=NYEAR_LU-1;
-	}
-	else
-		year=date.year-nyear_spinup;
-
-	if(lcfrac_fixed)	// If area fractions are set in the ins-file.
-	{
-		if(date.year==0) // called by landcover_init
-		{
-			int nactive_landcovertypes=0;
-
-			if(equal_landcover_area)
-			{
-				for(i=0;i<NLANDCOVERTYPES;i++)
-				{
-					if(run[i])
-						nactive_landcovertypes++;
-				}
-			}
-
-			for(i=0;i<NLANDCOVERTYPES;i++)
-			{
-				if(equal_landcover_area)
-				{
-					sum_active+=gridcell.landcoverfrac[i]=1.0*run[i]/(double)nactive_landcovertypes;	// only set fractions that are active !
-					sum_tot=sum_active;
-				}
-				else
-				{
-					sum_tot+=gridcell.landcoverfrac[i]=(double)lc_fixed_frac[i]/100.0;					//count sum of all fractions (should be 1.0)
-
-					if(gridcell.landcoverfrac[i]<0.0 || gridcell.landcoverfrac[i]>1.0)					//discard unreasonable values
-					{
-						if(date.year==0)
-							dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
-						sum_tot-=gridcell.landcoverfrac[i];
-						gridcell.landcoverfrac[i]=0.0;
-					}
-
-					sum_active+=gridcell.landcoverfrac[i]=run[i]*gridcell.landcoverfrac[i];				//only set fractions that are active !
-				}
-			}
-			
-			if(sum_tot<0.99 || sum_tot>1.01)	// Check input data, rescale if sum !=1.0
-			{
-				sum_active=0.0;		//reset sum of active landcover fractions
-				if(date.year==0)
-					dprintf("WARNING ! landcover fixed fraction sum is %4.2f, rescaling landcover fractions !\n", sum_tot);
-
-				for(i=0;i<NLANDCOVERTYPES;i++)
-					sum_active+=gridcell.landcoverfrac[i]/=sum_tot;
-			}
-
-			//NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
-			if(sum_active<0.99)	//if landcover types are turned off in the ini-file, always <=1.0 here
-			{
-				if(date.year==0)
-					dprintf("WARNING ! landcover active fraction sum is %4.2f.\n", sum_active);
-
-				if(run[NATURAL])	//Transfer landcover areas not simulated to NATURAL fraction, if simulated.
-				{
-					if(date.year==0)
-						dprintf("Inactive fractions (%4.2f) transferred to NATURAL fraction.\n", 1.0-sum_active);
-
-					gridcell.landcoverfrac[NATURAL]+=1.0-sum_active;	// difference 1.0-(sum of active landcover fractions) are added to the natural fraction
-				}
-				else
-				{
-/*					if(date.year==0)
-						dprintf("Rescaling landcover fractions !\n");
-					for(i=0;i<NLANDCOVERTYPES;i++)
-						gridcell.landcoverfrac[i]/=sum_active;			// if NATURAL not simulated, rescale active fractions to 1.0
-*/					if(date.year==0)
-						dprintf("Non-unity fraction sum retained.\n");				// OR let sum remain non-unity
-				}
-																	
-			}
-		}
-	}
-	else	//area fractions are read from input file(s);
-	{
-		if(run[URBAN] || run[CROPLAND] || run[PASTURE] || run[FOREST])
-		{	
-
-			for(i=0;i<PEATLAND;i++)		//peatland fraction data is not in this file, otherwise i<NLANDCOVERTYPES.
-			{	
-#if defined DYNAMIC_LANDCOVER_INPUT
-				sum_tot+=gridcell.landcoverfrac[i]=LUdata.Get(year,i);					//count sum of all fractions (should be 1.0)
-#endif
-				if(gridcell.landcoverfrac[i]<0.0 || gridcell.landcoverfrac[i]>1.0)			//discard unreasonable values
-				{		
-					if(date.year==0)
-						dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
-					sum_tot-=gridcell.landcoverfrac[i];
-					gridcell.landcoverfrac[i]=0.0;
-				}
-
-				sum_active+=gridcell.landcoverfrac[i]=run[i]*gridcell.landcoverfrac[i];
-			}
-
-			if(sum_tot!=1.0)		// Check input data, rescale if sum !=1.0
-			{
-				sum_active=0.0;		//reset sum of active landcover fractions
-
-				if(sum_tot<0.99 || sum_tot>1.01)
-				{
-					if(date.year==0)
-					{
-						dprintf("WARNING ! landcover fraction sum is %4.2f for year %d\n", sum_tot, year);
-						dprintf("Rescaling landcover fractions year %d ! (sum is beyond 0.99-1.01)\n", date.year);
-					}
-				}
-				else				//added scaling to sum=1.0 (sum often !=1.0)
-					dprintf("Rescaling landcover fractions year %d ! (sum is within 0.99-1.01)\n", date.year);
-
-				for(i=0;i<PEATLAND;i++)
-					sum_active+=gridcell.landcoverfrac[i]/=sum_tot;
-			}
-		}
-		else
-			gridcell.landcoverfrac[NATURAL]=0.0;
-
-		if(run[PEATLAND])
-		{
-#if defined DYNAMIC_LANDCOVER_INPUT
-			sum_active+=gridcell.landcoverfrac[PEATLAND]=Peatdata.Get(year,"PEATLAND");			//peatland fraction data is currently in a separate file !
-#endif
-		}
-
-		//NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed. 
-		if(sum_active!=1.0)		//if landcover types are turned off in the ini-file, or if more landcover types are added in other input files, can be either less or more than 1.0
-		{
-			if(date.year==0)
-				dprintf("Landcover fraction sum not 1.0 !\n");
-
-			if(run[NATURAL])	//Transfer landcover areas not simulated to NATURAL fraction, if simulated.
-			{
-				if(date.year==0)
-				{
-					if(sum_active<1.0)
-						dprintf("Inactive fractions (%4.3f) transferred to NATURAL fraction.\n", 1.0-sum_active);
-					else
-						dprintf("New landcover type fraction (%4.3f) subtracted from NATURAL fraction (%4.3f).\n", sum_active-1.0, gridcell.landcoverfrac[NATURAL]);
-				}
-
-				gridcell.landcoverfrac[NATURAL]+=1.0-sum_active;	// difference (can be negative) 1.0-(sum of active landcover fractions) are added to the natural fraction
-				
-				if(date.year==0)
-					dprintf("New NATURAL fraction is %4.3f.\n", gridcell.landcoverfrac[NATURAL]);
-
-				sum_active=1.0;		//sum_active should now be 1.0
-
-				if(gridcell.landcoverfrac[NATURAL]<0.0)	//If new landcover type fraction is bigger than the natural fraction (something wrong in the distribution of input file area fractions)
-				{										
-					if(date.year==0)
-						dprintf("New landcover type fraction is bigger than NATURAL fraction, rescaling landcover fractions !.\n");
-
-					sum_active-=gridcell.landcoverfrac[NATURAL];	//fraction not possible to transfer moved back to sum_active, which will now be >1.0 again
-					gridcell.landcoverfrac[NATURAL]=0.0;
-
-					for(i=0;i<NLANDCOVERTYPES;i++)
-					{
-						gridcell.landcoverfrac[i]/=sum_active;		//fraction rescaled to unity sum
-						if(run[i])
-							if(date.year==0)
-								dprintf("Landcover type %d fraction is %4.3f\n", i, gridcell.landcoverfrac[i]);
-					}
-				}
-			}
-			else
-			{
-//				if(date.year==0)
-//					dprintf("Rescaling landcover fractions !\n");
-//				for(i=0;i<NLANDCOVERTYPES;i++)
-//					gridcell.landcoverfrac[i]/=sum_active;						// if NATURAL not simulated, rescale active fractions to 1.0
-				if(date.year==0)
-					dprintf("Non-unity fraction sum retained.\n");				// OR let sum remain non-unity
-			}
-		}
-	}
+	landcover_input.getlandcover(gridcell);
+	landcover_input.get_land_transitions(gridcell);
 }
-
 
 bool DemoInput::getclimate(Gridcell& gridcell) {
 
@@ -562,9 +313,8 @@ bool DemoInput::getclimate(Gridcell& gridcell) {
 	// Send environmental values for today to framework
 
 	climate.dndep  = ndep / (365.0 * 10000.0);
-	climate.dnfert = 0.0;
 
-	climate.co2=co2;
+	climate.co2 = co2;
 
 	climate.temp  = dtemp[date.day];
 	climate.prec  = dprec[date.day];
@@ -586,7 +336,7 @@ bool DemoInput::getclimate(Gridcell& gridcell) {
 
 		if (tmute.getprogress()>=1.0) {
 			progress=(double)(gridlist.getobj().id*(nyear_spinup+nyear)
-				+date.year)/(double)(ngridcell*(nyear_spinup+nyear));
+				+date.year)/(double)(gridlist.nobj*(nyear_spinup+nyear));
 
 
 			tprogress.setprogress(progress);
@@ -599,11 +349,8 @@ bool DemoInput::getclimate(Gridcell& gridcell) {
 	return true;
 }
 
-
 DemoInput::~DemoInput() {
 
 	// Performs memory deallocation, closing of files or other "cleanup" functions.
 
-	// Clean up
-	gridlist.killall();
 }

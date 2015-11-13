@@ -1,0 +1,37 @@
+30.0	65.0	N_Karelia - boreal forest
+13.0	55.5	S_Sweden
+-3.0	55.0	Scotland - temperate forest
+10.0	53.5	Schleswig-Holstein - temperate forest
+-0.5	52.5	England
+23.5	52.5	Bialowieza - mixed temperate forest
+14.0	50.0	Czech
+2.0	48.0	N_France - temperate forest
+9.0	45.5	Lombardy - temperate forest
+27.5	43.5	E_Bulgaria - forest steppe
+-8.0	43.0	Galicia - mediterranean evergreen forest
+20.0	41.5	Albania
+17.0	40.5	Apulia - mediterranean shrubland?
+-1.0	37.5	S_Spain
+2.0	35.5	N_Algeria
+-6	34.0	Morocco
+30	31	N_Egypt
+34.5	24.0	S_Egypt
+18.5	20.5	Chad
+-16.0	16.5	Senegal coast
+39.0	12.0	N_Ethiopia
+9.5	11.0	Nigeria
+36.5	9.5	C_Ethiopia
+39.0	6.5	Ethiopia
+-9	5.5	Liberia
+33.5	2.5	Uganda
+32.5	0.0	Kenya1
+35.5	-0.5	Kenya2
+38.5	-4.0	Kenya3
+34.0	-9.5	Tanzania
+14.5	-11.5	Angola
+25.5	-16.5	Zambia
+13.0	-17.0	S_Angola
+28.0	-21.0	Zimbabwe
+48	-21.5	Madagascar
+31.0	-25.5	NE_South_Africa
+18.5	-33.5	SW_South_Africa

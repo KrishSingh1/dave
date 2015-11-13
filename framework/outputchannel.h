@@ -47,8 +47,8 @@ public:
 	 ColumnDescriptors() {}
 
 	 /// Creates a ColumnDescriptors where all columns have the same format
-	 ColumnDescriptors(const std::vector<std::string>& titles, 
-	                   int width, 
+	 ColumnDescriptors(const std::vector<std::string>& titles,
+	                   int width,
 	                   int precision);
 
 	 /// Add a ColumnDescriptor to the end of the list
@@ -73,12 +73,12 @@ private:
 class TableDescriptor {
 public:
 	 /// Creates a TableDescriptor
-	 TableDescriptor(const char* name, 
+	 TableDescriptor(const char* name,
 	                 const ColumnDescriptors& columns);
 
 	 /// Get the name of the table
 	 const std::string& name() const;
-	 
+
 	 /// Get the column descriptors
 	 const ColumnDescriptors& columns() const;
 
@@ -126,12 +126,14 @@ public:
 	 virtual void add_value(const Table& table, double d);
 
 	 /// Finalizes the output of one row, annual output
-	 virtual void finish_row(const Table& table, double lon, double lat, 
+	 virtual void finish_row(const Table& table, double lon, double lat,
 	                         int year) = 0;
 
 	 /// Finalizes the output of one row, daily output
-	 virtual void finish_row(const Table& table, double lon, double lat, 
+	 virtual void finish_row(const Table& table, double lon, double lat,
 	                         int year, int day) = 0;
+
+	 virtual void close_table(Table& table) = 0;
 
 protected:
 	 /// Get the table descriptor for a table
@@ -167,14 +169,16 @@ public:
 	 /** \see OutputChannel::create_table */
 	 Table create_table(const TableDescriptor& descriptor);
 
+	 void close_table(Table& table);
+
 	 /// Prints the values of the current row to the file
 	 /** \see OutputChannel::finish_row */
-	 void finish_row(const Table& table, double lon, double lat, 
+	 void finish_row(const Table& table, double lon, double lat,
 	                 int year);
 
 	 /// Prints the values of the current row to the file
 	 /** \see OutputChannel::finish_row */
-	 void finish_row(const Table& table, double lon, double lat, 
+	 void finish_row(const Table& table, double lon, double lat,
 	                 int year, int day);
 
 private:
@@ -200,7 +204,7 @@ private:
 };
 
 /// A convenience class for managing the output of one row to multiple tables.
-/** At the end of the life time of an object of this class, finish_row is 
+/** At the end of the life time of an object of this class, finish_row is
  *  called for all tables that have gotten values.
  */
 class OutputRows {
@@ -227,6 +231,28 @@ private:
 
 	 std::vector<bool> used_tables;
 };
+
+/// Help function to prepare C:N values for output
+/** Avoids division by zero and limits the results to a maximum
+ *  value to avoid inf or values large enough to ruin the alignment
+ *  in the output.
+ *
+ *  If both cmass and nmass is 0, the function returns 0.
+ */
+inline double limited_cton(double cmass, double nmass) {
+	const double MAX_CTON = 1000;
+
+	if (nmass > 0.0) {
+		return min(MAX_CTON, cmass / nmass);
+	}
+	else if (cmass > 0.0) {
+		return MAX_CTON;
+	}
+	else {
+		return 0.0;
+	}
+}
+
 
 }
 

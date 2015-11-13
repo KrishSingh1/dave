@@ -11,9 +11,14 @@ set(headers
   globalco2file.h
   ncompete.h
   commonoutput.h
+  miscoutput.h
   spinupdata.h
   demoinput.h
   cfinput.h
+  management.h
+  cropallocation.h
+  cropsowing.h
+  cropphenology.h
   )
 
 set(source  
@@ -29,8 +34,13 @@ set(source
   globalco2file.cpp
   ncompete.cpp
   commonoutput.cpp
+  miscoutput.cpp
   spinupdata.cpp
   cfinput.cpp
+  management.cpp
+  cropallocation.cpp
+  cropsowing.cpp
+  cropphenology.cpp
   )
 
 include(add_guess_sources)

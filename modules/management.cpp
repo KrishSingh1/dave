@@ -1101,6 +1101,8 @@ void crop_nfert(Patch& patch) {
 
 	Gridcell& gridcell = patch.stand.get_gridcell();
 
+	patch.dnfert = 0.0;
+
 	pftlist.firstobj();
 	// Loop through PFTs
 	while(pftlist.isobj) {
@@ -1112,31 +1114,32 @@ void crop_nfert(Patch& patch) {
 		if (patch.stand.pft[pft.id].active && pft.phenology == CROPGREEN) {
 
 			cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+			if(!ppftcrop.growingseason) {
+				pftlist.nextobj();
+				continue;
+			}
 
 			double nfert = pft.N_appfert;
 			if (gridcellpft.Nfert_read >= 0.0) {
 				nfert = gridcellpft.Nfert_read;
 			}
-			if (!ppftcrop.fertilised[0] && ppftcrop.dev_stage > 0.0 && ppftcrop.growingseason){
+			if (!ppftcrop.fertilised[0] && ppftcrop.dev_stage > 0.0){
 				// Fertiliser application at dev_stage = 0, sowing.
 				patch.dnfert = nfert * (1.0 - pft.fertrate[0] - pft.fertrate[1]);
 				ppftcrop.fertilised[0] = true;
 			}
-			else if (!ppftcrop.fertilised[1] && ppftcrop.dev_stage > pft.fert_stages[0] && ppftcrop.growingseason){
+			else if (!ppftcrop.fertilised[1] && ppftcrop.dev_stage > pft.fert_stages[0]){
 				patch.dnfert = nfert * pft.fertrate[0];
 				ppftcrop.fertilised[1] = true;
 			}
-			else if (!ppftcrop.fertilised[2] && ppftcrop.dev_stage > pft.fert_stages[1] && ppftcrop.growingseason ){
+			else if (!ppftcrop.fertilised[2] && ppftcrop.dev_stage > pft.fert_stages[1]){
 				patch.dnfert = nfert * (pft.fertrate[1]);
 				ppftcrop.fertilised[2] = true;
 			}
-			else {
-				patch.dnfert = 0.0;
-			}
-			patch.anfert += patch.dnfert;
 		}
 		pftlist.nextobj();
 	}
+	patch.anfert += patch.dnfert;
 }
 
 /// Updates crop rotation status

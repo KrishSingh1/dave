@@ -992,6 +992,7 @@ struct Management {
 		sdate = -1;
 		hdate = -1;
 		nfert = 0.0;
+		nfert = -1.0;
 		fallow = false;
 	}
 };

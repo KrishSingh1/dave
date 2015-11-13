@@ -732,6 +732,13 @@ void Stand::init_stand_lu(StandType& st, double fraction) {
 			}
 		}
 
+		if (!readNfert)
+			gridcell->pft[pftid].Nfert_read = st.management[0].nfert;
+		if (!readsowingdates)
+			pft[pftid].sdate_force = st.management[0].sdate;
+		if (!readharvestdates)
+			pft[pftid].hdate_force = st.management[0].hdate;
+
 		// Set standpft- and patchpft-variables for all active crops in all rotations
 		for (int rot=0; rot<st.rotation.ncrops; rot++) {
 

@@ -24,6 +24,10 @@ void OutputModule::create_output_table(Table& table, const char* file, const Col
 	 table = output_channel->create_table(TableDescriptor(file, columns));
 }
 
+void OutputModule::close_output_table(Table& table) {
+	 output_channel->close_table(table);
+	 table = Table();
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 /// OutputModuleContainer

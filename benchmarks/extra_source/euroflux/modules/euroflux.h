@@ -105,6 +105,8 @@ public:
 	void outannual(Gridcell& gridcell);
 
 	void outdaily(Gridcell& gridcell);
+	void openlocalfiles(Gridcell& gridcell) {};
+	void closelocalfiles(Gridcell& gridcell) {};
 
 private:
 	// Files for EUROFLUX output and stats

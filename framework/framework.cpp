@@ -36,7 +36,7 @@ void print_logfile_heading() {
 
 	// Print the title of this run
 	std::string dashed_line(50, '-');
-	dprintf("\n\n%s\n%s\n%s\n", 
+	dprintf("\n\n%s\n%s\n%s\n",
 	        dashed_line.c_str(), (char*)title, dashed_line.c_str());
 }
 
@@ -56,17 +56,26 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 	// Calculate daylength, insolation and potential evapotranspiration
 	daylengthinsoleet(gridcell.climate);
 
-	if (run_landcover && date.day == 0 && date.year >= nyear_spinup) {
-		// Update dynamic landcover and crop fraction data during historical
-		// period and create/kill stands.
-		landcover_dynamics(gridcell, input_module);
+	if (run_landcover) {
+		if (run[CROPLAND]) {
+			// Update crop sowing date calculation framework
+			crop_sowing_gridcell(gridcell);
+		}
+		if (date.day == 0) {
+			// Dynamic landcover and crop fraction data during historical
+			// period and create/kill stands.
+			landcover_dynamics(gridcell, input_module);
+
+			// Update dynamic management options
+			input_module->getmanagement(gridcell);
+		}
 	}
+
 
 	Gridcell::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
 
 		// START OF LOOP THROUGH STANDS
-
 		Stand& stand = *gc_itr;
 
 		dailyaccounting_stand(stand);
@@ -79,6 +88,17 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			Patch& patch = stand.getobj();
 			// Update daily soil drivers including soil temperature
 			dailyaccounting_patch(patch);
+
+			if (stand.landcover == CROPLAND) {
+				crop_nfert(patch);
+				// Calculate crop sowing dates
+				crop_sowing_patch(patch);
+				// Crop phenology
+				crop_phenology(patch);
+				// necessary updates after changing growingperiod status
+				update_patch_fpc(patch);
+			}
+
 			// Leaf phenology for PFTs and individuals
 			leaf_phenology(patch, gridcell.climate);
 			// Interception
@@ -86,8 +106,12 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			initial_infiltration(patch, gridcell.climate);
 			// Photosynthesis, respiration, evapotranspiration
 			canopy_exchange(patch, gridcell.climate);
+			// Sum total required irrigation
+			irrigation(patch);
 			// Soil water accounting, snow pack accounting
 			soilwater(patch, gridcell.climate);
+			// Daily C allocation (cropland)
+			growth_daily(patch);
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch);
 
@@ -100,6 +124,9 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			}
 			stand.nextobj();
 		}// End of loop through patches
+
+		// Update crop rotation status
+		crop_rotation(stand);
 
 		if (date.islastday && date.islastmonth) {
 			// LAST DAY OF YEAR
@@ -118,10 +145,11 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 	}	// End of loop through stands
 }
 
+
 int framework(const CommandLineArguments& args) {
 
-	// The 'mission control' of the model, responsible for maintaining the 
-	// primary model data structures and containing all explicit loops through 
+	// The 'mission control' of the model, responsible for maintaining the
+	// primary model data structures and containing all explicit loops through
 	// space (grid cells/stands) and time (days and years).
 
 	using std::auto_ptr;
@@ -150,7 +178,7 @@ int framework(const CommandLineArguments& args) {
 
 	// bvoc
 	if (ifbvoc) {
-	  initbvoc();
+		initbvoc();
 	}
 
 	// Create objects for (de)serializing grid cells
@@ -176,9 +204,7 @@ int framework(const CommandLineArguments& args) {
 		// Create and initialise a new Gridcell object for each locality
 		Gridcell gridcell;
 
-		// Call input/output to obtain latitude and soil driver data for this grid cell.
-		// Function getgridcell returns false if no further grid cells remain to be simulated
-
+		// Call input module to obtain latitude and driver data for this grid cell.
 		if (!input_module->getgridcell(gridcell)) {
 			break;
 		}
@@ -186,8 +212,9 @@ int framework(const CommandLineArguments& args) {
 		// Initialise certain climate and soil drivers
 		gridcell.climate.initdrivers(gridcell.get_lat());
 
-		if(run_landcover) {
-			//Read static landcover and cft fraction data from ins-file and/or from data files for the spinup peroid and create stands.
+		if (run_landcover && !restart) {
+			// Read landcover and cft fraction data from 
+			// data files for the spinup period and create stands
 			landcover_init(gridcell, input_module.get());
 		}
 
@@ -197,7 +224,7 @@ int framework(const CommandLineArguments& args) {
 			// ...and jump to the restart year
 			date.year = state_year;
 		}
-		
+
 		// Call input/output to obtain climate, insolation and CO2 for this
 		// day of the simulation. Function getclimate returns false if last year
 		// has already been simulated for this grid cell
@@ -215,7 +242,9 @@ int framework(const CommandLineArguments& args) {
 				// Call output module to output results for end of year
 				// or end of simulation for this grid cell
 				output_modules.outannual(gridcell);
-				
+
+				gridcell.balance.check_year(gridcell);
+
 				// Time to save state?
 				if (date.year == state_year-1 && save_state) {
 					serializer->serialize_gridcell(gridcell);
@@ -232,6 +261,9 @@ int framework(const CommandLineArguments& args) {
 
 			// End of loop through simulation days
 		}	//while (getclimate())
+
+		gridcell.balance.check_period();
+
 	}		// End of loop through grid cells
 
 	// END OF SIMULATION

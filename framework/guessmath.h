@@ -27,9 +27,14 @@ double const PI = M_PI;
 #endif
 const double DEGTORAD = PI / 180.;
 
-inline bool negligible(double dval) {
+inline bool negligible(double dval, int limit = 0) {
 	// Returns true if |dval| < EPSILON, otherwise false
-	return fabs(dval) < 1.0e-30;
+	return limit ? fabs(dval) < pow(10.0, limit) : fabs(dval) < 1.0e-30;
+}
+
+inline bool largerthanzero(double dval, int limit = 0) {
+	// Returns true if |dval| < EPSILON, otherwise false
+	return limit ? dval > pow(10.0, limit) : dval > 1.0e-30;
 }
 
 inline bool equal(double dval1, double dval2) {
@@ -49,6 +54,37 @@ inline double mean(double* array, int nitem) {
 /// Gives the mean of just two values
 inline double mean(double x, double y) {
 	return (x+y)/2.0;
+}
+
+/// Calculates variation coefficient of values in an array
+inline double variation_coefficient(double* data, int n) {
+	// 0 and 1 will give division with zero.
+	if (n <= 1) {
+		return -1;
+	}
+
+	double avg = mean(data, n);
+	double dev = 0;
+	for (int i=0; i<n; i++) {
+		dev += (data[i] - avg) * (data[i] - avg);
+	}
+	double std = sqrt(dev / (n-1));
+
+	if (std > 0 && avg > 0) {	// check that data appear in the array
+		return std / avg;
+	}
+	return 0;
+}
+
+/// A short version of Richards curve where:
+/** a is the lower asymptote,
+ *  b is the upper asymptote. If a=0 then b is called the carrying capacity,
+ *  c the growth rate,
+ *  d is the time of maximum growth
+ *  Source: https://en.wikipedia.org/wiki/Generalised_logistic_function, 2013-11-11
+ */
+inline double richards_curve(double a, double b, double c, double d, double x) {
+	return a + (b - a) / (1 + exp(-c * (x - d)));
 }
 
 inline void regress(double* x, double* y, int n, double& a, double& b) {
@@ -95,7 +131,7 @@ public:
 	/// The maximum number of elements stored, given as template parameter
 	static const size_t CAPACITY = capacity;
 
-	Historic() 
+	Historic()
 		: current_index(0), full(false) {
 	}
 
@@ -131,6 +167,62 @@ public:
 		const size_t nvalues = size();
 		for (size_t i = 0; i < nvalues; ++i) {
 			result += values[i];
+		}
+		return result;
+	}
+
+	/// Returnes the latest of the stored values
+	T lastadd() const {	//latest
+		return (*this)[size()-1];
+	}
+
+	/// Returns the maximum of the stored values
+	T max() const {
+		T result = -999999.0;
+
+		const size_t nvalues = size();
+		for (size_t i = 0; i < nvalues; ++i) {
+			if (values[i]>result) {
+				result = values[i];
+			}
+		}
+		return result;
+	}
+
+	/// Returns the minimum of the stored values
+	T min() const {
+		T result = 999999.0;
+
+		const size_t nvalues = size();
+		for (size_t i = 0; i < nvalues; ++i) {
+			if (values[i]<result) {
+				result = values[i];
+			}
+		}
+		return result;
+	}
+
+	/// Calculates arithmetic mean of the stored values for a period from current position and backwards nsteps
+	T periodicmean(const size_t nsteps) const {
+
+		assert(nsteps != 0);
+		if (nsteps > size()){
+			return mean();
+		} else {
+			return periodicsum(nsteps)/nsteps;
+		}
+	}
+
+	/// Sum of stored values for a period from current position and backwards nsteps
+	T periodicsum(const size_t nsteps) const {
+		T result = 0.0;
+
+		if (nsteps >= size()){
+			return sum();
+		} else {
+			for (size_t i = size()-1; i >=size()-nsteps; --i) {
+				result += (*this)[i];
+			}
 		}
 
 		return result;
@@ -181,7 +273,7 @@ private:
 };
 
 /// Serialization support for Historic
-/** We have a friend serialization operator instead of 
+/** We have a friend serialization operator instead of
  *  implementing Serializable, to avoid overhead of a
  *  vtable in Historic (since serialize() is virtual).
  *

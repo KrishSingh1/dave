@@ -235,9 +235,6 @@ bool WATCHDiurnalInput::getclimate(Gridcell& gridcell) {
 		// Nitrogen deposition
 		climate.dndep = dndep[date.day];
 
-		// Nitrogen fertilization
-		climate.dnfert = 0.0;
-
 		return true;
 	}
 	else {

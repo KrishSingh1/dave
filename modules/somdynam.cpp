@@ -44,6 +44,9 @@ static const double TAU_LITTER=2.85; // Thonicke, Sitch, pers comm, 26/11/01
 static const double TAU_SOILFAST=33.0;
 static const double TAU_SOILSLOW=1000.0;
 
+static const double TILLAGE_FACTOR = 33.0 / 17.0;
+	// (Inverse of "tillage factor" in Chatskikh et al. 2009, Value selected by T.Pugh)
+
 static const double FASTFRAC=0.985;
 	// fraction of litter decomposition entering fast SOM pool
 static const double ATMFRAC=0.7;
@@ -94,7 +97,7 @@ void setconstants() {
 // used by som_dynamic_lpj()
 
 void decayrates(double wcont,double gtemp_soil,double& k_soilfast,double& k_soilslow,
-	double& fr_litter,double& fr_soilfast,double& fr_soilslow) {
+	double& fr_litter,double& fr_soilfast,double& fr_soilslow, bool tillage) {
 
 	// DESCRIPTION
 	// Calculation of fractional decay amounts for litter and fast and slow SOM
@@ -130,6 +133,9 @@ void decayrates(double wcont,double gtemp_soil,double& k_soilfast,double& k_soil
 	// NB: Temperature response (gtemp; Lloyd & Taylor 1994) set by framework
 
 	k_soilfast=k_soilfast10*gtemp_soil*moist_response/date.year_length();
+	if (tillage) {
+		k_soilfast *= TILLAGE_FACTOR; // Increased HR for crops (tillage)
+	}
 	k_soilslow=k_soilslow10*gtemp_soil*moist_response/date.year_length();
 
 	fr_litter=exp(-k_litter10*gtemp_soil*moist_response/date.year_length());
@@ -175,7 +181,7 @@ void equilsom_lpj(Soil& soil) {
 // To be called each simulation day for each modelled area or patch, following update
 // of soil temperature and soil water.
 
-void som_dynamics_lpj(Patch& patch) {
+void som_dynamics_lpj(Patch& patch, bool tillage) {
 
 	// DESCRIPTION
 	// Calculation of soil decomposition and transfer of C between litter and soil
@@ -200,7 +206,7 @@ void som_dynamics_lpj(Patch& patch) {
 	// temperature
 
 	decayrates(soil.wcont[0],soil.gtemp,k_soilfast,k_soilslow,fr_litter,
-		fr_soilfast,fr_soilslow);
+		fr_soilfast,fr_soilslow, tillage);
 
 	// From year soil.solvesom_begin, update running means for later solution
 	// (at year soil.solvesom_end) of equilibrium SOM pool sizes
@@ -221,7 +227,7 @@ void som_dynamics_lpj(Patch& patch) {
 
 	// Loop through PFTs
 
-	for (p=0;p<npft;p++) {
+	for (p=0;p<npft;p++) {	//NB. also inactive pft's
 
 		// For this PFT ...
 
@@ -344,7 +350,7 @@ void setntoc(Soil& soil, double fac, pooltype pool, double cton_max, double cton
 /** Calculates CENTURY instantaneous decay rates given soil temperature,
  *  water content of upper soil layer
  */
-void decayrates(Soil& soil, double temp_soil, double wcont_soil) {
+void decayrates(Soil& soil, double temp_soil, double wcont_soil, bool tillage) {
 
 	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
@@ -403,6 +409,11 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil) {
 			k *= texture_mod;
 		}
 
+		// Increased HR for crops (tillage)
+		if (tillage && (p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM)) {
+			k *= TILLAGE_FACTOR;
+		}
+
 		// Calculate fraction of carbon pool remaining after today's decomposition
 		soil.sompool[p].fracremain = exp(-k);
 
@@ -456,7 +467,7 @@ void transferdecomp(Soil& soil, pooltype donor, pooltype receiver,
  *                    \see equilsom(). During this stage, somfluxes shouldn't calculate decayrates
  *                    itself, and shouldn't produce output like fluxes etc.
  */
-void somfluxes(Patch& patch, bool ifequilsom) {
+void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 	double respsum ;
 	double leachsum_cmass, leachsum_nmass;
@@ -493,7 +504,7 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 
 		// Calculate potential fraction remaining following decay today for all pools
 		// (assumes no nitrogen limitation)
-		decayrates(soil, soil.temp, soil.wcont[0]);
+		decayrates(soil, soil.temp, soil.wcont[0], tillage);
 
 	}
 
@@ -604,7 +615,7 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 		// Nitrogen associated with this respiration is mineralised (Parton et al 1993, p 791)
 		respsum += respfrac * soil.sompool[SLOWSOM].cdec;
 
-		if(!negligible(soil.sompool[SLOWSOM].cmass))
+		if (!negligible(soil.sompool[SLOWSOM].cmass))
 			nmin_actual += respfrac * soil.sompool[SLOWSOM].cdec * soil.sompool[SLOWSOM].nmass / soil.sompool[SLOWSOM].cmass;
 
 		// Donor pool SOIL MICROBE
@@ -629,7 +640,7 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 		// Account for organic carbon leaching loss
 		leachsum_cmass = soil.orgleachfrac * soil.sompool[SOILMICRO].cdec;
 
-		if(!negligible(soil.sompool[SOILMICRO].cmass)) {
+		if (!negligible(soil.sompool[SOILMICRO].cmass)) {
 			nmin_actual += respfrac * soil.sompool[SOILMICRO].cdec * soil.sompool[SOILMICRO].nmass / soil.sompool[SOILMICRO].cmass;
 
 			// Account for organic nitrogen leaching loss
@@ -699,7 +710,6 @@ void somfluxes(Patch& patch, bool ifequilsom) {
 	if (!ifequilsom) {
 		patch.fluxes.report_flux(Fluxes::N_SOIL, nflux);
 	}
-
 	// If no nitrogen limitation or during free nitrogen years set soil
 	// available nitrogen to its saturation level.
 	if (!ifnlim || date.year <= freenyears)
@@ -731,15 +741,17 @@ double metabolic_litter_fraction(double lton) {
 	return max(0.0, 0.85 - lton * 0.013);
 }
 
-/// Transfers litter from last year's growth, mortality and fire
+/// Transfers litter from growth, mortality and fire
 /** Called monthly to transfer last year's litter from vegetation
- *  (turnover, mortality and fire) to soil litter pools
+ *  (turnover, mortality and fire) to soil litter pools.
+ *  Alternatively, with daily allocation and harvest/turnover,
+ *  the litter produced a certain day.
  */
 void transfer_litter(Patch& patch) {
 
 	Soil& soil = patch.soil;
 
-	double lat = patch.stand.get_gridcell().get_lat();
+	double lat = patch.get_climate().lat;
 
 	double EPS = -1.0e-16;
 
@@ -769,13 +781,16 @@ void transfer_litter(Patch& patch) {
 	double root_littter = 0.0;
 	double wood_littter = 0.0;
 
+	bool drop_leaf_root_litter = (lat >= 0.0 && date.month == 0) || (lat < 0.0 && date.month == 6) || patch.is_litter_day;
+
 	patch.pft.firstobj();
 	while (patch.pft.isobj) {
 		Patchpft& pft=patch.pft.getobj();
 
-		// Drop leaf and root litter on first day of the year for northern hemisphere
-		// and first day of the second half of the year for southern hemisphere
-		if ((lat >= 0.0 && date.month == 0) || (lat < 0.0 && date.month == 6)) {
+		// For stands with yearly growth, drop leaf and root litter on first day of the year for northern hemisphere
+		// and first day of the second half of the year for southern hemisphere.
+		// For stands with daily growth, harvest and/or turnover, do this when patch.is_litter_day is true.
+		if (drop_leaf_root_litter) {
 
 			// LEAF
 
@@ -866,12 +881,12 @@ void transfer_litter(Patch& patch) {
 
 		// WOOD
 
-		if (pft.pft.lifeform == TREE) {
+		if (pft.pft.lifeform == TREE && date.dayofmonth == 0) {
 
 			// Woody debris enters two woody litter pools as described in
 			// Kirschbaum and Paul (2002).
 
-			if(date.month == 0) {
+			if (date.month == 0) {
 				pft.litter_sap_year = pft.litter_sap;
 				pft.nmass_litter_sap_year = pft.nmass_litter_sap;
 			}
@@ -916,7 +931,7 @@ void transfer_litter(Patch& patch) {
 				fireresist[SURFFWD] += litter_sap * pft.pft.fireresist;
 			}
 
-			if(date.month == 0) {
+			if (date.month == 0) {
 				pft.litter_heart_year = pft.litter_heart;
 				pft.nmass_litter_heart_year = pft.nmass_litter_heart;
 			}
@@ -1029,7 +1044,7 @@ void leaching(Soil& soil) {
 
 		// Leaching from decayed organic carbon/nitrogen
 		// using Parton et al. eqn. 8
-		soil.orgleachfrac = min(1.0, soil.dperc * 0.1 / 18.0 * (0.01 + 0.04 * soil.soiltype.sand_frac) * 12.0 / 365.0);
+		soil.orgleachfrac = min(1.0, soil.dperc * 0.1 / 18.0 * (0.01 + 0.04 * soil.soiltype.sand_frac));
 	}
 	else {
 		minleachfrac = 0.0;
@@ -1061,10 +1076,10 @@ void soilnadd(Patch& patch) {
 
 	Soil& soil = patch.soil;
 
-	if (date.day == 0) {
+	double nflux = 0.01 * soil.ninput;
+	soil.ninput -= nflux;
 
-		soil.anfix = 0.0;
-	}
+	patch.fluxes.report_flux(Fluxes::N_SOIL, nflux);
 
 	// Nitrogen deposition and fertilization input to the soil (calculated in snow_ninput())
 	soil.nmass_avail += soil.ninput;
@@ -1144,7 +1159,10 @@ void vegetation_n_uptake(Patch& patch) {
 		indiv.nmass_leaf      += indiv.leaffndemand  * nuptake_day;
 		indiv.nmass_root      += indiv.rootfndemand  * nuptake_day;
 		indiv.nmass_sap       += indiv.sapfndemand   * nuptake_day;
-		indiv.nstore_longterm += indiv.storefndemand * nuptake_day;
+		if (indiv.pft.phenology == CROPGREEN && ifnlim)
+			indiv.cropindiv->nmass_agpool += indiv.storefndemand * nuptake_day;
+		else
+			indiv.nstore_longterm += indiv.storefndemand * nuptake_day;
 		soil.nmass_avail      -= nuptake_day;
 
 		if (!negligible(indiv.phen))
@@ -1255,7 +1273,7 @@ void equilsom(Soil& soil) {
 
 			// Monthly decomposition and fluxes between SOM pools
 			// and nitrogen flux from soil
-			somfluxes(patch, true);
+			somfluxes(patch, true, false);
 		}
 	}
 
@@ -1281,16 +1299,16 @@ void equilsom(Soil& soil) {
 /// SOM CENTURY DYNAMICS
 /** To be called each simulation day for each modelled patch, following update
  *  of soil temperature and soil water.
- *  Transfers litter on first day, performes nitrogen uptake and addition, leaching and decomposition.
+ *  Transfers litter, performes nitrogen uptake and addition, leaching and decomposition.
  */
-void som_dynamics_century(Patch& patch) {
+void som_dynamics_century(Patch& patch, bool tillage) {
 
-	// First day of every month
-	if (date.dayofmonth == 0) {
-
+	// First day of every month or other harvest/turnover day
+	if (date.dayofmonth == 0 || patch.is_litter_day) {
 		// Transfer last year's litter to SOM pools
-		// Leaf and fine root liiter on first day of year (first day of july in SH)
+		// Leaf and fine root litter on first day of year (first day of july in SH)
 		// Woody litter transfers a portion first day of every month
+		// OR this year's litter on harvest/turnover day for stands with daily allocation
 		transfer_litter(patch);
 	}
 
@@ -1304,7 +1322,7 @@ void som_dynamics_century(Patch& patch) {
 	soilnadd(patch);
 
 	// Daily or monthly decomposition and fluxes between SOM pools
-	somfluxes(patch, false);
+	somfluxes(patch, false, tillage);
 
 	// Solve SOM pool sizes at end of year given by soil.solvesomcent_endyr
 	if (date.year==patch.soil.solvesomcent_endyr && date.islastmonth && date.islastday)
@@ -1316,13 +1334,16 @@ void som_dynamics_century(Patch& patch) {
 */
 void som_dynamics(Patch& patch) {
 
-	if (ifcentury) som_dynamics_century(patch);
-	else som_dynamics_lpj(patch);
+	bool tillage = iftillage && patch.stand.landcover == CROPLAND;
+	if (ifcentury) som_dynamics_century(patch, tillage);
+	else som_dynamics_lpj(patch, tillage);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
 //
+// Chatskikh, D., Hansen, S., Olesen, J.E. & Petersen, B.M. 2009. A simplified modelling approach
+//	 for quantifying tillage effects on soil carbon stocks. Eur.J.Soil.Sci., 60:924-934.
 // Comins, H. N. & McMurtrie, R. E. 1993. Long-Term Response of Nutrient-Limited
 //   Forests to CO2 Enrichment - Equilibrium Behavior of Plant-Soil Models.
 //   Ecological Applications, 3, 666-681.

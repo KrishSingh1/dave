@@ -3,7 +3,7 @@
 !// Global PFTs
 !//
 !// LPJ-GUESS 3.0
-!// 
+!//
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -15,7 +15,7 @@
 outputdirectory "./"
 
 ! Prefined yearly output
-! These files may be outcommented if their output is not required. 
+! These files may be outcommented if their output is not required.
 file_cmass "cmass.out"
 file_anpp "anpp.out"
 file_agpp "agpp.out"
@@ -63,7 +63,7 @@ file_vmaxnlim "vmaxnlim.out"
 
 
 !///////////////////////////////////////////////////////////////////////////////////////
-!// RUN PARAMETERS AND OPTIONS 
+!// RUN PARAMETERS AND OPTIONS
 !
 
 ! Settings recognised by Plib
@@ -91,6 +91,7 @@ ifstochmort 1			! whether mortality stochastic
 ifcdebt 1				! whether to allow vegetation C storage (1) or not (0)
 wateruptake "rootdist"  ! "wcont", "rootdist", "smart" or "speciesspecific",
                         ! see documentation for water_uptake()
+textured_soil 1	     		! whether to use silt/sand fractions specific to soiltype
 
 !///////////////////////////////////////////////////////////////////////////////
 ! PROCESS SETTINGS SPECIFIC TO NITROGEN
@@ -105,7 +106,7 @@ nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
 
 
 !///////////////////////////////////////////////////////////////////////////////
-! SERIALIZATION SETTINGS 
+! SERIALIZATION SETTINGS
 !///////////////////////////////////////////////////////////////////////////////
 !state_year 500			! year to save/start state file (no setting = after spinup)
 restart 0				! wheter to start from a state file
@@ -113,33 +114,17 @@ save_state 0			! wheter to save a state file
 !state_path ""			! directory to put state files in
 
 
-ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1) 
-								! or to use the standard step-function (0)  
-								! greff_min values below calibrated for the smooth (1) option 
+ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1)
+								! or to use the standard step-function (0)
+								! greff_min values below calibrated for the smooth (1) option
 ifdroughtlimitedestab 0			! whether establishment is limited by growing season drought
 								! guess2008 - species version has 1
 ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit every day (0)
 ifbvoc 0                     ! whether to include BVOC calculations (1) or not (0)
 
-!!!!!!!!!!!! landcover parameters !!!!!!!!!!!!!!					
+!!!!!!!!!!!! landcover parameters !!!!!!!!!!!!!!
 
-run_landcover 0        ! whether to use (and change) landcover fractions (1) or not (0)						
-
-run_urban 0	      ! whether to simulate barren land (1) or not (0)	
-run_crop 1	      ! whether to simulate crop vegetation (1) or not (0)
-run_forest 0	      ! whether to simulate managed forest (1) or not (0)
-run_pasture 0	      ! whether to simulate pasture (1) or not (0)
-run_natural 1	      ! whether to simulate natural vegetation (1) or not (0)
-run_peatland 1	      ! whether to simulate peatland (1) or not (0)
-
-lcfrac_fixed 0        	! use landcover fractions (%) below (1) or read from input file (0)
-lc_fixed_urban 0   	! URBAN
-lc_fixed_cropland 50	! CROPLAND
-lc_fixed_pasture 0   	! PASTURE
-lc_fixed_forest 0   	! FOREST
-lc_fixed_natural 25 	! NATURAL
-lc_fixed_peatland 25 	! PEATLAND
-equal_landcover_area 0	! divide gridcell into equal active landcover fractions
+run_landcover 0        ! whether to use (and change) landcover fractions (1) or not (0)
 
 !///////////////////////////////////////////////////////////////////////////////////////
 
@@ -156,11 +141,12 @@ group "common" (
 	emax 5
 	reprfrac 0.1
 	wscal_min 0.35
-	drought_tolerance 0.0001	
-	! default value - ensures that this has little effect even if  
+	drought_tolerance 0.0001
+	! default value - ensures that this has little effect even if
 	! ifdroughtlimitedestab is turned on
 	landcover "natural"
-	turnover_harv_prod 1
+	harv_eff 0
+	res_outtake 0
 )
 
 group "tree" (
@@ -169,11 +155,11 @@ group "tree" (
 
 	common
 	lifeform "tree"
-	crownarea_max 50	
+	crownarea_max 50
 	ltor_max 1
 	turnover_root 0.7
-	rootdist 0.6 0.4	
-	k_allom2 60		
+	rootdist 0.6 0.4
+	k_allom2 60
 	k_allom3 0.67
 	k_rp 1.6
 	wooddens 200
@@ -190,13 +176,14 @@ group "tree" (
 	k_chillb 100
 	k_chillk 0.05
 	litterme 0.3
-	harv_eff 0.7
+
+	harv_eff 0.95
 	res_outtake 0.75
-	harvest_slow_frac 0.33
-	turnover_harv_prod 0.04
+	turnover_harv_prod 0.04 ! Turnover rate for long-lived harvested products (wood) : 0.04 corresponds to a 25-year turnover time (as in Bondeau 2007)
+	harvest_slow_frac 0.33	! Bondeau 0.33
 )
 
-group "shrub" (	
+group "shrub" (
 	! Unchanged from species version
 	common
 	lifeform "tree"
@@ -208,7 +195,7 @@ group "shrub" (
 	k_allom3 0.67
 	k_rp 1.6
 	wooddens 250
-	!cton_leaf_min 16	
+	!cton_leaf_min 16
 	cton_root 29
 	cton_sap 330
 	nuptoroot 0.0028
@@ -221,6 +208,9 @@ group "shrub" (
 	litterme 0.3
 	rootdist 0.6 0.4
 	longevity 100
+
+	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time
+	harvest_slow_frac 0
 )
 
 
@@ -245,11 +235,13 @@ group "grass" (
 	km_volume 0.000001876
 	fnstorage 0.3
 	litterme 0.2
-	parff_min 1000000		! 2500000 i guess2008	
+	parff_min 1000000		! 2500000 i guess2008
 	fireresist 0.5			! 1.0 hos Thomas
 	intc 0.01
 	ga 0.030
 
+	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time for GRASS
+	harvest_slow_frac 0
 )
 
 
@@ -334,33 +326,33 @@ group "tropical" (
 	pstemp_low 25
 	pstemp_high 30
 	pstemp_max 55
-	respcoeff 0.15	
+	respcoeff 0.15
 )
 
 
-! greff_min values below calibrated for the smooth (ifsmoothgreffmort 1) option 
+! greff_min values below calibrated for the smooth (ifsmoothgreffmort 1) option
 group "shade_tolerant" (
-	est_max 0.05					
-	parff_min 350000			
-	alphar 3.0          			
-	greff_min 0.04				
+	est_max 0.05
+	parff_min 350000
+	alphar 3.0
+	greff_min 0.04
 	turnover_sap 0.05
 )
 
 ! So far only trial values; not used in this global version
 group "intermediate_shade_tolerant" (
-	est_max 0.15					
-	parff_min 2000000			
-	alphar 7.0          			
-	greff_min 0.06				
+	est_max 0.15
+	parff_min 2000000
+	alphar 7.0
+	greff_min 0.06
 	turnover_sap 0.075
 )
 
 ! From global version; values from orginal European version after "!"
 group "shade_intolerant" (
-	est_max 0.2					
-	parff_min 2500000 
-	alphar 10.0 
+	est_max 0.2
+	parff_min 2500000
+	alphar 10.0
 	greff_min 0.08
 	turnover_sap 0.1
 )
@@ -448,7 +440,7 @@ pft "TeNE" (
 
 	! Temperate needleleaved evergreen tree
 
-	include 0
+	include 1
 	tree
 	needleleaved
 	shade_intolerant ! cf Jun_oxy, Pin_hal in europe.ins
@@ -604,7 +596,7 @@ pft "TrBR" (
 	storfrac_mon 0.
 )
 
-pft "C3G" (
+group "C3G" (
 
 	! Cool (C3) grass
 
@@ -625,9 +617,14 @@ pft "C3G" (
 	seas_iso 1
 	eps_mon 1.6
 	storfrac_mon 0.5
+	harv_eff 0.5
 )
 
-pft "C4G" (
+pft "C3G" (
+	C3G
+)
+
+group "C4G" (
 
 	! Warm (C3) grass
 
@@ -648,5 +645,9 @@ pft "C4G" (
 	seas_iso 0
 	eps_mon 2.4
 	storfrac_mon 0.5
+	harv_eff 0.5
 )
 
+pft "C4G" (
+	C4G
+)

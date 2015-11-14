@@ -751,7 +751,7 @@ void calculateEurofluxStats(double lon,
 	// OUTPUT stats
 	// ***********************************************************************
 
-	OutputRows out(output_channel, lon, lat, date.year);
+	OutputRows out(output_channel, lon, lat, date.get_calendar_year());
 
 	double ef = (NEE_obs_sqdiff - NEE_obs_minus_mod_sq)/NEE_obs_sqdiff; // Modelling Efficiency
 	double cd = NEE_obs_sqdiff/NEE_obs_minus_mod_sq; // Coefficient of determination
@@ -805,7 +805,7 @@ void EurofluxOutput::outannual(Gridcell& gridcell) {
 	if (date.year >= nyear_spinup + CRUInput::NYEAR_HIST - NFLUXYEARS &&
 	    date.year <= nyear_spinup + CRUInput::NYEAR_HIST - 1) {
 
-		OutputRows out(output_channel, gridcell.get_lon(), gridcell.get_lat(), date.year);
+		OutputRows out(output_channel, gridcell.get_lon(), gridcell.get_lat(), date.get_calendar_year());
 
 		std::vector<double> mgpp(12);
 		std::vector<double> maet(12);
@@ -828,7 +828,7 @@ void EurofluxOutput::outannual(Gridcell& gridcell) {
 					double ra = patch.fluxes.get_monthly_flux(Fluxes::RA, m);
 					double rh = patch.fluxes.get_monthly_flux(Fluxes::SOILC, m);
 					double npp = gpp - ra;
-					mnee[m] += (npp - rh)*to_gridcell_average;
+					mnee[m] += (rh - npp)*to_gridcell_average;
 					mgpp[m] += gpp*to_gridcell_average;
 					maet[m] += patch.maet[m]*to_gridcell_average;
 				}
@@ -850,7 +850,7 @@ void EurofluxOutput::outannual(Gridcell& gridcell) {
 
 			 // convert to the same units as our regular mnee, maet and mgpp files
 			 if (flux_nee != MISSING_DATA) {
-				  flux_nee *= -0.001;
+				  flux_nee *= 0.001;
 			 }
 
 			 if (flux_gpp != MISSING_DATA) {

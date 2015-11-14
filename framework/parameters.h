@@ -14,7 +14,7 @@
 /// Sometimes, adding a new parameter shouldn't (or can't) be done here however.
 /// A parameter specific for a certain input module, should only be declared if
 /// that input module is used. In this case the input module should declare its
-/// own parameters when it is created. This can also be a good idea simply to 
+/// own parameters when it is created. This can also be a good idea simply to
 /// make modules more independent. For parameters like this, we can either use
 /// the "custom" parameters (\see Paramlist) which don't need to be declared at
 /// all, or the parameters can be declared with the declare_parameter family of
@@ -37,7 +37,7 @@
 
 
 /// Vegetation 'mode', i.e. what each Individual object represents
-/** Can be one of: 
+/** Can be one of:
  *  1. The average characteristics of all individuals comprising a PFT
  *     population over the modelled area (standard LPJ mode)
  *  2. A cohort of individuals of a PFT that are roughly the same age
@@ -46,7 +46,9 @@
 typedef enum {NOVEGMODE, INDIVIDUAL, COHORT, POPULATION} vegmodetype;
 
 /// Land cover type of a stand. NLANDCOVERTYPES keeps count of number of items.
-typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, NLANDCOVERTYPES} landcovertype;
+/*  NB. set_lc_change_array() must be modified when adding new land cover types
+ */
+typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, BARREN, NLANDCOVERTYPES} landcovertype;
 
 /// Water uptake parameterisations
 /** \see water_uptake in canexch.cpp
@@ -68,6 +70,15 @@ extern vegmodetype vegmode;
  *  cropland stands always have 1 patch.
  */
 extern int npatch;
+
+/// Number of patches in each stand for secondary stands
+extern int npatch_secondarystand;
+
+/// Whether to reduce equal percentage of all stands of a stand type at land cover change
+extern bool reduce_all_stands;
+
+/// Minimum age of stands to reduce at land cover change
+extern int age_limit_reduce;
 
 /// Patch area (m2) (individual and cohort mode only)
 extern double patcharea;
@@ -110,25 +121,26 @@ extern wateruptaketype wateruptake;
 
 /// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
 extern bool ifcentury;
-/// whether plant growth limited by available N	
+/// whether plant growth limited by available N
 extern bool ifnlim;
-/// number of years to allow spinup without nitrogen limitation	
+
+/// number of years to allow spinup without nitrogen limitation
 extern int freenyears;
-/// fraction of nitrogen relocated by plants from roots and leaves	
+/// fraction of nitrogen relocated by plants from roots and leaves
 extern double nrelocfrac;
-/// first term in nitrogen fixation eqn (Cleveland et al 1999)	
+/// first term in nitrogen fixation eqn (Cleveland et al 1999)
 extern double nfix_a;
-/// second term in nitrogen fixation eqn (Cleveland et al 1999)	
+/// second term in nitrogen fixation eqn (Cleveland et al 1999)
 extern double nfix_b;
 
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;
 
-/// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND).
+/// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, BARREN).
 extern bool run[NLANDCOVERTYPES];
 
-/// Whether landcover fractions are read from ins-file.
-extern bool lcfrac_fixed;
+/// Whether fractions of stand types of a specific land cover are read from input file.
+extern bool frac_fixed[NLANDCOVERTYPES];
 
 /// Set to false by initio( ) if fraction input files have yearly data.
 extern bool all_fracs_const;
@@ -136,11 +148,59 @@ extern bool all_fracs_const;
 /// If a slow harvested product pool is included in patchpft.
 extern bool ifslowharvestpool;
 
+// If grass is allowed to grow between crop growingseasons
+extern bool ifintercropgrass;
+
+// Whether to calculate dynamic potential heat units
+extern bool ifcalcdynamic_phu;
+
+// Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); read stand type transfer matrix input file (3), or not (0)
+extern int gross_land_transfer;
+
+// Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)
+extern bool ifprimary_lc_transfer;
+
+// Whether to use primary-to-secondary land transition info (within land cover type) in landcover transfer input file (1). or not (0)
+extern bool ifprimary_to_secondary_transfer;
+
+// Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
+extern int transfer_level;
+
+// Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
+extern bool iftransfer_to_new_stand;
+
+// Whether to limit dynamic phu calculation to a period specified by nyear_dyn_phu
+extern bool ifdyn_phu_limit;
+
+// Number of years to calculate dynamic phu if dynamic_phu_limit is true
+extern int nyear_dyn_phu;
+
 /// number of spinup years
 extern int nyear_spinup;
 
-/// silt/sand fractions per soiltype
+/// Whether to use sowingdates from input file
+extern bool readsowingdates;
+
+/// Whether to use harvestdates from input file
+extern bool readharvestdates;
+
+/// Whether to read N fertilization from input file
+extern bool readNfert;
+
+/// Whether to print multiple stands within a land cover type (except cropland) separately
+extern bool printseparatestands;
+
+/// Whether to simulate tillage by increasing soil respiration
+extern bool iftillage;
+
+/// Use silt/sand fractions per soiltype
 extern bool textured_soil;
+
+/// Whether pastures are affected by disturbance and fire (affects pastures' npatch)
+extern bool disturb_pasture;
+
+/// Whether to simulate cropland as pasture
+extern bool grassforcrop;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Settings controlling the saving and loading from state files
@@ -171,7 +231,7 @@ extern bool ifbvoc;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
-// The Paramlist class (and Paramtype) 
+// The Paramlist class (and Paramtype)
 //
 
 /// Represents one custom "param" item
@@ -184,7 +244,7 @@ struct Paramtype {
 
 /// List for the "custom" parameters
 /** Functionality for storing and retrieving custom "param" items from the instruction
- *  script. "Custom" parameters can be accessed by other modules without the need to 
+ *  script. "Custom" parameters can be accessed by other modules without the need to
  *  define them beforehand. This of course also means there is no help text associated
  *  with these parameters, so the user can't get any documentation about them from
  *  the command line.

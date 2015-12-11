@@ -21,7 +21,7 @@
 #include <vector>
 #include <algorithm>
 
-REGISTER_INPUT_MODULE("cru", CRUInput)
+REGISTER_INPUT_MODULE("cru_ncep", CRUInput)
 
 // Anonymous namespace for variables and functions with file scope
 namespace {

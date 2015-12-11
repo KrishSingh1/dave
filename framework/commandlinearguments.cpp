@@ -26,7 +26,7 @@ std::string tolower(const char* str) {
 CommandLineArguments::CommandLineArguments(int argc, char** argv) 
 : help(false),
   parallel(false),
-  input_module("cru") {
+  input_module("cru_ncep") {
 
 	if (!parse_arguments(argc, argv)) {
 		print_usage(argv[0]);

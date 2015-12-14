@@ -21,7 +21,7 @@
 #include <vector>
 #include <algorithm>
 
-REGISTER_INPUT_MODULE("cru", CRUInput)
+REGISTER_INPUT_MODULE("cru_ncep", CRUInput)
 
 // Anonymous namespace for variables and functions with file scope
 namespace {
@@ -34,7 +34,7 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 					double* dtemp, double* dprec, double* dsun, double* ddtr) {
 	interp_monthly_means_conserve(mtemp, dtemp);
 	interp_monthly_totals_conserve(mprec, dprec, 0);
-	interp_monthly_means_conserve(msun, dsun, 0, 100);
+	interp_monthly_means_conserve(msun, dsun, 0);
 	interp_monthly_means_conserve(mdtr, ddtr, 0);
 }
 
@@ -233,9 +233,9 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		ndep.getndep(param["file_ndep"].str, lon, lat);
 
 		// The insolation data will be sent (in function getclimate, below)
-		// as percentage sunshine
+		// as incoming shortwave radiation, averages are over 24 hours
 		
-		gridcell.climate.instype = SUNSHINE;
+		gridcell.climate.instype = SWRAD_TS;
 
 		// Tell framework the soil type of this grid cell
 		soilparameters(gridcell.soiltype,soilcode);

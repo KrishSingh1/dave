@@ -141,9 +141,9 @@ private:
 /** Each input module should use this macro somewhere in their
  *  cpp file. For instance:
  *
- *  REGISTER_INPUT_MODULE("cru", CRUInputModule)
+ *  REGISTER_INPUT_MODULE("cru_ncep", CRUInputModule)
  *
- *  where "cru" is the name of the module (used when chosing which
+ *  where "cru_ncep" is the name of the module (used when chosing which
  *  input module to use), and CRUInputModule is the class to associate
  *  with that name.
  */

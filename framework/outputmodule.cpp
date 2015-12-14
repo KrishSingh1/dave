@@ -34,7 +34,7 @@ void OutputModule::close_output_table(Table& table) {
 ///
 
 OutputModuleContainer::OutputModuleContainer()
-	: coordinates_precision(1) {
+	: coordinates_precision(2) {
 	declare_parameter("outputdirectory", &outputdirectory, 300, "Directory for the output files");
 	declare_parameter("coordinates_precision", &coordinates_precision, 0, 10, "Digits after decimal point in coordinates in output");
 }

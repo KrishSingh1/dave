@@ -81,6 +81,7 @@ struct landcover_change_transfer {
 			ccont += transfer_litter_sap[i];
 			ccont += transfer_litter_heart[i];
 			ccont += transfer_litter_root[i];
+			ccont += transfer_litter_repr[i];
 			ccont += transfer_harvested_products_slow[i];
 		}
 

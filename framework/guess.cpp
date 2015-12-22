@@ -91,9 +91,6 @@ void Climate::serialize(ArchiveStream& arch) {
 		& dprec_10
 		& sprec_2
 		& maxtemp
-		& dprec_10
-		& sprec_2
-		& maxtemp
 		& mtemp_20
 		& mprec_20
 		& mpet_20
@@ -318,7 +315,6 @@ void cropphen_struct::serialize(ArchiveStream& arch) {
 		& husum_sampled
 		& husum_max_10
 		& nyears_hu_sample
-		& husum
 		& hu_samplingperiod
 		& hu_samplingdays
 		& fphu
@@ -509,6 +505,7 @@ double Patch::ccont(double scale_indiv, bool luc) {
 		ccont += ppft.litter_root;
 		ccont += ppft.litter_sap;
 		ccont += ppft.litter_heart;
+		ccont += ppft.litter_repr;
 		ccont += ppft.harvested_products_slow;
 	}
 
@@ -786,11 +783,11 @@ void Stand::rotate() {
 		Standpft& standpft = pft[pftid];
 
 		if (current_man.hydrology == IRRIGATED) {
-			isirrigated = true;					
+			isirrigated = true;
 			standpft.irrigated = true;
 		}
 		else {
-			isirrigated = false;					
+			isirrigated = false;
 			standpft.irrigated = false;
 		}
 
@@ -1152,7 +1149,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& storefndemand
 		& leafndemand_store
 		& rootndemand_store
-		& last_turnover_day
 		& nday_leafon;
 
 	if (pft.landcover==CROPLAND)
@@ -1682,8 +1678,6 @@ Patchpft& Individual::patchpft() const {
 
 /// Save cmass-values on first day of the year of land cover change in expanding stands
 void Individual::save_cmass_luc() {
-	Stand& stand = vegetation.patch.stand;
-
 	cmass_tot_luc = 0.0;
 
 	if (cropindiv) {
@@ -1699,8 +1693,6 @@ void Individual::save_cmass_luc() {
 
 /// Save nmass-values on first day of the year of land cover change in expanding stands
 void Individual::save_nmass_luc() {
-	Stand& stand = vegetation.patch.stand;
-
 	nmass_leaf_luc = nmass_leaf;
 	nmass_root_luc = nmass_root;
 	nmass_sap_luc = nmass_sap;
@@ -2505,7 +2497,7 @@ void MassBalance::check_year(Gridcell& gridcell) {
 
 		// C balance check:
 		if (!negligible(ccont_year - ccont + cflux_year, -9)) {
-			dprintf("\nC balance year %d: %.10f\n", date.year, ccont_year - ccont + cflux_year);
+			dprintf("\n(%.2f, %.2f): C balance year %d: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ccont_year - ccont + cflux_year);
 			dprintf("C pool change: %.5f\n", ccont_year - ccont);
 			dprintf("C flux: %.5f\n",  cflux_year);
 		}
@@ -2513,10 +2505,10 @@ void MassBalance::check_year(Gridcell& gridcell) {
 		// For natural vegetation or unfertilised N-limited cropland, the check can be much stricter
 		if (!run[CROPLAND] || ifnlim) {
 			// N balance check:
-			if (!negligible(ncont_year - ncont + nflux_year, -3)) {
-				dprintf("\nN balance year %d: %.4f\n", date.year, ncont_year - ncont + nflux_year);
-				dprintf("N pool change: %.4f\n", ncont_year - ncont);
-				dprintf("N flux: %.4f\n",  nflux_year);
+			if (!negligible(ncont_year - ncont + nflux_year, -9)) {
+				dprintf("\n(%.2f, %.2f): N balance year %d: %.9f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ncont_year - ncont + nflux_year);
+				dprintf("N pool change: %.9f\n", ncont_year - ncont);
+				dprintf("N flux: %.9f\n",  nflux_year);
 			}
 		}
 	}
@@ -2524,11 +2516,11 @@ void MassBalance::check_year(Gridcell& gridcell) {
 	ncont = ncont_year;
 }
 
-void MassBalance::check_period() {
+void MassBalance::check_period(Gridcell& gridcell) {
 
 	// C balance check:
 	if (!negligible(ccont - ccont_zero + cflux, -9)) {
-		dprintf("\nWARNING: Period C balance: %.10f\n", ccont - ccont_zero + cflux);
+		dprintf("\nWARNING: (%.2f, %.2f): Period C balance: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), ccont - ccont_zero + cflux);
 		dprintf("C pool change: %.5f\n", ccont - ccont_zero);
 		dprintf("C fluxes: %.5f\n",  cflux);
 	}
@@ -2536,10 +2528,10 @@ void MassBalance::check_period() {
 	// For natural vegetation or unfertilised N-limited cropland, the check can be much stricter
 	if (!run[CROPLAND] || ifnlim) {
 		// N balance check:
-		if (!negligible(ncont - ncont_zero + nflux, -3)) {
-			dprintf("\nWARNING: Period N balance: %.4f\n", ncont - ncont_zero + nflux);
-			dprintf("N pool change: %.4f\n", ncont - ncont_zero);
-			dprintf("N fluxes: %.4f\n",  nflux);
+		if (!negligible(ncont - ncont_zero + nflux, -9)) {
+			dprintf("\nWARNING: (%.2f, %.2f): Period N balance: %.9f\n", gridcell.get_lon(), gridcell.get_lat(), ncont - ncont_zero + nflux);
+			dprintf("N pool change: %.9f\n", ncont - ncont_zero);
+			dprintf("N fluxes: %.9f\n",  nflux);
 		}
 	}
 }

@@ -479,8 +479,6 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 	Soil& soil = patch.soil;
 
 	if (date.day == 0) {
-		soil.aminleach = 0.0;
-		soil.aorgleach = 0.0;
 		soil.anmin = 0.0;
 		soil.animmob = 0.0;
 	}

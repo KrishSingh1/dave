@@ -14,7 +14,7 @@
 #define LPJ_GUESS_GUESSMATH_H
 
 #include <assert.h>
-#include <archive.h>
+#include "archive.h"
 
 #define _USE_MATH_DEFINES
 #include <cmath>

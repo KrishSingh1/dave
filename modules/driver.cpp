@@ -679,6 +679,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 				patch.fluxes.reset();
 				patch.soil.anfix = 0.0;
 				patch.soil.aorgleach = 0.0;
+				patch.soil.aminleach = 0.0;
 				patch.anfert = 0.0;
 				stand.nextobj();
 			}

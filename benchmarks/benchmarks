@@ -280,9 +280,9 @@ function submit_job {
 
     pushd $workspace &> /dev/null
     if [ -f $submit_vars ]; then
-	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars 2> /dev/null)
+	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars)
     else
-	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" 2> /dev/null)
+	jobid=$(./submit.sh -i $insfile -n "bm_$test_name")
     fi
 
     local submit_exit_status=$?

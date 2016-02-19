@@ -79,8 +79,8 @@ fi
 # sharing your nodes.
 CORES_PER_NODE=20
 if [[ $((NPROCESS%CORES_PER_NODE)) != 0 ]]; then
-    echo "Please set NPROCESS to a multiple of 20 on Aurora! Aborting!"
-    exit 1
+    echo "Please set NPROCESS to a multiple of 20 on Aurora! Aborting!" >&2
+#   exit 1
 fi
 
 # Convert INSFILE to an absolute path since we will be starting the

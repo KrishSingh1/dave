@@ -21,7 +21,7 @@ INSFILE=guess.ins
 INPUT_MODULE=cru_ncep
 GRIDLIST=gridlist.txt
 OUTFILES='*.out'
-PROJECT=snic2015-1-387	# NB: Need to change this also in script benchmarks/benchmarks
+SNIC_PROJECT=snic2015-1-387	# NB: Need to change this also in script benchmarks/benchmarks
 
 #      Where:
 #      NPROCESS     = number of processes in parallel job
@@ -32,7 +32,7 @@ PROJECT=snic2015-1-387	# NB: Need to change this also in script benchmarks/bench
 #      OUTFILES     = list of LPJ-GUESS output files in single quotes,
 #                     and separated by spaces (filenames only, including
 #                     extension, no directory.) Shell wildcards are allowed.
-#      PROJECT      = your snic project number ("snic2015-...")
+#      SNIC_PROJECT = your snic project number ("snic2015-...")
 #
 #   3. Run the script using the command:
 #        ./submit.sh
@@ -142,7 +142,7 @@ split_gridlist
 # Create SLURM script to request place in queue
 cat <<EOF > guess.cmd
 #!/bin/bash
-#SBATCH -A $PROJECT
+#SBATCH -A $SNIC_PROJECT
 #SBATCH -n $NPROCESS
 #SBATCH --time=$WALLTIME
 #SBATCH --exclusive
@@ -176,7 +176,7 @@ EOF
 
 cat <<EOF > append.cmd
 #!/bin/bash
-#SBATCH -A $PROJECT
+#SBATCH -A $SNIC_PROJECT
 #SBATCH -n 1
 #SBATCH --time=$WALLTIME
 set -e

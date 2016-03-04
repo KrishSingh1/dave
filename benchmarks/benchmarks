@@ -4,14 +4,12 @@
 #
 # For information on how to use, see the readme.txt, or run this
 # script without arguments.
-# Change snic_project to your own snic project number 
 #
 
 cmake_command="cmake -D CMAKE_BUILD_TYPE=Release"
 make_command="make -j2"
 bbox_command="bbox"
 pp_walltime=5:00:00
-snic_project=snic2015-1-387
 
 # Prints a message to stderr
 function error {
@@ -260,7 +258,6 @@ EOF
 	# Submit as a SLURM job
 	sbatch -n 1 --time=$pp_walltime $dependency <<EOF &> /dev/null
 #!/bin/sh
-#SBATCH -A $snic_project
 #SBATCH -J bm_${test_name}_pp
 $(cat $common_script)
 EOF
@@ -283,9 +280,9 @@ function submit_job {
 
     pushd $workspace &> /dev/null
     if [ -f $submit_vars ]; then
-	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars)
+	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" -s $submit_vars 2> /dev/null)
     else
-	jobid=$(./submit.sh -i $insfile -n "bm_$test_name")
+	jobid=$(./submit.sh -i $insfile -n "bm_$test_name" 2> /dev/null)
     fi
 
     local submit_exit_status=$?

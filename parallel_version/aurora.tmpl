@@ -4,7 +4,7 @@
 #
 # Portable bash script to run LPJ-GUESS version:
 # BINARY
-# as a parallel job using SLURM on Alarik.
+# as a parallel job using SLURM on Aurora.
 #
 # Created automatically on DATE
 # 
@@ -15,7 +15,7 @@
 #   2. In an editor, set appropriate values for the variables NPROCESS,
 #      INSFILE, GRIDLIST and OUTFILES (NB: no space after the = sign):
 
-NPROCESS=16             # NB: Should be multiple of 16 on Alarik!
+NPROCESS=20            # NB: Should be multiple of 20 on Aurora!
 WALLTIME=150:00:00
 INSFILE=guess.ins
 INPUT_MODULE=cru_ncep
@@ -69,15 +69,15 @@ if [ -n "$ins" ]; then
     INSFILE=$ins
 fi
 
-# On Alarik, the recommendation is to submit jobs with the --exclusive
-# option, so we get exclusive nodes. Since each node has 16 cores, we
-# should set NPROCESS to a multiple of 16 to avoid waste.
+# On Aurora, the recommendation is to submit jobs with the --exclusive
+# option, so we get exclusive nodes. Since each node has 20 cores, we
+# should set NPROCESS to a multiple of 20 to avoid waste.
 # If you really want to, you could remove this check and the --exclusive
 # option below, but your jobs might then be disturbed by other jobs 
 # sharing your nodes.
-CORES_PER_NODE=16
+CORES_PER_NODE=20
 if [[ $((NPROCESS%CORES_PER_NODE)) != 0 ]]; then
-    echo "Please set NPROCESS to a multiple of 16 on Alarik!" >&2
+    echo "Please set NPROCESS to a multiple of 20 on Aurora!" >&2
     exit 1
 fi
 

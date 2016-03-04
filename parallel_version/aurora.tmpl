@@ -76,13 +76,10 @@ fi
 # If you really want to, you could remove this conversion and the --exclusive
 # option below, but your jobs might then be disturbed by other jobs 
 # sharing your nodes.
+# The line NPROCESSES=$NPROCESS is there if you choose to comment out the round up.
 CORES_PER_NODE=20
-#if [[ $((NPROCESS%CORES_PER_NODE)) != 0 ]]; then
-#    echo "Please set NPROCESS to a multiple of 20 on Aurora!" >&2
-#    exit 1
+NPROCESSES=$NPROCESS
 let NPROCESSES=(1*($NPROCESS+$CORES_PER_NODE-1)/$CORES_PER_NODE)*$CORES_PER_NODE
-#let NPROCESSES=$NPROCESS
-#fi
 
 # Convert INSFILE to an absolute path since we will be starting the
 # guess instances from different directories.

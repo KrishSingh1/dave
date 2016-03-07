@@ -72,14 +72,14 @@ fi
 # On Aurora, the recommendation is to submit jobs with the --exclusive
 # option, so we get exclusive nodes. Since each node has 20 cores, we
 # should set NPROCESS to a multiple of 20 to avoid waste.
-# The line below sets NPROCESSES to the nearest multiple of 20 above.
-# If you really want to, you could remove this conversion and the --exclusive
+# If you really want to, you could remove this check and the --exclusive
 # option below, but your jobs might then be disturbed by other jobs 
 # sharing your nodes.
-# The line NPROCESSES=$NPROCESS is there if you choose to comment out the round up.
 CORES_PER_NODE=20
-NPROCESSES=$NPROCESS
-let NPROCESSES=(1*($NPROCESS+$CORES_PER_NODE-1)/$CORES_PER_NODE)*$CORES_PER_NODE
+if [[ $((NPROCESS%CORES_PER_NODE)) != 0 ]]; then
+    echo "Please set NPROCESS to a multiple of 20 on Aurora!" >&2
+    exit 1
+fi
 
 # Convert INSFILE to an absolute path since we will be starting the
 # guess instances from different directories.
@@ -94,15 +94,15 @@ GRIDLIST_FILENAME=$(basename $GRIDLIST)
 # the original gridlist file into approximately equal parts.
 function split_gridlist {
     # Create empty gridlists first to make sure each run gets one
-    for ((a=1; a <= NPROCESSES ; a++)) 
+    for ((a=1; a <= NPROCESS ; a++)) 
     do
       echo > run$a/$GRIDLIST_FILENAME
     done
 
     # Figure out suitable number of lines per gridlist, get the number of
-    # lines in original gridlist file, divide by NPROCESSES and round up.
+    # lines in original gridlist file, divide by NPROCESS and round up.
     local lines_per_run=$(wc -l $GRIDLIST | \
-	awk '{ x = $1/'$NPROCESSES'; d = (x == int(x)) ? x : int(x)+1; print d}')
+	awk '{ x = $1/'$NPROCESS'; d = (x == int(x)) ? x : int(x)+1; print d}')
 
     # Use the split command to split the files into temporary files
     split --suffix-length=4 --lines $lines_per_run $GRIDLIST tmpSPLITGRID_
@@ -127,7 +127,7 @@ echo >> progress.sh
 
 # Create a run subdirectory for each process and clean up
 
-for ((a=1; a <= NPROCESSES ; a++))
+for ((a=1; a <= NPROCESS ; a++))
 do
   mkdir -p run$a
   cd run$a ; rm -f guess.log ; rm -f $GRIDLIST_FILENAME ; cd ..
@@ -140,7 +140,7 @@ split_gridlist
 # Create SLURM script to request place in queue
 cat <<EOF > guess.cmd
 #!/bin/bash
-#SBATCH -n $NPROCESSES
+#SBATCH -n $NPROCESS
 #SBATCH --time=$WALLTIME
 #SBATCH --exclusive
 set -e
@@ -157,7 +157,7 @@ if [ -f setup_local.sh ]; then
 fi
 
 # In each run directory, create a symbolic link to the node local storage
-for ((a=1; a <= $NPROCESSES ; a++))
+for ((a=1; a <= $NPROCESS ; a++))
 do
   cd run\$a
   if [ -h local ]; then
@@ -199,7 +199,7 @@ popd &> /dev/null
 
 for file in \$outfiles_expanded
 do
-  append_files $NPROCESSES \$file
+  append_files $NPROCESS \$file
 done
 EOF
 

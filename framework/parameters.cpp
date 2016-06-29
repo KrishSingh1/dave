@@ -136,7 +136,7 @@ Paramtype* Paramlist::find(xtring name) {
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM,BLOCK_ST};
 enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,
 	CB_STLANDCOVER,CB_STINTERCROP,CB_STNATURALVEG,CB_CHECKST,CB_CROP1,CB_CROP2,CB_CROP3,CB_STHYDROLOGY1,CB_STHYDROLOGY2,CB_STHYDROLOGY3,
-	CB_PATHWAY,CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE};
+	CB_PATHWAY,CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE,CB_MTCOMPOUND};
 
 // File local variables
 namespace {
@@ -641,9 +641,9 @@ void plib_declarations(int id,xtring setname) {
 			"isoprene emission capacity (ug C g-1 h-1)");
 		declareitem("seas_iso",&ppft->seas_iso,1,CB_NONE,
 			"whether (1) or not (0) isoprene emissions show seasonality");
-		declareitem("eps_mon",&ppft->eps_mon,0.,100.,1,CB_NONE,
+		declareitem("eps_mon",ppft->eps_mon,0.,100.,NMTCOMPOUNDS,CB_MTCOMPOUND,
 			"monoterpene emission capacity (ug C g-1 h-1)");
-		declareitem("storfrac_mon",&ppft->storfrac_mon,0.,1.,1,CB_NONE,
+		declareitem("storfrac_mon",ppft->storfrac_mon,0.0,1.0,NMTCOMPOUNDS,CB_MTCOMPOUND,
 			"fraction of monoterpene production that goes into storage pool (-)");
 
 		declareitem("harv_eff",&ppft->harv_eff,0.0,1.0,1,CB_NONE,"Harvest efficiency");
@@ -1006,6 +1006,12 @@ void plib_callback(int callback) {
 		}
 		ppft->rootdist[NSOILLAYER-1]+=1.0-numval;
 		break;
+
+	//bvoc
+	case CB_MTCOMPOUND:
+          // can include some checks for the monoterpene parameters given per compound
+	break;
+
 	case CB_STRPARAM:
 		param.addparam(paramname,strparam);
 		break;

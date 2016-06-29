@@ -65,7 +65,9 @@ void initbvoc(){
 		// electron fraction assigned to isoprene and monoterpenes for the
  		// standard case
 		pft.eps_iso *= coeff;
-		pft.eps_mon *= coeff;
+                for(int im=0;im<NMTCOMPOUNDS;im++){
+		pft.eps_mon[im] *= coeff;
+		}
 
 		pftlist.nextobj();
 	}
@@ -83,7 +85,7 @@ double daytime_temp(double temp, double daylength, double dtr) {
 }
 
 void iso_mono(double co2, double temp, double daylength, const Pft& pft, double temprel,
-				const PhotosynthesisResult& phot, Individual& indiv) {
+				const PhotosynthesisResult& phot, Individual& indiv, double adtmm) {
 
 	// Calculation of isoprene and monoterpene emissions coupled to
 	// photosynthesis as described in Arneth et al. (2007) for isoprene and
@@ -96,12 +98,19 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 	// temprel   = water-stressed leaf temperature for the whole period (deg C)
 	// phot      = non-water-stressed photosynthesis
 
+  	int im; 
+	
 	const double tcstor_s = 80;     // time constant for monoterpene storage under standard temp
 	const double tcstor_max = 365;  // maximum time constant for monoterpene storage (d)
 	const double tcstor_min = 2;    // minimum time constant for monoterpene storage (d)
 	const double q10_mstor = 1.9;   // Q10 value for monoterpene storage
 	const double f_tempmax = 2.3;   // maximum temperature scaling factor
-	const double epsT = 0.1;        // temperature sensitivity
+	const double epsT = 0.1;        // temperature sensitivity       
+
+        double rmonstor[NMTCOMPOUNDS];  // rate of monoterpene storage
+
+        if(adtmm>0){  
+	
 
 	double f_co2 = CO2/co2;                                     // CO2 scaling factor
 	double f_temp = min(f_tempmax, exp(epsT*(temp-Tstand)));    // temp scaling factor
@@ -111,7 +120,16 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 	indiv.iso = pft.eps_iso * f_co2 * f_temp * indiv.fvocseas * coeff;
 	// monoterpene production, g C m-2 d-1
 	// (only the production part is given here)
-	indiv.mon = pft.eps_mon * f_co2 * f_temp * coeff;
+          for(im=0;im<NMTCOMPOUNDS;im++){
+	indiv.mon[im] = pft.eps_mon[im] * f_co2 * f_temp * coeff;
+	}
+	}
+	else{
+          indiv.iso=0.;
+          for(im=0;im<NMTCOMPOUNDS;im++){
+            indiv.mon[im]=0.;
+	}
+	}
 
 	// release from monoterpene storage, g C m-2 d-1
 	double dmonstor = tcstor_s / pow(q10_mstor, (temprel-Tstand)/10.);
@@ -119,10 +137,12 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 
 	// convert from g C m-2 d-1 to mg C m-2 d-1
 	indiv.iso *= 1e3 / date.subdaily;
-	indiv.mon *= 1e3 / date.subdaily;
-	double rmonstor = -indiv.monstor * dmonstor + pft.storfrac_mon * indiv.mon;
-	indiv.monstor += rmonstor;
-	indiv.mon -= rmonstor;
+	for(im=0;im<NMTCOMPOUNDS;im++){
+	indiv.mon[im] *= 1e3 / date.subdaily;
+	rmonstor[im] = -indiv.monstor[im] * dmonstor + pft.storfrac_mon[im] * indiv.mon[im];
+	indiv.monstor[im] += rmonstor[im];
+	indiv.mon[im] -= rmonstor[im];
+	}
 }
 
 double leafT(double temp, double daylength, double ga, double rs_day, double aet,
@@ -251,10 +271,21 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 	}
 
 	// calculate isoprene and monoterpene emissions, g C m-2 d-1
-	iso_mono(climate.co2, temp_leaf_daytime, hours, pft, temp_leaf, phot, indiv);
+	iso_mono(climate.co2, temp_leaf_daytime, hours, pft, temp_leaf, phot, indiv, adtmm);
 
 	indiv.report_flux(Fluxes::ISO, indiv.iso);
-	indiv.report_flux(Fluxes::MON, indiv.mon);
+
+
+	// xxxx can presumably be done much more elegantly...
+         indiv.report_flux(Fluxes::APIN,indiv.mon[0]);
+         indiv.report_flux(Fluxes::BPIN,indiv.mon[1]);
+         indiv.report_flux(Fluxes::LIMO,indiv.mon[2]);
+         indiv.report_flux(Fluxes::MYRC,indiv.mon[3]);
+         indiv.report_flux(Fluxes::SABI,indiv.mon[4]);
+         indiv.report_flux(Fluxes::CAMP,indiv.mon[5]);
+         indiv.report_flux(Fluxes::TRIC,indiv.mon[6]);
+         indiv.report_flux(Fluxes::TBOC,indiv.mon[7]);
+	 indiv.report_flux(Fluxes::OTHR,indiv.mon[8]);
 }
 
 // REFERENCES

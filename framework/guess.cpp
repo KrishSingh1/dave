@@ -1118,8 +1118,8 @@ void Individual::serialize(ArchiveStream& arch) {
 		& phen_mean
 		& wstress
 		& alive
-		& iso
-		& mon
+//		& iso
+//		& mon
 		& monstor
 		& fvocseas
 		& nmass_leaf

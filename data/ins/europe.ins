@@ -36,7 +36,8 @@ file_cpool "cpool.out"
 file_nlitter "nlitter.out"
 !file_firert "firert.out"
 !file_aiso "aiso.out"
-!file_amon "amon.out"
+!file_amt1 "amt1.out"
+!file_amt2 "amt2.out"
 !file_speciesheights "height.out"
 
 file_nmass "nmass.out"
@@ -64,7 +65,8 @@ file_vmaxnlim "vmaxnlim.out"
 !file_mwcont_upper "mwcont_upper.out"
 !file_mwcont_lower "mwcont_lower.out"
 !file_miso "miso.out"
-!file_mmon "mmon.out"
+!file_mmt1 "mmt1.out"
+!file_mmt2 "mmt2.out"
 
 !///////////////////////////////////////////////////////////////////////////////////////
 
@@ -340,8 +342,8 @@ pft "Abi_alb" (
 	drought_tolerance 0.35
 	eps_iso 0.05            
 	seas_iso 0
-	eps_mon 1.8
-	storfrac_mon 0.5
+	eps_mon 1.1 0.7 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.5 0.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
 
 
@@ -379,8 +381,8 @@ pft "BES" (
 	drought_tolerance 0.25
 	eps_iso 2.0
 	seas_iso 0
-	eps_mon 4.0
-	storfrac_mon 0.5
+	eps_mon 2.4 1.6 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.5 0.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	ga 0.040
 )
 
@@ -411,8 +413,8 @@ pft "Bet_pen" (
 	drought_tolerance 0.42
 	eps_iso 0.2
 	seas_iso 1
-	eps_mon 6.
-	storfrac_mon 0.
+	eps_mon 2.1 3.9 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
 
 
@@ -442,8 +444,8 @@ pft "Bet_pub" (
 	drought_tolerance 0.5
 	eps_iso 0.
 	seas_iso 1
-	eps_mon 1.0
-	storfrac_mon 0.
+	eps_mon 0.1 0.9 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
 
 
@@ -473,8 +475,8 @@ pft "Car_bet" (
 	drought_tolerance 0.33
 	eps_iso 0.
 	seas_iso 1
-	eps_mon 0.08
-	storfrac_mon 0.
+	eps_mon 0.06 0.02 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
 
 
@@ -506,8 +508,8 @@ pft "Cor_ave" (
 	drought_tolerance 0.3
 	eps_iso 0.
 	seas_iso 1
-	eps_mon 0.
-	storfrac_mon 0.
+	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
 
 
@@ -537,8 +539,8 @@ pft "Fag_syl" (
 	drought_tolerance 0.3
 	eps_iso 0.
 	seas_iso 1
-	eps_mon 10.
-	storfrac_mon 0.
+	eps_mon 3.5 6.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
 
 
@@ -568,8 +570,8 @@ pft "Fra_exc" (
 	drought_tolerance 0.4
 	eps_iso 0.
 	seas_iso 1
-	eps_mon 0.
-	storfrac_mon 0.
+	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
 
 
@@ -606,8 +608,8 @@ pft "Jun_oxy" (
 	drought_tolerance 0.01
 	eps_iso 0.
 	seas_iso 0
-	eps_mon 2.0
-	storfrac_mon 0.5
+	eps_mon 1.2 0.8 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.5 0.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
 
 
@@ -643,8 +645,8 @@ pft "MRS" (
 	drought_tolerance 0.01
 	eps_iso 2.0
 	seas_iso 0
-	eps_mon 4.0
-	storfrac_mon 0.5
+	eps_mon 2.4 1.6 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.5 0.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	ga 0.040
 )
 
@@ -678,8 +680,8 @@ pft "Pic_abi" (
 	drought_tolerance 0.43
 	eps_iso 0.5
 	seas_iso 0
-	eps_mon 6.0
-	storfrac_mon 0.5
+	eps_mon 3.9 2.1 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.5 0.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
 
 
@@ -715,8 +717,8 @@ pft "Pic_sit" (
 	drought_tolerance 0.5		! Bjarki
 	eps_iso 0.					! to be determined
 	seas_iso 0
-	eps_mon 0.					! to be determined
-	storfrac_mon 0.5
+	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0	! to be determined
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 
 	! wooddens 200 - Should be less dens than P. abies (Savill)
 	! turnover_sap 0.065 ! Bjarki 30% + abies!
@@ -753,8 +755,8 @@ pft "Pin_syl" (
 	drought_tolerance 0.25
 	eps_iso 0.
 	seas_iso 0
-	eps_mon 4.0
-	storfrac_mon 0.5
+	eps_mon 3.2 0.8 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.5 0.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
 
 
@@ -789,8 +791,8 @@ pft "Pin_hal" (
 	drought_tolerance 0.05
 	eps_iso 0.
 	seas_iso 0
-	eps_mon 10.0
-	storfrac_mon 0.5
+	eps_mon 6.1 3.9 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.5 0.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
 
 
@@ -823,8 +825,8 @@ pft "Pop_tre" (
 	drought_tolerance 0.4
 	eps_iso 20.
 	seas_iso 1
-	eps_mon 4.0
-	storfrac_mon 0.
+	eps_mon 2.4 1.6 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
 
 
@@ -858,8 +860,8 @@ pft "Que_coc" (
 	drought_tolerance 0.1
 	eps_iso 0.1
 	seas_iso 0
-	eps_mon 10.0
-	storfrac_mon 0.
+	eps_mon 6.0 4.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	ga 0.040
 )
 
@@ -894,8 +896,8 @@ pft "Que_ile" (
 	drought_tolerance 0.1
 	eps_iso 0.05
 	seas_iso 0
-	eps_mon 16.0
-	storfrac_mon 0.
+	eps_mon 9.6 6.4 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
 
 
@@ -927,8 +929,8 @@ pft "Que_pub" (
 	drought_tolerance 0.2
 	eps_iso 50.0
 	seas_iso 1
-	eps_mon 0.
-	storfrac_mon 0.
+	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
 
 
@@ -958,8 +960,8 @@ pft "Que_rob" (
 	drought_tolerance 0.25
 	eps_iso 40.0
 	seas_iso 1
-	eps_mon 0.
-	storfrac_mon 0.
+	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
 
 
@@ -990,8 +992,8 @@ pft "Til_cor" (
 	drought_tolerance 0.33
 	eps_iso 0.
 	seas_iso 1
-	eps_mon 0.
-	storfrac_mon 0.
+	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
 
 
@@ -1023,8 +1025,8 @@ pft "Ulm_gla" (
 	drought_tolerance 0.4
 	eps_iso 0. ! to be determined
 	seas_iso 1
-	eps_mon 0. ! to be determined
-	storfrac_mon 0.
+	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ! to be determined
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 )
 
 group "C3G" (
@@ -1055,8 +1057,8 @@ group "C3G" (
 	drought_tolerance 0.01
 	eps_iso 0.
 	seas_iso 1
-	eps_mon 1.0
-	storfrac_mon 0.5
+	eps_mon 0.45 0.55 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.5 0.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	harv_eff 0.5
 )
 
@@ -1091,8 +1093,8 @@ group "C4G" (
 	drought_tolerance 0.01
 	eps_iso 0.
 	seas_iso 1
-	eps_mon 1.0
-	storfrac_mon 0.5
+	eps_mon 0.55 0.45 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	storfrac_mon 0.5 0.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	harv_eff 0.5
 )
 

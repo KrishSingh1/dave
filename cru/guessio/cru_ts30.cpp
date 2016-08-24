@@ -13,8 +13,8 @@
 #include <vector>
 
 // header files for the CRU TS 3.0 data archives
-#include "Cruncep_1901_2015.h"
-#include "Cruncep_1901_2015misc.h"
+#include "cruncep_1901_2015.h"
+#include "cruncep_1901_2015misc.h"
 
 namespace CRU_TS30 {
  

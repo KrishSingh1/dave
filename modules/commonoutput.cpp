@@ -222,6 +222,8 @@ void CommonOutput::define_output_tables() {
 	aiso_columns += ColumnDescriptor("Total",             10, 3);
 	aiso_columns += ColumnDescriptors(landcovers,         13, 3);
 
+	// MONOTERPENES
+	ColumnDescriptors amt_columns = aiso_columns;
 
 	//TODO Fix these for landcover
 
@@ -314,8 +316,8 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_runoff,         file_runoff,         runoff_columns);
 	create_output_table(out_speciesheights, file_speciesheights, speciesheights_columns);
 	create_output_table(out_aiso,           file_aiso,           aiso_columns);
-	create_output_table(out_amt1,           file_amt1,           aiso_columns);
-	create_output_table(out_amt2,           file_amt2,           aiso_columns);
+	create_output_table(out_amt1,           file_amt1,           amt_columns);
+	create_output_table(out_amt2,           file_amt2,           amt_columns);
 
 	
 

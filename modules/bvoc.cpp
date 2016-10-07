@@ -63,9 +63,9 @@ void initbvoc(){
 		double coeff = 1e-3 / (phot.je + phot.rd_g/24) / daylength / pft.sla / Cfrac;
 
 		// electron fraction assigned to isoprene and monoterpenes for the
- 		// standard case
+		// standard case
 		pft.eps_iso *= coeff;
-                for(int im=0;im<NMTCOMPOUNDS;im++){
+			for(int im=0;im<NMTCOMPOUNDS;im++){
 		pft.eps_mon[im] *= coeff;
 		}
 
@@ -107,7 +107,7 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 	const double f_tempmax = 2.3;   // maximum temperature scaling factor
 	const double epsT = 0.1;        // temperature sensitivity       
 
-        double rmonstor[NMTCOMPOUNDS];  // rate of monoterpene storage
+	double rmonstor[NMTCOMPOUNDS];  // rate of monoterpene storage
 
         if(adtmm>0){  
 	
@@ -120,14 +120,14 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 	indiv.iso = pft.eps_iso * f_co2 * f_temp * indiv.fvocseas * coeff;
 	// monoterpene production, g C m-2 d-1
 	// (only the production part is given here)
-          for(im=0;im<NMTCOMPOUNDS;im++){
+	for(im=0;im<NMTCOMPOUNDS;im++){
 	indiv.mon[im] = pft.eps_mon[im] * f_co2 * f_temp * coeff;
 	}
 	}
 	else{
-          indiv.iso=0.;
-          for(im=0;im<NMTCOMPOUNDS;im++){
-            indiv.mon[im]=0.;
+	indiv.iso=0.;
+	for(im=0;im<NMTCOMPOUNDS;im++){
+	    indiv.mon[im]=0.;
 	}
 	}
 
@@ -275,17 +275,17 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 
 	indiv.report_flux(Fluxes::ISO, indiv.iso);
 
-
-	// xxxx can presumably be done much more elegantly...
-         indiv.report_flux(Fluxes::APIN,indiv.mon[0]);
-         indiv.report_flux(Fluxes::BPIN,indiv.mon[1]);
-         indiv.report_flux(Fluxes::LIMO,indiv.mon[2]);
-         indiv.report_flux(Fluxes::MYRC,indiv.mon[3]);
-         indiv.report_flux(Fluxes::SABI,indiv.mon[4]);
-         indiv.report_flux(Fluxes::CAMP,indiv.mon[5]);
-         indiv.report_flux(Fluxes::TRIC,indiv.mon[6]);
-         indiv.report_flux(Fluxes::TBOC,indiv.mon[7]);
-	 indiv.report_flux(Fluxes::OTHR,indiv.mon[8]);
+	// note that for european pfts only 2 groups (endocyclic and rest group are considered, occupying the space of APIN & BPIN respectively)
+	//see scientific description for more infor.
+	indiv.report_flux(Fluxes::APIN,indiv.mon[0]); 
+	indiv.report_flux(Fluxes::BPIN,indiv.mon[1]);
+	indiv.report_flux(Fluxes::LIMO,indiv.mon[2]);
+	indiv.report_flux(Fluxes::MYRC,indiv.mon[3]);
+	indiv.report_flux(Fluxes::SABI,indiv.mon[4]);
+	indiv.report_flux(Fluxes::CAMP,indiv.mon[5]);
+	indiv.report_flux(Fluxes::TRIC,indiv.mon[6]);
+	indiv.report_flux(Fluxes::TBOC,indiv.mon[7]);
+	indiv.report_flux(Fluxes::OTHR,indiv.mon[8]);
 }
 
 // REFERENCES

@@ -55,8 +55,7 @@ typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, BARREN, NLAND
   */
 typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptaketype;
 
-//bvoc
-// define monoterpene species used
+///bvoc: define monoterpene species used
 typedef enum {APIN, BPIN, LIMO, MYRC, SABI, CAMP, TRIC, TBOC, OTHR, NMTCOMPOUNDTYPES} monoterpenecompoundtype;
 
 ///////////////////////////////////////////////////////////////////////////////////////

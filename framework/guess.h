@@ -135,8 +135,7 @@ typedef enum {COLD, COLD_WARM, COLD_HOT, WARM, WARM_HOT, HOT} temp_seasonality_t
 /// number  of soil layers modelled
 const int NSOILLAYER = 2;
 
-// bvoc
-// number of monoterpene species used
+/// bvoc: number of monoterpene species used
 const int NMTCOMPOUNDS=NMTCOMPOUNDTYPES;
 
 // SOIL DEPTH VALUES
@@ -904,10 +903,6 @@ public:
 		/// Isoprene (mgC/m2)
 		ISO,
 		/// Monoterpene (mgC/m2)
-//		MON,
-		/// Number of types, must be last
-		//bvoc
-
 		APIN,
 		BPIN,
 		LIMO,
@@ -917,8 +912,8 @@ public:
 		TRIC,
 		TBOC,
 		OTHR,
-
-
+		
+		/// Number of types, must be last
 		NPERPFTFLUXTYPES
 	};
 
@@ -1321,9 +1316,9 @@ public:
 	double eps_iso;
 	/// whether (1) or not (1) isoprene emissions show a seasonality
 	bool seas_iso;
-	/// monoterpene emission capacity (ug C g-1 h-1)
+	/// monoterpene emission capacity (ug C g-1 h-1) per monoterpene species
 	double eps_mon[NMTCOMPOUNDS];
-	/// fraction of monoterpene production that goes into storage pool (-)
+	/// fraction of monoterpene production that goes into storage pool (-) per monoterpene species
 	double storfrac_mon[NMTCOMPOUNDS];
 
 
@@ -2140,9 +2135,9 @@ public:
 
 	/// isoprene production (mg C m-2 d-1)
 	double iso;
-	/// monoterpene production (mg C m-2 d-1)
+	/// monoterpene production (mg C m-2 d-1) per monoteprene species
 	double mon[NMTCOMPOUNDS];
-	/// monoterpene storage pool (mg C m-2)
+	/// monoterpene storage pool (mg C m-2) per monoterpene species
 	double monstor[NMTCOMPOUNDS];
 	/// isoprene seasonality factor (-)
 	double fvocseas;

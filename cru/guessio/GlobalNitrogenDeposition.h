@@ -8,7 +8,7 @@
 //   #include <stdio.h>
 //   #include <stdlib.h>
 //   #include <string.h>
-//   #include "E:\Libs\svn\LPJ-GUESS\Fast_archive\Fastarchive_ndep_extra_decade_br\work\bin_new_NYSKARP\GlobalNitrogenDeposition.h"
+//   #include "GlobalNitrogenDeposition.h"
 //
 // Functionality to retrieve data from the archive is provided by class GlobalNitrogenDepositionArchive.
 // The following public functions are provided:

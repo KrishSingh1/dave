@@ -167,7 +167,7 @@ do
   cd ..
 done
 
-mpirun -bind-to-core BINARY -parallel -input $INPUT_MODULE $INSFILE
+mpirun -bind-to core BINARY -parallel -input $INPUT_MODULE $INSFILE
 
 EOF
 

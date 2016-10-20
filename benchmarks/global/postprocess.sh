@@ -34,17 +34,17 @@ describe_textfile npool1961to1990_areaaverage.txt "Global Terrestrial Nitrogen P
 aslice tot_runoff1961to1990.txt -o tot_runoff1961to1990_areaaverage.txt -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.0 0.0
 describe_textfile tot_runoff1961to1990_areaaverage.txt "Global Runoff, 1961 to 1990. Units: mm yr-1"
 
-gmap lai1961to1990max.txt -t 'Dominant PFT (greatest LAI)' -lon 1 -lat 2 -i 3 -legend legend_global.txt -portrait -o maxLAI.jpg
+gmap lai1961to1990max.txt -t 'Dominant PFT (greatest LAI)' -lon 1 -lat 2 -i 3 -legend legend_global.txt -portrait -o maxLAI.jpg -pixoffset 0.0 0.0
 describe_image maxLAI.jpg "PFT With the Highest LAI in Each Gridcell (1961-90 average)"
 
 biomes lai1961to1990.txt
-gmap biomes_lai1961to1990.txt -t 'Biomes (Hickler et al. 2006)' -lon 1 -lat 2 -i 3 -legend legend_biomes.txt -portrait -o biomes.jpg
+gmap biomes_lai1961to1990.txt -t 'Biomes (Hickler et al. 2006)' -lon 1 -lat 2 -i 3 -legend legend_biomes.txt -portrait -o biomes.jpg -pixoffset 0.0 0.0
 describe_image biomes.jpg "Biomes in Each Gridcell (1961-90 average) (according to Hickler et al. 2006)"
 
 tslice aiso.out -o aiso1961to1990.txt -f 1961 -t 1990 -lon 1 -lat 2 -y 3
 tslice amon.out -o amon1961to1990.txt -f 1961 -t 1990 -lon 1 -lat 2 -y 3
-gmap aiso1961to1990.txt -t 'Isoprene flux (mg C/m2/y)' -legend legend_bvoc_global.txt -portrait -lon 1 -lat 2 -i 'Total' -o aiso_tot.jpg
-gmap amon1961to1990.txt -t 'Monoterpene flux (mg C/m2/y)' -legend legend_bvoc_global.txt -portrait -lon 1 -lat 2 -i 'Total' -o amon_tot.jpg
+gmap aiso1961to1990.txt -t 'Isoprene flux (mg C/m2/y)' -legend legend_bvoc_global.txt -portrait -lon 1 -lat 2 -i 'Total' -o aiso_tot.jpg -pixoffset 0.0 0.0
+gmap amon1961to1990.txt -t 'Monoterpene flux (mg C/m2/y)' -legend legend_bvoc_global.txt -portrait -lon 1 -lat 2 -i 'Total' -o amon_tot.jpg -pixoffset 0.0 0.0
 describe_image aiso_tot.jpg "Annual isoprene flux (1961-90 average)"
 describe_image amon_tot.jpg "Annual monoterpene flux (1961-90 average)"
 aslice aiso1961to1990.txt -o aiso1961to1990_sums.txt -n -sum 'mg/m2->Tg' -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.0 0.0

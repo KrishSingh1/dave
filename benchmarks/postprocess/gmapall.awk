@@ -19,7 +19,7 @@ if (lat != -1 && lon != -1) {
    for (i = 1; i <= NF; i++) {
       if (i != lat && i != lon && $i != "Total") {
          print "gmapping " $i "...";
-         system("gmap " file " -lon " lon " -lat " lat " -i " i " -t " $i " -o " prefix "" $i ".jpg " ENVIRON["GMAP_EXTRA"]);
+         system("gmap " file " -lon " lon " -lat " lat " -i " i " -t " $i " -pixoffset 0.0 0.0 -o " prefix "" $i ".jpg " ENVIRON["GMAP_EXTRA"]);
       }
    }
 }

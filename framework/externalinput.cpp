@@ -314,7 +314,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 					if(lcfrac == NOTFOUND) {	// land cover not found in input file
 						lcfrac = 0.0;
 					}
-					else if(lc.frac[i] < 0.0 || lc.frac[i] > 1.0) {	// discard unreasonable values	
+					else if(lcfrac < 0.0 || lcfrac > 1.0) {	// discard unreasonable values	
 						if(printyear)
 							dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
 						lcfrac = 0.0;

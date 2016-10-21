@@ -469,9 +469,14 @@ void crop_phenology(Patch& patch) {
 
 					if (date.day == patch.pft[patch.stand.pftid].cropphen->bicdate) {
 						ppftcrop.growingseason = true;
+						ppftcrop.growingdays = 0;
 					}
 					else if (date.day == patch.pft[patch.stand.pftid].cropphen->eicdate) {
 						ppftcrop.growingseason = false;
+						ppftcrop.lgp = ppftcrop.growingdays;
+					}
+					if (ppftcrop.growingseason == true) {
+						ppftcrop.growingdays++;
 					}
 				}
 			}

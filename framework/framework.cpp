@@ -262,7 +262,7 @@ int framework(const CommandLineArguments& args) {
 			// End of loop through simulation days
 		}	//while (getclimate())
 
-		gridcell.balance.check_period();
+		gridcell.balance.check_period(gridcell);
 
 	}		// End of loop through grid cells
 

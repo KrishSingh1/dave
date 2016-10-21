@@ -937,12 +937,6 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 		int stid_receptor = -1, int stid_donor = -1,
 		int standid = -1, bool killgrass = true) {
 
-	double ccont_pre_orig_tot = 0.0;
-	double dif_tot = 0.0;
-	double acflux_landuse_change_tot = 0.0;
-	double ncont_pre_orig_tot = 0.0;
-	double ndif_tot = 0.0;
-	double anflux_landuse_change_tot = 0.0;
 	int count = 0;
 	Landcover& lc = gridcell.landcover;
 
@@ -961,14 +955,6 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 
 		if(donor_area > 0.0 && (stand.id == standid || standid < 0) && (stand.landcover == landcover_donor || landcover_donor < 0) && (stand.stid == stid_donor || stid_donor < 0)) {
 
-			double zero_gridcell_luc_cflux = lc.acflux_landuse_change;
-			double ccont_stand_pre_orig = 0.0;
-			double zero_to_ccont_pre = to.ccont();
-			double to_ccont_pre = 0.0;
-			double zero_gridcell_luc_nflux = lc.anflux_landuse_change;
-			double ncont_stand_pre_orig = 0.0;
-			double zero_to_ncont_pre = to.ncont();
-			double to_ncont_pre = 0.0;
 			bool single_stand = true;
 
 			if(!negligible(donor_area - receiving_fraction, -14))
@@ -982,14 +968,6 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 
 			// Add non-living C, N and water of stand to transfer struct:
 			to.add_from_stand(stand, scale);
-
-			// C accounting:
-			ccont_stand_pre_orig = stand.ccont();
-			to_ccont_pre = to.ccont();
-			double dif = ccont_stand_pre_orig - stand.ccont(0);
-			ncont_stand_pre_orig = stand.ncont();
-			to_ncont_pre = to.ncont();
-			double ndif = ncont_stand_pre_orig - stand.ncont(0);
 
 			// Harvest and turnover of copies of individuals, add to transfer copy:
 			stand.firstobj();
@@ -1070,22 +1048,7 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_fraction, landcove
 
 				stand.nextobj();
 			}
-
-			ccont_pre_orig_tot += ccont_stand_pre_orig * donor_area / receiving_fraction;
-			dif_tot += dif;
-			acflux_landuse_change_tot += (lc.acflux_landuse_change - zero_gridcell_luc_cflux) / receiving_fraction;
-			ncont_pre_orig_tot += ncont_stand_pre_orig * donor_area / receiving_fraction;
-			ndif_tot += ndif;
-			anflux_landuse_change_tot += (lc.anflux_landuse_change - zero_gridcell_luc_nflux) / receiving_fraction;
-
 		}
-	}
-
-	if(count) {
-		if(!negligible(to.ccont() - ccont_pre_orig_tot + acflux_landuse_change_tot, -10))
-			dprintf("WARNING: C balance in donor_stand_change() = %.15f\n", to.ccont() - ccont_pre_orig_tot + acflux_landuse_change_tot);
-		if(!negligible(to.ncont() - ncont_pre_orig_tot + anflux_landuse_change_tot, -10))
-			dprintf("WARNING: N balance in donor_stand_change() = %.15f\n", to.ncont() - ncont_pre_orig_tot + anflux_landuse_change_tot);
 	}
 }
 

@@ -440,18 +440,6 @@ class MassBalance : public Serializable  {
 	double nflux;
 	double nflux_zero;
 
-	void init(Gridcell& gridcell);
-	void check(Gridcell& gridcell);
-	// indiv and patch-level functions are for use with true crop stands only
-	void init_indiv(Individual& indiv);
-	bool check_indiv(Individual& indiv, bool check_harvest = false);
-	bool check_indiv_C(Individual& indiv, bool check_harvest = false);
-	bool check_indiv_N(Individual& indiv, bool check_harvest = false);
-	void init_patch(Patch& patch);
-	bool check_patch(Patch& patch, bool check_harvest = false);
-	bool check_patch_C(Patch& patch, bool check_harvest = false);
-	bool check_patch_N(Patch& patch, bool check_harvest = false);
-
 public:
 	MassBalance() {
 
@@ -483,8 +471,20 @@ public:
 		nflux_zero = 0.0;
 	}
 
+	void init(Gridcell& gridcell);
+	void check(Gridcell& gridcell);
+	// indiv and patch-level functions are for use with true crop stands only
+	void init_indiv(Individual& indiv);
+	bool check_indiv(Individual& indiv, bool check_harvest = false);
+	bool check_indiv_C(Individual& indiv, bool check_harvest = false);
+	bool check_indiv_N(Individual& indiv, bool check_harvest = false);
+	void init_patch(Patch& patch);
+	bool check_patch(Patch& patch, bool check_harvest = false);
+	bool check_patch_C(Patch& patch, bool check_harvest = false);
+	bool check_patch_N(Patch& patch, bool check_harvest = false);
+
 	void check_year(Gridcell& gridcell);
-	void check_period();
+	void check_period(Gridcell& gridcell);
 
 	void serialize(ArchiveStream& arch);
 };
@@ -774,10 +774,10 @@ public:
 			mprec_pet20[m] = 0.0;
 
 			for(int y=0;y<20;y++) {
-				mtemp_20[m][y] = 0.0;
-				mprec_20[m][y] = 0.0;
-				mpet_20[m][y] = 0.0;
-				mprec_pet_20[m][y] = 0.0;
+				mtemp_20[y][m] = 0.0;
+				mprec_20[y][m] = 0.0;
+				mpet_20[y][m] = 0.0;
+				mprec_pet_20[y][m] = 0.0;
 			}
 		}
 
@@ -1657,7 +1657,6 @@ public:
  */
 class Pftlist : public ListArray_id<Pft> {
 
-/// The one and only linked list of Pft objects
 public:
 	int getpftid(xtring pftname) {
 
@@ -1676,6 +1675,7 @@ public:
 	}
 };
 
+/// The one and only linked list of Pft objects
 extern Pftlist pftlist;
 
 /// Container for crop-specific data at the individual level
@@ -1945,11 +1945,11 @@ public:
 
 	/// leaf N biomass on modelled area basis (kgN/m2)
 	double nmass_leaf;
-	/// root N biomass on modelled area basis (kgC/m2)
+	/// root N biomass on modelled area basis (kgN/m2)
 	double nmass_root;
-	/// sap N biomass on modelled area basis (kgC/m2)
+	/// sap N biomass on modelled area basis (kgN/m2)
 	double nmass_sap;
-	/// heart N biomass on modelled area basis (kgC/m2)
+	/// heart N biomass on modelled area basis (kgN/m2)
 	double nmass_heart;
 
 	/// leaf N biomass on modelled area basis saved on first day of land use change year

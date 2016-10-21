@@ -699,9 +699,11 @@ void growth_crop_daily(Patch& patch) {
 				cropindiv.grs_cmass_plant = cropindiv.grs_cmass_root + cropindiv.grs_cmass_leaf;
 			}
 
-			if(indiv.continous_grass() && indiv.is_turnover_day()) {
+			if(indiv.continous_grass() && indiv.is_turnover_day()
+				|| ppftcrop.growingdays > date.year_length() && (indiv.is_turnover_day() || date.islastmonth && date.islastday)) {
 
 				indiv.last_turnover_day = date.day;
+				ppftcrop.growingdays = 0;
 
 				cropindiv.harv_cmass_plant += cropindiv.grs_cmass_plant;
 				cropindiv.harv_cmass_root += cropindiv.grs_cmass_root;

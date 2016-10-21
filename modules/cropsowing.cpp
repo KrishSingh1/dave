@@ -805,6 +805,10 @@ void crop_sowing_patch(Patch& patch) {
 				// copy sowing window from gridcellpft
 				if (date.day == stepfromdate(ppftcrop.hdate, 1) && ppftcrop.hdate != -1 || date.day == climate.testday_temp) {
 
+					ppftcrop.hdate = -1;
+					if(ppftcrop.intercropseason)
+						ppftcrop.bicdate = -1;
+
 					if (gridcellpft.swindow[0] == -1 && date.year) {
 						gridcellpft.sowing_restriction = true;
 						ppftcrop.hdate = -1;

@@ -469,6 +469,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	cmass_root_inc  = 0.0;
 	cmass_sap_inc   = 0.0;
 	cmass_heart_inc = 0.0;
+	cmass_debt_inc = 0.0;
 
 	if (!largerthanzero(ltor, -10)) {
 
@@ -490,11 +491,8 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 			cmass_sap_inc=-cmass_sap;
 			cmass_heart_inc=-cmass_sap_inc;
 		}
-
-		return;
 	}
-
-	if (lifeform==TREE) {
+	else if (lifeform==TREE) {
 
 		// TREE ALLOCATION
 
@@ -646,6 +644,9 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 				// If biomass of roots and leafs can't meet biomass decrease then
 				// sapwood also needs to decrease
 				cmass_sap_inc = bminc - cmass_leaf_inc - cmass_root_inc;
+
+				// No sapwood turned into heartwood
+				cmass_heart_inc = 0.0;
 
 				// Make sure we don't end up with negative cmass_sap
 				if (cmass_sap_inc < -cmass_sap) {
@@ -1321,9 +1322,13 @@ void growth(Stand& stand, Patch& patch) {
 
 					// If negative sap growth, then nrelocfrac of nitrogen will go to heart wood and
 					// (1.0 - nreloctrac) will go to storage
-					if (cmass_sap_inc < 0.0) {
-						indiv.nmass_heart -= cmass_sap_inc * indiv.densindiv / cton_sap_bg * nrelocfrac;
-						indiv.nmass_sap += cmass_sap_inc * indiv.densindiv / cton_sap_bg;
+					double nmass_sap_inc = cmass_sap_inc * indiv.densindiv / cton_sap_bg;
+
+					if (cmass_sap_inc < 0.0 && indiv.nmass_sap >= -nmass_sap_inc){
+						indiv.nmass_sap += nmass_sap_inc;
+						indiv.nmass_heart -= nmass_sap_inc * nrelocfrac;
+						indiv.nstore_longterm -= nmass_sap_inc * (1.0 - nrelocfrac);
+						assert(indiv.nmass_sap >= 0.0);
 					}
 
 					// C debt
@@ -1339,26 +1344,21 @@ void growth(Stand& stand, Patch& patch) {
 						indiv.report_flux(Fluxes::RA, -exceeds_cmass * indiv.densindiv);
 					}
 
+					double leaf_inc = min(indiv.nmass_leaf, litter_leaf_inc * indiv.densindiv / cton_leaf_bg);
+					double root_inc = min(indiv.nmass_root, litter_root_inc * indiv.densindiv / cton_root_bg);
+
 					// Nitrogen litter always return to soil litter and storage
 					// Leaf
-					patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
-						cton_leaf_bg * (1.0 - nrelocfrac);
-					indiv.nstore_longterm += litter_leaf_inc * indiv.densindiv / cton_leaf_bg * nrelocfrac;
+					patch.pft[indiv.pft.id].nmass_litter_leaf += leaf_inc * (1.0 - nrelocfrac);
+					indiv.nstore_longterm += leaf_inc * nrelocfrac;
 
 					// Root
-					patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
-						cton_root_bg * (1.0 - nrelocfrac);
-					indiv.nstore_longterm += litter_root_inc * indiv.densindiv / cton_root_bg * nrelocfrac;
+					patch.pft[indiv.pft.id].nmass_litter_root += root_inc * (1.0 - nrelocfrac);
+					indiv.nstore_longterm += root_inc * nrelocfrac;
 
 					// Subtracting litter nitrogen from individuals
-					indiv.nmass_leaf -= min(indiv.nmass_leaf, litter_leaf_inc * indiv.densindiv / cton_leaf_bg);
-					indiv.nmass_root -= min(indiv.nmass_root, litter_root_inc * indiv.densindiv / cton_root_bg);
-
-					// If negative sap growth, then nrelocfrac of nitrogen will go to heart wood and
-					// (1.0 - nreloctrac) will go to storage
-					if (cmass_sap_inc < 0.0) {
-						indiv.nstore_longterm -= cmass_sap_inc * indiv.densindiv / cton_sap_bg * (1.0 - nrelocfrac);
-					}
+					indiv.nmass_leaf -= leaf_inc;
+					indiv.nmass_root -= root_inc;
 
 					// Update individual age
 
@@ -1431,18 +1431,23 @@ void growth(Stand& stand, Patch& patch) {
 
 						// Nitrogen always return to soil litter and storage
 						// Leaf
-						patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
-							cton_leaf_bg * (1.0 - nrelocfrac);
-						indiv.nstore_longterm += litter_leaf_inc * indiv.densindiv / cton_leaf_bg * nrelocfrac;
+						if (indiv.nmass_leaf > 0.0){
+							patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
+								cton_leaf_bg * (1.0 - nrelocfrac);
+							indiv.nstore_longterm += litter_leaf_inc * indiv.densindiv / cton_leaf_bg * nrelocfrac;
+							// Subtracting litter nitrogen from individuals
+							indiv.nmass_leaf -= min(indiv.nmass_leaf, litter_leaf_inc * indiv.densindiv / cton_leaf_bg);
+						}
 
 						// Root
-						patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
-							cton_root_bg * (1.0 - nrelocfrac);
-						indiv.nstore_longterm += litter_root_inc / cton_root_bg * nrelocfrac;
+						if (indiv.nmass_root > 0.0){
+							patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
+								cton_root_bg * (1.0 - nrelocfrac);
+							indiv.nstore_longterm += litter_root_inc / cton_root_bg * nrelocfrac;
 
-						// Subtracting litter nitrogen from individuals
-						indiv.nmass_leaf -= min(indiv.nmass_leaf, litter_leaf_inc * indiv.densindiv / cton_leaf_bg);
-						indiv.nmass_root -= min(indiv.nmass_root, litter_root_inc * indiv.densindiv / cton_root_bg);
+							// Subtracting litter nitrogen from individuals
+							indiv.nmass_root -= min(indiv.nmass_root, litter_root_inc * indiv.densindiv / cton_root_bg);
+						}
 					}
 					// Kill individual and transfer biomass to litter if either biomass
 					// compartment negative

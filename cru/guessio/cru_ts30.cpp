@@ -193,8 +193,8 @@ bool findnearestCRUdata(double searchradius, char* cruark, double& lon, double& 
 
 	// Search all coordinates in a square around (lon, lat), but first go down to
 	// multiple of 0.5
-	double center_lon = floor(lon*2)/2;
-	double center_lat = floor(lat*2)/2;
+	double center_lon = floor(lon*2)/2 + 0.25;
+	double center_lat = floor(lat*2)/2 + 0.25;
 
 	// Enumerate all coordinates within the square, place them in a vector of
 	// pairs where the first element is distance from center to allow easy 
@@ -204,13 +204,13 @@ bool findnearestCRUdata(double searchradius, char* cruark, double& lon, double& 
 	typedef pair<double, double> point;
 	std::vector<pair<double, point> > search_points;
 
-	const double STEP = 0.25;
+	const double STEP = 0.5;
 	const double EPS = 1e-15;
 
 	for (double y = center_lon-searchradius; y <= center_lon+searchradius+EPS; y += STEP) {
 		for (double x = center_lat-searchradius; x <= center_lat+searchradius+EPS; x += STEP) {
-			double xdist = x-center_lat;
-			double ydist = y-center_lon;
+			double xdist = x - lat;
+			double ydist = y - lon;
 			double dist = sqrt(xdist*xdist + ydist*ydist);
 			
 			if (dist <= searchradius + EPS) {

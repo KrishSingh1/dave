@@ -15,8 +15,8 @@
 namespace CRU_TS30 {
 
 /// number of years of historical climate
-/** CRU TS 3.0 has 106 years of data (1901-2006) */
-const int NYEAR_HIST=106;
+/** CRU-NCEP v7 has 115 years of data (1901-2015) */
+const int NYEAR_HIST=115;
 
 /// calendar year corresponding to first year in CRU climate data set
 static const int FIRSTHISTYEAR=1901;

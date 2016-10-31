@@ -412,11 +412,6 @@ function meta_data {
 	svn info | grep "^Revision:" >> $file
 	svn info | grep "^Last Changed Date:" >> $file
 	
-	# Print local WC path
-	echo >> $file
-	echo "Local WC path:" >> $file
-	pwd -P >> $file
-
 	changes=$(svn st -q --non-interactive | grep -v "Performing status on external item" | grep -v "^$")
 	changesdiff=$(svn diff --non-interactive)
 
@@ -425,7 +420,11 @@ function meta_data {
 	    echo "Local modifications:" >> $file
 	    echo "$changes" >> $file
 
-	    echo "$changesdiff" > $file2
+	    # Print local WC path and svn diff
+	    echo "Local WC path:" > $file2
+	    pwd -P >> $file2
+	    echo >> $file2
+	    echo "$changesdiff" >> $file2
 	fi
     else
 	echo "Version information missing" >> $file

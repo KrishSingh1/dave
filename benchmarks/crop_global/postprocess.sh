@@ -39,8 +39,8 @@ describe_textfile cpool1961to1990_areaaverage.txt "Global Terrestrial Carbon Poo
 aslice npool1961to1990.txt -o npool1961to1990_areaaverage.txt -n -sum 'kg/ha->Tg' -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.0 0.0
 describe_textfile npool1961to1990_areaaverage.txt "Global Terrestrial Nitrogen Pools, 1961 to 1990. Units: Tg N/y"
 
-aslice tot_runoff1961to1990.txt -o tot_runoff1961to1990_areaaverage.txt -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.0 0.0   
-describe_textfile tot_runoff1961to1990_areaaverage.txt "Global Runoff, 1961 to 1990. Units: mm yr-1"
+aslice tot_runoff1961to1990.txt -o tot_runoff1961to1990_areaaverage.txt -sum 'kg/m2->Pg' -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.0 0.0   
+describe_textfile tot_runoff1961to1990_areaaverage.txt "Global Runoff, 1961 to 1990. Units: km3 yr-1"
 
 compute cpool.out -n -o cpool_total.out -i Lon Lat Year Total
 compute cflux.out -n -o cflux_nee.out -i Lon Lat Year NEE

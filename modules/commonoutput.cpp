@@ -80,6 +80,14 @@ void CommonOutput::init() {
  *  the output channel to create the table.
  */
 void CommonOutput::define_output_tables() {
+
+	//Extra number of decimals when output for benchmarks
+#ifdef RUN_BENCHMARKS	
+	const int bm_extra_prec = 2;
+#else
+	const int bm_extra_prec =0;
+#endif
+	
 	// create a vector with the pft names
 	std::vector<std::string> pfts;
 
@@ -165,7 +173,7 @@ void CommonOutput::define_output_tables() {
 		 cflux_columns += ColumnDescriptor("LU_ch",        9, 3);
 		 cflux_columns += ColumnDescriptor("Slow_h",       9, 3);
 	}
-	cflux_columns += ColumnDescriptor("NEE",              10, 5);
+	cflux_columns += ColumnDescriptor("NEE",              10 + bm_extra_prec, 5 + bm_extra_prec);
 
 	ColumnDescriptors cflux2_columns;
 	cflux2_columns += ColumnDescriptor("Veg",               8, 3);
@@ -194,7 +202,7 @@ void CommonOutput::define_output_tables() {
 	if (run_landcover && ifslowharvestpool) {
 		 cpool_columns += ColumnDescriptor("HarvSlowC",   10, 3);
 	}
-	cpool_columns += ColumnDescriptor("Total",            10, 3);
+	cpool_columns += ColumnDescriptor("Total",            10 + bm_extra_prec, 3 + bm_extra_prec);
 
 	// CLITTER
 	ColumnDescriptors clitter_columns = cmass_columns;
@@ -252,7 +260,7 @@ void CommonOutput::define_output_tables() {
 		npool_columns += ColumnDescriptor("HarvSlowN",    10, 4);
 	}
 
-	npool_columns += ColumnDescriptor("Total",            10, 4);
+	npool_columns += ColumnDescriptor("Total",            10 + bm_extra_prec, 4 + bm_extra_prec);
 
 	// NMASS
 	ColumnDescriptors nmass_columns;
@@ -285,7 +293,7 @@ void CommonOutput::define_output_tables() {
 		nflux_columns += ColumnDescriptor("LU_ch",         8, 3);
 		nflux_columns += ColumnDescriptor("Slow_h",        8, 3);
 	}
-	nflux_columns += ColumnDescriptor("NEE",               8, 2);
+	nflux_columns += ColumnDescriptor("NEE",               8 + bm_extra_prec, 2 + bm_extra_prec);
 
 	// NGASES
 	ColumnDescriptors ngases_columns;

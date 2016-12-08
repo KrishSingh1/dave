@@ -36,3 +36,15 @@ InputModule* InputModuleRegistry::create_input_module(const char* name) const {
 		return 0;
 	}
 }
+
+void InputModuleRegistry::get_input_module_list(std::string& list) {
+
+	list = "";
+	std::map<std::string, InputModuleCreator>::iterator it = modules.begin();
+	while (it!=modules.end()) {
+		list += it->first + ";";
+		it++;
+	}
+
+}
+

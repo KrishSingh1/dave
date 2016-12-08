@@ -38,10 +38,11 @@ void yield_crop(Individual& indiv);
 /// Yield function for pasture grass grown in cropland landcover
 void yield_pasture(Individual& indiv, double cmass_leaf_inc);
 /// Determines amount of nitrogen applied today
-void crop_nfert(Patch& patch);
+void nfert(Patch& patch);
 /// Updates crop rotation status
 void crop_rotation(Stand& stand);
-
+/// Determines cutting intensity before wood harvest
+double cut_fraction(Patch& patch);
 
 /// Struct for copies of carbon and nitrogen of an individual and associated litter and fluxes resulting from harvest
 /// This is needed if we want to harvest only part of a stand, as during land cover change.

@@ -15,6 +15,7 @@
 #include "framework.h"
 #include "commandlinearguments.h"
 #include "parallel.h"
+#include "inputmodule.h"
 
 #include <process.h>
 #include <stdarg.h>
@@ -40,6 +41,8 @@ MessagePlot* message_plot;
 MessageFinished* message_finished;
 MessageResetwindow* message_resetwindow;
 MessageClearGraphs* message_clear_graphs;
+MessageOpen3d* message_open3d;
+MessagePlot3d* message_plot3d;
 
 
 class WindowsShell : public Shell {
@@ -88,6 +91,10 @@ public:
 		pplotargs->x=x;
 		pplotargs->y=y;
 		pplotargs->rescale=true;
+
+		pplotargs->preferredrgb[0] = 0;
+		pplotargs->preferredrgb[1] = 0;
+		pplotargs->preferredrgb[2] = 0;
 	
 		message_plot(pplotargs);
 	}
@@ -103,6 +110,18 @@ public:
 	void clear_all_graphs() {
 		waiting=true;
 		message_clear_graphs();
+	}
+
+	/// Initiates a 3D view of stand vegetation in the Windows shell
+	void open3d() {
+		message_open3d();
+	}
+
+	/// Sends data on current stand structure to 3D vegetation plot in the Windows shell
+	void plot3d(const char* filename) {
+		xtring* pxtring = new xtring;
+		*pxtring = filename;
+		message_plot3d(pxtring);
 	}
 
 	/// May be called by framework to respond to abort request from the user.
@@ -138,25 +157,23 @@ __declspec(dllexport) void cleanup_plot(PlotArgs* pplotargs) {
 // DLL_MAIN
 // This is the function called by the Windows shell to run the model
 
-__declspec(dllexport) int dll_main(GuessParam param) {
+__declspec(dllexport) int dll_main(GuessParam arg) {
 
 	// Store parameters sent from shell as file scope global variables
 
-	poutput=param.poutput;
-	pplotargs=param.pplotargs;
-	message_print_string=param.message_print_string;
-	message_plot=param.message_plot;
-	message_finished=param.message_finished;
-	message_resetwindow=param.message_resetwindow;
-	message_clear_graphs=param.message_clear_graphs;
+	poutput=arg.poutput;
+	pplotargs=arg.pplotargs;
+	message_print_string=arg.message_print_string;
+	message_plot=arg.message_plot;
+	message_plot3d = arg.message_plot3d;
+	message_open3d = arg.message_open3d;	message_finished = arg.message_finished;
+	message_resetwindow=arg.message_resetwindow;
+	message_clear_graphs=arg.message_clear_graphs;
 
 	ifabort=false;
 
-	// Parse only first two arguments from shell (should be application name 
-	// and instruction file).
-	// The shell also passes the file name of a climate file, used by
-	// the educational version. We'll ignore that.
-	CommandLineArguments args(2, param.argv);
+	// Parse arguments from shell 
+	CommandLineArguments args(arg.argc, arg.argv);
 
 	// Set our shell for the model to communicate with the world
 	set_shell(new WindowsShell(file_log));
@@ -164,7 +181,13 @@ __declspec(dllexport) int dll_main(GuessParam param) {
 	// Initialize parallel communication if available
 	// Note that the graphical user interface doesn't support
 	// parallel runs yet.
-	GuessParallel::init(param.argc, param.argv);
+	GuessParallel::init(arg.argc, arg.argv);
+
+	// If GetClim input module specified, use global paramlist to store
+	// name of driver file for retrieval by input module
+	xtring input_module = args.get_input_module();
+	if (input_module.lower() == "getclim")
+		param.addparam("getclim_driver_file", args.get_driver_file());
 
 	// Call the framework
 	framework(args);
@@ -187,3 +210,14 @@ __declspec(dllexport) void abort_run() {
 	ifabort=true;
 }
 
+
+///////////////////////////////////////////////////////////////////////////////////////
+// DLL_GET_INPUT_MODULE_LIST
+// Called by windows shell to obtain list of available input modules
+
+__declspec(dllexport) void dll_get_input_module_list(xtring& ximlist) {
+
+	std::string imlist;
+	InputModuleRegistry::get_instance().get_input_module_list(imlist);
+	ximlist = imlist.c_str();
+}

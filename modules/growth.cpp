@@ -1152,6 +1152,9 @@ void growth(Stand& stand, Patch& patch) {
 		for (p=0; p<npft; p++)
 			stand.pft[p].cmass_repr = 0.0;
 
+	// Set forest management intensity for this year
+	patch.man_strength = cut_fraction(patch);
+
 	// Loop through individuals
 
 
@@ -1319,6 +1322,8 @@ void growth(Stand& stand, Patch& patch) {
 
 					// Heartwood
 					indiv.cmass_heart += cmass_heart_inc * indiv.densindiv;
+
+					indiv.cmass_wood_inc_5.add((cmass_sap_inc + cmass_heart_inc - cmass_debt_inc) * indiv.densindiv);
 
 					// If negative sap growth, then nrelocfrac of nitrogen will go to heart wood and
 					// (1.0 - nreloctrac) will go to storage

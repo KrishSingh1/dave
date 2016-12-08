@@ -65,9 +65,11 @@ extern xtring title;
 /// Vegetation mode (population, cohort or individual)
 extern vegmodetype vegmode;
 
-/// Number of patches in each stand
+/// Default number of patches in each stand
 /** Should always be 1 in population mode,
  *  cropland stands always have 1 patch.
+ *  Actual patch number for stand objects may differ and 
+ *  should always be queried by stand.npatch()
  */
 extern int npatch;
 
@@ -139,7 +141,10 @@ extern bool run_landcover;
 /// Whether a specific landcover type is simulated (URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, BARREN).
 extern bool run[NLANDCOVERTYPES];
 
-/// Whether fractions of stand types of a specific land cover are read from input file.
+/// Whether landcover fractions are not read from input file.
+extern bool lcfrac_fixed;
+
+/// Whether fractions of stand types of a specific land cover are not read from input file.
 extern bool frac_fixed[NLANDCOVERTYPES];
 
 /// Set to false by initio( ) if fraction input files have yearly data.
@@ -186,6 +191,9 @@ extern bool readharvestdates;
 
 /// Whether to read N fertilization from input file
 extern bool readNfert;
+
+/// Whether to read N fertilization (stand tyoe level) from input file
+extern bool readNfert_st;
 
 /// Whether to print multiple stands within a land cover type (except cropland) separately
 extern bool printseparatestands;
@@ -281,6 +289,9 @@ public:
 
 	/// Fetches a parameter from the list, aborts the program if it didn't exist
 	Paramtype& operator[](xtring name);
+
+	/// Tests if param exists
+	bool isparam(xtring name);
 
 private:
 	/// Tries to find the parameter in the list

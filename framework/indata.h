@@ -28,7 +28,7 @@ namespace InData {
 
 const int MAXLINE = 20000;
 const int MAXNAMESIZE = 50;
-const int MAXRECORDS = 500;
+const int MAXRECORDS = 200;
 const int MAXLINESPARSE = 30000;
 const int NOTFOUND = -999;
 const double MAX_SEARCHRADIUS = 1.0;
@@ -68,7 +68,7 @@ class TimeDataD	{
 	/// Whether the input file structure includes a header line with column names and coordinates on each line of data
 	bool ifheader;
 	/// String array of data column names
-	char header_arr[MAXRECORDS][MAXNAMESIZE];
+	char *header_arr[MAXRECORDS];
 	/// Coordinates for current gridcell
 	Coord currentStand;
 	/// Pointer to data for one (current) gridcell
@@ -85,6 +85,8 @@ class TimeDataD	{
 	bool ischeckingdata;
 	/// Whether data for the requested coordinates have been found and loaded
 	bool loaded;
+	/// Whether data sums up to 1.0
+	bool unity_data;
 
 	/// Pointer to memory copy of all data for the gridlist
 	TimeDataDmem *memory_copy;
@@ -100,6 +102,7 @@ class TimeDataD	{
 	int ParseNYearsLocal();						//Called from ParseNYears()
 	void ParseNCells();
 	double ParseSpatialResolution();			//Called from Open()
+	bool ParseNormalisation();
 
 	/// Allocates memory for dynamic data structures
 	bool Allocate();							//Called from Open()
@@ -143,7 +146,7 @@ public:
 	void Close();
 	/// Writes the data of the current coordinate to an output file
 	void Output(char* outfile);
-	/// Loads global data
+	/// Loads global data, closes input file.
 	bool Load();
 	/// Loads data for a certain coordinate. Returns false if coordinate not found.
 	bool Load(Coord c);
@@ -163,7 +166,7 @@ public:
 	/// Returns the number of data columns
 	int GetnColumns() const {return nColumns;}
 	/// Copies the data column names to a string array
-	bool GetHeader(char cropnames[][MAXNAMESIZE]) const;
+	bool GetHeader(char *cropnames[MAXRECORDS]) const;
 	/// Copies the whole header to a string
 	bool GetHeaderFull(char *header_line) const;
 	/// Returns a pointer to a data name string for a column by its index
@@ -185,6 +188,7 @@ public:
 	/// Returns spacial resolution
 	double GetSpacialResolution() const {return spatial_resolution;}
 	double GetOffset() const { return offset;}
+	bool NormalisedData();
 
 // Functions for finding out if data columns contain sensible data for a specified gridlist
 
@@ -219,7 +223,7 @@ class TimeDataDmem {
 	/// Whether the input file structure includes a header line with column names and coordinates on each line of data
 	bool ifheader;
 	/// String array of data column names
-	char header_arr[MAXRECORDS][MAXNAMESIZE];
+	char *header_arr[MAXRECORDS];
 	/// Index of current gridcell in data array
 	int currentCell;
 	/// First year of data

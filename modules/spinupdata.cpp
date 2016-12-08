@@ -70,7 +70,7 @@ void GenericSpinupData::detrend_data() {
 	}
 
 	double a, b;
-	regress(&year_number.front(), &annual_mean.front(), nbr_years(), a, b);
+	regress(&year_number.front(), &annual_mean.front(), (int) nbr_years(), a, b);
 
 	for (size_t y = 0; y < nbr_years(); ++y) {
 		double anomaly = b*y;

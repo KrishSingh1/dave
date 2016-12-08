@@ -37,8 +37,7 @@
 /// Internal help function for splitting up nitrogen fire fluxes into components
 void report_fire_nfluxes(Patch& patch, double nflux_fire) {
 	patch.fluxes.report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire);
-	patch.fluxes.report_flux(Fluxes::NO_FIRE,  Fluxes::NO_FIRERATIO  * nflux_fire);
-	patch.fluxes.report_flux(Fluxes::NO2_FIRE, Fluxes::NO2_FIRERATIO * nflux_fire);
+	patch.fluxes.report_flux(Fluxes::NOx_FIRE, Fluxes::NOx_FIRERATIO * nflux_fire);
 	patch.fluxes.report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
 	patch.fluxes.report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
 }
@@ -106,10 +105,10 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 	//   twmin_est   = minimum warmest month mean temperature
 	//   gdd5min_est = minimum growing degree day sum on 5 deg C base
 
-	if (climate.mtemp_min20 < pft.tcmin_est ||
+	if (!patch.managed && (climate.mtemp_min20 < pft.tcmin_est ||
 		climate.mtemp_min20 > pft.tcmax_est ||
 		climate.mtemp_max < pft.twmin_est ||
-		climate.agdd5 < pft.gdd5min_est) return false;
+		climate.agdd5 < pft.gdd5min_est)) return false;
 
 	if(patch.stand.landcover != CROPLAND) {
 		if (vegmode != POPULATION && patch.par_grass_mean < pft.parff_min) return false;
@@ -400,8 +399,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	const double SAPSIZE=0.1;
 		// coefficient in calculation of initial sapling size and initial
 		// grass biomass (see comment above)
-	const double SAPSIZEPM=0.01;
-		//Fixed sapsize (g C) for naturally regenerated seedlings after management have started on patch
 
 	bool present; // whether PFT already present in this patch
 	double c; // constant in equation for number of new saplings (Eqn 5)
@@ -419,6 +416,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 	Vegetation& vegetation=patch.vegetation;
 
+	const bool establish_active_pfts_before_management = true;
 
 	// guess2008 - determine the number of woody PFTs that can establish
 	// Thomas Hickler
@@ -428,7 +426,14 @@ void establishment_guess(Stand& stand,Patch& patch) {
 		Pft& pft=pftlist.getobj();
 		Standpft& standpft=stand.pft[pft.id];
 
-		if (establish(patch, stand.get_climate(), pft) && pft.lifeform == TREE && standpft.active)
+		bool force_planting = patch.plant_this_year && standpft.plant;
+		bool est_this_year;
+		if(establish_active_pfts_before_management)
+			est_this_year = !patch.managed || !patch.plant_this_year && standpft.reestab;
+		else
+			est_this_year = !run_landcover || !patch.plant_this_year && standpft.reestab;
+
+		if (establish(patch, stand.get_climate(), pft) && pft.lifeform == TREE && standpft.active && (est_this_year || force_planting))
 			nwoodypfts_estab++;
 		pftlist.nextobj();
 	}
@@ -439,11 +444,20 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	pftlist.firstobj();
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
+		Standpft& standpft=stand.pft[pft.id];
 
 		// For this PFT ...
 
 		// Stands cloned this year to be treated here as first year
 		bool init_clone = date.year == stand.clone_year && pft.landcover == stand.landcover;
+
+		// No grass establishment during planting year
+		bool force_planting = patch.plant_this_year && standpft.plant;
+		bool est_this_year;
+		if(establish_active_pfts_before_management)
+			est_this_year = !patch.managed || !patch.plant_this_year && standpft.reestab;
+		else
+			est_this_year = !run_landcover || !patch.plant_this_year && standpft.reestab;
 
 		if (stand.pft[pft.id].active) {
 			if (patch.age==0 || init_clone) {
@@ -460,7 +474,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 				patch.pft[pft.id].wscal_mean_est+=patch.pft[pft.id].wscal_mean;
 			}
 
-			if (establish(patch, stand.get_climate(), pft)) {
+			if (establish(patch, stand.get_climate(), pft) && (est_this_year || force_planting)) {
 
 				if (pft.lifeform==GRASS) {
 
@@ -577,20 +591,20 @@ void establishment_guess(Stand& stand,Patch& patch) {
 					// Actual number of new saplings drawn from the Poisson distribution
 					// (except cohort mode with stochastic establishment disabled)
 
-					if (ifstochestab || vegmode==INDIVIDUAL) nsapling=randpoisson(est, stand.seed);
+					if (ifstochestab && !force_planting || vegmode==INDIVIDUAL) nsapling=randpoisson(est, stand.seed);
 					else nsapling=est;
 
 					if (vegmode==COHORT) {
 
 						// BLARP added for OECD experiment (is this sensible?)
-						if (patch.has_disturbances() && patch.disturbed) {
+						if (patch.has_disturbances() && patch.disturbed || force_planting) {
 
 							patch.pft[pft.id].anetps_ff_est=
 								patch.pft[pft.id].anetps_ff_est_initial;
 							patch.pft[pft.id].wscal_mean_est=patch.pft[pft.id].wscal_mean;
 							newindiv=!negligible(nsapling);
 						}
-						else if (patch.age%estinterval && !patch.managed && !init_clone) {
+						else if (patch.age%estinterval && !init_clone || patch.plant_this_year) {
 
 							// Not an establishment year - save sapling count for
 							// establishment the next establishment year
@@ -632,10 +646,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Initial biomass proportional to potential forest floor net
 						// assimilation for this PFT in this patch
 
-						if (patch.managed)
-							bminit=SAPSIZEPM; //Fixed sap size post management
-						else
-							bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est;
+						bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est;
 
 						// Initial leaf to fine root biomass ratio based on hypothetical
 						// value of water stress parameter
@@ -663,7 +674,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 			// Reset running sums for next year (establishment years only in cohort mode)
 
-			if (vegmode!=COHORT || !(patch.age%estinterval)) {
+			if (vegmode!=COHORT || !(patch.age%estinterval) && !patch.plant_this_year) {
 				patch.pft[pft.id].nsapling=0.0;
 				patch.pft[pft.id].wscal_mean_est=0.0;
 				patch.pft[pft.id].anetps_ff_est=0.0;
@@ -918,6 +929,9 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 	// expected mortality rates are imposed as stochastic probabilities of death; in
 	// deterministic mode, cohort density is reduced by the fraction represented by
 	// the mortality rate.
+
+	if(patch.managed_this_year)
+		return;
 
 	// INPUT PARAMETER
 	// fireprob = probability of fire in this patch

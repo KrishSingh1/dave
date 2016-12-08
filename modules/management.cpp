@@ -258,14 +258,17 @@ void clearcut(Individual& indiv, double anpp, bool& killed) {
 
 	if (indiv.pft.lifeform == TREE) {
 
-		ppft.litter_sap += anpp;
+		if(indiv.alive)
+			ppft.litter_sap += anpp;
 		harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake); // frac_cut=1, harv_eff=pft.harv_eff, res_outtake_twig=pft.res_outtake, res_outtake_coarse_root=0
+		indiv.kill();
 		indiv.vegetation.killobj();
 		killed = true;
 	}
 
 	patch.age = 0;	//important for results
 	patch.managed = true;
+	patch.plant_this_year = true;
 }
 
 // The following two functions are simplified adaptations (continous cutting) from Swedish forest management code by Fredrik Lagergren and should be
@@ -273,26 +276,48 @@ void clearcut(Individual& indiv, double anpp, bool& killed) {
 // Also, the calculated diameter limits and rotation times (which are dependent on productivity) are for Swedish forests.
 
 /// Determines whether this patch should be cut this year.
-double cut_fraction(Patch& patch, bool age_class_run, int age_class) {
+double cut_fraction(Patch& patch) {
+
+	if(!run_landcover)
+		return 0.0;
 
 	Stand& stand = patch.stand;
-	const double minbon=2.351; //The minimum average "bonitet" for a county in Sweden
-	const double maxbon=11.311; //The maximum average "bonitet" for a county in Sweden
-	const double bonitet = 10.0;	// Temporary static value
+	xtring harvest_system = stlist[stand.stid].get_management(stand.current_rot).harvest_system;
+	if(harvest_system == "")
+		return 0.0;
 
-	// Continuous forestry
-	const int first_cutyear = nyear_spinup; //Simulation year when continuous forestry harvesting starts
-	int cut_int; //Interval between cuttings
-	int patch_order; //Which year in a cutting interval the patch belongs to
+	int first_cutyear = nyear_spinup; // Simulation year when forestry harvesting starts; default is directly after spinup.
+	if(stlist[stand.stid].firstmanageyear < 100000)	// Initialised to 100000; other values set in instruction file.
+		first_cutyear = stlist[stand.stid].firstmanageyear - date.first_calendar_year;
 
-//	cut_int=30-(int)(15.0*(stand.bonitet-minbon)/(maxbon-minbon));
-	cut_int=30-(int)(15.0*(bonitet-minbon)/(maxbon-minbon));
-	patch_order = (int)(patch.id * cut_int * 1.0 / (1.0 * stand.npatch()));
+	if(date.year < first_cutyear)
+		return 0.0;
 
-	if (date.year >= first_cutyear && !((date.year - first_cutyear - patch_order) % cut_int))
-		return 0.40;
-	else
-		return 0.00;
+	const double minbon = 2.351;	// The minimum average "bonitet" for a county in Sweden
+	const double maxbon = 11.311;	// The maximum average "bonitet" for a county in Sweden
+	const double bonitet = 10.0;	// Temporary static value (gives cut_int=17)
+	double cut_fraction = 0.0;
+
+	if(harvest_system == "CLEARCUT") {
+		// First attempt to calculate optimum rotation age for clearcut 
+		if(patch.cmass_wood() / patch.age > patch.get_cmass_wood_inc_5() && patch.age > 20)
+			cut_fraction = 1.0;
+	}
+	else if(harvest_system == "CONTINUOUS") {
+
+		// Continuous forestry
+		int cut_int; //Interval between cuttings
+		int patch_order; //Which year in a cutting interval the patch belongs to
+
+//		cut_int=30-(int)(15.0*(stand.bonitet-minbon)/(maxbon-minbon));
+		cut_int=30-(int)(15.0*(bonitet-minbon)/(maxbon-minbon));
+		patch_order = (int)(patch.id * cut_int * 1.0 / (1.0 * stand.npatch()));
+
+		if (!((date.year - first_cutyear - patch_order) % cut_int)) // rule needs to be corrected
+			cut_fraction = 0.40;
+	}
+
+	return cut_fraction;
 }
 
 /// Determines if and how much of this (average) individual is to be cut.
@@ -309,21 +334,17 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 	const double bonitet = 10.0;	// Temporary static value
 
 	int age_class = 0;
-	double man_strength = 0.0;
-	if (date.year > nyear_spinup && indiv.pft.lifeform == TREE)
-		man_strength = cut_fraction(patch, true, age_class);
-	bool management_done=false;
-		// Will tell the program to skip establishment and mortality if management has been
-		// performed on this patch, (not implemented in this code yet ML, needs to be at patch-level)
+	double man_strength = patch.man_strength;
 
 	if (pft.lifeform==TREE && man_strength > 0.00) {
+
+		double diam = pow(indiv.height / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
 
 		if (man_strength == 1.00) {
 			clearcut(indiv, anpp, killed);
 		}
 		else {
 
-			double diam=pow(indiv.height/indiv.pft.k_allom2, 1.0/indiv.pft.k_allom3);
 			double diam_limit=0.13+0.07*(bonitet-minbon)/(maxbon-minbon); // Harvest of trees > 19 cm
 			double diam_max = diam_limit * 2.0;
 
@@ -334,7 +355,8 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 				indiv.densindiv *= (1.0 - man_strength);
 			}
 		}
-		management_done = true;
+		// Will tell the program to skip establishment and mortality if management has been performed on this patch,
+		patch.managed_this_year = true;		
 		patch.managed = true;
 	}
 }
@@ -1032,7 +1054,7 @@ bool harvest_year(Individual& indiv) {
 	else if (stand.landcover == PASTURE) {
 		harvest_pasture(indiv, indiv.pft, indiv.alive);
 	}
-	else if (stand.landcover == FOREST)
+	else if(stand.landcover == FOREST || stand.landcover == NATURAL && run_landcover)
 		harvest_forest(indiv, indiv.pft, indiv.alive, indiv.anpp, killed);
 
 	return killed;
@@ -1096,8 +1118,8 @@ void yield_pasture(Individual& indiv, double cmass_leaf_inc) {
 	cropindiv.harv_yield = cropindiv.yield;
 }
 
-/// Function that determines amount of nitrogen applied today
-void crop_nfert(Patch& patch) {
+/// Function that determines amount of nitrogen applied today. Crop-specific, pft-based.
+void nfert_crop(Patch& patch) {
 
 	Gridcell& gridcell = patch.stand.get_gridcell();
 
@@ -1139,6 +1161,30 @@ void crop_nfert(Patch& patch) {
 		}
 		pftlist.nextobj();
 	}
+	patch.anfert += patch.dnfert;
+}
+
+/// Function that determines amount of nitrogen applied today.
+void nfert(Patch& patch) {
+
+	Stand& stand = patch.stand;
+	StandType& st = stlist[stand.stid];
+	Gridcell& gridcell = stand.get_gridcell();
+
+	if(stand.landcover == CROPLAND) {
+		nfert_crop(patch);
+		return;
+	}
+
+	// General code for applying nitrogen to other land cover types, an equal amount every day.
+	double nfert;
+	if(gridcell.st[st.id].nfert >= 0.0) {	// todo: management type variable (mt.nfert)
+		nfert = gridcell.st[st.id].nfert;
+	}
+	else {
+		nfert = 0.0;
+	}
+	patch.dnfert = nfert / date.year_length();
 	patch.anfert += patch.dnfert;
 }
 
@@ -1205,7 +1251,7 @@ void crop_rotation(Stand& stand) {
 		}
 
 		// Adds sowing and harvest dates for the second crop in a double cropping system
-		if (rotation.multicrop && rotation.ncrops == 2 && stand.current_rot == 1) {
+		if (stlist[stand.stid].get_management(stand.current_rot).multicrop && rotation.ncrops == 2 && stand.current_rot == 1) {
 			if (stand.pft[stand.pftid].sdate_force < 0)
 				stand.pft[stand.pftid].sdate_force = stepfromdate(date.day, 10);
 			if (stand.pft[stand.pftid].hdate_force < 0) {
@@ -1213,7 +1259,7 @@ void crop_rotation(Stand& stand) {
 			}
 		}
 
-		if(stlist[stand.stid].management[stand.current_rot].fallow) {
+		if(stlist[stand.stid].get_management(stand.current_rot).fallow) {
 			stand.infallow = true;
 			stand.get_gridcell().pft[stand.pftid].sowing_restriction = true;
 		}

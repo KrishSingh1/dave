@@ -22,6 +22,8 @@
 
 namespace GuessParallel {
 
+bool parallel = false;
+
 #ifdef HAVE_MPI
 
 /// A class whose only purpose is to terminate the MPI library when deleted
@@ -50,7 +52,7 @@ void init(int& argc, char**& argv) {
 	// Unfortunately, since MPI initialization must be done before
 	// we parse our options with CommandLineArguments, we need to
 	// look for the -parallel option here by ourselves.
-	bool parallel = false;
+	// The file-global variable parallel is initiated = false;
 	for (int i = 0; i < argc; ++i) {
 		if (std::string(argv[i]) == "-parallel") {
 			parallel = true;
@@ -79,9 +81,12 @@ int get_rank() {
 
 int get_num_processes() {
 #ifdef HAVE_MPI
-	int size;
-	MPI_Comm_size(MPI_COMM_WORLD, &size);
-	return size;
+	if (parallel) {
+		int size;
+		MPI_Comm_size(MPI_COMM_WORLD, &size);
+		return size;
+	}else
+		return 1;	
 #else
 	return 1;
 #endif

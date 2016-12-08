@@ -57,6 +57,7 @@ wateruptaketype wateruptake;
 bool run_landcover;
 bool run[NLANDCOVERTYPES];
 bool frac_fixed[NLANDCOVERTYPES];
+bool lcfrac_fixed;
 bool all_fracs_const;
 bool ifslowharvestpool;
 bool ifintercropgrass;
@@ -81,6 +82,7 @@ int state_year;
 bool readsowingdates = false;
 bool readharvestdates = false;
 bool readNfert = false;
+bool readNfert_st = false;
 bool printseparatestands = false;
 bool iftillage = false;
 
@@ -129,13 +131,21 @@ Paramtype* Paramlist::find(xtring name) {
 	return 0;
 }
 
+bool Paramlist::isparam(xtring name) {
+	if (!find(name))
+		return false;
+	else
+		return true;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // ENUM DECLARATIONS OF INTEGER CONSTANTS FOR PLIB INTERFACE
 
-enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM,BLOCK_ST};
-enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,
-	CB_STLANDCOVER,CB_STINTERCROP,CB_STNATURALVEG,CB_CHECKST,CB_CROP1,CB_CROP2,CB_CROP3,CB_STHYDROLOGY1,CB_STHYDROLOGY2,CB_STHYDROLOGY3,
+enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM,BLOCK_ST,BLOCK_MT};
+enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,CB_SELECTION,	
+	CB_STLANDCOVER, CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT,
+	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTHYDROLOGY,
+	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STHYDROLOGY, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
 	CB_PATHWAY,CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE};
 
 // File local variables
@@ -143,6 +153,7 @@ namespace {
 
 Pft* ppft; // pointer to Pft object currently being assigned to
 StandType* pst;
+ManagementType* pmt;
 
 xtring paramname;
 xtring strparam;
@@ -152,11 +163,14 @@ bool ifhelp=false;
 // 'include' parameter for currently scanned PFT
 bool includepft;
 bool includest;
+bool includemt;
 
 // 'include' parameter per PFT
 std::map<xtring, bool> includepft_map;
 // 'include' parameter per ST
 std::map<xtring, bool> includest_map;
+// 'include' parameter per MT
+std::map<xtring, bool> includemt_map;
 
 // Whether each PFT has had their parameters checked.
 // We only check a PFT:s parameters (in plib_callback) the first time the PFT is
@@ -165,6 +179,7 @@ std::map<xtring, bool> includest_map;
 // doesn't remember the old parsed parameters).
 std::map<xtring, bool> checked_pft;
 std::map<xtring, bool> checked_st;
+std::map<xtring, bool> checked_mt;
 }
 
 void initsettings() {
@@ -185,6 +200,7 @@ void initsettings() {
 	printseparatestands = false;
 	save_state = false;
 	restart = false;
+	lcfrac_fixed = true;
 	for(int lc=0; lc<NLANDCOVERTYPES; lc++)
 		frac_fixed[lc] = true;
 	textured_soil = true;
@@ -227,6 +243,14 @@ void initst(StandType& st,xtring& setname) {
 	st.landcover=NATURAL;
 	st.intercrop=NOINTERCROP;
 
+}
+
+void initmt(ManagementType& mt,xtring& setname) {
+
+	// Initialises a PFT object
+	// Parameters not initialised here must be set in instruction script
+
+	mt.name=setname;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -446,7 +470,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("nyear_dyn_phu",&nyear_dyn_phu,0,1000,1,CB_NONE, "Number of years to calculate dynamic phu");
 		declareitem("printseparatestands",&printseparatestands,1,CB_NONE,"Whether to print multiple stands within a land cover type (except cropland) separately");
 		declareitem("iftillage",&iftillage,1,CB_NONE,"Whether to simulate tillage by increasing soil respiration");
-		declareitem("cftfrac_fixed",&frac_fixed[CROPLAND],1,CB_NONE,"whether to use fixed crop fractions (active crop stand types have equal area) (1) or read crop fractions from a file (0)");
 		declareitem("textured_soil",&textured_soil,1,CB_NONE,"Use silt/sand fractions specific to soiltype");
 		declareitem("disturb_pasture",&disturb_pasture,1,CB_NONE,"Whether fire and disturbances enabled on pastures (0,1)");
 		declareitem("grassforcrop",&grassforcrop,1,CB_NONE,"grassforcrop");
@@ -459,6 +482,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
 		declareitem("st",BLOCK_ST,CB_NONE,"Header for block defining StandType");
+		declareitem("mt",BLOCK_MT,CB_NONE,"Header for block defining Management");
 
 		for (size_t i = 0; i < xtringParams.size(); ++i) {
 			const xtringParam& p = xtringParams[i];
@@ -498,8 +522,8 @@ void plib_declarations(int id,xtring setname) {
 
 			// Was this pft already created?
 			for (size_t p = 0; p < pftlist.nobj; ++p) {
-				if (pftlist[p].name == setname) {
-					ppft = &pftlist[p];
+				if (pftlist[(unsigned int)p].name == setname) {
+					ppft = &pftlist[(unsigned int)p];
 				}
 			}
 
@@ -517,6 +541,7 @@ void plib_declarations(int id,xtring setname) {
 			"Lifeform (\"TREE\" or \"GRASS\")");
 		declareitem("landcover",&strparam,16,CB_LANDCOVER,
 			"Landcovertype (\"URBAN\", \"CROP\", \"PASTURE\", \"FOREST\", \"NATURAL\", \"PEATLAND\" or \"BARREN\")");
+		declareitem("selection",&strparam,16,CB_SELECTION	,"Name of pft selection");
 		declareitem("phenology",&strparam,16,CB_PHENOLOGY,
 			"Phenology (\"EVERGREEN\", \"SUMMERGREEN\", \"RAINGREEN\", \"CROPGREEN\" or \"ANY\")");
 		declareitem("leafphysiognomy",&strparam,16,CB_LEAFPHYSIOGNOMY,
@@ -753,6 +778,46 @@ void plib_declarations(int id,xtring setname) {
 
 		break;
 
+	case BLOCK_MT:
+
+		if (!ifhelp) {
+
+			pmt = 0;
+
+			// Was this mt already created?
+			for (size_t p = 0; p < mtlist.nobj; ++p) {
+				if (mtlist[(unsigned int)p].name == setname) {
+					pmt = &mtlist[(unsigned int)p];
+				}
+			}
+
+			if (pmt == 0) {
+				// Create and initialise a new st object and obtain a reference to it
+			
+				pmt=&mtlist.createobj();
+				initmt(*pmt,setname);
+				includemt_map[setname] = true;
+			}
+		}
+
+		declareitem("mtinclude",&includemt,1,CB_NONE,"Include ManagementType in analysis");
+		declareitem("planting_system",&strparam,32,CB_MTPLANTINGSYSTEM,"Planting system");
+		declareitem("harvest_system",&strparam,32,CB_MTHARVESTSYSTEM,"Harvest system");
+		declareitem("pft",&strparam,16,CB_MTPFT,"PFT name");
+		declareitem("selection",&strparam,200,CB_MTSELECTION	,"String of pft names");
+		declareitem("rottime",&pmt->nyears,0.0,100.0,1,CB_NONE,"Rotation time (years)");
+		declareitem("hydrology",&strparam,16,CB_MTHYDROLOGY, "Hydrology of crop (\"RAINFED\" or \"IRRIGATED\")");
+//		declareitem("irrigation",&pmt->firr,0.0,1.0,1,CB_NONE,"Irrigation of crop");
+		declareitem("sdate",&pmt->sdate,0,364,1,CB_NONE,"Sowing date of crop");
+		declareitem("hdate",&pmt->hdate,0,364,1,CB_NONE,"Harvest date of crop");
+		declareitem("nfert",&pmt->nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop");
+		declareitem("fallow",&pmt->fallow,1,CB_NONE,"Fallow in place of crop");
+		declareitem("multicrop",&pmt->multicrop,1,CB_NONE,"Whether to grow several crops in a year");
+
+		callwhendone(CB_CHECKMT);
+
+		break;
+
 	case BLOCK_ST:
 
 		if (!ifhelp) {
@@ -761,8 +826,8 @@ void plib_declarations(int id,xtring setname) {
 
 			// Was this st already created?
 			for (size_t p = 0; p < stlist.nobj; ++p) {
-				if (stlist[p].name == setname) {
-					pst = &stlist[p];
+				if (stlist[(unsigned int)p].name == setname) {
+					pst = &stlist[(unsigned int)p];
 				}
 			}
 
@@ -782,37 +847,34 @@ void plib_declarations(int id,xtring setname) {
 			"Cover crop (\"NOINTERCROP\" or \"NATURALGRASS\")");
 		declareitem("naturalveg",&strparam,16,CB_STNATURALVEG,
 			"Natural pfts (\"NONE\", \"GRASSONLY\" or \"ALL\")");
+		declareitem("reestab",&strparam,16,CB_STREESTAB,
+			"Re-establishment (\"NONE\", \"RESTRICTED\" or \"ALL\")");
 
-		declareitem("rotation",&pst->rotation.ncrops,0,100,1,CB_NONE,"Rotation type (no of crops)");
-		declareitem("rottime",&pst->rotation.nyears,0.0,10.0,1,CB_NONE,"Rotation time (years)");
-		declareitem("multicrop",&pst->rotation.multicrop,1,CB_NONE,"Whether to grow several crops in a year ");
 		declareitem("firstrotyear",&pst->rotation.firstrotyear,0,3000,1,CB_NONE,"First calender year of rotation");
 		declareitem("restrictpfts",&pst->restrictpfts,1,CB_NONE,"Whether to only allow pft:s specified in stand type");
+		declareitem("firstmanageyear",&pst->firstmanageyear,0,3000,1,CB_NONE,"First calender year of management");
 
 		for(int i = 0; i < NROTATIONPERIODS_MAX; ++i) {
 			if(i == 0) {
-				declareitem("crop1",&strparam,16,CB_CROP1,"");
-				declareitem("hydrology1",&strparam,16,CB_STHYDROLOGY1, "Hydrology of crop 1 (\"RAINFED\" or \"IRRIGATED\")");
-				declareitem("sdate1",&pst->management[i].sdate,0,364,1,CB_NONE,"Sowing date of crop 1");
-				declareitem("hdate1",&pst->management[i].hdate,0,364,1,CB_NONE,"Harvest date of crop 1");
-				declareitem("nfert1",&pst->management[i].nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop 1");
-				declareitem("fallow1",&pst->management[i].fallow,1,CB_NONE,"Fallow in place of crop 1");
+				declareitem("management1",&strparam,16,CB_MANAGEMENT1,"");
+				declareitem("planting_system",&strparam,32,CB_PLANTINGSYSTEM,"Planting system of management 1");
+				declareitem("harvest_system",&strparam,32,CB_HARVESTSYSTEM,"Harvest system of management 1");
+				declareitem("pft",&strparam,16,CB_PFT,"PFT name");
+				declareitem("selection",&strparam,200,CB_STSELECTION,"String of pft names");
+				declareitem("rottime",&pst->management.nyears,0.0,100.0,1,CB_NONE,"Rotation time (years)");
+				declareitem("hydrology",&strparam,16,CB_STHYDROLOGY, "Hydrology of crop 1 (\"RAINFED\" or \"IRRIGATED\")");
+//				declareitem("irrigation",&pst->management.firr,0.0,1.0,1,CB_NONE,"Irrigation of crop 1");
+				declareitem("sdate",&pst->management.sdate,0,364,1,CB_NONE,"Sowing date of crop 1");
+				declareitem("hdate",&pst->management.hdate,0,364,1,CB_NONE,"Harvest date of crop 1");
+				declareitem("nfert",&pst->management.nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop 1");
+				declareitem("fallow",&pst->management.fallow,1,CB_NONE,"Fallow in place of crop 1");
+				declareitem("multicrop",&pst->management.multicrop,1,CB_NONE,"Whether to grow several crops in a year in management 1");
 			}
 			else if(i == 1) {
-				declareitem("crop2",&strparam,16,CB_CROP2,"");
-				declareitem("hydrology2",&strparam,16,CB_STHYDROLOGY2, "Hydrology of crop 2 (\"RAINFED\" or \"IRRIGATED\")");
-				declareitem("sdate2",&pst->management[i].sdate,0,364,1,CB_NONE,"Sowing date of crop 2");
-				declareitem("hdate2",&pst->management[i].hdate,0,364,1,CB_NONE,"Harvest date of crop 2");
-				declareitem("nfert2",&pst->management[i].nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop 2");
-				declareitem("fallow2",&pst->management[i].fallow,1,CB_NONE,"Fallow in place of crop 2");
+				declareitem("management2",&strparam,16,CB_MANAGEMENT2,"");
 			}
 			else if(i == 2) {
-				declareitem("crop3",&strparam,16,CB_CROP3,"");
-				declareitem("hydrology3",&strparam,16,CB_STHYDROLOGY3, "Hydrology of crop 3 (\"RAINFED\" or \"IRRIGATED\")");
-				declareitem("sdate3",&pst->management[i].sdate,0,364,1,CB_NONE,"Sowing date of crop 3");
-				declareitem("hdate3",&pst->management[i].hdate,0,364,1,CB_NONE,"Harvest date of crop 3");
-				declareitem("nfert3",&pst->management[i].nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop 3");
-				declareitem("fallow3",&pst->management[i].fallow,1,CB_NONE,"Fallow in place of crop 3");
+				declareitem("management3",&strparam,16,CB_MANAGEMENT3,"");
 			}
 		}
 		callwhendone(CB_CHECKST);
@@ -889,6 +951,9 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
+	case CB_SELECTION:
+		ppft->selection = strparam;
+		break;
 	case CB_STLANDCOVER:
 		if (strparam.upper()=="NATURAL") pst->landcover=NATURAL;
 		else if (strparam.upper()=="URBAN") pst->landcover=URBAN;
@@ -913,55 +978,59 @@ void plib_callback(int callback) {
 		}
 		break;
 	case CB_STNATURALVEG:
-		if (strparam.upper()=="NONE") {
-			pst->naturalveg = 0;
-			pst->naturalgrass = 0;
-		}
-		else if (strparam.upper()=="GRASSONLY") {
-			pst->naturalveg = 0;
-			pst->naturalgrass = 1;
-		}
-		else if (strparam.upper()=="ALL") {
-			pst->naturalveg = 1;
-			pst->naturalgrass = 1;
-		}
-		else {
-			sendmessage("Error",
-				"Unknown intercrop type (valid types: \"NONE\", \"GRASSONLY\", \"ALL\")");
-			plibabort();
-		}
+		pst->naturalveg = strparam.upper();
 		break;
-	case CB_CROP1:
-		pst->management[0].pftname = strparam;
+	case CB_STREESTAB:
+		pst->reestab = strparam.upper();
 		break;
-	case CB_CROP2:
-		pst->management[1].pftname = strparam;
+	case CB_MTPLANTINGSYSTEM:
+		pmt->planting_system = strparam.upper();
 		break;
-	case CB_CROP3:
-		pst->management[2].pftname = strparam;
+	case CB_MTHARVESTSYSTEM:
+		pmt->harvest_system = strparam.upper();
 		break;
-	case CB_STHYDROLOGY1:
-		if (strparam.upper()=="RAINFED") pst->management[0].hydrology = RAINFED;
-		else if (strparam.upper()=="IRRIGATED") pst->management[0].hydrology = IRRIGATED;
-		else {
+	case CB_MTPFT:
+		pmt->pftname = strparam;
+		break;
+	case CB_MTSELECTION:
+		pmt->selection = strparam;
+		break;
+	case CB_MTHYDROLOGY:
+		if (strparam.upper()=="RAINFED") pmt->hydrology = RAINFED;
+		else if (strparam.upper()=="IRRIGATED") pmt->hydrology = IRRIGATED;
+		else 
+		{
 			sendmessage("Error",
 				"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\")");
 			plibabort();
 		}
 		break;
-	case CB_STHYDROLOGY2:
-		if (strparam.upper()=="RAINFED") pst->management[1].hydrology = RAINFED;
-		else if (strparam.upper()=="IRRIGATED") pst->management[1].hydrology = IRRIGATED;
-		else {
-			sendmessage("Error",
-				"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\")");
-			plibabort();
-		}
+	case CB_MANAGEMENT1:
+		pst->mtnames[0] = strparam;
 		break;
-	case CB_STHYDROLOGY3:
-		if (strparam.upper()=="RAINFED") pst->management[2].hydrology = RAINFED;
-		else if (strparam.upper()=="IRRIGATED") pst->management[2].hydrology = IRRIGATED;
-		else {
+	case CB_MANAGEMENT2:
+		pst->mtnames[1] = strparam;
+		break;
+	case CB_MANAGEMENT3:
+		pst->mtnames[2] = strparam;
+		break;
+	case CB_PLANTINGSYSTEM:
+		pst->management.planting_system = strparam.upper();
+		break;
+	case CB_HARVESTSYSTEM:
+		pst->management.harvest_system = strparam.upper();
+		break;
+	case CB_PFT:
+		pst->management.pftname = strparam;
+		break;
+	case CB_STSELECTION:
+		pst->management.selection = strparam;
+		break;
+	case CB_STHYDROLOGY:
+		if (strparam.upper()=="RAINFED") pst->management.hydrology = RAINFED;
+		else if (strparam.upper()=="IRRIGATED") pst->management.hydrology = IRRIGATED;
+		else 
+		{
 			sendmessage("Error",
 				"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\")");
 			plibabort();
@@ -1048,7 +1117,6 @@ void plib_callback(int callback) {
 			if (!itemparsed("reduce_all_stands")) badins("reduce_all_stands");
 			if (!itemparsed("age_limit_reduce")) badins("age_limit_reduce");
 			if (!itemparsed("minimizecftlist")) badins("minimizecftlist");
-			if (!itemparsed("cftfrac_fixed")) badins("cftfrac_fixed");
 			if (!itemparsed("run_natural")) badins("run_natural");
 			if (!itemparsed("run_crop")) badins("run_crop");
 			if (!itemparsed("run_forest")) badins("run_forest");
@@ -1109,6 +1177,22 @@ void plib_callback(int callback) {
 		if (!run_landcover)
 			printseparatestands = false;
 
+		//	delete unused management types from mtlist
+
+		mtlist.firstobj();
+		while (mtlist.isobj) {
+			ManagementType& mt = mtlist.getobj();
+			bool include = includemt_map[mt.name];
+
+			if (!include) {
+				// Remove this management type from list
+				mtlist.killobj();
+			}
+			else {
+				mtlist.nextobj();
+			}
+		}
+
 		//	delete unused stand types from stlist
 
 		stlist.firstobj();
@@ -1130,13 +1214,6 @@ void plib_callback(int callback) {
 				stlist.killobj();
 			}
 			else {
-				if(st.landcover == CROPLAND &&
-					(st.rotation.ncrops == 0 ||
-					st.rotation.ncrops >= 1 && st.management[0].pftname == "" ||
-					st.rotation.ncrops >= 2 && st.management[1].pftname == "" ||
-					st.rotation.ncrops >= 3 && st.management[2].pftname == ""))
-					fail("Check stand type rotation parameter setting\n");
-
 				stlist.nextobj();
 			}
 		}
@@ -1156,12 +1233,12 @@ void plib_callback(int callback) {
 			while(stlist.isobj) {
 				StandType& st = stlist.getobj();
 
-				if(st.naturalveg) {
+				if(st.naturalveg == "ALL") {
 					include_natural_pfts = true;
 					include_natural_grass_pfts = true;
 					break;
 				}
-				if(st.naturalgrass)
+				if(st.naturalveg == "GRASSONLY")
 					include_natural_grass_pfts = true;
 				stlist.nextobj();
 			}
@@ -1196,7 +1273,48 @@ void plib_callback(int callback) {
 			}
 		}
 
-		// Remove crop st:s with pft:s that are not found in the pftlist
+		/// Set ncrops and verify that crop rotations have defined pftnames
+		stlist.firstobj();
+		while (stlist.isobj) {
+			StandType& st = stlist.getobj();
+
+			// management types in ins-file overrides management settings in stand type
+			if(st.mtnames[0] != "") {
+
+				for(int rot=0; rot<NROTATIONPERIODS_MAX; rot++) {
+
+					if(st.mtnames[rot] != "") {
+						st.rotation.ncrops++;
+						if(rot == 0) {
+							int mtid = mtlist.getmtid(st.mtnames[rot]);
+							if(mtid > -1) {
+								ManagementType& mt = mtlist[mtid];
+								// Copy management from mtlist to stand type management, used only if ncrops=1
+								st.management = mt;
+							}
+						}
+					}
+					else {
+						break;
+					}
+				}
+			}
+			if(!st.rotation.ncrops) {
+				// Check if there are management settings in the stand type definition
+				if(st.management.is_managed())
+					st.rotation.ncrops = 1;
+			}
+			if(st.landcover == CROPLAND && 
+				(st.rotation.ncrops == 0 ||
+				st.rotation.ncrops >= 1 && st.get_management(0).pftname == "" && !st.get_management(0).fallow ||
+				st.rotation.ncrops >= 2 && st.get_management(1).pftname == "" && !st.get_management(1).fallow ||
+				st.rotation.ncrops >= 3 && st.get_management(2).pftname == "" && !st.get_management(2).fallow))
+				fail("Check stand type rotation parameter setting, pftname missing\n");
+
+			stlist.nextobj();
+		}
+
+		// Remove crop st:s with pft:s that are not found in the pftlist or with mt:s that are not in the mtlist
 		dprintf("\n");
 		stlist.firstobj();
 		while (stlist.isobj) {
@@ -1204,13 +1322,17 @@ void plib_callback(int callback) {
 
 			bool include = true;
 
-			if(st.landcover == CROPLAND) {
+			if(st.landcover == CROPLAND) {	// Should check this for other land covers too, forest monocultures can have a pftname
 
 				for(int i=0; i<st.rotation.ncrops; i++) {
 
-					if(pftlist.getpftid(st.management[i].pftname) < 0) {
+					if(st.mtnames[i] != "" && mtlist.getmtid(st.mtnames[i]) < 0) {
 						include = false;
-						dprintf("Stand type %s not used; pft %s not in pftlist !\n", (char*)st.name, (char*)st.management[i].pftname);
+						dprintf("Stand type %s not used; mt %s not in mtlist !\n", (char*)st.name, (char*)st.mtnames[i]);
+					}
+					if(st.get_management(i).pftname != "" && pftlist.getpftid(st.get_management(i).pftname) < 0) {
+						include = false;
+						dprintf("Stand type %s not used; pft %s not in pftlist !\n", (char*)st.name, (char*)st.get_management(i).pftname);
 					}
 				}
 			}
@@ -1234,6 +1356,15 @@ void plib_callback(int callback) {
 			pftlist.nextobj();
 		}
 
+		// Set ids and nmt variable after removing unused mts
+		nmt = 0;
+		mtlist.firstobj();
+		while (mtlist.isobj) {
+			ManagementType& mt = mtlist.getobj();
+			mt.id = nmt++;
+			mtlist.nextobj();
+		}
+
 		// Set ids and nst variable after removing unused sts
 		nst = 0;
 		for(int i=0;i<NLANDCOVERTYPES;i++)
@@ -1250,7 +1381,7 @@ void plib_callback(int callback) {
 		while (stlist.isobj) {
 			StandType& st = stlist.getobj();
 
-			if(st.intercrop == NATURALGRASS && pftlist[pftlist.getpftid(st.management[0].pftname)].phenology != CROPGREEN)
+			if(st.intercrop == NATURALGRASS && pftlist[pftlist.getpftid(st.get_management(0).pftname)].phenology != CROPGREEN)
 				dprintf("Warning: covercrop grass should not be activated in stand types without true crops\n");
 				stlist.nextobj();
 		}
@@ -1518,6 +1649,17 @@ void plib_callback(int callback) {
 		}
 
 		break;
+
+	case CB_CHECKMT:
+		if (!checked_mt[pmt->name]) {
+			checked_mt[pmt->name] = true;
+		}
+
+		if (itemparsed("mtinclude")) {
+			includemt_map[pmt->name] = includemt;
+		}
+
+		break;
 	}
 }
 
@@ -1529,26 +1671,47 @@ void plib_receivemessage(xtring text) {
 }
 
 void read_instruction_file(const char* insfilename) {
+	bool exists_getclim_driver_file;
+	xtring getclim_driver_file_path;
+
 	if (!fileexists(insfilename)) {
-		fail("Error: could not open %s for input",(const char*)insfilename);
+		fail("Error: could not open %s for input", (const char*)insfilename);
 	}
 
 	// Initialise PFT count
-	npft=0;
-	nst=0;
+
+	npft = 0;
+	nst = 0;
+	nmt=0;
 
 	checked_pft.clear();
 	includepft_map.clear();
-	
+
 	pftlist.killall();
 
 	initsettings();
+
+	// Clear params from previous run, saving needed params before clearing
+
+	if (param.isparam("getclim_driver_file")) {
+		exists_getclim_driver_file = true;
+		getclim_driver_file_path = param["getclim_driver_file"].str;
+	}
+	else {
+		exists_getclim_driver_file = false;
+	}
+
 	param.killall();
 
 	// Initialise simulation settings and PFT parameters from instruction script
 	if (!plib(insfilename)) {
 		fail("Bad instruction file!");
 	}
+
+	// Reinstate params saved from clearing above
+	if (exists_getclim_driver_file && getclim_driver_file_path != "")
+		param.addparam("getclim_driver_file", getclim_driver_file_path);
+
 }
 
 void printhelp() {

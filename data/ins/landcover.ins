@@ -5,7 +5,14 @@
 !// LPJ-GUESS 3.0
 !// 
 !///////////////////////////////////////////////////////////////////////////////////////
+! Input files
+!
 
+param "file_lu"      (str "")
+param "file_lucrop"  (str "")
+param "file_lupasture"  (str "")
+param "file_lunatural"  (str "")
+param "file_luforest"  (str "")
 
 !///////////////////////////////////////////////////////////////////////////////////////
 ! Output files
@@ -15,11 +22,11 @@
 ! These files may be outcommented if their output is not required. 
 
 file_cmass_cropland ""
-file_cmass_pasture "cmass_pasture.out"
+file_cmass_pasture ""
 file_cmass_natural "cmass_natural.out"
 file_cmass_forest "cmass_forest.out"
 file_anpp_cropland ""
-file_anpp_pasture "anpp_pasture.out"
+file_anpp_pasture ""
 file_anpp_natural "anpp_natural.out"
 file_anpp_forest "anpp_forest.out"
 file_dens_natural "dens_natural.out"
@@ -72,13 +79,20 @@ transfer_level 2	! Pooling level of land cover transitions; 0: one big pool; 1: 
 iftransfer_to_new_stand 0 ! Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
 
 !///////////////////////////////////////////////////////////////////////////////////////
+!// PARAMETERS FOR MANAGEMENT TYPES
+
+group "crop_management" (
+
+	planting_system "monoculture"
+)
+
+!///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR STAND TYPES
 
 
 group "common_stand" (
 
 	intercrop "nointercrop"
-	rotation 0
 	naturalveg "none"
 	restrictpfts 0		! Use all pft:s defined for a land cover (pft parameter landcover)
 )
@@ -86,10 +100,10 @@ group "common_stand" (
 group "crop_stand" (
 
 	landcover "cropland"
-	rotation 1		! Only one crop
-	hydrology1 "rainfed"
 	intercrop "naturalgrass" ! Use natural grass pft:s as covercrop
 	restrictpfts 1		! Use only pft:s specified in stand type
+	planting_system "monoculture"
+	hydrology "rainfed"
 )
 
 st "Urban" (
@@ -126,6 +140,7 @@ st "Forest" (
 	stinclude 1
 	landcover "forest"
 	naturalveg "all"	! Use natural pft:s
+	harvest_system "continuous"
 )
 
 st "Barren" (

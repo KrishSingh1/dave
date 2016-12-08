@@ -90,7 +90,7 @@ bool Table::invalid() const {
 }
 
 Table OutputChannel::create_table(const TableDescriptor& descriptor) {
-	 Table table(table_descriptors.size());
+	 Table table((int) table_descriptors.size());
 
 	 table_descriptors.push_back(descriptor);
 	 values.resize(table_descriptors.size());
@@ -234,7 +234,7 @@ void FileOutputChannel::finish_row(const Table& table,
 		  }
 
 		  // print each column title
-		  int nbr_cols = get_table_descriptor(table).columns().size();
+		  int nbr_cols = (int) get_table_descriptor(table).columns().size();
 		  for (int i = 0; i < nbr_cols; i++) {
 				fputs(format_header(table, i), file);
 		  }
@@ -253,7 +253,7 @@ void FileOutputChannel::finish_row(const Table& table,
 
 	 // print out the values
 	 for (size_t i = 0; i < row.size(); i++) {
-		  fprintf(file, format(table, i), row[i]);
+		  fprintf(file, format(table, (int)i), row[i]);
 	 }
 	 fprintf(file, "\n");
 	 fflush(file);

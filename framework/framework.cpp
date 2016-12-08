@@ -89,8 +89,11 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// Update daily soil drivers including soil temperature
 			dailyaccounting_patch(patch);
 
+			// Determine nitrogen fertilisation amount 
+			if(run_landcover)
+				nfert(patch);
+
 			if (stand.landcover == CROPLAND) {
-				crop_nfert(patch);
 				// Calculate crop sowing dates
 				crop_sowing_patch(patch);
 				// Crop phenology
@@ -165,11 +168,12 @@ int framework(const CommandLineArguments& args) {
 	// simulation settings
 	read_instruction_file(args.get_instruction_file());
 
-	print_logfile_heading();
-
 	// Initialise input/output
+
 	input_module->init();
 	output_modules.init();
+
+	print_logfile_heading();
 
 	// Nitrogen limitation
 	if (ifnlim && !ifcentury) {

@@ -293,4 +293,19 @@ struct landcover_change_transfer {
 	}
 };
 
+struct lc_change_harvest_params {
+
+	double harv_eff;
+	double res_outtake_twig;
+	double res_outtake_coarse_root;
+	bool burn;	// to be developed
+
+	lc_change_harvest_params() {
+
+		res_outtake_twig = 0.0;
+		res_outtake_coarse_root = 0.0;
+		burn = false;
+	}
+};
+
 #endif // LPJ_GUESS_LANDCOVER_H

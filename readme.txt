@@ -1,4 +1,4 @@
-                        LPJ-GUESS Version 3.0
+                        LPJ-GUESS Version 4.0
                         =====================
 
                         PLEASE READ CAREFULLY
@@ -86,16 +86,28 @@ Structure of this directory:
             - sample grid cell coordinate list files compatible with
               demonstration input module and instruction script
               files under directory ../ins
-
+      
+./benchmarks
+     - Files required for running the benchmarks (under linux only).
+       ./euroflux and ./euroflux_globalpfts
+            - The benchmarks euroflux and euroflux_globalpfts are currently 
+              being updated, and consequently have been temporarily removed 
+              from the release package. (They are however kept in the code 
+              repository for repository reasons: users downloading from the 
+              svn code repository should remove these two catalogues before 
+              running he benchmark suite.)  
+              
 ./cru
-     - Input module version for reading in CRU historical climate data
-       for 1901-2006 in custom binary format used by LPJ-GUESS. The data 
-       files themselves (GZIP-compressed) are located in directory cru at the 
-       same level as this version of LPJ-GUESS was downloaded from.
+     - Input module version for reading in CRU-NCEP historical climate 
+       data for 1901-2015 in custom binary format used by LPJ-GUESS.
+       The file name cru_TS30.cpp and the file name cru_TS30.cpp/.h 
+       (and cognate namespace CRU_TS30) has been kept,  although the 
+       forcing data is no longer CRU TS.
        
-       NOTE: The CRU data set is not in the public domain and should not be
-       downloaded without specific permission. Note also that the file is
-       very large and may take many hours to transfer.
-
-Joe Siltberg
-2014-06-27
+       NOTE: The associated CRU-NCEP binary files are not in the public domain. 
+       Normally users should create their own "./cru" binary files, e.g. using  
+       the Fast Archive project available the same level as where this version of 
+       LPJ-GUESS was downloaded from.
+       
+Joe Siltberg 2014-06-27 (Version 3.0)
+Johan Nord 2016-12-06 (Version 4.0)

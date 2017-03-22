@@ -86,6 +86,12 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 			// Get reference to this patch
 			Patch& patch = stand.getobj();
+
+			//reset values updated for yearlyoutput daily carbon allocation, niklas
+			if(ifdcarb && date.day == 0){
+				growth_reset(stand, patch); // Daily allocation reset function niklas
+			}
+
 			// Update daily soil drivers including soil temperature
 			dailyaccounting_patch(patch);
 
@@ -117,6 +123,12 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			growth_daily(patch);
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch);
+
+			// Daily C allocation (GRASS ONLY)
+			if(ifdcarb){
+				growth_daily_pasture(stand, patch); // Daily allocation niklas
+			}
+
 
 			if (date.islastday && date.islastmonth) {
 

@@ -237,6 +237,17 @@ extern bool ifrainonwetdaysonly;
 /// whether BVOC calculations are included
 extern bool ifbvoc;
 
+// DAILY CARBON ALLOCATION
+/// whether daily carbon allocation for grasses is turned on, niklas
+extern bool ifdcarb;
+/// storage growth to root ratio for daily carb niklas
+extern double sgtor;
+/// transfer of material between compartments at 20 degrees celsius. c3 grass
+extern double c3transfercon;
+/// transfer of material between compartments at 20 degrees celsius. c4 grass
+extern double c4transfercon;
+///senescense factor daily growth
+extern double sen_fac;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // The Paramlist class (and Paramtype)

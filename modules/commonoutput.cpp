@@ -75,6 +75,11 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_miso", &file_miso, 300, "monthly isoprene flux output file");
 	declare_parameter("file_amon", &file_amon, 300, "annual monoterpene flux output file");
 	declare_parameter("file_mmon", &file_mmon, 300, "monthly monoterpene flux output file");
+
+	//outdaily - Niklas code/version since crop version outfiles are empty
+	declare_parameter("file_dlai",&file_dlai,300,"Daily LAI output file");
+	declare_parameter("file_dflux",&file_dflux,300,"Daily flux output file");
+
 }
 
 
@@ -238,6 +243,16 @@ void CommonOutput::define_output_tables() {
 	// AMON
 	ColumnDescriptors amon_columns = aiso_columns;
 
+	// DAILY
+	ColumnDescriptors dlai_columns;
+	dlai_columns += ColumnDescriptors(pfts,14, 8);
+	ColumnDescriptors dflux_columns;
+	dflux_columns += ColumnDescriptor("dNEE", 14, 6);
+	dflux_columns += ColumnDescriptor("dGPP", 14, 6);
+	dflux_columns += ColumnDescriptor("dNPP", 14, 6);
+	dflux_columns += ColumnDescriptor("dRH", 14, 6);
+	dflux_columns += ColumnDescriptor("dRA", 14, 6);
+
 	// CTON
 	ColumnDescriptors cton_columns;
 	cton_columns += ColumnDescriptors(pfts,                8, 1);
@@ -356,6 +371,11 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mwcont_lower,   file_mwcont_lower,   month_columns);
 	create_output_table(out_miso,           file_miso,           month_columns_wide);
 	create_output_table(out_mmon,           file_mmon,           month_columns_wide);
+
+	// *** DAILY OUTPUT VARIABLES *** niklas addition
+	create_output_table(out_dlai,		 file_dlai,			 dlai_columns);
+	create_output_table(out_dflux,		 file_dflux,		 dflux_columns);
+
 
 }
 
@@ -1445,6 +1465,133 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 /** This function does not have to provide any information to the framework.
   */
 void CommonOutput::outdaily(Gridcell& gridcell) {
+	// DESCRIPTION
+	// Output of simulation results at the end of each day
+	// added by niklas
+
+	double dlai;
+	double lon,lat;
+
+	if (date.year >= nyear_spinup && date.get_calendar_year() == 1950) {
+
+
+		lon=gridcell.get_lon();
+		lat=gridcell.get_lat();
+
+		// The OutputRows object manages the next row of output for each
+		// output table
+		OutputRows out(output_channel, lon, lat, date.get_calendar_year(), date.day);
+
+		double standpft_dlai;
+		double gcpft_dlai;
+		double dra = 0.0;
+		double drh = 0.0;
+		double dnee = 0.0;
+		double dgpp = 0.0;
+		double dnpp = 0.0;
+
+		// *** Loop through PFTs ***
+		pftlist.firstobj();
+		while (pftlist.isobj) {
+			Pft& pft=pftlist.getobj();
+
+			Gridcellpft& gridcellpft=gridcell.pft[pft.id];
+
+			gcpft_dlai=0.0;
+	
+
+			Gridcell::iterator gc_itr = gridcell.begin();
+
+			// Loop through Stands
+			while (gc_itr != gridcell.end()) {
+				Stand& stand = *gc_itr;
+				Standpft& standpft=stand.pft[pft.id];
+
+				stand.firstobj();
+
+				//Standpft& standpft=stand.pft[pft.id];
+				// Sum  across patches and PFTs
+	
+				standpft_dlai=0.0;
+
+
+				// Initialise age structure array
+
+
+				// Loop through Patches
+				while (stand.isobj) {
+					Patch& patch=stand.getobj();
+
+					double to_gridcell_average = stand.get_gridcell_fraction()/(double)stand.npatch();
+
+					Patchpft& patchpft = patch.pft[pft.id];
+
+					Vegetation& vegetation=patch.vegetation;
+
+					vegetation.firstobj();
+					while (vegetation.isobj) {
+						Individual& indiv=vegetation.getobj();
+
+						// guess2008 - alive check added
+						if (indiv.id!=-1 && indiv.alive) {
+
+							if (indiv.pft.id==pft.id) {
+								dgpp 	+= patch.fluxes.get_daily_flux(Fluxes::GPP, date.day) * to_gridcell_average;
+								dra 	+= patch.fluxes.get_daily_flux(Fluxes::RA, date.day) * to_gridcell_average;
+								drh  	+= patch.fluxes.get_daily_flux(Fluxes::SOILC, date.day) * to_gridcell_average;
+					
+
+								if(ifdcarb && patchpft.pft.lifeform == GRASS){
+									standpft_dlai += indiv.dlai;
+								}else{
+									standpft_dlai += indiv.lai*indiv.phen;
+								}
+
+							}
+
+						} // alive?
+								vegetation.nextobj();
+					}
+
+					stand.nextobj();
+				} // end of patch loop
+
+				standpft_dlai /= (double)stand.npatch();
+		
+
+				gcpft_dlai += standpft_dlai;
+	
+
+
+
+				++gc_itr;
+
+			}//End of loop through stands
+
+
+			// Print  to files
+
+
+
+				out.add_value(out_dlai, gcpft_dlai);
+
+	
+			pftlist.nextobj();
+
+		} // *** End of PFT loop ***
+
+
+			dnpp = dgpp - dra;
+			dnee = dnpp - drh;
+			out.add_value(out_dflux, dnee);
+			out.add_value(out_dflux, dgpp);
+			out.add_value(out_dflux, dnpp);
+			out.add_value(out_dflux, drh);
+			out.add_value(out_dflux, dra);
+
+
+	} // end if date year > spinup year
+
 }
 
 } // namespace

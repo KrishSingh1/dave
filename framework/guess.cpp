@@ -163,6 +163,14 @@ void Fluxes::report_flux(PerPatchFluxType flux_type, double value) {
 	daily_fluxes_patch[date.day][flux_type] += value;
 }
 
+double Fluxes::get_daily_flux(PerPFTFluxType flux_type, int day) const { //daily carbon allocaiton niklas
+	return daily_fluxes_pft[day][flux_type];
+}
+
+double Fluxes::get_daily_flux(PerPatchFluxType flux_type, int day) const { //daily carbon allocaiton niklas
+	return daily_fluxes_patch[day][flux_type];
+}
+
 double Fluxes::get_monthly_flux(PerPFTFluxType flux_type, int month) const {
 	return monthly_fluxes_pft[month][flux_type];
 }
@@ -1097,6 +1105,42 @@ void cropindiv_struct::serialize(ArchiveStream& arch) {
 
 Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
+	dnpp			  = 0.0; //Daily allocation Niklas start
+	dgpp			  = 0.0;
+	ymax_lai		  = 0.0;
+
+	int y;
+	for (y=0; y<365; y++) {
+		wscal_365[y]=0.0;
+	}
+	dcmass_leaf		  = 0.0;
+	ycmass_leaf		  = 0.0;
+	ycmass_repr		  = 0.0;
+	gd				  = 0.0;
+	dcmass_root		  = 0.0;
+	ycmass_root		  = 0.0;
+	ylitter_root	  = 0.0;
+	yexceeds_cmass    = 0.0;
+	ws				  = 0.0;
+	wg				  = 0.0;
+	w1				  = 0.0;
+	w2				  = 0.0;
+	w3				  = 0.0;
+	w4				  = 0.0;
+	sg                = 0.0;
+	phen_daily		  = 0.0;
+	nscal			  = 1.0;
+	abscission		  = 0.0;
+	ygrowth			  = 0.0;
+	dlai			  = 0.0;
+	l1				  = 0.0;
+	l2				  = 0.0;
+	l3				  = 0.0;
+	l4				  = 0.0;
+	wscal_mean_running = 0.0; 
+	cton_leaf_opt	  = 0.0; 
+	cton_leaf_current = 0.0; //Daily allocation Niklas end
+
 	anpp              = 0.0;
 	fpc               = 0.0;
 	fpc_daily		  = 0.0;
@@ -1119,6 +1163,9 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	nmass_heart       = 0.0;
 	cton_leaf_aopt    = 0.0;
 	cton_leaf_aavr    = 0.0;
+
+
+
 	cton_status       = 0.0;
 	cmass_veg         = 0.0;
 	nmass_veg         = 0.0;
@@ -1209,6 +1256,37 @@ void Individual::serialize(ArchiveStream& arch) {
 		& aphen
 		& aphen_raingreen
 		& anpp
+		& dnpp		//daily allocation Niklas
+		& dgpp
+		& phen_daily
+		& nscal
+		& ymax_lai
+		& dcmass_leaf
+		& ycmass_leaf
+		& dcmass_root
+		& ycmass_root
+		& ycmass_repr
+		& ylitter_root
+		& yexceeds_cmass
+		& gd
+		& ws
+		& sg
+		& wg
+		& w1
+		& w2
+		& w3
+		& w4
+		& abscission
+		& ygrowth
+		& dlai
+		& l1
+		& l2
+		& l3
+		& l4
+		& wscal_365
+		& wscal_mean_running   	
+		& cton_leaf_opt	 
+		& cton_leaf_current  // daily allocation Niklas end
 		& aet
 		& aaet
 		& ltor

@@ -945,6 +945,12 @@ public:
 	/// Report flux for a certain flux type
 	void report_flux(PerPatchFluxType flux_type, double value);
 
+	/// \returns daily flux for a given flux type (for all PFTs)
+	double get_daily_flux(PerPFTFluxType flux_type, int day) const;
+
+	/// \returns daily flux for a given flux type
+	double get_daily_flux(PerPatchFluxType flux_type, int day) const;
+
 	/// \returns flux for a given month and flux type (for all PFTs)
 	double get_monthly_flux(PerPFTFluxType flux_type, int month) const;
 
@@ -2142,6 +2148,69 @@ public:
 	/// accumulated NPP over modelled area (kgC/m2/year);
 	/** annual NPP following call to growth module on last day of simulation year */
 	double anpp;
+
+	// Daily gpp, niklas (kgC/m2/day)
+	double dgpp;
+	// Daily NEE , niklas (kgC/m2/day)
+	double dnee;
+	// days of favourable growing conditions based on growthfac and dnpp;
+	int gd;
+	// phen for daily allocation (based on water supply and demand ratio for C4 and gdd5 for C3 grass daily allocation niklas.
+	double phen_daily;
+	// nscal for eahc individual updated yearly, daily carbon allocation niklas
+	//Carbon grazing output kgC/m2/day
+	double grazC;
+
+	double nscal;
+	// yearly lai for daily allocation Niklas
+	double ymax_lai;
+	// daily cmass_leaf for daily allocation niklas
+	double dcmass_leaf;
+	// daily cmass_root for daily allocation niklas
+	double dcmass_root;
+	// yearly total cmass for reproduction. for daily allocation.
+	double ycmass_repr;
+	// yearly maximum cmass_leaf for daily allocation niklas
+	double ycmass_leaf;
+	// yearly maximum cmass_root for daily allocation niklas
+	double ycmass_root;
+	// yearly sum of root litter or daily allocation, niklas
+	double ylitter_root;
+	// yearly sum of negative increment that exceeds existing biomass following allocation, on individual basis (kgC) daily allocation, niklas
+	double yexceeds_cmass;
+	// Storage weight for daily allocation niklas
+	double ws;
+	// Storage weight for biomass increment without lai
+	double sg;
+	// weight of all growth compartments
+	double wg;
+	// weight of growth compartment 1 daily allocation Niklas
+	double w1;
+	// weight of growth compartment 2 daily allocation Niklas
+	double w2;
+	// weight of growth compartment 3 daily allocation Niklas
+	double w3;
+	// weight of growth compartment 4 daily allocation Niklas
+	double w4;
+	//Abscission from last compartment (4) ie litter, daily allocation Niklas
+	double abscission;
+	//sum of growth of leaves not related to sg
+	double ygrowth;
+	// total daily LAI of all compartments, daily allocation, niklas
+	double dlai;
+	// LAI of growth compartment 1 daily allocation Niklas
+	double l1;
+	// LAI of growth compartment 2 daily allocation Niklas
+	double l2;
+	// LAI of growth compartment 3 daily allocation Niklas
+	double l3;
+	// LAI of growth compartment 4 daily allocation Niklas
+	double l4;
+	// 365 day wscal values saved to calculate running mean added by niklas for daily allocation
+	double wscal_365[365];
+	// running average of wscal for last 365 days daily allocation niklas
+	double wscal_mean_running;
+
 	/// actual evapotranspiration over projected area (mm/day)
 	double aet;
 	/// annual actual evapotranspiration over projected area (mm/year)
@@ -2225,6 +2294,12 @@ public:
 	double cton_leaf_aopt;
 	/// annual average leaf C:N ratio
 	double cton_leaf_aavr;
+
+	// daily optimal leaf C:N ratio , dc niklas
+	double cton_leaf_opt;
+	//daily current leaf C:N ratio, dc niklas
+	double cton_leaf_current;
+
 	/// plant mobile nitrogen status
 	double cton_status;
 	/// total carbon in compartments before growth
@@ -3050,6 +3125,9 @@ public:
 	double aphen;
 	/// whether PFT can establish in this patch under current conditions
 	bool establish;
+	double phen_daily;
+	// daily phen for daily allocation niklas
+
 	/// running total for number of saplings of this PFT to establish (cohort mode)
 	double nsapling;
 	/// leaf-derived litter for PFT on modelled area basis (kgC/m2)
@@ -3148,6 +3226,8 @@ public:
 		cropphen = NULL;
 		harvested_products_slow = 0.0;
 		harvested_products_slow_nmass = 0.0;
+		phen_daily = 0.0; //daily allocation niklas
+
 
 		swindow[0]=-1;
 		swindow[1]=-1;

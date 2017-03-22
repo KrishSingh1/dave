@@ -954,6 +954,12 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 			cton_leaf_opt = indiv.cton_leaf();
 		}
 
+		if(leafoptn < 1e-10){   //daily carbon allocation Niklas
+			indiv.cton_leaf_opt = 0.0; // not allow to divide with 0 or very small number niklas dc
+		}else{
+			indiv.cton_leaf_opt =  indiv.dcmass_leaf * indiv.phen / leafoptn; 
+		}
+
 		// Nitrogen demand
 
 		// Root nitrogen demand
@@ -1556,6 +1562,33 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 				ppft.cropphen->growingdays_y++;
 				ppft.wscal_mean = ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / ppft.cropphen->growingdays_y;
 			}
+		}
+	}
+
+	// calculate the running sum of wscal to use for daily carbon allocation, niklas
+	if(day.isend){
+		vegetation.firstobj();
+		while (vegetation.isobj) {
+			Individual& indiv = vegetation.getobj();
+			indiv.wscal_365[date.day] = patch.pft[indiv.pft.id].wscal;
+
+			if(date.year==0) {
+				indiv.wscal_mean_running=0.0;
+				for (int y=0;y<=date.day; y++){
+					indiv.wscal_mean_running += indiv.wscal_365[y];
+				}
+
+				indiv.wscal_mean_running /=date.day;
+			}
+			else{
+				indiv.wscal_mean_running=0.0;
+				for (int y=0;y<365; y++){
+					indiv.wscal_mean_running += indiv.wscal_365[y];
+				}
+				indiv.wscal_mean_running /=365;
+			}
+
+			vegetation.nextobj();
 		}
 	}
 }

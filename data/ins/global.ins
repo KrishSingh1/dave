@@ -127,6 +127,21 @@ ifbvoc 0                     ! whether to include BVOC calculations (1) or not (
 
 run_landcover 0        ! whether to use (and change) landcover fractions (1) or not (0)
 
+
+
+!///////////////////////////////////////////////////////////////////////////////
+! DAILY CARBON GRASS
+!///////////////////////////////////////////////////////////////////////////////	
+
+ifdcarb 1		! wheter to use daily carbon allocation for grasses.
+sgtor 0.06176		! storage growth to root ratio	
+c3transfercon 0.00748	! transfer of material between compartments at 20 degrees celsius. c3 grass
+c4transfercon 0.0882	! transfer of material between compartments at 20 degrees celsius. c4 grass
+sen_fac 0.2		! senescens fraction	
+
+
+
+
 !///////////////////////////////////////////////////////////////////////////////////////
 
 

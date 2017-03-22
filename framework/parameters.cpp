@@ -52,6 +52,14 @@ bool ifrainonwetdaysonly;
 
 bool ifbvoc;
 
+// Daily carbon allocation for grasses, niklas
+bool ifdcarb;
+double sgtor; //storage growth to root fraction of material daily carbon niklas
+double c3transfercon; //transfer of material between compartments at 20 degrees celsius. c3 grass daily carbon allocation, niklas
+double c4transfercon; //transfer of material between compartments at 20 degrees celsius. c4 grass daily carbon allocation, niklas
+double sen_fac;			// senescense factor in daily growth
+
+
 wateruptaketype wateruptake;
 
 bool run_landcover;
@@ -484,6 +492,22 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("st",BLOCK_ST,CB_NONE,"Header for block defining StandType");
 		declareitem("mt",BLOCK_MT,CB_NONE,"Header for block defining Management");
 
+		// daily carbon allocation for grasses switch, niklas 2014-09
+		declareitem("ifdcarb",&ifdcarb,1,CB_NONE,	"Whether daily carbon allocation for grasses is enabled (0,1)");
+
+		
+		
+		declareitem("sgtor",&sgtor,0.0,1.0,1,CB_NONE, "storage growth to root ratio, for daily carb");
+		//transfer of material between compartments at 20 degrees celsius. daily carbon allocation, niklas
+		declareitem("c3transfercon",&c3transfercon,0.0,1.0,1,CB_NONE, "Transfer of material between compartments at 20 degrees celsius for C3 GRASS");
+
+		//transfer of material between compartments at 20 degrees celsius. daily carbon allocation, niklas
+		declareitem("c4transfercon",&c4transfercon,0.0,1.0,1,CB_NONE, "Transfer of material between compartments at 20 degrees celsius for C4 GRASS");
+
+		//Grass senescense factor for daily growth grasses  daily carbon allocation, niklas
+		declareitem("sen_fac",&sen_fac,0.0,1.0,1,CB_NONE, "Grass senescense factor for daily growth grasses");
+
+		
 		for (size_t i = 0; i < xtringParams.size(); ++i) {
 			const xtringParam& p = xtringParams[i];
 			declareitem(p.name, p.param, p.maxlen, 0, p.help);
@@ -1099,6 +1123,12 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifnlim")) badins("ifnlim");
 		if (!itemparsed("freenyears")) badins("freenyears");
 
+		if (!itemparsed("ifdcarb")) badins("ifdcarb"); //daily carbon allocation grasses, niklas
+		if (!itemparsed("sgtor")) badins("sgtor"); //daily carbon allocation grasses, niklas
+		if (!itemparsed("c3transfercon")) badins("c3transfercon"); //daily carbon allocation grasses, niklas
+		if (!itemparsed("c4transfercon")) badins("c4transfercon"); //daily carbon allocation grasses, niklas
+		if (!itemparsed("sen_fac")) badins("sen_fac"); //daily carbon allocation grasses, niklas
+		
 		if (nyear_spinup <= freenyears) {
 			sendmessage("Error", "freenyears must be smaller than nyear_spinup");
 			plibabort();

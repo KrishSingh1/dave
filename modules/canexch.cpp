@@ -953,13 +953,13 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 			indiv.leafndemand = 0.0;
 			cton_leaf_opt = indiv.cton_leaf();
 		}
-
-		if(leafoptn < 1e-10){   //daily carbon allocation Niklas
-			indiv.cton_leaf_opt = 0.0; // not allow to divide with 0 or very small number niklas dc
-		}else{
-			indiv.cton_leaf_opt =  indiv.dcmass_leaf * indiv.phen / leafoptn; 
+		if(ifdcarb){
+			if(leafoptn < 1e-10){   //daily carbon allocation Niklas
+				indiv.cton_leaf_opt = 0.0; // not allow to divide with 0 or very small number niklas dc
+			}else{
+				indiv.cton_leaf_opt =  indiv.dcmass_leaf * indiv.phen / leafoptn; 
+			}
 		}
-
 		// Nitrogen demand
 
 		// Root nitrogen demand
@@ -1566,7 +1566,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 	}
 
 	// calculate the running sum of wscal to use for daily carbon allocation, niklas
-	if(day.isend){
+	if(day.isend && ifdcarb){
 		vegetation.firstobj();
 		while (vegetation.isobj) {
 			Individual& indiv = vegetation.getobj();

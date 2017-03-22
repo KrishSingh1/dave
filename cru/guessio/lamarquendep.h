@@ -14,8 +14,8 @@
 namespace Lamarque {
 
 /// number of years of historical nitrogen deposition 
-/** One year from each decade 1850-2019 */
-const int NYEAR_HISTNDEP = 17;
+/** One year from each decade 1850-2009 */
+const int NYEAR_HISTNDEP = 16;
 
 /// number of years of scenario nitrogen deposition
 /** One year from each decade 2000-2109 */

@@ -650,7 +650,7 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int np
 		num_patches = ::npatch; // use the global variable npatch for stands with stochastic events
 	}
 	if (npatch > 0) {
-		num_patches = npatch;	// use patch number provided by calling funciton
+		num_patches = npatch;	// use patch number provided by calling function
 	}
 
 	for (unsigned int p=0;p<num_patches;p++) {
@@ -1442,70 +1442,54 @@ double Individual::cton_leaf(bool use_phen /* = true*/) const {
 
 	Stand& stand = vegetation.patch.stand;
 
-	if (ifnlim) {
-
-		if (stand.is_true_crop_stand() && !negligible(cmass_leaf_today()) && !negligible(nmass_leaf)) {
-			return cmass_leaf_today() / nmass_leaf;
-		}
-		else if (!stand.is_true_crop_stand() && !negligible(cmass_leaf) && !negligible(nmass_leaf)) {
-			if (use_phen) {
-				if (!negligible(phen)) {
-					return cmass_leaf_today() / nmass_leaf;
-				}
-				else {
-					return pft.cton_leaf_avr;
-				}
+	if (stand.is_true_crop_stand() && !negligible(cmass_leaf_today()) && !negligible(nmass_leaf)) {
+		return cmass_leaf_today() / nmass_leaf;
+	}
+	else if (!stand.is_true_crop_stand() && !negligible(cmass_leaf) && !negligible(nmass_leaf)) {
+		if (use_phen) {
+			if (!negligible(phen)) {
+				return cmass_leaf_today() / nmass_leaf;
 			}
 			else {
-				return cmass_leaf / nmass_leaf;
+				return pft.cton_leaf_avr;
 			}
 		}
 		else {
-			return pft.cton_leaf_max;
+			return cmass_leaf / nmass_leaf;
 		}
 	}
 	else {
-		return pft.cton_leaf_avr;
+		return pft.cton_leaf_max;
 	}
 }
 
 double Individual::cton_root(bool use_phen /* = true*/) const {
 
-	if (ifnlim) {
-		if (!negligible(cmass_root) && !negligible(nmass_root)) {
-			if (use_phen) {
-				if (!negligible(cmass_root_today())) {
-					return cmass_root_today() / nmass_root;
-				}
-				else {
-					return pft.cton_root_avr;
-				}
+	if (!negligible(cmass_root) && !negligible(nmass_root)) {
+		if (use_phen) {
+			if (!negligible(cmass_root_today())) {
+				return cmass_root_today() / nmass_root;
 			}
 			else {
-				return cmass_root / nmass_root;
+				return pft.cton_root_avr;
 			}
 		}
 		else {
-			return pft.cton_root_max;
+			return cmass_root / nmass_root;
 		}
 	}
 	else {
-		return pft.cton_root_avr;
+		return pft.cton_root_max;
 	}
 }
 
 double Individual::cton_sap() const {
 
 	if (pft.lifeform == TREE) {
-		if (ifnlim) {
-			if (!negligible(cmass_sap) && !negligible(nmass_sap))
-				return cmass_sap / nmass_sap;
-			else
-				return pft.cton_sap_max;
-		}
-		else {
-			return pft.cton_sap_avr;
-		}
+		if (!negligible(cmass_sap) && !negligible(nmass_sap))
+			return cmass_sap / nmass_sap;
+		else
+			return pft.cton_sap_max;
 	}
 	else {
 		return 1.0;
@@ -2474,27 +2458,23 @@ bool MassBalance::check_indiv_N(Individual& indiv, bool check_harvest) {
 
 	bool balance = true;
 	
-	if (ifnlim) {
-		
-		Patch& patch = indiv.vegetation.patch;
-		Stand& stand = patch.stand;
-		if(!stand.is_true_crop_stand())
-			return balance;
-		Gridcell& gridcell = stand.get_gridcell();
-		double ncont = indiv.ncont();
-		ncont += patch.ncont(0.0);
-		double nflux = patch.nflux();
+	Patch& patch = indiv.vegetation.patch;
+	Stand& stand = patch.stand;
+	if(!stand.is_true_crop_stand())
+		return balance;
+	Gridcell& gridcell = stand.get_gridcell();
+	double ncont = indiv.ncont();
+	ncont += patch.ncont(0.0);
+	double nflux = patch.nflux();
 
-		if(check_harvest && patch.isharvestday)
-			ncont_zero = ncont_zero_scaled;
+	if(check_harvest && patch.isharvestday)
+		ncont_zero = ncont_zero_scaled;
 
-		if(date.year >= nyear_spinup && !negligible(ncont - ncont_zero + nflux - nflux_zero, -14)) {
-			dprintf("\nStand %d Patch %d Indiv %d N balance year %d day %d: %.10f\n", patch.stand.id, patch.id, indiv.id, date.year, date.day, ncont - ncont_zero + nflux - nflux_zero);
-			dprintf("N pool change: %.14f\n", ncont - ncont_zero);
-			dprintf("N flux: %.14f\n\n",  nflux - nflux_zero);
-			balance = false;
-		}
-
+	if(date.year >= nyear_spinup && !negligible(ncont - ncont_zero + nflux - nflux_zero, -14)) {
+		dprintf("\nStand %d Patch %d Indiv %d N balance year %d day %d: %.10f\n", patch.stand.id, patch.id, indiv.id, date.year, date.day, ncont - ncont_zero + nflux - nflux_zero);
+		dprintf("N pool change: %.14f\n", ncont - ncont_zero);
+		dprintf("N flux: %.14f\n\n",  nflux - nflux_zero);
+		balance = false;
 	}
 
 	return balance;
@@ -2566,28 +2546,24 @@ bool MassBalance::check_patch_N(Patch& patch, bool check_harvest) {
 
 	bool balance = true;
 	
-	if (ifnlim) {
+	Stand& stand = patch.stand;
+	if (!stand.is_true_crop_stand())
+		return balance;
+	Gridcell& gridcell = stand.get_gridcell();
+	double ncont = patch.ncont();
+	double nflux = patch.nflux();
+	
+	if (stand.get_gridcell_fraction())
+		nflux += gridcell.landcover.anflux_harvest_slow / stand.get_gridcell_fraction();
 
-		Stand& stand = patch.stand;
-		if (!stand.is_true_crop_stand())
-			return balance;
-		Gridcell& gridcell = stand.get_gridcell();
-		double ncont = patch.ncont();
-		double nflux = patch.nflux();
+	if (check_harvest && patch.isharvestday)
+		ncont_zero = ncont_zero_scaled;
 
-		if (stand.get_gridcell_fraction())
-			nflux += gridcell.landcover.anflux_harvest_slow / stand.get_gridcell_fraction();
-
-		if (check_harvest && patch.isharvestday)
-			ncont_zero = ncont_zero_scaled;
-
-		if (date.year >= nyear_spinup && !negligible(ncont - ncont_zero + nflux - nflux_zero, -14)) {
-			dprintf("\nStand %d Patch %d N balance year %d day %d: %.14f\n", patch.stand.id, patch.id, date.year, date.day, ncont - ncont_zero + nflux - nflux_zero);
-			dprintf("N pool change: %.14f\n", ncont - ncont_zero);
-			dprintf("N flux: %.14f\n\n",  nflux - nflux_zero);
-			balance = false;
-		}
-
+	if (date.year >= nyear_spinup && !negligible(ncont - ncont_zero + nflux - nflux_zero, -14)) {
+		dprintf("\nStand %d Patch %d N balance year %d day %d: %.14f\n", patch.stand.id, patch.id, date.year, date.day, ncont - ncont_zero + nflux - nflux_zero);
+		dprintf("N pool change: %.14f\n", ncont - ncont_zero);
+		dprintf("N flux: %.14f\n\n",  nflux - nflux_zero);
+		balance = false;
 	}
 
 	return balance;
@@ -2632,13 +2608,12 @@ void MassBalance::check_year(Gridcell& gridcell) {
 		}
 		// Cropland without N-limitation is not balanced in N, fertilisation gives poorer N-balance
 		// For natural vegetation or unfertilised N-limited cropland, the check can be much stricter
-		if (ifnlim) {
-			// N balance check:
-			if (!negligible(ncont_year - ncont + nflux_year, -9)) {
-				dprintf("\n(%.2f, %.2f): N balance year %d: %.9f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ncont_year - ncont + nflux_year);
-				dprintf("N pool change: %.9f\n", ncont_year - ncont);
-				dprintf("N flux: %.9f\n",  nflux_year);
-			}
+		
+		// N balance check:
+		if (!negligible(ncont_year - ncont + nflux_year, -9)) {
+			dprintf("\n(%.2f, %.2f): N balance year %d: %.9f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ncont_year - ncont + nflux_year);
+			dprintf("N pool change: %.9f\n", ncont_year - ncont);
+			dprintf("N flux: %.9f\n",  nflux_year);
 		}
 	}
 	ccont = ccont_year;
@@ -2655,13 +2630,12 @@ void MassBalance::check_period(Gridcell& gridcell) {
 	}
 	// Cropland without N-limitation is not balanced in N, fertilisation gives poorer N-balance
 	// For natural vegetation or unfertilised N-limited cropland, the check can be much stricter
-	if (ifnlim) {
-		// N balance check:
-		if (!negligible(ncont - ncont_zero + nflux, -9)) {
-			dprintf("\nWARNING: (%.2f, %.2f): Period N balance: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), ncont - ncont_zero + nflux);
-			dprintf("N pool change: %.10f\n", ncont - ncont_zero);
-			dprintf("N fluxes: %.10f\n",  nflux);
-		}
+	
+	// N balance check:
+	if (!negligible(ncont - ncont_zero + nflux, -9)) {
+		dprintf("\nWARNING: (%.2f, %.2f): Period N balance: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), ncont - ncont_zero + nflux);
+		dprintf("N pool change: %.10f\n", ncont - ncont_zero);
+		dprintf("N fluxes: %.10f\n",  nflux);
 	}
 }
 

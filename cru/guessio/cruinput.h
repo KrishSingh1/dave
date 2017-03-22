@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file cruinput.h
-/// \brief Input module for the CRU TS 3.0 data set
+/// \brief Input module for the CRU-NCEP data set
 ///
 /// \author Joe Siltberg
 /// $Date$
@@ -22,7 +22,7 @@
 
 /// An input module for CRU climate data
 /** This input module gets climate data from binary archives built from
- *  CRU TS 3.0 (1901-2006).
+ *  CRU-NCEP (1901-2015).
  */
 class CRUInput : public InputModule {
 public:

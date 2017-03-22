@@ -1,9 +1,9 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file cru_ts30.h
-/// \brief Functions for reading the CRU TS 3.0 data set
+/// \brief Functions for reading the CRU-NCEP data set
 ///
-/// The binary files contain CRU half-degree global historical climate data
-/// for 1901-2006.
+/// The binary files contain CRU-NCEP half-degree global historical climate data
+/// for 1901-2015.
 ///
 /// $Date$
 ///

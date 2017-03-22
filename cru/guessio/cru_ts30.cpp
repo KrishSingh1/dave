@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file cru.cpp
-/// \brief Functions for reading the CRU TS 3.0 data set
+/// \brief Functions for reading the CRU-NCEP data set
 ///
 /// $Date: 2013-11-04 16:30:55 +0100 (Mon, 04 Nov 2013) $
 ///
@@ -12,7 +12,7 @@
 #include <math.h>
 #include <vector>
 
-// header files for the CRU TS 3.0 data archives
+// header files for the CRU-NCEP data archives
 #include "cruncep_1901_2015.h"
 #include "cruncep_1901_2015misc.h"
 

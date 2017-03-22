@@ -242,7 +242,7 @@ void CommonOutput::define_output_tables() {
 	ColumnDescriptors cton_columns;
 	cton_columns += ColumnDescriptors(pfts,                8, 1);
 	cton_columns += ColumnDescriptor("Total",              8, 1);
-	cton_columns += ColumnDescriptors(landcovers,         12, 1);
+	cton_columns += ColumnDescriptors(landcovers,         13, 1);
 
 	// NSOURCES
 	ColumnDescriptors nsources_columns;
@@ -271,7 +271,7 @@ void CommonOutput::define_output_tables() {
 	ColumnDescriptors nmass_columns;
 	nmass_columns += ColumnDescriptors(pfts,               8, 2);
 	nmass_columns += ColumnDescriptor("Total",             8, 2);
-	nmass_columns += ColumnDescriptors(landcovers,        11, 2);
+	nmass_columns += ColumnDescriptors(landcovers,        13, 2);
 
 	// NUPTAKE
 	ColumnDescriptors nuptake_columns = nmass_columns;

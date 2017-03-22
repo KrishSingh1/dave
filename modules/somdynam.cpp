@@ -33,6 +33,7 @@
 #include "driver.h"
 #include <assert.h>
 #include <bitset>
+#include <vector>
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL CONSTANTS
@@ -513,6 +514,8 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 	bool net_mineralization = false;
 	int times = 0;
 	double decay_reduction[NSOMPOOL] = {0.0};
+	double init_negative_nmass, init_ntoc_reduction;
+	double ntoc_reduction = 0.8;
 
 	// If necessary, the decay rates in the pools will be reduced in groups, one group
 	// is reduced after each iteration in the loop below. The groups are defined by
@@ -654,9 +657,35 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 		// Estimate daily soil mineral nitrogen pool after decomposition
 		// (negative value = immobilisation)
-		if ((tot_net_min + soil.nmass_avail + EPS >= 0.0) || !ifnlim) {
+		if (tot_net_min + soil.nmass_avail + EPS >= 0.0) {
 
 			net_mineralization = true;
+		}
+		else if (!ifnlim) {
+
+			// Free Nnitrogen years. Not minding immobilisation higher than nmass_avail
+			if (date.year > freenyears) {
+
+				// Immobilization larger than soil available nitrogen -> reduce targeted N concentration in SOM pool with flexible N:C ratios
+				if (times == 0) {
+					// initial reduction
+					init_negative_nmass = tot_net_min + soil.nmass_avail;
+					init_ntoc_reduction = ntoc_reduction;
+				}
+				else {
+					// trying to match needed N:C reduction
+					ntoc_reduction = min(init_ntoc_reduction, pow(init_ntoc_reduction, 1.0 / (1.0 - (tot_net_min + soil.nmass_avail) / init_negative_nmass) + 1.0));
+				}
+
+				soil.sompool[SLOWSOM].ntoc *= ntoc_reduction;
+				soil.sompool[SOILMICRO].ntoc *= ntoc_reduction;
+				soil.sompool[SURFHUMUS].ntoc *= ntoc_reduction;
+
+				net_mineralization = false;
+			}
+			else {
+				net_mineralization = true;
+			}
 		}
 		else {
 
@@ -711,7 +740,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 	}
 	// If no nitrogen limitation or during free nitrogen years set soil
 	// available nitrogen to its saturation level.
-	if (!ifnlim || date.year <= freenyears)
+	if (date.year <= freenyears)
 		soil.nmass_avail = NMASS_SAT;
 }
 
@@ -721,7 +750,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
  */
 double lignin_to_n_ratio(double cmass_litter, double nmass_litter, double LIGCFRAC, double cton_avr) {
 
-	if (!negligible(nmass_litter)) {
+	if (!negligible(nmass_litter) && ifnlim) {
 		return max(0.0, LIGCFRAC * cmass_litter / nmass_litter);
 	}
 	else {
@@ -1217,21 +1246,21 @@ void equilsom(Soil& soil) {
 
 		// Monthly average decay rates
 		for (int p = 0; p < NSOMPOOL-1; p++) {
-			soil.sompool[p].mfracremain_mean[m] = pow(soil.sompool[p].mfracremain_mean[m] / nyear, date.ndaymonth[m]);
+			soil.sompool[p].mfracremain_mean[m] = pow(soil.sompool[p].mfracremain_mean[m] / (double)nyear, (double)date.ndaymonth[m]);
 		}
 
 		// Monthly average mineral nitrogen uptake
-		soil.fnuptake_mean[m] /= nyear;
+		soil.fnuptake_mean[m] /= (double)nyear;
 
 		// Monthly average organic carbon and nitrogen leaching
-		soil.morgleach_mean[m] /= nyear;
+		soil.morgleach_mean[m] /= (double)nyear;
 
 		// Monthly average mineral nitrogen leaching
-		soil.mminleach_mean[m] /= nyear;
+		soil.mminleach_mean[m] /= (double)nyear;
 	}
 
 	// Annual average nitrogen fixation
-	soil.anfix_mean /= nyear;
+	soil.anfix_mean /= (double)nyear;
 
 	// Spin SOM pools with saved litter input, nitrogen addition and fractions of
 	// nitrogen uptake and leaching for EQUILSOM_YEARS years with monthly timesteps
@@ -1304,6 +1333,7 @@ void equilsom(Soil& soil) {
 
 	soil.anfix_mean = 0.0;
 	soil.solvesom.clear();
+	std::vector<LitterSolveSOM>().swap(soil.solvesom); // clear array memory
 }
 
 /// SOM CENTURY DYNAMICS

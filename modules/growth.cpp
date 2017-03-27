@@ -1788,6 +1788,7 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
+		killed=false;
 
 		if (indiv.pft.lifeform == GRASS && indiv.alive && !indiv.istruecrop_or_intercropgrass()) {
 			// For this individual
@@ -1993,7 +1994,6 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 
 				indiv.deltafpc = 0.0;
 
-				killed = false;
 
 
 				if (negligible(indiv.densindiv)){
@@ -2030,8 +2030,9 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 
 
 		} // grass
-
-		vegetation.nextobj();
+		if (!killed) {
+			vegetation.nextobj();
+		}
 	} // while vegetation is object
 
 } // growth_daily() end

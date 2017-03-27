@@ -1405,7 +1405,7 @@ void disturbance(Patch& patch, double disturb_prob) {
 
 			indiv.kill();
 
-			vegetation.killobj();
+			 vegetation.killobj();
 		}
 
 		patch.disturbed = true;
@@ -1444,7 +1444,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		// POPULATION MODE
 
 		// Mortality
-		mortality_lpj(stand, patch, stand.get_climate(), fireprob);
+		 mortality_lpj(stand, patch, stand.get_climate(), fireprob);
 
 		// Establishment
 		establishment_lpj(stand,patch);
@@ -1465,7 +1465,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		}
 
 		// Normal disturbance with probability interval of distinterval
-		if (patch.has_disturbances()) {
+		if (patch.has_disturbances() ) {
 
 			// We don't allow disturbance while documenting for calculation of Century equilibrium
 			bool during_century_solvesom = ifcentury &&

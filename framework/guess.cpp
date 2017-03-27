@@ -1116,7 +1116,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	dcmass_leaf		  = 0.0;
 	ycmass_leaf		  = 0.0;
 	ycmass_repr		  = 0.0;
-	gd				  = 0.0;
 	dcmass_root		  = 0.0;
 	ycmass_root		  = 0.0;
 	ylitter_root	  = 0.0;
@@ -1137,9 +1136,10 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	l2				  = 0.0;
 	l3				  = 0.0;
 	l4				  = 0.0;
-	wscal_mean_running = 0.0; 
+	wscal_mean_running =0.0;
 	cton_leaf_opt	  = 0.0; 
-	cton_leaf_current = 0.0; //Daily allocation Niklas end
+	cton_leaf_current = 0.0;
+	total_cmass		  = 0.0;	//Daily allocation Niklas end
 
 	anpp              = 0.0;
 	fpc               = 0.0;
@@ -1268,7 +1268,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& ycmass_repr
 		& ylitter_root
 		& yexceeds_cmass
-		& gd
 		& ws
 		& sg
 		& wg
@@ -1286,7 +1285,8 @@ void Individual::serialize(ArchiveStream& arch) {
 		& wscal_365
 		& wscal_mean_running   	
 		& cton_leaf_opt	 
-		& cton_leaf_current  // daily allocation Niklas end
+		& cton_leaf_current
+		& total_cmass// daily allocation Niklas end
 		& aet
 		& aaet
 		& ltor
@@ -1620,6 +1620,8 @@ double Individual::ccont(double scale_indiv, bool luc) const {
 		else {
 
 			ccont = cmass_leaf + cmass_root + cmass_sap + cmass_heart - cmass_debt;
+
+			if(ifdcarb && pft.lifeform == GRASS) ccont = total_cmass;//daily carbon niklas
 
 			if (pft.landcover == CROPLAND) {
 				ccont += cropindiv->cmass_ho + cropindiv->cmass_agpool;
@@ -2032,6 +2034,11 @@ void Individual::kill(bool harvest /* = false */) {
 		res_outtake = pft.res_outtake;
 	}
 
+
+	if(pft.lifeform == GRASS && ifdcarb && alive && !istruecrop_or_intercropgrass()){
+		cmass_leaf = dcmass_leaf + w4 + ws; //set back to real values so that the kill flux is correct
+		cmass_root = dcmass_root + sg;
+	}
 	// C doesn't return to litter/harvest if the Individual isn't alive
 	if (alive || istruecrop_or_intercropgrass()) {
 

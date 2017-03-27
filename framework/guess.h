@@ -2153,14 +2153,9 @@ public:
 	double dgpp;
 	// Daily NEE , niklas (kgC/m2/day)
 	double dnee;
-	// days of favourable growing conditions based on growthfac and dnpp;
-	int gd;
 	// phen for daily allocation (based on water supply and demand ratio for C4 and gdd5 for C3 grass daily allocation niklas.
 	double phen_daily;
 	// nscal for eahc individual updated yearly, daily carbon allocation niklas
-	//Carbon grazing output kgC/m2/day
-	double grazC;
-
 	double nscal;
 	// yearly lai for daily allocation Niklas
 	double ymax_lai;
@@ -2210,7 +2205,8 @@ public:
 	double wscal_365[365];
 	// running average of wscal for last 365 days daily allocation niklas
 	double wscal_mean_running;
-
+	// total carbon content of individul for daily allocaiton checks mass balance, niklas
+	double total_cmass;
 	/// actual evapotranspiration over projected area (mm/day)
 	double aet;
 	/// annual actual evapotranspiration over projected area (mm/year)

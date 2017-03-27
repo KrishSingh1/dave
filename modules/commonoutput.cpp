@@ -247,11 +247,14 @@ void CommonOutput::define_output_tables() {
 	ColumnDescriptors dlai_columns;
 	dlai_columns += ColumnDescriptors(pfts,14, 8);
 	ColumnDescriptors dflux_columns;
-	dflux_columns += ColumnDescriptor("dNEE", 14, 6);
-	dflux_columns += ColumnDescriptor("dGPP", 14, 6);
 	dflux_columns += ColumnDescriptor("dNPP", 14, 6);
-	dflux_columns += ColumnDescriptor("dRH", 14, 6);
-	dflux_columns += ColumnDescriptor("dRA", 14, 6);
+	dflux_columns += ColumnDescriptor("dREPRC", 14, 6);
+	dflux_columns += ColumnDescriptor("dSOILC", 14, 6);
+	dflux_columns += ColumnDescriptor("dFIREC", 14, 6);
+	dflux_columns += ColumnDescriptor("dESTC", 14, 6);
+	dflux_columns += ColumnDescriptor("dSEEDC", 14, 6);
+	dflux_columns += ColumnDescriptor("dHARVESTC", 14, 6);
+
 
 	// CTON
 	ColumnDescriptors cton_columns;
@@ -496,6 +499,7 @@ void get_stand_age_structure(Gridcell& gridcell,double* densindiv,int& nageclass
 				densindiv[p*nageclass + c] = 0.0;
 	}
 	else nageclass = 0;
+
 
 	pftlist.firstobj();
 	while (pftlist.isobj) {
@@ -1379,7 +1383,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_cpool, cpool_total);
 
 	// NPOOL Write npool to file
-	
+
 	if (ifcentury) {
 		outlimit(out,out_npool, nmass_gridcell + nlitter_gridcell);
 		outlimit(out,out_npool, surfsoillittern + cwdn);
@@ -1431,7 +1435,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								plot("Age structure [indiv/ha]", pft.name,
 								c * estinterval + estinterval*0.5,
 								densindiv[pft.id*nageclass+c]*1e4); // includes conversion from /m2 --> /ha
-						}
+							}
 
 						pftlist.nextobj();
 					}
@@ -1482,13 +1486,15 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 		// output table
 		OutputRows out(output_channel, lon, lat, date.get_calendar_year(), date.day);
 
-		double standpft_dlai;
-		double gcpft_dlai;
-		double dra = 0.0;
-		double drh = 0.0;
-		double dnee = 0.0;
-		double dgpp = 0.0;
-		double dnpp = 0.0;
+		double standpft_dlai = 0.0;
+		double gcpft_dlai = 0.0;
+		double dNPP = 0.0;
+		double dREPRC  = 0.0;
+		double dSOILC  = 0.0;
+		double dFIREC  = 0.0;
+		double dESTC  = 0.0;
+		double dSEEDC  = 0.0;
+		double dHARVESTC = 0.0;
 
 		// *** Loop through PFTs ***
 		pftlist.firstobj();
@@ -1536,10 +1542,18 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 						if (indiv.id!=-1 && indiv.alive) {
 
 							if (indiv.pft.id==pft.id) {
-								dgpp 	+= patch.fluxes.get_daily_flux(Fluxes::GPP, date.day) * to_gridcell_average;
-								dra 	+= patch.fluxes.get_daily_flux(Fluxes::RA, date.day) * to_gridcell_average;
-								drh  	+= patch.fluxes.get_daily_flux(Fluxes::SOILC, date.day) * to_gridcell_average;
-					
+
+
+
+								dNPP += -patch.fluxes.get_daily_flux(Fluxes::NPP,date.day)* to_gridcell_average;
+								dREPRC += patch.fluxes.get_daily_flux(Fluxes::REPRC,date.day)* to_gridcell_average;
+								dSOILC += patch.fluxes.get_daily_flux(Fluxes::SOILC,date.day)* to_gridcell_average;
+								dFIREC += patch.fluxes.get_daily_flux(Fluxes::FIREC,date.day)* to_gridcell_average;
+								dESTC += patch.fluxes.get_daily_flux(Fluxes::ESTC,date.day)* to_gridcell_average;
+								dSEEDC += patch.fluxes.get_daily_flux(Fluxes::SEEDC,date.day)* to_gridcell_average;
+								dHARVESTC += patch.fluxes.get_daily_flux(Fluxes::HARVESTC,date.day)* to_gridcell_average;
+
+
 
 								if(ifdcarb && patchpft.pft.lifeform == GRASS){
 									standpft_dlai += indiv.dlai;
@@ -1581,13 +1595,13 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 		} // *** End of PFT loop ***
 
 
-			dnpp = dgpp - dra;
-			dnee = dnpp - drh;
-			out.add_value(out_dflux, dnee);
-			out.add_value(out_dflux, dgpp);
-			out.add_value(out_dflux, dnpp);
-			out.add_value(out_dflux, drh);
-			out.add_value(out_dflux, dra);
+			out.add_value(out_dflux, dNPP);
+			out.add_value(out_dflux, dREPRC);
+			out.add_value(out_dflux, dSOILC);
+			out.add_value(out_dflux, dFIREC);
+			out.add_value(out_dflux, dESTC);
+			out.add_value(out_dflux, dSEEDC);
+			out.add_value(out_dflux, dHARVESTC);
 
 
 	} // end if date year > spinup year

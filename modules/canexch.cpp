@@ -953,7 +953,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 			indiv.leafndemand = 0.0;
 			cton_leaf_opt = indiv.cton_leaf();
 		}
-		if(ifdcarb){
+		if(ifdcarb && indiv.pft.lifeform == GRASS && indiv.alive){
 			if(leafoptn < 1e-10){   //daily carbon allocation Niklas
 				indiv.cton_leaf_opt = 0.0; // not allow to divide with 0 or very small number niklas dc
 			}else{

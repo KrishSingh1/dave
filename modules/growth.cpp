@@ -1304,6 +1304,7 @@ void growth(Stand& stand, Patch& patch) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
+		bool killed = false;
 		///////////////////////////////////////////////////
 		//Standard yearly growth functionalities below:
 		///////////////////////////////////////////////////
@@ -1356,7 +1357,6 @@ void growth(Stand& stand, Patch& patch) {
 
 			indiv.deltafpc = 0.0;
 
-			bool killed = false;
 
 			if (negligible(indiv.densindiv))
 				fail("growth: negligible densindiv for %s",(char*)indiv.pft.name);
@@ -1697,7 +1697,10 @@ void growth(Stand& stand, Patch& patch) {
 		}else{  // not tree and dcarb turned on and during dcarb years niklas daily allocation.
 
 			// ... on to next individual
-			vegetation.nextobj(); //niklas daily allocation
+			if(!killed){
+				vegetation.nextobj(); //niklas daily allocation
+			}
+
 		}
 	}
 

@@ -1796,7 +1796,7 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 		if (indiv.pft.lifeform == GRASS && indiv.alive && !indiv.istruecrop_or_intercropgrass()) {
 			// For this individual
 
-			// Allocation to reproduction
+						// Allocation to reproduction
 
 			// Reproduction cost
 			reproduction(indiv.pft.reprfrac, indiv.dnpp, bminc, cmass_repr);
@@ -1973,7 +1973,7 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 
 				patch.is_litter_day=true;
 
-				indiv.total_cmass = indiv.dcmass_leaf + indiv.dcmass_root + indiv.sg + indiv.ws  + c4 + indiv.w4;
+				indiv.total_cmass = indiv.dcmass_leaf + indiv.dcmass_root + indiv.sg + indiv.ws  +  indiv.w4;
 
 				/// END TURNOVER
 

@@ -1415,6 +1415,14 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 	if (!negligible(mortality)) {
 
+
+
+		if(pft.lifeform == GRASS && ifdcarb && alive && !istruecrop_or_intercropgrass()){
+
+			cmass_leaf = dcmass_leaf + w4 + ws; //set back to real values so that the fire calc is correct
+			cmass_root = dcmass_root + sg; //daily carbon allocation
+		}
+
 		const double mortality_non_fire = mortality - mortality_fire;
 
 		// Transfer killed biomass to litter
@@ -1513,6 +1521,24 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 			cropindiv->nmass_ho *= remaining;
 			cropindiv->nmass_agpool *= remaining;
 		}
+		if(pft.lifeform == GRASS && ifdcarb && alive && !istruecrop_or_intercropgrass()){
+			//make sure that we take away from all the daily grass carbon pools.
+			cmass_leaf = ycmass_leaf;
+			cmass_root = ycmass_root;
+			sg *=remaining;
+			w1 *=remaining;
+			w2 *=remaining;
+			w3 *=remaining;
+			w4 *=remaining;
+			ws *=remaining;
+			dcmass_leaf *=remaining;
+			dcmass_root *=remaining;
+
+			total_cmass = dcmass_leaf + dcmass_root + sg + ws  +  w4;
+		}
+
+
+
 	}
 }
 
@@ -2034,9 +2060,8 @@ void Individual::kill(bool harvest /* = false */) {
 		res_outtake = pft.res_outtake;
 	}
 
-
 	if(pft.lifeform == GRASS && ifdcarb && alive && !istruecrop_or_intercropgrass()){
-		cmass_leaf = dcmass_leaf + w4 + ws; //set back to real values so that the kill flux is correct
+		cmass_leaf = dcmass_leaf + w4 + ws; //set back to real values so that the kill carbon is correct
 		cmass_root = dcmass_root + sg;
 	}
 	// C doesn't return to litter/harvest if the Individual isn't alive

@@ -9,6 +9,7 @@ All output modules inherit from the base class OutputModule.
 Most output related code is gathered in the namespace GuessOutput.
 
 - \ref GuessOutput::CommonOutput
+- \ref GuessOutput::MiscOutput
 - \ref GuessOutput::OutputModule
 - \ref REGISTER_OUTPUT_MODULE - A macro for registering a new output module
 

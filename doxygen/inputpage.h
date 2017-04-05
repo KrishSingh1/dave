@@ -11,5 +11,6 @@ input module and adjust their behaviour by overriding some of its member functio
 - \ref InputModule
 - \ref CRUInput
 - \ref DemoInput
+- \ref GetclimInput
 - \ref REGISTER_INPUT_MODULE - A macro for registering a new input module
 */

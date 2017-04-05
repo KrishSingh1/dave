@@ -105,6 +105,11 @@ group "crop" (
 	res_outtake 0.75	! Part of residues after harvest removed from stand; goes into fluxes.acflux_harvest
 	aboveground_ho 1 
 	isintercropgrass 0
+
+	eps_iso 16.0		! For C3. When C4, overwrite these values with corresponding values for C4
+	seas_iso 1		! For C3. When C4, overwrite these values with corresponding values for C4
+	eps_mon 1.6		! For C3. When C4, overwrite these values with corresponding values for C4
+	storfrac_mon 0.5	! For C3. When C4, overwrite these values with corresponding values for C4
 )
 
 group "CC3G" (
@@ -249,6 +254,11 @@ group "TeCo" (
 	himin 0.3
 
 	tempspring 14
+
+	eps_iso 8.0
+	seas_iso 0
+	eps_mon 2.4
+	storfrac_mon 0.5
 )
 
 group "TrMi" (
@@ -288,6 +298,11 @@ group "TrMi" (
 	hiopt 0.25	! SWAT
 	himin 0.1
 	tempspring 12	
+	
+	eps_iso 8.0
+	seas_iso 0
+	eps_mon 2.4
+	storfrac_mon 0.5
 )
 
 group "TePu" (

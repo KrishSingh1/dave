@@ -819,7 +819,7 @@ void nstore_usage(Vegetation& vegetation) {
 		                        + indiv.leafndemand_store + indiv.rootndemand_store;
 
 		// if individual is in need of using its labile nitrogen storage
-		if (!negligible(excess_ndemand) && ifnlim) {
+		if (!negligible(excess_ndemand)) {
 
 			// if labile nitrogen storage is larger than excess nitrogen demand
 			if (excess_ndemand <= indiv.nstore_labile) {
@@ -858,7 +858,9 @@ void nstore_usage(Vegetation& vegetation) {
 					indiv.nstore_labile = 0.0;
 				}
 
-				indiv.nstress = true;
+				// nitrogen stressed photosynthesis is allowed only when nitrogen limitation is turned on
+				indiv.nstress = ifnlim;
+				
 			}
 		}
 		else
@@ -910,21 +912,14 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 			indiv.nday_leafon++;
 
-			if (ifnlim) {
+			// Added a scalar depending on individual lai to slow down light optimization of newly shaded leafs
+			// Peltoniemi et al. 2012
+			indiv.nextin = exp(0.12 * min(10.0*indiv.phen, indiv.lai_indiv_today()));
 
-				// Added a scalar depending on individual lai to slow down light optimization of newly shaded leafs
-				// Peltoniemi et al. 2012
-				indiv.nextin = exp(0.12 * min(10.0*indiv.phen, indiv.lai_indiv_today()));
+			// Calculate optimal leaf nitrogen associated with photosynthesis and none photosynthetic
+			// active nitrogen (Haxeltine et al. 1996 eqn 27/28)
 
-				// Calculate optimal leaf nitrogen associated with photosynthesis and none photosynthetic
-				// active nitrogen (Haxeltine et al. 1996 eqn 27/28)
-
-				leafoptn = indiv.photosynthesis.nactive_opt * indiv.nextin + N0 * indiv.cmass_leaf_today();
-			}
-			else {
-				// If no nitrogen limitation use average nitrogen content in leaves
-				leafoptn = indiv.cmass_leaf_today() / indiv.pft.cton_leaf_avr;
-			}
+			leafoptn = indiv.photosynthesis.nactive_opt * indiv.nextin + N0 * indiv.cmass_leaf_today();
 
 			// Can not have higher nitrogen concentration than minimum leaf C:N ratio
 			if (indiv.cmass_leaf_today() / leafoptn < indiv.pft.cton_leaf_min) {
@@ -1052,7 +1047,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 	}
 
 	// Calculate individual uptake fraction of nitrogen demand
-	if (patch.ndemand > tot_nmass_avail && ifnlim) {
+	if (patch.ndemand > tot_nmass_avail) {
 
 		// Determine individual nitrogen uptake fractions
 		fnuptake(vegetation, tot_nmass_avail);
@@ -1891,6 +1886,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			PhotosynthesisResult phot_nostress = date.diurnal() ? indiv.phots[day.period] : indiv.photosynthesis;
 			bvoc(temp, hours, rad, climate, patch, indiv, pft, phot_nostress, phot.adtmm, day);
 		}
+
 		// Calculate autotrophic respiration
 		double cmass_root;
 		if (indiv.cropindiv && indiv.cropindiv->isintercropgrass && indiv.phen == 0.0)
@@ -1898,8 +1894,21 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		else
 			cmass_root = indiv.cmass_root_today();
 
-		respiration(gtemp,patch. soil.gtemp, indiv.pft.lifeform,
-			indiv.pft.respcoeff, indiv.cton_sap(), indiv.cton_root(),
+		// Static root and sap wood C:N ratio if no N limitation
+		// to not let N affect respiration for C only version of model
+
+		double cton_sap, cton_root;
+		if (ifnlim) {
+			cton_sap = indiv.cton_sap();
+			cton_root = indiv.cton_root();
+		}
+		else {
+			cton_sap = pft.cton_sap_avr;
+			cton_root = pft.cton_root_avr;
+		}
+
+		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
+			indiv.pft.respcoeff, cton_sap, cton_root,
 			indiv.cmass_sap, cmass_root, assim, resp);
 
 		// Convert to averages for this period for accounting purposes

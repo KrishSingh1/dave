@@ -10,6 +10,7 @@
 #include "config.h"
 #include "guess.h"
 #include "outputchannel.h"
+#include <vector>
 
 namespace GuessOutput {
 
@@ -125,6 +126,7 @@ OutputChannel::get_current_row(const Table& table) const {
 
 void OutputChannel::clear_current_row(const Table& table) {
 	 values[table.id()].clear();
+	 std::vector<double>().swap(values[table.id()]); // clear array memory
 }
 
 FileOutputChannel::FileOutputChannel(const char* out_dir,

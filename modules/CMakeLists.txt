@@ -13,19 +13,19 @@ set(headers
   commonoutput.h
   miscoutput.h
   spinupdata.h
+  demoinput.h
   cfinput.h
   management.h
   cropallocation.h
   cropsowing.h
   cropphenology.h
-  soilinput.h
-  ntransform.h
   )
 
 set(source  
   canexch.cpp 
   driver.cpp 
   growth.cpp 
+  demoinput.cpp 
   soilwater.cpp 
   somdynam.cpp 
   landcover.cpp 
@@ -35,15 +35,12 @@ set(source
   ncompete.cpp
   commonoutput.cpp
   miscoutput.cpp
-  ntransform.cpp
   spinupdata.cpp
   cfinput.cpp
   management.cpp
   cropallocation.cpp
   cropsowing.cpp
   cropphenology.cpp
-  soilinput.cpp
-  ntransform.cpp
   )
 
 include(add_guess_sources)

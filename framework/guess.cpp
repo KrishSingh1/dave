@@ -59,8 +59,6 @@ void Climate::serialize(ArchiveStream& arch) {
 		& rad
 		& par
 		& prec
-		& aprec
-		& aprec_lastyear
 		& daylength
 		& co2
 		& lat
@@ -88,10 +86,8 @@ void Climate::serialize(ArchiveStream& arch) {
 		& qo & u & v & hh & sinehh
 		& daylength_save
 		& doneday
-		& aNH4dep
-		& aNO3dep
-		& dNH4dep
-		& dNO3dep
+		& andep
+		& dndep
 		& dprec_10
 		& sprec_2
 		& maxtemp
@@ -272,14 +268,8 @@ void Soil::serialize(ArchiveStream& arch) {
 
 	arch & dperc
 		& orgleachfrac
-		& NO2_mass
-		& NO_mass
-		& N2O_mass
-		& N2_mass
-		& NH4_mass
-		& NO3_mass
-		& NH4_input
-		& NO3_input
+		& nmass_avail
+		& ninput
 		& anmin
 		& animmob
 		& aminleach
@@ -288,8 +278,7 @@ void Soil::serialize(ArchiveStream& arch) {
 		& anfix
 		& anfix_calc
 		& anfix_mean
-		& snowpack_NH4_mass
-		& snowpack_NO3_mass
+		& snowpack_nmass
 		& solvesomcent_beginyr
 		& solvesomcent_endyr
 		& solvesom
@@ -554,9 +543,8 @@ double Patch::ncont(double scale_indiv, bool luc) {
 
 	double ncont = 0.0;
 
-
-	ncont += (soil.NH4_mass + soil.NO3_mass + soil.NO2_mass + soil.NO_mass + soil.N2O_mass + soil.N2_mass);
-	ncont += (soil.snowpack_NH4_mass + soil.snowpack_NO3_mass);
+	ncont += soil.nmass_avail;
+	ncont += soil.snowpack_nmass;
 
 	for (int i=0; i<NSOMPOOL-1; i++)
 		ncont += soil.sompool[i].nmass;
@@ -601,7 +589,7 @@ double Patch::nflux() {
 
 	double nflux = 0.0;
 
-	nflux += -(stand.get_climate().aNH4dep+stand.get_climate().aNO3dep);
+	nflux += -stand.get_climate().andep;
 	nflux += -anfert;
 	nflux += -soil.anfix;
 	nflux += soil.aminleach;
@@ -612,11 +600,7 @@ double Patch::nflux() {
 	nflux += fluxes.get_annual_flux(Fluxes::NOx_FIRE);
 	nflux += fluxes.get_annual_flux(Fluxes::N2O_FIRE);
 	nflux += fluxes.get_annual_flux(Fluxes::N2_FIRE);
-	//nflux += fluxes.get_annual_flux(Fluxes::N_SOIL); //TODO
-	nflux += fluxes.get_annual_flux(Fluxes::N2O_SOIL);
-	nflux += fluxes.get_annual_flux(Fluxes::N2_SOIL);
-	nflux += fluxes.get_annual_flux(Fluxes::NO_SOIL);
-	nflux += fluxes.get_annual_flux(Fluxes::NH3_SOIL);
+	nflux += fluxes.get_annual_flux(Fluxes::N_SOIL);
 
 	return nflux;
 }
@@ -687,7 +671,6 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int np
 	infallow = false;
 	isrotationday = false;
 	isirrigated = false;
-	isinundated = false;
 	hasgrassintercrop = false;
 	gdd0_intercrop = 0.0;
 	frac = 1.0;
@@ -2675,120 +2658,6 @@ void MassBalance::check(Gridcell& gridcell) {
 	}
 }
 
-double Soil::nmass_avail(int pref) {
-	double nmass = 0.0;
-	if (!ifntransform) {
-		pref = NH4;
-		if (NO3_mass > 0.0) {
-			NH4_mass += NO3_mass;
-			NO3_mass = 0.0;
-		}
-	}
-	if (pref == NO) {
-		nmass = NH4_mass + NO3_mass;
-	} else if (pref == NH4) {
-		nmass = NH4_mass;
-	} else if (pref == NO3) {
-		nmass = NO3_mass;
-	}
-	return nmass;
-}
-
-void Soil::nmass_subtract(double nmass, int pref) {
-//	if (nmass<0.0) {
-//		nmass = 0.0;
-//	}
-	if (!ifntransform) {
-		pref = NH4;
-/*		if (NH4_mass<0.0) {
-			NH4_mass = 0.0;
-		}
-		if (NO3_mass > 0.0) {
-			NH4_mass += NO3_mass;
-			NO3_mass = 0.0;
-		}
-		 */
-	}
-	if (pref == NO) {
-		double nmass_tot = NH4_mass + NO3_mass;
-		if (nmass_tot > 0.0) {
-			if (nmass<nmass_tot || negligible(nmass-nmass_tot,10)) {
-				NH4_mass-=nmass * NH4_mass / nmass_tot;
-				NO3_mass-=nmass * NO3_mass / nmass_tot;
-			} else {
-				fail("tried to subtract more N than available");
-			}
-		}
-	} else if (pref == NH4) {
-		if (nmass<NH4_mass || negligible(nmass-NH4_mass,10)) {
-			NH4_mass -= nmass;
-		} else {
-			double r = nmass - NH4_mass;
-			NH4_mass = 0.0;
-			patch.fluxes.report_flux(Fluxes::NH3_SOIL, -r);
-			//dprintf("NH4 mass %f N substr %f \n",NH4_mass,nmass);
-			//fail("tried to subtract more NH4 than available");
-		}
-	} else if (pref == NO3) {
-		if (nmass<NO3_mass || negligible(nmass-NO3_mass,10)) {
-			NO3_mass -= nmass;
-		} else {
-			dprintf("NO3 mass %f N substr %f \n",NO3_mass,nmass);
-			fail("tried to subtract more NO3 than available");
-		}
-	}
-/*	if (NH4_mass<0.0) {
-		if(negligible(NH4_mass,10)) {
-			NH4_mass = 0.0;
-		} else {
-			dprintf("NH4 mass below zero, %f\n",NH4_mass);
-			fail("");
-		}
-	}
-	if (NO3_mass<0.0) {
-		if(negligible(NO3_mass,10)) {
-			NO3_mass = 0.0;
-		} else {
-			dprintf("NO3 mass below zero, %f\n",NO3_mass);
-			fail("");
-		}
-	}
-*/
-}
-
-void Soil::nmass_inc(double nmass, int pref) {
-	if (nmass < 0.0) {
-		nmass_subtract(fabs(nmass), pref);
-	} else {
-		if (!ifntransform) {
-			pref = NH4;
-		}
-		if (pref == NO) {
-			double nmass_tot = NH4_mass + NO3_mass;
-			NH4_mass+=nmass * NH4_mass / nmass_tot;
-			NO3_mass+=nmass * NO3_mass / nmass_tot;
-		} else if (pref == NH4) {
-			NH4_mass += nmass;
-		} else if (pref == NO3) {
-			NO3_mass += nmass;
-		}
-	}
-}
-
-void Soil::nmass_multiplic_inc(double inc, int pref) {
-	if (!ifntransform) {
-		pref = NH4;
-	}
-	if (pref == NO) {
-		double nmass_tot = NH4_mass + NO3_mass;
-		NH4_mass *= inc * NH4_mass / nmass_tot;
-		NO3_mass *=inc * NO3_mass / nmass_tot;
-	} else if (pref == NH4) {
-		NH4_mass *= inc;
-	} else if (pref == NO3) {
-		NO3_mass *= inc;
-	}
-}
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
 //

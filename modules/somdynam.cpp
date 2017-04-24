@@ -30,7 +30,6 @@
 #include "config.h"
 #include "somdynam.h"
 
-#include "ntransform.h"
 #include "driver.h"
 #include <assert.h>
 #include <bitset>
@@ -206,7 +205,7 @@ void som_dynamics_lpj(Patch& patch, bool tillage) {
 
 	// Calculate decay constants and rates given today's soil moisture and
 	// temperature
-	//decayrates(min(1.0, soil.wcont[0]),soil.gtemp,k_soilfast,k_soilslow,fr_litter,
+
 	decayrates(soil.wcont[0],soil.gtemp,k_soilfast,k_soilslow,fr_litter,
 		fr_soilfast,fr_soilslow, tillage);
 
@@ -480,8 +479,6 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 	Soil& soil = patch.soil;
 
-	// mineral nitrogen mass available
-	const double nmin_mass = soil.nmass_avail(NH4);// + soil.NO3_mass;
 	if (date.day == 0) {
 		soil.anmin = 0.0;
 		soil.animmob = 0.0;
@@ -489,29 +486,23 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 	// Warning if soil available nitrogen is negative (if happens once or so no problem, but if it propagates through time then it is)
 	if (ifnlim) {
-		assert(soil.NH4_mass > -EPS);
-		// assert(soil.NO3_mass > -EPS);
-		// assert(soil.NO2_mass > -EPS);
-		// assert(soil.NO_mass > -EPS);
-		// assert(soil.N2O_mass > -EPS);
-		// assert(soil.N2_mass > -EPS);
+		assert(soil.nmass_avail > -EPS);
 	}
 
 	// Set N:C ratios for humus, soil microbial, passive and slow pool based on estimated mineral nitrogen pool
 	// (Parton et al 1993, Fig 4)
 
 	// ForCent (Parton 2010) values
-	setntoc(soil, nmin_mass, SLOWSOM, 30.0, 15.0, 0.0, NMASS_SAT);
+	setntoc(soil, soil.nmass_avail, SLOWSOM, 30.0, 15.0, 0.0, NMASS_SAT);
 
-	setntoc(soil, nmin_mass, SOILMICRO, 15.0, 6.0, 0.0, NMASS_SAT);
+	setntoc(soil, soil.nmass_avail, SOILMICRO, 15.0, 6.0, 0.0, NMASS_SAT);
 
-	setntoc(soil, nmin_mass, SURFHUMUS, 30.0, 15.0, 0.0, NMASS_SAT);
+	setntoc(soil, soil.nmass_avail, SURFHUMUS, 30.0, 15.0, 0.0, NMASS_SAT);
 
 	if (!ifequilsom) {
 
 		// Calculate potential fraction remaining following decay today for all pools
 		// (assumes no nitrogen limitation)
-//		decayrates(soil, soil.temp, min(1.0, soil.wcont[0]), tillage);
 		decayrates(soil, soil.temp, soil.wcont[0], tillage);
 
 	}
@@ -666,7 +657,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 		// Estimate daily soil mineral nitrogen pool after decomposition
 		// (negative value = immobilisation)
-		if ((tot_net_min + nmin_mass + EPS >= 0.0) || !ifnlim) {
+		if (tot_net_min + soil.nmass_avail + EPS >= 0.0) {
 
 			net_mineralization = true;
 		}
@@ -678,12 +669,12 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 				// Immobilization larger than soil available nitrogen -> reduce targeted N concentration in SOM pool with flexible N:C ratios
 				if (times == 0) {
 					// initial reduction
-					init_negative_nmass = tot_net_min + soil.nmass_avail(NO);
+					init_negative_nmass = tot_net_min + soil.nmass_avail;
 					init_ntoc_reduction = ntoc_reduction;
 				}
 				else {
 					// trying to match needed N:C reduction
-					ntoc_reduction = min(init_ntoc_reduction, pow(init_ntoc_reduction, 1.0 / (1.0 - (tot_net_min + soil.nmass_avail(NO)) / init_negative_nmass) + 1.0));
+					ntoc_reduction = min(init_ntoc_reduction, pow(init_ntoc_reduction, 1.0 / (1.0 - (tot_net_min + soil.nmass_avail) / init_negative_nmass) + 1.0));
 				}
 
 				soil.sompool[SLOWSOM].ntoc *= ntoc_reduction;
@@ -700,7 +691,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 			// Immobilization larger than soil available nitrogen -> reduce decay rates
 			if (times < 4) {
-				reduce_decay_rates(decay_reduction, net_min, reduction_groups[times], tot_net_min + nmin_mass);
+				reduce_decay_rates(decay_reduction, net_min, reduction_groups[times], tot_net_min + soil.nmass_avail);
 			}
 			net_mineralization = false;
 		}
@@ -737,42 +728,20 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 		soil.animmob += nimmob;
 	}
 
-	// Fraction of microbial resp. is assumed to produce DOC
-	// double frac_doc = 0.01; //FIXME: DOC here!
-	soil.doc_mass = respsum * frac_doc;
 	// Adding mineral nitrogen to soil available pool
-	//soil.NH4_mass += nmin_actual - nimmob;
-	double nmin_inc = nmin_actual - nimmob; 
-	 
-	//soil.NH4_mass +=nmin_inc;
+	soil.nmass_avail += nmin_actual - nimmob;
+
 	// Estimate of N flux from soil (simple CLM-CN approach)
-	if(!ifntransform) {
-		double nflux = nmin_inc > 0.0 ? (nmin_inc) * 0.01 : 0.0;
-		//soil.NH4_mass -= nflux;
-		nmin_inc -= nflux;
-		if (!ifequilsom) {
-			patch.fluxes.report_flux(Fluxes::NH3_SOIL, nflux);
-		}
+	double nflux = nmin_actual - nimmob > 0.0 ? (nmin_actual - nimmob) * 0.01 : 0.0;
+	soil.nmass_avail -= nflux;
+
+	if (!ifequilsom) {
+		patch.fluxes.report_flux(Fluxes::N_SOIL, nflux);
 	}
-	soil.nmass_inc(nmin_inc,NH4);
-/*	
-	// TODO If net immobilisation is larger than soil NH4 mass pool then subtract
-	// the remaining from soil NO3 mass pool
-	if (soil.NH4_mass < 0.0) {
-		soil.NO3_mass += soil.NH4_mass;
-		soil.NH4_mass = 0.0;
-	}
-*/
 	// If no nitrogen limitation or during free nitrogen years set soil
 	// available nitrogen to its saturation level.
-	if (!ifnlim || date.year <= freenyears) {
-		if(ifntransform) {
-			soil.NH4_mass = NMASS_SAT / 2.0;
-			soil.NO3_mass = NMASS_SAT / 2.0;
-		} else {
-			soil.NH4_mass = NMASS_SAT;
-		}
-	}
+	if (date.year <= freenyears)
+		soil.nmass_avail = NMASS_SAT;
 }
 
 /// Litter lignin to N ratio (for leaf and root litter)
@@ -1099,8 +1068,8 @@ void leaching(Soil& soil) {
 
 		// Leaching from available nitrogen mineral pool
 		// in proportion to amount of water drainage
-		//minleachfrac = soil.dperc / (soil.dperc + soil.soiltype.awc[0] * min(1.0, soil.wcont[0]) + soil.soiltype.awc[1] * soil.wcont[1]);
 		minleachfrac = soil.dperc / (soil.dperc + soil.soiltype.awc[0] * soil.wcont[0] + soil.soiltype.awc[1] * soil.wcont[1]);
+
 		// Leaching from decayed organic carbon/nitrogen
 		// using Parton et al. eqn. 8; CENTURY 5 parameter update; from equation: C Leached=microbial_C*[OMLECH(1)+OMLECH(2)*sand_fraction]*[1.0f-(OMLECH(3)-water_leaching)/OMLECH(3)],
 		// reorganised as: leachfrac = [water_leaching/OMLECH(3)]*[OMLECH(1)+OMLECH(2)*sand_fraction]
@@ -1117,21 +1086,12 @@ void leaching(Soil& soil) {
 		soil.orgleachfrac = 0.0;
 	}
 
-	// Leaching of soil mineral nitrogen TODO
+	// Leaching of soil mineral nitrogen
 	// Allowed on days with residual nitrogen following vegetation uptake
 	// in proportion to amount of water drainage
-	const double nmin_avail = soil.nmass_avail(NO3);
-	if (nmin_avail > 0.0) {
-		//double leaching_NH4 = soil.NH4_mass * minleachfrac;
-		double leaching = nmin_avail * minleachfrac;
-
-		//FIXME: Assign seaparate constants for leaching of NH4  & NO3:
-		//FIXME: Plant N uptake sould prioritise NO3 before NH4?
-//		double leaching_NH4 = soil.NH4_mass * NH4_leachfrac
-//		double leaching_NO3 = soil.NO3_mass * NO3_leachfrac
-
-		//soil.NH4_mass -= leaching_NH4;
-		soil.nmass_subtract(leaching,NO3);
+	if (soil.nmass_avail > 0.0) {
+		double leaching = soil.nmass_avail * minleachfrac;
+		soil.nmass_avail -= leaching;
 		soil.aminleach += leaching;
 		soil.sompool[LEACHED].nmass += leaching;
 	}
@@ -1151,42 +1111,30 @@ void soilnadd(Patch& patch) {
 
 	Soil& soil = patch.soil;
 
-	if (!ifntransform) {
-		double nflux = 0.01 * (soil.NH4_input + soil.NO3_input);
-		soil.NH4_input -= 0.01 * soil.NH4_input;
-		soil.NO3_input -= 0.01 * soil.NO3_input;
+	double nflux = 0.01 * soil.ninput;
+	soil.ninput -= nflux;
 
-		patch.fluxes.report_flux(Fluxes::NH3_SOIL, nflux);
+	patch.fluxes.report_flux(Fluxes::N_SOIL, nflux);
 
-		// Nitrogen deposition and fertilization input to the soil (calculated in snow_ninput())
-	
-	}
+	// Nitrogen deposition and fertilization input to the soil (calculated in snow_ninput())
+	soil.nmass_avail += soil.ninput;
 
 	// Nitrogen fixation
 	// If soil available nitrogen is above the value for minimum SOM C:N ratio, then
 	// nitrogen fixation is reduced (nitrogen rich soils)
-	const double nmin_avail = soil.nmass_avail();
+	if (soil.nmass_avail < NMASS_SAT) {
 
-	if (nmin_avail < NMASS_SAT || patch.stand.isinundated) {
-		double k = 1.0;
-		// Rice paddy fixation ~2.33 times higher, estimated based on (Herridge  & Boddey, 2008)
-		if (patch.stand.isinundated) {
-			k = 7.0/3.0;
-		}
-		const double daily_nfix = soil.anfix_calc / (double)date.year_length() * k;
+		const double daily_nfix = soil.anfix_calc / date.year_length();
 
-		if (nmin_avail + daily_nfix < NMASS_SAT || patch.stand.isinundated) {
-			soil.NH4_mass += daily_nfix;
+		if (soil.nmass_avail + daily_nfix < NMASS_SAT) {
+			soil.nmass_avail += daily_nfix;
 			soil.anfix += daily_nfix;
 		}
 		else {
-			soil.anfix += NMASS_SAT - soil.NH4_mass;
-			soil.NH4_mass += NMASS_SAT - nmin_avail;
+			soil.anfix += NMASS_SAT - soil.nmass_avail;
+			soil.nmass_avail = NMASS_SAT;
 		}
 	}
-	// Nitrogen deposition and fertilization input to the soil (calculated in snow_ninput())
-	soil.NH4_mass += soil.NH4_input;
-	soil.NO3_mass += soil.NO3_input;
 
 	// Calculate nitrogen fixation (Cleveland et al. 1999)
 	// by using five year average aaet
@@ -1199,14 +1147,11 @@ void soilnadd(Patch& patch) {
 		double cmtomm = 0.1;
 		double hatom2 = 0.0001;
 		soil.anfix_calc = max((nfix_a * patch.aaet_5.mean() * cmtomm + nfix_b) * hatom2, 0.0);
-//		if (date.year%100){
-//			dprintf("Year %d ANFIXcalc %f A %f, AET %f B %f\n",date.year,soil.anfix_calc,nfix_a, patch.aaet_5.mean(), nfix_b);
-//		}
+
 		if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
 			soil.anfix_mean += soil.anfix;
 		}
 	}
-	const double tmp = soil.nmass_avail();
 }
 
 /// Vegetation nitrogen uptake
@@ -1228,14 +1173,12 @@ void vegetation_n_uptake(Patch& patch) {
 	//     (2)  nuptake = ndemand * fnuptake
 	//     where fnuptake is individual uptake capacity calculated in fnuptake in canexch.cpp
 
-	double nuptake_day;
+	double nuptake_day, orignmass;
 
 	Vegetation& vegetation=patch.vegetation;
 	Soil& soil = patch.soil;
 
-	//const double orignmass = soil.NH4_mass + soil.NO3_mass;
-	const double orignmass = soil.nmass_avail();
-	double ammonium_frac = orignmass ? soil.NH4_mass / orignmass : 0;
+	orignmass = soil.nmass_avail;
 
 	// Loop through individuals
 
@@ -1255,36 +1198,16 @@ void vegetation_n_uptake(Patch& patch) {
 			indiv.cropindiv->nmass_agpool += indiv.storefndemand * nuptake_day;
 		else
 			indiv.nstore_longterm += indiv.storefndemand * nuptake_day;
-
-		if (indiv.pft.phenology == CROPGREEN && ifnlim) {
-			if (nuptake_day >= soil.NO3_mass) {
-				soil.NH4_mass -= nuptake_day - soil.NO3_mass;
-				soil.NO3_mass = 0;
-			} else {
-				soil.NO3_mass -= nuptake_day;
-			}
-		} else {
-
-			if (ifntransform) {
-				double ammonium = nuptake_day * ammonium_frac;
-				soil.NH4_mass -= ammonium;
-				soil.NO3_mass -= nuptake_day - ammonium;
-			} else {
-				soil.nmass_subtract(nuptake_day);
-			}
-		}
+		soil.nmass_avail      -= nuptake_day;
 
 		if (!negligible(indiv.phen))
 			indiv.cton_leaf_aavr += min(indiv.cton_leaf(),indiv.pft.cton_leaf_max);
 
 		vegetation.nextobj();
 	}
-/*
-	soil.NH4_mass = max(soil.NH4_mass, 0.);
-	soil.NO3_mass = max(soil.NO3_mass, 0.);
-*/
+
 	if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr && !negligible(orignmass)) {
-		soil.fnuptake_mean[date.month] += (1.0 - soil.nmass_avail() / orignmass) / date.ndaymonth[date.month];
+		soil.fnuptake_mean[date.month] += (1.0 - soil.nmass_avail / orignmass) / date.ndaymonth[date.month];
 	}
 }
 
@@ -1313,12 +1236,9 @@ void equilsom(Soil& soil) {
 	Patch& patch = soil.patch;
 	const Climate& climate = soil.patch.get_climate();
 
-	// Save soil mineral nitrogen status
-	double save_NH4_mass = soil.nmass_avail(NH4);
-	double save_NO3_mass = 0.0;
-	if (ifntransform) {
-		save_NO3_mass = soil.nmass_avail(NO3);
-	}
+	// Save nmass_avail status
+	double save_nmass_avail = soil.nmass_avail;
+
 	// Number of years with mean input data
 	int nyear = soil.solvesomcent_endyr - soil.solvesomcent_beginyr + 1;
 
@@ -1372,23 +1292,14 @@ void equilsom(Soil& soil) {
 			}
 
 			// Monthly nitrogen uptake
-			soil.NH4_mass *= (1.0 - soil.fnuptake_mean[m]);
-			soil.NO3_mass *= (1.0 - soil.fnuptake_mean[m]);
-
-			//soil.nmass_inc(soil.NH4_mass * (1.0 - soil.fnuptake_mean[m]);
-			//soil.nmass_multiplic_inc(1.0 - soil.fnuptake_mean[m],NO);
+			soil.nmass_avail *= (1.0 - soil.fnuptake_mean[m]);
 
 			// Monthly mineral nitrogen leaching
-			// soil.NH4_mass *= (1.0 - soil.mminleach_mean[m]);
-			// soil.NO3_mass *= (1.0 - soil.mminleach_mean[m]);
-			double nmass = soil.nmass_avail(NO3);
-			double nleach = nmass * (1.0 - soil.mminleach_mean[m]);
-			soil.nmass_subtract(nleach, NO3);
+			soil.nmass_avail *= (1.0 - soil.mminleach_mean[m]);
+
 			// Monthly nitrogen addition to the system
-			//soil.NH4_mass += (climate.aNH4dep + soil.anfix_mean) / 12.0;
-			//soil.NO3_mass += climate.aNO3dep / 12.0;
-			soil.nmass_inc((climate.aNH4dep + soil.anfix_mean) / 12.0,NH4);
-			soil.nmass_inc(climate.aNO3dep / 12.0,NO3);
+			soil.nmass_avail += (climate.andep + soil.anfix_mean) / 12.0;
+
 			// Monthly decomposition and fluxes between SOM pools
 
 			// Set this months decay rates
@@ -1405,12 +1316,8 @@ void equilsom(Soil& soil) {
 		}
 	}
 
-
-	// Reset mineral nitrogen status
-	soil.NH4_mass = save_NH4_mass;
-	soil.NO3_mass = save_NO3_mass;
-
-	//double temp = soil.nmass_avail();
+	// Reset nmass_avail status
+	soil.nmass_avail = save_nmass_avail;
 
 	// Reset variables for next equilsom()
 	for (int m = 0; m < 12; m++) {
@@ -1434,7 +1341,7 @@ void equilsom(Soil& soil) {
  *  of soil temperature and soil water.
  *  Transfers litter, performes nitrogen uptake and addition, leaching and decomposition.
  */
-void som_dynamics_century(Patch& patch, Climate& climate, bool tillage) {
+void som_dynamics_century(Patch& patch, bool tillage) {
 
 	// First day of every month or other harvest/turnover day
 	if (date.dayofmonth == 0 || patch.is_litter_day) {
@@ -1457,9 +1364,6 @@ void som_dynamics_century(Patch& patch, Climate& climate, bool tillage) {
 	// Daily or monthly decomposition and fluxes between SOM pools
 	somfluxes(patch, false, tillage);
 
-	// Nitrogen transformation in soil
-	if (ifntransform) ntransform(patch, climate);
-	//TODO: Consider when exactly N transformation should occur...
 	// Solve SOM pool sizes at end of year given by soil.solvesomcent_endyr
 	if (date.year==patch.soil.solvesomcent_endyr && date.islastmonth && date.islastday)
 		equilsom(patch.soil);
@@ -1468,10 +1372,10 @@ void som_dynamics_century(Patch& patch, Climate& climate, bool tillage) {
 /// Choose between CENTURY or standard LPJ SOM dynamics
 /**
 */
-void som_dynamics(Patch& patch, Climate& climate) {
+void som_dynamics(Patch& patch) {
 
 	bool tillage = iftillage && patch.stand.landcover == CROPLAND;
-	if (ifcentury) som_dynamics_century(patch, climate, tillage);
+	if (ifcentury) som_dynamics_century(patch, tillage);
 	else som_dynamics_lpj(patch, tillage);
 }
 

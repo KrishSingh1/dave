@@ -61,27 +61,10 @@ struct landcover_change_transfer {
 	double transfer_k_soilfast_mean;
 	double transfer_k_soilslow_mean;
 	Sompool transfer_sompool[NSOMPOOL];
-	double transfer_NH4_mass;
-	double transfer_NO3_mass;
+	double transfer_nmass_avail;
 	double transfer_snowpack;
-	double transfer_snowpack_NH4_mass;
-	double transfer_snowpack_NO3_mass;
+	double transfer_snowpack_nmass;
 
-	double transfer_N2_mass;
-	double transfer_N2O_mass;
-	double transfer_NO_mass;
-	double transfer_NO2_mass;
-
-	double transfer_NH4_mass_w;
-	double transfer_NO3_mass_w;
-	double transfer_NH4_mass_d;
-	double transfer_NO3_mass_d;
-	double transfer_N2O_mass_w;
-	double transfer_NO_mass_w;
-	double transfer_NO2_mass_w;
-	double transfer_N2O_mass_d;
-	double transfer_NO_mass_d;
-	double transfer_NO2_mass_d;
 	Historic<double, NYEARAAET> transfer_aaet_5;
 	double transfer_anfix_calc;
 
@@ -123,13 +106,8 @@ struct landcover_change_transfer {
 		for(int i=0; i<NSOMPOOL-1; i++)
 			ncont += transfer_sompool[i].nmass;
 
-		ncont += transfer_N2_mass + transfer_NH4_mass + transfer_NO3_mass;
-		ncont += transfer_snowpack_NH4_mass + transfer_snowpack_NO3_mass;
-		ncont += transfer_N2O_mass + transfer_NO_mass + transfer_NO2_mass;
-		ncont += transfer_N2O_mass_w + transfer_NO_mass_w + transfer_NO2_mass_w;
-		ncont += transfer_N2O_mass_d + transfer_NO_mass_d + transfer_NO2_mass_d;
-		ncont += transfer_NH4_mass_w + transfer_NO3_mass_w;
-		ncont += transfer_NH4_mass_d + transfer_NO3_mass_d;
+		ncont += transfer_nmass_avail;
+		ncont += transfer_snowpack_nmass;
 
 		return ncont;
 	}
@@ -176,24 +154,7 @@ struct landcover_change_transfer {
 				transfer_sompool[i].ntoc += patch.soil.sompool[i].ntoc * scale;
 			}
 
-			transfer_NH4_mass += patch.soil.NH4_mass * scale;
-			transfer_NO3_mass += patch.soil.NO3_mass * scale;
-			transfer_N2_mass += patch.soil.N2_mass * scale;
-			transfer_NO_mass += patch.soil.NO_mass * scale;
-			transfer_NO2_mass += patch.soil.NO2_mass * scale;
-			transfer_N2O_mass += patch.soil.N2O_mass * scale;
-
-			transfer_NH4_mass_w += patch.soil.NH4_mass_w * scale;
-			transfer_NO3_mass_w += patch.soil.NO3_mass_w * scale;
-			transfer_NO_mass_w += patch.soil.NO_mass_w * scale;
-			transfer_NO2_mass_w += patch.soil.NO2_mass_w * scale;
-			transfer_N2O_mass_w += patch.soil.N2O_mass_w * scale;
-
-			transfer_NH4_mass_d += patch.soil.NH4_mass_d * scale;
-			transfer_NO3_mass_d += patch.soil.NO3_mass_d * scale;
-			transfer_NO_mass_d += patch.soil.NO_mass_d * scale;
-			transfer_NO2_mass_d += patch.soil.NO2_mass_d * scale;
-			transfer_N2O_mass_d += patch.soil.N2O_mass_d * scale;
+			transfer_nmass_avail += patch.soil.nmass_avail * scale;
 
 			// sum wcont:
 			for(int i=0; i<NSOILLAYER; i++) {
@@ -202,8 +163,7 @@ struct landcover_change_transfer {
 			transfer_wcont_evap += patch.soil.wcont_evap * scale;
 
 			transfer_snowpack += patch.soil.snowpack * scale;
-			transfer_snowpack_NH4_mass += patch.soil.snowpack_NH4_mass * scale;
-			transfer_snowpack_NO3_mass += patch.soil.snowpack_NO3_mass * scale;
+			transfer_snowpack_nmass += patch.soil.snowpack_nmass * scale;
 
 			transfer_decomp_litter_mean += patch.soil.decomp_litter_mean * scale;
 			transfer_k_soilfast_mean += patch.soil.k_soilfast_mean * scale;
@@ -265,27 +225,9 @@ struct landcover_change_transfer {
 			transfer_sompool[i].nmass = from.transfer_sompool[i].nmass;
 			transfer_sompool[i].ntoc = from.transfer_sompool[i].ntoc;
 		}
-		transfer_NH4_mass = from.transfer_NH4_mass;
-		transfer_NO3_mass = from.transfer_NO3_mass;
+		transfer_nmass_avail = from.transfer_nmass_avail;
 		transfer_snowpack = from.transfer_snowpack;
-		transfer_snowpack_NH4_mass = from.transfer_snowpack_NH4_mass;
-		transfer_snowpack_NO3_mass = from.transfer_snowpack_NO3_mass;
-		transfer_NO_mass = from.transfer_NO_mass;
-		transfer_NO2_mass = from.transfer_NO2_mass;
-		transfer_N2O_mass = from.transfer_N2O_mass;
-		transfer_N2_mass = from.transfer_N2_mass;
-
-		transfer_NH4_mass_w = from.transfer_NH4_mass_w;
-		transfer_NO3_mass_w = from.transfer_NO3_mass_w;
-		transfer_NO_mass_w = from.transfer_NO_mass_w;
-		transfer_NO2_mass_w = from.transfer_NO2_mass_w;
-		transfer_N2O_mass_w = from.transfer_N2O_mass_w;
-
-		transfer_NH4_mass_d = from.transfer_NH4_mass_d;
-		transfer_NO3_mass_d = from.transfer_NO3_mass_d;
-		transfer_NO_mass_d = from.transfer_NO_mass_d;
-		transfer_NO2_mass_d = from.transfer_NO2_mass_d;
-		transfer_N2O_mass_d = from.transfer_N2O_mass_d;
+		transfer_snowpack_nmass = from.transfer_snowpack_nmass;
 
 		for(unsigned int i=0;i<from.transfer_aaet_5.size();i++)
 			transfer_aaet_5.add(from.transfer_aaet_5[i]);
@@ -337,27 +279,9 @@ struct landcover_change_transfer {
 			transfer_sompool[i].nmass += from.transfer_sompool[i].nmass * multiplier;
 			transfer_sompool[i].ntoc += from.transfer_sompool[i].ntoc * multiplier;
 		}
+		transfer_nmass_avail += from.transfer_nmass_avail * multiplier;
 		transfer_snowpack += from.transfer_snowpack * multiplier;
-		transfer_NH4_mass += from.transfer_NH4_mass * multiplier;
-		transfer_NO3_mass += from.transfer_NO3_mass * multiplier;
-		transfer_N2O_mass += from.transfer_N2O_mass * multiplier;
-		transfer_N2_mass += from.transfer_N2_mass * multiplier;
-		transfer_NO_mass += from.transfer_NO_mass * multiplier;
-		transfer_NO2_mass += from.transfer_NO2_mass * multiplier;
-		transfer_snowpack_NH4_mass += from.transfer_snowpack_NH4_mass * multiplier;
-		transfer_snowpack_NO3_mass += from.transfer_snowpack_NO3_mass * multiplier;
-
-		transfer_NH4_mass_w += from.transfer_NH4_mass_w * multiplier;
-		transfer_NO3_mass_w += from.transfer_NO3_mass_w * multiplier;
-		transfer_N2O_mass_w += from.transfer_N2O_mass_w * multiplier;
-		transfer_NO_mass_w += from.transfer_NO_mass_w * multiplier;
-		transfer_NO2_mass_w += from.transfer_NO2_mass_w * multiplier;
-
-		transfer_NH4_mass_d += from.transfer_NH4_mass_d * multiplier;
-		transfer_NO3_mass_d += from.transfer_NO3_mass_d * multiplier;
-		transfer_N2O_mass_d += from.transfer_N2O_mass_d * multiplier;
-		transfer_NO_mass_d += from.transfer_NO_mass_d * multiplier;
-		transfer_NO2_mass_d += from.transfer_NO2_mass_d * multiplier;
+		transfer_snowpack_nmass += from.transfer_snowpack_nmass * multiplier;
 
 		double aaet_5_cp[NYEARAAET] = {0.0};
 		for(unsigned int i=0;i<transfer_aaet_5.size();i++)

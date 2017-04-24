@@ -134,39 +134,6 @@ extern double nrelocfrac;
 extern double nfix_a;
 /// second term in nitrogen fixation eqn (Cleveland et al 1999)
 extern double nfix_b;
-/// whether to use nitrification/denitrification in CENTURY SOM dynamics
-extern bool ifntransform;
-/// Fraction of microbial respiration assumed to produce DOC, 0.0,0.3
-extern double frac_doc;
-
-/// Soil pH (used for calculating N-transformation), 3.5,8.5
-extern double pH_soil;
-/// Maximum nitrification rate, 0.03,0.15
-extern double NMAX;
-/*
-/// Maximum NO from nitrification (day-1), 0.005,0.05
-extern double NON;
-/// Maximum N2O from nitrification (day-1), 0.0001,0.003
-extern double N2ON;
-/// Maximum NO from denitrification (day-1), 0.005,0.05
-extern double NODN;
-/// Maximum N2O from denitrification (day-1), 0.0001,0.003
-extern double N2ODN;
-*/
-/// Constant in denitrification, 0.001,0.1
-extern double KN;
-/// Constant in temperature function for denitrification, 0.005,0.05
-extern double KC;
-/// Maximum doc reaction rate, react together with soil.NH4_mass in denitrification, 0.01,1.0
-extern double DOCMAX;   
-/// Maximum gaseus losses in nitrification
-extern double f_max_nitri_gas;
-/// Maximum fraction of NO3 converted to NO2
-extern double f_max_nitri;
-/// Maximum fraction of NO2 converted to gaseus N
-extern double f_max_n_gas;
-
-
 
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;
@@ -326,7 +293,7 @@ public:
 	/// Tests if param exists
 	bool isparam(xtring name);
 
-//private: TODO WHY private
+private:
 	/// Tries to find the parameter in the list
 	/** \returns 0 if it wasn't there. */
 	Paramtype* find(xtring name);

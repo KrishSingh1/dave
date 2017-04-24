@@ -75,9 +75,7 @@ void snow(double prec, double temp, double& snowpack, double& rain_melt) {
  *  fertilization goes to the soil available mineral nitrogen pool.
  */
 void snow_ninput(double prec, double snowpack_after, double rain_melt,
-	           double dNH4dep, double dNO3dep, double dnfert, 
-			   double& snowpack_NH4_mass, double& snowpack_NO3_mass,
-			   double& NH4_input, double& NO3_input) {
+	           double dndep, double dnfert, double& snowpack_nmass, double& ninput) {
 
 	// calculates this day melt and original snowpack size
 	double melt = max(0.0, rain_melt - prec);
@@ -90,27 +88,19 @@ void snow_ninput(double prec, double snowpack_after, double rain_melt,
 		// will go to soil available nitrogen pool
 		if (melt > 0.0) {
 			double frac_melt  = melt / snowpack;
-			double melt_NH4_mass = frac_melt * snowpack_NH4_mass;
-			NH4_input            = melt_NH4_mass + dNH4dep + dnfert / 2.0;
-			snowpack_NH4_mass   -= melt_NH4_mass;
-
-			double melt_NO3_mass = frac_melt * snowpack_NO3_mass;
-			NO3_input            = melt_NO3_mass + dNO3dep + dnfert / 2.0;
-			snowpack_NO3_mass   -= melt_NO3_mass;
+			double melt_nmass = frac_melt * snowpack_nmass;
+			ninput            = melt_nmass + dndep + dnfert;
+			snowpack_nmass   -= melt_nmass;
 		}
 		// if no snow is melted, then add daily nitrogen deposition
 		// and fertilization to snowpack nitrogen pool
 		else {
-			snowpack_NH4_mass += dNH4dep + dnfert / 2.0;
-			NH4_input = 0.0;
-
-			snowpack_NO3_mass += dNO3dep + dnfert / 2.0;
-			NO3_input = 0.0;
+			snowpack_nmass += (dndep + dnfert);
+			ninput = 0.0;
 		}
 	}
 	else {
-		NH4_input = dNH4dep + dnfert / 2.0;
-		NO3_input = dNO3dep + dnfert / 2.0;
+		ninput = dndep + dnfert;
 	}
 }
 
@@ -191,8 +181,6 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	}
 	double aet_total = 0.0;
 
-	//rice
-	bool isinundated = false;
 	// Sum AET for across all vegetation individuals
 	Vegetation& vegetation=patch.vegetation;
 	vegetation.firstobj();
@@ -203,13 +191,6 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 			aet = patch.pft[indiv.pft.id].fwuptake[s] * indiv.aet;
 			aet_layer[s] += aet;
 			aet_total += aet;
-		}
-
-		//
-		Patchpft& ppft = patch.pft[indiv.pft.id];
-
-		if (patch.stand.pft[indiv.pft.id].inundated && ppft.cropphen->growingseason) {
-			isinundated = true;
 		}
 		vegetation.nextobj();
 	}
@@ -235,7 +216,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 
 	// Surface runoff
 	double runoff_surf = 0.0;
-	if (wcont[0] > 1.0 && !isinundated) {
+	if (wcont[0] > 1.0) {
 		runoff_surf = (wcont[0]-1.0) * awc[0];
 		wcont[0] = 1.0;
 	}
@@ -255,7 +236,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 
 	// Percolation from evaporation layer
 	double perc = 0.0;
-	if (percolate && !isinundated) {
+	if (percolate) {
 		perc = min(SOILDEPTH_EVAP/SOILDEPTH_UPPER*perc_base*pow(wcont_evap,perc_exp),
 													max_rain_melt);
 	}
@@ -274,7 +255,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 		// Percolation
 		// Allow only on days with rain or snowmelt (Dieter Gerten, 021216)
 
-		if (percolate && !isinundated) {
+		if (percolate) {
 			perc = min(perc_base*pow(wcont[s-1],perc_exp), max_rain_melt);
 		} else {
 			perc=0.0;
@@ -299,7 +280,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 
 	// Baseflow runoff (Dieter Gerten 021216) (rain or snowmelt days only)
 	double runoff_baseflow = 0.0;
-	if (percolate && !isinundated) {
+	if (percolate) {
 		double perc_baseflow=BASEFLOW_FRAC*perc_base*pow(wcont[NSOILLAYER-1],perc_exp);
 		// guess2008 - Added "&& rain_melt >= runoff_surf" to guarantee nonnegative baseflow.
 		if (perc_baseflow > rain_melt - runoff_surf && rain_melt >= runoff_surf) {
@@ -370,14 +351,11 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 
 	Soil& soil = patch.soil;
 	snow(climate.prec - patch.intercep, climate.temp, soil.snowpack, soil.rain_melt);
-	snow_ninput(climate.prec - patch.intercep, soil.snowpack, soil.rain_melt, 
-		        climate.dNH4dep, climate.dNO3dep, patch.dnfert,
-				soil.snowpack_NH4_mass, soil.snowpack_NO3_mass, 
-				soil.NH4_input, soil.NO3_input);
+	snow_ninput(climate.prec - patch.intercep, soil.snowpack, soil.rain_melt, climate.dndep, patch.dnfert, soil.snowpack_nmass, soil.ninput);
 	soil.percolate = soil.rain_melt >= 0.1;
 	soil.max_rain_melt = soil.rain_melt;
 
-	if (soil.percolate && !patch.stand.isinundated) {
+	if (soil.percolate) {
 		soil.wcont[0] += soil.rain_melt / soil.soiltype.awc[0];
 
 		if (soil.wcont[0] > 1) {
@@ -388,9 +366,6 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 		}
 
 		soil.wcont_evap = soil.wcont[0];
-	} else if (soil.percolate && patch.stand.isinundated) {
-		soil.wcont[0] += soil.rain_melt / soil.soiltype.awc[0];
-		soil.wcont_evap = min(1.0,soil.wcont[0]);
 	}
 }
 
@@ -406,26 +381,17 @@ void irrigation(Patch& patch) {
 		patch.irrigation_y = 0.0;
 	}
 
-	if (!(patch.stand.isirrigated || patch.stand.isinundated)) {
+	if (!patch.stand.isirrigated) {
 		return;
 	}
 	for (int i = 0; i < npft; i++) {
 
 		Patchpft& ppft = patch.pft[i];
-		if (patch.stand.pft[i].irrigated && ppft.cropphen->growingseason) {
+		if (patch.stand.pft[i].irrigated && ppft.growingseason()) {
 			if (ppft.water_deficit_d < 0.0) {
 				fail("irrigation: Negative water deficit for PFT %s!\n", (char*)ppft.pft.name);
 			}
 			patch.irrigation_d += ppft.water_deficit_d;
-		} else if (patch.stand.pft[i].inundated && ppft.cropphen->growingseason) {
-			double water_deficit_d = 0.0;
-			for (int l = 0; l < 2;l++) {
-				water_deficit_d += (1.0 - min(1.0, soil.wcont[l]))*soil.awcont[l];
-			}
-			if (water_deficit_d < 0.0) {
-				fail("inundation: Negative water deficit for PFT %s!\n", (char*)ppft.pft.name);
-			}
-			patch.irrigation_d += water_deficit_d;
 		}
 	}
 	patch.irrigation_y += patch.irrigation_d;

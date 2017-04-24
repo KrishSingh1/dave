@@ -16,6 +16,6 @@
 
 #include "guess.h"
 
-void som_dynamics(Patch& patch, Climate& climate);
+void som_dynamics(Patch& patch);
 
 #endif // LPJ_GUESS_SOMDYNAM_H

@@ -46,6 +46,24 @@ double nrelocfrac;
 double nfix_a;
 double nfix_b;
 
+bool ifntransform;
+double frac_doc;
+double pH_soil;
+//Maximum amount of NH4 nitrified
+double NMAX;
+double NON; //Not used
+//Maximum gaseus losses in nitrification
+double f_max_nitri_gas;
+double N2ON;//Not used
+//Maximum fraction of NO3 converted to NO2
+double f_max_nitri;
+double NODN;//Not used
+double N2ODN;//Not used
+//Maximum fraction of NO2 converted to gaseus N
+double f_max_n_gas;
+double KN;
+double KC;
+double DOCMAX;//Not used
 bool ifsmoothgreffmort;
 bool ifdroughtlimitedestab;
 bool ifrainonwetdaysonly;
@@ -436,6 +454,27 @@ void plib_declarations(int id,xtring setname) {
 			"Whether plant growth limited by available nitrogen");
 		declareitem("freenyears",&freenyears,0,1000,1,CB_NONE,
 			"Number of years to spinup without nitrogen limitation");
+
+		declareitem("ifntransform",&ifntransform,1,CB_NONE,
+			"Whether to calculate nitrification/denitrification (only if CENTURY SOM dynamics is on)");
+		declareitem("frac_doc",&frac_doc,0.0,1.0,1,CB_NONE,
+			"Fraction of microbial respiration assumed to produce DOC");		
+		declareitem("pH_soil",&pH_soil,3.5,8.5,1,CB_NONE, "Soil pH");
+		declareitem("NMAX",  &NMAX,  0.01,   1.0, 1,CB_NONE, "NMAX");
+		/*
+		declareitem("NON",   &NON,   0.0001, 1.0, 1,CB_NONE, "NON");
+		declareitem("N2ON",  &N2ON,  0.000, 1.0, 1,CB_NONE, "N2ON");
+		declareitem("NODN",   &NODN,   0.0001, 1.0, 1,CB_NONE, "NODN");
+		declareitem("N2ODN",  &N2ODN,  0.0001, 1.0, 1,CB_NONE, "N2ODN");
+		declareitem("DOCMAX",&DOCMAX,0.001,  1.0, 1,CB_NONE, "DOCMAX");
+		*/
+		declareitem("KN",    &KN,    0.0001, 1.0, 1,CB_NONE, "KN");
+		declareitem("KC",    &KC,    0.00001, 1.0, 1,CB_NONE, "KC");
+
+
+		declareitem("f_max_nitri_gas",    &f_max_nitri_gas,    0.0001, 1.0, 1,CB_NONE, "KN");
+		declareitem("f_max_nitri",    &f_max_nitri,    0.00001, 1.0, 1,CB_NONE, "KC");
+		declareitem("f_max_n_gas",    &f_max_n_gas,    0.0001, 1.0, 1,CB_NONE, "KN");
 
 		declareitem("ifsmoothgreffmort",&ifsmoothgreffmort,1,CB_NONE,
 			"Whether to vary mort_greff smoothly with growth efficiency (0,1)");
@@ -1001,7 +1040,7 @@ void plib_callback(int callback) {
 		else 
 		{
 			sendmessage("Error",
-				"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\")");
+					"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\", \"INUNDATED\")");
 			plibabort();
 		}
 		break;
@@ -1029,10 +1068,11 @@ void plib_callback(int callback) {
 	case CB_STHYDROLOGY:
 		if (strparam.upper()=="RAINFED") pst->management.hydrology = RAINFED;
 		else if (strparam.upper()=="IRRIGATED") pst->management.hydrology = IRRIGATED;
+		else if (strparam.upper()=="INUNDATED") pst->management.hydrology = INUNDATED;
 		else 
 		{
 			sendmessage("Error",
-				"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\")");
+					"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\", \"INUNDATED\")");
 			plibabort();
 		}
 		break;
@@ -1098,6 +1138,23 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcentury")) badins("ifcentury");
 		if (!itemparsed("ifnlim")) badins("ifnlim");
 		if (!itemparsed("freenyears")) badins("freenyears");
+		if (!itemparsed("ifntransform")) badins("ifntransform");
+		if (!itemparsed("frac_doc")) badins("frac_doc");
+		if (!itemparsed("pH_soil")) badins("pH_soil");
+		if (!itemparsed("NMAX")) badins ("NMAX");
+		/*
+		if (!itemparsed("NON")) badins ("NON");
+		if (!itemparsed("N2ON")) badins ("N2ON");
+		if (!itemparsed("NODN")) badins ("NODN");
+		if (!itemparsed("DOCMAX")) badins ("DOCMAX");
+		if (!itemparsed("N2ODN")) badins ("N2ODN");
+		*/
+		if (!itemparsed("f_max_nitri_gas")) badins ("f_max_nitri");
+		if (!itemparsed("f_max_nitri")) badins ("f_max_nitri");
+		if (!itemparsed("f_max_n_gas")) badins ("f_max_n_gas");
+		if (!itemparsed("KN")) badins ("KN");
+		if (!itemparsed("KC")) badins ("KC");
+
 
 		if (nyear_spinup <= freenyears) {
 			sendmessage("Error", "freenyears must be smaller than nyear_spinup");

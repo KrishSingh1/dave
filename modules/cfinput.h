@@ -12,6 +12,7 @@
 
 #ifdef HAVE_NETCDF
 
+#include "soilinput.h"
 #include "cruinput.h"
 #include "guessnc.h"
 #include <memory>
@@ -52,6 +53,8 @@ private:
 
 		int rlon;
 		int rlat;
+		double lon;
+		double lat;
 		int landid;
 		std::string descrip;
 	};
@@ -108,6 +111,7 @@ private:
 	 */
 	GlobalCO2File co2;
 
+	SoilInput soilinput;
 	// The variables
 
 	GuessNC::CF::GridcellOrderedVariable* cf_temp;
@@ -146,7 +150,7 @@ private:
 	double dinsol[Date::MAX_YEAR_LENGTH];
 
 	/// Daily N deposition for one year
-	double dndep[Date::MAX_YEAR_LENGTH];
+	double dNH4dep[Date::MAX_YEAR_LENGTH],dNO3dep[Date::MAX_YEAR_LENGTH];
 
 	/// Minimum temperature for current gridcell and current year (deg C)
 	double dmin_temp[Date::MAX_YEAR_LENGTH];

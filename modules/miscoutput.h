@@ -65,7 +65,8 @@ private:
 		   file_anpp_cropland, file_anpp_pasture, file_anpp_natural,
 		   file_anpp_forest, file_cmass_cropland, file_cmass_pasture,
 		   file_cmass_natural, file_cmass_forest, file_dens_natural,
-		   file_dens_forest;
+		   file_dens_forest, file_soil_nflux_cropland, file_soil_nflux_pasture,
+		   file_soil_nflux_natural, file_soil_nflux_forest;
 
 	// daily
 	xtring file_daily_lai, file_daily_npp, file_daily_nmass, file_daily_cmass,
@@ -94,7 +95,8 @@ private:
 		  out_anpp_cropland, out_anpp_pasture, out_anpp_natural,
 		  out_anpp_forest, out_cmass_cropland, out_cmass_pasture,
 		  out_cmass_natural, out_cmass_forest, out_dens_natural,
-		  out_dens_forest;
+		  out_dens_forest, out_soil_nflux_cropland, out_soil_nflux_pasture,
+		  out_soil_nflux_natural, out_soil_nflux_forest;
 
 	Table out_anpp_stand_natural[MAXNUMBER_STANDS];
 	Table out_cmass_stand_natural[MAXNUMBER_STANDS];

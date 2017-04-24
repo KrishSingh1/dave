@@ -72,65 +72,134 @@ void soilparameters(Soiltype& soiltype, int soilcode) {
 		// exponent in percolation equation [k2; LPJF]
 		// (Eqn 31, Haxeltine & Prentice 1996)
 		// Changed from 4 to 2 (Sitch, Thonicke, pers comm 26/11/01)
+		xtring str = param["file_soilmap"].str;
+dprintf("%s Soiltype %d, OrgC %f\n",(char*)str,soilcode,soiltype.organic_frac);
+	if (param["file_soilmap"].str=="" || soiltype.organic_frac > 0.12) {
+		// INPUT AND OUTPUT PARAMETER
+		// soil = patch soil
 
-	double data[9][9] = {
+		// The imperical relationships that also takes org. C into account
+		// haven't been established in the model yet. TODO
+		if (soiltype.organic_frac > 0.12) {
+			soilcode = 8;
+		}
+		double data[9][9] = {
 
-		//    0  empirical parameter in percolation equation (k1) (mm/day)
-		//    1  volumetric water holding capacity at field capacity minus vol water
-		//       holding capacity at wilting point (Hmax), as fraction of soil layer
-		//       depth
-		//    2  thermal diffusivity (mm2/s) at wilting point (0% WHC)
-		//    3  thermal diffusivity (mm2/s) at 15% WHC
-		//    4  thermal diffusivity at field capacity (100% WHC)
-		//       Thermal diffusivities follow van Duin (1963),
-		//       Jury et al (1991), Fig 5.11.
-		//    5  wilting point as fraction of depth (calculation method described in
-		//       Prentice et al 1992)
-		//    6  saturation capacity following Cosby (1984)
-		//    7  sand fraction
-		//    8  clay fraction
+			//    0  empirical parameter in percolation equation (k1) (mm/day)
+			//    1  volumetric water holding capacity at field capacity minus vol water
+			//       holding capacity at wilting point (Hmax), as fraction of soil layer
+			//       depth
+			//    2  thermal diffusivity (mm2/s) at wilting point (0% WHC)
+			//    3  thermal diffusivity (mm2/s) at 15% WHC
+			//    4  thermal diffusivity at field capacity (100% WHC)
+			//       Thermal diffusivities follow van Duin (1963),
+			//       Jury et al (1991), Fig 5.11.
+			//    5  wilting point as fraction of depth (calculation method described in
+			//       Prentice et al 1992)
+			//    6  saturation capacity following Cosby (1984)
+			//    7  sand fraction
+			//    8  clay fraction
 
-		//    0      1      2      3      4      5      6       7       8         soilcode
-		//  ------------------------------------------------------------------
+			//    0      1      2      3      4      5      6       7       8         soilcode
+			//  ------------------------------------------------------------------
 
-		{   5.0, 0.110,   0.2, 0.800,   0.4,	0.074,	0.395,	0.90,	0.05},    // 1	Coarse
-		{   4.0, 0.150,   0.2, 0.650,   0.4,	0.184,	0.439,	0.35,	0.15},    // 2	Medium
-		{   3.0, 0.120,   0.2, 0.500,   0.4,	0.274,	0.454,	0.30,	0.45},    // 3	Fine
-		{   4.5, 0.130,   0.2, 0.725,   0.4,	0.129,	0.417,	0.60,	0.15},    // 4	Medium-coarse
-		{   4.0, 0.115,   0.2, 0.650,   0.4,	0.174,	0.425,	0.60,	0.30},    // 5	Fine-coarse
-		{   3.5, 0.135,   0.2, 0.575,   0.4,	0.229,	0.447,	0.20,	0.30},    // 6	Fine-medium
-		{   4.0, 0.127,   0.2, 0.650,   0.4,	0.177,	0.430,	0.45,	0.25},    // 7	Fine-medium-coarse
-		{   9.0, 0.300,   0.1, 0.100,   0.1,	0.200,	0.600,	0.28,	0.12},    // 8	Organic (values not know for wp), sand and clay are from Parton 2010
-		{   0.2, 0.100,   0.2, 0.500,   0.4,	0.100,	0.250,	0.10,	0.80}     // 9	Vertisols (values not know for wp)
-	};
+			{   5.0, 0.110,   0.2, 0.800,   0.4,	0.074,	0.395,	0.90,	0.05},    // 1	Coarse
+			{   4.0, 0.150,   0.2, 0.650,   0.4,	0.184,	0.439,	0.35,	0.15},    // 2	Medium
+			{   3.0, 0.120,   0.2, 0.500,   0.4,	0.274,	0.454,	0.30,	0.45},    // 3	Fine
+			{   4.5, 0.130,   0.2, 0.725,   0.4,	0.129,	0.417,	0.60,	0.15},    // 4	Medium-coarse
+			{   4.0, 0.115,   0.2, 0.650,   0.4,	0.174,	0.425,	0.60,	0.30},    // 5	Fine-coarse
+			{   3.5, 0.135,   0.2, 0.575,   0.4,	0.229,	0.447,	0.20,	0.30},    // 6	Fine-medium
+			{   4.0, 0.127,   0.2, 0.650,   0.4,	0.177,	0.430,	0.45,	0.25},    // 7	Fine-medium-coarse
+			{   9.0, 0.300,   0.1, 0.100,   0.1,	0.200,	0.600,	0.28,	0.12},    // 8	Organic (values not know for wp), sand and clay are from Parton 2010
+			{   0.2, 0.100,   0.2, 0.500,   0.4,	0.100,	0.250,	0.10,	0.80}     // 9	Vertisols (values not know for wp)
+		};
 
-	if (soilcode<1 || soilcode>9)
-		fail("soilparameters: invalid LPJ soil code (%d)",soilcode);
+		if (soilcode<1 || soilcode>9)
+			fail("soilparameters: invalid LPJ soil code (%d)",soilcode);
 
 
-	if (textured_soil) {
-		soiltype.sand_frac = data[soilcode-1][7];
-		soiltype.clay_frac = data[soilcode-1][8];
+		if (textured_soil) {
+			soiltype.sand_frac = data[soilcode-1][7];
+			soiltype.clay_frac = data[soilcode-1][8];
+		} else {
+			// Using fixed values from Parton et al. (2010)
+			soiltype.sand_frac = 0.28;
+			soiltype.clay_frac = 0.12;
+		}
+
+		soiltype.silt_frac = 1 - soiltype.sand_frac - soiltype.clay_frac;
+		soiltype.perc_base = data[soilcode-1][0];
+		soiltype.perc_exp = PERC_EXP;
+		soiltype.awc[0] = SOILDEPTH_UPPER * data[soilcode-1][1];
+		soiltype.awc[1] = SOILDEPTH_LOWER * data[soilcode-1][1];
+		soiltype.thermdiff_0 = data[soilcode-1][2];
+		soiltype.thermdiff_15 = data[soilcode-1][3];
+		soiltype.thermdiff_100 = data[soilcode-1][4];
+		soiltype.wp[0] = SOILDEPTH_UPPER * data[soilcode-1][5];
+		soiltype.wp[1] = SOILDEPTH_LOWER * data[soilcode-1][5];
+		soiltype.wsats[0] = SOILDEPTH_UPPER * data[soilcode-1][6];
+		soiltype.wsats[1] = SOILDEPTH_LOWER * data[soilcode-1][6];
+		soiltype.wtot = (data[soilcode-1][1] + data[soilcode-1][5]) * (SOILDEPTH_UPPER + SOILDEPTH_LOWER);
 	} else {
-		// Using fixed values from Parton et al. (2010)
-		soiltype.sand_frac = 0.28;
-		soiltype.clay_frac = 0.12;
+	
+		if (soiltype.sand_frac<0.0) {
+			// Using fixed values from Parton et al. (2010) for the
+			// locations where no soil data exists in the map.
+			soiltype.sand_frac = 0.28;
+			soiltype.clay_frac = 0.12;
+			soiltype.silt_frac = 1 - soiltype.sand_frac - soiltype.clay_frac;
+		}
+
+		double b = 0.0;
+		double logK_s  = 0.0;
+		double logPsi_s = 0.0;
+		double Theta_s = 0.0;
+		double Theta_wilt = 0.0;
+		double Theta_whc = 0.0;
+		// Equation 1 from Cosby 1984
+		// Psi = Psi_s * (Theta/Theta_s)^b
+		// Psi is the pressure head in cm
+		// *_s is the values at saturation
+		// Theta is the volumetric moisture content in percent
+		// Re-arranged to get the Theta
+		// Theta = Theta_s * (Psi/Psi_s)^(1/b)
+
+
+		// from Table 4, Cosby 1984
+		b = 3.10+15.7 * soiltype.clay_frac - 0.3 * soiltype.sand_frac;
+		//logK_s = -0.6 + 1.26 * soiltype.sand_frac - 0.64 * soiltype.clay_frac;
+		logPsi_s = 1.54 - 0.95 * soiltype.sand_frac + 0.63 * soiltype.silt_frac;
+		// Theta_s in Cosby expressed as %
+		Theta_s = 0.01*(50.5 - 14.2 * soiltype.sand_frac - 3.7 * soiltype.clay_frac);
+
+		double Psi_s = pow(10.0, -logPsi_s);
+		double Psi_wilt = pow(10.0, -4.2);
+		double Psi_whc = pow(10.0, -2.0);
+
+		Theta_whc = Theta_s * pow((Psi_whc/Psi_s),1.0/b);
+		Theta_wilt = Theta_s * pow((Psi_wilt/Psi_s),1.0/b);
+
+		// A linear dependence between the percolation coefficient from Haxeltine 1996a
+		// and the texture dependent parameter b from Cosby 1984 was established
+		// K = 5.87 - 0.29*b
+
+		soiltype.perc_base = 5.87 - 0.29 * b;
+		soiltype.perc_exp = PERC_EXP;
+		soiltype.awc[0] = SOILDEPTH_UPPER * (Theta_whc - Theta_wilt);
+		soiltype.awc[1] = SOILDEPTH_LOWER * (Theta_whc - Theta_wilt);
+
+		soiltype.wp[0] = SOILDEPTH_UPPER * Theta_wilt;
+		soiltype.wp[1] = SOILDEPTH_LOWER * Theta_wilt;
+		soiltype.wsats[0] = SOILDEPTH_UPPER * Theta_s;
+		soiltype.wsats[1] = SOILDEPTH_LOWER * Theta_s;
+		soiltype.wtot = (Theta_whc) * (SOILDEPTH_UPPER + SOILDEPTH_LOWER);
+		soiltype.thermdiff_0 = 0.2;
+		// A linear interpolation between b-values in the data table above and the thermal diffusivity
+		soiltype.thermdiff_15 = 0.15 * b + 0.05;
+		soiltype.thermdiff_100 = 0.4;
+		
 	}
-
-	soiltype.silt_frac = 1 - soiltype.sand_frac - soiltype.clay_frac;
-	soiltype.perc_base = data[soilcode-1][0];
-	soiltype.perc_exp = PERC_EXP;
-	soiltype.awc[0] = SOILDEPTH_UPPER * data[soilcode-1][1];
-	soiltype.awc[1] = SOILDEPTH_LOWER * data[soilcode-1][1];
-	soiltype.thermdiff_0 = data[soilcode-1][2];
-	soiltype.thermdiff_15 = data[soilcode-1][3];
-	soiltype.thermdiff_100 = data[soilcode-1][4];
-	soiltype.wp[0] = SOILDEPTH_UPPER * data[soilcode-1][5];
-	soiltype.wp[1] = SOILDEPTH_LOWER * data[soilcode-1][5];
-	soiltype.wsats[0] = SOILDEPTH_UPPER * data[soilcode-1][6];
-	soiltype.wsats[1] = SOILDEPTH_LOWER * data[soilcode-1][6];
-	soiltype.wtot = (data[soilcode-1][1] + data[soilcode-1][5]) * (SOILDEPTH_UPPER + SOILDEPTH_LOWER);
-
+	dprintf("Soiltype %d, AWC %f\n",soilcode,soiltype.awc[0]);
 	if (!ifcentury) {
 		// override the default SOM years with 70-80% of the spin-up period
 		soiltype.updateSolveSOMvalues(nyear_spinup);
@@ -338,17 +407,20 @@ void interp_monthly_totals_conserve(const double* mvals, double* dvals,
  *
  *  \see distribute_ndep
  *
- *  \param ndry        Dry N deposition (monthly mean of daily deposition)
- *  \param nwet        Wet N deposition (monthly mean of daily deposition)
+ *  \param NH4dry      Dry NH4 deposition (monthly mean of daily deposition)
+ *  \param NO3dry      Dry NO3 deposition (monthly mean of daily deposition)
+ *  \param NH4wet      Wet NH4 deposition (monthly mean of daily deposition)
+ *  \param NO3wet      Wet NO3 deposition (monthly mean of daily deposition)
  *  \param time_steps  Number of days in the month
  *  \param dprec       Array of precipitation values
- *  \param dndep       Output, total N deposition for each day
+ *  \param dNH4dep     Output, total NH4 deposition for each day
+ *  \param dNO3dep     Output, total NO3 deposition for each day
  */
-void distribute_ndep_single_month(double ndry,
-                                  double nwet,
+void distribute_ndep_single_month(double NH4dry,double NO3dry, 
+                                  double NH4wet,double NO3wet,
                                   int time_steps,
                                   const double* dprec,
-                                  double* dndep) {
+                                  double* dNH4dep,double* dNO3dep) {
 
 	// First count number of days with precipitation
 	int raindays = 0;
@@ -363,13 +435,16 @@ void distribute_ndep_single_month(double ndry,
 	for (int i = 0; i < time_steps; i++) {
 
 		// ndry is included in all days
-		dndep[i] = ndry;
+		dNH4dep[i] = NH4dry;
+		dNO3dep[i] = NO3dry;
 
 		if (raindays == 0) {
-			dndep[i] += nwet;
+			dNH4dep[i] += NH4wet;
+			dNO3dep[i] += NO3wet;
 		}
 		else if (!negligible(dprec[i])) {
-			dndep[i] += (nwet*time_steps)/raindays;
+			dNH4dep[i] += (NH4wet*time_steps)/raindays;
+			dNO3dep[i] += (NO3wet*time_steps)/raindays;
 		}
 	}
 }
@@ -381,17 +456,22 @@ void distribute_ndep_single_month(double ndry,
  *  \param mndry Monthly means of daily dry N deposition
  *  \param mnwet Monthly means of daily wet N deposition
  *  \param dprec Daily precipitation data
- *  \param dndep Output, total N deposition for each day
+ *  \param dNH4dep Output, total NH4 deposition for each day
+ *  \param dNO3dep Output, total NO3 deposition for each day
  */
-void distribute_ndep(const double* mndry, const double* mnwet,
-                     const double* dprec, double* dndep) {
+void distribute_ndep(const double* mNH4dry,const double* mNO3dry,
+                     const double* mNH4wet,const double* mNO3wet,
+					 const double* dprec, 
+					 double* dNH4dep,double* dNO3dep) {
 
 	Date date;
 	int start_of_month = 0;
-
 	for (int m = 0; m < 12; m++) {
-		distribute_ndep_single_month(mndry[m], mnwet[m], date.ndaymonth[m],
-		                             dprec+start_of_month, dndep+start_of_month);
+		distribute_ndep_single_month(mNH4dry[m],mNO3dry[m],
+			                         mNH4wet[m],mNO3wet[m],
+									 date.ndaymonth[m],
+									 //dprec,dNH4dep,dNO3dep);
+		 	 	 	 	 	 	 	 dprec+start_of_month,dNH4dep+start_of_month,dNO3dep+start_of_month);
 
 		start_of_month += date.ndaymonth[m];
 	}
@@ -632,7 +712,9 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		climate.agdd5 = 0.0;
 
 		// reset annual nitrogen input variables
-		climate.andep  = 0.0;
+		climate.aNH4dep  = 0.0;
+		climate.aNO3dep  = 0.0;
+		climate.aprec = 0.0;
 
 		// reset gridcell-level harvest fluxes
 		gridcell.landcover.acflux_landuse_change=0.0;
@@ -719,7 +801,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	}
 
 	// Sum annual nitrogen addition to system
-	climate.andep  += climate.dndep;
+	climate.aNH4dep += climate.dNH4dep;
+	climate.aNO3dep += climate.dNO3dep;
 
 	// Save yesterday's mean temperature for the last month
 	mtemp_last = climate.mtemp;

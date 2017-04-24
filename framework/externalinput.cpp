@@ -1037,6 +1037,13 @@ void ManagementInput::init() {
 				fail("initio: could not open %s for input",(char*)file_Nfert);
 			readNfert = true;
 		}
+		if(param.find(xtring("file_NfertMan"))) {
+			file_NfertMan=param["file_NfertMan"].str;
+			if(	file_NfertMan != "")	{
+				if(!NfertMan.Open(file_NfertMan, gridlist))
+					fail("initio: could not open %s for input",(char*)file_NfertMan);
+			}
+		}
 	}
 
 	if(run_landcover) {
@@ -1077,6 +1084,12 @@ bool ManagementInput::loadmanagement(double lon, double lat) {
 				dprintf("Problems with N fertilization input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
 				LUerror = true;	// skip this stand
 			dprintf("N fertilization data not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
+
+	if(readNfert && !LUerror) {
+		if(!NfertMan.Load(c)) {
+			dprintf("Manure data not found for %.2f,%.2f.\n",c.lon,c.lat);
 		}
 	}
 
@@ -1143,6 +1156,9 @@ void ManagementInput::getNfert(Gridcell& gridcell) {
 		for(int i=0; i<npft; i++)	{
 			if(pftlist[i].phenology == CROPGREEN) {		
 				gridcell.pft[pftlist[i].id].Nfert_read = Nfert.Get(year,pftlist[i].name);
+				if(NfertMan.isloaded()) {
+					gridcell.pft[pftlist[i].id].Nfert_man_read = NfertMan.Get(year,pftlist[i].name);
+				}
 			}
 		}
 	}

@@ -94,7 +94,7 @@ typedef enum {SURFSTRUCT, SOILSTRUCT, SOILMICRO, SURFHUMUS, SURFMICRO, SURFMETA,
 	SOILMETA, SLOWSOM, PASSIVESOM, LEACHED, NSOMPOOL} pooltype;
 
 /// Irrigation type for PFTs
-typedef enum {RAINFED, IRRIGATED} hydrologytype;
+typedef enum {RAINFED, IRRIGATED, INUNDATED} hydrologytype;
 /// Intercrop type for PFTs
 typedef enum {NOINTERCROP, NATURALGRASS} intercroptype;
 
@@ -128,6 +128,10 @@ typedef enum {DRY, DRY_INTERMEDIATE, DRY_WET, INTERMEDIATE, INTERMEDIATE_WET, WE
  *  5:HOT						(mtemp_min20>30)
  */
 typedef enum {COLD, COLD_WARM, COLD_HOT, WARM, WARM_HOT, HOT} temp_seasonality_type;
+
+/// Nitrogen preferance
+typedef enum {NO, NH4, NO3} n_pref_type;
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
@@ -656,10 +660,19 @@ public:
 	/// mean of monthly temperatures for the last 12 months (deg C)
 	double atemp_mean;
 
-	/// annual nitrogen deposition (kgN/m2/year)
-	double andep;
-	/// daily nitrogen deposition (kgN/m2)
-	double dndep;
+	/// annual NH4 deposition (kgN/m2/year)
+	double aNH4dep;
+	/// annual NO3 deposition (kgN/m2/year)
+	double aNO3dep;
+	/// daily NH4 deposition (kgN/m2)
+	double dNH4dep;
+	/// daily NO3 deposition (kgN/m2)
+	double dNO3dep;
+
+	/// annual nitrogen fertilization (kgN/m2/year)
+	double anfert;
+	/// daily nitrogen fertilization (kgN/m2/year)
+	double dnfert;
 
 	// Saved parameters used by function daylengthinsoleet
 
@@ -774,6 +787,8 @@ public:
 
 	/// annual precipitation sum
 	double aprec;
+	/// annual average precipitation (last year) (mm)
+	double aprec_lastyear;	
 
 public:
 	/// constructor function: initialises gridcell member
@@ -893,6 +908,36 @@ public:
 		N2O_FIRE,
 		/// N2 flux to atmosphere from fire
 		N2_FIRE,
+		/// Compare N flux in ntransform.cpp to N_SOIL TODO: Not used yet
+		NH3_SOIL_NTRANSFORM,
+
+		//---- Soil N transformation -----
+		/// NH3 flux from soil (ntransform)
+		NH3_SOIL,
+		/// NO flux from soil (ntransform)
+		NO_SOIL,
+		/// N2O flux in soil (ntransform)
+		N2O_SOIL,
+		/// N2 flux from soil (ntransform)
+		N2_SOIL,
+		/// DOC flux from soil (ntransform)
+		DOC_FLUX,
+		/// Net nitrification (ntransform)
+		NET_NITRIF,
+		/// Net denitrification (ntransform)
+		NET_DENITRIF,
+		/// Gross nitrification (ntransform)
+		GROSS_NITRIF,
+		/// Gross denitrification (ntransform)
+		GROSS_DENITRIF,
+		
+		NH4_AVG,
+		NO3_AVG,
+		NO2_AVG,
+		NO_AVG,
+		N2O_AVG,
+		N2_AVG,
+		doc_AVG,
 		/// N flux from soil
 		N_SOIL,
 		/// Reproduction costs
@@ -2517,6 +2562,9 @@ public:
 	/// fraction of soil that is silt
 	double silt_frac;
 
+	double organic_frac;
+
+	double pH;
 	// MEMBER FUNCTIONS
 
 public:
@@ -2526,6 +2574,8 @@ public:
 
 		solvesom_end = SOLVESOM_END;
 		solvesom_begin = SOLVESOM_BEGIN;
+		organic_frac = 0.02;
+		pH = -1.0;
 	}
 
 	/// Override the default SOM years with 70-80% of the spin-up period length
@@ -2719,10 +2769,14 @@ public:
 	double dperc;
 	/// fraction of decayed organic nitrogen leached each day;
 	double orgleachfrac;
-	/// soil mineral nitrogen pool (kgN/m2)
-	double nmass_avail;
-	/// soil nitrogen input (kgN/m2)
-	double ninput;
+	/// soil NH4 mass in pool (kgN/m2)
+	double NH4_mass;
+	/// soil NO3 mass in pool (kgN/m2)
+	double NO3_mass;
+	/// soil NH4 mass input (kgN/m2)
+	double NH4_input;
+	/// soil NO3 mass input (kgN/m2)
+	double NO3_input;
 	/// annual sum of nitrogen mineralisation
 	double anmin;
 	/// annual sum of nitrogen immobilisation
@@ -2761,8 +2815,44 @@ public:
 
 	std::vector<LitterSolveSOM> solvesom;
 
-	/// stored nitrogen deposition in snowpack
-	double snowpack_nmass;
+	/// stored NH4 deposition in snowpack
+	double snowpack_NH4_mass;
+	/// stored NO3 deposition in snowpack
+	double snowpack_NO3_mass;
+
+	/// pools of soil N species in transformation (nitrification & denitrifiacation)
+
+	/// soil NH4 mass in pool (kgN/m2)
+	// double NH4_mass;	// total, definde above
+	double NH4_mass_w;	// wet proportion
+	double NH4_mass_d;	// dry...
+
+	/// soil NO3 mass in pool (kgN/m2)
+	// double NO3_mass; // total, definde above
+	double NO3_mass_w;
+	double NO3_mass_d;
+	/// soil NO2 mass in pool (kgN/m2)
+	double NO2_mass;
+	double NO2_mass_w;
+	double NO2_mass_d;
+	/// soil NO mass in pool (kgN/m2)
+	double NO_mass;
+	double NO_mass_w;
+	double NO_mass_d;
+	/// soil NO mass in pool (kgN/m2)
+	double N2O_mass;
+	double N2O_mass_w;
+	double N2O_mass_d;
+	/// soil N2 mass in pool (kgN/m2)
+	double N2_mass;
+
+	// soil pH
+	double pH;	//TODO: pH - not used yet. Daily mean precip, based on annual average
+
+	// soil dissolved carbon availability daily (kgC/m2 ???) TODO: Check unit!
+	double doc_mass;		//
+	double doc_mass_w;	//FIXME: DOC is dealt with elsewhere
+	double doc_mass_d;	//
 
 	// MEMBER FUNCTIONS
 
@@ -2783,6 +2873,16 @@ public:
 		decomp_litter_mean = 0.0;
 		k_soilfast_mean = 0.0;
 		k_soilslow_mean = 0.0;
+		NO2_mass = 0.0;
+		NO2_mass_w = 0.0;
+		NO2_mass_d = 0.0;
+		NO_mass = 0.0;
+		NO_mass_w = 0.0;
+		NO_mass_d = 0.0;
+		N2O_mass = 0.0;
+		N2O_mass_w = 0.0;
+		N2O_mass_d = 0.0;
+		N2_mass = 0.0;
 		wcont[0] = 0.0;
 		wcont[1] = 0.0;
 		wcont_evap = 0.0;
@@ -2817,8 +2917,10 @@ public:
 		// passive has a fixed value
 		sompool[PASSIVESOM].ntoc = 1.0 / 9.0;
 
-		nmass_avail = 0.0;
-		ninput = 0.0;
+		NH4_mass = 0.0;
+		NO3_mass = 0.0;
+		NH4_input = 0.0;
+		NO3_input = 0.0;
 		anmin = 0.0;
 		animmob = 0.0;
 		aminleach = 0.0;
@@ -2827,12 +2929,18 @@ public:
 		anfix = 0.0;
 		anfix_calc = 0.0;
 		anfix_mean = 0.0;
-		snowpack_nmass = 0.0;
+		snowpack_NH4_mass = 0.0;
+		snowpack_NO3_mass = 0.0;
 		dperc = 0.0;
 
 		solvesomcent_beginyr = (int)(SOLVESOMCENT_SPINBEGIN * (nyear_spinup - freenyears) + freenyears);
 		solvesomcent_endyr   = (int)(SOLVESOMCENT_SPINEND   * (nyear_spinup - freenyears) + freenyears);
 	}
+
+	double nmass_avail(int pref = NO);
+	void nmass_subtract(double nmass, int pref = NO);
+	void nmass_inc(double nmass, int pref = NO);
+	void nmass_multiplic_inc(double inc, int pref = NO);
 
 	void serialize(ArchiveStream& arch);
 };
@@ -3384,6 +3492,8 @@ public:
 
 	/// Whether this PFT is irrigated in this stand
 	bool irrigated;
+	///
+	bool inundated;
 	/// sowing date specified in stand type or read from input file
 	int sdate_force;
 	/// harvest date specified in stand type or read from input file
@@ -3399,6 +3509,7 @@ public:
 		plant = false;
 		reestab = false;
 		irrigated = false;
+		inundated = false;
 		sdate_force = -1;
 		hdate_force = -1;
 	}
@@ -3439,6 +3550,7 @@ public:
 	/// Returns true if current crop management hydrology == irrigated, updated during rotation
 	bool isirrigated;
 	/// Returns true if the stand's main crop pft intercrop==naturalgrass and a pft with isintercrop==true is in the pftlist.
+	bool isinundated;
 	bool hasgrassintercrop;
 	/// gdd5-value at first intercrop grass growth
 	double gdd0_intercrop;
@@ -3645,6 +3757,8 @@ public:
 	int hdate_force;
 	/// N fertilization from input file
 	double Nfert_read;
+	/// Manure N fertilization from input file
+	double Nfert_man_read;
 	/// default harvest date (pft.hlimitdatenh/hlimitdatesh)
 	int hlimitdate_default;
 	/// whether autumn sowing is either calculated or prescribed

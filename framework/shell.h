@@ -51,6 +51,20 @@ void resetwindow(xtring window_name);
 void clear_all_graphs();
 
 
+/// Initiates a 3D view of stand vegetation in the Windows shell
+/**
+* Functional only when the framework is built as a DLL and linked to the
+* LPJ-GUESS Windows Shell.
+*/
+void open3d();
+
+/// Sends data on current stand structure to 3D vegetation plot in the Windows shell
+/**
+* Functional only when the framework is built as a DLL and linked to the
+* LPJ-GUESS Windows Shell.
+*/
+void plot3d(const char* filename);
+
 /// May be called by framework to respond to abort request from the user.
 /**
  * \returns true if shell has sent an abort request, otherwise false.
@@ -90,6 +104,12 @@ public:
 
 	/// May be called by framework to respond to abort request from the user.
 	virtual bool abort_request_received() = 0;
+
+	/// Initiates a 3D view of stand vegetation in the Windows shell
+	virtual void open3d() = 0;
+
+	/// Sends data on current stand structure to 3D vegetation plot in the Windows shell
+	virtual void plot3d(const char* filename) = 0;
 };
 
 
@@ -114,6 +134,10 @@ public:
 	          double y);
 
 	void resetwindow(const char* window_name);
+
+	void open3d();
+
+	void plot3d(const char* filename);
 
 	void clear_all_graphs();
 

@@ -1,10 +1,10 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file cruinput.cpp
-/// \brief LPJ-GUESS input module for CRU TS 3.0 data set
+/// \brief LPJ-GUESS input module for CRU-NCEP data set
 ///
-/// This input module reads in CRU climate data in a customised binary format.
-/// The binary files contain CRU half-degree global historical climate data
-/// for 1901-2006.
+/// This input module reads in CRU-NCEP climate data in a customised binary format.
+/// The binary files contain CRU-NCEP half-degree global historical climate data
+/// for 1901-2015.
 ///
 /// \author Ben Smith
 /// $Date$
@@ -229,8 +229,10 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		// Tell framework the coordinates of this grid cell
 		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
 		
-		// Get nitrogen deposition data
-		ndep.getndep(param["file_ndep"].str, lon, lat);
+		// Get nitrogen deposition data. 
+		/* Since the historic data set does not reach decade 2010-2019, 
+		 * we need to use the RCP data for the last decade. */
+		ndep.getndep(param["file_ndep"].str, lon, lat, Lamarque::RCP60);
 
 		// The insolation data will be sent (in function getclimate, below)
 		// as incoming shortwave radiation, averages are over 24 hours
@@ -280,6 +282,20 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 		if (date.year < nyear_spinup) {
 
 			// During spinup period
+
+			if(date.year == state_year && restart) {
+
+				int year_offset = state_year % NYEAR_SPINUP_DATA;
+
+				for (int y=0;y<year_offset;y++) {
+					spinup_mtemp.nextyear();
+					spinup_mprec.nextyear();
+					spinup_msun.nextyear();
+					spinup_mfrs.nextyear();
+					spinup_mwet.nextyear();
+					spinup_mdtr.nextyear();
+				}
+			}
 
 			int m;
 			double mtemp[12],mprec[12],msun[12];

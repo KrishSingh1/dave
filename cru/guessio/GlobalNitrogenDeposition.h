@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////////////////////////////////////
-// GLOBALNITROGENDEPOSITIONCC.H
+// GLOBALNITROGENDEPOSITION.H
 // Header file for input from a fast data archive
 // Created automatically by FastArchive on Tue Nov 03 13:01:51 2015
 //

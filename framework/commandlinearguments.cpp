@@ -28,6 +28,8 @@ CommandLineArguments::CommandLineArguments(int argc, char** argv)
   parallel(false),
   input_module("cru_ncep") {
 
+	driver_file = "";
+
 	if (!parse_arguments(argc, argv)) {
 		print_usage(argv[0]);
 	}
@@ -51,8 +53,23 @@ bool CommandLineArguments::parse_arguments(int argc, char** argv) {
 			}
 			else if (option == "-input") {
 				if (i+1 < argc) {
-					input_module = argv[i+1];
-					++i; // skip the next argument
+					std::string module = tolower(argv[i + 1]);
+					if (module == "getclim") {
+						// If GetClim input module requested, next argument should be path to driver file
+						if (i + 2 < argc){
+							input_module = argv[i + 1];
+							driver_file = argv[i + 2];
+							i += 2; // skip two arguments
+						}
+						else {
+							fprintf(stderr, "Missing pathname after -input getclim");
+							return false;
+						}
+					}
+					else {
+						input_module = argv[i + 1];
+						++i; // skip the next argument
+					}
 				}
 				else {
 					fprintf(stderr, "Missing argument after -input\n");
@@ -86,7 +103,7 @@ bool CommandLineArguments::parse_arguments(int argc, char** argv) {
 }
 
 void CommandLineArguments::print_usage(const char* command_name) const {
-	fprintf(stderr, "\nUsage: %s [-parallel] [-input <module_name>] <instruction-script-filename> | -help\n", 
+	fprintf(stderr, "\nUsage: %s [-parallel] [-input <module_name> [<GetClim-driver-file-path>] ] <instruction-script-filename> | -help\n", 
 			  command_name);
 	exit(EXIT_FAILURE);
 }
@@ -105,4 +122,8 @@ const char* CommandLineArguments::get_instruction_file() const {
 
 const char* CommandLineArguments::get_input_module() const {
 	return input_module.c_str();
+}
+
+const char* CommandLineArguments::get_driver_file() const {
+	return driver_file.c_str();
 }

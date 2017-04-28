@@ -32,6 +32,9 @@ public:
 	/// Returns the chosen (or default) input module
 	const char* get_input_module() const;
 
+	/// Returns path to a GetClim-generated driver file if the 'getclim' input module was requested
+	const char* get_driver_file() const;
+
 private:
 	/// Does the actual parsing of the arguments
 	bool parse_arguments(int argc, char** argv);
@@ -50,6 +53,9 @@ private:
 
 	/// The chosen (or default) input module
 	std::string input_module;
+
+	/// Driver file name for GetClim input module
+	std::string driver_file;
 };
 
 #endif // LPJ_GUESS_COMMAND_LINE_ARGUMENTS_H

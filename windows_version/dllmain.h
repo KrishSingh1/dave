@@ -31,6 +31,7 @@ struct PlotArgs {
 	double x;
 	double y;
 	bool rescale;
+	float preferredrgb[3];
 };
 
 // Type definitions for callback functions
@@ -40,6 +41,8 @@ typedef void(MessagePlot)(PlotArgs* plotargs);
 typedef void(MessageResetwindow)(xtring* string);
 typedef void(MessageFinished)();
 typedef void(MessageClearGraphs)();
+typedef void(MessageOpen3d)();
+typedef void(MessagePlot3d)(xtring* filename);
 
 struct GuessParam {
 
@@ -67,6 +70,11 @@ struct GuessParam {
 	MessageResetwindow* message_resetwindow;
 		// When called, sends a message to shell to clear data in a particular graph
 		// window
+	MessageOpen3d* message_open3d;
+	// When called, sends a message to shell to open 3D window
+	MessagePlot3d* message_plot3d;
+	// When called, sends a message to shell to plot 3D vegetation data using
+	// file whose name is sent in *poutput
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -76,5 +84,6 @@ __declspec(dllexport) int dll_main(GuessParam param);
 __declspec(dllexport) void cleanup_print_string(xtring* pxtring);
 __declspec(dllexport) void cleanup_plot(PlotArgs* pplotargs);
 __declspec(dllexport) void abort_run();
+__declspec(dllexport) void dll_get_input_module_list(xtring&);
 
 #endif // LPJ_GUESS_MAIN_H

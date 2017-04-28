@@ -65,11 +65,17 @@ void clear_all_graphs() {
 	current_shell->clear_all_graphs();
 }
 
+void open3d() {
+	current_shell->open3d();
+}
+
+void plot3d(const char* filename) {
+	current_shell->plot3d(filename);
+}
 
 bool abort_request_received() {
 	return current_shell->abort_request_received();
 }
-
 
 void set_shell(Shell* s) {
 	current_shell = std::auto_ptr<Shell>(s);
@@ -110,6 +116,14 @@ void CommandLineShell::plot(const char* window_name,
                             const char* series_name, 
                             double x, 
                             double y) {
+	// Can't do anything here	 
+}
+
+void CommandLineShell::open3d() {
+	// Can't do anything here	 
+}
+
+void CommandLineShell::plot3d(const char* filename) {
 	// Can't do anything here	 
 }
 

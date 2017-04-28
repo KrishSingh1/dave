@@ -12,6 +12,7 @@ import "landcover.ins"
 param "file_sdates" (str "")
 param "file_hdates" (str "")
 param "file_Nfert" (str "")
+param "file_Nfert_st" (str "")
 
 !///////////////////////////////////////////////////////////////////////////////////////
 
@@ -42,7 +43,6 @@ file_seasonality "seasonality.out"
 !
 
 minimizecftlist 1	   ! Checks st fraction file for st:s with fractions>0.0 at any time or place; other st:s are exluded from the stlist
-cftfrac_fixed 0       	   ! whether to use fixed crop fractions (active crop stand types have equal area) (1) or read crop fractions from a file (0)
 frac_fixed_default_crops 0 ! whether to use all active crop stand types (0) or only stand types with suitable rainfed crops
 			   ! (based on crop pft tb and gridcell latitude) (1) when using fixed crop fractions
 
@@ -105,6 +105,11 @@ group "crop" (
 	res_outtake 0.75	! Part of residues after harvest removed from stand; goes into fluxes.acflux_harvest
 	aboveground_ho 1 
 	isintercropgrass 0
+
+	eps_iso 16.0		! For C3. When C4, overwrite these values with corresponding values for C4
+	seas_iso 1		! For C3. When C4, overwrite these values with corresponding values for C4
+	eps_mon 1.6		! For C3. When C4, overwrite these values with corresponding values for C4
+	storfrac_mon 0.5	! For C3. When C4, overwrite these values with corresponding values for C4
 )
 
 group "CC3G" (

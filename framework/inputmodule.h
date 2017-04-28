@@ -125,6 +125,10 @@ public:
 	/** Used by the framework to instantiate the chosen input module. */
 	InputModule* create_input_module(const char* name) const;
 
+	/// Retrieves a semi-colon-separated list of available input modules
+	/** Used by LPJ-GUESS Windows Shell  */
+	void get_input_module_list(std::string& list);
+
 private:
 
 	/// Private constructor to make sure we only have one instance

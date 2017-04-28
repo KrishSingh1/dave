@@ -12,6 +12,37 @@ import "crop.ins"
 ifnlim 0
 
 !///////////////////////////////////////////////////////////////////////////////////////
+!// PARAMETERS FOR MANAGEMENT TYPES
+
+! Example of managements in a crop rotation
+
+mt "TeWW_rf" (
+
+	crop_management
+	pft "TeWW"
+	hydrology "rainfed"
+	nfert 0.04		! Fixed nitrogen fertilisation
+	sdate 120		! Fixed sowing date
+	hdate 260		! Fixed (approximate) harvest date
+)
+
+mt "TeCo_irr" (
+
+	crop_management
+	pft "TeCoi"
+	hydrology "irrigated"
+	nfert 0.007
+	sdate 160
+	hdate 300
+)
+
+mt "fallow" (
+
+	crop_management
+	fallow 1	! One year of fallow with natural grass
+)
+
+!///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR STAND TYPES
 
 st "CC3G" (
@@ -19,7 +50,7 @@ st "CC3G" (
 	crop_stand
 	stinclude 1
 	intercrop "nointercrop"
-	crop1 "CC3G"
+	pft "CC3G"
 )
 
 st "CC4G" (
@@ -27,7 +58,7 @@ st "CC4G" (
 	crop_stand
 	stinclude 1
 	intercrop "nointercrop"
-	crop1 "CC4G"
+	pft "CC4G"
 )
 
 
@@ -37,56 +68,51 @@ st "TeWW" (
 	crop_stand
 	stinclude 1
 
-	rotation 1		! Change according to no. of crops in rotation (if 1, crop2 etc. will be ignored)
 	firstrotyear 1901	! First years of rotation scheme
 
-	crop1 "TeWW"		! First crop in rotation
-	hydrology1 "rainfed"	! Rainfed crop
-	nfert1 50		! Fixed nitrogen fertilisation
-!	sdate1 55		! Fixed sowing date
-!	hdate1 145		! Fixed (approximate) harvest date
-	crop2 "TeCo"		! Second crop in rotation
-	hydrology2 "irrigated"	! Irrigated crop
-	nfert2 0
-!	sdate2 160
-!	hdate2 300
-	crop3 "TeCo"		! Third crop in rotation (needs to be set also for fallow)
-	fallow3 1		! One year of fallow with natural grass
+	pft "TeWW"
+	hydrology "rainfed"	! Rainfed crop
+
+	! Example of settings for crop rotation
+
+!	management1 "TeWW_rf"	! Overrides settings above
+!	management2 "TeCo_irr" 
+!	management3 "fallow" 
 )
 
 st "TrRi" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TrRi"
+	pft "TrRi"
 )
 
 st "TeCo" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TeCo"
+	pft "TeCo"
 )
 
 st "TrMi" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TrMi"
+	pft "TrMi"
 )
 
 st "TePu" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TePu"
+	pft "TePu"
 )
 
 st "TeSb" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TeSb"
+	pft "TeSb"
 )
 
 
@@ -94,7 +120,7 @@ st "TrMa" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TrMa"
+	pft "TrMa"
 )
 
 
@@ -102,7 +128,7 @@ st "TeSf" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TeSf"
+	pft "TeSf"
 )
 
 
@@ -110,7 +136,7 @@ st "TeSo" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TeSo"
+	pft "TeSo"
 )
 
 
@@ -118,7 +144,7 @@ st "TrPe" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TrPe"
+	pft "TrPe"
 )
 
 
@@ -126,7 +152,7 @@ st "TeRa" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TeRa"
+	pft "TeRa"
 )
 
 st "CC3Girr" (
@@ -134,8 +160,8 @@ st "CC3Girr" (
 	crop_stand
 	stinclude 1
 	intercrop "nointercrop"
-	crop1 "CC3Girr"
-	hydrology1 "irrigated"
+	pft "CC3Girr"
+	hydrology "irrigated"
 )
 
 st "CC4Girr" (
@@ -143,16 +169,16 @@ st "CC4Girr" (
 	crop_stand
 	stinclude 1
 	intercrop "nointercrop"
-	crop1 "CC4Girr"
-	hydrology1 "irrigated"
+	pft "CC4Girr"
+	hydrology "irrigated"
 )
 
 st "TeWWirr" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TeWWirr"
-	hydrology1 "irrigated"
+	pft "TeWWirr"
+	hydrology "irrigated"
 )
 
 st "TrRiirr" (
@@ -160,44 +186,42 @@ st "TrRiirr" (
 	crop_stand
 	stinclude 1
 
-	rotation 1
-	rottime 1
 	multicrop 0
 	firstrotyear 1901
-	crop1 "TrRiirr"
-	hydrology1 "irrigated"
+	pft "TrRiirr"
+	hydrology "irrigated"
 )
 
 st "TeCoirr" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TeCoirr"
-	hydrology1 "irrigated"
+	pft "TeCoirr"
+	hydrology "irrigated"
 )
 
 st "TrMiirr" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TrMiirr"
-	hydrology1 "irrigated"
+	pft "TrMiirr"
+	hydrology "irrigated"
 )
 
 st "TePuirr" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TePuirr"
-	hydrology1 "irrigated"
+	pft "TePuirr"
+	hydrology "irrigated"
 )
 
 st "TeSbirr" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TeSbirr"
-	hydrology1 "irrigated"
+	pft "TeSbirr"
+	hydrology "irrigated"
 )
 
 
@@ -205,8 +229,8 @@ st "TrMairr" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TrMairr"
-	hydrology1 "irrigated"
+	pft "TrMairr"
+	hydrology "irrigated"
 )
 
 
@@ -214,8 +238,8 @@ st "TeSfirr" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TeSfirr"
-	hydrology1 "irrigated"
+	pft "TeSfirr"
+	hydrology "irrigated"
 )
 
 
@@ -223,8 +247,8 @@ st "TeSoirr" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TeSoirr"
-	hydrology1 "irrigated"
+	pft "TeSoirr"
+	hydrology "irrigated"
 )
 
 
@@ -232,8 +256,8 @@ st "TrPeirr" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TrPeirr"
-	hydrology1 "irrigated"
+	pft "TrPeirr"
+	hydrology "irrigated"
 )
 
 
@@ -241,8 +265,8 @@ st "TeRairr" (
 
 	crop_stand
 	stinclude 1
-	crop1 "TeRairr"
-	hydrology1 "irrigated"
+	pft "TeRairr"
+	hydrology "irrigated"
 )
 
 

@@ -22,7 +22,7 @@ const double DEFAULT_SPATIAL_RESOLUTION = 0.5;
 const bool LUTOMEMORY = true;
 
 // Mapping of input file data when LUTOMEMORY not defined
-const bool MAPFILE = false;
+const bool MAPFILE = true;
 
 const bool ascendinglongitudes = false;	//Not true for randomised gridlists; set to false for now
 
@@ -57,10 +57,13 @@ void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist) { //Requires gutil
 	ischeckingdata = true;
 	Rewind();
 
-	if(format == GLOBAL_STATIC) {
-		for(int j=0; j<nColumns; j++)	{
-			if(data[j] > 0.0)
-				checkdata[j] = true;
+	if(format == GLOBAL_STATIC || format == GLOBAL_YEARLY) {
+
+		for(int i=0;i<nYears;i++) {
+			for(int j=0;j<nColumns;j++) {
+				if(Get(firstyear + i, j) > 0.0)
+					checkdata[j]=1;
+			}
 		}
 		return;
 	}
@@ -84,7 +87,7 @@ void TimeDataD::CheckIfPresent(ListArray_id<Coord>& gridlist) { //Requires gutil
 	ischeckingdata = false;
 }
 
-bool TimeDataD::GetHeader(char cropnames[][MAXNAMESIZE]) const {
+bool TimeDataD::GetHeader(char *cropnames[MAXRECORDS]) const {
 
 	if(ifheader && header_arr) {
 		for(int i=0; i<nColumns; i++)
@@ -156,7 +159,7 @@ void TimeDataD::Get(int calender_year, double* dataX) const {
 
 double TimeDataD::Get(int calender_year, int column) const {
 
-	if(memory_copy)
+	if(memory_copy && !(format == GLOBAL_STATIC || format == GLOBAL_YEARLY))
 		return memory_copy->Get(calender_year, column);
 
 	int yearX = CalenderYearToPosition(calender_year);
@@ -169,7 +172,7 @@ double TimeDataD::Get(int calender_year, int column) const {
 
 double TimeDataD::Get(int calender_year, const char* name) const {
 
-	if(memory_copy && format != GLOBAL_STATIC)
+	if(memory_copy && !(format == GLOBAL_STATIC || format == GLOBAL_YEARLY))
 		return memory_copy->Get(calender_year, name);
 
 	int column = -1;
@@ -270,6 +273,11 @@ bool TimeDataD::Open(const char* name) {
 			printf("Could not allocate memory for data from file %s!\n", name);
 			return false;
 		}
+		// Load global data.
+		if(format == GLOBAL_STATIC || format == GLOBAL_YEARLY) {
+			Load();
+		}
+		unity_data = ParseNormalisation();
 		spatial_resolution = ParseSpatialResolution();
 	}
 	else {
@@ -280,9 +288,38 @@ bool TimeDataD::Open(const char* name) {
 	return true;
 }
 
+bool TimeDataD::ParseNormalisation() {
+
+	bool unity_data = true;
+	int cell = 0;
+	double sum = 0.0;
+	const int maxnsample = 200;
+	int nsample = min(maxnsample, GetNCells());
+
+	while(LoadNext() && cell < nsample) {
+		for(int y=0;y<nYears;y++) {
+			sum = 0.0;
+			for(int i=0;i<nColumns;i++) {
+				sum += Get(y + firstyear, i);
+			}
+			if(sum > 0.0 && (sum < 0.99 || sum > 1.01))
+				unity_data = false;
+		}
+		cell++;
+	}
+	Rewind();
+
+	return unity_data;
+}
+
+bool TimeDataD::NormalisedData() {
+
+	return unity_data;
+}
+
 void TimeDataD::CreateFileMap() {
 
-	if(format == GLOBAL_STATIC)
+	if(format == GLOBAL_STATIC || format == GLOBAL_YEARLY)
 		return;
 
 	long int pos;
@@ -339,8 +376,8 @@ bool TimeDataD::Open(const char* name, ListArray_id<Coord>& gridlist, double gri
 	if(Open(name)) {
 
 		SetOffset(gridlist_offset);
-		if(format == GLOBAL_STATIC) {
-			Load();
+
+		if(format == GLOBAL_STATIC || format == GLOBAL_YEARLY) {
 		}
 		else if (LUTOMEMORY) {
 			CopyToMemory(gridlist.nobj, gridlist);
@@ -391,6 +428,9 @@ fileformat TimeDataD::ParseFormat() {
 		}
 	}
 	while(!(count1 > 0));
+
+	for(int q=0;q<count1;q++)
+		header_arr[q]=new char[MAXNAMESIZE];
 
 	if(!strcmp(s1[0], "lon") || !strcmp(s1[0], "Lon") || !strcmp(s1[0], "LON")) {
 
@@ -560,7 +600,7 @@ int TimeDataD::GetNCells() {
 
 void TimeDataD::ParseNCells() {
 
-	if(format == GLOBAL_STATIC) {
+	if(format == GLOBAL_STATIC || format == GLOBAL_YEARLY) {
 		nCells = 1;
 		return;
 	}
@@ -944,7 +984,7 @@ bool TimeDataD::LoadFromMap(Coord c) {
 
 bool TimeDataD::Load(Coord c) {
 
-	if(format == GLOBAL_STATIC) {
+	if(format == GLOBAL_STATIC || format == GLOBAL_YEARLY) {
 		loaded = true;
 		return true;
 	}
@@ -999,6 +1039,7 @@ bool TimeDataD::Load(Coord c) {
 
 							if(fabs(lonX - c.lon) > spatial_resolution / 2.0 || fabs(latX - c.lat) > spatial_resolution / 2.0) {
 								printf("FORMAT ERROR in input file %s for stand at Coordinate %.2f,%.2f: Load(). Wrong coordinates in data file !\n", fileName, c.lon, c.lat);
+								printf("Make sure file has correct DOS/Unix text format\n");				
 								error = true;
 								break;
 							}
@@ -1148,6 +1189,10 @@ bool TimeDataD::LoadNext(long int *pos) {
 	// Only implemented for LOCAL_YEARLY and LOCAL_STATIC
 	// Needs to be modified to handle missing lines in data files with header ! (see Load)
 
+	if(format == GLOBAL_STATIC || format == GLOBAL_YEARLY) {
+		return 1;
+	}
+
 	char line[MAXLINE], *p=NULL;
 	double d1, d2, d3, d[MAXRECORDS]={0.0};
 	bool error = false, firstyear = true;
@@ -1245,6 +1290,7 @@ bool TimeDataD::LoadNext(long int *pos) {
 						}
 						else {
 							printf("FORMAT ERROR in input file %s: LoadNext(), count!=%d, year %d\n", fileName, nColumns+1, i+1);
+							printf("Make sure file has correct DOS/Unix text format\n");
 							error = true;
 							break;
 						}
@@ -1338,6 +1384,7 @@ bool TimeDataD::LoadNext(long int *pos) {
 						}
 						else {
 							printf("FORMAT ERROR in input file %s: LoadNext(), count!=%d, year %d\n", fileName, nColumns+1, i+1);
+							printf("Make sure file has correct DOS/Unix text format\n");
 							error = true;
 							break;
 						}
@@ -1602,15 +1649,14 @@ TimeDataD::TimeDataD(fileformat formatX) {
 	fileName = NULL;
 	ifheader = true;
 	for(int i=0;i<MAXRECORDS;i++) {
-		for(int j=0;j<MAXNAMESIZE;j++) {
-			header_arr[i][j] = 0;
-		}
+		header_arr[i] = NULL;
 	}
 	currentStand.lon = 0;
 	currentStand.lat = 0;
 	data = NULL;
 	checkdata = NULL;
 	ischeckingdata = false;
+	unity_data = true;
 
 	nColumns = 0;
 	nYears = 0;
@@ -1622,6 +1668,7 @@ TimeDataD::TimeDataD(fileformat formatX) {
 	filemap = NULL;
 	spatial_resolution = DEFAULT_SPATIAL_RESOLUTION;
 	offset = 0.0;
+	loaded = false;
 }
 
 //Deconstructor
@@ -1655,6 +1702,13 @@ void TimeDataD::Close() {
 	}
 	if(filemap)
 		delete[] filemap;
+
+	for(int i=0;i<MAXRECORDS;i++) {
+		if(&header_arr[i]) {
+			delete[] header_arr[i]; 
+			header_arr[i] = NULL;
+		}
+	}
 }
 
 void TimeDataD::CopyToMemory(int ncells, ListArray_id<Coord>& lonlatlist) { //Requires gutil.h
@@ -1788,12 +1842,21 @@ void TimeDataDmem::Close() {
 		delete[] data;
 		data = NULL;
 	}
+	for(int i=0;i<MAXRECORDS;i++) {
+		if(header_arr[i]) {
+			delete[] header_arr[i]; 
+			header_arr[i] = NULL;
+		}
+	}
 	nCells = 0;
 }
 
 void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridlistX) { //Requires gutil.h
 
 	int cell_no = 0;
+
+	for(int q=0;q<Data.GetnColumns();q++)
+		header_arr[q]=new char[MAXNAMESIZE];
 
 	if(Data.GetHeader(header_arr))
 		ifheader = true;
@@ -1876,11 +1939,10 @@ TimeDataDmem::TimeDataDmem() {
 	nCells = 0;
 	ifheader = false;
 	for(int i=0;i<MAXRECORDS;i++) {
-		for(int j=0;j<MAXNAMESIZE;j++) {
-			header_arr[i][j] = 0;
-		}
+		header_arr[i] = NULL;
 	}
 	currentCell = -1;
+	loaded = false;
 }
 
 TimeDataDmem::~TimeDataDmem() {

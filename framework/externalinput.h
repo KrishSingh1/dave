@@ -36,7 +36,7 @@ public:
 	void getlandcover(Gridcell& gridcell);
 
 	/// Gets crop stand type fractions for a year, called from getlandcover() 
-	void get_crop_fractions(Gridcell& gridcell, int year);
+	double get_crop_fractions(Gridcell& gridcell, int year, TimeDataD& CFTdata);
 
 	/// Gets land cover or stand type transitions for a year
 	bool get_land_transitions(Gridcell& gridcell);
@@ -57,10 +57,11 @@ private:
 	InData::TimeDataD LUdata;
 	InData::TimeDataD Peatdata;
 	InData::TimeDataD grossLUC;
-	InData::TimeDataD CFTdata;
+	InData::TimeDataD st_data[NLANDCOVERTYPES];
 
 	/// Files names for land cover fraction input files
-	xtring file_lu, file_grossLUC, file_lucrop, file_peat;
+	xtring file_lu, file_grossLUC, file_peat;
+	xtring file_lu_st[NLANDCOVERTYPES];
 
 	/// Whether pfts not in crop fraction input file are removed from pftlist (0,1)
 	bool minimizecftlist;
@@ -92,9 +93,10 @@ private:
 	InData::TimeDataD sdates;
 	InData::TimeDataD hdates;
 	InData::TimeDataD Nfert;
+	InData::TimeDataD Nfert_st;
 
 	/// Files names for management input file
-	xtring file_sdates, file_hdates, file_Nfert;
+	xtring file_sdates, file_hdates, file_Nfert, file_Nfert_st;
 
 	/// Gets sowing date data for a year
 	void getsowingdates(Gridcell& gridcell);

@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file cru.cpp
-/// \brief Functions for reading the CRU TS 3.0 data set
+/// \brief Functions for reading the CRU-NCEP data set
 ///
 /// $Date: 2013-11-04 16:30:55 +0100 (Mon, 04 Nov 2013) $
 ///
@@ -12,9 +12,9 @@
 #include <math.h>
 #include <vector>
 
-// header files for the CRU TS 3.0 data archives
-#include "cruncep_1901_2013.h"
-#include "cruncep_1901_2013misc.h"
+// header files for the CRU-NCEP data archives
+#include "cruncep_1901_2015.h"
+#include "cruncep_1901_2015misc.h"
 
 namespace CRU_TS30 {
  
@@ -27,14 +27,14 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 	// Please note the new function signature. 
 
 	// Archive object. Definition in new header file, cru.h
-	Cruncep_1901_2013Archive ark;
+	Cruncep_1901_2015Archive ark;
 
 	int y,m;
 
 	// Try block to catch any unexpected errors
 	try {
 
-		Cruncep_1901_2013 data; // struct to hold the data
+		Cruncep_1901_2015 data; // struct to hold the data
 
 		bool success = ark.open(cruark);
 
@@ -50,8 +50,8 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 
 
 		// The CRU archive index hold lons & lats as whole doubles * 10
-		data.lon = dlon * 100.0;
-		data.lat = dlat * 100.0;
+		data.lon = dlon;
+		data.lat = dlat;
 
 		// Read the CRU data into the data struct
 		success =ark.getindex(data);
@@ -66,14 +66,14 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 
 		for (y = 0; y < NYEAR_HIST; y++) {
 			for (m=0;m<12;m++) {
-				mtemp[y][m] = data.mtemp[y*12+m]*0.1; // now degC
-				mprec[y][m] = data.mprec[y*12+m]*0.1; // mm (sum over month)
+				mtemp[y][m] = data.mtemp[y*12+m]; // now degC
+				mprec[y][m] = data.mprec[y*12+m]; // mm (sum over month)
 				
 				// Limit very low precip amounts because negligible precipitation causes problems 
 				// in the prdaily function (infinite loops). 
 				if (mprec[y][m] <= 1.0) mprec[y][m] = 0.0;
 				
-				msun[y][m]  = data.msun[y*12+m]*0.1;   // % sun 
+				msun[y][m]  = data.mswrad[y*12+m];   // shortwave radiation
 
 			}
 		}
@@ -101,13 +101,13 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 	// Please note the new function signature. 
 
 	// Archive object
-	Cruncep_1901_2013miscArchive ark; 
+	Cruncep_1901_2015miscArchive ark; 
 	int y,m;
 
 	// Try block to catch any unexpected errors
 	try {
 
-		Cruncep_1901_2013misc data;
+		Cruncep_1901_2015misc data;
 
 		bool success = ark.open(cruark);
 
@@ -123,8 +123,8 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 
 
 		// The CRU archive index hold lons & lats as whole doubles * 10
-		data.lon = dlon * 100.0;
-		data.lat = dlat * 100.0;
+		data.lon = dlon;
+		data.lat = dlat;
 
 		// Read the CRU data into the data struct
 		success =ark.getindex(data);
@@ -135,21 +135,21 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 
 		// Transfer the data from the data struct to the arrays.
 		// Note that the multipliers are NOT the same as in searchcru above!
-		elevation=(int)data.elv[0]; // km * 1000
+		elevation=(int)data.elv[0]; // km * 1000?
 
 		for (y = 0; y < NYEAR_HIST; y++) { 
 			for (m=0;m<12;m++) {
 
 				// guess2008 - catch rounding errors 
-				mfrs[y][m] = data.mfrs[y*12+m]*0.01; // days
+				mfrs[y][m] = data.mfrs[y*12+m]; // days
 				if (mfrs[y][m] < 0.1) 
 					mfrs[y][m] = 0.0; // Catches rounding errors
 
-				mwet[y][m] = data.mwet[y*12+m]*0.01; // days
+				mwet[y][m] = data.mwet[y*12+m]; // days
 				if (mwet[y][m] <= 0.1) 
 					mwet[y][m] = 0.0; // Catches rounding errors
 
-				mdtr[y][m] = data.mdtr[y*12+m]*0.1;  // degC
+				mdtr[y][m] = data.mdtr[y*12+m];  // degC
 
 				// For some reason there are negative dtr values in
 				// the CRU binaries(!). Set these to zero for now.
@@ -157,7 +157,7 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 
 				/*
 				If vapour pressure is needed:
-				mvap[y][m] = data.mvap[y*12+m]*0.01;
+				mvap[y][m] = data.mvap[y*12+m];
 				*/
 			}
 		}
@@ -193,8 +193,8 @@ bool findnearestCRUdata(double searchradius, char* cruark, double& lon, double& 
 
 	// Search all coordinates in a square around (lon, lat), but first go down to
 	// multiple of 0.5
-	double center_lon = floor(lon*2)/2;
-	double center_lat = floor(lat*2)/2;
+	double center_lon = floor(lon*2)/2 + 0.25;
+	double center_lat = floor(lat*2)/2 + 0.25;
 
 	// Enumerate all coordinates within the square, place them in a vector of
 	// pairs where the first element is distance from center to allow easy 
@@ -204,13 +204,13 @@ bool findnearestCRUdata(double searchradius, char* cruark, double& lon, double& 
 	typedef pair<double, double> point;
 	std::vector<pair<double, point> > search_points;
 
-	const double STEP = 0.25;
+	const double STEP = 0.5;
 	const double EPS = 1e-15;
 
 	for (double y = center_lon-searchradius; y <= center_lon+searchradius+EPS; y += STEP) {
 		for (double x = center_lat-searchradius; x <= center_lat+searchradius+EPS; x += STEP) {
-			double xdist = x-center_lat;
-			double ydist = y-center_lon;
+			double xdist = x - lat;
+			double ydist = y - lon;
 			double dist = sqrt(xdist*xdist + ydist*ydist);
 			
 			if (dist <= searchradius + EPS) {

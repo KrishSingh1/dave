@@ -678,9 +678,12 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 				patch.fluxes.reset();
 				patch.soil.anfix = 0.0;
-				patch.soil.aorgleach = 0.0;
+				patch.soil.aorgNleach = 0.0;
+				patch.soil.aorgCleach = 0.0;
 				patch.soil.aminleach = 0.0;
 				patch.anfert = 0.0;
+				patch.managed_this_year = false;
+				patch.plant_this_year = false;
 				stand.nextobj();
 			}
 
@@ -1067,7 +1070,7 @@ void daylengthinsoleet(Climate& climate) {
 		}
 
 		// special case for polar night
-		if (climate.sinehh[date.day] < 0.001) {	// polar night
+		if (climate.hh[date.day] < 0.001) {
 			w = 0;
 		}
 		else {

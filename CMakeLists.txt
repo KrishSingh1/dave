@@ -82,7 +82,10 @@ add_subdirectory(framework)
 add_subdirectory(modules)
 add_subdirectory(cru)
 add_subdirectory(libraries)
-
+if (WIN32)
+  add_subdirectory(windows_version)
+endif()
+  
 if (UNIT_TESTS)
   add_subdirectory(tests)
 endif()

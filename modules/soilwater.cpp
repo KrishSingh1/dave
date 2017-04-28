@@ -387,7 +387,7 @@ void irrigation(Patch& patch) {
 	for (int i = 0; i < npft; i++) {
 
 		Patchpft& ppft = patch.pft[i];
-		if (patch.stand.pft[i].irrigated && ppft.cropphen->growingseason) {
+		if (patch.stand.pft[i].irrigated && ppft.growingseason()) {
 			if (ppft.water_deficit_d < 0.0) {
 				fail("irrigation: Negative water deficit for PFT %s!\n", (char*)ppft.pft.name);
 			}

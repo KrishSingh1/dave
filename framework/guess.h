@@ -175,9 +175,6 @@ const int WARMEST_DAY_SHEMISPHERE = COLDEST_DAY_NHEMISPHERE;
 /// number of years to average aaet over in function soilnadd
 const int NYEARAAET = 5;
 
-/// Maximum number of age classes in age structure plots produced by function outannual
-const int OUTPUT_MAXAGECLASS = 40;
-
 /// Priestley-Taylor coefficient (conversion factor from equilibrium evapotranspiration to PET)
 const double PRIESTLEY_TAYLOR = 1.32;
 
@@ -227,7 +224,8 @@ extern int npft;
 extern int nst;
 /// Number of stand types per land cover
 extern int nst_lc[NLANDCOVERTYPES];
-
+/// Number of management types in stlist
+extern int nmt;
 
 /// General purpose object for handling simulation timing.
 /** In general, frameworks should use a single Date object for all simulation
@@ -400,6 +398,22 @@ public:
 	 *  always returns 365. */
 	int year_length() const {
 		return MAX_YEAR_LENGTH;
+	}
+
+	/// Step n days from a date.
+	/** Current implementation does not consider leap days, and the same 
+	  * apply for the current use of the function through-out the model.
+      */
+	static int stepfromdate(int day, int step) {
+
+		if(day < 0)			// a negative value should not be a valid day
+			return -1;
+		else if(day + step > 0)
+			return (day + step) % MAX_YEAR_LENGTH;
+		else if(day + step < 0)
+			return day + step + MAX_YEAR_LENGTH;
+		else
+			return 0;
 	}
 };
 
@@ -876,10 +890,8 @@ public:
 		SEEDN,
 		/// NH3 flux to atmosphere from fire
 		NH3_FIRE,
-		/// NO flux to atmosphere from fire
-		NO_FIRE,
-		/// NO2 flux to atmosphere from fire
-		NO2_FIRE,
+		/// NOx flux to atmosphere from fire
+		NOx_FIRE,
 		/// N2O flux to atmosphere from fire
 		N2O_FIRE,
 		/// N2 flux to atmosphere from fire
@@ -917,12 +929,11 @@ public:
 		NPERPFTFLUXTYPES
 	};
 
-	// emission ratios from fire (NH3, NO, NO2, N2O) Delmas et al. 1995
+	// emission ratios from fire (NH3, NOx, N2O, N2) Delmas et al. 1995
 	// values in .cpp file
 
 	static const double NH3_FIRERATIO;
-	static const double NO_FIRERATIO;
-	static const double NO2_FIRERATIO;
+	static const double NOx_FIRERATIO;
 	static const double N2O_FIRERATIO;
 	static const double N2_FIRERATIO;
 
@@ -982,12 +993,28 @@ private:
 };
 
 /// Storage class of crop management information for one rotation period for a stand type, read from the instruction file.
-struct Management {
+class ManagementType {
 
-	/// name of crop pft
+public:
+	/// id code (should be zero based and sequential, 0...nst-1)
+	int id;
+	/// name of management type
+	xtring name;
+
+	/// type of planting system ("", "MONOCULTURE", "SELECTION", etc.)
+	xtring planting_system;
+	/// type of harvest system ("", "CLEARCUT", "CONTINUOUS")
+	xtring harvest_system;
+	/// name of crop pft 
 	xtring pftname;
-	/// hydrology (RAINFED,IRRIGATED)
+	/// identifier of pft selection
+	xtring selection;
+	/// Rotation period in years
+	double nyears;
+	/// hydrology (RAINFED,IRRIGATED) 
 	hydrologytype hydrology;
+	/// irrigation efficiency
+//	double firr;
 	/// forced sowing date, unless sdate_force read from file
 	int sdate;
 	/// forced harvest date, unless hdate_force read from file
@@ -996,36 +1023,131 @@ struct Management {
 	double nfert;
 	/// Whether grass is grown in fallow
 	bool fallow;
+	/// Double cropping of one crop (e.g. rice)
+	bool multicrop;
 
-	Management() {
+	ManagementType() {
 
+		planting_system = "";
+		harvest_system = "";
 		pftname = "";
+		selection = "";
+		nyears = 1.0;
 		hydrology = RAINFED;
+//		firr = 0.0;
 		sdate = -1;
 		hdate = -1;
-		nfert = 0.0;
 		nfert = -1.0;
 		fallow = false;
+		multicrop = false;
+	}
+
+	// Copy constructor
+	ManagementType(const ManagementType& from) {
+
+		name = from.name;
+		pftname = from.pftname;
+		hydrology = from.hydrology;
+		sdate = from.sdate;
+		hdate = from.hdate;
+		nfert = from.nfert;
+		fallow = from.fallow;
+	}
+
+	bool is_managed() {
+
+		// Add new management parameters here
+		if(pftname != "" || planting_system != "" || selection != ""||  harvest_system != "" ||  hydrology == IRRIGATED || fallow || nfert > -1.0)
+			return true;
+		else
+			return false;
+	}
+
+	/// Returns true if pft is in pftselection.
+	int pftinselection(const char* name) {
+
+		bool found = false;
+		char *p = NULL, string_copy[200] = {0};
+
+		strcpy(string_copy, selection);
+		p = strtok(string_copy, "\t\n ");
+		if(p) {
+			if(!strcmp(name, p)) {
+				found = true;
+			}
+		}
+
+		do {
+			p = strtok(NULL, "\t\n ");
+			if(p) {
+				if(!strcmp(name, p)) {
+					found = true;
+				}
+			}
+		}
+		while(p && !found);
+
+		return found;
 	}
 };
+
+/// A list of management types
+/** Functionality for building, maintaining, referencing and destroying a list array of
+ *  management types objects.
+ *
+ * Functionality is inherited from the ListArray_id template type in the GUTIL
+ * Library. Sequential management type objects can be referenced as array elements by id:
+ *
+ *   ManagementTypelist mtlist;
+ *   ...
+ *   for (i=0; i<nst; i++) {
+ *     ManagementType& thismt=stlist[i];
+ *     // query or modify object thismt here
+ *   }
+ *
+ * or by iteration through the linked list:
+ *
+ *   mtlist.firstobj();
+ *   while (mtlist.isobj) {
+ *    ManagementType& thismt=mtlist.getobj();
+ *     // query or modify object thismt here
+ *     mtlist.nextobj();
+ *   }
+ */
+class ManagementTypelist : public ListArray_id<ManagementType> {
+
+public:
+	int getmtid(xtring mtname) {
+
+		int id = -1;
+
+		for(unsigned int i=0; i< this->nobj; i++) {
+
+			ManagementType& mt = (*this)[i];
+			if(mt.name == mtname) {
+				id = mt.id;
+				break;
+			}
+		}
+
+		return id;
+	}
+};
+
+/// The one and only linked list of ManagementType objects	
+extern ManagementTypelist mtlist;
 
 /// Storage class of crop rotation information for a stand type, read from the instruction file.
 struct CropRotation {
 
 	/// Number of crops in rotation
 	int ncrops;
-	/// Rotation period in years
-	double nyears;
 	/// First rotation year
 	int firstrotyear;
-	/// Double cropping of one crop (e.g. rice)
-	bool multicrop;
 
 	CropRotation() {
-		ncrops = 1;
-		nyears = 1.0;
+		ncrops = 0;
 		firstrotyear = 0;
-		multicrop = false;
 	}
 };
 
@@ -1046,24 +1168,52 @@ public:
 	landcovertype landcover;	// specifies type of landcover (0 = URBAN, 1 = CROP, 2 = PASTURE, 3 = FOREST, 4 = NATURAL, 5 = PEATLAND)
 	/// Rotation information, read from the instruction file
 	CropRotation rotation;
-	/// List of management types in a rotation cycle
-	Management management[NROTATIONPERIODS_MAX];
+	/// Management struct (static)
+	ManagementType management;
+	/// Management types in a rotation cycle
+	xtring mtnames[NROTATIONPERIODS_MAX];
+	/// First management year: sets time when common features for managed stands begin, e.g. relaxed establishment rules and absence of disturbance before harvest begins
+	/** \this currently only applies for stands with wood havest */
+	int firstmanageyear;
 
 	/// intercrop (NOINTERCROP,NATURALGRASS)
 	intercroptype intercrop;
 	/// whether natural pft:s are allowed to grow in stand type
-	bool naturalveg; // or NONE, GRASSONLY, ALL
-	/// whether natural grass pft:s are allowed to grow in stand type
-	bool naturalgrass;
+	xtring naturalveg; // "", "GRASSONLY", "ALL"
 	// whether only pft:s defined in management are allowed (plus intercrop or naturalveg/grass)
 	bool restrictpfts;
+	/// whether planted pft:s or all active pft:s are allowed to established after planting in a forest stand ("", "RESTRICTED", "ALL")
+	xtring reestab;
 
 	StandType() {
 
 		intercrop = NOINTERCROP;
-		naturalveg = false;
-		naturalgrass = false;
+		naturalveg = "";
 		restrictpfts = false;
+		reestab = "ALL";
+		firstmanageyear = 100000;
+	}
+
+	ManagementType& get_management(int rot = 0) {
+
+		if(rotation.ncrops > 1) {
+			return mtlist[mtlist.getmtid(mtnames[rot])];
+		}
+		else {
+			return management;
+		}
+	}
+
+	/// Returns position of management in rotation list if present. Returns -1 if not.
+	int mtinrotation(xtring name) {
+
+		int mtno = -1;
+		for(int i=0; i<rotation.ncrops; i++) {
+			if(name == mtnames[i])
+				mtno = i;
+		}
+
+		return mtno;
 	}
 
 	/// Returns position of crop in rotation list if present. Returns -1 if not.
@@ -1071,7 +1221,7 @@ public:
 
 		int cropno = -1;
 		for(int i=0; i<rotation.ncrops; i++) {
-			if(name == management[i].pftname)
+			if(name == get_management(i).pftname)
 				cropno = i;
 		}
 
@@ -1338,6 +1488,8 @@ public:
 
 	/// specifies type of landcover pft is allowed to grow in (0 = URBAN, 1 = CROP, 2 = PASTURE, 3 = FOREST, 4 = NATURAL, 5 = PEATLAND)
 	landcovertype landcover;
+	/// pft selection
+	xtring selection;
 	/// fraction of residue outtake at harvest
 	double res_outtake;
 	/// harvest efficiency
@@ -2029,6 +2181,8 @@ public:
 	double lai_indiv_daily;
 	/// growth efficiency (NPP/leaf area) for each of the last five simulation years (kgC/m2/yr)
 	Historic<double, NYEARGREFF> greff_5;
+	/// increment of wood C for each of the last five simulation years (kgC/m2/yr)
+	Historic<double, 10> cmass_wood_inc_5;
 	/// individual/cohort age (years)
 	double age;
 	/// monthly LAI (including phenology component)
@@ -2588,11 +2742,13 @@ public:
 	/// annual leaching from available nitrogen pool
 	double aminleach;
 	/// annual leaching of organics from active nitrogen pool
-	double aorgleach;
+	double aorgNleach;
 	/// total annual nitrogen fixation
 	double anfix;
 	/// calculated annual mean nitrogen fixation
 	double anfix_calc;
+	/// annual leaching of organics nitrogen from carbon pool
+	double aorgCleach;	
 
 	// Variables for fast spinup of SOM pools
 
@@ -2678,7 +2834,8 @@ public:
 		anmin = 0.0;
 		animmob = 0.0;
 		aminleach = 0.0;
-		aorgleach = 0.0;
+		aorgNleach = 0.0;
+		aorgCleach = 0.0;
 		anfix = 0.0;
 		anfix_calc = 0.0;
 		anfix_mean = 0.0;
@@ -3024,6 +3181,8 @@ public:
 	/// safe method to set cropphen_struct variables
 	cropphen_struct* set_cropphen();
 
+	bool growingseason() const;
+
 	void serialize(ArchiveStream& arch);
 };
 
@@ -3073,6 +3232,11 @@ public:
 
 	/// whether management has started on this patch
 	bool managed;
+	/// cutting intensity (initial percent of trees cut, further selection at individual level has to be done in a separate function)
+	double man_strength;
+
+	bool managed_this_year;
+	bool plant_this_year;
 
 	/// DLE - the number of days over which wcont is averaged for this patch
 	/** i.e. those days for which daily temp > 5.0 degC */
@@ -3173,6 +3337,32 @@ public:
 	double cflux();
 	/// Total patch nitrogen fluxes so far this year
 	double nflux();
+	
+	/// Get 5-year mean of wood C mass increase (periodic annual increment)
+	double get_cmass_wood_inc_5() {
+		double cmass_wood_inc_5_mean = 0.0;
+		for (unsigned int i=0; i<vegetation.nobj; i++) {
+
+			// Disregard shrubs (crownarea_max = 10)
+			Individual& indiv = vegetation[i];
+			if(indiv.pft.lifeform == TREE && indiv.pft.crownarea_max > 10) {
+				if(indiv.cmass_wood_inc_5.size())
+					cmass_wood_inc_5_mean += indiv.cmass_wood_inc_5.mean();
+			}
+		}
+		return cmass_wood_inc_5_mean;
+	}
+	
+	/// Get cmass_wood of all individuals in patch
+	double cmass_wood() {
+		double cmass_wood = 0.0;
+		for (unsigned int i=0; i<vegetation.nobj; i++) {
+
+			Individual& indiv = vegetation[i];
+			cmass_wood += indiv.cmass_wood();
+		}
+		return cmass_wood;
+	}
 };
 
 /// Container for variables common to individuals of a particular PFT in a stand.
@@ -3199,6 +3389,10 @@ public:
 
 	/// Whether this PFT is allowed to grow in this stand
 	bool active;
+	/// Whether this PFT is planted in this stand
+	bool plant;
+	/// Whether this PFT is allowed to establish (after planting) in this stand
+	bool reestab;
 
 	/// Whether this PFT is irrigated in this stand
 	bool irrigated;
@@ -3214,6 +3408,8 @@ public:
 
 		anetps_ff_max = 0.0;
 		active = !run_landcover;
+		plant = false;
+		reestab = false;
 		irrigated = false;
 		sdate_force = -1;
 		hdate_force = -1;
@@ -3543,6 +3739,8 @@ public:
 	// current number of stands of this stand type
 	int nstands;
 
+	double nfert;
+
 	// MEMBER FUNCTIONS
 
 	/// Constructs a Gridcellst object
@@ -3557,6 +3755,7 @@ public:
 		gross_frac_increase = 0.0;
 		gross_frac_decrease = 0.0;
 		nstands = 0;
+		nfert = -1.0;
 	}
 
 	void serialize(ArchiveStream& arch);
@@ -3687,7 +3886,7 @@ public:
 	/// Creates a new Stand in this grid cell
 	Stand& create_stand(landcovertype lc, int no_patch = 0);
 
-	/// Creates new stand and initiates land cover settings
+	/// Creates new stand and initiates land cover settings when run_landcover==true
 	Stand& create_stand_lu(StandType& st, double fraction, int no_patch = 0);
 
 	/// Total gridcell carbon biomass and litter

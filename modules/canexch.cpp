@@ -957,7 +957,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 			if(leafoptn < 1e-10){   //daily carbon allocation Niklas
 				indiv.cton_leaf_opt = 0.0; // not allow to divide with 0 or very small number niklas dc
 			}else{
-				indiv.cton_leaf_opt =  indiv.dcmass_leaf * indiv.phen / leafoptn; 
+				indiv.cton_leaf_opt =  indiv.cmass_leaf * indiv.phen / leafoptn;
 			}
 		}
 		// Nitrogen demand

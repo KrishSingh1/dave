@@ -868,7 +868,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 				mort_shade=0.0;
 
 			if (mort_shade>0.0) {
-				mort_shade=mort_shade;
+				//mort_shade=mort_shade;
 			}
 
 			// Mortality due to fire

@@ -1113,10 +1113,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	for (y=0; y<365; y++) {
 		wscal_365[y]=0.0;
 	}
-	dcmass_leaf		  = 0.0;
 	ycmass_leaf		  = 0.0;
 	ycmass_repr		  = 0.0;
-	dcmass_root		  = 0.0;
 	ycmass_root		  = 0.0;
 	ylitter_root	  = 0.0;
 	yexceeds_cmass    = 0.0;
@@ -1131,16 +1129,9 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	nscal			  = 1.0;
 	abscission		  = 0.0;
 	ygrowth			  = 0.0;
-	dlai			  = 0.0;
-	l1				  = 0.0;
-	l2				  = 0.0;
-	l3				  = 0.0;
-	l4				  = 0.0;
 	wscal_mean_running =0.0;
 	cton_leaf_opt	  = 0.0; 
-	cton_leaf_current = 0.0;
-	total_cmass		  = 0.0;	//Daily allocation Niklas end
-
+	cton_leaf_current = 0.0; //Daily allocation Niklas end
 	anpp              = 0.0;
 	fpc               = 0.0;
 	fpc_daily		  = 0.0;
@@ -1261,9 +1252,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& phen_daily
 		& nscal
 		& ymax_lai
-		& dcmass_leaf
 		& ycmass_leaf
-		& dcmass_root
 		& ycmass_root
 		& ycmass_repr
 		& ylitter_root
@@ -1277,16 +1266,10 @@ void Individual::serialize(ArchiveStream& arch) {
 		& w4
 		& abscission
 		& ygrowth
-		& dlai
-		& l1
-		& l2
-		& l3
-		& l4
 		& wscal_365
 		& wscal_mean_running   	
 		& cton_leaf_opt	 
-		& cton_leaf_current
-		& total_cmass// daily allocation Niklas end
+		& cton_leaf_current // daily allocation Niklas end
 		& aet
 		& aaet
 		& ltor
@@ -1417,12 +1400,6 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 
 
-		if(pft.lifeform == GRASS && ifdcarb && alive && !istruecrop_or_intercropgrass()){
-
-			cmass_leaf = dcmass_leaf + w4 + ws; //set back to real values so that the fire calc is correct
-			cmass_root = dcmass_root + sg; //daily carbon allocation
-		}
-
 		const double mortality_non_fire = mortality - mortality_fire;
 
 		// Transfer killed biomass to litter
@@ -1432,6 +1409,14 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 		double cmass_leaf_litter = mortality * cmass_leaf;
 		double cmass_root_litter = mortality * cmass_root;
+
+		if(pft.lifeform == GRASS && ifdcarb && alive && !istruecrop_or_intercropgrass()){
+			cmass_leaf_litter += mortality * ws; //add extra pools to litter
+			cmass_leaf_litter += mortality * w4;
+			cmass_root_litter += mortality * sg;
+
+		}
+
 
 		if (pft.landcover==CROPLAND) {
 			if (pft.aboveground_ho)
@@ -1523,18 +1508,12 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		}
 		if(pft.lifeform == GRASS && ifdcarb && alive && !istruecrop_or_intercropgrass()){
 			//make sure that we take away from all the daily grass carbon pools.
-			cmass_leaf = ycmass_leaf;
-			cmass_root = ycmass_root;
 			sg *=remaining;
 			w1 *=remaining;
 			w2 *=remaining;
 			w3 *=remaining;
 			w4 *=remaining;
 			ws *=remaining;
-			dcmass_leaf *=remaining;
-			dcmass_root *=remaining;
-
-			total_cmass = dcmass_leaf + dcmass_root + sg + ws  +  w4;
 		}
 
 
@@ -1647,7 +1626,7 @@ double Individual::ccont(double scale_indiv, bool luc) const {
 
 			ccont = cmass_leaf + cmass_root + cmass_sap + cmass_heart - cmass_debt;
 
-			if(ifdcarb && pft.lifeform == GRASS) ccont = total_cmass;//daily carbon niklas
+			if(ifdcarb && pft.lifeform == GRASS) ccont += ws + sg + w4;//daily carbon niklas
 
 			if (pft.landcover == CROPLAND) {
 				ccont += cropindiv->cmass_ho + cropindiv->cmass_agpool;
@@ -2047,8 +2026,7 @@ void Individual::kill(bool harvest /* = false */) {
 	double harv_eff = 0.0;
 	double harvest_slow_frac = 0.0;
 	double res_outtake = 0.0;
-
-	// The function always deals with harvest, but the harvest
+		// The function always deals with harvest, but the harvest
 	// fractions are zero when there is no harvest.
 	if (harvest) {
 		harv_eff = pft.harv_eff;
@@ -2061,9 +2039,10 @@ void Individual::kill(bool harvest /* = false */) {
 	}
 
 	if(pft.lifeform == GRASS && ifdcarb && alive && !istruecrop_or_intercropgrass()){
-		cmass_leaf = dcmass_leaf + w4 + ws; //set back to real values so that the kill carbon is correct
-		cmass_root = dcmass_root + sg;
+		ppft.litter_root += sg; // storage grwoth to litter
+		ppft.litter_leaf += w4 + ws; //add senescing leaves and growth storage to litter
 	}
+
 	// C doesn't return to litter/harvest if the Individual isn't alive
 	if (alive || istruecrop_or_intercropgrass()) {
 

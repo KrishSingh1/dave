@@ -2159,10 +2159,6 @@ public:
 	double nscal;
 	// yearly lai for daily allocation Niklas
 	double ymax_lai;
-	// daily cmass_leaf for daily allocation niklas
-	double dcmass_leaf;
-	// daily cmass_root for daily allocation niklas
-	double dcmass_root;
 	// yearly total cmass for reproduction. for daily allocation.
 	double ycmass_repr;
 	// yearly maximum cmass_leaf for daily allocation niklas
@@ -2191,8 +2187,6 @@ public:
 	double abscission;
 	//sum of growth of leaves not related to sg
 	double ygrowth;
-	// total daily LAI of all compartments, daily allocation, niklas
-	double dlai;
 	// LAI of growth compartment 1 daily allocation Niklas
 	double l1;
 	// LAI of growth compartment 2 daily allocation Niklas
@@ -2205,8 +2199,6 @@ public:
 	double wscal_365[365];
 	// running average of wscal for last 365 days daily allocation niklas
 	double wscal_mean_running;
-	// total carbon content of individul for daily allocaiton checks mass balance, niklas
-	double total_cmass;
 	/// actual evapotranspiration over projected area (mm/day)
 	double aet;
 	/// annual actual evapotranspiration over projected area (mm/year)

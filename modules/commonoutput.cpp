@@ -79,6 +79,7 @@ CommonOutput::CommonOutput() {
 	//outdaily - Niklas code/version since crop version outfiles are empty
 	declare_parameter("file_dlai",&file_dlai,300,"Daily LAI output file");
 	declare_parameter("file_dflux",&file_dflux,300,"Daily flux output file");
+	declare_parameter("file_dtmp",&file_dtmp,300,"Daily tmp output file");
 
 }
 
@@ -254,6 +255,10 @@ void CommonOutput::define_output_tables() {
 	dflux_columns += ColumnDescriptor("dESTC", 14, 6);
 	dflux_columns += ColumnDescriptor("dSEEDC", 14, 6);
 	dflux_columns += ColumnDescriptor("dHARVESTC", 14, 6);
+	dflux_columns += ColumnDescriptor("dNEE", 14, 6);
+
+	ColumnDescriptors dtmp_columns;
+	dtmp_columns += ColumnDescriptors(pfts,14, 8);
 
 
 	// CTON
@@ -378,6 +383,7 @@ void CommonOutput::define_output_tables() {
 	// *** DAILY OUTPUT VARIABLES *** niklas addition
 	create_output_table(out_dlai,		 file_dlai,			 dlai_columns);
 	create_output_table(out_dflux,		 file_dflux,		 dflux_columns);
+	create_output_table(out_dtmp,		 file_dtmp,			 dtmp_columns);
 
 
 }
@@ -822,10 +828,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 							if (indiv.pft.id==pft.id) {
 
-								standpft_cmass_leaf += indiv.cmass_leaf;
+								standpft_cmass_leaf += indiv.ycmass_leaf;
 								standpft_cmass += indiv.ccont();
 								standpft_nmass += indiv.ncont();
-								standpft_nmass_leaf += indiv.cmass_leaf / indiv.cton_leaf_aavr;
+								standpft_nmass_leaf += indiv.ycmass_leaf / indiv.cton_leaf_aavr;
 								standpft_nmass_veg += indiv.nmass_veg;
 								standpft_fpc += indiv.fpc;
 								standpft_aaet += indiv.aaet;
@@ -834,11 +840,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 									standpft_densindiv_total += indiv.densindiv;
 									heightindiv_total += indiv.height * indiv.densindiv;
 								}
-								standpft_vmaxnlim += indiv.avmaxnlim * indiv.cmass_leaf;
+								standpft_vmaxnlim += indiv.avmaxnlim * indiv.ycmass_leaf;
 								standpft_nuptake += indiv.anuptake;
 
 								if(pft.landcover == CROPLAND) {
-									standpft_cmass_veg += indiv.cmass_leaf + indiv.cmass_root;
+									standpft_cmass_veg += indiv.ycmass_leaf + indiv.ycmass_root;
 									if(indiv.cropindiv) {
 										standpft_cmass_veg += indiv.cropindiv->cmass_ho + indiv.cropindiv->cmass_agpool + indiv.cropindiv->cmass_stem;
 										standpft_nmass_leaf += indiv.cropindiv->ynmass_leaf + indiv.cropindiv->ynmass_dead_leaf;
@@ -1476,7 +1482,9 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 	double dlai;
 	double lon,lat;
 
-	if (date.year >= nyear_spinup && date.get_calendar_year() == 1950) {
+	int printoutYEAR = 2000;
+
+	if (date.year >= nyear_spinup && date.get_calendar_year() > printoutYEAR) {
 
 
 		lon=gridcell.get_lon();
@@ -1486,8 +1494,11 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 		// output table
 		OutputRows out(output_channel, lon, lat, date.get_calendar_year(), date.day);
 
+		double mean_standpft_dlai = 0.0;
+		double mean_standpft_dtmp = 0.0;
 		double standpft_dlai = 0.0;
 		double gcpft_dlai = 0.0;
+		double standpft_dtmp = 0.0;
 		double dNPP = 0.0;
 		double dREPRC  = 0.0;
 		double dSOILC  = 0.0;
@@ -1495,20 +1506,42 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 		double dESTC  = 0.0;
 		double dSEEDC  = 0.0;
 		double dHARVESTC = 0.0;
+		int nindiv = 0;
+
 
 		// *** Loop through PFTs ***
-		pftlist.firstobj();
-		while (pftlist.isobj) {
-			Pft& pft=pftlist.getobj();
 
-			Gridcellpft& gridcellpft=gridcell.pft[pft.id];
+			pftlist.firstobj();
+			while (pftlist.isobj) {
 
-			gcpft_dlai=0.0;
-	
+				Pft& pft=pftlist.getobj();
+				Gridcellpft& gridcellpft=gridcell.pft[pft.id];
 
-			Gridcell::iterator gc_itr = gridcell.begin();
+				// Sum C biomass, NPP, LAI and BVOC fluxes across patches and PFTs
+				mean_standpft_dlai=0.0;
+				mean_standpft_dtmp=0.0;
+
+				// Determine area fraction of stands where this pft is active:
+				double active_fraction = 0.0;
+
+				Gridcell::iterator gc_itr = gridcell.begin();
+
+				while (gc_itr != gridcell.end()) {
+					Stand& stand = *gc_itr;
+
+					if(stand.pft[pft.id].active) {
+						active_fraction += stand.get_gridcell_fraction();
+					}
+
+					++gc_itr;
+				}
+
+
+
 
 			// Loop through Stands
+			gc_itr = gridcell.begin();
+
 			while (gc_itr != gridcell.end()) {
 				Stand& stand = *gc_itr;
 				Standpft& standpft=stand.pft[pft.id];
@@ -1519,8 +1552,8 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 				// Sum  across patches and PFTs
 	
 				standpft_dlai=0.0;
-
-
+				standpft_dtmp=0.0;
+				nindiv = 0;
 				// Initialise age structure array
 
 
@@ -1553,10 +1586,11 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 								dSEEDC += patch.fluxes.get_daily_flux(Fluxes::SEEDC,date.day)* to_gridcell_average;
 								dHARVESTC += patch.fluxes.get_daily_flux(Fluxes::HARVESTC,date.day)* to_gridcell_average;
 
-
+								standpft_dtmp += indiv.phen_daily;
+								nindiv++;
 
 								if(ifdcarb && patchpft.pft.lifeform == GRASS){
-									standpft_dlai += indiv.dlai;
+									standpft_dlai += indiv.lai;
 								}else{
 									standpft_dlai += indiv.lai*indiv.phen;
 								}
@@ -1570,26 +1604,27 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 					stand.nextobj();
 				} // end of patch loop
 
+
 				standpft_dlai /= (double)stand.npatch();
-		
+				standpft_dtmp /= (double)stand.npatch();
 
-				gcpft_dlai += standpft_dlai;
 	
-
-
+				mean_standpft_dlai += standpft_dlai * stand.get_gridcell_fraction() / active_fraction;
+				mean_standpft_dtmp += standpft_dtmp * stand.get_gridcell_fraction() / active_fraction;
 
 				++gc_itr;
 
 			}//End of loop through stands
 
-
 			// Print  to files
 
+			if(nindiv==0) nindiv = 1;
+
+				out.add_value(out_dlai, mean_standpft_dlai);
+				out.add_value(out_dtmp, mean_standpft_dtmp/nindiv);
 
 
-				out.add_value(out_dlai, gcpft_dlai);
 
-	
 			pftlist.nextobj();
 
 		} // *** End of PFT loop ***
@@ -1603,6 +1638,10 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 			out.add_value(out_dflux, dSEEDC);
 			out.add_value(out_dflux, dHARVESTC);
 
+
+			double dNEE = dNPP - dSOILC;
+
+			out.add_value(out_dflux, dNEE);
 
 	} // end if date year > spinup year
 

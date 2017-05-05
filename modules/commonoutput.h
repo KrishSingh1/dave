@@ -51,7 +51,7 @@ private:
 	xtring file_nmass, file_cton_leaf, file_nsources, file_npool, file_nlitter, file_nuptake, file_vmaxnlim, file_nflux, file_ngases;
 	
 	//outdaily files, niklas
-	xtring file_dlai, file_dflux;
+	xtring file_dlai, file_dflux, file_dtmp;
 
 
 	// Output tables
@@ -68,7 +68,7 @@ private:
 	//outdaily niklas
 	Table out_dlai;
 	Table out_dflux;
-
+	Table out_dtmp;
 
 };
 

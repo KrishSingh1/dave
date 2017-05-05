@@ -828,6 +828,15 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 							if (indiv.pft.id==pft.id) {
 
+								if(!ifdcarb || indiv.pft.lifeform != GRASS || !indiv.alive || indiv.istruecrop_or_intercropgrass()){
+									indiv.ymax_lai = indiv.lai;
+									indiv.ycmass_leaf = indiv.cmass_leaf;
+									indiv.ycmass_root = indiv.cmass_root;
+								}
+
+
+
+
 								standpft_cmass_leaf += indiv.ycmass_leaf;
 								standpft_cmass += indiv.ccont();
 								standpft_nmass += indiv.ncont();
@@ -835,7 +844,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								standpft_nmass_veg += indiv.nmass_veg;
 								standpft_fpc += indiv.fpc;
 								standpft_aaet += indiv.aaet;
-								standpft_lai += indiv.lai;
+								standpft_lai += indiv.ymax_lai;
 								if (pft.lifeform==TREE) {	
 									standpft_densindiv_total += indiv.densindiv;
 									heightindiv_total += indiv.height * indiv.densindiv;
@@ -1589,7 +1598,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 								standpft_dtmp += indiv.phen_daily;
 								nindiv++;
 
-								if(ifdcarb && patchpft.pft.lifeform == GRASS){
+								if(ifdcarb && patchpft.pft.lifeform == GRASS && indiv.alive){
 									standpft_dlai += indiv.lai;
 								}else{
 									standpft_dlai += indiv.lai*indiv.phen;

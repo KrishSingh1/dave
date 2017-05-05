@@ -1533,7 +1533,6 @@ void growth(Stand& stand, Patch& patch) {
 					}
 					else if (indiv.pft.lifeform == GRASS) {
 
-						// GRASS GROWTH
 						//True crops do not use bminc.or cmass_leaf etc.
 						if(indiv.istruecrop_or_intercropgrass()) {
 							// transfer crop cmass increase values to common variables
@@ -1682,12 +1681,6 @@ void growth(Stand& stand, Patch& patch) {
 						indiv.nstore_longterm = 0.0;
 					}
 
-
-					indiv.ymax_lai = indiv.lai;
-					indiv.ycmass_leaf = indiv.cmass_leaf;
-					indiv.ycmass_root = indiv.cmass_root;
-
-
 					// ... on to next individual
 					vegetation.nextobj();
 				}
@@ -1800,7 +1793,7 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 			if(indiv.wg==0 && !negligible(indiv.cmass_leaf)) {
 					indiv.ws = indiv.cmass_leaf; //First year with daily carbon allocation for this individual, put cmass_leaf into leaf storage
 					indiv.cmass_leaf = 0.0;
-			}
+					}
 
 
 			// For this individual

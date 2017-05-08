@@ -15,6 +15,7 @@
 #include <vector>
 #include "gutil.h"
 #include "globalco2file.h"
+#include "soilinput.h"
 #include "spinupdata.h"
 #include "cru_ts30.h"
 #include "lamarquendep.h"

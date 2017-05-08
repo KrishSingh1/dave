@@ -9,6 +9,7 @@
 
 #include "config.h"
 #include "cfinput.h"
+#include "soilinput.h"
 
 #ifdef HAVE_NETCDF
 
@@ -265,6 +266,7 @@ CFInput::CFInput()
 
 	declare_parameter("ndep_timeseries", &ndep_timeseries, 10, "Nitrogen deposition time series to use (historic, rcp26, rcp45, rcp60 or rcp85");
 
+	 SoilInput soilinput;
 }
 
 CFInput::~CFInput() {
@@ -385,6 +387,7 @@ void CFInput::init() {
 
 	date.set_first_calendar_year(cf_temp->get_date_time(0).get_year() - nyear_spinup);
 
+	soilinput.init();
 	// Set timers
 	tprogress.init();
 	tmute.init();
@@ -398,6 +401,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	double lon, lat;
 	double cru_lon, cru_lat;
 	int soilcode;
+	int soilstatus = 1;
 
 	// Load data for next gridcell, or if that fails, skip ahead until
 	// we find one that works.
@@ -451,6 +455,11 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	             Lamarque::parse_timeseries(ndep_timeseries));
 
 	// Setup the soil type
+	if (!soilinput.loaddatafromfile(lon,lat)) {
+		dprintf("Failed to load data with soil input\n");
+		soilstatus = -9;
+	}
+	soilinput.getsoil(gridcell,soilstatus);
 	soilparameters(gridcell.soiltype, soilcode);
 
 	historic_timestep_temp = -1;
@@ -515,17 +524,22 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 
 	cru_lon = lon;
 	cru_lat = lat;
-	double dummy[CRU_TS30::NYEAR_HIST][12];
+	// Find nearest CRU grid cell in order to get the soilcode
+	if (param["file_soilmap"].str == "") {
+		double dummy[CRU_TS30::NYEAR_HIST][12];
 
-	const double searchradius = 1;
+		const double searchradius = 1;
 
-	if (!CRU_TS30::findnearestCRUdata(searchradius, file_cru, cru_lon, cru_lat, soilcode,
-	                                  dummy, dummy, dummy)) {
-		dprintf("Failed to find soil code from CRU archive, close to coordinates (%g,%g), skipping.\n",
-		        cru_lon, cru_lat);
-		return false;
+		if (!CRU_TS30::findnearestCRUdata(searchradius, file_cru, cru_lon, cru_lat, soilcode,
+			                              dummy, dummy, dummy)) {
+			dprintf("Failed to find soil code from CRU archive, close to coordinates (%g,%g), skipping.\n",
+				    cru_lon, cru_lat);
+			return false;
+		}
+
+	} else {
+		soilcode = -1;
 	}
-
 	return true;
 }
 

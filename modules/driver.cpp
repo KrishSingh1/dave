@@ -73,6 +73,15 @@ void soilparameters(Soiltype& soiltype, int soilcode) {
 		// (Eqn 31, Haxeltine & Prentice 1996)
 		// Changed from 4 to 2 (Sitch, Thonicke, pers comm 26/11/01)
 
+	if (param["file_soilmap"].str=="" || soiltype.organic_frac > 0.12) {
+		// INPUT AND OUTPUT PARAMETER
+		// soil = patch soil
+
+		// The imperical relationships that also takes org. C into account
+		// haven't been established in the model yet. TODO
+		if (soiltype.organic_frac > 0.12) {
+			soilcode = 8;
+		}
 	double data[9][9] = {
 
 		//    0  empirical parameter in percolation equation (k1) (mm/day)
@@ -130,7 +139,66 @@ void soilparameters(Soiltype& soiltype, int soilcode) {
 	soiltype.wsats[0] = SOILDEPTH_UPPER * data[soilcode-1][6];
 	soiltype.wsats[1] = SOILDEPTH_LOWER * data[soilcode-1][6];
 	soiltype.wtot = (data[soilcode-1][1] + data[soilcode-1][5]) * (SOILDEPTH_UPPER + SOILDEPTH_LOWER);
+	} else {
 
+		if (soiltype.sand_frac<0.0) {
+			// Using fixed values from Parton et al. (2010) for the
+			// locations where no soil data exists in the map.
+			soiltype.sand_frac = 0.28;
+			soiltype.clay_frac = 0.12;
+			soiltype.silt_frac = 1 - soiltype.sand_frac - soiltype.clay_frac;
+		}
+
+		double b = 0.0;
+		double logK_s  = 0.0;
+		double logPsi_s = 0.0;
+		double Theta_s = 0.0;
+		double Theta_wilt = 0.0;
+		double Theta_whc = 0.0;
+		// Equation 1 from Cosby 1984
+		// Psi = Psi_s * (Theta/Theta_s)^b
+		// Psi is the pressure head in cm
+		// *_s is the values at saturation
+		// Theta is the volumetric moisture content in percent
+		// Re-arranged to get the Theta
+		// Theta = Theta_s * (Psi/Psi_s)^(1/b)
+
+
+		// from Table 4, Cosby 1984
+		b = 3.10+15.7 * soiltype.clay_frac - 0.3 * soiltype.sand_frac;
+		//logK_s = -0.6 + 1.26 * soiltype.sand_frac - 0.64 * soiltype.clay_frac;
+		logPsi_s = 1.54 - 0.95 * soiltype.sand_frac + 0.63 * soiltype.silt_frac;
+		// Theta_s in Cosby expressed as %
+		Theta_s = 0.01*(50.5 - 14.2 * soiltype.sand_frac - 3.7 * soiltype.clay_frac);
+
+		double Psi_s = pow(10.0, -logPsi_s);
+		double Psi_wilt = pow(10.0, -4.2);
+		double Psi_whc = pow(10.0, -2.0);
+
+		Theta_whc = Theta_s * pow((Psi_whc/Psi_s),1.0/b);
+		Theta_wilt = Theta_s * pow((Psi_wilt/Psi_s),1.0/b);
+
+		// A linear dependence between the percolation coefficient from Haxeltine 1996a
+		// and the texture dependent parameter b from Cosby 1984 was established
+		// K = 5.87 - 0.29*b
+
+		soiltype.perc_base = 5.87 - 0.29 * b;
+		soiltype.perc_exp = PERC_EXP;
+		soiltype.awc[0] = SOILDEPTH_UPPER * (Theta_whc - Theta_wilt);
+		soiltype.awc[1] = SOILDEPTH_LOWER * (Theta_whc - Theta_wilt);
+
+		soiltype.wp[0] = SOILDEPTH_UPPER * Theta_wilt;
+		soiltype.wp[1] = SOILDEPTH_LOWER * Theta_wilt;
+		soiltype.wsats[0] = SOILDEPTH_UPPER * Theta_s;
+		soiltype.wsats[1] = SOILDEPTH_LOWER * Theta_s;
+		soiltype.wtot = (Theta_whc) * (SOILDEPTH_UPPER + SOILDEPTH_LOWER);
+		soiltype.thermdiff_0 = 0.2;
+		// A linear interpolation between b-values in the data table above and the thermal diffusivity
+		soiltype.thermdiff_15 = 0.15 * b + 0.05;
+		soiltype.thermdiff_100 = 0.4;
+		
+	}
+	dprintf("Soiltype %d, AWC %f\n",soilcode,soiltype.awc[0]);
 	if (!ifcentury) {
 		// override the default SOM years with 70-80% of the spin-up period
 		soiltype.updateSolveSOMvalues(nyear_spinup);

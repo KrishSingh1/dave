@@ -54,6 +54,7 @@ CRUInput::CRUInput()
 
 	declare_parameter("searchradius", &searchradius, 0, 100,
 		"If specified, CRU data will be searched for in a circle");
+	SoilInput soilinput;
 }
 
 
@@ -111,6 +112,7 @@ void CRUInput::init() {
 	management_input.init();
 
 	date.set_first_calendar_year(FIRSTHISTYEAR - nyear_spinup);
+	soilinput.init();
 	// Set timers
 	tprogress.init();
 	tmute.init();
@@ -146,6 +148,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 	int soilcode;
 	int elevation;
 
+	int soilstatus = 1;
 	// Make sure we use the first gridcell in the first call to this function,
 	// and then step through the gridlist in subsequent calls.
 	if (first_call) {
@@ -177,6 +180,12 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 					gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation,
 					                                     hist_mfrs, hist_mwet, hist_mdtr);
 
+				if (gridfound) {
+					if (!soilinput.loaddatafromfile(lon,lat)) {
+						dprintf("Failed to load data with soil input\n");
+						soilstatus = -9;
+					}
+				}
 				if (run_landcover && gridfound) {
 					LUerror = landcover_input.loadlandcover(lon, lat);
 					if(!LUerror)
@@ -239,6 +248,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		
 		gridcell.climate.instype = SWRAD_TS;
 
+		soilinput.getsoil(gridcell,soilstatus);
 		// Tell framework the soil type of this grid cell
 		soilparameters(gridcell.soiltype,soilcode);
 

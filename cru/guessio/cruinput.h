@@ -139,6 +139,7 @@ private:
 	 */
 	GlobalCO2File co2;
 
+	SoilInput soilinput;
 	/// Monthly temperature for current grid cell and historical period
 	double hist_mtemp[NYEAR_HIST][12];
 

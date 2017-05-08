@@ -293,7 +293,6 @@ public:
 	/// Tests if param exists
 	bool isparam(xtring name);
 
-private:
 	/// Tries to find the parameter in the list
 	/** \returns 0 if it wasn't there. */
 	Paramtype* find(xtring name);

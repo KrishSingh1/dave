@@ -12,6 +12,7 @@
 
 #ifdef HAVE_NETCDF
 
+#include "soilinput.h"
 #include "cruinput.h"
 #include "guessnc.h"
 #include <memory>
@@ -108,6 +109,7 @@ private:
 	 */
 	GlobalCO2File co2;
 
+	SoilInput soilinput;
 	// The variables
 
 	GuessNC::CF::GridcellOrderedVariable* cf_temp;

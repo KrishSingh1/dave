@@ -2517,6 +2517,9 @@ public:
 	/// fraction of soil that is silt
 	double silt_frac;
 
+	double organic_frac;
+
+	double pH;
 	// MEMBER FUNCTIONS
 
 public:
@@ -2526,6 +2529,8 @@ public:
 
 		solvesom_end = SOLVESOM_END;
 		solvesom_begin = SOLVESOM_BEGIN;
+		organic_frac = 0.02;
+		pH = -1.0;
 	}
 
 	/// Override the default SOM years with 70-80% of the spin-up period length

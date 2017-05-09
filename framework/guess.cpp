@@ -1108,16 +1108,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	dnpp			  = 0.0; //Daily allocation Niklas start
 	dgpp			  = 0.0;
 	ymax_lai		  = 0.0;
-
-	int y;
-	for (y=0; y<365; y++) {
-		wscal_365[y]=0.0;
-	}
 	ycmass_leaf		  = 0.0;
-	ycmass_repr		  = 0.0;
 	ycmass_root		  = 0.0;
-	ylitter_root	  = 0.0;
-	yexceeds_cmass    = 0.0;
 	ws				  = 0.0;
 	wg				  = 0.0;
 	w1				  = 0.0;
@@ -1126,12 +1118,9 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	w4				  = 0.0;
 	sg                = 0.0;
 	phen_daily		  = 0.0;
-	nscal			  = 1.0;
 	abscission		  = 0.0;
 	ygrowth			  = 0.0;
-	wscal_mean_running =0.0;
 	cton_leaf_opt	  = 0.0; 
-	cton_leaf_current = 0.0; //Daily allocation Niklas end
 	anpp              = 0.0;
 	fpc               = 0.0;
 	fpc_daily		  = 0.0;
@@ -1250,13 +1239,9 @@ void Individual::serialize(ArchiveStream& arch) {
 		& dnpp		//daily allocation Niklas
 		& dgpp
 		& phen_daily
-		& nscal
 		& ymax_lai
 		& ycmass_leaf
 		& ycmass_root
-		& ycmass_repr
-		& ylitter_root
-		& yexceeds_cmass
 		& ws
 		& sg
 		& wg
@@ -1266,10 +1251,9 @@ void Individual::serialize(ArchiveStream& arch) {
 		& w4
 		& abscission
 		& ygrowth
-		& wscal_365
-		& wscal_mean_running   	
+		& nscal_running
+		& wscal_running   	
 		& cton_leaf_opt	 
-		& cton_leaf_current // daily allocation Niklas end
 		& aet
 		& aaet
 		& ltor
@@ -1711,6 +1695,8 @@ double Individual::ndemand_storage(double cton_leaf_opt) {
 	if (vegetation.patch.stand.is_true_crop_stand() && ifnlim)	// only CROPGREEN, only ifnlim ?
 		// analogous with root demand
 		storendemand = max(0.0, cropindiv->grs_cmass_stem / (cton_leaf_opt * pft.cton_stem_avr / pft.cton_leaf_avr) - cropindiv->nmass_agpool);
+	else if (ifdcarb && pft.lifeform == GRASS)
+		storendemand = max(0.0, max_n_storage - nstore()) / 10.0;
 	else
 		storendemand = max(0.0, min(anpp * scale_n_storage / cton_leaf(), max_n_storage) - nstore());
 

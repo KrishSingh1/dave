@@ -2155,20 +2155,12 @@ public:
 	double dnee;
 	// phen for daily allocation (based on water supply and demand ratio for C4 and gdd5 for C3 grass daily allocation niklas.
 	double phen_daily;
-	// nscal for eahc individual updated yearly, daily carbon allocation niklas
-	double nscal;
 	// yearly lai for daily allocation Niklas
 	double ymax_lai;
-	// yearly total cmass for reproduction. for daily allocation.
-	double ycmass_repr;
 	// yearly maximum cmass_leaf for daily allocation niklas
 	double ycmass_leaf;
 	// yearly maximum cmass_root for daily allocation niklas
 	double ycmass_root;
-	// yearly sum of root litter or daily allocation, niklas
-	double ylitter_root;
-	// yearly sum of negative increment that exceeds existing biomass following allocation, on individual basis (kgC) daily allocation, niklas
-	double yexceeds_cmass;
 	// Storage weight for daily allocation niklas
 	double ws;
 	// Storage weight for biomass increment without lai
@@ -2195,10 +2187,10 @@ public:
 	double l3;
 	// LAI of growth compartment 4 daily allocation Niklas
 	double l4;
-	// 365 day wscal values saved to calculate running mean added by niklas for daily allocation
-	double wscal_365[365];
-	// running average of wscal for last 365 days daily allocation niklas
-	double wscal_mean_running;
+	// running mean of nscal for last 365 days for each individual daily allocation
+	Historic<double, 365> nscal_running;
+	// running mean of wscal for last 365 days for each individual daily allocation
+	Historic<double, 365> wscal_running;
 	/// actual evapotranspiration over projected area (mm/day)
 	double aet;
 	/// annual actual evapotranspiration over projected area (mm/year)
@@ -2283,11 +2275,8 @@ public:
 	/// annual average leaf C:N ratio
 	double cton_leaf_aavr;
 
-	// daily optimal leaf C:N ratio , dc niklas
+	/// daily optimal leaf C:N ratio
 	double cton_leaf_opt;
-	//daily current leaf C:N ratio, dc niklas
-	double cton_leaf_current;
-
 	/// plant mobile nitrogen status
 	double cton_status;
 	/// total carbon in compartments before growth

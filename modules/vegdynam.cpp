@@ -215,6 +215,7 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 						indiv.crownarea=1.0; // (value not used)
 						indiv.densindiv=1.0;
 						indiv.fpc=0.0;
+						indiv.nscal_running.add(1.0);
 					}
 				}
 			}
@@ -499,6 +500,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						indiv.crownarea=1.0; // (value not used)
 						indiv.densindiv=1.0;
 						indiv.fpc=1.0;
+						indiv.nscal_running.add(1.0);
 
 						// Initial grass biomass proportional to potential forest floor
 						// net assimilation this year on patch area basis

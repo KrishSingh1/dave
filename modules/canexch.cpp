@@ -838,6 +838,13 @@ void nstore_usage(Vegetation& vegetation) {
 			}
 			else {
 
+				// Move long-term nitrogen storage pool to labile storage pool for usage now
+				if (ifdcarb && indiv.pft.lifeform == GRASS) {
+					double transferred_nstore = min(0.1 * indiv.nstore_longterm, excess_ndemand - indiv.nstore_labile);
+					indiv.nstore_labile += transferred_nstore;
+					indiv.nstore_longterm -= transferred_nstore;
+				}
+
 				if (!negligible(indiv.nstore_labile)) {
 
 					// calculate total nitrogen mass
@@ -909,9 +916,6 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Optimal leaf nitrogen content
 		double leafoptn;
 
-		// Optimal leaf C:N ratio
-		double cton_leaf_opt;
-
 		// Calculate optimal leaf nitrogen content and demand
 		if (!negligible(indiv.phen)) {
 
@@ -943,35 +947,30 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 			// Setting daily optimal leaf C:N ratio
 			if (indiv.leafndemand) {
-				cton_leaf_opt = indiv.cmass_leaf_today() / leafoptn;
+				indiv.cton_leaf_opt = indiv.cmass_leaf_today() / leafoptn;
 			}
 			else {
-				cton_leaf_opt = max(indiv.pft.cton_leaf_min, indiv.cton_leaf());
+				indiv.cton_leaf_opt = max(indiv.pft.cton_leaf_min, min(indiv.pft.cton_leaf_max, indiv.cton_leaf()));
 			}
 		}
 		else {
 			indiv.leafndemand = 0.0;
-			cton_leaf_opt = indiv.cton_leaf();
+			indiv.cton_leaf_opt = indiv.cton_leaf();
 		}
-		if(ifdcarb && indiv.pft.lifeform == GRASS && indiv.alive){
-			if(leafoptn < 1e-10){   //daily carbon allocation Niklas
-				indiv.cton_leaf_opt = 0.0; // not allow to divide with 0 or very small number niklas dc
-			}else{
-				indiv.cton_leaf_opt =  indiv.cmass_leaf * indiv.phen / leafoptn;
-			}
-		}
+
 		// Nitrogen demand
 
 		// Root nitrogen demand
-		indiv.rootndemand = max(0.0, indiv.cmass_root_today() / (cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root);
+		indiv.rootndemand = max(0.0, indiv.cmass_root_today() / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root);
 
 		// Sap wood nitrogen demand. Demand is ramped up throughout the year.
 		if (indiv.pft.lifeform == TREE) {
-			indiv.sapndemand = max(0.0, indiv.cmass_sap / (cton_leaf_opt * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_sap) * ((1.0 + (double)date.day)/date.year_length());
+			indiv.sapndemand = max(0.0, indiv.cmass_sap / (indiv.cton_leaf_opt * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_sap) * ((1.0 + (double)date.day)/date.year_length());
 		}
 
 		// Labile nitrogen storage demand
-		indiv.storendemand = indiv.ndemand_storage(cton_leaf_opt);
+		indiv.storendemand = indiv.ndemand_storage(indiv.cton_leaf_opt);
+
 		//TODO HO demand
 		indiv.hondemand = 0.0;
 
@@ -1565,28 +1564,13 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 		}
 	}
 
-	// calculate the running sum of wscal to use for daily carbon allocation, niklas
+	// calculate the running sum of wscal to use for daily carbon allocation
 	if(day.isend && ifdcarb){
 		vegetation.firstobj();
 		while (vegetation.isobj) {
 			Individual& indiv = vegetation.getobj();
-			indiv.wscal_365[date.day] = patch.pft[indiv.pft.id].wscal;
 
-			if(date.year==0) {
-				indiv.wscal_mean_running=0.0;
-				for (int y=0;y<=date.day; y++){
-					indiv.wscal_mean_running += indiv.wscal_365[y];
-				}
-
-				indiv.wscal_mean_running /=date.day;
-			}
-			else{
-				indiv.wscal_mean_running=0.0;
-				for (int y=0;y<365; y++){
-					indiv.wscal_mean_running += indiv.wscal_365[y];
-				}
-				indiv.wscal_mean_running /=365;
-			}
+			indiv.wscal_running.add(patch.pft[indiv.pft.id].wscal);
 
 			vegetation.nextobj();
 		}

@@ -845,7 +845,8 @@ void nstore_usage(Vegetation& vegetation) {
 					indiv.nstore_longterm -= transferred_nstore;
 				}
 
-				if (!negligible(indiv.nstore_labile)) {
+				if (!negligible(indiv.nstore_labile) && !negligible(indiv.cmass_root_today() + indiv.cmass_leaf_today())) { //NIKLAS DC __ ASK DAVID IF IT MAKE SENSE
+					//added check for daily carbon allocation to not divide by zero if individual lost all is leafs and roots during the year and should hence be killed
 
 					// calculate total nitrogen mass
 					double tot_nmass = indiv.nmass_leaf + indiv.nmass_root + indiv.fnuptake * (indiv.leafndemand + indiv.rootndemand) + indiv.nstore_labile;
@@ -917,7 +918,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		double leafoptn;
 
 		// Calculate optimal leaf nitrogen content and demand
-		if (!negligible(indiv.phen)) {
+		if (!negligible(indiv.phen) && !negligible(indiv.cmass_leaf_today())) {
 
 			indiv.nday_leafon++;
 

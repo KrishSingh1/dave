@@ -1718,7 +1718,6 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 
 	double raingreen_ndemand = 0.0;
 
-	double dval = 0.0;
 
 	// Leaf C:N ratios before growth
 	double cton_leaf_bg = 0.0;
@@ -1747,11 +1746,6 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 	double c2=0.0;
 	double c3=0.0;
 	double c4=0.0;
-
-	double lc1=0.0;
-	double lc2=0.0;
-	double lc3=0.0;
-	double lc4=0.0;
 
 	// If not modelling daily growth for grasses then return back to framework
 	if (!ifdcarb)
@@ -1828,7 +1822,7 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 				s_fac = sen_fac * c3transfercon; //min(1.0,max(0.0,c3transfercon*patch.get_climate().temp/20.0));
 			}
 
-			if ((indiv.phen_daily > 0.1 && indiv.lai < 0.1)) { // check if storage needs to be used only when very low LAI
+			if ((indiv.phen_daily > 0.1 && indiv.lai < 0.1 && indiv.ws < indiv.sg)) { // check if storage needs to be used only when very low LAI
 				G = indiv.sg * 0.2;
 				indiv.sg -= G;
 			}
@@ -2009,6 +2003,8 @@ void growth_reset(Stand& stand, Patch& patch) {
 // Huang, S, Titus, SJ & Wiens, DP (1992) Comparison of nonlinear height-diameter
 //   functions for major Alberta tree species. Canadian Journal of Forest Research 22:
 //   1297-1304
+// Johnson, I. R., & Thornley, J. H. M. (1983). Vegetative crop growth model incorporating
+//   leaf area expansion and senescence, and applied to grass. Plant Cell and Environment, 6(9)
 // Monsi M & Saeki T 1953 Ueber den Lichtfaktor in den Pflanzengesellschaften und
 //   seine Bedeutung fuer die Stoffproduktion. Japanese Journal of Botany 14: 22-52
 // Prentice, IC, Sykes, MT & Cramer W (1993) A simulation model for the transient

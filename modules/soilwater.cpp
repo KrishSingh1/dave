@@ -441,7 +441,7 @@ void soilwater(Patch& patch, Climate& climate) {
 //   competition among plant functional types. Global Biogeochemical Cycles 10:
 //   693-709
 // Bondeau, A., Smith, P.C., Zaehle, S., Schaphoff, S., Lucht, W., Cramer, W.,
-//   Gerten, D., Lotze-Campen, H., Müller, C., Reichstein, M. and Smith, B. (2007),
+//   Gerten, D., Lotze-Campen, H., MÃ¼ller, C., Reichstein, M. and Smith, B. (2007),
 //   Modelling the role of agriculture for the 20th century global terrestrial carbon balance.
 //   Global Change Biology, 13: 679-706. doi: 10.1111/j.1365-2486.2006.01305.x
 // Rost, S., D. Gerten, A. Bondeau, W. Luncht, J. Rohwer, and S. Schaphoff (2008),

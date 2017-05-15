@@ -20,6 +20,8 @@
 #include "somdynam.h"
 #include "growth.h"
 #include "vegdynam.h"
+#include "blaze.h"
+#include "simfire.h"
 #include "landcover.h"
 #include "bvoc.h"
 #include "commonoutput.h"
@@ -117,6 +119,9 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			growth_daily(patch);
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch);
+			// BLAZE fire model 
+			if (firemodel == BLAZE && patch.has_fires()) 
+				blaze(patch,gridcell.climate);
 
 			if (date.islastday && date.islastmonth) {
 
@@ -208,6 +213,7 @@ int framework(const CommandLineArguments& args) {
 		// Create and initialise a new Gridcell object for each locality
 		Gridcell gridcell;
 
+		// CLN enter SIMFIRE input here
 		// Call input module to obtain latitude and driver data for this grid cell.
 		if (!input_module->getgridcell(gridcell)) {
 			break;
@@ -221,18 +227,20 @@ int framework(const CommandLineArguments& args) {
 			// data files for the spinup period and create stands
 			landcover_init(gridcell, input_module.get());
 		}
-
+		double prescba = gridcell.climate.prescribed_ba;
 		if (restart) {
 			// Get the whole grid cell from file...
 			deserializer->deserialize_gridcell(gridcell);
 			// ...and jump to the restart year
 			date.year = state_year;
 		}
+		gridcell.climate.prescribed_ba = prescba;
 
 		// Call input/output to obtain climate, insolation and CO2 for this
 		// day of the simulation. Function getclimate returns false if last year
 		// has already been simulated for this grid cell
 
+		// CLN enter GFED & MET in getclimate
 		while (input_module->getclimate(gridcell)) {
 
 			// START OF LOOP THROUGH SIMULATION DAYS

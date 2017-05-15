@@ -37,7 +37,8 @@
 /// Internal help function for splitting up nitrogen fire fluxes into components
 void report_fire_nfluxes(Patch& patch, double nflux_fire) {
 	patch.fluxes.report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire);
-	patch.fluxes.report_flux(Fluxes::NOx_FIRE, Fluxes::NOx_FIRERATIO * nflux_fire);
+	patch.fluxes.report_flux(Fluxes::NO_FIRE,  Fluxes::NO_FIRERATIO  * nflux_fire);
+	patch.fluxes.report_flux(Fluxes::NO2_FIRE, Fluxes::NO2_FIRERATIO * nflux_fire);
 	patch.fluxes.report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
 	patch.fluxes.report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
 }
@@ -503,10 +504,16 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Initial grass biomass proportional to potential forest floor
 						// net assimilation this year on patch area basis
 
+						// because of problems with biomeshifting in BLAZE a reduced SAPSIZE has been 
+						// implemented in the tropics
+						Gridcell&  gridcell = stand.get_gridcell();
+						double sapfac = 1.0;
+						if ( firemodel == BLAZE && abs(gridcell.get_lat()) <30.  ) 
+							sapfac = 0.1;
 						if(pft.phenology == CROPGREEN)
-							bminit = SAPSIZE * 0.01;
-						else if(patch.has_disturbances() && patch.disturbed)
-							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff_est_initial;
+							bminit = sapfac * SAPSIZE * 0.01;
+						else if(patch.has_disturbances() && patch.disturbed) 
+							bminit = sapfac * SAPSIZE * patch.pft[pft.id].anetps_ff_est_initial;
 						else
 							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;
 
@@ -838,8 +845,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 				mort_shade=0.0;
 
 			// Mortality due to fire
-
-			if (patch.has_fires()) mort_fire=fireprob*(1.0-indiv.pft.fireresist);
+			if (patch.has_fires() && firemodel == GLOBFIRM) mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			else mort_fire=0.0;
 
 			// Sum mortality components to give total mortality (maximum 1)
@@ -872,8 +878,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			}
 
 			// Mortality due to fire
-
-			if (patch.has_fires())
+			if (patch.has_fires() && firemodel == GLOBFIRM)
 				mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			else mort_fire=0.0;
 
@@ -974,7 +979,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 	Vegetation& vegetation=patch.vegetation;
 
 	// FIRE MORTALITY
-	if (patch.has_fires()) {
+	if (patch.has_fires() && firemodel == GLOBFIRM) {
 
 		// Impose fire in this patch with probability 'fireprob'
 
@@ -1434,7 +1439,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		// (in population mode: fraction of modelled area affected by fire this year)
 
 	// Calculate fire probability and volatilise litter
-	if (patch.has_fires()) {
+	if (patch.has_fires() && firemodel == GLOBFIRM) {
 		fire(patch,fireprob);
 	}
 	patch.fireprob = fireprob;

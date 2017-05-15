@@ -26,12 +26,13 @@ ManagementTypelist mtlist;
 StandTypelist stlist;
 Pftlist pftlist;
 
-// emission ratios from fire (NH3, NOx, N2O, N2) Delmas et al. 1995
+// emission ratios from fire (NH3, NO, NO2, N2O, N2) Levine et al. 1996
 
-const double Fluxes::NH3_FIRERATIO = 0.005;
-const double Fluxes::NOx_FIRERATIO = 0.237;
-const double Fluxes::N2O_FIRERATIO = 0.036;
-const double Fluxes::N2_FIRERATIO  = 0.722;
+const double Fluxes::NH3_FIRERATIO = 0.236;
+const double Fluxes::NO_FIRERATIO  = 0.303;
+const double Fluxes::NO2_FIRERATIO = 0.076;
+const double Fluxes::N2O_FIRERATIO = 0.035;
+const double Fluxes::N2_FIRERATIO  = 0.350;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -60,6 +61,25 @@ void Climate::serialize(ArchiveStream& arch) {
 		& par
 		& prec
 		& daylength
+		// BLAZE
+		& u10
+		& relhum
+		& tmin
+		& tmax 
+		& max_nesterov
+		& cur_nesterov
+		& simfire_biome
+		& ann_max_fapar
+		& monthly_fire_risk
+		& areaburnt 
+		& prescribed_ba 
+		& avg_annual_rainf
+		& cur_rainf
+		& last_rainfall
+		& dslr
+		& kbdi
+		& mcarthur_fire_index
+		// BLAZE
 		& co2
 		& lat
 		& insol
@@ -138,6 +158,9 @@ void Fluxes::reset() {
 	for (int m = 0; m < 12; ++m) {
 		std::fill_n(monthly_fluxes_pft[m], int(NPERPFTFLUXTYPES), 0);
 		std::fill_n(monthly_fluxes_patch[m], int(NPERPATCHFLUXTYPES), 0);
+                /*CMLN for (int i = 0; i < npftconst; ++i) { 
+                        std::fill_n(monthly_fluxes_per_pft[i][m], int(NPERPFTFLUXTYPES), 0);
+		}*/
 	}
 
 	for (int d = 0; d < date.year_length(); ++d) {
@@ -150,11 +173,13 @@ void Fluxes::serialize(ArchiveStream& arch) {
 	arch & annual_fluxes_per_pft
 		& monthly_fluxes_patch
 		& monthly_fluxes_pft;
+	//CMLN & monthly_fluxes_per_pft;
 }
 
 void Fluxes::report_flux(PerPFTFluxType flux_type, int pft_id, double value) {
 	annual_fluxes_per_pft[pft_id][flux_type] += value;
 	monthly_fluxes_pft[date.month][flux_type] += value;
+        //CMLN monthly_fluxes_per_pft[pft_id][date.month][flux_type] += value;
 	daily_fluxes_pft[date.day][flux_type] += value;	//Var = value ???
 }
 
@@ -170,6 +195,10 @@ double Fluxes::get_monthly_flux(PerPFTFluxType flux_type, int month) const {
 double Fluxes::get_monthly_flux(PerPatchFluxType flux_type, int month) const {
 	return monthly_fluxes_patch[month][flux_type];
 }
+
+/* CMLNdouble Fluxes::get_monthly_flux(PerPFTFluxType flux_type, int pft_id, int month) const {
+        return monthly_fluxes_per_pft[pft_id][month][flux_type];
+	}*/
 
 double Fluxes::get_annual_flux(PerPFTFluxType flux_type, int pft_id) const {
 	return annual_fluxes_per_pft[pft_id][flux_type];
@@ -477,7 +506,27 @@ void Patch::serialize(ArchiveStream& arch) {
 		& mrunoff
 		& mpet
 		& ndemand
-		& irrigation_y;
+		& irrigation_y
+		& fli						// Fire blaze
+		& wood2atm
+		& leaf2atm
+		& leaf2lit
+		& wood2str
+		& wood2fwd
+		& wood2cwd
+		& litf2atm
+		& lfwd2atm
+		& lcwd2atm;
+		for (unsigned int i=0; i < n_year_biomeavg; i++)
+			arch & avg_fgrass[i];
+		for (unsigned int i=0; i < n_year_biomeavg; i++)
+			arch & avg_fndlt[i];
+		for (unsigned int i=0; i < n_year_biomeavg; i++)
+			arch & avg_fbrlt[i];
+		for (unsigned int i=0; i < n_year_biomeavg; i++)
+			arch & avg_fshrb[i];
+		for (unsigned int i=0; i < n_year_biomeavg; i++)
+			arch & avg_ftot[i];
 }
 
 const Climate& Patch::get_climate() const {
@@ -486,13 +535,21 @@ const Climate& Patch::get_climate() const {
 }
 
 bool Patch::has_fires() const {
-	return iffire && stand.landcover != CROPLAND && !managed &&
-		(stand.landcover != PASTURE || disturb_pasture);
+#ifdef NOPASTURESTOCH
+	//CLN	return iffire && stand.landcover != CROPLAND && stand.landcover != PASTURE && !managed;
+	return firemodel != NOFIRE && stand.landcover != CROPLAND && stand.landcover != PASTURE && !managed;
+#else
+	//CLN   return iffire && stand.landcover != CROPLAND && !managed;
+	return firemodel != NOFIRE && stand.landcover != CROPLAND && !managed;
+#endif
 }
 
 bool Patch::has_disturbances() const {
-	return ifdisturb && stand.landcover != CROPLAND && !managed &&
-		(stand.landcover != PASTURE || disturb_pasture);
+#ifdef NOPASTURESTOCH
+	return ifdisturb && stand.landcover != CROPLAND && stand.landcover != PASTURE && !managed;
+#else
+	return ifdisturb && stand.landcover != CROPLAND && !managed;
+#endif
 }
 
 /// C content of patch
@@ -597,7 +654,8 @@ double Patch::nflux() {
 	nflux += fluxes.get_annual_flux(Fluxes::HARVESTN);
 	nflux += fluxes.get_annual_flux(Fluxes::SEEDN);
 	nflux += fluxes.get_annual_flux(Fluxes::NH3_FIRE);
-	nflux += fluxes.get_annual_flux(Fluxes::NOx_FIRE);
+	nflux += fluxes.get_annual_flux(Fluxes::NO_FIRE);
+	nflux += fluxes.get_annual_flux(Fluxes::NO2_FIRE);
 	nflux += fluxes.get_annual_flux(Fluxes::N2O_FIRE);
 	nflux += fluxes.get_annual_flux(Fluxes::N2_FIRE);
 	nflux += fluxes.get_annual_flux(Fluxes::N_SOIL);
@@ -1334,107 +1392,112 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 	// This function needs to be modified if a new lifeform is added,
 	// specifically to deal with nstore().
 	assert(pft.lifeform == TREE || pft.lifeform == GRASS);
+	assert(mortality >= mortality_fire);
 
-	if (!negligible(mortality)) {
+	if (negligible(mortality)) return;
 
-		const double mortality_non_fire = mortality - mortality_fire;
+	
+	// Transfer killed biomass to litter
+	// (above-ground biomass killed by fire enters atmosphere, not litter)
 
-		// Transfer killed biomass to litter
-		// (above-ground biomass killed by fire enters atmosphere, not litter)
+	Patchpft& ppft = patchpft();
+	const double mortality_non_fire = mortality - mortality_fire;
 
-		Patchpft& ppft = patchpft();
+	// Transfer killed biomass to litter
+	// (above-ground biomass killed by fire enters atmosphere, not litter)
 
-		double cmass_leaf_litter = mortality * cmass_leaf;
-		double cmass_root_litter = mortality * cmass_root;
-
-		if (pft.landcover==CROPLAND) {
-			if (pft.aboveground_ho)
-				cmass_leaf_litter += mortality * cropindiv->cmass_ho;
-			else
-				cmass_root_litter += mortality * cropindiv->cmass_ho;
-
-			cmass_leaf_litter += mortality * cropindiv->cmass_agpool;
-		}
-
-		ppft.litter_leaf += cmass_leaf_litter * mortality_non_fire / mortality;
-		ppft.litter_root += cmass_root_litter;
-
-		if (cmass_debt <= cmass_heart + cmass_sap) {
-			if (cmass_debt <= cmass_heart) {
-				ppft.litter_sap   += mortality_non_fire * cmass_sap;
-				ppft.litter_heart += mortality_non_fire * (cmass_heart - cmass_debt);
-			}
-			else {
-				ppft.litter_sap   += mortality_non_fire * (cmass_sap + cmass_heart - cmass_debt);
-			}
+	double cmass_leaf_litter = mortality * cmass_leaf;
+	double cmass_root_litter = mortality * cmass_root;
+	
+	if(pft.landcover==CROPLAND) {
+		if(pft.aboveground_ho)
+			cmass_leaf_litter += mortality * cropindiv->cmass_ho;
+		else
+			cmass_root_litter += mortality * cropindiv->cmass_ho;
+		
+		cmass_leaf_litter += mortality * cropindiv->cmass_agpool;
+	}
+	
+	ppft.litter_leaf += cmass_leaf_litter * mortality_non_fire / mortality;
+	ppft.litter_root += cmass_root_litter; 
+	
+	if (cmass_debt <= cmass_heart + cmass_sap) {
+		if (cmass_debt <= cmass_heart) {
+			ppft.litter_sap   += mortality_non_fire * cmass_sap;
+			ppft.litter_heart += mortality_non_fire * (cmass_heart - cmass_debt);
 		}
 		else {
-			double debt_excess = mortality_non_fire * (cmass_debt - (cmass_sap + cmass_heart));
-			report_flux(Fluxes::NPP, debt_excess);
-			report_flux(Fluxes::RA, -debt_excess);
+			ppft.litter_sap   += mortality_non_fire * (cmass_sap + cmass_heart - cmass_debt);
 		}
+	}
+	else {
+		double debt_excess = mortality_non_fire * (cmass_debt - (cmass_sap + cmass_heart));
+		report_flux(Fluxes::NPP, debt_excess);
+		report_flux(Fluxes::RA, -debt_excess);
+	}
+	
+	double nmass_leaf_litter = mortality * nmass_leaf;
+	double nmass_root_litter = mortality * nmass_root;
+	
+	if(pft.landcover==CROPLAND) {
+		if(pft.aboveground_ho)
+			nmass_leaf_litter += mortality * cropindiv->nmass_ho;
+		else
+			nmass_root_litter += mortality * cropindiv->nmass_ho;
+		
+		nmass_leaf_litter += mortality * cropindiv->nmass_agpool;
+	}
+	
+	// stored N is partioned out to leaf and root biomass as new tissue after growth might have extremely low 
+	// N content (to get closer to relationship between compartment averages (cton_leaf, cton_root, cton_sap))
+	nstore_adjust(cmass_leaf_litter, cmass_root_litter, nmass_leaf_litter, nmass_root_litter,
+		      mortality * nstore(), pft.cton_leaf_avr,pft.cton_root_avr);
+	
+	ppft.nmass_litter_leaf  += nmass_leaf_litter * mortality_non_fire / mortality;
+	ppft.nmass_litter_root  += nmass_root_litter;
+	ppft.nmass_litter_sap   += mortality_non_fire * nmass_sap;
+	ppft.nmass_litter_heart += mortality_non_fire * nmass_heart;
+	
+	// Flux to atmosphere from burnt above-ground biomass
+	
+	double cflux_fire = mortality_fire * (cmass_leaf_litter / mortality + cmass_wood());
+	double nflux_fire = mortality_fire * (nmass_leaf_litter / mortality + nmass_wood());
+	
+	report_flux(Fluxes::FIREC,    cflux_fire);
+	report_flux(Fluxes::C_grass2atm,    cflux_fire);
+	
+	report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire); 
+	report_flux(Fluxes::NO_FIRE,  Fluxes::NO_FIRERATIO  * nflux_fire);
+	report_flux(Fluxes::NO2_FIRE, Fluxes::NO2_FIRERATIO * nflux_fire);
+	report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
+	report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
+	
+	// Reduce this Individual's biomass values
 
-		double nmass_leaf_litter = mortality * nmass_leaf;
-		double nmass_root_litter = mortality * nmass_root;
+	const double remaining = 1.0 - mortality;
 
-		if (pft.landcover==CROPLAND) {
-			if (pft.aboveground_ho)
-				nmass_leaf_litter += mortality * cropindiv->nmass_ho;
-			else
-				nmass_root_litter += mortality * cropindiv->nmass_ho;
-
-			nmass_leaf_litter += mortality * cropindiv->nmass_agpool;
-		}
-
-		// stored N is partioned out to leaf and root biomass as new tissue after growth might have extremely low
-		// N content (to get closer to relationship between compartment averages (cton_leaf, cton_root, cton_sap))
-		nstore_adjust(cmass_leaf_litter, cmass_root_litter, nmass_leaf_litter, nmass_root_litter,
-			mortality * nstore(), pft.cton_leaf_avr,pft.cton_root_avr);
-
-		ppft.nmass_litter_leaf  += nmass_leaf_litter * mortality_non_fire / mortality;
-		ppft.nmass_litter_root  += nmass_root_litter;
-		ppft.nmass_litter_sap   += mortality_non_fire * nmass_sap;
-		ppft.nmass_litter_heart += mortality_non_fire * nmass_heart;
-
-		// Flux to atmosphere from burnt above-ground biomass
-
-		double cflux_fire = mortality_fire * (cmass_leaf_litter / mortality + cmass_wood());
-		double nflux_fire = mortality_fire * (nmass_leaf_litter / mortality + nmass_wood());
-
-		report_flux(Fluxes::FIREC,    cflux_fire);
-
-		report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire);
-		report_flux(Fluxes::NOx_FIRE, Fluxes::NOx_FIRERATIO * nflux_fire);
-		report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
-		report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
-
-		// Reduce this Individual's biomass values
-
-		const double remaining = 1.0 - mortality;
-
-		if (pft.lifeform != GRASS) {
-			densindiv *= remaining;
-		}
-
-		cmass_leaf      *= remaining;
-		cmass_root      *= remaining;
-		cmass_sap       *= remaining;
-		cmass_heart     *= remaining;
-		cmass_debt      *= remaining;
-		if (pft.landcover==CROPLAND) {
-			cropindiv->cmass_ho *= remaining;
-			cropindiv->cmass_agpool *= remaining;
-		}
-		nmass_leaf      *= remaining;
-		nmass_root      *= remaining;
-		nmass_sap       *= remaining;
-		nmass_heart     *= remaining;
-		nstore_longterm *= remaining;
-		nstore_labile   *= remaining;
-		if (pft.landcover==CROPLAND) {
-			cropindiv->nmass_ho *= remaining;
-			cropindiv->nmass_agpool *= remaining;
-		}
+	if (pft.lifeform != GRASS) {
+		densindiv *= remaining;
+	}
+	
+	cmass_leaf      *= remaining;
+	cmass_root      *= remaining;
+	cmass_sap       *= remaining;
+	cmass_heart     *= remaining;
+	cmass_debt      *= remaining;
+	if(pft.landcover==CROPLAND) {
+		cropindiv->cmass_ho *= remaining;
+		cropindiv->cmass_agpool *= remaining;
+	}
+	nmass_leaf      *= remaining;
+	nmass_root      *= remaining;
+	nmass_sap       *= remaining;
+	nmass_heart     *= remaining;
+	nstore_longterm *= remaining;
+	nstore_labile   *= remaining;
+	if(pft.landcover==CROPLAND) {
+		cropindiv->nmass_ho *= remaining;
+		cropindiv->nmass_agpool *= remaining;
 	}
 }
 

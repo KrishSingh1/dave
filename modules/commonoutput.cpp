@@ -1579,8 +1579,12 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 
 								if (indiv.pft.id==pft.id) {
 
+									if(ifdcarb && indiv.alive && indiv.pft.lifeform == GRASS){
+										standpft_lai += indiv.lai;
+									}else{
+										standpft_lai += indiv.lai*indiv.phen;
+									}
 
-									standpft_lai += indiv.lai;
 
 
 								}

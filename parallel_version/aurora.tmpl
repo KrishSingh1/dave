@@ -141,7 +141,7 @@ split_gridlist
 # Create SLURM script to request place in queue
 cat <<EOF > guess.cmd
 #!/bin/bash
-#SBATCH -A snic2016-1-207
+#SBATCH -A snic2017-1-230
 #SBATCH -n $NPROCESS
 #SBATCH --time=$WALLTIME
 #SBATCH --exclusive
@@ -175,7 +175,7 @@ EOF
 
 cat <<EOF > append.cmd
 #!/bin/bash
-#SBATCH -A snic2016-1-207
+#SBATCH -A snic2017-1-230
 #SBATCH -n 1
 #SBATCH --time=$WALLTIME_APPEND
 #SBATCH --mem-per-cpu=12000

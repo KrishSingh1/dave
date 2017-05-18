@@ -1814,13 +1814,15 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 			if (indiv.pft.pathway == C4) {
 				g_fac = min(1.0, max(0.0, 0.5 * patch.get_climate().temp / 20.0)); //factor used to transfer material to senescing leaves and to litter.
 				g_mov = min(1.0, max(0.0, c4transfercon * patch.get_climate().temp / 20.0));
-				s_fac = sen_fac * c4transfercon; //min(1.0,max(0.0,c4transfercon*patch.get_climate().temp/20.0));
+				s_fac = sen_fac * c4transfercon;
 			} 
-			else if (indiv.pft.pathway == C3 ) {
+			else if (indiv.pft.pathway == C3) {
 				g_fac = min(1.0, max(0.0, 0.5 * patch.get_climate().temp / 20.0)); //factor used to transfer material to senescing leaves and to litter.
 				g_mov = min(1.0, max(0.0, c3transfercon * patch.get_climate().temp / 20.0));
-				s_fac = sen_fac * c3transfercon; //min(1.0,max(0.0,c3transfercon*patch.get_climate().temp/20.0));
+				s_fac = sen_fac * c3transfercon;
 			}
+
+
 
 			if ((indiv.phen_daily > 0.1 && indiv.lai < 0.1 && indiv.ws < indiv.sg)) { // check if storage needs to be used only when very low LAI
 				G = indiv.sg * 0.2;
@@ -1872,7 +1874,7 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 			cton_root_bg = indiv.cton_root(false);
 
 			// If we have leaf litter then all compartments have litter to be dropped.
-			if (c4 > 0.0) { 
+			if (c4 > 0.0 || negligible(g_mov)) {
 
 				patch.is_litter_day=true;
 

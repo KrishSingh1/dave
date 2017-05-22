@@ -915,16 +915,15 @@ public:
 		/// Isoprene (mgC/m2)
 		ISO,
 		/// Monoterpene (mgC/m2)
-		APIN,
-		BPIN,
-		LIMO,
-		MYRC,
-		SABI,
-		CAMP,
-		TRIC,
-		TBOC,
-		OTHR,
-		
+		MT_APIN,
+		MT_BPIN,
+		MT_LIMO,
+		MT_MYRC,
+		MT_SABI,
+		MT_CAMP,
+		MT_TRIC,
+		MT_TBOC,
+		MT_OTHR,
 		/// Number of types, must be last
 		NPERPFTFLUXTYPES
 	};

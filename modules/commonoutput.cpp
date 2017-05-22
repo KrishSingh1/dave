@@ -807,24 +807,24 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_anpp += patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id);
 				standpft_agpp += patch.fluxes.get_annual_flux(Fluxes::GPP, pft.id);
 				standpft_aiso += patch.fluxes.get_annual_flux(Fluxes::ISO, pft.id);
-				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::APIN, pft.id); 					
-				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::LIMO, pft.id);
-				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::TRIC, pft.id);
-				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::BPIN, pft.id);
-				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MYRC, pft.id);
-				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::SABI, pft.id);
-				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::CAMP, pft.id);
-				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::TBOC, pft.id);
-				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::OTHR, pft.id);
-				standpft_amt1 += patch.fluxes.get_annual_flux(Fluxes::APIN, pft.id);
-				standpft_amt1 += patch.fluxes.get_annual_flux(Fluxes::LIMO, pft.id);
-				standpft_amt1 += patch.fluxes.get_annual_flux(Fluxes::TRIC, pft.id);
-				standpft_amt2 += patch.fluxes.get_annual_flux(Fluxes::BPIN, pft.id);
-				standpft_amt2 += patch.fluxes.get_annual_flux(Fluxes::MYRC, pft.id);
-				standpft_amt2 += patch.fluxes.get_annual_flux(Fluxes::SABI, pft.id);
-				standpft_amt2 += patch.fluxes.get_annual_flux(Fluxes::CAMP, pft.id);
-				standpft_amt2 += patch.fluxes.get_annual_flux(Fluxes::TBOC, pft.id);
-				standpft_amt2 += patch.fluxes.get_annual_flux(Fluxes::OTHR, pft.id);
+				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_APIN, pft.id); 					
+				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_LIMO, pft.id);
+				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_TRIC, pft.id);
+				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_BPIN, pft.id);
+				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_MYRC, pft.id);
+				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_SABI, pft.id);
+				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_CAMP, pft.id);
+				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_TBOC, pft.id);
+				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_OTHR, pft.id);
+				standpft_amt1 += patch.fluxes.get_annual_flux(Fluxes::MT_APIN, pft.id);
+				standpft_amt1 += patch.fluxes.get_annual_flux(Fluxes::MT_LIMO, pft.id);
+				standpft_amt1 += patch.fluxes.get_annual_flux(Fluxes::MT_TRIC, pft.id);
+				standpft_amt2 += patch.fluxes.get_annual_flux(Fluxes::MT_BPIN, pft.id);
+				standpft_amt2 += patch.fluxes.get_annual_flux(Fluxes::MT_MYRC, pft.id);
+				standpft_amt2 += patch.fluxes.get_annual_flux(Fluxes::MT_SABI, pft.id);
+				standpft_amt2 += patch.fluxes.get_annual_flux(Fluxes::MT_CAMP, pft.id);
+				standpft_amt2 += patch.fluxes.get_annual_flux(Fluxes::MT_TBOC, pft.id);
+				standpft_amt2 += patch.fluxes.get_annual_flux(Fluxes::MT_OTHR, pft.id);
 					
 				standpft_clitter += patchpft.litter_leaf + patchpft.litter_root + patchpft.litter_sap + patchpft.litter_heart + patchpft.litter_repr;
 				standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap + patchpft.nmass_litter_heart;
@@ -1145,25 +1145,25 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mra[m] += patch.fluxes.get_monthly_flux(Fluxes::RA, m)*to_gridcell_average;
 
 				miso[m]+=patch.fluxes.get_monthly_flux(Fluxes::ISO, m)*to_gridcell_average;
-				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::APIN, m)*to_gridcell_average;
-				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::LIMO, m)*to_gridcell_average;
-				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::TRIC, m)*to_gridcell_average;
-				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::BPIN, m)*to_gridcell_average;
-				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MYRC, m)*to_gridcell_average;
-				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::SABI, m)*to_gridcell_average;
-				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::CAMP, m)*to_gridcell_average;
-				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::TBOC, m)*to_gridcell_average;
-				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::OTHR, m)*to_gridcell_average;
+				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_APIN, m)*to_gridcell_average;
+				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_LIMO, m)*to_gridcell_average;
+				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_TRIC, m)*to_gridcell_average;
+				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_BPIN, m)*to_gridcell_average;
+				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_MYRC, m)*to_gridcell_average;
+				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_SABI, m)*to_gridcell_average;
+				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_CAMP, m)*to_gridcell_average;
+				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_TBOC, m)*to_gridcell_average;
+				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_OTHR, m)*to_gridcell_average;
 
-				mmt1[m]+=patch.fluxes.get_monthly_flux(Fluxes::APIN, m)*to_gridcell_average;
-				mmt1[m]+=patch.fluxes.get_monthly_flux(Fluxes::LIMO, m)*to_gridcell_average;
-				mmt1[m]+=patch.fluxes.get_monthly_flux(Fluxes::TRIC, m)*to_gridcell_average;
-				mmt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::BPIN, m)*to_gridcell_average;
-				mmt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MYRC, m)*to_gridcell_average;
-				mmt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::SABI, m)*to_gridcell_average;
-				mmt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::CAMP, m)*to_gridcell_average;
-				mmt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::TBOC, m)*to_gridcell_average;
-				mmt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::OTHR, m)*to_gridcell_average;
+				mmt1[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_APIN, m)*to_gridcell_average;
+				mmt1[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_LIMO, m)*to_gridcell_average;
+				mmt1[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_TRIC, m)*to_gridcell_average;
+				mmt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_BPIN, m)*to_gridcell_average;
+				mmt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_MYRC, m)*to_gridcell_average;
+				mmt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_SABI, m)*to_gridcell_average;
+				mmt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_CAMP, m)*to_gridcell_average;
+				mmt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_TBOC, m)*to_gridcell_average;
+				mmt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_OTHR, m)*to_gridcell_average;
 				
 			}
 

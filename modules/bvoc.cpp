@@ -276,15 +276,15 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 	// Note that for european pfts only 2 groups (endocyclic and rest group are considered, 
 	// occupying the space of APIN & BPIN respectively).
 	// See scientific description for more infor.
-	indiv.report_flux(Fluxes::APIN,indiv.mon[0]); 
-	indiv.report_flux(Fluxes::BPIN,indiv.mon[1]);
-	indiv.report_flux(Fluxes::LIMO,indiv.mon[2]);
-	indiv.report_flux(Fluxes::MYRC,indiv.mon[3]);
-	indiv.report_flux(Fluxes::SABI,indiv.mon[4]);
-	indiv.report_flux(Fluxes::CAMP,indiv.mon[5]);
-	indiv.report_flux(Fluxes::TRIC,indiv.mon[6]);
-	indiv.report_flux(Fluxes::TBOC,indiv.mon[7]);
-	indiv.report_flux(Fluxes::OTHR,indiv.mon[8]);
+	indiv.report_flux(Fluxes::MT_APIN,indiv.mon[0]); 
+	indiv.report_flux(Fluxes::MT_BPIN,indiv.mon[1]);
+	indiv.report_flux(Fluxes::MT_LIMO,indiv.mon[2]);
+	indiv.report_flux(Fluxes::MT_MYRC,indiv.mon[3]);
+	indiv.report_flux(Fluxes::MT_SABI,indiv.mon[4]);
+	indiv.report_flux(Fluxes::MT_CAMP,indiv.mon[5]);
+	indiv.report_flux(Fluxes::MT_TRIC,indiv.mon[6]);
+	indiv.report_flux(Fluxes::MT_TBOC,indiv.mon[7]);
+	indiv.report_flux(Fluxes::MT_OTHR,indiv.mon[8]);
 }
 
 // REFERENCES

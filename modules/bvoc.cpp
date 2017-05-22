@@ -109,26 +109,25 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 
 	double rmonstor[NMTCOMPOUNDS];  // rate of monoterpene storage
 
-        if(adtmm>0){  
+	if(adtmm>0){  
 	
+		double f_co2 = CO2/co2;                                     // CO2 scaling factor
+		double f_temp = min(f_tempmax, exp(epsT*(temp-Tstand)));    // temp scaling factor
 
-	double f_co2 = CO2/co2;                                     // CO2 scaling factor
-	double f_temp = min(f_tempmax, exp(epsT*(temp-Tstand)));    // temp scaling factor
-
-	double coeff = phot.je * daylength + phot.rd_g;
-	// isoprene production, g C m-2 d-1
-	indiv.iso = pft.eps_iso * f_co2 * f_temp * indiv.fvocseas * coeff;
-	// monoterpene production, g C m-2 d-1
-	// (only the production part is given here)
-	for(im=0;im<NMTCOMPOUNDS;im++){
-	indiv.mon[im] = pft.eps_mon[im] * f_co2 * f_temp * coeff;
+		double coeff = phot.je * daylength + phot.rd_g;
+		// isoprene production, g C m-2 d-1
+		indiv.iso = pft.eps_iso * f_co2 * f_temp * indiv.fvocseas * coeff;
+		// monoterpene production, g C m-2 d-1
+		// (only the production part is given here)
+		for(im=0;im<NMTCOMPOUNDS;im++){
+			indiv.mon[im] = pft.eps_mon[im] * f_co2 * f_temp * coeff;
+		}
 	}
-	}
-	else{
-	indiv.iso=0.;
-	for(im=0;im<NMTCOMPOUNDS;im++){
-	    indiv.mon[im]=0.;
-	}
+	else {
+		indiv.iso=0.;
+		for(im=0;im<NMTCOMPOUNDS;im++){
+			indiv.mon[im]=0.;
+		}
 	}
 
 	// release from monoterpene storage, g C m-2 d-1
@@ -138,10 +137,10 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 	// convert from g C m-2 d-1 to mg C m-2 d-1
 	indiv.iso *= 1e3 / date.subdaily;
 	for(im=0;im<NMTCOMPOUNDS;im++){
-	indiv.mon[im] *= 1e3 / date.subdaily;
-	rmonstor[im] = -indiv.monstor[im] * dmonstor + pft.storfrac_mon[im] * indiv.mon[im];
-	indiv.monstor[im] += rmonstor[im];
-	indiv.mon[im] -= rmonstor[im];
+		indiv.mon[im] *= 1e3 / date.subdaily;
+		rmonstor[im] = -indiv.monstor[im] * dmonstor + pft.storfrac_mon[im] * indiv.mon[im];
+		indiv.monstor[im] += rmonstor[im];
+		indiv.mon[im] -= rmonstor[im];
 	}
 }
 
@@ -152,7 +151,7 @@ double leafT(double temp, double daylength, double ga, double rs_day, double aet
 	// radiation, shortwave radiation and sensible and latent heat loss).
 	// Revised version compared to Arneth et al. (2007) and Schurgers et al. (2011).
 
-	if(lai_today <= 1.e-2) {
+	if (lai_today <= 1.e-2) {
 		return temp;
 	}
 
@@ -267,7 +266,6 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 		// perform air temperature to leaf temperature correction
 		temp_leaf_daytime = leafT(temp_corrected, climate.daylength, pft.ga, rad, indiv.aet,
 		                          indiv.lai_today(),indiv.fpar,indiv.fpc, indiv.fpc_today());
-
 	}
 
 	// calculate isoprene and monoterpene emissions, g C m-2 d-1
@@ -275,8 +273,9 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 
 	indiv.report_flux(Fluxes::ISO, indiv.iso);
 
-	// note that for european pfts only 2 groups (endocyclic and rest group are considered, occupying the space of APIN & BPIN respectively)
-	//see scientific description for more infor.
+	// Note that for european pfts only 2 groups (endocyclic and rest group are considered, 
+	// occupying the space of APIN & BPIN respectively).
+	// See scientific description for more infor.
 	indiv.report_flux(Fluxes::APIN,indiv.mon[0]); 
 	indiv.report_flux(Fluxes::BPIN,indiv.mon[1]);
 	indiv.report_flux(Fluxes::LIMO,indiv.mon[2]);

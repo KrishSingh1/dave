@@ -1654,10 +1654,6 @@ void growth(Stand& stand, Patch& patch) {
 									- (indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap +
 											indiv.cmass_heart - indiv.cmass_debt));
 
-							if(ifdcarb && indiv.pft.lifeform == GRASS){  //daily carbon allocation niklas
-								indiv.sg = indiv.cmass_root*sgtor;
-								indiv.cmass_root=indiv.cmass_root - indiv.sg; //put some of the root C into the sg
-							}
 						}
 					}
 
@@ -1768,12 +1764,28 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 
 		killed=false;
 
+
+
 		if (indiv.pft.lifeform == GRASS && indiv.alive && !indiv.istruecrop_or_intercropgrass()) {
 
+
+			//reset temporary movement variables for this indivudal
+			c1=0.0;
+			c2=0.0;
+			c3=0.0;
+			c4=0.0;
+			G=0.0;
+
+
+			//First year with daily carbon allocation for this individual,
 			if (indiv.wg==0 && !negligible(indiv.cmass_leaf)) {
-				indiv.ws = indiv.cmass_leaf; //First year with daily carbon allocation for this individual, put cmass_leaf into leaf storage
+				indiv.ws = indiv.cmass_leaf; //  put cmass_leaf into leaf storage
 				indiv.cmass_leaf = 0.0;
-					}
+				indiv.sg = indiv.cmass_root*sgtor;
+				indiv.cmass_root=indiv.cmass_root - indiv.sg; //put some of the root C into the sg
+			}
+
+
 
 			// For this individual
 

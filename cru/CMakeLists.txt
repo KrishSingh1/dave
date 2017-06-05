@@ -4,6 +4,7 @@ set(headers
   guessio/cruinput.h
   guessio/cru_ts30.h
   guessio/lamarquendep.h
+  guessio/SimfireInput.h
   )
 
 set(source  

@@ -1680,8 +1680,8 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 		outlimit(out,out_dflux, flux_fire);
 		outlimit(out,out_dflux, flux_est);
 
-		// daily NEE do not include fire, establishment and repr
-		outlimit(out,out_dflux, flux_veg  + flux_soil + flux_seed + flux_charvest);
+		// daily NEE do not include fire, establishment
+		outlimit(out,out_dflux, flux_veg   + flux_repr +  flux_soil + flux_seed + flux_charvest);
 
 
 	} // end if date year > spinup year

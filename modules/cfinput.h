@@ -46,6 +46,7 @@ private:
 	LandcoverInput landcover_input;
 	/// Management input module
 	ManagementInput management_input;
+	SoilInput soilinput;
 
 	struct Coord {
 
@@ -109,7 +110,6 @@ private:
 	 */
 	GlobalCO2File co2;
 
-	SoilInput soilinput;
 	// The variables
 
 	GuessNC::CF::GridcellOrderedVariable* cf_temp;

@@ -16,9 +16,9 @@
 
 #include "guess.h"
 #include <limits>
-
+#include <map>
 double randfrac(long& seed);
-void soilparameters(Soiltype& soiltype,int soilcode);
+
 void interp_monthly_means_conserve(const double* mvals, double* dvals,
                                    double minimum = -std::numeric_limits<double>::max(),
                                    double maximum = std::numeric_limits<double>::max());

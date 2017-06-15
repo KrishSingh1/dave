@@ -113,6 +113,10 @@ private:
 		xtring descrip;
 	};
 
+	std::vector<std::pair<double, double> > _translate(ListArray_id<Coord>& gridlist);
+
+	SoilInput soilinput;
+
 	/// Land cover input module
 	LandcoverInput landcover_input;
 	/// Management input module
@@ -139,7 +143,6 @@ private:
 	 */
 	GlobalCO2File co2;
 
-	SoilInput soilinput;
 	/// Monthly temperature for current grid cell and historical period
 	double hist_mtemp[NYEAR_HIST][12];
 

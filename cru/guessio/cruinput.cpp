@@ -38,8 +38,19 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 	interp_monthly_means_conserve(mdtr, ddtr, 0);
 }
 
+
 } // namespace
 
+std::vector<std::pair<double, double> > CRUInput::_translate(ListArray_id<Coord>& gridlist) {
+	gridlist.firstobj();
+	std::vector<std::pair<double, double> > output;
+	while (gridlist.isobj) {
+		Coord& c = gridlist.getobj();
+		output.push_back(std::make_pair(c.lon, c.lat));
+		gridlist.nextobj();
+	}
+	return output;
+}
 
 CRUInput::CRUInput()
 	: searchradius(0),
@@ -54,7 +65,6 @@ CRUInput::CRUInput()
 
 	declare_parameter("searchradius", &searchradius, 0, 100,
 		"If specified, CRU data will be searched for in a circle");
-	SoilInput soilinput;
 }
 
 
@@ -112,7 +122,8 @@ void CRUInput::init() {
 	management_input.init();
 
 	date.set_first_calendar_year(FIRSTHISTYEAR - nyear_spinup);
-	soilinput.init();
+
+	soilinput.init(std::string(param["file_soildata"].str), _translate(gridlist));
 	// Set timers
 	tprogress.init();
 	tmute.init();
@@ -148,7 +159,6 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 	int soilcode;
 	int elevation;
 
-	int soilstatus = 1;
 	// Make sure we use the first gridcell in the first call to this function,
 	// and then step through the gridlist in subsequent calls.
 	if (first_call) {
@@ -180,12 +190,6 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 					gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation,
 					                                     hist_mfrs, hist_mwet, hist_mdtr);
 
-				if (gridfound) {
-					if (!soilinput.loaddatafromfile(lon,lat)) {
-						dprintf("Failed to load data with soil input\n");
-						soilstatus = -9;
-					}
-				}
 				if (run_landcover && gridfound) {
 					LUerror = landcover_input.loadlandcover(lon, lat);
 					if(!LUerror)
@@ -248,12 +252,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		
 		gridcell.climate.instype = SWRAD_TS;
 
-		soilinput.getsoil(gridcell,soilstatus);
-		// Tell framework the soil type of this grid cell
-		soilparameters(gridcell.soiltype,soilcode);
-
-		// For Windows shell - clear graphical output
-		// (ignored on other platforms)
+		soilinput.getsoil(lon,lat, gridcell.soiltype);
 		
 		clear_all_graphs();
 

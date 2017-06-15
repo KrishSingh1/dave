@@ -9,7 +9,6 @@
 
 #include "config.h"
 #include "cfinput.h"
-#include "soilinput.h"
 
 #ifdef HAVE_NETCDF
 
@@ -266,7 +265,6 @@ CFInput::CFInput()
 
 	declare_parameter("ndep_timeseries", &ndep_timeseries, 10, "Nitrogen deposition time series to use (historic, rcp26, rcp45, rcp60 or rcp85");
 
-	 SoilInput soilinput;
 }
 
 CFInput::~CFInput() {
@@ -374,7 +372,7 @@ void CFInput::init() {
 	
 			}
 		}
-		c.descrip = trim(descrip);
+		c.descrip = (xtring)trim(descrip).c_str();
 		gridlist.push_back(c);
 	}
 
@@ -387,7 +385,8 @@ void CFInput::init() {
 
 	date.set_first_calendar_year(cf_temp->get_date_time(0).get_year() - nyear_spinup);
 
-	soilinput.init();
+	soilinput.init(std::string(param["file_soildata"].str));
+
 	// Set timers
 	tprogress.init();
 	tmute.init();
@@ -454,13 +453,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat,
 	             Lamarque::parse_timeseries(ndep_timeseries));
 
-	// Setup the soil type
-	if (!soilinput.loaddatafromfile(lon,lat)) {
-		dprintf("Failed to load data with soil input\n");
-		soilstatus = -9;
-	}
-	soilinput.getsoil(gridcell,soilstatus);
-	soilparameters(gridcell.soiltype, soilcode);
+	soilinput.getsoil(lon, lat, gridcell.soiltype);
 
 	historic_timestep_temp = -1;
 	historic_timestep_prec = -1;

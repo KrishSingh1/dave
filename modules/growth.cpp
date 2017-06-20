@@ -1824,17 +1824,17 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 			double g_mov = 0.0; //movement between compartments
 			double s_fac = 0.0; //senescense and movement to litter.
 			if (indiv.pft.pathway == C4) {
-				g_fac = min(1.0, max(0.0, 0.5 * patch.get_climate().temp / 20.0)); //factor used to transfer material to senescing leaves and to litter.
-				g_mov = min(1.0, max(0.0, c4transfercon * patch.get_climate().temp / 20.0));
+				g_fac = min(1.0, max(0.0, 0.5 * patch.get_climate().temp / 30.0));
+				g_mov = min(1.0, max(0.0, c4transfercon * patch.get_climate().temp / 30.0));
 				s_fac = sen_fac * c4transfercon;
 			} 
 			else if (indiv.pft.pathway == C3) {
-				g_fac = min(1.0, max(0.0, 0.5 * patch.get_climate().temp / 20.0)); //factor used to transfer material to senescing leaves and to litter.
+				g_fac = min(1.0, max(0.0, 0.5 * patch.get_climate().temp / 20.0));
 				g_mov = min(1.0, max(0.0, c3transfercon * patch.get_climate().temp / 20.0));
 				s_fac = sen_fac * c3transfercon;
 			}
 
-
+			if(date.get_calendar_year() == 2005) dprintf("day=%d temp=%f \n",date.day,patch.get_climate().temp);
 
 			if ((indiv.phen_daily > 0.1 && indiv.lai < 0.1 && indiv.ws < indiv.sg)) { // check if storage needs to be used only when very low LAI
 				G = indiv.sg * 0.2;

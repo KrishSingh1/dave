@@ -65,14 +65,12 @@ bool SoilInput::load_lpj_soilcodes(std::string fname) {
 
 	std::string line;
 
-	std::map<coord, int>::iterator it = soildatamapLPJ.begin();
 	while (getline(ifs, line)) {
 		std::istringstream iss(line);
 		//SoilClass sc;
 		// This routine searches the input file until it finds the location,
 		// TODO not the most efficient implementation, but sufficient
 		// since the data set is quite small
-		// std::set<coord>::iterator IT;
 
 		double lon_temp, lat_temp;
 		int classnbr;
@@ -82,8 +80,7 @@ bool SoilInput::load_lpj_soilcodes(std::string fname) {
 				// SoilDataLPJ soildata;
 				// soildata.soilcode = classnbr;
 				// soildata.datatype = LPJSOIL;
-				soildatamapLPJ.insert(it,std::pair<coord, int>(c,classnbr));
-				it++;
+				soildatamapLPJ[c] = classnbr;
 				if(soildatamapLPJ.size() == coordinates.size()) {
 					dprintf("TJUPP\n");
 					break;
@@ -120,7 +117,6 @@ bool SoilInput::loaddatafromfileMINERAL(std::string fname) {
 	int bd_i   = find_index_soilfile_header(header, (char*)"bulkdensity");
 
 	double lon_temp, lat_temp;
-	std::map<coord,SoilDataMineral>::iterator it = soildatamapMINERAL.begin();
 	while (getline(ifs, line)) {
 		std::istringstream iss(line);
 		//SoilClass sc;
@@ -142,8 +138,8 @@ bool SoilInput::loaddatafromfileMINERAL(std::string fname) {
 				if (bd_i<0) {
 					soildata.bulkdensity = (double)bd_i;
 				}
-				soildatamapMINERAL.insert(it,std::pair<coord,SoilDataMineral>(c,soildata));
-				it++;
+				soildatamapMINERAL[c] = soildata;
+
 				if(soildatamapLPJ.size() == coordinates.size()) {
 					break;
 				}

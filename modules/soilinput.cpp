@@ -54,9 +54,7 @@ void SoilInput::init(std::string fname) {
 }
 
 void SoilInput::init(std::string fname, std::vector<coord> gridlist) {
-	for (std::vector<coord>::iterator it = gridlist.begin(); it != gridlist.end(); ++it) {
-		coordinates.insert(*it);
-	}
+	coordinates.insert(gridlist.begin(), gridlist.end());
 	init(fname);
 }
 

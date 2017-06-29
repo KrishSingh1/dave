@@ -5,24 +5,13 @@
  *      Author: stefan
  */
 
-#include <iterator>
 #include "soilinput.h"
 
-SoilInput::SoilInput(){};
-SoilInput::~SoilInput(){};
-
 namespace {
-int find_index_soilfile_header(std::vector<std::string>& header, char* s) {
-	int r = -1;
-	if ( std::find(header.begin(), header.end(), s) != header.end() ) {
-		r = std::find(header.begin(), header.end(), s)-header.begin()-2;
-	}
-	return r;
-}
-bool fuzz(std::string fname) {
-	std::ifstream ifs(fname.c_str(), std::ifstream::in);
+bool fuzz(const char* fname) {
+	std::ifstream ifs(fname, std::ifstream::in);
 	if (!ifs.good()) {
-		fail("load_soils: could not open %s for input", fname.c_str());
+		fail("SoilInput::init: could not open %s for input", fname);
 	}
 
 	std::string line;
@@ -42,123 +31,112 @@ bool fuzz(std::string fname) {
 }
 
 
-void SoilInput::init(std::string fname) {
+void SoilInput::init(const char* fname, const std::vector<coord>& gridlist) {
 
-	datatype = fuzz(fname);
+	std::set<coord> coords(gridlist.begin(), gridlist.end());
 
-	if (datatype) {
-		load_lpj_soilcodes(fname);
+	lpj = fuzz(fname);
+
+	if (lpj) {
+		load_lpj_soilcodes(fname, coords);
 	} else {
-		loaddatafromfileMINERAL(fname);
+		load_mineral_soils(fname, coords);
 	}
 }
 
-void SoilInput::init(std::string fname, std::vector<coord> gridlist) {
-	coordinates.insert(gridlist.begin(), gridlist.end());
-	init(fname);
-}
-
-bool SoilInput::load_lpj_soilcodes(std::string fname) {
-	std::ifstream ifs(fname.c_str(), std::ifstream::in);
+void SoilInput::load_lpj_soilcodes(const char* fname, const std::set<coord>& coords) {
+	std::ifstream ifs(fname, std::ifstream::in);
 
 	std::string line;
 
 	while (getline(ifs, line)) {
 		std::istringstream iss(line);
-		//SoilClass sc;
-		// This routine searches the input file until it finds the location,
-		// TODO not the most efficient implementation, but sufficient
-		// since the data set is quite small
 
-		double lon_temp, lat_temp;
+		double lon, lat;
 		int classnbr;
-		if (iss >> lon_temp >> lat_temp >> classnbr) {
-			coord c(lon_temp, lat_temp);
-			if(coordinates.size() == 0 || coordinates.find(c) != coordinates.end()) {
-				// SoilDataLPJ soildata;
-				// soildata.soilcode = classnbr;
-				// soildata.datatype = LPJSOIL;
-				soildatamapLPJ[c] = classnbr;
-				if(soildatamapLPJ.size() == coordinates.size()) {
-					dprintf("TJUPP\n");
-					break;
-				}
+		if (iss >> lon >> lat >> classnbr) {
+			coord c(lon, lat);
+			if (!coords.empty() && coords.find(c) == coords.end()) {
+				continue;
+			}
+			if (classnbr<1 || classnbr>9) {
+				fail("SoilInput::init: invalid LPJ soil code (%d) for location"
+					" (%g, %g) in file %s", classnbr, lon, lat, fname);
+			}
+			lpj_map[c] = classnbr - 1;
+			if (lpj_map.size() == coords.size()) {
+				break;
 			}
 		}
 	}
 	ifs.close();
-	//dprintf("MAP %d SET %d\n",soildatamapLPJ.size(), gridlist.size());
-	return true;
 }
 
-bool SoilInput::loaddatafromfileMINERAL(std::string fname) {
-	std::ifstream ifs(fname.c_str(), std::ifstream::in);
+void SoilInput::load_mineral_soils(const char* fname, const std::set<coord>& coords) {
+	std::ifstream ifs(fname, std::ifstream::in);
 
 	std::string line;
 
 	// reads the first line which should be a header
 	getline(ifs, line);
 
+	std::transform(line.begin(), line.end(), line.begin(), ::tolower);
+
 	std::istringstream ss(line);
 	std::istream_iterator<std::string> begin(ss);
 	std::istream_iterator<std::string> end;
 	std::vector<std::string> header(begin, end);
+	std::vector<std::string>::iterator it = header.begin()+2;
 
-	int ncols = header.size();
-	for (int i=0; i<ncols;i++) {
-		std::transform(header[i].begin(), header[i].end(), header[i].begin(),::tolower);
+	// first four variable are intentionally left uninitialised, as those
+	// columns are requiered. Should blow up further down in while loop.
+	int sand_i, clay_i, orgc_i, ph_i, bd_i = -1;
+
+	for (int i=0; it != header.end(); ++it, ++i) {
+		if (*it == "sand") {
+			sand_i = i;
+		} else if (*it == "clay") {
+			clay_i = i;
+		} else if (*it == "orgc") {
+			orgc_i = i;
+		} else if (*it == "ph") {
+			ph_i = i;
+		} else if (*it == "bulkdensity") {
+			bd_i = i;
+		}
 	}
-	int sand_i = find_index_soilfile_header(header, (char*)"sand");
-	int clay_i = find_index_soilfile_header(header, (char*)"clay");
-	int orgc_i = find_index_soilfile_header(header, (char*)"orgc");
-	int ph_i   = find_index_soilfile_header(header, (char*)"ph");
-	int bd_i   = find_index_soilfile_header(header, (char*)"bulkdensity");
 
-	double lon_temp, lat_temp;
+	std::vector<double> T(header.size()-2);
+
 	while (getline(ifs, line)) {
 		std::istringstream iss(line);
-		//SoilClass sc;
-		// This routine searches the input file until it finds the location,
-		// TODO not the most efficient implementation, but sufficient
-		// since the data set is quite small
-		if (iss >> lon_temp >> lat_temp) {
-			coord c(lon_temp, lat_temp);
-			if(coordinates.size() == 0 || coordinates.find(c) != coordinates.end()) {
-				std::vector<double> T(ncols-2);
-				for (int i=0; i<ncols-2; i++) {
-					iss  >> T[i];
-				}
-				SoilDataMineral soildata;
-				soildata.sand = T[sand_i];
-				soildata.clay = T[clay_i];
-				soildata.orgc = T[orgc_i];
-				soildata.pH = T[ph_i];
-				if (bd_i<0) {
-					soildata.bulkdensity = (double)bd_i;
-				}
-				soildatamapMINERAL[c] = soildata;
+		double lon, lat;
+		if (iss >> lon >> lat) {
+			coord c(lon, lat);
+			if (!coords.empty() && coords.find(c) == coords.end()) {
+				continue;
+			}
+			for (std::vector<double>::iterator it=T.begin(); it != T.end(); ++it) {
+				iss  >> *it;
+			}
+			SoilDataMineral& soildata = mineral_map[c];
+			soildata.sand = T[sand_i];
+			soildata.clay = T[clay_i];
+			soildata.orgc = T[orgc_i];
+			soildata.pH = T[ph_i];
+			if (bd_i<0) {
+				soildata.bulkdensity = (double)bd_i;
+			}
 
-				if(soildatamapLPJ.size() == coordinates.size()) {
-					break;
-				}
+			if (mineral_map.size() == coords.size()) {
+				break;
 			}
 		}
 	}
 	ifs.close();
-	return true;
 }
 
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-// SOILPARAMETERS
-// May be called from input/output module to initialise stand Soiltype objects when
-// soil data supplied as LPJ soil code rather than soil physical parameter values
-
-
-SoilInput::SoilProperties SoilInput::getsoilLPJ(coord c) {
-
-	int soilcode = soildatamapLPJ[c];
+SoilInput::SoilProperties SoilInput::get_lpj(coord c) {
 
 	double data[9][9] = {
 
@@ -191,37 +169,29 @@ SoilInput::SoilProperties SoilInput::getsoilLPJ(coord c) {
 		{   0.2, 0.100,   0.2, 0.500,   0.4,	0.100,	0.250,	0.10,	0.80}     // 9	Vertisols (values not know for wp)
 	};
 
-	if (soilcode<1 || soilcode>9)
-		fail("soilparameters: invalid LPJ soil code (%d)",soilcode);
+	int soilcode = lpj_map[c];
 
 	SoilProperties soiltype;
-	soiltype.sand = data[soilcode-1][7];
-	soiltype.clay = data[soilcode-1][8];
+	soiltype.sand = data[soilcode][7];
+	soiltype.clay = data[soilcode][8];
 
-	soiltype.b = data[soilcode-1][0];
-	soiltype.volumetric_whc_field_capacity = data[soilcode-1][1];
-	soiltype.thermal_wilting_point = data[soilcode-1][2];
-	soiltype.thermal_15_whc = data[soilcode-1][3];
-	soiltype.thermal_field_capacity = data[soilcode-1][4];
-	soiltype.wilting_point = data[soilcode-1][5];
-	soiltype.saturation_capacity = data[soilcode-1][6];
+	soiltype.b = data[soilcode][0];
+	soiltype.volumetric_whc_field_capacity = data[soilcode][1];
+	soiltype.thermal_wilting_point = data[soilcode][2];
+	soiltype.thermal_15_whc = data[soilcode][3];
+	soiltype.thermal_field_capacity = data[soilcode][4];
+	soiltype.wilting_point = data[soilcode][5];
+	soiltype.saturation_capacity = data[soilcode][6];
 	soiltype.pH = 6.5;
 	soiltype.soil_OC = 0.05;
 	return soiltype;
 }
 
-SoilInput::SoilProperties SoilInput::getsoilMINERAL(coord c) {
+SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 
-	SoilDataMineral soil = soildatamapMINERAL[c];
-	double sand = soil.sand;
-	double clay = soil.clay;
-	double silt = 1.0 - sand - clay;
+	SoilDataMineral& soil = mineral_map[c];
+	double silt = 1.0 - soil.sand - soil.clay;
 
-	double b = 0.0;
-	double logPsi_s = 0.0;
-	double Theta_s = 0.0;
-	double Theta_wilt = 0.0;
-	double Theta_whc = 0.0;
 	// Equation 1 from Cosby 1984
 	// Psi = Psi_s * (Theta/Theta_s)^b
 	// Psi is the pressure head in cm
@@ -230,20 +200,21 @@ SoilInput::SoilProperties SoilInput::getsoilMINERAL(coord c) {
 	// Re-arranged to get the Theta
 	// Theta = Theta_s * (Psi/Psi_s)^(1/b)
 
-
 	// from Table 4, Cosby 1984
-	b = 3.10+15.7 * clay - 0.3 * sand;
+	double b = 3.10 + 15.7*soil.clay - 0.3*soil.sand;
+
 	//logK_s = -0.6 + 1.26 * soiltype.sand_frac - 0.64 * soiltype.clay_frac;
-	logPsi_s = 1.54 - 0.95 * sand + 0.63 * silt;
+	double logPsi_s = 1.54 - 0.95 * soil.sand + 0.63 * silt;
+
 	// Theta_s in Cosby expressed as %
-	Theta_s = 0.01*(50.5 - 14.2 * sand - 3.7 * clay);
+	double Theta_s = 0.01*(50.5 - 14.2 * soil.sand - 3.7 * soil.clay);
 
 	double Psi_s = pow(10.0, -logPsi_s);
 	double Psi_wilt = pow(10.0, -4.2);
 	double Psi_whc = pow(10.0, -2.0);
 
-	Theta_whc = Theta_s * pow((Psi_whc/Psi_s),1.0/b);
-	Theta_wilt = Theta_s * pow((Psi_wilt/Psi_s),1.0/b);
+	double Theta_whc = Theta_s * pow((Psi_whc/Psi_s),1.0/b);
+	double Theta_wilt = Theta_s * pow((Psi_wilt/Psi_s),1.0/b);
 
 	// A linear dependence between the percolation coefficient from Haxeltine 1996a
 	// and the texture dependent parameter b from Cosby 1984 was established
@@ -252,8 +223,8 @@ SoilInput::SoilProperties SoilInput::getsoilMINERAL(coord c) {
 	SoilProperties soiltype;
 	soiltype.b = 5.87 - 0.29 * b;
 
-	soiltype.sand = sand;
-	soiltype.clay = clay;
+	soiltype.sand = soil.sand;
+	soiltype.clay = soil.clay;
 
 	soiltype.volumetric_whc_field_capacity = (Theta_whc - Theta_wilt);
 	soiltype.thermal_wilting_point = 0.2;
@@ -266,13 +237,15 @@ SoilInput::SoilProperties SoilInput::getsoilMINERAL(coord c) {
 	return soiltype;
 }
 
-void SoilInput::soilparameters(SoilProperties soilprop, Soiltype& soiltype) {
-	const double PERC_EXP = 2.0;
+void SoilInput::getsoil(double lon, double lat, Soiltype& soiltype) {
+	coord c(lon, lat);
+	SoilProperties soilprop = lpj ? get_lpj(c) : get_mineral(c);
+
 	soiltype.sand_frac = soilprop.sand;
 	soiltype.clay_frac = soilprop.clay;
 	soiltype.silt_frac = 1 - soiltype.sand_frac - soiltype.clay_frac;
 	soiltype.perc_base = soilprop.b;
-	soiltype.perc_exp = PERC_EXP;
+	soiltype.perc_exp = 2;
 	soiltype.awc[0] = SOILDEPTH_UPPER * soilprop.volumetric_whc_field_capacity;
 	soiltype.awc[1] = SOILDEPTH_LOWER * soilprop.volumetric_whc_field_capacity;
 	soiltype.thermdiff_0 = soilprop.thermal_wilting_point;
@@ -287,11 +260,5 @@ void SoilInput::soilparameters(SoilProperties soilprop, Soiltype& soiltype) {
 		// override the default SOM years with 70-80% of the spin-up period
 		soiltype.updateSolveSOMvalues(nyear_spinup);
 	}
-}
-
-void SoilInput::getsoil(double lon, double lat, Soiltype& type) {
-	coord c(lon, lat);
-	SoilProperties props = datatype ? getsoilLPJ(c) : getsoilMINERAL(c);
-	soilparameters(props, type);
 }
 

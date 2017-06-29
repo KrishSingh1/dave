@@ -268,12 +268,12 @@ CFInput::CFInput()
 }
 
 CFInput::~CFInput() {
-	delete cf_temp;		
-	delete cf_prec;		
-	delete cf_insol;	
-	delete cf_wetdays;	
-	delete cf_min_temp; 
-	delete cf_max_temp; 
+	delete cf_temp;
+	delete cf_prec;
+	delete cf_insol;
+	delete cf_wetdays;
+	delete cf_min_temp;
+	delete cf_max_temp;
 
 	cf_temp = 0;
 	cf_prec = 0;
@@ -369,7 +369,7 @@ void CFInput::init() {
 
 				c.rlat = rlat;
 				c.rlon = rlon;
-	
+
 			}
 		}
 		c.descrip = (xtring)trim(descrip).c_str();
@@ -385,7 +385,7 @@ void CFInput::init() {
 
 	date.set_first_calendar_year(cf_temp->get_date_time(0).get_year() - nyear_spinup);
 
-	soilinput.init(std::string(param["file_soildata"].str));
+	soilinput.init(param["file_soildata"].str);
 
 	// Set timers
 	tprogress.init();

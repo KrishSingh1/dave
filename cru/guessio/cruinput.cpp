@@ -94,7 +94,7 @@ void CRUInput::init() {
 	file_cru_misc=param["file_cru_misc"].str;
 
 	gridlist.killall();
-	first_call = true;	
+	first_call = true;
 
 	while (!eof) {
 
@@ -123,7 +123,7 @@ void CRUInput::init() {
 
 	date.set_first_calendar_year(FIRSTHISTYEAR - nyear_spinup);
 
-	soilinput.init(std::string(param["file_soildata"].str), _translate(gridlist));
+	soilinput.init(param["file_soildata"].str, _translate(gridlist));
 	// Set timers
 	tprogress.init();
 	tmute.init();
@@ -185,7 +185,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 				lat = gridlist.getobj().lat;
 				gridfound = CRU_TS30::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
 				                                         hist_mtemp, hist_mprec, hist_msun);
-			  
+
 				if (gridfound) // Get more historical CRU data for this grid cell
 					gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation,
 					                                     hist_mfrs, hist_mwet, hist_mdtr);
@@ -238,22 +238,22 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		if (gridlist.getobj().descrip!="") dprintf(" (%s)\n\n",
 			(char*)gridlist.getobj().descrip);
 		else dprintf("\n\n");
-		
+
 		// Tell framework the coordinates of this grid cell
 		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
-		
-		// Get nitrogen deposition data. 
-		/* Since the historic data set does not reach decade 2010-2019, 
+
+		// Get nitrogen deposition data.
+		/* Since the historic data set does not reach decade 2010-2019,
 		 * we need to use the RCP data for the last decade. */
 		ndep.getndep(param["file_ndep"].str, lon, lat, Lamarque::RCP60);
 
 		// The insolation data will be sent (in function getclimate, below)
 		// as incoming shortwave radiation, averages are over 24 hours
-		
+
 		gridcell.climate.instype = SWRAD_TS;
 
 		soilinput.getsoil(lon,lat, gridcell.soiltype);
-		
+
 		clear_all_graphs();
 
 		return true; // simulate this stand

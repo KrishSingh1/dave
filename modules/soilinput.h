@@ -21,20 +21,17 @@ typedef std::pair<double, double> coord;
 
 class SoilInput {
 public:
-	SoilInput();
+	SoilInput() {};
 
-	~SoilInput();
+	~SoilInput() {};
 
-	void init(std::string filename);
-	void init(std::string filename, std::vector<coord> gridlist);
+	void init(const char* filename, const std::vector<coord>& gridlist=std::vector<coord>());
 
 	void getsoil(double lon, double lat, Soiltype &type);
 
 private:
 
-	bool loaddatafromfile(std::string fname, int datatype, std::set<coord> &gridlist);
-
-	bool soildatatype;
+	bool lpj;
 
 	struct SoilProperties {
 		//    0  empirical parameter in percolation equation (k1) (mm/day)
@@ -65,22 +62,13 @@ private:
 		double soil_OC;
 	};
 
-	bool loaddatafromfileMINERAL(std::string fname);
-	bool load_lpj_soilcodes(std::string fname);
-	std::set<coord> coordinates;
+	void load_mineral_soils(const char* fname, const std::set<coord>& coords);
+	void load_lpj_soilcodes(const char* fname, const std::set<coord>& coords);
 
-	void soilparameters(SoilProperties props, Soiltype& soiltype);
-	SoilProperties getsoilLPJ(coord c);
-	SoilProperties getsoilMINERAL(coord c);
-
-
-	// Which of the soildatatype's the input data belongs to
-	int datatype;
-
-	bool use_ph_from_data;
+	SoilProperties get_lpj(coord c);
+	SoilProperties get_mineral(coord c);
 
 	struct SoilDataMineral {
-		int datatype;
 		double sand;
 		double clay;
 		double orgc;
@@ -88,14 +76,8 @@ private:
 		double pH;
 	};
 
-	SoilProperties props;
-
-	// mapping of coordinates to soilcode
-	std::map<coord, int> soildatamapLPJ;
-	// mapping of coordinates to mineral data (based on WISE and other sources, contact Stefan Olin at stefan.olin@nateko.lu.se or via phone 076576540541 between 11 p.m. and 8 a.m.)
-	std::map<coord, SoilDataMineral> soildatamapMINERAL;
-
-
+	std::map<coord, int> lpj_map;
+	std::map<coord, SoilDataMineral> mineral_map;
 };
 
 #endif /* SOILINPUT_H */

@@ -1834,7 +1834,6 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 				s_fac = sen_fac * c3transfercon;
 			}
 
-			if(date.get_calendar_year() == 2005) dprintf("day=%d temp=%f \n",date.day,patch.get_climate().temp);
 
 			if ((indiv.phen_daily > 0.1 && indiv.lai < 0.1 && indiv.ws < indiv.sg)) { // check if storage needs to be used only when very low LAI
 				G = indiv.sg * 0.2;

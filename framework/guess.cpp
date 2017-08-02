@@ -163,11 +163,11 @@ void Fluxes::report_flux(PerPatchFluxType flux_type, double value) {
 	daily_fluxes_patch[date.day][flux_type] += value;
 }
 
-double Fluxes::get_daily_flux(PerPFTFluxType flux_type, int day) const { //daily carbon allocaiton niklas
+double Fluxes::get_daily_flux(PerPFTFluxType flux_type, int day) const { //daily carbon allocation niklas
 	return daily_fluxes_pft[day][flux_type];
 }
 
-double Fluxes::get_daily_flux(PerPatchFluxType flux_type, int day) const { //daily carbon allocaiton niklas
+double Fluxes::get_daily_flux(PerPatchFluxType flux_type, int day) const { //daily carbon allocation niklas
 	return daily_fluxes_patch[day][flux_type];
 }
 
@@ -1105,8 +1105,6 @@ void cropindiv_struct::serialize(ArchiveStream& arch) {
 
 Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
-	dnpp			  = 0.0; //Daily allocation Niklas start
-	dgpp			  = 0.0;
 	ymax_lai		  = 0.0;
 	ycmass_leaf		  = 0.0;
 	ycmass_root		  = 0.0;
@@ -1118,7 +1116,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	w4				  = 0.0;
 	sg                = 0.0;
 	phen_daily		  = 0.0;
-	abscission		  = 0.0;
 	ygrowth			  = 0.0;
 	cton_leaf_opt	  = 0.0; 
 	anpp              = 0.0;
@@ -1236,9 +1233,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& aphen
 		& aphen_raingreen
 		& anpp
-		& dnpp		//daily allocation Niklas
-		& dgpp
-		& phen_daily
+		& phen_daily //daily allocation Niklas
 		& ymax_lai
 		& ycmass_leaf
 		& ycmass_root
@@ -1249,7 +1244,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& w2
 		& w3
 		& w4
-		& abscission
 		& ygrowth
 		& nscal_running
 		& wscal_running   	

@@ -1578,6 +1578,17 @@ public:
 	double avg_cton(const double& min, const double& max) {
 		return 2.0 / (1. / min + 1. / max);
 	}
+
+	/// daily carbon allocation
+	// root to storage growth ratio
+	double sgtor;
+	// senescence factor
+	double sen_fac;
+	//  transfer constant of material between compartments a
+	double transfercon;
+
+
+
 	// MEMBER FUNCTIONS
 
 public:
@@ -2148,11 +2159,6 @@ public:
 	/// accumulated NPP over modelled area (kgC/m2/year);
 	/** annual NPP following call to growth module on last day of simulation year */
 	double anpp;
-
-	// Daily gpp, niklas (kgC/m2/day)
-	double dgpp;
-	// Daily NEE , niklas (kgC/m2/day)
-	double dnee;
 	// phen for daily allocation (based on water supply and demand ratio for C4 and gdd5 for C3 grass daily allocation niklas.
 	double phen_daily;
 	// yearly lai for daily allocation Niklas

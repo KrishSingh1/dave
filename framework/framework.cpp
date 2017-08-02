@@ -87,11 +87,6 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// Get reference to this patch
 			Patch& patch = stand.getobj();
 
-			//reset values updated for yearly output daily carbon allocation, niklas
-			if(ifdcarb && date.day == 0){
-				growth_reset(stand, patch); // Daily allocation reset function niklas
-			}
-
 			// Update daily soil drivers including soil temperature
 			dailyaccounting_patch(patch);
 

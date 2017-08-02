@@ -877,7 +877,7 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 }
 
 void allocation_daily(double bminc,double cmass_leaf,double cmass_root,double ltor,double ws,double sg,double& cmass_sg_inc,
-		double& cmass_leaf_inc,double& cmass_root_inc, double& exceeds_cmass) {
+		double& cmass_leaf_inc,double& cmass_root_inc, double& exceeds_cmass, double&sgtor) {
 	// DESCRIPTION
 	// Calculates changes in C compartment sizes (leaves, roots, sapwood, heartwood)
 	// and litter for a plant individual as a result of allocation of biomass increment.
@@ -1776,12 +1776,19 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 			c4=0.0;
 			G=0.0;
 
+			if(date.day == 0){ //reset yearly maximum variables
+				indiv.ygrowth = 0.0;
+				indiv.ymax_lai = 0.0;
+				indiv.ycmass_leaf = 0.0;
+				indiv.ycmass_root = 0.0;
+			}
+
 
 			//First year with daily carbon allocation for this individual,
-			if (indiv.wg==0 && !negligible(indiv.cmass_leaf)) {
+			if (indiv.wg == 0 && !negligible(indiv.cmass_leaf)) {
 				indiv.ws = indiv.cmass_leaf; //  put cmass_leaf into leaf storage
 				indiv.cmass_leaf = 0.0;
-				indiv.sg = indiv.cmass_root*sgtor;
+				indiv.sg = indiv.cmass_root*indiv.pft.sgtor;
 				indiv.cmass_root=indiv.cmass_root - indiv.sg; //put some of the root C into the sg
 			}
 
@@ -1812,7 +1819,7 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 			}
 
 			//allocate between daily compartments, also includes ws (leaf stroage) and sg(storage growth)
-			allocation_daily(bminc,indiv.cmass_leaf,indiv.cmass_root,indiv.ltor,indiv.ws,indiv.sg,cmass_sg_inc,cmass_leaf_inc,cmass_root_inc,exceeds_cmass);
+			allocation_daily(bminc,indiv.cmass_leaf,indiv.cmass_root,indiv.ltor,indiv.ws,indiv.sg,cmass_sg_inc,cmass_leaf_inc,cmass_root_inc,exceeds_cmass,indiv.pft.sgtor);
 
 			//update state of root, sg and ws.
 			indiv.cmass_root += cmass_root_inc; //add directly to roots 
@@ -1825,13 +1832,15 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 			double s_fac = 0.0; //senescense and movement to litter.
 			if (indiv.pft.pathway == C4) {
 				g_fac = min(1.0, max(0.0, 0.5 * patch.get_climate().temp / 30.0));
-				g_mov = min(1.0, max(0.0, c4transfercon * patch.get_climate().temp / 30.0));
-				s_fac = sen_fac * c4transfercon;
+				g_mov = min(1.0, max(0.0, indiv.pft.transfercon * patch.get_climate().temp / 30.0));
+				s_fac = indiv.pft.sen_fac * indiv.pft.transfercon;
+
 			} 
 			else if (indiv.pft.pathway == C3) {
 				g_fac = min(1.0, max(0.0, 0.5 * patch.get_climate().temp / 20.0));
-				g_mov = min(1.0, max(0.0, c3transfercon * patch.get_climate().temp / 20.0));
-				s_fac = sen_fac * c3transfercon;
+				g_mov = min(1.0, max(0.0, indiv.pft.transfercon * patch.get_climate().temp / 20.0));
+				s_fac = indiv.pft.sen_fac * indiv.pft.transfercon;
+
 			}
 
 
@@ -1872,7 +1881,6 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 
 			indiv.wg = indiv.w1 + indiv.w2 + indiv.w3; // growth weight (alive leaves)
 
-			indiv.abscission += c4;
 
 			indiv.cmass_leaf = indiv.wg;
 
@@ -1984,28 +1992,6 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 	} // while vegetation is object
 
 } // growth_daily() end
-
-// function called begining of each year to reset variables updated to make sure that the annual output was correct
-// used for daily allocation, niklas
-void growth_reset(Stand& stand, Patch& patch) {
-
-	Vegetation& vegetation = patch.vegetation;
-	Gridcell& gridcell = vegetation.patch.stand.get_gridcell();
-
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv = vegetation.getobj();
-		if (indiv.pft.lifeform == GRASS && indiv.alive && !indiv.istruecrop_or_intercropgrass()) {
-
-			indiv.ygrowth = 0.0;
-			indiv.ymax_lai = 0.0;
-			indiv.ycmass_leaf = 0.0;
-			indiv.ycmass_root = 0.0;
-			indiv.abscission = 0.0;
-		}
-		vegetation.nextobj();
-	}
-}
 
 
 ///////////////////////////////////////////////////////////////////////////////////////

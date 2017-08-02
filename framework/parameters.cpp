@@ -52,12 +52,8 @@ bool ifrainonwetdaysonly;
 
 bool ifbvoc;
 
-// Daily carbon allocation for grasses, niklas
 bool ifdcarb;
-double sgtor; //storage growth to root fraction of material daily carbon niklas
-double c3transfercon; //transfer of material between compartments at 20 degrees celsius. c3 grass daily carbon allocation, niklas
-double c4transfercon; //transfer of material between compartments at 20 degrees celsius. c4 grass daily carbon allocation, niklas
-double sen_fac;			// senescense factor in daily growth
+
 
 
 wateruptaketype wateruptake;
@@ -496,18 +492,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifdcarb",&ifdcarb,1,CB_NONE,	"Whether daily carbon allocation for grasses is enabled (0,1)");
 
 		
-		
-		declareitem("sgtor",&sgtor,0.0,1.0,1,CB_NONE, "storage growth to root ratio, for daily carb");
-		//transfer of material between compartments at 20 degrees celsius. daily carbon allocation, niklas
-		declareitem("c3transfercon",&c3transfercon,0.0,1.0,1,CB_NONE, "Transfer of material between compartments at 20 degrees celsius for C3 GRASS");
-
-		//transfer of material between compartments at 20 degrees celsius. daily carbon allocation, niklas
-		declareitem("c4transfercon",&c4transfercon,0.0,1.0,1,CB_NONE, "Transfer of material between compartments at 20 degrees celsius for C4 GRASS");
-
-		//Grass senescense factor for daily growth grasses  daily carbon allocation, niklas
-		declareitem("sen_fac",&sen_fac,0.0,1.0,1,CB_NONE, "Grass senescense factor for daily growth grasses");
-
-		
 		for (size_t i = 0; i < xtringParams.size(); ++i) {
 			const xtringParam& p = xtringParams[i];
 			declareitem(p.name, p.param, p.maxlen, 0, p.help);
@@ -797,6 +781,17 @@ void plib_declarations(int id,xtring setname) {
 			"c3 parameter for allocation with N stress");
 		declareitem("d3",&ppft->d3,-1000.0,1000.0,1,CB_NONE,
 			"d3 parameter for allocation with N stress");
+
+		declareitem("sgtor",&ppft->sgtor,0.0,1.0,1,CB_NONE,
+			"storage growth to root ratio, for daily carbon allocation");
+		declareitem("transfercon",&ppft->transfercon,0.0,1.0,1,CB_NONE,
+			"Transfer of material between compartments for daily allocation");
+		declareitem("sen_fac",&ppft->sen_fac,0.0,1.0,1,CB_NONE,
+			"Grass senescence factor for daily growth grasses");
+
+
+
+
 
 		callwhendone(CB_CHECKPFT);
 
@@ -1124,10 +1119,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("freenyears")) badins("freenyears");
 
 		if (!itemparsed("ifdcarb")) badins("ifdcarb"); //daily carbon allocation grasses, niklas
-		if (!itemparsed("sgtor")) badins("sgtor"); //daily carbon allocation grasses, niklas
-		if (!itemparsed("c3transfercon")) badins("c3transfercon"); //daily carbon allocation grasses, niklas
-		if (!itemparsed("c4transfercon")) badins("c4transfercon"); //daily carbon allocation grasses, niklas
-		if (!itemparsed("sen_fac")) badins("sen_fac"); //daily carbon allocation grasses, niklas
 		
 		if (nyear_spinup <= freenyears) {
 			sendmessage("Error", "freenyears must be smaller than nyear_spinup");
@@ -1494,6 +1485,14 @@ void plib_callback(int callback) {
 			if (!itemparsed("turnover_root")) badins("turnover_root");
 			if (!itemparsed("ltor_max")) badins("ltor_max");
 			if (!itemparsed("intc")) badins("intc");
+
+			if(ifdcarb && ppft->lifeform==GRASS){
+				if (!itemparsed("sgtor")) badins("sgtor");
+				if (!itemparsed("transfercon")) badins("transfercon");
+				if (!itemparsed("sen_fac")) badins("sen_fac");
+
+			}
+
 
 			if (run_landcover) {
 				if (!itemparsed("landcover")) badins("landcover");

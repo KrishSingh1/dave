@@ -1907,12 +1907,16 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 				// Leaf turnover
 				patch.pft[indiv.pft.id].litter_leaf += c4;
 
+				//Nitrogen removal
+				double nremoval = min(indiv.nmass_leaf, c4 * indiv.densindiv / cton_leaf_bg);
+
 				// Nitrogen leaf
-				patch.pft[indiv.pft.id].nmass_litter_leaf += c4 * indiv.densindiv / cton_leaf_bg * (1.0 - actual_nrelocfrac);
-				indiv.nstore_longterm += c4 * indiv.densindiv / cton_leaf_bg * actual_nrelocfrac;
+				patch.pft[indiv.pft.id].nmass_litter_leaf += nremoval * (1.0 - actual_nrelocfrac);
+				indiv.nstore_longterm += nremoval * actual_nrelocfrac;
 
 				// Subtracting litter nitrogen from individuals
-				indiv.nmass_leaf -= min(indiv.nmass_leaf, c4 * indiv.densindiv / cton_leaf_bg);
+				indiv.nmass_leaf -= nremoval;
+
 
 				// empty pool after dropped
 				c4 = 0.0; 

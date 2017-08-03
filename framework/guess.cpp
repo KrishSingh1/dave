@@ -2019,7 +2019,7 @@ void Individual::kill(bool harvest /* = false */) {
 	}
 
 	if(pft.lifeform == GRASS && ifdcarb && alive && !istruecrop_or_intercropgrass()){
-		ppft.litter_root += sg; // storage grwoth to litter
+		ppft.litter_root += sg; // storage growth to litter
 		ppft.litter_leaf += w4 + ws; //add senescing leaves and growth storage to litter
 	}
 

@@ -173,7 +173,7 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 		// For this individual ...
 		indiv.phen_daily = patch.pft[indiv.pft.id].phen_daily; //niklas
 
-		if(ifdcarb && indiv.pft.lifeform == GRASS && indiv.alive){
+		if(ifdcarb && indiv.pft.lifeform == GRASS && indiv.alive && !indiv.istruecrop_or_intercropgrass()){
 			if ((indiv.phen_daily > 0.5) ||  indiv.lai > 0.05){
 				indiv.phen = 1.0; // daily allocation niklas
 			}else{
@@ -1704,7 +1704,7 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 	// increment in root C biomass following allocation, on individual basis (kgC)
 	double cmass_root_inc=0.0;
 	// increment in storage growth compartment. (kgC)
-	double cmass_sg_inc=0.0; 
+	double cmass_sg_inc=0.0;
 	// increment in leaf litter following allocation, on individual basis (kgC)
 	double litter_leaf_inc = 0.0;
 	// increment in root litter following allocation, on individual basis (kgC)
@@ -1769,7 +1769,7 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 		if (indiv.pft.lifeform == GRASS && indiv.alive && !indiv.istruecrop_or_intercropgrass()) {
 
 
-			//reset temporary movement variables for this indivudal
+			//reset temporary movement variables for this individual
 			c1=0.0;
 			c2=0.0;
 			c3=0.0;
@@ -1822,7 +1822,7 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 			allocation_daily(bminc,indiv.cmass_leaf,indiv.cmass_root,indiv.ltor,indiv.ws,indiv.sg,cmass_sg_inc,cmass_leaf_inc,cmass_root_inc,exceeds_cmass,indiv.pft.sgtor);
 
 			//update state of root, sg and ws.
-			indiv.cmass_root += cmass_root_inc; //add directly to roots 
+			indiv.cmass_root += cmass_root_inc; //add directly to roots
 			indiv.sg += cmass_sg_inc;
 			indiv.ws += cmass_leaf_inc;
 
@@ -1835,7 +1835,7 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 				g_mov = min(1.0, max(0.0, indiv.pft.transfercon * patch.get_climate().temp / 30.0));
 				s_fac = indiv.pft.sen_fac * indiv.pft.transfercon;
 
-			} 
+			}
 			else if (indiv.pft.pathway == C3) {
 				g_fac = min(1.0, max(0.0, 0.5 * patch.get_climate().temp / 20.0));
 				g_mov = min(1.0, max(0.0, indiv.pft.transfercon * patch.get_climate().temp / 20.0));
@@ -1874,7 +1874,7 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 			indiv.w1 += G - c1;
 			// First fully expanded leaves
 			indiv.w2 += c1 - c2;
-			// Second fully expanded leaves 
+			// Second fully expanded leaves
 			indiv.w3 += c2 - c3;
 			// Senescing leaves
 			indiv.w4 += c3 - c4;
@@ -1919,7 +1919,7 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 
 
 				// empty pool after dropped
-				c4 = 0.0; 
+				c4 = 0.0;
 
 				// Root turnover (use same fraction as for leaves
 				double turnov = leaves_turnover_frac * indiv.cmass_root;
@@ -1957,6 +1957,8 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 
 			// LAST DAY OF YEAR // Report yearly data
 			if (date.islastday && date.islastmonth) {
+
+				harvest_year(indiv);
 
 				// Calculate vegetation carbon and nitrogen mass and average C:N ratios for yearly outputs
 

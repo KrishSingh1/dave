@@ -50,6 +50,13 @@ struct Harvest_CN {
 
 	double cmass_leaf;
 	double cmass_root;
+	double w1;
+	double w2;
+	double w3;
+	double w4;
+	double sg;
+	double ws;
+	double wg;
 	double cmass_sap;
 	double cmass_heart;
 	double cmass_debt;
@@ -90,6 +97,7 @@ struct Harvest_CN {
 		nmass_litter_leaf = nmass_litter_root = nmass_litter_sap = nmass_litter_heart = 0.0;
 		acflux_harvest = anflux_harvest = 0.0;
 		harvested_products_slow = harvested_products_slow_nmass = 0.0;
+		w1 = w2 = w3 = w4 = ws = sg = wg = 0.0;
 	}
 
 	/// Copies C and N values from individual and patchpft tp struct.
@@ -116,6 +124,13 @@ struct Harvest_CN {
 		else {
 
 			cmass_leaf = indiv.cmass_leaf;
+			w1 = indiv.w1;
+			w2 = indiv.w2;
+			w3 = indiv.w3;
+			w4 = indiv.w4;
+			sg = indiv.sg;
+			ws = indiv.ws;
+			wg = indiv.wg;
 			cmass_root = indiv.cmass_root;
 			cmass_sap = indiv.cmass_sap;
 			cmass_heart = indiv.cmass_heart;
@@ -187,6 +202,13 @@ struct Harvest_CN {
 			indiv.cmass_sap = cmass_sap;
 			indiv.cmass_heart = cmass_heart;
 			indiv.cmass_debt = cmass_debt;
+			indiv.w1 = w1;
+			indiv.w2 = w2;
+			indiv.w3 = w3;
+			indiv.w4 = w4;
+			indiv.sg = sg;
+			indiv.ws = ws;
+			indiv.wg = wg;
 
 			if(indiv.pft.landcover == CROPLAND) {
 				indiv.cropindiv->cmass_ho = cmass_ho;

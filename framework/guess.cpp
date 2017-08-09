@@ -1689,7 +1689,7 @@ double Individual::ndemand_storage(double cton_leaf_opt) {
 	if (vegetation.patch.stand.is_true_crop_stand() && ifnlim)	// only CROPGREEN, only ifnlim ?
 		// analogous with root demand
 		storendemand = max(0.0, cropindiv->grs_cmass_stem / (cton_leaf_opt * pft.cton_stem_avr / pft.cton_leaf_avr) - cropindiv->nmass_agpool);
-	else if (ifdcarb && pft.lifeform == GRASS)
+	else if (ifdcarb && pft.lifeform == GRASS && !istruecrop_or_intercropgrass())
 		storendemand = max(0.0, max_n_storage - nstore()) / 10.0;
 	else
 		storendemand = max(0.0, min(anpp * scale_n_storage / cton_leaf(), max_n_storage) - nstore());

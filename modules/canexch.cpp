@@ -839,7 +839,7 @@ void nstore_usage(Vegetation& vegetation) {
 			else {
 
 				// Move long-term nitrogen storage pool to labile storage pool for usage now
-				if (ifdcarb && indiv.pft.lifeform == GRASS) {
+				if (ifdcarb && indiv.pft.lifeform == GRASS && !indiv.istruecrop_or_intercropgrass()) {
 					double transferred_nstore = min(0.1 * indiv.nstore_longterm, excess_ndemand - indiv.nstore_labile);
 					indiv.nstore_labile += transferred_nstore;
 					indiv.nstore_longterm -= transferred_nstore;

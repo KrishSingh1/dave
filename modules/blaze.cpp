@@ -818,11 +818,11 @@ void combust(Patch& patch, Climate& climate) {
 		double fm_leaf = metabolic_litter_fraction(lton); 
 		
 		// carbon transitional litter fluxes
-		
 		double cmtb2atm = fab * patch.litf2atm * patchpft.litter_leaf * fm_leaf;
 		double cstr2atm = fab * patch.litf2atm * patchpft.litter_leaf * (1.-fm_leaf);
 		double cfwd2atm = fab * patch.lfwd2atm * patchpft.litter_sap;
 		double ccwd2atm = fab * patch.lcwd2atm * patchpft.litter_heart;
+
 		// nitrogen transitional litter fluxes
 		double nmtb2atm = fab * patch.litf2atm * patchpft.nmass_litter_leaf * fm_leaf;
 		double nstr2atm = fab * patch.litf2atm * patchpft.nmass_litter_leaf * (1.-fm_leaf);
@@ -831,18 +831,15 @@ void combust(Patch& patch, Climate& climate) {
 		
 		// update transitional rest-of-year litter pools
 		// carbon
-		//CLNBALpatchpft.litter_leaf             -= (cmtb2atm + cstr2atm);
+		patchpft.litter_leaf             -= (cmtb2atm + cstr2atm);
 		patchpft.litter_sap              -= cfwd2atm;
 		patchpft.litter_heart            -= ccwd2atm;
-		//patchpft.litter_sap_year         -= cfwd2atm; // not actually necessary.
-		//patchpft.litter_heart_year       -= ccwd2atm; // not actually necessary.
+
 		// nitrogen
 		// Are dropped at begining of year
-		//CLNBALpatchpft.nmass_litter_leaf       -= (nmtb2atm + nstr2atm);
+		patchpft.nmass_litter_leaf       -= (nmtb2atm + nstr2atm);
 		patchpft.nmass_litter_sap        -= nfwd2atm; 
 		patchpft.nmass_litter_heart      -= ncwd2atm; 
-		//patchpft.nmass_litter_sap_year   -= nfwd2atm; // not actually necessary.
-		//patchpft.nmass_litter_heart_year -= ncwd2atm; // not actually necessary.
 		
 		// calculate total fluxes away in patch
 		// carbon
@@ -861,11 +858,11 @@ void combust(Patch& patch, Climate& climate) {
 	
 	
 	// report C litter -> atm flux from transitional pools
-	//CLNBAL patch.fluxes.report_flux(Fluxes::FIREC, cmtb2atm_t + cstr2atm_t + cfwd2atm_t + ccwd2atm_t);
-	patch.fluxes.report_flux(Fluxes::FIREC, cfwd2atm_t + ccwd2atm_t);
+	patch.fluxes.report_flux(Fluxes::FIREC, cmtb2atm_t + cstr2atm_t + cfwd2atm_t + ccwd2atm_t);
+	//CLNBALpatch.fluxes.report_flux(Fluxes::FIREC, cfwd2atm_t + ccwd2atm_t);
 	// report N litter -> atm flux from transitional pools
-	//CLNBALreport_fire_flux_n(patch, nmtb2atm_t + nstr2atm_t + nfwd2atm_t + ncwd2atm_t );
-	report_fire_flux_n(patch, nfwd2atm_t + ncwd2atm_t );
+	report_fire_flux_n(patch, nmtb2atm_t + nstr2atm_t + nfwd2atm_t + ncwd2atm_t );
+	//CLNBALreport_fire_flux_n(patch, nfwd2atm_t + ncwd2atm_t );
 
 	//	dprintf("year %i \n",date.year);
 	//dprintf("clitt 2atm small %f wd %f \n", cmtb2atm_t + cstr2atm_t, cfwd2atm_t + ccwd2atm_t);
@@ -876,7 +873,6 @@ void combust(Patch& patch, Climate& climate) {
 	  patch.fluxes.report_flux(Fluxes::C_str2atm,  cstr2atm_t);
 	  patch.fluxes.report_flux(Fluxes::C_fwd2atm,  cfwd2atm_t);
 	  patch.fluxes.report_flux(Fluxes::C_cwd2atm,  ccwd2atm_t);*/
-	if ( now ) dprintf("combust 2   \n");
 }
 
 void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {

@@ -530,7 +530,8 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 
 	// Get nitrogen deposition, using the found CRU coordinates
 	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat,
-	             Lamarque::parse_timeseries(ndep_timeseries));
+	             Lamarque::RCP60);
+	             //Lamarque::parse_timeseries(ndep_timeseries));
 
 	//CLN
 	if ( ignition == SIMFIRE || ignition == SIMGFED || ignition == PRESCRIBED ) {

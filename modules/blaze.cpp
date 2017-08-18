@@ -30,6 +30,7 @@
 #include "config.h"
 #include "guess.h"
 #include "blaze.h"
+#include <fenv.h>
 
 // Internal help function for splitting up nitrogen fire fluxes into components
 // copied from vegdynam.cpp
@@ -626,6 +627,7 @@ void combust(Patch& patch, Climate& climate) {
 	const double LIGCFRAC_leaf = 0.2;
 	
 	double ab  = climate.areaburnt;
+
 	// Correction for previously burnt area
 	double accf= 1. / (1. - climate.acc_areaburnt);
 	
@@ -650,17 +652,16 @@ void combust(Patch& patch, Climate& climate) {
 	// compute fluxes FROM soil litter pools to atmosphere first!
 	// since they are patch-specific only and the fluxes INTO 
 	// soil litter will be added in loop over INDIVIDUALS below
-	double cmtb2atm = fab * patch.litf2atm * patch.soil.sompool[SURFMETA].cmass  ;
-	double cstr2atm = fab * patch.litf2atm * patch.soil.sompool[SURFSTRUCT].cmass;
-	double cfwd2atm = fab * patch.lfwd2atm * patch.soil.sompool[SURFFWD].cmass   ;
-	double ccwd2atm = fab * patch.lcwd2atm * patch.soil.sompool[SURFCWD].cmass   ;   
+	double cmtb2atm = fab * patch.litf2atm * patch.soil.sompool[SURFMETA].cmass   ;
+	double cstr2atm = fab * patch.litf2atm * patch.soil.sompool[SURFSTRUCT].cmass ;
+	double cfwd2atm = fab * patch.lfwd2atm * patch.soil.sompool[SURFFWD].cmass    ;
+	double ccwd2atm = fab * patch.lcwd2atm * patch.soil.sompool[SURFCWD].cmass    ;   
 	
 	// nitrogen proportional to cmass flux
 	double nmtb2atm = fab * patch.litf2atm * patch.soil.sompool[SURFMETA].nmass   ;
 	double nstr2atm = fab * patch.litf2atm * patch.soil.sompool[SURFSTRUCT].nmass ;
 	double nfwd2atm = fab * patch.lfwd2atm * patch.soil.sompool[SURFFWD].nmass    ;
 	double ncwd2atm = fab * patch.lcwd2atm * patch.soil.sompool[SURFCWD].nmass    ;   
-	
 	
 	// update soil-surface-litter pools
 	// carbon
@@ -674,9 +675,13 @@ void combust(Patch& patch, Climate& climate) {
 	patch.soil.sompool[SURFSTRUCT].nmass -= nstr2atm ;
 	patch.soil.sompool[SURFFWD].nmass    -= nfwd2atm ;
 	patch.soil.sompool[SURFCWD].nmass    -= ncwd2atm ;   
-	
+ 	
 	// report C litter -> atm fluxes
 	patch.fluxes.report_flux(Fluxes::FIREC, cmtb2atm + cstr2atm + cfwd2atm + ccwd2atm);
+
+	// report N litter -> atm fluxes
+	report_fire_flux_n(patch, nmtb2atm + nstr2atm + nfwd2atm + ncwd2atm );
+       
 	/*patch.fluxes.report_flux(Fluxes::C_leaf2atm, cleaf2atm);
 	  patch.fluxes.report_flux(Fluxes::C_leaf2met, cleaf2met);
 	  patch.fluxes.report_flux(Fluxes::C_leaf2str, cleaf2str);
@@ -692,9 +697,6 @@ void combust(Patch& patch, Climate& climate) {
 	  patch.fluxes.report_flux(Fluxes::C_str2atm,  cstr2atm);
 	  patch.fluxes.report_flux(Fluxes::C_fwd2atm,  cfwd2atm);
 	  patch.fluxes.report_flux(Fluxes::C_cwd2atm,  ccwd2atm);*/
-	
-	// report N litter -> atm fluxes
-	report_fire_flux_n(patch, nmtb2atm + nstr2atm + nfwd2atm + ncwd2atm );
 	
 	//BLAZE-OUTPUT: SUM(cmtb2atm + cstr2atm + cfwd2atm + ccwd2atm) as CSOILLITTER2ATM
 	//BLAZE-OUTPUT: SUM(nmtb2atm + nstr2atm + nfwd2atm + ncwd2atm) as NSOILLITTER2ATM
@@ -720,8 +722,8 @@ void combust(Patch& patch, Climate& climate) {
 				vegetation.killobj();
 				killed=true;
 			}
+			if (!killed) vegetation.nextobj(); // ... on to next individual
 		}
-		if (!killed) vegetation.nextobj(); // ... on to next individual
 		fab = ab * accf;
 	}
 	else {
@@ -735,13 +737,17 @@ void combust(Patch& patch, Climate& climate) {
 		vegetation.firstobj();
 		while (vegetation.isobj) {
 			Individual& indiv=vegetation.getobj();
-			
+			if ( !indiv.alive ) {
+				vegetation.nextobj();
+				continue;
+			}
 			// For this individual ...
 			killed=false;
 			
 			if (indiv.pft.lifeform==GRASS) {
 				
 				// Reduce individual live biomass and freshly created litter
+				//CLN LINE BELOW creates imbalance!!!! 
 				indiv.reduce_biomass(.99,.99);
 				
 				// Update allometry
@@ -751,7 +757,6 @@ void combust(Patch& patch, Climate& climate) {
 				
 				// TREE PFT
 				if (ifstochmort) {
-					
 					// Impose stochastic mortality
 					// Each individual in cohort dies with probability 'mort_fire'
 					// Number of individuals represented by 'indiv'
@@ -774,9 +779,9 @@ void combust(Patch& patch, Climate& climate) {
 				// Deterministic mortality (cohort mode only)
 				
 				else { 
-					frac_survive=survival_probability(patch,indiv, climate);
+					frac_survive=survival_probability(patch, indiv, climate);
 				}
-				//CLN dprintf("%d %d BA %f Biome %d FLI %f frac_surv %f \n",date.get_calendar_year(),date.day,ab,climate.simfire_biome,patch.fli,frac_survive);
+
 				// Reduce individual biomass on patch area basis
 				// to account for loss of killed individuals
 				indiv.blaze_reduce_biomass(patch,frac_survive);
@@ -787,6 +792,7 @@ void combust(Patch& patch, Climate& climate) {
 					vegetation.killobj();
 					killed=true;
 				}
+
 			}
 			if (!killed) vegetation.nextobj(); // ... on to next individual
 		}
@@ -802,7 +808,7 @@ void combust(Patch& patch, Climate& climate) {
 	double nstr2atm_t = 0.; 
 	double nfwd2atm_t = 0.;
 	double ncwd2atm_t = 0.;
-	
+	//*CLNBAL	
 	patch.pft.firstobj();
 	while (patch.pft.isobj) {
 		Patchpft& patchpft = patch.pft.getobj();
@@ -825,17 +831,18 @@ void combust(Patch& patch, Climate& climate) {
 		
 		// update transitional rest-of-year litter pools
 		// carbon
-		patchpft.litter_leaf             -= (cmtb2atm + cstr2atm);
+		//CLNBALpatchpft.litter_leaf             -= (cmtb2atm + cstr2atm);
 		patchpft.litter_sap              -= cfwd2atm;
 		patchpft.litter_heart            -= ccwd2atm;
-		patchpft.litter_sap_year         -= cfwd2atm; // not actually necessary.
-		patchpft.litter_heart_year       -= ccwd2atm; // not actually necessary.
+		//patchpft.litter_sap_year         -= cfwd2atm; // not actually necessary.
+		//patchpft.litter_heart_year       -= ccwd2atm; // not actually necessary.
 		// nitrogen
-		patchpft.nmass_litter_leaf       -= (nmtb2atm + nstr2atm);
+		// Are dropped at begining of year
+		//CLNBALpatchpft.nmass_litter_leaf       -= (nmtb2atm + nstr2atm);
 		patchpft.nmass_litter_sap        -= nfwd2atm; 
 		patchpft.nmass_litter_heart      -= ncwd2atm; 
-		patchpft.nmass_litter_sap_year   -= nfwd2atm; // not actually necessary.
-		patchpft.nmass_litter_heart_year -= ncwd2atm; // not actually necessary.
+		//patchpft.nmass_litter_sap_year   -= nfwd2atm; // not actually necessary.
+		//patchpft.nmass_litter_heart_year -= ncwd2atm; // not actually necessary.
 		
 		// calculate total fluxes away in patch
 		// carbon
@@ -852,17 +859,24 @@ void combust(Patch& patch, Climate& climate) {
 		patch.pft.nextobj();
 	}
 	
-	// report C litter -> atm flux from transitional pools
-	patch.fluxes.report_flux(Fluxes::FIREC, cmtb2atm_t + cstr2atm_t + cfwd2atm_t + ccwd2atm_t);
-	//CLN dprintf("tlitt 2atm small %f wd %f \n", cmtb2atm_t + cstr2atm_t, cfwd2atm_t + ccwd2atm_t);
-	// report N litter -> atm flux from transitional pools
-	report_fire_flux_n(patch, nmtb2atm_t + nstr2atm_t + nfwd2atm_t + ncwd2atm_t );
-	//CLN dprintf("========= Left combust \n");
 	
+	// report C litter -> atm flux from transitional pools
+	//CLNBAL patch.fluxes.report_flux(Fluxes::FIREC, cmtb2atm_t + cstr2atm_t + cfwd2atm_t + ccwd2atm_t);
+	patch.fluxes.report_flux(Fluxes::FIREC, cfwd2atm_t + ccwd2atm_t);
+	// report N litter -> atm flux from transitional pools
+	//CLNBALreport_fire_flux_n(patch, nmtb2atm_t + nstr2atm_t + nfwd2atm_t + ncwd2atm_t );
+	report_fire_flux_n(patch, nfwd2atm_t + ncwd2atm_t );
+
+	//	dprintf("year %i \n",date.year);
+	//dprintf("clitt 2atm small %f wd %f \n", cmtb2atm_t + cstr2atm_t, cfwd2atm_t + ccwd2atm_t);
+	//dprintf("nlitt 2atm small %f wd %f \n", nmtb2atm_t + nstr2atm_t, nfwd2atm_t + ncwd2atm_t);
+	//dprintf("========= Left combust \n");
+	//*/
 	/*patch.fluxes.report_flux(Fluxes::C_mtb2atm,  cmtb2atm_t);
 	  patch.fluxes.report_flux(Fluxes::C_str2atm,  cstr2atm_t);
 	  patch.fluxes.report_flux(Fluxes::C_fwd2atm,  cfwd2atm_t);
 	  patch.fluxes.report_flux(Fluxes::C_cwd2atm,  ccwd2atm_t);*/
+	if ( now ) dprintf("combust 2   \n");
 }
 
 void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
@@ -880,6 +894,10 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	   in respective mode or will be burned area in case of POPULATION 
 	   mode.
 	*/
+
+	bool now = false;
+	//if ( patch.id == 16) now = true;
+
 	double frac_killed = 1. - frac_survive;
 
 	// FROM transfer_litter in somdynam.cpp
@@ -904,6 +922,7 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 
 	double fab = 1.0;
 
+	if ( now ) dprintf("red bio 0    \n");
 	if ( vegmode == INDIVIDUAL || vegmode == COHORT ) {
 		double wtotw = patch.wood2atm + patch.wood2str + patch.wood2fwd + patch.wood2cwd;
 		//CLN dprintf("w2atm/wtotw %f \n",patch.wood2atm/wtotw);
@@ -942,6 +961,8 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 		fab = frac_killed;
 		fail("The several x2y factors are zero nelow!!! indiv:blaze_reduce_biomass in blaze.cpp");
 	}
+	if ( now )dprintf("red bio 1   \n");
+		
 
 	// ===== compute mass/area fluxes ====
 	Patchpft& ppft = patchpft();
@@ -977,11 +998,16 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	double nhrtw2str = fab * wood2str * nmass_heart;
 	double nhrtw2cwd = fab * (wood2fwd + wood2cwd) * nmass_heart;
 
+	if ( now ) dprintf("red bio 2    \n");
 	// ROOT
 	// assume that same percentage of root biomass is killed as for total 
 	// above ground woody biomass
-	double lossratio = (csapw2atm + csapw2str + csapw2fwd + 
+
+	double lossratio = 0.;
+	if ( cmass_sap + cmass_heart > 0. ) {
+		lossratio = (csapw2atm + csapw2str + csapw2fwd + 
 			    chrtw2atm + chrtw2str + chrtw2cwd) / (cmass_sap + cmass_heart);
+	}
 
 	// Root litter lignin:N ratio
 	lton = lignin_to_n_ratio(ppft.litter_root, ppft.nmass_litter_root, LIGCFRAC_root, 
@@ -997,18 +1023,46 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 
 	// ===== UPDATE POOLS ====
 
-	if (pft.lifeform != GRASS) {
-		densindiv *= frac_survive;
-	}
-	
 	// live carbon
 	cmass_leaf      -= (cleaf2atm + cleaf2met + cleaf2str);
 	cmass_sap       -= (csapw2atm + csapw2str + csapw2fwd);
 	cmass_heart     -= (chrtw2atm + chrtw2str + chrtw2cwd); 
 	cmass_root      -= (croot2met + croot2str); 
+	
+	if ( now ) dprintf("red bio 3    \n");
+	// Deal with c-debt before asserting to litter & atm pool
+	double saploss = csapw2atm + csapw2str + csapw2fwd;
+	double hrtloss = chrtw2atm + chrtw2str + chrtw2cwd;
 
-	double d_cdebt = cmass_debt * (1. - frac_survive);
-	cmass_debt      *= frac_survive; 
+	if ( cmass_debt <= saploss + hrtloss && cmass_debt > 0. ) {
+		if ( cmass_debt <= hrtloss ) {
+			double scalefac = (hrtloss - cmass_debt) / hrtloss;
+			chrtw2str  *= scalefac;
+			chrtw2cwd  *= scalefac; 
+			chrtw2atm  *= scalefac;
+			cmass_debt  = 0.;
+		}
+		else {
+			chrtw2str  = 0.;
+			chrtw2cwd  = 0.; 
+			chrtw2atm  = 0.;
+			double scalefac = (saploss - (cmass_debt - hrtloss)) / saploss;
+			csapw2str  *= scalefac;
+			csapw2fwd  *= scalefac; 
+			csapw2atm  *= scalefac;
+			cmass_debt  = 0.;
+		}
+	}
+	else {
+		chrtw2str  = 0.;
+		chrtw2cwd  = 0.; 
+		chrtw2atm  = 0.;
+		csapw2str  = 0.;
+		csapw2fwd  = 0.; 
+		csapw2atm  = 0.;
+		cmass_debt -= (saploss + hrtloss);
+	}
+	if ( now ) dprintf("red bio 4    \n");
 
 	// live nitrogen
 	nmass_leaf      -= (nleaf2atm + nleaf2met + nleaf2str);
@@ -1016,12 +1070,16 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	nmass_heart     -= (nhrtw2atm + nhrtw2str + nhrtw2cwd);
 	nmass_root      -= (nroot2met + nroot2str); 
 	
-	double d_nstore = (nstore_longterm + nstore_labile) * (1. - frac_survive);
+       	double d_nstore = (nstore_longterm + nstore_labile) * (1. - frac_survive);
 	nstore_longterm *= frac_survive; 
 	nstore_labile   *= frac_survive; 
 
 	// report C live -> atm flux 
-	patch.fluxes.report_flux(Fluxes::FIREC, cleaf2atm + csapw2atm + chrtw2atm + d_cdebt );
+	patch.fluxes.report_flux(Fluxes::FIREC, cleaf2atm + csapw2atm + chrtw2atm);
+
+	// report N live -> atm flux 
+	report_fire_flux_n(patch, nleaf2atm + nsapw2atm + nhrtw2atm + d_nstore);
+ 
         /*patch.fluxes.report_flux(Fluxes::C_leaf2atm, cleaf2atm);
 	patch.fluxes.report_flux(Fluxes::C_leaf2met, cleaf2met);
 	patch.fluxes.report_flux(Fluxes::C_leaf2str, cleaf2str);
@@ -1034,26 +1092,28 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	patch.fluxes.report_flux(Fluxes::C_root2met, croot2met);
 	patch.fluxes.report_flux(Fluxes::C_root2str, croot2str);*/
 
-	// report N live -> atm flux 
-	report_fire_flux_n(patch, nleaf2atm + nsapw2atm + nhrtw2atm + d_nstore);
 
 	// soil-surface-litter carbon
 	patch.soil.sompool[SURFMETA].cmass   += cleaf2met;
 	patch.soil.sompool[SURFSTRUCT].cmass += cleaf2str + csapw2str + chrtw2str;
 	patch.soil.sompool[SURFFWD].cmass    += csapw2fwd;
 	patch.soil.sompool[SURFCWD].cmass    += chrtw2cwd;   
+	//deep soil litter carbon
+	patch.soil.sompool[SOILMETA].cmass   += croot2met;
+	patch.soil.sompool[SOILSTRUCT].cmass += croot2str;
+
 	// soil-surface-litter nitrogen 
 	patch.soil.sompool[SURFMETA].nmass   += nleaf2met;
 	patch.soil.sompool[SURFSTRUCT].nmass += nleaf2str + nsapw2str + nhrtw2str;
 	patch.soil.sompool[SURFFWD].nmass    += nsapw2fwd;
 	patch.soil.sompool[SURFCWD].nmass    += nhrtw2cwd;   
-	//deep soil litter carbon
-	patch.soil.sompool[SOILMETA].cmass   += croot2met;
-	patch.soil.sompool[SOILSTRUCT].cmass += croot2str;
 	//deep soil litter nitrogen
 	patch.soil.sompool[SOILMETA].nmass   += nroot2met;
 	patch.soil.sompool[SOILSTRUCT].nmass += nroot2str;
 
+	if (vegmode == POPULATION && pft.lifeform != GRASS) {
+		densindiv *= frac_survive;
+	}
 }
 
 
@@ -1143,7 +1203,6 @@ void blaze(Patch& patch, Climate& climate) {
 
 	// start combustion at appropriate time-step
 	if (burntime()) { 
-		//dprintf("Burntime AB: %d %d %f %f \n",date.month,patch.id,climate.prescribed_ba, climate.areaburnt);
 
 	        // get relative fluxes between pools
 	        int flix = get_fli_index(patch.fli, climate.is_sprouter);

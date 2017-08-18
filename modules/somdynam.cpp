@@ -478,7 +478,6 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 	const double EPS = 1.0e-16;
 
 	Soil& soil = patch.soil;
-
 	if (date.day == 0) {
 		soil.anmin = 0.0;
 		soil.animmob = 0.0;
@@ -486,6 +485,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 	// Warning if soil available nitrogen is negative (if happens once or so no problem, but if it propagates through time then it is)
 	if (ifnlim) {
+		//dprintf("soil assert %f %i \n",soil.nmass_avail,patch.id);
 		assert(soil.nmass_avail > -EPS);
 	}
 
@@ -921,17 +921,12 @@ void transfer_litter(Patch& patch) {
 				pft.nmass_litter_sap_year = pft.nmass_litter_sap;
 			}
 
-			// Monthly fraction of last years litter
-			//CLN   double litter_sap       = pft.litter_sap_year / 12.0;
-			//CLN   double nmass_litter_sap = pft.nmass_litter_sap_year / 12.0;
 			// Monthly fraction of REMAINING last year's litter
 			double litter_sap       = pft.litter_sap / (12. - (double)date.month);
 			double nmass_litter_sap = pft.nmass_litter_sap / (12. - (double)date.month);
+			pft.litter_sap         -= litter_sap;
+			pft.nmass_litter_sap   -= nmass_litter_sap;
 
-			//CLN	pft.litter_sap -= pft.litter_sap_year / 12.0;
-			//CLN	pft.nmass_litter_sap -= pft.nmass_litter_sap_year / 12.0;
-			pft.litter_sap       -= litter_sap;
-			pft.nmass_litter_sap -= nmass_litter_sap;
 			soil.sompool[SURFFWD].nmass += nmass_litter_sap;
 
 			if (!negligible(litter_sap)) {
@@ -973,12 +968,13 @@ void transfer_litter(Patch& patch) {
 				pft.nmass_litter_heart_year = pft.nmass_litter_heart;
 			}
 
-			// Monthly fraction of last years litter
-			double litter_heart = pft.litter_heart_year / 12.0;
-			double nmass_litter_heart = pft.nmass_litter_heart_year / 12.0;
+			// Monthly fraction of REMAINING last year's litter
+			double litter_heart       = pft.litter_heart / (12. - (double)date.month);
+			double nmass_litter_heart = pft.nmass_litter_heart / 
+				(12. - (double)date.month);
+			pft.litter_heart         -= litter_heart;
+			pft.nmass_litter_heart   -= nmass_litter_heart;
 
-			pft.litter_heart -= pft.litter_heart_year / 12.0;
-			pft.nmass_litter_heart -= pft.nmass_litter_heart_year / 12.0;
 			soil.sompool[SURFCWD].nmass += nmass_litter_heart;
 
 			if (!negligible(litter_heart)) {

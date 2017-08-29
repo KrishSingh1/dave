@@ -45,7 +45,7 @@ private:
 	xtring file_firert,file_speciesheights;
 
 	// bvoc
-	xtring file_aiso,file_miso,file_amon,file_mmon,file_amt1,file_amt2,file_mmt1,file_mmt2;
+	xtring file_aiso, file_miso, file_amon, file_mmon, file_amon_endo, file_amon_nonendo, file_mmon_endo, file_mmon_nonendo;
 
 	// nitrogen
 	xtring file_nmass, file_cton_leaf, file_nsources, file_npool, file_nlitter, file_nuptake, file_vmaxnlim, file_nflux, file_ngases;
@@ -57,7 +57,7 @@ private:
 	Table out_mrh, out_mnee, out_mwcont_upper, out_mwcont_lower;
 	
 	// bvoc
-	Table out_aiso, out_miso, out_amon, out_mmon, out_amt1, out_amt2, out_mmt1, out_mmt2;
+	Table out_aiso, out_miso, out_amon, out_mmon, out_amon_endo, out_amon_nonendo, out_mmon_endo, out_mmon_nonendo;
 	
 	Table out_nmass, out_cton_leaf, out_nsources, out_npool, out_nlitter, out_nuptake, out_vmaxnlim, out_nflux, out_ngases;
 };

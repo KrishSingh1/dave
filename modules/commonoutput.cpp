@@ -75,10 +75,10 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_miso", &file_miso, 300, "monthly isoprene flux output file");
 	declare_parameter("file_amon", &file_amon, 300, "annual monoterpene flux output file");
 	declare_parameter("file_mmon", &file_mmon, 300, "monthly monoterpene flux output file");
-	declare_parameter("file_amt1", &file_amt1, 300, "annual endocyclic monoterpene flux output file");	
-	declare_parameter("file_amt2", &file_amt2, 300, "annual other monoterpene flux output file");
-	declare_parameter("file_mmt1", &file_mmt1, 300, "monthly endocyclic monoterpene flux output file");	
-	declare_parameter("file_mmt2", &file_mmt2, 300, "monthly other monoterpene flux output file");
+	declare_parameter("file_amon_endo", &file_amon_endo, 300, "annual endocyclic monoterpene flux output file");	
+	declare_parameter("file_amon_nonendo", &file_amon_nonendo, 300, "annual other monoterpene flux output file");
+	declare_parameter("file_mmon_endo", &file_mmon_endo, 300, "monthly endocyclic monoterpene flux output file");	
+	declare_parameter("file_mmon_nonendo", &file_mmon_nonendo, 300, "monthly other monoterpene flux output file");
 }
 
 
@@ -241,7 +241,6 @@ void CommonOutput::define_output_tables() {
 
 	// MONOTERPENES
 	ColumnDescriptors amon_columns = aiso_columns;
-        ColumnDescriptors amt_columns = aiso_columns;
 
 	// CTON
 	ColumnDescriptors cton_columns;
@@ -333,8 +332,8 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_speciesheights, file_speciesheights, speciesheights_columns);
 	create_output_table(out_aiso,           file_aiso,           aiso_columns);
 	create_output_table(out_amon,           file_amon,           amon_columns);
-	create_output_table(out_amt1,           file_amt1,           amt_columns);
-	create_output_table(out_amt2,           file_amt2,           amt_columns);
+	create_output_table(out_amon_endo,      file_amon_endo,      amon_columns);
+	create_output_table(out_amon_nonendo,   file_amon_nonendo,   amon_columns);
 
 	create_output_table(out_nmass,          file_nmass,          nmass_columns);
 	create_output_table(out_cton_leaf,      file_cton_leaf,      cton_columns);
@@ -363,8 +362,8 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mwcont_lower,   file_mwcont_lower,   month_columns);
 	create_output_table(out_miso,           file_miso,           month_columns_wide);
 	create_output_table(out_mmon,           file_mmon,           month_columns_wide);
-	create_output_table(out_mmt1,           file_mmt1,           month_columns_wide);
-	create_output_table(out_mmt2,           file_mmt2,           month_columns_wide);
+	create_output_table(out_mmon_endo,      file_mmon_endo,      month_columns_wide);
+	create_output_table(out_mmon_nonendo,   file_mmon_nonendo,   month_columns_wide);
 }
 
 /// Function for producing data file used to communicate information on stand structure
@@ -604,8 +603,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	// bvoc
 	double miso[12];
 	double mmon[12];
-	double mmt1[12];
-	double mmt2[12];
+	double mmon_endo[12];
+	double mmon_nonendo[12];
 	double aaet, apet, aevap, arunoff, aintercep;
 
 	double lon = gridcell.get_lon();
@@ -617,7 +616,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	// guess2008 - reset monthly and annual sums across patches each year
 	for (m=0;m<12;m++)
-		mnpp[m]=mlai[m]=mgpp[m]=mra[m]=maet[m]=mpet[m]=mevap[m]=mintercep[m]=mrunoff[m]=mrh[m]=mnee[m]=mwcont_upper[m]=mwcont_lower[m]=miso[m]=mmon[m]=mmt1[m]=mmt2[m]=0.0;
+		mnpp[m]=mlai[m]=mgpp[m]=mra[m]=maet[m]=mpet[m]=mevap[m]=mintercep[m]=mrunoff[m]=mrh[m]=mnee[m]=mwcont_upper[m]=mwcont_lower[m]=miso[m]=mmon[m]=mmon_endo[m]=mmon_nonendo[m]=0.0;
 	aaet = apet = aevap = arunoff = aintercep = 0.0;
 
 	double landcover_cmass[NLANDCOVERTYPES]={0.0};
@@ -636,8 +635,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double landcover_densindiv_total[NLANDCOVERTYPES]={0.0};
 	double landcover_aiso[NLANDCOVERTYPES]={0.0};
 	double landcover_amon[NLANDCOVERTYPES]={0.0};
-	double landcover_amt1[NLANDCOVERTYPES]={0.0};
-	double landcover_amt2[NLANDCOVERTYPES]={0.0};
+	double landcover_amon_endo[NLANDCOVERTYPES]={0.0};
+	double landcover_amon_nonendo[NLANDCOVERTYPES]={0.0};
 	double landcover_nuptake[NLANDCOVERTYPES]={0.0};
 	double landcover_vmaxnlim[NLANDCOVERTYPES]={0.0};
 
@@ -657,8 +656,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mean_standpft_densindiv_total=0.0;
 	double mean_standpft_aiso=0.0;
 	double mean_standpft_amon=0.0;
-	double mean_standpft_amt1=0.0;
-	double mean_standpft_amt2=0.0;
+	double mean_standpft_amon_endo=0.0;
+	double mean_standpft_amon_nonendo=0.0;
 	double mean_standpft_nuptake=0.0;
 	double mean_standpft_vmaxnlim=0.0;
 
@@ -683,8 +682,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double firert_gridcell=0.0;
 	double aiso_gridcell=0.0;
 	double amon_gridcell=0.0;
-	double amt1_gridcell=0.0;
-	double amt2_gridcell=0.0;
+	double amon_endo_gridcell=0.0;
+	double amon_nonendo_gridcell=0.0;
 	double nuptake_gridcell=0.0;
 	double vmaxnlim_gridcell=0.0;
 
@@ -713,8 +712,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double standpft_densindiv_total=0.0;
 	double standpft_aiso=0.0;
 	double standpft_amon=0.0;
-	double standpft_amt1=0.0;
-	double standpft_amt2=0.0;
+	double standpft_amon_endo=0.0;
+	double standpft_amon_nonendo=0.0;
 	double standpft_nuptake=0.0;
 	double standpft_vmaxnlim=0.0;
 
@@ -744,8 +743,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		mean_standpft_densindiv_total=0.0;
 		mean_standpft_aiso=0.0;
 		mean_standpft_amon=0.0;
-		mean_standpft_amt1=0.0;
-		mean_standpft_amt2=0.0;
+		mean_standpft_amon_endo=0.0;
+		mean_standpft_amon_nonendo=0.0;
 		mean_standpft_nuptake=0.0;
 		mean_standpft_vmaxnlim=0.0;
 
@@ -791,8 +790,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			standpft_densindiv_total = 0.0;
 			standpft_aiso=0.0;
 			standpft_amon=0.0;
-			standpft_amt1=0.0;
-			standpft_amt2=0.0;
+			standpft_amon_endo=0.0;
+			standpft_amon_nonendo=0.0;
 			standpft_nuptake=0.0;
 			standpft_vmaxnlim=0.0;
 
@@ -816,15 +815,15 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_CAMP, pft.id);
 				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_TBOC, pft.id);
 				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_OTHR, pft.id);
-				standpft_amt1 += patch.fluxes.get_annual_flux(Fluxes::MT_APIN, pft.id);
-				standpft_amt1 += patch.fluxes.get_annual_flux(Fluxes::MT_LIMO, pft.id);
-				standpft_amt1 += patch.fluxes.get_annual_flux(Fluxes::MT_TRIC, pft.id);
-				standpft_amt2 += patch.fluxes.get_annual_flux(Fluxes::MT_BPIN, pft.id);
-				standpft_amt2 += patch.fluxes.get_annual_flux(Fluxes::MT_MYRC, pft.id);
-				standpft_amt2 += patch.fluxes.get_annual_flux(Fluxes::MT_SABI, pft.id);
-				standpft_amt2 += patch.fluxes.get_annual_flux(Fluxes::MT_CAMP, pft.id);
-				standpft_amt2 += patch.fluxes.get_annual_flux(Fluxes::MT_TBOC, pft.id);
-				standpft_amt2 += patch.fluxes.get_annual_flux(Fluxes::MT_OTHR, pft.id);
+				standpft_amon_endo += patch.fluxes.get_annual_flux(Fluxes::MT_APIN, pft.id);
+				standpft_amon_endo += patch.fluxes.get_annual_flux(Fluxes::MT_LIMO, pft.id);
+				standpft_amon_endo += patch.fluxes.get_annual_flux(Fluxes::MT_TRIC, pft.id);
+				standpft_amon_nonendo += patch.fluxes.get_annual_flux(Fluxes::MT_BPIN, pft.id);
+				standpft_amon_nonendo += patch.fluxes.get_annual_flux(Fluxes::MT_MYRC, pft.id);
+				standpft_amon_nonendo += patch.fluxes.get_annual_flux(Fluxes::MT_SABI, pft.id);
+				standpft_amon_nonendo += patch.fluxes.get_annual_flux(Fluxes::MT_CAMP, pft.id);
+				standpft_amon_nonendo += patch.fluxes.get_annual_flux(Fluxes::MT_TBOC, pft.id);
+				standpft_amon_nonendo += patch.fluxes.get_annual_flux(Fluxes::MT_OTHR, pft.id);
 					
 				standpft_clitter += patchpft.litter_leaf + patchpft.litter_root + patchpft.litter_sap + patchpft.litter_heart + patchpft.litter_repr;
 				standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap + patchpft.nmass_litter_heart;
@@ -890,8 +889,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_densindiv_total/=(double)stand.npatch();
 				standpft_aiso/=(double)stand.npatch(); // missing above!
 				standpft_amon/=(double)stand.npatch(); // missing above!
-				standpft_amt1/=(double)stand.npatch();
-				standpft_amt2/=(double)stand.npatch();
+				standpft_amon_endo/=(double)stand.npatch();
+				standpft_amon_nonendo/=(double)stand.npatch();
 				standpft_nuptake/=(double)stand.npatch();
 				standpft_vmaxnlim/=(double)stand.npatch();
 				heightindiv_total/=(double)stand.npatch(); // missing above!
@@ -918,8 +917,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.get_landcover_fraction();
 				landcover_aiso[stand.landcover]+=standpft_aiso*stand.get_landcover_fraction();
 				landcover_amon[stand.landcover]+=standpft_amon*stand.get_landcover_fraction();
-				landcover_amt1[stand.landcover]+=standpft_amt1*stand.get_landcover_fraction();
-				landcover_amt2[stand.landcover]+=standpft_amt2*stand.get_landcover_fraction();
+				landcover_amon_endo[stand.landcover]+=standpft_amon_endo*stand.get_landcover_fraction();
+				landcover_amon_nonendo[stand.landcover]+=standpft_amon_nonendo*stand.get_landcover_fraction();
 				landcover_nuptake[stand.landcover]+=standpft_nuptake*stand.get_landcover_fraction();
 				landcover_vmaxnlim[stand.landcover]+=standpft_vmaxnlim*stand.get_landcover_fraction();
 
@@ -940,8 +939,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mean_standpft_densindiv_total += standpft_densindiv_total * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_aiso += standpft_aiso * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_amon += standpft_amon * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_amt1 += standpft_amt1 * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_amt2 += standpft_amt2 * stand.get_gridcell_fraction() / active_fraction;
+				mean_standpft_amon_endo += standpft_amon_endo * stand.get_gridcell_fraction() / active_fraction;
+				mean_standpft_amon_nonendo += standpft_amon_nonendo * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_nuptake += standpft_nuptake * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_vmaxnlim += standpft_vmaxnlim * stand.get_gridcell_fraction() / active_fraction;
 
@@ -970,8 +969,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				dens_gridcell+=standpft_densindiv_total*fraction_of_gridcell;
 				aiso_gridcell+=standpft_aiso*fraction_of_gridcell;
 				amon_gridcell+=standpft_amon*fraction_of_gridcell;
-				amt1_gridcell+=standpft_amt1*fraction_of_gridcell;
-				amt2_gridcell+=standpft_amt2*fraction_of_gridcell;
+				amon_endo_gridcell+=standpft_amon_endo*fraction_of_gridcell;
+				amon_nonendo_gridcell+=standpft_amon_nonendo*fraction_of_gridcell;
 				nuptake_gridcell+=standpft_nuptake*fraction_of_gridcell;
 				vmaxnlim_gridcell+=standpft_vmaxnlim*standpft_cmass_leaf*fraction_of_gridcell;
 
@@ -1006,8 +1005,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out,out_lai,       mean_standpft_lai);
 		outlimit(out,out_aiso,      mean_standpft_aiso);
 		outlimit(out,out_amon,      mean_standpft_amon);
-		outlimit(out,out_amt1,      mean_standpft_amt1);
-		outlimit(out,out_amt2,      mean_standpft_amt2);
+		outlimit(out,out_amon_endo, mean_standpft_amon_endo);
+		outlimit(out,out_amon_nonendo, mean_standpft_amon_nonendo);
 		outlimit(out,out_nmass,     (mean_standpft_nmass + mean_standpft_nlitter) * m2toha);
 		outlimit(out,out_cton_leaf, standpft_mean_cton_leaf);
 		outlimit(out,out_vmaxnlim,  mean_standpft_vmaxnlim);
@@ -1155,15 +1154,15 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_TBOC, m)*to_gridcell_average;
 				mmon[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_OTHR, m)*to_gridcell_average;
 
-				mmt1[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_APIN, m)*to_gridcell_average;
-				mmt1[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_LIMO, m)*to_gridcell_average;
-				mmt1[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_TRIC, m)*to_gridcell_average;
-				mmt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_BPIN, m)*to_gridcell_average;
-				mmt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_MYRC, m)*to_gridcell_average;
-				mmt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_SABI, m)*to_gridcell_average;
-				mmt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_CAMP, m)*to_gridcell_average;
-				mmt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_TBOC, m)*to_gridcell_average;
-				mmt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_OTHR, m)*to_gridcell_average;
+				mmon_endo[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_APIN, m)*to_gridcell_average;
+				mmon_endo[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_LIMO, m)*to_gridcell_average;
+				mmon_endo[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_TRIC, m)*to_gridcell_average;
+				mmon_nonendo[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_BPIN, m)*to_gridcell_average;
+				mmon_nonendo[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_MYRC, m)*to_gridcell_average;
+				mmon_nonendo[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_SABI, m)*to_gridcell_average;
+				mmon_nonendo[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_CAMP, m)*to_gridcell_average;
+				mmon_nonendo[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_TBOC, m)*to_gridcell_average;
+				mmon_nonendo[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_OTHR, m)*to_gridcell_average;
 				
 			}
 
@@ -1226,8 +1225,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_runoff, runoff_gridcell);
 	outlimit(out,out_aiso,   aiso_gridcell);
 	outlimit(out,out_amon,   amon_gridcell);
-	outlimit(out,out_amt1,   amt1_gridcell);
-	outlimit(out,out_amt2,   amt2_gridcell);
+	outlimit(out,out_amon_endo,   amon_endo_gridcell);
+	outlimit(out,out_amon_nonendo,amon_nonendo_gridcell);
 
 	outlimit(out,out_nmass,    (nmass_gridcell + nlitter_gridcell) * m2toha);
 	outlimit(out,out_cton_leaf, cton_leaf_gridcell);
@@ -1259,8 +1258,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				outlimit(out,out_clitter, landcover_clitter[i]);
 				outlimit(out,out_aiso,  landcover_aiso[i]);
 				outlimit(out,out_amon,  landcover_amon[i]);
-				outlimit(out,out_amt1,  landcover_amt1[i]);
-				outlimit(out,out_amt2,  landcover_amt2[i]);
+				outlimit(out,out_amon_endo,  landcover_amon_endo[i]);
+				outlimit(out,out_amon_nonendo,  landcover_amon_nonendo[i]);
 
 				double landcover_cton_leaf = limited_cton(landcover_cmass_leaf[i],
 						landcover_nmass_leaf[i]);
@@ -1295,8 +1294,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			outlimit(out,out_mwcont_lower, mwcont_lower[m]);
 			outlimit(out,out_miso,         miso[m]);
 			outlimit(out,out_mmon,         mmon[m]);
-			outlimit(out,out_mmt1,         mmt1[m]);
-			outlimit(out,out_mmt2,         mmt2[m]);
+			outlimit(out,out_mmon_endo,    mmon_endo[m]);
+			outlimit(out,out_mmon_nonendo, mmon_nonendo[m]);
 
 			aaet += maet[m];
 			apet += mpet[m];

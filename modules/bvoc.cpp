@@ -273,7 +273,7 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 
 	indiv.report_flux(Fluxes::ISO, indiv.iso);
 
-	// Note that for european pfts only 2 groups (endocyclic and rest group are considered, 
+	// Note that for european pfts only 2 groups (endocyclic (MT1) and rest (MT2) group are considered, 
 	// occupying the space of APIN & BPIN respectively).
 	// See scientific description for more infor.
 	indiv.report_flux(Fluxes::MT_APIN,indiv.mon[0]); 

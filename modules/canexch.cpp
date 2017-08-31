@@ -119,7 +119,6 @@ void interception(Patch& patch,Climate& climate) {
 	}
 
 	// Calculate net EET for vegetated parts of patch (deducting loss to interception)
-
 	patch.eet_net_veg=max(climate.eet-patch.intercep,0.0);
 
 	// Interception accounting for patch

@@ -85,7 +85,6 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 		stand.firstobj();
 		while (stand.isobj) {
 			// START OF LOOP THROUGH PATCHES
-
 			// Get reference to this patch
 			Patch& patch = stand.getobj();
 			// Update daily soil drivers including soil temperature
@@ -122,6 +121,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// BLAZE fire model 
 			if (firemodel == BLAZE && patch.has_fires()) 
 				blaze(patch,gridcell.climate);
+
 
 			if (date.islastday && date.islastmonth) {
 

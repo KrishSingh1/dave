@@ -34,6 +34,7 @@
 #include <assert.h>
 #include <bitset>
 #include <vector>
+#include <fenv.h>
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL CONSTANTS
@@ -491,7 +492,6 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 	// Set N:C ratios for humus, soil microbial, passive and slow pool based on estimated mineral nitrogen pool
 	// (Parton et al 1993, Fig 4)
-
 	// ForCent (Parton 2010) values
 	setntoc(soil, soil.nmass_avail, SLOWSOM, 30.0, 15.0, 0.0, NMASS_SAT);
 
@@ -504,7 +504,6 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 		// Calculate potential fraction remaining following decay today for all pools
 		// (assumes no nitrogen limitation)
 		decayrates(soil, soil.temp, soil.wcont[0], tillage);
-
 	}
 
 	// Calculate decomposition in all pools assuming these decay rates
@@ -545,6 +544,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 			soil.sompool[p].delta_cmass = 0.0;
 			soil.sompool[p].delta_nmass = 0.0;
 			soil.sompool[p].delta_cmass -= soil.sompool[p].cdec;
+
 			soil.sompool[p].delta_nmass -= soil.sompool[p].ndec;
 		}
 

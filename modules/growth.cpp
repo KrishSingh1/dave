@@ -929,13 +929,15 @@ bool allometry(Individual& indiv) {
 		// Height (Eqn 4)
 
 		// guess2008 - new allometry check
-		if (!negligible(indiv.cmass_leaf)) {
-
+		const float EPS = 1.e-12;
+		//if (!negligible(indiv.cmass_leaf, EPS)) {
+		if ( indiv.cmass_leaf > EPS) {
+			
 			indiv.height = indiv.cmass_sap / indiv.cmass_leaf / indiv.pft.sla * indiv.pft.k_latosa / indiv.pft.wooddens;
-
+			
 			// Stem diameter (Eqn 5)
 			diam = pow(indiv.height / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
-
+			
 			// Stem volume
 			double vol = indiv.height * PI * diam * diam * 0.25;
 

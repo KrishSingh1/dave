@@ -791,6 +791,11 @@ void combust(Patch& patch, Climate& climate) {
 				if (negligible(indiv.densindiv)) {
 					vegetation.killobj();
 					killed=true;
+				} 
+				else {
+					// Update allometry
+					allometry(indiv);
+
 				}
 
 			}
@@ -1110,6 +1115,16 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	if (vegmode == POPULATION && pft.lifeform != GRASS) {
 		densindiv *= frac_survive;
 	}
+
+	//dprintf("SOMPOOLS BLAZE %i %i \n",patch.id, patch.stand.nobj);
+	//dprintf("patch.soil.sompool[SURFMETA].nmass   %f \n",patch.soil.sompool[SURFMETA].nmass   );
+	//dprintf("patch.soil.sompool[SURFSTRUCT].nmass %f \n",patch.soil.sompool[SURFSTRUCT].nmass );
+	//dprintf("patch.soil.sompool[SURFFWD].nmass    %f \n",patch.soil.sompool[SURFFWD].nmass    );
+	//dprintf("patch.soil.sompool[SURFCWD].nmass    %f \n",patch.soil.sompool[SURFCWD].nmass    );
+	//dprintf("patch.soil.sompool[SOILMETA].nmass   %f \n",patch.soil.sompool[SOILMETA].nmass   );
+	//dprintf("patch.soil.sompool[SOILSTRUCT].nmass %f \n",patch.soil.sompool[SOILSTRUCT].nmass );
+
+
 }
 
 
@@ -1199,7 +1214,6 @@ void blaze(Patch& patch, Climate& climate) {
 
 	// start combustion at appropriate time-step
 	if (burntime()) { 
-
 	        // get relative fluxes between pools
 	        int flix = get_fli_index(patch.fli, climate.is_sprouter);
 		if ( flix >= 0 ) 
@@ -1208,7 +1222,6 @@ void blaze(Patch& patch, Climate& climate) {
 		if (!negligible(climate.areaburnt)) {
 			combust(patch, climate);
 		}
-		
                 //BLAZE-OUTPUT: climate.areaburnt, climate.mcarthur_fire_index, climate.areaburnt 
 
 		// after burning reset accumulated variables

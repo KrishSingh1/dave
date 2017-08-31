@@ -81,6 +81,18 @@ void set_shell(Shell* s) {
 	current_shell = std::auto_ptr<Shell>(s);
 }
 
+void plot3d_fileopen() {
+	current_shell->plot3d_fileopen();
+}
+
+void plot3d_fileclose() {
+	current_shell->plot3d_fileclose();
+}
+
+FILE* plot3d_getfilehandle() {
+	return current_shell->plot3d_getfilehandle();
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Implementation of CommandLineShell
@@ -139,4 +151,14 @@ bool CommandLineShell::abort_request_received() {
 	// Can't do anything here
 
 	return false;
+}
+
+void CommandLineShell::plot3d_fileopen() {}		// Can't do anything here
+
+void CommandLineShell::plot3d_fileclose() {}	// Can't do anything here
+
+FILE* CommandLineShell::plot3d_getfilehandle() { 
+	// Can't do anything here
+
+	return 0; 
 }

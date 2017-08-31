@@ -44,6 +44,8 @@ MessageClearGraphs* message_clear_graphs;
 MessageOpen3d* message_open3d;
 MessagePlot3d* message_plot3d;
 
+const char VEG3DFILENAME[] = "xxxtemp0.bin";
+
 
 class WindowsShell : public Shell {
 public:
@@ -129,8 +131,29 @@ public:
 		return ifabort;
 	}
 
+	// ///////////////////
+
+	void plot3d_fileopen() {
+		plot3d_out = fopen(VEG3DFILENAME, "wb");
+		if (plot3d_out)
+			plot3d_enabled = true;
+		else
+			plot3d_enabled = false;		// If cannot open the first time: do not retry every plot interval.
+	}
+
+	void plot3d_fileclose() {
+		if (plot3d_out) 
+			fclose(plot3d_out);
+	}
+
+	FILE* plot3d_getfilehandle() {
+		return plot3d_out;
+	}
+
 private:
 	FILE* logfile;
+	FILE* plot3d_out;		// file to transfer plot data to LPJ-GUESS Windows graphical shell
+	
 };
 
 

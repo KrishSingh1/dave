@@ -65,6 +65,10 @@ void open3d();
 */
 void plot3d(const char* filename);
 
+void plot3d_fileopen();
+void plot3d_fileclose();
+FILE* plot3d_getfilehandle();
+
 /// May be called by framework to respond to abort request from the user.
 /**
  * \returns true if shell has sent an abort request, otherwise false.
@@ -82,6 +86,13 @@ bool abort_request_received();
  */
 class Shell {
 public:
+	/// Indicate whether the WindowsShell plot3D can be used
+	bool plot3d_enabled;
+
+	Shell() { 
+		plot3d_enabled=false; 
+	}
+	
 	virtual ~Shell() {}
 
 	/// Sends a message to the user somehow and terminates the program
@@ -110,6 +121,10 @@ public:
 
 	/// Sends data on current stand structure to 3D vegetation plot in the Windows shell
 	virtual void plot3d(const char* filename) = 0;
+
+	virtual void plot3d_fileopen() = 0;
+	virtual void plot3d_fileclose() = 0;
+	virtual FILE* plot3d_getfilehandle() = 0;
 };
 
 
@@ -142,6 +157,10 @@ public:
 	void clear_all_graphs();
 
 	bool abort_request_received();
+
+	void plot3d_fileopen();
+	void plot3d_fileclose();
+	FILE* plot3d_getfilehandle();
 
 private:
 	FILE* logfile;

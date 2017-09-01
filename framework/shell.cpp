@@ -69,8 +69,8 @@ void open3d() {
 	current_shell->open3d();
 }
 
-void plot3d(const char* filename) {
-	current_shell->plot3d(filename);
+void plot3d() {
+	current_shell->plot3d();
 }
 
 bool abort_request_received() {
@@ -134,7 +134,7 @@ void CommandLineShell::open3d() {
 	// Can't do anything here	 
 }
 
-void CommandLineShell::plot3d(const char* filename) {
+void CommandLineShell::plot3d() {
 	// Can't do anything here	 
 }
 

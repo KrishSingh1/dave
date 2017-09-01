@@ -63,10 +63,10 @@ void open3d();
 * Functional only when the framework is built as a DLL and linked to the
 * LPJ-GUESS Windows Shell.
 */
-void plot3d(const char* filename);
+void plot3d();
 
 /// Opens a temporary data transfer file for 3D view in the Windows shell
-/** Only invoked by the WindowsShell */
+/** As plot3d(), invoked only by the WindowsShell class */
 void plot3d_fileopen();
 
 /// Closes the temporary data transfer file for 3D view in the Windows shell
@@ -120,7 +120,7 @@ public:
 	virtual void open3d() = 0;
 
 	/// Sends data on current stand structure to 3D vegetation plot in the Windows shell
-	virtual void plot3d(const char* filename) = 0;
+	virtual void plot3d() = 0;
 
 	/// Opens a temporary data transfer file for 3D view in the Windows shell
 	/** Only invoked by the WindowsShell */
@@ -159,7 +159,7 @@ public:
 
 	void open3d();
 
-	void plot3d(const char* filename);
+	void plot3d();
 
 	void clear_all_graphs();
 

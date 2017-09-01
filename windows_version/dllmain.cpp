@@ -44,6 +44,7 @@ MessageClearGraphs* message_clear_graphs;
 MessageOpen3d* message_open3d;
 MessagePlot3d* message_plot3d;
 
+// Name of temporary file for output of 3D vegetation structure (Windows shell only)
 const char VEG3DFILENAME[] = "xxxtemp0.bin";
 
 
@@ -136,9 +137,9 @@ public:
 	}
 
 	/// Sends data on current stand structure to 3D vegetation plot in the Windows shell
-	void plot3d(const char* filename) {
+	void plot3d() {
 		xtring* pxtring = new xtring;
-		*pxtring = filename;
+		*pxtring = VEG3DFILENAME;
 		message_plot3d(pxtring);
 	}
 

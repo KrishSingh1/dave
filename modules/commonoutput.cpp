@@ -21,9 +21,6 @@ const int PLOT_UPDATE_INTERVAL = 20;
 // Years between updates of 3D vegetation view (Windows shell only)
 const int VEG3D_UPDATE_INTERVAL = 5;
 
-// Name of temporary file for output of 3D vegetation structure (Windows shell only)
-const char VEG3DFILENAME[] = "xxxtemp0.bin";
-
 namespace GuessOutput {
 
 REGISTER_OUTPUT_MODULE("common", CommonOutput)
@@ -368,13 +365,10 @@ void output_vegetation(Gridcell& gridcell, Pftlist& pftlist) {
 	double grasslai;
 	const bool FALSCH = false;
 	const double rgb[3] = { -1, -1, -1 };
-
-	xtring file;
 	char pftname[16];
-	file = VEG3DFILENAME;
-	//FILE* out = fopen(file, "wb");
 	
-	plot3d_fileopen();
+	// File for output of 3D vegetation structure (invoked by Windows shell only)
+	plot3d_fileopen(); 
 	
 	if (plot3d_getfilehandle()) {
 
@@ -452,7 +446,7 @@ void output_vegetation(Gridcell& gridcell, Pftlist& pftlist) {
 
 	} //if(out)
 
-	plot3d(file);
+	plot3d();
 }
 
 /// Gets stand age structure to argument densindiv of dimensions [npft,nageclass]

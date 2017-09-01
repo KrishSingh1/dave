@@ -360,17 +360,17 @@ void CommonOutput::define_output_tables() {
 /** for 3D vegetation plot in Windows shell
  */
 void output_vegetation(Gridcell& gridcell, Pftlist& pftlist) {
-
-	int ival, p, npft_tree, npft_grass, npft_total;
-	double grasslai;
-	const bool FALSCH = false;
-	const double rgb[3] = { -1, -1, -1 };
-	char pftname[16];
 	
 	// File for output of 3D vegetation structure (invoked by Windows shell only)
 	plot3d_fileopen(); 
 	
 	if (plot3d_getfilehandle()) {
+
+		int ival, p, npft_tree, npft_grass, npft_total;
+		double grasslai;
+		const bool FALSCH = false;
+		const double rgb[3] = { -1, -1, -1 };
+		char pftname[16];
 
 		// Loop through Stands
 		Gridcell::iterator gc_itr = gridcell.begin();

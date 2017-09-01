@@ -119,6 +119,22 @@ public:
 		message_open3d();
 	}
 
+	/// Opens a temporary data transfer file for 3D view in the Windows shell
+	void plot3d_fileopen() {
+		plot3d_out = fopen(VEG3DFILENAME, "wb");
+	}
+
+	/// Closes the temporary data transfer file for 3D view in the Windows shell
+	void plot3d_fileclose() {
+		if (plot3d_out)
+			fclose(plot3d_out);
+	}
+
+	/// The file handle for writing to the temporary data transfer file for 3D view in the Windows shell
+	FILE* plot3d_getfilehandle() {
+		return plot3d_out;
+	}
+
 	/// Sends data on current stand structure to 3D vegetation plot in the Windows shell
 	void plot3d(const char* filename) {
 		xtring* pxtring = new xtring;
@@ -131,24 +147,6 @@ public:
 		return ifabort;
 	}
 
-	// ///////////////////
-
-	void plot3d_fileopen() {
-		plot3d_out = fopen(VEG3DFILENAME, "wb");
-		if (plot3d_out)
-			plot3d_enabled = true;
-		else
-			plot3d_enabled = false;		// If cannot open the first time: do not retry every plot interval.
-	}
-
-	void plot3d_fileclose() {
-		if (plot3d_out) 
-			fclose(plot3d_out);
-	}
-
-	FILE* plot3d_getfilehandle() {
-		return plot3d_out;
-	}
 
 private:
 	FILE* logfile;

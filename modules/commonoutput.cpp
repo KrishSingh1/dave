@@ -376,13 +376,11 @@ void output_vegetation(Gridcell& gridcell, Pftlist& pftlist) {
 	
 	plot3d_fileopen();
 	
-	if (plot3d_getfilehandle())
-	{
+	if (plot3d_getfilehandle()) {
 
 		// Loop through Stands
 		Gridcell::iterator gc_itr = gridcell.begin();
-		while (gc_itr != gridcell.end())
-		{
+		while (gc_itr != gridcell.end()) {
 			Stand& stand = *gc_itr;
 
 			npft_tree = npft_grass = 0;

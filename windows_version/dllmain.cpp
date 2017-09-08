@@ -148,10 +148,9 @@ public:
 		return ifabort;
 	}
 
-
 private:
 	FILE* logfile;
-	FILE* plot3d_out;		// file to transfer plot data to LPJ-GUESS Windows graphical shell
+	FILE* plot3d_out;		// File to transfer plot data to LPJ-GUESS Windows graphical shell
 	
 };
 

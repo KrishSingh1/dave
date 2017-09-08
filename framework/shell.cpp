@@ -152,9 +152,13 @@ bool CommandLineShell::abort_request_received() {
 	return false;
 }
 
-void CommandLineShell::plot3d_fileopen() {}		// Can't do anything here
+void CommandLineShell::plot3d_fileopen() {
+	// Can't do anything here
+}
 
-void CommandLineShell::plot3d_fileclose() {}	// Can't do anything here
+void CommandLineShell::plot3d_fileclose() {
+	// Can't do anything here
+}
 
 FILE* CommandLineShell::plot3d_getfilehandle() { 
 	// Can't do anything here

@@ -14,12 +14,6 @@
 #include "outputmodule.h"
 #include <gutil.h>
 
-/// The value used for missing data in the Fluxnet files.
-const double MISSING_DATA = -9999.0;
-
-/// The number of Fluxnet years, currently 1996-2006, inclusive.
-const int NFLUXYEARS=11;
-
 /// Type for storing Fluxnet grid cell information
 struct FluxnetData {
 
@@ -29,20 +23,10 @@ struct FluxnetData {
 	int end_y;
 
 
-
-	int isfluxdata[NFLUXYEARS];
-
-
-
-
-	// Modelled flux data for the same site
-	double modelNEE[NFLUXYEARS][12];
-	double modelAET[NFLUXYEARS][12];
-	double modelGPP[NFLUXYEARS][12];
-
 	FluxnetData() {
 		// initialise Fluxnet arrays with missing values;
 		desc = "";
+		desc2 = "";
 		start_y = 0;
 		end_y = 0;
 
@@ -66,15 +50,33 @@ public:
 
 
 private:
-	std::map<std::pair<double, double>, FluxnetData> Fluxnetdata;
+
 	std::vector<double> rain,Ta,swrad;
 	std::vector<int> yr;
 	Lamarque::NDepData ndep;
-
+	std::map<std::pair<double, double>, FluxnetData> Fluxnetdata;
 	/// Daily N deposition for current year
 	double dndep[Date::MAX_YEAR_LENGTH];
 };
 
+/// Output module for the extra files for FLUXNET
+class FluxnetOutput : public GuessOutput::OutputModule {
+public:
+	FluxnetOutput();
 
+	void init();
+
+	void outannual(Gridcell& gridcell);
+
+	void outdaily(Gridcell& gridcell);
+
+
+private:
+	// Files for FLUXNET output and stats
+	xtring file_fluxnetdaily, file_fluxnetmonthly, file_fluxnetclim, file_monthlynee, file_monthlyaet, file_monthlygpp,file_fluxnetmonth;
+	// Output tables
+	GuessOutput::Table out_fluxnetmonthly, out_fluxnetdaily, out_fluxnetclim,out_monthlynee,out_monthlyaet,out_monthlygpp,out_fluxnetmonth;
+
+};
 
 #endif // LPJ_GUESS_Fluxnet_H

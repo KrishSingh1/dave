@@ -47,7 +47,7 @@ void FluxnetInput::init() {
 
 		double dlon, dlat;
 
-		eof=!readfor(in_grid,"f,f,a;a",&dlon,&dlat,&edata.desc,&edata.desc2);
+		eof=!readfor(in_grid,"f,f,a",&dlon,&dlat,&edata.desc);
 
 
 		if (!eof && !(dlon==0.0 && dlat==0.0)) { // ignore blank lines at end (if any)
@@ -74,7 +74,7 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 
 		// Create some strings
 		xtring fluxdirectory=param["flux_dir"].str;
-		xtring fluxfilestart = "FLUXNET2015_FULLSET_";
+		xtring fluxfilestart = "FLUXNET2015_CLIMATE_";
 		xtring fluxfileend = ".txt";
 
 		xtring fluxfile =  fluxdirectory + fluxfilestart + fluxdata.desc + fluxfileend;

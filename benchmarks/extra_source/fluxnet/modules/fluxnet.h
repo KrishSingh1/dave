@@ -18,7 +18,6 @@
 struct FluxnetData {
 
 	xtring desc;
-	xtring desc2;
 	int start_y;
 	int end_y;
 
@@ -26,7 +25,6 @@ struct FluxnetData {
 	FluxnetData() {
 		// initialise Fluxnet arrays with missing values;
 		desc = "";
-		desc2 = "";
 		start_y = 0;
 		end_y = 0;
 

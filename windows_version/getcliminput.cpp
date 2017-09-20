@@ -9,6 +9,7 @@
 
 #include "config.h"
 #include "getcliminput.h"
+#include "soilinput.h"
 
 #include "driver.h"
 #include "outputchannel.h"

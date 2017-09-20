@@ -51,9 +51,6 @@ public:
 	/// Obtains land management data for one day
 	void getmanagement(Gridcell& gridcell) {management_input.getmanagement(gridcell);}
 
-	/// Set soil physical properties based in soilcode
-	void soilparameters(Soiltype& soiltype,int soilcode);
-
 private:
 
 	/// Type for storing grid cell longitude, latitude and description text

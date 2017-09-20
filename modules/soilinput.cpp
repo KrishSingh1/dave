@@ -138,37 +138,6 @@ void SoilInput::load_mineral_soils(const char* fname, const std::set<coord>& coo
 
 SoilInput::SoilProperties SoilInput::get_lpj(coord c) {
 
-	double data[9][9] = {
-
-		//    0  empirical parameter in percolation equation (k1) (mm/day)
-		//    1  volumetric water holding capacity at field capacity minus vol water
-		//       holding capacity at wilting point (Hmax), as fraction of soil layer
-		//       depth
-		//    2  thermal diffusivity (mm2/s) at wilting point (0% WHC)
-		//    3  thermal diffusivity (mm2/s) at 15% WHC
-		//    4  thermal diffusivity at field capacity (100% WHC)
-		//       Thermal diffusivities follow van Duin (1963),
-		//       Jury et al (1991), Fig 5.11.
-		//    5  wilting point as fraction of depth (calculation method described in
-		//       Prentice et al 1992)
-		//    6  saturation capacity following Cosby (1984)
-		//    7  sand fraction
-		//    8  clay fraction
-
-		//    0      1      2      3      4      5      6       7       8         soilcode
-		//  ------------------------------------------------------------------
-
-		{   5.0, 0.110,   0.2, 0.800,   0.4,	0.074,	0.395,	0.90,	0.05},    // 1	Coarse
-		{   4.0, 0.150,   0.2, 0.650,   0.4,	0.184,	0.439,	0.35,	0.15},    // 2	Medium
-		{   3.0, 0.120,   0.2, 0.500,   0.4,	0.274,	0.454,	0.30,	0.45},    // 3	Fine
-		{   4.5, 0.130,   0.2, 0.725,   0.4,	0.129,	0.417,	0.60,	0.15},    // 4	Medium-coarse
-		{   4.0, 0.115,   0.2, 0.650,   0.4,	0.174,	0.425,	0.60,	0.30},    // 5	Fine-coarse
-		{   3.5, 0.135,   0.2, 0.575,   0.4,	0.229,	0.447,	0.20,	0.30},    // 6	Fine-medium
-		{   4.0, 0.127,   0.2, 0.650,   0.4,	0.177,	0.430,	0.45,	0.25},    // 7	Fine-medium-coarse
-		{   9.0, 0.300,   0.1, 0.100,   0.1,	0.200,	0.600,	0.28,	0.12},    // 8	Organic (values not know for wp), sand and clay are from Parton 2010
-		{   0.2, 0.100,   0.2, 0.500,   0.4,	0.100,	0.250,	0.10,	0.80}     // 9	Vertisols (values not know for wp)
-	};
-
 	int soilcode = lpj_map[c];
 
 	SoilProperties soiltype;
@@ -262,3 +231,56 @@ void SoilInput::getsoil(double lon, double lat, Soiltype& soiltype) {
 	}
 }
 
+///////////////////////////////////////////////////////////////////////////////////////
+// SOILPARAMETERS
+// May be called from input/output module to initialise stand Soiltype objects when
+// soil data supplied as LPJ soil code rather than soil physical parameter values
+
+
+void soilparameters(Soiltype& soiltype, int soilcode) {
+
+	// DESCRIPTION
+	// Derivation of soil physical parameters given LPJ soil code
+
+	// INPUT AND OUTPUT PARAMETER
+	// soil = patch soil
+
+	const double PERC_EXP = 2.0;
+	// exponent in percolation equation [k2; LPJF]
+	// (Eqn 31, Haxeltine & Prentice 1996)
+	// Changed from 4 to 2 (Sitch, Thonicke, pers comm 26/11/01)
+
+
+	if (soilcode<1 || soilcode>9)
+		fail("soilparameters: invalid LPJ soil code (%d)", soilcode);
+
+
+	if (textured_soil) {
+		soiltype.sand_frac = data[soilcode - 1][7];
+		soiltype.clay_frac = data[soilcode - 1][8];
+	}
+	else {
+		// Using fixed values from Parton et al. (2010)
+		soiltype.sand_frac = 0.28;
+		soiltype.clay_frac = 0.12;
+	}
+
+	soiltype.silt_frac = 1 - soiltype.sand_frac - soiltype.clay_frac;
+	soiltype.perc_base = data[soilcode - 1][0];
+	soiltype.perc_exp = PERC_EXP;
+	soiltype.awc[0] = SOILDEPTH_UPPER * data[soilcode - 1][1];
+	soiltype.awc[1] = SOILDEPTH_LOWER * data[soilcode - 1][1];
+	soiltype.thermdiff_0 = data[soilcode - 1][2];
+	soiltype.thermdiff_15 = data[soilcode - 1][3];
+	soiltype.thermdiff_100 = data[soilcode - 1][4];
+	soiltype.wp[0] = SOILDEPTH_UPPER * data[soilcode - 1][5];
+	soiltype.wp[1] = SOILDEPTH_LOWER * data[soilcode - 1][5];
+	soiltype.wsats[0] = SOILDEPTH_UPPER * data[soilcode - 1][6];
+	soiltype.wsats[1] = SOILDEPTH_LOWER * data[soilcode - 1][6];
+	soiltype.wtot = (data[soilcode - 1][1] + data[soilcode - 1][5]) * (SOILDEPTH_UPPER + SOILDEPTH_LOWER);
+
+	if (!ifcentury) {
+		// override the default SOM years with 70-80% of the spin-up period
+		soiltype.updateSolveSOMvalues(nyear_spinup);
+	}
+}

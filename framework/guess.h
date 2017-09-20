@@ -2185,14 +2185,14 @@ public:
 	double abscission;
 	//sum of growth of leaves not related to sg
 	double ygrowth;
-	// LAI of growth compartment 1 daily allocation Niklas
-	double l1;
-	// LAI of growth compartment 2 daily allocation Niklas
-	double l2;
-	// LAI of growth compartment 3 daily allocation Niklas
-	double l3;
-	// LAI of growth compartment 4 daily allocation Niklas
-	double l4;
+	// Nitrogen of growth compartment 1 daily allocation Niklas
+	double n1;
+	// Nitrogen of growth compartment 2 daily allocation Niklas
+	double n2;
+	// Nitrogen of growth compartment 3 daily allocation Niklas
+	double n3;
+	// Nitrogen of growth compartment 4 daily allocation Niklas
+	double n4;
 	// running mean of nscal for last 365 days for each individual daily allocation
 	Historic<double, 365> nscal_running;
 	// running mean of wscal for last 365 days for each individual daily allocation

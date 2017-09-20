@@ -116,10 +116,10 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			soilwater(patch, gridcell.climate);
 			// Daily C allocation (cropland)
 			growth_daily(patch);
-			// Soil organic matter and litter dynamics
-			som_dynamics(patch);
 			// Daily C allocation (GRASS ONLY)
 			growth_daily_pasture(stand, patch);
+			// Soil organic matter and litter dynamics
+			som_dynamics(patch);
 
 			if (date.islastday && date.islastmonth) {
 

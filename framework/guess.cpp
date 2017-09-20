@@ -1114,6 +1114,10 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	w2				  = 0.0;
 	w3				  = 0.0;
 	w4				  = 0.0;
+	n1				  = 0.0;
+	n2				  = 0.0;
+	n3				  = 0.0;
+	n4				  = 0.0;
 	sg                = 0.0;
 	phen_daily		  = 0.0;
 	ygrowth			  = 0.0;
@@ -1244,6 +1248,10 @@ void Individual::serialize(ArchiveStream& arch) {
 		& w2
 		& w3
 		& w4
+		& n1
+		& n2
+		& n3
+		& n4
 		& ygrowth
 		& nscal_running
 		& wscal_running   	
@@ -1484,7 +1492,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 			cropindiv->nmass_ho *= remaining;
 			cropindiv->nmass_agpool *= remaining;
 		}
-		if(pft.lifeform == GRASS && ifdcarb && alive && !istruecrop_or_intercropgrass()){
+		//if(pft.lifeform == GRASS && ifdcarb && alive && !istruecrop_or_intercropgrass()){
 			//make sure that we take away from all the daily grass carbon pools.
 			sg *=remaining;
 			w1 *=remaining;
@@ -1492,7 +1500,11 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 			w3 *=remaining;
 			w4 *=remaining;
 			ws *=remaining;
-		}
+			n1 *=remaining;
+			n2 *=remaining;
+			n3 *=remaining;
+			n4 *=remaining;
+		//}
 
 
 
@@ -1700,10 +1712,43 @@ double Individual::ndemand_storage(double cton_leaf_opt) {
 /// Checks C mass and zeroes any negative value, balancing by adding to npp and reducing respiration
 double Individual::check_C_mass() {
 
+	double negative_cmass = 0.0;
+
+	if(ifdcarb && pft.lifeform==GRASS){
+		if(sg < 0.0){
+			negative_cmass -= sg;
+			sg = 0.0;
+		}
+		if(ws < 0.0){
+			negative_cmass -= ws;
+			ws = 0.0;
+		}
+		if(w4 < 0.0){
+			negative_cmass -= w4;
+			w4 = 0.0;
+		}
+		if(cmass_leaf < 0.0){
+			negative_cmass -= cmass_leaf;
+			cmass_leaf = 0.0;
+		}
+		if(cmass_root < 0.0){
+			negative_cmass -= cmass_root;
+			cmass_root = 0.0;
+		}
+
+		if (largerthanzero(negative_cmass, -14)) {
+			anpp += negative_cmass;
+			report_flux(Fluxes::NPP, negative_cmass);
+			report_flux(Fluxes::RA, -negative_cmass);
+		}
+
+		return negative_cmass;
+	}
+
 	if (pft.landcover != CROPLAND)
 		return 0;
 
-	double negative_cmass = 0.0;
+	negative_cmass = 0.0;
 
 	if (cropindiv->grs_cmass_leaf < 0.0) {
 		negative_cmass -= cropindiv->grs_cmass_leaf;
@@ -2262,7 +2307,8 @@ Landcover::Landcover() {
 			primary_frac_transfer[i][j] = 0.0;
 		}
 
-		expand_to_new_stand[i] = (i == NATURAL || i == FOREST);
+		expand_to_new_stand[i] = (i == NATURAL || i == FOREST || i == PASTURE);
+//		expand_to_new_stand[i] = (i == NATURAL || i == FOREST);
 
 		pool_to_all_landcovers[i] = false;		// from a donor landcover; alt.c
 		pool_from_all_landcovers[i] = false;	// to a receptor landcover; alt.a

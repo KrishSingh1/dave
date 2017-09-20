@@ -399,9 +399,9 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
 	// Carbon:
 	harvest = pft.harv_eff * i.cmass_leaf;
 
-	i.w1 = i.w1 - pft.harv_eff * i.w1;
-	i.w2 = i.w2 - pft.harv_eff * i.w2;
-	i.w3 = i.w3 - pft.harv_eff * i.w3;
+	i.w1 -=  pft.harv_eff * i.w1;
+	i.w2 -=  pft.harv_eff * i.w2;
+	i.w3 -=  pft.harv_eff * i.w3;
 
 	if (ifslowharvestpool) {
 		i.harvested_products_slow += harvest * pft.harvest_slow_frac;
@@ -428,6 +428,10 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
 		double residue_outtake = pft.res_outtake * i.cmass_leaf;	// res_outtake currently set to 0.0,
 		i.acflux_harvest += residue_outtake;				// could be used for burning
 		i.cmass_leaf -= residue_outtake;
+
+		i.w1 -=  pft.res_outtake * i.w1;
+		i.w2 -=  pft.res_outtake * i.w2;
+		i.w3 -=  pft.res_outtake * i.w3;
 
 		// Nitrogen:
 		residue_outtake = pft.res_outtake * i.nmass_leaf;
@@ -1013,7 +1017,6 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 		}
 	}
 	else {
-		dprintf("%d %s %s",__LINE__,__FILE__,__FUNCTION__);
 		indiv.cmass_root *= scale;
 		indiv.cmass_leaf *= scale;
 		indiv.ws *=scale;
@@ -1066,7 +1069,7 @@ bool harvest_year(Individual& indiv) {
 	bool killed = false;
 
 	// Reduce individual's C and N mass in stands that have increased in area this year:
-	if (landcover.updated && !indiv.has_daily_turnover()) {
+	if (landcover.updated && !indiv.has_daily_turnover() && !(ifdcarb && (stand.landcover == PASTURE || stand.landcover == URBAN))) {
 		scale_indiv(indiv, false);
 	}
 

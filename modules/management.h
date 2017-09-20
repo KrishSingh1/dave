@@ -54,6 +54,10 @@ struct Harvest_CN {
 	double w2;
 	double w3;
 	double w4;
+	double n1;
+	double n2;
+	double n3;
+	double n4;
 	double sg;
 	double ws;
 	double wg;
@@ -131,6 +135,10 @@ struct Harvest_CN {
 			sg = indiv.sg;
 			ws = indiv.ws;
 			wg = indiv.wg;
+			n1 = indiv.n1;
+			n2 = indiv.n2;
+			n3 = indiv.n3;
+			n4 = indiv.n4;
 			cmass_root = indiv.cmass_root;
 			cmass_sap = indiv.cmass_sap;
 			cmass_heart = indiv.cmass_heart;
@@ -209,7 +217,10 @@ struct Harvest_CN {
 			indiv.sg = sg;
 			indiv.ws = ws;
 			indiv.wg = wg;
-
+			indiv.n1 = n1;
+			indiv.n2 = n2;
+			indiv.n3 = n3;
+			indiv.n4 = n4;
 			if(indiv.pft.landcover == CROPLAND) {
 				indiv.cropindiv->cmass_ho = cmass_ho;
 				indiv.cropindiv->cmass_agpool = cmass_agpool;

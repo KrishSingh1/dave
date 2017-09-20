@@ -1781,6 +1781,7 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 				indiv.ymax_lai = 0.0;
 				indiv.ycmass_leaf = 0.0;
 				indiv.ycmass_root = 0.0;
+				scale_indiv(indiv, false);
 			}
 
 
@@ -1884,6 +1885,26 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 
 			indiv.cmass_leaf = indiv.wg;
 
+
+			//NITROGEN ///
+
+			// LITTER Based on C3 transfer ///
+
+			if(c3 > 0.0){
+				double nremoval = min(indiv.nmass_leaf, c3 * indiv.densindiv / cton_leaf_bg);
+				patch.pft[indiv.pft.id].nmass_litter_leaf += nremoval * 0.5; //put half into litter
+				indiv.nstore_labile += nremoval * 0.5; //the rest into labile nstore
+				indiv.nmass_leaf -= nremoval; //reduce nmass
+			}
+
+
+			//Update leaf nitrogen pools assume same fraction as cmass in each pool.
+			indiv.n1 = indiv.nmass_leaf*indiv.w1/indiv.wg;
+			indiv.n2 = indiv.nmass_leaf*indiv.w2/indiv.wg;
+			indiv.n3 = indiv.nmass_leaf*indiv.w3/indiv.wg;
+
+
+
 			//// LITTER ///
 
 			// Leaf
@@ -1906,17 +1927,6 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 
 				// Leaf turnover
 				patch.pft[indiv.pft.id].litter_leaf += c4;
-
-				//Nitrogen removal
-				double nremoval = min(indiv.nmass_leaf, c4 * indiv.densindiv / cton_leaf_bg);
-
-				// Nitrogen leaf
-				patch.pft[indiv.pft.id].nmass_litter_leaf += nremoval * (1.0 - actual_nrelocfrac);
-				indiv.nstore_longterm += nremoval * actual_nrelocfrac;
-
-				// Subtracting litter nitrogen from individuals
-				indiv.nmass_leaf -= nremoval;
-
 
 				// empty pool after dropped
 				c4 = 0.0;

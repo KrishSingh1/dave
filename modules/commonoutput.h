@@ -49,6 +49,9 @@ private:
 
 	// nitrogen
 	xtring file_nmass, file_cton_leaf, file_nsources, file_npool, file_nlitter, file_nuptake, file_vmaxnlim, file_nflux, file_ngases;
+
+	// BLAZE
+	xtring file_blaze_out, file_mprec;
 	
 	// Output tables
 	Table out_cmass, out_anpp, out_agpp, out_fpc, out_aaet, out_dens, out_lai, out_cflux, out_doc, out_cpool, out_clitter, out_firert, out_runoff, out_speciesheights;
@@ -60,6 +63,9 @@ private:
 	Table out_aiso, out_miso, out_amon, out_mmon;
 	
 	Table out_nmass, out_cton_leaf, out_nsources, out_npool, out_nlitter, out_nuptake, out_vmaxnlim, out_nflux, out_ngases;
+	
+	// BLAZE
+	Table out_ab, out_mprec;
 };
 
 }

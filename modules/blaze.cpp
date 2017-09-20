@@ -202,11 +202,26 @@ double available_fuel (Patch& patch,int flix)  {
 
 	get_combustion_rates(patch,flix);
 
+	//CLN Add trans-litter here!
+	double trans_litter_leaf  = 0.;
+	double trans_litter_sap   = 0.;
+	double trans_litter_heart = 0.;
+//	patch.pft.firstobj();
+//	while (patch.pft.isobj) {
+//		Patchpft& patchpft = patch.pft.getobj();
+//		trans_litter_leaf  += patchpft.litter_leaf;
+//		trans_litter_sap   += patchpft.litter_sap;
+//		trans_litter_heart += patchpft.litter_heart;
+//		patch.pft.nextobj();
+//	}
+
+
 	// compute readily available fuel load for given FLI-index in PATCH
 	double available_fuel = patch.litf2atm * (patch.soil.sompool[SURFSTRUCT].cmass + 
-					   patch.soil.sompool[SURFMETA].cmass)
-		       + patch.lfwd2atm * patch.soil.sompool[SURFFWD].cmass
-		       + patch.lcwd2atm * patch.soil.sompool[SURFCWD].cmass;
+					   patch.soil.sompool[SURFMETA].cmass + 
+					   trans_litter_leaf)
+		+ patch.lfwd2atm * ( patch.soil.sompool[SURFFWD].cmass + trans_litter_sap )
+		+ patch.lcwd2atm * ( patch.soil.sompool[SURFCWD].cmass + trans_litter_heart);
 
 	Vegetation& vegetation=patch.vegetation;
 	vegetation.firstobj();
@@ -530,8 +545,7 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 		// Temperate Needleleaf
 		if ( biome == 1) { 
 			double mass_cwd = patch.soil.sompool[SURFCWD].cmass   ;   
-			//survival_probability = p_surv_temp_nl(dbh, fli, mass_cwd);
-			survival_probability = surv_prob_boreal(fli);
+			survival_probability = surv_prob_temp_nl(dbh, fli, mass_cwd);
 		}
 		// Broadleaf and mixed
 		else if ( biome == 2 || biome == 3 ) {
@@ -747,7 +761,6 @@ void combust(Patch& patch, Climate& climate) {
 			if (indiv.pft.lifeform==GRASS) {
 				
 				// Reduce individual live biomass and freshly created litter
-				//CLN LINE BELOW creates imbalance!!!! 
 				indiv.reduce_biomass(.99,.99);
 				
 				// Update allometry
@@ -789,13 +802,36 @@ void combust(Patch& patch, Climate& climate) {
 				// Remove this cohort completely if all individuals killed
 				// (in individual mode: removes individual if killed)
 				if (negligible(indiv.densindiv)) {
+					dprintf("killed %s (%i) at %i y %i doy %i \n",(char*)indiv.pft.name,indiv.id,patch.id, date.year, date.day);
+					indiv.kill();
 					vegetation.killobj();
 					killed=true;
+//			dprintf("-------------------------- \n" );
+//			dprintf("cmass_leaf  %18.14f \n",cmass_leaf  );
+//			dprintf("cmass_sap   %18.14f \n",cmass_sap   );
+//			dprintf("cmass_heart %18.14f \n",cmass_heart );
+//			dprintf("cmass_root  %18.14f \n",cmass_root  );
+//			dprintf("cmass_debt  %18.14f \n",cmass_debt  );
+//			dprintf("nmass_leaf  %18.14f \n",nmass_leaf  );
+//			dprintf("nmass_sap   %18.14f \n",nmass_sap   );
+//			dprintf("nmass_heart %18.14f \n",nmass_heart );
+//			dprintf("nmass_root  %18.14f \n",nmass_root  );
+//			dprintf("litter_leaf    %18.14f \n",ppft.litter_leaf  );
+//			dprintf("litter_sap     %18.14f \n",ppft.litter_sap   );
+//			dprintf("litter_heart   %18.14f \n",ppft.litter_heart );
+//			dprintf("nmass_litter_leaf    %18.14f \n",ppft.nmass_litter_leaf  );
+//			dprintf("nmass_litter_sap     %18.14f \n",ppft.nmass_litter_sap   );
+//			dprintf("nmass_litter_heart   %18.14f \n",ppft.nmass_litter_heart );
+//			dprintf("totcmass    %18.14f \n",ccont());
+//			dprintf("totnmass    %18.14f \n",ncont());
+//			dprintf("===================================] \n");
+
+					
 				} 
 				else {
-					// Update allometry
+					// Update allometry HIER
 					allometry(indiv);
-
+					
 				}
 
 			}
@@ -813,7 +849,7 @@ void combust(Patch& patch, Climate& climate) {
 	double nstr2atm_t = 0.; 
 	double nfwd2atm_t = 0.;
 	double ncwd2atm_t = 0.;
-	//*CLNBAL	
+	
 	patch.pft.firstobj();
 	while (patch.pft.isobj) {
 		Patchpft& patchpft = patch.pft.getobj();
@@ -864,20 +900,9 @@ void combust(Patch& patch, Climate& climate) {
 	
 	// report C litter -> atm flux from transitional pools
 	patch.fluxes.report_flux(Fluxes::FIREC, cmtb2atm_t + cstr2atm_t + cfwd2atm_t + ccwd2atm_t);
-	//CLNBALpatch.fluxes.report_flux(Fluxes::FIREC, cfwd2atm_t + ccwd2atm_t);
 	// report N litter -> atm flux from transitional pools
 	report_fire_flux_n(patch, nmtb2atm_t + nstr2atm_t + nfwd2atm_t + ncwd2atm_t );
-	//CLNBALreport_fire_flux_n(patch, nfwd2atm_t + ncwd2atm_t );
 
-	//	dprintf("year %i \n",date.year);
-	//dprintf("clitt 2atm small %f wd %f \n", cmtb2atm_t + cstr2atm_t, cfwd2atm_t + ccwd2atm_t);
-	//dprintf("nlitt 2atm small %f wd %f \n", nmtb2atm_t + nstr2atm_t, nfwd2atm_t + ncwd2atm_t);
-	//dprintf("========= Left combust \n");
-	//*/
-	/*patch.fluxes.report_flux(Fluxes::C_mtb2atm,  cmtb2atm_t);
-	  patch.fluxes.report_flux(Fluxes::C_str2atm,  cstr2atm_t);
-	  patch.fluxes.report_flux(Fluxes::C_fwd2atm,  cfwd2atm_t);
-	  patch.fluxes.report_flux(Fluxes::C_cwd2atm,  ccwd2atm_t);*/
 }
 
 void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
@@ -1112,8 +1137,31 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	patch.soil.sompool[SOILMETA].nmass   += nroot2met;
 	patch.soil.sompool[SOILSTRUCT].nmass += nroot2str;
 
-	if (vegmode == POPULATION && pft.lifeform != GRASS) {
+	//CLN	if (vegmode == POPULATION && pft.lifeform != GRASS) {
+	if (pft.lifeform != GRASS) {
 		densindiv *= frac_survive;
+		//		if ( negligible(densindiv) ) {
+//			dprintf("===================================[ \n");
+//			dprintf("killed with  \n");
+//			dprintf("cmass_leaf  %18.14f \n",cmass_leaf  );
+//			dprintf("cmass_sap   %18.14f \n",cmass_sap   );
+//			dprintf("cmass_heart %18.14f \n",cmass_heart );
+//			dprintf("cmass_root  %18.14f \n",cmass_root  );
+//			dprintf("cmass_debt  %18.14f \n",cmass_debt  );
+//			dprintf("nmass_leaf  %18.14f \n",nmass_leaf  );
+//			dprintf("nmass_sap   %18.14f \n",nmass_sap   );
+//			dprintf("nmass_heart %18.14f \n",nmass_heart );
+//			dprintf("nmass_root  %18.14f \n",nmass_root  );
+//			dprintf("litter_leaf    %18.14f \n",ppft.litter_leaf  );
+//			dprintf("litter_sap     %18.14f \n",ppft.litter_sap   );
+//			dprintf("litter_heart   %18.14f \n",ppft.litter_heart );
+//			dprintf("nmass_litter_leaf    %18.14f \n",ppft.nmass_litter_leaf  );
+//			dprintf("nmass_litter_sap     %18.14f \n",ppft.nmass_litter_sap   );
+//			dprintf("nmass_litter_heart   %18.14f \n",ppft.nmass_litter_heart );
+//			dprintf("totcmass    %18.14f \n",ccont());
+//			dprintf("totnmass    %18.14f \n",ncont());
+//		
+//		}
 	}
 
 	//dprintf("SOMPOOLS BLAZE %i %i \n",patch.id, patch.stand.nobj);

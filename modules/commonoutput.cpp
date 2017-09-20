@@ -75,6 +75,14 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_miso", &file_miso, 300, "monthly isoprene flux output file");
 	declare_parameter("file_amon", &file_amon, 300, "annual monoterpene flux output file");
 	declare_parameter("file_mmon", &file_mmon, 300, "monthly monoterpene flux output file");
+
+	declare_parameter("file_mprec", &file_mprec, 300, "monthly precip output file");
+
+	if ( firemodel == BLAZE ) {
+		declare_parameter("file_blaze_out", &file_blaze_out, 300, "Monthly BLAZE diagnostic output file");
+	}
+
+
 }
 
 
@@ -218,6 +226,10 @@ void CommonOutput::define_output_tables() {
 	ColumnDescriptors firert_columns;
 	firert_columns += ColumnDescriptor("FireRT",           8, 1);
 
+	// BLAZE burnt area 
+	ColumnDescriptors blaze_columns;
+	blaze_columns += ColumnDescriptor("burnt area",        8, 4);
+
 	// RUNOFF
 	ColumnDescriptors runoff_columns;
 	runoff_columns += ColumnDescriptor("Surf",             8, 1);
@@ -324,7 +336,18 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_cpool,          file_cpool,          cpool_columns);
 	create_output_table(out_clitter,        file_clitter,        clitter_columns);
 
-	create_output_table(out_firert,         file_firert,         firert_columns);
+	if ( firemodel == BLAZE ) {
+                if ( blaze_tstep == ANNUAL ) {
+			//			create_output_table(out_ab,  file_annual_blaze_out,	blaze_columns);
+		} else {
+			create_output_table(out_ab,	file_blaze_out,	blaze_columns); 
+		}
+	} else if ( firemodel == GLOBFIRM ) {
+		create_output_table(out_firert,         file_firert,         firert_columns);
+	}
+
+	//	create_output_table(out_fireflux,	file_fireflux,	     month_columns_wide);
+	create_output_table(out_ab,             file_blaze_out,             blaze_columns);
 	create_output_table(out_runoff,         file_runoff,         runoff_columns);
 	create_output_table(out_speciesheights, file_speciesheights, speciesheights_columns);
 	create_output_table(out_aiso,           file_aiso,           aiso_columns);
@@ -357,6 +380,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mwcont_lower,   file_mwcont_lower,   month_columns);
 	create_output_table(out_miso,           file_miso,           month_columns_wide);
 	create_output_table(out_mmon,           file_mmon,           month_columns_wide);
+	create_output_table(out_mprec,          file_mprec,          month_columns_wide);
 
 }
 
@@ -599,6 +623,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double miso[12];
 	double mmon[12];
 	double aaet, apet, aevap, arunoff, aintercep;
+
+	// BLAZE
+	double annual_areaburnt_gridcell=0.;
 
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
@@ -1156,6 +1183,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_dens,   dens_gridcell);
 	outlimit(out,out_lai,    lai_gridcell);
 	outlimit(out,out_clitter,clitter_gridcell);
+	//CLN
+	outlimit(out,out_ab,     gridcell.climate.annual_areaburnt);
 	outlimit(out,out_firert, firert_gridcell);
 	outlimit(out,out_runoff, surfrunoff_gridcell);
 	outlimit(out,out_runoff, drainrunoff_gridcell);
@@ -1228,6 +1257,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			outlimit(out,out_mwcont_lower, mwcont_lower[m]);
 			outlimit(out,out_miso,         miso[m]);
 			outlimit(out,out_mmon,         mmon[m]);
+			outlimit(out,out_mprec,        (float)gridcell.climate.mprec[m]);
 
 			aaet += maet[m];
 			apet += mpet[m];

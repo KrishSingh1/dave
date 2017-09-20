@@ -635,6 +635,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		// reset annual nitrogen input variables
 		climate.andep  = 0.0;
 
+
 		// reset gridcell-level harvest fluxes
 		gridcell.landcover.acflux_landuse_change=0.0;
 		gridcell.landcover.acflux_harvest_slow=0.0;
@@ -747,6 +748,12 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	if (firemodel == BLAZE) {
 		blaze_accounting_gridcell(gridcell.climate);
 	}
+
+	// reset monthly precip 
+	if ( date.dayofmonth == 0 ) {
+		climate.mprec[date.month] = 0.0;
+	}
+	climate.mprec[date.month] += climate.prec; 
 
 	// On last day of month ...
 

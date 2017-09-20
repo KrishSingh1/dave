@@ -921,7 +921,7 @@ void transfer_litter(Patch& patch) {
 				pft.nmass_litter_sap_year = pft.nmass_litter_sap;
 			}
 
-			// Monthly fraction of REMAINING last year's litter
+			// Monthly fraction of REMAINING last year's sapwood litter
 			double litter_sap       = pft.litter_sap / (12. - (double)date.month);
 			double nmass_litter_sap = pft.nmass_litter_sap / (12. - (double)date.month);
 			pft.litter_sap         -= litter_sap;
@@ -968,7 +968,7 @@ void transfer_litter(Patch& patch) {
 				pft.nmass_litter_heart_year = pft.nmass_litter_heart;
 			}
 
-			// Monthly fraction of REMAINING last year's litter
+			// Monthly fraction of REMAINING last year's heartwood litter 
 			double litter_heart       = pft.litter_heart / (12. - (double)date.month);
 			double nmass_litter_heart = pft.nmass_litter_heart / 
 				(12. - (double)date.month);

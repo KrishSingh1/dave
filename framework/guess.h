@@ -802,6 +802,8 @@ public:
 	/// 20-year running average of maximum monthly precipitation to PET ratios
 	double mprec_petmax20;
 
+	double mprec[12];
+
 	Historic<double, 20> hmtemp_20[12];
 	Historic<double, 20> hmprec_20[12];
 	Historic<double, 20> hmeet_20[12];

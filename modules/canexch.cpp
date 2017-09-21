@@ -838,15 +838,7 @@ void nstore_usage(Vegetation& vegetation) {
 			}
 			else {
 
-				// Move long-term nitrogen storage pool to labile storage pool for usage now
-				if (ifdcarb && indiv.pft.lifeform == GRASS && !indiv.istruecrop_or_intercropgrass()) {
-					double transferred_nstore = min(0.1 * indiv.nstore_longterm, excess_ndemand - indiv.nstore_labile);
-					indiv.nstore_labile += transferred_nstore;
-					indiv.nstore_longterm -= transferred_nstore;
-				}
-
-				if (!negligible(indiv.nstore_labile) && !negligible(indiv.cmass_root_today() + indiv.cmass_leaf_today())) { //NIKLAS DC __ ASK DAVID IF IT MAKE SENSE
-					//added check for daily carbon allocation to not divide by zero if individual lost all is leafs and roots during the year and should hence be killed
+				if (!negligible(indiv.nstore_labile)) {
 
 					// calculate total nitrogen mass
 					double tot_nmass = indiv.nmass_leaf + indiv.nmass_root + indiv.fnuptake * (indiv.leafndemand + indiv.rootndemand) + indiv.nstore_labile;
@@ -866,14 +858,9 @@ void nstore_usage(Vegetation& vegetation) {
 					indiv.nstore_labile = 0.0;
 				}
 
-				if (ifnlim) {
-					// photosynthesis will be nitrogen stresses
-					indiv.nstress = true;
-				}
-				else {
-					// photosynthesis will not be nitrogen stresses as it is not allowed
-					indiv.nstress = false;
-				}
+				// nitrogen stressed photosynthesis is allowed only when nitrogen limitation is turned on
+				indiv.nstress = ifnlim;
+				
 			}
 		}
 		else
@@ -1909,6 +1896,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 			PhotosynthesisResult phot_nostress = date.diurnal() ? indiv.phots[day.period] : indiv.photosynthesis;
 			bvoc(temp, hours, rad, climate, patch, indiv, pft, phot_nostress, phot.adtmm, day);
 		}
+
 		// Calculate autotrophic respiration
 		double cmass_root;
 		if (indiv.cropindiv && indiv.cropindiv->isintercropgrass && indiv.phen == 0.0)
@@ -1918,6 +1906,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 		// Static root and sap wood C:N ratio if no N limitation
 		// to not let N affect respiration for C only version of model
+
 		double cton_sap, cton_root;
 		if (ifnlim) {
 			cton_sap = indiv.cton_sap();

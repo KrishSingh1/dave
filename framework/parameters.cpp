@@ -150,7 +150,7 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB
 	CB_STLANDCOVER, CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT,
 	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTHYDROLOGY,
 	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STHYDROLOGY, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
-	CB_PATHWAY,CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE};
+	CB_PATHWAY,CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE,CB_MTCOMPOUND};
 
 // File local variables
 namespace {
@@ -448,7 +448,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifrainonwetdaysonly",&ifrainonwetdaysonly,1,CB_NONE,
 			"Whether it rains on wet days only (1), or a little every day (0);");
 
-		// bvoc
 		declareitem("ifbvoc",&ifbvoc,1,CB_NONE,
 			"Whether or not BVOC calculations are performed (0,1)");
 		declareitem("run_landcover",&run_landcover,1,CB_NONE,"Landcover version");
@@ -674,9 +673,9 @@ void plib_declarations(int id,xtring setname) {
 			"isoprene emission capacity (ug C g-1 h-1)");
 		declareitem("seas_iso",&ppft->seas_iso,1,CB_NONE,
 			"whether (1) or not (0) isoprene emissions show seasonality");
-		declareitem("eps_mon",&ppft->eps_mon,0.,100.,1,CB_NONE,
+		declareitem("eps_mon",ppft->eps_mon,0.,100.,NMTCOMPOUNDS,CB_MTCOMPOUND,
 			"monoterpene emission capacity (ug C g-1 h-1)");
-		declareitem("storfrac_mon",&ppft->storfrac_mon,0.,1.,1,CB_NONE,
+		declareitem("storfrac_mon",ppft->storfrac_mon,0.0,1.0,NMTCOMPOUNDS,CB_MTCOMPOUND,
 			"fraction of monoterpene production that goes into storage pool (-)");
 
 		declareitem("harv_eff",&ppft->harv_eff,0.0,1.0,1,CB_NONE,"Harvest efficiency");
@@ -1094,6 +1093,9 @@ void plib_callback(int callback) {
 		}
 		ppft->rootdist[NSOILLAYER-1]+=1.0-numval;
 		break;
+	case CB_MTCOMPOUND:
+          // bvoc. Can include some checks for the monoterpene parameters given per compound
+	break;
 	case CB_STRPARAM:
 		param.addparam(paramname,strparam);
 		break;
@@ -1129,7 +1131,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifsmoothgreffmort")) badins("ifsmoothgreffmort");
 		if (!itemparsed("ifdroughtlimitedestab")) badins("ifdroughtlimitedestab");
 		if (!itemparsed("ifrainonwetdaysonly")) badins("ifrainonwetdaysonly");
-		// bvoc
+		
 		if (!itemparsed("ifbvoc")) badins("ifbvoc");
 
 		if (!itemparsed("run_landcover")) badins("run_landcover");
@@ -1593,7 +1595,6 @@ void plib_callback(int callback) {
 			// guess2008 - DLE
 			if (!itemparsed("drought_tolerance")) badins("drought_tolerance");
 
-			// bvoc
 			if(ifbvoc){
 				if (!itemparsed("ga")) badins("ga");
 				if (!itemparsed("eps_iso")) badins("eps_iso");

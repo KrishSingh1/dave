@@ -135,6 +135,9 @@ typedef enum {COLD, COLD_WARM, COLD_HOT, WARM, WARM_HOT, HOT} temp_seasonality_t
 /// number  of soil layers modelled
 const int NSOILLAYER = 2;
 
+/// bvoc: number of monoterpene species used
+const int NMTCOMPOUNDS=NMTCOMPOUNDTYPES;
+
 // SOIL DEPTH VALUES
 
 /// soil upper layer depth (mm)
@@ -912,7 +915,15 @@ public:
 		/// Isoprene (mgC/m2)
 		ISO,
 		/// Monoterpene (mgC/m2)
-		MON,
+		MT_APIN,
+		MT_BPIN,
+		MT_LIMO,
+		MT_MYRC,
+		MT_SABI,
+		MT_CAMP,
+		MT_TRIC,
+		MT_TBOC,
+		MT_OTHR,
 		/// Number of types, must be last
 		NPERPFTFLUXTYPES
 	};
@@ -1460,10 +1471,10 @@ public:
 	double eps_iso;
 	/// whether (1) or not (1) isoprene emissions show a seasonality
 	bool seas_iso;
-	/// monoterpene emission capacity (ug C g-1 h-1)
-	double eps_mon;
-	/// fraction of monoterpene production that goes into storage pool (-)
-	double storfrac_mon;
+	/// monoterpene emission capacity (ug C g-1 h-1) per monoterpene species
+	double eps_mon[NMTCOMPOUNDS];
+	/// fraction of monoterpene production that goes into storage pool (-) per monoterpene species
+	double storfrac_mon[NMTCOMPOUNDS];
 
 
 	/// Sapling/regeneration characteristics (used only in population mode)
@@ -2335,10 +2346,10 @@ public:
 
 	/// isoprene production (mg C m-2 d-1)
 	double iso;
-	/// monoterpene production (mg C m-2 d-1)
-	double mon;
-	/// monoterpene storage pool (mg C m-2)
-	double monstor;
+	/// monoterpene production (mg C m-2 d-1) per monoteprene species
+	double mon[NMTCOMPOUNDS];
+	/// monoterpene storage pool (mg C m-2) per monoterpene species
+	double monstor[NMTCOMPOUNDS];
 	/// isoprene seasonality factor (-)
 	double fvocseas;
 

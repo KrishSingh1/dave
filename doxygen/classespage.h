@@ -18,6 +18,6 @@ The most important classes (from a scientific perspective) are:
  - \ref Climate - \copybrief Climate
  - \ref Soiltype - \copybrief Soiltype
  - \ref Soil - \copybrief Soil
- - \ref Managementtype - \copybrief Managementtype
+ - \ref ManagementType - \copybrief ManagementType
 
 */

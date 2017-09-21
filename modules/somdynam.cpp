@@ -663,7 +663,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 		}
 		else if (!ifnlim) {
 
-			// Free Nnitrogen years. Not minding immobilisation higher than nmass_avail
+			// Not minding immobilisation higher than nmass_avail during free nitrogen years
 			if (date.year > freenyears) {
 
 				// Immobilization larger than soil available nitrogen -> reduce targeted N concentration in SOM pool with flexible N:C ratios

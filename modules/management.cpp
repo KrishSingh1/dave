@@ -989,7 +989,6 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 	// this year by (old area/new area):
 	double scale = stand.scale_LC_change;
 
-
 	if (scale_grsC) {
 
 		if (indiv.pft.landcover == CROPLAND) {
@@ -1017,6 +1016,7 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 		}
 	}
 	else {
+	
 		indiv.cmass_root *= scale;
 		indiv.cmass_leaf *= scale;
 		indiv.ws *=scale;

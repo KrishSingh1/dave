@@ -257,6 +257,8 @@ group "grass" (
 	ga 0.030
 	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time for GRASS
 	harvest_slow_frac 0
+	sgtor 0.23595		! storage growth to root ratio	
+	sen_fac 0.27493	! senescens fraction	
 )
 
 
@@ -1063,6 +1065,7 @@ group "C3G" (
 	eps_mon 0.45 0.55 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	storfrac_mon 0.5 0.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	harv_eff 0.5
+	transfercon 0.06535	
 )
 
 pft "C3_gr" (
@@ -1099,6 +1102,7 @@ group "C4G" (
 	eps_mon 0.55 0.45 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	storfrac_mon 0.5 0.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	harv_eff 0.5
+	transfercon 0.12879	
 )
 
 pft "C4_gr" (

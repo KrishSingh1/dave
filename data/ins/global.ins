@@ -84,26 +84,26 @@ title 'LPJ-GUESS cohort mode - global pfts'
 
 vegmode "cohort"		! "cohort", "individual" or "population"
 nyear_spinup 500		! number of years to spin up the simulation for
-ifcalcsla 1				! whether to calculate SLA from leaf longevity
-						! (PFT-specific value can be specified in this file instead)
+ifcalcsla 1			! whether to calculate SLA from leaf longevity
+					! (PFT-specific value can be specified in this file instead)
 ifcalccton 1			! whether to calculate leaf C:N min from leaf longevity
-						! (PFT-specific value can be specified in this file instead)
-iffire 1				! whether to implement fire (1) or not (0)
-npatch 5				! number of replicate patches to simulate
+					! (PFT-specific value can be specified in this file instead)
+iffire 1			! whether to implement fire (1) or not (0)
+npatch 5			! number of replicate patches to simulate
 patcharea 1000			! patch area (m2)
 estinterval 5			! years between establishment events in cohort mode
-ifdisturb 1				! whether generic patch-destroying disturbances enabled
+ifdisturb 1			! whether generic patch-destroying disturbances enabled
 distinterval 100		! average return time for generic patch-destroying disturbances
-						! Hickler et al. (2011) used 200
-ifbgestab 1				! whether background establishment enabled
-ifsme 1					! whether spatial mass effect enabled
+					! Hickler et al. (2011) used 200
+ifbgestab 1			! whether background establishment enabled
+ifsme 1				! whether spatial mass effect enabled
 ifstochestab 1			! whether establishment stochastic
 ifstochmort 1			! whether mortality stochastic
-ifcdebt 1				! whether to allow vegetation C storage (1) or not (0)
-wateruptake "rootdist"  ! "wcont", "rootdist", "smart" or "speciesspecific",
-                        ! see documentation for water_uptake()
+ifcdebt 1			! whether to allow vegetation C storage (1) or not (0)
+wateruptake "rootdist"  	! "wcont", "rootdist", "smart" or "speciesspecific",
+                        		! see documentation for water_uptake()
 textured_soil 1	     		! whether to use silt/sand fractions specific to soiltype
-
+ifdcarb 1			! whether to use daily carbon allocation for grasses.
 !///////////////////////////////////////////////////////////////////////////////
 ! PROCESS SETTINGS SPECIFIC TO NITROGEN
 !///////////////////////////////////////////////////////////////////////////////
@@ -136,15 +136,6 @@ ifbvoc 0                     ! whether to include BVOC calculations (1) or not (
 !!!!!!!!!!!! landcover parameters !!!!!!!!!!!!!!
 
 run_landcover 0        ! whether to use (and change) landcover fractions (1) or not (0)
-
-
-
-!///////////////////////////////////////////////////////////////////////////////
-! DAILY CARBON GRASS
-!///////////////////////////////////////////////////////////////////////////////	
-
-ifdcarb 1		! wheter to use daily carbon allocation for grasses.
-
 
 
 !///////////////////////////////////////////////////////////////////////////////////////
@@ -262,7 +253,8 @@ group "grass" (
 	harvest_slow_frac 0
 	
 	sgtor 0.23595		! storage growth to root ratio	
-	sen_fac 0.27493	! senescens fraction	
+	sen_fac 0.27493	! senescens fraction
+	transfercon 0.0	!C3 and C4 specific in pft
 )
 
 

@@ -31,7 +31,7 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 	rain.clear();
 	swrad.clear();
 
-	xtring fluxfile = param["flux_dir"].str + "/" + gridlist.getobj().descrip + ".csv";
+	xtring fluxfile = param["flux_dir"].str + gridlist.getobj().descrip + ".csv";
 	std::ifstream ifs(fluxfile, std::ifstream::in);
 
 	if (!ifs.good()) {

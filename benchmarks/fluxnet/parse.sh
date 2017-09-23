@@ -17,6 +17,7 @@ for f in *.zip; do
         i=$(( $i+1 ))
     done
     grep -vP '^.{4}0229' "$fname" | cut -d, -f$(echo ${fields[@]} | tr ' ' ,) --output-delimiter=$'\t' |
-        sed -r '1d;s/.{4}/&\t/'  > $location.csv
+        sed -r '1d;s/.{4}/&\t/' > $location.csv
     rm $fname
+    grep $location *_sitelist.csv | awk -vFPAT='[^,]*|"[^"]*"' -vOFS='\t' '{ print $7,$6,$1 }' >> gridlist.txt
 done

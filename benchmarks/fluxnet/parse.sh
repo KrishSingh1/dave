@@ -16,8 +16,10 @@ for f in *.zip; do
         fi
         i=$(( $i+1 ))
     done
+    grep $location *_sitelist.csv | awk -vFPAT='[^,]*|"[^"]*"' -vOFS='\t' '{print $7,$6,$1}' |
+        tee $location.csv |
+        awk -vOFS='\t' 'function norm(x, y){y=int(x*2); return(2*x<y?y-1:y)/2+.25} {print norm($1), norm($2), $3}' >> gridlist.txt
     grep -vP '^.{4}0229' "$fname" | cut -d, -f$(echo ${fields[@]} | tr ' ' ,) --output-delimiter=$'\t' |
-        sed -r '1d;s/.{4}/&\t/' > $location.csv
+        sed -r '1d;s/.{4}/&\t/' >> $location.csv
     rm $fname
-    grep $location *_sitelist.csv | awk -vFPAT='[^,]*|"[^"]*"' -vOFS='\t' '{ print $7,$6,$1 }' >> gridlist.txt
 done

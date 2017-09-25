@@ -80,11 +80,9 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_mmon_mt1", &file_mmon_mt1, 300, "monthly endocyclic monoterpene flux output file");	
 	declare_parameter("file_mmon_mt2", &file_mmon_mt2, 300, "monthly other monoterpene flux output file");
 
-	//outdaily - Niklas code/version since crop version outfiles are empty
+	// outdaily
 	declare_parameter("file_dlai",&file_dlai,300,"Daily LAI output file");
 	declare_parameter("file_dflux",&file_dflux,300,"Daily flux output file");
-	declare_parameter("file_dtmp",&file_dtmp,300,"Daily tmp output file");
-
 }
 
 
@@ -251,6 +249,7 @@ void CommonOutput::define_output_tables() {
 	// DAILY
 	ColumnDescriptors dlai_columns;
 	dlai_columns += ColumnDescriptors(pfts,14, 8);
+
 	ColumnDescriptors dflux_columns;
 	dflux_columns += ColumnDescriptor("Veg", 14, 6);
 	dflux_columns += ColumnDescriptor("Repr", 14, 6);
@@ -258,10 +257,6 @@ void CommonOutput::define_output_tables() {
 	dflux_columns += ColumnDescriptor("Fire", 14, 6);
 	dflux_columns += ColumnDescriptor("Est", 14, 6);
 	dflux_columns += ColumnDescriptor("NEE", 14, 6);
-
-	ColumnDescriptors dtmp_columns;
-	dtmp_columns += ColumnDescriptors(pfts,14, 8);
-
 
 	// CTON
 	ColumnDescriptors cton_columns;
@@ -385,11 +380,11 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mmon,           file_mmon,           month_columns_wide);
 	create_output_table(out_mmon_mt1,       file_mmon_mt1,       month_columns_wide);
 	create_output_table(out_mmon_mt2,       file_mmon_mt2,       month_columns_wide);
-	// *** DAILY OUTPUT VARIABLES *** niklas addition
+
+	// *** DAILY OUTPUT VARIABLES ***
+
 	create_output_table(out_dlai,		 file_dlai,			 dlai_columns);
 	create_output_table(out_dflux,		 file_dflux,		 dflux_columns);
-	create_output_table(out_dtmp,		 file_dtmp,			 dtmp_columns);
-
 
 }
 
@@ -1555,9 +1550,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 /** This function does not have to provide any information to the framework.
   */
 void CommonOutput::outdaily(Gridcell& gridcell) {
-	// DESCRIPTION
-	// Output of simulation results at the end of each day
-	// added by niklas
 
 	double lon,lat;
 	double flux_veg, flux_repr, flux_soil, flux_fire, flux_est, flux_seed, flux_charvest;
@@ -1706,10 +1698,6 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 			// Print PFT sums to files
 
 
-
-
-			//outlimit(out,out_npp,      mean_standpft_anpp);
-			//outlimit(out,out_gpp,      mean_standpft_agpp);
 			outlimit(out,out_dlai,       mean_standpft_lai);
 
 			pftlist.nextobj();

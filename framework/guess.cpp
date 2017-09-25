@@ -163,11 +163,11 @@ void Fluxes::report_flux(PerPatchFluxType flux_type, double value) {
 	daily_fluxes_patch[date.day][flux_type] += value;
 }
 
-double Fluxes::get_daily_flux(PerPFTFluxType flux_type, int day) const { //daily carbon allocation niklas
+double Fluxes::get_daily_flux(PerPFTFluxType flux_type, int day) const {
 	return daily_fluxes_pft[day][flux_type];
 }
 
-double Fluxes::get_daily_flux(PerPatchFluxType flux_type, int day) const { //daily carbon allocation niklas
+double Fluxes::get_daily_flux(PerPatchFluxType flux_type, int day) const {
 	return daily_fluxes_patch[day][flux_type];
 }
 
@@ -1144,9 +1144,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	nmass_heart       = 0.0;
 	cton_leaf_aopt    = 0.0;
 	cton_leaf_aavr    = 0.0;
-
-
-
 	cton_status       = 0.0;
 	cmass_veg         = 0.0;
 	nmass_veg         = 0.0;
@@ -1239,7 +1236,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& aphen
 		& aphen_raingreen
 		& anpp
-		& phen_daily //daily allocation Niklas
+		& phen_daily
 		& ymax_lai
 		& ycmass_leaf
 		& ycmass_root
@@ -1384,8 +1381,6 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 	if (!negligible(mortality)) {
 
-
-
 		const double mortality_non_fire = mortality - mortality_fire;
 
 		// Transfer killed biomass to litter
@@ -1397,12 +1392,11 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		double cmass_root_litter = mortality * cmass_root;
 
 		if(pft.lifeform == GRASS && ifdcarb && alive && !istruecrop_or_intercropgrass()){
-			cmass_leaf_litter += mortality * ws; //add extra pools to litter
+			//add extra daily carbon pools to litter
+			cmass_leaf_litter += mortality * ws;
 			cmass_leaf_litter += mortality * w4;
 			cmass_root_litter += mortality * sg;
-
 		}
-
 
 		if (pft.landcover==CROPLAND) {
 			if (pft.aboveground_ho)
@@ -1492,21 +1486,19 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 			cropindiv->nmass_ho *= remaining;
 			cropindiv->nmass_agpool *= remaining;
 		}
-		//if(pft.lifeform == GRASS && ifdcarb && alive && !istruecrop_or_intercropgrass()){
-			//make sure that we take away from all the daily grass carbon pools.
-			sg *=remaining;
-			w1 *=remaining;
-			w2 *=remaining;
-			w3 *=remaining;
-			w4 *=remaining;
-			ws *=remaining;
-			n1 *=remaining;
-			n2 *=remaining;
-			n3 *=remaining;
-			n4 *=remaining;
-		//}
 
+		//make sure that we take away from all the daily grass carbon pools.
 
+		sg *=remaining;
+		w1 *=remaining;
+		w2 *=remaining;
+		w3 *=remaining;
+		w4 *=remaining;
+		ws *=remaining;
+		n1 *=remaining;
+		n2 *=remaining;
+		n3 *=remaining;
+		n4 *=remaining;
 
 	}
 }
@@ -1616,7 +1608,7 @@ double Individual::ccont(double scale_indiv, bool luc) const {
 
 			ccont = cmass_leaf + cmass_root + cmass_sap + cmass_heart - cmass_debt;
 
-			if(ifdcarb && pft.lifeform == GRASS) ccont += ws + sg + w4;//daily carbon niklas
+			if(ifdcarb && pft.lifeform == GRASS) ccont += ws + sg + w4;
 
 			if (pft.landcover == CROPLAND) {
 				ccont += cropindiv->cmass_ho + cropindiv->cmass_agpool;
@@ -2308,7 +2300,6 @@ Landcover::Landcover() {
 		}
 
 		expand_to_new_stand[i] = (i == NATURAL || i == FOREST || i == PASTURE);
-//		expand_to_new_stand[i] = (i == NATURAL || i == FOREST);
 
 		pool_to_all_landcovers[i] = false;		// from a donor landcover; alt.c
 		pool_from_all_landcovers[i] = false;	// to a receptor landcover; alt.a

@@ -1590,15 +1590,12 @@ public:
 		return 2.0 / (1. / min + 1. / max);
 	}
 
-	/// daily carbon allocation
-	// root to storage growth ratio
+	/// root to storage growth ratio
 	double sgtor;
-	// senescence factor
+	/// senescence factor
 	double sen_fac;
-	//  transfer constant of material between compartments a
+	/// transfer constant of material between compartments a
 	double transfercon;
-
-
 
 	// MEMBER FUNCTIONS
 
@@ -2170,39 +2167,39 @@ public:
 	/// accumulated NPP over modelled area (kgC/m2/year);
 	/** annual NPP following call to growth module on last day of simulation year */
 	double anpp;
-	// phen for daily allocation (based on water supply and demand ratio for C4 and gdd5 for C3 grass daily allocation niklas.
+	// phen for daily allocation
 	double phen_daily;
-	// yearly lai for daily allocation Niklas
+	// yearly lai for daily allocation
 	double ymax_lai;
-	// yearly maximum cmass_leaf for daily allocation niklas
+	// yearly maximum cmass_leaf for daily allocation
 	double ycmass_leaf;
-	// yearly maximum cmass_root for daily allocation niklas
+	// yearly maximum cmass_root for daily allocation
 	double ycmass_root;
-	// Storage weight for daily allocation niklas
+	// Storage weight for daily allocation
 	double ws;
 	// Storage weight for biomass increment without lai
 	double sg;
 	// weight of all growth compartments
 	double wg;
-	// weight of growth compartment 1 daily allocation Niklas
+	// weight of growth compartment 1 daily allocation
 	double w1;
-	// weight of growth compartment 2 daily allocation Niklas
+	// weight of growth compartment 2 daily allocation
 	double w2;
-	// weight of growth compartment 3 daily allocation Niklas
+	// weight of growth compartment 3 daily allocation
 	double w3;
-	// weight of growth compartment 4 daily allocation Niklas
+	// weight of growth compartment 4 daily allocation
 	double w4;
-	//Abscission from last compartment (4) ie litter, daily allocation Niklas
+	//Abscission from last compartment (4) ie litter, daily allocation
 	double abscission;
 	//sum of growth of leaves not related to sg
 	double ygrowth;
-	// Nitrogen of growth compartment 1 daily allocation Niklas
+	// Nitrogen of growth compartment 1 daily allocation
 	double n1;
-	// Nitrogen of growth compartment 2 daily allocation Niklas
+	// Nitrogen of growth compartment 2 daily allocation
 	double n2;
-	// Nitrogen of growth compartment 3 daily allocation Niklas
+	// Nitrogen of growth compartment 3 daily allocation
 	double n3;
-	// Nitrogen of growth compartment 4 daily allocation Niklas
+	// Nitrogen of growth compartment 4 daily allocation
 	double n4;
 	// running mean of nscal for last 365 days for each individual daily allocation
 	Historic<double, 365> nscal_running;
@@ -2291,7 +2288,6 @@ public:
 	double cton_leaf_aopt;
 	/// annual average leaf C:N ratio
 	double cton_leaf_aavr;
-
 	/// daily optimal leaf C:N ratio
 	double cton_leaf_opt;
 	/// plant mobile nitrogen status
@@ -3119,9 +3115,8 @@ public:
 	double aphen;
 	/// whether PFT can establish in this patch under current conditions
 	bool establish;
+	// daily phen for daily allocation
 	double phen_daily;
-	// daily phen for daily allocation niklas
-
 	/// running total for number of saplings of this PFT to establish (cohort mode)
 	double nsapling;
 	/// leaf-derived litter for PFT on modelled area basis (kgC/m2)
@@ -3220,9 +3215,7 @@ public:
 		cropphen = NULL;
 		harvested_products_slow = 0.0;
 		harvested_products_slow_nmass = 0.0;
-		phen_daily = 0.0; //daily allocation niklas
-
-
+		phen_daily = 0.0;
 		swindow[0]=-1;
 		swindow[1]=-1;
 

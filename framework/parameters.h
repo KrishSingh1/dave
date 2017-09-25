@@ -239,8 +239,7 @@ extern bool ifrainonwetdaysonly;
 /// whether BVOC calculations are included
 extern bool ifbvoc;
 
-
-/// whether daily carbon allocation for grasses is turned on, niklas
+/// whether daily carbon allocation for grasses is turned on
 extern bool ifdcarb;
 
 ///////////////////////////////////////////////////////////////////////////////////////

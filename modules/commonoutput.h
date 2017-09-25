@@ -51,7 +51,7 @@ private:
 	xtring file_nmass, file_cton_leaf, file_nsources, file_npool, file_nlitter, file_nuptake, file_vmaxnlim, file_nflux, file_ngases;
 	
 	// outdaily files
-	xtring file_dlai, file_dflux, file_dtmp;
+	xtring file_dlai, file_dflux;
 
 	// Output tables
 	Table out_cmass, out_anpp, out_agpp, out_fpc, out_aaet, out_dens, out_lai, out_cflux, out_doc, out_cpool, out_clitter, out_firert, out_runoff, out_speciesheights;
@@ -65,9 +65,7 @@ private:
 	Table out_nmass, out_cton_leaf, out_nsources, out_npool, out_nlitter, out_nuptake, out_vmaxnlim, out_nflux, out_ngases;
 
 	// outdaily
-	Table out_dlai;
-	Table out_dflux;
-	Table out_dtmp;
+	Table out_dlai, out_dflux;
 };
 
 }

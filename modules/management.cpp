@@ -827,7 +827,6 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 
 
 	if (alive || istruecrop_or_intercropgrass)  {
-
 		cp.litter_root += cp.cmass_root;
 		cp.litter_root += cp.sg;
 

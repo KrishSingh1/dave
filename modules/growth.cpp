@@ -1718,9 +1718,9 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 	// maximum carbon mass allowed (kgC/m2)
 	const double MAXCMASS = 1.0e8;
 	//Movment factors for
-	double g_fac; //growth
-	double g_mov; //movement between compartments
-	double s_fac; //senescense and movement to litter.
+	double g_fac;	//growth
+	double g_mov;	//movement between compartments
+	double s_fac;	//senescense and movement to litter.
 
 	// Temporary variables to move carbon between compartments
 	double c1;

@@ -108,7 +108,7 @@ ifcdebt 1             ! whether to allow vegetation C storage (1) or not (0)
 wateruptake "rootdist"! "wcont", "rootdist", "smart" or "speciesspecific",
                       ! see documentation for water_uptake()
 textured_soil 1	      ! whether to use silt/sand fractions specific to soiltype
-ifdcarb 1	      ! whether to use daily carbon allocation for grasses.
+ifdcarb 1	      	  ! whether to use daily carbon allocation for grasses.
 
 !///////////////////////////////////////////////////////////////////////////////
 ! PROCESS SETTINGS SPECIFIC TO NITROGEN
@@ -258,8 +258,9 @@ group "grass" (
 	ga 0.030
 	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time for GRASS
 	harvest_slow_frac 0
-	sgtor 0.23595		! storage growth to root ratio	
-	sen_fac 0.27493	! senescens fraction	
+	sgtor 0.43414		! storage growth to root ratio	
+	sen_fac 0.60779	! senescens fraction
+	transfercon 0.0	!C3 and C4 specific in pft	
 )
 
 
@@ -1066,7 +1067,7 @@ group "C3G" (
 	eps_mon 0.45 0.55 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	storfrac_mon 0.5 0.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	harv_eff 0.5
-	transfercon 0.06535	
+	transfercon 0.049
 )
 
 pft "C3_gr" (
@@ -1103,7 +1104,7 @@ group "C4G" (
 	eps_mon 0.55 0.45 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	storfrac_mon 0.5 0.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	harv_eff 0.5
-	transfercon 0.12879	
+	transfercon 0.076
 )
 
 pft "C4_gr" (

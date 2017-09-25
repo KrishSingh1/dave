@@ -1553,6 +1553,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 	}
 
 	// calculate the running sum of wscal to use for daily carbon allocation
+
 	if(day.isend && ifdcarb){
 		vegetation.firstobj();
 		while (vegetation.isobj) {

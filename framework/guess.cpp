@@ -1393,6 +1393,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 		if(pft.lifeform == GRASS && ifdcarb && alive && !istruecrop_or_intercropgrass()){
 			//add extra daily carbon pools to litter
+
 			cmass_leaf_litter += mortality * ws;
 			cmass_leaf_litter += mortality * w4;
 			cmass_root_litter += mortality * sg;
@@ -2056,8 +2057,8 @@ void Individual::kill(bool harvest /* = false */) {
 	}
 
 	if(pft.lifeform == GRASS && ifdcarb && alive && !istruecrop_or_intercropgrass()){
-		ppft.litter_root += sg; // storage growth to litter
-		ppft.litter_leaf += w4 + ws; //add senescing leaves and growth storage to litter
+		ppft.litter_root += sg;			// storage growth to litter
+		ppft.litter_leaf += w4 + ws;	//add senescing leaves and growth storage to litter
 	}
 
 	// C doesn't return to litter/harvest if the Individual isn't alive

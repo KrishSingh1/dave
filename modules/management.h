@@ -221,6 +221,7 @@ struct Harvest_CN {
 			indiv.n2 = n2;
 			indiv.n3 = n3;
 			indiv.n4 = n4;
+
 			if(indiv.pft.landcover == CROPLAND) {
 				indiv.cropindiv->cmass_ho = cmass_ho;
 				indiv.cropindiv->cmass_agpool = cmass_agpool;

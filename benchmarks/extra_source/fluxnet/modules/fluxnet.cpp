@@ -105,17 +105,12 @@ bool FluxnetInput::getclimate(Gridcell& gridcell) {
 FluxnetOutput::FluxnetOutput() {
 	declare_parameter("file_fluxnetdaily", &file_fluxnetdaily, 300, "FLUXNET daily output file");
 	declare_parameter("file_fluxnetclim", &file_fluxnetclim, 300, "FLUXNET daily Climate output file");
-	declare_parameter("file_fluxnetmonth", &file_fluxnetmonth, 300, "FLUXNET Monthly output file");
 }
 
 void FluxnetOutput::init() {
 
 	ColumnDescriptors fluxnet_columns;
-	fluxnet_columns += ColumnDescriptor("Veg", 14, 6);
-	fluxnet_columns += ColumnDescriptor("Repr", 14, 6);
-	fluxnet_columns += ColumnDescriptor("Soil", 14, 6);
-	fluxnet_columns += ColumnDescriptor("Fire", 14, 6);
-	fluxnet_columns += ColumnDescriptor("Est", 14, 6);
+	fluxnet_columns += ColumnDescriptor("GPP", 14, 6);
 	fluxnet_columns += ColumnDescriptor("NEE", 14, 6);
 	create_output_table(out_fluxnetdaily, file_fluxnetdaily, fluxnet_columns);
 
@@ -124,13 +119,6 @@ void FluxnetOutput::init() {
 	fluxnetclim_columns += ColumnDescriptor("prec", 11, 3);
 	fluxnetclim_columns += ColumnDescriptor("insol", 11, 3);
 	create_output_table(out_fluxnetclim, file_fluxnetclim, fluxnetclim_columns);
-
-
-	ColumnDescriptors fluxnetmonth_columns;
-	fluxnetmonth_columns += ColumnDescriptor("NEE", 10, 3);
-	fluxnetmonth_columns += ColumnDescriptor("AET", 10, 3);
-	fluxnetmonth_columns += ColumnDescriptor("GPP", 10, 3);
-	create_output_table(out_fluxnetmonth, file_fluxnetmonth, fluxnetmonth_columns);
 }
 
 void FluxnetOutput::outdaily(Gridcell& gridcell) {
@@ -144,9 +132,7 @@ void FluxnetOutput::outdaily(Gridcell& gridcell) {
 	out.add_value(out_fluxnetclim, gridcell.climate.prec);
 	out.add_value(out_fluxnetclim, gridcell.climate.insol);
 
-	//Flux output
-	double dnpp = 0, drepr = 0, drh = 0, dfire = 0, dest = 0;
-	double mnee = 0, mgpp = 0, maet = 0;
+	double dgpp = 0, dra = 0, drh = 0;
 
 	Gridcell::iterator gc_itr = gridcell.begin();
 
@@ -161,41 +147,16 @@ void FluxnetOutput::outdaily(Gridcell& gridcell) {
 
 			double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
 
-			dnpp +=-patch.fluxes.get_daily_flux(Fluxes::NPP,date.day)*to_gridcell_average;
-			drepr+= patch.fluxes.get_daily_flux(Fluxes::REPRC,date.day)*to_gridcell_average;
+			dgpp +=-patch.fluxes.get_daily_flux(Fluxes::GPP,date.day)*to_gridcell_average;
+			dra  +=-patch.fluxes.get_daily_flux(Fluxes::RA,date.day)*to_gridcell_average;
 			drh  += patch.fluxes.get_daily_flux(Fluxes::SOILC,date.day)*to_gridcell_average;
-			dfire+= patch.fluxes.get_daily_flux(Fluxes::FIREC,date.day)*to_gridcell_average;
-			dest += patch.fluxes.get_daily_flux(Fluxes::ESTC,date.day)*to_gridcell_average;
-
-			if (date.islastday) {
-				double gpp = patch.fluxes.get_monthly_flux(Fluxes::GPP, date.month);
-				double ra = patch.fluxes.get_monthly_flux(Fluxes::RA, 	date.month);
-				double d = patch.fluxes.get_monthly_flux(Fluxes::SOILC, date.month);
-				double npp = gpp - ra;
-				mnee += (d - npp) * to_gridcell_average;
-				mgpp += gpp * to_gridcell_average;
-				maet += patch.maet[date.month] * to_gridcell_average;
-			}
 
 			stand.nextobj();
 		} // patch loop
 		++gc_itr;
 	} // stand loop
 
-	out.add_value(out_fluxnetdaily, dnpp);
-	out.add_value(out_fluxnetdaily, drepr);
-	out.add_value(out_fluxnetdaily, drh);
-	out.add_value(out_fluxnetdaily, dfire);
-	out.add_value(out_fluxnetdaily, dest);
-
+	out.add_value(out_fluxnetdaily, dgpp);
 	// daily NEE do not include fire, establishment as monthly NEE
-	out.add_value(out_fluxnetdaily, dnpp + drh);
-
-	if (date.islastday) { //output monthly values
-		OutputRows out2(output_channel, gridcell.get_lon(), gridcell.get_lat(),
-				date.get_calendar_year(), date.month+1);
-		out2.add_value(out_fluxnetmonth, -1000.0*mnee/date.dayofmonth);// gC/m2/day (average)
-		out2.add_value(out_fluxnetmonth, maet); // mm/month
-		out2.add_value(out_fluxnetmonth, 1000.0*mgpp/date.dayofmonth);// gC/m2/day (average)
-	}
+	out.add_value(out_fluxnetdaily, dgpp - dra + drh);
 }

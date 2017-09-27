@@ -19,10 +19,6 @@ REGISTER_OUTPUT_MODULE("fluxnet", FluxnetOutput)
 
 using namespace GuessOutput;
 
-namespace {
-int start_year = 0, end_year = 0;
-}
-
 bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 	if (!CRUInput::getgridcell(gridcell)) {
 		return false;
@@ -54,14 +50,13 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 
 		if (iss >> end_year >> monthday >> temp >> insol >> prec) {
 			if (tair.empty()) {
-				start_year = end_year;
+				output_year = end_year;
 			}
 			tair.push_back(temp);
 			swrad.push_back(insol);
 			rain.push_back(prec);
 		}
 	}
-	output_year = start_year;
 
 	ifs.close();
 
@@ -82,14 +77,14 @@ bool FluxnetInput::getclimate(Gridcell& gridcell) {
 	CRUInput::getclimate(gridcell);
 
 	int year = date.get_calendar_year();
-	if (year < start_year) {
+	if (year < output_year) {
 		return true;
 	} else if (year > end_year) {
 		return false;
 	}
 
 	// Overwrite / extend climate data with site values for the period
-	int id = (year - start_year) * 365 + date.day;
+	int id = (year - output_year) * 365 + date.day;
 
 	if (date.day == 0) {
 		double mndrydep[12], mnwetdep[12];

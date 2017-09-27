@@ -24,6 +24,7 @@ public:
 
 private:
 	std::vector<double> rain, tair, swrad;
+	int end_year;
 
 	Lamarque::NDepData ndep;
 	/// Daily N deposition for current year

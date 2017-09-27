@@ -1586,7 +1586,7 @@ void growth(Stand& stand, Patch& patch) {
 
 
 						if (((indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS) || (ifdcarb && bminc < MINCMASS))
-								&& !indiv.istruecrop_or_intercropgrass() ) {  //Niklas daily carbon
+								&& !indiv.istruecrop_or_intercropgrass() ) {
 
 							indiv.kill();
 
@@ -1683,7 +1683,7 @@ void growth(Stand& stand, Patch& patch) {
  *  of turnover, allocation and growth.
  */
 //
-void growth_daily_pasture(Stand& stand, Patch& patch) {
+void growth_daily(Stand& stand, Patch& patch) {
 
 	// If not modelling daily growth for grasses then return back to framework
 	if (!ifdcarb)
@@ -1717,6 +1717,11 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 	const double MINCMASS = 1.0e-8;
 	// maximum carbon mass allowed (kgC/m2)
 	const double MAXCMASS = 1.0e8;
+	// value for LAI to be considerd low
+	const double LOW_LAI = 0.1;
+	// value which phen should be above to consider growing season start in daily model
+	const double PHEN_START = 0.1;
+
 	//Movment factors for
 	double g_fac;	//growth
 	double g_mov;	//movement between compartments
@@ -1772,10 +1777,6 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 				indiv.cmass_root=indiv.cmass_root - indiv.sg; //put some of the root C into the sg
 			}
 
-			// For this individual
-
-			// Allocation to reproduction
-
 			// Reproduction cost
 			reproduction(indiv.pft.reprfrac, indiv.dnpp, bminc, cmass_repr);
 
@@ -1802,6 +1803,7 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 			allocation_daily(bminc,indiv.cmass_leaf,indiv.cmass_root,indiv.ltor,indiv.ws,indiv.sg,cmass_sg_inc,cmass_leaf_inc,cmass_root_inc,exceeds_cmass,indiv.pft.sgtor);
 
 			//update state of root, sg and ws.
+
 			indiv.cmass_root += cmass_root_inc;
 			indiv.sg += cmass_sg_inc;
 			indiv.ws += cmass_leaf_inc;
@@ -1821,7 +1823,7 @@ void growth_daily_pasture(Stand& stand, Patch& patch) {
 			}
 
 			// check if storage (indiv.sg) needs to be used
-			if ((indiv.phen_daily > 0.1 && indiv.lai < 0.1 && indiv.ws < indiv.sg)) {
+			if ((indiv.phen_daily > PHEN_START && indiv.lai < LOW_LAI && indiv.ws < indiv.sg)) {
 				G = indiv.sg * 0.2;
 				indiv.sg -= G;
 			}

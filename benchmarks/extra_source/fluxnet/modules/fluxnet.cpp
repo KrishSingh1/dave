@@ -35,7 +35,7 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 	std::ifstream ifs(fluxfile, std::ifstream::in);
 
 	if (!ifs.good()) {
-		dprintf("FluxnetInput::getgridcell: could not open %s for input", (char*)fluxfile);
+		dprintf("FluxnetInput::getgridcell: could not open %s for input\n", (char*)fluxfile);
 		return false;
 	}
 
@@ -61,6 +61,7 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 			rain.push_back(prec);
 		}
 	}
+	output_year = start_year;
 
 	ifs.close();
 
@@ -124,9 +125,6 @@ void FluxnetOutput::init() {
 }
 
 void FluxnetOutput::outdaily(Gridcell& gridcell) {
-	if (date.get_calendar_year() < start_year) {
-		return;
-	}
 	OutputRows out(output_channel, gridcell.get_lon(), gridcell.get_lat(),
 			date.get_calendar_year(), date.day);
 

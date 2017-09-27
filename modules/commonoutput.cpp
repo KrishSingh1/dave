@@ -75,9 +75,9 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_miso", &file_miso, 300, "monthly isoprene flux output file");
 	declare_parameter("file_amon", &file_amon, 300, "annual monoterpene flux output file");
 	declare_parameter("file_mmon", &file_mmon, 300, "monthly monoterpene flux output file");
-	declare_parameter("file_amon_mt1", &file_amon_mt1, 300, "annual endocyclic monoterpene flux output file");	
+	declare_parameter("file_amon_mt1", &file_amon_mt1, 300, "annual endocyclic monoterpene flux output file");
 	declare_parameter("file_amon_mt2", &file_amon_mt2, 300, "annual other monoterpene flux output file");
-	declare_parameter("file_mmon_mt1", &file_mmon_mt1, 300, "monthly endocyclic monoterpene flux output file");	
+	declare_parameter("file_mmon_mt1", &file_mmon_mt1, 300, "monthly endocyclic monoterpene flux output file");
 	declare_parameter("file_mmon_mt2", &file_mmon_mt2, 300, "monthly other monoterpene flux output file");
 
 	// outdaily
@@ -104,12 +104,12 @@ void CommonOutput::init() {
 void CommonOutput::define_output_tables() {
 
 	//Extra number of decimals when output for benchmarks
-#ifdef RUN_BENCHMARKS	
+#ifdef RUN_BENCHMARKS
 	const int bm_extra_prec = 2;
 #else
 	const int bm_extra_prec =0;
 #endif
-	
+
 	// create a vector with the pft names
 	std::vector<std::string> pfts;
 
@@ -474,7 +474,7 @@ void output_vegetation(Gridcell& gridcell, Pftlist& pftlist) {
 				fwrite(&grasslai, sizeof(double), 1, out);
 			}
 			++gc_itr;
-		} //while (gridcell.isobj) 
+		} //while (gridcell.isobj)
 
 		fclose(out);
 
@@ -579,17 +579,16 @@ void get_stand_age_structure(Gridcell& gridcell,double* densindiv,int& nageclass
   *
   * If only yearly output between, say 1961 and 1990 is requred, use:
   *  if (date.get_calendar_year() >= 1961 && date.get_calendar_year() <= 1990)
-  *  (assuming the input module has set the first calendar year in the date object)	
+  *  (assuming the input module has set the first calendar year in the date object)
   */
 void outlimit(OutputRows& out, const Table& table, double d) {
 
-	if (date.year>=nyear_spinup)
-		out.add_value(table, d);
+	out.add_value(table, d);
 }
 
 /// Output of simulation results at the end of each year
 /** Output of simulation results at the end of each year, or for specific years in
-  * the simulation of each stand or grid cell. 
+  * the simulation of each stand or grid cell.
   * This function does not have to provide any information to the framework.
   *
   * Restrict output to specific years in the local helper function outlimit().
@@ -829,7 +828,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_anpp += patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id);
 				standpft_agpp += patch.fluxes.get_annual_flux(Fluxes::GPP, pft.id);
 				standpft_aiso += patch.fluxes.get_annual_flux(Fluxes::ISO, pft.id);
-				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_APIN, pft.id); 					
+				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_APIN, pft.id);
 				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_LIMO, pft.id);
 				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_TRIC, pft.id);
 				standpft_amon += patch.fluxes.get_annual_flux(Fluxes::MT_BPIN, pft.id);
@@ -876,7 +875,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								standpft_fpc += indiv.fpc;
 								standpft_aaet += indiv.aaet;
 								standpft_lai += indiv.ymax_lai;
-								if (pft.lifeform==TREE) {	
+								if (pft.lifeform==TREE) {
 									standpft_densindiv_total += indiv.densindiv;
 									heightindiv_total += indiv.height * indiv.densindiv;
 								}
@@ -1195,7 +1194,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mmon_mt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_CAMP, m)*to_gridcell_average;
 				mmon_mt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_TBOC, m)*to_gridcell_average;
 				mmon_mt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_OTHR, m)*to_gridcell_average;
-				
+
 			}
 
 

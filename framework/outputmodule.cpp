@@ -40,6 +40,11 @@ OutputModuleContainer::OutputModuleContainer()
 }
 
 OutputModuleContainer::~OutputModuleContainer() {
+	if (output_year >= date.get_calendar_year()) {
+		dprintf("WARNING: no outputs were written to files!\n"
+				"output_year: %d, last calendar year: %d\n",
+				output_year, date.get_calendar_year()-1);
+	}
 	for (size_t i = 0; i < modules.size(); ++i) {
 		delete modules[i];
 	}
@@ -56,6 +61,9 @@ void OutputModuleContainer::init() {
 	if (outputdirectory=="") {
 		fail("No output directory given in the .ins file!");
 	}
+	if (output_year == -999) {
+		output_year == date.first_calendar_year + nyear_spinup;
+	}
 
 	// Create the output channel
 	output_channel = new FileOutputChannel(outputdirectory.c_str(),
@@ -67,12 +75,18 @@ void OutputModuleContainer::init() {
 }
 
 void OutputModuleContainer::outannual(Gridcell& gridcell) {
+	if (date.get_calendar_year() < output_year) {
+		return;
+	}
 	for (size_t i = 0; i < modules.size(); ++i) {
 		modules[i]->outannual(gridcell);
 	}
 }
 
 void OutputModuleContainer::outdaily(Gridcell& gridcell) {
+	if (date.get_calendar_year() < output_year) {
+		return;
+	}
 	for (size_t i = 0; i < modules.size(); ++i) {
 		modules[i]->outdaily(gridcell);
 	}

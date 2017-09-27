@@ -5,7 +5,7 @@ declare -A fields
 fields=([TIMESTAMP]=0 [TA_ERA]=0 [SW_IN_ERA]=0 [P_ERA]=0 [NEE_CUT_MEAN]=0 [GPP_NT_VUT_REF]=0)
 
 iconv -f latin1 -t utf-8 < *_sitelist.csv |
-    awk -vFPAT='[^,]*|"[^"]*"' -vOFS='\t' '$1 !~ /^$/ { print $7,$6,$1}' > fixed.txt
+    awk -vFPAT='[^,]*|"[^"]*"' -vOFS='\t' '$1 !~ /^$/ {print $7,$6,$1}' > fixed.txt
 
 for f in *.zip; do
     fname=$(basename "$f")

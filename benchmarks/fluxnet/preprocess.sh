@@ -19,13 +19,17 @@ for f in *.zip; do
         fi
         i=$(( $i+1 ))
     done
-    grep $location fixed.txt | tee $location.csv |
-        awk -vOFS='\t' 'function norm(x, y){y=int(x*2); return(2*x<y?y-1:y)/2+.25}
-            {print norm($1), norm($2), $3}' >> gridlist.txt
     grep -vP '^.{4}0229' "$fname" | cut -d, -f$(echo ${fields[@]} | tr ' ' ,) --output-delimiter=$'\t' |
         sed -r '1d;s/.{4}/&\t/' > tmp
-    cut -f-5 tmp >> $location.csv
-    cut -f6- tmp | sed "s/^/$location\t/" >> validation.csv
+    if (( $(wc -l tmp | cut -f1 -d' ') % 365 != 0 )); then
+        echo "skipping $f"
+    else
+        grep $location fixed.txt | tee $location.csv |
+            awk -vOFS='\t' 'function norm(x, y){y=int(x*2); return(2*x<y?y-1:y)/2+.25}
+                {print norm($1), norm($2), $3}' >> gridlist.txt
+        cut -f-5 tmp >> $location.csv
+        cut -f6- tmp | sed "s/^/$location\t/" >> validation.csv
+    fi
     rm $fname
 done
 rm tmp fixed.txt

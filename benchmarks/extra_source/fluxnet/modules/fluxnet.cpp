@@ -108,8 +108,8 @@ FluxnetOutput::FluxnetOutput() {
 void FluxnetOutput::init() {
 
 	ColumnDescriptors fluxnet_columns;
-	fluxnet_columns += ColumnDescriptor("GPP", 14, 6);
-	fluxnet_columns += ColumnDescriptor("NEE", 14, 6);
+	fluxnet_columns += ColumnDescriptor("NEE", 14, 7);
+	fluxnet_columns += ColumnDescriptor("GPP", 14, 7);
 	create_output_table(out_fluxnetdaily, file_fluxnetdaily, fluxnet_columns);
 
 	ColumnDescriptors fluxnetclim_columns;
@@ -151,7 +151,7 @@ void FluxnetOutput::outdaily(Gridcell& gridcell) {
 		++gc_itr;
 	} // stand loop
 
-	out.add_value(out_fluxnetdaily, dgpp);
 	// daily NEE do not include fire, establishment as monthly NEE
 	out.add_value(out_fluxnetdaily, dgpp - dra + drh);
+	out.add_value(out_fluxnetdaily, dgpp);
 }

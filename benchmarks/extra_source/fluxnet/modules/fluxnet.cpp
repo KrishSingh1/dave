@@ -35,7 +35,8 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 	std::ifstream ifs(fluxfile, std::ifstream::in);
 
 	if (!ifs.good()) {
-		fail("FluxnetInput::getgridcell: could not open %s for input", (char*)fluxfile);
+		dprintf("FluxnetInput::getgridcell: could not open %s for input", (char*)fluxfile);
+		return false;
 	}
 
 	std::string line;
@@ -65,7 +66,8 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 
 	std::vector<double>::size_type days = rain.size();
 	if (days % 365) {
-		fail("Given time series doesn't extend for a full number of years (length: %d)\n", days);
+		dprintf("Given time series doesn't extend for a full number of years (length: %d)\n", days);
+		return false;
 	}
 
 	ndep.getndep(param["file_ndep"].str, gridcell.get_lon(), gridcell.get_lat(), Lamarque::RCP60);

@@ -9,7 +9,7 @@ function compare {
     local outfile=fluxnet_${var,,}.png
     local mod_idx=$(( $2 + 3 ))
 
-    paste <(awk "NR > 1 {print \$$mod_idx}" dfluxnet.out) <(cut -f$2 ${dir}validation.csv) |
+    paste <(cut -f$2 ${dir}validation.csv) <(awk "NR > 1 {print \$$mod_idx}" dfluxnet.out) |
         grep -v "\-9999" > tmp
 
     scatter_plot $var Observed Modelled tmp $outfile

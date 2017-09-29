@@ -1723,6 +1723,12 @@ void growth_daily_grass(Stand& stand, Patch& patch) {
 	const double PHEN_START = 0.1;
 	// value of stroage growth pool to add to leaves when good conditions for growth and no LAI
 	const double SG_FRAC = 0.2;
+	// optimum temperature (degree C) for C3 grass growth
+	const double C3_OPT_TEMP = 20;
+	// optimum temperature (degree C) for C4 grass growth
+	const double C4_OPT_TEMP = 30;
+	// constant when caluclating the temperature controlled growth transfer following Johnson & Thornley 1983
+	const double GROWTH_FAC = 0.5;
 
 	//Movment factors for
 	double g_fac;	//growth
@@ -1815,14 +1821,14 @@ void growth_daily_grass(Stand& stand, Patch& patch) {
 			//specify the rate of material movement constants
 
 			if (indiv.pft.pathway == C4) {
-				g_fac = min(1.0, max(0.0, 0.5 * patch.get_climate().temp / 30.0));
-				g_mov = min(1.0, max(0.0, indiv.pft.transfercon * patch.get_climate().temp / 30.0));
+				g_fac = min(1.0, max(0.0, GROWTH_FAC * patch.get_climate().temp / C4_OPT_TEMP));
+				g_mov = min(1.0, max(0.0, indiv.pft.transfercon * patch.get_climate().temp / C4_OPT_TEMP));
 				s_fac = indiv.pft.sen_fac * indiv.pft.transfercon;
 
 			}
 			else if (indiv.pft.pathway == C3) {
-				g_fac = min(1.0, max(0.0, 0.5 * patch.get_climate().temp / 20.0));
-				g_mov = min(1.0, max(0.0, indiv.pft.transfercon * patch.get_climate().temp / 20.0));
+				g_fac = min(1.0, max(0.0, GROWTH_FAC * patch.get_climate().temp / C3_OPT_TEMP));
+				g_mov = min(1.0, max(0.0, indiv.pft.transfercon * patch.get_climate().temp / C3_OPT_TEMP));
 				s_fac = indiv.pft.sen_fac * indiv.pft.transfercon;
 			}
 

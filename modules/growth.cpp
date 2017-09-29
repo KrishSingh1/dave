@@ -73,9 +73,11 @@ void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
 	bool raingreen = pft.phenology == RAINGREEN || pft.phenology == ANY;
 	bool summergreen = pft.phenology == SUMMERGREEN || pft.phenology == ANY;
 	
-	double phen_water = max(0.0,min(1.0,(patch.pft[pft.id].wsupply_leafon/patch.wdemand_leafon)));
-	double phen_gdd =  max(0.0,min(1.0, (climate.gdd5 / pft.phengdd5ramp)));
-	patch.pft[pft.id].phen_daily = min(phen_water,phen_gdd);
+	if (ifdailygrass && pft.lifeform == GRASS){
+		double phen_water = max(0.0,min(1.0,(patch.pft[pft.id].wsupply_leafon/patch.wdemand_leafon)));
+		double phen_gdd =  max(0.0,min(1.0, (climate.gdd5 / pft.phengdd5ramp)));
+		patch.pft[pft.id].phen_daily = min(phen_water,phen_gdd);
+	}
 
 	phen = 1.0;
 
@@ -1689,6 +1691,29 @@ void growth_daily_grass(Stand& stand, Patch& patch) {
 	if (!ifdailygrass)
 		return;
 
+	// minimum carbon mass allowed (kgC/m2)
+	const double MINCMASS = 1.0e-8;
+	// maximum carbon mass allowed (kgC/m2)
+	const double MAXCMASS = 1.0e8;
+	// value for LAI to be considerd low
+	const double LOW_LAI = 0.1;
+	// value which phen should be above to consider growing season start in daily model
+	const double PHEN_START = 0.1;
+	// value of stroage growth pool to add to leaves when good conditions for growth and no LAI
+	const double SG_FRAC = 0.2;
+	// optimum temperature (degree C) for C3 grass growth
+	const double C3_OPT_TEMP = 20;
+	// optimum temperature (degree C) for C4 grass growth
+	const double C4_OPT_TEMP = 30;
+	// constant when caluclating the temperature controlled growth transfer following Johnson & Thornley 1983
+	const double GROWTH_FAC = 0.5;
+	//transfer constant between first and second compartment constant, to make that transfer faster.
+	const double LAMBDA=2.0;
+	//rate of harvest each day for landcover pasture functionality , fraction
+	const double HARVEST_RATE = 0.02;
+	//minimum carbon in cmass_leaf_w3 for daily harvesting functionality
+	const double HARVEST_W3_MIN_CMASS = 0.001;
+
 	// new biomass) for this time period on modelled area basis (kgC/m2)
 	double bminc=0.0;
 	// C allocated to reproduction this time period on modelled area basis (kgC/m2)
@@ -1710,25 +1735,8 @@ void growth_daily_grass(Stand& stand, Patch& patch) {
 	// Root C:N ratios before growth
 	double cton_root_bg = 0.0;
 	//growth this time period
-	double G=0.0;
-	//transfer constant between first and second compartment constant, to make that transfer faster.
-	double lambda=2.0;
-	// minimum carbon mass allowed (kgC/m2)
-	const double MINCMASS = 1.0e-8;
-	// maximum carbon mass allowed (kgC/m2)
-	const double MAXCMASS = 1.0e8;
-	// value for LAI to be considerd low
-	const double LOW_LAI = 0.1;
-	// value which phen should be above to consider growing season start in daily model
-	const double PHEN_START = 0.1;
-	// value of stroage growth pool to add to leaves when good conditions for growth and no LAI
-	const double SG_FRAC = 0.2;
-	// optimum temperature (degree C) for C3 grass growth
-	const double C3_OPT_TEMP = 20;
-	// optimum temperature (degree C) for C4 grass growth
-	const double C4_OPT_TEMP = 30;
-	// constant when caluclating the temperature controlled growth transfer following Johnson & Thornley 1983
-	const double GROWTH_FAC = 0.5;
+	double g=0.0;
+
 
 	//Movment factors for
 	double g_fac;	//growth
@@ -1764,7 +1772,7 @@ void growth_daily_grass(Stand& stand, Patch& patch) {
 			c2=0.0;
 			c3=0.0;
 			c4=0.0;
-			G=0.0;
+			g=0.0;
 
 			if(date.day == 0){
 				indiv.cmass_leaf_ygrowth = 0.0;
@@ -1778,8 +1786,9 @@ void growth_daily_grass(Stand& stand, Patch& patch) {
 
 
 			// First year with daily carbon allocation for this individual,
-			// cmass_leaf_wg will always be same as cmass_leaf in daily allocation only used to check
-			// when daily allocation starts. Once grass i allowed an age cmass_leaf_wg can be removed and this check can use indiv.age == 1 instead.
+			// cmass_leaf_wg will always be same as cmass_leaf in daily allocation. It will only be used to check
+			// when daily allocation starts.
+			// TODO: Once grass is allowed an age, cmass_leaf_wg can be removed and this check can use indiv.age == 1 instead.
 			if (indiv.cmass_leaf_wg == 0 && !negligible(indiv.cmass_leaf)) {
 				indiv.cmass_leaf_ws = indiv.cmass_leaf; //  put cmass_leaf into leaf storage
 				indiv.cmass_leaf = 0.0;
@@ -1822,58 +1831,77 @@ void growth_daily_grass(Stand& stand, Patch& patch) {
 
 			if (indiv.pft.pathway == C4) {
 				g_fac = min(1.0, max(0.0, GROWTH_FAC * patch.get_climate().temp / C4_OPT_TEMP));
-				g_mov = min(1.0, max(0.0, indiv.pft.transfercon * patch.get_climate().temp / C4_OPT_TEMP));
-				s_fac = indiv.pft.sen_fac * indiv.pft.transfercon;
+				g_mov = min(1.0, max(0.0, indiv.pft.transferconst * patch.get_climate().temp / C4_OPT_TEMP));
+				s_fac = indiv.pft.sen_fac * indiv.pft.transferconst;
 
 			}
 			else if (indiv.pft.pathway == C3) {
 				g_fac = min(1.0, max(0.0, GROWTH_FAC * patch.get_climate().temp / C3_OPT_TEMP));
-				g_mov = min(1.0, max(0.0, indiv.pft.transfercon * patch.get_climate().temp / C3_OPT_TEMP));
-				s_fac = indiv.pft.sen_fac * indiv.pft.transfercon;
+				g_mov = min(1.0, max(0.0, indiv.pft.transferconst * patch.get_climate().temp / C3_OPT_TEMP));
+				s_fac = indiv.pft.sen_fac * indiv.pft.transferconst;
 			}
 
 			// check if storage (indiv.sg) needs to be used
 			if ((indiv.phen_daily > PHEN_START && indiv.lai < LOW_LAI && indiv.cmass_leaf_ws < indiv.cmass_root_sg)) {
-				G = indiv.cmass_root_sg * SG_FRAC;
-				indiv.cmass_root_sg -= G;
+				g = indiv.cmass_root_sg * SG_FRAC;
+				indiv.cmass_root_sg -= g;
 			}
 			else {
 				if (indiv.cmass_leaf_ws > 0.0) {
-					G = indiv.cmass_leaf_ws * g_fac * indiv.phen_daily;
-					indiv.cmass_leaf_ws -= G;
+					g = indiv.cmass_leaf_ws * g_fac * indiv.phen_daily;
+					indiv.cmass_leaf_ws -= g;
 					if (indiv.cmass_leaf_ws < 0.0) {
-						G += indiv.cmass_leaf_ws;
+						g += indiv.cmass_leaf_ws;
 						indiv.cmass_leaf_ws = 0.0;
 					}
-					indiv.cmass_leaf_ygrowth += G;
+					indiv.cmass_leaf_ygrowth += g;
 				}
 			}
 
 			// Movement variables
-			c1 = lambda * g_mov * indiv.cmass_leaf_w1;
+			c1 = LAMBDA * g_mov * indiv.cmass_leaf_w1;
 			c2 = (g_mov * indiv.cmass_leaf_w2);
 			c3 = (s_fac * indiv.cmass_leaf_w3);
 			c4 = (s_fac * indiv.cmass_leaf_w4);
 
 			//Do not allow negative cmass in first compartment which can happen if g_mov is too large.
-			if ((indiv.cmass_leaf_w1 + G - c1) < 0.0){
-				c1 = indiv.cmass_leaf_w1 + G;
+			if ((indiv.cmass_leaf_w1 + g - c1) < 0.0){
+				c1 = indiv.cmass_leaf_w1 + g;
 			}
 
 			// Growing leaves
-			indiv.cmass_leaf_w1 += G - c1;
+			indiv.cmass_leaf_w1 += g - c1;
 			// First fully expanded leaves
 			indiv.cmass_leaf_w2 += c1 - c2;
 			// Second fully expanded leaves
 			indiv.cmass_leaf_w3 += c2 - c3;
 			// Senescing leaves
 			indiv.cmass_leaf_w4 += c3 - c4;
+
+
+			// HARVEST
+			if(indiv.cmass_leaf_w3 > HARVEST_W3_MIN_CMASS && indiv.vegetation.patch.stand.landcover == PASTURE){
+
+				patch.is_litter_day=true;
+
+				// carbon
+				double cmass_harvest = indiv.cmass_leaf_w3 * HARVEST_RATE;
+				indiv.cmass_leaf_w3 -= cmass_harvest;
+				patch.pft[indiv.pft.id].litter_leaf += cmass_harvest;
+
+				//Nitrogen
+				double nmass_harvest = indiv.nmass_leaf_w3 * HARVEST_RATE;
+				indiv.nmass_leaf_w3 -= nmass_harvest;
+				indiv.nmass_leaf -= nmass_harvest;
+				patch.pft[indiv.pft.id].nmass_litter_leaf += nmass_harvest;
+
+			}
+
 			// growth weight (alive leaves)
 			indiv.cmass_leaf_wg = indiv.cmass_leaf_w1 + indiv.cmass_leaf_w2 + indiv.cmass_leaf_w3;
 
 			//update total cmass_leaf with wg
 			indiv.cmass_leaf = indiv.cmass_leaf_wg;
-
 
 			////C LITTER ///
 
@@ -1907,8 +1935,6 @@ void growth_daily_grass(Stand& stand, Patch& patch) {
 				indiv.nstore_labile += nremoval * 0.5; //the rest into labile nstore
 				indiv.nmass_leaf -= nremoval; //reduce nmass
 
-
-
 				//Update leaf nitrogen pools assume same fraction as cmass in each pool.
 				indiv.nmass_leaf_w1 = indiv.nmass_leaf*indiv.cmass_leaf_w1/(indiv.cmass_leaf_wg + indiv.cmass_leaf_w4);
 				indiv.nmass_leaf_w2 = indiv.nmass_leaf*indiv.cmass_leaf_w2/(indiv.cmass_leaf_wg + indiv.cmass_leaf_w4);
@@ -1937,6 +1963,7 @@ void growth_daily_grass(Stand& stand, Patch& patch) {
 				indiv.cmass_root_sg -= turnov;
 				patch.pft[indiv.pft.id].litter_root += turnov;
 			}
+
 
 			//update allometry - updates LAI basd on cmass
 			allometry(indiv);

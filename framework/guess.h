@@ -1595,7 +1595,7 @@ public:
 	/// senescence factor
 	double sen_fac;
 	/// transfer constant of material between compartments a
-	double transfercon;
+	double transferconst;
 
 	// MEMBER FUNCTIONS
 
@@ -2179,7 +2179,7 @@ public:
 	double cmass_leaf_ws;
 	// Storage weight for biomass increment without lai
 	double cmass_root_sg;
-	// weight of all growth compartments -- will be same as cmass_leaf, can be removed once grass is allowed an age.
+	// weight of all growth compartments. Is same as cmass_leaf, can be removed once grass is allowed to have an age.
 	double cmass_leaf_wg;
 	// weight of growth compartment 1 daily allocation
 	double cmass_leaf_w1;
@@ -2189,7 +2189,7 @@ public:
 	double cmass_leaf_w3;
 	// weight of growth compartment 4 daily allocation
 	double cmass_leaf_w4;
-	//Abscission from last compartment (4) ie litter, daily allocation
+	// Abscission from last compartment (4) ie litter, daily allocation
 	double abscission;
 	//sum of growth of leaves not related to sg
 	double cmass_leaf_ygrowth;

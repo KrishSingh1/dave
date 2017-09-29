@@ -246,18 +246,6 @@ void CommonOutput::define_output_tables() {
 	// MONOTERPENES
 	ColumnDescriptors amon_columns = aiso_columns;
 
-	// DAILY
-	ColumnDescriptors dlai_columns;
-	dlai_columns += ColumnDescriptors(pfts,14, 8);
-
-	ColumnDescriptors dflux_columns;
-	dflux_columns += ColumnDescriptor("Veg", 14, 6);
-	dflux_columns += ColumnDescriptor("Repr", 14, 6);
-	dflux_columns += ColumnDescriptor("Soil", 14, 6);
-	dflux_columns += ColumnDescriptor("Fire", 14, 6);
-	dflux_columns += ColumnDescriptor("Est", 14, 6);
-	dflux_columns += ColumnDescriptor("NEE", 14, 6);
-
 	// CTON
 	ColumnDescriptors cton_columns;
 	cton_columns += ColumnDescriptors(pfts,                8, 1);
@@ -328,6 +316,18 @@ void CommonOutput::define_output_tables() {
 	ngases_columns += ColumnDescriptor("N2",               9, 3);
 	ngases_columns += ColumnDescriptor("NSoil",            9, 3);
 	ngases_columns += ColumnDescriptor("Total",            9, 3);
+
+	// DAILY
+	ColumnDescriptors dlai_columns;
+	dlai_columns += ColumnDescriptors(pfts,14, 8);
+
+	ColumnDescriptors dflux_columns;
+	dflux_columns += ColumnDescriptor("Veg", 14, 6);
+	dflux_columns += ColumnDescriptor("Repr", 14, 6);
+	dflux_columns += ColumnDescriptor("Soil", 14, 6);
+	dflux_columns += ColumnDescriptor("Fire", 14, 6);
+	dflux_columns += ColumnDescriptor("Est", 14, 6);
+	dflux_columns += ColumnDescriptor("NEE", 14, 6);
 
 	// *** ANNUAL OUTPUT VARIABLES ***
 
@@ -1550,12 +1550,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
   */
 void CommonOutput::outdaily(Gridcell& gridcell) {
 
+	const int PRINTOUT_YEAR = 2000;
 	double lon,lat;
 	double flux_veg, flux_repr, flux_soil, flux_fire, flux_est, flux_seed, flux_charvest;
-	int printoutYEAR = 2000;
 
-	if (date.year >= nyear_spinup && date.get_calendar_year() > printoutYEAR) {
-
+	if (date.year >= nyear_spinup && date.get_calendar_year() == PRINTOUT_YEAR) {
 
 		lon=gridcell.get_lon();
 		lat=gridcell.get_lat();
@@ -1564,11 +1563,9 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 		// output table
 		OutputRows out(output_channel, lon, lat, date.get_calendar_year(), date.day);
 
-
 		double mean_standpft_lai=0.0;
 		double mean_standpft_npp=0.0;
 		double mean_standpft_gpp=0.0;
-
 
 		double lai_gridcell=0.0;
 		double npp_gridcell=0.0;
@@ -1634,7 +1631,6 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 					standpft_npp += patch.fluxes.get_daily_flux(Fluxes::NPP, pft.id);
 					standpft_gpp += patch.fluxes.get_daily_flux(Fluxes::GPP, pft.id);
 
-
 						vegetation.firstobj();
 						while (vegetation.isobj) {
 							Individual& indiv=vegetation.getobj();
@@ -1648,54 +1644,38 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 									}else{
 										standpft_lai += indiv.lai*indiv.phen;
 									}
-
-
-
 								}
-
 							} // alive?
 							vegetation.nextobj();
 						}
-
 						stand.nextobj();
 					} // end of patch loop
 
-
 					standpft_npp/=(double)stand.npatch();
 					standpft_gpp/=(double)stand.npatch();
-
 					standpft_lai/=(double)stand.npatch();
-
-
-
 
 					//Update pft means for active stands
 
 					mean_standpft_npp += standpft_npp * stand.get_gridcell_fraction() / active_fraction;
 					mean_standpft_gpp += standpft_gpp * stand.get_gridcell_fraction() / active_fraction;
-
 					mean_standpft_lai += standpft_lai * stand.get_gridcell_fraction() / active_fraction;
-
-
-
 
 					// Update gridcell totals
 					double fraction_of_gridcell = stand.get_gridcell_fraction();
 
-
 					npp_gridcell+=standpft_npp*fraction_of_gridcell;
 					gpp_gridcell+=standpft_gpp*fraction_of_gridcell;
+
 					if(!pft.isintercropgrass) {
 						lai_gridcell+=standpft_lai*fraction_of_gridcell;
 					}
-
 
 				}//if(active)
 				++gc_itr;
 			}//End of loop through stands
 
 			// Print PFT sums to files
-
 
 			outlimit(out,out_dlai,       mean_standpft_lai);
 
@@ -1728,7 +1708,6 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 				flux_seed+=patch.fluxes.get_daily_flux(Fluxes::SEEDC,date.day)*to_gridcell_average;
 				flux_charvest+=patch.fluxes.get_daily_flux(Fluxes::HARVESTC,date.day)*to_gridcell_average;
 
-
 				stand.nextobj();
 			} // patch loop
 			++gc_itr;
@@ -1742,7 +1721,6 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 
 		// daily NEE do not include fire, establishment as monthly NEE
 		outlimit(out,out_dflux, flux_veg   +  flux_soil );
-
 
 	} // end if date year > spinup year
 

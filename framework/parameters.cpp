@@ -780,7 +780,7 @@ void plib_declarations(int id,xtring setname) {
 			"d3 parameter for allocation with N stress");
 		declareitem("stor",&ppft->stor,0.0,1.0,1,CB_NONE,
 			"storage growth to root ratio, for daily carbon allocation");
-		declareitem("transfercon",&ppft->transfercon,0.0,1.0,1,CB_NONE,
+		declareitem("transferconst",&ppft->transferconst,0.0,1.0,1,CB_NONE,
 			"Transfer of material between compartments for daily allocation");
 		declareitem("sen_fac",&ppft->sen_fac,0.0,1.0,1,CB_NONE,
 			"Grass senescence factor for daily growth grasses");
@@ -1482,7 +1482,7 @@ void plib_callback(int callback) {
 
 			if(ifdailygrass && ppft->lifeform==GRASS){
 				if (!itemparsed("stor")) badins("stor");
-				if (!itemparsed("transfercon")) badins("transfercon");
+				if (!itemparsed("transferconst")) badins("transferconst");
 				if (!itemparsed("sen_fac")) badins("sen_fac");
 
 			}

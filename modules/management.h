@@ -50,17 +50,17 @@ struct Harvest_CN {
 
 	double cmass_leaf;
 	double cmass_root;
-	double w1;
-	double w2;
-	double w3;
-	double w4;
-	double n1;
-	double n2;
-	double n3;
-	double n4;
-	double sg;
-	double ws;
-	double wg;
+	double cmass_leaf_w1;
+	double cmass_leaf_w2;
+	double cmass_leaf_w3;
+	double cmass_leaf_w4;
+	double nmass_leaf_w1;
+	double nmass_leaf_w2;
+	double nmass_leaf_w3;
+	double nmass_leaf_w4;
+	double cmass_root_sg;
+	double cmass_leaf_ws;
+	double cmass_leaf_wg;
 	double cmass_sap;
 	double cmass_heart;
 	double cmass_debt;
@@ -101,7 +101,8 @@ struct Harvest_CN {
 		nmass_litter_leaf = nmass_litter_root = nmass_litter_sap = nmass_litter_heart = 0.0;
 		acflux_harvest = anflux_harvest = 0.0;
 		harvested_products_slow = harvested_products_slow_nmass = 0.0;
-		w1 = w2 = w3 = w4 = ws = sg = wg = 0.0;
+		cmass_leaf_w1 = cmass_leaf_w2 = cmass_leaf_w3 = cmass_leaf_w4 = cmass_leaf_ws = cmass_root_sg = cmass_leaf_wg = 0.0;
+		nmass_leaf_w1 = nmass_leaf_w2 = nmass_leaf_w3 = nmass_leaf_w4 = 0.0;
 	}
 
 	/// Copies C and N values from individual and patchpft tp struct.
@@ -128,17 +129,17 @@ struct Harvest_CN {
 		else {
 
 			cmass_leaf = indiv.cmass_leaf;
-			w1 = indiv.w1;
-			w2 = indiv.w2;
-			w3 = indiv.w3;
-			w4 = indiv.w4;
-			sg = indiv.sg;
-			ws = indiv.ws;
-			wg = indiv.wg;
-			n1 = indiv.n1;
-			n2 = indiv.n2;
-			n3 = indiv.n3;
-			n4 = indiv.n4;
+			cmass_leaf_w1 = indiv.cmass_leaf_w1;
+			cmass_leaf_w2 = indiv.cmass_leaf_w2;
+			cmass_leaf_w3 = indiv.cmass_leaf_w3;
+			cmass_leaf_w4 = indiv.cmass_leaf_w4;
+			cmass_root_sg = indiv.cmass_root_sg;
+			cmass_leaf_ws = indiv.cmass_leaf_ws;
+			cmass_leaf_wg = indiv.cmass_leaf_wg;
+			nmass_leaf_w1 = indiv.nmass_leaf_w1;
+			nmass_leaf_w2 = indiv.nmass_leaf_w2;
+			nmass_leaf_w3 = indiv.nmass_leaf_w3;
+			nmass_leaf_w4 = indiv.nmass_leaf_w4;
 			cmass_root = indiv.cmass_root;
 			cmass_sap = indiv.cmass_sap;
 			cmass_heart = indiv.cmass_heart;
@@ -210,17 +211,17 @@ struct Harvest_CN {
 			indiv.cmass_sap = cmass_sap;
 			indiv.cmass_heart = cmass_heart;
 			indiv.cmass_debt = cmass_debt;
-			indiv.w1 = w1;
-			indiv.w2 = w2;
-			indiv.w3 = w3;
-			indiv.w4 = w4;
-			indiv.sg = sg;
-			indiv.ws = ws;
-			indiv.wg = wg;
-			indiv.n1 = n1;
-			indiv.n2 = n2;
-			indiv.n3 = n3;
-			indiv.n4 = n4;
+			indiv.cmass_leaf_w1 = cmass_leaf_w1;
+			indiv.cmass_leaf_w2 = cmass_leaf_w2;
+			indiv.cmass_leaf_w3 = cmass_leaf_w3;
+			indiv.cmass_leaf_w4 = cmass_leaf_w4;
+			indiv.cmass_root_sg = cmass_root_sg;
+			indiv.cmass_leaf_ws = cmass_leaf_ws;
+			indiv.cmass_leaf_wg = cmass_leaf_wg;
+			indiv.nmass_leaf_w1 = nmass_leaf_w1;
+			indiv.nmass_leaf_w2 = nmass_leaf_w2;
+			indiv.nmass_leaf_w3 = nmass_leaf_w3;
+			indiv.nmass_leaf_w4 = nmass_leaf_w4;
 
 			if(indiv.pft.landcover == CROPLAND) {
 				indiv.cropindiv->cmass_ho = cmass_ho;

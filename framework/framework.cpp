@@ -117,7 +117,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// Daily C allocation (cropland)
 			growth_daily(patch);
 			// Daily C allocation (grass only)
-			growth_daily(stand, patch);
+			growth_daily_grass(stand, patch);
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch);
 

@@ -399,9 +399,9 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
 	// Carbon:
 	harvest = pft.harv_eff * i.cmass_leaf;
 
-	i.w1 -=  pft.harv_eff * i.w1;
-	i.w2 -=  pft.harv_eff * i.w2;
-	i.w3 -=  pft.harv_eff * i.w3;
+	i.cmass_leaf_w1 -=  pft.harv_eff * i.cmass_leaf_w1;
+	i.cmass_leaf_w2 -=  pft.harv_eff * i.cmass_leaf_w2;
+	i.cmass_leaf_w3 -=  pft.harv_eff * i.cmass_leaf_w3;
 
 	if (ifslowharvestpool) {
 		i.harvested_products_slow += harvest * pft.harvest_slow_frac;
@@ -429,9 +429,9 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
 		i.acflux_harvest += residue_outtake;				// could be used for burning
 		i.cmass_leaf -= residue_outtake;
 
-		i.w1 -=  pft.res_outtake * i.w1;
-		i.w2 -=  pft.res_outtake * i.w2;
-		i.w3 -=  pft.res_outtake * i.w3;
+		i.cmass_leaf_w1 -=  pft.res_outtake * i.cmass_leaf_w1;
+		i.cmass_leaf_w2 -=  pft.res_outtake * i.cmass_leaf_w2;
+		i.cmass_leaf_w3 -=  pft.res_outtake * i.cmass_leaf_w3;
 
 		// Nitrogen:
 		residue_outtake = pft.res_outtake * i.nmass_leaf;
@@ -828,17 +828,17 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 
 	if (alive || istruecrop_or_intercropgrass)  {
 		cp.litter_root += cp.cmass_root;
-		cp.litter_root += cp.sg;
+		cp.litter_root += cp.cmass_root_sg;
 
 		if (burn) {
 			cp.acflux_harvest += cp.cmass_leaf;
-			cp.acflux_harvest += cp.ws + cp.w4;
+			cp.acflux_harvest += cp.cmass_leaf_ws + cp.cmass_leaf_w4;
 			cp.acflux_harvest += cp.cmass_sap;
 			cp.acflux_harvest += cp.cmass_heart - cp.cmass_debt;
 		}
 		else {
 			cp.litter_leaf += cp.cmass_leaf;
-			cp.litter_leaf += cp.ws + cp.w4;
+			cp.litter_leaf += cp.cmass_leaf_ws + cp.cmass_leaf_w4;
 			cp.litter_sap += cp.cmass_sap;
 			cp.litter_heart += cp.cmass_heart - cp.cmass_debt;
 		}
@@ -886,13 +886,13 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 	}
 
 	cp.cmass_leaf = 0.0;
-	cp.ws = 0.0;
-	cp.w1 = 0.0;
-	cp.w2 = 0.0;
-	cp.w3 = 0.0;
-	cp.w4 = 0.0;
-	cp.wg = 0.0;
-	cp.sg = 0.0;
+	cp.cmass_leaf_ws = 0.0;
+	cp.cmass_leaf_w1 = 0.0;
+	cp.cmass_leaf_w2 = 0.0;
+	cp.cmass_leaf_w3 = 0.0;
+	cp.cmass_leaf_w4 = 0.0;
+	cp.cmass_leaf_wg = 0.0;
+	cp.cmass_root_sg = 0.0;
 	cp.cmass_root = 0.0;
 	cp.cmass_sap = 0.0;
 	cp.cmass_heart = 0.0;
@@ -1018,13 +1018,13 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 	
 		indiv.cmass_root *= scale;
 		indiv.cmass_leaf *= scale;
-		indiv.ws *=scale;
-		indiv.w1 *=scale;
-		indiv.w2 *=scale;
-		indiv.w3 *=scale;
-		indiv.w4 *=scale;
-		indiv.sg *=scale;
-		indiv.wg *=scale;
+		indiv.cmass_leaf_ws *=scale;
+		indiv.cmass_leaf_w1 *=scale;
+		indiv.cmass_leaf_w2 *=scale;
+		indiv.cmass_leaf_w3 *=scale;
+		indiv.cmass_leaf_w4 *=scale;
+		indiv.cmass_root_sg *=scale;
+		indiv.cmass_leaf_wg *=scale;
 		indiv.cmass_heart *= scale;
 		indiv.cmass_sap *= scale;
 		indiv.cmass_debt *= scale;

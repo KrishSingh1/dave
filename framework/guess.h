@@ -2170,37 +2170,37 @@ public:
 	// phen for daily allocation
 	double phen_daily;
 	// yearly lai for daily allocation
-	double ymax_lai;
+	double lai_ymax;
 	// yearly maximum cmass_leaf for daily allocation
-	double ycmass_leaf;
+	double cmass_leaf_ymax;
 	// yearly maximum cmass_root for daily allocation
-	double ycmass_root;
+	double cmass_root_ymax;
 	// Storage weight for daily allocation
-	double ws;
+	double cmass_leaf_ws;
 	// Storage weight for biomass increment without lai
-	double sg;
-	// weight of all growth compartments
-	double wg;
+	double cmass_root_sg;
+	// weight of all growth compartments -- will be same as cmass_leaf, can be removed once grass is allowed an age.
+	double cmass_leaf_wg;
 	// weight of growth compartment 1 daily allocation
-	double w1;
+	double cmass_leaf_w1;
 	// weight of growth compartment 2 daily allocation
-	double w2;
+	double cmass_leaf_w2;
 	// weight of growth compartment 3 daily allocation
-	double w3;
+	double cmass_leaf_w3;
 	// weight of growth compartment 4 daily allocation
-	double w4;
+	double cmass_leaf_w4;
 	//Abscission from last compartment (4) ie litter, daily allocation
 	double abscission;
 	//sum of growth of leaves not related to sg
-	double ygrowth;
+	double cmass_leaf_ygrowth;
 	// Nitrogen of growth compartment 1 daily allocation
-	double n1;
+	double nmass_leaf_w1;
 	// Nitrogen of growth compartment 2 daily allocation
-	double n2;
+	double nmass_leaf_w2;
 	// Nitrogen of growth compartment 3 daily allocation
-	double n3;
+	double nmass_leaf_w3;
 	// Nitrogen of growth compartment 4 daily allocation
-	double n4;
+	double nmass_leaf_w4;
 	// running mean of nscal for last 365 days for each individual daily allocation
 	Historic<double, 365> nscal_running;
 	// running mean of wscal for last 365 days for each individual daily allocation

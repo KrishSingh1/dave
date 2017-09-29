@@ -1105,22 +1105,22 @@ void cropindiv_struct::serialize(ArchiveStream& arch) {
 
 Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
-	ymax_lai		  = 0.0;
-	ycmass_leaf		  = 0.0;
-	ycmass_root		  = 0.0;
-	ws				  = 0.0;
-	wg				  = 0.0;
-	w1				  = 0.0;
-	w2				  = 0.0;
-	w3				  = 0.0;
-	w4				  = 0.0;
-	n1				  = 0.0;
-	n2				  = 0.0;
-	n3				  = 0.0;
-	n4				  = 0.0;
-	sg                = 0.0;
+	lai_ymax		  = 0.0;
+	cmass_leaf_ymax	  = 0.0;
+	cmass_root_ymax	  = 0.0;
+	cmass_leaf_ws	  = 0.0;
+	cmass_leaf_wg	  = 0.0;
+	cmass_leaf_w1	  = 0.0;
+	cmass_leaf_w2	  = 0.0;
+	cmass_leaf_w3	  = 0.0;
+	cmass_leaf_w4	  = 0.0;
+	nmass_leaf_w1	  = 0.0;
+	nmass_leaf_w2	  = 0.0;
+	nmass_leaf_w3	  = 0.0;
+	nmass_leaf_w4	  = 0.0;
+	cmass_root_sg     = 0.0;
 	phen_daily		  = 0.0;
-	ygrowth			  = 0.0;
+	cmass_leaf_ygrowth			  = 0.0;
 	cton_leaf_opt	  = 0.0; 
 	anpp              = 0.0;
 	fpc               = 0.0;
@@ -1237,21 +1237,21 @@ void Individual::serialize(ArchiveStream& arch) {
 		& aphen_raingreen
 		& anpp
 		& phen_daily
-		& ymax_lai
-		& ycmass_leaf
-		& ycmass_root
-		& ws
-		& sg
-		& wg
-		& w1
-		& w2
-		& w3
-		& w4
-		& n1
-		& n2
-		& n3
-		& n4
-		& ygrowth
+		& lai_ymax
+		& cmass_leaf_ymax
+		& cmass_root_ymax
+		& cmass_leaf_ws
+		& cmass_root_sg
+		& cmass_leaf_wg
+		& cmass_leaf_w1
+		& cmass_leaf_w2
+		& cmass_leaf_w3
+		& cmass_leaf_w4
+		& nmass_leaf_w1
+		& nmass_leaf_w2
+		& nmass_leaf_w3
+		& nmass_leaf_w4
+		& cmass_leaf_ygrowth
 		& nscal_running
 		& wscal_running   	
 		& cton_leaf_opt	 
@@ -1394,9 +1394,9 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		if(pft.lifeform == GRASS && ifdcarb && alive && !istruecrop_or_intercropgrass()){
 			//add extra daily carbon pools to litter
 
-			cmass_leaf_litter += mortality * ws;
-			cmass_leaf_litter += mortality * w4;
-			cmass_root_litter += mortality * sg;
+			cmass_leaf_litter += mortality * cmass_leaf_ws;
+			cmass_leaf_litter += mortality * cmass_leaf_w4;
+			cmass_root_litter += mortality * cmass_root_sg;
 		}
 
 		if (pft.landcover==CROPLAND) {
@@ -1490,16 +1490,16 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 		//make sure that we take away from all the daily grass carbon pools.
 
-		sg *=remaining;
-		w1 *=remaining;
-		w2 *=remaining;
-		w3 *=remaining;
-		w4 *=remaining;
-		ws *=remaining;
-		n1 *=remaining;
-		n2 *=remaining;
-		n3 *=remaining;
-		n4 *=remaining;
+		cmass_root_sg *=remaining;
+		cmass_leaf_w1 *=remaining;
+		cmass_leaf_w2 *=remaining;
+		cmass_leaf_w3 *=remaining;
+		cmass_leaf_w4 *=remaining;
+		cmass_leaf_ws *=remaining;
+		nmass_leaf_w1 *=remaining;
+		nmass_leaf_w1 *=remaining;
+		nmass_leaf_w1 *=remaining;
+		nmass_leaf_w1 *=remaining;
 
 	}
 }
@@ -1609,7 +1609,7 @@ double Individual::ccont(double scale_indiv, bool luc) const {
 
 			ccont = cmass_leaf + cmass_root + cmass_sap + cmass_heart - cmass_debt;
 
-			if(ifdcarb && pft.lifeform == GRASS) ccont += ws + sg + w4;
+			if(ifdcarb && pft.lifeform == GRASS) ccont += cmass_leaf_ws + cmass_root_sg + cmass_leaf_w4;
 
 			if (pft.landcover == CROPLAND) {
 				ccont += cropindiv->cmass_ho + cropindiv->cmass_agpool;
@@ -1708,17 +1708,17 @@ double Individual::check_C_mass() {
 	double negative_cmass = 0.0;
 
 	if(ifdcarb && pft.lifeform==GRASS){
-		if(sg < 0.0){
-			negative_cmass -= sg;
-			sg = 0.0;
+		if(cmass_root_sg < 0.0){
+			negative_cmass -= cmass_root_sg;
+			cmass_root_sg = 0.0;
 		}
-		if(ws < 0.0){
-			negative_cmass -= ws;
-			ws = 0.0;
+		if(cmass_leaf_ws < 0.0){
+			negative_cmass -= cmass_leaf_ws;
+			cmass_leaf_ws = 0.0;
 		}
-		if(w4 < 0.0){
-			negative_cmass -= w4;
-			w4 = 0.0;
+		if(cmass_leaf_w4 < 0.0){
+			negative_cmass -= cmass_leaf_w4;
+			cmass_leaf_w4 = 0.0;
 		}
 		if(cmass_leaf < 0.0){
 			negative_cmass -= cmass_leaf;
@@ -2057,8 +2057,8 @@ void Individual::kill(bool harvest /* = false */) {
 	}
 
 	if(pft.lifeform == GRASS && ifdcarb && alive && !istruecrop_or_intercropgrass()){
-		ppft.litter_root += sg;			// storage growth to litter
-		ppft.litter_leaf += w4 + ws;	//add senescing leaves and growth storage to litter
+		ppft.litter_root += cmass_root_sg;			// storage growth to litter
+		ppft.litter_leaf += cmass_leaf_w4 + cmass_leaf_ws;	//add senescing leaves and growth storage to litter
 	}
 
 	// C doesn't return to litter/harvest if the Individual isn't alive

@@ -859,31 +859,31 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 							if (indiv.pft.id==pft.id) {
 
 								if(!ifdcarb || indiv.pft.lifeform != GRASS || !indiv.alive || indiv.istruecrop_or_intercropgrass()){
-									indiv.ymax_lai = indiv.lai;
-									indiv.ycmass_leaf = indiv.cmass_leaf;
-									indiv.ycmass_root = indiv.cmass_root;
+									indiv.lai_ymax = indiv.lai;
+									indiv.cmass_leaf_ymax = indiv.cmass_leaf;
+									indiv.cmass_root_ymax = indiv.cmass_root;
 								}
 
 
 
 
-								standpft_cmass_leaf += indiv.ycmass_leaf;
+								standpft_cmass_leaf += indiv.cmass_leaf_ymax;
 								standpft_cmass += indiv.ccont();
 								standpft_nmass += indiv.ncont();
-								standpft_nmass_leaf += indiv.ycmass_leaf / indiv.cton_leaf_aavr;
+								standpft_nmass_leaf += indiv.cmass_leaf_ymax / indiv.cton_leaf_aavr;
 								standpft_nmass_veg += indiv.nmass_veg;
 								standpft_fpc += indiv.fpc;
 								standpft_aaet += indiv.aaet;
-								standpft_lai += indiv.ymax_lai;
+								standpft_lai += indiv.lai_ymax;
 								if (pft.lifeform==TREE) {
 									standpft_densindiv_total += indiv.densindiv;
 									heightindiv_total += indiv.height * indiv.densindiv;
 								}
-								standpft_vmaxnlim += indiv.avmaxnlim * indiv.ycmass_leaf;
+								standpft_vmaxnlim += indiv.avmaxnlim * indiv.cmass_leaf_ymax;
 								standpft_nuptake += indiv.anuptake;
 
 								if(pft.landcover == CROPLAND) {
-									standpft_cmass_veg += indiv.ycmass_leaf + indiv.ycmass_root;
+									standpft_cmass_veg += indiv.cmass_leaf_ymax + indiv.cmass_root_ymax;
 									if(indiv.cropindiv) {
 										standpft_cmass_veg += indiv.cropindiv->cmass_ho + indiv.cropindiv->cmass_agpool + indiv.cropindiv->cmass_stem;
 										standpft_nmass_leaf += indiv.cropindiv->ynmass_leaf + indiv.cropindiv->ynmass_dead_leaf;

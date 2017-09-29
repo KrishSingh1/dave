@@ -1068,7 +1068,7 @@ bool harvest_year(Individual& indiv) {
 	bool killed = false;
 
 	// Reduce individual's C and N mass in stands that have increased in area this year:
-	if (landcover.updated && !indiv.has_daily_turnover() && !(ifdcarb && (stand.landcover == PASTURE || stand.landcover == URBAN))) {
+	if (landcover.updated && !indiv.has_daily_turnover() && !(ifdailygrass && (stand.landcover == PASTURE || stand.landcover == URBAN))) {
 		scale_indiv(indiv, false);
 	}
 

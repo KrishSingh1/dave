@@ -243,7 +243,7 @@ extern bool ifrainonwetdaysonly;
 extern bool ifbvoc;
 
 /// whether daily carbon allocation for grasses is turned on
-extern bool ifdcarb;
+extern bool ifdailygrass;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////

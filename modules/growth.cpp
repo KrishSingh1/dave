@@ -168,7 +168,7 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 		// For this individual ...
 		indiv.phen_daily = patch.pft[indiv.pft.id].phen_daily;
 
-		if(ifdcarb && indiv.pft.lifeform == GRASS && indiv.alive && !indiv.istruecrop_or_intercropgrass()){
+		if(ifdailygrass && indiv.pft.lifeform == GRASS && indiv.alive && !indiv.istruecrop_or_intercropgrass()){
 			if ((indiv.phen_daily > 0.5) ||  indiv.lai > 0.05){
 				indiv.phen = 1.0;
 			}else{
@@ -872,7 +872,7 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 }
 
 void allocation_daily(double bminc,double cmass_leaf,double cmass_root,double ltor,double ws,double sg,double& cmass_sg_inc,
-		double& cmass_leaf_inc,double& cmass_root_inc, double& exceeds_cmass, double sgtor) {
+		double& cmass_leaf_inc,double& cmass_root_inc, double& exceeds_cmass, double stor) {
 
 	// DESCRIPTION
 	// Calculates changes in C compartment sizes (leaves, roots, sg) for grass
@@ -896,7 +896,7 @@ void allocation_daily(double bminc,double cmass_leaf,double cmass_root,double lt
 	//                      	allocation (kgC)
 	// exceeds_cmass      = negative increment that exceeds existing biomass (kgC)
 	//
-	// sgtor 			  = storage growth to root ratio
+	// stor 			  = storage growth to root ratio
 
 	// initialise
 	exceeds_cmass   = 0.0;
@@ -913,7 +913,7 @@ void allocation_daily(double bminc,double cmass_leaf,double cmass_root,double lt
 		cmass_leaf_inc = 0.0;
 		cmass_u_inc = bminc;
 
-		cmass_sg_inc = (cmass_u_inc - sg / sgtor + cmass_root) / (1.0 + 1.0 / sgtor);
+		cmass_sg_inc = (cmass_u_inc - sg / stor + cmass_root) / (1.0 + 1.0 / stor);
 		cmass_root_inc = cmass_u_inc - cmass_sg_inc;
 
 		// Make sure we don't end up with negative cmass_root or cmass_sg
@@ -936,19 +936,19 @@ void allocation_daily(double bminc,double cmass_leaf,double cmass_root,double lt
 
 		cmass_u_inc = bminc;
 		cmass_leaf_inc = 0.0;
-		cmass_sg_inc = (cmass_u_inc - sg / sgtor + cmass_root) / (1.0 + 1.0 / sgtor);
+		cmass_sg_inc = (cmass_u_inc - sg / stor + cmass_root) / (1.0 + 1.0 / stor);
 		cmass_root_inc = cmass_u_inc - cmass_sg_inc;
 	}
 	else { //Positive bminc
 		cmass_leaf_inc = (bminc - cmass_leaf / ltor + (cmass_root+sg)) / (1.0 + 1.0 / ltor);
 		cmass_u_inc = bminc - cmass_leaf_inc;
-		cmass_sg_inc = (cmass_u_inc - sg / sgtor + cmass_root) / (1.0 + 1.0 / sgtor);
+		cmass_sg_inc = (cmass_u_inc - sg / stor + cmass_root) / (1.0 + 1.0 / stor);
 		cmass_root_inc = cmass_u_inc - cmass_sg_inc;
 
 		if(cmass_leaf_inc < 0.0){  //negative cmass_leaf_inc because of ltor, put all bminc into roots
 			cmass_u_inc = bminc;
 			cmass_leaf_inc = 0.0;
-			cmass_sg_inc = (cmass_u_inc - sg / sgtor + cmass_root) / (1.0 + 1.0 / sgtor);
+			cmass_sg_inc = (cmass_u_inc - sg / stor + cmass_root) / (1.0 + 1.0 / stor);
 			cmass_root_inc = cmass_u_inc - cmass_sg_inc;
 		}
 		else if(cmass_u_inc < 0.0){ //negative cmass_root_inc because of ltor, put all bminc into leafs
@@ -1268,7 +1268,7 @@ void growth(Stand& stand, Patch& patch) {
 	// On first call to function growth this year (patch #0), initialise stand-PFT
 	// record of summed allocation to reproduction
 
-	if (!patch.id && !ifdcarb){ //daily carbon allocation does this in growth_pasture_daily
+	if (!patch.id && !ifdailygrass){ //daily carbon allocation does this in growth_pasture_daily
 		for (p=0; p<npft; p++){
 			stand.pft[p].cmass_repr = 0.0;
 		}
@@ -1289,7 +1289,7 @@ void growth(Stand& stand, Patch& patch) {
 		//Standard yearly growth functionalities below:
 		///////////////////////////////////////////////////
 
-		if (!ifdcarb || indiv.pft.lifeform != GRASS ||
+		if (!ifdailygrass || indiv.pft.lifeform != GRASS ||
 				(indiv.pft.lifeform == GRASS && !indiv.alive) || indiv.istruecrop_or_intercropgrass()) {
 
 			// For this individual
@@ -1585,7 +1585,7 @@ void growth(Stand& stand, Patch& patch) {
 						// compartment negative
 
 
-						if (((indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS) || (ifdcarb && bminc < MINCMASS))
+						if (((indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS) || (ifdailygrass && bminc < MINCMASS))
 								&& !indiv.istruecrop_or_intercropgrass() ) {
 
 							indiv.kill();
@@ -1686,7 +1686,7 @@ void growth(Stand& stand, Patch& patch) {
 void growth_daily_grass(Stand& stand, Patch& patch) {
 
 	// If not modelling daily growth for grasses then return back to framework
-	if (!ifdcarb)
+	if (!ifdailygrass)
 		return;
 
 	// new biomass) for this time period on modelled area basis (kgC/m2)
@@ -1777,7 +1777,7 @@ void growth_daily_grass(Stand& stand, Patch& patch) {
 			if (indiv.cmass_leaf_wg == 0 && !negligible(indiv.cmass_leaf)) {
 				indiv.cmass_leaf_ws = indiv.cmass_leaf; //  put cmass_leaf into leaf storage
 				indiv.cmass_leaf = 0.0;
-				indiv.cmass_root_sg = indiv.cmass_root*indiv.pft.sgtor;
+				indiv.cmass_root_sg = indiv.cmass_root*indiv.pft.stor;
 				indiv.cmass_root=indiv.cmass_root - indiv.cmass_root_sg; //put some of the root C into the sg
 			}
 
@@ -1804,7 +1804,7 @@ void growth_daily_grass(Stand& stand, Patch& patch) {
 			}
 
 			//allocate between daily compartments, also includes ws (leaf stroage) and sg(storage growth)
-			allocation_daily(bminc,indiv.cmass_leaf,indiv.cmass_root,indiv.ltor,indiv.cmass_leaf_ws,indiv.cmass_root_sg,cmass_sg_inc,cmass_leaf_inc,cmass_root_inc,exceeds_cmass,indiv.pft.sgtor);
+			allocation_daily(bminc,indiv.cmass_leaf,indiv.cmass_root,indiv.ltor,indiv.cmass_leaf_ws,indiv.cmass_root_sg,cmass_sg_inc,cmass_leaf_inc,cmass_root_inc,exceeds_cmass,indiv.pft.stor);
 
 			//update state of root, sg and ws.
 

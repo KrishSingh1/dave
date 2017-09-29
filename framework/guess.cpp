@@ -1391,7 +1391,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		double cmass_leaf_litter = mortality * cmass_leaf;
 		double cmass_root_litter = mortality * cmass_root;
 
-		if(pft.lifeform == GRASS && ifdcarb && alive && !istruecrop_or_intercropgrass()){
+		if(pft.lifeform == GRASS && ifdailygrass && alive && !istruecrop_or_intercropgrass()){
 			//add extra daily carbon pools to litter
 
 			cmass_leaf_litter += mortality * cmass_leaf_ws;
@@ -1609,7 +1609,7 @@ double Individual::ccont(double scale_indiv, bool luc) const {
 
 			ccont = cmass_leaf + cmass_root + cmass_sap + cmass_heart - cmass_debt;
 
-			if(ifdcarb && pft.lifeform == GRASS) ccont += cmass_leaf_ws + cmass_root_sg + cmass_leaf_w4;
+			if(ifdailygrass && pft.lifeform == GRASS) ccont += cmass_leaf_ws + cmass_root_sg + cmass_leaf_w4;
 
 			if (pft.landcover == CROPLAND) {
 				ccont += cropindiv->cmass_ho + cropindiv->cmass_agpool;
@@ -1694,7 +1694,7 @@ double Individual::ndemand_storage(double cton_leaf_opt) {
 	if (vegetation.patch.stand.is_true_crop_stand() && ifnlim)	// only CROPGREEN, only ifnlim ?
 		// analogous with root demand
 		storendemand = max(0.0, cropindiv->grs_cmass_stem / (cton_leaf_opt * pft.cton_stem_avr / pft.cton_leaf_avr) - cropindiv->nmass_agpool);
-	else if (ifdcarb && pft.lifeform == GRASS && !istruecrop_or_intercropgrass())
+	else if (ifdailygrass && pft.lifeform == GRASS && !istruecrop_or_intercropgrass())
 		storendemand = max(0.0, max_n_storage - nstore()) / 10.0;
 	else
 		storendemand = max(0.0, min(anpp * scale_n_storage / cton_leaf(), max_n_storage) - nstore());
@@ -1707,7 +1707,7 @@ double Individual::check_C_mass() {
 
 	double negative_cmass = 0.0;
 
-	if(ifdcarb && pft.lifeform==GRASS){
+	if(ifdailygrass && pft.lifeform==GRASS){
 		if(cmass_root_sg < 0.0){
 			negative_cmass -= cmass_root_sg;
 			cmass_root_sg = 0.0;
@@ -2056,7 +2056,7 @@ void Individual::kill(bool harvest /* = false */) {
 		res_outtake = pft.res_outtake;
 	}
 
-	if(pft.lifeform == GRASS && ifdcarb && alive && !istruecrop_or_intercropgrass()){
+	if(pft.lifeform == GRASS && ifdailygrass && alive && !istruecrop_or_intercropgrass()){
 		ppft.litter_root += cmass_root_sg;			// storage growth to litter
 		ppft.litter_leaf += cmass_leaf_w4 + cmass_leaf_ws;	//add senescing leaves and growth storage to litter
 	}

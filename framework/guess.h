@@ -1591,7 +1591,7 @@ public:
 	}
 
 	/// root to storage growth ratio
-	double sgtor;
+	double stor;
 	/// senescence factor
 	double sen_fac;
 	/// transfer constant of material between compartments a

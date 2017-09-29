@@ -53,7 +53,7 @@ bool ifrainonwetdaysonly;
 
 bool ifbvoc;
 
-bool ifdcarb;
+bool ifdailygrass;
 
 wateruptaketype wateruptake;
 
@@ -487,7 +487,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
 		declareitem("st",BLOCK_ST,CB_NONE,"Header for block defining StandType");
 		declareitem("mt",BLOCK_MT,CB_NONE,"Header for block defining Management");
-		declareitem("ifdcarb",&ifdcarb,1,CB_NONE,	"Whether daily carbon allocation for grasses is enabled (0,1)");
+		declareitem("ifdailygrass",&ifdailygrass,1,CB_NONE,	"Whether daily carbon allocation for grasses is enabled (0,1)");
 
 		for (size_t i = 0; i < xtringParams.size(); ++i) {
 			const xtringParam& p = xtringParams[i];
@@ -778,7 +778,7 @@ void plib_declarations(int id,xtring setname) {
 			"c3 parameter for allocation with N stress");
 		declareitem("d3",&ppft->d3,-1000.0,1000.0,1,CB_NONE,
 			"d3 parameter for allocation with N stress");
-		declareitem("sgtor",&ppft->sgtor,0.0,1.0,1,CB_NONE,
+		declareitem("stor",&ppft->stor,0.0,1.0,1,CB_NONE,
 			"storage growth to root ratio, for daily carbon allocation");
 		declareitem("transfercon",&ppft->transfercon,0.0,1.0,1,CB_NONE,
 			"Transfer of material between compartments for daily allocation");
@@ -1112,7 +1112,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcentury")) badins("ifcentury");
 		if (!itemparsed("ifnlim")) badins("ifnlim");
 		if (!itemparsed("freenyears")) badins("freenyears");
-		if (!itemparsed("ifdcarb")) badins("ifdcarb");
+		if (!itemparsed("ifdailygrass")) badins("ifdailygrass");
 
 		if (nyear_spinup <= freenyears) {
 			sendmessage("Error", "freenyears must be smaller than nyear_spinup");
@@ -1480,8 +1480,8 @@ void plib_callback(int callback) {
 			if (!itemparsed("ltor_max")) badins("ltor_max");
 			if (!itemparsed("intc")) badins("intc");
 
-			if(ifdcarb && ppft->lifeform==GRASS){
-				if (!itemparsed("sgtor")) badins("sgtor");
+			if(ifdailygrass && ppft->lifeform==GRASS){
+				if (!itemparsed("stor")) badins("stor");
 				if (!itemparsed("transfercon")) badins("transfercon");
 				if (!itemparsed("sen_fac")) badins("sen_fac");
 

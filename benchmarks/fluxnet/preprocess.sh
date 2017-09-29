@@ -1,8 +1,7 @@
 #! /bin/env bash
 
 set -e
-dd_fields=(TIMESTAMP TA_ERA SW_IN_ERA P_ERA NEE_VUT_REF GPP_NT_VUT_REF)
-mm_fields=(NEE_VUT_REF GPP_NT_VUT_REF)
+fields=(TIMESTAMP TA_ERA SW_IN_ERA P_ERA NEE_VUT_REF GPP_NT_VUT_REF)
 
 function indexes {
     local fname=$1
@@ -39,7 +38,7 @@ for f in *.zip; do
         continue
     fi
     grep -vP '^.{4}0229' *_DD_*.csv |
-        cut -d, -f$(indexes *_DD_*.csv ${dd_fields[@]}) --output-delimiter=$'\t' |
+        cut -d, -f$(indexes *_DD_*.csv ${fields[@]}) --output-delimiter=$'\t' |
         sed -r '1d;s/.{4}/&\t/' > tmp
 
     if (( $(wc -l tmp | cut -f1 -d' ') % 365 != 0 )); then
@@ -51,7 +50,7 @@ for f in *.zip; do
         cut -f-5 tmp >> $location.csv
         cut -f6- tmp | sed "s/^/$location\t/" >> daily.csv
 
-        cut -d, -f$(indexes *_MM_*.csv ${mm_fields[@]}) --output-delimiter=$'\t' *_MM_*.csv |
+        cut -d, -f$(indexes *_MM_*.csv ${fields[@]: -2:2}) --output-delimiter=$'\t' *_MM_*.csv |
             sed -r "1d;s/^/$location\t/" >> monthly.csv
     fi
     rm *_{DD,MM}_*.csv

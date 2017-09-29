@@ -7,19 +7,16 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
-#include "fluxnet.h"
+#include "cruinput.h"
 #include "guess.h"
 #include "driver.h"
 #include "guessstring.h"
 #include <fstream>
 #include <sstream>
 
-REGISTER_INPUT_MODULE("fluxnet", FluxnetInput)
-REGISTER_OUTPUT_MODULE("fluxnet", FluxnetOutput)
-
-using namespace GuessOutput;
-
-bool FluxnetInput::getgridcell(Gridcell& gridcell) {
+class FluxnetInput : public CRUInput {
+public:
+bool getgridcell(Gridcell& gridcell) {
 	if (!CRUInput::getgridcell(gridcell)) {
 		return false;
 	}
@@ -66,14 +63,12 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 		return false;
 	}
 
-	ndep.getndep(param["file_ndep"].str, gridcell.get_lon(), gridcell.get_lat(), Lamarque::RCP60);
-
 	gridcell.set_coordinates(lon, lat);
 
 	return true;
 }
 
-bool FluxnetInput::getclimate(Gridcell& gridcell) {
+bool getclimate(Gridcell& gridcell) {
 	CRUInput::getclimate(gridcell);
 
 	int year = date.get_calendar_year();
@@ -99,59 +94,9 @@ bool FluxnetInput::getclimate(Gridcell& gridcell) {
 	return true;
 }
 
-/// OUTPUT MODULE FOR FLUXNET
-FluxnetOutput::FluxnetOutput() {
-	declare_parameter("file_fluxnetdaily", &file_fluxnetdaily, 300, "FLUXNET daily output file");
-	declare_parameter("file_fluxnetclim", &file_fluxnetclim, 300, "FLUXNET daily Climate output file");
-}
+private:
+	std::vector<double> rain, tair, swrad;
+	int end_year;
+};
 
-void FluxnetOutput::init() {
-
-	ColumnDescriptors fluxnet_columns;
-	fluxnet_columns += ColumnDescriptor("NEE", 14, 7);
-	fluxnet_columns += ColumnDescriptor("GPP", 14, 7);
-	create_output_table(out_fluxnetdaily, file_fluxnetdaily, fluxnet_columns);
-
-	ColumnDescriptors fluxnetclim_columns;
-	fluxnetclim_columns += ColumnDescriptor("temp", 11, 3);
-	fluxnetclim_columns += ColumnDescriptor("prec", 11, 3);
-	fluxnetclim_columns += ColumnDescriptor("insol", 11, 3);
-	create_output_table(out_fluxnetclim, file_fluxnetclim, fluxnetclim_columns);
-}
-
-void FluxnetOutput::outdaily(Gridcell& gridcell) {
-	OutputRows out(output_channel, gridcell.get_lon(), gridcell.get_lat(),
-			date.get_calendar_year(), date.day);
-
-	out.add_value(out_fluxnetclim, gridcell.climate.temp);
-	out.add_value(out_fluxnetclim, gridcell.climate.prec);
-	out.add_value(out_fluxnetclim, gridcell.climate.insol);
-
-	double dgpp = 0, dra = 0, drh = 0;
-
-	Gridcell::iterator gc_itr = gridcell.begin();
-
-	// Loop through Stands
-	while (gc_itr != gridcell.end()) {
-		Stand& stand = *gc_itr;
-		stand.firstobj();
-
-		//Loop through Patches
-		while (stand.isobj) {
-			Patch& patch = stand.getobj();
-
-			double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
-
-			dgpp +=-patch.fluxes.get_daily_flux(Fluxes::GPP,date.day)*to_gridcell_average;
-			dra  +=-patch.fluxes.get_daily_flux(Fluxes::RA,date.day)*to_gridcell_average;
-			drh  += patch.fluxes.get_daily_flux(Fluxes::SOILC,date.day)*to_gridcell_average;
-
-			stand.nextobj();
-		} // patch loop
-		++gc_itr;
-	} // stand loop
-
-	// daily NEE do not include fire, establishment as monthly NEE
-	out.add_value(out_fluxnetdaily, dgpp - dra + drh);
-	out.add_value(out_fluxnetdaily, dgpp);
-}
+REGISTER_INPUT_MODULE("fluxnet", FluxnetInput)

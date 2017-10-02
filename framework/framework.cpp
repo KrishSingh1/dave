@@ -122,9 +122,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			if (firemodel == BLAZE && patch.has_fires()) 
 				blaze(patch,gridcell.climate);
 
-
 			if (date.islastday && date.islastmonth) {
-
 				// LAST DAY OF YEAR
 				// Tissue turnover, allocation to new biomass and reproduction,
 				// updated allometry

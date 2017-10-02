@@ -295,7 +295,6 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 		simfire_update_pop_density(climate.gridcell);
 		
 		// reset Max annual Nesterov Index
-		// CLN is tjhat correct????? Reset regarding to burntime!!!!!
 		climate.max_nesterov = 0.0;
 		
 		// initialise averaging array (CLN MOVE TO restartvalues!)

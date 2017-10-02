@@ -2133,7 +2133,7 @@ void Individual::kill(bool harvest /* = false */) {
 	if (pft.lifeform == TREE) {
 
 		double nlitter_sap, nlitter_heart, nwood_harvest;
-
+		
 		// Transfer nitrogen storage to sapwood nitrogen litter/harvest
 		partition_wood_biomass(nmass_sap + nstore(), nmass_heart,
 		                       harv_eff, harvest_slow_frac, res_outtake,
@@ -2144,6 +2144,7 @@ void Individual::kill(bool harvest /* = false */) {
 		ppft.nmass_litter_heart += nlitter_heart;
 
 		nharvest_flux += nwood_harvest;
+
 	}
 	else {
 		// Transfer nitrogen storage to root nitrogen litter

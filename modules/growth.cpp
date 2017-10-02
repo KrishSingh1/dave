@@ -531,6 +531,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 				cmass_debt_inc=cmass_loan;
 			}
 			else cmass_debt_inc=0.0;
+
 		}
 		else cmass_debt_inc=0.0;
 
@@ -819,7 +820,6 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 	// maximum carbon mismatch
 	double EPS = 1.0e-12;
-
 	assert(fabs(bminc + exceeds_cmass - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
 }
 
@@ -1209,15 +1209,14 @@ void growth(Stand& stand, Patch& patch) {
 
 		bool killed = false;
 
-		if (negligible(indiv.densindiv))
-//			fail("growth: negligible densindiv for %s",(char*)indiv.pft.name);// ???
-			dprintf("growth: negligible densindiv for %s\n",(char*)indiv.pft.name);	
+		if (negligible(indiv.densindiv)) {
+			fail("growth: negligible densindiv for %s",(char*)indiv.pft.name);// ???
+		}		
 		else {
 
 			// Allocation to reproduction
 			if(!indiv.istruecrop_or_intercropgrass())
 				reproduction(indiv.pft.reprfrac,indiv.anpp,bminc,cmass_repr);
-
 			raingreen_ndemand = 0.0;
 
 			// added bminc check. Otherwise we get -ve litter_leaf for grasses when indiv.anpp < 0.
@@ -1310,13 +1309,13 @@ void growth(Stand& stand, Patch& patch) {
 						cmass_leaf_inc, cmass_root_inc, cmass_sap_inc, cmass_debt_inc,
 						cmass_heart_inc,
 						litter_leaf_inc, litter_root_inc, exceeds_cmass);
+	
 
 					// Update carbon pools and litter (on area basis)
 					// (litter not accrued for not 'alive' individuals - Ben 2007-11-28)
 
 					// Leaves
 					indiv.cmass_leaf += cmass_leaf_inc * indiv.densindiv;
-
 					// Roots
 					indiv.cmass_root += cmass_root_inc * indiv.densindiv;
 

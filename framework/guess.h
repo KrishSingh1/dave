@@ -2427,7 +2427,8 @@ public:
 	void reduce_biomass(double mortality, double mortality_fire);
 
 	/// a version of the above reduce_biomass for the use with blaze
-	void blaze_reduce_biomass(Patch& patch, double frac_survive);
+	void blaze_reduce_biomass(Patch& patch, double frac_survive,
+				  double& c_fluxsum, double& n_fluxsum);
 
 	/// Total storage of nitrogen
 	double nstore() const {

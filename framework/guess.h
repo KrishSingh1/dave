@@ -680,6 +680,8 @@ public:
 	double max_nesterov;
 	/// current Nexterov index
 	double cur_nesterov;
+	/// Monthly max Nexterov index to keep track of running year
+	double monthly_max_nesterov[12];
 	/// biome as used in SIMFIRE
 	int simfire_biome;
 	/// Averaged (over avg_interv_fpar years)maximum annual fAPAR 

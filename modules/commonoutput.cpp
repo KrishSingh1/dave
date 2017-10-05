@@ -79,7 +79,11 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_mprec", &file_mprec, 300, "monthly precip output file");
 
 	if ( firemodel == BLAZE ) {
-		declare_parameter("file_blaze_out", &file_blaze_out, 300, "Monthly BLAZE diagnostic output file");
+		declare_parameter("file_blaze_out", &file_blaze_out, 300, "BLAZE burnt area output file");
+		declare_parameter("file_mblaze_out", &file_mblaze_out, 300, "BLAZE monthly burnt area output file");
+		if ( ignition == SIMFIRE ) {
+			declare_parameter("file_sfana_out", &file_sfana_out, 300, "SIMFIRE analytics output");
+		}			
 	}
 
 
@@ -228,8 +232,17 @@ void CommonOutput::define_output_tables() {
 
 	// BLAZE burnt area 
 	ColumnDescriptors blaze_columns;
-	blaze_columns += ColumnDescriptor("burnt area",        8, 4);
+	blaze_columns += ColumnDescriptor("BurntArea",        8, 5);
+//	ColumnDescriptors blzana_columns;
+//	blzana_columns += ColumnDescriptor("FFDI",        8, 5);
 
+	// SIMFIRE Analysis 
+	ColumnDescriptors sfana_columns;
+	sfana_columns += ColumnDescriptor("Biome",             6, 0);
+	sfana_columns += ColumnDescriptor("MxNest",            7, 0);
+	sfana_columns += ColumnDescriptor("PopDens",          10, 3);
+	sfana_columns += ColumnDescriptor("Region",            7, 0);
+	
 	// RUNOFF
 	ColumnDescriptors runoff_columns;
 	runoff_columns += ColumnDescriptor("Surf",             8, 1);
@@ -342,12 +355,14 @@ void CommonOutput::define_output_tables() {
 		} else {
 			create_output_table(out_ab,	file_blaze_out,	blaze_columns); 
 		}
+		//CLN		create_output_table(out_blzana,	file_blzana_out,	blzana_columns); 
+		if ( ignition == SIMFIRE ) 
+			create_output_table(out_sfana,          file_sfana_out,             sfana_columns);
 	} else if ( firemodel == GLOBFIRM ) {
 		create_output_table(out_firert,         file_firert,         firert_columns);
 	}
 
 	//	create_output_table(out_fireflux,	file_fireflux,	     month_columns_wide);
-	create_output_table(out_ab,             file_blaze_out,             blaze_columns);
 	create_output_table(out_runoff,         file_runoff,         runoff_columns);
 	create_output_table(out_speciesheights, file_speciesheights, speciesheights_columns);
 	create_output_table(out_aiso,           file_aiso,           aiso_columns);
@@ -380,8 +395,9 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mwcont_lower,   file_mwcont_lower,   month_columns);
 	create_output_table(out_miso,           file_miso,           month_columns_wide);
 	create_output_table(out_mmon,           file_mmon,           month_columns_wide);
-	create_output_table(out_mprec,          file_mprec,          month_columns_wide);
-
+	create_output_table(out_mprec,          file_mprec,          month_columns);
+	create_output_table(out_mab,            file_mblaze_out,     month_columns);
+	
 }
 
 /// Function for producing data file used to communicate information on stand structure
@@ -624,7 +640,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mmon[12];
 	double aaet, apet, aevap, arunoff, aintercep;
 
-	// BLAZE
+	// BLAZE & SIMFIRE
 	double annual_areaburnt_gridcell=0.;
 
 	double lon = gridcell.get_lon();
@@ -1185,6 +1201,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_clitter,clitter_gridcell);
 	//CLN
 	outlimit(out,out_ab,     gridcell.climate.annual_areaburnt);
+	outlimit(out,out_sfana,  gridcell.climate.simfire_biome);
+	outlimit(out,out_sfana,  gridcell.climate.max_nesterov);
+	outlimit(out,out_sfana,  gridcell.pop_density);
+	outlimit(out,out_sfana,  gridcell.simfire_region);
 	outlimit(out,out_firert, firert_gridcell);
 	outlimit(out,out_runoff, surfrunoff_gridcell);
 	outlimit(out,out_runoff, drainrunoff_gridcell);
@@ -1258,6 +1278,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			outlimit(out,out_miso,         miso[m]);
 			outlimit(out,out_mmon,         mmon[m]);
 			outlimit(out,out_mprec,        (float)gridcell.climate.mprec[m]);
+			outlimit(out,out_mab,          (float)gridcell.climate.monthly_areaburnt[m]);
 
 			aaet += maet[m];
 			apet += mpet[m];

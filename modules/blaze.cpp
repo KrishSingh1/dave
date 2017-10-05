@@ -1347,9 +1347,9 @@ void blaze(Patch& patch, Climate& climate) {
 			        climate.monthly_areaburnt[date.month] += climate.areaburnt;
 			        climate.can_burn = 0;
 			}
-			climate.max_nesterov        = 0.0;
+			//CLN			climate.max_nesterov        = 0.0;
 			climate.areaburnt           = 0.0;
-			climate.mcarthur_fire_index = 0.0;
+			//CLN climate.mcarthur_fire_index = 0.0;
 		}
 	}
 }

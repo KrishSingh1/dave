@@ -286,6 +286,11 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	// absolute upper boundary for the accumulative nesterov index
 	const double maximum_nesterov = 150000.;
 
+	// check whether this day is the first day of simulation 
+	// (i.e. start of spinup or first day after restart
+	bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
+		( restart && date.year == state_year ) ) );
+
 	if (date.day == 0 ) {
 		// set SIMFIRE biomes based on IGBP classification
 		// NOW DONE IN getgridcell
@@ -294,16 +299,15 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 		// update population density
 		simfire_update_pop_density(climate.gridcell);
 		
-		// reset Max annual Nesterov Index
-		climate.max_nesterov = 0.0;
-		
-		// initialise averaging array (CLN MOVE TO restartvalues!)
-		if ( date.year == 0 && ! restart ) {
+
+		// initialise averaging array 
+		if ( date.year == 0 ) {
 			for(int i=0;i<avg_interv_fapar;i++) { 
 				climate.recent_max_fapar[i] = 0.5;
 			}
 			climate.ann_max_fapar = 0.5;	
-		} else {
+		} 
+		else {
 			int a = date.year % avg_interv_fapar;
 			climate.recent_max_fapar[a] = climate.cur_max_fapar;
 			double avg = 0.;
@@ -314,7 +318,29 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 		}
 		// finally (re)set this years max fapar
 		climate.cur_max_fapar = 0.0;
+
+		// set Max annual Nesterov Index on first day of simulation
+		if ( is_first_day ) {
+			for ( int i=0; i<12; i++) 
+				climate.monthly_max_nesterov[i] = 0.;
+			if ( restart )
+				climate.monthly_max_nesterov[11] = climate.max_nesterov;
+			else
+				climate.monthly_max_nesterov[11] = 10000. * cos(gridcell.get_lat());
+		}
 	}
+
+        if ( date.dayofmonth == 0 ) {
+		double mnest = 0.;
+		for ( int i=0; i<12; i++) 
+			if ( climate.monthly_max_nesterov[i] > mnest )
+				mnest = climate.monthly_max_nesterov[i];
+		climate.max_nesterov = mnest;
+		climate.monthly_max_nesterov[date.month] = 0. ;
+	}
+
+        if (  climate.monthly_max_nesterov[date.month] < climate.cur_nesterov )
+		climate.monthly_max_nesterov[date.month] = climate.cur_nesterov;
 
 	// PATCHLOOP FOR fpar
 	int cnt= 0;

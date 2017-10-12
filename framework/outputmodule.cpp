@@ -62,7 +62,7 @@ void OutputModuleContainer::init() {
 		fail("No output directory given in the .ins file!");
 	}
 	if (output_year == -999) {
-		output_year == date.first_calendar_year + nyear_spinup;
+		output_year = date.first_calendar_year + nyear_spinup;
 	}
 
 	// Create the output channel

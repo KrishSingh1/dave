@@ -3115,7 +3115,7 @@ public:
 	double aphen;
 	/// whether PFT can establish in this patch under current conditions
 	bool establish;
-	// daily phen for daily allocation
+	/// daily phen for daily allocation
 	double phen_daily;
 	/// running total for number of saplings of this PFT to establish (cohort mode)
 	double nsapling;

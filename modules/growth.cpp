@@ -55,7 +55,7 @@ const double APHEN_MAX = 210.0;
 
 
 void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
-		double& phen,Patch& patch) {
+		double& phen, Patch& patch) {
 
 	// DESCRIPTION
 	// Calculates leaf phenological status (fractional leaf-out) for a individuals of
@@ -73,8 +73,9 @@ void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
 	bool raingreen = pft.phenology == RAINGREEN || pft.phenology == ANY;
 	bool summergreen = pft.phenology == SUMMERGREEN || pft.phenology == ANY;
 	
-	if (ifdailygrass && pft.lifeform == GRASS){
-		double phen_water = max(0.0,min(1.0,(patch.pft[pft.id].wsupply_leafon/patch.wdemand_leafon)));
+	if (ifdailygrass && pft.lifeform == GRASS) {
+
+		double phen_water = max(0.0,min(1.0, (patch.pft[pft.id].wsupply_leafon/patch.wdemand_leafon)));
 		double phen_gdd =  max(0.0,min(1.0, (climate.gdd5 / pft.phengdd5ramp)));
 		patch.pft[pft.id].phen_daily = min(phen_water,phen_gdd);
 	}
@@ -171,18 +172,21 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 		indiv.phen_daily = patch.pft[indiv.pft.id].phen_daily;
 
 		if(ifdailygrass && indiv.pft.lifeform == GRASS && indiv.alive && !indiv.istruecrop_or_intercropgrass()){
+		
 			if ((indiv.phen_daily > 0.5) ||  indiv.lai > 0.05){
 				indiv.phen = 1.0;
 			}else{
 				indiv.phen = indiv.phen_daily;
 			}
-		}else{ // For normal growth
+
+		}else{		// For normal growth
 			indiv.phen = patch.pft[indiv.pft.id].phen;
 		}
 
 		// Update annual leaf-day sum (raingreen PFTs)
 		if (date.day == 0) indiv.aphen_raingreen = 0;
 		indiv.aphen_raingreen += (indiv.phen != 0.0);
+
 		// ... on to next individual
 		vegetation.nextobj();
 	}
@@ -919,10 +923,12 @@ void allocation_daily(double bminc,double cmass_leaf,double cmass_root,double lt
 		cmass_root_inc = cmass_u_inc - cmass_sg_inc;
 
 		// Make sure we don't end up with negative cmass_root or cmass_sg
+		
 		if(cmass_root_inc < -cmass_root){
 			exceeds_cmass += -(cmass_root_inc + cmass_root);
 			cmass_root_inc = -cmass_root;
 		}
+
 		if(cmass_sg_inc < -sg){
 			exceeds_cmass += -(cmass_sg_inc + sg);
 			cmass_sg_inc = -sg;
@@ -934,7 +940,7 @@ void allocation_daily(double bminc,double cmass_leaf,double cmass_root,double lt
 	cmass_leaf_inc = (bminc - cmass_leaf / ltor + (cmass_root + sg)) / (1.0 + 1.0 / ltor);
 	cmass_u_inc = bminc - cmass_leaf_inc;
 
-	if(bminc <= 0.0){ // if negative bminc (will only happend when there is no leaves)  
+	if(bminc <= 0.0){		// if negative bminc (will only happend when there is no leaves)  
 
 		cmass_u_inc = bminc;
 		cmass_leaf_inc = 0.0;
@@ -942,6 +948,7 @@ void allocation_daily(double bminc,double cmass_leaf,double cmass_root,double lt
 		cmass_root_inc = cmass_u_inc - cmass_sg_inc;
 	}
 	else { //Positive bminc
+
 		cmass_leaf_inc = (bminc - cmass_leaf / ltor + (cmass_root+sg)) / (1.0 + 1.0 / ltor);
 		cmass_u_inc = bminc - cmass_leaf_inc;
 		cmass_sg_inc = (cmass_u_inc - sg / stor + cmass_root) / (1.0 + 1.0 / stor);
@@ -1270,16 +1277,18 @@ void growth(Stand& stand, Patch& patch) {
 	// On first call to function growth this year (patch #0), initialise stand-PFT
 	// record of summed allocation to reproduction
 
-	if (!patch.id && !ifdailygrass){ //daily carbon allocation does this in growth_pasture_daily
+	// Daily carbon allocation does this in growth_pasture_daily
+	if (!patch.id && !ifdailygrass){ 
+	
 		for (p=0; p<npft; p++){
 			stand.pft[p].cmass_repr = 0.0;
 		}
 	}
+
 	// Set forest management intensity for this year
 	patch.man_strength = cut_fraction(patch);
 
 	// Loop through individuals
-
 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
@@ -1287,9 +1296,7 @@ void growth(Stand& stand, Patch& patch) {
 
 		bool killed = false;
 
-		///////////////////////////////////////////////////
-		//Standard yearly growth functionalities below:
-		///////////////////////////////////////////////////
+		// Standard yearly growth functionalities
 
 		if (!ifdailygrass || indiv.pft.lifeform != GRASS ||
 				(indiv.pft.lifeform == GRASS && !indiv.alive) || indiv.istruecrop_or_intercropgrass()) {
@@ -1336,7 +1343,6 @@ void growth(Stand& stand, Patch& patch) {
 			}
 
 			indiv.deltafpc = 0.0;
-
 
 			if (negligible(indiv.densindiv))
 				fail("growth: negligible densindiv for %s",(char*)indiv.pft.name);
@@ -1516,6 +1522,7 @@ void growth(Stand& stand, Patch& patch) {
 
 						//True crops do not use bminc.or cmass_leaf etc.
 						if(indiv.istruecrop_or_intercropgrass()) {
+
 							// transfer crop cmass increase values to common variables
 							growth_crop_year(indiv, cmass_leaf_inc, cmass_root_inc, cmass_ho_inc, cmass_agpool_inc, cmass_stem_inc);
 
@@ -1625,7 +1632,6 @@ void growth(Stand& stand, Patch& patch) {
 				}
 			}
 
-
 			if (!killed) {
 
 				if (!allometry(indiv)) {
@@ -1660,16 +1666,14 @@ void growth(Stand& stand, Patch& patch) {
 					vegetation.nextobj();
 				}
 			}
-		}
+		} 
 
-		//////////////////////////////////////////////////
 		// If daily growth, do nothing in yearly growth:
-		/////////////////////////////////////////////////
 
 		else {  // not tree and dcarb turned on
 
 			// ... on to next individual
-			if(!killed){
+			if (!killed) {
 				vegetation.nextobj();
 			}
 		}
@@ -1708,35 +1712,34 @@ void growth_daily_grass(Stand& stand, Patch& patch) {
 	// constant when caluclating the temperature controlled growth transfer following Johnson & Thornley 1983
 	const double GROWTH_FAC = 0.5;
 	//transfer constant between first and second compartment constant, to make that transfer faster.
-	const double LAMBDA=2.0;
+	const double LAMBDA = 2.0;
 	//rate of harvest each day for landcover pasture functionality , fraction
 	const double HARVEST_RATE = 0.02;
 	//minimum carbon in cmass_leaf_w3 for daily harvesting functionality
 	const double HARVEST_W3_MIN_CMASS = 0.001;
 
 	// new biomass) for this time period on modelled area basis (kgC/m2)
-	double bminc=0.0;
+	double bminc = 0.0;
 	// C allocated to reproduction this time period on modelled area basis (kgC/m2)
-	double cmass_repr=0.0;;
+	double cmass_repr = 0.0;;
 	// increment in leaf C biomass following allocation, on individual basis (kgC)
-	double cmass_leaf_inc=0.0;;
+	double cmass_leaf_inc = 0.0;;
 	// increment in root C biomass following allocation, on individual basis (kgC)
-	double cmass_root_inc=0.0;
+	double cmass_root_inc = 0.0;
 	// increment in storage growth compartment. (kgC)
-	double cmass_sg_inc=0.0;
+	double cmass_sg_inc = 0.0;
 	// increment in leaf litter following allocation, on individual basis (kgC)
 	double litter_leaf_inc = 0.0;
 	// increment in root litter following allocation, on individual basis (kgC)
 	double litter_root_inc = 0.0;
 	// negative increment that exceeds existing biomass following allocation, on individual basis (kgC)
-	double exceeds_cmass=0.0;
+	double exceeds_cmass = 0.0;
 	// Leaf C:N ratios before growth
 	double cton_leaf_bg = 0.0;
 	// Root C:N ratios before growth
 	double cton_root_bg = 0.0;
 	//growth this time period
-	double g=0.0;
-
+	double g = 0.0;
 
 	//Movment factors for
 	double g_fac;	//growth
@@ -1768,11 +1771,11 @@ void growth_daily_grass(Stand& stand, Patch& patch) {
 
 		if (indiv.pft.lifeform == GRASS && indiv.alive && !indiv.istruecrop_or_intercropgrass()) {
 
-			c1=0.0;
-			c2=0.0;
-			c3=0.0;
-			c4=0.0;
-			g=0.0;
+			c1 = 0.0;
+			c2 = 0.0;
+			c3 = 0.0;
+			c4 = 0.0;
+			g = 0.0;
 
 			if(date.day == 0){
 				indiv.cmass_leaf_ygrowth = 0.0;
@@ -1783,7 +1786,6 @@ void growth_daily_grass(Stand& stand, Patch& patch) {
 				//scale indiv for landcover change
 				scale_indiv(indiv, false);
 			}
-
 
 			// First year with daily carbon allocation for this individual,
 			// cmass_leaf_wg will always be same as cmass_leaf in daily allocation. It will only be used to check
@@ -1878,29 +1880,27 @@ void growth_daily_grass(Stand& stand, Patch& patch) {
 			// Senescing leaves
 			indiv.cmass_leaf_w4 += c3 - c4;
 
-
 			// HARVEST
 			if(indiv.cmass_leaf_w3 > HARVEST_W3_MIN_CMASS && indiv.vegetation.patch.stand.landcover == PASTURE){
 
 				patch.is_litter_day=true;
 
-				// carbon
+				// Carbon
 				double cmass_harvest = indiv.cmass_leaf_w3 * HARVEST_RATE;
 				indiv.cmass_leaf_w3 -= cmass_harvest;
 				patch.pft[indiv.pft.id].litter_leaf += cmass_harvest;
 
-				//Nitrogen
+				// Nitrogen
 				double nmass_harvest = indiv.nmass_leaf_w3 * HARVEST_RATE;
 				indiv.nmass_leaf_w3 -= nmass_harvest;
 				indiv.nmass_leaf -= nmass_harvest;
 				patch.pft[indiv.pft.id].nmass_litter_leaf += nmass_harvest;
-
 			}
 
-			// growth weight (alive leaves)
+			// Growth weight (alive leaves)
 			indiv.cmass_leaf_wg = indiv.cmass_leaf_w1 + indiv.cmass_leaf_w2 + indiv.cmass_leaf_w3;
 
-			//update total cmass_leaf with wg
+			// Update total cmass_leaf with wg
 			indiv.cmass_leaf = indiv.cmass_leaf_wg;
 
 			////C LITTER ///
@@ -1927,13 +1927,12 @@ void growth_daily_grass(Stand& stand, Patch& patch) {
 				// Leaf turnover
 				patch.pft[indiv.pft.id].litter_leaf += c4;
 
-
 				// NITROGEN LITTER
 
 				double nremoval = min(indiv.nmass_leaf, c4 * indiv.densindiv / cton_leaf_bg);
-				patch.pft[indiv.pft.id].nmass_litter_leaf += nremoval * 0.5; //put half into litter
-				indiv.nstore_labile += nremoval * 0.5; //the rest into labile nstore
-				indiv.nmass_leaf -= nremoval; //reduce nmass
+				patch.pft[indiv.pft.id].nmass_litter_leaf += nremoval * 0.5;	//put half into litter
+				indiv.nstore_labile += nremoval * 0.5;	//the rest into labile nstore
+				indiv.nmass_leaf -= nremoval;	//reduce nmass
 
 				//Update leaf nitrogen pools assume same fraction as cmass in each pool.
 				indiv.nmass_leaf_w1 = indiv.nmass_leaf*indiv.cmass_leaf_w1/(indiv.cmass_leaf_wg + indiv.cmass_leaf_w4);
@@ -1965,19 +1964,19 @@ void growth_daily_grass(Stand& stand, Patch& patch) {
 			}
 
 
-			//update allometry - updates LAI basd on cmass
+			// Update allometry - updates LAI basd on cmass
 			allometry(indiv);
 
 			// Update maximum size of nitrogen storage
 			indiv.max_n_storage = max(0.0, indiv.cmass_root * indiv.pft.fnstorage / indiv.cton_leaf_opt);
 
-			// determine the yearly maximum values which is reported.
+			// Determine the yearly maximum values which is reported.
 
 			indiv.lai_ymax = max(indiv.lai_ymax,indiv.lai);
 			indiv.cmass_leaf_ymax = max(indiv.cmass_leaf_ymax,indiv.cmass_leaf);
 			indiv.cmass_root_ymax = max(indiv.cmass_root_ymax,indiv.cmass_root);
 
-			indiv.report_flux(Fluxes::NPP, exceeds_cmass * indiv.densindiv); //report NPP and RA
+			indiv.report_flux(Fluxes::NPP, exceeds_cmass * indiv.densindiv);	//report NPP and RA
 			indiv.report_flux(Fluxes::RA, -exceeds_cmass * indiv.densindiv);
 
 			// LAST DAY OF YEAR // Report yearly data
@@ -2015,14 +2014,16 @@ void growth_daily_grass(Stand& stand, Patch& patch) {
 						killed = true;
 					}
 				}
-			} // last day of year
-		} // grass
+			} // Last day of year
+		} // Grass
+
 		if (!killed) {
 			vegetation.nextobj();
 		}
+
 	} // while vegetation is object
 
-} // growth_daily() end
+} // growth_daily() 
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES

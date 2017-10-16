@@ -1105,72 +1105,72 @@ void cropindiv_struct::serialize(ArchiveStream& arch) {
 
 Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
-	lai_ymax		  = 0.0;
-	cmass_leaf_ymax	  = 0.0;
-	cmass_root_ymax	  = 0.0;
-	cmass_leaf_ws	  = 0.0;
-	cmass_leaf_wg	  = 0.0;
-	cmass_leaf_w1	  = 0.0;
-	cmass_leaf_w2	  = 0.0;
-	cmass_leaf_w3	  = 0.0;
-	cmass_leaf_w4	  = 0.0;
-	nmass_leaf_w1	  = 0.0;
-	nmass_leaf_w2	  = 0.0;
-	nmass_leaf_w3	  = 0.0;
-	nmass_leaf_w4	  = 0.0;
-	cmass_root_sg     = 0.0;
-	phen_daily		  = 0.0;
-	cmass_leaf_ygrowth			  = 0.0;
-	cton_leaf_opt	  = 0.0; 
-	anpp              = 0.0;
-	fpc               = 0.0;
-	fpc_daily		  = 0.0;
-	densindiv         = 0.0;
-	cmass_leaf        = 0.0;
-	cmass_root        = 0.0;
-	cmass_sap         = 0.0;
-	cmass_heart       = 0.0;
-	cmass_debt        = 0.0;
-	cmass_leaf_post_turnover      = 0.0;
-	cmass_root_post_turnover      = 0.0;
-	cmass_tot_luc     = 0.0;
-	phen              = 0.0;
-	aphen             = 0.0;
-	deltafpc          = 0.0;
+	lai_ymax					= 0.0;
+	cmass_leaf_ymax				= 0.0;
+	cmass_root_ymax				= 0.0;
+	cmass_leaf_ws				= 0.0;
+	cmass_leaf_wg				= 0.0;
+	cmass_leaf_w1				= 0.0;
+	cmass_leaf_w2				= 0.0;
+	cmass_leaf_w3				= 0.0;
+	cmass_leaf_w4				= 0.0;
+	nmass_leaf_w1				= 0.0;
+	nmass_leaf_w2				= 0.0;
+	nmass_leaf_w3				= 0.0;
+	nmass_leaf_w4				= 0.0;
+	cmass_root_sg				= 0.0;
+	phen_daily					= 0.0;
+	cmass_leaf_ygrowth			= 0.0;
+	cton_leaf_opt				= 0.0; 
+	anpp						= 0.0;
+	fpc							= 0.0;
+	fpc_daily					= 0.0;
+	densindiv					= 0.0;
+	cmass_leaf					= 0.0;
+	cmass_root					= 0.0;
+	cmass_sap					= 0.0;
+	cmass_heart					= 0.0;
+	cmass_debt					= 0.0;
+	cmass_leaf_post_turnover	= 0.0;
+	cmass_root_post_turnover	= 0.0;
+	cmass_tot_luc				= 0.0;
+	phen						= 0.0;
+	aphen						= 0.0;
+	deltafpc					= 0.0;
 
-	nmass_leaf        = 0.0;
-	nmass_root        = 0.0;
-	nmass_sap         = 0.0;
-	nmass_heart       = 0.0;
-	cton_leaf_aopt    = 0.0;
-	cton_leaf_aavr    = 0.0;
-	cton_status       = 0.0;
-	cmass_veg         = 0.0;
-	nmass_veg         = 0.0;
-	nmass_tot_luc     = 0.0;
+	nmass_leaf					= 0.0;
+	nmass_root					= 0.0;
+	nmass_sap					= 0.0;
+	nmass_heart					= 0.0;
+	cton_leaf_aopt				= 0.0;
+	cton_leaf_aavr				= 0.0;
+	cton_status					= 0.0;
+	cmass_veg					= 0.0;
+	nmass_veg					= 0.0;
+	nmass_tot_luc				= 0.0;
 
-	nactive           = 0.0;
-	nextin            = 1.0;
-	nstore_longterm   = 0.0;
-	nstore_labile     = 0.0;
-	ndemand           = 0.0;
-	fnuptake          = 1.0;
-	anuptake          = 0.0;
-	max_n_storage     = 0.0;
-	scale_n_storage   = 0.0;
+	nactive						= 0.0;
+	nextin						= 1.0;
+	nstore_longterm				= 0.0;
+	nstore_labile				= 0.0;
+	ndemand						= 0.0;
+	fnuptake					= 1.0;
+	anuptake					= 0.0;
+	max_n_storage				= 0.0;
+	scale_n_storage				= 0.0;
 
-	leafndemand       = 0.0;
-	rootndemand       = 0.0;
-	sapndemand        = 0.0;
-	storendemand      = 0.0;
-	leaffndemand      = 0.0;
-	rootfndemand      = 0.0;
-	sapfndemand       = 0.0;
-	storefndemand     = 0.0;
-	leafndemand_store = 0.0;
-	rootndemand_store = 0.0;
+	leafndemand					= 0.0;
+	rootndemand					= 0.0;
+	sapndemand					= 0.0;
+	storendemand				= 0.0;
+	leaffndemand				= 0.0;
+	rootfndemand				= 0.0;
+	sapfndemand					= 0.0;
+	storefndemand				= 0.0;
+	leafndemand_store			= 0.0;
+	rootndemand_store			= 0.0;
 
-	nstress           = false;
+	nstress						= false;
 
 	// additional initialisation
 	age               = 0.0;
@@ -1489,7 +1489,6 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		}
 
 		//make sure that we take away from all the daily grass carbon pools.
-
 		cmass_root_sg *=remaining;
 		cmass_leaf_w1 *=remaining;
 		cmass_leaf_w2 *=remaining;
@@ -1500,7 +1499,6 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		nmass_leaf_w1 *=remaining;
 		nmass_leaf_w1 *=remaining;
 		nmass_leaf_w1 *=remaining;
-
 	}
 }
 
@@ -2031,8 +2029,8 @@ void partition_wood_biomass(double mass_sap, double mass_heart,
 	litter_heart = heart_left;
 }
 
-
 void Individual::kill(bool harvest /* = false */) {
+
 	Patchpft& ppft = patchpft();
 
 	double charvest_flux = 0.0;
@@ -2044,7 +2042,8 @@ void Individual::kill(bool harvest /* = false */) {
 	double harv_eff = 0.0;
 	double harvest_slow_frac = 0.0;
 	double res_outtake = 0.0;
-		// The function always deals with harvest, but the harvest
+	
+	// The function always deals with harvest, but the harvest
 	// fractions are zero when there is no harvest.
 	if (harvest) {
 		harv_eff = pft.harv_eff;
@@ -2056,7 +2055,7 @@ void Individual::kill(bool harvest /* = false */) {
 		res_outtake = pft.res_outtake;
 	}
 
-	if(pft.lifeform == GRASS && ifdailygrass && alive && !istruecrop_or_intercropgrass()){
+	if (pft.lifeform == GRASS && ifdailygrass && alive && !istruecrop_or_intercropgrass()){
 		ppft.litter_root += cmass_root_sg;			// storage growth to litter
 		ppft.litter_leaf += cmass_leaf_w4 + cmass_leaf_ws;	//add senescing leaves and growth storage to litter
 	}
@@ -2541,17 +2540,17 @@ bool MassBalance::check_indiv_C(Individual& indiv, bool check_harvest) {
 	bool balance = true;
 	Patch& patch = indiv.vegetation.patch;
 	Stand& stand = patch.stand;
-	if(!stand.is_true_crop_stand())
+	if (!stand.is_true_crop_stand())
 		return balance;
 	Gridcell& gridcell = stand.get_gridcell();
 	double ccont = indiv.ccont();
 	ccont += patch.ccont(0.0);
 	double cflux = patch.cflux();
 
-	if(check_harvest && patch.isharvestday)
+	if (check_harvest && patch.isharvestday)
 		ccont_zero = ccont_zero_scaled;
 
-	if(date.year >= nyear_spinup && !negligible(ccont - ccont_zero + cflux - cflux_zero, -10)) {
+	if (date.year >= nyear_spinup && !negligible(ccont - ccont_zero + cflux - cflux_zero, -10)) {
 		dprintf("\nStand %d Patch %d Indiv %d C balance year %d day %d: %.10f\n", patch.stand.id, patch.id, indiv.id, date.year, date.day, ccont - ccont_zero + cflux - cflux_zero);
 		dprintf("C pool change: %.10f\n", ccont - ccont_zero);
 		dprintf("C flux: %.10f\n\n",  cflux - cflux_zero);
@@ -2567,17 +2566,17 @@ bool MassBalance::check_indiv_N(Individual& indiv, bool check_harvest) {
 	
 	Patch& patch = indiv.vegetation.patch;
 	Stand& stand = patch.stand;
-	if(!stand.is_true_crop_stand())
+	if (!stand.is_true_crop_stand())
 		return balance;
 	Gridcell& gridcell = stand.get_gridcell();
 	double ncont = indiv.ncont();
 	ncont += patch.ncont(0.0);
 	double nflux = patch.nflux();
 
-	if(check_harvest && patch.isharvestday)
+	if (check_harvest && patch.isharvestday)
 		ncont_zero = ncont_zero_scaled;
 
-	if(date.year >= nyear_spinup && !negligible(ncont - ncont_zero + nflux - nflux_zero, -14)) {
+	if (date.year >= nyear_spinup && !negligible(ncont - ncont_zero + nflux - nflux_zero, -14)) {
 		dprintf("\nStand %d Patch %d Indiv %d N balance year %d day %d: %.10f\n", patch.stand.id, patch.id, indiv.id, date.year, date.day, ncont - ncont_zero + nflux - nflux_zero);
 		dprintf("N pool change: %.14f\n", ncont - ncont_zero);
 		dprintf("N flux: %.14f\n\n",  nflux - nflux_zero);

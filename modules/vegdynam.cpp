@@ -869,15 +869,12 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			else
 				mort_shade=0.0;
 
-			if (mort_shade>0.0) {
-				//mort_shade=mort_shade;
-			}
-
 			// Mortality due to fire
 
 			if (patch.has_fires())
 				mort_fire=fireprob*(1.0-indiv.pft.fireresist);
-			else mort_fire=0.0;
+			else 
+				mort_fire=0.0;
 
 			// Sum mortality components to give total mortality (maximum 1)
 
@@ -1467,7 +1464,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		}
 
 		// Normal disturbance with probability interval of distinterval
-		if (patch.has_disturbances() ) {
+		if (patch.has_disturbances()) {
 
 			// We don't allow disturbance while documenting for calculation of Century equilibrium
 			bool during_century_solvesom = ifcentury &&

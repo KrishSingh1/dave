@@ -80,7 +80,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_mmon_mt1", &file_mmon_mt1, 300, "monthly endocyclic monoterpene flux output file");
 	declare_parameter("file_mmon_mt2", &file_mmon_mt2, 300, "monthly other monoterpene flux output file");
 
-	// outdaily
+	// Daily output variables
 	declare_parameter("file_dlai",&file_dlai,300,"Daily LAI output file");
 	declare_parameter("file_dflux",&file_dflux,300,"Daily flux output file");
 }
@@ -318,6 +318,7 @@ void CommonOutput::define_output_tables() {
 	ngases_columns += ColumnDescriptor("Total",            9, 3);
 
 	// DAILY
+	
 	ColumnDescriptors dlai_columns;
 	dlai_columns += ColumnDescriptors(pfts,14, 8);
 
@@ -505,7 +506,6 @@ void get_stand_age_structure(Gridcell& gridcell,double* densindiv,int& nageclass
 				densindiv[p*nageclass + c] = 0.0;
 	}
 	else nageclass = 0;
-
 
 	pftlist.firstobj();
 	while (pftlist.isobj) {
@@ -863,9 +863,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 									indiv.cmass_leaf_ymax = indiv.cmass_leaf;
 									indiv.cmass_root_ymax = indiv.cmass_root;
 								}
-
-
-
 
 								standpft_cmass_leaf += indiv.cmass_leaf_ymax;
 								standpft_cmass += indiv.ccont();
@@ -1557,8 +1554,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 	lon=gridcell.get_lon();
 	lat=gridcell.get_lat();
 
-	// The OutputRows object manages the next row of output for each
-	// output table
+	// The OutputRows object manages the next row of output for each output table
 	OutputRows out(output_channel, lon, lat, date.get_calendar_year(), date.day);
 
 	double mean_standpft_lai=0.0;
@@ -1654,7 +1650,6 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 				standpft_lai/=(double)stand.npatch();
 
 				//Update pft means for active stands
-
 				mean_standpft_npp += standpft_npp * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_gpp += standpft_gpp * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_lai += standpft_lai * stand.get_gridcell_fraction() / active_fraction;
@@ -1670,6 +1665,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 				}
 
 			}//if(active)
+
 			++gc_itr;
 		}//End of loop through stands
 
@@ -1689,11 +1685,13 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 
 	// Loop through Stands
 	while (gc_itr != gridcell.end()) {
+
 		Stand& stand = *gc_itr;
 		stand.firstobj();
 
 		//Loop through Patches
 		while (stand.isobj) {
+
 			Patch& patch = stand.getobj();
 
 			double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
@@ -1708,6 +1706,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 
 			stand.nextobj();
 		} // patch loop
+
 		++gc_itr;
 	} // stand loop
 
@@ -1719,7 +1718,6 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 
 	// daily NEE do not include fire, establishment as monthly NEE
 	outlimit(out,out_dflux, flux_veg   +  flux_soil );
-
 
 }
 

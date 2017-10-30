@@ -1030,6 +1030,8 @@ public:
 	bool fallow;
 	/// Double cropping of one crop (e.g. rice)
 	bool multicrop;
+	/// Grazing intensity (daily grazing fraction)
+	double grazeintens;
 
 	ManagementType() {
 
@@ -1045,6 +1047,7 @@ public:
 		nfert = -1.0;
 		fallow = false;
 		multicrop = false;
+		grazeintens = 0.0;
 	}
 
 	// Copy constructor
@@ -1057,12 +1060,13 @@ public:
 		hdate = from.hdate;
 		nfert = from.nfert;
 		fallow = from.fallow;
+		grazeintens = from.grazeintens;
 	}
 
 	bool is_managed() {
 
 		// Add new management parameters here
-		if(pftname != "" || planting_system != "" || selection != ""||  harvest_system != "" ||  hydrology == IRRIGATED || fallow || nfert > -1.0)
+		if(pftname != "" || planting_system != "" || selection != ""||  harvest_system != "" ||  hydrology == IRRIGATED || fallow || nfert > -1.0 || grazeintens)
 			return true;
 		else
 			return false;

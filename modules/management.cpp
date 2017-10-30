@@ -1065,6 +1065,7 @@ bool harvest_year(Individual& indiv) {
 
 	Stand& stand = indiv.vegetation.patch.stand;
 	Landcover& landcover = stand.get_gridcell().landcover;
+	ManagementType& mt = stlist[stand.stid].get_management();
 	bool killed = false;
 
 	// Reduce individual's C and N mass in stands that have increased in area this year:
@@ -1076,7 +1077,7 @@ bool harvest_year(Individual& indiv) {
 		if (!indiv.has_daily_turnover())
 			harvest_crop(indiv, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass, false);
 	}
-	else if (stand.landcover == PASTURE) {
+	else if (stand.landcover == PASTURE && !mt.grazeintens) {
 		harvest_pasture(indiv, indiv.pft, indiv.alive);
 	}
 	else if(stand.landcover == FOREST || stand.landcover == NATURAL && run_landcover)

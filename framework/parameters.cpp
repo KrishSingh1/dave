@@ -824,6 +824,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("nfert",&pmt->nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop");
 		declareitem("fallow",&pmt->fallow,1,CB_NONE,"Fallow in place of crop");
 		declareitem("multicrop",&pmt->multicrop,1,CB_NONE,"Whether to grow several crops in a year");
+		declareitem("grazeintens",&pmt->grazeintens,0.0,1.0,1,CB_NONE,"Grazing intensity");
 
 		callwhendone(CB_CHECKMT);
 
@@ -880,6 +881,7 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("nfert",&pst->management.nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop 1");
 				declareitem("fallow",&pst->management.fallow,1,CB_NONE,"Fallow in place of crop 1");
 				declareitem("multicrop",&pst->management.multicrop,1,CB_NONE,"Whether to grow several crops in a year in management 1");
+				declareitem("grazeintens",&pst->management.grazeintens,0.0,10.0,1,CB_NONE,"Grazing intensity");
 			}
 			else if(i == 1) {
 				declareitem("management2",&strparam,16,CB_MANAGEMENT2,"");

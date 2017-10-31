@@ -114,10 +114,8 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			irrigation(patch);
 			// Soil water accounting, snow pack accounting
 			soilwater(patch, gridcell.climate);
-			// Daily C allocation (cropland)
+			// Daily C allocation (grass and crops)
 			growth_daily(patch);
-			// Daily C allocation (grass only)
-			growth_daily_grass(stand, patch);
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch);
 

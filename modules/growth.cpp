@@ -1689,11 +1689,13 @@ void growth(Stand& stand, Patch& patch) {
  *  of turnover, allocation and growth.
  */
 //
-void growth_daily_grass(Stand& stand, Patch& patch) {
+void growth_daily_grass(Patch& patch) {
 
 	// If not modelling daily growth for grasses then return back to framework
 	if (!ifdailygrass)
 		return;
+
+	Stand& stand = patch.stand;
 
 	// minimum carbon mass allowed (kgC/m2)
 	const double MINCMASS = 1.0e-8;
@@ -2030,6 +2032,24 @@ void growth_daily_grass(Stand& stand, Patch& patch) {
 	} // while vegetation is object
 
 } // growth_daily() 
+
+/// Handles daily crop allocation and daily lai calculation
+/** Simple allocation based on heat unit accumulation.
+ *  LAI is set directly after allocation from leaf carbon mass.
+ */
+void growth_daily(Patch& patch) {
+
+	if(patch.stand.landcover == CROPLAND) {
+
+		// allocate daily npp to leaf, roots and harvestable organs
+		growth_daily_crop(patch);
+
+		// update patchpft.lai_daily and fpc_daily
+		lai_crop(patch);
+	}
+	// Daily C allocation (grass only)
+	growth_daily_grass(patch);
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES

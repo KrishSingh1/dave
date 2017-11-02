@@ -8,6 +8,52 @@
 #include "landcover.h"
 #include "management.h"
 
+bool grazing = false;
+
+/// Grazing function used for grass individuals in PASTURE stands; called from growth_daily_grass().
+void grazing_daily(Individual& indiv) {
+
+	if(indiv.pft.lifeform != GRASS)
+		return;
+
+	if(date.day == 0)
+		grazing = false;
+	Patch& patch = indiv.vegetation.patch;
+	Stand& stand = patch.stand;
+
+	//rate of grazing each day for landcover pasture functionality , fraction
+	double GRAZING_RATE = stlist[stand.stid].get_management().grazeintens;
+	//minimum carbon in cmass_leaf_w3 for daily grazing functionality
+	const double GRAZING_W3_MIN_CMASS = 0.01;
+
+	// GRAZING
+	if(indiv.cmass_leaf_w3 > GRAZING_W3_MIN_CMASS && indiv.vegetation.patch.stand.landcover == PASTURE){
+
+		if(!grazing) {
+			dprintf("Year %d: grazing started day %d\n", date.get_calendar_year(), date.day);
+			grazing = true;
+		}
+		patch.is_litter_day=true;
+
+		// Carbon
+		double cmass_harvest = (indiv.cmass_leaf_w1 + indiv.cmass_leaf_w2 + indiv.cmass_leaf_w3) * GRAZING_RATE;
+		indiv.cmass_leaf_w1 -= indiv.cmass_leaf_w1 * GRAZING_RATE;
+		indiv.cmass_leaf_w2 -= indiv.cmass_leaf_w2 * GRAZING_RATE;
+		indiv.cmass_leaf_w3 -= indiv.cmass_leaf_w3 * GRAZING_RATE;
+		patch.fluxes.report_flux(Fluxes::HARVESTC, cmass_harvest);
+
+		// Nitrogen
+		double nmass_harvest = (indiv.nmass_leaf_w1 + indiv.nmass_leaf_w2 + indiv.nmass_leaf_w3) * GRAZING_RATE;
+		indiv.nmass_leaf_w1 -= indiv.nmass_leaf_w1 * GRAZING_RATE;
+		indiv.nmass_leaf_w2 -= indiv.nmass_leaf_w2 * GRAZING_RATE;
+		indiv.nmass_leaf_w3 -= indiv.nmass_leaf_w3 * GRAZING_RATE;
+		indiv.nmass_leaf -= nmass_harvest;
+		double N_grazing_scale = 0.25;	// 75% of N goes back to litter as manure
+		patch.fluxes.report_flux(Fluxes::HARVESTN, nmass_harvest * N_grazing_scale);
+		patch.pft[indiv.pft.id].nmass_litter_leaf += nmass_harvest * (1.0 - N_grazing_scale);
+	}
+}
+
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change
 /** A fraction of trees is cut down (frac_cut)
  *  A fraction of wood is harvested (pft.harv_eff) and returned as acflux_harvest

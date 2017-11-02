@@ -8,16 +8,12 @@
 #include "landcover.h"
 #include "management.h"
 
-bool grazing = false;
-
 /// Grazing function used for grass individuals in PASTURE stands; called from growth_daily_grass().
 void grazing_daily(Individual& indiv) {
 
 	if(indiv.pft.lifeform != GRASS)
 		return;
 
-	if(date.day == 0)
-		grazing = false;
 	Patch& patch = indiv.vegetation.patch;
 	Stand& stand = patch.stand;
 
@@ -29,10 +25,6 @@ void grazing_daily(Individual& indiv) {
 	// GRAZING
 	if(indiv.cmass_leaf_w3 > GRAZING_W3_MIN_CMASS && indiv.vegetation.patch.stand.landcover == PASTURE){
 
-		if(!grazing) {
-			dprintf("Year %d: grazing started day %d\n", date.get_calendar_year(), date.day);
-			grazing = true;
-		}
 		patch.is_litter_day=true;
 
 		// Carbon

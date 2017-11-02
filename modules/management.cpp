@@ -1077,7 +1077,7 @@ bool harvest_year(Individual& indiv) {
 		if (!indiv.has_daily_turnover())
 			harvest_crop(indiv, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass, false);
 	}
-	else if (stand.landcover == PASTURE && (!ifdailygrass || !mt.grazeintens)) {
+	else if ((stand.landcover == PASTURE || stand.landcover == URBAN) && (!ifdailygrass || !mt.grazeintens)) {
 		harvest_pasture(indiv, indiv.pft, indiv.alive);
 	}
 	else if(stand.landcover == FOREST || stand.landcover == NATURAL && run_landcover)

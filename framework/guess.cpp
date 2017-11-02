@@ -2299,7 +2299,8 @@ Landcover::Landcover() {
 			primary_frac_transfer[i][j] = 0.0;
 		}
 
-		expand_to_new_stand[i] = (i == NATURAL || i == FOREST || i == PASTURE);
+//		expand_to_new_stand[i] = (i == NATURAL || i == FOREST || i == PASTURE);
+		expand_to_new_stand[i] = (i == NATURAL || i == FOREST);
 
 		pool_to_all_landcovers[i] = false;		// from a donor landcover; alt.c
 		pool_from_all_landcovers[i] = false;	// to a receptor landcover; alt.a

@@ -875,7 +875,7 @@ void CFInput::populate_daily_arrays(long& seed) {
 			const double t0 = 273.15;
 			double temp = 0.5 * (dmax_temp[i] + dmin_temp[i]);
 			double es   = 6.112 * exp(17.67 * temp/(temp + 243.5));
-			double e    = dspecifichum[i] * dpres[i] / 100.; 
+			double e    = dspecifichum[i] * dpres[i] / (0.378 * dspecifichum[i] + 0.622); 
 			drelhum[i]  = min(max(e / es * 100.,0.),100.) ;
 			
 			//CLNdprintf("CLN  dspecifichum[i] %f \n", dspecifichum[i] );

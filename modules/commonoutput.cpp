@@ -461,7 +461,7 @@ void output_vegetation(Gridcell& gridcell, Pftlist& pftlist) {
 	plot3d(file);
 }
 
-/// Gets stand age structure to argument densindiv of dimensions [npft,nageclass]
+/// Gets stand age structure to argument densindiv matrix of dimensions [npft,nageclass]
 /** First call with havedims=false to allocate memory and return nageclass,
   * then with havedims=true to get data into densindiv
   * Calling function is responsible for deallocating memory by:
@@ -1461,18 +1461,18 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 		if (!(date.year%PLOT_UPDATE_INTERVAL)) {
 
-			double* densindiv=NULL;
+			double* densindiv_matrix=NULL;
 			int nageclass;
-			get_stand_age_structure(gridcell, densindiv, nageclass, false);
+			get_stand_age_structure(gridcell, densindiv_matrix, nageclass, false);
 
 			if (nageclass) {
 
-				densindiv = new double[npft*nageclass];
-				if (densindiv) {
+				densindiv_matrix = new double[(npft+1)*nageclass];
+				if (densindiv_matrix) {
 
 					resetwindow("Age structure [indiv/ha]");
 
-					get_stand_age_structure(gridcell, densindiv, nageclass, true);
+					get_stand_age_structure(gridcell, densindiv_matrix, nageclass, true);
 
 					pftlist.firstobj();
 					while (pftlist.isobj) {
@@ -1483,13 +1483,13 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 							for (c = 0; c<nageclass; c++)
 								plot("Age structure [indiv/ha]", pft.name,
 								c * estinterval + estinterval*0.5,
-								densindiv[pft.id*nageclass+c]*1e4); // includes conversion from /m2 --> /ha
+								densindiv_matrix[pft.id*nageclass+c]*1e4); // includes conversion from /m2 --> /ha
 						}
 
 						pftlist.nextobj();
 					}
 
-					delete[] densindiv;
+					delete[] densindiv_matrix;
 				}
 			}
 		}

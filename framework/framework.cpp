@@ -80,6 +80,12 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 		// START OF LOOP THROUGH STANDS
 		Stand& stand = *gc_itr;
 
+		// check balance stand
+		double stccont_zero = stand.ccont(); 
+		double stcflux_zero = stand.cflux(); 
+		double stncont_zero = stand.ncont(); 
+		double stnflux_zero = stand.nflux(); 
+
 		dailyaccounting_stand(stand);
 
 		stand.firstobj();
@@ -102,7 +108,6 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 				// necessary updates after changing growingperiod status
 				update_patch_fpc(patch);
 			}
-
 			// Leaf phenology for PFTs and individuals
 			leaf_phenology(patch, gridcell.climate);
 			// Interception
@@ -118,9 +123,9 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			growth_daily(patch);
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch);
-			// BLAZE fire model 
-			if (firemodel == BLAZE && patch.has_fires()) 
-				blaze(patch,gridcell.climate);
+			// BLAZE fire model
+//CLNXXX			if (firemodel == BLAZE && patch.has_fires()) 
+//CLNXXX	blaze(patch,gridcell.climate);
 
 			if (date.islastday && date.islastmonth) {
 				// LAST DAY OF YEAR
@@ -146,6 +151,16 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 				stand.nextobj();
 			}
 		}
+		// check balance stand
+//		if ( (stccont_zero - stand.ccont()) - ( stand.cflux() - stcflux_zero ) > 0.0000001) {
+//			dprintf("Stand C imbalance %i %i %i \n",date.year,date.day,stand.id);
+//			dprintf(" \n");
+//			dprintf("stccont_zero   %f \n",stccont_zero);
+//			dprintf("stand.ccont()  %f \n",stand.ccont());
+//			dprintf("stcflux_zero   %f \n",stcflux_zero);
+//			dprintf("stand.cflux()  %f \n",stand.cflux());
+//			dprintf("all            %f \n",(stccont_zero - stand.ccont()) - ( stand.cflux() - stcflux_zero ));
+//		}			
 
 		++gc_itr;
 	}	// End of loop through stands
@@ -193,11 +208,11 @@ int framework(const CommandLineArguments& args) {
 	auto_ptr<GuessDeserializer> deserializer;
 
 	if (save_state) {
-		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes()));
+		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(ostate_path, GuessParallel::get_rank(), GuessParallel::get_num_processes()));
 	}
 
 	if (restart) {
-		deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(state_path));
+		deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(istate_path));
 	}
 
 	while (true) {
@@ -230,7 +245,7 @@ int framework(const CommandLineArguments& args) {
 			// Get the whole grid cell from file...
 			deserializer->deserialize_gridcell(gridcell);
 			// ...and jump to the restart year
-			date.year = state_year;
+			date.year = istate_year;
 		}
 		gridcell.climate.prescribed_ba = prescba;
 
@@ -240,6 +255,13 @@ int framework(const CommandLineArguments& args) {
 
 		// CLN enter GFED & MET in getclimate
 		while (input_module->getclimate(gridcell)) {
+
+
+			// CHECK LN 
+			double ln_cc0 = gridcell.ccont();
+			double ln_cf0 = gridcell.cflux();
+			double ln_nc0 = gridcell.ncont();
+			double ln_nf0 = gridcell.nflux();
 
 			// START OF LOOP THROUGH SIMULATION DAYS
 
@@ -256,7 +278,7 @@ int framework(const CommandLineArguments& args) {
 				gridcell.balance.check_year(gridcell);
 
 				// Time to save state?
-				if (date.year == state_year-1 && save_state) {
+				if (date.year == ostate_year-1 && save_state) {
 					serializer->serialize_gridcell(gridcell);
 				}
 
@@ -266,9 +288,24 @@ int framework(const CommandLineArguments& args) {
 				}
 			}
 
+			// CHECK 
+//			// CHECK LN 
+//			double ln_cc1 = gridcell.ccont();
+//			double ln_cf1 = gridcell.cflux();
+//			double ln_nc1 = gridcell.ncont();
+//			double ln_nf1 = gridcell.nflux();
+//			if ( ln_cc1 - ln_cc0 - ( ln_cf1 - ln_cf0) ) {
+//				dprintf("y d %i %i  \n",date.year, date.day);
+//				dprintf("ln_cc0 %f \n",ln_cc0);
+//				dprintf("ln_cc1 %f \n",ln_cc1);
+//				dprintf("ln_cf0 %f \n",ln_cf0);
+//				dprintf("ln_cf1 %f \n",ln_cf1);
+//				dprintf("all    %f \n",ln_cc1 - ln_cc0 - ( ln_cf1 - ln_cf0) );
+//			}
+//			
 			// Advance timer to next simulation day
 			date.next();
-
+			
 			// End of loop through simulation days
 		}	//while (getclimate())
 

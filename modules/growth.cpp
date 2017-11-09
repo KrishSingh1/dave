@@ -531,7 +531,6 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 				cmass_debt_inc=cmass_loan;
 			}
 			else cmass_debt_inc=0.0;
-
 		}
 		else cmass_debt_inc=0.0;
 
@@ -820,6 +819,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 	// maximum carbon mismatch
 	double EPS = 1.0e-12;
+
 	assert(fabs(bminc + exceeds_cmass - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
 }
 
@@ -930,7 +930,7 @@ bool allometry(Individual& indiv) {
 
 		// guess2008 - new allometry check
 		const float EPS = 1.e-12;
-		//if (!negligible(indiv.cmass_leaf, EPS)) {
+		//CLNif (!negligible(indiv.cmass_leaf, EPS)) {
 		if ( indiv.cmass_leaf > EPS) {
 			
 			indiv.height = indiv.cmass_sap / indiv.cmass_leaf / indiv.pft.sla * indiv.pft.k_latosa / indiv.pft.wooddens;

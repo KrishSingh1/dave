@@ -266,8 +266,8 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 	else {
 		double interpf = (double)(cyear-poptime[idx-1]) /
 			(double)(poptime[idx-1] - poptime[idx]);
-		popd = (1. - interpf) * gridcell.hyde31_pop_density[idx-1] + 
-			interpf * gridcell.hyde31_pop_density[idx];
+		popd = interpf * gridcell.hyde31_pop_density[idx-1] + 
+			(1. - interpf) * gridcell.hyde31_pop_density[idx];
 	}
 
 	gridcell.pop_density = max(0.,popd);
@@ -289,7 +289,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	// check whether this day is the first day of simulation 
 	// (i.e. start of spinup or first day after restart
 	bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
-		( restart && date.year == state_year ) ) );
+		( restart && date.year == istate_year ) ) );
 
 	if (date.day == 0 ) {
 		// set SIMFIRE biomes based on IGBP classification

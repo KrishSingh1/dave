@@ -509,8 +509,8 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// implemented in the tropics
 						Gridcell&  gridcell = stand.get_gridcell();
 						double sapfac = 1.0;
-						if ( firemodel == BLAZE && abs(gridcell.get_lat()) <30.  ) 
-							sapfac = 0.1;
+						//CLNif ( firemodel == BLAZE && abs(gridcell.get_lat()) <30.  ) 
+						//CLN	sapfac = 0.1;
 						if(pft.phenology == CROPGREEN)
 							bminit = sapfac * SAPSIZE * 0.01;
 						else if(patch.has_disturbances() && patch.disturbed) 

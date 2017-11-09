@@ -635,7 +635,6 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		// reset annual nitrogen input variables
 		climate.andep  = 0.0;
 
-
 		// reset gridcell-level harvest fluxes
 		gridcell.landcover.acflux_landuse_change=0.0;
 		gridcell.landcover.acflux_harvest_slow=0.0;

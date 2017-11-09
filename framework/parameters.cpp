@@ -77,10 +77,12 @@ bool textured_soil;
 bool disturb_pasture;
 bool grassforcrop;
 
-xtring state_path;
+xtring istate_path;
+xtring ostate_path;
 bool restart;
 bool save_state;
-int state_year;
+int istate_year;
+int ostate_year;
 	
 bool readsowingdates = false;
 bool readharvestdates = false;
@@ -484,10 +486,12 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("disturb_pasture",&disturb_pasture,1,CB_NONE,"Whether fire and disturbances enabled on pastures (0,1)");
 		declareitem("grassforcrop",&grassforcrop,1,CB_NONE,"grassforcrop");
 
-		declareitem("state_path", &state_path, 300, CB_NONE, "State files directory (for restarting from, or saving state files)");
+		declareitem("istate_path", &istate_path, 300, CB_NONE, "State files directory (for restarting from)");
+		declareitem("ostate_path", &ostate_path, 300, CB_NONE, "State files directory (for saving state files)");
 		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
 		declareitem("save_state", &save_state, 1, CB_NONE, "Whether to save new state files");
-		declareitem("state_year", &state_year, 1, 20000, 1, CB_NONE, "Save/restart year. Unspecified means just after spinup");
+		declareitem("istate_year", &istate_year, 1, 20000, 1, CB_NONE, "Restart year. ");
+		declareitem("ostate_year", &ostate_year, 1, 20000, 1, CB_NONE, "Save year. Unspecified means just after spinup");
 
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
@@ -1221,17 +1225,35 @@ void plib_callback(int callback) {
 		}
 
 		if (save_state && restart) {
-			sendmessage("Error",
-			            "Can't save state and restart at the same time");
-			plibabort();
+			bool err_abort = false;
+			if ( istate_path == ostate_path ) { 
+				sendmessage("Error",
+					    "Can't save state and restart into same files");
+				err_abort = true;
+			}
+			if ( istate_year >= ostate_year ) {
+				sendmessage("Error",
+					    "istate year >= ostate year");
+				err_abort = true;
+			}
+			if (err_abort) 
+				plibabort();
 		}
 
-		if (!itemparsed("state_year")) {
-			state_year = nyear_spinup;
+		if (!itemparsed("istate_year") && restart) {
+			istate_year = nyear_spinup;
 		}
 
-		if (state_path == "" && (save_state || restart)) {
-			badins("state_path");
+		if (istate_path == "" && restart) {
+			badins("istate_path");
+		}
+
+		if (!itemparsed("ostate_year") && save_state) {
+			ostate_year = nyear_spinup;
+		}
+
+		if (ostate_path == "" && save_state ) {
+			badins("ostate_path");
 		}
 
 		if (grassforcrop) {

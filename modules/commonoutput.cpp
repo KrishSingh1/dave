@@ -232,7 +232,7 @@ void CommonOutput::define_output_tables() {
 
 	// BLAZE burnt area 
 	ColumnDescriptors blaze_columns;
-	blaze_columns += ColumnDescriptor("BurntArea",        8, 5);
+	blaze_columns += ColumnDescriptor("BurntAr",        8, 5);
 //	ColumnDescriptors blzana_columns;
 //	blzana_columns += ColumnDescriptor("FFDI",        8, 5);
 

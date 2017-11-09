@@ -243,7 +243,8 @@ extern bool grassforcrop;
 // Settings controlling the saving and loading from state files
 
 /// Location of state files
-extern xtring state_path;
+extern xtring istate_path;
+extern xtring ostate_path;
 
 /// Whether to restart from state files
 extern bool restart;
@@ -252,7 +253,8 @@ extern bool restart;
 extern bool save_state;
 
 /// Save/restart year
-extern int state_year;
+extern int istate_year;
+extern int ostate_year;
 
 /// whether to vary mort_greff smoothly with growth efficiency (1) or to use the standard step-function (0)
 extern bool ifsmoothgreffmort;

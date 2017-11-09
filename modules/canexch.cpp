@@ -119,6 +119,7 @@ void interception(Patch& patch,Climate& climate) {
 	}
 
 	// Calculate net EET for vegetated parts of patch (deducting loss to interception)
+
 	patch.eet_net_veg=max(climate.eet-patch.intercep,0.0);
 
 	// Interception accounting for patch
@@ -774,6 +775,7 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 double nitrogen_uptake_strength(const Individual& indiv) {
 	return pow(max(0.0, indiv.cmass_root_today()) * indiv.pft.nupscoeff * indiv.cton_status / indiv.densindiv, 2.0 / 3.0) * indiv.densindiv;
 }
+
 /// Individual nitrogen uptake fraction
 /** Determining individual nitrogen uptake as a fraction of its nitrogen demand.
  *

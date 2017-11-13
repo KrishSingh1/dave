@@ -40,10 +40,9 @@ OutputModuleContainer::OutputModuleContainer()
 }
 
 OutputModuleContainer::~OutputModuleContainer() {
-	if (output_year >= date.get_calendar_year()) {
+	if (!called) {
 		dprintf("WARNING: no outputs were written to files!\n"
-				"output_year: %d, last calendar year: %d\n",
-				output_year, date.get_calendar_year()-1);
+				"\toutput_year: %d\n", output_year);
 	}
 	for (size_t i = 0; i < modules.size(); ++i) {
 		delete modules[i];
@@ -75,7 +74,7 @@ void OutputModuleContainer::init() {
 }
 
 void OutputModuleContainer::outannual(Gridcell& gridcell) {
-	if (date.get_calendar_year() < output_year) {
+	if (!called) {
 		return;
 	}
 	for (size_t i = 0; i < modules.size(); ++i) {
@@ -84,7 +83,8 @@ void OutputModuleContainer::outannual(Gridcell& gridcell) {
 }
 
 void OutputModuleContainer::outdaily(Gridcell& gridcell) {
-	if (date.get_calendar_year() < output_year) {
+	called = date.get_calendar_year() >= output_year;
+	if (!called) {
 		return;
 	}
 	for (size_t i = 0; i < modules.size(); ++i) {

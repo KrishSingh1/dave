@@ -18,7 +18,7 @@ void grazing_daily(Individual& indiv) {
 	Stand& stand = patch.stand;
 
 	//rate of grazing each day for landcover pasture functionality , fraction
-	double GRAZING_RATE = stlist[stand.stid].get_management().grazeintens;
+	double grazing_rate = stlist[stand.stid].get_management().grazeintens;
 	//minimum carbon in cmass_leaf_w3 for daily grazing functionality
 	const double GRAZING_W3_MIN_CMASS = 0.01;
 
@@ -28,17 +28,17 @@ void grazing_daily(Individual& indiv) {
 		patch.is_litter_day=true;
 
 		// Carbon
-		double cmass_harvest = (indiv.cmass_leaf_w1 + indiv.cmass_leaf_w2 + indiv.cmass_leaf_w3) * GRAZING_RATE;
-		indiv.cmass_leaf_w1 -= indiv.cmass_leaf_w1 * GRAZING_RATE;
-		indiv.cmass_leaf_w2 -= indiv.cmass_leaf_w2 * GRAZING_RATE;
-		indiv.cmass_leaf_w3 -= indiv.cmass_leaf_w3 * GRAZING_RATE;
+		double cmass_harvest = (indiv.cmass_leaf_w1 + indiv.cmass_leaf_w2 + indiv.cmass_leaf_w3) * grazing_rate;
+		indiv.cmass_leaf_w1 -= indiv.cmass_leaf_w1 * grazing_rate;
+		indiv.cmass_leaf_w2 -= indiv.cmass_leaf_w2 * grazing_rate;
+		indiv.cmass_leaf_w3 -= indiv.cmass_leaf_w3 * grazing_rate;
 		patch.fluxes.report_flux(Fluxes::HARVESTC, cmass_harvest);
 
 		// Nitrogen
-		double nmass_harvest = (indiv.nmass_leaf_w1 + indiv.nmass_leaf_w2 + indiv.nmass_leaf_w3) * GRAZING_RATE;
-		indiv.nmass_leaf_w1 -= indiv.nmass_leaf_w1 * GRAZING_RATE;
-		indiv.nmass_leaf_w2 -= indiv.nmass_leaf_w2 * GRAZING_RATE;
-		indiv.nmass_leaf_w3 -= indiv.nmass_leaf_w3 * GRAZING_RATE;
+		double nmass_harvest = (indiv.nmass_leaf_w1 + indiv.nmass_leaf_w2 + indiv.nmass_leaf_w3) * grazing_rate;
+		indiv.nmass_leaf_w1 -= indiv.nmass_leaf_w1 * grazing_rate;
+		indiv.nmass_leaf_w2 -= indiv.nmass_leaf_w2 * grazing_rate;
+		indiv.nmass_leaf_w3 -= indiv.nmass_leaf_w3 * grazing_rate;
 		indiv.nmass_leaf -= nmass_harvest;
 		double N_grazing_scale = 0.25;	// 75% of N goes back to litter as manure
 		patch.fluxes.report_flux(Fluxes::HARVESTN, nmass_harvest * N_grazing_scale);

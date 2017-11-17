@@ -1103,7 +1103,6 @@ bool harvest_year(Individual& indiv) {
 
 	Stand& stand = indiv.vegetation.patch.stand;
 	Landcover& landcover = stand.get_gridcell().landcover;
-	ManagementType& mt = stlist[stand.stid].get_management();
 	bool killed = false;
 
 	// Reduce individual's C and N mass in stands that have increased in area this year:

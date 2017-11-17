@@ -90,13 +90,6 @@ group "crop_management" (
 !// PARAMETERS FOR STAND TYPES
 
 
-group "common_stand" (
-
-	intercrop "nointercrop"
-	naturalveg "none"
-	restrictpfts 0		! Use all pft:s defined for a land cover (pft parameter landcover)
-)
-
 group "crop_stand" (
 
 	landcover "cropland"
@@ -118,13 +111,6 @@ st "Peatland" (
 	common_stand
 	stinclude 1
 	landcover "peatland"
-)
-
-st "Natural" (
-
-	common_stand
-	stinclude 1
-	landcover "natural"
 )
 
 st "Pasture" (

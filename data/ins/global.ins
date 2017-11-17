@@ -137,6 +137,22 @@ ifbvoc 0                     ! whether to include BVOC calculations (1) or not (
 
 run_landcover 0        ! whether to use (and change) landcover fractions (1) or not (0)
 
+!///////////////////////////////////////////////////////////////////////////////////////
+!// PARAMETERS FOR STAND TYPES
+
+group "common_stand" (
+
+	intercrop "nointercrop"
+	restrictpfts 0		! Use all pft:s defined for a land cover (pft parameter landcover)
+)
+
+st "Natural" (
+
+	common_stand
+	stinclude 1
+	landcover "natural"
+	naturalveg "all"
+)
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR PFTS

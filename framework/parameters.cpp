@@ -1486,7 +1486,6 @@ void plib_callback(int callback) {
 				if (!itemparsed("stor")) badins("stor");
 				if (!itemparsed("transferconst")) badins("transferconst");
 				if (!itemparsed("sen_fac")) badins("sen_fac");
-
 			}
 
 			if (run_landcover) {

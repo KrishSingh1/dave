@@ -2171,43 +2171,43 @@ public:
 	/// accumulated NPP over modelled area (kgC/m2/year);
 	/** annual NPP following call to growth module on last day of simulation year */
 	double anpp;
-	// phen for daily allocation
+	/// phen for daily allocation
 	double phen_daily;
-	// yearly lai for daily allocation
+	/// yearly lai for daily allocation
 	double lai_ymax;
-	// yearly maximum cmass_leaf for daily allocation
+	/// yearly maximum cmass_leaf for daily allocation
 	double cmass_leaf_ymax;
-	// yearly maximum cmass_root for daily allocation
+	/// yearly maximum cmass_root for daily allocation
 	double cmass_root_ymax;
-	// Storage weight for daily allocation
+	/// Storage weight for daily allocation
 	double cmass_leaf_ws;
-	// Storage weight for biomass increment without lai
+	/// Storage weight for biomass increment without lai
 	double cmass_root_sg;
-	// weight of all growth compartments. Is same as cmass_leaf, can be removed once grass is allowed to have an age.
+	/// weight of all growth compartments. Is same as cmass_leaf, can be removed once grass is allowed to have an age.
 	double cmass_leaf_wg;
-	// weight of growth compartment 1 daily allocation
+	/// weight of growth compartment 1 daily allocation
 	double cmass_leaf_w1;
-	// weight of growth compartment 2 daily allocation
+	/// weight of growth compartment 2 daily allocation
 	double cmass_leaf_w2;
-	// weight of growth compartment 3 daily allocation
+	/// weight of growth compartment 3 daily allocation
 	double cmass_leaf_w3;
-	// weight of growth compartment 4 daily allocation
+	/// weight of growth compartment 4 daily allocation
 	double cmass_leaf_w4;
-	// Abscission from last compartment (4) ie litter, daily allocation
+	/// abscission from last compartment (4) ie litter, daily allocation
 	double abscission;
-	//sum of growth of leaves not related to sg
+	/// sum of growth of leaves not related to sg
 	double cmass_leaf_ygrowth;
-	// Nitrogen of growth compartment 1 daily allocation
+	/// nitrogen of growth compartment 1 daily allocation
 	double nmass_leaf_w1;
-	// Nitrogen of growth compartment 2 daily allocation
+	/// nitrogen of growth compartment 2 daily allocation
 	double nmass_leaf_w2;
-	// Nitrogen of growth compartment 3 daily allocation
+	/// nitrogen of growth compartment 3 daily allocation
 	double nmass_leaf_w3;
-	// Nitrogen of growth compartment 4 daily allocation
+	/// nitrogen of growth compartment 4 daily allocation
 	double nmass_leaf_w4;
-	// running mean of nscal for last 365 days for each individual daily allocation
+	/// running mean of nscal for last 365 days for each individual daily allocation
 	Historic<double, 365> nscal_running;
-	// running mean of wscal for last 365 days for each individual daily allocation
+	/// running mean of wscal for last 365 days for each individual daily allocation
 	Historic<double, 365> wscal_running;
 	/// actual evapotranspiration over projected area (mm/day)
 	double aet;

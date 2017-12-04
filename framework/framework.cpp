@@ -80,12 +80,6 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 		// START OF LOOP THROUGH STANDS
 		Stand& stand = *gc_itr;
 
-		// check balance stand
-		double stccont_zero = stand.ccont(); 
-		double stcflux_zero = stand.cflux(); 
-		double stncont_zero = stand.ncont(); 
-		double stnflux_zero = stand.nflux(); 
-
 		dailyaccounting_stand(stand);
 
 		stand.firstobj();
@@ -124,8 +118,8 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch);
 			// BLAZE fire model
-//CLNXXX			if (firemodel == BLAZE && patch.has_fires()) 
-//CLNXXX	blaze(patch,gridcell.climate);
+			if (firemodel == BLAZE && patch.has_fires()) 
+				blaze(patch,gridcell.climate);
 
 			if (date.islastday && date.islastmonth) {
 				// LAST DAY OF YEAR
@@ -151,16 +145,6 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 				stand.nextobj();
 			}
 		}
-		// check balance stand
-//		if ( (stccont_zero - stand.ccont()) - ( stand.cflux() - stcflux_zero ) > 0.0000001) {
-//			dprintf("Stand C imbalance %i %i %i \n",date.year,date.day,stand.id);
-//			dprintf(" \n");
-//			dprintf("stccont_zero   %f \n",stccont_zero);
-//			dprintf("stand.ccont()  %f \n",stand.ccont());
-//			dprintf("stcflux_zero   %f \n",stcflux_zero);
-//			dprintf("stand.cflux()  %f \n",stand.cflux());
-//			dprintf("all            %f \n",(stccont_zero - stand.ccont()) - ( stand.cflux() - stcflux_zero ));
-//		}			
 
 		++gc_itr;
 	}	// End of loop through stands
@@ -256,13 +240,6 @@ int framework(const CommandLineArguments& args) {
 		// CLN enter GFED & MET in getclimate
 		while (input_module->getclimate(gridcell)) {
 
-
-			// CHECK LN 
-			double ln_cc0 = gridcell.ccont();
-			double ln_cf0 = gridcell.cflux();
-			double ln_nc0 = gridcell.ncont();
-			double ln_nf0 = gridcell.nflux();
-
 			// START OF LOOP THROUGH SIMULATION DAYS
 
 			simulate_day(gridcell, input_module.get());
@@ -288,21 +265,6 @@ int framework(const CommandLineArguments& args) {
 				}
 			}
 
-			// CHECK 
-//			// CHECK LN 
-//			double ln_cc1 = gridcell.ccont();
-//			double ln_cf1 = gridcell.cflux();
-//			double ln_nc1 = gridcell.ncont();
-//			double ln_nf1 = gridcell.nflux();
-//			if ( ln_cc1 - ln_cc0 - ( ln_cf1 - ln_cf0) ) {
-//				dprintf("y d %i %i  \n",date.year, date.day);
-//				dprintf("ln_cc0 %f \n",ln_cc0);
-//				dprintf("ln_cc1 %f \n",ln_cc1);
-//				dprintf("ln_cf0 %f \n",ln_cf0);
-//				dprintf("ln_cf1 %f \n",ln_cf1);
-//				dprintf("all    %f \n",ln_cc1 - ln_cc0 - ( ln_cf1 - ln_cf0) );
-//			}
-//			
 			// Advance timer to next simulation day
 			date.next();
 			

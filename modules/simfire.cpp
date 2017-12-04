@@ -35,13 +35,13 @@
 int update_fire_biome (Patch& patch, double lat) {
 
 	double fgrass=0.0; // grass fraction of all vegetation
-	double fndlt=0.0; // fraction of needle-leaf tress
-	double fbrlt=0.0; // fraction of broad-leaf trees
-	double fshrb=0.0; // fraction of woody vegetation that is shrubs
-	double ftot=0.0; // total FPAR of all individuals
-	int biome=0; // biome number
+	double fndlt=0.0;  // fraction of needle-leaf tress
+	double fbrlt=0.0;  // fraction of broad-leaf trees
+	double fshrb=0.0;  // fraction of woody vegetation that is shrubs
+	double ftot=0.0;   // total FPAR of all individuals
+	int biome=0;       // biome number
 	int count[NFIREBIOMES]; // incidence count of biome in previous years;
-	int count_max=0; // maximum of 'count'
+	int count_max=0;   // maximum of 'count'
 
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation=patch.vegetation;
@@ -87,6 +87,7 @@ int update_fire_biome (Patch& patch, double lat) {
 
 	if ( ftot < 0.00000001 )   
 		return 0;
+
 	// re-normalize
 	fgrass /= ftot;
 	fndlt  /= ftot;
@@ -136,7 +137,7 @@ int update_fire_biome (Patch& patch, double lat) {
 	else if (fbrlt>=0.6) {
 		biome=3; } // broad-leaf forest
 	else {
-		biome=4;  // mixed forest
+		biome=4;   // mixed forest
 	}
 	return biome;
 }
@@ -177,22 +178,24 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 	//  7 Barren or Sparsely Vegetated (IGBP 16 and latitude<50): <10% vegetation cover
 	//
 
+	// mapping IGBP -> simfire-biomes
 	const double igbp2simfirebiome[2][18] = {
 		{ -1, 1, 2, 1, 2, 3, 4, 4, 5, 5, 5,-1, 0, 0, 0,-1, 7, -1 },  //  ! LAT  < 50 
 		{ -1, 1, 2, 1, 2, 3, 6, 6, 5, 5, 5,-1, 0, 0, 0,-1, 6, -1 }}; //  ! LAT >= 50
 
-	//CLN here auswahlkriterien!
 	Climate& climate = gridcell.climate;
 
 	// Regions with dedicated parameter optimisation for SIMFIRE
 	// 0: global
 	// 1: Europe
 	// 2: AUS-NZ
- 	// come up with a EUrope, ANZ definition.
+
+	// Set global as fixed for now
 	gridcell.simfire_region = 0; // Global
 
+	// determine gridcell's simfire biome
+	// At start of spinup use IGBP
 	double lat = gridcell.get_lat();
-
 	if ( date.year == 0 && date.day == 0 ) {
 		if (abs(lat) >= 50.) {
 			climate.simfire_biome  = igbp2simfirebiome[1][gridcell.igbp_class];
@@ -201,6 +204,7 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 			climate.simfire_biome  = igbp2simfirebiome[0][gridcell.igbp_class];
 		}
 	}
+	// later use biome-shift
 	else {
 		std::vector<int> biomes;
 		Gridcell::iterator gc_itr = gridcell.begin();
@@ -230,7 +234,7 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 		for (biome=0;biome<NFIREBIOMES;biome++) count_max=max(count_max,count[biome]);
 		for (biome=0;biome<NFIREBIOMES && count[biome]<count_max;biome++) {
 		}
-		// Lars biome is -1 of Wolfgangs old biome classifcation
+		// BLAZE-biome is -1 of SIMFIRE-biome classifcation
 		climate.simfire_biome  = biome - 1;
 	}	
 
@@ -242,15 +246,16 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 void simfire_update_pop_density(Gridcell& gridcell) {
 
 	const int npopt = 57;
+	// years at which pop data is available in HYDE3.1
 	const int poptime[npopt]  = {-10000,-9000,-8000,-7000,-6000,-5000,-4000,-3000,-2000,-1000,0,
 				    100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,
 				    1500,1600,1700,1710,1720,1730,1740,1750,1760,1780,1790,1810,
 				    1820,1830,1840,1850,1860,1870,1880,1890,1900,1910,1920,1930,
 				    1940,1950,1960,1970,1980,1990,2000,2005};
-
+	// get calendar-year
 	int cyear = date.get_calendar_year();
 
-	// start and end year index of pop interpolation
+	// find start and end year index of pop interpolation
 	int idx = 0 ;
       	while (poptime[idx] < cyear) idx++;
 	double popd;
@@ -265,9 +270,9 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 	}
 	else {
 		double interpf = (double)(cyear-poptime[idx-1]) /
-			(double)(poptime[idx-1] - poptime[idx]);
-		popd = interpf * gridcell.hyde31_pop_density[idx-1] + 
-			(1. - interpf) * gridcell.hyde31_pop_density[idx];
+			(double)( poptime[idx]-poptime[idx-1] );
+		popd = (1. - interpf) * gridcell.hyde31_pop_density[idx-1] + 
+			interpf * gridcell.hyde31_pop_density[idx];
 	}
 
 	gridcell.pop_density = max(0.,popd);
@@ -384,7 +389,7 @@ double simfire_ba(Climate& climate, Gridcell& gridcell) {
 
 	/* Called by:  blaze_ignition(blaze.cpp)
 	   Calls    :  -
-	   calculate annual (for now) burned area in ha
+	   calculate burned area in ha
 	*/
 
 	// Regions with dedicated parameter optimisation for SIMFIRE
@@ -419,29 +424,6 @@ double simfire_ba(Climate& climate, Gridcell& gridcell) {
 	
 	int ri = gridcell.simfire_region;
 
-	/*
-	  Lines below need to go into init part of LPJ-GUESS
-	//reading in the data:
-	// Retrieve grid information from burned area annual cycle data base
-	init_sql_acba(param["file_sql_ac_burn"].str);
-
-	// Get annual cycle of burned area and set month marking start of fire season
-	read_sql_acba(lon,lat,param["file_sql_ac_burn"].str);
-	*/
-
-	//	dprintf("CLN simf ba reg: %d \n"  ,gridcell.simfire_region);
-	
-	/*
-	dprintf("CLN simf ba biome: %d \n",climate.simfire_biome);
-	dprintf("CLN simf a: %f \n",a[ri][climate.simfire_biome]);
-	dprintf("CLN simf ann_fapar: %f \n",climate.ann_max_fapar);
-	dprintf("CLN simf b[ri]: %f \n",b[ri]);
-	dprintf("CLN simf climate.max_nesterov: %f \n",climate.max_nesterov);
-	dprintf("CLN simf c[ri]: %f \n",c[ri]);
-	dprintf("CLN simf e[ri]: %f \n",e[ri]);
-	dprintf("CLN simf gridcell.pop_density: %f \n",gridcell.pop_density);
-	*/
-
 	// return if improper biome-type
 	if (climate.simfire_biome == -1) return 0.;
 
@@ -458,12 +440,13 @@ double simfire_ba(Climate& climate, Gridcell& gridcell) {
 		exp(e[ri] * gridcell.pop_density);
 	*/
 
-	//  annual burned area
+	// compute annual burned area
 	double ba = a[ri][climate.simfire_biome] * 
 		pow(climate.ann_max_fapar, b[ri]) *
 		pow((scalar * climate.max_nesterov), c[ri]) *
 		exp(e[ri] * gridcell.pop_density);
 
+	// disaggregate annual burnt area into sub-annual timescales
 	if (blaze_tstep == DAILY) {
 		ba *= climate.monthly_fire_risk[date.month] /
 			date.ndaymonth[date.month];
@@ -472,26 +455,14 @@ double simfire_ba(Climate& climate, Gridcell& gridcell) {
 		ba *= climate.monthly_fire_risk[date.month];
 	} 
 	else if (blaze_tstep == SEASONAL) {
-		// CLN CHECK FOR SEASON SETTING !!!
 		int s = (double)date.month / 3.0;
 		ba *=   climate.monthly_fire_risk[s*3  ] +
 			climate.monthly_fire_risk[s*3+1] +
 			climate.monthly_fire_risk[s*3+2];
 	}
-
+	
+	// keep track of area burnt so far this year
 	climate.acc_areaburnt += ba;
 	
-	/*dprintf("CLN ba1 : %f \n",a[ri][climate.simfire_biome] * pow(climate.ann_max_fapar, b[ri]));
-	dprintf("CLN ba2 : %f \n",pow((scalar * climate.max_nesterov), c[ri]) );
-	dprintf("CLN ba3 : %f \n",exp(e[ri] * gridcell.pop_density));
-	dprintf("CLN ba : %f \n",ba);
-	*/
-	// this is for debugging
-	/*	char command[ 1024 ];
-	long pid = ( long ) ::getpid(); // use long to ensure correct format specifier
-	sprintf( command, "pmap %ld", pid );
-	system( command );	*/
-	// this is for debugging until here
-
 	return ba;
 }

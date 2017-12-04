@@ -61,7 +61,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& par
 		& prec
 		& daylength
-		// BLAZE
+		// BLAZE --[
 		& u10
 		& relhum
 		& tmin
@@ -79,7 +79,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& dslr
 		& kbdi
 		& mcarthur_fire_index
-		// BLAZE
+		// BLAZE --] 
 		& co2
 		& lat
 		& insol

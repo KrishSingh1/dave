@@ -3326,6 +3326,7 @@ public:
 	double leaf2lit, wood2str, wood2fwd, wood2cwd;
 	/// litter to atm
 	double litf2atm, lfwd2atm, lcwd2atm;
+	//WK not really biome shifting but rather biome mapping using vegetation distribution from FAPAR
 	/// Storage for averaging of different Fpars for biome shifting in Simfire
 	double avg_fgrass[n_year_biomeavg];
 	double avg_fndlt[n_year_biomeavg];

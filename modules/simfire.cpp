@@ -1,5 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file blaze.cpp
+//WK SIMFIRE doesn't actually do ignitions but assumes an ignition saturated regime
 /// \brief SIMFIRE ignition simulation by W. Knorr
 ///
 /// \author Lars Nieradzik
@@ -27,10 +28,20 @@
 // When porting between frameworks, the only change required should normally be in the
 // "#include" directive referring to the framework header file.
 
+//WK Is this the framework header file as remarked in (1)?
 #include "config.h"
 #include "simfire.h"
 
 /// SIMFIRE biome mapping
+//WK state a purpose here: return SIMFIRE biome from time average vegetation
+//WK characteristics, also refer to where these biomes are defined in the code
+//WK state meaning of 'return 0'; here it seems to mean 'unvegetated',
+//WK but in the IGBP-SIMFIRE mapping routine 'biome=0' means 'cropland/natural/urban'
+//WK This latter biome could also be determined here using land use information
+//WK in case the land use version of LPJ-GUESS is run
+//WK in general I think this needs explaining how to handle SIMFIRE biomes
+//WK using different versions of LPJ-GUESS (potential natural vegetation, land use,
+//WK running with observed climate or future scenarios)
 #define NFIREBIOMES 9
 int update_fire_biome (Patch& patch, double lat) {
 
@@ -85,7 +96,8 @@ int update_fire_biome (Patch& patch, double lat) {
 		vegetation.nextobj(); // ... on to next individual
 	}
 
-	if ( ftot < 0.00000001 )   
+	if ( ftot < 0.00000001 )
+//WK maybe it should be -1, consistent with simfire_biome_mapping?
 		return 0;
 
 	// re-normalize
@@ -121,6 +133,7 @@ int update_fire_biome (Patch& patch, double lat) {
 	fbrlt  /=  n_year_biomeavg;
 	fshrb  /=  n_year_biomeavg;
 
+//WK: remove 'and' here; also note above about land use
 	// assign biome (neglecting and agricultural land use)
 	if (ftot<0.1 && fabs(lat)<50.0) {
 		biome=8; } // barren or sparsely vegetated
@@ -142,6 +155,12 @@ int update_fire_biome (Patch& patch, double lat) {
 	return biome;
 }
 
+//WK state a purpose and explain why is this mapping needed given that the
+//WK routine above uses FPAR of different vegetation types to determine
+//WK the SIMFIRE biome
+//WK Find it confusing that there seem to be two ways of generating biome
+//WK information - do they exist side by side, is there a switch in the ins
+//WK file to choose between them etc., etc. - please explain
 void simfire_biome_mapping(Gridcell& gridcell) {
 	
 	// IGBP:
@@ -195,6 +214,7 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 
 	// determine gridcell's simfire biome
 	// At start of spinup use IGBP
+	//WK where does the IGBP class come from?
 	double lat = gridcell.get_lat();
 	if ( date.year == 0 && date.day == 0 ) {
 		if (abs(lat) >= 50.) {
@@ -204,6 +224,7 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 			climate.simfire_biome  = igbp2simfirebiome[0][gridcell.igbp_class];
 		}
 	}
+	//WK explain what is meant by "biome-shift" and by "later"
 	// later use biome-shift
 	else {
 		std::vector<int> biomes;
@@ -241,6 +262,8 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 }
 
 //==============================================================================
+//WK state that at before the earliest entry use constant values
+//WK and after the last use linear interpolation of last two entries
 // INTERPOLATE HYDE 3.1 POPULATION DENSITY BETWEEN TIME-STEPS
 //==============================================================================
 void simfire_update_pop_density(Gridcell& gridcell) {
@@ -269,9 +292,9 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 			(double)(poptime[npopt-1] - poptime[npopt-2]) * (double)(cyear-poptime[npopt-1]);
 	}
 	else {
-		double interpf = (double)(cyear-poptime[idx-1]) /
 			(double)( poptime[idx]-poptime[idx-1] );
-		popd = (1. - interpf) * gridcell.hyde31_pop_density[idx-1] + 
+			double interpf = (double)(cyear-poptime[idx-1]) /
+	popd = (1. - interpf) * gridcell.hyde31_pop_density[idx-1] + 
 			interpf * gridcell.hyde31_pop_density[idx];
 	}
 

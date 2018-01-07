@@ -1,4 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////
+//WK looks like copied from blaze.h
+//WK maybe state that simfire is a sub-unit of blaze
 /// \file blaze.cpp
 /// \brief BLAZE fire simulation and combustion
 ///
@@ -15,6 +17,7 @@
 #define LPJ_GUESS_SIMFIRE_H
 
 #include "guess.h"
+//WK these are the SIMFIRE routines that are used externally, right?
 void simfire_accounting_gridcell(Gridcell& gridcell);
 void simfire_biome_mapping(Gridcell& gridcell); 
 double simfire_ba(Climate& climate, Gridcell& gridcell); 

@@ -694,7 +694,8 @@ public:
 	double monthly_fire_risk[12];
 	/// burned area from either SIMFIRE or GFED
 	double areaburnt;
-	/// aaccumulated burned area from either SIMFIRE or GFED for tstep < 1a 
+	/// accumulated burned area from either SIMFIRE or GFED for tstep < 1a
+//WK why 'acc'?
 	double acc_areaburnt;
 	/// prescribed burned area from file
 	double prescribed_ba;
@@ -804,6 +805,7 @@ public:
 	/// 20-year running average of maximum monthly precipitation to PET ratios
 	double mprec_petmax20;
 
+//WK is this from BLAZE or SIMFIRE?
 	double mprec[12];
 
 	Historic<double, 20> hmtemp_20[12];
@@ -996,9 +998,11 @@ public:
 		RA,
 		/// Isoprene (mgC/m2)
 		ISO,
+//WK AET? In trunk there seem to be lots of different monoterpenes
 		/// Monoterpene (mgC/m2)
 		MON,
 		AET,
+//WK refer to BLAZE here?
 		/// carbon flux to atmosphere from burnt veg and litter per pft (kgC/m2)
 		FIRECPFT,
 		/// Number of types, must be last

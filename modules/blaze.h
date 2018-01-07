@@ -22,6 +22,7 @@
 #include "gfed31.h"
 #include "plib.h"
 
+//WK explain a bit what this is
 const double turnoverfract[12][5] = {
 	{ .0 , .0 , .05, .2 , .2 }, //   0 Stems       -> ATM
        	{ .0 , .0 , .15, .2 , .2 }, //   1 Branches    -> ATM
@@ -37,6 +38,7 @@ const double turnoverfract[12][5] = {
 	{ .6 , .65, .85, 1. , 1. }  //  11 Leaf Litter -> ATM*/
 };
 
+//WK explain a bit what this is
 const double fbranch = 0.05; // 
 const double fbark   = 0.01; // 
 
@@ -56,6 +58,7 @@ void get_firelineintensity(Patch& patch, Climate climate);
 
 bool burntime();
 
+//WK explain a bit what this is
 double surv_prob_boreal(double fli) ;
 double surv_prob_temp_nl(double dbh, double fli, double mass_cwd) ;
 double surv_prob_temp_bl(double dbh, double fli, bool res) ;

@@ -1,3 +1,5 @@
+//WK maybe a reference to the source of the data set would be good;
+//WK are these the burned area data corrected for small fires?
 //////////////////////////////////////////////////////////////////////////////////////
 // GFED31_BURNED_AREA.H
 // Header file for input from a fast data archive

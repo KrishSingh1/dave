@@ -77,6 +77,7 @@ bool textured_soil;
 bool disturb_pasture;
 bool grassforcrop;
 
+//WK the change from state to i/ostate, is this related to BLAZE?
 xtring istate_path;
 xtring ostate_path;
 bool restart;

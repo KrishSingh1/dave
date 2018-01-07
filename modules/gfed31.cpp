@@ -1,6 +1,9 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file fged31.cpp
 /// \brief provide GFED 3.1 data for use in BLAZE
+//WK going through the various GFED31 files makes me realize that this
+//WK is probably the GFED3.1 burned area, but I find it confusing to understand
+//WK what the purpose is of each, maybe some brief explanation?
 ///
 /// \author Lars Nieradzik
 /// $Date: 2015-05-06 13:19:07 +0200 (Wed, 06 May 2015) $

@@ -77,6 +77,7 @@ typedef enum {ANNUAL, SEASONAL, MONTHLY, DAILY, HYBRID} blaze_tsteptype;
  *	SIMFIRE 	use SIMFIRE for generate burnt area
  *	GFED31		use GFED v3.1 as source for burnt area
  *	SIMGFED		symbiosys of both. GFED31 where there's data, SIMFIRE else
+//WK I think prescribing burned area makes sense also for serious simulations
  *	PRESCRIBED	a way to prescribe Burnt Area for experimental purpose
  *	NOIGNITION	no fire model  
  */	

@@ -16,7 +16,7 @@
 // These variables are declared in the framework header file, and defined here.
 // They are accessible throughout the model code.
 
-Date date; // object describing timing stage of simulation
+Date date;// object describing timing stage of simulation
 int npft; // number of possible PFTs
 int nst;  // number of possible stand types
 int nst_lc[NLANDCOVERTYPES];  // number of possible stand types in each land cover type
@@ -28,6 +28,7 @@ Pftlist pftlist;
 
 // emission ratios from fire (NH3, NO, NO2, N2O, N2) Levine et al. 1996
 
+//WK I'm curious why there was a change in the first value below by almost two orders of magnitude
 const double Fluxes::NH3_FIRERATIO = 0.236;
 const double Fluxes::NO_FIRERATIO  = 0.303;
 const double Fluxes::NO2_FIRERATIO = 0.076;
@@ -61,6 +62,9 @@ void Climate::serialize(ArchiveStream& arch) {
 		& par
 		& prec
 		& daylength
+    //WK I know it is not common practive in LPJ-GUESS, but maybe this
+    //WK would be the ideal place to give a short description plus units?
+    //WK or give a reference to where this is available?
 		// BLAZE --[
 		& u10
 		& relhum
@@ -507,6 +511,8 @@ void Patch::serialize(ArchiveStream& arch) {
 		& mpet
 		& ndemand
 		& irrigation_y
+    //WK maybe mark beginning and end of BLAZE entries,
+    //WK as you did above with 		// BLAZE --[
 		& fli						// Fire blaze
 		& wood2atm
 		& leaf2atm
@@ -535,6 +541,11 @@ const Climate& Patch::get_climate() const {
 }
 
 bool Patch::has_fires() const {
+//WK looks like this checks if the model includes fire in its current setting,
+//WK but it would be useful to understand the reasons for the background,
+//WK e.g. does BLAZE exclude CROPLAND and management?
+//WK And what happens if CROPLAND is true, will there be a warning message,
+//WK or will the code fail?
 //CLN#ifdef NOPASTURESTOCH
 //CLN	//CLN	return iffire && stand.landcover != CROPLAND && stand.landcover != PASTURE && !managed;
 //CLN	return firemodel != NOFIRE && stand.landcover != CROPLAND && 
@@ -659,6 +670,7 @@ double Patch::nflux() {
 	nflux += fluxes.get_annual_flux(Fluxes::HARVESTN);
 	nflux += fluxes.get_annual_flux(Fluxes::SEEDN);
 	nflux += fluxes.get_annual_flux(Fluxes::NH3_FIRE);
+//WK in trunk, there is NOx fire, what is the latest version?
 	nflux += fluxes.get_annual_flux(Fluxes::NO_FIRE);
 	nflux += fluxes.get_annual_flux(Fluxes::NO2_FIRE);
 	nflux += fluxes.get_annual_flux(Fluxes::N2O_FIRE);
@@ -1231,6 +1243,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	}
 
 	// bvoc
+//WK in trunk, there is a loop over NMTCOMPOUNDS,
+//WK is this an update in trunk that needs to be merged?
 	monstor           = 0.;
 	iso               = 0.;
 	mon               = 0.;

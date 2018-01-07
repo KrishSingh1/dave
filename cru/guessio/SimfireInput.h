@@ -1,3 +1,9 @@
+//WK Seems pretty standard, so I don't have any complaints
+//WK The only comment I have is that maybe it could be stated
+//WK what exactly the input is that simfire is provided here;
+//WK for example, you could run SIMFIRE also with future population scenarios,
+//WK which does not seem to be the case here; where can I see this (refer to
+//WK to the corresponding SIMFIRE subroutine)
 //////////////////////////////////////////////////////////////////////////////////////
 // SIMFIREINPUT.H
 // Header file for input from a fast data archive

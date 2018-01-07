@@ -1,6 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file blaze.cpp
 //WK SIMFIRE doesn't actually do ignitions but assumes an ignition saturated regime
+//WK please explain
 /// \brief SIMFIRE ignition simulation by W. Knorr
 ///
 /// \author Lars Nieradzik
@@ -133,7 +134,7 @@ int update_fire_biome (Patch& patch, double lat) {
 	fbrlt  /=  n_year_biomeavg;
 	fshrb  /=  n_year_biomeavg;
 
-//WK: remove 'and' here; also note above about land use
+//WK: remove 'and' in next line; also note above about land use
 	// assign biome (neglecting and agricultural land use)
 	if (ftot<0.1 && fabs(lat)<50.0) {
 		biome=8; } // barren or sparsely vegetated
@@ -262,8 +263,11 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 }
 
 //==============================================================================
-//WK state that at before the earliest entry use constant values
-//WK and after the last use linear interpolation of last two entries
+//WK state that before the earliest time point ('poptime') we use constant values
+//WK and after the last a linear extrapolation using the last two entries
+//WK Maybe also make clear that these are historical data, I have
+//WK also gridded scenario fields every ten years until 2100
+//WK (but this would require an option for the choice of scenario)
 // INTERPOLATE HYDE 3.1 POPULATION DENSITY BETWEEN TIME-STEPS
 //==============================================================================
 void simfire_update_pop_density(Gridcell& gridcell) {
@@ -303,6 +307,7 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 	
 
 /// Called each day from dailyaccounting
+//WK I think this has been implemented very well here!
 void simfire_accounting_gridcell(Gridcell& gridcell) {
 	
 	// DESCRIPTION
@@ -414,6 +419,13 @@ double simfire_ba(Climate& climate, Gridcell& gridcell) {
 	   Calls    :  -
 	   calculate burned area in ha
 	*/
+//WK See comments on ignitions vs. burned area above
+//WK Make comment here on how the SIMFIRE region is set
+//WK Maybe also explain here that SIMFIRE only predicts
+//WK the annual mean burned area, and that the seasonal cycle
+//WK at monthly time steps (?) is set from observations
+//WK obtained from ?
+
 
 	// Regions with dedicated parameter optimisation for SIMFIRE
 	// 0: global
@@ -451,6 +463,9 @@ double simfire_ba(Climate& climate, Gridcell& gridcell) {
 	if (climate.simfire_biome == -1) return 0.;
 
 	// fPAR correction Knorr
+//WK Needs some explanation: the FPAR correction is used
+//WK when GUESS generates the FPAR, but not when observed
+//WK FPAR is used to compute burned area
 	/*const double fpar_corr1 = 0.428;
 	const double fpar_corr2 = 0.148;
 

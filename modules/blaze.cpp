@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file blaze.cpp
 /// \brief BLAZE fire simulation and combustion
+//WK maybe some more explanation what BLAZE does, going through the code
+//WK below it seems it also does emissions (carbon and chemical species)
 ///
 /// \author Lars Nieradzik
 /// $Date: 2017-01-24 17:03:10 +0100 (Tue, 24 Jan 2017) $
@@ -34,6 +36,8 @@
 
 // Internal help function for splitting up nitrogen fire fluxes into components
 // copied from vegdynam.cpp
+//WK does vegdynam.cpp do emissions, too, or what do you mean by components?
+//WK Maybe a pointer to which subroutine is meant
 void report_fire_flux_n(Patch& patch, double nflux_fire) {
 	patch.fluxes.report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire);
 	patch.fluxes.report_flux(Fluxes::NO_FIRE,  Fluxes::NO_FIRERATIO  * nflux_fire);
@@ -44,6 +48,8 @@ void report_fire_flux_n(Patch& patch, double nflux_fire) {
 
 /// Compute area of Gridcell
 double pixelsize(double latpos,double longsize,double latsize,int postype) {
+//WK well done! I always found this confusing that sometimes pixels are referred to
+//WK by the centre, sometimes by the NW corner etc.
 
 	// taken from aslice.cpp in the utilities trunk
 
@@ -82,7 +88,8 @@ double pixelsize(double latpos,double longsize,double latsize,int postype) {
 }
 
 void blaze_accounting_gridcell(Climate& climate) {
-	
+
+//WK this kind of preamble is really useful, especially the cross-references!
 	/* Called by:  dailyaccounting_gridcell in driver.cpp 
 	   Calls    :  available_fuel (local)
 	               blaze_ignition (local)
@@ -91,19 +98,26 @@ void blaze_accounting_gridcell(Climate& climate) {
 	*/
 
 	const int average_span = 3; // span to average annual rainfall
+//WK what is 'span'?
 
 	// initialise fields
 
 	if (date.year == 0 && date.day == 0 && ! restart) {
 		if ( vegmode == INDIVIDUAL ) fail("INDIVDUAL MODE not ready in BLAZE!");
-		climate.avg_annual_rainf = 0.0;
-		climate.cur_rainf        = 0.0;
-		climate.dslr             = 0  ;
-		climate.last_rainfall    = 0.0;
-		climate.kbdi             = 0.0;
-		climate.can_burn         = 0;
+		climate.avg_annual_rainf = 0.0; //WK average annual rainfall [mm]?
+		climate.cur_rainf        = 0.0; //WK current rainfall [mm/day?]
+		climate.dslr             = 0  ; //WK ?
+		climate.last_rainfall    = 0.0; //WK rainfall of last day of previous year?
+		climate.kbdi             = 0.0; //WK ?
+		climate.can_burn         = 0;   //WK ?
 	}
 
+//WK does this interact in any way with SIMFIRE region=Australia?
+//WK could maybe be useful to swich this off for global SIMFIRE regions
+//WK so as not to create any discontinuity/inconsistency?
+//WK Or is this an intermediate fix for something that will later be
+//WK included as a declaration in the instructions file.
+//WK (Avoid hard-wired dependencies!?)
 	// Set Australian trees to be sprouters
 	if (date.year == 0 && date.day == 0 ) {
 		double lat = climate.gridcell.get_lat();
@@ -116,6 +130,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 	}
              
 	// Update running mean of average annual rainfall
+//WK running mean over what time span? Where defined?
 	climate.cur_rainf += climate.prec;
 	if (date.islastday && date.islastmonth) {
 		double wght; // used to compute running average of ann rainfall
@@ -129,7 +144,8 @@ void blaze_accounting_gridcell(Climate& climate) {
 		climate.cur_rainf   = 0.0;
 	}
 
-	// Keep track of Days-since-last-rainfall and accumulated last ainfall
+//WK Clear!
+	// Keep track of Days-since-last-rainfall and accumulated last rainfall
 	if (climate.prec > 0.01) {
 		if (climate.dslr > 0) {
 			climate.last_rainfall = climate.prec;
@@ -141,7 +157,8 @@ void blaze_accounting_gridcell(Climate& climate) {
 	}
 	else climate.dslr++;
 
-	// Update the Keetch-Byram-Drought-Index 
+	// Update the Keetch-Byram-Drought-Index
+//WK Maybe provide a reference for this index
 	double v        = climate.u10   ; // Wind speed at 10m height [km/h] (for KBDI)
 	double rh       = climate.relhum; // relative humidity [%] (for KBDI)         
 	double t        = climate.tmax  ; // day's max temperature [deg C] (for KBDI) 
@@ -166,6 +183,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 	}
 	climate.kbdi = max(0.0,climate.kbdi + dkbdi);
 
+//WK Maybe provide a reference
 	// ...and McArthur-Drought-Factor D ...
 	double mcarthur_d = .191 * ( climate.kbdi + 104. ) * pow( climate.dslr + 1.,1.5 ) / 
 		( 3.52 * pow( climate.dslr + 1. ,1.5 ) + climate.last_rainfall - 1. );
@@ -194,9 +212,12 @@ double available_fuel (Patch& patch,int flix)  {
 	   compute the amount of fuel that is readily available 
 	   for burning 
 	*/
+//WK Is the fuel combusted the output, and in what units is it provided?
+//WK In general it would be really good to have the units for everything
 
 	get_combustion_rates(patch,flix);
 
+//WK What is transitional litter?
 	// transitional-litter available to burn
 	double trans_litter_leaf  = 0.;
 	double trans_litter_sap   = 0.;
@@ -229,6 +250,7 @@ double available_fuel (Patch& patch,int flix)  {
 	return available_fuel ;
 }
 
+//WK Explain FLI index (source, purpose, definition, typical range)
 int get_fli_index(double fli, bool is_sprouter) {
 
 	/* Called by:  get_firelineintensity (local)
@@ -284,6 +306,7 @@ void get_firelineintensity(Patch& patch, Climate climate) {
 
 	for ( int i=0; i<4; i++ ) {
 
+//WK Here it is called flix, above FLI Index, makes it hard to follow/search code
 		// get available fuel for current flix and convert kg/m2 to g/m2
 		w = available_fuel(patch,flix) * kg2g;
 		// check whether there is enough fuel to ignite a fire
@@ -309,6 +332,7 @@ void get_firelineintensity(Patch& patch, Climate climate) {
 		if (i >= flix ) break;
 	}
 	// check whether a fire makes sense
+//WK this needs some explanation
 	patch.fli = max(patch.fli,fli);
 
 }
@@ -334,6 +358,11 @@ int gfed31_availability() {
 */ 
 bool burntime() { 
 
+//WK This is interesting. Does it mean that blaze sets fire probability
+//WK to zero under certain conditions? Maybe could give some examples.
+//WK I am also wondering how you make sure that the burned area is then
+//WK consistent with SIMFIRE, because SIMFIRE might give a finite
+//WK burning probability for the given time
 	/* Called by: blaze (local)
 	              blaze_ignition (local) 
 	   Calls    : sendmessage (plib)
@@ -388,6 +417,7 @@ double surv_prob_boreal(double fli) {
 	/* Called by: survival_probability (local)
 	   Compute survival probability for boreal forest 
 	   based on Dalziel et al. 2008
+//WK Is there anywhere in the code/documentation where the full references are given?	   
 	*/
 	double surv_prob_boreal = exp(-fli/500.);
 	return surv_prob_boreal;
@@ -424,7 +454,7 @@ double surv_prob_temp_nl(double dbh, double fli, double mass_cwd) {
 
 double surv_prob_tropics(double dbh, double fli) {
 	/* Called by: survival_probability (local)
-	   Compute survival probability for the tropice
+	   Compute survival probability for the tropics
 	   following van Nieuwstadt et al. 2005
 	*/
 	double p_surv = 1.;
@@ -463,6 +493,9 @@ double surv_prob_OzSavanna(double height, double fli) {
 	   height: tree/avg. cohort height
 	   fli   : fire-line intensity from BLAZE [kW/m]
 	*/
+//WK See comment above for the special handling of Australia,
+//WK requires some care to make sure no inconsistencies / discontinuitiies
+//WK are created for global simulations. This is a general comment, of course!
 
 	// height of max survival probability [m]
 	// taller trees are vulnerable due to age
@@ -501,6 +534,8 @@ double surv_prob_temp_bl(double dbh, double fli, bool res) {
 	   following Hickler et al. 2004, Using a generalized
 	   vegetation model to simulate vegetation dynamics in NE USA
 	*/
+//WK Why is this called 'temp_bl' but than only refers to Australia savannas?
+
 	// Fire resiliance
 	double R;
 	if ( res ) {
@@ -527,6 +562,9 @@ double surv_prob_temp_bl(double dbh, double fli, bool res) {
 }
 
 double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
+//WK Again, I think we are running into some confusion here, SIMFIRE uses aggregates 
+//WK of IGBP biomes, BLAZE checks of Australia, SIMFIRE simulated its own biomes,
+//WK and then we have different mortality/survival regions (biomes!?)
 
 	// Depending on biome and geolocation the appropriate survival_probabilities
 	// will be selected
@@ -598,9 +636,11 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 void get_combustion_rates(Patch& patch, int flix) {
 
 	/* Called by: combust (local)
+//WK do you mean 'live vegetation, litter pools and atmosphere'?
 	   compute the flux rates between live, litter pools and
 	   atmosphere given current fire-line intensity
 	*/
+//WK units?
 
 	// relative fluxes from wood to atmosphere and litter pools
 	patch.wood2atm = (1.-fbranch-fbark) * turnoverfract[ 0][flix] +
@@ -632,6 +672,7 @@ void combust(Patch& patch, Climate& climate) {
 		      allometry (growth.cpp)
 		      negligible (guessmath.h)
 	   Input ab: Area burnt [fract.]
+//WK i.e. of the input 'climate', only ba is used?
 	   The combustion part of the model. Here, all fire related fluxes
 	   are computed and the changes applied to the affected pools.
 	   This routine handles all current available 
@@ -664,6 +705,7 @@ void combust(Patch& patch, Climate& climate) {
        
 	get_combustion_rates(patch,flix);
 
+//WK flux = carbon fluxes? remind us of the units!
 	// compute fluxes FROM soil litter pools to atmosphere first!
 	// since they are patch-specific only and the fluxes INTO 
 	// soil litter will be added in loop over INDIVIDUALS below
@@ -799,6 +841,7 @@ void combust(Patch& patch, Climate& climate) {
 		}
 	}
 		
+//WK What is 'transitional litter', and why is litter written with all capitals?
 	// transitional LITTER removed by area burned (ab)
 	// total fluxes out of patch
 	double cmtb2atm_t = 0.; 
@@ -872,9 +915,16 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	   Applies the fluxes computed in blaze on the class::Individual
 	   level affecting the live pools, transitional 
 	   litter pools and influx to CENTURY litter pools.
+//WK explain 'killed in combust'
 	   In INDIVIDUAL and COHORT mode the actual biomass killed in
 	   combust is used to scale live fluxes while in POPULATION
 	   mode the burnt area is taken.
+//WK maybe say: fraction of surviving individuals in INDIVIDUAL or COHORT
+//WK mode. In population MODE it will be interpreted as burned area.
+//WK Because the cohort mode also knows individuals, they are just treated
+//WK as the same in each age classe (?).
+//WK However, how is survival fraction and burned area related, and do you mean
+//WK that combust passes burned area in this case?
 	   Input frac_survive means fraction of surviving INDIVIDUAL/COHORT
 	   in respective mode or will be burned area in case of POPULATION 
 	   mode.
@@ -976,6 +1026,7 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	// ROOT
 	// assume that same percentage of root biomass is killed as for total 
 	// above ground woody biomass
+//WK don't understand 'as for total above ground woody biomass'
 	double lossratio = 0.;
 	if ( cmass_sap + cmass_heart > 0. ) {
 		lossratio = (csapw2atm + csapw2str + csapw2fwd + 
@@ -1110,6 +1161,8 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 
 void blaze_ignition(Climate& climate) {
 
+//WK The purpose of this subroutine seems to be to update area burnt,
+//WK but why then is it called 'ignition'?
 	/* Called by: blaze_accounting_gridcell (local)
 	   Calls    : simfire_ba (simfire.cpp)
 	              gfed3_ba (IO???) CLN
@@ -1121,12 +1174,15 @@ void blaze_ignition(Climate& climate) {
 	Gridcell& gridcell = climate.gridcell;
 
 	// initialisation of ba
+//WK this below I don't understand, please explain what is meant/reasons
+//WK looks like ba is set to zero at beginning of run
 	// ba will be zeroed in blaze after fire has occurred 
 	if ( date.day == 0 && date.year == 0 ) {
 		climate.areaburnt = 0.0;
 	}
 
 	// reset annual accumulative values
+//WK 'cumulative' ?
 	if (date.day == 0) {
 		climate.annual_areaburnt = 0.0;
 		for (int i = 0; i < 12; i++) {
@@ -1168,6 +1224,11 @@ void blaze(Patch& patch, Climate& climate) {
 	   Calls    : get_firelineintensity (local)
 	              burntime (local)
 		      combust (local)
+//WK From the name, it looks like it is the main subroutine of
+//WK BLAZE, so is this really all? Maybe provide more details
+//WK of what it does by itself and what it delegates,
+//WK including overall purpose
+//WK explain FLI
 	   Does patch-wise accounting for FLI and activates
 	   combustion when it's time
 	*/

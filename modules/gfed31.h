@@ -1,6 +1,9 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file blaze.cpp
 /// \brief provide GFED 3.1 data for use in BLAZE
+//WK Data source, and which GFED 3.1 data this refers to
+//WK since there is already gfed31_burned_area.h
+//WK or is this somehow high-level?
 ///
 /// \author Lars Nieradzik
 /// $Date: 2015-04-29 13:52:56 +0200 (Wed, 29 Apr 2015) $

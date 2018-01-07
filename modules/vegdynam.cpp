@@ -505,6 +505,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Initial grass biomass proportional to potential forest floor
 						// net assimilation this year on patch area basis
 
+//WK Do I understand correctly that gridcell is only invoked here to get the latitude?
+//WK I think these kind of hard-wired work arounds should really be avoided,
+//WK and I can immagine that this here would cause discontinuities along 30 degrees
+//WK latitude bands. Or has this been removed anyway?
 						// because of problems with biomeshifting in BLAZE a reduced SAPSIZE has been 
 						// implemented in the tropics
 						Gridcell&  gridcell = stand.get_gridcell();
@@ -846,6 +850,12 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 				mort_shade=0.0;
 
 			// Mortality due to fire
+//WK The way this is written is a bit dangerous, because the variable mort_fire only has meaning
+//WK then GLOBFIRM is used, correct? There might be other such examples. If one variable is
+//WK used exclusively only with one fire model, then this could be reflected in the name
+//WK using some naming convention.
+//WK My worry is - say firemodel == BLAZE, mort_fire=0, what happens? Maybe mort_fire
+//WK should be set to 'not used' or something.
 			if (patch.has_fires() && firemodel == GLOBFIRM) mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			else mort_fire=0.0;
 
@@ -980,6 +990,8 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 	Vegetation& vegetation=patch.vegetation;
 
 	// FIRE MORTALITY
+//WK Maybe: FIRE MORTALTITY (GLOBFIRM)
+//WK For BLAZE this is done in such and such a way.
 	if (patch.has_fires() && firemodel == GLOBFIRM) {
 
 		// Impose fire in this patch with probability 'fireprob'

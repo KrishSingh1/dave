@@ -34,6 +34,10 @@
 #include <assert.h>
 #include <bitset>
 #include <vector>
+//WK The next include, I needed to google this, invokes some sort of floating point environment,
+//WK but it is only used by BLAZE and is newly introduced here. Why does BLAZE need this when
+//WK the rest of LPJ-GUESS doesn't? Will this complicate portability, and maybe it can be avoided
+//WK at a low cost?
 #include <fenv.h>
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -796,6 +800,8 @@ void transfer_litter(Patch& patch) {
 	// Fire
 	double litterme[NSOMPOOL];
 	double fireresist[NSOMPOOL];
+//WK It might be a good idea to include a note stating what litterme and fireresist are,
+//WK and why/if they are only used by GLOBFIRM, but not by BLAZE
 	if ( firemodel == GLOBFIRM ) {
 		litterme[SURFSTRUCT]   = soil.sompool[SURFSTRUCT].cmass * soil.sompool[SURFSTRUCT].litterme;
 		litterme[SURFMETA]     = soil.sompool[SURFMETA].cmass   * soil.sompool[SURFMETA].litterme;
@@ -923,6 +929,8 @@ void transfer_litter(Patch& patch) {
 			}
 
 			// Monthly fraction of REMAINING last year's sapwood litter
+//WK In the current trunk version, this accoutn seems to be done yearly,
+//WK and now it is monthly. Include an explanation of what one has to look out for here.
 			double litter_sap       = pft.litter_sap / (12. - (double)date.month);
 			double nmass_litter_sap = pft.nmass_litter_sap / (12. - (double)date.month);
 			pft.litter_sap         -= litter_sap;

@@ -1542,6 +1542,20 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 }
 
+/// Local analogue of OutputRows::add_value for restricting output
+/** Use to restrict output to specified range of years
+  * (or other user-specified limitation)
+  *
+  * If only yearly output between, say 1961 and 1990 is requred, use:
+  *  if (date.get_calendar_year() >= 1961 && date.get_calendar_year() <= 1990)
+  *  (assuming the input module has set the first calendar year in the date object)	
+  */
+void outlimit_daily(OutputRows& out, const Table& table, double d) {
+
+	if (date.year>=nyear_spinup)
+		out.add_value(table, d);
+}
+
 /// Output of simulation results at the end of each day
 /** This function does not have to provide any information to the framework.
   */
@@ -1671,7 +1685,7 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 
 		// Print PFT sums to files
 
-		outlimit(out,out_dlai,       mean_standpft_lai);
+		outlimit_daily(out,out_dlai,       mean_standpft_lai);
 
 		pftlist.nextobj();
 
@@ -1710,14 +1724,14 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 		++gc_itr;
 	} // stand loop
 
-	outlimit(out,out_dflux, flux_veg);
-	outlimit(out,out_dflux, -flux_repr);
-	outlimit(out,out_dflux, flux_soil);
-	outlimit(out,out_dflux, flux_fire);
-	outlimit(out,out_dflux, flux_est);
+	outlimit_daily(out,out_dflux, flux_veg);
+	outlimit_daily(out,out_dflux, -flux_repr);
+	outlimit_daily(out,out_dflux, flux_soil);
+	outlimit_daily(out,out_dflux, flux_fire);
+	outlimit_daily(out,out_dflux, flux_est);
 
 	// daily NEE do not include fire, establishment as monthly NEE
-	outlimit(out,out_dflux, flux_veg   +  flux_soil );
+	outlimit_daily(out,out_dflux, flux_veg   +  flux_soil );
 
 }
 

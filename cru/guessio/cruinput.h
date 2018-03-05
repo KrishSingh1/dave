@@ -156,6 +156,9 @@ private:
 	/// Monthly DTR (diurnal temperature range) for current grid cell and historical period
 	double hist_mdtr[NYEAR_HIST][12];
 
+	/// Monthly scalar wind for current grid cell and historical period
+	double hist_mwind[NYEAR_HIST][12];
+
 	/// Nitrogen deposition forcing for current gridcell
 	Lamarque::NDepData ndep;
 

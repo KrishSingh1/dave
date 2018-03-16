@@ -21,7 +21,6 @@
 // for documentation, see parameters.h
 
 xtring title;
-int output_year;
 vegmodetype vegmode;
 int npatch;
 int npatch_secondarystand;
@@ -81,7 +80,7 @@ xtring state_path;
 bool restart;
 bool save_state;
 int state_year;
-
+	
 bool readsowingdates = false;
 bool readharvestdates = false;
 bool readNfert = false;
@@ -145,7 +144,7 @@ bool Paramlist::isparam(xtring name) {
 // ENUM DECLARATIONS OF INTEGER CONSTANTS FOR PLIB INTERFACE
 
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM,BLOCK_ST,BLOCK_MT};
-enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,CB_SELECTION,
+enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,CB_SELECTION,	
 	CB_STLANDCOVER, CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT,
 	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTHYDROLOGY,
 	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STHYDROLOGY, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
@@ -190,7 +189,6 @@ void initsettings() {
 	// Initialises global settings
 	// Parameters not initialised here must be set in instruction script
 
-	output_year = -999;
 	iffire=true;
 	ifcalcsla=true;
 	ifdisturb=false;
@@ -389,7 +387,6 @@ void plib_declarations(int id,xtring setname) {
 	case BLOCK_GLOBAL:
 
 		declareitem("title",&title,80,CB_NONE,"Title for run");
-		declareitem("output_year", &output_year, 1, 10000, 1, CB_NONE, "Start output this (calendar) year");
 		declareitem("nyear_spinup",&nyear_spinup,1,10000,1,CB_NONE,"Number of simulation years to spinup for");
 		declareitem("vegmode",&strparam,16,CB_VEGMODE,
 			"Vegetation mode (\"INDIVIDUAL\", \"COHORT\", \"POPULATION\")");
@@ -488,7 +485,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("st",BLOCK_ST,CB_NONE,"Header for block defining StandType");
 		declareitem("mt",BLOCK_MT,CB_NONE,"Header for block defining Management");
 		declareitem("ifdailygrass",&ifdailygrass,1,CB_NONE,	"Whether daily carbon allocation for grasses is enabled (0,1)");
-
+		
 		for (size_t i = 0; i < xtringParams.size(); ++i) {
 			const xtringParam& p = xtringParams[i];
 			declareitem(p.name, p.param, p.maxlen, 0, p.help);
@@ -715,7 +712,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifsdautumn",&ppft->ifsdautumn,1,CB_NONE,"Whether sowing date in autumn is to be calculated");
 		declareitem("tempautumn",&ppft->tempautumn,0.0,25.0,1,CB_NONE,"Upper temperature limit for winter sowing");
 		declareitem("tempspring",&ppft->tempspring,0.0,25.0,1,CB_NONE,"Lower temperature limt for spring sowing");
-		declareitem("maxtemp_sowing",&ppft->maxtemp_sowing,0.0,60.0,1,CB_NONE,"Upper minimum temperature limit for crop sowing");
+		declareitem("maxtemp_sowing",&ppft->maxtemp_sowing,0.0,60.0,1,CB_NONE,"Upper minimum temperature limit for crop sowing");	
 		declareitem("hiopt",&ppft->hiopt,0.0,2.0,1,CB_NONE,"Optimal harvest index");
 		declareitem("himin",&ppft->himin,0.0,2.0,1,CB_NONE,"Minimal harvest index");
 		declareitem("frootstart",&ppft->frootstart,0.0,1.0,1,CB_NONE,"Initial root mass fraction of total plant");
@@ -804,7 +801,7 @@ void plib_declarations(int id,xtring setname) {
 
 			if (pmt == 0) {
 				// Create and initialise a new st object and obtain a reference to it
-
+			
 				pmt=&mtlist.createobj();
 				initmt(*pmt,setname);
 				includemt_map[setname] = true;
@@ -1011,7 +1008,7 @@ void plib_callback(int callback) {
 	case CB_MTHYDROLOGY:
 		if (strparam.upper()=="RAINFED") pmt->hydrology = RAINFED;
 		else if (strparam.upper()=="IRRIGATED") pmt->hydrology = IRRIGATED;
-		else
+		else 
 		{
 			sendmessage("Error",
 				"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\")");
@@ -1042,7 +1039,7 @@ void plib_callback(int callback) {
 	case CB_STHYDROLOGY:
 		if (strparam.upper()=="RAINFED") pst->management.hydrology = RAINFED;
 		else if (strparam.upper()=="IRRIGATED") pst->management.hydrology = IRRIGATED;
-		else
+		else 
 		{
 			sendmessage("Error",
 				"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\")");
@@ -1125,7 +1122,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifsmoothgreffmort")) badins("ifsmoothgreffmort");
 		if (!itemparsed("ifdroughtlimitedestab")) badins("ifdroughtlimitedestab");
 		if (!itemparsed("ifrainonwetdaysonly")) badins("ifrainonwetdaysonly");
-
+		
 		if (!itemparsed("ifbvoc")) badins("ifbvoc");
 
 		if (!itemparsed("run_landcover")) badins("run_landcover");
@@ -1321,7 +1318,7 @@ void plib_callback(int callback) {
 				if(st.management.is_managed())
 					st.rotation.ncrops = 1;
 			}
-			if(st.landcover == CROPLAND &&
+			if(st.landcover == CROPLAND && 
 				(st.rotation.ncrops == 0 ||
 				st.rotation.ncrops >= 1 && st.get_management(0).pftname == "" && !st.get_management(0).fallow ||
 				st.rotation.ncrops >= 2 && st.get_management(1).pftname == "" && !st.get_management(1).fallow ||
@@ -1504,7 +1501,7 @@ void plib_callback(int callback) {
 						if (ppft->sd_adjust) {
 							if (!itemparsed("sd_adjust_par1")) badins("sd_adjust_par1");
 							if (!itemparsed("sd_adjust_par2")) badins("sd_adjust_par2");
-							if (!itemparsed("sd_adjust_par3")) badins("sd_adjust_par3");
+							if (!itemparsed("sd_adjust_par3")) badins("sd_adjust_par3");						
 						}
 						if (!itemparsed("hlimitdatenh")) badins("hlimitdatenh");
 						if (!itemparsed("hlimitdatesh")) badins("hlimitdatesh");

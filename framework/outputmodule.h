@@ -105,9 +105,6 @@ private:
 	/// Instruction file parameter deciding precision of coordinates in output
 	/** The parameter controls the number of digits after the decimal point */
 	int coordinates_precision;
-
-	/// Modules were called at least once during simulations
-	bool called;
 };
 
 

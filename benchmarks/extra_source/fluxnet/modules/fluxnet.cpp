@@ -28,7 +28,7 @@ bool getgridcell(Gridcell& gridcell) {
 	std::ifstream ifs(fluxfile, std::ifstream::in);
 
 	if (!ifs.good()) {
-		dprintf("FluxnetInput::getgridcell: could not open %s for input\n", (char*)fluxfile);
+		dprintf("FluxnetInput::getgridcell: could not open %s for input", (char*)fluxfile);
 		return false;
 	}
 
@@ -99,4 +99,56 @@ private:
 	int end_year;
 };
 
-REGISTER_INPUT_MODULE("fluxnet", FluxnetInput)
+void FluxnetOutput::init() {
+
+	ColumnDescriptors fluxnet_columns;
+	fluxnet_columns += ColumnDescriptor("GPP", 14, 6);
+	fluxnet_columns += ColumnDescriptor("NEE", 14, 6);
+	create_output_table(out_fluxnetdaily, file_fluxnetdaily, fluxnet_columns);
+
+	ColumnDescriptors fluxnetclim_columns;
+	fluxnetclim_columns += ColumnDescriptor("temp", 11, 3);
+	fluxnetclim_columns += ColumnDescriptor("prec", 11, 3);
+	fluxnetclim_columns += ColumnDescriptor("insol", 11, 3);
+	create_output_table(out_fluxnetclim, file_fluxnetclim, fluxnetclim_columns);
+}
+
+void FluxnetOutput::outdaily(Gridcell& gridcell) {
+	if (date.get_calendar_year() < start_year) {
+		return;
+	}
+	OutputRows out(output_channel, gridcell.get_lon(), gridcell.get_lat(),
+			date.get_calendar_year(), date.day);
+
+	out.add_value(out_fluxnetclim, gridcell.climate.temp);
+	out.add_value(out_fluxnetclim, gridcell.climate.prec);
+	out.add_value(out_fluxnetclim, gridcell.climate.insol);
+
+	double dgpp = 0, dra = 0, drh = 0;
+
+	Gridcell::iterator gc_itr = gridcell.begin();
+
+	// Loop through Stands
+	while (gc_itr != gridcell.end()) {
+		Stand& stand = *gc_itr;
+		stand.firstobj();
+
+		//Loop through Patches
+		while (stand.isobj) {
+			Patch& patch = stand.getobj();
+
+			double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
+
+			dgpp +=-patch.fluxes.get_daily_flux(Fluxes::GPP,date.day)*to_gridcell_average;
+			dra  +=-patch.fluxes.get_daily_flux(Fluxes::RA,date.day)*to_gridcell_average;
+			drh  += patch.fluxes.get_daily_flux(Fluxes::SOILC,date.day)*to_gridcell_average;
+
+			stand.nextobj();
+		} // patch loop
+		++gc_itr;
+	} // stand loop
+
+	out.add_value(out_fluxnetdaily, dgpp);
+	// daily NEE do not include fire, establishment as monthly NEE
+	out.add_value(out_fluxnetdaily, dgpp - dra + drh);
+}

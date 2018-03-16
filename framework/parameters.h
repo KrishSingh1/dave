@@ -64,16 +64,13 @@ typedef enum {APIN, BPIN, LIMO, MYRC, SABI, CAMP, TRIC, TBOC, OTHR, NMTCOMPOUNDT
 /// Title for this run
 extern xtring title;
 
-/// Start producing output in this (calendar) year
-extern int output_year;
-
 /// Vegetation mode (population, cohort or individual)
 extern vegmodetype vegmode;
 
 /// Default number of patches in each stand
 /** Should always be 1 in population mode,
  *  cropland stands always have 1 patch.
- *  Actual patch number for stand objects may differ and
+ *  Actual patch number for stand objects may differ and 
  *  should always be queried by stand.npatch()
  */
 extern int npatch;

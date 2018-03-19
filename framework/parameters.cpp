@@ -80,7 +80,9 @@ xtring state_path;
 bool restart;
 bool save_state;
 int state_year;
-	
+
+bool ifdailyoutput;
+
 bool readsowingdates = false;
 bool readharvestdates = false;
 bool readNfert = false;
@@ -388,6 +390,7 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("title",&title,80,CB_NONE,"Title for run");
 		declareitem("nyear_spinup",&nyear_spinup,1,10000,1,CB_NONE,"Number of simulation years to spinup for");
+
 		declareitem("vegmode",&strparam,16,CB_VEGMODE,
 			"Vegetation mode (\"INDIVIDUAL\", \"COHORT\", \"POPULATION\")");
 		declareitem("ifbgestab",&ifbgestab,1,CB_NONE,
@@ -479,6 +482,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
 		declareitem("save_state", &save_state, 1, CB_NONE, "Whether to save new state files");
 		declareitem("state_year", &state_year, 1, 20000, 1, CB_NONE, "Save/restart year. Unspecified means just after spinup");
+
+		declareitem("ifdailyoutput", &ifdailyoutput, CB_NONE, "Whether to produce daily output. Unspecified means no, do not.");
 
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
@@ -1119,6 +1124,11 @@ void plib_callback(int callback) {
 		}
 
 		if (!itemparsed("outputdirectory")) badins("outputdirectory");
+
+		if (!itemparsed("ifdailyoutput")) { 
+			ifdailyoutput = false;
+		}
+
 		if (!itemparsed("ifsmoothgreffmort")) badins("ifsmoothgreffmort");
 		if (!itemparsed("ifdroughtlimitedestab")) badins("ifdroughtlimitedestab");
 		if (!itemparsed("ifrainonwetdaysonly")) badins("ifrainonwetdaysonly");

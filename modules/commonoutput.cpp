@@ -1547,7 +1547,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 /** Use to restrict output to specified range of years
   * (or other user-specified limitation)
   *
-  * If only yearly output between, say 1961 and 1990 is requred, use:
+  * If only daily output between, say 1961 and 1990 is requred, use:
   *  if (date.get_calendar_year() >= 1961 && date.get_calendar_year() <= 1990)
   *  (assuming the input module has set the first calendar year in the date object)	
   */
@@ -1562,11 +1562,11 @@ void outlimit_daily(OutputRows& out, const Table& table, double d) {
   */
 void CommonOutput::outdaily(Gridcell& gridcell) {
 
-	const int PRINTOUT_YEAR = 2000;
 	double lon,lat;
 	double flux_veg, flux_repr, flux_soil, flux_fire, flux_est, flux_seed, flux_charvest;
 
-	if (date.year >= nyear_spinup && date.get_calendar_year() == PRINTOUT_YEAR) {
+	if (!ifdailyoutput) 
+		return;
 
 	lon=gridcell.get_lon();
 	lat=gridcell.get_lat();
@@ -1735,8 +1735,6 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 
 	// daily NEE do not include fire, establishment as monthly NEE
 	outlimit_daily(out,out_dflux, flux_veg   +  flux_soil );
-
-	} // end if date year > spinup year
 
 }
 

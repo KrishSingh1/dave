@@ -64,6 +64,9 @@ typedef enum {APIN, BPIN, LIMO, MYRC, SABI, CAMP, TRIC, TBOC, OTHR, NMTCOMPOUNDT
 /// Title for this run
 extern xtring title;
 
+/// Whether to produce daily output
+extern bool ifdailyoutput; 
+
 /// Vegetation mode (population, cohort or individual)
 extern vegmodetype vegmode;
 

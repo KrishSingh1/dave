@@ -1546,6 +1546,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 /// Local analogue of OutputRows::add_value for restricting output
 /** Use to restrict output to specified range of years
   * (or other user-specified limitation)
+  * For benchmark technical reasons, instruction file parameters are used for specifying
+  * start- and end-years of daily output, in contrast to annual output.
   *
   * If only daily output between, say 1961 and 1990 is requred, use:
   *  if (date.get_calendar_year() >= 1961 && date.get_calendar_year() <= 1990)
@@ -1553,7 +1555,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
   */
 void outlimit_daily(OutputRows& out, const Table& table, double d) {
 
-	if (date.year>=nyear_spinup)
+	if (date.year>=dailyoutput_firstyear && date.year<=dailyoutput_lastyear)
 		out.add_value(table, d);
 }
 

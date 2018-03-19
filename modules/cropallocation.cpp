@@ -454,7 +454,7 @@ void allocation_crop(Individual& indiv, double cmass_seed, double nmass_seed) {
  *  allocation_crop_nlim() or allocation_crop()
  *  Requires updated value of fphu and hi.
  */
-void growth_crop_daily(Patch& patch) {
+void growth_daily_crop(Patch& patch) {
 
 	if(date.day == 0)
 		patch.nharv = 0;
@@ -556,10 +556,10 @@ void growth_crop_daily(Patch& patch) {
 				// Check that no plant cmass or nmass is negative, if so, and correct fluxes
 				double negative_cmass = indiv.check_C_mass();
 				if(largerthanzero(negative_cmass, -14))
-					dprintf("Year %d day %d Stand %d indiv %d: Negative main crop C mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_cmass);
+					dprintf("Year %d day %d Stand %d indiv %d: Negative main crop C mass in growth_daily_crop: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_cmass);
 				double negative_nmass = indiv.check_N_mass();
 				if(largerthanzero(negative_nmass, -14))
-					dprintf("Year %d day %d Stand %d indiv %d: Negative main crop N mass in growth_crop_daily: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_nmass);
+					dprintf("Year %d day %d Stand %d indiv %d: Negative main crop N mass in growth_daily_crop: %.15f\n", date.year, date.day, indiv.vegetation.patch.stand.id, indiv.id, -negative_nmass);
 			}
 			else if(date.day == ppftcrop.hdate) {
 
@@ -741,22 +741,6 @@ void growth_crop_daily(Patch& patch) {
 			}
 		}
 		vegetation.nextobj();
-	}
-}
-
-/// Handles daily crop allocation and daily lai calculation
-/** Simple allocation based on heat unit accumulation.
- *  LAI is set directly after allocation from leaf carbon mass.
- */
-void growth_daily(Patch& patch) {
-
-	if(patch.stand.landcover == CROPLAND) {
-
-		// allocate daily npp to leaf, roots and harvestable organs
-		growth_crop_daily(patch);
-
-		// update patchpft.lai_daily and fpc_daily
-		lai_crop(patch);
 	}
 }
 

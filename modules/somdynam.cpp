@@ -1246,21 +1246,21 @@ void equilsom(Soil& soil) {
 
 		// Monthly average decay rates
 		for (int p = 0; p < NSOMPOOL-1; p++) {
-			soil.sompool[p].mfracremain_mean[m] = pow(soil.sompool[p].mfracremain_mean[m] / nyear, (double)date.ndaymonth[m]);
+			soil.sompool[p].mfracremain_mean[m] = pow(soil.sompool[p].mfracremain_mean[m] / (double)nyear, (double)date.ndaymonth[m]);
 		}
 
 		// Monthly average mineral nitrogen uptake
-		soil.fnuptake_mean[m] /= nyear;
+		soil.fnuptake_mean[m] /= (double)nyear;
 
 		// Monthly average organic carbon and nitrogen leaching
-		soil.morgleach_mean[m] /= nyear;
+		soil.morgleach_mean[m] /= (double)nyear;
 
 		// Monthly average mineral nitrogen leaching
-		soil.mminleach_mean[m] /= nyear;
+		soil.mminleach_mean[m] /= (double)nyear;
 	}
 
 	// Annual average nitrogen fixation
-	soil.anfix_mean /= nyear;
+	soil.anfix_mean /= (double)nyear;
 
 	// Spin SOM pools with saved litter input, nitrogen addition and fractions of
 	// nitrogen uptake and leaching for EQUILSOM_YEARS years with monthly timesteps

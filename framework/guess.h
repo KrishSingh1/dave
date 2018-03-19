@@ -956,6 +956,12 @@ public:
 	/// Report flux for a certain flux type
 	void report_flux(PerPatchFluxType flux_type, double value);
 
+	/// \returns daily flux for a given flux type (for all PFTs)
+	double get_daily_flux(PerPFTFluxType flux_type, int day) const;
+
+	/// \returns daily flux for a given flux type
+	double get_daily_flux(PerPatchFluxType flux_type, int day) const;
+
 	/// \returns flux for a given month and flux type (for all PFTs)
 	double get_monthly_flux(PerPFTFluxType flux_type, int month) const;
 
@@ -1024,6 +1030,8 @@ public:
 	bool fallow;
 	/// Double cropping of one crop (e.g. rice)
 	bool multicrop;
+	/// Grazing intensity (daily grazing fraction)
+	double grazeintens;
 
 	ManagementType() {
 
@@ -1039,6 +1047,7 @@ public:
 		nfert = -1.0;
 		fallow = false;
 		multicrop = false;
+		grazeintens = 0.0;
 	}
 
 	// Copy constructor
@@ -1051,12 +1060,13 @@ public:
 		hdate = from.hdate;
 		nfert = from.nfert;
 		fallow = from.fallow;
+		grazeintens = from.grazeintens;
 	}
 
 	bool is_managed() {
 
 		// Add new management parameters here
-		if(pftname != "" || planting_system != "" || selection != ""||  harvest_system != "" ||  hydrology == IRRIGATED || fallow || nfert > -1.0)
+		if(pftname != "" || planting_system != "" || selection != ""||  harvest_system != "" ||  hydrology == IRRIGATED || fallow || nfert > -1.0 || grazeintens)
 			return true;
 		else
 			return false;
@@ -1583,6 +1593,14 @@ public:
 	double avg_cton(const double& min, const double& max) {
 		return 2.0 / (1. / min + 1. / max);
 	}
+
+	/// root to storage growth ratio
+	double stor;
+	/// senescence factor
+	double sen_fac;
+	/// transfer constant of material between compartments a
+	double transferconst;
+
 	// MEMBER FUNCTIONS
 
 public:
@@ -2153,6 +2171,44 @@ public:
 	/// accumulated NPP over modelled area (kgC/m2/year);
 	/** annual NPP following call to growth module on last day of simulation year */
 	double anpp;
+	/// phen for daily allocation
+	double phen_daily;
+	/// yearly lai for daily allocation
+	double lai_ymax;
+	/// yearly maximum cmass_leaf for daily allocation
+	double cmass_leaf_ymax;
+	/// yearly maximum cmass_root for daily allocation
+	double cmass_root_ymax;
+	/// Storage weight for daily allocation
+	double cmass_leaf_ws;
+	/// Storage weight for biomass increment without lai
+	double cmass_root_sg;
+	/// weight of all growth compartments. Is same as cmass_leaf, can be removed once grass is allowed to have an age.
+	double cmass_leaf_wg;
+	/// weight of growth compartment 1 daily allocation
+	double cmass_leaf_w1;
+	/// weight of growth compartment 2 daily allocation
+	double cmass_leaf_w2;
+	/// weight of growth compartment 3 daily allocation
+	double cmass_leaf_w3;
+	/// weight of growth compartment 4 daily allocation
+	double cmass_leaf_w4;
+	/// abscission from last compartment (4) ie litter, daily allocation
+	double abscission;
+	/// sum of growth of leaves not related to sg
+	double cmass_leaf_ygrowth;
+	/// nitrogen of growth compartment 1 daily allocation
+	double nmass_leaf_w1;
+	/// nitrogen of growth compartment 2 daily allocation
+	double nmass_leaf_w2;
+	/// nitrogen of growth compartment 3 daily allocation
+	double nmass_leaf_w3;
+	/// nitrogen of growth compartment 4 daily allocation
+	double nmass_leaf_w4;
+	/// running mean of nscal for last 365 days for each individual daily allocation
+	Historic<double, 365> nscal_running;
+	/// running mean of wscal for last 365 days for each individual daily allocation
+	Historic<double, 365> wscal_running;
 	/// actual evapotranspiration over projected area (mm/day)
 	double aet;
 	/// annual actual evapotranspiration over projected area (mm/year)
@@ -2236,6 +2292,8 @@ public:
 	double cton_leaf_aopt;
 	/// annual average leaf C:N ratio
 	double cton_leaf_aavr;
+	/// daily optimal leaf C:N ratio
+	double cton_leaf_opt;
 	/// plant mobile nitrogen status
 	double cton_status;
 	/// total carbon in compartments before growth
@@ -3061,6 +3119,8 @@ public:
 	double aphen;
 	/// whether PFT can establish in this patch under current conditions
 	bool establish;
+	/// daily phen for daily allocation
+	double phen_daily;
 	/// running total for number of saplings of this PFT to establish (cohort mode)
 	double nsapling;
 	/// leaf-derived litter for PFT on modelled area basis (kgC/m2)
@@ -3159,7 +3219,7 @@ public:
 		cropphen = NULL;
 		harvested_products_slow = 0.0;
 		harvested_products_slow_nmass = 0.0;
-
+		phen_daily = 0.0;
 		swindow[0]=-1;
 		swindow[1]=-1;
 

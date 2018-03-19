@@ -52,6 +52,8 @@ bool ifrainonwetdaysonly;
 
 bool ifbvoc;
 
+bool ifdailygrass;
+
 wateruptaketype wateruptake;
 
 bool run_landcover;
@@ -482,7 +484,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
 		declareitem("st",BLOCK_ST,CB_NONE,"Header for block defining StandType");
 		declareitem("mt",BLOCK_MT,CB_NONE,"Header for block defining Management");
-
+		declareitem("ifdailygrass",&ifdailygrass,1,CB_NONE,	"Whether daily carbon allocation for grasses is enabled (0,1)");
+		
 		for (size_t i = 0; i < xtringParams.size(); ++i) {
 			const xtringParam& p = xtringParams[i];
 			declareitem(p.name, p.param, p.maxlen, 0, p.help);
@@ -772,6 +775,12 @@ void plib_declarations(int id,xtring setname) {
 			"c3 parameter for allocation with N stress");
 		declareitem("d3",&ppft->d3,-1000.0,1000.0,1,CB_NONE,
 			"d3 parameter for allocation with N stress");
+		declareitem("stor",&ppft->stor,0.0,1.0,1,CB_NONE,
+			"storage growth to root ratio, for daily carbon allocation");
+		declareitem("transferconst",&ppft->transferconst,0.0,1.0,1,CB_NONE,
+			"Transfer of material between compartments for daily allocation");
+		declareitem("sen_fac",&ppft->sen_fac,0.0,1.0,1,CB_NONE,
+			"Grass senescence factor for daily growth grasses");
 
 		callwhendone(CB_CHECKPFT);
 
@@ -812,6 +821,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("nfert",&pmt->nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop");
 		declareitem("fallow",&pmt->fallow,1,CB_NONE,"Fallow in place of crop");
 		declareitem("multicrop",&pmt->multicrop,1,CB_NONE,"Whether to grow several crops in a year");
+		declareitem("grazeintens",&pmt->grazeintens,0.0,1.0,1,CB_NONE,"Grazing intensity");
 
 		callwhendone(CB_CHECKMT);
 
@@ -868,6 +878,7 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("nfert",&pst->management.nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop 1");
 				declareitem("fallow",&pst->management.fallow,1,CB_NONE,"Fallow in place of crop 1");
 				declareitem("multicrop",&pst->management.multicrop,1,CB_NONE,"Whether to grow several crops in a year in management 1");
+				declareitem("grazeintens",&pst->management.grazeintens,0.0,10.0,1,CB_NONE,"Grazing intensity");
 			}
 			else if(i == 1) {
 				declareitem("management2",&strparam,16,CB_MANAGEMENT2,"");
@@ -1100,6 +1111,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcentury")) badins("ifcentury");
 		if (!itemparsed("ifnlim")) badins("ifnlim");
 		if (!itemparsed("freenyears")) badins("freenyears");
+		if (!itemparsed("ifdailygrass")) badins("ifdailygrass");
 
 		if (nyear_spinup <= freenyears) {
 			sendmessage("Error", "freenyears must be smaller than nyear_spinup");
@@ -1466,6 +1478,12 @@ void plib_callback(int callback) {
 			if (!itemparsed("turnover_root")) badins("turnover_root");
 			if (!itemparsed("ltor_max")) badins("ltor_max");
 			if (!itemparsed("intc")) badins("intc");
+
+			if(ifdailygrass && ppft->lifeform==GRASS){
+				if (!itemparsed("stor")) badins("stor");
+				if (!itemparsed("transferconst")) badins("transferconst");
+				if (!itemparsed("sen_fac")) badins("sen_fac");
+			}
 
 			if (run_landcover) {
 				if (!itemparsed("landcover")) badins("landcover");

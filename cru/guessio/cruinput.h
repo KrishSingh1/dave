@@ -101,7 +101,7 @@ protected:
 	                                     double hist_mprec[NYEAR_HIST][12],
 	                                     double hist_msun[NYEAR_HIST][12]);
 
-private:
+protected:
 
 	/// Type for storing grid cell longitude, latitude and description text
 	struct Coord {

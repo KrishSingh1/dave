@@ -904,11 +904,8 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Optimal leaf nitrogen content
 		double leafoptn;
 
-		// Optimal leaf C:N ratio
-		double cton_leaf_opt;
-
 		// Calculate optimal leaf nitrogen content and demand
-		if (!negligible(indiv.phen)) {
+		if (!negligible(indiv.phen) && !negligible(indiv.cmass_leaf_today())) {
 
 			indiv.nday_leafon++;
 
@@ -938,29 +935,30 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 			// Setting daily optimal leaf C:N ratio
 			if (indiv.leafndemand) {
-				cton_leaf_opt = indiv.cmass_leaf_today() / leafoptn;
+				indiv.cton_leaf_opt = indiv.cmass_leaf_today() / leafoptn;
 			}
 			else {
-				cton_leaf_opt = max(indiv.pft.cton_leaf_min, indiv.cton_leaf());
+				indiv.cton_leaf_opt = max(indiv.pft.cton_leaf_min, min(indiv.pft.cton_leaf_max, indiv.cton_leaf()));
 			}
 		}
 		else {
 			indiv.leafndemand = 0.0;
-			cton_leaf_opt = indiv.cton_leaf();
+			indiv.cton_leaf_opt = indiv.cton_leaf();
 		}
 
 		// Nitrogen demand
 
 		// Root nitrogen demand
-		indiv.rootndemand = max(0.0, indiv.cmass_root_today() / (cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root);
+		indiv.rootndemand = max(0.0, indiv.cmass_root_today() / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root);
 
 		// Sap wood nitrogen demand. Demand is ramped up throughout the year.
 		if (indiv.pft.lifeform == TREE) {
-			indiv.sapndemand = max(0.0, indiv.cmass_sap / (cton_leaf_opt * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_sap) * ((1.0 + (double)date.day)/date.year_length());
+			indiv.sapndemand = max(0.0, indiv.cmass_sap / (indiv.cton_leaf_opt * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_sap) * ((1.0 + (double)date.day)/date.year_length());
 		}
 
 		// Labile nitrogen storage demand
-		indiv.storendemand = indiv.ndemand_storage(cton_leaf_opt);
+		indiv.storendemand = indiv.ndemand_storage(indiv.cton_leaf_opt);
+
 		//TODO HO demand
 		indiv.hondemand = 0.0;
 
@@ -1551,6 +1549,19 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 				ppft.cropphen->growingdays_y++;
 				ppft.wscal_mean = ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / ppft.cropphen->growingdays_y;
 			}
+		}
+	}
+
+	// calculate the running sum of wscal to use for daily carbon allocation
+	if(day.isend && ifdailygrass){
+
+		vegetation.firstobj();
+		while (vegetation.isobj) {
+			
+			Individual& indiv = vegetation.getobj();
+			indiv.wscal_running.add(patch.pft[indiv.pft.id].wscal);
+
+			vegetation.nextobj();
 		}
 	}
 }

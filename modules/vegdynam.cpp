@@ -215,6 +215,7 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 						indiv.crownarea=1.0; // (value not used)
 						indiv.densindiv=1.0;
 						indiv.fpc=0.0;
+						indiv.nscal_running.add(1.0);
 					}
 				}
 			}
@@ -499,6 +500,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						indiv.crownarea=1.0; // (value not used)
 						indiv.densindiv=1.0;
 						indiv.fpc=1.0;
+						indiv.nscal_running.add(1.0);
 
 						// Initial grass biomass proportional to potential forest floor
 						// net assimilation this year on patch area basis
@@ -867,15 +869,12 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			else
 				mort_shade=0.0;
 
-			if (mort_shade>0.0) {
-				mort_shade=mort_shade;
-			}
-
 			// Mortality due to fire
 
 			if (patch.has_fires())
 				mort_fire=fireprob*(1.0-indiv.pft.fireresist);
-			else mort_fire=0.0;
+			else 
+				mort_fire=0.0;
 
 			// Sum mortality components to give total mortality (maximum 1)
 

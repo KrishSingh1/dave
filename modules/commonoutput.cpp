@@ -79,6 +79,10 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_amon_mt2", &file_amon_mt2, 300, "annual other monoterpene flux output file");
 	declare_parameter("file_mmon_mt1", &file_mmon_mt1, 300, "monthly endocyclic monoterpene flux output file");	
 	declare_parameter("file_mmon_mt2", &file_mmon_mt2, 300, "monthly other monoterpene flux output file");
+
+	// Daily output variables
+	declare_parameter("file_dlai",&file_dlai,300,"Daily LAI output file");
+	declare_parameter("file_dflux",&file_dflux,300,"Daily flux output file");
 }
 
 
@@ -313,6 +317,19 @@ void CommonOutput::define_output_tables() {
 	ngases_columns += ColumnDescriptor("NSoil",            9, 3);
 	ngases_columns += ColumnDescriptor("Total",            9, 3);
 
+	// DAILY
+	
+	ColumnDescriptors dlai_columns;
+	dlai_columns += ColumnDescriptors(pfts,14, 8);
+
+	ColumnDescriptors dflux_columns;
+	dflux_columns += ColumnDescriptor("Veg", 14, 6);
+	dflux_columns += ColumnDescriptor("Repr", 14, 6);
+	dflux_columns += ColumnDescriptor("Soil", 14, 6);
+	dflux_columns += ColumnDescriptor("Fire", 14, 6);
+	dflux_columns += ColumnDescriptor("Est", 14, 6);
+	dflux_columns += ColumnDescriptor("NEE", 14, 6);
+
 	// *** ANNUAL OUTPUT VARIABLES ***
 
 	create_output_table(out_cmass,          file_cmass,          cmass_columns);
@@ -364,6 +381,12 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mmon,           file_mmon,           month_columns_wide);
 	create_output_table(out_mmon_mt1,       file_mmon_mt1,       month_columns_wide);
 	create_output_table(out_mmon_mt2,       file_mmon_mt2,       month_columns_wide);
+
+	// *** DAILY OUTPUT VARIABLES ***
+
+	create_output_table(out_dlai,		 file_dlai,			 dlai_columns);
+	create_output_table(out_dflux,		 file_dflux,		 dflux_columns);
+
 }
 
 /// Function for producing data file used to communicate information on stand structure
@@ -824,7 +847,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_amon_mt2 += patch.fluxes.get_annual_flux(Fluxes::MT_CAMP, pft.id);
 				standpft_amon_mt2 += patch.fluxes.get_annual_flux(Fluxes::MT_TBOC, pft.id);
 				standpft_amon_mt2 += patch.fluxes.get_annual_flux(Fluxes::MT_OTHR, pft.id);
-					
+
 				standpft_clitter += patchpft.litter_leaf + patchpft.litter_root + patchpft.litter_sap + patchpft.litter_heart + patchpft.litter_repr;
 				standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap + patchpft.nmass_litter_heart;
 
@@ -836,27 +859,33 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 							if (indiv.pft.id==pft.id) {
 
-								standpft_cmass_leaf += indiv.cmass_leaf;
+								if(!ifdailygrass || indiv.pft.lifeform != GRASS || !indiv.alive || indiv.istruecrop_or_intercropgrass()){
+									indiv.lai_ymax = indiv.lai;
+									indiv.cmass_leaf_ymax = indiv.cmass_leaf;
+									indiv.cmass_root_ymax = indiv.cmass_root;
+								}
+
+								standpft_cmass_leaf += indiv.cmass_leaf_ymax;
 								standpft_cmass += indiv.ccont();
 								standpft_nmass += indiv.ncont();
-								standpft_nmass_leaf += indiv.cmass_leaf / indiv.cton_leaf_aavr;
+								standpft_nmass_leaf += indiv.cmass_leaf_ymax / indiv.cton_leaf_aavr;
 								standpft_nmass_veg += indiv.nmass_veg;
 								standpft_fpc += indiv.fpc;
 								standpft_aaet += indiv.aaet;
-								standpft_lai += indiv.lai;
+								standpft_lai += indiv.lai_ymax;
 								if (pft.lifeform==TREE) {	
 									standpft_densindiv_total += indiv.densindiv;
 									heightindiv_total += indiv.height * indiv.densindiv;
 								}
-								standpft_vmaxnlim += indiv.avmaxnlim * indiv.cmass_leaf;
+								standpft_vmaxnlim += indiv.avmaxnlim * indiv.cmass_leaf_ymax;
 								standpft_nuptake += indiv.anuptake;
 
 								if(pft.landcover == CROPLAND) {
-									standpft_cmass_veg += indiv.cmass_leaf + indiv.cmass_root;
+									standpft_cmass_veg += indiv.cmass_leaf_ymax + indiv.cmass_root_ymax;
 									if(indiv.cropindiv) {
 										standpft_cmass_veg += indiv.cropindiv->cmass_ho + indiv.cropindiv->cmass_agpool + indiv.cropindiv->cmass_stem;
 										standpft_nmass_leaf += indiv.cropindiv->ynmass_leaf + indiv.cropindiv->ynmass_dead_leaf;
-										standpft_nmass_veg += indiv.cropindiv->ycmass_leaf + indiv.cropindiv->ynmass_dead_leaf + indiv.cropindiv->ynmass_root + indiv.cropindiv->ynmass_ho + indiv.cropindiv->ynmass_agpool;
+										standpft_nmass_veg += indiv.cropindiv->ynmass_leaf + indiv.cropindiv->ynmass_dead_leaf + indiv.cropindiv->ynmass_root + indiv.cropindiv->ynmass_ho + indiv.cropindiv->ynmass_agpool;
 									}
 								}
 								else {
@@ -1432,7 +1461,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_cpool, cpool_total);
 
 	// NPOOL Write npool to file
-	
+
 	if (ifcentury) {
 		outlimit(out,out_npool, nmass_gridcell + nlitter_gridcell);
 		outlimit(out,out_npool, surfsoillittern + cwdn);
@@ -1484,7 +1513,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								plot("Age structure [indiv/ha]", pft.name,
 								c * estinterval + estinterval*0.5,
 								densindiv[pft.id*nageclass+c]*1e4); // includes conversion from /m2 --> /ha
-						}
+							}
 
 						pftlist.nextobj();
 					}
@@ -1514,10 +1543,201 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 }
 
+/// Local analogue of OutputRows::add_value for restricting output
+/** Use to restrict output to specified range of years
+  * (or other user-specified limitation)
+  *
+  * If only yearly output between, say 1961 and 1990 is requred, use:
+  *  if (date.get_calendar_year() >= 1961 && date.get_calendar_year() <= 1990)
+  *  (assuming the input module has set the first calendar year in the date object)	
+  */
+void outlimit_daily(OutputRows& out, const Table& table, double d) {
+
+	if (date.year>=nyear_spinup)
+		out.add_value(table, d);
+}
+
 /// Output of simulation results at the end of each day
 /** This function does not have to provide any information to the framework.
   */
 void CommonOutput::outdaily(Gridcell& gridcell) {
+
+	const int PRINTOUT_YEAR = 2000;
+	double lon,lat;
+	double flux_veg, flux_repr, flux_soil, flux_fire, flux_est, flux_seed, flux_charvest;
+
+	if (date.year >= nyear_spinup && date.get_calendar_year() == PRINTOUT_YEAR) {
+
+	lon=gridcell.get_lon();
+	lat=gridcell.get_lat();
+
+	// The OutputRows object manages the next row of output for each output table
+	OutputRows out(output_channel, lon, lat, date.get_calendar_year(), date.day);
+
+	double mean_standpft_lai=0.0;
+	double mean_standpft_npp=0.0;
+	double mean_standpft_gpp=0.0;
+
+	double lai_gridcell=0.0;
+	double npp_gridcell=0.0;
+	double gpp_gridcell=0.0;
+
+	double standpft_lai=0.0;
+	double standpft_npp=0.0;
+	double standpft_gpp=0.0;
+
+	// *** Loop through PFTs ***
+
+	pftlist.firstobj();
+	while (pftlist.isobj) {
+
+		Pft& pft=pftlist.getobj();
+		Gridcellpft& gridcellpft=gridcell.pft[pft.id];
+
+		// Sum C biomass, NPP, LAI and BVOC fluxes across patches and PFTs
+
+		mean_standpft_lai=0.0;
+		mean_standpft_npp=0.0;
+		mean_standpft_gpp=0.0;
+
+		double heightindiv_total = 0.0;
+
+		// Determine area fraction of stands where this pft is active:
+		double active_fraction = 0.0;
+
+		Gridcell::iterator gc_itr = gridcell.begin();
+
+		while (gc_itr != gridcell.end()) {
+			Stand& stand = *gc_itr;
+
+			if(stand.pft[pft.id].active) {
+				active_fraction += stand.get_gridcell_fraction();
+			}
+
+			++gc_itr;
+		}
+
+		// Loop through Stands
+		gc_itr = gridcell.begin();
+
+		while (gc_itr != gridcell.end()) {
+			Stand& stand = *gc_itr;
+
+			Standpft& standpft=stand.pft[pft.id];
+			if(standpft.active) {
+			// Sum C biomass, NPP, LAI and BVOC fluxes across patches and PFTs
+
+			standpft_lai=0.0;
+			standpft_npp=0.0;
+			standpft_gpp=0.0;
+
+			stand.firstobj();
+
+			// Loop through Patches
+			while (stand.isobj) {
+				Patch& patch = stand.getobj();
+				Patchpft& patchpft = patch.pft[pft.id];
+				Vegetation& vegetation = patch.vegetation;
+
+				standpft_npp += patch.fluxes.get_daily_flux(Fluxes::NPP, pft.id);
+				standpft_gpp += patch.fluxes.get_daily_flux(Fluxes::GPP, pft.id);
+
+					vegetation.firstobj();
+					while (vegetation.isobj) {
+						Individual& indiv=vegetation.getobj();
+
+						if (indiv.id!=-1 && indiv.alive) {
+
+							if (indiv.pft.id==pft.id) {
+
+								if(ifdailygrass && indiv.alive && indiv.pft.lifeform == GRASS && !indiv.istruecrop_or_intercropgrass()){
+									standpft_lai += indiv.lai;
+								}else{
+									standpft_lai += indiv.lai*indiv.phen;
+								}
+							}
+						} // alive?
+						vegetation.nextobj();
+					}
+					stand.nextobj();
+				} // end of patch loop
+
+				standpft_npp/=(double)stand.npatch();
+				standpft_gpp/=(double)stand.npatch();
+				standpft_lai/=(double)stand.npatch();
+
+				//Update pft means for active stands
+				mean_standpft_npp += standpft_npp * stand.get_gridcell_fraction() / active_fraction;
+				mean_standpft_gpp += standpft_gpp * stand.get_gridcell_fraction() / active_fraction;
+				mean_standpft_lai += standpft_lai * stand.get_gridcell_fraction() / active_fraction;
+
+				// Update gridcell totals
+				double fraction_of_gridcell = stand.get_gridcell_fraction();
+
+				npp_gridcell+=standpft_npp*fraction_of_gridcell;
+				gpp_gridcell+=standpft_gpp*fraction_of_gridcell;
+
+				if(!pft.isintercropgrass) {
+					lai_gridcell+=standpft_lai*fraction_of_gridcell;
+				}
+
+			}//if(active)
+
+			++gc_itr;
+		}//End of loop through stands
+
+		// Print PFT sums to files
+
+		outlimit_daily(out,out_dlai,       mean_standpft_lai);
+
+		pftlist.nextobj();
+
+	} // *** End of PFT loop ***
+
+	flux_veg = flux_repr = flux_soil = flux_fire = flux_est = flux_seed = flux_charvest = 0.0;
+
+	// Sum C fluxes, dead C pools and runoff across patches
+
+	Gridcell::iterator gc_itr = gridcell.begin();
+
+	// Loop through Stands
+	while (gc_itr != gridcell.end()) {
+
+		Stand& stand = *gc_itr;
+		stand.firstobj();
+
+		//Loop through Patches
+		while (stand.isobj) {
+
+			Patch& patch = stand.getobj();
+
+			double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
+
+			flux_veg+=-patch.fluxes.get_daily_flux(Fluxes::NPP,date.day)*to_gridcell_average;
+			flux_repr+=-patch.fluxes.get_daily_flux(Fluxes::REPRC,date.day)*to_gridcell_average;
+			flux_soil+=patch.fluxes.get_daily_flux(Fluxes::SOILC,date.day)*to_gridcell_average;
+			flux_fire+=patch.fluxes.get_daily_flux(Fluxes::FIREC,date.day)*to_gridcell_average;
+			flux_est+=patch.fluxes.get_daily_flux(Fluxes::ESTC,date.day)*to_gridcell_average;
+			flux_seed+=patch.fluxes.get_daily_flux(Fluxes::SEEDC,date.day)*to_gridcell_average;
+			flux_charvest+=patch.fluxes.get_daily_flux(Fluxes::HARVESTC,date.day)*to_gridcell_average;
+
+			stand.nextobj();
+		} // patch loop
+
+		++gc_itr;
+	} // stand loop
+
+	outlimit_daily(out,out_dflux, flux_veg);
+	outlimit_daily(out,out_dflux, -flux_repr);
+	outlimit_daily(out,out_dflux, flux_soil);
+	outlimit_daily(out,out_dflux, flux_fire);
+	outlimit_daily(out,out_dflux, flux_est);
+
+	// daily NEE do not include fire, establishment as monthly NEE
+	outlimit_daily(out,out_dflux, flux_veg   +  flux_soil );
+
+	} // end if date year > spinup year
+
 }
 
 } // namespace

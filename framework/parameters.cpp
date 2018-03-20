@@ -483,7 +483,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("save_state", &save_state, 1, CB_NONE, "Whether to save new state files");
 		declareitem("state_year", &state_year, 1, 20000, 1, CB_NONE, "Save/restart year. Unspecified means just after spinup");
 
-		declareitem("ifdailyoutput", &ifdailyoutput, CB_NONE, "Whether to produce daily output. Unspecified means no, do not.");
+		declareitem("ifdailyoutput", &ifdailyoutput, 1, CB_NONE, "Whether to produce daily output. Unspecified means no, do not.");
 
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");

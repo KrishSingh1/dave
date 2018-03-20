@@ -65,6 +65,7 @@ typedef enum {APIN, BPIN, LIMO, MYRC, SABI, CAMP, TRIC, TBOC, OTHR, NMTCOMPOUNDT
 extern xtring title;
 
 /// Whether to produce daily output, and during which years
+const int DAILYOUTPUT_FIRSTYEAR_NONE = (int)-1e9;
 extern bool ifdailyoutput; 
 extern int dailyoutput_firstyear; 
 extern int dailyoutput_lastyear;

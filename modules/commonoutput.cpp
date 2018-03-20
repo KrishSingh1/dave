@@ -1555,7 +1555,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
   */
 void outlimit_daily(OutputRows& out, const Table& table, double d) {
 
-	if (date.year>=dailyoutput_firstyear && date.year<=dailyoutput_lastyear)
+	if (date.get_calendar_year() >= dailyoutput_firstyear && date.get_calendar_year() <= dailyoutput_lastyear)
 		out.add_value(table, d);
 }
 
@@ -1569,6 +1569,12 @@ void CommonOutput::outdaily(Gridcell& gridcell) {
 
 	if (!ifdailyoutput) 
 		return;
+
+	if (date.year == 0 && date.day == 0) {
+		if (dailyoutput_firstyear == DAILYOUTPUT_FIRSTYEAR_NONE) {
+			dailyoutput_firstyear = date.first_calendar_year + nyear_spinup;
+		}
+	}
 
 	lon=gridcell.get_lon();
 	lat=gridcell.get_lat();

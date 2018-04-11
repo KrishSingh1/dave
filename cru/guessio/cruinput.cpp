@@ -309,17 +309,24 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 				mfrs[m] = spinup_mfrs[m];
 				mwet[m] = spinup_mwet[m];
 				mdtr[m] = spinup_mdtr[m];
+				if ( weathergenerator == GWGEN ) {
+					// Use gwgen - korrelated weather
+					gwgen_get_met(gridcell,mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
+				}
 			}
 
-			// Interpolate monthly spinup data to quasi-daily values
-			interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
+			if ( weathergenerator == INTERP ) {
+				// Interpolate monthly spinup data to quasi-daily values
+				interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
 
-			// Only recalculate precipitation values using weather generator
-			// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
-			if (ifrainonwetdaysonly) {
-				// (from Dieter Gerten 021121)
-				prdaily(mprec, dprec, mwet, gridcell.seed);
+				// Only Recalculate Precipitation values using weather generator
+				// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
+				if (ifrainonwetdaysonly) {
+					// (from Dieter Gerten 021121)
+					prdaily(mprec, dprec, mwet, gridcell.seed);
+				}
 			}
+
 
 			spinup_mtemp.nextyear();
 			spinup_mprec.nextyear();
@@ -334,18 +341,28 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 
 			// Historical period
 
-			// Interpolate this year's monthly data to quasi-daily values
-			interp_climate(hist_mtemp[date.year-nyear_spinup],
-				hist_mprec[date.year-nyear_spinup],hist_msun[date.year-nyear_spinup],
-					   hist_mdtr[date.year-nyear_spinup],
-				       dtemp,dprec,dsun,ddtr);
-
-			// Only recalculate precipitation values using weather generator
-			// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
-			if (ifrainonwetdaysonly) {
-				// (from Dieter Gerten 021121)
-				prdaily(hist_mprec[date.year-nyear_spinup], dprec, hist_mwet[date.year-nyear_spinup], gridcell.seed);
+			if ( weathergenerator == INTERP ) {
+				// Interpolate monthly spinup data to quasi-daily values
+				interp_climate(hist_mtemp[date.year-nyear_spinup],
+					       hist_mprec[date.year-nyear_spinup],hist_msun[date.year-nyear_spinup],
+					       hist_mdtr[date.year-nyear_spinup],
+					       dtemp,dprec,dsun,ddtr);
+				// Only recalculate precipitation values using weather generator
+				// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
+				if (ifrainonwetdaysonly) {
+					// (from Dieter Gerten 021121)
+					prdaily(hist_mprec[date.year-nyear_spinup], dprec,
+						hist_mwet[date.year-nyear_spinup], gridcell.seed);
+				}
 			}
+			else if ( weathergenerator == GWGEN ) {
+				// Use gwgen - korrelated weather
+				gwgen_get_met(gridcell,hist_mtemp[date.year-nyear_spinup],
+					       hist_mprec[date.year-nyear_spinup],hist_msun[date.year-nyear_spinup],
+					       hist_mdtr[date.year-nyear_spinup],
+					       dtemp,dprec,dsun,ddtr);
+			}
+
 		}
 		else {
 			// Return false if last year was the last for the simulation

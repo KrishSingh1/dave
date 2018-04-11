@@ -120,6 +120,31 @@ void Climate::serialize(ArchiveStream& arch) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Implementation of GWGEN member functions
+////////////////////////////////////////////////////////////////////////////////
+
+void GWGen::serialize(ArchiveStream& arch) {
+
+	// Descriptions and units in guess.h to come CLN
+	arch & pday
+		& resid;
+}
+
+void RnDst::serialize(ArchiveStream& arch) {
+
+	// Descriptions and units in guess.h to come CLN
+	arch & q
+		& carry
+		& xcng
+		& xs
+		& indx
+		& have
+		& gamma_vals;
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
 // Implementation of Fluxes member functions
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -2303,6 +2328,8 @@ double Gridcell::nflux() {
 
 void Gridcell::serialize(ArchiveStream& arch) {
 	arch & climate
+		& gwgen
+		& rndst
 		& landcover
 		& seed
 		& balance;

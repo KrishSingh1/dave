@@ -68,10 +68,10 @@ private:
 		   file_dens_forest;
 
 	// daily
-	xtring file_daily_lai, file_daily_npp, file_daily_nmass, file_daily_cmass,
-		   file_daily_cton, file_daily_ndemand, file_daily_cmass_leaf,
+	xtring file_daily_lai, file_daily_npp, file_daily_gpp, file_daily_aet, file_daily_nmass,
+		   file_daily_cmass, file_daily_cton, file_daily_ndemand, file_daily_cmass_leaf,
 		   file_daily_nmass_leaf, file_daily_cmass_root, file_daily_nmass_root,
-		   file_daily_cmass_stem, file_daily_nmass_stem,
+		   file_daily_cmass_stem, file_daily_nmass_stem, file_daily_cflux,
 		   file_daily_cmass_storage, file_daily_nmass_storage,
 		   file_daily_n_input_soil, file_daily_avail_nmass_soil,
 		   file_daily_upper_wcont, file_daily_lower_wcont,
@@ -102,11 +102,11 @@ private:
 	Table out_cmass_stand_forest[MAXNUMBER_STANDS];
 
 	//daily
-	Table out_daily_lai, out_daily_npp, out_daily_cton, out_daily_nmass,
-		  out_daily_cmass, out_daily_ndemand, out_daily_cmass_leaf,
+	Table out_daily_lai, out_daily_npp, out_daily_gpp, out_daily_aet, out_daily_cton,
+		  out_daily_nmass, out_daily_cmass, out_daily_ndemand, out_daily_cmass_leaf,
 		  out_daily_nmass_leaf, out_daily_cmass_root, out_daily_nmass_root,
 		  out_daily_cmass_stem, out_daily_nmass_stem, out_daily_cmass_storage,
-		  out_daily_nmass_storage, out_daily_n_input_soil,
+		  out_daily_cflux, out_daily_nmass_storage, out_daily_n_input_soil,
 		  out_daily_cmass_dead_leaf, out_daily_nmass_dead_leaf, out_daily_fphu,
 		  out_daily_avail_nmass_soil, out_daily_upper_wcont,
 		  out_daily_lower_wcont, out_daily_irrigation, out_daily_temp,

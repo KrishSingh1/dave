@@ -47,7 +47,7 @@ bool getgridcell(Gridcell& gridcell) {
 
 		if (iss >> end_year >> monthday >> temp >> insol >> prec) {
 			if (tair.empty()) {
-				output_year = end_year;
+				dailyoutput_firstyear = end_year;
 			}
 			tair.push_back(temp);
 			swrad.push_back(insol);
@@ -70,16 +70,16 @@ bool getgridcell(Gridcell& gridcell) {
 
 bool getclimate(Gridcell& gridcell) {
 	CRUInput::getclimate(gridcell);
-
+	
 	int year = date.get_calendar_year();
-	if (year < output_year) {
+	if (year < dailyoutput_firstyear) {
 		return true;
 	} else if (year > end_year) {
 		return false;
 	}
 
 	// Overwrite / extend climate data with site values for the period
-	int id = (year - output_year) * 365 + date.day;
+	int id = (year - dailyoutput_firstyear) * 365 + date.day;
 
 	if (date.day == 0) {
 		double mndrydep[12], mnwetdep[12];

@@ -2,13 +2,21 @@ import "../../global.ins"
 
 file_mgpp "mgpp.out"
 file_mnee "mnee.out"
+file_maet "maet.out"
+
+! Daily outputs
+file_daily_lai "dlai.out"
+file_daily_cflux "dcflux.out"
+file_daily_aet "daet.out"
+file_daily_gpp "dgpp.out"
+file_daily_npp "dnpp.out"
 
 file_cmass ""
 file_anpp ""
 file_agpp ""
 file_fpc ""
 file_aaet ""
-! file_lai ""
+file_lai ""
 file_cflux ""
 file_doc ""
 file_dens ""
@@ -29,4 +37,8 @@ file_vmaxnlim ""
 npatch 25
 
 ifdailygrass 1		! wheter to use daily carbon allocation for grasses.
+ifdailyoutput 1
+dailyoutput_firstyear 2000
+dailyoutput_lastyear 2012
+
 coordinates_precision 4

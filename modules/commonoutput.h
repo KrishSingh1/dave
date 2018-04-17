@@ -50,9 +50,6 @@ private:
 
 	// nitrogen
 	xtring file_nmass, file_cton_leaf, file_nsources, file_npool, file_nlitter, file_nuptake, file_vmaxnlim, file_nflux, file_ngases;
-	
-	// outdaily files
-	xtring file_dlai, file_dflux;
 
 	// output tables
 
@@ -66,8 +63,6 @@ private:
 	// nitrogen
 	Table out_nmass, out_cton_leaf, out_nsources, out_npool, out_nlitter, out_nuptake, out_vmaxnlim, out_nflux, out_ngases;
 
-	// outdaily
-	Table out_dlai, out_dflux;
 };
 
 }

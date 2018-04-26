@@ -556,8 +556,10 @@ struct PhotosynthesisResult : public Serializable {
     }
 
 	void serialize(ArchiveStream& arch);
+
 };
 
+GWGen gwgen;
 
 /// The Climate for a grid cell
 /** Stores all static and variable data relating to climate parameters, as well as
@@ -572,6 +574,9 @@ class Climate : public Serializable {
 public:
 	/// reference to parent Gridcell object
 	Gridcell& gridcell;
+
+	/// Weathergenerator object
+	GWGen gwgen;
 
 	/// mean air temperature today (deg C)
 	double temp;
@@ -3824,15 +3829,13 @@ struct Landcover : public Serializable {
 	void serialize(ArchiveStream& arch);
 };
 
+
 class GWGen : public Serializable {
 
+public:
 	// MEMBER VARIABLES
 
-public:
-	/// reference to parent Gridcell object
-	Gridcell& gridcell;
-
-		// new ones
+	// new ones
 	int month;
 
         // Derived datatype for the monthly weather generator input
@@ -3861,7 +3864,7 @@ public:
         double dtmax ; // 24 hour mean maximum temperature (degC)
         double dcldf ; // 24 hour mean cloud cover fraction 0=clear sky, 1=overcast (fraction)
         double dwind ; // wind speed (m s-1)
-
+	double drhum ; // relative humidity (CLN units!!!)
         //logical, dimension(2)  :: pday    !precipitation state
         //type(randomstate)      :: rndst   !state of the random number generator, 15 elements
         //real(sp), dimension(4) :: resid   !previous day's weather residuals
@@ -3893,13 +3896,17 @@ public:
 	double cldf_w1, cldf_w2, cldf_w3, cldf_w4, cldf_d1, cldf_d2, cldf_d3, cldf_d4;
 	double cldf_sd_w,cldf_sd_d;
 
-	
+	void serialize(ArchiveStream& arch);
+
+	/// Constructor function: initialise cell member
 };
 
 class RnDst {
 	// MEMBER VARIABLES
 
 public:
+	RnDst();
+
 	Gridcell& gridcell;
 	int q[10];
         int carry ;
@@ -3909,6 +3916,7 @@ public:
 	bool have  ;
 	double gamma_vals[2];
 
+	void serialize(ArchiveStream& arch);
 };
 	
 /// The Gridcell class corresponds to a modelled locality or grid cell.
@@ -3921,13 +3929,13 @@ public:
 class Gridcell : public GuessContainer<Stand>, public Serializable {
 
 public:
-
+	
 	// MEMBER VARIABLES
 
 	/// climate, insolation and CO2 for this grid cell
 	Climate climate;
 
-    /// soil static parameters for this grid cell
+	/// soil static parameters for this grid cell
 	Soiltype soiltype;
 
 	/// landcover fractions and landcover-specific variables

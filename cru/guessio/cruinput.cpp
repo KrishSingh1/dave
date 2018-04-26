@@ -13,6 +13,7 @@
 
 #include "config.h"
 #include "cruinput.h"
+#include "gwgen.h"
 
 #include "driver.h"
 #include "parameters.h"
@@ -309,10 +310,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 				mfrs[m] = spinup_mfrs[m];
 				mwet[m] = spinup_mwet[m];
 				mdtr[m] = spinup_mdtr[m];
-				if ( weathergenerator == GWGEN ) {
-					// Use gwgen - korrelated weather
-					gwgen_get_met(gridcell,mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
-				}
 			}
 
 			if ( weathergenerator == INTERP ) {
@@ -325,6 +322,10 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 					// (from Dieter Gerten 021121)
 					prdaily(mprec, dprec, mwet, gridcell.seed);
 				}
+			}
+			else if ( weathergenerator == GWGEN ) {
+					// Use gwgen - korrelated weather
+				gwgen_get_met(gridcell,mtemp,mprec,mwet,msun,mdtr,dtemp,dprec,dsun,ddtr);
 			}
 
 
@@ -358,9 +359,11 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			else if ( weathergenerator == GWGEN ) {
 				// Use gwgen - korrelated weather
 				gwgen_get_met(gridcell,hist_mtemp[date.year-nyear_spinup],
-					       hist_mprec[date.year-nyear_spinup],hist_msun[date.year-nyear_spinup],
-					       hist_mdtr[date.year-nyear_spinup],
-					       dtemp,dprec,dsun,ddtr);
+					      hist_mprec[date.year-nyear_spinup],
+					      hist_mwet[date.year-nyear_spinup],
+					      hist_msun[date.year-nyear_spinup],
+					      hist_mdtr[date.year-nyear_spinup],
+					      dtemp,dprec,dsun,ddtr);
 			}
 
 		}

@@ -123,6 +123,10 @@ void Climate::serialize(ArchiveStream& arch) {
 // Implementation of GWGEN member functions
 ////////////////////////////////////////////////////////////////////////////////
 
+//void GWGen::GWGen() {
+//	month = 0;
+//}
+
 void GWGen::serialize(ArchiveStream& arch) {
 
 	// Descriptions and units in guess.h to come CLN

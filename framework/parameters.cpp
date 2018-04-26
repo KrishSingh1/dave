@@ -934,7 +934,7 @@ void plib_callback(int callback) {
 		break;
 	case CB_WEATHERGENERATOR:
 		if (strparam.upper() == "GWGEN") weathergenerator = GWGEN;
-		else if (strparam.upper() == "INTERP") wateruptake = INTERP;
+		else if (strparam.upper() == "INTERP") weathergenerator = INTERP;
 		else {
 			sendmessage("Error",
 				"Unknown weathergenerator (valid types: \"GWGEN\", \"INTERP\")");

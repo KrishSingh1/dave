@@ -1767,7 +1767,7 @@ void normal_01_cdf ( double x, double cdf ) {
 		cdf = 1.0E+00 - q;
 
 }
-void rmsmooth(int lm, double *m,int *dmonth,double bcond[2],int lr, double *r) {
+void rmsmooth(int lm,int rm, double *m,int *dmonth,double bcond[2], double *r) {
         //! Iterative, mean preserving method to smoothly interpolate mean data to pseudo-sub-timestep values
         //! From Rymes, M.D. and D.R. Myers, 2001. Solar Energy (71) 4, 225-231
 	//
@@ -2069,6 +2069,98 @@ double cldf2rad(double input, double lat, int doy, bool cldf2rad) {
 	}
 }
 
+double cldfr2rad(double inp, double lati, int doy, bool cldfr_rad) {
+
+
+      // REAL,INTENT(IN)    :: inp        ! Input (cldfr [frac.] if cldfr_rad=t else rad[W/m2]
+      // REAL,INTENT(IN)    :: lati       ! center-latitude of gridcell
+      // INTEGER,INTENT(IN) :: doy        ! Current day-of-year
+      // LOGICAL,INTENT(IN) :: cldfr_rad  ! Whether to compute cldfr->rad (true) or vv. (false) 
+      
+	double const QOO = 1360.0;
+	double const BETA = 0.17;
+	double const A = 107.0;
+	double const B = 0.2;
+	double const C = 0.25;
+	double const D = 0.5;
+	double const K = 13750.98708;
+	double const FRADPAR = 0.5;
+	double const PI = 3.14159269;
+	double const DEGTORAD = PI / 180.;
+	double const daylengths = 86400.;
+      
+	double qo, sinehh, lat, cosinelat, u, v, hh, delta;
+	double w, rad=0., cldfr=0.;
+
+	int year_length = date.year_length();
+
+	// Calculate values of saved parameters for this day
+        qo = QOO * (1.0 + 2.0 * 0.01675 * cos(2.0 * PI * (day + 0.5) / year_length)); // Eqn 2
+        double delta = -23.4 * DEGTORAD * cos(2.0 * PI * (day + 10.5) / year_length);
+                                // Eqn 4, solar declination angle (radians)
+        u = sinelat * sin(delta); // Eqn 9
+        v = cosinelat * cos(delta); // Eqn 10
+
+        if (u >= v)
+                hh = PI; // polar day
+        else if (u <= -v)
+                hh = 0.0; // polar night
+        else 
+                hh = arccos(-u / v); // Eqn 11
+
+        sinehh = sin(hh);
+        
+        double rad = cldfr = 0;
+        
+        if ( cldfr2rad ) {
+                cldfr = input;
+                w = (C+D * (1.-cldfr)) * (1.0 - BETA) * qo; // Eqn 13
+                rad = 2.0 * w * (u * hh + v * sinehh) * K; // Eqn 14
+                return rad/day_lengths;
+        }
+        else {
+                rad = input*day_lengths;
+                w = rad / (2. *(u * hh + v * sinehh) * K);
+                cldfr = 1.-((w/((1.0 - BETA) * qo) -C)/D) ;
+                cldfr = fmax(0.,fmin(1.cldfr));
+                return cldfr;
+        }
+//	qo = QOO * (1.0 + 2.0 * 0.01675 * cos(2.0 * PI * (REAL(doy) + 0.5) / REAL(year_length))) 
+//      delta = -23.4 * DEGTORAD * cos(2.0 * PI * (REAL(doy) + 10.5) / REAL(year_length)) 
+//      u = sin(lati * DEGTORAD) * sin(delta) ! Eqn 9
+//      v = cos(lati * DEGTORAD) * cos(delta) ! Eqn 10
+//
+//      if (u >= v) then
+//         hh = PI !; polar day
+//      else if (u <= -v) then
+//         hh = 0.0 !;  polar night
+//      else 
+//         hh = acos(-u / v) !;  Eqn 11
+//      end if
+//      
+//      sinehh = sin(hh)
+// 
+//      if ( cldfr_rad ) then
+//         cldfr = inp
+//         w     = (C+D * (1.-cldfr)) * (1.0 - BETA) * qo    !;  Eqn 13
+//         rad   = 2.0 * w * (u * hh + v * sinehh) * K !;  Eqn 14
+//         outp  = rad/daylengths
+//      else 
+//         rad   = inp*daylengths
+//         if ( hh > 0. ) then
+//            w     = rad / (2. *(u * hh + v * sinehh) * K)
+//            cldfr = 1.-((w/((1.0 - BETA) * qo) -C)/D)
+//         else
+//            cldfr = 0.
+//         end if
+//         outp  = cldfr
+//      end if
+//
+//      RETURN
+//
+//    end subroutine cldfr2rad
+}						//============
+
 void gwgen_get_daily_met(GWGen& gwgen, RnDst& rndst) {
 
 	//        use parametersmod, only : sp,dp,tfreeze
@@ -2086,7 +2178,7 @@ void gwgen_get_daily_met(GWGen& gwgen, RnDst& rndst) {
         double wetd= gwgen.mwetd ;  
 
 	// fraction of days in month with precipitation (fraction) 
-        double wetf= (double)gwgen.mwetd / (double) ndaymonth[gwgen.month-1] ;  
+        double wetf= (double)gwgen.mwetd / (double) ndaymonth[date.month] ;  
 
 	// minumum temperture (C)
         double tmn = gwgen.dtmin; 
@@ -2319,16 +2411,91 @@ void gwgen_get_daily_met(GWGen& gwgen, RnDst& rndst) {
 
 }
 
+void redist_restricted_vals(double* inval&, double limit, double* wght) { 
+	
+	// cloud-fraction
+	int ll        = sizeof(inval);
+	int cnt       = 0;
+	double rest   = 0.;
+	bool flag[ll] = { true };
+	
+	double corfac;
 
-void gwgen_get_met(Gridcell& gridcell,double* in_mtemp,double* in_mprec,double* in_msun,
-		   double* in_mdtr,double* out_dtemp,double* out_dprec,double* out_dsun,double* out_ddtr) {
+	double tot_avg = 0.; 
+	for (int i=0; i<ll; i++)
+		tot_val += inval[i];
+	tot_avg /= (double)ll;
+	bool go = true;
+	while ( true ) {
+		double remsum = 0.;
+		double gonsum = 0.;
+		for (int i=0; i<ll; i++) {
+			// corfac= SUM(month_met(:nd)%cldf * wght(:nd) * LA(:nd)) /
+			// REAL(nd)  / &
+			// (mcloud(n_curr)-SUM(month_met(:nd)%cldf * wght(:nd) 
+			// * ( 1-LA(:nd) ))/REAL(nd))
+			if ( flag[i] )
+				remsum += inval[i] * wght[i];
+			else 
+				gonsum += inval[i] * wght[i];
+		}
+		remsum /= (double)ll;
+		gonsum /= (double)ll;
+		corfac  = remsum / ( tot_val - gonsum );
+
+		rest = 0.;
+		for (int i=0; i<ll; i++) {
+			if ( flag[i] ) {
+				inval[i] *= wght[i] / corfac;
+				if (inval[i] > limt) {
+					rest    += inval[i] - limit;
+					inval[i] = limit;
+					flag [i] = false;
+				}
+			}
+		}
+		cnt++;
+		if ( rest<0.00001 or cnt>30 )
+			go = false;
+	}
+}
+
+
+
+			for (int i=0; i<ll; i++)
+			rest
+
+
+
+				}
+
+void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, double* in_mwetm, 
+		   double* in_msol, double* in_mdtr, double* out_dtemp, double* out_dprec,
+		   double* out_dsol,double* out_ddtr) {
 
 
 	int pdaydiff = 0;
 	double precdiff, tmindiff, tmin_acc;
 
-	GWGen gwgen = gridcell.gwgen;
-	RnDst rndst = gridcell.rndst;
+	GWGen gwgen = gridcell.climate.gwgen;
+	RnDst rndst = gridcell.climate.rndst;
+
+	int ndaymon = date.ndaymonth[date.month];
+
+	double in_tmin[12];
+	double in_tmax[12];
+	double lat = gridcell.lat();
+	int doy = accumday;
+	for (int m=0; m<12; m++) {
+		// have mid month length_of_day 
+		
+		in_tmin[m] = in_mtemp[m] - 0.5 * in_mdtr[m];
+		in_tmax[m] = in_mtemp[m] + 0.5 * in_mdtr[m];
+		for ( int day = 0; day<ndaymon; day++) {
+			//CLN coorect hier for real weighting!!!!!!!! 
+			in_cldf[m] = cldfr2rad(in_msol[m], lat, doy+day+1, false); 
+		}
+	}
 
 	//gwgen.month = 1;
 	//gwgen.mprec = 200.;
@@ -2345,13 +2512,14 @@ void gwgen_get_met(Gridcell& gridcell,double* in_mtemp,double* in_mprec,double* 
 	// reset residuals every month CLN TESTEN!!!!
 	bool lreset = true;
 	
-	bool call1        = date.is_first_sim_day();
+	bool call1  = date.is_first_sim_day();
 
 	int i_count = 1;
+	// initially populate cloud params 
 	if ( call1 ) {
 		calc_cloud_params(gwgen);
-		
-		if ( ! RESTART ) {
+		// set initial vals if spinning up
+		if ( not RESTART ) {
 			init_weathergen(gwgen, rndst);
 			i_count = 0;
 		}
@@ -2360,124 +2528,209 @@ void gwgen_get_met(Gridcell& gridcell,double* in_mtemp,double* in_mprec,double* 
 	unsigned int sval = unsigned(gridcell.seed) //-30000;
 	ran_seed(sval,rndst);
 
-	// 
-	// At beginning of month:
-	// Check for invalid vals 
-	// check consecutivity -> new boundaryconds
-	// rm smooth
-	// rmsmooth
-
-        //
-	// id fir
-
-//	if (not restart && call1) {
-//		gwgen.pday[0] = false;
-//		gwgen.pday[1] = false;
-//		for (int i=0;i<4;i++)
-//			gwgen.resid[i] = 0.;
-//		i_count = 0;
-//	}
-//        else if (lreset) {
-//		for (int i=0;i<4;i++)
-//			gwgen.resid[i] = 0.;
-//		i_count = 0;
-//	}
-//        else {
-//		i_count = 1;
-//	}
-	
-	// below: n_curr bezieht sich auf gitterzelle
-	double prec_t = fmax(0.5,0.05 * gwgen.mprec);  //set quality threshold for preciptation amount
 
 	int accumday = 0;
-	for ( int mm = 0; mm<date.month; mm++) 
-		accumday += date.ndaymonth[mm];
-	
-	GWGen gwgen_sav = gwgen;
-	
-	do {
-		int mwetd_sim    = 0;
-		double mprec_sim = 0.;
-		double tmin_acc  = 0.0;
-		    
-		// dayloop
 
-		for (int day=0; day<ndaymonth[date.month]; day++) {
+	for (int mon=0;mon<12;mon++) {
+ 
+		// At beginning of month:
+		if ( mon > 0 )  
+			accumday += date.ndaymonth[mon-1];
+
+		// check consecutivity -> new boundaryconds IS KNWN!!!
+		// index for annual arrays
+		int lm = max(mon-1,0); 
+		int rm = min(11,mon+1);
+		// index for rmsmooth
+		int ilm = 0;
+		int irm = 2;
+		if ( mon == 0 ) 
+			ilm = 1;
+		else if ( mon == 11 ) 
+			irm == 1;
+
+		int ld = accumday;
+		int rd = ld + date.ndaymonth[mon];
+
+		double bcond[2];
+		double tmvals[3];
+		int cmdays[3] = 
+			{date.ndaymonth[lm],date.ndaymonth[mon],date.ndaymonth[rm]};
+		// smooth tmin
+		bcond  = { in_tmin[lm], in_tmin[rm] };
+		tmvals = { in_tmin[lm], in_tmin[mon], in_tmin[rm] };
+		rmsmooth( ilm,irm,tmvals,cmdays,bcond, mtmin_curr );
 		
-			gwgen.dtmin = mtmin_curr[day];
-			gwgen.dtmax = mtmax_curr[day];
-			gwgen.dcldf = mcloud_curr[day];
-			gwgen.dwind = mwind_curr[day];
+		// smooth tmax
+		bcond  = { in_tmax[lm], in_tmax[rm] };
+		tmvals = { in_tmax[lm], in_tmax[mon], in_tmax[rm] };
+		rmsmooth( ilm,irm,tmvals,cmdays,bcond, mtmax_curr );
+		
+		// smooth cloud cover
+		bcond  = { in_cldf[lm], in_cldf[rm] };
+		tmvals = { in_cldf[lm], in_cldf[mon], in_cldf[rm] };
+		rmsmooth( ilm,irm,tmvals,cmdays,bcond, mcloud_curr );
+		
+		// smooth wind
+		bcond  = { in_wind[lm], in_wind[rm] };
+		tmvals = { in_wind[lm], in_wind[mon], in_wind[rm] };
+		rmsmooth( ilm,irm,tmvals,cmdays,bcond, mwind_curr );
+		
+		// reset residuals at beginning of month if desired
+		if (lreset) {
+			for (int i=0;i<4;i++)
+				gwgen.resid[i] = 0.;
+			i_count = 0;
+		}
+		
+		// below: n_curr bezieht sich auf gitterzelle
+		double prec_t = fmax(0.5,0.05 * gwgen.mprec[mon]);  //set quality threshold for preciptation amount
+		
+		GWGen gwgen_sav = gwgen;
+		
+		gwgen.mprec = in_mprec[m];
+		gwgen.mwetd = in_wetd[m];
+
+		do {
+			int mwetd_sim    = 0;
+			double mprec_sim = 0.;
+			double tmin_acc  = 0.0;
 			
-			gwgen.pday[0] = gwgen_sav.pday[0];
-			gwgen.pday[1] = gwgen_sav.pday[1];
-			for (int i=0;i<4;i++) {
-				gwgen.resid[i] = gwgen_sav.resid[i];
+			// dayloop
+			
+			for (int day=0; day<ndaymon; day++) {
+				
+				gwgen.dtmin = mtmin_curr[day] ;
+				gwgen.dtmax = mtmax_curr[day] ;
+				gwgen.dcldf = mcloud_curr[day];
+				gwgen.dwind = mwind_curr[day] ;
+				
+				gwgen.pday[0] = gwgen_sav.pday[0];
+				gwgen.pday[1] = gwgen_sav.pday[1];
+				for (int i=0;i<4;i++) {
+					gwgen.resid[i] = gwgen_sav.resid[i];
+				}
+				
+				gwgen_get_daily_met(gwgen, rndst);
+				
+				dprec[day]= gwgen.dprec;
+				dtmin[day]= gwgen.dtmin;
+				dtmax[day]= gwgen.dtmax;
+				dcldf[day]= gwgen.dcldf;
+				dwind[day]= gwgen.dwind;
+				
+				if ( gwgen.dprec > 0. ) {
+					mwetd_sim++; 
+					mprec_sim += gwgen.dprec;
+				}
+				tmin_acc += gwgen.dtmin;
+			} 
+			// Break off criteria
+			
+			double tmin_diff = 1.;
+			
+			//! Reset met_out_save after initialization
+			if (i_count == 0) {
+				if (not restart) 
+					gwgen_sav = gwgen;
+				else
+					for (int i=0;i<4;i++)
+						gwgen_sav.resid[i] = gwgen.resid[i];
 			}
 
-			gwgen_get_daily_met(gwgen, rndst);
-			
-			dprec[day]= gwgen.dprec;
-			dtmin[day]= gwgen.dtmin;
-			dtmax[day]= gwgen.dtmax;
-			dcldf[day]= gwgen.dcldf;
-			dwind[day]= gwgen.dwind;
-			
-			if ( gwgen.dprec > 0. ) {
-				mwetd_sim++; 
-				mprec_sim += gwgen.dprec;
-			}
-			tmin_acc += gwgen.dtmin;
-		} 
-		// Break off criteria
-
-		double tmin_diff = 1.;
-
-		//! Reset met_out_save after initialization
-		if (i_count == 0) {
-			if (not restart) 
-				gwgen_sav = gwgen;
-			else
-				for (int i=0;i<4;i++)
-					gwgen_sav.resid[i] = gwgen.resid[i];
-		}
-
-		if (gwgen.mprec <= 0.1 && tmindiff < 2.5) {
-
-			pdaydiff = 0;
-			precdiff = 0.;
-			break;
-		}
-		else if (i_count >= 1) {  //!enforce at least two times over the month to get initial values ok
-
-			pdaydiff = abs(gwgen.mwetd - mwetd_sim);
-			precdiff = abs(gwgen.mprec - mprec_sim);
-
-			//! restrict simulated total monthly precip to +/-5% or 0.5 mm of observed value
-			if (pdaydiff <= 1 && precdiff <= prec_t && tmindiff < 2.5) 
+			if (gwgen.mprec <= 0.1 && tmindiff < 2.5) {
+				
+				pdaydiff = 0;
+				precdiff = 0.;
 				break;
-			else if (i_count == 10000000) {
-				printf("No good solution found after 10000000 iterations \n");
-				exit(-4);
 			}
-		}
-		i_count++;
-	} while ( i_count <=  10000000 );
+			else if (i_count >= 1) {  //!enforce at least two times over the month to get initial values ok
+				
+				pdaydiff = abs(gwgen.mwetd - mwetd_sim);
+				precdiff = abs(gwgen.mprec - mprec_sim);
+				
+				//! restrict simulated total monthly precip to +/-5% or 0.5 mm of observed value
+				if (pdaydiff <= 1 && precdiff <= prec_t && tmindiff < 2.5) 
+					break;
+				else if (i_count == 10000000) {
+					printf("No good solution found after 10000000 iterations \n");
+					exit(-4);
+				}
+			}
+			i_count++;
+		} while ( i_count <=  10000000 );
 
-	// CLN SCALING HERE!!!!
-	bla;
+		// Enforce conservation by scaling with monthly averages 
 	
-	for ( int dd = 0; dd < date.ndaymonth[date.month]; dd++) {
-		out_dtemp[dd+accumday] = (dtmax[dd] + dtmin[dd]) / 2.;
-		out_ddtr [dd+accumday] = dtmax[dd] - dtmin[dd];
-		out_dprec[dd+accumday] = dprec[dd];
-		out_dsun [dd+accumday] =;
-		out_dwind[dd+accumday] = dwind[dd];
-		out_drhum[dd+accumday] = drhum[dd];
-	}
-	
-	
-	//CLN enter scaleforcing here!!! 
-	
+		// Correct Temperature biases by shifting
+		double tmincor = 0.;
+		double tmaxcor = 0.;
+		double preccor = 0.;
+		double windcor = 0.;
+		double cldfcor = 0.;
+		double rhumcor = 0.;
+		double tot_cldwght = 0.;
+		doy = accumday;
+		for (int day=0; day<=ndaymon;day++) {
+			tmincor += dtmin[day]/(double)ndaymon;
+			tmaxcor += dtmax[day]/(double)ndaymon;
+			preccor += dprec[day];
+			windcor += dwind[day];
+			cldfcor += dcldf[day];
+			doy++;
+			// compute days max rad (i.e. cldfr=0.) for weighting
+			cldwght[day] = cldfr2rad(0.0,lat,doy,true); 
+			tot_cldwght += cldwght[day];
+		}
+		tmincor -= in_tmin[m];
+		tmaxcor -= in_tmax[m];
+		preccor /= (in_prec[m]*(double)ndaymon);
+		windcor /= (in_wind[m]*(double)ndaymon);
+
+		tot_cldwght /= (double)ndaymon);
+
+		for (int day=0; day<=ndaymon;day++) {
+			// correct temp by shifting
+			dtmin[day] -= tmincor;
+			dtmax[day] -= tmaxcor;
+			// correct wind by factor
+			dwind[day] /= windcor;
+			// correct precip by factor 
+			if ( preccor > 0. ) {
+				dprec[day] /= preccor;
+			} else {
+				dprec[day] = 0.;
+			}
+			// correct cldfr by factor and distribute overshoot
+			cldwght[day] /= tot_cldwght;
+			// compute relative humidity following 
+			// use daylight avg temp following Running et al. 1987
+			double tdavg = 0.606*dtmax[day] + 0.394*dtmin[day];
+			tdavg        = -1.14 + 1.12*tgavg;
+			drhum[day]   = get_arden_rh(tdavg,dtmin[day]);
+		}
+		
+		// Redistribute limited parameters like relhum and 
+		// cloud-fraction
+		
+		if ( in_cldf[m] > 0. ) 	
+			redist_restricted_vals(dcldf, {0.,1.}, cldwght);
+		if ( in_rhum[m] > 0. ) {
+			double dum[ndaymon] = {1.}; 
+			redist_restricted_vals(drhum, {0.,100.}, dum);
+		}
+			
+		// Compute solar radiation from cloud-fraction
+		for (int day=0; day<=ndaymon;day++) {
+			doy = accumday+day+1;
+			out_dtemp[day+accumday] =(dtmax[day] + dtmin[day]) / 2.;
+			out_ddtr [day+accumday] = dtmax[day] - dtmin[day];
+			out_dprec[day+accumday] = dprec[day];
+			out_dsun [day+accumday] = cldfr2rad(dcldf[day],lat,doy,true);
+			out_dwind[day+accumday] = dwind[day];
+			out_drhum[day+accumday] = drhum[day];
+		}
+		
+	} // month loop
 
 }

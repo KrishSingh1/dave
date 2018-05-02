@@ -19,6 +19,7 @@ set(headers
   cropallocation.h
   cropsowing.h
   cropphenology.h
+  gwgen.h
   )
 
 set(source  
@@ -41,6 +42,7 @@ set(source
   cropallocation.cpp
   cropsowing.cpp
   cropphenology.cpp
+  gwgen.cpp
   )
 
 include(add_guess_sources)

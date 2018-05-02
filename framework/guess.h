@@ -556,10 +556,28 @@ struct PhotosynthesisResult : public Serializable {
     }
 
 	void serialize(ArchiveStream& arch);
-
 };
 
-GWGen gwgen;
+// GWgen weather generator
+class RnDst {
+	// MEMBER VARIABLES
+
+public:
+	
+
+	//Gridcell& gridcell;		JN
+	int q[10];
+	int carry;
+	int xcng;
+	unsigned int xs; //!default seed
+	int indx;
+	bool have;
+	double gamma_vals[2];
+	
+	RnDst(){};
+	//void serialize(ArchiveStream& arch);   JN
+};
+
 
 /// The Climate for a grid cell
 /** Stores all static and variable data relating to climate parameters, as well as
@@ -575,8 +593,8 @@ public:
 	/// reference to parent Gridcell object
 	Gridcell& gridcell;
 
-	/// Weathergenerator object
-	GWGen gwgen;
+	/// GW Weathergen  JN
+	RnDst rndst;
 
 	/// mean air temperature today (deg C)
 	double temp;
@@ -3829,96 +3847,6 @@ struct Landcover : public Serializable {
 	void serialize(ArchiveStream& arch);
 };
 
-
-class GWGen : public Serializable {
-
-public:
-	// MEMBER VARIABLES
-
-	// new ones
-	int month;
-
-        // Derived datatype for the monthly weather generator input
-
-        double mprec ; // monthly total precipitation amount (mm)
-        double mwetd ; // number of days in month with precipitation
-        double mwetf ; // fraction of days in month with precipitation
-	
-        double mtmin ; // minumum temperture (C)
-        double mtmax ; // maximum temperture (C)
-        double mcldf ; // cloud fraction (0=clear sky, 1=overcast) (fraction)
-        double mwind ; // wind speed (m/s)
-
-	// CLN use them both for in and output
-        bool pday[2]; //precipitation status: true if the day was a rain day
-        //type(randomstate)      :: rndst   !state of the random number generator
-        double resid[4];   //previous day's weather residuals
-
-	//end type metvars_in
-
-	//type metvars_out
-        // Derived datatype for the daily weather generator output
-
-        double dprec ; // 24 hour total precipitation (mm)
-        double dtmin ; // 24 hour mean minimum temperature (degC)
-        double dtmax ; // 24 hour mean maximum temperature (degC)
-        double dcldf ; // 24 hour mean cloud cover fraction 0=clear sky, 1=overcast (fraction)
-        double dwind ; // wind speed (m s-1)
-	double drhum ; // relative humidity (CLN units!!!)
-        //logical, dimension(2)  :: pday    !precipitation state
-        //type(randomstate)      :: rndst   !state of the random number generator, 15 elements
-        //real(sp), dimension(4) :: resid   !previous day's weather residuals
-        double unorm[4];
-
-	//end type metvars_out
-
-	double tmn;
-	double tmx;
-	double wnd;
-	double cld;
-	
-	//    type daymetvars
-        // Derived datatype for monthly climate variables
-
-        double dmtmax_mn ; // maximum temperature monthly mean (degC)
-        double dmtmin_mn ; // minimum temperature mothly mean (degC)
-        double dmcldf_mn ; // mean cloud fraction (fraction)
-        double dmwind_mn ; // wind speed
-
-        double dmtmax_sd ; // standard deviation of corresponding variable above
-        double dmtmin_sd ; // ------- " ------
-        double dmcldf_sd ; // ------- " ------
-        double dmwind_sd ; // ------- " ------
-
-	//end type daymetvars
-	
-	// the following parameters are computed by the cloud_params subroutine
-	double cldf_w1, cldf_w2, cldf_w3, cldf_w4, cldf_d1, cldf_d2, cldf_d3, cldf_d4;
-	double cldf_sd_w,cldf_sd_d;
-
-	void serialize(ArchiveStream& arch);
-
-	/// Constructor function: initialise cell member
-};
-
-class RnDst {
-	// MEMBER VARIABLES
-
-public:
-	RnDst();
-
-	Gridcell& gridcell;
-	int q[10];
-        int carry ;
-        int xcng  ;
-        unsigned int xs    ; //!default seed
-        int indx  ;
-	bool have  ;
-	double gamma_vals[2];
-
-	void serialize(ArchiveStream& arch);
-};
-	
 /// The Gridcell class corresponds to a modelled locality or grid cell.
 /** Member variables include an object of type Climate (holding climate, insolation and
  *  CO2 data), a object of type Soiltype (holding soil static parameters) and a list
@@ -3929,13 +3857,13 @@ public:
 class Gridcell : public GuessContainer<Stand>, public Serializable {
 
 public:
-	
+
 	// MEMBER VARIABLES
 
 	/// climate, insolation and CO2 for this grid cell
 	Climate climate;
 
-	/// soil static parameters for this grid cell
+    /// soil static parameters for this grid cell
 	Soiltype soiltype;
 
 	/// landcover fractions and landcover-specific variables
@@ -3949,12 +3877,6 @@ public:
 
 	/// object for keeping track of carbon and nitrogen balance
 	MassBalance balance;
-
-	/// class keeping all variables for Global Weather Generator
-	GWGen gwgen;
-
-	/// class keeping all variables for GWGen's random generator
-	RnDst rndst;
 
 	/// Seed for generating random numbers within this Gridcell
 	/** The reason why Gridcell has its own seed, rather than using for instance

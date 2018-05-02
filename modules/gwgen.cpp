@@ -28,7 +28,7 @@
 // "#include" directive referring to the framework header file.
 
 //#include "config.h"
-//#include "guess.h"
+
 #include "gwgen.h"
 #include <cmath>
 #include <algorithm>
@@ -223,7 +223,7 @@ double tmin_bias_coeffs[6] = {0., 0., 0., 0., 0., 0.}; // coefficients for the b
 double tmin_bias_min =-2.3263478740;
 double tmin_bias_max = 2.3263478740; 
 
-
+GWGen gwgen;
 
 
 //--------------------
@@ -1783,12 +1783,12 @@ void rmsmooth(int lm,int rm, double *m,int *dmonth,double bcond[2], double *r) {
         double const ot = 1. / 3.;
 
         //!local variables
-        int g[lr];
+		int g[100];	//int g[lr];		JN
  
 	double ck;
 
 	int n  = lm;
-        int ni = lr; 
+	int ni = 100;			//int ni = lr;	JN
 	
 	double bc[2];
         bc[0] = bcond[0];
@@ -1852,7 +1852,7 @@ void init_weathergen(GWGen& gwgen, RnDst& rndst) {
         rndst.xs    = 521288629; //!default seed
         rndst.indx  = qsiz+1;
 	rndst.have  = false;
-	rndst.gamma_vals = {0., 0.};
+	//rndst.gamma_vals = {0., 0.};  // JN: You need to use for loop
 
 	//! initialize the weather generator and read in the parameters from the
         //! namelist
@@ -2090,39 +2090,40 @@ double cldfr2rad(double inp, double lati, int doy, bool cldfr_rad) {
 	double const daylengths = 86400.;
       
 	double qo, sinehh, lat, cosinelat, u, v, hh, delta;
+	double sinelat;		//JN
 	double w, rad=0., cldfr=0.;
 
 	int year_length = date.year_length();
 
 	// Calculate values of saved parameters for this day
-        qo = QOO * (1.0 + 2.0 * 0.01675 * cos(2.0 * PI * (day + 0.5) / year_length)); // Eqn 2
-        double delta = -23.4 * DEGTORAD * cos(2.0 * PI * (day + 10.5) / year_length);
+        qo = QOO * (1.0 + 2.0 * 0.01675 * cos(2.0 * PI * (date.day + 0.5) / year_length)); // Eqn 2
+        delta = -23.4 * DEGTORAD * cos(2.0 * PI * (date.day + 10.5) / year_length);
                                 // Eqn 4, solar declination angle (radians)
-        u = sinelat * sin(delta); // Eqn 9
-        v = cosinelat * cos(delta); // Eqn 10
+        u = sinelat * sin(delta); // Eqn 9				// JN sinelat is not intialized
+        v = cosinelat * cos(delta); // Eqn 10			// JN cosinelat is not intialized
 
         if (u >= v)
                 hh = PI; // polar day
         else if (u <= -v)
                 hh = 0.0; // polar night
         else 
-                hh = arccos(-u / v); // Eqn 11
+                //hh = arccos(-u / v); // Eqn 11		JN
 
         sinehh = sin(hh);
         
-        double rad = cldfr = 0;
+        rad = cldfr = 0;   //JN
         
         if ( cldfr2rad ) {
-                cldfr = input;
+                //cldfr = input;			JN
                 w = (C+D * (1.-cldfr)) * (1.0 - BETA) * qo; // Eqn 13
                 rad = 2.0 * w * (u * hh + v * sinehh) * K; // Eqn 14
-                return rad/day_lengths;
+                //return rad/day_lengths;		JN
         }
         else {
-                rad = input*day_lengths;
+                //rad = input*day_lengths;		JN
                 w = rad / (2. *(u * hh + v * sinehh) * K);
                 cldfr = 1.-((w/((1.0 - BETA) * qo) -C)/D) ;
-                cldfr = fmax(0.,fmin(1.cldfr));
+                //cldfr = fmax(0.,fmin(1.cldfr));		JN
                 return cldfr;
         }
 //	qo = QOO * (1.0 + 2.0 * 0.01675 * cos(2.0 * PI * (REAL(doy) + 0.5) / REAL(year_length))) 
@@ -2411,15 +2412,16 @@ void gwgen_get_daily_met(GWGen& gwgen, RnDst& rndst) {
 
 }
 
-void redist_restricted_vals(double* inval&, double limit, double* wght) { 
+void redist_restricted_vals(double *inval, double limit, double* wght) {			//JN
 	
 	// cloud-fraction
 	int ll        = sizeof(inval);
 	int cnt       = 0;
 	double rest   = 0.;
-	bool flag[ll] = { true };
+	bool flag[100] = { true };		// bool flag[ll] = { true };   JN
 	
 	double corfac;
+	double tot_val, limt;   //JN   also unititallised
 
 	double tot_avg = 0.; 
 	for (int i=0; i<ll; i++)
@@ -2455,19 +2457,19 @@ void redist_restricted_vals(double* inval&, double limit, double* wght) {
 			}
 		}
 		cnt++;
-		if ( rest<0.00001 or cnt>30 )
+		if ( rest<0.00001 || cnt>30 )
 			go = false;
 	}
 }
 
 
 
-			for (int i=0; i<ll; i++)
+		/*	for (int i=0; i<ll; i++)
 			rest
 
 
 
-				}
+				}  */
 
 void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, double* in_mwetm, 
 		   double* in_msol, double* in_mdtr, double* out_dtemp, double* out_dprec,
@@ -2477,15 +2479,15 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 	int pdaydiff = 0;
 	double precdiff, tmindiff, tmin_acc;
 
-	GWGen gwgen = gridcell.climate.gwgen;
-	RnDst rndst = gridcell.climate.rndst;
+	//GWGen gwgen = gridcell.climate.gwgen;
+	//RnDst rndst = gridcell.climate.rndst;
 
 	int ndaymon = date.ndaymonth[date.month];
 
 	double in_tmin[12];
 	double in_tmax[12];
-	double lat = gridcell.lat();
-	int doy = accumday;
+	double lat = gridcell.get_lat();
+	int doy = 0;  //  accumday;   JN
 	for (int m=0; m<12; m++) {
 		// have mid month length_of_day 
 		
@@ -2493,7 +2495,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		in_tmax[m] = in_mtemp[m] + 0.5 * in_mdtr[m];
 		for ( int day = 0; day<ndaymon; day++) {
 			//CLN coorect hier for real weighting!!!!!!!! 
-			in_cldf[m] = cldfr2rad(in_msol[m], lat, doy+day+1, false); 
+		//	in_cldf[m] = cldfr2rad(in_msol[m], lat, doy+day+1, false);			JN
 		}
 	}
 
@@ -2512,22 +2514,21 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 	// reset residuals every month CLN TESTEN!!!!
 	bool lreset = true;
 	
-	bool call1  = date.is_first_sim_day();
+	bool call1 = 0; //date.is_first_sim_day();   JN
 
 	int i_count = 1;
 	// initially populate cloud params 
 	if ( call1 ) {
 		calc_cloud_params(gwgen);
 		// set initial vals if spinning up
-		if ( not RESTART ) {
+		/*if ( ! RESTART ) {					JN
 			init_weathergen(gwgen, rndst);
 			i_count = 0;
-		}
+		}*/
 	} 
 	
-	unsigned int sval = unsigned(gridcell.seed) //-30000;
-	ran_seed(sval,rndst);
-
+	unsigned int sval = unsigned(gridcell.seed); //-30000;
+    //ran_seed(sval, gridcell.climate.rndst);				//
 
 	int accumday = 0;
 

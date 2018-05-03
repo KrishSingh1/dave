@@ -49,7 +49,9 @@ CRUInput::CRUInput()
 	  spinup_msun(NYEAR_SPINUP_DATA),
 	  spinup_mfrs(NYEAR_SPINUP_DATA),
 	  spinup_mwet(NYEAR_SPINUP_DATA),
-	  spinup_mdtr(NYEAR_SPINUP_DATA) {
+	  spinup_mdtr(NYEAR_SPINUP_DATA),
+	  spinup_mwind(NYEAR_SPINUP_DATA),
+	  spinup_mrhum(NYEAR_SPINUP_DATA) {
 
 	// Declare instruction file parameters
 
@@ -299,17 +301,20 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			}
 
 			int m;
-			double mtemp[12],mprec[12],msun[12];
-			double mfrs[12],mwet[12],mdtr[12];
+			double mtemp[12],mprec[12],msun[12],mfrs [12];
+			double mwet [12],mdtr[12],mwind[12],mrhum[12];
 
 			for (m=0;m<12;m++) {
 				mtemp[m] = spinup_mtemp[m];
 				mprec[m] = spinup_mprec[m];
 				msun[m]	 = spinup_msun[m];
 
-				mfrs[m] = spinup_mfrs[m];
-				mwet[m] = spinup_mwet[m];
-				mdtr[m] = spinup_mdtr[m];
+				mfrs[m]  = spinup_mfrs[m];
+				mwet[m]  = spinup_mwet[m];
+				mdtr[m]  = spinup_mdtr[m];
+
+				mwind[m] = spinup_mwind[m];
+				mrhum[m] = spinup_mrhum[m];
 			}
 
 			if ( weathergenerator == INTERP ) {
@@ -325,7 +330,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			}
 			else if ( weathergenerator == GWGEN ) {
 					// Use gwgen - korrelated weather
-				gwgen_get_met(gridcell,mtemp,mprec,mwet,msun,mdtr,dtemp,dprec,dsun,ddtr);
+				gwgen_get_met(gridcell,mtemp,mprec,mwet,msun,mdtr,mwind,mrhum,dtemp,dprec,dsun,ddtr,dwind,drhum);
 			}
 
 
@@ -363,7 +368,9 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 					      hist_mwet[date.year-nyear_spinup],
 					      hist_msun[date.year-nyear_spinup],
 					      hist_mdtr[date.year-nyear_spinup],
-					      dtemp,dprec,dsun,ddtr);
+					      hist_mwind[date.year-nyear_spinup],
+					      hist_mrhum[date.year-nyear_spinup],
+					      dtemp,dprec,dsun,ddtr,dwind,drhum);
 			}
 
 		}

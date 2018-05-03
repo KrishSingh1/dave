@@ -132,8 +132,9 @@ double cldf2rad(double input, double lat, int doy, bool cldf2rad);
 void gwgen_get_daily_met(GWGen& gwgen, RnDst& rndst);
 void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		   double* in_mwetm, double* in_msol, double* in_mdtr, 
-		   double* out_dtemp, double* out_dprec,
-		   double* out_dsol,double* out_ddtr);
+		   double* in_mwind, double* in_rhum, double* out_temp,
+		   double* out_dprec,double* out_dsol,double* out_ddtr,
+		   double* out_dwind,double* out_rhum);
 
 
 //class GWGen {

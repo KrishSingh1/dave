@@ -127,12 +127,12 @@ void Climate::serialize(ArchiveStream& arch) {
 //	month = 0;
 //}
 
-void GWGen::serialize(ArchiveStream& arch) {
+/*CLNvoid GWGen::serialize(ArchiveStream& arch) {
 
 	// Descriptions and units in guess.h to come CLN
 	arch & pday
 		& resid;
-}
+		}
 
 void RnDst::serialize(ArchiveStream& arch) {
 
@@ -144,7 +144,7 @@ void RnDst::serialize(ArchiveStream& arch) {
 		& indx
 		& have
 		& gamma_vals;
-}
+}*/
 
 
 
@@ -2332,8 +2332,8 @@ double Gridcell::nflux() {
 
 void Gridcell::serialize(ArchiveStream& arch) {
 	arch & climate
-		& gwgen
-		& rndst
+		//CLN& gwgen
+		//CLN& rndst
 		& landcover
 		& seed
 		& balance;

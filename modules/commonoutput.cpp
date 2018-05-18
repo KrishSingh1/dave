@@ -21,9 +21,6 @@ const int PLOT_UPDATE_INTERVAL = 20;
 // Years between updates of 3D vegetation view (Windows shell only)
 const int VEG3D_UPDATE_INTERVAL = 5;
 
-// Name of temporary file for output of 3D vegetation structure (Windows shell only)
-const char VEG3DFILENAME[] = "xxxtemp0.bin";
-
 namespace GuessOutput {
 
 REGISTER_OUTPUT_MODULE("common", CommonOutput)
@@ -370,23 +367,21 @@ void CommonOutput::define_output_tables() {
 /** for 3D vegetation plot in Windows shell
  */
 void output_vegetation(Gridcell& gridcell, Pftlist& pftlist) {
+	
+	// File for output of 3D vegetation structure (invoked by Windows shell only)
+	plot3d_fileopen(); 
+	
+	if (plot3d_getfilehandle()) {
 
-	int ival, p, npft_tree, npft_grass, npft_total;
-	double grasslai;
-	const bool FALSCH = false;
-	const double rgb[3] = { -1, -1, -1 };
-
-	xtring file;
-	char pftname[16];
-	file = VEG3DFILENAME;
-	FILE* out = fopen(file, "wb");
-	if (out)
-	{
+		int ival, p, npft_tree, npft_grass, npft_total;
+		double grasslai;
+		const bool FALSCH = false;
+		const double rgb[3] = { -1, -1, -1 };
+		char pftname[16];
 
 		// Loop through Stands
 		Gridcell::iterator gc_itr = gridcell.begin();
-		while (gc_itr != gridcell.end())
-		{
+		while (gc_itr != gridcell.end()) {
 			Stand& stand = *gc_itr;
 
 			npft_tree = npft_grass = 0;
@@ -398,18 +393,18 @@ void output_vegetation(Gridcell& gridcell, Pftlist& pftlist) {
 				pftlist.nextobj();
 			}
 			npft_total = npft_tree + npft_grass;
-			fwrite(&npft_total, sizeof(int), 1, out);
-			fwrite(&npft_tree, sizeof(int), 1, out);
+			fwrite(&npft_total, sizeof(int), 1, plot3d_getfilehandle());
+			fwrite(&npft_tree, sizeof(int), 1, plot3d_getfilehandle());
 			pftlist.firstobj();
 			while (pftlist.isobj) {
 				Pft& pft = pftlist.getobj();
 				if (pft.lifeform == TREE) {
 					sprintf(pftname, "%s", (char*)(pft.name.left(15)));
-					fwrite(pftname, sizeof(char), 16, out);
-					fwrite(&FALSCH, sizeof(bool), 1, out);
-					fwrite(&rgb, sizeof(double), 3, out);
-					//fwrite(&pft.ifconifer, sizeof(bool), 1, out);
-					//fwrite(pft.preferredrgb, sizeof(double), 3, out);
+					fwrite(pftname, sizeof(char), 16, plot3d_getfilehandle());
+					fwrite(&FALSCH, sizeof(bool), 1, plot3d_getfilehandle());
+					fwrite(&rgb, sizeof(double), 3, plot3d_getfilehandle());
+					//fwrite(&pft.ifconifer, sizeof(bool), 1, plot3d_getfilehandle());
+					//fwrite(pft.preferredrgb, sizeof(double), 3, plot3d_getfilehandle());
 				}
 				pftlist.nextobj();
 			}
@@ -418,15 +413,15 @@ void output_vegetation(Gridcell& gridcell, Pftlist& pftlist) {
 				Pft& pft = pftlist.getobj();
 				if (pft.lifeform == GRASS) {
 					sprintf(pftname, "%s", (char*)(pft.name.left(15)));
-					fwrite(pftname, sizeof(char), 16, out);
-					fwrite(&rgb, sizeof(double), 3, out);
-					//fwrite(pft.preferredrgb, sizeof(double), 3, out);
+					fwrite(pftname, sizeof(char), 16, plot3d_getfilehandle());
+					fwrite(&rgb, sizeof(double), 3, plot3d_getfilehandle());
+					//fwrite(pft.preferredrgb, sizeof(double), 3, plot3d_getfilehandle());
 				}
 				pftlist.nextobj();
 			}
 			int npatch = stand.npatch();
-			fwrite(&npatch, sizeof(int), 1, out);
-			fwrite(&patcharea, sizeof(double), 1, out);
+			fwrite(&npatch, sizeof(int), 1, plot3d_getfilehandle());
+			fwrite(&patcharea, sizeof(double), 1, plot3d_getfilehandle());
 			for (p = 0; p<npatch; p++) {
 				Patch& patch = stand[p];
 				Vegetation& vegetation = patch.vegetation;
@@ -436,29 +431,29 @@ void output_vegetation(Gridcell& gridcell, Pftlist& pftlist) {
 					Individual& indiv = vegetation.getobj();
 					if (indiv.pft.lifeform == TREE && indiv.alive) {
 						ival = indiv.pft.id;
-						fwrite(&ival, sizeof(int), 1, out);
+						fwrite(&ival, sizeof(int), 1, plot3d_getfilehandle());
 						ival = indiv.id;
-						fwrite(&ival, sizeof(int), 1, out);
-						fwrite(&indiv.densindiv, sizeof(double), 1, out);
-						fwrite(&indiv.height, sizeof(double), 1, out);
-						fwrite(&indiv.crownarea, sizeof(double), 1, out);
+						fwrite(&ival, sizeof(int), 1, plot3d_getfilehandle());
+						fwrite(&indiv.densindiv, sizeof(double), 1, plot3d_getfilehandle());
+						fwrite(&indiv.height, sizeof(double), 1, plot3d_getfilehandle());
+						fwrite(&indiv.crownarea, sizeof(double), 1, plot3d_getfilehandle());
 					}
 					else if (indiv.pft.lifeform == GRASS) grasslai += indiv.lai;
 					vegetation.nextobj();
 				}
 				ival = -9999;
-				fwrite(&ival, sizeof(int), 1, out); // indicates no more cohorts in this patch
+				fwrite(&ival, sizeof(int), 1, plot3d_getfilehandle()); // indicates no more cohorts in this patch
 				if (grasslai<0) grasslai = 0.0;
-				fwrite(&grasslai, sizeof(double), 1, out);
+				fwrite(&grasslai, sizeof(double), 1, plot3d_getfilehandle());
 			}
 			++gc_itr;
 		} //while (gridcell.isobj) 
 
-		fclose(out);
+		plot3d_fileclose();
 
 	} //if(out)
 
-	plot3d(file);
+	plot3d();
 }
 
 /// Gets stand age structure to argument densindiv of dimensions [npft,nageclass]

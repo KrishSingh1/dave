@@ -2585,6 +2585,10 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		if ( mon > 0 )  
 			accumday += date.ndaymonth[mon-1];
 
+		// dummy weighting array
+		double dum[ndaymon]; 
+		for (int day=0; day<ndaymon; day++)
+			dum[day] = 1.;
 		// check consecutivity -> new boundaryconds IS KNWN!!!
 		// index for annual arrays
 		int lm = fmax(mon-1,0); 
@@ -2800,7 +2804,6 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 			redist_restricted_vals(dcldf, limit, cldwght);
 
 		if ( in_mrhum[mon] > 0. ) {
-			double dum[ndaymon] = {1.}; 
 			redist_restricted_vals(drhum, limit, dum);
 		}
 		// Compute solar radiation from cloud-fraction

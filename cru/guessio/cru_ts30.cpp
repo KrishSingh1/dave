@@ -16,13 +16,13 @@
 // header files for the CRU-NCEP data archives
 #include "cruncep_1901_2015.h"
 #include "cruncep_1901_2015misc.h"
-#include "cruncep_1901_2015wind.h"
+#include "cruncep_1901_2015wind.h"	// Tempororary until wind and rel-humidity data is included in the misc archive: next time the misc archive is generated.
 
 
 namespace CRU_TS30 {
 
-/// Temporary wind function. Will be removed when wind included in misc fastarchive.
-bool searchcru_wind(char* cruark, double dlon, double dlat, double mwind[NYEAR_HIST][12]);
+/// Temporary wind and rel-humidity function. Will be removed when wind included in misc fastarchive.
+bool searchcru_wind(char* cruark, double dlon, double dlat, double mwind[NYEAR_HIST][12], double mrhum[NYEAR_HIST][12]);
  
 bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
                double mtemp[NYEAR_HIST][12],
@@ -102,8 +102,9 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
                     double mfrs[NYEAR_HIST][12],
                     double mwet[NYEAR_HIST][12],
-                    double mdtr[NYEAR_HIST][12],
-					double mwind[NYEAR_HIST][12]) {
+					double mdtr[NYEAR_HIST][12],
+					double mwind[NYEAR_HIST][12],
+					double mrhum[NYEAR_HIST][12]) {
 	
 	// Please note the new function signature. 
 
@@ -172,7 +173,7 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 		// Close the archive
 		ark.close();
 
-		// Wind data will be included in the misc archive next time the misc archive is generated.
+		// Wind and rel-humidity data will be included in the misc archive next time the misc archive is generated.
 		// In order not to introduce temporary interim instruction file paramenters, 
 		// the filepath to this temporary data file is therefore assumed to be identical to file_cru_misc,
 		// but with wind instead of misc in the filename.
@@ -188,7 +189,7 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 			xtring file_cru_wind(cruark);
 			file_cru_wind = file_cru_wind.left(file_cru_wind.len() - 8) + "wind.bin";
 			
-			return searchcru_wind(file_cru_wind, dlon, dlat, mwind);
+			return searchcru_wind(file_cru_wind, dlon, dlat, mwind, mrhum);
 		} 
 		else
 			return true;
@@ -203,7 +204,7 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 // Temporary function that will be removed when Wind data will be included in the misc archive 
 // next time the misc archive is generated
 bool searchcru_wind(char* cruark, double dlon, double dlat,
-	double mwind[NYEAR_HIST][12]) {
+	double mwind[NYEAR_HIST][12], double mrhum[NYEAR_HIST][12]) {
 
 	// Archive object
 	Cruncep_1901_2015windArchive ark;
@@ -247,6 +248,11 @@ bool searchcru_wind(char* cruark, double dlon, double dlat,
 				mwind[y][m] = data.mwind[y * 12 + m]; // days
 				if (mwind[y][m] < 0.1)
 					mwind[y][m] = 0.0; // Catches rounding errors
+
+				// guess2008 - catch rounding errors 
+				mrhum[y][m] = data.mwind[y * 12 + m]; // days
+				if (mrhum[y][m] < 0.001)
+					mrhum[y][m] = 0.0; // Catches rounding errors
 
 			}
 		}

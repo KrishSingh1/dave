@@ -212,7 +212,7 @@ int framework(const CommandLineArguments& args) {
 		if (!input_module->getgridcell(gridcell)) {
 			break;
 		}
-
+		dprintf("fw \n");
 		// Initialise certain climate and soil drivers
 		gridcell.climate.initdrivers(gridcell.get_lat());
 
@@ -228,6 +228,7 @@ int framework(const CommandLineArguments& args) {
 			// ...and jump to the restart year
 			date.year = state_year;
 		}
+		dprintf("fw1 \n");
 
 		// Call input/output to obtain climate, insolation and CO2 for this
 		// day of the simulation. Function getclimate returns false if last year
@@ -237,6 +238,7 @@ int framework(const CommandLineArguments& args) {
 
 			// START OF LOOP THROUGH SIMULATION DAYS
 
+		dprintf("fw 2\n");
 			simulate_day(gridcell, input_module.get());
 
 			output_modules.outdaily(gridcell);

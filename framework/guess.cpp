@@ -1168,10 +1168,12 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	}
 
 	// bvoc
-	monstor           = 0.;
 	iso               = 0.;
-	mon               = 0.;
 	fvocseas          = 1.;
+	for (int im=0; im<NMTCOMPOUNDS; im++){
+		mon[im]		= 0.;
+		monstor[im]	= 0.;
+	}
 
 	dnpp              = 0.0;
 	cropindiv         = NULL;
@@ -1230,8 +1232,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& phen_mean
 		& wstress
 		& alive
-		& iso
-		& mon
 		& monstor
 		& fvocseas
 		& nmass_leaf

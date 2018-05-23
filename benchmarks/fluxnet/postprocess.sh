@@ -20,5 +20,6 @@ function compare {
 
 describe_benchmark "LPJ-GUESS - FLUXNET Benchmarks (global PFTs)"
 
-compare NEE 2
-compare GPP 3
+compare AET 2
+compare NEE 3
+compare GPP 4

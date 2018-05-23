@@ -24,7 +24,7 @@ function indexes {
 iconv -f latin1 -t utf-8 < *_sitelist.csv |
     awk -vFPAT='[^,]*|"[^"]*"' -vOFS='\t' '$1 !~ /^$/ {print $7,$6,$1}' > fixed.txt
 
-for f in *.zip; do
+for f in raw/*.zip; do
     fname=$(basename "$f")
     location=${fname:4:6}
     if [ -f $location.csv ]; then
@@ -50,7 +50,7 @@ for f in *.zip; do
         cut -f-5 tmp >> $location.csv
         cut -f6- tmp | sed "s/^/$location\t/" >> daily.csv
 
-        cut -d, -f$(indexes *_MM_*.csv ${fields[@]: -2:2}) --output-delimiter=$'\t' *_MM_*.csv |
+        cut -d, -f$(indexes *_MM_*.csv ${fields[@]: -3:3}) --output-delimiter=$'\t' *_MM_*.csv |
             sed -r "1d;s/^/$location\t/" >> monthly.csv
     fi
     rm *_{DD,MM}_*.csv

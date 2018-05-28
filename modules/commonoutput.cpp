@@ -1462,7 +1462,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			if (nageclass) {
 
-				densindiv = new double[npft*nageclass];
+				densindiv = new double[(npft+1)*nageclass];
 				if (densindiv) {
 
 					resetwindow("Age structure [indiv/ha]");

@@ -363,15 +363,38 @@ inline double f(double& cmass_leaf_inc) {
 					k2);
 }
 
+void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf_inc, double& cmass_root_inc,
+		double& cmass_sap_inc, double& cmass_debt_inc, double& cmass_heart_inc, double& cmass_sg_inc, double& litter_leaf_inc,
+		double& litter_root_inc, double& exceeds_cmass) {
 
-void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sap,
-		double cmass_debt,double cmass_heart,double ltor,double height,double sla,
-		double wooddens,lifeformtype lifeform,double k_latosa,double k_allom2,
-		double k_allom3,double& cmass_leaf_inc,double& cmass_root_inc,
-		double& cmass_sap_inc,
-		double& cmass_debt_inc,
-		double& cmass_heart_inc,double& litter_leaf_inc,
-		double& litter_root_inc,double& exceeds_cmass) {
+	// leaf C biomass for last time period on individual basis (kgC)
+	double cmass_leaf = indiv.cmass_leaf / indiv.densindiv;
+	// root C biomass for last time period on individual basis (kgC)
+	double cmass_root = indiv.cmass_root / indiv.densindiv;
+	// sapwood C biomass for last time period on individual basis (kgC)
+	double cmass_sap = indiv.cmass_sap / indiv.densindiv;
+	// C debt for last time period on individual basis (kgC)
+	double cmass_debt = indiv.cmass_debt / indiv.densindiv;
+	// heartwood C biomass for last time period on individual basis (kgC)
+	double cmass_heart = indiv.cmass_heart / indiv.densindiv;
+	// storage for start of season growth next growing period.
+	double sg = indiv.cmass_root_sg;
+	// storage growth to root ratio
+	double stor = indiv.pft.stor;
+	// individual height (m)
+	double height = indiv.height;
+	// specific leaf area (PFT-specific constant) (m2/kgC)
+	double sla = indiv.pft.sla;
+	// wood density (PFT-specific constant) (kgC/m3)
+	double wooddens = indiv.pft.wooddens;
+	// life form class (TREE or GRASS)
+	lifeformtype lifeform = indiv.pft.lifeform;
+	// ratio of leaf area to sapwood cross-sectional area (PFT-specific constant)          
+	double k_latosa = indiv.pft.k_latosa;
+	// constant in allometry equations
+	double k_allom2 = indiv.pft.k_allom2;
+	// constant in allometry equations
+	double k_allom3 = indiv.pft.k_allom3;
 
 	// DESCRIPTION
 	// Calculates changes in C compartment sizes (leaves, roots, sapwood, heartwood)
@@ -380,19 +403,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 	// INPUT PARAMETERS
 	// bminc       = biomass increment this time period on individual basis (kgC)
-	// cmass_leaf  = leaf C biomass for last time period on individual basis (kgC)
-	// cmass_root  = root C biomass for last time period on individual basis (kgC)
-	// cmass_sap   = sapwood C biomass for last time period on individual basis (kgC)
-	// cmass_heart = heartwood C biomass for last time period on individual basis (kgC)
 	// ltor        = leaf to root mass ratio following allocation
-	// height      = individual height (m)
-	// sla         = specific leaf area (PFT-specific constant) (m2/kgC)
-	// wooddens    = wood density (PFT-specific constant) (kgC/m3)
-	// lifeform    = life form class (TREE or GRASS)
-	// k_latosa    = ratio of leaf area to sapwood cross-sectional area (PFT-specific
-	//               constant)
-	// k_allom2    = constant in allometry equations
-	// k_allom3    = constant in allometry equations
 
 	// OUTPUT PARAMETERS
 	// cmass_leaf_inc  = increment (may be negative) in leaf C biomass following
@@ -402,6 +413,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	// cmass_sap_inc   = increment (may be negative) in sapwood C biomass following
 	//                   allocation (kgC)
 	// cmass_heart_inc = increment in heartwood C biomass following allocation (kgC)
+	// cmass_sg_inc	   = increment in sg C biomass following allocation (kgC)       	
 	// litter_leaf_inc = increment in leaf litter following allocation, on individual
 	//                   basis (kgC)
 	// litter_root_inc = increment in root litter following allocation, on individual
@@ -479,6 +491,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	double x1,x2,dx,xmid,fx1,fmid,rtbis,sign;
 	int j;
 	double cmass_deficit,cmass_loan;
+	bool dailygrass = ifdailygrass && indiv.alive;
 
 	// initialise
 	litter_leaf_inc = 0.0;
@@ -488,22 +501,31 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	cmass_root_inc  = 0.0;
 	cmass_sap_inc   = 0.0;
 	cmass_heart_inc = 0.0;
-	cmass_debt_inc = 0.0;
+	cmass_debt_inc	= 0.0;
+	cmass_sg_inc	= 0.0;
+
+	double cmass_belowground_inc = 0.0; //underground cmass allocation
 
 	if (!largerthanzero(ltor, -10)) {
 
 		// No leaf production possible - put all biomass into roots
 		// (Individual will die next time period)
 
-		cmass_leaf_inc = 0.0;
+		// cmass_root_sg = stor * cmass_root
+		if(stor && dailygrass)
+			cmass_sg_inc = (bminc - sg / stor + cmass_root) / (1.0 + 1.0 / stor);
+		cmass_root_inc = bminc - cmass_sg_inc;
 
-		// Make sure we don't end up with negative cmass_root
-		if (bminc < -cmass_root) {
-			exceeds_cmass = -(cmass_root + bminc);
+		// Make sure we don't end up with negative cmass_root or cmass_root_sg
+
+		if(cmass_root_inc < -cmass_root){
+			exceeds_cmass += -(cmass_root_inc + cmass_root);
 			cmass_root_inc = -cmass_root;
 		}
-		else {
-			cmass_root_inc=bminc;
+
+		if(cmass_sg_inc < -sg){
+			exceeds_cmass += -(cmass_sg_inc + sg);
+			cmass_sg_inc = -sg;
 		}
 
 		if (lifeform==TREE) {
@@ -514,8 +536,6 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	else if (lifeform==TREE) {
 
 		// TREE ALLOCATION
-
-		cmass_heart_inc=0.0;
 
 		// Calculate minimum leaf increment to maintain current sapwood biomass
 		// Given Eqn (2)
@@ -753,29 +773,39 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 		//   (14) bminc = cmass_leaf_inc + cmass_root_inc
 		// while satisfying Eqn(3)
 
-		cmass_leaf_inc = (bminc - cmass_leaf / ltor + cmass_root) / (1.0 + 1.0 / ltor);
-		cmass_root_inc = bminc - cmass_leaf_inc;
+		cmass_leaf_inc = (bminc - cmass_leaf / ltor + (cmass_root + sg)) / (1.0 + 1.0 / ltor);
+		cmass_belowground_inc = bminc - cmass_leaf_inc;
 
-		if (bminc >= 0.0) {
 
-			// Positive biomass increment
+		if (bminc > 0.0 || bminc == 0.0 && !dailygrass) {
+
+			// Positive biomass increment (and bminc == 0.0 for dailygrass)
 
 			if (cmass_leaf_inc < 0.0) {
 
 				// Positive bminc, but ltor causes negative allocation to leaves,
-				// put all of bminc into roots
+				// put all of bminc into roots and storage
 
-				cmass_root_inc = bminc;
-				cmass_leaf_inc = (cmass_root + cmass_root_inc) * ltor - cmass_leaf; // Eqn (3)
+				cmass_belowground_inc = bminc;
+				if(dailygrass)
+					cmass_leaf_inc = 0.0;
+				else
+					cmass_leaf_inc = (cmass_root + sg + cmass_belowground_inc) * ltor - cmass_leaf; // Eqn (3)
 			}
-			else if (cmass_root_inc < 0.0) {
+			else if (cmass_belowground_inc < 0.0) {
 
 				// Positive bminc, but ltor causes negative allocation to roots,
 				// put all of bminc into leaves
 
 				cmass_leaf_inc = bminc;
-				cmass_root_inc = (cmass_leaf + bminc) / ltor - cmass_root;
+				if(dailygrass)
+					cmass_belowground_inc = 0.0;
+				else
+					cmass_belowground_inc = (cmass_leaf + bminc) / ltor - (cmass_root + sg);
 			}
+			if(dailygrass && stor && cmass_belowground_inc)
+				cmass_sg_inc = (cmass_belowground_inc - sg / stor + cmass_root) / (1.0 + 1.0 / stor);
+			cmass_root_inc = cmass_belowground_inc - cmass_sg_inc;
 
 			// Make sure we don't end up with negative cmass_leaf
 			if (cmass_leaf_inc < -cmass_leaf) {
@@ -789,20 +819,44 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 				cmass_root_inc = -cmass_root;
 			}
 
-			// Add killed leaves to litter
-			litter_leaf_inc = max(-cmass_leaf_inc, 0.0);
+			// Make sure we don't end up with negative below-ground storage
+			if(cmass_sg_inc < -sg){
+				exceeds_cmass += -(cmass_sg_inc + sg);
+				cmass_sg_inc = -sg;
+			}
+			if(!dailygrass) {
+				// Add killed leaves to litter
+				litter_leaf_inc = max(-cmass_leaf_inc, 0.0);
 
-			// Add killed roots to litter
-			litter_root_inc = max(-cmass_root_inc, 0.0);
+				// Add killed roots to litter
+				litter_root_inc = max(-cmass_root_inc, 0.0);
+			}
 		}
-		else if (bminc < 0) {
+		else {
 
 			// Abnormal allocation: negative biomass increment
 
 			// Negative increment is respiration (neg bminc) or/and increment in other
 			// compartments leading to no litter production
 
-			if (bminc < -(cmass_leaf + cmass_root)) {
+			cmass_root_inc = cmass_belowground_inc;
+
+			if(dailygrass) {
+				cmass_leaf_inc = 0.0;
+				if(stor)
+					cmass_sg_inc = (bminc - sg / stor + cmass_root) / (1.0 + 1.0 / stor);
+				cmass_root_inc = bminc - cmass_sg_inc;
+
+				if(cmass_root_inc < -cmass_root){
+					exceeds_cmass += -(cmass_root_inc + cmass_root);
+					cmass_root_inc = -cmass_root;
+				}
+				if(cmass_sg_inc < -sg){
+					exceeds_cmass += -(cmass_sg_inc + sg);
+					cmass_sg_inc = -sg;
+				}
+			}
+			else if (bminc < -(cmass_leaf + cmass_root)) {
 
 				// Biomass decrease is larger than existing biomass
 
@@ -839,7 +893,7 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	// maximum carbon mismatch
 	double EPS = 1.0e-12;
 
-	assert(fabs(bminc + exceeds_cmass - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
+	assert(fabs(bminc + exceeds_cmass - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + cmass_sg_inc + litter_leaf_inc + litter_root_inc)) < EPS);
 }
 
 
@@ -861,9 +915,7 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 	double cmass_root_ind;
 	double cmass_sap_ind;
 
-	allocation(bminit, 0.0, 0.0, 0.0, 0.0, 0.0, ltor, 0.0, indiv.pft.sla, indiv.pft.wooddens,
-			indiv.pft.lifeform, indiv.pft.k_latosa, indiv.pft.k_allom2, indiv.pft.k_allom3,
-			cmass_leaf_ind, cmass_root_ind, cmass_sap_ind, dval, dval, dval, dval, dval);
+	allocation(bminit, indiv, ltor, cmass_leaf_ind, cmass_root_ind, cmass_sap_ind, dval, dval, dval, dval, dval, dval);
 
 	indiv.cmass_leaf = cmass_leaf_ind * indiv.densindiv;
 	indiv.cmass_root = cmass_root_ind * indiv.densindiv;
@@ -1435,14 +1487,9 @@ void growth(Stand& stand, Patch& patch) {
 						// Allocation: note conversion of mass values from grid cell area
 						// to individual basis
 
-						allocation(bminc / indiv.densindiv, indiv.cmass_leaf / indiv.densindiv,
-								indiv.cmass_root / indiv.densindiv, indiv.cmass_sap / indiv.densindiv,
-								indiv.cmass_debt / indiv.densindiv,
-								indiv.cmass_heart / indiv.densindiv, indiv.ltor,
-								indiv.height, indiv.pft.sla, indiv.pft.wooddens, TREE,
-								indiv.pft.k_latosa, indiv.pft.k_allom2, indiv.pft.k_allom3,
+						allocation(bminc / indiv.densindiv, indiv, indiv.ltor,
 								cmass_leaf_inc, cmass_root_inc, cmass_sap_inc, cmass_debt_inc,
-								cmass_heart_inc,
+								cmass_heart_inc, dval,
 								litter_leaf_inc, litter_root_inc, exceeds_cmass);
 
 						// Update carbon pools and litter (on area basis)
@@ -1529,9 +1576,7 @@ void growth(Stand& stand, Patch& patch) {
 							exceeds_cmass = 0.0;	//exceeds_cmass not used for true crops
 						}
 						else {
-							allocation(bminc, indiv.cmass_leaf, indiv.cmass_root,
-									0.0, 0.0, 0.0, indiv.ltor, 0.0, 0.0, 0.0, GRASS, 0.0,
-									0.0, 0.0, cmass_leaf_inc, cmass_root_inc, dval, dval, dval,
+							allocation(bminc, indiv, indiv.ltor, cmass_leaf_inc, cmass_root_inc, dval, dval, dval, dval,
 									litter_leaf_inc, litter_root_inc, exceeds_cmass);
 						}
 
@@ -1818,8 +1863,9 @@ void growth_daily_grass(Patch& patch) {
 				indiv.ltor = indiv.wscal_running.mean() * indiv.pft.ltor_max;
 			}
 
+			double dval = 0.0;
 			//allocate between daily compartments, also includes ws (leaf stroage) and sg(storage growth)
-			allocation_daily(bminc,indiv.cmass_leaf,indiv.cmass_root,indiv.ltor,indiv.cmass_leaf_ws,indiv.cmass_root_sg,cmass_sg_inc,cmass_leaf_inc,cmass_root_inc,exceeds_cmass,indiv.pft.stor);
+		      allocation(bminc, indiv, indiv.ltor, cmass_leaf_inc, cmass_root_inc, dval, dval, dval, cmass_sg_inc, litter_leaf_inc, litter_root_inc, exceeds_cmass);
 
 			//update state of root, sg and ws.
 

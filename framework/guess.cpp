@@ -1131,6 +1131,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_sap					= 0.0;
 	cmass_heart					= 0.0;
 	cmass_debt					= 0.0;
+	cmass_root_sg				= 0.0;
 	cmass_leaf_post_turnover	= 0.0;
 	cmass_root_post_turnover	= 0.0;
 	cmass_tot_luc				= 0.0;

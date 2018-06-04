@@ -1594,7 +1594,7 @@ public:
 		return 2.0 / (1. / min + 1. / max);
 	}
 
-	/// root to storage growth ratio
+	/// below-ground storage to root ratio
 	double stor;
 	/// senescence factor
 	double sen_fac;
@@ -1644,6 +1644,7 @@ public:
 		frootend = 0.0;
 		forceautumnsowing = 0;
 		nlim = false;
+		stor = 0;
 
 		fertrate[0] = 0.0;
 		fertrate[1] = 1.0;
@@ -2183,15 +2184,15 @@ public:
 	double cmass_leaf_ws;
 	/// Storage weight for biomass increment without lai
 	double cmass_root_sg;
-	/// weight of all growth compartments. Is same as cmass_leaf, can be removed once grass is allowed to have an age.
+	/// mass of all growth compartments. Is same as cmass_leaf, can be removed once grass is allowed to have an age.
 	double cmass_leaf_wg;
-	/// weight of growth compartment 1 daily allocation
+	/// mass of growth compartment 1 daily allocation
 	double cmass_leaf_w1;
-	/// weight of growth compartment 2 daily allocation
+	/// mass of growth compartment 2 daily allocation
 	double cmass_leaf_w2;
-	/// weight of growth compartment 3 daily allocation
+	/// mass of growth compartment 3 daily allocation
 	double cmass_leaf_w3;
-	/// weight of growth compartment 4 daily allocation
+	/// mass of growth compartment 4 daily allocation
 	double cmass_leaf_w4;
 	/// abscission from last compartment (4) ie litter, daily allocation
 	double abscission;

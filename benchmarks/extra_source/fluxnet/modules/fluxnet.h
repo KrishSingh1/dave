@@ -21,11 +21,11 @@ public:
     
     bool getclimate(Gridcell& gridcell);
 	
-	void get_fluxnet_data_from_file();
+	bool get_fluxnet_data_from_file();
     
 private:
 	std::vector<double> rain, tair, swrad;
-	int first_fluxnet_year, firstyear;
+	int first_fluxnet_year;
 };
 
 #endif // LPJ_GUESS_FLUXNET_H

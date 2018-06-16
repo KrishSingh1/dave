@@ -33,11 +33,12 @@ bool FluxnetInput::get_fluxnet_data_from_file() {
 	tair.clear();
 	rain.clear();
 	swrad.clear();
-	
-	xtring fluxfile = param["flux_dir"].str + gridlist.getobj().descrip + ".csv";
+
+	xtring fluxfile = param["flux_dir"].str + gridlist.getobj().descrip.printable() + ".csv";
 	std::ifstream ifs(fluxfile, std::ifstream::in);
-	
+
 	if (!ifs.good()) {
+		dprintf(strerror(errno));
 		dprintf("FluxnetInput::getgridcell: could not open %s for input\n", (char*)fluxfile);
 		return false;
 	}
@@ -45,17 +46,17 @@ bool FluxnetInput::get_fluxnet_data_from_file() {
 	while (getline(ifs, line)) {
 		
 		std::string monthday;
-		double temp, prec, insol;
+		double file_temp, file_prec, file_insol;
 		int year;
 		
 		std::istringstream iss(line);
-		if (iss >> year >> monthday >> temp >> insol >> prec) {
+		if (iss >> year >> monthday >> file_temp >> file_insol >> file_prec) {
 			if (tair.empty()) {
 				first_fluxnet_year = year;
 			}
-			tair.push_back(temp);
-			swrad.push_back(insol);
-			rain.push_back(prec);
+			tair.push_back(file_temp);
+			swrad.push_back(file_insol);
+			rain.push_back(file_prec);
 		}
 	}
 	
@@ -88,20 +89,23 @@ bool FluxnetInput::getclimate(Gridcell& gridcell) {
 	};
 	
 	int year = date.get_calendar_year();
-	
-	// Overwrite / extend climate data with site values for the period
-	int id = (year - first_fluxnet_year) * 365 + date.day;
+	if (year >= first_fluxnet_year) {
+		// Overwrite / extend climate data with site values for the period
+		int id = (year - first_fluxnet_year) * 365 + date.day;
 
-	//if (date.day == 0) {
-	//	double mndrydep[12], mnwetdep[12];
-	//	ndep.get_one_calendar_year(year, mndrydep, mnwetdep);
-	//	distribute_ndep(mndrydep, mnwetdep, &rain[id], dndep);
-	//}
-
-	gridcell.climate.prec = rain[id];
-	gridcell.climate.temp = tair[id];
-	gridcell.climate.insol = swrad[id];
-	gridcell.climate.dndep = dndep[date.day];
+		if (date.day == 0) {
+			double mndrydep[12], mnwetdep[12];
+			ndep.get_one_calendar_year(year, mndrydep, mnwetdep);
+			distribute_ndep(mndrydep, mnwetdep, &rain[id], dndep);
+		}
+		if (tair[id] == NAN) {
+			dprintf("tair is NaN at date %i-%i-%i\n", date.year, date.month, date.day);
+		}
+		gridcell.climate.prec = rain[id];
+		gridcell.climate.temp = tair[id];
+		gridcell.climate.insol = swrad[id];
+		gridcell.climate.dndep = dndep[date.day];
+	}
 	return true;
 }
 

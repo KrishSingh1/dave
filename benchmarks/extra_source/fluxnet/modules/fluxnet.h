@@ -26,6 +26,11 @@ public:
 private:
 	std::vector<double> rain, tair, swrad;
 	int first_fluxnet_year;
+	
+	// Daily precipitation during one year. Needed for the N-deposition.
+	double drain[Date::MAX_YEAR_LENGTH];
+	// Daily nitrogen deposition distributed with fluxnet precipitation
+	double dndep_fluxnet[Date::MAX_YEAR_LENGTH];
 };
 
 #endif // LPJ_GUESS_FLUXNET_H

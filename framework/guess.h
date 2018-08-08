@@ -2186,16 +2186,16 @@ public:
 	double cmass_root_sg;
 	/// mass of all growth compartments. Is same as cmass_leaf, can be removed once grass is allowed to have an age.
 	double cmass_leaf_wg;
-	/// mass of growth compartment 1 daily allocation
+	/// mass of growth compartment 1, growing leaves - daily allocation
 	double cmass_leaf_w1;
-	/// mass of growth compartment 2 daily allocation
+	/// mass of growth compartment 2, first fully expanded leaves - daily allocation
 	double cmass_leaf_w2;
-	/// mass of growth compartment 3 daily allocation
+	/// mass of growth compartment 3, second fully expanded leaves - daily allocation
 	double cmass_leaf_w3;
-	/// mass of growth compartment 4 daily allocation
+	/// mass of growth compartment 4, senescing leaves - daily allocation
 	double cmass_leaf_w4;
 	/// abscission from last compartment (4) ie litter, daily allocation
-	double abscission;
+	double abscission; // DW_COMMENT - not used for anything
 	/// sum of growth of leaves not related to sg
 	double cmass_leaf_ygrowth;
 	/// nitrogen of growth compartment 1 daily allocation

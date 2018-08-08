@@ -267,8 +267,8 @@ group "grass" (
 	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time for GRASS
 	harvest_slow_frac 0
 	
-	stor 0.43414 		! storage growth to root ratio	
-	sen_fac 0.60779	! senescens fraction
+	stor 0.43414 		! storage growth to root ratio	! DW_COMMENT where does this number come from? Ref!
+	sen_fac 0.60779		! senescens fraction ! DW_COMMENT this doesn't exist in Johnson & Thornley 1983, ref?
 	transferconst 0.0	!C3 and C4 specific in pft
 )
 
@@ -646,8 +646,7 @@ group "C3G" (
 	eps_mon 0.37 0.2 0.23 0.1 0.1 0.09 0.1 0.22 0.19
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 	harv_eff 0.5
-	transferconst 0.049
-
+	transferconst 0.049 ! DW_COMMENT ref? 0.15 in Johnson & Thornley 1983
 )
 
 pft "C3G" (
@@ -676,7 +675,7 @@ group "C4G" (
 	eps_mon 0.48 0.19 0.67 0.14 0.12 0.13 0.14 0.29 0.24
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 	harv_eff 0.5
-	transferconst 0.076	
+	transferconst 0.076 ! DW_COMMENT ref? 0.15 in Johnson & Thornley 1983
 )
 
 pft "C4G" (

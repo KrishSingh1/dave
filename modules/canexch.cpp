@@ -962,6 +962,9 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		//TODO HO demand
 		indiv.hondemand = 0.0;
 
+		// DAILY_GRASS DW_COMMENT
+		// ndemand = (cmass_leaf_ws / cton_leaf_min - nmass_leaf_ws) + (cmass_root_sg / cton_root_min - nmass_root_sg) + (cmass_root / (cton_leaf() * cton_root_avr / cton_leaf_avr) - nmass_root)
+
 		// Total nitrogen demand
 		double ndemand_tot = indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand + indiv.hondemand;
 

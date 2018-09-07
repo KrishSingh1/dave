@@ -1,5 +1,4 @@
-
-#!/bin/bash
+#!/bin/bash -x
 
 # Function for creating a scatter plot using gnuplot.
 #
@@ -31,7 +30,8 @@ function prepare_agb {
 describe_benchmark "LPJ-GUESS - Global Benchmarks for crops"
 source scatter_plot.sh
 common1961to1990.sh
-
+if false 
+then
 tslice cflux.out -o cflux1990to2000.txt -f 1990 -t 2000 -lon 1 -lat 2 -y 3
 aslice cflux1961to1990.txt -o cflux1961to1990_areaaverage.txt -n -sum 'kg/m2->Pg' -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.0 0.0
 describe_textfile cflux1961to1990_areaaverage.txt "Global Terrestrial Carbon Fluxes, 1961 to 1990. Units: Pg C/y"
@@ -74,19 +74,27 @@ prepareyielddata yield1996to2005.txt common/../crop_global/spam_yield_wheat.dat 
 scatter_plot "Wheat yields" "SPAM" "LPJ-GUESS" temp_wheat.dat wheat_yield.png
 describe_image wheat_yield.png "Modelled compared to SPAM data set. Units: kg m-2." embed
 
+fi
 # Above Ground Biomass
 
 tslice cpool.out -f 1993 -t 2012 -o cpool1993-2012.dat
 prepare_agb cpool1993-2012.dat cpool1993-2012_agb.dat VegC
-joyn cpool1993-2012_agb.dat Global_mean_ABC_1993-2012_Liu2015_SI.dat -i Lon Lat -fast -o cpool1993-2012_joyned.dat
+joyn cpool1993-2012_agb.dat /home/x_larni/SRC/LPJ-GUESS/fire_blaze_merge/benchmarks/crop_global/Global_mean_ABC_1993-2012_Liu2015_SI.dat -i Lon Lat -fast -o cpool1993-2012_joyned.dat
 
-# delta plot Liu cpool VegC
- 
+# delta plot Liu cpool VegC 
 awk '{if(FNR==1){print $1,$2, $3} else {print $1,$2, $4}}' cpool1993-2012_joyned.dat > cpool1993-2012_joyned_Liu.dat
 awk '{print $1,$2, $3}' cpool1993-2012_joyned.dat > cpool1993-2012_joyned_VegC.dat
 delta cpool1993-2012_joyned_VegC.dat cpool1993-2012_joyned_Liu.dat -i Lon Lat -o delta_cpool1993-2012_joyned.dat
+gmap delta_cpool1993-2012_joyned.dat -i VegC -lon 1 -lat 2 -landscape -slog  -o delta_cpool1993-2012_joyned.png -t "VegC LPJ-GUESS - Liu kg(C)/m2" -c BLUE RED
+convert -geometry 25%x25% delta_cpool1993-2012_joyned.png tmp.png
+convert -rotate 90 tmp.png delta_cpool1993-2012_joyned.png
+describe_image  delta_cpool1993-2012_joyned.png "Modelled minus Liu et al. data. Units: kg m-2." embed
 
 # Scatterplot Liu cpool VegC
 awk '(FNR>1){print $3, $4}' cpool1993-2012_joyned.dat > scat_cpool.dat
 scatter_plot "AGB" "Liu et al. " "LPJ-GUESS" scat_cpool.dat agb.png
 describe_image agb.png "Modelled compared to Liu et al. data. Units: kg m-2." embed
+
+# remove intermediate files
+#rm -f  cpool1993-2012.dat cpool1993-2012_joyned.dat cpool1993-2012_joyned_Liu.dat delta_cpool1993-2012_joyned.dat \ 
+# cpool1993-2012_joyned_VegC.dat scat_cpool.dat

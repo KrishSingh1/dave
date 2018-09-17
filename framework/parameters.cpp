@@ -938,6 +938,7 @@ void plib_callback(int callback) {
 		else {
 			sendmessage("Error",
 				"Unknown weathergenerator (valid types: \"GWGEN\", \"INTERP\")");
+			plibabort();
 		}
 		break;
 		//CLN enter dependency for BLAZE on GWGEN here!!!

@@ -272,8 +272,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 
 	Climate& climate = gridcell.climate;
 	
-	dprintf("crui0 \n");
-
 	if (date.day == 0) {
 
 		// First day of year ...
@@ -284,7 +282,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 		ndep.get_one_calendar_year(date.year - nyear_spinup + FIRSTHISTYEAR,
 		                           mndrydep, mnwetdep);
 
-	dprintf("crui1 \n");
 		if (date.year < nyear_spinup) {
 
 			// During spinup period
@@ -319,12 +316,12 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 				mwind[m] = spinup_mwind[m] = 18.+12.*sin((double)2*m*3.1415926/11.);
 				mrhum[m] = spinup_mrhum[m] = 0.5;
 			}
-
-			dprintf("crui3 %i %i %i \n",weathergenerator,INTERP,GWGEN);
+			
 			if ( weathergenerator == INTERP ) {
+				
 				// Interpolate monthly spinup data to quasi-daily values
 				interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
-
+				
 				// Only Recalculate Precipitation values using weather generator
 				// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
 				if (ifrainonwetdaysonly) {
@@ -334,10 +331,8 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			}
 			else if ( weathergenerator == GWGEN ) {
 					// Use gwgen - korrelated weather
-				gwgen_get_met(gridcell,mtemp,mprec,mwet,msun,mdtr,mwind,mrhum,dtemp,dprec,dsun,ddtr,dwind,drhum);
+					gwgen_get_met(gridcell,mtemp,mprec,mwet,msun,mdtr,mwind,mrhum,dtemp,dprec,dsun,ddtr,dwind,drhum);
 			}
-	dprintf("crui4 \n");
-
 
 			spinup_mtemp.nextyear();
 			spinup_mprec.nextyear();
@@ -350,8 +345,31 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 		}
 		else if (date.year < nyear_spinup + NYEAR_HIST) {
 
-			// Historical period
+			for (int m=0;m<12;m++) {
+				hist_mwind[date.year-nyear_spinup][m] = 18.+12.*sin((double)2*m*3.1415926/11.);
+				hist_mrhum[date.year-nyear_spinup][m] = 0.5;
+			}
 
+
+			dprintf("m_prec %d ",date.year);
+			for (int m=0;m<12;m++) {
+				//CLN take out
+				dprintf("%f ",hist_mprec[date.year-nyear_spinup][m]);
+			}
+			dprintf("\n ");
+			dprintf("m_temp %d ",date.year);
+			for (int m=0;m<12;m++) {
+				//CLN take out
+				dprintf("%f ",hist_mtemp[date.year-nyear_spinup][m]);
+			}
+			dprintf("\n ");
+			dprintf("m_msun %d ",date.year);
+			for (int m=0;m<12;m++) {
+				//CLN take out
+				dprintf("%f ",hist_msun[date.year-nyear_spinup][m]);
+			}
+			dprintf("\n ");
+			// Historical period
 			if ( weathergenerator == INTERP ) {
 				// Interpolate monthly spinup data to quasi-daily values
 				interp_climate(hist_mtemp[date.year-nyear_spinup],
@@ -377,7 +395,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 					      hist_mrhum[date.year-nyear_spinup],
 					      dtemp,dprec,dsun,ddtr,dwind,drhum);
 			}
-
 		}
 		else {
 			// Return false if last year was the last for the simulation
@@ -419,7 +436,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			tmute.settimer(MUTESEC);
 		}
 	}
-
 	return true;
 }
 

@@ -32,17 +32,21 @@ const int SECONDS_PER_DAY = 24*60*60;
 insoltype cf_standard_name_to_insoltype(const std::string& standard_name) {
 	if (standard_name == "surface_downwelling_shortwave_flux_in_air" ||
 	    standard_name == "surface_downwelling_shortwave_flux") {
+		//dprintf("SWRD\n");
 		return SWRAD_TS;
 	}
 	else if (standard_name == "surface_net_downward_shortwave_flux") {
+		//dprintf("NETSWRD\n");
 		return NETSWRAD_TS;
 	}
 	else if (standard_name == "cloud_area_fraction") {
 		return SUNSHINE;
 	}
 	else {
-		fail("Unknown insolation type: %s", standard_name.c_str());
-		return SUNSHINE; // To avoid compiler warning
+		//fail("Unknown insolation type: %s", standard_name.c_str());
+		//dprintf("CLN Unknown insolation type: %s", standard_name.c_str());
+		return SWRAD_TS;
+		//return SUNSHINE; // To avoid compiler warning
 	}
 }
 
@@ -141,10 +145,12 @@ GuessNC::CF::DateTime last_day_to_simulate(const GuessNC::CF::GridcellOrderedVar
 // Verifies that a CF variable with air temperature data contains what we expect
 void check_temp_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() != "air_temperature") {
-		fail("Temperature variable doesn't seem to contain air temperature data");
+		//fail("Temperature variable doesn't seem to contain air temperature data");
+		dprintf("CLN Temperature variable doesn't seem to contain air temperature data\n");
 	}
 	if (cf_var->get_units() != "K") {
-		fail("Temperature variable doesn't seem to be in Kelvin");
+		//fail("Temperature variable doesn't seem to be in Kelvin");
+		dprintf("CLN Temperature variable doesn't seem to be in Kelvin\n");
 	}
 }
 
@@ -152,16 +158,18 @@ void check_temp_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 void check_prec_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() == "precipitation_flux") {
 		if (cf_var->get_units() != "kg m-2 s-1") {
-			fail("Precipitation is given as flux but does not have the correct unit (kg m-2 s-1)");
+			//fail("Precipitation is given as flux but does not have the correct unit (kg m-2 s-1)");
+			dprintf("CLN Precipitation is given as flux but does not have the correct unit (kg m-2 s-1)\n");
 		}
 	}
 	else if (cf_var->get_standard_name() == "precipitation_amount") {
 		if (cf_var->get_units() != "kg m-2") {
-			fail("Precipitation is given as amount but does not have the correct unit (kg m-2)");
-		}
+			//fail("Precipitation is given as amount but does not have the correct unit (kg m-2)");
+			dprintf("CLN Precipitation is given as amount but does not have the correct unit (kg m-2)\n");		}
 	}
 	else {
-		fail("Unrecognized precipitation type");
+		//fail("Unrecognized precipitation type");
+		dprintf("CLN Unrecognized precipitation type\n");
 	}
 }
 
@@ -171,7 +179,8 @@ void check_insol_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	    cf_var->get_standard_name() != "surface_downwelling_shortwave_flux" &&
 	    cf_var->get_standard_name() != "surface_net_downward_shortwave_flux" &&
 	    cf_var->get_standard_name() != "cloud_area_fraction") {
-		fail("Insolation variable doesn't seem to contain insolation data");
+		//fail("Insolation variable doesn't seem to contain insolation data");
+		dprintf("CLN Insolation variable doesn't seem to contain insolation data\n");
 	}
 
 	if (cf_var->get_standard_name() == "cloud_area_fraction") {
@@ -181,7 +190,8 @@ void check_insol_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	}
 	else {
 		if (cf_var->get_units() != "W m-2") {
-			fail("Insolation variable given as radiation but unit doesn't seem to be in W m-2");
+			//			fail("Insolation variable given as radiation but unit doesn't seem to be in W m-2");
+			dprintf("CLN Insolation variable given as radiation but unit doesn't seem to be in W m-2\n");
 		}
 	}
 }
@@ -335,7 +345,8 @@ void CFInput::init() {
 	check_same_spatial_domains(all_variables());
 
 	extensive_precipitation = cf_prec->get_standard_name() == "precipitation_amount";
-
+	//CLN HERE TAKE OUT!
+	extensive_precipitation = true;
 	// Read list of localities and store in gridlist member variable
 
 	// Retrieve name of grid list file as read from ins file
@@ -447,8 +458,10 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	gridcell.climate.instype = cf_standard_name_to_insoltype(cf_insol->get_standard_name());
 
 	// Get nitrogen deposition, using the found CRU coordinates
+	//CLNndep.getndep(param["file_ndep"].str, cru_lon, cru_lat,
+	//CLN             Lamarque::parse_timeseries(ndep_timeseries));
 	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat,
-	             Lamarque::parse_timeseries(ndep_timeseries));
+	             Lamarque::RCP60);
 
 	// Setup the soil type
 	soilparameters(gridcell.soiltype, soilcode);
@@ -570,13 +583,17 @@ void CFInput::get_yearly_data(std::vector<double>& data,
 					// Deal with calendar mismatch
 
 					// Leap day in NetCDF variable but not in LPJ-GUESS?
-					if (dt.get_month() == 2 && dt.get_day() == 29 &&
-						current_day.ndaymonth[1] == 28) {
-						++historic_timestep;
-					}
-					// Leap day in LPJ-GUESS but not in NetCDF variable?
-					else if (current_day.month == 1 && current_day.dayofmonth == 28 &&
-						cf_historic->get_calendar_type() == NO_LEAP) {
+					//if (dt.get_month() == 2 && dt.get_day() == 29 &&
+					//	current_day.ndaymonth[1] == 28) {
+					//	++historic_timestep;
+					//}
+					//// Leap day in LPJ-GUESS but not in NetCDF variable?
+					//else if (current_day.month == 1 && current_day.dayofmonth == 28 &&
+					//	cf_historic->get_calendar_type() == NO_LEAP) {
+					//	--historic_timestep;
+					//}
+					//CLNLeap day in LPJ-GUESS but not in NetCDF variable?
+					if (current_day.month == 1 && current_day.dayofmonth == 28 ) {
 						--historic_timestep;
 					}
 				}
@@ -730,8 +747,11 @@ void CFInput::populate_daily_arrays(long& seed) {
 			// and convert fraction (0-1) to percent (0-100)
 			dinsol[i] = (1-dinsol[i]) * 100.0;
 		}
+		//CLN remove here
+		dinsol[i] /= 86400.;
+		
 	}
-
+	//CLNdprintf("dinsol year %f \n",dinsol[0]);
 	// Move to next year in spinup dataset
 
 	spinup_temp.nextyear();

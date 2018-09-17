@@ -197,6 +197,12 @@ const double CO2_CONV = 1.0e-6;
 /// Initial carbon allocated to crop organs at sowing, kg m-2
 const double CMASS_SEED = 0.01;
 
+/// Averaging interval for average maximum annual fapar (SIMFIRE)
+const int avg_interv_fapar = 5;
+
+/// Averaging interval for biome averaging (SIMFIRE)
+const int n_year_biomeavg = 3;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // FORWARD DECLARATIONS OF CLASSES DEFINED IN THIS FILE
 // Forward declarations of classes used as types (e.g. for reference variables in some
@@ -609,6 +615,14 @@ public:
 	/// precipitation today (mm)
 	double prec;
 
+	/// additional met variables needed by BLAZE
+	/// 10 m wind [km/h]
+	double u10;
+	/// rel. humidity [fract.]
+	double relhum;
+	/// min and max daily temperature [deg C]
+	double tmin, tmax; 
+
 	/// day length today (h)
 	double daylength;
 
@@ -688,6 +702,57 @@ public:
 	/// daily nitrogen deposition (kgN/m2)
 	double dndep;
 
+	// SIMFIRE 
+	/// maximum annual Nesterov Index
+	double max_nesterov;
+	/// current Nexterov index
+	double cur_nesterov;
+	/// Monthly max Nexterov index to keep track of running year
+	double monthly_max_nesterov[12];
+	/// biome as used in SIMFIRE
+	int simfire_biome;
+	/// Averaged (over avg_interv_fpar years)maximum annual fAPAR 
+	double ann_max_fapar;
+	/// list of Max 
+	double recent_max_fapar[avg_interv_fapar];
+	/// maximum fapar of running year
+	double cur_max_fapar;
+	/// monthly fire risk 
+	double monthly_fire_risk[12];
+	/// burned area from either SIMFIRE or GFED
+	double areaburnt;
+	/// accumulated burned area from either SIMFIRE or GFED for tstep < 1a
+//WK why 'acc'?
+	double acc_areaburnt;
+	/// prescribed burned area from file
+	double prescribed_ba;
+	/// CLN a simple tracker to see whether at least one patch has enough fuel to burn
+	int can_burn;
+	/// annual burned area from either SIMFIRE or GFED
+	double annual_areaburnt;
+	/// monthly burned area from either SIMFIRE or GFED
+	double monthly_areaburnt[12];
+
+	/// BLAZE
+	/// average annual rainfall [mm/a]
+	double avg_annual_rainf;
+	//double avgannrainf;
+	/// accumulated last rainfall [mm]
+	//double lastrainfall;
+	/// Running mean of Annual Rainfall and current sum
+	//  current sum of annual Rainfall to copmute avg
+	double cur_rainf;
+	/// Accumulated last rainfall
+	double last_rainfall;
+	/// Days since last rainfall
+	double dslr;
+	/// Keetch-Byram-Drought-Index
+	double kbdi;
+	/// McArthur fire index
+	double mcarthur_fire_index;	
+	/// whether majority of trees is considered sprouter (or seeder, else)
+	bool is_sprouter;	
+
 	// Saved parameters used by function daylengthinsoleet
 
 	double sinelat;
@@ -766,6 +831,9 @@ public:
 	double mprec_petmin20;
 	/// 20-year running average of maximum monthly precipitation to PET ratios
 	double mprec_petmax20;
+
+//WK is this from BLAZE or SIMFIRE?
+	double mprec[12];
 
 	Historic<double, 20> hmtemp_20[12];
 	Historic<double, 20> hmprec_20[12];
@@ -914,9 +982,11 @@ public:
 		SEEDN,
 		/// NH3 flux to atmosphere from fire
 		NH3_FIRE,
-		/// NOx flux to atmosphere from fire
-		NOx_FIRE,
-		/// N2O flux to atmosphere from fire
+		/// NO flux to atmosphere from fire	
+		NO_FIRE,
+		/// NO2 flux to atmosphere from fire
+		NO2_FIRE,
+		/// N2O flux to atmosphere from fire	
 		N2O_FIRE,
 		/// N2 flux to atmosphere from fire
 		N2_FIRE,
@@ -924,6 +994,23 @@ public:
 		N_SOIL,
 		/// Reproduction costs
 		REPRC,
+		//blaze
+		C_leaf2atm,
+		C_leaf2met,
+		C_leaf2str,
+		C_sapw2atm,
+		C_sapw2str,
+		C_sapw2fwd,
+		C_hrtw2atm,
+		C_hrtw2str,
+		C_hrtw2cwd,
+		C_root2met,
+		C_root2str,
+		C_mtb2atm,
+		C_str2atm,
+		C_fwd2atm,
+		C_cwd2atm,
+		C_grass2atm,
 		/// Number of types, must be last
 		NPERPATCHFLUXTYPES
 	};
@@ -938,6 +1025,7 @@ public:
 		RA,
 		/// Isoprene (mgC/m2)
 		ISO,
+//WK AET? In trunk there seem to be lots of different monoterpenes
 		/// Monoterpene (mgC/m2)
 		MT_APIN,
 		MT_BPIN,
@@ -948,15 +1036,20 @@ public:
 		MT_TRIC,
 		MT_TBOC,
 		MT_OTHR,
+		AET,
+//WK refer to BLAZE here?
+		/// carbon flux to atmosphere from burnt veg and litter per pft (kgC/m2)
+		FIRECPFT,
 		/// Number of types, must be last
 		NPERPFTFLUXTYPES
 	};
 
-	// emission ratios from fire (NH3, NOx, N2O, N2) Delmas et al. 1995
+	// emission ratios from fire (NH3, NO, NO2, N2O) Delmas et al. 1995
 	// values in .cpp file
 
 	static const double NH3_FIRERATIO;
-	static const double NOx_FIRERATIO;
+	static const double NO_FIRERATIO;
+	static const double NO2_FIRERATIO;
 	static const double N2O_FIRERATIO;
 	static const double N2_FIRERATIO;
 
@@ -983,6 +1076,9 @@ public:
 	/// \returns flux for a given month and flux type (for all PFTs)
 	double get_monthly_flux(PerPFTFluxType flux_type, int month) const;
 
+        /// \returns flux for a given month and flux type (per PFT)  
+        double get_monthly_flux(PerPFTFluxType flux_type, int pft_id, int month) const;
+
 	/// \returns flux for a given month and flux type
 	double get_monthly_flux(PerPatchFluxType flux_type, int month) const;
 
@@ -1000,6 +1096,9 @@ private:
 	/// Stores one flux value per PFT and flux type
 	std::vector<std::vector<double> > annual_fluxes_per_pft;
 
+	/* CMLN/// Stores one flux value per PFT and flux type per month 
+        double monthly_fluxes_per_pft[npftconst][12][NPERPFTFLUXTYPES];
+	*/
 	/// Stores one flux value per month and flux type
 	/** For the fluxes only stored as totals for the whole patch */
 	double monthly_fluxes_patch[12][NPERPATCHFLUXTYPES];
@@ -2368,6 +2467,9 @@ public:
 	 */
 	void reduce_biomass(double mortality, double mortality_fire);
 
+	/// a version of the above reduce_biomass for the use with blaze
+	void blaze_reduce_biomass(Patch& patch, double frac_survive);
+
 	/// Total storage of nitrogen
 	double nstore() const {
 		return nstore_longterm + nstore_labile;
@@ -3253,6 +3355,24 @@ public:
 	/// probability of fire this year
 	double fireprob;
 
+	/// BLAZE Fire line intensity;
+	double fli;
+	//CLN HIER JEDE EINZELNE BECHREIBEN!
+	/// BLAZE fire fluxes
+	/// live to atm
+	double wood2atm, leaf2atm;
+	/// live to litter
+	double leaf2lit, wood2str, wood2fwd, wood2cwd;
+	/// litter to atm
+	double litf2atm, lfwd2atm, lcwd2atm;
+	//WK not really biome shifting but rather biome mapping using vegetation distribution from FAPAR
+	/// Storage for averaging of different Fpars for biome shifting in Simfire
+	double avg_fgrass[n_year_biomeavg];
+	double avg_fndlt[n_year_biomeavg];
+	double avg_fbrlt[n_year_biomeavg];
+	double avg_fshrb[n_year_biomeavg];
+	double avg_ftot[n_year_biomeavg];
+
 	/// whether management has started on this patch
 	bool managed;
 	/// cutting intensity (initial percent of trees cut, further selection at individual level has to be done in a separate function)
@@ -3878,6 +3998,19 @@ public:
 
 	/// object for keeping track of carbon and nitrogen balance
 	MassBalance balance;
+
+	// IGBP Classification needed by SIMFIRE
+	int igbp_class; 
+	/// the region index to chosose from set of optimisations
+	int simfire_region;
+	/// population density
+	double hyde31_pop_density[57];
+	double pop_density;
+
+	/// monthly Burned Area from GFED 3.1 
+	double monthly_GFED31_ba[188];
+	/// daily fraction of monthly Burned Area from GFED 3.1 
+	double daily_GFED31_frac[9*365];
 
 	/// Seed for generating random numbers within this Gridcell
 	/** The reason why Gridcell has its own seed, rather than using for instance

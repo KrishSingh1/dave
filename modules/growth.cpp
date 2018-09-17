@@ -929,13 +929,15 @@ bool allometry(Individual& indiv) {
 		// Height (Eqn 4)
 
 		// guess2008 - new allometry check
-		if (!negligible(indiv.cmass_leaf)) {
-
+		const float EPS = 1.e-12;
+		//CLNif (!negligible(indiv.cmass_leaf, EPS)) {
+		if ( indiv.cmass_leaf > EPS) {
+			
 			indiv.height = indiv.cmass_sap / indiv.cmass_leaf / indiv.pft.sla * indiv.pft.k_latosa / indiv.pft.wooddens;
-
+			
 			// Stem diameter (Eqn 5)
 			diam = pow(indiv.height / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
-
+			
 			// Stem volume
 			double vol = indiv.height * PI * diam * diam * 0.25;
 
@@ -1207,14 +1209,14 @@ void growth(Stand& stand, Patch& patch) {
 
 		bool killed = false;
 
-		if (negligible(indiv.densindiv))
-			fail("growth: negligible densindiv for %s",(char*)indiv.pft.name);
+		if (negligible(indiv.densindiv)) {
+			fail("growth: negligible densindiv for %s",(char*)indiv.pft.name);// ???
+		}		
 		else {
 
 			// Allocation to reproduction
 			if(!indiv.istruecrop_or_intercropgrass())
 				reproduction(indiv.pft.reprfrac,indiv.anpp,bminc,cmass_repr);
-
 			raingreen_ndemand = 0.0;
 
 			// added bminc check. Otherwise we get -ve litter_leaf for grasses when indiv.anpp < 0.
@@ -1307,13 +1309,13 @@ void growth(Stand& stand, Patch& patch) {
 						cmass_leaf_inc, cmass_root_inc, cmass_sap_inc, cmass_debt_inc,
 						cmass_heart_inc,
 						litter_leaf_inc, litter_root_inc, exceeds_cmass);
+	
 
 					// Update carbon pools and litter (on area basis)
 					// (litter not accrued for not 'alive' individuals - Ben 2007-11-28)
 
 					// Leaves
 					indiv.cmass_leaf += cmass_leaf_inc * indiv.densindiv;
-
 					// Roots
 					indiv.cmass_root += cmass_root_inc * indiv.densindiv;
 

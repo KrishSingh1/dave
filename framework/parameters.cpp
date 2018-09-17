@@ -22,6 +22,9 @@
 
 xtring title;
 vegmodetype vegmode;
+firemodeltype firemodel;
+blaze_tsteptype blaze_tstep;
+ignitiontype ignition;
 int npatch;
 int npatch_secondarystand;
 bool reduce_all_stands;
@@ -31,7 +34,7 @@ bool ifbgestab;
 bool ifsme;
 bool ifstochestab;
 bool ifstochmort;
-bool iffire;
+//CLN bool iffire;
 bool ifdisturb;
 bool ifcalcsla;
 bool ifcalccton;
@@ -76,10 +79,13 @@ bool textured_soil;
 bool disturb_pasture;
 bool grassforcrop;
 
-xtring state_path;
+//WK the change from state to i/ostate, is this related to BLAZE?
+xtring istate_path;
+xtring ostate_path;
 bool restart;
 bool save_state;
-int state_year;
+int istate_year;
+int ostate_year;
 	
 bool readsowingdates = false;
 bool readharvestdates = false;
@@ -148,7 +154,11 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB
 	CB_STLANDCOVER, CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT,
 	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTHYDROLOGY,
 	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STHYDROLOGY, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
+<<<<<<< .working
 	CB_PATHWAY,CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE,CB_MTCOMPOUND,CB_WEATHERGENERATOR};
+=======
+	CB_PATHWAY,CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE,CB_FIREMODEL,CB_BLAZE_TSTEP,CB_IGNITION};
+>>>>>>> .merge-right.r6630
 
 // File local variables
 namespace {
@@ -189,7 +199,10 @@ void initsettings() {
 	// Initialises global settings
 	// Parameters not initialised here must be set in instruction script
 
-	iffire=true;
+	//CLN iffire=false;
+	firemodel=BLAZE;
+	ignition=SIMFIRE;
+	blaze_tstep=HYBRID;
 	ifcalcsla=true;
 	ifdisturb=false;
 	ifcalcsla=false;
@@ -402,8 +415,12 @@ void plib_declarations(int id,xtring setname) {
 			"Interval for establishment of new cohorts (years)");
 		declareitem("distinterval",&distinterval,1.0,1.0e10,1,CB_NONE,
 			"Generic patch-destroying disturbance interval (years)");
-		declareitem("iffire",&iffire,1,CB_NONE,
-			"Whether fire enabled (0,1)");
+		declareitem("firemodel",&strparam,12,CB_FIREMODEL,
+			"Fire model mode (\"BLAZE\", \"GLOBFIRM\", \"NOFIRE\" , \"\")" );
+		declareitem("ignition",&strparam,12,CB_IGNITION,
+			    "ignition (\"SIMFIRE\", \"GFED31\", \"SIMGFED\", \"PRESCRIBED\")" );
+		declareitem("blaze_tstep",&strparam,12,CB_BLAZE_TSTEP,
+			"Blaze time-step mode (\"ANNUAL\", \"SEASONAL\", \"MONTHLY\" , \"DAILY\" , \"HYBRID\" )" );
 		declareitem("ifdisturb",&ifdisturb,1,CB_NONE,
 			"Whether generic patch-destroying disturbance enabled (0,1)");
 		declareitem("ifcalcsla",&ifcalcsla,1,CB_NONE,
@@ -478,10 +495,12 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("disturb_pasture",&disturb_pasture,1,CB_NONE,"Whether fire and disturbances enabled on pastures (0,1)");
 		declareitem("grassforcrop",&grassforcrop,1,CB_NONE,"grassforcrop");
 
-		declareitem("state_path", &state_path, 300, CB_NONE, "State files directory (for restarting from, or saving state files)");
+		declareitem("istate_path", &istate_path, 300, CB_NONE, "State files directory (for restarting from)");
+		declareitem("ostate_path", &ostate_path, 300, CB_NONE, "State files directory (for saving state files)");
 		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
 		declareitem("save_state", &save_state, 1, CB_NONE, "Whether to save new state files");
-		declareitem("state_year", &state_year, 1, 20000, 1, CB_NONE, "Save/restart year. Unspecified means just after spinup");
+		declareitem("istate_year", &istate_year, 1, 20000, 1, CB_NONE, "Restart year. ");
+		declareitem("ostate_year", &ostate_year, 1, 20000, 1, CB_NONE, "Save year. Unspecified means just after spinup");
 
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
@@ -922,6 +941,55 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
+	case CB_FIREMODEL:
+		if (strparam.upper()=="BLAZE") firemodel=BLAZE;
+		else if (strparam.upper()=="GLOBFIRM") firemodel=GLOBFIRM;
+		else if (strparam.upper()=="NOFIRE" || strparam=="") firemodel=NOFIRE;
+		else {
+			sendmessage("Error",
+				    "Unknown fire model setting (valid types: \"BLAZE\", \"GLOBFIRM\", \"NOFIRE\", \"nil\" , \"\")" );
+			plibabort();
+		}
+		break;
+	case CB_IGNITION:
+		if (firemodel != NOFIRE) {
+			if (strparam.upper()=="SIMFIRE") ignition=SIMFIRE;
+			else if (strparam.upper()=="GFED31") ignition=GFED31;
+			else if (strparam.upper()=="SIMGFED") ignition=SIMGFED;
+			else if (strparam.upper()=="PRESCRIBED") ignition=PRESCRIBED;
+			else {
+				sendmessage("Error",
+					    "Unknown ignition model setting (valid types: \"SIMFIRE\", \"GFED31\", \"SIMGFED\", \"PRESCRIBED\" )" );
+				plibabort();
+			}
+		}
+		break;
+	case CB_BLAZE_TSTEP:
+		if (firemodel == BLAZE) {
+			if (strparam.upper()=="ANNUAL") blaze_tstep=ANNUAL;
+			else if (strparam.upper()=="SEASONAL") blaze_tstep=SEASONAL;
+			else if (strparam.upper()=="MONTHLY") blaze_tstep=MONTHLY;
+			else if (strparam.upper()=="DAILY") blaze_tstep=DAILY;
+			else if (strparam.upper()=="HYBRID") blaze_tstep=HYBRID;
+			else {
+				sendmessage("Error",
+					    "Unknown blaze time-step (valid types:\"ANNUAL\", \"SEASONAL\", \"MONTHLY\" , \"DAILY\" , \"HYBRID\" )");
+				plibabort();
+			}
+			if ( ignition == SIMFIRE && ( blaze_tstep == DAILY ) ) {
+				sendmessage("Error",
+					    "Ignition = SIMFIRE not valid with blaze_tstep == DAILY");
+				plibabort();
+		
+			} 
+			if ( blaze_tstep == SEASONAL ) {
+				sendmessage("Error",
+					    "blaze_tstep = SEASONAL not yet implemented!!!");
+				plibabort();
+			}
+			break;
+		}
+		break;
 	case CB_WATERUPTAKE:
 		if (strparam.upper() == "WCONT") wateruptake = WR_WCONT;
 		else if (strparam.upper() == "ROOTDIST") wateruptake = WR_ROOTDIST;
@@ -1102,7 +1170,13 @@ void plib_callback(int callback) {
 		if (!itemparsed("title")) badins("title");
 		if (!itemparsed("nyear_spinup")) badins("nyear_spinup");
 		if (!itemparsed("vegmode")) badins("vegmode");
-		if (!itemparsed("iffire")) badins("iffire");
+		//CLN if (!itemparsed("iffire")) badins("iffire");
+		if (!itemparsed("firemodel")) badins("firemodel");
+		if (firemodel==BLAZE) {
+			if (!itemparsed("ignition")) badins("ignition");
+			if (!itemparsed("blaze_tstep")) badins("blaze_tstep");
+			//CLN see later			if (!itemparsed("fluxmode")) badins("fluxmode"); //CLN who deals the damage
+		}
 		if (!itemparsed("ifcalcsla")) badins("ifcalcsla");
 		if (!itemparsed("ifcalccton")) badins("ifcalccton");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
@@ -1174,17 +1248,35 @@ void plib_callback(int callback) {
 		}
 
 		if (save_state && restart) {
-			sendmessage("Error",
-			            "Can't save state and restart at the same time");
-			plibabort();
+			bool err_abort = false;
+			if ( istate_path == ostate_path ) { 
+				sendmessage("Error",
+					    "Can't save state and restart into same files");
+				err_abort = true;
+			}
+			if ( istate_year >= ostate_year ) {
+				sendmessage("Error",
+					    "istate year >= ostate year");
+				err_abort = true;
+			}
+			if (err_abort) 
+				plibabort();
 		}
 
-		if (!itemparsed("state_year")) {
-			state_year = nyear_spinup;
+		if (!itemparsed("istate_year") && restart) {
+			istate_year = nyear_spinup;
 		}
 
-		if (state_path == "" && (save_state || restart)) {
-			badins("state_path");
+		if (istate_path == "" && restart) {
+			badins("istate_path");
+		}
+
+		if (!itemparsed("ostate_year") && save_state) {
+			ostate_year = nyear_spinup;
+		}
+
+		if (ostate_path == "" && save_state ) {
+			badins("ostate_path");
 		}
 
 		if (grassforcrop) {
@@ -1610,7 +1702,11 @@ void plib_callback(int callback) {
 					if (!itemparsed("est_max")) badins("est_max");
 				}
 			}
-			if (iffire) {
+			/*CLN			if (iffire) {
+				if (!itemparsed("litterme")) badins("litterme");
+				if (!itemparsed("fireresist")) badins("fireresist");
+				}*/
+			if (firemodel==GLOBFIRM) {
 				if (!itemparsed("litterme")) badins("litterme");
 				if (!itemparsed("fireresist")) badins("fireresist");
 			}

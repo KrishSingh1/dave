@@ -741,7 +741,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			flux_nseed_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::SEEDN)*to_gridcell_average;
 			flux_nharvest_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::HARVESTN)*to_gridcell_average;
 			flux_ntot_lc[stand.landcover]+=(patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE) +
-					   patch.fluxes.get_annual_flux(Fluxes::NOx_FIRE) +
+					   patch.fluxes.get_annual_flux(Fluxes::NO_FIRE) +
+					   patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE) +
 					   patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE) +
 					   patch.fluxes.get_annual_flux(Fluxes::N2_FIRE) +
 					   patch.fluxes.get_annual_flux(Fluxes::N_SOIL)) * to_gridcell_average;

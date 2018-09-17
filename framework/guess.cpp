@@ -16,7 +16,7 @@
 // These variables are declared in the framework header file, and defined here.
 // They are accessible throughout the model code.
 
-Date date;// object describing timing stage of simulation
+Date date; // object describing timing stage of simulation
 int npft; // number of possible PFTs
 int nst;  // number of possible stand types
 int nst_lc[NLANDCOVERTYPES];  // number of possible stand types in each land cover type
@@ -26,14 +26,12 @@ ManagementTypelist mtlist;
 StandTypelist stlist;
 Pftlist pftlist;
 
-// emission ratios from fire (NH3, NO, NO2, N2O, N2) Levine et al. 1996
+// emission ratios from fire (NH3, NOx, N2O, N2) Delmas et al. 1995
 
-//WK I'm curious why there was a change in the first value below by almost two orders of magnitude
-const double Fluxes::NH3_FIRERATIO = 0.236;
-const double Fluxes::NO_FIRERATIO  = 0.303;
-const double Fluxes::NO2_FIRERATIO = 0.076;
-const double Fluxes::N2O_FIRERATIO = 0.035;
-const double Fluxes::N2_FIRERATIO  = 0.350;
+const double Fluxes::NH3_FIRERATIO = 0.005;
+const double Fluxes::NOx_FIRERATIO = 0.237;
+const double Fluxes::N2O_FIRERATIO = 0.036;
+const double Fluxes::N2_FIRERATIO  = 0.722;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -62,28 +60,6 @@ void Climate::serialize(ArchiveStream& arch) {
 		& par
 		& prec
 		& daylength
-    //WK I know it is not common practive in LPJ-GUESS, but maybe this
-    //WK would be the ideal place to give a short description plus units?
-    //WK or give a reference to where this is available?
-		// BLAZE --[
-		& u10
-		& relhum
-		& tmin
-		& tmax 
-		& max_nesterov
-		& cur_nesterov
-		& simfire_biome
-		& ann_max_fapar
-		& monthly_fire_risk
-		& areaburnt 
-		& prescribed_ba 
-		& avg_annual_rainf
-		& cur_rainf
-		& last_rainfall
-		& dslr
-		& kbdi
-		& mcarthur_fire_index
-		// BLAZE --] 
 		& co2
 		& lat
 		& insol
@@ -191,9 +167,6 @@ void Fluxes::reset() {
 	for (int m = 0; m < 12; ++m) {
 		std::fill_n(monthly_fluxes_pft[m], int(NPERPFTFLUXTYPES), 0);
 		std::fill_n(monthly_fluxes_patch[m], int(NPERPATCHFLUXTYPES), 0);
-                /*CMLN for (int i = 0; i < npftconst; ++i) { 
-                        std::fill_n(monthly_fluxes_per_pft[i][m], int(NPERPFTFLUXTYPES), 0);
-		}*/
 	}
 
 	for (int d = 0; d < date.year_length(); ++d) {
@@ -206,13 +179,11 @@ void Fluxes::serialize(ArchiveStream& arch) {
 	arch & annual_fluxes_per_pft
 		& monthly_fluxes_patch
 		& monthly_fluxes_pft;
-	//CMLN & monthly_fluxes_per_pft;
 }
 
 void Fluxes::report_flux(PerPFTFluxType flux_type, int pft_id, double value) {
 	annual_fluxes_per_pft[pft_id][flux_type] += value;
 	monthly_fluxes_pft[date.month][flux_type] += value;
-        //CMLN monthly_fluxes_per_pft[pft_id][date.month][flux_type] += value;
 	daily_fluxes_pft[date.day][flux_type] += value;	//Var = value ???
 }
 
@@ -228,10 +199,6 @@ double Fluxes::get_monthly_flux(PerPFTFluxType flux_type, int month) const {
 double Fluxes::get_monthly_flux(PerPatchFluxType flux_type, int month) const {
 	return monthly_fluxes_patch[month][flux_type];
 }
-
-/* CMLNdouble Fluxes::get_monthly_flux(PerPFTFluxType flux_type, int pft_id, int month) const {
-        return monthly_fluxes_per_pft[pft_id][month][flux_type];
-	}*/
 
 double Fluxes::get_annual_flux(PerPFTFluxType flux_type, int pft_id) const {
 	return annual_fluxes_per_pft[pft_id][flux_type];
@@ -539,29 +506,7 @@ void Patch::serialize(ArchiveStream& arch) {
 		& mrunoff
 		& mpet
 		& ndemand
-		& irrigation_y
-    //WK maybe mark beginning and end of BLAZE entries,
-    //WK as you did above with 		// BLAZE --[
-		& fli						// Fire blaze
-		& wood2atm
-		& leaf2atm
-		& leaf2lit
-		& wood2str
-		& wood2fwd
-		& wood2cwd
-		& litf2atm
-		& lfwd2atm
-		& lcwd2atm;
-		for (unsigned int i=0; i < n_year_biomeavg; i++)
-			arch & avg_fgrass[i];
-		for (unsigned int i=0; i < n_year_biomeavg; i++)
-			arch & avg_fndlt[i];
-		for (unsigned int i=0; i < n_year_biomeavg; i++)
-			arch & avg_fbrlt[i];
-		for (unsigned int i=0; i < n_year_biomeavg; i++)
-			arch & avg_fshrb[i];
-		for (unsigned int i=0; i < n_year_biomeavg; i++)
-			arch & avg_ftot[i];
+		& irrigation_y;
 }
 
 const Climate& Patch::get_climate() const {
@@ -570,29 +515,11 @@ const Climate& Patch::get_climate() const {
 }
 
 bool Patch::has_fires() const {
-//WK looks like this checks if the model includes fire in its current setting,
-//WK but it would be useful to understand the reasons for the background,
-//WK e.g. does BLAZE exclude CROPLAND and management?
-//WK And what happens if CROPLAND is true, will there be a warning message,
-//WK or will the code fail?
-//CLN#ifdef NOPASTURESTOCH
-//CLN	//CLN	return iffire && stand.landcover != CROPLAND && stand.landcover != PASTURE && !managed;
-//CLN	return firemodel != NOFIRE && stand.landcover != CROPLAND && 
-//CLN		(stand.landcover != PASTURE || disturb_pasture) && !managed;
-//CLN#else
-//CLN	//CLN   return iffire && stand.landcover != CROPLAND && !managed;
-//CLN	return firemodel != NOFIRE && stand.landcover != CROPLAND && !managed;
-//CLN#endif
-	return firemodel != NOFIRE && stand.landcover != CROPLAND && !managed &&
+	return iffire && stand.landcover != CROPLAND && !managed &&
 		(stand.landcover != PASTURE || disturb_pasture);
 }
 
 bool Patch::has_disturbances() const {
-//CLN#ifdef NOPASTURESTOCH
-//CLN	return ifdisturb && stand.landcover != CROPLAND && stand.landcover != PASTURE && !managed;
-//CLN#else
-//CLN	return ifdisturb && stand.landcover != CROPLAND && !managed;
-//CLN#endif
 	return ifdisturb && stand.landcover != CROPLAND && !managed &&
 		(stand.landcover != PASTURE || disturb_pasture);
 }
@@ -699,9 +626,7 @@ double Patch::nflux() {
 	nflux += fluxes.get_annual_flux(Fluxes::HARVESTN);
 	nflux += fluxes.get_annual_flux(Fluxes::SEEDN);
 	nflux += fluxes.get_annual_flux(Fluxes::NH3_FIRE);
-//WK in trunk, there is NOx fire, what is the latest version?
-	nflux += fluxes.get_annual_flux(Fluxes::NO_FIRE);
-	nflux += fluxes.get_annual_flux(Fluxes::NO2_FIRE);
+	nflux += fluxes.get_annual_flux(Fluxes::NOx_FIRE);
 	nflux += fluxes.get_annual_flux(Fluxes::N2O_FIRE);
 	nflux += fluxes.get_annual_flux(Fluxes::N2_FIRE);
 	nflux += fluxes.get_annual_flux(Fluxes::N_SOIL);
@@ -1272,12 +1197,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	}
 
 	// bvoc
-<<<<<<< .working
-=======
-//WK in trunk, there is a loop over NMTCOMPOUNDS,
-//WK is this an update in trunk that needs to be merged?
-	monstor           = 0.;
->>>>>>> .merge-right.r6630
 	iso               = 0.;
 	fvocseas          = 1.;
 	for (int im=0; im<NMTCOMPOUNDS; im++){
@@ -1444,7 +1363,6 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 	// This function needs to be modified if a new lifeform is added,
 	// specifically to deal with nstore().
 	assert(pft.lifeform == TREE || pft.lifeform == GRASS);
-	assert(mortality >= mortality_fire);
 
 	if (!negligible(mortality)) {
 
@@ -1515,8 +1433,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		report_flux(Fluxes::FIREC,    cflux_fire);
 
 		report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire);
-		report_flux(Fluxes::NO2_FIRE, Fluxes::NO2_FIRERATIO * nflux_fire);
-		report_flux(Fluxes::NO_FIRE , Fluxes::NO_FIRERATIO  * nflux_fire);
+		report_flux(Fluxes::NOx_FIRE, Fluxes::NOx_FIRERATIO * nflux_fire);
 		report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
 		report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
 

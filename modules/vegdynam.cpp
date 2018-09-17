@@ -35,11 +35,9 @@
 
 
 /// Internal help function for splitting up nitrogen fire fluxes into components
-//CLN
 void report_fire_nfluxes(Patch& patch, double nflux_fire) {
 	patch.fluxes.report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire);
-	patch.fluxes.report_flux(Fluxes::NO_FIRE,  Fluxes::NO_FIRERATIO  * nflux_fire);
-	patch.fluxes.report_flux(Fluxes::NO2_FIRE, Fluxes::NO2_FIRERATIO * nflux_fire);
+	patch.fluxes.report_flux(Fluxes::NOx_FIRE, Fluxes::NOx_FIRERATIO * nflux_fire);
 	patch.fluxes.report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
 	patch.fluxes.report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
 }
@@ -505,20 +503,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Initial grass biomass proportional to potential forest floor
 						// net assimilation this year on patch area basis
 
-//WK Do I understand correctly that gridcell is only invoked here to get the latitude?
-//WK I think these kind of hard-wired work arounds should really be avoided,
-//WK and I can immagine that this here would cause discontinuities along 30 degrees
-//WK latitude bands. Or has this been removed anyway?
-						// because of problems with biomeshifting in BLAZE a reduced SAPSIZE has been 
-						// implemented in the tropics
-						Gridcell&  gridcell = stand.get_gridcell();
-						double sapfac = 1.0;
-						//CLNif ( firemodel == BLAZE && abs(gridcell.get_lat()) <30.  ) 
-						//CLN	sapfac = 0.1;
 						if(pft.phenology == CROPGREEN)
-							bminit = sapfac * SAPSIZE * 0.01;
-						else if(patch.has_disturbances() && patch.disturbed) 
-							bminit = sapfac * SAPSIZE * patch.pft[pft.id].anetps_ff_est_initial;
+							bminit = SAPSIZE * 0.01;
+						else if(patch.has_disturbances() && patch.disturbed)
+							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff_est_initial;
 						else
 							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;
 
@@ -850,13 +838,8 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 				mort_shade=0.0;
 
 			// Mortality due to fire
-//WK The way this is written is a bit dangerous, because the variable mort_fire only has meaning
-//WK then GLOBFIRM is used, correct? There might be other such examples. If one variable is
-//WK used exclusively only with one fire model, then this could be reflected in the name
-//WK using some naming convention.
-//WK My worry is - say firemodel == BLAZE, mort_fire=0, what happens? Maybe mort_fire
-//WK should be set to 'not used' or something.
-			if (patch.has_fires() && firemodel == GLOBFIRM) mort_fire=fireprob*(1.0-indiv.pft.fireresist);
+
+			if (patch.has_fires()) mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			else mort_fire=0.0;
 
 			// Sum mortality components to give total mortality (maximum 1)
@@ -889,7 +872,8 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			}
 
 			// Mortality due to fire
-			if (patch.has_fires() && firemodel == GLOBFIRM)
+
+			if (patch.has_fires())
 				mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			else mort_fire=0.0;
 
@@ -990,9 +974,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 	Vegetation& vegetation=patch.vegetation;
 
 	// FIRE MORTALITY
-//WK Maybe: FIRE MORTALTITY (GLOBFIRM)
-//WK For BLAZE this is done in such and such a way.
-	if (patch.has_fires() && firemodel == GLOBFIRM) {
+	if (patch.has_fires()) {
 
 		// Impose fire in this patch with probability 'fireprob'
 
@@ -1452,7 +1434,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		// (in population mode: fraction of modelled area affected by fire this year)
 
 	// Calculate fire probability and volatilise litter
-	if (patch.has_fires() && firemodel == GLOBFIRM) {
+	if (patch.has_fires()) {
 		fire(patch,fireprob);
 	}
 	patch.fireprob = fireprob;

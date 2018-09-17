@@ -58,39 +58,9 @@ typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptakety
 ///bvoc: define monoterpene species used
 typedef enum {APIN, BPIN, LIMO, MYRC, SABI, CAMP, TRIC, TBOC, OTHR, NMTCOMPOUNDTYPES} monoterpenecompoundtype;
 
-<<<<<<< .working
 ///bvoc: define monoterpene species used
 typedef enum {INTERP, GWGEN} weathergeneratortype;
 
-=======
-/// Fire model setting. Either use 
-/*	One of
- *	BLAZE 		Use the BLAZE model to generate fire fluxes 
- *                      (must be accompanied by ignitionmode)
- *	GLOBFIRM	OLD fire parameterization following Thonicke et al. 2001
- *	NOFIRE		no fire model	
- */
-typedef enum {BLAZE, GLOBFIRM, NOFIRE} firemodeltype;
-
-/// Time step of fire model 
-/*	ANNUALY SEASONAL MONTHLY DAILY  fixed timesteps. 
- *	HYBRID   	 *default*      use shortest available timestep (automatically adjust to 
- *					source of ignition)
- */
-typedef enum {ANNUAL, SEASONAL, MONTHLY, DAILY, HYBRID} blaze_tsteptype;
-
-/// Ignition model setting. Only necessary if firemodel is BLAZE. Either use 
-/*	One of
- *	SIMFIRE 	use SIMFIRE for generate burnt area
- *	GFED31		use GFED v3.1 as source for burnt area
- *	SIMGFED		symbiosys of both. GFED31 where there's data, SIMFIRE else
-//WK I think prescribing burned area makes sense also for serious simulations
- *	PRESCRIBED	a way to prescribe Burnt Area for experimental purpose
- *	NOIGNITION	no fire model  
- */	
-typedef enum {SIMFIRE, GFED31, SIMGFED, PRESCRIBED, NOIGNITION} ignitiontype;
-
->>>>>>> .merge-right.r6630
 ///////////////////////////////////////////////////////////////////////////////////////
 // Global instruction file parameters
 
@@ -133,10 +103,7 @@ extern bool ifstochestab;
 extern bool ifstochmort;
 
 /// Whether fire enabled
-//	CLN extern bool iffire;
-extern firemodeltype firemodel;
-extern blaze_tsteptype blaze_tstep;
-extern ignitiontype ignition;
+extern bool iffire;
 
 /// Whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
 extern bool ifdisturb;
@@ -255,8 +222,7 @@ extern bool grassforcrop;
 // Settings controlling the saving and loading from state files
 
 /// Location of state files
-extern xtring istate_path;
-extern xtring ostate_path;
+extern xtring state_path;
 
 /// Whether to restart from state files
 extern bool restart;
@@ -265,8 +231,7 @@ extern bool restart;
 extern bool save_state;
 
 /// Save/restart year
-extern int istate_year;
-extern int ostate_year;
+extern int state_year;
 
 /// whether to vary mort_greff smoothly with growth efficiency (1) or to use the standard step-function (0)
 extern bool ifsmoothgreffmort;

@@ -286,9 +286,9 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 
 			// During spinup period
 
-			if(date.year == istate_year && restart) {
+			if(date.year == state_year && restart) {
 
-				int year_offset = istate_year % NYEAR_SPINUP_DATA;
+				int year_offset = state_year % NYEAR_SPINUP_DATA;
 
 				for (int y=0;y<year_offset;y++) {
 					spinup_mtemp.nextyear();

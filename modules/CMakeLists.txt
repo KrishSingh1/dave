@@ -7,9 +7,6 @@ set(headers
   vegdynam.h 
   landcover.h 
   bvoc.h 
-  blaze.h
-  simfire.h
-  gfed31.h
   q10.h 
   globalco2file.h
   ncompete.h
@@ -35,9 +32,6 @@ set(source
   landcover.cpp 
   vegdynam.cpp 
   bvoc.cpp
-  blaze.cpp
-  simfire.cpp
-  gfed31.cpp
   globalco2file.cpp
   ncompete.cpp
   commonoutput.cpp

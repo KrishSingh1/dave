@@ -75,25 +75,10 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_miso", &file_miso, 300, "monthly isoprene flux output file");
 	declare_parameter("file_amon", &file_amon, 300, "annual monoterpene flux output file");
 	declare_parameter("file_mmon", &file_mmon, 300, "monthly monoterpene flux output file");
-<<<<<<< .working
 	declare_parameter("file_amon_mt1", &file_amon_mt1, 300, "annual endocyclic monoterpene flux output file");	
 	declare_parameter("file_amon_mt2", &file_amon_mt2, 300, "annual other monoterpene flux output file");
 	declare_parameter("file_mmon_mt1", &file_mmon_mt1, 300, "monthly endocyclic monoterpene flux output file");	
 	declare_parameter("file_mmon_mt2", &file_mmon_mt2, 300, "monthly other monoterpene flux output file");
-=======
-
-	declare_parameter("file_mprec", &file_mprec, 300, "monthly precip output file");
-
-	if ( firemodel == BLAZE ) {
-		declare_parameter("file_blaze_out", &file_blaze_out, 300, "BLAZE burnt area output file");
-		declare_parameter("file_mblaze_out", &file_mblaze_out, 300, "BLAZE monthly burnt area output file");
-		if ( ignition == SIMFIRE ) {
-			declare_parameter("file_sfana_out", &file_sfana_out, 300, "SIMFIRE analytics output");
-		}			
-	}
-
-
->>>>>>> .merge-right.r6630
 }
 
 
@@ -237,19 +222,6 @@ void CommonOutput::define_output_tables() {
 	ColumnDescriptors firert_columns;
 	firert_columns += ColumnDescriptor("FireRT",           8, 1);
 
-	// BLAZE burnt area 
-	ColumnDescriptors blaze_columns;
-	blaze_columns += ColumnDescriptor("BurntAr",        8, 5);
-//	ColumnDescriptors blzana_columns;
-//	blzana_columns += ColumnDescriptor("FFDI",        8, 5);
-
-	// SIMFIRE Analysis 
-	ColumnDescriptors sfana_columns;
-	sfana_columns += ColumnDescriptor("Biome",             6, 0);
-	sfana_columns += ColumnDescriptor("MxNest",            7, 0);
-	sfana_columns += ColumnDescriptor("PopDens",          10, 3);
-	sfana_columns += ColumnDescriptor("Region",            7, 0);
-	
 	// RUNOFF
 	ColumnDescriptors runoff_columns;
 	runoff_columns += ColumnDescriptor("Surf",             8, 1);
@@ -335,8 +307,7 @@ void CommonOutput::define_output_tables() {
 	// NGASES
 	ColumnDescriptors ngases_columns;
 	ngases_columns += ColumnDescriptor("NH3",              9, 3);
-	ngases_columns += ColumnDescriptor("NO",               9, 3);
-	ngases_columns += ColumnDescriptor("NO2",              9, 3);
+	ngases_columns += ColumnDescriptor("NOx",              9, 3);
 	ngases_columns += ColumnDescriptor("N2O",              9, 3);
 	ngases_columns += ColumnDescriptor("N2",               9, 3);
 	ngases_columns += ColumnDescriptor("NSoil",            9, 3);
@@ -356,20 +327,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_cpool,          file_cpool,          cpool_columns);
 	create_output_table(out_clitter,        file_clitter,        clitter_columns);
 
-	if ( firemodel == BLAZE ) {
-                if ( blaze_tstep == ANNUAL ) {
-			//			create_output_table(out_ab,  file_annual_blaze_out,	blaze_columns);
-		} else {
-			create_output_table(out_ab,	file_blaze_out,	blaze_columns); 
-		}
-		//CLN		create_output_table(out_blzana,	file_blzana_out,	blzana_columns); 
-		if ( ignition == SIMFIRE ) 
-			create_output_table(out_sfana,          file_sfana_out,             sfana_columns);
-	} else if ( firemodel == GLOBFIRM ) {
-		create_output_table(out_firert,         file_firert,         firert_columns);
-	}
-
-	//	create_output_table(out_fireflux,	file_fireflux,	     month_columns_wide);
+	create_output_table(out_firert,         file_firert,         firert_columns);
 	create_output_table(out_runoff,         file_runoff,         runoff_columns);
 	create_output_table(out_speciesheights, file_speciesheights, speciesheights_columns);
 	create_output_table(out_aiso,           file_aiso,           aiso_columns);
@@ -404,14 +362,8 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mwcont_lower,   file_mwcont_lower,   month_columns);
 	create_output_table(out_miso,           file_miso,           month_columns_wide);
 	create_output_table(out_mmon,           file_mmon,           month_columns_wide);
-<<<<<<< .working
 	create_output_table(out_mmon_mt1,       file_mmon_mt1,       month_columns_wide);
 	create_output_table(out_mmon_mt2,       file_mmon_mt2,       month_columns_wide);
-=======
-	create_output_table(out_mprec,          file_mprec,          month_columns);
-	create_output_table(out_mab,            file_mblaze_out,     month_columns);
-	
->>>>>>> .merge-right.r6630
 }
 
 /// Function for producing data file used to communicate information on stand structure
@@ -629,8 +581,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double c_fast, c_slow, c_harv_slow;
 
 	double surfsoillitterc,surfsoillittern,cwdc,cwdn,centuryc,centuryn,n_harv_slow,availn;
-	double flux_nh3, flux_no, flux_no2, flux_n2o, flux_n2; 
-	double flux_nsoil, flux_ntot, flux_nharvest, flux_nseed;
+	double flux_nh3, flux_nox, flux_n2o, flux_n2, flux_nsoil, flux_ntot, flux_nharvest, flux_nseed;
 
 	// Nitrogen output is in kgN/ha instead of kgC/m2 as for carbon
 	double m2toha = 10000.0;
@@ -655,9 +606,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mmon_mt1[12];
 	double mmon_mt2[12];
 	double aaet, apet, aevap, arunoff, aintercep;
-
-	// BLAZE & SIMFIRE
-	double annual_areaburnt_gridcell=0.;
 
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
@@ -1084,8 +1032,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	surfsoillitterc = surfsoillittern = cwdc = cwdn = centuryc = centuryn = n_harv_slow = availn = 0.0;
 	andep_gridcell = anfert_gridcell = anmin_gridcell = animm_gridcell = anfix_gridcell = 0.0;
 	n_org_leach_gridcell = n_min_leach_gridcell = c_org_leach_gridcell = 0.0;
-	flux_nh3 = flux_no = flux_no2 = flux_n2o = flux_n2 = 0.0;
-	flux_nsoil = flux_ntot = flux_nharvest = flux_nseed = 0.0;
+	flux_nh3 = flux_nox = flux_n2o = flux_n2 = flux_nsoil = flux_ntot = flux_nharvest = flux_nseed = 0.0;
 
 	double c_org_leach_lc[NLANDCOVERTYPES];
 
@@ -1119,14 +1066,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			flux_nseed+=patch.fluxes.get_annual_flux(Fluxes::SEEDN)*to_gridcell_average;
 			flux_nharvest+=patch.fluxes.get_annual_flux(Fluxes::HARVESTN)*to_gridcell_average;
 			flux_nh3+=patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE)*to_gridcell_average;
-			flux_no+=patch.fluxes.get_annual_flux(Fluxes::NO_FIRE)*to_gridcell_average;
-			flux_no2+=patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE)*to_gridcell_average;
+			flux_nox+=patch.fluxes.get_annual_flux(Fluxes::NOx_FIRE)*to_gridcell_average;
 			flux_n2o+=patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE)*to_gridcell_average;
 			flux_n2+=patch.fluxes.get_annual_flux(Fluxes::N2_FIRE)*to_gridcell_average;
 			flux_nsoil+=patch.fluxes.get_annual_flux(Fluxes::N_SOIL)*to_gridcell_average;
 			flux_ntot+=(patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE) +
-						patch.fluxes.get_annual_flux(Fluxes::NO_FIRE) +
-						patch.fluxes.get_annual_flux(Fluxes::NO2_FIRE) +
+						patch.fluxes.get_annual_flux(Fluxes::NOx_FIRE) +
 						patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE) +
 						patch.fluxes.get_annual_flux(Fluxes::N2_FIRE) +
 						patch.fluxes.get_annual_flux(Fluxes::N_SOIL)) * to_gridcell_average;
@@ -1273,12 +1218,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_dens,   dens_gridcell);
 	outlimit(out,out_lai,    lai_gridcell);
 	outlimit(out,out_clitter,clitter_gridcell);
-	//CLN
-	outlimit(out,out_ab,     gridcell.climate.annual_areaburnt);
-	outlimit(out,out_sfana,  gridcell.climate.simfire_biome);
-	outlimit(out,out_sfana,  gridcell.climate.max_nesterov);
-	outlimit(out,out_sfana,  gridcell.pop_density);
-	outlimit(out,out_sfana,  gridcell.simfire_region);
 	outlimit(out,out_firert, firert_gridcell);
 	outlimit(out,out_runoff, surfrunoff_gridcell);
 	outlimit(out,out_runoff, drainrunoff_gridcell);
@@ -1355,13 +1294,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			outlimit(out,out_mwcont_lower, mwcont_lower[m]);
 			outlimit(out,out_miso,         miso[m]);
 			outlimit(out,out_mmon,         mmon[m]);
-<<<<<<< .working
 			outlimit(out,out_mmon_mt1,     mmon_mt1[m]);
 			outlimit(out,out_mmon_mt2,     mmon_mt2[m]);
-=======
-			outlimit(out,out_mprec,        (float)gridcell.climate.mprec[m]);
-			outlimit(out,out_mab,          (float)gridcell.climate.monthly_areaburnt[m]);
->>>>>>> .merge-right.r6630
 
 			aaet += maet[m];
 			apet += mpet[m];
@@ -1514,8 +1448,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	}
 
 	outlimit(out,out_ngases, flux_nh3   * m2toha);
-	outlimit(out,out_ngases, flux_no    * m2toha);
-	outlimit(out,out_ngases, flux_no2   * m2toha);
+	outlimit(out,out_ngases, flux_nox   * m2toha);
 	outlimit(out,out_ngases, flux_n2o   * m2toha);
 	outlimit(out,out_ngases, flux_n2    * m2toha);
 	outlimit(out,out_ngases, flux_nsoil * m2toha);

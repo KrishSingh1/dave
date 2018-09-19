@@ -13,6 +13,7 @@
 
 #include "config.h"
 #include "cruinput.h"
+#include "gwgen.h"
 
 #include "driver.h"
 #include "parameters.h"
@@ -48,7 +49,9 @@ CRUInput::CRUInput()
 	  spinup_msun(NYEAR_SPINUP_DATA),
 	  spinup_mfrs(NYEAR_SPINUP_DATA),
 	  spinup_mwet(NYEAR_SPINUP_DATA),
-	  spinup_mdtr(NYEAR_SPINUP_DATA) {
+	  spinup_mdtr(NYEAR_SPINUP_DATA),
+	  spinup_mwind(NYEAR_SPINUP_DATA),
+	  spinup_mrhum(NYEAR_SPINUP_DATA) {
 
 	// Declare instruction file parameters
 
@@ -268,7 +271,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	double progress;
 
 	Climate& climate = gridcell.climate;
-
+	
 	if (date.day == 0) {
 
 		// First day of year ...
@@ -298,27 +301,40 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			}
 
 			int m;
-			double mtemp[12],mprec[12],msun[12];
-			double mfrs[12],mwet[12],mdtr[12];
+			double mtemp[12],mprec[12],msun[12],mfrs [12];
+			double mwet [12],mdtr[12],mwind[12],mrhum[12];
 
 			for (m=0;m<12;m++) {
 				mtemp[m] = spinup_mtemp[m];
 				mprec[m] = spinup_mprec[m];
 				msun[m]	 = spinup_msun[m];
 
-				mfrs[m] = spinup_mfrs[m];
-				mwet[m] = spinup_mwet[m];
-				mdtr[m] = spinup_mdtr[m];
+				mfrs[m]  = spinup_mfrs[m];
+				mwet[m]  = spinup_mwet[m];
+				mdtr[m]  = spinup_mdtr[m];
+				//CLN take out
+				mwind[m] = spinup_mwind[m]; //CLN = 18.+12.*sin((double)2*m*3.1415926/11.);
+				mrhum[m] = spinup_mrhum[m]; //CLN = 0.5;
 			}
-
-			// Interpolate monthly spinup data to quasi-daily values
-			interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
-
-			// Only recalculate precipitation values using weather generator
-			// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
-			if (ifrainonwetdaysonly) {
-				// (from Dieter Gerten 021121)
-				prdaily(mprec, dprec, mwet, gridcell.seed);
+			
+			if ( weathergenerator == INTERP ) {
+				
+				// Interpolate monthly spinup data to quasi-daily values
+				interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,
+					       dsun,ddtr);
+				
+				// Only Recalculate Precipitation values using weather generator
+				// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
+				if (ifrainonwetdaysonly) {
+					// (from Dieter Gerten 021121)
+					prdaily(mprec, dprec, mwet, gridcell.seed);
+				}
+			}
+			else if ( weathergenerator == GWGEN ) {
+				// Use gwgen - korrelated weather
+				gwgen_get_met(gridcell,mtemp,mprec,mwet,msun,mdtr,
+					      mwind,mrhum,dtemp,dprec,dsun,ddtr,
+					      dwind,drhum);
 			}
 
 			spinup_mtemp.nextyear();
@@ -332,19 +348,63 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 		}
 		else if (date.year < nyear_spinup + NYEAR_HIST) {
 
+			dprintf("m_wind %d ",date.year);
+			for (int m=0;m<12;m++) {
+				//CLN take out
+				dprintf("%f ",hist_mwind[date.year-nyear_spinup][m]);
+			}
+			dprintf("\n ");
+			dprintf("m_rhum %d ",date.year);
+			for (int m=0;m<12;m++) {
+				//CLN take out
+				dprintf("%f ",hist_mrhum[date.year-nyear_spinup][m]);
+			}
+
+			dprintf("\n ");
+			dprintf("m_prec %d ",date.year);
+			for (int m=0;m<12;m++) {
+				//CLN take out
+				dprintf("%f ",hist_mprec[date.year-nyear_spinup][m]);
+			}
+			dprintf("\n ");
+			dprintf("m_temp %d ",date.year);
+			for (int m=0;m<12;m++) {
+				//CLN take out
+				dprintf("%f ",hist_mtemp[date.year-nyear_spinup][m]);
+			}
+			dprintf("\n ");
+			dprintf("m_msun %d ",date.year);
+			for (int m=0;m<12;m++) {
+				//CLN take out
+				dprintf("%f ",hist_msun[date.year-nyear_spinup][m]);
+			}
+			dprintf("\n ");
 			// Historical period
-
-			// Interpolate this year's monthly data to quasi-daily values
-			interp_climate(hist_mtemp[date.year-nyear_spinup],
-				hist_mprec[date.year-nyear_spinup],hist_msun[date.year-nyear_spinup],
-					   hist_mdtr[date.year-nyear_spinup],
-				       dtemp,dprec,dsun,ddtr);
-
-			// Only recalculate precipitation values using weather generator
-			// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
-			if (ifrainonwetdaysonly) {
-				// (from Dieter Gerten 021121)
-				prdaily(hist_mprec[date.year-nyear_spinup], dprec, hist_mwet[date.year-nyear_spinup], gridcell.seed);
+			if ( weathergenerator == INTERP ) {
+				// Interpolate monthly spinup data to quasi-daily values
+				interp_climate(hist_mtemp[date.year-nyear_spinup],
+					       hist_mprec[date.year-nyear_spinup],
+					       hist_msun[date.year-nyear_spinup],
+					       hist_mdtr[date.year-nyear_spinup],
+					       dtemp,dprec,dsun,ddtr);
+				// Only recalculate precipitation values using weather generator
+				// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
+				if (ifrainonwetdaysonly) {
+					// (from Dieter Gerten 021121)
+					prdaily(hist_mprec[date.year-nyear_spinup], dprec,
+						hist_mwet[date.year-nyear_spinup], gridcell.seed);
+				}
+			}
+			else if ( weathergenerator == GWGEN ) {
+				// Use gwgen - korrelated weather
+				gwgen_get_met(gridcell,hist_mtemp[date.year-nyear_spinup],
+					      hist_mprec[date.year-nyear_spinup],
+					      hist_mwet[date.year-nyear_spinup],
+					      hist_msun[date.year-nyear_spinup],
+					      hist_mdtr[date.year-nyear_spinup],
+					      hist_mwind[date.year-nyear_spinup],
+					      hist_mrhum[date.year-nyear_spinup],
+					      dtemp,dprec,dsun,ddtr,dwind,drhum);
 			}
 		}
 		else {
@@ -367,6 +427,18 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	// Nitrogen deposition
 	climate.dndep = dndep[date.day];
 
+	//CLN Tmin, Tmax for BLAZE
+	if ( firemodel == BLAZE ) {
+		climate.tmin   = dtemp[date.day] - 0.5 * ddtr[date.day];
+		climate.tmax   = dtemp[date.day] + 0.5 * ddtr[date.day];
+	}
+
+	// Assuming rhum and wind are wanted when GWGEN is run
+	if ( weathergenerator == GWGEN ) {
+		climate.u10    = dwind[date.day];
+		climate.relhum = drhum[date.day];
+	}
+
 	// bvoc
 	if(ifbvoc){
 	  climate.dtr = ddtr[date.day];
@@ -387,7 +459,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			tmute.settimer(MUTESEC);
 		}
 	}
-
 	return true;
 }
 

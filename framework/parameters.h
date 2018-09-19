@@ -55,18 +55,17 @@ typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, BARREN, NLAND
   */
 typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptaketype;
 
-
 /// Fire model setting. Either use 
 /*	One of
  *	BLAZE 		Use the BLAZE model to generate fire fluxes 
- *                      (must be accompanied by ignitionmode)
- *	GLOBFIRM	OLD fire parameterization following Thonicke et al. 2001
+ *                      (must be accompanied by ignitionmode; DEFAULT)
+ *	GLOBFIRM	fire parameterization following Thonicke et al. 2001
  *	NOFIRE		no fire model	
  */
 typedef enum {BLAZE, GLOBFIRM, NOFIRE} firemodeltype;
 
 /// Time step of fire model 
-/*	ANNUALY SEASONAL MONTHLY DAILY  fixed timesteps. 
+/*	ANNUALY SEASONAL MONTHLY DAILY  fixed timesteps.(DEFAULT = Monthly)
  *	HYBRID   	 *default*      use shortest available timestep (automatically adjust to 
  *					source of ignition)
  */
@@ -74,7 +73,7 @@ typedef enum {ANNUAL, SEASONAL, MONTHLY, DAILY, HYBRID} blaze_tsteptype;
 
 /// Ignition model setting. Only necessary if firemodel is BLAZE. Either use 
 /*	One of
- *	SIMFIRE 	use SIMFIRE for generate burnt area
+ *	SIMFIRE 	use SIMFIRE for generate burnt area (DEFAULT)
  *	GFED31		use GFED v3.1 as source for burnt area
  *	SIMGFED		symbiosys of both. GFED31 where there's data, SIMFIRE else
 //WK I think prescribing burned area makes sense also for serious simulations
@@ -82,6 +81,15 @@ typedef enum {ANNUAL, SEASONAL, MONTHLY, DAILY, HYBRID} blaze_tsteptype;
  *	NOIGNITION	no fire model  
  */	
 typedef enum {SIMFIRE, GFED31, SIMGFED, PRESCRIBED, NOIGNITION} ignitiontype;
+
+/// Type of weathergenerator used 
+/*      One of:
+ *      GWGEN           Global Weather GENerator (needed by BLAZE, due to 
+ *                      additional rel. humidity and wind; DEFAULT)
+ *      INTERP          use standard interpolation scheme
+ *      NONE            Should be set if daily input is used (e.g. in cfinput) 
+ */
+typedef enum {GWGEN, INTERP, NONE} weathergeneratortype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Global instruction file parameters
@@ -150,6 +158,9 @@ extern bool ifcdebt;
 
 /// Water uptake parameterisation
 extern wateruptaketype wateruptake;
+
+/// Weather Generator switch
+extern weathergeneratortype weathergenerator;
 
 /// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
 extern bool ifcentury;

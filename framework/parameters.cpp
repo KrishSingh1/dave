@@ -57,6 +57,8 @@ bool ifbvoc;
 
 wateruptaketype wateruptake;
 
+weathergeneratortype weathergenerator;
+
 bool run_landcover;
 bool run[NLANDCOVERTYPES];
 bool frac_fixed[NLANDCOVERTYPES];
@@ -152,7 +154,7 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB
 	CB_STLANDCOVER, CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT,
 	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTHYDROLOGY,
 	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STHYDROLOGY, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
-	CB_PATHWAY,CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE,CB_FIREMODEL,CB_BLAZE_TSTEP,CB_IGNITION};
+	CB_PATHWAY,CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE,CB_FIREMODEL,CB_BLAZE_TSTEP,CB_IGNITION,CB_WEATHERGENERATOR};
 
 // File local variables
 namespace {
@@ -197,6 +199,7 @@ void initsettings() {
 	firemodel=BLAZE;
 	ignition=SIMFIRE;
 	blaze_tstep=HYBRID;
+	weathergenerator=GWGEN;
 	ifcalcsla=true;
 	ifdisturb=false;
 	ifcalcsla=false;
@@ -435,6 +438,9 @@ void plib_declarations(int id,xtring setname) {
 			"Patch area (m2)");
 		declareitem("wateruptake", &strparam, 20, CB_WATERUPTAKE,
 			"Water uptake mode (\"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
+
+		declareitem("weathergenerator", &strparam, 20, CB_WEATHERGENERATOR,
+			    "Weather Generator (\"INTERP\", \"GWGEN\", \"NONE\")");
 
 		declareitem("nrelocfrac",&nrelocfrac,0.0,0.99,1,CB_NONE,
 			"Fractional nitrogen relocation from shed leaves & roots");
@@ -933,6 +939,16 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
+	case CB_WEATHERGENERATOR:
+		if (strparam.upper() == "GWGEN") weathergenerator = GWGEN;
+		else if (strparam.upper() == "INTERP") weathergenerator = INTERP;
+		else {
+			sendmessage("Error",
+				"Unknown weathergenerator (valid types: \"GWGEN\", \"INTERP\")");
+			plibabort();
+		}
+		break;
+		//CLN enter dependency for BLAZE on GWGEN here!!!
 	case CB_FIREMODEL:
 		if (strparam.upper()=="BLAZE") firemodel=BLAZE;
 		else if (strparam.upper()=="GLOBFIRM") firemodel=GLOBFIRM;
@@ -1149,7 +1165,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("title")) badins("title");
 		if (!itemparsed("nyear_spinup")) badins("nyear_spinup");
 		if (!itemparsed("vegmode")) badins("vegmode");
-		//CLN if (!itemparsed("iffire")) badins("iffire");
+		//CLNif (!itemparsed("iffire")) badins("iffire");
 		if (!itemparsed("firemodel")) badins("firemodel");
 		if (firemodel==BLAZE) {
 			if (!itemparsed("ignition")) badins("ignition");
@@ -1160,6 +1176,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcalccton")) badins("ifcalccton");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
 		if (!itemparsed("wateruptake")) badins("wateruptake");
+		if (!itemparsed("weathergenerator")) badins("weathergenerator");
 
 		if (!itemparsed("nrelocfrac")) badins("nrelocfrac");
 		if (!itemparsed("nfix_a")) badins("nfix_a");

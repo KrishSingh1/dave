@@ -284,6 +284,7 @@ public:
 	/// The calendar year corresponding to simulation year 0
 	int first_calendar_year;
 
+
 private:
 
 	int nyear;
@@ -561,6 +562,26 @@ struct PhotosynthesisResult : public Serializable {
 	void serialize(ArchiveStream& arch);
 };
 
+// GWgen weather generator
+class RnDst {
+	// MEMBER VARIABLES
+
+public:
+	
+
+	//Gridcell& gridcell;		JN
+	int q[10];
+	int carry;
+	int xcng;
+	unsigned int xs; //!default seed
+	int indx;
+	bool have;
+	double gamma_vals[2];
+	
+	RnDst(){};
+	//void serialize(ArchiveStream& arch);   JN
+};
+
 
 /// The Climate for a grid cell
 /** Stores all static and variable data relating to climate parameters, as well as
@@ -575,6 +596,9 @@ class Climate : public Serializable {
 public:
 	/// reference to parent Gridcell object
 	Gridcell& gridcell;
+
+	/// GW Weathergen  JN
+	RnDst rndst;
 
 	/// mean air temperature today (deg C)
 	double temp;

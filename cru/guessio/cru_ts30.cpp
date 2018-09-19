@@ -102,9 +102,9 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
                     double mfrs[NYEAR_HIST][12],
                     double mwet[NYEAR_HIST][12],
-					double mdtr[NYEAR_HIST][12],
-					double mwind[NYEAR_HIST][12],
-					double mrhum[NYEAR_HIST][12]) {
+		    double mdtr[NYEAR_HIST][12],
+		    double mwind[NYEAR_HIST][12],
+		    double mrhum[NYEAR_HIST][12]) {
 	
 	// Please note the new function signature. 
 
@@ -250,7 +250,7 @@ bool searchcru_wind(char* cruark, double dlon, double dlat,
 					mwind[y][m] = 0.0; // Catches rounding errors
 
 				// guess2008 - catch rounding errors 
-				mrhum[y][m] = data.mwind[y * 12 + m]; // days
+				mrhum[y][m] = data.mrhum[y * 12 + m]; // days
 				if (mrhum[y][m] < 0.001)
 					mrhum[y][m] = 0.0; // Catches rounding errors
 

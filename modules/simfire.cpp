@@ -296,9 +296,9 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 			(double)(poptime[npopt-1] - poptime[npopt-2]) * (double)(cyear-poptime[npopt-1]);
 	}
 	else {
+		double interpf = (double)(cyear-poptime[idx-1]) /
 			(double)( poptime[idx]-poptime[idx-1] );
-			double interpf = (double)(cyear-poptime[idx-1]) /
-	popd = (1. - interpf) * gridcell.hyde31_pop_density[idx-1] + 
+		popd = (1. - interpf) * gridcell.hyde31_pop_density[idx-1] + 
 			interpf * gridcell.hyde31_pop_density[idx];
 	}
 

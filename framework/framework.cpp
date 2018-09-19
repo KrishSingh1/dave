@@ -182,6 +182,11 @@ int framework(const CommandLineArguments& args) {
 		fail("\n\nIf nitrogen limitation is switched on then century soil module also needs to be switched on!");
 	}
 
+	// Fire and Weathergenerator compatibility. BLAZE needs GWGEN
+	if (firemodel == BLAZE && weathergenerator == INTERP) {
+		fail ("BLAZE needs GWGEN or daily data as input \n");
+	}
+
 	// bvoc
 	if (ifbvoc) {
 		initbvoc();
@@ -215,7 +220,7 @@ int framework(const CommandLineArguments& args) {
 		if (!input_module->getgridcell(gridcell)) {
 			break;
 		}
-
+		dprintf("fw \n");
 		// Initialise certain climate and soil drivers
 		gridcell.climate.initdrivers(gridcell.get_lat());
 

@@ -178,7 +178,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 			  
 				if (gridfound) // Get more historical CRU data for this grid cell
 					gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation,
-					                                     hist_mfrs, hist_mwet, hist_mdtr);
+					                                     hist_mfrs, hist_mwet, hist_mdtr, hist_mwind, hist_mrhum);
 
 				if (run_landcover && gridfound) {
 					LUerror = landcover_input.loadlandcover(lon, lat);
@@ -313,8 +313,8 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 				mwet[m]  = spinup_mwet[m];
 				mdtr[m]  = spinup_mdtr[m];
 				//CLN take out
-				mwind[m] = spinup_mwind[m] = 18.+12.*sin((double)2*m*3.1415926/11.);
-				mrhum[m] = spinup_mrhum[m] = 0.5;
+				mwind[m] = spinup_mwind[m]; //CLN = 18.+12.*sin((double)2*m*3.1415926/11.);
+				mrhum[m] = spinup_mrhum[m]; //CLN = 0.5;
 			}
 			
 			if ( weathergenerator == INTERP ) {
@@ -345,12 +345,19 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 		}
 		else if (date.year < nyear_spinup + NYEAR_HIST) {
 
+			dprintf("m_wind %d ",date.year);
 			for (int m=0;m<12;m++) {
-				hist_mwind[date.year-nyear_spinup][m] = 18.+12.*sin((double)2*m*3.1415926/11.);
-				hist_mrhum[date.year-nyear_spinup][m] = 0.5;
+				//CLN take out
+				dprintf("%f ",hist_mwind[date.year-nyear_spinup][m]);
+			}
+			dprintf("\n ");
+			dprintf("m_rhum %d ",date.year);
+			for (int m=0;m<12;m++) {
+				//CLN take out
+				dprintf("%f ",hist_mrhum[date.year-nyear_spinup][m]);
 			}
 
-
+			dprintf("\n ");
 			dprintf("m_prec %d ",date.year);
 			for (int m=0;m<12;m++) {
 				//CLN take out

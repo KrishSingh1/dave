@@ -238,7 +238,6 @@ int framework(const CommandLineArguments& args) {
 
 			// START OF LOOP THROUGH SIMULATION DAYS
 
-		dprintf("fw 2\n");
 			simulate_day(gridcell, input_module.get());
 
 			output_modules.outdaily(gridcell);

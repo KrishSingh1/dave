@@ -135,6 +135,9 @@ typedef enum {COLD, COLD_WARM, COLD_HOT, WARM, WARM_HOT, HOT} temp_seasonality_t
 /// number  of soil layers modelled
 const int NSOILLAYER = 2;
 
+/// bvoc: number of monoterpene species used
+const int NMTCOMPOUNDS=NMTCOMPOUNDTYPES;
+
 // SOIL DEPTH VALUES
 
 /// soil upper layer depth (mm)
@@ -979,11 +982,9 @@ public:
 		SEEDN,
 		/// NH3 flux to atmosphere from fire
 		NH3_FIRE,
-		/// NO flux to atmosphere from fire	
-		NO_FIRE,
-		/// NO2 flux to atmosphere from fire
-		NO2_FIRE,
-		/// N2O flux to atmosphere from fire	
+		/// NOx flux to atmosphere from fire
+		NOx_FIRE,
+		/// N2O flux to atmosphere from fire
 		N2O_FIRE,
 		/// N2 flux to atmosphere from fire
 		N2_FIRE,
@@ -1023,22 +1024,26 @@ public:
 		/// Isoprene (mgC/m2)
 		ISO,
 //WK AET? In trunk there seem to be lots of different monoterpenes
+//WK There was a reference to fire from MT here
 		/// Monoterpene (mgC/m2)
-		MON,
-		AET,
-//WK refer to BLAZE here?
-		/// carbon flux to atmosphere from burnt veg and litter per pft (kgC/m2)
-		FIRECPFT,
+		MT_APIN,
+		MT_BPIN,
+		MT_LIMO,
+		MT_MYRC,
+		MT_SABI,
+		MT_CAMP,
+		MT_TRIC,
+		MT_TBOC,
+		MT_OTHR,
 		/// Number of types, must be last
 		NPERPFTFLUXTYPES
 	};
 
-	// emission ratios from fire (NH3, NO, NO2, N2O) Delmas et al. 1995
+	// emission ratios from fire (NH3, NOx, N2O, N2) Delmas et al. 1995
 	// values in .cpp file
 
 	static const double NH3_FIRERATIO;
-	static const double NO_FIRERATIO;
-	static const double NO2_FIRERATIO;
+	static const double NOx_FIRERATIO;
 	static const double N2O_FIRERATIO;
 	static const double N2_FIRERATIO;
 
@@ -1577,10 +1582,10 @@ public:
 	double eps_iso;
 	/// whether (1) or not (1) isoprene emissions show a seasonality
 	bool seas_iso;
-	/// monoterpene emission capacity (ug C g-1 h-1)
-	double eps_mon;
-	/// fraction of monoterpene production that goes into storage pool (-)
-	double storfrac_mon;
+	/// monoterpene emission capacity (ug C g-1 h-1) per monoterpene species
+	double eps_mon[NMTCOMPOUNDS];
+	/// fraction of monoterpene production that goes into storage pool (-) per monoterpene species
+	double storfrac_mon[NMTCOMPOUNDS];
 
 
 	/// Sapling/regeneration characteristics (used only in population mode)
@@ -2400,10 +2405,10 @@ public:
 
 	/// isoprene production (mg C m-2 d-1)
 	double iso;
-	/// monoterpene production (mg C m-2 d-1)
-	double mon;
-	/// monoterpene storage pool (mg C m-2)
-	double monstor;
+	/// monoterpene production (mg C m-2 d-1) per monoteprene species
+	double mon[NMTCOMPOUNDS];
+	/// monoterpene storage pool (mg C m-2) per monoterpene species
+	double monstor[NMTCOMPOUNDS];
 	/// isoprene seasonality factor (-)
 	double fvocseas;
 
@@ -3184,12 +3189,8 @@ public:
 	double litter_root;
 	/// remaining sapwood-derived litter for PFT on modelled area basis (kgC/m2)
 	double litter_sap;
-	/// year's sapwood-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_sap_year;
 	/// remaining heartwood-derived litter for PFT on modelled area basis (kgC/m2)
 	double litter_heart;
-	/// year's heartwood-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_heart_year;
 	/// litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
 	double litter_repr;
 
@@ -3199,12 +3200,8 @@ public:
 	double nmass_litter_root;
 	/// remaining sapwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_sap;
-	/// year's sapwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
-	double nmass_litter_sap_year;
 	/// remaining heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_heart;
-	/// year's heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
-	double nmass_litter_heart_year;
 
 	/// non-FPC-weighted canopy conductance value for PFT under water-stress conditions (mm/s)
 	double gcbase;
@@ -3244,17 +3241,13 @@ public:
 		litter_leaf = 0.0;
 		litter_root = 0.0;
 		litter_sap   = 0.0;
-		litter_sap_year = 0.0;
 		litter_heart = 0.0;
-		litter_heart_year = 0.0;
 		litter_repr = 0.0;
 
 		nmass_litter_leaf  = 0.0;
 		nmass_litter_root  = 0.0;
 		nmass_litter_sap   = 0.0;
-		nmass_litter_sap_year   = 0.0;
 		nmass_litter_heart = 0.0;
-		nmass_litter_heart_year = 0.0;
 
 		wscal = 1.0;
 		wscal_mean = 1.0;

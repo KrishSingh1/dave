@@ -79,13 +79,10 @@ bool textured_soil;
 bool disturb_pasture;
 bool grassforcrop;
 
-//WK the change from state to i/ostate, is this related to BLAZE?
-xtring istate_path;
-xtring ostate_path;
+xtring state_path;
 bool restart;
 bool save_state;
-int istate_year;
-int ostate_year;
+int state_year;
 	
 bool readsowingdates = false;
 bool readharvestdates = false;
@@ -154,7 +151,7 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB
 	CB_STLANDCOVER, CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT,
 	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTHYDROLOGY,
 	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STHYDROLOGY, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
-	CB_PATHWAY,CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE,CB_FIREMODEL,CB_BLAZE_TSTEP,CB_IGNITION,CB_WEATHERGENERATOR};
+	CB_PATHWAY,CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE,CB_MTCOMPOUND,CB_FIREMODEL,CB_BLAZE_TSTEP,CB_IGNITION,CB_WEATHERGENERATOR};
 
 // File local variables
 namespace {
@@ -493,12 +490,10 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("disturb_pasture",&disturb_pasture,1,CB_NONE,"Whether fire and disturbances enabled on pastures (0,1)");
 		declareitem("grassforcrop",&grassforcrop,1,CB_NONE,"grassforcrop");
 
-		declareitem("istate_path", &istate_path, 300, CB_NONE, "State files directory (for restarting from)");
-		declareitem("ostate_path", &ostate_path, 300, CB_NONE, "State files directory (for saving state files)");
+		declareitem("state_path", &state_path, 300, CB_NONE, "State files directory (for restarting from, or saving state files)");
 		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
 		declareitem("save_state", &save_state, 1, CB_NONE, "Whether to save new state files");
-		declareitem("istate_year", &istate_year, 1, 20000, 1, CB_NONE, "Restart year. ");
-		declareitem("ostate_year", &ostate_year, 1, 20000, 1, CB_NONE, "Save year. Unspecified means just after spinup");
+		declareitem("state_year", &state_year, 1, 20000, 1, CB_NONE, "Save/restart year. Unspecified means just after spinup");
 
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
@@ -687,9 +682,9 @@ void plib_declarations(int id,xtring setname) {
 			"isoprene emission capacity (ug C g-1 h-1)");
 		declareitem("seas_iso",&ppft->seas_iso,1,CB_NONE,
 			"whether (1) or not (0) isoprene emissions show seasonality");
-		declareitem("eps_mon",&ppft->eps_mon,0.,100.,1,CB_NONE,
+		declareitem("eps_mon",ppft->eps_mon,0.,100.,NMTCOMPOUNDS,CB_MTCOMPOUND,
 			"monoterpene emission capacity (ug C g-1 h-1)");
-		declareitem("storfrac_mon",&ppft->storfrac_mon,0.,1.,1,CB_NONE,
+		declareitem("storfrac_mon",ppft->storfrac_mon,0.0,1.0,NMTCOMPOUNDS,CB_MTCOMPOUND,
 			"fraction of monoterpene production that goes into storage pool (-)");
 
 		declareitem("harv_eff",&ppft->harv_eff,0.0,1.0,1,CB_NONE,"Harvest efficiency");
@@ -939,6 +934,16 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
+	case CB_WATERUPTAKE:
+		if (strparam.upper() == "WCONT") wateruptake = WR_WCONT;
+		else if (strparam.upper() == "ROOTDIST") wateruptake = WR_ROOTDIST;
+		else if (strparam.upper() == "SMART") wateruptake = WR_SMART;
+		else if (strparam.upper() == "SPECIESSPECIFIC") wateruptake = WR_SPECIESSPECIFIC;
+		else {
+			sendmessage("Error",
+				"Unknown water uptake mode (valid types: \"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
+		}
+		break;
 	case CB_WEATHERGENERATOR:
 		if (strparam.upper() == "GWGEN") weathergenerator = GWGEN;
 		else if (strparam.upper() == "INTERP") weathergenerator = INTERP;
@@ -996,16 +1001,6 @@ void plib_callback(int callback) {
 				plibabort();
 			}
 			break;
-		}
-		break;
-	case CB_WATERUPTAKE:
-		if (strparam.upper() == "WCONT") wateruptake = WR_WCONT;
-		else if (strparam.upper() == "ROOTDIST") wateruptake = WR_ROOTDIST;
-		else if (strparam.upper() == "SMART") wateruptake = WR_SMART;
-		else if (strparam.upper() == "SPECIESSPECIFIC") wateruptake = WR_SPECIESSPECIFIC;
-		else {
-			sendmessage("Error",
-				"Unknown water uptake mode (valid types: \"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
 		}
 		break;
 	case CB_LIFEFORM:
@@ -1155,6 +1150,9 @@ void plib_callback(int callback) {
 		}
 		ppft->rootdist[NSOILLAYER-1]+=1.0-numval;
 		break;
+	case CB_MTCOMPOUND:
+          // bvoc. Can include some checks for the monoterpene parameters given per compound
+	break;
 	case CB_STRPARAM:
 		param.addparam(paramname,strparam);
 		break;
@@ -1243,35 +1241,17 @@ void plib_callback(int callback) {
 		}
 
 		if (save_state && restart) {
-			bool err_abort = false;
-			if ( istate_path == ostate_path ) { 
-				sendmessage("Error",
-					    "Can't save state and restart into same files");
-				err_abort = true;
-			}
-			if ( istate_year >= ostate_year ) {
-				sendmessage("Error",
-					    "istate year >= ostate year");
-				err_abort = true;
-			}
-			if (err_abort) 
-				plibabort();
+			sendmessage("Error",
+			            "Can't save state and restart at the same time");
+			plibabort();
 		}
 
-		if (!itemparsed("istate_year") && restart) {
-			istate_year = nyear_spinup;
+		if (!itemparsed("state_year")) {
+			state_year = nyear_spinup;
 		}
 
-		if (istate_path == "" && restart) {
-			badins("istate_path");
-		}
-
-		if (!itemparsed("ostate_year") && save_state) {
-			ostate_year = nyear_spinup;
-		}
-
-		if (ostate_path == "" && save_state ) {
-			badins("ostate_path");
+		if (state_path == "" && (save_state || restart)) {
+			badins("state_path");
 		}
 
 		if (grassforcrop) {

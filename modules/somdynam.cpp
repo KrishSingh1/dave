@@ -34,11 +34,6 @@
 #include <assert.h>
 #include <bitset>
 #include <vector>
-//WK The next include, I needed to google this, invokes some sort of floating point environment,
-//WK but it is only used by BLAZE and is newly introduced here. Why does BLAZE need this when
-//WK the rest of LPJ-GUESS doesn't? Will this complicate portability, and maybe it can be avoided
-//WK at a low cost?
-#include <fenv.h>
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL CONSTANTS
@@ -483,6 +478,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 	const double EPS = 1.0e-16;
 
 	Soil& soil = patch.soil;
+
 	if (date.day == 0) {
 		soil.anmin = 0.0;
 		soil.animmob = 0.0;
@@ -490,7 +486,6 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 	// Warning if soil available nitrogen is negative (if happens once or so no problem, but if it propagates through time then it is)
 	if (ifnlim) {
-		//dprintf("soil assert %f %i \n",soil.nmass_avail,patch.id);
 		assert(soil.nmass_avail > -EPS);
 	}
 
@@ -923,18 +918,14 @@ void transfer_litter(Patch& patch) {
 			// Woody debris enters two woody litter pools as described in
 			// Kirschbaum and Paul (2002).
 
-			if (date.month == 0) {
-				pft.litter_sap_year = pft.litter_sap;
-				pft.nmass_litter_sap_year = pft.nmass_litter_sap;
-			}
-
 			// Monthly fraction of REMAINING last year's sapwood litter
 //WK In the current trunk version, this accoutn seems to be done yearly,
 //WK and now it is monthly. Include an explanation of what one has to look out for here.
-			double litter_sap       = pft.litter_sap / (12. - (double)date.month);
+			double litter_sap       = pft.litter_sap       / (12. - (double)date.month);
 			double nmass_litter_sap = pft.nmass_litter_sap / (12. - (double)date.month);
-			pft.litter_sap         -= litter_sap;
-			pft.nmass_litter_sap   -= nmass_litter_sap;
+
+			pft.litter_sap       -= litter_sap;
+			pft.nmass_litter_sap -= nmass_litter_sap;
 
 			soil.sompool[SURFFWD].nmass += nmass_litter_sap;
 
@@ -972,17 +963,21 @@ void transfer_litter(Patch& patch) {
 				}
 			}
 
-			if (date.month == 0) {
-				pft.litter_heart_year = pft.litter_heart;
-				pft.nmass_litter_heart_year = pft.nmass_litter_heart;
-			}
-
 			// Monthly fraction of REMAINING last year's heartwood litter 
-			double litter_heart       = pft.litter_heart / (12. - (double)date.month);
-			double nmass_litter_heart = pft.nmass_litter_heart / 
-				(12. - (double)date.month);
-			pft.litter_heart         -= litter_heart;
-			pft.nmass_litter_heart   -= nmass_litter_heart;
+			double litter_heart       = pft.litter_heart       / (12. - (double)date.month);
+			double nmass_litter_heart = pft.nmass_litter_heart / (12. - (double)date.month);
+
+			pft.litter_heart       -= litter_heart;
+			pft.nmass_litter_heart -= nmass_litter_heart;
+
+			/*
+			// Monthly fraction of last years litter
+			double litter_heart = pft.litter_heart_year / 12.0;
+			double nmass_litter_heart = pft.nmass_litter_heart_year / 12.0;
+
+			pft.litter_heart -= pft.litter_heart_year / 12.0;
+			pft.nmass_litter_heart -= pft.nmass_litter_heart_year / 12.0;
+			//--			*/
 
 			soil.sompool[SURFCWD].nmass += nmass_litter_heart;
 

@@ -184,7 +184,7 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 		//		mwind[y][m] = data.mwind[y * 12 + m]; // days
 		//		if (mwind[y][m] < 0.1)
 		//			mwind[y][m] = 0.0; // Catches rounding errors
-		if (firemodel == BLAZE) {
+		if (weathergenerator == GWGEN) {
 
 			xtring file_cru_wind(cruark);
 			file_cru_wind = file_cru_wind.left(file_cru_wind.len() - 8) + "wind.bin";

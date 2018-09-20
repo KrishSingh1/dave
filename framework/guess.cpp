@@ -16,7 +16,7 @@
 // These variables are declared in the framework header file, and defined here.
 // They are accessible throughout the model code.
 
-Date date;// object describing timing stage of simulation
+Date date; // object describing timing stage of simulation
 int npft; // number of possible PFTs
 int nst;  // number of possible stand types
 int nst_lc[NLANDCOVERTYPES];  // number of possible stand types in each land cover type
@@ -26,14 +26,12 @@ ManagementTypelist mtlist;
 StandTypelist stlist;
 Pftlist pftlist;
 
-// emission ratios from fire (NH3, NO, NO2, N2O, N2) Levine et al. 1996
+// emission ratios from fire (NH3, NOx, N2O, N2) Delmas et al. 1995
 
-//WK I'm curious why there was a change in the first value below by almost two orders of magnitude
-const double Fluxes::NH3_FIRERATIO = 0.236;
-const double Fluxes::NO_FIRERATIO  = 0.303;
-const double Fluxes::NO2_FIRERATIO = 0.076;
-const double Fluxes::N2O_FIRERATIO = 0.035;
-const double Fluxes::N2_FIRERATIO  = 0.350;
+const double Fluxes::NH3_FIRERATIO = 0.005;
+const double Fluxes::NOx_FIRERATIO = 0.237;
+const double Fluxes::N2O_FIRERATIO = 0.036;
+const double Fluxes::N2_FIRERATIO  = 0.722;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -700,8 +698,7 @@ double Patch::nflux() {
 	nflux += fluxes.get_annual_flux(Fluxes::SEEDN);
 	nflux += fluxes.get_annual_flux(Fluxes::NH3_FIRE);
 //WK in trunk, there is NOx fire, what is the latest version?
-	nflux += fluxes.get_annual_flux(Fluxes::NO_FIRE);
-	nflux += fluxes.get_annual_flux(Fluxes::NO2_FIRE);
+	nflux += fluxes.get_annual_flux(Fluxes::NOx_FIRE);
 	nflux += fluxes.get_annual_flux(Fluxes::N2O_FIRE);
 	nflux += fluxes.get_annual_flux(Fluxes::N2_FIRE);
 	nflux += fluxes.get_annual_flux(Fluxes::N_SOIL);
@@ -1274,10 +1271,12 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	// bvoc
 //WK in trunk, there is a loop over NMTCOMPOUNDS,
 //WK is this an update in trunk that needs to be merged?
-	monstor           = 0.;
 	iso               = 0.;
-	mon               = 0.;
 	fvocseas          = 1.;
+	for (int im=0; im<NMTCOMPOUNDS; im++){
+		mon[im]		= 0.;
+		monstor[im]	= 0.;
+	}
 
 	dnpp              = 0.0;
 	cropindiv         = NULL;
@@ -1336,8 +1335,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& phen_mean
 		& wstress
 		& alive
-		& iso
-		& mon
 		& monstor
 		& fvocseas
 		& nmass_leaf
@@ -1511,8 +1508,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		report_flux(Fluxes::FIREC,    cflux_fire);
 
 		report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire);
-		report_flux(Fluxes::NO2_FIRE, Fluxes::NO2_FIRERATIO * nflux_fire);
-		report_flux(Fluxes::NO_FIRE , Fluxes::NO_FIRERATIO  * nflux_fire);
+		report_flux(Fluxes::NOx_FIRE, Fluxes::NOx_FIRERATIO * nflux_fire);
 		report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
 		report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
 

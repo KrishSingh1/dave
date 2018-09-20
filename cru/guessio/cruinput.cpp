@@ -286,9 +286,9 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 
 			// During spinup period
 
-			if(date.year == istate_year && restart) {
+			if(date.year == state_year && restart) {
 
-				int year_offset = istate_year % NYEAR_SPINUP_DATA;
+				int year_offset = state_year % NYEAR_SPINUP_DATA;
 
 				for (int y=0;y<year_offset;y++) {
 					spinup_mtemp.nextyear();
@@ -320,8 +320,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			if ( weathergenerator == INTERP ) {
 				
 				// Interpolate monthly spinup data to quasi-daily values
-				interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,
-					       dsun,ddtr);
+				interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
 				
 				// Only Recalculate Precipitation values using weather generator
 				// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.

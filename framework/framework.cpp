@@ -85,6 +85,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 		stand.firstobj();
 		while (stand.isobj) {
 			// START OF LOOP THROUGH PATCHES
+
 			// Get reference to this patch
 			Patch& patch = stand.getobj();
 			// Update daily soil drivers including soil temperature
@@ -102,6 +103,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 				// necessary updates after changing growingperiod status
 				update_patch_fpc(patch);
 			}
+
 			// Leaf phenology for PFTs and individuals
 			leaf_phenology(patch, gridcell.climate);
 			// Interception
@@ -122,6 +124,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 				blaze(patch,gridcell.climate);
 
 			if (date.islastday && date.islastmonth) {
+
 				// LAST DAY OF YEAR
 				// Tissue turnover, allocation to new biomass and reproduction,
 				// updated allometry
@@ -197,11 +200,11 @@ int framework(const CommandLineArguments& args) {
 	auto_ptr<GuessDeserializer> deserializer;
 
 	if (save_state) {
-		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(ostate_path, GuessParallel::get_rank(), GuessParallel::get_num_processes()));
+		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes()));
 	}
 
 	if (restart) {
-		deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(istate_path));
+		deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(state_path));
 	}
 
 	while (true) {
@@ -234,7 +237,7 @@ int framework(const CommandLineArguments& args) {
 			// Get the whole grid cell from file...
 			deserializer->deserialize_gridcell(gridcell);
 			// ...and jump to the restart year
-			date.year = istate_year;
+			date.year = state_year;
 		}
 		gridcell.climate.prescribed_ba = prescba;
 
@@ -260,7 +263,7 @@ int framework(const CommandLineArguments& args) {
 				gridcell.balance.check_year(gridcell);
 
 				// Time to save state?
-				if (date.year == ostate_year-1 && save_state) {
+				if (date.year == state_year-1 && save_state) {
 					serializer->serialize_gridcell(gridcell);
 				}
 
@@ -272,7 +275,7 @@ int framework(const CommandLineArguments& args) {
 
 			// Advance timer to next simulation day
 			date.next();
-			
+
 			// End of loop through simulation days
 		}	//while (getclimate())
 

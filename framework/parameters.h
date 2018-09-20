@@ -55,6 +55,9 @@ typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, BARREN, NLAND
   */
 typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptaketype;
 
+///bvoc: define monoterpene species used
+typedef enum {APIN, BPIN, LIMO, MYRC, SABI, CAMP, TRIC, TBOC, OTHR, NMTCOMPOUNDTYPES} monoterpenecompoundtype;
+
 /// Fire model setting. Either use 
 /*	One of
  *	BLAZE 		Use the BLAZE model to generate fire fluxes 
@@ -255,8 +258,7 @@ extern bool grassforcrop;
 // Settings controlling the saving and loading from state files
 
 /// Location of state files
-extern xtring istate_path;
-extern xtring ostate_path;
+extern xtring state_path;
 
 /// Whether to restart from state files
 extern bool restart;
@@ -265,8 +267,7 @@ extern bool restart;
 extern bool save_state;
 
 /// Save/restart year
-extern int istate_year;
-extern int ostate_year;
+extern int state_year;
 
 /// whether to vary mort_greff smoothly with growth efficiency (1) or to use the standard step-function (0)
 extern bool ifsmoothgreffmort;

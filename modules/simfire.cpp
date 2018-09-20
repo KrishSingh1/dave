@@ -322,7 +322,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	// check whether this day is the first day of simulation 
 	// (i.e. start of spinup or first day after restart
 	bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
-		( restart && date.year == istate_year ) ) );
+		( restart && date.year == state_year ) ) );
 
 	if (date.day == 0 ) {
 		// set SIMFIRE biomes based on IGBP classification

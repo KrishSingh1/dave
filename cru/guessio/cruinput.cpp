@@ -395,7 +395,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 				}
 			}
 			else if ( weathergenerator == GWGEN ) {
-				// Use gwgen - korrelated weather
+				// Use gwgen - correlated weather
 				gwgen_get_met(gridcell,hist_mtemp[date.year-nyear_spinup],
 					      hist_mprec[date.year-nyear_spinup],
 					      hist_mwet[date.year-nyear_spinup],
@@ -413,6 +413,16 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 
 		// Distribute N deposition
 		distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
+
+		bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
+			       ( restart && date.year == state_year ) ) );
+		if ( is_first_day && firemodel != NOFIRE ) {
+			if ( ignition == SIMFIRE || ignition == SIMGFED || ignition == PRESCRIBED ) {
+				simfire_input_module.getsimfiredata(gridcell, 
+				     climate.gridcell.get_lon(), climate.gridcell.get_lat());
+			}
+		}
+
 	}
 
 	// Send environmental values for today to framework

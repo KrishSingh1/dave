@@ -739,7 +739,7 @@ void combust(Patch& patch, Climate& climate) {
 	report_fire_flux_n(patch, nmtb2atm + nstr2atm + nfwd2atm + ncwd2atm );
        
 	Vegetation& vegetation=patch.vegetation;
-
+       
 	//kill trees, grass cohorts and population fractions 
 	bool killed = false;
 	double frac_survive;
@@ -1245,18 +1245,22 @@ void blaze(Patch& patch, Climate& climate) {
 		patch.fli = 0.0;
 
 	// reset accumulated area_burnt to 0 on begining of year
+
+	//CLN WRONG in case of patch-wise burning!!!! Here 
 	if (date.day == 0 )
 		climate.acc_areaburnt = 0.0;
 	
 	// Accounting of max episodic fli
 	get_firelineintensity(patch,climate);
 
+	//CLN HERE PATCH-WISE BURNING STOCHASTICITY!
+
 	// start combustion at appropriate time-step
 	if (burntime()) { 
 	        // get relative fluxes between pools
 	        int flix = get_fli_index(patch.fli, climate.is_sprouter);
 		if ( flix >= 0 ) 
-		        climate.can_burn += 1;
+		        climate.can_burn += 1; // patch!!!
 
 		if (!negligible(climate.areaburnt)) {
 			combust(patch, climate);
@@ -1270,7 +1274,7 @@ void blaze(Patch& patch, Climate& climate) {
 			if ( climate.can_burn > 0 ) {
 			        climate.annual_areaburnt              += climate.areaburnt;
 			        climate.monthly_areaburnt[date.month] += climate.areaburnt;
-			        climate.can_burn = 0;
+			        climate.can_burn = 0; //CLN WHAT???
 			}
 			//CLN			climate.max_nesterov        = 0.0;
 			climate.areaburnt           = 0.0;

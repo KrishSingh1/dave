@@ -460,7 +460,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifrainonwetdaysonly",&ifrainonwetdaysonly,1,CB_NONE,
 			"Whether it rains on wet days only (1), or a little every day (0);");
 
-		// bvoc
 		declareitem("ifbvoc",&ifbvoc,1,CB_NONE,
 			"Whether or not BVOC calculations are performed (0,1)");
 		declareitem("run_landcover",&run_landcover,1,CB_NONE,"Landcover version");
@@ -1193,7 +1192,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifsmoothgreffmort")) badins("ifsmoothgreffmort");
 		if (!itemparsed("ifdroughtlimitedestab")) badins("ifdroughtlimitedestab");
 		if (!itemparsed("ifrainonwetdaysonly")) badins("ifrainonwetdaysonly");
-		// bvoc
+		
 		if (!itemparsed("ifbvoc")) badins("ifbvoc");
 
 		if (!itemparsed("run_landcover")) badins("run_landcover");
@@ -1649,7 +1648,6 @@ void plib_callback(int callback) {
 			// guess2008 - DLE
 			if (!itemparsed("drought_tolerance")) badins("drought_tolerance");
 
-			// bvoc
 			if(ifbvoc){
 				if (!itemparsed("ga")) badins("ga");
 				if (!itemparsed("eps_iso")) badins("eps_iso");

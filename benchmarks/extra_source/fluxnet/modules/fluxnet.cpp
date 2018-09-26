@@ -15,6 +15,8 @@
 #include <fstream>
 #include <sstream>
 
+using namespace std;
+
 namespace {
 
 	xtring file_cru;
@@ -23,6 +25,7 @@ namespace {
 }
 
 REGISTER_INPUT_MODULE("fluxnet", FluxnetInput)
+
 void FluxnetInput::init() {
 	CRUInput::init(); 
 
@@ -38,11 +41,12 @@ void FluxnetInput::init() {
 
 void FluxnetInput::adjust_raw_forcing_data(double hist_mtemp[NYEAR_HIST][12],
 			double hist_mprec[NYEAR_HIST][12], double hist_msun[NYEAR_HIST][12],
-			double fluxnet_temp[12], double fluxnet_prec[12], double fluxnet_sun[12]) {
+			double fluxnet_temp[12], double fluxnet_prec[12], double fluxnet_rad[12]) {
 	
 	double cru_temp_mean[12], cru_rain_mean[12], cru_rad_mean[12];
 	double cru_temp_anom[12], cru_rain_anom[12], cru_rad_anom[12];
 
+    // initialise
 	for (int i = 0; i < 12; i++) {
 		cru_rad_mean[i] = 0.0;
 		cru_temp_mean[i] = 0.0;
@@ -57,20 +61,20 @@ void FluxnetInput::adjust_raw_forcing_data(double hist_mtemp[NYEAR_HIST][12],
 		for (int m = 0; m < 12; m++) {
 			cru_temp_mean[m] += hist_mtemp[yr][m] / nyear;
 			cru_rad_mean[m] += hist_msun[yr][m] / nyear;
-			//cru_rain_mean[m] += hist_mprec[yr][m] / nyear;
+			cru_rain_mean[m] += hist_mprec[yr][m] / nyear;
 		};
 	};
 
 	for (int i = 0; i < 12; i++) {
-		cru_rad_anom[i] = cru_rad_mean[i] / fluxnet_sun[i];
-		cru_temp_anom[i] = cru_temp_mean[i] / fluxnet_temp[i];
-		//cru_rain_anom[i] = cru_rain_mean[i] / fluxnet_prec[i];
+		cru_rad_anom[i] = fluxnet_rad[i] / cru_rad_mean[i];
+		cru_temp_anom[i] = fluxnet_temp[i] - cru_temp_mean[i];
+		cru_rain_anom[i] = fluxnet_prec[i] / cru_rain_mean[i];
 	}
 
 	for (int yr = 0; yr < NYEAR_HIST; yr++) {
 		for (int m = 0; m < 12; m++) {
-			hist_mtemp[yr][m] *= cru_temp_anom[m];
-			//hist_mprec[yr][m] *= cru_rain_anom[m];
+			hist_mtemp[yr][m] += cru_temp_anom[m];
+            hist_mprec[yr][m] += min(cru_rain_anom[m], 0.0);
 			hist_msun[yr][m] *= cru_rad_anom[m];
 		}
 	}
@@ -178,7 +182,7 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 			return false;
 		}
 
-		nyear = last_year - first_year;
+		nyear = last_year - first_year + 1;
 
 		// Make monthly averages from the input data
 		int idx = 0;
@@ -249,137 +253,9 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 }
 
 bool FluxnetInput::getclimate(Gridcell& gridcell) {
-	
 	if (!CRUInput::getclimate(gridcell)) {
 		return false;
 	}
 	return true;
 }
-/*
-bool FluxnetInput::getclimate(Gridcell& gridcell) {
-	double progress;
 
-	Climate& climate = gridcell.climate;
-
-	if (date.day == 0) {
-
-		// First day of year ...
-
-		// Extract N deposition to use for this year,
-		// monthly means to be distributed into daily values further down
-		double mndrydep[12], mnwetdep[12];
-		ndep.get_one_calendar_year(date.year - nyear_spinup + FIRSTHISTYEAR,
-			mndrydep, mnwetdep);
-
-		if (date.year < nyear_spinup) {
-
-			// During spinup period
-
-			if (date.year == state_year && restart) {
-
-				int year_offset = state_year % NYEAR_SPINUP_DATA;
-
-				for (int y = 0; y<year_offset; y++) {
-					spinup_mtemp.nextyear();
-					spinup_mprec.nextyear();
-					spinup_msun.nextyear();
-					spinup_mfrs.nextyear();
-					spinup_mwet.nextyear();
-					spinup_mdtr.nextyear();
-				}
-			}
-
-			int m;
-			double mtemp[12], mprec[12], msun[12];
-			double mfrs[12], mwet[12], mdtr[12];
-
-			for (m = 0; m<12; m++) {
-				mtemp[m] = spinup_mtemp[m];
-				mprec[m] = spinup_mprec[m];
-				msun[m] = spinup_msun[m];
-
-				mfrs[m] = spinup_mfrs[m];
-				mwet[m] = spinup_mwet[m];
-				mdtr[m] = spinup_mdtr[m];
-			}
-
-			// Interpolate monthly spinup data to quasi-daily values
-			interp_climate(mtemp1, mprec, msun, mdtr, dtemp, dprec, dsun, ddtr);
-
-			// Only recalculate precipitation values using weather generator
-			// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
-			if (ifrainonwetdaysonly) {
-				// (from Dieter Gerten 021121)
-				prdaily(mprec, dprec, mwet, gridcell.seed);
-			}
-
-			spinup_mtemp.nextyear();
-			spinup_mprec.nextyear();
-			spinup_msun.nextyear();
-
-			spinup_mfrs.nextyear();
-			spinup_mwet.nextyear();
-			spinup_mdtr.nextyear();
-
-		}
-		else if (date.year < nyear_spinup + NYEAR_HIST) {
-
-			// Historical period
-
-			// Interpolate this year's monthly data to quasi-daily values
-			interp_climate(hist_mtemp[date.year - nyear_spinup],
-				hist_mprec[date.year - nyear_spinup], hist_msun[date.year - nyear_spinup],
-				hist_mdtr[date.year - nyear_spinup],
-				dtemp, dprec, dsun, ddtr);
-
-			// Only recalculate precipitation values using weather generator
-			// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
-			if (ifrainonwetdaysonly) {
-				// (from Dieter Gerten 021121)
-				prdaily(hist_mprec[date.year - nyear_spinup], dprec, hist_mwet[date.year - nyear_spinup], gridcell.seed);
-			}
-		}
-		else {
-			// Return false if last year was the last for the simulation
-			return false;
-		}
-
-		// Distribute N deposition
-		distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
-	}
-
-	// Send environmental values for today to framework
-
-	climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
-
-	climate.temp = dtemp[date.day];
-	climate.prec = dprec[date.day];
-	climate.insol = dsun[date.day];
-
-	// Nitrogen deposition
-	climate.dndep = dndep[date.day];
-
-	// bvoc
-	if (ifbvoc) {
-		climate.dtr = ddtr[date.day];
-	}
-
-	// First day of year only ...
-
-	if (date.day == 0) {
-
-		// Progress report to user and update timer
-
-		if (tmute.getprogress() >= 1.0) {
-			progress = (double)(gridlist.getobj().id*(nyear_spinup + NYEAR_HIST)
-				+ date.year) / (double)(gridlist.nobj*(nyear_spinup + NYEAR_HIST));
-			tprogress.setprogress(progress);
-			dprintf("%3d%% complete, %s elapsed, %s remaining\n", (int)(progress*100.0),
-				tprogress.elapsed.str, tprogress.remaining.str);
-			tmute.settimer(MUTESEC);
-		}
-	}
-
-	return true;
-}
-*/

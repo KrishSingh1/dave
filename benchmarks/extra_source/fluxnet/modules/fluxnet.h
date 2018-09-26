@@ -17,6 +17,8 @@ class FluxnetInput : public CRUInput {
 public:
     void init();
     
+    xtring extracted();
+    
     bool getgridcell(Gridcell& gridcell);
     
     bool getclimate(Gridcell& gridcell);

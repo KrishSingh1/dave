@@ -33,7 +33,8 @@ const double turnoverfract[12][5] = {
         { .03, .13, .25, .5 , .5 }, //   6 Bark        -> Litter (str)
         { .05, .1 , .15, .3 , .4 }, //   7 Leaves      -> Litter (str)
         { .0 , .02, .02, .04, .04}, //   8 FDEAD roots -> ATM
-        { .5 , .75, .75, .8 , .8 }, //   9 CWD         -> ATM
+	//        { .5 , .75, .75, .8 , .8 }, //   9 CWD         -> ATM
+        { .12, .15, .18, .2 , .2 }, //   9 CWD         -> ATM
 	{ .6 , .65, .85, 1. , 1. }, //  10 Bark Litter -> ATM
 	{ .6 , .65, .85, 1. , 1. }  //  11 Leaf Litter -> ATM*/
 };

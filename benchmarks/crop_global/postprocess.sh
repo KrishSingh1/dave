@@ -22,8 +22,8 @@ function prepare_agb {
 	output=$2
 	dvar=$3
 	c=$(head -1 $model_input | awk -v d=$dvar '{for(i=1;i<=NF;i++){if($i==d){print i;}}}')
-	#awk -v c="$c" ' BEGIN { FS = " " } ; FNR==NR{a[$1$2]=$c;next}BEGIN{OFS=" "};{if($1$2 in a){print $3,a[$1$2]*0.7}}' $1 >> $2
-	awk -v c="$c" '{print $1,$2,$c}' $model_input > $output
+	awk -v c="$c" '(FNR==1){print $1,$2,$c}' $model_input > $output
+	awk -v c="$c" '(FNR>1) {print $1,$2,$c*0.7}' $model_input >> $output
 }
 # Liu AGB 
 
@@ -74,10 +74,14 @@ prepareyielddata yield1996to2005.txt common/../crop_global/spam_yield_wheat.dat 
 scatter_plot "Wheat yields" "SPAM" "LPJ-GUESS" temp_wheat.dat wheat_yield.png
 describe_image wheat_yield.png "Modelled compared to SPAM data set. Units: kg m-2." embed
 
-fi
-# Above Ground Biomass
 
-tslice cpool.out -f 1993 -t 2012 -o cpool1993-2012.dat
+#===============================================================================
+# Above Ground Biomass
+fi
+ppp="/home/jnord/lpjguess_group_catalog_on_lunarc/benchmarks_output_trunk/benchmarks_r6296/crop_global/"
+
+
+tslice $ppp/cpool.out -f 1993 -t 2012 -o cpool1993-2012.dat
 prepare_agb cpool1993-2012.dat cpool1993-2012_agb.dat VegC
 joyn cpool1993-2012_agb.dat /home/x_larni/SRC/LPJ-GUESS/fire_blaze_merge/benchmarks/crop_global/Global_mean_ABC_1993-2012_Liu2015_SI.dat -i Lon Lat -fast -o cpool1993-2012_joyned.dat
 
@@ -98,3 +102,43 @@ describe_image agb.png "Modelled compared to Liu et al. data. Units: kg m-2." em
 # remove intermediate files
 #rm -f  cpool1993-2012.dat cpool1993-2012_joyned.dat cpool1993-2012_joyned_Liu.dat delta_cpool1993-2012_joyned.dat \ 
 # cpool1993-2012_joyned_VegC.dat scat_cpool.dat
+
+
+#===============================================================================
+#Fire related benchmarks
+
+tslice $ppp/cflux.out -f 1997 -t 2016 -o cflux1997-2016.dat
+joyn cflux1997-2016.dat $HOME/DATA/gfed40_c-emissions_1997-2016.dat -i Lon Lat -fast -o cflux1997-2016_joyned.dat
+
+# delta plot gfed4 cflux
+awk '{print $1,$2, $7}' cflux1997-2016_joyned.dat > cflux1997-2016_joyned_Fire.dat
+awk '{if(FNR==1){print $1,$2, $7} else {print $1,$2, $10}}' cflux1997-2016_joyned.dat > cflux1997-2016_joyned_gfed.dat
+delta  cflux1997-2016_joyned_Fire.dat cflux1997-2016_joyned_gfed.dat -i Lon Lat -o delta_cflux1997-2016_joyned.dat
+gmap delta_cflux1997-2016_joyned.dat -i Fire -lon 1 -lat 2 -landscape -slog  -o delta_cflux1997-2016_joyned.png -t "Fire C flux LPJ-GUESS - Gfed kg(C)/m2/a" -c BLUE RED
+convert -geometry 25%x25% delta_cpool1993-2012_joyned.png tmp.png
+convert -rotate 90 tmp.png delta_cpool1993-2012_joyned.png
+describe_image  delta_cpool1993-2012_joyned.png "Modelled minus GFED 4.0 data. Units: kg(C) m-2." embed
+
+# Scatterplot GFED C-emis 
+awk '(FNR>1){print $7, $10}' cflux1997-2016_joyned.dat > scat_fire_cflux.dat
+scatter_plot "Fire C-Flux" "GFED4.0" "LPJ-GUESS" scat_cflux.dat scat_fire_cflux.png
+describe_image scat_fire_cflux.png "Modelled compared to GFED 4.0 C-Emissions Units: kg(C) m-2." embed
+
+# A-slicing over regions 0.5 deg res
+GFEDreg=(BONA TENA CEAM NHSA SHSA EURO MIDE NHAF SHAF BOAS TEAS CEAS EQAS AUST)
+
+for ((x=1; x<=14; x++))
+do
+    ((xx=$x-1))
+    awk -v reg=$x '(FNR==1 || $3==reg){print $0}' ~/DATA/gfed_regions0.5.dat > reg.dat
+    joyn cflux1997-2016_joyned.dat reg.dat -i Lon -j Lat -fast -o cflux_reg_${x}_joyned.dat  
+    aslice cflux_reg_${x}_joyned.dat -n -lon Lon -lat Lat  -sum "kg/m2->Pg" -o tot_cflux_reg_${x}.dat
+    if [[ $x -eq 8 ]]
+    then
+	head -n 1 tot_cflux_reg_${x}.dat > tot_cflux_reg.dat
+    fi
+    awk -v reg=${GFEDreg[${xx}]} '(FNR==2){printf "%4s %s\n",reg,$0}' tot_cflux_reg_${x}.dat >> tot_cflux_reg.dat
+    
+done
+
+describe_textfile tot_cflux_reg.dat "Global Runoff, 1961 to 1990. Units: km3 yr-1"

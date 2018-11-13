@@ -403,7 +403,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mmon,           file_mmon,           month_columns_wide);
 	create_output_table(out_mmon_mt1,       file_mmon_mt1,       month_columns_wide);
 	create_output_table(out_mmon_mt2,       file_mmon_mt2,       month_columns_wide);
-	create_output_table(out_mprec,          file_mprec,          month_columns);
+	create_output_table(out_mprec,          file_mprec,          month_columns_wide);
 	create_output_table(out_mab,            file_mblaze_out,     month_columns);
 }
 

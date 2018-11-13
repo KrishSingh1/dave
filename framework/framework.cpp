@@ -120,7 +120,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch);
 			// BLAZE fire model
-			if (firemodel == BLAZE && patch.has_fires()) 
+			if (firemodel == BLAZE && patch.has_fires() && date.year > 200 ) 
 				blaze(patch,gridcell.climate);
 
 			if (date.islastday && date.islastmonth) {
@@ -173,10 +173,19 @@ int framework(const CommandLineArguments& args) {
 	// simulation settings
 	read_instruction_file(args.get_instruction_file());
 
+	xtring datetime;
+	unixtime(datetime);
+	xtring heado = xtring("[LPJ-GUESS after ins  ") + datetime + "]\n\n";
+	dprintf((char*)heado);
+	
 	// Initialise input/output
 
 	input_module->init();
 	output_modules.init();
+
+	unixtime(datetime);
+	heado = xtring("[LPJ-GUESS after iomods  ") + datetime + "]\n\n";
+	dprintf((char*)heado);
 
 	print_logfile_heading();
 
@@ -207,6 +216,10 @@ int framework(const CommandLineArguments& args) {
 		deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(state_path));
 	}
 
+	unixtime(datetime);
+	heado = xtring("[LPJ-GUESS after (de)ser  ") + datetime + "]\n\n";
+	dprintf((char*)heado);
+
 	while (true) {
 
 		// START OF LOOP THROUGH GRID CELLS
@@ -223,7 +236,10 @@ int framework(const CommandLineArguments& args) {
 		if (!input_module->getgridcell(gridcell)) {
 			break;
 		}
-		dprintf("fw \n");
+		unixtime(datetime);
+		heado = xtring("[LPJ-GUESS New gridcell  ") + datetime + "]\n\n";
+		dprintf((char*)heado);
+
 		// Initialise certain climate and soil drivers
 		gridcell.climate.initdrivers(gridcell.get_lat());
 
@@ -232,20 +248,39 @@ int framework(const CommandLineArguments& args) {
 			// data files for the spinup period and create stands
 			landcover_init(gridcell, input_module.get());
 		}
-		double prescba = gridcell.climate.prescribed_ba;
+
+		// Load SIMFIRE && GFED data 
+		if (firemodel == BLAZE) {
+			// read simfire input
+			if (ignition == SIMFIRE || ignition == SIMGFED) {
+				simfire_input_module.getsimfiredata(gridcell, lon, lat);
+			}
+			// read gfed31 burned area
+			if (ignition == GFED31  || ignition == SIMGFED) {
+				gfed31_input_module.getgfed31data(gridcell, lon, lat);
+			}
+			// read prescribed burned area
+			if (ignition == PRESCRIBED) {
+				/*firefreq.load_file(param["file_prescfire"].str);
+				gridcell.climate.prescribed_ba = firefreq.get_presc_ba(lon,lat);*/
+				fail ("Prescribed fire frequencies not yet implemented!");  	
+			}
+		}
+			
+		
+		//CLN double prescba = gridcell.climate.prescribed_ba;
 		if (restart) {
 			// Get the whole grid cell from file...
 			deserializer->deserialize_gridcell(gridcell);
 			// ...and jump to the restart year
 			date.year = state_year;
 		}
-		gridcell.climate.prescribed_ba = prescba;
+		//CLN gridcell.climate.prescribed_ba = prescba;
 
 		// Call input/output to obtain climate, insolation and CO2 for this
 		// day of the simulation. Function getclimate returns false if last year
 		// has already been simulated for this grid cell
-
-		// CLN enter GFED & MET in getclimate
+	    
 		while (input_module->getclimate(gridcell)) {
 
 			// START OF LOOP THROUGH SIMULATION DAYS

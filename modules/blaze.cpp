@@ -680,11 +680,14 @@ void combust(Patch& patch, Climate& climate) {
 	 */
 
 	const double LIGCFRAC_leaf = 0.2;
-	
+
+	// grassy vegetation burn-rate for cohort and individual mode
+	const double grass_burn = 1.0;
+
 	double ab  = climate.areaburnt;
 
-	// Correction fractions burnt earlier in the same year
-	double accf= 1. / (1. - climate.acc_areaburnt);
+	// Correction fractions burnt earlier in the same year (vegmode = POPULATION only)
+	double accf= 1.  / (1. - climate.acc_areaburnt);
 	
 	// see if it burns at all
 	if (! ( randfrac(patch.stand.seed) <= ab || vegmode == POPULATION ) )
@@ -785,10 +788,22 @@ void combust(Patch& patch, Climate& climate) {
 			
 			if (indiv.pft.lifeform==GRASS) {
 				// Reduce individual live biomass and freshly created litter
-				indiv.reduce_biomass(.99,.99);
+				indiv.reduce_biomass(grass_burn,grass_burn);
 				
-				// Update allometry
-				allometry(indiv);
+				// remove NPP and put is to fire flux
+				patch.fluxes.report_flux(Fluxes::FIREC,indiv.anpp*grass_burn);
+				indiv.anpp *= (1. - grass_burn);
+
+				// kill object if burn is total
+				if ( grass_burn == 1.0 ) {
+					indiv.kill();
+					vegetation.killobj();
+					killed=true;
+				} 
+				else {
+					// Update allometry
+					allometry(indiv);
+				}
 			}
 			else {
 				// TREE PFT

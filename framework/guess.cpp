@@ -56,25 +56,25 @@ void PhotosynthesisResult::serialize(ArchiveStream& arch) {
 
 void Climate::serialize(ArchiveStream& arch) {
 	arch & temp
-		& rad
-		& par
-		& prec
+		& rad //CLN??
+		& par //CLN??
+		& prec //CLN??
 		& daylength
     //WK I know it is not common practive in LPJ-GUESS, but maybe this
     //WK would be the ideal place to give a short description plus units?
     //WK or give a reference to where this is available?
 		// BLAZE --[
-		& u10
-		& relhum
-		& tmin
-		& tmax 
+		& u10 //CLN??
+		& relhum //CLN??
+		& tmin //CLN??
+		& tmax //CLN??
 		& max_nesterov
 		& cur_nesterov
 		& simfire_biome
 		& ann_max_fapar
-		& monthly_fire_risk
-		& areaburnt 
-		& prescribed_ba 
+		& monthly_fire_risk //CLN??
+		& areaburnt //CLN??
+		& prescribed_ba //CLN??
 		& avg_annual_rainf
 		& cur_rainf
 		& last_rainfall
@@ -82,9 +82,9 @@ void Climate::serialize(ArchiveStream& arch) {
 		& kbdi
 		& mcarthur_fire_index
 		// BLAZE --] 
-		& co2
-		& lat
-		& insol
+		& co2 //CLN??
+		& lat //CLN??
+		& insol //CLN?? nad maybe more below...
 		& instype
 		& eet
 		& mtemp

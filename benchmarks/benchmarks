@@ -9,7 +9,7 @@
 cmake_command="cmake -D CMAKE_BUILD_TYPE=Release"
 make_command="make -j2"
 bbox_command="bbox"
-pp_walltime=5:00:00
+pp_walltime=1:00:00
 
 # Prints a message to stderr
 function error {
@@ -259,6 +259,7 @@ EOF
 	sbatch -n 1 --time=$pp_walltime $dependency <<EOF &> /dev/null
 #!/bin/sh
 #SBATCH -J bm_${test_name}_pp
+###SBATCH --qos=test
 $(cat $common_script)
 EOF
     fi

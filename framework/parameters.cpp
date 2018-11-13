@@ -988,12 +988,12 @@ void plib_callback(int callback) {
 					    "Unknown blaze time-step (valid types:\"ANNUAL\", \"SEASONAL\", \"MONTHLY\" , \"DAILY\" , \"HYBRID\" )");
 				plibabort();
 			}
-			if ( ignition == SIMFIRE && ( blaze_tstep == DAILY ) ) {
+			/*CLN if ( ignition == SIMFIRE && ( blaze_tstep == DAILY ) ) {
 				sendmessage("Error",
 					    "Ignition = SIMFIRE not valid with blaze_tstep == DAILY");
 				plibabort();
 		
-			} 
+				} */
 			if ( blaze_tstep == SEASONAL ) {
 				sendmessage("Error",
 					    "blaze_tstep = SEASONAL not yet implemented!!!");

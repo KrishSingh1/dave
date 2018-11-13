@@ -135,7 +135,7 @@ int update_fire_biome (Patch& patch, double lat) {
 	fshrb  /=  n_year_biomeavg;
 
 //WK: remove 'and' in next line; also note above about land use
-	// assign biome (neglecting and agricultural land use)
+	// assign biome (neglecting agricultural land use)
 	if (ftot<0.1 && fabs(lat)<50.0) {
 		biome=8; } // barren or sparsely vegetated
 	else if (ftot<0.1) {
@@ -281,6 +281,8 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 				    1940,1950,1960,1970,1980,1990,2000,2005};
 	// get calendar-year
 	int cyear = date.get_calendar_year();
+	//CLN Try to find out why fires are too big..
+	//if ( cyear < 1900 ) cyear = 1900;
 
 	// find start and end year index of pop interpolation
 	int idx = 0 ;

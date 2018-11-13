@@ -61,7 +61,8 @@ const float r_epsilon  = std::numeric_limits<float>::min() ;
 // ------------------- Defaults for the namelist parameters --------------------
 // -----------------------------------------------------------------------------
 
-const int maxcount = 10000000;
+//CLN const int maxcount = 10000000;
+const int maxcount = 50;
 
 const int qsiz  = 10 ;  //!41265_i4
 const int cmul  = 69609;
@@ -2975,13 +2976,13 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 			out_dwind[day+accumday] = dwind[day];
 			out_drhum[day+accumday] = drhum[day];
 
-//			chk_dtemp += out_dtemp[day+accumday]; 
-//			chk_ddtr  += out_ddtr [day+accumday]; 
-//			chk_dprec += out_dprec[day+accumday]; 
-//			chk_dsol  += out_dsol [day+accumday]; 
-//			chk_dwind += out_dwind[day+accumday]; 
-//			chk_drhum += out_drhum[day+accumday]; 
-//
+			chk_dtemp += out_dtemp[day+accumday]/(double)ndaymon; 
+			chk_ddtr  += out_ddtr [day+accumday]/(double)ndaymon; 
+			chk_dprec += out_dprec[day+accumday]; 
+			chk_dsol  += out_dsol [day+accumday]/(double)ndaymon; 
+			chk_dwind += out_dwind[day+accumday]/(double)ndaymon; 
+			chk_drhum += out_drhum[day+accumday]/(double)ndaymon; 
+
 			//			if ( date.year < 10 ) {
 			/*	if ( is_first_day && mon==0 && day==0)
 					dprintf("CLNout mon,day,out_dtemp,out_ddtr,out_dsol,out_dwind,out_dprec,out_drhum \n");
@@ -2990,8 +2991,8 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 				*/			
 
 		}
-		/*
-		double corr = 0.;
+	
+		/*double corr = 0.;
 		if (date.year > 500 ) {
 			corr = correlation(ndaymon, dtmax, dprec); 
 			dprintf("corr T   Prec = %d %d %f \n",date.year,mon,corr);
@@ -3000,8 +3001,8 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 			corr = correlation(ndaymon, dtmax, dsol); 
 			dprintf("corr T   Sol  = %d %d %f  \n",date.year,mon,corr);
 			}*/
-	
-		/*		if ( abs(chk_dtemp - in_mtemp[mon] ) >0.0001) {
+		
+		if ( abs(chk_dtemp - in_mtemp[mon] ) >0.0001) {
 
 			dprintf("delta_temp = %f %f %f\n",abs(chk_dtemp - in_mtemp[mon]),chk_dtemp,in_mtemp[mon]);
 		}
@@ -3025,7 +3026,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 
 			dprintf("delta_rhum = %f \n", abs(chk_drhum - in_mrhum[mon] ) );
 		}
-		*/	
+			
 	} // month loop
 
 }

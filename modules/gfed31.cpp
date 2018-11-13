@@ -44,24 +44,32 @@ double gfed31_ba(Gridcell& gridcell) {
 	int cyear = date.get_calendar_year(); // current year
 
 	// starting in 01/1997 as gfed month 0 here we get the months
-	// Month's index
-	int midx  = (cyear - gfed_start_year) * 12 + date.month;
-
-	double ba = 0.0;
-	if ( midx >= 0 ) {
-		ba = gridcell.monthly_GFED31_ba[midx];
-	} 
-	else {
+	if ( cyear < 1997 || cyear > 2011 ) {
+		dprintf("No gfed3.1 data for year %d. \n",cyear);
 		return 0.0;
 	}
 
-	if ( blaze_tstep == DAILY ) {
-		fail("DAILY TIMESTEP NOT AVAILABLE in gfed31 at the moment!");
-		//CLN
-		// ba *= daily_GFED31_frac[didx];
+	// Year's index inside fast-archive
+	int aidx = (cyear - gfed_start_year) * 12; // + date.month;
+	
+	double ba = 0.0;
+       
+	if ( blaze_step == ANNUAL ) {
+		// Sum over monthly burned area
+		for ( int mon = 0; mon < 12; mon++) {
+			ba += gridcell.monthly_GFED31_ba[aidx+mon];
+		}
 	} 
 	else {
-		ba *= 1./(double)date.ndaymonth[date.month];
+		// month's index in fast-archive
+		int midx = aidx + date.month;
+		ba = gridcell.monthly_GFED31_ba[midx];
+		
+		if ( blaze_tstep == DAILY ) {
+			fail("DAILY TIMESTEP NOT AVAILABLE in gfed31 at the moment!");
+			//CLN
+			//ba *= daily_GFED31_frac[didx];
+		} 
 	}
 	return ba;
 }

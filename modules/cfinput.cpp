@@ -908,8 +908,7 @@ void CFInput::populate_daily_arrays(long& seed) {
 					   (.5 * (dmax_temp[i] + dmin_temp[i] ) + 243.5) ) , -1 );
 					   dprintf("CLN  drelhum2    [i] %f \n", drelhum[i] ); */
 		} else if ( firemodel == BLAZE ) {
-			if ( i == 0 && date.year == 0) dprintf("BLAZE is switched on WITHOUT info on relative humidity!!!! \n" );
-			drelhum[i] = 50.;
+			fail("BLAZE is switched on WITHOUT info on relative humidity!!!! \n" );
 		}
 	}
 	//CLNdprintf("dinsol year %f \n",dinsol[0]);

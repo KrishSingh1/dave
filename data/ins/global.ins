@@ -28,6 +28,9 @@ file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 file_clitter "clitter.out"
+!file_blaze_out "annual_ba.out"
+!file_mblaze_out "monthly_ba.out"
+!file_sfana_out "simfire_ana.out"
 !file_firert "firert.out"
 !file_aiso "aiso.out"
 !file_amon "amon.out"
@@ -85,7 +88,7 @@ ifcalccton 1			! whether to calculate leaf C:N min from leaf longevity
 						! (PFT-specific value can be specified in this file instead)		
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE                
 ignition "SIMFIRE"		! SIMFIRE, GFED, PRESCRIBED, SIMGFED
-blaze_tstep "DAILY"		! DAILY, MONTHLY, ANNUAL, HYBRID, SEASONAL
+blaze_tstep "MONTHLY"		! DAILY, MONTHLY, ANNUAL, HYBRID, SEASONAL
 weathergenerator "GWGEN"	! GWGEN INTERP, NONE 
 				
 npatch 5				! number of replicate patches to simulate

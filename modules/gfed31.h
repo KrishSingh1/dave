@@ -17,5 +17,8 @@
 #ifndef LPJ_GUESS_GFED31_H
 #define LPJ_GUESS_GFED31_H
 #include "guess.h"
+
 double gfed31_ba(Gridcell& gridcell);
+void getgfed31data(Gridcell& gridcell);
+
 #endif // LPJ_GUESS_GFED31_H

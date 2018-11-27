@@ -375,7 +375,8 @@ bool burntime() {
 
 	if (blaze_tstep == DAILY) {
 		// GFED3.1 only!!!
-		if (ignition == GFED31 && (cyear < 2003 || cyear > 2011)) {
+		if (ignition == GFED31 && (cyear < 2003 || cyear > 2011) && 
+		    date.islastday && date.islastmonth) {
 			sendmessage("Warning","No daily burned area available for this year");
 		}
 		return true;
@@ -1204,30 +1205,37 @@ void blaze_ignition(Climate& climate) {
 		}
 	}
 
-	if ( ignition == SIMFIRE && burntime()) {
-		climate.areaburnt += simfire_ba(climate, gridcell);
-		//CLNclimate.annual_areaburnt += simfire_ba(climate, gridcell);
-		//CLNclimate.monthly_areaburnt[date.month] += simfire_ba(climate, gridcell);
-	}
-	else if ( ignition == GFED31 ) {
-		climate.areaburnt += gfed31_ba(gridcell);
-	} 
-	else if ( ignition == PRESCRIBED && burntime() ) {
-		double tfac = 1. ;
-		if ( blaze_tstep == DAILY ) {
-			tfac = climate.monthly_fire_risk[date.month] /
-				date.ndaymonth[date.month];
-		}
-		else if ( blaze_tstep == MONTHLY ) {
-			tfac = climate.monthly_fire_risk[date.month];
-		}
-		else if ( blaze_tstep == ANNUAL ) {
-			tfac = 1.;
+	if ( burntime() ) {
+		if ( ignition == PRESCRIBED ) {
+			double tfac = 1. ;
+			if ( blaze_tstep == DAILY ) {
+				tfac = climate.monthly_fire_risk[date.month] /
+					date.ndaymonth[date.month];
+			}
+			else if ( blaze_tstep == MONTHLY ) {
+				tfac = climate.monthly_fire_risk[date.month];
+			}
+			else if ( blaze_tstep == ANNUAL ) {
+				tfac = 1.;
+			}
+			else {
+				fail ("PRESCRIBED Burning only available for daily, monthly, annual!");
+			}
+			climate.areaburnt = climate.prescribed_ba * tfac ;	
 		}
 		else {
-			fail ("PRESCRIBED Burning only available for daily, monthly, annual!");
-		}
-		climate.areaburnt = climate.prescribed_ba * tfac ;	
+			// Check who does the burned area
+			int cy = date.get_calendar_year();
+			if ( ignition == SIMFIRE || 
+			     ( ignition == SIMGFED && ( cy < 1997 || cy > 2011 ))) {
+				climate.areaburnt += simfire_ba(climate, gridcell);
+			}
+			else if ( ignition == GFED31 || 
+				  ( ignition == SIMGFED && ( cy >= 1997 || cy <= 2011 ))) {
+				// 
+				climate.areaburnt += gfed31_ba(gridcell);
+			}
+		} 
 	}
 
 } 

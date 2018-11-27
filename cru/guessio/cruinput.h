@@ -20,15 +20,15 @@
 #include "lamarquendep.h"
 #include "externalinput.h"
 
-#include "simfire.h"
-#include "SimfireInput.h"
-#include "gfed31_burned_area.h"
+//CLN#include "simfire.h"
+//CLN#include "SimfireInput.h"
+//CLN#include "gfed31_burned_area.h"
 
 /// An input module for CRU climate data
 /** This input module gets climate data from binary archives built from
  *  CRU-NCEP (1901-2015).
  */
-class SimfireData {
+/*CLNclass SimfireData {
 
 public:
 
@@ -89,10 +89,10 @@ private:
 
 	/*	double popd[57];
 	double monthly_burned_area[12];
-	int igbp_class;*/
-};
+	int igbp_class;
+};*/
 
-class GFED31Data {
+/*class GFED31Data {
 
 public:
 
@@ -137,8 +137,8 @@ private:
 	double popd[57];
 	double monthly_burned_area[12];
 	int igbp_class;
-	*/
-};
+	
+};*/
 
 class CRUInput : public InputModule {
 public:
@@ -233,11 +233,11 @@ private:
 	/// Management input module
 	ManagementInput management_input;
 
-	// SIMFIRE input module
-	SimfireData simfire_input_module;
-	// GFED 3.1 input module
+	/*CLN// SIMFIRE input module
+	SimfireData simfire_input_module;*/
+	/*CLN// GFED 3.1 input module
 	GFED31Data gfed31_input_module;
-
+	*/
 	/// search radius to use when finding CRU data
 	double searchradius;
 

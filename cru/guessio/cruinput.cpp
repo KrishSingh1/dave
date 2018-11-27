@@ -430,14 +430,14 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 		// Distribute N deposition
 		distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
 
-		bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
+		/*CLNbool is_first_day = ( date.day == 0 && ( date.year == 0 || 
 			       ( restart && date.year == state_year ) ) );
 		if ( is_first_day && firemodel != NOFIRE ) {
 			if ( ignition == SIMFIRE || ignition == SIMGFED || ignition == PRESCRIBED ) {
 				simfire_input_module.getsimfiredata(gridcell, 
 				     climate.gridcell.get_lon(), climate.gridcell.get_lat());
 			}
-		}
+			}*/
 
 	}
 

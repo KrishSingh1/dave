@@ -18,6 +18,7 @@
 
 #include "guess.h"
 //WK these are the SIMFIRE routines that are used externally, right?
+void getsimfiredata(Gridcell& gridcell);
 void simfire_accounting_gridcell(Gridcell& gridcell);
 void simfire_biome_mapping(Gridcell& gridcell); 
 double simfire_ba(Climate& climate, Gridcell& gridcell); 

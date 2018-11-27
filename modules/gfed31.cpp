@@ -33,10 +33,47 @@
 #include "config.h"
 #include "guess.h"
 #include "gfed31.h"
+#include "gfed31_burned_area.h"
 
 const static int gfed_start_year = 1997;
-const static int gfed_end_year = 2011;
+const static int gfed_end_year   = 2011;
 
+/// Gets GFED 3.1 data for a gridcell from fast archive
+void getgfed31data(Gridcell& gridcell) {
+		
+	Climate& climate = gridcell.climate;
+	double lat = gridcell.get_lat();
+	double lon = gridcell.get_lon();
+
+	/// Paths to GFED3.1 binaries
+	xtring file_gfed31  = param["file_gfed31"].str;
+	
+	// open file for monthly/daily ba for a gridcell
+	// Fill static arrays/variables here
+	GFED31_burned_areaArchive ark;
+	
+	if (!ark.open(file_gfed31)) {
+		fail("Could not open %s for input", (char*)file_gfed31);
+	}
+	
+	GFED31_burned_area rec;
+	rec.lon = lon;
+	rec.lat = lat;
+	
+	if (!ark.getindex(rec)) {
+		ark.close();
+		fail("Grid cell not found in %s", (char*)file_gfed31);
+	}
+	
+	// Found the record, get the values
+	// from 07/1996 - 02/2012
+	// Monthly burned area
+	for (int m=0; m<188; m++) {
+		gridcell.monthly_GFED31_ba[m] = rec.monthly_burned_area[m];
+	}
+	dprintf(" erste 5 %f %f %f  \n",gridcell.monthly_GFED31_ba[175-177]);
+	ark.close();
+}
 
 /// SIMFIRE biome mapping
 double gfed31_ba(Gridcell& gridcell) {
@@ -54,7 +91,7 @@ double gfed31_ba(Gridcell& gridcell) {
 	
 	double ba = 0.0;
        
-	if ( blaze_step == ANNUAL ) {
+	if ( blaze_tstep == ANNUAL ) {
 		// Sum over monthly burned area
 		for ( int mon = 0; mon < 12; mon++) {
 			ba += gridcell.monthly_GFED31_ba[aidx+mon];

@@ -32,6 +32,7 @@
 //WK Is this the framework header file as remarked in (1)?
 #include "config.h"
 #include "simfire.h"
+#include "SimfireInput.h"
 
 /// SIMFIRE biome mapping
 //WK state a purpose here: return SIMFIRE biome from time average vegetation
@@ -44,6 +45,61 @@
 //WK using different versions of LPJ-GUESS (potential natural vegetation, land use,
 //WK running with observed climate or future scenarios)
 #define NFIREBIOMES 9
+
+/// Gets simfire data for a gridcell
+void getsimfiredata(Gridcell& gridcell) {
+		
+	Climate& climate = gridcell.climate;
+	
+	dprintf("CLN Inside getsimfiredata \n");
+	
+	/// Paths to SIMFIRE binaries
+	xtring file_simfire = param["file_simfire"].str;
+	
+	// open file, fill podp, monthly_burned_area and igbp_class for a gridcell
+	// Fill static arrays/variables here
+	SimfireInputArchive ark;
+	
+	if (!ark.open(file_simfire)) {
+		fail("Could not open %s for input \n", (char*)file_simfire);
+	}
+	
+	SimfireInput rec;
+	rec.lon = gridcell.get_lon();
+	rec.lat = gridcell.get_lat();
+	
+	if (!ark.getindex(rec)) {
+		ark.close();
+		fail("Grid cell not found in %s \n", (char*)file_simfire);
+	}
+	
+	//CLNrec.lon = lon;
+	//CLNrec.lat = lat;
+	
+	dprintf("++++++++REAL ONE+++++++++ la, lo %f %f \n",rec.lat,rec.lon);
+	// Found the record, get the values
+	
+	// IGBP Land-Cover-Classification
+	gridcell.igbp_class = (int)rec.igbp_class[0];
+	
+	// convert into simfire internal biomes
+	simfire_biome_mapping(gridcell);
+	dprintf("IGBP: %d -> BIOME %d \n",gridcell.igbp_class,(int)climate.simfire_biome);
+	
+	// Monthly fire risk (W.Knorr)
+	for (int m=0; m<12; m++) {
+		climate.monthly_fire_risk[m] = rec.monthly_ba[m];
+		//CLN			dprintf("mBA  %d : %f \n",m,climate.monthly_fire_risk[m]);
+	}
+	// Population density from HYDE 3.1
+	for (int t=0; t<57; t++) {
+		gridcell.hyde31_pop_density[t] = rec.pop_density[t];
+		//CLN			dprintf("Popd  %d : %f \n",t,gridcell.hyde31_pop_density[t]);
+	}		
+	
+	ark.close();
+}
+
 int update_fire_biome (Patch& patch, double lat) {
 
 	double fgrass=0.0; // grass fraction of all vegetation

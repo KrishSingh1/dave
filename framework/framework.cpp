@@ -25,6 +25,7 @@
 #include "landcover.h"
 #include "bvoc.h"
 #include "commonoutput.h"
+#include "gfed31.h"
 
 #include <memory>
 
@@ -253,11 +254,12 @@ int framework(const CommandLineArguments& args) {
 		if (firemodel == BLAZE) {
 			// read simfire input
 			if (ignition == SIMFIRE || ignition == SIMGFED) {
-				simfire_input_module.getsimfiredata(gridcell, lon, lat);
+				getsimfiredata(gridcell);
 			}
 			// read gfed31 burned area
 			if (ignition == GFED31  || ignition == SIMGFED) {
-				gfed31_input_module.getgfed31data(gridcell, lon, lat);
+				//gfed31_input_module.getgfed31data(gridcell);
+				getgfed31data(gridcell);
 			}
 			// read prescribed burned area
 			if (ignition == PRESCRIBED) {
@@ -268,14 +270,12 @@ int framework(const CommandLineArguments& args) {
 		}
 			
 		
-		//CLN double prescba = gridcell.climate.prescribed_ba;
 		if (restart) {
 			// Get the whole grid cell from file...
 			deserializer->deserialize_gridcell(gridcell);
 			// ...and jump to the restart year
 			date.year = state_year;
 		}
-		//CLN gridcell.climate.prescribed_ba = prescba;
 
 		// Call input/output to obtain climate, insolation and CO2 for this
 		// day of the simulation. Function getclimate returns false if last year

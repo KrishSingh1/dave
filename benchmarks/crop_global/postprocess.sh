@@ -22,8 +22,7 @@ function prepare_agb {
 	output=$2
 	dvar=$3
 	c=$(head -1 $model_input | awk -v d=$dvar '{for(i=1;i<=NF;i++){if($i==d){print i;}}}')
-	awk -v c="$c" '(FNR==1){print $1,$2,$c}' $model_input > $output
-	awk -v c="$c" '(FNR>1) {print $1,$2,$c*0.7}' $model_input >> $output
+	awk -v c="$c" '{print $1,$2,$c*0.7}' $model_input > $output
 }
 # Liu AGB 
 
@@ -77,9 +76,6 @@ describe_image wheat_yield.png "Modelled compared to SPAM data set. Units: kg m-
 
 #===============================================================================
 # Above Ground Biomass
-fi
-ppp="/home/jnord/lpjguess_group_catalog_on_lunarc/benchmarks_output_trunk/benchmarks_r6296/crop_global/"
-
 
 tslice $ppp/cpool.out -f 1993 -t 2012 -o cpool1993-2012.dat
 prepare_agb cpool1993-2012.dat cpool1993-2012_agb.dat VegC
@@ -100,12 +96,15 @@ scatter_plot "AGB" "Liu et al. " "LPJ-GUESS" scat_cpool.dat agb.png
 describe_image agb.png "Modelled compared to Liu et al. data. Units: kg m-2." embed
 
 # remove intermediate files
-#rm -f  cpool1993-2012.dat cpool1993-2012_joyned.dat cpool1993-2012_joyned_Liu.dat delta_cpool1993-2012_joyned.dat \ 
-# cpool1993-2012_joyned_VegC.dat scat_cpool.dat
+rm -f  cpool1993-2012.dat cpool1993-2012_joyned.dat cpool1993-2012_joyned_Liu.dat delta_cpool1993-2012_joyned.dat \ 
+ cpool1993-2012_joyned_VegC.dat scat_cpool.dat
 
 
 #===============================================================================
 #Fire related benchmarks
+fi
+ppp="/home/jnord/lpjguess_group_catalog_on_lunarc/benchmarks_output_trunk/benchmarks_r6296/crop_global/"
+
 
 tslice $ppp/cflux.out -f 1997 -t 2016 -o cflux1997-2016.dat
 joyn cflux1997-2016.dat $HOME/DATA/gfed40_c-emissions_1997-2016.dat -i Lon Lat -fast -o cflux1997-2016_joyned.dat
@@ -130,14 +129,16 @@ GFEDreg=(BONA TENA CEAM NHSA SHSA EURO MIDE NHAF SHAF BOAS TEAS CEAS EQAS AUST)
 for ((x=1; x<=14; x++))
 do
     ((xx=$x-1))
+    creg=${GFEDreg[${xx}]} 
     awk -v reg=$x '(FNR==1 || $3==reg){print $0}' ~/DATA/gfed_regions0.5.dat > reg.dat
-    joyn cflux1997-2016_joyned.dat reg.dat -i Lon -j Lat -fast -o cflux_reg_${x}_joyned.dat  
+    joyn cflux1997-2016_joyned.dat reg.dat -i Lon Lat -fast -o cflux_reg_${x}_joyned.dat  
     aslice cflux_reg_${x}_joyned.dat -n -lon Lon -lat Lat  -sum "kg/m2->Pg" -o tot_cflux_reg_${x}.dat
-    if [[ $x -eq 8 ]]
+    if [ $x -eq 1 ]
     then
-	head -n 1 tot_cflux_reg_${x}.dat > tot_cflux_reg.dat
+	hd="Region "$(head -n 1 tot_cflux_reg_${x}.dat)
+	echo $hd > tot_cflux_reg.dat
     fi
-    awk -v reg=${GFEDreg[${xx}]} '(FNR==2){printf "%4s %s\n",reg,$0}' tot_cflux_reg_${x}.dat >> tot_cflux_reg.dat
+    awk -v reg=$creg '(FNR==2){printf "%s %f \n",reg,$4}' tot_cflux_reg_${x}.dat >> tot_cflux_reg.dat
     
 done
 

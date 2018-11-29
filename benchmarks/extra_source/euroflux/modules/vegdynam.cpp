@@ -902,8 +902,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			}
 
 			// Mortality due to fire
-
-			if (iffire)
+			if (patch.has_fires() && firemodel == GLOBFIRM)
 				mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			else mort_fire=0.0;
 
@@ -1001,8 +1000,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 	Vegetation& vegetation=patch.vegetation;
 
 	// FIRE MORTALITY
-
-	if (iffire) {
+	if (patch.has_fires() && firemodel == GLOBFIRM) {
 
 		// Impose fire in this patch with probability 'fireprob'
 
@@ -1493,7 +1491,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 	int plantation_year = current_stand_fluxdata->plantation_year;
 
 	// Calculate fire probability and volatilise litter
-	if (iffire && century_year<plantation_year /* euroflux */) {
+	if ((patch.has_fires() && firemodel == GLOBFIRM) && century_year<plantation_year /* euroflux */) {
 		fire(patch, fireprob);
 	}
 	patch.fireprob = fireprob;

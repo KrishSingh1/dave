@@ -71,10 +71,6 @@ file_vmaxnlim "vmaxnlim.out"
 !file_mmon_mt1 "mmon_mt1.out"
 !file_mmon_mt2 "mmon_mt2.out"
 
-! Daily outputs
-!file_dlai "dlai.out"
-!file_dflux "dflux.out"
-
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -96,6 +92,9 @@ ifcalccton 1          ! whether to calculate leaf C:N min from leaf longevity
                       ! (PFT-specific value can be specified in this file instead)
 iffire 1              ! whether to implement fire (1) or not (0)
 npatch 25             ! number of replicate patches to simulate
+npatch_secondarystand 1	! number of replicate patches to simulate in secondary stands
+reduce_all_stands 0		! Whether to reduce equal percentage of all stands of a stand type at land cover change
+age_limit_reduce 5		! Minimum age of stands to reduce at land cover change
 patcharea 1000        ! patch area (m2)
 estinterval 5         ! years between establishment events in cohort mode
 ifdisturb 1           ! whether generic patch-destroying disturbances enabled
@@ -109,7 +108,6 @@ ifcdebt 1             ! whether to allow vegetation C storage (1) or not (0)
 wateruptake "rootdist"! "wcont", "rootdist", "smart" or "speciesspecific",
                       ! see documentation for water_uptake()
 textured_soil 1	      ! whether to use silt/sand fractions specific to soiltype
-ifdailygrass 1	      ! whether to use daily carbon allocation for grasses.
 
 !///////////////////////////////////////////////////////////////////////////////
 ! PROCESS SETTINGS SPECIFIC TO NITROGEN
@@ -145,22 +143,6 @@ run_landcover 0        ! whether to use (and change) landcover fractions (1) or 
 
 !///////////////////////////////////////////////////////////////////////////////////////
 
-!///////////////////////////////////////////////////////////////////////////////////////
-!// PARAMETERS FOR STAND TYPES
-
-group "common_stand" (
-
-	intercrop "nointercrop"
-	restrictpfts 0		! Use all pft:s defined for a land cover (pft parameter landcover)
-)
-
-st "Natural" (
-
-	common_stand
-	stinclude 1
-	landcover "natural"
-	naturalveg "all"
-)
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR PFTS
@@ -275,9 +257,6 @@ group "grass" (
 	ga 0.030
 	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time for GRASS
 	harvest_slow_frac 0
-	stor 0.43414		! storage growth to root ratio	
-	sen_fac 0.60779	! senescens fraction
-	transferconst 0.0	!C3 and C4 specific in pft	
 )
 
 
@@ -1084,7 +1063,6 @@ group "C3G" (
 	eps_mon 0.45 0.55 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	storfrac_mon 0.5 0.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	harv_eff 0.5
-	transferconst 0.049
 )
 
 pft "C3_gr" (
@@ -1121,7 +1099,6 @@ group "C4G" (
 	eps_mon 0.55 0.45 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	storfrac_mon 0.5 0.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	harv_eff 0.5
-	transferconst 0.076
 )
 
 pft "C4_gr" (

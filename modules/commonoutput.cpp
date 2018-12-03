@@ -79,7 +79,6 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_amon_mt2", &file_amon_mt2, 300, "annual other monoterpene flux output file");
 	declare_parameter("file_mmon_mt1", &file_mmon_mt1, 300, "monthly endocyclic monoterpene flux output file");	
 	declare_parameter("file_mmon_mt2", &file_mmon_mt2, 300, "monthly other monoterpene flux output file");
-
 }
 
 
@@ -365,7 +364,6 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mmon,           file_mmon,           month_columns_wide);
 	create_output_table(out_mmon_mt1,       file_mmon_mt1,       month_columns_wide);
 	create_output_table(out_mmon_mt2,       file_mmon_mt2,       month_columns_wide);
-
 }
 
 /// Function for producing data file used to communicate information on stand structure
@@ -826,7 +824,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_amon_mt2 += patch.fluxes.get_annual_flux(Fluxes::MT_CAMP, pft.id);
 				standpft_amon_mt2 += patch.fluxes.get_annual_flux(Fluxes::MT_TBOC, pft.id);
 				standpft_amon_mt2 += patch.fluxes.get_annual_flux(Fluxes::MT_OTHR, pft.id);
-
+					
 				standpft_clitter += patchpft.litter_leaf + patchpft.litter_root + patchpft.litter_sap + patchpft.litter_heart + patchpft.litter_repr;
 				standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap + patchpft.nmass_litter_heart;
 
@@ -838,33 +836,27 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 							if (indiv.pft.id==pft.id) {
 
-								if(!ifdailygrass || indiv.pft.lifeform != GRASS || !indiv.alive || indiv.istruecrop_or_intercropgrass()){
-									indiv.lai_ymax = indiv.lai;
-									indiv.cmass_leaf_ymax = indiv.cmass_leaf;
-									indiv.cmass_root_ymax = indiv.cmass_root;
-								}
-
-								standpft_cmass_leaf += indiv.cmass_leaf_ymax;
+								standpft_cmass_leaf += indiv.cmass_leaf;
 								standpft_cmass += indiv.ccont();
 								standpft_nmass += indiv.ncont();
-								standpft_nmass_leaf += indiv.cmass_leaf_ymax / indiv.cton_leaf_aavr;
+								standpft_nmass_leaf += indiv.cmass_leaf / indiv.cton_leaf_aavr;
 								standpft_nmass_veg += indiv.nmass_veg;
 								standpft_fpc += indiv.fpc;
 								standpft_aaet += indiv.aaet;
-								standpft_lai += indiv.lai_ymax;
+								standpft_lai += indiv.lai;
 								if (pft.lifeform==TREE) {	
 									standpft_densindiv_total += indiv.densindiv;
 									heightindiv_total += indiv.height * indiv.densindiv;
 								}
-								standpft_vmaxnlim += indiv.avmaxnlim * indiv.cmass_leaf_ymax;
+								standpft_vmaxnlim += indiv.avmaxnlim * indiv.cmass_leaf;
 								standpft_nuptake += indiv.anuptake;
 
 								if(pft.landcover == CROPLAND) {
-									standpft_cmass_veg += indiv.cmass_leaf_ymax + indiv.cmass_root_ymax;
+									standpft_cmass_veg += indiv.cmass_leaf + indiv.cmass_root;
 									if(indiv.cropindiv) {
 										standpft_cmass_veg += indiv.cropindiv->cmass_ho + indiv.cropindiv->cmass_agpool + indiv.cropindiv->cmass_stem;
 										standpft_nmass_leaf += indiv.cropindiv->ynmass_leaf + indiv.cropindiv->ynmass_dead_leaf;
-										standpft_nmass_veg += indiv.cropindiv->ynmass_leaf + indiv.cropindiv->ynmass_dead_leaf + indiv.cropindiv->ynmass_root + indiv.cropindiv->ynmass_ho + indiv.cropindiv->ynmass_agpool;
+										standpft_nmass_veg += indiv.cropindiv->ycmass_leaf + indiv.cropindiv->ynmass_dead_leaf + indiv.cropindiv->ynmass_root + indiv.cropindiv->ynmass_ho + indiv.cropindiv->ynmass_agpool;
 									}
 								}
 								else {
@@ -1440,7 +1432,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_cpool, cpool_total);
 
 	// NPOOL Write npool to file
-
+	
 	if (ifcentury) {
 		outlimit(out,out_npool, nmass_gridcell + nlitter_gridcell);
 		outlimit(out,out_npool, surfsoillittern + cwdn);
@@ -1492,7 +1484,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								plot("Age structure [indiv/ha]", pft.name,
 								c * estinterval + estinterval*0.5,
 								densindiv[pft.id*nageclass+c]*1e4); // includes conversion from /m2 --> /ha
-							}
+						}
 
 						pftlist.nextobj();
 					}
@@ -1526,7 +1518,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 /** This function does not have to provide any information to the framework.
   */
 void CommonOutput::outdaily(Gridcell& gridcell) {
-
 }
 
 } // namespace

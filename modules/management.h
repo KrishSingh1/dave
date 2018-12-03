@@ -43,8 +43,6 @@ void nfert(Patch& patch);
 void crop_rotation(Stand& stand);
 /// Determines cutting intensity before wood harvest
 double cut_fraction(Patch& patch);
-/// Grazing function for pasture
-void grazing_daily(Individual& indiv);
 
 /// Struct for copies of carbon and nitrogen of an individual and associated litter and fluxes resulting from harvest
 /// This is needed if we want to harvest only part of a stand, as during land cover change.
@@ -52,17 +50,6 @@ struct Harvest_CN {
 
 	double cmass_leaf;
 	double cmass_root;
-	double cmass_leaf_w1;
-	double cmass_leaf_w2;
-	double cmass_leaf_w3;
-	double cmass_leaf_w4;
-	double nmass_leaf_w1;
-	double nmass_leaf_w2;
-	double nmass_leaf_w3;
-	double nmass_leaf_w4;
-	double cmass_root_sg;
-	double cmass_leaf_ws;
-	double cmass_leaf_wg;
 	double cmass_sap;
 	double cmass_heart;
 	double cmass_debt;
@@ -103,8 +90,6 @@ struct Harvest_CN {
 		nmass_litter_leaf = nmass_litter_root = nmass_litter_sap = nmass_litter_heart = 0.0;
 		acflux_harvest = anflux_harvest = 0.0;
 		harvested_products_slow = harvested_products_slow_nmass = 0.0;
-		cmass_leaf_w1 = cmass_leaf_w2 = cmass_leaf_w3 = cmass_leaf_w4 = cmass_leaf_ws = cmass_root_sg = cmass_leaf_wg = 0.0;
-		nmass_leaf_w1 = nmass_leaf_w2 = nmass_leaf_w3 = nmass_leaf_w4 = 0.0;
 	}
 
 	/// Copies C and N values from individual and patchpft tp struct.
@@ -131,17 +116,6 @@ struct Harvest_CN {
 		else {
 
 			cmass_leaf = indiv.cmass_leaf;
-			cmass_leaf_w1 = indiv.cmass_leaf_w1;
-			cmass_leaf_w2 = indiv.cmass_leaf_w2;
-			cmass_leaf_w3 = indiv.cmass_leaf_w3;
-			cmass_leaf_w4 = indiv.cmass_leaf_w4;
-			cmass_root_sg = indiv.cmass_root_sg;
-			cmass_leaf_ws = indiv.cmass_leaf_ws;
-			cmass_leaf_wg = indiv.cmass_leaf_wg;
-			nmass_leaf_w1 = indiv.nmass_leaf_w1;
-			nmass_leaf_w2 = indiv.nmass_leaf_w2;
-			nmass_leaf_w3 = indiv.nmass_leaf_w3;
-			nmass_leaf_w4 = indiv.nmass_leaf_w4;
 			cmass_root = indiv.cmass_root;
 			cmass_sap = indiv.cmass_sap;
 			cmass_heart = indiv.cmass_heart;
@@ -213,17 +187,6 @@ struct Harvest_CN {
 			indiv.cmass_sap = cmass_sap;
 			indiv.cmass_heart = cmass_heart;
 			indiv.cmass_debt = cmass_debt;
-			indiv.cmass_leaf_w1 = cmass_leaf_w1;
-			indiv.cmass_leaf_w2 = cmass_leaf_w2;
-			indiv.cmass_leaf_w3 = cmass_leaf_w3;
-			indiv.cmass_leaf_w4 = cmass_leaf_w4;
-			indiv.cmass_root_sg = cmass_root_sg;
-			indiv.cmass_leaf_ws = cmass_leaf_ws;
-			indiv.cmass_leaf_wg = cmass_leaf_wg;
-			indiv.nmass_leaf_w1 = nmass_leaf_w1;
-			indiv.nmass_leaf_w2 = nmass_leaf_w2;
-			indiv.nmass_leaf_w3 = nmass_leaf_w3;
-			indiv.nmass_leaf_w4 = nmass_leaf_w4;
 
 			if(indiv.pft.landcover == CROPLAND) {
 				indiv.cropindiv->cmass_ho = cmass_ho;

@@ -163,14 +163,6 @@ void Fluxes::report_flux(PerPatchFluxType flux_type, double value) {
 	daily_fluxes_patch[date.day][flux_type] += value;
 }
 
-double Fluxes::get_daily_flux(PerPFTFluxType flux_type, int day) const {
-	return daily_fluxes_pft[day][flux_type];
-}
-
-double Fluxes::get_daily_flux(PerPatchFluxType flux_type, int day) const {
-	return daily_fluxes_patch[day][flux_type];
-}
-
 double Fluxes::get_monthly_flux(PerPFTFluxType flux_type, int month) const {
 	return monthly_fluxes_pft[month][flux_type];
 }
@@ -1105,72 +1097,55 @@ void cropindiv_struct::serialize(ArchiveStream& arch) {
 
 Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
-	lai_ymax					= 0.0;
-	cmass_leaf_ymax				= 0.0;
-	cmass_root_ymax				= 0.0;
-	cmass_leaf_ws				= 0.0;
-	cmass_leaf_wg				= 0.0;
-	cmass_leaf_w1				= 0.0;
-	cmass_leaf_w2				= 0.0;
-	cmass_leaf_w3				= 0.0;
-	cmass_leaf_w4				= 0.0;
-	nmass_leaf_w1				= 0.0;
-	nmass_leaf_w2				= 0.0;
-	nmass_leaf_w3				= 0.0;
-	nmass_leaf_w4				= 0.0;
-	cmass_root_sg				= 0.0;
-	phen_daily					= 0.0;
-	cmass_leaf_ygrowth			= 0.0;
-	cton_leaf_opt				= 0.0; 
-	anpp						= 0.0;
-	fpc							= 0.0;
-	fpc_daily					= 0.0;
-	densindiv					= 0.0;
-	cmass_leaf					= 0.0;
-	cmass_root					= 0.0;
-	cmass_sap					= 0.0;
-	cmass_heart					= 0.0;
-	cmass_debt					= 0.0;
-	cmass_leaf_post_turnover	= 0.0;
-	cmass_root_post_turnover	= 0.0;
-	cmass_tot_luc				= 0.0;
-	phen						= 0.0;
-	aphen						= 0.0;
-	deltafpc					= 0.0;
+	anpp              = 0.0;
+	fpc               = 0.0;
+	fpc_daily		  = 0.0;
+	densindiv         = 0.0;
+	cmass_leaf        = 0.0;
+	cmass_root        = 0.0;
+	cmass_sap         = 0.0;
+	cmass_heart       = 0.0;
+	cmass_debt        = 0.0;
+	cmass_leaf_post_turnover      = 0.0;
+	cmass_root_post_turnover      = 0.0;
+	cmass_tot_luc     = 0.0;
+	phen              = 0.0;
+	aphen             = 0.0;
+	deltafpc          = 0.0;
 
-	nmass_leaf					= 0.0;
-	nmass_root					= 0.0;
-	nmass_sap					= 0.0;
-	nmass_heart					= 0.0;
-	cton_leaf_aopt				= 0.0;
-	cton_leaf_aavr				= 0.0;
-	cton_status					= 0.0;
-	cmass_veg					= 0.0;
-	nmass_veg					= 0.0;
-	nmass_tot_luc				= 0.0;
+	nmass_leaf        = 0.0;
+	nmass_root        = 0.0;
+	nmass_sap         = 0.0;
+	nmass_heart       = 0.0;
+	cton_leaf_aopt    = 0.0;
+	cton_leaf_aavr    = 0.0;
+	cton_status       = 0.0;
+	cmass_veg         = 0.0;
+	nmass_veg         = 0.0;
+	nmass_tot_luc     = 0.0;
 
-	nactive						= 0.0;
-	nextin						= 1.0;
-	nstore_longterm				= 0.0;
-	nstore_labile				= 0.0;
-	ndemand						= 0.0;
-	fnuptake					= 1.0;
-	anuptake					= 0.0;
-	max_n_storage				= 0.0;
-	scale_n_storage				= 0.0;
+	nactive           = 0.0;
+	nextin            = 1.0;
+	nstore_longterm   = 0.0;
+	nstore_labile     = 0.0;
+	ndemand           = 0.0;
+	fnuptake          = 1.0;
+	anuptake          = 0.0;
+	max_n_storage     = 0.0;
+	scale_n_storage   = 0.0;
 
-	leafndemand					= 0.0;
-	rootndemand					= 0.0;
-	sapndemand					= 0.0;
-	storendemand				= 0.0;
-	leaffndemand				= 0.0;
-	rootfndemand				= 0.0;
-	sapfndemand					= 0.0;
-	storefndemand				= 0.0;
-	leafndemand_store			= 0.0;
-	rootndemand_store			= 0.0;
+	leafndemand       = 0.0;
+	rootndemand       = 0.0;
+	sapndemand        = 0.0;
+	storendemand      = 0.0;
+	leaffndemand      = 0.0;
+	rootfndemand      = 0.0;
+	sapfndemand       = 0.0;
+	storefndemand     = 0.0;
+	leafndemand_store = 0.0;
+	rootndemand_store = 0.0;
 
-	nstress						= false;
+	nstress           = false;
 
 	// additional initialisation
 	age               = 0.0;
@@ -1236,25 +1211,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& aphen
 		& aphen_raingreen
 		& anpp
-		& phen_daily
-		& lai_ymax
-		& cmass_leaf_ymax
-		& cmass_root_ymax
-		& cmass_leaf_ws
-		& cmass_root_sg
-		& cmass_leaf_wg
-		& cmass_leaf_w1
-		& cmass_leaf_w2
-		& cmass_leaf_w3
-		& cmass_leaf_w4
-		& nmass_leaf_w1
-		& nmass_leaf_w2
-		& nmass_leaf_w3
-		& nmass_leaf_w4
-		& cmass_leaf_ygrowth
-		& nscal_running
-		& wscal_running   	
-		& cton_leaf_opt	 
 		& aet
 		& aaet
 		& ltor
@@ -1391,14 +1347,6 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		double cmass_leaf_litter = mortality * cmass_leaf;
 		double cmass_root_litter = mortality * cmass_root;
 
-		if(pft.lifeform == GRASS && ifdailygrass && alive && !istruecrop_or_intercropgrass()){
-			//add extra daily carbon pools to litter
-
-			cmass_leaf_litter += mortality * cmass_leaf_ws;
-			cmass_leaf_litter += mortality * cmass_leaf_w4;
-			cmass_root_litter += mortality * cmass_root_sg;
-		}
-
 		if (pft.landcover==CROPLAND) {
 			if (pft.aboveground_ho)
 				cmass_leaf_litter += mortality * cropindiv->cmass_ho;
@@ -1487,18 +1435,6 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 			cropindiv->nmass_ho *= remaining;
 			cropindiv->nmass_agpool *= remaining;
 		}
-
-		//make sure that we take away from all the daily grass carbon pools.
-		cmass_root_sg *=remaining;
-		cmass_leaf_w1 *=remaining;
-		cmass_leaf_w2 *=remaining;
-		cmass_leaf_w3 *=remaining;
-		cmass_leaf_w4 *=remaining;
-		cmass_leaf_ws *=remaining;
-		nmass_leaf_w1 *=remaining;
-		nmass_leaf_w1 *=remaining;
-		nmass_leaf_w1 *=remaining;
-		nmass_leaf_w1 *=remaining;
 	}
 }
 
@@ -1607,8 +1543,6 @@ double Individual::ccont(double scale_indiv, bool luc) const {
 
 			ccont = cmass_leaf + cmass_root + cmass_sap + cmass_heart - cmass_debt;
 
-			if(ifdailygrass && pft.lifeform == GRASS) ccont += cmass_leaf_ws + cmass_root_sg + cmass_leaf_w4;
-
 			if (pft.landcover == CROPLAND) {
 				ccont += cropindiv->cmass_ho + cropindiv->cmass_agpool;
 				// Yearly allocation not defined for crops with nlim
@@ -1692,8 +1626,6 @@ double Individual::ndemand_storage(double cton_leaf_opt) {
 	if (vegetation.patch.stand.is_true_crop_stand() && ifnlim)	// only CROPGREEN, only ifnlim ?
 		// analogous with root demand
 		storendemand = max(0.0, cropindiv->grs_cmass_stem / (cton_leaf_opt * pft.cton_stem_avr / pft.cton_leaf_avr) - cropindiv->nmass_agpool);
-	else if (ifdailygrass && pft.lifeform == GRASS && !istruecrop_or_intercropgrass())
-		storendemand = max(0.0, max_n_storage - nstore()) / 10.0;
 	else
 		storendemand = max(0.0, min(anpp * scale_n_storage / cton_leaf(), max_n_storage) - nstore());
 
@@ -1703,43 +1635,10 @@ double Individual::ndemand_storage(double cton_leaf_opt) {
 /// Checks C mass and zeroes any negative value, balancing by adding to npp and reducing respiration
 double Individual::check_C_mass() {
 
-	double negative_cmass = 0.0;
-
-	if(ifdailygrass && pft.lifeform==GRASS){
-		if(cmass_root_sg < 0.0){
-			negative_cmass -= cmass_root_sg;
-			cmass_root_sg = 0.0;
-		}
-		if(cmass_leaf_ws < 0.0){
-			negative_cmass -= cmass_leaf_ws;
-			cmass_leaf_ws = 0.0;
-		}
-		if(cmass_leaf_w4 < 0.0){
-			negative_cmass -= cmass_leaf_w4;
-			cmass_leaf_w4 = 0.0;
-		}
-		if(cmass_leaf < 0.0){
-			negative_cmass -= cmass_leaf;
-			cmass_leaf = 0.0;
-		}
-		if(cmass_root < 0.0){
-			negative_cmass -= cmass_root;
-			cmass_root = 0.0;
-		}
-
-		if (largerthanzero(negative_cmass, -14)) {
-			anpp += negative_cmass;
-			report_flux(Fluxes::NPP, negative_cmass);
-			report_flux(Fluxes::RA, -negative_cmass);
-		}
-
-		return negative_cmass;
-	}
-
 	if (pft.landcover != CROPLAND)
 		return 0;
 
-	negative_cmass = 0.0;
+	double negative_cmass = 0.0;
 
 	if (cropindiv->grs_cmass_leaf < 0.0) {
 		negative_cmass -= cropindiv->grs_cmass_leaf;
@@ -2029,8 +1928,8 @@ void partition_wood_biomass(double mass_sap, double mass_heart,
 	litter_heart = heart_left;
 }
 
-void Individual::kill(bool harvest /* = false */) {
 
+void Individual::kill(bool harvest /* = false */) {
 	Patchpft& ppft = patchpft();
 
 	double charvest_flux = 0.0;
@@ -2042,7 +1941,7 @@ void Individual::kill(bool harvest /* = false */) {
 	double harv_eff = 0.0;
 	double harvest_slow_frac = 0.0;
 	double res_outtake = 0.0;
-	
+
 	// The function always deals with harvest, but the harvest
 	// fractions are zero when there is no harvest.
 	if (harvest) {
@@ -2053,11 +1952,6 @@ void Individual::kill(bool harvest /* = false */) {
 		}
 
 		res_outtake = pft.res_outtake;
-	}
-
-	if (pft.lifeform == GRASS && ifdailygrass && alive && !istruecrop_or_intercropgrass()){
-		ppft.litter_root += cmass_root_sg;			// storage growth to litter
-		ppft.litter_leaf += cmass_leaf_w4 + cmass_leaf_ws;	//add senescing leaves and growth storage to litter
 	}
 
 	// C doesn't return to litter/harvest if the Individual isn't alive
@@ -2299,7 +2193,6 @@ Landcover::Landcover() {
 			primary_frac_transfer[i][j] = 0.0;
 		}
 
-//		expand_to_new_stand[i] = (i == NATURAL || i == FOREST || i == PASTURE);
 		expand_to_new_stand[i] = (i == NATURAL || i == FOREST);
 
 		pool_to_all_landcovers[i] = false;		// from a donor landcover; alt.c
@@ -2541,17 +2434,17 @@ bool MassBalance::check_indiv_C(Individual& indiv, bool check_harvest) {
 	bool balance = true;
 	Patch& patch = indiv.vegetation.patch;
 	Stand& stand = patch.stand;
-	if (!stand.is_true_crop_stand())
+	if(!stand.is_true_crop_stand())
 		return balance;
 	Gridcell& gridcell = stand.get_gridcell();
 	double ccont = indiv.ccont();
 	ccont += patch.ccont(0.0);
 	double cflux = patch.cflux();
 
-	if (check_harvest && patch.isharvestday)
+	if(check_harvest && patch.isharvestday)
 		ccont_zero = ccont_zero_scaled;
 
-	if (date.year >= nyear_spinup && !negligible(ccont - ccont_zero + cflux - cflux_zero, -10)) {
+	if(date.year >= nyear_spinup && !negligible(ccont - ccont_zero + cflux - cflux_zero, -10)) {
 		dprintf("\nStand %d Patch %d Indiv %d C balance year %d day %d: %.10f\n", patch.stand.id, patch.id, indiv.id, date.year, date.day, ccont - ccont_zero + cflux - cflux_zero);
 		dprintf("C pool change: %.10f\n", ccont - ccont_zero);
 		dprintf("C flux: %.10f\n\n",  cflux - cflux_zero);
@@ -2567,17 +2460,17 @@ bool MassBalance::check_indiv_N(Individual& indiv, bool check_harvest) {
 	
 	Patch& patch = indiv.vegetation.patch;
 	Stand& stand = patch.stand;
-	if (!stand.is_true_crop_stand())
+	if(!stand.is_true_crop_stand())
 		return balance;
 	Gridcell& gridcell = stand.get_gridcell();
 	double ncont = indiv.ncont();
 	ncont += patch.ncont(0.0);
 	double nflux = patch.nflux();
 
-	if (check_harvest && patch.isharvestday)
+	if(check_harvest && patch.isharvestday)
 		ncont_zero = ncont_zero_scaled;
 
-	if (date.year >= nyear_spinup && !negligible(ncont - ncont_zero + nflux - nflux_zero, -14)) {
+	if(date.year >= nyear_spinup && !negligible(ncont - ncont_zero + nflux - nflux_zero, -14)) {
 		dprintf("\nStand %d Patch %d Indiv %d N balance year %d day %d: %.10f\n", patch.stand.id, patch.id, indiv.id, date.year, date.day, ncont - ncont_zero + nflux - nflux_zero);
 		dprintf("N pool change: %.14f\n", ncont - ncont_zero);
 		dprintf("N flux: %.14f\n\n",  nflux - nflux_zero);

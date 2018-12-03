@@ -8,44 +8,6 @@
 #include "landcover.h"
 #include "management.h"
 
-/// Grazing function used for grass individuals in PASTURE stands; called from growth_daily_grass().
-void grazing_daily(Individual& indiv) {
-
-	if(indiv.pft.lifeform != GRASS)
-		return;
-
-	Patch& patch = indiv.vegetation.patch;
-	Stand& stand = patch.stand;
-
-	//rate of grazing each day for landcover pasture functionality , fraction
-	double grazing_rate = stlist[stand.stid].get_management().grazeintens;
-	//minimum carbon in cmass_leaf_w3 for daily grazing functionality
-	const double GRAZING_W3_MIN_CMASS = 0.01;
-
-	// GRAZING
-	if(indiv.cmass_leaf_w3 > GRAZING_W3_MIN_CMASS && indiv.vegetation.patch.stand.landcover == PASTURE){
-
-		patch.is_litter_day=true;
-
-		// Carbon
-		double cmass_harvest = (indiv.cmass_leaf_w1 + indiv.cmass_leaf_w2 + indiv.cmass_leaf_w3) * grazing_rate;
-		indiv.cmass_leaf_w1 -= indiv.cmass_leaf_w1 * grazing_rate;
-		indiv.cmass_leaf_w2 -= indiv.cmass_leaf_w2 * grazing_rate;
-		indiv.cmass_leaf_w3 -= indiv.cmass_leaf_w3 * grazing_rate;
-		patch.fluxes.report_flux(Fluxes::HARVESTC, cmass_harvest);
-
-		// Nitrogen
-		double nmass_harvest = (indiv.nmass_leaf_w1 + indiv.nmass_leaf_w2 + indiv.nmass_leaf_w3) * grazing_rate;
-		indiv.nmass_leaf_w1 -= indiv.nmass_leaf_w1 * grazing_rate;
-		indiv.nmass_leaf_w2 -= indiv.nmass_leaf_w2 * grazing_rate;
-		indiv.nmass_leaf_w3 -= indiv.nmass_leaf_w3 * grazing_rate;
-		indiv.nmass_leaf -= nmass_harvest;
-		double N_grazing_scale = 0.25;	// 75% of N goes back to litter as manure
-		patch.fluxes.report_flux(Fluxes::HARVESTN, nmass_harvest * N_grazing_scale);
-		patch.pft[indiv.pft.id].nmass_litter_leaf += nmass_harvest * (1.0 - N_grazing_scale);
-	}
-}
-
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change
 /** A fraction of trees is cut down (frac_cut)
  *  A fraction of wood is harvested (pft.harv_eff) and returned as acflux_harvest
@@ -437,10 +399,6 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
 	// Carbon:
 	harvest = pft.harv_eff * i.cmass_leaf;
 
-	i.cmass_leaf_w1 -=  pft.harv_eff * i.cmass_leaf_w1;
-	i.cmass_leaf_w2 -=  pft.harv_eff * i.cmass_leaf_w2;
-	i.cmass_leaf_w3 -=  pft.harv_eff * i.cmass_leaf_w3;
-
 	if (ifslowharvestpool) {
 		i.harvested_products_slow += harvest * pft.harvest_slow_frac;
 		harvest = harvest * (1 - pft.harvest_slow_frac);
@@ -466,10 +424,6 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
 		double residue_outtake = pft.res_outtake * i.cmass_leaf;	// res_outtake currently set to 0.0,
 		i.acflux_harvest += residue_outtake;				// could be used for burning
 		i.cmass_leaf -= residue_outtake;
-
-		i.cmass_leaf_w1 -=  pft.res_outtake * i.cmass_leaf_w1;
-		i.cmass_leaf_w2 -=  pft.res_outtake * i.cmass_leaf_w2;
-		i.cmass_leaf_w3 -=  pft.res_outtake * i.cmass_leaf_w3;
 
 		// Nitrogen:
 		residue_outtake = pft.res_outtake * i.nmass_leaf;
@@ -866,17 +820,14 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 
 	if (alive || istruecrop_or_intercropgrass)  {
 		cp.litter_root += cp.cmass_root;
-		cp.litter_root += cp.cmass_root_sg;
 
 		if (burn) {
 			cp.acflux_harvest += cp.cmass_leaf;
-			cp.acflux_harvest += cp.cmass_leaf_ws + cp.cmass_leaf_w4;
 			cp.acflux_harvest += cp.cmass_sap;
 			cp.acflux_harvest += cp.cmass_heart - cp.cmass_debt;
 		}
 		else {
 			cp.litter_leaf += cp.cmass_leaf;
-			cp.litter_leaf += cp.cmass_leaf_ws + cp.cmass_leaf_w4;
 			cp.litter_sap += cp.cmass_sap;
 			cp.litter_heart += cp.cmass_heart - cp.cmass_debt;
 		}
@@ -924,13 +875,6 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 	}
 
 	cp.cmass_leaf = 0.0;
-	cp.cmass_leaf_ws = 0.0;
-	cp.cmass_leaf_w1 = 0.0;
-	cp.cmass_leaf_w2 = 0.0;
-	cp.cmass_leaf_w3 = 0.0;
-	cp.cmass_leaf_w4 = 0.0;
-	cp.cmass_leaf_wg = 0.0;
-	cp.cmass_root_sg = 0.0;
 	cp.cmass_root = 0.0;
 	cp.cmass_sap = 0.0;
 	cp.cmass_heart = 0.0;
@@ -1053,16 +997,9 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 		}
 	}
 	else {
-	
+
 		indiv.cmass_root *= scale;
 		indiv.cmass_leaf *= scale;
-		indiv.cmass_leaf_ws *=scale;
-		indiv.cmass_leaf_w1 *=scale;
-		indiv.cmass_leaf_w2 *=scale;
-		indiv.cmass_leaf_w3 *=scale;
-		indiv.cmass_leaf_w4 *=scale;
-		indiv.cmass_root_sg *=scale;
-		indiv.cmass_leaf_wg *=scale;
 		indiv.cmass_heart *= scale;
 		indiv.cmass_sap *= scale;
 		indiv.cmass_debt *= scale;
@@ -1106,7 +1043,7 @@ bool harvest_year(Individual& indiv) {
 	bool killed = false;
 
 	// Reduce individual's C and N mass in stands that have increased in area this year:
-	if (landcover.updated && !indiv.has_daily_turnover() && !(ifdailygrass && (stand.landcover == PASTURE || stand.landcover == URBAN))) {
+	if (landcover.updated && !indiv.has_daily_turnover()) {
 		scale_indiv(indiv, false);
 	}
 
@@ -1114,7 +1051,7 @@ bool harvest_year(Individual& indiv) {
 		if (!indiv.has_daily_turnover())
 			harvest_crop(indiv, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass, false);
 	}
-	else if ((stand.landcover == PASTURE || stand.landcover == URBAN) && !ifdailygrass) {
+	else if (stand.landcover == PASTURE) {
 		harvest_pasture(indiv, indiv.pft, indiv.alive);
 	}
 	else if(stand.landcover == FOREST || stand.landcover == NATURAL && run_landcover)

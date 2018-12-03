@@ -11,9 +11,7 @@
 /// Updates patch members fpc_total and fpc_rescale for crops (to be called after crop_phenology())
 void update_patch_fpc(Patch& patch);
 /// Handles daily crop allocation and daily lai calculation
-void growth_daily_crop(Patch& patch);
-/// Updates lai_daily and fpc_daily from daily grs_cmass_leaf-value
-void lai_crop(Patch& patch);
+void growth_daily(Patch& patch);
 /// Updates yearly lai and fpc for cropland
 void allometry_crop(Individual& indiv);
 /// Transfer of this year's growth (ycmass_xxx) to cmass_xxx_inc in growth()

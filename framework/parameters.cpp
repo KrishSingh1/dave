@@ -52,8 +52,6 @@ bool ifrainonwetdaysonly;
 
 bool ifbvoc;
 
-bool ifdailygrass;
-
 wateruptaketype wateruptake;
 
 bool run_landcover;
@@ -80,11 +78,7 @@ xtring state_path;
 bool restart;
 bool save_state;
 int state_year;
-
-bool ifdailyoutput; 
-int dailyoutput_firstyear; 
-int dailyoutput_lastyear;
-
+	
 bool readsowingdates = false;
 bool readharvestdates = false;
 bool readNfert = false;
@@ -392,7 +386,6 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("title",&title,80,CB_NONE,"Title for run");
 		declareitem("nyear_spinup",&nyear_spinup,1,10000,1,CB_NONE,"Number of simulation years to spinup for");
-
 		declareitem("vegmode",&strparam,16,CB_VEGMODE,
 			"Vegetation mode (\"INDIVIDUAL\", \"COHORT\", \"POPULATION\")");
 		declareitem("ifbgestab",&ifbgestab,1,CB_NONE,
@@ -485,16 +478,11 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("save_state", &save_state, 1, CB_NONE, "Whether to save new state files");
 		declareitem("state_year", &state_year, 1, 20000, 1, CB_NONE, "Save/restart year. Unspecified means just after spinup");
 
-		declareitem("ifdailyoutput", &ifdailyoutput,1, CB_NONE, "Whether to produce daily output. Unspecified means no, do not.");
-		declareitem("dailyoutput_firstyear", &dailyoutput_firstyear, -20000, 20000, 1, CB_NONE, "First calendar year for daily output. Unspecified means just after spinup, while zero means from start of spinup.");
-		declareitem("dailyoutput_lastyear", &dailyoutput_lastyear, -20000, 20000, 1, CB_NONE, "Last calendar year for daily output. Zero or unspecified means last year of run.");
-
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
 		declareitem("st",BLOCK_ST,CB_NONE,"Header for block defining StandType");
 		declareitem("mt",BLOCK_MT,CB_NONE,"Header for block defining Management");
-		declareitem("ifdailygrass",&ifdailygrass,1,CB_NONE,	"Whether daily carbon allocation for grasses is enabled (0,1)");
-		
+
 		for (size_t i = 0; i < xtringParams.size(); ++i) {
 			const xtringParam& p = xtringParams[i];
 			declareitem(p.name, p.param, p.maxlen, 0, p.help);
@@ -784,12 +772,6 @@ void plib_declarations(int id,xtring setname) {
 			"c3 parameter for allocation with N stress");
 		declareitem("d3",&ppft->d3,-1000.0,1000.0,1,CB_NONE,
 			"d3 parameter for allocation with N stress");
-		declareitem("stor",&ppft->stor,0.0,1.0,1,CB_NONE,
-			"storage growth to root ratio, for daily carbon allocation");
-		declareitem("transferconst",&ppft->transferconst,0.0,1.0,1,CB_NONE,
-			"Transfer of material between compartments for daily allocation");
-		declareitem("sen_fac",&ppft->sen_fac,0.0,1.0,1,CB_NONE,
-			"Grass senescence factor for daily growth grasses");
 
 		callwhendone(CB_CHECKPFT);
 
@@ -830,7 +812,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("nfert",&pmt->nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop");
 		declareitem("fallow",&pmt->fallow,1,CB_NONE,"Fallow in place of crop");
 		declareitem("multicrop",&pmt->multicrop,1,CB_NONE,"Whether to grow several crops in a year");
-		declareitem("grazeintens",&pmt->grazeintens,0.0,1.0,1,CB_NONE,"Grazing intensity");
 
 		callwhendone(CB_CHECKMT);
 
@@ -887,7 +868,6 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("nfert",&pst->management.nfert,0.0,1000.0,1,CB_NONE,"Fertilization application of crop 1");
 				declareitem("fallow",&pst->management.fallow,1,CB_NONE,"Fallow in place of crop 1");
 				declareitem("multicrop",&pst->management.multicrop,1,CB_NONE,"Whether to grow several crops in a year in management 1");
-				declareitem("grazeintens",&pst->management.grazeintens,0.0,10.0,1,CB_NONE,"Grazing intensity");
 			}
 			else if(i == 1) {
 				declareitem("management2",&strparam,16,CB_MANAGEMENT2,"");
@@ -1120,7 +1100,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcentury")) badins("ifcentury");
 		if (!itemparsed("ifnlim")) badins("ifnlim");
 		if (!itemparsed("freenyears")) badins("freenyears");
-		if (!itemparsed("ifdailygrass")) badins("ifdailygrass");
 
 		if (nyear_spinup <= freenyears) {
 			sendmessage("Error", "freenyears must be smaller than nyear_spinup");
@@ -1128,17 +1107,6 @@ void plib_callback(int callback) {
 		}
 
 		if (!itemparsed("outputdirectory")) badins("outputdirectory");
-
-		if (!itemparsed("ifdailyoutput")) { 
-			ifdailyoutput = false;
-		}
-		if (!itemparsed("dailyoutput_firstyear")) {
-			dailyoutput_firstyear = DAILYOUTPUT_FIRSTYEAR_NONE; 
-		}
-		if (!itemparsed("dailyoutput_lastyear")) {
-			dailyoutput_lastyear = std::numeric_limits<int>::max();
-		}
-
 		if (!itemparsed("ifsmoothgreffmort")) badins("ifsmoothgreffmort");
 		if (!itemparsed("ifdroughtlimitedestab")) badins("ifdroughtlimitedestab");
 		if (!itemparsed("ifrainonwetdaysonly")) badins("ifrainonwetdaysonly");
@@ -1498,12 +1466,6 @@ void plib_callback(int callback) {
 			if (!itemparsed("turnover_root")) badins("turnover_root");
 			if (!itemparsed("ltor_max")) badins("ltor_max");
 			if (!itemparsed("intc")) badins("intc");
-
-			if(ifdailygrass && ppft->lifeform==GRASS){
-				if (!itemparsed("stor")) badins("stor");
-				if (!itemparsed("transferconst")) badins("transferconst");
-				if (!itemparsed("sen_fac")) badins("sen_fac");
-			}
 
 			if (run_landcover) {
 				if (!itemparsed("landcover")) badins("landcover");

@@ -64,12 +64,6 @@ typedef enum {APIN, BPIN, LIMO, MYRC, SABI, CAMP, TRIC, TBOC, OTHR, NMTCOMPOUNDT
 /// Title for this run
 extern xtring title;
 
-/// Whether to produce daily output, and during which years
-const int DAILYOUTPUT_FIRSTYEAR_NONE = (int)-1e9;
-extern bool ifdailyoutput; 
-extern int dailyoutput_firstyear; 
-extern int dailyoutput_lastyear;
-
 /// Vegetation mode (population, cohort or individual)
 extern vegmodetype vegmode;
 
@@ -244,9 +238,6 @@ extern bool ifrainonwetdaysonly;
 
 /// whether BVOC calculations are included
 extern bool ifbvoc;
-
-/// whether daily carbon allocation for grasses is turned on
-extern bool ifdailygrass;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////

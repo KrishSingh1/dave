@@ -86,7 +86,6 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 			// Get reference to this patch
 			Patch& patch = stand.getobj();
-
 			// Update daily soil drivers including soil temperature
 			dailyaccounting_patch(patch);
 
@@ -114,7 +113,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			irrigation(patch);
 			// Soil water accounting, snow pack accounting
 			soilwater(patch, gridcell.climate);
-			// Daily C allocation (grass and crops)
+			// Daily C allocation (cropland)
 			growth_daily(patch);
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch);

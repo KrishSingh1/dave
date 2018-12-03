@@ -546,25 +546,6 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	             Lamarque::RCP60);
 	             //Lamarque::parse_timeseries(ndep_timeseries));
 
-	//CLN
-	if ( ignition == SIMFIRE || ignition == SIMGFED || ignition == PRESCRIBED ) {
-		dprintf("CLN reading SIMFIRE %f %f \n", lon,lat);
-		simfire_input_module.getsimfiredata(gridcell, lon, lat);
-	}
-			
-	//CLN
-	if ( ignition == GFED31 || ignition == SIMGFED ) {
-		dprintf("READ GFED31  %f %f \n", lon,lat);
-		gfed31_input_module.getgfed31data(gridcell, lon, lat);
-	}
-
-	//CLN load prescribed fire-frequencies
-	/*	if ( ignition == PRESCRIBED ) {
-		firefreq.load_file(param["file_prescfire"].str);
-		gridcell.climate.prescribed_ba = firefreq.get_presc_ba(lon,lat);
-		dprintf("firefreq %f %f %f \n",lon, lat, gridcell.climate.prescribed_ba);
-		}*/
-
 	// Setup the soil type
 	soilparameters(gridcell.soiltype, soilcode);
 

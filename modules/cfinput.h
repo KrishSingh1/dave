@@ -17,122 +17,10 @@
 #include <memory>
 #include <limits>
 //CMLN #include "input.h"
-#include "simfire.h"
-#include "SimfireInput.h"
-#include "gfed31_burned_area.h"
+//#include "simfire.h"
+//#include "SimfireInput.h"
+//#include "gfed31_burned_area.h"
 //CMLN #include "firefreqfile.h"
-
-class SimfireData {
-
-public:
-
-	/// Gets simfire data for a gridcell
-	void getsimfiredata(Gridcell& gridcell, double lon, double lat) {
-		
-		Climate& climate = gridcell.climate;
-
-		dprintf("CLN Inside getsimfiredata \n");
-
-		/// Paths to SIMFIRE binaries
-		xtring file_simfire = param["file_simfire"].str;
-		
-		// open file, fill podp, monthly_burned_area and igbp_class for a gridcell
-		// Fill static arrays/variables here
-		SimfireInputArchive ark;
-		
-		if (!ark.open(file_simfire)) {
-			fail("Could not open %s for input \n", (char*)file_simfire);
-		}
-		
-		SimfireInput rec;
-		rec.lon = lon;
-		rec.lat = lat;
-
-		if (!ark.getindex(rec)) {
-			ark.close();
-			fail("Grid cell not found in %s \n", (char*)file_simfire);
-		}
-
-		rec.lon = lon;
-		rec.lat = lat;
-
-		dprintf("++++++++REAL ONE+++++++++ la, lo %f %f \n",rec.lat,rec.lon);
-		// Found the record, get the values
-
-		// IGBP Land-Cover-Classification
-		gridcell.igbp_class = (int)rec.igbp_class[0];
-
-		// convert into simfire internal biomes
-		simfire_biome_mapping(gridcell);
-		dprintf("IGBP: %d -> BIOME %d \n",gridcell.igbp_class,(int)climate.simfire_biome);
-
-		// Monthly fire risk (Knorr)
-		for (int m=0; m<12; m++) {
-			climate.monthly_fire_risk[m] = rec.monthly_ba[m];
-			//CLN			dprintf("mBA  %d : %f \n",m,climate.monthly_fire_risk[m]);
-		}
-		// Population density from HYDE 3.1
-		for (int t=0; t<57; t++) {
-			gridcell.hyde31_pop_density[t] = rec.pop_density[t];
-			//CLN			dprintf("Popd  %d : %f \n",t,gridcell.hyde31_pop_density[t]);
-		}		
-
-		ark.close();
-	}
-private:
-
-	/*	double popd[57];
-	double monthly_burned_area[12];
-	int igbp_class;*/
-};
-
-class GFED31Data {
-
-public:
-
-	/// Gets GFED 3.1 data for a gridcell from fast archive
-	void getgfed31data(Gridcell& gridcell, double& lon, double& lat) {
-		
-		//		Climate& climate = getclimate(gridcell);
-		Climate& climate = gridcell.climate;
-		
-		/// Paths to GFED3.1 binaries
-		xtring file_gfed31  = param["file_gfed31"].str;
-		
-		// open file for monthly/daily ba for a gridcell
-		// Fill static arrays/variables here
-		GFED31_burned_areaArchive ark;
-		
-		if (!ark.open(file_gfed31)) {
-			fail("Could not open %s for input", (char*)file_gfed31);
-		}
-		
-		GFED31_burned_area rec;
-		rec.lon = lon;
-		rec.lat = lat;
-
-		if (!ark.getindex(rec)) {
-			ark.close();
-			fail("Grid cell not found in %s", (char*)file_gfed31);
-		}
-
-		// Found the record, get the values
-		// from 07/1996 - 02/2012
-		// Monthly burned area
-		for (int m=0; m<188; m++) {
-			gridcell.monthly_GFED31_ba[m] = rec.monthly_burned_area[m];
-		}
-		dprintf(" erste 5 %f %f %f  \n",gridcell.monthly_GFED31_ba[175-177]);
-		ark.close();
-	}
-	/*
-private:
-
-	double popd[57];
-	double monthly_burned_area[12];
-	int igbp_class;
-	*/
-};
 
 class CFInput : public InputModule {
 public:
@@ -162,11 +50,6 @@ private:
 	LandcoverInput landcover_input;
 	/// Management input module
 	ManagementInput management_input;
-
-	// SIMFIRE input module
-	SimfireData simfire_input_module;
-	// GFED 3.1 input module
-	GFED31Data gfed31_input_module;
 
 	struct Coord {
 

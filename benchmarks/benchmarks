@@ -190,7 +190,7 @@ function setup_workspace {
     mkdir $workspace
 
     # Get the submit script
-	cp $build_path/output/submit.sh $workspace
+    cp $build_path/output/submit.sh $workspace
 
     # Copy the config files to the workspace.
     # The ins file is excluded to avoid confusion. It's the ins
@@ -207,8 +207,24 @@ function setup_workspace {
 	    -o $workspace/gridlist.txt $bbox
     fi
 
-	# Create a symbolic link to the common directory
-	ln -s -T $(readlink -f common) $workspace/common
+    # Create a symbolic link to the common directory
+    ln -s -T $(readlink -f common) $workspace/common
+
+    # If benchmarks are run on Aurora or Simba link Liu-AGB 
+    # and gfed benchmarks into crop_global dir
+    mashine_name = $(uname n) 
+    if [ $workspace == "crop_global" ]
+	then
+	if [ $mashine_name == "aurora" ]
+	    then
+	    ln -s /<link_to_data>/Global_mean_ABC_1993-2012_Liu2015_SI.dat
+	    ln -s /<link_to_data>/gfed40_c-emissions_1997-2016.dat
+	elif [ $mashine_name == "simba" ]
+	    then
+	    ln -s /data/biomass/Global_mean_ABC_1993-2012_Liu2015_SI.dat
+	    ln -s /data/fire/gfed40_c-emissions_1997-2016.dat
+	fi
+    fi
 }
 
 # This function submits the post processing job.

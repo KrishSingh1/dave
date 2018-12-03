@@ -956,6 +956,12 @@ public:
 	/// Report flux for a certain flux type
 	void report_flux(PerPatchFluxType flux_type, double value);
 
+	/// \returns daily flux for a given flux type (for all PFTs)
+	double get_daily_flux(PerPFTFluxType flux_type, int day) const;
+
+	/// \returns daily flux for a given flux type
+	double get_daily_flux(PerPatchFluxType flux_type, int day) const;
+
 	/// \returns flux for a given month and flux type (for all PFTs)
 	double get_monthly_flux(PerPFTFluxType flux_type, int month) const;
 

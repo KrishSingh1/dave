@@ -212,6 +212,12 @@ extern bool disturb_pasture;
 /// Whether to simulate cropland as pasture
 extern bool grassforcrop;
 
+/// Whether to produce daily output, and during which years
+const int DAILYOUTPUT_FIRSTYEAR_NONE = (int)-1e9;
+extern bool ifdailyoutput;
+extern int dailyoutput_firstyear;
+extern int dailyoutput_lastyear;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Settings controlling the saving and loading from state files
 

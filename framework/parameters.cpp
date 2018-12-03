@@ -79,6 +79,10 @@ bool restart;
 bool save_state;
 int state_year;
 	
+bool ifdailyoutput;
+int dailyoutput_firstyear;
+int dailyoutput_lastyear;
+
 bool readsowingdates = false;
 bool readharvestdates = false;
 bool readNfert = false;
@@ -477,6 +481,10 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
 		declareitem("save_state", &save_state, 1, CB_NONE, "Whether to save new state files");
 		declareitem("state_year", &state_year, 1, 20000, 1, CB_NONE, "Save/restart year. Unspecified means just after spinup");
+
+		declareitem("ifdailyoutput", &ifdailyoutput, 1, CB_NONE, "Whether to produce daily output. Unspecified means no, do not.");
+		declareitem("dailyoutput_firstyear", &dailyoutput_firstyear, -20000, 20000, 1, CB_NONE, "First calendar year for daily output. Unspecified means just after spinup, while zero means from start of spinup.");
+		declareitem("dailyoutput_lastyear", &dailyoutput_lastyear, -20000, 20000, 1, CB_NONE, "Last calendar year for daily output. Zero or unspecified means last year of run.");
 
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
@@ -1104,6 +1112,16 @@ void plib_callback(int callback) {
 		if (nyear_spinup <= freenyears) {
 			sendmessage("Error", "freenyears must be smaller than nyear_spinup");
 			plibabort();
+		}
+
+		if (!itemparsed("ifdailyoutput")) {
+			ifdailyoutput = false;
+		}
+		if (!itemparsed("dailyoutput_firstyear")) {
+			dailyoutput_firstyear = DAILYOUTPUT_FIRSTYEAR_NONE;
+		}
+		if (!itemparsed("dailyoutput_lastyear")) {
+			dailyoutput_lastyear = std::numeric_limits<int>::max();
 		}
 
 		if (!itemparsed("outputdirectory")) badins("outputdirectory");

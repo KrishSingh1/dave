@@ -133,13 +133,13 @@ void decayrates(double wcont,double gtemp_soil,double& k_soilfast,double& k_soil
 	// temperature responses and converting from annual to daily basis
 	// NB: Temperature response (gtemp; Lloyd & Taylor 1994) set by framework
 
-	k_soilfast=k_soilfast10*gtemp_soil*moist_response/date.year_length();
+	k_soilfast=k_soilfast10*gtemp_soil*moist_response/(double)date.year_length();
 	if (tillage) {
 		k_soilfast *= TILLAGE_FACTOR; // Increased HR for crops (tillage)
 	}
-	k_soilslow=k_soilslow10*gtemp_soil*moist_response/date.year_length();
+	k_soilslow=k_soilslow10*gtemp_soil*moist_response/(double)date.year_length();
 
-	fr_litter=exp(-k_litter10*gtemp_soil*moist_response/date.year_length());
+	fr_litter=exp(-k_litter10*gtemp_soil*moist_response/(double)date.year_length());
 	fr_soilfast=exp(-k_soilfast);
 	fr_soilslow=exp(-k_soilslow);
 }

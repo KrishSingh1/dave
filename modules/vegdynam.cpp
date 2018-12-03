@@ -29,7 +29,6 @@
 
 #include "config.h"
 #include "vegdynam.h"
-
 #include "growth.h"
 #include "driver.h"
 
@@ -877,7 +876,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 
 			if (fpc_grass>1.0-min(fpc_tree,FPC_TREE_MAX)) {
 				fpc_dec=(fpc_grass-1.0+min(fpc_tree,FPC_TREE_MAX))*indiv.fpc/fpc_grass;
-				mort_shade=1.0-fracmass_lpj(indiv	.fpc-fpc_dec,indiv.fpc,indiv);
+				mort_shade=1.0-fracmass_lpj(indiv.fpc-fpc_dec,indiv.fpc,indiv);
 			}
 			else
 				mort_shade=0.0;
@@ -1325,7 +1324,7 @@ void fire(Patch& patch,double& fireprob) {
 	// Calculate fraction of grid cell burnt
 	// Thonicke et al 2001, Eqn 9
 
-	s=n/date.year_length();
+	s=n/(double)date.year_length();
 	sm=s-1;
 
 	fireprob=s*exp(sm/(0.45*sm*sm*sm+2.83*sm*sm+2.96*sm+1.04));

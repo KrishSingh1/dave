@@ -62,7 +62,7 @@ const float r_epsilon  = std::numeric_limits<float>::min() ;
 // -----------------------------------------------------------------------------
 
 //CLN const int maxcount = 10000000;
-const int maxcount = 50;
+const int maxcount = 20;
 
 const int qsiz  = 10 ;  //!41265_i4
 const int cmul  = 69609;
@@ -367,7 +367,7 @@ void calc_cloud_params(GWGen& gwgen) {
         //! :f:var:`cldf_sd_d` to calculate the necessary parameters for the adjustment of
         //! the monthly cloud fraction mean depending on the wet/dry state
 
-	dprintf("Computing cloud params \n");
+	dprintf("GWGEN Computing cloud params \n");
 
         gwgen.cldf_w1   = -cldf_w - 1.0;
         gwgen.cldf_w2   = cldf_w * cldf_w;
@@ -2718,7 +2718,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		}
 		
 		// below: n_curr bezieht sich auf gitterzelle
-		double prec_t = fmax(0.5,0.05 * in_mprec[mon]);  //set quality threshold for preciptation amount
+		double prec_t = fmax(2.,0.2 * in_mprec[mon]);  //set quality threshold for preciptation amount
 		
 		GWGen gwgen_sav = gwgen;
 		
@@ -2810,7 +2810,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 				tmin_acc += gwgen.dtmin;
 			} 
 			// Break off criteria
-			tmindiff = 1.; //!abs(mtmin(n_curr) - tmin_acc / ndm(n_curr))
+			tmindiff = 1. //abs(mtmin(n_curr) - tmin_acc / ndm(n_curr))
 			
 			//! Reset met_out_save after initialization
 			if (i_count == 0) {
@@ -2829,16 +2829,19 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 			}
 			else if (i_count >= 1) {  //!enforce at least two times over the month to get initial values ok
 				
-				pdaydiff = abs(gwgen.mwetd - mwetd_sim);
-				precdiff = abs(gwgen.mprec - mprec_sim);
-				
+			        pdaydiff = gwgen.mwetd - mwetd_sim;
+				precdiff = gwgen.mprec - mprec_sim;
+
 				//! restrict simulated total monthly precip to +/-5% or 0.5 mm of observed value
 				
-				if (pdaydiff <= 1 && precdiff <= prec_t && tmindiff < 2.5)  {
+				if ( (abs(pdaydiff) <= 1 && abs(precdiff) <= prec_t && tmindiff < 2.5) || 
+				     (pdaydiff == 0 && abs(precdiff) <= 1.25*prec_t  )  {
+				  dprintf("breakoff i_count %d pday %f %f precdiff %f tmindiff %f \n",i_count
+					  ,(double)pdaydiff,gwgen.mwetd,precdiff,tmindiff);
 					break;
 				}
 
-				double metric = pdaydiff * 15 + precdiff ;
+				double metric = abs(pdaydiff) * 20 + abs(precdiff) ;
 
 				if ( metric < metric_sav ) {
 					for ( int day=0; day<ndaymon; day++) {
@@ -2848,6 +2851,8 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 						dcldf_sav[day]= dcldf[day];
 						dwind_sav[day]= dwind[day];
 					}
+					dprintf("    sav i_count %d pday %f %f precdiff %f tmindiff %f \n",i_count
+						,(double)pdaydiff,gwgen.mwetd,precdiff,tmindiff);
 					metric_sav = metric;
 				}
 
@@ -2860,6 +2865,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 						dcldf[day]= dcldf_sav[day];
 						dwind[day]= dwind_sav[day];
 					};
+				  dprintf("maxcnt i_count %d \n",i_count);
 					break;
 				}
 					
@@ -3014,7 +3020,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 
 			dprintf("delta_prec = %f \n",abs(chk_dprec - in_mprec[mon] ) );
 		}
-		if ( abs(chk_dsol - in_msol[mon] )>0.0001  ) {
+		if ( abs(chk_dsol - in_msol[mon] )>0.001  ) {
 
 			dprintf("delta_sol = %f \n",abs(chk_dsol - in_msol[mon] ) );
 		}

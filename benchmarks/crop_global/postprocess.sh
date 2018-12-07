@@ -78,9 +78,9 @@ describe_image wheat_yield.png "Modelled compared to SPAM data set. Units: kg m-
 
 if [ -f Global_mean_ABC_1993-2012_Liu2015_SI.dat ]
 then
-    tslice $ppp/cpool.out -f 1993 -t 2012 -o cpool1993-2012.dat
+    tslice cpool.out -f 1993 -t 2012 -o cpool1993-2012.dat
     prepare_agb cpool1993-2012.dat cpool1993-2012_agb.dat VegC
-    joyn cpool1993-2012_agb.dat /home/x_larni/SRC/LPJ-GUESS/fire_blaze_merge/benchmarks/crop_global/Global_mean_ABC_1993-2012_Liu2015_SI.dat -i Lon Lat -fast -o cpool1993-2012_joyned.dat
+    joyn cpool1993-2012_agb.dat Global_mean_ABC_1993-2012_Liu2015_SI.dat -i Lon Lat -fast -o cpool1993-2012_joyned.dat
     
     # delta plot Liu cpool VegC 
     awk '{if(FNR==1){print $1,$2, $3} else {print $1,$2, $4}}' cpool1993-2012_joyned.dat > cpool1993-2012_joyned_Liu.dat
@@ -108,8 +108,8 @@ fi
 #Fire related benchmarks
 if [ -f gfed40_c-emissions_1997-2016.dat ]
 then
-    tslice $ppp/cflux.out -f 1997 -t 2016 -o cflux1997-2016.dat
-    joyn cflux1997-2016.dat $HOME/DATA/gfed40_c-emissions_1997-2016.dat -i Lon Lat -fast -o cflux1997-2016_joyned.dat
+    tslice cflux.out -f 1997 -t 2016 -o cflux1997-2016.dat
+    joyn cflux1997-2016.dat gfed40_c-emissions_1997-2016.dat -i Lon Lat -fast -o cflux1997-2016_joyned.dat
 
     # delta plot gfed4 cflux
     awk '{print $1,$2, $7}' cflux1997-2016_joyned.dat > cflux1997-2016_joyned_Fire.dat

@@ -9,7 +9,7 @@
 cmake_command="cmake -D CMAKE_BUILD_TYPE=Release"
 make_command="make -j2"
 bbox_command="bbox"
-pp_walltime=1:00:00
+pp_walltime=2:00:00
 
 # Prints a message to stderr
 function error {
@@ -212,9 +212,9 @@ function setup_workspace {
 
     # If benchmarks are run on Aurora or Simba link Liu-AGB 
     # and gfed benchmarks into crop_global dir
-    mashine_name = $(uname n) 
     if [ $workspace == "crop_global" ]
 	then
+	mashine_name=$(uname -n) 
 	if [ $mashine_name == "aurora" ]
 	    then
 	    ln -s /<link_to_data>/Global_mean_ABC_1993-2012_Liu2015_SI.dat

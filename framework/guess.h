@@ -559,6 +559,68 @@ struct PhotosynthesisResult : public Serializable {
 };
 
 
+/// This struct contains the environmental input to a photosynthesis calculation.
+/** \see photosynthesis */
+struct PhotosynthesisEnvironment {
+	/// Constructs an empty result
+	PhotosynthesisEnvironment() {
+		clear();
+	}
+
+	/// Clears all members
+	/** Nonsense values to cause a crash if used
+	 */
+	void clear() {
+		co2 = -1;
+		temp = -1;
+		apar = -1;
+		daylength = 0;
+	}
+
+	/// CO2 concentration (ppm)
+	double co2;
+
+	/// daily temperature (K)
+	double temp;
+
+	/// APAR ()
+	double apar;
+
+	/// length of day (hours)
+	double daylength;
+
+	/// test
+    double test_fn() const {
+		return 0;
+    }
+};
+
+
+/// This struct contains the stresses used in a photosynthesis calculation.
+/** \see photosynthesis */
+struct PhotosynthesisStresses {
+	/// Constructs an empty result
+	PhotosynthesisStresses() {
+		no_stress();
+	}
+
+	/// All members set to no stress values
+	/** Default values indicating no stress
+	 */
+	void no_stress() {
+		ifnlimvmax = -1;
+	}
+
+	/// N lim (xxx)
+	double ifnlimvmax;
+
+	/// test
+    double test_fn() const {
+		return 0;
+    }
+};
+
+
 /// The Climate for a grid cell
 /** Stores all static and variable data relating to climate parameters, as well as
  *  latitude, atmospheric CO2 concentration and daylength for a grid cell. Includes

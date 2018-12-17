@@ -571,28 +571,40 @@ struct PhotosynthesisEnvironment {
 	/** Nonsense values to cause a crash if used
 	 */
 	void clear() {
-		co2 = -1;
-		temp = -1;
-		apar = -1;
+		co2 = 0;
+		temp = 0;
+		par = 0;
+		fpar = 0;
 		daylength = 0;
 	}
 
-	/// CO2 concentration (ppm)
+	/// atmospheric ambient CO2 concentration (ppmv)
 	double co2;
 
-	/// daily temperature (K)
+	/// mean air temperature today (deg C)
 	double temp;
 
-	/// APAR ()
-	double apar;
+	/// total daily photosynthetically-active radiation today (J / m2 / day) (ALPHAA not yet accounted for)
+	double par;
 
-	/// length of day (hours)
+	/// fraction of PAR absorbed by foliage
+	double fpar;
+
+	/// day length, must equal 24 in diurnal mode(h)
 	double daylength;
 
-	/// test
-    double test_fn() const {
-		return 0;
+	/// set 
+    void set(double co2_env, double temp_env, double par_env, double fpar_env, double daylength_env) {
+		co2 = co2_env;
+		temp = temp_env;
+		par = par_env;
+		fpar = fpar_env;
+		daylength = daylength_env;
     }
+
+	double get_apar() const {
+		return par * fpar;
+	}
 };
 
 
@@ -608,15 +620,15 @@ struct PhotosynthesisStresses {
 	/** Default values indicating no stress
 	 */
 	void no_stress() {
-		ifnlimvmax = -1;
+		ifnlimvmax = false;
 	}
 
-	/// N lim (xxx)
-	double ifnlimvmax;
+	/// whether nitrogen should limit Vmax
+	bool ifnlimvmax;
 
-	/// test
-    double test_fn() const {
-		return 0;
+	/// Set the stresses
+    void set(bool thisnlimvmax) {
+		ifnlimvmax = thisnlimvmax;
     }
 };
 

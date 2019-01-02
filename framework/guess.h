@@ -605,6 +605,27 @@ struct PhotosynthesisEnvironment {
 	double get_apar() const {
 		return par * fpar;
 	}
+
+	double get_par() const {
+		return par;
+	}
+
+	double get_fpar() const {
+		return fpar;
+	}
+
+	double get_temp() const {
+		return temp;
+	}
+
+	double get_co2() const {
+		return co2;
+	}
+
+	double get_daylength() const {
+		return daylength;
+	}
+
 };
 
 
@@ -630,6 +651,10 @@ struct PhotosynthesisStresses {
     void set(bool thisnlimvmax) {
 		ifnlimvmax = thisnlimvmax;
     }
+
+	bool get_ifnlimvmax() const {
+		return ifnlimvmax;	
+	}
 };
 
 

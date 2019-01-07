@@ -420,6 +420,7 @@ double surv_prob_boreal(double fli) {
 //WK Is there anywhere in the code/documentation where the full references are given?	   
 	*/
 	double surv_prob_boreal = exp(-fli/500.);
+	surv_prob_boreal   = 1. - 0.5 * ( 1.-surv_prob_boreal) ; 
 	return surv_prob_boreal;
 }
 
@@ -469,6 +470,9 @@ double surv_prob_tropics(double dbh, double fli) {
 	else {
 		p_surv = exp(fli/3000. * log(p_surv3000));
 	}
+	// CLNori p_surv   = max(min(1.,p_surv), 0.001);
+	p_surv   = 1. - 0.5 * ( 1.-p_surv) ; 
+
 	p_surv   = max(min(1.,p_surv), 0.001);
     	
 	return p_surv;
@@ -581,8 +585,8 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 	// allometry function as used in growth.cpp
 	double dbh   = pow(height * 100. / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3) / 100.;
 
-	if ( ignition == SIMFIRE ) {
-		int biome = climate.simfire_biome;
+	int biome = climate.simfire_biome;
+	if ( ignition == SIMFIRE && vegmode == POPULATION ) {
 
 		// Temperate Needleleaf
 		if ( biome == 1) { 
@@ -622,10 +626,63 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 			return 1.;
 		}
 	}
+	else if ( ignition == SIMFIRE && 
+		  (vegmode == COHORT || vegmode == INDIVIDUAL)) {
+
+		// Needleleaf
+		if ( indiv.pft.leafphysiognomy == NEEDLELEAF ) {
+			// Temperate Needleleaf
+			if ( fabs(lat) < 50.) {
+				double mass_cwd = patch.soil.sompool[SURFCWD].cmass   ;   
+				survival_probability = surv_prob_temp_nl(dbh, fli, mass_cwd);
+			}
+			// Tundra
+			else {
+				survival_probability = surv_prob_boreal(fli);
+			}
+		}
+		// Broad leaved
+		else if ( indiv.pft.leafphysiognomy == BROADLEAF ) {
+			// Broadleaf, mixed Forest and majorly NL biomes
+			if ( biome == 0 || biome == 1 || biome == 2 || biome == 3 ) {
+				if  (lat > -30 && lat < 30 ) {
+					// tropical 
+					survival_probability = surv_prob_tropics(dbh,fli);
+				} else if ( climate.is_sprouter ){
+					// temperate Oz (CLN set Sprouter in ins-file)
+					survival_probability = surv_prob_temp_bl(dbh, fli, 1);
+				} else {
+					// temperate 
+					survival_probability = surv_prob_temp_bl(dbh, fli, 0);
+				}
+			}
+			// Savanna, shrubland and sparsely vegetated
+			else if ( biome == 4 || biome == 5 || biome == 7) {
+				if ( climate.is_sprouter ) {
+					survival_probability = surv_prob_OzSavanna(height, fli);
+				}
+				else {
+					survival_probability = surv_prob_Savanna(height, fli);
+				}
+			}
+			// Tundra
+			else if ( biome == 6 ) {
+				survival_probability = surv_prob_boreal(fli);
+			} 
+			else {
+				dprintf("Biome %d not found in BLAZE\n",biome);
+				fail("Exiting... ");
+			}
+		} 
+		else {
+			fail("Physiognomy unknown...");
+		}
+
+	}
 
 	// GFED and others
 	else {
-		survival_probability = surv_prob_OzSavanna(height, fli);
+		fail("BLAZE: case not valid");
 	}
 
 	survival_probability = min(1. ,max(survival_probability,0.0001));

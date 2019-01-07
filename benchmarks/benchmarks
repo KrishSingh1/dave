@@ -217,8 +217,8 @@ function setup_workspace {
 	mashine_name=$(uname -n) 
 	if [ $mashine_name == "aurora" ]
 	    then
-	    ln -s /<link_to_data>/Global_mean_ABC_1993-2012_Liu2015_SI.dat
-	    ln -s /<link_to_data>/gfed40_c-emissions_1997-2016.dat
+	    ln -s /home/jnord/lpjguess_group_catalog_on_lunarc/data/biomass/Global_mean_ABC_1993-2012_Liu2015_SI.dat
+	    ln -s /home/jnord/lpjguess_group_catalog_on_lunarc/data/fire/gfed40_c-emissions_1997-2016.dat
 	elif [ $mashine_name == "simba" ]
 	    then
 	    ln -s /data/biomass/Global_mean_ABC_1993-2012_Liu2015_SI.dat

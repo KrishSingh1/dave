@@ -611,7 +611,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							patch.pft[pft.id].anetps_ff_est=
 								patch.pft[pft.id].anetps_ff_est_initial;
 							patch.pft[pft.id].wscal_mean_est=patch.pft[pft.id].wscal_mean;
-							newindiv=!negligible(nsapling);
+							newindiv=!negligible(nsapling / patcharea);
 						}
 						else if (patch.age%estinterval && !init_clone || patch.plant_this_year) {
 
@@ -628,7 +628,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 								patch.pft[pft.id].anetps_ff_est/=(double)estinterval;
 								patch.pft[pft.id].wscal_mean_est/=(double)estinterval;
 							}
-							newindiv=!negligible(nsapling);
+							newindiv=!negligible(nsapling / patcharea);
 								// round down to 0 if nsapling very small
 						}
 					}
@@ -880,10 +880,6 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			}
 			else
 				mort_shade=0.0;
-
-			if (mort_shade>0.0) {
-				mort_shade=mort_shade;
-			}
 
 			// Mortality due to fire
 			if (patch.has_fires() && firemodel == GLOBFIRM)

@@ -2810,7 +2810,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 				tmin_acc += gwgen.dtmin;
 			} 
 			// Break off criteria
-			tmindiff = 1. //abs(mtmin(n_curr) - tmin_acc / ndm(n_curr))
+			tmindiff = 1. ;//abs(mtmin(n_curr) - tmin_acc / ndm(n_curr))
 			
 			//! Reset met_out_save after initialization
 			if (i_count == 0) {
@@ -2835,9 +2835,9 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 				//! restrict simulated total monthly precip to +/-5% or 0.5 mm of observed value
 				
 				if ( (abs(pdaydiff) <= 1 && abs(precdiff) <= prec_t && tmindiff < 2.5) || 
-				     (pdaydiff == 0 && abs(precdiff) <= 1.25*prec_t  )  {
-				  dprintf("breakoff i_count %d pday %f %f precdiff %f tmindiff %f \n",i_count
-					  ,(double)pdaydiff,gwgen.mwetd,precdiff,tmindiff);
+				     (pdaydiff == 0 && abs(precdiff) <= 1.25*prec_t  ))  {
+					//dprintf("breakoff i_count %d pday %f %f precdiff %f tmindiff %f \n",i_count
+					//,(double)pdaydiff,gwgen.mwetd,precdiff,tmindiff);
 					break;
 				}
 
@@ -2851,8 +2851,8 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 						dcldf_sav[day]= dcldf[day];
 						dwind_sav[day]= dwind[day];
 					}
-					dprintf("    sav i_count %d pday %f %f precdiff %f tmindiff %f \n",i_count
-						,(double)pdaydiff,gwgen.mwetd,precdiff,tmindiff);
+					//dprintf("    sav i_count %d pday %f %f precdiff %f tmindiff %f \n",i_count
+					//	,(double)pdaydiff,gwgen.mwetd,precdiff,tmindiff);
 					metric_sav = metric;
 				}
 
@@ -2865,7 +2865,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 						dcldf[day]= dcldf_sav[day];
 						dwind[day]= dwind_sav[day];
 					};
-				  dprintf("maxcnt i_count %d \n",i_count);
+					//dprintf("maxcnt i_count %d \n",i_count);
 					break;
 				}
 					
@@ -3007,7 +3007,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 			corr = correlation(ndaymon, dtmax, dsol); 
 			dprintf("corr T   Sol  = %d %d %f  \n",date.year,mon,corr);
 			}*/
-		
+		/*
 		if ( abs(chk_dtemp - in_mtemp[mon] ) >0.0001) {
 
 			dprintf("delta_temp = %f %f %f\n",abs(chk_dtemp - in_mtemp[mon]),chk_dtemp,in_mtemp[mon]);
@@ -3031,7 +3031,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		if ( abs(chk_drhum - in_mrhum[mon] ) >0.0001 ) {
 
 			dprintf("delta_rhum = %f \n", abs(chk_drhum - in_mrhum[mon] ) );
-		}
+		}*/
 			
 	} // month loop
 

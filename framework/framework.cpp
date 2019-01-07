@@ -121,7 +121,8 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch);
 			// BLAZE fire model
-			if (firemodel == BLAZE && patch.has_fires() && date.year > 200 ) 
+			if (firemodel == BLAZE && patch.has_fires() && 
+			    date.year >= patch.soil.solvesomcent_beginyr) 
 				blaze(patch,gridcell.climate);
 
 			if (date.islastday && date.islastmonth) {

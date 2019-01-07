@@ -47,7 +47,7 @@ file_vmaxnlim "vmaxnlim.out"
 
 ! Monthly outputs
 !file_mnpp "mnpp.out"
-!file_mlai "mlai.out"
+file_mlai "mlai.out"
 !file_mrh "mrh.out"
 !file_mgpp "mgpp.out"
 !file_mra "mra.out"
@@ -88,7 +88,7 @@ ifcalcsla 1			! whether to calculate SLA from leaf longevity
 ifcalccton 1			! whether to calculate leaf C:N min from leaf longevity
 					! (PFT-specific value can be specified in this file instead)
 iffire 1			! whether to implement fire (1) or not (0)
-npatch 5			! number of replicate patches to simulate
+npatch 1			! number of replicate patches to simulate
 patcharea 1000			! patch area (m2)
 estinterval 5			! years between establishment events in cohort mode
 ifdisturb 1			! whether generic patch-destroying disturbances enabled
@@ -391,7 +391,7 @@ pft "BNE" (
 
 	! Boreal needleleaved evergreen tree
 
-	include 1
+	include 0
 	tree
 	needleleaved
 	shade_tolerant
@@ -417,7 +417,7 @@ pft "BINE" (
 
 	! Boreal needleleaved evergreen tree
 
-	include 1
+	include 0
 	tree
 	needleleaved
 	shade_intolerant
@@ -443,7 +443,7 @@ pft "BNS" (
 
 	! Boreal needleleaved summergreen tree
 
-	include 1
+	include 0
 	tree
 	needleleaved
 	shade_intolerant
@@ -468,7 +468,7 @@ pft "TeNE" (
 
 	! Temperate needleleaved evergreen tree
 
-	include 1
+	include 0
 	tree
 	needleleaved
 	shade_intolerant ! cf Jun_oxy, Pin_hal in europe.ins
@@ -493,7 +493,7 @@ pft "TeBS" (
 
 	! Shade-tolerant temperate broadleaved summergreen tree
 
-	include 1
+	include 0
 	tree
 	broadleaved
 	shade_tolerant
@@ -516,7 +516,7 @@ pft "IBS" (
 
 	! Shade-intolerant broadleaved summergreen tree
 
-	include 1
+	include 0
 	tree
 	broadleaved
 	shade_intolerant
@@ -539,7 +539,7 @@ pft "TeBE" (
 
 	! Temperate broadleaved evergreen tree
 
-	include 1
+	include 0
 	tree
 	broadleaved
 	shade_tolerant
@@ -564,7 +564,7 @@ pft "TrBE" (
 
 	! Tropical broadleaved evergreen tree
 
-	include 1
+	include 0
 	tree
 	broadleaved
 	shade_tolerant
@@ -585,7 +585,7 @@ pft "TrIBE" (
 
 	! Tropical broadleaved evergreen tree
 
-	include 1
+	include 0
 	tree
 	broadleaved
 	shade_intolerant
@@ -607,7 +607,7 @@ pft "TrBR" (
 
 	! Tropical broadleaved raingreen tree
 
-	include 1
+	include 0
 	tree
 	broadleaved
 	shade_intolerant
@@ -657,7 +657,7 @@ group "C4G" (
 
 	! Warm (C3) grass
 
-	include 1
+	include 0
 	grass
 	pathway "c4"
 	respcoeff 0.15

@@ -298,6 +298,7 @@ void CommonOutput::define_output_tables() {
 	nflux_columns += ColumnDescriptor("dep",               8, 2);
 	nflux_columns += ColumnDescriptor("fix",               8, 2);
 	nflux_columns += ColumnDescriptor("fert",              8, 2);
+	nflux_columns += ColumnDescriptor("est",               8, 2);
 	nflux_columns += ColumnDescriptor("flux",              8, 2);
 	nflux_columns += ColumnDescriptor("leach",             8, 2);
 	if (run_landcover) {
@@ -712,6 +713,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 	double andep_gridcell=0.0;
 	double anfert_gridcell=0.0;
+	double anest_gridcell=0.0;
 	double anmin_gridcell=0.0;
 	double animm_gridcell=0.0;
 	double anfix_gridcell=0.0;
@@ -889,16 +891,12 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 									}
 								}
 								else {
-
 									standpft_cmass_veg += indiv.cmass_veg;
-
 								}
 							}
-
 						} // alive?
 						vegetation.nextobj();
 					}
-
 					stand.nextobj();
 				} // end of patch loop
 
@@ -1059,7 +1057,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	c_fast = c_slow = c_harv_slow = 0.0;
 
 	surfsoillitterc = surfsoillittern = cwdc = cwdn = centuryc = centuryn = n_harv_slow = availn = 0.0;
-	andep_gridcell = anfert_gridcell = anmin_gridcell = animm_gridcell = anfix_gridcell = 0.0;
+	andep_gridcell = anfert_gridcell = anest_gridcell = anmin_gridcell = animm_gridcell = anfix_gridcell = 0.0;
 	n_org_leach_gridcell = n_min_leach_gridcell = c_org_leach_gridcell = 0.0;
 	flux_nh3 = flux_nox = flux_n2o = flux_n2 = flux_nsoil = flux_ntot = flux_nharvest = flux_nseed = 0.0;
 
@@ -1077,7 +1075,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	while (gc_itr != gridcell.end()) {
 		Stand& stand = *gc_itr;
 		stand.firstobj();
-
+		
 		//Loop through Patches
 		while (stand.isobj) {
 			Patch& patch = stand.getobj();
@@ -1131,6 +1129,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			andep_gridcell += stand.get_climate().andep * to_gridcell_average;
 			anfert_gridcell += patch.anfert * to_gridcell_average;
+			anest_gridcell += patch.fluxes.get_annual_flux(Fluxes::ESTN) * to_gridcell_average;
 			anmin_gridcell += patch.soil.anmin * to_gridcell_average;
 			animm_gridcell += patch.soil.animmob * to_gridcell_average;
 			anfix_gridcell += patch.soil.anfix * to_gridcell_average;
@@ -1412,6 +1411,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_nflux, -andep_gridcell * m2toha);
 	outlimit(out,out_nflux, -anfix_gridcell * m2toha);
 	outlimit(out,out_nflux, -anfert_gridcell * m2toha);
+	outlimit(out,out_nflux, -anest_gridcell * m2toha);
 	outlimit(out,out_nflux, flux_ntot * m2toha);
 	outlimit(out,out_nflux, (n_min_leach_gridcell + n_org_leach_gridcell) * m2toha);
 	if (run_landcover) {
@@ -1423,7 +1423,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_nflux, (flux_nharvest + lc.anflux_landuse_change +
 				lc.anflux_harvest_slow + flux_nseed + flux_ntot +
 				n_min_leach_gridcell + n_org_leach_gridcell -
-				(andep_gridcell + anfix_gridcell + anfert_gridcell)) * m2toha);
+				(andep_gridcell + anfix_gridcell + anfert_gridcell + anest_gridcell)) * m2toha);
 
 	// CPOOL Write cpool to file
 

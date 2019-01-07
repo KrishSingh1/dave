@@ -814,58 +814,135 @@ void nstore_usage(Vegetation& vegetation) {
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
 
-		// individual excess nitrogen demand after uptake
-		double excess_ndemand = (indiv.leafndemand + indiv.rootndemand) * (1.0 - indiv.fnuptake)
-		                        + indiv.leafndemand_store + indiv.rootndemand_store;
+		if (indiv.pft.lifeform == GRASS && ifdailygrass) {
 
-		// if individual is in need of using its labile nitrogen storage
-		if (!negligible(excess_ndemand)) {
+			indiv.nstress = false;
 
-			// if labile nitrogen storage is larger than excess nitrogen demand
-			if (excess_ndemand <= indiv.nstore_labile) {
+			// Compartment fraction of optimal N mass
+			double frac_nmass_optimal = 1.0;
 
-				// leaf nitrogen demand
-				double leaf_ndemand = indiv.leafndemand * (1.0 - indiv.fnuptake) + indiv.leafndemand_store;
-				indiv.nmass_leaf    += leaf_ndemand;
-				indiv.nstore_labile -= leaf_ndemand;
+			if (!negligible(indiv.ndemand) || !negligible(indiv.leafndemand_store + indiv.rootndemand_store)) {
+				// N mass won't reach optimal level
+				
+				// Current N mass
+				double nmass_current = indiv.get_nmass_leaf() + indiv.nmass_leaf_ws + indiv.nmass_root + indiv.nmass_root_sg;
+				
+				// Todays N uptake
+				double nmass_uptake = indiv.ndemand * indiv.fnuptake;
+				
+				// Optimal N mass
+				double nmass_optimal = indiv.get_cmass_leaf() / indiv.cton_leaf_opt +
+					indiv.cmass_root / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) +
+					indiv.cmass_leaf_ws / indiv.pft.cton_leaf_min +
+					indiv.cmass_root_sg / (indiv.pft.cton_leaf_min * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
 
-				// root nitrogen demand
-				double root_ndemand = indiv.rootndemand * (1.0 - indiv.fnuptake) + indiv.rootndemand_store;
-				indiv.nmass_root    += root_ndemand;
-				indiv.nstore_labile -= root_ndemand;
+				// Compartment fraction of optimal N mass (if optimal is less than current then frac_nmass_optimal will be > 1)
+				frac_nmass_optimal = !negligible(nmass_optimal) ? (nmass_current + nmass_uptake) / nmass_optimal : 0.0;
 
-				indiv.nstress = false;
+				if (frac_nmass_optimal >= 1.0) {
+
+					// Update leaf N mass
+					indiv.nmass_leafs[0] = indiv.cmass_leafs[0] / indiv.cton_leaf_opt;
+					indiv.nmass_leafs[1] = indiv.cmass_leafs[1] / indiv.cton_leaf_opt;
+					indiv.nmass_leafs[2] = indiv.cmass_leafs[2] / indiv.cton_leaf_opt;
+
+					// Update root N mass
+					indiv.nmass_root = indiv.cmass_root / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
+
+					// N left for storage pools
+					double nmass_storage = nmass_current + nmass_uptake - (indiv.get_nmass_leaf() + indiv.nmass_root);
+
+					// Storage fraction going to leaf storage
+					double frac_leaf_storage = (indiv.cmass_leaf_ws / indiv.pft.cton_leaf_avr) / (indiv.cmass_leaf_ws / indiv.pft.cton_leaf_avr + indiv.cmass_root_sg / indiv.pft.cton_root_avr);
+
+					// Update N storage pools
+					indiv.nmass_leaf_ws = nmass_storage * frac_leaf_storage;
+					indiv.nmass_root_sg = nmass_storage - indiv.nmass_leaf_ws;
+				}
+				else {
+
+					// Update leaf N mass
+					indiv.nmass_leafs[0] = indiv.cmass_leafs[0] / indiv.cton_leaf_opt * frac_nmass_optimal;
+					indiv.nmass_leafs[1] = indiv.cmass_leafs[1] / indiv.cton_leaf_opt * frac_nmass_optimal;
+					indiv.nmass_leafs[2] = indiv.cmass_leafs[2] / indiv.cton_leaf_opt * frac_nmass_optimal;
+
+					// Update root N mass
+					indiv.nmass_root = indiv.cmass_root / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) * frac_nmass_optimal;
+
+					// Update N storage pools
+					indiv.nmass_leaf_ws = indiv.cmass_leaf_ws / indiv.pft.cton_leaf_min * frac_nmass_optimal;
+					indiv.nmass_root_sg = indiv.cmass_root_sg / (indiv.pft.cton_leaf_min * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) * frac_nmass_optimal;
+
+					// Nitrogen stressed photosynthesis is allowed only when nitrogen limitation is turned on
+					indiv.nstress = ifnlim;
+				}
 			}
 			else {
 
-				if (!negligible(indiv.nstore_labile)) {
+				// Update leaf N mass
+				double current_ntoc_leaf = indiv.get_nmass_leaf() > 0.0 ? 1.0 / indiv.cton_leaf() : 0.0;
+				indiv.nmass_leafs[0] = indiv.cmass_leafs[0] * current_ntoc_leaf;
+				indiv.nmass_leafs[1] = indiv.cmass_leafs[1] * current_ntoc_leaf;
+				indiv.nmass_leafs[2] = indiv.cmass_leafs[2] * current_ntoc_leaf;
+			}
 
-					// calculate total nitrogen mass
-					double tot_nmass = indiv.nmass_leaf + indiv.nmass_root + indiv.fnuptake * (indiv.leafndemand + indiv.rootndemand) + indiv.nstore_labile;
+		}
+		else {
 
-					// new leaf C:N ratio
-					double cton_leaf = (indiv.cmass_leaf_today() + indiv.cmass_root_today() * (indiv.pft.cton_leaf_avr / indiv.pft.cton_root_avr)) / tot_nmass;
+			// individual excess nitrogen demand after uptake
+			double excess_ndemand = (indiv.leafndemand + indiv.rootndemand) * (1.0 - indiv.fnuptake)
+				+ indiv.leafndemand_store + indiv.rootndemand_store;
 
-					// nitrogen added to leaf from storage
-					double labile_nto_leaf = indiv.cmass_leaf_today() / cton_leaf - (indiv.nmass_leaf + indiv.fnuptake * indiv.leafndemand);
+			// if individual is in need of using its labile nitrogen storage
+			if (!negligible(excess_ndemand)) {
 
-					// new leaf nitrogen
-					indiv.nmass_leaf += labile_nto_leaf;
+				// if labile nitrogen storage is larger than excess nitrogen demand
+				if (excess_ndemand <= indiv.nstore_labile) {
 
-					// new root nitrogen
-					indiv.nmass_root += indiv.nstore_labile - labile_nto_leaf;
+					// leaf nitrogen demand
+					double leaf_ndemand = indiv.leafndemand * (1.0 - indiv.fnuptake) + indiv.leafndemand_store;
+					indiv.nmass_leaf += leaf_ndemand;
+					indiv.nstore_labile -= leaf_ndemand;
 
-					indiv.nstore_labile = 0.0;
+					// root nitrogen demand
+					double root_ndemand = indiv.rootndemand * (1.0 - indiv.fnuptake) + indiv.rootndemand_store;
+					indiv.nmass_root += root_ndemand;
+					indiv.nstore_labile -= root_ndemand;
+
+					indiv.nstress = false;
 				}
+				else {
 
-				// nitrogen stressed photosynthesis is allowed only when nitrogen limitation is turned on
-				indiv.nstress = ifnlim;
-				
+					if (!negligible(indiv.nstore_labile)) {
+
+						// calculate total nitrogen mass
+						double tot_nmass = indiv.nmass_leaf + indiv.nmass_root + indiv.fnuptake * (indiv.leafndemand + indiv.rootndemand) + indiv.nstore_labile;
+
+						// new leaf C:N ratio
+						double cton_leaf = (indiv.cmass_leaf_today() + indiv.cmass_root_today() * (indiv.pft.cton_leaf_avr / indiv.pft.cton_root_avr)) / tot_nmass;
+
+						// nitrogen added to leaf from storage
+						double labile_nto_leaf = indiv.cmass_leaf_today() / cton_leaf - (indiv.nmass_leaf + indiv.fnuptake * indiv.leafndemand);
+
+						// new leaf nitrogen
+						indiv.nmass_leaf += labile_nto_leaf;
+
+						// new root nitrogen
+						indiv.nmass_root += indiv.nstore_labile - labile_nto_leaf;
+
+						indiv.nstore_labile = 0.0;
+					}
+
+					// nitrogen stressed photosynthesis is allowed only when nitrogen limitation is turned on
+					indiv.nstress = ifnlim;
+
+				}
+			}
+			else {
+				// photosynthesis will not be nitrogen stresses
+				indiv.nstress = false;
 			}
 		}
-		else
-			// photosynthesis will not be nitrogen stresses
-			indiv.nstress = false;
 
 		vegetation.nextobj();
 	}
@@ -931,7 +1008,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 			indiv.cton_leaf_aopt = min(indiv.cmass_leaf_today() / leafoptn, indiv.cton_leaf_aopt);
 
 			// Leaf nitrogen demand
-			indiv.leafndemand = max(leafoptn - indiv.nmass_leaf, 0.0);
+			indiv.leafndemand = max(leafoptn - indiv.get_nmass_leaf(), 0.0);
 
 			// Setting daily optimal leaf C:N ratio
 			if (indiv.leafndemand) {
@@ -962,16 +1039,13 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		//TODO HO demand
 		indiv.hondemand = 0.0;
 
-		// DAILY_GRASS DW_COMMENT
-		// ndemand = (cmass_leaf_ws / cton_leaf_min - nmass_leaf_ws) + (cmass_root_sg / cton_root_min - nmass_root_sg) + (cmass_root / (cton_leaf() * cton_root_avr / cton_leaf_avr) - nmass_root)
-
 		// Total nitrogen demand
 		double ndemand_tot = indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand + indiv.hondemand;
 
 		// Calculate scalars to possible nitrogen uptake
 
 		// Current plant mobile nitrogen concentration
-		double ntoc = !negligible(indiv.cmass_leaf_today() + indiv.cmass_root_today()) ? (indiv.nmass_leaf + indiv.nmass_root) / (indiv.cmass_leaf_today() + indiv.cmass_root_today()) : 0.0;
+		double ntoc = !negligible(indiv.cmass_leaf_today() + indiv.cmass_root_today()) ? (indiv.get_nmass_leaf() + indiv.nmass_root) / (indiv.cmass_leaf_today() + indiv.cmass_root_today()) : 0.0;
 
 		// Scale to maximum nitrogen concentrations
 		indiv.cton_status = max(0.0, (ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_avr - 1.0 / indiv.pft.cton_leaf_min));
@@ -999,7 +1073,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		indiv.leafndemand  *= fractomax;
 		indiv.rootndemand  *= fractomax;
 		indiv.sapndemand   *= fractomax;
-		indiv.storendemand *= fractomax;
+		indiv.storendemand *= indiv.storendemand > 0 ? fractomax : 1.0; // For daily grass storage N demand can be negative when its C:N ratio is too low
 
 		// Sum total nitrogen demand individual is capable of taking up
 		indiv.ndemand = indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand;
@@ -1017,10 +1091,18 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		else {
 
 			// Compartments fraction of total nitrogen demand
-			indiv.leaffndemand  = indiv.leafndemand / indiv.ndemand;
-			indiv.rootfndemand  = indiv.rootndemand / indiv.ndemand;
-			indiv.sapfndemand   = indiv.sapndemand  / indiv.ndemand;
-			indiv.storefndemand = max(0.0, 1.0 - (indiv.leaffndemand + indiv.rootfndemand + indiv.sapfndemand));
+			if (indiv.storendemand >= 0.0) {
+				indiv.leaffndemand = indiv.leafndemand / indiv.ndemand;
+				indiv.rootfndemand = indiv.rootndemand / indiv.ndemand;
+				indiv.sapfndemand = indiv.sapndemand / indiv.ndemand;
+				indiv.storefndemand = max(0.0, 1.0 - (indiv.leaffndemand + indiv.rootfndemand + indiv.sapfndemand));
+			}
+			else {
+				indiv.leaffndemand = indiv.leafndemand / (indiv.leafndemand + indiv.rootndemand);
+				indiv.rootfndemand = indiv.rootndemand / (indiv.leafndemand + indiv.rootndemand);
+				indiv.sapfndemand = 0.0;
+				indiv.storefndemand = 0.0;
+			}
 		}
 
 		// Sum total patch nitrogen demand
@@ -1071,14 +1153,19 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 		// Should be done on FPC basis, but is not as it does not matter mathematically
 		// Needs to be calculated for each individual due to possible water stress
 
-		// Todays leaf nitrogen after uptake
-		double nmass_leaf = indiv.nmass_leaf + indiv.leafndemand * indiv.fnuptake;
-
-		if (indiv.phen > 0.0) {
-			indiv.nactive = max(0.0, nmass_leaf - N0 * indiv.cmass_leaf_today());
+		if (indiv.pft.lifeform == GRASS && ifdailygrass) {
+			indiv.nactive = max(0.0, indiv.get_nmass_leaf() - N0 * indiv.cmass_leaf_today());
 		}
 		else {
-			indiv.nactive = 0.0;
+			// Todays leaf nitrogen after uptake
+			double nmass_leaf = indiv.get_nmass_leaf() + indiv.leafndemand * indiv.fnuptake;
+
+			if (indiv.phen > 0.0) {
+				indiv.nactive = max(0.0, nmass_leaf - N0 * indiv.cmass_leaf_today());
+			}
+			else {
+				indiv.nactive = 0.0;
+			}
 		}
 
 		// Individuals photosynthesis is nitrogen stressed
@@ -1556,7 +1643,7 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 	}
 
 	// calculate the running sum of wscal to use for daily carbon allocation
-	if(day.isend && ifdailygrass){
+	if (day.isend && ifdailygrass){
 
 		vegetation.firstobj();
 		while (vegetation.isobj) {
@@ -1962,7 +2049,7 @@ void leaf_senescence(Vegetation& vegetation) {
 		// Age dependent N retranslocation, Sec. 2.1.3 Olin 2015
 		if (indiv.patchpft().cropphen->dev_stage > 1.0) {
 			const double senNr = 0.1;
-			double senN = senNr * (indiv.nmass_leaf-indiv.cmass_leaf_today() / (indiv.pft.cton_leaf_max));
+			double senN = senNr * (indiv.get_nmass_leaf()-indiv.cmass_leaf_today() / (indiv.pft.cton_leaf_max));
 
 			// Senescence is not done during spinup
 			if (date.year > nyear_spinup && senN > 0) {
@@ -2064,8 +2151,8 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			indiv.avmaxnlim      = 1.0;
 			indiv.cton_leaf_aavr = 0.0;
 
-			if (!negligible(indiv.cmass_leaf) && !negligible(indiv.nmass_leaf))
-				indiv.cton_leaf_aopt = indiv.cmass_leaf / indiv.nmass_leaf;
+			if (!negligible(indiv.get_cmass_leaf()) && !negligible(indiv.get_nmass_leaf()))
+				indiv.cton_leaf_aopt = indiv.get_cmass_leaf() / indiv.get_nmass_leaf();
 			else
 				indiv.cton_leaf_aopt = indiv.pft.cton_leaf_max;
 

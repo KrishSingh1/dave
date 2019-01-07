@@ -738,6 +738,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 	if (!ifequilsom) {
 		patch.fluxes.report_flux(Fluxes::N_SOIL, nflux);
 	}
+
 	// If no nitrogen limitation or during free nitrogen years set soil
 	// available nitrogen to its saturation level.
 	if (date.year <= freenyears)
@@ -1016,7 +1017,7 @@ void transfer_litter(Patch& patch) {
 		patch.pft.nextobj();
 	}
 
-	// FIRE
+	// Litter fire flammability threshold and fire resistence
 	if (soil.sompool[SURFSTRUCT].cmass > 0.0) {
 		soil.sompool[SURFSTRUCT].litterme   = litterme[SURFSTRUCT]   / soil.sompool[SURFSTRUCT].cmass;
 		soil.sompool[SURFSTRUCT].fireresist = fireresist[SURFSTRUCT] / soil.sompool[SURFSTRUCT].cmass;
@@ -1189,16 +1190,20 @@ void vegetation_n_uptake(Patch& patch) {
 		if (date.day == 0)
 			indiv.anuptake = 0.0;
 
-		nuptake_day           = indiv.ndemand * indiv.fnuptake;
-		indiv.anuptake        += nuptake_day;
-		indiv.nmass_leaf      += indiv.leaffndemand  * nuptake_day;
-		indiv.nmass_root      += indiv.rootfndemand  * nuptake_day;
-		indiv.nmass_sap       += indiv.sapfndemand   * nuptake_day;
-		if (indiv.pft.phenology == CROPGREEN && ifnlim)
-			indiv.cropindiv->nmass_agpool += indiv.storefndemand * nuptake_day;
-		else
-			indiv.nstore_longterm += indiv.storefndemand * nuptake_day;
-		soil.nmass_avail      -= nuptake_day;
+		nuptake_day = indiv.ndemand * indiv.fnuptake;
+		indiv.anuptake += nuptake_day;
+
+		if (!(indiv.pft.lifeform == GRASS && ifdailygrass)) {
+			indiv.nmass_leaf += indiv.leaffndemand  * nuptake_day;
+			indiv.nmass_root += indiv.rootfndemand  * nuptake_day;
+			indiv.nmass_sap += indiv.sapfndemand   * nuptake_day;
+			if (indiv.pft.phenology == CROPGREEN && ifnlim)
+				indiv.cropindiv->nmass_agpool += indiv.storefndemand * nuptake_day;
+			else
+				indiv.nstore_longterm += indiv.storefndemand * nuptake_day;
+		}
+
+		soil.nmass_avail -= nuptake_day;
 
 		if (!negligible(indiv.phen))
 			indiv.cton_leaf_aavr += min(indiv.cton_leaf(),indiv.pft.cton_leaf_max);

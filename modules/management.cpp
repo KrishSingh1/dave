@@ -17,32 +17,43 @@ void grazing_daily(Individual& indiv) {
 	Patch& patch = indiv.vegetation.patch;
 	Stand& stand = patch.stand;
 
-	//rate of grazing each day for landcover pasture functionality , fraction
+	// Rate of grazing each day for landcover pasture functionality , fraction
 	double grazing_rate = stlist[stand.stid].get_management().grazeintens;
-	//minimum carbon in cmass_leaf_w3 for daily grazing functionality
-	const double GRAZING_W3_MIN_CMASS = 0.01;
+	// Minimum carbon in fully expanded leavess for daily grazing functionality 
+	const double GRAZING_FEL_MIN_CMASS = 0.01;
 
 	// GRAZING
-	if(indiv.cmass_leaf_w3 > GRAZING_W3_MIN_CMASS && indiv.vegetation.patch.stand.landcover == PASTURE){
+	if(indiv.cmass_leafs[2] > GRAZING_FEL_MIN_CMASS && indiv.vegetation.patch.stand.landcover == PASTURE){
 
 		patch.is_litter_day=true;
 
 		// Carbon
-		double cmass_harvest = (indiv.cmass_leaf_w1 + indiv.cmass_leaf_w2 + indiv.cmass_leaf_w3) * grazing_rate;
-		indiv.cmass_leaf_w1 -= indiv.cmass_leaf_w1 * grazing_rate;
-		indiv.cmass_leaf_w2 -= indiv.cmass_leaf_w2 * grazing_rate;
-		indiv.cmass_leaf_w3 -= indiv.cmass_leaf_w3 * grazing_rate;
-		patch.fluxes.report_flux(Fluxes::HARVESTC, cmass_harvest);
+		double cmass_harvest = indiv.get_cmass_leaf() * grazing_rate;
+		indiv.cmass_leafs[0] -= indiv.cmass_leafs[0] * grazing_rate;
+		indiv.cmass_leafs[1] -= indiv.cmass_leafs[1] * grazing_rate;
+		indiv.cmass_leafs[2] -= indiv.cmass_leafs[2] * grazing_rate;
 
 		// Nitrogen
-		double nmass_harvest = (indiv.nmass_leaf_w1 + indiv.nmass_leaf_w2 + indiv.nmass_leaf_w3) * grazing_rate;
-		indiv.nmass_leaf_w1 -= indiv.nmass_leaf_w1 * grazing_rate;
-		indiv.nmass_leaf_w2 -= indiv.nmass_leaf_w2 * grazing_rate;
-		indiv.nmass_leaf_w3 -= indiv.nmass_leaf_w3 * grazing_rate;
-		indiv.nmass_leaf -= nmass_harvest;
+		double nmass_harvest = indiv.get_nmass_leaf() * grazing_rate;
+		indiv.nmass_leafs[0] -= indiv.nmass_leafs[0] * grazing_rate;
+		indiv.nmass_leafs[1] -= indiv.nmass_leafs[1] * grazing_rate;
+		indiv.nmass_leafs[2] -= indiv.nmass_leafs[2] * grazing_rate;
+
+		// Fluxes and Litter
+		// DW_COMMENT shouldn't some manure C be added to the soil then as well? Code adopted from Stefan Olin N transformation
+		double C_grazing_scale = 0.5;	// 50% of C goes back to litter as manure
 		double N_grazing_scale = 0.25;	// 75% of N goes back to litter as manure
-		patch.fluxes.report_flux(Fluxes::HARVESTN, nmass_harvest * N_grazing_scale);
-		patch.pft[indiv.pft.id].nmass_litter_leaf += nmass_harvest * (1.0 - N_grazing_scale);
+
+		double cmass_manure = cmass_harvest * (1.0 - C_grazing_scale);
+		double nmass_manure = nmass_harvest * (1.0 - N_grazing_scale);
+
+		patch.fluxes.report_flux(Fluxes::HARVESTC, cmass_harvest - cmass_manure);
+		patch.fluxes.report_flux(Fluxes::HARVESTN, nmass_harvest - nmass_manure);
+
+		patch.soil.sompool[SURFMETA].cmass += cmass_manure * 0.25;
+		patch.soil.sompool[SURFSTRUCT].cmass += cmass_manure * 0.75;
+		patch.soil.sompool[SURFMETA].nmass += nmass_manure * 0.5;
+		patch.soil.sompool[SURFSTRUCT].nmass += nmass_manure * 0.5;
 	}
 }
 
@@ -437,9 +448,10 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
 	// Carbon:
 	harvest = pft.harv_eff * i.cmass_leaf;
 
-	i.cmass_leaf_w1 -=  pft.harv_eff * i.cmass_leaf_w1;
-	i.cmass_leaf_w2 -=  pft.harv_eff * i.cmass_leaf_w2;
-	i.cmass_leaf_w3 -=  pft.harv_eff * i.cmass_leaf_w3;
+	/* DW_COMMENT only for yearly harvest???
+	i.cmass_leafs[0] -=  pft.harv_eff * i.cmass_leafs[0];
+	i.cmass_leafs[1] -=  pft.harv_eff * i.cmass_leafs[1];
+	i.cmass_leafs[2] -=  pft.harv_eff * i.cmass_leafs[2];*/
 
 	if (ifslowharvestpool) {
 		i.harvested_products_slow += harvest * pft.harvest_slow_frac;
@@ -454,6 +466,11 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
 	double N_harvest_scale = 0.25; // Value that works. Needs to be verified in literature.
 	harvest = pft.harv_eff * i.nmass_leaf * N_harvest_scale;
 
+	/* DW_COMMENT only for yearly harvest???
+	i.nmass_leafs[0] -=  pft.harv_eff * i.nmass_leafs[0] * N_harvest_scale;
+	i.nmass_leafs[1] -=  pft.harv_eff * i.nmass_leafs[1] * N_harvest_scale;
+	i.nmass_leafs[2] -=  pft.harv_eff * i.nmass_leafs[2] * N_harvest_scale;*/
+
 	if (ifslowharvestpool) {
 		i.harvested_products_slow_nmass += harvest * pft.harvest_slow_frac;
 		harvest = harvest * (1 - pft.harvest_slow_frac);
@@ -464,17 +481,27 @@ void harvest_pasture(Harvest_CN& i, Pft& pft, bool alive) {
 	if (grassforcrop && alive) {
 		// Carbon:
 		double residue_outtake = pft.res_outtake * i.cmass_leaf;	// res_outtake currently set to 0.0,
+		//residue_outtake += pft.res_outtake * (i.cmass_leafs[0] + i.cmass_leafs[1] + i.cmass_leafs[2]); // DW_COMMENT for daily grass
 		i.acflux_harvest += residue_outtake;				// could be used for burning
 		i.cmass_leaf -= residue_outtake;
 
-		i.cmass_leaf_w1 -=  pft.res_outtake * i.cmass_leaf_w1;
-		i.cmass_leaf_w2 -=  pft.res_outtake * i.cmass_leaf_w2;
-		i.cmass_leaf_w3 -=  pft.res_outtake * i.cmass_leaf_w3;
+		/* DW_COMMENT only for yearly harvest???
+		i.cmass_leafs[0] -=  pft.res_outtake * i.cmass_leafs[0];
+		i.cmass_leafs[1] -=  pft.res_outtake * i.cmass_leafs[1];
+		i.cmass_leafs[2] -=  pft.res_outtake * i.cmass_leafs[2];
+		*/
 
 		// Nitrogen:
 		residue_outtake = pft.res_outtake * i.nmass_leaf;
+		//residue_outtake += pft.res_outtake * (i.nmass_leafs[0] + i.nmass_leafs[1] + i.nmass_leafs[2]); // DW_COMMENT for daily grass
 		i.anflux_harvest += residue_outtake;
 		i.nmass_leaf -= residue_outtake;
+
+		/* DW_COMMENT only for yearly harvest???
+		i.nmass_leafs[0] -=  pft.res_outtake * i.nmass_leafs[0];
+		i.nmass_leafs[1] -=  pft.res_outtake * i.nmass_leafs[1];
+		i.nmass_leafs[2] -=  pft.res_outtake * i.nmass_leafs[2];
+		*/
 	}
 }
 
@@ -870,13 +897,13 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 
 		if (burn) {
 			cp.acflux_harvest += cp.cmass_leaf;
-			cp.acflux_harvest += cp.cmass_leaf_ws + cp.cmass_leaf_w4;
+			cp.acflux_harvest += cp.cmass_leafs[0] + cp.cmass_leafs[1] + cp.cmass_leafs[2] + cp.cmass_leafs[3] + cp.cmass_leaf_ws;
 			cp.acflux_harvest += cp.cmass_sap;
 			cp.acflux_harvest += cp.cmass_heart - cp.cmass_debt;
 		}
 		else {
 			cp.litter_leaf += cp.cmass_leaf;
-			cp.litter_leaf += cp.cmass_leaf_ws + cp.cmass_leaf_w4;
+			cp.litter_leaf += cp.cmass_leafs[0] + cp.cmass_leafs[1] + cp.cmass_leafs[2] + cp.cmass_leafs[3] + cp.cmass_leaf_ws;
 			cp.litter_sap += cp.cmass_sap;
 			cp.litter_heart += cp.cmass_heart - cp.cmass_debt;
 		}
@@ -885,14 +912,17 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 	cp.nmass_litter_root += cp.nmass_root;
 	cp.nmass_litter_root += cp.nstore_longterm;
 	cp.nmass_litter_root += cp.nstore_labile;
+	cp.nmass_litter_root += cp.nmass_root_sg;
 
 	if (burn) {
 		cp.anflux_harvest += cp.nmass_leaf;
+		cp.anflux_harvest += cp.nmass_leafs[0] + cp.nmass_leafs[1] + cp.nmass_leafs[2] + cp.nmass_leafs[3] + cp.nmass_leaf_ws;
 		cp.anflux_harvest += cp.nmass_sap;
 		cp.anflux_harvest += cp.nmass_heart;
 	}
 	else {
 		cp.nmass_litter_leaf += cp.nmass_leaf;
+		cp.nmass_litter_leaf += cp.nmass_leafs[0] + cp.nmass_leafs[1] + cp.nmass_leafs[2] + cp.nmass_leafs[3] + cp.nmass_leaf_ws;
 		cp.nmass_litter_sap += cp.nmass_sap;
 		cp.nmass_litter_heart += cp.nmass_heart;
 	}
@@ -924,12 +954,11 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 	}
 
 	cp.cmass_leaf = 0.0;
+	cp.cmass_leafs[0] = 0.0;
+	cp.cmass_leafs[1] = 0.0;
+	cp.cmass_leafs[2] = 0.0;
+	cp.cmass_leafs[3] = 0.0;
 	cp.cmass_leaf_ws = 0.0;
-	cp.cmass_leaf_w1 = 0.0;
-	cp.cmass_leaf_w2 = 0.0;
-	cp.cmass_leaf_w3 = 0.0;
-	cp.cmass_leaf_w4 = 0.0;
-	cp.cmass_leaf_wg = 0.0;
 	cp.cmass_root_sg = 0.0;
 	cp.cmass_root = 0.0;
 	cp.cmass_sap = 0.0;
@@ -938,6 +967,11 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 	cp.cmass_ho = 0.0;
 	cp.cmass_agpool = 0.0;
 	cp.nmass_leaf = 0.0;
+	cp.nmass_leafs[0] = 0.0;
+	cp.nmass_leafs[1] = 0.0;
+	cp.nmass_leafs[2] = 0.0;
+	cp.nmass_leafs[3] = 0.0;
+	cp.nmass_leaf_ws = 0.0;
 	cp.nmass_root = 0.0;
 	cp.nstore_longterm = 0.0;
 	cp.nstore_labile = 0.0;
@@ -1056,13 +1090,8 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 	
 		indiv.cmass_root *= scale;
 		indiv.cmass_leaf *= scale;
-		indiv.cmass_leaf_ws *=scale;
-		indiv.cmass_leaf_w1 *=scale;
-		indiv.cmass_leaf_w2 *=scale;
-		indiv.cmass_leaf_w3 *=scale;
-		indiv.cmass_leaf_w4 *=scale;
-		indiv.cmass_root_sg *=scale;
-		indiv.cmass_leaf_wg *=scale;
+		indiv.cmass_leaf_ws *= scale;
+		indiv.cmass_root_sg *= scale;
 		indiv.cmass_heart *= scale;
 		indiv.cmass_sap *= scale;
 		indiv.cmass_debt *= scale;
@@ -1070,6 +1099,13 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 		if (indiv.pft.landcover == CROPLAND) {
 			indiv.cropindiv->cmass_agpool *= scale;
 			indiv.cropindiv->cmass_ho *= scale;
+		}
+
+		if (ifdailygrass && indiv.pft.lifeform == GRASS) {
+			indiv.cmass_leafs[0] *= scale;
+			indiv.cmass_leafs[1] *= scale;
+			indiv.cmass_leafs[2] *= scale;
+			indiv.cmass_leafs[3] *= scale;
 		}
 	}
 
@@ -1085,11 +1121,20 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 		indiv.cropindiv->nmass_dead_leaf =indiv.cropindiv->nmass_dead_leaf - indiv.cropindiv->nmass_dead_leaf_luc * (1.0 - scale);
 	}
 
+	if (ifdailygrass && indiv.pft.lifeform == GRASS) {
+		indiv.nmass_leafs[0] = indiv.nmass_leafs[0] - indiv.nmass_leafs_luc[0] * (1.0 - scale);
+		indiv.nmass_leafs[1] = indiv.nmass_leafs[1] - indiv.nmass_leafs_luc[1] * (1.0 - scale);
+		indiv.nmass_leafs[2] = indiv.nmass_leafs[2] - indiv.nmass_leafs_luc[2] * (1.0 - scale);
+		indiv.nmass_leafs[3] = indiv.nmass_leafs[3] - indiv.nmass_leafs_luc[3] * (1.0 - scale);
+	}
+
 	if (indiv.nstore_labile > indiv.nstore_labile_luc * (1.0 - scale))
 		indiv.nstore_labile -= indiv.nstore_labile_luc * (1.0 - scale);
 	else
 		indiv.nstore_longterm -= indiv.nstore_labile_luc * (1.0 - scale);
 	indiv.nstore_longterm = indiv.nstore_longterm - indiv.nstore_longterm_luc * (1.0 - scale);
+	indiv.nmass_leaf_ws = indiv.nmass_leaf_ws - indiv.nmass_leaf_ws_luc * (1.0 - scale);
+	indiv.nmass_root_sg = indiv.nmass_root_sg - indiv.nmass_root_sg_luc * (1.0 - scale);
 
 	indiv.check_N_mass();
 }

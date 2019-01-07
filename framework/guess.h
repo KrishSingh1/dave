@@ -884,6 +884,8 @@ public:
 		HARVESTC,
 		/// Flux from atmosphere to vegetation associated with sowing (kgC/m2)
 		SEEDC,
+		/// Nitrogen flux from atmosphere to vegetation associated with establishment (kgN/m2)
+		ESTN,
 		/// Nitrogen flux to atmosphere from consumed harvested products (kgN/m2)
 		HARVESTN,
 		/// Nitrogen flux from atmosphere to vegetation associated with sowing (kgC/m2)
@@ -2172,40 +2174,32 @@ public:
 	/// accumulated NPP over modelled area (kgC/m2/year);
 	/** annual NPP following call to growth module on last day of simulation year */
 	double anpp;
-	/// phen for daily allocation
-	double phen_daily;
 	/// yearly lai for daily allocation
 	double lai_ymax;
 	/// yearly maximum cmass_leaf for daily allocation
 	double cmass_leaf_ymax;
+	/// yearly maximum nmass_leaf for daily allocation
+	double nmass_leaf_ymax;
 	/// yearly maximum cmass_root for daily allocation
 	double cmass_root_ymax;
+	/// yearly maximum nmass_root for daily allocation
+	double nmass_root_ymax;
 	/// Storage weight for daily allocation
 	double cmass_leaf_ws;
 	/// Storage weight for biomass increment without lai
 	double cmass_root_sg;
-	/// mass of all growth compartments. Is same as cmass_leaf, can be removed once grass is allowed to have an age.
-	double cmass_leaf_wg;
-	/// mass of growth compartment 1, growing leaves - daily allocation
-	double cmass_leaf_w1;
-	/// mass of growth compartment 2, first fully expanded leaves - daily allocation
-	double cmass_leaf_w2;
-	/// mass of growth compartment 3, second fully expanded leaves - daily allocation
-	double cmass_leaf_w3;
-	/// mass of growth compartment 4, senescing leaves - daily allocation
-	double cmass_leaf_w4;
+	/// leaf C biomass on modelled area basis (kgC/m2)
+	double *cmass_leafs;
+	/// leaf N biomass on modelled area basis (kgC/m2)
+	double *nmass_leafs;
 	/// abscission from last compartment (4) ie litter, daily allocation
 	double abscission; // DW_COMMENT - not used for anything
 	/// sum of growth of leaves not related to sg
 	double cmass_leaf_ygrowth;
-	/// nitrogen of growth compartment 1 daily allocation
-	double nmass_leaf_w1;
-	/// nitrogen of growth compartment 2 daily allocation
-	double nmass_leaf_w2;
-	/// nitrogen of growth compartment 3 daily allocation
-	double nmass_leaf_w3;
-	/// nitrogen of growth compartment 4 daily allocation
-	double nmass_leaf_w4;
+	/// nitrogen storage weight for daily allocation
+	double nmass_leaf_ws;
+	/// nitrogen storage for daily grass
+	double nmass_root_sg;
 	/// running mean of nscal for last 365 days for each individual daily allocation
 	Historic<double, 365> nscal_running;
 	/// running mean of wscal for last 365 days for each individual daily allocation
@@ -2277,6 +2271,12 @@ public:
 	double nstore_longterm_luc;
 	/// storage of labile nitrogen saved on first day of land use change year
 	double nstore_labile_luc;
+	/// storage of leaf storage nitrogen saved on first day of land use change year
+	double nmass_leaf_ws_luc;
+	/// daily grass leaf nitrogen saved on first day of land use change year
+	double nmass_leafs_luc[4];
+	/// storage of root storage nitrogen saved on first day of land use change year
+	double nmass_root_sg_luc;
 	/// daily total nitrogen demand
 	double ndemand;
 	/// fraction of individual nitrogen demand available for uptake
@@ -2392,6 +2392,10 @@ public:
 	/// Whether resetting of grs_cmass and turnover (if has_daily_turnover() returns true) of continuous grass is to be done this day.
 	/** This should occur at the very end of the growing period */
 	bool is_turnover_day() const;
+
+	double get_cmass_leaf() const;
+
+	double get_nmass_leaf() const;
 
 	/// Reduce current biomass due to mortality and/or fire
 	/** The removed biomass is put into litter pools and/or goes to fire fluxes.
@@ -3120,8 +3124,6 @@ public:
 	double aphen;
 	/// whether PFT can establish in this patch under current conditions
 	bool establish;
-	/// daily phen for daily allocation
-	double phen_daily;
 	/// running total for number of saplings of this PFT to establish (cohort mode)
 	double nsapling;
 	/// leaf-derived litter for PFT on modelled area basis (kgC/m2)
@@ -3220,7 +3222,6 @@ public:
 		cropphen = NULL;
 		harvested_products_slow = 0.0;
 		harvested_products_slow_nmass = 0.0;
-		phen_daily = 0.0;
 		swindow[0]=-1;
 		swindow[1]=-1;
 

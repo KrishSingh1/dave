@@ -530,7 +530,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							indiv.max_n_storage = CMASS_SEED / indiv.pft.cton_leaf_avr;
 							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / CMASS_SEED;
 						}
-						else {
+						else if (!(indiv.pft.lifeform == GRASS && ifdailygrass)){
 							indiv.max_n_storage = indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr;
 							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
 						}
@@ -681,7 +681,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 				patch.pft[pft.id].wscal_mean_est=0.0;
 				patch.pft[pft.id].anetps_ff_est=0.0;
 			}
-
 		}
 
 		// ... on to next PFT

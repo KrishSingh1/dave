@@ -509,6 +509,7 @@ public:
 /// This struct contains the result of a photosynthesis calculation.
 /** \see photosynthesis */
 struct PhotosynthesisResult : public Serializable {
+
 	/// Constructs an empty result
 	PhotosynthesisResult() {
 		clear();
@@ -558,10 +559,10 @@ struct PhotosynthesisResult : public Serializable {
 	void serialize(ArchiveStream& arch);
 };
 
-
 /// This struct contains the environmental input to a photosynthesis calculation.
 /** \see photosynthesis */
 struct PhotosynthesisEnvironment {
+
 	/// Constructs an empty result
 	PhotosynthesisEnvironment() {
 		clear();
@@ -628,10 +629,10 @@ struct PhotosynthesisEnvironment {
 
 };
 
-
 /// This struct contains the stresses used in a photosynthesis calculation.
 /** \see photosynthesis */
 struct PhotosynthesisStresses {
+
 	/// Constructs an empty result
 	PhotosynthesisStresses() {
 		no_stress();

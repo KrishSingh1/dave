@@ -555,7 +555,8 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
  *   - daylength  day length, must equal 24 in diurnal mode (h)
  *   - fpar       fraction of PAR absorbed by foliage
  *
- *  \param lambda     ratio of intercellular to ambient partial pressure of CO2
+ *  \param PhotosynthesisStresses struct containing the following public members:
+ *   - ifnlimvmax whether nitrogen should limit Vmax
  *
  *  \param pft        Pft object containing the following public members:
  *   - pathway         biochemical pathway for photosynthesis (C3 or C4)
@@ -567,25 +568,30 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
  *   - pstemp_max      maximum temperature limit for photosynthesis (deg C)
  *   - lambda_max      non-water-stressed ratio of intercellular to ambient CO2 pp
  *
- *  \param nactive    nitrogen available for photosynthesis
+ *  \param lambda     ratio of intercellular to ambient partial pressure of CO2
  *
- *  \param PhotosynthesisStresses struct containing the following public members:
- *   - ifnlimvmax whether nitrogen should limit Vmax
+ *  \param nactive    nitrogen available for photosynthesis
  *
  *  \param vm         pre-calculated value of Vmax for this stand for this day if
  *                    available, otherwise calculated
  *
  * OUTPUT PARAMETERS
  *
- * \param result      see documentation of PhotosynthesisResult struct
+ * \param ps_result      see documentation of PhotosynthesisResult struct
+ * 
+ *
+ * IMPORTANT for users adding new call parameters to the list above:
+ *
+ * Never place new call parameters in the proper photosynthesis() function header, instead
+ * place new parameters insided the structs PhotosynthesisEnvironment and PhotosynthesisStresses,
+ * or in PhotosynthesisResult if it is a result.
  */
-
 void photosynthesis(const PhotosynthesisEnvironment& ps_env, 
 					double lambda, 
 					const Pft& pft,
 					double nactive, 
 					const PhotosynthesisStresses& ps_stresses,
-					PhotosynthesisResult& result, double vm) {
+					PhotosynthesisResult& ps_result, double vm) {
 
 	// NOTE: This function is identical to LPJF subroutine "photosynthesis" except for
 	// the formulation of low-temperature inhibition coefficient tscal (tstress; LPJF).
@@ -618,7 +624,7 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 
 	// No photosynthesis during polar night, outside of temperature range or no RuBisCO activity
 	if (negligible(daylength) || negligible(fpar) || temp > pft.pstemp_max || temp < pft.pstemp_min || !vm) {
-		result.clear();
+		ps_result.clear();
 		return;
 	}
 
@@ -681,36 +687,36 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	if (vm < 0) {
 
 		// Calculation of non-water-stressed rubisco capacity (Eqn 11, Haxeltine & Prentice 1996a)
-		vmax(b, c1, c2, apar, tscal, daylength, temp, nactive, ifnlimvmax, result.vm, result.vmaxnlim, result.nactive_opt);
+		vmax(b, c1, c2, apar, tscal, daylength, temp, nactive, ifnlimvmax, ps_result.vm, ps_result.vmaxnlim, ps_result.nactive_opt);
 	}
 	else {
-		result.vm = vm;			// reuse existing Vmax
+		ps_result.vm = vm;			// reuse existing Vmax
 	}
 	// Calculation of daily leaf respiration
 	// Eqn 10, Haxeltine & Prentice 1996a
-	result.rd_g = result.vm * b;
+	ps_result.rd_g = ps_result.vm * b;
 
 	// PAR-limited photosynthesis rate (gC/m2/h)
 	// Eqn 3, Haxeltine & Prentice 1996a
-	result.je = c1 * tscal * apar * CMASS * CQ / daylength;
+	ps_result.je = c1 * tscal * apar * CMASS * CQ / daylength;
 
 	// Rubisco-activity limited photosynthesis rate (gC/m2/h)
 	// Eqn 5, Haxeltine & Prentice 1996a
-	double jc = c2 * result.vm / 24.0;
+	double jc = c2 * ps_result.vm / 24.0;
 
 	// Calculation of daily gross photosynthesis
 	// Eqn 2, Haxeltine & Prentice 1996a
 	// Notes: - there is an error in Eqn 2, Haxeltine & Prentice 1996a (missing
 	// 			theta in 4*theta*je*jc term) which is fixed here
-	result.agd_g = (result.je + jc - sqrt((result.je + jc) * (result.je + jc) - 4.0 * THETA * result.je * jc)) /
+	ps_result.agd_g = (ps_result.je + jc - sqrt((ps_result.je + jc) * (ps_result.je + jc) - 4.0 * THETA * ps_result.je * jc)) /
 														(2.0 * THETA) * daylength;
 
 	// Leaf-level net daytime photosynthesis (gC/m2/day)
 	// Based on Eqn 19, Haxeltine & Prentice 1996a
-	double adt = result.agd_g - daylength / 24.0 * result.rd_g;
+	double adt = ps_result.agd_g - daylength / 24.0 * ps_result.rd_g;
 
 	// Convert to CO2 diffusion units (mm/m2/day) using ideal gas law
-	result.adtmm = adt / CMASS * 8.314 * (temp + K2degC) / PATMOS * 1e3;
+	ps_result.adtmm = adt / CMASS * 8.314 * (temp + K2degC) / PATMOS * 1e3;
 }
 
 /// Calculate value for canopy conductance component associated with photosynthesis (mm/s)
@@ -777,16 +783,16 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 			indiv.phots.assign(date.subdaily, res);
 
 			for (int i=0; i<date.subdaily; i++) {
-				PhotosynthesisResult& result = indiv.phots[i];
+				PhotosynthesisResult& ps_result = indiv.phots[i];
 				// Update temperature and PAR
 				ps_env.set(climate.co2, climate.temps[i], climate.pars[i], indiv.fpar, 24);
 
 				photosynthesis(ps_env, pft.lambda_max, pft,
 				               1.0, ps_str,
-				               result,
+				               ps_result,
 				               indiv.photosynthesis.vm);
 
-				indiv.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
+				indiv.gpterms[i] = gpterm(ps_result.adtmm, climate.co2, pft.lambda_max, 24);
 			}
 		}
 		vegetation.nextobj();
@@ -1127,16 +1133,16 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 
 			if (date.diurnal()) {
 				for (int i=0; i<date.subdaily; i++) {
-					PhotosynthesisResult& result = indiv.phots[i];
+					PhotosynthesisResult& ps_result = indiv.phots[i];
 
 					ps_env.set(climate.co2, climate.temps[i], climate.pars[i], indiv.fpar, 24);
 
 					photosynthesis(ps_env, pft.lambda_max, pft,
 						indiv.nactive / indiv.nextin, ps_str,
-						result,
+						ps_result,
 						indiv.photosynthesis.vm);
 
-					indiv.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
+					indiv.gpterms[i] = gpterm(ps_result.adtmm, climate.co2, pft.lambda_max, 24);
 				}
 			}
 		}

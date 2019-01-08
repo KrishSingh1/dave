@@ -373,8 +373,8 @@ inline double f(double& cmass_leaf_inc) {
 }
 
 void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf_inc, double& cmass_root_inc,
-		double& cmass_sap_inc, double& cmass_debt_inc, double& cmass_heart_inc, double& cmass_sg_inc, double& litter_leaf_inc,
-		double& litter_root_inc, double& exceeds_cmass) {
+		double& cmass_sap_inc, double& cmass_debt_inc, double& cmass_heart_inc, double& cmass_sen_inc, double& cmass_sg_inc,
+		double& litter_leaf_inc, double& litter_root_inc, double& exceeds_cmass) {
 
 	// leaf C biomass for last time period on individual basis (kgC)
 	double cmass_leaf = indiv.get_cmass_leaf() / indiv.densindiv;
@@ -386,6 +386,10 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 	double cmass_debt = indiv.cmass_debt / indiv.densindiv;
 	// heartwood C biomass for last time period on individual basis (kgC)
 	double cmass_heart = indiv.cmass_heart / indiv.densindiv;
+	// senescence leaf C biomass for last time period on individual basis (kgC)
+	double cmass_leaf_sen = (ifdailygrass && indiv.pft.lifeform == GRASS) ? indiv.cmass_leafs[3] / indiv.densindiv : 0.0;
+	// leaf storage for start of season growth next growing period.
+	double ws = indiv.cmass_leaf_ws;
 	// root storage for start of season growth next growing period.
 	double sg = indiv.cmass_root_sg;
 	// storage growth to root ratio
@@ -422,6 +426,7 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 	// cmass_sap_inc   = increment (may be negative) in sapwood C biomass following
 	//                   allocation (kgC)
 	// cmass_heart_inc = increment in heartwood C biomass following allocation (kgC)
+	// cmass_sen_inc = decrement in daily leaf senescenes C biomass following allocation (kgC)  
 	// cmass_sg_inc	   = increment in root storage C biomass following allocation (kgC)       	
 	// litter_leaf_inc = increment in leaf litter following allocation, on individual
 	//                   basis (kgC)
@@ -511,7 +516,8 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 	cmass_sap_inc   = 0.0;
 	cmass_heart_inc = 0.0;
 	cmass_debt_inc	= 0.0;
-	cmass_sg_inc	= 0.0;
+	cmass_sen_inc   = 0.0;
+	cmass_sg_inc    = 0.0;
 
 	// belowground cmass allocation
 	double cmass_belowground_inc = 0.0; 
@@ -783,7 +789,7 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 		//   (14) bminc = cmass_leaf_inc + cmass_root_inc
 		// while satisfying Eqn(3)
 
-		cmass_leaf_inc = (bminc - cmass_leaf / ltor + (cmass_root + sg)) / (1.0 + 1.0 / ltor);
+		cmass_leaf_inc = (bminc - (cmass_leaf + ws) / ltor + (cmass_root + sg)) / (1.0 + 1.0 / ltor);
 		cmass_belowground_inc = bminc - cmass_leaf_inc;
 
 		if (bminc > 0.0 || bminc == 0.0 && !dailygrass) {
@@ -845,7 +851,7 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 			}
 		}
 		else {
-
+			
 			// Abnormal allocation: negative biomass increment
 
 			// Negative increment is respiration (neg bminc) or/and increment in other
@@ -854,18 +860,44 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 			cmass_root_inc = cmass_belowground_inc;
 
 			if (dailygrass) {
-				cmass_leaf_inc = 0.0;
-				if (stor)
-					cmass_sg_inc = (bminc - sg / stor + cmass_root) / (1.0 + 1.0 / stor);
-				cmass_root_inc = bminc - cmass_sg_inc;
+				if (bminc < -(cmass_leaf + cmass_leaf_sen + ws + cmass_root + sg)) {
 
-				if (cmass_root_inc < -cmass_root){
-					exceeds_cmass += -(cmass_root_inc + cmass_root);
+					// Biomass decrease is larger than existing biomass
+					// Note: This should never be able to happen
+					// Respiration is a fraction of biomass and daily productivity
+					// Should never be able to be bigger than total biomass
+
+					exceeds_cmass = -(cmass_leaf + cmass_leaf_sen + ws + cmass_root + sg + bminc);
+
+					cmass_leaf_inc = -ws;
 					cmass_root_inc = -cmass_root;
-				}
-				if (cmass_sg_inc < -sg){
-					exceeds_cmass += -(cmass_sg_inc + sg);
 					cmass_sg_inc = -sg;
+					cmass_sen_inc = -cmass_leaf + cmass_leaf_sen;
+
+					dprintf("DAILY GRASS biomass decrease is larger than existing biomass (%g) Year %d Day %d PFT %s Indiv %d Patch %d\n", exceeds_cmass, date.year, date.day, (char*)indiv.pft.name, indiv.id, indiv.vegetation.patch.id);
+				}
+				else {
+
+					// Biomass decrease is less than existing biomass
+					// Keeping ltor and storage ratios
+					
+					// Including senescening leaves as well
+					cmass_leaf_inc = (bminc - (cmass_leaf + cmass_leaf_sen + ws) / ltor + (cmass_root + sg)) / (1.0 + 1.0 / ltor);
+					cmass_belowground_inc = bminc - cmass_leaf_inc;
+
+					cmass_sg_inc = (cmass_belowground_inc - sg / stor + cmass_root) / (1.0 + 1.0 / stor);
+					cmass_root_inc = cmass_belowground_inc - cmass_sg_inc;
+
+					// If decrement of cmass_leaf then also reduce leaf biomass not not only storage pool
+					if (cmass_leaf_inc < 0.0) {
+						double sen_frac = (cmass_leaf + cmass_leaf_sen) > 0.0 ? (cmass_leaf + cmass_leaf_sen) / (cmass_leaf + cmass_leaf_sen + ws) : 0.0;
+						cmass_sen_inc = cmass_leaf_inc * sen_frac;
+						cmass_leaf_inc -= cmass_sen_inc;
+					}
+
+					if (cmass_root + cmass_root_inc < -1.0e-15 || sg + cmass_sg_inc < -1.0e-15 || cmass_leaf + cmass_leaf_sen + cmass_sen_inc < -1.0e-15 || ws + cmass_leaf_inc < -1.0e-15) {
+						dprintf("Negative daily grass biomass when it shouldn't! Year %d Day %d PFT %s Indiv %d Patch %d\n", date.year, date.day, (char*)indiv.pft.name, indiv.id, indiv.vegetation.patch.id);
+					}
 				}
 			}
 			else if (bminc < -(cmass_leaf + cmass_root)) {
@@ -905,7 +937,7 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 	// maximum carbon mismatch
 	double EPS = 1.0e-12;
 
-	assert(fabs(bminc + exceeds_cmass - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + cmass_sg_inc + litter_leaf_inc + litter_root_inc)) < EPS);
+	assert(fabs(bminc + exceeds_cmass - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + cmass_sg_inc + cmass_sen_inc + litter_leaf_inc + litter_root_inc)) < EPS);
 }
 
 
@@ -927,7 +959,7 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 	double cmass_root_ind;
 	double cmass_sap_ind;
 
-	allocation(bminit, indiv, ltor, cmass_leaf_ind, cmass_root_ind, cmass_sap_ind, dval, dval, dval, dval, dval, dval);
+	allocation(bminit, indiv, ltor, cmass_leaf_ind, cmass_root_ind, cmass_sap_ind, dval, dval, dval, dval, dval, dval, dval);
 
 	if (indiv.pft.lifeform == GRASS && ifdailygrass) {
 		 indiv.cmass_leaf_ws = cmass_leaf_ind * indiv.densindiv;
@@ -1407,7 +1439,7 @@ void growth(Stand& stand, Patch& patch) {
 
 						allocation(bminc / indiv.densindiv, indiv, indiv.ltor,
 								cmass_leaf_inc, cmass_root_inc, cmass_sap_inc, cmass_debt_inc,
-								cmass_heart_inc, dval,
+								cmass_heart_inc, dval, dval,
 								litter_leaf_inc, litter_root_inc, exceeds_cmass);
 
 						// Update carbon pools and litter (on area basis)
@@ -1494,7 +1526,7 @@ void growth(Stand& stand, Patch& patch) {
 							exceeds_cmass = 0.0;	//exceeds_cmass not used for true crops
 						}
 						else {
-							allocation(bminc, indiv, indiv.ltor, cmass_leaf_inc, cmass_root_inc, dval, dval, dval, dval,
+							allocation(bminc, indiv, indiv.ltor, cmass_leaf_inc, cmass_root_inc, dval, dval, dval, dval, dval,
 									litter_leaf_inc, litter_root_inc, exceeds_cmass);
 						}
 
@@ -1702,7 +1734,9 @@ void growth_daily_grass(Patch& patch) {
 	double cmass_leaf_inc = 0.0;;
 	// increment in root C biomass following allocation, on individual basis (kgC)
 	double cmass_root_inc = 0.0;
-	// increment in storage growth compartment. (kgC)
+	// decrement in leaf C biomass following allocation (kgC)
+	double cmass_sen_inc = 0.0;
+	// increment in root storage growth compartment (kgC)
 	double cmass_sg_inc = 0.0;
 	// increment in leaf litter following allocation, on individual basis (kgC)
 	double litter_leaf_inc = 0.0;
@@ -1785,12 +1819,44 @@ void growth_daily_grass(Patch& patch) {
 			}
 
 			// Allocate between daily compartments, also includes ws (leaf stroage) and sg (storage growth)
-			allocation(bminc, indiv, indiv.ltor, cmass_leaf_inc, cmass_root_inc, dval, dval, dval, cmass_sg_inc, litter_leaf_inc, litter_root_inc, exceeds_cmass);
+			allocation(bminc, indiv, indiv.ltor, cmass_leaf_inc, cmass_root_inc, dval, dval, dval, cmass_sen_inc, cmass_sg_inc, dval, dval, exceeds_cmass);
 
-			// Update state of root and storage pools (sg and ws)
-			indiv.cmass_root += cmass_root_inc;
+			// Update state of biomass and storage pools (sg and ws)
+
+			// Storage 
+			// Leaf increment is added to leaf storage pool for retranslocation out to leaves further down
 			indiv.cmass_root_sg += cmass_sg_inc;
 			indiv.cmass_leaf_ws += cmass_leaf_inc;
+
+			// Root
+			// If negative root increment then retranslocate corresponding N to keep root C:N ratio 
+			// Important for respiration
+			if (cmass_root_inc < 0.0) {
+				double ndec = cmass_root_inc / indiv.cton_root();
+				indiv.nmass_root += ndec;
+				indiv.nmass_root_sg -= ndec;
+			}
+			indiv.cmass_root += cmass_root_inc;
+
+			// Leaf
+			// Respiration from existing leaf biomass if cmass_leaf_inc is negative
+			// and retranslocate corresponding N to keep leaf C:N ratio
+			// C loss already accounted for in daily NPP
+			if (cmass_sen_inc < 0.0) {
+				int comp = 3;
+				while (cmass_sen_inc < 0.0 && comp > -1) {
+					if (indiv.cmass_leafs[comp] > 0.0) {
+						double ntoc = indiv.nmass_leafs[comp] / indiv.cmass_leafs[comp];
+						double cdec = min(indiv.cmass_leafs[comp], -cmass_sen_inc);
+						double ndec = cdec * ntoc;
+						indiv.cmass_leafs[comp] -= cdec;
+						indiv.nmass_leafs[comp] -= ndec;
+						cmass_sen_inc += cdec;
+						indiv.nmass_leaf_ws += ndec;
+					}
+					comp--;
+				}
+			}
 
 			// Specify the rate of material movement constants (eqn 24 Johnson & Thornley 1983)
 			double opt_temp = indiv.pft.pathway == C3 ? C3_OPT_TEMP : C4_OPT_TEMP;

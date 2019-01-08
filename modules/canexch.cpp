@@ -1997,11 +1997,14 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 		// Static root and sap wood C:N ratio if no N limitation
 		// to not let N affect respiration for C only version of model
+		// Also not allow lower C:N ratios than minimum which
+		// would affect respiration severely (happens for deciduous trees
+		// in the beginning of the season)
 
 		double cton_sap, cton_root;
 		if (ifnlim) {
-			cton_sap = indiv.cton_sap();
-			cton_root = indiv.cton_root();
+			cton_sap = max(indiv.cton_sap(), indiv.pft.cton_leaf_min * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr);
+			cton_root = max(indiv.cton_root(), indiv.pft.cton_leaf_min * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
 		}
 		else {
 			cton_sap = pft.cton_sap_avr;

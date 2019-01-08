@@ -1169,16 +1169,16 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	nstress						= false;
 
 	if (pft.phenology == CROPGREEN) {
-		cmass_leafs = new double[2](); // 0 - alive leaf, 1 - dead leaf
-		nmass_leafs = new double[2](); // 0 - alive leaf, 1 - dead leaf
+		cmass_leafs = new double[2](); // 0 - alive leaf, 1 - dead leaf (not used yet)
+		nmass_leafs = new double[2](); // 0 - alive leaf, 1 - dead leaf (not used yet)
 	}
 	else if (ifdailygrass && pft.lifeform == GRASS) {
 		cmass_leafs = new double[4](); // 0 - growing leaves, 1 - first fully expanded leaves, 2 - second fully expanded leaves, 3 - senescing leaves
 		nmass_leafs = new double[4](); // 0 - growing leaves, 1 - first fully expanded leaves, 2 - second fully expanded leaves, 3 - senescing leaves
 	}
 	else {
-		cmass_leafs = new double(); // 0 - alive leaf
-		nmass_leafs = new double(); // 0 - alive leaf
+		cmass_leafs = new double(); // 0 - alive leaf (not used yet)
+		nmass_leafs = new double(); // 0 - alive leaf (not used yet)
 	}
 
 	// additional initialisation

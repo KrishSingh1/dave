@@ -2184,9 +2184,9 @@ public:
 	double cmass_root_ymax;
 	/// yearly maximum nmass_root for daily allocation
 	double nmass_root_ymax;
-	/// Storage weight for daily allocation
+	/// Storage weight for leaf daily allocation
 	double cmass_leaf_ws;
-	/// Storage weight for biomass increment without lai
+	/// Storage growth for root biomass increment
 	double cmass_root_sg;
 	/// leaf C biomass on modelled area basis (kgC/m2)
 	double *cmass_leafs;

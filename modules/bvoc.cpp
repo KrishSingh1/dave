@@ -55,8 +55,8 @@ void initbvoc(){
 
 	PhotosynthesisEnvironment ps_env;
 					
-	PhotosynthesisStresses ps_str;
-	ps_str.no_stress();
+	PhotosynthesisStresses ps_stress;
+	ps_stress.no_stress();
 
  	pftlist.firstobj();
  	while (pftlist.isobj) {
@@ -66,7 +66,7 @@ void initbvoc(){
 				// par for the standard condition, J m-2 d-1
 
 		ps_env.set(CO2, Tstand, par, 1.0, daylength);
-		photosynthesis(ps_env, pft.lambda_max, pft, 1.0, ps_str, phot, -1);
+		photosynthesis(ps_env, pft.lambda_max, pft, 1.0, ps_stress, phot, -1);
 
 		double coeff = 1e-3 / (phot.je + phot.rd_g/24) / pft.sla / Cfrac;
 

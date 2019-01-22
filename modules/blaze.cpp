@@ -671,7 +671,7 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 			} 
 			else {
 				dprintf("Biome %d not found in BLAZE\n",biome);
-				fail("Exiting... ");
+				survival_probability = 1.;
 			}
 		} 
 		else {

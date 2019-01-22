@@ -91,7 +91,7 @@ typedef enum {
 
 /// CENTURY pool names, NSOMPOOL number of SOM pools
 typedef enum {SURFSTRUCT, SOILSTRUCT, SOILMICRO, SURFHUMUS, SURFMICRO, SURFMETA, SURFFWD, SURFCWD,
-	SOILMETA, SLOWSOM, PASSIVESOM, LEACHED, NSOMPOOL} pooltype;
+	SOILMETA, SLOWSOM, PASSIVESOM, LEACHED, NSOMPOOL, DEADWOOD} pooltype;
 
 /// Irrigation type for PFTs
 typedef enum {RAINFED, IRRIGATED} hydrologytype;
@@ -3344,9 +3344,9 @@ public:
 	/// live to atm
 	double wood2atm, leaf2atm;
 	/// live to litter
-	double leaf2lit, wood2str, wood2fwd, wood2cwd;
+	double leaf2lit, wood2str, wood2fwd, wood2cwd, wood2dwd;
 	/// litter to atm
-	double litf2atm, lfwd2atm, lcwd2atm;
+	double litf2atm, lfwd2atm, lcwd2atm, ldwd2atm;
 	//WK not really biome shifting but rather biome mapping using vegetation distribution from FAPAR
 	/// Storage for averaging of different Fpars for biome shifting in Simfire
 	double avg_fgrass[n_year_biomeavg];

@@ -356,8 +356,10 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil, bool tillage) {
 	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
 	// plus Kirschbaum et al 2001 coarse woody debris decay
-	const double K_MAX[] = {9.5e-3, 1.9e-2, 4.2e-2, 4.8e-4, 2.7e-2, 3.8e-2, 1.1e-2, 2.2e-3, 7.0e-2, 1.7e-3, 1.9e-6};
-	// pools SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SURFFWD,SURFCWD,SOILMETA,SLOWSOM,PASSIVESOM
+	//CLN
+	const double K_MAX[] = {9.5e-3, 1.9e-2, 4.2e-2, 4.8e-4, 2.7e-2, 3.8e-2, 1.1e-2, 2.2e-3, 7.0e-2, 1.7e-3, 1.9e-6, 30.};
+	//CLN
+	// pools SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SURFFWD,SURFCWD,SOILMETA,SLOWSOM,PASSIVESOM,DEADWOOD
 
 	// Modifier for effect of soil texture
 	// Eqn 5, Parton et al 1993:
@@ -409,6 +411,9 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil, bool tillage) {
 		else if (p == SOILMICRO) {
 			k *= texture_mod;
 		}
+		else if (p == DEADWOOD ) {
+			continue; 
+		}
 
 		// Increased HR for crops (tillage)
 		if (tillage && (p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM)) {
@@ -421,6 +426,16 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil, bool tillage) {
 		if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
 			soil.sompool[p].mfracremain_mean[date.month] += soil.sompool[p].fracremain / date.ndaymonth[date.month];
 		}
+	}
+	// Deadwood transfer to related FWD and CWD (BLAZE related only for now) 
+	if ( soil.sompool[DEADWOOD].cmass > 0. ) {
+		double frac_turnover = 1. - exp(log(0.5)/(K_MAX[DEADWOOD]*365.)); 
+		soil.sompool[SURFFWD].cmass  += frac_turnover * 0.2 * soil.sompool[DEADWOOD].cmass;    
+		soil.sompool[SURFCWD].cmass  += frac_turnover * 0.8 * soil.sompool[DEADWOOD].cmass;     
+		soil.sompool[SURFFWD].nmass  += frac_turnover * 0.2 * soil.sompool[DEADWOOD].nmass;
+		soil.sompool[SURFCWD].nmass  += frac_turnover * 0.8 * soil.sompool[DEADWOOD].nmass;         
+		soil.sompool[DEADWOOD].cmass *= (1. - frac_turnover);
+		soil.sompool[DEADWOOD].nmass *= (1. - frac_turnover);
 	}
 }
 

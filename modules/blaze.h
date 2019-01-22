@@ -23,7 +23,7 @@
 #include "plib.h"
 
 //WK explain a bit what this is
-const double turnoverfract[12][5] = {
+const double turnoverfract[13][5] = {
 	{ .0 , .0 , .05, .2 , .2 }, //   0 Stems       -> ATM
        	{ .0 , .0 , .15, .2 , .2 }, //   1 Branches    -> ATM
         { .03, .13, .25, .5 , .5 }, //   2 Bark        -> ATM
@@ -33,18 +33,29 @@ const double turnoverfract[12][5] = {
         { .03, .13, .25, .5 , .5 }, //   6 Bark        -> Litter (str)
         { .05, .1 , .15, .3 , .4 }, //   7 Leaves      -> Litter (str)
         { .0 , .02, .02, .04, .04}, //   8 FDEAD roots -> ATM
-	//        { .5 , .75, .75, .8 , .8 }, //   9 CWD         -> ATM
-        { .12, .15, .18, .2 , .2 }, //   9 CWD         -> ATM
+        { .5 , .75, .75, .8 , .8 }, //   9 CWD         -> ATM
+	//        { .12, .15, .18, .2 , .2 }, //   9 CWD         -> ATM
 	{ .6 , .65, .85, 1. , 1. }, //  10 Bark Litter -> ATM
-	{ .6 , .65, .85, 1. , 1. }  //  11 Leaf Litter -> ATM*/
+	{ .6 , .65, .85, 1. , 1. }, //  11 Leaf Litter -> ATM*
+	{ .0 , .0 , .1 , .8 , .8 }, //  12 Deadwood    -> ATM
 };
 
 //WK explain a bit what this is
-const double fbranch = 0.05; // 
-const double fbark   = 0.01; // 
+// fraction of life woody biomass that is branch
+const double fbranch   = 0.05;
 
-const double kg2g    = 1000.;
-const double min_fuel= 120.; // available fuel threshold[gC/m2]
+// fraction of life woody biomass that is bark
+const double fbark     = 0.01;
+
+// ration of dead coarse biomass to going to deadwood and cwd, respectively.
+const double cwd_ratio = 0.1; 
+const double dwd_ratio = 1.-cwd_ratio; 
+
+// conversion kg -> g
+const double kg2g      = 1000.;
+
+// min. available fuel to start a fire [gC/m2]
+const double min_fuel  = 120.; 
 	
 double pixelsize(double latpos,double longsize,double latsize,int postype);
 

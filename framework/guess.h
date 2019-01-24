@@ -508,7 +508,7 @@ public:
 
 /// This struct contains the result of a photosynthesis calculation.
 /** \see photosynthesis */
-struct PhotosynthesisResult : public Serializable {
+struct PhotosynthesisResult {
 
 	/// Constructs an empty result
 	PhotosynthesisResult() {
@@ -579,6 +579,7 @@ struct PhotosynthesisEnvironment {
 		daylength = 0;
 	}
 
+private:
 	/// atmospheric ambient CO2 concentration (ppmv)
 	double co2;
 
@@ -594,6 +595,7 @@ struct PhotosynthesisEnvironment {
 	/// day length, must equal 24 in diurnal mode(h)
 	double daylength;
 
+public:
 	/// set 
     void set(double co2_env, double temp_env, double par_env, double fpar_env, double daylength_env) {
 		co2 = co2_env;
@@ -645,9 +647,11 @@ struct PhotosynthesisStresses {
 		ifnlimvmax = false;
 	}
 
+private:
 	/// whether nitrogen should limit Vmax
 	bool ifnlimvmax;
 
+public:
 	/// Set the stresses
     void set(bool thisnlimvmax) {
 		ifnlimvmax = thisnlimvmax;

@@ -833,8 +833,7 @@ void nstore_usage(Vegetation& vegetation) {
 				// Optimal N mass
 				double nmass_optimal = indiv.get_cmass_leaf() / indiv.cton_leaf_opt +
 					indiv.cmass_root / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) +
-					indiv.cmass_leaf_ws / indiv.pft.cton_leaf_min +
-					indiv.cmass_root_sg / (indiv.pft.cton_leaf_min * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
+					indiv.cmass_leaf_ws / indiv.pft.cton_leaf_avr + indiv.cmass_root_sg / indiv.pft.cton_root_avr;
 
 				// Compartment fraction of optimal N mass (if optimal is less than current then frac_nmass_optimal will be > 1)
 				frac_nmass_optimal = !negligible(nmass_optimal) ? (nmass_current + nmass_uptake) / nmass_optimal : 0.0;
@@ -853,7 +852,8 @@ void nstore_usage(Vegetation& vegetation) {
 					double nmass_storage = nmass_current + nmass_uptake - (indiv.get_nmass_leaf() + indiv.nmass_root);
 
 					// Storage fraction going to leaf storage
-					double frac_leaf_storage = (indiv.cmass_leaf_ws / indiv.pft.cton_leaf_avr) / (indiv.cmass_leaf_ws / indiv.pft.cton_leaf_avr + indiv.cmass_root_sg / indiv.pft.cton_root_avr);
+					double frac_leaf_storage = !negligible(indiv.cmass_leaf_ws + indiv.cmass_root_sg) ? 
+						(indiv.cmass_leaf_ws / indiv.pft.cton_leaf_avr) / (indiv.cmass_leaf_ws / indiv.pft.cton_leaf_avr + indiv.cmass_root_sg / indiv.pft.cton_root_avr) : 0.5;
 
 					// Update N storage pools
 					indiv.nmass_leaf_ws = nmass_storage * frac_leaf_storage;
@@ -870,8 +870,8 @@ void nstore_usage(Vegetation& vegetation) {
 					indiv.nmass_root = indiv.cmass_root / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) * frac_nmass_optimal;
 
 					// Update N storage pools
-					indiv.nmass_leaf_ws = indiv.cmass_leaf_ws / indiv.pft.cton_leaf_min * frac_nmass_optimal;
-					indiv.nmass_root_sg = indiv.cmass_root_sg / (indiv.pft.cton_leaf_min * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) * frac_nmass_optimal;
+					indiv.nmass_leaf_ws = indiv.cmass_leaf_ws / indiv.pft.cton_leaf_avr * frac_nmass_optimal;
+					indiv.nmass_root_sg = indiv.cmass_root_sg / indiv.pft.cton_root_avr * frac_nmass_optimal;
 
 					// Nitrogen stressed photosynthesis is allowed only when nitrogen limitation is turned on
 					indiv.nstress = ifnlim;
@@ -1040,7 +1040,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		indiv.hondemand = 0.0;
 
 		// Total nitrogen demand
-		double ndemand_tot = indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand + indiv.hondemand;
+		double ndemand_tot = max(0.0, indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand + indiv.hondemand);
 
 		// Calculate scalars to possible nitrogen uptake
 
@@ -1073,7 +1073,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		indiv.leafndemand  *= fractomax;
 		indiv.rootndemand  *= fractomax;
 		indiv.sapndemand   *= fractomax;
-		indiv.storendemand *= indiv.storendemand > 0 ? fractomax : 1.0; // For daily grass storage N demand can be negative when its C:N ratio is too low
+		indiv.storendemand *= fractomax;
 
 		// Sum total nitrogen demand individual is capable of taking up
 		indiv.ndemand = indiv.leafndemand + indiv.rootndemand + indiv.sapndemand + indiv.storendemand;

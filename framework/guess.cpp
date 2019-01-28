@@ -1753,7 +1753,7 @@ double Individual::ndemand_storage(double cton_leaf_opt) {
 		// analogous with root demand
 		storendemand = max(0.0, cropindiv->grs_cmass_stem / (cton_leaf_opt * pft.cton_stem_avr / pft.cton_leaf_avr) - cropindiv->nmass_agpool);
 	else if (ifdailygrass && pft.lifeform == GRASS && !istruecrop_or_intercropgrass())
-		storendemand = (cmass_leaf_ws / pft.cton_leaf_min - nmass_leaf_ws) + (cmass_root_sg / (pft.cton_leaf_min * pft.cton_root_avr / pft.cton_leaf_avr) - nmass_root_sg);
+		storendemand = max(0.0, (cmass_leaf_ws / pft.cton_leaf_avr - nmass_leaf_ws) + (cmass_root_sg / pft.cton_root_avr - nmass_root_sg));
 	else
 		storendemand = max(0.0, min(anpp * scale_n_storage / cton_leaf(), max_n_storage) - nstore());
 

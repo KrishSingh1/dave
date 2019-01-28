@@ -865,12 +865,13 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 									indiv.lai_ymax = indiv.lai;
 									indiv.cmass_leaf_ymax = indiv.cmass_leaf;
 									indiv.cmass_root_ymax = indiv.cmass_root;
+									indiv.nmass_leaf_ymax = indiv.cmass_leaf_ymax / indiv.cton_leaf_aavr;
 								}
 
 								standpft_cmass_leaf += indiv.cmass_leaf_ymax;
 								standpft_cmass += indiv.ccont();
 								standpft_nmass += indiv.ncont();
-								standpft_nmass_leaf += indiv.cmass_leaf_ymax / indiv.cton_leaf_aavr;
+								standpft_nmass_leaf += indiv.nmass_leaf_ymax;
 								standpft_nmass_veg += indiv.nmass_veg;
 								standpft_fpc += indiv.fpc;
 								standpft_aaet += indiv.aaet;
@@ -1411,7 +1412,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_nflux, -andep_gridcell * m2toha);
 	outlimit(out,out_nflux, -anfix_gridcell * m2toha);
 	outlimit(out,out_nflux, -anfert_gridcell * m2toha);
-	outlimit(out,out_nflux, -anest_gridcell * m2toha);
+	outlimit(out,out_nflux, anest_gridcell * m2toha);
 	outlimit(out,out_nflux, flux_ntot * m2toha);
 	outlimit(out,out_nflux, (n_min_leach_gridcell + n_org_leach_gridcell) * m2toha);
 	if (run_landcover) {
@@ -1423,7 +1424,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_nflux, (flux_nharvest + lc.anflux_landuse_change +
 				lc.anflux_harvest_slow + flux_nseed + flux_ntot +
 				n_min_leach_gridcell + n_org_leach_gridcell -
-				(andep_gridcell + anfix_gridcell + anfert_gridcell + anest_gridcell)) * m2toha);
+				(andep_gridcell + anfix_gridcell + anfert_gridcell - anest_gridcell)) * m2toha);
 
 	// CPOOL Write cpool to file
 

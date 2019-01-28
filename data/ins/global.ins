@@ -88,7 +88,7 @@ ifcalcsla 1			! whether to calculate SLA from leaf longevity
 ifcalccton 1			! whether to calculate leaf C:N min from leaf longevity
 					! (PFT-specific value can be specified in this file instead)
 iffire 1			! whether to implement fire (1) or not (0)
-npatch 1			! number of replicate patches to simulate
+npatch 5			! number of replicate patches to simulate
 patcharea 1000			! patch area (m2)
 estinterval 5			! years between establishment events in cohort mode
 ifdisturb 1			! whether generic patch-destroying disturbances enabled
@@ -102,7 +102,7 @@ ifcdebt 1			! whether to allow vegetation C storage (1) or not (0)
 wateruptake "rootdist"  	! "wcont", "rootdist", "smart" or "speciesspecific",
                         		! see documentation for water_uptake()
 textured_soil 1	     		! whether to use silt/sand fractions specific to soiltype
-ifdailygrass 0			! whether to use daily carbon allocation for grasses.
+ifdailygrass 1			! whether to use daily carbon allocation for grasses.
 !///////////////////////////////////////////////////////////////////////////////
 ! PROCESS SETTINGS SPECIFIC TO NITROGEN
 !///////////////////////////////////////////////////////////////////////////////
@@ -631,6 +631,7 @@ group "C3G" (
 	include 1
 	grass
 	pathway "c3"
+	sla 20
 	respcoeff 1.0
 	pstemp_min -5
 	pstemp_low 10
@@ -646,7 +647,7 @@ group "C3G" (
 	eps_mon 0.37 0.2 0.23 0.1 0.1 0.09 0.1 0.22 0.19
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 	harv_eff 0.5
-	transferconst 0.049 ! DW_COMMENT ref? 0.15 in Johnson & Thornley 1983
+	transferconst 0.05 ! DW_COMMENT ref? 0.15 in Johnson & Thornley 1983
 )
 
 pft "C3G" (
@@ -655,11 +656,12 @@ pft "C3G" (
 
 group "C4G" (
 
-	! Warm (C3) grass
+	! Warm (C4) grass
 
 	include 1
 	grass
 	pathway "c4"
+	sla 30
 	respcoeff 0.15
 	pstemp_min 6
 	pstemp_low 20
@@ -675,7 +677,7 @@ group "C4G" (
 	eps_mon 0.48 0.19 0.67 0.14 0.12 0.13 0.14 0.29 0.24
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 	harv_eff 0.5
-	transferconst 0.076 ! DW_COMMENT ref? 0.15 in Johnson & Thornley 1983
+	transferconst 0.07 ! DW_COMMENT ref? 0.15 in Johnson & Thornley 1983
 )
 
 pft "C4G" (

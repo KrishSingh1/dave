@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 # Function for creating a scatter plot using gnuplot.
 #
@@ -78,30 +78,51 @@ describe_image wheat_yield.png "Modelled compared to SPAM data set. Units: kg m-
 
 fi 
 #===============================================================================
-# Above Ground Biomass
-
+# Above Ground Biomass    
+# If benchmarks are run on Aurora or Simba link Liu-AGB 
+# and gfed benchmarks into crop_global dir
+trunkpath="/scratch/johan/Benchmarks/trunk_6296-/trunk_7068/output_trunk7068all_crgpp/crop_global/"
 if [ -f Global_mean_ABC_1993-2012_Liu2015_SI.dat ]
 then
-    tslice cpool.out -f 1993 -t 2012 -o cpool1993-2012.dat
+    tslice $trunkpath/cpool.out -f 1993 -t 2012 -o cpool1993-2012.dat
     prepare_agb cpool1993-2012.dat cpool1993-2012_agb.dat VegC
-    joyn cpool1993-2012_agb.dat Global_mean_ABC_1993-2012_Liu2015_SI.dat -i Lon Lat -fast -o cpool1993-2012_joyned.dat
+    joyn Global_mean_ABC_1993-2012_Liu2015_SI.dat cpool1993-2012_agb.dat -i Lon Lat -fast -o cpool1993-2012_joyned.dat
     
     # delta plot Liu cpool VegC 
-    awk '{if(FNR==1){print $1,$2, $3} else {print $1,$2, $4}}' cpool1993-2012_joyned.dat > cpool1993-2012_joyned_Liu.dat
-    awk '{print $1,$2, $3}' cpool1993-2012_joyned.dat > cpool1993-2012_joyned_VegC.dat
+    awk '{if(FNR==1){print $1,$2, $4} else {print $1,$2, $3}}' cpool1993-2012_joyned.dat > cpool1993-2012_joyned_Liu.dat
+    awk '{print $1,$2, $4}' cpool1993-2012_joyned.dat > cpool1993-2012_joyned_VegC.dat
     delta cpool1993-2012_joyned_VegC.dat cpool1993-2012_joyned_Liu.dat -i Lon Lat -o delta_cpool1993-2012_joyned.dat
     gmap delta_cpool1993-2012_joyned.dat -i VegC -lon 1 -lat 2 -landscape -s -20 2 20  -o delta_cpool1993-2012_joyned.png -t "VegC LPJ-GUESS - Liu kg(C)/m2" -c BLUE RED
     convert -geometry 25%x25% delta_cpool1993-2012_joyned.png tmp.png
     convert -rotate 90 tmp.png delta_cpool1993-2012_joyned.png
     describe_image  delta_cpool1993-2012_joyned.png "Modelled minus Liu et al. data. Units: kg m-2." embed
     
+    . postprocess_AGB.sh
+    # delta plot Liu cpool VegC against Jackson 
+    joyn lu_cmass_agb_1993-2012_tot.dat cpool1993-2012_joyned.dat -i Lon Lat -o lu_cmass_agb_tot_1993-2012_joyned.dat
+    awk '{if(FNR==1){print $1,$2, "VegC"} else {print $1,$2, $(NF-1)}}' lu_cmass_agb_tot_1993-2012_joyned.dat > lu_cmass_agb_1993-2012_tot.dat_Liu.dat
+    awk '{print $1,$2, $NF}' lu_cmass_agb_tot_1993-2012_joyned.dat > cpool1993-2012_joyned_VegC.dat
+    delta cpool1993-2012_joyned_VegC.dat lu_cmass_agb_1993-2012_tot.dat_Liu.dat -i Lon Lat -o delta_cpool1993-2012_joyned_jackson.dat
+    gmap delta_cpool1993-2012_joyned_jackson.dat -i VegC -lon 1 -lat 2 -landscape -s -20 2 20  -o delta_cpool1993-2012_joyned_jackson.png -t "VegC LPJ-GUESS - Liu kg(C)/m2" -c BLUE RED
+    convert -geometry 25%x25% delta_cpool1993-2012_joyned_jackson.png tmp.png
+    convert -rotate 90 tmp.png delta_cpool1993-2012_joyned_jackson.png
+    describe_image  delta_cpool1993-2012_joyned_jackson.png "Jackson AGB Modelled minus Liu et al. data. Units: kg m-2." embed
+    
+    # Scatterplot Liu cpool VegC (Jackson AGB)
+    awk '(FNR>1){print $(NF-1),$(NF-2)}' lu_cmass_agb_tot_1993-2012_joyned.dat > scat_cpool2.dat
+    scatter_plot "AGB" "Liu et al. " "LPJ-GUESS following Jackson" scat_cpool2.dat agb.png
+    describe_image agb.png "Jackson AGB Modelled compared to Liu et al. data. Units: kg m-2." embed
+
     # Scatterplot Liu cpool VegC
     awk '(FNR>1){print $3, $4}' cpool1993-2012_joyned.dat > scat_cpool.dat
-    scatter_plot "AGB" "Liu et al. " "LPJ-GUESS" scat_cpool.dat agb.png
-    describe_image agb.png "Modelled compared to Liu et al. data. Units: kg m-2." embed
+    scatter_plot "AGB" "Liu et al. " "LPJ-GUESS" scat_cpool.dat agb_0.7.png
+    describe_image agb_0.7.png "Modelled compared to Liu et al. data. Units: kg m-2." embed
 
+    for year in $pantimes
+    do
+      
     # remove intermediate files
-    rm -f  cpool1993-2012.dat cpool1993-2012_joyned.dat cpool1993-2012_joyned_Liu.dat delta_cpool1993-2012_joyned.dat cpool1993-2012_joyned_VegC.dat scat_cpool.dat
+    #rm -f  cpool1993-2012.dat cpool1993-2012_joyned.dat cpool1993-2012_joyned_Liu.dat delta_cpool1993-2012_joyned.dat cpool1993-2012_joyned_VegC.dat scat_cpool.dat
 else
     # data files only available on Simba and Aurora
     echo "Dataset 'Liu Above-Ground-Biomass' not found. Skipping..."

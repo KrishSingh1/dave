@@ -675,7 +675,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double c_litter_lc[NLANDCOVERTYPES], c_fast_lc[NLANDCOVERTYPES],
 		  c_slow_lc[NLANDCOVERTYPES], c_harv_slow_lc[NLANDCOVERTYPES];
 	double surfsoillitterc_lc[NLANDCOVERTYPES], cwdc_lc[NLANDCOVERTYPES],
-		 centuryc_lc[NLANDCOVERTYPES];
+		 dwdc_lc[NLANDCOVERTYPES], centuryc_lc[NLANDCOVERTYPES];
 
 	double n_harv_slow_lc[NLANDCOVERTYPES], availn_lc[NLANDCOVERTYPES],
 		   andep_lc[NLANDCOVERTYPES], anfert_lc[NLANDCOVERTYPES];
@@ -685,7 +685,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double flux_ntot_lc[NLANDCOVERTYPES], flux_nharvest_lc[NLANDCOVERTYPES],
 		   flux_nseed_lc[NLANDCOVERTYPES];
 	double surfsoillittern_lc[NLANDCOVERTYPES], cwdn_lc[NLANDCOVERTYPES],
-		   centuryn_lc[NLANDCOVERTYPES];
+		   dwdn_lc[NLANDCOVERTYPES],centuryn_lc[NLANDCOVERTYPES];
 
 	for (int i=0; i<NLANDCOVERTYPES; i++) {
 		flux_veg_lc[i]=0.0;
@@ -703,6 +703,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		c_harv_slow_lc[i]=0.0;
 		surfsoillitterc_lc[i]=0.0;
 		cwdc_lc[i]=0.0;
+		dwdc_lc[i]=0.0;
 		centuryc_lc[i]=0.0;
 
 		flux_ntot_lc[i]=0.0;
@@ -720,6 +721,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		n_harv_slow_lc[i]=0.0;
 		surfsoillittern_lc[i]=0.0;
 		cwdn_lc[i]=0.0;
+		dwdn_lc[i]=0.0;
 		centuryn_lc[i]=0.0;
 	}
 
@@ -788,6 +790,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				else if (r == SURFFWD || r == SURFCWD) {
 					cwdc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
 					cwdn_lc[stand.landcover] += patch.soil.sompool[r].nmass * to_gridcell_average;
+				}
+				else if (r == DEADWOOD) {
+					dwdc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
+					dwdn_lc[stand.landcover] += patch.soil.sompool[r].nmass * to_gridcell_average;
 				}
 				else {
 					centuryc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
@@ -999,9 +1005,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 						outlimit_misc(out, *table_p, c_slow_lc[i]);
 					}
 					else {
-						outlimit_misc(out, *table_p, landcover_clitter[i] * lc.frac[i] + surfsoillitterc_lc[i] + cwdc_lc[i]);
+						outlimit_misc(out, *table_p, landcover_clitter[i] * lc.frac[i] + surfsoillitterc_lc[i] + cwdc_lc[i] + dwdc_lc[i]);
 						outlimit_misc(out, *table_p, centuryc_lc[i]);
-						outlimit_misc(out, *table_p_N, surfsoillittern_lc[i] + cwdn_lc[i]);
+						outlimit_misc(out, *table_p_N, surfsoillittern_lc[i] + cwdn_lc[i] + dwdn_lc[i]);
 						outlimit_misc(out, *table_p_N, centuryn_lc[i] + availn_lc[i]);
 					}
 
@@ -1020,8 +1026,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					cpool_total += c_fast_lc[i] + c_slow_lc[i];
 				}
 				else {
-					cpool_total += centuryc_lc[i] + surfsoillitterc_lc[i] + cwdc_lc[i];
-					npool_total += centuryn_lc[i] + surfsoillittern_lc[i] + cwdn_lc[i] + availn_lc[i];
+					cpool_total += centuryc_lc[i] + surfsoillitterc_lc[i] + cwdc_lc[i] + dwdc_lc[i];
+					npool_total += centuryn_lc[i] + surfsoillittern_lc[i] + cwdn_lc[i] + dwdn_lc[i] + availn_lc[i];
 				}
 
 				// Add slow harvest pool if needed
@@ -1087,7 +1093,8 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 				Vegetation& vegetation=patch.vegetation;
 				Patchpft& patchpft=patch.pft[pft.id];
 
-				double cwdn = patch.soil.sompool[SURFCWD].nmass + patch.soil.sompool[SURFFWD].nmass;
+				double cwdn = patch.soil.sompool[SURFCWD].nmass + 
+				  patch.soil.sompool[SURFFWD].nmass + patch.soil.sompool[DEADWOOD].nmass ;
 				vegetation.firstobj();
 				while (vegetation.isobj) {
 					Individual& indiv=vegetation.getobj();

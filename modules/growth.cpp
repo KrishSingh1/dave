@@ -1745,18 +1745,14 @@ void growth_daily_grass(Patch& patch) {
 	const double PHEN_START = 0.1;
 	// value of storage growth pool to add to leaves when good conditions for growth and no LAI
 	const double SG_FRAC = 0.2;
-	// optimum temperature (degree C) for C3 grass growth
-	const double C3_OPT_TEMP = 20;
-	// optimum temperature (degree C) for C4 grass growth
-	const double C4_OPT_TEMP = 30;
-	// pi times squared variance of normal distribution function
-	const double K_PDF = 100.0;
 	// constant when calculating the temperature controlled growth transfer following Johnson & Thornley 1983
 	const double GROWTH_FAC = 0.5;
 	// transfer constant between first and second compartment constant, to make that transfer faster following Johnson & Thornley 1983
 	const double LAMBDA = 2.0;
-	// minimum temperature sclar for movement between compartments
-	const double MOV_TSCAL_MIN = 0.15;
+	// minimum temperature scalar for movement between compartments
+	const double MOV_TSCAL_MIN = 0.1;
+	// can at maximum use 80% of stored N for growth
+	const double MAX_WS_USAGE = 0.8;
 	// C retranslocation fraction for C3 grass senescense
 	const double C3_RETRANS = 0.1;
 	// C retranslocation fraction for C4 grass senescense
@@ -1903,13 +1899,16 @@ void growth_daily_grass(Patch& patch) {
 			// Water stress on growth of new leaves
 			double wscal = max(0.0, (patch.pft[indiv.pft.id].wscal - indiv.pft.wscal_min) / (1.0 - indiv.pft.wscal_min));
 
-			// Temperature scalar for material movement
-			double opt_temp = indiv.pft.pathway == C3 ? C3_OPT_TEMP : C4_OPT_TEMP;
-			double tscal = patch.get_climate().temp > 0.0 ? exp(-pow(patch.get_climate().temp - opt_temp, 2.0) / K_PDF) : 0.0;
+			// Optimum temperature for growth and material movement
+			double opt_temp = (indiv.pft.pstemp_high + indiv.pft.pstemp_low) / 2.0;
+			// Approx standard deviation of temperature-inhibition function of photosynthesis
+			double sigma = (((indiv.pft.pstemp_high + indiv.pft.pstemp_max) / 2.0) - ((indiv.pft.pstemp_low + indiv.pft.pstemp_min) / 2.0)) / 6;
+			// Temperature scalar for growth and material movement
+			double tscal = patch.get_climate().temp > indiv.pft.pstemp_min ? exp(-pow(patch.get_climate().temp - opt_temp, 2.0) / (PI * sigma * sigma)) : 0.0;
 
 			// Specify the rate of material movement constants (eqn 24 Johnson & Thornley 1983)
 			g_fac = min(1.0, max(0.0, GROWTH_FAC * tscal * wscal));
-			g_mov = min(1.0, max(0.0, indiv.pft.transferconst * max(MOV_TSCAL_MIN, tscal)));
+			g_mov = min(1.0, max(0.0, indiv.pft.transferconst * (MOV_TSCAL_MIN + tscal * (1.0 - MOV_TSCAL_MIN))));
 			s_fac = indiv.pft.sen_fac * indiv.pft.transferconst;
 
 			// Check if root storage needs to be used for leaf growth
@@ -1926,14 +1925,10 @@ void growth_daily_grass(Patch& patch) {
 				double cgrow = indiv.cmass_leaf_ws * g_fac * indiv.phen;
 				if (negligible(indiv.cmass_leaf_ws - cgrow)) {
 					cgrow = indiv.cmass_leaf_ws;
-					dprintf("ERRRRRROOOORRRRRR!!!!!!!!!!! C growth \n");
+					dprintf("ERRRRRROOOORRRRRR!!!!!!!!!!! Year %d C growth \n",date.year);
 				}
 
-				double ngrow = min(indiv.nmass_leaf_ws, cg / indiv.cton_leaf_opt);
-				if (negligible(indiv.nmass_leaf_ws - ngrow)) {
-					ngrow = indiv.nmass_leaf_ws;
-					dprintf("ERRRRRROOOORRRRRR!!!!!!!!!!! N growth \n");
-				}
+				double ngrow = min(indiv.nmass_leaf_ws * MAX_WS_USAGE, cg / indiv.cton_leaf_opt);
 
 				indiv.cmass_leaf_ws -= cgrow;
 				indiv.nmass_leaf_ws -= ngrow;
@@ -1996,11 +1991,11 @@ void growth_daily_grass(Patch& patch) {
 			indiv.nmass_leafs[3] += (1.0 - nrelocfrac_daily) * n3 - n4;
 			indiv.nmass_leaf_ws += nrelocfrac_daily * n3;
 
-			/*if (date.year == 522 && date.day == 0)
-				dprintf("Day wscal tscal phen g_fac g_mov s_fac ws l1 l2 l3 l4 leaf r_sg root turn LAI\n");
+			/*if (date.year == 522 && date.day == 0 && indiv.pft.name == "C3G")
+				dprintf("Day temp wscal tscal phen g_fac g_mov s_fac ws l1 l2 l3 l4 leaf r_sg root turn LAI\n");
 
-			if ((date.year == 522 || date.year == 523) && indiv.pft.name == "C4G") {
-				dprintf("%d %g %g %g %g %g %g %g %g %g %g %g %g %g %g", date.day, patch.pft[indiv.pft.id].wscal,
+			if ((date.year == 522 || date.year == 523) && indiv.pft.name == "C3G") {
+				dprintf("%d %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g", date.day, patch.get_climate().temp, patch.pft[indiv.pft.id].wscal,
 					tscal, patch.pft[indiv.pft.id].phen, g_fac, g_mov, s_fac, indiv.cmass_leaf_ws,
 					indiv.cmass_leafs[0], indiv.cmass_leafs[1], indiv.cmass_leafs[2], indiv.cmass_leafs[3],
 					indiv.cmass_leafs[0] + indiv.cmass_leafs[1] + indiv.cmass_leafs[2] + indiv.cmass_leafs[3],
@@ -2052,7 +2047,7 @@ void growth_daily_grass(Patch& patch) {
 
 				// Empty pool after dropped
 				c4 = n4 = 0.0;
-				//if ((date.year == 522 || date.year == 523) && indiv.pft.name == "C4G")
+				//if ((date.year == 522 || date.year == 523) && indiv.pft.name == "C3G")
 				//	dprintf(" %g", leaves_turnover_frac);
 
 				// Root turnover (use same fraction as for leaves)
@@ -2065,13 +2060,13 @@ void growth_daily_grass(Patch& patch) {
 				patch.pft[indiv.pft.id].nmass_litter_root += turnov * (1.0 - nrelocfrac_daily);
 				indiv.nmass_root_sg += turnov * nrelocfrac_daily;
 			}
-			//else if ((date.year == 522 || date.year == 523) && indiv.pft.name == "C4G")
+			//else if ((date.year == 522 || date.year == 523) && indiv.pft.name == "C3G")
 			//	dprintf(" %g",0.0);
 
 			// Update allometry - updates LAI and FPC based on cmass
 			allometry(indiv);
 
-			//if ((date.year == 522 || date.year == 523) && indiv.pft.name == "C4G")
+			//if ((date.year == 522 || date.year == 523) && indiv.pft.name == "C3G")
 			//	dprintf(" %g\n", indiv.lai);
 
 			// Determine the yearly maximum values which is reported

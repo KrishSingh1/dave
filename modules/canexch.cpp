@@ -608,7 +608,6 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	// Make sure that only two alternative modes are possible:
 	//  * daily non-water stressed (forces Vmax calculation)
 	//  * with pre-calculated Vmax (sub-daily and water-stressed)
-
 	assert(vm >= 0 || lambda == pft.lambda_max);
 	assert(lambda <= pft.lambda_max);
 

@@ -508,7 +508,7 @@ public:
 
 /// This struct contains the result of a photosynthesis calculation.
 /** \see photosynthesis */
-struct PhotosynthesisResult {
+struct PhotosynthesisResult : public Serializable {
 
 	/// Constructs an empty result
 	PhotosynthesisResult() {

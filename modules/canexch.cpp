@@ -1015,7 +1015,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 				indiv.cton_leaf_opt = indiv.cmass_leaf_today() / leafoptn;
 			}
 			else {
-				indiv.cton_leaf_opt = max(indiv.pft.cton_leaf_min, min(indiv.pft.cton_leaf_max, indiv.cton_leaf()));
+				indiv.cton_leaf_opt = max(indiv.pft.cton_leaf_min, indiv.cton_leaf());
 			}
 		}
 		else {

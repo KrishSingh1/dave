@@ -428,14 +428,18 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil, bool tillage) {
 		}
 	}
 	// Deadwood transfer to related FWD and CWD (BLAZE related only for now) 
-	if ( soil.sompool[DEADWOOD].cmass > 0. ) {
+	if ( soil.sompool[DEADWOOD].cmass > 0. ) { 
 		double frac_turnover = 1. - exp(log(0.5)/(K_MAX[DEADWOOD]*365.)); 
-		soil.sompool[SURFFWD].cmass  += frac_turnover * 0.2 * soil.sompool[DEADWOOD].cmass;    
-		soil.sompool[SURFCWD].cmass  += frac_turnover * 0.8 * soil.sompool[DEADWOOD].cmass;     
-		soil.sompool[SURFFWD].nmass  += frac_turnover * 0.2 * soil.sompool[DEADWOOD].nmass;
-		soil.sompool[SURFCWD].nmass  += frac_turnover * 0.8 * soil.sompool[DEADWOOD].nmass;         
-		soil.sompool[DEADWOOD].cmass *= (1. - frac_turnover);
-		soil.sompool[DEADWOOD].nmass *= (1. - frac_turnover);
+	     
+		double cto = frac_turnover * soil.sompool[DEADWOOD].cmass; 
+		double nto = frac_turnover * soil.sompool[DEADWOOD].nmass; 
+		soil.sompool[SURFFWD].cmass  += 0.2 * cto;
+		soil.sompool[SURFCWD].cmass  += 0.8 * cto;     
+		soil.sompool[SURFFWD].nmass  += 0.2 * nto;
+		soil.sompool[SURFCWD].nmass  += 0.8 * nto;       
+		//		dprintf("%i %i %i frac %f cto %f nto %f deadpool %f %f %f %f\n",DEADWOOD,date.year,date.day,frac_turnover,cto,nto,soil.sompool[DEADWOOD].cmass, soil.sompool[DEADWOOD].nmass, 1.-exp(log(0.5)/(10.*365.)), K_MAX[DEADWOOD]);
+		soil.sompool[DEADWOOD].cmass -= cto;
+		soil.sompool[DEADWOOD].nmass -= nto;
 	}
 }
 

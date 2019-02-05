@@ -1108,6 +1108,7 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	double nhrtw2cwd = fab * (wood2fwd + wood2cwd) * nmass_heart;
 	double nhrtw2dwd = fab * wood2dwd * nmass_heart;
 
+	if ( wood2dwd > 0. && date.year > 500 ) dprintf("DWD > 0. %d %f \n ",date.year, wood2dwd );
 	// ROOT
 	// assume that same percentage of root biomass is killed as total 
 	// above ground woody biomass

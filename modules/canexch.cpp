@@ -547,13 +547,17 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
  *  In sub-daily mode daylength should be 24 h, to obtain values in daily units.
  *
  *  INPUT PARAMETERS
+ * 
+ *  \param PhotosynthesisEnvironment struct containing the following public members:
+ *   - co2        atmospheric ambient CO2 concentration (ppmv)
+ *   - temp       mean air temperature today (deg C)
+ *   - par        total daily photosynthetically-active radiation today (J/m2/day)
+ *   - daylength  day length, must equal 24 in diurnal mode (h)
+ *   - fpar       fraction of PAR absorbed by foliage
  *
- *  \param co2        atmospheric ambient CO2 concentration (ppmv)
- *  \param temp       mean air temperature today (deg C)
- *  \param par        total daily photosynthetically-active radiation today (J/m2/day)
- *  \param daylength  day length, must equal 24 in diurnal mode (h)
- *  \param fpar       fraction of PAR absorbed by foliage
- *  \param lambda     ratio of intercellular to ambient partial pressure of CO2
+ *  \param PhotosynthesisStresses struct containing the following public members:
+ *   - ifnlimvmax whether nitrogen should limit Vmax
+ *
  *  \param pft        Pft object containing the following public members:
  *   - pathway         biochemical pathway for photosynthesis (C3 or C4)
  *   - pstemp_min      approximate low temperature limit for photosynthesis (deg C)
@@ -563,19 +567,32 @@ void vmax(double b, double c1, double c2, double apar, double tscal,
  *                     (deg C)
  *   - pstemp_max      maximum temperature limit for photosynthesis (deg C)
  *   - lambda_max      non-water-stressed ratio of intercellular to ambient CO2 pp
+ *
+ *  \param lambda     ratio of intercellular to ambient partial pressure of CO2
+ *
  *  \param nactive    nitrogen available for photosynthesis
- *  \param ifnlimvmax whether nitrogen should limit Vmax
+ *
  *  \param vm         pre-calculated value of Vmax for this stand for this day if
  *                    available, otherwise calculated
  *
  * OUTPUT PARAMETERS
  *
- * \param result      see documentation of PhotosynthesisResult struct
+ * \param ps_result      see documentation of PhotosynthesisResult struct
+ * 
+ *
+ * IMPORTANT for users adding new call parameters to the list above:
+ *
+ * Never place new call parameters in the proper photosynthesis() function header, instead
+ * place new parameters insided the structs PhotosynthesisEnvironment and PhotosynthesisStresses,
+ * or in PhotosynthesisResult if it is a result.
  */
-void photosynthesis(double co2, double temp, double par, double daylength,
-                    double fpar, double lambda, const Pft& pft,
-                    double nactive, bool ifnlimvmax,
-                    PhotosynthesisResult& result, double vm) {
+void photosynthesis(const PhotosynthesisEnvironment& ps_env, 
+					const PhotosynthesisStresses& ps_stresses,
+					const Pft& pft,
+					double lambda, 
+					double nactive, 
+					double vm, 
+					PhotosynthesisResult& ps_result) {
 
 	// NOTE: This function is identical to LPJF subroutine "photosynthesis" except for
 	// the formulation of low-temperature inhibition coefficient tscal (tstress; LPJF).
@@ -596,9 +613,19 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 
 	const double PATMOS = 1e5;	// atmospheric pressure (Pa)
 
+	// Get the environmental variables
+	double temp = ps_env.get_temp();
+	double co2 = ps_env.get_co2();
+	double fpar = ps_env.get_fpar();
+	double par = ps_env.get_par();
+	double daylength = ps_env.get_daylength();
+
+	// Get the stresses
+	bool ifnlimvmax = ps_stresses.get_ifnlimvmax();
+
 	// No photosynthesis during polar night, outside of temperature range or no RuBisCO activity
 	if (negligible(daylength) || negligible(fpar) || temp > pft.pstemp_max || temp < pft.pstemp_min || !vm) {
-		result.clear();
+		ps_result.clear();
 		return;
 	}
 
@@ -661,36 +688,36 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 	if (vm < 0) {
 
 		// Calculation of non-water-stressed rubisco capacity (Eqn 11, Haxeltine & Prentice 1996a)
-		vmax(b, c1, c2, apar, tscal, daylength, temp, nactive, ifnlimvmax, result.vm, result.vmaxnlim, result.nactive_opt);
+		vmax(b, c1, c2, apar, tscal, daylength, temp, nactive, ifnlimvmax, ps_result.vm, ps_result.vmaxnlim, ps_result.nactive_opt);
 	}
 	else {
-		result.vm = vm;			// reuse existing Vmax
+		ps_result.vm = vm;			// reuse existing Vmax
 	}
 	// Calculation of daily leaf respiration
 	// Eqn 10, Haxeltine & Prentice 1996a
-	result.rd_g = result.vm * b;
+	ps_result.rd_g = ps_result.vm * b;
 
 	// PAR-limited photosynthesis rate (gC/m2/h)
 	// Eqn 3, Haxeltine & Prentice 1996a
-	result.je = c1 * tscal * apar * CMASS * CQ / daylength;
+	ps_result.je = c1 * tscal * apar * CMASS * CQ / daylength;
 
 	// Rubisco-activity limited photosynthesis rate (gC/m2/h)
 	// Eqn 5, Haxeltine & Prentice 1996a
-	double jc = c2 * result.vm / 24.0;
+	double jc = c2 * ps_result.vm / 24.0;
 
 	// Calculation of daily gross photosynthesis
 	// Eqn 2, Haxeltine & Prentice 1996a
 	// Notes: - there is an error in Eqn 2, Haxeltine & Prentice 1996a (missing
 	// 			theta in 4*theta*je*jc term) which is fixed here
-	result.agd_g = (result.je + jc - sqrt((result.je + jc) * (result.je + jc) - 4.0 * THETA * result.je * jc)) /
+	ps_result.agd_g = (ps_result.je + jc - sqrt((ps_result.je + jc) * (ps_result.je + jc) - 4.0 * THETA * ps_result.je * jc)) /
 														(2.0 * THETA) * daylength;
 
 	// Leaf-level net daytime photosynthesis (gC/m2/day)
 	// Based on Eqn 19, Haxeltine & Prentice 1996a
-	double adt = result.agd_g - daylength / 24.0 * result.rd_g;
+	double adt = ps_result.agd_g - daylength / 24.0 * ps_result.rd_g;
 
 	// Convert to CO2 diffusion units (mm/m2/day) using ideal gas law
-	result.adtmm = adt / CMASS * 8.314 * (temp + K2degC) / PATMOS * 1e3;
+	ps_result.adtmm = adt / CMASS * 8.314 * (temp + K2degC) / PATMOS * 1e3;
 }
 
 /// Calculate value for canopy conductance component associated with photosynthesis (mm/s)
@@ -711,18 +738,25 @@ inline double gpterm(double adtmm, double co2, double lambda, double daylength) 
  */
 void photosynthesis_nostress(Patch& patch, Climate& climate) {
 
+	PhotosynthesisEnvironment ps_env;					
+	PhotosynthesisStresses ps_stress;
+	ps_stress.no_stress(); // no nitrogen limitation throughout this function
+
 	// If this is the first patch, calculate no-stress assimilation for
 	// each Standpft, assuming FPAR=1. This is then later used in
 	// forest_floor_conditions.
 	if (!patch.id) {
+
+		ps_env.set(climate.co2, climate.temp, climate.par, 1.0, climate.daylength);
 
 		for (int p=0; p<npft; p++) {
 			Standpft& spft = patch.stand.pft[p];
 			if (spft.active) {
 
 				// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
-				photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
-					1.0, spft.pft.lambda_max, spft.pft, 1.0, false, spft.photosynthesis, -1);
+				photosynthesis(ps_env, ps_stress, spft.pft, 
+							   spft.pft.lambda_max, 1.0, -1, 
+							   spft.photosynthesis);
 			}
 		}
 	}
@@ -735,12 +769,12 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 		Individual& indiv = vegetation.getobj();
 		Pft& pft = indiv.pft;
 
+		ps_env.set(climate.co2, climate.temp, climate.par, indiv.fpar, climate.daylength);
+
 		// Individual photosynthesis with no nitrogen limitation
-		photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
-		               indiv.fpar, pft.lambda_max, pft,
-		               1.0, false,
-		               indiv.photosynthesis,
-		               -1);
+		photosynthesis(ps_env, ps_stress, pft,
+		               pft.lambda_max, 1.0, -1,
+		               indiv.photosynthesis);
 
 		indiv.gpterm = gpterm(indiv.photosynthesis.adtmm, climate.co2, pft.lambda_max, climate.daylength);
 
@@ -751,14 +785,15 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 			indiv.phots.assign(date.subdaily, res);
 
 			for (int i=0; i<date.subdaily; i++) {
-				PhotosynthesisResult& result = indiv.phots[i];
-				photosynthesis(climate.co2, climate.temps[i], climate.pars[i], 24,
-				               indiv.fpar, pft.lambda_max, pft,
-				               1.0, false,
-				               result,
-				               indiv.photosynthesis.vm);
+				PhotosynthesisResult& ps_result = indiv.phots[i];
+				// Update temperature and PAR
+				ps_env.set(climate.co2, climate.temps[i], climate.pars[i], indiv.fpar, 24);
 
-				indiv.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
+				photosynthesis(ps_env, ps_stress, pft,
+				               pft.lambda_max, 1.0, indiv.photosynthesis.vm,
+				               ps_result);
+
+				indiv.gpterms[i] = gpterm(ps_result.adtmm, climate.co2, pft.lambda_max, 24);
 			}
 		}
 		vegetation.nextobj();
@@ -1083,25 +1118,30 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 		// Individuals photosynthesis is nitrogen stressed
 		if (indiv.nstress) {
 
+			PhotosynthesisEnvironment ps_env;
+			ps_env.set(climate.co2, climate.temp, climate.par, indiv.fpar, climate.daylength);
+
+			PhotosynthesisStresses ps_stress;
+			ps_stress.set(true);
+
 			// Individual photosynthesis
-			photosynthesis(climate.co2, climate.temp, climate.par, climate.daylength,
-				indiv.fpar, pft.lambda_max, pft,
-				indiv.nactive / indiv.nextin, true,
-				indiv.photosynthesis,
-				-1);
+			photosynthesis(ps_env, ps_stress, pft,
+						   pft.lambda_max, indiv.nactive / indiv.nextin, -1, 
+						   indiv.photosynthesis);
 
 			indiv.gpterm = gpterm(indiv.photosynthesis.adtmm, climate.co2, pft.lambda_max, climate.daylength);
 
 			if (date.diurnal()) {
 				for (int i=0; i<date.subdaily; i++) {
-					PhotosynthesisResult& result = indiv.phots[i];
-					photosynthesis(climate.co2, climate.temps[i], climate.pars[i], 24,
-						indiv.fpar, pft.lambda_max, pft,
-						indiv.nactive / indiv.nextin, true,
-						result,
-						indiv.photosynthesis.vm);
+					PhotosynthesisResult& ps_result = indiv.phots[i];
 
-					indiv.gpterms[i] = gpterm(result.adtmm, climate.co2, pft.lambda_max, 24);
+					ps_env.set(climate.co2, climate.temps[i], climate.pars[i], indiv.fpar, 24);
+
+					photosynthesis(ps_env, ps_stress, pft,
+								   pft.lambda_max, indiv.nactive / indiv.nextin, indiv.photosynthesis.vm, 
+								   ps_result);
+
+					indiv.gpterms[i] = gpterm(ps_result.adtmm, climate.co2, pft.lambda_max, 24);
 				}
 			}
 		}
@@ -1168,12 +1208,16 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
 			double par = date.diurnal() ? climate.pars[day.period] : climate.par;
 			double daylength = date.diurnal() ? 24 : climate.daylength;
 
+			PhotosynthesisEnvironment ps_env;
+			ps_env.set(climate.co2, temp, par, indiv.fpar_leafon, daylength);
+
+			PhotosynthesisStresses ps_stress;
+			ps_stress.no_stress();
+
 			// No nitrogen limitation when calculating gp_leafon
-			photosynthesis(climate.co2, temp, par, daylength,
-			               indiv.fpar_leafon, pft.lambda_max, pft,
-			               1.0, false,
-			               leafon_photosynthesis,
-			               -1);
+			photosynthesis(ps_env, ps_stress, pft,
+			               pft.lambda_max, 1.0, -1, 
+			               leafon_photosynthesis);
 
 			double gp_leafon = gpterm(leafon_photosynthesis.adtmm, climate.co2, pft.lambda_max, daylength) + pft.gmin * indiv.fpc;
 
@@ -1615,7 +1659,14 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 	// Evaluate f(lambda_max) to see if there's a root
 	// in the interval we're searching
-	photosynthesis(co2, temp, par, daylength, fpar, pft.lambda_max, pft, nactive, ifnlimvmax, phot_result, vmax);
+
+	PhotosynthesisEnvironment ps_env;
+	ps_env.set(co2, temp, par, fpar, daylength);
+
+	PhotosynthesisStresses ps_stress;
+	ps_stress.set(ifnlimvmax);
+
+	photosynthesis(ps_env, ps_stress, pft, pft.lambda_max, nactive, vmax, phot_result);
 	double f_lambda_max = phot_result.adtmm / fpc - gcphot * (1 - pft.lambda_max);
 
 	if (f_lambda_max <= 0) {
@@ -1640,6 +1691,9 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 
 	double fmid = EPS + 1.0;
 
+	ps_env.set(co2, temp, par, fpar, daylength);
+	ps_stress.set(ifnlimvmax);
+
 	while (fabs(fmid) > EPS && b <= MAXTRIES) {
 
 		b++;
@@ -1650,7 +1704,9 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 		// for total daytime photosynthesis according to Eqns 2 & 19,
 		// Haxeltine & Prentice (1996), and current guess for lambda
 
-		photosynthesis(co2, temp, par, daylength, fpar, xmid, pft, nactive, ifnlimvmax, phot_result, vmax);
+		photosynthesis(ps_env, ps_stress, pft, 
+					   xmid, nactive, vmax, 
+					   phot_result);
 
 		// Evaluate fmid at the point lambda=xmid
 		// fmid will be an increasing function of xmid, with a solution

@@ -318,10 +318,10 @@ OutputRows::~OutputRows() {
 	 for (size_t i = 0; i < used_tables.size(); i++) {
 		  if (used_tables[i]) {
 				if (d == -1) {
-					 out->finish_row(Table(i), lon, lat, y);
+					 out->finish_row(Table((int)i), lon, lat, y);
 				}
 				else {
-					 out->finish_row(Table(i), lon, lat, y, d);
+					 out->finish_row(Table((int)i), lon, lat, y, d);
 				}
 		  }
 	 }

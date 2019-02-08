@@ -66,7 +66,7 @@ void GenericSpinupData::detrend_data() {
 			annual_mean[y] += data[y][d];
 		}
 		annual_mean[y] /= data[y].size();
-		year_number[y] = y;
+		year_number[y] = (double)y;
 	}
 
 	double a, b;

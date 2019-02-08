@@ -63,7 +63,17 @@ void open3d();
 * Functional only when the framework is built as a DLL and linked to the
 * LPJ-GUESS Windows Shell.
 */
-void plot3d(const char* filename);
+void plot3d();
+
+/// Opens a temporary data transfer file for 3D view in the Windows shell
+/** As plot3d(), invoked only by the WindowsShell class */
+void plot3d_fileopen();
+
+/// Closes the temporary data transfer file for 3D view in the Windows shell
+void plot3d_fileclose();
+
+/// Get the file handle for writing to the temporary data transfer file for 3D view in the Windows shell
+FILE* plot3d_getfilehandle();
 
 /// May be called by framework to respond to abort request from the user.
 /**
@@ -82,6 +92,7 @@ bool abort_request_received();
  */
 class Shell {
 public:
+	
 	virtual ~Shell() {}
 
 	/// Sends a message to the user somehow and terminates the program
@@ -109,7 +120,18 @@ public:
 	virtual void open3d() = 0;
 
 	/// Sends data on current stand structure to 3D vegetation plot in the Windows shell
-	virtual void plot3d(const char* filename) = 0;
+	virtual void plot3d() = 0;
+
+	/// Opens a temporary data transfer file for 3D view in the Windows shell
+	/** Only invoked by the WindowsShell */
+	virtual void plot3d_fileopen() = 0;
+	
+	/// Closes the temporary data transfer file for 3D view in the Windows shell
+	virtual void plot3d_fileclose() = 0;
+
+	/// The file handle for writing to the temporary data transfer file for 3D view in the Windows shell
+	virtual FILE* plot3d_getfilehandle() = 0;
+
 };
 
 
@@ -137,9 +159,15 @@ public:
 
 	void open3d();
 
-	void plot3d(const char* filename);
+	void plot3d();
 
 	void clear_all_graphs();
+
+	void plot3d_fileopen();
+
+	void plot3d_fileclose();
+	
+	FILE* plot3d_getfilehandle();
 
 	bool abort_request_received();
 

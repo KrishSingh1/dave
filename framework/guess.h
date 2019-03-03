@@ -2733,6 +2733,9 @@ public:
 	/// mean water content in upper soil layer for last month
 	/** (valid only on last day of month following call to daily_accounting_patch) */
 	double mwcontupper;
+	/// running mean of wcont for last 10 days
+	Historic<double, 10> wcontupper_10;
+	Historic<double, 10> wcontlower_10;
 	/// stored snow as average over modelled area (mm rainfall equivalents)
 	double snowpack;
 	/// total runoff today (mm/day)

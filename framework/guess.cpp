@@ -249,6 +249,8 @@ void Soil::serialize(ArchiveStream& arch) {
 		& wcont_evap
 		& dwcontupper
 		& mwcontupper
+		& wcontupper_10
+		& wcontlower_10
 		& snowpack
 		& runoff
 		& temp

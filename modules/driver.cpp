@@ -855,6 +855,8 @@ void dailyaccounting_patch(Patch& patch) {
 	// Store daily soil water in both layers
 	soil.dwcontupper[date.day] = soil.wcont[0];
 	soil.dwcontlower[date.day] = soil.wcont[1];
+	soil.wcontupper_10.add(soil.wcont[0]);
+	soil.wcontlower_10.add(soil.wcont[1]);
 
 	// On last day of month, calculate mean content of upper soil layer
 

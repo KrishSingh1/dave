@@ -471,7 +471,7 @@ void growth_daily_crop(Patch& patch) {
 		Patchpft& patchpft = patch.pft[indiv.pft.id];
 		cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
 
-		if(date.day == 0) {
+		if (date.day == 0) {
 
 			cropindiv.ycmass_plant = 0.0;
 			cropindiv.ycmass_leaf = 0.0;
@@ -498,7 +498,7 @@ void growth_daily_crop(Patch& patch) {
 
 			cropindiv.cmass_leaf_max = 0.0;
 
-			if(indiv.pft.phenology == ANY && !cropindiv.isintercropgrass) {		// zero of normal cc3g/cc4g cmass arbitrarily at new year
+			if (indiv.pft.phenology == ANY && !cropindiv.isintercropgrass) {		// zero of normal cc3g/cc4g cmass arbitrarily at new year
 
 				cropindiv.grs_cmass_plant = 0.0;
 				cropindiv.grs_cmass_root = 0.0;
@@ -517,9 +517,9 @@ void growth_daily_crop(Patch& patch) {
 		cropindiv.dnmass_ho = 0.0;
 
 		// true crop allocation
-		if(indiv.pft.phenology == CROPGREEN) {
+		if (indiv.pft.phenology == CROPGREEN) {
 
-			if(ppftcrop.growingseason) {
+			if (ppftcrop.growingseason) {
 
 				double cmass_seed = 0.0;
 				double nmass_seed = 0.0;
@@ -531,7 +531,8 @@ void growth_daily_crop(Patch& patch) {
 						cmass_seed = 0.1 * CMASS_SEED;
 						nmass_seed = 0.1 * CMASS_SEED / indiv.pft.cton_leaf_min;
 					}
-				} else {
+				}
+				else {
 					// add seed carbon on sowing date
 					if(date.day == ppftcrop.sdate) {
 
@@ -611,9 +612,9 @@ void growth_daily_crop(Patch& patch) {
 		}
 		// crop grass allocation
 		// NB: Only intercrop grass enters here ! normal cc3g/cc4g grass is treated just like natural grass
-		else if(indiv.pft.phenology == ANY && indiv.pft.id != patch.stand.pftid) {
+		else if (indiv.pft.phenology == ANY && indiv.pft.id != patch.stand.pftid) {
 
-			if(ppftcrop.growingseason) {
+			if (ppftcrop.growingseason) {
 
 				cropindiv.dcmass_plant = 0.0;
 

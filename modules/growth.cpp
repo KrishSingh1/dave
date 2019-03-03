@@ -1897,18 +1897,23 @@ void growth_daily_grass(Patch& patch) {
 			}
 
 			// Water stress on growth of new leaves
-			double wscal = max(0.0, (patch.pft[indiv.pft.id].wscal - indiv.pft.wscal_min) / (1.0 - indiv.pft.wscal_min));
+			// Water stress on growth of new leaves
+			double wscal_indiv = (patch.soil.wcontupper_10.mean() * patch.soil.soiltype.awc[0] * indiv.pft.rootdist[0] +
+				patch.soil.wcontlower_10.mean() * patch.soil.soiltype.awc[1] * indiv.pft.rootdist[1]) /
+				(patch.soil.soiltype.awc[0] * indiv.pft.rootdist[0] + patch.soil.soiltype.awc[1] * indiv.pft.rootdist[1]);
+			double wscal = max(0.0, (wscal_indiv - indiv.pft.wscal_min) / (1.0 - indiv.pft.wscal_min));
 
 			// Optimum temperature for growth and material movement
 			double opt_temp = (indiv.pft.pstemp_high + indiv.pft.pstemp_low) / 2.0;
 			// Approx standard deviation of temperature-inhibition function of photosynthesis
 			double sigma = (((indiv.pft.pstemp_high + indiv.pft.pstemp_max) / 2.0) - ((indiv.pft.pstemp_low + indiv.pft.pstemp_min) / 2.0)) / 6;
 			// Temperature scalar for growth and material movement
-			double tscal = patch.get_climate().temp > indiv.pft.pstemp_min ? exp(-pow(patch.get_climate().temp - opt_temp, 2.0) / (PI * sigma * sigma)) : 0.0;
+			double tscal_growth = patch.get_climate().temp > indiv.pft.pstemp_min ? exp(-pow(patch.get_climate().temp - opt_temp, 2.0) / (PI * sigma * sigma)) : 0.0;
+			double tscal_move = patch.get_climate().temp > opt_temp ? 1.0 : tscal_growth;
 
 			// Specify the rate of material movement constants (eqn 24 Johnson & Thornley 1983)
-			g_fac = min(1.0, max(0.0, GROWTH_FAC * tscal * wscal));
-			g_mov = min(1.0, max(0.0, indiv.pft.transferconst * (MOV_TSCAL_MIN + tscal * (1.0 - MOV_TSCAL_MIN))));
+			g_fac = min(1.0, max(0.0, GROWTH_FAC * tscal_growth * wscal));
+			g_mov = min(1.0, max(0.0, indiv.pft.transferconst * (MOV_TSCAL_MIN + tscal_move * (1.0 - MOV_TSCAL_MIN))));
 			s_fac = indiv.pft.sen_fac * indiv.pft.transferconst;
 
 			// Check if root storage needs to be used for leaf growth

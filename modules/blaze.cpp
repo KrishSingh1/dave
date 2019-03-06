@@ -742,7 +742,8 @@ void combust(Patch& patch, Climate& climate) {
 	const double LIGCFRAC_leaf = 0.2;
 
 	// grassy vegetation burn-rate for cohort and individual mode
-	const double grass_burn = 1.0;
+	//CLNconst double grass_burn = 1.0;
+	const double grass_burn = 0.5;
 
 	double ab  = climate.areaburnt;
 

@@ -412,7 +412,7 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil, bool tillage) {
 			k *= texture_mod;
 		}
 		else if (p == DEADWOOD ) {
-			continue; 
+			k = 0.; 
 		}
 
 		// Increased HR for crops (tillage)
@@ -426,20 +426,6 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil, bool tillage) {
 		if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
 			soil.sompool[p].mfracremain_mean[date.month] += soil.sompool[p].fracremain / date.ndaymonth[date.month];
 		}
-	}
-	// Deadwood transfer to related FWD and CWD (BLAZE related only for now) 
-	if ( soil.sompool[DEADWOOD].cmass > 0. ) { 
-		double frac_turnover = 1. - exp(log(0.5)/(K_MAX[DEADWOOD]*365.)); 
-	     
-		double cto = frac_turnover * soil.sompool[DEADWOOD].cmass; 
-		double nto = frac_turnover * soil.sompool[DEADWOOD].nmass; 
-		soil.sompool[SURFFWD].cmass  += 0.2 * cto;
-		soil.sompool[SURFCWD].cmass  += 0.8 * cto;     
-		soil.sompool[SURFFWD].nmass  += 0.2 * nto;
-		soil.sompool[SURFCWD].nmass  += 0.8 * nto;       
-		//		dprintf("%i %i %i frac %f cto %f nto %f deadpool %f %f %f %f\n",DEADWOOD,date.year,date.day,frac_turnover,cto,nto,soil.sompool[DEADWOOD].cmass, soil.sompool[DEADWOOD].nmass, 1.-exp(log(0.5)/(10.*365.)), K_MAX[DEADWOOD]);
-		soil.sompool[DEADWOOD].cmass -= cto;
-		soil.sompool[DEADWOOD].nmass -= nto;
 	}
 }
 
@@ -717,6 +703,23 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 		times++;
 	}
 
+	// Treat DEADWOOD transfer here
+	// Deadwood transfer to related FWD and CWD (BLAZE related only for now) 
+	if ( soil.sompool[DEADWOOD].cmass > 0. ) { 
+		
+		//CLN double frac_turnover = 1. - exp(log(0.5)/(K_MAX[DEADWOOD]*365.)); 
+		double frac_turnover = 1. - exp(log(0.5)/(30.*365.)); 
+		double cto = frac_turnover * soil.sompool[DEADWOOD].cmass;
+		double nto = frac_turnover * soil.sompool[DEADWOOD].nmass;
+
+		soil.sompool[SURFFWD ].delta_cmass += 0.2 * cto;
+		soil.sompool[SURFFWD ].delta_nmass += 0.2 * nto;
+		soil.sompool[SURFCWD ].delta_cmass += 0.8 * cto;     
+		soil.sompool[SURFCWD ].delta_nmass += 0.8 * nto;       
+		soil.sompool[DEADWOOD].delta_cmass -= cto;
+		soil.sompool[DEADWOOD].delta_nmass -= nto;
+	}
+
 	// Update pool sizes
 
 	for (int p = 0; p < NSOMPOOL-1; p++) {
@@ -761,6 +764,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 	// available nitrogen to its saturation level.
 	if (date.year <= freenyears)
 		soil.nmass_avail = NMASS_SAT;
+	
 }
 
 /// Litter lignin to N ratio (for leaf and root litter)

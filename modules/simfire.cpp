@@ -73,10 +73,6 @@ void getsimfiredata(Gridcell& gridcell) {
 		fail("Grid cell not found in %s \n", (char*)file_simfire);
 	}
 	
-	//CLNrec.lon = lon;
-	//CLNrec.lat = lat;
-	
-	dprintf("++++++++REAL ONE+++++++++ la, lo %f %f \n",rec.lat,rec.lon);
 	// Found the record, get the values
 	
 	// IGBP Land-Cover-Classification
@@ -89,12 +85,10 @@ void getsimfiredata(Gridcell& gridcell) {
 	// Monthly fire risk (W.Knorr)
 	for (int m=0; m<12; m++) {
 		climate.monthly_fire_risk[m] = rec.monthly_ba[m];
-		//CLN			dprintf("mBA  %d : %f \n",m,climate.monthly_fire_risk[m]);
 	}
 	// Population density from HYDE 3.1
 	for (int t=0; t<57; t++) {
 		gridcell.hyde31_pop_density[t] = rec.pop_density[t];
-		//CLN			dprintf("Popd  %d : %f \n",t,gridcell.hyde31_pop_density[t]);
 	}		
 	
 	ark.close();

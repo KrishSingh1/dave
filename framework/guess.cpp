@@ -2690,7 +2690,6 @@ void MassBalance::check_year(Gridcell& gridcell) {
 	if (date.year < start_year) {
 		return;
 	}
-
 	double ccont_year = gridcell.ccont();
 	double cflux_year = gridcell.cflux();
 

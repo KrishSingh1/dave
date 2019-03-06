@@ -86,9 +86,10 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 		stand.firstobj();
 		while (stand.isobj) {
 			// START OF LOOP THROUGH PATCHES
-
+			
 			// Get reference to this patch
 			Patch& patch = stand.getobj();
+
 			// Update daily soil drivers including soil temperature
 			dailyaccounting_patch(patch);
 
@@ -107,19 +108,26 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 			// Leaf phenology for PFTs and individuals
 			leaf_phenology(patch, gridcell.climate);
+
 			// Interception
 			interception(patch, gridcell.climate);
 			initial_infiltration(patch, gridcell.climate);
+
 			// Photosynthesis, respiration, evapotranspiration
 			canopy_exchange(patch, gridcell.climate);
+
 			// Sum total required irrigation
 			irrigation(patch);
+
 			// Soil water accounting, snow pack accounting
 			soilwater(patch, gridcell.climate);
+
 			// Daily C allocation (cropland)
 			growth_daily(patch);
+
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch);
+
 			// BLAZE fire model
 			if (firemodel == BLAZE && patch.has_fires() && 
 			    date.year >= patch.soil.solvesomcent_beginyr) 
@@ -148,6 +156,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 				// Establishment, mortality and disturbance by fire
 				vegetation_dynamics(stand, patch);
 				stand.nextobj();
+
 			}
 		}
 

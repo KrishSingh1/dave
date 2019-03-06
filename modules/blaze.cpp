@@ -419,8 +419,8 @@ double surv_prob_boreal(double fli) {
 	   based on Dalziel et al. 2008
 //WK Is there anywhere in the code/documentation where the full references are given?	   
 	*/
-	double surv_prob_boreal = exp(-fli/500.);
-	surv_prob_boreal   = 1. - 0.5 * ( 1.-surv_prob_boreal) ; 
+	double k_tun = 1.5;
+	double surv_prob_boreal = exp(-fli/(k_tune*500.));
 	return surv_prob_boreal;
 }
 
@@ -436,6 +436,8 @@ double surv_prob_temp_nl(double dbh, double fli, double mass_cwd) {
 	else if ( fli > 750. ) {
 		frac_cwd = 0.75;
 	}
+	double k_tun = 1.;
+	frac_cwd *= k_tun ;
 
 	double cdbh = dbh * 100; // in cm
 	double con1000 = frac_cwd * mass_cwd * 0.1 ; // in Mg/ha
@@ -458,8 +460,12 @@ double surv_prob_tropics(double dbh, double fli) {
 	   Compute survival probability for the tropics
 	   following van Nieuwstadt et al. 2005
 	*/
+
+	// DBH in cm
+	dbh *= 100.; 
+
 	double p_surv = 1.;
-	double p_surv3000 = 1. - ( 0.82 - 0.035 * pow(dbh,0.7) );
+	double p_surv3000 = 1. - max( 0.82 - 0.035 * pow(dbh,0.7) , 0.);
 	if ( fli > 7000. ) {
 		double scal_fac = 1. - log((fli/7000.)) ;
 		p_surv = scal_fac * p_surv3000;
@@ -470,8 +476,6 @@ double surv_prob_tropics(double dbh, double fli) {
 	else {
 		p_surv = exp(fli/3000. * log(p_surv3000));
 	}
-	// CLNori p_surv   = max(min(1.,p_surv), 0.001);
-	p_surv   = 1. - 0.5 * ( 1.-p_surv) ; 
 
 	p_surv   = max(min(1.,p_surv), 0.001);
     	
@@ -534,12 +538,13 @@ double surv_prob_OzSavanna(double height, double fli) {
 double surv_prob_temp_bl(double dbh, double fli, bool res) {
 	
 	/* Called by: survival_probability (local)
-	   Compute survival probability for Australian savanna
+	   Compute survival probability for Temperate Broadleaved forests
+	   fire resilince parameterisation for e.g. Oz forests
 	   following Hickler et al. 2004, Using a generalized
 	   vegetation model to simulate vegetation dynamics in NE USA
 	*/
 //WK Why is this called 'temp_bl' but than only refers to Australia savannas?
-
+//RLN Sorry, that was copy n paste from above. 
 	// Fire resiliance
 	double R;
 	if ( res ) {
@@ -550,7 +555,7 @@ double surv_prob_temp_bl(double dbh, double fli, bool res) {
 
 	// following Hickler et al. 2004
 	double p_surv3000 = 0.95 - 1./(1.+ pow((dbh/R),1.5)) ;
-	double surv_prob_temp_bl ;
+	double surv_prob_temp_bl;
 	if ( fli > 7000. ) {
 		surv_prob_temp_bl = 0.001;
 	}

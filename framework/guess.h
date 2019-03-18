@@ -723,6 +723,7 @@ public:
 	double areaburnt;
 	/// accumulated burned area from either SIMFIRE or GFED for tstep < 1a
 //WK why 'acc'?
+//RLN acc for accumulated as above.
 	double acc_areaburnt;
 	/// prescribed burned area from file
 	double prescribed_ba;
@@ -1025,6 +1026,7 @@ public:
 		ISO,
 //WK AET? In trunk there seem to be lots of different monoterpenes
 //WK There was a reference to fire from MT here
+//RLN I took it out. probably sth I treid and abandoned.
 		/// Monoterpene (mgC/m2)
 		MT_APIN,
 		MT_BPIN,
@@ -3348,7 +3350,8 @@ public:
 	/// litter to atm
 	double litf2atm, lfwd2atm, lcwd2atm, ldwd2atm;
 	//WK not really biome shifting but rather biome mapping using vegetation distribution from FAPAR
-	/// Storage for averaging of different Fpars for biome shifting in Simfire
+	//RLN Ok, changed.
+	/// Storage for averaging of different Fpars for biome mapping in Simfire
 	double avg_fgrass[n_year_biomeavg];
 	double avg_fndlt[n_year_biomeavg];
 	double avg_fbrlt[n_year_biomeavg];

@@ -32,12 +32,12 @@
 #include "config.h"
 #include "guess.h"
 #include "blaze.h"
-#include <fenv.h>
 
-// Internal help function for splitting up nitrogen fire fluxes into components
-// copied from vegdynam.cpp
 //WK does vegdynam.cpp do emissions, too, or what do you mean by components?
 //WK Maybe a pointer to which subroutine is meant
+//RLN I will remove this anyways. Question is, whether we leave it for now or remove it?
+// Internal help function for splitting up nitrogen fire fluxes into components
+// Copy of report_fire_nfluxes() as used in fire() in vegdynam.cpp
 void report_fire_flux_n(Patch& patch, double nflux_fire) {
 	patch.fluxes.report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire);
 	patch.fluxes.report_flux(Fluxes::NOx_FIRE, Fluxes::NOx_FIRERATIO * nflux_fire);
@@ -96,19 +96,20 @@ void blaze_accounting_gridcell(Climate& climate) {
 	   parameters 
 	*/
 
-	const int average_span = 3; // span to average annual rainfall
+	const int average_span = 3; // time-span to average annual rainfall over
 //WK what is 'span'?
+//RLN I hope, that's better
 
 	// initialise fields
 
 	if (date.year == 0 && date.day == 0 && ! restart) {
 		if ( vegmode == INDIVIDUAL ) fail("INDIVDUAL MODE not ready in BLAZE!");
-		climate.avg_annual_rainf = 0.0; //WK average annual rainfall [mm]?
-		climate.cur_rainf        = 0.0; //WK current rainfall [mm/day?]
-		climate.dslr             = 0  ; //WK ?
-		climate.last_rainfall    = 0.0; //WK rainfall of last day of previous year?
-		climate.kbdi             = 0.0; //WK ?
-		climate.can_burn         = 0;   //WK ?
+		climate.avg_annual_rainf = 0.0; // average annual rainfall [mm]
+		climate.cur_rainf        = 0.0; // sum of this years rainfall so far [mm]
+		climate.dslr             = 0  ; // #Days-since-last-rainfall >3mm 
+		climate.last_rainfall    = 0.0; //rainfall of last day of previous year?
+		climate.kbdi             = 0.0; //?
+		climate.can_burn         = 0;   //?
 	}
 
 //WK does this interact in any way with SIMFIRE region=Australia?
@@ -144,6 +145,8 @@ void blaze_accounting_gridcell(Climate& climate) {
 	}
 
 //WK Clear!
+//RLN It is cleared, when there is no rain and thus on next day dslr >0, so
+//RLN then last_rainfall will be set to the next day's rainfall that is >0.01
 	// Keep track of Days-since-last-rainfall and accumulated last rainfall
 	if (climate.prec > 0.01) {
 		if (climate.dslr > 0) {
@@ -158,6 +161,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 
 	// Update the Keetch-Byram-Drought-Index
 //WK Maybe provide a reference for this index
+//RLN will do 
 	double v        = climate.u10   ; // Wind speed at 10m height [km/h] (for KBDI)
 	double rh       = climate.relhum; // relative humidity [%] (for KBDI)         
 	double t        = climate.tmax  ; // day's max temperature [deg C] (for KBDI) 
@@ -188,7 +192,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 		( 3.52 * pow( climate.dslr + 1. ,1.5 ) + climate.last_rainfall - 1. );
 	mcarthur_d = max(0.0,min(10.0,mcarthur_d));
 	
-	// ... and finally: McArthur's Fire index
+	// ... and finally: McArthur's Forest Fire Danger Index
 	double mcarthur_fire_index = 2. * exp( -.45 + .987 * log(mcarthur_d+.001) - 
 				     .03456 * rh + .0338 * t + .0234 * v );
 	mcarthur_fire_index = max(0.0,mcarthur_fire_index);

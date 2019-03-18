@@ -698,6 +698,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mean_standpft_aaet=0.0;
 	double mean_standpft_lai=0.0;
 	double mean_standpft_densindiv_total=0.0;
+	double mean_standpft_heightindiv_total=0.0;
 	double mean_standpft_aiso=0.0;
 	double mean_standpft_amon=0.0;
 	double mean_standpft_amon_mt1=0.0;
@@ -754,6 +755,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double standpft_aaet=0.0;
 	double standpft_lai=0.0;
 	double standpft_densindiv_total=0.0;
+	double standpft_heightindiv_total = 0.0;
 	double standpft_aiso=0.0;
 	double standpft_amon=0.0;
 	double standpft_amon_mt1=0.0;
@@ -792,7 +794,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		mean_standpft_nuptake=0.0;
 		mean_standpft_vmaxnlim=0.0;
 
-		double heightindiv_total = 0.0;
+		mean_standpft_heightindiv_total = 0.0;
 
 		// Determine area fraction of stands where this pft is active:
 		double active_fraction = 0.0;
@@ -832,6 +834,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			standpft_aaet=0.0;
 			standpft_lai=0.0;
 			standpft_densindiv_total = 0.0;
+			standpft_heightindiv_total = 0.0;
 			standpft_aiso=0.0;
 			standpft_amon=0.0;
 			standpft_amon_mt1=0.0;
@@ -890,7 +893,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								standpft_lai += indiv.lai;
 								if (pft.lifeform==TREE) {	
 									standpft_densindiv_total += indiv.densindiv;
-									heightindiv_total += indiv.height * indiv.densindiv;
+									standpft_heightindiv_total += indiv.height * indiv.densindiv;
 								}
 								standpft_vmaxnlim += indiv.avmaxnlim * indiv.cmass_leaf;
 								standpft_nuptake += indiv.anuptake;
@@ -937,7 +940,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_amon_mt2/=(double)stand.npatch();
 				standpft_nuptake/=(double)stand.npatch();
 				standpft_vmaxnlim/=(double)stand.npatch();
-				heightindiv_total/=(double)stand.npatch(); // missing above!
+				standpft_heightindiv_total/=(double)stand.npatch();
 
 				if (!negligible(standpft_cmass_leaf))
 					standpft_vmaxnlim /= standpft_cmass_leaf;
@@ -981,6 +984,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mean_standpft_aaet += standpft_aaet * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_lai += standpft_lai * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_densindiv_total += standpft_densindiv_total * stand.get_gridcell_fraction() / active_fraction;
+				mean_standpft_heightindiv_total += standpft_heightindiv_total * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_aiso += standpft_aiso * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_amon += standpft_amon * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_amon_mt1 += standpft_amon_mt1 * stand.get_gridcell_fraction() / active_fraction;
@@ -1060,7 +1064,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		// print species heights
 		double height = 0.0;
 		if (mean_standpft_densindiv_total > 0.0)
-			height = heightindiv_total / mean_standpft_densindiv_total;
+			height = mean_standpft_heightindiv_total / mean_standpft_densindiv_total;
 
 		outlimit(out,out_speciesheights, height);
 

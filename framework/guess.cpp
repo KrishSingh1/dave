@@ -26,8 +26,10 @@ ManagementTypelist mtlist;
 StandTypelist stlist;
 Pftlist pftlist;
 
-// emission ratios from fire (NH3, NOx, N2O, N2) Delmas et al. 1995
+// emission ratios from fire (NH3, NOx, N2O, N2) Levine et al. 1996
 
+//WK I'm curious why there was a change in the first value below by almost two orders of magnitude
+//RLN I have simply taken these from the fire routine in framework.cpp. I have updated it for noe but I'll implement the new emission scheme soon anyways.
 const double Fluxes::NH3_FIRERATIO = 0.005;
 const double Fluxes::NOx_FIRERATIO = 0.237;
 const double Fluxes::N2O_FIRERATIO = 0.036;
@@ -55,26 +57,28 @@ void PhotosynthesisResult::serialize(ArchiveStream& arch) {
 
 
 void Climate::serialize(ArchiveStream& arch) {
+	// Descriptions and units in guess.h
 	arch & temp
-		& rad //CLN??
-		& par //CLN??
-		& prec //CLN??
+		& rad
+		& par
+		& prec
 		& daylength
     //WK I know it is not common practive in LPJ-GUESS, but maybe this
     //WK would be the ideal place to give a short description plus units?
     //WK or give a reference to where this is available?
+    //RLN I agree. I placed a comment in the first line above
 		// BLAZE --[
-		& u10 //CLN??
-		& relhum //CLN??
-		& tmin //CLN??
-		& tmax //CLN??
+		& u10                     // 10 m horizontal wind-speed [km/h]
+		& relhum
+		& tmin
+		& tmax 
 		& max_nesterov
 		& cur_nesterov
 		& simfire_biome
 		& ann_max_fapar
-		& monthly_fire_risk //CLN??
-		& areaburnt //CLN??
-		& prescribed_ba //CLN??
+		& monthly_fire_risk
+		& areaburnt 
+		& prescribed_ba 
 		& avg_annual_rainf
 		& cur_rainf
 		& last_rainfall
@@ -82,9 +86,9 @@ void Climate::serialize(ArchiveStream& arch) {
 		& kbdi
 		& mcarthur_fire_index
 		// BLAZE --] 
-		& co2 //CLN??
-		& lat //CLN??
-		& insol //CLN?? nad maybe more below...
+		& co2
+		& lat
+		& insol
 		& instype
 		& eet
 		& mtemp
@@ -539,8 +543,10 @@ void Patch::serialize(ArchiveStream& arch) {
 		& ndemand
 		& irrigation_y
     //WK maybe mark beginning and end of BLAZE entries,
-    //WK as you did above with 		// BLAZE --[
-		& fli						// Fire blaze
+    //WK as you did above with
+    //RLN Done:)
+		// BLAZE --[
+		& fli
 		& wood2atm
 		& leaf2atm
 		& leaf2lit
@@ -560,6 +566,7 @@ void Patch::serialize(ArchiveStream& arch) {
 			arch & avg_fshrb[i];
 		for (unsigned int i=0; i < n_year_biomeavg; i++)
 			arch & avg_ftot[i];
+		// BLAZE --]
 }
 
 const Climate& Patch::get_climate() const {
@@ -573,14 +580,9 @@ bool Patch::has_fires() const {
 //WK e.g. does BLAZE exclude CROPLAND and management?
 //WK And what happens if CROPLAND is true, will there be a warning message,
 //WK or will the code fail?
-//CLN#ifdef NOPASTURESTOCH
-//CLN	//CLN	return iffire && stand.landcover != CROPLAND && stand.landcover != PASTURE && !managed;
-//CLN	return firemodel != NOFIRE && stand.landcover != CROPLAND && 
-//CLN		(stand.landcover != PASTURE || disturb_pasture) && !managed;
-//CLN#else
-//CLN	//CLN   return iffire && stand.landcover != CROPLAND && !managed;
-//CLN	return firemodel != NOFIRE && stand.landcover != CROPLAND && !managed;
-//CLN#endif
+//RLN I didn't dare to take this away, as it is legacy and used like this in GlobFIRM.
+//RLN I only updated the queries. Not sure how to deal with this...
+	
 	return firemodel != NOFIRE && stand.landcover != CROPLAND && !managed &&
 		(stand.landcover != PASTURE || disturb_pasture);
 }
@@ -698,6 +700,7 @@ double Patch::nflux() {
 	nflux += fluxes.get_annual_flux(Fluxes::SEEDN);
 	nflux += fluxes.get_annual_flux(Fluxes::NH3_FIRE);
 //WK in trunk, there is NOx fire, what is the latest version?
+//RLN NOx is the latest version. Changed. 
 	nflux += fluxes.get_annual_flux(Fluxes::NOx_FIRE);
 	nflux += fluxes.get_annual_flux(Fluxes::N2O_FIRE);
 	nflux += fluxes.get_annual_flux(Fluxes::N2_FIRE);
@@ -1271,6 +1274,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	// bvoc
 //WK in trunk, there is a loop over NMTCOMPOUNDS,
 //WK is this an update in trunk that needs to be merged?
+//RLN Yes. The new BVOC scheme. I guess it will be covered when we finally merge
+	monstor           = 0.;
 	iso               = 0.;
 	fvocseas          = 1.;
 	for (int im=0; im<NMTCOMPOUNDS; im++){

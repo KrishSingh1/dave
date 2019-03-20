@@ -52,13 +52,21 @@ void initbvoc(){
 	const double daylength = 12;
 
 	PhotosynthesisResult phot;
+
+	PhotosynthesisEnvironment ps_env;
+					
+	PhotosynthesisStresses ps_stress;
+	ps_stress.no_stress();
+
  	pftlist.firstobj();
  	while (pftlist.isobj) {
  		Pft& pft = pftlist.getobj();
 
 		double par = frabs_Q * Qstand * 3600 * daylength / alphaa(pft) / CQ;
 				// par for the standard condition, J m-2 d-1
-		photosynthesis(CO2, Tstand, par, daylength, 1.0, pft.lambda_max, pft, 1.0, false, phot, -1);
+
+		ps_env.set(CO2, Tstand, par, 1.0, daylength);
+		photosynthesis(ps_env, ps_stress, pft, pft.lambda_max, 1.0, -1, phot);
 
 		double coeff = 1e-3 / (phot.je + phot.rd_g/24) / pft.sla / Cfrac;
 

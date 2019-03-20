@@ -509,6 +509,7 @@ public:
 /// This struct contains the result of a photosynthesis calculation.
 /** \see photosynthesis */
 struct PhotosynthesisResult : public Serializable {
+
 	/// Constructs an empty result
 	PhotosynthesisResult() {
 		clear();
@@ -556,6 +557,109 @@ struct PhotosynthesisResult : public Serializable {
     }
 
 	void serialize(ArchiveStream& arch);
+};
+
+/// This struct contains the environmental input to a photosynthesis calculation.
+/** \see photosynthesis */
+struct PhotosynthesisEnvironment {
+
+	/// Constructs an empty result
+	PhotosynthesisEnvironment() {
+		clear();
+	}
+
+	/// Clears all members
+	/** Nonsense values to cause a crash if used
+	 */
+	void clear() {
+		co2 = 0;
+		temp = 0;
+		par = 0;
+		fpar = 0;
+		daylength = 0;
+	}
+
+private:
+	/// atmospheric ambient CO2 concentration (ppmv)
+	double co2;
+
+	/// mean air temperature today (deg C)
+	double temp;
+
+	/// total daily photosynthetically-active radiation today (J / m2 / day) (ALPHAA not yet accounted for)
+	double par;
+
+	/// fraction of PAR absorbed by foliage
+	double fpar;
+
+	/// day length, must equal 24 in diurnal mode(h)
+	double daylength;
+
+public:
+	/// set 
+    void set(double co2_env, double temp_env, double par_env, double fpar_env, double daylength_env) {
+		co2 = co2_env;
+		temp = temp_env;
+		par = par_env;
+		fpar = fpar_env;
+		daylength = daylength_env;
+    }
+
+	double get_apar() const {
+		return par * fpar;
+	}
+
+	double get_par() const {
+		return par;
+	}
+
+	double get_fpar() const {
+		return fpar;
+	}
+
+	double get_temp() const {
+		return temp;
+	}
+
+	double get_co2() const {
+		return co2;
+	}
+
+	double get_daylength() const {
+		return daylength;
+	}
+
+};
+
+/// This struct contains the stresses used in a photosynthesis calculation.
+/** \see photosynthesis */
+struct PhotosynthesisStresses {
+
+	/// Constructs an empty result
+	PhotosynthesisStresses() {
+		no_stress();
+	}
+
+	/// All members set to no stress values
+	/** Default values indicating no stress
+	 */
+	void no_stress() {
+		ifnlimvmax = false;
+	}
+
+private:
+	/// whether nitrogen should limit Vmax
+	bool ifnlimvmax;
+
+public:
+	/// Set the stresses
+    void set(bool thisnlimvmax) {
+		ifnlimvmax = thisnlimvmax;
+    }
+
+	bool get_ifnlimvmax() const {
+		return ifnlimvmax;	
+	}
 };
 
 

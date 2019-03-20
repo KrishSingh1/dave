@@ -150,7 +150,7 @@ void crop_allocation_devries(cropphen_struct& ppftcrop, Individual& indiv) {
 
 	// Eq. 15, Olin 2015
 	if(indiv.daily_cmass_leafloss > 0.0)
-		f2 *= f2 * f2;
+		f2 *= f2;
 
 	// Eq. 6, Olin 2015
 	ppftcrop.f_alloc_root = f1 * (1-f3);
@@ -444,9 +444,9 @@ void allocation_crop(Individual& indiv, double cmass_seed, double nmass_seed) {
 	cropindiv.ycmass_agpool = cropindiv.ycmass_plant - cropindiv.ycmass_root - cropindiv.ycmass_leaf - cropindiv.ycmass_ho;
 
 	if (!largerthanzero(cropindiv.grs_cmass_agpool, -9))
-		cropindiv.grs_cmass_agpool = 0,0;
+		cropindiv.grs_cmass_agpool = 0.0;
 	if (!largerthanzero(cropindiv.ycmass_agpool, -9))
-		cropindiv.ycmass_agpool = 0,0;
+		cropindiv.ycmass_agpool = 0.0;
 }
 
 /// Daily growth routine for crops

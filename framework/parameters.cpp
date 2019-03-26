@@ -81,8 +81,7 @@ bool grassforcrop;
 
 //WK the change from state to i/ostate, is this related to BLAZE?
 //RLN No, it is not. Needs to be revised, though, Thanks.
-xtring istate_path;
-xtring ostate_path;
+xtring state_path;
 bool restart;
 bool save_state;
 int state_year;

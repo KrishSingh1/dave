@@ -1275,7 +1275,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 //WK in trunk, there is a loop over NMTCOMPOUNDS,
 //WK is this an update in trunk that needs to be merged?
 //RLN Yes. The new BVOC scheme. I guess it will be covered when we finally merge
-	monstor           = 0.;
 	iso               = 0.;
 	fvocseas          = 1.;
 	for (int im=0; im<NMTCOMPOUNDS; im++){

@@ -234,6 +234,7 @@ void CommonOutput::define_output_tables() {
 	// FIRERT
 	ColumnDescriptors firert_columns;
 	firert_columns += ColumnDescriptor("FireRT",           8, 1);
+	firert_columns += ColumnDescriptor("BurntAr",          8, 5);
 
 	// BLAZE burnt area 
 	ColumnDescriptors blaze_columns;
@@ -725,6 +726,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double runoff_gridcell=0.0;
 	double dens_gridcell=0.0;
 	double firert_gridcell=0.0;
+	double burntarea_gridcell=0.0;
 	double aiso_gridcell=0.0;
 	double amon_gridcell=0.0;
 	double amon_mt1_gridcell=0.0;
@@ -1143,10 +1145,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			// Fire return time
 			if (!patch.has_fires() || patch.fireprob < 0.001)
-				firert_gridcell+=1000.0 * to_gridcell_average; // Set a limit of 1000 years
-			else
-				firert_gridcell+=(1.0/patch.fireprob) * to_gridcell_average;
-
+				firert_gridcell   +=1000.0 * to_gridcell_average; // Set a limit of 1000 years
+			else {
+				firert_gridcell   +=(1.0/patch.fireprob) * to_gridcell_average;
+				burntarea_gridcell+=patch.fireprob * to_gridcell_average;
+			}
 
 			andep_gridcell += stand.get_climate().andep * to_gridcell_average;
 			anfert_gridcell += patch.anfert * to_gridcell_average;
@@ -1273,6 +1276,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_sfana,  gridcell.pop_density);
 	outlimit(out,out_sfana,  gridcell.simfire_region);
 	outlimit(out,out_firert, firert_gridcell);
+	outlimit(out,out_firert, burntarea_gridcell);
 	outlimit(out,out_runoff, surfrunoff_gridcell);
 	outlimit(out,out_runoff, drainrunoff_gridcell);
 	outlimit(out,out_runoff, baserunoff_gridcell);

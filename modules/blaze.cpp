@@ -423,8 +423,8 @@ double surv_prob_boreal(double fli) {
 	   based on Dalziel et al. 2008
 //WK Is there anywhere in the code/documentation where the full references are given?	   
 	*/
-	double k_tun = 1.5;
-	double surv_prob_boreal = exp(-fli/(k_tune*500.));
+	
+	double surv_prob_boreal = exp(-fli/500. * k_tun_bor);
 	return surv_prob_boreal;
 }
 
@@ -433,15 +433,14 @@ double surv_prob_temp_nl(double dbh, double fli, double mass_cwd) {
 	   Compute survival probability for temperate Needleleaf forest
 	   following Kobziar 2006
 	*/
-	double frac_cwd = 0.5;
-	if ( fli > 7000. ) {
-		frac_cwd = 0.8;
-	}
-	else if ( fli > 750. ) {
-		frac_cwd = 0.75;
-	}
-	double k_tun = 1.;
-	frac_cwd *= k_tun ;
+	double frac_cwd = 1.;
+//CLN	if ( fli > 7000. ) {
+//CLN		frac_cwd = 0.8;
+//CLN	}
+//CLN	else if ( fli > 750. ) {
+//CLN		frac_cwd = 0.75;
+//CLN	}
+//CLN	frac_cwd *= k_tun ;
 
 	double cdbh = dbh * 100; // in cm
 	double con1000 = frac_cwd * mass_cwd * 0.1 ; // in Mg/ha
@@ -456,7 +455,49 @@ double surv_prob_temp_nl(double dbh, double fli, double mass_cwd) {
 						- .221*cdbh + .0219*con1000))));
 	}
         //# WRONG allometry (NL)
+	p_surv = 1. - ( 1. - p_surv ) * k_tun_temp_NL;
 	return p_surv;
+}
+
+double surv_prob_temp_bl(double dbh, double fli, bool res) {
+	
+	/* Called by: survival_probability (local)
+	   Compute survival probability for Temperate Broadleaved forests
+	   fire resilince parameterisation for e.g. Oz forests
+	   following Hickler et al. 2004, Using a generalized
+	   vegetation model to simulate vegetation dynamics in NE USA
+	*/
+//WK Why is this called 'temp_bl' but than only refers to Australia savannas?
+//RLN Sorry, that was copy n paste from above. 
+	// Fire resiliance
+	double R;
+	if ( res ) {
+		R = 0.04;
+	} else {
+		R = 0.07;
+	}
+
+	// following Hickler et al. 2004
+	double p_surv3000 = 0.95 - 1./(1.+ pow((dbh/R),1.5)) ;
+	if ( k_tun_temp_BL <= 1. ) {
+		p_surv3000 = 1. - (1. -p_surv3000) * k_tun_temp_BL;
+	} else {
+		p_surv3000 /= k_tun_temp_BL;
+	}
+		
+	double surv_prob_temp_bl;
+	if ( fli > 7000. ) {
+		surv_prob_temp_bl = 0.001;
+	}
+	else if ( fli > 3000 ) { 
+		surv_prob_temp_bl = p_surv3000 * (1. - (fli-3000.)/ 4000. );
+	}
+	else {
+		surv_prob_temp_bl = exp(fli/3000. * log(p_surv3000)); 
+	}
+
+	return surv_prob_temp_bl;
+	
 }
 
 double surv_prob_tropics(double dbh, double fli) {
@@ -470,6 +511,8 @@ double surv_prob_tropics(double dbh, double fli) {
 
 	double p_surv = 1.;
 	double p_surv3000 = 1. - max( 0.82 - 0.035 * pow(dbh,0.7) , 0.);
+	//CLNp_surv3000 = 1. - (1. - p_surv3000) * k_tun; 
+
 	if ( fli > 7000. ) {
 		double scal_fac = 1. - log((fli/7000.)) ;
 		p_surv = scal_fac * p_surv3000;
@@ -482,6 +525,7 @@ double surv_prob_tropics(double dbh, double fli) {
 	}
 
 	p_surv   = max(min(1.,p_surv), 0.001);
+	p_surv   = 1. - ( 1.-p_surv) * k_tun_tropics;
     	
 	return p_surv;
 }
@@ -537,41 +581,6 @@ double surv_prob_OzSavanna(double height, double fli) {
 	}
 	p_survival = max(1.e-3,min(1.,p_survival));
 	return p_survival;
-}
-
-double surv_prob_temp_bl(double dbh, double fli, bool res) {
-	
-	/* Called by: survival_probability (local)
-	   Compute survival probability for Temperate Broadleaved forests
-	   fire resilince parameterisation for e.g. Oz forests
-	   following Hickler et al. 2004, Using a generalized
-	   vegetation model to simulate vegetation dynamics in NE USA
-	*/
-//WK Why is this called 'temp_bl' but than only refers to Australia savannas?
-//RLN Sorry, that was copy n paste from above. 
-	// Fire resiliance
-	double R;
-	if ( res ) {
-		R = 0.04;
-	} else {
-		R = 0.07;
-	}
-
-	// following Hickler et al. 2004
-	double p_surv3000 = 0.95 - 1./(1.+ pow((dbh/R),1.5)) ;
-	double surv_prob_temp_bl;
-	if ( fli > 7000. ) {
-		surv_prob_temp_bl = 0.001;
-	}
-	else if ( fli > 3000 ) { 
-		surv_prob_temp_bl = p_surv3000 * (1. - (fli-3000.)/ 4000. );
-	}
-	else {
-		surv_prob_temp_bl = exp(fli/3000. * log(p_surv3000)); 
-	}
-
-	return surv_prob_temp_bl;
-	
 }
 
 double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
@@ -650,7 +659,7 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 				survival_probability = surv_prob_boreal(fli);
 			}
 		}
-		// Broad leaved
+		// Broadleaf
 		else if ( indiv.pft.leafphysiognomy == BROADLEAF ) {
 			// Broadleaf, mixed Forest and majorly NL biomes
 			if ( biome == 0 || biome == 1 || biome == 2 || biome == 3 ) {
@@ -892,7 +901,7 @@ void combust(Patch& patch, Climate& climate) {
 					int nindiv=(int)(indiv.densindiv*patcharea+0.5);
 					int nindiv_prev=nindiv;
 					for (int i=0;i<nindiv_prev;i++) {
-						if (randfrac(patch.stand.seed)  >=
+						if (randfrac(patch.stand.seed)  >
 						    survival_probability(patch,indiv, climate)) nindiv--;
 					}
 					
@@ -1118,7 +1127,6 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	double nhrtw2cwd = fab * (wood2fwd + wood2cwd) * nmass_heart;
 	double nhrtw2dwd = fab * wood2dwd * nmass_heart;
 
-	if ( wood2dwd > 0. && date.year > 500 ) dprintf("DWD > 0. %d %f \n ",date.year, wood2dwd );
 	// ROOT
 	// assume that same percentage of root biomass is killed as total 
 	// above ground woody biomass

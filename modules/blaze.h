@@ -44,7 +44,7 @@ const double turnoverfract[13][5] = {
 const double k_tun_bor     = 0.5;
 const double k_tun_temp_NL = 0.75;
 const double k_tun_temp_BL = 1.;
-const double k_tun_tropics = 0.75;
+const double k_tun_tropics = 0.5;
 
 
 //WK explain a bit what this is

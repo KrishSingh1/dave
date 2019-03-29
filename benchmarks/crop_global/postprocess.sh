@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 
 # Function for creating a scatter plot using gnuplot.
 #
@@ -29,7 +29,22 @@ function prepare_agb {
 describe_benchmark "LPJ-GUESS - Global Benchmarks for crops"
 source scatter_plot.sh
 
-if false 
+# link data-dirs for biomass
+hname=$(uname -n)
+if [ $hname == "simba" ]
+then
+    ln -sf /data/biomass/Global_mean_ABC_1993-2012_Liu2015_SI.dat
+    ln -sf /data/biomass/Pan
+elif [ $hname == "aurora" ]
+then
+    echo "Aurora not yet set up."
+    exit -1
+    #ln -sf #/data/biomass/Global_mean_ABC_1993-2012_Liu2015_SI.dat
+    #ln -sf #/data/biomass/Pan
+fi
+
+
+if true 
 then
 
 common1961to1990.sh
@@ -76,7 +91,7 @@ prepareyielddata yield1996to2005.txt common/../crop_global/spam_yield_wheat.dat 
 scatter_plot "Wheat yields" "SPAM" "LPJ-GUESS" temp_wheat.dat wheat_yield.png
 describe_image wheat_yield.png "Modelled compared to SPAM data set. Units: kg m-2." embed
 
-fi 
+ 
 #===============================================================================
 # Above Ground Biomass    
 # If benchmarks are run on Aurora or Simba link Liu-AGB 
@@ -117,16 +132,19 @@ then
     awk '(FNR>1){print $3, $4}' cpool1993-2012_joyned.dat > scat_cpool.dat
     scatter_plot "AGB" "Liu et al. " "LPJ-GUESS" scat_cpool.dat agb_0.7.png
     describe_image agb_0.7.png "Modelled compared to Liu et al. data. Units: kg m-2." embed
-
-    for year in $pantimes
-    do
-      
+  
     # remove intermediate files
     #rm -f  cpool1993-2012.dat cpool1993-2012_joyned.dat cpool1993-2012_joyned_Liu.dat delta_cpool1993-2012_joyned.dat cpool1993-2012_joyned_VegC.dat scat_cpool.dat
 else
     # data files only available on Simba and Aurora
     echo "Dataset 'Liu Above-Ground-Biomass' not found. Skipping..."
 fi
+
+fi # end bypass
+
+# pan biomass 
+
+. pan_regional_biomass.sh
 
 #===============================================================================
 #Fire related benchmarks

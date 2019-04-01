@@ -94,9 +94,7 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_daily_norgleach",&file_daily_norgleach,300,"Daily output.");
 	declare_parameter("file_daily_nuptake",&file_daily_nuptake,300,"Daily output.");
 
-	declare_parameter("file_daily_temp",&file_daily_temp,300,"Daily output.");
-	declare_parameter("file_daily_prec",&file_daily_prec,300,"Daily output.");
-	declare_parameter("file_daily_rad",&file_daily_rad,300,"Daily output.");
+	declare_parameter("file_daily_climate",&file_daily_climate,300,"Daily output.");
 
 	declare_parameter("file_daily_fphu",&file_daily_fphu,300,"Daily DS output file"); //daglig ds
 
@@ -281,6 +279,11 @@ void MiscOutput::define_output_tables() {
 	pft_columns += ColumnDescriptor("Total", 14, 6);
 	pft_columns += ColumnDescriptors(landcovers, 14, 6);
 
+	ColumnDescriptors climate_columns;
+	climate_columns += ColumnDescriptor("Temp", 8, 2);
+	climate_columns += ColumnDescriptor("Prec", 8, 2);
+	climate_columns += ColumnDescriptor("Rad", 16, 0);
+
 	// *** ANNUAL OUTPUT VARIABLES ***
 
 	create_output_table(out_cmass_cropland, file_cmass_cropland, cmass_columns_lc);
@@ -357,9 +360,7 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_daily_lower_wcont,			file_daily_lower_wcont,         daily_columns);
 	create_output_table(out_daily_irrigation,			file_daily_irrigation,			daily_columns);
 
-	create_output_table(out_daily_temp,					file_daily_temp,				daily_columns);
-	create_output_table(out_daily_prec,					file_daily_prec,				daily_columns);
-	create_output_table(out_daily_rad,					file_daily_rad,					daily_columns);
+	create_output_table(out_daily_climate,				file_daily_climate,				climate_columns);
 
 	create_output_table(out_daily_cton,					file_daily_cton,				daily_columns);
 
@@ -1093,7 +1094,7 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 
 	if (date.year == 0 && date.day == 0) {
 		if (dailyoutput_firstyear == DAILYOUTPUT_FIRSTYEAR_NONE) {
-			dailyoutput_firstyear = date.first_calendar_year + nyear_spinup;
+			dailyoutput_firstyear = 2000;// date.first_calendar_year + nyear_spinup;
 		}
 	}
 
@@ -1312,9 +1313,9 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 		++gc_itr;
 	} // stand loop
 
-	outlimit_misc(out, out_daily_temp, gridcell.climate.temp);
-	outlimit_misc(out, out_daily_prec, gridcell.climate.prec);
-	outlimit_misc(out, out_daily_rad, gridcell.climate.rad);
+	outlimit_misc(out, out_daily_climate, gridcell.climate.temp);
+	outlimit_misc(out, out_daily_climate, gridcell.climate.prec);
+	outlimit_misc(out, out_daily_climate, gridcell.climate.rad);
 
 	outlimit_daily_misc(out, out_daily_cflux, cflux_veg);
 	outlimit_daily_misc(out, out_daily_cflux, -cflux_repr);

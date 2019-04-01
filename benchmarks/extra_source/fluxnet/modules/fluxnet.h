@@ -98,11 +98,6 @@ protected:
 
 
 private:
-	std::vector<double> rain, tair, swrad;
-	int first_year, last_year, nyear;
-
-	double mtemp_fluxnet[12], mprec_fluxnet[12], mrad_fluxnet[12], mraindays_fluxnet[12];
-
 	/// Type for storing grid cell longitude, latitude and description text
 	struct Coord {
 

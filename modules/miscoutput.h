@@ -75,9 +75,9 @@ private:
 		   file_daily_cmass_storage, file_daily_nmass_storage,
 		   file_daily_n_input_soil, file_daily_avail_nmass_soil,
 		   file_daily_upper_wcont, file_daily_lower_wcont,
-		   file_daily_irrigation, file_daily_temp, file_daily_prec,
-		   file_daily_rad, file_daily_cmass_dead_leaf,
-		   file_daily_nmass_dead_leaf, file_daily_fphu, file_daily_nminleach,
+		   file_daily_irrigation, file_daily_climate,
+		   file_daily_cmass_dead_leaf, file_daily_nmass_dead_leaf, 
+		   file_daily_fphu, file_daily_nminleach,
 		   file_daily_norgleach, file_daily_nuptake, file_daily_ds,
 		   file_daily_stem, file_daily_leaf, file_daily_root,
 		   file_daily_storage, file_daily_cflux, file_daily_aet, file_daily_gpp;
@@ -109,10 +109,9 @@ private:
 		  out_daily_nmass_storage, out_daily_n_input_soil,
 		  out_daily_cmass_dead_leaf, out_daily_nmass_dead_leaf, out_daily_fphu,
 		  out_daily_avail_nmass_soil, out_daily_upper_wcont,
-		  out_daily_lower_wcont, out_daily_irrigation, out_daily_temp,
-		  out_daily_prec, out_daily_rad, out_daily_nminleach,
-		  out_daily_norgleach, out_daily_nuptake, out_daily_ds, out_daily_stem,
-		  out_daily_leaf, out_daily_root, out_daily_storage, out_daily_aet, 
+		  out_daily_lower_wcont, out_daily_irrigation, out_daily_climate,
+		  out_daily_nminleach, out_daily_norgleach, out_daily_nuptake, out_daily_ds, 
+		  out_daily_stem, out_daily_leaf, out_daily_root, out_daily_storage, out_daily_aet, 
 		  out_daily_gpp, out_daily_cflux;
 };
 

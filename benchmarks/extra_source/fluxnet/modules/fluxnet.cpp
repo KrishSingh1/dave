@@ -52,66 +52,84 @@ FluxnetInput::FluxnetInput()
 
 void FluxnetInput::init() {
 
+	// DESCRIPTION
+	// Initialises input (e.g. opening files), and reads in the gridlist
+
+	//
+	// Reads list of grid cells and (optional) description text from grid list file
+	// This file should consist of any number of one-line records in the format:
+	//   <longitude> <latitude> [<description>]
+
+	double dlon, dlat;
+	bool eof = false;
+	xtring descrip;
+
+	// Read list of grid coordinates and store in global Coord object 'gridlist'
+
+	// Retrieve name of grid list file as read from ins file
+	xtring file_gridlist = param["file_gridlist"].str;
+
+	FILE* in_grid = fopen(file_gridlist, "r");
+	if (!in_grid) fail("initio: could not open %s for input", (char*)file_gridlist);
+
 	file_cru = param["file_cru"].str;
 	file_cru_misc = param["file_cru_misc"].str;
 
-	for (int i = 0; i < 12; i++) {
-		mrad_fluxnet[i] = 0.0;
-		mprec_fluxnet[i] = 0.0;
-		mtemp_fluxnet[i] = 0.0;
+	gridlist.killall();
+	first_call = true;
+
+	while (!eof) {
+
+		// Read next record in file
+		eof = !readfor(in_grid, "f,f,a#", &dlon, &dlat, &descrip);
+
+		if (!eof && !(dlon == 0.0 && dlat == 0.0)) { // ignore blank lines at end (if any)
+			Coord& c = gridlist.createobj(); // add new coordinate to grid list
+
+			c.lon = dlon;
+			c.lat = dlat;
+			c.descrip = descrip;
+		}
 	}
+
+
+	fclose(in_grid);
+
+	// Read CO2 data from file
+	co2.load_file(param["file_co2"].str);
+
+	// Open landcover files
+	landcover_input.init();
+	// Open management files
+	management_input.init();
+
+	date.set_first_calendar_year(FIRSTHISTYEAR - nyear_spinup);
+	// Set timers
+	tprogress.init();
+	tmute.init();
+
+	tprogress.settimer();
+	tmute.settimer(MUTESEC);
+
+
 };
 
 void FluxnetInput::adjust_raw_forcing_data(double hist_mtemp[NYEAR_HIST][12],
 			double hist_mprec[NYEAR_HIST][12], double hist_msun[NYEAR_HIST][12],
 			double fluxnet_temp[12], double fluxnet_prec[12], double fluxnet_rad[12]) {
-	
-	double cru_temp_mean[12], cru_rain_mean[12], cru_rad_mean[12];
-	double temp_anom[12], rain_anom[12], rad_anom[12];
-
-    // initialise
-	for (int i = 0; i < 12; i++) {
-		cru_rad_mean[i] = 0.0;
-		cru_temp_mean[i] = 0.0;
-		cru_rain_mean[i] = 0.0;
-
-		rad_anom[i] = 0.0;
-		temp_anom[i] = 0.0;
-		rain_anom[i] = 0.0;
-	}
-
-	for (int yr = first_year; yr < last_year; yr++) {
-		for (int m = 0; m < 12; m++) {
-			cru_temp_mean[m] += hist_mtemp[yr][m] / nyear;
-			cru_rad_mean[m] += hist_msun[yr][m] / nyear;
-			cru_rain_mean[m] += hist_mprec[yr][m] / nyear;
-		};
-	};
-
-	for (int i = 0; i < 12; i++) {
-		rad_anom[i] = cru_rad_mean[i] - fluxnet_rad[i];
-		temp_anom[i] = cru_temp_mean[i] - fluxnet_temp[i];
-		rain_anom[i] = fluxnet_prec[i] / cru_rain_mean[i];
-	}
-
-	for (int yr = 0; yr < NYEAR_HIST; yr++) {
-		for (int m = 0; m < 12; m++) {
-			hist_mtemp[yr][m] += temp_anom[m];
-            hist_mprec[yr][m] *= rain_anom[m];
-			hist_msun[yr][m] += rad_anom[m];
-			hist_msun[yr][m] = max(hist_msun[yr][m], 0.0); // Radiation cannot be negative
-		}
-	}
-
 
 };
 
 bool FluxnetInput::getgridcell(Gridcell& gridcell) {
+	/*
+	This method reads in monthly CRU-data and then fluxnet station data. Using the 
+	latter it bias corrects the CRU-data to the station using an anomaly appraoch. 
+	*/
 	
 	// See base class for documentation about this function's responsibilities
 	int soilcode;
 	int elevation;
-
+	
 	// Make sure we use the first gridcell in the first call to this function,
 	// and then step through the gridlist in subsequent calls.
 	if (first_call) {
@@ -162,10 +180,9 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 		}
 
 		///FLUXNET UNIQUE CODE:
-
-		tair.clear();
-		rain.clear();
-		swrad.clear();
+		int nyear, first_year, last_year;
+		bool firstcall = true;
+		std::vector<double> rain, tair, swrad;
 
 		// Fetch the fluxnetdata from the gridlist description
 		xtring fluxfile = param["flux_dir"].str + gridlist.getobj().descrip + ".csv";
@@ -181,18 +198,22 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 
 		while (getline(ifs, line)) {
 
-			int month;
+			int year, month;
 			double temp, prec, rad;
 
 			std::istringstream iss(line);
 
-			if (iss >> last_year >> month >> temp >> rad >> prec) {
-				if (tair.empty()) {
-					dailyoutput_firstyear = first_year = last_year;
+			if (iss >> year >> month >> temp >> rad >> prec) {
+				if (firstcall) {
+					first_year = year;
 				}
+
 				tair.push_back(temp);
 				swrad.push_back(rad);
 				rain.push_back(prec);
+				
+				last_year = year;
+				firstcall = false;
 			}
 		}
 
@@ -205,8 +226,16 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 			return false;
 		}
 
-		nyear = last_year - first_year + 1;
+		double mtemp_fluxnet[12], mprec_fluxnet[12], mrad_fluxnet[12];
 
+		for (int i = 0; i < 12; i++) {
+			mrad_fluxnet[i] = 0.0;
+			mprec_fluxnet[i] = 0.0;
+			mtemp_fluxnet[i] = 0.0;
+		}
+
+		nyear = last_year - first_year + 1;
+		
 		// Make monthly averages from the input data
 		int idx = 0;
 		for (int i = 0; i < tair.size(); i++) {
@@ -220,6 +249,53 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 		// Give sub-classes a chance to modify the data
 		adjust_raw_forcing_data(hist_mtemp, hist_mprec, hist_msun, mtemp_fluxnet,
 			mprec_fluxnet, mrad_fluxnet);
+
+		/* CALCULATE AND APPLY ANOMALIES*/
+		double cru_temp_mean[12], cru_rain_mean[12], cru_rad_mean[12];
+		double temp_anom[12], rain_anom[12], rad_anom[12];
+
+		// initialise
+		for (int i = 0; i < 12; i++) {
+			cru_rad_mean[i] = 0.0;
+			cru_temp_mean[i] = 0.0;
+			cru_rain_mean[i] = 0.0;
+
+			rad_anom[i] = 0.0;
+			temp_anom[i] = 0.0;
+			rain_anom[i] = 0.0;
+		}
+
+		for (int yr = first_year - FIRSTHISTYEAR; yr < last_year - FIRSTHISTYEAR; yr++) {
+			for (int m = 0; m < 12; m++) {
+				cru_temp_mean[m] += hist_mtemp[yr][m] / nyear;
+				cru_rad_mean[m] += hist_msun[yr][m] / nyear;
+				cru_rain_mean[m] += hist_mprec[yr][m] / nyear;
+			};
+		};
+
+		for (int i = 0; i < 12; i++) {
+			rad_anom[i] =  mrad_fluxnet[i] - cru_rad_mean[i];
+			temp_anom[i] =  mtemp_fluxnet[i] - cru_temp_mean[i];
+			if (cru_rain_mean[i] == 0.0) {
+				// Protect against potential division by zero
+				// can happen in very arid areas
+				rain_anom[i] = mprec_fluxnet[i];
+			}
+			else {
+				rain_anom[i] = mprec_fluxnet[i] / cru_rain_mean[i];
+			}
+			
+		}
+
+		for (int yr = 0; yr < NYEAR_HIST; yr++) {
+			for (int m = 0; m < 12; m++) {
+				hist_mtemp[yr][m] += temp_anom[m];
+				hist_mprec[yr][m] *= rain_anom[m];
+				hist_msun[yr][m] += rad_anom[m];
+				hist_msun[yr][m] = max(hist_msun[yr][m], 0.0); // Radiation cannot be negative
+			}
+		}
+
 
 		// Build spinup data sets
 		spinup_mtemp.get_data_from(hist_mtemp);

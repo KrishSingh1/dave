@@ -39,7 +39,7 @@ const double Tstand = 30;          // standard temperature, oC
 
 void initbvoc(){
 
-	// initialising the VOC calculations: calculating the fraction of electrones
+	// initialising the VOC calculations: calculating the fraction of electrons
 	// available for isoprene production from the isoprene and monoterpene
 	// emission capacities (at T = 30oC and Q = 1000 umol m-2 s-1) as given by e.g.
 	// Guenther et al. (1997) for all PFTs
@@ -56,7 +56,7 @@ void initbvoc(){
 	PhotosynthesisEnvironment ps_env;
 					
 	PhotosynthesisStresses ps_stress;
-	ps_stress.no_stress();
+	ps_stress.no_stress(); // No limits in the initialization of BVOC calculations
 
  	pftlist.firstobj();
  	while (pftlist.isobj) {
@@ -143,9 +143,9 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 	dmonstor = 1. / max(min(dmonstor, tcstor_max), tcstor_min) / date.subdaily;
 
 	// convert from g C m-2 d-1 to mg C m-2 d-1
-	indiv.iso *= 1e3 / date.subdaily;
+	indiv.iso *= MG_PER_G / date.subdaily;
 	for(im=0;im<NMTCOMPOUNDS;im++){
-		indiv.mon[im] *= 1e3 / date.subdaily;
+		indiv.mon[im] *= MG_PER_G / date.subdaily;
 		rmonstor[im] = -indiv.monstor[im] * dmonstor + pft.storfrac_mon[im] * indiv.mon[im];
 		indiv.monstor[im] += rmonstor[im];
 		indiv.mon[im] -= rmonstor[im];

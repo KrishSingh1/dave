@@ -58,6 +58,9 @@ typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptakety
 ///bvoc: define monoterpene species used
 typedef enum {APIN, BPIN, LIMO, MYRC, SABI, CAMP, TRIC, TBOC, OTHR, NMTCOMPOUNDTYPES} monoterpenecompoundtype;
 
+///How to determine root distribution in soil layers
+typedef enum {ROOTDIST_FIXED, ROOTDIST_JACKSON} rootdisttype;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Global instruction file parameters
 
@@ -123,19 +126,29 @@ extern bool ifcdebt;
 /// Water uptake parameterisation
 extern wateruptaketype wateruptake;
 
+/// Parameterisation of root distribution
+extern rootdisttype rootdistribution;
+
 /// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
 extern bool ifcentury;
+
 /// whether plant growth limited by available N
 extern bool ifnlim;
 
 /// number of years to allow spinup without nitrogen limitation
 extern int freenyears;
+
 /// fraction of nitrogen relocated by plants from roots and leaves
 extern double nrelocfrac;
+
 /// first term in nitrogen fixation eqn (Cleveland et al 1999)
 extern double nfix_a;
+
 /// second term in nitrogen fixation eqn (Cleveland et al 1999)
 extern double nfix_b;
+
+///////////////////////////////////////////////////////////////////////////////////////
+// Landuse and crop settings
 
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;
@@ -239,6 +252,33 @@ extern bool ifrainonwetdaysonly;
 /// whether BVOC calculations are included
 extern bool ifbvoc;
 
+///////////////////////////////////////////////////////////////////////////////////////
+// Arctic and wetland inputs
+
+/// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below.
+extern bool iftwolayersoil; 
+
+/// Use multilayer snow scheme, or the original LPJ-GUESS v4 scheme
+extern bool ifmultilayersnow;
+
+/// whether to reduce GPP if there's inundation (1), or not (0)
+extern bool ifinundationstress;
+
+/// Whether to limit soilC decomposition below 0 degC in upland soils (1), or not (0)
+extern bool ifcarbonfreeze;
+
+/// Extra daily water input or output, in mm, to wetlands. Positive values are run ON, negative run OFF.
+extern double wetland_runon;
+
+/// Whether methane calculations are included
+extern bool ifmethane;
+
+/// Whether soil C pool input is used to update soil properties
+extern bool iforganicsoilproperties;
+
+/// Whether to take water from runoff to saturate low latitide wetlands
+extern bool ifsaturatewetlands;
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // The Paramlist class (and Paramtype)
@@ -295,7 +335,6 @@ public:
 	/// Tests if param exists
 	bool isparam(xtring name);
 
-private:
 	/// Tries to find the parameter in the list
 	/** \returns 0 if it wasn't there. */
 	Paramtype* find(xtring name);

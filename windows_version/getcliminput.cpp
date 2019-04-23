@@ -9,6 +9,7 @@
 
 #include "config.h"
 #include "getcliminput.h"
+#include "guessmath.h"
 
 #include "driver.h"
 #include "outputchannel.h"
@@ -114,16 +115,14 @@ bool GetclimInput::getgridcell(Gridcell& gridcell) {
 	// else ...
 
 	dprintf("\nCommencing simulation for stand at (%g,%g)\n\n",lon,lat);
-
 	// Tell framework the coordinates of this grid cell
 	gridcell.set_coordinates(lon, lat);
-
 	// The insolation data will be sent (in function getclimate, below)
 	// as total shortwave radiation for whole time step (based on CRU-NCEP database)
 	gridcell.climate.instype=SWRAD_TS;
 
 	// Tell framework the soil type of this grid cell
-	soilparameters(gridcell.soiltype,soilcode);
+	soil_parameters(gridcell.soiltype,soilcode);
 
 	// For Windows shell - clear graphical output
 	clear_all_graphs();
@@ -175,7 +174,7 @@ bool GetclimInput::getclimate(Gridcell& gridcell) {
 
 	// Send environmental values for today to framework
 
-	climate.dndep  = ndep / (365.0 * 10000.0);
+	climate.dndep  = ndep / 365.0 * HA_PER_M2;
 
 	climate.co2 = co2;
 

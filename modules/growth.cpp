@@ -95,7 +95,7 @@ void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
 				phen = 0.0;
 
 		}
-		else if (pft.lifeform == GRASS) {
+		else if (pft.lifeform == GRASS || pft.lifeform == MOSS) {
 
 			// Summergreen grasses have no maximum number of leaf-on days per
 			// growing season, and no chilling requirement
@@ -726,9 +726,9 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 			cmass_heart_inc = -cmass_sap_inc;
 		}
 	}
-	else if (lifeform == GRASS) {
+	else {
 
-		// GRASS ALLOCATION
+		// GRASS and MOSS ALLOCATION
 		// Allocation attempts to distribute biomass increment (bminc) among leaf
 		// and root compartments, i.e.
 		//   (14) bminc = cmass_leaf_inc + cmass_root_inc
@@ -988,9 +988,9 @@ bool allometry(Individual& indiv) {
 		// Stand-level LAI
 		indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
 	}
-	else if (indiv.pft.lifeform == GRASS) {
+	else if (indiv.pft.lifeform == GRASS || indiv.pft.lifeform == MOSS) {
 
-		// GRASSES
+		// GRASSES AND MOSSES
 
 		if(indiv.pft.landcover != CROPLAND) {
 
@@ -1046,7 +1046,7 @@ double fracmass_lpj(double fpc_low,double fpc_high,Individual& indiv) {
 		// else
 		return fpc_low/fpc_high;
 	}
-	else if (indiv.pft.lifeform==GRASS) { // grass
+	else if (indiv.pft.lifeform == GRASS || indiv.pft.lifeform == MOSS) {		// grass and moss
 
 		if (fpc_high>=1.0 || fpc_low>=1.0 || negligible(indiv.cmass_leaf)) return 1.0;
 
@@ -1381,9 +1381,9 @@ void growth(Stand& stand, Patch& patch) {
 						killed = true;
 					}
 				}
-				else if (indiv.pft.lifeform == GRASS) {
+				else if (indiv.pft.lifeform == GRASS || indiv.pft.lifeform == MOSS) {
 
-					// GRASS GROWTH
+					// GRASS AND MOSS GROWTH
 
 					//True crops do not use bminc.or cmass_leaf etc.
 					if(indiv.istruecrop_or_intercropgrass()) {
@@ -1394,7 +1394,7 @@ void growth(Stand& stand, Patch& patch) {
 					}
 					else {
 						allocation(bminc, indiv.cmass_leaf, indiv.cmass_root,
-							0.0, 0.0, 0.0, indiv.ltor, 0.0, 0.0, 0.0, GRASS, 0.0,
+							0.0, 0.0, 0.0, indiv.ltor, 0.0, 0.0, 0.0, indiv.pft.lifeform, 0.0,
 							0.0, 0.0, cmass_leaf_inc, cmass_root_inc, dval, dval, dval,
 							litter_leaf_inc, litter_root_inc, exceeds_cmass);
 					}
@@ -1457,6 +1457,8 @@ void growth(Stand& stand, Patch& patch) {
 					// Kill individual and transfer biomass to litter if either biomass
 					// compartment negative
 
+
+					// Note - what happens if cmass_root = 0?
 					if ((indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS) && !indiv.istruecrop_or_intercropgrass()) {
 
 						indiv.kill();
@@ -1464,7 +1466,8 @@ void growth(Stand& stand, Patch& patch) {
 						vegetation.killobj();
 						killed = true;
 					}
-				}
+
+				} // grass or moss
 
 				if (!killed && indiv.pft.phenology != CROPGREEN && !(indiv.has_daily_turnover() && indiv.continous_grass())) {
 					// Update nitrogen longtime storage

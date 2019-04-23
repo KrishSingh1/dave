@@ -35,7 +35,7 @@ void fail(xtring format,...);
 void plot(xtring window_name,xtring series_name,double x,double y);
 
 
-/// 'Forgets' series and data for line graph 'window_name'.
+/// 'Frac_orgets' series and data for line graph 'window_name'.
 /**
  * Functional only when the framework is built as a DLL and linked to the 
  * LPJ-GUESS Windows Shell.
@@ -43,7 +43,7 @@ void plot(xtring window_name,xtring series_name,double x,double y);
 void resetwindow(xtring window_name);
 
 
-/// 'Forgets' series and data for all currently-defined line graphs.
+/// 'Frac_orgets' series and data for all currently-defined line graphs.
 /** 
  * Functional only when the framework is built as a DLL and linked to the 
  * LPJ-GUESS Windows Shell.
@@ -107,10 +107,10 @@ public:
 	                  double x, 
 	                  double y) = 0;
 
-	/// 'Forgets' series and data for line graph 'window_name'.
+	/// 'Frac_orgets' series and data for line graph 'window_name'.
 	virtual void resetwindow(const char* window_name) = 0;
 
-	/// 'Forgets' series and data for all currently-defined line graphs.
+	/// 'Frac_orgets' series and data for all currently-defined line graphs.
 	virtual void clear_all_graphs() = 0;
 
 	/// May be called by framework to respond to abort request from the user.

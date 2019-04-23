@@ -59,6 +59,10 @@ const double BC3 = 0.015;
 /// leaf respiration as fraction of maximum rubisco, C4 plants
 const double BC4 = 0.02;
 
+/// leaf respiration as fraction of maximum rubisco, mosses
+// see Wania et al. (2009b)
+const double BC_moss = 0.03;
+
 const double CMASS = 12.0;		// atomic mass of carbon
 const double ALPHAA = 0.45;		// value chosen to give global carbon pool and flux values that
 								// agree with published estimates.

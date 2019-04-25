@@ -77,7 +77,7 @@ struct Cruncep_1901_2017misc {
 
 	// Data part
 
-	double dtr[1404];
+	double mdtr[1404];
 	double mwet[1404];
 	double mwind[1404];
 	double mrhum[1404];
@@ -356,7 +356,7 @@ public:
 		for (i=1403;i>=0;i--) obj.mrhum[i]=popreal(pdata,CRUNCEP_1901_2017MISC_DATA_LENGTH,10,0.001,0);
 		for (i=1403;i>=0;i--) obj.mwind[i]=popreal(pdata,CRUNCEP_1901_2017MISC_DATA_LENGTH,14,0.1,0);
 		for (i=1403;i>=0;i--) obj.mwet[i]=popreal(pdata,CRUNCEP_1901_2017MISC_DATA_LENGTH,7,1,0);
-		for (i=1403;i>=0;i--) obj.dtr[i]=popreal(pdata,CRUNCEP_1901_2017MISC_DATA_LENGTH,14,0.01,0);
+		for (i=1403;i>=0;i--) obj.mdtr[i]=popreal(pdata,CRUNCEP_1901_2017MISC_DATA_LENGTH,14,0.01,0);
 
 		return true;
 	}
@@ -397,7 +397,7 @@ public:
 				for (int i=1403;i>=0;i--) obj.mrhum[i]=popreal(pdata,CRUNCEP_1901_2017MISC_DATA_LENGTH,10,0.001,0);
 				for (int i=1403;i>=0;i--) obj.mwind[i]=popreal(pdata,CRUNCEP_1901_2017MISC_DATA_LENGTH,14,0.1,0);
 				for (int i=1403;i>=0;i--) obj.mwet[i]=popreal(pdata,CRUNCEP_1901_2017MISC_DATA_LENGTH,7,1,0);
-				for (int i=1403;i>=0;i--) obj.dtr[i]=popreal(pdata,CRUNCEP_1901_2017MISC_DATA_LENGTH,14,0.01,0);
+				for (int i=1403;i>=0;i--) obj.mdtr[i]=popreal(pdata,CRUNCEP_1901_2017MISC_DATA_LENGTH,14,0.01,0);
 
 				return true;
 			}

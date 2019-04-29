@@ -4,7 +4,7 @@
 ///
 /// This input module reads in CRU-NCEP climate data in a customised binary format.
 /// The binary files contain CRU-NCEP half-degree global historical climate data
-/// for 1901-2015.
+/// from 1901 and onwards.
 ///
 /// \author Ben Smith
 /// $Date$

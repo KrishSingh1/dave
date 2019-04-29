@@ -22,8 +22,7 @@
 #include "externalinput.h"
 
 /// An input module for CRU climate data
-/** This input module gets climate data from binary archives built from
- *  CRU-NCEP (1901-2015).
+/** This input module gets climate data from binary archives built from CRU-NCEP.
  */
 class CRUInput : public InputModule {
 public:

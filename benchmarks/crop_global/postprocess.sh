@@ -29,20 +29,18 @@ function prepare_agb {
 describe_benchmark "LPJ-GUESS - Global Benchmarks for crops"
 source scatter_plot.sh
 
-# link data-dirs for biomass
-hname=$(uname -n)
-if [ $hname == "simba" ]
+# link data-dirs for biomass and fire
+if [ $ARCH == "aurora" ]
 then
-    ln -sf /data/biomass/Global_mean_ABC_1993-2012_Liu2015_SI.dat
-    ln -sf /data/biomass/Pan
-elif [ $hname == "aurora" ]
-then
-    echo "Aurora not yet set up."
-    exit -1
-    #ln -sf #/data/biomass/Global_mean_ABC_1993-2012_Liu2015_SI.dat
-    #ln -sf #/data/biomass/Pan
+    datapath=/lunarc/nobackup/projects/lpjguess/data/
+else
+    datapath=/data/
 fi
-
+ln -sf ${datapath}/biomass/Global_mean_ABC_1993-2012_Liu2015_SI.dat
+ln -sf ${datapath}/biomass/Pan
+ln -sf ${datapath}/fire/gfed40_c-emissions_1997-2016.dat
+ln -sf ${datapath}/fire/gfed_regions0.5.dat
+ln -sf ${datapath}/benchmark_data/2015_12_14/landuse
 
 if true 
 then
@@ -91,15 +89,16 @@ prepareyielddata yield1996to2005.txt common/../crop_global/spam_yield_wheat.dat 
 scatter_plot "Wheat yields" "SPAM" "LPJ-GUESS" temp_wheat.dat wheat_yield.png
 describe_image wheat_yield.png "Modelled compared to SPAM data set. Units: kg m-2." embed
 
- 
+fi # end bypass
+
 #===============================================================================
 # Above Ground Biomass    
 # If benchmarks are run on Aurora or Simba link Liu-AGB 
 # and gfed benchmarks into crop_global dir
-trunkpath="/scratch/johan/Benchmarks/trunk_6296-/trunk_7068/output_trunk7068all_crgpp/crop_global/"
+##CLNtrunkpath="/scratch/johan/Benchmarks/trunk_6296-/trunk_7068/output_trunk7068all_crgpp/crop_global/"
 if [ -f Global_mean_ABC_1993-2012_Liu2015_SI.dat ]
 then
-    tslice $trunkpath/cpool.out -f 1993 -t 2012 -o cpool1993-2012.dat
+    tslice cpool.out -f 1993 -t 2012 -o cpool1993-2012.dat
     prepare_agb cpool1993-2012.dat cpool1993-2012_agb.dat VegC
     joyn Global_mean_ABC_1993-2012_Liu2015_SI.dat cpool1993-2012_agb.dat -i Lon Lat -fast -o cpool1993-2012_joyned.dat
     
@@ -140,8 +139,6 @@ else
     echo "Dataset 'Liu Above-Ground-Biomass' not found. Skipping..."
 fi
 
-fi # end bypass
-
 # pan biomass 
 
 . pan_regional_biomass.sh
@@ -153,11 +150,24 @@ then
     tslice cflux.out -f 1997 -t 2016 -o cflux1997-2016.dat
     joyn cflux1997-2016.dat gfed40_c-emissions_1997-2016.dat -i Lon Lat -fast -o cflux1997-2016_joyned.dat
 
+    # Plot fire emissions 
+    gmap cflux1997-2016_joyned.dat -i Fire -lon 1 -lat 2 -landscape -o cflux1997-2016_blaze.png -legend common/legend_fire_emis.txt -t "BLAZE mean annual C-emissions [kg(C)/m2a]"
+    convert -geometry 25%x25% cflux1997-2016_blaze.png tmp.png
+    convert -rotate 90 tmp.png cflux1997-2016_blaze.png
+    describe_image  cflux1997-2016_blaze.png "BLAZE Mean annual C-emissions 1997-2016 [kg(C)/m2a]" embed
+    
+    # Plot gfed 4.0 emissions
+    gmap cflux1997-2016_joyned.dat -i C_Emis -lon 1 -lat 2 -landscape -o cflux1997-2016_gfed4.png -legend common/legend_fire_emis.txt -t "GFED 4.0 mean annual C-emissions [kg(C)/m2a]"
+    convert -geometry 25%x25% cflux1997-2016_gfed4.png tmp.png
+    convert -rotate 90 tmp.png cflux1997-2016_gfed4.png
+    describe_image  cflux1997-2016_gfed4.png "GFED 4.0 C-emissions kg(C)/m2a." embed
+    
     # delta plot gfed4 cflux
+    #CLN awk-commandsscripts aren't proof against changes in output files.
     awk '{print $1,$2, $6}' cflux1997-2016_joyned.dat > cflux1997-2016_joyned_Fire.dat
-    awk '{if(FNR==1){print $1,$2, $6} else {print $1,$2, $10}}' cflux1997-2016_joyned.dat > cflux1997-2016_joyned_gfed.dat
+    awk '{if(FNR==1){print $1,$2, $6} else {print $1,$2, $13}}' cflux1997-2016_joyned.dat > cflux1997-2016_joyned_gfed.dat
     delta  cflux1997-2016_joyned_Fire.dat cflux1997-2016_joyned_gfed.dat -i Lon Lat -o delta_cflux1997-2016_joyned.dat
-    gmap delta_cflux1997-2016_joyned.dat -i Fire -lon 1 -lat 2 -landscape -s -0.5 0.1 10 -o delta_cflux1997-2016_joyned.png -t "Fire C flux LPJ-GUESS - Gfed kg(C)/m2/a" -c BLUE RED
+    gmap delta_cflux1997-2016_joyned.dat -i Fire -lon 1 -lat 2 -landscape -legend common/legend_delta_fire_emis.txt -o delta_cflux1997-2016_joyned.png -t "Fire C flux LPJ-GUESS - Gfed kg(C)/m2/a" -c BLUE RED -vert
     convert -geometry 25%x25% delta_cflux1997-2016_joyned.png tmp.png
     convert -rotate 90 tmp.png delta_cflux1997-2016_joyned.png
     describe_image  delta_cflux1997-2016_joyned.png "Modelled minus GFED 4.0 data. Units: kg(C)/m2a." embed

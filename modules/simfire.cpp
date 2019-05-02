@@ -2,7 +2,8 @@
 /// \file blaze.cpp
 //WK SIMFIRE doesn't actually do ignitions but assumes an ignition saturated regime
 //WK please explain
-/// \brief SIMFIRE ignition simulation by W. Knorr
+//RLN Is that better (reference in the bottom of file)
+/// \brief SIMFIRE burned area simulation by W. Knorr
 ///
 /// \author Lars Nieradzik
 /// $Date: 2017-01-24 16:02:51 +0100 (Tue, 24 Jan 2017) $
@@ -30,6 +31,7 @@
 // "#include" directive referring to the framework header file.
 
 //WK Is this the framework header file as remarked in (1)?
+//RLN yes
 #include "config.h"
 #include "simfire.h"
 #include "SimfireInput.h"
@@ -51,7 +53,7 @@ void getsimfiredata(Gridcell& gridcell) {
 		
 	Climate& climate = gridcell.climate;
 	
-	dprintf("CLN Inside getsimfiredata \n");
+	//CLNdprintf("Reading getsimfiredata \n");
 	
 	/// Paths to SIMFIRE binaries
 	xtring file_simfire = param["file_simfire"].str;
@@ -108,16 +110,16 @@ int update_fire_biome (Patch& patch, double lat) {
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation=patch.vegetation;
 
-	// initialise fapar averaging array
-	if ( date.year == 0 && date.day == 0 && ! restart ) {
-		for (int i = 0; i<n_year_biomeavg; i++) {
-			patch.avg_ftot[i]   = 0. ;
-			patch.avg_fgrass[i] = 0. ;
-			patch.avg_fndlt[i]  = 0. ;
-			patch.avg_fbrlt[i]  = 0. ;
-			patch.avg_fshrb[i]  = 0. ;
-		}
-	}
+//CRM	// initialise fapar averaging array
+//CRM	if ( date.year == 0 && date.day == 0 && ! restart ) {
+//CRM		for (int i = 0; i<n_year_biomeavg; i++) {
+//CRM			patch.avg_ftot[i]   = 0. ;
+//CRM			patch.avg_fgrass[i] = 0. ;
+//CRM			patch.avg_fndlt[i]  = 0. ;
+//CRM			patch.avg_fbrlt[i]  = 0. ;
+//CRM			patch.avg_fshrb[i]  = 0. ;
+//CRM		}
+//CRM	}
 
 	// Loop through individuals of this patch
 	vegetation.firstobj();
@@ -146,11 +148,13 @@ int update_fire_biome (Patch& patch, double lat) {
 		}
 		vegetation.nextobj(); // ... on to next individual
 	}
-
-	if ( ftot < 0.00000001 )
+	
+	if ( ftot < 0.00000001 ) {
 //WK maybe it should be -1, consistent with simfire_biome_mapping?
-		return 0;
-
+//RLN indeed
+		//CLNdprintf("Out w/o biome\n");
+		return -1;
+	}
 	// re-normalize
 	fgrass /= ftot;
 	fndlt  /= ftot;
@@ -164,6 +168,15 @@ int update_fire_biome (Patch& patch, double lat) {
 	patch.avg_fndlt [idx] = fndlt  ;
 	patch.avg_fbrlt [idx] = fbrlt  ;
 	patch.avg_fshrb [idx] = fshrb  ;
+//CRM	if ( date.year == 0 ) {
+//CRM		for (int i = 0; i<n_year_biomeavg; i++) {
+//CRM			patch.avg_ftot  [i] = ftot   ;
+//CRM			patch.avg_fgrass[i] = fgrass ;
+//CRM			patch.avg_fndlt [i] = fndlt  ;
+//CRM			patch.avg_fbrlt [i] = fbrlt  ;
+//CRM			patch.avg_fshrb [i] = fshrb  ;
+//CRM		}
+//CRM	}
 	
 	// generate running avereage 
 	ftot   = 0.;
@@ -178,15 +191,17 @@ int update_fire_biome (Patch& patch, double lat) {
 		fbrlt  += patch.avg_fbrlt [i];
 		fshrb  += patch.avg_fshrb [i];
 	}
-	ftot   /=  n_year_biomeavg;
-	fgrass /=  n_year_biomeavg;
-	fndlt  /=  n_year_biomeavg;
-	fbrlt  /=  n_year_biomeavg;
-	fshrb  /=  n_year_biomeavg;
+	ftot   /=  (double)n_year_biomeavg;
+	fgrass /=  (double)n_year_biomeavg;
+	fndlt  /=  (double)n_year_biomeavg;
+	fbrlt  /=  (double)n_year_biomeavg;
+	fshrb  /=  (double)n_year_biomeavg;
+	//CLNdprintf("fgrass %f fshrb %f fbrlt %f fndlt %f tot %f \n",fgrass,fshrb,fbrlt,fndlt,ftot);
 
 //WK: remove 'and' in next line; also note above about land use
+//
 	// assign biome (neglecting agricultural land use)
-	if (ftot<0.1 && fabs(lat)<50.0) {
+	/*CLN ori here	if (ftot<0.1 && fabs(lat)<50.0) {
 		biome=8; } // barren or sparsely vegetated
 	else if (ftot<0.1) {
 		biome=7; } // tundra
@@ -202,7 +217,29 @@ int update_fire_biome (Patch& patch, double lat) {
 		biome=3; } // broad-leaf forest
 	else {
 		biome=4;   // mixed forest
-	}
+		} */
+	if (ftot<0.1 && fabs(lat)<50.0) {
+		biome=8; } // barren or sparsely vegetated
+	else if (ftot<0.1   && fabs(lat)>=50.0) {
+		biome=7; } // tundra
+	else if (patch.stand.landcover==CROPLAND) {
+		biome=1; } // cropland
+	else if (fshrb>=0.4 && fabs(lat)<50.0) {
+		biome=5; } // shrubland
+	else if (fshrb>=0.8 && fabs(lat)>=50.0) {
+		biome=7; } // tundra
+	else if (fgrass>=0.4) {
+		biome=6; } // savanna or grassland
+	else if (fndlt>=0.6) {
+		biome=2; } // needle-leaf forest
+	else if (fbrlt>=0.6) {
+		biome=3; } // broad-leaf forest
+	else {
+		biome=4;   // mixed forest
+		} 
+
+	//CLNdprintf("biome %d \n", biome);
+
 	return biome;
 }
 
@@ -212,56 +249,58 @@ int update_fire_biome (Patch& patch, double lat) {
 //WK Find it confusing that there seem to be two ways of generating biome
 //WK information - do they exist side by side, is there a switch in the ins
 //WK file to choose between them etc., etc. - please explain
+//RLN we will only use the biome-updating from LPJ-GUESS parameters. The rest was legacy code.
 void simfire_biome_mapping(Gridcell& gridcell) {
-	
-	// IGBP:
-	//  0 Water bodies
-	//  1 Evergreen Needleleaf Forest % 1: >60% cover, height>2m
-	//  2 Evergreen Broadleaf Forest % 2: >60% cover, height>2m
-	//  3 Deciduous Needleleaf Forest % 3: >60% cover, height>2m
-	//  4 Deciduous Broadleaf Forest % 4: >60% cover, height>2m
-	//  5 Mixed Forest % 5: >60% cover, height>2m, no forest type>60% cover
-	//  6 Closed Shrubland % 6: >60% woody cover, height<2m
-	//  7 Open Shrubland % 7: 10-60% woody cover, height<2m
-	//  8 Woody Savanna % 8: 30-60% tree cover, height>2m, herbaceous or other understory
-	//  9 Savanna % 9: 10-30% tree cover, height>2m, herbaceous or other understory
-	// 10 Grassland % 10: <10% tree and shrub cover
-	// 11 Permanent Wetland % 11: mixture of water and herbaceous or woody vegetation
-	// 12 Cropland % 12
-	// 13 Urban and Built-Up % 13
-	// 14 Cropland/Natural Vegetation Mosaic % 14 none of forest, shrubland, cropland, 
-	//    grassland >60% cover
-	// 15 Permanent Snow and Ice % 15
-	// 16 Barren or Sparsely Vegetated % 16: <10% vegetation cover all year
-	// 17 Unclassified / No data
-	
-	// IGBP2BIOME MAPPING:
-	// vegetation formation (should be derived from inputs to function)
-	// -1 No vegetation
-	//  0 Cropland/Urban/Natural Vegetation Mosaic (IGBP 12-14)
-	//  1 Needleleaf forest (IGBP 1,3): >60% cover, height>2m
-	//  2 Broadleaf forest (IGBP 2,4): >60% cover, height>2m
-	//  3 Mixed forest (IGBP 4): >60% cover, height>2m, none >60%
-	//  4 Shrubland (IGBP 6,7 and latitude<50): >10% woody cover, height<2m
-	//  5 Savanna or Grassland (IGBP 8-10): herbaceous component present, <60% tree cover
-	//  6 Tundra (IGBP 6,7,16 and latitude>=50): height<2m
-	//  7 Barren or Sparsely Vegetated (IGBP 16 and latitude<50): <10% vegetation cover
-	//
-
+	/*
+	  Determine SIMFIRE biomes
+//CLN some more description
+	 */
+//CRM	// IGBP:
+//CRM	//  0 Water bodies
+//CRM	//  1 Evergreen Needleleaf Forest % 1: >60% cover, height>2m
+//CRM	//  2 Evergreen Broadleaf Forest % 2: >60% cover, height>2m
+//CRM	//  3 Deciduous Needleleaf Forest % 3: >60% cover, height>2m
+//CRM	//  4 Deciduous Broadleaf Forest % 4: >60% cover, height>2m
+//CRM	//  5 Mixed Forest % 5: >60% cover, height>2m, no forest type>60% cover
+//CRM	//  6 Closed Shrubland % 6: >60% woody cover, height<2m
+//CRM	//  7 Open Shrubland % 7: 10-60% woody cover, height<2m
+//CRM	//  8 Woody Savanna % 8: 30-60% tree cover, height>2m, herbaceous or other understory
+//CRM	//  9 Savanna % 9: 10-30% tree cover, height>2m, herbaceous or other understory
+//CRM	// 10 Grassland % 10: <10% tree and shrub cover
+//CRM	// 11 Permanent Wetland % 11: mixture of water and herbaceous or woody vegetation
+//CRM	// 12 Cropland % 12
+//CRM	// 13 Urban and Built-Up % 13
+//CRM	// 14 Cropland/Natural Vegetation Mosaic % 14 none of forest, shrubland, cropland, 
+//CRM	//    grassland >60% cover
+//CRM	// 15 Permanent Snow and Ice % 15
+//CRM	// 16 Barren or Sparsely Vegetated % 16: <10% vegetation cover all year
+//CRM	// 17 Unclassified / No data
+//CRM	
+//CRM	// IGBP2BIOME MAPPING:
+//CRM	// vegetation formation (should be derived from inputs to function)
+//CRM	// -1 No vegetation
+//CRM	//  0 Cropland/Urban/Natural Vegetation Mosaic (IGBP 12-14)
+//CRM	//  1 Needleleaf forest (IGBP 1,3): >60% cover, height>2m
+//CRM	//  2 Broadleaf forest (IGBP 2,4): >60% cover, height>2m
+//CRM	//  3 Mixed forest (IGBP 4): >60% cover, height>2m, none >60%
+//CRM	//  4 Shrubland (IGBP 6,7 and latitude<50): >10% woody cover, height<2m
+//CRM	//  5 Savanna or Grassland (IGBP 8-10): herbaceous component present, <60% tree cover
+//CRM	//  6 Tundra (IGBP 6,7,16 and latitude>=50): height<2m
+//CRM	//  7 Barren or Sparsely Vegetated (IGBP 16 and latitude<50): <10% vegetation cover
+//CRM	//
+//CRM
 	// mapping IGBP -> simfire-biomes
 	const double igbp2simfirebiome[2][18] = {
 		{ -1, 1, 2, 1, 2, 3, 4, 4, 5, 5, 5,-1, 0, 0, 0,-1, 7, -1 },  //  ! LAT  < 50 
 		{ -1, 1, 2, 1, 2, 3, 6, 6, 5, 5, 5,-1, 0, 0, 0,-1, 6, -1 }}; //  ! LAT >= 50
 
 	Climate& climate = gridcell.climate;
-
-	// Regions with dedicated parameter optimisation for SIMFIRE
-	// 0: global
-	// 1: Europe
-	// 2: AUS-NZ
-
-	// Set global as fixed for now
-	gridcell.simfire_region = 0; // Global
+//CRM
+//CRM	// Regions with dedicated parameter optimisation for SIMFIRE
+//CRM	// 0: global
+//CRM	// 1: Europe
+//CRM	// 2: AUS-NZ
+//CRM
 
 	// determine gridcell's simfire biome
 	// At start of spinup use IGBP
@@ -278,6 +317,7 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 	//WK explain what is meant by "biome-shift" and by "later"
 	// later use biome-shift
 	else {
+		//CRM		int nobjs=0;
 		std::vector<int> biomes;
 		Gridcell::iterator gc_itr = gridcell.begin();
 		while (gc_itr != gridcell.end()) {
@@ -288,10 +328,9 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 				Patch& patch = stand.getobj();
 				
 				biomes.push_back(update_fire_biome(patch, gridcell.get_lat()));
-				
 				stand.nextobj();
 			}
-			
+//CRM			nobjs+=stand.nobj;
 			++gc_itr;
 		}
 		
@@ -303,13 +342,21 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 		for (int idx = 0; idx < biomes.size(); idx++) {
 			count[biomes[idx]]++;
 		}
-		for (biome=0;biome<NFIREBIOMES;biome++) count_max=max(count_max,count[biome]);
+		for (biome=0;biome<NFIREBIOMES;biome++) {
+			count_max=max(count_max,count[biome]);
+			//if(date.year>500) dprintf("biome%d %d ", biome,count[biome] );
+		}
+		//if(date.year>500) dprintf(" \n");
 		for (biome=0;biome<NFIREBIOMES && count[biome]<count_max;biome++) {
 		}
-		// BLAZE-biome is -1 of SIMFIRE-biome classifcation
+	//if(date.year>500) dprintf("count a1 %d tot %d biome %d \n",count[1],nobjs,biome);
+//CRM	if ( ((double)count[1]/(double)nobjs)>0.33) {
+//CRM		biome = 1;
+//CRM		//if(date.year>500) dprintf("count b1 %d tot %d biome %d \n",count[1],nobjs,biome);
+//CRM	}
+	// BLAZE-biome is -1 of SIMFIRE-biome classifcation
 		climate.simfire_biome  = biome - 1;
-	}	
-
+	}
 }
 
 //==============================================================================
@@ -369,7 +416,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	// L. Nieradzik 03/2015
 	Climate& climate = gridcell.climate;
 	// absolute upper boundary for the accumulative nesterov index
-	const double maximum_nesterov = 150000.;
+	const double maximum_nesterov = 1000000; //150000.;
 
 	// check whether this day is the first day of simulation 
 	// (i.e. start of spinup or first day after restart
@@ -377,8 +424,9 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 		( restart && date.year == state_year ) ) );
 
 	if (date.day == 0 ) {
-		// set SIMFIRE biomes based on IGBP classification
-		// NOW DONE IN getgridcell
+		// Set global simfire region as fixed
+		gridcell.simfire_region = 0;
+		
 		simfire_biome_mapping(climate.gridcell);
 
 		// update population density
@@ -437,6 +485,16 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 		while (stand.isobj) {
 			Patch& patch = stand.getobj();
 			run_fapar += (1. - patch.fpar_ff);
+			//initialise averaging array
+			if ( date.year == 0 && date.day == 0 ) {
+				for (int i = 0; i<n_year_biomeavg; i++) {
+					patch.avg_ftot  [i] = 0. ;
+					patch.avg_fgrass[i] = 0. ;
+					patch.avg_fndlt [i] = 0. ;
+					patch.avg_fbrlt [i] = 0. ;
+					patch.avg_fshrb [i] = 0. ;
+				}
+			}
 			cnt += 1;
 			stand.nextobj();
 		}		
@@ -460,14 +518,16 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	else {
 		climate.cur_nesterov += ( climate.tmax - climate.tmin + 4. ) * climate.tmax ;
 	}
+	climate.cur_nesterov = min(climate.cur_nesterov,maximum_nesterov) ;
+
 	// finally update Max Annual Mesterov Index
 	if (climate.cur_nesterov > climate.max_nesterov ) 
-		climate.max_nesterov = min(climate.cur_nesterov,maximum_nesterov) ;
+		climate.max_nesterov = climate.cur_nesterov ;
 }
 
 double simfire_ba(Climate& climate, Gridcell& gridcell) {
 
-	/* Called by:  blaze_ignition(blaze.cpp)
+	/* Called by:  blaze_burned_area(blaze.cpp)
 	   Calls    :  -
 	   calculate burned area in ha
 	*/
@@ -507,8 +567,6 @@ double simfire_ba(Climate& climate, Gridcell& gridcell) {
 
 	const double scalar = 1.0e-5;
 
-	//	Gridcell gridcell = climate.gridcell;
-	
 	int ri = gridcell.simfire_region;
 
 	// return if improper biome-type
@@ -518,41 +576,50 @@ double simfire_ba(Climate& climate, Gridcell& gridcell) {
 //WK Needs some explanation: the FPAR correction is used
 //WK when GUESS generates the FPAR, but not when observed
 //WK FPAR is used to compute burned area
-	/*const double fpar_corr1 = 0.428;
+//RLN This should have been used all along...
+	const double fpar_corr1 = 0.428;
 	const double fpar_corr2 = 0.148;
 
 	double fpar_cor = fpar_corr1 * climate.ann_max_fapar + fpar_corr2 * climate.ann_max_fapar * 
 	  climate.ann_max_fapar;
 
+	// compute annual burned area
 	double ba = a[ri][climate.simfire_biome] * 
 		pow(fpar_cor, b[ri]) *
 		pow((scalar * climate.max_nesterov), c[ri]) *
 		exp(e[ri] * gridcell.pop_density);
-	*/
 
-	// compute annual burned area
-	double ba = a[ri][climate.simfire_biome] * 
-		pow(climate.ann_max_fapar, b[ri]) *
-		pow((scalar * climate.max_nesterov), c[ri]) *
-		exp(e[ri] * gridcell.pop_density);
+	//CLNdprintf("sim ba %f fapar %f  popd %f biome %d \n",ba ,fpar_cor, gridcell.pop_density,climate.simfire_biome);
+	
 
-	// disaggregate annual burnt area into sub-annual timescales
-	if (blaze_tstep == DAILY) {
-		ba *= climate.monthly_fire_risk[date.month] /
-			date.ndaymonth[date.month];
-	} 
-	else if (blaze_tstep == MONTHLY) {
-		ba *= climate.monthly_fire_risk[date.month];
-	} 
-	else if (blaze_tstep == SEASONAL) {
-		int s = (double)date.month / 3.0;
-		ba *=   climate.monthly_fire_risk[s*3  ] +
-			climate.monthly_fire_risk[s*3+1] +
-			climate.monthly_fire_risk[s*3+2];
-	}
+//CRM	// compute annual burned area
+//CRM	double ba = a[ri][climate.simfire_biome] * 
+//CRM		pow(climate.ann_max_fapar, b[ri]) *
+//CRM		pow((scalar * climate.max_nesterov), c[ri]) *
+//CRM		exp(e[ri] * gridcell.pop_density);
+//CRM	
+
+	// compute daily burnt_area
+	ba *= climate.monthly_fire_risk[date.month] /
+		(double)date.ndaymonth[date.month];
+
+//CRM	// disaggregate annual burnt area into sub-annual timescales
+//CRM	if (blaze_tstep == DAILY) {
+//CRM		ba *= climate.monthly_fire_risk[date.month] /
+//CRM			date.ndaymonth[date.month];
+//CRM	} 
+//CRM	else if (blaze_tstep == MONTHLY) {
+//CRM		ba *= climate.monthly_fire_risk[date.month];
+//CRM	} 
+//CRM	else if (blaze_tstep == SEASONAL) {
+//CRM		int s = (double)date.month / 3.0;
+//CRM		ba *=   climate.monthly_fire_risk[s*3  ] +
+//CRM			climate.monthly_fire_risk[s*3+1] +
+//CRM			climate.monthly_fire_risk[s*3+2];
+//CRM	}
 	
 	// keep track of area burnt so far this year
 	climate.acc_areaburnt += ba;
-	
+
 	return ba;
 }

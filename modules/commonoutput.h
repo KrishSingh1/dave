@@ -51,7 +51,7 @@ private:
 	xtring file_nmass, file_cton_leaf, file_nsources, file_npool, file_nlitter, file_nuptake, file_vmaxnlim, file_nflux, file_ngases;
 
 	// BLAZE & SIMFIRE
-	xtring file_blaze_out, file_mblaze_out, file_mprec;
+	xtring file_blaze_out, file_mblaze_out;
 	xtring file_sfana_out;
 	
 	// Output tables
@@ -66,7 +66,7 @@ private:
 	Table out_nmass, out_cton_leaf, out_nsources, out_npool, out_nlitter, out_nuptake, out_vmaxnlim, out_nflux, out_ngases;
 	
 	// BLAZE && SIMFIRE
-	Table out_ab, out_mab, out_mprec;
+	Table out_ab, out_mab;
 	Table out_sfana;
 };
 

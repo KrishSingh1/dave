@@ -67,24 +67,24 @@ typedef enum {APIN, BPIN, LIMO, MYRC, SABI, CAMP, TRIC, TBOC, OTHR, NMTCOMPOUNDT
  */
 typedef enum {BLAZE, GLOBFIRM, NOFIRE} firemodeltype;
 
-/// Time step of fire model 
-/*	ANNUALY SEASONAL MONTHLY DAILY  fixed timesteps.(DEFAULT = Monthly)
- *	HYBRID   	 *default*      use shortest available timestep (automatically adjust to 
- *					source of ignition)
- */
-typedef enum {ANNUAL, SEASONAL, MONTHLY, DAILY, HYBRID} blaze_tsteptype;
-
-/// Ignition model setting. Only necessary if firemodel is BLAZE. Either use 
-/*	One of
- *	SIMFIRE 	use SIMFIRE for generate burnt area (DEFAULT)
- *	GFED31		use GFED v3.1 as source for burnt area
- *	SIMGFED		symbiosys of both. GFED31 where there's data, SIMFIRE else
-//WK I think prescribing burned area makes sense also for serious simulations
-//RLN Yes, It is not yet finalised. I'll take it out for the merge.
- *	PRESCRIBED	a way to prescribe Burnt Area for experimental purpose
- *	NOIGNITION	no fire model  
- */	
-typedef enum {SIMFIRE, GFED31, SIMGFED, PRESCRIBED, NOIGNITION} ignitiontype;
+//CRM/// Time step of fire model 
+//CRM/*	ANNUALY SEASONAL MONTHLY DAILY  fixed timesteps.(DEFAULT = Monthly)
+//CRM *	HYBRID   	 *default*      use shortest available timestep (automatically adjust to 
+//CRM *					source of ignition)
+//CRM */
+//CRMtypedef enum {ANNUAL, SEASONAL, MONTHLY, DAILY, HYBRID} blaze_tsteptype;
+//CRM
+//CRM/// Burned Area model setting. Only necessary if firemodel is BLAZE. Either use 
+//CRM/*	One of
+//CRM *	SIMFIRE 	use SIMFIRE for generate burnt area (DEFAULT)
+//CRM *	GFED31		use GFED v3.1 as source for burnt area
+//CRM *	SIMGFED		symbiosys of both. GFED31 where there's data, SIMFIRE else
+//CRM//WK I think prescribing burned area makes sense also for serious simulations
+//CRM//RLN Yes, It is not yet finalised. I'll take it out for the merge.
+//CRM *	PRESCRIBED	a way to prescribe Burnt Area for experimental purpose
+//CRM *	NOIGNITION	no fire model  
+//CRM */	
+//CRMtypedef enum {SIMFIRE, GFED31, SIMGFED, PRESCRIBED, NOIGNITION} ignitiontype;
 
 /// Type of weathergenerator used 
 /*      One of:
@@ -139,8 +139,8 @@ extern bool ifstochmort;
 /// Whether fire enabled
 //	CLN extern bool iffire;
 extern firemodeltype firemodel;
-extern blaze_tsteptype blaze_tstep;
-extern ignitiontype ignition;
+//CRMextern blaze_tsteptype blaze_tstep;
+//CRMextern ignitiontype ignition;
 
 /// Whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
 extern bool ifdisturb;

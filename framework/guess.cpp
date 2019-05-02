@@ -29,7 +29,7 @@ Pftlist pftlist;
 // emission ratios from fire (NH3, NOx, N2O, N2) Levine et al. 1996
 
 //WK I'm curious why there was a change in the first value below by almost two orders of magnitude
-//RLN I have simply taken these from the fire routine in framework.cpp. I have updated it for noe but I'll implement the new emission scheme soon anyways.
+//RLN I have simply taken these from the fire routine in framework.cpp. I have updated it for now but I'll implement the new emission scheme soon anyways.
 const double Fluxes::NH3_FIRERATIO = 0.005;
 const double Fluxes::NOx_FIRERATIO = 0.237;
 const double Fluxes::N2O_FIRERATIO = 0.036;
@@ -66,7 +66,8 @@ void Climate::serialize(ArchiveStream& arch) {
     //WK I know it is not common practive in LPJ-GUESS, but maybe this
     //WK would be the ideal place to give a short description plus units?
     //WK or give a reference to where this is available?
-    //RLN I agree. I placed a comment in the first line above
+    //RLN I agree. I also placed a comment in the first line above
+    //CLN Do
 		// BLAZE --[
 		& u10                     // 10 m horizontal wind-speed [km/h]
 		& relhum
@@ -85,6 +86,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& dslr
 		& kbdi
 		& mcarthur_fire_index
+		& months_ffdi
 		// BLAZE --] 
 		& co2
 		& lat

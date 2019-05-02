@@ -79,16 +79,15 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_amon_mt2", &file_amon_mt2, 300, "annual other monoterpene flux output file");
 	declare_parameter("file_mmon_mt1", &file_mmon_mt1, 300, "monthly endocyclic monoterpene flux output file");	
 	declare_parameter("file_mmon_mt2", &file_mmon_mt2, 300, "monthly other monoterpene flux output file");
-	declare_parameter("file_mprec", &file_mprec, 300, "monthly precip output file");
 
 
 
 	if ( firemodel == BLAZE ) {
 		declare_parameter("file_blaze_out", &file_blaze_out, 300, "BLAZE burnt area output file");
 		declare_parameter("file_mblaze_out", &file_mblaze_out, 300, "BLAZE monthly burnt area output file");
-		if ( ignition == SIMFIRE ) {
-			declare_parameter("file_sfana_out", &file_sfana_out, 300, "SIMFIRE analytics output");
-		}			
+		//CRM		if ( ignition == SIMFIRE ) {
+		declare_parameter("file_sfana_out", &file_sfana_out, 300, "SIMFIRE analytics output");
+		//CRM}			
 	}
 
 
@@ -196,7 +195,7 @@ void CommonOutput::define_output_tables() {
 	cflux_columns += ColumnDescriptor("Veg",               8, 3);
 	cflux_columns += ColumnDescriptor("Repr",              8, 3);
 	cflux_columns += ColumnDescriptor("Soil",              8, 3);
-	cflux_columns += ColumnDescriptor("Fire",              8, 3);
+	cflux_columns += ColumnDescriptor("Fire",              8, 5);
 	cflux_columns += ColumnDescriptor("Est",               8, 3);
 	if (run_landcover) {
 		 cflux_columns += ColumnDescriptor("Seed",         8, 3);
@@ -355,14 +354,14 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_clitter,        file_clitter,        clitter_columns);
 
 	if ( firemodel == BLAZE ) {
-                if ( blaze_tstep == ANNUAL ) {
-			//			create_output_table(out_ab,  file_annual_blaze_out,	blaze_columns);
-		} else {
-			create_output_table(out_ab,	file_blaze_out,	blaze_columns); 
-		}
-		//CLN		create_output_table(out_blzana,	file_blzana_out,	blzana_columns); 
-		if ( ignition == SIMFIRE ) 
-			create_output_table(out_sfana,          file_sfana_out,             sfana_columns);
+//CRM                if ( blaze_tstep == ANNUAL ) {
+//CRM			//			create_output_table(out_ab,  file_annual_blaze_out,	blaze_columns);
+//CRM		} else {
+		create_output_table(out_ab,	file_blaze_out,	     blaze_columns); 
+//CRM		}
+//CRM		//CLN		create_output_table(out_blzana,	file_blzana_out,	blzana_columns); 
+//CRM		if ( ignition == SIMFIRE ) 
+		create_output_table(out_sfana,  file_sfana_out,      sfana_columns);
 	} else if ( firemodel == GLOBFIRM ) {
 		create_output_table(out_firert,         file_firert,         firert_columns);
 	}
@@ -404,7 +403,6 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mmon,           file_mmon,           month_columns_wide);
 	create_output_table(out_mmon_mt1,       file_mmon_mt1,       month_columns_wide);
 	create_output_table(out_mmon_mt2,       file_mmon_mt2,       month_columns_wide);
-	create_output_table(out_mprec,          file_mprec,          month_columns_wide);
 	create_output_table(out_mab,            file_mblaze_out,     month_columns);
 }
 
@@ -1354,7 +1352,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			outlimit(out,out_mmon,         mmon[m]);
 			outlimit(out,out_mmon_mt1,     mmon_mt1[m]);
 			outlimit(out,out_mmon_mt2,     mmon_mt2[m]);
-			outlimit(out,out_mprec,        (float)gridcell.climate.mprec[m]);
 			outlimit(out,out_mab,          (float)gridcell.climate.monthly_areaburnt[m]);
 
 			aaet += maet[m];

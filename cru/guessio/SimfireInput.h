@@ -4,10 +4,14 @@
 //WK for example, you could run SIMFIRE also with future population scenarios,
 //WK which does not seem to be the case here; where can I see this (refer to
 //WK to the corresponding SIMFIRE subroutine)
+//RLN That's right. WE will provide only historic data though. I will comment on it in 
+//RLN simfire.cpp 
 //////////////////////////////////////////////////////////////////////////////////////
 // SIMFIREINPUT.H
 // Header file for input from a fast data archive
 // Created automatically by FastArchive on Tue Jun 16 13:43:53 2015
+//
+// For a description of the data, please see getsimfiredata (modules/simfire.cpp)
 //
 // The following #includes should appear in your source code file:
 //

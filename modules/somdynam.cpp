@@ -825,7 +825,9 @@ void transfer_litter(Patch& patch) {
 	double fireresist[NSOMPOOL];
 //WK It might be a good idea to include a note stating what litterme and fireresist are,
 //WK and why/if they are only used by GLOBFIRM, but not by BLAZE
-//RLN They are only used by GlobFirm and I'll see if I can find out 	
+//RLN They are only used by GlobFirm 
+//RLN GlobFIRM is programmed "into LPJG". BLAZE is - more or less - modular. I don't see a way around all these 
+//RLN if-blocks.	
 	if ( firemodel == GLOBFIRM ) {
 		litterme[SURFSTRUCT]   = soil.sompool[SURFSTRUCT].cmass * soil.sompool[SURFSTRUCT].litterme;
 		litterme[SURFMETA]     = soil.sompool[SURFMETA].cmass   * soil.sompool[SURFMETA].litterme;
@@ -950,6 +952,10 @@ void transfer_litter(Patch& patch) {
 			// Monthly fraction of REMAINING last year's sapwood litter
 //WK In the current trunk version, this accoutn seems to be done yearly,
 //WK and now it is monthly. Include an explanation of what one has to look out for here.
+//RLN Yes, without BLAZE it remains as it is. But if BLAZE is used, this "transitional" litter (pft.litter_sap) 
+//RLN is reduced over the course of a year, so that the remaining part of it has to be taken into account 
+//RLN instead 1/12 per month. 
+
                         // Get this month's litter remaining_litter/remaining_months
 			// pft.litter_sap might be modified by sub annual burns and thus
 			// the litterfall needs to be adjusted monthly

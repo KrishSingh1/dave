@@ -131,7 +131,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// BLAZE fire model
 			if (firemodel == BLAZE && patch.has_fires() && 
 			    date.year >= patch.soil.solvesomcent_beginyr) 
-				blaze(patch,gridcell.climate);
+				blaze_driver(patch,gridcell.climate);
 
 			if (date.islastday && date.islastmonth) {
 
@@ -263,20 +263,20 @@ int framework(const CommandLineArguments& args) {
 		// Load SIMFIRE && GFED data 
 		if (firemodel == BLAZE) {
 			// read simfire input
-			if (ignition == SIMFIRE || ignition == SIMGFED) {
-				getsimfiredata(gridcell);
-			}
-			// read gfed31 burned area
-			if (ignition == GFED31  || ignition == SIMGFED) {
-				//gfed31_input_module.getgfed31data(gridcell);
-				getgfed31data(gridcell);
-			}
-			// read prescribed burned area
-			if (ignition == PRESCRIBED) {
-				/*firefreq.load_file(param["file_prescfire"].str);
-				gridcell.climate.prescribed_ba = firefreq.get_presc_ba(lon,lat);*/
-				fail ("Prescribed fire frequencies not yet implemented!");  	
-			}
+//CRM			if (ignition == SIMFIRE || ignition == SIMGFED) {
+			getsimfiredata(gridcell);
+//CRM			}
+//CRM			// read gfed31 burned area
+//CRM			if (ignition == GFED31  || ignition == SIMGFED) {
+//CRM				//gfed31_input_module.getgfed31data(gridcell);
+//CRM				getgfed31data(gridcell);
+//CRM			}
+//CRM			// read prescribed burned area
+//CRM			if (ignition == PRESCRIBED) {
+//CRM				/*firefreq.load_file(param["file_prescfire"].str);
+//CRM				gridcell.climate.prescribed_ba = firefreq.get_presc_ba(lon,lat);*/
+//CRM				fail ("Prescribed fire frequencies not yet implemented!");  	
+//CRM			}
 		}
 			
 		

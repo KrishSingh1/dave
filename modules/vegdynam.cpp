@@ -506,16 +506,17 @@ void establishment_guess(Stand& stand,Patch& patch) {
 //WK I think these kind of hard-wired work arounds should really be avoided,
 //WK and I can immagine that this here would cause discontinuities along 30 degrees
 //WK latitude bands. Or has this been removed anyway?
-						// because of problems with biomeshifting in BLAZE a reduced SAPSIZE has been 
-						// implemented in the tropics
-						Gridcell&  gridcell = stand.get_gridcell();
-						double sapfac = 1.0;
-						//CLNif ( firemodel == BLAZE && abs(gridcell.get_lat()) <30.  ) 
-						//CLN	sapfac = 0.1;
+//RLN I have removed it.
+//CRM						// because of problems with biomeshifting in BLAZE a reduced SAPSIZE has been 
+//CRM						// implemented in the tropics
+//CRM						Gridcell&  gridcell = stand.get_gridcell();
+//CRM						double sapfac = 1.0;
+//CRM						//CLNif ( firemodel == BLAZE && abs(gridcell.get_lat()) <30.  ) 
+//CRM						//CLN	sapfac = 0.1;
 						if(pft.phenology == CROPGREEN)
-							bminit = sapfac * SAPSIZE * 0.01;
+							bminit = SAPSIZE * 0.01;
 						else if(patch.has_disturbances() && patch.disturbed) 
-							bminit = sapfac * SAPSIZE * patch.pft[pft.id].anetps_ff_est_initial;
+							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff_est_initial;
 						else
 							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;
 
@@ -853,6 +854,8 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 //WK using some naming convention.
 //WK My worry is - say firemodel == BLAZE, mort_fire=0, what happens? Maybe mort_fire
 //WK should be set to 'not used' or something.
+
+//RLN I think it should be 0. because it is (at this point in the code). With "unused" the routine would crash below, no?
 			if (patch.has_fires() && firemodel == GLOBFIRM) mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			else mort_fire=0.0;
 
@@ -982,9 +985,11 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 	Vegetation& vegetation=patch.vegetation;
 
-	// FIRE MORTALITY
+	// FIRE MORTALITY GLOBFIRM
+	// For BLAZE there is a separate call in simulate_day (framework.cpp)
 //WK Maybe: FIRE MORTALTITY (GLOBFIRM)
 //WK For BLAZE this is done in such and such a way.
+//RLN done.
 	if (patch.has_fires() && firemodel == GLOBFIRM) {
 
 		// Impose fire in this patch with probability 'fireprob'

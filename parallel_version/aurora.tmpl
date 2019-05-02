@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash 
 #
 # submit.sh
 #
@@ -14,14 +14,16 @@
 #      This will be called the RUN DIRECTORY.
 #   2. In an editor, set appropriate values for the variables NPROCESS,
 #      INSFILE, GRIDLIST and OUTFILES (NB: no space after the = sign):
-
-NPROCESS=20            # NB: Should be multiple of 20 on Aurora!
-WALLTIME=150:00:00
+#   3. set environmental to preferred ACCOUNT in .bashrc (e.g. export SNIC_ACCOUNT="snic2001-1-1";
+#      only if more than one account exists)
+ 
+NPROCESS=100            # NB: Should be multiple of 20 on Aurora!
+WALLTIME=6:00:00
 INSFILE=guess.ins
 INPUT_MODULE=cru_ncep
 GRIDLIST=gridlist.txt
 OUTFILES='*.out'
-
+ACCOUNT=$SNIC_ACCOUNT 
 #      Where:
 #      NPROCESS     = number of processes in parallel job
 #      WALLTIME     = maximum wall (real) time for job hh:mm:ss
@@ -76,11 +78,14 @@ fi
 # option below, but your jobs might then be disturbed by other jobs 
 # sharing your nodes.
 CORES_PER_NODE=20
-if [[ $((NPROCESS%CORES_PER_NODE)) != 0 ]]; then
-    echo "Please set NPROCESS to a multiple of 20 on Aurora!" >&2
-    exit 1
+SBATCH_EXCLUSIVE=""
+if (( NPROCESS > CORES_PER_NODE )); then
+    SBATCH_EXCLUSIVE="SBATCH --exclusive"
+    if (( NPROCESS%CORES_PER_NODE != 0 && NPROCESS > CORES_PER_NODE )); then
+	echo "Please set NPROCESS to a multiple of 20 on Aurora!" >&2
+	exit 1
+    fi
 fi
-
 # Convert INSFILE to an absolute path since we will be starting the
 # guess instances from different directories.
 # Please note when porting this script: readlink may not be available
@@ -137,12 +142,20 @@ done
 
 split_gridlist
 
+SBATCH_ACCOUNT=""
+if [[ $ACCOUNT != "" ]]
+then
+    SBATCH_ACCOUNT="SBATCH -A $ACCOUNT"
+fi
+    
 # Create SLURM script to request place in queue
 cat <<EOF > guess.cmd
 #!/bin/bash
 #SBATCH -n $NPROCESS
 #SBATCH --time=$WALLTIME
-#SBATCH --exclusive
+#$SBATCH_EXCLUSIVE
+#$SBATCH_ACCOUNT
+#SBATCH -J ${name:-"guess"}
 set -e
 
 if ! type -P mpirun &> /dev/null; then
@@ -175,6 +188,8 @@ cat <<EOF > append.cmd
 #!/bin/bash
 #SBATCH -n 1
 #SBATCH --time=$WALLTIME
+#$SBATCH_ACCOUNT
+#SBATCH -J ${name:-"guess"}"_append" 
 set -e
 
 function append_files {
@@ -205,7 +220,7 @@ cat run*/guess.log > guess.log
 EOF
 
 # Submit guess job
-append_dependency=$(sbatch -J ${name:-"guess"} guess.cmd | awk '{print $NF}')
+append_dependency=$(sbatch guess.cmd | awk '{print $NF}')
 
 # Submit append job
-sbatch --dependency=afterok:$append_dependency -J ${name:-"guess"}"_append" append.cmd | awk '{print $NF}'
+sbatch --dependency=afterok:$append_dependency append.cmd | awk '{print $NF}'

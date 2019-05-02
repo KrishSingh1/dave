@@ -95,8 +95,6 @@ ifcalccton 1          ! whether to calculate leaf C:N min from leaf longevity
                       ! (PFT-specific value can be specified in this file instead)
 
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE                
-ignition "SIMFIRE"		! SIMFIRE, GFED, PRESCRIBED, SIMGFED
-blaze_tstep "DAILY"		! DAILY, MONTHLY, ANNUAL, HYBRID, SEASONAL
 weathergenerator "GWGEN"	! GWGEN INTERP, NONE(only when using daily met data)
 
 npatch 25             ! number of replicate patches to simulate
@@ -294,7 +292,7 @@ group "shade_intolerant" (
 	est_max 0.2					
 	parff_min 2500000 
 	alphar 10.0 
-	greff_min 0.12	! THdiff: 0.1 !CLN 0.08
+	greff_min 0.08	! THdiff: 0.1 !CLN 0.08
 	turnover_sap 0.1		! THdiff: 0.08 
 )
 

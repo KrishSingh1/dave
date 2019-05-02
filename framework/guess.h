@@ -749,8 +749,10 @@ public:
 	double dslr;
 	/// Keetch-Byram-Drought-Index
 	double kbdi;
-	/// McArthur fire index
+	/// McArthur forest fire index (FFDI)
 	double mcarthur_fire_index;	
+	/// To keep track of running months FFDI
+	double months_ffdi[30];	
 	/// whether majority of trees is considered sprouter (or seeder, else)
 	bool is_sprouter;	
 
@@ -834,7 +836,8 @@ public:
 	double mprec_petmax20;
 
 //WK is this from BLAZE or SIMFIRE?
-	double mprec[12];
+//RLN Just for testing. Will be removed.
+//CRM	double mprec[12];
 
 	Historic<double, 20> hmtemp_20[12];
 	Historic<double, 20> hmprec_20[12];
@@ -1026,7 +1029,7 @@ public:
 		ISO,
 //WK AET? In trunk there seem to be lots of different monoterpenes
 //WK There was a reference to fire from MT here
-//RLN I took it out. probably sth I treid and abandoned.
+//RLN I took it out. probably sth I tried and abandoned.
 		/// Monoterpene (mgC/m2)
 		MT_APIN,
 		MT_BPIN,

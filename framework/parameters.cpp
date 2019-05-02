@@ -23,8 +23,6 @@
 xtring title;
 vegmodetype vegmode;
 firemodeltype firemodel;
-blaze_tsteptype blaze_tstep;
-ignitiontype ignition;
 int npatch;
 int npatch_secondarystand;
 bool reduce_all_stands;
@@ -80,7 +78,7 @@ bool disturb_pasture;
 bool grassforcrop;
 
 //WK the change from state to i/ostate, is this related to BLAZE?
-//RLN No, it is not. Needs to be revised, though, Thanks.
+//RLN No, it is not. I have taken it out
 xtring state_path;
 bool restart;
 bool save_state;
@@ -153,7 +151,7 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB
 	CB_STLANDCOVER, CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT,
 	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTHYDROLOGY,
 	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STHYDROLOGY, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
-	CB_PATHWAY,CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE,CB_MTCOMPOUND,CB_FIREMODEL,CB_BLAZE_TSTEP,CB_IGNITION,CB_WEATHERGENERATOR};
+	CB_PATHWAY,CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE,CB_MTCOMPOUND,CB_FIREMODEL,CB_WEATHERGENERATOR};
 
 // File local variables
 namespace {
@@ -196,8 +194,8 @@ void initsettings() {
 
 	//CLN iffire=false;
 	firemodel=BLAZE;
-	ignition=SIMFIRE;
-	blaze_tstep=HYBRID;
+//CRM	ignition=SIMFIRE;
+//CRM	blaze_tstep=HYBRID;
 	weathergenerator=GWGEN;
 	ifcalcsla=true;
 	ifdisturb=false;
@@ -413,10 +411,10 @@ void plib_declarations(int id,xtring setname) {
 			"Generic patch-destroying disturbance interval (years)");
 		declareitem("firemodel",&strparam,12,CB_FIREMODEL,
 			"Fire model mode (\"BLAZE\", \"GLOBFIRM\", \"NOFIRE\" , \"\")" );
-		declareitem("ignition",&strparam,12,CB_IGNITION,
-			    "ignition (\"SIMFIRE\", \"GFED31\", \"SIMGFED\", \"PRESCRIBED\")" );
-		declareitem("blaze_tstep",&strparam,12,CB_BLAZE_TSTEP,
-			"Blaze time-step mode (\"ANNUAL\", \"SEASONAL\", \"MONTHLY\" , \"DAILY\" , \"HYBRID\" )" );
+//CRM		declareitem("ignition",&strparam,12,CB_IGNITION,
+//CRM			    "ignition (\"SIMFIRE\", \"GFED31\", \"SIMGFED\", \"PRESCRIBED\")" );
+//CRM		declareitem("blaze_tstep",&strparam,12,CB_BLAZE_TSTEP,
+//CRM			"Blaze time-step mode (\"ANNUAL\", \"SEASONAL\", \"MONTHLY\" , \"DAILY\" , \"HYBRID\" )" );
 		declareitem("ifdisturb",&ifdisturb,1,CB_NONE,
 			"Whether generic patch-destroying disturbance enabled (0,1)");
 		declareitem("ifcalcsla",&ifcalcsla,1,CB_NONE,
@@ -953,8 +951,7 @@ void plib_callback(int callback) {
 				"Unknown weathergenerator (valid types: \"GWGEN\", \"INTERP\")");
 			plibabort();
 		}
-		break;
-		//CLN enter dependency for BLAZE on GWGEN here!!!
+		break;		
 	case CB_FIREMODEL:
 		if (strparam.upper()=="BLAZE") firemodel=BLAZE;
 		else if (strparam.upper()=="GLOBFIRM") firemodel=GLOBFIRM;
@@ -965,45 +962,45 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
-	case CB_IGNITION:
-		if (firemodel != NOFIRE) {
-			if (strparam.upper()=="SIMFIRE") ignition=SIMFIRE;
-			else if (strparam.upper()=="GFED31") ignition=GFED31;
-			else if (strparam.upper()=="SIMGFED") ignition=SIMGFED;
-			else if (strparam.upper()=="PRESCRIBED") ignition=PRESCRIBED;
-			else {
-				sendmessage("Error",
-					    "Unknown ignition model setting (valid types: \"SIMFIRE\", \"GFED31\", \"SIMGFED\", \"PRESCRIBED\" )" );
-				plibabort();
-			}
-		}
-		break;
-	case CB_BLAZE_TSTEP:
-		if (firemodel == BLAZE) {
-			if (strparam.upper()=="ANNUAL") blaze_tstep=ANNUAL;
-			else if (strparam.upper()=="SEASONAL") blaze_tstep=SEASONAL;
-			else if (strparam.upper()=="MONTHLY") blaze_tstep=MONTHLY;
-			else if (strparam.upper()=="DAILY") blaze_tstep=DAILY;
-			else if (strparam.upper()=="HYBRID") blaze_tstep=HYBRID;
-			else {
-				sendmessage("Error",
-					    "Unknown blaze time-step (valid types:\"ANNUAL\", \"SEASONAL\", \"MONTHLY\" , \"DAILY\" , \"HYBRID\" )");
-				plibabort();
-			}
-			/*CLN if ( ignition == SIMFIRE && ( blaze_tstep == DAILY ) ) {
-				sendmessage("Error",
-					    "Ignition = SIMFIRE not valid with blaze_tstep == DAILY");
-				plibabort();
-		
-				} */
-			if ( blaze_tstep == SEASONAL ) {
-				sendmessage("Error",
-					    "blaze_tstep = SEASONAL not yet implemented!!!");
-				plibabort();
-			}
-			break;
-		}
-		break;
+//CRM	case CB_IGNITION:
+//CRM		if (firemodel != NOFIRE) {
+//CRM			if (strparam.upper()=="SIMFIRE") ignition=SIMFIRE;
+//CRM			else if (strparam.upper()=="GFED31") ignition=GFED31;
+//CRM			else if (strparam.upper()=="SIMGFED") ignition=SIMGFED;
+//CRM			else if (strparam.upper()=="PRESCRIBED") ignition=PRESCRIBED;
+//CRM			else {
+//CRM				sendmessage("Error",
+//CRM					    "Unknown ignition model setting (valid types: \"SIMFIRE\", \"GFED31\", \"SIMGFED\", \"PRESCRIBED\" )" );
+//CRM				plibabort();
+//CRM			}
+//CRM		}
+//CRM		break;
+//CRM	case CB_BLAZE_TSTEP:
+//CRM		if (firemodel == BLAZE) {
+//CRM			if (strparam.upper()=="ANNUAL") blaze_tstep=ANNUAL;
+//CRM			else if (strparam.upper()=="SEASONAL") blaze_tstep=SEASONAL;
+//CRM			else if (strparam.upper()=="MONTHLY") blaze_tstep=MONTHLY;
+//CRM			else if (strparam.upper()=="DAILY") blaze_tstep=DAILY;
+//CRM			else if (strparam.upper()=="HYBRID") blaze_tstep=HYBRID;
+//CRM			else {
+//CRM				sendmessage("Error",
+//CRM					    "Unknown blaze time-step (valid types:\"ANNUAL\", \"SEASONAL\", \"MONTHLY\" , \"DAILY\" , \"HYBRID\" )");
+//CRM				plibabort();
+//CRM			}
+//CRM			/*CLN if ( ignition == SIMFIRE && ( blaze_tstep == DAILY ) ) {
+//CRM				sendmessage("Error",
+//CRM					    "Ignition = SIMFIRE not valid with blaze_tstep == DAILY");
+//CRM				plibabort();
+//CRM		
+//CRM				} */
+//CRM			if ( blaze_tstep == SEASONAL ) {
+//CRM				sendmessage("Error",
+//CRM					    "blaze_tstep = SEASONAL not yet implemented!!!");
+//CRM				plibabort();
+//CRM			}
+//CRM			break;
+//CRM		}
+//CRM		break;
 	case CB_LIFEFORM:
 		if (strparam.upper()=="TREE") ppft->lifeform=TREE;
 		else if (strparam.upper()=="GRASS") ppft->lifeform=GRASS;
@@ -1167,9 +1164,11 @@ void plib_callback(int callback) {
 		//CLNif (!itemparsed("iffire")) badins("iffire");
 		if (!itemparsed("firemodel")) badins("firemodel");
 		if (firemodel==BLAZE) {
-			if (!itemparsed("ignition")) badins("ignition");
-			if (!itemparsed("blaze_tstep")) badins("blaze_tstep");
-			//CLN see later			if (!itemparsed("fluxmode")) badins("fluxmode"); //CLN who deals the damage
+			if (!itemparsed("weathergenerator")) badins("ignition");
+			if (weathergenerator!=GWGEN) {
+				sendmessage("Error", "Weathergenerator must be GWGEN for BLAZE!");
+			plibabort();
+		}
 		}
 		if (!itemparsed("ifcalcsla")) badins("ifcalcsla");
 		if (!itemparsed("ifcalccton")) badins("ifcalccton");

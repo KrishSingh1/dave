@@ -26,8 +26,7 @@
 //CLN#include "gfed31_burned_area.h"
 
 /// An input module for CRU climate data
-/** This input module gets climate data from binary archives built from
- *  CRU-NCEP (1901-2015).
+/** This input module gets climate data from binary archives built from CRU-NCEP.
  */
 
 class CRUInput : public InputModule {
@@ -170,6 +169,12 @@ private:
 
 	/// Monthly DTR (diurnal temperature range) for current grid cell and historical period
 	double hist_mdtr[NYEAR_HIST][12];
+
+	/// Monthly mean wind for current grid cell and historical period
+	double hist_mwind[NYEAR_HIST][12];
+
+	/// Monthly mean relative humidity for current grid cell and historical period
+	double hist_mrhum[NYEAR_HIST][12];
 
 	/// Nitrogen deposition forcing for current gridcell
 	Lamarque::NDepData ndep;

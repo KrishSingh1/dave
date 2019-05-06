@@ -4,7 +4,7 @@
 ///
 /// This input module reads in CRU-NCEP climate data in a customised binary format.
 /// The binary files contain CRU-NCEP half-degree global historical climate data
-/// for 1901-2015.
+/// from 1901 and onwards.
 ///
 /// \author Ben Smith
 /// $Date$
@@ -198,7 +198,8 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 				if (gridfound) // Get more historical CRU data for this grid cell
 					gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation,
-					                                     hist_mfrs, hist_mwet, hist_mdtr);
+														 hist_mfrs, hist_mwet, hist_mdtr, 
+														 hist_mwind, hist_mrhum);
 
 				if (run_landcover && gridfound) {
 					LUerror = landcover_input.loadlandcover(lon, lat);

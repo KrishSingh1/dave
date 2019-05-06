@@ -14,8 +14,8 @@
 #include "parameters.h"
 
 // header files for the CRU-NCEP data archives
-#include "cruncep_1901_2017.h"
-#include "cruncep_1901_2017misc.h"
+#include "cruncep_1901_2015.h"
+#include "cruncep_1901_2015misc.h"
 #include "cruncep_1901_2015wind.h"	// Tempororary until wind and rel-humidity data is included in the misc archive: next time the misc archive is generated.
 
 
@@ -33,14 +33,14 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 	// Please note the new function signature. 
 
 	// Archive object. Definition in new header file, cru.h
-	Cruncep_1901_2017Archive ark;
+	Cruncep_1901_2015Archive ark;
 
 	int y,m;
 
 	// Try block to catch any unexpected errors
 	try {
 
-		Cruncep_1901_2017 data; // struct to hold the data
+		Cruncep_1901_2015 data; // struct to hold the data
 
 		bool success = ark.open(cruark);
 
@@ -99,7 +99,7 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 
 bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
                     double mfrs[NYEAR_HIST][12],
-		    double mwet[NYEAR_HIST][12],
+                    double mwet[NYEAR_HIST][12],
 		    double mdtr[NYEAR_HIST][12],
 		    double mwind[NYEAR_HIST][12],
 		    double mrhum[NYEAR_HIST][12]) {
@@ -107,13 +107,13 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 	// Please note the new function signature. 
 
 	// Archive object
-	Cruncep_1901_2017miscArchive ark; 
+	Cruncep_1901_2015miscArchive ark; 
 	int y,m;
 
 	// Try block to catch any unexpected errors
 	try {
 
-		Cruncep_1901_2017misc data;
+		Cruncep_1901_2015misc data;
 
 		bool success = ark.open(cruark);
 
@@ -147,17 +147,13 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 			for (m=0;m<12;m++) {
 
 				// guess2008 - catch rounding errors 
-				mfrs[y][m] = 0.0; // Currently no frs data in the fastarchive binary.
+				mfrs[y][m] = data.mfrs[y*12+m]; // days
+				if (mfrs[y][m] < 0.1) 
+					mfrs[y][m] = 0.0; // Catches rounding errors
 
 				mwet[y][m] = data.mwet[y*12+m]; // days
 				if (mwet[y][m] <= 0.1) 
 					mwet[y][m] = 0.0; // Catches rounding errors
-
-				mwet[y][m] = data.mwet[y * 12 + m]; // days
-
-				mwind[y][m] = data.mwind[y * 12 + m]; // m/s
-
-				mrhum[y][m] = data.mrhum[y * 12 + m]; // fraction 0-1
 
 				mdtr[y][m] = data.mdtr[y*12+m];  // degC
 

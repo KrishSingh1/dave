@@ -3,7 +3,7 @@
 /// \brief Functions for reading the CRU-NCEP data set
 ///
 /// The binary files contain CRU-NCEP half-degree global historical climate data
-/// from 1901 and onwards.
+/// for 1901-2015.
 ///
 /// $Date$
 ///
@@ -15,8 +15,8 @@
 namespace CRU_TS30 {
 
 /// number of years of historical climate
-/** CRU-NCEP v9 has 117 years of data (1901-2017) */
-const int NYEAR_HIST=117;
+/** CRU-NCEP v7 has 115 years of data (1901-2015) */
+const int NYEAR_HIST=115;
 
 /// calendar year corresponding to first year in CRU climate data set
 static const int FIRSTHISTYEAR=1901;
@@ -30,10 +30,10 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 /// Determine elevation, frs frq, wet frq & DTR
 bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
                     double mfrs[NYEAR_HIST][12],
-		    double mwet[NYEAR_HIST][12],
-		    double mdtr[NYEAR_HIST][12],
-		    double mwind[NYEAR_HIST][12],
-		    double mrhum[NYEAR_HIST][12]);
+                    double mwet[NYEAR_HIST][12],
+                    double mdtr[NYEAR_HIST][12],
+					double mwind[NYEAR_HIST][12],
+					double mrhum[NYEAR_HIST][12]);
 
 /// Returns CRU data from the nearest cell to (lon,lat) within a given search radius
 /** lon and lat are set to the coordinates of the found CRU gridcell, if found */

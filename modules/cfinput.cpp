@@ -316,12 +316,12 @@ CFInput::CFInput()
 }
 
 CFInput::~CFInput() {
-	delete cf_temp;		
-	delete cf_prec;		
-	delete cf_insol;	
-	delete cf_wetdays;	
-	delete cf_min_temp; 
-	delete cf_max_temp; 
+	delete cf_temp;
+	delete cf_prec;
+	delete cf_insol;
+	delete cf_wetdays;
+	delete cf_min_temp;
+	delete cf_max_temp;
 	delete cf_pres;
 	delete cf_specifichum;
 	delete cf_wind;
@@ -448,11 +448,10 @@ void CFInput::init() {
 
 				c.rlat = rlat;
 				c.rlon = rlon;
-	
+
 			}
 		}
-		fprintf(stderr, " c.landid %i \n",c.landid);
-		c.descrip = trim(descrip);
+		c.descrip = (xtring)trim(descrip).c_str();
 		fprintf(stderr, " c.desc %f %f \n",c.rlat, c.rlon);
 		gridlist.push_back(c);
 	}
@@ -466,6 +465,8 @@ void CFInput::init() {
 
 	date.set_first_calendar_year(cf_temp->get_date_time(0).get_year() - nyear_spinup);
 
+	soilinput.init(param["file_soildata"].str);
+
 	// Set timers
 	tprogress.init();
 	tmute.init();
@@ -478,12 +479,12 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 
 	double lon, lat;
 	double cru_lon, cru_lat;
-	int soilcode;
+	int soilstatus = 1;
 
 	// Load data for next gridcell, or if that fails, skip ahead until
 	// we find one that works.
 	while (current_gridcell != gridlist.end() &&
-	       !load_data_from_files(lon, lat, cru_lon, cru_lat, soilcode)) {
+	       !load_data_from_files(lon, lat, cru_lon, cru_lat)) {
 		++current_gridcell;
 	}
 
@@ -546,8 +547,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	             Lamarque::RCP60);
 	             //Lamarque::parse_timeseries(ndep_timeseries));
 
-	// Setup the soil type
-	soilparameters(gridcell.soiltype, soilcode);
+	soilinput.get_soil(lon, lat, gridcell);
 
 	historic_timestep_temp = -1;
 	historic_timestep_prec = -1;
@@ -570,8 +570,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 }
 
 bool CFInput::load_data_from_files(double& lon, double& lat,
-                                   double& cru_lon, double& cru_lat,
-                                   int& soilcode) {
+                                   double& cru_lon, double& cru_lat) {
 
 	int rlon = current_gridcell->rlon;
 	int rlat = current_gridcell->rlat;
@@ -621,16 +620,6 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 
 	cru_lon = lon;
 	cru_lat = lat;
-	double dummy[CRU_TS30::NYEAR_HIST][12];
-
-	const double searchradius = 1;
-
-	if (!CRU_TS30::findnearestCRUdata(searchradius, file_cru, cru_lon, cru_lat, soilcode,
-	                                  dummy, dummy, dummy)) {
-		dprintf("Failed to find soil code from CRU archive, close to coordinates (%g,%g), skipping.\n",
-		        cru_lon, cru_lat);
-		return false;
-	}
 
 	return true;
 }

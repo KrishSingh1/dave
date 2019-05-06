@@ -25,7 +25,7 @@
 #include "landcover.h"
 #include "bvoc.h"
 #include "commonoutput.h"
-#include "gfed31.h"
+#include "soilmethane.h"
 
 #include <memory>
 
@@ -85,6 +85,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 		stand.firstobj();
 		while (stand.isobj) {
+
 			// START OF LOOP THROUGH PATCHES
 			
 			// Get reference to this patch
@@ -127,6 +128,8 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch);
+			// Methane production/consumption on wetlands and peatlands (no methane dynamics for other stand types at present) 
+			methane_dynamics(patch);
 
 			// BLAZE fire model
 			if (firemodel == BLAZE && patch.has_fires() && 

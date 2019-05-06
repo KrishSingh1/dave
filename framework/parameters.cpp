@@ -53,7 +53,19 @@ bool ifrainonwetdaysonly;
 
 bool ifbvoc;
 
+// Arctic and wetland options
+bool iftwolayersoil;				// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below. 
+bool ifmultilayersnow;				// Whether to use the simple multilayer snow scheme (1), or not (0)
+bool ifinundationstress;			// Whether to reduce GPP if there's inundation (1), or not (0)
+bool ifcarbonfreeze;				// Whether to limit soilC decomposition below 0degC in upland soils (1), or not (0)	
+double wetland_runon;				// Extra daily water input or output, in mm, to wetlands. Positive values are run ON, negative run OFF.
+bool ifmethane;						// Whether to run the methane model (for peatland only)
+bool iforganicsoilproperties;		// Whether soil C pool input is used to update soil properties
+bool ifsaturatewetlands;			// Whether to take water from runoff to saturate low latitide wetlands
+// end of Wetland options
+
 wateruptaketype wateruptake;
+rootdisttype rootdistribution;
 
 weathergeneratortype weathergenerator;
 
@@ -151,7 +163,8 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB
 	CB_STLANDCOVER, CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT,
 	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTHYDROLOGY,
 	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STHYDROLOGY, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
-	CB_PATHWAY,CB_ROOTDIST,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE,CB_MTCOMPOUND,CB_FIREMODEL,CB_WEATHERGENERATOR};
+	CB_PATHWAY,CB_ROOTDISTRIBUTION, CB_ROOTFRAC,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE,CB_MTCOMPOUND,
+        CB_FIREMODEL,CB_WEATHERGENERATOR};
 
 // File local variables
 namespace {
@@ -241,6 +254,14 @@ void initpft(Pft& pft,xtring& setname) {
 	pft.k_chilla=0.0;
 	pft.k_chillb=0.0;
 	pft.k_chillk=0.0;
+
+	pft.inund_duration = 0;
+	pft.wtp_max = -300.0;
+	pft.min_snow = 0.0;
+	pft.max_snow = 100000.0;
+	pft.gdd0_min = 0.0;
+	pft.gdd0_max = 100000.0;
+	pft.has_aerenchyma = false;
 }
 
 void initst(StandType& st,xtring& setname) {
@@ -435,7 +456,9 @@ void plib_declarations(int id,xtring setname) {
 			"Patch area (m2)");
 		declareitem("wateruptake", &strparam, 20, CB_WATERUPTAKE,
 			"Water uptake mode (\"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
-
+		declareitem("rootdistribution", &strparam, 20, CB_ROOTDISTRIBUTION,
+			"Parameterisation of root distribution (\"FIXED\", \"JACKSON\")");
+            
 		declareitem("weathergenerator", &strparam, 20, CB_WEATHERGENERATOR,
 			    "Weather Generator (\"INTERP\", \"GWGEN\", \"NONE\")");
 
@@ -462,6 +485,24 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("ifbvoc",&ifbvoc,1,CB_NONE,
 			"Whether or not BVOC calculations are performed (0,1)");
+
+		declareitem("iftwolayersoil", &iftwolayersoil, 1, CB_NONE,
+			"Use the original LPJ-GUESS v4 soil scheme, or not (0,1)"); //COMMENT STEFAN, same here, better to define "not"
+		declareitem("ifmultilayersnow", &ifmultilayersnow, 1, CB_NONE,
+			"Whether or not multilayer snow calculations are performed (0,1)");
+		declareitem("ifinundationstress",&ifinundationstress,1,CB_NONE,
+			"Whether to reduce NPP if there's inundation (1), or not (0)");
+		declareitem("ifcarbonfreeze",&ifcarbonfreeze,1,CB_NONE,
+			"Whether to limit soilC decomposition below 0degC in upland soils (1), or not (0)");
+		declareitem("wetland_runon",&wetland_runon,-10.0,10.0,1,CB_NONE,
+			"Optional additional wetland run-on (mm/day)");
+		declareitem("ifmethane",&ifmethane,1,CB_NONE,
+			"Whether to run the methane model (1), or not (0)");
+		declareitem("iforganicsoilproperties", &iforganicsoilproperties, 1, CB_NONE,
+			"Whether soil C pool input is used to update soil properties (1), or not (0)");
+		declareitem("ifsaturatewetlands", &ifsaturatewetlands, 1, CB_NONE,
+			"Whether to take water from runoff to saturate low latitide wetlands (1), or not (0)");
+
 		declareitem("run_landcover",&run_landcover,1,CB_NONE,"Landcover version");
 		declareitem("run_urban",&run[URBAN],1,CB_NONE,"Whether urban land is to be simulated");
 		declareitem("run_crop",&run[CROPLAND],1,CB_NONE,"Whether crop-land is to be simulated");
@@ -470,6 +511,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("run_natural",&run[NATURAL],1,CB_NONE,"Whether natural vegetation is to be simulated");
 		declareitem("run_peatland",&run[PEATLAND],1,CB_NONE,"Whether peatland is to be simulated");
 		declareitem("run_barren",&run[BARREN],1,CB_NONE,"Whether barren land is to be simulated");
+
 		declareitem("ifslowharvestpool",&ifslowharvestpool,1,CB_NONE,"If a slow harvested product pool is included in patchpft.");
 		declareitem("ifintercropgrass",&ifintercropgrass,1,CB_NONE,"Whether intercrop growth is allowed");
 		declareitem("ifcalcdynamic_phu",&ifcalcdynamic_phu,1,CB_NONE,"Whether to calculate dynamic potential heat units");
@@ -553,7 +595,7 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("include",&includepft,1,CB_NONE,"Include PFT in analysis");
 		declareitem("lifeform",&strparam,16,CB_LIFEFORM,
-			"Lifeform (\"TREE\" or \"GRASS\")");
+			"Lifeform (\"TREE\" or \"GRASS\" or \"MOSS\")");
 		declareitem("landcover",&strparam,16,CB_LANDCOVER,
 			"Landcovertype (\"URBAN\", \"CROP\", \"PASTURE\", \"FOREST\", \"NATURAL\", \"PEATLAND\" or \"BARREN\")");
 		declareitem("selection",&strparam,16,CB_SELECTION	,"Name of pft selection");
@@ -577,7 +619,9 @@ void plib_declarations(int id,xtring setname) {
 			"Maximum temperature limit for photosynthesis (deg C)");
 		declareitem("lambda_max",&ppft->lambda_max,0.1,0.99,1,CB_NONE,
 			"Non-water-stressed ratio of intercellular to ambient CO2 pp");
-		declareitem("rootdist",ppft->rootdist,0.0,1.0,NSOILLAYER,CB_ROOTDIST,
+        declareitem("root_beta", &ppft->root_beta, 0.0,1.0,1,CB_ROOTFRAC,
+            "Shape parameter to determine fraction of roots in each soil layer");
+ 		declareitem("rootdist",ppft->rootdist,0.0,1.0,NSOILLAYER,CB_ROOTFRAC,
 			"Fraction of roots in each soil layer (first value=upper layer)");
 		declareitem("gmin",&ppft->gmin,0.0,1.0,1,CB_NONE,
 			"Canopy conductance not assoc with photosynthesis (mm/s)");
@@ -681,7 +725,7 @@ void plib_declarations(int id,xtring setname) {
 			"isoprene emission capacity (ug C g-1 h-1)");
 		declareitem("seas_iso",&ppft->seas_iso,1,CB_NONE,
 			"whether (1) or not (0) isoprene emissions show seasonality");
-		declareitem("eps_mon",ppft->eps_mon,0.,100.,NMTCOMPOUNDS,CB_MTCOMPOUND,
+		declareitem("eps_mon",ppft->eps_mon,0.,500.,NMTCOMPOUNDS,CB_MTCOMPOUND,
 			"monoterpene emission capacity (ug C g-1 h-1)");
 		declareitem("storfrac_mon",ppft->storfrac_mon,0.0,1.0,NMTCOMPOUNDS,CB_MTCOMPOUND,
 			"fraction of monoterpene production that goes into storage pool (-)");
@@ -788,7 +832,21 @@ void plib_declarations(int id,xtring setname) {
 			"c3 parameter for allocation with N stress");
 		declareitem("d3",&ppft->d3,-1000.0,1000.0,1,CB_NONE,
 			"d3 parameter for allocation with N stress");
+		declareitem("inund_duration", &ppft->inund_duration, 0, 32, 1, CB_NONE,
+			"Monthly inundation days tolerated (days)");
+		declareitem("wtp_max", &ppft->wtp_max, -500.0, 500.0, 1, CB_NONE,
+			"Maximum water table position (mm)");
+		declareitem("has_aerenchyma",&ppft->has_aerenchyma,1,CB_NONE,
+			"whether (1) or not (0) this PFT has aerenchyma for gas transport to and from the roots");
 
+		declareitem("min_snow", &ppft->min_snow, 0.0, 10000.0, 1, CB_NONE,
+			"Min snowdepth for survival (mm)");
+		declareitem("max_snow", &ppft->max_snow, 0.0, 100000.0, 1, CB_NONE,
+			"Max snowdepth for survival (mm)");
+		declareitem("gdd0_min", &ppft->gdd0_min, 0.0, 100000.0, 1, CB_NONE,
+			"min GDD0 for survival/establishment");
+		declareitem("gdd0_max", &ppft->gdd0_max, 0.0, 100000.0, 1, CB_NONE,
+			"max GDD0 for survival/establishment");
 		callwhendone(CB_CHECKPFT);
 
 		break;
@@ -941,6 +999,7 @@ void plib_callback(int callback) {
 		else {
 			sendmessage("Error",
 				"Unknown water uptake mode (valid types: \"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
+            		plibabort();
 		}
 		break;
 	case CB_WEATHERGENERATOR:
@@ -962,51 +1021,22 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
-//CRM	case CB_IGNITION:
-//CRM		if (firemodel != NOFIRE) {
-//CRM			if (strparam.upper()=="SIMFIRE") ignition=SIMFIRE;
-//CRM			else if (strparam.upper()=="GFED31") ignition=GFED31;
-//CRM			else if (strparam.upper()=="SIMGFED") ignition=SIMGFED;
-//CRM			else if (strparam.upper()=="PRESCRIBED") ignition=PRESCRIBED;
-//CRM			else {
-//CRM				sendmessage("Error",
-//CRM					    "Unknown ignition model setting (valid types: \"SIMFIRE\", \"GFED31\", \"SIMGFED\", \"PRESCRIBED\" )" );
-//CRM				plibabort();
-//CRM			}
-//CRM		}
-//CRM		break;
-//CRM	case CB_BLAZE_TSTEP:
-//CRM		if (firemodel == BLAZE) {
-//CRM			if (strparam.upper()=="ANNUAL") blaze_tstep=ANNUAL;
-//CRM			else if (strparam.upper()=="SEASONAL") blaze_tstep=SEASONAL;
-//CRM			else if (strparam.upper()=="MONTHLY") blaze_tstep=MONTHLY;
-//CRM			else if (strparam.upper()=="DAILY") blaze_tstep=DAILY;
-//CRM			else if (strparam.upper()=="HYBRID") blaze_tstep=HYBRID;
-//CRM			else {
-//CRM				sendmessage("Error",
-//CRM					    "Unknown blaze time-step (valid types:\"ANNUAL\", \"SEASONAL\", \"MONTHLY\" , \"DAILY\" , \"HYBRID\" )");
-//CRM				plibabort();
-//CRM			}
-//CRM			/*CLN if ( ignition == SIMFIRE && ( blaze_tstep == DAILY ) ) {
-//CRM				sendmessage("Error",
-//CRM					    "Ignition = SIMFIRE not valid with blaze_tstep == DAILY");
-//CRM				plibabort();
-//CRM		
-//CRM				} */
-//CRM			if ( blaze_tstep == SEASONAL ) {
-//CRM				sendmessage("Error",
-//CRM					    "blaze_tstep = SEASONAL not yet implemented!!!");
-//CRM				plibabort();
-//CRM			}
-//CRM			break;
-//CRM		}
-//CRM		break;
+    	case CB_ROOTDISTRIBUTION:
+		if (strparam.upper() == "FIXED") rootdistribution = ROOTDIST_FIXED;
+		else if (strparam.upper() == "JACKSON") rootdistribution = ROOTDIST_JACKSON;
+		else {
+		    sendmessage("Error",
+		        "Unknown mode for root parameterisation (valid types: (\"FIXED\", \"JACKSON\")");
+		    plibabort();
+		}
+        	break;
 	case CB_LIFEFORM:
 		if (strparam.upper()=="TREE") ppft->lifeform=TREE;
-		else if (strparam.upper()=="GRASS") ppft->lifeform=GRASS;
+		else if (strparam.upper() == "GRASS") ppft->lifeform = GRASS;
+		else if (strparam.upper() == "MOSS") ppft->lifeform = MOSS;
 		else {
 			sendmessage("Error",
-				"Unknown lifeform type (valid types: \"TREE\", \"GRASS\")");
+				"Unknown lifeform type (valid types: \"TREE\", \"GRASS\", \"MOSS\")");
 			plibabort();
 		}
 		break;
@@ -1139,14 +1169,16 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
-	case CB_ROOTDIST:
-		numval=0.0;
-		for (i=0;i<NSOILLAYER;i++) numval+=ppft->rootdist[i];
-		if (numval<0.99 || numval>1.01) {
-			sendmessage("Error","Specified root fractions do not sum to 1.0");
-			plibabort();
-		}
-		ppft->rootdist[NSOILLAYER-1]+=1.0-numval;
+	case CB_ROOTFRAC:
+        numval = 0.0;
+        if (rootdistribution == ROOTDIST_JACKSON) ppft->init_rootdist();
+            
+        for (i=0;i<NSOILLAYER;i++) numval+=ppft->rootdist[i];
+        if (numval<0.99 || numval>1.01) {
+            sendmessage("Error","Specified root fractions do not sum to 1.0");
+            plibabort();
+        }
+        ppft->rootdist[NSOILLAYER-1]+=1.0-numval;
 		break;
 	case CB_MTCOMPOUND:
           // bvoc. Can include some checks for the monoterpene parameters given per compound
@@ -1161,21 +1193,21 @@ void plib_callback(int callback) {
 		if (!itemparsed("title")) badins("title");
 		if (!itemparsed("nyear_spinup")) badins("nyear_spinup");
 		if (!itemparsed("vegmode")) badins("vegmode");
+
 		//CLNif (!itemparsed("iffire")) badins("iffire");
+		if (!itemparsed("weathergenerator")) badins("weathergenerator");
 		if (!itemparsed("firemodel")) badins("firemodel");
-		if (firemodel==BLAZE) {
-			if (!itemparsed("weathergenerator")) badins("ignition");
-			if (weathergenerator!=GWGEN) {
+		if (firemodel==BLAZE && weathergenerator!=GWGEN) {
 				sendmessage("Error", "Weathergenerator must be GWGEN for BLAZE!");
 			plibabort();
-		}
 		}
 		if (!itemparsed("ifcalcsla")) badins("ifcalcsla");
 		if (!itemparsed("ifcalccton")) badins("ifcalccton");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
 		if (!itemparsed("wateruptake")) badins("wateruptake");
-		if (!itemparsed("weathergenerator")) badins("weathergenerator");
 
+		if (!itemparsed("rootdistribution")) badins("rootdistribution");
+            
 		if (!itemparsed("nrelocfrac")) badins("nrelocfrac");
 		if (!itemparsed("nfix_a")) badins("nfix_a");
 		if (!itemparsed("nfix_b")) badins("nfix_b");
@@ -1195,6 +1227,16 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifrainonwetdaysonly")) badins("ifrainonwetdaysonly");
 		
 		if (!itemparsed("ifbvoc")) badins("ifbvoc");
+		
+
+		if (!itemparsed("iftwolayersoil")) badins("iftwolayersoil");
+		if (!itemparsed("ifmultilayersnow")) badins("ifmultilayersnow");
+		if (!itemparsed("ifinundationstress")) badins("ifinundationstress");
+		if (!itemparsed("ifcarbonfreeze")) badins("ifcarbonfreeze");
+		if (!itemparsed("wetland_runon")) badins("wetland_runon");
+		if (!itemparsed("ifmethane")) badins("ifmethane");
+		if (!itemparsed("iforganicsoilproperties")) badins("iforganicsoilproperties");
+		if (!itemparsed("ifsaturatewetlands")) badins("ifsaturatewetlands");
 
 		if (!itemparsed("run_landcover")) badins("run_landcover");
 		if (run_landcover) {
@@ -1528,7 +1570,12 @@ void plib_callback(int callback) {
 			if (!itemparsed("pstemp_high")) badins("pstemp_high");
 			if (!itemparsed("pstemp_max")) badins("pstemp_max");
 			if (!itemparsed("lambda_max")) badins("lambda_max");
-			if (!itemparsed("rootdist")) badins("rootdist");
+			if (rootdistribution == ROOTDIST_FIXED) {
+				if (!itemparsed("rootdist")) badins("rootdist");
+			}
+			if (rootdistribution == ROOTDIST_JACKSON) {
+				if (!itemparsed("root_beta")) badins("root_beta");
+			}
 			if (!itemparsed("gmin")) badins("gmin");
 			if (!itemparsed("emax")) badins("emax");
 			if (!itemparsed("respcoeff")) badins("respcoeff");
@@ -1767,6 +1814,7 @@ void read_instruction_file(const char* insfilename) {
 	}
 
 	// Initialise PFT count
+	nmt=0;
 
 	npft = 0;
 	nst = 0;

@@ -22,6 +22,9 @@ set(headers
   cropsowing.h
   cropphenology.h
   gwgen.h
+  soilmethane.h
+  soil.h
+  soilinput.h
   )
 
 set(source  
@@ -47,6 +50,9 @@ set(source
   cropsowing.cpp
   cropphenology.cpp
   gwgen.cpp
+  soilmethane.cpp
+  soil.cpp
+  soilinput.cpp
   )
 
 include(add_guess_sources)

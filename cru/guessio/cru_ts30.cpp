@@ -80,10 +80,8 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 				if (mprec[y][m] <= 1.0) mprec[y][m] = 0.0;
 				
 				msun[y][m]  = data.mswrad[y*12+m];   // shortwave radiation
-
 			}
 		}
-
 
 		// Close the archive
 		ark.close();

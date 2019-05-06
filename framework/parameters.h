@@ -67,25 +67,6 @@ typedef enum {APIN, BPIN, LIMO, MYRC, SABI, CAMP, TRIC, TBOC, OTHR, NMTCOMPOUNDT
  */
 typedef enum {BLAZE, GLOBFIRM, NOFIRE} firemodeltype;
 
-//CRM/// Time step of fire model 
-//CRM/*	ANNUALY SEASONAL MONTHLY DAILY  fixed timesteps.(DEFAULT = Monthly)
-//CRM *	HYBRID   	 *default*      use shortest available timestep (automatically adjust to 
-//CRM *					source of ignition)
-//CRM */
-//CRMtypedef enum {ANNUAL, SEASONAL, MONTHLY, DAILY, HYBRID} blaze_tsteptype;
-//CRM
-//CRM/// Burned Area model setting. Only necessary if firemodel is BLAZE. Either use 
-//CRM/*	One of
-//CRM *	SIMFIRE 	use SIMFIRE for generate burnt area (DEFAULT)
-//CRM *	GFED31		use GFED v3.1 as source for burnt area
-//CRM *	SIMGFED		symbiosys of both. GFED31 where there's data, SIMFIRE else
-//CRM//WK I think prescribing burned area makes sense also for serious simulations
-//CRM//RLN Yes, It is not yet finalised. I'll take it out for the merge.
-//CRM *	PRESCRIBED	a way to prescribe Burnt Area for experimental purpose
-//CRM *	NOIGNITION	no fire model  
-//CRM */	
-//CRMtypedef enum {SIMFIRE, GFED31, SIMGFED, PRESCRIBED, NOIGNITION} ignitiontype;
-
 /// Type of weathergenerator used 
 /*      One of:
  *      GWGEN           Global Weather GENerator (needed by BLAZE, due to 
@@ -94,6 +75,9 @@ typedef enum {BLAZE, GLOBFIRM, NOFIRE} firemodeltype;
  *      NONE            Should be set if daily input is used (e.g. in cfinput) 
  */
 typedef enum {GWGEN, INTERP, NONE} weathergeneratortype;
+
+///How to determine root distribution in soil layers
+typedef enum {ROOTDIST_FIXED, ROOTDIST_JACKSON} rootdisttype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Global instruction file parameters
@@ -166,19 +150,29 @@ extern wateruptaketype wateruptake;
 /// Weather Generator switch
 extern weathergeneratortype weathergenerator;
 
+/// Parameterisation of root distribution
+extern rootdisttype rootdistribution;
+
 /// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
 extern bool ifcentury;
+
 /// whether plant growth limited by available N
 extern bool ifnlim;
 
 /// number of years to allow spinup without nitrogen limitation
 extern int freenyears;
+
 /// fraction of nitrogen relocated by plants from roots and leaves
 extern double nrelocfrac;
+
 /// first term in nitrogen fixation eqn (Cleveland et al 1999)
 extern double nfix_a;
+
 /// second term in nitrogen fixation eqn (Cleveland et al 1999)
 extern double nfix_b;
+
+///////////////////////////////////////////////////////////////////////////////////////
+// Landuse and crop settings
 
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;
@@ -282,6 +276,33 @@ extern bool ifrainonwetdaysonly;
 /// whether BVOC calculations are included
 extern bool ifbvoc;
 
+///////////////////////////////////////////////////////////////////////////////////////
+// Arctic and wetland inputs
+
+/// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below.
+extern bool iftwolayersoil; 
+
+/// Use multilayer snow scheme, or the original LPJ-GUESS v4 scheme
+extern bool ifmultilayersnow;
+
+/// whether to reduce GPP if there's inundation (1), or not (0)
+extern bool ifinundationstress;
+
+/// Whether to limit soilC decomposition below 0 degC in upland soils (1), or not (0)
+extern bool ifcarbonfreeze;
+
+/// Extra daily water input or output, in mm, to wetlands. Positive values are run ON, negative run OFF.
+extern double wetland_runon;
+
+/// Whether methane calculations are included
+extern bool ifmethane;
+
+/// Whether soil C pool input is used to update soil properties
+extern bool iforganicsoilproperties;
+
+/// Whether to take water from runoff to saturate low latitide wetlands
+extern bool ifsaturatewetlands;
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // The Paramlist class (and Paramtype)
@@ -338,7 +359,6 @@ public:
 	/// Tests if param exists
 	bool isparam(xtring name);
 
-private:
 	/// Tries to find the parameter in the list
 	/** \returns 0 if it wasn't there. */
 	Paramtype* find(xtring name);

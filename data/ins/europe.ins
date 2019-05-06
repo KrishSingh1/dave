@@ -74,6 +74,16 @@ file_vmaxnlim "vmaxnlim.out"
 !file_mmon_mt1 "mmon_mt1.out"
 !file_mmon_mt2 "mmon_mt2.out"
 
+!file_msoiltempdepth25 "soiltemp3.out"
+!file_mch4 "mch4.out"
+!file_mch4diff "mch4_diffusion.out"
+!file_mch4plan "mch4_plant.out"
+!file_mch4ebull "mch4_ebullition.out"
+!file_msnow "msnowdepth.out"
+!file_mwtp "mwtp.out"
+!file_mald "mald.out"
+!file_wetland_water_added "wetland_water_added.out"
+
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -113,7 +123,9 @@ ifstochmort 1         ! whether mortality stochastic
 ifcdebt 1             ! whether to allow vegetation C storage (1) or not (0)
 wateruptake "rootdist"! "wcont", "rootdist", "smart" or "speciesspecific",
                       ! see documentation for water_uptake()
+rootdistribution "jackson"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson". 
 textured_soil 1	      ! whether to use silt/sand fractions specific to soiltype
+
 
 !///////////////////////////////////////////////////////////////////////////////
 ! PROCESS SETTINGS SPECIFIC TO NITROGEN
@@ -125,6 +137,20 @@ freenyears 100			! number of years to spin up without N limitation (needed to bu
 nfix_a 0.102			! first term in N fixation eqn (Conservative 0.102, Central 0.234, Upper 0.367)
 nfix_b 0.524			! second term in N fixation eqn (Conservative 0.524, Central -0.172, Upper -0.754)
 nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
+
+
+!///////////////////////////////////////////////////////////////////////////////
+! ARCTIC AND WETLAND SWITCHES
+!///////////////////////////////////////////////////////////////////////////////
+
+iftwolayersoil 0		! Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below. 
+ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default
+ifinundationstress 1		! whether to reduce NPP if there's inundation (1), or not (0)
+ifcarbonfreeze 1		! Whether to limit soilC decomposition below 0 degC in upland soils (default, 1), or not (0)	
+wetland_runon 0			! Extra daily water input or output (mm/day) to wetlands. Positive values are run ON, negative run OFF.
+ifmethane 0			! Whether to run the methane model (for peatland only)
+iforganicsoilproperties 0	! Whether to update soil properties using soil carboon (for non peatland, mineral cells, soilcode != 8)
+ifsaturatewetlands 0		! Whether to take water from runoff to saturate low latitide wetlands (1), or not (0)
 
 
 !///////////////////////////////////////////////////////////////////////////////
@@ -143,9 +169,13 @@ ifdroughtlimitedestab 1			! whether establishment is limited by growing season d
 ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit every day (0)
 ifbvoc 0              ! whether to include BVOC calculations (1) or not (0)
 
-!!!!!!!!!!!! landcover parameters !!!!!!!!!!!!!!					
+
+!///////////////////////////////////////////////////////////////////////////////
+! LANDCOVER PARAMETERS 
+!///////////////////////////////////////////////////////////////////////////////					
 
 run_landcover 0        ! whether to use (and change) landcover fractions (1) or not (0)						
+
 
 !///////////////////////////////////////////////////////////////////////////////////////
 
@@ -166,8 +196,18 @@ group "common" (
 	! default value - ensures that this has little effect even if  
 	! ifdroughtlimitedestab is turned on
 	landcover "natural"
-	harv_eff 0
-	res_outtake 0
+!	harv_eff 0
+!	res_outtake 0
+
+	! WHyMe default values unless overriden in PFT definitions
+	wtp_max -301 		! [mm] maximum inundation (water table) tolerance, i.e. restrict on wetlands because wtp >= -300 always
+	inund_duration 0	! [day] maximum days per month of inundation before GPP is reduced to 0
+	min_snow 0.0 		! [mm] minimum snow needed for establishment (DJF average) and survival (20-year average maximum), 
+				! i.e. No restriction here
+	max_snow 100000		! [mm] maximum snow tolerance (never used), i.e. No restriction here
+	gdd0_max 100000		! [degC day] max GDD0, i.e. No restriction here
+	gdd0_min 0		! [degC day] min GDD0, i.e. No restriction here
+	has_aerenchyma 0	! PFTs do not have aerenchyma for gas transport by default
 )
 
 
@@ -192,9 +232,12 @@ group "tree" (
 	kest_repr 200
 	kest_bg 0.1
 	kest_pres 1
+	k_chilla 0
+	k_chillb 100
+	k_chillk 0.05
 	litterme 0.3
-	rootdist 0.6 0.4
-
+	rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
+	root_beta 0.982
 	harv_eff 0.95
 	res_outtake 0.75
 	turnover_harv_prod 0.04 ! Turnover rate for long-lived harvested products (wood) : 0.04 corresponds to a 25-year turnover time (as in Bondeau 2007)
@@ -223,7 +266,8 @@ group "shrub" (
 	kest_bg 0.1
 	kest_pres 1
 	litterme 0.3
-	rootdist 0.6 0.4
+	rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
+	root_beta 0.982
 	longevity 100
 
 	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time
@@ -368,7 +412,8 @@ pft "BES" (
 	k_allom2 5			! THdiff: ?			
 	k_latosa 500
 	shade_intolerant	
-	rootdist 0.8 0.2
+	rootdist 0.16 0.16 0.16 0.16 0.16 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02
+	root_beta 0.9685
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
@@ -595,7 +640,8 @@ pft "Jun_oxy" (
 	needle_leaved
 	k_latosa 1500
 	crownarea_max 10
-	rootdist 0.5 0.5
+	rootdist 0.1 0.1 0.1 0.1 0.1 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 
+	root_beta 0.986
 !	sla 10				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "evergreen"
@@ -633,7 +679,8 @@ pft "MRS" (
 	shade_intolerant
 	temperate_tree
 	k_latosa 1500		! ThomasH
-	rootdist 0.9 0.1
+	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 
+	root_beta 0.9555
 !	sla 10				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "raingreen"
@@ -667,7 +714,8 @@ pft "Pic_abi" (
 	shade_tolerant
 	boreal_tree
 	needle_leaved
-	rootdist 0.8 0.2
+	rootdist 0.16 0.16 0.16 0.16 0.16 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02
+	root_beta 0.9683 
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
@@ -704,7 +752,7 @@ pft "Pic_sit" (
 	boreal_tree
 	needle_leaved
 	k_latosa 4500				! Waring et al 1980
-	rootdist 0.8 0.2			! ThomasH	
+	rootdist 0.16 0.16 0.16 0.16 0.16 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02
 !	sla 9.3						! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
@@ -814,7 +862,8 @@ pft "Pop_tre" (
 	shade_intolerant
 	temperate_tree
 	broad_leaved
-	rootdist 0.7 0.3
+	rootdist 0.14 0.14 0.14 0.14 0.14 0.03 0.03 0.03 0.03 0.03 0.03 0.03 0.03 0.03 0.03
+	root_beta 0.9759
 !	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
@@ -848,7 +897,8 @@ pft "Que_coc" (
 	intermediate_shade_tolerant
 	temperate_tree
 	k_latosa 2500
-	rootdist 0.5 0.5
+	rootdist 0.10 0.10 0.10 0.10 0.10 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 
+	root_beta 0.986
 !	sla 10				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "evergreen"
@@ -883,7 +933,8 @@ pft "Que_ile" (
 	temperate_tree
 	broad_leaved
 	k_latosa 3000
-	rootdist 0.5 0.5
+	rootdist 0.10 0.10 0.10 0.10 0.10 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05
+	root_beta 0.986
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "evergreen"
@@ -981,7 +1032,8 @@ pft "Til_cor" (
 	intermediate_shade_tolerant
 	temperate_tree
 	broad_leaved
-	rootdist 0.8 0.2
+	rootdist 0.16 0.16 0.16 0.16 0.16 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02
+	root_beta 0.9683
 !	sla 24.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
@@ -1043,7 +1095,8 @@ group "C3G" (
 	include 1
 	grass
 	pathway "c3"
-	rootdist 0.9 0.1
+	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 
+	root_beta 0.9555
 	gmin 0.5
 	phenology "any"
 !	sla 32.4				! Not used if ifcalcsla is set
@@ -1080,7 +1133,8 @@ group "C4G" (
 	include 0
 	grass
 	pathway "c4"
-	rootdist 0.9 0.1
+	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 
+	root_beta 0.9555
 	gmin 0.5
 	phenology "any"
 	leaflong 0.5

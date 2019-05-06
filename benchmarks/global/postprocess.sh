@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 describe_benchmark "LPJ-GUESS - Global Benchmarks"
 
 common1961to1990.sh

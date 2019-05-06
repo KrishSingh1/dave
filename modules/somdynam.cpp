@@ -29,7 +29,6 @@
 
 #include "config.h"
 #include "somdynam.h"
-
 #include "driver.h"
 #include <assert.h>
 #include <bitset>
@@ -211,7 +210,7 @@ void som_dynamics_lpj(Patch& patch, bool tillage) {
 	// Calculate decay constants and rates given today's soil moisture and
 	// temperature
 
-	decayrates(soil.wcont[0],soil.gtemp,k_soilfast,k_soilslow,fr_litter,
+	decayrates(soil.get_soil_water_upper(),soil.gtemp,k_soilfast,k_soilslow,fr_litter,
 		fr_soilfast,fr_soilslow, tillage);
 
 	// From year soil.solvesom_begin, update running means for later solution
@@ -275,8 +274,11 @@ void som_dynamics_lpj(Patch& patch, bool tillage) {
 	soil.cpool_fast*=fr_soilfast;
 	soil.cpool_slow*=fr_soilslow;
 
-	// Updated soil fluxes
-	patch.fluxes.report_flux(Fluxes::SOILC, cflux);
+	// Updated soil fluxes. In wetlands, some portion of cflux can be emitted as CH4, so save cflux as dcflux_soil until Soil::methane() is called.  
+	if (patch.stand.landcover != PEATLAND)
+		patch.fluxes.report_flux(Fluxes::SOILC, cflux);
+	else 
+		soil.dcflux_soil=cflux;
 
 	// Solve SOM pool sizes at end of year given by soil.solvesom_end
 
@@ -356,7 +358,7 @@ void setntoc(Soil& soil, double fac, pooltype pool, double cton_max, double cton
 /** Calculates CENTURY instantaneous decay rates given soil temperature,
  *  water content of upper soil layer
  */
-void decayrates(Soil& soil, double temp_soil, double wcont_soil, bool tillage) {
+void decayrates_century(Soil& soil, double temp_soil, double wcont_soil, bool tillage) {
 
 	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
@@ -369,7 +371,14 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil, bool tillage) {
 	// Modifier for effect of soil texture
 	// Eqn 5, Parton et al 1993:
 
+	// Modify decomposition below if this is a high-latitude peatland
+	bool ispeatland = soil.patch.stand.is_highlatitude_peatland_stand();
+
+	// Modify decomposition below if this is a wetland on mineral soils
+	bool ismineralwetland = soil.patch.stand.is_true_wetland_stand();
+
 	const double texture_mod = 1.0 - 0.75 * (soil.soiltype.clay_frac + soil.soiltype.silt_frac);
+	const double texture_mod_peat = 1.0 - 0.75 * (soil.soiltype.clay_frac_peat + soil.soiltype.silt_frac_peat); // = 1
 
 	// Calculate decomposition temperature modifier (in range 0-1)
 	// [A(T_soil), Eqn A9, Comins & McMurtrie 1993; ET, Friend et al 1997; abiotic
@@ -382,14 +391,34 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil, bool tillage) {
 			0.0326 + 0.00351 * pow(temp_soil, 1.652) - pow(temp_soil / 41.748, 7.19));
 	}
 
+	// Include as an overide option when: MIN_DECOMP_TEMP < temp < 0 degC
+	// This increases the respiration (from 0) between MIN_DECOMP_TEMP and 0 degC - cf Koven et al. 2011
+	if (ifcarbonfreeze && temp_soil <= 0.0 && temp_soil >= MIN_DECOMP_TEMP && !iftwolayersoil) {
+
+		double decomp_at_freezing_point = 0.0326; // temp_mod above when temp_soil = 0;
+		bool linear_decrease_below_freezing = false;
+
+		if (linear_decrease_below_freezing) {
+			// Linear approach (Koven et al. 2011)
+			double slope = decomp_at_freezing_point / fabs(MIN_DECOMP_TEMP);
+			temp_mod = slope * temp_soil + decomp_at_freezing_point; // i.e. a linear decrease from decomp_at_freezing_point at 0C to 0 at MIN_DECOMP_TEMP (-4C).
+		} 
+		else {
+			// Alternative Q10 relationship (Schaefer & Jafarov, 2016)
+			double q10_freeze = 200.5; // i.e. average of 164 and 237 based on incubation of frozen soil samples (Mikan et al., 2002)
+			temp_mod = decomp_at_freezing_point * pow(q10_freeze, temp_soil / 10.0);
+		}
+	}
+
 	// Calculate decomposition moisture modifier (in range 0-1)
 	// Friend et al 1997, Eqn 53
 	// (Parton et al 1993, Fig 2)
 
-	// Water Filled Pore Spaces (wfps)
+	// Water Filled Pore Spaces (wfps) %
 	// water holding capacity at wilting point (wp) and saturation capacity (wsats)
 	// is calculated with the help of Cosby et al 1984;
-	const double wfps = (wcont_soil * soil.soiltype.awc[0] + soil.soiltype.wp[0]) * 100.0 / soil.soiltype.wsats[0];
+	// use Gerten equivalents here, but wfps COULD be made depth equivalent
+	const double wfps = soil.wfps(0)*100.0;
 
 	double moist_mod;
 
@@ -397,6 +426,21 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil, bool tillage) {
 		moist_mod = exp((wfps - 60.0) * (wfps - 60.0) / -800.0);
 	else
 		moist_mod = 0.000371 * wfps * wfps - 0.0748 * wfps + 4.13;
+
+	double moist_mod_inundated_mineral = 0.000371 * 100 * 100 - 0.0748 * 100 + 4.13; // 100% WFPS for wetlands on mineral soils, 0.36 approx
+
+    // Combined moisture and temperature modifier
+    
+	// simple overrides for peatlands and mineral wetlands
+	double moist_mod_saturated = 1.0; // no effect unless this is peatland
+
+	if (ispeatland) {
+		moist_mod_saturated = RMOIST_ANAEROBIC / RMOIST; // i.e 0.25 = 0.1 / 0.4 (standard values)
+		moist_mod = RMOIST;
+	}
+
+	if (ismineralwetland)
+		moist_mod = moist_mod_inundated_mineral;
 
 	for (int p = 0; p < NSOMPOOL-1; p++) {
 
@@ -414,15 +458,23 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil, bool tillage) {
 			k *= exp(-5.0 * soil.sompool[p].ligcfrac);
 		}
 		else if (p == SOILMICRO) {
-			k *= texture_mod;
+			if (ispeatland)
+				k *= texture_mod_peat;
+			else
+				k *= texture_mod;
 		}
 		else if (p == DEADWOOD ) {
 			k = 0.; 
 		}
 
 		// Increased HR for crops (tillage)
-		if (tillage && (p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM)) {
+		if (tillage && (p == SURFMICRO || p == SURFHUMUS || p == SOILMICRO || p == SLOWSOM) && !ispeatland) {
 			k *= TILLAGE_FACTOR;
+		}
+
+		// Reduced decomposition for the passive and slow pools in peatlands, as they are assumed to be in the catotelm
+		if (p == PASSIVESOM || p == SLOWSOM) {
+			k *= moist_mod_saturated;
 		}
 
 		// Calculate fraction of carbon pool remaining after today's decomposition
@@ -436,7 +488,7 @@ void decayrates(Soil& soil, double temp_soil, double wcont_soil, bool tillage) {
 
 /// Transfers specified fraction (frac) of today's decomposition
 /** Transfers specified fraction (frac) of today's decomposition in donor pool type
- *  to receiver pool, transferring fraction respfrac of this to the accumulated CO2
+  *  to receiver pool, transferring fraction respfrac of this to the accumulated CO2
  *  flux respsum (representing total microbial respiration today)
  */
 void transferdecomp(Soil& soil, pooltype donor, pooltype receiver,
@@ -513,7 +565,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 		// Calculate potential fraction remaining following decay today for all pools
 		// (assumes no nitrogen limitation)
-		decayrates(soil, soil.temp, soil.wcont[0], tillage);
+		decayrates_century(soil, soil.get_soil_temp_25(), soil.get_soil_water_upper(), tillage);
 
 	}
 
@@ -613,8 +665,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 		// Donor pool SLOW SOM
 
 		// First work out partitioning coefficients (Fig 1, Parton et al 1993)
-
-		double csp = max(0.0, 0.003 - 0.009 * soil.soiltype.clay_frac);
+		double csp = max(0.0, 0.003 - 0.009 * soil.get_clayfrac());
 		double respfrac = 0.55;
 		double csa = 1.0 - csp - respfrac;
 
@@ -631,11 +682,11 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 		// Donor pool SOIL MICROBE
 
-		// Fraction lost to microbial respiration (F_t, Parton et al 1993 Eqn 7)
-		respfrac = max(0.0, 0.85 - 0.68 * (soil.soiltype.clay_frac + soil.soiltype.silt_frac));
+		// Fraction lost to  microbial respiration (F_t, Parton et al 1993 Eqn 7)
+		respfrac = max(0.0, 0.85 - 0.68 * (soil.get_clayfrac() + soil.get_siltfrac()));
 
 		// Fraction entering passive SOM pool (Parton et al 1993, Eqn 9)
-		double cap = 0.003 + 0.032 * soil.soiltype.clay_frac;
+		double cap = 0.003 + 0.032 * soil.get_clayfrac();
 
 		transferdecomp(soil, SOILMICRO, PASSIVESOM, cap, 0.0, respsum, nmin_actual, nimmob, net_min[SOILMICRO]);
 
@@ -734,8 +785,11 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 	if (!ifequilsom) {
 
-		// Updated soil fluxes
-		patch.fluxes.report_flux(Fluxes::SOILC, respsum);
+		// Updated soil fluxes. In wetlands, some portion of cflux can be emitted as CH4, so save cflux as dcflux_soil until Soil::methane() is called.  
+		if (patch.stand.landcover != PEATLAND)
+			patch.fluxes.report_flux(Fluxes::SOILC, respsum);
+		else 
+			soil.dcflux_soil=respsum; 
 
 		// Transfer organic leaching to pool
 
@@ -804,6 +858,10 @@ double metabolic_litter_fraction(double lton) {
  *  the litter produced a certain day.
  */
 void transfer_litter(Patch& patch) {
+
+	// First day of every month or other harvest/turnover day
+	if (!(date.dayofmonth == 0 || patch.is_litter_day))
+		return;
 
 	Soil& soil = patch.soil;
 
@@ -959,9 +1017,16 @@ void transfer_litter(Patch& patch) {
                         // Get this month's litter remaining_litter/remaining_months
 			// pft.litter_sap might be modified by sub annual burns and thus
 			// the litterfall needs to be adjusted monthly
-			double litter_sap       = pft.litter_sap       / (12. - (double)date.month);
-			double nmass_litter_sap = pft.nmass_litter_sap / (12. - (double)date.month);
-
+			//CLN double litter_sap       = pft.litter_sap       / (12. - (double)date.month);
+			//CLN double nmass_litter_sap = pft.nmass_litter_sap / (12. - (double)date.month);
+			//CLNhere
+			if (date.month == 0) {
+				pft.litter_sap_year = pft.litter_sap;
+				pft.nmass_litter_sap_year = pft.nmass_litter_sap;
+			}
+			double litter_sap       = pft.litter_sap_year       / 12.; 
+			double nmass_litter_sap = pft.nmass_litter_sap_year / 12.; 
+			//CLNto here
 			pft.litter_sap       -= litter_sap;
 			pft.nmass_litter_sap -= nmass_litter_sap;
 
@@ -1000,11 +1065,17 @@ void transfer_litter(Patch& patch) {
 					fireresist[SURFFWD] += litter_sap * pft.pft.fireresist;
 				}
 			}
-
 			// Monthly fraction of REMAINING last year's heartwood litter 
-			double litter_heart       = pft.litter_heart       / (12. - (double)date.month);
-			double nmass_litter_heart = pft.nmass_litter_heart / (12. - (double)date.month);
-
+			//CLNdouble litter_heart       = pft.litter_heart       / (12. - (double)date.month);
+			//CLNdouble nmass_litter_heart = pft.nmass_litter_heart / (12. - (double)date.month);
+			//CLNhere
+			if ( date.month == 0) {
+				pft.litter_heart_year = pft.litter_heart;
+				pft.nmass_litter_heart_year = pft.nmass_litter_heart;
+			}
+			double litter_heart       = pft.litter_heart_year       / 12.;
+			double nmass_litter_heart = pft.nmass_litter_heart_year / 12.;
+			//CLNto here
 			pft.litter_heart       -= litter_heart;
 			pft.nmass_litter_heart -= nmass_litter_heart;
 
@@ -1119,7 +1190,8 @@ void leaching(Soil& soil) {
 
 		// Leaching from available nitrogen mineral pool
 		// in proportion to amount of water drainage
-		minleachfrac = soil.dperc / (soil.dperc + soil.soiltype.awc[0] * soil.wcont[0] + soil.soiltype.awc[1] * soil.wcont[1]);
+		// Use Gerten equivalents here 
+		minleachfrac = soil.dperc / (soil.dperc + soil.soiltype.gawc[0] * soil.get_soil_water_upper() + soil.soiltype.gawc[1] * soil.get_soil_water_lower());
 
 		// Leaching from decayed organic carbon/nitrogen
 		// using Parton et al. eqn. 8; CENTURY 5 parameter update; from equation: C Leached=microbial_C*[OMLECH(1)+OMLECH(2)*sand_fraction]*[1.0f-(OMLECH(3)-water_leaching)/OMLECH(3)],
@@ -1127,7 +1199,7 @@ void leaching(Soil& soil) {
 		// water_leaching was originally in cm/month
 		double OMLECH_1 = 0.03;
 		double OMLECH_2 = 0.12;
-		double OMLECH_3 = 1.9;	// saturation point in leaching equation (cm H20/month)
+		double OMLECH_3 = 1.9;	// saturation point in leaching equation (cm H2O/month)
 		double cmpermonth_to_mmperday = 10.0 * 12.0 / 365.0;
 
 		soil.orgleachfrac = min(1.0, soil.dperc / (OMLECH_3 * cmpermonth_to_mmperday)) * (OMLECH_1 + OMLECH_2 * soil.soiltype.sand_frac);
@@ -1195,9 +1267,7 @@ void soilnadd(Patch& patch) {
 		patch.aaet_5.add(patch.aaet+patch.aevap+patch.aintercep);
 
 		// Calculate estimated nitrogen fixation (aaet should be in cm/yr, eqn is in nitrogen/ha/yr)
-		double cmtomm = 0.1;
-		double hatom2 = 0.0001;
-		soil.anfix_calc = max((nfix_a * patch.aaet_5.mean() * cmtomm + nfix_b) * hatom2, 0.0);
+		soil.anfix_calc = max((nfix_a * patch.aaet_5.mean() * CM_PER_MM + nfix_b) * HA_PER_M2, 0.0);
 
 		if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
 			soil.anfix_mean += soil.anfix;
@@ -1280,6 +1350,9 @@ void add_litter(Soil& soil, int year, int pool) {
  *  to long term equilibrium
  */
 void equilsom(Soil& soil) {
+
+	if (!(date.year == soil.solvesomcent_endyr && date.islastmonth && date.islastday))
+		return;
 
 	// Number of years to run SOM pools, value chosen to get cold climates to equilibrium
 	const int EQUILSOM_YEARS = 40000;
@@ -1394,14 +1467,8 @@ void equilsom(Soil& soil) {
  */
 void som_dynamics_century(Patch& patch, bool tillage) {
 
-	// First day of every month or other harvest/turnover day
-	if (date.dayofmonth == 0 || patch.is_litter_day) {
-		// Transfer last year's litter to SOM pools
-		// Leaf and fine root litter on first day of year (first day of july in SH)
-		// Woody litter transfers a portion first day of every month
-		// OR this year's litter on harvest/turnover day for stands with daily allocation
-		transfer_litter(patch);
-	}
+	// Transfer litter to SOM pools
+	transfer_litter(patch);
 
 	// Daily nitrogen uptake
 	vegetation_n_uptake(patch);
@@ -1416,8 +1483,7 @@ void som_dynamics_century(Patch& patch, bool tillage) {
 	somfluxes(patch, false, tillage);
 
 	// Solve SOM pool sizes at end of year given by soil.solvesomcent_endyr
-	if (date.year==patch.soil.solvesomcent_endyr && date.islastmonth && date.islastday)
-		equilsom(patch.soil);
+	equilsom(patch.soil);
 }
 
 /// Choose between CENTURY or standard LPJ SOM dynamics
@@ -1454,6 +1520,8 @@ void som_dynamics(Patch& patch) {
 //   with a modified version of the CENTURY model." Soil Biology & Biochemistry 34(3): 341-354.
 // Meentemeyer, V. (1978) Macroclimate and lignin control of litter decomposition
 //   rates. Ecology 59: 465-472.
+// Mikan, C. J., Schimel, J. P., and Doyle, A. P. 2002. Temperature controls of microbial respiration 
+//   in arctic tundra soils above and below freezing, Soil Biol.Biochem., 34, 1785–1795, 2002.
 // Parton, W. J., Scurlock, J. M. O., Ojima, D. S., Gilmanov, T. G., Scholes, R. J., Schimel, D. S.,
 //   Kirchner, T., Menaut, J. C., Seastedt, T., Moya, E. G., Kamnalrut, A. & Kinyamario, J. I. 1993.
 //   Observations and Modeling of Biomass and Soil Organic-Matter Dynamics for the Grassland Biome
@@ -1461,4 +1529,7 @@ void som_dynamics(Patch& patch) {
 // Parton, W. J., Hanson, P. J., Swanston, C., Torn, M., Trumbore, S. E., Riley, W. & Kelly, R. 2010.
 //   ForCent model development and testing using the Enriched Background Isotope Study experiment.
 //   Journal of Geophysical Research-Biogeosciences, 115.
+// Schaefer, K. and Jafarov, E. 2016. 
+//   A parameterization of respiration in frozen soils based on substrate availability
+//   Biogeosciences, 13, 1991 - 2001, https ://doi.org/10.5194/bg-13-1991-2016
 

@@ -39,8 +39,21 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 	interp_monthly_means_conserve(mdtr, ddtr, 0);
 }
 
+
 } // namespace
 
+std::vector<std::pair<double, double> > CRUInput::translate_gridlist_to_coord(ListArray_id<Coord>& gridlist) {
+	gridlist.firstobj();
+	std::vector<std::pair<double, double> > output;
+	while (gridlist.isobj) {
+		Coord& c = gridlist.getobj();
+		double center_lon = floor(c.lon * (1/ soilinput.STEP)) * soilinput.STEP + soilinput.STEP / 2.0;
+		double center_lat = floor(c.lat * (1 / soilinput.STEP)) * soilinput.STEP + soilinput.STEP / 2.0;
+		output.push_back(std::make_pair(center_lon, center_lat));
+		gridlist.nextobj();
+	}
+	return output;
+}
 
 CRUInput::CRUInput()
 	: searchradius(0),
@@ -86,12 +99,16 @@ void CRUInput::init() {
 	file_cru_misc=param["file_cru_misc"].str;
 
 	gridlist.killall();
-	first_call = true;	
+	first_call = true;
 
 	while (!eof) {
 
 		// Read next record in file
 		eof=!readfor(in_grid,"f,f,a#",&dlon,&dlat,&descrip);
+
+		// Deal with rounding errors associated with reading in text files
+		dlon = roundoff(dlon, 6);
+		dlat = roundoff(dlat, 6);
 
 		if (!eof && !(dlon==0.0 && dlat==0.0)) { // ignore blank lines at end (if any)
 			Coord& c=gridlist.createobj(); // add new coordinate to grid list
@@ -114,6 +131,9 @@ void CRUInput::init() {
 	management_input.init();
 
 	date.set_first_calendar_year(FIRSTHISTYEAR - nyear_spinup);
+
+	soilinput.init(param["file_soildata"].str, translate_gridlist_to_coord(gridlist));
+
 	// Set timers
 	tprogress.init();
 	tmute.init();
@@ -175,7 +195,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 				lat = gridlist.getobj().lat;
 				gridfound = CRU_TS30::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
 				                                         hist_mtemp, hist_mprec, hist_msun);
-			  
+
 				if (gridfound) // Get more historical CRU data for this grid cell
 					gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation,
 					                                     hist_mfrs, hist_mwet, hist_mdtr, hist_mwind, hist_mrhum);
@@ -228,26 +248,24 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		if (gridlist.getobj().descrip!="") dprintf(" (%s)\n\n",
 			(char*)gridlist.getobj().descrip);
 		else dprintf("\n\n");
-		
+
 		// Tell framework the coordinates of this grid cell
 		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
-		
-		// Get nitrogen deposition data. 
-		/* Since the historic data set does not reach decade 2010-2019, 
+
+		// Get nitrogen deposition data.
+		/* Since the historic data set does not reach decade 2010-2019,
 		 * we need to use the RCP data for the last decade. */
 		ndep.getndep(param["file_ndep"].str, lon, lat, Lamarque::RCP60);
 
 		// The insolation data will be sent (in function getclimate, below)
 		// as incoming shortwave radiation, averages are over 24 hours
-		
-		gridcell.climate.instype = SWRAD_TS;
 
-		// Tell framework the soil type of this grid cell
-		soilparameters(gridcell.soiltype,soilcode);
+		gridcell.climate.instype = SWRAD_TS;
+	
+		soilinput.get_soil(lon, lat, gridcell);
 
 		// For Windows shell - clear graphical output
 		// (ignored on other platforms)
-		
 		clear_all_graphs();
 
 		return true; // simulate this stand

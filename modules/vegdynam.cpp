@@ -33,6 +33,9 @@
 #include "driver.h"
 
 
+/// Upper LAI limit for wetland species. No limit: 0 //TODO remove this after daily allocation.
+const double wetlandlailimit = 2.0;
+
 /// Internal help function for splitting up nitrogen fire fluxes into components
 void report_fire_nfluxes(Patch& patch, double nflux_fire) {
 	patch.fluxes.report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire);
@@ -45,7 +48,6 @@ void report_fire_nfluxes(Patch& patch, double nflux_fire) {
 ///////////////////////////////////////////////////////////////////////////////////////
 // RANDPOISSON
 // Internal functions for generating random numbers
-
 
 int randpoisson(double expectation, long& seed) {
 
@@ -103,28 +105,30 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 	//   tcmax_est   = maximum coldest month mean temperature for the last 20 years
 	//   twmin_est   = minimum warmest month mean temperature
 	//   gdd5min_est = minimum growing degree day sum on 5 deg C base
-
 	if (!patch.managed && (climate.mtemp_min20 < pft.tcmin_est ||
 		climate.mtemp_min20 > pft.tcmax_est ||
 		climate.mtemp_max < pft.twmin_est ||
 		climate.agdd5 < pft.gdd5min_est)) return false;
 
+	if (!iftwolayersoil) {
+		// Wolf et al. (2008) bioclimatic limits related to snow depth and GDD0
+		if (((patch.soil.msnowdepth[0] + patch.soil.msnowdepth[1] + patch.soil.dec_snowdepth) / 3.0)<pft.min_snow ||
+			climate.agdd0_20.mean() <= pft.gdd0_min || climate.agdd0_20.mean() >= pft.gdd0_max) return false;
+	}
+
 	if(patch.stand.landcover != CROPLAND) {
 		if (vegmode != POPULATION && patch.par_grass_mean < pft.parff_min) return false;
 	}
 
-
-	// guess2008 - DLE - new drought limited establishment
-    if (ifdroughtlimitedestab) {
+	// guess2008 - drought limited establishment
+    if (ifdroughtlimitedestab && patch.stand.landcover != PEATLAND) {
 		// Compare this PFT's/species' drought_tolerance with the average wcont over the
 		// growing season, in this patch. Higher drought_tolerance values (set in the .ins file)
 		// lead to greater restrictions on establishment.
-        if (pft.drought_tolerance > patch.soil.awcont[0]) {
+        if (pft.drought_tolerance > patch.soil.awcont_upper) {
            return false;
         }
     }
-
-
 	// else
 
 	return true;
@@ -209,7 +213,7 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 					// individual
 
 					Individual& indiv=vegetation.createobj(pft,vegetation);
-					if (pft.lifeform==GRASS) {
+					if (pft.lifeform == GRASS || pft.lifeform == MOSS) {
 						indiv.height=0.0;
 						indiv.crownarea=1.0; // (value not used)
 						indiv.densindiv=1.0;
@@ -241,7 +245,7 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 			if (establish(patch, stand.get_climate(), indiv.pft)) ntree_est++;
 			fpc_tree+=indiv.fpc;
 		}
-		else if (indiv.pft.lifeform==GRASS) {
+		else if (indiv.pft.lifeform == GRASS || indiv.pft.lifeform == MOSS) {
 			fpc_grass+=indiv.fpc;
 			if (establish(patch, stand.get_climate(), indiv.pft)) ngrass_est++;
 		}
@@ -305,10 +309,10 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 					((indiv.pft.regen.cmass_leaf + indiv.pft.regen.cmass_root +
 					indiv.pft.regen.cmass_sap +	indiv.pft.regen.cmass_heart) * est_pft);
 		}
-		else if ((indiv.pft.lifeform==GRASS && indiv.pft.phenology!=CROPGREEN) &&
+		else if (((indiv.pft.lifeform==GRASS || indiv.pft.lifeform==MOSS) && indiv.pft.phenology!=CROPGREEN) &&
 			establish(patch, stand.get_climate(), indiv.pft)) {
 
-			// ESTABLISHMENT OF GRASSES
+			// ESTABLISHMENT OF GRASSES AND MOSSES
 			// Grasses establish throughout unoccupied regions of the grid cell
 			// Overall establishment partitioned equally among establishing PFTs
 
@@ -439,7 +443,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 
 	// Loop through PFTs
-
+	
 	pftlist.firstobj();
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
@@ -475,9 +479,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 			if (establish(patch, stand.get_climate(), pft) && (est_this_year || force_planting)) {
 
-				if (pft.lifeform==GRASS) {
+				if (pft.lifeform==GRASS || pft.lifeform==MOSS) {
 
-					// ESTABLISHMENT OF GRASSES
+					// ESTABLISHMENT OF GRASSES AND MOSSES
 
 					// Each grass PFT represented by just one individual in each patch
 					// Check whether this grass PFT already represented ...
@@ -779,7 +783,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			deltafpc_tree_total+=indiv.deltafpc;
 
 		}
-		else if (indiv.pft.lifeform==GRASS) fpc_grass+=indiv.fpc;
+		else if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform == MOSS) fpc_grass+=indiv.fpc;
 
 		vegetation.nextobj(); // ... on to next individual
 	}
@@ -867,9 +871,9 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			// to account for loss of killed individuals
 			indiv.reduce_biomass(mort, mort_fire);
 		}
-		else if (indiv.pft.lifeform==GRASS) {
+		else if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform == MOSS) {
 
-			// GRASS MORTALITY
+			// GRASS AND MOSS MORTALITY
 
 			if (indiv.pft.landcover==CROPLAND)
 				fpc_grass=indiv.fpc;
@@ -985,11 +989,36 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 	Vegetation& vegetation=patch.vegetation;
 
+	// FPC on peatlands
+	double fpc_grass = 0.0;
+	double fpc_moss = 0.0;
+	double fpc_other = 0.0;
+
+	if ((patch.stand.is_highlatitude_peatland_stand() || patch.stand.is_true_wetland_stand()) && wetlandlailimit > 0) {
+
+		vegetation.firstobj();
+		while (vegetation.isobj) {
+			Individual& indiv = vegetation.getobj();
+
+			// For this individual ...
+			if (indiv.pft.lifeform == MOSS)
+				fpc_moss += indiv.fpc;
+			else if (indiv.pft.lifeform == GRASS)
+				fpc_grass += indiv.fpc;
+			else
+				fpc_other += indiv.fpc;
+
+			vegetation.nextobj(); // ... on to next individual
+		}
+	}
+
+
 	// FIRE MORTALITY GLOBFIRM
 	// For BLAZE there is a separate call in simulate_day (framework.cpp)
 //WK Maybe: FIRE MORTALTITY (GLOBFIRM)
 //WK For BLAZE this is done in such and such a way.
 //RLN done.
+//CLN check if above interferes  
 	if (patch.has_fires() && firemodel == GLOBFIRM) {
 
 		// Impose fire in this patch with probability 'fireprob'
@@ -1010,9 +1039,9 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 				mort_fire=1.0-indiv.pft.fireresist;
 
-				if (indiv.pft.lifeform==GRASS) {
+				if (indiv.pft.lifeform==GRASS || indiv.pft.lifeform==MOSS) {
 
-					// GRASS PFT
+					// GRASS AND MOSS PFTs
 
 					// Reduce individual biomass
 					indiv.reduce_biomass(mort_fire, mort_fire);
@@ -1221,6 +1250,46 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 				// Update allometry
 
 				else allometry(indiv);
+			} 
+			else { 
+				
+				// MORTALITY in PEATLAND stands
+				// i.e. shading mortality when LAI gets too high (cf mortality_lpj above), whereupon
+				// biomass is reduced (ends up in litter) to be consistent with the given LAI limit (maxlai_peatland)
+				if ((patch.stand.is_highlatitude_peatland_stand() || patch.stand.is_true_wetland_stand()) && wetlandlailimit > 0.0) {
+
+					double mort_shade = 0.0;
+
+					double fpc_peat = fpc_moss + fpc_grass + fpc_other;
+
+					if (!negligible(indiv.cmass_leaf)) {
+
+						// Max values
+						double maxlai_peatland = wetlandlailimit; // set from .ins file
+						
+						if (patch.stand.is_true_wetland_stand())
+							maxlai_peatland *= 2; // Allow higher LAI values for wetlands south of PEATLAND_WETLAND_LATITUDE_LIMIT N as these are more productive  
+
+						double maxfpc_peatland = 1.0 - exp(-0.5 * maxlai_peatland);
+
+						// This individual
+
+						if (indiv.fpc > maxfpc_peatland) {
+							// fracmass_lpj calculates and returns new biomass as a fraction of old biomass given an FPC
+							// reduction from fpc_high to fpc_low, assuming LPJ allometry
+							double fpc_dec = (indiv.fpc - maxfpc_peatland) * indiv.fpc / fpc_peat;
+							mort_shade = 1.0 - fracmass_lpj(indiv.fpc - fpc_dec, indiv.fpc, indiv);
+						}
+
+						// Reduce C biomass to account for biomass lost through shading mortality
+						if (mort_shade> 0.0) {
+							indiv.reduce_biomass(mort_shade, 0.0);
+							allometry(indiv);
+						}
+
+					} // correct stand and grass type
+
+				} // limit lai only
 			}
 		}
 
@@ -1314,9 +1383,15 @@ void fire(Patch& patch,double& fireprob) {
 	n=0.0;
 	for (int day = 0; day < date.year_length(); day++) {
 
-		// Eqn 2
-		pm=exp(-PI*patch.soil.dwcontupper[day]/me_mean*patch.soil.dwcontupper[day]/
-			me_mean);
+		// No fires unless there is some soil melt.
+		if (iftwolayersoil || (patch.soil.dthaw[day] > 0.0 && date.year > FIRST_FREEZE_YEAR + 10)) {
+			pm = exp(-PI*patch.soil.dwcontupper[day] / me_mean*patch.soil.dwcontupper[day] /
+				me_mean);		// Eqn 2
+		}
+		else {
+			pm = 0.0;
+		}
+			
 
 		// Eqn 4
 		n+=pm;
@@ -1530,5 +1605,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 // Thonicke, K, Venevsky, S, Sitch, S & Cramer, W (2001) The role of fire disturbance
 //   for global vegetation dynamics: coupling fire into a Dynamic Global Vegetation
 //   Model. Global Ecology and Biogeography 10: 661-677.
+// Wolf, A., Callaghan T.V., & Larson K. (2008) Future changes in vegetation and ecosystem 
+//   function of the Barents Region. Climatic Change, 87:51-73 DOI 10.1007/s10584-007-9342-
 // Zwillinger, D 1996 CRC Standard Mathematical Tables and Formulae, 30th ed. CRC
 //   Press, Boca Raton, Florida.

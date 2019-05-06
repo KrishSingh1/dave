@@ -9,10 +9,21 @@ param "file_ndep"     (str "/data/benchmark_data/2015_12_14/ndep/GlobalNitrogenD
 
 ! SIMFIRE-BLAZE related files  
 param "file_simfire"  (str "/scratch/lars/FAST_ARCHIVES/SimfireInput.bin")                                            
-param "file_gfed31"   (str "/scratch/lars/FAST_ARCHIVES/GFED31_burned_area.bin")                    
 	      
+! Soil map
+!CLNAWTLparam "file_soildata" (str "/data/benchmark_data/2019-03-20/soil/soilmap_center_interpolated.dat")
+!CLNAWTL!param "file_soildata" (str "/data/benchmark_data/2019-03-20/soil/fao_soilcodes.txt")
+param "file_soildata" (str "/data/benchmark_data/2019-03-20/soil/fao_soilcodes.txt")
+
 ! Location of EUROFLUX data
 param "flux_dir"      (str "/data/benchmark_data/2013_02_12/euroflux/")
 
 ! Location of subset of WATCH diurnal data
 param "watch_dir"     (str "/data/benchmark_data/2013_02_12/watch_subset")
+
+rootdistribution "fixed"                                                                                        
+                                                                                                               
+iftwolayersoil 1                                                                                                
+ifmultilayersnow 0                                                                                             
+ifinundationstress 0                                                                                           
+ifcarbonfreeze 0                                                                                                

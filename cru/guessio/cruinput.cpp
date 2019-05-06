@@ -198,7 +198,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 				if (gridfound) // Get more historical CRU data for this grid cell
 					gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation,
-					                                     hist_mfrs, hist_mwet, hist_mdtr, hist_mwind, hist_mrhum);
+					                                     hist_mfrs, hist_mwet, hist_mdtr);
 
 				if (run_landcover && gridfound) {
 					LUerror = landcover_input.loadlandcover(lon, lat);

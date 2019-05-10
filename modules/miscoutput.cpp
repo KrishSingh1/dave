@@ -806,10 +806,6 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					cwdc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
 					cwdn_lc[stand.landcover] += patch.soil.sompool[r].nmass * to_gridcell_average;
 				}
-				else if (r == DEADWOOD) {
-					dwdc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
-					dwdn_lc[stand.landcover] += patch.soil.sompool[r].nmass * to_gridcell_average;
-				}
 				else {
 					centuryc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
 					centuryn_lc[stand.landcover]  += patch.soil.sompool[r].nmass * to_gridcell_average;
@@ -1117,7 +1113,7 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 				Patchpft& patchpft=patch.pft[pft.id];
 
 				double cwdn = patch.soil.sompool[SURFCWD].nmass + 
-				  patch.soil.sompool[SURFFWD].nmass + patch.soil.sompool[DEADWOOD].nmass ;
+				  patch.soil.sompool[SURFFWD].nmass ;
 				vegetation.firstobj();
 				while (vegetation.isobj) {
 					Individual& indiv=vegetation.getobj();

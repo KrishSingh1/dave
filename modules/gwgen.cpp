@@ -2443,33 +2443,22 @@ void redist_restricted_vals(double *inval, int ll, double scalval, double *limit
 		flag[i] = true ;
 	
 	double corfac;
-	double tot_val;   //JN   also unititallised
 
 	if ( limit[0] != 0. ) 
 		fail("Error in gwgen.cpp redist_restricted_vals()\n");
 	
-	double tot_avg = 0.; 
-	for (int i=0; i<ll; i++)
-		tot_val += inval[i];
-	tot_avg /= (double)ll;
 	bool go = true;
-
 	while ( go ) {
 		double remsum = 0.;
 		double gonsum = 0.;
 		for (int i=0; i<ll; i++) {
-			//dprintf("PLN %d inval %f wght %f  flag %i  \n ",i,inval[i],wght[i],flag[i]);
-			// corfac= SUM(month_met(:nd)%cldf * wght(:nd) * LA(:nd)) /
-			// REAL(nd)  / &
-			// (mcloud(n_curr)-SUM(month_met(:nd)%cldf * wght(:nd) 
-			// * ( 1-LA(:nd) ))/REAL(nd))
 			if ( flag[i] )
 				remsum += inval[i] * wght[i] / (double)ll;
 			else 
 				gonsum += inval[i] * wght[i] / (double)ll;
 		}
 		corfac  = remsum / ( scalval - gonsum );
-		//dprintf("PLN cf %f rs %f  sv %f gs %f \n ",corfac, remsum,scalval,gonsum);
+
 		rest = 0.;
 		for (int i=0; i<ll; i++) {
 			if ( flag[i] ) {

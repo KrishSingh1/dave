@@ -747,13 +747,12 @@ void get_combustion_rates(Patch& patch, int fli_index) {
 //RLN see above
 
 	// relative fluxes from wood to atmosphere and litter pools
-	patch.wood2atm = (1.-fbranch-fbark)             * turnoverfract[ 0][fli_index] +
-		         fbranch                        * turnoverfract[ 1][fli_index] +
-		         fbark                          * turnoverfract[ 2][fli_index];
-	patch.wood2str = fbark                          * turnoverfract[ 6][fli_index];
-	patch.wood2fwd = fbranch                        * turnoverfract[ 5][fli_index];
-	patch.wood2cwd = (1.-fbranch-fbark) * cwd_ratio * turnoverfract[ 4][fli_index];
-	patch.wood2dwd = (1.-fbranch-fbark) * dwd_ratio * turnoverfract[ 4][fli_index];
+	patch.wood2atm = (1.-fbranch-fbark) * turnoverfract[ 0][fli_index] +
+		         fbranch            * turnoverfract[ 1][fli_index] +
+		         fbark              * turnoverfract[ 2][fli_index];
+	patch.wood2str = fbark              * turnoverfract[ 6][fli_index];
+	patch.wood2fwd = fbranch            * turnoverfract[ 5][fli_index];
+	patch.wood2cwd = (1.-fbranch-fbark) * turnoverfract[ 4][fli_index];
 	
 	// relative fluxes from leaf to atmosphere and litter pools
 	patch.leaf2atm = turnoverfract[ 3][fli_index];
@@ -764,8 +763,6 @@ void get_combustion_rates(Patch& patch, int fli_index) {
 	patch.lfwd2atm = turnoverfract[10][fli_index];
 	//CLN tuning fac
 	patch.lcwd2atm = turnoverfract[ 9][fli_index] * k_tun_cwdlit;
-	//CLN???
-	patch.ldwd2atm = turnoverfract[12][fli_index];
 	return;
 }
 void blaze(Patch& patch, Climate& climate) {
@@ -826,14 +823,12 @@ void blaze(Patch& patch, Climate& climate) {
 	double cstr2atm = fab * patch.litf2atm * patch.soil.sompool[SURFSTRUCT].cmass ;
 	double cfwd2atm = fab * patch.lfwd2atm * patch.soil.sompool[SURFFWD].cmass    ;
 	double ccwd2atm = fab * patch.lcwd2atm * patch.soil.sompool[SURFCWD].cmass    ;   
-	double cdwd2atm = fab * patch.ldwd2atm * patch.soil.sompool[DEADWOOD].cmass   ;   
 	
 	// nitrogen proportional to cmass flux [kg(C)/m2]
 	double nmtb2atm = fab * patch.litf2atm * patch.soil.sompool[SURFMETA].nmass   ;
 	double nstr2atm = fab * patch.litf2atm * patch.soil.sompool[SURFSTRUCT].nmass ;
 	double nfwd2atm = fab * patch.lfwd2atm * patch.soil.sompool[SURFFWD].nmass    ;
 	double ncwd2atm = fab * patch.lcwd2atm * patch.soil.sompool[SURFCWD].nmass    ;   
-	double ndwd2atm = fab * patch.ldwd2atm * patch.soil.sompool[DEADWOOD].nmass   ;   
 	
 	// update soil-surface-litter pools
 	// carbon
@@ -841,20 +836,18 @@ void blaze(Patch& patch, Climate& climate) {
 	patch.soil.sompool[SURFSTRUCT].cmass -= cstr2atm ;
 	patch.soil.sompool[SURFFWD].cmass    -= cfwd2atm ;
 	patch.soil.sompool[SURFCWD].cmass    -= ccwd2atm ;   
-	patch.soil.sompool[DEADWOOD].cmass   -= cdwd2atm ;   
 	
 	// nitrogen 
 	patch.soil.sompool[SURFMETA].nmass   -= nmtb2atm ;
 	patch.soil.sompool[SURFSTRUCT].nmass -= nstr2atm ;
 	patch.soil.sompool[SURFFWD].nmass    -= nfwd2atm ;
 	patch.soil.sompool[SURFCWD].nmass    -= ncwd2atm ;   
-	patch.soil.sompool[DEADWOOD].nmass   -= ndwd2atm ;   
  	
 	// report C litter -> atm fluxes
-	patch.fluxes.report_flux(Fluxes::FIREC, cmtb2atm + cstr2atm + cfwd2atm + ccwd2atm + cdwd2atm);
+	patch.fluxes.report_flux(Fluxes::FIREC, cmtb2atm + cstr2atm + cfwd2atm + ccwd2atm);
 
 	// report N litter -> atm fluxes
-	report_fire_flux_n(patch, nmtb2atm + nstr2atm + nfwd2atm + ncwd2atm + ndwd2atm);
+	report_fire_flux_n(patch, nmtb2atm + nstr2atm + nfwd2atm + ncwd2atm );
        
 	Vegetation& vegetation=patch.vegetation;
        
@@ -1084,7 +1077,6 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	double wood2str = patch.wood2str;
 	double wood2fwd = patch.wood2fwd;
 	double wood2cwd = patch.wood2cwd;
-	double wood2dwd = patch.wood2dwd;
 
 	double leaf2atm = patch.leaf2atm;
 	double leaf2lit = patch.leaf2lit;
@@ -1092,21 +1084,19 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	double fab = 1.0;
 
 	if ( vegmode == INDIVIDUAL || vegmode == COHORT ) {
-		double wtotw = patch.wood2atm + patch.wood2str + patch.wood2fwd + patch.wood2cwd + patch.wood2dwd;
+		double wtotw = patch.wood2atm + patch.wood2str + patch.wood2fwd + patch.wood2cwd ;
 		// adjust relative fluxes from wood when stochastic killing has occured
 		if ( wtotw > 0.0 ) {
 			wood2atm = patch.wood2atm * frac_killed ;			
 			wood2str = (1. - patch.wood2atm ) * fbark              * frac_killed ;
 			wood2fwd = (1. - patch.wood2atm ) * fbranch            * frac_killed ;
-			wood2cwd = (1. - patch.wood2atm ) * (1.-fbark-fbranch) * cwd_ratio * frac_killed ;
-			wood2dwd = (1. - patch.wood2atm ) * (1.-fbark-fbranch) * dwd_ratio * frac_killed ;
+			wood2cwd = (1. - patch.wood2atm ) * (1.-fbark-fbranch) * frac_killed ;
 		}
 		else {
 			wood2atm = frac_killed * .20;
 			wood2str = frac_killed * .03;
 			wood2fwd = frac_killed * .07; 
-			wood2cwd = frac_killed * .70 * cwd_ratio ; 
-			wood2dwd = frac_killed * .70 * dwd_ratio ; 
+			wood2cwd = frac_killed * .70; 
 		}
 		//CLNXXX ====== HIER SCHAUEN	
 		// adjust relative fluxes from leaves
@@ -1148,21 +1138,17 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	double csapw2atm = fab * wood2atm * cmass_sap ; 
 	double csapw2str = fab * wood2str * cmass_sap ;
 	double csapw2fwd = fab * (wood2fwd + wood2cwd) * cmass_sap ;
-	double csapw2dwd = fab * wood2dwd * cmass_sap ;
 	double nsapw2atm = fab * wood2atm * nmass_sap ; 
 	double nsapw2str = fab * wood2str * nmass_sap ;
 	double nsapw2fwd = fab * (wood2fwd + wood2cwd) * nmass_sap ;
-	double nsapw2dwd = fab * wood2dwd * nmass_sap ;
 
 	// HEART-WOOD
 	double chrtw2atm = fab * wood2atm * cmass_heart; 
 	double chrtw2str = fab * wood2str * cmass_heart;
 	double chrtw2cwd = fab * (wood2fwd + wood2cwd) * cmass_heart;
-	double chrtw2dwd = fab * wood2dwd * cmass_heart;
 	double nhrtw2atm = fab * wood2atm * nmass_heart; 
 	double nhrtw2str = fab * wood2str * nmass_heart;
 	double nhrtw2cwd = fab * (wood2fwd + wood2cwd) * nmass_heart;
-	double nhrtw2dwd = fab * wood2dwd * nmass_heart;
 
 	// ROOT
 	// assume that same percentage of root biomass is killed as for total 
@@ -1171,8 +1157,8 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 //RLN done
 	double lossratio = 0.;
 	if ( cmass_sap + cmass_heart > 0. ) {
-		lossratio = (csapw2atm + csapw2str + csapw2fwd + csapw2dwd +
-			     chrtw2atm + chrtw2str + chrtw2cwd + chrtw2dwd) / (cmass_sap + cmass_heart);
+		lossratio = (csapw2atm + csapw2str + csapw2fwd +
+			     chrtw2atm + chrtw2str + chrtw2cwd ) / (cmass_sap + cmass_heart);
 	}
 
 	// Root litter lignin:N ratio
@@ -1191,13 +1177,13 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 
 	// live carbon
 	cmass_leaf      -= (cleaf2atm + cleaf2met + cleaf2str);
-	cmass_sap       -= (csapw2atm + csapw2str + csapw2fwd + csapw2dwd);
-	cmass_heart     -= (chrtw2atm + chrtw2str + chrtw2cwd + chrtw2dwd); 
+	cmass_sap       -= (csapw2atm + csapw2str + csapw2fwd);
+	cmass_heart     -= (chrtw2atm + chrtw2str + chrtw2cwd); 
 	cmass_root      -= (croot2met + croot2str); 
 	
 	// Deal with c-debt before asserting to litter & atm pool
-	double saploss = csapw2atm + csapw2str + csapw2fwd + csapw2dwd;
-	double hrtloss = chrtw2atm + chrtw2str + chrtw2cwd + chrtw2dwd;
+	double saploss = csapw2atm + csapw2str + csapw2fwd;
+	double hrtloss = chrtw2atm + chrtw2str + chrtw2cwd;
 
 	if ( cmass_debt > 0. ) { 
 		if ( cmass_debt <= saploss + hrtloss ) {
@@ -1205,19 +1191,16 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 				double scalefac = (hrtloss - cmass_debt) / hrtloss;
 				chrtw2str  *= scalefac;
 				chrtw2cwd  *= scalefac; 
-				chrtw2dwd  *= scalefac; 
 				chrtw2atm  *= scalefac;
 				cmass_debt  = 0.;
 			}
 			else {
 				chrtw2str  = 0.;
 				chrtw2cwd  = 0.; 
-				chrtw2dwd  = 0.; 
 				chrtw2atm  = 0.;
 				double scalefac = (saploss - (cmass_debt - hrtloss)) / saploss;
 				csapw2str  *= scalefac;
 				csapw2fwd  *= scalefac; 
-				csapw2dwd  *= scalefac; 
 				csapw2atm  *= scalefac;
 				cmass_debt  = 0.;
 			}
@@ -1225,11 +1208,9 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 		else {
 			chrtw2str  = 0.;
 			chrtw2cwd  = 0.; 
-			chrtw2dwd  = 0.; 
 			chrtw2atm  = 0.;
 			csapw2str  = 0.;
 			csapw2fwd  = 0.; 
-			csapw2dwd  = 0.; 
 			csapw2atm  = 0.;
 			cmass_debt -= (saploss + hrtloss);
 		}
@@ -1238,8 +1219,8 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 
 	// live nitrogen
 	nmass_leaf      -= (nleaf2atm + nleaf2met + nleaf2str);
-	nmass_sap       -= (nsapw2atm + nsapw2str + nsapw2fwd + nsapw2dwd);
-	nmass_heart     -= (nhrtw2atm + nhrtw2str + nhrtw2cwd + nhrtw2dwd);
+	nmass_sap       -= (nsapw2atm + nsapw2str + nsapw2fwd);
+	nmass_heart     -= (nhrtw2atm + nhrtw2str + nhrtw2cwd);
 	nmass_root      -= (nroot2met + nroot2str); 
 	
        	double d_nstore = (nstore_longterm + nstore_labile) * (1. - frac_survive);
@@ -1250,13 +1231,12 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	double anpp_loss = anpp * (1. - frac_survive);
 	double tot_loss  = cleaf2atm + csapw2atm + chrtw2atm + cleaf2met + 
 		cleaf2str + csapw2str + chrtw2str + csapw2fwd + chrtw2cwd +
-		csapw2dwd + chrtw2dwd + croot2met + croot2str;
+		croot2met + croot2str;
 	double anpp2atm  =  0.;
 	double anpp2met  =  0.;
 	double anpp2str  =  0.;
 	double anpp2fwd  =  0.;
 	double anpp2cwd  =  0.;
-	double anpp2dwd  =  0.;
 	double anpp2smtb =  0.;
 	double anpp2sstr =  0.;
 	if ( tot_loss > 0. ) {
@@ -1265,7 +1245,6 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 		anpp2str  = anpp_loss * ( cleaf2str + csapw2str + chrtw2str ) / tot_loss;
 		anpp2fwd  = anpp_loss *                           csapw2fwd   / tot_loss;
 		anpp2cwd  = anpp_loss *                           chrtw2cwd   / tot_loss;
-		anpp2dwd  = anpp_loss *             ( csapw2dwd + chrtw2dwd ) / tot_loss;
 		anpp2smtb = anpp_loss *                           croot2met   / tot_loss;
 		anpp2sstr = anpp_loss *                           croot2str   / tot_loss;
 		anpp     -= anpp_loss;
@@ -1282,7 +1261,6 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	patch.soil.sompool[SURFSTRUCT].cmass += anpp2str  + cleaf2str + csapw2str + chrtw2str;
 	patch.soil.sompool[SURFFWD].cmass    += anpp2fwd  + csapw2fwd;
 	patch.soil.sompool[SURFCWD].cmass    += anpp2cwd  + chrtw2cwd;   
-	patch.soil.sompool[DEADWOOD].cmass   += anpp2dwd  + csapw2dwd + chrtw2dwd;   
 	//deep soil litter carbon
 	patch.soil.sompool[SOILMETA].cmass   += anpp2smtb + croot2met;
 	patch.soil.sompool[SOILSTRUCT].cmass += anpp2sstr + croot2str;
@@ -1292,7 +1270,6 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	patch.soil.sompool[SURFSTRUCT].nmass += nleaf2str + nsapw2str + nhrtw2str;
 	patch.soil.sompool[SURFFWD].nmass    += nsapw2fwd;
 	patch.soil.sompool[SURFCWD].nmass    += nhrtw2cwd;   
-	patch.soil.sompool[DEADWOOD].nmass   += nsapw2dwd + nhrtw2dwd;   
 	//deep soil litter nitrogen
 	patch.soil.sompool[SOILMETA].nmass   += nroot2met;
 	patch.soil.sompool[SOILSTRUCT].nmass += nroot2str;

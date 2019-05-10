@@ -43,11 +43,11 @@ const double turnoverfract[13][5] = {
 
 // Tuning factors for fire-mortality
 const double k_tun_bor     = 0.25;
-const double k_tun_temp_NL = 0.5;
-const double k_tun_temp_BL = 1.0;
-const double k_tun_tropics = 1.0;
+//CLNTUNconst double k_tun_temp_NL = 0.5;
+//CLNTUNconst double k_tun_temp_BL = 1.0;
+//CLNTUNconst double k_tun_tropics = 1.0;
 const double k_tun_cwdlit  = 1.0;
-const double k_tun_savanna = 1.0;
+//CLNTUNconst double k_tun_savanna = 1.0;
 const double k_tun_sproutsav = 1.0;
 
 //WK explain a bit what this is
@@ -57,10 +57,6 @@ const double fbranch   = 0.05;
 
 // fraction of life woody biomass that is bark
 const double fbark     = 0.01;
-
-// ration of dead coarse biomass to going to deadwood and cwd, respectively.
-const double cwd_ratio = 1.0; //0.05; //CLN 0.1; 
-const double dwd_ratio = 1.-cwd_ratio; 
 
 // conversion kg -> g
 const double kg2g      = 1000.;

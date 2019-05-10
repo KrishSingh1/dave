@@ -171,6 +171,14 @@ extern double nfix_a;
 /// second term in nitrogen fixation eqn (Cleveland et al 1999)
 extern double nfix_b;
 
+//CLNTUN blaze tuning
+//const double k_tun_bor     = 0.25;
+extern double k_tun_temp_NL;
+extern double k_tun_temp_BL;
+extern double k_tun_tropics;
+extern double k_tun_savanna;
+//CLNTUN blaze tuning
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Landuse and crop settings
 

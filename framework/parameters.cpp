@@ -47,6 +47,14 @@ double nrelocfrac;
 double nfix_a;
 double nfix_b;
 
+//CLNTUN blaze tuning
+//const double k_tun_bor     = 0.25;
+double k_tun_temp_NL;
+double k_tun_temp_BL;
+double k_tun_tropics;
+double k_tun_savanna;
+//CLNTUN blaze tuning
+
 bool ifsmoothgreffmort;
 bool ifdroughtlimitedestab;
 bool ifrainonwetdaysonly;
@@ -468,7 +476,16 @@ void plib_declarations(int id,xtring setname) {
 			"first term in nitrogen fixation eqn");
 		declareitem("nfix_b",&nfix_b,-10.0,10.,1,CB_NONE,
 			"second term in nitrogen fixation eqn");
-
+		//CLNTUN
+		declareitem("k_tun_temp_NL",&k_tun_temp_NL,0.0,1.0,1,CB_NONE,
+			"k_tun_temp_NL");
+		declareitem("k_tun_temp_BL",&k_tun_temp_BL,0.0,1.0,1,CB_NONE,
+			"k_tun_temp_BL");
+		declareitem("k_tun_tropics",&k_tun_temp_NL,0.0,2.0,1,CB_NONE,
+			"k_tun_tropics");
+		declareitem("k_tun_savanna",&k_tun_temp_NL,0.0,2.0,1,CB_NONE,
+			"k_tun_savanna");
+		//CLNTUN
 		declareitem("ifcentury",&ifcentury,1,CB_NONE,
 			"Whether to use CENTURY SOM dynamics (default standard LPJ)");
 		declareitem("ifnlim",&ifnlim,1,CB_NONE,

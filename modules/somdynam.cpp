@@ -363,10 +363,7 @@ void decayrates_century(Soil& soil, double temp_soil, double wcont_soil, bool ti
 	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
 	// plus Kirschbaum et al 2001 coarse woody debris decay
-	//CLN
-	const double K_MAX[] = {9.5e-3, 1.9e-2, 4.2e-2, 4.8e-4, 2.7e-2, 3.8e-2, 1.1e-2, 2.2e-3, 7.0e-2, 1.7e-3, 1.9e-6, 30.};
-	//CLN
-	// pools SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SURFFWD,SURFCWD,SOILMETA,SLOWSOM,PASSIVESOM,DEADWOOD
+	const double K_MAX[] = {9.5e-3, 1.9e-2, 4.2e-2, 4.8e-4, 2.7e-2, 3.8e-2, 1.1e-2, 2.2e-3, 7.0e-2, 1.7e-3, 1.9e-6};
 
 	// Modifier for effect of soil texture
 	// Eqn 5, Parton et al 1993:
@@ -462,9 +459,6 @@ void decayrates_century(Soil& soil, double temp_soil, double wcont_soil, bool ti
 				k *= texture_mod_peat;
 			else
 				k *= texture_mod;
-		}
-		else if (p == DEADWOOD ) {
-			k = 0.; 
 		}
 
 		// Increased HR for crops (tillage)
@@ -759,23 +753,6 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 		times++;
 	}
 
-	// Treat DEADWOOD transfer here
-	// Deadwood transfer to related FWD and CWD (BLAZE related only for now) 
-	if ( soil.sompool[DEADWOOD].cmass > 0. ) { 
-		
-		//CLN double frac_turnover = 1. - exp(log(0.5)/(K_MAX[DEADWOOD]*365.)); 
-		double frac_turnover = 1. - exp(log(0.5)/(30.*365.)); 
-		double cto = frac_turnover * soil.sompool[DEADWOOD].cmass;
-		double nto = frac_turnover * soil.sompool[DEADWOOD].nmass;
-
-		soil.sompool[SURFFWD ].delta_cmass += 0.2 * cto;
-		soil.sompool[SURFFWD ].delta_nmass += 0.2 * nto;
-		soil.sompool[SURFCWD ].delta_cmass += 0.8 * cto;     
-		soil.sompool[SURFCWD ].delta_nmass += 0.8 * nto;       
-		soil.sompool[DEADWOOD].delta_cmass -= cto;
-		soil.sompool[DEADWOOD].delta_nmass -= nto;
-	}
-
 	// Update pool sizes
 
 	for (int p = 0; p < NSOMPOOL-1; p++) {
@@ -1017,16 +994,8 @@ void transfer_litter(Patch& patch) {
                         // Get this month's litter remaining_litter/remaining_months
 			// pft.litter_sap might be modified by sub annual burns and thus
 			// the litterfall needs to be adjusted monthly
-			//CLN double litter_sap       = pft.litter_sap       / (12. - (double)date.month);
-			//CLN double nmass_litter_sap = pft.nmass_litter_sap / (12. - (double)date.month);
-			//CLNhere
-			if (date.month == 0) {
-				pft.litter_sap_year = pft.litter_sap;
-				pft.nmass_litter_sap_year = pft.nmass_litter_sap;
-			}
-			double litter_sap       = pft.litter_sap_year       / 12.; 
-			double nmass_litter_sap = pft.nmass_litter_sap_year / 12.; 
-			//CLNto here
+			double litter_sap       = pft.litter_sap       / (12. - (double)date.month);
+			double nmass_litter_sap = pft.nmass_litter_sap / (12. - (double)date.month);
 			pft.litter_sap       -= litter_sap;
 			pft.nmass_litter_sap -= nmass_litter_sap;
 
@@ -1066,27 +1035,10 @@ void transfer_litter(Patch& patch) {
 				}
 			}
 			// Monthly fraction of REMAINING last year's heartwood litter 
-			//CLNdouble litter_heart       = pft.litter_heart       / (12. - (double)date.month);
-			//CLNdouble nmass_litter_heart = pft.nmass_litter_heart / (12. - (double)date.month);
-			//CLNhere
-			if ( date.month == 0) {
-				pft.litter_heart_year = pft.litter_heart;
-				pft.nmass_litter_heart_year = pft.nmass_litter_heart;
-			}
-			double litter_heart       = pft.litter_heart_year       / 12.;
-			double nmass_litter_heart = pft.nmass_litter_heart_year / 12.;
-			//CLNto here
+			double litter_heart       = pft.litter_heart       / (12. - (double)date.month);
+			double nmass_litter_heart = pft.nmass_litter_heart / (12. - (double)date.month);
 			pft.litter_heart       -= litter_heart;
 			pft.nmass_litter_heart -= nmass_litter_heart;
-
-			/*
-			// Monthly fraction of last years litter
-			double litter_heart = pft.litter_heart_year / 12.0;
-			double nmass_litter_heart = pft.nmass_litter_heart_year / 12.0;
-
-			pft.litter_heart -= pft.litter_heart_year / 12.0;
-			pft.nmass_litter_heart -= pft.nmass_litter_heart_year / 12.0;
-			//--			*/
 
 			soil.sompool[SURFCWD].nmass += nmass_litter_heart;
 

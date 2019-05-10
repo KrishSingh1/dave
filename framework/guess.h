@@ -92,7 +92,7 @@ typedef enum {
 
 /// CENTURY pool names, NSOMPOOL number of SOM pools
 typedef enum {SURFSTRUCT, SOILSTRUCT, SOILMICRO, SURFHUMUS, SURFMICRO, SURFMETA, SURFFWD, SURFCWD,
-	SOILMETA, SLOWSOM, PASSIVESOM, DEADWOOD, LEACHED, NSOMPOOL} pooltype;
+	SOILMETA, SLOWSOM, PASSIVESOM, LEACHED, NSOMPOOL} pooltype;
 
 /// Irrigation type for PFTs
 typedef enum {RAINFED, IRRIGATED} hydrologytype;
@@ -3847,10 +3847,6 @@ public:
 	double litter_heart;
 	/// litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
 	double litter_repr;
-
-	//CLN
-	double litter_sap_year;
-	double litter_heart_year;	
 
 	/// leaf-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_leaf;

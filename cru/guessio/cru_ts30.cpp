@@ -143,21 +143,19 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 				// guess2008 - catch rounding errors 
 				mfrs[y][m] = 0.0; // Currently no frs data in the fastarchive binary.
 
-				mwet[y][m] = data.mwet[y*12+m]; // days
+				mwet[y][m] = data.mwet[y * 12 + m]; // days
 				if (mwet[y][m] <= 0.1) 
 					mwet[y][m] = 0.0; // Catches rounding errors
 
-				mwet[y][m] = data.mwet[y * 12 + m]; // days
-
-				mwind[y][m] = data.mwind[y * 12 + m]; // m/s
-
-				mrhum[y][m] = data.mrhum[y * 12 + m]; // fraction 0-1
-
-				mdtr[y][m] = data.mdtr[y*12+m];  // degC
+				mdtr[y][m] = data.mdtr[y * 12 + m];  // degC
 
 				// For some reason there are negative dtr values in
 				// the CRU binaries(!). Set these to zero for now.
 				mdtr[y][m] = max(0.0, mdtr[y][m]);
+
+				mwind[y][m] = data.mwind[y * 12 + m]; // m/s
+
+				mrhum[y][m] = data.mrhum[y * 12 + m]; // fraction 0-1
 
 				/*
 				If vapour pressure is needed:

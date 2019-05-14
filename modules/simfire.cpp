@@ -378,8 +378,6 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 				    1940,1950,1960,1970,1980,1990,2000,2005};
 	// get calendar-year
 	int cyear = date.get_calendar_year();
-	//CLN Try to find out why fires are too big..
-	//if ( cyear < 1900 ) cyear = 1900;
 
 	// find start and end year index of pop interpolation
 	int idx = 0 ;
@@ -441,8 +439,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 			climate.ann_max_fapar = 0.5;	
 		} 
 		else {
-			int a = date.year % avg_interv_fapar;
-			climate.recent_max_fapar[a] = climate.cur_max_fapar;
+//CRM			climate.recent_max_fapar[a] = climate.cur_max_fapar;
 			double avg = 0.;
 			for(int i=0;i<avg_interv_fapar;i++) { 
 				avg += climate.recent_max_fapar[i];
@@ -461,6 +458,11 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 			else
 				climate.monthly_max_nesterov[11] = 10000. * cos(gridcell.get_lat());
 		}
+	} 	
+	// multi-year accounting of maximum annual fapar	
+	else if ( date.islastday && date.islastmonth ) {
+		int a = date.year % avg_interv_fapar;
+		climate.recent_max_fapar[a] = climate.cur_max_fapar;
 	}
 
         if ( date.dayofmonth == 0 ) {

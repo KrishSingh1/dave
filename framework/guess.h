@@ -933,8 +933,9 @@ public:
 	/// To keep track of running months FFDI
 	double months_ffdi[30];	
 	/// whether majority of trees is considered sprouter (or seeder, else)
-	bool is_sprouter;	
-
+	bool is_sprouter;
+	/// tuning factor for available litter 
+	double k_tun_litter;
 	// Saved parameters used by function daylengthinsoleet
 
 	double sinelat;
@@ -3856,9 +3857,6 @@ public:
 	double nmass_litter_sap;
 	/// remaining heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_heart;
-
-	double nmass_litter_sap_year;
-	double nmass_litter_heart_year;	
 
 	/// non-FPC-weighted canopy conductance value for PFT under water-stress conditions (mm/s)
 	double gcbase;

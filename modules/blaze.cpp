@@ -123,13 +123,16 @@ void blaze_accounting_gridcell(Climate& climate) {
 		for (int i = 0; i < 12; i++) {
 			climate.monthly_areaburnt[i] = 0.0;
 		}
-		// assumimng no leap_years, shift ffdi by 25 days.
-		double ttmp[30];
-		for (int i = 0; i <= 29; i++) {
-			int idx = (i + 25) % 30;
+		// assumimng no leap_years, shift ffdi by 25 days to keep order 
+		int avg_ffdi = 30;
+		double ttmp[avg_ffdi];
+		//CLN double check!
+		int avg_shift = avg_ffdi - (365 % avg_ffdi);
+		for (int i = 0; i < avg_ffdi; i++) {
+			int idx = (i + avg_shift) % (avg_ffdi-1);
 			ttmp[idx] = climate.months_ffdi[i];
 		}
-		for (int i = 0; i <= 29; i++) {
+		for (int i = 0; i < avg_ffdi; i++) {
 			climate.months_ffdi[i] = ttmp[i];
 		}
 		
@@ -150,6 +153,17 @@ void blaze_accounting_gridcell(Climate& climate) {
 		} else {
 			climate.is_sprouter = 0;
 		}
+		//CLN lat-depending mortalities
+//CLNOLD		if ( abs(lat) >= 50.) {
+//CLNOLD			climate.k_tun_litter = k_tun_bor_lit;
+//CLNOLD		}
+//CLNOLD		else if ( abs(lat) >= 30. && abs(lat) < 50.) {
+//CLNOLD			climate.k_tun_litter = k_tun_tmp_lit;
+//CLNOLD		}
+//CLNOLD		else {
+//CLNOLD			climate.k_tun_litter = k_tun_trp_lit;
+//CLNOLD		}
+		climate.k_tun_litter = max(cos(lat*1.5),0.) * 1.1 + 0.27 ;
 	}
              
 	// Update running mean of average annual rainfall
@@ -183,7 +197,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 	}
 	else climate.dslr++;
 
-	// Update the Keetch-Byram-Drought-Index
+	// Update the Keetch-Byram-Drought-Index (Keetch et al. 1968)
 //WK Maybe provide a reference for this index
 //CLN add ref 
 	double v        = climate.u10   ; // Wind speed at 10m height [km/h] (for KBDI)
@@ -211,8 +225,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 	climate.kbdi = max(0.0,climate.kbdi + dkbdi);
 
 //WK Maybe provide a reference
-//CLN ref MacArthur drought.
-	// ...and McArthur-Drought-Factor D ...
+	// ...and McArthur-Drought-Factor D ... (Noble, 1980)
 	double mcarthur_d = .191 * ( climate.kbdi + 104. ) * pow( climate.dslr + 1.,1.5 ) / 
 		( 3.52 * pow( climate.dslr + 1. ,1.5 ) + climate.last_rainfall - 1. );
 	mcarthur_d = max(0.0,min(10.0,mcarthur_d));
@@ -239,7 +252,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 	//CLNif (date.year > 500 ) dprintf("a %d d %d ba %f ffdi %f mnest %f \n",date.year,date.day,climate.areaburnt ,climate.mcarthur_fire_index,climate.max_nesterov );
 }		     
 
-double available_fuel (Patch& patch,int fli_index)  {
+double available_fuel (Patch& patch,int fli_index, double k_tun_litter)  {
 			
 	/* Called by:  get_firelineintensity (local)
 	               blaze_account_gridcell (local)
@@ -252,7 +265,7 @@ double available_fuel (Patch& patch,int fli_index)  {
 //RLN I fully agree. 
 //CLN describe!
 
-	get_combustion_rates(patch,fli_index);
+	get_combustion_rates(patch,fli_index,k_tun_litter);
 
 //WK What is transitional litter?
 //RLN Last year's litter that is yet to fall (this is sth in vegdynam that I find confusing).
@@ -276,7 +289,8 @@ double available_fuel (Patch& patch,int fli_index)  {
 					   patch.soil.sompool[SURFMETA].cmass + 
 					   trans_litter_leaf)
 		+ patch.lfwd2atm * ( patch.soil.sompool[SURFFWD].cmass + trans_litter_sap )
-		+ patch.lcwd2atm * ( patch.soil.sompool[SURFCWD].cmass + trans_litter_heart);
+		+ patch.lcwd2atm * ( patch.soil.sompool[SURFCWD].cmass + trans_litter_heart) * k_tun_litter;
+
 
 	Vegetation& vegetation=patch.vegetation;
 	vegetation.firstobj();
@@ -332,10 +346,10 @@ void get_firelineintensity(Patch& patch, Climate climate) {
 	   Calls    :  available_fuel (local)
 	               get_fli_index (local)
 	   compute potential fire-line intensity under given
-	   met and fuel conditions
+	   met and fuel conditions. Formulation following Noble 1980 derived from McArthur.
 	*/
 
-	// Energy contents of fuel [MJ/kg]
+	// Energy contents of fuel [MJ/kg] (Liedloff, 2007)
 	const double heat_yield = 20.; 
 	// Readily available fuel  [g/m2]
 	double w;                      
@@ -351,7 +365,7 @@ void get_firelineintensity(Patch& patch, Climate climate) {
 //WK Here it is called fli_index, above FLI Index, makes it hard to follow/search code
 //RLN changed to fli_index.
 		// get available fuel for current fli index (fli_index) and convert kg/m2 to g/m2
-		w = available_fuel(patch,fli_index) * kg2g;
+		w = available_fuel(patch,fli_index,climate.k_tun_litter) * kg2g;
 		// check whether there is enough fuel to ignite a fire
 		if ( w < min_fuel ) { 
 			fli  =  -1. ;
@@ -366,7 +380,7 @@ void get_firelineintensity(Patch& patch, Climate climate) {
 		//Z   = 46.8 * ROS + 0.024 * w - 2.;
 		//Z   = MAX(0.,Z);
 		
-		// fire line intensity[W/m]
+		// fire line intensity[W/m] (Pyne, 1996 derived from Byram, 1959)
 		fli = heat_yield * w * ros;
 
 		//  re-copmute FLI index 
@@ -448,10 +462,9 @@ double surv_prob_boreal(double fli) {
 	   based on Dalziel et al. 2008
 //WK Is there anywhere in the code/documentation where the full references are given?
 //RLN See bottom of this file
-//CLN Add ref below
 	*/
 	
-	double surv_prob_boreal = exp(-fli/500. * k_tun_bor);
+	double surv_prob_boreal = exp(-fli/500.);
 	return surv_prob_boreal;
 }
 
@@ -475,7 +488,6 @@ double surv_prob_temp_nl(double dbh, double fli, double mass_cwd) {
 						- .221*cdbh + .0219*con1000))));
 	}
         
-	p_surv = 1. - ( 1. - p_surv ) * k_tun_temp_NL;
 	return p_surv;
 }
 
@@ -499,12 +511,6 @@ double surv_prob_temp_bl(double dbh, double fli, bool res) {
 
 	// following Hickler et al. 2004
 	double p_surv3000 = 0.95 - 1./(1.+ pow((dbh/R),1.5)) ;
-	if ( k_tun_temp_BL <= 1. ) {
-		p_surv3000 = 1. - (1. -p_surv3000) * k_tun_temp_BL;
-	} else {
-		p_surv3000 /= k_tun_temp_BL;
-	}
-		
 	double surv_prob_temp_bl;
 	if ( fli > 7000. ) {
 		surv_prob_temp_bl = 0.001;
@@ -531,7 +537,6 @@ double surv_prob_tropics(double dbh, double fli) {
 
 	double p_surv = 1.;
 	double p_surv3000 = 1. - max( 0.82 - 0.035 * pow(dbh,0.7) , 0.);
-	//CLNp_surv3000 = 1. - (1. - p_surv3000) * k_tun; 
 
 	if ( fli > 7000. ) {
 		double scal_fac = 1. - log((fli/7000.)) ;
@@ -545,7 +550,6 @@ double surv_prob_tropics(double dbh, double fli) {
 	}
 
 	p_surv   = max(min(1.,p_surv), 0.001);
-	p_surv   = max(1. - ( 1.-p_surv) * k_tun_tropics,0.01);
     	
 	return p_surv;
 }
@@ -556,8 +560,10 @@ double surv_prob_Savanna(double height, double fli) {
 	   following Bond 2008
 	*/
 	double intensity = fli / 1000. ;
-	double p_surv = max(0.,1. - ( 1./(1. + exp(1.5*(height - 0.5 * intensity - 1. ))) * k_tun_savanna));
-    
+	double p_surv = max(0.,1. - ( 1./(1. + exp(1.5*(height - 0.5 * intensity - 1. )))));
+
+	p_surv = min (1.,p_surv);
+	
 	return p_surv;
 }
 
@@ -575,7 +581,6 @@ double surv_prob_Sprouter_Savanna(double height, double fli) {
 //WK are created for global simulations. This is a general comment, of course!
 //RLN renamed it sprouter_savanna now. Problem with sprouter/seeder distinction remains
 //RLN i.e. where and when do we set trees to be sprouters?
-//CLN Check this.
 
 	// height of max survival probability [m]
 	// taller trees are vulnerable due to age
@@ -604,7 +609,6 @@ double surv_prob_Sprouter_Savanna(double height, double fli) {
 		p_survival = 0.001;
 	}
 	p_survival = max(1.e-3,min(1.,p_survival));
-	p_survival = max(0.,1. - (1. - p_survival) * k_tun_sproutsav); 
 	return p_survival;
 }
 
@@ -735,7 +739,7 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 	return survival_probability;
 }
 
-void get_combustion_rates(Patch& patch, int fli_index) {
+void get_combustion_rates(Patch& patch, int fli_index, double k_tun_litter) {
 
 	/* Called by: blaze (local)
 //WK do you mean 'live vegetation, litter pools and atmosphere'?
@@ -762,7 +766,7 @@ void get_combustion_rates(Patch& patch, int fli_index) {
 	patch.litf2atm = turnoverfract[11][fli_index];
 	patch.lfwd2atm = turnoverfract[10][fli_index];
 	//CLN tuning fac
-	patch.lcwd2atm = turnoverfract[ 9][fli_index] * k_tun_cwdlit;
+	patch.lcwd2atm = turnoverfract[ 9][fli_index] * k_tun_litter;
 	return;
 }
 void blaze(Patch& patch, Climate& climate) {
@@ -788,8 +792,8 @@ void blaze(Patch& patch, Climate& climate) {
 	const double LIGCFRAC_leaf = 0.2;
 
 	// grassy vegetation burn-rate for cohort and individual mode
-	//CLNconst double grass_burn = 1.0;
-	const double grass_burn = 0.5;
+	//CLNconst double grass_burn = .5;
+	const double grass_burn = 0.75;
 
 	double ab  = climate.areaburnt;
 
@@ -812,7 +816,7 @@ void blaze(Patch& patch, Climate& climate) {
 	if ( vegmode == POPULATION )
 		fab = ab * accf;
        
-	get_combustion_rates(patch,fli_index);
+	get_combustion_rates(patch,fli_index,climate.k_tun_litter);
 
 //WK flux = carbon fluxes? remind us of the units!
 //RLN Done.
@@ -1346,7 +1350,7 @@ void blaze_burned_area(Climate& climate) {
 //CRM			int cy = date.get_calendar_year();
 //CRM			if ( ignition == SIMFIRE || 
 //CRM			     ( ignition == SIMGFED && ( cy < 1997 || cy > 2011 ))) {
-	climate.areaburnt += simfire_ba(climate, gridcell);
+	climate.areaburnt = simfire_ba(climate, gridcell);
 //CRM			}
 //CRM			else if ( ignition == GFED31 || 
 //CRM				  ( ignition == SIMGFED && ( cy >= 1997 || cy <= 2011 ))) {
@@ -1416,3 +1420,43 @@ void blaze_driver(Patch& patch, Climate& climate) {
 	}
 }
 
+
+///////////////////////////////////////////////////////////////////////////////////////
+// REFERENCES
+//
+// FIRE-MORTALITIES
+//
+//  Boreal
+//   Dalziel, BD, Tree Mortality Following Boreal Forest Fires Reveals Scale-Dependant 
+//    Interactions Between Community Structure and Fire Intensity, Ecos., 12, 2009
+//    https://doi.org/10.1007/s10021-009-9272-2
+//
+//  Temperate Needleleaf
+//   Kobziar, L, Tree mortality patterns following prescribed fires in a mixed conifer forest, 
+//    Can. J. For. Res., 36, 2006, doi:10.1139/X06-183
+//
+//  Temperate Broadleaf
+//   Hickler, T, USING A GENERALIZED VEGETATION MODEL TO SIMULATE VEGETATION DYNAMICS 
+//    IN NORTHEASTERN USA, Ecology, 85, 2004, doi: 10.1890/02-0344 
+//
+//  Savanna
+//   Bond, WJ, What Limits Trees in C4 Grasslands and Savannas?, 
+//   Annu. Rev. Ecol. Evol. Syst. 2008. 39, doi:10.1146/annurev.ecolsys.39.110707.173411
+//
+//  Savanna, Australia
+//   Cook, G, pers. comm., 2014, 
+// 
+//  Tropical fire-mortality
+//   van Nieuwstadt, MGL, Drought, fire and tree survival in a Borneo rain forest, 
+//    East Kalimantan, Indonesia,J.o. Ecology, Vol.93, 1,  2005
+//    https://doi.org/10.1111/j.1365-2745.2004.00954.x
+// 
+//  Liedloff, A, Predicting a ?tree change? in Australia?s tropical savannas: Combining different
+//   types of models to understand complex ecosystem behaviour, Ecological Modelling 221, 2010
+//   doi:10.1016/j.ecolmodel.2010.07.022
+//  
+//  Noble, IR, McArthur's fire-danger expressed as equations, Austr. J. Ecol. 5, 1980
+//   doi:10.1111/j.1442-9993.1980.tb01243.x
+//
+//  Keetch, JJ, A Drought Index for Forest Fire Control, Res. Pap. SE-38. Asheville, 
+//   NC: U.S. Department of Agriculture, 1968

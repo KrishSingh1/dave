@@ -41,15 +41,6 @@ const double turnoverfract[13][5] = {
 	{ .0 , .0 , .1 , .8 , .8 }, //  12 Deadwood    -> ATM
 };
 
-// Tuning factors for fire-mortality
-const double k_tun_bor     = 0.25;
-//CLNTUNconst double k_tun_temp_NL = 0.5;
-//CLNTUNconst double k_tun_temp_BL = 1.0;
-//CLNTUNconst double k_tun_tropics = 1.0;
-const double k_tun_cwdlit  = 1.0;
-//CLNTUNconst double k_tun_savanna = 1.0;
-const double k_tun_sproutsav = 1.0;
-
 //WK explain a bit what this is
 //RLN done.
 // fraction of life woody biomass that is branch
@@ -70,7 +61,7 @@ double pixelsize(double latpos,double longsize,double latsize,int postype);
 
 void blaze_accounting_gridcell(Climate& climate);
 	
-double available_fuel (Patch& patch, int fli_index);
+double available_fuel (Patch& patch, int fli_index, double k_tun_litter);
 
 int get_fli_index(double fli, bool is_sprouter);
 
@@ -88,7 +79,7 @@ double surv_prob_tropics(double dbh, double fli) ;
 
 double survival_probability(Patch& patch, Individual& indiv, Climate& climate);
 
-void get_combustion_rates(Patch& patch, int fli_index);
+void get_combustion_rates(Patch& patch, int fli_index, double k_tun_litter);
 
 void blaze(Patch& patch, Climate& climate);
 

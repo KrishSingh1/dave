@@ -68,26 +68,28 @@ void Climate::serialize(ArchiveStream& arch) {
     //WK or give a reference to where this is available?
     //RLN I agree. I also placed a comment in the first line above
     //CLN Do
-		// BLAZE --[
-		& u10                     // 10 m horizontal wind-speed [km/h]
-		& relhum
-		& tmin
-		& tmax 
-		& max_nesterov
-		& cur_nesterov
-		& simfire_biome
-		& ann_max_fapar
-		& monthly_fire_risk
-		& areaburnt 
-		& prescribed_ba 
-		& avg_annual_rainf
-		& cur_rainf
+		// SIMFIRE-BLAZE --[
+//CRM		& u10                     
+//CRM		& relhum
+//CRM		& tmin
+//CRM		& tmax 
+		& max_nesterov       // current valid maximum Nesterov index used for SIMFIRE
+		& cur_nesterov       // current actual Nesterov index for book-keeping
+//CRM		& simfire_biome
+//CRM		& ann_max_fapar      //
+//CRM		& cur_max_fapar      
+		& recent_max_fapar   // array over avg_interv_fapar years for averaging
+//CRM		& monthly_fire_risk
+//CRM		& areaburnt 
+//CRM		& prescribed_ba 
+		& avg_annual_rainf   // array over avg_interv_fapar years for averaging
+//CRM		& cur_rainf
 		& last_rainfall
 		& dslr
 		& kbdi
-		& mcarthur_fire_index
+//CRM		& mcarthur_fire_index
 		& months_ffdi
-		// BLAZE --] 
+		// SIMFIRE-BLAZE --] 
 		& co2
 		& lat
 		& insol

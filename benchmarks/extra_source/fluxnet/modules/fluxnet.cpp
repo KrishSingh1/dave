@@ -279,7 +279,7 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 			if (cru_rain_mean[i] == 0.0) {
 				// Protect against potential division by zero
 				// can happen in very arid areas
-				rain_anom[i] = mprec_fluxnet[i];
+				rain_anom[i] = 0.0;
 			}
 			else {
 				rain_anom[i] = mprec_fluxnet[i] / cru_rain_mean[i];

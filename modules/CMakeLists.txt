@@ -19,7 +19,6 @@ set(headers
   cropallocation.h
   cropsowing.h
   cropphenology.h
-  fluxnet.h
   )
 
 set(source  
@@ -42,7 +41,6 @@ set(source
   cropallocation.cpp
   cropsowing.cpp
   cropphenology.cpp
-  fluxnet.cpp
   )
 
 include(add_guess_sources)

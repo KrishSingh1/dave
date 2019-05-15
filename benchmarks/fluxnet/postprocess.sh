@@ -35,7 +35,7 @@ function produceScatterplot {
   # remove missing data from the fluxnet dataset
   grep "\-9999" $1 -v  > plot
 
-  gplot plot -o $2 -x 1 -y 2 -xt "Observed" -yt "Modelled" -scatter -eq -t "compared vs. modelled $3 ($4)"
+  gplot plot -o $2 -x 1 -y 2 -xt "Observed" -yt "Modelled" -scatter -eq -t "observed vs. modelled $3 ($4)"
   describe_image $2 "Observed fluxnet data vs modelled $3: Units: $4"
 }
 

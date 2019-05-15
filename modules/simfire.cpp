@@ -36,7 +36,6 @@
 #include "simfire.h"
 #include "SimfireInput.h"
 
-/// SIMFIRE biome mapping
 //WK state a purpose here: return SIMFIRE biome from time average vegetation
 //WK characteristics, also refer to where these biomes are defined in the code
 //WK state meaning of 'return 0'; here it seems to mean 'unvegetated',
@@ -46,14 +45,20 @@
 //WK in general I think this needs explaining how to handle SIMFIRE biomes
 //WK using different versions of LPJ-GUESS (potential natural vegetation, land use,
 //WK running with observed climate or future scenarios)
+//RLN Please see comments in routine-headers below.
 #define NFIREBIOMES 9
 
-/// Gets simfire data for a gridcell
+/// Get simfire data for a gridcell
 void getsimfiredata(Gridcell& gridcell) {
 		
+	/* Called by: framework (framework.cpp)
+	   Calls    : simfire_biome_mapping (local)
+	   Reads SIMFIRE relevant info from SimfireInput.bin:
+	   Hyde 3.1 population density
+	   Monthly fire climatology
+	*/
+
 	Climate& climate = gridcell.climate;
-	
-	//CLNdprintf("Reading getsimfiredata \n");
 	
 	/// Paths to SIMFIRE binaries
 	xtring file_simfire = param["file_simfire"].str;
@@ -77,12 +82,11 @@ void getsimfiredata(Gridcell& gridcell) {
 	
 	// Found the record, get the values
 	
-	// IGBP Land-Cover-Classification
-	gridcell.igbp_class = (int)rec.igbp_class[0];
+//CRM	// IGBP Land-Cover-Classification
+//CRM	gridcell.igbp_class = (int)rec.igbp_class[0];
 	
-	// convert into simfire internal biomes
+	// convert IGBP into simfire internal biomes
 	simfire_biome_mapping(gridcell);
-	dprintf("IGBP: %d -> BIOME %d \n",gridcell.igbp_class,(int)climate.simfire_biome);
 	
 	// Monthly fire risk (W.Knorr)
 	for (int m=0; m<12; m++) {
@@ -97,6 +101,13 @@ void getsimfiredata(Gridcell& gridcell) {
 }
 
 int update_fire_biome (Patch& patch, double lat) {
+
+	/* Called by: simfire_biome_mapping (local)
+	   Calls    : -
+	   Computes current SIMFIRE biome for this 
+	   gridcell depending on the last <n_year_biomeavg> years of
+	   vegetation. 
+	*/
 
 	double fgrass=0.0; // grass fraction of all vegetation
 	double fndlt=0.0;  // fraction of needle-leaf tress
@@ -152,7 +163,6 @@ int update_fire_biome (Patch& patch, double lat) {
 	if ( ftot < 0.00000001 ) {
 //WK maybe it should be -1, consistent with simfire_biome_mapping?
 //RLN indeed
-		//CLNdprintf("Out w/o biome\n");
 		return -1;
 	}
 	// re-normalize
@@ -196,35 +206,16 @@ int update_fire_biome (Patch& patch, double lat) {
 	fndlt  /=  (double)n_year_biomeavg;
 	fbrlt  /=  (double)n_year_biomeavg;
 	fshrb  /=  (double)n_year_biomeavg;
-	//CLNdprintf("fgrass %f fshrb %f fbrlt %f fndlt %f tot %f \n",fgrass,fshrb,fbrlt,fndlt,ftot);
 
 //WK: remove 'and' in next line; also note above about land use
-//
-	// assign biome (neglecting agricultural land use)
-	/*CLN ori here	if (ftot<0.1 && fabs(lat)<50.0) {
-		biome=8; } // barren or sparsely vegetated
-	else if (ftot<0.1) {
-		biome=7; } // tundra
-	else if (fshrb>=0.8 && fabs(lat)<50.0) {
-		biome=5; } // shrubland
-	else if (fshrb>=0.8 && fabs(lat)>=50.0) {
-		biome=7; } // tundra
-	else if (fgrass>=0.4) {
-		biome=6; } // savanna or grassland
-	else if (fndlt>=0.6) {
-		biome=2; } // needle-leaf forest
-	else if (fbrlt>=0.6) {
-		biome=3; } // broad-leaf forest
-	else {
-		biome=4;   // mixed forest
-		} */
+//RLN I think, I removed what might be confusing, no?
 	if (ftot<0.1 && fabs(lat)<50.0) {
 		biome=8; } // barren or sparsely vegetated
 	else if (ftot<0.1   && fabs(lat)>=50.0) {
 		biome=7; } // tundra
 	else if (patch.stand.landcover==CROPLAND) {
 		biome=1; } // cropland
-	else if (fshrb>=0.4 && fabs(lat)<50.0) {
+	else if (fshrb>=0.8 && fabs(lat)<50.0) {
 		biome=5; } // shrubland
 	else if (fshrb>=0.8 && fabs(lat)>=50.0) {
 		biome=7; } // tundra
@@ -238,8 +229,6 @@ int update_fire_biome (Patch& patch, double lat) {
 		biome=4;   // mixed forest
 		} 
 
-	//CLNdprintf("biome %d \n", biome);
-
 	return biome;
 }
 
@@ -251,10 +240,15 @@ int update_fire_biome (Patch& patch, double lat) {
 //WK file to choose between them etc., etc. - please explain
 //RLN we will only use the biome-updating from LPJ-GUESS parameters. The rest was legacy code.
 void simfire_biome_mapping(Gridcell& gridcell) {
-	/*
-	  Determine SIMFIRE biomes
-//CLN some more description
-	 */
+
+	/* Called by: simfire_accounting_gridcell (local)
+	              getsimfiredata (local)
+	   Calls    : update_fire_biome(local)
+	   Computes current SIMFIRE biome for this 
+	   gridcell depending on the last <n_year_biomeavg> years of
+	   vegetation. 
+	*/
+
 //CRM	// IGBP:
 //CRM	//  0 Water bodies
 //CRM	//  1 Evergreen Needleleaf Forest % 1: >60% cover, height>2m
@@ -289,10 +283,10 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 //CRM	//  7 Barren or Sparsely Vegetated (IGBP 16 and latitude<50): <10% vegetation cover
 //CRM	//
 //CRM
-	// mapping IGBP -> simfire-biomes
-	const double igbp2simfirebiome[2][18] = {
-		{ -1, 1, 2, 1, 2, 3, 4, 4, 5, 5, 5,-1, 0, 0, 0,-1, 7, -1 },  //  ! LAT  < 50 
-		{ -1, 1, 2, 1, 2, 3, 6, 6, 5, 5, 5,-1, 0, 0, 0,-1, 6, -1 }}; //  ! LAT >= 50
+//CRM	// mapping IGBP -> simfire-biomes
+//CRM	const double igbp2simfirebiome[2][18] = {
+//CRM		{ -1, 1, 2, 1, 2, 3, 4, 4, 5, 5, 5,-1, 0, 0, 0,-1, 7, -1 },  //  ! LAT  < 50 
+//CRM		{ -1, 1, 2, 1, 2, 3, 6, 6, 5, 5, 5,-1, 0, 0, 0,-1, 6, -1 }}; //  ! LAT >= 50
 
 	Climate& climate = gridcell.climate;
 //CRM
@@ -305,58 +299,59 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 	// determine gridcell's simfire biome
 	// At start of spinup use IGBP
 	//WK where does the IGBP class come from?
-	double lat = gridcell.get_lat();
-	if ( date.year == 0 && date.day == 0 ) {
-		if (abs(lat) >= 50.) {
-			climate.simfire_biome  = igbp2simfirebiome[1][gridcell.igbp_class];
-		}
-		else {
-			climate.simfire_biome  = igbp2simfirebiome[0][gridcell.igbp_class];
-		}
-	}
-	//WK explain what is meant by "biome-shift" and by "later"
-	// later use biome-shift
-	else {
-		//CRM		int nobjs=0;
-		std::vector<int> biomes;
-		Gridcell::iterator gc_itr = gridcell.begin();
-		while (gc_itr != gridcell.end()) {
-			Stand& stand = *gc_itr;
-			
-			stand.firstobj();
-			while (stand.isobj) {
-				Patch& patch = stand.getobj();
-				
-				biomes.push_back(update_fire_biome(patch, gridcell.get_lat()));
-				stand.nextobj();
-			}
-//CRM			nobjs+=stand.nobj;
-			++gc_itr;
-		}
+	//RLN Removed. 
+//CRM	double lat = gridcell.get_lat();
+//CRM	if ( date.year == 0 && date.day == 0 ) {
+//CRM		if (abs(lat) >= 50.) {
+//CRM			climate.simfire_biome  = igbp2simfirebiome[1][gridcell.igbp_class];
+//CRM		}
+//CRM		else {
+//CRM			climate.simfire_biome  = igbp2simfirebiome[0][gridcell.igbp_class];
+//CRM		}
+//CRM	}
+//CRM	//WK explain what is meant by "biome-shift" and by "later"
+//CRM	// later use biome-shift
+//CRM	else {
+//CRM		int nobjs=0;
+	std::vector<int> biomes;
+	Gridcell::iterator gc_itr = gridcell.begin();
+	while (gc_itr != gridcell.end()) {
+		Stand& stand = *gc_itr;
 		
-		int count[NFIREBIOMES];
-		int biome;
-		int count_max=0; // maximum of 'count'
-		// find and save most common biome number
-		for (biome=0;biome<NFIREBIOMES;biome++) count[biome]=0;
-		for (int idx = 0; idx < biomes.size(); idx++) {
-			count[biomes[idx]]++;
+		stand.firstobj();
+		while (stand.isobj) {
+			Patch& patch = stand.getobj();
+			
+			biomes.push_back(update_fire_biome(patch, gridcell.get_lat()));
+			stand.nextobj();
 		}
-		for (biome=0;biome<NFIREBIOMES;biome++) {
-			count_max=max(count_max,count[biome]);
-			//if(date.year>500) dprintf("biome%d %d ", biome,count[biome] );
-		}
-		//if(date.year>500) dprintf(" \n");
-		for (biome=0;biome<NFIREBIOMES && count[biome]<count_max;biome++) {
-		}
+		//CRM			nobjs+=stand.nobj;
+		++gc_itr;
+	}
+		
+	int count[NFIREBIOMES];
+	int biome;
+	int count_max=0; // maximum of 'count'
+	// find and save most common biome number
+	for (biome=0;biome<NFIREBIOMES;biome++) count[biome]=0;
+	for (int idx = 0; idx < biomes.size(); idx++) {
+		count[biomes[idx]]++;
+	}
+	for (biome=0;biome<NFIREBIOMES;biome++) {
+		count_max=max(count_max,count[biome]);
+		//if(date.year>500) dprintf("biome%d %d ", biome,count[biome] );
+	}
+
+	for (biome=0;biome<NFIREBIOMES && count[biome]<count_max;biome++) {
+	}
 	//if(date.year>500) dprintf("count a1 %d tot %d biome %d \n",count[1],nobjs,biome);
 //CRM	if ( ((double)count[1]/(double)nobjs)>0.33) {
 //CRM		biome = 1;
 //CRM		//if(date.year>500) dprintf("count b1 %d tot %d biome %d \n",count[1],nobjs,biome);
 //CRM	}
 	// BLAZE-biome is -1 of SIMFIRE-biome classifcation
-		climate.simfire_biome  = biome - 1;
-	}
+	climate.simfire_biome  = biome - 1;
+//CRM}
 }
 
 //==============================================================================
@@ -367,7 +362,17 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 //WK (but this would require an option for the choice of scenario)
 // INTERPOLATE HYDE 3.1 POPULATION DENSITY BETWEEN TIME-STEPS
 //==============================================================================
+//RLN We will not provide future scenarios. 
+
 void simfire_update_pop_density(Gridcell& gridcell) {
+
+	/* Called by: simfire_accounting_gridcell (local)
+	   Calls    : -
+	   Computes population density from the Hyde 3.1 dataset. 
+	   Annual data is computed by linearly interpolating between the existing values.
+	   Before 10000 BC the 10000 BC value is used, after 2005 linear extrapolation 
+	   using the change between the last two values is performed 
+	*/
 
 	const int npopt = 57;
 	// years at which pop data is available in HYDE3.1
@@ -384,6 +389,7 @@ void simfire_update_pop_density(Gridcell& gridcell) {
       	while (poptime[idx] < cyear) idx++;
 	double popd;
 	if ( cyear <= poptime[0] ) {
+		// use first year's value (10000 BC) for earlier years.
 		popd = gridcell.hyde31_pop_density[0];
 	}
 	else if ( cyear >= poptime[npopt-1] ) {
@@ -405,13 +411,17 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 
 /// Called each day from dailyaccounting
 //WK I think this has been implemented very well here!
+//RLN Thanks :)
 void simfire_accounting_gridcell(Gridcell& gridcell) {
 	
-	// DESCRIPTION
-	// Updates SIMFIRE's Max Annual Mesterov Index
-	// and running mean of max annual FPAR (from canexch.cpp)
-	// as well as checks for biome shifting
-	// L. Nieradzik 03/2015
+	/* Called by: dailyaccounting_gridcell   (driver.cpp)
+	   Calls    : simfire_biome_mapping      (local)
+	              simfire_update_pop_density (local)
+	   Updates SIMFIRE's Max Annual Mesterov Index
+	   and running mean of max annual FPAR (from canexch.cpp)
+	   Updates fire biome 
+	*/
+
 	Climate& climate = gridcell.climate;
 	// absolute upper boundary for the accumulative nesterov index
 	const double maximum_nesterov = 1000000; //150000.;
@@ -422,9 +432,10 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 		( restart && date.year == state_year ) ) );
 
 	if (date.day == 0 ) {
-		// Set global simfire region as fixed
+		// Set global simfire region as fixed: Global=0
 		gridcell.simfire_region = 0;
-		
+
+		// Determine SIMFIRE biome for this year
 		simfire_biome_mapping(climate.gridcell);
 
 		// update population density
@@ -531,7 +542,7 @@ double simfire_ba(Climate& climate, Gridcell& gridcell) {
 
 	/* Called by:  blaze_burned_area(blaze.cpp)
 	   Calls    :  -
-	   calculate burned area in ha
+	   Calculate burned area in ha following Knorr 2014. 
 	*/
 //WK See comments on ignitions vs. burned area above
 //WK Make comment here on how the SIMFIRE region is set
@@ -540,7 +551,8 @@ double simfire_ba(Climate& climate, Gridcell& gridcell) {
 //WK at monthly time steps (?) is set from observations
 //WK obtained from ?
 
-
+//CLN I thought I got this from you. Will follow uop on this. 
+//RLN I will remove the two non-global cases but at this stage I can't make changes to the branch. 
 	// Regions with dedicated parameter optimisation for SIMFIRE
 	// 0: global
 	// 1: Europe
@@ -625,3 +637,9 @@ double simfire_ba(Climate& climate, Gridcell& gridcell) {
 
 	return ba;
 }
+
+///////////////////////////////////////////////////////////////////////////////////////
+// REFERENCES
+//
+// Knorr, W. et al., Impact of human population density on fire frequency at the 
+//  global scale, BIOGEOSCIENCES, 11, 4, 2014, DOI: 10.5194/bg-11-1085-2014

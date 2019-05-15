@@ -11,10 +11,10 @@ param "file_ndep"     (str "/lunarc/nobackup/projects/lpjguess/data/benchmark_da
 param "file_simfire"  (str "/lunarc/nobackup/users/x_larni/FAST_ARCHIVES/SimfireInput.bin")                                            
 	      
 ! Soil map
-!CLNAWTLparam "file_soildata" (str "/data/benchmark_data/2019-03-20/soil/soilmap_center_interpolated.dat")
-!CLNAWTL!param "file_soildata" (str "/data/benchmark_data/2019-03-20/soil/fao_soilcodes.txt")
+!param "file_soildata" (str "/lunarc/nobackup/projects/lpjguess/data/benchmark_data/2019-03-20/soil/soilmap_center_interpolated.dat")
+param "file_soildata" (str "/home/x_larni/TMP/soilmap_center_interpolated.dat")
 !param "file_soildata" (str "/data/benchmark_data/2019-03-20/soil/fao_soilcodes.txt")
-param "file_soildata" (str "/home/x_larni/TMP/fao_soilcodes.txt")
+!param "file_soildata" (str "/home/x_larni/TMP/fao_soilcodes.txt")
 
 ! Location of EUROFLUX data
 param "flux_dir"      (str "/lunarc/nobackup/projects/lpjguess/data/benchmark_data/2013_02_12/euroflux/")
@@ -22,9 +22,9 @@ param "flux_dir"      (str "/lunarc/nobackup/projects/lpjguess/data/benchmark_da
 ! Location of subset of WATCH diurnal data
 param "watch_dir"     (str "/lunarc/nobackup/projects/lpjguess/data/benchmark_data/2013_02_12/watch_subset")
 
-rootdistribution "fixed"                                                                                        
-                                                                                                               
-iftwolayersoil 1                                                                                                
-ifmultilayersnow 0                                                                                             
-ifinundationstress 0                                                                                           
-ifcarbonfreeze 0                                                                                                
+!ToTakeOutW&Wrootdistribution "fixed"                                                                                        
+!ToTakeOutW&W                                                                                                               
+!ToTakeOutW&Wiftwolayersoil 1                                                                                                
+!ToTakeOutW&Wifmultilayersnow 0                                                                                             
+!ToTakeOutW&Wifinundationstress 0                                                                                           
+!ToTakeOutW&Wifcarbonfreeze 0                                                                                                

@@ -1072,7 +1072,6 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	// Not sure of wood fraction
 	const double LIGCFRAC_leaf = 0.2;
 	const double LIGCFRAC_root = 0.16;
-	//const double LIGCFRAC_wood = 0.3;
 
 	if ( negligible(frac_killed) ) return;
 
@@ -1102,7 +1101,6 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 			wood2fwd = frac_killed * .07; 
 			wood2cwd = frac_killed * .70; 
 		}
-		//CLNXXX ====== HIER SCHAUEN	
 		// adjust relative fluxes from leaves
 		double ltotw = patch.leaf2atm + patch.leaf2lit;
 		if ( ltotw > 0.0 ) {
@@ -1155,7 +1153,7 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	double nhrtw2cwd = fab * (wood2fwd + wood2cwd) * nmass_heart;
 
 	// ROOT
-	// assume that same percentage of root biomass is killed as for total 
+	// assume the same percentage of root biomass killed as for total 
 	// above ground woody biomass
 //WK don't understand 'as for total above ground woody biomass'
 //RLN done
@@ -1311,6 +1309,9 @@ void blaze_burned_area(Climate& climate) {
 //WK this below I don't understand, please explain what is meant/reasons
 //WK looks like ba is set to zero at beginning of run
 //RLN correct. I removed it. 
+//RLN Also, it looks odd that this routine now only has one call, but I would like to have some of 
+//RLN the stuff below in my own branch and in a later version. Hmmm.... any thoughts?
+ 
 //CRM	// ba will be zeroed in blaze after fire has occurred 
 //CRM	if ( date.day == 0 && date.year == 0 ) {
 //CRM		climate.areaburnt = 0.0;
@@ -1366,7 +1367,6 @@ void blaze_driver(Patch& patch, Climate& climate) {
 
 	/* Called by: simulate_day (framework.cpp)
 	   Calls    : get_firelineintensity (local)
-	              burntime (local)
 		      blaze (local)
 //WK From the name, it looks like it is the main subroutine of
 //WK BLAZE, so is this really all? Maybe provide more details

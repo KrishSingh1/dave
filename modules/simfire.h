@@ -1,8 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 //WK looks like copied from blaze.h
 //WK maybe state that simfire is a sub-unit of blaze
-/// \file blaze.cpp
-/// \brief BLAZE fire simulation and combustion
+/// \file simfire.cpp
+/// \brief SIMFIRE - SIMple FIRE module to compute burnt area  
 ///
 /// \author Lars Nieradzik
 /// $Date: 2015-08-25 09:19:28 +0200 (Tue, 25 Aug 2015) $

@@ -245,7 +245,6 @@ int framework(const CommandLineArguments& args) {
 		// Create and initialise a new Gridcell object for each locality
 		Gridcell gridcell;
 
-		// CLN enter SIMFIRE input here
 		// Call input module to obtain latitude and driver data for this grid cell.
 		if (!input_module->getgridcell(gridcell)) {
 			break;

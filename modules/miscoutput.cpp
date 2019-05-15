@@ -1065,26 +1065,6 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 		return;
 	}
 
-	double cflux_veg, cflux_repr, cflux_soil, cflux_fire, cflux_est, cflux_seed, cflux_charvest;
-	double mean_standpft_aet = 0.0;
-	double mean_standpft_lai = 0.0;
-	double mean_standpft_npp = 0.0;
-	double mean_standpft_gpp = 0.0;
-
-	double aet_gridcell = 0.0;
-	double lai_gridcell = 0.0;
-	double npp_gridcell = 0.0;
-	double gpp_gridcell = 0.0;
-
-	double landcover_aet[NLANDCOVERTYPES] = { 0.0 };
-	double landcover_lai[NLANDCOVERTYPES] = { 0.0 };
-	double landcover_npp[NLANDCOVERTYPES] = { 0.0 };
-	double landcover_gpp[NLANDCOVERTYPES] = { 0.0 };
-
-	double standpft_aet = 0.0;
-	double standpft_lai = 0.0;
-	double standpft_npp = 0.0;
-	double standpft_gpp = 0.0;
 	// *** Loop through PFTs ***
 
 	pftlist.firstobj();

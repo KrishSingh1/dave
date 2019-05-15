@@ -246,7 +246,7 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 			if (idx % 12 == 0) { idx = 0; }
 		}
 
-		// Give sub-classes a chance to modify the data
+		// Adjust raw data here if necessary, by default no adjustments are made
 		adjust_raw_forcing_data(hist_mtemp, hist_mprec, hist_msun, mtemp_fluxnet,
 			mprec_fluxnet, mrad_fluxnet);
 
@@ -273,18 +273,29 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 			};
 		};
 
+		// Check so that the sums for the reference periods match and distribute the
+		// residual evenly between months
+		double precip_resid = 0.0;
+		double aprec_cru = 0.0;
+		double aprec_fluxnet = 0.0;
+
+		for (int m = 0; m < 12; m++) {
+			precip_resid += cru_rain_mean[m] - mprec_fluxnet[m];
+		}
+
+		// Calculate the anomalies
 		for (int i = 0; i < 12; i++) {
 			rad_anom[i] =  mrad_fluxnet[i] - cru_rad_mean[i];
 			temp_anom[i] =  mtemp_fluxnet[i] - cru_temp_mean[i];
+
 			if (cru_rain_mean[i] == 0.0) {
-				// Protect against potential division by zero
+				// Protect against potential division by zero error
 				// can happen in very arid areas
-				rain_anom[i] = 0.0;
+				rain_anom[i] = 0.0 + precip_resid / 12.0;
 			}
 			else {
-				rain_anom[i] = mprec_fluxnet[i] / cru_rain_mean[i];
+				rain_anom[i] = mprec_fluxnet[i] / cru_rain_mean[i] + precip_resid / 12.0;
 			}
-			
 		}
 
 		for (int yr = 0; yr < NYEAR_HIST; yr++) {

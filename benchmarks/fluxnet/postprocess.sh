@@ -36,7 +36,7 @@ function produceScatterplot {
   grep "\-9999" $1 -v  > plot
 
   gplot plot -o $2 -x 1 -y 2 -xt "Observed" -yt "Modelled" -scatter -eq -t "compared vs. modelled $3 ($4)"
-  describe_image $2 "Observed fluxnet data vs modelled $3: Units: $4" embed
+  describe_image $2 "Observed fluxnet data vs modelled $3: Units: $4"
 }
 
 describe_benchmark "LPJ-GUESS - Fluxnet benchmark"

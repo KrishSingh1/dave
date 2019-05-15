@@ -64,7 +64,6 @@ MiscOutput::MiscOutput() {
 	//daily
 	declare_parameter("file_daily_lai",&file_daily_lai,300,"Daily output.");
 	declare_parameter("file_daily_npp",&file_daily_npp,300,"Daily output.");
-	declare_parameter("file_daily_gpp", &file_daily_gpp, 300, "Daily aet");
 	declare_parameter("file_daily_nmass",&file_daily_nmass,300,"Daily output.");
 	declare_parameter("file_daily_ndemand",&file_daily_ndemand,300,"Daily output.");
 	declare_parameter("file_daily_cmass",&file_daily_cmass,300,"Daily output.");
@@ -77,9 +76,6 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_daily_nmass_stem",&file_daily_nmass_stem,300,"Daily output.");
 	declare_parameter("file_daily_cmass_storage",&file_daily_cmass_storage,300,"Daily output.");
 	declare_parameter("file_daily_nmass_storage",&file_daily_nmass_storage,300,"Daily output.");
-
-	declare_parameter("file_daily_cflux", &file_daily_cflux,300,"Daily clfux");
-	declare_parameter("file_daily_aet", &file_daily_aet, 300, "Daily aet");
 
 	declare_parameter("file_daily_cmass_dead_leaf",&file_daily_cmass_dead_leaf,300,"Daily output.");
 	declare_parameter("file_daily_nmass_dead_leaf",&file_daily_nmass_dead_leaf,300,"Daily output.");
@@ -266,19 +262,6 @@ void MiscOutput::define_output_tables() {
 	ColumnDescriptors daily_columns;
 	daily_columns += ColumnDescriptors(crop_pfts, 13, 3);
 
-	ColumnDescriptors daily_cflux_columns;
-	daily_cflux_columns += ColumnDescriptor("Veg", 14, 6);
-	daily_cflux_columns += ColumnDescriptor("Repr", 14, 6);
-	daily_cflux_columns += ColumnDescriptor("Soil", 14, 6);
-	daily_cflux_columns += ColumnDescriptor("Fire", 14, 6);
-	daily_cflux_columns += ColumnDescriptor("Est", 14, 6);
-	daily_cflux_columns += ColumnDescriptor("NEE", 14, 6);
-
-	ColumnDescriptors pft_columns;
-	pft_columns += ColumnDescriptors(pfts, 14, 8);
-	pft_columns += ColumnDescriptor("Total", 14, 6);
-	pft_columns += ColumnDescriptors(landcovers, 14, 6);
-
 	ColumnDescriptors climate_columns;
 	climate_columns += ColumnDescriptor("Temp", 8, 2);
 	climate_columns += ColumnDescriptor("Prec", 8, 2);
@@ -334,9 +317,8 @@ void MiscOutput::define_output_tables() {
 
 	// *** DAILY OUTPUT VARIABLES ***
 
-	create_output_table(out_daily_lai,					file_daily_lai,					pft_columns);
-	create_output_table(out_daily_npp,					file_daily_npp,					pft_columns);
-	create_output_table(out_daily_gpp,					file_daily_gpp,					pft_columns);
+	create_output_table(out_daily_lai,					file_daily_lai,					daily_columns);
+	create_output_table(out_daily_npp,					file_daily_npp,					daily_columns);
 	create_output_table(out_daily_ndemand,				file_daily_ndemand,				daily_columns);
 	create_output_table(out_daily_nmass,				file_daily_nmass,				daily_columns);
 	create_output_table(out_daily_cmass,				file_daily_cmass,				daily_columns);
@@ -352,9 +334,6 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_daily_cmass_dead_leaf,      file_daily_cmass_dead_leaf,     daily_columns);
 	create_output_table(out_daily_n_input_soil,         file_daily_n_input_soil,        daily_columns);
 	create_output_table(out_daily_avail_nmass_soil,     file_daily_avail_nmass_soil,    daily_columns);
-
-	create_output_table(out_daily_cflux,				file_daily_cflux,				daily_cflux_columns);
-	create_output_table(out_daily_aet,					file_daily_aet,					pft_columns);
 
 	create_output_table(out_daily_upper_wcont,			file_daily_upper_wcont,         daily_columns);
 	create_output_table(out_daily_lower_wcont,			file_daily_lower_wcont,         daily_columns);
@@ -390,12 +369,6 @@ void MiscOutput::define_output_tables() {
 void outlimit_misc(OutputRows& out, const Table& table, double d) {
 
 	if (date.year>=nyear_spinup)
-		out.add_value(table, d);
-}
-
-void outlimit_daily_misc(OutputRows& out, const Table& table, double d) {
-
-	if (date.get_calendar_year() >= dailyoutput_firstyear && date.get_calendar_year() <= dailyoutput_lastyear)
 		out.add_value(table, d);
 }
 
@@ -1088,14 +1061,8 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 	double lat = gridcell.get_lat();
 	OutputRows out(output_channel, lon, lat, date.get_calendar_year(), date.day);
 
-	if (date.year < nyear_spinup && !ifdailyoutput) {
+	if (date.year < nyear_spinup) {
 		return;
-	}
-
-	if (date.year == 0 && date.day == 0) {
-		if (dailyoutput_firstyear == DAILYOUTPUT_FIRSTYEAR_NONE) {
-			dailyoutput_firstyear = 2000;// date.first_calendar_year + nyear_spinup;
-		}
 	}
 
 	double cflux_veg, cflux_repr, cflux_soil, cflux_fire, cflux_est, cflux_seed, cflux_charvest;
@@ -1122,230 +1089,98 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 
 	pftlist.firstobj();
 	while (pftlist.isobj) {
-		Pft& pft = pftlist.getobj();
-		Gridcellpft& gridcellpft = gridcell.pft[pft.id];
+		Pft& pft=pftlist.getobj();
 
-		// Sum C biomass, NPP, LAI, AET and BVOC fluxes across patches and PFTs
-		mean_standpft_aet = 0.0;
-		mean_standpft_lai = 0.0;
-		mean_standpft_npp = 0.0;
-		mean_standpft_gpp = 0.0;
-
-		// Determine area fraction of stands where this pft is active:
-		double active_fraction = 0.0;
+		if (pft.landcover != CROPLAND) {
+			pftlist.nextobj();
+			continue;
+		}
 
 		Gridcell::iterator gc_itr = gridcell.begin();
-
 		while (gc_itr != gridcell.end()) {
-			Stand& stand = *gc_itr;
 
-			if (stand.pft[pft.id].active) {
-				active_fraction += stand.get_gridcell_fraction();
+			Stand& stand = *gc_itr;
+			if (stand.landcover != CROPLAND || stand.npatch() > 1) {
+				break;
 			}
 
-			++gc_itr;
-		}
+			stand.firstobj();
+			while (stand.isobj) {
+				Patch& patch = stand.getobj();
+				Vegetation& vegetation=patch.vegetation;
+				Patchpft& patchpft=patch.pft[pft.id];
 
-		// Loop through Stands
-		gc_itr = gridcell.begin();
-		while (gc_itr != gridcell.end()) {
+				double cwdn = patch.soil.sompool[SURFCWD].nmass + patch.soil.sompool[SURFFWD].nmass;
+				vegetation.firstobj();
+				while (vegetation.isobj) {
+					Individual& indiv=vegetation.getobj();
+					if (indiv.id != -1 && indiv.pft.id == pft.id && !indiv.cropindiv->isintercropgrass) {
+						//To be able to print values for the year after establishment of crops !
+						// (if not dead and has existed for at least one year)
+						// Ben 2007-11-28
 
-			Stand& stand = *gc_itr;
-			Standpft& standpft = stand.pft[pft.id];
+						plot("daily leaf N [g/m2]",pft.name,date.day,indiv.nmass_leaf*m2toha);
+						plot("daily leaf C [kg/m2]",pft.name,date.day,indiv.cmass_leaf_today()*m2toha);
+						outlimit_misc(out, out_daily_lai,indiv.lai_today());
+						outlimit_misc(out, out_daily_npp,indiv.dnpp*m2toha);
+						outlimit_misc(out, out_daily_cmass_leaf,indiv.cmass_leaf_today()*m2toha);
+						outlimit_misc(out, out_daily_nmass_leaf,indiv.nmass_leaf*m2toha);
+						outlimit_misc(out, out_daily_cmass_root,indiv.cmass_root_today()*m2toha);
+						outlimit_misc(out, out_daily_nmass_root,indiv.nmass_root*m2toha);
+						outlimit_misc(out, out_daily_avail_nmass_soil,m2toha*(patch.soil.nmass_avail+cwdn));
+						outlimit_misc(out, out_daily_n_input_soil,patch.soil.ninput*m2toha);
 
-			if (standpft.active) {
-				// Sum C biomass, NPP, LAI and BVOC fluxes across patches and PFTs
-				standpft_aet = 0.0;
-				standpft_lai = 0.0;
-				standpft_npp = 0.0;
-				standpft_gpp = 0.0;
+						double uw = patch.soil.dwcontupper[date.day];
+						if (uw < 1e-22) {
+							uw = 0.0;
+						}
+						double lw = patch.soil.dwcontlower[date.day];
+						if (lw < 1e-22) {
+							lw = 0.0;
+						}
+						outlimit_misc(out, out_daily_upper_wcont,uw);
+						outlimit_misc(out, out_daily_lower_wcont,lw);
+						outlimit_misc(out, out_daily_irrigation,patch.irrigation_d);
 
-				// Loop through patches
-				stand.firstobj();
-				while (stand.isobj) {
-					Patch& patch = stand.getobj();
-					Patchpft& patchpft = patch.pft[pft.id];
-					Vegetation& vegetation = patch.vegetation;
+						outlimit_misc(out, out_daily_cmass_storage,indiv.cropindiv->grs_cmass_ho*m2toha);
+						outlimit_misc(out, out_daily_nmass_storage,indiv.cropindiv->nmass_ho*m2toha);
 
-					double cwdn = patch.soil.sompool[SURFCWD].nmass + patch.soil.sompool[SURFFWD].nmass;
-					standpft_npp += patch.fluxes.get_daily_flux(Fluxes::NPP, pft.id);
-					standpft_gpp += patch.fluxes.get_daily_flux(Fluxes::GPP, pft.id);
+						outlimit_misc(out, out_daily_ndemand,indiv.ndemand);
+						outlimit_misc(out, out_daily_cton,limited_cton(indiv.cmass_leaf_today(),indiv.nmass_leaf*m2toha));
 
-					vegetation.firstobj();
-					while (vegetation.isobj) {
-						Individual& indiv = vegetation.getobj();
+						if (ifnlim) {
+							outlimit_misc(out, out_daily_ds,patch.pft[pft.id].cropphen->dev_stage); // daglig ds
+							outlimit_misc(out, out_daily_cmass_stem,(indiv.cropindiv->grs_cmass_agpool+indiv.cropindiv->grs_cmass_stem)*m2toha);
+							outlimit_misc(out, out_daily_nmass_stem,indiv.cropindiv->nmass_agpool*m2toha);
 
-						if (indiv.id != -1 && indiv.alive) {
-							if (indiv.id != -1 && indiv.pft.id == pft.id) {
-								standpft_aet += indiv.aet;
-								if (indiv.pft.lifeform == GRASS && !indiv.istruecrop_or_intercropgrass()) {
-									standpft_lai += indiv.lai;
-								}
-								else {
-									standpft_lai += indiv.lai*indiv.phen;
-								}
+							outlimit_misc(out, out_daily_cmass_dead_leaf,indiv.cropindiv->grs_cmass_dead_leaf*m2toha);
+							outlimit_misc(out, out_daily_nmass_dead_leaf,indiv.cropindiv->nmass_dead_leaf*m2toha);
 
-								// Only for crop PFTs
-								if (pft.landcover == CROPLAND) {
-									if (!indiv.cropindiv->isintercropgrass) {
-										//To be able to print values for the year after establishment of crops !
-										// (if not dead and has existed for at least one year)
-										// Ben 2007-11-28
+							outlimit_misc(out, out_daily_fphu,patch.pft[pft.id].cropphen->fphu);
+							outlimit_misc(out, out_daily_stem,patch.pft[pft.id].cropphen->f_alloc_stem);
+							outlimit_misc(out, out_daily_leaf,patch.pft[pft.id].cropphen->f_alloc_leaf);
+							outlimit_misc(out, out_daily_root,patch.pft[pft.id].cropphen->f_alloc_root);
+							outlimit_misc(out, out_daily_storage,patch.pft[pft.id].cropphen->f_alloc_horg);
+						}
 
-										plot("daily leaf N [g/m2]", pft.name, date.day, indiv.nmass_leaf*m2toha);
-										plot("daily leaf C [kg/m2]", pft.name, date.day, indiv.cmass_leaf_today()*m2toha);
-										outlimit_misc(out, out_daily_cmass_leaf, indiv.cmass_leaf_today()*m2toha);
-										outlimit_misc(out, out_daily_nmass_leaf, indiv.nmass_leaf*m2toha);
-										outlimit_misc(out, out_daily_cmass_root, indiv.cmass_root_today()*m2toha);
-										outlimit_misc(out, out_daily_nmass_root, indiv.nmass_root*m2toha);
-										outlimit_misc(out, out_daily_avail_nmass_soil, m2toha*(patch.soil.nmass_avail + cwdn));
-										outlimit_misc(out, out_daily_n_input_soil, patch.soil.ninput*m2toha);
-
-										double uw = patch.soil.dwcontupper[date.day];
-										if (uw < 1e-22) {
-											uw = 0.0;
-										}
-										double lw = patch.soil.dwcontlower[date.day];
-										if (lw < 1e-22) {
-											lw = 0.0;
-										}
-										outlimit_misc(out, out_daily_upper_wcont, uw);
-										outlimit_misc(out, out_daily_lower_wcont, lw);
-										outlimit_misc(out, out_daily_irrigation, patch.irrigation_d);
-
-										outlimit_misc(out, out_daily_cmass_storage, indiv.cropindiv->grs_cmass_ho*m2toha);
-										outlimit_misc(out, out_daily_nmass_storage, indiv.cropindiv->nmass_ho*m2toha);
-
-										outlimit_misc(out, out_daily_ndemand, indiv.ndemand);
-										outlimit_misc(out, out_daily_cton, limited_cton(indiv.cmass_leaf_today(), indiv.nmass_leaf*m2toha));
-
-										if (ifnlim) {
-											outlimit_misc(out, out_daily_ds, patch.pft[pft.id].cropphen->dev_stage); // daglig ds
-											outlimit_misc(out, out_daily_cmass_stem, (indiv.cropindiv->grs_cmass_agpool + indiv.cropindiv->grs_cmass_stem)*m2toha);
-											outlimit_misc(out, out_daily_nmass_stem, indiv.cropindiv->nmass_agpool*m2toha);
-
-											outlimit_misc(out, out_daily_cmass_dead_leaf, indiv.cropindiv->grs_cmass_dead_leaf*m2toha);
-											outlimit_misc(out, out_daily_nmass_dead_leaf, indiv.cropindiv->nmass_dead_leaf*m2toha);
-
-											outlimit_misc(out, out_daily_fphu, patch.pft[pft.id].cropphen->fphu);
-											outlimit_misc(out, out_daily_stem, patch.pft[pft.id].cropphen->f_alloc_stem);
-											outlimit_misc(out, out_daily_leaf, patch.pft[pft.id].cropphen->f_alloc_leaf);
-											outlimit_misc(out, out_daily_root, patch.pft[pft.id].cropphen->f_alloc_root);
-											outlimit_misc(out, out_daily_storage, patch.pft[pft.id].cropphen->f_alloc_horg);
-										}
-									}
-								}
-							}
-						} //alive
-						vegetation.nextobj();
 					}
-					stand.nextobj();
+					vegetation.nextobj();
 				}
-				standpft_aet /= (double)stand.npatch();
-				standpft_npp /= (double)stand.npatch();
-				standpft_gpp /= (double)stand.npatch();
-				standpft_lai /= (double)stand.npatch();
-
-				landcover_aet[stand.landcover] += standpft_aet*stand.get_landcover_fraction();
-				landcover_npp[stand.landcover] += standpft_npp*stand.get_landcover_fraction();
-				landcover_gpp[stand.landcover] += standpft_gpp*stand.get_landcover_fraction();
-				if (!pft.isintercropgrass) {
-					landcover_lai[stand.landcover] += standpft_aet*stand.get_landcover_fraction();
-				}
-
-				//Update pft means for active stands
-				mean_standpft_aet += standpft_aet * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_lai += standpft_lai * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_npp += standpft_npp * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_gpp += standpft_gpp * stand.get_gridcell_fraction() / active_fraction;
-
-				// Update gridcell totals
-				double fraction_of_gridcell = stand.get_gridcell_fraction();
-
-				aet_gridcell += standpft_aet*fraction_of_gridcell;
-				npp_gridcell += standpft_npp*fraction_of_gridcell;
-				gpp_gridcell += standpft_gpp*fraction_of_gridcell;
-
-				if (!pft.isintercropgrass) {
-					lai_gridcell += standpft_lai*fraction_of_gridcell;
-				}
-			} //if(active)
+				stand.nextobj();
+			}
 			++gc_itr;
 		}
-		// Print PFT sums to files
-		outlimit_daily_misc(out, out_daily_aet, mean_standpft_aet);
-		outlimit_daily_misc(out, out_daily_lai, mean_standpft_lai);
-		outlimit_daily_misc(out, out_daily_gpp, mean_standpft_gpp);
-		outlimit_daily_misc(out, out_daily_npp, mean_standpft_npp);
-
 		pftlist.nextobj();
 	}
-
-	cflux_veg = cflux_repr = cflux_soil = cflux_fire = cflux_est = cflux_seed = cflux_charvest = 0.0;
-
-	// Sum C fluxes, dead C pools and runoff across patches
-
-	Gridcell::iterator gc_itr = gridcell.begin();
-
-	// Loop through Stands
-	while (gc_itr != gridcell.end()) {
-
-		Stand& stand = *gc_itr;
-		stand.firstobj();
-
-		//Loop through Patches
-		while (stand.isobj) {
-
-			Patch& patch = stand.getobj();
-
-			double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
-
-			cflux_veg += -patch.fluxes.get_daily_flux(Fluxes::NPP, date.day)*to_gridcell_average;
-			cflux_repr += -patch.fluxes.get_daily_flux(Fluxes::REPRC, date.day)*to_gridcell_average;
-			cflux_soil += patch.fluxes.get_daily_flux(Fluxes::SOILC, date.day)*to_gridcell_average;
-			cflux_fire += patch.fluxes.get_daily_flux(Fluxes::FIREC, date.day)*to_gridcell_average;
-			cflux_est += patch.fluxes.get_daily_flux(Fluxes::ESTC, date.day)*to_gridcell_average;
-			cflux_seed += patch.fluxes.get_daily_flux(Fluxes::SEEDC, date.day)*to_gridcell_average;
-			cflux_charvest += patch.fluxes.get_daily_flux(Fluxes::HARVESTC, date.day)*to_gridcell_average;
-			stand.nextobj();
-		} // patch loop
-
-		++gc_itr;
-	} // stand loop
 
 	outlimit_misc(out, out_daily_climate, gridcell.climate.temp);
 	outlimit_misc(out, out_daily_climate, gridcell.climate.prec);
 	outlimit_misc(out, out_daily_climate, gridcell.climate.rad);
-
-	outlimit_daily_misc(out, out_daily_cflux, cflux_veg);
-	outlimit_daily_misc(out, out_daily_cflux, -cflux_repr);
-	outlimit_daily_misc(out, out_daily_cflux, cflux_soil);
-	outlimit_daily_misc(out, out_daily_cflux, cflux_fire);
-	outlimit_daily_misc(out, out_daily_cflux, cflux_est);
-
-	// daily NEE do not include fire, establishment as monthly NEE
-	outlimit_daily_misc(out, out_daily_lai, lai_gridcell);
-	outlimit_daily_misc(out, out_daily_cflux, cflux_veg + cflux_soil);
-	outlimit_daily_misc(out, out_daily_aet, aet_gridcell);
-	outlimit_daily_misc(out, out_daily_gpp, gpp_gridcell);
-	outlimit_daily_misc(out, out_daily_npp, npp_gridcell);
-
-	if (run_landcover) {
-		for (int i = 0; i < NLANDCOVERTYPES; i++) {
-			if (run[i]) {
-				outlimit_daily_misc(out, out_daily_aet, landcover_aet[i]);
-				outlimit_daily_misc(out, out_daily_lai, landcover_lai[i]);
-				outlimit_daily_misc(out, out_daily_npp, landcover_npp[i]);
-				outlimit_daily_misc(out, out_daily_gpp, landcover_gpp[i]);
-			}
-		}
-	}
-
 }
 
 void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 
-	if (!printseparatestands)
+	if(!printseparatestands)
 		return;
 
 	bool open_natural = false;
@@ -1360,14 +1195,14 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 	while (gc_itr != gridcell.end()) {
 		Stand& stand = *gc_itr;
 
-		stand.anpp = 0.0;
-		stand.cmass = 0.0;
+		stand.anpp=0.0;
+		stand.cmass=0.0;
 
-		if (stand.first_year == date.year || stand.clone_year == date.year) {
-			if (stand.landcover == NATURAL) {
+		if(stand.first_year == date.year || stand.clone_year == date.year) {
+			if(stand.landcover == NATURAL) {
 				open_natural = true;
 			}
-			else if (stand.landcover == FOREST) {
+			else if(stand.landcover == FOREST) {
 				open_forest = true;
 			}
 		}
@@ -1375,12 +1210,12 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 		++gc_itr;
 	}
 
-	if (PRINTFIRSTSTANDFROM1901 && date.year == nyear_spinup) {
+	if(PRINTFIRSTSTANDFROM1901 && date.year == nyear_spinup) {
 		open_natural = true;
 		open_forest = true;
 	}
 
-	if (open_natural || open_forest) {
+	if(open_natural || open_forest) {
 
 		gc_itr = gridcell.begin();
 
@@ -1389,9 +1224,9 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 			Stand& stand = *gc_itr;
 
 			int id = stand.id;
-			char outfilename[100] = { '\0' }, buffer[50] = { '\0' };
+			char outfilename[100]={'\0'}, buffer[50]={'\0'};
 
-			sprintf(buffer, "%.1f_%.1f_%d", lon, lat, id);
+			sprintf(buffer, "%.1f_%.1f_%d",lon, lat, id);
 			strcat(buffer, ".out");
 
 			// create a vector with the pft names
@@ -1400,46 +1235,46 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 			pftlist.firstobj();
 			while (pftlist.isobj) {
 
-				Pft& pft = pftlist.getobj();
-				Standpft& standpft = stand.pft[pft.id];
+				 Pft& pft=pftlist.getobj();	 
+				 Standpft& standpft=stand.pft[pft.id];
 
-				if (standpft.active)
-					pfts.push_back((char*)pft.name);
+				 if(standpft.active)
+					 pfts.push_back((char*)pft.name);
 
-				pftlist.nextobj();
+				 pftlist.nextobj();
 			}
 			ColumnDescriptors anpp_columns;
-			anpp_columns += ColumnDescriptors(pfts, 8, 3);
-			anpp_columns += ColumnDescriptor("Total", 8, 3);
+			anpp_columns += ColumnDescriptors(pfts,               8, 3);
+			anpp_columns += ColumnDescriptor("Total",             8, 3);
 
-			if (open_natural && stand.landcover == NATURAL) {
+			if(open_natural && stand.landcover == NATURAL) {
 
 				strcpy(outfilename, "anpp_natural_");
 				strcat(outfilename, buffer);
 
-				if (out_anpp_stand_natural[id].invalid())
+				if(out_anpp_stand_natural[id].invalid())
 					create_output_table(out_anpp_stand_natural[id], outfilename, anpp_columns);
 
 				outfilename[0] = '\0';
 				strcpy(outfilename, "cmass_natural_");
 				strcat(outfilename, buffer);
 
-				if (out_cmass_stand_natural[id].invalid())
+				if(out_cmass_stand_natural[id].invalid())
 					create_output_table(out_cmass_stand_natural[id], outfilename, anpp_columns);
 			}
-			else if (open_forest && stand.landcover == FOREST) {
+			else if(open_forest && stand.landcover == FOREST) {
 
 				strcpy(outfilename, "anpp_forest_");
 				strcat(outfilename, buffer);
 
-				if (out_anpp_stand_forest[id].invalid())
+				if(out_anpp_stand_forest[id].invalid())
 					create_output_table(out_anpp_stand_forest[id], outfilename, anpp_columns);
 
 				outfilename[0] = '\0';
 				strcpy(outfilename, "cmass_forest_");
 				strcat(outfilename, buffer);
 
-				if (out_cmass_stand_forest[id].invalid())
+				if(out_cmass_stand_forest[id].invalid())
 					create_output_table(out_cmass_stand_forest[id], outfilename, anpp_columns);
 			}
 

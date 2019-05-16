@@ -154,16 +154,16 @@ void blaze_accounting_gridcell(Climate& climate) {
 			climate.is_sprouter = 0;
 		}
 		//CLN lat-depending mortalities
-//CLNOLD		if ( abs(lat) >= 50.) {
-//CLNOLD			climate.k_tun_litter = k_tun_bor_lit;
-//CLNOLD		}
-//CLNOLD		else if ( abs(lat) >= 30. && abs(lat) < 50.) {
-//CLNOLD			climate.k_tun_litter = k_tun_tmp_lit;
-//CLNOLD		}
-//CLNOLD		else {
-//CLNOLD			climate.k_tun_litter = k_tun_trp_lit;
-//CLNOLD		}
-		climate.k_tun_litter = max(cos(lat*1.5),0.) * 1.1 + 0.27 ;
+		if ( abs(lat) >= 50.) {
+			climate.k_tun_litter = 0.27; //k_tun_bor_lit;
+		}
+		else if ( abs(lat) >= 30. && abs(lat) < 50.) {
+			climate.k_tun_litter = 0.75; //k_tun_tmp_lit;
+		}
+		else {
+			climate.k_tun_litter = 1.1; //k_tun_trp_lit;
+		}
+		//CRM		climate.k_tun_litter = max(cos(lat*1.7),0.) * 0.85 + 0.25 ;
 	}
              
 	// Update running mean of average annual rainfall

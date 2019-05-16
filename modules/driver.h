@@ -16,9 +16,10 @@
 
 #include "guess.h"
 #include <limits>
+#include <map>
 
 double randfrac(long& seed);
-void soilparameters(Soiltype& soiltype,int soilcode);
+
 void interp_monthly_means_conserve(const double* mvals, double* dvals,
                                    double minimum = -std::numeric_limits<double>::max(),
                                    double maximum = std::numeric_limits<double>::max());
@@ -33,6 +34,5 @@ void dailyaccounting_stand(Stand& stand);
 void dailyaccounting_patch(Patch& patch);
 void respiration_temperature_response(double temp,double& gtemp);
 void daylengthinsoleet(Climate& climate);
-void soiltemp(Climate& climate,Soil& soil);
 
 #endif // LPJ_GUESS_DRIVER_H

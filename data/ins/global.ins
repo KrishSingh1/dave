@@ -64,6 +64,17 @@ file_vmaxnlim "vmaxnlim.out"
 !file_mmon_mt1 "mmon_mt1.out"
 !file_mmon_mt2 "mmon_mt2.out"
 
+!file_msoiltempdepth25 "soiltemp25cm.out"
+!file_mch4 "mch4.out"
+!file_mch4diff "mch4_diffusion.out"
+!file_mch4plan "mch4_plant.out"
+!file_mch4ebull "mch4_ebullition.out"
+
+!file_msnow "msnowdepth.out"
+!file_mwtp "mwtp.out"
+!file_mald "mald.out"
+!file_wetland_water_added "wetland_water_added.out"
+
 !///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -97,6 +108,7 @@ ifstochmort 1			! whether mortality stochastic
 ifcdebt 1				! whether to allow vegetation C storage (1) or not (0)
 wateruptake "rootdist"  ! "wcont", "rootdist", "smart" or "speciesspecific",
                         ! see documentation for water_uptake()
+rootdistribution "jackson"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1	     		! whether to use silt/sand fractions specific to soiltype
 
 !///////////////////////////////////////////////////////////////////////////////
@@ -112,8 +124,23 @@ nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
 
 
 !///////////////////////////////////////////////////////////////////////////////
+! ARCTIC AND WETLAND SWITCHES
+!///////////////////////////////////////////////////////////////////////////////
+
+iftwolayersoil 0		! Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below.
+ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default
+ifinundationstress 1		! whether to reduce NPP if there's inundation (1), or not (0)
+ifcarbonfreeze 1		! Whether to limit soilC decomposition below 0 degC in upland soils (default, 1), or not (0)
+wetland_runon 0			! Extra daily water input or output (mm/day) to wetlands. Positive values are run ON, negative run OFF.
+ifmethane 0			! Whether to run the methane model (for peatland only)
+iforganicsoilproperties 0	! Whether to update soil properties using soil carbon (for non peatland, mineral cells, soilcode != 8)
+ifsaturatewetlands 0		! Whether to take water from runoff to saturate low latitide wetlands (1), or not (0)
+
+
+!///////////////////////////////////////////////////////////////////////////////
 ! SERIALIZATION SETTINGS
 !///////////////////////////////////////////////////////////////////////////////
+
 !state_year 500			! year to save/start state file (no setting = after spinup)
 restart 0				! wheter to start from a state file
 save_state 0			! wheter to save a state file
@@ -123,16 +150,17 @@ save_state 0			! wheter to save a state file
 ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1)
 								! or to use the standard step-function (0)
 								! greff_min values below calibrated for the smooth (1) option
-ifdroughtlimitedestab 0			! whether establishment is limited by growing season drought
+ifdroughtlimitedestab 1			! whether establishment is limited by growing season drought
 								! guess2008 - species version has 1
 ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit every day (0)
 ifbvoc 0                     ! whether to include BVOC calculations (1) or not (0)
 
-!!!!!!!!!!!! landcover parameters !!!!!!!!!!!!!!
+
+!///////////////////////////////////////////////////////////////////////////////
+! LANDCOVER PARAMETERS
+!///////////////////////////////////////////////////////////////////////////////
 
 run_landcover 0        ! whether to use (and change) landcover fractions (1) or not (0)
-
-!///////////////////////////////////////////////////////////////////////////////////////
 
 
 !///////////////////////////////////////////////////////////////////////////////////////
@@ -153,6 +181,20 @@ group "common" (
 	landcover "natural"
 	harv_eff 0
 	res_outtake 0
+
+	! whyme - for mosses
+	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time
+	harvest_slow_frac 0
+
+	! WHyMe default values unless overriden in PFT definitions
+	wtp_max -301 		! [mm] maximum inundation (water table) tolerance, i.e. restrict on wetlands because wtp >= -300 always
+	inund_duration 0	! [day] maximum days per month of inundation before GPP is reduced to 0
+	min_snow 0.0 		! [mm] minimum snow needed for establishment (DJF average) and survival (20-year average maximum),
+				! i.e. No restriction here
+	max_snow 100000		! [mm] maximum snow tolerance (never used), i.e. No restriction here
+	gdd0_max 100000		! [degC day] max GDD0, i.e. No restriction here
+	gdd0_min 0		! [degC day] min GDD0, i.e. No restriction here
+	has_aerenchyma 0	! PFTs do not have aerenchyma for gas transport by default
 )
 
 group "tree" (
@@ -164,7 +206,8 @@ group "tree" (
 	crownarea_max 50
 	ltor_max 1
 	turnover_root 0.7
-	rootdist 0.6 0.4
+	rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
+	root_beta 0.982
 	k_allom2 60
 	k_allom3 0.67
 	k_rp 1.6
@@ -212,7 +255,8 @@ group "shrub" (
 	kest_bg 0.1
 	kest_pres 1
 	litterme 0.3
-	rootdist 0.6 0.4
+	rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
+	root_beta 0.982
 	longevity 100
 
 	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time
@@ -228,7 +272,8 @@ group "grass" (
 	lifeform "grass"
 	leafphysiognomy "broadleaf"
 	ltor_max 0.5
-	rootdist 0.9 0.1  !Sitch et al give 0.9 0.1	Fraction of fine roots in the upper and lower soil layers.
+	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
+	root_beta 0.9555
 	gmin 0.5
 	phenology "any"
 	phengdd5ramp 100		! C3 har 50 hos Thomas
@@ -461,10 +506,10 @@ pft "TeNE" (
 	gdd5min_est 2000 !(Stefans value 900)2000 ! As TeBE, a little lower than Jun_oxy, Pin_hal in europe.ins
 	longevity 300  ! Hickler et al. (2012) have 350 for Pin_hal
 	fireresist 0.3 ! Hickler et al. (2012) have 0.2 for Pin_hal and 0.4 for Jun_oxy
-	    eps_iso 8.0	!?????????????
-        seas_iso 0	!?????????????
-        eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22	!?????
-        storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	!?????
+	eps_iso 8.0	!?????????????
+	seas_iso 0	!?????????????
+	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22	!?????
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	!?????
 )
 
 pft "TeBS" (
@@ -511,6 +556,8 @@ pft "IBS" (
 	seas_iso 1
 	eps_mon 0.52 0.14 0.1 0.04 0.49 0.01 0.04 0.18 0.08
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.
+
+	greff_min 0.12 ! Version 4.1 update. Improves B(I)NE/IBS balance in boreal regions.
 )
 
 pft "TeBE" (
@@ -656,4 +703,92 @@ group "C4G" (
 
 pft "C4G" (
 	C4G
+)
+
+group "lowshrub"(
+	shrub
+
+	crownarea_max 1.0
+	k_allom1 10
+	k_allom2 4
+	k_latosa 125
+	rootdist 0.27 0.2 0.14 0.1 0.08 0.06 0.04 0.03 0.02 0.02 0.01 0.01 0.01 0.0 0.0
+	root_beta 0.9685
+	turnover_sap 0.01
+	greff_min 0.012 		! 60% of the shrub_high value, as in AW, but AW had 0.03
+	alphar 10 			! same as the shadeintol value, as in AW, but AW had 10
+	longevity 25
+	parff_min 1000000
+	turnover_root 0.5
+
+)
+pft "BLSE" (
+
+	! Arctic low shrub, evergreen
+	! Typical species: Vaccinium vitis-idaea, Cassiope tet.,
+	! Ledum palustre, Erica spec.
+
+	include 0
+	lowshrub
+	boreal
+	shade_intolerant
+	needleleaved
+	evergreen
+
+	leaflong 3
+	turnover_leaf 0.333
+	tcmin_surv -32.5
+	tcmin_est -32.5 		! Estimated from map
+	tcmax_est -1
+	twmin_est -1000
+	gdd5min_est 100
+	fireresist 0.12
+
+	drought_tolerance 0.1 	! PaulM -  < Pinus
+	!gdd0_min 300	 ! orig is 300, change based on CAVM region simulations
+	nuptoroot 0.0028
+
+	! BVOC values
+	eps_iso 2.0
+	seas_iso 0
+	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22    ! Needs checking!
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5    ! Needs checking!
+	ga 0.040
+	!sla 12.56
+)
+
+
+pft "BLSS" (
+	! Arctic low shrub, summergreen
+	! Typical species: Vaccinium myrtillus, V. uliginosum, Salix hastata, S. glauca etc.
+
+	include 0
+	lowshrub
+	boreal
+	broadleaved
+	summergreen
+	shade_intolerant
+
+	tcmin_surv -40      ! orig is -32,5, change, based on the CAVM region
+	tcmin_est -40       ! orig is -32,5, change, based on the CAVM region
+	tcmax_est 1000
+	twmin_est -1000
+	gdd5min_est 100
+	phengdd5ramp 50
+	fireresist 0.12
+
+	drought_tolerance 0.1 	! PaulM -  < Pinus
+	!gdd0_min 300
+
+	! Found on the driest peatlands, or raised hummocks
+	!wtp_max -250 ! mm
+	!inund_duration 5 ! days
+
+	! BVOC values
+	eps_iso 2.0
+	seas_iso 1
+	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22    ! Needs checking!
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5    ! Needs checking!
+	ga 0.040
+	!sla 24.25
 )

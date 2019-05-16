@@ -14,6 +14,7 @@
 #include "inputmodule.h"
 #include "spinupdata.h"
 #include "globalco2file.h"
+#include "soilinput.h"
 #include "cru_ts30.h"
 #include "lamarquendep.h"
 #include "externalinput.h"
@@ -107,6 +108,10 @@ private:
 		xtring descrip;
 	};
 
+	std::vector<std::pair<double, double> > translate_gridlist_to_coord(ListArray_id<Coord>& gridlist);
+
+	// Soil input module
+	SoilInput soilinput;
 	/// Land cover input module
 	LandcoverInput landcover_input;
 	/// Management input module

@@ -34,6 +34,19 @@ namespace {
 	}
 }
 
+std::vector<std::pair<double, double> > FluxnetInput::translate_gridlist_to_coord(ListArray_id<Coord>& gridlist) {
+	gridlist.firstobj();
+	std::vector<std::pair<double, double> > output;
+	while (gridlist.isobj) {
+		Coord& c = gridlist.getobj();
+		double center_lon = floor(c.lon * (1 / soilinput.STEP)) * soilinput.STEP + soilinput.STEP / 2.0;
+		double center_lat = floor(c.lat * (1 / soilinput.STEP)) * soilinput.STEP + soilinput.STEP / 2.0;
+		output.push_back(std::make_pair(center_lon, center_lat));
+		gridlist.nextobj();
+	}
+	return output;
+}
+
 FluxnetInput::FluxnetInput()
 	: searchradius(0),
 	spinup_mtemp(NYEAR_SPINUP_DATA),
@@ -102,6 +115,8 @@ void FluxnetInput::init() {
 	landcover_input.init();
 	// Open management files
 	management_input.init();
+	// Read in soil data
+	soilinput.init(param["file_soildata"].str, translate_gridlist_to_coord(gridlist));
 
 	date.set_first_calendar_year(FIRSTHISTYEAR - nyear_spinup);
 	// Set timers
@@ -113,6 +128,14 @@ void FluxnetInput::init() {
 
 
 };
+
+void FluxnetInput::get_monthly_ndep(int calendar_year,
+	double* mndrydep,
+	double* mnwetdep) {
+
+	ndep.get_one_calendar_year(calendar_year,
+		mndrydep, mnwetdep);
+}
 
 void FluxnetInput::adjust_raw_forcing_data(double hist_mtemp[NYEAR_HIST][12],
 			double hist_mprec[NYEAR_HIST][12], double hist_msun[NYEAR_HIST][12],
@@ -347,8 +370,8 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 
 		gridcell.climate.instype = SWRAD_TS;
 
-		// Tell framework the soil type of this grid cell
-		soilparameters(gridcell.soiltype, soilcode);
+		// Tell framework the soil properties of this grid cell
+		soilinput.get_soil(lon, lat, gridcell);
 
 		// For Windows shell - clear graphical output
 		// (ignored on other platforms)

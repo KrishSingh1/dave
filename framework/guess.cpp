@@ -70,7 +70,10 @@ void Climate::serialize(ArchiveStream& arch) {
 		& mtemp_max20
 		& mtemp_max
 		& gdd5
+		& gdd0
 		& agdd5
+		& agdd0
+		& agdd0_20
 		& chilldays
 		& ifsensechill
 		& gtemp
@@ -238,62 +241,6 @@ void LitterSolveSOM::serialize(ArchiveStream& arch) {
 		& nlitter;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// Implementation of Soil member functions
-////////////////////////////////////////////////////////////////////////////////
-
-
-void Soil::serialize(ArchiveStream& arch) {
-	arch & wcont
-		& awcont
-		& wcont_evap
-		& dwcontupper
-		& mwcontupper
-		& snowpack
-		& runoff
-		& temp
-		& dtemp
-		& mtemp
-		& gtemp
-		& cpool_slow
-		& cpool_fast
-		& decomp_litter_mean
-		& k_soilfast_mean
-		& k_soilslow_mean
-		& alag
-		& exp_alag
-		& mwcont
-		& dwcontlower
-		& mwcontlower
-		// probably shouldn't need to serialize these
-		& rain_melt
-		& max_rain_melt
-		& percolate;
-
-	for (int i = 0; i<NSOMPOOL; i++) {
-		arch & sompool[i];
-	}
-
-	arch & dperc
-		& orgleachfrac
-		& nmass_avail
-		& ninput
-		& anmin
-		& animmob
-		& aminleach
-		& aorgNleach
-		& aorgCleach
-		& anfix
-		& anfix_calc
-		& anfix_mean
-		& snowpack_nmass
-		& solvesomcent_beginyr
-		& solvesomcent_endyr
-		& solvesom
-		& fnuptake_mean
-		& morgleach_mean
-		& mminleach_mean;
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of cropphen_struct member functions
@@ -379,7 +326,9 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& nmass_litter_heart
 		& harvested_products_slow_nmass
 		& swindow
-		& water_deficit_y;
+		& water_deficit_y
+		& inund_count
+		& inund_stress;
 	if (pft.landcover==CROPLAND)
 		arch & *cropphen;
 
@@ -473,6 +422,7 @@ void Patch::serialize(ArchiveStream& arch) {
 		& aevap
 		& aintercep
 		& arunoff
+		& awetland_water_added
 		& apet
 		& eet_net_veg
 		& wdemand
@@ -494,7 +444,9 @@ const Climate& Patch::get_climate() const {
 }
 
 bool Patch::has_fires() const {
-	return iffire && stand.landcover != CROPLAND && !managed &&
+	// Since the standard fire parameterization was not developed for wetland vegetation and wetland/peatland soils, including 
+	// fires in tropical peatlands, we disallow this for now.
+	return iffire && stand.landcover != CROPLAND && stand.landcover != PEATLAND && !managed &&
 		(stand.landcover != PASTURE || disturb_pasture);
 }
 
@@ -532,7 +484,6 @@ double Patch::ccont(double scale_indiv, bool luc) {
 	}
 
 	for (unsigned int i=0; i<vegetation.nobj; i++) {
-
 		Individual& indiv = vegetation[i];
 		ccont += indiv.ccont(scale_indiv, luc);
 	}
@@ -588,6 +539,7 @@ double Patch::cflux() {
 	cflux += fluxes.get_annual_flux(Fluxes::ESTC);
 	cflux += fluxes.get_annual_flux(Fluxes::SEEDC);
 	cflux += fluxes.get_annual_flux(Fluxes::HARVESTC);
+	cflux += fluxes.get_annual_flux(Fluxes::CH4C) * KG_PER_G; // convert to kg CH4-C m-2 from g CH4-C m-2
 
 	return cflux;
 }
@@ -680,7 +632,7 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int np
 	isrotationday = false;
 	isirrigated = false;
 	hasgrassintercrop = false;
-	gdd0_intercrop = 0.0;
+	gdd5_intercrop = 0.0;
 	frac = 1.0;
 	frac_old = 0.0;
 	frac_temp = 0.0;
@@ -980,6 +932,22 @@ double Stand::nflux() {
 	return nflux;
 }
 
+/// Returns true if stand is true high-latitude peatland stand, as opposed to a wetland < PEATLAND_WETLAND_LATITUDE_LIMIT N
+bool Stand::is_highlatitude_peatland_stand() const {
+
+	double lat = gridcell->get_lat();
+
+	return landcover==PEATLAND && lat >= PEATLAND_WETLAND_LATITUDE_LIMIT;
+}
+
+/// Returns true if stand is wetland stand, as opposed to a peatland >= PEATLAND_WETLAND_LATITUDE_LIMIT N
+bool Stand::is_true_wetland_stand() const {
+
+	double lat = gridcell->get_lat();
+
+	return landcover==PEATLAND && lat < PEATLAND_WETLAND_LATITUDE_LIMIT;
+}
+
 Stand& Stand::clone(StandType& st, double fraction) {
 
 	// Serialize this stand to an in-memory stream
@@ -1058,7 +1026,7 @@ void Stand::serialize(ArchiveStream& arch) {
 		& infallow
 		& isirrigated
 		& hasgrassintercrop
-		& gdd0_intercrop
+		& gdd5_intercrop
 		& cloned
 		& origin
 		& landcover
@@ -1341,7 +1309,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 	// This function needs to be modified if a new lifeform is added,
 	// specifically to deal with nstore().
-	assert(pft.lifeform == TREE || pft.lifeform == GRASS);
+	assert(pft.lifeform == TREE || pft.lifeform == GRASS || pft.lifeform == MOSS);
 
 	if (!negligible(mortality)) {
 
@@ -1420,7 +1388,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 
 		const double remaining = 1.0 - mortality;
 
-		if (pft.lifeform != GRASS) {
+		if (pft.lifeform != GRASS && pft.lifeform != MOSS) {
 			densindiv *= remaining;
 		}
 

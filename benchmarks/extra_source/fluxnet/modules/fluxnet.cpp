@@ -321,7 +321,7 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 				rain_anom[i] = 0.0;
 			}
 			else {
-				rain_anom[i] = mprec_fluxnet[i] / cru_rain_mean[i] + precip_resid / (double)nmonths_rain;
+				rain_anom[i] = mprec_fluxnet[i] / cru_rain_mean[i];
 			}
 
 			// Radiation
@@ -339,7 +339,13 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 		for (int yr = 0; yr < NYEAR_HIST; yr++) {
 			for (int m = 0; m < 12; m++) {
 				hist_mtemp[yr][m] += temp_anom[m];
-				hist_mprec[yr][m] *= rain_anom[m];
+				if (rain_anom[m] > 0.0) {
+					hist_mprec[yr][m] *= rain_anom[m];
+					hist_mprec[yr][m] = max(0.0, hist_mprec[yr][m] + precip_resid / nmonths_rain);
+				}
+				else {
+					hist_mprec[yr][m] *= rain_anom[m];
+				}
 				hist_msun[yr][m] *= rad_anom[m];
 			}
 		}

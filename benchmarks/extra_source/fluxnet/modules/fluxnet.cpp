@@ -297,36 +297,50 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 		};
 
 		// Check so that the sums for the reference periods match and distribute the
-		// residual evenly between months
+		// residual evenly between months with precipitation
 		double precip_resid = 0.0;
-		double aprec_cru = 0.0;
-		double aprec_fluxnet = 0.0;
+		int nmonths_rain = 0;
 
 		for (int m = 0; m < 12; m++) {
 			precip_resid += cru_rain_mean[m] - mprec_fluxnet[m];
+
+			if (mprec_fluxnet[m] != 0.0) {
+				nmonths_rain++;
+			}
 		}
 
 		// Calculate the anomalies
 		for (int i = 0; i < 12; i++) {
-			rad_anom[i] =  mrad_fluxnet[i] - cru_rad_mean[i];
+			// Temperature
 			temp_anom[i] =  mtemp_fluxnet[i] - cru_temp_mean[i];
 
+			// Precipitation
 			if (cru_rain_mean[i] == 0.0) {
 				// Protect against potential division by zero error
-				// can happen in very arid areas
-				rain_anom[i] = 0.0 + precip_resid / 12.0;
+				// Can happen in very arid areas
+				rain_anom[i] = 0.0;
 			}
 			else {
-				rain_anom[i] = mprec_fluxnet[i] / cru_rain_mean[i] + precip_resid / 12.0;
+				rain_anom[i] = mprec_fluxnet[i] / cru_rain_mean[i] + precip_resid / (double)nmonths_rain;
+			}
+
+			// Radiation
+			if (mrad_fluxnet[i] == 0.0) {
+				// Protect against zero division
+				// Can happen for instance during polar night in high latitudes
+				rad_anom[i] = 0.0;
+			}
+			else {
+				rad_anom[i] = cru_rad_mean[i] / mrad_fluxnet[i];
 			}
 		}
 
+		// Apply anomalies
 		for (int yr = 0; yr < NYEAR_HIST; yr++) {
 			for (int m = 0; m < 12; m++) {
 				hist_mtemp[yr][m] += temp_anom[m];
 				hist_mprec[yr][m] *= rain_anom[m];
-				hist_msun[yr][m] += rad_anom[m];
-				hist_msun[yr][m] = max(hist_msun[yr][m], 0.0); // Radiation cannot be negative
+				hist_msun[yr][m] *= rad_anom[m];
 			}
 		}
 

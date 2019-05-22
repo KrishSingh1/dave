@@ -236,6 +236,8 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		spinup_mfrs.get_data_from(hist_mfrs);
 		spinup_mwet.get_data_from(hist_mwet);
 		spinup_mdtr.get_data_from(hist_mdtr);
+		spinup_mwind.get_data_from(hist_mwind);
+		spinup_mrhum.get_data_from(hist_mrhum);
 
 		// We wont detrend dtr for now. Partly because dtr is at the moment only
 		// used for BVOC, so what happens during the spinup is not affecting
@@ -316,6 +318,8 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 					spinup_mfrs.nextyear();
 					spinup_mwet.nextyear();
 					spinup_mdtr.nextyear();
+					spinup_mwind.nextyear();
+					spinup_mrhum.nextyear();
 				}
 			}
 
@@ -362,6 +366,8 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			spinup_mfrs.nextyear();
 			spinup_mwet.nextyear();
 			spinup_mdtr.nextyear();
+			spinup_mwind.nextyear();
+			spinup_mrhum.nextyear();
 
 		}
 		else if (date.year < nyear_spinup + NYEAR_HIST) {

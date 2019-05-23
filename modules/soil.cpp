@@ -1308,6 +1308,8 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		patch.aevap = 0.0;
 		patch.asurfrunoff = 0.0;
 		patch.arunoff = 0.0;
+		patch.adrainrunoff = 0.0;
+		patch.abaserunoff = 0.0;
 		patch.awetland_water_added = 0.0;
 	}
 

@@ -1069,7 +1069,7 @@ bool Soil::methane(bool generatemethane) {
 			CH4_diff_today = 0.0; // remove tiny values
 
 		// C conservation test:
-		if (CH4_diff_today < -0.1 || CH4_diff_today > 10000000 || isNumber(CH4_diff_today)) {
+		if (CH4_diff_today < -0.1 || CH4_diff_today > 10000000 || isnan(CH4_diff_today)) {
 			dprintf("%s%8.5f\n","Bad CH4 diffusion in Soil::methane()",CH4_diff_today);	
 		}
 

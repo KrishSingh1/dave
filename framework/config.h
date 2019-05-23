@@ -57,10 +57,12 @@ using std::max;
 // The Microsoft way
 #include <direct.h>
 #define change_directory _chdir
+#define isNumber _isnan
 #else
 // The POSIX way
 #include <unistd.h>
 #define change_directory chdir
+#define isNumber isnan
 #endif
 
 #endif // LPJ_GUESS_CONFIG_H

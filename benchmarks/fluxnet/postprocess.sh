@@ -36,12 +36,22 @@ function produceScatterplot {
   grep "\-9999" $1 -v  > plot
 
   gplot plot -o $2 -x 1 -y 2 -xt "Observed" -yt "Modelled" -scatter -eq -t "observed vs. modelled $3 ($4)"
-  describe_image $2 "Observed fluxnet data vs modelled $3: Units: $4"
 }
 
 describe_benchmark "LPJ-GUESS - Fluxnet benchmark"
 
 DIR=$(grep flux_dir common/../paths.ins | cut -d\" -f4)
+
+# Plot the gridlist
+awk 'BEGIN { OFS=" " }{ print $1,$2,FNR }' gridlist.txt > fluxnet_sites.txt
+awk 'BEGIN { OFS=" " }{ print FNR,$3 }{ printf "%.1f %.1f %.1f\n", 1/(1 + exp(-0.1*(NR-20))), 1/(1+exp(-0.1*(NR-20))), 1/(1+exp(-.1*(NR-10)))}' gridlist.txt > tmp_lgnd
+
+# For some reason printf outputs comma instead of points as decimal separator
+# We need to replace this...
+sed 's/,/./g' tmp_lgnd > fluxnet_legend.txt
+gmap fluxnet_sites.txt -o fluxnet_sites.png -cat -pixsize 3 3 -portrait -vert
+
+describe_image fluxnet_sites.png "Modelled sites" embed
 
 # Convert from kgC m-2 month-1 -> gC m-2 day-1
 compute mnee.out -o mnee.txt -n -i Lon Lat Year Janu="Jan/31*1000" Febru="Feb/28*1000" March="Mar/31*1000" April="Apr/30*1000" Ma="May/31*1000" June="Jun/30*1000" July="Jul/31*1000" Augu="Aug/31*1000" Sept="Sep/30*1000" Octo="Oct/31*1000" Nove="Nov/30*1000" Dece="Dec/31*1000"
@@ -79,6 +89,7 @@ while read f; do
    produceScatterplot gpp_scatter "${site}_gpp.png" "GPP" "gC m-2 day-1"
    produceScatterplot le_scatter "${site}_le.png" "LE" "w m-2"
 
+   describe_images ${site} ${site}_*.png
    # Cleanup
    rm nee_scatter gpp_scatter le_scatter plot ${site}.csv
 done < gridlist.txt

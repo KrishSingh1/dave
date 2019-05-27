@@ -124,7 +124,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 			climate.monthly_areaburnt[i] = 0.0;
 		}
 		// assumimng no leap_years, shift ffdi by 25 days to keep order 
-		int avg_ffdi = 30;
+		const int avg_ffdi = 30;
 		double ttmp[avg_ffdi];
 		//CLN double check!
 		int avg_shift = avg_ffdi - (365 % avg_ffdi);

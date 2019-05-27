@@ -52,8 +52,8 @@ private:
 	xtring file_nmass, file_cton_leaf, file_nsources, file_npool, file_nlitter, file_nuptake, file_vmaxnlim, file_nflux, file_ngases;
 
 	// BLAZE & SIMFIRE
-	xtring file_blaze_out, file_mblaze_out;
-	xtring file_sfana_out;
+	xtring file_aburntarea_out, file_mburntarea_out;
+	xtring file_simfireanalysis_out;
 		
 	// Soil temperature at 25cm depth
 	xtring file_msoiltempdepth5, file_msoiltempdepth15, file_msoiltempdepth25, file_msoiltempdepth35, file_msoiltempdepth45, file_msoiltempdepth55, file_msoiltempdepth65, file_msoiltempdepth75, file_msoiltempdepth85, file_msoiltempdepth95, file_msoiltempdepth105, file_msoiltempdepth115, file_msoiltempdepth125, file_msoiltempdepth135, file_msoiltempdepth145;
@@ -77,8 +77,8 @@ private:
 	Table out_nmass, out_cton_leaf, out_nsources, out_npool, out_nlitter, out_nuptake, out_vmaxnlim, out_nflux, out_ngases;
 	
 	// BLAZE && SIMFIRE
-	Table out_ab, out_mab;
-	Table out_sfana;
+	Table out_aburntarea, out_mburntarea;
+	Table out_simfireanalysis;
 
 	// Methane, snow, water table and active layer depth
 	Table out_mch4, out_mch4diff, out_mch4plan, out_mch4ebull, out_msnow, out_mwtp, out_mald;

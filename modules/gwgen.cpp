@@ -2598,35 +2598,35 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 
 	for (int mon=0;mon<12;mon++) {
  
-
+		const int NDAYMONTH = 31;
 		int ndaymon = date.ndaymonth[mon]; 
 		//
-		double mtmin_curr [ndaymon];
-		double mtmax_curr [ndaymon];
-		double mcloud_curr[ndaymon];
-		double mwind_curr [ndaymon];
+		double mtmin_curr [NDAYMONTH];
+		double mtmax_curr [NDAYMONTH];
+		double mcloud_curr[NDAYMONTH];
+		double mwind_curr [NDAYMONTH];
 
 		// intermediate daily values
-		double dprec[ndaymon];
-		double dtmin[ndaymon];
-		double dtmax[ndaymon];
-		double dcldf[ndaymon];
-		double dwind[ndaymon];
-		double drhum[ndaymon];
-		double dsol [ndaymon];
-		double cldwght[ndaymon];
-		double dprec_sav[ndaymon];
-		double dtmin_sav[ndaymon];
-		double dtmax_sav[ndaymon];
-		double dcldf_sav[ndaymon];
-		double dwind_sav[ndaymon];
+		double dprec[NDAYMONTH];
+		double dtmin[NDAYMONTH];
+		double dtmax[NDAYMONTH];
+		double dcldf[NDAYMONTH];
+		double dwind[NDAYMONTH];
+		double drhum[NDAYMONTH];
+		double dsol [NDAYMONTH];
+		double cldwght[NDAYMONTH];
+		double dprec_sav[NDAYMONTH];
+		double dtmin_sav[NDAYMONTH];
+		double dtmax_sav[NDAYMONTH];
+		double dcldf_sav[NDAYMONTH];
+		double dwind_sav[NDAYMONTH];
 		
 		// At beginning of month:
 		if ( mon > 0 )  
 			accumday += date.ndaymonth[mon-1];
 
 		// dummy weighting array
-		double dum[ndaymon]; 
+		double dum[NDAYMONTH];
 		for (int day=0; day<ndaymon; day++)
 			dum[day] = 1.;
 		// check consecutivity -> new boundaryconds IS KNWN!!!
@@ -2803,7 +2803,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 			
 			//! Reset met_out_save after initialization
 			if (i_count == 0) {
-				if (not restart) 
+				if (! restart) 
 					gwgen_sav = gwgen;
 				else
 					for (int i=0;i<4;i++)

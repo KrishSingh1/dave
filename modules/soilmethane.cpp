@@ -220,7 +220,7 @@ void cnstepgas(int layer0, double Di[NLAYERS], double dz[NLAYERS], double surf_c
 
 		const double MAX_ERR = 0.000001;
 	
-		if (fabs(checksum) > MAX_ERR) 
+		if (fabs(checksum) > MAX_ERR && verbosity >= WARNING)
 			dprintf("%s\n","Bad checksum after cnstepgas - tridiag - test1");
 
 		// Test 2:
@@ -232,7 +232,7 @@ void cnstepgas(int layer0, double Di[NLAYERS], double dz[NLAYERS], double surf_c
 			checksum += rowsum[lidx] / double(active_layers);
 		}
 
-		if (fabs(checksum-1.0) > MAX_ERR) 
+		if (fabs(checksum-1.0) > MAX_ERR && verbosity >= WARNING)
 			dprintf("%s\n","Bad checksum after cnstepgas - tridiag - test2");
 	}
 
@@ -478,7 +478,7 @@ double Soil::diffuse_gas(double Cgas[NLAYERS], double D[NLAYERS], gastype thisga
 
 		double max_timestep = (0.1 * 0.1)/ (2 * maxD); // [day]
 
-		if (max_timestep < Dt_gas)
+		if (max_timestep < Dt_gas && verbosity >= INFO)
 			dprintf("%s%8.4f\n","Max gas diffusion timestep exceeded: ",maxD);
 
 		// Assume a tiny diffusivity if there is very little liquid water in the layer
@@ -1010,13 +1010,13 @@ bool Soil::methane(bool generatemethane) {
 		}
 
 		// C conservation test:
-		if (fabs(drh - c_input) > 0.00000001) {
+		if (fabs(drh - c_input) > 0.00000001 && verbosity >= WARNING) {
 			dprintf("%s%8.5f\n","Bad C conservation at the start of Soil::methane()",fabs(drh - c_input));	
 			//return false;
 		}
 
 		// debugging:
-		if (total_ch4 < 0.0000000 || total_ch4 > 10000000) {
+		if ((total_ch4 < 0.0000000 || total_ch4 > 10000000) && verbosity >= WARNING) {
 			dprintf("%s%8.5f\n","Bad total_ch4 at the start of Soil::methane()",total_ch4);	
 		}
 
@@ -1025,7 +1025,7 @@ bool Soil::methane(bool generatemethane) {
 		ch4_c_store_now = ch4_store;
 		co2_c_store_now = co2_store;
 		double check = ch4_c_store_now + co2_c_store_now - ch4_c_store_init - co2_c_store_init - drh;
-		if (fabs(check) > 0.0000001)
+		if (fabs(check) > 0.0000001 && verbosity >= WARNING)
 			dprintf("%s%g\n","C imbalance in Soil::methane() : After C in: ",check);
 
 		// *** STEP 3 ***
@@ -1069,14 +1069,14 @@ bool Soil::methane(bool generatemethane) {
 			CH4_diff_today = 0.0; // remove tiny values
 
 		// C conservation test:
-		if (CH4_diff_today < -0.1 || CH4_diff_today > 10000000 || isNumber(CH4_diff_today)) {
+		if ((CH4_diff_today < -0.1 || CH4_diff_today > 10000000 || isNumber(CH4_diff_today)) && verbosity >= WARNING) {
 			dprintf("%s%8.5f\n","Bad CH4 diffusion in Soil::methane()",CH4_diff_today);	
 		}
 
 		// C conserved?
 		calculate_carbon_store(daynum, true);
 		check = ch4_store -ch4_before_diffusion+CH4_diff_today;
-		if (fabs(check) > 0.0000001)
+		if (fabs(check) > 0.0000001 && verbosity >= WARNING)
 			dprintf("%s%g\n","Soil::methane() - after diffusion of CH4: ",check);
 
 		// *** STEP 6 ***
@@ -1115,7 +1115,7 @@ bool Soil::methane(bool generatemethane) {
 
 		double checkafter1 = check - checkbefore;
 
-		if (fabs(checkafter1) > 0.0000001)
+		if (fabs(checkafter1) > 0.0000001 && verbosity >= WARNING)
 			dprintf("%s%g\n","Soil::methane() - after oxidation and diffusion of CH4: ",checkafter1);
 
 		checkbefore = check;
@@ -1134,7 +1134,7 @@ bool Soil::methane(bool generatemethane) {
 		calculate_carbon_store(daynum, true);
 		check = ch4_store+co2_store+CH4_diff_today+CH4_plant_today;
 		double checkafter2 = check - checkbefore;
-		if (fabs(checkafter2) > 0.0000001)
+		if (fabs(checkafter2) > 0.0000001 && verbosity >= WARNING)
 			dprintf("%s%g\n","Soil::methane() - after plant transport of CH4: ",checkafter2);
 		checkbefore = check;
 
@@ -1150,7 +1150,7 @@ bool Soil::methane(bool generatemethane) {
 
 		double checkafter3 = check - checkbefore;
 
-		if (fabs(checkafter3) > 0.0000001)
+		if (fabs(checkafter3) > 0.0000001 && verbosity >= WARNING)
 			dprintf("%s%g\n","Soil::methane() - after ebullition of CH4: ",checkafter3);
 
 		// STEPS 9 & 10
@@ -1197,12 +1197,12 @@ bool Soil::methane(bool generatemethane) {
 		calculate_carbon_store(daynum, true);
 		c_soil += ch4_store + co2_store;
 
-		if (total_C_flux < -0.000001) {
+		if (total_C_flux < -0.000001 && verbosity >= WARNING) {
 			dprintf("%s%10.5f\n","Negative C flux in Soil::methane()",total_C_flux);	
 		}
 
 		double final_C_budget = (ch4_c_store_init + co2_c_store_init + c_input) - (c_soil + total_C_flux);
-		if (fabs(final_C_budget) > 0.0001) {
+		if (fabs(final_C_budget) > 0.0001 && verbosity >= WARNING) {
 			dprintf("%s%10.5f\n","Unbalanced C budget in Soil::methane()",total_C_flux);	
 		}
 

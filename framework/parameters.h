@@ -240,6 +240,9 @@ extern bool save_state;
 /// Save/restart year
 extern int state_year;
 
+/// The level of verbosity
+extern int verbosity;
+
 /// whether to vary mort_greff smoothly with growth efficiency (1) or to use the standard step-function (0)
 extern bool ifsmoothgreffmort;
 

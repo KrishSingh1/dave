@@ -49,7 +49,7 @@ awk 'BEGIN { OFS=" " }{ print FNR,$3 }{ printf "%.1f %.1f %.1f\n", 1/(1 + exp(-0
 # For some reason printf outputs comma instead of points as decimal separator
 # We need to replace this...
 sed 's/,/./g' tmp_lgnd > fluxnet_legend.txt
-gmap fluxnet_sites.txt -o fluxnet_sites.png -cat -pixsize 3 3 -portrait -vert
+gmap fluxnet_sites.txt -o fluxnet_sites.png -pixsize 3 3 -portrait -vert -legend fluxnet_legend.txt -t "FLUXNET sites"
 
 describe_image fluxnet_sites.png "Modelled sites" embed
 

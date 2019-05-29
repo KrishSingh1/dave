@@ -874,8 +874,9 @@ bool Soil::methane(bool generatemethane) {
 	else {
         // Max allowed error in checks
         const double MAX_ERR = 0.000001;
-        const double MAX_ERR_BALANCE = 0.0001;
-        
+		const double MAX_ERR_BALANCE = 0.0001;
+		const double LARGE_ERR = 0.01;
+
 		// variables for debugging
 		bool allow_planttransport = true;
 		bool allow_ebullition = true;
@@ -1184,7 +1185,7 @@ bool Soil::methane(bool generatemethane) {
 		// Calculate daily CH4 flux [gCH4-C m-2 d-1]
 		double CH4_flux_today = CH4_diff_today + CH4_plant_today + CH4_ebull_today;
 
-		// Reduce het, resp. by this CH4 amount.
+		// Reduce heterotrophic respiration by this CH4-C amount
 
 		// Report the heterotrophic respiration and the 4 CH4 fluxes.
 		patch.fluxes.report_flux(Fluxes::SOILC, dcflux_soil-CH4_flux_today/G_PER_KG); // Units for Fluxes::SOILC are kgC/m2/time
@@ -1200,8 +1201,8 @@ bool Soil::methane(bool generatemethane) {
 		calculate_carbon_store(daynum, true);
 		c_soil += ch4_store + co2_store;
 
-		if (total_C_flux < -MAX_ERR && verbosity >= WARNING) {
-			dprintf("%s%10.5f\n","Negative C flux in Soil::methane()",total_C_flux);	
+		if (total_C_flux < -LARGE_ERR && verbosity >= WARNING) {
+			dprintf("%s%10.5f\n","Large negative C flux (total_C_flux) in Soil::methane()",total_C_flux);	
 		}
 
 		double final_C_budget = (ch4_c_store_init + co2_c_store_init + c_input) - (c_soil + total_C_flux);

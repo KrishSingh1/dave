@@ -2640,7 +2640,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 			ilm = 1;
 		}
 		else if ( mon == 11 ) { 
-			irm == 1;
+			irm = 1;
 		}
 
 		int ld = accumday;
@@ -2726,7 +2726,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		
 		/*if ( date.year > 500 ) {
 			dprintf("============ monthly in %d %d \n",date.year,mon+1);
-		}
+			//}
 		
 			dprintf(" in in_mprec %f \n",in_mprec[mon]);
 			dprintf(" in in_mwetd %f \n",gwgen.mwetd);	

@@ -506,17 +506,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Initial grass biomass proportional to potential forest floor
 						// net assimilation this year on patch area basis
 
-//WK Do I understand correctly that gridcell is only invoked here to get the latitude?
-//WK I think these kind of hard-wired work arounds should really be avoided,
-//WK and I can immagine that this here would cause discontinuities along 30 degrees
-//WK latitude bands. Or has this been removed anyway?
-//RLN I have removed it.
-//CRM						// because of problems with biomeshifting in BLAZE a reduced SAPSIZE has been 
-//CRM						// implemented in the tropics
-//CRM						Gridcell&  gridcell = stand.get_gridcell();
-//CRM						double sapfac = 1.0;
-//CRM						//CLNif ( firemodel == BLAZE && abs(gridcell.get_lat()) <30.  ) 
-//CRM						//CLN	sapfac = 0.1;
 						if(pft.phenology == CROPGREEN)
 							bminit = SAPSIZE * 0.01;
 						else if(patch.has_disturbances() && patch.disturbed) 
@@ -860,6 +849,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 //WK should be set to 'not used' or something.
 
 //RLN I think it should be 0. because it is (at this point in the code). With "unused" the routine would crash below, no?
+//CLN JOHAN: Your opinion? 
 			if (patch.has_fires() && firemodel == GLOBFIRM) mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			else mort_fire=0.0;
 
@@ -1015,10 +1005,6 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 	// FIRE MORTALITY GLOBFIRM
 	// For BLAZE there is a separate call in simulate_day (framework.cpp)
-//WK Maybe: FIRE MORTALTITY (GLOBFIRM)
-//WK For BLAZE this is done in such and such a way.
-//RLN done.
-//CLN check if above interferes  
 	if (patch.has_fires() && firemodel == GLOBFIRM) {
 
 		// Impose fire in this patch with probability 'fireprob'

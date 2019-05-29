@@ -1,8 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file blaze.cpp
-//WK SIMFIRE doesn't actually do ignitions but assumes an ignition saturated regime
-//WK please explain
-//RLN Is that better (reference in the bottom of file)
 /// \brief SIMFIRE burned area simulation by W. Knorr
 ///
 /// \author Lars Nieradzik
@@ -30,22 +27,10 @@
 // When porting between frameworks, the only change required should normally be in the
 // "#include" directive referring to the framework header file.
 
-//WK Is this the framework header file as remarked in (1)?
-//RLN yes
 #include "config.h"
 #include "simfire.h"
 #include "SimfireInput.h"
 
-//WK state a purpose here: return SIMFIRE biome from time average vegetation
-//WK characteristics, also refer to where these biomes are defined in the code
-//WK state meaning of 'return 0'; here it seems to mean 'unvegetated',
-//WK but in the IGBP-SIMFIRE mapping routine 'biome=0' means 'cropland/natural/urban'
-//WK This latter biome could also be determined here using land use information
-//WK in case the land use version of LPJ-GUESS is run
-//WK in general I think this needs explaining how to handle SIMFIRE biomes
-//WK using different versions of LPJ-GUESS (potential natural vegetation, land use,
-//WK running with observed climate or future scenarios)
-//RLN Please see comments in routine-headers below.
 #define NFIREBIOMES 9
 
 /// Get simfire data for a gridcell
@@ -81,9 +66,6 @@ void getsimfiredata(Gridcell& gridcell) {
 	}
 	
 	// Found the record, get the values
-	
-//CRM	// IGBP Land-Cover-Classification
-//CRM	gridcell.igbp_class = (int)rec.igbp_class[0];
 	
 	// convert IGBP into simfire internal biomes
 	simfire_biome_mapping(gridcell);
@@ -121,17 +103,6 @@ int update_fire_biome (Patch& patch, double lat) {
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation=patch.vegetation;
 
-//CRM	// initialise fapar averaging array
-//CRM	if ( date.year == 0 && date.day == 0 && ! restart ) {
-//CRM		for (int i = 0; i<n_year_biomeavg; i++) {
-//CRM			patch.avg_ftot[i]   = 0. ;
-//CRM			patch.avg_fgrass[i] = 0. ;
-//CRM			patch.avg_fndlt[i]  = 0. ;
-//CRM			patch.avg_fbrlt[i]  = 0. ;
-//CRM			patch.avg_fshrb[i]  = 0. ;
-//CRM		}
-//CRM	}
-
 	// Loop through individuals of this patch
 	vegetation.firstobj();
 	while (vegetation.isobj) {
@@ -161,10 +132,9 @@ int update_fire_biome (Patch& patch, double lat) {
 	}
 	
 	if ( ftot < 0.00000001 ) {
-//WK maybe it should be -1, consistent with simfire_biome_mapping?
-//RLN indeed
 		return -1;
 	}
+
 	// re-normalize
 	fgrass /= ftot;
 	fndlt  /= ftot;
@@ -178,15 +148,6 @@ int update_fire_biome (Patch& patch, double lat) {
 	patch.avg_fndlt [idx] = fndlt  ;
 	patch.avg_fbrlt [idx] = fbrlt  ;
 	patch.avg_fshrb [idx] = fshrb  ;
-//CRM	if ( date.year == 0 ) {
-//CRM		for (int i = 0; i<n_year_biomeavg; i++) {
-//CRM			patch.avg_ftot  [i] = ftot   ;
-//CRM			patch.avg_fgrass[i] = fgrass ;
-//CRM			patch.avg_fndlt [i] = fndlt  ;
-//CRM			patch.avg_fbrlt [i] = fbrlt  ;
-//CRM			patch.avg_fshrb [i] = fshrb  ;
-//CRM		}
-//CRM	}
 	
 	// generate running avereage 
 	ftot   = 0.;
@@ -207,8 +168,6 @@ int update_fire_biome (Patch& patch, double lat) {
 	fbrlt  /=  (double)n_year_biomeavg;
 	fshrb  /=  (double)n_year_biomeavg;
 
-//WK: remove 'and' in next line; also note above about land use
-//RLN I think, I removed what might be confusing, no?
 	if (ftot<0.1 && fabs(lat)<50.0) {
 		biome=8; } // barren or sparsely vegetated
 	else if (ftot<0.1   && fabs(lat)>=50.0) {
@@ -232,13 +191,6 @@ int update_fire_biome (Patch& patch, double lat) {
 	return biome;
 }
 
-//WK state a purpose and explain why is this mapping needed given that the
-//WK routine above uses FPAR of different vegetation types to determine
-//WK the SIMFIRE biome
-//WK Find it confusing that there seem to be two ways of generating biome
-//WK information - do they exist side by side, is there a switch in the ins
-//WK file to choose between them etc., etc. - please explain
-//RLN we will only use the biome-updating from LPJ-GUESS parameters. The rest was legacy code.
 void simfire_biome_mapping(Gridcell& gridcell) {
 
 	/* Called by: simfire_accounting_gridcell (local)
@@ -249,70 +201,8 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 	   vegetation. 
 	*/
 
-//CRM	// IGBP:
-//CRM	//  0 Water bodies
-//CRM	//  1 Evergreen Needleleaf Forest % 1: >60% cover, height>2m
-//CRM	//  2 Evergreen Broadleaf Forest % 2: >60% cover, height>2m
-//CRM	//  3 Deciduous Needleleaf Forest % 3: >60% cover, height>2m
-//CRM	//  4 Deciduous Broadleaf Forest % 4: >60% cover, height>2m
-//CRM	//  5 Mixed Forest % 5: >60% cover, height>2m, no forest type>60% cover
-//CRM	//  6 Closed Shrubland % 6: >60% woody cover, height<2m
-//CRM	//  7 Open Shrubland % 7: 10-60% woody cover, height<2m
-//CRM	//  8 Woody Savanna % 8: 30-60% tree cover, height>2m, herbaceous or other understory
-//CRM	//  9 Savanna % 9: 10-30% tree cover, height>2m, herbaceous or other understory
-//CRM	// 10 Grassland % 10: <10% tree and shrub cover
-//CRM	// 11 Permanent Wetland % 11: mixture of water and herbaceous or woody vegetation
-//CRM	// 12 Cropland % 12
-//CRM	// 13 Urban and Built-Up % 13
-//CRM	// 14 Cropland/Natural Vegetation Mosaic % 14 none of forest, shrubland, cropland, 
-//CRM	//    grassland >60% cover
-//CRM	// 15 Permanent Snow and Ice % 15
-//CRM	// 16 Barren or Sparsely Vegetated % 16: <10% vegetation cover all year
-//CRM	// 17 Unclassified / No data
-//CRM	
-//CRM	// IGBP2BIOME MAPPING:
-//CRM	// vegetation formation (should be derived from inputs to function)
-//CRM	// -1 No vegetation
-//CRM	//  0 Cropland/Urban/Natural Vegetation Mosaic (IGBP 12-14)
-//CRM	//  1 Needleleaf forest (IGBP 1,3): >60% cover, height>2m
-//CRM	//  2 Broadleaf forest (IGBP 2,4): >60% cover, height>2m
-//CRM	//  3 Mixed forest (IGBP 4): >60% cover, height>2m, none >60%
-//CRM	//  4 Shrubland (IGBP 6,7 and latitude<50): >10% woody cover, height<2m
-//CRM	//  5 Savanna or Grassland (IGBP 8-10): herbaceous component present, <60% tree cover
-//CRM	//  6 Tundra (IGBP 6,7,16 and latitude>=50): height<2m
-//CRM	//  7 Barren or Sparsely Vegetated (IGBP 16 and latitude<50): <10% vegetation cover
-//CRM	//
-//CRM
-//CRM	// mapping IGBP -> simfire-biomes
-//CRM	const double igbp2simfirebiome[2][18] = {
-//CRM		{ -1, 1, 2, 1, 2, 3, 4, 4, 5, 5, 5,-1, 0, 0, 0,-1, 7, -1 },  //  ! LAT  < 50 
-//CRM		{ -1, 1, 2, 1, 2, 3, 6, 6, 5, 5, 5,-1, 0, 0, 0,-1, 6, -1 }}; //  ! LAT >= 50
-
 	Climate& climate = gridcell.climate;
-//CRM
-//CRM	// Regions with dedicated parameter optimisation for SIMFIRE
-//CRM	// 0: global
-//CRM	// 1: Europe
-//CRM	// 2: AUS-NZ
-//CRM
 
-	// determine gridcell's simfire biome
-	// At start of spinup use IGBP
-	//WK where does the IGBP class come from?
-	//RLN Removed. 
-//CRM	double lat = gridcell.get_lat();
-//CRM	if ( date.year == 0 && date.day == 0 ) {
-//CRM		if (abs(lat) >= 50.) {
-//CRM			climate.simfire_biome  = igbp2simfirebiome[1][gridcell.igbp_class];
-//CRM		}
-//CRM		else {
-//CRM			climate.simfire_biome  = igbp2simfirebiome[0][gridcell.igbp_class];
-//CRM		}
-//CRM	}
-//CRM	//WK explain what is meant by "biome-shift" and by "later"
-//CRM	// later use biome-shift
-//CRM	else {
-//CRM		int nobjs=0;
 	std::vector<int> biomes;
 	Gridcell::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
@@ -325,7 +215,6 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 			biomes.push_back(update_fire_biome(patch, gridcell.get_lat()));
 			stand.nextobj();
 		}
-		//CRM			nobjs+=stand.nobj;
 		++gc_itr;
 	}
 		
@@ -344,25 +233,9 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 
 	for (biome=0;biome<NFIREBIOMES && count[biome]<count_max;biome++) {
 	}
-	//if(date.year>500) dprintf("count a1 %d tot %d biome %d \n",count[1],nobjs,biome);
-//CRM	if ( ((double)count[1]/(double)nobjs)>0.33) {
-//CRM		biome = 1;
-//CRM		//if(date.year>500) dprintf("count b1 %d tot %d biome %d \n",count[1],nobjs,biome);
-//CRM	}
 	// BLAZE-biome is -1 of SIMFIRE-biome classifcation
 	climate.simfire_biome  = biome - 1;
-//CRM}
 }
-
-//==============================================================================
-//WK state that before the earliest time point ('poptime') we use constant values
-//WK and after the last a linear extrapolation using the last two entries
-//WK Maybe also make clear that these are historical data, I have
-//WK also gridded scenario fields every ten years until 2100
-//WK (but this would require an option for the choice of scenario)
-// INTERPOLATE HYDE 3.1 POPULATION DENSITY BETWEEN TIME-STEPS
-//==============================================================================
-//RLN We will not provide future scenarios. 
 
 void simfire_update_pop_density(Gridcell& gridcell) {
 
@@ -410,8 +283,6 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 	
 
 /// Called each day from dailyaccounting
-//WK I think this has been implemented very well here!
-//RLN Thanks :)
 void simfire_accounting_gridcell(Gridcell& gridcell) {
 	
 	/* Called by: dailyaccounting_gridcell   (driver.cpp)
@@ -450,7 +321,6 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 			climate.ann_max_fapar = 0.5;	
 		} 
 		else {
-//CRM			climate.recent_max_fapar[a] = climate.cur_max_fapar;
 			double avg = 0.;
 			for(int i=0;i<avg_interv_fapar;i++) { 
 				avg += climate.recent_max_fapar[i];
@@ -544,15 +414,7 @@ double simfire_ba(Climate& climate, Gridcell& gridcell) {
 	   Calls    :  -
 	   Calculate burned area in ha following Knorr 2014. 
 	*/
-//WK See comments on ignitions vs. burned area above
-//WK Make comment here on how the SIMFIRE region is set
-//WK Maybe also explain here that SIMFIRE only predicts
-//WK the annual mean burned area, and that the seasonal cycle
-//WK at monthly time steps (?) is set from observations
-//WK obtained from ?
 
-//CLN I thought I got this from you. Will follow uop on this. 
-//RLN I will remove the two non-global cases but at this stage I can't make changes to the branch. 
 	// Regions with dedicated parameter optimisation for SIMFIRE
 	// 0: global
 	// 1: Europe
@@ -587,10 +449,6 @@ double simfire_ba(Climate& climate, Gridcell& gridcell) {
 	if (climate.simfire_biome == -1) return 0.;
 
 	// fPAR correction Knorr
-//WK Needs some explanation: the FPAR correction is used
-//WK when GUESS generates the FPAR, but not when observed
-//WK FPAR is used to compute burned area
-//RLN This should have been used all along...
 	const double fpar_corr1 = 0.428;
 	const double fpar_corr2 = 0.148;
 
@@ -603,35 +461,10 @@ double simfire_ba(Climate& climate, Gridcell& gridcell) {
 		pow((scalar * climate.max_nesterov), c[ri]) *
 		exp(e[ri] * gridcell.pop_density);
 
-	//CLNdprintf("sim ba %f fapar %f  popd %f biome %d \n",ba ,fpar_cor, gridcell.pop_density,climate.simfire_biome);
-	
-
-//CRM	// compute annual burned area
-//CRM	double ba = a[ri][climate.simfire_biome] * 
-//CRM		pow(climate.ann_max_fapar, b[ri]) *
-//CRM		pow((scalar * climate.max_nesterov), c[ri]) *
-//CRM		exp(e[ri] * gridcell.pop_density);
-//CRM	
-
 	// compute daily burnt_area
 	ba *= climate.monthly_fire_risk[date.month] /
 		(double)date.ndaymonth[date.month];
 
-//CRM	// disaggregate annual burnt area into sub-annual timescales
-//CRM	if (blaze_tstep == DAILY) {
-//CRM		ba *= climate.monthly_fire_risk[date.month] /
-//CRM			date.ndaymonth[date.month];
-//CRM	} 
-//CRM	else if (blaze_tstep == MONTHLY) {
-//CRM		ba *= climate.monthly_fire_risk[date.month];
-//CRM	} 
-//CRM	else if (blaze_tstep == SEASONAL) {
-//CRM		int s = (double)date.month / 3.0;
-//CRM		ba *=   climate.monthly_fire_risk[s*3  ] +
-//CRM			climate.monthly_fire_risk[s*3+1] +
-//CRM			climate.monthly_fire_risk[s*3+2];
-//CRM	}
-	
 	// keep track of area burnt so far this year
 	climate.acc_areaburnt += ba;
 

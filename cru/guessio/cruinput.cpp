@@ -335,9 +335,9 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 				mfrs[m]  = spinup_mfrs[m];
 				mwet[m]  = spinup_mwet[m];
 				mdtr[m]  = spinup_mdtr[m];
-				//CLN take out
-				mwind[m] = spinup_mwind[m]; //CLN = 18.+12.*sin((double)2*m*3.1415926/11.);
-				mrhum[m] = spinup_mrhum[m]; //CLN = 0.5;
+				
+				mwind[m] = spinup_mwind[m];
+				mrhum[m] = spinup_mrhum[m];
 			}
 			
 			if ( weathergenerator == INTERP ) {
@@ -372,37 +372,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 		}
 		else if (date.year < nyear_spinup + NYEAR_HIST) {
 
-			/*dprintf("m_wind %d ",date.year);
-			for (int m=0;m<12;m++) {
-				//CLN take out
-				dprintf("%f ",hist_mwind[date.year-nyear_spinup][m]);
-			}
-			dprintf("\n ");
-			dprintf("m_rhum %d ",date.year);
-			for (int m=0;m<12;m++) {
-				//CLN take out
-				dprintf("%f ",hist_mrhum[date.year-nyear_spinup][m]);
-			}
-
-			dprintf("\n ");
-			dprintf("m_prec %d ",date.year);
-			for (int m=0;m<12;m++) {
-				//CLN take out
-				dprintf("%f ",hist_mprec[date.year-nyear_spinup][m]);
-			}
-			dprintf("\n ");
-			dprintf("m_temp %d ",date.year);
-			for (int m=0;m<12;m++) {
-				//CLN take out
-				dprintf("%f ",hist_mtemp[date.year-nyear_spinup][m]);
-			}
-			dprintf("\n ");
-			dprintf("m_msun %d ",date.year);
-			for (int m=0;m<12;m++) {
-				//CLN take out
-				dprintf("%f ",hist_msun[date.year-nyear_spinup][m]);
-			}
-			dprintf("\n ");*/
 			// Historical period
 			if ( weathergenerator == INTERP ) {
 				// Interpolate monthly spinup data to quasi-daily values
@@ -430,22 +399,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 					      hist_mrhum[date.year-nyear_spinup],
 					      dtemp,dprec,dsun,ddtr,dwind,drhum);
 			}
-			/*			int ddd = 0;
-			for (int m=0;m<12;m++) {
-				if ( date.get_calendar_year() == 2012 ) {
-					dprintf("------------------\n");
-					dprintf("gwgen mnth ");
-					double gwmon = 0.;
-					for ( int dm=0; dm<date.ndaymonth[m]; dm++) {
-						gwmon += dprec[ddd];
-						dprintf(" %f", dprec[ddd]);
-						ddd++;
-					}
-					dprintf("\n");
-					dprintf("hist_gwgen 2012 %d %f \n",m,gwmon);
-					dprintf("hist_mprec 2012 %f \n",hist_mprec[date.year-nyear_spinup][m]);
-				}
-				}*/
 		}
 		else {
 			// Return false if last year was the last for the simulation
@@ -454,16 +407,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 
 		// Distribute N deposition
 		distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
-
-		/*CLNbool is_first_day = ( date.day == 0 && ( date.year == 0 || 
-			       ( restart && date.year == state_year ) ) );
-		if ( is_first_day && firemodel != NOFIRE ) {
-			if ( ignition == SIMFIRE || ignition == SIMGFED || ignition == PRESCRIBED ) {
-				simfire_input_module.getsimfiredata(gridcell, 
-				     climate.gridcell.get_lon(), climate.gridcell.get_lat());
-			}
-			}*/
-
 	}
 
 	// Send environmental values for today to framework
@@ -477,7 +420,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	// Nitrogen deposition
 	climate.dndep = dndep[date.day];
 
-	//CLN Tmin, Tmax for BLAZE
+	// Tmin, Tmax for BLAZE
 	if ( firemodel == BLAZE ) {
 		climate.tmin   = dtemp[date.day] - 0.5 * ddtr[date.day];
 		climate.tmax   = dtemp[date.day] + 0.5 * ddtr[date.day];

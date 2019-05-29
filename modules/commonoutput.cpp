@@ -82,9 +82,7 @@ CommonOutput::CommonOutput() {
 	if ( firemodel == BLAZE ) {
 		declare_parameter("file_aburntarea_out", &file_aburntarea_out, 300, "BLAZE burnt area output file");
 		declare_parameter("file_mburntarea_out", &file_mburntarea_out, 300, "BLAZE monthly burnt area output file");
-		//CRM		if ( ignition == SIMFIRE ) {
 		declare_parameter("file_simfireanalysis_out", &file_simfireanalysis_out, 300, "SIMFIRE analytics output");
-		//CRM}			   
 	}
 
 	declare_parameter("file_msoiltempdepth5", &file_msoiltempdepth5, 300, "Soil temperature output file (5cm depth)");
@@ -261,8 +259,6 @@ void CommonOutput::define_output_tables() {
 	// BLAZE burnt area 
 	ColumnDescriptors blaze_columns;
 	blaze_columns += ColumnDescriptor("BurntAr",        8, 5);
-//	ColumnDescriptors blzana_columns;
-//	blzana_columns += ColumnDescriptor("FFDI",        8, 5);
 
 	// SIMFIRE Analysis 
 	ColumnDescriptors simfireanalysis_columns;
@@ -381,14 +377,8 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_clitter,        file_clitter,        clitter_columns);
 
 	if ( firemodel == BLAZE ) {
-//CRM                if ( blaze_tstep == ANNUAL ) {
-//CRM			//			create_output_table(out_aburntarea,  file_annual_blaze_out,	blaze_columns);
-//CRM		} else {
-		create_output_table(out_aburntarea,	file_aburntarea_out,	     blaze_columns); 
-//CRM		}
-//CRM		//CLN		create_output_table(out_blzana,	file_blzana_out,	blzana_columns); 
-//CRM		if ( ignition == SIMFIRE ) 
-		create_output_table(out_simfireanalysis,  file_simfireanalysis_out,      simfireanalysis_columns);
+		create_output_table(out_aburntarea,	 file_aburntarea_out,	  blaze_columns); 
+		create_output_table(out_simfireanalysis, file_simfireanalysis_out, simfireanalysis_columns);
 	} else if ( firemodel == GLOBFIRM ) {
 		create_output_table(out_firert,         file_firert,         firert_columns);
 	}
@@ -1348,7 +1338,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_dens,   dens_gridcell);
 	outlimit(out,out_lai,    lai_gridcell);
 	outlimit(out,out_clitter,clitter_gridcell);
-	//CLN
+	//CLN HERE MONTHLY!!!!!
 	outlimit(out,out_aburntarea,     gridcell.climate.annual_areaburnt);
 	outlimit(out,out_simfireanalysis,  gridcell.climate.simfire_biome);
 	outlimit(out,out_simfireanalysis,  gridcell.climate.max_nesterov);

@@ -67,25 +67,6 @@ typedef enum {APIN, BPIN, LIMO, MYRC, SABI, CAMP, TRIC, TBOC, OTHR, NMTCOMPOUNDT
  */
 typedef enum {BLAZE, GLOBFIRM, NOFIRE} firemodeltype;
 
-//CRM/// Time step of fire model 
-//CRM/*	ANNUALY SEASONAL MONTHLY DAILY  fixed timesteps.(DEFAULT = Monthly)
-//CRM *	HYBRID   	 *default*      use shortest available timestep (automatically adjust to 
-//CRM *					source of ignition)
-//CRM */
-//CRMtypedef enum {ANNUAL, SEASONAL, MONTHLY, DAILY, HYBRID} blaze_tsteptype;
-//CRM
-//CRM/// Burned Area model setting. Only necessary if firemodel is BLAZE. Either use 
-//CRM/*	One of
-//CRM *	SIMFIRE 	use SIMFIRE for generate burnt area (DEFAULT)
-//CRM *	GFED31		use GFED v3.1 as source for burnt area
-//CRM *	SIMGFED		symbiosys of both. GFED31 where there's data, SIMFIRE else
-//CRM//WK I think prescribing burned area makes sense also for serious simulations
-//CRM//RLN Yes, It is not yet finalised. I'll take it out for the merge.
-//CRM *	PRESCRIBED	a way to prescribe Burnt Area for experimental purpose
-//CRM *	NOIGNITION	no fire model  
-//CRM */	
-//CRMtypedef enum {SIMFIRE, GFED31, SIMGFED, PRESCRIBED, NOIGNITION} ignitiontype;
-
 /// Type of weathergenerator used 
 /*      One of:
  *      GWGEN           Global Weather GENerator (needed by BLAZE, due to 
@@ -142,8 +123,6 @@ extern bool ifstochmort;
 /// Whether fire enabled
 //	CLN extern bool iffire;
 extern firemodeltype firemodel;
-//CRMextern blaze_tsteptype blaze_tstep;
-//CRMextern ignitiontype ignition;
 
 /// Whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
 extern bool ifdisturb;

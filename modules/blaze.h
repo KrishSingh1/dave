@@ -19,11 +19,8 @@
 #include "growth.h" //	for allometry
 #include "somdynam.h" // for lignin_to_n_ratio & metabolic_litter_fraction
 #include "simfire.h" 
-//CRM#include "gfed31.h"
 #include "plib.h"
 
-//WK explain a bit what this is
-//RLNfractions of c-pools being turned over 
 const double turnoverfract[13][5] = {
 	{ .0 , .0 , .05, .2 , .2 }, //   0 Stems       -> ATM
        	{ .0 , .0 , .15, .2 , .2 }, //   1 Branches    -> ATM
@@ -41,8 +38,6 @@ const double turnoverfract[13][5] = {
 	{ .0 , .0 , .1 , .8 , .8 }, //  12 Deadwood    -> ATM
 };
 
-//WK explain a bit what this is
-//RLN done.
 // fraction of life woody biomass that is branch
 const double fbranch   = 0.05;
 
@@ -67,8 +62,6 @@ int get_fli_index(double fli, bool is_sprouter);
 
 void get_firelineintensity(Patch& patch, Climate climate);
 
-//WK explain a bit what this is
-//RLN done
 // survival propabilities used  for different biomes 
 double surv_prob_boreal(double fli) ;
 double surv_prob_temp_nl(double dbh, double fli, double mass_cwd) ;

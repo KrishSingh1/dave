@@ -16,9 +16,6 @@
 
 #include "guess.h"
 
-//WK Why do the following two need to be declared here explicitly?
-//RLN because they are needed in blaze.cpp
-//WK Explain what they are and what they are used for. 
 // computes the fraction of leaf and root that goes to metabolic litter (used by BLAZE)
 double metabolic_litter_fraction(double lton);
 

@@ -414,6 +414,7 @@ void CFInput::init() {
 
 	extensive_precipitation = cf_prec->get_standard_name() == "precipitation_amount";
 	//CLN HERE TAKE OUT!
+	//CLN JOHAN: What is this?
 	extensive_precipitation = true;
 	// Read list of localities and store in gridlist member variable
 
@@ -541,8 +542,6 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	gridcell.climate.instype = cf_standard_name_to_insoltype(cf_insol->get_standard_name());
 
 	// Get nitrogen deposition, using the found CRU coordinates
-	//CLNndep.getndep(param["file_ndep"].str, cru_lon, cru_lat,
-	//CLN             Lamarque::parse_timeseries(ndep_timeseries));
 	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat,
 	             Lamarque::RCP60);
 	             //Lamarque::parse_timeseries(ndep_timeseries));
@@ -865,11 +864,6 @@ void CFInput::populate_daily_arrays(long& seed) {
 			double e    = dspecifichum[i] * dpres[i] / (0.378 * dspecifichum[i] + 0.622); 
 			drelhum[i]  = min(max(e / es * 100.,0.),100.) ;
 			
-			//CLNdprintf("CLN  dspecifichum[i] %f \n", dspecifichum[i] );
-			//CLNdprintf("CLN  dpres       [i] %f \n", dpres[i] );
-			//CLNdprintf("CLN  dtmax       [i] %f \n", dmax_temp[i] );
-			//CLNdprintf("CLN  dtmin       [i] %f \n", dmin_temp[i] );
-			//CLNdprintf("CLN  drelhum     [i] %f \n", drelhum[i] );
 			// [specific humidity] = fraction
 			// [pressure]          = Pa
 			// [Ti]                = K
@@ -881,7 +875,7 @@ void CFInput::populate_daily_arrays(long& seed) {
 			fail("BLAZE is switched on WITHOUT info on relative humidity!!!! \n" );
 		}
 	}
-	//CLNdprintf("dinsol year %f \n",dinsol[0]);
+
 	// Move to next year in spinup dataset
 
 	spinup_temp.nextyear();

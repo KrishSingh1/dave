@@ -567,20 +567,10 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	}
 
 	// Update fire related values
-//CRM	if (ignition == SIMFIRE) {
-//CRM		simfire_accounting_gridcell(gridcell);
-//CRM	}
-
 	if (firemodel == BLAZE) {
 		simfire_accounting_gridcell(gridcell);
 		blaze_accounting_gridcell(gridcell.climate);
 	}
-
-//CRM	// reset monthly precip 
-//CRM	if ( date.dayofmonth == 0 ) {
-//CRM		climate.mprec[date.month] = 0.0;
-//CRM	}
-//CRM	climate.mprec[date.month] += climate.prec; 
 
 	// On last day of month ...
 

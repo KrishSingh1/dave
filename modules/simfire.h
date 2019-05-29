@@ -1,6 +1,4 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-//WK looks like copied from blaze.h
-//WK maybe state that simfire is a sub-unit of blaze
 /// \file simfire.cpp
 /// \brief SIMFIRE - SIMple FIRE module to compute burnt area  
 ///
@@ -17,8 +15,7 @@
 #define LPJ_GUESS_SIMFIRE_H
 
 #include "guess.h"
-//WK these are the SIMFIRE routines that are used externally, right?
-//RLN yes
+
 // read input data for SIMFIRE
 void getsimfiredata(Gridcell& gridcell);
 // daily accounting for SIMFIRE

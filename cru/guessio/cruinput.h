@@ -21,10 +21,6 @@
 #include "lamarquendep.h"
 #include "externalinput.h"
 
-//CLN#include "simfire.h"
-//CLN#include "SimfireInput.h"
-//CLN#include "gfed31_burned_area.h"
-
 /// An input module for CRU climate data
 /** This input module gets climate data from binary archives built from CRU-NCEP.
  */

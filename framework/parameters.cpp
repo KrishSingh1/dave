@@ -97,8 +97,6 @@ bool textured_soil;
 bool disturb_pasture;
 bool grassforcrop;
 
-//WK the change from state to i/ostate, is this related to BLAZE?
-//RLN No, it is not. I have taken it out
 xtring state_path;
 bool restart;
 bool save_state;
@@ -215,8 +213,6 @@ void initsettings() {
 
 	//CLN iffire=false;
 	firemodel=BLAZE;
-//CRM	ignition=SIMFIRE;
-//CRM	blaze_tstep=HYBRID;
 	weathergenerator=GWGEN;
 	ifcalcsla=true;
 	ifdisturb=false;
@@ -440,10 +436,6 @@ void plib_declarations(int id,xtring setname) {
 			"Generic patch-destroying disturbance interval (years)");
 		declareitem("firemodel",&strparam,12,CB_FIREMODEL,
 			"Fire model mode (\"BLAZE\", \"GLOBFIRM\", \"NOFIRE\" , \"\")" );
-//CRM		declareitem("ignition",&strparam,12,CB_IGNITION,
-//CRM			    "ignition (\"SIMFIRE\", \"GFED31\", \"SIMGFED\", \"PRESCRIBED\")" );
-//CRM		declareitem("blaze_tstep",&strparam,12,CB_BLAZE_TSTEP,
-//CRM			"Blaze time-step mode (\"ANNUAL\", \"SEASONAL\", \"MONTHLY\" , \"DAILY\" , \"HYBRID\" )" );
 		declareitem("ifdisturb",&ifdisturb,1,CB_NONE,
 			"Whether generic patch-destroying disturbance enabled (0,1)");
 		declareitem("ifcalcsla",&ifcalcsla,1,CB_NONE,

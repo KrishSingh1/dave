@@ -901,8 +901,6 @@ public:
 	/// burned area from either SIMFIRE or GFED
 	double areaburnt;
 	/// accumulated burned area from either SIMFIRE or GFED for tstep < 1a
-//WK why 'acc'?
-//RLN acc for accumulated as above.
 	double acc_areaburnt;
 	/// prescribed burned area from file
 	double prescribed_ba;
@@ -1014,10 +1012,6 @@ public:
 	double mprec_petmin20;
 	/// 20-year running average of maximum monthly precipitation to PET ratios
 	double mprec_petmax20;
-
-//WK is this from BLAZE or SIMFIRE?
-//RLN Just for testing. Will be removed.
-//CRM	double mprec[12];
 
 	Historic<double, 20> hmtemp_20[12];
 	Historic<double, 20> hmprec_20[12];
@@ -1218,9 +1212,6 @@ public:
 		RA,
 		/// Isoprene (mgC/m2)
 		ISO,
-//WK AET? In trunk there seem to be lots of different monoterpenes
-//WK There was a reference to fire from MT here
-//RLN I took it out. probably sth I tried and abandoned.
 		/// Monoterpene (mgC/m2)
 		MT_APIN,
 		MT_BPIN,
@@ -4013,8 +4004,6 @@ public:
 	double leaf2lit, wood2str, wood2fwd, wood2cwd, wood2dwd;
 	/// litter to atm
 	double litf2atm, lfwd2atm, lcwd2atm, ldwd2atm;
-	//WK not really biome shifting but rather biome mapping using vegetation distribution from FAPAR
-	//RLN Ok, changed.
 	/// Storage for averaging of different Fpars for biome mapping in Simfire
 	double avg_fgrass[n_year_biomeavg];
 	double avg_fndlt[n_year_biomeavg];

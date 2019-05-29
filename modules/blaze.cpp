@@ -1,9 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file blaze.cpp
 /// \brief BLAZE (BLAZe induced biosphere-atmosphere flux Estimator) 
-//WK maybe some more explanation what BLAZE does, going through the code
-//WK below it seems it also does emissions (carbon and chemical species)
-//RLN This will be explained in the reference.doc. 
 ///
 /// \author Lars Nieradzik
 /// $Date: 2017-01-24 17:03:10 +0100 (Tue, 24 Jan 2017) $
@@ -34,9 +31,6 @@
 #include "guess.h"
 #include "blaze.h"
 
-//WK does vegdynam.cpp do emissions, too, or what do you mean by components?
-//WK Maybe a pointer to which subroutine is meant
-//RLN I will remove this anyways. Question is, whether we leave it for now or remove it?
 // Internal help function for splitting up nitrogen fire fluxes into components
 // Copy of report_fire_nfluxes() as used in fire() in vegdynam.cpp
 void report_fire_flux_n(Patch& patch, double nflux_fire) {
@@ -48,8 +42,6 @@ void report_fire_flux_n(Patch& patch, double nflux_fire) {
 
 /// Compute area of Gridcell
 double pixelsize(double latpos,double longsize,double latsize,int postype) {
-//WK well done! I always found this confusing that sometimes pixels are referred to
-//WK by the centre, sometimes by the NW corner etc.
 
 	// taken from aslice.cpp in the utilities trunk
 
@@ -89,8 +81,6 @@ double pixelsize(double latpos,double longsize,double latsize,int postype) {
 
 void blaze_accounting_gridcell(Climate& climate) {
 
-//WK this kind of preamble is really useful, especially the cross-references!
-//RLN Thanks ;)
 	/* Called by:  dailyaccounting_gridcell in driver.cpp 
 	   Calls    :  available_fuel (local)
 	               blaze_burned_area (local)
@@ -99,8 +89,6 @@ void blaze_accounting_gridcell(Climate& climate) {
 	*/
 
 	const int average_span = 3; // time-span over which annual rainfall is averaged
-//WK what is 'span'?
-//RLN I hope, that's better
 
 	// initialise fields
 
@@ -137,13 +125,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 		}
 		
 	}
-//WK does this interact in any way with SIMFIRE region=Australia?
-//WK could maybe be useful to swich this off for global SIMFIRE regions
-//WK so as not to create any discontinuity/inconsistency?
-//WK Or is this an intermediate fix for something that will later be
-//WK included as a declaration in the instructions file.
-//WK (Avoid hard-wired dependencies!?)
-//RLN Will have to think about...
+
 	// Set Australian trees to be sprouters
 	if (date.year == 0 && date.day == 0 ) {
 		double lat = climate.gridcell.get_lat();
@@ -163,12 +145,10 @@ void blaze_accounting_gridcell(Climate& climate) {
 		else {
 			climate.k_tun_litter = 1.1; //k_tun_trp_lit;
 		}
-		//CRM		climate.k_tun_litter = max(cos(lat*1.7),0.) * 0.85 + 0.25 ;
 	}
              
 	// Update running mean of average annual rainfall
-//WK running mean over what time span? Where defined?
-//RLN over average_span, define in the top of this routine.
+
 	climate.cur_rainf += climate.prec;
 	if (date.islastday && date.islastmonth) {
 		double wght; // used to compute running average of ann rainfall
@@ -182,9 +162,6 @@ void blaze_accounting_gridcell(Climate& climate) {
 		climate.cur_rainf   = 0.0;
 	}
 
-//WK Clear!
-//RLN It is cleared, when there is no rain and thus on next day dslr >0, so
-//RLN then last_rainfall will be set to the next day's rainfall that is >0.01
 	// Keep track of Days-since-last-rainfall and accumulated last rainfall
 	if (climate.prec > 0.01) {
 		if (climate.dslr > 0) {
@@ -198,12 +175,12 @@ void blaze_accounting_gridcell(Climate& climate) {
 	else climate.dslr++;
 
 	// Update the Keetch-Byram-Drought-Index (Keetch et al. 1968)
-//WK Maybe provide a reference for this index
-//CLN add ref 
 	double v        = climate.u10   ; // Wind speed at 10m height [km/h] (for KBDI)
 	double rh       = climate.relhum; // relative humidity [%] (for KBDI)         
 	double t        = climate.tmax  ; // day's max temperature [deg C] (for KBDI) 
-
+	dprintf("year ===== %d\n",date.year);
+	dprintf("wind %f \n", v); 
+	dprintf("rh   %f \n", rh); 
 	v *= 3.6; // m/s -> km/h
 	// Gust parameterisation following ...
 	v = ( 214.7 * pow(  v + 10. ,-1.6968)  + 1. ) * v;
@@ -224,7 +201,6 @@ void blaze_accounting_gridcell(Climate& climate) {
 	}
 	climate.kbdi = max(0.0,climate.kbdi + dkbdi);
 
-//WK Maybe provide a reference
 	// ...and McArthur-Drought-Factor D ... (Noble, 1980)
 	double mcarthur_d = .191 * ( climate.kbdi + 104. ) * pow( climate.dslr + 1.,1.5 ) / 
 		( 3.52 * pow( climate.dslr + 1. ,1.5 ) + climate.last_rainfall - 1. );
@@ -238,10 +214,6 @@ void blaze_accounting_gridcell(Climate& climate) {
 	// monthly ffdi max
 	int dayx = date.day % 30;
 	climate.months_ffdi[dayx] = mcarthur_fire_index;
-        // save old index
-	//CRM        double old_mfi = climate.mcarthur_fire_index;
-        //CRM        climate.mcarthur_fire_index = max(mcarthur_fire_index,old_mfi);
-
 	for (int x=0; x<30;x++) {
 		if ( climate.mcarthur_fire_index < climate.months_ffdi[x] ) 
 			climate.mcarthur_fire_index = climate.months_ffdi[x];
@@ -249,7 +221,6 @@ void blaze_accounting_gridcell(Climate& climate) {
 
 	// get burned area 
 	blaze_burned_area(climate);
-	//CLNif (date.year > 500 ) dprintf("a %d d %d ba %f ffdi %f mnest %f \n",date.year,date.day,climate.areaburnt ,climate.mcarthur_fire_index,climate.max_nesterov );
 }		     
 
 double available_fuel (Patch& patch,int fli_index, double k_tun_litter)  {
@@ -260,18 +231,11 @@ double available_fuel (Patch& patch,int fli_index, double k_tun_litter)  {
 	   compute the amount of fuel that is readily available 
 	   for burning 
 	*/
-//WK Is the fuel combusted the output, and in what units is it provided?
-//WK In general it would be really good to have the units for everything
-//RLN I fully agree. 
-//CLN describe!
 
 	get_combustion_rates(patch,fli_index,k_tun_litter);
 
-//WK What is transitional litter?
-//RLN Last year's litter that is yet to fall (this is sth in vegdynam that I find confusing).
-//RLN The litter produced last year will stepwise be added to the real litter pools 
 	// transitional-litter available to burn 
-	//RLN i.e. last year's litter that is still to fall.
+	// i.e. last year's litter that is still to fall.
 	double trans_litter_leaf  = 0.;
 	double trans_litter_sap   = 0.;
 	double trans_litter_heart = 0.;
@@ -304,15 +268,14 @@ double available_fuel (Patch& patch,int fli_index, double k_tun_litter)  {
 	return available_fuel;
 }
 
-//WK Explain FLI index (source, purpose, definition, typical range)
 int get_fli_index(double fli, bool is_sprouter) {
 
 	/* Called by:  get_firelineintensity (local)
 	               get_combustion_rates (local)
 	   Calls    :  -
 	   get appropriate FLI category for look-up tables 
-//RLN	   depending on computed potential FLI the index corresponding to the entries in 
-//RLN      the look-up-tables is returned (turnoverfrac in blaze.h)
+	   depending on computed potential FLI the index corresponding to the entries in 
+	   the look-up-tables is returned (turnoverfrac in blaze.h)
 	*/
 
 	// determine intensity category for combustion-lookup-tables
@@ -362,8 +325,6 @@ void get_firelineintensity(Patch& patch, Climate climate) {
 
 	for ( int i=0; i<4; i++ ) {
 
-//WK Here it is called fli_index, above FLI Index, makes it hard to follow/search code
-//RLN changed to fli_index.
 		// get available fuel for current fli index (fli_index) and convert kg/m2 to g/m2
 		w = available_fuel(patch,fli_index,climate.k_tun_litter) * kg2g;
 		// check whether there is enough fuel to ignite a fire
@@ -389,79 +350,14 @@ void get_firelineintensity(Patch& patch, Climate climate) {
 		if (i >= fli_index ) break;
 	}
 	
-//WK this needs some explanation
-//RLN removed.
 	patch.fli = fli;
 
 }
  
-//CRMbool burntime() { 
-//CRM
-//CRM//WK This is interesting. Does it mean that blaze sets fire probability
-//CRM//WK to zero under certain conditions? Maybe could give some examples.
-//CRM//WK I am also wondering how you make sure that the burned area is then
-//CRM//WK consistent with SIMFIRE, because SIMFIRE might give a finite
-//CRM//WK burning probability for the given time
-//CRM//RLN This routine has been/will be removed as there will be no flexibility in timesteps and inputs
-//CRM//RLN i.e. there will only be SIMFIRE on a daily timestep. Burntime was about determining whether 
-//CRM//RLN under the given settings it was time to actually burn or just do accounting.
-//CRM	/* Called by: blaze (local)
-//CRM	              blaze_burned_area (local) 
-//CRM	   Calls    : sendmessage (plib)
-//CRM	   function to determine whether this day is appropriate for burning w.r.t. to 
-//CRM	   given ignition model/data-set, desired blaze_tstep and current date
-//CRM	   returns TRUE if THIS timestep is a burn-timestep or FALSE else
-//CRM	*/
-//CRM	
-//CRM	// current year
-//CRM	int cyear = date.get_calendar_year(); 
-//CRM
-//CRM	if (blaze_tstep == DAILY) {
-//CRM		// GFED3.1 only!!!
-//CRM		if (ignition == GFED31 && (cyear < 2003 || cyear > 2011) && 
-//CRM		    date.islastday && date.islastmonth) {
-//CRM			sendmessage("Warning","No daily burned area available for this year");
-//CRM		}
-//CRM		return true;
-//CRM	}
-//CRM	else if (blaze_tstep == MONTHLY && date.islastday) {
-//CRM		if ( ignition == GFED31 && (cyear <= 1996 || cyear >= 2012 )) {
-//CRM			sendmessage("Warning","No monthly burned area available for this month");
-//CRM		}
-//CRM		return true;
-//CRM	}
-//CRM	else if (blaze_tstep == ANNUAL && date.islastday && date.islastmonth) {
-//CRM		if ( ignition == GFED31 && (cyear <= 1996 || cyear >= 2012 )) {
-//CRM			sendmessage("Warning","No GFED31 data available for this year");
-//CRM		}
-//CRM		return true;
-//CRM	}
-//CRM	else if (blaze_tstep == SEASONAL && date.islastday &&  
-//CRM		 (date.month == 2 || date.month == 5 || date.month == 8 || date.month == 11)) {
-//CRM		sendmessage("Warning","Please check end of seasons!!!!");
-//CRM		if ( ignition == GFED31 && (cyear <= 1996 || cyear >= 2012 )) {
-//CRM			sendmessage("Warning","No monthly GFED31 data available for this year");
-//CRM		}
-//CRM		return true;
-//CRM	}
-//CRM	else if (blaze_tstep == HYBRID ) {
-//CRM		// this combines GFED 3.1 and SIMFIRE ignition 
-//CRM		if (ignition == SIMGFED) {
-//CRM			sendmessage("Error","HYBRID+SIMGFED not yet imlemented burntime()!");
-//CRM			return false;
-//CRM		}
-//CRM	}
-//CRM	else {
-//CRM		return false;
-//CRM	}
-//CRM}
-
 double surv_prob_boreal(double fli) {
 	/* Called by: survival_probability (local)
 	   Compute survival probability for boreal forest 
 	   based on Dalziel et al. 2008
-//WK Is there anywhere in the code/documentation where the full references are given?
-//RLN See bottom of this file
 	*/
 	
 	double surv_prob_boreal = exp(-fli/500.);
@@ -499,8 +395,7 @@ double surv_prob_temp_bl(double dbh, double fli, bool res) {
 	   following Hickler et al. 2004, Using a generalized
 	   vegetation model to simulate vegetation dynamics in NE USA
 	*/
-//WK Why is this called 'temp_bl' but than only refers to Australia savannas?
-//RLN Sorry, that was copy n paste from above. See new description.
+
 	// Fire resiliance
 	double R;
 	if ( res ) {
@@ -576,12 +471,6 @@ double surv_prob_Sprouter_Savanna(double height, double fli) {
 	   fli   : fire-line intensity from BLAZE [kW/m]
 	*/
 
-//WK See comment above for the special handling of Australia,
-//WK requires some care to make sure no inconsistencies / discontinuitiies
-//WK are created for global simulations. This is a general comment, of course!
-//RLN renamed it sprouter_savanna now. Problem with sprouter/seeder distinction remains
-//RLN i.e. where and when do we set trees to be sprouters?
-
 	// height of max survival probability [m]
 	// taller trees are vulnerable due to age
 	double const max_prob_hgt = 8.5;
@@ -613,12 +502,6 @@ double surv_prob_Sprouter_Savanna(double height, double fli) {
 }
 
 double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
-//WK Again, I think we are running into some confusion here, SIMFIRE uses aggregates 
-//WK of IGBP biomes, BLAZE checks of Australia, SIMFIRE simulated its own biomes,
-//WK and then we have different mortality/survival regions (biomes!?)
-//RLN This has been redone completely. Please, check if you find it more consistant.
-//RLN The population-mode is now only depending on simfire biomes and elsefor the other modes
-//RLN the Physiognomy is used first and then biome to select appropriate mortality
  
 	// Depending on biome and geolocation the appropriate survival_probabilities
 	// will be selected
@@ -636,7 +519,7 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 	double dbh   = pow(height * 100. / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3) / 100.;
 
 	int biome = climate.simfire_biome;
-	//CRM	if ( ignition == SIMFIRE && vegmode == POPULATION ) {
+
 	if ( vegmode == POPULATION ) {
 
 		// Temperate Needleleaf
@@ -742,13 +625,9 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 void get_combustion_rates(Patch& patch, int fli_index, double k_tun_litter) {
 
 	/* Called by: blaze (local)
-//WK do you mean 'live vegetation, litter pools and atmosphere'?
-//RLN yes
 	   compute the relative flux rates [frac.] between live vegetation, litter pools and
 	   atmosphere given current fire-line intensity
 	*/
-//WK units?
-//RLN see above
 
 	// relative fluxes from wood to atmosphere and litter pools
 	patch.wood2atm = (1.-fbranch-fbark) * turnoverfract[ 0][fli_index] +
@@ -780,8 +659,6 @@ void blaze(Patch& patch, Climate& climate) {
 		      allometry (growth.cpp)
 		      negligible (guessmath.h)
 	  
-//WK i.e. of the input 'climate', only ba is used?
-//RLN no also some other parameters that are needed on climate/gridcell-level.
 	   The combustion part of the model. Here, all fire related fluxes
 	   are computed and the changes applied to the affected pools.
 	   This routine handles all current available 
@@ -818,8 +695,6 @@ void blaze(Patch& patch, Climate& climate) {
        
 	get_combustion_rates(patch,fli_index,climate.k_tun_litter);
 
-//WK flux = carbon fluxes? remind us of the units!
-//RLN Done.
 	// compute fluxes FROM soil litter pools to atmosphere first! [kg(C)/m2]
 	// since they are patch-specific only and the fluxes INTO 
 	// soil litter will be added in loop over INDIVIDUALS below
@@ -849,7 +724,7 @@ void blaze(Patch& patch, Climate& climate) {
  	
 	// report C litter -> atm fluxes
 	patch.fluxes.report_flux(Fluxes::FIREC, cmtb2atm + cstr2atm + cfwd2atm + ccwd2atm);
-
+	dprintf("fc lux %f \n", cmtb2atm + cstr2atm + cfwd2atm + ccwd2atm);
 	// report N litter -> atm fluxes
 	report_fire_flux_n(patch, nmtb2atm + nstr2atm + nfwd2atm + ncwd2atm );
        
@@ -967,8 +842,6 @@ void blaze(Patch& patch, Climate& climate) {
 		}
 	}
 		
-//WK What is 'transitional litter', and why is litter written with all capitals?
-//RLN as described above. CAPS was an error. 
 	// transitional litter (last year's litter still to fall) removed by area burned (ab)
 	// total fluxes out of patch
 	double cmtb2atm_t = 0.; 
@@ -1042,20 +915,9 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	   Applies the fluxes computed in blaze on the class::Individual
 	   level affecting the live pools, transitional 
 	   litter pools and influx to CENTURY litter pools.
-//WK explain 'killed in blaze'
-//RLN I hope that's better
 	   In INDIVIDUAL and COHORT mode the actual biomass killed in
 	   the routine "blaze" is used to compute the fraction of the live vegetation pools  
 	   while in POPULATION mode the fraction equal to burnt area is used.
-//WK maybe say: fraction of surviving individuals in INDIVIDUAL or COHORT
-//WK mode. In population MODE it will be interpreted as burned area.
-//WK Because the cohort mode also knows individuals, they are just treated
-//WK as the same in each age classe (?).
-//WK However, how is survival fraction and burned area related, and do you mean
-//WK that blaze passes burned area in this case?
-//RLN On the gridcell scale BA is the propability for a tree to be subject to stochastic death,
-//RLN the individual (FLI)-depending survival times (1 - burned area)
-//RLN is that better?   
 	   Input frac_survive means fraction of surviving INDIVIDUAL/COHORT
 	   in respective mode or will be (1-burned area) in case of POPULATION 
 	   mode.
@@ -1155,8 +1017,7 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	// ROOT
 	// assume the same percentage of root biomass killed as for total 
 	// above ground woody biomass
-//WK don't understand 'as for total above ground woody biomass'
-//RLN done
+
 	double lossratio = 0.;
 	if ( cmass_sap + cmass_heart > 0. ) {
 		lossratio = (csapw2atm + csapw2str + csapw2fwd +
@@ -1291,11 +1152,6 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 
 void blaze_burned_area(Climate& climate) {
 
-//WK The purpose of this subroutine seems to be to update area burnt,
-//WK but why then is it called 'ignition'?
-//RLN for legacy reasons. I renamed it.
-//RLN also after taking out all the extra-stuff, there is not much left..
-//RLN Put somewhere else??
 	/* Called by: blaze_accounting_gridcell (local)
 	   Calls    : simfire_ba (simfire.cpp)
 	   provides burned area at given timestep by
@@ -1305,61 +1161,9 @@ void blaze_burned_area(Climate& climate) {
 
 	Gridcell& gridcell = climate.gridcell;
 
-	// initialisation of ba
-//WK this below I don't understand, please explain what is meant/reasons
-//WK looks like ba is set to zero at beginning of run
-//RLN correct. I removed it. 
-//RLN Also, it looks odd that this routine now only has one call, but I would like to have some of 
-//RLN the stuff below in my own branch and in a later version. Hmmm.... any thoughts?
- 
-//CRM	// ba will be zeroed in blaze after fire has occurred 
-//CRM	if ( date.day == 0 && date.year == 0 ) {
-//CRM		climate.areaburnt = 0.0;
-//CRM	}
-
 	// reset annual cumulative values
-//WK 'cumulative' ?
-//RLN yes.
-//CLN move to accounting
-//CRM	if (date.day == 0) {
-//CRM		climate.annual_areaburnt = 0.0;
-//CRM		for (int i = 0; i < 12; i++) {
-//CRM			climate.monthly_areaburnt[i] = 0.0;
-//CRM		}
-//CRM	}
 
-//CRM	if ( burntime() ) {
-//CRM		if ( ignition == PRESCRIBED ) {
-//CRM			double tfac = 1. ;
-//CRM			if ( blaze_tstep == DAILY ) {
-//CRM				tfac = climate.monthly_fire_risk[date.month] /
-//CRM					date.ndaymonth[date.month];
-//CRM			}
-//CRM			else if ( blaze_tstep == MONTHLY ) {
-//CRM				tfac = climate.monthly_fire_risk[date.month];
-//CRM			}
-//CRM			else if ( blaze_tstep == ANNUAL ) {
-//CRM				tfac = 1.;
-//CRM			}
-//CRM			else {
-//CRM				fail ("PRESCRIBED Burning only available for daily, monthly, annual!");
-//CRM			}
-//CRM			climate.areaburnt = climate.prescribed_ba * tfac ;	
-//CRM		}
-//CRM		else {
-//CRM			// Check who does the burned area
-//CRM			int cy = date.get_calendar_year();
-//CRM			if ( ignition == SIMFIRE || 
-//CRM			     ( ignition == SIMGFED && ( cy < 1997 || cy > 2011 ))) {
 	climate.areaburnt = simfire_ba(climate, gridcell);
-//CRM			}
-//CRM			else if ( ignition == GFED31 || 
-//CRM				  ( ignition == SIMGFED && ( cy >= 1997 || cy <= 2011 ))) {
-//CRM				// 
-//CRM				climate.areaburnt += gfed31_ba(gridcell);
-//CRM			}
-//CRM		} 
-//CRM	}
 
 } 
 
@@ -1368,13 +1172,6 @@ void blaze_driver(Patch& patch, Climate& climate) {
 	/* Called by: simulate_day (framework.cpp)
 	   Calls    : get_firelineintensity (local)
 		      blaze (local)
-//WK From the name, it looks like it is the main subroutine of
-//WK BLAZE, so is this really all? Maybe provide more details
-//WK of what it does by itself and what it delegates,
-//WK including overall purpose
-//WK explain FLI
-//RLN I have renamed them. This was a legacy effect. 
-
            This is the driver routine for BLAZE. It does patch-wise accounting 
 	   and calls the main blaze routine
 	*/

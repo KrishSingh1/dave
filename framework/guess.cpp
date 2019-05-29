@@ -28,8 +28,6 @@ Pftlist pftlist;
 
 // emission ratios from fire (NH3, NOx, N2O, N2) Levine et al. 1996
 
-//WK I'm curious why there was a change in the first value below by almost two orders of magnitude
-//RLN I have simply taken these from the fire routine in framework.cpp. I have updated it for now but I'll implement the new emission scheme soon anyways.
 const double Fluxes::NH3_FIRERATIO = 0.005;
 const double Fluxes::NOx_FIRERATIO = 0.237;
 const double Fluxes::N2O_FIRERATIO = 0.036;
@@ -67,27 +65,15 @@ void Climate::serialize(ArchiveStream& arch) {
     //WK would be the ideal place to give a short description plus units?
     //WK or give a reference to where this is available?
     //RLN I agree. I also placed a comment in the first line above
-    //CLN Do
+    //CLN JOHAN: Your opinion?
 		// SIMFIRE-BLAZE --[
-//CRM		& u10                     
-//CRM		& relhum
-//CRM		& tmin
-//CRM		& tmax 
 		& max_nesterov       // current valid maximum Nesterov index used for SIMFIRE
 		& cur_nesterov       // current actual Nesterov index for book-keeping
-//CRM		& simfire_biome
-//CRM		& ann_max_fapar      //
-//CRM		& cur_max_fapar      
 		& recent_max_fapar   // array over avg_interv_fapar years for averaging
-//CRM		& monthly_fire_risk
-//CRM		& areaburnt 
-//CRM		& prescribed_ba 
 		& avg_annual_rainf   // array over avg_interv_fapar years for averaging
-//CRM		& cur_rainf
 		& last_rainfall
 		& dslr
 		& kbdi
-//CRM		& mcarthur_fire_index
 		& months_ffdi
 		// SIMFIRE-BLAZE --] 
 		& co2
@@ -496,9 +482,6 @@ void Patch::serialize(ArchiveStream& arch) {
 		& mpet
 		& ndemand
 		& irrigation_y
-    //WK maybe mark beginning and end of BLAZE entries,
-    //WK as you did above with
-    //RLN Done:)
 		// BLAZE --[
 		& fli
 		& wood2atm
@@ -536,7 +519,7 @@ bool Patch::has_fires() const {
 //WK or will the code fail?
 //RLN I didn't dare to take this away, as it is legacy and used like this in GlobFIRM.
 //RLN I only updated the queries. Not sure how to deal with this...
-	
+//CLN JOHAN: Your opinion?	
 	// Since the standard fire parameterization was not developed for wetland vegetation and wetland/peatland soils, including 
 	// fires in tropical peatlands, we disallow this for now.
 	return firemodel != NOFIRE && stand.landcover != CROPLAND && stand.landcover != PEATLAND && !managed &&
@@ -544,11 +527,6 @@ bool Patch::has_fires() const {
 }
 
 bool Patch::has_disturbances() const {
-//CLN#ifdef NOPASTURESTOCH
-//CLN	return ifdisturb && stand.landcover != CROPLAND && stand.landcover != PASTURE && !managed;
-//CLN#else
-//CLN	return ifdisturb && stand.landcover != CROPLAND && !managed;
-//CLN#endif
 	return ifdisturb && stand.landcover != CROPLAND && !managed &&
 		(stand.landcover != PASTURE || disturb_pasture);
 }
@@ -655,8 +633,6 @@ double Patch::nflux() {
 	nflux += fluxes.get_annual_flux(Fluxes::HARVESTN);
 	nflux += fluxes.get_annual_flux(Fluxes::SEEDN);
 	nflux += fluxes.get_annual_flux(Fluxes::NH3_FIRE);
-//WK in trunk, there is NOx fire, what is the latest version?
-//RLN NOx is the latest version. Changed. 
 	nflux += fluxes.get_annual_flux(Fluxes::NOx_FIRE);
 	nflux += fluxes.get_annual_flux(Fluxes::N2O_FIRE);
 	nflux += fluxes.get_annual_flux(Fluxes::N2_FIRE);
@@ -1244,9 +1220,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	}
 
 	// bvoc
-//WK in trunk, there is a loop over NMTCOMPOUNDS,
-//WK is this an update in trunk that needs to be merged?
-//RLN Yes. The new BVOC scheme. I guess it will be covered when we finally merge
 	iso               = 0.;
 	fvocseas          = 1.;
 	for (int im=0; im<NMTCOMPOUNDS; im++){

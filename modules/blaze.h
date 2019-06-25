@@ -38,6 +38,17 @@ const double turnoverfract[13][5] = {
 	{ .0 , .0 , .1 , .8 , .8 }, //  12 Deadwood    -> ATM
 };
 
+/// tuning faktors for litter ready for combustion
+
+// boreal
+const double k_tun_bor_lit = 0.1 ;
+
+// temperate region
+const double k_tun_tmp_lit = 0.5 ;
+
+// tropics
+const double k_tun_trp_lit = 0.75 ;
+
 // fraction of life woody biomass that is branch
 const double fbranch   = 0.05;
 

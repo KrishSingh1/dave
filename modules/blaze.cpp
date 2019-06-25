@@ -89,7 +89,9 @@ void blaze_accounting_gridcell(Climate& climate) {
 	*/
 
 	const int average_span = 3; // time-span over which annual rainfall is averaged
-
+	// to initialise on start of spinup or after restart
+	bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
+			       ( restart && date.year == state_year ) ) );
 	// initialise fields
 
 	if (date.year == 0 && date.day == 0 && ! restart) {
@@ -111,23 +113,11 @@ void blaze_accounting_gridcell(Climate& climate) {
 		for (int i = 0; i < 12; i++) {
 			climate.monthly_areaburnt[i] = 0.0;
 		}
-		// assumimng no leap_years, shift ffdi by 25 days to keep order 
-		const int avg_ffdi = 30;
-		double ttmp[avg_ffdi];
-		//CLN double check!
-		int avg_shift = avg_ffdi - (365 % avg_ffdi);
-		for (int i = 0; i < avg_ffdi; i++) {
-			int idx = (i + avg_shift) % (avg_ffdi-1);
-			ttmp[idx] = climate.months_ffdi[i];
-		}
-		for (int i = 0; i < avg_ffdi; i++) {
-			climate.months_ffdi[i] = ttmp[i];
-		}
-		
 	}
 
-	// Set Australian trees to be sprouters
-	if (date.year == 0 && date.day == 0 ) {
+	if ( is_first_day ) {
+		
+		// Set Australian trees to be sprouters
 		double lat = climate.gridcell.get_lat();
 		double lon = climate.gridcell.get_lon();
 		if ( lat < -10. && lon > 110. && lon < 158.) {
@@ -135,33 +125,19 @@ void blaze_accounting_gridcell(Climate& climate) {
 		} else {
 			climate.is_sprouter = 0;
 		}
-		//CLN lat-depending mortalities
+
+		// latitude depending tuning values mortality
 		if ( abs(lat) >= 50.) {
-			climate.k_tun_litter = 0.27; //k_tun_bor_lit;
+			climate.k_tun_litter = k_tun_bor_lit;
 		}
 		else if ( abs(lat) >= 30. && abs(lat) < 50.) {
-			climate.k_tun_litter = 0.75; //k_tun_tmp_lit;
+			climate.k_tun_litter = k_tun_tmp_lit;
 		}
 		else {
-			climate.k_tun_litter = 1.1; //k_tun_trp_lit;
+			climate.k_tun_litter = k_tun_trp_lit;
 		}
 	}
              
-	// Update running mean of average annual rainfall
-
-	climate.cur_rainf += climate.prec;
-	if (date.islastday && date.islastmonth) {
-		double wght; // used to compute running average of ann rainfall
-		if (date.year < average_span) {
-			wght = date.year + 1;
-		} else {
-			wght = average_span;
-		}
-		climate.avg_annual_rainf = ((wght - 1.) * climate.avg_annual_rainf 
-					    + climate.cur_rainf ) / wght;
-		climate.cur_rainf   = 0.0;
-	}
-
 	// Keep track of Days-since-last-rainfall and accumulated last rainfall
 	if (climate.prec > 0.01) {
 		if (climate.dslr > 0) {
@@ -172,15 +148,17 @@ void blaze_accounting_gridcell(Climate& climate) {
 		}
 		climate.dslr = 0;
 	}
-	else climate.dslr++;
+	else {
+		climate.dslr++;
+	}
+
+	climate.cur_rainf += climate.prec;
 
 	// Update the Keetch-Byram-Drought-Index (Keetch et al. 1968)
 	double v        = climate.u10   ; // Wind speed at 10m height [km/h] (for KBDI)
 	double rh       = climate.relhum; // relative humidity [%] (for KBDI)         
 	double t        = climate.tmax  ; // day's max temperature [deg C] (for KBDI) 
-	dprintf("year ===== %d\n",date.year);
-	dprintf("wind %f \n", v); 
-	dprintf("rh   %f \n", rh); 
+
 	v *= 3.6; // m/s -> km/h
 	// Gust parameterisation following ...
 	v = ( 214.7 * pow(  v + 10. ,-1.6968)  + 1. ) * v;
@@ -221,6 +199,35 @@ void blaze_accounting_gridcell(Climate& climate) {
 
 	// get burned area 
 	blaze_burned_area(climate);
+
+	//End of year clean-up
+
+	if (date.islastday && date.islastmonth) {
+		
+		// Update running mean of average annual rainfall
+		double wght; // used to compute running average of ann rainfall
+		if (date.year < average_span) {
+			wght = date.year + 1;
+		} else {
+			wght = average_span;
+		}
+		climate.avg_annual_rainf = ((wght - 1.) * climate.avg_annual_rainf 
+					    + climate.cur_rainf ) / wght;
+		climate.cur_rainf   = 0.0;
+
+		// assumimng no leap_years, shift ffdi by 25 days to keep order 
+		// for next year
+		const int avg_ffdi = 30;
+		double ttmp[avg_ffdi];
+		int avg_shift = avg_ffdi - (365 % avg_ffdi);
+		for (int i = 0; i < avg_ffdi; i++) {
+			int idx = (i + avg_shift) % avg_ffdi;
+			ttmp[idx] = climate.months_ffdi[i];
+		}
+		for (int i = 0; i < avg_ffdi; i++) {
+			climate.months_ffdi[i] = ttmp[i];
+		}
+	}
 }		     
 
 double available_fuel (Patch& patch,int fli_index, double k_tun_litter)  {
@@ -724,7 +731,7 @@ void blaze(Patch& patch, Climate& climate) {
  	
 	// report C litter -> atm fluxes
 	patch.fluxes.report_flux(Fluxes::FIREC, cmtb2atm + cstr2atm + cfwd2atm + ccwd2atm);
-	dprintf("fc lux %f \n", cmtb2atm + cstr2atm + cfwd2atm + ccwd2atm);
+
 	// report N litter -> atm fluxes
 	report_fire_flux_n(patch, nmtb2atm + nstr2atm + nfwd2atm + ncwd2atm );
        

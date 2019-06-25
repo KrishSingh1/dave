@@ -2724,21 +2724,6 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		}
 		gwgen.mwetf = gwgen.mwetd/(double)ndaymon;;
 		
-		/*if ( date.year > 500 ) {
-			dprintf("============ monthly in %d %d \n",date.year,mon+1);
-			//}
-		
-			dprintf(" in in_mprec %f \n",in_mprec[mon]);
-			dprintf(" in in_mwetd %f \n",gwgen.mwetd);	
-			dprintf(" in in_mwetf %f \n",gwgen.mwetf);	
-			dprintf(" in in_mtmin %f \n",in_mtmin[mon]);
-			dprintf(" in in_mtmax %f \n",in_mtmax[mon]);
-			dprintf(" in in_mcldf %f \n",in_mcldf[mon]);
-			dprintf(" in in_msol  %f \n",in_msol[mon]);
-			dprintf(" in in_mrhum %f \n",in_mrhum[mon]);
-			dprintf(" in in_mwind %f \n",in_mwind[mon]);
-			//}*/
-		
 		double metric = 0.;
 		double metric_sav = 99999.;
 		

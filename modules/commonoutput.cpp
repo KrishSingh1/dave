@@ -258,7 +258,7 @@ void CommonOutput::define_output_tables() {
 
 	// BLAZE burnt area 
 	ColumnDescriptors blaze_columns;
-	blaze_columns += ColumnDescriptor("BurntAr",        8, 5);
+	blaze_columns += ColumnDescriptor("BurntAr",        9, 5);
 
 	// SIMFIRE Analysis 
 	ColumnDescriptors simfireanalysis_columns;
@@ -1338,7 +1338,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_dens,   dens_gridcell);
 	outlimit(out,out_lai,    lai_gridcell);
 	outlimit(out,out_clitter,clitter_gridcell);
-	//CLN HERE MONTHLY!!!!!
 	outlimit(out,out_aburntarea,     gridcell.climate.annual_areaburnt);
 	outlimit(out,out_simfireanalysis,  gridcell.climate.simfire_biome);
 	outlimit(out,out_simfireanalysis,  gridcell.climate.max_nesterov);

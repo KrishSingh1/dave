@@ -841,15 +841,6 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 				mort_shade=0.0;
 
 			// Mortality due to fire
-//WK The way this is written is a bit dangerous, because the variable mort_fire only has meaning
-//WK then GLOBFIRM is used, correct? There might be other such examples. If one variable is
-//WK used exclusively only with one fire model, then this could be reflected in the name
-//WK using some naming convention.
-//WK My worry is - say firemodel == BLAZE, mort_fire=0, what happens? Maybe mort_fire
-//WK should be set to 'not used' or something.
-
-//RLN I think it should be 0. because it is (at this point in the code). With "unused" the routine would crash below, no?
-//CLN JOHAN: Your opinion? 
 			if (patch.has_fires() && firemodel == GLOBFIRM) mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			else mort_fire=0.0;
 

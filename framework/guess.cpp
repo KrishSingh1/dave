@@ -61,11 +61,6 @@ void Climate::serialize(ArchiveStream& arch) {
 		& par
 		& prec
 		& daylength
-    //WK I know it is not common practive in LPJ-GUESS, but maybe this
-    //WK would be the ideal place to give a short description plus units?
-    //WK or give a reference to where this is available?
-    //RLN I agree. I also placed a comment in the first line above
-    //CLN JOHAN: Your opinion?
 		// SIMFIRE-BLAZE --[
 		& max_nesterov       // current valid maximum Nesterov index used for SIMFIRE
 		& cur_nesterov       // current actual Nesterov index for book-keeping
@@ -512,14 +507,6 @@ const Climate& Patch::get_climate() const {
 }
 
 bool Patch::has_fires() const {
-//WK looks like this checks if the model includes fire in its current setting,
-//WK but it would be useful to understand the reasons for the background,
-//WK e.g. does BLAZE exclude CROPLAND and management?
-//WK And what happens if CROPLAND is true, will there be a warning message,
-//WK or will the code fail?
-//RLN I didn't dare to take this away, as it is legacy and used like this in GlobFIRM.
-//RLN I only updated the queries. Not sure how to deal with this...
-//CLN JOHAN: Your opinion?	
 	// Since the standard fire parameterization was not developed for wetland vegetation and wetland/peatland soils, including 
 	// fires in tropical peatlands, we disallow this for now.
 	return firemodel != NOFIRE && stand.landcover != CROPLAND && stand.landcover != PEATLAND && !managed &&

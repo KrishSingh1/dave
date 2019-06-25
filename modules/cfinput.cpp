@@ -413,8 +413,7 @@ void CFInput::init() {
 	check_same_spatial_domains(all_variables());
 
 	extensive_precipitation = cf_prec->get_standard_name() == "precipitation_amount";
-	//CLN HERE TAKE OUT!
-	//CLN JOHAN: What is this?
+
 	extensive_precipitation = true;
 	// Read list of localities and store in gridlist member variable
 
@@ -864,13 +863,6 @@ void CFInput::populate_daily_arrays(long& seed) {
 			double e    = dspecifichum[i] * dpres[i] / (0.378 * dspecifichum[i] + 0.622); 
 			drelhum[i]  = min(max(e / es * 100.,0.),100.) ;
 			
-			// [specific humidity] = fraction
-			// [pressure]          = Pa
-			// [Ti]                = K
-			/*drelhum[i] = 100. * 0.263 * dspecifichum[i] * dpres[i] * pow( exp(17.67 * 
-					  .5 * (dmax_temp[i] + dmin_temp[i] ) / 
-					   (.5 * (dmax_temp[i] + dmin_temp[i] ) + 243.5) ) , -1 );
-					   dprintf("CLN  drelhum2    [i] %f \n", drelhum[i] ); */
 		} else if ( firemodel == BLAZE ) {
 			fail("BLAZE is switched on WITHOUT info on relative humidity!!!! \n" );
 		}

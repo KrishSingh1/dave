@@ -62,6 +62,9 @@ typedef enum {NOPATHWAY, C3, C4} pathwaytype;
 /// Leaf physiognomy types for PFTs
 typedef enum {NOLEAFTYPE, NEEDLELEAF, BROADLEAF} leafphysiognomytype;
 
+/// The level of verbosity of LPJ-GUESS. Decides the amount of information that is written to the log-file.
+typedef enum {ERROR, WARNING, INFO, DEBUG_WARNING} verbositylevel;
+
 /// Units for insolation driving data
 /** Insolation can be expressed as:
  *
@@ -1948,6 +1951,10 @@ public:
 		frootend = 0.0;
 		forceautumnsowing = 0;
 		nlim = false;
+        
+        // Overwritten by PLIB if rootdistribution == jackson,
+        // needs to be initialized here to supress warnings
+        root_beta = 0.0;
 
 		fertrate[0] = 0.0;
 		fertrate[1] = 1.0;

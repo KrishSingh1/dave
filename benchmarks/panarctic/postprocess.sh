@@ -47,9 +47,9 @@ describe_images "Seasonal soil temperatures (1961-90 average). Units: degr C" so
 
 # PFT
 dominance cmass1961to1990.txt cmass1961to1990max.txt
-gmap cmass1961to1990max.txt -o cmass1961to1990max.jpg -p npolar -t "PFT Max Cmass" -legend legend_global.txt
+gmap cmass1961to1990max.txt -o cmass1961to1990max.jpg -p npolar -t "PFT Max Cmass" 
 describe_images "PFT maximum C mass per gridcell. Units: kgC m-2" cmass1961to1990max.jpg
-gmap cmass1961to1990.txt -o cmass1961to1990.jpg -p npolar -t "Total C mass" -i Total -legend common/legend_cmass_europe.txt
+gmap cmass1961to1990.txt -o cmass1961to1990.jpg -p npolar -t "Total C mass" -i Total
 describe_images "Total C mass. Units: kgC m-2" cmass1961to1990.jpg
 gmapall cmass1961to1990.txt -P cmass_ -p npolar -legend common/legend_cmass_global.txt
 describe_images "PFT specific cmass. Units: kgC m-2" cmass_*.jpg

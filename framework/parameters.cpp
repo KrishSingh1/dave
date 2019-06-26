@@ -93,7 +93,8 @@ xtring state_path;
 bool restart;
 bool save_state;
 int state_year;
-	
+int verbosity;
+
 bool readsowingdates = false;
 bool readharvestdates = false;
 bool readNfert = false;
@@ -218,6 +219,7 @@ void initsettings() {
 	printseparatestands = false;
 	save_state = false;
 	restart = false;
+    verbosity=WARNING;
 	lcfrac_fixed = true;
 	for(int lc=0; lc<NLANDCOVERTYPES; lc++)
 		frac_fixed[lc] = true;
@@ -526,6 +528,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
 		declareitem("save_state", &save_state, 1, CB_NONE, "Whether to save new state files");
 		declareitem("state_year", &state_year, 1, 20000, 1, CB_NONE, "Save/restart year. Unspecified means just after spinup");
+        declareitem("verbosity", &verbosity, 0, 4, 1, CB_NONE, "Determines the amount of information that is printed to the logfile. 0 = suppress all output (even errors) 4 = print all information");
 
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");

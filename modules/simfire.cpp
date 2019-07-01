@@ -319,6 +319,11 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 				climate.recent_max_fapar[i] = 0.5;
 			}
 			climate.ann_max_fapar = 0.5;	
+
+			// initialize Max annual Nesterov Index on first day ofstart simulation
+			for ( int i=0; i<11; i++) {
+				climate.monthly_max_nesterov[i] = 0.;
+			}
 		} 
 		else {
 			double avg = 0.;
@@ -330,15 +335,6 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 		// finally (re)set this years max fapar
 		climate.cur_max_fapar = 0.0;
 
-		// set Max annual Nesterov Index on first day of simulation
-		if ( is_first_day ) {
-			for ( int i=0; i<12; i++) 
-				climate.monthly_max_nesterov[i] = 0.;
-			if ( restart )
-				climate.monthly_max_nesterov[11] = climate.max_nesterov;
-			else
-				climate.monthly_max_nesterov[11] = 10000. * cos(gridcell.get_lat());
-		}
 	} 	
 	// multi-year accounting of maximum annual fapar	
 	else if ( date.islastday && date.islastmonth ) {
@@ -346,6 +342,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 		climate.recent_max_fapar[a] = climate.cur_max_fapar;
 	}
 
+	// update running Maximum Nesterov index array at beginning of month  
         if ( date.dayofmonth == 0 ) {
 		double mnest = 0.;
 		for ( int i=0; i<12; i++) 
@@ -355,6 +352,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 		climate.monthly_max_nesterov[date.month] = 0. ;
 	}
 
+	// update current month's Maximum Nesterov index
         if (  climate.monthly_max_nesterov[date.month] < climate.cur_nesterov )
 		climate.monthly_max_nesterov[date.month] = climate.cur_nesterov;
 

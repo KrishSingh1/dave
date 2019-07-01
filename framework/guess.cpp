@@ -63,6 +63,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& daylength
 		// SIMFIRE-BLAZE --[
 		& max_nesterov       // current valid maximum Nesterov index used for SIMFIRE
+		& monthly_max_nesterov
 		& cur_nesterov       // current actual Nesterov index for book-keeping
 		& recent_max_fapar   // array over avg_interv_fapar years for averaging
 		& avg_annual_rainf   // array over avg_interv_fapar years for averaging

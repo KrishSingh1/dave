@@ -95,7 +95,6 @@ fi # end bypass
 # Above Ground Biomass    
 # If benchmarks are run on Aurora or Simba link Liu-AGB 
 # and gfed benchmarks into crop_global dir
-##CLNtrunkpath="/scratch/johan/Benchmarks/trunk_6296-/trunk_7068/output_trunk7068all_crgpp/crop_global/"
 if [ -f Global_mean_ABC_1993-2012_Liu2015_SI.dat ]
 then
     tslice cpool.out -f 1993 -t 2012 -o cpool1993-2012.dat

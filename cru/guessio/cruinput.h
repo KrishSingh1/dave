@@ -122,11 +122,6 @@ private:
 	/// Management input module
 	ManagementInput management_input;
 
-	/*CLN// SIMFIRE input module
-	SimfireData simfire_input_module;*/
-	/*CLN// GFED 3.1 input module
-	GFED31Data gfed31_input_module;
-	*/
 	/// search radius to use when finding CRU data
 	double searchradius;
 

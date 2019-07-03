@@ -32,21 +32,16 @@ const int SECONDS_PER_DAY = 24*60*60;
 insoltype cf_standard_name_to_insoltype(const std::string& standard_name) {
 	if (standard_name == "surface_downwelling_shortwave_flux_in_air" ||
 	    standard_name == "surface_downwelling_shortwave_flux") {
-		//dprintf("SWRD\n");
 		return SWRAD_TS;
 	}
 	else if (standard_name == "surface_net_downward_shortwave_flux") {
-		//dprintf("NETSWRD\n");
 		return NETSWRAD_TS;
 	}
 	else if (standard_name == "cloud_area_fraction") {
 		return SUNSHINE;
 	}
 	else {
-		//fail("Unknown insolation type: %s", standard_name.c_str());
-		//dprintf("CLN Unknown insolation type: %s", standard_name.c_str());
-		return SWRAD_TS;
-		//return SUNSHINE; // To avoid compiler warning
+		fail("Unknown insolation type: %s", standard_name.c_str());
 	}
 }
 
@@ -145,12 +140,10 @@ GuessNC::CF::DateTime last_day_to_simulate(const GuessNC::CF::GridcellOrderedVar
 // Verifies that a CF variable with air temperature data contains what we expect
 void check_temp_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() != "air_temperature") {
-		//fail("Temperature variable doesn't seem to contain air temperature data");
-		dprintf("CLN Temperature variable doesn't seem to contain air temperature data\n");
+		fail("Temperature variable doesn't seem to contain air temperature data");
 	}
 	if (cf_var->get_units() != "K") {
-		//fail("Temperature variable doesn't seem to be in Kelvin");
-		dprintf("CLN Temperature variable doesn't seem to be in Kelvin\n");
+		fail("Temperature variable doesn't seem to be in Kelvin");
 	}
 }
 
@@ -158,18 +151,15 @@ void check_temp_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 void check_prec_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() == "precipitation_flux") {
 		if (cf_var->get_units() != "kg m-2 s-1") {
-			//fail("Precipitation is given as flux but does not have the correct unit (kg m-2 s-1)");
-			dprintf("CLN Precipitation is given as flux but does not have the correct unit (kg m-2 s-1)\n");
+			fail("Precipitation is given as flux but does not have the correct unit (kg m-2 s-1)");
 		}
 	}
 	else if (cf_var->get_standard_name() == "precipitation_amount") {
 		if (cf_var->get_units() != "kg m-2") {
-			//fail("Precipitation is given as amount but does not have the correct unit (kg m-2)");
-			dprintf("CLN Precipitation is given as amount but does not have the correct unit (kg m-2)\n");		}
+			fail("Precipitation is given as amount but does not have the correct unit (kg m-2)");
 	}
 	else {
-		//fail("Unrecognized precipitation type");
-		dprintf("CLN Unrecognized precipitation type\n");
+		fail("Unrecognized precipitation type");
 	}
 }
 
@@ -179,8 +169,7 @@ void check_insol_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	    cf_var->get_standard_name() != "surface_downwelling_shortwave_flux" &&
 	    cf_var->get_standard_name() != "surface_net_downward_shortwave_flux" &&
 	    cf_var->get_standard_name() != "cloud_area_fraction") {
-		//fail("Insolation variable doesn't seem to contain insolation data");
-		dprintf("CLN Insolation variable doesn't seem to contain insolation data\n");
+		fail("Insolation variable doesn't seem to contain insolation data");
 	}
 
 	if (cf_var->get_standard_name() == "cloud_area_fraction") {
@@ -190,8 +179,7 @@ void check_insol_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	}
 	else {
 		if (cf_var->get_units() != "W m-2") {
-			//			fail("Insolation variable given as radiation but unit doesn't seem to be in W m-2");
-			dprintf("CLN Insolation variable given as radiation but unit doesn't seem to be in W m-2\n");
+			fail("Insolation variable given as radiation but unit doesn't seem to be in W m-2");
 		}
 	}
 }
@@ -523,15 +511,15 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	if (cf_max_temp) {
 		load_spinup_data(cf_max_temp, spinup_max_temp);
 	}
-	//CLN
+
 	if (cf_pres) {
 		load_spinup_data(cf_pres, spinup_pres);
 	}
-	//CLN
+
 	if (cf_specifichum) {
 		load_spinup_data(cf_specifichum, spinup_specifichum);
 	}
-	//CLN
+
 	if (cf_wind) {
 		load_spinup_data(cf_wind, spinup_wind);
 	}
@@ -553,7 +541,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	historic_timestep_wetdays = -1;
 	historic_timestep_min_temp = -1;
 	historic_timestep_max_temp = -1;
-	//CLN
+
 	historic_timestep_pres = -1;
 	historic_timestep_specifichum = -1;
 	historic_timestep_wind = -1;

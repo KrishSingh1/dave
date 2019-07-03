@@ -42,12 +42,10 @@ awk '{ORS=" ";for (i=1;i<=16; i++) print $i; print "\n"}' lai_1993-2012.dat > la
 
 # get dominat PFT and compute biomes
 biomes lai_nat_1993-2012.dat  
-#CLN /home/lars/LPJ-GUESS/fire_blaze_merge/benchmarks/postprocess/biomes lai_nat_1993-2012.dat  
 
 root=$(dirname $0)/..
 #choose root2shoot depending on biome and Jackson Coding (see header)
 awk -f $root/postprocess/agb.awk biomes_lai_nat_1993-2012.dat > agb.dat
-#CLN awk -f /home/lars/LPJ-GUESS/fire_blaze_merge/benchmarks/postprocess/agb.awk lai_nat_1993-2012.dat  
 
 # paste agb-fractions into cmass file
 awk '{OFS="\t"; {print $23, $24, $25, $26}}' cmass1993-2012.dat | paste agb.dat - > cmass_agb.dat

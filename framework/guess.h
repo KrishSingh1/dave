@@ -907,7 +907,7 @@ public:
 	double acc_areaburnt;
 	/// prescribed burned area from file
 	double prescribed_ba;
-	/// CLN a simple tracker to see whether at least one patch has enough fuel to burn
+	/// Simple tracker to see whether at least one patch has enough fuel to burn
 	int can_burn;
 	/// annual burned area from either SIMFIRE or GFED
 	double annual_areaburnt;
@@ -4003,19 +4003,35 @@ public:
 
 	/// BLAZE Fire line intensity;
 	double fli;
-	//CLN HIER JEDE EINZELNE BECHREIBEN!
 	/// BLAZE fire fluxes
-	/// live to atm
-	double wood2atm, leaf2atm;
-	/// live to litter
-	double leaf2lit, wood2str, wood2fwd, wood2cwd, wood2dwd;
-	/// litter to atm
-	double litf2atm, lfwd2atm, lcwd2atm, ldwd2atm;
+	/// live wood to atmosphere
+	double wood2atm;
+	/// leaves to atmosphere
+	double leaf2atm;
+	/// leaves to litter
+	double leaf2lit;
+	/// live wood to structural litter
+	double wood2str;
+	/// live wood to fine woody debris
+	double wood2fwd;
+	/// live wood to coarse woody debris
+	double wood2cwd;
+	/// fine litter (leaf,structural, metabolic) to atmosphere
+	double litf2atm;
+	/// fine woody debris to atmosphere
+	double lfwd2atm;
+	/// coarse woody debris to atmosphere
+	double lcwd2atm;
 	/// Storage for averaging of different Fpars for biome mapping in Simfire
+	/// Grasses
 	double avg_fgrass[n_year_biomeavg];
+	/// Needle-leaf trees
 	double avg_fndlt[n_year_biomeavg];
+	/// Broad-leaf trees
 	double avg_fbrlt[n_year_biomeavg];
+	/// Shrubs
 	double avg_fshrb[n_year_biomeavg];
+	/// Total
 	double avg_ftot[n_year_biomeavg];
 
 	/// whether management has started on this patch

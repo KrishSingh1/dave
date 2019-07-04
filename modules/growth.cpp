@@ -929,9 +929,6 @@ bool allometry(Individual& indiv) {
 		// Height (Eqn 4)
 
 		// guess2008 - new allometry check
-		//CLNconst float EPS = 1.e-12;
-		//CLNif (!negligible(indiv.cmass_leaf, EPS)) {
-		//CLNif ( indiv.cmass_leaf > EPS) {
 		if (!negligible(indiv.cmass_leaf)) {
 
 			indiv.height = indiv.cmass_sap / indiv.cmass_leaf / indiv.pft.sla * indiv.pft.k_latosa / indiv.pft.wooddens;

@@ -26,7 +26,7 @@ ManagementTypelist mtlist;
 StandTypelist stlist;
 Pftlist pftlist;
 
-// emission ratios from fire (NH3, NOx, N2O, N2) Levine et al. 1996
+// emission ratios from fire (NH3, NOx, N2O, N2) Delmas et al. 1995
 
 const double Fluxes::NH3_FIRERATIO = 0.005;
 const double Fluxes::NOx_FIRERATIO = 0.237;
@@ -71,6 +71,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& dslr
 		& kbdi
 		& months_ffdi
+		& monthly_max_nesterov
 		// SIMFIRE-BLAZE --] 
 		& co2
 		& lat
@@ -182,9 +183,6 @@ void Fluxes::reset() {
 	for (int m = 0; m < 12; ++m) {
 		std::fill_n(monthly_fluxes_pft[m], int(NPERPFTFLUXTYPES), 0);
 		std::fill_n(monthly_fluxes_patch[m], int(NPERPATCHFLUXTYPES), 0);
-                /*CMLN for (int i = 0; i < npftconst; ++i) { 
-                        std::fill_n(monthly_fluxes_per_pft[i][m], int(NPERPFTFLUXTYPES), 0);
-		}*/
 	}
 
 	for (int d = 0; d < date.year_length(); ++d) {
@@ -197,13 +195,11 @@ void Fluxes::serialize(ArchiveStream& arch) {
 	arch & annual_fluxes_per_pft
 		& monthly_fluxes_patch
 		& monthly_fluxes_pft;
-	//CMLN & monthly_fluxes_per_pft;
 }
 
 void Fluxes::report_flux(PerPFTFluxType flux_type, int pft_id, double value) {
 	annual_fluxes_per_pft[pft_id][flux_type] += value;
 	monthly_fluxes_pft[date.month][flux_type] += value;
-        //CMLN monthly_fluxes_per_pft[pft_id][date.month][flux_type] += value;
 	daily_fluxes_pft[date.day][flux_type] += value;	//Var = value ???
 }
 
@@ -219,10 +215,6 @@ double Fluxes::get_monthly_flux(PerPFTFluxType flux_type, int month) const {
 double Fluxes::get_monthly_flux(PerPatchFluxType flux_type, int month) const {
 	return monthly_fluxes_patch[month][flux_type];
 }
-
-/* CMLNdouble Fluxes::get_monthly_flux(PerPFTFluxType flux_type, int pft_id, int month) const {
-        return monthly_fluxes_per_pft[pft_id][month][flux_type];
-	}*/
 
 double Fluxes::get_annual_flux(PerPFTFluxType flux_type, int pft_id) const {
 	return annual_fluxes_per_pft[pft_id][flux_type];
@@ -1374,7 +1366,6 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 	// This function needs to be modified if a new lifeform is added,
 	// specifically to deal with nstore().
 	assert(pft.lifeform == TREE || pft.lifeform == GRASS || pft.lifeform == MOSS);
-	assert(mortality >= mortality_fire);
 
 	if (!negligible(mortality)) {
 
@@ -2344,8 +2335,8 @@ double Gridcell::nflux() {
 
 void Gridcell::serialize(ArchiveStream& arch) {
 	arch & climate
-		//CLN& gwgen
-		//CLN& rndst
+		& gwgen
+		& rndst
 		& landcover
 		& seed
 		& balance;
@@ -2627,6 +2618,7 @@ void MassBalance::check_year(Gridcell& gridcell) {
 	if (date.year < start_year) {
 		return;
 	}
+
 	double ccont_year = gridcell.ccont();
 	double cflux_year = gridcell.cflux();
 

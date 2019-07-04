@@ -4,7 +4,7 @@
 ///
 /// This input module reads in CRU-NCEP climate data in a customised binary format.
 /// The binary files contain CRU-NCEP half-degree global historical climate data
-/// from 1901 and onwards.
+/// from 1901-2015.
 ///
 /// \author Ben Smith
 /// $Date$
@@ -198,8 +198,8 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 				if (gridfound) // Get more historical CRU data for this grid cell
 					gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation,
-														 hist_mfrs, hist_mwet, hist_mdtr, 
-														 hist_mwind, hist_mrhum);
+									     hist_mfrs, hist_mwet, hist_mdtr, 
+									     hist_mwind, hist_mrhum);
 
 				if (run_landcover && gridfound) {
 					LUerror = landcover_input.loadlandcover(lon, lat);
@@ -358,6 +358,9 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 					      mwind,mrhum,dtemp,dprec,dsun,ddtr,
 					      dwind,drhum);
 			}
+			else {
+				fail('When using CRU monthly data weathergenerator must be specified to either "INTERP" or "GWGEN".');
+			}
 
 			spinup_mtemp.nextyear();
 			spinup_mprec.nextyear();
@@ -374,7 +377,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 
 			// Historical period
 			if ( weathergenerator == INTERP ) {
-				// Interpolate monthly spinup data to quasi-daily values
+				// Interpolate this year's monthly data to quasi-daily values
 				interp_climate(hist_mtemp[date.year-nyear_spinup],
 					       hist_mprec[date.year-nyear_spinup],
 					       hist_msun[date.year-nyear_spinup],
@@ -398,6 +401,9 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 					      hist_mwind[date.year-nyear_spinup],
 					      hist_mrhum[date.year-nyear_spinup],
 					      dtemp,dprec,dsun,ddtr,dwind,drhum);
+			}
+			else {
+				fail('When using CRU monthly data weathergenerator must be specified to either "INTERP" or "GWGEN".');
 			}
 		}
 		else {

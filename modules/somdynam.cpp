@@ -359,6 +359,7 @@ void decayrates_century(Soil& soil, double temp_soil, double wcont_soil, bool ti
 	// (Parton et al 2010, Figure 2)
 	// plus Kirschbaum et al 2001 coarse woody debris decay
 	const double K_MAX[] = {9.5e-3, 1.9e-2, 4.2e-2, 4.8e-4, 2.7e-2, 3.8e-2, 1.1e-2, 2.2e-3, 7.0e-2, 1.7e-3, 1.9e-6};
+	// pools SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SURFFWD,SURFCWD,SOILMETA,SLOWSOM,PASSIVESOM
 
 	// Modifier for effect of soil texture
 	// Eqn 5, Parton et al 1993:
@@ -795,7 +796,6 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 	// available nitrogen to its saturation level.
 	if (date.year <= freenyears)
 		soil.nmass_avail = NMASS_SAT;
-	
 }
 
 /// Litter lignin to N ratio (for leaf and root litter)
@@ -975,13 +975,13 @@ void transfer_litter(Patch& patch) {
 			// Kirschbaum and Paul (2002).
 
 			// Monthly fraction of REMAINING last year's sapwood litter
-                        // Get this month's litter remaining_litter/remaining_months
+                        // Get this month's litter = remaining_litter/remaining_months
 			// pft.litter_sap might be modified by sub annual burns and thus
 			// the litterfall needs to be adjusted monthly
 			double litter_sap       = pft.litter_sap       / (12. - (double)date.month);
 			double nmass_litter_sap = pft.nmass_litter_sap / (12. - (double)date.month);
-			pft.litter_sap       -= litter_sap;
-			pft.nmass_litter_sap -= nmass_litter_sap;
+			pft.litter_sap         -= litter_sap;
+			pft.nmass_litter_sap   -= nmass_litter_sap;
 
 			soil.sompool[SURFFWD].nmass += nmass_litter_sap;
 
@@ -1018,11 +1018,12 @@ void transfer_litter(Patch& patch) {
 					fireresist[SURFFWD] += litter_sap * pft.pft.fireresist;
 				}
 			}
+
 			// Monthly fraction of REMAINING last year's heartwood litter 
 			double litter_heart       = pft.litter_heart       / (12. - (double)date.month);
 			double nmass_litter_heart = pft.nmass_litter_heart / (12. - (double)date.month);
-			pft.litter_heart       -= litter_heart;
-			pft.nmass_litter_heart -= nmass_litter_heart;
+			pft.litter_heart         -= litter_heart;
+			pft.nmass_litter_heart   -= nmass_litter_heart;
 
 			soil.sompool[SURFCWD].nmass += nmass_litter_heart;
 

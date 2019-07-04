@@ -17,11 +17,6 @@
 #include "guessnc.h"
 #include <memory>
 #include <limits>
-//CMLN #include "input.h"
-//#include "simfire.h"
-//#include "SimfireInput.h"
-//#include "gfed31_burned_area.h"
-//CMLN #include "firefreqfile.h"
 
 class CFInput : public InputModule {
 public:
@@ -127,7 +122,7 @@ private:
 	GuessNC::CF::GridcellOrderedVariable* cf_min_temp;
 
 	GuessNC::CF::GridcellOrderedVariable* cf_max_temp;
-	// CLN define pres sh, wind
+	
 	GuessNC::CF::GridcellOrderedVariable* cf_pres;
 
 	GuessNC::CF::GridcellOrderedVariable* cf_specifichum;
@@ -145,7 +140,7 @@ private:
 	GenericSpinupData spinup_wetdays;
 
 	GenericSpinupData spinup_min_temp;
-	
+
 	GenericSpinupData spinup_max_temp;
 
 	GenericSpinupData spinup_pres;
@@ -163,7 +158,6 @@ private:
 	/// Insolation for current gridcell and current year (\see instype)
 	double dinsol[Date::MAX_YEAR_LENGTH];
 
-	//CLN
 	/// daily pressure 
 	double dpres[Date::MAX_YEAR_LENGTH];
 

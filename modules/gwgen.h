@@ -20,17 +20,6 @@
 #include <limits>
 
 /// A weathergenerator for the use with e.g. BLAZE when wind etc is needed
-/** This module generates daily weather data from monthly
- *  CRU-NCEP (1901-2015). 
-
- ENTER MORE HERE !!!!!
- */
-
-//CLN// number of days in each month
-const int ndaymonth[12] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
-
-// Classes (see below)
-
 class GWGen /*: public Serializable */{
 
 public:
@@ -49,15 +38,11 @@ public:
 	double mtmax; // maximum temperture (C)
 	double mcldf; // cloud fraction (0=clear sky, 1=overcast) (fraction)
 	double mwind; // wind speed (m/s)
+	
+	
+	bool   pday[2];  // precipitation status: true if the day was a rain day
+	double resid[4]; //previous day's weather residuals
 
-	// CLN use them both for in and output
-	bool pday[2]; //precipitation status: true if the day was a rain day
-	//type(randomstate)      :: rndst   !state of the random number generator
-	double resid[4];   //previous day's weather residuals
-
-	//end type metvars_in
-
-	//type metvars_out
 	// Derived datatype for the daily weather generator output
 
 	double dprec; // 24 hour total precipitation (mm)
@@ -65,13 +50,8 @@ public:
 	double dtmax; // 24 hour mean maximum temperature (degC)
 	double dcldf; // 24 hour mean cloud cover fraction 0=clear sky, 1=overcast (fraction)
 	double dwind; // wind speed (m s-1)
-	double drhum; // relative humidity (CLN units!!!)
-	//logical, dimension(2)  :: pday    !precipitation state
-	//type(randomstate)      :: rndst   !state of the random number generator, 15 elements
-	//real(sp), dimension(4) :: resid   !previous day's weather residuals
+	double drhum; // relative humidity (%)
 	double unorm[4];
-
-	//end type metvars_out
 
 	double tmn;
 	double tmx;
@@ -96,8 +76,6 @@ public:
 	// the following parameters are computed by the cloud_params subroutine
 	double cldf_w1, cldf_w2, cldf_w3, cldf_w4, cldf_d1, cldf_d2, cldf_d3, cldf_d4;
 	double cldf_sd_w, cldf_sd_d;
-
-	//void serialize(ArchiveStream& arch);  JN
 
 	/// Constructor function: initialise cell member
 };
@@ -135,90 +113,5 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec,
 		   double* in_mwind, double* in_rhum, double* out_temp,
 		   double* out_dprec,double* out_dsol,double* out_ddtr,
 		   double* out_dwind,double* out_rhum);
-
-
-//class GWGen {
-//	// MEMBER VARIABLES
-//
-//public:
-//
-//	// new ones
-//	int month;
-//
-//        // Derived datatype for the monthly weather generator input
-//
-//        double mprec ; // monthly total precipitation amount (mm)
-//        double mwetd ; // number of days in month with precipitation
-//        double mwetf ; // fraction of days in month with precipitation
-//	
-//        double mtmin ; // minumum temperture (C)
-//        double mtmax ; // maximum temperture (C)
-//        double mcldf ; // cloud fraction (0=clear sky, 1=overcast) (fraction)
-//        double mwind ; // wind speed (m/s)
-//
-//	// CLN use them both for in and output
-//        bool pday[2]; //precipitation status: true if the day was a rain day
-//        //type(randomstate)      :: rndst   !state of the random number generator
-//        double resid[4];   //previous day's weather residuals
-//
-//	//end type metvars_in
-//
-//	//type metvars_out
-//        // Derived datatype for the daily weather generator output
-//
-//        double dprec ; // 24 hour total precipitation (mm)
-//        double dtmin ; // 24 hour mean minimum temperature (degC)
-//        double dtmax ; // 24 hour mean maximum temperature (degC)
-//        double dcldf ; // 24 hour mean cloud cover fraction 0=clear sky, 1=overcast (fraction)
-//        double dwind ; // wind speed (m s-1)
-//
-//        //logical, dimension(2)  :: pday    !precipitation state
-//        //type(randomstate)      :: rndst   !state of the random number generator, 15 elements
-//        //real(sp), dimension(4) :: resid   !previous day's weather residuals
-//        double unorm[4];
-//
-//	//end type metvars_out
-//
-//	double tmn;
-//	double tmx;
-//	double wnd;
-//	double cld;
-//	
-//	//    type daymetvars
-//        // Derived datatype for monthly climate variables
-//
-//        double dmtmax_mn ; // maximum temperature monthly mean (degC)
-//        double dmtmin_mn ; // minimum temperature mothly mean (degC)
-//        double dmcldf_mn ; // mean cloud fraction (fraction)
-//        double dmwind_mn ; // wind speed
-//
-//        double dmtmax_sd ; // standard deviation of corresponding variable above
-//        double dmtmin_sd ; // ------- " ------
-//        double dmcldf_sd ; // ------- " ------
-//        double dmwind_sd ; // ------- " ------
-//
-//	//end type daymetvars
-//	
-//	// the following parameters are computed by the cloud_params subroutine
-//	double cldf_w1, cldf_w2, cldf_w3, cldf_w4, cldf_d1, cldf_d2, cldf_d3, cldf_d4;
-//	double cldf_sd_w,cldf_sd_d;
-//	// seed for rondom generation
-//	int seed;
-//};
-//
-//class RnDst {
-//	// MEMBER VARIABLES
-//
-//public:
-//	
-//	int q[10];
-//        int carry ;
-//        int xcng  ;
-//        unsigned int xs    ; //!default seed
-//        int indx  ;
-//	bool have  ;
-//	double gamma_vals[2];
-//
-//};
 	
 #endif // GWGEN_H

@@ -44,12 +44,10 @@ void report_fire_flux_n(Patch& patch, double nflux_fire) {
 double pixelsize(double latpos,double longsize,double latsize,int postype) {
 
 	// taken from aslice.cpp in the utilities trunk
-
         // Returns area in square km of a pixel of a given size at a given point
         // on the world.  The formula applied is the surface area of a segment of
         // a hemisphere of radius r from the equator to a parallel (circular)
         // plane h vertical units towards the pole: S=2*pi*r*h
-
         // latpos    latitude position (see postype)
         // longsize  longitude range in degrees
         // latsize   latitude range in degrees
@@ -79,21 +77,22 @@ double pixelsize(double latpos,double longsize,double latsize,int postype) {
 	return s*longsize/360.0;  //for this pixel
 }
 
+/// Do daily accounting of blaze relevant parameters 
 void blaze_accounting_gridcell(Climate& climate) {
 
-	/* Called by:  dailyaccounting_gridcell in driver.cpp 
-	   Calls    :  available_fuel (local)
-	               blaze_burned_area (local)
-	   routine to keep track of various met-related and fire specific 
-	   parameters 
-	*/
+	/** Called by:  dailyaccounting_gridcell in driver.cpp 
+	 * Calls    :  available_fuel (local)
+	 *             blaze_burned_area (local)
+	 * routine to keep track of various met-related and fire specific 
+	 * parameters 
+	**/
 
 	const int average_span = 3; // time-span over which annual rainfall is averaged
 	// to initialise on start of spinup or after restart
 	bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
 			       ( restart && date.year == state_year ) ) );
-	// initialise fields
 
+	// initialise fields
 	if (date.year == 0 && date.day == 0 && ! restart) {
 		if ( vegmode == INDIVIDUAL ) fail("INDIVDUAL MODE not ready in BLAZE!");
 		climate.avg_annual_rainf = 0.0; // average annual rainfall [mm]
@@ -155,8 +154,9 @@ void blaze_accounting_gridcell(Climate& climate) {
 	climate.cur_rainf += climate.prec;
 
 	// Update the Keetch-Byram-Drought-Index (Keetch et al. 1968)
-	double v        = climate.u10   ; // Wind speed at 10m height [km/h] (for KBDI)
-	double rh       = climate.relhum; // relative humidity [%] (for KBDI)         
+	double frac2perc= 100.;           // convert fraction to percentage
+	double v        = climate.u10   ; // Wind speed at 10m height [km/h] (for FFDI)
+	double rh       = climate.relhum * frac2perc; // relative humidity [%] (for FFDI)         
 	double t        = climate.tmax  ; // day's max temperature [deg C] (for KBDI) 
 
 	v *= 3.6; // m/s -> km/h
@@ -589,7 +589,7 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 					// tropical 
 					survival_probability = surv_prob_tropics(dbh,fli);
 				} else if ( climate.is_sprouter ){
-					// temperate Oz (CLN set Sprouter in ins-file)
+					// temperate Oz 
 					survival_probability = surv_prob_temp_bl(dbh, fli, 1);
 				} else {
 					// temperate 
@@ -651,7 +651,6 @@ void get_combustion_rates(Patch& patch, int fli_index, double k_tun_litter) {
 	// relative fluxes from litter pools to atmosphere
 	patch.litf2atm = turnoverfract[11][fli_index];
 	patch.lfwd2atm = turnoverfract[10][fli_index];
-	//CLN tuning fac
 	patch.lcwd2atm = turnoverfract[ 9][fli_index] * k_tun_litter;
 	return;
 }
@@ -676,7 +675,6 @@ void blaze(Patch& patch, Climate& climate) {
 	const double LIGCFRAC_leaf = 0.2;
 
 	// grassy vegetation burn-rate for cohort and individual mode
-	//CLNconst double grass_burn = .5;
 	const double grass_burn = 0.75;
 
 	double ab  = climate.areaburnt;
@@ -1187,7 +1185,6 @@ void blaze_driver(Patch& patch, Climate& climate) {
 	const double kmsq2ha = 100.;
 
 	// resolution for cell area
-	// CLN Check for correct lat/lon res!!!
 	double lat_res = 0.5;
 	double lon_res = 0.5;
 

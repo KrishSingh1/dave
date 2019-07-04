@@ -61,7 +61,7 @@ const double kg2g      = 1000.;
 // min. available fuel to start a fire [gC/m2]
 const double min_fuel  = 120.; 
 	
-// Subroutines will be described in their respective headers in blaze.cpp
+/// Subroutines will be described in their respective headers in blaze.cpp
 
 double pixelsize(double latpos,double longsize,double latsize,int postype);
 

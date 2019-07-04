@@ -22,9 +22,9 @@
 #include "externalinput.h"
 
 /// An input module for CRU climate data
-/** This input module gets climate data from binary archives built from CRU-NCEP.
+/** This input module gets climate data from binary archives built from
+ *  CRU-NCEP (1901-2015).
  */
-
 class CRUInput : public InputModule {
 public:
 
@@ -203,7 +203,5 @@ private:
 	/// Daily N deposition for current year
 	double dndep[Date::MAX_YEAR_LENGTH];
 };
-
-
 
 #endif // LPJ_GUESS_CRUINPUT_H

@@ -1,4 +1,4 @@
-///////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
 /// \file cfinput.cpp
 /// \brief Input module for CF conforming NetCDF files
 ///
@@ -42,7 +42,8 @@ insoltype cf_standard_name_to_insoltype(const std::string& standard_name) {
 	}
 	else {
 		fail("Unknown insolation type: %s", standard_name.c_str());
-	}
+                return SUNSHINE; // To avoid compiler warning                                                 <
+ 	}
 }
 
 // Gives the maximum allowed value for insolation, given an insolation type
@@ -157,6 +158,7 @@ void check_prec_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	else if (cf_var->get_standard_name() == "precipitation_amount") {
 		if (cf_var->get_units() != "kg m-2") {
 			fail("Precipitation is given as amount but does not have the correct unit (kg m-2)");
+		}
 	}
 	else {
 		fail("Unrecognized precipitation type");
@@ -402,7 +404,6 @@ void CFInput::init() {
 
 	extensive_precipitation = cf_prec->get_standard_name() == "precipitation_amount";
 
-	extensive_precipitation = true;
 	// Read list of localities and store in gridlist member variable
 
 	// Retrieve name of grid list file as read from ins file
@@ -440,7 +441,6 @@ void CFInput::init() {
 			}
 		}
 		c.descrip = (xtring)trim(descrip).c_str();
-		fprintf(stderr, " c.desc %f %f \n",c.rlat, c.rlon);
 		gridlist.push_back(c);
 	}
 
@@ -530,8 +530,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 
 	// Get nitrogen deposition, using the found CRU coordinates
 	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat,
-	             Lamarque::RCP60);
-	             //Lamarque::parse_timeseries(ndep_timeseries));
+	             Lamarque::parse_timeseries(ndep_timeseries));
 
 	soilinput.get_soil(lon, lat, gridcell);
 
@@ -561,7 +560,7 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 	int rlon = current_gridcell->rlon;
 	int rlat = current_gridcell->rlat;
 	int landid = current_gridcell->landid;
-	fprintf(stderr,"The lat %f, the lon %f \n",rlat, rlon);
+
 	// Try to load the data from the NetCDF files
 
 	if (cf_temp->is_reduced()) {
@@ -651,17 +650,13 @@ void CFInput::get_yearly_data(std::vector<double>& data,
 					// Deal with calendar mismatch
 
 					// Leap day in NetCDF variable but not in LPJ-GUESS?
-					//if (dt.get_month() == 2 && dt.get_day() == 29 &&
-					//	current_day.ndaymonth[1] == 28) {
-					//	++historic_timestep;
-					//}
-					//// Leap day in LPJ-GUESS but not in NetCDF variable?
-					//else if (current_day.month == 1 && current_day.dayofmonth == 28 &&
-					//	cf_historic->get_calendar_type() == NO_LEAP) {
-					//	--historic_timestep;
-					//}
-					//CLNLeap day in LPJ-GUESS but not in NetCDF variable?
-					if (current_day.month == 1 && current_day.dayofmonth == 28 ) {
+					if (dt.get_month() == 2 && dt.get_day() == 29 &&
+						current_day.ndaymonth[1] == 28) {
+						++historic_timestep;
+					}
+					// Leap day in LPJ-GUESS but not in NetCDF variable?
+					else if (current_day.month == 1 && current_day.dayofmonth == 28 &&
+						cf_historic->get_calendar_type() == NO_LEAP) {
 						--historic_timestep;
 					}
 				}
@@ -797,16 +792,14 @@ void CFInput::populate_daily_arrays(long& seed) {
 		populate_daily_array(dmax_temp, spinup_max_temp, cf_max_temp, historic_timestep_max_temp, 0);
 	}
 
-	//CLN
-	
 	if (cf_pres) {
 		populate_daily_array(dpres, spinup_pres, cf_pres, historic_timestep_pres, 0);
 	}
-	//CLN
+
 	if (cf_specifichum) {
 		populate_daily_array(dspecifichum, spinup_specifichum, cf_specifichum, historic_timestep_specifichum, 0);
 	}
-	//CLN
+
 	if (cf_wind) {
 		populate_daily_array(dwind, spinup_wind, cf_wind, historic_timestep_wind, 0);
 	}
@@ -829,22 +822,12 @@ void CFInput::populate_daily_arrays(long& seed) {
 			// and convert fraction (0-1) to percent (0-100)
 			dinsol[i] = (1-dinsol[i]) * 100.0;
 		}
+
 		if ( cf_pres && cf_specifichum ) {
-			// CLN enter RH conversion here [%] CHECK FOR UNITS!!!!
-			//        relhum(i) = 0.5*(MIN(1.,ddvp09(i) / Esatf(ddTmin(i))) + &
-			//             MIN(1.,ddvp15(i) / Esatf(ddTmax(i)))) * 100.        ! [%]
-			//drelhum[i] = relative_humidity(sh[i],pres[i]);
-			// @param qair specific humidity, dimensionless (e.g. kg/kg) ratio of water mass / total air mass
-			// @param temp degrees C
-			// @param press pressure in mb
-			// @return rh relative humidity, ratio of actual water mixing ratio to saturation mixing ratio
-			/*qair2rh <- function(qair, temp, press = 1013.25){
-			  es <-  6.112 * exp((17.67 * temp)/(temp + 243.5))
-			  e <- qair * press / (0.378 * qair + 0.622)
-			  rh <- e / es
-			  rh[rh > 1] <- 1
-			  rh[rh < 0] <- 0 */
-			// 0 deg C in K
+			// qair  specific humidity, dimensionless (e.g. kg/kg) 
+			// temp  temperature in degrees C
+			// press pressure in mb
+			// return rh relative humidity in %
 			const double t0 = 273.15;
 			double temp = 0.5 * (dmax_temp[i] + dmin_temp[i]);
 			double es   = 6.112 * exp(17.67 * temp/(temp + 243.5));
@@ -852,7 +835,7 @@ void CFInput::populate_daily_arrays(long& seed) {
 			drelhum[i]  = min(max(e / es * 100.,0.),100.) ;
 			
 		} else if ( firemodel == BLAZE ) {
-			fail("BLAZE is switched on WITHOUT info on relative humidity!!!! \n" );
+			fail("BLAZE is switched on WITHOUT info on relative humidity! \n" );
 		}
 	}
 
@@ -918,10 +901,9 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 		populate_daily_arrays(gridcell.seed);
 	}
 
-	climate.temp = dtemp[date.day];
-	climate.prec = dprec[date.day];
-	climate.insol = dinsol[date.day];
-	//CLN
+	climate.temp   = dtemp[date.day];
+	climate.prec   = dprec[date.day];
+	climate.insol  = dinsol[date.day];
 	climate.relhum = drelhum[date.day];
 	climate.u10    = dwind[date.day];
 	climate.tmax   = dmax_temp[date.day];

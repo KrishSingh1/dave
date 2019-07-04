@@ -228,7 +228,6 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 	}
 	for (biome=0;biome<NFIREBIOMES;biome++) {
 		count_max=max(count_max,count[biome]);
-		//if(date.year>500) dprintf("biome%d %d ", biome,count[biome] );
 	}
 
 	for (biome=0;biome<NFIREBIOMES && count[biome]<count_max;biome++) {

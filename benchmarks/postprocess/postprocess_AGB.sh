@@ -55,3 +55,6 @@ awk '{OFS="\t"; if (FNR==1){print "pasture_agb_frac"} else {if($2<24. && $2>-24.
 joyn lu_1993-2012.dat cmass_agb1.dat -o lu_cmass_agb_1993-2012.dat
 # now compute gridcell wide contribution of each landuse type 
 compute lu_cmass_agb_1993-2012.dat -i 'Crop_agb=Crop_sum*CROPLAND*0.9' 'Pasture_agb=Pasture_sum*PASTURE*pasture_agb_frac' 'Natural_agb=Natural_sum*NATURAL*agb_frac' 'Total_agb=Crop_sum*CROPLAND*0.9+Pasture_sum*PASTURE*pasture_agb_frac+Natural_sum*NATURAL*agb_frac' -o lu_cmass_agb_1993-2012_tot.dat
+
+#remove intermediate files
+rm -f lu_1993-2012.dat cmass_agb1.dat lu_cmass_agb_1993-2012.dat

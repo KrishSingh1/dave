@@ -328,7 +328,6 @@ public:
 	/// The calendar year corresponding to simulation year 0
 	int first_calendar_year;
 
-
 private:
 
 	int nyear;
@@ -629,6 +628,7 @@ public:
 /// This struct contains the environmental input to a photosynthesis calculation.
 /** \see photosynthesis */
 struct PhotosynthesisEnvironment {
+
 	/// Constructs an empty result
 	PhotosynthesisEnvironment() {
 		clear();
@@ -772,7 +772,7 @@ public:
 	/// reference to parent Gridcell object
 	Gridcell& gridcell;
 
-	/// GW Weathergen  JN
+	/// Values for andomisation in Weathergenerator GWGEN  JN
 	RnDst rndst;
 
 	/// mean air temperature today (deg C)
@@ -907,7 +907,7 @@ public:
 	double acc_areaburnt;
 	/// prescribed burned area from file
 	double prescribed_ba;
-	/// Simple tracker to see whether at least one patch has enough fuel to burn
+	/// Simple tracker to check whether at least one patch has enough fuel to burn
 	int can_burn;
 	/// annual burned area from either SIMFIRE or GFED
 	double annual_areaburnt;
@@ -1260,9 +1260,6 @@ public:
 	/// \returns flux for a given month and flux type (for all PFTs)
 	double get_monthly_flux(PerPFTFluxType flux_type, int month) const;
 
-        /// \returns flux for a given month and flux type (per PFT)  
-        double get_monthly_flux(PerPFTFluxType flux_type, int pft_id, int month) const;
-
 	/// \returns flux for a given month and flux type
 	double get_monthly_flux(PerPatchFluxType flux_type, int month) const;
 
@@ -1280,9 +1277,6 @@ private:
 	/// Stores one flux value per PFT and flux type
 	std::vector<std::vector<double> > annual_fluxes_per_pft;
 
-	/* CMLN/// Stores one flux value per PFT and flux type per month 
-        double monthly_fluxes_per_pft[npftconst][12][NPERPFTFLUXTYPES];
-	*/
 	/// Stores one flux value per month and flux type
 	/** For the fluxes only stored as totals for the whole patch */
 	double monthly_fluxes_patch[12][NPERPATCHFLUXTYPES];
@@ -4668,8 +4662,6 @@ public:
 	/// object for keeping track of carbon and nitrogen balance
 	MassBalance balance;
 
-	// IGBP Classification needed by SIMFIRE
-	int igbp_class; 
 	/// the region index to chosose from set of optimisations
 	int simfire_region;
 	/// population density

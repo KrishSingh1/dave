@@ -87,10 +87,9 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 		while (stand.isobj) {
 
 			// START OF LOOP THROUGH PATCHES
-			
+
 			// Get reference to this patch
 			Patch& patch = stand.getobj();
-
 			// Update daily soil drivers including soil temperature
 			dailyaccounting_patch(patch);
 
@@ -109,34 +108,26 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 			// Leaf phenology for PFTs and individuals
 			leaf_phenology(patch, gridcell.climate);
-
 			// Interception
 			interception(patch, gridcell.climate);
 			initial_infiltration(patch, gridcell.climate);
-
 			// Photosynthesis, respiration, evapotranspiration
 			canopy_exchange(patch, gridcell.climate);
-
 			// Sum total required irrigation
 			irrigation(patch);
-
 			// Soil water accounting, snow pack accounting
 			soilwater(patch, gridcell.climate);
-
 			// Daily C allocation (cropland)
 			growth_daily(patch);
-
 			// Soil organic matter and litter dynamics
 			som_dynamics(patch);
 			// Methane production/consumption on wetlands and peatlands (no methane dynamics for other stand types at present) 
 			methane_dynamics(patch);
-
 			// BLAZE fire model
 			if (firemodel == BLAZE && patch.has_fires() && 
 			    date.year >= patch.soil.solvesomcent_beginyr) {
 				blaze_driver(patch,gridcell.climate);
 			}
-
 			if (date.islastday && date.islastmonth) {
 
 				// LAST DAY OF YEAR
@@ -160,7 +151,6 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 				// Establishment, mortality and disturbance by fire
 				vegetation_dynamics(stand, patch);
 				stand.nextobj();
-
 			}
 		}
 
@@ -188,19 +178,10 @@ int framework(const CommandLineArguments& args) {
 	// simulation settings
 	read_instruction_file(args.get_instruction_file());
 
-	xtring datetime;
-	unixtime(datetime);
-	xtring heado = xtring("[LPJ-GUESS after ins  ") + datetime + "]\n\n";
-	dprintf((char*)heado);
-	
 	// Initialise input/output
 
 	input_module->init();
 	output_modules.init();
-
-	unixtime(datetime);
-	heado = xtring("[LPJ-GUESS after iomods  ") + datetime + "]\n\n";
-	dprintf((char*)heado);
 
 	print_logfile_heading();
 
@@ -231,10 +212,6 @@ int framework(const CommandLineArguments& args) {
 		deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(state_path));
 	}
 
-	unixtime(datetime);
-	heado = xtring("[LPJ-GUESS after (de)ser  ") + datetime + "]\n\n";
-	dprintf((char*)heado);
-
 	while (true) {
 
 		// START OF LOOP THROUGH GRID CELLS
@@ -250,9 +227,6 @@ int framework(const CommandLineArguments& args) {
 		if (!input_module->getgridcell(gridcell)) {
 			break;
 		}
-		unixtime(datetime);
-		heado = xtring("[LPJ-GUESS New gridcell  ") + datetime + "]\n\n";
-		dprintf((char*)heado);
 
 		// Initialise certain climate and soil drivers
 		gridcell.climate.initdrivers(gridcell.get_lat());
@@ -263,9 +237,8 @@ int framework(const CommandLineArguments& args) {
 			landcover_init(gridcell, input_module.get());
 		}
 
-		// Load SIMFIRE && GFED data 
+		// read SIMFIRE data
 		if (firemodel == BLAZE) {
-			// read simfire input
 			getsimfiredata(gridcell);
 		}
 			
@@ -280,7 +253,7 @@ int framework(const CommandLineArguments& args) {
 		// Call input/output to obtain climate, insolation and CO2 for this
 		// day of the simulation. Function getclimate returns false if last year
 		// has already been simulated for this grid cell
-	    
+
 		while (input_module->getclimate(gridcell)) {
 
 			// START OF LOOP THROUGH SIMULATION DAYS

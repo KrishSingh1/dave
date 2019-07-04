@@ -59,7 +59,7 @@ typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptakety
 typedef enum {APIN, BPIN, LIMO, MYRC, SABI, CAMP, TRIC, TBOC, OTHR, NMTCOMPOUNDTYPES} monoterpenecompoundtype;
 
 /// Fire model setting. Either use 
-/*	One of
+/**	One of
  *	BLAZE 		Use the BLAZE model to generate fire fluxes 
  *                      (must be accompanied by ignitionmode; DEFAULT)
  *	GLOBFIRM	fire parameterization following Thonicke et al. 2001
@@ -68,7 +68,7 @@ typedef enum {APIN, BPIN, LIMO, MYRC, SABI, CAMP, TRIC, TBOC, OTHR, NMTCOMPOUNDT
 typedef enum {BLAZE, GLOBFIRM, NOFIRE} firemodeltype;
 
 /// Type of weathergenerator used 
-/*      One of:
+/**     One of:
  *      GWGEN           Global Weather GENerator (needed by BLAZE, due to 
  *                      additional rel. humidity and wind; DEFAULT)
  *      INTERP          use standard interpolation scheme
@@ -120,8 +120,7 @@ extern bool ifstochestab;
 /// Whether mortality stochastic (individual, cohort mode)
 extern bool ifstochmort;
 
-/// Whether fire enabled
-//	CLN extern bool iffire;
+/// Fire-model switch
 extern firemodeltype firemodel;
 
 /// Whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
@@ -168,6 +167,9 @@ extern double nfix_a;
 
 /// second term in nitrogen fixation eqn (Cleveland et al 1999)
 extern double nfix_b;
+
+///////////////////////////////////////////////////////////////////////////////////////
+// Landuse and crop settings
 
 /// Whether other landcovers than natural vegetation are simulated.
 extern bool run_landcover;

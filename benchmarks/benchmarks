@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 #
 # benchmarks - an automatic benchmarking suite for LPJ-GUESS.
 #
@@ -217,20 +217,19 @@ function setup_workspace {
 
     # If benchmarks are run on Aurora or Simba link Liu-AGB 
     # and gfed benchmarks into crop_global dir
-    if [ $workspace == "crop_global" ]
-	then
-
-	if [ $ARCH == "aurora" ]
-	    then
+    if [ $workspace == "crop_global" ]; then
+	if [ $ARCH == "aurora" ]; then
 	    ln -fs /home/jnord/lpjguess_group_catalog_on_lunarc/data/biomass/Global_mean_ABC_1993-2012_Liu2015_SI.dat \
 		$workspace/Global_mean_ABC_1993-2012_Liu2015_SI.dat
 	    ln -fs /home/jnord/lpjguess_group_catalog_on_lunarc/data/fire/gfed40_c-emissions_1997-2016.dat \
 		$workspace/gfed40_c-emissions_1997-2016.dat
-	else
+	else if [ $ARCH == "simba" ]; then
 	    ln -fs /data/biomass/Global_mean_ABC_1993-2012_Liu2015_SI.dat \
 		$workspace/Global_mean_ABC_1993-2012_Liu2015_SI.dat
 	    ln -fs /data/fire/gfed40_c-emissions_1997-2016.dat \
 		$workspace/gfed40_c-emissions_1997-2016.dat		
+	else
+	    echo "Fire and global Above-ground biomass benchmarks only available on Simba and Aurora."
 	fi
     fi
 }
@@ -280,14 +279,12 @@ $(cat $common_script)
 EOF
     else
 	# Submit as a SLURM job
-	sbatch -n 1 --time=$pp_walltime $dependency <<EOF 
+	sbatch -n 1 --time=$pp_walltime $dependency <<EOF &> /dev/null
 #!/bin/sh
 #SBATCH -J bm_${test_name}_pp
 #$SBATCH_ACCOUNT
-###SBATCH --qos=test
 $(cat $common_script)
 EOF
-echo $(pwd)
     fi
 
     rm $common_script
@@ -471,9 +468,6 @@ mkdir -p $work_dir
 
 # Convert the work_dir variable to an absolute path if it isn't already
 work_dir=`cd $1; pwd`
-
-# check which machine we're running on
-mashine_name=$(uname -n) 
 
 if (( $printer_friendly == 1 )); then
     ./printerfriendly $work_dir

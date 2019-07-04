@@ -32,7 +32,6 @@ bool ifbgestab;
 bool ifsme;
 bool ifstochestab;
 bool ifstochmort;
-//CLN bool iffire;
 bool ifdisturb;
 bool ifcalcsla;
 bool ifcalccton;
@@ -204,7 +203,6 @@ void initsettings() {
 	// Initialises global settings
 	// Parameters not initialised here must be set in instruction script
 
-	//CLN iffire=false;
 	firemodel=BLAZE;
 	weathergenerator=GWGEN;
 	ifcalcsla=true;
@@ -454,7 +452,7 @@ void plib_declarations(int id,xtring setname) {
 			"Parameterisation of root distribution (\"FIXED\", \"JACKSON\")");
             
 		declareitem("weathergenerator", &strparam, 20, CB_WEATHERGENERATOR,
-			    "Weather Generator (\"INTERP\", \"GWGEN\", \"NONE\")");
+			    "Weather Generator (\"INTERP\", \"GWGEN\", \"NOFIRE\")");
 
 		declareitem("nrelocfrac",&nrelocfrac,0.0,0.99,1,CB_NONE,
 			"Fractional nitrogen relocation from shed leaves & roots");
@@ -462,6 +460,7 @@ void plib_declarations(int id,xtring setname) {
 			"first term in nitrogen fixation eqn");
 		declareitem("nfix_b",&nfix_b,-10.0,10.,1,CB_NONE,
 			"second term in nitrogen fixation eqn");
+
 		declareitem("ifcentury",&ifcentury,1,CB_NONE,
 			"Whether to use CENTURY SOM dynamics (default standard LPJ)");
 		declareitem("ifnlim",&ifnlim,1,CB_NONE,
@@ -1188,7 +1187,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("nyear_spinup")) badins("nyear_spinup");
 		if (!itemparsed("vegmode")) badins("vegmode");
 
-		//CLNif (!itemparsed("iffire")) badins("iffire");
 		if (!itemparsed("weathergenerator")) badins("weathergenerator");
 		if (!itemparsed("firemodel")) badins("firemodel");
 		if (firemodel==BLAZE && weathergenerator!=GWGEN) {
@@ -1199,7 +1197,6 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcalccton")) badins("ifcalccton");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
 		if (!itemparsed("wateruptake")) badins("wateruptake");
-
 		if (!itemparsed("rootdistribution")) badins("rootdistribution");
             
 		if (!itemparsed("nrelocfrac")) badins("nrelocfrac");
@@ -1718,10 +1715,6 @@ void plib_callback(int callback) {
 					if (!itemparsed("est_max")) badins("est_max");
 				}
 			}
-			/*CLN			if (iffire) {
-				if (!itemparsed("litterme")) badins("litterme");
-				if (!itemparsed("fireresist")) badins("fireresist");
-				}*/
 			if (firemodel==GLOBFIRM) {
 				if (!itemparsed("litterme")) badins("litterme");
 				if (!itemparsed("fireresist")) badins("fireresist");

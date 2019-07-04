@@ -871,8 +871,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 				mort_shade=0.0;
 
 			// Mortality due to fire
-
-			if (iffire) mort_fire=fireprob*(1.0-indiv.pft.fireresist);
+			if ( patch.has_fires() && firemodel == GLOBFIRM ) mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			else mort_fire=0.0;
 
 			// Sum mortality components to give total mortality (maximum 1)

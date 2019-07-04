@@ -40,7 +40,8 @@ if (UNIX)
 	set(DEFAULT_SYSTEM "")
   endif()
 
-  set(SYSTEM ${DEFAULT_SYSTEM} CACHE STRING "System to build for (empty (=simba), aurora, platon, alarik or multicore)")
+  set(SYSTEM ${DEFAULT_SYSTEM} CACHE STRING "System to build for
+  (empty (=simba), aurora, gimle, platon, alarik or multicore)")
 endif (UNIX)
 
 # Where to search for cmake modules
@@ -82,6 +83,9 @@ add_subdirectory(framework)
 add_subdirectory(modules)
 add_subdirectory(cru)
 add_subdirectory(libraries)
+if (WIN32)
+  add_subdirectory(windows_version)
+endif()
 
 if (UNIT_TESTS)
   add_subdirectory(tests)

@@ -216,7 +216,7 @@ void CommonOutput::define_output_tables() {
 	cflux_columns += ColumnDescriptor("Veg",               8, 3);
 	cflux_columns += ColumnDescriptor("Repr",              8, 3);
 	cflux_columns += ColumnDescriptor("Soil",              8, 3);
-	cflux_columns += ColumnDescriptor("Fire",              8, 5);
+	cflux_columns += ColumnDescriptor("Fire",              9, 5);
 	cflux_columns += ColumnDescriptor("Est",               8, 3);
 	if (run_landcover) {
 		 cflux_columns += ColumnDescriptor("Seed",         8, 3);
@@ -383,7 +383,6 @@ void CommonOutput::define_output_tables() {
 		create_output_table(out_firert,         file_firert,         firert_columns);
 	}
 
-	//	create_output_table(out_fireflux,	file_fireflux,	     month_columns_wide);
 	create_output_table(out_runoff,			file_runoff,         runoff_columns);
 	create_output_table(out_wetland_water_added, file_wetland_water_added, wetland_water_added_columns);
 	
@@ -1201,9 +1200,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			// Fire return time
 			if (!patch.has_fires() || patch.fireprob < 0.001)
-				firert_gridcell   +=1000.0 * to_gridcell_average; // Set a limit of 1000 years
+				firert_gridcell+=1000.0 * to_gridcell_average; // Set a limit of 1000 years
 			else {
-				firert_gridcell   +=(1.0/patch.fireprob) * to_gridcell_average;
+				firert_gridcell+=(1.0/patch.fireprob) * to_gridcell_average;
 				burntarea_gridcell+=patch.fireprob * to_gridcell_average;
 			}
 

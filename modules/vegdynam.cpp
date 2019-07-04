@@ -508,7 +508,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						if(pft.phenology == CROPGREEN)
 							bminit = SAPSIZE * 0.01;
-						else if(patch.has_disturbances() && patch.disturbed) 
+						else if(patch.has_disturbances() && patch.disturbed)
 							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff_est_initial;
 						else
 							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;
@@ -870,6 +870,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 				mort_shade=0.0;
 
 			// Mortality due to fire
+
 			if (patch.has_fires() && firemodel == GLOBFIRM)
 				mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			else mort_fire=0.0;

@@ -151,7 +151,7 @@ if [ -f gfed40_c-emissions_1997-2016.dat ]; then
     describe_image  cflux1997-2016_blaze.png "BLAZE Mean annual C-emissions 1997-2016 [kg(C)/m2a]" embed
     
     # Plot gfed 4.0 emissions
-    gmap cflux1997-2016_joyned.dat -i C_Emis -lon 1 -lat 2 -landscape -o cflux1997-2016_gfed4.png \
+    gmap cflux1997-2016_joyned.dat -i C-Emis -lon 1 -lat 2 -landscape -o cflux1997-2016_gfed4.png \
 	-legend common/legend_fire_emis.txt -t "GFED 4.0 mean annual C-emissions [kg(C)/m2a]"
     convert -geometry 25%x25% cflux1997-2016_gfed4.png tmp.png
     convert -rotate 90 tmp.png cflux1997-2016_gfed4.png

@@ -89,6 +89,15 @@ int update_fire_biome (Patch& patch, double lat) {
 	   Computes current SIMFIRE biome for this 
 	   gridcell depending on the last <n_year_biomeavg> years of
 	   vegetation. 
+	   SIMFIRE BIOMES:
+	   0 Cropland/Urban/Natural Vegetation Mosaic (IGBP 12-14)
+	   1 Needleleaf forest (IGBP 1,3): >60% cover, height>2m
+	   2 Broadleaf forest (IGBP 2,4): >60% cover, height>2m
+	   3 Mixed forest (IGBP 4): >60% cover, height>2m, none >60%
+	   4 Shrubland (IGBP 6,7 and latitude<50): >10% woody cover, height<2m
+	   5 Savanna or Grassland (IGBP 8-10): herbaceous component present, <60% tree cover
+	   6 Tundra (IGBP 6,7,16 and latitude>=50): height<2m
+	   7 Barren or Sparsely Vegetated (IGBP 16 and latitude<50): <10% vegetation cover
 	*/
 
 	double fgrass=0.0; // grass fraction of all vegetation
@@ -132,7 +141,7 @@ int update_fire_biome (Patch& patch, double lat) {
 	}
 	
 	if ( ftot < 0.00000001 ) {
-		return -1;
+		return 7; // barren 
 	}
 
 	// re-normalize
@@ -169,23 +178,23 @@ int update_fire_biome (Patch& patch, double lat) {
 	fshrb  /=  (double)n_year_biomeavg;
 
 	if (ftot<0.1 && fabs(lat)<50.0) {
-		biome=8; } // barren or sparsely vegetated
+		biome=7; } // barren or sparsely vegetated
 	else if (ftot<0.1   && fabs(lat)>=50.0) {
-		biome=7; } // tundra
+		biome=6; } // tundra
 	else if (patch.stand.landcover==CROPLAND) {
-		biome=1; } // cropland
+		biome=0; } // cropland
 	else if (fshrb>=0.8 && fabs(lat)<50.0) {
-		biome=5; } // shrubland
+		biome=4; } // shrubland
 	else if (fshrb>=0.8 && fabs(lat)>=50.0) {
-		biome=7; } // tundra
+		biome=6; } // tundra
 	else if (fgrass>=0.4) {
-		biome=6; } // savanna or grassland
+		biome=5; } // savanna or grassland
 	else if (fndlt>=0.6) {
-		biome=2; } // needle-leaf forest
+		biome=1; } // needle-leaf forest
 	else if (fbrlt>=0.6) {
-		biome=3; } // broad-leaf forest
+		biome=2; } // broad-leaf forest
 	else {
-		biome=4;   // mixed forest
+		biome=3;   // mixed forest
 		} 
 
 	return biome;
@@ -232,8 +241,7 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 
 	for (biome=0;biome<NFIREBIOMES && count[biome]<count_max;biome++) {
 	}
-	// BLAZE-biome is -1 of SIMFIRE-biome classifcation
-	climate.simfire_biome  = biome - 1;
+	climate.simfire_biome = biome;
 }
 
 void simfire_update_pop_density(Gridcell& gridcell) {

@@ -651,7 +651,7 @@ void get_combustion_rates(Patch& patch, int fli_index, double k_tun_litter) {
 	// relative fluxes from litter pools to atmosphere
 	patch.litf2atm = turnoverfract[11][fli_index];
 	patch.lfwd2atm = turnoverfract[10][fli_index];
-	patch.lcwd2atm = turnoverfract[ 9][fli_index] * k_tun_litter;
+	patch.lcwd2atm = turnoverfract[ 9][fli_index];
 	return;
 }
 void blaze(Patch& patch, Climate& climate) {

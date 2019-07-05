@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash 
 #
 # benchmarks - an automatic benchmarking suite for LPJ-GUESS.
 #
@@ -208,8 +208,7 @@ function setup_workspace {
     # Limit the gridlist if there is a boundingbox.txt
     if [ -f $test_name/config/boundingbox.txt ]; then
 	bbox=$(cat $test_name/config/boundingbox.txt)
-	$bbox_command -f $test_name/config/gridlist.txt \
-	    -o $workspace/gridlist.txt $bbox
+	$bbox_command -f $test_name/config/gridlist.txt -o $workspace/gridlist.txt $bbox
     fi
 
     # Create a symbolic link to the common directory
@@ -223,7 +222,7 @@ function setup_workspace {
 		$workspace/Global_mean_ABC_1993-2012_Liu2015_SI.dat
 	    ln -fs /home/jnord/lpjguess_group_catalog_on_lunarc/data/fire/gfed40_c-emissions_1997-2016.dat \
 		$workspace/gfed40_c-emissions_1997-2016.dat
-	else if [ $ARCH == "simba" ]; then
+	elif [ $ARCH == "simba" ]; then
 	    ln -fs /data/biomass/Global_mean_ABC_1993-2012_Liu2015_SI.dat \
 		$workspace/Global_mean_ABC_1993-2012_Liu2015_SI.dat
 	    ln -fs /data/fire/gfed40_c-emissions_1997-2016.dat \

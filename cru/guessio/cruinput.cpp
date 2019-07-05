@@ -359,7 +359,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 					      dwind,drhum);
 			}
 			else {
-				fail('When using CRU monthly data weathergenerator must be specified to either "INTERP" or "GWGEN".');
+				fail("When using CRU monthly data weathergenerator must be specified to either 'INTERP' or 'GWGEN'.");
 			}
 
 			spinup_mtemp.nextyear();
@@ -403,7 +403,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 					      dtemp,dprec,dsun,ddtr,dwind,drhum);
 			}
 			else {
-				fail('When using CRU monthly data weathergenerator must be specified to either "INTERP" or "GWGEN".');
+				fail("When using CRU monthly data weathergenerator must be specified to either 'INTERP' or 'GWGEN'.");
 			}
 		}
 		else {

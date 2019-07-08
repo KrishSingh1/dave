@@ -2335,8 +2335,6 @@ double Gridcell::nflux() {
 
 void Gridcell::serialize(ArchiveStream& arch) {
 	arch & climate
-		& gwgen
-		& rndst
 		& landcover
 		& seed
 		& balance;

@@ -161,10 +161,6 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 				// the CRU binaries(!). Set these to zero for now.
 				mdtr[y][m] = max(0.0, mdtr[y][m]);
 
-				mwind[y][m] = data.mwind[y*12+m]; // m/s
-
-				mrhum[y][m] = data.mrhum[y*12+m]; // fraction 0-1
-
 				/*
 				If vapour pressure is needed:
 				mvap[y][m] = data.mvap[y*12+m];
@@ -175,19 +171,23 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 		// Close the archive
 		ark.close();
 		
-		return true;
-
 		// Wind and rel-humidity data will be included in the misc archive next time the misc archive is generated.
 		// In order not to introduce temporary interim instruction file paramenters, 
 		// the filepath to this temporary data file is therefore assumed to be identical to file_cru_misc,
 		// but with wind instead of misc in the filename.
 		// TODO: When wind data is included in the misc archive:
-		// - Remove firemodell BLAZE if-condition, and remove #include parameters.h
-		// - Remove function call below and the cognate function searchcru_wind()
+		// - Remove firemodell BLAZE if-condition, and remove #include parameters.h.
+		// - Remove function call below and the cognate function searchcru_wind().
+		// - In the code above add return true to replace the else return true statement in the block here.
 		// - In the code above, add the following:
-		//		mwind[y][m] = data.mwind[y * 12 + m]; // days
-		//		if (mwind[y][m] < 0.1)
-		//			mwind[y][m] = 0.0; // Catches rounding errors
+		//       mwind[y][m] = data.mwind[y * 12 + m];		// m/s
+		//       if (mwind[y][m] < 0.1)
+		//       	mwind[y][m] = 0.0; // Catches rounding errors
+		//       
+		//       mrhum[y][m] = data.mrhum[y * 12 + m];		// fraction 0-1
+		//       if (mrhum[y][m] < 0.001)
+		//       	mrhum[y][m] = 0.0; // Catches rounding errors
+		//
 		if (weathergenerator == GWGEN) {
 
 			xtring file_cru_wind(cruark);
@@ -249,12 +249,12 @@ bool searchcru_wind(char* cruark, double dlon, double dlat,
 			for (m = 0; m<12; m++) {
 
 				// guess2008 - catch rounding errors 
-				mwind[y][m] = data.mwind[y * 12 + m]; // days
+				mwind[y][m] = data.mwind[y * 12 + m];		// m/s
 				if (mwind[y][m] < 0.1)
 					mwind[y][m] = 0.0; // Catches rounding errors
 
 				// guess2008 - catch rounding errors 
-				mrhum[y][m] = data.mrhum[y * 12 + m]; // days
+				mrhum[y][m] = data.mrhum[y * 12 + m];		// fraction 0-1
 				if (mrhum[y][m] < 0.001)
 					mrhum[y][m] = 0.0; // Catches rounding errors
 

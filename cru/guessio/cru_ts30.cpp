@@ -11,13 +11,19 @@
 #include <stdio.h>
 #include <math.h>
 #include <vector>
+#include "parameters.h"
 
 // header files for the CRU-NCEP data archives
-#include "cruncep_1901_2017.h"
-#include "cruncep_1901_2017misc.h"
+#include "cruncep_1901_2015.h"
+#include "cruncep_1901_2015misc.h"
+#include "cruncep_1901_2015wind.h"	// Tempororary until wind and rel-humidity data is included in the misc archive: next time the misc archive is generated.
+
 
 namespace CRU_TS30 {
 
+/// Temporary wind and rel-humidity function. Will be removed when wind included in misc fastarchive.
+bool searchcru_wind(char* cruark, double dlon, double dlat, double mwind[NYEAR_HIST][12], double mrhum[NYEAR_HIST][12]);
+ 
 bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
                double mtemp[NYEAR_HIST][12],
                double mprec[NYEAR_HIST][12],
@@ -27,14 +33,14 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 	// Please note the new function signature. 
 
 	// Archive object. Definition in new header file, cru.h
-	Cruncep_1901_2017Archive ark;
+	Cruncep_1901_2015Archive ark;
 
 	int y,m;
 
 	// Try block to catch any unexpected errors
 	try {
 
-		Cruncep_1901_2017 data; // struct to hold the data
+		Cruncep_1901_2015 data; // struct to hold the data
 
 		bool success = ark.open(cruark);
 
@@ -101,13 +107,13 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 	// Please note the new function signature. 
 
 	// Archive object
-	Cruncep_1901_2017miscArchive ark; 
+	Cruncep_1901_2015miscArchive ark; 
 	int y,m;
 
 	// Try block to catch any unexpected errors
 	try {
 
-		Cruncep_1901_2017misc data;
+		Cruncep_1901_2015misc data;
 
 		bool success = ark.open(cruark);
 
@@ -141,7 +147,9 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 			for (m=0;m<12;m++) {
 
 				// guess2008 - catch rounding errors 
-				mfrs[y][m] = 0.0; // Currently no frs data in the fastarchive binary.
+				mfrs[y][m] = data.mfrs[y*12+m]; // days
+				if (mfrs[y][m] < 0.1) 
+					mfrs[y][m] = 0.0; // Catches rounding errors
 
 				mwet[y][m] = data.mwet[y*12+m]; // days
 				if (mwet[y][m] <= 0.1) 
@@ -169,6 +177,27 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 		
 		return true;
 
+		// Wind and rel-humidity data will be included in the misc archive next time the misc archive is generated.
+		// In order not to introduce temporary interim instruction file paramenters, 
+		// the filepath to this temporary data file is therefore assumed to be identical to file_cru_misc,
+		// but with wind instead of misc in the filename.
+		// TODO: When wind data is included in the misc archive:
+		// - Remove firemodell BLAZE if-condition, and remove #include parameters.h
+		// - Remove function call below and the cognate function searchcru_wind()
+		// - In the code above, add the following:
+		//		mwind[y][m] = data.mwind[y * 12 + m]; // days
+		//		if (mwind[y][m] < 0.1)
+		//			mwind[y][m] = 0.0; // Catches rounding errors
+		if (weathergenerator == GWGEN) {
+
+			xtring file_cru_wind(cruark);
+			file_cru_wind = file_cru_wind.left(file_cru_wind.len() - 8) + "wind.bin";
+			
+			return searchcru_wind(file_cru_wind, dlon, dlat, mwind, mrhum);
+		} 
+		else
+			return true;
+
 	}
 	catch(...) {
 		// Unknown error.
@@ -176,6 +205,73 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 	}
 }
 
+// Temporary function that will be removed when Wind data will be included in the misc archive 
+// next time the misc archive is generated
+bool searchcru_wind(char* cruark, double dlon, double dlat,
+	double mwind[NYEAR_HIST][12], double mrhum[NYEAR_HIST][12]) {
+
+	// Archive object
+	Cruncep_1901_2015windArchive ark;
+	int y, m;
+
+	// Try block to catch any unexpected errors
+	try {
+
+		Cruncep_1901_2015wind data;
+
+		bool success = ark.open(cruark);
+
+		if (success) {
+			bool flag = ark.rewind();
+			if (!flag) {
+				ark.close(); // I.e. we opened it but we couldn't rewind
+				return false;
+			}
+		}
+		else
+			return false;
+
+
+		// The CRU archive index hold lons & lats as whole doubles * 10
+		data.lon = dlon;
+		data.lat = dlat;
+
+		// Read the CRU data into the data struct
+		success = ark.getindex(data);
+		if (!success) {
+			ark.close();
+			return false;
+		}
+
+		// Transfer the data from the data struct to the arrays.
+
+		for (y = 0; y < NYEAR_HIST; y++) {
+			for (m = 0; m<12; m++) {
+
+				// guess2008 - catch rounding errors 
+				mwind[y][m] = data.mwind[y * 12 + m]; // days
+				if (mwind[y][m] < 0.1)
+					mwind[y][m] = 0.0; // Catches rounding errors
+
+				// guess2008 - catch rounding errors 
+				mrhum[y][m] = data.mrhum[y * 12 + m]; // days
+				if (mrhum[y][m] < 0.001)
+					mrhum[y][m] = 0.0; // Catches rounding errors
+
+			}
+		}
+
+		// Close the archive
+		ark.close();
+
+		return true;
+
+	}
+	catch (...) {
+		// Unknown error.
+		return false;
+	}
+}
 
 bool findnearestCRUdata(double searchradius, char* cruark, double& lon, double& lat, 
                         int& scode, 

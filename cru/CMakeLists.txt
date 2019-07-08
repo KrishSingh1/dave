@@ -1,6 +1,7 @@
 set(headers 
-  guessio/cruncep_1901_2017.h
-  guessio/cruncep_1901_2017misc.h
+  guessio/cruncep_1901_2015.h
+  guessio/cruncep_1901_2015misc.h
+  guessio/cruncep_1901_2015wind.h
   guessio/cruinput.h
   guessio/cru_ts30.h
   guessio/lamarquendep.h

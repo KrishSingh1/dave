@@ -530,12 +530,12 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 	if ( vegmode == POPULATION ) {
 
 		// Temperate Needleleaf
-		if ( biome == 1) { 
+		if ( biome == 2) { 
 			double mass_cwd = patch.soil.sompool[SURFCWD].cmass   ;   
 			survival_probability = surv_prob_temp_nl(dbh, fli, mass_cwd);
 		}
 		// Broadleaf and mixed
-		else if ( biome == 2 || biome == 3 ) {
+		else if ( biome == 3 || biome == 4 ) {
 			// tropical 
 			if  (lat > -30 && lat < 30 ) {
 				// moist
@@ -551,7 +551,7 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 			}
 		}
 		// Savanna, shrubland and sparsely vegetated
-		else if ( biome == 4 || biome == 5 || biome == 7) {
+		else if ( biome == 5 || biome == 6 || biome == 8) {
 			if ( climate.is_sprouter ) {
 				survival_probability = surv_prob_Sprouter_Savanna(height, fli);
 			}
@@ -560,7 +560,7 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 			}
 		}
 		// Tundra
-		else if ( biome == 6 ) {
+		else if ( biome == 7 ) {
 			survival_probability = surv_prob_boreal(fli);
 		} 
 		else {
@@ -584,7 +584,7 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 		// Broadleaf
 		else if ( indiv.pft.leafphysiognomy == BROADLEAF ) {
 			// Broadleaf, mixed Forest and majorly NL biomes
-			if ( biome == 0 || biome == 1 || biome == 2 || biome == 3 ) {
+			if ( biome == 1 || biome == 2 || biome == 3 || biome == 4 ) {
 				if  (lat > -30 && lat < 30 ) {
 					// tropical 
 					survival_probability = surv_prob_tropics(dbh,fli);
@@ -597,7 +597,7 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 				}
 			}
 			// Savanna, shrubland and sparsely vegetated
-			else if ( biome == 4 || biome == 5 || biome == 7) {
+			else if ( biome == 5 || biome == 6 || biome == 8) {
 				if ( climate.is_sprouter ) {
 					survival_probability = surv_prob_Sprouter_Savanna(height, fli);
 				}
@@ -606,7 +606,7 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 				}
 			}
 			// Tundra
-			else if ( biome == 6 ) {
+			else if ( biome == 7 ) {
 				survival_probability = surv_prob_boreal(fli);
 			} 
 			else {

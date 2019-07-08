@@ -90,14 +90,15 @@ int update_fire_biome (Patch& patch, double lat) {
 	   gridcell depending on the last <n_year_biomeavg> years of
 	   vegetation. 
 	   SIMFIRE BIOMES:
-	   0 Cropland/Urban/Natural Vegetation Mosaic (IGBP 12-14)
-	   1 Needleleaf forest (IGBP 1,3): >60% cover, height>2m
-	   2 Broadleaf forest (IGBP 2,4): >60% cover, height>2m
-	   3 Mixed forest (IGBP 4): >60% cover, height>2m, none >60%
-	   4 Shrubland (IGBP 6,7 and latitude<50): >10% woody cover, height<2m
-	   5 Savanna or Grassland (IGBP 8-10): herbaceous component present, <60% tree cover
-	   6 Tundra (IGBP 6,7,16 and latitude>=50): height<2m
-	   7 Barren or Sparsely Vegetated (IGBP 16 and latitude<50): <10% vegetation cover
+	   0 no veg/no data
+	   1 Cropland/Urban/Natural Vegetation Mosaic (IGBP 12-14)
+	   2 Needleleaf forest (IGBP 1,3): >60% cover, height>2m
+	   3 Broadleaf forest (IGBP 2,4): >60% cover, height>2m
+	   4 Mixed forest (IGBP 4): >60% cover, height>2m, none >60%
+	   5 Shrubland (IGBP 6,7 and latitude<50): >10% woody cover, height<2m
+	   6 Savanna or Grassland (IGBP 8-10): herbaceous component present, <60% tree cover
+	   7 Tundra (IGBP 6,7,16 and latitude>=50): height<2m
+	   8 Barren or Sparsely Vegetated (IGBP 16 and latitude<50): <10% vegetation cover
 	*/
 
 	double fgrass=0.0; // grass fraction of all vegetation
@@ -141,7 +142,7 @@ int update_fire_biome (Patch& patch, double lat) {
 	}
 	
 	if ( ftot < 0.00000001 ) {
-		return 7; // barren 
+		return 0; // no data
 	}
 
 	// re-normalize
@@ -178,23 +179,23 @@ int update_fire_biome (Patch& patch, double lat) {
 	fshrb  /=  (double)n_year_biomeavg;
 
 	if (ftot<0.1 && fabs(lat)<50.0) {
-		biome=7; } // barren or sparsely vegetated
+		biome=8; } // barren or sparsely vegetated
 	else if (ftot<0.1   && fabs(lat)>=50.0) {
-		biome=6; } // tundra
+		biome=7; } // tundra
 	else if (patch.stand.landcover==CROPLAND) {
-		biome=0; } // cropland
+		biome=1; } // cropland
 	else if (fshrb>=0.8 && fabs(lat)<50.0) {
-		biome=4; } // shrubland
+		biome=5; } // shrubland
 	else if (fshrb>=0.8 && fabs(lat)>=50.0) {
-		biome=6; } // tundra
+		biome=7; } // tundra
 	else if (fgrass>=0.4) {
-		biome=5; } // savanna or grassland
+		biome=6; } // savanna or grassland
 	else if (fndlt>=0.6) {
-		biome=1; } // needle-leaf forest
+		biome=2; } // needle-leaf forest
 	else if (fbrlt>=0.6) {
-		biome=2; } // broad-leaf forest
+		biome=3; } // broad-leaf forest
 	else {
-		biome=3;   // mixed forest
+		biome=4;   // mixed forest
 		} 
 
 	return biome;
@@ -241,7 +242,7 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 
 	for (biome=0;biome<NFIREBIOMES && count[biome]<count_max;biome++) {
 	}
-	climate.simfire_biome = biome;
+	climate.simfire_biome = biome ;
 }
 
 void simfire_update_pop_density(Gridcell& gridcell) {
@@ -451,7 +452,7 @@ double simfire_ba(Climate& climate, Gridcell& gridcell) {
 	int ri = gridcell.simfire_region;
 
 	// return if improper biome-type
-	if (climate.simfire_biome == -1) return 0.;
+	if (climate.simfire_biome == 0) return 0.;
 
 	// fPAR correction Knorr
 	const double fpar_corr1 = 0.428;
@@ -461,7 +462,7 @@ double simfire_ba(Climate& climate, Gridcell& gridcell) {
 	  climate.ann_max_fapar;
 
 	// compute annual burned area
-	double ba = a[ri][climate.simfire_biome] * 
+	double ba = a[ri][climate.simfire_biome-1] * 
 		pow(fpar_cor, b[ri]) *
 		pow((scalar * climate.max_nesterov), c[ri]) *
 		exp(e[ri] * gridcell.pop_density);

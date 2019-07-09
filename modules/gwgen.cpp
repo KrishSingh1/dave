@@ -40,7 +40,7 @@
 #include <iostream>
 #include <string>
 
-//#include <fenv.h>
+#include "config.h"
 
 /// Parameters used witin GWGEN
 // freezing temperature of freshwater (K)
@@ -685,7 +685,7 @@ double qchisq_appr(double p, double nu, double g, double tol) {
         else {
 		ch = 0.4;
 		a = log(1 - p) + g + c * log(2.0);
-		while (abs(q - ch) > tol * abs(ch)) {
+		while (fabs(q - ch) > tol * fabs(ch)) {
 			q = ch;
 			p1 = 1. / (1 + ch * (4.67 + ch));
 			p2 = ch * (6.73 + ch * (6.66 + ch));
@@ -776,10 +776,10 @@ double gamma_cdf_inv(double p, double alpha, double scale) {
 		ch = ch +  t * (1.0 + 0.5 * t * s1 - b * c * ( 
 			s1 - b * (s2 - b * (s3 - b * (s4 - b * (s5 - b * s6))))));
 
-		if (abs(q - ch) < EPS2 * ch)
+		if (fabs(q - ch) < EPS2 * ch)
 			break;
 
-		if (abs(q - ch) > 0.1 * ch) {
+		if (fabs(q - ch) > 0.1 * ch) {
 			if (ch < q) 
 				ch = 0.9 * q;
 			else
@@ -947,11 +947,11 @@ double gamma_inc ( double p, double x ) {
 			pn5 = b * pn3 - a * c * pn1;
 			pn6 = b * pn4 - a * c * pn2;
 
-			if ( 0.0E+00 < abs ( pn6 ) ) {
+			if ( 0.0E+00 < fabs ( pn6 ) ) {
 
 				rn = pn5 / pn6;
 				
-				if ( abs ( gamma_inc - rn ) <= fmin ( tol, tol * rn ) ) {
+				if ( fabs ( gamma_inc - rn ) <= fmin ( tol, tol * rn ) ) {
 
 					arg = arg + log ( gamma_inc );
 
@@ -975,7 +975,7 @@ double gamma_inc ( double p, double x ) {
 			//!
 			//!  Rescale terms in continued fraction if terms are large.
 			//!
-			if ( overflow <= abs ( pn5 ) ) {
+			if ( overflow <= fabs ( pn5 ) ) {
 				pn1 = pn1 / overflow;
 				pn2 = pn2 / overflow;
 				pn3 = pn3 / overflow;
@@ -1613,7 +1613,7 @@ void normal_01_cdf_inv (double p,double x) {
 
         q = p - 0.5E+00;
 
-        if ( abs ( q ) <= split1 ) {
+        if ( fabs ( q ) <= split1 ) {
 
 		r = const1 - q * q;
 		x = q * r8poly_value_horner( 7, a, r ) / r8poly_value_horner( 7, b, r );
@@ -1730,26 +1730,26 @@ void normal_01_cdf ( double x, double cdf ) {
         //
         //  |X| <= 1.28.
         //
-        if ( abs ( x ) <= 1.28E+00 ) {
+        if ( fabs ( x ) <= 1.28E+00 ) {
 
 		y = 0.5E+00 * x * x;
 
-		q = 0.5E+00 - abs ( x ) * ( a1 - a2 * y / ( y + a3 - a4 /
+		q = 0.5E+00 - fabs ( x ) * ( a1 - a2 * y / ( y + a3 - a4 /
 				( y + a5 + a6 / ( y + a7 ) ) ) );
 	}
 	//
         //  1.28 < |X| <= 12.7
         //
-        else if ( abs ( x ) <= 12.7E+00 ) {
+        else if ( fabs ( x ) <= 12.7E+00 ) {
 
 		y = 0.5E+00 * x * x;
 
-		q = exp ( - y ) * b0 / ( abs ( x ) - b1 
-					 + b2 / ( abs ( x ) + b3 
-					 + b4 / ( abs ( x ) - b5 
-					 + b6 / ( abs ( x ) + b7 
-					 - b8 / ( abs ( x ) + b9 
-					 + b10 /( abs ( x ) + b11 ) ) ) ) ) );
+		q = exp ( - y ) * b0 / ( fabs ( x ) - b1 
+					 + b2 / ( fabs ( x ) + b3 
+					 + b4 / ( fabs ( x ) - b5 
+					 + b6 / ( fabs ( x ) + b7 
+					 - b8 / ( fabs ( x ) + b9 
+					 + b10 /( fabs ( x ) + b11 ) ) ) ) ) );
         }
 	//
         //  12.7 < |X|
@@ -2163,7 +2163,7 @@ void gwgen_get_daily_met(GWGen& gwgen, RnDst& rndst) {
 	}
 
         intercept_corr = 0.;
-        if (abs(wind_intercept_bias_a + 9999.) > 1e-7) {
+        if (fabs(wind_intercept_bias_a + 9999.) > 1e-7) {
 		intercept_corr = exp(wind_intercept_bias_b + 
 				 wind_intercept_bias_a * fmax(wind_bias_min, fmin(wind_bias_max, gwgen.resid[3])));
         } 
@@ -2375,7 +2375,6 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 	} 
 	
 	unsigned int sval = unsigned(gridcell.seed); //-30000;
-	//ran_seed(sval, gridcell.climate.rndst);				//
 
 	int accumday = 0;
 
@@ -2414,8 +2413,8 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 			dum[day] = 1.;
 		
 		// index for annual arrays
-		int lm = fmax(mon-1,0); 
-		int rm = fmin(11,mon+1);
+		int lm = max(mon-1,0); 
+		int rm = min(11,mon+1);
 		// index for rmsmooth
 		int ilm = 0;
 		int irm = 2;
@@ -2541,7 +2540,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 				tmin_acc += gwgen.dtmin;
 			} 
 			// Break off criteria
-			tmindiff = 1. ;//abs(mtmin(n_curr) - tmin_acc / ndm(n_curr))
+			tmindiff = 1. ;//fabs(mtmin(n_curr) - tmin_acc / ndm(n_curr))
 			
 			// Reset met_out_save after initialization
 			if (i_count == 0) {
@@ -2562,16 +2561,16 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 			}
 			// enforce at least two times over the month to get initial values ok
 			else if (i_count >= 1) {  
-				pdaydiff = gwgen.mwetd - mwetd_sim;
+				pdaydiff = (int)round(gwgen.mwetd) - mwetd_sim;
 				precdiff = gwgen.mprec - mprec_sim;
 
 				// breakoff-criteria for sufficient skill 			
 				if ( (abs(pdaydiff) <= 1 && abs(precdiff) <= prec_t && tmindiff < 2.5) || 
-				     (pdaydiff == 0 && abs(precdiff) <= 1.25*prec_t  ))  {
+				     (pdaydiff == 0 && fabs(precdiff) <= 1.25*prec_t  ))  {
 					break;
 				}
 
-				double metric = abs(pdaydiff) * 20 + abs(precdiff) ;
+				double metric = abs(pdaydiff) * 20 + fabs(precdiff) ;
 				// save state if better w.r.t. metric 
 				if ( metric < metric_sav ) {
 					for ( int day=0; day<ndaymon; day++) {

@@ -126,10 +126,10 @@ void blaze_accounting_gridcell(Climate& climate) {
 		}
 
 		// latitude depending tuning values mortality
-		if ( abs(lat) >= 50.) {
+		if ( fabs(lat) >= 50.) {
 			climate.k_tun_litter = k_tun_bor_lit;
 		}
-		else if ( abs(lat) >= 30. && abs(lat) < 50.) {
+		else if ( fabs(lat) >= 30. && fabs(lat) < 50.) {
 			climate.k_tun_litter = k_tun_tmp_lit;
 		}
 		else {

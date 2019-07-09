@@ -685,7 +685,7 @@ double qchisq_appr(double p, double nu, double g, double tol) {
         else {
 		ch = 0.4;
 		a = log(1 - p) + g + c * log(2.0);
-		while (fabs(q - ch) > tol * fabs(ch)) {
+		while (abs(q - ch) > tol * abs(ch)) {
 			q = ch;
 			p1 = 1. / (1 + ch * (4.67 + ch));
 			p2 = ch * (6.73 + ch * (6.66 + ch));
@@ -721,7 +721,7 @@ double gamma_cdf_inv(double p, double alpha, double scale) {
         // alpha:   the shape of the gamma distribution
 	// scale:   the scale of the gamma distribution
         double a, b, c, g, ch, ch0, p1;
-        double p2, q, s1, s2, s3, s4, s5, s6, t, x;
+        double p2, q, s1, s2, s3, s4, s5, s6, t;
 
         const double EPS1    = 1.0e-2;
 	const double EPS2    = 5.0e-7;
@@ -776,10 +776,10 @@ double gamma_cdf_inv(double p, double alpha, double scale) {
 		ch = ch +  t * (1.0 + 0.5 * t * s1 - b * c * ( 
 			s1 - b * (s2 - b * (s3 - b * (s4 - b * (s5 - b * s6))))));
 
-		if (fabs(q - ch) < EPS2 * ch)
+		if (abs(q - ch) < EPS2 * ch)
 			break;
 
-		if (fabs(q - ch) > 0.1 * ch) {
+		if (abs(q - ch) > 0.1 * ch) {
 			if (ch < q) 
 				ch = 0.9 * q;
 			else
@@ -947,11 +947,11 @@ double gamma_inc ( double p, double x ) {
 			pn5 = b * pn3 - a * c * pn1;
 			pn6 = b * pn4 - a * c * pn2;
 
-			if ( 0.0E+00 < fabs ( pn6 ) ) {
+			if ( 0.0E+00 < abs ( pn6 ) ) {
 
 				rn = pn5 / pn6;
 				
-				if ( fabs ( gamma_inc - rn ) <= fmin ( tol, tol * rn ) ) {
+				if ( abs ( gamma_inc - rn ) <= min ( tol, tol * rn ) ) {
 
 					arg = arg + log ( gamma_inc );
 
@@ -975,7 +975,7 @@ double gamma_inc ( double p, double x ) {
 			//!
 			//!  Rescale terms in continued fraction if terms are large.
 			//!
-			if ( overflow <= fabs ( pn5 ) ) {
+			if ( overflow <= abs ( pn5 ) ) {
 				pn1 = pn1 / overflow;
 				pn2 = pn2 / overflow;
 				pn3 = pn3 / overflow;
@@ -1062,7 +1062,7 @@ double gamma_log( double x ) {
 	const double d1 = -5.772156649015328605195174E-01;
         const double d2 =  4.227843350984671393993777E-01;
         const double d4 =  1.791759469228055000094023E+00;
-        int i;
+
         const double frtbig = 1.42E+09;
 	const double p1[8] = { 
 		4.945235359296727046734888E+00, 
@@ -1305,7 +1305,7 @@ double r8_gamma ( double x ) {
         const double eps = 2.22E-16;
         double fact;
         const double half = 0.5E+00;
-        int i,n;
+        int n;
         const double one = 1.0E+00;
         double p[8] = {
 		-1.71618513886549492533811E+00,
@@ -1613,7 +1613,7 @@ void normal_01_cdf_inv (double p,double x) {
 
         q = p - 0.5E+00;
 
-        if ( fabs ( q ) <= split1 ) {
+        if ( abs ( q ) <= split1 ) {
 
 		r = const1 - q * q;
 		x = q * r8poly_value_horner( 7, a, r ) / r8poly_value_horner( 7, b, r );
@@ -1675,7 +1675,6 @@ double r8poly_value_horner ( int m, double *c, double x ) {
         // c(0:m) ! the polynomial coefficients. C(I) is the coefficient of  :math:`X^I`
         // x      ! the polynomial value
 
-        int i;
         double value;
 
         value = c[m]; 
@@ -1730,26 +1729,26 @@ void normal_01_cdf ( double x, double cdf ) {
         //
         //  |X| <= 1.28.
         //
-        if ( fabs ( x ) <= 1.28E+00 ) {
+        if ( abs ( x ) <= 1.28E+00 ) {
 
 		y = 0.5E+00 * x * x;
 
-		q = 0.5E+00 - fabs ( x ) * ( a1 - a2 * y / ( y + a3 - a4 /
+		q = 0.5E+00 - abs ( x ) * ( a1 - a2 * y / ( y + a3 - a4 /
 				( y + a5 + a6 / ( y + a7 ) ) ) );
 	}
 	//
         //  1.28 < |X| <= 12.7
         //
-        else if ( fabs ( x ) <= 12.7E+00 ) {
+        else if ( abs ( x ) <= 12.7E+00 ) {
 
 		y = 0.5E+00 * x * x;
 
-		q = exp ( - y ) * b0 / ( fabs ( x ) - b1 
-					 + b2 / ( fabs ( x ) + b3 
-					 + b4 / ( fabs ( x ) - b5 
-					 + b6 / ( fabs ( x ) + b7 
-					 - b8 / ( fabs ( x ) + b9 
-					 + b10 /( fabs ( x ) + b11 ) ) ) ) ) );
+		q = exp ( - y ) * b0 / ( abs ( x ) - b1 
+					 + b2 / ( abs ( x ) + b3 
+					 + b4 / ( abs ( x ) - b5 
+					 + b6 / ( abs ( x ) + b7 
+					 - b8 / ( abs ( x ) + b9 
+					 + b10 /( abs ( x ) + b11 ) ) ) ) ) );
         }
 	//
         //  12.7 < |X|
@@ -1979,7 +1978,7 @@ double cldf2rad(double input, double lat, int doy, bool cldf2rad) {
 		if ( hh > 0. ) {
 			w     = rad / (2. *(u * hh + v * sinehh) * K);
 			cldfr = 1.-((w/((1.0 - BETA) * qo) -C)/D);
-			cldfr = fmax(0.,fmin(1.,cldfr));
+			cldfr = max(0.,min(1.,cldfr));
 		} 
 		else {
 			cldfr = 0.;
@@ -2145,7 +2144,7 @@ void gwgen_get_daily_met(GWGen& gwgen, RnDst& rndst) {
 
         cldf = gwgen.resid[2] * gwgen.dmcldf_sd + gwgen.dmcldf_mn;
 
-        wind = fmax(0.0, gwgen.resid[3] * sqrt(fmax(0.0, gwgen.dmwind_sd)) + sqrt(fmax(0.0, gwgen.dmwind_mn)));
+        wind = max(0.0, gwgen.resid[3] * sqrt(max(0.0, gwgen.dmwind_sd)) + sqrt(max(0.0, gwgen.dmwind_mn)));
 
         wind = roundto(wind * wind, 1);
 	
@@ -2158,29 +2157,29 @@ void gwgen_get_daily_met(GWGen& gwgen, RnDst& rndst) {
 	else {
 		for (i=0; i<6; i++) {
 			slopecorr += wind_bias_coeffs[i] * 
-				(pow(fmax(wind_bias_min, fmin(wind_bias_max, gwgen.resid[3])), i));
+				(pow(max(wind_bias_min, min(wind_bias_max, gwgen.resid[3])), i));
 		}
 	}
 
         intercept_corr = 0.;
-        if (fabs(wind_intercept_bias_a + 9999.) > 1e-7) {
+        if (abs(wind_intercept_bias_a + 9999.) > 1e-7) {
 		intercept_corr = exp(wind_intercept_bias_b + 
-				 wind_intercept_bias_a * fmax(wind_bias_min, fmin(wind_bias_max, gwgen.resid[3])));
+				 wind_intercept_bias_a * max(wind_bias_min, min(wind_bias_max, gwgen.resid[3])));
         } 
 	else {
 		for (i=0; i<6; i++) {
 			intercept_corr += wind_intercept_bias_coeffs[i] * 
-				(pow(fmax(wind_bias_min, fmin(wind_bias_max, gwgen.resid[3])),i));
+				(pow(max(wind_bias_min, min(wind_bias_max, gwgen.resid[3])),i));
 		}
 	}
 
-	wind = (wind - intercept_corr) / fmax(slopecorr, 9e-4);
+	wind = (wind - intercept_corr) / max(slopecorr, 9e-4);
 
         // ----- tmin bias correction
 	
 	for (int i=0; i<6; i++) {
 		tmin_bias += tmin_bias_coeffs[i] * 
-				 (pow(fmax(tmin_bias_min, fmin(tmin_bias_max, gwgen.resid[0])),i));
+				 (pow(max(tmin_bias_min, min(tmin_bias_max, gwgen.resid[0])),i));
 	}
         tmin = tmin - roundto(tmin_bias, 1);
 
@@ -2280,7 +2279,7 @@ double get_arden_rh(double T_avg, double T_dew) {
 
         double A = b * T_dew / (c + T_dew);
         double B = ( b - T_avg/d )* T_avg / (c + T_avg);
-        double relhum = fmin(1.,fmax(0., exp(A - B)));
+        double relhum = min(1.,max(0., exp(A - B)));
 	return relhum;
 }
 
@@ -2325,8 +2324,10 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 	bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
 		( restart && date.year == state_year ) ) );
 
-	int pdaydiff = 0;
-	double precdiff, tmindiff, tmin_acc;
+	int pdaydiff    = 0;
+	double precdiff = 0.; 
+	double tmindiff = 0.;
+	double tmin_acc = 0.;
 
 	//GWGen gwgen = gridcell.climate.gwgen;
 	RnDst rndst = gridcell.climate.rndst;
@@ -2358,7 +2359,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		in_mcldf[m] /= (double)ndaymon;
 		// have a min cldf of 1% to introduce a monthly variability 
 		// to fit lower sol vals with rainfall
-		in_mcldf[m] = fmax(0.01,in_mcldf[m]);
+		in_mcldf[m] = max(0.01,in_mcldf[m]);
 	}
 
 	bool lreset = true;
@@ -2458,7 +2459,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		
 		// ensure positivity for cloud-cover
 		for (int day=0;day<ndaymon;day++) {
-			mcloud_curr[day] = fmax(0.01,mcloud_curr[day]); 
+			mcloud_curr[day] = max(0.01,mcloud_curr[day]); 
 		}
 
 		// smooth wind
@@ -2471,7 +2472,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 
 		// ensure positivity for wind
 		for (int day=0;day<ndaymon;day++) {
-			mwind_curr[day] = fmax(0.1,mwind_curr[day]); 
+			mwind_curr[day] = max(0.1,mwind_curr[day]); 
 		}
 		
 		// reset residuals at beginning of month if desired
@@ -2482,7 +2483,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		}
 		
 		// below: n_curr bezieht sich auf gitterzelle
-		double prec_t = fmax(2.,0.2 * in_mprec[mon]);  //set quality threshold for preciptation amount
+		double prec_t = max(2.,0.2 * in_mprec[mon]);  //set quality threshold for preciptation amount
 		
 		GWGen gwgen_sav = gwgen;
 		
@@ -2491,7 +2492,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		// here a bugfix for CRU data is applied , when there is non-zero rain
 		// but no wet days
 		if ( gwgen.mprec > 0. ) {
-			gwgen.mwetd = fmax(1.,in_mwetd[mon]);
+			gwgen.mwetd = max(1.,in_mwetd[mon]);
 		} else {
 			gwgen.mwetd = 0.;
 		}
@@ -2510,7 +2511,6 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		do {
 			int mwetd_sim    = 0;
 			double mprec_sim = 0.0;
-			double tmin_acc  = 0.0;
 			
 			// dayloop
 			for (int day=0; day<ndaymon; day++) {
@@ -2540,7 +2540,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 				tmin_acc += gwgen.dtmin;
 			} 
 			// Break off criteria
-			tmindiff = 1. ;//fabs(mtmin(n_curr) - tmin_acc / ndm(n_curr))
+			tmindiff = 1. ;//abs(mtmin(n_curr) - tmin_acc / ndm(n_curr))
 			
 			// Reset met_out_save after initialization
 			if (i_count == 0) {
@@ -2566,11 +2566,11 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 
 				// breakoff-criteria for sufficient skill 			
 				if ( (abs(pdaydiff) <= 1 && abs(precdiff) <= prec_t && tmindiff < 2.5) || 
-				     (pdaydiff == 0 && fabs(precdiff) <= 1.25*prec_t  ))  {
+				     (pdaydiff == 0 && abs(precdiff) <= 1.25*prec_t  ))  {
 					break;
 				}
 
-				double metric = abs(pdaydiff) * 20 + fabs(precdiff) ;
+				double metric = abs(pdaydiff) * 20 + abs(precdiff) ;
 				// save state if better w.r.t. metric 
 				if ( metric < metric_sav ) {
 					for ( int day=0; day<ndaymon; day++) {
@@ -2620,7 +2620,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 			doy++;
 			// compute days max rad (i.e. cldfr=0.) for weighting
 
-			cldwght[day] = fmax(0.01,cldf2rad(0.0,lat,doy,true));
+			cldwght[day] = max(0.01,cldf2rad(0.0,lat,doy,true));
 			tot_cldwght += cldwght[day];
 		}
 
@@ -2665,7 +2665,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 			solcor = 0.;
 			for (int day=0;day<ndaymon;day++) {
 				doy = accumday+day+1;
-				dsol[day] = fmax(0.001,cldf2rad(dcldf[day],lat,doy,true));
+				dsol[day] = max(0.001,cldf2rad(dcldf[day],lat,doy,true));
 				solcor += dsol[day];
 			}
 			solcor /= (in_msol[mon]*(double)ndaymon);

@@ -196,7 +196,7 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 	climate.simfire_biome = biome ;
 }
 
-/// Get simfire data for a gridcell
+// Get simfire data for a gridcell
 void getsimfiredata(Gridcell& gridcell) {
 		
 	/* Called by: framework (framework.cpp)
@@ -392,7 +392,6 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 
 	// average over each patch 
 	run_fapar /= (double) cnt;
-	// awkward solution but no idea....
 	if ( date.year == 0 && date.day == 0 && run_fapar > 0.99999 ) {
 		run_fapar = 0.;
 	}
@@ -414,7 +413,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 		climate.max_nesterov = climate.cur_nesterov ;
 }
 
-double simfire_ba(Climate& climate, Gridcell& gridcell) {
+double simfire_ba(Climate& climate) {
 
 	/* Called by:  blaze_burned_area(blaze.cpp)
 	   Calls    :  -
@@ -436,6 +435,8 @@ double simfire_ba(Climate& climate, Gridcell& gridcell) {
 	const double fpar_corr2 = 0.148;
 	double fpar_cor = fpar_corr1 * climate.ann_max_fapar + fpar_corr2 * climate.ann_max_fapar * 
 	  climate.ann_max_fapar;
+
+	Gridcell& gridcell = climate.gridcell;
 
 	// compute annual burned area
 	double ba = a[climate.simfire_biome-1] * 

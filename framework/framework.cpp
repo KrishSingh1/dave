@@ -124,10 +124,8 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// Methane production/consumption on wetlands and peatlands (no methane dynamics for other stand types at present) 
 			methane_dynamics(patch);
 			// BLAZE fire model
-			if (firemodel == BLAZE && patch.has_fires() && 
-			    date.year >= patch.soil.solvesomcent_beginyr) {
-				blaze_driver(patch,gridcell.climate);
-			}
+			blaze_driver(patch,gridcell.climate);
+
 			if (date.islastday && date.islastmonth) {
 
 				// LAST DAY OF YEAR

@@ -532,23 +532,6 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 	return survival_probability;
 }
 
-void blaze_burned_area(Climate& climate) {
-
-	/* Called by: blaze_accounting_gridcell (local)
-	   Calls    : simfire_ba (simfire.cpp)
-	   provides burned area at given timestep by
-	   calling appropriate IO-routines or 
-	   model respectively
-	*/
-
-	Gridcell& gridcell = climate.gridcell;
-
-	// reset annual cumulative values
-
-	climate.areaburnt = simfire_ba(climate, gridcell);
-
-} 
-
 void blaze(Patch& patch, Climate& climate) {
 
 	/* Called by: blaze_driver (local)
@@ -823,9 +806,6 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	   mode.
 	*/
 
-	bool now = false;
-	//if ( patch.id == 16) now = true;
-
 	double frac_killed = 1. - frac_survive;
 
 	// FROM transfer_litter in somdynam.cpp
@@ -1054,7 +1034,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 
 	/** Called by:  dailyaccounting_gridcell in driver.cpp 
 	 * Calls    :  available_fuel (local)
-	 *             blaze_burned_area (local)
+	 *             simfire_ba (simfire.cpp)
 	 * routine to keep track of various met-related and fire specific 
 	 * parameters 
 	**/
@@ -1170,7 +1150,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 	}
 
 	// get burned area 
-	blaze_burned_area(climate);
+	climate.areaburnt = simfire_ba(climate);
 
 	//End of year clean-up
 
@@ -1210,6 +1190,20 @@ void blaze_driver(Patch& patch, Climate& climate) {
            This is the driver routine for BLAZE. It does patch-wise accounting 
 	   and calls the main blaze routine
 	*/
+
+	// Check whether BLAZE should be called at all
+	// Has BLAZE been chosen as firemodel?
+	if (firemodel != BLAZE) { 
+		return;
+	}
+	// do not burn before century soil has started
+	if (date.year < patch.soil.solvesomcent_beginyr) {
+		return;
+	}
+	// if fires are excluded from patch return
+	if (!patch.has_fires()) {
+		return;
+	}
 
 	// convert from km2 to ha
 	const double kmsq2ha = 100.;

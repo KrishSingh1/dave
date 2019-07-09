@@ -21,5 +21,5 @@ void getsimfiredata(Gridcell& gridcell);
 // daily accounting for SIMFIRE
 void simfire_accounting_gridcell(Gridcell& gridcell);
 // SIMFIRE
-double simfire_ba(Climate& climate, Gridcell& gridcell); 
+double simfire_ba(Climate& climate); 
 #endif // LPJ_GUESS_SIMFIRE_H

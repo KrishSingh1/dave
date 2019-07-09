@@ -29,58 +29,9 @@
 
 #include "config.h"
 #include "simfire.h"
-#include "SimfireInput.h"
+#include "simfire_input.h"
 
 #define NFIREBIOMES 9
-
-/// Get simfire data for a gridcell
-void getsimfiredata(Gridcell& gridcell) {
-		
-	/* Called by: framework (framework.cpp)
-	   Calls    : simfire_biome_mapping (local)
-	   Reads SIMFIRE relevant info from SimfireInput.bin:
-	   Hyde 3.1 population density
-	   Monthly fire climatology
-	*/
-
-	Climate& climate = gridcell.climate;
-	
-	/// Paths to SIMFIRE binaries
-	xtring file_simfire = param["file_simfire"].str;
-	
-	// open file, fill podp, monthly_burned_area and igbp_class for a gridcell
-	// Fill static arrays/variables here
-	SimfireInputArchive ark;
-	
-	if (!ark.open(file_simfire)) {
-		fail("Could not open %s for input \n", (char*)file_simfire);
-	}
-	
-	SimfireInput rec;
-	rec.lon = gridcell.get_lon();
-	rec.lat = gridcell.get_lat();
-	
-	if (!ark.getindex(rec)) {
-		ark.close();
-		fail("Grid cell not found in %s \n", (char*)file_simfire);
-	}
-	
-	// Found the record, get the values
-	
-	// convert IGBP into simfire internal biomes
-	simfire_biome_mapping(gridcell);
-	
-	// Monthly fire risk (W.Knorr)
-	for (int m=0; m<12; m++) {
-		climate.monthly_fire_risk[m] = rec.monthly_ba[m];
-	}
-	// Population density from HYDE 3.1
-	for (int t=0; t<57; t++) {
-		gridcell.hyde31_pop_density[t] = rec.pop_density[t];
-	}		
-	
-	ark.close();
-}
 
 int update_fire_biome (Patch& patch, double lat) {
 
@@ -243,6 +194,55 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 	for (biome=0;biome<NFIREBIOMES && count[biome]<count_max;biome++) {
 	}
 	climate.simfire_biome = biome ;
+}
+
+/// Get simfire data for a gridcell
+void getsimfiredata(Gridcell& gridcell) {
+		
+	/* Called by: framework (framework.cpp)
+	   Calls    : simfire_biome_mapping (local)
+	   Reads SIMFIRE relevant info from SimfireInput.bin:
+	   Hyde 3.1 population density
+	   Monthly fire climatology
+	*/
+
+	Climate& climate = gridcell.climate;
+	
+	/// Paths to SIMFIRE binaries
+	xtring file_simfire = param["file_simfire"].str;
+	
+	// open file, fill podp, monthly_burned_area and igbp_class for a gridcell
+	// Fill static arrays/variables here
+	SimfireInputArchive ark;
+	
+	if (!ark.open(file_simfire)) {
+		fail("Could not open %s for input \n", (char*)file_simfire);
+	}
+	
+	SimfireInput rec;
+	rec.lon = gridcell.get_lon();
+	rec.lat = gridcell.get_lat();
+	
+	if (!ark.getindex(rec)) {
+		ark.close();
+		fail("Grid cell not found in %s \n", (char*)file_simfire);
+	}
+	
+	// Found the record, get the values
+	
+	// convert IGBP into simfire internal biomes
+	simfire_biome_mapping(gridcell);
+	
+	// Monthly fire risk (W.Knorr)
+	for (int m=0; m<12; m++) {
+		climate.monthly_fire_risk[m] = rec.monthly_ba[m];
+	}
+	// Population density from HYDE 3.1
+	for (int t=0; t<57; t++) {
+		gridcell.hyde31_pop_density[t] = rec.pop_density[t];
+	}		
+	
+	ark.close();
 }
 
 void simfire_update_pop_density(Gridcell& gridcell) {
@@ -421,35 +421,12 @@ double simfire_ba(Climate& climate, Gridcell& gridcell) {
 	   Calculate burned area in ha following Knorr 2014. 
 	*/
 
-	// Regions with dedicated parameter optimisation for SIMFIRE
-	// 0: global
-	// 1: Europe
-	// 2: AUS-NZ
-
-	const double a[3][8] = {
-		{ 0.110,  0.095    ,0.092  ,0.127  ,0.470  ,0.889 ,0.059  ,0.113  }, //	GLOBAL
-		{ 0.02589,0.0008087,0.04896,0.06248,0.01966,0.1191,0.01872,0.08873}, //	EUR   
-		{ 0.06974,0.6535   ,0.6341 ,0.6438 ,2.209  ,1.710 ,    0  ,2.572  }};//	Australia-NZ
-	
-	const double b[3] = {
-		0.905,   // GLOBAL
-		0.9164,  // EUR
-		1.297 }; // Australia-NZ   
-	
-	const double c[3] = {
-		0.860,   // GLOBAL
-		0.4876,  // EUR
-		1.038 }; // Australia-NZ   
-	
-	const double e[3] = {
-		-0.0168, // GLOBAL
-		-0.017,  // EUR
-		-0.2131 }; // Australia-NZ original *corrected LN
-		//	 -0.05 }; // Australia-NZ   
-
+	// globally trained parameters 
+	const double a[8] = { 0.110,  0.095    ,0.092  ,0.127  ,0.470  ,0.889 ,0.059  ,0.113  }; 
+	const double b = 0.905;  
+	const double c = 0.860; 
+	const double e = -0.0168; 
 	const double scalar = 1.0e-5;
-
-	int ri = gridcell.simfire_region;
 
 	// return if improper biome-type
 	if (climate.simfire_biome == 0) return 0.;
@@ -457,15 +434,14 @@ double simfire_ba(Climate& climate, Gridcell& gridcell) {
 	// fPAR correction Knorr
 	const double fpar_corr1 = 0.428;
 	const double fpar_corr2 = 0.148;
-
 	double fpar_cor = fpar_corr1 * climate.ann_max_fapar + fpar_corr2 * climate.ann_max_fapar * 
 	  climate.ann_max_fapar;
 
 	// compute annual burned area
-	double ba = a[ri][climate.simfire_biome-1] * 
-		pow(fpar_cor, b[ri]) *
-		pow((scalar * climate.max_nesterov), c[ri]) *
-		exp(e[ri] * gridcell.pop_density);
+	double ba = a[climate.simfire_biome-1] * 
+		pow(fpar_cor, b) *
+		pow((scalar * climate.max_nesterov), c) *
+		exp(e * gridcell.pop_density);
 
 	// compute daily burnt_area
 	ba *= climate.monthly_fire_risk[date.month] /

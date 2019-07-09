@@ -28,9 +28,48 @@
 // "#include" directive referring to the framework header file.
 
 #include "config.h"
-#include "guess.h"
 #include "blaze.h"
+#include "guess.h"
+#include "driver.h"   
+#include "growth.h"   
+#include "somdynam.h" 
+#include "simfire.h" 
+#include "plib.h"
 
+// combustion rates depending on several fire-line-intensities.
+const double turnoverfract[13][5] = {
+	{ .0 , .0 , .05, .2 , .2 }, //   0 Stems       -> ATM
+       	{ .0 , .0 , .15, .2 , .2 }, //   1 Branches    -> ATM
+        { .03, .13, .25, .5 , .5 }, //   2 Bark        -> ATM
+        { .02, .05, .1 , .6 , .6 }, //   3 Leaves      -> ATM
+        { .0 , .0 , .05, .2 , .8 }, //   4 Stems       -> Litter (DWD) !corrected*
+        { .0 , .02, .07, .2 , .8 }, //   5 Branches    -> Litter (CWD) !corrected*
+        { .03, .13, .25, .5 , .5 }, //   6 Bark        -> Litter (str)
+        { .05, .1 , .15, .3 , .4 }, //   7 Leaves      -> Litter (str)
+        { .0 , .02, .02, .04, .04}, //   8 FDEAD roots -> ATM
+	{ .5 , .75, .75, .8 , .8 }, //   9 CWD         -> ATM
+	{ .6 , .65, .85, 1. , 1. }, //  10 Bark Litter -> ATM
+	{ .6 , .65, .85, 1. , 1. }, //  11 Leaf Litter -> ATM*
+	{ .0 , .0 , .1 , .8 , .8 }, //  12 Deadwood    -> ATM
+};
+
+// tuning faktors for litter ready for combustion
+// boreal
+const double k_tun_bor_lit = 0.8 ;
+// temperate region
+const double k_tun_tmp_lit = 0.8 ;
+// tropics
+const double k_tun_trp_lit = 1. ;
+
+// fraction of life woody biomass that is branch
+const double fbranch   = 0.05;
+// fraction of life woody biomass that is bark
+const double fbark     = 0.01;
+// conversion kg -> g
+const double kg2g      = 1000.;
+// min. available fuel to start a fire [gC/m2]
+const double min_fuel  = 120.; 
+	
 // Internal help function for splitting up nitrogen fire fluxes into components
 // Copy of report_fire_nfluxes() as used in fire() in vegdynam.cpp
 void report_fire_flux_n(Patch& patch, double nflux_fire) {
@@ -77,158 +116,65 @@ double pixelsize(double latpos,double longsize,double latsize,int postype) {
 	return s*longsize/360.0;  //for this pixel
 }
 
-/// Do daily accounting of blaze relevant parameters 
-void blaze_accounting_gridcell(Climate& climate) {
+void get_combustion_rates(Patch& patch, int fli_index, double k_tun_litter) {
 
-	/** Called by:  dailyaccounting_gridcell in driver.cpp 
-	 * Calls    :  available_fuel (local)
-	 *             blaze_burned_area (local)
-	 * routine to keep track of various met-related and fire specific 
-	 * parameters 
-	**/
+	/* Called by: blaze (local)
+	   compute the relative flux rates [frac.] between live vegetation, litter pools and
+	   atmosphere given current fire-line intensity
+	*/
 
-	const int average_span = 3; // time-span over which annual rainfall is averaged
-	// to initialise on start of spinup or after restart
-	bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
-			       ( restart && date.year == state_year ) ) );
+	// relative fluxes from wood to atmosphere and litter pools
+	patch.wood2atm = (1.-fbranch-fbark) * turnoverfract[ 0][fli_index] +
+		         fbranch            * turnoverfract[ 1][fli_index] +
+		         fbark              * turnoverfract[ 2][fli_index];
+	patch.wood2str = fbark              * turnoverfract[ 6][fli_index];
+	patch.wood2fwd = fbranch            * turnoverfract[ 5][fli_index];
+	patch.wood2cwd = (1.-fbranch-fbark) * turnoverfract[ 4][fli_index];
+	
+	// relative fluxes from leaf to atmosphere and litter pools
+	patch.leaf2atm = turnoverfract[ 3][fli_index];
+	patch.leaf2lit = turnoverfract[ 7][fli_index];
 
-	// initialise fields
-	if (date.year == 0 && date.day == 0 && ! restart) {
-		if ( vegmode == INDIVIDUAL ) fail("INDIVDUAL MODE not ready in BLAZE!");
-		climate.avg_annual_rainf = 0.0; // average annual rainfall [mm]
-		climate.cur_rainf        = 0.0; // sum of this years rainfall so far [mm]
-		climate.dslr             = 0  ; // #Days-since-last-rainfall >3mm 
-		climate.last_rainfall    = 0.0; // rainfall of last day of previous year [mm]
-		climate.kbdi             = 0.0; // Keetch-Byram-Drought-index []
-		climate.can_burn         = 0;   // Indicator whether a fire can burn to be carried through patches
-		climate.areaburnt        = 0.0; // area burnt [frac.]
-	}
+	// relative fluxes from litter pools to atmosphere
+	patch.litf2atm = turnoverfract[11][fli_index];
+	patch.lfwd2atm = turnoverfract[10][fli_index];
+	patch.lcwd2atm = turnoverfract[ 9][fli_index];
+	return;
+}
 
-	// to keep track of burned area over the year
-	// reset accumulated area_burnt to 0 on begining of year
-	if (date.day == 0 ) {
-		climate.acc_areaburnt    = 0.0;
-		climate.annual_areaburnt = 0.0;
-		for (int i = 0; i < 12; i++) {
-			climate.monthly_areaburnt[i] = 0.0;
-		}
-	}
+int get_fli_index(double fli, bool is_sprouter) {
 
-	if ( is_first_day ) {
-		
-		// Set Australian trees to be sprouters
-		double lat = climate.gridcell.get_lat();
-		double lon = climate.gridcell.get_lon();
-		if ( lat < -10. && lon > 110. && lon < 158.) {
-			climate.is_sprouter = 1;
+	/* Called by:  get_firelineintensity (local)
+	               get_combustion_rates (local)
+	   Calls    :  -
+	   get appropriate FLI category for look-up tables 
+	   depending on computed potential FLI the index corresponding to the entries in 
+	   the look-up-tables is returned 
+	*/
+
+	// determine intensity category for combustion-lookup-tables
+	int fli_index; // fli - index
+	if ( fli > 7000. ) {
+		if ( is_sprouter ) {
+			fli_index = 3;
 		} else {
-			climate.is_sprouter = 0;
-		}
-
-		// latitude depending tuning values mortality
-		if ( fabs(lat) >= 50.) {
-			climate.k_tun_litter = k_tun_bor_lit;
-		}
-		else if ( fabs(lat) >= 30. && fabs(lat) < 50.) {
-			climate.k_tun_litter = k_tun_tmp_lit;
-		}
-		else {
-			climate.k_tun_litter = k_tun_trp_lit;
+			fli_index = 4; 
 		}
 	}
-             
-	// Keep track of Days-since-last-rainfall and accumulated last rainfall
-	if (climate.prec > 0.01) {
-		if (climate.dslr > 0) {
-			climate.last_rainfall = climate.prec;
-		} 
-		else {
-			climate.last_rainfall += climate.prec;
-		}
-		climate.dslr = 0;
+	else if ( fli > 3000. ) {
+		fli_index = 2;
 	}
-	else {
-		climate.dslr++;
+	else if ( fli > 750. ) {
+		fli_index = 1;
 	}
-
-	climate.cur_rainf += climate.prec;
-
-	// Update the Keetch-Byram-Drought-Index (Keetch et al. 1968)
-	double frac2perc= 100.;           // convert fraction to percentage
-	double v        = climate.u10   ; // Wind speed at 10m height [km/h] (for FFDI)
-	double rh       = climate.relhum * frac2perc; // relative humidity [%] (for FFDI)         
-	double t        = climate.tmax  ; // day's max temperature [deg C] (for KBDI) 
-
-	v *= 3.6; // m/s -> km/h
-	// Gust parameterisation following ...
-	v = ( 214.7 * pow(  v + 10. ,-1.6968)  + 1. ) * v;
-
-	double dkbdi; // change in kbdi due to rainfall history
-	if (climate.dslr == 0) {
-		if (climate.last_rainfall > 5.) {
-			dkbdi = 5. - climate.last_rainfall;
-		} 
-		else {
-			dkbdi = 0.0;
-		}
+	else if ( fli > 0. ) {
+		fli_index = 0;
 	} 
 	else {
-		dkbdi = (( 800. - climate.kbdi) * (.968 * exp(.0486 * (t * 9./5. + 32.)) 
-			 - 8.3) / 1000. / (1. + 10.88 * exp(-.0441 * 
-			 climate.avg_annual_rainf/25.4)) * .254);
+		fli_index = -1;
 	}
-	climate.kbdi = max(0.0,climate.kbdi + dkbdi);
-
-	// ...and McArthur-Drought-Factor D ... (Noble, 1980)
-	double mcarthur_d = .191 * ( climate.kbdi + 104. ) * pow( climate.dslr + 1.,1.5 ) / 
-		( 3.52 * pow( climate.dslr + 1. ,1.5 ) + climate.last_rainfall - 1. );
-	mcarthur_d = max(0.0,min(10.0,mcarthur_d));
-	
-	// ... and finally: McArthur's Forest Fire Danger Index
-	double mcarthur_fire_index = 2. * exp( -.45 + .987 * log(mcarthur_d+.001) - 
-				     .03456 * rh + .0338 * t + .0234 * v );
-	mcarthur_fire_index = max(0.0,mcarthur_fire_index);
-
-	// monthly ffdi max
-	int dayx = date.day % 30;
-	climate.months_ffdi[dayx] = mcarthur_fire_index;
-	for (int x=0; x<30;x++) {
-		if ( climate.mcarthur_fire_index < climate.months_ffdi[x] ) 
-			climate.mcarthur_fire_index = climate.months_ffdi[x];
-	}
-
-	// get burned area 
-	blaze_burned_area(climate);
-
-	//End of year clean-up
-
-	if (date.islastday && date.islastmonth) {
-		
-		// Update running mean of average annual rainfall
-		double wght; // used to compute running average of ann rainfall
-		if (date.year < average_span) {
-			wght = date.year + 1;
-		} else {
-			wght = average_span;
-		}
-		climate.avg_annual_rainf = ((wght - 1.) * climate.avg_annual_rainf 
-					    + climate.cur_rainf ) / wght;
-		climate.cur_rainf   = 0.0;
-
-		// assumimng no leap_years, shift ffdi by 25 days to keep order 
-		// for next year
-		const int avg_ffdi = 30;
-		double ttmp[avg_ffdi];
-		int avg_shift = avg_ffdi - (365 % avg_ffdi);
-		for (int i = 0; i < avg_ffdi; i++) {
-			int idx = (i + avg_shift) % avg_ffdi;
-			ttmp[idx] = climate.months_ffdi[i];
-		}
-		for (int i = 0; i < avg_ffdi; i++) {
-			climate.months_ffdi[i] = ttmp[i];
-		}
-	}
-}		     
+	return fli_index;
+}
 
 double available_fuel (Patch& patch,int fli_index, double k_tun_litter)  {
 			
@@ -275,39 +221,6 @@ double available_fuel (Patch& patch,int fli_index, double k_tun_litter)  {
 	return available_fuel;
 }
 
-int get_fli_index(double fli, bool is_sprouter) {
-
-	/* Called by:  get_firelineintensity (local)
-	               get_combustion_rates (local)
-	   Calls    :  -
-	   get appropriate FLI category for look-up tables 
-	   depending on computed potential FLI the index corresponding to the entries in 
-	   the look-up-tables is returned (turnoverfrac in blaze.h)
-	*/
-
-	// determine intensity category for combustion-lookup-tables
-	int fli_index; // fli - index
-	if ( fli > 7000. ) {
-		if ( is_sprouter ) {
-			fli_index = 3;
-		} else {
-			fli_index = 4; 
-		}
-	}
-	else if ( fli > 3000. ) {
-		fli_index = 2;
-	}
-	else if ( fli > 750. ) {
-		fli_index = 1;
-	}
-	else if ( fli > 0. ) {
-		fli_index = 0;
-	} 
-	else {
-		fli_index = -1;
-	}
-	return fli_index;
-}
 	
 
 void get_firelineintensity(Patch& patch, Climate climate) {
@@ -342,12 +255,6 @@ void get_firelineintensity(Patch& patch, Climate climate) {
 		// Compute Rate-of-spread [m/s]
 		ros = 3.3333e-05 * climate.mcarthur_fire_index * w;
 		
-		// To be used as a diagnostic
-		// flame Height  [m]
-		// original Z   = 13. * ROS + 0.24 * w - 2.
-		//Z   = 46.8 * ROS + 0.024 * w - 2.;
-		//Z   = MAX(0.,Z);
-		
 		// fire line intensity[W/m] (Pyne, 1996 derived from Byram, 1959)
 		fli = heat_yield * w * ros;
 
@@ -356,9 +263,7 @@ void get_firelineintensity(Patch& patch, Climate climate) {
 		
 		if (i >= fli_index ) break;
 	}
-	
 	patch.fli = fli;
-
 }
  
 double surv_prob_boreal(double fli) {
@@ -394,7 +299,7 @@ double surv_prob_temp_nl(double dbh, double fli, double mass_cwd) {
 	return p_surv;
 }
 
-double surv_prob_temp_bl(double dbh, double fli, bool res) {
+double surv_prob_temp_bl(double dbh, double fli, bool is_resprouter) {
 	
 	/* Called by: survival_probability (local)
 	   Compute survival probability for Temperate Broadleaved forests
@@ -405,7 +310,7 @@ double surv_prob_temp_bl(double dbh, double fli, bool res) {
 
 	// Fire resiliance
 	double R;
-	if ( res ) {
+	if ( is_resprouter ) {
 		R = 0.04;
 	} else {
 		R = 0.07;
@@ -425,7 +330,6 @@ double surv_prob_temp_bl(double dbh, double fli, bool res) {
 	}
 
 	return surv_prob_temp_bl;
-	
 }
 
 double surv_prob_tropics(double dbh, double fli) {
@@ -439,7 +343,6 @@ double surv_prob_tropics(double dbh, double fli) {
 
 	double p_surv = 1.;
 	double p_surv3000 = 1. - max( 0.82 - 0.035 * pow(dbh,0.7) , 0.);
-
 	if ( fli > 7000. ) {
 		double scal_fac = 1. - log((fli/7000.)) ;
 		p_surv = scal_fac * p_surv3000;
@@ -629,31 +532,23 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 	return survival_probability;
 }
 
-void get_combustion_rates(Patch& patch, int fli_index, double k_tun_litter) {
+void blaze_burned_area(Climate& climate) {
 
-	/* Called by: blaze (local)
-	   compute the relative flux rates [frac.] between live vegetation, litter pools and
-	   atmosphere given current fire-line intensity
+	/* Called by: blaze_accounting_gridcell (local)
+	   Calls    : simfire_ba (simfire.cpp)
+	   provides burned area at given timestep by
+	   calling appropriate IO-routines or 
+	   model respectively
 	*/
 
-	// relative fluxes from wood to atmosphere and litter pools
-	patch.wood2atm = (1.-fbranch-fbark) * turnoverfract[ 0][fli_index] +
-		         fbranch            * turnoverfract[ 1][fli_index] +
-		         fbark              * turnoverfract[ 2][fli_index];
-	patch.wood2str = fbark              * turnoverfract[ 6][fli_index];
-	patch.wood2fwd = fbranch            * turnoverfract[ 5][fli_index];
-	patch.wood2cwd = (1.-fbranch-fbark) * turnoverfract[ 4][fli_index];
-	
-	// relative fluxes from leaf to atmosphere and litter pools
-	patch.leaf2atm = turnoverfract[ 3][fli_index];
-	patch.leaf2lit = turnoverfract[ 7][fli_index];
+	Gridcell& gridcell = climate.gridcell;
 
-	// relative fluxes from litter pools to atmosphere
-	patch.litf2atm = turnoverfract[11][fli_index];
-	patch.lfwd2atm = turnoverfract[10][fli_index];
-	patch.lcwd2atm = turnoverfract[ 9][fli_index];
-	return;
-}
+	// reset annual cumulative values
+
+	climate.areaburnt = simfire_ba(climate, gridcell);
+
+} 
+
 void blaze(Patch& patch, Climate& climate) {
 
 	/* Called by: blaze_driver (local)
@@ -910,7 +805,7 @@ void blaze(Patch& patch, Climate& climate) {
 	// report N litter -> atm flux from transitional pools
 	report_fire_flux_n(patch, nmtb2atm_t + nstr2atm_t + nfwd2atm_t + ncwd2atm_t );
 	
-}  //blaze
+}  
 
 void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 
@@ -1154,23 +1049,158 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	}
 }
 
+/// Do daily accounting of blaze relevant parameters 
+void blaze_accounting_gridcell(Climate& climate) {
 
-void blaze_burned_area(Climate& climate) {
+	/** Called by:  dailyaccounting_gridcell in driver.cpp 
+	 * Calls    :  available_fuel (local)
+	 *             blaze_burned_area (local)
+	 * routine to keep track of various met-related and fire specific 
+	 * parameters 
+	**/
 
-	/* Called by: blaze_accounting_gridcell (local)
-	   Calls    : simfire_ba (simfire.cpp)
-	   provides burned area at given timestep by
-	   calling appropriate IO-routines or 
-	   model respectively
-	*/
+	const int average_span = 3; // time-span over which annual rainfall is averaged
+	// to initialise on start of spinup or after restart
+	bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
+			       ( restart && date.year == state_year ) ) );
 
-	Gridcell& gridcell = climate.gridcell;
+	// initialise fields
+	if (date.year == 0 && date.day == 0 && ! restart) {
+		if ( vegmode == INDIVIDUAL ) fail("INDIVDUAL MODE not ready in BLAZE!");
+		climate.avg_annual_rainf = 0.0; // average annual rainfall [mm]
+		climate.cur_rainf        = 0.0; // sum of this years rainfall so far [mm]
+		climate.dslr             = 0  ; // #Days-since-last-rainfall >3mm 
+		climate.last_rainfall    = 0.0; // rainfall of last day of previous year [mm]
+		climate.kbdi             = 0.0; // Keetch-Byram-Drought-index []
+		climate.can_burn         = 0;   // Indicator whether a fire can burn to be carried through patches
+		climate.areaburnt        = 0.0; // area burnt [frac.]
+	}
 
-	// reset annual cumulative values
+	// to keep track of burned area over the year
+	// reset accumulated area_burnt to 0 on begining of year
+	if (date.day == 0 ) {
+		climate.acc_areaburnt    = 0.0;
+		climate.annual_areaburnt = 0.0;
+		for (int i = 0; i < 12; i++) {
+			climate.monthly_areaburnt[i] = 0.0;
+		}
+	}
 
-	climate.areaburnt = simfire_ba(climate, gridcell);
+	if ( is_first_day ) {
+		
+		// Set Australian trees to be sprouters
+		double lat = climate.gridcell.get_lat();
+		double lon = climate.gridcell.get_lon();
+		if ( lat < -10. && lon > 110. && lon < 158.) {
+			climate.is_sprouter = 1;
+		} else {
+			climate.is_sprouter = 0;
+		}
 
-} 
+		// latitude depending tuning values mortality
+		if ( fabs(lat) >= 50.) {
+			climate.k_tun_litter = k_tun_bor_lit;
+		}
+		else if ( fabs(lat) >= 30. && fabs(lat) < 50.) {
+			climate.k_tun_litter = k_tun_tmp_lit;
+		}
+		else {
+			climate.k_tun_litter = k_tun_trp_lit;
+		}
+	}
+             
+	// Keep track of Days-since-last-rainfall and accumulated last rainfall
+	if (climate.prec > 0.01) {
+		if (climate.dslr > 0) {
+			climate.last_rainfall = climate.prec;
+		} 
+		else {
+			climate.last_rainfall += climate.prec;
+		}
+		climate.dslr = 0;
+	}
+	else {
+		climate.dslr++;
+	}
+
+	climate.cur_rainf += climate.prec;
+
+	// Update the Keetch-Byram-Drought-Index (Keetch et al. 1968)
+	double frac2perc= 100.;           // convert fraction to percentage
+	double v        = climate.u10   ; // Wind speed at 10m height [km/h] (for FFDI)
+	double rh       = climate.relhum * frac2perc; // relative humidity [%] (for FFDI)         
+	double t        = climate.tmax  ; // day's max temperature [deg C] (for KBDI) 
+
+	v *= 3.6; // m/s -> km/h
+	// Gust parameterisation following ...
+	v = ( 214.7 * pow(  v + 10. ,-1.6968)  + 1. ) * v;
+
+	double dkbdi; // change in kbdi due to rainfall history
+	if (climate.dslr == 0) {
+		if (climate.last_rainfall > 5.) {
+			dkbdi = 5. - climate.last_rainfall;
+		} 
+		else {
+			dkbdi = 0.0;
+		}
+	} 
+	else {
+		dkbdi = (( 800. - climate.kbdi) * (.968 * exp(.0486 * (t * 9./5. + 32.)) 
+			 - 8.3) / 1000. / (1. + 10.88 * exp(-.0441 * 
+			 climate.avg_annual_rainf/25.4)) * .254);
+	}
+	climate.kbdi = max(0.0,climate.kbdi + dkbdi);
+
+	// ...and McArthur-Drought-Factor D ... (Noble, 1980)
+	double mcarthur_d = .191 * ( climate.kbdi + 104. ) * pow( climate.dslr + 1.,1.5 ) / 
+		( 3.52 * pow( climate.dslr + 1. ,1.5 ) + climate.last_rainfall - 1. );
+	mcarthur_d = max(0.0,min(10.0,mcarthur_d));
+	
+	// ... and finally: McArthur's Forest Fire Danger Index
+	double mcarthur_fire_index = 2. * exp( -.45 + .987 * log(mcarthur_d+.001) - 
+				     .03456 * rh + .0338 * t + .0234 * v );
+	mcarthur_fire_index = max(0.0,mcarthur_fire_index);
+
+	// monthly ffdi max
+	int dayx = date.day % 30;
+	climate.months_ffdi[dayx] = mcarthur_fire_index;
+	for (int x=0; x<30;x++) {
+		if ( climate.mcarthur_fire_index < climate.months_ffdi[x] ) 
+			climate.mcarthur_fire_index = climate.months_ffdi[x];
+	}
+
+	// get burned area 
+	blaze_burned_area(climate);
+
+	//End of year clean-up
+
+	if (date.islastday && date.islastmonth) {
+		
+		// Update running mean of average annual rainfall
+		double wght; // used to compute running average of ann rainfall
+		if (date.year < average_span) {
+			wght = date.year + 1;
+		} else {
+			wght = average_span;
+		}
+		climate.avg_annual_rainf = ((wght - 1.) * climate.avg_annual_rainf 
+					    + climate.cur_rainf ) / wght;
+		climate.cur_rainf   = 0.0;
+
+		// assumimng no leap_years, shift ffdi by 25 days to keep order 
+		// for next year
+		const int avg_ffdi = 30;
+		double ttmp[avg_ffdi];
+		int avg_shift = avg_ffdi - (365 % avg_ffdi);
+		for (int i = 0; i < avg_ffdi; i++) {
+			int idx = (i + avg_shift) % avg_ffdi;
+			ttmp[idx] = climate.months_ffdi[i];
+		}
+		for (int i = 0; i < avg_ffdi; i++) {
+			climate.months_ffdi[i] = ttmp[i];
+		}
+	}
+}		     
 
 void blaze_driver(Patch& patch, Climate& climate) {
 

@@ -20,8 +20,6 @@
 void getsimfiredata(Gridcell& gridcell);
 // daily accounting for SIMFIRE
 void simfire_accounting_gridcell(Gridcell& gridcell);
-// determine SIMFIRE-biomes from LPJ-GUESS parameters 
-void simfire_biome_mapping(Gridcell& gridcell); 
 // SIMFIRE
 double simfire_ba(Climate& climate, Gridcell& gridcell); 
 #endif // LPJ_GUESS_SIMFIRE_H

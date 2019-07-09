@@ -276,7 +276,7 @@ private:
 		fread(pheader,SIMFIREINPUT_HEADERSIZE-4,1,pfile);
 		for (i=0;i<SIMFIREINPUT_HEADERSIZE-4;i++) {
 			if (pheader[i]!=SIMFIREINPUT_HEADER[i]) {
-				printf("Format of %s incompatible with this version of SimfireInput.h\n",filename);
+				printf("Format of %s incompatible with this version of simfire_input.h\n",filename);
 				fclose(pfile);
 				pfile=NULL;
 				delete pheader;
@@ -308,7 +308,7 @@ public:
 	}
 
 	bool open() {
-		return open("SimfireInput.bin");
+		return open("simfire_input.bin");
 	}
 
 	void close() {

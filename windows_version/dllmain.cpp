@@ -102,14 +102,14 @@ public:
 		message_plot(pplotargs);
 	}
 
-	/// 'Forgets' series and data for line graph 'window_name'.
+	/// 'Frac_orgets' series and data for line graph 'window_name'.
 	void resetwindow(const char* window_name) {
 		xtring* pxtring=new xtring;
 		*pxtring=window_name;
 		message_resetwindow(pxtring);
 	}
 
-	/// 'Forgets' series and data for all currently-defined line graphs.
+	/// 'Frac_orgets' series and data for all currently-defined line graphs.
 	void clear_all_graphs() {
 		waiting=true;
 		message_clear_graphs();

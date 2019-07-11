@@ -12,6 +12,7 @@
 
 #ifdef HAVE_NETCDF
 
+#include "soilinput.h"
 #include "cruinput.h"
 #include "guessnc.h"
 #include <memory>
@@ -45,6 +46,7 @@ private:
 	LandcoverInput landcover_input;
 	/// Management input module
 	ManagementInput management_input;
+	SoilInput soilinput;
 
 	struct Coord {
 
@@ -67,8 +69,7 @@ private:
 	 *  the closest CRU grid cell and the soilcode for the cell.
 	 *  \returns whether it was possible to load data and find nearby CRU cell */
 	bool load_data_from_files(double& lon, double& lat,
-	                          double& cru_lon, double& cru_lat,
-	                          int& soilcode);
+	                          double& cru_lon, double& cru_lat);
 
 	/// Gets the first few years of data from cf_var and puts it into spinup_data
 	void load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_var,

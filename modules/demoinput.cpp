@@ -10,7 +10,7 @@
 
 #include "config.h"
 #include "demoinput.h"
-
+#include "soilinput.h"
 #include "driver.h"
 #include "outputchannel.h"
 #include <stdio.h>
@@ -115,7 +115,7 @@ bool DemoInput::readenv(Coord coord, long& seed) {
 	// where <lon>      = longitude as a floating point number (-=W, +=E)
 	//       <lat>      = latitude as a floating point number (-=S, +=N)
 	//       <soilcode> = integer in the range 0 (no soil) to 9 (see function
-	//                    soilparameters in driver module)
+	//                    soil_parameters in driver module)
 	// The fields in each record are separated by spaces
 
 	double mtemp[12];		// monthly mean temperature (deg C)
@@ -281,7 +281,7 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 		gridcell.climate.instype=SUNSHINE;
 
 		// Tell framework the soil type of this grid cell
-		soilparameters(gridcell.soiltype,soilcode);
+		soil_parameters(gridcell.soiltype,soilcode);
 
 		// For Windows shell - clear graphical output
 		// (ignored on other platforms)
@@ -312,7 +312,7 @@ bool DemoInput::getclimate(Gridcell& gridcell) {
 
 	// Send environmental values for today to framework
 
-	climate.dndep  = ndep / (365.0 * 10000.0);
+	climate.dndep  = ndep / 365.0 * HA_PER_M2;
 
 	climate.co2 = co2;
 

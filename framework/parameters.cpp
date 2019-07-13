@@ -21,13 +21,17 @@
 // for documentation, see parameters.h
 
 xtring title;
+
 vegmodetype vegmode;
 firemodeltype firemodel;
+weathergeneratortype weathergenerator;
+
 int npatch;
 int npatch_secondarystand;
 bool reduce_all_stands;
 int age_limit_reduce;
 double patcharea;
+
 bool ifbgestab;
 bool ifsme;
 bool ifstochestab;
@@ -61,12 +65,9 @@ double wetland_runon;				// Extra daily water input or output, in mm, to wetland
 bool ifmethane;						// Whether to run the methane model (for peatland only)
 bool iforganicsoilproperties;		// Whether soil C pool input is used to update soil properties
 bool ifsaturatewetlands;			// Whether to take water from runoff to saturate low latitide wetlands
-// end of Wetland options
 
 wateruptaketype wateruptake;
 rootdisttype rootdistribution;
-
-weathergeneratortype weathergenerator;
 
 bool run_landcover;
 bool run[NLANDCOVERTYPES];

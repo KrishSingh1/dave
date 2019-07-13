@@ -854,6 +854,7 @@ void transfer_litter(Patch& patch) {
 	double litterme[NSOMPOOL];
 	double fireresist[NSOMPOOL];
 	if ( firemodel == GLOBFIRM ) {
+
 		litterme[SURFSTRUCT]   = soil.sompool[SURFSTRUCT].cmass * soil.sompool[SURFSTRUCT].litterme;
 		litterme[SURFMETA]     = soil.sompool[SURFMETA].cmass   * soil.sompool[SURFMETA].litterme;
 		litterme[SURFFWD]      = soil.sompool[SURFFWD].cmass    * soil.sompool[SURFFWD].litterme;
@@ -864,9 +865,10 @@ void transfer_litter(Patch& patch) {
 		fireresist[SURFFWD]    = soil.sompool[SURFFWD].cmass    * soil.sompool[SURFFWD].fireresist;
 		fireresist[SURFCWD]    = soil.sompool[SURFCWD].cmass    * soil.sompool[SURFCWD].fireresist;
 	}
-	double leaf_littter = 0.0;
-	double root_littter = 0.0;
-	double wood_littter = 0.0;
+
+	double leaf_litter = 0.0;
+	double root_litter = 0.0;
+	double wood_litter = 0.0;
 
 	bool drop_leaf_root_litter = (lat >= 0.0 && date.month == 0) || (lat < 0.0 && date.month == 6) || patch.is_litter_day;
 
@@ -881,7 +883,7 @@ void transfer_litter(Patch& patch) {
 
 			// LEAF
 
-			leaf_littter += pft.litter_leaf;
+			leaf_litter += pft.litter_leaf;
 
 			// Calculate inputs to surface structural and metabolic litter
 
@@ -907,6 +909,7 @@ void transfer_litter(Patch& patch) {
 
 			// Fire
 			if ( firemodel == GLOBFIRM ) {
+
 				litterme[SURFSTRUCT]   += pft.litter_leaf * (1.0 - fm) * pft.pft.litterme;
 				fireresist[SURFSTRUCT] += pft.litter_leaf * (1.0 - fm) * pft.pft.fireresist;
 				
@@ -927,7 +930,7 @@ void transfer_litter(Patch& patch) {
 
 			// ROOT
 
-			root_littter += pft.litter_root;
+			root_litter += pft.litter_root;
 
 			// Calculate inputs to soil structural and metabolic litter
 
@@ -975,7 +978,7 @@ void transfer_litter(Patch& patch) {
 			// Kirschbaum and Paul (2002).
 
 			// Monthly fraction of REMAINING last year's sapwood litter
-                        // Get this month's litter = remaining_litter/remaining_months
+			// Get this month's litter = remaining_litter/remaining_months
 			// pft.litter_sap might be modified by sub annual burns and thus
 			// the litterfall needs to be adjusted monthly
 			double litter_sap       = pft.litter_sap       / (12. - (double)date.month);
@@ -989,7 +992,7 @@ void transfer_litter(Patch& patch) {
 
 				// Fine woody debris
 
-				wood_littter += litter_sap;
+				wood_litter += litter_sap;
 
 				assert(litter_sap >= EPS);
 				ligcmass_new = litter_sap * LIGCFRAC_WOOD;
@@ -1031,7 +1034,7 @@ void transfer_litter(Patch& patch) {
 
 				// Coarse woody debris
 
-				wood_littter += litter_heart;
+				wood_litter += litter_heart;
 
 				assert(litter_heart >= EPS);
 				ligcmass_new = litter_heart * LIGCFRAC_WOOD;
@@ -1429,8 +1432,12 @@ void som_dynamics_century(Patch& patch, bool tillage) {
 void som_dynamics(Patch& patch) {
 
 	bool tillage = iftillage && patch.stand.landcover == CROPLAND;
-	if (ifcentury) som_dynamics_century(patch, tillage);
-	else som_dynamics_lpj(patch, tillage);
+	if (ifcentury) {
+		som_dynamics_century(patch, tillage);
+	}
+	else {
+		som_dynamics_lpj(patch, tillage);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

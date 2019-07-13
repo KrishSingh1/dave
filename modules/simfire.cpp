@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-/// \file blaze.cpp
+/// \file simfire.cpp
 /// \brief SIMFIRE burned area simulation by W. Knorr
 ///
 /// \author Lars Nieradzik
@@ -33,7 +33,7 @@
 
 #define NFIREBIOMES 9
 
-int update_fire_biome (Patch& patch, double lat) {
+int update_fire_biome(Patch& patch, double lat) {
 
 	/* Called by: simfire_biome_mapping (local)
 	   Calls    : -
@@ -147,7 +147,7 @@ int update_fire_biome (Patch& patch, double lat) {
 		biome=3; } // broad-leaf forest
 	else {
 		biome=4;   // mixed forest
-		} 
+	} 
 
 	return biome;
 }
@@ -188,10 +188,10 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 		count[biomes[idx]]++;
 	}
 	for (biome=0;biome<NFIREBIOMES;biome++) {
-		count_max=max(count_max,count[biome]);
+		count_max=max(count_max, count[biome]);
 	}
 
-	for (biome=0;biome<NFIREBIOMES && count[biome]<count_max;biome++) {
+	for (biome = 0; biome<NFIREBIOMES && count[biome] < count_max; biome++) {
 	}
 	climate.simfire_biome = biome ;
 }
@@ -413,12 +413,8 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 		climate.max_nesterov = climate.cur_nesterov ;
 }
 
+/// Calculate burned area in ha following Knorr 2014.
 double simfire_ba(Climate& climate) {
-
-	/* Called by:  blaze_burned_area(blaze.cpp)
-	   Calls    :  -
-	   Calculate burned area in ha following Knorr 2014. 
-	*/
 
 	// globally trained parameters 
 	const double a[8] = { 0.110,  0.095    ,0.092  ,0.127  ,0.470  ,0.889 ,0.059  ,0.113  }; 

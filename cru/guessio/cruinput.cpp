@@ -14,7 +14,6 @@
 #include "config.h"
 #include "cruinput.h"
 #include "gwgen.h"
-
 #include "driver.h"
 #include "parameters.h"
 #include <stdio.h>
@@ -353,7 +352,8 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 				}
 			}
 			else if ( weathergenerator == GWGEN ) {
-				// Use gwgen - korrelated weather
+
+				// Use gwgen - correlated weather
 				gwgen_get_met(gridcell,mtemp,mprec,mwet,msun,mdtr,
 					      mwind,mrhum,dtemp,dprec,dsun,ddtr,
 					      dwind,drhum);
@@ -377,12 +377,14 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 
 			// Historical period
 			if ( weathergenerator == INTERP ) {
+
 				// Interpolate this year's monthly data to quasi-daily values
 				interp_climate(hist_mtemp[date.year-nyear_spinup],
 					       hist_mprec[date.year-nyear_spinup],
 					       hist_msun[date.year-nyear_spinup],
 					       hist_mdtr[date.year-nyear_spinup],
 					       dtemp,dprec,dsun,ddtr);
+
 				// Only recalculate precipitation values using weather generator
 				// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
 				if (ifrainonwetdaysonly) {
@@ -392,6 +394,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 				}
 			}
 			else if ( weathergenerator == GWGEN ) {
+
 				// Use gwgen - correlated weather
 				gwgen_get_met(gridcell,hist_mtemp[date.year-nyear_spinup],
 					      hist_mprec[date.year-nyear_spinup],
@@ -458,6 +461,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			tmute.settimer(MUTESEC);
 		}
 	}
+
 	return true;
 }
 

@@ -123,6 +123,9 @@ extern bool ifstochmort;
 /// Fire-model switch
 extern firemodeltype firemodel;
 
+/// Weather Generator switch
+extern weathergeneratortype weathergenerator;
+
 /// Whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
 extern bool ifdisturb;
 
@@ -143,9 +146,6 @@ extern bool ifcdebt;
 
 /// Water uptake parameterisation
 extern wateruptaketype wateruptake;
-
-/// Weather Generator switch
-extern weathergeneratortype weathergenerator;
 
 /// Parameterisation of root distribution
 extern rootdisttype rootdistribution;

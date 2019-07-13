@@ -15,7 +15,6 @@ if [[ $SNIC_ACCOUNT != "" ]]; then
     SBATCH_ACCOUNT="SBATCH -A $SNIC_ACCOUNT"
 fi
     
-
 # Prints a message to stderr
 function error {
     echo "$1" >&2

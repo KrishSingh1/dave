@@ -36,13 +36,11 @@ describe_textfile tot_runoff1961to1990_areaaverage.txt "Global Runoff, 1961 to 1
 gmap lai1961to1990max.txt -t 'Dominant PFT (greatest LAI)' -lon 1 -lat 2 -i 3 -legend legend_global.txt -portrait -o maxLAI.jpg -pixoffset 0.0 0.0
 describe_image maxLAI.jpg "PFT With the Highest LAI in Each Gridcell (1961-90 average)" embed
 
-# compute percentage of total LAI for 
 awk '{print $NF}' lai1961to1990max.txt | paste lai1961to1990.txt - > lai1961to1990all.txt
 compute lai1961to1990all.txt -i 'Frac=Max/Total' -o lai1961to1990frac.txt 
 gmap lai1961to1990frac.txt  -t "Dominant PFT's fraction of total gridcell LAI (1961-90 average)" \
     -lon 1 -lat 2 -i Frac  -legend common/legend_frac_LAI.txt -portrait -o frac_maxLAI.jpg -pixoffset 0.0 0.0 
 describe_image frac_maxLAI.jpg "Dominant PFT's fraction of total LAI (1961-90 average)" embed
-# remove intermediate files 
 rm -f lai1961to1990all.txt lai1961to1990frac.txt
 
 biomes lai1961to1990.txt

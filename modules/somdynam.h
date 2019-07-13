@@ -16,12 +16,12 @@
 
 #include "guess.h"
 
+void som_dynamics(Patch& patch);
+
 // computes the fraction of leaf and root that goes to metabolic litter (used by BLAZE)
 double metabolic_litter_fraction(double lton);
 
 // determine lignin to N ratio for leaf and root litter (used by BLAZE)
 double lignin_to_n_ratio(double cmass_litter, double nmass_litter, double LIGCFRAC, double cton_avr);
-
-void som_dynamics(Patch& patch);
 
 #endif // LPJ_GUESS_SOMDYNAM_H

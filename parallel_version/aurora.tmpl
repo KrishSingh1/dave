@@ -14,7 +14,10 @@
 #      This will be called the RUN DIRECTORY.
 #   2. In an editor, set appropriate values for the variables NPROCESS,
 #      INSFILE, GRIDLIST and OUTFILES (NB: no space after the = sign):
-#   3. set environmental to preferred ACCOUNT in .bashrc (e.g. export SNIC_ACCOUNT="snic2001-1-1";
+#	   On Aurora if you set NPROCESS to not a multiple of 20, you will not
+#		have exclusive nodes. Your jobs might then be disturbed by other jobs 
+#		sharing your nodes.
+#   3. Set environmental to preferred ACCOUNT in .bashrc (e.g. export SNIC_ACCOUNT="snic2001-1-1";
 #      only if more than one account exists)
  
 NPROCESS=160            # NB: Should be multiple of 20 on Aurora!
@@ -75,18 +78,15 @@ fi
 # On Aurora, the recommendation is to submit jobs with the --exclusive
 # option, so we get exclusive nodes. Since each node has 20 cores, we
 # should set NPROCESS to a multiple of 20 to avoid waste.
-# If you really want to, you could remove this check and the --exclusive
-# option below, but your jobs might then be disturbed by other jobs 
-# sharing your nodes.
+# Here, any NPROCESS not a multiple of 20 switches of --exclusive.
+# If you really want to, you could remove the if block and be wastful.
+# Your jobs will then not be disturbed by other jobs sharing your nodes.
+SBATCH_EXCLUSIVE="SBATCH --exclusive"
 CORES_PER_NODE=20
-SBATCH_EXCLUSIVE=""
-if (( NPROCESS > CORES_PER_NODE )); then
-    SBATCH_EXCLUSIVE="SBATCH --exclusive"
-    if (( NPROCESS%CORES_PER_NODE != 0 && NPROCESS > CORES_PER_NODE )); then
-	echo "Please set NPROCESS to a multiple of 20 on Aurora!" >&2
-	exit 1
-    fi
+if [[ $((NPROCESS%CORES_PER_NODE)) != 0 ]]; then
+	SBATCH_EXCLUSIVE=""
 fi
+
 # Convert INSFILE to an absolute path since we will be starting the
 # guess instances from different directories.
 # Please note when porting this script: readlink may not be available
@@ -156,7 +156,7 @@ cat <<EOF > guess.cmd
 #SBATCH --time=$WALLTIME
 #$SBATCH_EXCLUSIVE
 #$SBATCH_ACCOUNT
-#SBATCH -J ${name:-"guess"}
+
 set -e
 
 if ! type -P mpirun &> /dev/null; then
@@ -191,7 +191,6 @@ cat <<EOF > append.cmd
 #SBATCH --time=$WALLTIME_APPEND
 #SBATCH --mem-per-cpu=12000
 #SBATCH --exclusive
-#$SBATCH_ACCOUNT
 set -e
 
 function append_files {
@@ -225,4 +224,4 @@ EOF
 append_dependency=$(sbatch -J ${name:-"guess"} guess.cmd | awk '{print $NF}')
 
 # Submit append job
-sbatch --dependency=afterok:$append_dependency -J ${name:-"guess"} append.cmd | awk '{print $NF}'
+sbatch --dependency=afterok:$append_dependency -J ${name:-"guess"}"_append" append.cmd | awk '{print $NF}'

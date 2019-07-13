@@ -610,9 +610,6 @@ struct PhotosynthesisResult : public Serializable {
 class RnDst {
 	// MEMBER VARIABLES
 public:
-	
-
-	//Gridcell& gridcell;		JN
 	int q[10];
 	int carry;
 	int xcng;
@@ -622,7 +619,6 @@ public:
 	double gamma_vals[2];
 	
 	RnDst(){};
-	//void serialize(ArchiveStream& arch);   JN
 };
 
 /// This struct contains the environmental input to a photosynthesis calculation.
@@ -772,7 +768,7 @@ public:
 	/// reference to parent Gridcell object
 	Gridcell& gridcell;
 
-	/// Values for andomisation in Weathergenerator GWGEN  JN
+	/// values for andomisation in Weathergenerator GWGEN
 	RnDst rndst;
 
 	/// mean air temperature today (deg C)
@@ -787,11 +783,12 @@ public:
 	/// precipitation today (mm)
 	double prec;
 
-	/// additional met variables needed by BLAZE
 	/// 10 m wind [km/h]
 	double u10;
+
 	/// rel. humidity [fract.]
 	double relhum;
+
 	/// min and max daily temperature [deg C]
 	double tmin, tmax; 
 
@@ -937,6 +934,7 @@ public:
 	bool is_sprouter;
 	/// tuning factor for available litter 
 	double k_tun_litter;
+
 	// Saved parameters used by function daylengthinsoleet
 
 	double sinelat;
@@ -1176,7 +1174,7 @@ public:
 		N_SOIL,
 		/// Reproduction costs
 		REPRC,
-		//blaze
+		// BLAZE
 		C_leaf2atm,
 		C_leaf2met,
 		C_leaf2str,
@@ -3997,7 +3995,9 @@ public:
 
 	/// BLAZE Fire line intensity;
 	double fli;
-	/// BLAZE fire fluxes
+
+	// BLAZE fire fluxes
+
 	/// live wood to atmosphere
 	double wood2atm;
 	/// leaves to atmosphere
@@ -4664,12 +4664,16 @@ public:
 
 	/// the region index to chosose from set of optimisations
 	int simfire_region;
+
 	/// population density
 	double hyde31_pop_density[57];
+
+	/// population density
 	double pop_density;
 
 	/// monthly Burned Area from GFED 3.1 
 	double monthly_GFED31_ba[188];
+
 	/// daily fraction of monthly Burned Area from GFED 3.1 
 	double daily_GFED31_frac[9*365];
 

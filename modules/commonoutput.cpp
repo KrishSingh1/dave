@@ -667,6 +667,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double surfsoillitterc,surfsoillittern,cwdc,cwdn,centuryc,centuryn,n_harv_slow,availn;
 	double flux_nh3, flux_nox, flux_n2o, flux_n2, flux_nsoil, flux_ntot, flux_nharvest, flux_nseed;
 
+	double aaet, apet, aevap, arunoff, aintercep, awetland_water_added;
+	double annual_areaburnt_gridcell=0.;				// BLAZE & SIMFIRE
+
 	// hold the monthly average across patches
 	double mnpp[12];
 	double mgpp[12];
@@ -681,15 +684,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mnee[12];
 	double mwcont_upper[12];
 	double mwcont_lower[12];
-	// bvoc
 	double miso[12];
 	double mmon[12];
 	double mmon_mt1[12];
 	double mmon_mt2[12];
-	double aaet, apet, aevap, arunoff, aintercep, awetland_water_added;
-
-	// BLAZE & SIMFIRE
-	double annual_areaburnt_gridcell=0.;
 
 	double msoilt[12][SOILTEMPOUT];
 	double mch4[12];

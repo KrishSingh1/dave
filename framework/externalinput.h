@@ -15,6 +15,9 @@ using namespace InData;
 /// Reads gridlist in lon-lat-description format from text input file
 void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist);
 
+/// Help function for get_lc_transfer() to adjust inconsistencies between net land cover inout and gross land cover transitions.
+void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], double lc_frac_transfer[][NLANDCOVERTYPES], double primary_lc_frac_transfer[][NLANDCOVERTYPES], double& tot_frac_ch);
+
 /// Class that deals with all land cover input from text files
 class LandcoverInput {
 

@@ -95,7 +95,7 @@ typedef enum {
 
 /// CENTURY pool names, NSOMPOOL number of SOM pools
 typedef enum {SURFSTRUCT, SOILSTRUCT, SOILMICRO, SURFHUMUS, SURFMICRO, SURFMETA, SURFFWD, SURFCWD,
-	SOILMETA, SLOWSOM, PASSIVESOM, LEACHED, NSOMPOOL} pooltype;
+	SOILMETA, SLOWSOM, PASSIVESOM, NSOMPOOL} pooltype;
 
 /// Irrigation type for PFTs
 typedef enum {RAINFED, IRRIGATED} hydrologytype;

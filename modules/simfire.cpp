@@ -258,9 +258,9 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 	   using the change between the last two values is performed 
 	*/
 
-	const int npopt = 57;
+	const int NPOPT = 57;
 	// years at which pop data is available in HYDE3.1
-	const int poptime[npopt]  = {-10000,-9000,-8000,-7000,-6000,-5000,-4000,-3000,-2000,-1000,0,
+	const int POPTIME[NPOPT]  = {-10000,-9000,-8000,-7000,-6000,-5000,-4000,-3000,-2000,-1000,0,
 				    100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,
 				    1500,1600,1700,1710,1720,1730,1740,1750,1760,1780,1790,1810,
 				    1820,1830,1840,1850,1860,1870,1880,1890,1900,1910,1920,1930,
@@ -270,21 +270,21 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 
 	// find start and end year index of pop interpolation
 	int idx = 0 ;
-      	while (poptime[idx] < cyear) idx++;
+      	while (POPTIME[idx] < cyear) idx++;
 	double popd;
-	if ( cyear <= poptime[0] ) {
+	if ( cyear <= POPTIME[0] ) {
 		// use first year's value (10000 BC) for earlier years.
 		popd = gridcell.hyde31_pop_density[0];
 	}
-	else if ( cyear >= poptime[npopt-1] ) {
+	else if ( cyear >= POPTIME[NPOPT-1] ) {
 		// linearly extrapolate latest growth/decline
-		popd = gridcell.hyde31_pop_density[npopt-1] + 
-			(gridcell.hyde31_pop_density[npopt-1]-gridcell.hyde31_pop_density[npopt-2]) /
-			(double)(poptime[npopt-1] - poptime[npopt-2]) * (double)(cyear-poptime[npopt-1]);
+		popd = gridcell.hyde31_pop_density[NPOPT-1] + 
+			(gridcell.hyde31_pop_density[NPOPT-1]-gridcell.hyde31_pop_density[NPOPT-2]) /
+			(double)(POPTIME[NPOPT-1] - POPTIME[NPOPT-2]) * (double)(cyear-POPTIME[NPOPT-1]);
 	}
 	else {
-		double interpf = (double)(cyear-poptime[idx-1]) /
-			(double)( poptime[idx]-poptime[idx-1] );
+		double interpf = (double)(cyear-POPTIME[idx-1]) /
+			(double)( POPTIME[idx]-POPTIME[idx-1] );
 		popd = (1. - interpf) * gridcell.hyde31_pop_density[idx-1] + 
 			interpf * gridcell.hyde31_pop_density[idx];
 	}
@@ -306,7 +306,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 
 	Climate& climate = gridcell.climate;
 	// absolute upper boundary for the accumulative nesterov index
-	const double maximum_nesterov = 1000000; //150000.;
+	const double MAXIMUM_NESTEROV = 1000000; //150000.;
 
 	// check whether this day is the first day of simulation 
 	// (i.e. start of spinup or first day after restart
@@ -408,7 +408,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	else {
 		climate.cur_nesterov += ( climate.tmax - climate.tmin + 4. ) * climate.tmax ;
 	}
-	climate.cur_nesterov = min(climate.cur_nesterov,maximum_nesterov) ;
+	climate.cur_nesterov = min(climate.cur_nesterov,MAXIMUM_NESTEROV) ;
 
 	// finally update Max Annual Mesterov Index
 	if (climate.cur_nesterov > climate.max_nesterov ) 
@@ -416,40 +416,40 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 }
 
 /// Calculate burned area in ha following Knorr 2014.
-double simfire_ba(Climate& climate) {
+double simfire_burned_area(Climate& climate) {
 
 	// globally trained parameters 
-	const double a[8] = { 0.110,  0.095    ,0.092  ,0.127  ,0.470  ,0.889 ,0.059  ,0.113  }; 
-	const double b = 0.905;  
-	const double c = 0.860; 
-	const double e = -0.0168; 
-	const double scalar = 1.0e-5;
+	const double A[8] = { 0.110,  0.095    ,0.092  ,0.127  ,0.470  ,0.889 ,0.059  ,0.113  }; 
+	const double B = 0.905;  
+	const double C = 0.860; 
+	const double E = -0.0168; 
+	const double SCALAR = 1.0e-5;
 
 	// return if improper biome-type
 	if (climate.simfire_biome == 0) return 0.;
 
 	// fPAR correction Knorr
-	const double fpar_corr1 = 0.428;
-	const double fpar_corr2 = 0.148;
-	double fpar_cor = fpar_corr1 * climate.ann_max_fapar + fpar_corr2 * climate.ann_max_fapar * 
+	const double FPAR_CORR1 = 0.428;
+	const double FPAR_CORR2 = 0.148;
+	double fpar_cor = FPAR_CORR1 * climate.ann_max_fapar + FPAR_CORR2 * climate.ann_max_fapar * 
 	  climate.ann_max_fapar;
 
 	Gridcell& gridcell = climate.gridcell;
 
 	// compute annual burned area
-	double ba = a[climate.simfire_biome-1] * 
-		pow(fpar_cor, b) *
-		pow((scalar * climate.max_nesterov), c) *
-		exp(e * gridcell.pop_density);
+	double burned_area = A[climate.simfire_biome-1] * 
+		pow(fpar_cor, B) *
+		pow((scalar * climate.max_nesterov), C) *
+		exp(E * gridcell.pop_density);
 
 	// compute daily burnt_area
-	ba *= climate.monthly_fire_risk[date.month] /
+	burned_area *= climate.monthly_fire_risk[date.month] /
 		(double)date.ndaymonth[date.month];
 
 	// keep track of area burnt so far this year
-	climate.acc_areaburnt += ba;
+	climate.acc_areaburnt += burned_area;
 
-	return ba;
+	return burned_area;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

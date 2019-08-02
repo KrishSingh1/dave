@@ -37,7 +37,7 @@
 #include "plib.h"
 
 // combustion rates depending on several fire-line-intensities.
-const double turnoverfract[13][5] = {
+const double TURNOVERFRACT[13][5] = {
 	{ .0 , .0 , .05, .2 , .2 }, //   0 Stems       -> ATM
        	{ .0 , .0 , .15, .2 , .2 }, //   1 Branches    -> ATM
         { .03, .13, .25, .5 , .5 }, //   2 Bark        -> ATM
@@ -55,7 +55,7 @@ const double turnoverfract[13][5] = {
 
 // tuning faktors for litter ready for combustion
 // boreal
-const double k_tun_bor_lit = 0.8 ;
+const double K_TUN_BOR_LIT = 0.8 ;
 // temperate region
 const double k_tun_tmp_lit = 0.8 ;
 // tropics
@@ -82,7 +82,7 @@ void report_fire_flux_n(Patch& patch, double nflux_fire) {
 /// Compute area of Gridcell
 double pixelsize(double latpos,double longsize,double latsize,int postype) {
 
-	// taken from aslice.cpp in the utilities trunk
+	// taken from aslice.cpp in the utilities 
         // Returns area in square km of a pixel of a given size at a given point
         // on the world.  The formula applied is the surface area of a segment of
         // a hemisphere of radius r from the equator to a parallel (circular)
@@ -124,21 +124,21 @@ void get_combustion_rates(Patch& patch, int fli_index, double k_tun_litter) {
 	*/
 
 	// relative fluxes from wood to atmosphere and litter pools
-	patch.wood2atm = (1.-fbranch-fbark) * turnoverfract[ 0][fli_index] +
-		         fbranch            * turnoverfract[ 1][fli_index] +
-		         fbark              * turnoverfract[ 2][fli_index];
-	patch.wood2str = fbark              * turnoverfract[ 6][fli_index];
-	patch.wood2fwd = fbranch            * turnoverfract[ 5][fli_index];
-	patch.wood2cwd = (1.-fbranch-fbark) * turnoverfract[ 4][fli_index];
+	patch.wood2atm = (1.-fbranch-fbark) * TURNOVERFRACT[ 0][fli_index] +
+		         fbranch            * TURNOVERFRACT[ 1][fli_index] +
+		         fbark              * TURNOVERFRACT[ 2][fli_index];
+	patch.wood2str = fbark              * TURNOVERFRACT[ 6][fli_index];
+	patch.wood2fwd = fbranch            * TURNOVERFRACT[ 5][fli_index];
+	patch.wood2cwd = (1.-fbranch-fbark) * TURNOVERFRACT[ 4][fli_index];
 	
 	// relative fluxes from leaf to atmosphere and litter pools
-	patch.leaf2atm = turnoverfract[ 3][fli_index];
-	patch.leaf2lit = turnoverfract[ 7][fli_index];
+	patch.leaf2atm = TURNOVERFRACT[ 3][fli_index];
+	patch.leaf2lit = TURNOVERFRACT[ 7][fli_index];
 
 	// relative fluxes from litter pools to atmosphere
-	patch.litf2atm = turnoverfract[11][fli_index];
-	patch.lfwd2atm = turnoverfract[10][fli_index];
-	patch.lcwd2atm = turnoverfract[ 9][fli_index];
+	patch.litf2atm = TURNOVERFRACT[11][fli_index];
+	patch.lfwd2atm = TURNOVERFRACT[10][fli_index];
+	patch.lcwd2atm = TURNOVERFRACT[ 9][fli_index];
 	return;
 }
 
@@ -1083,7 +1083,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 
 		// latitude depending tuning values mortality
 		if ( fabs(lat) >= 50.) {
-			climate.k_tun_litter = k_tun_bor_lit;
+			climate.k_tun_litter = K_TUN_BOR_LIT;
 		}
 		else if ( fabs(lat) >= 30. && fabs(lat) < 50.) {
 			climate.k_tun_litter = k_tun_tmp_lit;

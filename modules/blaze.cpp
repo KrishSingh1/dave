@@ -1054,6 +1054,10 @@ void blaze_accounting_gridcell(Climate& climate) {
 		climate.kbdi             = 0.0; // Keetch-Byram-Drought-index []
 		climate.can_burn         = 0;   // Indicator whether a fire can burn to be carried through patches
 		climate.areaburnt        = 0.0; // area burnt [frac.]
+		climate.mcarthur_fire_index = 0.; 
+		for (int x=0; x<30; x++) {
+			climate.months_ffdi[x] = 0.;
+		}
 	}
 
 	// to keep track of burned area over the year

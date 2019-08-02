@@ -59,6 +59,9 @@ int update_fire_biome(Patch& patch, double lat) {
 	double ftot=0.0;   // total FPAR of all individuals
 	int biome=0;       // biome number
 	int count[NFIREBIOMES]; // incidence count of biome in previous years;
+	for (int i=0; i<NFIREBIOMES; i++) {
+		count[i] = 0;
+	}
 	int count_max=0;   // maximum of 'count'
 
 	// Obtain reference to Vegetation object for this patch
@@ -328,10 +331,11 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 			}
 			climate.ann_max_fapar = 0.5;	
 
-			// initialize Max annual Nesterov Index on first day ofstart simulation
-			for ( int i=0; i<11; i++) {
+			// initialize Max annual Nesterov Index on first day of simulation
+			for ( int i=0; i<12; i++) {
 				climate.monthly_max_nesterov[i] = 0.;
 			}
+			climate.cur_nesterov = 0.;
 		} 
 		else {
 			double avg = 0.;
@@ -367,33 +371,31 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	// PATCHLOOP FOR fpar
 	int cnt= 0;
 	double run_fapar = 0.;
-	Gridcell::iterator gc_itr = gridcell.begin();
-	while (gc_itr != gridcell.end()) {
-		Stand& stand = *gc_itr;
-		stand.firstobj();
-		while (stand.isobj) {
-			Patch& patch = stand.getobj();
-			run_fapar += (1. - patch.fpar_ff);
-			//initialise averaging array
-			if ( date.year == 0 && date.day == 0 ) {
-				for (int i = 0; i<n_year_biomeavg; i++) {
-					patch.avg_ftot  [i] = 0. ;
-					patch.avg_fgrass[i] = 0. ;
-					patch.avg_fndlt [i] = 0. ;
-					patch.avg_fbrlt [i] = 0. ;
-					patch.avg_fshrb [i] = 0. ;
+	if ( ! (date.year == 0 && date.day == 0) ) {
+		Gridcell::iterator gc_itr = gridcell.begin();
+		while (gc_itr != gridcell.end()) {
+			Stand& stand = *gc_itr;
+			stand.firstobj();
+			while (stand.isobj) {
+				Patch& patch = stand.getobj();
+				run_fapar += (1. - patch.fpar_ff);
+				//initialise averaging array
+				if ( date.year == 0 && date.day == 0 ) {
+					for (int i = 0; i<n_year_biomeavg; i++) {
+						patch.avg_ftot  [i] = 0. ;
+						patch.avg_fgrass[i] = 0. ;
+						patch.avg_fndlt [i] = 0. ;
+						patch.avg_fbrlt [i] = 0. ;
+						patch.avg_fshrb [i] = 0. ;
+					}
 				}
-			}
-			cnt += 1;
-			stand.nextobj();
-		}		
-		++gc_itr;
-	}
-
-	// average over each patch 
-	run_fapar /= (double) cnt;
-	if ( date.year == 0 && date.day == 0 && run_fapar > 0.99999 ) {
-		run_fapar = 0.;
+				cnt += 1;
+				stand.nextobj();
+			}		
+			++gc_itr;
+		}
+		// average over each patch 
+		run_fapar /= (double) cnt;
 	}
 
 	// update the this years maximum

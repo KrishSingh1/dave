@@ -71,7 +71,6 @@ void Climate::serialize(ArchiveStream& arch) {
 		& dslr
 		& kbdi
 		& months_ffdi
-		& monthly_max_nesterov
 		// SIMFIRE-BLAZE --] 
 		& co2
 		& lat

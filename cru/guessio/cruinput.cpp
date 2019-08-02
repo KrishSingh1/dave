@@ -430,12 +430,18 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	climate.dndep = dndep[date.day];
 
 	// Tmin, Tmax for BLAZE
+	// initialise first
+	climate.tmin = 0.;
+	climate.tmax = 0.;
 	if ( firemodel == BLAZE ) {
 		climate.tmin   = dtemp[date.day] - 0.5 * ddtr[date.day];
 		climate.tmax   = dtemp[date.day] + 0.5 * ddtr[date.day];
 	}
 
 	// Assuming rhum and wind are wanted when GWGEN is run
+	// initialise first
+	climate.u10    = 0.;
+	climate.relhum = 0.;
 	if ( weathergenerator == GWGEN ) {
 		climate.u10    = dwind[date.day];
 		climate.relhum = drhum[date.day];

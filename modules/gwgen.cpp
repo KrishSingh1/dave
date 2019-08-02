@@ -40,7 +40,6 @@
 const double dhuge     = std::numeric_limits<double>::max();
 const long lhuge       = std::numeric_limits<long>::max()  ;
 const int ihuge        = std::numeric_limits<int>::max()  ;
-const int fhuge        = 2147483647; // F90 int Huge
 const double d_epsilon = std::numeric_limits<double>::min();
 const float r_epsilon  = std::numeric_limits<float>::min() ;
 
@@ -63,10 +62,7 @@ const int coffs =   123;
 const double  rng1 = 1. / (2. * (double)ihuge);  //scales the random integer to -0.5,0.5
 const double  rng2 = 1. / (double)ihuge;         //scales the random integer to -1,1
 
-const double  one    = 1.;
 const double  half   = 0.5;
-const double  vsmall = r_epsilon;
-const double  zero   = 0.;
 
 class GWGen /*: public Serializable */{
 
@@ -278,7 +274,8 @@ void matmul(double AA[4][4], double B[4], double CC[4]) {
 // round a value to the given precision
 double roundto(double val,int precision) {
 
-        double scale, roundto;
+        double scale   = 0.;
+	double roundto = 0.;
 	
         scale = pow(10.,precision);
         roundto = (double)(round(val * scale)) / scale;
@@ -327,7 +324,6 @@ int ranu(RnDst& state) {
         // Further modifications to pass the complete state of the generator as an argument by J.O. Kaplan, 2011
 
         int supr, ranu;
-
         if (state.indx < qsiz) {
 		supr = state.q[state.indx];
 		state.indx += 1;
@@ -493,8 +489,8 @@ double ran_normal(RnDst& state) {
 
 	vals[0] = state.gamma_vals[0];
 	vals[1] = state.gamma_vals[1];
-	
-        if (state.have) {
+        
+	if (state.have) {
 
 		state.have = false;
 		nval = vals[1];
@@ -1114,7 +1110,7 @@ void normal_cdf_inv ( double cdf, double a, double b, double x ) {
         //  b   : the standard deviation of the pdf
         //  x   : the corresponding argument
 
-        double x2;
+	double x2 = 0.;
 
         if ( cdf < 0.0E+00 || 1.0E+00 < cdf ) {
 		printf("\n ");
@@ -1135,7 +1131,7 @@ double qchisq_appr(double p, double nu, double g, double tol) {
         // tol : the tolerance for the approximation
 
         double alpha, a, c, ch, p1;
-        double p2, q, t, x, lgam1pa;
+        double p2, t, lgam1pa;
 
         alpha = 0.5 * nu;
         c = alpha - 1.0;
@@ -1155,6 +1151,7 @@ double qchisq_appr(double p, double nu, double g, double tol) {
 		ch = exp((lgam1pa + p1)/alpha + log(2.0));
 	}
         else if (nu > 0.32) { //  using Wilson and Hilferty estimate
+		double x = 0.;
 		normal_cdf_inv(p, (double) 0., (double) 1., x);
 		p1 = 2. / (9.0 * nu);
 		ch = nu * pow((x * sqrt(p1) + 1.0 - p1),3);
@@ -1163,6 +1160,7 @@ double qchisq_appr(double p, double nu, double g, double tol) {
 			ch = -2.0 * (log(1 - p) - c * log(0.5 * ch) + g);
 	}
         else {
+		double q = 0.;
 		ch = 0.4;
 		a = log(1 - p) + g + c * log(2.0);
 		while (abs(q - ch) > tol * abs(ch)) {
@@ -1218,7 +1216,7 @@ double gamma_inc ( double p, double x ) {
         double  arg;
         double  b;
         double  c;
-        double  cdf;
+        double  cdf = 0.;
         const double exp_arg_min = -88.0E+00;
         const double overflow = 1.0E+37;
         const double plimit = 1000.0E+00;
@@ -1265,7 +1263,7 @@ double gamma_inc ( double p, double x ) {
 		gamma_inc = 1.0E+00;
 		a = p;
 
-		for (int j=0; j<1; j=j) {
+		for (int j=0; j<1; j+=0) {
 			a = a + 1.0E+00;
 			c = c * x / a;
 			gamma_inc = gamma_inc + c;
@@ -1295,7 +1293,7 @@ double gamma_inc ( double p, double x ) {
 		pn4 = x * b;
 		gamma_inc = pn3 / pn4;
 
-		for (int j=0; j<1; j=j) {
+		for (int j=0; j<1; j+=0) {
 
 			a = a + 1.0E+00;
 			b = b + 2.0E+00;
@@ -1716,8 +1714,6 @@ void rmsmooth(int lm,int rm, double *m,int *dmonth,double bcond[2], double *m_cu
 
 	double ck;
 
-	int n  = rm-lm+1;
-	
 	int ni = 0;
 	for (int i=lm; i<=rm; i++)
 		ni +=dmonth[i];	
@@ -1787,7 +1783,10 @@ void init_weathergen(GWGen& gwgen, RnDst& rndst) {
 	for (int i=0;i<4;i++) {
 		gwgen.resid[i] = 0.;
 	}
-        rndst.carry =       362;
+        for (int i=0;i<qsiz;i++) {
+		rndst.q[i] = 0;
+	}
+	rndst.carry =       362;
         rndst.xcng  =   1236789;
         rndst.xs    = 521288629; //default seed
         rndst.indx  = qsiz+1;
@@ -1809,8 +1808,6 @@ double cldf2rad(double input, double lat, int doy, bool cldf2rad) {
 
 	const double QOO = 1360.0;
 	const double BETA = 0.17;
-	const double A = 107.0;
-	const double B = 0.2;
 	const double C = 0.25;
 	const double D = 0.5;
 	const double K = 13750.98708;
@@ -2259,7 +2256,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 	double lat = gridcell.get_lat();
 	
 	// conversion K <-> deg C
-	const double k2degc = 273.15;
+	//CLNconst double k2degc = 273.15;
 
 	//GWGen vars that are derived from input vars mtemp,mdtr,msol
 	double in_mtmin[12];
@@ -2297,7 +2294,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		}
 	} 
 	
-	unsigned int sval = unsigned(gridcell.seed); //-30000;
+	//CLN unsigned int sval = unsigned(gridcell.seed); //-30000;
 
 	int accumday = 0;
 
@@ -2349,7 +2346,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		}
 
 		int ld = accumday;
-		int rd = ld + date.ndaymonth[mon];
+//CLN		int rd = ld + date.ndaymonth[mon];
 
 		double bcond[2];
 		double tmvals[3];
@@ -2420,7 +2417,6 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		}
 		gwgen.mwetf = gwgen.mwetd/(double)ndaymon;;
 		
-		double metric = 0.;
 		double metric_sav = 99999.;
 		
 		double chk_dtemp = 0.; 
@@ -2529,7 +2525,6 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		double preccor = 0.;
 		double windcor = 0.;
 		double cldfcor = 0.;
-		double rhumcor = 0.;
 		double solcor  = 0.;
 		double tot_cldwght = 0.;
 		doy = accumday;

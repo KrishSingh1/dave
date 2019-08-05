@@ -2079,9 +2079,9 @@ void Individual::kill(bool harvest /* = false */) {
 				double clitter_sap, clitter_heart, cwood_harvest;
 
 				partition_wood_biomass(to_partition_sap, to_partition_heart,
-						       arv_eff, harvest_slow_frac, res_outtake,
-						       litter_sap, clitter_heart,
-						       wood_harvest, charvested_products_slow);
+						       harv_eff, harvest_slow_frac, res_outtake,
+						       clitter_sap, clitter_heart,
+						       cwood_harvest, charvested_products_slow);
 
 				ppft.litter_sap   += clitter_sap;
 				ppft.litter_heart += clitter_heart;

@@ -124,9 +124,9 @@ void CommandLineShell::log_message(const char* message) {
 }
 
 void CommandLineShell::plot(const char* window_name, 
-                            const char* series_name, 
-                            double x, 
-                            double y) {
+			    const char* series_name, 
+			    double x, 
+			    double y) {
 	// Can't do anything here	 
 }
 

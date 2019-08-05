@@ -306,7 +306,7 @@ void MiscOutput::define_output_tables() {
 		create_output_table(out_phu,        file_phu,            date_columns);
 		create_output_table(out_fphu,       file_fphu,           crop_columns);
 		create_output_table(out_fhi,        file_fhi,            crop_columns);
-        create_output_table(out_seasonality,file_seasonality,    seasonality_columns);
+	create_output_table(out_seasonality,file_seasonality,    seasonality_columns);
 	}
 
 	if(run_landcover)

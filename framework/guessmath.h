@@ -145,7 +145,7 @@ class Historic;
 
 template<typename T, size_t capacity>
 ArchiveStream& operator&(ArchiveStream& stream,
-                         Historic<T, capacity>& data);
+			 Historic<T, capacity>& data);
 
 
 /// Keeps track of historic values of some variable
@@ -290,7 +290,7 @@ public:
 	}
 
 	friend ArchiveStream& operator&<T, capacity>(ArchiveStream& stream,
-	                                             Historic<T, capacity>& data);
+						     Historic<T, capacity>& data);
 
 private:
 	/// The stored values
@@ -317,7 +317,7 @@ private:
  */
 template<typename T, size_t capacity>
 ArchiveStream& operator&(ArchiveStream& stream,
-                         Historic<T, capacity>& data) {
+			 Historic<T, capacity>& data) {
 	stream & data.values
 		& data.current_index
 		& data.full;

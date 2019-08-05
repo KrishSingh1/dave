@@ -238,7 +238,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 
 	// Calculate actual nitrogen retranslocation so maximum nitrogen storage capacity is not exceeded
 	double actual_nrelocfrac = calc_nrelocfrac(lifeform, turnover_leaf, nmass_leaf, turnover_root, nmass_root,
-	                                           turnover_sap, nmass_sap, max_n_storage, longterm_nstore);
+						   turnover_sap, nmass_sap, max_n_storage, longterm_nstore);
 
 	// TREES AND GRASSES:
 
@@ -1517,7 +1517,7 @@ void growth(Stand& stand, Patch& patch) {
 					// debit current biomass as establishment flux
 					if (!indiv.istruecrop_or_intercropgrass()) {
 						indiv.report_flux(Fluxes::ESTC,
-					                  - (indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap +
+								  - (indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap +
 									  indiv.cmass_heart - indiv.cmass_debt));
 					}
 				}

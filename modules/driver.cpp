@@ -76,12 +76,12 @@ double randfrac(long& seed) {
  *
  */
 void interp_single_month(double preceding_mean,
-                         double this_mean,
-                         double succeeding_mean,
-                         int time_steps,
-                         double* result,
-                         double minimum = -std::numeric_limits<double>::max(),
-                         double maximum = std::numeric_limits<double>::max()) {
+			 double this_mean,
+			 double succeeding_mean,
+			 int time_steps,
+			 double* result,
+			 double minimum = -std::numeric_limits<double>::max(),
+			 double maximum = std::numeric_limits<double>::max()) {
 
 	// The values for the beginning and the end of the month are determined
 	// from the average of the two adjacent monthly means
@@ -197,7 +197,7 @@ void interp_single_month(double preceding_mean,
  *  \param dvals The generated daily values
  */
 void interp_monthly_means_conserve(const double* mvals, double* dvals,
-                                   double minimum, double maximum) {
+				   double minimum, double maximum) {
 
 	Date date;
 	int start_of_month = 0;
@@ -217,8 +217,8 @@ void interp_monthly_means_conserve(const double* mvals, double* dvals,
 		}
 
 		interp_single_month(mvals[prev], mvals[m], mvals[next],
-		                    date.ndaymonth[m], dvals+start_of_month,
-		                    minimum, maximum);
+				    date.ndaymonth[m], dvals+start_of_month,
+				    minimum, maximum);
 
 		start_of_month += date.ndaymonth[m];
 	}
@@ -236,7 +236,7 @@ void interp_monthly_means_conserve(const double* mvals, double* dvals,
  *  \param dvals The generated daily values
  */
 void interp_monthly_totals_conserve(const double* mvals, double* dvals,
-                                    double minimum, double maximum) {
+				    double minimum, double maximum) {
 	// Local date object just used to get number of days for each month
 	Date date;
 
@@ -262,10 +262,10 @@ void interp_monthly_totals_conserve(const double* mvals, double* dvals,
  *  \param dndep       Output, total N deposition for each day
  */
 void distribute_ndep_single_month(double ndry,
-                                  double nwet,
-                                  int time_steps,
-                                  const double* dprec,
-                                  double* dndep) {
+				  double nwet,
+				  int time_steps,
+				  const double* dprec,
+				  double* dndep) {
 
 	// First count number of days with precipitation
 	int raindays = 0;
@@ -301,14 +301,14 @@ void distribute_ndep_single_month(double ndry,
  *  \param dndep Output, total N deposition for each day
  */
 void distribute_ndep(const double* mndry, const double* mnwet,
-                     const double* dprec, double* dndep) {
+		     const double* dprec, double* dndep) {
 
 	Date date;
 	int start_of_month = 0;
 
 	for (int m = 0; m < 12; m++) {
 		distribute_ndep_single_month(mndry[m], mnwet[m], date.ndaymonth[m],
-		                             dprec+start_of_month, dndep+start_of_month);
+					     dprec+start_of_month, dndep+start_of_month);
 
 		start_of_month += date.ndaymonth[m];
 	}
@@ -515,14 +515,14 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		}
 	}
 	else if ( (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE) ||
-	          (climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE) ) {
+		  (climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE) ) {
 		// In midwinter, reset GDD counter for summergreen phenology
 		climate.gdd5 = 0.0;
 		climate.agdd0 = 0.0;
 		climate.ifsensechill = false;
 	}
 	else if ( (climate.lat >= 0.0 && date.day == WARMEST_DAY_NHEMISPHERE) ||
-	          (climate.lat < 0.0 && date.day == WARMEST_DAY_SHEMISPHERE) ) {
+		  (climate.lat < 0.0 && date.day == WARMEST_DAY_SHEMISPHERE) ) {
 		climate.ifsensechill = true;
 	}
 

@@ -1098,9 +1098,9 @@ void transfer_litter(Patch& patch) {
 
 	// Calculate total litter carbon and nitrogen mass for set N:C ratio of surface microbial pool
 	double litter_cmass = soil.sompool[SURFSTRUCT].cmass + soil.sompool[SURFMETA].cmass +
-	                      soil.sompool[SURFFWD].cmass + soil.sompool[SURFCWD].cmass;
+		soil.sompool[SURFFWD].cmass + soil.sompool[SURFCWD].cmass;
 	double litter_nmass = soil.sompool[SURFSTRUCT].nmass + soil.sompool[SURFMETA].nmass +
-	                      soil.sompool[SURFFWD].nmass + soil.sompool[SURFCWD].nmass;
+		soil.sompool[SURFFWD].nmass + soil.sompool[SURFCWD].nmass;
 
 	// Set N:C ratio of surface microbial pool based on N:C ratio of litter from all PFTs
 	// Parton et al 1993 Fig 4. Dry mass litter == cmass litter * 2
@@ -1225,7 +1225,7 @@ void vegetation_n_uptake(Patch& patch) {
 	// Daily nitrogen demand given by:
 	//	 For individual:
 	//     (1)  ndemand = leafndemand + rootndemand + sapndemand;
-    //          where
+	//          where
 	//          leafndemand is leaf demand based on vmax
 	//			rootndemand is based on optimal leaf C:N ratio
 	//          sapndemand is based on optimal leaf C:N ratio

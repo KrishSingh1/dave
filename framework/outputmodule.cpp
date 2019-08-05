@@ -59,7 +59,7 @@ void OutputModuleContainer::init() {
 
 	// Create the output channel
 	output_channel = new FileOutputChannel(outputdirectory.c_str(),
-	                                       coordinates_precision);
+					       coordinates_precision);
 
 	for (size_t i = 0; i < modules.size(); ++i) {
 		modules[i]->init();
@@ -88,7 +88,7 @@ OutputModuleRegistry& OutputModuleRegistry::get_instance() {
 }
 
 void OutputModuleRegistry::register_output_module(const char* name,
-                                                  OutputModuleCreator omc) {
+						  OutputModuleCreator omc) {
 	modules.insert(make_pair(std::string(name), omc));
 }
 

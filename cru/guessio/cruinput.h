@@ -81,8 +81,8 @@ protected:
 	 *  \param mnwetdep      Pointer to array holding 12 doubles
 	 */
 	void get_monthly_ndep(int calendar_year,
-	                      double* mndrydep,
-	                      double* mnwetdep);
+			      double* mndrydep,
+			      double* mnwetdep);
 
 	/// Gives sub-classes a chance to modify the forcing data
 	/** This function will be called just after the forcing data for the historical
@@ -97,10 +97,10 @@ protected:
 	 *  \param hist_msun   Monthly sunshine values for each year
 	 */
 	virtual void adjust_raw_forcing_data(double lon,
-	                                     double lat,
-	                                     double hist_mtemp[NYEAR_HIST][12],
-	                                     double hist_mprec[NYEAR_HIST][12],
-	                                     double hist_msun[NYEAR_HIST][12]);
+					     double lat,
+					     double hist_mtemp[NYEAR_HIST][12],
+					     double hist_mprec[NYEAR_HIST][12],
+					     double hist_msun[NYEAR_HIST][12]);
 
 private:
 

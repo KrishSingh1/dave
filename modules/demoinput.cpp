@@ -45,7 +45,7 @@ DemoInput::DemoInput()
 }
 
 bool DemoInput::read_from_file(Coord coord, xtring fname, const char* format,
-                               double monthly[12], bool soil /* = false */) {
+			       double monthly[12], bool soil /* = false */) {
 	double dlon, dlat;
 	int elev;
 	FILE* in = fopen(fname, "r");

@@ -642,7 +642,7 @@ bool Soil::plant_gas_transport(double Cgas[NLAYERS], double Ceq, double kgas, ga
 
 		// Weight plant transport by the area of porous root cross-sections. 
 		// plant_trans(i) [mmol layer-1 d-1]
-        // the 2.07 are from the equation for k_CH4, when U10 is zero.
+		// the 2.07 are from the equation for k_CH4, when U10 is zero.
 
 		Cgas[ii] = Cgas[ii] / atomic_mass / total_volume_water[ii] * MMOL_PER_MOL;
 		// CH4 and CO2: gC layer-1 to mmol m-3
@@ -872,8 +872,8 @@ bool Soil::methane(bool generatemethane) {
 
 	} 
 	else {
-        // Max allowed error in checks
-        const double MAX_ERR = 0.000001;
+		// Max allowed error in checks
+		const double MAX_ERR = 0.000001;
 		const double MAX_ERR_BALANCE = 0.0001;
 		const double LARGE_ERR = 0.01;
 

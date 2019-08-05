@@ -23,25 +23,25 @@ static const int FIRSTHISTYEAR=1901;
 
 /// Determine temp, precip, sunshine & soilcode
 bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
-               double mtemp[NYEAR_HIST][12],
-               double mprec[NYEAR_HIST][12],
-               double msun[NYEAR_HIST][12]);
+	       double mtemp[NYEAR_HIST][12],
+	       double mprec[NYEAR_HIST][12],
+	       double msun[NYEAR_HIST][12]);
 
 /// Determine elevation, frs frq, wet frq & DTR
 bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
-                    double mfrs[NYEAR_HIST][12],
-                    double mwet[NYEAR_HIST][12],
-                    double mdtr[NYEAR_HIST][12],
-					double mwind[NYEAR_HIST][12],
-					double mrhum[NYEAR_HIST][12]);
+		    double mfrs[NYEAR_HIST][12],
+		    double mwet[NYEAR_HIST][12],
+		    double mdtr[NYEAR_HIST][12],
+		    double mwind[NYEAR_HIST][12],
+		    double mrhum[NYEAR_HIST][12]);
 
 /// Returns CRU data from the nearest cell to (lon,lat) within a given search radius
 /** lon and lat are set to the coordinates of the found CRU gridcell, if found */
 bool findnearestCRUdata(double searchradius, char* cruark, double& lon, double& lat, 
-                        int& scode, 
-                        double hist_mtemp1[NYEAR_HIST][12], 
-                        double hist_mprec1[NYEAR_HIST][12], 
-                        double hist_msun1[NYEAR_HIST][12]);
+			int& scode, 
+			double hist_mtemp1[NYEAR_HIST][12], 
+			double hist_mprec1[NYEAR_HIST][12], 
+			double hist_msun1[NYEAR_HIST][12]);
 
 }
 

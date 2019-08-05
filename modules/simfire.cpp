@@ -158,7 +158,7 @@ int update_fire_biome(Patch& patch, double lat) {
 void simfire_biome_mapping(Gridcell& gridcell) {
 
 	/* Called by: simfire_accounting_gridcell (local)
-	              getsimfiredata (local)
+		      getsimfiredata (local)
 	   Calls    : update_fire_biome(local)
 	   Computes current SIMFIRE biome for this 
 	   gridcell depending on the last <n_year_biomeavg> years of
@@ -298,7 +298,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	
 	/* Called by: dailyaccounting_gridcell   (driver.cpp)
 	   Calls    : simfire_biome_mapping      (local)
-	              simfire_update_pop_density (local)
+		      simfire_update_pop_density (local)
 	   Updates SIMFIRE's Max Annual Mesterov Index
 	   and running mean of max annual FPAR (from canexch.cpp)
 	   Updates fire biome 
@@ -355,7 +355,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	}
 
 	// update running Maximum Nesterov index array at beginning of month  
-        if ( date.dayofmonth == 0 ) {
+	if ( date.dayofmonth == 0 ) {
 		double mnest = 0.;
 		for ( int i=0; i<12; i++) 
 			if ( climate.monthly_max_nesterov[i] > mnest )
@@ -365,7 +365,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	}
 
 	// update current month's Maximum Nesterov index
-        if (  climate.monthly_max_nesterov[date.month] < climate.cur_nesterov )
+	if (  climate.monthly_max_nesterov[date.month] < climate.cur_nesterov )
 		climate.monthly_max_nesterov[date.month] = climate.cur_nesterov;
 
 	// PATCHLOOP FOR fpar
@@ -402,7 +402,8 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	climate.cur_max_fapar = max(run_fapar, climate.cur_max_fapar);
 
 	// compute running Nesterov index
-	if ( climate.prec >= 3. || climate.tmax - climate.tmin < 4. ) {
+    double extractedExpr = climate.tmax;
+    if ( climate.prec >= 3. || extractedExpr - climate.tmin < 4. ) {
 		climate.cur_nesterov = 0.0; 
 	}
 	else {
@@ -439,7 +440,7 @@ double simfire_burned_area(Climate& climate) {
 	// compute annual burned area
 	double burned_area = A[climate.simfire_biome-1] * 
 		pow(fpar_cor, B) *
-		pow((scalar * climate.max_nesterov), C) *
+		pow((SCALAR * climate.max_nesterov), C) *
 		exp(E * gridcell.pop_density);
 
 	// compute daily burnt_area

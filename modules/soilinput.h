@@ -90,7 +90,7 @@ private:
 		// carbon content (kg C/m2)
  		double soilC;
  		// Porosity
-        double porosity;
+		double porosity;
 	};
 
 	void load_mineral_soils(const char* fname, const std::set<coord>& coords);

@@ -29,13 +29,6 @@
 
 #include "config.h"
 #include "gwgen.h"
-#include <cmath>
-#include <algorithm>
-#include <stdio.h> 
-#include <stdlib.h>
-#include <bitset>
-#include <iostream>
-#include <string>
 
 const double DHUGE     = std::numeric_limits<double>::max();
 const long LHUGE       = std::numeric_limits<long>::max()  ;
@@ -2246,7 +2239,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 	double tmin_acc = 0.;
 
 	//GWGen gwgen = gridcell.climate.gwgen;
-	RnDst rndst = gridcell.climate.rndst;
+	RnDst & rndst = gridcell.climate.rndst;
 
 	//	int ndaymon = date.ndaymonth[date.month];
 

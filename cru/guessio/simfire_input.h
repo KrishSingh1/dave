@@ -81,7 +81,7 @@ struct SimfireInput {
 
 	double igbp_class[1];
 	double pop_density[57];
-	double monthly_ba[12];
+	double monthly_burned_area[12];
 };
 
 
@@ -342,7 +342,7 @@ public:
 		obj.lat=popreal(pindex,4,12,0.05,-89.75);
 		obj.lon=popreal(pindex,4,13,0.05,-179.75);
 
-		for (i=11;i>=0;i--) obj.monthly_ba[i]=popreal(pdata,SIMFIREINPUT_DATA_LENGTH,24,1e-07,0);
+		for (i=11;i>=0;i--) obj.monthly_burned_area[i]=popreal(pdata,SIMFIREINPUT_DATA_LENGTH,24,1e-07,0);
 		for (i=56;i>=0;i--) obj.pop_density[i]=popreal(pdata,SIMFIREINPUT_DATA_LENGTH,31,1e-05,0);
 		for (i=0;i>=0;i--) obj.igbp_class[i]=popreal(pdata,SIMFIREINPUT_DATA_LENGTH,5,1,0);
 
@@ -381,7 +381,7 @@ public:
 			}
 			else {
 
-				for (int i=11;i>=0;i--) obj.monthly_ba[i]=popreal(pdata,SIMFIREINPUT_DATA_LENGTH,24,1e-07,0);
+				for (int i=11;i>=0;i--) obj.monthly_burned_area[i]=popreal(pdata,SIMFIREINPUT_DATA_LENGTH,24,1e-07,0);
 				for (int i=56;i>=0;i--) obj.pop_density[i]=popreal(pdata,SIMFIREINPUT_DATA_LENGTH,31,1e-05,0);
 				for (int i=0;i>=0;i--) obj.igbp_class[i]=popreal(pdata,SIMFIREINPUT_DATA_LENGTH,5,1,0);
 

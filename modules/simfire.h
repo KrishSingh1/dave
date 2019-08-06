@@ -16,6 +16,9 @@
 
 #include "guess.h"
 
+/// define simfire biometypes
+enum {SF_NOVEG, SF_CROP, SF_NEEDLELEAF, SF_BROADLEAF, SF_MIXED_FOREST, SF_SHRUBS, SF_SAVANNA, SF_TUNDRA, SF_BARREN};
+
 // read input data for SIMFIRE
 void getsimfiredata(Gridcell& gridcell);
 

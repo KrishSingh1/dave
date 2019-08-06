@@ -58,13 +58,8 @@ int update_fire_biome(Patch& patch, double lat) {
 	double fshrb=0.0;  // fraction of woody vegetation that is shrubs
 	double ftot=0.0;   // total FPAR of all individuals
 	int biome=0;       // biome number
-	int count[NFIREBIOMES]; // incidence count of biome in previous years;
-	for (int i=0; i<NFIREBIOMES; i++) {
-		count[i] = 0;
-	}
-	int count_max=0;   // maximum of 'count'
 
-	// Obtain reference to Vegetation object for this patch
+    // Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation=patch.vegetation;
 
 	// Loop through individuals of this patch
@@ -133,23 +128,23 @@ int update_fire_biome(Patch& patch, double lat) {
 	fshrb  /=  (double)n_year_biomeavg;
 
 	if (ftot<0.1 && fabs(lat)<50.0) {
-		biome=8; } // barren or sparsely vegetated
+		biome=SF_BARREN; } // barren or sparsely vegetated
 	else if (ftot<0.1   && fabs(lat)>=50.0) {
-		biome=7; } // tundra
+		biome=SF_TUNDRA; } // tundra
 	else if (patch.stand.landcover==CROPLAND) {
-		biome=1; } // cropland
+		biome=SF_CROP; } // cropland
 	else if (fshrb>=0.8 && fabs(lat)<50.0) {
-		biome=5; } // shrubland
+		biome=SF_SHRUBS; } // shrubland
 	else if (fshrb>=0.8 && fabs(lat)>=50.0) {
-		biome=7; } // tundra
+		biome=SF_TUNDRA; } // tundra
 	else if (fgrass>=0.4) {
-		biome=6; } // savanna or grassland
+		biome=SF_SAVANNA; } // savanna or grassland
 	else if (fndlt>=0.6) {
-		biome=2; } // needle-leaf forest
+		biome=SF_NEEDLELEAF; } // needle-leaf forest
 	else if (fbrlt>=0.6) {
-		biome=3; } // broad-leaf forest
+		biome=SF_BROADLEAF; } // broad-leaf forest
 	else {
-		biome=4;   // mixed forest
+		biome=SF_MIXED_FOREST;   // mixed forest
 	} 
 
 	return biome;
@@ -230,7 +225,6 @@ void getsimfiredata(Gridcell& gridcell) {
 		ark.close();
 		fail("Grid cell not found in %s \n", (char*)file_simfire);
 	}
-	
 	// Found the record, get the values
 	
 	// convert IGBP into simfire internal biomes
@@ -238,7 +232,7 @@ void getsimfiredata(Gridcell& gridcell) {
 	
 	// Monthly fire risk (W.Knorr)
 	for (int m=0; m<12; m++) {
-		climate.monthly_fire_risk[m] = rec.monthly_ba[m];
+		climate.monthly_fire_risk[m] = rec.monthly_burned_area[m];
 	}
 	// Population density from HYDE 3.1
 	for (int t=0; t<57; t++) {
@@ -258,6 +252,7 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 	   using the change between the last two values is performed 
 	*/
 
+    // number of entries for Population data
 	const int NPOPT = 57;
 	// years at which pop data is available in HYDE3.1
 	const int POPTIME[NPOPT]  = {-10000,-9000,-8000,-7000,-6000,-5000,-4000,-3000,-2000,-1000,0,
@@ -283,6 +278,7 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 			(double)(POPTIME[NPOPT-1] - POPTIME[NPOPT-2]) * (double)(cyear-POPTIME[NPOPT-1]);
 	}
 	else {
+        // interpolate between two entries
 		double interpf = (double)(cyear-POPTIME[idx-1]) /
 			(double)( POPTIME[idx]-POPTIME[idx-1] );
 		popd = (1. - interpf) * gridcell.hyde31_pop_density[idx-1] + 
@@ -307,11 +303,6 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	Climate& climate = gridcell.climate;
 	// absolute upper boundary for the accumulative nesterov index
 	const double MAXIMUM_NESTEROV = 1000000; //150000.;
-
-	// check whether this day is the first day of simulation 
-	// (i.e. start of spinup or first day after restart
-	bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
-		( restart && date.year == state_year ) ) );
 
 	if (date.day == 0 ) {
 		// Set global simfire region as fixed: Global=0

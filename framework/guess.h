@@ -606,7 +606,7 @@ struct PhotosynthesisResult : public Serializable {
 	void serialize(ArchiveStream& arch);
 };
 
-// GWgen weather generator
+// GWGen weather generator
 class RnDst {
 	// MEMBER VARIABLES
 public:

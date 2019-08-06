@@ -29,17 +29,15 @@
 
 #include "config.h"
 #include "blaze.h"
-#include "guess.h"
-#include "driver.h"   
-#include "growth.h"   
-#include "somdynam.h" 
-#include "simfire.h" 
-#include "plib.h"
+#include "driver.h"
+#include "growth.h"
+#include "somdynam.h"
+#include "simfire.h"
 
 // combustion rates depending on several fire-line-intensities.
 const double TURNOVERFRACT[13][5] = {
 	{ .0 , .0 , .05, .2 , .2 }, //   0 Stems       -> ATM
-       	{ .0 , .0 , .15, .2 , .2 }, //   1 Branches    -> ATM
+	{ .0 , .0 , .15, .2 , .2 }, //   1 Branches    -> ATM
 	{ .03, .13, .25, .5 , .5 }, //   2 Bark        -> ATM
 	{ .02, .05, .1 , .6 , .6 }, //   3 Leaves      -> ATM
 	{ .0 , .0 , .05, .2 , .8 }, //   4 Stems       -> Litter (DWD) !corrected*
@@ -225,7 +223,7 @@ double available_fuel (Patch& patch,int fli_index, double k_tun_litter)  {
 	return available_fuel;
 }
 
-void get_firelineintensity(Patch& patch, Climate climate) {
+void get_fireline_intensity(Patch& patch, Climate climate) {
 	
 	/* Called by:  blaze (local)
 	   Calls    :  available_fuel (local)
@@ -239,7 +237,7 @@ void get_firelineintensity(Patch& patch, Climate climate) {
 	// Readily available fuel  [g/m2]
 	double w;                      
 	// rate of spread          [m/s]
-	double ros;                    
+	double rate_of_spread;                    
 	// fire-line intensity     [W/m]
 	double fli;                  
 	// fire intensity category index
@@ -247,7 +245,7 @@ void get_firelineintensity(Patch& patch, Climate climate) {
 
 	for ( int i=0; i<4; i++ ) {
 
-		// get available fuel for current fli index (fli_index) and convert kg/m2 to g/m2
+		// get available fuel for current fire-line intensity index (fli_index) and convert kg/m2 to g/m2
 		w = available_fuel(patch,fli_index,climate.k_tun_litter) * KG2G;
 		// check whether there is enough fuel to ignite a fire
 		if ( w < MIN_FUEL ) { 
@@ -255,10 +253,10 @@ void get_firelineintensity(Patch& patch, Climate climate) {
 			break;
 		}
 		// Compute Rate-of-spread [m/s]
-		ros = 3.3333e-05 * climate.mcarthur_fire_index * w;
+		rate_of_spread = 3.3333e-05 * climate.mcarthur_fire_index * w;
 		
 		// fire line intensity[W/m] (Pyne, 1996 derived from Byram, 1959)
-		fli = HEAT_YIELD * w * ros;
+		fli = HEAT_YIELD * w * rate_of_spread;
 
 		//  re-copmute FLI index 
 		fli_index = get_fli_index(fli, climate.is_sprouter);
@@ -361,7 +359,7 @@ double surv_prob_tropics(double dbh, double fli) {
 	return p_surv;
 }
 
-double surv_prob_Savanna(double height, double fli) {
+double surv_prob_savanna(double height, double fli) {
 	/* Called by: survival_probability (local)
 	   Compute survival probability for savanna
 	   following Bond 2008
@@ -374,7 +372,7 @@ double surv_prob_Savanna(double height, double fli) {
 	return p_surv;
 }
 
-double surv_prob_Sprouter_Savanna(double height, double fli) {
+double surv_prob_sprouter_savanna(double height, double fli) {
 	/* Called by: survival_probability (local)
 	   Compute survival probability for sprouters in Savannas (esp. Australian)
 	   following Cook 2013, pers. comm.
@@ -426,7 +424,7 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 
 	double survival_probability = 1.;
 
-	// allometry function as used in growth.cpp
+	// allometry function for diameter-at-breast-height as used in growth.cpp
 	double dbh   = pow(height * 100. / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3) / 100.;
 
 	int biome = climate.simfire_biome;
@@ -434,12 +432,12 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 	if ( vegmode == POPULATION ) {
 
 		// Temperate Needleleaf
-		if ( biome == 2) { 
+		if ( biome == SF_NEEDLELEAF) { 
 			double mass_cwd = patch.soil.sompool[SURFCWD].cmass   ;   
 			survival_probability = surv_prob_temp_nl(dbh, fli, mass_cwd);
 		}
 		// Broadleaf and mixed
-		else if ( biome == 3 || biome == 4 ) {
+		else if ( biome ==  SF_BROADLEAF || biome == SF_MIXED_FOREST ) {
 			// tropical 
 			if  (lat > -30 && lat < 30 ) {
 				// moist
@@ -455,16 +453,16 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 			}
 		}
 		// Savanna, shrubland and sparsely vegetated
-		else if ( biome == 5 || biome == 6 || biome == 8) {
+		else if ( biome == SF_SHRUBS || biome == SF_SAVANNA || biome == SF_BARREN) {
 			if ( climate.is_sprouter ) {
-				survival_probability = surv_prob_Sprouter_Savanna(height, fli);
+				survival_probability = surv_prob_sprouter_savanna(height, fli);
 			}
 			else {
-				survival_probability = surv_prob_Savanna(height, fli);
+				survival_probability = surv_prob_savanna(height, fli);
 			}
 		}
 		// Tundra
-		else if ( biome == 7 ) {
+		else if ( biome == SF_TUNDRA ) {
 			survival_probability = surv_prob_boreal(fli);
 		} 
 		else {
@@ -488,7 +486,7 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 		// Broadleaf
 		else if ( indiv.pft.leafphysiognomy == BROADLEAF ) {
 			// Broadleaf, mixed Forest and majorly NL biomes
-			if ( biome == 1 || biome == 2 || biome == 3 || biome == 4 ) {
+			if ( biome == SF_CROP || biome == SF_NEEDLELEAF || biome == SF_BROADLEAF || biome == SF_MIXED_FOREST || biome == SF_TUNDRA ) {
 				if  (lat > -30 && lat < 30 ) {
 					// tropical 
 					survival_probability = surv_prob_tropics(dbh,fli);
@@ -501,18 +499,14 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 				}
 			}
 			// Savanna, shrubland and sparsely vegetated
-			else if ( biome == 5 || biome == 6 || biome == 8) {
+			else if ( biome == SF_SHRUBS || biome == SF_SAVANNA || biome == SF_BARREN ) {
 				if ( climate.is_sprouter ) {
-					survival_probability = surv_prob_Sprouter_Savanna(height, fli);
+					survival_probability = surv_prob_sprouter_savanna(height, fli);
 				}
 				else {
-					survival_probability = surv_prob_Savanna(height, fli);
+					survival_probability = surv_prob_savanna(height, fli);
 				}
 			}
-			// Tundra
-			else if ( biome == 7 ) {
-				survival_probability = surv_prob_boreal(fli);
-			} 
 			else {
 				dprintf("Biome %d not found in BLAZE\n",biome);
 				survival_probability = 1.;
@@ -554,13 +548,13 @@ void blaze(Patch& patch, Climate& climate) {
 	// grassy vegetation burn-rate for cohort and individual mode
 	const double MAX_GRASS_BURN = 0.75;
 
-	double ab  = climate.areaburnt;
+	double area_burned  = climate.areaburnt;
 
 	// Correction fractions burnt earlier in the same year (vegmode = POPULATION only)
-	double accf= 1.  / (1. - climate.acc_areaburnt);
+	double accumulated_fraction_burned= 1.  / (1. - climate.acc_areaburnt);
 	
 	// see if it burns at all
-	if (! ( randfrac(patch.stand.seed) <= ab || vegmode == POPULATION ) )
+	if (! ( randfrac(patch.stand.seed) <= area_burned || vegmode == POPULATION ) )
 		return ;
 
 
@@ -573,7 +567,7 @@ void blaze(Patch& patch, Climate& climate) {
 	// adjustment factor for fluxes
 	double fab = 1.0;
 	if ( vegmode == POPULATION )
-		fab = ab * accf;
+		fab = max(area_burned * accumulated_fraction_burned,1.);
        
 	get_combustion_rates(patch,fli_index,climate.k_tun_litter);
 
@@ -634,7 +628,7 @@ void blaze(Patch& patch, Climate& climate) {
 			}
 			if (!killed) vegetation.nextobj(); // ... on to next individual
 		}
-		fab = ab * accf;
+		fab = area_burned * accumulated_fraction_burned;
 	}
 	else {
 		// vegmode == Individual or Cohort
@@ -1211,7 +1205,7 @@ void blaze_driver(Patch& patch, Climate& climate) {
 		patch.fli = 0.0;
 
 	// today's potential firelineintensity
-	get_firelineintensity(patch,climate);
+	get_fireline_intensity(patch,climate);
 
 	// get relative fluxes between pools
 	int fli_index = get_fli_index(patch.fli, climate.is_sprouter);

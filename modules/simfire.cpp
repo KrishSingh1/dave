@@ -362,7 +362,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	// PATCHLOOP FOR fpar
 	int cnt= 0;
 	double run_fapar = 0.;
-	if ( ! (date.year == 0 && date.day == 0) ) {
+	if (date.year == 0 && date.day == 0) {
 		Gridcell::iterator gc_itr = gridcell.begin();
 		while (gc_itr != gridcell.end()) {
 			Stand& stand = *gc_itr;
@@ -371,15 +371,13 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 				Patch& patch = stand.getobj();
 				run_fapar += (1. - patch.fpar_ff);
 				//initialise averaging array
-				if ( date.year == 0 && date.day == 0 ) {
-					for (int i = 0; i<n_year_biomeavg; i++) {
-						patch.avg_ftot  [i] = 0. ;
-						patch.avg_fgrass[i] = 0. ;
-						patch.avg_fndlt [i] = 0. ;
-						patch.avg_fbrlt [i] = 0. ;
-						patch.avg_fshrb [i] = 0. ;
-					}
-				}
+                for (int i = 0; i<n_year_biomeavg; i++) {
+                    patch.avg_ftot  [i] = 0. ;
+                    patch.avg_fgrass[i] = 0. ;
+                    patch.avg_fndlt [i] = 0. ;
+                    patch.avg_fbrlt [i] = 0. ;
+                    patch.avg_fshrb [i] = 0. ;
+                }
 				cnt += 1;
 				stand.nextobj();
 			}		

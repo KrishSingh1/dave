@@ -1156,7 +1156,7 @@ double qchisq_appr(double p, double nu, double g, double tol) {
 		double q = 0.;
 		ch = 0.4;
 		a = log(1 - p) + g + c * log(2.0);
-		while (fabs(q - ch) > tol * fbs(ch)) {
+		while (fabs(q - ch) > tol * fabs(ch)) {
 			q = ch;
 			p1 = 1. / (1 + ch * (4.67 + ch));
 			p2 = ch * (6.73 + ch * (6.66 + ch));

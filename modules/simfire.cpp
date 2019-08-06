@@ -196,7 +196,7 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 
 // Get simfire data for a gridcell
 void getsimfiredata(Gridcell& gridcell) {
-		
+
 	/* Called by: framework (framework.cpp)
 	   Calls    : simfire_biome_mapping (local)
 	   Reads SIMFIRE relevant info from SimfireInput.bin:
@@ -254,7 +254,7 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 
     // number of entries for Population data
 	const int NPOPT = 57;
-	// years at which pop data is available in HYDE3.1
+	// years at which population-data is available in HYDE3.1
 	const int POPTIME[NPOPT]  = {-10000,-9000,-8000,-7000,-6000,-5000,-4000,-3000,-2000,-1000,0,
 				    100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,
 				    1500,1600,1700,1710,1720,1730,1740,1750,1760,1780,1790,1810,
@@ -309,10 +309,10 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 		gridcell.simfire_region = 0;
 
 		// Determine SIMFIRE biome for this year
-		simfire_biome_mapping(climate.gridcell);
+		simfire_biome_mapping(gridcell);
 
 		// update population density
-		simfire_update_pop_density(climate.gridcell);
+		simfire_update_pop_density(gridcell);
 		
 
 		// initialise averaging array 
@@ -362,37 +362,38 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	// PATCHLOOP FOR fpar
 	int cnt= 0;
 	double run_fapar = 0.;
-	if (date.year == 0 && date.day == 0) {
-		Gridcell::iterator gc_itr = gridcell.begin();
-		while (gc_itr != gridcell.end()) {
-			Stand& stand = *gc_itr;
-			stand.firstobj();
-			while (stand.isobj) {
-				Patch& patch = stand.getobj();
+	Gridcell::iterator gc_itr = gridcell.begin();
+	while (gc_itr != gridcell.end()) {
+		Stand& stand = *gc_itr;
+		stand.firstobj();
+		while (stand.isobj) {
+			Patch& patch = stand.getobj();
+			if ( ! ( date.year == 0 && date.day == 0 ) ) {
 				run_fapar += (1. - patch.fpar_ff);
-				//initialise averaging array
-                for (int i = 0; i<n_year_biomeavg; i++) {
-                    patch.avg_ftot  [i] = 0. ;
-                    patch.avg_fgrass[i] = 0. ;
-                    patch.avg_fndlt [i] = 0. ;
-                    patch.avg_fbrlt [i] = 0. ;
-                    patch.avg_fshrb [i] = 0. ;
-                }
-				cnt += 1;
-				stand.nextobj();
-			}		
-			++gc_itr;
+			}
+			//initialise averaging array
+			if (date.year == 0 && date.day == 0) {
+				for (int i = 0; i<n_year_biomeavg; i++) {
+					patch.avg_ftot  [i] = 0. ;
+					patch.avg_fgrass[i] = 0. ;
+					patch.avg_fndlt [i] = 0. ;
+					patch.avg_fbrlt [i] = 0. ;
+					patch.avg_fshrb [i] = 0. ;
+				}
+			}
+			cnt += 1;
+			stand.nextobj();
 		}
-		// average over each patch 
-		run_fapar /= (double) cnt;
+		++gc_itr;
 	}
+	// average over each patch
+	run_fapar /= (double) cnt;
 
 	// update the this years maximum
-	climate.cur_max_fapar = max(run_fapar, climate.cur_max_fapar);
+	climate.cur_max_fapar = fmax(run_fapar, climate.cur_max_fapar);
 
 	// compute running Nesterov index
-    double extractedExpr = climate.tmax;
-    if ( climate.prec >= 3. || extractedExpr - climate.tmin < 4. ) {
+    if ( climate.prec >= 3. || climate.tmax - climate.tmin < 4. ) {
 		climate.cur_nesterov = 0.0; 
 	}
 	else {
@@ -432,7 +433,7 @@ double simfire_burned_area(Climate& climate) {
 		pow((SCALAR * climate.max_nesterov), C) *
 		exp(E * gridcell.pop_density);
 
-	// compute daily burnt_area
+    // compute daily burnt_area
 	burned_area *= climate.monthly_fire_risk[date.month] /
 		(double)date.ndaymonth[date.month];
 

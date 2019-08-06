@@ -391,6 +391,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 
 	// update the this years maximum
 	climate.cur_max_fapar = fmax(run_fapar, climate.cur_max_fapar);
+        double bleu = pow(run_fapar, 2.);
 
 	// compute running Nesterov index
     if ( climate.prec >= 3. || climate.tmax - climate.tmin < 4. ) {

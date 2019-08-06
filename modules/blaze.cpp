@@ -223,7 +223,7 @@ double available_fuel (Patch& patch,int fli_index, double k_tun_litter)  {
 	return available_fuel;
 }
 
-void get_fireline_intensity(Patch& patch, Climate climate) {
+void get_fireline_intensity(Patch& patch, Climate& climate) {
 	
 	/* Called by:  blaze (local)
 	   Calls    :  available_fuel (local)

@@ -969,7 +969,7 @@ void normal_01_cdf_inv (double p,double x) {
 	}
 	q = p - 0.5E+00;
 
-	if ( abs ( q ) <= SPLIT1 ) {
+	if ( fabs ( q ) <= SPLIT1 ) {
 		r = CONST1 - q * q;
 		x = q * r8poly_value_horner( 7, a, r ) / r8poly_value_horner( 7, b, r );
 	}
@@ -1049,25 +1049,25 @@ void normal_01_cdf ( double x, double cdf ) {
 	double y;
 
 	//  |X| <= 1.28.
-	if ( abs ( x ) <= 1.28E+00 ) {
+	if ( fabs ( x ) <= 1.28E+00 ) {
 
 		y = 0.5E+00 * x * x;
 
-		q = 0.5E+00 - abs ( x ) * ( A1 - A2 * y / ( y + A3 - A4 /
+		q = 0.5E+00 - fabs ( x ) * ( A1 - A2 * y / ( y + A3 - A4 /
 				( y + A5 + A6 / ( y + A7 ) ) ) );
 	}
 
 	//  1.28 < |X| <= 12.7
-	else if ( abs ( x ) <= 12.7E+00 ) {
+	else if ( fabs ( x ) <= 12.7E+00 ) {
 
 		y = 0.5E+00 * x * x;
 
-		q = exp ( - y ) * B0 / ( abs ( x ) - B1 
-					 + B2 / ( abs ( x ) + B3 
-					 + B4 / ( abs ( x ) - B5 
-					 + B6 / ( abs ( x ) + B7 
-					 - B8 / ( abs ( x ) + B9 
-					 + B10 /( abs ( x ) + B11 ) ) ) ) ) );
+		q = exp ( - y ) * B0 / ( fabs ( x ) - B1
+					 + B2 / ( fabs ( x ) + B3
+					 + B4 / ( fabs ( x ) - B5
+					 + B6 / ( fabs ( x ) + B7
+					 - B8 / ( fabs ( x ) + B9
+					 + B10 /( fabs ( x ) + B11 ) ) ) ) ) );
 	}
 
 	//  12.7 < |X|
@@ -1156,7 +1156,7 @@ double qchisq_appr(double p, double nu, double g, double tol) {
 		double q = 0.;
 		ch = 0.4;
 		a = log(1 - p) + g + c * log(2.0);
-		while (abs(q - ch) > tol * abs(ch)) {
+		while (fabs(q - ch) > tol * fbs(ch)) {
 			q = ch;
 			p1 = 1. / (1 + ch * (4.67 + ch));
 			p2 = ch * (6.73 + ch * (6.66 + ch));
@@ -1294,11 +1294,11 @@ double gamma_inc ( double p, double x ) {
 			pn5 = b * pn3 - a * c * pn1;
 			pn6 = b * pn4 - a * c * pn2;
 
-			if ( 0.0E+00 < abs ( pn6 ) ) {
+			if ( 0.0E+00 < fabs ( pn6 ) ) {
 
 				rn = pn5 / pn6;
 				
-				if ( abs ( gamma_inc - rn ) <= min ( TOL, TOL * rn ) ) {
+				if ( fabs ( gamma_inc - rn ) <= min ( TOL, TOL * rn ) ) {
 
 					arg = arg + log ( gamma_inc );
 
@@ -1319,7 +1319,7 @@ double gamma_inc ( double p, double x ) {
 			pn4 = pn6;
 
 			//  Rescale terms in continued fraction if terms are large.
-			if ( L_OVERFLOW <= abs ( pn5 ) ) {
+			if ( L_OVERFLOW <= fabs ( pn5 ) ) {
 				pn1 = pn1 / L_OVERFLOW;
 				pn2 = pn2 / L_OVERFLOW;
 				pn3 = pn3 / L_OVERFLOW;
@@ -1433,10 +1433,10 @@ double gamma_cdf_inv(double p, double alpha, double scale) {
 		ch = ch +  t * (1.0 + 0.5 * t * s1 - b * c * ( 
 			s1 - b * (s2 - b * (s3 - b * (s4 - b * (s5 - b * s6))))));
 
-		if (abs(q - ch) < EPS2 * ch)
+		if (fabs(q - ch) < EPS2 * ch)
 			break;
 
-		if (abs(q - ch) > 0.1 * ch) {
+		if (fabs(q - ch) > 0.1 * ch) {
 			if (ch < q) 
 				ch = 0.9 * q;
 			else
@@ -2079,7 +2079,7 @@ void gwgen_get_daily_met(GWGen& gwgen, RnDst& rndst) {
 	}
 
 	intercept_corr = 0.;
-	if (abs(wind_intercept_bias_a + 9999.) > 1e-7) {
+	if (fabs(wind_intercept_bias_a + 9999.) > 1e-7) {
 		intercept_corr = exp(wind_intercept_bias_b + 
 				 wind_intercept_bias_a * max(wind_bias_min, min(wind_bias_max, gwgen.resid[3])));
 	} 
@@ -2239,7 +2239,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 	double tmin_acc = 0.;
 
 	//GWGen gwgen = gridcell.climate.gwgen;
-	RnDst & rndst = gridcell.climate.rndst;
+	RnDst& rndst = gridcell.climate.rndst;
 
 	//	int ndaymon = date.ndaymonth[date.month];
 
@@ -2284,8 +2284,6 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		}
 	} 
 	
-	//CLN unsigned int sval = unsigned(gridcell.seed); //-30000;
-
 	int accumday = 0;
 
 	for (int mon=0;mon<12;mon++) {
@@ -2470,12 +2468,12 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 				precdiff = gwgen.mprec - mprec_sim;
 
 				// breakoff-criteria for sufficient skill 			
-				if ( (abs(pdaydiff) <= 1 && abs(precdiff) <= prec_t && tmindiff < 2.5) || 
-				     (pdaydiff == 0 && abs(precdiff) <= 1.25*prec_t  ))  {
+				if ( (abs(pdaydiff) <= 1 && fabs(precdiff) <= prec_t && tmindiff < 2.5) ||
+				     (pdaydiff == 0 && fabs(precdiff) <= 1.25*prec_t  ))  {
 					break;
 				}
 
-				double metric = abs(pdaydiff) * 20 + abs(precdiff) ;
+				double metric = abs(pdaydiff) * 20 + fabs(precdiff) ;
 				// save state if better w.r.t. metric 
 				if ( metric < metric_sav ) {
 					for ( int day=0; day<ndaymon; day++) {
@@ -2577,8 +2575,6 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 				dsol[day] /= solcor;
 		}
 		
-
-
 		if ( in_mrhum[mon] > 0. ) {
 			redist_restricted_vals(drhum, ndaymon, in_mrhum[mon], limit, dum);
 		}

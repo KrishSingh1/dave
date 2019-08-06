@@ -2238,7 +2238,6 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 	double tmindiff = 0.;
 	double tmin_acc = 0.;
 
-	//GWGen gwgen = gridcell.climate.gwgen;
 	RnDst& rndst = gridcell.climate.rndst;
 
 	//	int ndaymon = date.ndaymonth[date.month];

@@ -17,7 +17,7 @@ function prepareyielddata {
 }
 
 # get above ground biomass data
-function prepare_agb {
+function prepare_above_ground_biomass {
 	model_input=$1
 	output=$2
 	dvar=$3
@@ -93,7 +93,7 @@ describe_image wheat_yield.png "Modelled compared to SPAM data set. Units: kg m-
 if [ -f Global_mean_ABC_1993-2012_Liu2015_SI.dat ]
 then
 	tslice cpool.out -f 1993 -t 2012 -o cpool1993-2012.dat
-	prepare_agb cpool1993-2012.dat cpool1993-2012_agb.dat VegC
+	prepare_above_ground_biomass cpool1993-2012.dat cpool1993-2012_agb.dat VegC
 	joyn Global_mean_ABC_1993-2012_Liu2015_SI.dat cpool1993-2012_agb.dat -i Lon Lat -fast -o cpool1993-2012_joyned.dat
     
 	# delta plot Liu cpool VegC 
@@ -105,7 +105,7 @@ then
 	convert -rotate 90 tmp.png delta_cpool1993-2012_joyned.png
 	describe_image  delta_cpool1993-2012_joyned.png "Modelled minus Liu et al. data. Units: kg m-2." embed
 	
-	. postprocess_AGB.sh
+	. postprocess_above_ground_biomass.sh
 	# delta plot Liu cpool VegC against Jackson 
 	joyn lu_cmass_agb_1993-2012_tot.dat cpool1993-2012_joyned.dat -i Lon Lat -o lu_cmass_agb_tot_1993-2012_joyned.dat
 	awk '{if(FNR==1){print $1,$2, "VegC"} else {print $1,$2, $(NF-1)}}' lu_cmass_agb_tot_1993-2012_joyned.dat > lu_cmass_agb_1993-2012_tot.dat_Liu.dat

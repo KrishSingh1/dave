@@ -1,5 +1,5 @@
 NPROCESS=10
 if [[ $ARCH == "aurora" ]]
 then
-    NPROCESS=40
+    NPROCESS=80
 fi

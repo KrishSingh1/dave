@@ -1191,6 +1191,11 @@ void blaze_driver(Patch& patch, Climate& climate) {
 	if (firemodel != BLAZE) { 
 		return;
 	}
+	// Fire and Weathergenerator compatibility. BLAZE needs GWGEN
+	if (weathergenerator != GWGEN) {
+		fail ("BLAZE needs GWGEN or daily data as input \n");
+	}
+
 	// do not burn before century soil has started
 	if (date.year < patch.soil.solvesomcent_beginyr) {
 		return;

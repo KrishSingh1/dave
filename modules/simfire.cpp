@@ -304,17 +304,17 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	// absolute upper boundary for the accumulative nesterov index
 	const double MAXIMUM_NESTEROV = 1000000; //150000.;
 
+	// to initialise on start of spinup or after restart
+	bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
+			       ( restart && date.year == state_year ) ) );
+
+	if ( is_first_day ) {
+		// read SIMFIRE data
+		getsimfiredata(gridcell);
+	}
+
 	if (date.day == 0 ) {
-		// Set global simfire region as fixed: Global=0
-		gridcell.simfire_region = 0;
-
-		// Determine SIMFIRE biome for this year
-		simfire_biome_mapping(gridcell);
-
-		// update population density
-		simfire_update_pop_density(gridcell);
 		
-
 		// initialise averaging array 
 		if ( date.year == 0 ) {
 			for(int i=0;i<avg_interv_fapar;i++) { 
@@ -337,6 +337,17 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 		}
 		// finally (re)set this years max fapar
 		climate.cur_max_fapar = 0.0;
+
+		// Set global simfire region as fixed: Global=0
+		gridcell.simfire_region = 0;
+
+		// Determine SIMFIRE biome for this year
+		simfire_biome_mapping(gridcell);
+
+		// update population density
+		simfire_update_pop_density(gridcell);
+		
+
 
 	} 	
 	// multi-year accounting of maximum annual fapar	

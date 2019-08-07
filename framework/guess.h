@@ -607,7 +607,7 @@ struct PhotosynthesisResult : public Serializable {
 };
 
 // GWGen weather generator
-class WeatherGen {
+class WeatherGen : public Serializable {
 	// MEMBER VARIABLES
 public:
 	int q[10];
@@ -620,7 +620,8 @@ public:
 	bool pday[2];
 	double resid[4];
 	
-	WeatherGen(){};
+	void serialize(ArchiveStream& arch);
+
 };
 
 /// This struct contains the environmental input to a photosynthesis calculation.
@@ -916,13 +917,9 @@ public:
 	/// BLAZE
 	/// average annual rainfall [mm/a]
 	double avg_annual_rainf;
-	//double avgannrainf;
-	/// accumulated last rainfall [mm]
-	//double lastrainfall;
-	/// Running mean of Annual Rainfall and current sum
-	//  current sum of annual Rainfall to copmute avg
+	//  current sum of annual Rainfall
 	double cur_rainf;
-	/// Accumulated last rainfall
+	/// Accumulated last rainfall [mm]
 	double last_rainfall;
 	/// Days since last rainfall
 	double dslr;
@@ -1177,6 +1174,7 @@ public:
 		/// Reproduction costs
 		REPRC,
 		// BLAZE
+		///BLAZE fire related carbon fluxes
 		C_leaf2atm,
 		C_leaf2met,
 		C_leaf2str,
@@ -3998,8 +3996,7 @@ public:
 	/// BLAZE Fire line intensity;
 	double fli;
 
-	// BLAZE fire fluxes
-
+	/// BLAZE fire related carbon fluxes
 	/// live wood to atmosphere
 	double wood2atm;
 	/// leaves to atmosphere
@@ -4018,6 +4015,7 @@ public:
 	double lfwd2atm;
 	/// coarse woody debris to atmosphere
 	double lcwd2atm;
+
 	/// Storage for averaging of different Fpars for biome mapping in Simfire
 	/// Grasses
 	double avg_fgrass[n_year_biomeavg];

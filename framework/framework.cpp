@@ -188,11 +188,6 @@ int framework(const CommandLineArguments& args) {
 		fail("\n\nIf nitrogen limitation is switched on then century soil module also needs to be switched on!");
 	}
 
-	// Fire and Weathergenerator compatibility. BLAZE needs GWGEN
-	if (firemodel == BLAZE && weathergenerator == INTERP) {
-		fail ("BLAZE needs GWGEN or daily data as input \n");
-	}
-
 	// bvoc
 	if (ifbvoc) {
 		initbvoc();
@@ -235,12 +230,6 @@ int framework(const CommandLineArguments& args) {
 			landcover_init(gridcell, input_module.get());
 		}
 
-		// read SIMFIRE data
-		if (firemodel == BLAZE) {
-			getsimfiredata(gridcell);
-		}
-			
-		
 		if (restart) {
 			// Get the whole grid cell from file...
 			deserializer->deserialize_gridcell(gridcell);

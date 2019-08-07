@@ -2509,6 +2509,11 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 						dwind_sav[day]= dwind[day];
 					}
 					metric_sav = metric;
+					rndst.pday[0]  = gwgen.pday[0];
+					rndst.pday[1]  = gwgen.pday[1];
+					for (int i=0; i<4; i++) {
+						rndst.resid[i] = gwgen.resid[i];
+					}
 				}
 
 				// after max amount of iterations is reached take 
@@ -2627,4 +2632,12 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 			chk_drhum += out_drhum[day+accumday]/(double)ndaymon; 
 		}	
 	} // month loop
+	// Write values for restart to WeatherGen Class
+	// get restart values from WeatherGen-class
+	rndst.pday[0] = gwgen.pday[0];
+	rndst.pday[1] = gwgen.pday[1];
+	for (int i=0; i<4;i++) {
+		rndst.resid[i] = gwgen.resid[i];
+	}
+
 }

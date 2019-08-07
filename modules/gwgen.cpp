@@ -115,6 +115,7 @@ public:
 	double cldf_sd_w, cldf_sd_d;
 
 	/// Constructor function: initialise cell member
+	
 };
 
 // Threshold for transition from gamma to gp distribution
@@ -275,10 +276,24 @@ double roundto(double val,int precision) {
 	return roundto;
 }
 
-// Set the seed of the random state
-void ran_seed(unsigned int sval,RnDst& state) {
+// Generate seed depending on geolocation
+unsigned int geohash(double lat, double lon) {
+	const double SCALE  = 120.0; // scale factor for geohash, the larger the number the more unique values
+	const double OFFSET = 0.5;   // offset to calculate pixel number assuming gridcell center coordinates
+	const unsigned int ROWLEN = round(SCALE * 360.);
+	
+	unsigned int i,j;
+	
+	i = round(OFFSET + SCALE * (lon + 180.));
+	j = round(OFFSET + SCALE * (lat +  90.));
+	unsigned int geohash = i + ROWLEN * ( j-1 ) - IHUGE;
+	return geohash;
+}
 
-	state.xs = sval;
+// Set the seed for the random distribution
+void get_seed_by_location(double lat, double lon, WeatherGen& state) {
+
+	state.xs = geohash(lat,lon);
 
 	for (int i=0; i<QSIZ; i++) { 
 		
@@ -291,7 +306,7 @@ void ran_seed(unsigned int sval,RnDst& state) {
 	 }
 }
 
-int refill(RnDst& state) {
+int refill(WeatherGen& state) {
 	// reset a random state
 	int s;
 	int z;
@@ -309,7 +324,7 @@ int refill(RnDst& state) {
 	return s;
 }
 
-int ranu(RnDst& state) {
+int ranu(WeatherGen& state) {
 	// Generates a uniformly distributed random 4 byte integer with the range (-huge(i4),+huge(i4))
 	// based on the 32-bit super KISS random number generator by George Marsaglia, published online
 	// and translated to Fortran 90 by user "mecej4" and Marsaglia, 
@@ -335,7 +350,7 @@ int ranu(RnDst& state) {
 	return ranu;
 }
 
-double ranur(RnDst& state) {
+double ranur(WeatherGen& state) {
 	// generate a random number in the range (0,1)
 	double ranur;
 	
@@ -469,7 +484,7 @@ void meansd(GWGen& gwgen) {
 
 } 
 
-double ran_normal(RnDst& state) {
+double ran_normal(WeatherGen& state) {
 	// Sampler for the normal distribution centered at 0 with std. dev. of unity,
 	// based on Marsaglia polar method
 
@@ -519,7 +534,7 @@ double ran_normal(RnDst& state) {
  	return nval;
 }
 
-double ran_gamma(RnDst& state,bool first, double shape, double scale) {
+double ran_gamma(WeatherGen& state,bool first, double shape, double scale) {
 	
 	// Select a random number from a Gamma distribution
 	//
@@ -571,7 +586,7 @@ double ran_gamma(RnDst& state,bool first, double shape, double scale) {
 	return ret;
 }
 
-double ran_gp(RnDst& state,double shape,double scale, double loc) {
+double ran_gp(WeatherGen& state,double shape,double scale, double loc) {
 	// Select a random number from a generalized pareto (GP) distribution
 	//
 	// state  : state of the uniform random number generator
@@ -592,7 +607,7 @@ double ran_gp(RnDst& state,double shape,double scale, double loc) {
 	return rangp;
 }
 
-double ran_gamma_gp(RnDst& state,bool first,double shape,double scale,double thresh,double shape_gp,double scale_gp) {
+double ran_gamma_gp(WeatherGen& state,bool first,double shape,double scale,double thresh,double shape_gp,double scale_gp) {
 	// Select a random number from a hybrid Gamma-GP distribution
 	// Variables
 	// state     : state of the uniform random number generator
@@ -1762,16 +1777,17 @@ void rmsmooth(int lm,int rm, double *m,int *dmonth,double bcond[2], double *m_cu
 			bc[1] = r[0];
 		}
 	}
-	for (int k=0; k<dmonth[1]; k++) 
+	for (int k=0; k<dmonth[1]; k++) {
 		if (lm==0) {
 			m_curr[k] = r[k+dmonth[0]];
 		}
 		else {
 			m_curr[k] = r[k];
-		}	
+		}
+	}
 }
 
-void init_weathergen(GWGen& gwgen, RnDst& rndst) {
+void init_weathergen(GWGen& gwgen, WeatherGen& rndst) {
 
 	// initialize the weather generator
 	gwgen.pday[0] = false;
@@ -1914,7 +1930,7 @@ double cldf2rad(double input, double lat, int doy, bool cldf2rad) {
 	}
 }
 
-void gwgen_get_daily_met(GWGen& gwgen, RnDst& rndst) {
+void gwgen_get_daily_met(GWGen& gwgen, WeatherGen& rndst) {
 
 	//local variables
 	int i = 0;
@@ -2241,12 +2257,11 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 	double tmindiff = 0.;
 	double tmin_acc = 0.;
 
-	RnDst& rndst = gridcell.climate.rndst;
-
-	//	int ndaymon = date.ndaymonth[date.month];
+	WeatherGen& rndst = gridcell.climate.weathergen;
 
 	double lat = gridcell.get_lat();
-	
+	double lon = gridcell.get_lon();
+
 	//GWGen vars that are derived from input vars mtemp,mdtr,msol
 	double in_mtmin[12];
 	double in_mtmax[12];
@@ -2279,7 +2294,16 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		// set initial vals if spinning up
 		if ( ! restart ) {		
 			init_weathergen(gwgen, rndst);
+			get_seed_by_location(lat, lon, rndst);
 			i_count = 0;
+		}
+		else {
+			// get restart values from WeatherGen-class
+			gwgen.pday[0] = rndst.pday[0];
+			gwgen.pday[1] = rndst.pday[1];
+			for (int i=0; i<4;i++) {
+				gwgen.resid[i] = rndst.resid[i];
+			}
 		}
 	} 
 	
@@ -2420,11 +2444,13 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 				gwgen.dtmin   = mtmin_curr[day] ;
 				gwgen.dtmax   = mtmax_curr[day] ;
 				gwgen.dcldf   = mcloud_curr[day];
-				gwgen.dwind   = mwind_curr[day] ;			
-				gwgen.pday[0] = gwgen_sav.pday[0];
-				gwgen.pday[1] = gwgen_sav.pday[1];
-				for (int i=0;i<4;i++) {
-					gwgen.resid[i] = gwgen_sav.resid[i];
+				gwgen.dwind   = mwind_curr[day] ;
+				if (day == 0) {
+					gwgen.pday[0] = gwgen_sav.pday[0];
+					gwgen.pday[1] = gwgen_sav.pday[1];
+					for (int i=0;i<4;i++) {
+						gwgen.resid[i] = gwgen_sav.resid[i];
+					}
 				}
 				//now get $day's weather 
 				gwgen_get_daily_met(gwgen, rndst);

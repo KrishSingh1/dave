@@ -607,7 +607,7 @@ struct PhotosynthesisResult : public Serializable {
 };
 
 // GWGen weather generator
-class RnDst {
+class WeatherGen {
 	// MEMBER VARIABLES
 public:
 	int q[10];
@@ -617,8 +617,10 @@ public:
 	int indx;
 	bool have;
 	double gamma_vals[2];
+	bool pday[2];
+	double resid[4];
 	
-	RnDst(){};
+	WeatherGen(){};
 };
 
 /// This struct contains the environmental input to a photosynthesis calculation.
@@ -769,7 +771,7 @@ public:
 	Gridcell& gridcell;
 
 	/// values for andomisation in Weathergenerator GWGEN
-	RnDst rndst;
+	WeatherGen weathergen;
 
 	/// mean air temperature today (deg C)
 	double temp;

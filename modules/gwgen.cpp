@@ -446,8 +446,9 @@ void meansd(GWGen& gwgen) {
 		gwgen.dmcldf_mn = gwgen.cldf_w1 / (gwgen.cldf_w2 * gwgen.cld + gwgen.cldf_w3)
 			+ gwgen.cldf_w4;
 		gwgen.dmwind_sd = 0.;
-		for (int i=0; i<6; i++) 
+		for (int i=0; i<6; i++) {
 			gwgen.dmwind_sd += wind_sd_w[i] * pow(gwgen.dmwind_mn,(double)i);
+		}
 		gwgen.dmcldf_sd = gwgen.cldf_sd_w * gwgen.dmcldf_mn * (1. - gwgen.dmcldf_mn);
 	}
 	// calculate mean and SD for a dry day
@@ -459,8 +460,9 @@ void meansd(GWGen& gwgen) {
 		gwgen.dmcldf_mn = gwgen.cldf_d1 / (gwgen.cldf_d2 * gwgen.cld + gwgen.cldf_d3)
 			+ gwgen.cldf_d4;
 		gwgen.dmwind_sd = 0.;
-		for (int i=0; i<6; i++) 
+		for (int i=0; i<6; i++) {
 			gwgen.dmwind_sd += wind_sd_d[i] * pow(gwgen.dmwind_mn, (double)i);
+		}
 		gwgen.dmcldf_sd = gwgen.cldf_sd_d * gwgen.dmcldf_mn * (1. - gwgen.dmcldf_mn);
 	}
 	temp_sd(gwgen);
@@ -603,8 +605,9 @@ double ran_gamma_gp(RnDst& state,bool first,double shape,double scale,double thr
 	double ret;
 	
 	ret = ran_gamma(state,first,shape,scale);
-	if (ret > thresh) 
+	if (ret > thresh) {
 		ret = ran_gp(state,shape_gp,scale_gp,thresh);
+	}
 	return ret;
 }
 
@@ -1770,7 +1773,7 @@ void rmsmooth(int lm,int rm, double *m,int *dmonth,double bcond[2], double *m_cu
 
 void init_weathergen(GWGen& gwgen, RnDst& rndst) {
 
-	// initialize the weather generator and read in the parameters from the
+	// initialize the weather generator
 	gwgen.pday[0] = false;
 	gwgen.pday[1] = false;
 	for (int i=0;i<4;i++) {
@@ -2244,9 +2247,6 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 
 	double lat = gridcell.get_lat();
 	
-	// conversion K <-> deg C
-	//CLNconst double k2degc = 273.15;
-
 	//GWGen vars that are derived from input vars mtemp,mdtr,msol
 	double in_mtmin[12];
 	double in_mtmax[12];

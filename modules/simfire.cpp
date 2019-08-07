@@ -34,7 +34,7 @@
 #define NFIREBIOMES 9
 
 int update_fire_biome(Patch& patch, double lat) {
-
+	
 	/* Called by: simfire_biome_mapping (local)
 	   Calls    : -
 	   Computes current SIMFIRE biome for this 
@@ -145,7 +145,7 @@ int update_fire_biome(Patch& patch, double lat) {
 		biome=SF_BROADLEAF; } // broad-leaf forest
 	else {
 		biome=SF_MIXED_FOREST;   // mixed forest
-	} 
+	}
 
 	return biome;
 }
@@ -391,10 +391,9 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 
 	// update the this years maximum
 	climate.cur_max_fapar = fmax(run_fapar, climate.cur_max_fapar);
-        double bleu = pow(run_fapar, 2.);
 
 	// compute running Nesterov index
-    if ( climate.prec >= 3. || climate.tmax - climate.tmin < 4. ) {
+	if ( climate.prec >= 3. || climate.tmax - climate.tmin < 4. ) {
 		climate.cur_nesterov = 0.0; 
 	}
 	else {
@@ -429,7 +428,7 @@ double simfire_burned_area(Climate& climate) {
 	Gridcell& gridcell = climate.gridcell;
 
 	// compute annual burned area
-	double burned_area = A[climate.simfire_biome-1] * 
+	double burned_area = A[climate.simfire_biome-1] *
 		pow(fpar_cor, B) *
 		pow((SCALAR * climate.max_nesterov), C) *
 		exp(E * gridcell.pop_density);

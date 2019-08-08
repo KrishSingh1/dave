@@ -29,6 +29,7 @@
 
 #include "config.h"
 #include "driver.h"
+#include <stdint.h>
 
 
 /// Function for generating random numbers
@@ -48,10 +49,17 @@ double randfrac(long& seed) {
 	const long q = 127773;
 	const long r = 2836;
 
-	seed = multiplier * (seed % q) - r * seed / q;
-	if (!seed) seed++; // increment seed to 1 in unlikely event of 0 value
-	else if (seed < 0) seed += modulus;
-	return (double)seed / fmodulus;
+	// A fixed bit lenght datatype is needed locally in this function
+	// to get identical seed numbers on windows machines as on linux ones.
+	int64_t seed64 = (int64_t)seed;	
+
+	seed64 = multiplier * (seed64 % q) - r * seed64 / q;
+
+	if (!seed64) seed64++;		// increment seed to 1 in unlikely event of 0 value
+	else if (seed64 < 0) seed64 += modulus;
+
+	seed = (long)seed64;
+	return (double)seed64 / fmodulus;
 }
 
 /// Generates quasi-daily values for a single month, based on monthly means

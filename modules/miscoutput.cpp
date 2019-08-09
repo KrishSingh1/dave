@@ -306,7 +306,7 @@ void MiscOutput::define_output_tables() {
 		create_output_table(out_phu,        file_phu,            date_columns);
 		create_output_table(out_fphu,       file_fphu,           crop_columns);
 		create_output_table(out_fhi,        file_fhi,            crop_columns);
-	create_output_table(out_seasonality,file_seasonality,    seasonality_columns);
+		create_output_table(out_seasonality,file_seasonality,    seasonality_columns);
 	}
 
 	if(run_landcover)
@@ -794,7 +794,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			c_org_leach_lc[stand.landcover] += patch.soil.aorgCleach * to_gridcell_average;
 			availn_lc[stand.landcover] += (patch.soil.nmass_avail + patch.soil.snowpack_nmass) * to_gridcell_average;
 
-			for (int r = 0; r < NSOMPOOL-1; r++) {
+			for (int r = 0; r < NSOMPOOL; r++) {
 
 				if (r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
 					surfsoillitterc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
@@ -1110,7 +1110,7 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 				Vegetation& vegetation=patch.vegetation;
 				Patchpft& patchpft=patch.pft[pft.id];
 
-				double cwdn = patch.soil.sompool[SURFCWD].nmass + patch.soil.sompool[SURFFWD].nmass ;
+				double cwdn = patch.soil.sompool[SURFCWD].nmass + patch.soil.sompool[SURFFWD].nmass;
 				vegetation.firstobj();
 				while (vegetation.isobj) {
 					Individual& indiv=vegetation.getobj();

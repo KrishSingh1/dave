@@ -1198,8 +1198,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			wetland_water_added_gridcell += patch.awetland_water_added*to_gridcell_average;
 
 			// Fire return time
-			if (!patch.has_fires() || patch.fireprob < 0.001)
+			if (!patch.has_fires() || patch.fireprob < 0.001) {
 				firert_gridcell+=1000.0 * to_gridcell_average; // Set a limit of 1000 years
+			}
 			else {
 				firert_gridcell+=(1.0/patch.fireprob) * to_gridcell_average;
 				burntarea_gridcell+=patch.fireprob * to_gridcell_average;
@@ -1217,7 +1218,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			c_org_leach_lc[stand.landcover] += patch.soil.aorgCleach * to_gridcell_average;
 
-			for (int r = 0; r < NSOMPOOL-1; r++) {
+			for (int r = 0; r < NSOMPOOL; r++) {
 
 				if(r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
 					surfsoillitterc += patch.soil.sompool[r].cmass * to_gridcell_average;

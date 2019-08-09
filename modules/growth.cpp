@@ -1518,7 +1518,7 @@ void growth(Stand& stand, Patch& patch) {
 					if (!indiv.istruecrop_or_intercropgrass()) {
 						indiv.report_flux(Fluxes::ESTC,
 								  - (indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap +
-									  indiv.cmass_heart - indiv.cmass_debt));
+								     indiv.cmass_heart - indiv.cmass_debt));
 					}
 				}
 

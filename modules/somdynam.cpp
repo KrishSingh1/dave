@@ -435,7 +435,7 @@ void decayrates_century(Soil& soil, double temp_soil, double wcont_soil, bool ti
 	if (ismineralwetland)
 		moist_mod = moist_mod_inundated_mineral;
 
-	for (int p = 0; p < NSOMPOOL-1; p++) {
+	for (int p = 0; p < NSOMPOOL; p++) {
 
 		// Calculate decay constant
 		// (dC_I/dt / C_I; Parton et al 1993, Eqns 2-4)
@@ -751,7 +751,7 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 
 	// Update pool sizes
 
-	for (int p = 0; p < NSOMPOOL-1; p++) {
+	for (int p = 0; p < NSOMPOOL; p++) {
 		soil.sompool[p].cmass += soil.sompool[p].delta_cmass;
 		soil.sompool[p].nmass += soil.sompool[p].delta_nmass;
 	}
@@ -1309,7 +1309,7 @@ void equilsom(Soil& soil) {
 	for (int m = 0; m < 12; m++) {
 
 		// Monthly average decay rates
-		for (int p = 0; p < NSOMPOOL-1; p++) {
+		for (int p = 0; p < NSOMPOOL; p++) {
 			soil.sompool[p].mfracremain_mean[m] = pow(soil.sompool[p].mfracremain_mean[m] / nyear, (double)date.ndaymonth[m]);
 		}
 
@@ -1367,7 +1367,7 @@ void equilsom(Soil& soil) {
 			// Monthly decomposition and fluxes between SOM pools
 
 			// Set this months decay rates
-			for (int p = 0; p < NSOMPOOL-1; p++) {
+			for (int p = 0; p < NSOMPOOL; p++) {
 				soil.sompool[p].fracremain = soil.sompool[p].mfracremain_mean[m];
 			}
 
@@ -1386,7 +1386,7 @@ void equilsom(Soil& soil) {
 	// Reset variables for next equilsom()
 	for (int m = 0; m < 12; m++) {
 
-		for (int p = 0; p < NSOMPOOL-1; p++) {
+		for (int p = 0; p < NSOMPOOL; p++) {
 			soil.sompool[p].mfracremain_mean[m] = 0.0;
 		}
 

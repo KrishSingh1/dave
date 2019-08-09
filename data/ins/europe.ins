@@ -34,7 +34,7 @@ file_doc "doc.out"
 file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
-file_clitter "clitter.out"
+!file_clitter "clitter.out"
 file_aburntarea_out "aburntarea.out"
 file_mburntarea_out "mburntarea.out"
 !file_simfireanalysis_out "simfireanalysis.out"
@@ -50,10 +50,10 @@ file_cton_leaf "cton_leaf.out"
 file_ngases "ngases.out"
 file_nsources "nsources.out"
 file_npool "npool.out"
-file_nlitter "nlitter.out"
-file_nuptake "nuptake.out"
+!file_nlitter "nlitter.out"
+!file_nuptake "nuptake.out"
 file_nflux "nflux.out"
-file_vmaxnlim "vmaxnlim.out"
+!file_vmaxnlim "vmaxnlim.out"
 
 ! Monthly outputs
 !file_mnpp "mnpp.out"
@@ -147,7 +147,7 @@ ifinundationstress 1		! whether to reduce NPP if there's inundation (1), or not 
 ifcarbonfreeze 1		! Whether to limit soilC decomposition below 0 degC in upland soils (default, 1), or not (0)
 wetland_runon 0			! Extra daily water input or output (mm/day) to wetlands. Positive values are run ON, negative run OFF.
 ifmethane 0			! Whether to run the methane model (for peatland only)
-iforganicsoilproperties 0	! Whether to update soil properties using soil carboon (for non peatland, mineral cells, soilcode != 8)
+iforganicsoilproperties 0	! Whether to update soil properties using soil carbon (for non peatland, mineral cells, soilcode != 8)
 ifsaturatewetlands 0		! Whether to take water from runoff to saturate low latitide wetlands (1), or not (0)
 
 
@@ -173,9 +173,6 @@ ifbvoc 0              ! whether to include BVOC calculations (1) or not (0)
 !///////////////////////////////////////////////////////////////////////////////
 
 run_landcover 0        ! whether to use (and change) landcover fractions (1) or not (0)
-
-
-!///////////////////////////////////////////////////////////////////////////////////////
 
 
 !///////////////////////////////////////////////////////////////////////////////////////
@@ -207,7 +204,6 @@ group "common" (
 	gdd0_min 0		! [degC day] min GDD0, i.e. No restriction here
 	has_aerenchyma 0	! PFTs do not have aerenchyma for gas transport by default
 )
-
 
 group "tree" (
 

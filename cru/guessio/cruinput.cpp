@@ -290,7 +290,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	double progress;
 
 	Climate& climate = gridcell.climate;
-	
+
 	if (date.day == 0) {
 
 		// First day of year ...

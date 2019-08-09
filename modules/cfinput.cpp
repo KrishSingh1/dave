@@ -42,8 +42,8 @@ insoltype cf_standard_name_to_insoltype(const std::string& standard_name) {
 	}
 	else {
 		fail("Unknown insolation type: %s", standard_name.c_str());
-		return SUNSHINE; // To avoid compiler warning 
- 	}
+		return SUNSHINE; // To avoid compiler warning
+	}
 }
 
 // Gives the maximum allowed value for insolation, given an insolation type
@@ -1026,7 +1026,8 @@ std::vector<GuessNC::CF::GridcellOrderedVariable*> CFInput::all_variables() cons
 	result.push_back(cf_wind);
 
 	// Get rid of null pointers
-	result.erase(std::remove_if(result.begin(), result.end(), is_null),result.end());
+	result.erase(std::remove_if(result.begin(), result.end(), is_null),
+		     result.end());
 
 	return result;
 }

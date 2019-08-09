@@ -27,7 +27,7 @@ file_doc "doc.out"
 file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
-file_clitter "clitter.out"
+!file_clitter "clitter.out"
 file_aburntarea_out "aburntarea.out"
 file_mburntarea_out "mburntarea.out"
 !file_simfireanalysis_out "simfireanalysis.out"
@@ -43,10 +43,10 @@ file_cton_leaf "cton_leaf.out"
 file_ngases "ngases.out"
 file_nsources "nsources.out"
 file_npool "npool.out"
-file_nlitter "nlitter.out"
-file_nuptake "nuptake.out"
+!file_nlitter "nlitter.out"
+!file_nuptake "nuptake.out"
 file_nflux "nflux.out"
-file_vmaxnlim "vmaxnlim.out"
+!file_vmaxnlim "vmaxnlim.out"
 
 ! Monthly outputs
 !file_mnpp "mnpp.out"
@@ -282,7 +282,7 @@ group "grass" (
 	gmin 0.5
 	phenology "any"
 	phengdd5ramp 100		! C3 har 50 hos Thomas
-	leaflong 0.5				! Leaf longevity (years)
+	leaflong 0.5			! Leaf longevity (years)
 	turnover_leaf 1
 	turnover_root 0.7		! 0.5 hos guess2008
 	!cton_leaf_min 16

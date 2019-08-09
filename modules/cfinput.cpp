@@ -827,7 +827,7 @@ void CFInput::populate_daily_arrays(long& seed) {
 			// qair  specific humidity, dimensionless (e.g. kg/kg) 
 			// temp  temperature in degrees C
 			// press pressure in mb
-			// return rh relative humidity in %
+			// rh    relative humidity in %
 			const double t0 = 273.15;
 			double temp = 0.5 * (dmax_temp[i] + dmin_temp[i]);
 			double es   = 6.112 * exp(17.67 * temp/(temp + 243.5));
@@ -835,7 +835,7 @@ void CFInput::populate_daily_arrays(long& seed) {
 			drelhum[i]  = min(max(e / es * 100.,0.),100.) ;
 			
 		} else if ( firemodel == BLAZE ) {
-			fail("BLAZE is switched on WITHOUT info on relative humidity! \n" );
+			fail("BLAZE is switched on WITHOUT info on specific humidity and/or pressure! \n" );
 		}
 	}
 

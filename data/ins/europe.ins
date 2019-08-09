@@ -97,34 +97,32 @@ file_vmaxnlim "vmaxnlim.out"
 
 title 'LPJ-GUESS cohort mode - European species'
 
-vegmode "cohort"      ! "cohort", "individual" or "population"
-nyear_spinup 500      ! number of years to spin up the simulation for
-ifcalcsla 1           ! whether to calculate SLA from leaf longevity
-                      ! (PFT-specific value can be specified in this file instead)
-ifcalccton 1          ! whether to calculate leaf C:N min from leaf longevity
-                      ! (PFT-specific value can be specified in this file instead)
-
+vegmode "cohort"      	        ! "cohort", "individual" or "population"
+nyear_spinup 500      		! number of years to spin up the simulation for
+ifcalcsla 1           		! whether to calculate SLA from leaf longevity
+                      		! (PFT-specific value can be specified in this file instead)
+ifcalccton 1          		! whether to calculate leaf C:N min from leaf longevity
+                      		! (PFT-specific value can be specified in this file instead)
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE                
 weathergenerator "GWGEN"	! GWGEN INTERP, NONE(only when using daily met data)
-
-npatch 25             ! number of replicate patches to simulate
-npatch_secondarystand 1	! number of replicate patches to simulate in secondary stands
+npatch 25             		! number of replicate patches to simulate
+npatch_secondarystand 1		! number of replicate patches to simulate in secondary stands
 reduce_all_stands 0		! Whether to reduce equal percentage of all stands of a stand type at land cover change
 age_limit_reduce 5		! Minimum age of stands to reduce at land cover change
-patcharea 1000        ! patch area (m2)
-estinterval 5         ! years between establishment events in cohort mode
-ifdisturb 1           ! whether generic patch-destroying disturbances enabled
-distinterval 100      ! average return time for generic patch-destroying disturbances
-					  ! Hickler et al. (2011) used 200
-ifbgestab 1           ! whether background establishment enabled
-ifsme 1               ! whether spatial mass effect enabled
-ifstochestab 1        ! whether establishment stochastic
-ifstochmort 1         ! whether mortality stochastic
-ifcdebt 1             ! whether to allow vegetation C storage (1) or not (0)
-wateruptake "rootdist"! "wcont", "rootdist", "smart" or "speciesspecific",
-                      ! see documentation for water_uptake()
+patcharea 1000        		! patch area (m2)
+estinterval 5         		! years between establishment events in cohort mode
+ifdisturb 1           		! whether generic patch-destroying disturbances enabled
+distinterval 100      		! average return time for generic patch-destroying disturbances
+				! Hickler et al. (2011) used 200
+ifbgestab 1           		! whether background establishment enabled
+ifsme 1               		! whether spatial mass effect enabled
+ifstochestab 1        		! whether establishment stochastic
+ifstochmort 1         		! whether mortality stochastic
+ifcdebt 1             		! whether to allow vegetation C storage (1) or not (0)
+wateruptake "rootdist"		! "wcont", "rootdist", "smart" or "speciesspecific",
+                      		! see documentation for water_uptake()
 rootdistribution "jackson"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
-textured_soil 1	      ! whether to use silt/sand fractions specific to soiltype
+textured_soil 1	      		! whether to use silt/sand fractions specific to soiltype
 
 
 !///////////////////////////////////////////////////////////////////////////////

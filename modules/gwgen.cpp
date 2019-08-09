@@ -25,7 +25,7 @@
 // PORTING MODULES BETWEEN FRAMEWORKS:
 // Modules should be structured so as to be fully portable between models (frameworks).
 // When porting between frameworks, the only change required should normally be in the
-// "#include" directive referring to the framework header file.
+// "#include" directive referring to the framework header file.GLOBFIRM
 
 #include "config.h"
 #include "gwgen.h"
@@ -263,17 +263,6 @@ void matmul(double AA[4][4], double B[4], double CC[4]) {
 		} 
 		CC[j] = res; 
 	}
-}
-
-// round a value to the given precision
-double roundto(double val,int precision) {
-
-	double scale   = 0.;
-	double roundto = 0.;
-	
-	scale = pow(10.,precision);
-	roundto = (double)(round(val * scale)) / scale;
-	return roundto;
 }
 
 // Generate seed depending on geolocation
@@ -2034,7 +2023,7 @@ void gwgen_get_daily_met(GWGen& gwgen, WeatherGen& rndst) {
 				// today's precipitation
 				prec = ran_gamma_gp(rndst,true,g_shape,g_scale,thresh2use,gp_shape,gp_scale);
 				//simulated precipitation should have no more precision than the input (0.1mm)
-				prec = roundto(prec,1) ; 
+				prec = roundoff(prec,1) ;
 				
 				if (prec > 0. && prec <= 1.05 * pre) {
 					break;
@@ -2078,11 +2067,11 @@ void gwgen_get_daily_met(GWGen& gwgen, WeatherGen& rndst) {
 		gwgen.resid[j] = CC[j]+DD[j];
 	}
 
-	tmin = roundto(gwgen.resid[0] * gwgen.dmtmin_sd + gwgen.dmtmin_mn,1);
-	tmax = roundto(gwgen.resid[1] * gwgen.dmtmax_sd + gwgen.dmtmax_mn,1);
+	tmin = roundoff(gwgen.resid[0] * gwgen.dmtmin_sd + gwgen.dmtmin_mn,1);
+	tmax = roundoff(gwgen.resid[1] * gwgen.dmtmax_sd + gwgen.dmtmax_mn,1);
 	cldf = gwgen.resid[2] * gwgen.dmcldf_sd + gwgen.dmcldf_mn;
 	wind = max(0.0, gwgen.resid[3] * sqrt(max(0.0, gwgen.dmwind_sd)) + sqrt(max(0.0, gwgen.dmwind_mn)));
-	wind = roundto(wind * wind, 1);
+	wind = roundoff(wind * wind, 1);
 	
 	// wind bias correction
 	slopecorr = 0.;
@@ -2116,7 +2105,7 @@ void gwgen_get_daily_met(GWGen& gwgen, WeatherGen& rndst) {
 		tmin_bias += tmin_bias_coeffs[i] * 
 				 (pow(max(tmin_bias_min, min(tmin_bias_max, gwgen.resid[0])),i));
 	}
-	tmin = tmin - roundto(tmin_bias, 1);
+	tmin = tmin - roundoff(tmin_bias, 1);
 
 	//add checks for invalid values here
 	if (cldf>1.) {

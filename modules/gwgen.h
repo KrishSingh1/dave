@@ -11,7 +11,6 @@
 //#define LPJ_GUESS_CRUINPUT_H
 //
 #include "guess.h"
-#include <limits>
 
 #ifndef GWGEN_H
 #define GWGEN_H

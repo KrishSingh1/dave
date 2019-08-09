@@ -216,7 +216,7 @@ void CommonOutput::define_output_tables() {
 	cflux_columns += ColumnDescriptor("Veg",               8, 3);
 	cflux_columns += ColumnDescriptor("Repr",              8, 3);
 	cflux_columns += ColumnDescriptor("Soil",              8, 3);
-	cflux_columns += ColumnDescriptor("Fire",              9, 5);
+	cflux_columns += ColumnDescriptor("Fire",             10, 5);
 	cflux_columns += ColumnDescriptor("Est",               8, 3);
 	if (run_landcover) {
 		 cflux_columns += ColumnDescriptor("Seed",         8, 3);
@@ -377,7 +377,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_clitter,        file_clitter,        clitter_columns);
 
 	if ( firemodel == BLAZE ) {
-		create_output_table(out_aburntarea,	 file_aburntarea_out,	  blaze_columns); 
+		create_output_table(out_aburntarea,      file_aburntarea_out,      blaze_columns);
 		create_output_table(out_simfireanalysis, file_simfireanalysis_out, simfireanalysis_columns);
 	} else if ( firemodel == GLOBFIRM ) {
 		create_output_table(out_firert,         file_firert,         firert_columns);
@@ -667,7 +667,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double surfsoillitterc,surfsoillittern,cwdc,cwdn,centuryc,centuryn,n_harv_slow,availn;
 	double flux_nh3, flux_nox, flux_n2o, flux_n2, flux_nsoil, flux_ntot, flux_nharvest, flux_nseed;
 
-	double aaet, apet, aevap, arunoff, aintercep, awetland_water_added;
 	double annual_areaburnt_gridcell=0.;				// BLAZE & SIMFIRE
 
 	// hold the monthly average across patches
@@ -713,6 +712,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		for (int sl = 0; sl < SOILTEMPOUT; sl++) msoilt[m][sl] = 0.0;
 		mch4[m] = mch4_diff[m] = mch4_ebull[m] = mch4_plant[m] = msnowdepth[m] = mwtp[m] = mald[m] = 0.0;
 	}
+
+	double aaet, apet, aevap, arunoff, aintercep, awetland_water_added;
 	aaet = apet = aevap = arunoff = aintercep = awetland_water_added = 0.0;
 
 	double landcover_cmass[NLANDCOVERTYPES]={0.0};
@@ -1335,11 +1336,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_dens,   dens_gridcell);
 	outlimit(out,out_lai,    lai_gridcell);
 	outlimit(out,out_clitter,clitter_gridcell);
-	outlimit(out,out_aburntarea,     gridcell.climate.annual_areaburnt);
-	outlimit(out,out_simfireanalysis,  gridcell.climate.simfire_biome);
-	outlimit(out,out_simfireanalysis,  gridcell.climate.max_nesterov);
-	outlimit(out,out_simfireanalysis,  gridcell.pop_density);
-	outlimit(out,out_simfireanalysis,  gridcell.simfire_region);
+	outlimit(out,out_aburntarea,      gridcell.climate.annual_areaburnt);
+	outlimit(out,out_simfireanalysis, gridcell.climate.simfire_biome);
+	outlimit(out,out_simfireanalysis, gridcell.climate.max_nesterov);
+	outlimit(out,out_simfireanalysis, gridcell.pop_density);
+	outlimit(out,out_simfireanalysis, gridcell.simfire_region);
 	outlimit(out,out_firert, firert_gridcell);
 	outlimit(out,out_firert, burntarea_gridcell);
 	outlimit(out,out_runoff, surfrunoff_gridcell);

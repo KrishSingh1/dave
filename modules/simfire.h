@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////////////
-/// \file simfire.cpp
+/// \file simfire.h
 /// \brief SIMFIRE - SIMple FIRE module to compute burnt area  
 ///
 /// \author Lars Nieradzik

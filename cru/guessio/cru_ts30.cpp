@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file cru.cpp
-/// \brief Functions for reading the CRU-NCEP data set
+/// \brief Functions for reading the CRU-NCEP data set from binary FastArchive format.
 ///
 /// $Date: 2013-11-04 16:30:55 +0100 (Mon, 04 Nov 2013) $
 ///
@@ -12,11 +12,11 @@
 #include <math.h>
 #include <vector>
 
-// header files for the CRU-NCEP data archives
+// header files for the CRU-NCEP data archives in FastArchive format.
 #include "cruncep_1901_2015.h"
 #include "cruncep_1901_2015misc.h"
 
-namespace CRU_TS30 {
+namespace CRU_FastArchive {
  
 bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
                double mtemp[NYEAR_HIST][12],

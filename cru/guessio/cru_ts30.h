@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file cru_ts30.h
-/// \brief Functions for reading the CRU-NCEP data set
+/// \brief Functions for reading the CRU-NCEP data set from binary FastArchive format.
 ///
 /// The binary files contain CRU-NCEP half-degree global historical climate data
 /// for 1901-2015.
@@ -12,7 +12,7 @@
 #ifndef LPJ_GUESS_CRU_TS30_H
 #define LPJ_GUESS_CRU_TS30_H
 
-namespace CRU_TS30 {
+namespace CRU_FastArchive {
 
 /// number of years of historical climate
 /** CRU-NCEP v7 has 115 years of data (1901-2015) */

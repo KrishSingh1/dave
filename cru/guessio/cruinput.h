@@ -55,10 +55,10 @@ public:
 	// Constants associated with historical climate data set
 
 	/// number of years of historical climate
-	static const int NYEAR_HIST = CRU_TS30::NYEAR_HIST;
+	static const int NYEAR_HIST = CRU_FastArchive::NYEAR_HIST;
 
 	/// calendar year corresponding to first year in data set
-	static const int FIRSTHISTYEAR = CRU_TS30::FIRSTHISTYEAR;
+	static const int FIRSTHISTYEAR = CRU_FastArchive::FIRSTHISTYEAR;
 
 	/// number of years to use for temperature-detrended spinup data set
 	/** (not to be confused with the number of years to spinup model for, which

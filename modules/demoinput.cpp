@@ -72,7 +72,7 @@ bool DemoInput::read_from_file(Coord coord, xtring fname, const char* format,
 	return foundgrid;
 }
 
-bool DemoInput::readenv(Coord coord, long& seed) {
+bool DemoInput::readenv(Coord coord, int64_t& seed) {
 
 	// Searches for environmental data in driver temperature, precipitation,
 	// sunshine and soil code files for the grid cell whose coordinates are given by

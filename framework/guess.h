@@ -46,6 +46,7 @@
 #include "parameters.h"
 #include "guesscontainer.h"
 #include "soil.h"
+#include <stdint.h>
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL ENUMERATED TYPE DEFINITIONS
@@ -4165,7 +4166,7 @@ public:
 	 *
 	 *  \see randfrac()
 	 */
-	long seed;
+	int64_t seed;
 
 	/// type of landcover
 	/** \see landcovertype
@@ -4541,7 +4542,7 @@ public:
 	 *
 	 *  \see randfrac()
 	 */
-	long seed;
+	int64_t seed;
 
 	// MEMBER FUNCTIONS
 

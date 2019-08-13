@@ -33,6 +33,6 @@ struct NCompetingIndividual {
  *  individual should get more than 100% of its nitrogen demand. 
  */
 void ncompete(std::vector<NCompetingIndividual>& individuals, 
-	      double nmass_avail);
+              double nmass_avail);
 
 #endif // LPJ_GUESS_NCOMPETE_H

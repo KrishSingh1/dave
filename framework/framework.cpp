@@ -40,7 +40,7 @@ void print_logfile_heading() {
 	// Print the title of this run
 	std::string dashed_line(50, '-');
 	dprintf("\n\n%s\n%s\n%s\n",
-		dashed_line.c_str(), (char*)title, dashed_line.c_str());
+	        dashed_line.c_str(), (char*)title, dashed_line.c_str());
 }
 
 /// Simulate one day for a given Gridcell

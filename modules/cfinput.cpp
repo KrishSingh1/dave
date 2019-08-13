@@ -42,8 +42,8 @@ insoltype cf_standard_name_to_insoltype(const std::string& standard_name) {
 	}
 	else {
 		fail("Unknown insolation type: %s", standard_name.c_str());
-		return SUNSHINE; // To avoid compiler warning
-	}
+                return SUNSHINE; // To avoid compiler warning                                                 <
+ 	}
 }
 
 // Gives the maximum allowed value for insolation, given an insolation type
@@ -69,7 +69,7 @@ bool first_month_of_year(GuessNC::CF::DateTime dt) {
 
 // Compares a Date with a GuessNC::CF::DateTime to see if the Date is on an earlier day
 bool earlier_day(const Date& date, int calendar_year,
-		 const GuessNC::CF::DateTime& date_time) {
+                 const GuessNC::CF::DateTime& date_time) {
 	std::vector<int> d1(3),d2(3);
 
 	d1[0] = calendar_year;
@@ -88,7 +88,7 @@ bool earlier_day(const Date& date, int calendar_year,
 // The date object must know about its calendar years (i.e. set_first_calendar_year must
 // have been called)
 bool later_day(const Date& date,
-	       const GuessNC::CF::DateTime& date_time) {
+               const GuessNC::CF::DateTime& date_time) {
 	std::vector<int> d1(3),d2(3);
 
 	d1[0] = date.get_calendar_year();
@@ -234,7 +234,7 @@ void check_wind_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 // Compares start and end of time series, the day numbers are only compared if
 // both variables are daily.
 void check_compatible_timeseries(const GuessNC::CF::GridcellOrderedVariable* var1,
-				 const GuessNC::CF::GridcellOrderedVariable* var2) {
+                                 const GuessNC::CF::GridcellOrderedVariable* var2) {
 	GuessNC::CF::DateTime start1, start2, end1, end2;
 
 	const std::string error_message = format_string("%s and %s have incompatible timeseries",
@@ -530,7 +530,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 
 	// Get nitrogen deposition, using the found CRU coordinates
 	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat,
-		     Lamarque::parse_timeseries(ndep_timeseries));
+	             Lamarque::parse_timeseries(ndep_timeseries));
 
 	soilinput.get_soil(lon, lat, gridcell);
 
@@ -555,7 +555,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 }
 
 bool CFInput::load_data_from_files(double& lon, double& lat,
-				   double& cru_lon, double& cru_lat) {
+                                   double& cru_lon, double& cru_lat) {
 
 	int rlon = current_gridcell->rlon;
 	int rlat = current_gridcell->rlat;
@@ -610,9 +610,9 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 }
 
 void CFInput::get_yearly_data(std::vector<double>& data,
-			      const GenericSpinupData& spinup,
-			      GridcellOrderedVariable* cf_historic,
-			      int& historic_timestep) {
+                              const GenericSpinupData& spinup,
+                              GridcellOrderedVariable* cf_historic,
+                              int& historic_timestep) {
 	// Extract all values for this year, for one variable,
 	// either from spinup dataset or historical dataset
 
@@ -708,11 +708,11 @@ void CFInput::get_yearly_data(std::vector<double>& data,
 }
 
 void CFInput::populate_daily_array(double* daily,
-				   const GenericSpinupData& spinup,
-				   GridcellOrderedVariable* cf_historic,
-				   int& historic_timestep,
-				   double minimum,
-				   double maximum) {
+                                   const GenericSpinupData& spinup,
+                                   GridcellOrderedVariable* cf_historic,
+                                   int& historic_timestep,
+                                   double minimum,
+                                   double maximum) {
 
 	// Get the data from spinup and/or historic
 	std::vector<double> data;
@@ -782,7 +782,7 @@ void CFInput::populate_daily_arrays(long& seed) {
 	populate_daily_array(dtemp, spinup_temp, cf_temp, historic_timestep_temp, 0);
 	populate_daily_prec_array(seed);
 	populate_daily_array(dinsol, spinup_insol, cf_insol, historic_timestep_insol, 0,
-			     max_insolation(cf_standard_name_to_insoltype(cf_insol->get_standard_name())));
+	                     max_insolation(cf_standard_name_to_insoltype(cf_insol->get_standard_name())));
 
 	if (cf_min_temp) {
 		populate_daily_array(dmin_temp, spinup_min_temp, cf_min_temp, historic_timestep_min_temp, 0);
@@ -872,7 +872,7 @@ void CFInput::populate_daily_arrays(long& seed) {
 	double mnwetdep[12];
 
 	ndep.get_one_calendar_year(date.get_calendar_year(),
-				   mndrydep, mnwetdep);
+	                           mndrydep, mnwetdep);
 
 	// Distribute N deposition
 	distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
@@ -952,11 +952,11 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 }
 
 void CFInput::load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_var,
-			       GenericSpinupData& spinup_data) {
+                               GenericSpinupData& spinup_data) {
 
 	const std::string error_message =
 		format_string("Not enough data to build spinup, at least %d years needed",
-			      NYEAR_SPINUP_DATA);
+		              NYEAR_SPINUP_DATA);
 
 	GenericSpinupData::RawData source;
 
@@ -1027,7 +1027,7 @@ std::vector<GuessNC::CF::GridcellOrderedVariable*> CFInput::all_variables() cons
 
 	// Get rid of null pointers
 	result.erase(std::remove_if(result.begin(), result.end(), is_null),
-		     result.end());
+	             result.end());
 
 	return result;
 }

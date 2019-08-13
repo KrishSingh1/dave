@@ -1943,10 +1943,10 @@ public:
 		frootend = 0.0;
 		forceautumnsowing = 0;
 		nlim = false;
-	
-		// Overwritten by PLIB if rootdistribution == jackson,
-		// needs to be initialized here to supress warnings
-		root_beta = 0.0;
+        
+        // Overwritten by PLIB if rootdistribution == jackson,
+        // needs to be initialized here to supress warnings
+        root_beta = 0.0;
 
 		fertrate[0] = 0.0;
 		fertrate[1] = 1.0;
@@ -2060,7 +2060,7 @@ public:
 		} 
 		else {
 			respcoeff /= cton_root / (cton_root_avr + cton_root_min) +
-				cton_sap  / (cton_sap_avr  + cton_sap_min);
+			             cton_sap  / (cton_sap_avr  + cton_sap_min);
 		}
 		cton_stem_max = 1.0/(2.0*0.0034); //Maize params
 		cton_stem_avr = 1.0/(2.0*0.0068);
@@ -2131,15 +2131,15 @@ public:
 
 		rootdist[0] = 1.0 - pow(root_beta, depth); // init first layer
 
-	double tot = rootdist[0];
-	for (int i=1; i<NSOILLAYER; i++){
+        double tot = rootdist[0];
+        for (int i=1; i<NSOILLAYER; i++){
 			depth += Dz_soil * CM_PER_MM;
 			rootdist[i] = 1.0 - pow(root_beta, depth) - (1.0 - pow(root_beta, depth - Dz_soil * CM_PER_MM));
-	    tot += rootdist[i];
-	}
-	// Calibrated the root_beta for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
-	// Sometimes the rootdist goes below our maximum soildepth. When that happens, put the residual fraction in lowest soil layer
-	rootdist[NSOILLAYER-1] += 1.0 - tot;
+            tot += rootdist[i];
+        }
+        // Calibrated the root_beta for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
+        // Sometimes the rootdist goes below our maximum soildepth. When that happens, put the residual fraction in lowest soil layer
+        rootdist[NSOILLAYER-1] += 1.0 - tot;
     }
     
 	bool ismoss() const {

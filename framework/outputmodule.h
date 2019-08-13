@@ -58,8 +58,8 @@ protected:
 
 	/// Help function to define_output_tables, creates one output table
 	void create_output_table(Table& table,
-				 const char* file,
-				 const ColumnDescriptors& columns);
+	                         const char* file,
+	                         const ColumnDescriptors& columns);
 
 	void close_output_table(Table& table);
 };

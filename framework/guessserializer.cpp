@@ -77,7 +77,7 @@ void create_meta_data(const char* directory, int num_processes) {
 
 	// Create the file
 	std::ofstream file(meta_file_path(directory).c_str(),
-			   std::ios::binary | std::ios::trunc);
+	                   std::ios::binary | std::ios::trunc);
 
 	if (file.fail()) {
 		fail("Failed to open meta data file for writing");
@@ -110,7 +110,7 @@ void verify_meta_data(const char* directory, int& num_processes) {
 
 	// Open the file
 	std::ifstream file(meta_file_path(directory).c_str(),
-			   std::ios::binary | std::ios::in);
+	                   std::ios::binary | std::ios::in);
 
 	if (file.fail()) {
 		fail("Failed to open meta data file for reading");
@@ -174,9 +174,9 @@ struct GuessSerializer::Impl {
 	}
 
 	PartitionedMapSerializer<Gridcell,
-				 std::pair<double, double>,
-				 GridcellSerializer,
-				 CoordSerializer> pms;
+	                         std::pair<double, double>,
+	                         GridcellSerializer,
+	                         CoordSerializer> pms;
 };
 
 
@@ -201,7 +201,7 @@ GuessSerializer::~GuessSerializer() {
 void GuessSerializer::serialize_gridcell(const Gridcell& gridcell) {
 	try {
 		pimpl->pms.serialize_element(std::make_pair(gridcell.get_lon(), gridcell.get_lat()),
-					     gridcell);
+		                             gridcell);
 	}
 	catch (const PartitionedMapSerializerError& e) {
 		fail(e.what());
@@ -222,10 +222,10 @@ struct GuessDeserializer::Impl {
 	}
 
 	PartitionedMapDeserializer<Gridcell,
-				   std::pair<double,double>,
-				   GridcellDeserializer,
-				   CoordDeserializer,
-				   sizeof(double)*2> pmd;
+	                           std::pair<double,double>,
+	                           GridcellDeserializer,
+	                           CoordDeserializer,
+	                           sizeof(double)*2> pmd;
 };
 
 GuessDeserializer::GuessDeserializer(const char* directory) {
@@ -247,7 +247,7 @@ GuessDeserializer::~GuessDeserializer() {
 void GuessDeserializer::deserialize_gridcell(Gridcell& gridcell) {
 	try {
 		pimpl->pmd.deserialize_element(std::make_pair(gridcell.get_lon(), gridcell.get_lat()),
-					       gridcell);
+		                               gridcell);
 	}
 	catch (const PartitionedMapSerializerError& e) {
 		fail(e.what());

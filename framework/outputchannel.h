@@ -48,8 +48,8 @@ public:
 
 	 /// Creates a ColumnDescriptors where all columns have the same format
 	 ColumnDescriptors(const std::vector<std::string>& titles,
-			   int width,
-			   int precision);
+	                   int width,
+	                   int precision);
 
 	 /// Add a ColumnDescriptor to the end of the list
 	 void operator+=(const ColumnDescriptor&  col);
@@ -74,7 +74,7 @@ class TableDescriptor {
 public:
 	 /// Creates a TableDescriptor
 	 TableDescriptor(const char* name,
-			 const ColumnDescriptors& columns);
+	                 const ColumnDescriptors& columns);
 
 	 /// Get the name of the table
 	 const std::string& name() const;
@@ -127,11 +127,11 @@ public:
 
 	 /// Finalizes the output of one row, annual output
 	 virtual void finish_row(const Table& table, double lon, double lat,
-				 int year) = 0;
+	                         int year) = 0;
 
 	 /// Finalizes the output of one row, daily output
 	 virtual void finish_row(const Table& table, double lon, double lat,
-				 int year, int day) = 0;
+	                         int year, int day) = 0;
 
 	 virtual void close_table(Table& table) = 0;
 
@@ -174,17 +174,17 @@ public:
 	 /// Prints the values of the current row to the file
 	 /** \see OutputChannel::finish_row */
 	 void finish_row(const Table& table, double lon, double lat,
-			 int year);
+	                 int year);
 
 	 /// Prints the values of the current row to the file
 	 /** \see OutputChannel::finish_row */
 	 void finish_row(const Table& table, double lon, double lat,
-			 int year, int day);
+	                 int year, int day);
 
 private:
 	 /// Help function to the two variants of finish_row above
 	 void finish_row(const Table& table, double lon, double lat,
-			 int year, int day, bool print_day);
+	                 int year, int day, bool print_day);
 
 	 /// Returns the printf style format string to be used for a column
 	 const char* format(const Table& table, int column);

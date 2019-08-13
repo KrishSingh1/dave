@@ -25,9 +25,9 @@ namespace CRU_TS30 {
 bool searchcru_wind(char* cruark, double dlon, double dlat, double mwind[NYEAR_HIST][12], double mrhum[NYEAR_HIST][12]);
  
 bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
-	       double mtemp[NYEAR_HIST][12],
-	       double mprec[NYEAR_HIST][12],
-	       double msun[NYEAR_HIST][12]) {
+               double mtemp[NYEAR_HIST][12],
+               double mprec[NYEAR_HIST][12],
+               double msun[NYEAR_HIST][12]) {
 
 	// !!!! NEW VERSION OF THIS FUNCTION - guess2008 - NEW VERSION OF THIS FUNCTION !!!!
 	// Please note the new function signature. 
@@ -98,8 +98,8 @@ bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
 
 
 bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
-		    double mfrs[NYEAR_HIST][12],
-		    double mwet[NYEAR_HIST][12],
+                    double mfrs[NYEAR_HIST][12],
+                    double mwet[NYEAR_HIST][12],
 		    double mdtr[NYEAR_HIST][12],
 		    double mwind[NYEAR_HIST][12],
 		    double mrhum[NYEAR_HIST][12]) {
@@ -274,10 +274,10 @@ bool searchcru_wind(char* cruark, double dlon, double dlat,
 }
 
 bool findnearestCRUdata(double searchradius, char* cruark, double& lon, double& lat, 
-			int& scode, 
-			double hist_mtemp1[NYEAR_HIST][12], 
-			double hist_mprec1[NYEAR_HIST][12], 
-			double hist_msun1[NYEAR_HIST][12]) {
+                        int& scode, 
+                        double hist_mtemp1[NYEAR_HIST][12], 
+                        double hist_mprec1[NYEAR_HIST][12], 
+                        double hist_msun1[NYEAR_HIST][12]) {
 
 	// First try the exact coordinate
 	if (searchcru(cruark, lon, lat, scode, hist_mtemp1, hist_mprec1, hist_msun1)) {
@@ -327,7 +327,7 @@ bool findnearestCRUdata(double searchradius, char* cruark, double& lon, double& 
 		double search_lat = search_point.second;
 
 		if (searchcru(cruark, search_lon, search_lat, scode, 
-			      hist_mtemp1, hist_mprec1, hist_msun1)) {
+		              hist_mtemp1, hist_mprec1, hist_msun1)) {
 			lon = search_lon;
 			lat = search_lat;
 			return true;

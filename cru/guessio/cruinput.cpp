@@ -143,18 +143,19 @@ void CRUInput::init() {
 
 
 void CRUInput::get_monthly_ndep(int calendar_year,
-				double* mndrydep,
-				double* mnwetdep) {
+                                double* mndrydep,
+                                double* mnwetdep) {
 
-	ndep.get_one_calendar_year(calendar_year,mndrydep, mnwetdep);
+	ndep.get_one_calendar_year(calendar_year,
+	                           mndrydep, mnwetdep);
 }
 
 
 void CRUInput::adjust_raw_forcing_data(double lon,
-				       double lat,
-				       double hist_mtemp[NYEAR_HIST][12],
-				       double hist_mprec[NYEAR_HIST][12],
-				       double hist_msun[NYEAR_HIST][12]) {
+                                       double lat,
+                                       double hist_mtemp[NYEAR_HIST][12],
+                                       double hist_mprec[NYEAR_HIST][12],
+                                       double hist_msun[NYEAR_HIST][12]) {
 
 	// The default (base class) implementation does nothing here.
 }
@@ -192,7 +193,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 				lon = gridlist.getobj().lon;
 				lat = gridlist.getobj().lat;
 				gridfound = CRU_TS30::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
-									 hist_mtemp, hist_mprec, hist_msun);
+				                                         hist_mtemp, hist_mprec, hist_msun);
 
 				if (gridfound) // Get more historical CRU data for this grid cell
 					gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation,
@@ -219,8 +220,8 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 		// Give sub-classes a chance to modify the data
 		adjust_raw_forcing_data(gridlist.getobj().lon,
-					gridlist.getobj().lat,
-					hist_mtemp, hist_mprec, hist_msun);
+		                        gridlist.getobj().lat,
+		                        hist_mtemp, hist_mprec, hist_msun);
 
 		// Build spinup data sets
 		spinup_mtemp.get_data_from(hist_mtemp);
@@ -299,7 +300,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 		// monthly means to be distributed into daily values further down
 		double mndrydep[12], mnwetdep[12];
 		ndep.get_one_calendar_year(date.year - nyear_spinup + FIRSTHISTYEAR,
-					   mndrydep, mnwetdep);
+		                           mndrydep, mnwetdep);
 
 		if (date.year < nyear_spinup) {
 

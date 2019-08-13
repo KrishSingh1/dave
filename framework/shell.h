@@ -103,9 +103,9 @@ public:
 
 	/// Adds data point (x,y) to series 'series_name' of line graph 'window_name'.
 	virtual void plot(const char* window_name, 
-			  const char* series_name, 
-			  double x, 
-			  double y) = 0;
+	                  const char* series_name, 
+	                  double x, 
+	                  double y) = 0;
 
 	/// 'Frac_orgets' series and data for line graph 'window_name'.
 	virtual void resetwindow(const char* window_name) = 0;
@@ -151,9 +151,9 @@ public:
 	void log_message(const char* message);
 
 	void plot(const char* window_name, 
-		  const char* series_name, 
-		  double x, 
-		  double y);
+	          const char* series_name, 
+	          double x, 
+	          double y);
 
 	void resetwindow(const char* window_name);
 

@@ -69,7 +69,7 @@ private:
 
 	/// Help function to readenv, reads in 12 monthly values from a text file
 	bool read_from_file(Coord coord, xtring fname, const char* format,
-			    double monthly[12], bool soil = false);
+	                    double monthly[12], bool soil = false);
 
 	/// Reads in environmental data for a location
 	bool readenv(Coord coord, long& seed);

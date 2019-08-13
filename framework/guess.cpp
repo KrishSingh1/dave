@@ -1917,9 +1917,9 @@ bool Individual::has_daily_turnover() const {
  *  \param slow_harvest      Biomass going to slow depository
  */
 void partition_wood_biomass(double mass_sap, double mass_heart,
-			    double harv_eff, double harvest_slow_frac, double res_outtake,
-			    double& litter_sap, double& litter_heart,
-			    double& fast_harvest, double& slow_harvest) {
+                            double harv_eff, double harvest_slow_frac, double res_outtake,
+                            double& litter_sap, double& litter_heart,
+                            double& fast_harvest, double& slow_harvest) {
 
 	double sap_left = mass_sap;
 	double heart_left = mass_heart;
@@ -2065,9 +2065,9 @@ void Individual::kill(bool harvest /* = false */) {
 				double clitter_sap, clitter_heart, cwood_harvest;
 
 				partition_wood_biomass(to_partition_sap, to_partition_heart,
-						       harv_eff, harvest_slow_frac, res_outtake,
-						       clitter_sap, clitter_heart,
-						       cwood_harvest, charvested_products_slow);
+				                       harv_eff, harvest_slow_frac, res_outtake,
+				                       clitter_sap, clitter_heart,
+				                       cwood_harvest, charvested_products_slow);
 
 				ppft.litter_sap   += clitter_sap;
 				ppft.litter_heart += clitter_heart;
@@ -2090,9 +2090,9 @@ void Individual::kill(bool harvest /* = false */) {
 
 		// Transfer nitrogen storage to sapwood nitrogen litter/harvest
 		partition_wood_biomass(nmass_sap + nstore(), nmass_heart,
-				       harv_eff, harvest_slow_frac, res_outtake,
-				       nlitter_sap, nlitter_heart,
-				       nwood_harvest, nharvested_products_slow);
+		                       harv_eff, harvest_slow_frac, res_outtake,
+		                       nlitter_sap, nlitter_heart,
+		                       nwood_harvest, nharvested_products_slow);
 
 		ppft.nmass_litter_sap   += nlitter_sap;
 		ppft.nmass_litter_heart += nlitter_heart;

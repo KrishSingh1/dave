@@ -153,7 +153,7 @@ int update_fire_biome(Patch& patch, double lat) {
 void simfire_biome_mapping(Gridcell& gridcell) {
 
 	/* Called by: simfire_accounting_gridcell (local)
-		      getsimfiredata (local)
+	              getsimfiredata (local)
 	   Calls    : update_fire_biome(local)
 	   Computes current SIMFIRE biome for this 
 	   gridcell depending on the last <n_year_biomeavg> years of
@@ -294,7 +294,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	
 	/* Called by: dailyaccounting_gridcell   (driver.cpp)
 	   Calls    : simfire_biome_mapping      (local)
-		      simfire_update_pop_density (local)
+	              simfire_update_pop_density (local)
 	   Updates SIMFIRE's Max Annual Mesterov Index
 	   and running mean of max annual FPAR (from canexch.cpp)
 	   Updates fire biome 
@@ -357,7 +357,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	}
 
 	// update running Maximum Nesterov index array at beginning of month  
-	if ( date.dayofmonth == 0 ) {
+        if ( date.dayofmonth == 0 ) {
 		double mnest = 0.;
 		for ( int i=0; i<12; i++) 
 			if ( climate.monthly_max_nesterov[i] > mnest )
@@ -367,7 +367,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	}
 
 	// update current month's Maximum Nesterov index
-	if (  climate.monthly_max_nesterov[date.month] < climate.cur_nesterov )
+        if (  climate.monthly_max_nesterov[date.month] < climate.cur_nesterov )
 		climate.monthly_max_nesterov[date.month] = climate.cur_nesterov;
 
 	// PATCHLOOP FOR fpar

@@ -59,9 +59,9 @@ public:
  *  \param KeySerializer     Functor serializing a key
  */
 template<typename Element,
-	 typename Key,
-	 typename ElementSerializer,
-	 typename KeySerializer>
+         typename Key,
+         typename ElementSerializer,
+         typename KeySerializer>
 class PartitionedMapSerializer {
 public:
 	/// Construct a serializer
@@ -72,9 +72,9 @@ public:
 	 *  \param ks        The functor for serializing keys
 	 */
 	PartitionedMapSerializer(const char* directory,
-				 int my_rank,
-				 ElementSerializer es,
-				 KeySerializer ks)
+	                         int my_rank,
+	                         ElementSerializer es,
+	                         KeySerializer ks)
 		: element_serializer(es), 
 		  key_serializer(ks),
 		  file(create_path(directory, my_rank).c_str(), 
@@ -94,7 +94,7 @@ public:
 	 *  \param element  The element to serialize
 	 */
 	void serialize_element(const Key& key,
-			       const Element& element) {
+	                       const Element& element) {
 		add_to_index(key);
 		element_serializer(file, element);
 	}
@@ -121,14 +121,14 @@ private:
 			// representation
 			std::streamsize file_position = index[i].second;
 			file.write(reinterpret_cast<const char*>(&file_position), 
-				   sizeof(file_position));
+			           sizeof(file_position));
 		}
 
 		// write out the number of elements after the index so it possible to
 		// find the start of the index
 		size_t number_of_elements = index.size();
 		file.write(reinterpret_cast<const char*>(&number_of_elements), 
-			   sizeof(number_of_elements));
+		           sizeof(number_of_elements));
 
 		if (file.fail()) {
 			throw PartitionedMapSerializerError("failed to write out index");
@@ -159,10 +159,10 @@ private:
  *  \param KeySize              The size of a serialized key (in bytes)
  */
 template<typename Element,
-	 typename Key,
-	 typename ElementDeserializer,
-	 typename KeyDeserializer,
-	 int KeySize>
+         typename Key,
+         typename ElementDeserializer,
+         typename KeyDeserializer,
+         int KeySize>
 class PartitionedMapDeserializer {
 public:
 	/// Construct a deserializer
@@ -172,9 +172,9 @@ public:
 	 *  \param kd        Functor for deserializing a key
 	 */
 	PartitionedMapDeserializer(const char* directory,
-				   int max_rank,
-				   ElementDeserializer ed,
-				   KeyDeserializer kd)
+	                           int max_rank,
+	                           ElementDeserializer ed,
+	                           KeyDeserializer kd)
 		: element_deserializer(ed), key_deserializer(kd) {
 
 		// we'll simply try to open all files between 0 and max_rank (inclusive)
@@ -183,8 +183,8 @@ public:
 		while (rank <= max_rank) {
 			std::string path = create_path(directory, rank);
 
-			std::auto_ptr<std::ifstream> stream(new std::ifstream(path.c_str(),
-									      std::ios::binary | std::ios::in));
+			std::auto_ptr<std::ifstream> stream(
+			                                    new std::ifstream(path.c_str(), std::ios::binary | std::ios::in));
 
 			if (!stream->fail()) {
 				File* file = new File;
@@ -247,7 +247,7 @@ public:
 			// find position of element in this file if it has it
 			typename Index::iterator itr = 
 				std::lower_bound(index.begin(), index.end(), std::make_pair(key,0), 
-						 IndexElementComparator());
+				                 IndexElementComparator());
 				
 			// if it had it, seek to that position and deserialize
 			if (itr != index.end() && !(key < (*itr).first)) {
@@ -265,7 +265,7 @@ public:
 	 *  \param elements  Vector of pointers to elements that should be deserialized.
 	 */
 	void deserialize_elements(const std::vector<Key>& keys, 
-				  const std::vector<Element*>& elements) {
+	                          const std::vector<Element*>& elements) {
 
 		// This function is a bit tricky since it should read in the elements
 		// from disk in the order which minimizes the number of seeks, but

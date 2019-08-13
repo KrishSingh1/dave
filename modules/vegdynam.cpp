@@ -121,14 +121,14 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 	}
 
 	// guess2008 - drought limited establishment
-	if (ifdroughtlimitedestab && patch.stand.landcover != PEATLAND) {
+    if (ifdroughtlimitedestab && patch.stand.landcover != PEATLAND) {
 		// Compare this PFT's/species' drought_tolerance with the average wcont over the
 		// growing season, in this patch. Higher drought_tolerance values (set in the .ins file)
 		// lead to greater restrictions on establishment.
-		if (pft.drought_tolerance > patch.soil.awcont_upper) {
-			return false;
-		}
-	}
+        if (pft.drought_tolerance > patch.soil.awcont_upper) {
+           return false;
+        }
+    }
 	// else
 
 	return true;
@@ -321,8 +321,8 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 			// Account for flux from atmosphere to grass regeneration
 			if (!indiv.istruecrop_or_intercropgrass()) {
 				indiv.report_flux(Fluxes::ESTC,
-						  -(indiv.pft.regen.cmass_leaf+
-						    indiv.pft.regen.cmass_root)*est_pft);
+			                  -(indiv.pft.regen.cmass_leaf+
+			                    indiv.pft.regen.cmass_root)*est_pft);
 			}
 
 			// Add regeneration biomass to overall biomass
@@ -1133,7 +1133,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 				//                 (or zero for constant mortality with age)
 				//       longevity is the age at which the fraction of the initial
 				//                 cohort expected to survive is a known value, F
-				// It is possible to derive the value of Z given values for longevity,
+                // It is possible to derive the value of Z given values for longevity,
 				// Q and F, by integration:
 				//
 				// The rate of change of cohort size (P) at any age is given by:
@@ -1406,12 +1406,11 @@ void fire(Patch& patch,double& fireprob) {
 		// Calculate flux from burnt litter
 
 		patch.fluxes.report_flux(Fluxes::FIREC,
-					 mort_fire*(patch.pft[p].litter_leaf + patch.pft[p].litter_sap +
-						    patch.pft[p].litter_heart + patch.pft[p].litter_repr));
+		                         mort_fire*(patch.pft[p].litter_leaf + patch.pft[p].litter_sap +
+		                                    patch.pft[p].litter_heart + patch.pft[p].litter_repr));
 
 		report_fire_nfluxes(patch, mort_fire * (patch.pft[p].nmass_litter_leaf +
-							patch.pft[p].nmass_litter_sap +
-							patch.pft[p].nmass_litter_heart));
+			                patch.pft[p].nmass_litter_sap + patch.pft[p].nmass_litter_heart));
 
 		// Account for burnt above ground litter
 
@@ -1432,9 +1431,9 @@ void fire(Patch& patch,double& fireprob) {
 
 	// Calculate flux from burnt soil litter
 	patch.fluxes.report_flux(Fluxes::FIREC,patch.soil.sompool[SURFSTRUCT].cmass * mort_fire_struct +
-				 patch.soil.sompool[SURFMETA].cmass   * mort_fire_meta +
-				 patch.soil.sompool[SURFFWD].cmass    * mort_fire_fwd +
-				 patch.soil.sompool[SURFCWD].cmass    * mort_fire_cwd);
+	                                       patch.soil.sompool[SURFMETA].cmass   * mort_fire_meta +
+	                                       patch.soil.sompool[SURFFWD].cmass    * mort_fire_fwd +
+	                                       patch.soil.sompool[SURFCWD].cmass    * mort_fire_cwd);
 
 	// Account for burnt above ground litter
 	patch.soil.sompool[SURFSTRUCT].cmass *= (1.0 - mort_fire_struct);
@@ -1443,11 +1442,10 @@ void fire(Patch& patch,double& fireprob) {
 	patch.soil.sompool[SURFCWD].cmass    *= (1.0 - mort_fire_cwd);
 
 	// Calculate nitrogen flux from burnt soil litter
-	double nflux_fire =
-		patch.soil.sompool[SURFSTRUCT].nmass * mort_fire_struct +
-		patch.soil.sompool[SURFMETA].nmass   * mort_fire_meta +
-		patch.soil.sompool[SURFFWD].nmass    * mort_fire_fwd +
-		patch.soil.sompool[SURFCWD].nmass    * mort_fire_cwd;
+	double nflux_fire = patch.soil.sompool[SURFSTRUCT].nmass * mort_fire_struct +
+	                    patch.soil.sompool[SURFMETA].nmass   * mort_fire_meta +
+	                    patch.soil.sompool[SURFFWD].nmass    * mort_fire_fwd +
+						patch.soil.sompool[SURFCWD].nmass    * mort_fire_cwd;
 
 	report_fire_nfluxes(patch, nflux_fire);
 

@@ -888,8 +888,8 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 
 		// Individual photosynthesis with no nitrogen limitation
 		photosynthesis(ps_env, ps_stress, pft,
-			       pft.lambda_max, 1.0, -1,
-			       indiv.photosynthesis);
+		               pft.lambda_max, 1.0, -1,
+		               indiv.photosynthesis);
 
 		indiv.gpterm = gpterm(indiv.photosynthesis.adtmm, pftco2, pft.lambda_max, climate.daylength);
 
@@ -906,8 +906,8 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 				ps_env.set(pftco2, climate.temps[i], climate.pars[i], indiv.fpar, 24);
 
 				photosynthesis(ps_env, ps_stress, pft,
-					       pft.lambda_max, 1.0, indiv.photosynthesis.vm,
-					       ps_result);
+				               pft.lambda_max, 1.0, indiv.photosynthesis.vm,
+				               ps_result);
 
 				indiv.gpterms[i] = gpterm(ps_result.adtmm, climate.co2, pft.lambda_max, 24);
 			}
@@ -967,7 +967,7 @@ void nstore_usage(Vegetation& vegetation) {
 
 		// individual excess nitrogen demand after uptake
 		double excess_ndemand = (indiv.leafndemand + indiv.rootndemand) * (1.0 - indiv.fnuptake)
-			+ indiv.leafndemand_store + indiv.rootndemand_store;
+		                        + indiv.leafndemand_store + indiv.rootndemand_store;
 
 		// if individual is in need of using its labile nitrogen storage
 		if (!negligible(excess_ndemand)) {
@@ -1338,8 +1338,8 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
 
 			// No nitrogen limitation when calculating gp_leafon
 			photosynthesis(ps_env, ps_stress, pft,
-				       pft.lambda_max, 1.0, -1, 
-				       leafon_photosynthesis);
+			               pft.lambda_max, 1.0, -1, 
+			               leafon_photosynthesis);
 
 			double gp_leafon = gpterm(leafon_photosynthesis.adtmm, pftco2, pft.lambda_max, daylength) + pft.gmin * indiv.fpc;
 

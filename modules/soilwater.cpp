@@ -86,7 +86,7 @@ void snow(double prec, double temp, Soil& soil) {
  *  fertilization goes to the soil available mineral nitrogen pool.
  */
 void snow_ninput(double prec, double snowpack_after, double rain_melt,
-		 double dndep, double dnfert, double& snowpack_nmass, double& ninput) {
+	           double dndep, double dnfert, double& snowpack_nmass, double& ninput) {
 
 	// calculates this day melt and original snowpack size
 	double melt = max(0.0, rain_melt - prec);
@@ -504,7 +504,7 @@ void soilwater(Patch& patch, Climate& climate) {
 	// HYDROLOGY FOR HIGH-LATITUDE PEATLAND 
 
 	if (patch.stand.is_highlatitude_peatland_stand()) {
-
+        
 		soil.hydrology_peat(climate, bare_ground);
 
 		// Update inundation stress variables for this patch

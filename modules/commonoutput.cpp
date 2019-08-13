@@ -1434,20 +1434,20 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		// Arctic and wetland output
 		const int layer_ix_25cm = 2; // Layer index for 25cm soil depth. It could depend on the thickness of the layers in future updates.  
 		outlimit(out,out_msoiltempdepth5, msoilt[m][0]);
-		outlimit(out,out_msoiltempdepth15, msoilt[m][1]);
-		outlimit(out,out_msoiltempdepth25, msoilt[m][layer_ix_25cm]);
-		outlimit(out,out_msoiltempdepth35, msoilt[m][3]);
-		outlimit(out,out_msoiltempdepth45, msoilt[m][4]);
-		outlimit(out,out_msoiltempdepth55, msoilt[m][5]);
-		outlimit(out,out_msoiltempdepth65, msoilt[m][6]);
-		outlimit(out,out_msoiltempdepth75, msoilt[m][7]);
-		outlimit(out,out_msoiltempdepth85, msoilt[m][8]);
-		outlimit(out,out_msoiltempdepth95, msoilt[m][9]);
-		outlimit(out,out_msoiltempdepth105, msoilt[m][10]);
-		outlimit(out,out_msoiltempdepth115, msoilt[m][11]);
-		outlimit(out,out_msoiltempdepth125, msoilt[m][12]);
-		outlimit(out,out_msoiltempdepth135, msoilt[m][13]);
-		outlimit(out,out_msoiltempdepth145, msoilt[m][14]);
+        outlimit(out,out_msoiltempdepth15, msoilt[m][1]);
+        outlimit(out,out_msoiltempdepth25, msoilt[m][layer_ix_25cm]);
+        outlimit(out,out_msoiltempdepth35, msoilt[m][3]);
+        outlimit(out,out_msoiltempdepth45, msoilt[m][4]);
+        outlimit(out,out_msoiltempdepth55, msoilt[m][5]);
+        outlimit(out,out_msoiltempdepth65, msoilt[m][6]);
+        outlimit(out,out_msoiltempdepth75, msoilt[m][7]);
+        outlimit(out,out_msoiltempdepth85, msoilt[m][8]);
+        outlimit(out,out_msoiltempdepth95, msoilt[m][9]);
+        outlimit(out,out_msoiltempdepth105, msoilt[m][10]);
+        outlimit(out,out_msoiltempdepth115, msoilt[m][11]);
+        outlimit(out,out_msoiltempdepth125, msoilt[m][12]);
+        outlimit(out,out_msoiltempdepth135, msoilt[m][13]);
+        outlimit(out,out_msoiltempdepth145, msoilt[m][14]);
 		outlimit(out,out_mch4, mch4[m]);
 		outlimit(out,out_mch4diff, mch4_diff[m]);
 		outlimit(out,out_mch4plan, mch4_plant[m]);

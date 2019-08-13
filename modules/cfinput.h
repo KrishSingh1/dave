@@ -69,27 +69,27 @@ private:
 	 *  the closest CRU grid cell and the soilcode for the cell.
 	 *  \returns whether it was possible to load data and find nearby CRU cell */
 	bool load_data_from_files(double& lon, double& lat,
-				  double& cru_lon, double& cru_lat);
+	                          double& cru_lon, double& cru_lat);
 
 	/// Gets the first few years of data from cf_var and puts it into spinup_data
 	void load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_var,
-			      GenericSpinupData& spinup_data);
+	                      GenericSpinupData& spinup_data);
 
 	/// Gets data for one year, for one variable.
 	/** Returns either 12 or 365/366 values (depending on LPJ-GUESS year length, not
 	 *  data set year length). Gets the values from spinup and/or historic period. */
 	void get_yearly_data(std::vector<double>& data,
-			     const GenericSpinupData& spinup,
-			     GuessNC::CF::GridcellOrderedVariable* cf_historic,
-			     int& historic_timestep);
+	                     const GenericSpinupData& spinup,
+	                     GuessNC::CF::GridcellOrderedVariable* cf_historic,
+	                     int& historic_timestep);
 
 	/// Fills one array of daily values with forcing data for the current year
 	void populate_daily_array(double* daily,
-				  const GenericSpinupData& spinup,
-				  GuessNC::CF::GridcellOrderedVariable* cf_historic,
-				  int& historic_timestep,
-				  double minimum = -std::numeric_limits<double>::max(),
-				  double maximum = std::numeric_limits<double>::max());
+	                          const GenericSpinupData& spinup,
+	                          GuessNC::CF::GridcellOrderedVariable* cf_historic,
+	                          int& historic_timestep,
+	                          double minimum = -std::numeric_limits<double>::max(),
+	                          double maximum = std::numeric_limits<double>::max());
 
 	/// Same as populate_daily_array, but for precipitation which is special
 	/** Uses number of wet days if available and handles extensive/intensive conversion */

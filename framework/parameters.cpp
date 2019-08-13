@@ -21,7 +21,6 @@
 // for documentation, see parameters.h
 
 xtring title;
-
 vegmodetype vegmode;
 firemodeltype firemodel;
 weathergeneratortype weathergenerator;
@@ -31,7 +30,6 @@ int npatch_secondarystand;
 bool reduce_all_stands;
 int age_limit_reduce;
 double patcharea;
-
 bool ifbgestab;
 bool ifsme;
 bool ifstochestab;

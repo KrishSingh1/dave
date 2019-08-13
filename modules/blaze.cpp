@@ -1139,6 +1139,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 	// monthly ffdi max
 	int dayx = date.day % 30;
 	climate.months_ffdi[dayx] = mcarthur_fire_index;
+	climate.mcarthur_fire_index = 0.;
 	for (int x=0; x<30;x++) {
 		if ( climate.mcarthur_fire_index < climate.months_ffdi[x] ) 
 			climate.mcarthur_fire_index = climate.months_ffdi[x];

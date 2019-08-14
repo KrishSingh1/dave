@@ -841,13 +841,6 @@ void transfer_litter(Patch& patch) {
 
 	double EPS = -1.0e-16;
 
-	// Leaf, root and wood litter lignin fractions
-	// Leaf and root fractions: Comins & McMurtrie 1993; Friend et al 1997
-	// Not sure of wood fraction
-	const double LIGCFRAC_LEAF = 0.2;
-	const double LIGCFRAC_ROOT = 0.16;
-	const double LIGCFRAC_WOOD = 0.3;
-
 	double ligcmass_new, ligcmass_old;
 
 	// Fire (GlobFIRM)

@@ -30,15 +30,15 @@
 #include "config.h"
 #include "gwgen.h"
 
-const double dhuge     = std::numeric_limits<double>::max();
-const long lhuge       = std::numeric_limits<long>::max()  ;
-const int ihuge        = std::numeric_limits<int>::max()  ;
-const double d_epsilon = std::numeric_limits<double>::min();
-const float r_epsilon  = std::numeric_limits<float>::min() ;
+const double DHUGE     = std::numeric_limits<double>::max();
+const long LHUGE       = std::numeric_limits<long>::max()  ;
+const int IHUGE        = std::numeric_limits<int>::max()  ;
+const double D_EPSILON = std::numeric_limits<double>::min();
+const float R_EPSILON  = std::numeric_limits<float>::min() ;
 
 // Parameters used witin GWGEN
 // freezing temperature of freshwater (K)
-const double Tfreeze = 273.15;      
+const double TFREEZE = 273.15;      
 
 // -----------------------------------------------------------------------------
 // ------------------- Defaults for the namelist parameters --------------------
@@ -46,16 +46,16 @@ const double Tfreeze = 273.15;
 
 // This parameter can be used to tune between fast and fine: 
 // min maxcount=20; max maxcount = 10000000
-const int maxcount = 20;
+const int MAXITER = 20;
 
-const int qsiz  = 10 ; 
-const int cmul  = 69609;
-const int coffs =   123;
+const int QSIZ  = 10 ; 
+const int CMUL  = 69609;
+const int COFFS =   123;
 
-const double  rng1 = 1. / (2. * (double)ihuge);  //scales the random integer to -0.5,0.5
-const double  rng2 = 1. / (double)ihuge;         //scales the random integer to -1,1
+const double  RNG1 = 1. / (2. * (double)IHUGE);  //scales the random integer to -0.5,0.5
+const double  RNG2 = 1. / (double)IHUGE;         //scales the random integer to -1,1
 
-const double  half   = 0.5;
+const double  HALF   = 0.5;
 
 class GWGen /*: public Serializable */{
 
@@ -275,7 +275,7 @@ unsigned int geohash(double lat, double lon) {
 	
 	i = round(OFFSET + SCALE * (lon + 180.));
 	j = round(OFFSET + SCALE * (lat +  90.));
-	unsigned int geohash = i + ROWLEN * ( j-1 ) - ihuge;
+	unsigned int geohash = i + ROWLEN * ( j-1 ) - IHUGE;
 	return geohash;
 }
 
@@ -284,9 +284,9 @@ void get_seed_by_location(double lat, double lon, WeatherGen& state) {
 
 	state.xs = geohash(lat,lon);
 
-	for (int i=0; i<qsiz; i++) { 
+	for (int i=0; i<QSIZ; i++) { 
 		
-	 	state.xcng = state.xcng * cmul + coffs;
+	 	state.xcng = state.xcng * CMUL + COFFS;
 	
 	 	state.xs = state.xs^(state.xs<<13); 
 	 	state.xs = state.xs^(state.xs>>17); 
@@ -300,7 +300,7 @@ int refill(WeatherGen& state) {
 	int s;
 	int z;
 	int h;
-	for (int i=0; i<qsiz; i++) {
+	for (int i=0; i<QSIZ; i++) {
 		h = state.carry & 1;
 		z = ((((unsigned int)state.q[i])<<9)>>1) + ((((unsigned int)state.q[i])<<7)>>1) + ((unsigned int)state.carry>>1);
 		state.carry = ((unsigned int)state.q[i]>>23) + (((unsigned int)state.q[i])>>25) + ((unsigned int)z>>31);
@@ -321,14 +321,14 @@ int ranu(WeatherGen& state) {
 	// Further modifications to pass the complete state of the generator as an argument by J.O. Kaplan, 2011
 
 	int supr, ranu;
-        if (state.indx < qsiz) {
+        if (state.indx < QSIZ) {
 		supr = state.q[state.indx];
 		state.indx += 1;
 	}
 	else {
 		supr = refill(state); //reset the generator
 	}
-        state.xcng = state.xcng * cmul + coffs;
+        state.xcng = state.xcng * CMUL + COFFS;
 
 	state.xs = state.xs^(state.xs<<13); 
 	state.xs = state.xs^(state.xs>>17); 
@@ -343,7 +343,7 @@ double ranur(WeatherGen& state) {
 	// generate a random number in the range (0,1)
 	double ranur;
 	
-	ranur = (double)ranu(state) * rng1 + half;
+	ranur = (double)ranu(state) * RNG1 + HALF;
 	return ranur ;
 }
 
@@ -501,8 +501,8 @@ double ran_normal(WeatherGen& state) {
 			u[0] = ranu(state);
 			u[1] = ranu(state);
 
-			v[0] = (double)u[0] * rng2;   //convert integer (-huge,+huge) to (-1,+1)
-			v[1] = (double)u[1] * rng2;   //convert integer (-huge,+huge) to (-1,+1)
+			v[0] = (double)u[0] * RNG2;   //convert integer (-huge,+huge) to (-1,+1)
+			v[1] = (double)u[1] * RNG2;   //convert integer (-huge,+huge) to (-1,+1)
 			s = pow(v[0],2) + pow(v[1],2) ;
 				
 			if (s < 1.)
@@ -562,7 +562,7 @@ double ran_gamma(WeatherGen& state,bool first, double shape, double scale) {
 					break;
 			}
 			u = ranur(state);  // generate uniform variable u in the range (0,1)
-			if (u < 1. - 0.0331 * pow(x,4) || log(u) < half * pow(x,2) + d*(1. - v + log(v))) {
+			if (u < 1. - 0.0331 * pow(x,4) || log(u) < HALF * pow(x,2) + d*(1. - v + log(v))) {
 				ret = scale * d * v  ;
 				break;
 			}
@@ -688,12 +688,12 @@ double gamma_log( double x ) {
 		8.333333333333333331554247E-02, 
 		5.7083835261E-03 };
 	double corr;
-	const double d1 = -5.772156649015328605195174E-01;
-        const double d2 =  4.227843350984671393993777E-01;
-        const double d4 =  1.791759469228055000094023E+00;
+	const double D1 = -5.772156649015328605195174E-01;
+        const double D2 =  4.227843350984671393993777E-01;
+        const double D4 =  1.791759469228055000094023E+00;
 
-        const double frtbig = 1.42E+09;
-	const double p1[8] = { 
+        const double FRTBIG = 1.42E+09;
+	const double P1[8] = { 
 		4.945235359296727046734888E+00, 
 		2.018112620856775083915565E+02, 
 		2.290838373831346393026739E+03, 
@@ -702,7 +702,7 @@ double gamma_log( double x ) {
 		3.848496228443793359990269E+04, 
 		2.637748787624195437963534E+04, 
 		7.225813979700288197698961E+03 };
-        const double p2[8] = {
+        const double P2[8] = {
 		4.974607845568932035012064E+00,
 		5.424138599891070494101986E+02,
 		1.550693864978364947665077E+04,
@@ -711,7 +711,7 @@ double gamma_log( double x ) {
 		3.338152967987029735917223E+06,
 		5.106661678927352456275255E+06,
 		3.074109054850539556250927E+06 };
-        const double p4[8] = {
+        const double P4[8] = {
 		1.474502166059939948905062E+04,
 		2.426813369486704502836312E+06,
 		1.214755574045093227939592E+08,
@@ -720,8 +720,8 @@ double gamma_log( double x ) {
 		1.702665737765398868392998E+11,
 		4.926125793377430887588120E+11,
 		5.606251856223951465078242E+11 };
-        const double pnt68 = 0.6796875E+00;
-        const double q1[8] = {
+        const double PNT68 = 0.6796875E+00;
+        const double Q1[8] = {
 		6.748212550303777196073036E+01,
 		1.113332393857199323513008E+03,
 		7.738757056935398733233834E+03,
@@ -730,7 +730,7 @@ double gamma_log( double x ) {
 		6.161122180066002127833352E+04,
 		3.635127591501940507276287E+04,
 		8.785536302431013170870835E+03 };
-        const double q2[8] = {
+        const double Q2[8] = {
 		1.830328399370592604055942E+02,
 		7.765049321445005871323047E+03,
 		1.331903827966074194402448E+05,
@@ -739,7 +739,7 @@ double gamma_log( double x ) {
 		1.346701454311101692290052E+07,
 		1.782736530353274213975932E+07,
 		9.533095591844353613395747E+06 };
-        const double q4[8] = {
+        const double Q4[8] = {
 		2.690530175870899333379843E+03,
 		6.393885654300092398984238E+05,
 		4.135599930241388052042842E+07,
@@ -749,8 +749,8 @@ double gamma_log( double x ) {
 		3.417476345507377132798597E+11,
 		4.463158187419713286462081E+11 };
 	double res;
-        const double sqrtpi = 0.9189385332046727417803297E+00;
-        const double xbig   = 4.08E+36;
+        const double SQRTPI = 0.9189385332046727417803297E+00;
+        const double XBIG   = 4.08E+36;
 	double xden;
 	double xm1;
 	double xm2;
@@ -759,15 +759,15 @@ double gamma_log( double x ) {
 	double xsq;
 
 	//  Return immediately if the argument is out of range.
-        if ( x <= 0.0E+00 || xbig < x ) {
-		return dhuge;
+        if ( x <= 0.0E+00 || XBIG < x ) {
+		return DHUGE;
 	}
-	if ( x <= d_epsilon ) {
+	if ( x <= D_EPSILON ) {
 		res = -log ( x );
 	}
 	else if ( x <= 1.5E+00 ) {
 
-		if ( x < pnt68 ) {
+		if ( x < PNT68 ) {
 			corr = - log ( x );
 			xm1 = x;
 		}
@@ -776,16 +776,16 @@ double gamma_log( double x ) {
 			xm1 = ( x - 0.5E+00 ) - 0.5E+00;
 		}
  
-		if ( x <= 0.5E+00 || pnt68 <= x ) {
+		if ( x <= 0.5E+00 || PNT68 <= x ) {
 
 			xden = 1.0E+00;
 			xnum = 0.0E+00;
 
 			for(int i=0; i<8; i++) {
-				xnum = xnum * xm1 + p1[i];
-				xden = xden * xm1 + q1[i];
+				xnum = xnum * xm1 + P1[i];
+				xden = xden * xm1 + Q1[i];
 			}
-			res = corr + ( xm1 * ( d1 + xm1 * ( xnum / xden ) ) );
+			res = corr + ( xm1 * ( D1 + xm1 * ( xnum / xden ) ) );
 		}
 		else {
 
@@ -793,10 +793,10 @@ double gamma_log( double x ) {
 			xden = 1.0E+00;
 			xnum = 0.0E+00;
  			for(int i=0; i<8; i++) {
-				xnum = xnum * xm2 + p2[i];
-				xden = xden * xm2 + q2[i];
+				xnum = xnum * xm2 + P2[i];
+				xden = xden * xm2 + Q2[i];
 			}
-			res = corr + xm2 * ( d2 + xm2 * ( xnum / xden ) );
+			res = corr + xm2 * ( D2 + xm2 * ( xnum / xden ) );
 		}
 	}
 	else if ( x <= 4.0E+00 ) {
@@ -805,10 +805,10 @@ double gamma_log( double x ) {
 		xden = 1.0E+00;
 		xnum = 0.0E+00;
 		for(int i=0; i<8; i++) {
-			xnum = xnum * xm2 + p2[i];
-			xden = xden * xm2 + q2[i];
+			xnum = xnum * xm2 + P2[i];
+			xden = xden * xm2 + Q2[i];
 		}
-		res = xm2 * ( d2 + xm2 * ( xnum / xden ) );
+		res = xm2 * ( D2 + xm2 * ( xnum / xden ) );
 	}       
 	else if ( x <= 12.0E+00 ) {
 
@@ -816,16 +816,16 @@ double gamma_log( double x ) {
 		xden = - 1.0E+00;
 		xnum = 0.0E+00;
 		for(int i=0; i<8; i++) {
-			xnum = xnum * xm4 + p4[i];
-			xden = xden * xm4 + q4[i];
+			xnum = xnum * xm4 + P4[i];
+			xden = xden * xm4 + Q4[i];
 		}
-		res = d4 + xm4 * ( xnum / xden );
+		res = D4 + xm4 * ( xnum / xden );
 	}
 	else {
 
 		res = 0.0E+00;
 
-		if ( x <= frtbig ) {
+		if ( x <= FRTBIG ) {
 
 			res = c[6];
 			xsq = x * x;
@@ -835,7 +835,7 @@ double gamma_log( double x ) {
 		}
 		res = res / x;
 		corr = log ( x );
-		res = res + sqrtpi - 0.5E+00 * corr;
+		res = res + SQRTPI - 0.5E+00 * corr;
 		res = res + x * ( corr - 1.0E+00 );
 	}
 	return res;
@@ -931,8 +931,8 @@ void normal_01_cdf_inv (double p,double x) {
 		2.41780725177450611770E-01,
 		2.27238449892691845833E-02,
 		7.74545014278341407640E-04 };
-        const double const1 = 0.180625E+00;
-        const double const2 = 1.6E+00;
+        const double CONST1 = 0.180625E+00;
+        const double CONST2 = 1.6E+00;
 	double d[8] = {
 		1.0E+00, 
 		2.05319162663775882187E+00,
@@ -962,22 +962,22 @@ void normal_01_cdf_inv (double p,double x) {
 		2.04426310338993978564E-15 };
 	double q;
 	double r;
-	const double split1 = 0.425E+00;
-        const double split2 = 5.0E+00;
+	const double SPLIT1 = 0.425E+00;
+        const double SPLIT2 = 5.0E+00;
 
 	if ( p <= 0.0E+00 ) {
-		x = - dhuge ;
+		x = - DHUGE ;
 		return;
 	}
 
 	if ( 1.0E+00 <= p ) {
-		x = dhuge;
+		x = DHUGE;
 		return;
 	}
 	q = p - 0.5E+00;
 
-	if ( fabs ( q ) <= split1 ) {
-		r = const1 - q * q;
+	if ( fabs ( q ) <= SPLIT1 ) {
+		r = CONST1 - q * q;
 		x = q * r8poly_value_horner( 7, a, r ) / r8poly_value_horner( 7, b, r );
 	}
 	else {
@@ -989,19 +989,19 @@ void normal_01_cdf_inv (double p,double x) {
 		}
 
 		if ( r <= 0.0E+00 ) {
-			x = dhuge;
+			x = DHUGE;
 		}
 		else {
 			r = sqrt ( - log ( r ) );
 
-			if ( r <= split2 ) {
+			if ( r <= SPLIT2 ) {
 
-				r = r - const2;
+				r = r - CONST2;
 				x = r8poly_value_horner ( 7, c, r ) / r8poly_value_horner ( 7, d, r );
 			}
 			else {
 
-				r = r - split2;
+				r = r - SPLIT2;
 				x = r8poly_value_horner ( 7, e, r ) / r8poly_value_horner ( 7, f, r );
 			}
 		}
@@ -1033,25 +1033,25 @@ void normal_01_cdf ( double x, double cdf ) {
 	//  x   : the argument of the CDF.
 	//  cdf : the value of the CDF.
 
-        const double a1 = 0.398942280444E+00 ;
-        const double a2 = 0.399903438504E+00 ;
-        const double a3 = 5.75885480458E+00  ;
-        const double a4 = 29.8213557808E+00  ;
-        const double a5 = 2.62433121679E+00  ;
-        const double a6 = 48.6959930692E+00  ;
-        const double a7 = 5.92885724438E+00  ;
-        const double b0 = 0.398942280385E+00 ;
-        const double b1 = 3.8052E-08	     ;
-        const double b2 = 1.00000615302E+00  ;
-        const double b3 = 3.98064794E-04     ;
-        const double b4 = 1.98615381364E+00  ;
-        const double b5 = 0.151679116635E+00 ;
-        const double b6 = 5.29330324926E+00  ;
-        const double b7 = 4.8385912808E+00   ;
-        const double b8 = 15.1508972451E+00  ;
-        const double b9 = 0.742380924027E+00 ;
-        const double b10 = 30.789933034E+00  ;
-        const double b11 = 3.99019417011E+00 ;
+        const double A1 = 0.398942280444E+00 ;
+        const double A2 = 0.399903438504E+00 ;
+        const double A3 = 5.75885480458E+00  ;
+        const double A4 = 29.8213557808E+00  ;
+        const double A5 = 2.62433121679E+00  ;
+        const double A6 = 48.6959930692E+00  ;
+        const double A7 = 5.92885724438E+00  ;
+        const double B0 = 0.398942280385E+00 ;
+        const double B1 = 3.8052E-08	     ;
+        const double B2 = 1.00000615302E+00  ;
+        const double B3 = 3.98064794E-04     ;
+        const double B4 = 1.98615381364E+00  ;
+        const double B5 = 0.151679116635E+00 ;
+        const double B6 = 5.29330324926E+00  ;
+        const double B7 = 4.8385912808E+00   ;
+        const double B8 = 15.1508972451E+00  ;
+        const double B9 = 0.742380924027E+00 ;
+        const double B10 = 30.789933034E+00  ;
+        const double B11 = 3.99019417011E+00 ;
 	double q;
 	double y;
 
@@ -1060,8 +1060,8 @@ void normal_01_cdf ( double x, double cdf ) {
 
 		y = 0.5E+00 * x * x;
 
-		q = 0.5E+00 - fabs ( x ) * ( a1 - a2 * y / ( y + a3 - a4 /
-				( y + a5 + a6 / ( y + a7 ) ) ) );
+		q = 0.5E+00 - fabs ( x ) * ( A1 - A2 * y / ( y + A3 - A4 /
+				( y + A5 + A6 / ( y + A7 ) ) ) );
 	}
 
 	//  1.28 < |X| <= 12.7
@@ -1069,12 +1069,12 @@ void normal_01_cdf ( double x, double cdf ) {
 
 		y = 0.5E+00 * x * x;
 
-		q = exp ( - y ) * b0 / ( fabs ( x ) - b1 
-					 + b2 / ( fabs ( x ) + b3 
-					 + b4 / ( fabs ( x ) - b5 
-					 + b6 / ( fabs ( x ) + b7 
-					 - b8 / ( fabs ( x ) + b9 
-					 + b10 /( fabs ( x ) + b11 ) ) ) ) ) );
+		q = exp ( - y ) * B0 / ( fabs ( x ) - B1 
+					 + B2 / ( fabs ( x ) + B3 
+					 + B4 / ( fabs ( x ) - B5 
+					 + B6 / ( fabs ( x ) + B7 
+					 - B8 / ( fabs ( x ) + B9 
+					 + B10 /( fabs ( x ) + B11 ) ) ) ) ) );
 	}
 
 	//  12.7 < |X|
@@ -1217,9 +1217,9 @@ double gamma_inc ( double p, double x ) {
 	double  b;
 	double  c;
 	double  cdf = 0.;
-        const double exp_arg_min = -88.0E+00;
-        const double overflow = 1.0E+37;
-        const double plimit = 1000.0E+00;
+        const double EXP_ARG_MIN = -88.0E+00;
+        const double L_OVERFLOW = 1.0E+37;
+        const double PLIMIT = 1000.0E+00;
 	double  pn1;
 	double  pn2;
 	double  pn3;
@@ -1227,8 +1227,8 @@ double gamma_inc ( double p, double x ) {
 	double  pn5;
 	double  pn6;
 	double  rn;
-        const double tol = 1.0E-07;
-        const double xbig = 1.0E+08;
+        const double TOL = 1.0E-07;
+        const double XBIG = 1.0E+08;
 
 	double gamma_inc = 0.0;
 
@@ -1243,7 +1243,7 @@ double gamma_inc ( double p, double x ) {
 	}
 
 	//  Use a normal approximation if PLIMIT < P.
-        if ( plimit < p ) {
+        if ( PLIMIT < p ) {
 		pn1 = 3.0E+00 * sqrt ( p ) * ( pow(( x / p ), ( 1.0E+00 / 3.0E+00 )) 
 					       + 1.0E+00 / ( 9.0E+00 * p ) - 1.0E+00 );
 		normal_01_cdf ( pn1, cdf );
@@ -1251,7 +1251,7 @@ double gamma_inc ( double p, double x ) {
 	} 
 
 	//  Is X extremely large compared to P?
-        if ( xbig < x ) {
+        if ( XBIG < x ) {
 		return 1.0E+00;
 	}
 	//  Use Pearson's series expansion.
@@ -1267,14 +1267,14 @@ double gamma_inc ( double p, double x ) {
 			a = a + 1.0E+00;
 			c = c * x / a;
 			gamma_inc = gamma_inc + c;
-			if ( c <= tol ) {
+			if ( c <= TOL ) {
 				break;
 			}
 		}
 		
 		arg = arg + log ( gamma_inc );
 
-		if ( exp_arg_min <= arg ) {
+		if ( EXP_ARG_MIN <= arg ) {
 			gamma_inc = exp ( arg );
 		} 
 		else {
@@ -1305,11 +1305,11 @@ double gamma_inc ( double p, double x ) {
 
 				rn = pn5 / pn6;
 				
-				if ( fabs ( gamma_inc - rn ) <= min ( tol, tol * rn ) ) {
+				if ( fabs ( gamma_inc - rn ) <= min ( TOL, TOL * rn ) ) {
 
 					arg = arg + log ( gamma_inc );
 
-					if ( exp_arg_min <= arg ) {
+					if ( EXP_ARG_MIN <= arg ) {
 						gamma_inc = 1.0E+00 - exp ( arg );
 					}
 					else {
@@ -1326,11 +1326,11 @@ double gamma_inc ( double p, double x ) {
 			pn4 = pn6;
 
 			//  Rescale terms in continued fraction if terms are large.
-			if ( overflow <= fabs ( pn5 ) ) {
-				pn1 = pn1 / overflow;
-				pn2 = pn2 / overflow;
-				pn3 = pn3 / overflow;
-				pn4 = pn4 / overflow;
+			if ( L_OVERFLOW <= fabs ( pn5 ) ) {
+				pn1 = pn1 / L_OVERFLOW;
+				pn2 = pn2 / L_OVERFLOW;
+				pn3 = pn3 / L_OVERFLOW;
+				pn4 = pn4 / L_OVERFLOW;
 			}
 		} 
 	}
@@ -1389,9 +1389,9 @@ double gamma_cdf_inv(double p, double alpha, double scale) {
 
 	const double EPS1    = 1.0e-2;
 	const double EPS2    = 5.0e-7;
-	const double pMIN    = 1.0e-25;
-	const double pMAX    = (1-1e-14) ;
-	const double pNEGinf = -10e34;
+	const double PMIN    = 1.0e-25;
+	const double PMAX    = (1-1e-14) ;
+	const double PNEGINF = -10e34;
 	const int MAXIT = 1000;
 	
 	int i;
@@ -1406,7 +1406,7 @@ double gamma_cdf_inv(double p, double alpha, double scale) {
 	// Phase I : Starting Approximation
 	ch = qchisq_appr(p, 2.0 * alpha, g, EPS1);
 
-        if ((ch < EPS2) || (p > pMAX) || (p < pMIN) )
+        if ((ch < EPS2) || (p > PMAX) || (p < PMIN) )
 		return gamma_cdf_inv = 0;
 	
 	// Phase II: Iteration
@@ -1423,7 +1423,7 @@ double gamma_cdf_inv(double p, double alpha, double scale) {
 		p2 = gamma_cdf(p1 * scale, (double)0., scale, alpha);
 		p2 = p - p2;
 
-		if ((p2 < pNEGinf) || ch <= 0.0) {
+		if ((p2 < PNEGINF) || ch <= 0.0) {
 			ch = ch0;
 			break;
 		}
@@ -1498,11 +1498,11 @@ double r8_gamma ( double x ) {
 		-2.777777777777681622553E-03, 
 		8.333333333333333331554247E-02, 
 		5.7083835261E-03 };
-        const double eps = 2.22E-16;
+        const double L_EPS = 2.22E-16;
 	double fact;
-        const double half = 0.5E+00;
+        const double HALF = 0.5E+00;
 	int n;
-        const double one = 1.0E+00;
+        const double ONE = 1.0E+00;
 	double p[8] = {
 		-1.71618513886549492533811E+00,
 		2.47656508055759199108314E+01,
@@ -1522,13 +1522,13 @@ double r8_gamma ( double x ) {
 		4.75584627752788110767815E+03,
 		-1.34659959864969306392456E+05,
 		-1.15132259675553483497211E+05 };
-        const double pi = 3.1415926535897932384626434E+00;
-        const double sqrtpi = 0.9189385332046727417803297E+00;
-        const double twelve = 12.0E+00;
-        const double two    = 2.0E+00;
-        const double xbig   = 171.624E+00;
-        const double xinf   = 1.0E+30;
-        const double xminin = 2.23E-308;
+        const double PI = 3.1415926535897932384626434E+00;
+        const double SQRTPI = 0.9189385332046727417803297E+00;
+        const double TWELVE = 12.0E+00;
+        const double TWO    = 2.0E+00;
+        const double XBIG   = 171.624E+00;
+        const double XINF   = 1.0E+30;
+        const double XMININ = 2.23E-308;
 	double res;
 	double sum;
 	double xden;
@@ -1537,56 +1537,56 @@ double r8_gamma ( double x ) {
 	double y1;
 	double ysq;
 	double z;
-        const double zero = 0.0E+00;
+        const double ZERO = 0.0E+00;
 
 	double r8_gamma = 0.;
 	
-        fact = one;
+        fact = ONE;
 	n = 0;
 	y = x;
 
 	//  Argument is negative.
-        if ( y <= zero ) {
+        if ( y <= ZERO ) {
 
 		y = - x;
 		y1 = (int) y;
 		res = y - y1;
-		if ( res != zero ){
+		if ( res != ZERO ){
 
-			if ( y1 != (int) ( y1 * half ) * two ) {
+			if ( y1 != (int) ( y1 * HALF ) * TWO ) {
 				parity = true;
 			}
-			fact = - pi / sin ( pi * res );
-			y = y + one;
+			fact = - PI / sin ( PI * res );
+			y = y + ONE;
 		}
 		else {
-			res = xinf;
+			res = XINF;
 			r8_gamma = res;
 			return r8_gamma;
 		}
 	}
 
 	//  Argument is positive.
-        if ( y < eps ) {
+        if ( y < L_EPS ) {
 
 		//  Argument < EPS.
-		if ( xminin <= y ) {
-			res = one / y;
+		if ( XMININ <= y ) {
+			res = ONE / y;
 		}
 		else {
-			res = xinf;
+			res = XINF;
 			r8_gamma = res;
 			return r8_gamma;
 		}
 	}
-        else if ( y < twelve ) {
+        else if ( y < TWELVE ) {
 
 		y1 = y;
 
 		//  0.0 < argument < 1.0.
-		if ( y < one ) {
+		if ( y < ONE ) {
 			z = y;
-			y = y + one;
+			y = y + ONE;
 		}
 		//  1.0 < argument < 12.0.
 		//  Reduce argument if necessary.
@@ -1594,18 +1594,18 @@ double r8_gamma ( double x ) {
 
 			n = int( y ) - 1;
 			y = y - (double) n;
-			z = y - one;
+			z = y - ONE;
 		}
 
 		//  Evaluate approximation for 1.0 < argument < 2.0.
-		xnum = zero;
-		xden = one;
+		xnum = ZERO;
+		xden = ONE;
 		for(int i=0; i<8; i++) {
 			xnum = ( xnum + p[i] ) * z;
 			xden = xden * z + q[i];
 		}
 
-		res = xnum / xden + one;
+		res = xnum / xden + ONE;
 
 		//  Adjust result for case  0.0 < argument < 1.0.
 		if ( y1 < y ) {
@@ -1615,25 +1615,25 @@ double r8_gamma ( double x ) {
 		else if ( y < y1 ) {
 			for(int i=0; i<n; i++) {
 				res = res * y;
-				y = y + one;
+				y = y + ONE;
 			}
 		}
 	}
 	else {
 		//  Evaluate for 12.0 <= argument.
-		if ( y <= xbig ) {
+		if ( y <= XBIG ) {
 
 			ysq = y * y;
 			sum = c[6];
  			for(int i=0; i<6; i++) {
 				sum = sum / ysq + c[i];
 			}
-			sum = sum / y - y + sqrtpi;
-			sum = sum + ( y - half ) * log ( y );
+			sum = sum / y - y + SQRTPI;
+			sum = sum + ( y - HALF ) * log ( y );
 			res = exp ( sum );
 		}
 		else {
-			res = xinf;
+			res = XINF;
 			r8_gamma = res;
 			return r8_gamma;
 		}
@@ -1644,7 +1644,7 @@ double r8_gamma ( double x ) {
 		res = - res;
 	}
 
-        if ( fact != one ) {
+        if ( fact != ONE ) {
 		res = fact / res;
 	}
 	r8_gamma = res;
@@ -1706,7 +1706,7 @@ void rmsmooth(int lm,int rm, double *m,int *dmonth,double bcond[2], double *m_cu
 	//  r      : result vector of values at chosen time step
 
 	//parameters
-        double const ot = 1. / 3.;
+        double const OT = 1. / 3.;
 
 	//local variables
 	int g[100];	
@@ -1739,10 +1739,10 @@ void rmsmooth(int lm,int rm, double *m,int *dmonth,double bcond[2], double *m_cu
 	// iteratively smooth and correct the result to preserve the mean
 	for (i=0;i<ni;i++) {
 		for (j=1;j<ni-1;j++) {
-			r[j] = ot * (r[j-1] + r[j] + r[j+1]);   //Eqn. 1
+			r[j] = OT * (r[j-1] + r[j] + r[j+1]);   //Eqn. 1
 		}
-		r[0]    = ot * (bc[0]  + r[0]  +  r[1]);        //Eqns.2
-		r[ni-1] = ot * (r[ni-2] + r[ni-1] + bc[1]);
+		r[0]    = OT * (bc[0]  + r[0]  +  r[1]);        //Eqns.2
+		r[ni-1] = OT * (r[ni-2] + r[ni-1] + bc[1]);
 
 		j=0;
 		for (int k=lm;k<=rm;k++) {      // calculate one correction factor per super-timestep
@@ -1784,13 +1784,13 @@ void init_weathergen(GWGen& gwgen, WeatherGen& rndst) {
 	for (int i=0;i<4;i++) {
 		gwgen.resid[i] = 0.;
 	}
-        for (int i=0;i<qsiz;i++) {
+        for (int i=0;i<QSIZ;i++) {
 		rndst.q[i] = 0;
 	}
 	rndst.carry =       362;
 	rndst.xcng  =   1236789;
 	rndst.xs    = 521288629; //default seed
-        rndst.indx  = qsiz+1;
+        rndst.indx  = QSIZ+1;
 	rndst.have  = false;
 	for (int i=0;i<2;i++) {
 		rndst.gamma_vals[i] = 0.; 
@@ -2124,11 +2124,11 @@ void gwgen_get_daily_met(GWGen& gwgen, WeatherGen& rndst) {
 		wind = gwgen.dwind * 0.1;
 	}
 
-        if (tmin+Tfreeze < 0.) {
+        if (tmin+TFREEZE < 0.) {
 		printf("Unphysical min. temperature with %f K from a monthly mean %f degC with bias correction %f K for residual %f", tmin, gwgen.dmtmin_mn,tmin_bias,gwgen.resid[0]);
 		exit(-1);
 	}
-	else if (tmax+Tfreeze < 0.) {
+	else if (tmax+TFREEZE < 0.) {
 		printf("Unphysical max. temperature with %f K from a monthly mean %f degC",tmax, gwgen.dmtmax_mn);
 		exit(-1);
 	}
@@ -2202,13 +2202,13 @@ double get_arden_rh(double T_avg, double T_dew) {
 	// output
 	// relhum: estimated daily mean relative humidity [fract.]
 
-	const double b = 18.678;
-	const double c = 257.14; // °C
-	const double d = 234.5 ; // °C
+	const double B = 18.678;
+	const double C = 257.14; // °C
+	const double D = 234.5 ; // °C
 
-        double A = b * T_dew / (c + T_dew);
-        double B = ( b - T_avg/d )* T_avg / (c + T_avg);
-        double relhum = min(1.,max(0., exp(A - B)));
+        double rh1 = B * T_dew / (C + T_dew);
+        double rh2 = ( B - T_avg/D )* T_avg / (C + T_avg);
+        double relhum = min(1.,max(0., exp(rh1 - rh2)));
 	return relhum;
 }
 
@@ -2509,7 +2509,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 
 				// after max amount of iterations is reached take 
 				// best set of data so far 
-				if (i_count==maxcount) {
+				if (i_count==MAXITER) {
 					for ( int day=0; day<ndaymon; day++) {
 						dprec[day]= dprec_sav[day];
 						dtmin[day]= dtmin_sav[day];
@@ -2521,7 +2521,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 				}
 			}
 			i_count++;
-		} while ( i_count <= maxcount ); // 10000000 );
+		} while ( i_count <= MAXITER ); // 10000000 );
 
 		// Enforce conservation by scaling with monthly averages 
 

@@ -1329,29 +1329,29 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		vmaxnlim_gridcell /= cmass_leaf_gridcell;
 	}
 
-	outlimit(out,out_cmass,  cmass_gridcell);
-	outlimit(out,out_anpp,   anpp_gridcell);
-	outlimit(out,out_agpp,   agpp_gridcell);
-	outlimit(out,out_fpc,    fpc_gridcell);
-	outlimit(out,out_aaet,   aaet_gridcell);
-	outlimit(out,out_dens,   dens_gridcell);
-	outlimit(out,out_lai,    lai_gridcell);
-	outlimit(out,out_clitter,clitter_gridcell);
-	outlimit(out,out_aburntarea,      gridcell.climate.annual_areaburnt);
-	outlimit(out,out_simfireanalysis, gridcell.climate.simfire_biome);
-	outlimit(out,out_simfireanalysis, gridcell.climate.max_nesterov);
-	outlimit(out,out_simfireanalysis, gridcell.pop_density);
-	outlimit(out,out_simfireanalysis, gridcell.simfire_region);
-	outlimit(out,out_firert, firert_gridcell);
-	outlimit(out,out_firert, burntarea_gridcell);
-	outlimit(out,out_runoff, surfrunoff_gridcell);
-	outlimit(out,out_runoff, drainrunoff_gridcell);
-	outlimit(out,out_runoff, baserunoff_gridcell);
-	outlimit(out,out_runoff, runoff_gridcell);
-	outlimit(out,out_wetland_water_added, wetland_water_added_gridcell);
+	outlimit(out,out_cmass,					cmass_gridcell);
+	outlimit(out,out_anpp,					anpp_gridcell);
+	outlimit(out,out_agpp,					agpp_gridcell);
+	outlimit(out,out_fpc,					fpc_gridcell);
+	outlimit(out,out_aaet,					aaet_gridcell);
+	outlimit(out,out_dens,					dens_gridcell);
+	outlimit(out,out_lai,					lai_gridcell);
+	outlimit(out,out_clitter,				clitter_gridcell);
+	outlimit(out,out_aburntarea,			gridcell.climate.annual_areaburnt);
+	outlimit(out,out_simfireanalysis,		gridcell.climate.simfire_biome);
+	outlimit(out,out_simfireanalysis,		gridcell.climate.max_nesterov);
+	outlimit(out,out_simfireanalysis,		gridcell.pop_density);
+	outlimit(out,out_simfireanalysis,		gridcell.simfire_region);
+	outlimit(out,out_firert,				firert_gridcell);
+	outlimit(out,out_firert,				burntarea_gridcell);
+	outlimit(out,out_runoff,				surfrunoff_gridcell);
+	outlimit(out,out_runoff,				drainrunoff_gridcell);
+	outlimit(out,out_runoff,				baserunoff_gridcell);
+	outlimit(out,out_runoff,				runoff_gridcell);
+	outlimit(out,out_wetland_water_added,	wetland_water_added_gridcell);
 	
-	outlimit(out,out_aiso,   aiso_gridcell);
-	outlimit(out,out_amon,   amon_gridcell);
+	outlimit(out,out_aiso,		aiso_gridcell);
+	outlimit(out,out_amon,		amon_gridcell);
 	outlimit(out,out_amon_mt1,  amon_mt1_gridcell);
 	outlimit(out,out_amon_mt2,  amon_mt2_gridcell);
 

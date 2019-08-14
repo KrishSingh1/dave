@@ -717,7 +717,9 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 	//   (4) leaf_area = cmass_leaf * sla
 	// mort_shade = mortality due to shading ("self thinning") as total tree cover
 	//   approaches 1 (see code)
-	// mort_fire = mortality due to fire; the fraction of the modelled area affected by
+	// mort_fire = mortality due to fire when using fire model GLOBFIRM. 
+	//   Fire model BLAZE handles fire mortality separately. See blaze.cpp.
+	//   the fraction of the modelled area affected by
 	//   fire (fireprob) is calculated in function fire; actual mortality is influenced
 	//   by PFT-specific resistance to burning (see code).
 	//
@@ -844,7 +846,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			else
 				mort_shade=0.0;
 
-			// Mortality due to fire
+			// Mortality due to fire when using fire model GLOBFIRM (BLAZE handles it separately)
 			if (patch.has_fires() && firemodel == GLOBFIRM) {
 				mort_fire=fireprob*(1.0-indiv.pft.fireresist);
 			}

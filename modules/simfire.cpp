@@ -253,13 +253,13 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 	*/
 
     // number of entries for Population data
-	const int NPOPT = 57;
+	const int NPOPENTRIES = 57;
 	// years at which population-data is available in HYDE3.1
-	const int POPTIME[NPOPT]  = {-10000,-9000,-8000,-7000,-6000,-5000,-4000,-3000,-2000,-1000,0,
-				    100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,
-				    1500,1600,1700,1710,1720,1730,1740,1750,1760,1780,1790,1810,
-				    1820,1830,1840,1850,1860,1870,1880,1890,1900,1910,1920,1930,
-				    1940,1950,1960,1970,1980,1990,2000,2005};
+	const int POPTIME[NPOPENTRIES]  = {-10000,-9000,-8000,-7000,-6000,-5000,-4000,-3000,-2000,-1000,0,
+		100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,
+		1500,1600,1700,1710,1720,1730,1740,1750,1760,1780,1790,1810,
+		1820,1830,1840,1850,1860,1870,1880,1890,1900,1910,1920,1930,
+		1940,1950,1960,1970,1980,1990,2000,2005};
 	// get calendar-year
 	int cyear = date.get_calendar_year();
 
@@ -271,14 +271,14 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 		// use first year's value (10000 BC) for earlier years.
 		popd = gridcell.hyde31_pop_density[0];
 	}
-	else if ( cyear >= POPTIME[NPOPT-1] ) {
+	else if ( cyear >= POPTIME[NPOPENTRIES-1] ) {
 		// linearly extrapolate latest growth/decline
-		popd = gridcell.hyde31_pop_density[NPOPT-1] + 
-			(gridcell.hyde31_pop_density[NPOPT-1]-gridcell.hyde31_pop_density[NPOPT-2]) /
-			(double)(POPTIME[NPOPT-1] - POPTIME[NPOPT-2]) * (double)(cyear-POPTIME[NPOPT-1]);
+		popd = gridcell.hyde31_pop_density[NPOPENTRIES-1] + 
+			(gridcell.hyde31_pop_density[NPOPENTRIES-1]-gridcell.hyde31_pop_density[NPOPENTRIES-2]) /
+			(double)(POPTIME[NPOPENTRIES-1] - POPTIME[NPOPENTRIES-2]) * (double)(cyear-POPTIME[NPOPENTRIES-1]);
 	}
 	else {
-        // interpolate between two entries
+	// interpolate between two entries
 		double interpf = (double)(cyear-POPTIME[idx-1]) /
 			(double)( POPTIME[idx]-POPTIME[idx-1] );
 		popd = (1. - interpf) * gridcell.hyde31_pop_density[idx-1] + 
@@ -357,7 +357,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	}
 
 	// update running Maximum Nesterov index array at beginning of month  
-        if ( date.dayofmonth == 0 ) {
+	if ( date.dayofmonth == 0 ) {
 		double mnest = 0.;
 		for ( int i=0; i<12; i++) 
 			if ( climate.monthly_max_nesterov[i] > mnest )
@@ -367,7 +367,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	}
 
 	// update current month's Maximum Nesterov index
-        if (  climate.monthly_max_nesterov[date.month] < climate.cur_nesterov )
+	if (  climate.monthly_max_nesterov[date.month] < climate.cur_nesterov )
 		climate.monthly_max_nesterov[date.month] = climate.cur_nesterov;
 
 	// PATCHLOOP FOR fpar

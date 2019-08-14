@@ -38,13 +38,13 @@
 const double TURNOVERFRACT[13][5] = {
 	{ .0 , .0 , .05, .2 , .2 }, //   0 Stems       -> ATM
 	{ .0 , .0 , .15, .2 , .2 }, //   1 Branches    -> ATM
-        { .03, .13, .25, .5 , .5 }, //   2 Bark        -> ATM
-        { .02, .05, .1 , .6 , .6 }, //   3 Leaves      -> ATM
-        { .0 , .0 , .05, .2 , .8 }, //   4 Stems       -> Litter (DWD) !corrected*
-        { .0 , .02, .07, .2 , .8 }, //   5 Branches    -> Litter (CWD) !corrected*
-        { .03, .13, .25, .5 , .5 }, //   6 Bark        -> Litter (str)
-        { .05, .1 , .15, .3 , .4 }, //   7 Leaves      -> Litter (str)
-        { .0 , .02, .02, .04, .04}, //   8 FDEAD roots -> ATM
+	{ .03, .13, .25, .5 , .5 }, //   2 Bark	-> ATM
+	{ .02, .05, .1 , .6 , .6 }, //   3 Leaves      -> ATM
+	{ .0 , .0 , .05, .2 , .8 }, //   4 Stems       -> Litter (DWD) !corrected*
+	{ .0 , .02, .07, .2 , .8 }, //   5 Branches    -> Litter (CWD) !corrected*
+	{ .03, .13, .25, .5 , .5 }, //   6 Bark        -> Litter (str)
+	{ .05, .1 , .15, .3 , .4 }, //   7 Leaves      -> Litter (str)
+	{ .0 , .02, .02, .04, .04}, //   8 FDEAD roots -> ATM
 	{ .5 , .75, .75, .8 , .8 }, //   9 CWD         -> ATM
 	{ .6 , .65, .85, 1. , 1. }, //  10 Bark Litter -> ATM
 	{ .6 , .65, .85, 1. , 1. }, //  11 Leaf Litter -> ATM*
@@ -81,20 +81,20 @@ void report_fire_flux_n(Patch& patch, double nflux_fire) {
 double pixelsize(double latpos,double longsize,double latsize,int postype) {
 
 	// taken from aslice.cpp in the utilities 
-        // Returns area in square km of a pixel of a given size at a given point
-        // on the world.  The formula applied is the surface area of a segment of
-        // a hemisphere of radius r from the equator to a parallel (circular)
-        // plane h vertical units towards the pole: S=2*pi*r*h
-        // latpos    latitude position (see postype)
-        // longsize  longitude range in degrees
-        // latsize   latitude range in degrees
-        // postype   declares which part of the pixel latpos
-        //           refer to:
-        //           0 = centre
-        //           1 = NW corner
-        //           2 = NE corner
-        //           3 = SW corner
-        //           4 = SE corner
+	// Returns area in square km of a pixel of a given size at a given point
+	// on the world.  The formula applied is the surface area of a segment of
+	// a hemisphere of radius r from the equator to a parallel (circular)
+	// plane h vertical units towards the pole: S=2*pi*r*h
+	// latpos    latitude position (see postype)
+	// longsize  longitude range in degrees
+	// latsize   latitude range in degrees
+	// postype   declares which part of the pixel latpos
+	//           refer to:
+	//           0 = centre
+	//           1 = NW corner
+	//           2 = NE corner
+	//           3 = SW corner
+	//           4 = SE corner
 
 	double pi,r,h1,h2,lattop,latbot,s;
       
@@ -123,8 +123,8 @@ void get_combustion_rates(Patch& patch, int fli_index, double k_tun_litter) {
 
 	// relative fluxes from wood to atmosphere and litter pools
 	patch.wood2atm = (1.-FBRANCH-FBARK) * TURNOVERFRACT[ 0][fli_index] +
-		         FBRANCH            * TURNOVERFRACT[ 1][fli_index] +
-		         FBARK              * TURNOVERFRACT[ 2][fli_index];
+			 FBRANCH            * TURNOVERFRACT[ 1][fli_index] +
+			 FBARK              * TURNOVERFRACT[ 2][fli_index];
 	patch.wood2str = FBARK              * TURNOVERFRACT[ 6][fli_index];
 	patch.wood2fwd = FBRANCH            * TURNOVERFRACT[ 5][fli_index];
 	patch.wood2cwd = (1.-FBRANCH-FBARK) * TURNOVERFRACT[ 4][fli_index];
@@ -143,7 +143,7 @@ void get_combustion_rates(Patch& patch, int fli_index, double k_tun_litter) {
 int get_fli_index(double fli, bool is_sprouter) {
 
 	/* Called by:  get_firelineintensity (local)
-	               get_combustion_rates (local)
+		       get_combustion_rates (local)
 	   Calls    :  -
 	   get appropriate FLI category for look-up tables 
 	   depending on computed potential FLI the index corresponding to the entries in 
@@ -177,7 +177,7 @@ int get_fli_index(double fli, bool is_sprouter) {
 double available_fuel (Patch& patch,int fli_index, double k_tun_litter)  {
 			
 	/* Called by:  get_firelineintensity (local)
-	               blaze_account_gridcell (local)
+		       blaze_account_gridcell (local)
  	   Calls    :  get_combustion_rates (local)
 	   compute the amount of fuel that is readily available 
 	   for burning 
@@ -223,7 +223,7 @@ void get_fireline_intensity(Patch& patch, Climate& climate) {
 	
 	/* Called by:  blaze (local)
 	   Calls    :  available_fuel (local)
-	               get_fli_index (local)
+		       get_fli_index (local)
 	   compute potential fire-line intensity under given
 	   met and fuel conditions. Formulation following Noble 1980 derived from McArthur.
 	*/
@@ -291,7 +291,6 @@ double surv_prob_temp_nl(double dbh, double fli, double mass_cwd) {
 		p_surv = 1. - (1./(1.+ exp(-(1.0337 + 0.000151*fli
 						- .221*cdbh + .0219*con1000))));
 	}
-        
 	return p_surv;
 }
 
@@ -528,7 +527,7 @@ void blaze(Patch& patch, Climate& climate) {
 
 	/* Called by: blaze_driver (local)
 	   Calls    : survival_probability (local)
-	              get_combustion_rates (local)
+		      get_combustion_rates (local)
 		      indiv.blaze_reduce_biomass (local)
 		      randfrac (driver.cpp)
 		      vegetation.<obj-functions> (guess.h)
@@ -784,7 +783,7 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 
 	/* Called by: blaze (local)
 	   Calls    : lignin_to_n_ratio (somdynam.cpp)
-	              metabolic_litter_fraction (somdynam.cpp)
+		      metabolic_litter_fraction (somdynam.cpp)
 	   Applies the fluxes computed in blaze on the class::Individual
 	   level affecting the live pools, transitional 
 	   litter pools and influx to CENTURY litter pools.
@@ -1075,7 +1074,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 			climate.k_tun_litter = K_TUN_TRP_LIT;
 		}
 	}
-             
+
 	// Keep track of Days-since-last-rainfall and accumulated last rainfall
 	if (climate.prec > 0.01) {
 		if (climate.dslr > 0) {
@@ -1175,7 +1174,7 @@ void blaze_driver(Patch& patch, Climate& climate) {
 	/* Called by: simulate_day (framework.cpp)
 	   Calls    : get_firelineintensity (local)
 		      blaze (local)
-           This is the driver routine for BLAZE. It does patch-wise accounting 
+	   This is the driver routine for BLAZE. It does patch-wise accounting 
 	   and calls the main blaze routine
 	*/
 

@@ -2278,7 +2278,6 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 	}
 
 	bool lreset = true;
-	
 	int i_count = 1;
 	// initially populate cloud params 
 	if ( is_first_day ) {
@@ -2347,9 +2346,6 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		else if ( mon == 11 ) { 
 			irm = 1;
 		}
-
-		int ld = accumday;
-//CLN		int rd = ld + date.ndaymonth[mon];
 
 		double bcond[2];
 		double tmvals[3];

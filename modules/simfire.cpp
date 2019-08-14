@@ -181,11 +181,11 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 	int biome;
 	int count_max=0; // maximum of 'count'
 	// find and save most common biome number
-	for (biome=0;biome<NFIREBIOMES;biome++) count[biome]=0;
+	for (biome=0; biome<NFIREBIOMES; biome++) count[biome]=0;
 	for (int idx = 0; idx < biomes.size(); idx++) {
 		count[biomes[idx]]++;
 	}
-	for (biome=0;biome<NFIREBIOMES;biome++) {
+	for (biome=0; biome<NFIREBIOMES; biome++) {
 		count_max=max(count_max, count[biome]);
 	}
 
@@ -401,7 +401,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	run_fapar /= (double) cnt;
 
 	// update the this years maximum
-	climate.cur_max_fapar = fmax(run_fapar, climate.cur_max_fapar);
+	climate.cur_max_fapar = max(run_fapar, climate.cur_max_fapar);
 
 	// compute running Nesterov index
 	if ( climate.prec >= 3. || climate.tmax - climate.tmin < 4. ) {

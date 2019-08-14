@@ -393,15 +393,6 @@ void outlimit_misc(OutputRows& out, const Table& table, double d) {
   */
 void MiscOutput::outannual(Gridcell& gridcell) {
 
-	if (date.year < nyear_spinup) {
-		if(printseparatestands)
-			closelocalfiles(gridcell);
-		return;
-	}
-
-	if(printseparatestands)
-		openlocalfiles(gridcell);
-
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
 
@@ -542,6 +533,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			standpft_nlitter/=(double)stand.npatch();
 			standpft_anpp/=(double)stand.npatch();
 			standpft_densindiv_total/=(double)stand.npatch();
+			standpft_yield/=(double)stand.npatch();
+			standpft_yield1/=(double)stand.npatch();
+			standpft_yield2/=(double)stand.npatch();
 
 			//Update landcover totals
 			landcover_cmass[stand.landcover]+=standpft_cmass*stand.get_landcover_fraction();
@@ -551,15 +545,17 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			landcover_anpp[stand.landcover]+=standpft_anpp*stand.get_landcover_fraction();
 			landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.get_landcover_fraction();
 
-			//Update pft means for active stands
-			mean_standpft_yield += standpft_yield * stand.get_gridcell_fraction() / active_fraction;
-			mean_standpft_yield1 += standpft_yield1 * stand.get_gridcell_fraction() / active_fraction;
-			mean_standpft_yield2 += standpft_yield2 * stand.get_gridcell_fraction() / active_fraction;
+			if(active_fraction) {
+				//Update pft means for active stands
+				mean_standpft_yield += standpft_yield * stand.get_gridcell_fraction() / active_fraction;
+				mean_standpft_yield1 += standpft_yield1 * stand.get_gridcell_fraction() / active_fraction;
+				mean_standpft_yield2 += standpft_yield2 * stand.get_gridcell_fraction() / active_fraction;
 
-			//Update pft mean for active stands in landcover
-			mean_standpft_anpp_lc[stand.landcover] += standpft_anpp * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
-			mean_standpft_cmass_lc[stand.landcover] += standpft_cmass * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
-			mean_standpft_densindiv_total_lc[stand.landcover] += standpft_densindiv_total * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
+				//Update pft mean for active stands in landcover
+				mean_standpft_anpp_lc[stand.landcover] += standpft_anpp * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
+				mean_standpft_cmass_lc[stand.landcover] += standpft_cmass * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
+				mean_standpft_densindiv_total_lc[stand.landcover] += standpft_densindiv_total * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
+			}
 
 			//Update stand totals
 			stand.anpp += standpft_anpp;
@@ -572,20 +568,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				if(stand.id >= MAXNUMBER_STANDS)
 					fail("Number of stands to high, increase MAXNUMBER_STANDS for output of individual stands !\n");
 
-				if (stand.landcover == NATURAL) {
-
-					if (!out_anpp_stand_natural[id].invalid())
-						outlimit_misc(out, out_anpp_stand_natural[id],      standpft_anpp);
-					if (!out_cmass_stand_natural[id].invalid())
-						outlimit_misc(out, out_cmass_stand_natural[id],      standpft_cmass);
-				}
-				else if (stand.landcover == FOREST) {
-
-					if (!out_anpp_stand_forest[id].invalid())
-						outlimit_misc(out, out_anpp_stand_forest[id],      standpft_anpp);
-					if (!out_cmass_stand_forest[id].invalid())
-						outlimit_misc(out, out_cmass_stand_forest[id],      standpft_cmass);
-				}
+				if(!out_anpp_stand[id][stand.stid].invalid())
+					out.add_value(out_anpp_stand[id][stand.stid],      standpft_anpp);
+				if(!out_cmass_stand[id][stand.stid].invalid())
+					out.add_value(out_cmass_stand[id][stand.stid],      standpft_cmass);
 			}
 
 			++gc_itr;
@@ -823,20 +809,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			Stand& stand = *gc_itr;
 			int id = stand.id;;
 
-			if (stand.landcover==NATURAL) {
-
-				if (!out_anpp_stand_natural[id].invalid())
-					outlimit_misc(out, out_anpp_stand_natural[id],   stand.anpp);
-				if (!out_cmass_stand_natural[id].invalid())
-					outlimit_misc(out, out_cmass_stand_natural[id],  stand.cmass);
-			}
-			else if (stand.landcover == FOREST) {
-
-				if (!out_anpp_stand_forest[id].invalid())
-					outlimit_misc(out, out_anpp_stand_forest[id],    stand.anpp);
-				if (!out_cmass_stand_forest[id].invalid())
-					outlimit_misc(out, out_cmass_stand_forest[id],   stand.cmass);
-			}
+			if(!out_anpp_stand[id][stand.stid].invalid())
+				out.add_value(out_anpp_stand[id][stand.stid],      stand.anpp);
+			if(!out_cmass_stand[id][stand.stid].invalid())
+				out.add_value(out_cmass_stand[id][stand.stid],      stand.cmass);
 
 			++gc_itr;
 		}
@@ -1183,11 +1159,22 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 	if(!printseparatestands)
 		return;
 
-	bool open_natural = false;
-	bool open_forest = false;
+	if (!date.year) {
+		for(int id=0;id<MAXNUMBER_STANDS;id++) {
+			out_anpp_stand[id] = new Table[nst];
+			out_cmass_stand[id] = new Table[nst];
+		}
+	}
+
+	if(date.year < nyear_spinup)
+		return;
+
+	bool open[NLANDCOVERTYPES];
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
 
+	for(int i=0;i<NLANDCOVERTYPES;i++)
+		open[i] = false;
 
 	Gridcell::iterator gc_itr = gridcell.begin();
 
@@ -1200,10 +1187,10 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 
 		if(stand.first_year == date.year || stand.clone_year == date.year) {
 			if(stand.landcover == NATURAL) {
-				open_natural = true;
+				open[NATURAL] = true;
 			}
 			else if(stand.landcover == FOREST) {
-				open_forest = true;
+				open[FOREST] = true;
 			}
 		}
 
@@ -1211,22 +1198,23 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 	}
 
 	if(PRINTFIRSTSTANDFROM1901 && date.year == nyear_spinup) {
-		open_natural = true;
-		open_forest = true;
+		open[NATURAL] = true;
+		open[FOREST] = true;
 	}
 
-	if(open_natural || open_forest) {
+	if(open[NATURAL] || open[FOREST]) {
 
 		gc_itr = gridcell.begin();
 
 		while (gc_itr != gridcell.end()) {
 
 			Stand& stand = *gc_itr;
+			StandType& st = stlist[stand.stid];
 
 			int id = stand.id;
 			char outfilename[100]={'\0'}, buffer[50]={'\0'};
 
-			sprintf(buffer, "%.1f_%.1f_%d",lon, lat, id);
+			sprintf(buffer, "_%.1f_%.1f_%d",lon, lat, id);
 			strcat(buffer, ".out");
 
 			// create a vector with the pft names
@@ -1247,35 +1235,22 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell) {
 			anpp_columns += ColumnDescriptors(pfts,               8, 3);
 			anpp_columns += ColumnDescriptor("Total",             8, 3);
 
-			if(open_natural && stand.landcover == NATURAL) {
+			if(open[stand.landcover]) {
 
-				strcpy(outfilename, "anpp_natural_");
+				strcpy(outfilename, "anpp_");
+				strcat(outfilename, (char*)st.name);
 				strcat(outfilename, buffer);
 
-				if(out_anpp_stand_natural[id].invalid())
-					create_output_table(out_anpp_stand_natural[id], outfilename, anpp_columns);
+				if(out_anpp_stand[id][stand.stid].invalid())
+					create_output_table(out_anpp_stand[id][stand.stid], outfilename, anpp_columns);
 
 				outfilename[0] = '\0';
-				strcpy(outfilename, "cmass_natural_");
+				strcpy(outfilename, "cmass_");
+				strcat(outfilename, (char*)st.name);
 				strcat(outfilename, buffer);
 
-				if(out_cmass_stand_natural[id].invalid())
-					create_output_table(out_cmass_stand_natural[id], outfilename, anpp_columns);
-			}
-			else if(open_forest && stand.landcover == FOREST) {
-
-				strcpy(outfilename, "anpp_forest_");
-				strcat(outfilename, buffer);
-
-				if(out_anpp_stand_forest[id].invalid())
-					create_output_table(out_anpp_stand_forest[id], outfilename, anpp_columns);
-
-				outfilename[0] = '\0';
-				strcpy(outfilename, "cmass_forest_");
-				strcat(outfilename, buffer);
-
-				if(out_cmass_stand_forest[id].invalid())
-					create_output_table(out_cmass_stand_forest[id], outfilename, anpp_columns);
+				if(out_cmass_stand[id][stand.stid].invalid())
+					create_output_table(out_cmass_stand[id][stand.stid], outfilename, anpp_columns);
 			}
 
 			++gc_itr;
@@ -1290,14 +1265,18 @@ void MiscOutput::closelocalfiles(Gridcell& gridcell) {
 
 	for(int id=0;id<MAXNUMBER_STANDS;id++) {
 
-		if(!out_anpp_stand_natural[id].invalid())
-			close_output_table(out_anpp_stand_natural[id]);
-		if(!out_cmass_stand_natural[id].invalid())
-			close_output_table(out_cmass_stand_natural[id]);
-		if(!out_anpp_stand_forest[id].invalid())
-			close_output_table(out_anpp_stand_forest[id]);
-		if(!out_cmass_stand_forest[id].invalid())
-			close_output_table(out_cmass_stand_forest[id]);
+		for(int st=0;st<nst;st++) {
+			if(!out_anpp_stand[id][st].invalid())
+				close_output_table(out_anpp_stand[id][st]);
+			if(!out_cmass_stand[id][st].invalid())
+				close_output_table(out_cmass_stand[id][st]);
+		}
+	}
+	for(int id=0;id<MAXNUMBER_STANDS;id++) {
+		if(out_anpp_stand[id])
+			delete[] out_anpp_stand[id];
+		if(out_cmass_stand[id])
+			delete[] out_cmass_stand[id];
 	}
 }
 

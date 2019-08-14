@@ -2173,6 +2173,26 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 	bool no_changes = true;
 
+	// Rescale stand fractions so sum is 1
+	stlist.firstobj();
+	while (stlist.isobj) {
+		StandType& st = stlist.getobj();
+		Gridcellst& gcst = gridcell.st[st.id];
+		double frac_sum = 0.0;
+
+		for(unsigned int s=0;s<gridcell.nbr_stands();s++) {
+			Stand& stand = gridcell[s];
+			if(stand.stid == st.id)
+				frac_sum += stand.get_gridcell_fraction();
+		}
+		for(unsigned int s=0;s<gridcell.nbr_stands();s++) {
+			Stand& stand = gridcell[s];
+			if(stand.stid == st.id && frac_sum && gcst.frac)
+				stand.set_gridcell_fraction(stand.get_gridcell_fraction() / (frac_sum / gcst.frac));
+		}
+		stlist.nextobj();
+	}
+
 	// Get new landcover and stand type area fractions from input files, read transition arrays.
 	if(!all_fracs_const) {
 		// this call returns 0, causing this function to return, if no significant landcover changes this year, 

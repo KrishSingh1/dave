@@ -27,7 +27,7 @@ file_doc "doc.out"
 file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
-!file_clitter "clitter.out"
+file_clitter "clitter.out"
 file_aburntarea_out "aburntarea.out"
 file_mburntarea_out "mburntarea.out"
 !file_simfireanalysis_out "simfireanalysis.out"
@@ -222,10 +222,10 @@ group "tree" (
 	nuptoroot 0.0028
 	km_volume 0.000001477
 	pathway "c3"
-	respcoeff 1.0	! utkommenterad hos Thomas !
-	kest_repr 200 	! 200
-	kest_bg 0.1 	! 1 i guess2008
-	kest_pres 1 	! 0 i guess2008
+	respcoeff 1.0
+	kest_repr 200
+	kest_bg 0.1
+	kest_pres 1
 	k_chilla 0
 	k_chillb 100
 	k_chillk 0.05
@@ -238,7 +238,7 @@ group "tree" (
 )
 
 group "shrub" (
-	! Unchanged from species version
+
 	common
 	lifeform "tree"
 	leafphysiognomy "broadleaf"
@@ -249,7 +249,6 @@ group "shrub" (
 	k_allom3 0.67
 	k_rp 1.6
 	wooddens 250
-	!cton_leaf_min 16
 	cton_root 29
 	cton_sap 330
 	nuptoroot 0.0028

@@ -764,11 +764,6 @@ void somfluxes(Patch& patch, bool ifequilsom, bool tillage) {
 		else 
 			soil.dcflux_soil=respsum; 
 
-		// Transfer organic leaching to pool
-
-		soil.sompool[LEACHED].cmass += leachsum_cmass;
-		soil.sompool[LEACHED].nmass += leachsum_nmass;
-
 		// Sum annual organic nitrogen leaching
 
 		soil.aorgNleach += leachsum_nmass;
@@ -1149,7 +1144,6 @@ void leaching(Soil& soil) {
 		double leaching = soil.nmass_avail * minleachfrac;
 		soil.nmass_avail -= leaching;
 		soil.aminleach += leaching;
-		soil.sompool[LEACHED].nmass += leaching;
 	}
 
 	if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {

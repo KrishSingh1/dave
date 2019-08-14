@@ -510,7 +510,7 @@ double Patch::ccont(double scale_indiv, bool luc) {
 	ccont += soil.cpool_fast;
 	ccont += soil.cpool_slow;
 
-	for (int i=0; i<NSOMPOOL-1; i++) {
+	for (int i=0; i<NSOMPOOL; i++) {
 		ccont += soil.sompool[i].cmass;
 	}
 
@@ -546,7 +546,7 @@ double Patch::ncont(double scale_indiv, bool luc) {
 	ncont += soil.nmass_avail;
 	ncont += soil.snowpack_nmass;
 
-	for (int i=0; i<NSOMPOOL-1; i++)
+	for (int i=0; i<NSOMPOOL; i++)
 		ncont += soil.sompool[i].nmass;
 
 	for (int i=0; i<npft; i++) {
@@ -1485,14 +1485,14 @@ double Individual::cton_root(bool use_phen /* = true*/) const {
 	if (!negligible(cmass_root) && !negligible(nmass_root)) {
 		if (use_phen) {
 			if (!negligible(cmass_root_today())) {
-				return cmass_root_today() / nmass_root;
+				return max(pft.cton_root_avr * pft.cton_leaf_min / pft.cton_leaf_avr, cmass_root_today() / nmass_root);
 			}
 			else {
 				return pft.cton_root_avr;
 			}
 		}
 		else {
-			return cmass_root / nmass_root;
+			return max(pft.cton_root_avr * pft.cton_leaf_min / pft.cton_leaf_avr, cmass_root / nmass_root);
 		}
 	}
 	else {
@@ -1504,7 +1504,7 @@ double Individual::cton_sap() const {
 
 	if (pft.lifeform == TREE) {
 		if (!negligible(cmass_sap) && !negligible(nmass_sap))
-			return cmass_sap / nmass_sap;
+			return max(pft.cton_sap_avr * pft.cton_leaf_min / pft.cton_leaf_avr, cmass_sap / nmass_sap);
 		else
 			return pft.cton_sap_max;
 	}
@@ -1763,7 +1763,7 @@ double Individual::check_N_mass() {
 		else {
 			vegetation.patch.stand.get_gridcell().landcover.anflux_landuse_change -= (negative_nmass - pos_nmass) * vegetation.patch.stand.get_gridcell_fraction();
 			nmass_leaf = 0.0;
-			nmass_leaf = 0.0;
+			nmass_root = 0.0;
 			if (cropindiv) {
 				cropindiv->nmass_ho = 0.0;
 				cropindiv->nmass_agpool = 0.0;
@@ -2117,7 +2117,7 @@ void Individual::kill(bool harvest /* = false */) {
 			nharvest_flux += cropindiv->nmass_ho * res_outtake;
 		}
 		else
-			ppft.litter_root+=cropindiv->nmass_ho;
+			ppft.nmass_litter_root+=cropindiv->nmass_ho;
 
 		ppft.nmass_litter_leaf+=cropindiv->nmass_agpool * (1 - res_outtake);
 		nharvest_flux += cropindiv->nmass_agpool * res_outtake;

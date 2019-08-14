@@ -85,7 +85,7 @@ struct landcover_change_transfer {
 			ccont += transfer_harvested_products_slow[i];
 		}
 
-		for(int i=0; i<NSOMPOOL-1; i++)
+		for(int i=0; i<NSOMPOOL; i++)
 			ccont += transfer_sompool[i].cmass;
 
 		return ccont;
@@ -103,7 +103,7 @@ struct landcover_change_transfer {
 			ncont += transfer_harvested_products_slow_nmass[i];
 		}
 
-		for(int i=0; i<NSOMPOOL-1; i++)
+		for(int i=0; i<NSOMPOOL; i++)
 			ncont += transfer_sompool[i].nmass;
 
 		ncont += transfer_nmass_avail;

@@ -172,15 +172,16 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 
 	const double K_EST=0.12; // maximum overall sapling establishment rate (indiv/m2)
 
-	double fpc_tree; // summed fractional cover for tree PFTs
+	double fpc_tree;  // summed fractional cover for tree PFTs
 	double fpc_grass; // summed fractional cover for grass PFTs
-	double est_tree;
-		// overall establishment rate for trees on modelled area basis (indiv/m2)
+	double est_tree;  // overall establishment rate for trees on modelled area basis (indiv/m2)
+
+	// Establishment rate for a particular PFT on modelled area basis (for trees,
+	// indiv/m2; for grasses, fraction of modelled area colonised)
 	double est_pft;
-		// establishment rate for a particular PFT on modelled area basis (for trees,
-		// indiv/m2; for grasses, fraction of modelled area colonised)
-	int ntree_est; // number of establishing tree PFTs
-	int ngrass_est; // number of establishing grass PFTs
+
+	int ntree_est;	  // number of establishing tree PFTs
+	int ngrass_est;	  // number of establishing grass PFTs
 	bool present;
 
 	// Obtain reference to Vegetation object
@@ -399,16 +400,17 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	// establishment disabled, a cohort representing exactly 'est' individuals (may be
 	// not-integral) is established.
 
+	// Coefficient in calculation of initial sapling size and initial
+	// grass biomass (see comment above)
 	const double SAPSIZE=0.1;
-		// coefficient in calculation of initial sapling size and initial
-		// grass biomass (see comment above)
 
 	bool present; // whether PFT already present in this patch
 	double c; // constant in equation for number of new saplings (Eqn 5)
 	double est; // expected number of new saplings for PFT in this patch
+
+	// Actual number of new saplings for PFT in this patch (may include a
+	// fractional part in cohort mode with stochastic establishment disabled)
 	double nsapling;
-		// actual number of new saplings for PFT in this patch (may include a
-		// fractional part in cohort mode with stochastic establishment disabled)
 	double bminit; // initial sapling biomass (kgC) or new grass biomass (kgC/m2)
 	double ltor; // leaf to fine root mass ratio for new saplings or grass
 	int newindiv; // number of new Individual objects to add to vegetation for this PFT
@@ -726,24 +728,26 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 	// INPUT PARAMETER
 	// fireprob = fraction of modelled area affected by fire
 
-	const double K_MORT1=0.01; // constant in mortality equation [c.f. mort_max; LPJF]
+	// Constant in mortality equation [c.f. mort_max; LPJF]
+	const double K_MORT1=0.01; 
+	// Constant in mortality equation [c.f. k_mort; LPJF]; the value here differs
+	// from LPJF's k_mort in that growth efficiency here based on annual NPP, c.f.
+	// net growth increment; LPJF	
 	const double K_MORT2=35.0;
-		// constant in mortality equation [c.f. k_mort; LPJF]; the value here differs
-		// from LPJF's k_mort in that growth efficiency here based on annual NPP, c.f.
-		// net growth increment; LPJF
 	const double FPC_TREE_MAX=0.95; // maximum summed tree fractional projective cover
 
 	double fpc_dec; // required reduction in FPC
 	double fpc_tree; // summed FPC for all tree PFTs
 	double fpc_grass; // summed FPC for all grasses
 	double deltafpc_tree_total; // total tree increase in FPC this year
+	
+	// Total mortality for PFT (fraction of current FPC)
 	double mort;
-		// total mortality for PFT (fraction of current FPC)
+	// Background mortality plus mortality preempted by low growth efficiency
+	// (fraction of current FPC)
 	double mort_greffic;
-		// background mortality plus mortality preempted by low growth efficiency
-		// (fraction of current FPC)
+	// Mortality associated with light competition (fraction of current FPC)
 	double mort_shade;
-		// mortality associated with light competition (fraction of current FPC)
 	double mort_fire;
 	bool killed;
 
@@ -941,38 +945,40 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 	// INPUT PARAMETER
 	// fireprob = probability of fire in this patch
 
+	// Overall mortality (excluding fire mortality): fraction of cohort killed, or:
+	// probability of individual being killed
 	double mort;
-		// overall mortality (excluding fire mortality): fraction of cohort killed, or:
-		// probability of individual being killed
+	// Background component of overall mortality (see 'mort')
 	double mort_min;
-		// background component of overall mortality (see 'mort')
+	// Component of overall mortality associated with low growth efficiency
 	double mort_greff;
-		// component of overall mortality associated with low growth efficiency
+	// Expected fraction of cohort killed (or: probability of individual being
+	// killed) due to fire
 	double mort_fire;
-		// expected fraction of cohort killed (or: probability of individual being
-		// killed) due to fire
+	// Fraction of cohort (or individual) surviving
 	double frac_survive;
-		// fraction of cohort (or individual) surviving
+	// Growth efficiency for individual/cohort this year (kgC/m2 leaf/year)
 	double greff;
-		// growth efficiency for individual/cohort this year (kgC/m2 leaf/year)
+	// Five-year-mean growth efficiency (kgC/m2 leaf/year)
 	double greff_mean;
-		// five-year-mean growth efficiency (kgC/m2 leaf/year)
-	int nindiv; // number of individuals (remaining) in cohort
-	int nindiv_prev; // number of individuals in cohort prior to mortality
+	// Number of individuals (remaining) in cohort
+	int nindiv; 
+	// Number of individuals in cohort prior to mortality
+	int nindiv_prev; 
 	int i;
 	bool killed;
 
+	// Value of mort_greff when growth efficiency below PFT-specific threshold
 	const double KMORTGREFF=0.3;
-		// value of mort_greff when growth efficiency below PFT-specific threshold
+	// Coefficient in calculation of background mortality (negated natural log of
+	// fraction of population expected to survive to age 'longevity'; see Eqn 14
+	// below)
 	const double KMORTBG_LNF=-log(0.001);
-		// coefficient in calculation of background mortality (negated natural log of
-		// fraction of population expected to survive to age 'longevity'; see Eqn 14
-		// below)
+	// Exponent in calculation of background mortality (shape parameter for
+	// relationship between mortality and age (0=constant mortality; 1=linear
+	// increase; >1->exponential; steepness increases for increasing positive
+	// values)
 	const double KMORTBG_Q=2.0;
-		// exponent in calculation of background mortality (shape parameter for
-		// relationship between mortality and age (0=constant mortality; 1=linear
-		// increase; >1->exponential; steepness increases for increasing positive
-		// values)
 
 	// Obtain reference to Vegetation object for this patch
 
@@ -1302,22 +1308,23 @@ void fire(Patch& patch,double& fireprob) {
 	// fireprob = probability of fire in this patch this year
 	//            (in population mode: fraction of modelled area affected by fire)
 
+	// Minimum total aboveground litter required for fire (kgC/m2)
 	const double MINFUEL=0.2;
-		// Minimum total aboveground litter required for fire (kgC/m2)
+	// Total aboveground litter (kgC/m2) [litter_ag_total/1000, fuel/1000; LPJF]
 	double litter_ag;
-		// total aboveground litter (kgC/m2) [litter_ag_total/1000, fuel/1000; LPJF]
+	// Mean litter flammability moisture threshold [=moisture of extinction, me;
+	// Thonicke et al 2001 Eqn 2; moistfactor; LPJF]
 	double me_mean;
-		// mean litter flammability moisture threshold [=moisture of extinction, me;
-		// Thonicke et al 2001 Eqn 2; moistfactor; LPJF]
+	// Probability of fire on a given day [p(m); Thonicke et al 2001, Eqn 2;
+	// fire_prob; LPJF]
 	double pm;
-		// probability of fire on a given day [p(m); Thonicke et al 2001, Eqn 2;
-		// fire_prob; LPJF]
+	// Summed length of fire season (days) [N; Thonicke et al 2001, Eqn 4;
+	// fire_length; LPJF]
 	double n;
-		// summed length of fire season (days) [N; Thonicke et al 2001, Eqn 4;
-		// fire_length; LPJF]
+	// Annual mean daily probability of fire [s; Thonicke et al 2001, Eqn 8;
+	// fire_index; LPJF]
 	double s;
-		// annual mean daily probability of fire [s; Thonicke et al 2001, Eqn 8;
-		// fire_index; LPJF]
+	
 	double sm; // s-1
 	double mort_fire; // fire mortality as fraction of current FPC
 	int p;

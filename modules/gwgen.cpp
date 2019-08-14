@@ -29,10 +29,11 @@
 
 #include "config.h"
 #include "gwgen.h"
+#include <limits>
 
 const double DHUGE     = std::numeric_limits<double>::max();
 const long LHUGE       = std::numeric_limits<long>::max()  ;
-const int IHUGE	= std::numeric_limits<int>::max()  ;
+const int IHUGE	       = std::numeric_limits<int>::max()  ;
 const double D_EPSILON = std::numeric_limits<double>::min();
 const float R_EPSILON  = std::numeric_limits<float>::min() ;
 

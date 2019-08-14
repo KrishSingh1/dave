@@ -607,7 +607,7 @@ struct PhotosynthesisResult : public Serializable {
 };
 
 // GWGen weather generator
-class WeatherGen : public Serializable {
+class WeatherGen {
 	// MEMBER VARIABLES
 public:
 	int q[10];

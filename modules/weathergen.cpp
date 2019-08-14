@@ -28,7 +28,7 @@
 // "#include" directive referring to the framework header file.GLOBFIRM
 
 #include "config.h"
-#include "gwgen.h"
+#include "weathergen.h"
 #include <limits>
 
 const double DHUGE     = std::numeric_limits<double>::max();

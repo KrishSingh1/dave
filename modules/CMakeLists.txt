@@ -21,7 +21,7 @@ set(headers
   cropallocation.h
   cropsowing.h
   cropphenology.h
-  gwgen.h
+  weathergen.h
   soilmethane.h
   soil.h
   soilinput.h
@@ -49,7 +49,7 @@ set(source
   cropallocation.cpp
   cropsowing.cpp
   cropphenology.cpp
-  gwgen.cpp
+  weathergen.cpp
   soilmethane.cpp
   soil.cpp
   soilinput.cpp

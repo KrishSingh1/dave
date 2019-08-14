@@ -121,7 +121,7 @@ then
 	convert -rotate 90 tmp.png delta_cpool1993-2012_joyned.png
 	describe_image  delta_cpool1993-2012_joyned.png "Modelled minus Liu et al. data. Units: kg m-2." embed
 	
-	. postprocess_above_ground_biomass.sh
+	. above_ground_biomass.sh
 	# delta plot Liu cpool VegC against Jackson 
 	joyn lu_cmass_agb_1993-2012_tot.dat cpool1993-2012_joyned.dat -i Lon Lat -o lu_cmass_agb_tot_1993-2012_joyned.dat
 	awk '{if(FNR==1){print $1,$2, "VegC"} else {print $1,$2, $(NF-1)}}' lu_cmass_agb_tot_1993-2012_joyned.dat > lu_cmass_agb_1993-2012_tot.dat_Liu.dat

@@ -13,7 +13,7 @@
 
 #include "config.h"
 #include "cruinput.h"
-#include "gwgen.h"
+#include "weathergen.h"
 #include "driver.h"
 #include "parameters.h"
 #include <stdio.h>

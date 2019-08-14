@@ -45,7 +45,7 @@ biomes lai_nat_1993-2012.dat
 
 root=$(dirname $0)/..
 #choose root2shoot depending on biome and Jackson Coding (see header)
-awk -f $root/postprocess/agb.awk biomes_lai_nat_1993-2012.dat > agb.dat
+awk -f $root/postprocess/above_ground_biomass.awk biomes_lai_nat_1993-2012.dat > agb.dat
 
 # paste agb-fractions into cmass file
 awk '{OFS="\t"; {print $23, $24, $25, $26}}' cmass1993-2012.dat | paste agb.dat - > cmass_agb.dat

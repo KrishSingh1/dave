@@ -2278,7 +2278,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		in_mcldf[m] = max(0.01,in_mcldf[m]);
 	}
 
-	bool lreset = true;
+	bool lreset = false;
 	int i_count = 1;
 	// initially populate cloud params 
 	if ( is_first_day ) {
@@ -2624,12 +2624,4 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 			chk_drhum += out_drhum[day+accumday]/(double)ndaymon; 
 		}	
 	} // month loop
-	// Write values for restart to WeatherGen Class
-	// get restart values from WeatherGen-class
-	rndst.pday[0] = gwgen.pday[0];
-	rndst.pday[1] = gwgen.pday[1];
-	for (int i=0; i<4;i++) {
-		rndst.resid[i] = gwgen.resid[i];
-	}
-
 }

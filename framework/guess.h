@@ -613,15 +613,12 @@ public:
 	int q[10];
 	int carry;
 	int xcng;
-	unsigned int xs; //!default seed
+	unsigned int xs; 
 	int indx;
 	bool have;
 	double gamma_vals[2];
 	bool pday[2];
 	double resid[4];
-	
-	void serialize(ArchiveStream& arch);
-
 };
 
 /// This struct contains the environmental input to a photosynthesis calculation.

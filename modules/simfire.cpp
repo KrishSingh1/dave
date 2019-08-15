@@ -31,7 +31,8 @@
 #include "simfire.h"
 #include "simfire_input.h"
 
-#define NFIREBIOMES 9
+//CLN#define NFIREBIOMES 9
+const int NFIREBIOMES = 9;
 
 int update_fire_biome(Patch& patch, double lat) {
 	

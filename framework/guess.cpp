@@ -60,15 +60,6 @@ void Climate::serialize(ArchiveStream& arch) {
 		& par
 		& prec
 		& daylength
-		& max_nesterov
-		& monthly_max_nesterov
-		& cur_nesterov
-		& recent_max_fapar
-		& avg_annual_rainf
-		& last_rainfall
-		& dslr
-		& kbdi
-		& months_ffdi
 		& co2
 		& lat
 		& insol
@@ -128,26 +119,18 @@ void Climate::serialize(ArchiveStream& arch) {
 		& temp_seasonality_lastyear
 		& var_prec
 		& var_temp
-		& aprec;
+		& aprec
+		& max_nesterov
+		& monthly_max_nesterov
+		& cur_nesterov
+		& recent_max_fapar
+		& avg_annual_rainf
+		& last_rainfall
+		& dslr
+		& kbdi
+		& months_ffdi
+		& weathergen;
 }
-
-////////////////////////////////////////////////////////////////////////////////
-// Implementation of GWGEN member functions
-////////////////////////////////////////////////////////////////////////////////
-
-void WeatherGen::serialize(ArchiveStream& arch) {
-	arch & q
-		& carry
-		& xcng
-		& xs
-		& indx
-		& have
-		& gamma_vals
-		& pday
-		& resid;
-}
-
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Fluxes member functions

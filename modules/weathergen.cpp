@@ -117,7 +117,7 @@ public:
 
 	/// Constructor function: initialise cell member
 	
-};
+}gwgen;
 
 // Threshold for transition from gamma to gp distribution
 double thresh = 5.0; 
@@ -251,8 +251,6 @@ double tmin_bias_coeffs[6] = {0., 0., 0., 0., 0., 0.}; // coefficients for the b
 double tmin_bias_min =-2.3263478740;
 double tmin_bias_max = 2.3263478740; 
 
-GWGen gwgen;
-
 // Matrix Multiplication
 void matmul(double AA[4][4], double B[4], double CC[4]) {
 	// 
@@ -315,6 +313,8 @@ int refill(WeatherGen& state) {
 }
 
 int ranu(WeatherGen& state) {
+
+	// DESCRIPTION
 	// Generates a uniformly distributed random 4 byte integer with the range (-huge(i4),+huge(i4))
 	// based on the 32-bit super KISS random number generator by George Marsaglia, published online
 	// and translated to Fortran 90 by user "mecej4" and Marsaglia, 

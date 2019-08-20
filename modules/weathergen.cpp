@@ -2511,13 +2511,18 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 				// after max amount of iterations is reached take 
 				// best set of data so far 
 				if (i_count==MAXITER) {
-					for ( int day=0; day<ndaymon; day++) {
+					for (int day=0; day<ndaymon; day++) {
 						dprec[day]= dprec_sav[day];
 						dtmin[day]= dtmin_sav[day];
 						dtmax[day]= dtmax_sav[day];
 						dcldf[day]= dcldf_sav[day];
 						dwind[day]= dwind_sav[day];
-					};
+					}
+					gwgen.pday[0]= rndst.pday[0];
+					gwgen.pday[1]= rndst.pday[1];
+					for (int i=0; i<4; i++) {
+						gwgen.resid[i] = rndst.resid[i];
+					}
 					break;
 				}
 			}
@@ -2622,6 +2627,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 			chk_dsol  += out_dsol [day+accumday]/(double)ndaymon; 
 			chk_dwind += out_dwind[day+accumday]/(double)ndaymon; 
 			chk_drhum += out_drhum[day+accumday]/(double)ndaymon; 
-		}	
+		}
+
 	} // month loop
 }

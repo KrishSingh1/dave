@@ -231,7 +231,7 @@ void get_fireline_intensity(Patch& patch, Climate& climate) {
 	// Energy contents of fuel [MJ/kg] (Liedloff, 2007)
 	const double HEAT_YIELD = 20.; 
 	// Readily available fuel  [g/m2]
-	double w;                      
+	double avail_fuel;                      
 	// rate of spread          [m/s]
 	double rate_of_spread;                    
 	// fire-line intensity     [W/m]
@@ -242,17 +242,17 @@ void get_fireline_intensity(Patch& patch, Climate& climate) {
 	for ( int i=0; i<4; i++ ) {
 
 		// get available fuel for current fire-line intensity index (fli_index) and convert kg/m2 to g/m2
-		w = available_fuel(patch,fli_index,climate.k_tun_litter) * KG2G;
+		avail_fuel = available_fuel(patch,fli_index,climate.k_tun_litter) * KG2G;
 		// check whether there is enough fuel to ignite a fire
-		if ( w < MIN_FUEL ) { 
+		if ( avail_fuel < MIN_FUEL ) { 
 			fli  =  -1. ;
 			break;
 		}
 		// Compute Rate-of-spread [m/s]
-		rate_of_spread = 3.3333e-05 * climate.mcarthur_fire_index * w;
+		rate_of_spread = 3.3333e-05 * climate.mcarthur_fire_index * avail_fuel;
 		
 		// fire line intensity[W/m] (Pyne, 1996 derived from Byram, 1959)
-		fli = HEAT_YIELD * w * rate_of_spread;
+		fli = HEAT_YIELD * avail_fuel * rate_of_spread;
 
 		//  re-copmute FLI index 
 		fli_index = get_fli_index(fli, climate.is_sprouter);
@@ -416,7 +416,6 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 	double height = indiv.height;
 	double fli    = patch.fli;
 	double lat    = gridcell.get_lat();
-	double lon    = gridcell.get_lon();
 
 	double survival_probability = 1.;
 
@@ -622,7 +621,9 @@ void blaze(Patch& patch, Climate& climate) {
 				vegetation.killobj();
 				killed=true;
 			}
-			if (!killed) vegetation.nextobj(); // ... on to next individual
+			if (!killed) {
+				vegetation.nextobj(); // ... on to next individual
+			}
 		}
 		fab = area_burned * accumulated_fraction_burned;
 	}
@@ -1092,9 +1093,9 @@ void blaze_accounting_gridcell(Climate& climate) {
 	climate.cur_rainf += climate.prec;
 
 	// Update the Keetch-Byram-Drought-Index (Keetch et al. 1968)
-	double frac2perc= 100.;           // convert fraction to percentage
+	const double FRAC2PERC = 100.   ; // convert fraction to percentage
 	double v        = climate.u10   ; // Wind speed at 10m height [km/h] (for FFDI)
-	double rh       = climate.relhum * frac2perc; // relative humidity [%] (for FFDI)         
+	double rh       = climate.relhum * FRAC2PERC; // relative humidity [%] (for FFDI)         
 	double t        = climate.tmax  ; // day's max temperature [deg C] (for KBDI) 
 
 	v *= 3.6; // m/s -> km/h
@@ -1197,10 +1198,6 @@ void blaze_driver(Patch& patch, Climate& climate) {
 		return;
 	}
 
-	// resolution for cell area
-	double lat_res = 0.5;
-	double lon_res = 0.5;
-
 	// initialise patch fire-line intensity
 	if (date.day == 0 && date.year == 0)
 		patch.fli = 0.0;
@@ -1233,7 +1230,6 @@ void blaze_driver(Patch& patch, Climate& climate) {
 		climate.areaburnt = 0.0;
 	}
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES

@@ -219,8 +219,9 @@ void getsimfiredata(Gridcell& gridcell) {
 	}
 	
 	SimfireInput rec;
-	rec.lon = gridcell.get_lon();
-	rec.lat = gridcell.get_lat();
+	// Make sure gridcell lat/lon is centered to LPJ-GUESS gridcell
+	rec.lon = floor(gridcell.get_lon()*2.)/2.+0.25;
+	rec.lat = floor(gridcell.get_lat()*2.)/2.+0.25;
 	
 	if (!ark.getindex(rec)) {
 		ark.close();

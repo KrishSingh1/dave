@@ -34,24 +34,23 @@
 //CLN#define NFIREBIOMES 9
 const int NFIREBIOMES = 9;
 
+/// Annually update SIMFIRE BIOME for a patch from current vegetation
+/** Computes current SIMFIRE biome for this
+ * gridcell depending on the last <n_year_biomeavg> years of
+ * vegetation.
+ */
 int update_fire_biome(Patch& patch, double lat) {
 	
-	/* Called by: simfire_biome_mapping (local)
-	   Calls    : -
-	   Computes current SIMFIRE biome for this 
-	   gridcell depending on the last <n_year_biomeavg> years of
-	   vegetation. 
-	   SIMFIRE BIOMES:
-	   0 no veg/no data
-	   1 Cropland/Urban/Natural Vegetation Mosaic (IGBP 12-14)
-	   2 Needleleaf forest (IGBP 1,3): >60% cover, height>2m
-	   3 Broadleaf forest (IGBP 2,4): >60% cover, height>2m
-	   4 Mixed forest (IGBP 4): >60% cover, height>2m, none >60%
-	   5 Shrubland (IGBP 6,7 and latitude<50): >10% woody cover, height<2m
-	   6 Savanna or Grassland (IGBP 8-10): herbaceous component present, <60% tree cover
-	   7 Tundra (IGBP 6,7,16 and latitude>=50): height<2m
-	   8 Barren or Sparsely Vegetated (IGBP 16 and latitude<50): <10% vegetation cover
-	*/
+	// SIMFIRE BIOMES:
+	// 0 no veg/no data
+	// 1 Cropland/Urban/Natural Vegetation Mosaic (IGBP 12-14)
+	// 2 Needleleaf forest (IGBP 1,3): >60% cover, height>2m
+	// 3 Broadleaf forest (IGBP 2,4): >60% cover, height>2m
+	// 4 Mixed forest (IGBP 4): >60% cover, height>2m, none >60%
+	// 5 Shrubland (IGBP 6,7 and latitude<50): >10% woody cover, height<2m
+	// 6 Savanna or Grassland (IGBP 8-10): herbaceous component present, <60% tree cover
+	// 7 Tundra (IGBP 6,7,16 and latitude>=50): height<2m
+	// 8 Barren or Sparsely Vegetated (IGBP 16 and latitude<50): <10% vegetation cover
 
 	double fgrass=0.0; // grass fraction of all vegetation
 	double fndlt=0.0;  // fraction of needle-leaf tress
@@ -60,7 +59,7 @@ int update_fire_biome(Patch& patch, double lat) {
 	double ftot=0.0;   // total FPAR of all individuals
 	int biome=0;       // biome number
 
-    // Obtain reference to Vegetation object for this patch
+	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation=patch.vegetation;
 
 	// Loop through individuals of this patch
@@ -151,15 +150,12 @@ int update_fire_biome(Patch& patch, double lat) {
 	return biome;
 }
 
+/// Compute dominant Simfire biome for gridcell
+/** Computes current SIMFIRE biome for this
+ * gridcell depending on the last <n_year_biomeavg> years of
+ * vegetation.
+ */
 void simfire_biome_mapping(Gridcell& gridcell) {
-
-	/* Called by: simfire_accounting_gridcell (local)
-	              getsimfiredata (local)
-	   Calls    : update_fire_biome(local)
-	   Computes current SIMFIRE biome for this 
-	   gridcell depending on the last <n_year_biomeavg> years of
-	   vegetation. 
-	*/
 
 	Climate& climate = gridcell.climate;
 
@@ -195,19 +191,16 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 	climate.simfire_biome = biome ;
 }
 
-// Get simfire data for a gridcell
+/// Read SIMFIRE related data for a gridcell at beginning of simulation
+/** Reads SIMFIRE relevant info from simfire_nput.bin:
+ * Hyde 3.1 population density
+ * Monthly fire climatology
+ */
 void getsimfiredata(Gridcell& gridcell) {
-
-	/* Called by: framework (framework.cpp)
-	   Calls    : simfire_biome_mapping (local)
-	   Reads SIMFIRE relevant info from SimfireInput.bin:
-	   Hyde 3.1 population density
-	   Monthly fire climatology
-	*/
 
 	Climate& climate = gridcell.climate;
 	
-	/// Paths to SIMFIRE binaries
+	// Paths to SIMFIRE binaries
 	xtring file_simfire = param["file_simfire"].str;
 	
 	// open file, fill podp, monthly_burned_area and igbp_class for a gridcell
@@ -244,17 +237,15 @@ void getsimfiredata(Gridcell& gridcell) {
 	ark.close();
 }
 
+/// Get this year's human population density
+/** Computes population density from the Hyde 3.1 dataset.
+ * Annual data is computed by linearly interpolating between the existing values.
+ * Before 10000 BC the 10000 BC value is used, after 2005 linear extrapolation
+ * using the change between the last two values is performed
+ */
 void simfire_update_pop_density(Gridcell& gridcell) {
 
-	/* Called by: simfire_accounting_gridcell (local)
-	   Calls    : -
-	   Computes population density from the Hyde 3.1 dataset. 
-	   Annual data is computed by linearly interpolating between the existing values.
-	   Before 10000 BC the 10000 BC value is used, after 2005 linear extrapolation 
-	   using the change between the last two values is performed 
-	*/
-
-    // number of entries for Population data
+	// number of entries for Population data
 	const int NPOPENTRIES = 57;
 	// years at which population-data is available in HYDE3.1
 	const int POPTIME[NPOPENTRIES]  = {-10000,-9000,-8000,-7000,-6000,-5000,-4000,-3000,-2000,-1000,0,
@@ -286,22 +277,17 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 		popd = (1. - interpf) * gridcell.hyde31_pop_density[idx-1] + 
 			interpf * gridcell.hyde31_pop_density[idx];
 	}
-
 	gridcell.pop_density = max(0.,popd);
 }
 	
 
-/// Called each day from dailyaccounting
+/// Daily bookkeeping for SIMFIRE-relevant variables
+/** Updates SIMFIRE's Max Annual Mesterov Index
+ * and running mean of max annual FPAR (from canexch.cpp)
+ * Updates fire biome
+ */
 void simfire_accounting_gridcell(Gridcell& gridcell) {
 	
-	/* Called by: dailyaccounting_gridcell   (driver.cpp)
-	   Calls    : simfire_biome_mapping      (local)
-	              simfire_update_pop_density (local)
-	   Updates SIMFIRE's Max Annual Mesterov Index
-	   and running mean of max annual FPAR (from canexch.cpp)
-	   Updates fire biome 
-	*/
-
 	Climate& climate = gridcell.climate;
 	// absolute upper boundary for the accumulative nesterov index
 	const double MAXIMUM_NESTEROV = 1000000; //150000.;
@@ -446,7 +432,7 @@ double simfire_burned_area(Climate& climate) {
 		pow((SCALAR * climate.max_nesterov), C) *
 		exp(E * gridcell.pop_density);
 
-    // compute daily burnt_area
+	// compute daily burnt_area
 	burned_area *= climate.monthly_fire_risk[date.month] /
 		(double)date.ndaymonth[date.month];
 

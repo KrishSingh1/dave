@@ -438,7 +438,6 @@ void Patch::serialize(ArchiveStream& arch) {
 		& mpet
 		& ndemand
 		& irrigation_y
-		// BLAZE --[
 		& fli
 		& wood2atm
 		& leaf2atm
@@ -459,7 +458,6 @@ void Patch::serialize(ArchiveStream& arch) {
 			arch & avg_fshrb[i];
 		for (unsigned int i=0; i < n_year_biomeavg; i++)
 			arch & avg_ftot[i];
-		// BLAZE --]
 }
 
 const Climate& Patch::get_climate() const {
@@ -1900,9 +1898,9 @@ bool Individual::has_daily_turnover() const {
  *  \param slow_harvest      Biomass going to slow depository
  */
 void partition_wood_biomass(double mass_sap, double mass_heart,
-                            double harv_eff, double harvest_slow_frac, double res_outtake,
-                            double& litter_sap, double& litter_heart,
-                            double& fast_harvest, double& slow_harvest) {
+			    double harv_eff, double harvest_slow_frac, double res_outtake,
+			    double& litter_sap, double& litter_heart,
+			    double& fast_harvest, double& slow_harvest) {
 
 	double sap_left = mass_sap;
 	double heart_left = mass_heart;

@@ -113,13 +113,12 @@ double pixelsize(double latpos,double longsize,double latsize,int postype) {
 	
 	return s*longsize/360.0;  //for this pixel
 }
-
+/// Get combustion rates
+/** compute the relative flux rates [frac.] between live vegetation, litter pools and
+ * atmosphere given current fire-line intensity
+ */
 void get_combustion_rates(Patch& patch, int fli_index, double k_tun_litter) {
 
-	/* Called by: blaze (local)
-	   compute the relative flux rates [frac.] between live vegetation, litter pools and
-	   atmosphere given current fire-line intensity
-	*/
 
 	// relative fluxes from wood to atmosphere and litter pools
 	patch.wood2atm = (1.-FBRANCH-FBARK) * TURNOVERFRACT[ 0][fli_index] +
@@ -140,15 +139,12 @@ void get_combustion_rates(Patch& patch, int fli_index, double k_tun_litter) {
 	return;
 }
 
+/// Turn fire-line intensity into an index for lookup-tables
+/** get appropriate FLI category for look-up tables
+ * depending on computed potential FLI the index corresponding to the entries in
+ * the look-up-tables is returned
+ */
 int get_fli_index(double fli, bool is_sprouter) {
-
-	/* Called by:  get_firelineintensity (local)
-		       get_combustion_rates (local)
-	   Calls    :  -
-	   get appropriate FLI category for look-up tables 
-	   depending on computed potential FLI the index corresponding to the entries in 
-	   the look-up-tables is returned 
-	*/
 
 	// determine intensity category for combustion-lookup-tables
 	int fli_index; // fli - index
@@ -174,15 +170,9 @@ int get_fli_index(double fli, bool is_sprouter) {
 	return fli_index;
 }
 
+/// Compute the amount of fuel readily available to burn
 double available_fuel (Patch& patch,int fli_index, double k_tun_litter)  {
 			
-	/* Called by:  get_firelineintensity (local)
-		       blaze_account_gridcell (local)
- 	   Calls    :  get_combustion_rates (local)
-	   compute the amount of fuel that is readily available 
-	   for burning 
-	*/
-
 	get_combustion_rates(patch,fli_index,k_tun_litter);
 
 	// transitional-litter available to burn 
@@ -219,14 +209,12 @@ double available_fuel (Patch& patch,int fli_index, double k_tun_litter)  {
 	return available_fuel;
 }
 
+/// Compute current potential fire-line intensity
+/** compute potential fire-line intensity under given
+ * meteorological and fuel conditions. Formulation following Noble 1980 derived from McArthur.
+ */
 void get_fireline_intensity(Patch& patch, Climate& climate) {
 	
-	/* Called by:  blaze (local)
-	   Calls    :  available_fuel (local)
-		       get_fli_index (local)
-	   compute potential fire-line intensity under given
-	   met and fuel conditions. Formulation following Noble 1980 derived from McArthur.
-	*/
 
 	// Energy contents of fuel [MJ/kg] (Liedloff, 2007)
 	const double HEAT_YIELD = 20.; 
@@ -262,21 +250,16 @@ void get_fireline_intensity(Patch& patch, Climate& climate) {
 	patch.fli = fli;
 }
  
-double surv_prob_boreal(double fli) {
-	/* Called by: survival_probability (local)
-	   Compute survival probability for boreal forest 
-	   based on Dalziel et al. 2008
-	*/
-	
+/// Survival probability for boreal trees based on Dalziel et al. 2008
+double survival_probability_boreal(double fli) {
+
 	double surv_prob_boreal = exp(-fli/500.);
 	return surv_prob_boreal;
 }
 
-double surv_prob_temp_nl(double dbh, double fli, double mass_cwd) {
-	/* Called by: survival_probability (local)
-	   Compute survival probability for temperate Needleleaf forest
-	   following Kobziar 2006
-	*/
+/// Survival probability for temperate Needleleaf trees following Kobziar 2006
+double survival_probability_temp_needleleaf(double dbh, double fli, double mass_cwd) {
+
 	double frac_cwd = 1.;
 
 	double cdbh = dbh * 100; // in cm
@@ -294,15 +277,13 @@ double surv_prob_temp_nl(double dbh, double fli, double mass_cwd) {
 	return p_surv;
 }
 
-double surv_prob_temp_bl(double dbh, double fli, bool is_resprouter) {
-	
-	/* Called by: survival_probability (local)
-	   Compute survival probability for Temperate Broadleaved forests
-	   fire resilince parameterisation for e.g. Oz forests
-	   following Hickler et al. 2004, Using a generalized
-	   vegetation model to simulate vegetation dynamics in NE USA
-	*/
-
+/// Survival probability for temperate broadleaf trees following Hickler 2004
+/** Compute survival probability for Temperate Broadleaved forests
+ * fire resilince parameterisation for e.g. Oz forests
+ * following Hickler et al. 2004, Using a generalized
+ * vegetation model to simulate vegetation dynamics in NE USA
+ */
+double survival_probability_temp_broadleaf(double dbh, double fli, bool is_resprouter) {
 	// Fire resiliance
 	double R;
 	if ( is_resprouter ) {
@@ -327,11 +308,8 @@ double surv_prob_temp_bl(double dbh, double fli, bool is_resprouter) {
 	return surv_prob_temp_bl;
 }
 
-double surv_prob_tropics(double dbh, double fli) {
-	/* Called by: survival_probability (local)
-	   Compute survival probability for the tropics
-	   following van Nieuwstadt et al. 2005
-	*/
+/// Survival probability for tropical trees following Nieuwstadt 2005
+double survival_probability_tropics(double dbh, double fli) {
 
 	// DBH in cm
 	dbh *= 100.; 
@@ -354,11 +332,9 @@ double surv_prob_tropics(double dbh, double fli) {
 	return p_surv;
 }
 
-double surv_prob_savanna(double height, double fli) {
-	/* Called by: survival_probability (local)
-	   Compute survival probability for savanna
-	   following Bond 2008
-	*/
+/// Survival probability for savannas following Bond 2008
+double survival_probability_savanna(double height, double fli) {
+
 	double intensity = fli / 1000. ;
 	double p_surv = max(0.,1. - ( 1./(1. + exp(1.5*(height - 0.5 * intensity - 1. )))));
 
@@ -367,14 +343,8 @@ double surv_prob_savanna(double height, double fli) {
 	return p_surv;
 }
 
-double surv_prob_sprouter_savanna(double height, double fli) {
-	/* Called by: survival_probability (local)
-	   Compute survival probability for sprouters in Savannas (esp. Australian)
-	   following Cook 2013, pers. comm.
-	   inputs
-	   height: tree/avg. cohort height
-	   fli   : fire-line intensity from BLAZE [kW/m]
-	*/
+/// Survival probability for australian savanna-resprouters Cook 2005
+double survival_probability_sprouter_savanna(double height, double fli) {
 
 	// height of max survival probability [m]
 	// taller trees are vulnerable due to age
@@ -406,6 +376,7 @@ double surv_prob_sprouter_savanna(double height, double fli) {
 	return p_survival;
 }
 
+/// Compute Individual/Cohort survival probability
 double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
  
 	// Depending on biome and geolocation the appropriate survival_probabilities
@@ -429,36 +400,36 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 		// Temperate Needleleaf
 		if ( biome == SF_NEEDLELEAF) { 
 			double mass_cwd = patch.soil.sompool[SURFCWD].cmass   ;   
-			survival_probability = surv_prob_temp_nl(dbh, fli, mass_cwd);
+			survival_probability = survival_probability_temp_needleleaf(dbh, fli, mass_cwd);
 		}
 		// Broadleaf and mixed
 		else if ( biome ==  SF_BROADLEAF || biome == SF_MIXED_FOREST ) {
 			// tropical 
 			if  (lat > -30 && lat < 30 ) {
 				// moist
-				survival_probability = surv_prob_tropics(dbh,fli);
+				survival_probability = survival_probability_tropics(dbh,fli);
 			} else if (climate.is_sprouter){
 				// temperate Oz
-				survival_probability = surv_prob_temp_bl(dbh, fli, 1);
+				survival_probability = survival_probability_temp_broadleaf(dbh, fli, 1);
 
 			} else {
 				// temperate 
-				survival_probability = surv_prob_temp_bl(dbh, fli, 0);
+				survival_probability = survival_probability_temp_broadleaf(dbh, fli, 0);
 
 			}
 		}
 		// Savanna, shrubland and sparsely vegetated
 		else if ( biome == SF_SHRUBS || biome == SF_SAVANNA || biome == SF_BARREN) {
 			if ( climate.is_sprouter ) {
-				survival_probability = surv_prob_sprouter_savanna(height, fli);
+				survival_probability = survival_probability_sprouter_savanna(height, fli);
 			}
 			else {
-				survival_probability = surv_prob_savanna(height, fli);
+				survival_probability = survival_probability_savanna(height, fli);
 			}
 		}
 		// Tundra
 		else if ( biome == SF_TUNDRA ) {
-			survival_probability = surv_prob_boreal(fli);
+			survival_probability = survival_probability_boreal(fli);
 		} 
 		else {
 			return 1.;
@@ -471,11 +442,11 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 			// Temperate Needleleaf
 			if ( fabs(lat) < 50.) {
 				double mass_cwd = patch.soil.sompool[SURFCWD].cmass   ;   
-				survival_probability = surv_prob_temp_nl(dbh, fli, mass_cwd);
+				survival_probability = survival_probability_temp_needleleaf(dbh, fli, mass_cwd);
 			}
 			// Tundra
 			else {
-				survival_probability = surv_prob_boreal(fli);
+				survival_probability = survival_probability_boreal(fli);
 			}
 		}
 		// Broadleaf
@@ -484,22 +455,22 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 			if ( biome == SF_CROP || biome == SF_NEEDLELEAF || biome == SF_BROADLEAF || biome == SF_MIXED_FOREST || biome == SF_TUNDRA ) {
 				if  (lat > -30 && lat < 30 ) {
 					// tropical 
-					survival_probability = surv_prob_tropics(dbh,fli);
+					survival_probability = survival_probability_tropics(dbh,fli);
 				} else if ( climate.is_sprouter ){
 					// temperate Oz 
-					survival_probability = surv_prob_temp_bl(dbh, fli, 1);
+					survival_probability = survival_probability_temp_broadleaf(dbh, fli, 1);
 				} else {
 					// temperate 
-					survival_probability = surv_prob_temp_bl(dbh, fli, 0);
+					survival_probability = survival_probability_temp_broadleaf(dbh, fli, 0);
 				}
 			}
 			// Savanna, shrubland and sparsely vegetated
 			else if ( biome == SF_SHRUBS || biome == SF_SAVANNA || biome == SF_BARREN ) {
 				if ( climate.is_sprouter ) {
-					survival_probability = surv_prob_sprouter_savanna(height, fli);
+					survival_probability = survival_probability_sprouter_savanna(height, fli);
 				}
 				else {
-					survival_probability = surv_prob_savanna(height, fli);
+					survival_probability = survival_probability_savanna(height, fli);
 				}
 			}
 			else {
@@ -522,23 +493,14 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 	return survival_probability;
 }
 
+/// Blaze: Compute wildfire combustion and fluxes thereof
+/** The combustion part of the model. Here, all fire related fluxes
+ * are computed and the changes applied to the affected pools.
+ * This routine handles all current available
+ * settings for vegetation model and uses the century som-model
+ * soil-pools.
+ */
 void blaze(Patch& patch, Climate& climate) {
-
-	/* Called by: blaze_driver (local)
-	   Calls    : survival_probability (local)
-		      get_combustion_rates (local)
-		      indiv.blaze_reduce_biomass (local)
-		      randfrac (driver.cpp)
-		      vegetation.<obj-functions> (guess.h)
-		      allometry (growth.cpp)
-		      negligible (guessmath.h)
-	  
-	   The combustion part of the model. Here, all fire related fluxes
-	   are computed and the changes applied to the affected pools.
-	   This routine handles all current available 
-	   settings for vegetation model and uses the century som-model 
-	   soil-pools.
-	 */
 
 	// grassy vegetation burn-rate for cohort and individual mode
 	const double MAX_GRASS_BURN = 0.75;
@@ -780,21 +742,18 @@ void blaze(Patch& patch, Climate& climate) {
 	
 }  
 
+/// Update C/N - Pools due to fire
+/** Applies the fluxes computed in blaze on the class::Individual
+ * level affecting the live pools, transitional
+ * litter pools and influx to CENTURY litter pools.
+ * In INDIVIDUAL and COHORT mode the actual biomass killed in
+ * the routine "blaze" is used to compute the fraction of the live vegetation pools
+ * while in POPULATION mode the fraction equal to burnt area is used.
+ * Input frac_survive means fraction of surviving INDIVIDUAL/COHORT
+ * in respective mode or will be (1-burned area) in case of POPULATION
+ * mode.
+ */
 void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
-
-	/* Called by: blaze (local)
-	   Calls    : lignin_to_n_ratio (somdynam.cpp)
-		      metabolic_litter_fraction (somdynam.cpp)
-	   Applies the fluxes computed in blaze on the class::Individual
-	   level affecting the live pools, transitional 
-	   litter pools and influx to CENTURY litter pools.
-	   In INDIVIDUAL and COHORT mode the actual biomass killed in
-	   the routine "blaze" is used to compute the fraction of the live vegetation pools  
-	   while in POPULATION mode the fraction equal to burnt area is used.
-	   Input frac_survive means fraction of surviving INDIVIDUAL/COHORT
-	   in respective mode or will be (1-burned area) in case of POPULATION 
-	   mode.
-	*/
 
 	double frac_killed = 1. - frac_survive;
 
@@ -1015,13 +974,6 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 /// Do daily accounting of blaze relevant parameters 
 void blaze_accounting_gridcell(Climate& climate) {
 
-	/** Called by:  dailyaccounting_gridcell in driver.cpp 
-	 * Calls    :  available_fuel (local)
-	 *             simfire_ba (simfire.cpp)
-	 * routine to keep track of various met-related and fire specific 
-	 * parameters 
-	**/
-
 	const int AVERAGING_SPAN = 3; // time-span over which annual rainfall is averaged
 	// to initialise on start of spinup or after restart
 	bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
@@ -1140,8 +1092,12 @@ void blaze_accounting_gridcell(Climate& climate) {
 	// get burned area 
 	climate.areaburnt = simfire_burned_area(climate);
 
+	if ( date.year == 505 ) {
+		double aaa= 505;
+		aaa+=1;
+	}
+		
 	//End of year clean-up
-
 	if (date.islastday && date.islastmonth) {
 		
 		// Update running mean of average annual rainfall
@@ -1168,16 +1124,14 @@ void blaze_accounting_gridcell(Climate& climate) {
 			climate.months_ffdi[i] = ttmp[i];
 		}
 	}
+	
 }		     
 
+/// The driver routine for BLAZE
+/**This is the driver routine for BLAZE. It does patch-wise accounting
+ * and calls the main blaze routine
+ */
 void blaze_driver(Patch& patch, Climate& climate) {
-
-	/* Called by: simulate_day (framework.cpp)
-	   Calls    : get_firelineintensity (local)
-		      blaze (local)
-	   This is the driver routine for BLAZE. It does patch-wise accounting 
-	   and calls the main blaze routine
-	*/
 
 	// Check whether BLAZE should be called at all
 	// Has BLAZE been chosen as firemodel?

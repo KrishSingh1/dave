@@ -611,7 +611,7 @@ void plib_declarations(int id,xtring setname) {
 			"Maximum temperature limit for photosynthesis (deg C)");
 		declareitem("lambda_max",&ppft->lambda_max,0.1,0.99,1,CB_NONE,
 			"Non-water-stressed ratio of intercellular to ambient CO2 pp");
-        declareitem("root_beta", &ppft->root_beta, 0.0,1.0,1,CB_ROOTFRAC,
+		declareitem("root_beta", &ppft->root_beta, 0.0,1.0,1,CB_ROOTFRAC,
             "Shape parameter to determine fraction of roots in each soil layer");
  		declareitem("rootdist",ppft->rootdist,0.0,1.0,NSOILLAYER,CB_ROOTFRAC,
 			"Fraction of roots in each soil layer (first value=upper layer)");
@@ -991,7 +991,7 @@ void plib_callback(int callback) {
 		else {
 			sendmessage("Error",
 				"Unknown water uptake mode (valid types: \"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
-            		plibabort();
+            	plibabort();
 		}
 		break;
 	case CB_WEATHERGENERATOR:
@@ -1009,7 +1009,7 @@ void plib_callback(int callback) {
 		else if (strparam.upper()=="NOFIRE" || strparam=="") firemodel=NOFIRE;
 		else {
 			sendmessage("Error",
-				    "Unknown fire model setting (valid types: \"BLAZE\", \"GLOBFIRM\", \"NOFIRE\", \"nil\" , \"\")" );
+				"Unknown fire model setting (valid types: \"BLAZE\", \"GLOBFIRM\", \"NOFIRE\", \"nil\" , \"\")" );
 			plibabort();
 		}
 		break;
@@ -1017,9 +1017,9 @@ void plib_callback(int callback) {
 		if (strparam.upper() == "FIXED") rootdistribution = ROOTDIST_FIXED;
 		else if (strparam.upper() == "JACKSON") rootdistribution = ROOTDIST_JACKSON;
 		else {
-		    sendmessage("Error",
-		        "Unknown mode for root parameterisation (valid types: (\"FIXED\", \"JACKSON\")");
-		    plibabort();
+			sendmessage("Error",
+				"Unknown mode for root parameterisation (valid types: (\"FIXED\", \"JACKSON\")");
+			plibabort();
 		}
         	break;
 	case CB_LIFEFORM:
@@ -1162,7 +1162,7 @@ void plib_callback(int callback) {
 		}
 		break;
 	case CB_ROOTFRAC:
-        numval = 0.0;
+		numval = 0.0;
         if (rootdistribution == ROOTDIST_JACKSON) ppft->init_rootdist();
             
         for (i=0;i<NSOILLAYER;i++) numval+=ppft->rootdist[i];
@@ -1274,7 +1274,7 @@ void plib_callback(int callback) {
 
 		if (save_state && restart) {
 			sendmessage("Error",
-			            "Can't save state and restart at the same time");
+				"Can't save state and restart at the same time");
 			plibabort();
 		}
 

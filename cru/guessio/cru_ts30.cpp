@@ -188,7 +188,7 @@ bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,
 		//       if (mrhum[y][m] < 0.001)
 		//       	mrhum[y][m] = 0.0; // Catches rounding errors
 		//
-		if (weathergenerator == GWGEN) {
+		if (weathergenerator == WEATHERGEN) {
 
 			xtring file_cru_wind(cruark);
 			file_cru_wind = file_cru_wind.left(file_cru_wind.len() - 8) + "wind.bin";

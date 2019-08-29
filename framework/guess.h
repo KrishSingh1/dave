@@ -913,9 +913,9 @@ public:
 
 	/// BLAZE
 	/// average annual rainfall [mm/a]
-	double avg_annual_rainf;
+	double avg_annual_rainfall;
 	//  current sum of annual Rainfall
-	double cur_rainf;
+	double cur_rainfall;
 	/// Accumulated last rainfall [mm]
 	double last_rainfall;
 	/// Days since last rainfall

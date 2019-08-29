@@ -203,7 +203,7 @@ void initsettings() {
 	// Parameters not initialised here must be set in instruction script
 
 	firemodel=BLAZE;
-	weathergenerator=GWGEN;
+	weathergenerator=WEATHERGEN;
 	ifcalcsla=true;
 	ifdisturb=false;
 	ifcalcsla=false;
@@ -216,7 +216,7 @@ void initsettings() {
 	printseparatestands = false;
 	save_state = false;
 	restart = false;
-    verbosity=WARNING;
+	verbosity=WARNING;
 	lcfrac_fixed = true;
 	for(int lc=0; lc<NLANDCOVERTYPES; lc++)
 		frac_fixed[lc] = true;
@@ -995,7 +995,7 @@ void plib_callback(int callback) {
 		}
 		break;
 	case CB_WEATHERGENERATOR:
-		if (strparam.upper() == "GWGEN") weathergenerator = GWGEN;
+		if (strparam.upper() == "GWGEN") weathergenerator = WEATHERGEN;
 		else if (strparam.upper() == "INTERP") weathergenerator = INTERP;
 		else {
 			sendmessage("Error",
@@ -1188,7 +1188,7 @@ void plib_callback(int callback) {
 
 		if (!itemparsed("weathergenerator")) badins("weathergenerator");
 		if (!itemparsed("firemodel")) badins("firemodel");
-		if (firemodel==BLAZE && weathergenerator!=GWGEN) {
+		if (firemodel==BLAZE && weathergenerator!=WEATHERGEN) {
 				sendmessage("Error", "Weathergenerator must be GWGEN for BLAZE!");
 			plibabort();
 		}

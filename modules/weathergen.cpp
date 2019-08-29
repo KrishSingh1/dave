@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////////////
-/// \file gwgen.cpp
+/// \file weathergen.cpp
 /// \brief Global Weather GENerator 
 ///
 /// \author Lars Nieradzik
@@ -58,7 +58,7 @@ const double  RNG2 = 1. / (double)IHUGE;	 //scales the random integer to -1,1
 
 const double  HALF   = 0.5;
 
-class GWGen /*: public Serializable */{
+class MetVariables{
 
 public:
 	// MEMBER VARIABLES
@@ -117,7 +117,7 @@ public:
 
 	/// Constructor function: initialise cell member
 	
-}gwgen;
+}metvars;
 
 // Threshold for transition from gamma to gp distribution
 double thresh = 5.0; 
@@ -252,7 +252,7 @@ double tmin_bias_min =-2.3263478740;
 double tmin_bias_max = 2.3263478740; 
 
 // Matrix Multiplication
-void matmul(double AA[4][4], double B[4], double CC[4]) {
+void matrixmult(double AA[4][4], double B[4], double CC[4]) {
 	// 
 	int xy = 4;
 	for(int j=0;j<xy;j++){ 
@@ -348,39 +348,39 @@ double ranur(WeatherGen& state) {
 	return ranur ;
 }
 
-void calc_cloud_params(GWGen& gwgen) {
+void calc_cloud_params(MetVariables& metvars) {
 	// Calculate the parameters used for the first approximation in "meansd"
 	// This subroutine calculates the necessary parameters for the adjustment of
 	// the monthly cloud fraction mean depending on the wet/dry state
-	gwgen.cldf_w1   = -cldf_w - 1.0;
-	gwgen.cldf_w2   = cldf_w * cldf_w;
-	gwgen.cldf_w3   = -(cldf_w * cldf_w) - cldf_w;
-	gwgen.cldf_w4   = - 1.0/cldf_w;
-	gwgen.cldf_sd_w = cldf_sd_w * cldf_sd_w;
+	metvars.cldf_w1   = -cldf_w - 1.0;
+	metvars.cldf_w2   = cldf_w * cldf_w;
+	metvars.cldf_w3   = -(cldf_w * cldf_w) - cldf_w;
+	metvars.cldf_w4   = - 1.0/cldf_w;
+	metvars.cldf_sd_w = cldf_sd_w * cldf_sd_w;
 
-	gwgen.cldf_d1   = -cldf_d - 1.0;
-	gwgen.cldf_d2   = cldf_d * cldf_d;
-	gwgen.cldf_d3   = -(cldf_d * cldf_d) - cldf_d;
-	gwgen.cldf_d4   = - 1.0/cldf_d;
-	gwgen.cldf_sd_d = cldf_sd_d * cldf_sd_d;
+	metvars.cldf_d1   = -cldf_d - 1.0;
+	metvars.cldf_d2   = cldf_d * cldf_d;
+	metvars.cldf_d3   = -(cldf_d * cldf_d) - cldf_d;
+	metvars.cldf_d4   = - 1.0/cldf_d;
+	metvars.cldf_sd_d = cldf_sd_d * cldf_sd_d;
 
 } 
 
-void temp_sd(GWGen& gwgen) {
+void temp_sd(MetVariables& metvars) {
 
 	double dmtmin_sd = 0.;
 	double dmtmax_sd = 0.;
 
-	bool rainday = gwgen.pday[0];
+	bool rainday = metvars.pday[0];
 
 	for (int i=0; i<4; i++) {
-		if (i == 3 || gwgen.dmtmin_mn <= tmin_sd_breaks[i]) {
+		if (i == 3 || metvars.dmtmin_mn <= tmin_sd_breaks[i]) {
 			for (int x=0; x<6; x++) {
 				if (rainday) {
-					dmtmin_sd += tmin_sd_w[x][i] * pow(gwgen.dmtmin_mn, (double)x);
+					dmtmin_sd += tmin_sd_w[x][i] * pow(metvars.dmtmin_mn, (double)x);
 				}
 				else{
-					dmtmin_sd += tmin_sd_d[x][i] * pow(gwgen.dmtmin_mn, (double)x);
+					dmtmin_sd += tmin_sd_d[x][i] * pow(metvars.dmtmin_mn, (double)x);
 				}
 			}
 			break;
@@ -388,25 +388,25 @@ void temp_sd(GWGen& gwgen) {
 	}
 
 	for (int i=0; i<4; i++) {
-		if (i == 3 || gwgen.dmtmax_mn <= tmax_sd_breaks[i]) {
+		if (i == 3 || metvars.dmtmax_mn <= tmax_sd_breaks[i]) {
 			for (int x=0; x<6; x++) {
 				if (rainday) {
-					dmtmax_sd += tmax_sd_w[x][i] * pow(gwgen.dmtmax_mn,(double)x);
+					dmtmax_sd += tmax_sd_w[x][i] * pow(metvars.dmtmax_mn,(double)x);
 				}
 				else{
-					dmtmax_sd += tmax_sd_d[x][i] * pow(gwgen.dmtmax_mn,(double)x);
+					dmtmax_sd += tmax_sd_d[x][i] * pow(metvars.dmtmax_mn,(double)x);
 				}
 			}
 			break;
 		}
 	}
 
-	gwgen.dmtmin_sd = dmtmin_sd;
-	gwgen.dmtmax_sd = dmtmax_sd;
+	metvars.dmtmin_sd = dmtmin_sd;
+	metvars.dmtmax_sd = dmtmax_sd;
 	
 } 
 
-void meansd(GWGen& gwgen) {
+void meansd(MetVariables& metvars) {
 	// Adjust the monthly means of temperature, cloud and wind corresponding to the wet/dry state
 	//
 	// This routine makes the first approximation inside the weather generator to adjust the monthly
@@ -440,37 +440,37 @@ void meansd(GWGen& gwgen) {
 	//  cld       : fraction (0-1)
 	//  wind      : wind speed (m/s)
 	// Output
-	//  gwgen.dm* : first guess for the first daily approximation
+	//  metvars.dm* : first guess for the first daily approximation
 
 	// calculate mean and SD for a wet day
-	if (gwgen.pday[0]) {  
+	if (metvars.pday[0]) {  
 
-		gwgen.dmtmin_mn = tmin_w1 + tmin_w2 * gwgen.tmn;
-		gwgen.dmtmax_mn = tmax_w1 + tmax_w2 * gwgen.tmx;
-		gwgen.dmwind_mn = wind_w1 + wind_w2 * gwgen.wnd;
-		gwgen.dmcldf_mn = gwgen.cldf_w1 / (gwgen.cldf_w2 * gwgen.cld + gwgen.cldf_w3)
-			+ gwgen.cldf_w4;
-		gwgen.dmwind_sd = 0.;
+		metvars.dmtmin_mn = tmin_w1 + tmin_w2 * metvars.tmn;
+		metvars.dmtmax_mn = tmax_w1 + tmax_w2 * metvars.tmx;
+		metvars.dmwind_mn = wind_w1 + wind_w2 * metvars.wnd;
+		metvars.dmcldf_mn = metvars.cldf_w1 / (metvars.cldf_w2 * metvars.cld + metvars.cldf_w3)
+			+ metvars.cldf_w4;
+		metvars.dmwind_sd = 0.;
 		for (int i=0; i<6; i++) {
-			gwgen.dmwind_sd += wind_sd_w[i] * pow(gwgen.dmwind_mn,(double)i);
+			metvars.dmwind_sd += wind_sd_w[i] * pow(metvars.dmwind_mn,(double)i);
 		}
-		gwgen.dmcldf_sd = gwgen.cldf_sd_w * gwgen.dmcldf_mn * (1. - gwgen.dmcldf_mn);
+		metvars.dmcldf_sd = metvars.cldf_sd_w * metvars.dmcldf_mn * (1. - metvars.dmcldf_mn);
 	}
 	// calculate mean and SD for a dry day
 	else {
 
-		gwgen.dmtmin_mn = tmin_d1 + tmin_d2 * gwgen.tmn;
-		gwgen.dmtmax_mn = tmax_d1 + tmax_d2 * gwgen.tmx;
-		gwgen.dmwind_mn = wind_d1 + wind_d2 * gwgen.wnd;
-		gwgen.dmcldf_mn = gwgen.cldf_d1 / (gwgen.cldf_d2 * gwgen.cld + gwgen.cldf_d3)
-			+ gwgen.cldf_d4;
-		gwgen.dmwind_sd = 0.;
+		metvars.dmtmin_mn = tmin_d1 + tmin_d2 * metvars.tmn;
+		metvars.dmtmax_mn = tmax_d1 + tmax_d2 * metvars.tmx;
+		metvars.dmwind_mn = wind_d1 + wind_d2 * metvars.wnd;
+		metvars.dmcldf_mn = metvars.cldf_d1 / (metvars.cldf_d2 * metvars.cld + metvars.cldf_d3)
+			+ metvars.cldf_d4;
+		metvars.dmwind_sd = 0.;
 		for (int i=0; i<6; i++) {
-			gwgen.dmwind_sd += wind_sd_d[i] * pow(gwgen.dmwind_mn, (double)i);
+			metvars.dmwind_sd += wind_sd_d[i] * pow(metvars.dmwind_mn, (double)i);
 		}
-		gwgen.dmcldf_sd = gwgen.cldf_sd_d * gwgen.dmcldf_mn * (1. - gwgen.dmcldf_mn);
+		metvars.dmcldf_sd = metvars.cldf_sd_d * metvars.dmcldf_mn * (1. - metvars.dmcldf_mn);
 	}
-	temp_sd(gwgen);
+	temp_sd(metvars);
 
 } 
 
@@ -1777,13 +1777,13 @@ void rmsmooth(int lm,int rm, double *m,int *dmonth,double bcond[2], double *m_cu
 	}
 }
 
-void init_weathergen(GWGen& gwgen, WeatherGen& rndst) {
+void init_weathergen(MetVariables& metvars, WeatherGen& rndst) {
 
 	// initialize the weather generator
-	gwgen.pday[0] = false;
-	gwgen.pday[1] = false;
+	metvars.pday[0] = false;
+	metvars.pday[1] = false;
 	for (int i=0;i<4;i++) {
-		gwgen.resid[i] = 0.;
+		metvars.resid[i] = 0.;
 	}
 	for (int i=0;i<QSIZ;i++) {
 		rndst.q[i] = 0;
@@ -1923,25 +1923,25 @@ double cldf2rad(double input, double lat, int doy, bool cldf2rad) {
 	}
 }
 
-void gwgen_get_daily_met(GWGen& gwgen, WeatherGen& rndst) {
+void weathergen_get_daily_met(MetVariables& metvars, WeatherGen& rndst) {
 
 	//local variables
 	int i = 0;
 
 	// monthly total precipitation amount (mm)
-	double pre = gwgen.mprec; 
+	double pre = metvars.mprec; 
 	// number of days in month with precipitation (fraction)
-	double wetd= gwgen.mwetd;  
+	double wetd= metvars.mwetd;  
 	// fraction of days in month with precipitation (fraction) 
-	double wetf= gwgen.mwetf;
+	double wetf= metvars.mwetf;
 	// minumum temperture (C)
-	double tmn = gwgen.dtmin; 
+	double tmn = metvars.dtmin; 
 	// maximum temperture (C)
-	double tmx = gwgen.dtmax;  
+	double tmx = metvars.dtmax;  
 	// cloud fraction (0=clear sky, 1=overcast) (fraction)
-	double cld = gwgen.dcldf;  
+	double cld = metvars.dcldf;  
 	// wind (m/s)
-	double wnd = gwgen.dwind;  
+	double wnd = metvars.dwind;  
 
 	double prec;
 	double tmin;
@@ -1977,11 +1977,11 @@ void gwgen_get_daily_met(GWGen& gwgen, WeatherGen& rndst) {
 		// based on summaries of long-term data
 		
 		// if yesterday was raining, use p11
-		if (gwgen.pday[0]) { 
+		if (metvars.pday[0]) { 
 			pwet = p11_1 + p11_2 * wetf;
 		}
 		// if yesterday was not raining but the day before yesterday was raining, use p101
-		else if (gwgen.pday[1]) { 
+		else if (metvars.pday[1]) { 
 			pwet = p101_1 + p101_2 * wetf;
 		}
 		// both yesterday and the day before were dry, use p001
@@ -1993,17 +1993,17 @@ void gwgen_get_daily_met(GWGen& gwgen, WeatherGen& rndst) {
 		// using the Markov chain approach
 		u = ranur(rndst);
 		
-		gwgen.pday[1] = gwgen.pday[0];
+		metvars.pday[1] = metvars.pday[0];
 		if (u <= pwet) { // today is a rain day
-			gwgen.pday[0] = true;
+			metvars.pday[0] = true;
 		}
 		else  { //today is dry
-			gwgen.pday[0] = false;
+			metvars.pday[0] = false;
 		}
 
 		// precipitation amount
 		
-		if (gwgen.pday[0]) { //today is a wet day, calculate the rain amount
+		if (metvars.pday[0]) { //today is a wet day, calculate the rain amount
 			//calculate parameters for the distribution function of precipitation amount
 			pbar = pre / wetd;
 
@@ -2043,19 +2043,19 @@ void gwgen_get_daily_met(GWGen& gwgen, WeatherGen& rndst) {
 		}
 	}
 	else {
-		gwgen.pday[0] = false;
-		gwgen.pday[1] = false;
+		metvars.pday[0] = false;
+		metvars.pday[1] = false;
 		prec = 0.;
 	}
 
 	// temperature min and max, cloud fraction
 	//calculate a baseline mean and SD for today's weather dependent on precip status
-	gwgen.tmn = tmn;
-	gwgen.tmx = tmx;
-	gwgen.cld = cld;
-	gwgen.wnd = wnd;
+	metvars.tmn = tmn;
+	metvars.tmx = tmx;
+	metvars.cld = cld;
+	metvars.wnd = wnd;
 
-	meansd(gwgen);
+	meansd(metvars);
 
 	// use random number generator for the normal distribution
 	for (i=0;i<4;i++) {
@@ -2064,41 +2064,41 @@ void gwgen_get_daily_met(GWGen& gwgen, WeatherGen& rndst) {
 
 	//calculate today's residuals for weather variables
 	double CC[4],DD[4];
-	matmul(A,gwgen.resid,CC);
-	matmul(B,unorm,DD);
+	matrixmult(A,metvars.resid,CC);
+	matrixmult(B,unorm,DD);
 
 	for (int j=0; j<4; j++) {
-		gwgen.resid[j] = CC[j]+DD[j];
+		metvars.resid[j] = CC[j]+DD[j];
 	}
 
-	tmin = roundoff(gwgen.resid[0] * gwgen.dmtmin_sd + gwgen.dmtmin_mn,1);
-	tmax = roundoff(gwgen.resid[1] * gwgen.dmtmax_sd + gwgen.dmtmax_mn,1);
-	cldf = gwgen.resid[2] * gwgen.dmcldf_sd + gwgen.dmcldf_mn;
-	wind = max(0.0, gwgen.resid[3] * sqrt(max(0.0, gwgen.dmwind_sd)) + sqrt(max(0.0, gwgen.dmwind_mn)));
+	tmin = roundoff(metvars.resid[0] * metvars.dmtmin_sd + metvars.dmtmin_mn,1);
+	tmax = roundoff(metvars.resid[1] * metvars.dmtmax_sd + metvars.dmtmax_mn,1);
+	cldf = metvars.resid[2] * metvars.dmcldf_sd + metvars.dmcldf_mn;
+	wind = max(0.0, metvars.resid[3] * sqrt(max(0.0, metvars.dmwind_sd)) + sqrt(max(0.0, metvars.dmwind_mn)));
 	wind = roundoff(wind * wind, 1);
 	
 	// wind bias correction
 	slopecorr = 0.;
 	if (wind_slope_bias_L > 0.0) {
 		slopecorr = wind_slope_bias_L / ( 1 + exp( - wind_slope_bias_k * 
-							   ( gwgen.resid[3]) - wind_slope_bias_x0));
+							   ( metvars.resid[3]) - wind_slope_bias_x0));
 	}
 	else {
 		for (i=0; i<6; i++) {
 			slopecorr += wind_bias_coeffs[i] * 
-				(pow(max(wind_bias_min, min(wind_bias_max, gwgen.resid[3])), i));
+				(pow(max(wind_bias_min, min(wind_bias_max, metvars.resid[3])), i));
 		}
 	}
 
 	intercept_corr = 0.;
 	if (fabs(wind_intercept_bias_a + 9999.) > 1e-7) {
 		intercept_corr = exp(wind_intercept_bias_b + 
-				 wind_intercept_bias_a * max(wind_bias_min, min(wind_bias_max, gwgen.resid[3])));
+				 wind_intercept_bias_a * max(wind_bias_min, min(wind_bias_max, metvars.resid[3])));
 	} 
 	else {
 		for (i=0; i<6; i++) {
 			intercept_corr += wind_intercept_bias_coeffs[i] * 
-				(pow(max(wind_bias_min, min(wind_bias_max, gwgen.resid[3])),i));
+				(pow(max(wind_bias_min, min(wind_bias_max, metvars.resid[3])),i));
 		}
 	}
 
@@ -2107,7 +2107,7 @@ void gwgen_get_daily_met(GWGen& gwgen, WeatherGen& rndst) {
 	// tmin bias correction
 	for (int i=0; i<6; i++) {
 		tmin_bias += tmin_bias_coeffs[i] * 
-				 (pow(max(tmin_bias_min, min(tmin_bias_max, gwgen.resid[0])),i));
+				 (pow(max(tmin_bias_min, min(tmin_bias_max, metvars.resid[0])),i));
 	}
 	tmin = tmin - roundoff(tmin_bias, 1);
 
@@ -2118,29 +2118,28 @@ void gwgen_get_daily_met(GWGen& gwgen, WeatherGen& rndst) {
 	else if (cldf < 0.0) {
 		//cldf = 0.0; 
 		//below bugfix for negative cldf allows for redistr on initial vals
-		cldf = gwgen.dcldf * 0.001;
+		cldf = metvars.dcldf * 0.001;
 	}
 
 	if (wind<=0.) {
-		wind = gwgen.dwind * 0.1;
+		wind = metvars.dwind * 0.1;
 	}
 
 	if (tmin+TFREEZE < 0.) {
-		printf("Unphysical min. temperature with %f K from a monthly mean %f degC with bias correction %f K for residual %f", tmin, gwgen.dmtmin_mn,tmin_bias,gwgen.resid[0]);
+		printf("Unphysical min. temperature with %f K from a monthly mean %f degC with bias correction %f K for residual %f", tmin, metvars.dmtmin_mn,tmin_bias,metvars.resid[0]);
 		exit(-1);
 	}
 	else if (tmax+TFREEZE < 0.) {
-		printf("Unphysical max. temperature with %f K from a monthly mean %f degC",tmax, gwgen.dmtmax_mn);
+		printf("Unphysical max. temperature with %f K from a monthly mean %f degC",tmax, metvars.dmtmax_mn);
 		exit(-1);
 	}
 
-	// repopulate gwgen class
-
-	gwgen.dprec  = prec;
-	gwgen.dtmin  = tmin;
-	gwgen.dtmax  = tmax;
-	gwgen.dcldf  = cldf;
-	gwgen.dwind  = wind;
+	// repopulate
+	metvars.dprec  = prec;
+	metvars.dtmin  = tmin;
+	metvars.dtmax  = tmax;
+	metvars.dcldf  = cldf;
+	metvars.dwind  = wind;
 
 }
 
@@ -2159,7 +2158,7 @@ void redist_restricted_vals(double *inval, int ll, double scalval, double *limit
 	double corfac;
 
 	if ( limit[0] != 0. ) {
-		fail("Error in gwgen.cpp redist_restricted_vals()\n");
+		fail("Error in weathergen.cpp redist_restricted_vals()\n");
 	}
 
 	bool go = true;
@@ -2191,7 +2190,7 @@ void redist_restricted_vals(double *inval, int ll, double scalval, double *limit
 			go = false;
 	}
 	if ( rest > 0.000001 * limit[1] ) {
-		fail ("Redistribution in gwgen.cpp failed!"); 
+		fail ("Redistribution in weathergen.cpp failed!");
 	}
 }
 
@@ -2235,7 +2234,7 @@ double correlation(int len, double *xarr, double *yarr) {
 	return correlation;
 }
 
-void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, double* in_mwetd, 
+void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, double* in_mwetd, 
 		   double* in_msol, double* in_mdtr, double* in_mwind, double* in_mrhum, 
 		   double* out_dtemp, double* out_dprec, double* out_dsol,double* out_ddtr,
 		   double* out_dwind, double* out_drhum) {
@@ -2255,7 +2254,7 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 	double lat = gridcell.get_lat();
 	double lon = gridcell.get_lon();
 
-	//GWGen vars that are derived from input vars mtemp,mdtr,msol
+	//met vars derived from input vars mtemp,mdtr,msol
 	double in_mtmin[12];
 	double in_mtmax[12];
 	double in_mcldf[12];
@@ -2282,19 +2281,19 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 	int i_count = 1;
 	// initially populate cloud params 
 	if ( is_first_day ) {
-		calc_cloud_params(gwgen);
+		calc_cloud_params(metvars);
 		// set initial vals if spinning up
 		if ( ! restart ) {		
-			init_weathergen(gwgen, rndst);
+			init_weathergen(metvars, rndst);
 			get_seed_by_location(lat, lon, rndst);
 			i_count = 0;
 		}
 		else {
 			// get restart values from WeatherGen-class
-			gwgen.pday[0] = rndst.pday[0];
-			gwgen.pday[1] = rndst.pday[1];
+			metvars.pday[0] = rndst.pday[0];
+			metvars.pday[1] = rndst.pday[1];
 			for (int i=0; i<4;i++) {
-				gwgen.resid[i] = rndst.resid[i];
+				metvars.resid[i] = rndst.resid[i];
 			}
 		}
 	} 
@@ -2397,25 +2396,25 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 		// reset residuals at beginning of month if desired
 		if (lreset) {
 			for (int i=0;i<4;i++)
-				gwgen.resid[i] = 0.;
+				metvars.resid[i] = 0.;
 			i_count = 0;
 		}
 		
 		// below: n_curr bezieht sich auf gitterzelle
 		double prec_t = max(2.,0.2 * in_mprec[mon]);  //set quality threshold for preciptation amount
 		
-		GWGen gwgen_sav = gwgen;
+		MetVariables metvar_sav = metvars;
 		
-		gwgen.mprec = in_mprec[mon];
+		metvars.mprec = in_mprec[mon];
 
 		// here a bugfix for CRU data is applied , when there is non-zero rain
 		// but no wet days
-		if ( gwgen.mprec > 0. ) {
-			gwgen.mwetd = max(1.,in_mwetd[mon]);
+		if ( metvars.mprec > 0. ) {
+			metvars.mwetd = max(1.,in_mwetd[mon]);
 		} else {
-			gwgen.mwetd = 0.;
+			metvars.mwetd = 0.;
 		}
-		gwgen.mwetf = gwgen.mwetd/(double)ndaymon;;
+		metvars.mwetf = metvars.mwetd/(double)ndaymon;;
 		
 		double metric_sav = 99999.;
 		
@@ -2433,31 +2432,31 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 			// dayloop
 			for (int day=0; day<ndaymon; day++) {
 				
-				gwgen.dtmin   = mtmin_curr[day] ;
-				gwgen.dtmax   = mtmax_curr[day] ;
-				gwgen.dcldf   = mcloud_curr[day];
-				gwgen.dwind   = mwind_curr[day] ;
+				metvars.dtmin   = mtmin_curr[day] ;
+				metvars.dtmax   = mtmax_curr[day] ;
+				metvars.dcldf   = mcloud_curr[day];
+				metvars.dwind   = mwind_curr[day] ;
 				if (day == 0) {
-					gwgen.pday[0] = gwgen_sav.pday[0];
-					gwgen.pday[1] = gwgen_sav.pday[1];
+					metvars.pday[0] = metvar_sav.pday[0];
+					metvars.pday[1] = metvar_sav.pday[1];
 					for (int i=0;i<4;i++) {
-						gwgen.resid[i] = gwgen_sav.resid[i];
+						metvars.resid[i] = metvar_sav.resid[i];
 					}
 				}
 				//now get $day's weather 
-				gwgen_get_daily_met(gwgen, rndst);
+				weathergen_get_daily_met(metvars, rndst);
 				
-				dprec[day]= gwgen.dprec;
-				dtmin[day]= gwgen.dtmin;
-				dtmax[day]= gwgen.dtmax;
-				dcldf[day]= gwgen.dcldf;
-				dwind[day]= gwgen.dwind;
+				dprec[day]= metvars.dprec;
+				dtmin[day]= metvars.dtmin;
+				dtmax[day]= metvars.dtmax;
+				dcldf[day]= metvars.dcldf;
+				dwind[day]= metvars.dwind;
 
-				if ( gwgen.dprec > 0. ) {
+				if ( metvars.dprec > 0. ) {
 					mwetd_sim++; 
-					mprec_sim += gwgen.dprec;
+					mprec_sim += metvars.dprec;
 				}
-				tmin_acc += gwgen.dtmin;
+				tmin_acc += metvars.dtmin;
 			} 
 			// Break off criteria
 			tmindiff = 1. ;//abs(mtmin(n_curr) - tmin_acc / ndm(n_curr))
@@ -2465,24 +2464,24 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 			// Reset met_out_save after initialization
 			if (i_count == 0) {
 				if (! restart) {
-					gwgen_sav = gwgen;
+					metvar_sav = metvars;
 				}
 				else {
 					for (int i=0;i<4;i++) {
-						gwgen_sav.resid[i] = gwgen.resid[i];
+						metvar_sav.resid[i] = metvars.resid[i];
 					}
 				}
 			}
 
-			if (gwgen.mprec <= 0.1 && tmindiff < 2.5) {
+			if (metvars.mprec <= 0.1 && tmindiff < 2.5) {
 				pdaydiff = 0;
 				precdiff = 0.;
 				break;
 			}
 			// enforce at least two times over the month to get initial values ok
 			else if (i_count >= 1) {  
-				pdaydiff = (int)roundoff(gwgen.mwetd,0) - mwetd_sim;
-				precdiff = gwgen.mprec - mprec_sim;
+				pdaydiff = (int)roundoff(metvars.mwetd,0) - mwetd_sim;
+				precdiff = metvars.mprec - mprec_sim;
 
 				// breakoff-criteria for sufficient skill 			
 				if ( (abs(pdaydiff) <= 1 && fabs(precdiff) <= prec_t && tmindiff < 2.5) ||
@@ -2501,10 +2500,10 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 						dwind_sav[day]= dwind[day];
 					}
 					metric_sav = metric;
-					rndst.pday[0]  = gwgen.pday[0];
-					rndst.pday[1]  = gwgen.pday[1];
+					rndst.pday[0]  = metvars.pday[0];
+					rndst.pday[1]  = metvars.pday[1];
 					for (int i=0; i<4; i++) {
-						rndst.resid[i] = gwgen.resid[i];
+						rndst.resid[i] = metvars.resid[i];
 					}
 				}
 
@@ -2518,10 +2517,10 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 						dcldf[day]= dcldf_sav[day];
 						dwind[day]= dwind_sav[day];
 					}
-					gwgen.pday[0]= rndst.pday[0];
-					gwgen.pday[1]= rndst.pday[1];
+					metvars.pday[0]= rndst.pday[0];
+					metvars.pday[1]= rndst.pday[1];
 					for (int i=0; i<4; i++) {
-						gwgen.resid[i] = rndst.resid[i];
+						metvars.resid[i] = rndst.resid[i];
 					}
 					break;
 				}
@@ -2631,3 +2630,10 @@ void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, doubl
 
 	} // month loop
 }
+///////////////////////////////////////////////////////////////////////////////////////
+// REFERENCES
+//
+// Sommer, P. S. and Kaplan, J. O.: A globally calibrated scheme for generating daily meteorology
+//   from monthly statistics: Global-WGEN (GWGEN) v1.0, Geosci. Model Dev., 10, 3771-3791,
+//   doi:10.5194/gmd-10-3771-2017, 2017.
+// Original Code in Fortran available at: https://arve-research.github.io/gwgen/

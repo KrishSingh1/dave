@@ -124,7 +124,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& monthly_max_nesterov
 		& cur_nesterov
 		& recent_max_fapar
-		& avg_annual_rainf
+		& avg_annual_rainfall
 		& last_rainfall
 		& dslr
 		& kbdi

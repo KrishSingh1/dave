@@ -31,7 +31,6 @@
 #include "simfire.h"
 #include "simfire_input.h"
 
-//CLN#define NFIREBIOMES 9
 const int NFIREBIOMES = 9;
 
 /// Annually update SIMFIRE BIOME for a patch from current vegetation
@@ -446,4 +445,4 @@ double simfire_burned_area(Climate& climate) {
 // REFERENCES
 //
 // Knorr, W. et al., Impact of human population density on fire frequency at the 
-//  global scale, BIOGEOSCIENCES, 11, 4, 2014, DOI: 10.5194/bg-11-1085-2014
+//   global scale, BIOGEOSCIENCES, 11, 4, 2014, DOI: 10.5194/bg-11-1085-2014

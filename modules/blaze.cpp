@@ -96,20 +96,19 @@ double pixelsize(double latpos,double longsize,double latsize,int postype) {
 	//           3 = SW corner
 	//           4 = SE corner
 
-	double pi,r,h1,h2,lattop,latbot,s;
+	double h1,h2,lattop,latbot,s;
       
-	pi=3.1415926536;
-	//r=6367.425;   // mean radius of the earth
-	r=6371.2213;   // mean radius of the earth (revised LN 04/2015)
+	const double PI =3.1415926536;
+	const double R_E=6371.2213;   // mean radius of the earth (revised LN 04/2015)
 	
 	lattop=latpos;
 	if (postype==0) lattop=latpos+latsize*0.5;
 	if (postype==3 || postype==4) lattop=latpos+latsize;
 	if (lattop<0.0) lattop=-lattop+latsize;
 	latbot=lattop-latsize;
-	h1=r*sin(lattop*pi/180.0);
-	h2=r*sin(latbot*pi/180.0);
-	s=2.0*pi*r*(h1-h2);  //for this latitude band
+	h1=R_E*sin(lattop*PI/180.0);
+	h2=R_E*sin(latbot*PI/180.0);
+	s=2.0*PI*R_E*(h1-h2);  //for this latitude band
 	
 	return s*longsize/360.0;  //for this pixel
 }
@@ -144,7 +143,7 @@ void get_combustion_rates(Patch& patch, int fli_index, double k_tun_litter) {
  * depending on computed potential FLI the index corresponding to the entries in
  * the look-up-tables is returned
  */
-int get_fli_index(double fli, bool is_sprouter) {
+int get_fire_line_intensity_index(double fli, bool is_sprouter) {
 
 	// determine intensity category for combustion-lookup-tables
 	int fli_index; // fli - index
@@ -243,7 +242,7 @@ void get_fireline_intensity(Patch& patch, Climate& climate) {
 		fli = HEAT_YIELD * avail_fuel * rate_of_spread;
 
 		//  re-copmute FLI index 
-		fli_index = get_fli_index(fli, climate.is_sprouter);
+		fli_index = get_fire_line_intensity_index(fli, climate.is_sprouter);
 		
 		if (i >= fli_index ) break;
 	}
@@ -264,17 +263,17 @@ double survival_probability_temp_needleleaf(double dbh, double fli, double mass_
 
 	double cdbh = dbh * 100; // in cm
 	double con1000 = frac_cwd * mass_cwd * 0.1 ; // in Mg/ha
-	double p750, p_surv;
+	double p750, survival_probability;
 	if ( fli < 750. ) {
 		p750   = 1. - (1./(1.+ exp(-(1.0337 + 0.000151*750. 
 						- .221*cdbh + .0219*con1000))));
-		p_surv = 1. - (fli/750. * (1. - p750) );
+		survival_probability = 1. - (fli/750. * (1. - p750) );
 	}
 	else {
-		p_surv = 1. - (1./(1.+ exp(-(1.0337 + 0.000151*fli
+		survival_probability = 1. - (1./(1.+ exp(-(1.0337 + 0.000151*fli
 						- .221*cdbh + .0219*con1000))));
 	}
-	return p_surv;
+	return survival_probability;
 }
 
 /// Survival probability for temperate broadleaf trees following Hickler 2004
@@ -293,6 +292,7 @@ double survival_probability_temp_broadleaf(double dbh, double fli, bool is_respr
 	}
 
 	// following Hickler et al. 2004
+	// compute surv. prob. at 3000kW/m first
 	double p_surv3000 = 0.95 - 1./(1.+ pow((dbh/R),1.5)) ;
 	double surv_prob_temp_bl;
 	if ( fli > 7000. ) {
@@ -314,33 +314,34 @@ double survival_probability_tropics(double dbh, double fli) {
 	// DBH in cm
 	dbh *= 100.; 
 
-	double p_surv = 1.;
+	double survival_probability = 1.;
+	// compute surv. prob. at 3000kW/m first
 	double p_surv3000 = 1. - max( 0.82 - 0.035 * pow(dbh,0.7) , 0.);
 	if ( fli > 7000. ) {
 		double scal_fac = 1. - log((fli/7000.)) ;
-		p_surv = scal_fac * p_surv3000;
+		survival_probability = scal_fac * p_surv3000;
 	}
 	else if ( fli > 3000. ) {
-		p_surv =  p_surv3000;
+		survival_probability =  p_surv3000;
 	}
 	else {
-		p_surv = exp(fli/3000. * log(p_surv3000));
+		survival_probability = exp(fli/3000. * log(p_surv3000));
 	}
 
-	p_surv   = max(min(1.,p_surv), 0.001);
+	survival_probability   = max(min(1.,survival_probability), 0.001);
     	
-	return p_surv;
+	return survival_probability;
 }
 
 /// Survival probability for savannas following Bond 2008
 double survival_probability_savanna(double height, double fli) {
 
 	double intensity = fli / 1000. ;
-	double p_surv = max(0.,1. - ( 1./(1. + exp(1.5*(height - 0.5 * intensity - 1. )))));
+	double survival_probability = max(0.,1. - ( 1./(1. + exp(1.5*(height - 0.5 * intensity - 1. )))));
 
-	p_surv = min (1.,p_surv);
+	survival_probability = min (1.,survival_probability);
 	
-	return p_surv;
+	return survival_probability;
 }
 
 /// Survival probability for australian savanna-resprouters Cook 2005
@@ -357,23 +358,23 @@ double survival_probability_sprouter_savanna(double height, double fli) {
 	double min_height = 3.7 * (1.-exp(-0.19 * intensity));
 
 	// survival probability [fract.]
-	double p_survival; 
+	double survival_probability;
 
 	// Empirically generated functions by Vanessa Haverd
 	// based on observations from G. Cook
 	if (height > MAX_PROB_HEIGHT && height > min_height) {
-		p_survival = ( -.0011 * intensity - .00002) * height
+		survival_probability = ( -.0011 * intensity - .00002) * height
 			+ .0075 * intensity + 1. ;
 	}
 	else if (height > min_height) {
-		p_survival = ( .0178 * intensity + .0144) * height
+		survival_probability = ( .0178 * intensity + .0144) * height
 			+ ( -.1174 * intensity + 0.9158 );
 	}
 	else {
-		p_survival = 0.001;
+		survival_probability = 0.001;
 	}
-	p_survival = max(1.e-3,min(1.,p_survival));
-	return p_survival;
+	survival_probability = max(1.e-3,min(1.,survival_probability));
+	return survival_probability;
 }
 
 /// Compute Individual/Cohort survival probability
@@ -516,7 +517,7 @@ void blaze(Patch& patch, Climate& climate) {
 
 
 	// get relative fluxes between pools
-	int fli_index = get_fli_index(patch.fli, climate.is_sprouter);
+	int fli_index = get_fire_line_intensity_index(patch.fli, climate.is_sprouter);
 
 	// if fuel availability is too low return 
 	if ( fli_index < 0 ) return;
@@ -976,19 +977,18 @@ void blaze_accounting_gridcell(Climate& climate) {
 
 	const int AVERAGING_SPAN = 3; // time-span over which annual rainfall is averaged
 	// to initialise on start of spinup or after restart
-	bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
-			       ( restart && date.year == state_year ) ) );
+	bool is_first_day = (date.day == 0 && (date.year == 0 || (restart && date.year == state_year)));
 
 	// initialise fields
 	if (date.year == 0 && date.day == 0 && ! restart) {
 		if ( vegmode == INDIVIDUAL ) fail("INDIVDUAL MODE not ready in BLAZE!");
-		climate.avg_annual_rainf = 0.0; // average annual rainfall [mm]
-		climate.cur_rainf        = 0.0; // sum of this years rainfall so far [mm]
-		climate.dslr             = 0  ; // #Days-since-last-rainfall >3mm 
-		climate.last_rainfall    = 0.0; // rainfall of last day of previous year [mm]
-		climate.kbdi             = 0.0; // Keetch-Byram-Drought-index []
-		climate.can_burn         = 0;   // Indicator whether a fire can burn to be carried through patches
-		climate.areaburnt        = 0.0; // area burnt [frac.]
+		climate.avg_annual_rainfall = 0.0; // average annual rainfall [mm]
+		climate.cur_rainfall        = 0.0; // sum of this years rainfall so far [mm]
+		climate.dslr                = 0  ; // #Days-since-last-rainfall >3mm
+		climate.last_rainfall       = 0.0; // rainfall of last day of previous year [mm]
+		climate.kbdi                = 0.0; // Keetch-Byram-Drought-index []
+		climate.can_burn            = 0;   // Indicator whether a fire can burn to be carried through patches
+		climate.areaburnt           = 0.0; // area burnt [frac.]
 		climate.mcarthur_fire_index = 0.; 
 		for (int x=0; x<30; x++) {
 			climate.months_ffdi[x] = 0.;
@@ -1042,7 +1042,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 		climate.dslr++;
 	}
 
-	climate.cur_rainf += climate.prec;
+	climate.cur_rainfall += climate.prec;
 
 	// Update the Keetch-Byram-Drought-Index (Keetch et al. 1968)
 	const double FRAC2PERC = 100.   ; // convert fraction to percentage
@@ -1054,7 +1054,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 	// Gust parameterisation following ...
 	v = ( 214.7 * pow(  v + 10. ,-1.6968)  + 1. ) * v;
 
-	double dkbdi; // change in kbdi due to rainfall history
+	double dkbdi; // change in Keetch-Byram-Drought-Index due to rainfall history
 	if (climate.dslr == 0) {
 		if (climate.last_rainfall > 5.) {
 			dkbdi = 5. - climate.last_rainfall;
@@ -1066,7 +1066,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 	else {
 		dkbdi = (( 800. - climate.kbdi) * (.968 * exp(.0486 * (t * 9./5. + 32.)) 
 			 - 8.3) / 1000. / (1. + 10.88 * exp(-.0441 * 
-			 climate.avg_annual_rainf/25.4)) * .254);
+			 climate.avg_annual_rainfall/25.4)) * .254);
 	}
 	climate.kbdi = max(0.0,climate.kbdi + dkbdi);
 
@@ -1101,15 +1101,15 @@ void blaze_accounting_gridcell(Climate& climate) {
 	if (date.islastday && date.islastmonth) {
 		
 		// Update running mean of average annual rainfall
-		double wght; // used to compute running average of ann rainfall
+		double weighting; // used to compute running average of ann rainfall
 		if (date.year < AVERAGING_SPAN) {
-			wght = date.year + 1;
+			weighting = date.year + 1;
 		} else {
-			wght = AVERAGING_SPAN;
+			weighting = AVERAGING_SPAN;
 		}
-		climate.avg_annual_rainf = ((wght - 1.) * climate.avg_annual_rainf 
-					    + climate.cur_rainf ) / wght;
-		climate.cur_rainf   = 0.0;
+		climate.avg_annual_rainfall = ((weighting - 1.) * climate.avg_annual_rainfall 
+					    + climate.cur_rainfall ) / weighting;
+		climate.cur_rainfall   = 0.0;
 
 		// assumimng no leap_years, shift ffdi by 25 days to keep order 
 		// for next year
@@ -1139,7 +1139,7 @@ void blaze_driver(Patch& patch, Climate& climate) {
 		return;
 	}
 	// Fire and Weathergenerator compatibility. BLAZE needs GWGEN
-	if (weathergenerator != GWGEN) {
+	if (weathergenerator != WEATHERGEN) {
 		fail ("BLAZE needs GWGEN or daily data as input \n");
 	}
 
@@ -1160,7 +1160,7 @@ void blaze_driver(Patch& patch, Climate& climate) {
 	get_fireline_intensity(patch,climate);
 
 	// get relative fluxes between pools
-	int fli_index = get_fli_index(patch.fli, climate.is_sprouter);
+	int fli_index = get_fire_line_intensity_index(patch.fli, climate.is_sprouter);
 
 	// determine whether burned area shall be added to output
 	// if no fire -> no burned area
@@ -1188,39 +1188,23 @@ void blaze_driver(Patch& patch, Climate& climate) {
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
 //
-// FIRE-MORTALITIES
-//
-//  Boreal
-//   Dalziel, BD, Tree Mortality Following Boreal Forest Fires Reveals Scale-Dependant 
-//    Interactions Between Community Structure and Fire Intensity, Ecos., 12, 2009
-//    https://doi.org/10.1007/s10021-009-9272-2
-//
-//  Temperate Needleleaf
-//   Kobziar, L, Tree mortality patterns following prescribed fires in a mixed conifer forest, 
-//    Can. J. For. Res., 36, 2006, doi:10.1139/X06-183
-//
-//  Temperate Broadleaf
-//   Hickler, T, USING A GENERALIZED VEGETATION MODEL TO SIMULATE VEGETATION DYNAMICS 
-//    IN NORTHEASTERN USA, Ecology, 85, 2004, doi: 10.1890/02-0344 
-//
-//  Savanna
-//   Bond, WJ, What Limits Trees in C4 Grasslands and Savannas?, 
+// Dalziel, BD, Tree Mortality Following Boreal Forest Fires Reveals Scale-Dependant 
+//   Interactions Between Community Structure and Fire Intensity, Ecos., 12, 2009
+//   https://doi.org/10.1007/s10021-009-9272-2
+// Kobziar, L, Tree mortality patterns following prescribed fires in a mixed conifer forest, 
+//   Can. J. For. Res., 36, 2006, doi:10.1139/X06-183
+// Hickler, T, USING A GENERALIZED VEGETATION MODEL TO SIMULATE VEGETATION DYNAMICS 
+//   IN NORTHEASTERN USA, Ecology, 85, 2004, doi: 10.1890/02-0344 
+// Bond, WJ, What Limits Trees in C4 Grasslands and Savannas?, 
 //   Annu. Rev. Ecol. Evol. Syst. 2008. 39, doi:10.1146/annurev.ecolsys.39.110707.173411
-//
-//  Savanna, Australia
-//   Cook, G, pers. comm., 2014, 
-// 
-//  Tropical fire-mortality
-//   van Nieuwstadt, MGL, Drought, fire and tree survival in a Borneo rain forest, 
-//    East Kalimantan, Indonesia,J.o. Ecology, Vol.93, 1,  2005
-//    https://doi.org/10.1111/j.1365-2745.2004.00954.x
-// 
-//  Liedloff, A, Predicting a ?tree change? in Australia?s tropical savannas: Combining different
+// Cook, G, pers. comm., 2014, 
+// van Nieuwstadt, MGL, Drought, fire and tree survival in a Borneo rain forest, 
+//   East Kalimantan, Indonesia,J.o. Ecology, Vol.93, 1,  2005
+//   https://doi.org/10.1111/j.1365-2745.2004.00954.x
+// Liedloff, A, Predicting a ?tree change? in Australia?s tropical savannas: Combining different
 //   types of models to understand complex ecosystem behaviour, Ecological Modelling 221, 2010
 //   doi:10.1016/j.ecolmodel.2010.07.022
-//  
-//  Noble, IR, McArthur's fire-danger expressed as equations, Austr. J. Ecol. 5, 1980
+// Noble, IR, McArthur's fire-danger expressed as equations, Austr. J. Ecol. 5, 1980
 //   doi:10.1111/j.1442-9993.1980.tb01243.x
-//
-//  Keetch, JJ, A Drought Index for Forest Fire Control, Res. Pap. SE-38. Asheville, 
+// Keetch, JJ, A Drought Index for Forest Fire Control, Res. Pap. SE-38. Asheville, 
 //   NC: U.S. Department of Agriculture, 1968

@@ -7,20 +7,16 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
-//#ifndef LPJ_GUESS_CRUINPUT_H
-//#define LPJ_GUESS_CRUINPUT_H
-//
 #include "guess.h"
 
-#ifndef GWGEN_H
-#define GWGEN_H
+#ifndef WEATHERGEN_H
+#define WEATHERGEN_H
 
-/// A weathergenerator for the use with e.g. BLAZE when wind etc is needed
-
-void gwgen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
+/// GWGen - A weathergenerator for the use with e.g. BLAZE when wind etc is needed
+void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		   double* in_mwetm, double* in_msol, double* in_mdtr, 
 		   double* in_mwind, double* in_rhum, double* out_temp,
 		   double* out_dprec,double* out_dsol,double* out_ddtr,
 		   double* out_dwind,double* out_rhum);
 	
-#endif // GWGEN_H
+#endif

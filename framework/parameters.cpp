@@ -451,7 +451,7 @@ void plib_declarations(int id,xtring setname) {
 			"Parameterisation of root distribution (\"FIXED\", \"JACKSON\")");
             
 		declareitem("weathergenerator", &strparam, 20, CB_WEATHERGENERATOR,
-			    "Weather Generator (\"INTERP\", \"GWGEN\", \"NOFIRE\")");
+			    "Weather Generator (\"INTERP\", \"WEATHERGEN\", \"NOFIRE\")");
 
 		declareitem("nrelocfrac",&nrelocfrac,0.0,0.99,1,CB_NONE,
 			"Fractional nitrogen relocation from shed leaves & roots");
@@ -995,11 +995,11 @@ void plib_callback(int callback) {
 		}
 		break;
 	case CB_WEATHERGENERATOR:
-		if (strparam.upper() == "GWGEN") weathergenerator = WEATHERGEN;
+		if (strparam.upper() == "WEATHERGEN") weathergenerator = WEATHERGEN;
 		else if (strparam.upper() == "INTERP") weathergenerator = INTERP;
 		else {
 			sendmessage("Error",
-				"Unknown weathergenerator (valid types: \"GWGEN\", \"INTERP\")");
+				"Unknown weathergenerator (valid types: \"WEATHERGEN\", \"INTERP\")");
 			plibabort();
 		}
 		break;		

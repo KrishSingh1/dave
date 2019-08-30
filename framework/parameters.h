@@ -74,7 +74,7 @@ typedef enum {BLAZE, GLOBFIRM, NOFIRE} firemodeltype;
  *      INTERP          use standard interpolation scheme
  *      NONE            Should be set if daily input is used (e.g. in cfinput) 
  */
-typedef enum {WEATHERGEN, INTERP, NONE} weathergeneratortype;
+typedef enum {GWGEN, INTERP, NONE} weathergeneratortype;
 
 ///How to determine root distribution in soil layers
 typedef enum {ROOTDIST_FIXED, ROOTDIST_JACKSON} rootdisttype;

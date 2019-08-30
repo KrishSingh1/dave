@@ -203,7 +203,7 @@ void initsettings() {
 	// Parameters not initialised here must be set in instruction script
 
 	firemodel=BLAZE;
-	weathergenerator=WEATHERGEN;
+	weathergenerator=GWGEN;
 	ifcalcsla=true;
 	ifdisturb=false;
 	ifcalcsla=false;
@@ -451,7 +451,7 @@ void plib_declarations(int id,xtring setname) {
 			"Parameterisation of root distribution (\"FIXED\", \"JACKSON\")");
             
 		declareitem("weathergenerator", &strparam, 20, CB_WEATHERGENERATOR,
-			    "Weather Generator (\"INTERP\", \"WEATHERGEN\", \"NOFIRE\")");
+			    "Weather Generator (\"INTERP\", \"GWGEN\", \"NOFIRE\")");
 
 		declareitem("nrelocfrac",&nrelocfrac,0.0,0.99,1,CB_NONE,
 			"Fractional nitrogen relocation from shed leaves & roots");
@@ -995,11 +995,11 @@ void plib_callback(int callback) {
 		}
 		break;
 	case CB_WEATHERGENERATOR:
-		if (strparam.upper() == "WEATHERGEN") weathergenerator = WEATHERGEN;
+		if (strparam.upper() == "GWGEN") weathergenerator = GWGEN;
 		else if (strparam.upper() == "INTERP") weathergenerator = INTERP;
 		else {
 			sendmessage("Error",
-				"Unknown weathergenerator (valid types: \"WEATHERGEN\", \"INTERP\")");
+				"Unknown weathergenerator (valid types: \"GWGEN\", \"INTERP\")");
 			plibabort();
 		}
 		break;		
@@ -1188,7 +1188,7 @@ void plib_callback(int callback) {
 
 		if (!itemparsed("weathergenerator")) badins("weathergenerator");
 		if (!itemparsed("firemodel")) badins("firemodel");
-		if (firemodel==BLAZE && weathergenerator!=WEATHERGEN) {
+		if (firemodel==BLAZE && weathergenerator!=GWGEN) {
 				sendmessage("Error", "Weathergenerator must be GWGEN for BLAZE!");
 			plibabort();
 		}

@@ -1139,7 +1139,7 @@ void blaze_driver(Patch& patch, Climate& climate) {
 		return;
 	}
 	// Fire and Weathergenerator compatibility. BLAZE needs GWGEN
-	if (weathergenerator != WEATHERGEN) {
+	if (weathergenerator != GWGEN) {
 		fail ("BLAZE needs GWGEN or daily data as input \n");
 	}
 

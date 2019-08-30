@@ -351,7 +351,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 					prdaily(mprec, dprec, mwet, gridcell.seed);
 				}
 			}
-			else if ( weathergenerator == WEATHERGEN ) {
+			else if ( weathergenerator == GWGEN ) {
 
 				// Use gwgen - correlated weather
 				weathergen_get_met(gridcell,mtemp,mprec,mwet,msun,mdtr,
@@ -393,7 +393,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 						hist_mwet[date.year-nyear_spinup], gridcell.seed);
 				}
 			}
-			else if ( weathergenerator == WEATHERGEN ) {
+			else if ( weathergenerator == GWGEN ) {
 
 				// Use gwgen - correlated weather
 				weathergen_get_met(gridcell,hist_mtemp[date.year-nyear_spinup],
@@ -442,7 +442,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	// initialise first
 	climate.u10    = 0.;
 	climate.relhum = 0.;
-	if ( weathergenerator == WEATHERGEN ) {
+	if ( weathergenerator == GWGEN ) {
 		climate.u10    = dwind[date.day];
 		climate.relhum = drhum[date.day];
 	}

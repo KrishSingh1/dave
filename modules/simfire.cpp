@@ -178,7 +178,7 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 	int count_max=0; // maximum of 'count'
 	// find and save most common biome number
 	for (biome=0; biome<NFIREBIOMES; biome++) count[biome]=0;
-	for (int idx = 0; idx < biomes.size(); idx++) {
+	for (int idx = 0; idx<(int)biomes.size(); idx++) {
 		count[biomes[idx]]++;
 	}
 	for (biome=0; biome<NFIREBIOMES; biome++) {

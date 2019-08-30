@@ -334,9 +334,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 		// update population density
 		simfire_update_pop_density(gridcell);
 		
-
-
-	} 	
+	}
 	// multi-year accounting of maximum annual fapar	
 	else if ( date.islastday && date.islastmonth ) {
 		int a = date.year % avg_interv_fapar;

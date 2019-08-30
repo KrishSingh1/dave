@@ -508,16 +508,14 @@ void blaze(Patch& patch, Climate& climate) {
 
 	// Correction fractions burnt earlier in the same year (vegmode = POPULATION only)
 	double accumulated_fraction_burned= 1.  / (1. - climate.accumulated_areaburnt);
+
+	// Check whether it burns
+	if (!( randfrac(patch.stand.seed) <= area_burned || vegmode == POPULATION)) return;
 	
-	// see if it burns at all
-	if (! ( randfrac(patch.stand.seed) <= area_burned || vegmode == POPULATION ) )
-		return ;
-
-
 	// get relative fluxes between pools
 	int fli_index = get_fire_line_intensity_index(patch.fire_line_intensity, climate.is_sprouter);
-
-	// if fuel availability is too low return 
+	
+	// if fuel availability is too low return
 	if ( fli_index < 0 ) return;
 
 	// adjustment factor for fluxes
@@ -1110,14 +1108,14 @@ void blaze_accounting_gridcell(Climate& climate) {
 		// assumimng no leap_years, shift ffdi by 25 days to keep order 
 		// for next year
 		const int AVERAGING_FFDI = 30;
-		double ttmp[AVERAGING_FFDI];
+		double tmp[AVERAGING_FFDI];
 		int avg_shift = AVERAGING_FFDI - (365 % AVERAGING_FFDI);
 		for (int i = 0; i < AVERAGING_FFDI; i++) {
 			int idx = (i + avg_shift) % AVERAGING_FFDI;
-			ttmp[idx] = climate.months_ffdi[i];
+			tmp[idx] = climate.months_ffdi[i];
 		}
 		for (int i = 0; i < AVERAGING_FFDI; i++) {
-			climate.months_ffdi[i] = ttmp[i];
+			climate.months_ffdi[i] = tmp[i];
 		}
 	}
 }		     

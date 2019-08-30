@@ -901,7 +901,7 @@ public:
 	/// burned area from either SIMFIRE or GFED
 	double areaburnt;
 	/// accumulated burned area from either SIMFIRE or GFED for tstep < 1a
-	double acc_areaburnt;
+	double accumulated_areaburnt;
 	/// prescribed burned area from file
 	double prescribed_ba;
 	/// Simple tracker to check whether at least one patch has enough fuel to burn
@@ -3991,7 +3991,7 @@ public:
 	double fireprob;
 
 	/// BLAZE Fire line intensity;
-	double fli;
+	double fire_line_intensity;
 
 	/// BLAZE fire related carbon fluxes
 	/// live wood to atmosphere

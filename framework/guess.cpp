@@ -438,7 +438,7 @@ void Patch::serialize(ArchiveStream& arch) {
 		& mpet
 		& ndemand
 		& irrigation_y
-		& fli
+		& fire_line_intensity
 		& wood2atm
 		& leaf2atm
 		& leaf2lit

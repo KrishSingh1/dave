@@ -143,30 +143,30 @@ void get_combustion_rates(Patch& patch, int fli_index, double k_tun_litter) {
  * depending on computed potential FLI the index corresponding to the entries in
  * the look-up-tables is returned
  */
-int get_fire_line_intensity_index(double fli, bool is_sprouter) {
+int get_fire_line_intensity_index(double fire_line_intensity, bool is_sprouter) {
 
 	// determine intensity category for combustion-lookup-tables
-	int fli_index; // fli - index
-	if ( fli > 7000. ) {
+	int fire_line_intensity_index; // fire-line-intensity- index
+	if ( fire_line_intensity > 7000. ) {
 		if ( is_sprouter ) {
-			fli_index = 3;
+			fire_line_intensity_index = 3;
 		} else {
-			fli_index = 4; 
+			fire_line_intensity_index = 4; 
 		}
 	}
-	else if ( fli > 3000. ) {
-		fli_index = 2;
+	else if ( fire_line_intensity > 3000. ) {
+		fire_line_intensity_index = 2;
 	}
-	else if ( fli > 750. ) {
-		fli_index = 1;
+	else if ( fire_line_intensity > 750. ) {
+		fire_line_intensity_index = 1;
 	}
-	else if ( fli > 0. ) {
-		fli_index = 0;
+	else if ( fire_line_intensity > 0. ) {
+		fire_line_intensity_index = 0;
 	} 
 	else {
-		fli_index = -1;
+		fire_line_intensity_index = -1;
 	}
-	return fli_index;
+	return fire_line_intensity_index;
 }
 
 /// Compute the amount of fuel readily available to burn
@@ -190,12 +190,11 @@ double available_fuel (Patch& patch,int fli_index, double k_tun_litter)  {
 
 	// compute readily available fuel load for given FLI-index in PATCH
 	double available_fuel = patch.litf2atm * (patch.soil.sompool[SURFSTRUCT].cmass + 
-					   patch.soil.sompool[SURFMETA].cmass + 
-					   trans_litter_leaf)
-		+ patch.lfwd2atm * ( patch.soil.sompool[SURFFWD].cmass + trans_litter_sap )
-		+ patch.lcwd2atm * ( patch.soil.sompool[SURFCWD].cmass + trans_litter_heart) * k_tun_litter;
-
-
+						  patch.soil.sompool[SURFMETA].cmass +
+						  trans_litter_leaf)
+	+ patch.lfwd2atm * ( patch.soil.sompool[SURFFWD].cmass + trans_litter_sap )
+	+ patch.lcwd2atm * ( patch.soil.sompool[SURFCWD].cmass + trans_litter_heart) * k_tun_litter;
+	
 	Vegetation& vegetation=patch.vegetation;
 	vegetation.firstobj();
 	while (vegetation.isobj) {
@@ -216,37 +215,39 @@ void get_fireline_intensity(Patch& patch, Climate& climate) {
 	
 
 	// Energy contents of fuel [MJ/kg] (Liedloff, 2007)
-	const double HEAT_YIELD = 20.; 
+	const double HEAT_YIELD = 20.;
+	// empirical value
+	const double A = 3.3333e-05;
 	// Readily available fuel  [g/m2]
 	double avail_fuel;                      
 	// rate of spread          [m/s]
 	double rate_of_spread;                    
 	// fire-line intensity     [W/m]
-	double fli;                  
+	double fire_line_intensity;                  
 	// fire intensity category index
-	int fli_index = 0;
+	int fire_line_intensity_index = 0;
 
 	for ( int i=0; i<4; i++ ) {
 
 		// get available fuel for current fire-line intensity index (fli_index) and convert kg/m2 to g/m2
-		avail_fuel = available_fuel(patch,fli_index,climate.k_tun_litter) * KG2G;
+		avail_fuel = available_fuel(patch,fire_line_intensity_index,climate.k_tun_litter) * KG2G;
 		// check whether there is enough fuel to ignite a fire
 		if ( avail_fuel < MIN_FUEL ) { 
-			fli  =  -1. ;
+			fire_line_intensity  =  -1. ;
 			break;
 		}
 		// Compute Rate-of-spread [m/s]
-		rate_of_spread = 3.3333e-05 * climate.mcarthur_fire_index * avail_fuel;
+		rate_of_spread = A * climate.mcarthur_fire_index * avail_fuel;
 		
 		// fire line intensity[W/m] (Pyne, 1996 derived from Byram, 1959)
-		fli = HEAT_YIELD * avail_fuel * rate_of_spread;
+		fire_line_intensity = HEAT_YIELD * avail_fuel * rate_of_spread;
 
 		//  re-copmute FLI index 
-		fli_index = get_fire_line_intensity_index(fli, climate.is_sprouter);
+		fire_line_intensity_index = get_fire_line_intensity_index(fire_line_intensity, climate.is_sprouter);
 		
-		if (i >= fli_index ) break;
+		if (i >= fire_line_intensity_index ) break;
 	}
-	patch.fli = fli;
+	patch.fire_line_intensity = fire_line_intensity;
 }
  
 /// Survival probability for boreal trees based on Dalziel et al. 2008
@@ -257,21 +258,19 @@ double survival_probability_boreal(double fli) {
 }
 
 /// Survival probability for temperate Needleleaf trees following Kobziar 2006
-double survival_probability_temp_needleleaf(double dbh, double fli, double mass_cwd) {
+double survival_probability_temp_needleleaf(double diameter_at_breast_height, double fire_line_intensity, double mass_cwd) {
 
-	double frac_cwd = 1.;
-
-	double cdbh = dbh * 100; // in cm
-	double con1000 = frac_cwd * mass_cwd * 0.1 ; // in Mg/ha
+	double diameter_at_breast_height_cm = diameter_at_breast_height * 100; // in cm
+	double con1000 = mass_cwd * 0.1 ; // in Mg/ha
 	double p750, survival_probability;
-	if ( fli < 750. ) {
+	if ( fire_line_intensity < 750. ) {
 		p750   = 1. - (1./(1.+ exp(-(1.0337 + 0.000151*750. 
-						- .221*cdbh + .0219*con1000))));
-		survival_probability = 1. - (fli/750. * (1. - p750) );
+						- .221*diameter_at_breast_height_cm + .0219*con1000))));
+		survival_probability = 1. - (fire_line_intensity/750. * (1. - p750) );
 	}
 	else {
-		survival_probability = 1. - (1./(1.+ exp(-(1.0337 + 0.000151*fli
-						- .221*cdbh + .0219*con1000))));
+		survival_probability = 1. - (1./(1.+ exp(-(1.0337 + 0.000151*fire_line_intensity
+						- .221*diameter_at_breast_height_cm + .0219*con1000))));
 	}
 	return survival_probability;
 }
@@ -284,48 +283,48 @@ double survival_probability_temp_needleleaf(double dbh, double fli, double mass_
  */
 double survival_probability_temp_broadleaf(double dbh, double fli, bool is_resprouter) {
 	// Fire resiliance
-	double R;
+	double resilience;
 	if ( is_resprouter ) {
-		R = 0.04;
+		resilience = 0.04;
 	} else {
-		R = 0.07;
+		resilience = 0.07;
 	}
 
 	// following Hickler et al. 2004
 	// compute surv. prob. at 3000kW/m first
-	double p_surv3000 = 0.95 - 1./(1.+ pow((dbh/R),1.5)) ;
-	double surv_prob_temp_bl;
+	double survival_prob3000 = 0.95 - 1./(1.+ pow((dbh/resilience),1.5)) ;
+	double survival_probability_temp_broadleaf;
 	if ( fli > 7000. ) {
-		surv_prob_temp_bl = 0.001;
+		survival_probability_temp_broadleaf = 0.001;
 	}
 	else if ( fli > 3000 ) { 
-		surv_prob_temp_bl = p_surv3000 * (1. - (fli-3000.)/ 4000. );
+		survival_probability_temp_broadleaf = survival_prob3000 * (1. - (fli-3000.)/ 4000. );
 	}
 	else {
-		surv_prob_temp_bl = exp(fli/3000. * log(p_surv3000)); 
+		survival_probability_temp_broadleaf = exp(fli/3000. * log(survival_prob3000)); 
 	}
 
-	return surv_prob_temp_bl;
+	return survival_probability_temp_broadleaf;
 }
 
 /// Survival probability for tropical trees following Nieuwstadt 2005
-double survival_probability_tropics(double dbh, double fli) {
+double survival_probability_tropics(double diameter_at_breast_height, double fire_line_intensity) {
 
 	// DBH in cm
-	dbh *= 100.; 
+	diameter_at_breast_height *= 100.; 
 
 	double survival_probability = 1.;
 	// compute surv. prob. at 3000kW/m first
-	double p_surv3000 = 1. - max( 0.82 - 0.035 * pow(dbh,0.7) , 0.);
-	if ( fli > 7000. ) {
-		double scal_fac = 1. - log((fli/7000.)) ;
+	double p_surv3000 = 1. - max( 0.82 - 0.035 * pow(diameter_at_breast_height,0.7) , 0.);
+	if ( fire_line_intensity > 7000. ) {
+		double scal_fac = 1. - log((fire_line_intensity/7000.)) ;
 		survival_probability = scal_fac * p_surv3000;
 	}
-	else if ( fli > 3000. ) {
+	else if ( fire_line_intensity > 3000. ) {
 		survival_probability =  p_surv3000;
 	}
 	else {
-		survival_probability = exp(fli/3000. * log(p_surv3000));
+		survival_probability = exp(fire_line_intensity/3000. * log(p_surv3000));
 	}
 
 	survival_probability   = max(min(1.,survival_probability), 0.001);
@@ -334,9 +333,9 @@ double survival_probability_tropics(double dbh, double fli) {
 }
 
 /// Survival probability for savannas following Bond 2008
-double survival_probability_savanna(double height, double fli) {
+double survival_probability_savanna(double height, double fire_line_intensity) {
 
-	double intensity = fli / 1000. ;
+	double intensity = fire_line_intensity / 1000. ;
 	double survival_probability = max(0.,1. - ( 1./(1. + exp(1.5*(height - 0.5 * intensity - 1. )))));
 
 	survival_probability = min (1.,survival_probability);
@@ -345,14 +344,14 @@ double survival_probability_savanna(double height, double fli) {
 }
 
 /// Survival probability for australian savanna-resprouters Cook 2005
-double survival_probability_sprouter_savanna(double height, double fli) {
+double survival_probability_sprouter_savanna(double height, double fire_line_intensity) {
 
 	// height of max survival probability [m]
 	// taller trees are vulnerable due to age
 	double const MAX_PROB_HEIGHT = 8.5;
 
 	// fire-line intensity [MW/m]
-	double intensity = fli / 1000.; // Conversion to MW/m 
+	double intensity = fire_line_intensity / 1000.; // Conversion to MW/m 
 
 	// minimum height for trees to survive [m]
 	double min_height = 3.7 * (1.-exp(-0.19 * intensity));
@@ -385,14 +384,14 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 
 	Gridcell& gridcell = climate.gridcell;
 
-	double height = indiv.height;
-	double fli    = patch.fli;
-	double lat    = gridcell.get_lat();
+	double height              = indiv.height;
+	double fire_line_intensity = patch.fire_line_intensity;
+	double lat                 = gridcell.get_lat();
 
 	double survival_probability = 1.;
 
 	// allometry function for diameter-at-breast-height as used in growth.cpp
-	double dbh   = pow(height * 100. / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3) / 100.;
+	double diameter_at_breast_height = pow(height * 100. / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3) / 100.;
 
 	int biome = climate.simfire_biome;
 
@@ -400,37 +399,36 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 
 		// Temperate Needleleaf
 		if ( biome == SF_NEEDLELEAF) { 
-			double mass_cwd = patch.soil.sompool[SURFCWD].cmass   ;   
-			survival_probability = survival_probability_temp_needleleaf(dbh, fli, mass_cwd);
+			survival_probability = survival_probability_temp_needleleaf(diameter_at_breast_height, fire_line_intensity, patch.soil.sompool[SURFCWD].cmass);
 		}
 		// Broadleaf and mixed
 		else if ( biome ==  SF_BROADLEAF || biome == SF_MIXED_FOREST ) {
 			// tropical 
 			if  (lat > -30 && lat < 30 ) {
 				// moist
-				survival_probability = survival_probability_tropics(dbh,fli);
+				survival_probability = survival_probability_tropics(diameter_at_breast_height,fire_line_intensity);
 			} else if (climate.is_sprouter){
 				// temperate Oz
-				survival_probability = survival_probability_temp_broadleaf(dbh, fli, 1);
+				survival_probability = survival_probability_temp_broadleaf(diameter_at_breast_height, fire_line_intensity, 1);
 
 			} else {
 				// temperate 
-				survival_probability = survival_probability_temp_broadleaf(dbh, fli, 0);
+				survival_probability = survival_probability_temp_broadleaf(diameter_at_breast_height, fire_line_intensity, 0);
 
 			}
 		}
 		// Savanna, shrubland and sparsely vegetated
 		else if ( biome == SF_SHRUBS || biome == SF_SAVANNA || biome == SF_BARREN) {
 			if ( climate.is_sprouter ) {
-				survival_probability = survival_probability_sprouter_savanna(height, fli);
+				survival_probability = survival_probability_sprouter_savanna(height, fire_line_intensity);
 			}
 			else {
-				survival_probability = survival_probability_savanna(height, fli);
+				survival_probability = survival_probability_savanna(height, fire_line_intensity);
 			}
 		}
 		// Tundra
 		else if ( biome == SF_TUNDRA ) {
-			survival_probability = survival_probability_boreal(fli);
+			survival_probability = survival_probability_boreal(fire_line_intensity);
 		} 
 		else {
 			return 1.;
@@ -443,11 +441,11 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 			// Temperate Needleleaf
 			if ( fabs(lat) < 50.) {
 				double mass_cwd = patch.soil.sompool[SURFCWD].cmass   ;   
-				survival_probability = survival_probability_temp_needleleaf(dbh, fli, mass_cwd);
+				survival_probability = survival_probability_temp_needleleaf(diameter_at_breast_height, fire_line_intensity, mass_cwd);
 			}
 			// Tundra
 			else {
-				survival_probability = survival_probability_boreal(fli);
+				survival_probability = survival_probability_boreal(fire_line_intensity);
 			}
 		}
 		// Broadleaf
@@ -456,22 +454,22 @@ double survival_probability(Patch& patch, Individual& indiv, Climate& climate) {
 			if ( biome == SF_CROP || biome == SF_NEEDLELEAF || biome == SF_BROADLEAF || biome == SF_MIXED_FOREST || biome == SF_TUNDRA ) {
 				if  (lat > -30 && lat < 30 ) {
 					// tropical 
-					survival_probability = survival_probability_tropics(dbh,fli);
+					survival_probability = survival_probability_tropics(diameter_at_breast_height,fire_line_intensity);
 				} else if ( climate.is_sprouter ){
 					// temperate Oz 
-					survival_probability = survival_probability_temp_broadleaf(dbh, fli, 1);
+					survival_probability = survival_probability_temp_broadleaf(diameter_at_breast_height, fire_line_intensity, 1);
 				} else {
 					// temperate 
-					survival_probability = survival_probability_temp_broadleaf(dbh, fli, 0);
+					survival_probability = survival_probability_temp_broadleaf(diameter_at_breast_height, fire_line_intensity, 0);
 				}
 			}
 			// Savanna, shrubland and sparsely vegetated
 			else if ( biome == SF_SHRUBS || biome == SF_SAVANNA || biome == SF_BARREN ) {
 				if ( climate.is_sprouter ) {
-					survival_probability = survival_probability_sprouter_savanna(height, fli);
+					survival_probability = survival_probability_sprouter_savanna(height, fire_line_intensity);
 				}
 				else {
-					survival_probability = survival_probability_savanna(height, fli);
+					survival_probability = survival_probability_savanna(height, fire_line_intensity);
 				}
 			}
 			else {
@@ -509,7 +507,7 @@ void blaze(Patch& patch, Climate& climate) {
 	double area_burned  = climate.areaburnt;
 
 	// Correction fractions burnt earlier in the same year (vegmode = POPULATION only)
-	double accumulated_fraction_burned= 1.  / (1. - climate.acc_areaburnt);
+	double accumulated_fraction_burned= 1.  / (1. - climate.accumulated_areaburnt);
 	
 	// see if it burns at all
 	if (! ( randfrac(patch.stand.seed) <= area_burned || vegmode == POPULATION ) )
@@ -517,7 +515,7 @@ void blaze(Patch& patch, Climate& climate) {
 
 
 	// get relative fluxes between pools
-	int fli_index = get_fire_line_intensity_index(patch.fli, climate.is_sprouter);
+	int fli_index = get_fire_line_intensity_index(patch.fire_line_intensity, climate.is_sprouter);
 
 	// if fuel availability is too low return 
 	if ( fli_index < 0 ) return;
@@ -671,9 +669,7 @@ void blaze(Patch& patch, Climate& climate) {
 					// Update allometry 
 					allometry(indiv);
 				}
-
 			}
-			
 			if (!killed) vegetation.nextobj(); // ... on to next individual
 		}
 	}
@@ -998,7 +994,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 	// to keep track of burned area over the year
 	// reset accumulated area_burnt to 0 on begining of year
 	if (date.day == 0 ) {
-		climate.acc_areaburnt    = 0.0;
+		climate.accumulated_areaburnt    = 0.0;
 		climate.annual_areaburnt = 0.0;
 		for (int i = 0; i < 12; i++) {
 			climate.monthly_areaburnt[i] = 0.0;
@@ -1153,13 +1149,13 @@ void blaze_driver(Patch& patch, Climate& climate) {
 
 	// initialise patch fire-line intensity
 	if (date.day == 0 && date.year == 0)
-		patch.fli = 0.0;
+		patch.fire_line_intensity = 0.0;
 
 	// today's potential firelineintensity
 	get_fireline_intensity(patch,climate);
 
 	// get relative fluxes between pools
-	int fli_index = get_fire_line_intensity_index(patch.fli, climate.is_sprouter);
+	int fli_index = get_fire_line_intensity_index(patch.fire_line_intensity, climate.is_sprouter);
 
 	// determine whether burned area shall be added to output
 	// if no fire -> no burned area
@@ -1172,7 +1168,7 @@ void blaze_driver(Patch& patch, Climate& climate) {
 
 	//BLAZE-OUTPUT: climate.areaburnt, climate.mcarthur_fire_index, climate.areaburnt 
 	// after burning of the last patch reset accumulated variables
-	patch.fli = 0.0;
+	patch.fire_line_intensity = 0.0;
 	if ( patch.id == patch.stand.nobj-1 ) {
 		// Now add BA to output if there was enough fuel...
 		if ( climate.can_burn > 0 ) {

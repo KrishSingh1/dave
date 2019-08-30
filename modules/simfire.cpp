@@ -437,7 +437,7 @@ double simfire_burned_area(Climate& climate) {
 		(double)date.ndaymonth[date.month];
 
 	// keep track of area burnt so far this year
-	climate.acc_areaburnt += burned_area;
+	climate.accumulated_areaburnt += burned_area;
 
 	return burned_area;
 }

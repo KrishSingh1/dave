@@ -2297,7 +2297,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			}
 		}
 	} 
-	
+
 	int accumday = 0;
 
 	for (int mon=0;mon<12;mon++) {
@@ -2486,6 +2486,11 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 				// breakoff-criteria for sufficient skill 			
 				if ( (abs(pdaydiff) <= 1 && fabs(precdiff) <= prec_t && tmindiff < 2.5) ||
 				     (pdaydiff == 0 && fabs(precdiff) <= 1.25*prec_t  ))  {
+					rndst.pday[0]  = metvars.pday[0];
+					rndst.pday[1]  = metvars.pday[1];
+					for (int i=0; i<4; i++) {
+						rndst.resid[i] = metvars.resid[i];
+					}
 					break;
 				}
 

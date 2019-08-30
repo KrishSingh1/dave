@@ -400,8 +400,9 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	climate.cur_nesterov = min(climate.cur_nesterov,MAXIMUM_NESTEROV) ;
 
 	// finally update Max Annual Mesterov Index
-	if (climate.cur_nesterov > climate.max_nesterov ) 
+	if (climate.cur_nesterov > climate.max_nesterov ) {
 		climate.max_nesterov = climate.cur_nesterov ;
+	}
 }
 
 /// Calculate burned area in ha following Knorr 2014.

@@ -2443,7 +2443,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 						metvars.resid[i] = metvar_sav.resid[i];
 					}
 				}
-				//now get $day's weather 
+				//now get $day's weather
 				weathergen_get_daily_met(metvars, rndst);
 				
 				dprec[day]= metvars.dprec;
@@ -2486,11 +2486,6 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 				// breakoff-criteria for sufficient skill 			
 				if ( (abs(pdaydiff) <= 1 && fabs(precdiff) <= prec_t && tmindiff < 2.5) ||
 				     (pdaydiff == 0 && fabs(precdiff) <= 1.25*prec_t  ))  {
-					rndst.pday[0]  = metvars.pday[0];
-					rndst.pday[1]  = metvars.pday[1];
-					for (int i=0; i<4; i++) {
-						rndst.resid[i] = metvars.resid[i];
-					}
 					break;
 				}
 
@@ -2533,7 +2528,13 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			i_count++;
 		} while ( i_count <= MAXITER ); // 10000000 );
 
-		// Enforce conservation by scaling with monthly averages 
+		// write current settings for restart
+		rndst.pday[0]  = metvars.pday[0];
+		rndst.pday[1]  = metvars.pday[1];
+		for (int i=0; i<4; i++) {
+			rndst.resid[i] = metvars.resid[i];
+		}
+		// Enforce conservation by scaling with monthly averages
 
 		// Correct Temperature biases by shifting
 		double tmincor = 0.;
@@ -2632,7 +2633,6 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			chk_dwind += out_dwind[day+accumday]/(double)ndaymon; 
 			chk_drhum += out_drhum[day+accumday]/(double)ndaymon; 
 		}
-
 	} // month loop
 }
 ///////////////////////////////////////////////////////////////////////////////////////

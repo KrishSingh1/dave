@@ -1124,7 +1124,6 @@ void blaze_accounting_gridcell(Climate& climate) {
 			climate.months_ffdi[i] = ttmp[i];
 		}
 	}
-	
 }		     
 
 /// The driver routine for BLAZE

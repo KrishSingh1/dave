@@ -1472,7 +1472,7 @@ void plib_callback(int callback) {
 			pft.id = npft++;
 			pftlist.nextobj();
 		}
-		dprintf("CLN npft starto %d \n ",npft);
+
 		// Set ids and nmt variable after removing unused mts
 		nmt = 0;
 		mtlist.firstobj();

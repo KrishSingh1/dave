@@ -133,7 +133,6 @@ void verify_meta_data(const char* directory, int& num_processes) {
 	file.read((char*)&npft_from_file, sizeof(npft_from_file));
 
 	if (npft != npft_from_file) {
-		dprintf("CLN npft %d in_file_npft %d \n",npft,npft_from_file);
 		fail("State file has different number of PFTs");
 	}
 

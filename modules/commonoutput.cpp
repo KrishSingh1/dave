@@ -132,7 +132,7 @@ void CommonOutput::define_output_tables() {
 #ifdef RUN_BENCHMARKS	
 	const int bm_extra_prec = 2;
 #else
-	const int bm_extra_prec =0;
+	const int bm_extra_prec = 0;
 #endif
 	
 	// create a vector with the pft names

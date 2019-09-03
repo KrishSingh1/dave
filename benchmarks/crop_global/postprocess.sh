@@ -191,12 +191,12 @@ if [ -f gfed40_c-emissions_1997-2016.dat ]; then
 	
 	# A-slicing over regions 0.5 deg res
 	GFEDreg=(BONA TENA CEAM NHSA SHSA EURO MIDE NHAF SHAF BOAS TEAS CEAS EQAS AUST)
-
+	GFEDreg_name=("Boreal    N-America          " "Temperate N-America	      " "Central America	      " "Northern Hemisphere S-America" "Southern Hemisphere S-America" "Europe			      " "Middle East		      " "Northern Hemisphere Africa   " "Southern Hemisphere Africa   " "Boreal Asia		      " "Central Asia		      " "South East Asia	      " "Equatorial Asia	      " "Australia & New Zealand      ") 
 	tot_lpjg=0.
 	tot_gfed=0.
 	for ((x=1; x<=14; x++)); do
 		((xx=$x-1))
-		creg=${GFEDreg[${xx}]} 
+		creg=${GFEDreg_name[${xx}]} 
 		awk -v reg=$x '(FNR==1 || $3==reg){print $0}' ~/DATA/gfed_regions0.5.dat > reg.dat
 		joyn cflux1997-2016_joyned.dat reg.dat -i Lon Lat -fast -o cflux_reg_${x}_joyned.dat  
 		aslice cflux_reg_${x}_joyned.dat -n -lon Lon -lat Lat  -sum "kg/m2->Pg" -o tot_cflux_reg_${x}.dat

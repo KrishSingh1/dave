@@ -608,7 +608,7 @@ struct PhotosynthesisResult : public Serializable {
 
 // GWGen weather generator
 class WeatherGen {
-	// MEMBER VARIABLES
+
 public:
 	int q[10];
 	int carry;
@@ -911,10 +911,10 @@ public:
 	/// monthly burned area from either SIMFIRE or GFED
 	double monthly_areaburnt[12];
 
-	/// BLAZE
+	// BLAZE
 	/// average annual rainfall [mm/a]
 	double avg_annual_rainfall;
-	//  current sum of annual Rainfall
+	///  current sum of annual Rainfall
 	double cur_rainfall;
 	/// Accumulated last rainfall [mm]
 	double last_rainfall;
@@ -2724,7 +2724,7 @@ public:
 	 */
 	void reduce_biomass(double mortality, double mortality_fire);
 
-	/// a version of the above reduce_biomass for the use with blaze
+	/// A version of the above reduce_biomass for the use with blaze
 	void blaze_reduce_biomass(Patch& patch, double frac_survive);
 
 	/// Total storage of nitrogen
@@ -3993,36 +3993,36 @@ public:
 	/// BLAZE Fire line intensity;
 	double fire_line_intensity;
 
-	/// BLAZE fire related carbon fluxes
-	/// live wood to atmosphere
+	// BLAZE fire related carbon fluxes
+	/// BLAZE-fire carbon flux: live wood to atmosphere
 	double wood2atm;
-	/// leaves to atmosphere
+	/// BLAZE-fire carbon flux: leaves to atmosphere
 	double leaf2atm;
-	/// leaves to litter
+	/// BLAZE-fire carbon flux: leaves to litter
 	double leaf2lit;
-	/// live wood to structural litter
+	/// BLAZE-fire carbon flux: live wood to structural litter
 	double wood2str;
-	/// live wood to fine woody debris
+	/// BLAZE-fire carbon flux: live wood to fine woody debris
 	double wood2fwd;
-	/// live wood to coarse woody debris
+	/// BLAZE-fire carbon flux: live wood to coarse woody debris
 	double wood2cwd;
-	/// fine litter (leaf,structural, metabolic) to atmosphere
+	/// BLAZE-fire carbon flux: fine litter (leaf,structural, metabolic) to atmosphere
 	double litf2atm;
-	/// fine woody debris to atmosphere
+	/// BLAZE-fire carbon flux: fine woody debris to atmosphere
 	double lfwd2atm;
-	/// coarse woody debris to atmosphere
+	/// BLAZE-fire carbon flux: coarse woody debris to atmosphere
 	double lcwd2atm;
 
-	/// Storage for averaging of different Fpars for biome mapping in Simfire
-	/// Grasses
+	// Storage for averaging of different Fpars for biome mapping in Simfire
+	/// Simfire Grasses
 	double avg_fgrass[n_year_biomeavg];
-	/// Needle-leaf trees
+	/// Simfire Needle-leaf trees
 	double avg_fndlt[n_year_biomeavg];
-	/// Broad-leaf trees
+	/// Simfire Broad-leaf trees
 	double avg_fbrlt[n_year_biomeavg];
-	/// Shrubs
+	/// Simfire Shrubs
 	double avg_fshrb[n_year_biomeavg];
-	/// Total
+	/// Simfire Total
 	double avg_ftot[n_year_biomeavg];
 
 	/// whether management has started on this patch

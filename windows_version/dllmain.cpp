@@ -180,10 +180,6 @@ __declspec(dllexport) void cleanup_plot(PlotArgs* pplotargs) {
 
 __declspec(dllexport) int dll_main(GuessParam arg) {
 
-	for (int iii = 0; iii == 0;){
-		iii = 0;
-	}
-
 	// Store parameters sent from shell as file scope global variables
 
 	poutput=arg.poutput;

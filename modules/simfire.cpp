@@ -202,7 +202,7 @@ void getsimfiredata(Gridcell& gridcell) {
 	// Paths to SIMFIRE binaries
 	xtring file_simfire = param["file_simfire"].str;
 	
-	// open file, fill podp, monthly_burned_area and igbp_class for a gridcell
+	// Open file, fill podp, monthly_burned_area and igbp_class for a gridcell
 	// Fill static arrays/variables here
 	SimfireInputArchive ark;
 	
@@ -211,6 +211,7 @@ void getsimfiredata(Gridcell& gridcell) {
 	}
 	
 	SimfireInput rec;
+
 	// Make sure gridcell lat/lon is centered to LPJ-GUESS gridcell
 	rec.lon = floor(gridcell.get_lon()*2.)/2.+0.25;
 	rec.lat = floor(gridcell.get_lat()*2.)/2.+0.25;
@@ -219,15 +220,17 @@ void getsimfiredata(Gridcell& gridcell) {
 		ark.close();
 		fail("Grid cell not found in %s \n", (char*)file_simfire);
 	}
+
 	// Found the record, get the values
 	
-	// convert IGBP into simfire internal biomes
+	// Convert IGBP into simfire internal biomes
 	simfire_biome_mapping(gridcell);
 	
 	// Monthly fire risk (W.Knorr)
 	for (int m=0; m<12; m++) {
 		climate.monthly_fire_risk[m] = rec.monthly_burned_area[m];
 	}
+
 	// Population density from HYDE 3.1
 	for (int t=0; t<57; t++) {
 		gridcell.hyde31_pop_density[t] = rec.pop_density[t];
@@ -246,18 +249,25 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 
 	// number of entries for Population data
 	const int NPOPENTRIES = 57;
+
 	// years at which population-data is available in HYDE3.1
 	const int POPTIME[NPOPENTRIES]  = {-10000,-9000,-8000,-7000,-6000,-5000,-4000,-3000,-2000,-1000,0,
 		100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,
 		1500,1600,1700,1710,1720,1730,1740,1750,1760,1780,1790,1810,
 		1820,1830,1840,1850,1860,1870,1880,1890,1900,1910,1920,1930,
 		1940,1950,1960,1970,1980,1990,2000,2005};
+	
 	// get calendar-year
 	int cyear = date.get_calendar_year();
 
 	// find start and end year index of pop interpolation
+
 	int idx = 0 ;
-      	while (POPTIME[idx] < cyear) idx++;
+    
+	while (POPTIME[idx] < cyear) {
+		idx++;
+	}
+
 	double popd;
 	if ( cyear <= POPTIME[0] ) {
 		// use first year's value (10000 BC) for earlier years.
@@ -270,12 +280,14 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 			(double)(POPTIME[NPOPENTRIES-1] - POPTIME[NPOPENTRIES-2]) * (double)(cyear-POPTIME[NPOPENTRIES-1]);
 	}
 	else {
-	// interpolate between two entries
+
+	    // interpolate between two entries
 		double interpf = (double)(cyear-POPTIME[idx-1]) /
 			(double)( POPTIME[idx]-POPTIME[idx-1] );
 		popd = (1. - interpf) * gridcell.hyde31_pop_density[idx-1] + 
 			interpf * gridcell.hyde31_pop_density[idx];
 	}
+
 	gridcell.pop_density = max(0.,popd);
 }
 	

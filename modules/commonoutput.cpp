@@ -253,19 +253,19 @@ void CommonOutput::define_output_tables() {
 
 	// FIRERT
 	ColumnDescriptors firert_columns;
-	firert_columns += ColumnDescriptor("FireRT",           8, 1);
-	firert_columns += ColumnDescriptor("BurntAr",          8, 5);
+	firert_columns += ColumnDescriptor("FireRT",			8, 1);
+	firert_columns += ColumnDescriptor("BurntAr",			8, 5);
 
 	// BLAZE burnt area 
 	ColumnDescriptors blaze_columns;
-	blaze_columns += ColumnDescriptor("BurntAr",        9, 5);
+	blaze_columns += ColumnDescriptor("BurntAr",			9, 5);
 
 	// SIMFIRE Analysis 
 	ColumnDescriptors simfireanalysis_columns;
-	simfireanalysis_columns += ColumnDescriptor("Biome",             6, 0);
-	simfireanalysis_columns += ColumnDescriptor("MxNest",            7, 0);
-	simfireanalysis_columns += ColumnDescriptor("PopDens",          10, 3);
-	simfireanalysis_columns += ColumnDescriptor("Region",            7, 0);
+	simfireanalysis_columns += ColumnDescriptor("Biome",	6, 0);
+	simfireanalysis_columns += ColumnDescriptor("MxNest",	7, 0);
+	simfireanalysis_columns += ColumnDescriptor("PopDens",	10, 3);
+	simfireanalysis_columns += ColumnDescriptor("Region",	7, 0);
 	
 	// RUNOFF
 	ColumnDescriptors runoff_columns;
@@ -377,10 +377,10 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_clitter,        file_clitter,        clitter_columns);
 
 	if ( firemodel == BLAZE ) {
-		create_output_table(out_aburntarea,      file_aburntarea_out,      blaze_columns);
-		create_output_table(out_simfireanalysis, file_simfireanalysis_out, simfireanalysis_columns);
+		create_output_table(out_aburntarea,			file_aburntarea_out,		blaze_columns);
+		create_output_table(out_simfireanalysis,	file_simfireanalysis_out,	simfireanalysis_columns);
 	} else if ( firemodel == GLOBFIRM ) {
-		create_output_table(out_firert,         file_firert,         firert_columns);
+		create_output_table(out_firert,				file_firert,				firert_columns);
 	}
 
 	create_output_table(out_runoff,			file_runoff,         runoff_columns);

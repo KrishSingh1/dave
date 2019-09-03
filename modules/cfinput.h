@@ -167,7 +167,7 @@ private:
 	/// daily wind 
 	double dwind[Date::MAX_YEAR_LENGTH];
 	
-	// Relative Humidity
+	/// daily relative humidity
 	double drelhum[Date::MAX_YEAR_LENGTH];
 	
 	/// Daily N deposition for one year

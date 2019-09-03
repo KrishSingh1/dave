@@ -300,9 +300,7 @@ CFInput::CFInput()
 	  ndep_timeseries("historic") {
 
 	// Declare instruction file parameters
-
 	declare_parameter("ndep_timeseries", &ndep_timeseries, 10, "Nitrogen deposition time series to use (historic, rcp26, rcp45, rcp60 or rcp85");
-
 }
 
 CFInput::~CFInput() {

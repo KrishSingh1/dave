@@ -1898,9 +1898,9 @@ bool Individual::has_daily_turnover() const {
  *  \param slow_harvest      Biomass going to slow depository
  */
 void partition_wood_biomass(double mass_sap, double mass_heart,
-			    double harv_eff, double harvest_slow_frac, double res_outtake,
-			    double& litter_sap, double& litter_heart,
-			    double& fast_harvest, double& slow_harvest) {
+							double harv_eff, double harvest_slow_frac, double res_outtake,
+							double& litter_sap, double& litter_heart,
+							double& fast_harvest, double& slow_harvest) {
 
 	double sap_left = mass_sap;
 	double heart_left = mass_heart;

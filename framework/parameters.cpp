@@ -1189,7 +1189,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("weathergenerator")) badins("weathergenerator");
 		if (!itemparsed("firemodel")) badins("firemodel");
 		if (firemodel==BLAZE && weathergenerator!=GWGEN) {
-				sendmessage("Error", "Weathergenerator must be GWGEN for BLAZE!");
+			sendmessage("Error", "Weathergenerator must be GWGEN for BLAZE!");
 			plibabort();
 		}
 		if (!itemparsed("ifcalcsla")) badins("ifcalcsla");

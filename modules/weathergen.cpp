@@ -104,10 +104,11 @@ public:
 	double dmcldf_mn; // mean cloud fraction (fraction)
 	double dmwind_mn; // wind speed
 
-	double dmtmax_sd; // standard deviation of corresponding variable above
-	double dmtmin_sd; // ------- " ------
-	double dmcldf_sd; // ------- " ------
-	double dmwind_sd; // ------- " ------
+	// Standard deviations of corresponding variable above
+	double dmtmax_sd; 
+	double dmtmin_sd; 
+	double dmcldf_sd; 
+	double dmwind_sd; 
 
 	//end type daymetvars
 
@@ -125,7 +126,7 @@ double thresh = 5.0;
 // interpret the thresh as percentile
 bool thresh_pctl = false; 
 
-// coefficient to esimate the gamma scale parameter via
+// Coefficient to estimate the gamma scale parameter via
 // g_scale = g_scale_coeff * mean_monthly_precip / number_of_wet_days
 // following Geng et al., 1986
 // coefficient to esimate the gamma scale parameter
@@ -295,7 +296,9 @@ void get_seed_by_location(double lat, double lon, WeatherGen& state) {
 }
 
 int refill(WeatherGen& state) {
+	
 	// reset a random state
+
 	int s;
 	int z;
 	int h;
@@ -341,7 +344,9 @@ int ranu(WeatherGen& state) {
 }
 
 double ranur(WeatherGen& state) {
+
 	// generate a random number in the range (0,1)
+
 	double ranur;
 	
 	ranur = (double)ranu(state) * RNG1 + HALF;
@@ -349,9 +354,12 @@ double ranur(WeatherGen& state) {
 }
 
 void calc_cloud_params(MetVariables& metvars) {
+	
+	// DESCRIPTION
 	// Calculate the parameters used for the first approximation in "meansd"
 	// This subroutine calculates the necessary parameters for the adjustment of
 	// the monthly cloud fraction mean depending on the wet/dry state
+
 	metvars.cldf_w1   = -cldf_w - 1.0;
 	metvars.cldf_w2   = cldf_w * cldf_w;
 	metvars.cldf_w3   = -(cldf_w * cldf_w) - cldf_w;
@@ -407,6 +415,8 @@ void temp_sd(MetVariables& metvars) {
 } 
 
 void meansd(MetVariables& metvars) {
+	
+	// DESCRIPTION
 	// Adjust the monthly means of temperature, cloud and wind corresponding to the wet/dry state
 	//
 	// This routine makes the first approximation inside the weather generator to adjust the monthly
@@ -475,6 +485,8 @@ void meansd(MetVariables& metvars) {
 } 
 
 double ran_normal(WeatherGen& state) {
+	
+	// DESCRIPTION
 	// Sampler for the normal distribution centered at 0 with std. dev. of unity,
 	// based on Marsaglia polar method
 
@@ -526,6 +538,7 @@ double ran_normal(WeatherGen& state) {
 
 double ran_gamma(WeatherGen& state,bool first, double shape, double scale) {
 	
+	// DESCRIPTION
 	// Select a random number from a Gamma distribution
 	//
 	// adapted from the cpp adaptation of the Marsaglia & Tsang random gamma algorithm in:
@@ -577,6 +590,8 @@ double ran_gamma(WeatherGen& state,bool first, double shape, double scale) {
 }
 
 double ran_gp(WeatherGen& state,double shape,double scale, double loc) {
+	
+	// DESCRIPTION
 	// Select a random number from a generalized pareto (GP) distribution
 	//
 	// state  : state of the uniform random number generator
@@ -598,6 +613,8 @@ double ran_gp(WeatherGen& state,double shape,double scale, double loc) {
 }
 
 double ran_gamma_gp(WeatherGen& state,bool first,double shape,double scale,double thresh,double shape_gp,double scale_gp) {
+	
+	// DESCRIPTION
 	// Select a random number from a hybrid Gamma-GP distribution
 	// Variables
 	// state     : state of the uniform random number generator
@@ -607,6 +624,7 @@ double ran_gamma_gp(WeatherGen& state,bool first,double shape,double scale,doubl
 	// thresh    : the threshold above which to choose the GP distribution
 	// shape_gp  : shape parameter of the GP distribution
 	// scale_gp  : scale parameter of the GP distribution
+
 	double ret;
 	
 	ret = ran_gamma(state,first,shape,scale);
@@ -617,6 +635,8 @@ double ran_gamma_gp(WeatherGen& state,bool first,double shape,double scale,doubl
 }
 
 double gamma_log( double x ) { 
+
+	// DESCRIPTION
 	// Calculate the natural logarithm of GAMMA ( X ).
 	//
 	// Computation is based on an algorithm outlined in references 1 and 2.
@@ -844,6 +864,7 @@ double gamma_log( double x ) {
 
 double r8poly_value_horner ( int m, double *c, double x ) {
 	
+	// DESCRIPTION
 	// Evaluate a polynomial using Horner's method.
 	//
 	// The polynomial
@@ -877,6 +898,8 @@ double r8poly_value_horner ( int m, double *c, double x ) {
 }
 
 void normal_01_cdf_inv (double p,double x) {
+	
+	// DESCRIPTION
 	// Invert the standard normal CDF.
 	//
 	// Licensing:
@@ -1014,7 +1037,9 @@ void normal_01_cdf_inv (double p,double x) {
 }
 
 void normal_01_cdf ( double x, double cdf ) {
-	// evaluate the Normal 01 CDF.
+	
+	// DESCRIPTION
+	// Evaluate the Normal 01 CDF.
 	//
 	// Licensing:
 	//     This code is distributed under the GNU LGPL license.
@@ -1094,6 +1119,8 @@ void normal_01_cdf ( double x, double cdf ) {
 }
 
 void normal_cdf_inv ( double cdf, double a, double b, double x ) {
+	
+	// DESCRIPTION
 	// Invert the Normal CDF.
 	//
 	// Licensing:
@@ -1124,6 +1151,8 @@ void normal_cdf_inv ( double cdf, double a, double b, double x ) {
 }
 
 double qchisq_appr(double p, double nu, double g, double tol) {
+	
+	// DESCRIPTION
 	// chi-square approximation for the :f:func:`gamma_cdf_inv` function
 	//
 	// p   : the quantile
@@ -1177,20 +1206,17 @@ double qchisq_appr(double p, double nu, double g, double tol) {
 
 double gamma_inc ( double p, double x ) {
 	
+	// DESCRIPTION
 	// Compute the incomplete Gamma function.
 	//
 	// Formulas:
-	//
 	//     .. math::
-	//
 	//         \Gamma_{inc}(P, 0) = 0
 	//
 	//     .. math::
-	//
 	//         \Gamma_{inc}(P, \infty) = 1.
 	//
 	//     .. math::
-	//
 	//         \Gamma_{inc}(P,X) = \int_0^x{T^{P-1} \exp{(-T)} \mathrm{d}t} / \Gamma(P)
 	//
 	// Licensing:
@@ -1340,6 +1366,7 @@ double gamma_inc ( double p, double x ) {
 
 double gamma_cdf( double x, double a, double b, double c ) {
 
+	// DESCRIPTION
 	// Evaluate the Gamma CDF.
 	// 
 	//  Licensing:
@@ -1367,6 +1394,8 @@ double gamma_cdf( double x, double a, double b, double c ) {
 }
 
 double gamma_cdf_inv(double p, double alpha, double scale) {
+	
+	// DESCRIPTION
 	//	Compute the quantile function of the gamma distribution.
 	//
 	// This function is based on the Applied Statistics Algorithm AS 91
@@ -1457,6 +1486,8 @@ double gamma_cdf_inv(double p, double alpha, double scale) {
 }
  
 double r8_gamma ( double x ) {
+	
+	// DESCRIPTION
 	// Evaluate Gamma(X) for a real argument.
 	//
 	// This routine calculates the gamma function for a real argument X.
@@ -1655,6 +1686,7 @@ double r8_gamma ( double x ) {
 
 double gamma_pdf ( double x, double a, double b, double c ) {
 	
+	// DESCRIPTION
 	// Evaluate the Gamma PDF.
 	//
 	// .. math::
@@ -1696,6 +1728,8 @@ double gamma_pdf ( double x, double a, double b, double c ) {
 }
 									     
 void rmsmooth(int lm,int rm, double *m,int *dmonth,double bcond[2], double *m_curr) {
+	
+	// DESCRIPTION
 	// Iterative, mean preserving method to smoothly interpolate mean data to pseudo-sub-timestep values
 	// From Rymes, M.D. and D.R. Myers, 2001. Solar Energy (71) 4, 225-231
 	// Input
@@ -1779,20 +1813,25 @@ void rmsmooth(int lm,int rm, double *m,int *dmonth,double bcond[2], double *m_cu
 
 void init_weathergen(MetVariables& metvars, WeatherGen& rndst) {
 
-	// initialize the weather generator
+	// Initialize the weather generator
+	
 	metvars.pday[0] = false;
 	metvars.pday[1] = false;
+	
 	for (int i=0;i<4;i++) {
 		metvars.resid[i] = 0.;
 	}
+	
 	for (int i=0;i<QSIZ;i++) {
 		rndst.q[i] = 0;
 	}
+	
 	rndst.carry =       362;
 	rndst.xcng  =   1236789;
 	rndst.xs    = 521288629; //default seed
 	rndst.indx  = QSIZ+1;
 	rndst.have  = false;
+	
 	for (int i=0;i<2;i++) {
 		rndst.gamma_vals[i] = 0.; 
 	}
@@ -1800,6 +1839,7 @@ void init_weathergen(MetVariables& metvars, WeatherGen& rndst) {
 
 double cldf2rad(double input, double lat, int doy, bool cldf2rad) {
 
+	// DESCRIPTION
 	// Calculation of daylength, insolation and equilibrium evapotranspiration
 	// for each day, given mean daily temperature, insolation (as percentage
 	// of full sunshine or mean daily instantaneous downward shortwave
@@ -2145,6 +2185,7 @@ void weathergen_get_daily_met(MetVariables& metvars, WeatherGen& rndst) {
 
 void redist_restricted_vals(double *inval, int ll, double scalval, double *limit, double *wght) {   
 	
+	// DESCRIPTION
 	// redistribute daily values when there is a limit max/min limit or both
 	// while ensuring conservation and relative distribution (in terms of <=,>=)
 	// like cloud-fraction or relative humidity ([0,1])
@@ -2196,6 +2237,7 @@ void redist_restricted_vals(double *inval, int ll, double scalval, double *limit
 
 double get_arden_rh(double T_avg, double T_dew) {
 	
+	// DESCRIPTION
 	// input
 	// T_avg: daily mean temperature[°C]
 	// T_dew: dew-point temperature[°C]

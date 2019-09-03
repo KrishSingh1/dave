@@ -84,33 +84,6 @@ prepareyielddata yield1996to2005.txt common/../crop_global/spam_yield_wheat.dat 
 scatter_plot "Wheat yields" "SPAM" "LPJ-GUESS" temp_wheat.dat wheat_yield.png
 describe_image wheat_yield.png "Modelled compared to SPAM data set. Units: kg m-2." embed
 
-#===============================================================================
-# Above Ground Biomass    
-# If benchmarks are run on Aurora or Simba link Liu-AGB 
-# and gfed benchmarks into crop_global dir
-if [ -f Global_mean_ABC_1993-2012_Liu2015_SI.dat ]
-then
-	tslice cpool.out -f 1993 -t 2012 -o cpool1993-2012.dat
-	prepare_above_ground_biomass cpool1993-2012.dat cpool1993-2012_agb.dat VegC
-	joyn Global_mean_ABC_1993-2012_Liu2015_SI.dat cpool1993-2012_agb.dat -i Lon Lat -fast -o cpool1993-2012_joyned.dat
-    
-	# delta plot Liu cpool VegC 
-	awk '{if(FNR==1){print $1,$2, $4} else {print $1,$2, $3}}' cpool1993-2012_joyned.dat > cpool1993-2012_joyned_Liu.dat
-	awk '{print $1,$2, $4}' cpool1993-2012_joyned.dat > cpool1993-2012_joyned_VegC.dat
-	delta cpool1993-2012_joyned_VegC.dat cpool1993-2012_joyned_Liu.dat -i Lon Lat -o delta_cpool1993-2012_joyned.dat
-	gmap delta_cpool1993-2012_joyned.dat -i VegC -lon 1 -lat 2 -landscape -s -20 2 20  -o delta_cpool1993-2012_joyned.png -t "VegC LPJ-GUESS - Liu kg(C)/m2" -c BLUE RED
-	convert -geometry 25%x25% delta_cpool1993-2012_joyned.png tmp.png
-	convert -rotate 90 tmp.png delta_cpool1993-2012_joyned.png
-	describe_image  delta_cpool1993-2012_joyned.png "Modelled minus Liu et al. data. Units: kg m-2." embed
-	
-	. above_ground_biomass.sh
-	# delta plot Liu cpool VegC against Jackson 
-	joyn lu_cmass_agb_1993-2012_tot.dat cpool1993-2012_joyned.dat -i Lon Lat -o lu_cmass_agb_tot_1993-2012_joyned.dat
-	awk '{if(FNR==1){print $1,$2, "VegC"} else {print $1,$2, $(NF-1)}}' lu_cmass_agb_tot_1993-2012_joyned.dat > lu_cmass_agb_1993-2012_tot.dat_Liu.dat
-	awk '{print $1,$2, $NF}' lu_cmass_agb_tot_1993-2012_joyned.dat > cpool1993-2012_joyned_VegC.dat
-	delta cpool1993-2012_joyned_VegC.dat lu_cmass_agb_1993-2012_tot.dat_Liu.dat -i Lon Lat -o delta_cpool1993-2012_joyned_jackson.dat
-	gmap delta_cpool1993-2012_joyned_jackson.dat -i VegC -lon 1 -lat 2 -landscape -s -20 2 20  -o delta_cpool1993-20
-
 fi #CLN
 
 #===============================================================================

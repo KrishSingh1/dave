@@ -344,7 +344,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 				// Interpolate monthly spinup data to quasi-daily values
 				interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
 				
-				// Only Recalculate Precipitation values using weather generator
+				// Only recalculate precipitation values using weather generator
 				// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
 				if (ifrainonwetdaysonly) {
 					// (from Dieter Gerten 021121)

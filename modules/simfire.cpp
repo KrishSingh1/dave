@@ -141,7 +141,7 @@ int update_fire_biome(Patch& patch, double lat) {
 	else if (fshrb >= 0.8 && fabs(lat) >= 50.0) {
 		biome = SF_TUNDRA;
 	} 
-	else if (fgrass > =0.4) {
+	else if (fgrass >= 0.4) {
 		biome = SF_SAVANNA;
 	} 
 	else if (fndlt >= 0.6) {
@@ -192,7 +192,7 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 	for (int idx = 0; idx < (int)biomes.size(); idx++) {
 		count[biomes[idx]]++;
 	}
-	for (biome=0; biome < NFIREBIOMES; biome++)) {
+	for (biome=0; biome < NFIREBIOMES; biome++) {
 		count_max = max(count_max, count[biome]);
 	}
 

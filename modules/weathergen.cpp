@@ -163,6 +163,7 @@ double tmin_w2 = 0.955787; // slope of best line fit of tmin on wet days (see `m
 double tmin_d1 =-0.528308; // intercept of best line fit of tmin on dry days (see `meansd`)
 double tmin_d2 = 1.020964; // slope of best line fit of tmin on dry days (see `meansd`)
 double tmin_sd_breaks[3] = { -40., 0.0, 25. };  // breaks of tmin sd correlation
+
 // polynomial coefficients for correlating tmin sd on wet days
 double tmin_sd_w[6][4]  = { 
 	// < -40       -40 - 0     0 - 25	> 25
@@ -221,8 +222,10 @@ double wind_w1 = 0.0      ; // intercept of best line fit of wind on wet days (s
 double wind_w2 = 1.092938 ; // slope of best line fit of wind on wet days (see `meansd`)
 double wind_d1 = 0.0      ; // intercept of best line fit of wind on dry days (see `meansd`)
 double wind_d2 = 0.945229 ; // slope of best line fit of wind on wet days (see `meansd`)
+
 // polygon coefficients for wind standard deviation on wet days
 double wind_sd_w[6] = { 0.0, 0.81840997, -0.12633931, 0.00933591, 0.0, 0.0};
+
 // polygon coefficients for wind standard deviation on dry days
 double wind_sd_d[6] = { 0.0, 1.08596114, -0.24073323, 0.02216454, 0.0, 0.0};
 
@@ -248,6 +251,7 @@ double wind_slope_bias_x0 = -9999.; // x-value of sigmoid's midpoint of logistic
 // coefficients for the bias correction of minimum temperature
 // (Note: Default is no correction)
 double tmin_bias_coeffs[6] = {0., 0., 0., 0., 0., 0.}; // coefficients for the bias correction of minimum temperature
+
 // min. and max range for bias correction (1st and 99th percentile)
 double tmin_bias_min =-2.3263478740;
 double tmin_bias_max = 2.3263478740; 

@@ -25,8 +25,6 @@ source scatter_plot.sh
 # link data-dirs for fire
 FIREDATAPATH=/data/fire
 
-if false; then
-
 common1961to1990.sh
 
 tslice cflux.out -o cflux1990to2000.txt -f 1990 -t 2000 -lon 1 -lat 2 -y 3
@@ -84,8 +82,6 @@ prepareyielddata yield1996to2005.txt common/../crop_global/spam_yield_wheat.dat 
 scatter_plot "Wheat yields" "SPAM" "LPJ-GUESS" temp_wheat.dat wheat_yield.png
 describe_image wheat_yield.png "Modelled compared to SPAM data set. Units: kg m-2." embed
 
-fi #CLN
-
 #===============================================================================
 #Fire related benchmarks
 
@@ -119,7 +115,6 @@ describe_image scat_fire_cflux.png "Modelled compared to GFED 4.0 C-Emissions Un
 	
 # A-slicing over regions 0.5 deg res
 GFEDreg=(BONA TENA CEAM NHSA SHSA EURO MIDE NHAF SHAF BOAS TEAS CEAS EQAS AUST)
-GFEDreg_name=("Boreal N-America" "Temperate N-America	      " "Central America" "Northern Hemisphere S-America" "Southern Hemisphere S-America" "Europe" "Middle East" "Northern Hemisphere Africa" "Southern Hemisphere Africa" "Boreal Asia" "Central Asia" "South East Asia" "Equatorial Asia" "Australia & New Zealand") 
 
 tot_lpjg=0.
 tot_gfed=0.
@@ -132,8 +127,6 @@ for ((x=1; x<=14; x++)); do
     if [ $x -eq 1 ]; then
 	echo "Region LPJ-GUESS GFED 4.0 "	> tot_cflux_reg.dat
     fi
-    #awk -v reg=$creg '(FNR==2){printf "%6s% 6.2f   %6.2f \n",reg,$4*1000,$11*1000}' \
-	#tot_cflux_reg_${x}.dat >> tot_cflux_reg.dat
     awk -v reg=$creg '(FNR==2){printf "%s      %6.2f   %6.2f \n",reg,$4*1000,$11*1000}' tot_cflux_reg_${x}.dat >> tot_cflux_reg.dat
     # remove intermediate files
     rm -f tot_cflux_reg_${x}.dat cflux_reg_${x}_joyned.dat reg.dat
@@ -142,3 +135,6 @@ tot_lpjg=$(awk '(FNR>1){sum+=$2} END {print sum}' tot_cflux_reg.dat)
 tot_gfed=$(awk '(FNR>1){sum+=$3} END {print sum}' tot_cflux_reg.dat)
 printf "Total	%6.2f  %6.2f\n" $tot_lpjg $tot_gfed >> tot_cflux_reg.dat
 describe_textfile tot_cflux_reg.dat "Fire C-emissions per GFED - region [Pg/a]"
+
+rm -f cflux1997-2016.dat cflux1997-2016_joyned.dat cflux1997-2016_joyned_Fire.dat cflux1997-2016_joyned_gfed.dat \
+   delta_cflux1997-2016_joyned.dat scat_fire_cflux.dat 

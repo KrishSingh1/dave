@@ -51,12 +51,12 @@ int update_fire_biome(Patch& patch, double lat) {
 	// 7 Tundra (IGBP 6,7,16 and latitude>=50): height<2m
 	// 8 Barren or Sparsely Vegetated (IGBP 16 and latitude<50): <10% vegetation cover
 
-	double fgrass=0.0; // grass fraction of all vegetation
-	double fndlt=0.0;  // fraction of needle-leaf tress
-	double fbrlt=0.0;  // fraction of broad-leaf trees
-	double fshrb=0.0;  // fraction of woody vegetation that is shrubs
-	double ftot=0.0;   // total FPAR of all individuals
-	int biome=0;       // biome number
+	double fgrass = 0.0; // grass fraction of all vegetation
+	double fndlt  = 0.0; // fraction of needle-leaf tress
+	double fbrlt  = 0.0; // fraction of broad-leaf trees
+	double fshrb  = 0.0; // fraction of woody vegetation that is shrubs
+	double ftot   = 0.0; // total FPAR of all individuals
+	int biome     = 0;   // biome number
 
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation=patch.vegetation;
@@ -126,24 +126,32 @@ int update_fire_biome(Patch& patch, double lat) {
 	fbrlt  /=  (double)n_year_biomeavg;
 	fshrb  /=  (double)n_year_biomeavg;
 
-	if (ftot<0.1 && fabs(lat)<50.0) {
-		biome=SF_BARREN; } // barren or sparsely vegetated
-	else if (ftot<0.1   && fabs(lat)>=50.0) {
-		biome=SF_TUNDRA; } // tundra
-	else if (patch.stand.landcover==CROPLAND) {
-		biome=SF_CROP; } // cropland
-	else if (fshrb>=0.8 && fabs(lat)<50.0) {
-		biome=SF_SHRUBS; } // shrubland
-	else if (fshrb>=0.8 && fabs(lat)>=50.0) {
-		biome=SF_TUNDRA; } // tundra
-	else if (fgrass>=0.4) {
-		biome=SF_SAVANNA; } // savanna or grassland
-	else if (fndlt>=0.6) {
-		biome=SF_NEEDLELEAF; } // needle-leaf forest
-	else if (fbrlt>=0.6) {
-		biome=SF_BROADLEAF; } // broad-leaf forest
+	if (ftot < 0.1 && fabs(lat) < 50.0) {
+		biome = SF_BARREN;
+	} 
+	else if (ftot < 0.1   && fabs(lat) >= 50.0) {
+		biome = SF_TUNDRA;
+	} 
+	else if (patch.stand.landcover == CROPLAND) {
+		biome = SF_CROP;
+	} 
+	else if (fshrb >= 0.8 && fabs(lat) < 50.0) {
+		biome = SF_SHRUBS;
+	} 
+	else if (fshrb >= 0.8 && fabs(lat) >= 50.0) {
+		biome = SF_TUNDRA;
+	} 
+	else if (fgrass > =0.4) {
+		biome = SF_SAVANNA;
+	} 
+	else if (fndlt >= 0.6) {
+		biome = SF_NEEDLELEAF;
+	} 
+	else if (fbrlt >= 0.6) {
+		biome = SF_BROADLEAF;
+	}
 	else {
-		biome=SF_MIXED_FOREST;   // mixed forest
+		biome = SF_MIXED_FOREST;  
 	}
 
 	return biome;
@@ -176,16 +184,19 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 	int count[NFIREBIOMES];
 	int biome;
 	int count_max=0; // maximum of 'count'
+	
 	// find and save most common biome number
-	for (biome=0; biome<NFIREBIOMES; biome++) count[biome]=0;
-	for (int idx = 0; idx<(int)biomes.size(); idx++) {
+	for (biome=0; biome < NFIREBIOMES; biome++) {
+		count[biome] = 0;
+	}
+	for (int idx = 0; idx < (int)biomes.size(); idx++) {
 		count[biomes[idx]]++;
 	}
-	for (biome=0; biome<NFIREBIOMES; biome++) {
-		count_max=max(count_max, count[biome]);
+	for (biome=0; biome < NFIREBIOMES; biome++)) {
+		count_max = max(count_max, count[biome]);
 	}
 
-	for (biome = 0; biome<NFIREBIOMES && count[biome] < count_max; biome++) {
+	for (biome = 0; biome < NFIREBIOMES && count[biome] < count_max; biome++) {
 	}
 	climate.simfire_biome = biome ;
 }
@@ -213,8 +224,8 @@ void getsimfiredata(Gridcell& gridcell) {
 	SimfireInput rec;
 
 	// Make sure gridcell lat/lon is centered to LPJ-GUESS gridcell
-	rec.lon = floor(gridcell.get_lon()*2.)/2.+0.25;
-	rec.lat = floor(gridcell.get_lat()*2.)/2.+0.25;
+	rec.lon = floor(gridcell.get_lon() * 2.) / 2. + 0.25;
+	rec.lat = floor(gridcell.get_lat() * 2.) / 2. + 0.25;
 	
 	if (!ark.getindex(rec)) {
 		ark.close();
@@ -227,7 +238,7 @@ void getsimfiredata(Gridcell& gridcell) {
 	simfire_biome_mapping(gridcell);
 	
 	// Monthly fire risk (W.Knorr)
-	for (int m=0; m<12; m++) {
+	for (int m = 0; m < 12; m++) {
 		climate.monthly_fire_risk[m] = rec.monthly_burned_area[m];
 	}
 
@@ -251,11 +262,11 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 	const int NPOPENTRIES = 57;
 
 	// years at which population-data is available in HYDE3.1
-	const int POPTIME[NPOPENTRIES]  = {-10000,-9000,-8000,-7000,-6000,-5000,-4000,-3000,-2000,-1000,0,
-		100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,
-		1500,1600,1700,1710,1720,1730,1740,1750,1760,1780,1790,1810,
-		1820,1830,1840,1850,1860,1870,1880,1890,1900,1910,1920,1930,
-		1940,1950,1960,1970,1980,1990,2000,2005};
+	const int POPTIME[NPOPENTRIES]  = {-10000,-9000,-8000,-7000,-6000,-5000,-4000,-3000,
+		-2000,-1000,0,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,
+		1500,1600,1700,1710,1720,1730,1740,1750,1760,1780,1790,1810,1820,1830,1840,
+		1850,1860,1870,1880,1890,1900,1910,1920,1930,1940,1950,1960,1970,1980,1990,
+		2000,2005};
 	
 	// get calendar-year
 	int cyear = date.get_calendar_year();
@@ -300,15 +311,16 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 void simfire_accounting_gridcell(Gridcell& gridcell) {
 	
 	Climate& climate = gridcell.climate;
+	
 	// absolute upper boundary for the accumulative nesterov index
-	const double MAXIMUM_NESTEROV = 1000000; //150000.;
+	const double MAXIMUM_NESTEROV = 1000000; 
 
 	// to initialise on start of spinup or after restart
 	bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
 			       ( restart && date.year == state_year ) ) );
 
 	if ( is_first_day ) {
-		// read SIMFIRE data
+		// read monthly climatology and Hyde population-data from file 
 		getsimfiredata(gridcell);
 	}
 
@@ -356,7 +368,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	// update running Maximum Nesterov index array at beginning of month  
 	if ( date.dayofmonth == 0 ) {
 		double mnest = 0.;
-		for ( int i=0; i<12; i++) 
+		for ( int i=0; i < 12; i++) 
 			if ( climate.monthly_max_nesterov[i] > mnest )
 				mnest = climate.monthly_max_nesterov[i];
 		climate.max_nesterov = mnest;
@@ -381,7 +393,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 			}
 			//initialise averaging array
 			if (date.year == 0 && date.day == 0) {
-				for (int i = 0; i<n_year_biomeavg; i++) {
+				for (int i = 0; i < n_year_biomeavg; i++) {
 					patch.avg_ftot  [i] = 0. ;
 					patch.avg_fgrass[i] = 0. ;
 					patch.avg_fndlt [i] = 0. ;

@@ -606,7 +606,7 @@ struct PhotosynthesisResult : public Serializable {
 	void serialize(ArchiveStream& arch);
 };
 
-// GWGen weather generator
+/// Class containing serializable variables for Weathergenerator GWGen
 class WeatherGen {
 
 public:
@@ -1170,24 +1170,6 @@ public:
 		N_SOIL,
 		/// Reproduction costs
 		REPRC,
-		// BLAZE
-		///BLAZE fire related carbon fluxes
-		C_leaf2atm,
-		C_leaf2met,
-		C_leaf2str,
-		C_sapw2atm,
-		C_sapw2str,
-		C_sapw2fwd,
-		C_hrtw2atm,
-		C_hrtw2str,
-		C_hrtw2cwd,
-		C_root2met,
-		C_root2str,
-		C_mtb2atm,
-		C_str2atm,
-		C_fwd2atm,
-		C_cwd2atm,
-		C_grass2atm,
 		/// Total (i.e. CH4C_DIFF + CH4C_PLAN + CH4C_EBUL) CH4 flux to atmosphere from peatland soils (gC/m2).
 		CH4C,
 		/// Diffused CH4 flux to atmosphere from peatland soils (gC/m2).

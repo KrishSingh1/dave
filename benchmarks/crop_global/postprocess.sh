@@ -94,28 +94,22 @@ tslice cflux.out -f 1997 -t 2016 -o cflux1997-2016.dat
 joyn cflux1997-2016.dat $gfed40_data -i Lon Lat -fast -o cflux1997-2016_joyned.dat
 
 # Plot fire emissions 
-gmap cflux1997-2016_joyned.dat -i Fire -lon 1 -lat 2 -landscape -o cflux1997-2016_blaze.png \
+gmap cflux1997-2016_joyned.dat -i Fire -lon 1 -lat 2 -portrait -o cflux1997-2016_blaze.png \
     -legend common/legend_fire_emis.txt -t "BLAZE mean annual C-emissions [kg(C)/m2a]"
-convert -geometry 25%x25% cflux1997-2016_blaze.png tmp.png #CLN
-convert -rotate 90 tmp.png cflux1997-2016_blaze.png
 describe_image  cflux1997-2016_blaze.png "BLAZE Mean annual C-emissions 1997-2016 [kg(C)/m2a]" embed
 	
 # Plot gfed 4.0 emissions
-gmap cflux1997-2016_joyned.dat -i C-Emis -lon 1 -lat 2 -landscape -o cflux1997-2016_gfed4.png \
+gmap cflux1997-2016_joyned.dat -i C-Emis -lon 1 -lat 2 -portrait -o cflux1997-2016_gfed4.png \
     -legend common/legend_fire_emis.txt -t "GFED 4.0 mean annual C-emissions [kg(C)/m2a]"
-convert -geometry 25%x25% cflux1997-2016_gfed4.png tmp.png
-convert -rotate 90 tmp.png cflux1997-2016_gfed4.png
 describe_image  cflux1997-2016_gfed4.png "GFED 4.0 C-emissions kg(C)/m2a." embed
 	
 # delta plot gfed4 cflux
 awk '{print $1,$2, $6}' cflux1997-2016_joyned.dat > cflux1997-2016_joyned_Fire.dat
 awk '{if(FNR==1){print $1,$2, $6} else {print $1,$2, $13}}' cflux1997-2016_joyned.dat > cflux1997-2016_joyned_gfed.dat
 delta  cflux1997-2016_joyned_Fire.dat cflux1997-2016_joyned_gfed.dat -i Lon Lat -o delta_cflux1997-2016_joyned.dat
-gmap delta_cflux1997-2016_joyned.dat -i Fire -lon 1 -lat 2 -landscape \
+gmap delta_cflux1997-2016_joyned.dat -i Fire -lon 1 -lat 2 -portrait \
     -legend common/legend_delta_fire_emis.txt -o delta_cflux1997-2016_joyned.png \
     -t "Fire C flux LPJ-GUESS - Gfed kg(C)/m2/a" -c BLUE RED -vert
-convert -geometry 25%x25% delta_cflux1997-2016_joyned.png tmp.png
-convert -rotate 90 tmp.png delta_cflux1997-2016_joyned.png
 describe_image  delta_cflux1997-2016_joyned.png "Modelled minus GFED 4.0 data. Units: kg(C)/m2a." embed
 
 # Scatterplot GFED C-emis 
@@ -131,15 +125,16 @@ tot_lpjg=0.
 tot_gfed=0.
 for ((x=1; x<=14; x++)); do
     ((xx=$x-1))
-    creg=${GFEDreg_name[${xx}]} 
-    awk -v reg=$x '(FNR==1 || $3==reg){print $0}' ~/DATA/gfed_regions0.5.dat > reg.dat
+    creg=${GFEDreg[${xx}]} 
+    awk -v reg=$x '(FNR==1 || $3==reg){print $0}' ${FIREDATAPATH}/gfed_regions0.5.dat > reg.dat
     joyn cflux1997-2016_joyned.dat reg.dat -i Lon Lat -fast -o cflux_reg_${x}_joyned.dat  
     aslice cflux_reg_${x}_joyned.dat -n -lon Lon -lat Lat  -sum "kg/m2->Pg" -o tot_cflux_reg_${x}.dat
     if [ $x -eq 1 ]; then
-	echo "Region                  LPJ-GUESS GFED 4.0 "	> tot_cflux_reg.dat
+	echo "Region LPJ-GUESS GFED 4.0 "	> tot_cflux_reg.dat
     fi
-    awk -v reg=$creg '(FNR==2){printf "%29s%6.2f   %6.2f \n",reg,$4*1000,$11*1000}' \
-	tot_cflux_reg_${x}.dat >> tot_cflux_reg.dat
+    #awk -v reg=$creg '(FNR==2){printf "%6s% 6.2f   %6.2f \n",reg,$4*1000,$11*1000}' \
+	#tot_cflux_reg_${x}.dat >> tot_cflux_reg.dat
+    awk -v reg=$creg '(FNR==2){printf "%s      %6.2f   %6.2f \n",reg,$4*1000,$11*1000}' tot_cflux_reg_${x}.dat >> tot_cflux_reg.dat
     # remove intermediate files
     rm -f tot_cflux_reg_${x}.dat cflux_reg_${x}_joyned.dat reg.dat
 done

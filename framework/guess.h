@@ -768,7 +768,7 @@ public:
 	/// reference to parent Gridcell object
 	Gridcell& gridcell;
 
-	/// values for andomisation in Weathergenerator GWGEN
+	/// values for randomisation in Weathergenerator GWGEN
 	WeatherGen weathergen;
 
 	/// mean air temperature today (deg C)

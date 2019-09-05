@@ -284,7 +284,18 @@ void check_same_spatial_domains(const std::vector<GuessNC::CF::GridcellOrderedVa
 		}
 	}
 }
+// Compute relative humidity from specific humidity, temperature and pressure
+double get_relative_humidity(double temp, double specific_humidity, double pressure) {
 
+	// qair  specific humidity, dimensionless (e.g. kg/kg) 
+	// temp  temperature in degrees C
+	// press pressure in Pa
+	// rh    relative humidity in %
+	double pres_hPa = presure / 100.; // convert to hPa
+	double es   = 6.112 * exp(17.67 * temp/(temp + 243.5));
+	double e    = specific_humidity * pres_hPa / (0.378 * specific_humidity + 0.622);
+	double rh   = min(max(e / es * 100.,0.),100.) ;
+	return rh;		
 }
 
 CFInput::CFInput()
@@ -777,66 +788,131 @@ void CFInput::populate_daily_arrays(long& seed) {
 	// Extract daily values for all days in this year, either from
 	// spinup dataset or historical dataset
 
-	populate_daily_array(dtemp, spinup_temp, cf_temp, historic_timestep_temp, 0);
-	populate_daily_prec_array(seed);
-	populate_daily_array(dinsol, spinup_insol, cf_insol, historic_timestep_insol, 0,
-	                     max_insolation(cf_standard_name_to_insoltype(cf_insol->get_standard_name())));
+	if ( !is_daily(cf_temp) && weathergenerator == GWGEN ) {
 
-	if (cf_min_temp) {
-		populate_daily_array(dmin_temp, spinup_min_temp, cf_min_temp, historic_timestep_min_temp, 0);
+		int instype = cf_standard_name_to_insoltype(cf_insol->get_standard_name());
+		
+		// IMPLEMENT cloud-frac
+		if (!cf_min_temp || !cf_max_temp || !cf_pres || !cf_wind || !cf_specifichum ||
+		    instype != SWRAD_TS) {
+			//(instype != SWRAD_TS && instype != SUNSHINE)) {
+			fail("The weathergenerator GWGEN needs: Tmax, Tmin, Pressure & Specific Humidity, and Windspeed");
+		}
+		
+		std::vector<double> mtemp;
+		get_yearly_data(mtemp, spinup_temp, cf_temp, histpric_timestep_temp);
+
+		std::vector<double> mprec;
+		get_yearly_data(mprec, spinup_prec, cf_prec, histpric_timestep_prec);
+
+		std::vector<double> mwet;
+		get_yearly_data(mwet, spinup_wetdays, cf_wetdays, histpric_timestep_wetdays);
+
+		std::vector<double> minsol;
+		get_yearly_data(minsol, spinup_insol, cf_insol, histpric_timestep_insol);
+
+		std::vector<double> mtmax;
+		get_yearly_data(mtmax, spinup_max_temp, cf_max_temp, histpric_timestep_max_temp);
+
+		std::vector<double> mtmin;
+		get_yearly_data(mtmin, spinup_min_temp, cf_min_temp, histpric_timestep_min_temp);
+
+		// Record shift of mean_temperature agains mean of tmin/tmax for readjustment
+		double mdtr[12];
+		double shift[12];
+		for ( int i=0; i<12; i++) {
+			mdtr[i] = 0.5 * (mtmax[i] - mtmin[i]);
+			shift[i]= 0.5 * (mtmax[i] + mtmin[i]) - mtemp[i];
+		}
+
+		std::vector<double> mwind;
+		get_yearly_data(mwind, spinup_wind, cf_wind, histpric_timestep_wind);
+
+		std::vector<double> mspecifichum;
+		get_yearly_data(mspecifichum, spinup_specifichum, cf_specifichum, histpric_timestep_specifichum);
+		
+		std::vector<double> mpres;
+		get_yearly_data(mpres, spinup_pres, cf_pres, histpric_timestep_pres);
+		
+		double mrhum[12];
+		for ( int i=0; i<12; i++) {
+			mrhum[i] = get_relative_humidity(mtemp[i],mspecifichum[i],mpres[i]);
+		}
+		
+
+		// Use gwgen - correlated weather
+		weathergen_get_met(gridcell,mtemp,mprec,mwet,msun,mdtr,
+				   mwind,mrhum,dtemp,dprec,dsun,ddtr,
+				   dwind,drhum);
+
+		//produce tmin/tmax from daily temperature range plus shift
+		int mon = 0;
+		int accumday = 0;
+		for (int i = 0; i < date.year_length(); ++i) {
+			if ( i >= date.ndaymonth[mon]+accumday) {
+				accumday += date.ndaymonth[mon];
+				mon++;
+			}
+			dtmin[i] = dtemp[i] - 0.5 * ddtr[i] + shift[mon];
+			dtmax[i] = dtemp[i] + 0.5 * ddtr[i] + shift[mon];
+		}
 	}
-
-	if (cf_max_temp) {
-		populate_daily_array(dmax_temp, spinup_max_temp, cf_max_temp, historic_timestep_max_temp, 0);
-	}
-
-	if (cf_pres) {
-		populate_daily_array(dpres, spinup_pres, cf_pres, historic_timestep_pres, 0);
-	}
-
-	if (cf_specifichum) {
-		populate_daily_array(dspecifichum, spinup_specifichum, cf_specifichum, historic_timestep_specifichum, 0);
-	}
-
-	if (cf_wind) {
-		populate_daily_array(dwind, spinup_wind, cf_wind, historic_timestep_wind, 0);
-	}
-
-	// Convert to units the model expects
-	bool cloud_fraction_to_sunshine = (cf_standard_name_to_insoltype(cf_insol->get_standard_name()) == SUNSHINE);
-	for (int i = 0; i < date.year_length(); ++i) {
-		dtemp[i] -= K2degC;
-
+	else {
+	       
+		populate_daily_array(dtemp, spinup_temp, cf_temp, historic_timestep_temp, 0);
+		populate_daily_prec_array(seed);
+		populate_daily_array(dinsol, spinup_insol, cf_insol, historic_timestep_insol, 0,
+				     max_insolation(cf_standard_name_to_insoltype(cf_insol->get_standard_name())));
+		
 		if (cf_min_temp) {
-			dmin_temp[i] -= K2degC;
+			populate_daily_array(dmin_temp, spinup_min_temp, cf_min_temp, historic_timestep_min_temp, 0);
 		}
-
+		
 		if (cf_max_temp) {
-			dmax_temp[i] -= K2degC;
+			populate_daily_array(dmax_temp, spinup_max_temp, cf_max_temp, historic_timestep_max_temp, 0);
 		}
-
-		if (cloud_fraction_to_sunshine) {
-			// Invert from cloudiness to sunshine,
-			// and convert fraction (0-1) to percent (0-100)
-			dinsol[i] = (1-dinsol[i]) * 100.0;
+		
+		if (cf_pres) {
+			populate_daily_array(dpres, spinup_pres, cf_pres, historic_timestep_pres, 0);
 		}
-
-		if ( cf_pres && cf_specifichum ) {
-			// qair  specific humidity, dimensionless (e.g. kg/kg) 
-			// temp  temperature in degrees C
-			// press pressure in mb
-			// rh    relative humidity in %
-			const double t0 = 273.15;
-			double temp = 0.5 * (dmax_temp[i] + dmin_temp[i]);
-			double es   = 6.112 * exp(17.67 * temp/(temp + 243.5));
-			double e    = dspecifichum[i] * dpres[i] / 100. / (0.378 * dspecifichum[i] + 0.622); 
-			drelhum[i]  = min(max(e / es * 100.,0.),100.) ;
+		
+		if (cf_specifichum) {
+			populate_daily_array(dspecifichum, spinup_specifichum, cf_specifichum, historic_timestep_specifichum, 0);
+		}
+		
+		if (cf_wind) {
+			populate_daily_array(dwind, spinup_wind, cf_wind, historic_timestep_wind, 0);
+		}
+		
+		// Convert to units the model expects
+		bool cloud_fraction_to_sunshine = (cf_standard_name_to_insoltype(cf_insol->get_standard_name()) == SUNSHINE);
+		for (int i = 0; i < date.year_length(); ++i) {
+			dtemp[i] -= K2degC;
 			
-		} else if ( firemodel == BLAZE ) {
-			fail("BLAZE is switched on WITHOUT info on specific humidity and/or pressure! \n" );
+			if (cf_min_temp) {
+				dmin_temp[i] -= K2degC;
+			}
+			
+			if (cf_max_temp) {
+				dmax_temp[i] -= K2degC;
+			}
+			
+			if (cloud_fraction_to_sunshine) {
+				// Invert from cloudiness to sunshine,
+				// and convert fraction (0-1) to percent (0-100)
+				dinsol[i] = (1-dinsol[i]) * 100.0;
+			}
+
+			if ( cf_pres && cf_specifichum ) {
+				// compute relative humidity for BLAZE
+				drelhum[i] = get_relative_humidity(dtemp[i], dspecifichum[i], dpres[i]);
+			}
+			else if ( firemodel == BLAZE ) {
+				fail("BLAZE is switched on WITHOUT info on specific humidity and/or pressure! \n" );
+			}
 		}
 	}
-
+	
 	// Move to next year in spinup dataset
 
 	spinup_temp.nextyear();

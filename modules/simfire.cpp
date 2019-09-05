@@ -196,7 +196,7 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 		count_max = max(count_max, count[biome]);
 	}
 
-	for (biome = 0; biome < NFIREBIOMES && count[biome] < count_max; biome++) {
+	for (biome = 0; biome < NFIREBIOMES && count[biome] < count_max; biome++) { //STEFAN???
 	}
 	climate.simfire_biome = biome ;
 }
@@ -369,16 +369,17 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	if ( date.dayofmonth == 0 ) {
 		double mnest = 0.;
 		for ( int i=0; i < 12; i++) 
-			if ( climate.monthly_max_nesterov[i] > mnest )
+			if ( climate.monthly_max_nesterov[i] > mnest ) {
 				mnest = climate.monthly_max_nesterov[i];
-		climate.max_nesterov = mnest;
-		climate.monthly_max_nesterov[date.month] = 0. ;
+			}
+			climate.max_nesterov = mnest;
+			climate.monthly_max_nesterov[date.month] = 0. ;
 	}
 
 	// update current month's Maximum Nesterov index
-	if (  climate.monthly_max_nesterov[date.month] < climate.cur_nesterov )
+	if (  climate.monthly_max_nesterov[date.month] < climate.cur_nesterov ) {
 		climate.monthly_max_nesterov[date.month] = climate.cur_nesterov;
-
+	}
 	// PATCHLOOP FOR fpar
 	int cnt= 0;
 	double run_fapar = 0.;
@@ -438,8 +439,10 @@ double simfire_burned_area(Climate& climate) {
 	const double SCALAR = 1.0e-5;
 
 	// return if improper biome-type
-	if (climate.simfire_biome == 0) return 0.;
-
+	if (climate.simfire_biome == 0) {
+		return 0.;
+	}
+	
 	// fPAR correction Knorr
 	const double FPAR_CORR1 = 0.428;
 	const double FPAR_CORR2 = 0.148;

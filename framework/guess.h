@@ -896,8 +896,6 @@ public:
 	double mcarthur_forest_fire_index;	
 	/// To keep track of running months FFDI
 	double months_ffdi[30];	
-	/// whether majority of trees is considered sprouter (or seeder, else)
-	bool is_sprouter;
 
 	// Saved parameters used by function daylengthinsoleet
 

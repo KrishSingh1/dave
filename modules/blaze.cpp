@@ -148,16 +148,12 @@ void get_combustion_rates(Patch& patch, int fli_index, double k_tun_litter) {
  * depending on computed potential FLI the index corresponding to the entries in
  * the look-up-tables is returned
  */
-int get_fire_line_intensity_index(double fire_line_intensity, bool is_sprouter) {
+int get_fire_line_intensity_index(double fire_line_intensity) {
 
 	// determine intensity category for combustion-lookup-tables
 	int fire_line_intensity_index; // fire-line-intensity- index
 	if ( fire_line_intensity > 7000. ) {
-		if ( is_sprouter ) {
-			fire_line_intensity_index = 3;
-		} else {
-			fire_line_intensity_index = 4; 
-		}
+		fire_line_intensity_index = 4;
 	}
 	else if ( fire_line_intensity > 3000. ) {
 		fire_line_intensity_index = 2;
@@ -249,7 +245,7 @@ void get_fireline_intensity(Patch& patch, Climate& climate) {
 		fire_line_intensity = HEAT_YIELD * avail_fuel * rate_of_spread;
 
 		//  re-copmute FLI index 
-		fire_line_intensity_index = get_fire_line_intensity_index(fire_line_intensity, climate.is_sprouter);
+		fire_line_intensity_index = get_fire_line_intensity_index(fire_line_intensity);
 		
 		if (i >= fire_line_intensity_index ) break;
 	}
@@ -419,10 +415,6 @@ double survival_probability(Patch& patch, Individual& indiv) {
 			if  (lat > -30 && lat < 30 ) {
 				// moist
 				survival_probability = survival_probability_tropics(dbh,fire_line_intensity);
-			} else if (climate.is_sprouter){
-				// Australian temperate
-				survival_probability = survival_probability_temp_broadleaf(dbh, fire_line_intensity, 1);
-
 			} else {
 				// temperate 
 				survival_probability = survival_probability_temp_broadleaf(dbh, fire_line_intensity, 0);
@@ -431,12 +423,7 @@ double survival_probability(Patch& patch, Individual& indiv) {
 		}
 		// Savanna, shrubland and sparsely vegetated
 		else if ( biome == SF_SHRUBS || biome == SF_SAVANNA || biome == SF_BARREN) {
-			if ( climate.is_sprouter ) {
-				survival_probability = survival_probability_sprouter_savanna(height, fire_line_intensity);
-			}
-			else {
-				survival_probability = survival_probability_savanna(height, fire_line_intensity);
-			}
+			survival_probability = survival_probability_savanna(height, fire_line_intensity);
 		}
 		// Tundra
 		else if ( biome == SF_TUNDRA ) {
@@ -467,9 +454,6 @@ double survival_probability(Patch& patch, Individual& indiv) {
 				if  (lat > -30 && lat < 30 ) {
 					// tropical 
 					survival_probability = survival_probability_tropics(dbh,fire_line_intensity);
-				} else if ( climate.is_sprouter ){
-					// temperate Oz 
-					survival_probability = survival_probability_temp_broadleaf(dbh, fire_line_intensity, 1);
 				} else {
 					// temperate 
 					survival_probability = survival_probability_temp_broadleaf(dbh, fire_line_intensity, 0);
@@ -477,12 +461,7 @@ double survival_probability(Patch& patch, Individual& indiv) {
 			}
 			// Savanna, shrubland and sparsely vegetated
 			else if ( biome == SF_SHRUBS || biome == SF_SAVANNA || biome == SF_BARREN ) {
-				if ( climate.is_sprouter ) {
-					survival_probability = survival_probability_sprouter_savanna(height, fire_line_intensity);
-				}
-				else {
-					survival_probability = survival_probability_savanna(height, fire_line_intensity);
-				}
+				survival_probability = survival_probability_savanna(height, fire_line_intensity);
 			}
 			else {
 				dprintf("Biome %d not found in BLAZE\n",biome);
@@ -527,7 +506,7 @@ void blaze(Patch& patch, Climate& climate) {
 	if (!( randfrac(patch.stand.seed) <= area_burned || vegmode == POPULATION)) return;
 	
 	// get relative fluxes between pools
-	int fli_index = get_fire_line_intensity_index(patch.fire_line_intensity, climate.is_sprouter);
+	int fli_index = get_fire_line_intensity_index(patch.fire_line_intensity);
 	
 	// if fuel availability is too low return
 	if ( fli_index < 0 ) return;
@@ -1036,12 +1015,6 @@ void blaze_accounting_gridcell(Climate& climate) {
 		
 		// Set Australian trees to be sprouters
 		double lat = climate.gridcell.get_lat();
-		double lon = climate.gridcell.get_lon();
-		if ( lat < -10. && lon > 110. && lon < 158.) {
-			climate.is_sprouter = 1;
-		} else {
-			climate.is_sprouter = 0;
-		}
 
 		// latitude depending tuning values mortality
 		if ( fabs(lat) >= 50.) {
@@ -1192,7 +1165,7 @@ void blaze_driver(Patch& patch, Climate& climate) {
 	get_fireline_intensity(patch, climate);
 
 	// get relative fluxes between pools
-	int fli_index = get_fire_line_intensity_index(patch.fire_line_intensity, climate.is_sprouter);
+	int fli_index = get_fire_line_intensity_index(patch.fire_line_intensity);
 
 	// determine whether burned area shall be added to output
 	// if no fire -> no burned area

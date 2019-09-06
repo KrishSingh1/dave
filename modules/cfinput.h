@@ -96,7 +96,7 @@ private:
 	void populate_daily_prec_array(long& seed);
 
 	/// Fills dtemp, dprec, etc. with forcing data for the current year
-	void populate_daily_arrays(long& seed);
+	void populate_daily_arrays(Gridcell& gridcell);
 
 	/// \returns all (used) variables
 	std::vector<GuessNC::CF::GridcellOrderedVariable*> all_variables() const;
@@ -178,6 +178,9 @@ private:
 
 	/// Maximum temperature for current gridcell and current year (deg C)
 	double dmax_temp[Date::MAX_YEAR_LENGTH];
+
+	/// Daily temperature range for current gridcell and current year (deg C)
+	double ddtr[Date::MAX_YEAR_LENGTH];
 
 	/// Whether the forcing data for precipitation is an extensive quantity
 	/** If given as an amount (kg m-2) per timestep it is extensive, if it's

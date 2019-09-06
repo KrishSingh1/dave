@@ -14,6 +14,7 @@
 
 #include "guess.h"
 #include "driver.h"
+#include "weathergen.h"
 #include "guessstring.h"
 #include <fstream>
 #include <sstream>
@@ -42,7 +43,7 @@ insoltype cf_standard_name_to_insoltype(const std::string& standard_name) {
 	}
 	else {
 		fail("Unknown insolation type: %s", standard_name.c_str());
-                return SUNSHINE; // To avoid compiler warning                                                 <
+                return SUNSHINE; // To avoid compiler warning
  	}
 }
 
@@ -284,6 +285,7 @@ void check_same_spatial_domains(const std::vector<GuessNC::CF::GridcellOrderedVa
 		}
 	}
 }
+
 // Compute relative humidity from specific humidity, temperature and pressure
 double get_relative_humidity(double temp, double specific_humidity, double pressure) {
 
@@ -291,11 +293,13 @@ double get_relative_humidity(double temp, double specific_humidity, double press
 	// temp  temperature in degrees C
 	// press pressure in Pa
 	// rh    relative humidity in %
-	double pres_hPa = presure / 100.; // convert to hPa
+	double pres_hPa = pressure / 100.; // convert to hPa
 	double es   = 6.112 * exp(17.67 * temp/(temp + 243.5));
 	double e    = specific_humidity * pres_hPa / (0.378 * specific_humidity + 0.622);
 	double rh   = min(max(e / es * 100.,0.),100.) ;
 	return rh;		
+}
+
 }
 
 CFInput::CFInput()
@@ -784,7 +788,7 @@ void CFInput::populate_daily_prec_array(long& seed) {
 	}
 }
 
-void CFInput::populate_daily_arrays(long& seed) {
+void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 	// Extract daily values for all days in this year, either from
 	// spinup dataset or historical dataset
 
@@ -800,50 +804,69 @@ void CFInput::populate_daily_arrays(long& seed) {
 		}
 		
 		std::vector<double> mtemp;
-		get_yearly_data(mtemp, spinup_temp, cf_temp, histpric_timestep_temp);
+		get_yearly_data(mtemp, spinup_temp, cf_temp, historic_timestep_temp);
+		double xmtemp[12];
+		for ( int i=0; i<12; i++) {
+			xmtemp[i] = mtemp[i];
+		}
 
 		std::vector<double> mprec;
-		get_yearly_data(mprec, spinup_prec, cf_prec, histpric_timestep_prec);
+		get_yearly_data(mprec, spinup_prec, cf_prec, historic_timestep_prec);
+		double xmprec[12];
+		for ( int i=0; i<12; i++) {
+			xmprec[i] = mprec[i];
+		}
 
 		std::vector<double> mwet;
-		get_yearly_data(mwet, spinup_wetdays, cf_wetdays, histpric_timestep_wetdays);
+		get_yearly_data(mwet, spinup_wetdays, cf_wetdays, historic_timestep_wetdays);
+		double xmwet[12];
+		for ( int i=0; i<12; i++) {
+			xmwet[i] = mwet[i];
+		}
 
 		std::vector<double> minsol;
-		get_yearly_data(minsol, spinup_insol, cf_insol, histpric_timestep_insol);
+		get_yearly_data(minsol, spinup_insol, cf_insol, historic_timestep_insol);
+		double xminsol[12];
+		for ( int i=0; i<12; i++) {
+			xminsol[i] = minsol[i];
+		}
 
 		std::vector<double> mtmax;
-		get_yearly_data(mtmax, spinup_max_temp, cf_max_temp, histpric_timestep_max_temp);
+		get_yearly_data(mtmax, spinup_max_temp, cf_max_temp, historic_timestep_max_temp);
 
 		std::vector<double> mtmin;
-		get_yearly_data(mtmin, spinup_min_temp, cf_min_temp, histpric_timestep_min_temp);
+		get_yearly_data(mtmin, spinup_min_temp, cf_min_temp, historic_timestep_min_temp);
 
 		// Record shift of mean_temperature agains mean of tmin/tmax for readjustment
-		double mdtr[12];
+		double xmdtr[12];
 		double shift[12];
 		for ( int i=0; i<12; i++) {
-			mdtr[i] = 0.5 * (mtmax[i] - mtmin[i]);
-			shift[i]= 0.5 * (mtmax[i] + mtmin[i]) - mtemp[i];
+			xmdtr[i] = 0.5 * (mtmax[i] - mtmin[i]);
+			shift[i] = 0.5 * (mtmax[i] + mtmin[i]) - mtemp[i];
 		}
 
 		std::vector<double> mwind;
-		get_yearly_data(mwind, spinup_wind, cf_wind, histpric_timestep_wind);
+		get_yearly_data(mwind, spinup_wind, cf_wind, historic_timestep_wind);
+		double xmwind[12];
+		for ( int i=0; i<12; i++) {
+			xmwind[i] = mwind[i];
+		}
 
 		std::vector<double> mspecifichum;
-		get_yearly_data(mspecifichum, spinup_specifichum, cf_specifichum, histpric_timestep_specifichum);
+		get_yearly_data(mspecifichum, spinup_specifichum, cf_specifichum, historic_timestep_specifichum);
 		
 		std::vector<double> mpres;
-		get_yearly_data(mpres, spinup_pres, cf_pres, histpric_timestep_pres);
+		get_yearly_data(mpres, spinup_pres, cf_pres, historic_timestep_pres);
 		
-		double mrhum[12];
+		double xmrhum[12];
 		for ( int i=0; i<12; i++) {
-			mrhum[i] = get_relative_humidity(mtemp[i],mspecifichum[i],mpres[i]);
+			xmrhum[i] = get_relative_humidity(mtemp[i],mspecifichum[i],mpres[i]);
 		}
-		
 
 		// Use gwgen - correlated weather
-		weathergen_get_met(gridcell,mtemp,mprec,mwet,msun,mdtr,
-				   mwind,mrhum,dtemp,dprec,dsun,ddtr,
-				   dwind,drhum);
+		weathergen_get_met(gridcell,xmtemp,xmprec,xmwet,xminsol,xmdtr,
+				   xmwind,xmrhum,dtemp,dprec,dinsol,ddtr,
+				   dwind,drelhum);
 
 		//produce tmin/tmax from daily temperature range plus shift
 		int mon = 0;
@@ -853,14 +876,14 @@ void CFInput::populate_daily_arrays(long& seed) {
 				accumday += date.ndaymonth[mon];
 				mon++;
 			}
-			dtmin[i] = dtemp[i] - 0.5 * ddtr[i] + shift[mon];
-			dtmax[i] = dtemp[i] + 0.5 * ddtr[i] + shift[mon];
+			dmin_temp[i] = dtemp[i] - 0.5 * ddtr[i] + shift[mon];
+			dmax_temp[i] = dtemp[i] + 0.5 * ddtr[i] + shift[mon];
 		}
 	}
 	else {
 	       
 		populate_daily_array(dtemp, spinup_temp, cf_temp, historic_timestep_temp, 0);
-		populate_daily_prec_array(seed);
+		populate_daily_prec_array(gridcell.seed);
 		populate_daily_array(dinsol, spinup_insol, cf_insol, historic_timestep_insol, 0,
 				     max_insolation(cf_standard_name_to_insoltype(cf_insol->get_standard_name())));
 		
@@ -972,7 +995,7 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 	climate.co2 = co2[date.get_calendar_year()];
 
 	if (date.day == 0) {
-		populate_daily_arrays(gridcell.cell);
+		populate_daily_arrays(gridcell);
 	}
 
 	climate.temp   = dtemp[date.day];
@@ -982,6 +1005,7 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 	climate.u10    = dwind[date.day];
 	climate.tmax   = dmax_temp[date.day];
 	climate.tmin   = dmin_temp[date.day];
+	climate.dtr    = ddtr[date.day];
 
 	// Nitrogen deposition
 	climate.dndep = dndep[date.day];

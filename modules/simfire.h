@@ -26,6 +26,6 @@ void getsimfiredata(Gridcell& gridcell);
 void simfire_accounting_gridcell(Gridcell& gridcell);
 
 // SIMFIRE
-double simfire_burned_area(Climate& climate); 
+double simfire_burned_area(Gridcell& gridcell); 
 
 #endif // LPJ_GUESS_SIMFIRE_H

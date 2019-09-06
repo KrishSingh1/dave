@@ -284,7 +284,7 @@ unsigned int geohash(double lat, double lon) {
 }
 
 // Set the seed for the random distribution
-void get_seed_by_location(double lat, double lon, WeatherGen& state) {
+void get_seed_by_location(double lat, double lon, WeatherGenState& state) {
 
 	state.xs = geohash(lat,lon);
 
@@ -299,7 +299,7 @@ void get_seed_by_location(double lat, double lon, WeatherGen& state) {
 	 }
 }
 
-int refill(WeatherGen& state) {
+int refill(WeatherGenState& state) {
 	
 	// reset a random state
 
@@ -319,7 +319,7 @@ int refill(WeatherGen& state) {
 	return s;
 }
 
-int ranu(WeatherGen& state) {
+int ranu(WeatherGenState& state) {
 
 	// DESCRIPTION
 	// Generates a uniformly distributed random 4 byte integer with the range (-huge(i4),+huge(i4))
@@ -347,7 +347,7 @@ int ranu(WeatherGen& state) {
 	return ranu;
 }
 
-double ranur(WeatherGen& state) {
+double ranur(WeatherGenState& state) {
 
 	// generate a random number in the range (0,1)
 
@@ -488,7 +488,7 @@ void meansd(MetVariables& metvars) {
 
 } 
 
-double ran_normal(WeatherGen& state) {
+double ran_normal(WeatherGenState& state) {
 	
 	// DESCRIPTION
 	// Sampler for the normal distribution centered at 0 with std. dev. of unity,
@@ -540,7 +540,7 @@ double ran_normal(WeatherGen& state) {
  	return nval;
 }
 
-double ran_gamma(WeatherGen& state,bool first, double shape, double scale) {
+double ran_gamma(WeatherGenState& state,bool first, double shape, double scale) {
 	
 	// DESCRIPTION
 	// Select a random number from a Gamma distribution
@@ -593,7 +593,7 @@ double ran_gamma(WeatherGen& state,bool first, double shape, double scale) {
 	return ret;
 }
 
-double ran_gp(WeatherGen& state,double shape,double scale, double loc) {
+double ran_gp(WeatherGenState& state,double shape,double scale, double loc) {
 	
 	// DESCRIPTION
 	// Select a random number from a generalized pareto (GP) distribution
@@ -616,7 +616,7 @@ double ran_gp(WeatherGen& state,double shape,double scale, double loc) {
 	return rangp;
 }
 
-double ran_gamma_gp(WeatherGen& state,bool first,double shape,double scale,double thresh,double shape_gp,double scale_gp) {
+double ran_gamma_gp(WeatherGenState& state,bool first,double shape,double scale,double thresh,double shape_gp,double scale_gp) {
 	
 	// DESCRIPTION
 	// Select a random number from a hybrid Gamma-GP distribution
@@ -1815,7 +1815,7 @@ void rmsmooth(int lm,int rm, double *m,int *dmonth,double bcond[2], double *m_cu
 	}
 }
 
-void init_weathergen(MetVariables& metvars, WeatherGen& rndst) {
+void init_weathergen(MetVariables& metvars, WeatherGenState& rndst) {
 
 	// Initialize the weather generator
 	
@@ -1967,7 +1967,7 @@ double cldf2rad(double input, double lat, int doy, bool cldf2rad) {
 	}
 }
 
-void weathergen_get_daily_met(MetVariables& metvars, WeatherGen& rndst) {
+void weathergen_get_daily_met(MetVariables& metvars, WeatherGenState& rndst) {
 
 	//local variables
 	int i = 0;
@@ -2295,7 +2295,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 	double tmindiff = 0.;
 	double tmin_acc = 0.;
 
-	WeatherGen& rndst = gridcell.climate.weathergen;
+	WeatherGenState& rndst = gridcell.climate.weathergenstate;
 
 	double lat = gridcell.get_lat();
 	double lon = gridcell.get_lon();

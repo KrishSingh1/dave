@@ -80,8 +80,8 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_mmon_mt2", &file_mmon_mt2, 300, "monthly other monoterpene flux output file");
 
 	if ( firemodel == BLAZE ) {
-		declare_parameter("file_aburntarea_out", &file_aburntarea_out, 300, "BLAZE burnt area output file");
-		declare_parameter("file_mburntarea_out", &file_mburntarea_out, 300, "BLAZE monthly burnt area output file");
+		declare_parameter("file_aburned_area_out", &file_aburned_area_out, 300, "BLAZE burned area output file");
+		declare_parameter("file_mburned_area_out", &file_mburned_area_out, 300, "BLAZE monthly burned area output file");
 		declare_parameter("file_simfireanalysis_out", &file_simfireanalysis_out, 300, "SIMFIRE analytics output");
 	}
 
@@ -377,10 +377,10 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_clitter,        file_clitter,        clitter_columns);
 
 	if ( firemodel == BLAZE ) {
-		create_output_table(out_aburntarea,			file_aburntarea_out,		blaze_columns);
+		create_output_table(out_aburned_area,		file_aburned_area_out,		blaze_columns);
 		create_output_table(out_simfireanalysis,	file_simfireanalysis_out,	simfireanalysis_columns);
 	} else if ( firemodel == GLOBFIRM ) {
-		create_output_table(out_firert,				file_firert,				firert_columns);
+		create_output_table(out_firert,			file_firert,			firert_columns);
 	}
 
 	create_output_table(out_runoff,			file_runoff,         runoff_columns);
@@ -421,7 +421,7 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mmon,           file_mmon,           month_columns_wide);
 	create_output_table(out_mmon_mt1,       file_mmon_mt1,       month_columns_wide);
 	create_output_table(out_mmon_mt2,       file_mmon_mt2,       month_columns_wide);
-	create_output_table(out_mburntarea,     file_mburntarea_out, month_columns);
+	create_output_table(out_mburned_area,   file_mburned_area_out, month_columns);
     
     // Methane
 	create_output_table(out_mch4,           file_mch4,           month_columns);
@@ -777,7 +777,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double wetland_water_added_gridcell = 0.0;
 	double dens_gridcell=0.0;
 	double firert_gridcell=0.0;
-	double burntarea_gridcell=0.0;
+	double burned_area_gridcell=0.0;
 	double aiso_gridcell=0.0;
 	double amon_gridcell=0.0;
 	double amon_mt1_gridcell=0.0;
@@ -1203,7 +1203,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			}
 			else {
 				firert_gridcell+=(1.0/patch.fireprob) * to_gridcell_average;
-				burntarea_gridcell+=patch.fireprob * to_gridcell_average;
+				burned_area_gridcell+=patch.fireprob * to_gridcell_average;
 			}
 
 			andep_gridcell += stand.get_climate().andep * to_gridcell_average;
@@ -1337,13 +1337,13 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_dens,					dens_gridcell);
 	outlimit(out,out_lai,					lai_gridcell);
 	outlimit(out,out_clitter,				clitter_gridcell);
-	outlimit(out,out_aburntarea,			gridcell.climate.annual_areaburnt);
-	outlimit(out,out_simfireanalysis,		gridcell.climate.simfire_biome);
-	outlimit(out,out_simfireanalysis,		gridcell.climate.max_nesterov);
-	outlimit(out,out_simfireanalysis,		gridcell.pop_density);
-	outlimit(out,out_simfireanalysis,		gridcell.simfire_region);
+	outlimit(out,out_aburned_area,				gridcell.annual_burned_area);
+	outlimit(out,out_simfireanalysis,			gridcell.simfire_biome);
+	outlimit(out,out_simfireanalysis,			gridcell.max_nesterov);
+	outlimit(out,out_simfireanalysis,			gridcell.pop_density);
+	outlimit(out,out_simfireanalysis,			gridcell.simfire_region);
 	outlimit(out,out_firert,				firert_gridcell);
-	outlimit(out,out_firert,				burntarea_gridcell);
+	outlimit(out,out_firert,				burned_area_gridcell);
 	outlimit(out,out_runoff,				surfrunoff_gridcell);
 	outlimit(out,out_runoff,				drainrunoff_gridcell);
 	outlimit(out,out_runoff,				baserunoff_gridcell);
@@ -1423,7 +1423,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out,out_mmon,         mmon[m]);
 		outlimit(out,out_mmon_mt1,     mmon_mt1[m]);
 		outlimit(out,out_mmon_mt2,     mmon_mt2[m]);
-		outlimit(out,out_mburntarea,   (float)gridcell.climate.monthly_areaburnt[m]);
+		outlimit(out,out_mburned_area, (float)gridcell.monthly_burned_area[m]);
 
 		aaet += maet[m];
 		apet += mpet[m];

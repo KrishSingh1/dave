@@ -120,16 +120,12 @@ void Climate::serialize(ArchiveStream& arch) {
 		& var_prec
 		& var_temp
 		& aprec
-		& max_nesterov
-		& monthly_max_nesterov
-		& cur_nesterov
-		& recent_max_fapar
 		& avg_annual_rainfall
 		& last_rainfall
-		& dslr
+		& days_since_last_rainfall
 		& kbdi
 		& months_ffdi
-		& weathergen;
+		& weathergenstate;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -439,24 +435,24 @@ void Patch::serialize(ArchiveStream& arch) {
 		& ndemand
 		& irrigation_y
 		& fire_line_intensity
-		& wood2atm
-		& leaf2atm
-		& leaf2lit
-		& wood2str
-		& wood2fwd
-		& wood2cwd
-		& litf2atm
-		& lfwd2atm
-		& lcwd2atm;
-		for (unsigned int i=0; i < n_year_biomeavg; i++)
+		& wood_to_atm
+		& leaf_to_atm
+		& leaf_to_lit
+		& wood_to_str
+		& wood_to_fwd
+		& wood_to_cwd
+		& litf_to_atm
+		& lfwd_to_atm
+		& lcwd_to_atm;
+		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
 			arch & avg_fgrass[i];
-		for (unsigned int i=0; i < n_year_biomeavg; i++)
+		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
 			arch & avg_fndlt[i];
-		for (unsigned int i=0; i < n_year_biomeavg; i++)
+		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
 			arch & avg_fbrlt[i];
-		for (unsigned int i=0; i < n_year_biomeavg; i++)
+		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
 			arch & avg_fshrb[i];
-		for (unsigned int i=0; i < n_year_biomeavg; i++)
+		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
 			arch & avg_ftot[i];
 }
 
@@ -1394,7 +1390,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		ppft.nmass_litter_sap   += mortality_non_fire * nmass_sap;
 		ppft.nmass_litter_heart += mortality_non_fire * nmass_heart;
 
-		// Flux to atmosphere from burnt above-ground biomass
+		// Flux to atmosphere from burned above-ground biomass
 
 		double cflux_fire = mortality_fire * (cmass_leaf_litter / mortality + cmass_wood());
 		double nflux_fire = mortality_fire * (nmass_leaf_litter / mortality + nmass_wood());
@@ -2303,7 +2299,11 @@ void Gridcell::serialize(ArchiveStream& arch) {
 	arch & climate
 		& landcover
 		& seed
-		& balance;
+		& balance
+		& max_nesterov
+		& monthly_max_nesterov
+		& cur_nesterov
+		& recent_max_fapar;
 
 	if (arch.save()) {
 		for (unsigned int i = 0; i < pft.nobj; i++) {

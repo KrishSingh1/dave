@@ -217,10 +217,10 @@ const double CO2_CONV = 1.0e-6;
 const double CMASS_SEED = 0.01;
 
 /// Averaging interval for average maximum annual fapar (SIMFIRE)
-const int avg_interv_fapar = 5;
+const int AVG_INTERVAL_FAPAR = 3;
 
 /// Averaging interval for biome averaging (SIMFIRE)
-const int n_year_biomeavg = 3;
+const int N_YEAR_BIOMEAVG = 3;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FORWARD DECLARATIONS OF CLASSES DEFINED IN THIS FILE
@@ -607,7 +607,7 @@ struct PhotosynthesisResult : public Serializable {
 };
 
 /// Class containing serializable variables for Weathergenerator GWGen
-class WeatherGen {
+class WeatherGenState {
 
 public:
 	int q[10];
@@ -769,7 +769,7 @@ public:
 	Gridcell& gridcell;
 
 	/// values for randomisation in Weathergenerator GWGEN
-	WeatherGen weathergen;
+	WeatherGenState weathergenstate;
 
 	/// mean air temperature today (deg C)
 	double temp;
@@ -881,36 +881,6 @@ public:
 	/// daily nitrogen deposition (kgN/m2)
 	double dndep;
 
-	// SIMFIRE 
-	/// maximum annual Nesterov Index
-	double max_nesterov;
-	/// current Nexterov index
-	double cur_nesterov;
-	/// Monthly max Nexterov index to keep track of running year
-	double monthly_max_nesterov[12];
-	/// biome as used in SIMFIRE
-	int simfire_biome;
-	/// Averaged (over avg_interv_fpar years)maximum annual fAPAR 
-	double ann_max_fapar;
-	/// list of Max 
-	double recent_max_fapar[avg_interv_fapar];
-	/// maximum fapar of running year
-	double cur_max_fapar;
-	/// monthly fire risk 
-	double monthly_fire_risk[12];
-	/// burned area from either SIMFIRE or GFED
-	double areaburnt;
-	/// accumulated burned area from either SIMFIRE or GFED for tstep < 1a
-	double accumulated_areaburnt;
-	/// prescribed burned area from file
-	double prescribed_ba;
-	/// Simple tracker to check whether at least one patch has enough fuel to burn
-	int can_burn;
-	/// annual burned area from either SIMFIRE or GFED
-	double annual_areaburnt;
-	/// monthly burned area from either SIMFIRE or GFED
-	double monthly_areaburnt[12];
-
 	// BLAZE
 	/// average annual rainfall [mm/a]
 	double avg_annual_rainfall;
@@ -919,17 +889,15 @@ public:
 	/// Accumulated last rainfall [mm]
 	double last_rainfall;
 	/// Days since last rainfall
-	double dslr;
+	double days_since_last_rainfall;
 	/// Keetch-Byram-Drought-Index
 	double kbdi;
 	/// McArthur forest fire index (FFDI)
-	double mcarthur_fire_index;	
+	double mcarthur_forest_fire_index;	
 	/// To keep track of running months FFDI
 	double months_ffdi[30];	
 	/// whether majority of trees is considered sprouter (or seeder, else)
 	bool is_sprouter;
-	/// tuning factor for available litter 
-	double k_tun_litter;
 
 	// Saved parameters used by function daylengthinsoleet
 
@@ -3977,35 +3945,35 @@ public:
 
 	// BLAZE fire related carbon fluxes
 	/// BLAZE-fire carbon flux: live wood to atmosphere
-	double wood2atm;
+	double wood_to_atm;
 	/// BLAZE-fire carbon flux: leaves to atmosphere
-	double leaf2atm;
+	double leaf_to_atm;
 	/// BLAZE-fire carbon flux: leaves to litter
-	double leaf2lit;
+	double leaf_to_lit;
 	/// BLAZE-fire carbon flux: live wood to structural litter
-	double wood2str;
+	double wood_to_str;
 	/// BLAZE-fire carbon flux: live wood to fine woody debris
-	double wood2fwd;
+	double wood_to_fwd;
 	/// BLAZE-fire carbon flux: live wood to coarse woody debris
-	double wood2cwd;
+	double wood_to_cwd;
 	/// BLAZE-fire carbon flux: fine litter (leaf,structural, metabolic) to atmosphere
-	double litf2atm;
+	double litf_to_atm;
 	/// BLAZE-fire carbon flux: fine woody debris to atmosphere
-	double lfwd2atm;
+	double lfwd_to_atm;
 	/// BLAZE-fire carbon flux: coarse woody debris to atmosphere
-	double lcwd2atm;
+	double lcwd_to_atm;
 
 	// Storage for averaging of different Fpars for biome mapping in Simfire
 	/// Simfire Grasses
-	double avg_fgrass[n_year_biomeavg];
+	double avg_fgrass[N_YEAR_BIOMEAVG];
 	/// Simfire Needle-leaf trees
-	double avg_fndlt[n_year_biomeavg];
+	double avg_fndlt[N_YEAR_BIOMEAVG];
 	/// Simfire Broad-leaf trees
-	double avg_fbrlt[n_year_biomeavg];
+	double avg_fbrlt[N_YEAR_BIOMEAVG];
 	/// Simfire Shrubs
-	double avg_fshrb[n_year_biomeavg];
+	double avg_fshrb[N_YEAR_BIOMEAVG];
 	/// Simfire Total
-	double avg_ftot[n_year_biomeavg];
+	double avg_ftot[N_YEAR_BIOMEAVG];
 
 	/// whether management has started on this patch
 	bool managed;
@@ -4655,6 +4623,37 @@ public:
 
 	/// daily fraction of monthly Burned Area from GFED 3.1 
 	double daily_GFED31_frac[9*365];
+
+	/// tuning factor for available litter
+	double k_tun_litter;
+
+	// SIMFIRE
+	/// maximum annual Nesterov Index
+	double max_nesterov;
+	/// current Nexterov index
+	double cur_nesterov;
+	/// Monthly max Nexterov index to keep track of running year
+	double monthly_max_nesterov[12];
+	/// biome as used in SIMFIRE
+	int simfire_biome;
+	/// Averaged (over avg_interv_fpar years)maximum annual fAPAR
+	double ann_max_fapar;
+	/// list of Max
+	double recent_max_fapar[AVG_INTERVAL_FAPAR];
+	/// maximum fapar of running year
+	double cur_max_fapar;
+	/// monthly fire risk
+	double monthly_fire_risk[12];
+	/// burned area from either SIMFIRE or GFED
+	double burned_area;
+	/// accumulated burned area from either SIMFIRE or GFED for tstep < 1a
+	double burned_area_accumulated;
+	/// Simple tracker to check whether at least one patch has enough fuel to burn
+	int can_burn;
+	/// annual burned area from either SIMFIRE or GFED
+	double annual_burned_area;
+	/// monthly burned area from either SIMFIRE or GFED
+	double monthly_burned_area[12];
 
 	/// Seed for generating random numbers within this Gridcell
 	/** The reason why Gridcell has its own seed, rather than using for instance

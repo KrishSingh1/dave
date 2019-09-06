@@ -56,7 +56,7 @@ private:
 	xtring file_nmass, file_cton_leaf, file_nsources, file_npool, file_nlitter, file_nuptake, file_vmaxnlim, file_nflux, file_ngases;
 
 	// BLAZE & SIMFIRE
-	xtring file_aburntarea_out, file_mburntarea_out;
+	xtring file_aburned_area_out, file_mburned_area_out;
 	xtring file_simfireanalysis_out;
 		
 	// Soil temperature at 25cm depth
@@ -81,7 +81,7 @@ private:
 	Table out_nmass, out_cton_leaf, out_nsources, out_npool, out_nlitter, out_nuptake, out_vmaxnlim, out_nflux, out_ngases;
 	
 	// BLAZE && SIMFIRE
-	Table out_aburntarea, out_mburntarea;
+	Table out_aburned_area, out_mburned_area;
 	Table out_simfireanalysis;
 
 	// Methane, snow, water table and active layer depth

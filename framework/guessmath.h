@@ -47,7 +47,9 @@ const double MG_PER_G		= 1E3;		// Milligrams
 const double KG_PER_MT		= 1E3;		// Metric tonnes
 const double MMOL_PER_MOL	= 1E3;
 const double J_PER_KJ		= 1E3;
-
+const double KMH_PER_MS         = 3.6;
+const double FRACT_TO_PERCENT   = 100.;
+const double R_EARTH            = 6371.2213; // mean earth-radius[km]
 inline bool negligible(double dval, int limit = 0) {
 	// Returns true if |dval| < EPSILON, otherwise false
 	return limit ? fabs(dval) < pow(10.0, limit) : fabs(dval) < 1.0e-30;

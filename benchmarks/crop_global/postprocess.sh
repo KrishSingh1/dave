@@ -92,12 +92,12 @@ joyn cflux1997-2016.dat $gfed40_data -i Lon Lat -fast -o cflux1997-2016_joyned.d
 # Plot fire emissions 
 gmap cflux1997-2016_joyned.dat -i Fire -lon 1 -lat 2 -portrait -o cflux1997-2016_blaze.png \
     -legend common/legend_fire_emis.txt -t "BLAZE mean annual C-emissions [kg(C)/m2a]"
-describe_image  cflux1997-2016_blaze.png "BLAZE Mean annual C-emissions 1997-2016 [kg(C)/m2a]" embed
+describe_image  cflux1997-2016_blaze.png "BLAZE Mean annual C-emissions 1997-2016 [kg(C)/m2a]"
 	
 # Plot gfed 4.0 emissions
 gmap cflux1997-2016_joyned.dat -i C-Emis -lon 1 -lat 2 -portrait -o cflux1997-2016_gfed4.png \
     -legend common/legend_fire_emis.txt -t "GFED 4.0 mean annual C-emissions [kg(C)/m2a]"
-describe_image  cflux1997-2016_gfed4.png "GFED 4.0 C-emissions kg(C)/m2a." embed
+describe_image  cflux1997-2016_gfed4.png "GFED 4.0 C-emissions kg(C)/m2a."
 	
 # delta plot gfed4 cflux
 awk '{print $1,$2, $6}' cflux1997-2016_joyned.dat > cflux1997-2016_joyned_Fire.dat
@@ -106,12 +106,12 @@ delta  cflux1997-2016_joyned_Fire.dat cflux1997-2016_joyned_gfed.dat -i Lon Lat 
 gmap delta_cflux1997-2016_joyned.dat -i Fire -lon 1 -lat 2 -portrait \
     -legend common/legend_delta_fire_emis.txt -o delta_cflux1997-2016_joyned.png \
     -t "Fire C flux LPJ-GUESS - Gfed kg(C)/m2/a" -c BLUE RED -vert
-describe_image  delta_cflux1997-2016_joyned.png "Modelled minus GFED 4.0 data. Units: kg(C)/m2a." embed
+describe_image  delta_cflux1997-2016_joyned.png "Modelled minus GFED 4.0 data. Units: kg(C)/m2a."
 
 # Scatterplot GFED C-emis 
 awk '(FNR>1){print $6, $13}' cflux1997-2016_joyned.dat > scat_fire_cflux.dat
 scatter_plot "Fire C-Flux" "GFED4.0" "LPJ-GUESS" scat_fire_cflux.dat scat_fire_cflux.png
-describe_image scat_fire_cflux.png "Modelled compared to GFED 4.0 C-Emissions Units: kg(C)/m2a" embed
+describe_image scat_fire_cflux.png "Modelled compared to GFED 4.0 C-Emissions Units: kg(C)/m2a"
 	
 # A-slicing over regions 0.5 deg res
 GFEDreg=(BONA TENA CEAM NHSA SHSA EURO MIDE NHAF SHAF BOAS TEAS CEAS EQAS AUST)

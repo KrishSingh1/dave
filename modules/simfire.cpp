@@ -100,7 +100,7 @@ int update_fire_biome(Patch& patch, double lat) {
 	fshrb  /= (1.00001-fgrass);
 
 	// save current 
-	int idx = date.year % n_year_biomeavg;  
+	int idx = date.year % N_YEAR_BIOMEAVG;  
 	patch.avg_ftot  [idx] = ftot   ;
 	patch.avg_fgrass[idx] = fgrass ;
 	patch.avg_fndlt [idx] = fndlt  ;
@@ -113,18 +113,18 @@ int update_fire_biome(Patch& patch, double lat) {
 	fndlt  = 0.;
 	fbrlt  = 0.;
 	fshrb  = 0.;
-	for (int i = 0; i<n_year_biomeavg; i++) {
+	for (int i = 0; i<N_YEAR_BIOMEAVG; i++) {
 		ftot   += patch.avg_ftot  [i];
 		fgrass += patch.avg_fgrass[i];
 		fndlt  += patch.avg_fndlt [i];
 		fbrlt  += patch.avg_fbrlt [i];
 		fshrb  += patch.avg_fshrb [i];
 	}
-	ftot   /=  (double)n_year_biomeavg;
-	fgrass /=  (double)n_year_biomeavg;
-	fndlt  /=  (double)n_year_biomeavg;
-	fbrlt  /=  (double)n_year_biomeavg;
-	fshrb  /=  (double)n_year_biomeavg;
+	ftot   /=  (double)N_YEAR_BIOMEAVG;
+	fgrass /=  (double)N_YEAR_BIOMEAVG;
+	fndlt  /=  (double)N_YEAR_BIOMEAVG;
+	fbrlt  /=  (double)N_YEAR_BIOMEAVG;
+	fshrb  /=  (double)N_YEAR_BIOMEAVG;
 
 	if (ftot < 0.1 && fabs(lat) < 50.0) {
 		biome = SF_BARREN;
@@ -164,8 +164,6 @@ int update_fire_biome(Patch& patch, double lat) {
  */
 void simfire_biome_mapping(Gridcell& gridcell) {
 
-	Climate& climate = gridcell.climate;
-
 	std::vector<int> biomes;
 	Gridcell::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
@@ -198,7 +196,7 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 
 	for (biome = 0; biome < NFIREBIOMES && count[biome] < count_max; biome++) { //STEFAN???
 	}
-	climate.simfire_biome = biome ;
+	gridcell.simfire_biome = biome ;
 }
 
 /// Read SIMFIRE related data for a gridcell at beginning of simulation
@@ -208,8 +206,6 @@ void simfire_biome_mapping(Gridcell& gridcell) {
  */
 void getsimfiredata(Gridcell& gridcell) {
 
-	Climate& climate = gridcell.climate;
-	
 	// Paths to SIMFIRE binaries
 	xtring file_simfire = param["file_simfire"].str;
 	
@@ -239,7 +235,7 @@ void getsimfiredata(Gridcell& gridcell) {
 	
 	// Monthly fire risk (W.Knorr)
 	for (int m = 0; m < 12; m++) {
-		climate.monthly_fire_risk[m] = rec.monthly_burned_area[m];
+		gridcell.monthly_fire_risk[m] = rec.monthly_burned_area[m];
 	}
 
 	// Population density from HYDE 3.1
@@ -328,26 +324,26 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 		
 		// initialise averaging array 
 		if ( date.year == 0 ) {
-			for(int i=0;i<avg_interv_fapar;i++) { 
-				climate.recent_max_fapar[i] = 0.5;
+			for(int i=0;i<AVG_INTERVAL_FAPAR;i++) { 
+				gridcell.recent_max_fapar[i] = 0.5;
 			}
-			climate.ann_max_fapar = 0.5;	
+			gridcell.ann_max_fapar = 0.5;
 
 			// initialize Max annual Nesterov Index on first day of simulation
 			for ( int i=0; i<12; i++) {
-				climate.monthly_max_nesterov[i] = 0.;
+				gridcell.monthly_max_nesterov[i] = 0.;
 			}
-			climate.cur_nesterov = 0.;
+			gridcell.cur_nesterov = 0.;
 		} 
 		else {
 			double avg = 0.;
-			for(int i=0;i<avg_interv_fapar;i++) { 
-				avg += climate.recent_max_fapar[i];
+			for(int i=0;i<AVG_INTERVAL_FAPAR;i++) { 
+				avg += gridcell.recent_max_fapar[i];
 			}
-			climate.ann_max_fapar = avg / (double) avg_interv_fapar;
+			gridcell.ann_max_fapar = avg / (double) AVG_INTERVAL_FAPAR;
 		}
 		// finally (re)set this years max fapar
-		climate.cur_max_fapar = 0.0;
+		gridcell.cur_max_fapar = 0.0;
 
 		// Set global simfire region as fixed: Global=0
 		gridcell.simfire_region = 0;
@@ -361,24 +357,24 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	}
 	// multi-year accounting of maximum annual fapar	
 	else if ( date.islastday && date.islastmonth ) {
-		int a = date.year % avg_interv_fapar;
-		climate.recent_max_fapar[a] = climate.cur_max_fapar;
+		int a = date.year % AVG_INTERVAL_FAPAR;
+		gridcell.recent_max_fapar[a] = gridcell.cur_max_fapar;
 	}
 
 	// update running Maximum Nesterov index array at beginning of month  
 	if ( date.dayofmonth == 0 ) {
 		double mnest = 0.;
 		for ( int i=0; i < 12; i++) 
-			if ( climate.monthly_max_nesterov[i] > mnest ) {
-				mnest = climate.monthly_max_nesterov[i];
+			if ( gridcell.monthly_max_nesterov[i] > mnest ) {
+				mnest = gridcell.monthly_max_nesterov[i];
 			}
-			climate.max_nesterov = mnest;
-			climate.monthly_max_nesterov[date.month] = 0. ;
+		gridcell.max_nesterov = mnest;
+		gridcell.monthly_max_nesterov[date.month] = 0. ;
 	}
 
 	// update current month's Maximum Nesterov index
-	if (  climate.monthly_max_nesterov[date.month] < climate.cur_nesterov ) {
-		climate.monthly_max_nesterov[date.month] = climate.cur_nesterov;
+	if (  gridcell.monthly_max_nesterov[date.month] < gridcell.cur_nesterov ) {
+		gridcell.monthly_max_nesterov[date.month] = gridcell.cur_nesterov;
 	}
 	// PATCHLOOP FOR fpar
 	int cnt= 0;
@@ -394,7 +390,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 			}
 			//initialise averaging array
 			if (date.year == 0 && date.day == 0) {
-				for (int i = 0; i < n_year_biomeavg; i++) {
+				for (int i = 0; i < N_YEAR_BIOMEAVG; i++) {
 					patch.avg_ftot  [i] = 0. ;
 					patch.avg_fgrass[i] = 0. ;
 					patch.avg_fndlt [i] = 0. ;
@@ -411,25 +407,25 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	run_fapar /= (double) cnt;
 
 	// update the this years maximum
-	climate.cur_max_fapar = max(run_fapar, climate.cur_max_fapar);
+	gridcell.cur_max_fapar = max(run_fapar, gridcell.cur_max_fapar);
 
 	// compute running Nesterov index
 	if ( climate.prec >= 3. || climate.tmax - climate.tmin < 4. ) {
-		climate.cur_nesterov = 0.0; 
+		gridcell.cur_nesterov = 0.0;
 	}
 	else {
-		climate.cur_nesterov += ( climate.tmax - climate.tmin + 4. ) * climate.tmax ;
+		gridcell.cur_nesterov += ( climate.tmax - climate.tmin + 4. ) * climate.tmax ;
 	}
-	climate.cur_nesterov = min(climate.cur_nesterov,MAXIMUM_NESTEROV) ;
+	gridcell.cur_nesterov = min(gridcell.cur_nesterov,MAXIMUM_NESTEROV) ;
 
 	// finally update Max Annual Mesterov Index
-	if (climate.cur_nesterov > climate.max_nesterov ) {
-		climate.max_nesterov = climate.cur_nesterov ;
+	if (gridcell.cur_nesterov > gridcell.max_nesterov ) {
+		gridcell.max_nesterov = gridcell.cur_nesterov ;
 	}
 }
 
 /// Calculate burned area in ha following Knorr 2014.
-double simfire_burned_area(Climate& climate) {
+double simfire_burned_area(Gridcell& gridcell) {
 
 	// globally trained parameters 
 	const double A[8] = { 0.110,  0.095    ,0.092  ,0.127  ,0.470  ,0.889 ,0.059  ,0.113  }; 
@@ -439,30 +435,27 @@ double simfire_burned_area(Climate& climate) {
 	const double SCALAR = 1.0e-5;
 
 	// return if improper biome-type
-	if (climate.simfire_biome == 0) {
+	if (gridcell.simfire_biome == 0) {
 		return 0.;
 	}
-	
 	// fPAR correction Knorr
 	const double FPAR_CORR1 = 0.428;
 	const double FPAR_CORR2 = 0.148;
-	double fpar_cor = FPAR_CORR1 * climate.ann_max_fapar + FPAR_CORR2 * climate.ann_max_fapar * 
-	  climate.ann_max_fapar;
-
-	Gridcell& gridcell = climate.gridcell;
+	double fpar_cor = FPAR_CORR1 * gridcell.ann_max_fapar + FPAR_CORR2 * gridcell.ann_max_fapar *
+	  gridcell.ann_max_fapar;
 
 	// compute annual burned area
-	double burned_area = A[climate.simfire_biome-1] *
+	double burned_area = A[gridcell.simfire_biome-1] *
 		pow(fpar_cor, B) *
-		pow((SCALAR * climate.max_nesterov), C) *
+		pow((SCALAR * gridcell.max_nesterov), C) *
 		exp(E * gridcell.pop_density);
 
-	// compute daily burnt_area
-	burned_area *= climate.monthly_fire_risk[date.month] /
+	// compute daily burned_area
+	burned_area *= gridcell.monthly_fire_risk[date.month] /
 		(double)date.ndaymonth[date.month];
 
-	// keep track of area burnt so far this year
-	climate.accumulated_areaburnt += burned_area;
+	// keep track of area burned so far this year
+	gridcell.burned_area_accumulated += burned_area;
 
 	return burned_area;
 }

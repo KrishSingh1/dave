@@ -56,7 +56,7 @@ const int COFFS =   123;
 const double  RNG1 = 1. / (2. * (double)IHUGE);  //scales the random integer to -0.5,0.5
 const double  RNG2 = 1. / (double)IHUGE;	 //scales the random integer to -1,1
 
-const double  HALF   = 0.5;
+const double  HALF = 0.5;
 
 class MetVariables{
 
@@ -2371,6 +2371,22 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		double dcldf_sav[NDAYMONTH];
 		double dwind_sav[NDAYMONTH];
 		
+		// Set breakoff-threshold for raindays according to
+		// total amount of raindays in month
+		int pday_thresh;
+		if((int)round(metvars.mwetd) <= 5) {
+			pday_thresh = 0;
+		}
+		else if ((int)round(metvars.mwetd) <= 10) {
+			pday_thresh = 1;
+		}
+		else if ((int)round(metvars.mwetd) <= 20) {
+			pday_thresh = 2;
+		}
+		else {
+			pday_thresh = 3;
+		}
+
 		// At beginning of month:
 		if ( mon > 0 )  
 			accumday += date.ndaymonth[mon-1];
@@ -2445,14 +2461,17 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 				metvars.resid[i] = 0.;
 			i_count = 0;
 		}
+		else {
+			i_count = 1;
+		}
 		
 		// below: n_curr bezieht sich auf gitterzelle
-		double prec_t = max(2.,0.2 * in_mprec[mon]);  //set quality threshold for preciptation amount
-		
-		MetVariables metvar_sav = metvars;
+		double prec_t = max(2.,0.5 * in_mprec[mon]);  //set quality threshold for preciptation amount
 		
 		metvars.mprec = in_mprec[mon];
 
+		MetVariables metvar_sav = metvars;
+		
 		// here a bugfix for CRU data is applied , when there is non-zero rain
 		// but no wet days
 		if ( metvars.mprec > 0. ) {
@@ -2530,12 +2549,15 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 				precdiff = metvars.mprec - mprec_sim;
 
 				// breakoff-criteria for sufficient skill 			
-				if ( (abs(pdaydiff) <= 1 && fabs(precdiff) <= prec_t && tmindiff < 2.5) ||
-				     (pdaydiff == 0 && fabs(precdiff) <= 1.25*prec_t  ))  {
+				if ( (abs(pdaydiff) <= pday_thresh && fabs(precdiff) <= prec_t && tmindiff < 2.5) ||
+				//CLN if ( (abs(pdaydiff) <= 1 && fabs(precdiff) <= prec_t && tmindiff < 2.5) ||
+				     (pdaydiff == 0 && fabs(precdiff) <= 1.5*prec_t  ))  {
+					//CLN ifdprintf("i %d A  pdayz %i pdaydiff %i prec_t %f precdiff %f \n",i_count,(int)round(metvars.mwetd),pdaydiff,prec_t, precdiff );
+
 					break;
 				}
 
-				double metric = abs(pdaydiff) * 20 + fabs(precdiff) ;
+				double metric = abs(pdaydiff)*20/((double)pday_thresh + 1.0)  + fabs(precdiff) ;
 				// save state if better w.r.t. metric 
 				if ( metric < metric_sav ) {
 					for ( int day=0; day<ndaymon; day++) {
@@ -2551,6 +2573,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 					for (int i=0; i<4; i++) {
 						rndst.resid[i] = metvars.resid[i];
 					}
+					//CLN ifdprintf("i %d Bs pdayz %i pdaydiff %i prec_t %f precdiff %f metric_s %f\n",i_count,(int)round(metvars.mwetd),pdaydiff,prec_t, precdiff,metric_sav );
 				}
 
 				// after max amount of iterations is reached take 
@@ -2568,6 +2591,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 					for (int i=0; i<4; i++) {
 						metvars.resid[i] = rndst.resid[i];
 					}
+					//CLN ifdprintf("i %d Be pdayz %i pdaydiff %i prec_t %f precdiff %f \n",i_count,(int)round(metvars.mwetd),pdaydiff,prec_t, precdiff );
 					break;
 				}
 			}

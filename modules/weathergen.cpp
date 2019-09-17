@@ -2324,25 +2324,6 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 	}
 
 	bool lreset = false;
-	int i_count = 1;
-	// initially populate cloud params 
-	if ( is_first_day ) {
-		calc_cloud_params(metvars);
-		// set initial vals if spinning up
-		if ( ! restart ) {		
-			init_weathergen(metvars, rndst);
-			get_seed_by_location(lat, lon, rndst);
-			i_count = 0;
-		}
-		else {
-			// get restart values from WeatherGen-class
-			metvars.pday[0] = rndst.pday[0];
-			metvars.pday[1] = rndst.pday[1];
-			for (int i=0; i<4;i++) {
-				metvars.resid[i] = rndst.resid[i];
-			}
-		}
-	} 
 
 	int accumday = 0;
 
@@ -2371,6 +2352,27 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		double dcldf_sav[NDAYMONTH];
 		double dwind_sav[NDAYMONTH];
 		
+		int i_count = 1;
+		// initially populate cloud params
+		if ( is_first_day ) {
+			calc_cloud_params(metvars);
+			// set initial vals if spinning up
+			if ( ! restart ) {
+				init_weathergen(metvars, rndst);
+				get_seed_by_location(lat,lon ,rndst);
+				i_count = 0;
+			}
+			else {
+				// get restart values from WeatherGen-class
+				metvars.pday[0] = rndst.pday[0];
+				metvars.pday[1] = rndst.pday[1];
+				for (int i=0; i<4;i++) {
+					metvars.resid[i] = rndst.resid[i];
+				}
+			}	
+		
+		}
+
 		// Set breakoff-threshold for raindays according to
 		// total amount of raindays in month
 		int pday_thresh;
@@ -2544,20 +2546,34 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 				break;
 			}
 			// enforce at least two times over the month to get initial values ok
-			else if (i_count >= 1) {  
-				pdaydiff = (int)roundoff(metvars.mwetd,0) - mwetd_sim;
+			else if (i_count >= 1) {
+				
+				int pday_thresh;
+				if((int)round(metvars.mwetd) <= 5) {
+					pday_thresh = 0;
+				}
+				else if ((int)round(metvars.mwetd) <= 10) {
+					pday_thresh = 1;
+				}
+				else if ((int)round(metvars.mwetd) <= 20) {
+					pday_thresh = 2;
+				}
+				else {
+					pday_thresh = 3;
+				}
+				
+				if((int)round(metvars.mwetd) )
+				pdaydiff = (int)round(metvars.mwetd) - mwetd_sim;
 				precdiff = metvars.mprec - mprec_sim;
 
 				// breakoff-criteria for sufficient skill 			
 				if ( (abs(pdaydiff) <= pday_thresh && fabs(precdiff) <= prec_t && tmindiff < 2.5) ||
-				//CLN if ( (abs(pdaydiff) <= 1 && fabs(precdiff) <= prec_t && tmindiff < 2.5) ||
 				     (pdaydiff == 0 && fabs(precdiff) <= 1.5*prec_t  ))  {
-					//CLN ifdprintf("i %d A  pdayz %i pdaydiff %i prec_t %f precdiff %f \n",i_count,(int)round(metvars.mwetd),pdaydiff,prec_t, precdiff );
-
 					break;
 				}
 
 				double metric = abs(pdaydiff)*20/((double)pday_thresh + 1.0)  + fabs(precdiff) ;
+				
 				// save state if better w.r.t. metric 
 				if ( metric < metric_sav ) {
 					for ( int day=0; day<ndaymon; day++) {

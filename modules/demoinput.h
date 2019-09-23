@@ -72,7 +72,7 @@ private:
 	                    double monthly[12], bool soil = false);
 
 	/// Reads in environmental data for a location
-	bool readenv(Coord coord, int64_t& seed);
+	bool readenv(Coord coord, long& seed);
 
 	/// number of simulation years to run after spinup
 	int nyear;

@@ -31,7 +31,6 @@
 #include "driver.h"
 
 
-
 /// Function for generating random numbers
 /** Returns a random floating-point number in the range 0-1.
  *  Uses and updates the parameter 'seed' which may be initialised to any
@@ -39,34 +38,20 @@
  *  of returned values on subsequent calls to randfrac every time the program is
  *  run)
  */
-double randfrac(int64_t & seed) {
+double randfrac(long& seed) {
 
 	// Reference: Park & Miller 1988 CACM 31: 1192
 
 	const long modulus = 2147483647;
-	const double fmodulus = (double)modulus;
+	const double fmodulus = modulus;
 	const long multiplier = 16807;
 	const long q = 127773;
 	const long r = 2836;
-	static long i = 0;
 
-	// A fixed bit lenght datatype is needed locally in this function
-	// to get identical seed numbers on windows machines as on linux ones.
-	int64_t seed64 = (int64_t)seed;	
-
-	seed64 = multiplier * (seed64 % q) - r * seed64 / q;
-
-	if (!seed64) seed64++;		// increment seed to 1 in unlikely event of 0 value
-	else if (seed64 < 0) seed64 += modulus;
-
-	i++;
-	dprintf("%d år %d dag %d\trandfrac %g\tseed %d\n", i, date.year, date.day, (double)seed64 / fmodulus, seed64);
-
-	if (seed64 == 388852573)
-		int xxx = 0;
-
-	seed = (long)seed64;
-	return (double)seed64 / fmodulus;
+	seed = multiplier * (seed % q) - r * seed / q;
+	if (!seed) seed++; // increment seed to 1 in unlikely event of 0 value
+	else if (seed < 0) seed += modulus;
+	return (double)seed / fmodulus;
 }
 
 /// Generates quasi-daily values for a single month, based on monthly means
@@ -336,7 +321,7 @@ void distribute_ndep(const double* mndry, const double* mnwet,
  *  \param truncate   if set to true the function will set small daily values
  *                    (< 0.1) to zero
  */
-void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, int64_t& seed, bool truncate /* = true */) {
+void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed, bool truncate /* = true */) {
 
 //  Distribution of monthly precipitation totals to quasi-daily values
 //  (From Dieter Gerten 021121)

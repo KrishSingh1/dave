@@ -49,7 +49,7 @@ void report_fire_nfluxes(Patch& patch, double nflux_fire) {
 // RANDPOISSON
 // Internal functions for generating random numbers
 
-int randpoisson(double expectation, int64_t & seed) {
+int randpoisson(double expectation, long& seed) {
 
 	// DESCRIPTION
 	// Returns a random integer drawn from the Poisson distribution with specified

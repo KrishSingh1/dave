@@ -2589,7 +2589,6 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 					for (int i=0; i<4; i++) {
 						rndst.resid[i] = metvars.resid[i];
 					}
-					//CLN ifdprintf("i %d Bs pdayz %i pdaydiff %i prec_t %f precdiff %f metric_s %f\n",i_count,(int)round(metvars.mwetd),pdaydiff,prec_t, precdiff,metric_sav );
 				}
 
 				// after max amount of iterations is reached take 
@@ -2607,7 +2606,6 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 					for (int i=0; i<4; i++) {
 						metvars.resid[i] = rndst.resid[i];
 					}
-					//CLN ifdprintf("i %d Be pdayz %i pdaydiff %i prec_t %f precdiff %f \n",i_count,(int)round(metvars.mwetd),pdaydiff,prec_t, precdiff );
 					break;
 				}
 			}

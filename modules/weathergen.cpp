@@ -2374,22 +2374,6 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		
 		}
 
-		// Set breakoff-threshold for raindays according to
-		// total amount of raindays in month
-		int pday_thresh;
-		if((int)round(metvars.mwetd) <= 5) {
-			pday_thresh = 0;
-		}
-		else if ((int)round(metvars.mwetd) <= 10) {
-			pday_thresh = 1;
-		}
-		else if ((int)round(metvars.mwetd) <= 20) {
-			pday_thresh = 2;
-		}
-		else {
-			pday_thresh = 3;
-		}
-
 		// At beginning of month:
 		if ( mon > 0 )  
 			accumday += date.ndaymonth[mon-1];
@@ -2491,8 +2475,24 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		double chk_dprec = 0.; 
 		double chk_dsol  = 0.; 
 		double chk_dwind = 0.; 
-		double chk_drhum = 0.; 
+		double chk_drhum = 0.;
 
+		// Set breakoff-threshold for raindays according to
+		// total amount of raindays in month
+		int pday_thresh;
+		if((int)round(metvars.mwetd) <= 5) {
+			pday_thresh = 0;
+		}
+		else if ((int)round(metvars.mwetd) <= 10) {
+			pday_thresh = 1;
+		}
+		else if ((int)round(metvars.mwetd) <= 20) {
+			pday_thresh = 2;
+		}
+		else {
+			pday_thresh = 3;
+		}
+		
 		do {
 			int mwetd_sim    = 0;
 			double mprec_sim = 0.0;
@@ -2511,6 +2511,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 						metvars.resid[i] = metvar_sav.resid[i];
 					}
 				}
+
 				//now get day's weather
 				weathergen_get_daily_met(metvars, rndst);
 				
@@ -2519,7 +2520,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 				dtmax[day]= metvars.dtmax;
 				dcldf[day]= metvars.dcldf;
 				dwind[day]= metvars.dwind;
-
+				
 				if ( metvars.dprec > 0. ) {
 					mwetd_sim++; 
 					mprec_sim += metvars.dprec;
@@ -2703,12 +2704,11 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			chk_dwind += out_dwind[day+accumday]/(double)ndaymon; 
 			chk_drhum += out_drhum[day+accumday]/(double)ndaymon; 
 		}
-		// If GWGen doesn't find a day for precipitation add it at the first third 
+		// If GWGen doesn't find a day for precipitation add it at the first third
 		// of the month.
 		if (metvars.mwetd > 0 && fabs(chk_dprec - in_mprec[mon]) > in_mprec[mon]-0.01) {
 			out_dprec[accumday+9] =  in_mprec[mon];
 		}
-
 	} // month loop
 }
 ///////////////////////////////////////////////////////////////////////////////////////

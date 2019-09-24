@@ -2290,11 +2290,6 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 	bool is_first_day = ( date.day == 0 && ( date.year == 0 || 
 		( restart && date.year == state_year ) ) );
 
-	int pdaydiff    = 0;
-	double precdiff = 0.; 
-	double tmindiff = 0.;
-	double tmin_acc = 0.;
-
 	WeatherGenState& rndst = gridcell.climate.weathergenstate;
 
 	double lat = gridcell.get_lat();
@@ -2352,6 +2347,12 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		double dcldf_sav[NDAYMONTH];
 		double dwind_sav[NDAYMONTH];
 		
+		// break-off parameters
+		int pdaydiff    = 0;
+		double precdiff = 0.; 
+		double tmindiff = 0.;
+		double tmin_acc = 0.;
+
 		int i_count = 1;
 		// initially populate cloud params
 		if ( is_first_day ) {
@@ -2510,7 +2511,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 						metvars.resid[i] = metvar_sav.resid[i];
 					}
 				}
-				//now get $day's weather
+				//now get day's weather
 				weathergen_get_daily_met(metvars, rndst);
 				
 				dprec[day]= metvars.dprec;
@@ -2540,7 +2541,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 				}
 			}
 
-			if (metvars.mprec <= 0.1 && tmindiff < 2.5) {
+			if (metvars.mprec <= 0.01 && tmindiff < 2.5) {
 				pdaydiff = 0;
 				precdiff = 0.;
 				break;
@@ -2548,21 +2549,6 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			// enforce at least two times over the month to get initial values ok
 			else if (i_count >= 1) {
 				
-				int pday_thresh;
-				if((int)round(metvars.mwetd) <= 5) {
-					pday_thresh = 0;
-				}
-				else if ((int)round(metvars.mwetd) <= 10) {
-					pday_thresh = 1;
-				}
-				else if ((int)round(metvars.mwetd) <= 20) {
-					pday_thresh = 2;
-				}
-				else {
-					pday_thresh = 3;
-				}
-				
-				if((int)round(metvars.mwetd) )
 				pdaydiff = (int)round(metvars.mwetd) - mwetd_sim;
 				precdiff = metvars.mprec - mprec_sim;
 
@@ -2717,6 +2703,12 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			chk_dwind += out_dwind[day+accumday]/(double)ndaymon; 
 			chk_drhum += out_drhum[day+accumday]/(double)ndaymon; 
 		}
+		// If GWGen doesn't find a day for precipitation add it at the first third 
+		// of the month.
+		if (metvars.mwetd > 0 && fabs(chk_dprec - in_mprec[mon]) > in_mprec[mon]-0.01) {
+			out_dprec[accumday+9] =  in_mprec[mon];
+		}
+
 	} // month loop
 }
 ///////////////////////////////////////////////////////////////////////////////////////

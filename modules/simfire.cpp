@@ -193,10 +193,12 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 	for (biome=0; biome < NFIREBIOMES; biome++) {
 		count_max = max(count_max, count[biome]);
 	}
-
-	for (biome = 0; biome < NFIREBIOMES && count[biome] < count_max; biome++) { //STEFAN???
+	
+	int biome_index = 0;
+	for (biome = 0; biome < NFIREBIOMES && count[biome] < count_max; biome++) {
+		biome_index ++;
 	}
-	gridcell.simfire_biome = biome ;
+	gridcell.simfire_biome = biome_index ;
 }
 
 /// Read SIMFIRE related data for a gridcell at beginning of simulation

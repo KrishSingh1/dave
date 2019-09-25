@@ -1122,8 +1122,7 @@ void leaching(Soil& soil) {
 		// Leaching from available nitrogen mineral pool
 		// in proportion to amount of water drainage
 		// Use Gerten equivalents here 
-		minleachfrac = soil.dperc / (soil.dperc + soil.soiltype.gawc[0] * soil.get_soil_water_upper() + soil.soiltype.gawc[1] * soil.get_soil_water_lower());
-
+		minleachfrac = soil.dperc / (soil.dperc + soil.soiltype.gawc[0] * soil.get_soil_water_upper());
 		// Leaching from decayed organic carbon/nitrogen
 		// using Parton et al. eqn. 8; CENTURY 5 parameter update; from equation: C Leached=microbial_C*[OMLECH(1)+OMLECH(2)*sand_fraction]*[1.0f-(OMLECH(3)-water_leaching)/OMLECH(3)],
 		// reorganised as: leachfrac = [water_leaching/OMLECH(3)]*[OMLECH(1)+OMLECH(2)*sand_fraction]
@@ -1403,11 +1402,11 @@ void som_dynamics_century(Patch& patch, bool tillage) {
 	// Daily nitrogen uptake
 	vegetation_n_uptake(patch);
 
-	// Daily mineral and organic nitrogen leaching
-	leaching(patch.soil);
-
 	// Daily nitrogen addition to the soil
 	soilnadd(patch);
+
+	// Daily mineral and organic nitrogen leaching
+        leaching(patch.soil);
 
 	// Daily or monthly decomposition and fluxes between SOM pools
 	somfluxes(patch, false, tillage);

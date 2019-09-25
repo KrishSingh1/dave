@@ -61,9 +61,6 @@ int update_fire_biome(Patch& patch, double lat) {
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation=patch.vegetation;
 
-	if ( date.get_calendar_year() == 1983 ) {
-		dprintf("CLN update biome \n");
-	}
 	// Loop through individuals of this patch
 	vegetation.firstobj();
 	while (vegetation.isobj) {
@@ -157,12 +154,6 @@ int update_fire_biome(Patch& patch, double lat) {
 		biome = SF_MIXED_FOREST;  
 	}
 
-	if ( date.get_calendar_year() == 1983 ) {
-		dprintf("CLN2 %i biome \n",biome);
-	}
-	if ( date.get_calendar_year() == 1983 ) {
-		dprintf("CLN upd biome ftot %f fgrass %f fndlt %f fbrlt %f fshrb %f \n",ftot,fgrass,fndlt,fbrlt,fshrb);
-	}
 	return biome;
 }
 
@@ -173,9 +164,6 @@ int update_fire_biome(Patch& patch, double lat) {
  */
 void simfire_biome_mapping(Gridcell& gridcell) {
 
-	if ( date.get_calendar_year() == 1983 ) {
-		dprintf("CLN mapping biome \n");
-	}
 	std::vector<int> biomes;
 	Gridcell::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
@@ -191,10 +179,6 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 		++gc_itr;
 	}
 		
-	if ( date.get_calendar_year() == 1983 ) {
-		dprintf("CLN biomes %i biome \n",date.get_calendar_year());
-	}
-
 	int count[NFIREBIOMES];
 	int biome;
 	int count_max=0; // maximum of 'count'
@@ -203,23 +187,18 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 	for (biome=0; biome < NFIREBIOMES; biome++) {
 		count[biome] = 0;
 	}
-	dprintf("%i ",date.get_calendar_year());
 	for (int idx = 0; idx < (int)biomes.size(); idx++) {
 		count[biomes[idx]]++;
-		dprintf(" %i",biomes[idx]);
 	}
 	for (biome=0; biome < NFIREBIOMES; biome++) {
 		count_max = max(count_max, count[biome]);
 	}
-	dprintf("\n");
+	
 	int biome_index = 0;
 	for (biome = 0; biome < NFIREBIOMES && count[biome] < count_max; biome++) {
 		biome_index ++;
 	}
 	gridcell.simfire_biome = biome_index ;
-	if ( date.get_calendar_year() == 1983 ) {
-		dprintf("\n CLNaft %i biome \n",biome_index);
-	}
 }
 
 /// Read SIMFIRE related data for a gridcell at beginning of simulation

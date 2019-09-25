@@ -132,10 +132,6 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 				// Tissue turnover, allocation to new biomass and reproduction,
 				// updated allometry
 				growth(stand, patch);
-				if ( (date.get_calendar_year() >=1900 && date.get_calendar_year() <=1901 )|| 
-				     (date.get_calendar_year() >=1962 && date.get_calendar_year() <=1964) ) {
-				dprintf("%i %i %i seeed %d \n",date.year, patch.stand.id, patch.id, patch.stand.seed);
-				}
 			}
 			stand.nextobj();
 		}// End of loop through patches

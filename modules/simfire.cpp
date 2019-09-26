@@ -196,7 +196,7 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 	
 	int biome_index = 0;
 	for (biome = 0; biome < NFIREBIOMES && count[biome] < count_max; biome++) {
-		biome_index ++;
+		biome_index++;
 	}
 	gridcell.simfire_biome = biome_index ;
 }

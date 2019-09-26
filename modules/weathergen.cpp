@@ -2480,13 +2480,13 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		// Set breakoff-threshold for raindays according to
 		// total amount of raindays in month
 		int pday_thresh;
-		if((int)round(metvars.mwetd) <= 5) {
+		if((int)roundoff(metvars.mwetd,0) <= 5) {
 			pday_thresh = 0;
 		}
-		else if ((int)round(metvars.mwetd) <= 10) {
+		else if ((int)roundoff(metvars.mwetd,0) <= 10) {
 			pday_thresh = 1;
 		}
-		else if ((int)round(metvars.mwetd) <= 20) {
+		else if ((int)roundoff(metvars.mwetd,0) <= 20) {
 			pday_thresh = 2;
 		}
 		else {
@@ -2550,7 +2550,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			// enforce at least two times over the month to get initial values ok
 			else if (i_count >= 1) {
 				
-				pdaydiff = (int)round(metvars.mwetd) - mwetd_sim;
+				pdaydiff = (int)roundoff(metvars.mwetd,0) - mwetd_sim;
 				precdiff = metvars.mprec - mprec_sim;
 
 				// breakoff-criteria for sufficient skill 			

@@ -4616,12 +4616,6 @@ public:
 	/// population density
 	double pop_density;
 
-	/// monthly Burned Area from GFED 3.1 
-	double monthly_GFED31_ba[188];
-
-	/// daily fraction of monthly Burned Area from GFED 3.1 
-	double daily_GFED31_frac[9*365];
-
 	/// tuning factor for available litter
 	double k_tun_litter;
 
@@ -4642,15 +4636,15 @@ public:
 	double cur_max_fapar;
 	/// monthly fire risk
 	double monthly_fire_risk[12];
-	/// burned area from either SIMFIRE or GFED
+	/// burned area from SIMFIRE
 	double burned_area;
-	/// accumulated burned area from either SIMFIRE or GFED for tstep < 1a
+	/// accumulated burned area from SIMFIRE for tstep < 1a
 	double burned_area_accumulated;
 	/// Simple tracker to check whether at least one patch has enough fuel to burn
 	int can_burn;
-	/// annual burned area from either SIMFIRE or GFED
+	/// annual burned area from SIMFIRE
 	double annual_burned_area;
-	/// monthly burned area from either SIMFIRE or GFED
+	/// monthly burned area from SIMFIRE
 	double monthly_burned_area[12];
 
 	/// Seed for generating random numbers within this Gridcell

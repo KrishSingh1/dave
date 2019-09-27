@@ -1769,11 +1769,10 @@ void read_instruction_file(const char* insfilename) {
 	}
 
 	// Initialise PFT count
-	nmt=0;
 
 	npft = 0;
 	nst = 0;
-	nmt=0;
+	nmt = 0;
 
 	checked_pft.clear();
 	includepft_map.clear();

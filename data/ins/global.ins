@@ -27,7 +27,7 @@ file_doc "doc.out"
 file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
-file_clitter "clitter.out"
+!file_clitter "clitter.out"
 !file_firert "firert.out"
 !file_aiso "aiso.out"
 !file_amon "amon.out"
@@ -40,10 +40,10 @@ file_cton_leaf "cton_leaf.out"
 file_ngases "ngases.out"
 file_nsources "nsources.out"
 file_npool "npool.out"
-file_nlitter "nlitter.out"
-file_nuptake "nuptake.out"
+!file_nlitter "nlitter.out"
+!file_nuptake "nuptake.out"
 file_nflux "nflux.out"
-file_vmaxnlim "vmaxnlim.out"
+!file_vmaxnlim "vmaxnlim.out"
 
 ! Monthly outputs
 !file_mnpp "mnpp.out"
@@ -217,10 +217,10 @@ group "tree" (
 	nuptoroot 0.0028
 	km_volume 0.000001477
 	pathway "c3"
-	respcoeff 1.0	! utkommenterad hos Thomas !
-	kest_repr 200 	! 200
-	kest_bg 0.1 	! 1 i guess2008
-	kest_pres 1 	! 0 i guess2008
+	respcoeff 1.0
+	kest_repr 200
+	kest_bg 0.1
+	kest_pres 1
 	k_chilla 0
 	k_chillb 100
 	k_chillk 0.05
@@ -233,7 +233,7 @@ group "tree" (
 )
 
 group "shrub" (
-	! Unchanged from species version
+
 	common
 	lifeform "tree"
 	leafphysiognomy "broadleaf"
@@ -244,7 +244,6 @@ group "shrub" (
 	k_allom3 0.67
 	k_rp 1.6
 	wooddens 250
-	!cton_leaf_min 16
 	cton_root 29
 	cton_sap 330
 	nuptoroot 0.0028
@@ -277,7 +276,7 @@ group "grass" (
 	gmin 0.5
 	phenology "any"
 	phengdd5ramp 100		! C3 har 50 hos Thomas
-	leaflong 0.5				! Leaf longevity (years)
+	leaflong 0.5			! Leaf longevity (years)
 	turnover_leaf 1
 	turnover_root 0.7		! 0.5 hos guess2008
 	!cton_leaf_min 16

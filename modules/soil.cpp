@@ -3223,7 +3223,7 @@ void Soil::update_layer_fractions(const int& daynum, const int& mixedl, const in
 
 		// NON-WETLAND SOILS
 
-		if (firstTempCalc && !restart) {
+		if (firstTempCalc && patch.stand.first_year == date.year) {
 
 			for (int ii = IDX; ii<NLAYERS; ii++) {
 
@@ -3261,7 +3261,7 @@ void Soil::update_layer_fractions(const int& daynum, const int& mixedl, const in
 				Frac_peat[ii] = 0.0;
 			}
 		} 
-		else if (firstTempCalc && restart) {
+		else if (firstTempCalc && (restart || patch.stand.clone_year == date.year)) {
 			// initialize after restarts
 			for (int ii = IDX; ii<NLAYERS; ii++) {
 
@@ -3325,7 +3325,7 @@ bool Soil::calculate_soil_temp(const double &dailyairtemp) {
 	int daynum = date.day;
 
 	// TODO: Move this to some init function
-	if (firstTempCalc && !restart) {
+	if (firstTempCalc && patch.stand.first_year == date.year) {
 
 		for (int i = 0; i<NLAYERS; i++) {
 			Frac_ice[i] = 0.0;
@@ -3366,7 +3366,7 @@ bool Soil::calculate_soil_temp(const double &dailyairtemp) {
 			ngroundl = NSOILLAYER;
 
 	} // firstTempCalc
-	else if (firstTempCalc && restart) {
+	else if (firstTempCalc && (restart || patch.stand.clone_year == date.year)) {
 
 		/*
 		for (int i = 0; i<NLAYERS; i++) {
@@ -3412,7 +3412,7 @@ bool Soil::calculate_soil_temp(const double &dailyairtemp) {
 	// Allocate yesterday's temperature and ice fraction to today's 
 	// ------------------------------------------
 
-	if (!firstTempCalc || restart) update_from_yesterday();
+	if (!firstTempCalc || restart || patch.stand.clone_year == date.year) update_from_yesterday();
 
 	// SNOW DENSITY and THERMAL PROPRTIES
 	// ------------------------------------------
@@ -3512,7 +3512,7 @@ bool Soil::calculate_soil_temp(const double &dailyairtemp) {
 	// Set fractions of soil parameters for each soil layer & litter
 	// ------------------------------------------
 
-	if (firstTempCalc && !restart) {
+	if (firstTempCalc && patch.stand.first_year == date.year) {
 		init_hydrology_variables(); // Initialise whc[], alwhc[], and alwhc_init[] for this patch
 	}
 
@@ -3524,7 +3524,7 @@ bool Soil::calculate_soil_temp(const double &dailyairtemp) {
 	// Update temperature in SNOW layers 
 	// ------------------------------------------
 
-	if (firstTempCalc && !restart) {
+	if (firstTempCalc && patch.stand.first_year == date.year) {
 		SIDX_old = SIDX;
 		snow_days_prev = 365;
 		snow_days = 0;
@@ -3596,7 +3596,7 @@ bool Soil::calculate_soil_temp(const double &dailyairtemp) {
 	// Do one timestep of the Crank-Nicholson method.
 	// ------------------------------------------
 
-	if (firstTempCalc && !restart) calc_padding(Dz[NLAYERS - 1], pad_dz);
+	if (firstTempCalc && patch.stand.first_year == date.year) calc_padding(Dz[NLAYERS - 1], pad_dz);
 
 	// Initialise T array for the layers
 	for (int i = SIDX - 1; i<NLAYERS; i++) T[i] = T_soil[i];

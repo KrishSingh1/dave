@@ -607,7 +607,7 @@ struct PhotosynthesisResult : public Serializable {
 };
 
 /// Class containing serializable variables for Weathergenerator GWGen
-class WeatherGenState {
+class WeatherGenState : public Serializable  {
 
 public:
 	int q[10];
@@ -619,6 +619,8 @@ public:
 	double gamma_vals[2];
 	bool pday[2];
 	double resid[4];
+
+	void serialize(ArchiveStream& arch);
 };
 
 /// This struct contains the environmental input to a photosynthesis calculation.

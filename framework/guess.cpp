@@ -382,10 +382,32 @@ Patch::Patch(int i,Stand& s,Soiltype& st):
 	dnfert = 0.0;
 	anfert = 0.0;
 	nharv = 0;
-	for (int i = 0; i < NYEARAAET; i++)
+	for (int i = 0; i < NYEARAAET; i++) {
 		aaet_5.add(0.0);
-}
+	}
 
+	for (int i = 0; i < N_YEAR_BIOMEAVG; i++) {
+		avg_fbrlt[i] = 0.0;
+		avg_fgrass[i] = 0.0;
+		avg_fndlt[i] = 0.0;
+		avg_fshrb[i] = 0.0;
+		avg_ftot[i] = 0.0;
+	}
+
+}
+void WeatherGenState::serialize(ArchiveStream& arch) {
+
+	arch & carry
+	& xcng
+	& xs
+	& indx
+	& have
+	& gamma_vals
+	& pday
+	& resid
+	& q;
+
+}
 void Patch::serialize(ArchiveStream& arch) {
 	if (arch.save()) {
 		for (unsigned int i = 0; i < pft.nobj; i++) {

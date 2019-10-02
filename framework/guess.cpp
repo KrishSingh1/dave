@@ -53,7 +53,6 @@ void PhotosynthesisResult::serialize(ArchiveStream& arch) {
 // Implementation of Climate member functions
 ////////////////////////////////////////////////////////////////////////////////
 
-
 void Climate::serialize(ArchiveStream& arch) {
 	arch & temp
 		& rad
@@ -126,6 +125,20 @@ void Climate::serialize(ArchiveStream& arch) {
 		& kbdi
 		& months_ffdi
 		& weathergenstate;
+}
+
+void WeatherGenState::serialize(ArchiveStream& arch) {
+
+	arch & carry
+		& xcng
+		& xs
+		& indx
+		& have
+		& gamma_vals
+		& pday
+		& resid
+		& q;
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -395,19 +408,7 @@ Patch::Patch(int i,Stand& s,Soiltype& st):
 	}
 
 }
-void WeatherGenState::serialize(ArchiveStream& arch) {
 
-	arch & carry
-	& xcng
-	& xs
-	& indx
-	& have
-	& gamma_vals
-	& pday
-	& resid
-	& q;
-
-}
 void Patch::serialize(ArchiveStream& arch) {
 	if (arch.save()) {
 		for (unsigned int i = 0; i < pft.nobj; i++) {

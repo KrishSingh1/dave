@@ -127,6 +127,8 @@ private:
 
 	GuessNC::CF::GridcellOrderedVariable* cf_specifichum;
 
+	GuessNC::CF::GridcellOrderedVariable* cf_relhum;
+
 	GuessNC::CF::GridcellOrderedVariable* cf_wind;
 
 	// Spinup data for each variable
@@ -146,6 +148,8 @@ private:
 	GenericSpinupData spinup_pres;
 
 	GenericSpinupData spinup_specifichum;
+
+	GenericSpinupData spinup_relhum;
 
 	GenericSpinupData spinup_wind;
 
@@ -204,6 +208,8 @@ private:
 	int historic_timestep_pres;
 
 	int historic_timestep_specifichum;
+
+	int historic_timestep_relhum;
 
 	int historic_timestep_wind;
 

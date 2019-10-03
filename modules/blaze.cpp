@@ -1126,6 +1126,12 @@ void blaze_accounting_gridcell(Climate& climate) {
 			climate.months_ffdi[i] = tmp[i];
 		}
 	}
+	if ( date.year == 501 && date.day == 0 ) {
+		//CLN
+
+	}
+	
+
 }		     
 
 /// The driver routine for BLAZE

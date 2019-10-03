@@ -220,6 +220,17 @@ void check_specifichum_variable(const GuessNC::CF::GridcellOrderedVariable* cf_v
 }
 
 // Verifies that a CF variable with pressure data contains what we expect
+void check_relhum_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
+	const char* standard_name = "relative_humidity";
+	if (cf_var->get_standard_name() != standard_name) {
+		fail("RElative humidity variable should have standard name %s ",standard_name);
+	}
+	if (cf_var->get_units() != "1") {
+		fail("Relative Humidity must be dimensionless (here, '1'!");
+	}
+}
+
+// Verifies that a CF variable with pressure data contains what we expect
 void check_wind_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	const char* standard_name = "wind_speed";
 	if (cf_var->get_standard_name() != standard_name) {
@@ -311,6 +322,7 @@ CFInput::CFInput()
 	  cf_max_temp(0),
 	  cf_pres(0),
 	  cf_specifichum(0),
+	  cf_relhum(0),
 	  cf_wind(0),
 	  ndep_timeseries("historic") {
 
@@ -327,6 +339,7 @@ CFInput::~CFInput() {
 	delete cf_max_temp;
 	delete cf_pres;
 	delete cf_specifichum;
+	delete cf_relhum;
 	delete cf_wind;
 
 	cf_temp = 0;
@@ -337,6 +350,7 @@ CFInput::~CFInput() {
 	cf_max_temp = 0;
 	cf_pres = 0;
 	cf_specifichum = 0;
+	cf_relhum = 0;
 	cf_wind = 0;
 }
 
@@ -373,6 +387,10 @@ void CFInput::init() {
 			cf_specifichum = new GridcellOrderedVariable(param["file_specifichum"].str, param["variable_specifichum"].str);
 		}
 
+		if (param["file_relhum"].str != "") {
+			cf_relhum = new GridcellOrderedVariable(param["file_relhum"].str, param["variable_relhum"].str);
+		}
+
 		if (param["file_wind"].str != "") {
 			cf_wind = new GridcellOrderedVariable(param["file_wind"].str, param["variable_wind"].str);
 		}
@@ -405,6 +423,10 @@ void CFInput::init() {
 
 	if (cf_specifichum) {
 		check_specifichum_variable(cf_specifichum);
+	}
+
+	if (cf_relhum) {
+		check_relhum_variable(cf_relhum);
 	}
 
 	if (cf_wind) {
@@ -533,6 +555,10 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 		load_spinup_data(cf_specifichum, spinup_specifichum);
 	}
 
+	if (cf_specifichum) {
+		load_spinup_data(cf_relhum, spinup_relhum);
+	}
+
 	if (cf_wind) {
 		load_spinup_data(cf_wind, spinup_wind);
 	}
@@ -556,6 +582,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 
 	historic_timestep_pres = -1;
 	historic_timestep_specifichum = -1;
+	historic_timestep_relhum = -1;
 	historic_timestep_wind = -1;
 
 	dprintf("\nCommencing simulation for gridcell at (%g,%g)\n", lon, lat);
@@ -585,6 +612,7 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 		    (cf_max_temp && !cf_max_temp->load_data_for(landid)) ||
 		    (cf_pres && !cf_pres->load_data_for(landid)) ||
 		    (cf_specifichum && !cf_specifichum->load_data_for(landid)) ||
+		    (cf_relhum && !cf_relhum->load_data_for(landid)) ||
 		    (cf_wind && !cf_wind->load_data_for(landid))) {
 			dprintf("Failed to load data for (%d) from NetCDF files, skipping.\n", landid);
 			return false;
@@ -599,6 +627,7 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 		    (cf_max_temp && !cf_max_temp->load_data_for(rlon, rlat))||
 		    (cf_pres && !cf_pres->load_data_for(rlon, rlat))||
 		    (cf_specifichum && !cf_specifichum->load_data_for(rlon, rlat))||
+		    (cf_relhum && !cf_relhum->load_data_for(rlon, rlat))||
 		    (cf_wind && !cf_wind->load_data_for(rlon, rlat)) ) {
 			dprintf("Failed to load data for (%d, %d) from NetCDF files, skipping.\n", rlon, rlat);
 			return false;
@@ -797,10 +826,10 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 		int instype = cf_standard_name_to_insoltype(cf_insol->get_standard_name());
 		
 		// IMPLEMENT cloud-frac
-		if (!cf_min_temp || !cf_max_temp || !cf_pres || !cf_wind || !cf_specifichum ||
+		if (!cf_min_temp || !cf_max_temp || !cf_wind || ( ( !cf_pres || !cf_specifichum ) && !cf_relhum ) ||
 		    instype != SWRAD_TS) {
 			//(instype != SWRAD_TS && instype != SUNSHINE)) {
-			fail("The weathergenerator GWGEN needs: Tmax, Tmin, Pressure & Specific Humidity, and Windspeed");
+			fail("The weathergenerator GWGEN needs: Tmax, Tmin, (Pressure & Specific Humidity) or rel.humidity, and Windspeed");
 		}
 		
 		std::vector<double> mtemp;
@@ -852,16 +881,28 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 			xmwind[i] = mwind[i];
 		}
 
-		std::vector<double> mspecifichum;
-		get_yearly_data(mspecifichum, spinup_specifichum, cf_specifichum, historic_timestep_specifichum);
-		
 		std::vector<double> mpres;
-		get_yearly_data(mpres, spinup_pres, cf_pres, historic_timestep_pres);
-		
-		double xmrhum[12];
-		for ( int i=0; i<12; i++) {
-			xmrhum[i] = get_relative_humidity(mtemp[i],mspecifichum[i],mpres[i]);
+		if ( cf_pres ) {
+			get_yearly_data(mpres, spinup_pres, cf_pres, historic_timestep_pres);
 		}
+
+		std::vector<double> mspecifichum;
+		if ( cf_specifichum ) {
+			get_yearly_data(mspecifichum, spinup_specifichum, cf_specifichum, historic_timestep_specifichum);
+		}
+
+		double xmrhum[12];
+		std::vector<double> mrelhum;
+		if ( cf_relhum ){ 
+			get_yearly_data(mrelhum, spinup_relhum, cf_relhum, historic_timestep_relhum);
+			for ( int i=0; i<12; i++) {
+				xmrhum[i] = mrelhum[i];
+			}
+		} else if ( cf_pres && cf_specifichum ) { 
+			for ( int i=0; i<12; i++) {
+				xmrhum[i] = get_relative_humidity(mtemp[i],mspecifichum[i],mpres[i]);
+			}
+		} 
 
 		// Use gwgen - correlated weather
 		weathergen_get_met(gridcell,xmtemp,xmprec,xmwet,xminsol,xmdtr,

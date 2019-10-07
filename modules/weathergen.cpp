@@ -2528,7 +2528,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 				tmin_acc += metvars.dtmin;
 			} 
 			// Break off criteria
-			tmindiff = 1. ;//abs(mtmin(n_curr) - tmin_acc / ndm(n_curr))
+			tmindiff = abs(in_mtmin[mon] - tmin_acc / (double)ndaymon);
 			
 			// Reset met_out_save after initialization
 			if (i_count == 0) {
@@ -2555,7 +2555,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 
 				// breakoff-criteria for sufficient skill 			
 				if ( (abs(pdaydiff) <= pday_thresh && fabs(precdiff) <= prec_t && tmindiff < 2.5) ||
-				     (pdaydiff == 0 && fabs(precdiff) <= 1.5*prec_t  ))  {
+				     (pdaydiff == 0 && fabs(precdiff) <= 1.5*prec_t  && tmindiff < 2.5))  {
 					break;
 				}
 
@@ -2617,6 +2617,12 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		double tot_cldwght = 0.;
 		doy = accumday;
 		for (int day=0; day<ndaymon;day++) {
+			// sometimes negative dtr can occur at values around 0. -> swap min,max
+			if ( dtmin[day] > dtmax[day]) {
+				double dummy = dtmin[day];
+				dtmin[day]   = dtmax[day];
+				dtmax[day]   = dummy;
+			}
 			tmincor += dtmin[day]/(double)ndaymon;
 			tmaxcor += dtmax[day]/(double)ndaymon;
 			preccor += dprec[day];
@@ -2688,7 +2694,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		chk_dprec = 0.; 
 		chk_dsol  = 0.; 
 		chk_dwind = 0.; 
-		chk_drhum = 0.; 
+		chk_drhum = 0.;
 		for (int day=0; day<ndaymon;day++) {
 			out_dtemp[day+accumday] =(dtmax[day] + dtmin[day]) / 2.;
 			out_ddtr [day+accumday] = dtmax[day] - dtmin[day];
@@ -2702,7 +2708,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			chk_dprec += out_dprec[day+accumday]; 
 			chk_dsol  += out_dsol [day+accumday]/(double)ndaymon; 
 			chk_dwind += out_dwind[day+accumday]/(double)ndaymon; 
-			chk_drhum += out_drhum[day+accumday]/(double)ndaymon; 
+			chk_drhum += out_drhum[day+accumday]/(double)ndaymon;
 		}
 		// If GWGen doesn't find a day for precipitation add it at the first third
 		// of the month.

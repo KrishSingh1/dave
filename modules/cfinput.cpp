@@ -474,6 +474,9 @@ void CFInput::init() {
 				c.rlon = rlon;
 
 			}
+			else {
+				fail("The gridlist for netCDF input must be in X,Y coordinates");
+			}
 		}
 		c.descrip = (xtring)trim(descrip).c_str();
 		gridlist.push_back(c);
@@ -555,7 +558,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 		load_spinup_data(cf_specifichum, spinup_specifichum);
 	}
 
-	if (cf_specifichum) {
+	if (cf_relhum) {
 		load_spinup_data(cf_relhum, spinup_relhum);
 	}
 
@@ -828,15 +831,14 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 		// IMPLEMENT cloud-frac
 		if (!cf_min_temp || !cf_max_temp || !cf_wind || ( ( !cf_pres || !cf_specifichum ) && !cf_relhum ) ||
 		    instype != SWRAD_TS) {
-			//(instype != SWRAD_TS && instype != SUNSHINE)) {
-			fail("The weathergenerator GWGEN needs: Tmax, Tmin, (Pressure & Specific Humidity) or rel.humidity, and Windspeed");
+			fail("The weathergenerator GWGEN requires: \n Tmax, Tmin, (Pressure & Specific Humidity) or rel.humidity, Windspeed, and SW radiation");
 		}
 		
 		std::vector<double> mtemp;
 		get_yearly_data(mtemp, spinup_temp, cf_temp, historic_timestep_temp);
 		double xmtemp[12];
 		for ( int i=0; i<12; i++) {
-			xmtemp[i] = mtemp[i];
+			xmtemp[i] = mtemp[i] - K2degC;
 		}
 
 		std::vector<double> mprec;
@@ -898,11 +900,13 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 			for ( int i=0; i<12; i++) {
 				xmrhum[i] = mrelhum[i];
 			}
-		} else if ( cf_pres && cf_specifichum ) { 
+		}
+		else if ( cf_pres && cf_specifichum ) {
+			// compute rel. humidity if it can't be read from file
 			for ( int i=0; i<12; i++) {
 				xmrhum[i] = get_relative_humidity(mtemp[i],mspecifichum[i],mpres[i]);
 			}
-		} 
+		}
 
 		// Use gwgen - correlated weather
 		weathergen_get_met(gridcell,xmtemp,xmprec,xmwet,xminsol,xmdtr,
@@ -917,12 +921,17 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 				accumday += date.ndaymonth[mon];
 				mon++;
 			}
-			dmin_temp[i] = dtemp[i] - 0.5 * ddtr[i] + shift[mon];
-			dmax_temp[i] = dtemp[i] + 0.5 * ddtr[i] + shift[mon];
+			dmin_temp[i] = dtemp[i] - 0.5 * ddtr[i];
+			dmax_temp[i] = dtemp[i] + 0.5 * ddtr[i];
+			// correct dmin and dmax against t_mean if available
+			if ( cf_min_temp && cf_max_temp ) {
+				dmin_temp[i] += shift[mon];
+				dmax_temp[i] += shift[mon];
+			}
 		}
 	}
 	else {
-	       
+		
 		populate_daily_array(dtemp, spinup_temp, cf_temp, historic_timestep_temp, 0);
 		populate_daily_prec_array(gridcell.seed);
 		populate_daily_array(dinsol, spinup_insol, cf_insol, historic_timestep_insol, 0,
@@ -948,11 +957,17 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 			populate_daily_array(dwind, spinup_wind, cf_wind, historic_timestep_wind, 0);
 		}
 		
-		// Convert to units the model expects
-		bool cloud_fraction_to_sunshine = (cf_standard_name_to_insoltype(cf_insol->get_standard_name()) == SUNSHINE);
-		for (int i = 0; i < date.year_length(); ++i) {
+		if (cf_relhum) {
+			populate_daily_array(drelhum, spinup_relhum, cf_relhum, historic_timestep_relhum, 0);
+		}
+	}
+	// Convert to units the model expects
+	bool cloud_fraction_to_sunshine = (cf_standard_name_to_insoltype(cf_insol->get_standard_name()) == SUNSHINE);
+	for (int i = 0; i < date.year_length(); ++i) {
+		
+		// Conversion has been applied before call to weathergenerator
+		if ( weathergenerator != GWGEN ) {
 			dtemp[i] -= K2degC;
-			
 			if (cf_min_temp) {
 				dmin_temp[i] -= K2degC;
 			}
@@ -960,20 +975,20 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 			if (cf_max_temp) {
 				dmax_temp[i] -= K2degC;
 			}
-			
-			if (cloud_fraction_to_sunshine) {
-				// Invert from cloudiness to sunshine,
-				// and convert fraction (0-1) to percent (0-100)
-				dinsol[i] = (1-dinsol[i]) * 100.0;
-			}
-
-			if ( cf_pres && cf_specifichum ) {
-				// compute relative humidity for BLAZE
-				drelhum[i] = get_relative_humidity(dtemp[i], dspecifichum[i], dpres[i]);
-			}
-			else if ( firemodel == BLAZE ) {
-				fail("BLAZE is switched on WITHOUT info on specific humidity and/or pressure! \n" );
-			}
+		}
+		
+		if (cloud_fraction_to_sunshine) {
+			// Invert from cloudiness to sunshine,
+			// and convert fraction (0-1) to percent (0-100)
+			dinsol[i] = (1-dinsol[i]) * 100.0;
+		}
+		
+		if ( (cf_pres && cf_specifichum) && !cf_relhum ) {
+			// compute relative humidity for BLAZE
+			drelhum[i] = get_relative_humidity(dtemp[i], dspecifichum[i], dpres[i]);
+		}
+		else if ( firemodel == BLAZE && !cf_relhum ) {
+			fail("BLAZE is switched on WITHOUT info on either specific humidity and pressure or relative humidity! \n" );
 		}
 	}
 	
@@ -994,16 +1009,23 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 	if (cf_max_temp) {
 		spinup_max_temp.nextyear();
 	}
+	
 	if (cf_pres) {
 		spinup_pres.nextyear();
 	}
+	
 	if (cf_specifichum) {
 		spinup_specifichum.nextyear();
 	}
+	
 	if (cf_wind) {
 		spinup_wind.nextyear();
 	}
-
+	
+	if (cf_relhum) {
+		spinup_relhum.nextyear();
+	}
+	
 	// Get monthly ndep values and convert to daily
 
 	double mndrydep[12];
@@ -1163,6 +1185,7 @@ std::vector<GuessNC::CF::GridcellOrderedVariable*> CFInput::all_variables() cons
 	result.push_back(cf_pres);
 	result.push_back(cf_specifichum);
 	result.push_back(cf_wind);
+	result.push_back(cf_relhum);
 
 	// Get rid of null pointers
 	result.erase(std::remove_if(result.begin(), result.end(), is_null),

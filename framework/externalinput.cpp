@@ -133,7 +133,7 @@ void LandcoverInput::init() {
 
 		// Remove crop stand types from stlist that always have zero area fraction in all cells in grid list
 		if(minimizecftlist && gridlist.nobj < 100) {	// Reduce the risk of accidentally using minimized cft lists when using split gridlists.
-			dprintf("minimizecftlist is activated in crop.ins.\n Restart will NOT WORK properly if you are running on multiple processors. \n");
+			dprintf("WARNING: minimizecftlist is activated in crop.ins.\n Restart will NOT WORK properly if you are running on multiple processors. \n");
 			CFTdata.CheckIfPresent(gridlist);
 			do_minimize = true;
 		}

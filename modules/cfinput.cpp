@@ -303,12 +303,18 @@ double get_relative_humidity(double temp, double specific_humidity, double press
 	// qair  specific humidity, dimensionless (e.g. kg/kg) 
 	// temp  temperature in degrees C
 	// press pressure in Pa
-	// rh    relative humidity in %
+	// rh    relative humidity in frac.
+	if ( pressure > 106000 || pressure < 85000 ) {
+		fail("Unit for pressure must be [Pa]: get_relative_humidity(cfinput.cpp)");
+	} 
+	if ( temp  > 80. ) {
+		fail("Unit for temperature must be [deg C]: get_relative_humidity(cfinput.cpp)");
+	} 
 	double pres_hPa = pressure / 100.; // convert to hPa
 	double es   = 6.112 * exp(17.67 * temp/(temp + 243.5));
 	double e    = specific_humidity * pres_hPa / (0.378 * specific_humidity + 0.622);
 	double rh   = min(max(e / es * 100.,0.),100.) ;
-	return rh;		
+	return rh * PERCENT_TO_FRACT;		
 }
 
 }
@@ -475,7 +481,7 @@ void CFInput::init() {
 
 			}
 			else {
-				fail("The gridlist for netCDF input must be in X,Y coordinates");
+				fail("The gridlist for netCDF input must be in X,Y coordinates");
 			}
 		}
 		c.descrip = (xtring)trim(descrip).c_str();

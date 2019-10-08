@@ -49,6 +49,7 @@ const double MMOL_PER_MOL	= 1E3;
 const double J_PER_KJ		= 1E3;
 const double KMH_PER_MS         = 3.6;
 const double FRACT_TO_PERCENT   = 100.;
+const double PERCENT_TO_FRACT   = 0.01;
 const double R_EARTH            = 6371.2213; // mean earth-radius[km]
 inline bool negligible(double dval, int limit = 0) {
 	// Returns true if |dval| < EPSILON, otherwise false

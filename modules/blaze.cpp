@@ -1045,11 +1045,10 @@ void blaze_accounting_gridcell(Climate& climate) {
 	climate.cur_rainfall += climate.prec;
 
 	// Update the Keetch-Byram-Drought-Index (Keetch et al. 1968)
-	double v        = climate.u10   ; // Wind speed at 10m height [km/h] (for FFDI)
+	double v        = climate.u10    * KMH_PER_MS; // Wind speed at 10m height [km/h] (for FFDI)
 	double rh       = climate.relhum * FRACT_TO_PERCENT; // relative humidity [%] (for FFDI)
 	double t        = climate.tmax  ; // day's max temperature [deg C] (for KBDI) 
 
-	v *= KMH_PER_MS; // m/s -> km/h
 	// Gust parameterisation following ...
 	v = ( 214.7 * pow(  v + 10. ,-1.6968)  + 1. ) * v;
 

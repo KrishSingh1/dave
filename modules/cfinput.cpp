@@ -313,8 +313,8 @@ double get_relative_humidity(double temp, double specific_humidity, double press
 	double pres_hPa = pressure / 100.; // convert to hPa
 	double es   = 6.112 * exp(17.67 * temp/(temp + 243.5));
 	double e    = specific_humidity * pres_hPa / (0.378 * specific_humidity + 0.622);
-	double rh   = min(max(e / es * 100.,0.),100.) ;
-	return rh * PERCENT_TO_FRACT;		
+	double rh   = min(max(e / es ,0.),1.) ;
+	return rh;		
 }
 
 }

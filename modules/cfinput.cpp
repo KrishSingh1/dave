@@ -223,7 +223,7 @@ void check_specifichum_variable(const GuessNC::CF::GridcellOrderedVariable* cf_v
 void check_relhum_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	const char* standard_name = "relative_humidity";
 	if (cf_var->get_standard_name() != standard_name) {
-		fail("RElative humidity variable should have standard name %s ",standard_name);
+		fail("Relative humidity variable should have standard name %s ",standard_name);
 	}
 	if (cf_var->get_units() != "1") {
 		fail("Relative Humidity must be dimensionless (here, '1'!");
@@ -298,19 +298,20 @@ void check_same_spatial_domains(const std::vector<GuessNC::CF::GridcellOrderedVa
 }
 
 // Compute relative humidity from specific humidity, temperature and pressure
-double get_relative_humidity(double temp, double specific_humidity, double pressure) {
+double calc_relative_humidity(double temp, double specific_humidity, double pressure) {
 
 	// qair  specific humidity, dimensionless (e.g. kg/kg) 
 	// temp  temperature in degrees C
 	// press pressure in Pa
 	// rh    relative humidity in frac.
 	if ( pressure > 106000 || pressure < 85000 ) {
-		fail("Unit for pressure must be [Pa]: get_relative_humidity(cfinput.cpp)");
+		fail("Unit for pressure must be [Pa]: calc_relative_humidity(cfinput.cpp)");
 	} 
 	if ( temp  > 80. ) {
-		fail("Unit for temperature must be [deg C]: get_relative_humidity(cfinput.cpp)");
+		fail("Unit for temperature must be [deg C]: calc_relative_humidity(cfinput.cpp)");
 	} 
 	double pres_hPa = pressure / 100.; // convert to hPa
+	// TODO REFERENCE FOR THESE?
 	double es   = 6.112 * exp(17.67 * temp/(temp + 243.5));
 	double e    = specific_humidity * pres_hPa / (0.378 * specific_humidity + 0.622);
 	double rh   = min(max(e / es ,0.),1.) ;
@@ -834,7 +835,7 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 
 		int instype = cf_standard_name_to_insoltype(cf_insol->get_standard_name());
 		
-		// IMPLEMENT cloud-frac
+		// TODO IMPLEMENT cloud-frac
 		if (!cf_min_temp || !cf_max_temp || !cf_wind || ( ( !cf_pres || !cf_specifichum ) && !cf_relhum ) ||
 		    instype != SWRAD_TS) {
 			fail("The weathergenerator GWGEN requires: \n Tmax, Tmin, (Pressure & Specific Humidity) or rel.humidity, Windspeed, and SW radiation");
@@ -867,14 +868,14 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 		for ( int i=0; i<12; i++) {
 			xminsol[i] = minsol[i];
 		}
-
+		std::copy(minsol.begin(),minsol.end(),xminsol);
 		std::vector<double> mtmax;
 		get_yearly_data(mtmax, spinup_max_temp, cf_max_temp, historic_timestep_max_temp);
 
 		std::vector<double> mtmin;
 		get_yearly_data(mtmin, spinup_min_temp, cf_min_temp, historic_timestep_min_temp);
 
-		// Record shift of mean_temperature agains mean of tmin/tmax for readjustment
+		// Record shift of mean_temperature against mean of tmin/tmax for re-adjustment
 		double xmdtr[12];
 		double shift[12];
 		for ( int i=0; i<12; i++) {
@@ -910,7 +911,7 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 		else if ( cf_pres && cf_specifichum ) {
 			// compute rel. humidity if it can't be read from file
 			for ( int i=0; i<12; i++) {
-				xmrhum[i] = get_relative_humidity(mtemp[i],mspecifichum[i],mpres[i]);
+				xmrhum[i] = calc_relative_humidity(mtemp[i],mspecifichum[i],mpres[i]);
 			}
 		}
 
@@ -991,7 +992,7 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 		
 		if ( (cf_pres && cf_specifichum) && !cf_relhum ) {
 			// compute relative humidity for BLAZE
-			drelhum[i] = get_relative_humidity(dtemp[i], dspecifichum[i], dpres[i]);
+			drelhum[i] = calc_relative_humidity(dtemp[i], dspecifichum[i], dpres[i]);
 		}
 		else if ( firemodel == BLAZE && !cf_relhum ) {
 			fail("BLAZE is switched on WITHOUT info on either specific humidity and pressure or relative humidity! \n" );

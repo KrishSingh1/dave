@@ -999,7 +999,7 @@ void plib_callback(int callback) {
 		else if (strparam.upper() == "INTERP") weathergenerator = INTERP;
 		else {
 			sendmessage("Error",
-				"Unknown weathergenerator (valid types: \"GWGEN\", \"INTERP\")");
+				"Unknown weathergenerator (valid types: \"GWGEN\", \"INTERP\")");
 			plibabort();
 		}
 		break;		

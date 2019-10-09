@@ -2655,7 +2655,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			} else {
 				dprec[day] = 0.;
 			}
-			// correct cldfr by factor and distribute overshoot
+			// correct cldfr by factor
 			cldwght[day] /= tot_cldwght;
 			// compute relative humidity 
 			// use daylight avg temp following Running et al. 1987
@@ -2665,12 +2665,11 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		}
 
 		// Redistribute limited parameters like relhum and 
-		// cloud-fraction
-		
+		// cloud-fraction		
 		double limit[2] = {0.,1.};
 		if ( in_msol[mon] > 0. ) {
 	
-			if ( in_mcldf[mon] > 0. )
+			if (in_mcldf[mon] > 0.)
 				redist_restricted_vals(dcldf, ndaymon, in_mcldf[mon], limit, cldwght);
 			
 			solcor = 0.;

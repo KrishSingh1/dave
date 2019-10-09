@@ -451,7 +451,7 @@ void plib_declarations(int id,xtring setname) {
 			"Parameterisation of root distribution (\"FIXED\", \"JACKSON\")");
             
 		declareitem("weathergenerator", &strparam, 20, CB_WEATHERGENERATOR,
-			    "Weather Generator (\"INTERP\", \"GWGEN\", \"NOFIRE\")");
+			    "Weather Generator (\"INTERP\", \"GWGEN\")");
 
 		declareitem("nrelocfrac",&nrelocfrac,0.0,0.99,1,CB_NONE,
 			"Fractional nitrogen relocation from shed leaves & roots");

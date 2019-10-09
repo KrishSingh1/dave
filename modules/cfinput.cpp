@@ -311,8 +311,12 @@ double calc_relative_humidity(double temp, double specific_humidity, double pres
 		fail("Unit for temperature must be [deg C]: calc_relative_humidity(cfinput.cpp)");
 	} 
 	double pres_hPa = pressure / 100.; // convert to hPa
-	// TODO REFERENCE FOR THESE?
+
+	// saturation water-vapour pressure following August-Roche-Magnus Formula
 	double es   = 6.112 * exp(17.67 * temp/(temp + 243.5));
+
+	// water-vapour pressure
+	// derived from approximation for s = rho_w/(rho_dryAir - rho_w)    
 	double e    = specific_humidity * pres_hPa / (0.378 * specific_humidity + 0.622);
 	double rh   = min(max(e / es ,0.),1.) ;
 	return rh;		

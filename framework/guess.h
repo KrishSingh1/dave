@@ -216,6 +216,11 @@ const double CO2_CONV = 1.0e-6;
 /// Initial carbon allocated to crop organs at sowing, kg m-2
 const double CMASS_SEED = 0.01;
 
+/// Precision in land cover fraction input
+const double INPUT_PRECISION = 1.0e-14;
+const double INPUT_ERROR = 0.5e-6;
+const double INPUT_RESOLUTION = INPUT_PRECISION - INPUT_PRECISION * INPUT_ERROR;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // FORWARD DECLARATIONS OF CLASSES DEFINED IN THIS FILE
 // Forward declarations of classes used as types (e.g. for reference variables in some
@@ -249,7 +254,7 @@ extern int nmt;
 /// Routine for handling slightly out of bounds water contents arising in hydrology and soil water thaw/freezing calculations.
 inline void oob_check_wcont(double &wc_in) {
 
-	// Minimum nonzero wcont allowed (mm)
+	// Minimum nonzero wcont allowed
 	// This function will remove very small water amounts from wcont variables and adjust to 1 if we exceed it by tiny amounts
 	const double min_mm = 0.000000001;
 
@@ -536,12 +541,15 @@ public:
 	bool check_indiv(Individual& indiv, bool check_harvest = false);
 	bool check_indiv_C(Individual& indiv, bool check_harvest = false);
 	bool check_indiv_N(Individual& indiv, bool check_harvest = false);
+	
 	void init_patch(Patch& patch);
 	bool check_patch(Patch& patch, bool check_harvest = false);
 	bool check_patch_C(Patch& patch, bool check_harvest = false);
 	bool check_patch_N(Patch& patch, bool check_harvest = false);
 
-	void check_year(Gridcell& gridcell);
+	void check_year(Gridcell& gridcell); // calls both check_year_C and check_year_N
+	void check_year_C(Gridcell& gridcell);
+	void check_year_N(Gridcell& gridcell);
 	void check_period(Gridcell& gridcell);
 
 	void serialize(ArchiveStream& arch);
@@ -3216,7 +3224,7 @@ public:
 	double wtd;
 	/// Water in acrotelm plus standing water (up to a max of 100mm) [mm]
 	double Wtot;
-	/// Standing water (up to a max of 100mm) [mm]
+	/// Standing water (up to a max of 100mm) [mm] - set to 0 in LPJG
 	double stand_water;
 	/// Volumetric water content in the NSUBLAYERS_ACRO of the acrotelm
 	double sub_water[NSUBLAYERS_ACRO];
@@ -3396,7 +3404,7 @@ public:
 	double get_soil_temp_25() const;
 
 	/// Analytic soil temperature calculation for this patch. Updates daily
-	void soil_temp(const Climate& climate, double depth);
+	void soil_temp_analytic(const Climate& climate, double depth);
 
 	/// main hydrology routine
 	void hydrology_lpjf(const Climate& climate, double fevap);	
@@ -3434,14 +3442,14 @@ public:
 	/// update wcont_evap, whc[], Frac_water etc. based on wcont
 	void update_soil_water();
 
-	/// return true if there is any ice in the top 50cm of soil (needed for irrigation)
+	/// return true if there is more than 5% ice content in any ice in the top 50cm of soil (needed for irrigation)
 	bool ice_in_top_layer();
 
 	/// Peatland hydrology routine. Implements the peatland hydrology scheme of Wania et al. (2008)
 	void hydrology_peat(const Climate& climate, double fevap);
 
 	/// Main soil temperature calculation. See soil.cpp for definition
-	bool calculate_soil_temp(const double& temp);
+	bool soil_temp_multilayer(const double& temp);
 
 	/// Calculate methane dynamics today
 	bool methane(bool generatemethane);
@@ -3482,6 +3490,7 @@ private:
 	// Soil temperature and hydrology methods
 	void update_from_yesterday();
 	void update_snow_properties(const int& daynum, const double& dailyairtemp, double& Dsnow, double& Csnow, double& Ksnow);
+	void snowpack_dynamics(const double &snowdepth, const int& soilsurfaceindex, int& snow_active_layers);
 	void update_soil_diffusivities(const int& daynum, bool ansoln);
 	void update_ice_fraction(const int& daynum, const int& MIDX);
 	void update_layer_fractions(const int& daynum, const int& mixedl, const int& MIDX);
@@ -4402,6 +4411,8 @@ public:
 	double frac;
 	/// old fraction of this stand type relative to the gridcell before update
 	double frac_old;
+	/// original input value of old fraction of this stand type before rescaling
+	double frac_old_orig;
 	/// fraction unavailable for transfer to other stand types
 	double protected_frac;
 
@@ -4426,6 +4437,7 @@ public:
 	Gridcellst(int i,StandType& s):id(i),st(s) {
 		frac = 1.0;
 		frac_old = 0.0;
+		frac_old_orig = 0.0;
 		protected_frac = 0.0;
 		frac_change = 0.0;
 		gross_frac_increase = 0.0;

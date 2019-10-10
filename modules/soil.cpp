@@ -287,7 +287,7 @@ double Soil::get_soil_temp_25() const {
  * \param climate   The climate to use to update soil water
  * \param depth     The depth at which the soil temperature is calculated
  */
-void Soil::soil_temp(const Climate& climate, double depth) {
+void Soil::soil_temp_analytic(const Climate& climate, double depth) {
 
 	// DESCRIPTION
 	// Calculation of soil temperature at depth (m) (usually middle of upper soil layer).
@@ -688,8 +688,9 @@ void Soil::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 
 bool Soil::ice_in_top_layer() {
 
-	for (int ly = 0; ly < NSOILLAYER; ly++) {
-		if (Frac_ice[ly + IDX] > 0.0) return true;
+	const double max_ice_fraction = 0.05; // 5% avoids irrigation restrictions when there are tiny amounts of ice in the soil
+	for (int ly = 0; ly < NSOILLAYER_UPPER; ly++) {
+		if (Frac_ice[ly + IDX] > max_ice_fraction) return true;
 	} 
 
 	return false;
@@ -1307,9 +1308,9 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 	if (date.day == 0) {
 		patch.aevap = 0.0;
 		patch.asurfrunoff = 0.0;
-		patch.arunoff = 0.0;
 		patch.adrainrunoff = 0.0;
 		patch.abaserunoff = 0.0;
+		patch.arunoff = 0.0;
 		patch.awetland_water_added = 0.0;
 	}
 
@@ -1323,17 +1324,18 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 	if (!update_layer_water_content(daynum)) 
 		fail();
 
-	// Wtot updates
-	bool subtractIceFromWtot = true;
-	double acro_por_icy = acro_por; // the pore space minus ice
+	// Porosity updates in the presence of ice? 
+	bool subtractIceFromWtot = false;
+	double acro_por_icy = acro_por; // the pore space minus the ice fraction
 	double avgIceFrac = 0.0;
 	
-	if (subtractIceFromWtot) {
-		for (int ly = IDX; ly < IDX + NACROTELM; ly++)
+	if (subtractIceFromWtot) {	
+		for (int ly = IDX; ly < IDX + NACROTELM; ly++) 
 			avgIceFrac += (Frac_ice[ly] + Fpwp_ref[ly] - Frac_water_belowpwp[ly])/(double)NACROTELM;
 	}
 
 	acro_por_icy -= avgIceFrac;
+
 
 	// *** TRANSPIRATION *** 
 	
@@ -1427,7 +1429,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 
 	// *** ACROTELM WATER VOLUME ***
 	
-	az = (acro_por_icy - minvtot) / zmin; // Granberg (1999) - Eqn 2 & Wania et al. (2009a), Eqn 22
+	az = (acro_por - minvtot) / zmin; // Granberg (1999) - Eqn 2 & Wania et al. (2009a), Eqn 22
 	
 	// Drainage - could possibly be read in for site-specific studies
 	runoff_drain = 0; 
@@ -1443,7 +1445,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		acrowater += (Frac_water[ly] + Frac_water_belowpwp[ly]) * Dz[ly];
 
 	double ideal_runoff = exp(-0.01 * wtd);
-	if (acrowater > 0.0  && Frac_ice[IDX] < 0.7)
+	if (acrowater > 0.0 && Frac_ice[IDX] < 0.7) // Granberg et al. (1999) use the same ice condition - see f_icestop in their Table 1
 		runoff_surf = min(ideal_runoff,acrowater);
 	else
 		runoff_surf = 0.0;
@@ -1511,17 +1513,17 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 	// snowmelt water...should penetrate into the soil.
 	
 	// NB 
-	// Wtot = 270mm =>
-	// Frac_water = 0.9 in the three acrotelm layers
+	// e.g. Wtot = 270mm =>
+	// Frac_water = 270/300 = 0.9 in the three acrotelm layers
 	
 	// Wtot <= 140.03611111 =>
 	// Frac_water = 0.27419, 0.4186, 0.7075 in the top three layers (if no ice)
 
-	if (Wtot > acro_depth * acro_por_icy) {
+	if (Wtot > acro_depth * acro_por) {
 		
 		// Saturated acrotelm
 
-		wtp[daynum] = Wtot - acro_depth * acro_por_icy; 
+		wtp[daynum] = Wtot - acro_depth * acro_por; 
 		// i.e. wtp[daynum] > 0 above the surface
 		
 		if (wtp[daynum] > maxh) {
@@ -1531,18 +1533,17 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		}
 
 		wtd = -wtp[daynum]; // i.e. wtd defined as < 0 above the surface
-		Wtot = acro_depth * acro_por_icy; 
+		Wtot = acro_depth * acro_por; 
 		// I.e. Wtot does NOT include standing water
-		stand_water = wtp[daynum]; // 
+		stand_water = 0.0; // = wtp[daynum]; // we assume no standing water 
 	} 
 	else {
 		
 		// Non-saturated acrotelm - Granberg (1999), Eqns 1-5
-
-		wtd = sqrt(3.0 * (acro_por_icy*acro_depth - Wtot)/(2.0 * az));
+		wtd = sqrt(3.0 * (acro_por*acro_depth - Wtot)/(2.0 * az)); 
 		
 		if (wtd > zmin)
-			wtd = 3.0 * (acro_por_icy * acro_depth - Wtot) / (2.0 * (acro_por_icy - minvtot));
+			wtd = 3.0 * (acro_por * acro_depth - Wtot) / (2.0 * (acro_por - minvtot));
 
 		if (wtd > acro_depth) 
 			wtd = acro_depth; 
@@ -1558,6 +1559,8 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 	runoff = runoff_surf;
 	patch.arunoff+=runoff;
 	patch.mrunoff[date.month]+=runoff;
+	patch.asurfrunoff += runoff;
+
 
 	// Depth of acrotelm sublayers - usually 10 mm
 	Dz_sub = NACROTELM * Dz_acro / NSUBLAYERS_ACRO;
@@ -1580,13 +1583,13 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		// = NSUBLAYERS_ACRO iff wtd = Dz_acro
 		int wtd_layer = (int)(wtd / Dz_sub); // Takes the integer part only
 
-		surfw_sat = max(minvtot, acro_por_icy - az * wtd); // Granberg - eqn 3.
+		surfw_sat = max(minvtot, acro_por - az * wtd); // Granberg - eqn 3.
 
 		if (wtd_layer == 0) {
 			
 			// Total saturation throughout the acrotelm (from 10mm down)
 			for (int j = 0; j < NSUBLAYERS_ACRO; j++) {
-				value[j] = acro_por_icy; 
+				value[j] = acro_por; 
 			}
 		} 
 		else {
@@ -1594,12 +1597,12 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 			// Unsaturated zone in the acrotelm - use Granberg's eqn 1.
 			for (int i = 0; i < wtd_layer; i++) {
 				double z = (i+1)*Dz_sub; // mm
-				value[i] = min(acro_por_icy, surfw_sat + (acro_por_icy - surfw_sat) * pow(z/wtd,2));
+				value[i] = min(acro_por, surfw_sat + (acro_por_icy - surfw_sat) * pow(z/wtd,2));
 			}
 
 			// Saturated zone in the acrotelm
 			for (int j = wtd_layer; j < NSUBLAYERS_ACRO; j++) {
-				value[j] = acro_por_icy; 
+				value[j] = acro_por; 
 			}
 		}
 
@@ -1714,8 +1717,8 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 	     ENDIF
 	*/
 
-	double wtp_graminoid_upper = -50.0;		// mm - Wania et al. 2009b have -100
-	double wtp_graminoid_lower = -200.0;	// mm - Wania et al. 2009b have -300 mm
+	double wtp_graminoid_upper = -10; // -50.0;		// mm - Wania et al. 2009b have -100
+	double wtp_graminoid_lower = -100; // -200.0;	// mm - Wania et al. 2009b have -300 mm
 	double graminoid_wtp_limit_lowerlimit = 0.0; 
 
 	// More restrictive than Wania et al., otherwise graminoids become too dominant as they never suffer from inundation stress
@@ -1939,7 +1942,7 @@ void Soil::update_soil_water() {
 
 		// For wetlands:
 		if (ly < IDX + NACROTELM)
-			Wtot += (Frac_water[ly] + Frac_ice[ly]) * Dz[ly]; // Wtot includes ice
+			Wtot += (Frac_water[ly] + Frac_ice[ly] + Fpwp_ref[ly]) * Dz[ly]; // Wtot includes ice
 
 	} // for loop (ly)
 
@@ -3031,12 +3034,20 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 				}
 				else {
 
-					// It is cold enough to freeze all the water and
-					// decrease the temperature below 0, since the rest
-					// of the water gets frozen now.
+					// It is cold enough to freeze all the water and decrease the temperature below 0, 
+					// since the rest of the water gets frozen now. However, it should never result in 
+					// temperatures colder than the values coming from the Crank-Nicholson scheme.
 
 					Frac_ice[i] += Frac_water[i];
-					T_soil[i] = -(Ffreez - Frac_water[i]) * Lheat / heat_capacity_layer; // was Cp_water
+					
+					// Update soil temperature in this layer
+					T_soil[i] = -(Ffreez - Frac_water[i]) * Lheat / Cp_water;
+
+					// Note that this gives the same result as the following method:
+					// double temp_rise = Frac_water[i] * Lheat / Cp_water; // temp rise resulting from freezing water.
+					// T_soil[i] += temp_rise;
+					
+					T_soil[i] = min(0.0, T_soil[i]); // Ensures we don't go back over 0 degrees
 
 					// Remove tiny amounts of water for numerical stability
 					if (DEBUG_SOIL_WATER) {
@@ -3099,7 +3110,15 @@ void Soil::update_ice_fraction(const int& daynum, const int& MIDX) {
 					Frac_water_belowpwp[i] = Fpwp_ref[i]; // All water is unfrozen
 					Frac_water[i] -= Frac_water_belowpwp[i]; // Only store liquid water above the pwp
 
-					T_soil[i] = (Fthaw - Frac_ice[i]) * Lheat / heat_capacity_layer; // was Cp_water
+					// Update soil temperature in this layer
+					T_soil[i] = (Fthaw - Frac_ice[i]) * Lheat / Cp_water;					
+
+					// Note that this gives the same result as the following method:
+					// double temp_reduction = Frac_ice[i] * Lheat / Cp_water; // temp reduction resulting from thawing ice.
+					// T_soil[i] -= temp_reduction;
+
+					T_soil[i] = max(0.0, T_soil[i]); // Ensures we don't go back under 0 degrees
+
 					Frac_ice[i] = 0.0;
 
 					// Remove tiny amounts of water for numerical stability
@@ -3296,8 +3315,56 @@ void Soil::update_layer_fractions(const int& daynum, const int& mixedl, const in
 	}
  }
 
+void Soil::snowpack_dynamics(const double &snowdepth, const int& soilsurfaceindex, int& snow_active_layers) {
 
-bool Soil::calculate_soil_temp(const double &dailyairtemp) {
+	// DESCRIPTION
+	// Prvate function called daily from main soil temperature routine.
+	// Update the depth of each snow layer, and updates the number of active snow layers.
+
+	// INPUT:
+	// snowdepth		- the daily snow depth (mm)
+	// soilsurfaceindex	- index in the Dz array
+
+	double toplayerdepth = 50.0; // mm (as in JSBACH)
+	double fulldepth = NLAYERS_SNOW * toplayerdepth;
+	
+	// Simple snow layer scheme. The snow layer nearest the soil surface has variable depth.
+	// We add/remove toplayerdepth (e.g. 50mm) layers as the snow deepens/melts. 
+	if (snowdepth > fulldepth) {
+		snow_active_layers = NLAYERS_SNOW;
+		Dz[soilsurfaceindex - snow_active_layers] = toplayerdepth;
+		Dz[soilsurfaceindex - snow_active_layers + 1] = toplayerdepth;
+		Dz[soilsurfaceindex - snow_active_layers + 2] = toplayerdepth;
+		Dz[soilsurfaceindex - snow_active_layers + 3] = toplayerdepth;
+		Dz[soilsurfaceindex - snow_active_layers + 4] = snowdepth-(snow_active_layers -1)*toplayerdepth;
+	}
+	else if (snowdepth <= fulldepth && snowdepth > (NLAYERS_SNOW - 1)*toplayerdepth) { // 200-250
+		snow_active_layers = NLAYERS_SNOW - 1;
+		Dz[soilsurfaceindex - snow_active_layers] = toplayerdepth;
+		Dz[soilsurfaceindex - snow_active_layers + 1] = toplayerdepth;
+		Dz[soilsurfaceindex - snow_active_layers + 2] = toplayerdepth;
+		Dz[soilsurfaceindex - snow_active_layers + 3] = snowdepth - (snow_active_layers - 1)*toplayerdepth;
+	}
+	else if (snowdepth <= (NLAYERS_SNOW - 1)*toplayerdepth && snowdepth > (NLAYERS_SNOW - 2)*toplayerdepth) { // 150-200
+		snow_active_layers = NLAYERS_SNOW - 2;
+		Dz[soilsurfaceindex - snow_active_layers] = toplayerdepth;
+		Dz[soilsurfaceindex - snow_active_layers + 1] = toplayerdepth;
+		Dz[soilsurfaceindex - snow_active_layers + 2] = snowdepth - (snow_active_layers - 1)*toplayerdepth;
+	}
+	else if (snowdepth <= (NLAYERS_SNOW - 2)*toplayerdepth && snowdepth > (NLAYERS_SNOW - 3)*toplayerdepth) { // 100-150
+		snow_active_layers = NLAYERS_SNOW - 3;
+		Dz[soilsurfaceindex - snow_active_layers] = toplayerdepth;
+		Dz[soilsurfaceindex - snow_active_layers + 1] = snowdepth - (snow_active_layers - 1)*toplayerdepth;
+	}
+	else {
+		snow_active_layers = NLAYERS_SNOW - 4; // 0-100 - usually a single layer
+		Dz[soilsurfaceindex - snow_active_layers] = snowdepth;
+	}
+
+}
+
+
+bool Soil::soil_temp_multilayer(const double &dailyairtemp) {
 
 	// DESCRIPTION
 	// Main soil temperature routine. Called daily from dailyaccounting_patch
@@ -3324,7 +3391,6 @@ bool Soil::calculate_soil_temp(const double &dailyairtemp) {
 
 	int daynum = date.day;
 
-	// TODO: Move this to some init function
 	if (firstTempCalc && patch.stand.first_year == date.year) {
 
 		for (int i = 0; i<NLAYERS; i++) {
@@ -3368,18 +3434,6 @@ bool Soil::calculate_soil_temp(const double &dailyairtemp) {
 	} // firstTempCalc
 	else if (firstTempCalc && (restart || patch.stand.clone_year == date.year)) {
 
-		/*
-		for (int i = 0; i<NLAYERS; i++) {
-			// Set the soil temperature to 0 degC initally.
-			// Could also initialise T_soil with Tm (MAAT) * depth(m) * 0.015 as in Wisser et al. (2011)
-			Di[i] = 0.04 * MM2_PER_M2;
-			Ci[i] = Cp_air * M3_PER_MM3;
-			Ki[i] = Di[i] * Ci[i];
-			//Dz[i] = 100.0;
-		}
-		*/
-
-
 		// The log is used to speed things up. Without the log you need
 		// to use an exponential, with it you just multiply.
 		lKorg = log(Korg);
@@ -3398,7 +3452,7 @@ bool Soil::calculate_soil_temp(const double &dailyairtemp) {
 
 	// Error check
 	if (!valid_layer_num(ngroundl)) {
-		dprintf("Soil::calculate_soil_temp - INVALID LAYER ERROR!!!\n");
+		dprintf("Soil::soil_temp_multilayer - INVALID LAYER ERROR!!!\n");
 		return false;
 	}
 
@@ -3438,48 +3492,13 @@ bool Soil::calculate_soil_temp(const double &dailyairtemp) {
 	int snow_active_layers_old = snow_active_layers;
 
 	double snowdepth = snowpack / (snowdens / water_density); // mm
-	double toplayerdepth = 50.0; // mm (as in JSBACH)
-	double fulldepth = NLAYERS_SNOW * toplayerdepth; //
-
 	int soilsurfaceindex = NLAYERS - ngroundl - mixedl;
 
 	if (ifmultilayersnow && !iftwolayersoil) {
 
 		// Allow multiple layers?
 		if (snow_active) {
-
-			// Simple snow layer scheme. The snow layer nearest the soil surface has variable depth.
-			// We add/remove toplayerdepth (e.g. 50mm) layers as the snow deepens/melts. 
-			if (snowdepth > fulldepth) {
-				snow_active_layers = NLAYERS_SNOW;
-				Dz[soilsurfaceindex - snow_active_layers] = toplayerdepth;
-				Dz[soilsurfaceindex - snow_active_layers + 1] = toplayerdepth;
-				Dz[soilsurfaceindex - snow_active_layers + 2] = toplayerdepth;
-				Dz[soilsurfaceindex - snow_active_layers + 3] = toplayerdepth;
-				Dz[soilsurfaceindex - snow_active_layers + 4] = snowdepth-(snow_active_layers -1)*toplayerdepth;
-			}
-			else if (snowdepth <= fulldepth && snowdepth > (NLAYERS_SNOW - 1)*toplayerdepth) { // 200-250
-				snow_active_layers = NLAYERS_SNOW - 1;
-				Dz[soilsurfaceindex - snow_active_layers] = toplayerdepth;
-				Dz[soilsurfaceindex - snow_active_layers + 1] = toplayerdepth;
-				Dz[soilsurfaceindex - snow_active_layers + 2] = toplayerdepth;
-				Dz[soilsurfaceindex - snow_active_layers + 3] = snowdepth - (snow_active_layers - 1)*toplayerdepth;
-			}
-			else if (snowdepth <= (NLAYERS_SNOW - 1)*toplayerdepth && snowdepth > (NLAYERS_SNOW - 2)*toplayerdepth) { // 150-200
-				snow_active_layers = NLAYERS_SNOW - 2;
-				Dz[soilsurfaceindex - snow_active_layers] = toplayerdepth;
-				Dz[soilsurfaceindex - snow_active_layers + 1] = toplayerdepth;
-				Dz[soilsurfaceindex - snow_active_layers + 2] = snowdepth - (snow_active_layers - 1)*toplayerdepth;
-			}
-			else if (snowdepth <= (NLAYERS_SNOW - 2)*toplayerdepth && snowdepth > (NLAYERS_SNOW - 3)*toplayerdepth) { // 100-150
-				snow_active_layers = NLAYERS_SNOW - 3;
-				Dz[soilsurfaceindex - snow_active_layers] = toplayerdepth;
-				Dz[soilsurfaceindex - snow_active_layers + 1] = snowdepth - (snow_active_layers - 1)*toplayerdepth;
-			}
-			else {
-				snow_active_layers = NLAYERS_SNOW - 4; // 0-100 - usually a single layer
-				Dz[soilsurfaceindex - snow_active_layers] = snowdepth;
-			}
+			snowpack_dynamics(snowdepth, soilsurfaceindex, snow_active_layers);
 		}
 		else {
 			snow_active_layers = 0;
@@ -3608,8 +3627,11 @@ bool Soil::calculate_soil_temp(const double &dailyairtemp) {
 
 			double dayfrac = Dt / (double)TIMESTEPS;
 
-			// Wania at al. (2009a) algorithm
+			// Wania at al. (2009a) algorithm. Assumes vertical homogeneity in Ki and Ci.
 			cnstep(layer0, Di, Dz, surf_temp, dayfrac, pad_dz, T, pad_temp);
+			// Alternative algorithm that does not assume vertical homogeneity in Ki and Ci:
+			// cnstep_full(layer0, Di, Dz, surf_temp, dayfrac, pad_dz, T, pad_temp, Ki, Ci);
+
 		}
 	}
 
@@ -3621,7 +3643,7 @@ bool Soil::calculate_soil_temp(const double &dailyairtemp) {
 
 		if (T[i] < -ERROR_TEMP || T[i] > ERROR_TEMP) { // -70 exceeded in Siberia sometimes
 
-			dprintf("Soil::calculate_soil_temp - SOIL TEMP. ERROR!!!\n");
+			dprintf("Soil::soil_temp_multilayer - SOIL TEMP. ERROR!!!\n");
 			dprintf("%g%s%g\n", (double)date.year, "  ", (double)date.day);
 			dprintf("%g%s%g%s%g\n", (double)i, ":  T[i]: ", T[i], ", Di[i]: ", Di[i]);
 

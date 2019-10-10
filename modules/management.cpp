@@ -278,9 +278,6 @@ void clearcut(Individual& indiv, double anpp, bool& killed) {
 /// Determines whether this patch should be cut this year.
 double cut_fraction(Patch& patch) {
 
-	if(!run_landcover)
-		return 0.0;
-
 	Stand& stand = patch.stand;
 	xtring harvest_system = stlist[stand.stid].get_management(stand.current_rot).harvest_system;
 	if(harvest_system == "")
@@ -318,6 +315,50 @@ double cut_fraction(Patch& patch) {
 	}
 
 	return cut_fraction;
+}
+
+/// Set forest management intensity and harvests forests for all stands this year
+void manage_forests(Gridcell& gridcell) {
+
+	if (!run_landcover || date.day) {
+		return;
+	}
+
+	Gridcell::iterator gc_itr = gridcell.begin();
+	while (gc_itr != gridcell.end()) {
+		Stand& stand = *gc_itr;
+	
+		stand.firstobj();
+		while (stand.isobj && (stand.landcover == FOREST || stand.landcover == NATURAL)) {
+			Patch& patch = stand.getobj();
+			patch.man_strength = cut_fraction(patch);
+			stand.nextobj();
+		}
+		++gc_itr;
+	}
+
+	Gridcell::iterator gc_itr2 = gridcell.begin();
+	while (gc_itr2 != gridcell.end()) {
+		Stand& stand = *gc_itr2;
+
+		stand.firstobj();
+		while (stand.isobj && (stand.landcover == FOREST || stand.landcover == NATURAL)) {
+			Patch& patch = stand.getobj();
+			Vegetation& vegetation = patch.vegetation;
+			vegetation.firstobj();
+			while (vegetation.isobj) {
+				Individual& indiv = vegetation.getobj();
+
+				bool killed = false;
+				harvest_forest(indiv, indiv.pft, indiv.alive, 0.0, killed);
+
+				if(!killed)
+					vegetation.nextobj();
+			}
+			stand.nextobj();
+		}
+		++gc_itr2;
+	}
 }
 
 /// Determines if and how much of this (average) individual is to be cut.
@@ -1054,8 +1095,6 @@ bool harvest_year(Individual& indiv) {
 	else if (stand.landcover == PASTURE) {
 		harvest_pasture(indiv, indiv.pft, indiv.alive);
 	}
-	else if(stand.landcover == FOREST || stand.landcover == NATURAL && run_landcover)
-		harvest_forest(indiv, indiv.pft, indiv.alive, indiv.anpp, killed);
 
 	return killed;
 }

@@ -133,11 +133,10 @@ typedef enum {DRY, DRY_INTERMEDIATE, DRY_WET, INTERMEDIATE, INTERMEDIATE_WET, WE
  */
 typedef enum {COLD, COLD_WARM, COLD_HOT, WARM, WARM_HOT, HOT} temp_seasonality_type;
 
-
 /// Gas type (used in methane code)
 /** 
   */
-typedef enum {O2gas, CO2gas, CH4gas} gastype; 
+typedef enum {O2gas, CO2gas, CH4gas} gastype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
@@ -615,7 +614,7 @@ struct PhotosynthesisResult : public Serializable {
 };
 
 /// Class containing serializable variables for Weathergenerator GWGen
-class WeatherGenState : public Serializable  {
+class WeatherGenState : public Serializable {
 
 public:
 	int q[10];
@@ -1553,8 +1552,8 @@ public:
 	double lambda_max;
 	/// vegetation root profile in an array containing fraction of roots in each soil layer, [0=upper layer]
 	double rootdist[NSOILLAYER];
-    /// shape parameter for initialisation of root distribtion
-    double root_beta;
+    	/// shape parameter for initialisation of root distribtion
+    	double root_beta;
 	/// canopy conductance component not associated with photosynthesis (mm/s)
 	double gmin;
 	/// maximum evapotranspiration rate (mm/day)
@@ -1727,7 +1726,7 @@ public:
 
 	/// Bioclimatic limits parameters from Wolf et al. 2008
 
-    /// snow max [mm]
+    	/// snow max [mm]
 	double max_snow;
 	/// snow min [mm]
 	double min_snow;
@@ -1898,10 +1897,9 @@ public:
 		frootend = 0.0;
 		forceautumnsowing = 0;
 		nlim = false;
-        
-        // Overwritten by PLIB if rootdistribution == jackson,
-        // needs to be initialized here to supress warnings
-        root_beta = 0.0;
+		// Overwritten by PLIB if rootdistribution == jackson,
+		// needs to be initialized here to supress warnings
+		root_beta = 0.0;
 
 		fertrate[0] = 0.0;
 		fertrate[1] = 1.0;

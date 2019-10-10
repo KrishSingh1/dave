@@ -43,10 +43,10 @@ file_cton_leaf "cton_leaf.out"
 file_ngases "ngases.out"
 file_nsources "nsources.out"
 file_npool "npool.out"
-!file_nlitter "nlitter.out"
-!file_nuptake "nuptake.out"
+file_nlitter "nlitter.out"
+file_nuptake "nuptake.out"
 file_nflux "nflux.out"
-!file_vmaxnlim "vmaxnlim.out"
+file_vmaxnlim "vmaxnlim.out"
 
 ! Monthly outputs
 !file_mnpp "mnpp.out"
@@ -98,8 +98,7 @@ ifcalcsla 1			! whether to calculate SLA from leaf longevity
 ifcalccton 1			! whether to calculate leaf C:N min from leaf longevity
 				! (PFT-specific value can be specified in this file instead)
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE                
-weathergenerator "GWGEN"	! GWGEN, INTERP
-				
+weathergenerator "GWGEN"	! GWGEN, INTERP				
 npatch 5			! number of replicate patches to simulate
 patcharea 1000			! patch area (m2)
 estinterval 5			! years between establishment events in cohort mode

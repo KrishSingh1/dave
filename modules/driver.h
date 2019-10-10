@@ -21,13 +21,13 @@
 double randfrac(long& seed);
 
 void interp_monthly_means_conserve(const double* mvals, double* dvals,
-                                   double minimum = -std::numeric_limits<double>::max(),
-                                   double maximum = std::numeric_limits<double>::max());
+	double minimum = -std::numeric_limits<double>::max(),
+	double maximum = std::numeric_limits<double>::max());
 void interp_monthly_totals_conserve(const double* mvals, double* dvals,
-                                   double minimum = -std::numeric_limits<double>::max(),
-                                   double maximum = std::numeric_limits<double>::max());
+	double minimum = -std::numeric_limits<double>::max(),
+	double maximum = std::numeric_limits<double>::max());
 void distribute_ndep(const double* mndry, const double* mnwet,
-                     const double* dprec, double* dndep);
+	const double* dprec, double* dndep);
 void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed, bool truncate = true);
 void dailyaccounting_gridcell(Gridcell& gridcell);
 void dailyaccounting_stand(Stand& stand);

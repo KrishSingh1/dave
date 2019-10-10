@@ -41,6 +41,7 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 
 } // namespace
 
+
 std::vector<std::pair<double, double> > CRUInput::translate_gridlist_to_coord(ListArray_id<Coord>& gridlist) {
 	gridlist.firstobj();
 	std::vector<std::pair<double, double> > output;
@@ -53,6 +54,7 @@ std::vector<std::pair<double, double> > CRUInput::translate_gridlist_to_coord(Li
 	}
 	return output;
 }
+
 
 CRUInput::CRUInput()
 	: searchradius(0),

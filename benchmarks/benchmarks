@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 #
 # benchmarks - an automatic benchmarking suite for LPJ-GUESS.
 #

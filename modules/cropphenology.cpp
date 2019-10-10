@@ -582,7 +582,7 @@ void leaf_phenology_crop(Pft& pft, Patch& patch) {
 // REFERENCES
 //
 // Bondeau A, Smith PC, Zaehle S, Schaphoff S, Lucht W, Cramer W, Gerten D, Lotze-Campen H,
-//   Müller C, Reichstein M & Smith B 2007. Modelling the role of agriculture for the
+//   MÃ¼ller C, Reichstein M & Smith B 2007. Modelling the role of agriculture for the
 //   20th century global terrestrial carbon balance. Global Change Biology, 13:679-706.
 // Lindeskog M, Arneth A, Bondeau A, Waha K, Seaquist J, Olin S, & Smith B 2013.
 //   Implications of accounting for land use in simulations of ecosystem carbon cycling

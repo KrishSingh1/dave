@@ -861,7 +861,7 @@ void crop_sowing_patch(Patch& patch) {
 // REFERENCES
 //
 // Bondeau A, Smith PC, Zaehle S, Schaphoff S, Lucht W, Cramer W, Gerten D, Lotze-Campen H,
-//   Müller C, Reichstein M & Smith B 2007. Modelling the role of agriculture for the
+//   MÃ¼ller C, Reichstein M & Smith B 2007. Modelling the role of agriculture for the
 //   20th century global terrestrial carbon balance. Global Change Biology, 13:679-706.
-// Waha K, van Bussel LGJ, Müller C, and Bondeau A.2012. Climate-driven simulation of global
+// Waha K, van Bussel LGJ, MÃ¼ller C, and Bondeau A.2012. Climate-driven simulation of global
 //   crop sowing dates, Global Ecol Biogeogr 21:247-259

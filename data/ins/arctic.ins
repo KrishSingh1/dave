@@ -108,8 +108,8 @@ ifsme 1				! whether spatial mass effect enabled
 ifstochestab 1			! whether establishment stochastic
 ifstochmort 1			! whether mortality stochastic
 ifcdebt 1			! whether to allow vegetation C storage (1) or not (0)
-wateruptake "rootdist"  ! "wcont", "rootdist", "smart" or "speciesspecific",
-                        ! see documentation for water_uptake()
+wateruptake "rootdist"  	! "wcont", "rootdist", "smart" or "speciesspecific",
+                        	! see documentation for water_uptake()
 rootdistribution "jackson"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1	     		! whether to use silt/sand fractions specific to soiltype
 
@@ -128,6 +128,7 @@ nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
 !///////////////////////////////////////////////////////////////////////////////
 ! ARCTIC AND WETLAND SWITCHES
 !///////////////////////////////////////////////////////////////////////////////
+
 
 iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
 				! Of the switches below, iforganicsoilproperties, ifcarbonfreeze and 
@@ -165,6 +166,7 @@ ifdroughtlimitedestab 0			! whether establishment is limited by growing season d
 								! guess2008 - species version has 1
 ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit every day (0)
 ifbvoc 0                     ! whether to include BVOC calculations (1) or not (0)
+
 
 !///////////////////////////////////////////////////////////////////////////////
 ! LANDCOVER PARAMETERS

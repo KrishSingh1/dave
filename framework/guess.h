@@ -133,11 +133,10 @@ typedef enum {DRY, DRY_INTERMEDIATE, DRY_WET, INTERMEDIATE, INTERMEDIATE_WET, WE
  */
 typedef enum {COLD, COLD_WARM, COLD_HOT, WARM, WARM_HOT, HOT} temp_seasonality_type;
 
-
 /// Gas type (used in methane code)
 /** 
   */
-typedef enum {O2gas, CO2gas, CH4gas} gastype; 
+typedef enum {O2gas, CO2gas, CH4gas} gastype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
@@ -615,7 +614,7 @@ struct PhotosynthesisResult : public Serializable {
 };
 
 /// Class containing serializable variables for Weathergenerator GWGen
-class WeatherGenState : public Serializable  {
+class WeatherGenState : public Serializable {
 
 public:
 	int q[10];
@@ -1866,6 +1865,9 @@ public:
 
 		std::fill_n(gdd0, Date::MAX_YEAR_LENGTH + 1, -1.0); // value<0 signifies "unknown"; see function phenology()
 
+		nlim = false;
+        root_beta = 0.0;
+
 		drought_tolerance = 0.0; // Default, means that the PFT will never be limited by drought.
 		res_outtake = 0.0;
 		harv_eff = 0.0;
@@ -1897,11 +1899,6 @@ public:
 		frootstart = 0.0;
 		frootend = 0.0;
 		forceautumnsowing = 0;
-		nlim = false;
-        
-        // Overwritten by PLIB if rootdistribution == jackson,
-        // needs to be initialized here to supress warnings
-        root_beta = 0.0;
 
 		fertrate[0] = 0.0;
 		fertrate[1] = 1.0;

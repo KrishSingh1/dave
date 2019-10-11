@@ -358,8 +358,8 @@ void decayrates_century(Soil& soil, double temp_soil, double wcont_soil, bool ti
 	// Maximum exponential decay constants for each SOM pool (daily basis)
 	// (Parton et al 2010, Figure 2)
 	// plus Kirschbaum et al 2001 coarse woody debris decay
-	const double K_MAX[] = {9.5e-3, 1.9e-2, 4.2e-2, 4.8e-4, 2.7e-2, 3.8e-2, 1.1e-2, 2.2e-3, 7.0e-2, 1.7e-3, 1.9e-6};
 	// pools SURFSTRUCT,SOILSTRUCT,SOILMICRO,SURFHUMUS,SURFMICRO,SURFMETA,SURFFWD,SURFCWD,SOILMETA,SLOWSOM,PASSIVESOM
+	const double K_MAX[] = {9.5e-3, 1.9e-2, 4.2e-2, 4.8e-4, 2.7e-2, 3.8e-2, 1.1e-2, 2.2e-3, 7.0e-2, 1.7e-3, 1.9e-6};
 
 	// Modifier for effect of soil texture
 	// Eqn 5, Parton et al 1993:
@@ -422,8 +422,8 @@ void decayrates_century(Soil& soil, double temp_soil, double wcont_soil, bool ti
 
 	double moist_mod_inundated_mineral = 0.000371 * 100 * 100 - 0.0748 * 100 + 4.13; // 100% WFPS for wetlands on mineral soils, 0.36 approx
 
-    // Combined moisture and temperature modifier
-    
+	// Combined moisture and temperature modifier
+	
 	// simple overrides for peatlands and mineral wetlands
 	double moist_mod_saturated = 1.0; // no effect unless this is peatland
 
@@ -1086,9 +1086,9 @@ void transfer_litter(Patch& patch) {
 
 	// Calculate total litter carbon and nitrogen mass for set N:C ratio of surface microbial pool
 	double litter_cmass = soil.sompool[SURFSTRUCT].cmass + soil.sompool[SURFMETA].cmass +
-	                      soil.sompool[SURFFWD].cmass + soil.sompool[SURFCWD].cmass;
+						  soil.sompool[SURFFWD].cmass + soil.sompool[SURFCWD].cmass;
 	double litter_nmass = soil.sompool[SURFSTRUCT].nmass + soil.sompool[SURFMETA].nmass +
-	                      soil.sompool[SURFFWD].nmass + soil.sompool[SURFCWD].nmass;
+						  soil.sompool[SURFFWD].nmass + soil.sompool[SURFCWD].nmass;
 
 	// Set N:C ratio of surface microbial pool based on N:C ratio of litter from all PFTs
 	// Parton et al 1993 Fig 4. Dry mass litter == cmass litter * 2
@@ -1120,6 +1120,7 @@ void leaching(Soil& soil) {
 		// in proportion to amount of water drainage
 		// Use Gerten equivalents here 
 		minleachfrac = soil.dperc / (soil.dperc + soil.soiltype.gawc[0] * soil.get_soil_water_upper());
+
 		// Leaching from decayed organic carbon/nitrogen
 		// using Parton et al. eqn. 8; CENTURY 5 parameter update; from equation: C Leached=microbial_C*[OMLECH(1)+OMLECH(2)*sand_fraction]*[1.0f-(OMLECH(3)-water_leaching)/OMLECH(3)],
 		// reorganised as: leachfrac = [water_leaching/OMLECH(3)]*[OMLECH(1)+OMLECH(2)*sand_fraction]
@@ -1403,7 +1404,7 @@ void som_dynamics_century(Patch& patch, bool tillage) {
 	soilnadd(patch);
 
 	// Daily mineral and organic nitrogen leaching
-        leaching(patch.soil);
+	leaching(patch.soil);
 
 	// Daily or monthly decomposition and fluxes between SOM pools
 	somfluxes(patch, false, tillage);

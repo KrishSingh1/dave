@@ -161,8 +161,8 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB
 	CB_STLANDCOVER, CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT,
 	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTHYDROLOGY,
 	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STHYDROLOGY, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
-	CB_PATHWAY,CB_ROOTDISTRIBUTION, CB_ROOTFRAC,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE,CB_MTCOMPOUND,
-        CB_FIREMODEL,CB_WEATHERGENERATOR};
+	CB_PATHWAY, CB_ROOTDISTRIBUTION, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_STRPARAM, CB_NUMPARAM, CB_WATERUPTAKE, CB_MTCOMPOUND,
+	CB_FIREMODEL,CB_WEATHERGENERATOR};
 
 // File local variables
 namespace {
@@ -450,9 +450,9 @@ void plib_declarations(int id,xtring setname) {
 			"Water uptake mode (\"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
 		declareitem("rootdistribution", &strparam, 20, CB_ROOTDISTRIBUTION,
 			"Parameterisation of root distribution (\"FIXED\", \"JACKSON\")");
-            
+			
 		declareitem("weathergenerator", &strparam, 20, CB_WEATHERGENERATOR,
-			    "Weather Generator (\"INTERP\", \"GWGEN\")");
+				"Weather Generator (\"INTERP\", \"GWGEN\")");
 
 		declareitem("nrelocfrac",&nrelocfrac,0.0,0.99,1,CB_NONE,
 			"Fractional nitrogen relocation from shed leaves & roots");
@@ -527,7 +527,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
 		declareitem("save_state", &save_state, 1, CB_NONE, "Whether to save new state files");
 		declareitem("state_year", &state_year, 1, 20000, 1, CB_NONE, "Save/restart year. Unspecified means just after spinup");
-        declareitem("verbosity", &verbosity, 0, 4, 1, CB_NONE, "Determines the amount of information that is printed to the logfile. 0 = suppress all output (even errors) 4 = print all information");
+		declareitem("verbosity", &verbosity, 0, 4, 1, CB_NONE, "Determines the amount of information that is printed to the logfile. 0 = suppress all output (even errors) 4 = print all information");
 
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
@@ -613,7 +613,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("lambda_max",&ppft->lambda_max,0.1,0.99,1,CB_NONE,
 			"Non-water-stressed ratio of intercellular to ambient CO2 pp");
 		declareitem("root_beta", &ppft->root_beta, 0.0,1.0,1,CB_ROOTFRAC,
-            "Shape parameter to determine fraction of roots in each soil layer");
+			"Shape parameter to determine fraction of roots in each soil layer");
  		declareitem("rootdist",ppft->rootdist,0.0,1.0,NSOILLAYER,CB_ROOTFRAC,
 			"Fraction of roots in each soil layer (first value=upper layer)");
 		declareitem("gmin",&ppft->gmin,0.0,1.0,1,CB_NONE,
@@ -992,7 +992,7 @@ void plib_callback(int callback) {
 		else {
 			sendmessage("Error",
 				"Unknown water uptake mode (valid types: \"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
-            	plibabort();
+				plibabort();
 		}
 		break;
 	case CB_WEATHERGENERATOR:
@@ -1014,7 +1014,7 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
-    	case CB_ROOTDISTRIBUTION:
+		case CB_ROOTDISTRIBUTION:
 		if (strparam.upper() == "FIXED") rootdistribution = ROOTDIST_FIXED;
 		else if (strparam.upper() == "JACKSON") rootdistribution = ROOTDIST_JACKSON;
 		else {
@@ -1022,7 +1022,7 @@ void plib_callback(int callback) {
 				"Unknown mode for root parameterisation (valid types: (\"FIXED\", \"JACKSON\")");
 			plibabort();
 		}
-        	break;
+			break;
 	case CB_LIFEFORM:
 		if (strparam.upper()=="TREE") ppft->lifeform=TREE;
 		else if (strparam.upper() == "GRASS") ppft->lifeform = GRASS;
@@ -1164,17 +1164,17 @@ void plib_callback(int callback) {
 		break;
 	case CB_ROOTFRAC:
 		numval = 0.0;
-        if (rootdistribution == ROOTDIST_JACKSON) ppft->init_rootdist();
-            
-        for (i=0;i<NSOILLAYER;i++) numval+=ppft->rootdist[i];
-        if (numval<0.99 || numval>1.01) {
-            sendmessage("Error","Specified root fractions do not sum to 1.0");
-            plibabort();
-        }
-        ppft->rootdist[NSOILLAYER-1]+=1.0-numval;
+		if (rootdistribution == ROOTDIST_JACKSON) ppft->init_rootdist();
+	
+		for (i=0;i<NSOILLAYER;i++) numval+=ppft->rootdist[i];
+		if (numval<0.99 || numval>1.01) {
+			sendmessage("Error","Specified root fractions do not sum to 1.0");
+			plibabort();
+		}
+		ppft->rootdist[NSOILLAYER-1]+=1.0-numval;
 		break;
 	case CB_MTCOMPOUND:
-          // bvoc. Can include some checks for the monoterpene parameters given per compound
+		  // bvoc. Can include some checks for the monoterpene parameters given per compound
 	break;
 	case CB_STRPARAM:
 		param.addparam(paramname,strparam);
@@ -1198,7 +1198,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
 		if (!itemparsed("wateruptake")) badins("wateruptake");
 		if (!itemparsed("rootdistribution")) badins("rootdistribution");
-            
+
 		if (!itemparsed("nrelocfrac")) badins("nrelocfrac");
 		if (!itemparsed("nfix_a")) badins("nfix_a");
 		if (!itemparsed("nfix_b")) badins("nfix_b");
@@ -1724,12 +1724,12 @@ void plib_callback(int callback) {
 			if (ifcalcsla) {
 				if (!itemparsed("leaflong")) {
 					sendmessage("Error",
-					            "Value required for leaflong when ifcalcsla enabled");
+								"Value required for leaflong when ifcalcsla enabled");
 					plibabort();
 				}
 				if (itemparsed("sla") && !(ppft->phenology == CROPGREEN && ifnlim))
 					sendmessage("Warning",
-					            "Specified sla value not used when ifcalcsla enabled");
+								"Specified sla value not used when ifcalcsla enabled");
 			}
 			if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 				if (!itemparsed("parff_min")) badins("parff_min");
@@ -1738,21 +1738,21 @@ void plib_callback(int callback) {
 			if (ifcalccton) {
 				if (!itemparsed("leaflong")) {
 					sendmessage("Error",
-					            "Value required for leaflong when ifcalccton enabled");
+								"Value required for leaflong when ifcalccton enabled");
 					plibabort();
 				}
 				if (itemparsed("cton_leaf_min") && !(ppft->phenology == CROPGREEN && ifnlim))
 					sendmessage("Warning",
-					            "Specified cton_leaf_min value not used when ifcalccton enabled");
+								"Specified cton_leaf_min value not used when ifcalccton enabled");
 			}
 		}
 		else {
 			// This PFT has already been parsed once, don't allow changing parameters
 			// which would have incurred different checks above.
 			if (itemparsed("lifeform") ||
-			    itemparsed("phenology")) {
+				itemparsed("phenology")) {
 				sendmessage("Error",
-				            "Not allowed to redefine lifeform or phenology in second PFT definition");
+							"Not allowed to redefine lifeform or phenology in second PFT definition");
 				plibabort();
 			}
 		}

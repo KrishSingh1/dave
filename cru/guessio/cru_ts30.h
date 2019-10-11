@@ -23,9 +23,9 @@ static const int FIRSTHISTYEAR=1901;
 
 /// Determine temp, precip, sunshine & soilcode
 bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,
-			   double mtemp[NYEAR_HIST][12],
-			   double mprec[NYEAR_HIST][12],
-			   double msun[NYEAR_HIST][12]);
+				double mtemp[NYEAR_HIST][12],
+				double mprec[NYEAR_HIST][12],
+				double msun[NYEAR_HIST][12]);
 
 /// Determine elevation, frs frq, wet frq & DTR
 bool searchcru_misc(char* cruark,double dlon,double dlat,int& elevation,

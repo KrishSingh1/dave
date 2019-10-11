@@ -1552,8 +1552,8 @@ public:
 	double lambda_max;
 	/// vegetation root profile in an array containing fraction of roots in each soil layer, [0=upper layer]
 	double rootdist[NSOILLAYER];
-    /// shape parameter for initialisation of root distribtion
-    double root_beta;
+	/// shape parameter for initialisation of root distribtion
+	double root_beta;
 	/// canopy conductance component not associated with photosynthesis (mm/s)
 	double gmin;
 	/// maximum evapotranspiration rate (mm/day)
@@ -1726,7 +1726,7 @@ public:
 
 	/// Bioclimatic limits parameters from Wolf et al. 2008
 
-    /// snow max [mm]
+	/// snow max [mm]
 	double max_snow;
 	/// snow min [mm]
 	double min_snow;
@@ -1866,7 +1866,7 @@ public:
 		std::fill_n(gdd0, Date::MAX_YEAR_LENGTH + 1, -1.0); // value<0 signifies "unknown"; see function phenology()
 
 		nlim = false;
-        root_beta = 0.0;
+		root_beta = 0.0;
 
 		drought_tolerance = 0.0; // Default, means that the PFT will never be limited by drought.
 		res_outtake = 0.0;

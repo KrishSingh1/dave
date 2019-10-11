@@ -17,7 +17,6 @@
 #include "cruncep_1901_2015.h"
 #include "cruncep_1901_2015misc.h"
 
-
 namespace CRU_TS30 {
 
 bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,

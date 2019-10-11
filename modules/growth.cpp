@@ -1152,6 +1152,9 @@ void growth(Stand& stand, Patch& patch) {
 		for (p=0; p<npft; p++)
 			stand.pft[p].cmass_repr = 0.0;
 
+	// Set forest management intensity for this year
+	patch.man_strength = cut_fraction(patch);
+
 	// Loop through individuals
 
 

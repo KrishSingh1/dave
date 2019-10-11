@@ -1677,11 +1677,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 			ppft.water_deficit_y = 0.0;
 		}
 	}
-
-	double wcont_opt[NSOILLAYER_UPPER];
-	bool add_water[NSOILLAYER_UPPER];
-	for (int i = 0; i<NSOILLAYER_UPPER; i++) add_water[i] = true;
-
+	 
 	if (patch.soil.get_soil_water_upper()<0.9 && ppft.phen > 0.0)	{
 		double wcont_0_opt = 0.0;
 		double wr_opt = min(1.0, patch.wdemand / ppft.phen / pft.emax);
@@ -1692,64 +1688,18 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 			if (wcont_0_opt * awc0 * patch.fpc_rescale > pft.emax * grootdist[0]) {
 				wcont_0_opt = pft.emax * grootdist[0] / awc0 / patch.fpc_rescale;
 			}
-
-			if (!iftwolayersoil) {
-
-				// Array of optimal wcont_values instead.
-				for (int i = 0; i<NSOILLAYER_UPPER; i++) {
-					wcont_opt[i] = (wr_opt * pft.emax - min(patch.soil.get_soil_water_lower() * awc1 * patch.fpc_rescale, pft.emax * grootdist[1])/ NSOILLAYER_UPPER) / patch.soil.soiltype.awc[i] / patch.fpc_rescale;
-			
-					if (wcont_opt[i] * patch.soil.soiltype.awc[i] * patch.fpc_rescale > pft.emax * pft.rootdist[i]) {
-						wcont_opt[i] = pft.emax * pft.rootdist[i] / patch.soil.soiltype.awc[i] / patch.fpc_rescale;
-					}
-
-					if (wcont_cp[i] > wcont_opt[i]) {
-						// Do not change wcont for layers that already have enough available water, or add water to them
-						wcont_opt[i] = wcont_cp[i];
-						add_water[i] = false;
-					}
-				}
-
-			}
-
 		}
 		else {
 			fail("Irrigation soil water only balanced for WR_ROOTDIST currently !\n");
 		}
 
-		bool irrigate_soil = false;
-
-		if (iftwolayersoil) {
-			if (wcont_0_opt > patch.soil.get_soil_water_upper()) 
-				irrigate_soil = true;
-		}
-		else {
-			for (int i = 0; i < NSOILLAYER_UPPER; i++) {
-				if (add_water[i])
-					irrigate_soil = true; // Allows irrigation if even one layer needs more water 
-			}
-		}
-
-		if (irrigate_soil && patch.soil.dsnowdepth <= 0.001) { // No irrigation when there is snow on the ground
+		if (wcont_0_opt > patch.soil.get_soil_water_upper() && patch.soil.dsnowdepth <= 0.001) { // No irrigation when there is snow on the ground
 
 			// No irrigation when there is ice left in the top 50cm
 			if (!patch.soil.ice_in_top_layer()) {
 
 				// Irrigation water for this PFT:
-
-				double water_to_add = 0.0;
-
-				double water_to_add_ly[NSOILLAYER_UPPER];
-				for (int i = 0; i < NSOILLAYER_UPPER; i++) water_to_add_ly[i] = 0.0;
-
-				if (iftwolayersoil)
-					water_to_add = (wcont_0_opt - patch.soil.get_soil_water_upper()) * awc0;
-				else {
-					for (int i = 0; i<NSOILLAYER_UPPER; i++) {
-						water_to_add_ly[i] = (wcont_opt[i] - wcont_cp[i]) * patch.soil.soiltype.awc[i];
-						water_to_add += water_to_add_ly[i];
-					}
-				}
+				double water_to_add = (wcont_0_opt - patch.soil.get_soil_water_upper()) * awc0;
 
 				ppft.water_deficit_d += water_to_add;
 
@@ -1770,14 +1720,14 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 				double potential_water = 0.0;
 
 				for (int ly = 0; ly < NSOILLAYER_UPPER; ly++) {
-					if (add_water[ly]) {
-						// Use: wcont[ly - IDX] = Faw_layer[ly - IDX] / soiltype.awc[ly - IDX];
-						Faw_layer[ly] = soil.get_layer_soil_water(ly) * soil.soiltype.awc[ly]; // mm
 
-						// Water in this layer
-						potential_layer[ly] = soil.aw_max[ly] - Faw_layer[ly];
-						potential_water += potential_layer[ly];
-					}
+					// Use: wcont[ly - IDX] = Faw_layer[ly - IDX] / soiltype.awc[ly - IDX];
+					Faw_layer[ly] = soil.get_layer_soil_water(ly) * soil.soiltype.awc[ly]; // mm
+
+					// Water in this layer
+					potential_layer[ly] = soil.aw_max[ly] - Faw_layer[ly];
+					potential_water += potential_layer[ly];
+
 				} // for loop (ly)
 
 				// to test the new wcont
@@ -1786,47 +1736,27 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 	
 				for (int s=0; s<NSOILLAYER_UPPER; s++) {
 
-					if (add_water[s]) {
+					double water_input_ly = 0.0;
+					water_input_ly = water_to_add * (potential_layer[s] / potential_water);
 
-						double water_input_ly = 0.0;
-						
-						if (iftwolayersoil)
-							water_input_ly = water_to_add * (potential_layer[s] / potential_water);
-						else
-							water_input_ly = water_to_add_ly[s];
-
-						Faw_layer[s] += water_input_ly;
-						potential_layer[s] -= water_input_ly;
-						wcont_cp[s] = Faw_layer[s] / soil.soiltype.awc[s];
+					Faw_layer[s] += water_input_ly;
+					potential_layer[s] -= water_input_ly;
+					wcont_cp[s] = Faw_layer[s] / soil.soiltype.awc[s];
 				
-						// Update wcont (and wcont_evap, Frac_water etc.) too
-						soil.set_layer_soil_water(s, Faw_layer[s] / soil.soiltype.awc[s]);
+					// Update wcont (and wcont_evap, Frac_water etc.) too
+					soil.set_layer_soil_water(s, Faw_layer[s] / soil.soiltype.awc[s]);
 
-					}
-					
 					total_available_water += wcont_cp[s] * soil.soiltype.awc[s]; // mm
 					total_capacity += soil.soiltype.awc[s]; // mm
 
 					oob_check_wcont(wcont_cp[s]);
-
-					// Error check
-					if (!iftwolayersoil) {
-						if (fabs(wcont_cp[s] - wcont_opt[s]) > 0.0001) {
-							dprintf("irrigated_water_uptake - error in the water balance!\n");
-							return -9999.0;
-						}
-					}
-
 				}
 
 				// Error check
-				if (iftwolayersoil) {
-					double new_wcont = total_available_water/ total_capacity;
-			
-					if (fabs(new_wcont - wcont_0_opt) > 0.0001) {
-						dprintf("irrigated_water_uptake - error in the water balance!\n");
-						return -9999.0;
-					}
+				double new_wcont = total_available_water/ total_capacity;
+				if (fabs(new_wcont - wcont_0_opt) > 0.0001) {
+					dprintf("irrigated_water_uptake - error in the water balance!\n");
+					return -9999.0;
 				}
 			}
 		}

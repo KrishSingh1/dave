@@ -100,7 +100,7 @@ CommonOutput::CommonOutput() {
 	declare_parameter("file_msoiltempdepth125", &file_msoiltempdepth125, 300, "Soil temperature output file (125cm depth)");
 	declare_parameter("file_msoiltempdepth135", &file_msoiltempdepth135, 300, "Soil temperature output file (135cm depth)");
 	declare_parameter("file_msoiltempdepth145", &file_msoiltempdepth145, 300, "Soil temperature output file (145cm depth)");
-
+	
 	declare_parameter("file_mch4", &file_mch4, 300, "Monthly CH4 emissions, total");
 	declare_parameter("file_mch4diff", &file_mch4diff, 300, "Monthly CH4 emissions, diffusion");
 	declare_parameter("file_mch4plan", &file_mch4plan, 300, "Monthly CH4 emissions, plant-mediated");
@@ -272,7 +272,7 @@ void CommonOutput::define_output_tables() {
 	runoff_columns += ColumnDescriptor("Surf",             8, 1);
 	runoff_columns += ColumnDescriptor("Drain",            8, 1);
 	runoff_columns += ColumnDescriptor("Base",             8, 1);
-	runoff_columns += ColumnDescriptor("Total",            9, 1);
+	runoff_columns += ColumnDescriptor("Total",            8, 1);
 
 	// WETLAND WATER ADDED
 	ColumnDescriptors wetland_water_added_columns;
@@ -423,33 +423,33 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_mmon_mt2,       file_mmon_mt2,       month_columns_wide);
 	create_output_table(out_mburned_area,   file_mburned_area_out, month_columns);
     
-	// Methane
+    // Methane
 	create_output_table(out_mch4,           file_mch4,           month_columns);
 	create_output_table(out_mch4diff,       file_mch4diff,       month_columns);
 	create_output_table(out_mch4plan,       file_mch4plan,       month_columns);
 	create_output_table(out_mch4ebull,      file_mch4ebull,      month_columns);
     
-	// Snow
+    // Snow
 	create_output_table(out_msnow,          file_msnow,          month_columns);
 	create_output_table(out_mwtp,           file_mwtp,           month_columns);
 	create_output_table(out_mald,           file_mald,           mald_columns);
 
 	// Soil temperatures
 	create_output_table(out_msoiltempdepth5, file_msoiltempdepth5, month_columns);
-	create_output_table(out_msoiltempdepth15, file_msoiltempdepth15, month_columns);
-	create_output_table(out_msoiltempdepth25, file_msoiltempdepth25, month_columns);
-	create_output_table(out_msoiltempdepth35, file_msoiltempdepth35, month_columns);
-	create_output_table(out_msoiltempdepth45, file_msoiltempdepth45, month_columns);
-	create_output_table(out_msoiltempdepth55, file_msoiltempdepth55, month_columns);
-	create_output_table(out_msoiltempdepth65, file_msoiltempdepth65, month_columns);
-	create_output_table(out_msoiltempdepth75, file_msoiltempdepth75, month_columns);
-	create_output_table(out_msoiltempdepth85, file_msoiltempdepth85, month_columns);
-	create_output_table(out_msoiltempdepth95, file_msoiltempdepth95, month_columns);
-	create_output_table(out_msoiltempdepth105, file_msoiltempdepth105, month_columns);
-	create_output_table(out_msoiltempdepth115, file_msoiltempdepth115, month_columns);
-	create_output_table(out_msoiltempdepth125, file_msoiltempdepth125, month_columns);
-	create_output_table(out_msoiltempdepth135, file_msoiltempdepth135, month_columns);
-	create_output_table(out_msoiltempdepth145, file_msoiltempdepth145, month_columns);
+    create_output_table(out_msoiltempdepth15, file_msoiltempdepth15, month_columns);
+    create_output_table(out_msoiltempdepth25, file_msoiltempdepth25, month_columns);
+    create_output_table(out_msoiltempdepth35, file_msoiltempdepth35, month_columns);
+    create_output_table(out_msoiltempdepth45, file_msoiltempdepth45, month_columns);
+    create_output_table(out_msoiltempdepth55, file_msoiltempdepth55, month_columns);
+    create_output_table(out_msoiltempdepth65, file_msoiltempdepth65, month_columns);
+    create_output_table(out_msoiltempdepth75, file_msoiltempdepth75, month_columns);
+    create_output_table(out_msoiltempdepth85, file_msoiltempdepth85, month_columns);
+    create_output_table(out_msoiltempdepth95, file_msoiltempdepth95, month_columns);
+    create_output_table(out_msoiltempdepth105, file_msoiltempdepth105, month_columns);
+    create_output_table(out_msoiltempdepth115, file_msoiltempdepth115, month_columns);
+    create_output_table(out_msoiltempdepth125, file_msoiltempdepth125, month_columns);
+    create_output_table(out_msoiltempdepth135, file_msoiltempdepth135, month_columns);
+    create_output_table(out_msoiltempdepth145, file_msoiltempdepth145, month_columns);
 }
 
 /// Function for producing data file used to communicate information on stand structure
@@ -681,7 +681,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mnee[12];
 	double mwcont_upper[12];
 	double mwcont_lower[12];
-	// bvoc
 	double miso[12];
 	double mmon[12];
 	double mmon_mt1[12];
@@ -702,6 +701,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	// The OutputRows object manages the next row of output for each
 	// output table
 	OutputRows out(output_channel, lon, lat, date.get_calendar_year());
+
 
 	// guess2008 - reset monthly and annual sums across patches each year
 	for (m = 0; m < 12; m++) {
@@ -1434,20 +1434,20 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		// Arctic and wetland output
 		const int layer_ix_25cm = 2; // Layer index for 25cm soil depth. It could depend on the thickness of the layers in future updates.  
 		outlimit(out,out_msoiltempdepth5, msoilt[m][0]);
-		outlimit(out,out_msoiltempdepth15, msoilt[m][1]);
-        	outlimit(out,out_msoiltempdepth25, msoilt[m][layer_ix_25cm]);
-		outlimit(out,out_msoiltempdepth35, msoilt[m][3]);
-		outlimit(out,out_msoiltempdepth45, msoilt[m][4]);
-		outlimit(out,out_msoiltempdepth55, msoilt[m][5]);
-		outlimit(out,out_msoiltempdepth65, msoilt[m][6]);
-		outlimit(out,out_msoiltempdepth75, msoilt[m][7]);
-		outlimit(out,out_msoiltempdepth85, msoilt[m][8]);
-		outlimit(out,out_msoiltempdepth95, msoilt[m][9]);
-		outlimit(out,out_msoiltempdepth105, msoilt[m][10]);
-		outlimit(out,out_msoiltempdepth115, msoilt[m][11]);
-		outlimit(out,out_msoiltempdepth125, msoilt[m][12]);
-		outlimit(out,out_msoiltempdepth135, msoilt[m][13]);
-		outlimit(out,out_msoiltempdepth145, msoilt[m][14]);
+        outlimit(out,out_msoiltempdepth15, msoilt[m][1]);
+        outlimit(out,out_msoiltempdepth25, msoilt[m][layer_ix_25cm]);
+        outlimit(out,out_msoiltempdepth35, msoilt[m][3]);
+        outlimit(out,out_msoiltempdepth45, msoilt[m][4]);
+        outlimit(out,out_msoiltempdepth55, msoilt[m][5]);
+        outlimit(out,out_msoiltempdepth65, msoilt[m][6]);
+        outlimit(out,out_msoiltempdepth75, msoilt[m][7]);
+        outlimit(out,out_msoiltempdepth85, msoilt[m][8]);
+        outlimit(out,out_msoiltempdepth95, msoilt[m][9]);
+        outlimit(out,out_msoiltempdepth105, msoilt[m][10]);
+        outlimit(out,out_msoiltempdepth115, msoilt[m][11]);
+        outlimit(out,out_msoiltempdepth125, msoilt[m][12]);
+        outlimit(out,out_msoiltempdepth135, msoilt[m][13]);
+        outlimit(out,out_msoiltempdepth145, msoilt[m][14]);
 		outlimit(out,out_mch4, mch4[m]);
 		outlimit(out,out_mch4diff, mch4_diff[m]);
 		outlimit(out,out_mch4plan, mch4_plant[m]);
@@ -1540,7 +1540,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	outlimit(out,out_nflux, -anfert_gridcell * M2_PER_HA);
 	outlimit(out,out_nflux, flux_ntot * M2_PER_HA);
 	outlimit(out,out_nflux, (n_min_leach_gridcell + n_org_leach_gridcell) * M2_PER_HA);
-
 	if (run_landcover) {
 			outlimit(out,out_nflux, flux_nseed * M2_PER_HA);
 			outlimit(out,out_nflux, flux_nharvest * M2_PER_HA);

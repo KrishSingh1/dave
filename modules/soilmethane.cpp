@@ -483,7 +483,7 @@ double Soil::diffuse_gas(double Cgas[NLAYERS], double D[NLAYERS], gastype thisga
 
 		// Assume a tiny diffusivity if there is very little liquid water in the layer
 		for (int ii=IDX; ii<NLAYERS; ii++) {
-			if ((Frac_water[ii] + Frac_water_belowpwp[ii]) < water_min) {
+			if (Frac_water[ii] < water_min) {
 				D[ii] = 1e-9; // [m2 d-1]
 			}
 		}
@@ -732,7 +732,7 @@ bool Soil::calculate_gas_ebullition(double& ebull_today) {
 			CH4_ebull_ind[ii] = 0.0;
 			
 			// Restrict ebullition to cases when there is enough liquid water and when soil T > 0. 
-			if ((Frac_water[ii] + Frac_water_belowpwp[ii]) > water_min && T_soil[ii] > 0.0) {
+			if (Frac_water[ii] > water_min && T_soil[ii] > 0.0) {
 
 				double henry_k_cc_CH4 = TsoilK / (12.2 * henry_k_CH4);
 				CH4_diss[ii] = min(CH4_diss_max_g, henry_k_cc_CH4 * CH4[ii]);
@@ -986,7 +986,7 @@ bool Soil::methane(bool generatemethane) {
 
 			// *** CH4 PRODUCTION IN THIS LAYER ***
 
-			if ((Frac_water[ii] + Frac_water_belowpwp[ii]) < water_min)
+			if (Frac_water[ii] < water_min)
 				CH4_prod[ii] = 0.0;
 			else
 				CH4_prod[ii] = anoxic * CH4toCO2_peat * rootfrac[ii] * drh; // gC/m2
@@ -1073,7 +1073,7 @@ bool Soil::methane(bool generatemethane) {
 			CH4_diff_today = 0.0; // remove tiny values
 
 		// C conservation test:
-		if ((CH4_diff_today < -0.1 || CH4_diff_today > 10000000) && verbosity >= WARNING) {
+		if ((CH4_diff_today < -0.1 || CH4_diff_today > 10000000 || isNumber(CH4_diff_today)) && verbosity >= WARNING) {
 			dprintf("%s%8.5f\n","Bad CH4 diffusion in Soil::methane()",CH4_diff_today);	
 		}
 

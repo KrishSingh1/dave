@@ -533,7 +533,7 @@ void soilwater(Patch& patch, Climate& climate) {
 
 				// New inundation algorithm that doesn't depend on months 
 
-				// Inundation restrictions only applied when phen > 0
+				// Inundation restructions only applied when phen > 0
 				if (patch.pft[p].phen > 0.0) {
 					if (wtpp > wtpm) {
 						patch.pft[p].inund_count++; // days
@@ -546,10 +546,8 @@ void soilwater(Patch& patch, Climate& climate) {
 					patch.pft[p].inund_count = 0;
 				}
 
-				const int inundation_delay = 3; // days
-				// Alternative: could restrict inund_count to be between 0 and this PFT's upper limit + 3 days.
-				// Ensures that the wetland PFTs benefit from a drop in the water table after a delay of 3 days
-				patch.pft[p].inund_count = max(min(patch.pft[p].inund_count,patch.pft[p].pft.inund_duration + inundation_delay),0);
+				// Alternative: could restrict inund_count to be between 0 and this PFT's upper limit.
+				// patch.pft[p].inund_count = max(min(patch.pft[p].inund_count,patch.pft[p].pft.inund_duration),0); 
 			}
 
 			// Inundation stress is updated daily, between 0 (full stress) to 1 (no stress), and used in 

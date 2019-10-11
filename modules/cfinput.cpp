@@ -1,4 +1,4 @@
-///////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
 /// \file cfinput.cpp
 /// \brief Input module for CF conforming NetCDF files
 ///
@@ -43,8 +43,8 @@ insoltype cf_standard_name_to_insoltype(const std::string& standard_name) {
 	}
 	else {
 		fail("Unknown insolation type: %s", standard_name.c_str());
-		return SUNSHINE; // To avoid compiler warning
-	}
+                return SUNSHINE; // To avoid compiler warning
+ 	}
 }
 
 // Gives the maximum allowed value for insolation, given an insolation type
@@ -532,11 +532,11 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 
 	if (run_landcover) {
 		bool LUerror = false;
-		LUerror = landcover_input.loadlandcover(lon, lat);
+		LUerror = landcover_input.loadlandcover(cru_lon, cru_lat);
 		if (!LUerror)
-			LUerror = management_input.loadmanagement(lon, lat);
+			LUerror = management_input.loadmanagement(cru_lon, cru_lat);
 		if (LUerror) {
-			dprintf("\nError: could not find stand at (%g,%g) in landcover/management data file(s)\n", lon, lat);
+			dprintf("\nError: could not find stand at (%g,%g) in landcover/management data file(s)\n", cru_lon, cru_lat);
 			return false;
 		}
 	}
@@ -1002,7 +1002,7 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 			fail("BLAZE is switched on WITHOUT info on either specific humidity and pressure or relative humidity! \n" );
 		}
 	}
-
+	
 	// Move to next year in spinup dataset
 
 	spinup_temp.nextyear();

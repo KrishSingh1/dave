@@ -11,7 +11,7 @@ function addRow {
 }
 
 # Directory for benchmark data
-DIR=/data/benchmark_data/2019_09_03/landuse
+DIR=/data/landuse
 
 tslice mch4.out -o mch4_2000to2012.txt -f 2000 -t 2012
 tslice mch4_plant.out -o mch4_plant2000to2012.txt -f 2000 -t 2012

@@ -89,7 +89,7 @@ private:
 
 	// Soil temperatures
 	Table out_msoiltempdepth5, out_msoiltempdepth15, out_msoiltempdepth25, out_msoiltempdepth35, out_msoiltempdepth45, out_msoiltempdepth55, out_msoiltempdepth65, out_msoiltempdepth75, out_msoiltempdepth85, out_msoiltempdepth95,
-		out_msoiltempdepth105, out_msoiltempdepth115, out_msoiltempdepth125, out_msoiltempdepth135, out_msoiltempdepth145;
+    out_msoiltempdepth105, out_msoiltempdepth115, out_msoiltempdepth125, out_msoiltempdepth135, out_msoiltempdepth145;
 };
 
 }

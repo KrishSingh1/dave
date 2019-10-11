@@ -76,7 +76,6 @@ bool ifslowharvestpool;
 bool ifintercropgrass;
 bool ifcalcdynamic_phu;
 int gross_land_transfer;
-bool gross_input_present = false;
 bool ifprimary_lc_transfer;
 bool ifprimary_to_secondary_transfer;
 int transfer_level;
@@ -161,8 +160,8 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB
 	CB_STLANDCOVER, CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT,
 	CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTSELECTION, CB_MTHYDROLOGY,
 	CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, CB_PFT, CB_STSELECTION, CB_STHYDROLOGY, CB_MANAGEMENT1, CB_MANAGEMENT2, CB_MANAGEMENT3,
-	CB_PATHWAY, CB_ROOTDISTRIBUTION, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_STRPARAM, CB_NUMPARAM, CB_WATERUPTAKE, CB_MTCOMPOUND,
-        CB_FIREMODEL, CB_WEATHERGENERATOR};
+	CB_PATHWAY,CB_ROOTDISTRIBUTION, CB_ROOTFRAC,CB_EST,CB_CHECKPFT,CB_STRPARAM,CB_NUMPARAM,CB_WATERUPTAKE,CB_MTCOMPOUND,
+        CB_FIREMODEL,CB_WEATHERGENERATOR};
 
 // File local variables
 namespace {
@@ -527,7 +526,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
 		declareitem("save_state", &save_state, 1, CB_NONE, "Whether to save new state files");
 		declareitem("state_year", &state_year, 1, 20000, 1, CB_NONE, "Save/restart year. Unspecified means just after spinup");
-		declareitem("verbosity", &verbosity, 0, 4, 1, CB_NONE, "Determines the amount of information that is printed to the logfile. 0 = suppress all output (even errors) 4 = print all information");
+        declareitem("verbosity", &verbosity, 0, 4, 1, CB_NONE, "Determines the amount of information that is printed to the logfile. 0 = suppress all output (even errors) 4 = print all information");
 
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
@@ -613,7 +612,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("lambda_max",&ppft->lambda_max,0.1,0.99,1,CB_NONE,
 			"Non-water-stressed ratio of intercellular to ambient CO2 pp");
 		declareitem("root_beta", &ppft->root_beta, 0.0,1.0,1,CB_ROOTFRAC,
-			"Shape parameter to determine fraction of roots in each soil layer");
+            "Shape parameter to determine fraction of roots in each soil layer");
  		declareitem("rootdist",ppft->rootdist,0.0,1.0,NSOILLAYER,CB_ROOTFRAC,
 			"Fraction of roots in each soil layer (first value=upper layer)");
 		declareitem("gmin",&ppft->gmin,0.0,1.0,1,CB_NONE,
@@ -825,8 +824,8 @@ void plib_declarations(int id,xtring setname) {
 			"c3 parameter for allocation with N stress");
 		declareitem("d3",&ppft->d3,-1000.0,1000.0,1,CB_NONE,
 			"d3 parameter for allocation with N stress");
-		declareitem("inund_duration", &ppft->inund_duration, 0, 180, 1, CB_NONE,
-			"Growing season inundation days tolerated (days)");
+		declareitem("inund_duration", &ppft->inund_duration, 0, 32, 1, CB_NONE,
+			"Monthly inundation days tolerated (days)");
 		declareitem("wtp_max", &ppft->wtp_max, -500.0, 500.0, 1, CB_NONE,
 			"Maximum water table position (mm)");
 		declareitem("has_aerenchyma",&ppft->has_aerenchyma,1,CB_NONE,
@@ -1164,14 +1163,14 @@ void plib_callback(int callback) {
 		break;
 	case CB_ROOTFRAC:
 		numval = 0.0;
-		if (rootdistribution == ROOTDIST_JACKSON) ppft->init_rootdist();
-		    
-		for (i=0;i<NSOILLAYER;i++) numval+=ppft->rootdist[i];
-		if (numval<0.99 || numval>1.01) {
-		    sendmessage("Error","Specified root fractions do not sum to 1.0");
-		    plibabort();
-		}
-		ppft->rootdist[NSOILLAYER-1]+=1.0-numval;
+        if (rootdistribution == ROOTDIST_JACKSON) ppft->init_rootdist();
+            
+        for (i=0;i<NSOILLAYER;i++) numval+=ppft->rootdist[i];
+        if (numval<0.99 || numval>1.01) {
+            sendmessage("Error","Specified root fractions do not sum to 1.0");
+            plibabort();
+        }
+        ppft->rootdist[NSOILLAYER-1]+=1.0-numval;
 		break;
 	case CB_MTCOMPOUND:
           // bvoc. Can include some checks for the monoterpene parameters given per compound
@@ -1198,7 +1197,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
 		if (!itemparsed("wateruptake")) badins("wateruptake");
 		if (!itemparsed("rootdistribution")) badins("rootdistribution");
-
+            
 		if (!itemparsed("nrelocfrac")) badins("nrelocfrac");
 		if (!itemparsed("nfix_a")) badins("nfix_a");
 		if (!itemparsed("nfix_b")) badins("nfix_b");
@@ -1234,6 +1233,7 @@ void plib_callback(int callback) {
 			if (!itemparsed("npatch_secondarystand")) badins("npatch_secondarystand");
 			if (!itemparsed("reduce_all_stands")) badins("reduce_all_stands");
 			if (!itemparsed("age_limit_reduce")) badins("age_limit_reduce");
+			if (!itemparsed("minimizecftlist")) badins("minimizecftlist");
 			if (!itemparsed("run_natural")) badins("run_natural");
 			if (!itemparsed("run_crop")) badins("run_crop");
 			if (!itemparsed("run_forest")) badins("run_forest");
@@ -1241,20 +1241,17 @@ void plib_callback(int callback) {
 			if (!itemparsed("run_pasture")) badins("run_pasture");
 			if (!itemparsed("run_barren")) badins("run_barren");
 			if (!itemparsed("ifslowharvestpool")) badins("ifslowharvestpool");
+			if (!itemparsed("ifintercropgrass")) badins("ifintercropgrass");
+			if (!itemparsed("ifcalcdynamic_phu")) badins("ifcalcdynamic_phu");
 			if (!itemparsed("gross_land_transfer")) badins("gross_land_transfer");
 			if (!itemparsed("ifprimary_lc_transfer")) badins("ifprimary_lc_transfer");
 			if (!itemparsed("ifprimary_to_secondary_transfer")) badins("ifprimary_to_secondary_transfer");
 			if (!itemparsed("transfer_level")) badins("transfer_level");
+			if (!itemparsed("ifdyn_phu_limit")) badins("ifdyn_phu_limit");
 			if (!itemparsed("iftransfer_to_new_stand")) badins("iftransfer_to_new_stand");
 			if (!itemparsed("nyear_dyn_phu")) badins("nyear_dyn_phu");
 			if (!itemparsed("printseparatestands")) badins("printseparatestands");
-			if(run[CROPLAND]) {
-				if (!itemparsed("minimizecftlist")) badins("minimizecftlist");
-				if (!itemparsed("iftillage")) badins("iftillage");
-				if (!itemparsed("ifintercropgrass")) badins("ifintercropgrass");
-				if (!itemparsed("ifcalcdynamic_phu")) badins("ifcalcdynamic_phu");
-				if (!itemparsed("ifdyn_phu_limit")) badins("ifdyn_phu_limit");
-			}
+			if (!itemparsed("iftillage")) badins("iftillage");
 		}
 
 		if (!itemparsed("pft")) badins("pft");

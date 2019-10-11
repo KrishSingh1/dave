@@ -234,9 +234,7 @@ void MiscOutput::define_output_tables() {
 	seasonality_columns += ColumnDescriptor("V_prec",     10, 3);
 	seasonality_columns += ColumnDescriptor("temp_min",   10, 1);
 	seasonality_columns += ColumnDescriptor("temp_mean",  10, 1);
-	seasonality_columns += ColumnDescriptor("mtemp_max",  10, 1);
 	seasonality_columns += ColumnDescriptor("temp_seas",  10, 0);
-	seasonality_columns += ColumnDescriptor("gdd5",  10, 0);
 	seasonality_columns += ColumnDescriptor("prec_min",   10, 2);
 	seasonality_columns += ColumnDescriptor("prec",       10, 1);
 	seasonality_columns += ColumnDescriptor("prec_range", 12, 0);
@@ -308,9 +306,8 @@ void MiscOutput::define_output_tables() {
 		create_output_table(out_phu,        file_phu,            date_columns);
 		create_output_table(out_fphu,       file_fphu,           crop_columns);
 		create_output_table(out_fhi,        file_fhi,            crop_columns);
-	}
-
         create_output_table(out_seasonality,file_seasonality,    seasonality_columns);
+	}
 
 	if(run_landcover)
 		create_output_table(out_irrigation, file_irrigation,     irrigation_columns); 
@@ -512,12 +509,17 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 						else {
 
 							if (vegmode==COHORT || vegmode==INDIVIDUAL) {
-								if (pft.lifeform==TREE) {
+
+								// guess2008 - only count trees with a trunk above a certain diameter
+								if (pft.lifeform==TREE && indiv.age>0) {
 									double diam=pow(indiv.height/indiv.pft.k_allom2,1.0/indiv.pft.k_allom3);
-									standpft_densindiv_total+=indiv.densindiv; // indiv/m2
+									if (diam>0.03) {
+										standpft_densindiv_total+=indiv.densindiv; // indiv/m2
+									}
 								}
 							}
 						}
+
 					}
 					vegetation.nextobj();
 				}
@@ -1035,17 +1037,17 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	}
 
 	//Output of seasonality variables
-	outlimit_misc(out, out_seasonality,   gridcell.climate.seasonality);
-	outlimit_misc(out, out_seasonality,   gridcell.climate.var_temp);
-	outlimit_misc(out, out_seasonality,   gridcell.climate.var_prec);
-	outlimit_misc(out, out_seasonality,   gridcell.climate.mtemp_min20);
-	outlimit_misc(out, out_seasonality,   gridcell.climate.atemp_mean);
-	outlimit_misc(out, out_seasonality,   gridcell.climate.mtemp_max);
-	outlimit_misc(out, out_seasonality,   gridcell.climate.temp_seasonality);
-	outlimit_misc(out, out_seasonality,   gridcell.climate.agdd5);
-	outlimit_misc(out, out_seasonality,   gridcell.climate.mprec_petmin20);
-	outlimit_misc(out, out_seasonality,   gridcell.climate.aprec);
-	outlimit_misc(out, out_seasonality,   gridcell.climate.prec_range);
+	if (run[CROPLAND]) {
+		outlimit_misc(out, out_seasonality,   gridcell.climate.seasonality);
+		outlimit_misc(out, out_seasonality,   gridcell.climate.var_temp);
+		outlimit_misc(out, out_seasonality,   gridcell.climate.var_prec);
+		outlimit_misc(out, out_seasonality,   gridcell.climate.mtemp_min20);
+		outlimit_misc(out, out_seasonality,   gridcell.climate.atemp_mean);
+		outlimit_misc(out, out_seasonality,   gridcell.climate.temp_seasonality);
+		outlimit_misc(out, out_seasonality,   gridcell.climate.mprec_petmin20);
+		outlimit_misc(out, out_seasonality,   gridcell.climate.aprec);
+		outlimit_misc(out, out_seasonality,   gridcell.climate.prec_range);
+	}
 }
 
 /// Output of simulation results at the end of each day

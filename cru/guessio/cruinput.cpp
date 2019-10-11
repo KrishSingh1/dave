@@ -41,7 +41,6 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 
 } // namespace
 
-
 std::vector<std::pair<double, double> > CRUInput::translate_gridlist_to_coord(ListArray_id<Coord>& gridlist) {
 	gridlist.firstobj();
 	std::vector<std::pair<double, double> > output;
@@ -54,7 +53,6 @@ std::vector<std::pair<double, double> > CRUInput::translate_gridlist_to_coord(Li
 	}
 	return output;
 }
-
 
 CRUInput::CRUInput()
 	: searchradius(0),
@@ -203,16 +201,16 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 									     hist_mwind, hist_mrhum);
 
 				if (run_landcover && gridfound) {
-					LUerror = landcover_input.loadlandcover(gridlist.getobj().lon, gridlist.getobj().lat);
+					LUerror = landcover_input.loadlandcover(lon, lat);
 					if(!LUerror)
-						LUerror = management_input.loadmanagement(gridlist.getobj().lon, gridlist.getobj().lat);
+						LUerror = management_input.loadmanagement(lon, lat);
 				}
 
 				if(!gridfound || LUerror) {
 					if(!gridfound)
-						dprintf("\nError: could not find stand at (%g,%g) in climate data files\n\n", gridlist.getobj().lon,gridlist.getobj().lat);
+						dprintf("\nError: could not find stand at (%g,%g) in climate data files\n", gridlist.getobj().lon,gridlist.getobj().lat);
 					else if(LUerror)
-						dprintf("\nError: could not find stand at (%g,%g) in landcover/management data file(s)\n\n", gridlist.getobj().lon,gridlist.getobj().lat);
+						dprintf("\nError: could not find stand at (%g,%g) in landcover/management data file(s)\n", gridlist.getobj().lon,gridlist.getobj().lat);
 					gridfound = false;
 					gridlist.nextobj();
 				}

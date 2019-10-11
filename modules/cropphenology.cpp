@@ -309,10 +309,6 @@ void development_stage(Patch& patch, Pft& pft) {
  */
 void crop_phenology(Patch& patch) {
 
-	if (patch.stand.landcover != CROPLAND) {
-		return;
-	}
-
 	patch.pft.firstobj();
 	while (patch.pft.isobj) {
 		Patchpft& patchpft = patch.pft.getobj();
@@ -488,9 +484,6 @@ void crop_phenology(Patch& patch) {
 
 		patch.pft.nextobj();
 	}
-
-	// necessary updates after changing growingperiod status
-	update_patch_fpc(patch);
 }
 
 /// Updates crop phen from yesterday's lai_daily
@@ -582,7 +575,7 @@ void leaf_phenology_crop(Pft& pft, Patch& patch) {
 // REFERENCES
 //
 // Bondeau A, Smith PC, Zaehle S, Schaphoff S, Lucht W, Cramer W, Gerten D, Lotze-Campen H,
-//   MÃ¼ller C, Reichstein M & Smith B 2007. Modelling the role of agriculture for the
+//   Müller C, Reichstein M & Smith B 2007. Modelling the role of agriculture for the
 //   20th century global terrestrial carbon balance. Global Change Biology, 13:679-706.
 // Lindeskog M, Arneth A, Bondeau A, Waha K, Seaquist J, Olin S, & Smith B 2013.
 //   Implications of accounting for land use in simulations of ecosystem carbon cycling

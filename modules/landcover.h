@@ -171,7 +171,7 @@ struct landcover_change_transfer {
 
 			double aaet_5_cp[NYEARAAET] = {0.0};
 			transfer_aaet_5.to_array(aaet_5_cp);
-			for(unsigned int i=0;i<patch.aaet_5.size();i++)
+			for(unsigned int i=0;i<NYEARAAET;i++)
 				transfer_aaet_5.add(aaet_5_cp[i] + patch.aaet_5[i] * scale);
 
 			transfer_anfix_calc += patch.soil.anfix_calc * scale;
@@ -286,7 +286,7 @@ struct landcover_change_transfer {
 		double aaet_5_cp[NYEARAAET] = {0.0};
 		for(unsigned int i=0;i<transfer_aaet_5.size();i++)
 			aaet_5_cp[i] = transfer_aaet_5[i];
-		for(unsigned int i=0;i<from.transfer_aaet_5.size();i++)
+		for(unsigned int i=0;i<NYEARAAET;i++)
 			transfer_aaet_5.add(aaet_5_cp[i] + from.transfer_aaet_5[i] * multiplier);
 
 		transfer_anfix_calc += from.transfer_anfix_calc * multiplier;

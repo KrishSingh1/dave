@@ -593,10 +593,6 @@ void update_seasonality(Climate& climate) {
 /// Monitors climate history relevant for sowing date calculation. Calculates initial sowing dates/windows.
 void crop_sowing_gridcell(Gridcell& gridcell) {
 
-	if (!run_landcover || !run[CROPLAND]) {
-		return;
-	}
-
 	Climate& climate = gridcell.climate;
 
 	if (date.year==0 && date.day == 0) {
@@ -777,10 +773,6 @@ void crop_sowing_date(Patch& patch, Pft& pft) {
 /// handles sowing date calculations for crop pft:s on patch level
 void crop_sowing_patch(Patch& patch) {
 
-	if (patch.stand.landcover != CROPLAND) {
-		return;
-	}
-
 	pftlist.firstobj();
 	Gridcell& gridcell = patch.stand.get_gridcell();
 	Climate& climate = gridcell.climate;
@@ -861,7 +853,7 @@ void crop_sowing_patch(Patch& patch) {
 // REFERENCES
 //
 // Bondeau A, Smith PC, Zaehle S, Schaphoff S, Lucht W, Cramer W, Gerten D, Lotze-Campen H,
-//   MÃ¼ller C, Reichstein M & Smith B 2007. Modelling the role of agriculture for the
+//   Müller C, Reichstein M & Smith B 2007. Modelling the role of agriculture for the
 //   20th century global terrestrial carbon balance. Global Change Biology, 13:679-706.
-// Waha K, van Bussel LGJ, MÃ¼ller C, and Bondeau A.2012. Climate-driven simulation of global
+// Waha K, van Bussel LGJ, Müller C, and Bondeau A.2012. Climate-driven simulation of global
 //   crop sowing dates, Global Ecol Biogeogr 21:247-259

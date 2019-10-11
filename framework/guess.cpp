@@ -862,18 +862,6 @@ void Stand::init_stand_lu(StandType& st, double fraction) {
 					}
 					else if(pftx.lifeform == TREE) {	// Whether grass is allowed is specified in the generic code above
 						pft[pftx.id].active = false;
-						if(st.reestab == "ALL") {
-							// Options here are only relevant when planted trees (FOREST) and regenerated growth (FOREST and/or NATURAL) needs to be distinguished in the output
-							// 1. reestablishment by both forest and natural pfts
-//							if(pftx.landcover == landcover || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
-							// 2. reestablishment by natural pfts (when active) and planted forest pfts
-//							if(pftx.landcover == landcover && (st.naturalveg != "ALL" || pft[pftx.id].plant) || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
-							// 3. reestablishment only by natural pfts (when active)
-							if(pftx.landcover == landcover && st.naturalveg != "ALL" || st.naturalveg == "ALL" && pftx.landcover == NATURAL) {
-								pft[pftx.id].active = true;
-								pft[pftx.id].reestab = true;
-							}
-						}
 					}
 					pftlist.nextobj();
 				}
@@ -1929,9 +1917,9 @@ bool Individual::has_daily_turnover() const {
  *  \param slow_harvest      Biomass going to slow depository
  */
 void partition_wood_biomass(double mass_sap, double mass_heart,
-                            double harv_eff, double harvest_slow_frac, double res_outtake,
-                            double& litter_sap, double& litter_heart,
-                            double& fast_harvest, double& slow_harvest) {
+							double harv_eff, double harvest_slow_frac, double res_outtake,
+							double& litter_sap, double& litter_heart,
+							double& fast_harvest, double& slow_harvest) {
 
 	double sap_left = mass_sap;
 	double heart_left = mass_heart;
@@ -2190,7 +2178,6 @@ void Gridcellpft::serialize(ArchiveStream& arch) {
 
 void Gridcellst::serialize(ArchiveStream& arch) {
 	arch & frac
-		& frac_old_orig
 		& nstands
 		& nfert;
 }
@@ -2613,18 +2600,33 @@ bool MassBalance::check_patch(Patch& patch, bool check_harvest) {
 	return check_patch_C(patch, check_harvest) && check_patch_N(patch, check_harvest);
 }
 
-void MassBalance::check_year_N(Gridcell& gridcell) {
+void MassBalance::check_year(Gridcell& gridcell) {
+
+	if (date.year < start_year) {
+		return;
+	}
+
+	double ccont_year = gridcell.ccont();
+	double cflux_year = gridcell.cflux();
 
 	double ncont_year = gridcell.ncont();
 	double nflux_year = gridcell.nflux();
 
 	if (date.year == start_year) {
+		ccont_zero = ccont_year;
 		ncont_zero = ncont_year;
 	}
 	else {
 
+		cflux += cflux_year;
 		nflux += nflux_year;
 
+		// C balance check:
+		if (!negligible(ccont_year - ccont + cflux_year, -9)) {
+			dprintf("\n(%.2f, %.2f): C balance year %d: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ccont_year - ccont + cflux_year);
+			dprintf("C pool change: %.5f\n", ccont_year - ccont);
+			dprintf("C flux: %.5f\n",  cflux_year);
+		}
 		// Cropland without N-limitation is not balanced in N, fertilisation gives poorer N-balance
 		// For natural vegetation or unfertilised N-limited cropland, the check can be much stricter
 		
@@ -2635,46 +2637,8 @@ void MassBalance::check_year_N(Gridcell& gridcell) {
 			dprintf("N flux: %.9f\n",  nflux_year);
 		}
 	}
-
-	ncont = ncont_year;
-}
-
-
-void MassBalance::check_year_C(Gridcell& gridcell) {
-
-	double ccont_year = gridcell.ccont();
-	double cflux_year = gridcell.cflux();
-
-	if (date.year == start_year) {
-		ccont_zero = ccont_year;
-	}
-	else {
-
-		cflux += cflux_year;
-
-		// C balance check:
-		if (!negligible(ccont_year - ccont + cflux_year, -9)) {
-			dprintf("\n(%.2f, %.2f): C balance year %d: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ccont_year - ccont + cflux_year);
-			dprintf("C pool change: %.5f\n", ccont_year - ccont);
-			dprintf("C flux: %.5f\n",  cflux_year);
-		}
-	}
-
 	ccont = ccont_year;
-}
-
-
-void MassBalance::check_year(Gridcell& gridcell) {
-
-	if (date.year < start_year) {
-		return;
-	}
-
-	check_year_C(gridcell);
-
-	if (ifcentury) 
-		check_year_N(gridcell);
-
+	ncont = ncont_year;
 }
 
 void MassBalance::check_period(Gridcell& gridcell) {

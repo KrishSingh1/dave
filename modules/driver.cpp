@@ -728,18 +728,16 @@ void dailyaccounting_patch(Patch& patch) {
 		}
 	}
 
-	// Calculate analytic soil temperatures at 25cm depth and update dtemp_31 (trend in daily air temperatures for the last 31 days)
-	// Analytic soil temperatures can be used to test the accuracy of the numerical scheme in Soil::soil_temp_multilayer below.
-	// The soil temperature at 25cm depth calculated here is used in the rest of the model (e.g. in respiration) if iftwolayersoil is true (determined in 
-	// Soil::get_soil_temp_25() below).
-	soil.soil_temp_analytic(patch.get_climate(), 0.25);
+	// Calculate analytic soil temperatures and update dtemp_31
+	soil.soil_temp(patch.get_climate(), 0.25);
 
-	// Calculate the soil temperature in each 10cm soil layer, the padding layers, and the snowpack. This function is called 
-	// even if iftwolayersoil is true, though the calculations are much simpler. 
-	bool validTemp = soil.soil_temp_multilayer(patch.get_climate().temp);
-	if (!validTemp) fail("Error in Soil::soil_temp_multilayer");
+	bool validTemp = soil.calculate_soil_temp(patch.get_climate().temp);
 
-	// Determine the soil temperature at 25cm depth
+	// report an error if the temperature is invalid 
+	if (!validTemp) {
+		fail("Error in calcsoiltemp");
+	}
+
 	double soiltemp25 = soil.get_soil_temp_25();
 
 	if (iftwolayersoil) {

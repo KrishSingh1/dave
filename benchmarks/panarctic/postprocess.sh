@@ -47,17 +47,17 @@ describe_images "Seasonal soil temperatures (1961-90 average). Units: degr C" so
 
 # PFT
 dominance cmass1961to1990.txt cmass1961to1990max.txt
-gmap cmass1961to1990max.txt -o cmass1961to1990max.jpg -p npolar -t "Dominant PFT (cmass)" -legend legend_arctic.txt
+gmap cmass1961to1990max.txt -o cmass1961to1990max.jpg -p npolar -t "PFT Max Cmass" 
 describe_images "PFT maximum C mass per gridcell. Units: kgC m-2" cmass1961to1990max.jpg
-gmap cmass1961to1990.txt -o cmass1961to1990.jpg -p npolar -t "Total C mass" -i Total -legend legend_cmass_arctic.txt
+gmap cmass1961to1990.txt -o cmass1961to1990.jpg -p npolar -t "Total C mass" -i Total
 describe_images "Total C mass. Units: kgC m-2" cmass1961to1990.jpg
-gmapall cmass1961to1990.txt -P cmass_ -p npolar -legend legend_cmass_arctic.txt
+gmapall cmass1961to1990.txt -P cmass_ -p npolar -legend common/legend_cmass_global.txt
 describe_images "PFT specific cmass. Units: kgC m-2" cmass_*.jpg
 
 dominance lai1961to1990.txt lai1961to1990max.txt
-gmap lai1961to1990max.txt -o lai1961to1990max.jpg -p npolar -t "Dominant PFT (LAI)" -legend legend_arctic.txt
+gmap lai1961to1990max.txt -o lai1961to1990max.jpg -p npolar -t "Dominant PFT LAI" -legend legend_arctic.txt
 describe_images "PFT With the Highest LAI in Each Gridcell (1961-90 average)" lai1961to1990max.jpg
-gmap lai1961to1990.txt -o lai1961to1990.jpg -p npolar -i Total -t "Total LAI" -legend legend_lai_arctic.txt
+gmap lai1961to1990.txt -o lai1961to1990.jpg -p npolar -t "Total LAI" -legend legend_lai_arctic.txt
 describe_images "Total Arctic LAI (1961-90)" lai1961to1990.jpg
 
 

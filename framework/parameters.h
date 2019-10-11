@@ -198,6 +198,9 @@ extern bool ifcalcdynamic_phu;
 // Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); read stand type transfer matrix input file (3), or not (0)
 extern int gross_land_transfer;
 
+// Whether gross land transfer input read for this gridcell
+extern bool gross_input_present;
+
 // Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)
 extern bool ifprimary_lc_transfer;
 

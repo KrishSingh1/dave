@@ -76,6 +76,7 @@ bool ifslowharvestpool;
 bool ifintercropgrass;
 bool ifcalcdynamic_phu;
 int gross_land_transfer;
+bool gross_input_present = false;
 bool ifprimary_lc_transfer;
 bool ifprimary_to_secondary_transfer;
 int transfer_level;
@@ -824,8 +825,8 @@ void plib_declarations(int id,xtring setname) {
 			"c3 parameter for allocation with N stress");
 		declareitem("d3",&ppft->d3,-1000.0,1000.0,1,CB_NONE,
 			"d3 parameter for allocation with N stress");
-		declareitem("inund_duration", &ppft->inund_duration, 0, 32, 1, CB_NONE,
-			"Monthly inundation days tolerated (days)");
+		declareitem("inund_duration", &ppft->inund_duration, 0, 180, 1, CB_NONE,
+			"Growing season inundation days tolerated (days)");
 		declareitem("wtp_max", &ppft->wtp_max, -500.0, 500.0, 1, CB_NONE,
 			"Maximum water table position (mm)");
 		declareitem("has_aerenchyma",&ppft->has_aerenchyma,1,CB_NONE,
@@ -1233,7 +1234,6 @@ void plib_callback(int callback) {
 			if (!itemparsed("npatch_secondarystand")) badins("npatch_secondarystand");
 			if (!itemparsed("reduce_all_stands")) badins("reduce_all_stands");
 			if (!itemparsed("age_limit_reduce")) badins("age_limit_reduce");
-			if (!itemparsed("minimizecftlist")) badins("minimizecftlist");
 			if (!itemparsed("run_natural")) badins("run_natural");
 			if (!itemparsed("run_crop")) badins("run_crop");
 			if (!itemparsed("run_forest")) badins("run_forest");
@@ -1241,17 +1241,20 @@ void plib_callback(int callback) {
 			if (!itemparsed("run_pasture")) badins("run_pasture");
 			if (!itemparsed("run_barren")) badins("run_barren");
 			if (!itemparsed("ifslowharvestpool")) badins("ifslowharvestpool");
-			if (!itemparsed("ifintercropgrass")) badins("ifintercropgrass");
-			if (!itemparsed("ifcalcdynamic_phu")) badins("ifcalcdynamic_phu");
 			if (!itemparsed("gross_land_transfer")) badins("gross_land_transfer");
 			if (!itemparsed("ifprimary_lc_transfer")) badins("ifprimary_lc_transfer");
 			if (!itemparsed("ifprimary_to_secondary_transfer")) badins("ifprimary_to_secondary_transfer");
 			if (!itemparsed("transfer_level")) badins("transfer_level");
-			if (!itemparsed("ifdyn_phu_limit")) badins("ifdyn_phu_limit");
 			if (!itemparsed("iftransfer_to_new_stand")) badins("iftransfer_to_new_stand");
 			if (!itemparsed("nyear_dyn_phu")) badins("nyear_dyn_phu");
 			if (!itemparsed("printseparatestands")) badins("printseparatestands");
-			if (!itemparsed("iftillage")) badins("iftillage");
+			if(run[CROPLAND]) {
+				if (!itemparsed("minimizecftlist")) badins("minimizecftlist");
+				if (!itemparsed("iftillage")) badins("iftillage");
+				if (!itemparsed("ifintercropgrass")) badins("ifintercropgrass");
+				if (!itemparsed("ifcalcdynamic_phu")) badins("ifcalcdynamic_phu");
+				if (!itemparsed("ifdyn_phu_limit")) badins("ifdyn_phu_limit");
+			}
 		}
 
 		if (!itemparsed("pft")) badins("pft");

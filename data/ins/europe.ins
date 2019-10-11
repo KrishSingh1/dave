@@ -2,7 +2,7 @@
 !// LPJ-GUESS INSTRUCTION SCRIPT FOR COHORT/INDIVIDUAL MODE
 !// European Species
 !//
-!// LPJ-GUESS 3.0
+!// LPJ-GUESS 4.1
 !//
 !// Parameter differences with Thomas Hickler's paper:
 !//
@@ -106,9 +106,6 @@ ifcalccton 1          		! whether to calculate leaf C:N min from leaf longevity
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE                
 weathergenerator "GWGEN"	! GWGEN, INTERP
 npatch 25             		! number of replicate patches to simulate
-npatch_secondarystand 1		! number of replicate patches to simulate in secondary stands
-reduce_all_stands 0		! Whether to reduce equal percentage of all stands of a stand type at land cover change
-age_limit_reduce 5		! Minimum age of stands to reduce at land cover change
 patcharea 1000        		! patch area (m2)
 estinterval 5         		! years between establishment events in cohort mode
 ifdisturb 1           		! whether generic patch-destroying disturbances enabled
@@ -141,13 +138,22 @@ nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
 ! ARCTIC AND WETLAND SWITCHES
 !///////////////////////////////////////////////////////////////////////////////
 
-iftwolayersoil 0		! Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below.
-ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default
-ifinundationstress 1		! whether to reduce NPP if there's inundation (1), or not (0)
-ifcarbonfreeze 1		! Whether to limit soilC decomposition below 0 degC in upland soils (default, 1), or not (0)
-wetland_runon 0			! Extra daily water input or output (mm/day) to wetlands. Positive values are run ON, negative run OFF.
-ifmethane 0			! Whether to run the methane model (for peatland only)
-iforganicsoilproperties 0	! Whether to update soil properties using soil carbon (for non peatland, mineral cells, soilcode != 8)
+iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
+				! Of the switches below, iforganicsoilproperties, ifcarbonfreeze and 
+				! ifmultilayersnow must all be 0 if iftwolayersoil = 1
+				! Furthermore, run_peatland must be 0 when using the two layer soil, and 
+				! rootdistribution must be "fixed"
+
+ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
+iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content 
+				! (applies only to non peatland, mineral stands not classified as organic)
+ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
+
+! WETLAND SWITCHES (no effect when run_peatland 0)
+ifinundationstress 1		! whether to reduce daily NPP if there's inundation on peatlands (1), or not (0)
+wetland_runon 0			! Extra daily water input to (>0), or output from (<0), wetlands (mm/day). 
+				! 0 by default, non-zero for site specific studies.
+ifmethane 0			! Whether to run the methane model and calculate methane fluxes
 ifsaturatewetlands 0		! Whether to take water from runoff to saturate low latitide wetlands (1), or not (0)
 
 
@@ -175,6 +181,22 @@ ifbvoc 0              ! whether to include BVOC calculations (1) or not (0)
 
 run_landcover 0        ! whether to use (and change) landcover fractions (1) or not (0)
 
+!///////////////////////////////////////////////////////////////////////////////////////
+!// PARAMETERS FOR STAND TYPES
+
+group "common_stand" (
+
+	intercrop "nointercrop"
+	restrictpfts 0		! Use all pft:s defined for a land cover (pft parameter landcover)
+)
+
+st "Natural" (
+
+	common_stand
+	stinclude 1
+	landcover "natural"
+	naturalveg "all"
+)
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR PFTS
@@ -337,22 +359,22 @@ group "boreal" (
 
 	! Parameters common to all boreal trees
 
-	respcoeff 1.0		! THdiff: 2.0
 	pstemp_min -4
 	pstemp_low 10
 	pstemp_high 25
 	pstemp_max 38
+	respcoeff 1.0		! THdiff: 2.0
 )
 
 group "temperate" (
 
 	! Parameters common to all temperate trees
 
-	respcoeff 1.0
 	pstemp_min -2
 	pstemp_low 15
 	pstemp_high 25
 	pstemp_max 38
+	respcoeff 1.0
 )
 
 

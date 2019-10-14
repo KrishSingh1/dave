@@ -1865,7 +1865,7 @@ extern Pftlist pftlist;
 /// Container for crop-specific data at the individual level
 struct cropindiv_struct : public Serializable {
 
-	//Plant carbon biomass variables are all on patch area basis (kgC/m2)
+	// Plant carbon biomass variables are all on patch area basis (kgC/m2)
 
 	/// year's harvestable organ C biomass (= ycmass_plant)
 	double cmass_ho;
@@ -1899,7 +1899,7 @@ struct cropindiv_struct : public Serializable {
 	/// today's increase of above-ground pool N biomass
 	double dnmass_agpool;
 
-	///CARBON
+	/// CARBON
 	/// daily updated whole plant C biomass, reset at harvest day
 	double grs_cmass_plant;
 	/// daily updated leaf C biomass, reset at harvest day
@@ -1956,7 +1956,7 @@ struct cropindiv_struct : public Serializable {
 	/// year's stem C biomass at time of harvest (cumulative if several harvest events)
 	double harv_cmass_stem;
 
-	///NITROGEN
+	/// NITROGEN
 	/// nitrogen content of harvestable organs
 	double nmass_ho;
 	/// nitrogen content of above-ground pool
@@ -2184,26 +2184,22 @@ public:
 	double cmass_root_ymax;
 	/// yearly maximum nmass_root for daily allocation
 	double nmass_root_ymax;
-	/// Storage weight for leaf daily allocation
-	double cmass_leaf_ws;
-	/// Storage growth for root biomass increment
-	double cmass_root_sg;
+	/// Carbon storage for leaf daily allocation
+	double cmass_storage;
 	/// leaf C biomass on modelled area basis (kgC/m2)
-	double *cmass_leafs;
+	std::vector<double> cmass_leafs;
 	/// leaf N biomass on modelled area basis (kgC/m2)
-	double *nmass_leafs;
-	/// abscission from last compartment (4) ie litter, daily allocation
-	double abscission; // DW_COMMENT - not used for anything
-	/// sum of growth of leaves not related to sg
+	std::vector<double> nmass_leafs;
+	/// sum of growth of leaves
 	double cmass_leaf_ygrowth;
-	/// nitrogen storage weight for daily allocation
-	double nmass_leaf_ws;
-	/// nitrogen storage for daily grass
-	double nmass_root_sg;
-	/// running mean of nscal for last 365 days for each individual daily allocation
-	Historic<double, 365> nscal_running;
-	/// running mean of wscal for last 365 days for each individual daily allocation
-	Historic<double, 365> wscal_running;
+	/// sum of growth of leaves
+	double cmass_root_ygrowth;
+	/// Nitrogen storage for leaf daily allocation
+	double nmass_storage;
+	/// running mean of nscal for last 10 days for each individual daily allocation
+	Historic<double, 10> nscal_running;
+	/// running mean of wscal for last 10 days for each individual daily allocation
+	Historic<double, 10> wscal_running;
 	/// actual evapotranspiration over projected area (mm/day)
 	double aet;
 	/// annual actual evapotranspiration over projected area (mm/year)
@@ -2271,12 +2267,10 @@ public:
 	double nstore_longterm_luc;
 	/// storage of labile nitrogen saved on first day of land use change year
 	double nstore_labile_luc;
-	/// storage of leaf storage nitrogen saved on first day of land use change year
-	double nmass_leaf_ws_luc;
 	/// daily grass leaf nitrogen saved on first day of land use change year
 	double nmass_leafs_luc[4];
 	/// storage of root storage nitrogen saved on first day of land use change year
-	double nmass_root_sg_luc;
+	double nmass_storage_luc;
 	/// daily total nitrogen demand
 	double ndemand;
 	/// fraction of individual nitrogen demand available for uptake

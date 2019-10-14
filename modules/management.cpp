@@ -893,17 +893,17 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 
 	if (alive || istruecrop_or_intercropgrass)  {
 		cp.litter_root += cp.cmass_root;
-		cp.litter_root += cp.cmass_root_sg;
+		cp.litter_root += cp.cmass_storage;
 
 		if (burn) {
 			cp.acflux_harvest += cp.cmass_leaf;
-			cp.acflux_harvest += cp.cmass_leafs[0] + cp.cmass_leafs[1] + cp.cmass_leafs[2] + cp.cmass_leafs[3] + cp.cmass_leaf_ws;
+			cp.acflux_harvest += cp.cmass_leafs[0] + cp.cmass_leafs[1] + cp.cmass_leafs[2] + cp.cmass_leafs[3];
 			cp.acflux_harvest += cp.cmass_sap;
 			cp.acflux_harvest += cp.cmass_heart - cp.cmass_debt;
 		}
 		else {
 			cp.litter_leaf += cp.cmass_leaf;
-			cp.litter_leaf += cp.cmass_leafs[0] + cp.cmass_leafs[1] + cp.cmass_leafs[2] + cp.cmass_leafs[3] + cp.cmass_leaf_ws;
+			cp.litter_leaf += cp.cmass_leafs[0] + cp.cmass_leafs[1] + cp.cmass_leafs[2] + cp.cmass_leafs[3];
 			cp.litter_sap += cp.cmass_sap;
 			cp.litter_heart += cp.cmass_heart - cp.cmass_debt;
 		}
@@ -912,17 +912,17 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 	cp.nmass_litter_root += cp.nmass_root;
 	cp.nmass_litter_root += cp.nstore_longterm;
 	cp.nmass_litter_root += cp.nstore_labile;
-	cp.nmass_litter_root += cp.nmass_root_sg;
+	cp.nmass_litter_root += cp.nmass_storage;
 
 	if (burn) {
 		cp.anflux_harvest += cp.nmass_leaf;
-		cp.anflux_harvest += cp.nmass_leafs[0] + cp.nmass_leafs[1] + cp.nmass_leafs[2] + cp.nmass_leafs[3] + cp.nmass_leaf_ws;
+		cp.anflux_harvest += cp.nmass_leafs[0] + cp.nmass_leafs[1] + cp.nmass_leafs[2] + cp.nmass_leafs[3];
 		cp.anflux_harvest += cp.nmass_sap;
 		cp.anflux_harvest += cp.nmass_heart;
 	}
 	else {
 		cp.nmass_litter_leaf += cp.nmass_leaf;
-		cp.nmass_litter_leaf += cp.nmass_leafs[0] + cp.nmass_leafs[1] + cp.nmass_leafs[2] + cp.nmass_leafs[3] + cp.nmass_leaf_ws;
+		cp.nmass_litter_leaf += cp.nmass_leafs[0] + cp.nmass_leafs[1] + cp.nmass_leafs[2] + cp.nmass_leafs[3];
 		cp.nmass_litter_sap += cp.nmass_sap;
 		cp.nmass_litter_heart += cp.nmass_heart;
 	}
@@ -958,8 +958,7 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 	cp.cmass_leafs[1] = 0.0;
 	cp.cmass_leafs[2] = 0.0;
 	cp.cmass_leafs[3] = 0.0;
-	cp.cmass_leaf_ws = 0.0;
-	cp.cmass_root_sg = 0.0;
+	cp.cmass_storage = 0.0;
 	cp.cmass_root = 0.0;
 	cp.cmass_sap = 0.0;
 	cp.cmass_heart = 0.0;
@@ -971,7 +970,7 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 	cp.nmass_leafs[1] = 0.0;
 	cp.nmass_leafs[2] = 0.0;
 	cp.nmass_leafs[3] = 0.0;
-	cp.nmass_leaf_ws = 0.0;
+	cp.nmass_storage = 0.0;
 	cp.nmass_root = 0.0;
 	cp.nstore_longterm = 0.0;
 	cp.nstore_labile = 0.0;
@@ -1090,8 +1089,7 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 	
 		indiv.cmass_root *= scale;
 		indiv.cmass_leaf *= scale;
-		indiv.cmass_leaf_ws *= scale;
-		indiv.cmass_root_sg *= scale;
+		indiv.cmass_storage *= scale;
 		indiv.cmass_heart *= scale;
 		indiv.cmass_sap *= scale;
 		indiv.cmass_debt *= scale;
@@ -1133,8 +1131,7 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 	else
 		indiv.nstore_longterm -= indiv.nstore_labile_luc * (1.0 - scale);
 	indiv.nstore_longterm = indiv.nstore_longterm - indiv.nstore_longterm_luc * (1.0 - scale);
-	indiv.nmass_leaf_ws = indiv.nmass_leaf_ws - indiv.nmass_leaf_ws_luc * (1.0 - scale);
-	indiv.nmass_root_sg = indiv.nmass_root_sg - indiv.nmass_root_sg_luc * (1.0 - scale);
+	indiv.nmass_storage = indiv.nmass_storage - indiv.nmass_storage_luc * (1.0 - scale);
 
 	indiv.check_N_mass();
 }

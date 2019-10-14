@@ -818,74 +818,15 @@ void nstore_usage(Vegetation& vegetation) {
 
 			indiv.nstress = false;
 
-			// Compartment fraction of optimal N mass
-			double frac_nmass_optimal = 1.0;
+			// Check if current tissue N mass matches optimal level
+			if (indiv.get_nmass_leaf() < indiv.get_cmass_leaf() / indiv.cton_leaf_opt) {
 
-			if (!negligible(indiv.ndemand) || !negligible(indiv.leafndemand_store + indiv.rootndemand_store)) {
-				// N mass won't reach optimal level
-				
-				// Current N mass
-				double nmass_current = indiv.get_nmass_leaf() + indiv.nmass_leaf_ws + indiv.nmass_root + indiv.nmass_root_sg;
-				
-				// Todays N uptake
-				double nmass_uptake = indiv.ndemand * indiv.fnuptake;
-				
-				// Optimal N mass
-				double nmass_optimal = indiv.get_cmass_leaf() / indiv.cton_leaf_opt +
-					indiv.cmass_root / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) +
-					indiv.cmass_leaf_ws / indiv.pft.cton_leaf_avr + indiv.cmass_root_sg / indiv.pft.cton_root_avr;
-
-				// Compartment fraction of optimal N mass (if optimal is less than current then frac_nmass_optimal will be > 1)
-				frac_nmass_optimal = !negligible(nmass_optimal) ? (nmass_current + nmass_uptake) / nmass_optimal : 0.0;
-
-				if (frac_nmass_optimal >= 1.0) {
-
-					// Update leaf N mass
-					indiv.nmass_leafs[0] = indiv.cmass_leafs[0] / indiv.cton_leaf_opt;
-					indiv.nmass_leafs[1] = indiv.cmass_leafs[1] / indiv.cton_leaf_opt;
-					indiv.nmass_leafs[2] = indiv.cmass_leafs[2] / indiv.cton_leaf_opt;
-
-					// Update root N mass
-					indiv.nmass_root = indiv.cmass_root / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
-
-					// N left for storage pools
-					double nmass_storage = nmass_current + nmass_uptake - (indiv.get_nmass_leaf() + indiv.nmass_root);
-
-					// Storage fraction going to leaf storage
-					double frac_leaf_storage = !negligible(indiv.cmass_leaf_ws + indiv.cmass_root_sg) ? 
-						(indiv.cmass_leaf_ws / indiv.pft.cton_leaf_avr) / (indiv.cmass_leaf_ws / indiv.pft.cton_leaf_avr + indiv.cmass_root_sg / indiv.pft.cton_root_avr) : 0.5;
-
-					// Update N storage pools
-					indiv.nmass_leaf_ws = nmass_storage * frac_leaf_storage;
-					indiv.nmass_root_sg = nmass_storage - indiv.nmass_leaf_ws;
-				}
-				else {
-
-					// Update leaf N mass
-					indiv.nmass_leafs[0] = indiv.cmass_leafs[0] / indiv.cton_leaf_opt * frac_nmass_optimal;
-					indiv.nmass_leafs[1] = indiv.cmass_leafs[1] / indiv.cton_leaf_opt * frac_nmass_optimal;
-					indiv.nmass_leafs[2] = indiv.cmass_leafs[2] / indiv.cton_leaf_opt * frac_nmass_optimal;
-
-					// Update root N mass
-					indiv.nmass_root = indiv.cmass_root / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) * frac_nmass_optimal;
-
-					// Update N storage pools
-					indiv.nmass_leaf_ws = indiv.cmass_leaf_ws / indiv.pft.cton_leaf_avr * frac_nmass_optimal;
-					indiv.nmass_root_sg = indiv.cmass_root_sg / indiv.pft.cton_root_avr * frac_nmass_optimal;
-
-					// Nitrogen stressed photosynthesis is allowed only when nitrogen limitation is turned on
-					indiv.nstress = ifnlim;
-				}
-			}
-			else {
-
-				// Update leaf N mass
-				double current_ntoc_leaf = indiv.get_nmass_leaf() > 0.0 ? 1.0 / indiv.cton_leaf() : 0.0;
-				indiv.nmass_leafs[0] = indiv.cmass_leafs[0] * current_ntoc_leaf;
-				indiv.nmass_leafs[1] = indiv.cmass_leafs[1] * current_ntoc_leaf;
-				indiv.nmass_leafs[2] = indiv.cmass_leafs[2] * current_ntoc_leaf;
+				// N stressed photosynthesis is allowed only when N limitation is turned on
+				indiv.nstress = ifnlim;
 			}
 
+			// N uptake added to storage
+			indiv.nmass_storage += indiv.ndemand * indiv.fnuptake;
 		}
 		else {
 

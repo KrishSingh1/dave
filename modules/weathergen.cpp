@@ -2356,7 +2356,9 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		int i_count = 1;
 		// initially populate cloud params
 		if ( is_first_day ) {
+
 			calc_cloud_params(metvars);
+
 			// set initial vals if spinning up
 			if ( ! restart ) {
 				init_weathergen(metvars, rndst);
@@ -2364,6 +2366,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 				i_count = 0;
 			}
 			else {
+
 				// get restart values from WeatherGen-class
 				metvars.pday[0] = rndst.pday[0];
 				metvars.pday[1] = rndst.pday[1];
@@ -2378,12 +2381,12 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		if ( mon > 0 )  
 			accumday += date.ndaymonth[mon-1];
 
-		// dummy weighting array
+		// Dummy weighting array
 		double dum[NDAYMONTH];
 		for (int day=0; day<ndaymon; day++)
 			dum[day] = 1.;
 		
-		// index for annual arrays
+		// Index for annual arrays
 		int lm = max(mon-1,0); 
 		int rm = min(11,mon+1);
 		// index for rmsmooth
@@ -2400,7 +2403,8 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		double tmvals[3];
 		int cmdays[3] = 
 			{date.ndaymonth[lm],date.ndaymonth[mon],date.ndaymonth[rm]};
-		// smooth tmin
+
+		// Smooth tmin
  		bcond[0]  = in_mtmin[lm] ;
 		bcond[1]  = in_mtmin[rm] ;
 		tmvals[0] = in_mtmin[lm] ;
@@ -2408,7 +2412,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		tmvals[2] = in_mtmin[rm] ;
 		rmsmooth( ilm,irm,tmvals,cmdays,bcond, mtmin_curr );
 
-		// smooth tmax
+		// Smooth tmax
 		bcond[0]  = in_mtmax[lm];
 		bcond[1]  = in_mtmax[rm];
 		tmvals[0] = in_mtmax[lm];
@@ -2416,7 +2420,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		tmvals[2] = in_mtmax[rm];
 		rmsmooth( ilm,irm,tmvals,cmdays,bcond, mtmax_curr );
 		
-		// smooth cloud cover
+		// Smooth cloud cover
 		bcond[0]  = in_mcldf[lm];
 		bcond[1]  = in_mcldf[rm];
 		tmvals[0] = in_mcldf[lm];
@@ -2424,12 +2428,12 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		tmvals[2] = in_mcldf[rm];
 		rmsmooth( ilm,irm,tmvals,cmdays,bcond, mcloud_curr );
 		
-		// ensure positivity for cloud-cover
+		// Ensure positivity for cloud-cover
 		for (int day=0;day<ndaymon;day++) {
 			mcloud_curr[day] = max(0.01,mcloud_curr[day]); 
 		}
 
-		// smooth wind
+		// Smooth wind
 		bcond[0]  = in_mwind[lm];
 		bcond[1]  = in_mwind[rm];
 		tmvals[0] = in_mwind[lm];
@@ -2437,12 +2441,12 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		tmvals[2] = in_mwind[rm];
 		rmsmooth( ilm,irm,tmvals,cmdays,bcond, mwind_curr );
 
-		// ensure positivity for wind
+		// Ensure positivity for wind
 		for (int day=0;day<ndaymon;day++) {
 			mwind_curr[day] = max(0.1,mwind_curr[day]); 
 		}
 		
-		// reset residuals at beginning of month if desired
+		// Reset residuals at beginning of month if desired
 		if (lreset) {
 			for (int i=0;i<4;i++)
 				metvars.resid[i] = 0.;
@@ -2452,14 +2456,14 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			i_count = 1;
 		}
 		
-		// below: n_curr bezieht sich auf gitterzelle
+		// Below: n_curr bezieht sich auf gitterzelle
 		double prec_t = max(2.,0.5 * in_mprec[mon]);  //set quality threshold for preciptation amount
 		
 		metvars.mprec = in_mprec[mon];
 
 		MetVariables metvar_sav = metvars;
 		
-		// here a bugfix for CRU data is applied , when there is non-zero rain
+		// Here a bugfix for CRU data is applied , when there is non-zero rain
 		// but no wet days
 		if ( metvars.mprec > 0. ) {
 			metvars.mwetd = max(1.,in_mwetd[mon]);
@@ -2497,7 +2501,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			int mwetd_sim    = 0;
 			double mprec_sim = 0.0;
 			
-			// dayloop
+			// Dayloop
 			for (int day=0; day<ndaymon; day++) {
 				
 				metvars.dtmin   = mtmin_curr[day] ;
@@ -2512,7 +2516,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 					}
 				}
 
-				//now get day's weather
+				// Now get day's weather
 				weathergen_get_daily_met(metvars, rndst);
 				
 				dprec[day]= metvars.dprec;
@@ -2547,13 +2551,13 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 				precdiff = 0.;
 				break;
 			}
-			// enforce at least two times over the month to get initial values ok
+			// Enforce at least two times over the month to get initial values ok
 			else if (i_count >= 1) {
 				
 				pdaydiff = (int)roundoff(metvars.mwetd,0) - mwetd_sim;
 				precdiff = metvars.mprec - mprec_sim;
 
-				// breakoff-criteria for sufficient skill 			
+				// Breakoff-criteria for sufficient skill 			
 				if ( (abs(pdaydiff) <= pday_thresh && fabs(precdiff) <= prec_t && tmindiff < 2.5) ||
 				     (pdaydiff == 0 && fabs(precdiff) <= 1.5*prec_t  && tmindiff < 2.5))  {
 					break;
@@ -2561,7 +2565,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 
 				double metric = abs(pdaydiff)*20/((double)pday_thresh + 1.0)  + fabs(precdiff) ;
 				
-				// save state if better w.r.t. metric 
+				// Save state if better w.r.t. metric 
 				if ( metric < metric_sav ) {
 					for ( int day=0; day<ndaymon; day++) {
 						dprec_sav[day]= dprec[day];
@@ -2578,7 +2582,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 					}
 				}
 
-				// after max amount of iterations is reached take 
+				// After max amount of iterations is reached take 
 				// best set of data so far 
 				if (i_count==MAXITER) {
 					for (int day=0; day<ndaymon; day++) {
@@ -2599,12 +2603,13 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			i_count++;
 		} while ( i_count <= MAXITER ); // 10000000 );
 
-		// write current settings for restart
+		// Write current settings for restart
 		rndst.pday[0]  = metvars.pday[0];
 		rndst.pday[1]  = metvars.pday[1];
 		for (int i=0; i<4; i++) {
 			rndst.resid[i] = metvars.resid[i];
 		}
+
 		// Enforce conservation by scaling with monthly averages
 
 		// Correct Temperature biases by shifting
@@ -2623,14 +2628,15 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 				dtmin[day]   = dtmax[day];
 				dtmax[day]   = dummy;
 			}
+
 			tmincor += dtmin[day]/(double)ndaymon;
 			tmaxcor += dtmax[day]/(double)ndaymon;
 			preccor += dprec[day];
 			windcor += dwind[day];
 			cldfcor += dcldf[day];
 			doy++;
-			// compute days max rad (i.e. cldfr=0.) for weighting
 
+			// Compute days max rad (i.e. cldfr=0.) for weighting
 			cldwght[day] = max(0.01,cldf2rad(0.0,lat,doy,true));
 			tot_cldwght += cldwght[day];
 		}
@@ -2644,20 +2650,25 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		tot_cldwght /= (double)ndaymon;
 
 		for (int day=0; day<ndaymon;day++) {
-			// correct temp by shifting
+
+			// Correct temp by shifting
 			dtmin[day] -= tmincor;
 			dtmax[day] -= tmaxcor;
-			// correct wind by factor
+
+			// Correct wind by factor
 			dwind[day] /= windcor;
-			// correct precip by factor 
+
+			// Correct precip by factor 
 			if ( preccor > 0. ) {
 				dprec[day] /= preccor;
 			} else {
 				dprec[day] = 0.;
 			}
-			// correct cldfr by factor
+
+			// Correct cldfr by factor
 			cldwght[day] /= tot_cldwght;
-			// compute relative humidity 
+
+			// Compute relative humidity 
 			// use daylight avg temp following Running et al. 1987
 			double tdavg = 0.606*dtmax[day] + 0.394*dtmin[day];
 			tdavg        = -1.14 + 1.12*tdavg;
@@ -2709,13 +2720,16 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			chk_dwind += out_dwind[day+accumday]/(double)ndaymon; 
 			chk_drhum += out_drhum[day+accumday]/(double)ndaymon;
 		}
+
 		// If GWGen doesn't find a day for precipitation add it at the first third
 		// of the month.
 		if (metvars.mwetd > 0 && fabs(chk_dprec - in_mprec[mon]) > in_mprec[mon]-0.01) {
 			out_dprec[accumday+9] =  in_mprec[mon];
 		}
+
 	} // month loop
 }
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
 //

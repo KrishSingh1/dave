@@ -891,6 +891,7 @@ public:
 	double dndep;
 
 	// BLAZE
+
 	/// average annual rainfall [mm/a]
 	double avg_annual_rainfall;
 	///  current sum of annual Rainfall

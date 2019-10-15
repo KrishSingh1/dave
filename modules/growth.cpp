@@ -1843,17 +1843,18 @@ void growth_daily_grass(Patch& patch) {
 				double proj_cton = (indiv.cmass_storage - (cgrow_leaf + cgrow_root)) / (indiv.nmass_storage - ngrow_demand);
 				
 				// Fraction N demand meet
-				fndemand = proj_cton < lim_cton ? 1.0 :
-					max(0.0, 1.0 - (pow(10.0, -(1.0 / proj_cton - 1.0 / lim_cton) * 100.0) - 1.0) /
-						(pow(10.0, -(1.0 / indiv.pft.cton_leaf_max - 1.0 / lim_cton) * 100.0) - 1.0));
+				fndemand = proj_cton < lim_cton ? 1.0 : 
+					max(0.0, 1.0 - pow(-(1.0 / proj_cton - 1.0 / lim_cton) / (1.0 / lim_cton - 1.0 / indiv.pft.cton_leaf_max), 2.0));
 
 				// Leaf and root N growth
 				ngrow_leaf = cgrow_leaf / indiv.cton_leaf_opt * fndemand;
 				ngrow_root = cgrow_root / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) * fndemand;
 
 				// Reduce C depending on fndemand to not get too high C:N ratios
-				cgrow_leaf *= (0.5 + fndemand / 2.0);
-				cgrow_root *= (0.5 + fndemand / 2.0);
+				if (ifnlim) {
+					cgrow_leaf *= (0.5 + fndemand / 2.0);
+					cgrow_root *= (0.5 + fndemand / 2.0);
+				}
 			}
 
 			// Save yearly leaf and root growth

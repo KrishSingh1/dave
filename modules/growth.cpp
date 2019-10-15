@@ -380,8 +380,6 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 	double cmass_debt = indiv.cmass_debt / indiv.densindiv;
 	// heartwood C biomass for last time period on individual basis (kgC)
 	double cmass_heart = indiv.cmass_heart / indiv.densindiv;
-	// storage growth to root ratio
-	double stor = indiv.pft.stor;
 	// individual height (m)
 	double height = indiv.height;
 	// specific leaf area (PFT-specific constant) (m2/kgC)
@@ -1972,7 +1970,7 @@ void growth_daily_grass(Patch& patch) {
 			/*if (date.year == 300 && date.day == 0 && indiv.pft.name == "C3G")
 				dprintf("Day npp temp wcont1 wcont2 wscal_ppft wscal ltor tscal_g tscal_m phi phen g_fac m_fac s_fac storage l1 l2 l3 l4 leaf root fndemand CN CNopt CNstorage lai\n");
 
-			if (date.year >= 300 && date.year <= 303 && indiv.pft.name == "C4G") {
+			if (date.year >= 300 && date.year <= 303 && indiv.pft.name == "C3G") {
 				dprintf("%d %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g\n", date.day, indiv.dnpp, patch.get_climate().temp,
 					patch.soil.wcontupper_10.mean(), patch.soil.wcontlower_10.mean(), patch.pft[indiv.pft.id].wscal, wscal, indiv.ltor,
 					tscal_growth, tscal_move, phi, indiv.phen, g_fac, m_fac, s_fac, indiv.cmass_storage,

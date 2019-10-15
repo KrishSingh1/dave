@@ -1596,8 +1596,6 @@ public:
 		return 2.0 / (1. / min + 1. / max);
 	}
 
-	/// below-ground storage to root ratio
-	double stor;
 	/// senescence factor
 	double sen_fac;
 	/// transfer constant of material between compartments a
@@ -1646,7 +1644,6 @@ public:
 		frootend = 0.0;
 		forceautumnsowing = 0;
 		nlim = false;
-		stor = 0;
 
 		fertrate[0] = 0.0;
 		fertrate[1] = 1.0;

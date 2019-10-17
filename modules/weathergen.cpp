@@ -2532,7 +2532,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 				tmin_acc += metvars.dtmin;
 			} 
 			// Break off criteria
-			tmindiff = abs(in_mtmin[mon] - tmin_acc / (double)ndaymon);
+			tmindiff = fabs(in_mtmin[mon] - tmin_acc / (double)ndaymon);
 			
 			// Reset met_out_save after initialization
 			if (i_count == 0) {

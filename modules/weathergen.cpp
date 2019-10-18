@@ -2351,7 +2351,6 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		int pdaydiff    = 0;
 		double precdiff = 0.; 
 		double tmindiff = 0.;
-		double tmin_acc = 0.;
 
 		int i_count = 1;
 		// initially populate cloud params
@@ -2500,7 +2499,8 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 		do {
 			int mwetd_sim    = 0;
 			double mprec_sim = 0.0;
-			
+			double tmin_acc = 0.;
+	
 			// Dayloop
 			for (int day=0; day<ndaymon; day++) {
 				

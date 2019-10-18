@@ -198,16 +198,16 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 					                                     hist_mfrs, hist_mwet, hist_mdtr);
 
 				if (run_landcover && gridfound) {
-					LUerror = landcover_input.loadlandcover(lon, lat);
+					LUerror = landcover_input.loadlandcover(gridlist.getobj().lon, gridlist.getobj().lat);
 					if(!LUerror)
-						LUerror = management_input.loadmanagement(lon, lat);
+						LUerror = management_input.loadmanagement(gridlist.getobj().lon, gridlist.getobj().lat);
 				}
 
 				if(!gridfound || LUerror) {
 					if(!gridfound)
-						dprintf("\nError: could not find stand at (%g,%g) in climate data files\n", gridlist.getobj().lon,gridlist.getobj().lat);
+						dprintf("\nError: could not find stand at (%g,%g) in climate data files\n\n", gridlist.getobj().lon,gridlist.getobj().lat);
 					else if(LUerror)
-						dprintf("\nError: could not find stand at (%g,%g) in landcover/management data file(s)\n", gridlist.getobj().lon,gridlist.getobj().lat);
+						dprintf("\nError: could not find stand at (%g,%g) in landcover/management data file(s)\n\n", gridlist.getobj().lon,gridlist.getobj().lat);
 					gridfound = false;
 					gridlist.nextobj();
 				}

@@ -254,7 +254,7 @@ void CommonOutput::define_output_tables() {
 	runoff_columns += ColumnDescriptor("Surf",             8, 1);
 	runoff_columns += ColumnDescriptor("Drain",            8, 1);
 	runoff_columns += ColumnDescriptor("Base",             8, 1);
-	runoff_columns += ColumnDescriptor("Total",            8, 1);
+	runoff_columns += ColumnDescriptor("Total",            9, 1);
 
 	// WETLAND WATER ADDED
 	ColumnDescriptors wetland_water_added_columns;

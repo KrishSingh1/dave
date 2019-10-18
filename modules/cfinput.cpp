@@ -806,10 +806,10 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 
 			int years_to_simulate = nyear_spinup + historic_years;
 
-			int cells_done = distance(gridlist.begin(), current_gridcell);
+			int cells_done = (int)distance(gridlist.begin(), current_gridcell);
 
-			double progress=(double)(cells_done*years_to_simulate+date.year)/
-				(double)(gridlist.size()*years_to_simulate);
+			double progress = (double)(cells_done*years_to_simulate+date.year)/
+				(gridlist.size()*(double)years_to_simulate);
 			tprogress.setprogress(progress);
 			dprintf("%3d%% complete, %s elapsed, %s remaining\n",(int)(progress*100.0),
 				tprogress.elapsed.str,tprogress.remaining.str);

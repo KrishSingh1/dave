@@ -85,7 +85,7 @@ add_subdirectory(libraries)
 if (WIN32)
   add_subdirectory(windows_version)
 endif()
-  
+
 if (UNIT_TESTS)
   add_subdirectory(tests)
 endif()

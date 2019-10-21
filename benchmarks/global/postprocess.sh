@@ -50,7 +50,14 @@ gmap cpool1961to1990.sumLitSoil.txt -t 'Global Terrestrial Litter and Soil C poo
 describe_image cpool_sumlitsoil.jpg "Global Terrestrial Carbon: Sum of Litter and Soil Pools (1961-90 average)"
 
 gmap lai1961to1990max.txt -t 'Dominant PFT (greatest LAI)' -lon 1 -lat 2 -i 3 -legend legend_global.txt -portrait -o maxLAI.jpg -pixoffset 0.0 0.0 $GMAPPIXELSIZE
-describe_image maxLAI.jpg "PFT With the Highest LAI in Each Gridcell (1961-90 average)"
+describe_image maxLAI.jpg "PFT With the Highest LAI in Each Gridcell (1961-90 average)" 
+
+awk '{print $NF}' lai1961to1990max.txt | paste lai1961to1990.txt - > lai1961to1990all.txt
+compute lai1961to1990all.txt -i 'Frac=Max/Total' -o lai1961to1990frac.txt 
+gmap lai1961to1990frac.txt  -t "Dominant PFT's fraction of total gridcell LAI (1961-90 average)" \
+    -lon 1 -lat 2 -i Frac  -legend common/legend_frac_LAI.txt -portrait -o frac_maxLAI.jpg -pixoffset 0.0 0.0 
+describe_image frac_maxLAI.jpg "Dominant PFT's fraction of total LAI (1961-90 average)" 
+rm -f lai1961to1990all.txt lai1961to1990frac.txt
 
 biomes lai1961to1990.txt
 gmap biomes_lai1961to1990.txt -t 'Biomes (Hickler et al. 2006)' -lon 1 -lat 2 -i 3 -legend legend_biomes.txt -portrait -o biomes.jpg -pixoffset 0.0 0.0 $GMAPPIXELSIZE

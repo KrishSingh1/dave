@@ -3,8 +3,8 @@
 !// European Species
 !//
 !// LPJ-GUESS 4.1
-!// 
-!// Parameter differences with Thomas Hickler's paper: 
+!//
+!// Parameter differences with Thomas Hickler's paper:
 !//
 !// Hickler, T., Vohland, K., Feehan, J., Miller, P., Fronzek, S., Giesecke, T., Kuehn, I., Carter, T., Smith, B. &
 !// Sykes, M. Projecting tree species-based climate-driven changes in European potential natural vegetation
@@ -34,7 +34,10 @@ file_doc "doc.out"
 file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
-!file_clitter "clitter.out"
+file_clitter "clitter.out"
+file_aburned_area_out "annual_burned_area.out"
+file_mburned_area_out "monthly_burned_area.out"
+!file_simfireanalysis_out "simfireanalysis.out"
 !file_firert "firert.out"
 !file_aiso "aiso.out"
 !file_amon "amon.out"
@@ -94,28 +97,29 @@ file_nflux "nflux.out"
 
 title 'LPJ-GUESS cohort mode - European species'
 
-vegmode "cohort"      ! "cohort", "individual" or "population"
-nyear_spinup 500      ! number of years to spin up the simulation for
-ifcalcsla 1           ! whether to calculate SLA from leaf longevity
-                      ! (PFT-specific value can be specified in this file instead)
-ifcalccton 1          ! whether to calculate leaf C:N min from leaf longevity
-                      ! (PFT-specific value can be specified in this file instead)
-iffire 1              ! whether to implement fire (1) or not (0)
+vegmode "cohort"      	        ! "cohort", "individual" or "population"
+nyear_spinup 500      		! number of years to spin up the simulation for
+ifcalcsla 1           		! whether to calculate SLA from leaf longevity
+                      		! (PFT-specific value can be specified in this file instead)
+ifcalccton 1          		! whether to calculate leaf C:N min from leaf longevity
+                      		! (PFT-specific value can be specified in this file instead)
+firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE                
+weathergenerator "GWGEN"	! GWGEN, INTERP
 npatch 25             		! number of replicate patches to simulate
 patcharea 1000        		! patch area (m2)
-estinterval 5         ! years between establishment events in cohort mode
-ifdisturb 1           ! whether generic patch-destroying disturbances enabled
-distinterval 100      ! average return time for generic patch-destroying disturbances
-					  ! Hickler et al. (2011) used 200
-ifbgestab 1           ! whether background establishment enabled
-ifsme 1               ! whether spatial mass effect enabled
-ifstochestab 1        ! whether establishment stochastic
-ifstochmort 1         ! whether mortality stochastic
-ifcdebt 1             ! whether to allow vegetation C storage (1) or not (0)
-wateruptake "rootdist"! "wcont", "rootdist", "smart" or "speciesspecific",
-                      ! see documentation for water_uptake()
+estinterval 5         		! years between establishment events in cohort mode
+ifdisturb 1           		! whether generic patch-destroying disturbances enabled
+distinterval 100      		! average return time for generic patch-destroying disturbances
+				! Hickler et al. (2011) used 200
+ifbgestab 1           		! whether background establishment enabled
+ifsme 1               		! whether spatial mass effect enabled
+ifstochestab 1        		! whether establishment stochastic
+ifstochmort 1         		! whether mortality stochastic
+ifcdebt 1             		! whether to allow vegetation C storage (1) or not (0)
+wateruptake "rootdist"		! "wcont", "rootdist", "smart" or "speciesspecific",
+                      		! see documentation for water_uptake()
 rootdistribution "jackson"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
-textured_soil 1	      ! whether to use silt/sand fractions specific to soiltype
+textured_soil 1	      		! whether to use silt/sand fractions specific to soiltype
 
 
 !///////////////////////////////////////////////////////////////////////////////
@@ -221,7 +225,7 @@ group "common" (
 	wtp_max -301 		! [mm] maximum inundation (water table) tolerance, i.e. restrict on wetlands because wtp >= -300 always
 	inund_duration 0	! [day] maximum days per month of inundation before GPP is reduced to 0
 	min_snow 0.0 		! [mm] minimum snow needed for establishment (DJF average) and survival (20-year average maximum),
-						! i.e. No restriction here
+				! i.e. No restriction here
 	max_snow 100000		! [mm] maximum snow tolerance (never used), i.e. No restriction here
 	gdd0_max 100000		! [degC day] max GDD0, i.e. No restriction here
 	gdd0_min 0		! [degC day] min GDD0, i.e. No restriction here
@@ -401,7 +405,7 @@ group "shade_intolerant" (
 	est_max 0.2
 	parff_min 2500000
 	alphar 10.0
-	greff_min 0.08		! THdiff: 0.1
+	greff_min 0.08          ! THdiff: 0.1 
 	turnover_sap 0.1		! THdiff: 0.08
 )
 

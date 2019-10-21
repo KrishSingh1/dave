@@ -96,7 +96,7 @@ private:
 	void populate_daily_prec_array(long& seed);
 
 	/// Fills dtemp, dprec, etc. with forcing data for the current year
-	void populate_daily_arrays(long& seed);
+	void populate_daily_arrays(Gridcell& gridcell);
 
 	/// \returns all (used) variables
 	std::vector<GuessNC::CF::GridcellOrderedVariable*> all_variables() const;
@@ -122,6 +122,14 @@ private:
 	GuessNC::CF::GridcellOrderedVariable* cf_min_temp;
 
 	GuessNC::CF::GridcellOrderedVariable* cf_max_temp;
+	
+	GuessNC::CF::GridcellOrderedVariable* cf_pres;
+
+	GuessNC::CF::GridcellOrderedVariable* cf_specifichum;
+
+	GuessNC::CF::GridcellOrderedVariable* cf_relhum;
+
+	GuessNC::CF::GridcellOrderedVariable* cf_wind;
 
 	// Spinup data for each variable
 
@@ -137,6 +145,14 @@ private:
 
 	GenericSpinupData spinup_max_temp;
 
+	GenericSpinupData spinup_pres;
+
+	GenericSpinupData spinup_specifichum;
+
+	GenericSpinupData spinup_relhum;
+
+	GenericSpinupData spinup_wind;
+
 	/// Temperature for current gridcell and current year (deg C)
 	double dtemp[Date::MAX_YEAR_LENGTH];
 
@@ -146,6 +162,18 @@ private:
 	/// Insolation for current gridcell and current year (\see instype)
 	double dinsol[Date::MAX_YEAR_LENGTH];
 
+	/// daily pressure 
+	double dpres[Date::MAX_YEAR_LENGTH];
+
+	/// daily specifichum 
+	double dspecifichum[Date::MAX_YEAR_LENGTH];
+
+	/// daily wind 
+	double dwind[Date::MAX_YEAR_LENGTH];
+	
+	/// daily relative humidity
+	double drelhum[Date::MAX_YEAR_LENGTH];
+	
 	/// Daily N deposition for one year
 	double dndep[Date::MAX_YEAR_LENGTH];
 
@@ -154,6 +182,9 @@ private:
 
 	/// Maximum temperature for current gridcell and current year (deg C)
 	double dmax_temp[Date::MAX_YEAR_LENGTH];
+
+	/// Daily temperature range for current gridcell and current year (deg C)
+	double ddtr[Date::MAX_YEAR_LENGTH];
 
 	/// Whether the forcing data for precipitation is an extensive quantity
 	/** If given as an amount (kg m-2) per timestep it is extensive, if it's
@@ -173,6 +204,14 @@ private:
 	int historic_timestep_min_temp;
 
 	int historic_timestep_max_temp;
+
+	int historic_timestep_pres;
+
+	int historic_timestep_specifichum;
+
+	int historic_timestep_relhum;
+
+	int historic_timestep_wind;
 
 	/// Path to CRU binary archive
 	xtring file_cru;

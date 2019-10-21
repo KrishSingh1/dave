@@ -71,6 +71,11 @@ void GetclimInput::init() {
 	// DESCRIPTION
 	// Initialises input (e.g. opening files)
 
+	// Getclim input module currently only works with the old INTERP weather generator and GLOBFIRM (or NO FIRE).
+	if (weathergenerator == GWGEN || firemodel == BLAZE) {
+		fail("Getclim input module currently only works with the INTERP weather generator and the fire model GLOBFIRM (or no fire with NOFIRE).\n Make sure that both of them are set correctly in global.ins.");
+	}
+
 	// Open landcover files
 	landcover_input.init();
 	// Open management files

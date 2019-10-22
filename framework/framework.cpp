@@ -20,6 +20,8 @@
 #include "somdynam.h"
 #include "growth.h"
 #include "vegdynam.h"
+#include "blaze.h"
+#include "simfire.h"
 #include "landcover.h"
 #include "bvoc.h"
 #include "commonoutput.h"
@@ -114,6 +116,8 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			som_dynamics(patch);
 			// Methane production/consumption on wetlands and peatlands (no methane dynamics for other stand types at present) 
 			methane_dynamics(patch);
+			// BLAZE fire model
+			blaze_driver(patch,gridcell.climate);
 
 			if (date.islastday && date.islastmonth) {
 

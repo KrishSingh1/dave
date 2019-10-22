@@ -29,7 +29,8 @@
 
 #include "config.h"
 #include "driver.h"
-
+#include "blaze.h"
+#include "simfire.h"
 
 /// Function for generating random numbers
 /** Returns a random floating-point number in the range 0-1.
@@ -563,6 +564,12 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	if (mtemp_last >= 5.0 && climate.mtemp < 5.0 && climate.ifsensechill) {
 		climate.gdd5 = 0.0;
 		climate.chilldays = 0;
+	}
+
+	// Update fire related values
+	if (firemodel == BLAZE) {
+		simfire_accounting_gridcell(gridcell);
+		blaze_accounting_gridcell(gridcell.climate);
 	}
 
 	// On last day of month ...

@@ -1229,7 +1229,7 @@ void growth(Stand& stand, Patch& patch) {
 				// BLARP! excess allocation to roots now also included (assumes leaf longevity = root longevity)
 
 				cmass_excess = max((double)indiv.aphen_raingreen /
-					(indiv.pft.leaflong * date.year_length()) * (indiv.cmass_leaf + indiv.cmass_root) -
+					(indiv.pft.leaflong * (double)date.year_length()) * (indiv.cmass_leaf + indiv.cmass_root) -
 					indiv.cmass_leaf - indiv.cmass_root, 0.0);
 
 				if (cmass_excess > bminc) cmass_excess = bminc;

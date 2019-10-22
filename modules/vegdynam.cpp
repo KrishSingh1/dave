@@ -717,7 +717,9 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 	//   (4) leaf_area = cmass_leaf * sla
 	// mort_shade = mortality due to shading ("self thinning") as total tree cover
 	//   approaches 1 (see code)
-	// mort_fire = mortality due to fire; the fraction of the modelled area affected by
+	// mort_fire = mortality due to fire when using fire model GLOBFIRM. 
+	//   Fire model BLAZE handles fire mortality separately. See blaze.cpp.
+	//   the fraction of the modelled area affected by
 	//   fire (fireprob) is calculated in function fire; actual mortality is influenced
 	//   by PFT-specific resistance to burning (see code).
 	//
@@ -844,10 +846,13 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			else
 				mort_shade=0.0;
 
-			// Mortality due to fire
-
-			if (patch.has_fires()) mort_fire=fireprob*(1.0-indiv.pft.fireresist);
-			else mort_fire=0.0;
+			// Mortality due to fire when using fire model GLOBFIRM (BLAZE handles it separately)
+			if (patch.has_fires() && firemodel == GLOBFIRM) {
+				mort_fire=fireprob*(1.0-indiv.pft.fireresist);
+			}
+			else { 
+				mort_fire=0.0; 
+			}
 
 			// Sum mortality components to give total mortality (maximum 1)
 
@@ -869,16 +874,19 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 
 			if (fpc_grass>1.0-min(fpc_tree,FPC_TREE_MAX)) {
 				fpc_dec=(fpc_grass-1.0+min(fpc_tree,FPC_TREE_MAX))*indiv.fpc/fpc_grass;
-				mort_shade=1.0-fracmass_lpj(indiv	.fpc-fpc_dec,indiv.fpc,indiv);
+				mort_shade=1.0-fracmass_lpj(indiv.fpc-fpc_dec,indiv.fpc,indiv);
 			}
 			else
 				mort_shade=0.0;
 
 			// Mortality due to fire
 
-			if (patch.has_fires())
+			if (patch.has_fires() && firemodel == GLOBFIRM) {
 				mort_fire=fireprob*(1.0-indiv.pft.fireresist);
-			else mort_fire=0.0;
+			}
+			else {
+				mort_fire=0.0;
+			}
 
 			// Sum mortality components to give total mortality (maximum 1)
 
@@ -1002,8 +1010,9 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 	}
 
 
-	// FIRE MORTALITY
-	if (patch.has_fires()) {
+	// FIRE MORTALITY GLOBFIRM
+	// For BLAZE there is a separate call in simulate_day (framework.cpp)
+	if (patch.has_fires() && firemodel == GLOBFIRM) {
 
 		// Impose fire in this patch with probability 'fireprob'
 
@@ -1385,7 +1394,7 @@ void fire(Patch& patch,double& fireprob) {
 	// Calculate fraction of grid cell burnt
 	// Thonicke et al 2001, Eqn 9
 
-	s=n/date.year_length();
+	s=n/(double)date.year_length();
 	sm=s-1;
 
 	fireprob=s*exp(sm/(0.45*sm*sm*sm+2.83*sm*sm+2.96*sm+1.04));
@@ -1510,7 +1519,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		// (in population mode: fraction of modelled area affected by fire this year)
 
 	// Calculate fire probability and volatilise litter
-	if (patch.has_fires()) {
+	if (patch.has_fires() && firemodel == GLOBFIRM) {
 		fire(patch,fireprob);
 	}
 	patch.fireprob = fireprob;

@@ -58,6 +58,24 @@ typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptakety
 ///bvoc: define monoterpene species used
 typedef enum {APIN, BPIN, LIMO, MYRC, SABI, CAMP, TRIC, TBOC, OTHR, NMTCOMPOUNDTYPES} monoterpenecompoundtype;
 
+/// Fire model setting. Either use 
+/**	One of
+ *	BLAZE 		Use the BLAZE model to generate fire fluxes 
+ *                      (must be accompanied by ignitionmode; DEFAULT)
+ *	GLOBFIRM	fire parameterization following Thonicke et al. 2001
+ *	NOFIRE		no fire model	
+ */
+typedef enum {BLAZE, GLOBFIRM, NOFIRE} firemodeltype;
+
+/// Type of weathergenerator used 
+/**     One of:
+ *      GWGEN           Global Weather GENerator (needed by BLAZE, due to 
+ *                      additional rel. humidity and wind; DEFAULT)
+ *      INTERP          use standard interpolation scheme
+ *      NONE            Should be set if daily input is used (e.g. in cfinput) 
+ */
+typedef enum {GWGEN, INTERP, NONE} weathergeneratortype;
+
 ///How to determine root distribution in soil layers
 typedef enum {ROOTDIST_FIXED, ROOTDIST_JACKSON} rootdisttype;
 
@@ -102,8 +120,11 @@ extern bool ifstochestab;
 /// Whether mortality stochastic (individual, cohort mode)
 extern bool ifstochmort;
 
-/// Whether fire enabled
-extern bool iffire;
+/// Fire-model switch
+extern firemodeltype firemodel;
+
+/// Weather Generator switch
+extern weathergeneratortype weathergenerator;
 
 /// Whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
 extern bool ifdisturb;

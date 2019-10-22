@@ -53,7 +53,6 @@ void PhotosynthesisResult::serialize(ArchiveStream& arch) {
 // Implementation of Climate member functions
 ////////////////////////////////////////////////////////////////////////////////
 
-
 void Climate::serialize(ArchiveStream& arch) {
 	arch & temp
 		& rad
@@ -119,7 +118,27 @@ void Climate::serialize(ArchiveStream& arch) {
 		& temp_seasonality_lastyear
 		& var_prec
 		& var_temp
-		& aprec;
+		& aprec
+		& avg_annual_rainfall
+		& last_rainfall
+		& days_since_last_rainfall
+		& kbdi
+		& months_ffdi
+		& weathergenstate;
+}
+
+void WeatherGenState::serialize(ArchiveStream& arch) {
+
+	arch & carry
+		& xcng
+		& xs
+		& indx
+		& have
+		& gamma_vals
+		& pday
+		& resid
+		& q;
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -376,8 +395,18 @@ Patch::Patch(int i,Stand& s,Soiltype& st):
 	dnfert = 0.0;
 	anfert = 0.0;
 	nharv = 0;
-	for (int i = 0; i < NYEARAAET; i++)
+	for (int i = 0; i < NYEARAAET; i++) {
 		aaet_5.add(0.0);
+	}
+
+	for (int i = 0; i < N_YEAR_BIOMEAVG; i++) {
+		avg_fbrlt[i] = 0.0;
+		avg_fgrass[i] = 0.0;
+		avg_fndlt[i] = 0.0;
+		avg_fshrb[i] = 0.0;
+		avg_ftot[i] = 0.0;
+	}
+
 }
 
 void Patch::serialize(ArchiveStream& arch) {
@@ -427,7 +456,27 @@ void Patch::serialize(ArchiveStream& arch) {
 		& mrunoff
 		& mpet
 		& ndemand
-		& irrigation_y;
+		& irrigation_y
+		& fire_line_intensity
+		& wood_to_atm
+		& leaf_to_atm
+		& leaf_to_lit
+		& wood_to_str
+		& wood_to_fwd
+		& wood_to_cwd
+		& litf_to_atm
+		& lfwd_to_atm
+		& lcwd_to_atm;
+		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
+			arch & avg_fgrass[i];
+		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
+			arch & avg_fndlt[i];
+		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
+			arch & avg_fbrlt[i];
+		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
+			arch & avg_fshrb[i];
+		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
+			arch & avg_ftot[i];
 }
 
 const Climate& Patch::get_climate() const {
@@ -438,7 +487,7 @@ const Climate& Patch::get_climate() const {
 bool Patch::has_fires() const {
 	// Since the standard fire parameterization was not developed for wetland vegetation and wetland/peatland soils, including 
 	// fires in tropical peatlands, we disallow this for now.
-	return iffire && stand.landcover != CROPLAND && stand.landcover != PEATLAND && !managed &&
+	return firemodel != NOFIRE && stand.landcover != CROPLAND && stand.landcover != PEATLAND && !managed &&
 		(stand.landcover != PASTURE || disturb_pasture);
 }
 
@@ -1376,7 +1425,7 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		ppft.nmass_litter_sap   += mortality_non_fire * nmass_sap;
 		ppft.nmass_litter_heart += mortality_non_fire * nmass_heart;
 
-		// Flux to atmosphere from burnt above-ground biomass
+		// Flux to atmosphere from burned above-ground biomass
 
 		double cflux_fire = mortality_fire * (cmass_leaf_litter / mortality + cmass_wood());
 		double nflux_fire = mortality_fire * (nmass_leaf_litter / mortality + nmass_wood());
@@ -1880,9 +1929,9 @@ bool Individual::has_daily_turnover() const {
  *  \param slow_harvest      Biomass going to slow depository
  */
 void partition_wood_biomass(double mass_sap, double mass_heart,
-                            double harv_eff, double harvest_slow_frac, double res_outtake,
-                            double& litter_sap, double& litter_heart,
-                            double& fast_harvest, double& slow_harvest) {
+							double harv_eff, double harvest_slow_frac, double res_outtake,
+							double& litter_sap, double& litter_heart,
+							double& fast_harvest, double& slow_harvest) {
 
 	double sap_left = mass_sap;
 	double heart_left = mass_heart;
@@ -2286,7 +2335,11 @@ void Gridcell::serialize(ArchiveStream& arch) {
 	arch & climate
 		& landcover
 		& seed
-		& balance;
+		& balance
+		& max_nesterov
+		& monthly_max_nesterov
+		& cur_nesterov
+		& recent_max_fapar;
 
 	if (arch.save()) {
 		for (unsigned int i = 0; i < pft.nobj; i++) {

@@ -9,7 +9,7 @@
 
 !///////////////////////////////////////////////////////////////////////////////////////
 ! Output files
-!
+!///////////////////////////////////////////////////////////////////////////////////////
 
 ! outputdirectory is mandatory. Should be "./" for parallel runs.
 outputdirectory "./"
@@ -78,13 +78,10 @@ file_nflux "nflux.out"
 !file_mald "mald.out"
 !file_wetland_water_added "wetland_water_added.out"
 
-!///////////////////////////////////////////////////////////////////////////////////////
-
-
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// RUN PARAMETERS AND OPTIONS
-!
+!///////////////////////////////////////////////////////////////////////////////////////
 
 ! Settings recognised by Plib
 ! Run GUESS with -help option for list of keywords and their meanings
@@ -115,6 +112,7 @@ wateruptake "rootdist"  	! "wcont", "rootdist", "smart" or "speciesspecific",
 rootdistribution "jackson"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1	     		! whether to use silt/sand fractions specific to soiltype
 
+
 !///////////////////////////////////////////////////////////////////////////////
 ! PROCESS SETTINGS SPECIFIC TO NITROGEN
 !///////////////////////////////////////////////////////////////////////////////
@@ -130,7 +128,6 @@ nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
 !///////////////////////////////////////////////////////////////////////////////
 ! ARCTIC AND WETLAND SWITCHES
 !///////////////////////////////////////////////////////////////////////////////
-
 
 iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
 				! Of the switches below, iforganicsoilproperties, ifcarbonfreeze and 
@@ -160,7 +157,6 @@ restart 0			! wheter to start from a state file
 save_state 0			! wheter to save a state file
 !state_path ""			! directory to put state files in
 
-
 ifsmoothgreffmort 1		! whether to vary mort_greff smoothly with growth efficiency (1)
 				! or to use the standard step-function (0)
 				! greff_min values below calibrated for the smooth (1) option
@@ -174,10 +170,12 @@ ifbvoc 0                     	! whether to include BVOC calculations (1) or not 
 ! LANDCOVER PARAMETERS
 !///////////////////////////////////////////////////////////////////////////////
 
-run_landcover 0        ! whether to use (and change) landcover fractions (1) or not (0)
+run_landcover 0			! whether to use (and change) landcover fractions (1) or not (0)
+
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR STAND TYPES
+!///////////////////////////////////////////////////////////////////////////////////////
 
 group "common_stand" (
 
@@ -192,6 +190,7 @@ st "Natural" (
 	landcover "natural"
 	naturalveg "all"
 )
+
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR PFTS

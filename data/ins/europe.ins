@@ -11,12 +11,12 @@
 !// with a generalized dynamic vegetation model. In press, Global Ecology & Biogeography.
 !//
 !// are commented with ! THdiff
-!///////////////////////////////////////////////////////////////////////////////////////
+!///////////////////////////////////////////////////////////////////////////////
 
 
-!///////////////////////////////////////////////////////////////////////////////////////
+!///////////////////////////////////////////////////////////////////////////////
 ! Output files
-!
+!///////////////////////////////////////////////////////////////////////////////
 
 ! outputdirectory is mandatory. Should be "./" for parallel runs.
 outputdirectory "./"
@@ -84,13 +84,10 @@ file_nflux "nflux.out"
 !file_mald "mald.out"
 !file_wetland_water_added "wetland_water_added.out"
 
-!///////////////////////////////////////////////////////////////////////////////////////
 
-
-
-!///////////////////////////////////////////////////////////////////////////////////////
+!///////////////////////////////////////////////////////////////////////////////
 !// RUN PARAMETERS AND OPTIONS
-!
+!///////////////////////////////////////////////////////////////////////////////
 
 ! Settings recognised by Plib
 ! Run GUESS with -help option for list of keywords and their meanings
@@ -162,27 +159,28 @@ ifsaturatewetlands 0		! Whether to take water from runoff to saturate low latiti
 !///////////////////////////////////////////////////////////////////////////////
 
 !state_year 500			! year to save/start state file (no setting = after spinup)
-restart 0				! wheter to start from a state file
+restart 0			! wheter to start from a state file
 save_state 0			! wheter to save a state file
 !state_path ""			! directory to put state files in
 
-
-ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1)
-								! or to use the standard step-function (0)
-								! greff_min values below calibrated for the smooth (1) option
-ifdroughtlimitedestab 1			! whether establishment is limited by growing season drought
-ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit every day (0)
-ifbvoc 0              ! whether to include BVOC calculations (1) or not (0)
+ifsmoothgreffmort 1		! whether to vary mort_greff smoothly with growth efficiency (1)
+				! or to use the standard step-function (0)
+				! greff_min values below calibrated for the smooth (1) option
+ifdroughtlimitedestab 1		! whether establishment is limited by growing season drought
+ifrainonwetdaysonly 1		! whether to rain on wet days only (1), or to rain a bit every day (0)
+ifbvoc 0			! whether to include BVOC calculations (1) or not (0)
 
 
 !///////////////////////////////////////////////////////////////////////////////
 ! LANDCOVER PARAMETERS
 !///////////////////////////////////////////////////////////////////////////////
 
-run_landcover 0        ! whether to use (and change) landcover fractions (1) or not (0)
+run_landcover 0        		! whether to use (and change) landcover fractions (1) or not (0)
 
-!///////////////////////////////////////////////////////////////////////////////////////
+
+!///////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR STAND TYPES
+!///////////////////////////////////////////////////////////////////////////////
 
 group "common_stand" (
 

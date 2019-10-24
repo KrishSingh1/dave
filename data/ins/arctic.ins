@@ -79,9 +79,9 @@ file_mald "mald.out"
 !file_wetland_water_added "wetland_water_added.out"
 
 
-!///////////////////////////////////////////////////////////////////////////////////////
+!///////////////////////////////////////////////////////////////////////////////
 !// RUN PARAMETERS AND OPTIONS
-!
+!///////////////////////////////////////////////////////////////////////////////
 
 ! Settings recognised by Plib
 ! Run GUESS with -help option for list of keywords and their meanings
@@ -112,6 +112,7 @@ wateruptake "rootdist"  	! "wcont", "rootdist", "smart" or "speciesspecific",
 				! see documentation for water_uptake()
 rootdistribution "jackson"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1	     		! whether to use silt/sand fractions specific to soiltype
+
 
 !///////////////////////////////////////////////////////////////////////////////
 ! PROCESS SETTINGS SPECIFIC TO NITROGEN
@@ -156,7 +157,6 @@ ifsaturatewetlands 1		! Whether to take water from runoff to saturate low latiti
 restart 0			! whether to start from a state file
 save_state 0			! whether to save a state file
 !state_path ""			! directory to put state files in
-
 			        
 ifsmoothgreffmort 1		! whether to vary mort_greff smoothly with growth efficiency (1)
 				! or to use the standard step-function (0)
@@ -166,14 +166,17 @@ ifdroughtlimitedestab 0		! whether establishment is limited by growing season dr
 ifrainonwetdaysonly 1		! whether to rain on wet days only (1), or to rain a bit every day (0)
 ifbvoc 0			! whether to include BVOC calculations (1) or not (0)
 
+
 !///////////////////////////////////////////////////////////////////////////////
 ! LANDCOVER PARAMETERS
 !///////////////////////////////////////////////////////////////////////////////
 
 run_landcover 0			! whether to use (and change) landcover fractions (1) or not (0)
 
-!///////////////////////////////////////////////////////////////////////////////////////
+
+!///////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR STAND TYPES
+!///////////////////////////////////////////////////////////////////////////////
 
 group "common_stand" (
 
@@ -190,9 +193,10 @@ st "Natural" (
 )
 
 
-!///////////////////////////////////////////////////////////////////////////////////////
+!///////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR PFTS
 !// Run GUESS with -help option for list of keywords and their meanings
+!///////////////////////////////////////////////////////////////////////////////
 
 group "common" (
 

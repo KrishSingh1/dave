@@ -25,7 +25,7 @@ ifmethane 1
 npatch 25
 
 minimizecftlist 0		! Checks st fraction file for st:s with fractions>0.0 at any time or place; other st:s are exluded from the stlist
-frac_fixed_default_crops 0 ! whether to use all active crop stand types (0) or only stand types with suitable rainfed crops
+frac_fixed_default_crops 0 ! Whether to use all active crop stand types (0) or only stand types with suitable rainfed crops
 				! (based on crop pft tb and gridcell latitude) (1) when using fixed crop fractions
 
 nyears_cropland_ramp 0 		! Number of years to increase cropland fraction linearly from 0 to first year's value
@@ -47,15 +47,15 @@ npatch_secondarystand 1		! number of replicate patches to simulate in secondary 
 reduce_all_stands 0		! Whether to reduce equal percentage of all stands of a stand type at land cover change
 age_limit_reduce 5		! Minimum age of stands to reduce at land cover change
 
-run_landcover 1			! whether to use (and change) landcover fractions (1) or not (0)	
+run_landcover 1			! Whether to use (and change) landcover fractions (1) or not (0)	
 
-run_urban 0			! whether to simulate barren land (1) or not (0)	
-run_crop 0			! whether to simulate crop vegetation (1) or not (0)
-run_forest 0			! whether to simulate managed forest (1) or not (0)
-run_pasture 0			! whether to simulate pasture (1) or not (0)
-run_natural 0			! whether to simulate natural vegetation (1) or not (0)
-run_peatland 1			! whether to simulate peatland (1) or not (0)
-run_barren 0			! whether to simulate barren land (1) or not (0)
+run_urban 0			! Whether to simulate barren land (1) or not (0)	
+run_crop 0			! Whether to simulate crop vegetation (1) or not (0)
+run_forest 0			! Whether to simulate managed forest (1) or not (0)
+run_pasture 0			! Whether to simulate pasture (1) or not (0)
+run_natural 0			! Whether to simulate natural vegetation (1) or not (0)
+run_peatland 1			! Whether to simulate peatland (1) or not (0)
+run_barren 0			! Whether to simulate barren land (1) or not (0)
 
 ifslowharvestpool 0			! If a slow harvested product pool is included in patchpft.
 printseparatestands 0			! Whether to print multiple stands within a land cover type (except cropland) separately

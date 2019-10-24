@@ -62,29 +62,29 @@ param "file_Nfert_st" (str "")
 
 !!!!!!!!!!!! landcover parameters !!!!!!!!!!!!!!
 
-npatch_secondarystand 1		! number of replicate patches to simulate in secondary stands
-reduce_all_stands 0		! Whether to reduce equal percentage of all stands of a stand type at land cover change
-age_limit_reduce 15		! Minimum age of stands to reduce at land cover change
+npatch_secondarystand 1			! number of replicate patches to simulate in secondary stands
+reduce_all_stands 0			! Whether to reduce equal percentage of all stands of a stand type at land cover change
+age_limit_reduce 15			! Minimum age of stands to reduce at land cover change
 
-run_landcover 1        ! whether to use (and change) landcover fractions (1) or not (0)	
+run_landcover 1				! whether to use (and change) landcover fractions (1) or not (0)
 
-run_urban 0	      ! whether to simulate barren land (1) or not (0)	
-run_crop 1	      ! whether to simulate crop vegetation (1) or not (0)
-run_forest 0	      ! whether to simulate managed forest (1) or not (0)
-run_pasture 1	      ! whether to simulate pasture (1) or not (0)
-run_natural 1	      ! whether to simulate natural vegetation (1) or not (0)
-run_peatland 0	      ! whether to simulate peatland (1) or not (0)
-run_barren 0	      ! whether to simulate barren land (1) or not (0)
+run_urban 0				! whether to simulate barren land (1) or not (0)
+run_crop 1				! whether to simulate crop vegetation (1) or not (0)
+run_forest 0				! whether to simulate managed forest (1) or not (0)
+run_pasture 1				! whether to simulate pasture (1) or not (0)
+run_natural 1				! whether to simulate natural vegetation (1) or not (0)
+run_peatland 0				! whether to simulate peatland (1) or not (0)
+run_barren 0				! whether to simulate barren land (1) or not (0)
 
-ifslowharvestpool 1	! If a slow harvested product pool is included in patchpft.
-printseparatestands 0	! Whether to print multiple stands within a land cover type (except cropland) separately
-gross_land_transfer 0	! Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); 
-			! read stand type transfer matrix input file (3), or not (0)
-ifprimary_lc_transfer 0	! Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)
-ifprimary_to_secondary_transfer 0 ! Whether to use primary-to-secondary land transition info (within land cover type) in landcover 
-				  ! transfer input file (1). or not (0)
-transfer_level 2	! Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
-iftransfer_to_new_stand 0 ! Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
+ifslowharvestpool 1			! If a slow harvested product pool is included in patchpft.
+printseparatestands 0			! Whether to print multiple stands within a land cover type (except cropland) separately
+gross_land_transfer 0			! Whether to use gross land transfer: simulate gross lcc (1); read landcover transfer matrix input file (2); 
+					! read stand type transfer matrix input file (3), or not (0)
+ifprimary_lc_transfer 0			! Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)
+ifprimary_to_secondary_transfer 0	! Whether to use primary-to-secondary land transition info (within land cover type) in landcover 
+					! transfer input file (1). or not (0)
+transfer_level 2			! Pooling level of land cover transitions; 0: one big pool; 1: land cover-level; 2: stand type-level
+iftransfer_to_new_stand 0		! Whether to create new stands in transfer_to_new_stand() according to the rules in copy_stand_type()
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR MANAGEMENT TYPES
@@ -100,8 +100,8 @@ group "crop_management" (
 group "crop_stand" (
 
 	landcover "cropland"
-	intercrop "naturalgrass" ! Use natural grass pft:s as covercrop
-	restrictpfts 1		! Use only pft:s specified in stand type
+	intercrop "naturalgrass" 	! Use natural grass pft:s as covercrop
+	restrictpfts 1			! Use only pft:s specified in stand type
 	planting_system "monoculture"
 	hydrology "rainfed"
 )
@@ -132,7 +132,7 @@ st "Forest" (
 	common_stand
 	stinclude 1
 	landcover "forest"
-	naturalveg "all"	! Use natural pft:s
+	naturalveg "all"		! Use natural pft:s
 	harvest_system "continuous"
 )
 

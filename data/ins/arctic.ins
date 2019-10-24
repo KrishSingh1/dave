@@ -94,22 +94,22 @@ ifcalcsla 1			! whether to calculate SLA from leaf longevity
 				! (PFT-specific value can be specified in this file instead)
 ifcalccton 1			! whether to calculate leaf C:N min from leaf longevity
 				! (PFT-specific value can be specified in this file instead)
-firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE                
+firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
 npatch 5			! number of replicate patches to simulate
 patcharea 1000			! patch area (m2)
 estinterval 5			! years between establishment events in cohort mode
 ifdisturb 1			! whether generic patch-destroying disturbances enabled
 distinterval 300		! average return time for generic patch-destroying disturbances
-						! Hickler et al. (2011) used 200
-						! Pugh et al. (2019) have 300 approx for boreal forests
-ifbgestab 1				! whether background establishment enabled
-ifsme 1					! whether spatial mass effect enabled
+				! Hickler et al. (2011) used 200
+				! Pugh et al. (2019) have 300 approx for boreal forests
+ifbgestab 1			! whether background establishment enabled
+ifsme 1				! whether spatial mass effect enabled
 ifstochestab 1			! whether establishment stochastic
 ifstochmort 1			! whether mortality stochastic
 ifcdebt 1			! whether to allow vegetation C storage (1) or not (0)
-wateruptake "rootdist"  ! "wcont", "rootdist", "smart" or "speciesspecific",
-                        ! see documentation for water_uptake()
+wateruptake "rootdist"  	! "wcont", "rootdist", "smart" or "speciesspecific",
+				! see documentation for water_uptake()
 rootdistribution "jackson"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1	     		! whether to use silt/sand fractions specific to soiltype
 
@@ -153,24 +153,24 @@ ifsaturatewetlands 1		! Whether to take water from runoff to saturate low latiti
 !///////////////////////////////////////////////////////////////////////////////
 
 !state_year 500			! year to save/start state file (no setting = after spinup)
-restart 0				! wheter to start from a state file
-save_state 0			! wheter to save a state file
+restart 0			! whether to start from a state file
+save_state 0			! whether to save a state file
 !state_path ""			! directory to put state files in
 
-
-ifsmoothgreffmort 1				! whether to vary mort_greff smoothly with growth efficiency (1)
-								! or to use the standard step-function (0)
-								! greff_min values below calibrated for the smooth (1) option
-ifdroughtlimitedestab 0			! whether establishment is limited by growing season drought
-								! guess2008 - species version has 1
-ifrainonwetdaysonly 1			! whether to rain on wet days only (1), or to rain a bit every day (0)
-ifbvoc 0                     ! whether to include BVOC calculations (1) or not (0)
+			        
+ifsmoothgreffmort 1		! whether to vary mort_greff smoothly with growth efficiency (1)
+				! or to use the standard step-function (0)
+				! greff_min values below calibrated for the smooth (1) option
+ifdroughtlimitedestab 0		! whether establishment is limited by growing season drought
+				! guess2008 - species version has 1
+ifrainonwetdaysonly 1		! whether to rain on wet days only (1), or to rain a bit every day (0)
+ifbvoc 0			! whether to include BVOC calculations (1) or not (0)
 
 !///////////////////////////////////////////////////////////////////////////////
 ! LANDCOVER PARAMETERS
 !///////////////////////////////////////////////////////////////////////////////
 
-run_landcover 0        ! whether to use (and change) landcover fractions (1) or not (0)
+run_landcover 0			! whether to use (and change) landcover fractions (1) or not (0)
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR STAND TYPES
@@ -216,7 +216,7 @@ group "common" (
 	wtp_max -301 		! [mm] maximum inundation (water table) tolerance, i.e. restrict on wetlands because wtp >= -300 always
 	inund_duration 0	! [day] maximum days per month of inundation before GPP is reduced to 0
 	min_snow 0.0 		! [mm] minimum snow needed for establishment (DJF average) and survival (20-year average maximum),
-	! i.e. No restriction here
+				! i.e. No restriction here
 	max_snow 100000		! [mm] maximum snow tolerance (never used), i.e. No restriction here
 	gdd0_max 100000		! [degC day] max GDD0, i.e. No restriction here
 	gdd0_min 0		! [degC day] min GDD0, i.e. No restriction here
@@ -478,12 +478,12 @@ pft "BNS" (
 	shade_intolerant
 	summergreen
 	boreal
-	tcmin_surv -1000  ! no limit
-	tcmin_est -1000   ! no limit
+	tcmin_surv -1000	! no limit
+	tcmin_est -1000		! no limit
 	tcmax_est -2
-	twmin_est -1000   ! no limit
-	twminusc 43       ! AA from TH 03-11 added this
-	gdd5min_est 350	! Stefan added new value, old 500
+	twmin_est -1000		! no limit
+	twminusc 43		! AA from TH 03-11 added this
+	gdd5min_est 350		! Stefan added new value, old 500
 	phengdd5ramp 100	! Stefan added new value, old 200
 	longevity 300
 	!rootdist 0.26 0.19 0.14 0.11 0.08 0.06 0.05 0.03 0.02 0.02 0.01 0.01 0.01 0.01 0.0

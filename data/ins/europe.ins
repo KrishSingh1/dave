@@ -103,7 +103,7 @@ ifcalcsla 1           		! whether to calculate SLA from leaf longevity
                       		! (PFT-specific value can be specified in this file instead)
 ifcalccton 1          		! whether to calculate leaf C:N min from leaf longevity
                       		! (PFT-specific value can be specified in this file instead)
-firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE                
+firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
 npatch 25             		! number of replicate patches to simulate
 patcharea 1000        		! patch area (m2)
@@ -126,8 +126,8 @@ textured_soil 1	      		! whether to use silt/sand fractions specific to soiltyp
 ! PROCESS SETTINGS SPECIFIC TO NITROGEN
 !///////////////////////////////////////////////////////////////////////////////
 
-ifcentury 1				! whether to use CENTURY SOM dynamics (mandatory for N cycling)
-ifnlim 1				! whether plant growth limited by available N
+ifcentury 1			! whether to use CENTURY SOM dynamics (mandatory for N cycling)
+ifnlim 1			! whether plant growth limited by available N
 freenyears 100			! number of years to spin up without N limitation (needed to build up a N pool)
 nfix_a 0.102			! first term in N fixation eqn (Conservative 0.102, Central 0.234, Upper 0.367)
 nfix_b 0.524			! second term in N fixation eqn (Conservative 0.524, Central -0.172, Upper -0.754)
@@ -382,7 +382,7 @@ group "temperate" (
 ! Many THdiff values here
 group "shade_tolerant" (
 	est_max 0.05
-	parff_min 350000		! THdiff: 1250000
+	parff_min 350000	! THdiff: 1250000
 	alphar 3.0          	! THdiff: 2
 	greff_min 0.04
 	turnover_sap 0.05
@@ -394,9 +394,9 @@ group "shade_tolerant" (
 group "intermediate_shade_tolerant" (
 	est_max 0.15		! THdiff: 0.1
 	parff_min 2000000
-	alphar 7.0          	! THdiff: 6
+	alphar 7.0		! THdiff: 6
 	greff_min 0.06		! THdiff: 0.08
-	turnover_sap 0.075  	! THdiff: 0.065
+	turnover_sap 0.075	! THdiff: 0.065
 )
 
 
@@ -405,8 +405,8 @@ group "shade_intolerant" (
 	est_max 0.2
 	parff_min 2500000
 	alphar 10.0
-	greff_min 0.08          ! THdiff: 0.1 
-	turnover_sap 0.1		! THdiff: 0.08
+	greff_min 0.08		! THdiff: 0.1 
+	turnover_sap 0.1	! THdiff: 0.08
 )
 
 
@@ -426,17 +426,17 @@ pft "Abi_alb" (
 	shade_tolerant
 	temperate
 	needleleaved
-!	sla 9.3				! Not used if ifcalcsla is set
+!	sla 9.3			! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
 	fnstorage 0.05
-	leaflong 3			! THdiff: 4
-	turnover_leaf 0.33  ! THdiff: 0.25
+	leaflong 3		! THdiff: 4
+	turnover_leaf 0.33	! THdiff: 0.25
 	phengdd5ramp 0
 	tcmin_surv -2		! from GS. THdiff: -4.5 ! Sykes96: -4.5
 	tcmin_est -2		! from GS. THdiff: -3.5 ! Sykes96: -4.5
-	tcmax_est 2			! from GS. THdiff: -2
-	twmin_est 6			! limit not implemented
+	tcmax_est 2		! from GS. THdiff: -2
+	twmin_est 6		! limit not implemented
 	gdd5min_est 1600	! from GS ! THdiff: -1450 ! Sykes96: 1450
 	k_chilla 0
 	k_chillb 100
@@ -460,18 +460,18 @@ pft "BES" (
 	shrub
 	boreal
 	crownarea_max 3
-	k_allom1 20			! THdiff: 250
-	k_allom2 5			! THdiff: ?
+	k_allom1 20		! THdiff: 250
+	k_allom2 5		! THdiff: ?
 	k_latosa 500
 	shade_intolerant
 	rootdist 0.16 0.16 0.16 0.16 0.16 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02
 	root_beta 0.9685
-!	sla 9.3				! Not used if ifcalcsla is set
+!	sla 9.3			! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
 	leaflong 2
 	turnover_leaf 0.5
-	turnover_sap 0.05   ! THdiff: 0.1 (shade intolerant value)
+	turnover_sap 0.05	! THdiff: 0.1 (shade intolerant value)
 	phengdd5ramp 0
 	tcmin_surv -1000	! limit not implemented
 	tcmin_est -1000		! limit not implemented
@@ -500,15 +500,15 @@ pft "Bet_pen" (
 	shade_intolerant
 	temperate
 	broadleaved
-!	sla 24.3			! Not used if ifcalcsla is set
+!	sla 24.3		! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
 	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -30
 	tcmin_est -30
-	tcmax_est 7			! THdiff: -
-	twmin_est 5			! THdiff: -
+	tcmax_est 7		! THdiff: -
+	twmin_est 5		! THdiff: -
 	gdd5min_est 700		! Sykes96
 	k_chilla 0
 	k_chillb 350
@@ -531,15 +531,15 @@ pft "Bet_pub" (
 	shade_intolerant
 	boreal
 	broadleaved
-!	sla 24.3			! Not used if ifcalcsla is set
+!	sla 24.3		! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
 	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -30
 	tcmin_est -30
-	tcmax_est 3			! THdiff: -
-	twmin_est 5			! THdiff: -
+	tcmax_est 3		! THdiff: -
+	twmin_est 5		! THdiff: -
 	gdd5min_est 350		! Sykes96: 150
 	k_chilla 0
 	k_chillb 350
@@ -562,15 +562,15 @@ pft "Car_bet" (
 	intermediate_shade_tolerant
 	temperate
 	broadleaved
-!	sla 24.3			! Not used if ifcalcsla is set
+!	sla 24.3		! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
 	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -8		! Sykes96
 	tcmin_est -8
-	tcmax_est 5			! THdiff: -
-	twmin_est 5			! THdiff: -
+	tcmax_est 5		! THdiff: -
+	twmin_est 5		! THdiff: -
 	gdd5min_est 1200	! Sykes96: 1100
 	k_chilla 0
 	k_chillb 600		! Sykes96 1200
@@ -595,15 +595,15 @@ pft "Cor_ave" (
 	intermediate_shade_tolerant
 	temperate
 	k_latosa 4000
-!	sla 12				! Not used if ifcalcsla is set
+!	sla 12			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
 	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -11		! THdiff: -8 Sykes96: -15
 	tcmin_est -11		! THdiff: -7 Sykes96: -15
-	tcmax_est 7			! THdiff: -
-	twmin_est 5			! THdiff: -
+	tcmax_est 7		! THdiff: -
+	twmin_est 5		! THdiff: -
 	gdd5min_est 800		! Sykes96
 	k_chilla 0
 	k_chillb 350
@@ -633,8 +633,8 @@ pft "Fag_syl" (
 	phengdd5ramp 200
 	tcmin_surv -3.5		! Sykes96
 	tcmin_est -3.5
-	tcmax_est 6			! THdiff: -
-	twmin_est 5			! THdiff: - Sykes96
+	tcmax_est 6		! THdiff: -
+	twmin_est 5		! THdiff: - Sykes96
 	gdd5min_est 1500	! Sykes96 990 (with greater chilling)
 	k_chilla 0
 	k_chillb 600		! Sykes96 1150
@@ -657,15 +657,15 @@ pft "Fra_exc" (
 	intermediate_shade_tolerant
 	temperate
 	broadleaved
-!	sla 24.3			! Not used if ifcalcsla is set
+!	sla 24.3		! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
 	fnstorage 0.15
 	phengdd5ramp 200
 	tcmin_surv -16		! Sykes96
 	tcmin_est -16		! Sykes96
-	tcmax_est 6			! THdiff: - Sykes
-	twmin_est 5			! THdiff: -
+	tcmax_est 6		! THdiff: - Sykes
+	twmin_est 5		! THdiff: -
 	gdd5min_est 1100	! Sykes96
 	k_chilla 0
 	k_chillb 100
@@ -686,7 +686,7 @@ pft "Jun_oxy" (
 	! Thomas Hickler's values
 
 	include 1
-	tree				! THdiff: - shrub
+	tree			! THdiff: - shrub
 	shade_intolerant
 	temperate
 	needleleaved
@@ -694,7 +694,7 @@ pft "Jun_oxy" (
 	crownarea_max 10
 	rootdist 0.1 0.1 0.1 0.1 0.1 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05
 	root_beta 0.986
-!	sla 10				! Not used if ifcalcsla is set
+!	sla 10			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "evergreen"
 	fnstorage 0.05
@@ -727,20 +727,20 @@ pft "MRS" (
 	! Cistus, Rosmarinus, Genista, Lavandula, Erica
 
 	include 1
-	shrub				! THdiff: - has k_allom1 as 250
+	shrub			! THdiff: - has k_allom1 as 250
 	shade_intolerant
 	temperate
 	k_latosa 1500		! ThomasH
 	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
 	root_beta 0.9555
-!	sla 10				! Not used if ifcalcsla is set
+!	sla 10			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "raingreen"
 	leaflong 0.5
 	turnover_leaf 1
 	phengdd5ramp 0
 	tcmin_surv 0		! ThomasH
-	tcmin_est 1			! ThomasH
+	tcmin_est 1		! ThomasH
 	tcmax_est 1000		! 11
 	twmin_est -1000		! 21
 	gdd5min_est 2200	! ThomasH
@@ -768,17 +768,17 @@ pft "Pic_abi" (
 	needleleaved
 	rootdist 0.16 0.16 0.16 0.16 0.16 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02
 	root_beta 0.9683
-!	sla 9.3				! Not used if ifcalcsla is set
+!	sla 9.3			! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
 	fnstorage 0.05
-	leaflong 3			! THdiff: 4
+	leaflong 3		! THdiff: 4
 	turnover_leaf 0.33	! THdiff: 0.25
 	phengdd5ramp 0
 	tcmin_surv -30
 	tcmin_est -30
 	tcmax_est -1.5		! Sykes96
-	twmin_est 5			! THdiff: -
+	twmin_est 5		! THdiff: -
 	gdd5min_est 600		! Sykes96
 	k_chilla 0
 	k_chillb 100
@@ -806,11 +806,11 @@ pft "Pic_sit" (
 	k_latosa 4500				! Waring et al 1980
 	rootdist 0.16 0.16 0.16 0.16 0.16 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02
 	root_beta 0.9683
-!	sla 9.3						! Not used if ifcalcsla is set
+!	sla 9.3					! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
 	fnstorage 0.05
-	leaflong 4					! 5 !?
+	leaflong 4				! 5 !?
 	turnover_leaf 0.25			! 0.2 !?
 	phengdd5ramp 0
 	tcmin_surv -18				! Bjarki
@@ -824,8 +824,8 @@ pft "Pic_sit" (
 	fireresist 0.1
 	intc 0.06
 	longevity 700				! Bjarki
-	drought_tolerance 0.5		! Bjarki
-	eps_iso 0.					! to be determined
+	drought_tolerance 0.5			! Bjarki
+	eps_iso 0.				! to be determined
 	seas_iso 0
 	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0	! to be determined
 	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
@@ -843,7 +843,7 @@ pft "Pin_syl" (
 	intermediate_shade_tolerant
 	boreal
 	needleleaved
-	k_latosa 3000		! THdiff: 2000 (but I find that this to be a huge disadvantage for Pinus s.)
+	k_latosa 3000			! THdiff: 2000 (but I find that this to be a huge disadvantage for Pinus s.)
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
@@ -853,15 +853,15 @@ pft "Pin_syl" (
 	phengdd5ramp 0
 	tcmin_surv -30
 	tcmin_est -30
-	tcmax_est -1.0		! Sykes96
+	tcmax_est -1.0			! Sykes96
 	twmin_est 5			! THdiff: -
-	gdd5min_est 500		! Sykes96
+	gdd5min_est 500			! Sykes96
 	k_chilla 0
 	k_chillb 100
 	k_chillk 0.05
 	fireresist 0.2
 	intc 0.06
-	longevity 350		! THdiff: 500
+	longevity 350			! THdiff: 500
 	drought_tolerance 0.25
 	eps_iso 0.
 	seas_iso 0
@@ -879,7 +879,7 @@ pft "Pin_hal" (
 	shade_intolerant
 	temperate
 	needleleaved
-	k_latosa 3000		! THdiff: 2000 (but I find that this to be a huge disadvantage for Pinus h.)
+	k_latosa 3000			! THdiff: 2000 (but I find that this to be a huge disadvantage for Pinus h.)
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
@@ -922,17 +922,17 @@ pft "Pop_tre" (
 	phenology "summergreen"
 	fnstorage 0.15
 	phengdd5ramp 200
-	tcmin_surv -31		! Sykes
-	tcmin_est -30		! Sykes
+	tcmin_surv -31			! Sykes
+	tcmin_est -30			! Sykes
 	tcmax_est 6			! Sykes96
 	twmin_est -1000
-	gdd5min_est 500		! Sykes96 400
+	gdd5min_est 500			! Sykes96 400
 	k_chilla 0
 	k_chillb 350
 	k_chillk 0.05
-	fireresist 0.2		! Slightly higher to account for its ability to re-sprout
+	fireresist 0.2			! Slightly higher to account for its ability to re-sprout
 	intc 0.02
-	longevity 160		! Prentice & H.
+	longevity 160			! Prentice & H.
 	drought_tolerance 0.4
 	eps_iso 20.
 	seas_iso 1
@@ -995,8 +995,8 @@ pft "Que_ile" (
 	leaflong 2
 	turnover_leaf 0.5
 	phengdd5ramp 0
-	tcmin_surv 3		! THdiff: -2
-	tcmin_est 3 		! THdiff: -1
+	tcmin_surv 3			! THdiff: -2
+	tcmin_est 3 			! THdiff: -1
 	tcmax_est 7			! THdiff: -
 	twmin_est 5			! THdiff: -
 	gdd5min_est 1800
@@ -1030,7 +1030,7 @@ pft "Que_pub" (
 	phengdd5ramp 200
 	tcmin_surv -6			! THdiff: -6
 	tcmin_est -5			! THdiff: -5
-	tcmax_est 6				! THdiff: -
+	tcmax_est 6			! THdiff: -
 	twmin_est -1000
 	gdd5min_est 1900		! Sykes96
 	k_chilla 0
@@ -1061,8 +1061,8 @@ pft "Que_rob" (
 	phengdd5ramp 200
 	tcmin_surv -10			! THdiff: -16, Sykes96: -16
 	tcmin_est -9			! THdiff: -15, Sykes96: -16
-	tcmax_est 6				! THdiff: -
-	twmin_est 5				! THdiff: -
+	tcmax_est 6			! THdiff: -
+	twmin_est 5			! THdiff: -
 	gdd5min_est 1100
 	k_chilla 0
 	k_chillb 100
@@ -1094,8 +1094,8 @@ pft "Til_cor" (
 	phengdd5ramp 200
 	tcmin_surv -12			! THdiff: -18, Sykes96: -18
 	tcmin_est -11			! THdiff: -17
-	tcmax_est 5				! THdiff: -
-	twmin_est 5				! THdiff: -
+	tcmax_est 5			! THdiff: -
+	twmin_est 5			! THdiff: -
 	gdd5min_est 1100		! THdiff: 1000, Sykes96 has 830 (with higher chilling)
 	k_chilla 0
 	k_chillb 600
@@ -1120,7 +1120,7 @@ pft "Ulm_gla" (
 	intermediate_shade_tolerant
 	temperate
 	broadleaved
-!	sla 24.3				! Not used if ifcalcsla is set
+!	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
 	fnstorage 0.15

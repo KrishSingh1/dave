@@ -54,7 +54,8 @@ private:
 
 	// nitrogen
 	xtring file_nmass, file_cton_leaf, file_nsources, file_npool, file_nlitter, file_nuptake, file_vmaxnlim, file_nflux, file_ngases;
-
+	xtring file_soil_npool, file_soil_nflux;
+		
 	// BLAZE & SIMFIRE
 	xtring file_aburned_area_out, file_mburned_area_out;
 	xtring file_simfireanalysis_out;
@@ -79,7 +80,8 @@ private:
 	Table out_aiso, out_miso, out_amon, out_mmon, out_amon_mt1, out_amon_mt2, out_mmon_mt1, out_mmon_mt2;
 	
 	Table out_nmass, out_cton_leaf, out_nsources, out_npool, out_nlitter, out_nuptake, out_vmaxnlim, out_nflux, out_ngases;
-	
+	Table out_soil_npool, out_soil_nflux;
+
 	// BLAZE && SIMFIRE
 	Table out_aburned_area, out_mburned_area;
 	Table out_simfireanalysis;
@@ -88,8 +90,7 @@ private:
 	Table out_mch4, out_mch4diff, out_mch4plan, out_mch4ebull, out_msnow, out_mwtp, out_mald;
 
 	// Soil temperatures
-	Table out_msoiltempdepth5, out_msoiltempdepth15, out_msoiltempdepth25, out_msoiltempdepth35, out_msoiltempdepth45, out_msoiltempdepth55, out_msoiltempdepth65, out_msoiltempdepth75, out_msoiltempdepth85, out_msoiltempdepth95,
-		out_msoiltempdepth105, out_msoiltempdepth115, out_msoiltempdepth125, out_msoiltempdepth135, out_msoiltempdepth145;
+	Table out_msoiltempdepth5, out_msoiltempdepth15, out_msoiltempdepth25, out_msoiltempdepth35, out_msoiltempdepth45, out_msoiltempdepth55, out_msoiltempdepth65, out_msoiltempdepth75, out_msoiltempdepth85, out_msoiltempdepth95, out_msoiltempdepth105, out_msoiltempdepth115, out_msoiltempdepth125, out_msoiltempdepth135, out_msoiltempdepth145;
 };
 
 }

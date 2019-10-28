@@ -27,6 +27,10 @@ describe_textfile nflux1961to1990_areaaverage.txt "Global Terrestrial Nitrogen F
 aslice nflux1990to2000.txt -o nflux1990to2000_areaaverage.txt -n -sum 'kg/ha->Tg' -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.0 0.0
 describe_textfile nflux1990to2000_areaaverage.txt "Global Terrestrial Nitrogen Fluxes, 1990 to 2000. Units: Tg N/y"
 
+tslice soil_nflux.out -o soil_nflux1990to2000.txt -f 1990 -t 2000 -lon 1 -lat 2 -y 3
+aslice soil_nflux1990to2000.txt -o soil_nflux1990to2000_areaaverage.txt -n -sum 'kg/ha->Tg' -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.0 0.0
+describe_textfile soil_nflux1990to2000_areaaverage.txt "Global Terrestrial Soil Nitrogen Fluxes, 1990 to 2000. Units: Tg N/y"
+
 aslice cpool1961to1990.txt -o cpool1961to1990_areaaverage.txt -n -sum 'kg/m2->Pg'  -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.0 0.0
 describe_textfile cpool1961to1990_areaaverage.txt "Global Terrestrial Carbon Pools, 1961 to 1990. Units: Pg C/y"
 

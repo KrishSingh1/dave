@@ -339,6 +339,7 @@ CFInput::CFInput()
 
 	// Declare instruction file parameters
 	declare_parameter("ndep_timeseries", &ndep_timeseries, 10, "Nitrogen deposition time series to use (historic, rcp26, rcp45, rcp60 or rcp85");
+	 SoilInput soilinput;
 }
 
 CFInput::~CFInput() {
@@ -369,8 +370,6 @@ void CFInput::init() {
 
 	// Read CO2 data from file
 	co2.load_file(param["file_co2"].str);
-
-	file_cru = param["file_cru"].str;
 
 	// Try to open the NetCDF files
 	try {
@@ -502,6 +501,7 @@ void CFInput::init() {
 
 	date.set_first_calendar_year(cf_temp->get_date_time(0).get_year() - nyear_spinup);
 
+
 	soilinput.init(param["file_soildata"].str);
 
 	// Set timers
@@ -521,9 +521,12 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	// Load data for next gridcell, or if that fails, skip ahead until
 	// we find one that works.
 	while (current_gridcell != gridlist.end() &&
-	       !load_data_from_files(lon, lat, cru_lon, cru_lat)) {
+	       !load_data_from_files(lon, lat)){
 		++current_gridcell;
 	}
+
+	cru_lon = floor(lon * 2.0) / 2.0 + 0.25;
+	cru_lat = floor(lat * 2.0) / 2.0 + 0.25;
 
 	if (current_gridcell == gridlist.end()) {
 		// simulation finished
@@ -608,8 +611,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	return true;
 }
 
-bool CFInput::load_data_from_files(double& lon, double& lat,
-                                   double& cru_lon, double& cru_lat) {
+bool CFInput::load_data_from_files(double& lon, double& lat){
 
 	int rlon = current_gridcell->rlon;
 	int rlat = current_gridcell->rlat;
@@ -656,11 +658,6 @@ bool CFInput::load_data_from_files(double& lon, double& lat,
 	else {
 		cf_temp->get_coords_for(rlon, rlat, lon, lat);
 	}
-
-	// Find nearest CRU grid cell in order to get the soilcode
-
-	cru_lon = lon;
-	cru_lat = lat;
 
 	return true;
 }
@@ -1039,14 +1036,17 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 	
 	// Get monthly ndep values and convert to daily
 
-	double mndrydep[12];
-	double mnwetdep[12];
+	double mNHxdrydep[12], mNOydrydep[12];
+	double mNHxwetdep[12], mNOywetdep[12];
 
 	ndep.get_one_calendar_year(date.get_calendar_year(),
-	                           mndrydep, mnwetdep);
+	                           mNHxdrydep, mNOydrydep,
+							   mNHxwetdep, mNOywetdep);
 
 	// Distribute N deposition
-	distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
+	distribute_ndep(mNHxdrydep, mNOydrydep,
+					mNHxwetdep, mNOywetdep,
+					dprec,dNH4dep,dNO3dep);
 }
 
 void CFInput::getlandcover(Gridcell& gridcell) {
@@ -1082,7 +1082,8 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 	climate.dtr    = ddtr[date.day];
 
 	// Nitrogen deposition
-	climate.dndep = dndep[date.day];
+	gridcell.dNH4dep = dNH4dep[date.day];
+	gridcell.dNO3dep = dNO3dep[date.day];
 
 	// bvoc
 	if(ifbvoc){

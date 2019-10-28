@@ -6,6 +6,7 @@
 !//
 !///////////////////////////////////////////////////////////////////////////////////////
 
+import "global_soiln.ins"
 
 !///////////////////////////////////////////////////////////////////////////////////////
 ! Output files
@@ -216,7 +217,7 @@ group "common" (
 	wtp_max -301 		! [mm] maximum inundation (water table) tolerance, i.e. restrict on wetlands because wtp >= -300 always
 	inund_duration 0	! [day] maximum days per month of inundation before GPP is reduced to 0
 	min_snow 0.0 		! [mm] minimum snow needed for establishment (DJF average) and survival (20-year average maximum),
-	! i.e. No restriction here
+				! i.e. No restriction here
 	max_snow 100000		! [mm] maximum snow tolerance (never used), i.e. No restriction here
 	gdd0_max 100000		! [degC day] max GDD0, i.e. No restriction here
 	gdd0_min 0		! [degC day] min GDD0, i.e. No restriction here

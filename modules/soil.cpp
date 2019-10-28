@@ -72,16 +72,34 @@ void Soil::init_states() {
 
 	// passive has a fixed value
 	sompool[PASSIVESOM].ntoc = 1.0 / 9.0;
-
-	nmass_avail = 0.0;
-	ninput = 0.0;
+	
+	NO2_mass = 0.0;
+	NO2_mass_w = 0.0;
+	NO2_mass_d = 0.0;
+	NO_mass = 0.0;
+	NO_mass_w = 0.0;
+	NO_mass_d = 0.0;
+	N2O_mass = 0.0;
+	N2O_mass_w = 0.0;
+	N2O_mass_d = 0.0;
+	N2_mass = 0.0;
+	NH4_mass = 0.0;
+	NO3_mass = 0.0;
+	NH4_input = 0.0;
+	NO3_input = 0.0;
 	anmin = 0.0;
 	animmob = 0.0;
 	aminleach = 0.0;
+	aorgNleach = 0.0;
+	aorgCleach = 0.0;
 	anfix = 0.0;
 	anfix_calc = 0.0;
 	anfix_mean = 0.0;
-	snowpack_nmass = 0.0;
+	snowpack_NH4_mass = 0.0;
+	snowpack_NO3_mass = 0.0;
+	
+	pH = 6.5;
+	
 	dperc = 0.0;
 
 	solvesomcent_beginyr = (int)(SOLVESOMCENT_SPINBEGIN * (nyear_spinup - freenyears) + freenyears);
@@ -1805,7 +1823,6 @@ double Soil::get_soil_water(int layer1, int layer2) const {
 
 // return wcont for the upper 50cm (upper true) or lower (100cm) soil layer (upper false)
 double Soil::get_soil_water_upper() const {
-
 	return get_soil_water(0, nsublayer1);
 }
 
@@ -3741,6 +3758,99 @@ bool Soil::soil_temp_multilayer(const double &dailyairtemp) {
 
 } // Soil::calcsoiltemp
 
+double Soil::nmass_avail(int pref) {
+	double nmass = 0.0;
+	if (!ifntransform) {
+		pref = NH4;
+		if (NO3_mass > 0.0) {
+			NH4_mass += NO3_mass;
+			NO3_mass = 0.0;
+		}
+	}
+	if (pref == NO) {
+		nmass = NH4_mass + NO3_mass;
+	} else if (pref == NH4) {
+		nmass = NH4_mass;
+	} else if (pref == NO3) {
+		nmass = NO3_mass;
+	}
+	return nmass;
+}
+
+void Soil::nmass_subtract(double nmass, int pref) {
+
+	if (!ifntransform) {
+		pref = NH4;
+	}
+	double residual = 0.0;
+	if (pref == NO) {
+		double nmass_tot = NH4_mass + NO3_mass;
+		if (nmass_tot > 0.0) {
+			residual = nmass_tot - nmass;
+			if (residual >= 0.0 || negligible(residual,10)) {
+				nmass_subtract(nmass * NH4_mass / nmass_tot,NH4);
+				nmass_subtract(nmass * NO3_mass / nmass_tot,NO3);
+			} else {
+				fail("tried to subtract more N than available");
+			}
+		}
+	} else if (pref == NH4) {
+		if (nmass<NH4_mass || negligible(nmass-NH4_mass,10)) {
+			NH4_mass -= nmass;
+		} else {
+			double r = nmass - NH4_mass;
+			NH4_mass = 0.0;
+			patch.fluxes.report_flux(Fluxes::NH3_SOIL, r);
+			dprintf("NH4 mass %f N substr %f \n",NH4_mass,nmass);
+			//fail("tried to subtract more NH4 than available");
+		}
+	} else if (pref == NO3) {
+		if (nmass<NO3_mass || negligible(nmass-NO3_mass,10)) {
+			NO3_mass -= nmass;
+		} else {
+			double r = nmass - NO3_mass;
+			NO3_mass = 0.0;
+			patch.fluxes.report_flux(Fluxes::NO_SOIL, r);
+			dprintf("NO3 mass %f N substr %f \n",NO3_mass,nmass);
+			//fail("tried to subtract more NO3 than available");
+		}
+	}
+
+}
+
+void Soil::nmass_inc(double nmass, int pref) {
+	if (nmass < 0.0) {
+		nmass_subtract(fabs(nmass), pref);
+	} else {
+		if (!ifntransform) {
+			pref = NH4;
+		}
+		if (pref == NO) {
+			double nmass_tot = NH4_mass + NO3_mass;
+			NH4_mass+=nmass * NH4_mass / nmass_tot;
+			NO3_mass+=nmass * NO3_mass / nmass_tot;
+		} else if (pref == NH4) {
+			NH4_mass += nmass;
+		} else if (pref == NO3) {
+			NO3_mass += nmass;
+		}
+	}
+}
+
+void Soil::nmass_multiplic_inc(double inc, int pref) {
+	if (!ifntransform) {
+		pref = NH4;
+	}
+	if (pref == NO) {
+		double nmass_tot = NH4_mass + NO3_mass;
+		NH4_mass *= inc * NH4_mass / nmass_tot;
+		NO3_mass *=inc * NO3_mass / nmass_tot;
+	} else if (pref == NH4) {
+		NH4_mass *= inc;
+	} else if (pref == NO3) {
+		NO3_mass *= inc;
+	}
+}
 
 // serialize new soil variables, when finalised
 void Soil::serialize(ArchiveStream& arch) {
@@ -3807,8 +3917,14 @@ void Soil::serialize(ArchiveStream& arch) {
 
 	arch & dperc
 		& orgleachfrac
-		& nmass_avail
-		& ninput
+		& NO2_mass
+		& NO_mass
+		& N2O_mass
+		& N2_mass
+		& NH4_mass
+		& NO3_mass
+		& NH4_input
+		& NO3_input
 		& anmin
 		& animmob
 		& aminleach
@@ -3817,7 +3933,8 @@ void Soil::serialize(ArchiveStream& arch) {
 		& anfix
 		& anfix_calc
 		& anfix_mean
-		& snowpack_nmass
+		& snowpack_NH4_mass
+		& snowpack_NO3_mass
 		& solvesomcent_beginyr
 		& solvesomcent_endyr
 		& solvesom

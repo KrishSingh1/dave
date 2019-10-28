@@ -3,7 +3,7 @@
 GMAPSMOOTH=""		#="-smooth 10"
 GMAPPIXELSIZE=""	#="-pixsize 5 5"
 
-# Function for creating a scatter plot using gnuplot.
+# Function for preparing data for a scatter plot using gnuplot.
 #
 # Parameters:
 # $1 model input 
@@ -17,6 +17,22 @@ function prepareyielddata {
 	crop=$4
 	c=$(head -1 $model_input | awk -v d=$4 '{for(i=1;i<=NF;i++){if($i==d){print i;}}}')
 	awk -v c="$c" ' BEGIN { FS = " " } ; FNR==NR{a[$1$2]=$c;next}BEGIN{OFS=" "};{if($1$2 in a){print $3,a[$1$2]*1.3}}' $1 $2 > $3
+}
+
+# Function for preparing data for a scatter plot using gnuplot.
+#
+# Parameters:
+# $1 model input 
+# $2 observation input
+# $3 output file
+# $4 column name
+function preparesoiln2odata {
+	model_input=$1
+	obs_input=$2
+	output=$3
+	column=$4
+	c=$(head -1 $model_input | awk -v d=$4 '{for(i=1;i<=NF;i++){if($i==d){print i;}}}')
+	awk -v c="$c" ' BEGIN { FS = " " } ; FNR==NR{a[$1$2]=$c;next}BEGIN{OFS=" "};{if($1$2 in a){print $3,a[$1$2]}}' $1 $2 > $3
 }
 
 describe_benchmark "LPJ-GUESS - Global Benchmarks for crops"
@@ -38,6 +54,10 @@ aslice nflux1961to1990.txt -o nflux1961to1990_areaaverage.txt -n -sum 'kg/ha->Tg
 describe_textfile nflux1961to1990_areaaverage.txt "Global Terrestrial Nitrogen Fluxes, 1961 to 1990. Units: Tg N/y"
 aslice nflux1990to2000.txt -o nflux1990to2000_areaaverage.txt -n -sum 'kg/ha->Tg' -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.0 0.0
 describe_textfile nflux1990to2000_areaaverage.txt "Global Terrestrial Nitrogen Fluxes, 1990 to 2000. Units: Tg N/y"
+
+tslice soil_nflux.out -o soil_nflux1990to2000.txt -f 1990 -t 2000 -lon 1 -lat 2 -y 3
+aslice soil_nflux1990to2000.txt -o soil_nflux1990to2000_areaaverage.txt -n -sum 'kg/ha->Tg' -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.0 0.0
+describe_textfile soil_nflux1990to2000_areaaverage.txt "Global Terrestrial Soil Nitrogen Fluxes, 1990 to 2000. Units: Tg N/y"
 
 aslice cpool1961to1990.txt -o cpool1961to1990_areaaverage.txt -n -sum 'kg/m2->Pg'  -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.0 0.0
 describe_textfile cpool1961to1990_areaaverage.txt "Global Terrestrial Carbon Pools, 1961 to 1990. Units: Pg C/y"
@@ -138,3 +158,7 @@ describe_textfile tot_cflux_reg.dat "Fire C-emissions per GFED - region [Pg/a]"
 
 rm -f cflux1997-2016.dat cflux1997-2016_joyned.dat cflux1997-2016_joyned_Fire.dat cflux1997-2016_joyned_gfed.dat \
    delta_cflux1997-2016_joyned.dat scat_fire_cflux.dat 
+
+preparesoiln2odata soil_nflux1990to2000.txt common/../crop_global/Huang_2015_XURI_2008_N2O_025.dat temp_n2o.dat N2O
+scatter_plot "N2O emissions" "Observations" "LPJ-GUESS" temp_n2o.dat site_n2o.png
+describe_image site_n2o.png "Modelled compared to observations from Huang et al. (2015) and Xu-Ri and Prentice (2008). Units: kg N2O-M ha-1 year-1." embed

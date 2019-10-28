@@ -138,6 +138,8 @@ typedef enum {COLD, COLD_WARM, COLD_HOT, WARM, WARM_HOT, HOT} temp_seasonality_t
   */
 typedef enum {O2gas, CO2gas, CH4gas} gastype;
 
+/// Nitrogen preferance
+typedef enum {NO, NH4, NO3} n_pref_type;
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
 
@@ -885,10 +887,6 @@ public:
 	/// mean of monthly temperatures for the last 12 months (deg C)
 	double atemp_mean;
 
-	/// annual nitrogen deposition (kgN/m2/year)
-	double andep;
-	/// daily nitrogen deposition (kgN/m2)
-	double dndep;
 
 	// BLAZE
 
@@ -1020,10 +1018,15 @@ public:
 
 	/// annual precipitation sum
 	double aprec;
+	/// annual average precipitation (last year) (mm)
+	double aprec_lastyear;	
 
 public:
 	/// constructor function: initialises gridcell member
 	Climate(Gridcell& gc):gridcell(gc) {
+
+		aprec = 0.0;
+		aprec_lastyear = 0.0;
 
 		for(int m=0;m<12;m++) {
 
@@ -1130,6 +1133,12 @@ public:
 		HARVESTC,
 		/// Flux from atmosphere to vegetation associated with sowing (kgC/m2)
 		SEEDC,
+		/// Flux from atmosphere to vegetation associated with manure addition (kgC/m2)
+		MANUREC,
+		/// Flux to vegetation associated with manure addition (kgN/m2)
+		MANUREN,
+		/// Flux to vegetation associated with N addition (kgN/m2) 
+		NFERT,
 		/// Nitrogen flux to atmosphere from consumed harvested products (kgN/m2)
 		HARVESTN,
 		/// Nitrogen flux from atmosphere to vegetation associated with sowing (kgC/m2)
@@ -1142,8 +1151,25 @@ public:
 		N2O_FIRE,
 		/// N2 flux to atmosphere from fire
 		N2_FIRE,
-		/// N flux from soil
-		N_SOIL,
+		//---- Soil N transformation -----
+		/// NH3 flux from soil (ntransform)
+		NH3_SOIL,
+		/// NO flux from soil (ntransform)
+		NO_SOIL,
+		/// N2O flux in soil (ntransform)
+		N2O_SOIL,
+		/// N2 flux from soil (ntransform)
+		N2_SOIL,
+		/// DOC flux from soil (ntransform)
+		DOC_FLUX,
+		/// Net nitrification (ntransform)
+		NET_NITRIF,
+		/// Net denitrification (ntransform)
+		NET_DENITRIF,
+		/// Gross nitrification (ntransform)
+		GROSS_NITRIF,
+		/// Gross denitrification (ntransform)
+		GROSS_DENITRIF,
 		/// Reproduction costs
 		REPRC,
 		/// Total (i.e. CH4C_DIFF + CH4C_PLAN + CH4C_EBUL) CH4 flux to atmosphere from peatland soils (gC/m2).
@@ -3397,10 +3423,14 @@ public:
 	double dperc;
 	/// fraction of decayed organic nitrogen leached each day;
 	double orgleachfrac;
-	/// soil mineral nitrogen pool (kgN/m2)
-	double nmass_avail;
-	/// soil nitrogen input (kgN/m2)
-	double ninput;
+	/// soil NH4 mass in pool (kgN/m2)
+	double NH4_mass;
+	/// soil NO3 mass in pool (kgN/m2)
+	double NO3_mass;
+	/// soil NH4 mass input (kgN/m2)
+	double NH4_input;
+	/// soil NO3 mass input (kgN/m2)
+	double NO3_input;
 	/// annual sum of nitrogen mineralisation
 	double anmin;
 	/// annual sum of nitrogen immobilisation
@@ -3439,8 +3469,44 @@ public:
 
 	std::vector<LitterSolveSOM> solvesom;
 
-	/// stored nitrogen deposition in snowpack
-	double snowpack_nmass;
+	/// stored NH4 deposition in snowpack
+	double snowpack_NH4_mass;
+	/// stored NO3 deposition in snowpack
+	double snowpack_NO3_mass;
+
+	/// pools of soil N species in transformation (nitrification & denitrifiacation)
+
+	/// soil NH4 mass in pool (kgN/m2)
+	// double NH4_mass;	// total, definde above
+	double NH4_mass_w;	// wet proportion
+	double NH4_mass_d;	// dry...
+
+	/// soil NO3 mass in pool (kgN/m2)
+	// double NO3_mass; // total, definde above
+	double NO3_mass_w;
+	double NO3_mass_d;
+	/// soil NO2 mass in pool (kgN/m2)
+	double NO2_mass;
+	double NO2_mass_w;
+	double NO2_mass_d;
+	/// soil NO mass in pool (kgN/m2)
+	double NO_mass;
+	double NO_mass_w;
+	double NO_mass_d;
+	/// soil NO mass in pool (kgN/m2)
+	double N2O_mass;
+	double N2O_mass_w;
+	double N2O_mass_d;
+	/// soil N2 mass in pool (kgN/m2)
+	double N2_mass;
+
+	// soil pH
+	double pH;	//TODO: pH - not used yet. Daily mean precip, based on annual average
+
+	// soil labile carbon availability daily (kgC/m2/day)
+	double labile_carbon;
+	double labile_carbon_w;
+	double labile_carbon_d;
 
 	// MEMBER FUNCTIONS
 
@@ -3529,6 +3595,12 @@ public:
 
 	/// Soil water freezing allowed?
 	bool can_freeze() const;
+
+	// Soil helper functions
+	double nmass_avail(int pref = NO);
+	void nmass_subtract(double nmass, int pref = NO);
+	void nmass_inc(double nmass, int pref = NO);
+	void nmass_multiplic_inc(double inc, int pref = NO);
 
 private:
 
@@ -4417,6 +4489,8 @@ public:
 	int hdate_force;
 	/// N fertilization from input file
 	double Nfert_read;
+	/// Manure N fertilization from input file
+	double Nfert_man_read;
 	/// default harvest date (pft.hlimitdatenh/hlimitdatesh)
 	int hlimitdate_default;
 	/// whether autumn sowing is either calculated or prescribed
@@ -4457,6 +4531,7 @@ public:
 		sdate_force=-1;
 		hdate_force=-1;
 		Nfert_read=-1;
+		Nfert_man_read=-1;
 		sdatecalc_temp=-1;
 		sdatecalc_prec=-1;
 		hlimitdate_default=-1;
@@ -4659,6 +4734,15 @@ public:
 	/// monthly burned area from SIMFIRE
 	double monthly_burned_area[12];
 
+	/// annual NH4 deposition (kgN/m2/year)
+	double aNH4dep;
+	/// annual NO3 deposition (kgN/m2/year)
+	double aNO3dep;
+	/// daily NH4 deposition (kgN/m2)
+	double dNH4dep;
+	/// daily NO3 deposition (kgN/m2)
+	double dNO3dep;
+
 	/// Seed for generating random numbers within this Gridcell
 	/** The reason why Gridcell has its own seed, rather than using for instance
 	 *  a single global seed is to make it easier to compare results when for
@@ -4716,6 +4800,7 @@ private:
 
 	/// Latitude for this grid cell
 	double lat;
+
 };
 
 
@@ -4745,8 +4830,6 @@ private:
 //   model based on ecophysiological constraints, resource availability, and
 //   competition among plant functional types. Global Biogeochemical Cycles 10:
 //   693-709
-// Jackson, R.B, J. Candell, J.R Ehleringer, H.A. Mooney, O.E. Sala, E.D. Schulze, 1996.
-//   A global analysis of root distributions for terrestrial biomes. Oecologica 108:389-411
 // Lloyd, J & Taylor JA 1994 On the temperature dependence of soil respiration
 //   Functional Ecology 8: 315-323
 // Macduff, JH, Humphreys, MO & Thomas, H 2002. Effects of a stay-green mutation on

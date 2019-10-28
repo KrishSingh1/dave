@@ -5,7 +5,7 @@
 ///  Created on: 24 nov 2014
 /// \author : Stefan Olin
 ///
-/// $Date: $
+/// $Date:  $
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -16,7 +16,6 @@
 
 
 namespace {
-
 bool format_input_header(const char* fname) {
 	std::ifstream ifs(fname, std::ifstream::in);
 	if (!ifs.good()) {
@@ -61,8 +60,8 @@ coord SoilInput::find_closest_point(double searchradius, coord C) {
 
 	// Search all coordinates in a square around (lon, lat), but first go down to
 	// multiple of 0.5
-	double center_lon = floor(lon*2)/2 + 0.25;
-	double center_lat = floor(lat*2)/2 + 0.25;
+	double center_lon = floor(lon * 2) / 2 + 0.25;
+	double center_lat = floor(lat * 2) / 2 + 0.25;
 
 	// Enumerate all coordinates within the square, place them in a vector of
 	// pairs where the first element is distance from center to allow easy
@@ -74,11 +73,11 @@ coord SoilInput::find_closest_point(double searchradius, coord C) {
 	
 	const double EPS = 1e-15;
 
-	for (double y = center_lon-searchradius; y <= center_lon+searchradius+EPS; y += STEP) {
-		for (double x = center_lat-searchradius; x <= center_lat+searchradius+EPS; x += STEP) {
+	for (double y = center_lon - searchradius; y <= center_lon + searchradius + EPS; y += STEP) {
+		for (double x = center_lat - searchradius; x <= center_lat + searchradius + EPS; x += STEP) {
 			double xdist = x - lat;
 			double ydist = y - lon;
-			double dist = sqrt(xdist*xdist + ydist*ydist);
+			double dist = sqrt(xdist * xdist + ydist * ydist);
 
 			if (dist <= searchradius + EPS) {
 				search_points.push_back(make_pair(dist, make_pair(y, x)));
@@ -118,7 +117,6 @@ void SoilInput::init(const char* fname, const std::vector<coord>& gridlist) {
 	else {
 		load_mineral_soils(fname, coords);
 	}
-
 }
 
 // Read in routine for text file with LPJ soil codes.
@@ -137,7 +135,7 @@ void SoilInput::load_lpj_soilcodes(const char* fname, const std::set<coord>& coo
 			if (!coords.empty() && coords.count(c) == 0) {
 				continue;
 			}
-			if (classnbr<1 || classnbr>8) {
+			if (classnbr<0 || classnbr>9) {
 				fail("SoilInput::init: invalid LPJ soil code (%d) for location"
 					" (%g, %g) in file %s", classnbr, lon, lat, fname);
 			}
@@ -246,7 +244,8 @@ void SoilInput::load_mineral_soils(const char* fname, const std::set<coord>& coo
 			// TODO, set it to value: 1.6
 			if (bd_i<0) {	
 				soildata.bulkdensity = (double)bd_i;
-			} else {
+			} 
+			else {
 				soildata.bulkdensity = T[bd_i];
 			}
 
@@ -267,20 +266,20 @@ SoilInput::SoilProperties SoilInput::get_lpj(coord c) {
 	int soilcode = lpj_map[C];
 	
 	SoilProperties soiltype;
-	soiltype.sand = data[soilcode-1][7];
-	soiltype.clay = data[soilcode-1][8];
+	soiltype.sand = data[soilcode][7];
+	soiltype.clay = data[soilcode][8];
 
-	soiltype.b = data[soilcode-1][0];
-	soiltype.volumetric_whc_field_capacity = data[soilcode-1][1];
-	soiltype.thermal_wilting_point = data[soilcode-1][2];
-	soiltype.thermal_15_whc = data[soilcode-1][3];
-	soiltype.thermal_field_capacity = data[soilcode-1][4];
-	soiltype.wilting_point = data[soilcode-1][5];
-	soiltype.saturation_capacity = data[soilcode-1][6];
+	soiltype.b = data[soilcode][0];
+	soiltype.volumetric_whc_field_capacity = data[soilcode][1];
+	soiltype.thermal_wilting_point = data[soilcode][2];
+	soiltype.thermal_15_whc = data[soilcode][3];
+	soiltype.thermal_field_capacity = data[soilcode][4];
+	soiltype.wilting_point = data[soilcode][5];
+	soiltype.saturation_capacity = data[soilcode][6];
 	soiltype.pH = 6.5;
 	soiltype.soil_OC = 0.05;
 	soiltype.soilC = 0.0; // default value (kgC/m2)
-    soiltype.porosity = data[soilcode-1][11];
+	soiltype.porosity = data[soilcode][11];
 	return soiltype;
 }
 
@@ -288,7 +287,7 @@ SoilInput::SoilProperties SoilInput::get_lpj(coord c) {
 // Used only if scaling between pure mineral and organic soils is activated.
 SoilInput::SoilProperties SoilInput::get_lpj_organic_soil() {
 
-	int soilcode = 7;
+	int soilcode = 8;
 
 	SoilProperties soiltype;
 	soiltype.sand = data[soilcode][7];
@@ -304,7 +303,7 @@ SoilInput::SoilProperties SoilInput::get_lpj_organic_soil() {
 	soiltype.pH = 6.5;
 	soiltype.soil_OC = 0.05;
 	soiltype.soilC = 0.0; // default value (kgC/m2)
-    soiltype.porosity = data[soilcode][11];
+	soiltype.porosity = data[soilcode][11];
 	return soiltype;
 }
 
@@ -340,7 +339,7 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 	// A linear dependence between the percolation coefficient from Haxeltine 1996a
 	// and the texture dependent parameter b from Cosby 1984 was established
 	// K = 5.87 - 0.29*b
-    
+
 	SoilProperties soiltype;
 	soiltype.b = 5.87 - 0.29 * b;
 
@@ -372,7 +371,8 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 	// Special case if soil properties are presumed to be influenced by the amount of soil carbon. Only valid if not using soil codes.
 	if (iforganicsoilproperties) {
 		get_soil_organic(lon, lat, gridcell);
-	} else {
+	} 
+	else {
 		get_soil_mineral(lon, lat, gridcell);
 	}
 }
@@ -387,7 +387,7 @@ void SoilInput::get_soil_mineral(double lon, double lat, Gridcell& gridcell) {
 	soiltype.soilcode = lpj_map[c];
 	soiltype.sand_frac = soilprop.sand;
 	soiltype.clay_frac = soilprop.clay;
-	soiltype.silt_frac = 1 - soiltype.sand_frac - soiltype.clay_frac;
+	soiltype.silt_frac = 1.0 - soiltype.sand_frac - soiltype.clay_frac;
 	soiltype.perc_base = soilprop.b;
 	soiltype.perc_base_evap = soilprop.b;
 	soiltype.perc_exp = 2;
@@ -420,13 +420,12 @@ void SoilInput::get_soil_mineral(double lon, double lat, Gridcell& gridcell) {
 	soiltype.organic_frac = soilprop.soil_OC;
 	soiltype.water_below_wp = soilprop.wilting_point;
 	soiltype.porosity = soilprop.porosity;
-	soiltype.mineral_frac = 1.0-soiltype.organic_frac-soiltype.porosity;
+	soiltype.mineral_frac = 1.0 - soiltype.organic_frac - soiltype.porosity;
 
 	if (!ifcentury) {
 		// override the default SOM years with 70-80% of the spin-up period
 		soiltype.updateSolveSOMvalues(nyear_spinup);
 	}
-
 }
 
 
@@ -448,7 +447,7 @@ void SoilInput::get_soil_organic(double lon, double lat, Gridcell& gridcell) {
 	if (soil_code) { 
 		
 		// There is no need to update the soil properties below if this already classified as an organic soil type.
-		if (soilcode==7) {
+		if (soilcode==8) {
 			for (int ii = IDX_STD; ii<NLAYERS; ii++) {
 				// Save these values for later before updating the thermal properties
 				soiltype.org_frac_gridcell[ii - IDX_STD] = 1.0 - organic_porosity;
@@ -465,7 +464,7 @@ void SoilInput::get_soil_organic(double lon, double lat, Gridcell& gridcell) {
 
 	soiltype.sand_frac = soilpropmineral.sand;
 	soiltype.clay_frac = soilpropmineral.clay;
-	soiltype.silt_frac = 1 - soiltype.sand_frac - soiltype.clay_frac;
+	soiltype.silt_frac = 1.0 - soiltype.sand_frac - soiltype.clay_frac;
 
 	//
 	// Now update the following properties based on the weighted average of organic properties in the soil.
@@ -509,7 +508,6 @@ void SoilInput::get_soil_organic(double lon, double lat, Gridcell& gridcell) {
 
 		// Put the residual SOC fraction in lowest soil layer
 		socfrac[NLAYERS - 1] += 1.0 - min(soc_frac_total,1.0);
-
 	}
 
 	double carbon_previous_layer = 0.0;
@@ -525,7 +523,7 @@ void SoilInput::get_soil_organic(double lon, double lat, Gridcell& gridcell) {
 	// Evap layers 
 	int num_evaplayers = 2;
 
-	for (int ii = IDX_STD; ii<NLAYERS; ii++) {
+	for (int ii = IDX_STD; ii < NLAYERS; ii++) {
 
 		if (!soil_code) {
 
@@ -544,9 +542,9 @@ void SoilInput::get_soil_organic(double lon, double lat, Gridcell& gridcell) {
 			// This is the fraction of the material (i.e. 1 - porosity) that is organic
 			org_frac[ii] = soil_density_layer / maxSOCdensity;
 			org_frac_avg += org_frac[ii];
-			if (ii < IDX_STD+num_evaplayers)
+			if (ii < IDX_STD + num_evaplayers) {
 				org_frac_avg_evap += org_frac[ii];
-
+			}
 		}
 		else {
 			// Use soilpropmineral.soil_OC
@@ -554,11 +552,11 @@ void SoilInput::get_soil_organic(double lon, double lat, Gridcell& gridcell) {
 		}
 
 		// Organic fractions > 0 increase the porosity above the mineral value
-		porosity[ii] = (1 - org_frac[ii]) * mineral_porosity + org_frac[ii] * organic_porosity;
+		porosity[ii] = (1.0 - org_frac[ii]) * mineral_porosity + org_frac[ii] * organic_porosity;
 
-		double material = 1 - porosity[ii]; // min value is 0.2
+		double material = 1.0 - porosity[ii]; // min value is 0.2
 
-		double material_min = (1 - org_frac[ii]) * (1.0 - mineral_porosity); // max = 1.0 - mineral_porosity
+		double material_min = (1.0 - org_frac[ii]) * (1.0 - mineral_porosity); // max = 1.0 - mineral_porosity
 		double material_org = org_frac[ii] * (1.0 - organic_porosity); // max = 0.2
 
 		material_min_avg += material_min;
@@ -587,7 +585,7 @@ void SoilInput::get_soil_organic(double lon, double lat, Gridcell& gridcell) {
 
 	// First calculate the organic fractions in the top and the bottom layers
 	double org_frac_upper = 0.0;
-	for (int s = 0; s<NSOILLAYER_UPPER; s++) {
+	for (int s = 0; s < NSOILLAYER_UPPER; s++) {
 		org_frac_upper += org_frac[IDX_STD + s] / NSOILLAYER_UPPER;
 	}
 	double min_frac_upper = 1.0 - org_frac_upper;
@@ -626,25 +624,25 @@ void SoilInput::get_soil_organic(double lon, double lat, Gridcell& gridcell) {
 	soiltype.wtot = soiltype.gawc[0] + soiltype.gawc[1] + soiltype.gwp[0] + soiltype.gwp[1];
 
 	// Populate the arrays in a more general way
-	for (int s = 0; s<NSOILLAYER_UPPER; s++) {
-		soiltype.awc[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * ((1-org_frac[IDX_STD + s]) * soilpropmineral.volumetric_whc_field_capacity + 
+	for (int s = 0; s < NSOILLAYER_UPPER; s++) {
+		soiltype.awc[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * ((1.0 - org_frac[IDX_STD + s]) * soilpropmineral.volumetric_whc_field_capacity + 
 			org_frac[IDX_STD + s] * soilproporganic.volumetric_whc_field_capacity);
 
-		soiltype.wp[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * ((1-org_frac[IDX_STD + s]) * soilpropmineral.wilting_point + 
+		soiltype.wp[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * ((1.0 - org_frac[IDX_STD + s]) * soilpropmineral.wilting_point + 
 			org_frac[IDX_STD + s] * soilproporganic.wilting_point);
 
-		soiltype.wsats[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * ((1-org_frac[IDX_STD + s]) * soilpropmineral.saturation_capacity + 
+		soiltype.wsats[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * ((1.0 - org_frac[IDX_STD + s]) * soilpropmineral.saturation_capacity + 
 			org_frac[IDX_STD + s] * soilproporganic.saturation_capacity);
 	}
 
-	for (int s = NSOILLAYER_UPPER; s<NSOILLAYER; s++) {
-		soiltype.awc[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * ((1-org_frac[IDX_STD + s]) * soilpropmineral.volumetric_whc_field_capacity + 
+	for (int s = NSOILLAYER_UPPER; s < NSOILLAYER; s++) {
+		soiltype.awc[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * ((1.0 - org_frac[IDX_STD + s]) * soilpropmineral.volumetric_whc_field_capacity + 
 			org_frac[IDX_STD + s] * soilproporganic.volumetric_whc_field_capacity);
 
-		soiltype.wp[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * ((1-org_frac[IDX_STD + s]) * soilpropmineral.wilting_point + 
+		soiltype.wp[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * ((1.0 - org_frac[IDX_STD + s]) * soilpropmineral.wilting_point + 
 			org_frac[IDX_STD + s] * soilproporganic.wilting_point);
 
-		soiltype.wsats[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * ((1-org_frac[IDX_STD + s]) * soilpropmineral.saturation_capacity + 
+		soiltype.wsats[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * ((1.0 - org_frac[IDX_STD + s]) * soilpropmineral.saturation_capacity + 
 			org_frac[IDX_STD + s] * soilproporganic.saturation_capacity);
 	}
 
@@ -656,13 +654,12 @@ void SoilInput::get_soil_organic(double lon, double lat, Gridcell& gridcell) {
 	// However, here we update them with the average values
 	soiltype.organic_frac = material_org_avg;
 	soiltype.mineral_frac = material_min_avg;
-	soiltype.porosity = 1 - soiltype.organic_frac - soiltype.mineral_frac;
+	soiltype.porosity = 1.0 - soiltype.organic_frac - soiltype.mineral_frac;
 
 	if (!ifcentury) {
 		// override the default SOM years with 70-80% of the spin-up period
 		soiltype.updateSolveSOMvalues(nyear_spinup);
 	}
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -682,12 +679,13 @@ void soil_parameters(Soiltype& soiltype, int soilcode) {
 	// Changed from 4 to 2 (Sitch, Thonicke, pers comm 26/11/01)
 	const double PERC_EXP = 2.0;
 
-	if (soilcode<0 || soilcode>8)
+	if (soilcode<0 || soilcode>9) {
 		fail("soil_parameters: invalid LPJ soil code (%d)", soilcode);
+	}
 
 	if (textured_soil) {
-		soiltype.sand_frac = data[soilcode-1][7];
-		soiltype.clay_frac = data[soilcode-1][8];
+		soiltype.sand_frac = data[soilcode][7];
+		soiltype.clay_frac = data[soilcode][8];
 	}
 	else {
 		// Using fixed values from Parton et al. (2010)
@@ -695,41 +693,41 @@ void soil_parameters(Soiltype& soiltype, int soilcode) {
 		soiltype.clay_frac = 0.12;
 	}
 
-	soiltype.silt_frac = 1 - soiltype.sand_frac - soiltype.clay_frac;
-	soiltype.perc_base = data[soilcode-1][0];
-	soiltype.perc_base_evap = data[soilcode-1][0];
+	soiltype.silt_frac = 1.0 - soiltype.sand_frac - soiltype.clay_frac;
+	soiltype.perc_base = data[soilcode][0];
+	soiltype.perc_base_evap = data[soilcode][0];
 	soiltype.perc_exp = PERC_EXP;
-	soiltype.gawc[0] = SOILDEPTH_UPPER * data[soilcode-1][1];
-	soiltype.gawc[1] = SOILDEPTH_LOWER * data[soilcode-1][1];
-	soiltype.thermdiff_0 = data[soilcode-1][2];
-	soiltype.thermdiff_15 = data[soilcode-1][3];
-	soiltype.thermdiff_100 = data[soilcode-1][4];
-	soiltype.gwp[0] = SOILDEPTH_UPPER * data[soilcode-1][5];
-	soiltype.gwp[1] = SOILDEPTH_LOWER * data[soilcode-1][5];
-	soiltype.gwsats[0] = SOILDEPTH_UPPER * data[soilcode-1][6];
-	soiltype.gwsats[1] = SOILDEPTH_LOWER * data[soilcode-1][6];
-	soiltype.wtot = (data[soilcode - 1][1] + data[soilcode-1][5]) * (SOILDEPTH_UPPER + SOILDEPTH_LOWER);
+	soiltype.gawc[0] = SOILDEPTH_UPPER * data[soilcode][1];
+	soiltype.gawc[1] = SOILDEPTH_LOWER * data[soilcode][1];
+	soiltype.thermdiff_0 = data[soilcode][2];
+	soiltype.thermdiff_15 = data[soilcode][3];
+	soiltype.thermdiff_100 = data[soilcode][4];
+	soiltype.gwp[0] = SOILDEPTH_UPPER * data[soilcode][5];
+	soiltype.gwp[1] = SOILDEPTH_LOWER * data[soilcode][5];
+	soiltype.gwsats[0] = SOILDEPTH_UPPER * data[soilcode][6];
+	soiltype.gwsats[1] = SOILDEPTH_LOWER * data[soilcode][6];
+	soiltype.wtot = (data[soilcode - 1][1] + data[soilcode][5]) * (SOILDEPTH_UPPER + SOILDEPTH_LOWER);
 
 	// Populate the arrays in a more general way
-	for (int s = 0; s<NSOILLAYER_UPPER; s++) {
-		soiltype.awc[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * data[soilcode-1][1];
-		soiltype.wp[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * data[soilcode-1][5];
-		soiltype.wsats[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * data[soilcode-1][6];
+	for (int s = 0; s < NSOILLAYER_UPPER; s++) {
+		soiltype.awc[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * data[soilcode][1];
+		soiltype.wp[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * data[soilcode][5];
+		soiltype.wsats[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * data[soilcode][6];
 	}
 
-	for (int s = NSOILLAYER_UPPER; s<NSOILLAYER; s++) {
-		soiltype.awc[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * data[soilcode-1][1];
-		soiltype.wp[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * data[soilcode-1][5];
-		soiltype.wsats[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * data[soilcode-1][6];
+	for (int s = NSOILLAYER_UPPER; s < NSOILLAYER; s++) {
+		soiltype.awc[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * data[soilcode][1];
+		soiltype.wp[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * data[soilcode][5];
+		soiltype.wsats[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * data[soilcode][6];
 	}
 
 	// Store the soilcode and new soil properties
 	soiltype.runon = wetland_runon;
-	soiltype.soilcode = soilcode -1;
-	soiltype.organic_frac=data[soilcode-1][9];
-	soiltype.water_below_wp = data[soilcode-1][5];
-	soiltype.porosity=data[soilcode-1][11];
-	soiltype.mineral_frac=1.0-soiltype.organic_frac-soiltype.porosity;
+	soiltype.soilcode = soilcode;
+	soiltype.organic_frac = data[soilcode][9];
+	soiltype.water_below_wp = data[soilcode][5];
+	soiltype.porosity = data[soilcode][11];
+	soiltype.mineral_frac = 1.0 - soiltype.organic_frac - soiltype.porosity;
 
 	if (!ifcentury) {
 		// override the default SOM years with 70-80% of the spin-up period

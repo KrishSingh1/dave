@@ -58,6 +58,8 @@ void Climate::serialize(ArchiveStream& arch) {
 		& rad
 		& par
 		& prec
+		& aprec
+		& aprec_lastyear
 		& daylength
 		& co2
 		& lat
@@ -88,8 +90,6 @@ void Climate::serialize(ArchiveStream& arch) {
 		& qo & u & v & hh & sinehh
 		& daylength_save
 		& doneday
-		& andep
-		& dndep
 		& dprec_10
 		& sprec_2
 		& maxtemp
@@ -543,8 +543,8 @@ double Patch::ncont(double scale_indiv, bool luc) {
 
 	double ncont = 0.0;
 
-	ncont += soil.nmass_avail;
-	ncont += soil.snowpack_nmass;
+	ncont += (soil.NH4_mass + soil.NO3_mass + soil.NO2_mass + soil.NO_mass + soil.N2O_mass + soil.N2_mass);
+	ncont += (soil.snowpack_NH4_mass + soil.snowpack_NO3_mass);
 
 	for (int i=0; i<NSOMPOOL; i++)
 		ncont += soil.sompool[i].nmass;
@@ -579,6 +579,7 @@ double Patch::cflux() {
 	cflux += fluxes.get_annual_flux(Fluxes::FIREC);
 	cflux += fluxes.get_annual_flux(Fluxes::ESTC);
 	cflux += fluxes.get_annual_flux(Fluxes::SEEDC);
+	cflux += fluxes.get_annual_flux(Fluxes::MANUREC);
 	cflux += fluxes.get_annual_flux(Fluxes::HARVESTC);
 	cflux += fluxes.get_annual_flux(Fluxes::CH4C) * KG_PER_G; // convert to kg CH4-C m-2 from g CH4-C m-2
 
@@ -590,7 +591,7 @@ double Patch::nflux() {
 
 	double nflux = 0.0;
 
-	nflux += -stand.get_climate().andep;
+	nflux += -(stand.get_gridcell().aNH4dep+stand.get_gridcell().aNO3dep);
 	nflux += -anfert;
 	nflux += -soil.anfix;
 	nflux += soil.aminleach;
@@ -601,7 +602,10 @@ double Patch::nflux() {
 	nflux += fluxes.get_annual_flux(Fluxes::NOx_FIRE);
 	nflux += fluxes.get_annual_flux(Fluxes::N2O_FIRE);
 	nflux += fluxes.get_annual_flux(Fluxes::N2_FIRE);
-	nflux += fluxes.get_annual_flux(Fluxes::N_SOIL);
+	nflux += fluxes.get_annual_flux(Fluxes::N2O_SOIL);
+	nflux += fluxes.get_annual_flux(Fluxes::N2_SOIL);
+	nflux += fluxes.get_annual_flux(Fluxes::NO_SOIL);
+	nflux += fluxes.get_annual_flux(Fluxes::NH3_SOIL);
 
 	return nflux;
 }
@@ -2527,8 +2531,6 @@ bool MassBalance::check_indiv(Individual& indiv, bool check_harvest) {
 void MassBalance::init_patch(Patch& patch) {
 
 	Stand& stand = patch.stand;
-	if (!stand.is_true_crop_stand())
-		return;
 	Gridcell& gridcell = stand.get_gridcell();
 
 	double scale = 1.0;
@@ -2554,8 +2556,6 @@ bool MassBalance::check_patch_C(Patch& patch, bool check_harvest) {
 
 	bool balance = true;
 	Stand& stand = patch.stand;
-	if (!stand.is_true_crop_stand())
-		return balance;
 	Gridcell& gridcell = stand.get_gridcell();
 	double ccont = patch.ccont();
 	double cflux = patch.cflux();
@@ -2581,8 +2581,8 @@ bool MassBalance::check_patch_N(Patch& patch, bool check_harvest) {
 	bool balance = true;
 	
 	Stand& stand = patch.stand;
-	if (!stand.is_true_crop_stand())
-		return balance;
+	//if (!stand.is_true_crop_stand())
+	//	return balance;
 	Gridcell& gridcell = stand.get_gridcell();
 	double ncont = patch.ncont();
 	double nflux = patch.nflux();

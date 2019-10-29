@@ -1434,21 +1434,23 @@ void growth(Stand& stand, Patch& patch) {
 						// Nitrogen always return to soil litter and storage
 						// Leaf
 						if (indiv.nmass_leaf > 0.0){
-							patch.pft[indiv.pft.id].nmass_litter_leaf += litter_leaf_inc * indiv.densindiv /
-								cton_leaf_bg * (1.0 - nrelocfrac);
-							indiv.nstore_longterm += litter_leaf_inc * indiv.densindiv / cton_leaf_bg * nrelocfrac;
+							double nmass = min(indiv.nmass_leaf, litter_leaf_inc * indiv.densindiv / cton_leaf_bg);
+
+							patch.pft[indiv.pft.id].nmass_litter_leaf += nmass * (1.0 - nrelocfrac);
+							indiv.nstore_longterm += nmass * nrelocfrac;
+
 							// Subtracting litter nitrogen from individuals
-							indiv.nmass_leaf -= min(indiv.nmass_leaf, litter_leaf_inc * indiv.densindiv / cton_leaf_bg);
+							indiv.nmass_leaf -= nmass;
 						}
 
 						// Root
 						if (indiv.nmass_root > 0.0){
-							patch.pft[indiv.pft.id].nmass_litter_root += litter_root_inc * indiv.densindiv /
-								cton_root_bg * (1.0 - nrelocfrac);
-							indiv.nstore_longterm += litter_root_inc / cton_root_bg * nrelocfrac;
+							double nmass = min(indiv.nmass_root, litter_root_inc * indiv.densindiv / cton_root_bg);
 
+							patch.pft[indiv.pft.id].nmass_litter_root += nmass * (1.0 - nrelocfrac);
+							indiv.nstore_longterm += nmass * nrelocfrac;
 							// Subtracting litter nitrogen from individuals
-							indiv.nmass_root -= min(indiv.nmass_root, litter_root_inc * indiv.densindiv / cton_root_bg);
+							indiv.nmass_root -= nmass;
 						}
 					}
 					// Kill individual and transfer biomass to litter if either biomass

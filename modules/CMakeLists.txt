@@ -25,6 +25,7 @@ set(headers
   soilmethane.h
   soil.h
   soilinput.h
+  ntransform.h
   )
 
 set(source  
@@ -53,6 +54,7 @@ set(source
   soilmethane.cpp
   soil.cpp
   soilinput.cpp
+  ntransform.cpp
   )
 
 include(add_guess_sources)

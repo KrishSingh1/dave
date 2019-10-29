@@ -316,7 +316,8 @@ bool DemoInput::getclimate(Gridcell& gridcell) {
 
 	// Send environmental values for today to framework
 
-	climate.dndep  = ndep / 365.0 * HA_PER_M2;
+	gridcell.dNH4dep = ndep / 2.0 / 365.0 * HA_PER_M2;
+	gridcell.dNO3dep = ndep / 2.0 / 365.0 * HA_PER_M2;
 
 	climate.co2 = co2;
 

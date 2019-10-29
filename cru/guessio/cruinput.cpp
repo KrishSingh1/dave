@@ -41,6 +41,7 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 
 } // namespace
 
+
 std::vector<std::pair<double, double> > CRUInput::translate_gridlist_to_coord(ListArray_id<Coord>& gridlist) {
 	gridlist.firstobj();
 	std::vector<std::pair<double, double> > output;
@@ -53,6 +54,7 @@ std::vector<std::pair<double, double> > CRUInput::translate_gridlist_to_coord(Li
 	}
 	return output;
 }
+
 
 CRUInput::CRUInput()
 	: searchradius(0),
@@ -143,11 +145,12 @@ void CRUInput::init() {
 
 
 void CRUInput::get_monthly_ndep(int calendar_year,
-                                double* mndrydep,
-                                double* mnwetdep) {
+                                double* mNHxdrydep, double* mNOydrydep,
+								double* mNHxwetdep, double* mNOywetdep) {
 
 	ndep.get_one_calendar_year(calendar_year,
-	                           mndrydep, mnwetdep);
+	                           mNHxdrydep, mNOydrydep,
+							   mNHxwetdep, mNOywetdep);
 }
 
 
@@ -298,9 +301,10 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 
 		// Extract N deposition to use for this year,
 		// monthly means to be distributed into daily values further down
-		double mndrydep[12], mnwetdep[12];
+        double mNHxdrydep[12], mNOydrydep[12], mNHxwetdep[12], mNOywetdep[12];
 		ndep.get_one_calendar_year(date.year - nyear_spinup + FIRSTHISTYEAR,
-		                           mndrydep, mnwetdep);
+		                           mNHxdrydep, mNOydrydep,
+								   mNHxwetdep, mNOywetdep);
 
 		if (date.year < nyear_spinup) {
 
@@ -415,7 +419,9 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 		}
 
 		// Distribute N deposition
-		distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
+		distribute_ndep(mNHxdrydep, mNOydrydep,
+						mNHxwetdep, mNOywetdep,
+						dprec,dNH4dep,dNO3dep);
 	}
 
 	// Send environmental values for today to framework
@@ -427,7 +433,8 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	climate.insol = dsun[date.day];
 
 	// Nitrogen deposition
-	climate.dndep = dndep[date.day];
+	gridcell.dNH4dep = dNH4dep[date.day];
+	gridcell.dNO3dep = dNO3dep[date.day];
 
 	// Tmin, Tmax for BLAZE
 	// initialise first

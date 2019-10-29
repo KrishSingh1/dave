@@ -113,7 +113,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// Daily C allocation (cropland)
 			growth_daily(patch);
 			// Soil organic matter and litter dynamics
-			som_dynamics(patch);
+			som_dynamics(patch, gridcell.climate);
 			// Methane production/consumption on wetlands and peatlands (no methane dynamics for other stand types at present) 
 			methane_dynamics(patch);
 			// BLAZE fire model

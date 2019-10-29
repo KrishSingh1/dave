@@ -86,7 +86,9 @@ void snow(double prec, double temp, Soil& soil) {
  *  fertilization goes to the soil available mineral nitrogen pool.
  */
 void snow_ninput(double prec, double snowpack_after, double rain_melt,
-	           double dndep, double dnfert, double& snowpack_nmass, double& ninput) {
+	           double dNH4dep, double dNO3dep, double dnfert, 
+			   double& snowpack_NH4_mass, double& snowpack_NO3_mass,
+			   double& NH4_input, double& NO3_input) {
 
 	// calculates this day melt and original snowpack size
 	double melt = max(0.0, rain_melt - prec);
@@ -99,19 +101,27 @@ void snow_ninput(double prec, double snowpack_after, double rain_melt,
 		// will go to soil available nitrogen pool
 		if (melt > 0.0) {
 			double frac_melt  = melt / snowpack;
-			double melt_nmass = frac_melt * snowpack_nmass;
-			ninput            = melt_nmass + dndep + dnfert;
-			snowpack_nmass   -= melt_nmass;
+			double melt_NH4_mass = frac_melt * snowpack_NH4_mass;
+			NH4_input            = melt_NH4_mass + dNH4dep + dnfert / 2.0;
+			snowpack_NH4_mass   -= melt_NH4_mass;
+
+			double melt_NO3_mass = frac_melt * snowpack_NO3_mass;
+			NO3_input            = melt_NO3_mass + dNO3dep + dnfert / 2.0;
+			snowpack_NO3_mass   -= melt_NO3_mass;
 		}
 		// if no snow melts, then add daily nitrogen deposition
 		// and fertilization to snowpack nitrogen pool
 		else {
-			snowpack_nmass += (dndep + dnfert);
-			ninput = 0.0;
+			snowpack_NH4_mass += dNH4dep + dnfert / 2.0;
+			NH4_input = 0.0;
+
+			snowpack_NO3_mass += dNO3dep + dnfert / 2.0;
+			NO3_input = 0.0;
 		}
 	}
 	else {
-		ninput = dndep + dnfert;
+		NH4_input = dNH4dep + dnfert / 2.0;
+		NO3_input = dNO3dep + dnfert / 2.0;
 	}
 }
 
@@ -124,9 +134,13 @@ void snow_ninput(double prec, double snowpack_after, double rain_melt,
  */
 void initial_infiltration(Patch& patch, Climate& climate) {
 
+	Gridcell& gridcell = climate.gridcell;
 	Soil& soil = patch.soil;
 	snow(climate.prec - patch.intercep, climate.temp, soil);
-	snow_ninput(climate.prec - patch.intercep, soil.snowpack, soil.rain_melt, climate.dndep, patch.dnfert, soil.snowpack_nmass, soil.ninput);
+	snow_ninput(climate.prec - patch.intercep, soil.snowpack, soil.rain_melt, 
+		        gridcell.dNH4dep, gridcell.dNO3dep, patch.dnfert,
+				soil.snowpack_NH4_mass, soil.snowpack_NO3_mass, 
+				soil.NH4_input, soil.NO3_input);
 	soil.percolate = soil.rain_melt >= 0.1;
 	soil.max_rain_melt = soil.rain_melt;
 
@@ -593,7 +607,7 @@ void soilwater(Patch& patch, Climate& climate) {
 //   competition among plant functional types. Global Biogeochemical Cycles 10:
 //   693-709
 // Bondeau, A., Smith, P.C., Zaehle, S., Schaphoff, S., Lucht, W., Cramer, W.,
-//   Gerten, D., Lotze-Campen, H., Müller, C., Reichstein, M. and Smith, B. (2007),
+//   Gerten, D., Lotze-Campen, H., MÃ¼ller, C., Reichstein, M. and Smith, B. (2007),
 //   Modelling the role of agriculture for the 20th century global terrestrial carbon balance.
 //   Global Change Biology, 13: 679-706. doi: 10.1111/j.1365-2486.2006.01305.x
 // Rost, S., D. Gerten, A. Bondeau, W. Luncht, J. Rohwer, and S. Schaphoff (2008),

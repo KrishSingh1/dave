@@ -16,7 +16,7 @@
 
 #include "guess.h"
 
-void som_dynamics(Patch& patch);
+void som_dynamics(Patch& patch, Climate& climate);
 
 // computes the fraction of leaf and root that goes to metabolic litter (used by BLAZE)
 double metabolic_litter_fraction(double lton);

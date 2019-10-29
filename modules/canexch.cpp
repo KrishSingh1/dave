@@ -1036,6 +1036,8 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 	/// daily nitrogen demand for patch (kgN/m2)
 	patch.ndemand = 0.0;
 
+	// soil available mineral nitrogen (kgN/m2)
+	const double nmin_avail = soil.nmass_avail(NO);
 	// Scalar to soil temperature (Eqn A9, Comins & McMurtrie 1993) for nitrogen uptake
 	double soilT = patch.soil.get_soil_temp_25();
 	double temp_scale = soilT > 0.0 ? max(0.0, 0.0326 + 0.00351 * pow(soilT, 1.652) - pow(soilT / 41.748, 7.19)) : 0.0;
@@ -1127,13 +1129,13 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Scale to maximum nitrogen concentrations
 		indiv.cton_status = max(0.0, (ntoc - 1.0 / indiv.pft.cton_leaf_min) / (1.0 / indiv.pft.cton_leaf_avr - 1.0 / indiv.pft.cton_leaf_min));
 
-		// Nitrogen availablilty scalar due to saturating Michaelis-Menten kinetics
-		double nmin_scale = kNmin + soil.nmass_avail / (soil.nmass_avail + gridcell.pft[indiv.pft.id].Km);
+		// Nitrogen availablilty scalar due to saturating Michealis-Menten kinetics
+		double nmin_scale = kNmin + nmin_avail / (nmin_avail + gridcell.pft[indiv.pft.id].Km);
 
 		// Maximum available soil mineral nitrogen for this individual is base on its root area.
 		// This is considered to be related to FPC which is proportional to crown area which is approx
 		// 4 times smaller than the root area
-		double max_indiv_avail = min(1.0, indiv.fpc * 4.0) * soil.nmass_avail;
+		double max_indiv_avail = min(1.0, indiv.fpc * 4.0) * nmin_avail;
 
 		// Maximum nitrogen uptake due to all scalars (times 2 because considering both NO3- and NH4+ uptake)
 		// and soil available nitrogen within individual projectived coverage
@@ -1191,12 +1193,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 	// to down-regulation of vmax.
 
 	// Nitrogen within projective cover of all individuals
-	double tot_nmass_avail = patch.soil.nmass_avail * min(1.0, patch.fpc_total);
-
-	if (patch.stand.landcover == CROPLAND && ifnlim) { // Also for other landcovers ??
-		// Take soil wcont into account
-		tot_nmass_avail *= patch.soil.get_soil_water_upper() * 0.9 + patch.soil.get_soil_water_lower() * 0.1;
-	}
+	double tot_nmass_avail = patch.soil.nmass_avail(NO) * min(1.0, patch.fpc_total);
 
 	// Calculate individual uptake fraction of nitrogen demand
 	if (patch.ndemand > tot_nmass_avail) {

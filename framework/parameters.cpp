@@ -48,6 +48,21 @@ double nrelocfrac;
 double nfix_a;
 double nfix_b;
 
+bool ifntransform;
+double frac_labile_carbon = 1.0;
+double pH_soil;
+
+//Maximum amount of NH4 nitrified
+double f_nitri_max;
+//Maximum gaseus losses in nitrification
+double f_nitri_gas_max;
+//Maximum fraction of NO3 converted to NO2
+double f_denitri_max;
+//Maximum fraction of NO2 converted to gaseus N
+double f_denitri_gas_max;
+double k_N;
+double k_C;
+
 bool ifsmoothgreffmort;
 bool ifdroughtlimitedestab;
 bool ifrainonwetdaysonly;
@@ -97,6 +112,7 @@ int verbosity;
 bool readsowingdates = false;
 bool readharvestdates = false;
 bool readNfert = false;
+bool readNman = false;
 bool readNfert_st = false;
 bool printseparatestands = false;
 bool iftillage = false;
@@ -467,6 +483,19 @@ void plib_declarations(int id,xtring setname) {
 			"Whether plant growth limited by available nitrogen");
 		declareitem("freenyears",&freenyears,0,1000,1,CB_NONE,
 			"Number of years to spinup without nitrogen limitation");
+		declareitem("ifntransform",&ifntransform,1,CB_NONE,
+			"Whether to calculate nitrification/denitrification (only if CENTURY SOM dynamics is on)");
+		declareitem("frac_labile_carbon",&frac_labile_carbon,0.0,1.0,1,CB_NONE,
+			"Fraction of microbial respiration assumed to produce labile carbon");
+		declareitem("pH_soil",&pH_soil,3.5,8.5,1,CB_NONE, "Soil pH");
+		declareitem("f_nitri_max",  &f_nitri_max,  0.01,   1.0, 1,CB_NONE, "Maximum amount of NH4 nitrified");
+
+		declareitem("k_N",    &k_N,    0.0001, 1.0, 1,CB_NONE, "Constant in denitrification");
+		declareitem("k_C",    &k_C,    0.00001, 1.0, 1,CB_NONE, "Constant in denitrification");
+
+		declareitem("f_denitri_max",    &f_denitri_max,    0.0001, 1.0, 1,CB_NONE, "Maximum amount of NO3 conv. to NO2");
+		declareitem("f_denitri_gas_max",    &f_denitri_gas_max,    0.00001, 1.0, 1,CB_NONE, "Maximum gaseus losses in denitrification");
+		declareitem("f_nitri_gas_max",    &f_nitri_gas_max,    0.0001, 1.0, 1,CB_NONE, "Maximum gaseus losses in nitrification");
 
 		declareitem("ifsmoothgreffmort",&ifsmoothgreffmort,1,CB_NONE,
 			"Whether to vary mort_greff smoothly with growth efficiency (0,1)");
@@ -1211,6 +1240,22 @@ void plib_callback(int callback) {
 			sendmessage("Error", "freenyears must be smaller than nyear_spinup");
 			plibabort();
 		}
+
+		if (!itemparsed("ifntransform")) badins("ifntransform");
+		if (ifntransform && !ifnlim) {
+			sendmessage("Error", "ifnlim have to be true for N transformation to work");
+			plibabort();
+		}
+		if (ifntransform && !ifcentury) {
+			sendmessage("Error", "ifcentury have to be true for N transformation to work");
+			plibabort();
+		}
+		if (!itemparsed("f_denitri_max")) badins ("f_denitri_max");
+		if (!itemparsed("f_denitri_gas_max")) badins ("f_denitri_gas_max");
+		if (!itemparsed("f_nitri_max")) badins ("f_nitri_max");
+		if (!itemparsed("f_nitri_gas_max")) badins ("f_nitri_gas_max");
+		if (!itemparsed("k_N")) badins ("k_N");
+		if (!itemparsed("k_C")) badins ("k_C");
 
 		if (!itemparsed("outputdirectory")) badins("outputdirectory");
 		if (!itemparsed("ifsmoothgreffmort")) badins("ifsmoothgreffmort");

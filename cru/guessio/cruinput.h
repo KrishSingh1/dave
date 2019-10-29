@@ -81,8 +81,8 @@ protected:
 	 *  \param mnwetdep      Pointer to array holding 12 doubles
 	 */
 	void get_monthly_ndep(int calendar_year,
-	                      double* mndrydep,
-	                      double* mnwetdep);
+	                      double* mNHxdrydep, double* mNOydrydep,
+						  double* mNHxwetdep, double* mNOywetdep);
 
 	/// Gives sub-classes a chance to modify the forcing data
 	/** This function will be called just after the forcing data for the historical
@@ -201,7 +201,8 @@ private:
 	// Daily mean relative humidity
 	double drhum[Date::MAX_YEAR_LENGTH];
 	/// Daily N deposition for current year
-	double dndep[Date::MAX_YEAR_LENGTH];
+	double dNH4dep[Date::MAX_YEAR_LENGTH];
+	double dNO3dep[Date::MAX_YEAR_LENGTH];
 };
 
 #endif // LPJ_GUESS_CRUINPUT_H

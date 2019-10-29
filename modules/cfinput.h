@@ -54,6 +54,8 @@ private:
 
 		int rlon;
 		int rlat;
+		double lon;
+		double lat;
 		int landid;
 		std::string descrip;
 	};
@@ -65,11 +67,8 @@ private:
 	std::vector<Coord>::iterator current_gridcell;
 
 	/// Loads data from NetCDF files for current grid cell
-	/** Returns the coordinates for the current grid cell, for
-	 *  the closest CRU grid cell and the soilcode for the cell.
-	 *  \returns whether it was possible to load data and find nearby CRU cell */
-	bool load_data_from_files(double& lon, double& lat,
-	                          double& cru_lon, double& cru_lat);
+	/** Returns the coordinates for the current grid cell*/
+	bool load_data_from_files(double& lon, double& lat);
 
 	/// Gets the first few years of data from cf_var and puts it into spinup_data
 	void load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_var,
@@ -175,7 +174,7 @@ private:
 	double drelhum[Date::MAX_YEAR_LENGTH];
 	
 	/// Daily N deposition for one year
-	double dndep[Date::MAX_YEAR_LENGTH];
+	double dNH4dep[Date::MAX_YEAR_LENGTH],dNO3dep[Date::MAX_YEAR_LENGTH];
 
 	/// Minimum temperature for current gridcell and current year (deg C)
 	double dmin_temp[Date::MAX_YEAR_LENGTH];
@@ -212,9 +211,6 @@ private:
 	int historic_timestep_relhum;
 
 	int historic_timestep_wind;
-
-	/// Path to CRU binary archive
-	xtring file_cru;
 
 	/// Nitrogen deposition forcing for current gridcell
 	Lamarque::NDepData ndep;

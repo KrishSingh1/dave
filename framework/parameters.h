@@ -168,6 +168,27 @@ extern double nfix_a;
 /// second term in nitrogen fixation eqn (Cleveland et al 1999)
 extern double nfix_b;
 
+/// whether to use nitrification/denitrification in CENTURY SOM dynamics
+extern bool ifntransform;
+/// Fraction of microbial respiration assumed to produce DOC, 0.0,0.3
+extern double frac_labile_carbon;
+
+/// Soil pH (used for calculating N-transformation), 3.5,8.5
+extern double pH_soil;
+/// Maximum nitrification rate, 0.03,0.15
+extern double f_nitri_max;
+/// Constant in denitrification, 0.001,0.1
+extern double k_N;
+/// Constant in temperature function for denitrification, 0.005,0.05
+extern double k_C;
+/// Maximum gaseus losses in nitrification
+extern double f_nitri_gas_max;
+/// Maximum fraction of NO3 converted to NO2
+extern double f_denitri_max;
+/// Maximum fraction of NO2 converted to gaseus N
+extern double f_denitri_gas_max;
+
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Landuse and crop settings
 
@@ -230,6 +251,9 @@ extern bool readharvestdates;
 
 /// Whether to read N fertilization from input file
 extern bool readNfert;
+
+/// Whether to read manure N fertilization from input file
+extern bool readNman;
 
 /// Whether to read N fertilization (stand tyoe level) from input file
 extern bool readNfert_st;

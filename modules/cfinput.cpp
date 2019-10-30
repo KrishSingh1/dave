@@ -304,7 +304,7 @@ double calc_relative_humidity(double temp, double specific_humidity, double pres
 	// temp  temperature in degrees C
 	// press pressure in Pa
 	// rh    relative humidity in frac.
-	if ( pressure > 106000 || pressure < 85000 ) {
+	if ( pressure > 106000 || pressure < 10000 ) {
 		fail("Unit for pressure must be [Pa]: calc_relative_humidity(cfinput.cpp)");
 	} 
 	if ( temp  > 80. ) {

@@ -112,6 +112,13 @@ wateruptake "rootdist"  	! "wcont", "rootdist", "smart" or "speciesspecific",
                         	! see documentation for water_uptake()
 rootdistribution "jackson"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype
+ifsmoothgreffmort 1		! Whether to vary mort_greff smoothly with growth efficiency (1)
+				! or to use the standard step-function (0)
+				! greff_min values below calibrated for the smooth (1) option
+ifdroughtlimitedestab 0		! Whether establishment is limited by growing season drought
+				! guess2008 - species version has 1
+ifrainonwetdaysonly 1		! Whether to rain on wet days only (1), or to rain a bit every day (0)
+ifbvoc 0                     	! Whether to include BVOC calculations (1) or not (0)
 
 
 !///////////////////////////////////////////////////////////////////////////////
@@ -157,14 +164,6 @@ ifsaturatewetlands 0		! Whether to take water from runoff to saturate low latiti
 restart 0			! Whether to start from a state file
 save_state 0			! Whether to save a state file
 !state_path ""			! Directory to put state files in
-
-ifsmoothgreffmort 1		! Whether to vary mort_greff smoothly with growth efficiency (1)
-				! or to use the standard step-function (0)
-				! greff_min values below calibrated for the smooth (1) option
-ifdroughtlimitedestab 0		! Whether establishment is limited by growing season drought
-				! guess2008 - species version has 1
-ifrainonwetdaysonly 1		! Whether to rain on wet days only (1), or to rain a bit every day (0)
-ifbvoc 0                     	! Whether to include BVOC calculations (1) or not (0)
 
 
 !///////////////////////////////////////////////////////////////////////////////

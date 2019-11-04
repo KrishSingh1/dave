@@ -41,36 +41,6 @@ nfix_b 0.524			! Second term in N fixation eqn (Conservative 0.524, Central -0.1
 !// Run GUESS with -help option for list of keywords and their meanings
 ///////////////////////////////////////////////////////////////////////////////////////
 
-group "common" (
-
-	! Parameters common to all PFTs
-
-	lambda_max 0.8
-	emax 5
-	reprfrac 0.1
-	wscal_min 0.35
-	drought_tolerance 0.0001
-	! default value - ensures that this has little effect even if
-	! ifdroughtlimitedestab is turned on
-	landcover "natural"
-	harv_eff 0
-	res_outtake 0
-
-	! Peatland parameters - for mosses
-	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time
-	harvest_slow_frac 0
-
-	! Default peatland values unless overriden in PFT definitions
-	wtp_max -301 		! [mm] maximum inundation (water table) tolerance, i.e. restrict on wetlands because wtp >= -300 always
-	inund_duration 0	! [day] maximum days per month of inundation before GPP is reduced to 0
-	min_snow 0.0 		! [mm] minimum snow needed for establishment (DJF average) and survival (20-year average maximum),
-				! i.e. No restriction here
-	max_snow 100000		! [mm] maximum snow tolerance (never used), i.e. No restriction here
-	gdd0_max 100000		! [degC day] max GDD0, i.e. No restriction here
-	gdd0_min 0		! [degC day] min GDD0, i.e. No restriction here
-	has_aerenchyma 0	! PFTs do not have aerenchyma for gas transport by default
-)
-
 group "tree" (
 
 	! Parameters common to all trees

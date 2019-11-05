@@ -973,16 +973,13 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 	bool cloud_fraction_to_sunshine = (cf_standard_name_to_insoltype(cf_insol->get_standard_name()) == SUNSHINE);
 	for (int i = 0; i < date.year_length(); ++i) {
 		
-		// Conversion has been applied before call to weathergenerator
-		if ( weathergenerator != GWGEN ) {
-			dtemp[i] -= K2degC;
-			if (cf_min_temp) {
-				dmin_temp[i] -= K2degC;
-			}
-			
-			if (cf_max_temp) {
-				dmax_temp[i] -= K2degC;
-			}
+		dtemp[i] -= K2degC;
+		if (cf_min_temp) {
+			dmin_temp[i] -= K2degC;
+		}
+		
+		if (cf_max_temp) {
+			dmax_temp[i] -= K2degC;
 		}
 		
 		if (cloud_fraction_to_sunshine) {

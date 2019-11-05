@@ -1245,6 +1245,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& aphen
 		& aphen_raingreen
 		& anpp
+		& gpptoleaf_15
 		& lai_ymax
 		& cmass_leaf_ymax
 		& nmass_leaf_ymax

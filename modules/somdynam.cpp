@@ -806,11 +806,7 @@ void transfer_litter(Patch& patch) {
 	fireresist[SURFFWD]    = soil.sompool[SURFFWD].cmass    * soil.sompool[SURFFWD].fireresist;
 	fireresist[SURFCWD]    = soil.sompool[SURFCWD].cmass    * soil.sompool[SURFCWD].fireresist;
 
-	double leaf_littter = 0.0;
-	double root_littter = 0.0;
-	double wood_littter = 0.0;
-
-	bool drop_leaf_root_litter = (lat >= 0.0 && date.month == 0) || (lat < 0.0 && date.month == 6) || patch.is_litter_day;
+	bool drop_leaf_root_litter = (lat >= 0.0 && date.month == 0 && date.dayofmonth == 0) || (lat < 0.0 && date.month == 6 && date.dayofmonth == 0) || patch.is_litter_day;
 
 	patch.pft.firstobj();
 	while (patch.pft.isobj) {
@@ -819,11 +815,9 @@ void transfer_litter(Patch& patch) {
 		// For stands with yearly growth, drop leaf and root litter on first day of the year for northern hemisphere
 		// and first day of the second half of the year for southern hemisphere.
 		// For stands with daily growth, harvest and/or turnover, do this when patch.is_litter_day is true.
-		if (drop_leaf_root_litter) {
+		if (drop_leaf_root_litter || (pft.pft.lifeform == GRASS && ifdailygrass)) {
 
 			// LEAF
-
-			leaf_littter += pft.litter_leaf;
 
 			// Calculate inputs to surface structural and metabolic litter
 
@@ -867,8 +861,6 @@ void transfer_litter(Patch& patch) {
 			}
 
 			// ROOT
-
-			root_littter += pft.litter_root;
 
 			// Calculate inputs to soil structural and metabolic litter
 
@@ -932,8 +924,6 @@ void transfer_litter(Patch& patch) {
 
 				// Fine woody debris
 
-				wood_littter += litter_sap;
-
 				assert(litter_sap >= EPS);
 				ligcmass_new = litter_sap * LIGCFRAC_WOOD;
 				ligcmass_old = soil.sompool[SURFFWD].cmass * soil.sompool[SURFFWD].ligcfrac;
@@ -976,8 +966,6 @@ void transfer_litter(Patch& patch) {
 			if (!negligible(litter_heart)) {
 
 				// Coarse woody debris
-
-				wood_littter += litter_heart;
 
 				assert(litter_heart >= EPS);
 				ligcmass_new = litter_heart * LIGCFRAC_WOOD;
@@ -1348,14 +1336,11 @@ void equilsom(Soil& soil) {
  */
 void som_dynamics_century(Patch& patch, bool tillage) {
 
-	// First day of every month or other harvest/turnover day
-	if (date.dayofmonth == 0 || patch.is_litter_day) {
-		// Transfer last year's litter to SOM pools
-		// Leaf and fine root litter on first day of year (first day of july in SH)
-		// Woody litter transfers a portion first day of every month
-		// OR this year's litter on harvest/turnover day for stands with daily allocation
-		transfer_litter(patch);
-	}
+	// Transfer litter to SOM pools
+	// Leaf and fine root litter on first day of year (first day of july in SH)
+	// Woody litter transfers a portion first day of every month
+	// OR this year's litter on harvest/turnover day for stands with daily allocation
+	transfer_litter(patch);
 
 	// Daily nitrogen uptake
 	vegetation_n_uptake(patch);

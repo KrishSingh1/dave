@@ -923,13 +923,13 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		double leafoptn;
 
 		// Calculate optimal leaf nitrogen content and demand
-		if (!negligible(indiv.phen) && !negligible(indiv.cmass_leaf_today())) {
+		if ((!negligible(indiv.phen) || (indiv.pft.lifeform == GRASS && ifdailygrass)) && !negligible(indiv.cmass_leaf_today())) {
 
 			indiv.nday_leafon++;
 
 			// Added a scalar depending on individual lai to slow down light optimization of newly shaded leafs
 			// Peltoniemi et al. 2012
-			indiv.nextin = exp(0.12 * min(10.0*indiv.phen, indiv.lai_indiv_today()));
+			indiv.nextin = exp(0.12 * min(10.0, indiv.lai_indiv_today()));
 
 			// Calculate optimal leaf nitrogen associated with photosynthesis and none photosynthetic
 			// active nitrogen (Haxeltine et al. 1996 eqn 27/28)
@@ -949,10 +949,10 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 			indiv.cton_leaf_aopt = min(indiv.cmass_leaf_today() / leafoptn, indiv.cton_leaf_aopt);
 
 			// Leaf nitrogen demand
-			indiv.leafndemand = max(leafoptn - indiv.get_nmass_leaf(), 0.0);
+			indiv.leafndemand = !(indiv.pft.lifeform == GRASS && ifdailygrass) ? max(leafoptn - indiv.get_nmass_leaf(), 0.0) : 0.0;
 
 			// Setting daily optimal leaf C:N ratio
-			if (indiv.leafndemand) {
+			if (indiv.leafndemand || (indiv.pft.lifeform == GRASS && ifdailygrass)) {
 				indiv.cton_leaf_opt = indiv.cmass_leaf_today() / leafoptn;
 			}
 			else {
@@ -967,7 +967,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Nitrogen demand
 
 		// Root nitrogen demand
-		indiv.rootndemand = max(0.0, indiv.cmass_root_today() / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root);
+		indiv.rootndemand = !(indiv.pft.lifeform == GRASS && ifdailygrass) ? max(0.0, indiv.cmass_root_today() / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root) : 0.0;
 
 		// Sap wood nitrogen demand. Demand is ramped up throughout the year.
 		if (indiv.pft.lifeform == TREE) {
@@ -1005,6 +1005,10 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 
 		// Nitrogen demand limitation due to maximum nitrogen uptake capacity
 		double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot,1.0) : 0.0;
+
+		if (date.year >= 1510 && date.year <= 515 && indiv.pft.name == "C4G") {
+			dprintf("%d %g %g %g %g %g %g %g %g ", date.day, ntoc, nmin_scale, max_indiv_avail, indiv.fpc, maxnup, ndemand_tot, fractomax, soil.nmass_avail);
+		}
 
 		// Root and leaf demand from storage pools
 		indiv.leafndemand_store = indiv.leafndemand * (1.0 - fractomax);
@@ -1964,9 +1968,24 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		indiv.dnpp = assim - resp;
 		indiv.anpp += indiv.dnpp;
 
+		// Save GPP over leaf mass for daily growth of grass
+		double gpptoleaf = 0.0;
+		if (!negligible(indiv.get_cmass_leaf())) {
+			if (patch.pft[indiv.pft.id].wscal == 1.0) {
+				gpptoleaf = assim / indiv.get_cmass_leaf();
+			}
+			else {
+				gpptoleaf = indiv.gpptoleaf_15.lastadd();
+			}
+		}
+		indiv.gpptoleaf_15.add(gpptoleaf);
+
 		indiv.report_flux(Fluxes::NPP, indiv.dnpp);
 		indiv.report_flux(Fluxes::GPP, assim);
 		indiv.report_flux(Fluxes::RA, resp);
+
+		if (date.year >= 1510 && date.year <= 515 && indiv.pft.name == "C4G") 
+			dprintf("%g %g %g %g ", indiv.dnpp, assim, resp, indiv.fpar);
 
 		if (indiv.lai_today() > indiv.mlai_max[date.month])
 			indiv.mlai_max[date.month] = indiv.lai_today();

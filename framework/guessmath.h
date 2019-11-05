@@ -228,6 +228,40 @@ public:
 		return result;
 	}
 
+	/// Trend/Slope of a linear regression of values
+	T trend() const {
+
+		if (size() == 1)
+			return 0.0;
+		else {
+
+			const size_t nvalues = size();
+			std::vector<double> x(nvalues);
+			std::vector<double> y(nvalues);
+			double x_avr = 0.0;
+			double y_avr = 0.0;
+
+			for (size_t i = 0; i < nvalues; ++i) {
+
+				int pos = (current_index - nvalues + i) % capacity;
+				x[i] = i;
+				y[i] = values[pos];
+				x_avr += i / (double)nvalues;
+				y_avr += values[pos] / (double)nvalues;
+			}
+
+			double numerator = 0.0;
+			double denominator = 0.0;
+
+			for (size_t i = 0; i < nvalues; ++i) {
+				numerator += (x[i] - x_avr) * (y[i] - y_avr);
+				denominator += (x[i] - x_avr) * (x[i] - x_avr);
+			}
+
+			return numerator / denominator;
+		}
+	}
+
 	/// Returns a single value
 	/** The values are ordered by age, the oldest value has index 0.
 	 *

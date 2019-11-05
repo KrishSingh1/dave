@@ -653,6 +653,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est;
 
+						if (ifdailygrass)
+							bminit *= 0.1;
+
 						// Initial leaf to fine root biomass ratio based on hypothetical
 						// value of water stress parameter
 

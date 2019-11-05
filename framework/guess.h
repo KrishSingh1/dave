@@ -1596,9 +1596,7 @@ public:
 		return 2.0 / (1. / min + 1. / max);
 	}
 
-	/// senescence factor
-	double sen_fac;
-	/// transfer constant of material between compartments a
+	/// transfer constant of leaf material between compartments (used for daily grass growth)
 	double transferconst;
 
 	// MEMBER FUNCTIONS
@@ -1807,6 +1805,23 @@ public:
 		}
 
 		regen.cmass_root = 1.0 / ltor_max * regen.cmass_leaf;
+	}
+
+	/// Initialises transfer constant of leaf material between compartments for daily growth of grass
+	void init_transferconst() {
+
+		if (lifeform == TREE) {
+
+			// Not used for trees yet
+
+			transferconst = 0.0;
+		}
+		else if (lifeform == GRASS) {
+
+			// Used for daily grass growth. Results in correct leaf longevity under perfect conditions
+
+			transferconst = 0.0086 * pow(leaflong, -1.002);
+		}
 	}
 };
 
@@ -2333,6 +2348,7 @@ public:
 	bool alive;
 	/// NPP this day
 	double dnpp;
+	Historic<double, 15> gpptoleaf_15;
 
 	// bvoc
 

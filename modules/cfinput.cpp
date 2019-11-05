@@ -585,8 +585,9 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	gridcell.climate.instype = cf_standard_name_to_insoltype(cf_insol->get_standard_name());
 
 	// Get nitrogen deposition, using the found CRU coordinates
-	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat,
-	             Lamarque::parse_timeseries(ndep_timeseries));
+	/* Since the historic data set does not reach decade 2010-2019,
+	* we need to use the RCP data for the last decade. */
+	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat, Lamarque::RCP60);
 
 	soilinput.get_soil(lon, lat, gridcell);
 

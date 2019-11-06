@@ -40,7 +40,7 @@ if (UNIX)
 	set(DEFAULT_SYSTEM "")
   endif()
 
-  set(SYSTEM ${DEFAULT_SYSTEM} CACHE STRING "System to build for (empty (=simba), gimle, platon, alarik or multicore)")
+  set(SYSTEM ${DEFAULT_SYSTEM} CACHE STRING "System to build for (empty (=simba), gimle, aurora or multicore)")
 endif (UNIX)
 
 # Where to search for cmake modules

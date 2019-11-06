@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file cruinput.cpp
-/// \brief LPJ-GUESS input module for CRU-NCEP data set
+/// \brief LPJ-GUESS input module for CRU-NCEP binary data set.
 ///
 /// This input module reads in CRU-NCEP climate data in a customised binary format.
 /// The binary files contain CRU-NCEP half-degree global historical climate data
@@ -195,11 +195,11 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 				lon = gridlist.getobj().lon;
 				lat = gridlist.getobj().lat;
-				gridfound = CRU_TS30::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
+				gridfound = CRU_FastArchive::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
 				                                         hist_mtemp, hist_mprec, hist_msun);
 
 				if (gridfound) // Get more historical CRU data for this grid cell
-					gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation,
+					gridfound = CRU_FastArchive::searchcru_misc(file_cru_misc, lon, lat, elevation,
 									     hist_mfrs, hist_mwet, hist_mdtr, 
 									     hist_mwind, hist_mrhum);
 

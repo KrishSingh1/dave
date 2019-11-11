@@ -1969,16 +1969,18 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		indiv.anpp += indiv.dnpp;
 
 		// Save GPP over leaf mass for daily growth of grass
-		double gpptoleaf = 0.0;
-		if (!negligible(indiv.get_cmass_leaf())) {
-			if (patch.pft[indiv.pft.id].wscal == 1.0) {
-				gpptoleaf = assim / indiv.get_cmass_leaf();
+		if (indiv.pft.lifeform == GRASS && ifdailygrass) {
+			double gpptoleaf = 0.0;
+			if (!negligible(indiv.get_cmass_leaf())) {
+				if (patch.pft[indiv.pft.id].wscal < 1.0 && indiv.gpptoleaf_15.size() > 0) {
+					gpptoleaf = indiv.gpptoleaf_15.lastadd();
+				}
+				else {
+					gpptoleaf = assim / indiv.get_cmass_leaf();
+				}
 			}
-			else {
-				gpptoleaf = indiv.gpptoleaf_15.lastadd();
-			}
+			indiv.gpptoleaf_15.add(gpptoleaf);
 		}
-		indiv.gpptoleaf_15.add(gpptoleaf);
 
 		indiv.report_flux(Fluxes::NPP, indiv.dnpp);
 		indiv.report_flux(Fluxes::GPP, assim);

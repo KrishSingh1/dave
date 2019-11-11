@@ -243,11 +243,11 @@ public:
 
 			for (size_t i = 0; i < nvalues; ++i) {
 
-				int pos = (current_index - nvalues + i) % capacity;
+				int p = (current_index - nvalues + i) % capacity;
 				x[i] = i;
-				y[i] = values[pos];
+				y[i] = values[p];
 				x_avr += i / (double)nvalues;
-				y_avr += values[pos] / (double)nvalues;
+				y_avr += values[p] / (double)nvalues;
 			}
 
 			double numerator = 0.0;

@@ -16,8 +16,10 @@
 
 #include "guess.h"
 
+/// Update and account variables for BLAZE
 void blaze_accounting_gridcell(Climate& climate);	
 
+/// Driver routine for BLAZE
 void blaze_driver(Patch& patch, Climate& climate);
 
 #endif 

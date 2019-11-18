@@ -27,6 +27,12 @@
 // When porting between frameworks, the only change required should normally be in the
 // "#include" directive referring to the framework header file.
 
+//CLN Doxigen commenting only on stuff that interferes with general code:
+//CLN best done in .h, but possible to use also .cpp.
+//CLN files to be checked: 
+//CLN guess., blaze, cfinput, simfire, weathergen, output-files?
+
+
 #include "config.h"
 #include "blaze.h"
 #include "driver.h"
@@ -35,7 +41,8 @@
 #include "simfire.h"
 #include "guessmath.h"
 
-// combustion rates depending on several fire-line-intensities.
+// combustion rates depending on fire-line-intensities
+// CLN hier Watts 
 const double TURNOVERFRACT[13][5] = {
 	{ .0 , .0 , .05, .2 , .2 }, //   0 Stems       -> ATM
 	{ .0 , .0 , .15, .2 , .2 }, //   1 Branches    -> ATM
@@ -222,7 +229,7 @@ void get_fireline_intensity(Patch& patch, Climate& climate) {
 	double avail_fuel;                      
 	// rate of spread          [m/s]
 	double rate_of_spread;                    
-	// fire-line intensity     [W/m]
+	// fire-line intensity     [kW/m]
 	double fire_line_intensity;                  
 	// fire intensity category index
 	int fire_line_intensity_index = 0;

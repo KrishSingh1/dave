@@ -208,7 +208,7 @@ void check_pres_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	}
 }
 
-// Verifies that a CF variable with pressure data contains what we expect
+// Verifies that a CF variable with specific humidity data contains what we expect
 void check_specifichum_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	const char* standard_name = "specific_humidity";
 	if (cf_var->get_standard_name() != standard_name) {
@@ -219,7 +219,7 @@ void check_specifichum_variable(const GuessNC::CF::GridcellOrderedVariable* cf_v
 	}
 }
 
-// Verifies that a CF variable with pressure data contains what we expect
+// Verifies that a CF variable with relative humidity data contains what we expect
 void check_relhum_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	const char* standard_name = "relative_humidity";
 	if (cf_var->get_standard_name() != standard_name) {
@@ -230,7 +230,7 @@ void check_relhum_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	}
 }
 
-// Verifies that a CF variable with pressure data contains what we expect
+// Verifies that a CF variable with wind-speed data contains what we expect
 void check_wind_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	const char* standard_name = "wind_speed";
 	if (cf_var->get_standard_name() != standard_name) {

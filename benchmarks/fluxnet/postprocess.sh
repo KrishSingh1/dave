@@ -1,5 +1,7 @@
 #!/bin/sh
 
+source scatter_plot.sh
+
 # Function that flips rows of months to columns
 #
 # Parameters:
@@ -33,9 +35,10 @@ function selectData {
 # $4 unit
 function produceScatterplot {
   # remove missing data from the fluxnet dataset
-  grep "\-9999" $1 -v  > plot
+  grep "\-9999" $1 -v  > plotfile
 
-  gplot plot -o $2 -x 1 -y 2 -xt "Observed" -yt "Modelled" -scatter -eq -t "observed vs. modelled $3 ($4)"
+#  gnuplot plot -o $2 -x 1 -y 2 -xt "Observed" -yt "Modelled" -scatter -eq -t "observed vs. modelled $3 ($4)"
+   scatter_plot "observed vs. modelled $3 ($4)" "Observed" "Modelled" plotfile $2
 }
 
 describe_benchmark "LPJ-GUESS - Fluxnet benchmark"
@@ -89,9 +92,11 @@ while read f; do
    produceScatterplot gpp_scatter "${site}_gpp.png" "GPP" "gC m-2 day-1"
    produceScatterplot le_scatter "${site}_le.png" "LE" "w m-2"
 
-   describe_images ${site} ${site}_*.png
+   describe_images ${site} ${site}_*.png 
+
    # Cleanup
-   rm nee_scatter gpp_scatter le_scatter plot ${site}.csv
+   rm nee_scatter gpp_scatter le_scatter plotfile ${site}.csv
+
 done < gridlist.txt
 
 # Cleanup

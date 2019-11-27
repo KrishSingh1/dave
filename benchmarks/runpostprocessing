@@ -77,11 +77,20 @@ function describe_images {
     # Remove the first parameter to this function
     shift
 
+    if [ "$1" == "embed" ]; then    
+        embedflag="embed"
+    else
+        embedflag=""
+    fi
+
+    # Remove the 2nd parameter to this function
+    shift
+
     # Go through all images
     for image in $@
     do
-	# Use the image file name as the description
-	describe_image $image $image
+        # Use the image file name as the description
+        describe_image $image $image $embedflag
     done
 
     print_string "</group>"

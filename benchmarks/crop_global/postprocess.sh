@@ -102,7 +102,6 @@ prepareyielddata yield1996to2005.txt common/../crop_global/spam_yield_wheat.dat 
 scatter_plot "Wheat yields" "SPAM" "LPJ-GUESS" temp_wheat.dat wheat_yield.png
 describe_image wheat_yield.png "Modelled compared to SPAM data set. Units: kg m-2." embed
 
-#===============================================================================
 #Fire related benchmarks
 
 gfed40_data=${FIREDATAPATH}/gfed40_c-emissions_1997-2016.dat

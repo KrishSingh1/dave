@@ -33,6 +33,10 @@ public:
 
 	void outdaily(Gridcell& gridcell);
 
+	void openlocalfiles(Gridcell& gridcell) {};
+
+	void closelocalfiles(Gridcell& gridcell) {};
+
 private:
 
 	/// Defines all output tables

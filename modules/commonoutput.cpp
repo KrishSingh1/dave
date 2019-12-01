@@ -254,7 +254,7 @@ void CommonOutput::define_output_tables() {
 	runoff_columns += ColumnDescriptor("Surf",             8, 1);
 	runoff_columns += ColumnDescriptor("Drain",            8, 1);
 	runoff_columns += ColumnDescriptor("Base",             8, 1);
-	runoff_columns += ColumnDescriptor("Total",            8, 1);
+	runoff_columns += ColumnDescriptor("Total",            9, 1);
 
 	// WETLAND WATER ADDED
 	ColumnDescriptors wetland_water_added_columns;
@@ -724,6 +724,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mean_standpft_aaet=0.0;
 	double mean_standpft_lai=0.0;
 	double mean_standpft_densindiv_total=0.0;
+	double mean_standpft_heightindiv_total=0.0;
 	double mean_standpft_aiso=0.0;
 	double mean_standpft_amon=0.0;
 	double mean_standpft_amon_mt1=0.0;
@@ -782,6 +783,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double standpft_aaet=0.0;
 	double standpft_lai=0.0;
 	double standpft_densindiv_total=0.0;
+	double standpft_heightindiv_total = 0.0;
 	double standpft_aiso=0.0;
 	double standpft_amon=0.0;
 	double standpft_amon_mt1=0.0;
@@ -819,7 +821,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		mean_standpft_nuptake=0.0;
 		mean_standpft_vmaxnlim=0.0;
 
-		double heightindiv_total = 0.0;
+		mean_standpft_heightindiv_total = 0.0;
 
 		// Determine area fraction of stands where this pft is active:
 		double active_fraction = 0.0;
@@ -859,6 +861,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			standpft_aaet=0.0;
 			standpft_lai=0.0;
 			standpft_densindiv_total = 0.0;
+			standpft_heightindiv_total = 0.0;
 			standpft_aiso=0.0;
 			standpft_amon=0.0;
 			standpft_amon_mt1=0.0;
@@ -917,7 +920,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								standpft_lai += indiv.lai;
 								if (pft.lifeform==TREE) {	
 									standpft_densindiv_total += indiv.densindiv;
-									heightindiv_total += indiv.height * indiv.densindiv;
+									standpft_heightindiv_total += indiv.height * indiv.densindiv;
 								}
 								standpft_vmaxnlim += indiv.avmaxnlim * indiv.cmass_leaf;
 								standpft_nuptake += indiv.anuptake;
@@ -927,7 +930,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 									if(indiv.cropindiv) {
 										standpft_cmass_veg += indiv.cropindiv->cmass_ho + indiv.cropindiv->cmass_agpool + indiv.cropindiv->cmass_stem;
 										standpft_nmass_leaf += indiv.cropindiv->ynmass_leaf + indiv.cropindiv->ynmass_dead_leaf;
-										standpft_nmass_veg += indiv.cropindiv->ycmass_leaf + indiv.cropindiv->ynmass_dead_leaf + indiv.cropindiv->ynmass_root + indiv.cropindiv->ynmass_ho + indiv.cropindiv->ynmass_agpool;
+										standpft_nmass_veg += indiv.cropindiv->ynmass_leaf + indiv.cropindiv->ynmass_dead_leaf + indiv.cropindiv->ynmass_root + indiv.cropindiv->ynmass_ho + indiv.cropindiv->ynmass_agpool;
 									}
 								}
 								else {
@@ -964,7 +967,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_amon_mt2/=(double)stand.npatch();
 				standpft_nuptake/=(double)stand.npatch();
 				standpft_vmaxnlim/=(double)stand.npatch();
-				heightindiv_total/=(double)stand.npatch(); // missing above!
+				standpft_heightindiv_total/=(double)stand.npatch();
 
 				if (!negligible(standpft_cmass_leaf))
 					standpft_vmaxnlim /= standpft_cmass_leaf;
@@ -994,26 +997,29 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				landcover_vmaxnlim[stand.landcover]+=standpft_vmaxnlim*stand.get_landcover_fraction();
 
 				//Update pft means for active stands
-				mean_standpft_cmass += standpft_cmass * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_nmass += standpft_nmass * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_cmass_leaf += standpft_cmass_leaf * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_nmass_leaf += standpft_nmass_leaf * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_cmass_veg += standpft_cmass_veg * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_nmass_veg += standpft_nmass_veg * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_clitter += standpft_clitter * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_nlitter += standpft_nlitter * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_anpp += standpft_anpp * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_agpp += standpft_agpp * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_fpc += standpft_fpc * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_aaet += standpft_aaet * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_lai += standpft_lai * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_densindiv_total += standpft_densindiv_total * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_aiso += standpft_aiso * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_amon += standpft_amon * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_amon_mt1 += standpft_amon_mt1 * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_amon_mt2 += standpft_amon_mt2 * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_nuptake += standpft_nuptake * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_vmaxnlim += standpft_vmaxnlim * stand.get_gridcell_fraction() / active_fraction;
+				if(active_fraction) {
+					mean_standpft_cmass += standpft_cmass * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_nmass += standpft_nmass * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_cmass_leaf += standpft_cmass_leaf * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_nmass_leaf += standpft_nmass_leaf * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_cmass_veg += standpft_cmass_veg * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_nmass_veg += standpft_nmass_veg * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_clitter += standpft_clitter * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_nlitter += standpft_nlitter * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_anpp += standpft_anpp * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_agpp += standpft_agpp * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_fpc += standpft_fpc * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_aaet += standpft_aaet * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_lai += standpft_lai * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_densindiv_total += standpft_densindiv_total * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_heightindiv_total += standpft_heightindiv_total * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_aiso += standpft_aiso * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_amon += standpft_amon * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_amon_mt1 += standpft_amon_mt1 * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_amon_mt2 += standpft_amon_mt2 * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_nuptake += standpft_nuptake * stand.get_gridcell_fraction() / active_fraction;
+					mean_standpft_vmaxnlim += standpft_vmaxnlim * stand.get_gridcell_fraction() / active_fraction;
+				}
 
 				//Update stand totals
 				stand.anpp += standpft_anpp;
@@ -1087,7 +1093,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		// print species heights
 		double height = 0.0;
 		if (mean_standpft_densindiv_total > 0.0)
-			height = heightindiv_total / mean_standpft_densindiv_total;
+			height = mean_standpft_heightindiv_total / mean_standpft_densindiv_total;
 
 		outlimit(out,out_speciesheights, height);
 
@@ -1184,7 +1190,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			c_org_leach_lc[stand.landcover] += patch.soil.aorgCleach * to_gridcell_average;
 
-			for (int r = 0; r < NSOMPOOL-1; r++) {
+			for (int r = 0; r < NSOMPOOL; r++) {
 
 				if(r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
 					surfsoillitterc += patch.soil.sompool[r].cmass * to_gridcell_average;

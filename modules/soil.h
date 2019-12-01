@@ -208,11 +208,11 @@ const double Dt_gas = 0.01;
 /// CH4:CO2 ratio for peatland soils (> PEATLAND_WETLAND_LATITUDE_LIMIT N) - See Wania et al (2010)
 // Wania et al. (2010) optimal value: 0.1 (see Table 4). 
 // McGuire et al (2012), Tang et al (2015) and Zhang et al (2013) use 0.25, after optimisation
-const double CH4toCO2_peat = 0.1; 
+const double CH4toCO2_peat = 0.085; 
 	
 /// CH4:CO2 ratio for inundated soils (< PEATLAND_WETLAND_LATITUDE_LIMIT N) - See Spahni et al. (2011)
 //const double CH4toCO2_inundated = 0.024; // SC1 value in Spahni et al. SC2 is 0.0415
-const double CH4toCO2_inundated = 0.0468; // Updated from Spahni et al. (2011) to match global emissions
+const double CH4toCO2_inundated = 0.027; // Updated from Spahni et al. (2011) to match global emissions
 
 /// density of water [kg m-3]
 const double rho_H2O = 1000.0;              

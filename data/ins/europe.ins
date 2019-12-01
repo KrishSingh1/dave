@@ -2,9 +2,9 @@
 !// LPJ-GUESS INSTRUCTION SCRIPT FOR COHORT/INDIVIDUAL MODE
 !// European Species
 !//
-!// LPJ-GUESS 3.0
-!//
-!// Parameter differences with Thomas Hickler's paper:
+!// LPJ-GUESS 4.1
+!// 
+!// Parameter differences with Thomas Hickler's paper: 
 !//
 !// Hickler, T., Vohland, K., Feehan, J., Miller, P., Fronzek, S., Giesecke, T., Kuehn, I., Carter, T., Smith, B. &
 !// Sykes, M. Projecting tree species-based climate-driven changes in European potential natural vegetation
@@ -34,7 +34,7 @@ file_doc "doc.out"
 file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
-file_clitter "clitter.out"
+!file_clitter "clitter.out"
 !file_firert "firert.out"
 !file_aiso "aiso.out"
 !file_amon "amon.out"
@@ -47,10 +47,10 @@ file_cton_leaf "cton_leaf.out"
 file_ngases "ngases.out"
 file_nsources "nsources.out"
 file_npool "npool.out"
-file_nlitter "nlitter.out"
-file_nuptake "nuptake.out"
+!file_nlitter "nlitter.out"
+!file_nuptake "nuptake.out"
 file_nflux "nflux.out"
-file_vmaxnlim "vmaxnlim.out"
+!file_vmaxnlim "vmaxnlim.out"
 
 ! Monthly outputs
 !file_mnpp "mnpp.out"
@@ -101,11 +101,8 @@ ifcalcsla 1           ! whether to calculate SLA from leaf longevity
 ifcalccton 1          ! whether to calculate leaf C:N min from leaf longevity
                       ! (PFT-specific value can be specified in this file instead)
 iffire 1              ! whether to implement fire (1) or not (0)
-npatch 25             ! number of replicate patches to simulate
-npatch_secondarystand 1	! number of replicate patches to simulate in secondary stands
-reduce_all_stands 0		! Whether to reduce equal percentage of all stands of a stand type at land cover change
-age_limit_reduce 5		! Minimum age of stands to reduce at land cover change
-patcharea 1000        ! patch area (m2)
+npatch 25             		! number of replicate patches to simulate
+patcharea 1000        		! patch area (m2)
 estinterval 5         ! years between establishment events in cohort mode
 ifdisturb 1           ! whether generic patch-destroying disturbances enabled
 distinterval 100      ! average return time for generic patch-destroying disturbances
@@ -137,19 +134,29 @@ nrelocfrac 0.5			! fraction of N retranslocated prior to leaf and root shedding
 ! ARCTIC AND WETLAND SWITCHES
 !///////////////////////////////////////////////////////////////////////////////
 
-iftwolayersoil 0		! Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below.
-ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default
-ifinundationstress 1		! whether to reduce NPP if there's inundation (1), or not (0)
-ifcarbonfreeze 1		! Whether to limit soilC decomposition below 0 degC in upland soils (default, 1), or not (0)
-wetland_runon 0			! Extra daily water input or output (mm/day) to wetlands. Positive values are run ON, negative run OFF.
-ifmethane 0			! Whether to run the methane model (for peatland only)
-iforganicsoilproperties 0	! Whether to update soil properties using soil carboon (for non peatland, mineral cells, soilcode != 8)
+iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
+				! Of the switches below, iforganicsoilproperties, ifcarbonfreeze and 
+				! ifmultilayersnow must all be 0 if iftwolayersoil = 1
+				! Furthermore, run_peatland must be 0 when using the two layer soil, and 
+				! rootdistribution must be "fixed"
+
+ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
+iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content 
+				! (applies only to non peatland, mineral stands not classified as organic)
+ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
+
+! WETLAND SWITCHES (no effect when run_peatland 0)
+ifinundationstress 1		! whether to reduce daily NPP if there's inundation on peatlands (1), or not (0)
+wetland_runon 0			! Extra daily water input to (>0), or output from (<0), wetlands (mm/day). 
+				! 0 by default, non-zero for site specific studies.
+ifmethane 0			! Whether to run the methane model and calculate methane fluxes
 ifsaturatewetlands 0		! Whether to take water from runoff to saturate low latitide wetlands (1), or not (0)
 
 
 !///////////////////////////////////////////////////////////////////////////////
 ! SERIALIZATION SETTINGS
 !///////////////////////////////////////////////////////////////////////////////
+
 !state_year 500			! year to save/start state file (no setting = after spinup)
 restart 0				! wheter to start from a state file
 save_state 0			! wheter to save a state file
@@ -170,9 +177,22 @@ ifbvoc 0              ! whether to include BVOC calculations (1) or not (0)
 
 run_landcover 0        ! whether to use (and change) landcover fractions (1) or not (0)
 
-
 !///////////////////////////////////////////////////////////////////////////////////////
+!// PARAMETERS FOR STAND TYPES
 
+group "common_stand" (
+
+	intercrop "nointercrop"
+	restrictpfts 0		! Use all pft:s defined for a land cover (pft parameter landcover)
+)
+
+st "Natural" (
+
+	common_stand
+	stinclude 1
+	landcover "natural"
+	naturalveg "all"
+)
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// PARAMETERS FOR PFTS
@@ -193,17 +213,20 @@ group "common" (
 	harv_eff 0
 	res_outtake 0
 
+	! Peatland parameters - for mosses
+	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time
+	harvest_slow_frac 0
+
 	! Default peatland values unless overriden in PFT definitions
 	wtp_max -301 		! [mm] maximum inundation (water table) tolerance, i.e. restrict on wetlands because wtp >= -300 always
 	inund_duration 0	! [day] maximum days per month of inundation before GPP is reduced to 0
 	min_snow 0.0 		! [mm] minimum snow needed for establishment (DJF average) and survival (20-year average maximum),
-				! i.e. No restriction here
+						! i.e. No restriction here
 	max_snow 100000		! [mm] maximum snow tolerance (never used), i.e. No restriction here
 	gdd0_max 100000		! [degC day] max GDD0, i.e. No restriction here
 	gdd0_min 0		! [degC day] min GDD0, i.e. No restriction here
 	has_aerenchyma 0	! PFTs do not have aerenchyma for gas transport by default
 )
-
 
 group "tree" (
 
@@ -212,8 +235,10 @@ group "tree" (
 	common
 	lifeform "tree"
 	crownarea_max 40
-	turnover_root 0.7
 	ltor_max 1
+	turnover_root 0.7
+	rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
+	root_beta 0.982
 	k_allom2 40
 	k_allom3 0.67
 	k_rp 1.6
@@ -223,6 +248,7 @@ group "tree" (
 	nuptoroot 0.0028
 	km_volume 0.000001477
 	pathway "c3"
+	respcoeff 1.0
 	kest_repr 200
 	kest_bg 0.1
 	kest_pres 1
@@ -230,8 +256,7 @@ group "tree" (
 	k_chillb 100
 	k_chillk 0.05
 	litterme 0.3
-	rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
-	root_beta 0.982
+
 	harv_eff 0.95
 	res_outtake 0.75
 	turnover_harv_prod 0.04 ! Turnover rate for long-lived harvested products (wood) : 0.04 corresponds to a 25-year turnover time (as in Bondeau 2007)
@@ -239,6 +264,7 @@ group "tree" (
 )
 
 group "shrub" (
+
 	common
 	lifeform "tree"
 	leafphysiognomy "broadleaf"
@@ -268,21 +294,6 @@ group "shrub" (
 	harvest_slow_frac 0
 )
 
-group "needle_leaved" (
-	leafphysiognomy "needleleaf"
-	k_allom1 150
-	k_latosa 4000
-	ga 0.140
-)
-
-group "broad_leaved" (
-	leafphysiognomy "broadleaf"
-	k_allom1 250
-	k_latosa 5000
-	leaflong 0.5		! PMxx: new default
-	turnover_leaf 1		! PMxx: new default
-	ga 0.040
-)
 
 group "grass" (
 
@@ -292,15 +303,74 @@ group "grass" (
 	lifeform "grass"
 	leafphysiognomy "broadleaf"
 	ltor_max 0.5
+	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
+	root_beta 0.9555
+	gmin 0.5
+	phenology "any"
+	phengdd5ramp 100		! C3 har 50 hos Thomas
+	leaflong 0.5			! Leaf longevity (years)
+	turnover_leaf 1
+	turnover_root 0.7		! 0.5 hos guess2008
+	!cton_leaf_min 16
 	cton_root 29
 	nuptoroot 0.00551
 	km_volume 0.000001876
 	fnstorage 0.3
 	respcoeff 1.0 ! PM_Dec2012, was 2.0
 	litterme 0.2
+	parff_min 1000000		! 2500000 i guess2008
+	fireresist 0.5			! 1.0 hos Thomas
+	intc 0.01
 	ga 0.030
+
 	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time for GRASS
 	harvest_slow_frac 0
+)
+
+
+group "broadleaved" (
+
+	! Parameters common to all broadleaved trees
+
+	leafphysiognomy "broadleaf"
+	k_allom1 250
+	k_latosa 5000
+	leaflong 0.5		! PMxx: new default
+	turnover_leaf 1		! PMxx: new default
+	ga 0.040
+)
+
+group "needleleaved" (
+
+	! Parameters common to all needleleaved trees
+
+	leafphysiognomy "needleleaf"
+	k_allom1 150
+	k_latosa 4000
+	ga 0.140
+)
+
+
+group "boreal" (
+
+	! Parameters common to all boreal trees
+
+	pstemp_min -4
+	pstemp_low 10
+	pstemp_high 25
+	pstemp_max 38
+	respcoeff 1.0		! THdiff: 2.0
+)
+
+group "temperate" (
+
+	! Parameters common to all temperate trees
+
+	pstemp_min -2
+	pstemp_low 15
+	pstemp_high 25
+	pstemp_max 38
+	respcoeff 1.0
 )
 
 
@@ -314,6 +384,7 @@ group "shade_tolerant" (
 	turnover_sap 0.05
 )
 
+	! Parameters common to all broadleaved trees
 
 ! So far only trial values; not in global version
 group "intermediate_shade_tolerant" (
@@ -335,23 +406,6 @@ group "shade_intolerant" (
 )
 
 
-group "boreal_tree" (
-	respcoeff 1.0		! THdiff: 2.0
-	pstemp_min -4
-	pstemp_low 10
-	pstemp_high 25
-	pstemp_max 38
-)
-
-group "temperate_tree" (
-	respcoeff 1.0
-	pstemp_min -2
-	pstemp_low 15
-	pstemp_high 25
-	pstemp_max 38
-)
-
-
 !///////////////////////////////////////////////////////////////////////////////////////
 ! PFTs and species follow
 !
@@ -366,8 +420,8 @@ pft "Abi_alb" (
 	include 1
 	tree
 	shade_tolerant
-	temperate_tree
-	needle_leaved
+	temperate
+	needleleaved
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
@@ -400,7 +454,7 @@ pft "BES" (
 
 	include 1
 	shrub
-	boreal_tree
+	boreal
 	crownarea_max 3
 	k_allom1 20			! THdiff: 250
 	k_allom2 5			! THdiff: ?
@@ -440,8 +494,8 @@ pft "Bet_pen" (
 	include 1
 	tree
 	shade_intolerant
-	temperate_tree
-	broad_leaved
+	temperate
+	broadleaved
 !	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
@@ -471,8 +525,8 @@ pft "Bet_pub" (
 	include 1
 	tree
 	shade_intolerant
-	boreal_tree
-	broad_leaved
+	boreal
+	broadleaved
 !	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
@@ -502,8 +556,8 @@ pft "Car_bet" (
 	include 1
 	tree
 	intermediate_shade_tolerant
-	temperate_tree
-	broad_leaved
+	temperate
+	broadleaved
 !	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
@@ -533,9 +587,9 @@ pft "Cor_ave" (
 	include 1
 	tree
 	crownarea_max 15
-	broad_leaved
+	broadleaved
 	intermediate_shade_tolerant
-	temperate_tree
+	temperate
 	k_latosa 4000
 !	sla 12				! Not used if ifcalcsla is set
 	gmin 0.5
@@ -566,8 +620,8 @@ pft "Fag_syl" (
 	include 1
 	tree
 	shade_tolerant
-	temperate_tree
-	broad_leaved
+	temperate
+	broadleaved
 !	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
@@ -597,8 +651,8 @@ pft "Fra_exc" (
 	include 1
 	tree
 	intermediate_shade_tolerant
-	temperate_tree
-	broad_leaved
+	temperate
+	broadleaved
 !	sla 24.3			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
@@ -630,8 +684,8 @@ pft "Jun_oxy" (
 	include 1
 	tree				! THdiff: - shrub
 	shade_intolerant
-	temperate_tree
-	needle_leaved
+	temperate
+	needleleaved
 	k_latosa 1500
 	crownarea_max 10
 	rootdist 0.1 0.1 0.1 0.1 0.1 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05
@@ -671,7 +725,7 @@ pft "MRS" (
 	include 1
 	shrub				! THdiff: - has k_allom1 as 250
 	shade_intolerant
-	temperate_tree
+	temperate
 	k_latosa 1500		! ThomasH
 	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
 	root_beta 0.9555
@@ -706,8 +760,8 @@ pft "Pic_abi" (
 	include 1
 	tree
 	shade_tolerant
-	boreal_tree
-	needle_leaved
+	boreal
+	needleleaved
 	rootdist 0.16 0.16 0.16 0.16 0.16 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02
 	root_beta 0.9683
 !	sla 9.3				! Not used if ifcalcsla is set
@@ -743,8 +797,8 @@ pft "Pic_sit" (
 	include 0
 	tree
 	intermediate_shade_tolerant ! Savill's silviculture book
-	boreal_tree
-	needle_leaved
+	boreal
+	needleleaved
 	k_latosa 4500				! Waring et al 1980
 	rootdist 0.16 0.16 0.16 0.16 0.16 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02
 	root_beta 0.9683
@@ -783,8 +837,8 @@ pft "Pin_syl" (
 	include 1
 	tree
 	intermediate_shade_tolerant
-	boreal_tree
-	needle_leaved
+	boreal
+	needleleaved
 	k_latosa 3000		! THdiff: 2000 (but I find that this to be a huge disadvantage for Pinus s.)
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
@@ -819,8 +873,8 @@ pft "Pin_hal" (
 	include 1
 	tree
 	shade_intolerant
-	temperate_tree
-	needle_leaved
+	temperate
+	needleleaved
 	k_latosa 3000		! THdiff: 2000 (but I find that this to be a huge disadvantage for Pinus h.)
 !	sla 9.3				! Not used if ifcalcsla is set
 	gmin 0.3
@@ -855,8 +909,8 @@ pft "Pop_tre" (
 	include 1
 	tree
 	shade_intolerant
-	temperate_tree
-	broad_leaved
+	temperate
+	broadleaved
 	rootdist 0.14 0.14 0.14 0.14 0.14 0.03 0.03 0.03 0.03 0.03 0.03 0.03 0.03 0.03 0.03
 	root_beta 0.9759
 !	sla 24.3			! Not used if ifcalcsla is set
@@ -890,7 +944,7 @@ pft "Que_coc" (
 	include 1
 	shrub				! THdiff: - has k_allom1 as 250
 	intermediate_shade_tolerant
-	temperate_tree
+	temperate
 	k_latosa 2500
 	rootdist 0.10 0.10 0.10 0.10 0.10 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05
 	root_beta 0.986
@@ -925,8 +979,8 @@ pft "Que_ile" (
 	include 1
 	tree
 	intermediate_shade_tolerant
-	temperate_tree
-	broad_leaved
+	temperate
+	broadleaved
 	k_latosa 3000
 	rootdist 0.10 0.10 0.10 0.10 0.10 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05
 	root_beta 0.986
@@ -963,8 +1017,8 @@ pft "Que_pub" (
 	include 1
 	tree
 	intermediate_shade_tolerant
-	temperate_tree
-	broad_leaved
+	temperate
+	broadleaved
 !	sla 24.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
@@ -994,8 +1048,8 @@ pft "Que_rob" (
 	include 1
 	tree
 	intermediate_shade_tolerant
-	temperate_tree
-	broad_leaved
+	temperate
+	broadleaved
 !	sla 24.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
@@ -1025,8 +1079,8 @@ pft "Til_cor" (
 	include 1
 	tree
 	intermediate_shade_tolerant
-	temperate_tree
-	broad_leaved
+	temperate
+	broadleaved
 	rootdist 0.16 0.16 0.16 0.16 0.16 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02
 	root_beta 0.9683
 !	sla 24.3				! Not used if ifcalcsla is set
@@ -1060,8 +1114,8 @@ pft "Ulm_gla" (
 	include 1
 	tree
 	intermediate_shade_tolerant
-	temperate_tree
-	broad_leaved
+	temperate
+	broadleaved
 !	sla 24.3				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "summergreen"
@@ -1090,15 +1144,6 @@ group "C3G" (
 	include 1
 	grass
 	pathway "c3"
-	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
-	root_beta 0.9555
-	gmin 0.5
-	phenology "any"
-!	sla 32.4				! Not used if ifcalcsla is set
-	leaflong 0.5
-	turnover_leaf 1
-	turnover_root 0.7
-	phengdd5ramp 100
 	pstemp_min -5
 	pstemp_low 10
 	pstemp_high 30
@@ -1108,9 +1153,7 @@ group "C3G" (
 	tcmax_est 1000			! limit not implemented
 	twmin_est -1000			! limit not implemented
 	gdd5min_est 0			! limit not implemented
-	parff_min 2000000
-	fireresist 0.5 ! PM_Dec2012, was 1.0			! THdiff 0.5 ! Changed from 0.5 on April 10, 2006
-	intc 0.01
+	parff_min 2000000		! overrides grass group value
 	drought_tolerance 0.01
 	eps_iso 0.
 	seas_iso 1
@@ -1128,14 +1171,6 @@ group "C4G" (
 	include 0
 	grass
 	pathway "c4"
-	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
-	root_beta 0.9555
-	gmin 0.5
-	phenology "any"
-	leaflong 0.5
-	turnover_leaf 1
-	turnover_root 0.7 ! PM_Dec2012, was 0.5
-	phengdd5ramp 100
 	pstemp_min 6
 	pstemp_low 20
 	pstemp_high 45
@@ -1145,9 +1180,6 @@ group "C4G" (
 	tcmax_est 1000			! limit not implemented
 	twmin_est -1000			! limit not implemented  ! limit not implemented
 	gdd5min_est 0			! limit not implemented
-	parff_min 1000000		! ThomasH 2000000 ! Changed from 2500000 on April 10, 2006
-	fireresist 0.5
-	intc 0.01
 	drought_tolerance 0.01
 	eps_iso 0.
 	seas_iso 1

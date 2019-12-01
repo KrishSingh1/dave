@@ -100,10 +100,8 @@ private:
 		  out_nflux_peatland, out_npool_peatland, out_cmass_peatland,
 		  out_anpp_peatland;
 
-	Table out_anpp_stand_natural[MAXNUMBER_STANDS];
-	Table out_cmass_stand_natural[MAXNUMBER_STANDS];
-	Table out_anpp_stand_forest[MAXNUMBER_STANDS];
-	Table out_cmass_stand_forest[MAXNUMBER_STANDS];
+	Table* out_anpp_stand[MAXNUMBER_STANDS];
+	Table* out_cmass_stand[MAXNUMBER_STANDS];
 
 	//daily
 	Table out_daily_lai, out_daily_npp, out_daily_cton, out_daily_nmass,

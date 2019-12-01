@@ -132,9 +132,8 @@ void LandcoverInput::init() {
 		bool do_minimize = false;
 
 		// Remove crop stand types from stlist that always have zero area fraction in all cells in grid list
-
 		if(minimizecftlist && gridlist.nobj < 100) {	// Reduce the risk of accidentally using minimized cft lists when using split gridlists.
-
+			dprintf("WARNING: minimizecftlist is activated in crop.ins.\n Restart will NOT WORK properly if you are running on multiple processors. \n");
 			CFTdata.CheckIfPresent(gridlist);
 			do_minimize = true;
 		}
@@ -1571,6 +1570,14 @@ void ManagementInput::init() {
 				fail("initio: could not open %s for input",(char*)file_Nfert);
 			readNfert = true;
 		}
+		if(param.find(xtring("file_NfertMan"))) {
+			file_NfertMan=param["file_NfertMan"].str;
+			if(	file_NfertMan != "")	{
+				if(!NfertMan.Open(file_NfertMan, gridlist))
+					fail("initio: could not open %s for input",(char*)file_NfertMan);
+				readNman = true;
+			}
+		}
 	}
 
 	if(run_landcover) {
@@ -1614,6 +1621,11 @@ bool ManagementInput::loadmanagement(double lon, double lat) {
 		}
 	}
 
+	if(readNman && !LUerror) {
+		if(!NfertMan.Load(c)) {
+			dprintf("Manure data not found for %.2f,%.2f.\n",c.lon,c.lat);
+		}
+	}
 	if(readNfert_st && !LUerror) {
 		if(!Nfert_st.Load(c)) {
 				dprintf("Problems with N fertilization input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
@@ -1677,6 +1689,9 @@ void ManagementInput::getNfert(Gridcell& gridcell) {
 		for(int i=0; i<npft; i++)	{
 			if(pftlist[i].phenology == CROPGREEN) {		
 				gridcell.pft[pftlist[i].id].Nfert_read = Nfert.Get(year,pftlist[i].name);
+				if(NfertMan.isloaded()) {
+					gridcell.pft[pftlist[i].id].Nfert_man_read = NfertMan.Get(year,pftlist[i].name);
+				}
 			}
 		}
 	}

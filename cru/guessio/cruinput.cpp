@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file cruinput.cpp
-/// \brief LPJ-GUESS input module for CRU-NCEP data set
+/// \brief LPJ-GUESS input module for CRU-NCEP binary data set.
 ///
 /// This input module reads in CRU-NCEP climate data in a customised binary format.
 /// The binary files contain CRU-NCEP half-degree global historical climate data
@@ -13,7 +13,7 @@
 
 #include "config.h"
 #include "cruinput.h"
-
+#include "weathergen.h"
 #include "driver.h"
 #include "parameters.h"
 #include <stdio.h>
@@ -41,6 +41,7 @@ void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
 
 } // namespace
 
+
 std::vector<std::pair<double, double> > CRUInput::translate_gridlist_to_coord(ListArray_id<Coord>& gridlist) {
 	gridlist.firstobj();
 	std::vector<std::pair<double, double> > output;
@@ -54,6 +55,7 @@ std::vector<std::pair<double, double> > CRUInput::translate_gridlist_to_coord(Li
 	return output;
 }
 
+
 CRUInput::CRUInput()
 	: searchradius(0),
 	  spinup_mtemp(NYEAR_SPINUP_DATA),
@@ -61,7 +63,9 @@ CRUInput::CRUInput()
 	  spinup_msun(NYEAR_SPINUP_DATA),
 	  spinup_mfrs(NYEAR_SPINUP_DATA),
 	  spinup_mwet(NYEAR_SPINUP_DATA),
-	  spinup_mdtr(NYEAR_SPINUP_DATA) {
+	  spinup_mdtr(NYEAR_SPINUP_DATA),
+	  spinup_mwind(NYEAR_SPINUP_DATA),
+	  spinup_mrhum(NYEAR_SPINUP_DATA) {
 
 	// Declare instruction file parameters
 
@@ -141,11 +145,12 @@ void CRUInput::init() {
 
 
 void CRUInput::get_monthly_ndep(int calendar_year,
-                                double* mndrydep,
-                                double* mnwetdep) {
+                                double* mNHxdrydep, double* mNOydrydep,
+								double* mNHxwetdep, double* mNOywetdep) {
 
 	ndep.get_one_calendar_year(calendar_year,
-	                           mndrydep, mnwetdep);
+	                           mNHxdrydep, mNOydrydep,
+							   mNHxwetdep, mNOywetdep);
 }
 
 
@@ -190,12 +195,13 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 				lon = gridlist.getobj().lon;
 				lat = gridlist.getobj().lat;
-				gridfound = CRU_TS30::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
+				gridfound = CRU_FastArchive::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
 				                                         hist_mtemp, hist_mprec, hist_msun);
 
 				if (gridfound) // Get more historical CRU data for this grid cell
-					gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation,
-					                                     hist_mfrs, hist_mwet, hist_mdtr);
+					gridfound = CRU_FastArchive::searchcru_misc(file_cru_misc, lon, lat, elevation,
+									     hist_mfrs, hist_mwet, hist_mdtr, 
+									     hist_mwind, hist_mrhum);
 
 				if (run_landcover && gridfound) {
 					LUerror = landcover_input.loadlandcover(gridlist.getobj().lon, gridlist.getobj().lat);
@@ -232,6 +238,8 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		spinup_mfrs.get_data_from(hist_mfrs);
 		spinup_mwet.get_data_from(hist_mwet);
 		spinup_mdtr.get_data_from(hist_mdtr);
+		spinup_mwind.get_data_from(hist_mwind);
+		spinup_mrhum.get_data_from(hist_mrhum);
 
 		// We wont detrend dtr for now. Partly because dtr is at the moment only
 		// used for BVOC, so what happens during the spinup is not affecting
@@ -293,9 +301,10 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 
 		// Extract N deposition to use for this year,
 		// monthly means to be distributed into daily values further down
-		double mndrydep[12], mnwetdep[12];
+        double mNHxdrydep[12], mNOydrydep[12], mNHxwetdep[12], mNOywetdep[12];
 		ndep.get_one_calendar_year(date.year - nyear_spinup + FIRSTHISTYEAR,
-		                           mndrydep, mnwetdep);
+		                           mNHxdrydep, mNOydrydep,
+								   mNHxwetdep, mNOywetdep);
 
 		if (date.year < nyear_spinup) {
 
@@ -312,31 +321,49 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 					spinup_mfrs.nextyear();
 					spinup_mwet.nextyear();
 					spinup_mdtr.nextyear();
+					spinup_mwind.nextyear();
+					spinup_mrhum.nextyear();
 				}
 			}
 
 			int m;
-			double mtemp[12],mprec[12],msun[12];
-			double mfrs[12],mwet[12],mdtr[12];
+			double mtemp[12],mprec[12],msun[12],mfrs [12];
+			double mwet [12],mdtr[12],mwind[12],mrhum[12];
 
 			for (m=0;m<12;m++) {
 				mtemp[m] = spinup_mtemp[m];
 				mprec[m] = spinup_mprec[m];
 				msun[m]	 = spinup_msun[m];
 
-				mfrs[m] = spinup_mfrs[m];
-				mwet[m] = spinup_mwet[m];
-				mdtr[m] = spinup_mdtr[m];
+				mfrs[m]  = spinup_mfrs[m];
+				mwet[m]  = spinup_mwet[m];
+				mdtr[m]  = spinup_mdtr[m];
+				
+				mwind[m] = spinup_mwind[m];
+				mrhum[m] = spinup_mrhum[m];
 			}
+			
+			if ( weathergenerator == INTERP ) {
+				
+				// Interpolate monthly spinup data to quasi-daily values
+				interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
+				
+				// Only recalculate precipitation values using weather generator
+				// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
+				if (ifrainonwetdaysonly) {
+					// (from Dieter Gerten 021121)
+					prdaily(mprec, dprec, mwet, gridcell.seed);
+				}
+			}
+			else if ( weathergenerator == GWGEN ) {
 
-			// Interpolate monthly spinup data to quasi-daily values
-			interp_climate(mtemp,mprec,msun,mdtr,dtemp,dprec,dsun,ddtr);
-
-			// Only recalculate precipitation values using weather generator
-			// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
-			if (ifrainonwetdaysonly) {
-				// (from Dieter Gerten 021121)
-				prdaily(mprec, dprec, mwet, gridcell.seed);
+				// Use gwgen - correlated weather
+				weathergen_get_met(gridcell,mtemp,mprec,mwet,msun,mdtr,
+					      mwind,mrhum,dtemp,dprec,dsun,ddtr,
+					      dwind,drhum);
+			}
+			else {
+				fail("When using CRU monthly data weathergenerator must be specified to either 'INTERP' or 'GWGEN'.");
 			}
 
 			spinup_mtemp.nextyear();
@@ -346,23 +373,44 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			spinup_mfrs.nextyear();
 			spinup_mwet.nextyear();
 			spinup_mdtr.nextyear();
+			spinup_mwind.nextyear();
+			spinup_mrhum.nextyear();
 
 		}
 		else if (date.year < nyear_spinup + NYEAR_HIST) {
 
 			// Historical period
+			if ( weathergenerator == INTERP ) {
 
-			// Interpolate this year's monthly data to quasi-daily values
-			interp_climate(hist_mtemp[date.year-nyear_spinup],
-				hist_mprec[date.year-nyear_spinup],hist_msun[date.year-nyear_spinup],
-					   hist_mdtr[date.year-nyear_spinup],
-				       dtemp,dprec,dsun,ddtr);
+				// Interpolate this year's monthly data to quasi-daily values
+				interp_climate(hist_mtemp[date.year-nyear_spinup],
+					       hist_mprec[date.year-nyear_spinup],
+					       hist_msun[date.year-nyear_spinup],
+					       hist_mdtr[date.year-nyear_spinup],
+					       dtemp,dprec,dsun,ddtr);
 
-			// Only recalculate precipitation values using weather generator
-			// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
-			if (ifrainonwetdaysonly) {
-				// (from Dieter Gerten 021121)
-				prdaily(hist_mprec[date.year-nyear_spinup], dprec, hist_mwet[date.year-nyear_spinup], gridcell.seed);
+				// Only recalculate precipitation values using weather generator
+				// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
+				if (ifrainonwetdaysonly) {
+					// (from Dieter Gerten 021121)
+					prdaily(hist_mprec[date.year-nyear_spinup], dprec,
+						hist_mwet[date.year-nyear_spinup], gridcell.seed);
+				}
+			}
+			else if ( weathergenerator == GWGEN ) {
+
+				// Use gwgen - correlated weather
+				weathergen_get_met(gridcell,hist_mtemp[date.year-nyear_spinup],
+					      hist_mprec[date.year-nyear_spinup],
+					      hist_mwet[date.year-nyear_spinup],
+					      hist_msun[date.year-nyear_spinup],
+					      hist_mdtr[date.year-nyear_spinup],
+					      hist_mwind[date.year-nyear_spinup],
+					      hist_mrhum[date.year-nyear_spinup],
+					      dtemp,dprec,dsun,ddtr,dwind,drhum);
+			}
+			else {
+				fail("When using CRU monthly data weathergenerator must be specified to either 'INTERP' or 'GWGEN'.");
 			}
 		}
 		else {
@@ -371,7 +419,9 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 		}
 
 		// Distribute N deposition
-		distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
+		distribute_ndep(mNHxdrydep, mNOydrydep,
+						mNHxwetdep, mNOywetdep,
+						dprec,dNH4dep,dNO3dep);
 	}
 
 	// Send environmental values for today to framework
@@ -383,7 +433,26 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	climate.insol = dsun[date.day];
 
 	// Nitrogen deposition
-	climate.dndep = dndep[date.day];
+	gridcell.dNH4dep = dNH4dep[date.day];
+	gridcell.dNO3dep = dNO3dep[date.day];
+
+	// Tmin, Tmax for BLAZE
+	// initialise first
+	climate.tmin = 0.;
+	climate.tmax = 0.;
+	if ( firemodel == BLAZE ) {
+		climate.tmin   = dtemp[date.day] - 0.5 * ddtr[date.day];
+		climate.tmax   = dtemp[date.day] + 0.5 * ddtr[date.day];
+	}
+
+	// Assuming rhum and wind are wanted when GWGEN is run
+	// initialise first
+	climate.u10    = 0.;
+	climate.relhum = 0.;
+	if ( weathergenerator == GWGEN ) {
+		climate.u10    = dwind[date.day];
+		climate.relhum = drhum[date.day];
+	}
 
 	// bvoc
 	if(ifbvoc){

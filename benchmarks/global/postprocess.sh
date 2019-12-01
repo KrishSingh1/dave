@@ -27,6 +27,10 @@ describe_textfile nflux1961to1990_areaaverage.txt "Global Terrestrial Nitrogen F
 aslice nflux1990to2000.txt -o nflux1990to2000_areaaverage.txt -n -sum 'kg/ha->Tg' -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.0 0.0
 describe_textfile nflux1990to2000_areaaverage.txt "Global Terrestrial Nitrogen Fluxes, 1990 to 2000. Units: Tg N/y"
 
+tslice soil_nflux.out -o soil_nflux1990to2000.txt -f 1990 -t 2000 -lon 1 -lat 2 -y 3
+aslice soil_nflux1990to2000.txt -o soil_nflux1990to2000_areaaverage.txt -n -sum 'kg/ha->Tg' -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.0 0.0
+describe_textfile soil_nflux1990to2000_areaaverage.txt "Global Terrestrial Soil Nitrogen Fluxes, 1990 to 2000. Units: Tg N/y"
+
 aslice cpool1961to1990.txt -o cpool1961to1990_areaaverage.txt -n -sum 'kg/m2->Pg'  -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.0 0.0
 describe_textfile cpool1961to1990_areaaverage.txt "Global Terrestrial Carbon Pools, 1961 to 1990. Units: Pg C/y"
 
@@ -50,7 +54,14 @@ gmap cpool1961to1990.sumLitSoil.txt -t 'Global Terrestrial Litter and Soil C poo
 describe_image cpool_sumlitsoil.jpg "Global Terrestrial Carbon: Sum of Litter and Soil Pools (1961-90 average)"
 
 gmap lai1961to1990max.txt -t 'Dominant PFT (greatest LAI)' -lon 1 -lat 2 -i 3 -legend legend_global.txt -portrait -o maxLAI.jpg -pixoffset 0.0 0.0 $GMAPPIXELSIZE
-describe_image maxLAI.jpg "PFT With the Highest LAI in Each Gridcell (1961-90 average)"
+describe_image maxLAI.jpg "PFT With the Highest LAI in Each Gridcell (1961-90 average)" 
+
+awk '{print $NF}' lai1961to1990max.txt | paste lai1961to1990.txt - > lai1961to1990all.txt
+compute lai1961to1990all.txt -i 'Frac=Max/Total' -o lai1961to1990frac.txt 
+gmap lai1961to1990frac.txt  -t "Dominant PFT's fraction of total gridcell LAI (1961-90 average)" \
+    -lon 1 -lat 2 -i Frac  -legend common/legend_frac_LAI.txt -portrait -o frac_maxLAI.jpg -pixoffset 0.0 0.0 
+describe_image frac_maxLAI.jpg "Dominant PFT's fraction of total LAI (1961-90 average)" 
+rm -f lai1961to1990all.txt lai1961to1990frac.txt
 
 biomes lai1961to1990.txt
 gmap biomes_lai1961to1990.txt -t 'Biomes (Hickler et al. 2006)' -lon 1 -lat 2 -i 3 -legend legend_biomes.txt -portrait -o biomes.jpg -pixoffset 0.0 0.0 $GMAPPIXELSIZE

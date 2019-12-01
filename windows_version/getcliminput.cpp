@@ -9,6 +9,7 @@
 
 #include "config.h"
 #include "getcliminput.h"
+#include "soilinput.h"
 #include "guessmath.h"
 
 #include "driver.h"
@@ -70,6 +71,11 @@ void GetclimInput::init() {
 
 	// DESCRIPTION
 	// Initialises input (e.g. opening files)
+
+	// Getclim input module currently only works with the old INTERP weather generator and GLOBFIRM (or NO FIRE).
+	if (weathergenerator == GWGEN || firemodel == BLAZE) {
+		fail("Getclim input module currently only works with the INTERP weather generator and the fire model GLOBFIRM (or no fire with NOFIRE).\n Make sure that both of them are set correctly in global.ins.");
+	}
 
 	// Open landcover files
 	landcover_input.init();
@@ -174,7 +180,8 @@ bool GetclimInput::getclimate(Gridcell& gridcell) {
 
 	// Send environmental values for today to framework
 
-	climate.dndep  = ndep / 365.0 * HA_PER_M2;
+	gridcell.dNH4dep  = ndep / 2.0 / 365.0 * HA_PER_M2;
+	gridcell.dNO3dep = ndep / 2.0 / 365.0 * HA_PER_M2;
 
 	climate.co2 = co2;
 

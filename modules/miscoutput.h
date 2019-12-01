@@ -65,7 +65,9 @@ private:
 		   file_anpp_cropland, file_anpp_pasture, file_anpp_natural,
 		   file_anpp_forest, file_cmass_cropland, file_cmass_pasture,
 		   file_cmass_natural, file_cmass_forest, file_dens_natural,
-		   file_dens_forest, file_cmass_peatland, file_cflux_peatland,
+		   file_dens_forest, file_soil_nflux_cropland, file_soil_nflux_pasture,
+		   file_soil_nflux_natural, file_soil_nflux_forest,
+		   file_cmass_peatland, file_cflux_peatland,
 		   file_cpool_peatland, file_nflux_peatland, file_npool_peatland,
 		   file_anpp_peatland;
 
@@ -83,6 +85,7 @@ private:
 		   file_daily_norgleach, file_daily_nuptake, file_daily_ds,
 		   file_daily_stem, file_daily_leaf, file_daily_root,
 		   file_daily_storage;
+	xtring file_daily_climate;
 
 	// Output tables
 	Table out_yield, out_yield1, out_yield2, out_sdate1, out_sdate2,
@@ -96,7 +99,9 @@ private:
 		  out_anpp_cropland, out_anpp_pasture, out_anpp_natural,
 		  out_anpp_forest, out_cmass_cropland, out_cmass_pasture,
 		  out_cmass_natural, out_cmass_forest, out_dens_natural,
-		  out_dens_forest, out_cflux_peatland, out_cpool_peatland,
+		  out_dens_forest, out_soil_nflux_cropland, out_soil_nflux_pasture,
+		  out_soil_nflux_natural, out_soil_nflux_forest,
+		  out_cflux_peatland, out_cpool_peatland,
 		  out_nflux_peatland, out_npool_peatland, out_cmass_peatland,
 		  out_anpp_peatland;
 
@@ -114,6 +119,7 @@ private:
 		  out_daily_lower_wcont, out_daily_irrigation, out_daily_climate,
 		  out_daily_nminleach, out_daily_norgleach, out_daily_nuptake, out_daily_ds, 
 		  out_daily_stem, out_daily_leaf, out_daily_root, out_daily_storage;
+	Table out_daily_climate;
 };
 
 }

@@ -1511,7 +1511,24 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						patch.soil.sompool[i].ntoc = (patch.soil.sompool[i].ntoc * old_frac + from.transfer_sompool[i].ntoc * added_frac) / new_frac;
 					}
 
-					patch.soil.nmass_avail = (patch.soil.nmass_avail * old_frac + from.transfer_nmass_avail * added_frac) / new_frac;
+					patch.soil.NH4_mass = (patch.soil.NH4_mass * old_frac + from.transfer_NH4_mass * added_frac) / new_frac;
+					patch.soil.NO3_mass = (patch.soil.NO3_mass * old_frac + from.transfer_NO3_mass * added_frac) / new_frac;
+					patch.soil.NO2_mass = (patch.soil.NO2_mass * old_frac + from.transfer_NO2_mass * added_frac) / new_frac;
+					patch.soil.NO_mass = (patch.soil.NO_mass * old_frac + from.transfer_NO_mass * added_frac) / new_frac;
+					patch.soil.N2O_mass = (patch.soil.N2O_mass * old_frac + from.transfer_N2O_mass * added_frac) / new_frac;
+					patch.soil.N2_mass = (patch.soil.N2_mass * old_frac + from.transfer_N2_mass * added_frac) / new_frac;
+
+					patch.soil.NH4_mass_w = (patch.soil.NH4_mass_w * old_frac + from.transfer_NH4_mass_w * added_frac) / new_frac;
+					patch.soil.NO3_mass_w = (patch.soil.NO3_mass_w * old_frac + from.transfer_NO3_mass_w * added_frac) / new_frac;
+					patch.soil.NO2_mass_w = (patch.soil.NO2_mass_w * old_frac + from.transfer_NO2_mass_w * added_frac) / new_frac;
+					patch.soil.NO_mass_w = (patch.soil.NO_mass_w * old_frac + from.transfer_NO_mass_w * added_frac) / new_frac;
+					patch.soil.N2O_mass_w = (patch.soil.N2O_mass_w * old_frac + from.transfer_N2O_mass_w * added_frac) / new_frac;
+
+					patch.soil.NH4_mass_d = (patch.soil.NH4_mass_d * old_frac + from.transfer_NH4_mass_d * added_frac) / new_frac;
+					patch.soil.NO3_mass_d = (patch.soil.NO3_mass_d * old_frac + from.transfer_NO3_mass_d * added_frac) / new_frac;
+					patch.soil.NO2_mass_d = (patch.soil.NO2_mass_d * old_frac + from.transfer_NO2_mass_d * added_frac) / new_frac;
+					patch.soil.NO_mass_d = (patch.soil.NO_mass_d * old_frac + from.transfer_NO_mass_d * added_frac) / new_frac;
+					patch.soil.N2O_mass_d = (patch.soil.N2O_mass_d * old_frac + from.transfer_N2O_mass_d * added_frac) / new_frac;
 
 
 					// add other soil stuff:
@@ -1526,7 +1543,8 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 					patch.soil.set_layer_soil_water_evap(wcont_evap_new);
 
 					patch.soil.snowpack = (patch.soil.snowpack * old_frac + from.transfer_snowpack * added_frac) / new_frac;
-					patch.soil.snowpack_nmass = (patch.soil.snowpack_nmass * old_frac + from.transfer_snowpack_nmass * added_frac) / new_frac;
+					patch.soil.snowpack_NH4_mass = (patch.soil.snowpack_NH4_mass * old_frac + from.transfer_snowpack_NH4_mass * added_frac) / new_frac;
+					patch.soil.snowpack_NO3_mass = (patch.soil.snowpack_NO3_mass * old_frac + from.transfer_snowpack_NO3_mass * added_frac) / new_frac;
 
 					patch.soil.decomp_litter_mean = (patch.soil.decomp_litter_mean * old_frac + from.transfer_decomp_litter_mean * added_frac) / new_frac;
 					patch.soil.k_soilfast_mean = (patch.soil.k_soilfast_mean * old_frac + from.transfer_k_soilfast_mean * added_frac) / new_frac;
@@ -2701,8 +2719,12 @@ landcover_change_transfer::landcover_change_transfer() {
 
 	transfer_acflux_harvest = transfer_anflux_harvest = transfer_cpool_fast = 0.0;
 	transfer_cpool_slow = transfer_wcont_evap = transfer_decomp_litter_mean = 0.0;
-	transfer_k_soilfast_mean = transfer_k_soilslow_mean = transfer_nmass_avail = 0.0;
-	transfer_snowpack = transfer_snowpack_nmass = transfer_anfix_calc = 0.0;
+	transfer_k_soilfast_mean = transfer_k_soilslow_mean = transfer_NH4_mass = transfer_NO3_mass = 0.0;
+	transfer_N2O_mass = transfer_N2_mass = transfer_NO2_mass = transfer_NO_mass = 0.0;
+	transfer_snowpack = transfer_snowpack_NH4_mass = transfer_snowpack_NO3_mass = transfer_anfix_calc = 0.0;
+
+	transfer_NH4_mass_d = transfer_NO3_mass_d = transfer_N2O_mass_d = transfer_NO2_mass_d = transfer_NO_mass_d = 0.0;
+	transfer_NH4_mass_w = transfer_NO3_mass_w = transfer_N2O_mass_w = transfer_NO2_mass_w = transfer_NO_mass_w = 0.0;
 
 	for(int i=0;i<NSOILLAYER;i++)
 		transfer_wcont[i] = 0.0;
@@ -2764,7 +2786,7 @@ void landcover_change_transfer::allocate() {
 // REFERENCES
 //
 // Bondeau A, Smith PC, Zaehle S, Schaphoff S, Lucht W, Cramer W, Gerten D, Lotze-Campen H,
-//   Müller C, Reichstein M & Smith B 2007. Modelling the role of agriculture for the 
+//   MÃ¼ller C, Reichstein M & Smith B 2007. Modelling the role of agriculture for the 
 //   20th century global terrestrial carbon balance. Global Change Biology, 13:679-706.
 // Lindeskog M, Arneth A, Bondeau A, Waha K, Seaquist J, Olin S, & Smith B 2013.
 //   Implications of accounting for land use in simulations of ecosystem carbon cycling

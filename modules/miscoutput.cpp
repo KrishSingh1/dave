@@ -66,6 +66,10 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_npool_forest", &file_npool_forest, 300, "Soil N output file");
 	declare_parameter("file_npool_peatland", &file_npool_peatland, 300, "Soil N output file");
 
+	declare_parameter("file_soil_nflux_cropland", &file_soil_nflux_cropland, 300, "Soil N fluxes output file");
+	declare_parameter("file_soil_nflux_pasture", &file_soil_nflux_pasture, 300, "Soil N fluxes output file");
+	declare_parameter("file_soil_nflux_natural", &file_soil_nflux_natural, 300, "Soil N fluxes output file");
+	declare_parameter("file_soil_nflux_forest", &file_soil_nflux_forest, 300, "Soil N fluxes output file");
 	//daily
 	declare_parameter("file_daily_lai",&file_daily_lai,300,"Daily output.");
 	declare_parameter("file_daily_npp",&file_daily_npp,300,"Daily output.");
@@ -265,6 +269,17 @@ void MiscOutput::define_output_tables() {
 		nflux_columns += ColumnDescriptor("Slow_h",        8, 3);
 	}
 	nflux_columns += ColumnDescriptor("NEE",               8, 2);
+	// SOIL N TRANSFORMATION - fluxes
+	ColumnDescriptors soil_nflux_columns;
+	soil_nflux_columns += ColumnDescriptor("NH3",  12, 6);
+	soil_nflux_columns += ColumnDescriptor("NO",    9, 3);
+	soil_nflux_columns += ColumnDescriptor("N2O",  12, 6);
+	soil_nflux_columns += ColumnDescriptor("N2",    9, 3);
+
+	ColumnDescriptors daily_climate_columns;
+	daily_climate_columns += ColumnDescriptor("Temp",   12, 6);
+	daily_climate_columns += ColumnDescriptor("Prec",   12, 6);
+	daily_climate_columns += ColumnDescriptor("Rad",   12, 6);
 
 	ColumnDescriptors daily_columns;
 	daily_columns += ColumnDescriptors(crop_pfts, 13, 3);
@@ -328,6 +343,11 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_nflux_natural,  file_nflux_natural,  nflux_columns);
 	create_output_table(out_nflux_forest,	file_nflux_forest,   nflux_columns);
 	create_output_table(out_nflux_peatland, file_nflux_peatland, nflux_columns);
+	create_output_table(out_soil_nflux_cropland, file_soil_nflux_cropland, soil_nflux_columns);
+	create_output_table(out_soil_nflux_pasture,  file_soil_nflux_pasture,  soil_nflux_columns);
+	create_output_table(out_soil_nflux_natural,  file_soil_nflux_natural,  soil_nflux_columns);
+	create_output_table(out_soil_nflux_forest,	file_soil_nflux_forest,   soil_nflux_columns);
+	// TODO		create_output_table(out_nflux_peatland, file_nflux_peatland, nflux_columns);
 
 	// *** DAILY OUTPUT VARIABLES ***
 
@@ -353,7 +373,7 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_daily_lower_wcont,			file_daily_lower_wcont,         daily_columns);
 	create_output_table(out_daily_irrigation,			file_daily_irrigation,			daily_columns);
 
-	create_output_table(out_daily_climate,				file_daily_climate,				climate_columns);
+	create_output_table(out_daily_climate,					file_daily_climate,					daily_climate_columns);
 
 	create_output_table(out_daily_cton,					file_daily_cton,				daily_columns);
 
@@ -545,15 +565,15 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.get_landcover_fraction();
 
 			if(active_fraction) {
-				//Update pft means for active stands
-				mean_standpft_yield += standpft_yield * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_yield1 += standpft_yield1 * stand.get_gridcell_fraction() / active_fraction;
-				mean_standpft_yield2 += standpft_yield2 * stand.get_gridcell_fraction() / active_fraction;
+			//Update pft means for active stands
+			mean_standpft_yield += standpft_yield * stand.get_gridcell_fraction() / active_fraction;
+			mean_standpft_yield1 += standpft_yield1 * stand.get_gridcell_fraction() / active_fraction;
+			mean_standpft_yield2 += standpft_yield2 * stand.get_gridcell_fraction() / active_fraction;
 
-				//Update pft mean for active stands in landcover
-				mean_standpft_anpp_lc[stand.landcover] += standpft_anpp * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
-				mean_standpft_cmass_lc[stand.landcover] += standpft_cmass * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
-				mean_standpft_densindiv_total_lc[stand.landcover] += standpft_densindiv_total * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
+			//Update pft mean for active stands in landcover
+			mean_standpft_anpp_lc[stand.landcover] += standpft_anpp * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
+			mean_standpft_cmass_lc[stand.landcover] += standpft_cmass * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
+			mean_standpft_densindiv_total_lc[stand.landcover] += standpft_densindiv_total * stand.get_gridcell_fraction() / active_fraction_lc[stand.landcover];
 			}
 
 			//Update stand totals
@@ -571,7 +591,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					out.add_value(out_anpp_stand[id][stand.stid],      standpft_anpp);
 				if(!out_cmass_stand[id][stand.stid].invalid())
 					out.add_value(out_cmass_stand[id][stand.stid],      standpft_cmass);
-			}
+				}
 
 			++gc_itr;
 		}//End of loop through stands
@@ -687,6 +707,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double surfsoillittern_lc[NLANDCOVERTYPES], cwdn_lc[NLANDCOVERTYPES],
 		   centuryn_lc[NLANDCOVERTYPES];
 
+	//N-transform
+	double flux_NH3_soil[NLANDCOVERTYPES],flux_NOx_soil[NLANDCOVERTYPES],flux_N2O_soil[NLANDCOVERTYPES],flux_N2_soil[NLANDCOVERTYPES];
 	for (int i=0; i<NLANDCOVERTYPES; i++) {
 		flux_veg_lc[i]=0.0;
 		flux_repr_lc[i]=0.0;
@@ -721,6 +743,11 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		surfsoillittern_lc[i]=0.0;
 		cwdn_lc[i]=0.0;
 		centuryn_lc[i]=0.0;
+		//N-transform
+		flux_NH3_soil[i]=0.0;
+		flux_NOx_soil[i]=0.0;
+		flux_N2O_soil[i]=0.0;
+		flux_N2_soil[i]=0.0;
 	}
 
 	// Sum C fluxes, dead C pools and runoff across patches
@@ -744,7 +771,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					   patch.fluxes.get_annual_flux(Fluxes::NOx_FIRE) +
 					   patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE) +
 					   patch.fluxes.get_annual_flux(Fluxes::N2_FIRE) +
-					   patch.fluxes.get_annual_flux(Fluxes::N_SOIL)) * to_gridcell_average;
+					   patch.fluxes.get_annual_flux(Fluxes::NH3_SOIL) +
+					   patch.fluxes.get_annual_flux(Fluxes::NO_SOIL) +
+					   patch.fluxes.get_annual_flux(Fluxes::N2O_SOIL) +
+					   patch.fluxes.get_annual_flux(Fluxes::N2_SOIL)) * to_gridcell_average;
 
 			flux_veg_lc[stand.landcover]+=-patch.fluxes.get_annual_flux(Fluxes::NPP)*to_gridcell_average;
 			flux_repr_lc[stand.landcover]+=-patch.fluxes.get_annual_flux(Fluxes::REPRC)*to_gridcell_average;
@@ -769,7 +799,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			//Gridcell irrigation
 			irrigation_gridcell += patch.irrigation_y*to_gridcell_average;
 
-			andep_lc[stand.landcover] += stand.get_climate().andep * to_gridcell_average;
+			andep_lc[stand.landcover] += (gridcell.aNH4dep + gridcell.aNO3dep) * to_gridcell_average;
 			anfert_lc[stand.landcover] += patch.anfert * to_gridcell_average;
 			anmin_lc[stand.landcover] += patch.soil.anmin * to_gridcell_average;
 			animm_lc[stand.landcover] += patch.soil.animmob * to_gridcell_average;
@@ -777,7 +807,13 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			n_min_leach_lc[stand.landcover] += patch.soil.aminleach * to_gridcell_average;
 			n_org_leach_lc[stand.landcover] += patch.soil.aorgNleach * to_gridcell_average;
 			c_org_leach_lc[stand.landcover] += patch.soil.aorgCleach * to_gridcell_average;
-			availn_lc[stand.landcover] += (patch.soil.nmass_avail + patch.soil.snowpack_nmass) * to_gridcell_average;
+			availn_lc[stand.landcover] += (patch.soil.NH4_mass + patch.soil.NO3_mass + patch.soil.snowpack_NH4_mass + patch.soil.snowpack_NO3_mass) * to_gridcell_average;
+
+			//N-transform
+			flux_NH3_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::NH3_SOIL)*to_gridcell_average;
+			flux_NOx_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::NO_SOIL)*to_gridcell_average;
+			flux_N2O_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::N2O_SOIL)*to_gridcell_average;
+			flux_N2_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::N2_SOIL)*to_gridcell_average;;
 
 			for (int r = 0; r < NSOMPOOL; r++) {
 
@@ -875,22 +911,27 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				GuessOutput::Table* table_p=NULL;
 				GuessOutput::Table* table_p_N=NULL;
 
+				GuessOutput::Table* table_p_N_soil=NULL;
 				switch (i) {
 				case CROPLAND:
 					table_p=&out_cflux_cropland;
 					table_p_N=&out_nflux_cropland;
+					table_p_N_soil=&out_soil_nflux_cropland;
 					break;
 				case PASTURE:
 					table_p=&out_cflux_pasture;
 					table_p_N=&out_nflux_pasture;
+					table_p_N_soil=&out_soil_nflux_pasture;
 					break;
 				case NATURAL:
 					table_p=&out_cflux_natural;
 					table_p_N=&out_nflux_natural;
+					table_p_N_soil=&out_soil_nflux_natural;
 					break;
 				case FOREST:
 					table_p=&out_cflux_forest;
 					table_p_N=&out_nflux_forest;
+					table_p_N_soil=&out_soil_nflux_forest;
 					break;
 				case URBAN:
 					break;
@@ -1062,94 +1103,6 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 		return;
 	}
 
-	// *** Loop through PFTs ***
-
-	pftlist.firstobj();
-	while (pftlist.isobj) {
-		Pft& pft=pftlist.getobj();
-
-		if (pft.landcover != CROPLAND) {
-			pftlist.nextobj();
-			continue;
-		}
-
-		Gridcell::iterator gc_itr = gridcell.begin();
-		while (gc_itr != gridcell.end()) {
-
-			Stand& stand = *gc_itr;
-			if (stand.landcover != CROPLAND || stand.npatch() > 1) {
-				break;
-			}
-
-			stand.firstobj();
-			while (stand.isobj) {
-				Patch& patch = stand.getobj();
-				Vegetation& vegetation=patch.vegetation;
-				Patchpft& patchpft=patch.pft[pft.id];
-
-				double cwdn = patch.soil.sompool[SURFCWD].nmass + patch.soil.sompool[SURFFWD].nmass;
-				vegetation.firstobj();
-				while (vegetation.isobj) {
-					Individual& indiv=vegetation.getobj();
-					if (indiv.id != -1 && indiv.pft.id == pft.id && !indiv.cropindiv->isintercropgrass) {
-						//To be able to print values for the year after establishment of crops !
-						// (if not dead and has existed for at least one year)
-						// Ben 2007-11-28
-
-						plot("daily leaf N [g/m2]",pft.name,date.day,indiv.nmass_leaf*M2_PER_HA);
-						plot("daily leaf C [kg/m2]",pft.name,date.day,indiv.cmass_leaf_today()*M2_PER_HA);
-						outlimit_misc(out, out_daily_lai,indiv.lai_today());
-						outlimit_misc(out, out_daily_npp,indiv.dnpp*M2_PER_HA);
-						outlimit_misc(out, out_daily_cmass_leaf,indiv.cmass_leaf_today()*M2_PER_HA);
-						outlimit_misc(out, out_daily_nmass_leaf,indiv.nmass_leaf*M2_PER_HA);
-						outlimit_misc(out, out_daily_cmass_root,indiv.cmass_root_today()*M2_PER_HA);
-						outlimit_misc(out, out_daily_nmass_root,indiv.nmass_root*M2_PER_HA);
-						outlimit_misc(out, out_daily_avail_nmass_soil,M2_PER_HA*(patch.soil.nmass_avail+cwdn));
-						outlimit_misc(out, out_daily_n_input_soil,patch.soil.ninput*M2_PER_HA);
-
-						double uw = patch.soil.dwcontupper[date.day];
-						if (uw < 1e-22) {
-							uw = 0.0;
-						}
-						double lw = patch.soil.dwcontlower[date.day];
-						if (lw < 1e-22) {
-							lw = 0.0;
-						}
-						outlimit_misc(out, out_daily_upper_wcont,uw);
-						outlimit_misc(out, out_daily_lower_wcont,lw);
-						outlimit_misc(out, out_daily_irrigation,patch.irrigation_d);
-
-						outlimit_misc(out, out_daily_cmass_storage,indiv.cropindiv->grs_cmass_ho*M2_PER_HA);
-						outlimit_misc(out, out_daily_nmass_storage,indiv.cropindiv->nmass_ho*M2_PER_HA);
-
-						outlimit_misc(out, out_daily_ndemand,indiv.ndemand);
-						outlimit_misc(out, out_daily_cton,limited_cton(indiv.cmass_leaf_today(),indiv.nmass_leaf*M2_PER_HA));
-
-						if (ifnlim) {
-							outlimit_misc(out, out_daily_ds,patch.pft[pft.id].cropphen->dev_stage); // daglig ds
-							outlimit_misc(out, out_daily_cmass_stem,(indiv.cropindiv->grs_cmass_agpool+indiv.cropindiv->grs_cmass_stem)*M2_PER_HA);
-							outlimit_misc(out, out_daily_nmass_stem,indiv.cropindiv->nmass_agpool*M2_PER_HA);
-
-							outlimit_misc(out, out_daily_cmass_dead_leaf,indiv.cropindiv->grs_cmass_dead_leaf*M2_PER_HA);
-							outlimit_misc(out, out_daily_nmass_dead_leaf,indiv.cropindiv->nmass_dead_leaf*M2_PER_HA);
-
-							outlimit_misc(out, out_daily_fphu,patch.pft[pft.id].cropphen->fphu);
-							outlimit_misc(out, out_daily_stem,patch.pft[pft.id].cropphen->f_alloc_stem);
-							outlimit_misc(out, out_daily_leaf,patch.pft[pft.id].cropphen->f_alloc_leaf);
-							outlimit_misc(out, out_daily_root,patch.pft[pft.id].cropphen->f_alloc_root);
-							outlimit_misc(out, out_daily_storage,patch.pft[pft.id].cropphen->f_alloc_horg);
-						}
-
-					}
-					vegetation.nextobj();
-				}
-				stand.nextobj();
-			}
-			++gc_itr;
-		}
-		pftlist.nextobj();
-	}
-
 	outlimit_misc(out, out_daily_climate, gridcell.climate.temp);
 	outlimit_misc(out, out_daily_climate, gridcell.climate.prec);
 	outlimit_misc(out, out_daily_climate, gridcell.climate.rad);
@@ -1271,8 +1224,8 @@ void MiscOutput::closelocalfiles(Gridcell& gridcell) {
 				close_output_table(out_anpp_stand[id][st]);
 			if(!out_cmass_stand[id][st].invalid())
 				close_output_table(out_cmass_stand[id][st]);
-		}
 	}
+}
 	for(int id=0;id<MAXNUMBER_STANDS;id++) {
 		if(out_anpp_stand[id])
 			delete[] out_anpp_stand[id];

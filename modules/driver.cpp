@@ -29,7 +29,8 @@
 
 #include "config.h"
 #include "driver.h"
-
+#include "blaze.h"
+#include "simfire.h"
 
 /// Function for generating random numbers
 /** Returns a random floating-point number in the range 0-1.
@@ -254,17 +255,20 @@ void interp_monthly_totals_conserve(const double* mvals, double* dvals,
  *
  *  \see distribute_ndep
  *
- *  \param ndry        Dry N deposition (monthly mean of daily deposition)
- *  \param nwet        Wet N deposition (monthly mean of daily deposition)
+ *  \param NH4dry      Dry NH4 deposition (monthly mean of daily deposition)
+ *  \param NO3dry      Dry NO3 deposition (monthly mean of daily deposition)
+ *  \param NH4wet      Wet NH4 deposition (monthly mean of daily deposition)
+ *  \param NO3wet      Wet NO3 deposition (monthly mean of daily deposition)
  *  \param time_steps  Number of days in the month
  *  \param dprec       Array of precipitation values
- *  \param dndep       Output, total N deposition for each day
+ *  \param dNH4dep     Output, total NH4 deposition for each day
+ *  \param dNO3dep     Output, total NO3 deposition for each day
  */
-void distribute_ndep_single_month(double ndry,
-                                  double nwet,
+void distribute_ndep_single_month(double NH4dry,double NO3dry, 
+                                  double NH4wet,double NO3wet,
                                   int time_steps,
                                   const double* dprec,
-                                  double* dndep) {
+                                  double* dNH4dep,double* dNO3dep) {
 
 	// First count number of days with precipitation
 	int raindays = 0;
@@ -279,13 +283,16 @@ void distribute_ndep_single_month(double ndry,
 	for (int i = 0; i < time_steps; i++) {
 
 		// ndry is included in all days
-		dndep[i] = ndry;
+		dNH4dep[i] = NH4dry;
+		dNO3dep[i] = NO3dry;
 
 		if (raindays == 0) {
-			dndep[i] += nwet;
+			dNH4dep[i] += NH4wet;
+			dNO3dep[i] += NO3wet;
 		}
 		else if (!negligible(dprec[i])) {
-			dndep[i] += (nwet*time_steps)/raindays;
+			dNH4dep[i] += (NH4wet*time_steps)/raindays;
+			dNO3dep[i] += (NO3wet*time_steps)/raindays;
 		}
 	}
 }
@@ -297,17 +304,22 @@ void distribute_ndep_single_month(double ndry,
  *  \param mndry Monthly means of daily dry N deposition
  *  \param mnwet Monthly means of daily wet N deposition
  *  \param dprec Daily precipitation data
- *  \param dndep Output, total N deposition for each day
+ *  \param dNH4dep Output, total NH4 deposition for each day
+ *  \param dNO3dep Output, total NO3 deposition for each day
  */
-void distribute_ndep(const double* mndry, const double* mnwet,
-                     const double* dprec, double* dndep) {
+void distribute_ndep(const double* mNH4dry,const double* mNO3dry,
+                     const double* mNH4wet,const double* mNO3wet,
+					 const double* dprec, 
+					 double* dNH4dep,double* dNO3dep) {
 
 	Date date;
 	int start_of_month = 0;
 
 	for (int m = 0; m < 12; m++) {
-		distribute_ndep_single_month(mndry[m], mnwet[m], date.ndaymonth[m],
-		                             dprec+start_of_month, dndep+start_of_month);
+		distribute_ndep_single_month(mNH4dry[m],mNO3dry[m],
+			                         mNH4wet[m],mNO3wet[m],
+									 date.ndaymonth[m],
+		 	 	 	 	 	 	 	 dprec+start_of_month,dNH4dep+start_of_month,dNO3dep+start_of_month);
 
 		start_of_month += date.ndaymonth[m];
 	}
@@ -455,7 +467,9 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		climate.agdd5 = 0.0;
 
 		// reset annual nitrogen input variables
-		climate.andep  = 0.0;
+		gridcell.aNH4dep  = 0.0;
+		gridcell.aNO3dep  = 0.0;
+		climate.aprec = 0.0;
 
 		// reset gridcell-level harvest fluxes
 		gridcell.landcover.acflux_landuse_change=0.0;
@@ -546,7 +560,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	}
 
 	// Sum annual nitrogen addition to system
-	climate.andep  += climate.dndep;
+	gridcell.aNH4dep += gridcell.dNH4dep;
+	gridcell.aNO3dep += gridcell.dNO3dep;
 
 	// Save yesterday's mean temperature for the last month
 	mtemp_last = climate.mtemp;
@@ -563,6 +578,12 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	if (mtemp_last >= 5.0 && climate.mtemp < 5.0 && climate.ifsensechill) {
 		climate.gdd5 = 0.0;
 		climate.chilldays = 0;
+	}
+
+	// Update fire related values
+	if (firemodel == BLAZE) {
+		simfire_accounting_gridcell(gridcell);
+		blaze_accounting_gridcell(gridcell.climate);
 	}
 
 	// On last day of month ...

@@ -133,12 +133,13 @@ typedef enum {DRY, DRY_INTERMEDIATE, DRY_WET, INTERMEDIATE, INTERMEDIATE_WET, WE
  */
 typedef enum {COLD, COLD_WARM, COLD_HOT, WARM, WARM_HOT, HOT} temp_seasonality_type;
 
-
 /// Gas type (used in methane code)
 /** 
   */
-typedef enum {O2gas, CO2gas, CH4gas} gastype; 
+typedef enum {O2gas, CO2gas, CH4gas} gastype;
 
+/// Nitrogen preferance
+typedef enum {NO, NH4, NO3} n_pref_type;
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
 
@@ -220,6 +221,12 @@ const double CMASS_SEED = 0.01;
 const double INPUT_PRECISION = 1.0e-14;
 const double INPUT_ERROR = 0.5e-6;
 const double INPUT_RESOLUTION = INPUT_PRECISION - INPUT_PRECISION * INPUT_ERROR;
+
+/// Averaging interval for average maximum annual fapar (SIMFIRE)
+const int AVG_INTERVAL_FAPAR = 3;
+
+/// Averaging interval for biome averaging (SIMFIRE)
+const int N_YEAR_BIOMEAVG = 3;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FORWARD DECLARATIONS OF CLASSES DEFINED IN THIS FILE
@@ -608,6 +615,23 @@ struct PhotosynthesisResult : public Serializable {
 	void serialize(ArchiveStream& arch);
 };
 
+/// Class containing serializable variables for Weathergenerator GWGen
+class WeatherGenState : public Serializable {
+
+public:
+	int q[10];
+	int carry;
+	int xcng;
+	unsigned int xs; 
+	int indx;
+	bool have;
+	double gamma_vals[2];
+	bool pday[2];
+	double resid[4];
+
+	void serialize(ArchiveStream& arch);
+};
+
 /// This struct contains the environmental input to a photosynthesis calculation.
 /** \see photosynthesis */
 struct PhotosynthesisEnvironment {
@@ -755,6 +779,9 @@ public:
 	/// reference to parent Gridcell object
 	Gridcell& gridcell;
 
+	/// values for randomisation in Weathergenerator GWGEN
+	WeatherGenState weathergenstate;
+
 	/// mean air temperature today (deg C)
 	double temp;
 
@@ -766,6 +793,15 @@ public:
 
 	/// precipitation today (mm)
 	double prec;
+
+	/// 10 m wind [km/h]
+	double u10;
+
+	/// rel. humidity [fract.]
+	double relhum;
+
+	/// min and max daily temperature [deg C]
+	double tmin, tmax; 
 
 	/// day length today (h)
 	double daylength;
@@ -851,10 +887,23 @@ public:
 	/// mean of monthly temperatures for the last 12 months (deg C)
 	double atemp_mean;
 
-	/// annual nitrogen deposition (kgN/m2/year)
-	double andep;
-	/// daily nitrogen deposition (kgN/m2)
-	double dndep;
+
+	// BLAZE
+
+	/// average annual rainfall [mm/a]
+	double avg_annual_rainfall;
+	///  current sum of annual Rainfall
+	double cur_rainfall;
+	/// Accumulated last rainfall [mm]
+	double last_rainfall;
+	/// Days since last rainfall
+	double days_since_last_rainfall;
+	/// Keetch-Byram-Drought-Index
+	double kbdi;
+	/// McArthur forest fire index (FFDI)
+	double mcarthur_forest_fire_index;	
+	/// To keep track of running months FFDI
+	double months_ffdi[30];	
 
 	// Saved parameters used by function daylengthinsoleet
 
@@ -969,10 +1018,15 @@ public:
 
 	/// annual precipitation sum
 	double aprec;
+	/// annual average precipitation (last year) (mm)
+	double aprec_lastyear;	
 
 public:
 	/// constructor function: initialises gridcell member
 	Climate(Gridcell& gc):gridcell(gc) {
+
+		aprec = 0.0;
+		aprec_lastyear = 0.0;
 
 		for(int m=0;m<12;m++) {
 
@@ -1079,6 +1133,12 @@ public:
 		HARVESTC,
 		/// Flux from atmosphere to vegetation associated with sowing (kgC/m2)
 		SEEDC,
+		/// Flux from atmosphere to vegetation associated with manure addition (kgC/m2)
+		MANUREC,
+		/// Flux to vegetation associated with manure addition (kgN/m2)
+		MANUREN,
+		/// Flux to vegetation associated with N addition (kgN/m2) 
+		NFERT,
 		/// Nitrogen flux to atmosphere from consumed harvested products (kgN/m2)
 		HARVESTN,
 		/// Nitrogen flux from atmosphere to vegetation associated with sowing (kgC/m2)
@@ -1091,8 +1151,25 @@ public:
 		N2O_FIRE,
 		/// N2 flux to atmosphere from fire
 		N2_FIRE,
-		/// N flux from soil
-		N_SOIL,
+		//---- Soil N transformation -----
+		/// NH3 flux from soil (ntransform)
+		NH3_SOIL,
+		/// NO flux from soil (ntransform)
+		NO_SOIL,
+		/// N2O flux in soil (ntransform)
+		N2O_SOIL,
+		/// N2 flux from soil (ntransform)
+		N2_SOIL,
+		/// DOC flux from soil (ntransform)
+		DOC_FLUX,
+		/// Net nitrification (ntransform)
+		NET_NITRIF,
+		/// Net denitrification (ntransform)
+		NET_DENITRIF,
+		/// Gross nitrification (ntransform)
+		GROSS_NITRIF,
+		/// Gross denitrification (ntransform)
+		GROSS_DENITRIF,
 		/// Reproduction costs
 		REPRC,
 		/// Total (i.e. CH4C_DIFF + CH4C_PLAN + CH4C_EBUL) CH4 flux to atmosphere from peatland soils (gC/m2).
@@ -1508,8 +1585,8 @@ public:
 	double lambda_max;
 	/// vegetation root profile in an array containing fraction of roots in each soil layer, [0=upper layer]
 	double rootdist[NSOILLAYER];
-    /// shape parameter for initialisation of root distribtion
-    double root_beta;
+	/// shape parameter for initialisation of root distribtion
+	double root_beta;
 	/// canopy conductance component not associated with photosynthesis (mm/s)
 	double gmin;
 	/// maximum evapotranspiration rate (mm/day)
@@ -1682,7 +1759,7 @@ public:
 
 	/// Bioclimatic limits parameters from Wolf et al. 2008
 
-    /// snow max [mm]
+	/// snow max [mm]
 	double max_snow;
 	/// snow min [mm]
 	double min_snow;
@@ -1821,6 +1898,9 @@ public:
 
 		std::fill_n(gdd0, Date::MAX_YEAR_LENGTH + 1, -1.0); // value<0 signifies "unknown"; see function phenology()
 
+		nlim = false;
+		root_beta = 0.0;
+
 		drought_tolerance = 0.0; // Default, means that the PFT will never be limited by drought.
 		res_outtake = 0.0;
 		harv_eff = 0.0;
@@ -1852,11 +1932,6 @@ public:
 		frootstart = 0.0;
 		frootend = 0.0;
 		forceautumnsowing = 0;
-		nlim = false;
-        
-        // Overwritten by PLIB if rootdistribution == jackson,
-        // needs to be initialized here to supress warnings
-        root_beta = 0.0;
 
 		fertrate[0] = 0.0;
 		fertrate[1] = 1.0;
@@ -2637,6 +2712,9 @@ public:
 	 */
 	void reduce_biomass(double mortality, double mortality_fire);
 
+	/// A version of the above reduce_biomass for the use with blaze
+	void blaze_reduce_biomass(Patch& patch, double frac_survive);
+
 	/// Total storage of nitrogen
 	double nstore() const {
 		return nstore_longterm + nstore_labile;
@@ -3351,10 +3429,14 @@ public:
 	double dperc;
 	/// fraction of decayed organic nitrogen leached each day;
 	double orgleachfrac;
-	/// soil mineral nitrogen pool (kgN/m2)
-	double nmass_avail;
-	/// soil nitrogen input (kgN/m2)
-	double ninput;
+	/// soil NH4 mass in pool (kgN/m2)
+	double NH4_mass;
+	/// soil NO3 mass in pool (kgN/m2)
+	double NO3_mass;
+	/// soil NH4 mass input (kgN/m2)
+	double NH4_input;
+	/// soil NO3 mass input (kgN/m2)
+	double NO3_input;
 	/// annual sum of nitrogen mineralisation
 	double anmin;
 	/// annual sum of nitrogen immobilisation
@@ -3393,8 +3475,44 @@ public:
 
 	std::vector<LitterSolveSOM> solvesom;
 
-	/// stored nitrogen deposition in snowpack
-	double snowpack_nmass;
+	/// stored NH4 deposition in snowpack
+	double snowpack_NH4_mass;
+	/// stored NO3 deposition in snowpack
+	double snowpack_NO3_mass;
+
+	/// pools of soil N species in transformation (nitrification & denitrifiacation)
+
+	/// soil NH4 mass in pool (kgN/m2)
+	// double NH4_mass;	// total, definde above
+	double NH4_mass_w;	// wet proportion
+	double NH4_mass_d;	// dry...
+
+	/// soil NO3 mass in pool (kgN/m2)
+	// double NO3_mass; // total, definde above
+	double NO3_mass_w;
+	double NO3_mass_d;
+	/// soil NO2 mass in pool (kgN/m2)
+	double NO2_mass;
+	double NO2_mass_w;
+	double NO2_mass_d;
+	/// soil NO mass in pool (kgN/m2)
+	double NO_mass;
+	double NO_mass_w;
+	double NO_mass_d;
+	/// soil NO mass in pool (kgN/m2)
+	double N2O_mass;
+	double N2O_mass_w;
+	double N2O_mass_d;
+	/// soil N2 mass in pool (kgN/m2)
+	double N2_mass;
+
+	// soil pH
+	double pH;	//TODO: pH - not used yet. Daily mean precip, based on annual average
+
+	// soil labile carbon availability daily (kgC/m2/day)
+	double labile_carbon;
+	double labile_carbon_w;
+	double labile_carbon_d;
 
 	// MEMBER FUNCTIONS
 
@@ -3483,6 +3601,12 @@ public:
 
 	/// Soil water freezing allowed?
 	bool can_freeze() const;
+
+	// Soil helper functions
+	double nmass_avail(int pref = NO);
+	void nmass_subtract(double nmass, int pref = NO);
+	void nmass_inc(double nmass, int pref = NO);
+	void nmass_multiplic_inc(double inc, int pref = NO);
 
 private:
 
@@ -3742,12 +3866,8 @@ public:
 	double litter_root;
 	/// remaining sapwood-derived litter for PFT on modelled area basis (kgC/m2)
 	double litter_sap;
-	/// year's sapwood-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_sap_year;
 	/// remaining heartwood-derived litter for PFT on modelled area basis (kgC/m2)
 	double litter_heart;
-	/// year's heartwood-derived litter for PFT on modelled area basis (kgC/m2)
-	double litter_heart_year;
 	/// litter derived from allocation to reproduction for PFT on modelled area basis (kgC/m2)
 	double litter_repr;
 
@@ -3757,12 +3877,8 @@ public:
 	double nmass_litter_root;
 	/// remaining sapwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_sap;
-	/// year's sapwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
-	double nmass_litter_sap_year;
 	/// remaining heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_heart;
-	/// year's heartwood-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
-	double nmass_litter_heart_year;
 
 	/// non-FPC-weighted canopy conductance value for PFT under water-stress conditions (mm/s)
 	double gcbase;
@@ -3810,17 +3926,13 @@ public:
 		litter_leaf = 0.0;
 		litter_root = 0.0;
 		litter_sap   = 0.0;
-		litter_sap_year = 0.0;
 		litter_heart = 0.0;
-		litter_heart_year = 0.0;
 		litter_repr = 0.0;
 
 		nmass_litter_leaf  = 0.0;
 		nmass_litter_root  = 0.0;
 		nmass_litter_sap   = 0.0;
-		nmass_litter_sap_year   = 0.0;
 		nmass_litter_heart = 0.0;
-		nmass_litter_heart_year = 0.0;
 
 		wscal = 1.0;
 		wscal_mean = 1.0;
@@ -3912,6 +4024,41 @@ public:
 	int age;
 	/// probability of fire this year
 	double fireprob;
+
+	/// BLAZE Fire line intensity;
+	double fire_line_intensity;
+
+	// BLAZE fire related carbon fluxes
+	/// BLAZE-fire carbon flux: live wood to atmosphere
+	double wood_to_atm;
+	/// BLAZE-fire carbon flux: leaves to atmosphere
+	double leaf_to_atm;
+	/// BLAZE-fire carbon flux: leaves to litter
+	double leaf_to_lit;
+	/// BLAZE-fire carbon flux: live wood to structural litter
+	double wood_to_str;
+	/// BLAZE-fire carbon flux: live wood to fine woody debris
+	double wood_to_fwd;
+	/// BLAZE-fire carbon flux: live wood to coarse woody debris
+	double wood_to_cwd;
+	/// BLAZE-fire carbon flux: fine litter (leaf,structural, metabolic) to atmosphere
+	double litf_to_atm;
+	/// BLAZE-fire carbon flux: fine woody debris to atmosphere
+	double lfwd_to_atm;
+	/// BLAZE-fire carbon flux: coarse woody debris to atmosphere
+	double lcwd_to_atm;
+
+	// Storage for averaging of different Fpars for biome mapping in Simfire
+	/// Simfire Grasses
+	double avg_fgrass[N_YEAR_BIOMEAVG];
+	/// Simfire Needle-leaf trees
+	double avg_fndlt[N_YEAR_BIOMEAVG];
+	/// Simfire Broad-leaf trees
+	double avg_fbrlt[N_YEAR_BIOMEAVG];
+	/// Simfire Shrubs
+	double avg_fshrb[N_YEAR_BIOMEAVG];
+	/// Simfire Total
+	double avg_ftot[N_YEAR_BIOMEAVG];
 
 	/// whether management has started on this patch
 	bool managed;
@@ -4348,6 +4495,8 @@ public:
 	int hdate_force;
 	/// N fertilization from input file
 	double Nfert_read;
+	/// Manure N fertilization from input file
+	double Nfert_man_read;
 	/// default harvest date (pft.hlimitdatenh/hlimitdatesh)
 	int hlimitdate_default;
 	/// whether autumn sowing is either calculated or prescribed
@@ -4388,6 +4537,7 @@ public:
 		sdate_force=-1;
 		hdate_force=-1;
 		Nfert_read=-1;
+		Nfert_man_read=-1;
 		sdatecalc_temp=-1;
 		sdatecalc_prec=-1;
 		hlimitdate_default=-1;
@@ -4550,6 +4700,55 @@ public:
 	/// object for keeping track of carbon and nitrogen balance
 	MassBalance balance;
 
+	/// the region index to chosose from set of optimisations
+	int simfire_region;
+
+	/// population density
+	double hyde31_pop_density[57];
+
+	/// population density
+	double pop_density;
+
+	/// tuning factor for available litter
+	double k_tun_litter;
+
+	// SIMFIRE
+	/// maximum annual Nesterov Index
+	double max_nesterov;
+	/// current Nexterov index
+	double cur_nesterov;
+	/// Monthly max Nexterov index to keep track of running year
+	double monthly_max_nesterov[12];
+	/// biome as used in SIMFIRE
+	int simfire_biome;
+	/// Averaged (over avg_interv_fpar years)maximum annual fAPAR
+	double ann_max_fapar;
+	/// list of Max
+	double recent_max_fapar[AVG_INTERVAL_FAPAR];
+	/// maximum fapar of running year
+	double cur_max_fapar;
+	/// monthly fire risk
+	double monthly_fire_risk[12];
+	/// burned area from SIMFIRE
+	double burned_area;
+	/// accumulated burned area from SIMFIRE for tstep < 1a
+	double burned_area_accumulated;
+	/// Simple tracker to check whether at least one patch has enough fuel to burn
+	int can_burn;
+	/// annual burned area from SIMFIRE
+	double annual_burned_area;
+	/// monthly burned area from SIMFIRE
+	double monthly_burned_area[12];
+
+	/// annual NH4 deposition (kgN/m2/year)
+	double aNH4dep;
+	/// annual NO3 deposition (kgN/m2/year)
+	double aNO3dep;
+	/// daily NH4 deposition (kgN/m2)
+	double dNH4dep;
+	/// daily NO3 deposition (kgN/m2)
+	double dNO3dep;
+
 	/// Seed for generating random numbers within this Gridcell
 	/** The reason why Gridcell has its own seed, rather than using for instance
 	 *  a single global seed is to make it easier to compare results when for
@@ -4607,6 +4806,7 @@ private:
 
 	/// Latitude for this grid cell
 	double lat;
+
 };
 
 
@@ -4636,8 +4836,6 @@ private:
 //   model based on ecophysiological constraints, resource availability, and
 //   competition among plant functional types. Global Biogeochemical Cycles 10:
 //   693-709
-// Jackson, R.B, J. Candell, J.R Ehleringer, H.A. Mooney, O.E. Sala, E.D. Schulze, 1996.
-//   A global analysis of root distributions for terrestrial biomes. Oecologica 108:389-411
 // Lloyd, J & Taylor JA 1994 On the temperature dependence of soil respiration
 //   Functional Ecology 8: 315-323
 // Macduff, JH, Humphreys, MO & Thomas, H 2002. Effects of a stay-green mutation on

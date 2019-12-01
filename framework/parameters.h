@@ -58,6 +58,24 @@ typedef enum {WR_WCONT, WR_ROOTDIST, WR_SMART, WR_SPECIESSPECIFIC} wateruptakety
 ///bvoc: define monoterpene species used
 typedef enum {APIN, BPIN, LIMO, MYRC, SABI, CAMP, TRIC, TBOC, OTHR, NMTCOMPOUNDTYPES} monoterpenecompoundtype;
 
+/// Fire model setting. Either use 
+/**	One of
+ *	BLAZE 		Use the BLAZE model to generate fire fluxes 
+ *                      (must be accompanied by ignitionmode; DEFAULT)
+ *	GLOBFIRM	fire parameterization following Thonicke et al. 2001
+ *	NOFIRE		no fire model	
+ */
+typedef enum {BLAZE, GLOBFIRM, NOFIRE} firemodeltype;
+
+/// Type of weathergenerator used 
+/**     One of:
+ *      GWGEN           Global Weather GENerator (needed by BLAZE, due to 
+ *                      additional rel. humidity and wind; DEFAULT)
+ *      INTERP          use standard interpolation scheme
+ *      NONE            Should be set if daily input is used (e.g. in cfinput) 
+ */
+typedef enum {GWGEN, INTERP, NONE} weathergeneratortype;
+
 ///How to determine root distribution in soil layers
 typedef enum {ROOTDIST_FIXED, ROOTDIST_JACKSON} rootdisttype;
 
@@ -102,8 +120,11 @@ extern bool ifstochestab;
 /// Whether mortality stochastic (individual, cohort mode)
 extern bool ifstochmort;
 
-/// Whether fire enabled
-extern bool iffire;
+/// Fire-model switch
+extern firemodeltype firemodel;
+
+/// Weather Generator switch
+extern weathergeneratortype weathergenerator;
 
 /// Whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
 extern bool ifdisturb;
@@ -146,6 +167,27 @@ extern double nfix_a;
 
 /// second term in nitrogen fixation eqn (Cleveland et al 1999)
 extern double nfix_b;
+
+/// whether to use nitrification/denitrification in CENTURY SOM dynamics
+extern bool ifntransform;
+/// Fraction of microbial respiration assumed to produce DOC, 0.0,0.3
+extern double frac_labile_carbon;
+
+/// Soil pH (used for calculating N-transformation), 3.5,8.5
+extern double pH_soil;
+/// Maximum nitrification rate, 0.03,0.15
+extern double f_nitri_max;
+/// Constant in denitrification, 0.001,0.1
+extern double k_N;
+/// Constant in temperature function for denitrification, 0.005,0.05
+extern double k_C;
+/// Maximum gaseus losses in nitrification
+extern double f_nitri_gas_max;
+/// Maximum fraction of NO3 converted to NO2
+extern double f_denitri_max;
+/// Maximum fraction of NO2 converted to gaseus N
+extern double f_denitri_gas_max;
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Landuse and crop settings
@@ -209,6 +251,9 @@ extern bool readharvestdates;
 
 /// Whether to read N fertilization from input file
 extern bool readNfert;
+
+/// Whether to read manure N fertilization from input file
+extern bool readNman;
 
 /// Whether to read N fertilization (stand tyoe level) from input file
 extern bool readNfert_st;

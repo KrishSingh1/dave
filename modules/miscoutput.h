@@ -85,7 +85,6 @@ private:
 		   file_daily_norgleach, file_daily_nuptake, file_daily_ds,
 		   file_daily_stem, file_daily_leaf, file_daily_root,
 		   file_daily_storage;
-	xtring file_daily_climate;
 
 	// Output tables
 	Table out_yield, out_yield1, out_yield2, out_sdate1, out_sdate2,
@@ -119,7 +118,6 @@ private:
 		  out_daily_lower_wcont, out_daily_irrigation, out_daily_climate,
 		  out_daily_nminleach, out_daily_norgleach, out_daily_nuptake, out_daily_ds, 
 		  out_daily_stem, out_daily_leaf, out_daily_root, out_daily_storage;
-	Table out_daily_climate;
 };
 
 }

@@ -1820,7 +1820,7 @@ public:
 
 			// Used for daily grass growth. Results in correct leaf longevity under perfect conditions
 
-			transferconst = 0.0086 * pow(leaflong, -1.002);
+			transferconst = 0.0068 * pow(leaflong, -1.0);
 		}
 	}
 };

@@ -1419,7 +1419,7 @@ void plib_callback(int callback) {
 			ppft = &pftlist.getobj();
 
 			if (ifcalcsla) {
-				if(!(ppft->phenology == CROPGREEN && run_landcover && ifnlim) && !(ifdailygrass && ppft->lifeform == GRASS))
+				if(!(ppft->phenology == CROPGREEN && run_landcover && ifnlim))
 					// Calculate SLA
 					ppft->initsla();
 			}

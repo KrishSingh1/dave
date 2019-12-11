@@ -2467,6 +2467,9 @@ public:
 	/// Gets the individual's Patchpft
 	Patchpft& patchpft() const;
 
+	/// returns SLA value of indiv
+	double sla() const;
+
 	/// Transfers the individual's biomass (C and N) to litter and harvest pools/fluxes
 	/**
 	 *  \param harvest Set to true if some of the biomass should be harvested,

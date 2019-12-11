@@ -1007,7 +1007,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot,1.0) : 0.0;
 
 		if (date.year >= 1510 && date.year <= 515 && indiv.pft.name == "C4G") {
-			dprintf("%d %g %g %g %g %g %g %g %g ", date.day, ntoc, nmin_scale, max_indiv_avail, indiv.fpc, maxnup, ndemand_tot, fractomax, soil.nmass_avail);
+			dprintf("%d %d %g %g %g %g %g %g %g %g ", date.year, date.day, ntoc, nmin_scale, max_indiv_avail, indiv.fpc, maxnup, ndemand_tot, fractomax, soil.nmass_avail);
 		}
 
 		// Root and leaf demand from storage pools
@@ -2029,7 +2029,7 @@ void leaf_senescence(Vegetation& vegetation) {
 		if (indiv.cmass_leaf_today() > 0.0) {
 			double Ln = indiv.lai_nitrogen_today();
 			double Lnld = indiv.lai_today();
-			r = (Lnld - min(Lnld, Ln))/indiv.pft.sla/10.0;
+			r = (Lnld - min(Lnld, Ln))/indiv.sla()/10.0;
 		}
 		// No senescence during the initial growing period
 		if (indiv.patchpft().cropphen->fphu < 0.05) {

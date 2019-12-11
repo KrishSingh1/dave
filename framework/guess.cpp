@@ -1600,6 +1600,19 @@ double Individual::cton_sap() const {
 	}
 }
 
+double Individual::sla() const {
+
+	// Prescribed PFT specific SLA
+	double current_sla = pft.sla;
+
+	// Age dependent SLA for daily grass
+	if (ifdailygrass && pft.lifeform == GRASS && !negligible(get_cmass_leaf())) {
+		current_sla *= (cmass_leafs[0] * 1.1 + cmass_leafs[1] + cmass_leafs[2] * 0.9) / get_cmass_leaf();
+	}
+
+	return current_sla;
+}
+
 /// C content of individual
 /**
  *  INPUT PARAMETERS
@@ -1744,8 +1757,10 @@ double Individual::ndemand_storage(double cton_leaf_opt) {
 	if (vegetation.patch.stand.is_true_crop_stand() && ifnlim)	// only CROPGREEN, only ifnlim ?
 		// analogous with root demand
 		storendemand = max(0.0, cropindiv->grs_cmass_stem / (cton_leaf_opt * pft.cton_stem_avr / pft.cton_leaf_avr) - cropindiv->nmass_agpool);
-	else if (ifdailygrass && pft.lifeform == GRASS && !istruecrop_or_intercropgrass())
-		storendemand = max(0.0, cmass_storage / pft.cton_leaf_avr - nmass_storage);
+	else if (ifdailygrass && pft.lifeform == GRASS && !istruecrop_or_intercropgrass()) {
+		double froot = 1.0 / (1.0 + pft.ltor_max);
+		storendemand = max(0.0, cmass_storage / (cton_leaf_opt * (1.0 - froot) + (cton_leaf_opt * pft.cton_root_avr / pft.cton_leaf_avr) * froot) - nmass_storage);
+	}
 	else
 		storendemand = max(0.0, min(anpp * scale_n_storage / cton_leaf(), max_n_storage) - nstore());
 
@@ -2033,7 +2048,7 @@ double Individual::lai_nitrogen_today() const{
 		if (patchpft().cropphen->growingseason && cmass_leaf_today() > 0.0) {
 			const double k = 0.5;
 			const double ktn = 0.52*k + 0.01; // Yin et al 2003
-			double nb = 1/(pft.cton_leaf_max*pft.sla);
+			double nb = 1/(pft.cton_leaf_max*sla());
 			Ln = (1/ktn) * log(1+ktn*nmass_leaf/nb);
 		}
 		return Ln;

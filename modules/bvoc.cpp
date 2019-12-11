@@ -60,7 +60,7 @@ void initbvoc(){
 				// par for the standard condition, J m-2 d-1
 		photosynthesis(CO2, Tstand, par, daylength, 1.0, pft.lambda_max, pft, 1.0, false, phot, -1);
 
-		double coeff = 1e-3 / (phot.je + phot.rd_g/24) / pft.sla / Cfrac;
+		double coeff = 1e-3 / (phot.je + phot.rd_g/24) / pft.sla / Cfrac; // DW_COMMENT SLA should be individual dependent
 
 		// electron fraction assigned to isoprene and monoterpenes for the
 		// standard case

@@ -200,10 +200,7 @@ double calc_nrelocfrac(lifeformtype lifeform, double turnover_leaf, double nmass
 * At 70% of maximum storage capacity the fraction relocated is dropped
 * At 100% it is zero
 */
-double calc_nrelocfrac_daily(Pft pft, double cmass_storage, double nmass_storage) {
-	
-	// Maximum N storage level
-	double cton_min = cmass_storage / (cmass_storage / pft.cton_leaf_avr);
+double calc_nrelocfrac_daily(double cton_min, double cmass_storage, double nmass_storage) {
 	
 	// Current N storage level
 	double cton_current = cmass_storage / nmass_storage;
@@ -383,7 +380,7 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 	// individual height (m)
 	double height = indiv.height;
 	// specific leaf area (PFT-specific constant) (m2/kgC)
-	double sla = indiv.pft.sla;
+	double sla = indiv.sla();
 	// wood density (PFT-specific constant) (kgC/m3)
 	double wooddens = indiv.pft.wooddens;
 	// life form class (TREE or GRASS)
@@ -964,7 +961,7 @@ bool allometry(Individual& indiv) {
 		// guess2008 - new allometry check
 		if (!negligible(indiv.cmass_leaf)) {
 
-			indiv.height = indiv.cmass_sap / indiv.cmass_leaf / indiv.pft.sla * indiv.pft.k_latosa / indiv.pft.wooddens;
+			indiv.height = indiv.cmass_sap / indiv.cmass_leaf / indiv.sla() * indiv.pft.k_latosa / indiv.pft.wooddens;
 
 			// Stem diameter (Eqn 5)
 			diam = pow(indiv.height / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
@@ -999,7 +996,7 @@ bool allometry(Individual& indiv) {
 
 			// Individual LAI (Eqn 9)
 			indiv.lai_indiv = indiv.cmass_leaf / indiv.densindiv *
-					indiv.pft.sla / indiv.crownarea;
+					indiv.sla() / indiv.crownarea;
 
 			// FPC (Eqn 8)
 
@@ -1019,7 +1016,7 @@ bool allometry(Individual& indiv) {
 		indiv.boleht = 0.0;
 
 		// Stand-level LAI
-		indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
+		indiv.lai = indiv.cmass_leaf * indiv.sla();
 	}
 	else if (indiv.pft.lifeform == GRASS) {
 
@@ -1031,7 +1028,7 @@ bool allometry(Individual& indiv) {
 			if (!negligible(indiv.get_cmass_leaf())) {
 
 				// Grass "individual" LAI (Eqn 11)
-				indiv.lai_indiv = indiv.get_cmass_leaf() * indiv.pft.sla;
+				indiv.lai_indiv = indiv.get_cmass_leaf() * indiv.sla();
 
 				// FPC (Eqn 10)
 				indiv.fpc = 1.0 - lambertbeer(indiv.lai_indiv);
@@ -1087,7 +1084,7 @@ double fracmass_lpj(double fpc_low,double fpc_high,Individual& indiv) {
 		if (fpc_high>=1.0 || fpc_low>=1.0 || negligible(indiv.cmass_leaf)) return 1.0;
 
 		// else
-		return 1.0+2.0/indiv.cmass_leaf/indiv.pft.sla*
+		return 1.0+2.0/indiv.cmass_leaf/indiv.sla()*
 				(log(1.0-fpc_high)-log(1.0-fpc_low));
 	}
 	else {
@@ -1678,6 +1675,8 @@ void growth_daily_grass(Patch& patch) {
 	double cgrow_leaf = 0.0;
 	// leaf N growth this time period
 	double ngrow_leaf = 0.0;
+	// leaf N update this time period
+	double nup_leaf = 0.0;
 	// root C growth this time period
 	double cgrow_root = 0.0;
 	// root N growth this time period
@@ -1717,7 +1716,7 @@ void growth_daily_grass(Patch& patch) {
 
 		if (indiv.pft.lifeform == GRASS && !indiv.istruecrop_or_intercropgrass()) {
 			
-			cgrow_leaf = cgrow_root = ngrow_leaf = ngrow_root = 0.0;
+			cgrow_leaf = cgrow_root = ngrow_leaf = nup_leaf = ngrow_root = 0.0;
 			c1 = c2 = c3 = c4 = 0.0;
 			n1 = n2 = n3 = n4 = 0.0;
 
@@ -1812,7 +1811,7 @@ void growth_daily_grass(Patch& patch) {
 				if (!negligible(indiv.get_cmass_leaf())) {
 					indiv.nscal_running.add(min(1.0, indiv.cton_leaf_opt / indiv.cton_leaf()));
 				}
-				// Current leaf to root status (Johnson 2008)
+				// Current leaf to root status
 				double ltor_current = (!negligible(indiv.get_cmass_leaf()) && !negligible(indiv.cmass_root)) ? indiv.pft.ltor_max / (indiv.get_cmass_leaf() / indiv.cmass_root) : 1.0;
 				
 				// leaf to root ratio of new growth (Johnson 2008 eqn 4.13b)
@@ -1831,7 +1830,7 @@ void growth_daily_grass(Patch& patch) {
 			double gpp_tm = gpp_mean > 0.0 ? 4.0 * max(-0.25, min(0.25, gpp_trend / gpp_mean)) : 0.0;
 			double gpp_zero = indiv.cmass_storage > 0.0 && indiv.get_cmass_leaf() > 0.0 && gpp_mean > 0.0 ? 1.5 * gpp_mean * indiv.get_cmass_leaf() / indiv.cmass_storage : 0.001;
 			//double gpp_fac = min(0.5, gpp_trend >= 0.0 ? (GPP_FAC_MAX - gpp_zero) * gpp_tm * gpp_tm + gpp_zero : gpp_zero + max(0.0, (gpp_zero - max(0.0001, 0.1 * gpp_zero))) * gpp_tm);
-			double gpp_fac = gpp_trend > 0.0 ? 0.05 : 0.02;
+			double gpp_fac = gpp_trend > 0.0 ? 0.1 : 0.02;
 
 			// Storage to biomass growth modifier 
 			// Lower storage fraction less growth
@@ -1861,18 +1860,20 @@ void growth_daily_grass(Patch& patch) {
 			double tscal_sen = air_temp > opt_temp ? 1.0 : max(0.01, tscal_growth);
 
 			// Growth and senescence rates (eqn 24 Johnson & Thornley 1983, Höglind 2016)
-			g_fac = gpp_fac * sb_fac * wscal_fac * tscal_growth;
+			g_fac = min(MAX_GROWTH_RATE, gpp_fac * sb_fac * wscal_fac * tscal_growth);
 			s_fac = max(frost_sen, indiv.pft.transferconst * wscal_sen * tscal_sen);
 			
 			double fndemand = 0.0;
+			double fupndemand = 0.0;
 			double cgrow = 0.0;
 			double path = 0.0;
+			double gN_fac = 0.0;
 			
-			// Storage used for new leaf and root growth
-			if (!negligible(indiv.cmass_storage)) {
+			// Storage used for new leaf and root growth and updating old leaves and roots
+			if (!negligible(indiv.cmass_storage) && !negligible(indiv.nmass_storage)) {
 
 				// Todays growth
-				cgrow = min(MAX_GROWTH_RATE, g_fac) * indiv.cmass_storage;
+				cgrow = g_fac * indiv.cmass_storage;
 
 				// Leaf and root C growth
 				cgrow_root = cgrow / (1.0 + indiv.ltor);
@@ -1882,29 +1883,69 @@ void growth_daily_grass(Patch& patch) {
 				double ngrow_root_max = indiv.nmass_storage / (1.0 + indiv.ltor);
 				double ngrow_leaf_max = indiv.nmass_storage - ngrow_root_max;
 
-				// N demand
-				double ngrow_demand = cgrow_leaf / indiv.cton_leaf_opt + cgrow_root / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
-				
-				// C:N ratio when N limitation starts
-				double lim_cton = 2.0 / (1.0 / indiv.pft.cton_leaf_avr + 1.0 / indiv.pft.cton_leaf_max);
-				
-				// Projected C:N ratio after growth
-				double proj_cton = (indiv.cmass_storage - (cgrow_leaf + cgrow_root)) / (indiv.nmass_storage - ngrow_demand);
-				
-				// Fraction N demand meet
-				fndemand = proj_cton < lim_cton ? 1.0 :
-					max(0.0, 1.0 - 0.8 * min(1.0, pow(-(1.0 / proj_cton - 1.0 / lim_cton) / (1.0 / lim_cton - 1.0 / indiv.pft.cton_leaf_max), 5.0)));
+				// N demand for growth
+				double ngrow_leaf_demand = cgrow_leaf / indiv.cton_leaf_opt;
+				double ngrow_root_demand = cgrow_root / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
 
-				// Leaf and root N growth
-				ngrow_leaf = min(ngrow_leaf_max, cgrow_leaf / indiv.cton_leaf_opt * fndemand);
-				ngrow_root = min(ngrow_root_max, cgrow_root / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) * fndemand);
+				// N demand for update current tissue to optimal value (10% day-1)
+				double nup_leaf_demand = max(0.0, indiv.get_cmass_leaf() / indiv.cton_leaf_opt - indiv.get_nmass_leaf()) * 0.1;
+				double nup_root_demand = max(0.0, indiv.cmass_root / (indiv.cton_leaf_opt * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr) - indiv.nmass_root) * 0.1;
+				
+				// Growth and Update N fraction of storage
+				double guN_fac = (ngrow_leaf_demand + ngrow_root_demand + nup_leaf_demand + nup_root_demand) / indiv.nmass_storage;
+
+				// Growth N fraction of storage
+				gN_fac = min(1.0, (ngrow_leaf_demand + ngrow_root_demand) / indiv.nmass_storage);
+				
+				double frac_direct = 1.0;
+				double frac_lim = 10.0;
+
+				// N demand meet for both growth and update
+				if (g_fac > 0.0) {
+					if (guN_fac <= g_fac * frac_direct) {
+						fndemand = 1.0;
+						fupndemand = 1.0;
+						path = 1.0;
+					}
+					// N demand meet for growth but update will be limted. Update will take N up to limitation limit
+					else if (gN_fac <= g_fac * frac_direct) {
+						fndemand = 1.0;
+						double tot_fac = pow((g_fac * frac_lim - guN_fac) / (g_fac * frac_lim - g_fac * frac_direct), 1);
+						fupndemand = max(0.0, (tot_fac * (ngrow_leaf_demand + ngrow_root_demand + nup_leaf_demand + nup_root_demand) - (ngrow_leaf_demand + ngrow_root_demand)) / (nup_leaf_demand + nup_root_demand));
+						path = 2.0;
+					}
+					// N demand for growth will be limited
+					else {
+						double fndemand_min = 0.1 * gN_fac * indiv.nmass_storage / (ngrow_leaf_demand + ngrow_root_demand);
+						fndemand = max(fndemand_min, pow((g_fac * frac_lim - gN_fac) / (g_fac * frac_lim - g_fac * frac_direct), 1));
+						fupndemand = 0.0;
+						path = 3.0;
+					}
+				}
+
+				// Leaf and root N growth and update
+				ngrow_leaf = ngrow_leaf_demand * fndemand;
+				ngrow_root = ngrow_root_demand * fndemand + nup_root_demand * fupndemand;
+				nup_leaf = nup_leaf_demand * fupndemand;
+
+				// Leaf N mass update according to compartment size
+				if (!negligible(indiv.get_cmass_leaf())) {
+					for (int lf = 0; lf < indiv.cmass_leafs.size() - 1; lf++) {
+						double fnup = indiv.cmass_leafs[lf] / indiv.get_cmass_leaf();
+						indiv.nmass_leafs[lf] += nup_leaf * fnup;
+					}
+				}
 
 				// Reduce C depending on fndemand to not get too high C:N ratios
-				if (ifnlim) {
+				if (ifnlim && date.year > freenyears && !negligible(fndemand - 1.0)) {
 					cgrow_leaf *= min(1.0, 1.0 - (1.0 - fndemand) * 0.8);
 					cgrow_root *= min(1.0, 1.0 - (1.0 - fndemand) * 0.8);
-					//cgrow_leaf *= min(1.0, 0.5 + fndemand / 2.0);
-					//cgrow_root *= min(1.0, 0.5 + fndemand / 2.0);
+
+					// New tissue can't have a C:N ratio higher than allowed PFT specific maximum
+					if (cgrow_leaf / ngrow_leaf > indiv.pft.cton_leaf_max) {
+						cgrow_leaf = ngrow_leaf * indiv.pft.cton_leaf_max;
+						cgrow_root = ngrow_root * indiv.pft.cton_leaf_max * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr;
+					}
 				}
 			}
 
@@ -1918,11 +1959,11 @@ void growth_daily_grass(Patch& patch) {
 			
 			// Storage reduction
 			indiv.cmass_storage -= cgrow_leaf + cgrow_root;
-			indiv.nmass_storage -= ngrow_leaf + ngrow_root;
+			indiv.nmass_storage -= ngrow_leaf + nup_leaf + ngrow_root;
 
 			// Calculate daily C and N retranslocation fraction
 			crelocfrac_daily = indiv.pft.pathway == C3 ? C3_RETRANS : C4_RETRANS;
-			nrelocfrac_daily = calc_nrelocfrac_daily(indiv.pft, indiv.cmass_storage, indiv.nmass_storage);
+			nrelocfrac_daily = calc_nrelocfrac_daily(indiv.cton_leaf_aopt, indiv.cmass_storage, indiv.nmass_storage);
 
 			// Movement variables for C and N (eqn 26a-d Johnson & Thornley 1983)
 			c1 = min(1.0, LAMBDA * s_fac) * indiv.cmass_leafs[0];
@@ -2035,17 +2076,17 @@ void growth_daily_grass(Patch& patch) {
 			}
 
 			if (date.year == 1509 && date.day == 364 && indiv.pft.name == "C4G")
-				dprintf("Day ntoc nmin_scale max_indiv_avail fpc maxnup ndemand_tot fractomax nmass_avail npp gpp resp fpar cgrow ngrow path temp wcont1 wcont2 wscal_ppft wscal wscal_fac ltor gpp_fac gpp_trend gpp_mean gpp_tm gpp_zero sb_fac sb_ratio tscal_g tscal_m envir_scal wscal_sen tscal_sen phen g_fac frost_sen s_fac bminc cstorage l1 l2 l3 l4 leaf root biomass fndemand CN CNopt CNstorage nstorage fnuptake nrelocfrac_daily lai lai_ymax LeafC turnover tau leaflitter rootlitter surflitter soillitter\n");
+				dprintf("Year Day ntoc nmin_scale max_indiv_avail fpc maxnup ndemand_tot fractomax nmass_avail npp gpp resp fpar cgrow ngrow path gN_fac temp wcont1 wcont2 wscal_ppft wscal wscal_fac ltor gpp_fac gpp_trend gpp_mean gpp_tm gpp_zero sb_fac sb_ratio tscal_g tscal_m envir_scal wscal_sen tscal_sen phen g_fac frost_sen s_fac bminc cstorage l1 l2 l3 l4 leaf root biomass fndemand CN CNopt CNstorage nstorage fnuptake nrelocfrac_daily lai lai_ymax SLA LeafC turnover tau leaflitter rootlitter surflitter soillitter\n");
 
-			if (date.year >= 1510 && date.year <= 515 && indiv.pft.name == "C4G") {
-				dprintf("%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g \n", 
-					cgrow_leaf, ngrow_leaf, path, patch.get_climate().temp,
+			if (date.year >= 510 && date.year <= 515 && indiv.pft.name == "C4G") {
+				dprintf("%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g \n", 
+					cgrow_leaf, ngrow_leaf, path, gN_fac, patch.get_climate().temp,
 					patch.soil.wcontupper_10.mean(), patch.soil.wcontlower_10.mean(), patch.pft[indiv.pft.id].wscal, wscal, wscal_fac, indiv.ltor,
 					gpp_fac, gpp_trend, gpp_mean, gpp_tm, gpp_zero, sb_fac, sb_ratio, tscal_growth, tscal_sen, tscal_growth * wscal_fac, wscal_sen, tscal_sen, indiv.phen, g_fac, frost_sen, s_fac, bminc, indiv.cmass_storage,
 					indiv.cmass_leafs[0], indiv.cmass_leafs[1], indiv.cmass_leafs[2], indiv.cmass_leafs[3],
 					indiv.cmass_leafs[0] + indiv.cmass_leafs[1] + indiv.cmass_leafs[2] + indiv.cmass_leafs[3], indiv.cmass_root, 
 					indiv.cmass_leafs[0] + indiv.cmass_leafs[1] + indiv.cmass_leafs[2] + indiv.cmass_leafs[3] + indiv.cmass_root, 
-					fndemand, indiv.cton_leaf(), indiv.cton_leaf_opt, indiv.cmass_storage / indiv.nmass_storage, indiv.nmass_storage, indiv.fnuptake, nrelocfrac_daily, indiv.lai, indiv.lai_ymax,
+					fndemand, indiv.cton_leaf(), indiv.cton_leaf_opt, indiv.cmass_storage / indiv.nmass_storage, indiv.nmass_storage, indiv.fnuptake, nrelocfrac_daily, indiv.lai, indiv.lai_ymax, indiv.sla(),
 					indiv.cmass_leafs[0] + indiv.cmass_leafs[1] + indiv.cmass_leafs[2], c3, (indiv.cmass_leafs[0] + indiv.cmass_leafs[1] + indiv.cmass_leafs[2]) / c3 / 365, 
 					c4, turnov, patch.soil.sompool[SURFMETA].cmass + patch.soil.sompool[SURFSTRUCT].cmass, patch.soil.sompool[SOILMETA].cmass + patch.soil.sompool[SOILSTRUCT].cmass);
 			}

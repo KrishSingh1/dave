@@ -512,8 +512,8 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						else
 							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;
 
-						//if (ifdailygrass && pft.phenology != CROPGREEN)
-						//	bminit *= 0.1;
+						if (ifdailygrass && pft.phenology != CROPGREEN)
+							bminit *= 0.1;
 
 						// Initial leaf to fine root biomass ratio based on
 						// hypothetical value of water stress parameter
@@ -653,8 +653,8 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						bminit=SAPSIZE*patch.pft[pft.id].anetps_ff_est;
 
-						//if (ifdailygrass)
-						//	bminit *= 0.1;
+						if (ifdailygrass)
+							bminit *= 0.1;
 
 						// Initial leaf to fine root biomass ratio based on hypothetical
 						// value of water stress parameter
@@ -828,7 +828,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			//       c.f. LPJF, which uses net growth increment instead of NPP
 
 			mort_greffic=K_MORT1/(1.0+K_MORT2*max(indiv.anpp,0.0)/indiv.cmass_leaf/
-				indiv.pft.sla);
+				indiv.sla());
 
 			// Mortality associated with light competition
 			// Self thinning imposed when total tree cover above FPC_TREE_MAX,
@@ -1086,7 +1086,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 				// Eqn 31, Smith et al 2001
 
 				if (!negligible(indiv.cmass_leaf))
-					greff=max(indiv.anpp,0.0)/indiv.cmass_leaf/indiv.pft.sla;
+					greff=max(indiv.anpp,0.0)/indiv.cmass_leaf/indiv.sla();
 				else
 					greff=0.0;
 

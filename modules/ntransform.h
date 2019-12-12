@@ -11,7 +11,7 @@
 ///  (3) a forward declaration of the framework function if this is not the main
 ///      function.
 ///
-/// \author Xu-Ri, modified Peter Eliasson
+/// \author Xu-Ri and modified for LPJ-guess by Peter Eliasson, David Wårlind and Stefan Olin.
 /// $Date: 2013-10-14 14:12:00 +0100 (Mon, 10 Sep 2013) $
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -24,8 +24,8 @@
 //
 // Header file name:      ntransform.h
 // Source code file name: ntransform.cpp
-// Written by:            Xu-Ri
-// Version dated:         2004-06-10
+// Written by:            Stefan Olin, adopted from Xu-Ri 2004-06-10.
+// Version dated:         2019.
 //
 // WHAT SHOULD THIS FILE CONTAIN?
 // Module header files need normally contain only declarations of functions defined in
@@ -36,7 +36,6 @@
 
 #include "guess.h"
 
-//void ntransform(Patch& patch);
 void ntransform(Patch& patch, Climate& climate);
 
 #endif // LPJ_GUESS_NTRANSFORM_H

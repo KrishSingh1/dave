@@ -355,6 +355,7 @@ void Patchpft::serialize(ArchiveStream& arch) {
 	arch & anetps_ff
 		& wscal
 		& wscal_mean
+		& wscal_5
 		& anetps_ff_est
 		& anetps_ff_est_initial
 		& wscal_mean_est
@@ -1660,7 +1661,8 @@ double Individual::ccont(double scale_indiv, bool luc) const {
 
 			ccont = get_cmass_leaf() + cmass_root + cmass_sap + cmass_heart - cmass_debt;
 
-			if (ifdailygrass && pft.lifeform == GRASS) ccont += cmass_storage + cmass_leafs[3];
+			if (ifdailygrass && pft.lifeform == GRASS) 
+				ccont += cmass_storage + cmass_leafs[3];
 
 			if (pft.landcover == CROPLAND) {
 				ccont += cropindiv->cmass_ho + cropindiv->cmass_agpool;
@@ -2016,6 +2018,8 @@ double Individual::fpc_today() const {
 
 	if (pft.phenology == CROPGREEN)
 		return patchpft().cropphen->growingseason ? fpc_daily : 0;
+	else if (pft.lifeform == GRASS && ifdailygrass)
+		return fpc;
 	else
 		return fpc * phen;
 }
@@ -2025,6 +2029,8 @@ double Individual::lai_today() const {
 
 	if (pft.phenology == CROPGREEN)
 		return patchpft().cropphen->growingseason ? lai_daily : 0;
+	else if (pft.lifeform == GRASS && ifdailygrass)
+		return lai;
 	else
 		return lai * phen;
 }

@@ -175,6 +175,9 @@ const int WARMEST_DAY_SHEMISPHERE = COLDEST_DAY_NHEMISPHERE;
 /// number of years to average aaet over in function soilnadd
 const int NYEARAAET = 5;
 
+/// number of days to average wscal over in daily grass growth
+const int NDAYWSCAL = 5;
+
 /// Priestley-Taylor coefficient (conversion factor from equilibrium evapotranspiration to PET)
 const double PRIESTLEY_TAYLOR = 1.32;
 
@@ -1818,9 +1821,9 @@ public:
 		}
 		else if (lifeform == GRASS) {
 
-			// Used for daily grass growth. Results in correct leaf longevity under perfect conditions
+			// Used for daily grass growth. Results in correct leaf longevity under 0.9 * perfect conditions
 
-			transferconst = 0.0068 * pow(leaflong, -1.0);
+			transferconst = 0.0076 / leaflong;
 		}
 	}
 };
@@ -3120,6 +3123,8 @@ public:
 	double anetps_ff;
 	/// water stress parameter (0-1 range; 1=minimum stress)
 	double wscal;
+	/// five day mean of wscal. Used in daily grass growth
+	Historic<double, NDAYWSCAL> wscal_5;
 	/// running sum (converted to annual mean) for wscal
 	double wscal_mean;
 	/// potential annual net assimilation at forest floor averaged over establishment interval (kgC/m2/year)

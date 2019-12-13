@@ -40,7 +40,6 @@ void grazing_daily(Individual& indiv) {
 		indiv.nmass_leafs[2] -= indiv.nmass_leafs[2] * grazing_rate;
 
 		// Fluxes and Litter
-		// DW_COMMENT shouldn't some manure C be added to the soil then as well? Code adopted from Stefan Olin N transformation
 		double C_grazing_scale = 0.5;	// 50% of C goes back to litter as manure
 		double N_grazing_scale = 0.25;	// 75% of N goes back to litter as manure
 

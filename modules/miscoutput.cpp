@@ -779,7 +779,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			c_org_leach_lc[stand.landcover] += patch.soil.aorgCleach * to_gridcell_average;
 			availn_lc[stand.landcover] += (patch.soil.nmass_avail + patch.soil.snowpack_nmass) * to_gridcell_average;
 
-			for (int r = 0; r < NSOMPOOL-1; r++) {
+			for (int r = 0; r < NSOMPOOL; r++) {
 
 				if (r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
 					surfsoillitterc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;

@@ -91,7 +91,7 @@ typedef enum {
 
 /// CENTURY pool names, NSOMPOOL number of SOM pools
 typedef enum {SURFSTRUCT, SOILSTRUCT, SOILMICRO, SURFHUMUS, SURFMICRO, SURFMETA, SURFFWD, SURFCWD,
-	SOILMETA, SLOWSOM, PASSIVESOM, LEACHED, NSOMPOOL} pooltype;
+	SOILMETA, SLOWSOM, PASSIVESOM, NSOMPOOL} pooltype;
 
 /// Irrigation type for PFTs
 typedef enum {RAINFED, IRRIGATED} hydrologytype;
@@ -1821,9 +1821,9 @@ public:
 		}
 		else if (lifeform == GRASS) {
 
-			// Used for daily grass growth. Results in correct leaf longevity under 0.9 * perfect conditions
+			// Used for daily grass growth. Results in correct leaf longevity under 0.75 * perfect conditions
 
-			transferconst = 0.0076 / leaflong;
+			transferconst = 0.0091 / leaflong;
 		}
 	}
 };

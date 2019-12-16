@@ -818,7 +818,7 @@ void nstore_usage(Vegetation& vegetation) {
 
 			indiv.nstress = false;
 
-			// Check if current tissue N mass matches optimal level
+			// Check if current tissue N mass matches optimal level otherwise N limitation on photosynthesis
 			if (indiv.get_nmass_leaf() < indiv.get_cmass_leaf() / indiv.cton_leaf_opt) {
 
 				// N stressed photosynthesis is allowed only when N limitation is turned on
@@ -1006,7 +1006,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Nitrogen demand limitation due to maximum nitrogen uptake capacity
 		double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot,1.0) : 0.0;
 
-		if (date.year >= 1510 && date.year <= 520 && indiv.pft.name == "C3G") {
+		if (date.year >= 1510 && date.year <= 520 && indiv.pft.name == "C4G") {
 			dprintf("%d %d %g %g %g %g %g %g %g %g ", date.year, date.day, ntoc, nmin_scale, max_indiv_avail, indiv.fpc, maxnup, ndemand_tot, fractomax, soil.nmass_avail);
 		}
 
@@ -1983,7 +1983,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		indiv.report_flux(Fluxes::GPP, assim);
 		indiv.report_flux(Fluxes::RA, resp);
 
-		if (date.year >= 1510 && date.year <= 520 && indiv.pft.name == "C3G") 
+		if (date.year >= 1510 && date.year <= 520 && indiv.pft.name == "C4G") 
 			dprintf("%g %g %g %g ", indiv.dnpp, assim, resp, indiv.fpar);
 
 		if (indiv.lai_today() > indiv.mlai_max[date.month])

@@ -1861,11 +1861,14 @@ void growth_daily_grass(Patch& patch) {
 			// Depends on optimum temperature for growth of new leaves and senescence
 			// and approx standard deviation of temperature-inhibition function of photosynthesis
 			double opt_temp = (indiv.pft.pstemp_high + indiv.pft.pstemp_low) / 2.0;
-			double sigma = (((indiv.pft.pstemp_high + indiv.pft.pstemp_max) / 2.0) - ((indiv.pft.pstemp_low + indiv.pft.pstemp_min) / 2.0)) / 6.0;
-			double tscal_growth = air_temp > indiv.pft.pstemp_min ? exp(-pow(air_temp - opt_temp, 2.0) / (PI * sigma * sigma)) : 0.0;
+			double min_temp = max(0.0, indiv.pft.pstemp_min);
+			//double sigma = (((indiv.pft.pstemp_high + indiv.pft.pstemp_max) / 2.0) - ((indiv.pft.pstemp_low + indiv.pft.pstemp_min) / 2.0)) / 6.0;
+			//double tscal_growth = air_temp > indiv.pft.pstemp_min ? exp(-pow(air_temp - opt_temp, 2.0) / (PI * sigma * sigma)) : 0.0;
+			double tscal_growth = max(0.0, (air_temp - min_temp) / (opt_temp - min_temp));
 			
 			// Senescence stays at maximum as temperature increases and has a minimum when decreases 
-			double tscal_sen = air_temp > opt_temp ? 1.0 : max(0.1, tscal_growth);
+			//double tscal_sen = air_temp > opt_temp ? 1.0 : max(0.1, tscal_growth);
+			double tscal_sen = max(0.1, tscal_growth);
 
 			// Growth and senescence rates (adopted from eqn 24 Johnson & Thornley 1983, Höglind 2016)
 			g_fac = min(MAX_GROWTH_RATE, gpp_fac * sb_fac * wscal_fac * tscal_growth);
@@ -2076,10 +2079,10 @@ void growth_daily_grass(Patch& patch) {
 				indiv.nmass_root_ymax = indiv.nmass_root;
 			}
 
-			if (date.year == 1509 && date.day == 364 && indiv.pft.name == "C3G")
+			if (date.year == 1509 && date.day == 364 && indiv.pft.name == "C4G")
 				dprintf("Year Day ntoc nmin_scale max_indiv_avail fpc maxnup ndemand_tot fractomax nmass_avail npp gpp resp fpar cgrow ngrow path gN_fac temp wcont1 wcont2 wscal_ppft wscal_ppft_5 wscal wscal_fac ltor gpp_fac gpp_trend sb_fac sb_ratio tscal_g tscal_m envir_scal wscal_sen tscal_sen phen g_fac frost_sen s_fac bminc cstorage l1 l2 l3 l4 leaf root biomass fndemand CN CNopt CNstorage nstorage fnuptake nrelocfrac_daily lai lai_ymax SLA LeafC turnover tau leaflitter rootlitter surflitter soillitter\n");
 
-			if (date.year >= 1510 && date.year <= 520 && indiv.pft.name == "C3G") {
+			if (date.year >= 1510 && date.year <= 520 && indiv.pft.name == "C4G") {
 				dprintf("%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g \n", 
 					cgrow_leaf, ngrow_leaf, path, gN_fac, patch.get_climate().temp,
 					patch.soil.wcontupper_10.mean(), patch.soil.wcontlower_10.mean(), patch.pft[indiv.pft.id].wscal, patch.pft[indiv.pft.id].wscal_5.mean(), wscal, wscal_fac, indiv.ltor,

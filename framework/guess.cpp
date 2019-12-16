@@ -520,7 +520,7 @@ double Patch::ccont(double scale_indiv, bool luc) {
 	ccont += soil.cpool_fast;
 	ccont += soil.cpool_slow;
 
-	for (int i=0; i<NSOMPOOL-1; i++) {
+	for (int i=0; i<NSOMPOOL; i++) {
 		ccont += soil.sompool[i].cmass;
 	}
 
@@ -557,7 +557,7 @@ double Patch::ncont(double scale_indiv, bool luc) {
 	ncont += soil.nmass_avail;
 	ncont += soil.snowpack_nmass;
 
-	for (int i=0; i<NSOMPOOL-1; i++)
+	for (int i=0; i<NSOMPOOL; i++)
 		ncont += soil.sompool[i].nmass;
 
 	for (int i=0; i<npft; i++) {

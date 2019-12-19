@@ -1006,10 +1006,6 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Nitrogen demand limitation due to maximum nitrogen uptake capacity
 		double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot,1.0) : 0.0;
 
-		if (date.year >= 510 && date.year <= 520 && indiv.pft.name == "C3G") {
-			dprintf("%d %d %g %g %g %g %g %g %g %g ", date.year, date.day, ntoc, nmin_scale, max_indiv_avail, indiv.fpc, maxnup, ndemand_tot, fractomax, soil.nmass_avail);
-		}
-
 		// Root and leaf demand from storage pools
 		indiv.leafndemand_store = indiv.leafndemand * (1.0 - fractomax);
 		indiv.rootndemand_store = indiv.rootndemand * (1.0 - fractomax);
@@ -1982,9 +1978,6 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		indiv.report_flux(Fluxes::NPP, indiv.dnpp);
 		indiv.report_flux(Fluxes::GPP, assim);
 		indiv.report_flux(Fluxes::RA, resp);
-
-		if (date.year >= 510 && date.year <= 520 && indiv.pft.name == "C3G") 
-			dprintf("%g %g %g %g ", indiv.dnpp, assim, resp, indiv.fpar);
 
 		if (indiv.lai_today() > indiv.mlai_max[date.month])
 			indiv.mlai_max[date.month] = indiv.lai_today();

@@ -1781,7 +1781,7 @@ void growth_daily_grass(Patch& patch) {
 				}
 			}
 
-			// Calculate leaf to root ratio based on N and water limitation and current leaf to root ´status 
+			// Calculate leaf to root ratio based on N and water limitation and current leaf to root status 
 			// or only water limitation and current leaf to root status if N limitation is turned off
 
 			// Current leaf to root status
@@ -1836,17 +1836,11 @@ void growth_daily_grass(Patch& patch) {
 			g_fac = min(MAX_GROWTH_RATE, gpp_fac * sb_fac * wscal_fac * tscal_fac);
 			s_fac = max(frost_sen, indiv.pft.transferconst * wscal_sen * tscal_sen);
 			
-			double fndemand = 0.0;
-			double fupndemand = 0.0;
-			double cgrow = 0.0;
-			double path = 0.0;
-			double gN_fac = 0.0;
-			
 			// Storage used for new leaf and root growth and updating old leaves and roots
 			if (!negligible(indiv.cmass_storage) && !negligible(indiv.nmass_storage)) {
 
 				// Todays growth
-				cgrow = g_fac * indiv.cmass_storage;
+				double cgrow = g_fac * indiv.cmass_storage;
 
 				// Leaf and root C growth
 				cgrow_root = cgrow / (1.0 + indiv.ltor);
@@ -1866,26 +1860,28 @@ void growth_daily_grass(Patch& patch) {
 				// Growth and Update N fraction of storage
 				double guN_fac = ndemand_tot / indiv.nmass_storage;
 
-				// Growth N fraction of storage
-				gN_fac = (ngrow_leaf_demand + ngrow_root_demand) / indiv.nmass_storage;
+				// Fration of growth and update N demand meet
+				double fndemand = 0.0;
+				double fupndemand = 0.0;
 
-				// N demand meet for both growth and update
+				// Only N growth or update if there is C growth
 				if (g_fac > 0.0) {
+
+					// Fraction of N storage used is less that C storage used -> no N limitation
 					if (guN_fac <= g_fac) {
 						fndemand = 1.0;
 						fupndemand = 1.0;
-						path = 1.0;
 					}
+					// N demand higher than total storage pool -> strong N limitation
 					else if (guN_fac > 1.0) {
 						fndemand = 0.05 * indiv.nmass_storage / ndemand_tot;
 						fupndemand = fndemand;
-						path = 2.0;
 					}
 					else {
+						// N limitation determined from difference between C storage fraction to N storage fraction used
 						double fnlim = 0.9;
 						fndemand = 0.05 + 0.95 * pow(fnlim, guN_fac / g_fac - 1.0);
 						fupndemand = fndemand;
-						path = 3.0;
 					}
 				}
 
@@ -1962,8 +1958,6 @@ void growth_daily_grass(Patch& patch) {
 			// Grazing
 			grazing_daily(indiv);
 
-			double turnov = 0.0;
-
 			// Litter - if we have leaf litter then all compartments have litter to be dropped.
 			if (c4 > 0.0) {
 
@@ -1981,7 +1975,7 @@ void growth_daily_grass(Patch& patch) {
 				double leaves_turnover_frac = min(turnover_max, !negligible(total_cmass_leaf) ? c4 / total_cmass_leaf : 0.0);
 
 				// Root C turnover (use same fraction as for leaves)
-				turnov = leaves_turnover_frac * indiv.cmass_root;
+				double turnov = leaves_turnover_frac * indiv.cmass_root;
 				indiv.cmass_root -= turnov;
 				patch.pft[indiv.pft.id].litter_root += turnov;
 
@@ -2013,22 +2007,6 @@ void growth_daily_grass(Patch& patch) {
 			if (indiv.cmass_root > indiv.cmass_root_ymax) {
 				indiv.cmass_root_ymax = indiv.cmass_root;
 				indiv.nmass_root_ymax = indiv.nmass_root;
-			}
-
-			if (date.year == 509 && date.day == 364 && indiv.pft.name == "C3G")
-				dprintf("Year Day ntoc nmin_scale max_indiv_avail fpc maxnup ndemand_tot fractomax nmass_avail npp gpp resp fpar cgrow ngrow path gN_fac temp wscal_ppft wscal_ppft_5 wscal_fac ltor gpp_fac gpp_trend sb_fac sb_ratio tscal_g tscal_m envir_scal wscal_sen tscal_sen phen g_fac frost_sen s_fac bminc cstorage l1 l2 l3 l4 leaf root biomass fndemand CN CNopt CNstorage nstorage fnuptake nrelocfrac_daily lai lai_ymax SLA LeafC turnover tau leaflitter rootlitter surflitter soillitter\n");
-
-			if (date.year >= 510 && date.year <= 520 && indiv.pft.name == "C3G") {
-				dprintf("%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g \n", 
-					cgrow_leaf, ngrow_leaf, path, gN_fac, patch.get_climate().temp,
-					patch.pft[indiv.pft.id].wscal, patch.pft[indiv.pft.id].wscal_5.mean(), wscal_fac, indiv.ltor,
-					gpp_fac, gpp_trend, sb_fac, sb_ratio, tscal_fac, tscal_sen, tscal_fac * wscal_fac, wscal_sen, tscal_sen, indiv.phen, g_fac, frost_sen, s_fac, bminc, indiv.cmass_storage,
-					indiv.cmass_leafs[0], indiv.cmass_leafs[1], indiv.cmass_leafs[2], indiv.cmass_leafs[3],
-					indiv.cmass_leafs[0] + indiv.cmass_leafs[1] + indiv.cmass_leafs[2] + indiv.cmass_leafs[3], indiv.cmass_root, 
-					indiv.cmass_leafs[0] + indiv.cmass_leafs[1] + indiv.cmass_leafs[2] + indiv.cmass_leafs[3] + indiv.cmass_root, 
-					fndemand, indiv.cton_leaf(), indiv.cton_leaf_opt, indiv.cmass_storage / indiv.nmass_storage, indiv.nmass_storage, indiv.fnuptake, nrelocfrac_daily, indiv.lai, indiv.lai_ymax, indiv.sla(),
-					indiv.cmass_leafs[0] + indiv.cmass_leafs[1] + indiv.cmass_leafs[2], c3, (indiv.cmass_leafs[0] + indiv.cmass_leafs[1] + indiv.cmass_leafs[2]) / c3 / 365, 
-					c4, turnov, patch.soil.sompool[SURFMETA].cmass + patch.soil.sompool[SURFSTRUCT].cmass, patch.soil.sompool[SOILMETA].cmass + patch.soil.sompool[SOILSTRUCT].cmass);
 			}
 			
 			// Report yearly data

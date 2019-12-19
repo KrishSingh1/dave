@@ -1006,7 +1006,7 @@ void ndemand(Patch& patch, Vegetation& vegetation) {
 		// Nitrogen demand limitation due to maximum nitrogen uptake capacity
 		double fractomax = ndemand_tot > 0.0 ? min(maxnup/ndemand_tot,1.0) : 0.0;
 
-		if (date.year >= 1510 && date.year <= 520 && indiv.pft.name == "C4G") {
+		if (date.year >= 510 && date.year <= 520 && indiv.pft.name == "C3G") {
 			dprintf("%d %d %g %g %g %g %g %g %g %g ", date.year, date.day, ntoc, nmin_scale, max_indiv_avail, indiv.fpc, maxnup, ndemand_tot, fractomax, soil.nmass_avail);
 		}
 
@@ -1099,7 +1099,7 @@ void vmax_nitrogen_stress(Patch& patch, Climate& climate, Vegetation& vegetation
 		// Needs to be calculated for each individual due to possible water stress
 
 		if (indiv.pft.lifeform == GRASS && ifdailygrass) {
-			indiv.nactive = max(0.0, indiv.get_nmass_leaf() - N0 * indiv.cmass_leaf_today());
+			indiv.nactive = max(0.0, indiv.get_nmass_leaf() - N0 * indiv.get_cmass_leaf());
 		}
 		else {
 			// Todays leaf nitrogen after uptake
@@ -1972,18 +1972,18 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 		// Save GPP over leaf mass for daily growth of grass
 		if (indiv.pft.lifeform == GRASS && ifdailygrass) {
-			double gpptoleaf = 0.0;
-			if (!negligible(indiv.get_cmass_leaf())) {
-				gpptoleaf = assim / indiv.get_cmass_leaf();
+			double gpptolai = 0.0;
+			if (!negligible(indiv.lai)) {
+				gpptolai = assim / indiv.lai;
 			}
-			indiv.gpptoleaf_15.add(gpptoleaf);
+			indiv.gpptolai_15.add(gpptolai);
 		}
 
 		indiv.report_flux(Fluxes::NPP, indiv.dnpp);
 		indiv.report_flux(Fluxes::GPP, assim);
 		indiv.report_flux(Fluxes::RA, resp);
 
-		if (date.year >= 1510 && date.year <= 520 && indiv.pft.name == "C4G") 
+		if (date.year >= 510 && date.year <= 520 && indiv.pft.name == "C3G") 
 			dprintf("%g %g %g %g ", indiv.dnpp, assim, resp, indiv.fpar);
 
 		if (indiv.lai_today() > indiv.mlai_max[date.month])

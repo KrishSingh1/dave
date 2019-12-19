@@ -249,8 +249,6 @@ void Soil::serialize(ArchiveStream& arch) {
 		& wcont_evap
 		& dwcontupper
 		& mwcontupper
-		& wcontupper_10
-		& wcontlower_10
 		& snowpack
 		& runoff
 		& temp
@@ -1246,7 +1244,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& aphen
 		& aphen_raingreen
 		& anpp
-		& gpptoleaf_15
+		& gpptolai_15
 		& lai_ymax
 		& cmass_leaf_ymax
 		& nmass_leaf_ymax
@@ -2053,9 +2051,9 @@ double Individual::lai_nitrogen_today() const{
 		double Ln = 0.0;
 		if (patchpft().cropphen->growingseason && cmass_leaf_today() > 0.0) {
 			const double k = 0.5;
-			const double ktn = 0.52*k + 0.01; // Yin et al 2003
-			double nb = 1/(pft.cton_leaf_max*sla());
-			Ln = (1/ktn) * log(1+ktn*nmass_leaf/nb);
+			const double ktn = 0.52 * k + 0.01; // Yin et al 2003
+			double nb = 1.0 / (pft.cton_leaf_max * sla());
+			Ln = (1.0 / ktn) * log(1.0 + ktn * nmass_leaf / nb);
 		}
 		return Ln;
 	}

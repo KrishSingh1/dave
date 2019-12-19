@@ -846,7 +846,7 @@ void dailyaccounting_patch(Patch& patch) {
 
 		patch.maet[date.month] = 0.0;
 		patch.mintercep[date.month] = 0.0;
-		patch.mpet[date.month]=0.0;
+		patch.mpet[date.month] = 0.0;
 	}
 
 	if(run_landcover)
@@ -855,8 +855,6 @@ void dailyaccounting_patch(Patch& patch) {
 	// Store daily soil water in both layers
 	soil.dwcontupper[date.day] = soil.wcont[0];
 	soil.dwcontlower[date.day] = soil.wcont[1];
-	soil.wcontupper_10.add(soil.wcont[0]);
-	soil.wcontlower_10.add(soil.wcont[1]);
 
 	// On last day of month, calculate mean content of upper soil layer
 

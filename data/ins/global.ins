@@ -47,7 +47,7 @@ file_vmaxnlim "vmaxnlim.out"
 
 ! Monthly outputs
 !file_mnpp "mnpp.out"
-file_mlai "mlai.out"
+!file_mlai "mlai.out"
 !file_mrh "mrh.out"
 !file_mgpp "mgpp.out"
 !file_mra "mra.out"
@@ -57,7 +57,7 @@ file_mlai "mlai.out"
 !file_mevap "mevap.out"
 !file_mintercep "mintercep.out"
 !file_mrunoff "mrunoff.out"
-file_mwcont_upper "mwcont_upper.out"
+!file_mwcont_upper "mwcont_upper.out"
 !file_mwcont_lower "mwcont_lower.out"
 !file_miso "miso.out"
 !file_mmon "mmon.out"
@@ -88,7 +88,7 @@ ifcalcsla 1			! whether to calculate SLA from leaf longevity
 ifcalccton 1			! whether to calculate leaf C:N min from leaf longevity
 					! (PFT-specific value can be specified in this file instead)
 iffire 1			! whether to implement fire (1) or not (0)
-npatch 5			! number of replicate patches to simulate
+npatch 1			! number of replicate patches to simulate
 patcharea 1000			! patch area (m2)
 estinterval 5			! years between establishment events in cohort mode
 ifdisturb 1			! whether generic patch-destroying disturbances enabled
@@ -627,7 +627,6 @@ group "C3G" (
 	include 1
 	grass
 	pathway "c3"
-	sla 20
 	respcoeff 1.0
 	pstemp_min -5
 	pstemp_low 10
@@ -656,7 +655,6 @@ group "C4G" (
 	include 1
 	grass
 	pathway "c4"
-	sla 30
 	respcoeff 0.15
 	pstemp_min 6
 	pstemp_low 20

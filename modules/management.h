@@ -51,10 +51,8 @@ void grazing_daily(Individual& indiv);
 struct Harvest_CN {
 
 	double cmass_leaf;
-	double cmass_root;
 	double cmass_leafs[4];
-	double nmass_leafs[4];
-	double cmass_storage;
+	double cmass_root;
 	double cmass_sap;
 	double cmass_heart;
 	double cmass_debt;
@@ -63,7 +61,9 @@ struct Harvest_CN {
 	double cmass_stem;
 	double cmass_dead_leaf;
 	double debt_excess;
+	double cmass_storage;
 	double nmass_leaf;
+	double nmass_leafs[4];
 	double nmass_root;
 	double nmass_sap;
 	double nmass_heart;

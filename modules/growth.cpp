@@ -866,7 +866,7 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 
 	if (indiv.pft.lifeform == GRASS && ifdailygrass) {
 		 indiv.cmass_storage = bminit * indiv.densindiv;
-		 indiv.nmass_storage = indiv.cmass_storage / indiv.pft.cton_leaf_max;
+		 indiv.nmass_storage = indiv.cmass_storage / indiv.pft.cton_leaf_avr;
 
 		 indiv.alive = true;
 		 indiv.report_flux(Fluxes::ESTC, -indiv.cmass_storage);
@@ -1599,30 +1599,6 @@ void growth(Stand& stand, Patch& patch) {
 	flush_litter_repr(patch);
 }
 
-/// Phenology scalar
-/* Fastest growth in beginning of phen up ramp,  
- * later in growing season more goes to storage for next season
- * Zaehle and Friend 2010
-*/
-double phen_scalar(double phen) {
-	
-	// Full foliage (phen = 1)
-	double full_foliage = 0.1;
-	// Budburst (phen = 0.01)
-	double budburst = 0.7;
-
-	// Slope between budbust and full foliage
-	double m = (full_foliage - budburst) / (1.0 - 0.01);
-
-	// return 0 if phen < 0.01
-	if (phen < 0.01) {
-		return 0.0;
-	}
-	else {
-		return m * (phen - 0.01) + budburst;
-	}
-}
-
 /// GROWTH DAILY GRASS
 /** Daily grass tissue turnover and allocation of fixed carbon to reproduction and new biomass
  *  Should be called by framework at the end of each simulation day for modelling
@@ -1642,10 +1618,6 @@ void growth_daily_grass(Patch& patch) {
 	const double GPP_FAC_MAX = 0.1;
 	// storage to biomass ratio growth modifier max
 	const double SB_FAC_MAX = 1.0;
-	// wscal when water limitation on growth starts
-	const double WSCAL_MAX = 0.6;
-	// wscal when water limitation on growth reaches its maximum
-	const double WSCAL_MIN = 0.1;
 	// fraction of N limitation that C growth will experience
 	const double FRAC_C_OF_N_LIM = 0.8;
 	// C retranslocation fraction for C3 grass senescense
@@ -1670,7 +1642,7 @@ void growth_daily_grass(Patch& patch) {
 	// Retranslocation fraction of C
 	double crelocfrac_daily;
 	// Retranslocation fraction of N
-	double nrelocfrac_daily = nrelocfrac;
+	double nrelocfrac_daily;
 
 	// Movment factors for growth
 	double g_fac;
@@ -1830,8 +1802,8 @@ void growth_daily_grass(Patch& patch) {
 			// Growth rate modifiers
 
 			// GPP trend growth modifier 
-			// Negative gpp trend less growth
-			double gpp_trend = indiv.gpptoleaf_15.trend();
+			// Negative gpp trend less growth more to storage
+			double gpp_trend = indiv.gpptolai_15.trend();
 			double gpp_fac = gpp_trend > 0.0 ? GPP_FAC_MAX : GPP_FAC_MAX * 0.5;
 
 			// Storage to biomass growth modifier 
@@ -1846,32 +1818,22 @@ void growth_daily_grass(Patch& patch) {
 			double frost_sen = air_temp < 0.0 ? 1.0 - max(0.5, 1.0 / (1.0 + exp(lethal_temp_50 - air_temp))) : 0.0;
 
 			// Water stress growth modifier 
-			// Soil water in relation to root distribution
-			double wscal = (patch.soil.wcontupper_10.mean() * patch.soil.soiltype.awc[0] * indiv.pft.rootdist[0] +
-				patch.soil.wcontlower_10.mean() * patch.soil.soiltype.awc[1] * indiv.pft.rootdist[1]) /
-				(patch.soil.soiltype.awc[0] * indiv.pft.rootdist[0] + patch.soil.soiltype.awc[1] * indiv.pft.rootdist[1]);
-			//double wscal_fac = patch.soil.temp > 0.0 ? min(WSCAL_MAX - WSCAL_MIN, max(0.0, wscal - WSCAL_MIN)) / (WSCAL_MAX - WSCAL_MIN) : 0.0;
 			double wscal_fac = (patch.soil.temp > 0.0 && patch.pft[indiv.pft.id].wscal_5.mean() > 0.2) ? 
 				(patch.pft[indiv.pft.id].wscal_5.mean() - 0.2) / 0.8 : 0.0;
 			
 			// Water limitation increases senescence
 			double wscal_sen = 1.0 + (1.0 - wscal_fac);
 
-			// Temperature growth and senescence modifier
-			// Depends on optimum temperature for growth of new leaves and senescence
-			// and approx standard deviation of temperature-inhibition function of photosynthesis
+			// Temperature growth modifier
 			double opt_temp = (indiv.pft.pstemp_high + indiv.pft.pstemp_low) / 2.0;
 			double min_temp = max(0.0, indiv.pft.pstemp_min);
-			//double sigma = (((indiv.pft.pstemp_high + indiv.pft.pstemp_max) / 2.0) - ((indiv.pft.pstemp_low + indiv.pft.pstemp_min) / 2.0)) / 6.0;
-			//double tscal_growth = air_temp > indiv.pft.pstemp_min ? exp(-pow(air_temp - opt_temp, 2.0) / (PI * sigma * sigma)) : 0.0;
-			double tscal_growth = max(0.0, (air_temp - min_temp) / (opt_temp - min_temp));
+			double tscal_fac = max(0.0, (air_temp - min_temp) / (opt_temp - min_temp));
 			
-			// Senescence stays at maximum as temperature increases and has a minimum when decreases 
-			//double tscal_sen = air_temp > opt_temp ? 1.0 : max(0.1, tscal_growth);
-			double tscal_sen = max(0.1, tscal_growth);
+			// Temperature senescence modifier
+			double tscal_sen = max(0.1, tscal_fac);
 
 			// Growth and senescence rates (adopted from eqn 24 Johnson & Thornley 1983, Höglind 2016)
-			g_fac = min(MAX_GROWTH_RATE, gpp_fac * sb_fac * wscal_fac * tscal_growth);
+			g_fac = min(MAX_GROWTH_RATE, gpp_fac * sb_fac * wscal_fac * tscal_fac);
 			s_fac = max(frost_sen, indiv.pft.transferconst * wscal_sen * tscal_sen);
 			
 			double fndemand = 0.0;
@@ -1906,15 +1868,6 @@ void growth_daily_grass(Patch& patch) {
 
 				// Growth N fraction of storage
 				gN_fac = (ngrow_leaf_demand + ngrow_root_demand) / indiv.nmass_storage;
-				
-				// If N demand need to take a higher fraction of N storage compared to C fraction times frac_direct then N limitation on new growth
-				double frac_direct = 1.0;
-
-				// Level where there is total N limitation -> no N update to existing biomass
-				double frac_lim = 10.0;
-
-				if (date.year == 591 && date.day == 174)
-					int sch = 0;
 
 				// N demand meet for both growth and update
 				if (g_fac > 0.0) {
@@ -1923,23 +1876,6 @@ void growth_daily_grass(Patch& patch) {
 						fupndemand = 1.0;
 						path = 1.0;
 					}
-				/*	// N demand meet for growth but update will be limited. Update will take N up to limitation limit
-					else if (gN_fac <= g_fac * frac_direct) {
-						fndemand = 1.0;
-						double tot_fac = max(0.0, (g_fac * frac_lim - guN_fac) / (g_fac * frac_lim - g_fac * frac_direct));
-						fupndemand = max(0.0, (tot_fac * ndemand_tot - (ngrow_leaf_demand + ngrow_root_demand)) / (nup_leaf_demand + nup_root_demand));
-						path = 2.0;
-					}
-					// N demand for growth will be limited. N demand is less than storage pool
-					else if (ndemand_tot < indiv.nmass_storage) {
-						double fndemand_min = 0.1 * guN_fac * indiv.nmass_storage / (ngrow_leaf_demand + ngrow_root_demand);
-						double fndemand_tot = max(fndemand_min, (g_fac * frac_lim - guN_fac) / (g_fac * frac_lim - g_fac * frac_direct));
-
-						// New growth gets twice as much N compared to growth and updates demand 
-						double frac_growth = (ngrow_leaf_demand + ngrow_root_demand) / ((ngrow_leaf_demand + ngrow_root_demand) + 0.5 * (nup_leaf_demand + nup_root_demand));
-						fupndemand = 0.0;
-						path = 3.0;
-					}*/
 					else if (guN_fac > 1.0) {
 						fndemand = 0.05 * indiv.nmass_storage / ndemand_tot;
 						fupndemand = fndemand;
@@ -2079,14 +2015,14 @@ void growth_daily_grass(Patch& patch) {
 				indiv.nmass_root_ymax = indiv.nmass_root;
 			}
 
-			if (date.year == 1509 && date.day == 364 && indiv.pft.name == "C4G")
-				dprintf("Year Day ntoc nmin_scale max_indiv_avail fpc maxnup ndemand_tot fractomax nmass_avail npp gpp resp fpar cgrow ngrow path gN_fac temp wcont1 wcont2 wscal_ppft wscal_ppft_5 wscal wscal_fac ltor gpp_fac gpp_trend sb_fac sb_ratio tscal_g tscal_m envir_scal wscal_sen tscal_sen phen g_fac frost_sen s_fac bminc cstorage l1 l2 l3 l4 leaf root biomass fndemand CN CNopt CNstorage nstorage fnuptake nrelocfrac_daily lai lai_ymax SLA LeafC turnover tau leaflitter rootlitter surflitter soillitter\n");
+			if (date.year == 509 && date.day == 364 && indiv.pft.name == "C3G")
+				dprintf("Year Day ntoc nmin_scale max_indiv_avail fpc maxnup ndemand_tot fractomax nmass_avail npp gpp resp fpar cgrow ngrow path gN_fac temp wscal_ppft wscal_ppft_5 wscal_fac ltor gpp_fac gpp_trend sb_fac sb_ratio tscal_g tscal_m envir_scal wscal_sen tscal_sen phen g_fac frost_sen s_fac bminc cstorage l1 l2 l3 l4 leaf root biomass fndemand CN CNopt CNstorage nstorage fnuptake nrelocfrac_daily lai lai_ymax SLA LeafC turnover tau leaflitter rootlitter surflitter soillitter\n");
 
-			if (date.year >= 1510 && date.year <= 520 && indiv.pft.name == "C4G") {
-				dprintf("%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g \n", 
+			if (date.year >= 510 && date.year <= 520 && indiv.pft.name == "C3G") {
+				dprintf("%g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g %g \n", 
 					cgrow_leaf, ngrow_leaf, path, gN_fac, patch.get_climate().temp,
-					patch.soil.wcontupper_10.mean(), patch.soil.wcontlower_10.mean(), patch.pft[indiv.pft.id].wscal, patch.pft[indiv.pft.id].wscal_5.mean(), wscal, wscal_fac, indiv.ltor,
-					gpp_fac, gpp_trend, sb_fac, sb_ratio, tscal_growth, tscal_sen, tscal_growth * wscal_fac, wscal_sen, tscal_sen, indiv.phen, g_fac, frost_sen, s_fac, bminc, indiv.cmass_storage,
+					patch.pft[indiv.pft.id].wscal, patch.pft[indiv.pft.id].wscal_5.mean(), wscal_fac, indiv.ltor,
+					gpp_fac, gpp_trend, sb_fac, sb_ratio, tscal_fac, tscal_sen, tscal_fac * wscal_fac, wscal_sen, tscal_sen, indiv.phen, g_fac, frost_sen, s_fac, bminc, indiv.cmass_storage,
 					indiv.cmass_leafs[0], indiv.cmass_leafs[1], indiv.cmass_leafs[2], indiv.cmass_leafs[3],
 					indiv.cmass_leafs[0] + indiv.cmass_leafs[1] + indiv.cmass_leafs[2] + indiv.cmass_leafs[3], indiv.cmass_root, 
 					indiv.cmass_leafs[0] + indiv.cmass_leafs[1] + indiv.cmass_leafs[2] + indiv.cmass_leafs[3] + indiv.cmass_root, 

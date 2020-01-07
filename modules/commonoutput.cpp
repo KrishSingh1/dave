@@ -861,8 +861,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 							if (indiv.pft.id==pft.id) {
 
-								if(!ifdailygrass || indiv.pft.lifeform != GRASS || indiv.istruecrop_or_intercropgrass()){
+								if(!ifdailygrass || indiv.pft.lifeform != GRASS || indiv.istruecrop_or_intercropgrass()) {
 									indiv.lai_ymax = indiv.lai;
+									indiv.fpc_ymax = indiv.fpc;
 									indiv.cmass_leaf_ymax = indiv.cmass_leaf;
 									indiv.cmass_root_ymax = indiv.cmass_root;
 									indiv.nmass_leaf_ymax = indiv.cmass_leaf_ymax / indiv.cton_leaf_aavr;
@@ -873,9 +874,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								standpft_nmass += indiv.ncont();
 								standpft_nmass_leaf += indiv.nmass_leaf_ymax;
 								standpft_nmass_veg += indiv.nmass_veg;
-								standpft_fpc += indiv.fpc;
 								standpft_aaet += indiv.aaet;
 								standpft_lai += indiv.lai_ymax;
+								standpft_fpc += indiv.fpc_ymax;
 								if (pft.lifeform==TREE) {	
 									standpft_densindiv_total += indiv.densindiv;
 									heightindiv_total += indiv.height * indiv.densindiv;

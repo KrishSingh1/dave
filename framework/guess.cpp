@@ -1108,6 +1108,7 @@ void cropindiv_struct::serialize(ArchiveStream& arch) {
 Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	lai_ymax					= 0.0;
+	fpc_ymax					= 0.0;
 	cmass_leaf_ymax				= 0.0;
 	nmass_leaf_ymax				= 0.0;
 	cmass_root_ymax				= 0.0;
@@ -1187,6 +1188,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	intercep          = 0.0;
 	phen_mean         = 0.0;
 	wstress           = false;
+	aaet              = 0.0;
 	lai               = 0.0;
 	lai_layer         = 0.0;
 	lai_indiv         = 0.0;
@@ -1245,11 +1247,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& aphen_raingreen
 		& anpp
 		& gpptolai_15
-		& lai_ymax
-		& cmass_leaf_ymax
-		& nmass_leaf_ymax
-		& cmass_root_ymax
-		& nmass_root_ymax
 		& cmass_leafs
 		& nmass_leafs
 		& cmass_storage

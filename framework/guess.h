@@ -2191,6 +2191,8 @@ public:
 	double anpp;
 	/// yearly lai for daily allocation
 	double lai_ymax;
+	/// yearly fpc for daily allocation
+	double fpc_ymax;
 	/// yearly maximum cmass_leaf for daily allocation
 	double cmass_leaf_ymax;
 	/// yearly maximum nmass_leaf for daily allocation

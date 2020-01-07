@@ -1684,6 +1684,7 @@ void growth_daily_grass(Patch& patch) {
 				indiv.cmass_leaf_ygrowth = 0.0;
 				indiv.cmass_root_ygrowth = 0.0;
 				indiv.lai_ymax = 0.0;
+				indiv.fpc_ymax = 0.0;
 				indiv.cmass_leaf_ymax = 0.0;
 				indiv.nmass_leaf_ymax = 0.0;
 				indiv.cmass_root_ymax = 0.0;
@@ -1998,6 +1999,7 @@ void growth_daily_grass(Patch& patch) {
 
 			// Determine the yearly maximum values which is reported
 			indiv.lai_ymax = max(indiv.lai_ymax, indiv.lai);
+			indiv.fpc_ymax = max(indiv.fpc_ymax, indiv.fpc);
 
 			if (indiv.get_cmass_leaf() > indiv.cmass_leaf_ymax) {
 				indiv.cmass_leaf_ymax = indiv.get_cmass_leaf();

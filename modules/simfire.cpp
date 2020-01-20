@@ -33,8 +33,8 @@
 
 const int NFIREBIOMES = 9;
 
-/// Annually update SIMFIRE BIOME for a patch from current vegetation
-/** Computes current SIMFIRE biome for this
+// Annually update SIMFIRE BIOME for a patch from current vegetation
+/* Computes current SIMFIRE biome for this
  * gridcell depending on the last <n_year_biomeavg> years of
  * vegetation.
  */
@@ -157,8 +157,8 @@ int update_fire_biome(Patch& patch, double lat) {
 	return biome;
 }
 
-/// Compute dominant Simfire biome for gridcell
-/** Computes current SIMFIRE biome for this
+// Compute dominant Simfire biome for gridcell
+/* Computes current SIMFIRE biome for this
  * gridcell depending on the last <n_year_biomeavg> years of
  * vegetation.
  */
@@ -201,8 +201,8 @@ void simfire_biome_mapping(Gridcell& gridcell) {
 	gridcell.simfire_biome = biome_index ;
 }
 
-/// Read SIMFIRE related data for a gridcell at beginning of simulation
-/** Reads SIMFIRE relevant info from simfire_nput.bin:
+// Read SIMFIRE related data for a gridcell at beginning of simulation
+/* Reads SIMFIRE relevant info from simfire_nput.bin:
  * Hyde 3.1 population density
  * Monthly fire climatology
  */
@@ -248,8 +248,8 @@ void getsimfiredata(Gridcell& gridcell) {
 	ark.close();
 }
 
-/// Get this year's human population density
-/** Computes population density from the Hyde 3.1 dataset.
+// Get this year's human population density
+/* Computes population density from the Hyde 3.1 dataset.
  * Annual data is computed by linearly interpolating between the existing values.
  * Before 10000 BC the 10000 BC value is used, after 2005 linear extrapolation
  * using the change between the last two values is performed
@@ -304,7 +304,7 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 /// Daily bookkeeping for SIMFIRE-relevant variables
 /** Updates SIMFIRE's Max Annual Mesterov Index
  * and running mean of max annual FPAR (from canexch.cpp)
- * Updates fire biome
+ * Updates fire biome at beginning of the year
  */
 void simfire_accounting_gridcell(Gridcell& gridcell) {
 	
@@ -426,7 +426,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 	}
 }
 
-/// Calculate burned area in ha following Knorr 2014.
+// Calculate burned area in ha following Knorr 2014.
 double simfire_burned_area(Gridcell& gridcell) {
 
 	// globally trained parameters 

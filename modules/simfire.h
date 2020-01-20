@@ -16,7 +16,7 @@
 
 #include "guess.h"
 
-/// SIMFIRE biometypes
+// SIMFIRE biometypes
 enum {SF_NOVEG, SF_CROP, SF_NEEDLELEAF, SF_BROADLEAF, SF_MIXED_FOREST, SF_SHRUBS, SF_SAVANNA, SF_TUNDRA, SF_BARREN};
 
 /// read input data for SIMFIRE
@@ -25,7 +25,7 @@ void getsimfiredata(Gridcell& gridcell);
 /// daily accounting for SIMFIRE
 void simfire_accounting_gridcell(Gridcell& gridcell);
 
-/// provides daily burned area from SIMFIRE
+/// provides daily burned area from SIMFIRE
 double simfire_burned_area(Gridcell& gridcell); 
 
 #endif // LPJ_GUESS_SIMFIRE_H

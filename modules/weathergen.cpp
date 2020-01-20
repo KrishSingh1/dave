@@ -27,6 +27,15 @@
 // When porting between frameworks, the only change required should normally be in the
 // "#include" directive referring to the framework header file.GLOBFIRM
 
+/* This code has been translated from the original FORTRAN-90 code provided with the article
+ * describing GWGEN. Therefore, also the commenting has been taken from the original with some additions.
+ * For description and details please refer to:
+ *   Sommer, P. S. and Kaplan, J. O.: A globally calibrated scheme for generating daily meteorology
+ *     from monthly statistics: Global-WGEN (GWGEN) v1.0, Geosci. Model Dev., 10, 3771-3791,
+ *     doi:10.5194/gmd-10-3771-2017, 2017.
+ *   Original Code in Fortran available at: https://arve-research.github.io/gwgen/
+ */
+
 #include "config.h"
 #include "weathergen.h"
 #include <limits>

@@ -807,13 +807,13 @@ public:
 	/// precipitation today (mm)
 	double prec;
 
-	/// 10 m wind [km/h]
+	/// 10 m wind (km/h)
 	double u10;
 
-	/// rel. humidity [fract.]
+	/// rel. humidity (fract.)
 	double relhum;
 
-	/// min and max daily temperature [deg C]
+	/// min and max daily temperature (deg C)
 	double tmin, tmax; 
 
 	/// day length today (h)
@@ -903,11 +903,11 @@ public:
 
 	// BLAZE
 
-	/// average annual rainfall [mm/a]
+	/// average annual rainfall (mm/a)
 	double avg_annual_rainfall;
-	///  current sum of annual Rainfall [mm]
+	///  current sum of annual Rainfall (mm)
 	double cur_rainfall;
-	/// Accumulated last rainfall [mm]
+	/// Accumulated last rainfall (mm)
 	double last_rainfall;
 	/// Days since last rainfall 
 	double days_since_last_rainfall;
@@ -4032,27 +4032,27 @@ public:
 	/// probability of fire this year (GlobFIRM)
 	double fireprob;
 
-	/// BLAZE Fire line intensity [kW/m]
+	/// BLAZE Fire line intensity (kW/m)
 	double fire_line_intensity;
 
 	// BLAZE fire related carbon fluxes
-	/// BLAZE-fire carbon flux: live wood to atmosphere [kgC/m2]
+	/// BLAZE-fire carbon flux: live wood to atmosphere (kgC/m2)
 	double wood_to_atm;
-	/// BLAZE-fire carbon flux: leaves to atmosphere [kgC/m2]
+	/// BLAZE-fire carbon flux: leaves to atmosphere (kgC/m2)
 	double leaf_to_atm;
-	/// BLAZE-fire carbon flux: leaves to litter [kgC/m2]
+	/// BLAZE-fire carbon flux: leaves to litter (kgC/m2)
 	double leaf_to_lit;
-	/// BLAZE-fire carbon flux: live wood to structural litter [kgC/m2]
+	/// BLAZE-fire carbon flux: live wood to structural litter (kgC/m2)
 	double wood_to_str;
-	/// BLAZE-fire carbon flux: live wood to fine woody debris [kgC/m2]
+	/// BLAZE-fire carbon flux: live wood to fine woody debris (kgC/m2)
 	double wood_to_fwd;
-	/// BLAZE-fire carbon flux: live wood to coarse woody debris [kgC/m2]
+	/// BLAZE-fire carbon flux: live wood to coarse woody debris (kgC/m2)
 	double wood_to_cwd;
-	/// BLAZE-fire carbon flux: fine litter to atmosphere [kgC/m2]
+	/// BLAZE-fire carbon flux: fine litter to atmosphere (kgC/m2)
 	double litf_to_atm;
-	/// BLAZE-fire carbon flux: fine woody debris to atmosphere [kgC/m2]
+	/// BLAZE-fire carbon flux: fine woody debris to atmosphere (kgC/m2)
 	double lfwd_to_atm;
-	/// BLAZE-fire carbon flux: coarse woody debris to atmosphere [kgC/m2]
+	/// BLAZE-fire carbon flux: coarse woody debris to atmosphere (kgC/m2)
 	double lcwd_to_atm;
 
 	// Storage for averaging of different Fpars for biome mapping in Simfire
@@ -4711,10 +4711,10 @@ public:
 	/// the region index to chosose from set of optimisations
 	int simfire_region;
 
-	/// timeseries of population density from the Hyde 3.1 dataset [CLN]
+	/// timeseries of population density from the Hyde 3.1 dataset (inhabitants/ha)
 	double hyde31_pop_density[57];
 
-	/// current year's population density [CLN]
+	/// current year's population density (inhabitants/ha)
 	double pop_density;
 
 	/// tuning factor for available litter
@@ -4736,15 +4736,15 @@ public:
 	double cur_max_fapar;
 	/// monthly fire risk (factor describing local monthly fire climatology)
 	double monthly_fire_risk[12];
-	/// current burned area from SIMFIRE [fract.]
+	/// current burned area from SIMFIRE (fract.)
 	double burned_area;
-	/// accumulated burned area from SIMFIRE for tstep < 1a [fract.]
+	/// accumulated burned area from SIMFIRE for tstep < 1a (fract.)
 	double burned_area_accumulated;
 	/// Simple tracker to check whether at least one patch has enough fuel to burn
 	int can_burn;
-	/// annual burned area from SIMFIRE [fract.]
+	/// annual burned area from SIMFIRE (fract.)
 	double annual_burned_area;
-	/// monthly burned area from SIMFIRE [fract.]
+	/// monthly burned area from SIMFIRE (fract.)
 	double monthly_burned_area[12];
 
 	/// annual NH4 deposition (kgN/m2/year)

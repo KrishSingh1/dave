@@ -357,7 +357,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			}
 			else if ( weathergenerator == GWGEN ) {
 
-				// Use gwgen - correlated weather
+				// Use GWGEN - correlated weather
 				weathergen_get_met(gridcell,mtemp,mprec,mwet,msun,mdtr,
 					      mwind,mrhum,dtemp,dprec,dsun,ddtr,
 					      dwind,drhum);
@@ -399,7 +399,7 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 			}
 			else if ( weathergenerator == GWGEN ) {
 
-				// Use gwgen - correlated weather
+				// Use GWGEN - correlated weather
 				weathergen_get_met(gridcell,hist_mtemp[date.year-nyear_spinup],
 					      hist_mprec[date.year-nyear_spinup],
 					      hist_mwet[date.year-nyear_spinup],

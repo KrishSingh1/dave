@@ -16,10 +16,17 @@
 
 #include "guess.h"
 
-/// Update and account variables for BLAZE
+/// Do daily accounting of blaze relevant parameters
+/** Accounting of long-term averages needed for BLAZE as well as
+ *  the computation of daily burned area and fire-specific parameteers like
+ *  the Keetch-Byram Drought-index and Forest Fire Danger Index (FFDI)
+ */
 void blaze_accounting_gridcell(Climate& climate);	
 
-/// Driver routine for BLAZE
+/// The driver routine for BLAZE
+/**This is the driver routine for BLAZE. It retrieves potential Fire-Line-Intensity
+ * and calls the blaze main routine patch-wise
+ */
 void blaze_driver(Patch& patch, Climate& climate);
 
 #endif 

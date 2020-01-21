@@ -27,12 +27,6 @@
 // When porting between frameworks, the only change required should normally be in the
 // "#include" directive referring to the framework header file.
 
-//CLN Doxigen commenting only on stuff that interferes with general code:
-//CLN best done in .h, but possible to use also .cpp.
-//CLN files to be checked: 
-//CLN guess., blaze, cfinput, simfire, weathergen, output-files?
-
-
 #include "config.h"
 #include "blaze.h"
 #include "driver.h"
@@ -980,10 +974,10 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	}
 }
 
-/// Do daily accounting of blaze relevant parameters
-/** Accounting of long-term averages needed for BLAZE as well as
- *  the computation of daily burned area and fire-specific parameteers like
- *  the Keetch-Byram Drought-index and Forest Fire Danger Index (FFDI)
+// Do daily accounting of blaze relevant parameters
+/* Accounting of long-term averages needed for BLAZE as well as
+ * the computation of daily burned area and fire-specific parameteers like
+ * the Keetch-Byram Drought-index and Forest Fire Danger Index (FFDI)
  */
 void blaze_accounting_gridcell(Climate& climate) {
 
@@ -1140,8 +1134,8 @@ void blaze_accounting_gridcell(Climate& climate) {
 	}
 }		     
 
-/// The driver routine for BLAZE
-/**This is the driver routine for BLAZE. It retrieves potential Fire-Line-Intensity
+//  The driver routine for BLAZE
+/* This is the driver routine for BLAZE. It retrieves potential Fire-Line-Intensity
  * and calls the blaze main routine patch-wise
  */
 void blaze_driver(Patch& patch, Climate& climate) {

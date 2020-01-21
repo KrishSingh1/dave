@@ -125,7 +125,7 @@ public:
 	double cldf_w1, cldf_w2, cldf_w3, cldf_w4, cldf_d1, cldf_d2, cldf_d3, cldf_d4;
 	double cldf_sd_w, cldf_sd_d;
 
-	/// Constructor function: initialise cell member
+	// Constructor function: initialise cell member
 	
 }metvars;
 
@@ -2021,8 +2021,8 @@ void weathergen_get_daily_met(MetVariables& metvars, WeatherGenState& rndst) {
 
 	double unorm[4];  // vector of uniformly distributed random numbers (0-1)
 	
-	/// Precipitation occurrence
-	/// if there is precipitation this month, calculate the precipitation state for today
+	// Precipitation occurrence
+	// if there is precipitation this month, calculate the precipitation state for today
 	if (wetf > 0. && pre > 0.) {
 		
 		// calculate transitional probabilities for dry to wet and wet to wet days

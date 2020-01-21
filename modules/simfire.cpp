@@ -301,8 +301,8 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 }
 	
 
-/// Daily bookkeeping for SIMFIRE-relevant variables
-/** Updates SIMFIRE's Max Annual Mesterov Index
+// Daily bookkeeping for SIMFIRE-relevant variables
+/* Updates SIMFIRE's Max Annual Mesterov Index
  * and running mean of max annual FPAR (from canexch.cpp)
  * Updates fire biome at beginning of the year
  */

@@ -2464,8 +2464,8 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			i_count = 1;
 		}
 		
-		// Below: n_curr bezieht sich auf gitterzelle
-		double prec_t = max(2.,0.5 * in_mprec[mon]);  //set quality threshold for preciptation amount
+		//set quality threshold for preciptation amount
+		double prec_t = max(2.,0.5 * in_mprec[mon]);  
 		
 		metvars.mprec = in_mprec[mon];
 

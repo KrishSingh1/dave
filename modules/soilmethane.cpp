@@ -1233,10 +1233,10 @@ void Soil::init_peatland_root_fractions() {
 	
 	// See Wania et al. (2010) - Section 2.2.2
 
-	const double b = 25.1695;
+	const double b = 25.1695; // cm
 	const double corr = 2.49994026;
 
-	double layermiddepth = Dz_soil/20.0; // normally 5 cm
+	double layermiddepth = Dz_soil/(2 * MM_PER_CM); // normally 5 cm
 
 	double sumrootfrac = 0.0;
 

@@ -304,7 +304,7 @@ double calc_relative_humidity(double temp, double specific_humidity, double pres
 	// temp  temperature in degrees C
 	// press pressure in Pa
 	// rh    relative humidity in frac.
-	if ( pressure > 106000 || pressure < 85000 ) {
+	if ( pressure > 106000 || pressure < 10000 ) {
 		fail("Unit for pressure must be [Pa]: calc_relative_humidity(cfinput.cpp)");
 	} 
 	if ( temp  > 80. ) {
@@ -585,8 +585,9 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	gridcell.climate.instype = cf_standard_name_to_insoltype(cf_insol->get_standard_name());
 
 	// Get nitrogen deposition, using the found CRU coordinates
-	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat,
-	             Lamarque::parse_timeseries(ndep_timeseries));
+	/* Since the historic data set does not reach decade 2010-2019,
+	* we need to use the RCP data for the last decade. */
+	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat, Lamarque::RCP60);
 
 	soilinput.get_soil(lon, lat, gridcell);
 
@@ -973,16 +974,13 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 	bool cloud_fraction_to_sunshine = (cf_standard_name_to_insoltype(cf_insol->get_standard_name()) == SUNSHINE);
 	for (int i = 0; i < date.year_length(); ++i) {
 		
-		// Conversion has been applied before call to weathergenerator
-		if ( weathergenerator != GWGEN ) {
-			dtemp[i] -= K2degC;
-			if (cf_min_temp) {
-				dmin_temp[i] -= K2degC;
-			}
-			
-			if (cf_max_temp) {
-				dmax_temp[i] -= K2degC;
-			}
+		dtemp[i] -= K2degC;
+		if (cf_min_temp) {
+			dmin_temp[i] -= K2degC;
+		}
+		
+		if (cf_max_temp) {
+			dmax_temp[i] -= K2degC;
 		}
 		
 		if (cloud_fraction_to_sunshine) {
@@ -1109,10 +1107,10 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 
 			int years_to_simulate = nyear_spinup + historic_years;
 
-			int cells_done = distance(gridlist.begin(), current_gridcell);
+			int cells_done = (int)distance(gridlist.begin(), current_gridcell);
 
-			double progress=(double)(cells_done*years_to_simulate+date.year)/
-				(double)(gridlist.size()*years_to_simulate);
+			double progress = (double)(cells_done*years_to_simulate+date.year)/
+				(gridlist.size()*(double)years_to_simulate);
 			tprogress.setprogress(progress);
 			dprintf("%3d%% complete, %s elapsed, %s remaining\n",(int)(progress*100.0),
 				tprogress.elapsed.str,tprogress.remaining.str);

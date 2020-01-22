@@ -10,7 +10,7 @@ cmake_command="cmake -D CMAKE_BUILD_TYPE=Release"
 make_command="make -j2"
 bbox_command="bbox"
 pp_walltime=5:00:00
-    
+
 # Prints a message to stderr
 function error {
     echo "$1" >&2

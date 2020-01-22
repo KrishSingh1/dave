@@ -97,6 +97,9 @@ void Soil::init_states() {
 	anfix_mean = 0.0;
 	snowpack_NH4_mass = 0.0;
 	snowpack_NO3_mass = 0.0;
+	labile_carbon = 0.0;
+	labile_carbon_w = 0.0;
+	labile_carbon_d = 0.0;
 	
 	pH = 6.5;
 	
@@ -1376,7 +1379,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		double pft_acro_root_frac = 0.0;
 
 		for (int ly = IDX; ly < IDX + NACROTELM; ly++)
-			pft_acro_root_frac += patch.pft[indiv.pft.id].fwuptake[ly-IDX];
+			pft_acro_root_frac += patch.pft[indiv.pft.id].pft.rootdist[ly-IDX];
 
 		// this includes mosses, which have root_frac = 1 in the acrotelm
 		// Fraction of the aet from the acrotelm only.
@@ -1454,7 +1457,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 
 	// Update available water 
 	Wtot += rain_melt-evapotranspiration-runoff_drain;
-
+	 
 	// *** RUNOFF AND RUNON***
 
 	double acrowater = 0.0; // Frac_water[MIDX] * Dz[MIDX];
@@ -1766,6 +1769,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 
 	if (date.day == Date::MAX_YEAR_LENGTH) {
 
+		// Calculate annual average WTP. Needed in update_acrotelm_co2
 		awtp = 0.0;
 		for (int d = 0; d < 365; d++)
 			awtp += wtp[d]/365.0; 
@@ -3210,8 +3214,11 @@ void Soil::update_layer_fractions(const int& daynum, const int& mixedl, const in
 				Frac_peat[i] = 1.0 - (acro_por + Fgas);
 
 				Fpwp_ref[i] = peat_wp;  // Wisser et al. 2011 Very low in peatlands
-				Frac_water_belowpwp[i] = peat_wp;
-				Frac_water[i] = acro_por - peat_wp; // i.e. initially saturated
+
+				if (patch.stand.first_year == date.year && !restart) {
+					Frac_water_belowpwp[i] = peat_wp;
+					Frac_water[i] = acro_por - peat_wp; // i.e. initially saturated
+				}
 
 				soiltype.awc_peat[i-IDX] = (por[i] - peat_wp) * Dz[i];
 			}
@@ -3227,8 +3234,11 @@ void Soil::update_layer_fractions(const int& daynum, const int& mixedl, const in
 				Frac_peat[i] = 1.0 - (cato_por + Fgas);
 
 				Fpwp_ref[i] = peat_wp;  // Wisser et al. 2011 Very low in peatlands
-				Frac_water_belowpwp[i] = peat_wp;
-				Frac_water[i] = cato_por-peat_wp; // i.e. initially saturated
+
+				if (patch.stand.first_year == date.year && !restart) {
+					Frac_water_belowpwp[i] = peat_wp;
+					Frac_water[i] = cato_por - peat_wp; // i.e. initially saturated
+				}
 
 				soiltype.awc_peat[i-IDX] = (por[i] - peat_wp) * Dz[i];
 			}
@@ -3901,6 +3911,7 @@ void Soil::serialize(ArchiveStream& arch) {
 		// Methane parameters
 		// Some of these could possibly be removed to 
 		// optimise for memory in state files
+		& awtp
 		& wtp
 		& ch4_store
 		& co2_store
@@ -3940,7 +3951,9 @@ void Soil::serialize(ArchiveStream& arch) {
 		& solvesom
 		& fnuptake_mean
 		& morgleach_mean
-		& mminleach_mean;
+		& mminleach_mean
+		& labile_carbon
+		& pH;
 }
 
 

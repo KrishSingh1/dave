@@ -902,7 +902,6 @@ public:
 
 
 	// BLAZE
-
 	/// average annual rainfall (mm/a)
 	double avg_annual_rainfall;
 	///  current sum of annual Rainfall (mm)
@@ -4056,13 +4055,13 @@ public:
 	double lcwd_to_atm;
 
 	// Storage for averaging of different Fpars for biome mapping in Simfire
-	/// Simfire Grass's fapar
+	/// Simfire fapar of Grasses
 	double avg_fgrass[N_YEAR_BIOMEAVG];
-	/// Simfire Needle-leaf tree's fapar
+	/// Simfire fapar of Needle-leaf tree
 	double avg_fndlt[N_YEAR_BIOMEAVG];
-	/// Simfire Broad-leaf tree's fapar
+	/// Simfire fapar of Broad-leaf tree
 	double avg_fbrlt[N_YEAR_BIOMEAVG];
-	/// Simfire Shrub's fapar
+	/// Simfire fapar of Shrub
 	double avg_fshrb[N_YEAR_BIOMEAVG];
 	/// Simfire Total fapar
 	double avg_ftot[N_YEAR_BIOMEAVG];
@@ -4707,19 +4706,15 @@ public:
 	/// object for keeping track of carbon and nitrogen balance
 	MassBalance balance;
 
-	// SIMFIRE
+	// Simfire
 	/// the region index to chosose from set of optimisations
 	int simfire_region;
-
 	/// timeseries of population density from the Hyde 3.1 dataset (inhabitants/ha)
 	double hyde31_pop_density[57];
-
 	/// current year's population density (inhabitants/ha)
 	double pop_density;
-
 	/// tuning factor for available litter
 	double k_tun_litter;
-
 	/// maximum annual Nesterov Index
 	double max_nesterov;
 	/// current Nexterov index
@@ -4747,6 +4742,7 @@ public:
 	/// monthly burned area from SIMFIRE (fract.)
 	double monthly_burned_area[12];
 
+	// Nitrogen deposition
 	/// annual NH4 deposition (kgN/m2/year)
 	double aNH4dep;
 	/// annual NO3 deposition (kgN/m2/year)

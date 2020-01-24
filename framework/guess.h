@@ -904,7 +904,7 @@ public:
 	// BLAZE
 	/// average annual rainfall (mm/a)
 	double avg_annual_rainfall;
-	///  current sum of annual Rainfall (mm)
+	/// current sum of annual Rainfall (mm)
 	double cur_rainfall;
 	/// Accumulated last rainfall (mm)
 	double last_rainfall;
@@ -2718,7 +2718,7 @@ public:
 	 */
 	void reduce_biomass(double mortality, double mortality_fire);
 
-	/// A version of the above reduce_biomass for the use with blaze
+	/// A version of the above reduce_biomass for the use with BLAZE
 	void blaze_reduce_biomass(Patch& patch, double frac_survive);
 
 	/// Total storage of nitrogen
@@ -4054,16 +4054,16 @@ public:
 	/// BLAZE-fire carbon flux: coarse woody debris to atmosphere (kgC/m2)
 	double lcwd_to_atm;
 
-	// Storage for averaging of different Fpars for biome mapping in Simfire
-	/// Simfire fapar of Grasses
+	// Storage for averaging of different Fapars for biome mapping in SIMFIRE
+	/// SIMFIRE fapar: Grasses
 	double avg_fgrass[N_YEAR_BIOMEAVG];
-	/// Simfire fapar of Needle-leaf tree
+	/// SIMFIRE fapar: Needle-leaf tree
 	double avg_fndlt[N_YEAR_BIOMEAVG];
-	/// Simfire fapar of Broad-leaf tree
+	/// SIMFIRE fapar: Broad-leaf tree
 	double avg_fbrlt[N_YEAR_BIOMEAVG];
-	/// Simfire fapar of Shrub
+	/// SIMFIRE fapar: Shrubs
 	double avg_fshrb[N_YEAR_BIOMEAVG];
-	/// Simfire Total fapar
+	/// SIMFIRE fapar: Total fapar
 	double avg_ftot[N_YEAR_BIOMEAVG];
 
 	/// whether management has started on this patch
@@ -4706,7 +4706,7 @@ public:
 	/// object for keeping track of carbon and nitrogen balance
 	MassBalance balance;
 
-	// Simfire
+	// SIMFIRE
 	/// the region index to chosose from set of optimisations
 	int simfire_region;
 	/// timeseries of population density from the Hyde 3.1 dataset (inhabitants/ha)

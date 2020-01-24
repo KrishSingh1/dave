@@ -40,17 +40,18 @@ const int NFIREBIOMES = 9;
  */
 int update_fire_biome(Patch& patch, double lat) {
 	
-	// SIMFIRE BIOMES:
-	// 0 no veg/no data
-	// 1 Cropland/Urban/Natural Vegetation Mosaic (IGBP 12-14)
-	// 2 Needleleaf forest (IGBP 1,3): >60% cover, height>2m
-	// 3 Broadleaf forest (IGBP 2,4): >60% cover, height>2m
-	// 4 Mixed forest (IGBP 4): >60% cover, height>2m, none >60%
-	// 5 Shrubland (IGBP 6,7 and latitude<50): >10% woody cover, height<2m
-	// 6 Savanna or Grassland (IGBP 8-10): herbaceous component present, <60% tree cover
-	// 7 Tundra (IGBP 6,7,16 and latitude>=50): height<2m
-	// 8 Barren or Sparsely Vegetated (IGBP 16 and latitude<50): <10% vegetation cover
-
+	/* SIMFIRE BIOMES:
+	 * 0 no veg/no data
+	 * 1 Cropland/Urban/Natural Vegetation Mosaic (IGBP 12-14)
+	 * 2 Needleleaf forest (IGBP 1,3): >60% cover, height>2m
+	 * 3 Broadleaf forest (IGBP 2,4): >60% cover, height>2m
+	 * 4 Mixed forest (IGBP 4): >60% cover, height>2m, none >60%
+	 * 5 Shrubland (IGBP 6,7 and latitude<50): >10% woody cover, height<2m
+	 * 6 Savanna or Grassland (IGBP 8-10): herbaceous component present, <60% tree cover
+	 * 7 Tundra (IGBP 6,7,16 and latitude>=50): height<2m
+	 * 8 Barren or Sparsely Vegetated (IGBP 16 and latitude<50): <10% vegetation cover
+	 */
+	
 	double fgrass = 0.0; // grass fraction of all vegetation
 	double fndlt  = 0.0; // fraction of needle-leaf tress
 	double fbrlt  = 0.0; // fraction of broad-leaf trees
@@ -126,6 +127,7 @@ int update_fire_biome(Patch& patch, double lat) {
 	fbrlt  /=  (double)N_YEAR_BIOMEAVG;
 	fshrb  /=  (double)N_YEAR_BIOMEAVG;
 
+	// Set Fire-Biome 
 	if (ftot < 0.1 && fabs(lat) < 50.0) {
 		biome = SF_BARREN;
 	} 
@@ -270,9 +272,7 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 	int cyear = date.get_calendar_year();
 
 	// find start and end year index of pop interpolation
-
-	int idx = 0 ;
-    
+	int idx = 0 ;    
 	while (POPTIME[idx] < cyear) {
 		idx++;
 	}
@@ -299,7 +299,6 @@ void simfire_update_pop_density(Gridcell& gridcell) {
 
 	gridcell.pop_density = max(0.,popd);
 }
-	
 
 // Daily bookkeeping for SIMFIRE-relevant variables
 /* Updates SIMFIRE's Max Annual Mesterov Index
@@ -344,6 +343,7 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 			}
 			gridcell.ann_max_fapar = avg / (double) AVG_INTERVAL_FAPAR;
 		}
+
 		// finally (re)set this years max fapar
 		gridcell.cur_max_fapar = 0.0;
 
@@ -355,7 +355,6 @@ void simfire_accounting_gridcell(Gridcell& gridcell) {
 
 		// update population density
 		simfire_update_pop_density(gridcell);
-		
 	}
 	// multi-year accounting of maximum annual fapar	
 	else if ( date.islastday && date.islastmonth ) {
@@ -440,7 +439,7 @@ double simfire_burned_area(Gridcell& gridcell) {
 	if (gridcell.simfire_biome == 0) {
 		return 0.;
 	}
-	// fPAR correction Knorr
+	// fPAR correction Knorr for use with LPJ-GUESS only
 	const double FPAR_CORR1 = 0.428;
 	const double FPAR_CORR2 = 0.148;
 	double fpar_cor = FPAR_CORR1 * gridcell.ann_max_fapar + FPAR_CORR2 * gridcell.ann_max_fapar *

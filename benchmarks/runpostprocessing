@@ -64,6 +64,8 @@ function describe_image {
 
     if [ "$3" == "embed" ]; then
 	embed="embed=\"1\""
+    else
+	embed="embed=\"0\""
     fi
 
     print_string "<image src=\"$1\" $embed>$2</image>"

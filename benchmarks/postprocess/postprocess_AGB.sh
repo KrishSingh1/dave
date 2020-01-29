@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 #AGB percentages following Jackson et al. 1996
 BF=0.75        # boreal forest
@@ -34,8 +34,7 @@ TU=0.13        # Tundra
 
 # perform averaging over Liu time  
 tslice cmass.out -f 1993 -t 2012 -o cmass1993-2012.dat
-#CLNtslice ${DATAPATH}/landuse/landuse_hurtt_1901_2006_global.txt -f 1993 -t 2012 -o lu_1993-2012.dat
-tslice /lunarc/nobackup/projects/lpjguess/data/benchmark_data/2019-04-29/landuse/landuse_hurtt_1901_2006_global.txt -f 1993 -t 2012 -o lu_1993-2012.dat
+tslice ${DATAPATH}/landuse/landuse_hurtt_1901_2006_global.txt -f 1993 -t 2012 -o lu_1993-2012.dat
 tslice lai.out   -f 1993 -t 2012 -o lai_1993-2012.dat
 
 # remove crops and pasture from lai.out (i.e. use only first 14 cols + Total!)
@@ -58,4 +57,4 @@ joyn lu_1993-2012.dat cmass_agb1.dat -o lu_cmass_agb_1993-2012.dat
 compute lu_cmass_agb_1993-2012.dat -i 'Crop_agb=Crop_sum*CROPLAND*0.9' 'Pasture_agb=Pasture_sum*PASTURE*pasture_agb_frac' 'Natural_agb=Natural_sum*NATURAL*agb_frac' 'Total_agb=Crop_sum*CROPLAND*0.9+Pasture_sum*PASTURE*pasture_agb_frac+Natural_sum*NATURAL*agb_frac' -o lu_cmass_agb_1993-2012_tot.dat
 
 #remove intermediate files
-#CLNrm -f lu_1993-2012.dat cmass_agb1.dat lu_cmass_agb_1993-2012.dat
+rm -f lu_1993-2012.dat cmass_agb1.dat lu_cmass_agb_1993-2012.dat

@@ -48,11 +48,8 @@ function prepare_agb {
 describe_benchmark "LPJ-GUESS - Global Benchmarks for crops"
 source scatter_plot.sh
 
-# Set data-dirs 
-# Fire
-FIREDATAPATH=/data/fire
-# biomass
-BIOMASSDATAPATH=/data/biomass
+# Set data-dir 
+DATAPATH=/data
 
 common1961to1990.sh
 
@@ -119,7 +116,7 @@ describe_image wheat_yield.png "Modelled compared to SPAM data set. Units: kg m-
 
 tslice cpool.out -f 1993 -t 2012 -o cpool1993-2012.dat
 prepare_agb cpool1993-2012.dat cpool1993-2012_agb.dat VegC
-joyn ${BIOMASSDATAPATH}/Global_mean_ABC_1993-2012_Liu2015_SI.dat cpool1993-2012_agb.dat -i Lon Lat -fast -o cpool1993-2012_joyned.dat
+joyn ${DATAPATH}/biomass/Global_mean_ABC_1993-2012_Liu2015_SI.dat cpool1993-2012_agb.dat -i Lon Lat -fast -o cpool1993-2012_joyned.dat
     
 # Get above-below ground partintioning based on Jackson et al.    
 . postprocess_AGB.sh
@@ -146,7 +143,7 @@ rm -f  cpool1993-2012.dat cpool1993-2012_joyned.dat cpool1993-2012_joyned_Liu.da
 
 #Fire related benchmarks
 
-gfed40_data=${FIREDATAPATH}/gfed40_c-emissions_1997-2016.dat
+gfed40_data=${DATAPATH}/fire/gfed40_c-emissions_1997-2016.dat
 tslice cflux.out -f 1997 -t 2016 -o cflux1997-2016.dat
 joyn cflux1997-2016.dat $gfed40_data -i Lon Lat -fast -o cflux1997-2016_joyned.dat
 
@@ -172,7 +169,7 @@ tot_gfed=0.
 for ((x=1; x<=14; x++)); do
     ((xx=$x-1))
     creg=${GFEDreg[${xx}]} 
-    awk -v reg=$x '(FNR==1 || $3==reg){print $0}' ${FIREDATAPATH}/gfed_regions0.5.dat > reg.dat
+    awk -v reg=$x '(FNR==1 || $3==reg){print $0}' ${DATAPATH}/fire/gfed_regions0.5.dat > reg.dat
     joyn cflux1997-2016_joyned.dat reg.dat -i Lon Lat -fast -o cflux_reg_${x}_joyned.dat  
     aslice cflux_reg_${x}_joyned.dat -n -lon Lon -lat Lat  -sum "kg/m2->Pg" -o tot_cflux_reg_${x}.dat
     if [ $x -eq 1 ]; then
@@ -180,7 +177,7 @@ for ((x=1; x<=14; x++)); do
     fi
 
     # get long description
-    long_desc=$(head -n $x ${FIREDATAPATH}/gfed_region_description.txt | tail -n 1)
+    long_desc=$(head -n $x ${DATAPATH}/fire/gfed_region_description.txt | tail -n 1)
     awk -v reg=$creg '{ORS=" "; if(FNR==2){printf "%s      %6.2f   %6.2f    ",reg,$4*1000,$11*1000}}' \
 	tot_cflux_reg_${x}.dat >> tot_cflux_reg.dat
     echo $long_desc >> tot_cflux_reg.dat

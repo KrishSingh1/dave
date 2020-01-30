@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#AGB percentages following Jackson et al. 1996
+# Above-ground biomass percentages following Jackson et al. 1996
 BF=0.75        # boreal forest
 CROPS=0.9
 DESERT=0.18
@@ -32,29 +32,29 @@ TU=0.13        # Tundra
 # 17 Desert               -> DESERT
 # 18 Arctic/alpine tundra -> TU 
 
-# perform averaging over Liu time  
+# Perform averaging over Liu time  
 tslice cmass.out -f 1993 -t 2012 -o cmass1993-2012.dat
 tslice ${DATAPATH}/landuse/landuse_hurtt_1901_2006_global.txt -f 1993 -t 2012 -o lu_1993-2012.dat
 tslice lai.out   -f 1993 -t 2012 -o lai_1993-2012.dat
 
-# remove crops and pasture from lai.out (i.e. use only first 14 cols + Total!)
+# Remove crops and pasture from lai.out (i.e. use only first 14 cols + Total!)
 awk '{ORS=" ";for (i=1;i<=14; i++) print $i; print $23; print "\n"}' lai_1993-2012.dat > lai_nat_1993-2012.dat
 
-# get dominat PFT and compute biomes
+# Get dominat PFT and compute biomes
 biomes lai_nat_1993-2012.dat  
 
 root=$(dirname $0)/..
-#choose root2shoot depending on biome and Jackson Coding (see header)
+# Choose root2shoot depending on biome and Jackson Coding (see header)
 awk -f $root/postprocess/agb.awk biomes_lai_nat_1993-2012.dat > agb.dat
 
-# paste agb-fractions into cmass file
+# Paste agb-fractions into cmass file
 awk '{OFS="\t"; {print $23, $24, $25, $26}}' cmass1993-2012.dat | paste agb.dat - > cmass_agb.dat
 awk '{OFS="\t"; if (FNR==1){print "pasture_agb_frac"} else {if($2<24. && $2>-24.){print "0.59"} else {print "0.21"}}}' lu_1993-2012.dat | paste cmass_agb.dat - > cmass_agb1.dat
 
-# loyn landuse, cmass and agb-frac
+# Loyn landuse, cmass and agb-frac
 joyn lu_1993-2012.dat cmass_agb1.dat -o lu_cmass_agb_1993-2012.dat
-# now compute gridcell wide contribution of each landuse type 
+# Now compute gridcell wide contribution of each landuse type 
 compute lu_cmass_agb_1993-2012.dat -i 'Crop_agb=Crop_sum*CROPLAND*0.9' 'Pasture_agb=Pasture_sum*PASTURE*pasture_agb_frac' 'Natural_agb=Natural_sum*NATURAL*agb_frac' 'Total_agb=Crop_sum*CROPLAND*0.9+Pasture_sum*PASTURE*pasture_agb_frac+Natural_sum*NATURAL*agb_frac' -o lu_cmass_agb_1993-2012_tot.dat
 
-#remove intermediate files
+# Remove intermediate files
 rm -f lu_1993-2012.dat cmass_agb1.dat lu_cmass_agb_1993-2012.dat

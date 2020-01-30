@@ -51,6 +51,8 @@ source scatter_plot.sh
 # Set data-dir 
 DATAPATH=/data
 
+# Standard tables and gmaps
+
 common1961to1990.sh
 
 tslice cflux.out -o cflux1990to2000.txt -f 1990 -t 2000 -lon 1 -lat 2 -y 3
@@ -103,6 +105,8 @@ balance -pool npool_total.out -flux nflux_nee.out -start 1901 -end 2006 -matter 
 describe_textfile Nbalance_totalerror_GtN.txt "Global Terrestrial Nitrogen Uptake, 1901 to 2006. /
 Determined using N pools (pool_GtN), Cumulative N fluxes (flux_GtN), and their absolute difference (absdiff_GtN)"
 
+# Crop yields
+
 tslice yield.out -f 1996 -t 2005 -o yield1996to2005.txt
 prepareyielddata yield1996to2005.txt common/../crop_global/spam_yield_maize.dat temp_maize.dat TeCo
 scatter_plot "Maize yields" "SPAM" "LPJ-GUESS" temp_maize.dat maize_yield.png
@@ -112,16 +116,14 @@ prepareyielddata yield1996to2005.txt common/../crop_global/spam_yield_wheat.dat 
 scatter_plot "Wheat yields" "SPAM" "LPJ-GUESS" temp_wheat.dat wheat_yield.png
 describe_image wheat_yield.png "Modelled compared to SPAM data set. Units: kg m-2." embed
 
-# Above Ground Biomass    
+# Above-ground biomass    
 
 tslice cpool.out -f 1993 -t 2012 -o cpool1993-2012.dat
 prepare_agb cpool1993-2012.dat cpool1993-2012_agb.dat VegC
 joyn ${DATAPATH}/biomass/Global_mean_ABC_1993-2012_Liu2015_SI.dat cpool1993-2012_agb.dat -i Lon Lat -fast -o cpool1993-2012_joyned.dat
     
-# Get above-below ground partintioning based on Jackson et al.    
-. postprocess_AGB.sh
+. postprocess_AGB.sh	# Get above-below ground partintioning based on Jackson et al.
 
-# delta plot Liu cpool VegC against Jackson 
 joyn lu_cmass_agb_1993-2012_tot.dat cpool1993-2012_joyned.dat -i Lon Lat -o lu_cmass_agb_tot_1993-2012_joyned.dat
 awk '{if(FNR==1){print $1,$2, "VegC"} else {print $1,$2, $(NF-1)}}' lu_cmass_agb_tot_1993-2012_joyned.dat > lu_cmass_agb_1993-2012_tot.dat_Liu.dat
 awk '{print $1,$2, $NF}' lu_cmass_agb_tot_1993-2012_joyned.dat > cpool1993-2012_joyned_VegC.dat
@@ -129,30 +131,23 @@ delta cpool1993-2012_joyned_VegC.dat lu_cmass_agb_1993-2012_tot.dat_Liu.dat -i L
 gmap delta_cpool1993-2012_joyned_jackson.dat -i VegC -lon 1 -lat 2 -portrait -s -20 2 20  -o delta_cpool1993-2012_joyned_jackson.png -t "VegC LPJ-GUESS - Liu kg(C)/m2" -c BLUE RED
 describe_image delta_cpool1993-2012_joyned_jackson.png "Modelled minus Liu et al. Above ground biomass. Units: kg m-2."
     
-# Scatterplot Liu cpool VegC (Jackson AGB)
 awk '(FNR>1){print $(NF-1),$(NF-2)}' lu_cmass_agb_tot_1993-2012_joyned.dat > scat_cpool2.dat
 scatter_plot "Aove ground biomass (AGB)" "Liu et al. " "LPJ-GUESS" scat_cpool2.dat agb.png
 describe_image agb.png "LPJ-GUESS modelled AGB compared to Liu et al. data. Units: kg m-2." embed
-
-# remove intermediate files
 rm -f  cpool1993-2012.dat cpool1993-2012_joyned.dat cpool1993-2012_joyned_Liu.dat delta_cpool1993-2012_joyned.dat cpool1993-2012_joyned_VegC.dat 
-
-# pan biomass 
 
 . pan_regional_biomass.sh
 
-#Fire related benchmarks
+# Fire-related benchmarks
 
 gfed40_data=${DATAPATH}/fire/gfed40_c-emissions_1997-2016.dat
 tslice cflux.out -f 1997 -t 2016 -o cflux1997-2016.dat
 joyn cflux1997-2016.dat $gfed40_data -i Lon Lat -fast -o cflux1997-2016_joyned.dat
 
-# Plot fire emissions 
 gmap cflux1997-2016_joyned.dat -i Fire -lon 1 -lat 2 -portrait -o cflux1997-2016_blaze.png \
     -legend common/legend_fire_emis.txt -t "BLAZE mean annual C-emissions [kg(C)/m2a]"
 describe_image  cflux1997-2016_blaze.png "BLAZE Mean annual C-emissions 1997-2016 [kg(C)/m2a]"
 	
-# delta plot gfed4 cflux
 awk '{print $1,$2, $6}' cflux1997-2016_joyned.dat > cflux1997-2016_joyned_Fire.dat
 awk '{if(FNR==1){print $1,$2, $6} else {print $1,$2, $13}}' cflux1997-2016_joyned.dat > cflux1997-2016_joyned_gfed.dat
 delta  cflux1997-2016_joyned_Fire.dat cflux1997-2016_joyned_gfed.dat -i Lon Lat -o delta_cflux1997-2016_joyned.dat
@@ -161,9 +156,8 @@ gmap delta_cflux1997-2016_joyned.dat -i Fire -lon 1 -lat 2 -portrait \
     -t "Fire C flux LPJ-GUESS - Gfed kg(C)/m2/a" -c BLUE RED -vert
 describe_image delta_cflux1997-2016_joyned.png "Modelled minus GFED 4.0 data. Units: kg(C)/m2a."
 
-# A-slicing over regions 0.5 deg res
+# A-slicing over regions 0.5 degrees resolution
 GFEDreg=(BONA TENA CEAM NHSA SHSA EURO MIDE NHAF SHAF BOAS CEAS SEAS EQAS AUST)
-
 tot_lpjg=0.
 tot_gfed=0.
 for ((x=1; x<=14; x++)); do
@@ -176,22 +170,21 @@ for ((x=1; x<=14; x++)); do
 	echo "Region LPJ-GUESS GFED 4.0 "	> tot_cflux_reg.dat
     fi
 
-    # get long description
     long_desc=$(head -n $x ${DATAPATH}/fire/gfed_region_description.txt | tail -n 1)
     awk -v reg=$creg '{ORS=" "; if(FNR==2){printf "%s      %6.2f   %6.2f    ",reg,$4*1000,$11*1000}}' \
 	tot_cflux_reg_${x}.dat >> tot_cflux_reg.dat
     echo $long_desc >> tot_cflux_reg.dat
 
-    # remove intermediate files
     rm -f tot_cflux_reg_${x}.dat cflux_reg_${x}_joyned.dat reg.dat
 done
 tot_lpjg=$(awk '(FNR>1){sum+=$2} END {print sum}' tot_cflux_reg.dat)
 tot_gfed=$(awk '(FNR>1){sum+=$3} END {print sum}' tot_cflux_reg.dat)
 printf "Total    %6.2f  %6.2f\n" $tot_lpjg $tot_gfed >> tot_cflux_reg.dat
 describe_textfile tot_cflux_reg.dat "Fire C-emissions per GFED - region [Pg/a]"
-
 rm -f cflux1997-2016.dat cflux1997-2016_joyned.dat cflux1997-2016_joyned_Fire.dat cflux1997-2016_joyned_gfed.dat \
    delta_cflux1997-2016_joyned.dat scat_fire_cflux.dat 
+
+# N2O benchmark
 
 preparesoiln2odata soil_nflux1990to2000.txt common/../crop_global/Huang_2015_XURI_2008_N2O_025.dat temp_n2o.dat N2O
 scatter_plot "N2O emissions" "Observations" "LPJ-GUESS" temp_n2o.dat site_n2o.png

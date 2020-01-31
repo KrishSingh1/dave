@@ -159,7 +159,7 @@ int update_fire_biome(Patch& patch, double lat) {
 	return biome;
 }
 
-// Compute dominant Simfire biome for gridcell
+// Compute dominant SIMFIRE biome for gridcell
 /* Computes current SIMFIRE biome for this
  * gridcell depending on the last <n_year_biomeavg> years of
  * vegetation.
@@ -439,6 +439,7 @@ double simfire_burned_area(Gridcell& gridcell) {
 	if (gridcell.simfire_biome == 0) {
 		return 0.;
 	}
+
 	// fPAR correction Knorr for use with LPJ-GUESS only
 	const double FPAR_CORR1 = 0.428;
 	const double FPAR_CORR2 = 0.148;

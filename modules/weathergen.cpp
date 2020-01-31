@@ -119,7 +119,7 @@ public:
 	double cldf_w1, cldf_w2, cldf_w3, cldf_w4, cldf_d1, cldf_d2, cldf_d3, cldf_d4;
 	double cldf_sd_w, cldf_sd_d;
 
-}metvars;
+} metvars;
 
 // Threshold for transition from gamma to gp distribution
 double thresh = 5.0; 
@@ -232,9 +232,9 @@ double wind_sd_w[6] = { 0.0, 0.81840997, -0.12633931, 0.00933591, 0.0, 0.0};
 double wind_sd_d[6] = { 0.0, 1.08596114, -0.24073323, 0.02216454, 0.0, 0.0};
 
 // wind bias correction (Note: Default is no correction)
-// min. and max range for bias correction (1st and 99th percentile)
+// min and max range for bias correction (1st and 99th percentile)
 double wind_bias_min =-2.3263478740;
-double wind_bias_max = 2.3263478740; // min. and max range for bias correction
+double wind_bias_max = 2.3263478740; 
 
 // parameters for the exponential intercept correction
 double wind_intercept_bias_a = 1.1582245720322826;  // slope in the exponent
@@ -327,6 +327,9 @@ int refill(WeatherGenState& state) {
  * and translated to Fortran 90 by user "mecej4" and Marsaglia, 
  * http://forums.silverfrost.com/viewtopic.php?t=1480
  * Further modifications to pass the complete state of the generator as an argument by J.O. Kaplan, 2011
+ * 
+ * Do not use this function outside of this weathergen.cpp module. 
+ * Instead use the standard random number generator of LPJ-GUESS.
  */
 int ranu(WeatherGenState& state) {
 
@@ -349,7 +352,10 @@ int ranu(WeatherGenState& state) {
 	return ranu;
 }
 
-// generate a random number in the range (0,1)
+// Generate a random number in the range (0,1)
+/* Do not use this function outside of this weathergen.cpp module. 
+ * Instead use the standard random number generator of LPJ-GUESS.
+ */
 double ranur(WeatherGenState& state) {
 
 	double ranur;

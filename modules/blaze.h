@@ -16,7 +16,7 @@
 
 #include "guess.h"
 
-/// Do daily accounting of blaze relevant parameters
+/// Do daily accounting of BLAZE relevant parameters
 /** Accounting of long-term averages needed for BLAZE as well as
  *  the computation of daily burned area and fire-specific parameteers like
  *  the Keetch-Byram Drought-index and Forest Fire Danger Index (FFDI)

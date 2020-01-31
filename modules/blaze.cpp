@@ -146,10 +146,10 @@ void get_combustion_rates(Patch& patch, int fli_index, double k_tun_litter) {
 	return;
 }
 
-/* Turn fire-line intensity into an index for lookup-tables
- * get appropriate FLI category for look-up tables
- * depending on computed potential FLI the index corresponding to the entries in
- * the look-up-tables is returned
+/* Turn fire-line intensity into an index for lookup-tables.
+ * Get appropriate FLI category for look-up tables.
+ * Depending on computed potential FLI, the index corresponding to the entries in
+ * the look-up-tables is returned.
  */
 int get_fire_line_intensity_index(double fire_line_intensity) {
 
@@ -211,9 +211,9 @@ double available_fuel (Patch& patch,int fli_index, double k_tun_litter)  {
 	return available_fuel;
 }
 
-/* Compute current potential fire-line intensity
- * compute potential fire-line intensity under given
- * meteorological and fuel conditions. Formulation following Noble 1980 derived from McArthur.
+/* Compute current potential fire-line intensity.
+ * Compute potential fire-line intensity under given meteorological and fuel conditions.
+ * Formulation following Noble 1980 derived from McArthur.
  */
 void get_fireline_intensity(Patch& patch, Climate& climate) {
 	
@@ -386,7 +386,7 @@ double survival_probability_sprouter_savanna(double height, double fire_line_int
 }
 
 /* Compute Individual/Cohort survival probability
- * Depending on biome and geolocation the appropriate survival_probabilities
+ * Depending on biome and geolocation, the appropriate survival_probabilities
  * will be selected
  */
 double survival_probability(Patch& patch, Individual& indiv) {
@@ -506,19 +506,24 @@ void blaze(Patch& patch, Climate& climate) {
 	double accumulated_fraction_burned= 1.  / (1. - gridcell.burned_area_accumulated);
 
 	// Check whether it burns
-	if (!( randfrac(patch.stand.seed) <= area_burned || vegmode == POPULATION)) return;
+	if (!( randfrac(patch.stand.seed) <= area_burned || vegmode == POPULATION)) {
+		return;
+	}
 	
 	// get relative fluxes between pools
 	int fli_index = get_fire_line_intensity_index(patch.fire_line_intensity);
 	
 	// if fuel availability is too low return
-	if ( fli_index < 0 ) return;
+	if ( fli_index < 0 )  {
+		return;
+	}
 
 	// adjustment factor for fluxes
 	double fab = 1.0;
-	if ( vegmode == POPULATION )
+	if ( vegmode == POPULATION ) {
 		fab = max(area_burned * accumulated_fraction_burned,1.);
-       
+	}
+
 	get_combustion_rates(patch,fli_index,gridcell.k_tun_litter);
 
 	// compute fluxes FROM soil litter pools to atmosphere first! [kg(C)/m2]
@@ -559,6 +564,7 @@ void blaze(Patch& patch, Climate& climate) {
 	bool killed = false;
 	double frac_survive;
 	if ( vegmode == POPULATION ) {
+
 		vegetation.firstobj();
 		while (vegetation.isobj) {
 			Individual& indiv=vegetation.getobj();

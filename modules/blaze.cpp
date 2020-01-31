@@ -1021,7 +1021,9 @@ void blaze_accounting_gridcell(Climate& climate) {
 	}
 
 	if ( is_first_day ) {
-		
+
+		double lat = climate.gridcell.get_lat();
+
 		// Latitude depending tuning values mortality
 		if ( fabs(lat) >= 50.) {
 			gridcell.k_tun_litter = K_LITTER_BOREAL;

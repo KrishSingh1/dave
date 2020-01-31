@@ -45,13 +45,13 @@ biomes lai_nat_1993-2012.dat
 
 root=$(dirname $0)/..
 # Choose root2shoot depending on biome and Jackson Coding (see header)
-awk -f $root/postprocess/agb.awk biomes_lai_nat_1993-2012.dat > agb.dat
+awk -f $root/postprocess/compute_above_ground_biomass.awk biomes_lai_nat_1993-2012.dat > agb.dat
 
 # Paste agb-fractions into cmass file
 awk '{OFS="\t"; {print $23, $24, $25, $26}}' cmass1993-2012.dat | paste agb.dat - > cmass_agb.dat
 awk '{OFS="\t"; if (FNR==1){print "pasture_agb_frac"} else {if($2<24. && $2>-24.){print "0.59"} else {print "0.21"}}}' lu_1993-2012.dat | paste cmass_agb.dat - > cmass_agb1.dat
 
-# Loyn landuse, cmass and agb-frac
+# Joyn landuse, cmass and agb-frac
 joyn lu_1993-2012.dat cmass_agb1.dat -o lu_cmass_agb_1993-2012.dat
 # Now compute gridcell wide contribution of each landuse type 
 compute lu_cmass_agb_1993-2012.dat -i 'Crop_agb=Crop_sum*CROPLAND*0.9' 'Pasture_agb=Pasture_sum*PASTURE*pasture_agb_frac' 'Natural_agb=Natural_sum*NATURAL*agb_frac' 'Total_agb=Crop_sum*CROPLAND*0.9+Pasture_sum*PASTURE*pasture_agb_frac+Natural_sum*NATURAL*agb_frac' -o lu_cmass_agb_1993-2012_tot.dat

@@ -428,8 +428,21 @@ void decayrates_century(Soil& soil, double temp_soil, double wcont_soil, bool ti
 	double moist_mod_saturated = 1.0; // no effect unless this is peatland
 
 	if (ispeatland) {
-		moist_mod_saturated = RMOIST_ANAEROBIC / RMOIST; // i.e 0.25 = 0.1 / 0.4 (standard values)
+
 		moist_mod = RMOIST;
+
+		double cmass_total = 0.0;
+		for (int p = 0; p < NSOMPOOL; p++) {
+			cmass_total += soil.sompool[p].cmass;
+		}
+
+		double acrotelm_climit = 7.5; // kgC/m2 - Max C content in a 30cm-deep acrotelm - see Wania et al. (2009b)
+		if (cmass_total > acrotelm_climit) { // take a weighted average of the aerobic and anaerobic moisture modifiers 
+			moist_mod = (acrotelm_climit * RMOIST + (cmass_total-acrotelm_climit) * RMOIST_ANAEROBIC) / cmass_total;
+			// moist_mod approaches a value of RMOIST_ANAEROBIC asymptotically as cmass_total increases
+		}
+
+		moist_mod_saturated = RMOIST_ANAEROBIC / moist_mod;
 	}
 
 	if (ismineralwetland)
@@ -464,7 +477,7 @@ void decayrates_century(Soil& soil, double temp_soil, double wcont_soil, bool ti
 
 		// Reduced decomposition for the passive and slow pools in peatlands, as they are assumed to be in the catotelm
 		if (p == PASSIVESOM || p == SLOWSOM) {
-			k *= moist_mod_saturated;
+			k *= moist_mod_saturated; // ensures that a modifier of RMOIST_ANAEROBIC is used.
 		}
 
 		// Calculate fraction of carbon pool remaining after today's decomposition
@@ -1275,27 +1288,16 @@ void vegetation_n_uptake(Patch& patch) {
 		else
 			indiv.nstore_longterm += indiv.storefndemand * nuptake_day;
 
-		// DW_COMMENT - some comments on the difference between crop and everything else in N uptake (NH4 vs NO3)
-		if (indiv.pft.phenology == CROPGREEN && ifnlim) {
-			if (nuptake_day >= soil.NO3_mass) {
-				soil.NH4_mass -= nuptake_day - soil.NO3_mass;
-				soil.NO3_mass = 0;
-			} 
-			else {
-				soil.NO3_mass -= nuptake_day;
-			}
+
+		if (ifntransform) {
+			double ammonium = nuptake_day * ammonium_frac;
+			soil.NH4_mass -= ammonium;
+			soil.NO3_mass -= nuptake_day - ammonium;
 		} 
 		else {
-
-			if (ifntransform) {
-				double ammonium = nuptake_day * ammonium_frac;
-				soil.NH4_mass -= ammonium;
-				soil.NO3_mass -= nuptake_day - ammonium;
-			} 
-			else {
-				soil.nmass_subtract(nuptake_day);
-			}
+			soil.nmass_subtract(nuptake_day);
 		}
+
 
 		if (!negligible(indiv.phen))
 			indiv.cton_leaf_aavr += min(indiv.cton_leaf(),indiv.pft.cton_leaf_max);

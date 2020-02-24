@@ -2720,7 +2720,9 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
 // Buck, A. L., New equations for computing vapor pressure and enhancement factor, J. Appl.
-//   Meteorol., 20, 1527-1532, 1981  
+//   Meteorol., 20, 1527-1532, 1981
+// Prentice IC, Sykes MT, Cramer W, 1993. A simulation model of the transient effects of
+//   climate change on forest landscapes. Ecological Modelling, 65, 51-70.
 // Sommer, P. S. and Kaplan, J. O.: A globally calibrated scheme for generating daily meteorology
 //   from monthly statistics: Global-WGEN (GWGEN) v1.0, Geosci. Model Dev., 10, 3771-3791,
 //   doi:10.5194/gmd-10-3771-2017, 2017.

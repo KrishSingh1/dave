@@ -2225,7 +2225,7 @@ void redist_restricted_vals(double *inval, int ll, double scalval, double *limit
 	}
 }
 
-/* Compute relative humidity
+/* Compute relative humidity dericed from Buck 1981
  * input
  * T_avg: daily mean temperature[°C]
  * T_dew: dew-point temperature[°C]
@@ -2719,8 +2719,9 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // REFERENCES
-//
+// Buck, A. L., New equations for computing vapor pressure and enhancement factor, J. Appl.
+//   Meteorol., 20, 1527-1532, 1981  
 // Sommer, P. S. and Kaplan, J. O.: A globally calibrated scheme for generating daily meteorology
 //   from monthly statistics: Global-WGEN (GWGEN) v1.0, Geosci. Model Dev., 10, 3771-3791,
 //   doi:10.5194/gmd-10-3771-2017, 2017.
-// Original Code in Fortran available at: https://arve-research.github.io/gwgen/
+// Original Code available in Fortran at: https://arve-research.github.io/gwgen/

@@ -891,7 +891,7 @@ bool allometry(Individual& indiv) {
 	// Tree height is related to stem diameter by the relation (Huang et al 1992)
 	// [** = raised to the power of]:
 	//   (5) height = k_allom2 * diam ** k_allom3
-	// Crown area may be derived from stem diameter by the relation (Zeide 1993):
+	// Crown area may be derived from stem diameter by the relation (Zeide 2001):
 	//   (6) crownarea = min ( k_allom1 * diam ** k_rp , crownarea_max )
 	// Bole height (individual/cohort mode only; currently set to 0):
 	//   (7) boleht = 0
@@ -1572,4 +1572,5 @@ void growth(Stand& stand, Patch& patch) {
 // Zaehle, S. & Friend, A. D. 2010. Carbon and nitrogen cycle dynamics in the O-CN
 //   land surface model: 1. Model description, site-scale evaluation, and sensitivity
 //   to parameter estimates. Global Biogeochemical Cycles, 24.
-// Zeide, B (1993) Primary unit of the tree crown. Ecology 74: 1598-1602.
+// Zeide, B. 2001. Natural thinning and environmental change: an ecological process model. 
+// Forest Ecology and Management 154: 165-177.

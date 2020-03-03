@@ -1224,7 +1224,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 			cropindiv->isintercropgrass = true;
 		}
 	}
-//	dprintf("Year %d: Individual in stand %d created:id=%d, pft=%s\n", ::date.year-nyear_spinup+1901,vegetation.patch.stand.id,id,(char*)pft.name);
 }
 
 void Individual::serialize(ArchiveStream& arch) {

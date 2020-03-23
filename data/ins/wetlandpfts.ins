@@ -30,7 +30,7 @@ group "moss"(
 	rootdist 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
 	root_beta 0.0
 	km_volume 0.000001876
-	fnstorage 0.3   ! Jing set 0.0 here, temporary testing
+	fnstorage 0.3
 	eps_mon 0.37 0.2 0.23 0.1 0.1 0.09 0.1 0.22 0.19 ! C3G values - must update
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5 ! C3G values - must update
 )
@@ -39,13 +39,10 @@ group "moss"(
 ! and pft Np_moss to the instruction file to enable simulations with non-peatland mosses
 pft "Np_moss" (
 
-	! moss
-	! Jing, add non-peatland moss
-
 	include 0
 	moss
 
-	shade_tolerant  !Jing, maybe need to increase the default value of parff_min = 350000
+	shade_tolerant
 	parff_min 2000000
 	pathway "c3"
 	rootdist 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
@@ -64,7 +61,7 @@ pft "Np_moss" (
 	tcmax_est 15.5
 	twmin_est -1000
 	gdd5min_est 0
-	drought_tolerance 0.82  ! Jing temporary testing, org. value is 1.0
+	drought_tolerance 0.82
 
 	! BVOC values - Guy Schurgers, October/November 2011
 	eps_iso 1.
@@ -171,8 +168,6 @@ pft "WetGRS" (
 	! As in Wania et al., with modifications
 	! Found in peatlands
 	! Typical species: Carex spp., Eriophorum spp., Juncus spp., Typha spp.
-	! NB! "WetGRS" is used as an identifier the code.
-	! Do not change the name without updating the code!!!
 
 	include 1
 	grass

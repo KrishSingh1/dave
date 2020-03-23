@@ -161,16 +161,16 @@ private:
 	/// Insolation for current gridcell and current year (\see instype)
 	double dinsol[Date::MAX_YEAR_LENGTH];
 
-	/// daily pressure 
+	/// daily pressure (Pa)
 	double dpres[Date::MAX_YEAR_LENGTH];
 
-	/// daily specifichum 
+	/// daily specifichum (kg/kg)
 	double dspecifichum[Date::MAX_YEAR_LENGTH];
 
-	/// daily wind 
+	/// daily wind (m/s)
 	double dwind[Date::MAX_YEAR_LENGTH];
 	
-	/// daily relative humidity
+	/// daily relative humidity (fraction)
 	double drelhum[Date::MAX_YEAR_LENGTH];
 	
 	/// Daily N deposition for one year

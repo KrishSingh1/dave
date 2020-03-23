@@ -1655,6 +1655,21 @@ double water_uptake_twolayer(double wcont[NSOILLAYER], double awc[NSOILLAYER],
 double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 	Patchpft& ppft = patch.pft[pft.id];
 	
+	// Prepare for water balance tests
+	double initial_water_in_column = 0.0;
+
+	for (int ly = 0; ly < NSOILLAYER; ly++) {
+
+		double Faw_layer = patch.soil.get_layer_soil_water(ly) * patch.soil.soiltype.awc[ly]; // mm
+		double ice_layer = patch.soil.Frac_ice[ly + patch.soil.IDX] * patch.soil.Dz[ly + patch.soil.IDX]; // mm
+		double layerwater = Faw_layer + ice_layer; // mm
+		// for water balance checks
+		initial_water_in_column += layerwater;
+
+	} // for loop (ly)
+
+
+
 	double awc0 = patch.soil.soiltype.gawc[0]; // available water holding capacity; see Gerten et al., 2004  
 	double awc1 = patch.soil.soiltype.gawc[1]; // see Gerten et al., 2004
 	double grootdist[2] = { 0.0, 0.0 };
@@ -1743,8 +1758,10 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 					water_to_add = (wcont_0_opt - patch.soil.get_soil_water_upper()) * awc0;
 				else {
 					for (int i = 0; i<NSOILLAYER_UPPER; i++) {
-						water_to_add_ly[i] = (wcont_opt[i] - wcont_cp[i]) * patch.soil.soiltype.awc[i];
-						water_to_add += water_to_add_ly[i];
+						if (add_water[i]) {
+							water_to_add_ly[i] = max((wcont_opt[i] - wcont_cp[i]) * patch.soil.soiltype.awc[i], 0.0); // ensures that we add water
+							water_to_add += water_to_add_ly[i];
+						}
 					}
 				}
 
@@ -1834,12 +1851,37 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day) {
 		}
 	}
 
+
+	// Prepare for water balance test
+	double final_water_in_column = 0.0;
+
+	for (int ly = 0; ly < NSOILLAYER; ly++) {
+
+		double Faw_layer = patch.soil.get_layer_soil_water(ly) * patch.soil.soiltype.awc[ly]; // mm
+		double ice_layer = patch.soil.Frac_ice[ly + patch.soil.IDX] * patch.soil.Dz[ly + patch.soil.IDX]; // mm
+		double layerwater = Faw_layer + ice_layer; // mm
+		// for water balance checks
+		final_water_in_column += layerwater;
+
+	} // for loop (ly)
+
+	// is water in + initial storage = water out + final storage?
+	double water_in_storage_in = initial_water_in_column + ppft.water_deficit_d;
+	double water_out_storage_out = final_water_in_column;
+
+	const double maxerr = 0.0001; // mm - max error allowed
+
+	if (fabs(water_in_storage_in - water_out_storage_out) > maxerr) {
+		fail("irrigated_water_uptake - error in the water balance!\n");
+	}
+
+
 	if (iftwolayersoil) 
 		return water_uptake_twolayer(wcont_cp, patch.soil.soiltype.awc, pft.rootdist, pft.emax, patch.fpc_rescale,
 				ppft.fwuptake, pft.lifeform == TREE, pft.drought_tolerance);
 	else
 		return water_uptake(wcont_cp, patch.soil.soiltype.awc, pft.rootdist, pft.emax, patch.fpc_rescale,
-				ppft.fwuptake, pft.lifeform == TREE, pft.drought_tolerance);
+				ppft.fwuptake, pft.lifeform == TREE, pft.drought_tolerance); // i.e. use upland awc instead of awc_peat - never irrigate on peatlands
 
 };
 
@@ -1890,11 +1932,18 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 				wr = water_uptake_twolayer(wcont_local, patch.soil.soiltype.awc,
 							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance);
-			else
-				wr = water_uptake(wcont_local, patch.soil.soiltype.awc,
+			else {
+
+				if (patch.stand.is_highlatitude_peatland_stand()) // Use awc_peat
+					wr = water_uptake(wcont_local, patch.soil.soiltype.awc_peat,
+							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
+							pft.lifeform == TREE, pft.drought_tolerance);
+				else
+					wr = water_uptake(wcont_local, patch.soil.soiltype.awc,
 							pft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance);
 
+				}
 			}
 
 			// Calculate supply (Eqn 24, Haxeltine & Prentice 1996)

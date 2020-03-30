@@ -135,7 +135,7 @@ gmap delta_cpool1993-2012_joyned_jackson.dat -i VegC -lon 1 -lat 2 -portrait -s 
 describe_image delta_cpool1993-2012_joyned_jackson.png "Modelled minus Liu et al. Above ground biomass. Units: kg m-2."
     
 awk '(FNR>1){print $(NF-1),$(NF-2)}' lu_cmass_agb_tot_1993-2012_joyned.dat > scat_cpool2.dat
-scatter_plot "Aove ground biomass (AGB)" "Liu et al. " "LPJ-GUESS" scat_cpool2.dat agb.png
+scatter_plot "Above ground biomass (AGB)" "Liu et al. " "LPJ-GUESS" scat_cpool2.dat agb.png
 describe_image agb.png "LPJ-GUESS modelled AGB compared to Liu et al. data. Units: kg m-2." embed
 rm -f  cpool1993-2012.dat cpool1993-2012_joyned.dat cpool1993-2012_joyned_Liu.dat delta_cpool1993-2012_joyned.dat cpool1993-2012_joyned_VegC.dat 
 

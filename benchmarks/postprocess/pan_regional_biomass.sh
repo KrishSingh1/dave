@@ -41,7 +41,7 @@ for y in $panyears; do
 
         # Here now weboutput
 	echo "$reg" >> pan_${y}.dat
-	if [[ ${DWD[$nreg]} -lt 0 || ${LIT[$nreg]} -lt 0 || ${SOI[$nreg]} -lt 0 ]]
+	if [[ ${DWD[$nreg]} == -1 || ${LIT[$nreg]} == -1 || ${TLB[$nreg]} == -1 ]]
 	then
 	    
 	    awk -v t=${TLB[$nreg]} '{OFS="\t"; if (FNR>1) {printf "%7.2f %7.2f %7.2f %7.2f %7.2f %10s\n%7.2f %7s %7s %7s %7s %10s", $1, $2, 0, $3, $1+$2+$3,"LPJ-GUESS",t,"-","-","-","-"," Pan et al.\n"}} ' cpool_natural_${y}_${reg}_tot.dat >> pan_${y}.dat

@@ -39,7 +39,7 @@
 #include "config.h"
 #include "soilwater.h"
 
-void snow(double prec, double temp, Soil& soil) {
+void snow(double prec, double temp, Soilcolumn& soilcolumn) {
 
 	// Daily calculation of snowfall and rainfall from precipitation and snow melt from
 	// snow pack; update of snow pack with new snow and snow melt and snow melt
@@ -49,35 +49,19 @@ void snow(double prec, double temp, Soil& soil) {
 	// temp = air temperature today (deg C)
 
 	// INPUT AND OUTPUT PARAMETER
-	// snowpack = stored snow (rainfall mm equivalents)
+	// solicolumn = stored snow (rainfall mm equivalents) and rainfall and snow melt today (mm)
 
-	// OUTPUT PARAMETERS
-	// rain_melt = rainfall and snow melt today (mm)
+	// Add snow if snowfall (temp < 0)
+	soilcolumn.snow.snowfall(temp, prec);
 
-	const double TSNOW = 0.0;
-		// maximum temperature for precipitation as snow (deg C)
-		// previously 2 deg C; new value suggested by Dieter Gerten 2002-12
-	const double SNOWPACK_MAX = 10000.0;
-		// maximum size of snowpack (mm) (S. Sitch, pers. comm. 2001-11-28)
+	// Update snow density after mechanical compaction
+	soilcolumn.snow.update_density();
 
-	double melt;
+	// Add snow melt to precipitation
+	soilcolumn.rain_melt = prec + soilcolumn.snow.melt;
 
-	// Standard, LPJ-GUESS v4 scheme
-
-	if (temp < TSNOW) {						// snowing today
-		melt = -min(prec, SNOWPACK_MAX-soil.snowpack);
-	} 
-	else {								// raining today
-		// New snow melt formulation
-		// Dieter Gerten 021121
-		// Ref: Choudhury et al 1998
-		melt = min((1.5+0.007*prec)*(temp-TSNOW), soil.snowpack);
-	}
-	soil.snowpack -= melt;
-	soil.rain_melt = prec + melt;
-
-	// Note: could use ifmultilayersnow in an improved snow melt calculation
-
+	// Reset snow melt
+	soilcolumn.snow.melt = 0.0;
 }
 
 /// SNOW_NINPUT
@@ -85,22 +69,22 @@ void snow(double prec, double temp, Soil& soil) {
  *  until it starts melting. If no snowpack daily nitrogen deposition and
  *  fertilization goes to the soil available mineral nitrogen pool.
  */
-void snow_ninput(double prec, double snowpack_after, double rain_melt,
+void snow_ninput(double prec, double snowpack, double rain_melt,
 	           double dNH4dep, double dNO3dep, double dnfert, 
 			   double& snowpack_NH4_mass, double& snowpack_NO3_mass,
 			   double& NH4_input, double& NO3_input) {
 
 	// calculates this day melt and original snowpack size
 	double melt = max(0.0, rain_melt - prec);
-	double snowpack = melt + snowpack_after;
+	double snowpack_total = melt + snowpack;
 
 	// does snow exist?
-	if (!negligible(snowpack)) {
+	if (!negligible(snowpack_total)) {
 
 		// if some snow is melted, fraction of nitrogen in snowpack
 		// will go to soil available nitrogen pool
 		if (melt > 0.0) {
-			double frac_melt  = melt / snowpack;
+			double frac_melt  = melt / snowpack_total;
 			double melt_NH4_mass = frac_melt * snowpack_NH4_mass;
 			NH4_input            = melt_NH4_mass + dNH4dep + dnfert / 2.0;
 			snowpack_NH4_mass   -= melt_NH4_mass;
@@ -135,14 +119,22 @@ void snow_ninput(double prec, double snowpack_after, double rain_melt,
 void initial_infiltration(Patch& patch, Climate& climate) {
 
 	Gridcell& gridcell = climate.gridcell;
-	Soil& soil = patch.soil;
-	snow(climate.prec - patch.intercep, climate.temp, soil);
-	snow_ninput(climate.prec - patch.intercep, soil.snowpack, soil.rain_melt, 
+	Soilcolumn& soilcolumn = patch.soilcolumn;
+
+	// Update snowpack
+	snow(climate.prec - patch.intercep, climate.temp, soilcolumn);
+
+	// Update snowpack N content
+	snow_ninput(climate.prec - patch.intercep, soilcolumn.snow.snowpack(), soilcolumn.rain_melt, 
 		        gridcell.dNH4dep, gridcell.dNO3dep, patch.dnfert,
-				soil.snowpack_NH4_mass, soil.snowpack_NO3_mass, 
-				soil.NH4_input, soil.NO3_input);
-	soil.percolate = soil.rain_melt >= 0.1;
-	soil.max_rain_melt = soil.rain_melt;
+				soilcolumn.snow.NH4_mass, soilcolumn.snow.NO3_mass, 
+				soilcolumn.NH4_input, soilcolumn.NO3_input);
+
+	// Soil water percolation
+	soilcolumn.percolate = soilcolumn.rain_melt >= 0.1;
+
+	// Save maximum rain and melt water
+	soilcolumn.max_rain_melt = soilcolumn.rain_melt;
 
 	// Reset annuals
 	if (date.day == 0) {
@@ -151,32 +143,27 @@ void initial_infiltration(Patch& patch, Climate& climate) {
  
 	patch.wetland_water_added_today = 0.0;
 
-	if (soil.percolate) {
+	if (soilcolumn.percolate) {
 
 		if (iftwolayersoil) {
 
 			// As in LPJ-GUESS v4.0, where soil.wcont[0] and soil.wcont_evap were adjusted
 
-			double twolayerwcont0 = soil.get_soil_water_upper();
-			twolayerwcont0 += soil.rain_melt / soil.soiltype.gawc[0];
+			Soillayer& surflayer = soilcolumn.soillayers[0];
 
-			if (twolayerwcont0 > 1) {
-				soil.rain_melt = (twolayerwcont0 - 1.0) * soil.soiltype.gawc[0];
-				twolayerwcont0 = 1.0;
+			double twolayerwcont0 = surflayer.wcont;
+			twolayerwcont0 += soilcolumn.rain_melt / surflayer.awc;
+
+			if (twolayerwcont0 > surflayer.wsats / surflayer.wcont) {
+				soilcolumn.rain_melt = (twolayerwcont0 - surflayer.wsats / surflayer.wcont) * surflayer.awc;
+				twolayerwcont0 = surflayer.wsats / surflayer.wcont;
 			}
 			else {
-				soil.rain_melt = 0.0;
-			}
-
-			// Now adjust wcont and wcont_evap 
-			for (int s = 0; s<NSOILLAYER_UPPER; s++) {
-
-				// Update wcont for the first NSOILLAYER_UPPER layers
-				soil.set_layer_soil_water(s, twolayerwcont0);
+				soilcolumn.rain_melt = 0.0;
 			}
 
 			// Update wcont_evap, Frac_water etc. too
-			soil.update_soil_water();
+			soilcolumn.update_soil_water();
 		}
 		else {
 
@@ -185,11 +172,11 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 				// PEATLAND SOILS
 				// Distribute the water in the acrotelm in proportion to the capacity
 
-				double Faw_layer[NACROTELM];
+				std::vector<double> Faw_layer(NACROTELM);
 				// available water for each soil layer (mm)
-				double ice_layer[NACROTELM];
+				std::vector<double> ice_layer(NACROTELM);
 				// ice each soil layer (mm)
-				double potential_layer[NACROTELM];
+				std::vector<double> potential_layer(NACROTELM);
 				// water that can still be added to each soil layer (mm)
 
 				double ice_fraction = 0.0; // [0-1]
@@ -204,25 +191,25 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 
 				// Total potential of the soil to store water, from the current content up to field capacity
 				double total_potential = 0.0;
-				// Integer to store the index of the top soil layer
-				int ix = soil.IDX;
 
 				// Fraction of acrotelm pore space filled by ice
 				double ice_fraction_of_pore_space = 0.0;
 
 				for (int ly = 0; ly < NACROTELM; ly++) {
 
-					Faw_layer[ly] = soil.Frac_water[ly+ix] * soil.Dz[ly+ix];
-					ice_layer[ly] = soil.Frac_ice[ly+ix] * soil.Dz[ly+ix];
-					ice_fraction += ice_layer[ly] / soil.aw_max[ly] / (double)NACROTELM;
+					Soillayer& soillayer = soilcolumn.soillayers[ly];
+
+					Faw_layer[ly] = soillayer.Frac_water * soillayer.depth;
+					ice_layer[ly] = soillayer.Frac_ice * soillayer.depth;
+					ice_fraction += ice_layer[ly] / soillayer.aw_max / (double)NACROTELM;
 
 					ice_fraction_of_pore_space += 1.0 / (double)NACROTELM *
-						(patch.soil.Frac_ice[ly + ix] + patch.soil.Fpwp_ref[ly + ix] - patch.soil.Frac_water_belowpwp[ly + ix]) / soil.acro_por;
+						(soillayer.Frac_ice + soillayer.Fpwp_ref - soillayer.Frac_water_belowpwp) / soilcolumn.acro_por; // DW_COMMENT soillayer.Frac_por
 
 					// Water + ice in this layer, above the wp
 					double layerwater = Faw_layer[ly] + ice_layer[ly];
 
-					potential_layer[ly] = (soil.acro_por - peat_wp) * soil.Dz[ly+ix] - layerwater;
+					potential_layer[ly] = (soilcolumn.acro_por - peat_wp) * soillayer.depth - layerwater;
 					total_potential += potential_layer[ly];
 
 					// Check balance
@@ -237,7 +224,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 				// ice_fraction = 0 (e.g. summer, no phase change etc.) = 1
 				// ice_fraction = 1 (e.g. winter, daturated soil to field capacity, all soil water frozen) = 0.000000
 				// CLM4.5 - see Swenson et al (2012) Eqn. (8)
-				if (ICE_IMPEDANCE && patch.soil.can_freeze()) {
+				if (ICE_IMPEDANCE && patch.soilcolumn.can_freeze()) {
 
 					ice_impedance = max(0.0, 1.0 - ice_fraction_of_pore_space);
 					// CLM method: ice_impedance = pow(10.0, -6.0 * ice_fraction_of_pore_space);
@@ -247,21 +234,21 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 				}
 
 				double water_in = 0.0;
-				double rain_melt_orig = soil.rain_melt;
+				double rain_melt_orig = soilcolumn.rain_melt;
 
 				// Assume the amount of water available for initial infiltration is limited by the ice content in the top layer
-				double water_for_infiltration = ice_impedance * soil.rain_melt;
+				double water_for_infiltration = ice_impedance * soilcolumn.rain_melt;
 
 				// Only infiltrate what we can. The rest remains in rain_melt.
 				if (water_for_infiltration >= total_potential) {
 					water_in = total_potential;
-					soil.rain_melt -= total_potential;
+					soilcolumn.rain_melt -= total_potential;
 				}
 				else {
 					// Because ALL the water can infiltrate
 					water_in = water_for_infiltration; // was: soil.rain_melt; before water_for_infiltration
 													   //soil.rain_melt = 0.0; 
-					soil.rain_melt -= water_for_infiltration; // i.e. 0.0 when there is no ice
+					soilcolumn.rain_melt -= water_for_infiltration; // i.e. 0.0 when there is no ice
 				}
 
 				if (total_potential > 0.0) {
@@ -272,26 +259,28 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 						double water_input_ly = water_in * (potential_layer[ly] / total_potential);
 
 						// Add water to the layer, and update wcont and Frac_water for this layer:
-						soil.add_layer_soil_water(ly, water_input_ly); 
+						soilcolumn.add_layer_soil_water(ly, water_input_ly); 
 					}
 				}
 				else {
-					soil.rain_melt = rain_melt_orig;
+					soilcolumn.rain_melt = rain_melt_orig;
 				}
 
 			} 
-			else if (!patch.stand.is_true_wetland_stand()) {
-
+			/*else if (!patch.stand.is_true_wetland_stand()) {
+			
 				// NEITHER PEATLAND NOR WETLAND SOILS
 				// Distribute the water in the upper 50cm in proportion to the capacity:
 				// The calculations rely on the fact that, in each layer: wcont = Faw_layer / soiltype.awc;
 
+				int nsoillayers_upper = soilcolumn.nsoillayers >= 5 ? 5 : soilcolumn.nsoillayers; // DW_COMMENT could do better
+
 				// available water for each soil layer (mm)
-				double Faw_layer[NSOILLAYER_UPPER];
+				std::vector<double> Faw_layer(nsoillayers_upper);
 				// ice each soil layer (mm)
-				double ice_layer[NSOILLAYER_UPPER];
+				std::vector<double> ice_layer(nsoillayers_upper);
 				// water that can still be added to each soil layer (mm)
-				double potential_layer[NSOILLAYER_UPPER];
+				std::vector<double> potential_layer(nsoillayers_upper);
 		
 				double ice_fraction = 0.0; // [0-1]
 				double ice_impedance = 1.0; // [0-1]
@@ -299,17 +288,19 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 
 				// Average ice fraction as a fraction of pore space.
 
-				for (int ly = 0; ly < NSOILLAYER_UPPER; ly++) {
+				for (int ly = 0; ly < nsoillayers_upper; ly++) {
 
-					Faw_layer[ly] = soil.get_layer_soil_water(ly) * soil.soiltype.awc[ly]; // mm
-					ice_layer[ly] = soil.Frac_ice[ly + soil.IDX] * soil.Dz[ly + soil.IDX]; // mm
+					Soillayer& soillayer = soilcolumn.soillayers[ly];
 
-					ice_fraction += ice_layer[ly] / soil.soiltype.awc[ly] / (double)NSOILLAYER_UPPER;
+					Faw_layer[ly] = soillayer.wcont * soillayer.awc; // mm
+					ice_layer[ly] = soillayer.Frac_ice * soillayer.depth; // mm
+
+					ice_fraction += ice_layer[ly] / soillayer.awc / (double)nsoillayers_upper;
 
 					// Water in this layer
 					double layerwater = Faw_layer[ly] + ice_layer[ly]; // mm
 
-					potential_layer[ly] = soil.aw_max[ly] - layerwater;
+					potential_layer[ly] = soillayer.aw_max - layerwater;
 					total_potential += potential_layer[ly];
 					
 					// Check balance
@@ -319,21 +310,20 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 
 				} // for loop (ly)
 
-
 				// Impedance - this is the fraction of water that can infiltrate initially 
 				// ice_fraction = 0 (e.g. summer, no phase change etc.) = 1
 				// ice_fraction = 1 (e.g. winter, daturated soil to field capacity, all soil water frozen) = 0.000000
 				// CLM4.5 - see Swenson et al (2012) Eqn. (8)
 
-				if (ICE_IMPEDANCE && patch.soil.can_freeze()) {
+				if (ICE_IMPEDANCE && patch.soilcolumn.can_freeze()) {
 				
 					double ice_fraction_of_pore_space = 0.0;
 
-					for (int ly = 0; ly < soil.num_evaplayers; ly++) {
+					for (int ly = 0; ly < soilcolumn.num_evaplayers; ly++) { // DW_COMMENT
 
-						int layerix = ly + IDX_STD;
-						ice_fraction_of_pore_space += 1.0 / soil.num_evaplayers *
-							(patch.soil.Frac_ice[layerix] + patch.soil.Fpwp_ref[layerix] - patch.soil.Frac_water_belowpwp[layerix]) / patch.soil.por[layerix];
+						Soillayer& soillayer = soilcolumn.soillayers[ly];
+						ice_fraction_of_pore_space += 1.0 / soilcolumn.num_evaplayers *
+							(soillayer.Frac_ice + soillayer.Fpwp_ref - soillayer.Frac_water_belowpwp) / soillayer.Frac_por;
 					}
 
 					ice_impedance = max(0.0, 1.0 - ice_fraction_of_pore_space);
@@ -344,40 +334,40 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 				}
 
 				double water_in = 0.0;
-				double rain_melt_orig = soil.rain_melt;
+				double rain_melt_orig = soilcolumn.rain_melt;
 
 				// Assume the amount of water available for initial infiltration is limited by the ice content in the top layer
-				double water_for_infiltration = ice_impedance * soil.rain_melt;
+				double water_for_infiltration = ice_impedance * soilcolumn.rain_melt;
 
 				// Only infiltrate what we can. The rest remains in rain_melt.
 				if (water_for_infiltration >= total_potential) {
 					water_in = total_potential;
-					soil.rain_melt -= total_potential;
+					soilcolumn.rain_melt -= total_potential;
 				} 
 				else {
 					// Because ALL the water can infiltrate
 					water_in = water_for_infiltration; // was: soil.rain_melt; before water_for_infiltration
-					soil.rain_melt -= water_for_infiltration; // i.e. 0.0 when there is no ice
+					soilcolumn.rain_melt -= water_for_infiltration; // i.e. 0.0 when there is no ice
 				}
 
 				if (total_potential > 0.0) {
 
 					// Now add the rain_melt in proportion to the capacity if total_potential > 0.0 mm
-					for (int ly = 0; ly<NSOILLAYER_UPPER; ly++) {
-
+					for (int ly = 0; ly<nsoillayers_upper; ly++) {
+					
 						double water_input_ly = water_in * (potential_layer[ly] / total_potential);
 
 						// Add water to the layer, and update wcont and Frac_water for this layer:
-						soil.add_layer_soil_water(ly, water_input_ly);
+						soilcolumn.add_layer_soil_water(ly, water_input_ly);
 					}
 				} 
 				else {
-					soil.rain_melt = rain_melt_orig;
+					soilcolumn.rain_melt = rain_melt_orig;
 				}
 
-			} // PEATLAND or not
+			} // PEATLAND or not*/
 
-			soil.update_soil_water(); // update wcont_evap, whc[], Frac_water etc. based on wcont (as the first layer's water content has changed) 
+			soilcolumn.update_soil_water(); // update wcont_evap, whc[], Frac_water etc. based on wcont (as the first layer's water content has changed) 
 		}
 
 		if (patch.stand.is_true_wetland_stand()) {
@@ -388,25 +378,26 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 			// The calculations rely on the fact that, in each layer: wcont = Faw_layer / soiltype.awc;
 
 			// available water for each soil layer (mm)
-			double Faw_layer[NSOILLAYER];
+			std::vector<double> Faw_layer(soilcolumn.nsoillayers);
 			// ice each soil layer (mm)
-			double ice_layer[NSOILLAYER];
+			std::vector<double> ice_layer(soilcolumn.nsoillayers);
 			// water that can still be added to each soil layer (mm)
-			double potential_layer[NSOILLAYER];
+			std::vector<double> potential_layer(soilcolumn.nsoillayers);
 
 			double ice_fraction = 0.0; // [0-1]
 			double total_potential = 0.0;
 
-			for (int ly = 0; ly < NSOILLAYER; ly++) {
+			for (int ly = 0; ly < soilcolumn.nsoillayers; ly++) {
 
-				Faw_layer[ly] = soil.get_layer_soil_water(ly) * soil.soiltype.awc[ly]; // mm
-				ice_layer[ly] = soil.Frac_ice[ly + soil.IDX] * soil.Dz[ly + soil.IDX]; // mm
-				ice_fraction += ice_layer[ly] / soil.soiltype.awc[ly] / (double)NSOILLAYER;
+				Soillayer& soillayer = soilcolumn.soillayers[ly];
+				Faw_layer[ly] = soillayer.wcont * soillayer.awc; // mm
+				ice_layer[ly] = soillayer.Frac_ice * soillayer.depth; // mm
+				ice_fraction += ice_layer[ly] / soillayer.awc * (soillayer.depth / soil_depth);
 
 				// Water in this layer
 				double layerwater = Faw_layer[ly] + ice_layer[ly]; // mm
 
-				potential_layer[ly] = soil.aw_max[ly] - layerwater;
+				potential_layer[ly] = soillayer.aw_max - layerwater;
 				total_potential += potential_layer[ly];
 
 				// Check balance
@@ -417,20 +408,20 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 
 			} // for loop (ly)
 
-			if (soil.rain_melt < total_potential)
-				soil.rain_melt = 0.0;
+			if (soilcolumn.rain_melt < total_potential)
+				soilcolumn.rain_melt = 0.0;
 			else
-				soil.rain_melt -= total_potential;
+				soilcolumn.rain_melt -= total_potential;
 
 			if (total_potential > 0.0 && ice_fraction <= 0.0001) {
 
 				// Now add the rain_melt in proportion to the capacity if total_potential > 0.0 mm
-				for (int ly = 0; ly<NSOILLAYER; ly++) {
+				for (int ly = 0; ly<soilcolumn.nsoillayers; ly++) {
 
 					double water_input_ly = potential_layer[ly];
 
 					// Add water to the layer, and update wcont and Frac_water for this layer:
-					soil.add_layer_soil_water(ly, water_input_ly);
+					soilcolumn.add_layer_soil_water(ly, water_input_ly);
 				}
 
 				// Record the water added to this wetland today
@@ -438,7 +429,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 					patch.wetland_water_added_today = total_potential;
 			}
 
-			soil.update_soil_water(); // update wcont_evap, whc[], Frac_water etc. based on wcont
+			soilcolumn.update_soil_water(); // update wcont_evap, whc[], Frac_water etc. based on wcont
 
 			// END MINERAL WETLANDS
 		}
@@ -451,7 +442,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
  */
 void irrigation(Patch& patch) {
 
-	Soil& soil = patch.soil;
+	Soilcolumn& soilcolumn = patch.soilcolumn;
 
 	patch.irrigation_d = 0.0;
 	if (date.day == 0) {
@@ -473,8 +464,8 @@ void irrigation(Patch& patch) {
 		}
 	}
 	patch.irrigation_y += patch.irrigation_d;
-	soil.rain_melt += patch.irrigation_d;
-	soil.max_rain_melt += patch.irrigation_d;
+	soilcolumn.rain_melt += patch.irrigation_d;
+	soilcolumn.max_rain_melt += patch.irrigation_d;
 }
 
 
@@ -492,11 +483,8 @@ void soilwater(Patch& patch, Climate& climate) {
 	// Performs daily accounting of soil water
 
 	// update the daily snow depth
-	// by converting from mm water to snow depth 
-	Soil& soil = patch.soil;
-
-	// Calculate snowdepth (could use all snow layers when they have variable density)
-	soil.dsnowdepth = soil.snowpack / (soil.snowdens / rho_H2O);
+	// by converting from mm water to snow depth
+	Soilcolumn& soilcolumn = patch.soilcolumn;
 
 	// Sum vegetation phenology-weighted FPC
 	// Fraction of grid cell subject to evaporation from soil surface is
@@ -519,12 +507,12 @@ void soilwater(Patch& patch, Climate& climate) {
 
 	if (patch.stand.is_highlatitude_peatland_stand()) {
         
-		soil.hydrology_peat(climate, bare_ground);
+		soilcolumn.hydrology_peat(climate, bare_ground);
 
 		// Update inundation stress variables for this patch
 		for (int p=0;p<npft;p++) {
 
-			double wtpp = patch.soil.wtp[date.day]; // [-300,100] mm
+			double wtpp = patch.soilcolumn.wtp[date.day]; // [-300,100] mm
 			double wtpm = patch.pft[p].pft.wtp_max; // mm
 
 			if (date.day == 0) 
@@ -593,9 +581,9 @@ void soilwater(Patch& patch, Climate& climate) {
 		
 		// HYDROLOGY FOR MINERAL SOILS 
 		if (iftwolayersoil)
-			soil.hydrology_lpjf_twolayer(climate, bare_ground);
+			soilcolumn.hydrology_lpjf_twolayer(climate, bare_ground);
 		else
-			soil.hydrology_lpjf(climate, bare_ground);
+			soilcolumn.hydrology_lpjf(climate, bare_ground); // DW_COMMENT NEW LSM HYDROLOGY
 	}
 }
 

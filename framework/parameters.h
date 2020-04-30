@@ -76,6 +76,17 @@ typedef enum {BLAZE, GLOBFIRM, NOFIRE} firemodeltype;
  */
 typedef enum {GWGEN, INTERP, NONE} weathergeneratortype;
 
+/// Type of hydrological schemes used 
+/** One of:
+*   BUCKET			The leaky bucket is an algorithm based on an analogy 
+*					of how a bucket with a leak will overflow if either 
+*					the average rate at which water is poured in exceeds
+*					the rate at which the bucket leaks or if more water 
+*					than the capacity of the bucket is poured in all at once
+*	HTESSEL			HTESSEL hydrology present in IFS
+*/
+typedef enum { BUCKET, HTESSEL } hydroschemetype;
+
 ///How to determine root distribution in soil layers
 typedef enum {ROOTDIST_FIXED, ROOTDIST_JACKSON} rootdisttype;
 
@@ -125,6 +136,9 @@ extern firemodeltype firemodel;
 
 /// Weather Generator switch
 extern weathergeneratortype weathergenerator;
+
+/// Hydrology switch
+extern hydroschemetype hydroscheme;
 
 /// Whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
 extern bool ifdisturb;
@@ -272,6 +286,12 @@ extern bool disturb_pasture;
 
 /// Whether to simulate cropland as pasture
 extern bool grassforcrop;
+
+/// Soil depth
+extern double soil_depth;
+
+/// Length of a simulated timestep (minutes)
+extern int timesteplength;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Settings controlling the saving and loading from state files

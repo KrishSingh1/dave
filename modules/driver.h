@@ -32,7 +32,8 @@ void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed,
 void dailyaccounting_gridcell(Gridcell& gridcell);
 void dailyaccounting_stand(Stand& stand);
 void dailyaccounting_patch(Patch& patch);
-void respiration_temperature_response(double temp,double& gtemp);
+void respiration_temperature_response(double temp,double& gtemp, bool ifsoil);
+void respiration_temperature_response(Soilcolumn& soilcolumn);
 void daylengthinsoleet(Climate& climate);
 
 #endif // LPJ_GUESS_DRIVER_H

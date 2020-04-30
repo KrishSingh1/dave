@@ -87,6 +87,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 			// Get reference to this patch
 			Patch& patch = stand.getobj();
+
 			// Update daily soil drivers including soil temperature
 			dailyaccounting_patch(patch);
 
@@ -103,6 +104,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			leaf_phenology(patch, gridcell.climate);
 			// Interception
 			interception(patch, gridcell.climate);
+			// Initial infiltration
 			initial_infiltration(patch, gridcell.climate);
 			// Photosynthesis, respiration, evapotranspiration
 			canopy_exchange(patch, gridcell.climate);

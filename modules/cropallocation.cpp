@@ -278,15 +278,17 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 
 	cropindiv.dcmass_root = (indiv.dnpp + cmass_extra) * patchpft.cropphen->f_alloc_root - indiv.daily_cmass_rootloss;
 
-	// The lost root C is directly put into the litter.
-	patch.soil.sompool[SOILMETA].cmass += indiv.daily_cmass_rootloss;
+	// The lost root C is directly put into the litter. // DW_COMMENT should be split per layer depending on root layer mass
+	for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++)
+		patch.soilcolumn.soillayers[lyr].sompool[SOILMETA].cmass += indiv.daily_cmass_rootloss * indiv.pft.rootdist[lyr];
 
 	if (indiv.daily_nmass_rootloss < indiv.nmass_root) {
 		indiv.nmass_root -= indiv.daily_nmass_rootloss;
 
-		// 50% of the N in the lost root is retranslocated, the rest is going to litter.
+		// 50% of the N in the lost root is retranslocated, the rest is going to litter. // DW_COMMENT should be split per layer depending on root layer mass
 		cropindiv.nmass_agpool += indiv.daily_nmass_rootloss * 0.5;
-		patch.soil.sompool[SOILMETA].nmass += indiv.daily_nmass_rootloss * 0.5;
+		for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++)
+			patch.soilcolumn.soillayers[lyr].sompool[SOILMETA].nmass += indiv.daily_nmass_rootloss * 0.5 * indiv.pft.rootdist[lyr];
 	}
 	if (indiv.daily_cmass_rootloss > 0.0){
 		patch.is_litter_day = true;

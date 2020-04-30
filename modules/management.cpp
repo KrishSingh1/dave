@@ -1166,7 +1166,7 @@ void nfert_crop(Patch& patch) {
 
 	pftlist.firstobj();
 	// Loop through PFTs
-	while(pftlist.isobj) {
+	while (pftlist.isobj) {
 
 		Pft& pft = pftlist.getobj();
 		Patchpft& patchpft = patch.pft[pft.id];
@@ -1175,7 +1175,7 @@ void nfert_crop(Patch& patch) {
 		if (patch.stand.pft[pft.id].active && pft.phenology == CROPGREEN) {
 
 			cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
-			if(!ppftcrop.growingseason) {
+			if (!ppftcrop.growingseason) {
 				pftlist.nextobj();
 				continue;
 			}
@@ -1192,26 +1192,27 @@ void nfert_crop(Patch& patch) {
 			if (!ppftcrop.fertilised[0] && ppftcrop.dev_stage > 0.0) {
 				// Fertiliser application at dev_stage = 0, sowing.
 				patch.dnfert = nfert * mineral * (1.0 - pft.fertrate[0] - pft.fertrate[1]);
-				patch.fluxes.report_flux(Fluxes::NFERT,nfert * mineral * (1.0 - pft.fertrate[0] - pft.fertrate[1]));
+				patch.fluxes.report_flux(Fluxes::NFERT, nfert * mineral * (1.0 - pft.fertrate[0] - pft.fertrate[1]));
 				ppftcrop.fertilised[0] = true;
-				if (mineral<1.0) {
-					patch.soil.sompool[SOILMETA].nmass+= nfert * (1.0 - mineral) * 0.5;
-					patch.soil.sompool[SOILMETA].cmass+=nfert * (1.0 - mineral) * 30.0 * 0.25;
-					patch.soil.sompool[SOILSTRUCT].nmass+= nfert * (1.0 - mineral) * 0.5;
-					patch.soil.sompool[SOILSTRUCT].cmass+= nfert * (1.0 - mineral) * 30.0 * 0.75;
-					patch.fluxes.report_flux(Fluxes::MANUREC,-nfert * (1.0 - mineral) * 30.0 );
+				if (mineral < 1.0) {
+					Soillayer& surflayer = patch.soilcolumn.soillayers[0];
+					surflayer.sompool[SOILMETA].nmass += nfert * (1.0 - mineral) * 0.5;
+					surflayer.sompool[SOILMETA].cmass += nfert * (1.0 - mineral) * 30.0 * 0.25;
+					surflayer.sompool[SOILSTRUCT].nmass += nfert * (1.0 - mineral) * 0.5;
+					surflayer.sompool[SOILSTRUCT].cmass += nfert * (1.0 - mineral) * 30.0 * 0.75;
+					patch.fluxes.report_flux(Fluxes::MANUREC, -nfert * (1.0 - mineral) * 30.0);
 					patch.anfert += nfert * (1.0 - mineral);
-					patch.fluxes.report_flux(Fluxes::MANUREN,nfert * (1.0 - mineral));
+					patch.fluxes.report_flux(Fluxes::MANUREN, nfert * (1.0 - mineral));
 				}
 			}
 			else if (!ppftcrop.fertilised[1] && ppftcrop.dev_stage > pft.fert_stages[0]) {
 				patch.dnfert = nfert * mineral * pft.fertrate[0];
-				patch.fluxes.report_flux(Fluxes::NFERT,nfert * mineral * pft.fertrate[0]);
+				patch.fluxes.report_flux(Fluxes::NFERT, nfert * mineral * pft.fertrate[0]);
 				ppftcrop.fertilised[1] = true;
 			}
 			else if (!ppftcrop.fertilised[2] && ppftcrop.dev_stage > pft.fert_stages[1]) {
 				patch.dnfert = nfert * mineral * (pft.fertrate[1]);
-				patch.fluxes.report_flux(Fluxes::NFERT,nfert * mineral * pft.fertrate[1]);
+				patch.fluxes.report_flux(Fluxes::NFERT, nfert * mineral * pft.fertrate[1]);
 				ppftcrop.fertilised[2] = true;
 			}
 		}

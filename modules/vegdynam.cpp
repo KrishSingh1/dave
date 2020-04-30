@@ -111,8 +111,8 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 		climate.agdd5 < pft.gdd5min_est)) return false;
 
 	if (!iftwolayersoil) {
-		// Wolf et al. (2008) bioclimatic limits related to snow depth and GDD0
-		if (((patch.soil.msnowdepth[0] + patch.soil.msnowdepth[1] + patch.soil.dec_snowdepth) / 3.0)<pft.min_snow ||
+		// Wolf et al. (2008) bioclimatic limits related to snow depth and GDD0 // DW_COMMENT only arctic pfts in the NH?
+		if (((patch.soilcolumn.snow.mdepth[0] + patch.soilcolumn.snow.mdepth[1] + patch.soilcolumn.snow.dec_depth) / 3.0) < pft.min_snow ||
 			climate.agdd0_20.mean() <= pft.gdd0_min || climate.agdd0_20.mean() >= pft.gdd0_max) return false;
 	}
 
@@ -125,7 +125,7 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 		// Compare this PFT's/species' drought_tolerance with the average wcont over the
 		// growing season, in this patch. Higher drought_tolerance values (set in the .ins file)
 		// lead to greater restrictions on establishment.
-        if (pft.drought_tolerance > patch.soil.awcont_upper) {
+        if (pft.drought_tolerance > patch.soilcolumn.awcont_depth(SOILDEPTH_UPPER)) {
            return false;
         }
     }
@@ -1297,7 +1297,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 // FIRE DISTURBANCE
 // Internal function (do not call directly from framework)
 
-void fire(Patch& patch,double& fireprob) {
+void fire(Patch& patch, double& fireprob) {
 
 	// DESCRIPTION
 	// Calculates probability/incidence of disturbance by fire; implements
@@ -1311,7 +1311,7 @@ void fire(Patch& patch,double& fireprob) {
 	//            (in population mode: fraction of modelled area affected by fire)
 
 	// Minimum total aboveground litter required for fire (kgC/m2)
-	const double MINFUEL=0.2;
+	const double MINFUEL = 0.2;
 	// Total aboveground litter (kgC/m2) [litter_ag_total/1000, fuel/1000; LPJF]
 	double litter_ag;
 	// Mean litter flammability moisture threshold [=moisture of extinction, me;
@@ -1326,142 +1326,143 @@ void fire(Patch& patch,double& fireprob) {
 	// Annual mean daily probability of fire [s; Thonicke et al 2001, Eqn 8;
 	// fire_index; LPJF]
 	double s;
-	
+
 	double sm; // s-1
 	double mort_fire; // fire mortality as fraction of current FPC
 	int p;
 
 	// Calculate fuel load (total aboveground litter)
 
-	litter_ag=0.0;
+	litter_ag = 0.0;
+
+	// Top soil layer
+	Soillayer& surflayer = patch.soilcolumn.soillayers[0];
 
 	// Loop through PFTs
 
-	for (p=0;p<npft;p++) {
+	for (p = 0; p < npft; p++) {
 		litter_ag += patch.pft[p].litter_leaf + patch.pft[p].litter_sap + patch.pft[p].litter_heart +
 			patch.pft[p].litter_repr;
 	}
 
 	// Soil Litter
-	litter_ag += patch.soil.sompool[SURFSTRUCT].cmass + patch.soil.sompool[SURFMETA].cmass +
-		patch.soil.sompool[SURFFWD].cmass + patch.soil.sompool[SURFCWD].cmass;
+	litter_ag += surflayer.sompool[SURFSTRUCT].cmass + surflayer.sompool[SURFMETA].cmass +
+		surflayer.sompool[SURFFWD].cmass + surflayer.sompool[SURFCWD].cmass;
 
 	// Prevent fire if fuel load below prescribed threshold
 
-	if (litter_ag<MINFUEL) {
-		fireprob=0.0;
+	if (litter_ag < MINFUEL) {
+		fireprob = 0.0;
 		return;
 	}
 
 	// Calculate mean litter flammability moisture threshold
 
-	me_mean=0.0;
+	me_mean = 0.0;
 
 	// Loop through PFTs
 
-	for (p=0;p<npft;p++) {
+	for (p = 0; p < npft; p++) {
 		me_mean += (patch.pft[p].litter_leaf + patch.pft[p].litter_sap + patch.pft[p].litter_heart +
 			patch.pft[p].litter_repr) * patch.pft[p].pft.litterme / litter_ag;
 	}
 
 	// Soil litter
-	me_mean += (patch.soil.sompool[SURFSTRUCT].cmass * patch.soil.sompool[SURFSTRUCT].litterme +
-		patch.soil.sompool[SURFMETA].cmass * patch.soil.sompool[SURFMETA].litterme +
-		patch.soil.sompool[SURFFWD].cmass * patch.soil.sompool[SURFFWD].litterme +
-		patch.soil.sompool[SURFCWD].cmass * patch.soil.sompool[SURFCWD].litterme) / litter_ag;
+	me_mean += (surflayer.sompool[SURFSTRUCT].cmass * surflayer.sompool[SURFSTRUCT].litterme +
+		surflayer.sompool[SURFMETA].cmass * surflayer.sompool[SURFMETA].litterme +
+		surflayer.sompool[SURFFWD].cmass * surflayer.sompool[SURFFWD].litterme +
+		surflayer.sompool[SURFCWD].cmass * surflayer.sompool[SURFCWD].litterme) / litter_ag;
 
 	// Calculate length of fire season in days
 	// Eqn 2, 4, Thonicke et al 2001
 	// NOTE: error in Eqn 2, Thonicke et al - multiplier should be PI/4, not PI
 
-	n=0.0;
+	n = 0.0;
 	for (int day = 0; day < date.year_length(); day++) {
 
 		// No fires unless there is some soil melt.
-		if (iftwolayersoil || (patch.soil.dthaw[day] > 0.0 && date.year > FIRST_FREEZE_YEAR + 10)) {
-			pm = exp(-PI*patch.soil.dwcontupper[day] / me_mean*patch.soil.dwcontupper[day] /
-				me_mean);		// Eqn 2
+		if (iftwolayersoil || (patch.soilcolumn.dthaw[day] > 0.0 && date.year > FIRST_FREEZE_YEAR + 10)) {
+			pm = exp(-PI * surflayer.dwcont[day] / me_mean * surflayer.dwcont[day] / me_mean);		// Eqn 2
 		}
 		else {
 			pm = 0.0;
 		}
-			
 
 		// Eqn 4
-		n+=pm;
+		n += pm;
 	}
 
 	// Calculate fraction of grid cell burnt
 	// Thonicke et al 2001, Eqn 9
 
-	s=n/(double)date.year_length();
-	sm=s-1;
+	s = n / (double)date.year_length();
+	sm = s - 1;
 
-	fireprob=s*exp(sm/(0.45*sm*sm*sm+2.83*sm*sm+2.96*sm+1.04));
+	fireprob = s * exp(sm / (0.45 * sm * sm * sm + 2.83 * sm * sm + 2.96 * sm + 1.04));
 
-	if (fireprob>1.0)
+	if (fireprob > 1.0)
 		fail("fire: probability of fire >1.0");
-	else if (fireprob<0.001) fireprob=0.001; // c.f. LPJF
+	else if (fireprob < 0.001) fireprob = 0.001; // c.f. LPJF
 
 	// Calculate expected flux from litter due to fire
 	// (fluxes from vegetation calculated in mortality functions)
 
-	for (p=0;p<npft;p++) {
+	for (p = 0; p < npft; p++) {
 
 		// Assume litter is as fire resistant as the vegetation it originates from
 
-		mort_fire=fireprob*(1.0-patch.pft[p].pft.fireresist);
+		mort_fire = fireprob*(1.0 - patch.pft[p].pft.fireresist);
 
 		// Calculate flux from burnt litter
 
 		patch.fluxes.report_flux(Fluxes::FIREC,
-		                         mort_fire*(patch.pft[p].litter_leaf + patch.pft[p].litter_sap +
-		                                    patch.pft[p].litter_heart + patch.pft[p].litter_repr));
+			mort_fire*(patch.pft[p].litter_leaf + patch.pft[p].litter_sap +
+				patch.pft[p].litter_heart + patch.pft[p].litter_repr));
 
 		report_fire_nfluxes(patch, mort_fire * (patch.pft[p].nmass_litter_leaf +
-			                patch.pft[p].nmass_litter_sap + patch.pft[p].nmass_litter_heart));
+			patch.pft[p].nmass_litter_sap + patch.pft[p].nmass_litter_heart));
 
 		// Account for burnt above ground litter
 
-		patch.pft[p].litter_leaf        *= (1.0 - mort_fire);
-		patch.pft[p].litter_sap         *= (1.0 - mort_fire);
-		patch.pft[p].litter_heart       *= (1.0 - mort_fire);
-		patch.pft[p].litter_repr        *= (1.0 - mort_fire);
-		patch.pft[p].nmass_litter_leaf  *= (1.0 - mort_fire);
-		patch.pft[p].nmass_litter_sap   *= (1.0 - mort_fire);
+		patch.pft[p].litter_leaf *= (1.0 - mort_fire);
+		patch.pft[p].litter_sap *= (1.0 - mort_fire);
+		patch.pft[p].litter_heart *= (1.0 - mort_fire);
+		patch.pft[p].litter_repr *= (1.0 - mort_fire);
+		patch.pft[p].nmass_litter_leaf *= (1.0 - mort_fire);
+		patch.pft[p].nmass_litter_sap *= (1.0 - mort_fire);
 		patch.pft[p].nmass_litter_heart *= (1.0 - mort_fire);
 	}
 
 	// Soil litter
-	double mort_fire_struct = fireprob * (1.0 - patch.soil.sompool[SURFSTRUCT].fireresist);
-	double mort_fire_meta   = fireprob * (1.0 - patch.soil.sompool[SURFMETA].fireresist);
-	double mort_fire_fwd    = fireprob * (1.0 - patch.soil.sompool[SURFFWD].fireresist);
-	double mort_fire_cwd    = fireprob * (1.0 - patch.soil.sompool[SURFCWD].fireresist);
+	double mort_fire_struct = fireprob * (1.0 - surflayer.sompool[SURFSTRUCT].fireresist);
+	double mort_fire_meta = fireprob * (1.0 - surflayer.sompool[SURFMETA].fireresist);
+	double mort_fire_fwd = fireprob * (1.0 - surflayer.sompool[SURFFWD].fireresist);
+	double mort_fire_cwd = fireprob * (1.0 - surflayer.sompool[SURFCWD].fireresist);
 
 	// Calculate flux from burnt soil litter
-	patch.fluxes.report_flux(Fluxes::FIREC,patch.soil.sompool[SURFSTRUCT].cmass * mort_fire_struct +
-	                                       patch.soil.sompool[SURFMETA].cmass   * mort_fire_meta +
-	                                       patch.soil.sompool[SURFFWD].cmass    * mort_fire_fwd +
-	                                       patch.soil.sompool[SURFCWD].cmass    * mort_fire_cwd);
+	patch.fluxes.report_flux(Fluxes::FIREC, surflayer.sompool[SURFSTRUCT].cmass * mort_fire_struct +
+		surflayer.sompool[SURFMETA].cmass * mort_fire_meta +
+		surflayer.sompool[SURFFWD].cmass * mort_fire_fwd +
+		surflayer.sompool[SURFCWD].cmass * mort_fire_cwd);
 
 	// Account for burnt above ground litter
-	patch.soil.sompool[SURFSTRUCT].cmass *= (1.0 - mort_fire_struct);
-	patch.soil.sompool[SURFMETA].cmass   *= (1.0 - mort_fire_meta);
-	patch.soil.sompool[SURFFWD].cmass    *= (1.0 - mort_fire_fwd);
-	patch.soil.sompool[SURFCWD].cmass    *= (1.0 - mort_fire_cwd);
+	surflayer.sompool[SURFSTRUCT].cmass *= (1.0 - mort_fire_struct);
+	surflayer.sompool[SURFMETA].cmass *= (1.0 - mort_fire_meta);
+	surflayer.sompool[SURFFWD].cmass *= (1.0 - mort_fire_fwd);
+	surflayer.sompool[SURFCWD].cmass *= (1.0 - mort_fire_cwd);
 
 	// Calculate nitrogen flux from burnt soil litter
-	double nflux_fire = patch.soil.sompool[SURFSTRUCT].nmass * mort_fire_struct +
-	                    patch.soil.sompool[SURFMETA].nmass   * mort_fire_meta +
-	                    patch.soil.sompool[SURFFWD].nmass    * mort_fire_fwd +
-						patch.soil.sompool[SURFCWD].nmass    * mort_fire_cwd;
+	double nflux_fire = surflayer.sompool[SURFSTRUCT].nmass * mort_fire_struct +
+		surflayer.sompool[SURFMETA].nmass * mort_fire_meta +
+		surflayer.sompool[SURFFWD].nmass * mort_fire_fwd +
+		surflayer.sompool[SURFCWD].nmass * mort_fire_cwd;
 
 	report_fire_nfluxes(patch, nflux_fire);
 
-	patch.soil.sompool[SURFSTRUCT].nmass *= (1.0 - mort_fire_struct);
-	patch.soil.sompool[SURFMETA].nmass   *= (1.0 - mort_fire_meta);
-	patch.soil.sompool[SURFFWD].nmass    *= (1.0 - mort_fire_fwd);
-	patch.soil.sompool[SURFCWD].nmass    *= (1.0 - mort_fire_cwd);
+	surflayer.sompool[SURFSTRUCT].nmass *= (1.0 - mort_fire_struct);
+	surflayer.sompool[SURFMETA].nmass *= (1.0 - mort_fire_meta);
+	surflayer.sompool[SURFFWD].nmass *= (1.0 - mort_fire_fwd);
+	surflayer.sompool[SURFCWD].nmass *= (1.0 - mort_fire_cwd);
 }
 
 
@@ -1554,8 +1555,8 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 
 			// We don't allow disturbance while documenting for calculation of Century equilibrium
 			bool during_century_solvesom = ifcentury &&
-										   date.year >= patch.soil.solvesomcent_beginyr &&
-										   date.year <= patch.soil.solvesomcent_endyr;
+										   date.year >= patch.soilcolumn.solvesomcent_beginyr &&
+										   date.year <= patch.soilcolumn.solvesomcent_endyr;
 
 			if (patch.age && !during_century_solvesom && date.year != stand.clone_year) {
 				disturbance(patch,1.0 / distinterval);

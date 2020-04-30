@@ -373,7 +373,7 @@ bool Patchpft::growingseason() const {
 
 
 Patch::Patch(int i,Stand& s,Soiltype& st):
-	id(i),stand(s),vegetation(*this),soil(*this,st),fluxes(*this) {
+	id(i),stand(s),vegetation(*this),soilcolumn(*this, st),fluxes(*this) {
 
 	for (unsigned int p = 0; p < pftlist.nobj; p++) {
 		pft.createobj(pftlist[p]);
@@ -425,7 +425,7 @@ void Patch::serialize(ArchiveStream& arch) {
 	}
 
 	arch & vegetation
-		& soil
+		& soilcolumn
 		& fluxes
 		& fpar_grass
 		& fpar_ff
@@ -505,14 +505,9 @@ bool Patch::has_disturbances() const {
  */
 double Patch::ccont(double scale_indiv, bool luc) {
 
-	double ccont = 0.0;
+	double ccont = soilcolumn.ccont();
 
-	ccont += soil.cpool_fast;
-	ccont += soil.cpool_slow;
-
-	for (int i=0; i<NSOMPOOL; i++) {
-		ccont += soil.sompool[i].cmass;
-	}
+	ccont += soilcolumn.snow.ccont();
 
 	for (int i=0; i<npft; i++) {
 		Patchpft& ppft = pft[i];
@@ -541,13 +536,9 @@ double Patch::ccont(double scale_indiv, bool luc) {
  */
 double Patch::ncont(double scale_indiv, bool luc) {
 
-	double ncont = 0.0;
+	double ncont = soilcolumn.ncont();
 
-	ncont += (soil.NH4_mass + soil.NO3_mass + soil.NO2_mass + soil.NO_mass + soil.N2O_mass + soil.N2_mass);
-	ncont += (soil.snowpack_NH4_mass + soil.snowpack_NO3_mass);
-
-	for (int i=0; i<NSOMPOOL; i++)
-		ncont += soil.sompool[i].nmass;
+	ncont += soilcolumn.snow.ncont();
 
 	for (int i=0; i<npft; i++) {
 		Patchpft& ppft = pft[i];
@@ -572,7 +563,8 @@ double Patch::cflux() {
 
 	double cflux = 0.0;
 
-	cflux += soil.aorgCleach;
+	cflux += soilcolumn.aorgCleach();
+	//cflux += soilcolumn.aorgCleach(); // DW_COMMENT
 	cflux += -fluxes.get_annual_flux(Fluxes::NPP);
 	cflux += fluxes.get_annual_flux(Fluxes::REPRC);
 	cflux += fluxes.get_annual_flux(Fluxes::SOILC);
@@ -593,9 +585,9 @@ double Patch::nflux() {
 
 	nflux += -(stand.get_gridcell().aNH4dep+stand.get_gridcell().aNO3dep);
 	nflux += -anfert;
-	nflux += -soil.anfix;
-	nflux += soil.aminleach;
-	nflux += soil.aorgNleach;
+	nflux += -soilcolumn.anfix; // DW_COMMENT SHOULD MAYBE BE PER LAYER
+	nflux += soilcolumn.aminleach();
+	nflux += soilcolumn.aorgNleach();
 	nflux += fluxes.get_annual_flux(Fluxes::HARVESTN);
 	nflux += fluxes.get_annual_flux(Fluxes::SEEDN);
 	nflux += fluxes.get_annual_flux(Fluxes::NH3_FIRE);
@@ -1665,6 +1657,11 @@ double Individual::ndemand_storage(double cton_leaf_opt) {
 	return storendemand;
 }
 
+void Individual::set_nupscoeff() {
+
+	nupscoeff = 1.0; // DW_COMMENT Needs to be developed in association with dynamic root allocation
+}
+
 /// Checks C mass and zeroes any negative value, balancing by adding to npp and reducing respiration
 double Individual::check_C_mass() {
 
@@ -2161,7 +2158,6 @@ double Individual::wscal_mean() const {
 
 void Gridcellpft::serialize(ArchiveStream& arch) {
 	arch & addtw
-		& Km
 		& autumnoccurred
 		& springoccurred
 		& vernstartoccurred
@@ -2333,6 +2329,53 @@ double Gridcell::nflux() {
 	nflux += landcover.anflux_harvest_slow;
 
 	return nflux;
+}
+
+std::vector<double> Gridcell::soil_layer_depths() {
+
+	if (soil_depth < SOILDEPTH_EVAP) {
+		fail("Soil depth (%g) needs to be thicker than evaporation depth (%g)\n", soil_depth, SOILDEPTH_EVAP);
+	}
+
+	std::vector<double> lyr_depths;
+
+	if (!iftwolayersoil) {
+		int lyr = 0;
+		double depth = soil_depth;
+		double tot_depth = 0.0;
+		double remain_depth = depth - tot_depth;
+		double std_depths[NSOILLAYER_MAX] = { 100.0, 100.0, 100.0, 200.0, 200.0, 300.0, 500.0, 1000.0, 2000.0, 4000.0 };
+
+		// Calculate number of soil layers and their individual depths
+		while (!negligible(remain_depth)) {
+			lyr_depths.resize(lyr + 1);
+			double ref_depth = lyr == 0 ? std_depths[lyr] : std_depths[lyr - 1];
+			if (remain_depth >= ref_depth * 2.0 && lyr < NSOILLAYER_MAX - 1) {
+				double lyr_depth = remain_depth < std_depths[lyr] * 2.0 ? remain_depth / 2.0 : std_depths[lyr];
+				lyr_depths[lyr] = lyr_depth;
+				tot_depth += lyr_depth;
+				remain_depth = depth - tot_depth;
+			}
+			else {
+				lyr_depths[lyr] = remain_depth;
+				remain_depth = 0.0;
+			}
+			lyr++;
+		}
+	}
+	else {
+		lyr_depths.resize(2);
+		if (soil_depth <= SOILDEPTH_UPPER) {
+			lyr_depths[0] = SOILDEPTH_EVAP;
+			lyr_depths[1] = soil_depth - SOILDEPTH_EVAP;
+		}
+		else {
+			lyr_depths[0] = SOILDEPTH_UPPER;
+			lyr_depths[1] = soil_depth - SOILDEPTH_UPPER;
+		}
+	}
+
+	return lyr_depths;
 }
 
 void Gridcell::serialize(ArchiveStream& arch) {

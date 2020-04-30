@@ -491,13 +491,6 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			}
 
 			climate.atemp_mean = climate.temp;
-
-			// Initialise gridcellpfts Michaelis-Menten kinetic Km value
-			pftlist.firstobj();
-			while (pftlist.isobj) {
-				gridcell.pft[pftlist.getobj().id].Km = pftlist.getobj().km_volume * gridcell.soiltype.wtot;
-				pftlist.nextobj();
-			}
 		}
 
 		// Reset fluxes for all patches
@@ -512,15 +505,50 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			stand.firstobj();
 			while (stand.isobj) {
 				Patch& patch = stand.getobj();
+				Soilcolumn& soilcolumn = patch.soilcolumn;
 
 				patch.fluxes.reset();
-				patch.soil.anfix = 0.0;
-				patch.soil.aorgNleach = 0.0;
-				patch.soil.aorgCleach = 0.0;
-				patch.soil.aminleach = 0.0;
 				patch.anfert = 0.0;
+				soilcolumn.anfix = 0.0;
 				patch.managed_this_year = false;
 				patch.plant_this_year = false;
+				double total_water = 0.0;
+
+				if (date.year >= soilcolumn.solvesomcent_beginyr && date.year <= soilcolumn.solvesomcent_endyr) {
+					soilcolumn.savesomcent = true;
+				}
+				else {
+					soilcolumn.savesomcent = false;
+				}
+
+				for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+
+					Soillayer& soillayer = soilcolumn.soillayers[lyr];
+
+					soillayer.aorgNleach = 0.0;
+					soillayer.aorgCleach = 0.0;
+					soillayer.aminleach = 0.0;
+
+					// Set soil layer properties on first day of simulation. 
+					// In future releases soil properties will be changing over time 
+					if (date.year == 0) {
+						soillayer.mwcontabove = 0.0;
+						soillayer.set_properties(soilcolumn.soiltype); // DW_COMMENT Need to transfer this info when doing landuse change
+					}
+
+					total_water += soilcolumn.soiltype.wsats * soillayer.depth;
+				}
+
+				if (date.year == 0) // DW_COMMENT need to save this info when doing landuse change
+					soilcolumn.init_hydrology_variables();
+
+				// Initialise gridcellpfts Michaelis-Menten kinetic Km value
+				pftlist.firstobj();
+				while (pftlist.isobj) {
+					patch.pft[pftlist.getobj().id].Km = pftlist.getobj().km_volume * total_water;
+					pftlist.nextobj();
+				}
+
 				stand.nextobj();
 			}
 
@@ -552,11 +580,11 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	if (date.diurnal()) {
 		climate.gtemps.assign(date.subdaily, 0);
 		for (int i=0; i<date.subdaily; i++) {
-			respiration_temperature_response(climate.temps[i], climate.gtemps[i]);
+			respiration_temperature_response(climate.temps[i], climate.gtemps[i], false);
 		}
 	}
 	else {
-		respiration_temperature_response(climate.temp, climate.gtemp);
+		respiration_temperature_response(climate.temp, climate.gtemp, false);
 	}
 
 	// Sum annual nitrogen addition to system
@@ -670,9 +698,9 @@ void dailyaccounting_patch(Patch& patch) {
 	// soil variables. Initialises flux sums at start of simulation year.
 
 	// INPUT AND OUTPUT PARAMETER
-	// soil   = patch soil
+	// soilcolumn   = patch soilcolumn
 
-	Soil& soil = patch.soil;
+	Soilcolumn& soilcolumn = patch.soilcolumn;
 
 	if (date.day == 0) {
 
@@ -686,17 +714,22 @@ void dailyaccounting_patch(Patch& patch) {
 		vegetation.firstobj();
 		while (vegetation.isobj) {
 			patch.fpc_total += vegetation.getobj().fpc;		// indiv.fpc
+			vegetation.getobj().set_nupscoeff(); // Calculate nitrogen uptake strength dependency on root distribution
 			vegetation.nextobj();
 		}
 		// Calculate rescaling factor to account for overlap between populations/
 		// cohorts/individuals (i.e. total FPC > 1)
 		patch.fpc_rescale = 1.0 / max(patch.fpc_total, 1.0);
+
+		if (date.year == 0) {
+			for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
+				soilcolumn.soillayers[lyr].temp_old = 0.0;
+				soilcolumn.soillayers[lyr].temp_analytic = 0.0;
+			}
+		}
 	}
 
 	if (date.dayofmonth == 0) {
-
-		soil.mwcontupper = 0.0;
-		soil.mwcontlower = 0.0;
 
 		patch.maet[date.month] = 0.0;
 		patch.mintercep[date.month] = 0.0;
@@ -706,93 +739,50 @@ void dailyaccounting_patch(Patch& patch) {
 	if(run_landcover)
 		dailyaccounting_patch_lc(patch);
 
-	// Store daily soil water in both layers
-	soil.dwcontupper[date.day] = soil.get_soil_water_upper();
-	soil.dwcontlower[date.day] = soil.get_soil_water_lower();
+	// Store daily soil water in all layers
+	soilcolumn.set_dwcont();
 
-	soil.mwcontupper += soil.dwcontupper[date.day];
-	soil.mwcontlower += soil.dwcontlower[date.day];
-
-	// On last day of month, calculate mean content of upper and lower soil layers
-
+	// On last day of month, calculate mean monthly water content of all soil layers
 	if (date.islastday) {
-
-		soil.mwcontupper = mean(soil.dwcontupper + date.day - date.ndaymonth[date.month] + 1,
-			date.ndaymonth[date.month]);
-
-		// guess2008 - record water in lower layer too, and then update mwcont
-		soil.mwcontlower = mean(soil.dwcontlower + date.day - date.ndaymonth[date.month] + 1,
-			date.ndaymonth[date.month]);
-
-		soil.mwcont[date.month][0] = soil.mwcontupper;
-		soil.mwcont[date.month][1] = soil.mwcontlower;
+		soilcolumn.set_mwcont();
 	}
 
 	// Reset monthly soil temp., litter depth, snow depth and thaw averages on Jan 1
 	if (date.day == 0) {
 
 		// Save the December value for use in establishment
-		soil.dec_snowdepth = soil.msnowdepth[11];
+		soilcolumn.snow.dec_depth = soilcolumn.snow.depth();
 
 		for (int mth = 0; mth < 12; mth++) {
-			soil.msnowdepth[mth] = 0.0;
-			soil.mthaw[mth] = 0.0;
-			for (int sl = 0; sl < SOILTEMPOUT; sl++)
-				soil.T_soil_monthly[mth][sl] = 0.0;
+			soilcolumn.snow.mdepth[mth] = 0.0;
+			soilcolumn.mthaw[mth] = 0.0;
+			for (int sl = 0; sl < soilcolumn.nsoillayers; sl++)
+				soilcolumn.soillayers[sl].mtemp[mth] = 0.0;
 		}
 	}
 
-	// Calculate analytic soil temperatures at 25cm depth and update dtemp_31 (trend in daily air temperatures for the last 31 days)
-	// Analytic soil temperatures can be used to test the accuracy of the numerical scheme in Soil::soil_temp_multilayer below.
+	// Inialize and update fractions of water, mineral content, peat content, organic content, as well as porosity.
+	soilcolumn.update_layer_fractions();
+
+	// Calculate analytic soil temperatures and update dtemp_31 (trend in daily air temperatures for the last 31 days)
+	// Analytic soil temperatures can be used to test the accuracy of the numerical scheme in Soilcolumn::calc_temp below.
 	// The soil temperature at 25cm depth calculated here is used in the rest of the model (e.g. in respiration) if iftwolayersoil is true (determined in 
-	// Soil::get_soil_temp_25() below).
-	soil.soil_temp_analytic(patch.get_climate(), 0.25);
+	// Soilcolumn::get_soil_temp_25() below).
+	soilcolumn.calc_temp_analytic(); // DW_COMMENT check so temp make sense
 
-	// Calculate the soil temperature in each 10cm soil layer, the padding layers, and the snowpack. This function is called 
-	// even if iftwolayersoil is true, though the calculations are much simpler. 
-	bool validTemp = soil.soil_temp_multilayer(patch.get_climate().temp);
-	if (!validTemp) fail("Error in Soil::soil_temp_multilayer");
+	// Calculate the soil temperature in snow, soil and padding layers. This function is called 
+	// even if iftwolayersoil is true, though the calculations are much simpler.
+	soilcolumn.calc_temp();
 
-	// Determine the soil temperature at 25cm depth
-	double soiltemp25 = soil.get_soil_temp_25();
+	// Save daily soil temperature
+	patch.soilcolumn.set_dtemp();
 
-	if (iftwolayersoil) {
-		// Update monthly 25cm soil temperature - used for output only
-		soil.T_soil_monthly[date.month][2] += soiltemp25 / (double)date.ndaymonth[date.month];
+	// On last day of month, calculate mean soil temperature for last month
+	if (date.islastday) {
+		patch.soilcolumn.set_mtemp();
 	}
 
-	respiration_temperature_response(soiltemp25, soil.gtemp);
-
-	// Possible updates to soil.gtemp used if soiltemp25 < 0degC
-	// Needed for root respiration
-	if (ifcarbonfreeze && soiltemp25 <= 0.0 && !iftwolayersoil) {
-
-		double decomp_at_freezing_point = exp(308.56*(1.0 / 56.02 - 1.0 / (0.0 + 46.02))); // soil.gtemp above when soiltemp25 = 0;
-
-		// Linear approach (Koven et al. 2011)
-		double slope = decomp_at_freezing_point / fabs(MIN_DECOMP_TEMP);
-
-		if (soiltemp25 < MIN_DECOMP_TEMP)
-			soil.gtemp = 0.0;
-		else
-			soil.gtemp = slope * soiltemp25 + decomp_at_freezing_point; // i.e. a linear decrease from decomp_at_freezing_point at 0C to 0 at MIN_DECOMP_TEMP
-	}
-
-
-	// On last day of month, calculate mean soil temperature at 25cm depth for last month
-
-	soil.dtemp[date.dayofmonth] = soil.get_soil_temp_25();
-
-	if (date.islastday)
-		soil.mtemp = mean(soil.dtemp,date.ndaymonth[date.month]);
-
-
-	double mdays = (double)date.ndaymonth[date.month];
-	soil.msnowdepth[date.month] += soil.dsnowdepth / mdays;
-	soil.mthaw[date.month] += soil.thaw / mdays;
-
-	// needed for fire
-	soil.dthaw[date.day] = soil.thaw;
+	respiration_temperature_response(patch.soilcolumn);
 
 	patch.is_litter_day = false;
 	patch.isharvestday = false;
@@ -804,7 +794,7 @@ void dailyaccounting_patch(Patch& patch) {
 // Called by dailyaccounting_patch and dailyaccounting_gridcell to calculate
 // response of respiration to temperature
 
-void respiration_temperature_response(double temp,double& gtemp) {
+void respiration_temperature_response(double temp,double& gtemp, bool ifsoil) {
 
 	// DESCRIPTION
 	// Calculates g(T), response of respiration rate to temperature (T), based on
@@ -826,6 +816,30 @@ void respiration_temperature_response(double temp,double& gtemp) {
 	} 
 	else {
 		gtemp = 0.0;
+	}
+
+	// Possible updates to gtemp used if temp < 0degC
+	// Needed for root respiration
+	if (ifsoil && ifcarbonfreeze && temp <= 0.0 && !iftwolayersoil) {
+
+		double decomp_at_freezing_point = exp(308.56 * (1.0 / 56.02 - 1.0 / (0.0 + 46.02)));
+
+		// Linear approach (Koven et al. 2011)
+		double slope = decomp_at_freezing_point / fabs(MIN_DECOMP_TEMP);
+
+		if (temp < MIN_DECOMP_TEMP)
+			gtemp = 0.0;
+		else
+			gtemp = slope * temp + decomp_at_freezing_point; // i.e. a linear decrease from decomp_at_freezing_point at 0C to 0 at MIN_DECOMP_TEMP
+	}
+}
+
+void respiration_temperature_response(Soilcolumn& soilcolumn) {
+
+	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+
+		// Calculate gtemp for this soil layer
+		respiration_temperature_response(soilcolumn.soillayers[lyr].temp, soilcolumn.soillayers[lyr].gtemp, true);
 	}
 }
 

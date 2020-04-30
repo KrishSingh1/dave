@@ -46,7 +46,7 @@ file_npool "npool.out"
 !file_nlitter "nlitter.out"
 !file_nuptake "nuptake.out"
 file_nflux "nflux.out"
-!file_vmaxnlim "vmaxnlim.out"
+file_vmaxnlim "vmaxnlim.out"
 
 ! Monthly outputs
 !file_mnpp "mnpp.out"
@@ -60,8 +60,8 @@ file_nflux "nflux.out"
 !file_mevap "mevap.out"
 !file_mintercep "mintercep.out"
 !file_mrunoff "mrunoff.out"
-!file_mwcont_upper "mwcont_upper.out"
-!file_mwcont_lower "mwcont_lower.out"
+file_mwcont_upper "mwcont_upper.out"
+file_mwcont_lower "mwcont_lower.out"
 !file_miso "miso.out"
 !file_mmon "mmon.out"
 !file_mmon_mt1 "mmon_mt1.out"
@@ -97,7 +97,8 @@ ifcalccton 1			! Whether to calculate leaf C:N min from leaf longevity
 				! (PFT-specific value can be specified in this file instead)
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
-npatch 5			! Number of replicate patches to simulate
+hydroscheme "BUCKET"		! BUCKET, HTESSEL
+npatch 1			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
 estinterval 5			! Years between establishment events in cohort mode
 ifdisturb 1			! Whether generic patch-destroying disturbances enabled
@@ -119,6 +120,8 @@ ifdroughtlimitedestab 0		! Whether establishment is limited by growing season dr
 				! guess2008 - species version has 1
 ifrainonwetdaysonly 1		! Whether to rain on wet days only (1), or to rain a bit every day (0)
 ifbvoc 0                     	! Whether to include BVOC calculations (1) or not (0)
+soil_depth 2000.0		! Soil depth (mm)
+timesteplength 1440		! Length of simulated timestep (minutes - 1440 == 1 day)
 
 
 !///////////////////////////////////////////////////////////////////////////////
@@ -235,7 +238,7 @@ group "tree" (
 	crownarea_max 50
 	ltor_max 1
 	turnover_root 0.7
-	rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
+	!rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
 	root_beta 0.982
 	k_allom2 60
 	k_allom3 0.67
@@ -283,7 +286,7 @@ group "shrub" (
 	kest_bg 0.1
 	kest_pres 1
 	litterme 0.3
-	rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
+	!rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
 	root_beta 0.982
 	longevity 100
 
@@ -300,7 +303,7 @@ group "grass" (
 	lifeform "grass"
 	leafphysiognomy "broadleaf"
 	ltor_max 0.5
-	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
+	!rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
 	root_beta 0.9555
 	gmin 0.5
 	phenology "any"
@@ -739,7 +742,7 @@ group "lowshrub"(
 	k_allom1 10
 	k_allom2 4
 	k_latosa 125
-	rootdist 0.27 0.2 0.14 0.1 0.08 0.06 0.04 0.03 0.02 0.02 0.01 0.01 0.01 0.0 0.0
+	!rootdist 0.27 0.2 0.14 0.1 0.08 0.06 0.04 0.03 0.02 0.02 0.01 0.01 0.01 0.0 0.0
 	root_beta 0.9685
 	turnover_sap 0.01
 	greff_min 0.012 	! 60% of the shrub_high value, as in AW, but AW had 0.03

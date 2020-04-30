@@ -669,7 +669,7 @@ void get_stand_age_structure(Gridcell& gridcell,double* densindiv,int& nageclass
   */
 void outlimit(OutputRows& out, const Table& table, double d) {
 
-	if (date.year >= nyear_spinup)
+	if (date.year >= 0)//nyear_spinup)
 		out.add_value(table, d);
 }
 
@@ -719,7 +719,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mmon_mt1[12];
 	double mmon_mt2[12];
 
-	double msoilt[12][SOILTEMPOUT];
+	double msoilt[12][NSOILLAYER_MAX];
 	double mch4[12];
 	double mch4_diff[12];
 	double mch4_ebull[12];
@@ -739,7 +739,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	for (m = 0; m < 12; m++) {
 		mnpp[m] = mlai[m] = mgpp[m] = mra[m] = maet[m] = mpet[m] = mevap[m] = mintercep[m] = mrunoff[m] = mrh[m] = mnee[m] = mwcont_upper[m] = mwcont_lower[m] = miso[m] = mmon[m] = mmon_mt1[m] = mmon_mt2[m] = 0.0;
 
-		for (int sl = 0; sl < SOILTEMPOUT; sl++) msoilt[m][sl] = 0.0;
+		for (int sl = 0; sl < NSOILLAYER_MAX; sl++) msoilt[m][sl] = 0.0;
 		mch4[m] = mch4_diff[m] = mch4_ebull[m] = mch4_plant[m] = msnowdepth[m] = mwtp[m] = mald[m] = 0.0;
 	}
 
@@ -1196,6 +1196,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		//Loop through Patches
 		while (stand.isobj) {
 			Patch& patch = stand.getobj();
+			Soilcolumn& soilcolumn = patch.soilcolumn;
 
 			double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
 
@@ -1228,13 +1229,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			net_nitrif+=patch.fluxes.get_annual_flux(Fluxes::NET_NITRIF)*to_gridcell_average;
 			gross_denitrif+=patch.fluxes.get_annual_flux(Fluxes::GROSS_DENITRIF)*to_gridcell_average;
 			net_denitrif+=patch.fluxes.get_annual_flux(Fluxes::NET_DENITRIF)*to_gridcell_average;
-			
-			NH4_mass+=patch.soil.NH4_mass * to_gridcell_average;
-			NO3_mass+=patch.soil.NO3_mass * to_gridcell_average;
-			NO2_mass+=patch.soil.NO2_mass * to_gridcell_average;
-			NO_mass+=patch.soil.NO_mass * to_gridcell_average;
-			N2O_mass+=patch.soil.N2O_mass * to_gridcell_average;
-			N2_mass+=patch.soil.N2_mass * to_gridcell_average;
 
 			//Fire N flux
 			flux_ntot+=(patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE) +
@@ -1246,9 +1240,6 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 					patch.fluxes.get_annual_flux(Fluxes::NO_SOIL) +
 					patch.fluxes.get_annual_flux(Fluxes::N2O_SOIL) +
 					patch.fluxes.get_annual_flux(Fluxes::N2_SOIL)) * to_gridcell_average;
-
-			c_fast+=patch.soil.cpool_fast*to_gridcell_average;
-			c_slow+=patch.soil.cpool_slow*to_gridcell_average;
 
 			//Sum slow pools of harvested products
 			if(run_landcover && ifslowharvestpool) {
@@ -1277,30 +1268,44 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			aNH4dep_gridcell += gridcell.aNH4dep  * to_gridcell_average;
 			aNO3dep_gridcell += gridcell.aNO3dep  * to_gridcell_average;
 			anfert_gridcell += patch.anfert * to_gridcell_average;
-			anmin_gridcell += patch.soil.anmin * to_gridcell_average;
-			animm_gridcell += patch.soil.animmob * to_gridcell_average;
-			anfix_gridcell += patch.soil.anfix * to_gridcell_average;
-			n_min_leach_gridcell += patch.soil.aminleach * to_gridcell_average;
-			n_org_leach_gridcell += patch.soil.aorgNleach * to_gridcell_average;
-			c_org_leach_gridcell += patch.soil.aorgCleach * to_gridcell_average;
-			availn += (patch.soil.NH4_mass + patch.soil.NO3_mass + patch.soil.snowpack_NH4_mass + patch.soil.snowpack_NO3_mass)
-			           * to_gridcell_average;
+			anmin_gridcell += soilcolumn.anmin() * to_gridcell_average;
+			animm_gridcell += soilcolumn.animmob() * to_gridcell_average;
+			anfix_gridcell += soilcolumn.anfix * to_gridcell_average;
+			n_min_leach_gridcell += soilcolumn.aminleach() * to_gridcell_average;
+			n_org_leach_gridcell += soilcolumn.aorgNleach() * to_gridcell_average;
+			c_org_leach_gridcell += soilcolumn.aorgCleach() * to_gridcell_average;
+			availn += (soilcolumn.nmass_avail() + soilcolumn.snow.nmass_avail()) * to_gridcell_average;
 
-			c_org_leach_lc[stand.landcover] += patch.soil.aorgCleach * to_gridcell_average;
+			c_org_leach_lc[stand.landcover] += soilcolumn.aorgCleach() * to_gridcell_average;
 
-			for (int r = 0; r < NSOMPOOL; r++) {
+			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
-				if(r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
-					surfsoillitterc += patch.soil.sompool[r].cmass * to_gridcell_average;
-					surfsoillittern += patch.soil.sompool[r].nmass * to_gridcell_average;
-				}
-				else if (r == SURFFWD || r == SURFCWD) {
-					cwdc += patch.soil.sompool[r].cmass * to_gridcell_average;
-					cwdn += patch.soil.sompool[r].nmass * to_gridcell_average;
-				}
-				else {
-					centuryc += patch.soil.sompool[r].cmass * to_gridcell_average;
-					centuryn += patch.soil.sompool[r].nmass * to_gridcell_average;
+				Soillayer& soillayer = soilcolumn.soillayers[lyr];
+
+				NH4_mass += soillayer.NH4_mass * to_gridcell_average;
+				NO3_mass += soillayer.NO3_mass * to_gridcell_average;
+				NO2_mass += soillayer.NO2_mass * to_gridcell_average;
+				NO_mass += soillayer.NO_mass * to_gridcell_average;
+				N2O_mass += soillayer.N2O_mass * to_gridcell_average;
+				N2_mass += soillayer.N2_mass * to_gridcell_average;
+
+				c_fast += soillayer.cpool_fast * to_gridcell_average;
+				c_slow += soillayer.cpool_slow * to_gridcell_average;
+
+				for (int r = 0; r < NSOMPOOL; r++) {
+
+					if (r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT) {
+						surfsoillitterc += soillayer.sompool[r].cmass * to_gridcell_average;
+						surfsoillittern += soillayer.sompool[r].nmass * to_gridcell_average;
+					}
+					else if (r == SURFFWD || r == SURFCWD || r == SOILFWD || r == SOILCWD) {
+						cwdc += soillayer.sompool[r].cmass * to_gridcell_average;
+						cwdn += soillayer.sompool[r].nmass * to_gridcell_average;
+					}
+					else {
+						centuryc += soillayer.sompool[r].cmass * to_gridcell_average;
+						centuryn += soillayer.sompool[r].nmass * to_gridcell_average;
+					}
 				}
 			}
 
@@ -1313,8 +1318,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mintercep[m] += patch.mintercep[m]*to_gridcell_average;
 				mrunoff[m] += patch.mrunoff[m]*to_gridcell_average;
 				mrh[m] += patch.fluxes.get_monthly_flux(Fluxes::SOILC, m)*to_gridcell_average;
-				mwcont_upper[m] += patch.soil.mwcont[m][0]*to_gridcell_average;
-				mwcont_lower[m] += patch.soil.mwcont[m][1]*to_gridcell_average;
+				mwcont_upper[m] += soilcolumn.mwcont_depth(SOILDEPTH_UPPER, m) * to_gridcell_average;
+				mwcont_lower[m] += (soil_depth > SOILDEPTH_UPPER ? (patch.soilcolumn.mwcont_depth(soil_depth, m) * soil_depth - patch.soilcolumn.mwcont_depth(SOILDEPTH_UPPER, m) * SOILDEPTH_UPPER) / (soil_depth - SOILDEPTH_UPPER) : 0.0) * to_gridcell_average;
 
 				mgpp[m] += patch.fluxes.get_monthly_flux(Fluxes::GPP, m)*to_gridcell_average;
 				mra[m] += patch.fluxes.get_monthly_flux(Fluxes::RA, m)*to_gridcell_average;
@@ -1340,22 +1345,21 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				mmon_mt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_TBOC, m)*to_gridcell_average;
 				mmon_mt2[m]+=patch.fluxes.get_monthly_flux(Fluxes::MT_OTHR, m)*to_gridcell_average;
 				
-				msnowdepth[m] += patch.soil.msnowdepth[m]*M_PER_MM*to_gridcell_average;
-				mald[m] += patch.soil.mthaw[m]*M_PER_MM*to_gridcell_average;			// mm to m
-				mwtp[m] += patch.soil.mwtp[m]*M_PER_MM*to_gridcell_average;				// mm to m
+				msnowdepth[m] += patch.soilcolumn.snow.mdepth[m]*M_PER_MM*to_gridcell_average;
+				mald[m] += patch.soilcolumn.mthaw[m]*M_PER_MM*to_gridcell_average;			// mm to m
+				mwtp[m] += patch.soilcolumn.mwtp[m]*M_PER_MM*to_gridcell_average;				// mm to m
 				
 				mch4[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C, m)*to_gridcell_average;				// g CH4-C/m2 - as CH4 is in gC, but CO2 fluxes are kgC
 				mch4_diff[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C_DIFF, m)*to_gridcell_average;	// g CH4-C/m2
 				mch4_plant[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C_PLAN, m)*to_gridcell_average;	// g CH4-C/m2
 				mch4_ebull[m] += patch.fluxes.get_monthly_flux(Fluxes::CH4C_EBUL, m)*to_gridcell_average;	// g CH4-C/m2
 				
-				for (int sl = 0; sl < SOILTEMPOUT; sl++) {
-					msoilt[m][sl] += patch.soil.T_soil_monthly[m][sl] * to_gridcell_average;
+				for (int sl = 0; sl < patch.soilcolumn.nsoillayers; sl++) {
+					msoilt[m][sl] += patch.soilcolumn.soillayers[sl].mtemp[m] * to_gridcell_average; // DW_COMMENT ASSUMING ALL PATCHES HAS THE SAME DEPTH
 				}
-
 			}
 
-			maxald_gridcell += patch.soil.maxthawdepththisyear*M_PER_MM*to_gridcell_average;	// mm to m
+			maxald_gridcell += patch.soilcolumn.maxthawdepththisyear*M_PER_MM*to_gridcell_average;	// mm to m
 			
 			// Calculate monthly NPP and LAI
 
@@ -1545,8 +1549,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			plot("C flux [kgC/m2/yr]","NEE",  date.year, flux_veg + flux_repr + flux_soil + flux_fire + flux_est);
 
 			if (!ifcentury) {
-				plot("Soil C [kgC/m2]","slow", date.year, stand[0].soil.cpool_slow);
-				plot("Soil C [kgC/m2]","fast", date.year, stand[0].soil.cpool_fast);
+				plot("Soil C [kgC/m2]","slow", date.year, stand[0].soilcolumn.cpool_slow());
+				plot("Soil C [kgC/m2]","fast", date.year, stand[0].soilcolumn.cpool_fast());
 			}
 			else {
 				plot("N flux [kgN/ha/yr]","fix",   date.year, -anfix_gridcell * M2_PER_HA);

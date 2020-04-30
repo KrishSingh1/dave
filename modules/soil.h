@@ -21,20 +21,22 @@ const bool DEBUG_METHANE = false;
 
 // CONSTANTS
 
-/// number of total soil layers. Must be at least NSOILLAYER + NLAYERS_SNOW + 1
-const int NLAYERS = 22;
 
-/// Number of soil layers for soil temperature/water calculations. Typically 15 10mm layers, making up the 150cm-deep soil column
-const int NSOILLAYER = 15;	// rootdist in .ins file must have NSOILLAYER components
+/*Something like this header file: // DW_COMMENT
+
+// Protect against multiple inclusions in the same source file
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
+
+extern const int CONSTANT_1;
+
+#endif
+And this in a source file:
+
+const int CONSTANT_1 = 123;*/
 
 /// Number of soil layers used in LPJ-GUESS v4.0 for soil water calculations. Typically 2 layers, 500mm + 10000mm, making up the 150cm-deep soil column
 const int NSOILLAYER_SIMPLE = 2;
-
-/// number of depths at which we want the soil T output in outannual
-const int SOILTEMPOUT = NSOILLAYER;
-
-/// index of the first soil layer
-const int IDX_STD = NLAYERS-NSOILLAYER;
 
 /// number of padding layers in the soil
 const int PAD_LAYERS = 5;
@@ -47,9 +49,6 @@ const int NCATOTELM = 12;
 
 /// Number of sublayers in the acrotelm, i.e. 1cm layers with this = 30
 const int NSUBLAYERS_ACRO = 30;
-
-/// Maximum number of layers - for soil temperature calculations
-const int active_layersmax = NLAYERS + PAD_LAYERS;
 
 /// Total depth [mm] of padding layers - set to 8000 when analyticalSolutionTest = true
 const double PAD_DEPTH = 48000;
@@ -83,11 +82,14 @@ const double snowdens_end = 500.0;
 /// maximum number of snow layers allowed (<= 5)
 const int NLAYERS_SNOW = 5;
 
-/// ice density [kg m-3] - CLM value
-const double ice_density = 917.0;
+// WATER PARAMETERS
 
-/// water density [kg m-3]
-const double water_density = 1000.0;
+/// density of ice [kg m-3]
+const double rho_ICE = 917.0;
+
+/// density of water [kg m-3]
+const double rho_H2O = 1000.0;
+
 
 // POROSITIES
 
@@ -212,10 +214,7 @@ const double CH4toCO2_peat = 0.085;
 	
 /// CH4:CO2 ratio for inundated soils (< PEATLAND_WETLAND_LATITUDE_LIMIT N) - See Spahni et al. (2011)
 //const double CH4toCO2_inundated = 0.024; // SC1 value in Spahni et al. SC2 is 0.0415
-const double CH4toCO2_inundated = 0.027; // Updated from Spahni et al. (2011) to match global emissions
-
-/// density of water [kg m-3]
-const double rho_H2O = 1000.0;              
+const double CH4toCO2_inundated = 0.027; // Updated from Spahni et al. (2011) to match global emissions            
 	
 /// acceleration due to gravity [m s-2]
 const double gravity = 9.81;
@@ -239,7 +238,7 @@ const double atm_press = 101325.0;
 const double n_coeff = -0.5;
 
 /// wind speed at 10m height [m s-1]
-const double U10 = 0.0;
+const double U10 = 0.0; // DW_COMMENT WIND SPEED 10m
       
 ///  Henry's Law constants [L atm mol-1] at 298.15K. Wania et al. (2010), Table 2
 const double henry_k_CO2 = 29.41;
@@ -304,11 +303,11 @@ const double PEATLAND_WETLAND_LATITUDE_LIMIT = 40.0;
 
 // INLINE FUNCTIONS
 
-inline void tridiag(int n, long double a[], long double b[], long double c[], long double r[], long double u[]) {
+inline void tridiag(int n, std::vector<double> a, std::vector<double> b, std::vector<double> c, std::vector<double> r, std::vector<double> u) {
 
 	// Tridiagonal system solver from Numerical Recipes.
 
-	double gam[active_layersmax];
+	std::vector<double> gam(n);
 	double bet;
 
 	bet = b[0];

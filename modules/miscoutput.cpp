@@ -779,9 +779,6 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			flux_seed_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::SEEDC)*to_gridcell_average;
 			flux_charvest_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::HARVESTC)*to_gridcell_average;
 
-			c_fast_lc[stand.landcover]+=patch.soil.cpool_fast*to_gridcell_average;
-			c_slow_lc[stand.landcover]+=patch.soil.cpool_slow*to_gridcell_average;
-
 			//Sum slow pools of harvested products
 			if (run_landcover && ifslowharvestpool) {
 				for (int q=0;q<npft;q++) {
@@ -796,33 +793,43 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 			andep_lc[stand.landcover] += (gridcell.aNH4dep + gridcell.aNO3dep) * to_gridcell_average;
 			anfert_lc[stand.landcover] += patch.anfert * to_gridcell_average;
-			anmin_lc[stand.landcover] += patch.soil.anmin * to_gridcell_average;
-			animm_lc[stand.landcover] += patch.soil.animmob * to_gridcell_average;
-			anfix_lc[stand.landcover] += patch.soil.anfix * to_gridcell_average;
-			n_min_leach_lc[stand.landcover] += patch.soil.aminleach * to_gridcell_average;
-			n_org_leach_lc[stand.landcover] += patch.soil.aorgNleach * to_gridcell_average;
-			c_org_leach_lc[stand.landcover] += patch.soil.aorgCleach * to_gridcell_average;
-			availn_lc[stand.landcover] += (patch.soil.NH4_mass + patch.soil.NO3_mass + patch.soil.snowpack_NH4_mass + patch.soil.snowpack_NO3_mass) * to_gridcell_average;
+			anmin_lc[stand.landcover] += patch.soilcolumn.anmin() * to_gridcell_average;
+			animm_lc[stand.landcover] += patch.soilcolumn.animmob() * to_gridcell_average;
+			anfix_lc[stand.landcover] += patch.soilcolumn.anfix * to_gridcell_average;
+			n_min_leach_lc[stand.landcover] += patch.soilcolumn.aminleach() * to_gridcell_average;
+			n_org_leach_lc[stand.landcover] += patch.soilcolumn.aorgNleach() * to_gridcell_average;
+			c_org_leach_lc[stand.landcover] += patch.soilcolumn.aorgCleach() * to_gridcell_average;
 
 			//N-transform
 			flux_NH3_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::NH3_SOIL)*to_gridcell_average;
 			flux_NOx_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::NO_SOIL)*to_gridcell_average;
 			flux_N2O_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::N2O_SOIL)*to_gridcell_average;
-			flux_N2_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::N2_SOIL)*to_gridcell_average;;
+			flux_N2_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::N2_SOIL)*to_gridcell_average;
 
-			for (int r = 0; r < NSOMPOOL; r++) {
+			availn_lc[stand.landcover] += (patch.soilcolumn.snow.NH4_mass + patch.soilcolumn.snow.NO3_mass) * to_gridcell_average;
 
-				if (r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
-					surfsoillitterc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
-					surfsoillittern_lc[stand.landcover] += patch.soil.sompool[r].nmass * to_gridcell_average;
-				}
-				else if (r == SURFFWD || r == SURFCWD) {
-					cwdc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
-					cwdn_lc[stand.landcover] += patch.soil.sompool[r].nmass * to_gridcell_average;
-				}
-				else {
-					centuryc_lc[stand.landcover] += patch.soil.sompool[r].cmass * to_gridcell_average;
-					centuryn_lc[stand.landcover]  += patch.soil.sompool[r].nmass * to_gridcell_average;
+			for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++) {
+				Soillayer soillayer = patch.soilcolumn.soillayers[lyr];
+
+				availn_lc[stand.landcover] += (soillayer.NH4_mass + soillayer.NO3_mass) * to_gridcell_average;
+
+				c_fast_lc[stand.landcover] += soillayer.cpool_fast*to_gridcell_average;
+				c_slow_lc[stand.landcover] += soillayer.cpool_slow*to_gridcell_average;
+
+				for (int r = 0; r < NSOMPOOL; r++) {
+
+					if (r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT) {
+						surfsoillitterc_lc[stand.landcover] += soillayer.sompool[r].cmass * to_gridcell_average;
+						surfsoillittern_lc[stand.landcover] += soillayer.sompool[r].nmass * to_gridcell_average;
+					}
+					else if (r == SURFFWD || r == SURFCWD) {
+						cwdc_lc[stand.landcover] += soillayer.sompool[r].cmass * to_gridcell_average;
+						cwdn_lc[stand.landcover] += soillayer.sompool[r].nmass * to_gridcell_average;
+					}
+					else {
+						centuryc_lc[stand.landcover] += soillayer.sompool[r].cmass * to_gridcell_average;
+						centuryn_lc[stand.landcover] += soillayer.sompool[r].nmass * to_gridcell_average;
+					}
 				}
 			}
 			stand.nextobj();

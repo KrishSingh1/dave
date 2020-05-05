@@ -200,7 +200,7 @@ const double PORE_WATER_CO2 = 934.0;
 const double RMOIST = 0.4;
 
 /// Frolking et al (2001, 2010), Ise et al. (2008)
-const double RMOIST_ANAEROBIC=0.1; 
+const double RMOIST_ANAEROBIC=0.025; 
 	
 /// time step for gas diffusion calculations [day]
 const double Dt_gas = 0.01;

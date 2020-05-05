@@ -16,16 +16,24 @@
 
 #include "guess.h"
 
-/// define simfire biometypes
+// SIMFIRE biometypes
 enum {SF_NOVEG, SF_CROP, SF_NEEDLELEAF, SF_BROADLEAF, SF_MIXED_FOREST, SF_SHRUBS, SF_SAVANNA, SF_TUNDRA, SF_BARREN};
 
-// read input data for SIMFIRE
+/// Read SIMFIRE related data for a gridcell at beginning of simulation
+/** Reads SIMFIRE relevant info from simfire_nput.bin:
+ *  Hyde 3.1 population density
+ *  Monthly fire climatology
+ */
 void getsimfiredata(Gridcell& gridcell);
 
-// daily accounting for SIMFIRE
+/// Daily book-keeping for SIMFIRE-relevant variables
+/** Updates SIMFIRE's Max Annual Mesterov Index
+ *  and running mean of max annual FPAR (from canexch.cpp).
+ *  Updates fire biome at beginning of the year.
+ */
 void simfire_accounting_gridcell(Gridcell& gridcell);
 
-// SIMFIRE
+/// Calculate burned area in ha following Knorr 2014.
 double simfire_burned_area(Gridcell& gridcell); 
 
 #endif // LPJ_GUESS_SIMFIRE_H

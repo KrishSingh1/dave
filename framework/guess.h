@@ -593,13 +593,13 @@ struct PhotosynthesisResult : public Serializable {
 
 	/// leaf-level net daytime photosynthesis
 	/** expressed in CO2 diffusion units (mm/m2/day) */
-    double adtmm;
+	double adtmm;
 
 	/// leaf respiration (gC/m2/day)
 	double rd_g;
 
 	/// PAR-limited photosynthesis rate (gC/m2/h)
-    double je;
+	double je;
 
 	/// optimal leaf nitrogen associated with photosynthesis (kgN/m2)
 	double nactive_opt;
@@ -616,17 +616,30 @@ struct PhotosynthesisResult : public Serializable {
 };
 
 /// Class containing serializable variables for Weathergenerator GWGen
+/** 
+Variables for the build-in random-generator and to keep track of whether past days 
+were rain days
+*/
 class WeatherGenState : public Serializable {
 
 public:
+	/// Random state variable q
 	int q[10];
+	/// Random state variable carry
 	int carry;
+	/// Random state variable xcng
 	int xcng;
+	/// Random state variable xs
 	unsigned int xs; 
+	/// Random state variable indx
 	int indx;
+	/// Random state variable have
 	bool have;
+	/// Random state gamma	
 	double gamma_vals[2];
+	/// Indicator for whether the recent two days were rein-days
 	bool pday[2];
+	/// Random state's residuals
 	double resid[4];
 
 	void serialize(ArchiveStream& arch);
@@ -794,13 +807,13 @@ public:
 	/// precipitation today (mm)
 	double prec;
 
-	/// 10 m wind [km/h]
+	/// 10 m wind (km/h)
 	double u10;
 
-	/// rel. humidity [fract.]
+	/// rel. humidity (fract.)
 	double relhum;
 
-	/// min and max daily temperature [deg C]
+	/// min and max daily temperature (deg C)
 	double tmin, tmax; 
 
 	/// day length today (h)
@@ -889,20 +902,19 @@ public:
 
 
 	// BLAZE
-
-	/// average annual rainfall [mm/a]
+	/// average annual rainfall (mm/a)
 	double avg_annual_rainfall;
-	///  current sum of annual Rainfall
+	/// current sum of annual Rainfall (mm)
 	double cur_rainfall;
-	/// Accumulated last rainfall [mm]
+	/// Accumulated last rainfall (mm)
 	double last_rainfall;
-	/// Days since last rainfall
+	/// Days since last rainfall 
 	double days_since_last_rainfall;
 	/// Keetch-Byram-Drought-Index
 	double kbdi;
 	/// McArthur forest fire index (FFDI)
 	double mcarthur_forest_fire_index;	
-	/// To keep track of running months FFDI
+	/// To keep track of running months daily FFDI 
 	double months_ffdi[30];	
 
 	// Saved parameters used by function daylengthinsoleet
@@ -2712,7 +2724,7 @@ public:
 	 */
 	void reduce_biomass(double mortality, double mortality_fire);
 
-	/// A version of the above reduce_biomass for the use with blaze
+	/// A version of the above reduce_biomass for the use with BLAZE
 	void blaze_reduce_biomass(Patch& patch, double frac_survive);
 
 	/// Total storage of nitrogen
@@ -4022,42 +4034,42 @@ public:
 	bool disturbed;
 	/// patch age (years since last disturbance)
 	int age;
-	/// probability of fire this year
+	/// probability of fire this year (GlobFIRM)
 	double fireprob;
 
-	/// BLAZE Fire line intensity;
+	/// BLAZE Fire line intensity (kW/m)
 	double fire_line_intensity;
 
 	// BLAZE fire related carbon fluxes
-	/// BLAZE-fire carbon flux: live wood to atmosphere
+	/// BLAZE-fire carbon flux: live wood to atmosphere (kgC/m2)
 	double wood_to_atm;
-	/// BLAZE-fire carbon flux: leaves to atmosphere
+	/// BLAZE-fire carbon flux: leaves to atmosphere (kgC/m2)
 	double leaf_to_atm;
-	/// BLAZE-fire carbon flux: leaves to litter
+	/// BLAZE-fire carbon flux: leaves to litter (kgC/m2)
 	double leaf_to_lit;
-	/// BLAZE-fire carbon flux: live wood to structural litter
+	/// BLAZE-fire carbon flux: live wood to structural litter (kgC/m2)
 	double wood_to_str;
-	/// BLAZE-fire carbon flux: live wood to fine woody debris
+	/// BLAZE-fire carbon flux: live wood to fine woody debris (kgC/m2)
 	double wood_to_fwd;
-	/// BLAZE-fire carbon flux: live wood to coarse woody debris
+	/// BLAZE-fire carbon flux: live wood to coarse woody debris (kgC/m2)
 	double wood_to_cwd;
-	/// BLAZE-fire carbon flux: fine litter (leaf,structural, metabolic) to atmosphere
+	/// BLAZE-fire carbon flux: fine litter to atmosphere (kgC/m2)
 	double litf_to_atm;
-	/// BLAZE-fire carbon flux: fine woody debris to atmosphere
+	/// BLAZE-fire carbon flux: fine woody debris to atmosphere (kgC/m2)
 	double lfwd_to_atm;
-	/// BLAZE-fire carbon flux: coarse woody debris to atmosphere
+	/// BLAZE-fire carbon flux: coarse woody debris to atmosphere (kgC/m2)
 	double lcwd_to_atm;
 
-	// Storage for averaging of different Fpars for biome mapping in Simfire
-	/// Simfire Grasses
+	// Storage for averaging of different Fapars for biome mapping in SIMFIRE
+	/// SIMFIRE fapar: Grasses
 	double avg_fgrass[N_YEAR_BIOMEAVG];
-	/// Simfire Needle-leaf trees
+	/// SIMFIRE fapar: Needle-leaf tree
 	double avg_fndlt[N_YEAR_BIOMEAVG];
-	/// Simfire Broad-leaf trees
+	/// SIMFIRE fapar: Broad-leaf tree
 	double avg_fbrlt[N_YEAR_BIOMEAVG];
-	/// Simfire Shrubs
+	/// SIMFIRE fapar: Shrubs
 	double avg_fshrb[N_YEAR_BIOMEAVG];
-	/// Simfire Total
+	/// SIMFIRE fapar: Total fapar
 	double avg_ftot[N_YEAR_BIOMEAVG];
 
 	/// whether management has started on this patch
@@ -4685,7 +4697,7 @@ public:
 	/// climate, insolation and CO2 for this grid cell
 	Climate climate;
 
-    /// soil static parameters for this grid cell
+	/// soil static parameters for this grid cell
 	Soiltype soiltype;
 
 	/// landcover fractions and landcover-specific variables
@@ -4700,46 +4712,43 @@ public:
 	/// object for keeping track of carbon and nitrogen balance
 	MassBalance balance;
 
+	// SIMFIRE
 	/// the region index to chosose from set of optimisations
 	int simfire_region;
-
-	/// population density
+	/// timeseries of population density from the Hyde 3.1 dataset (inhabitants/ha)
 	double hyde31_pop_density[57];
-
-	/// population density
+	/// current year's population density (inhabitants/ha)
 	double pop_density;
-
 	/// tuning factor for available litter
 	double k_tun_litter;
-
-	// SIMFIRE
 	/// maximum annual Nesterov Index
 	double max_nesterov;
 	/// current Nexterov index
 	double cur_nesterov;
-	/// Monthly max Nexterov index to keep track of running year
+	/// Monthly max Nexterov index (to keep track of running year)
 	double monthly_max_nesterov[12];
-	/// biome as used in SIMFIRE
+	/// biome classification used in SIMFIRE
 	int simfire_biome;
-	/// Averaged (over avg_interv_fpar years)maximum annual fAPAR
+	/// Average maximum annual fAPAR (over avg_interv_fpar years)
 	double ann_max_fapar;
-	/// list of Max
+	/// Average maximum annual fAPAR of recent years
 	double recent_max_fapar[AVG_INTERVAL_FAPAR];
-	/// maximum fapar of running year
+	/// maximum fapar of running year so far
 	double cur_max_fapar;
-	/// monthly fire risk
+	/// monthly fire risk (factor describing local monthly fire climatology)
 	double monthly_fire_risk[12];
-	/// burned area from SIMFIRE
+	/// current burned area from SIMFIRE (fract.)
 	double burned_area;
-	/// accumulated burned area from SIMFIRE for tstep < 1a
+	/// accumulated burned area from SIMFIRE for tstep < 1a (fract.)
 	double burned_area_accumulated;
 	/// Simple tracker to check whether at least one patch has enough fuel to burn
 	int can_burn;
-	/// annual burned area from SIMFIRE
+	/// annual burned area from SIMFIRE (fract.)
 	double annual_burned_area;
-	/// monthly burned area from SIMFIRE
+	/// monthly burned area from SIMFIRE (fract.)
 	double monthly_burned_area[12];
 
+	// Nitrogen deposition
 	/// annual NH4 deposition (kgN/m2/year)
 	double aNH4dep;
 	/// annual NO3 deposition (kgN/m2/year)

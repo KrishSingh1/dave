@@ -63,11 +63,12 @@ pft "Np_moss" (
 	gdd5min_est 0
 	drought_tolerance 0.82
 
-	! BVOC values - Guy Schurgers, October/November 2011
-	eps_iso 1.
+    ! BVOC values - Guy Schurgers, October/November 2011, Tang et al., 2016
+    ! copied from cushionforblichenmosstundra in arctic.ins
+	eps_iso 1.29
 	seas_iso 0
-	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
-	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ! Jing update 2020, but fraction from C3G
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ! Jing update 2020
 	ga 0.030
 	!sla 25.8
 )
@@ -97,10 +98,10 @@ pft "pLSE" (
 	wtp_max -250 ! mm
 	inund_duration 5 ! days
 
-	! BVOC values, Tang et al., 2016
+    ! BVOC values, Tang et al., 2016
 	eps_iso 1.75  ! Jing updated 2020
 	seas_iso 0
-	eps_mon 0.02 0.01 0.01 0.01	0.01 0.00 0.01 0.01 0.01 !Jing update 2020, but fraction from C3G
+	eps_mon 0.02 0.01 0.01 0.01 0.01 0.00 0.01 0.01 0.01 !Jing update 2020, but fraction from C3G
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5 ! Jing update 2020, this is from C3G
 	ga 0.040
 )
@@ -131,7 +132,7 @@ pft "pLSS" (
 	wtp_max -250 ! mm
 	inund_duration 5 ! days
 
-	! BVOC values - Guy Schurgers, October/November 2011, Tang et al., 2016
+    ! BVOC values - Guy Schurgers, October/November 2011, Tang et al., 2016
 	eps_iso 6.9  ! Jing updated 2020
 	seas_iso 1
 	eps_mon 0.17 0.09 0.11 0.05 0.05 0.04 0.05 0.10 0.09 !Jing update 2020, but fraction from C3G
@@ -190,11 +191,11 @@ pft "WetGRS" (
 	inund_duration 31 ! days
 	has_aerenchyma 1 ! This PFT has aerenchyma for gas transport
 
-	! BVOC values - Guy Schurgers, October/November 2011
-	eps_iso 20.0
+    ! BVOC values - Guy Schurgers, October/November 2011, Tang et al., 2016
+	eps_iso 9.82  ! Jing updated 2020
 	seas_iso 1
-	eps_mon 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ! old values - must update
-	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ! old values - must update
+	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ! Jing updated 2020
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5 ! Jing update 2020, this is from C3G
 	ga 0.030
 	!sla 19.75
 )
@@ -232,12 +233,12 @@ pft "pmoss" (
 	inund_duration 15
 
 	! BVOC values - Guy Schurgers, October/November 2011
-	eps_iso 1.2
+	! copied from cushionforblichenmosstundra in arctic.ins
+	eps_iso 1.29
 	seas_iso 0
-	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ! old values - must update
-	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ! old values - must update
+	eps_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ! Jing update 2020, but fraction from C3G
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ! Jing update 2020
 	ga 0.030
-	!sla 25.8
 )
 
 

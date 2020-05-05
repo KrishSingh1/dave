@@ -49,8 +49,8 @@ file_nflux "nflux.out"
 !file_vmaxnlim "vmaxnlim.out"
 
 ! Monthly outputs
-!file_mnpp "mnpp.out"
-!file_mlai "mlai.out"
+file_mnpp "mnpp.out"
+file_mlai "mlai.out"
 !file_mrh "mrh.out"
 !file_mgpp "mgpp.out"
 !file_mra "mra.out"
@@ -101,7 +101,7 @@ npatch 5			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
 estinterval 5			! Years between establishment events in cohort mode
 ifdisturb 1			! Whether generic patch-destroying disturbances enabled
-distinterval 300		! Average return time for generic patch-destroying disturbances
+distinterval 150 		! Average return time for generic patch-destroying disturbances
 				! Hickler et al. (2011) used 200
 				! Pugh et al. (2019) have 300 approx for boreal forests
 ifbgestab 1			! Whether background establishment enabled
@@ -270,6 +270,7 @@ group "shrub" (
 	leafphysiognomy "broadleaf"
 	crownarea_max 10
 	ltor_max 1
+	turnover_root 0.7
 	k_allom1 100
 	k_allom2 5
 	k_allom3 0.67
@@ -288,6 +289,8 @@ group "shrub" (
 	rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
 	root_beta 0.982
 	longevity 100
+
+	fireresist 0.12 ! Common to all shrubs
 
 	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time
 	harvest_slow_frac 0
@@ -430,8 +433,8 @@ pft "BNE" (
 	shade_tolerant
 	evergreen
 	boreal
-	leaflong 3
-	turnover_leaf 0.33
+	leaflong 4	! global.ins has 3
+	turnover_leaf 0.25
 	tcmin_surv -31
 	tcmin_est -30
 	tcmax_est -1
@@ -491,6 +494,8 @@ pft "BNS" (
 	gdd5min_est 350		! Stefan added new value, old 500
 	phengdd5ramp 100	! Stefan added new value, old 200
 	longevity 300
+	root_beta 0.938		! ! A bit closer to tundra in Jackson et al., 1996
+	ltor_max 1.5		! overrides tree group
 	!rootdist 0.26 0.19 0.14 0.11 0.08 0.06 0.05 0.03 0.02 0.02 0.01 0.01 0.01 0.01 0.0
 	fireresist 0.3
 	eps_iso 8.0
@@ -512,10 +517,14 @@ pft "IBS" (
 	tcmin_surv -30
 	tcmin_est -30
 	tcmax_est 7
-	twmin_est -1000  !no limit
-	gdd5min_est 350 !from TH 2010-03-10 AA
-	longevity 300 !from TH 2010-04-07 was 300 AA
+	twmin_est -1000
+	gdd5min_est 350
+	longevity 300
 	fireresist 0.1
+
+	greff_min 0.06	! override shade intolerant value
+	wooddens 250	! was 200
+
 	eps_iso 45.0
 	seas_iso 1
 	eps_mon 0.52 0.14 0.1 0.04 0.49 0.01 0.04 0.18 0.08
@@ -590,19 +599,15 @@ group "tallshrub" (
 	crownarea_max 4.0
 	k_allom2 6
 	k_latosa 500
-	longevity 100 ! Wolf et al have 40. Juniper can live for > 100 years
 	rootdist 0.14 0.14 0.14 0.14 0.14 0.03 0.03 0.03 0.03 0.03 0.03 0.03 0.03 0.03 0.03
-	turnover_root 0.7
 
-	! Bioclimatic limits
-	gdd5min_est 0
-	gdd0_min 600
+	! Longevity
+	longevity 100 ! Wolf et al have 40. Juniper can live for > 100 years
+
+	! Bioclimatic limits (GDD5 values set for each PFT below)
+	gdd0_min 600 
 	tcmin_surv -32.5
 	tcmax_est 5
-	twmin_est -1000
-
-	! stresses
-	fireresist 0.12
 
 	! Shade tolerance (Zhang et al. 2014 - Table S2b)
 	est_max 0.5
@@ -625,12 +630,13 @@ group "lowshrub" (
 	k_allom1 10
 	k_allom2 4
 	k_latosa 125
-	longevity 25
 	rootdist 0.16 0.16 0.16 0.16 0.16 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02	
-	turnover_root 0.7
+
+	! Longevity
+	longevity 25
 
 	! Bioclimatic limits
-	gdd5min_est 0
+	tcmax_est 5
 	gdd0_min 250
 
 	! Shade tolerance (Zhang et al. 2014 - Table S2b)
@@ -639,7 +645,6 @@ group "lowshrub" (
 	alphar 2.0
 	greff_min 0.012
 	turnover_sap 0.01
-
 )
 
 
@@ -650,18 +655,24 @@ group "prostratedwarfshrub" (
 	shrub
 
 	! Allometry
+	crownarea_max 1.0
+	k_allom1 10
+	k_allom2 1
 	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
-	!root_beta 0.9555
-	turnover_root 0.5
+	ltor_max 0.5   ! overrides shrub group value
+
+	! Longevity
+	longevity 30
+
+	! Structure and function
+	wooddens 200
+	cton_sap 300 ! overrides shrub value of 330
 
 	! Bioclimatic limits
-	tcmin_surv -1000
-	tcmin_est -1000
 	tcmax_est 5
-	twmin_est -1000
 	gdd5min_est 0
 	gdd0_min 150
-	gdd0_max 800 !orig is 350, Jing
+	gdd0_max 500 ! as in Zhang et al. (2013)
 	min_snow 20.0
 
 	! Shade tolerance (Zhang et al. 2014 - Table S2b) - Assumed to be the same as low shrubs
@@ -681,8 +692,6 @@ group "prostratedwarfshrub" (
 	!eps_mon 0.37 0.2 0.23 0.1 0.1 0.09 0.1 0.22 0.19 ! C3G values - must update
 	!storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5 ! C3G values - must update
 	ga 0.030
-
-
 )
 
 group "cushionforblichenmosstundra" (
@@ -693,16 +702,16 @@ group "cushionforblichenmosstundra" (
 
 	grass
    	boreal
-
-	ltor_max 0.1
-	turnover_root 0.5
-	turnover_leaf 0.6
 	pathway "c3"
 
-	tcmin_surv -1000
-	tcmin_est -1000
+	! Structure and function
+	rootdist 0.37 0.23 0.15 0.09 0.06 0.04 0.02 0.02 0.01 0.01 0.0 0.0 0.0 0.0 0.0
+	ltor_max 0.4
+	turnover_root 0.5
+	turnover_leaf 0.6
+
+	! Bioclimatic limits
 	tcmax_est 5
-	twmin_est -1000
 	gdd5min_est 0
 	phengdd5ramp 1
 	min_snow 50.0
@@ -712,9 +721,6 @@ group "cushionforblichenmosstundra" (
 	! Tundra (High Arctic) peatlands
 	wtp_max -200 ! mm
 	inund_duration 10 ! days
-
-	rootdist 0.37 0.23 0.15 0.09 0.06 0.04 0.02 0.02 0.01 0.01 0.0 0.0 0.0 0.0 0.0
-	root_beta 0.9555
 
 	! BVOC values - Guy Schurgers, October/November 2011, Tang et al., 2016
 	eps_iso 1.29
@@ -741,8 +747,11 @@ pft "HSE" (
 
 	k_allom1 28
 
-	leaflong 3 		! Wolf: 2
-	turnover_leaf 0.333	! Wolf: 0.5
+	leaflong 3
+	turnover_leaf 0.333
+
+	est_max 0.2 	! overrides group value
+	wooddens 300	! was 250
 
 	tcmin_est -16 		! Estimated from map
 	gdd5min_est 300
@@ -772,10 +781,12 @@ pft "HSS" (
 
 	k_allom1 30
 
-	tcmin_est -32.5 ! Estimated from map
+	wooddens 200	! was 250
+	k_latosa 600	! FL change, set to the same relative difference as broadleafed/needleleafed, was 500
 
+	tcmin_est -32.5 ! Estimated from map
 	gdd5min_est 200
-	phengdd5ramp 50 ! PM, AW: 0, which is unrealistic
+	phengdd5ramp 50
 
 	! BVOC values - Guy Schurgers, October/November 2011, Tang et al., 2016
 	eps_iso 4.0
@@ -783,7 +794,6 @@ pft "HSS" (
 	eps_mon 0.462 0.246 0.292 0.124	0.13 0.108 0.13	0.276 0.232 !Jing update 2020, but fraction from C3G
 	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ! Jing update 2020
 	!sla 24.25
-
 )
 
 
@@ -803,9 +813,10 @@ pft "LSE" (
 
  	leaflong 3
 	turnover_leaf 0.33
-	gdd5min_est 75
 
-	fireresist 0.12
+	gdd5min_est 500 ! was 75. 500 as BNE
+
+	est_max 0.35 	! overrides group value
 
 	! BVOC values, Tang et al., 2016
 	eps_iso 1.75  ! Jing updated 2020
@@ -813,7 +824,6 @@ pft "LSE" (
 	eps_mon 0.02 0.01 0.01 0.01	0.01 0.00 0.01 0.01 0.01 !Jing update 2020, but fraction from C3G
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5 ! Jing update 2020, this is from C3G
 	ga 0.040
-
 )
 
 
@@ -829,12 +839,10 @@ pft "LSS" (
 	boreal
 	summergreen
 
-	leaflong 0.5
 	gdd5min_est 100
+	phengdd5ramp 20
 
-	phengdd5ramp 50 ! PM, AW: 0, which is unrealistic
-
-	fireresist 0.12 ! Found on the driest peatlands, or raised hummocks
+	k_latosa 150	! FL change, set to the same relative difference as broadleafed/needleleafed, was 125
 
 	! BVOC values - Guy Schurgers, October/November 2011, Tang et al., 2016
 	eps_iso 6.9  ! Jing updated 2020
@@ -842,7 +850,6 @@ pft "LSS" (
 	eps_mon 0.17 0.09 0.11 0.05 0.05 0.04 0.05 0.10 0.09 !Jing update 2020, but fraction from C3G
 	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ! Jing update 2020
 	!sla 24.25
-
 )
 
 
@@ -859,18 +866,12 @@ pft "GRT" (
 	boreal
 
 	pathway "c3"
-	ltor_max 0.2 ! AW, overrides grass
-	! turnover_root 0.5 ! AW, overrides grass. Too competitive when = 0.5
-
-	tcmin_surv -1000
-	tcmin_est -1000
-	tcmax_est 1000
-	twmin_est -1000
+	ltor_max 0.4 ! overrides grass group value
+	
 	gdd5min_est 0
-	phengdd5ramp 50 ! orig. paul has 50 Jing, temporary testing! AW has 0, but then GFT is too dominant in heath areas. Overrides grass
-	gdd0_min 150  ! orig. 150
-	gdd0_max 1000 !This is the limitation for excluding abisko GRT establishment, gdd0 value around 1984-2012 is generally higher than 1200
-
+	phengdd5ramp 10 ! Overrides grass group value
+	gdd0_min 150
+	gdd0_max 1000
 
 	! BVOC values - Guy Schurgers, October/November 2011, Tang et al., 2016
 	eps_iso 9.82  ! Jing updated 2020
@@ -893,27 +894,12 @@ pft "EPDS" (
 	evergreen
 	boreal
 
-	ltor_max 0.5   ! Jing not sure
-
 	leaflong 2
 	turnover_leaf 0.5
 
-	turnover_root 0.7
-	!turnover_sap 0.15
-
-	fireresist 0.12
-	crownarea_max 1
-	k_allom1 10
-	k_allom2 1
 	k_latosa 100 ! Overrides value in needleleaved
 
-	wooddens 200
-
-	longevity 30
-	phengdd5ramp 50
-	gdd5min_est 0
-	cton_sap 300
-	gdd0_max 1500 !orig is 350, Jing, increased this value for the abisko area, since it can normally over 1200.
+	est_max 0.5 ! overrides group value
 
 	! BVOC
 	eps_iso 1.4   ! Jing updated 2020
@@ -923,6 +909,7 @@ pft "EPDS" (
 	ga 0.030
 	!sla 12.56
 )
+
 
 pft "SPDS" (
 	! Prostrate dwarf shrubs
@@ -935,24 +922,9 @@ pft "SPDS" (
 	summergreen
 	boreal
 
-	ltor_max 0.5   ! Jing not sure
+	k_latosa 120	! set to the same relative difference as broadleafed/needleleafed, was 100	
 
-	turnover_root 0.7
-	turnover_sap 0.15
-	fireresist 0.12
-
-	crownarea_max 1
-	k_allom1 10
-	k_allom2 1
-	k_latosa 100 ! Overrides value in needleleaved
-	wooddens 200
-
-	longevity 30
 	phengdd5ramp 20
-	gdd5min_est 0
-
-	cton_sap 300
-	nuptoroot 0.00551  ! was 0.0028
 
 	! BVOC
 	eps_iso 14.11
@@ -987,7 +959,7 @@ group "C4G" (
 	phenology "any"
 	leaflong 0.5
 	turnover_leaf 1
-	turnover_root 0.7 ! PM_Dec2012, was 0.5
+	turnover_root 0.7
 	phengdd5ramp 100
 	pstemp_min 6
 	pstemp_low 20

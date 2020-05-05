@@ -78,13 +78,12 @@ pft "pLSE" (
 	! Low shrub, evergreen
 	! Typical species: Vaccinium vitis-idaea, Cassiope tet.,
 	! Ledum palustre, Erica spec.
-
 	! Peatland version
 
 	include 1
 
 	needleleaved
-	lowshrub
+	lowshrub ! NB: Overrides k_latosa set in needleleaved
 	boreal
 	evergreen
 
@@ -94,20 +93,16 @@ pft "pLSE" (
 	turnover_leaf 0.33
 	gdd5min_est 75
 
-	fireresist 0.12
-
 	! Found on the driest peatlands, or raised hummocks
 	wtp_max -250 ! mm
 	inund_duration 5 ! days
 
-	! BVOC values, 2015-06-18
-	eps_iso 1.737  !Jing, based on obs. value for Empetrum hermaphroditum! at 30 degree, 4.96, but at 20 degree, 4.47
+	! BVOC values, Tang et al., 2016
+	eps_iso 1.75  ! Jing updated 2020
 	seas_iso 0
-	!eps_mon 0.088  !Jing, based on obs. value for Empetrum hermaphroditum ! at 30 degree is 0.13, at 20 degree, 0.12
-	eps_mon 0.088 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ! old values - must update
-	storfrac_mon 0.5 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ! old values - must update
+	eps_mon 0.02 0.01 0.01 0.01	0.01 0.00 0.01 0.01 0.01 !Jing update 2020, but fraction from C3G
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5 ! Jing update 2020, this is from C3G
 	ga 0.040
-
 )
 
 
@@ -116,32 +111,31 @@ pft "pLSS" (
 
 	! Low shrub, summergreen
 	! Typical species: Vaccinium myrtillus, V. uliginosum, Salix hastata, S. glauca etc.
-
 	! Peatland version
+
 	include 1
+
 	broadleaved
-	lowshrub
+	lowshrub ! NB: Overrides k_latosa set in broadleaved
 	boreal
 	summergreen
 
 	landcover "peatland"
 
-	leaflong 0.5
 	gdd5min_est 100
+	phengdd5ramp 20
 
-	phengdd5ramp 50 ! PM, AW: 0, which is unrealistic
-
-	fireresist 0.12
+	k_latosa 150	! FL change, set to the same relative difference as broadleafed/needleleafed, was 125
 
 	! Found on the driest peatlands, or raised hummocks
 	wtp_max -250 ! mm
 	inund_duration 5 ! days
 
-	! BVOC values - Guy Schurgers, October/November 2011
-	eps_iso 2.0
+	! BVOC values - Guy Schurgers, October/November 2011, Tang et al., 2016
+	eps_iso 6.9  ! Jing updated 2020
 	seas_iso 1
-	eps_mon 0.37 0.2 0.23 0.1 0.1 0.09 0.1 0.22 0.19 ! C3G values - must update
-	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5 ! C3G values - must update
+	eps_mon 0.17 0.09 0.11 0.05 0.05 0.04 0.05 0.10 0.09 !Jing update 2020, but fraction from C3G
+	storfrac_mon 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ! Jing update 2020
 	!sla 24.25
 
 )
@@ -177,8 +171,6 @@ pft "WetGRS" (
 	! AW, override these grass values
 	pathway "c3"
 	turnover_root 0.5 ! Override grass value
-	!cton_leaf 40 	! Wania et al. (2009b)
-	!cton_root 40	! Wania et al. (2009b)
 
 	! Wania et al. values
 	pstemp_min -5

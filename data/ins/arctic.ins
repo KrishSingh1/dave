@@ -631,6 +631,7 @@ group "lowshrub" (
 	k_allom2 4
 	k_latosa 125
 	rootdist 0.16 0.16 0.16 0.16 0.16 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02 0.02	
+	root_beta 0.938	! Somewhat closer to tundra vegetation in Jackson et al.
 
 	! Longevity
 	longevity 25
@@ -659,7 +660,8 @@ group "prostratedwarfshrub" (
 	k_allom1 10
 	k_allom2 1
 	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
-	ltor_max 0.5   ! overrides shrub group value
+	root_beta 0.914		! Tundra vegetation in Jackson et al., 1996
+	ltor_max 0.5   		! overrides shrub group value
 
 	! Longevity
 	longevity 30
@@ -706,6 +708,7 @@ group "cushionforblichenmosstundra" (
 
 	! Structure and function
 	rootdist 0.37 0.23 0.15 0.09 0.06 0.04 0.02 0.02 0.01 0.01 0.0 0.0 0.0 0.0 0.0
+	root_beta 0.9555
 	ltor_max 0.4
 	turnover_root 0.5
 	turnover_leaf 0.6

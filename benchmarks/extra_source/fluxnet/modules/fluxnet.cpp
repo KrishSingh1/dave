@@ -177,11 +177,11 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 
 				lon = gridlist.getobj().lon;
 				lat = gridlist.getobj().lat;
-				gridfound = CRU_TS30::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
+				gridfound = CRU_FastArchive::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
 					hist_mtemp, hist_mprec, hist_msun);
 
 				if (gridfound) // Get more historical CRU data for this grid cell
-					gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation,
+					gridfound = CRU_FastArchive::searchcru_misc(file_cru_misc, lon, lat, elevation,
 						hist_mfrs, hist_mwet, hist_mdtr);
 
 				if (run_landcover && gridfound) {

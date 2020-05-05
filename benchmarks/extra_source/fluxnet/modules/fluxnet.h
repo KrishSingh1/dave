@@ -75,8 +75,8 @@ protected:
 	*  \param mnwetdep      Pointer to array holding 12 doubles
 	*/
 	void get_monthly_ndep(int calendar_year,
-		double* mndrydep,
-		double* mnwetdep);
+	                      double* mNHxdrydep, double* mNOydrydep,
+						  double* mNHxwetdep, double* mNOywetdep);
 
 	/// Gives sub-classes a chance to modify the forcing data
 	/** This function will be called just after the forcing data for the historical

@@ -28,11 +28,12 @@ namespace {
 	xtring file_cru_misc;
 
 	/// Interpolates monthly data to quasi-daily values.
-	void interp_climate(double* mtemp, double* mprec, double* msun,
-		double* dtemp, double* dprec, double* dsun) {
+	void interp_climate(double* mtemp, double* mprec, double* msun, double* mdtr,
+						double* dtemp, double* dprec, double* dsun, double* ddtr) {
 		interp_monthly_means_conserve(mtemp, dtemp);
 		interp_monthly_totals_conserve(mprec, dprec, 0);
 		interp_monthly_means_conserve(msun, dsun, 0);
+		interp_monthly_means_conserve(mdtr, ddtr, 0);
 	}
 }
 
@@ -134,12 +135,12 @@ void FluxnetInput::init() {
 };
 
 void FluxnetInput::get_monthly_ndep(int calendar_year,
-	double* mnNHxdrydep, double* mNOdrydep,
-	double* mnNHxwetdep, double* mNOwetdep) {
+	double* mNHxdrydep, double* mNOydrydep,
+	double* mNHxwetdep, double* mNOywetdep) {
 
 	ndep.get_one_calendar_year(calendar_year,
-		mNHxdrydep, mNOdrydep,
-		mNHXwetdep, mNOwetdep);
+		mNHxdrydep, mNOydrydep,
+		mNHxwetdep, mNOywetdep);
 }
 
 void FluxnetInput::adjust_raw_forcing_data(double hist_mtemp[NYEAR_HIST][12],
@@ -431,9 +432,10 @@ bool FluxnetInput::getclimate(Gridcell& gridcell) {
 
 		// Extract N deposition to use for this year,
 		// monthly means to be distributed into daily values further down
-		double mndrydep[12], mnwetdep[12];
+		double mNHxdrydep[12], mNOydrydep[12], mNHxwetdep[12], mNOywetdep[12];
 		ndep.get_one_calendar_year(date.year - nyear_spinup + FIRSTHISTYEAR,
-			mndrydep, mnwetdep);
+								   mNHxdrydep, mNOydrydep, 
+								   mNHxwetdep, mNOywetdep);
 
 		if (date.year < nyear_spinup) {
 
@@ -507,17 +509,37 @@ bool FluxnetInput::getclimate(Gridcell& gridcell) {
 		else if (date.year < nyear_spinup + NYEAR_HIST) {
 
 			// Historical period
+			if ( weathergenerator == INTERP ) {
 
-			// Interpolate this year's monthly data to quasi-daily values
-			interp_climate(hist_mtemp[date.year - nyear_spinup],
-				hist_mprec[date.year - nyear_spinup], hist_msun[date.year - nyear_spinup],
-				dtemp, dprec, dsun);
+				// Interpolate this year's monthly data to quasi-daily values
+				interp_climate(hist_mtemp[date.year-nyear_spinup],
+					       hist_mprec[date.year-nyear_spinup],
+					       hist_msun[date.year-nyear_spinup],
+					       hist_mdtr[date.year-nyear_spinup],
+					       dtemp,dprec,dsun,ddtr);
 
-			// Only recalculate precipitation values using weather generator
-			// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
-			if (ifrainonwetdaysonly) {
-				// (from Dieter Gerten 021121)
-				prdaily(hist_mprec[date.year - nyear_spinup], dprec, hist_mwet[date.year - nyear_spinup], gridcell.seed);
+				// Only recalculate precipitation values using weather generator
+				// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
+				if (ifrainonwetdaysonly) {
+					// (from Dieter Gerten 021121)
+					prdaily(hist_mprec[date.year-nyear_spinup], dprec,
+						hist_mwet[date.year-nyear_spinup], gridcell.seed);
+				}
+			}
+			else if ( weathergenerator == GWGEN ) {
+
+				// Use GWGEN - correlated weather
+				weathergen_get_met(gridcell,hist_mtemp[date.year-nyear_spinup],
+					      hist_mprec[date.year-nyear_spinup],
+					      hist_mwet[date.year-nyear_spinup],
+					      hist_msun[date.year-nyear_spinup],
+					      hist_mdtr[date.year-nyear_spinup],
+					      hist_mwind[date.year-nyear_spinup],
+					      hist_mrhum[date.year-nyear_spinup],
+					      dtemp,dprec,dsun,ddtr,dwind,drhum);
+			}
+			else {
+				fail("When using CRU monthly data weathergenerator must be specified to either 'INTERP' or 'GWGEN'.");
 			}
 		}
 		else {
@@ -526,7 +548,7 @@ bool FluxnetInput::getclimate(Gridcell& gridcell) {
 		}
 
 		// Distribute N deposition
-		distribute_ndep(mNHxdrydep, mHOydrydep, 
+		distribute_ndep(mNHxdrydep, mNOydrydep, 
 						mNHxwetdep, mNOywetdep,
 						dprec, dNH4dep, dNO3dep);
 	}

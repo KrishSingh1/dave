@@ -13,6 +13,8 @@
 #include "driver.h"
 #include "guessstring.h"
 #include "fluxnet.h"
+#include "weathergen.h"
+#include "parameters.h"
 #include <fstream>
 #include <sstream>
 
@@ -54,7 +56,9 @@ FluxnetInput::FluxnetInput()
 	spinup_msun(NYEAR_SPINUP_DATA),
 	spinup_mfrs(NYEAR_SPINUP_DATA),
 	spinup_mwet(NYEAR_SPINUP_DATA),
-	spinup_mdtr(NYEAR_SPINUP_DATA) {
+	spinup_mdtr(NYEAR_SPINUP_DATA),
+	spinup_mwind(NYEAR_SPINUP_DATA),
+	spinup_mrhum(NYEAR_SPINUP_DATA) {
 
 	// Declare instruction file parameters
 
@@ -130,11 +134,12 @@ void FluxnetInput::init() {
 };
 
 void FluxnetInput::get_monthly_ndep(int calendar_year,
-	double* mndrydep,
-	double* mnwetdep) {
+	double* mnNHxdrydep, double* mNOdrydep,
+	double* mnNHxwetdep, double* mNOwetdep) {
 
 	ndep.get_one_calendar_year(calendar_year,
-		mndrydep, mnwetdep);
+		mNHxdrydep, mNOdrydep,
+		mNHXwetdep, mNOwetdep);
 }
 
 void FluxnetInput::adjust_raw_forcing_data(double hist_mtemp[NYEAR_HIST][12],
@@ -182,7 +187,7 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 
 				if (gridfound) // Get more historical CRU data for this grid cell
 					gridfound = CRU_FastArchive::searchcru_misc(file_cru_misc, lon, lat, elevation,
-						hist_mfrs, hist_mwet, hist_mdtr);
+						hist_mfrs, hist_mwet, hist_mdtr, hist_mwind, hist_mrhum);
 
 				if (run_landcover && gridfound) {
 					LUerror = landcover_input.loadlandcover(lon, lat);
@@ -363,6 +368,8 @@ bool FluxnetInput::getgridcell(Gridcell& gridcell) {
 		spinup_mfrs.get_data_from(hist_mfrs);
 		spinup_mwet.get_data_from(hist_mwet);
 		spinup_mdtr.get_data_from(hist_mdtr);
+		spinup_mwind.get_data_from(hist_mwind);
+		spinup_mrhum.get_data_from(hist_mrhum);
 
 		// We wont detrend dtr for now. Partly because dtr is at the moment only
 		// used for BVOC, so what happens during the spinup is not affecting
@@ -443,12 +450,14 @@ bool FluxnetInput::getclimate(Gridcell& gridcell) {
 					spinup_mfrs.nextyear();
 					spinup_mwet.nextyear();
 					spinup_mdtr.nextyear();
+					spinup_mwind.nextyear();
+					spinup_mrhum.nextyear();
 				}
 			}
 
 			int m;
 			double mtemp[12], mprec[12], msun[12];
-			double mfrs[12], mwet[12], mdtr[12];
+			double mfrs[12], mwet[12], mdtr[12], mwind[12], mrhum[12];
 
 			for (m = 0; m<12; m++) {
 				mtemp[m] = spinup_mtemp[m];
@@ -458,16 +467,30 @@ bool FluxnetInput::getclimate(Gridcell& gridcell) {
 				mfrs[m] = spinup_mfrs[m];
 				mwet[m] = spinup_mwet[m];
 				mdtr[m] = spinup_mdtr[m];
+
+				mwind[m] = spinup_mwind[m];
+				mrhum[m] = spinup_mrhum[m];
 			}
 
-			// Interpolate monthly spinup data to quasi-daily values
-			interp_climate(mtemp, mprec, msun, dtemp, dprec, dsun);
+			if (weathergenerator == INTERP ) {
+				// Interpolate monthly spinup data to quasi-daily values
+				interp_climate(mtemp, mprec, msun, mdtr, dtemp, dprec, dsun, ddtr);
 
-			// Only recalculate precipitation values using weather generator
-			// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
-			if (ifrainonwetdaysonly) {
-				// (from Dieter Gerten 021121)
-				prdaily(mprec, dprec, mwet, gridcell.seed);
+				// Only recalculate precipitation values using weather generator
+				// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
+				if (ifrainonwetdaysonly) {
+					// (from Dieter Gerten 021121)
+					prdaily(mprec, dprec, mwet, gridcell.seed);
+				}
+			}
+			else if (weathergenerator == GWGEN) {
+				// Use GWGEN - correlated weather
+				weathergen_get_met(gridcell,mtemp,mprec,mwet,msun,mdtr,
+					      mwind,mrhum,dtemp,dprec,dsun,ddtr,
+					      dwind,drhum);
+			}
+			else {
+				fail("When using CRU monthly data weathergenerator must be specified to either 'INTERP' or 'GWGEN'.");
 			}
 
 			spinup_mtemp.nextyear();
@@ -477,6 +500,8 @@ bool FluxnetInput::getclimate(Gridcell& gridcell) {
 			spinup_mfrs.nextyear();
 			spinup_mwet.nextyear();
 			spinup_mdtr.nextyear();
+			spinup_mwind.nextyear();
+			spinup_mrhum.nextyear();
 
 		}
 		else if (date.year < nyear_spinup + NYEAR_HIST) {
@@ -501,7 +526,9 @@ bool FluxnetInput::getclimate(Gridcell& gridcell) {
 		}
 
 		// Distribute N deposition
-		distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
+		distribute_ndep(mNHxdrydep, mHOydrydep, 
+						mNHxwetdep, mNOywetdep,
+						dprec, dNH4dep, dNO3dep);
 	}
 
 	// Send environmental values for today to framework
@@ -513,7 +540,26 @@ bool FluxnetInput::getclimate(Gridcell& gridcell) {
 	climate.insol = dsun[date.day];
 
 	// Nitrogen deposition
-	climate.dndep = dndep[date.day];
+	gridcell.dNH4dep = dNH4dep[date.day];
+	gridcell.dNO3dep = dNO3dep[date.day];
+
+	// Tmin, Tmax for BLAZE
+	// initialise first
+	climate.tmin = 0.;
+	climate.tmax = 0.;
+	if ( firemodel == BLAZE ) {
+		climate.tmin   = dtemp[date.day] - 0.5 * ddtr[date.day];
+		climate.tmax   = dtemp[date.day] + 0.5 * ddtr[date.day];
+	}
+
+	// Assuming rhum and wind are wanted when GWGEN is run
+	// initialise first
+	climate.u10    = 0.;
+	climate.relhum = 0.;
+	if ( weathergenerator == GWGEN ) {
+		climate.u10    = dwind[date.day];
+		climate.relhum = drhum[date.day];
+	}
 
 	// bvoc
 	if (ifbvoc) {

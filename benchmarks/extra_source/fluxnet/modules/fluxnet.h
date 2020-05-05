@@ -156,6 +156,12 @@ private:
 	/// Monthly DTR (diurnal temperature range) for current grid cell and historical period
 	double hist_mdtr[NYEAR_HIST][12];
 
+	/// Monthly mean wind for current grid cell and historical period
+	double hist_mwind[NYEAR_HIST][12];
+
+	/// Monthly mean relative humidity for current grid cell and historical period
+	double hist_mrhum[NYEAR_HIST][12];
+
 	/// Nitrogen deposition forcing for current gridcell
 	Lamarque::NDepData ndep;
 
@@ -172,6 +178,10 @@ private:
 	Spinup_data spinup_mwet;
 	/// Spinup data for current grid cell - DTR (diurnal temperature range)
 	Spinup_data spinup_mdtr;
+	/// Spinup data for current grid cell - wind
+	Spinup_data spinup_mwind;
+	/// Spinup data for current grid cell - relative humidity
+	Spinup_data spinup_mrhum;
 
 	/// Daily temperature for current year
 	double dtemp[Date::MAX_YEAR_LENGTH];
@@ -183,6 +193,13 @@ private:
 	double ddtr[Date::MAX_YEAR_LENGTH];
 	/// Daily N deposition for current year
 	double dndep[Date::MAX_YEAR_LENGTH];
+	// Daile mean wind
+	double dwind[Date::MAX_YEAR_LENGTH];
+	// Daily mean relative humidity
+	double drhum[Date::MAX_YEAR_LENGTH];
+	/// Daily N deposition for current year
+	double dNH4dep[Date::MAX_YEAR_LENGTH];
+	double dNO3dep[Date::MAX_YEAR_LENGTH];
 
 };
 

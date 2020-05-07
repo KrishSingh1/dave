@@ -249,8 +249,7 @@ void denitrification(Patch& patch,Soil& soil) {
 }
 
 /// Soil N gas emissions
-/** Daily calculation of soil N gas emissions 
-
+/** Daily calculation of soil N gas emissions. 
  */
 void n_gas_emission(Patch& patch, Fluxes& fluxes, Soil& soil, double& n_budget_check) {
 
@@ -260,7 +259,6 @@ void n_gas_emission(Patch& patch, Fluxes& fluxes, Soil& soil, double& n_budget_c
 	double soil_T = soil.get_soil_temp_25();
 	double wcont = soil.get_soil_water_upper();
 	double ftemp, no_d_flux_inc, n2o_d_flux_inc, no_w_flux_inc, n2o_w_flux_inc, n2_flux_inc;
-	double no_flux_inc, n2o_flux_inc;
 	double net_nitrif = 0.0;
 	double net_denitrif = 0.0;
 

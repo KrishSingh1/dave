@@ -91,7 +91,7 @@ while read f; do
    produceScatterplot gpp_scatter "${site}_gpp.png" "GPP" "gC m-2 day-1"
    produceScatterplot le_scatter "${site}_le.png" "LE" "w m-2"
 
-   describe_images ${site} embed ${site}_*.png 
+   describe_images ${site} ${site}_*.png embed
 
    # Cleanup
    rm nee_scatter gpp_scatter le_scatter plotfile ${site}.csv

@@ -24,7 +24,7 @@ def resizeimage(path, small):
 
     newpath = "resized_" + path
     if small:
-        format = '480x360>' 
+        format = '400x290>'
     else:
         format = '800x600>'
     try:
@@ -74,10 +74,8 @@ class Image:
     def tohtml(self, ingroup):
         node = Element("div")
 
-        if printer_friendly:
-            self.path = resizeimage(self.path, ingroup)
-
         if self.embed or printer_friendly:
+            self.path = resizeimage(self.path, ingroup)
             image = htmlelement("image", node)
             image.setAttribute("src", self.path)
             htmlelement("br", node)

@@ -6,7 +6,7 @@ GMAPPIXELSIZE=""	#="-pixsize 5 5"
 # Set data-dir
 # This path must start with '=/' and end with '/' in order to enable
 # automatic substition of path on other systems than simba.
-DATAPATH=/data/
+DATAPATH=/lunarc/nobackup/projects/snic2020-6-23/lpjguess/data/
 
 
 # Function for preparing data for a scatter plot using gnuplot.
@@ -55,7 +55,6 @@ describe_benchmark "LPJ-GUESS - Global Benchmarks for crops"
 source scatter_plot.sh
 
 # Standard tables and gmaps
-
 common1961to1990.sh
 
 tslice cflux.out -o cflux1990to2000.txt -f 1990 -t 2000 -lon 1 -lat 2 -y 3
@@ -121,40 +120,40 @@ describe_image wheat_yield.png "Modelled compared to SPAM data set. Units: kg m-
 
 # Above-ground biomass    
 
-tslice cpool.out -f 1993 -t 2012 -o cpool1993-2012.dat
-prepare_agb cpool1993-2012.dat cpool1993-2012_agb.dat VegC
-joyn ${DATAPATH}/biomass/Global_mean_ABC_1993-2012_Liu2015_SI.dat cpool1993-2012_agb.dat -i Lon Lat -fast -o cpool1993-2012_joyned.dat
+tslice cpool.out -f 1993 -t 2012 -o cpool1993-2012.txt
+prepare_agb cpool1993-2012.txt cpool1993-2012_agb.txt VegC
+joyn ${DATAPATH}/biomass/Global_mean_ABC_1993-2012_Liu2015_SI.dat cpool1993-2012_agb.dat -i Lon Lat -fast -o cpool1993-2012_joyned.txt
     
 . postprocess_above_ground_biomass.sh # Get above-below ground partintioning based on Jackson et al.
 
-joyn lu_cmass_agb_1993-2012_tot.dat cpool1993-2012_joyned.dat -i Lon Lat -o lu_cmass_agb_tot_1993-2012_joyned.dat
-awk '{if(FNR==1){print $1,$2, "VegC"} else {print $1,$2, $(NF-1)}}' lu_cmass_agb_tot_1993-2012_joyned.dat > lu_cmass_agb_1993-2012_tot.dat_Liu.dat
-awk '{print $1,$2, $NF}' lu_cmass_agb_tot_1993-2012_joyned.dat > cpool1993-2012_joyned_VegC.dat
-delta cpool1993-2012_joyned_VegC.dat lu_cmass_agb_1993-2012_tot.dat_Liu.dat -i Lon Lat -o delta_cpool1993-2012_joyned_jackson.dat
-gmap delta_cpool1993-2012_joyned_jackson.dat -i VegC -lon 1 -lat 2 -portrait -s -20 2 20  -o delta_cpool1993-2012_joyned_jackson.png -t "VegC LPJ-GUESS - Liu kg(C)/m2" -c BLUE RED
+joyn lu_cmass_agb_1993-2012_tot.txt cpool1993-2012_joyned.txt -i Lon Lat -o lu_cmass_agb_tot_1993-2012_joyned.txt
+awk '{if(FNR==1){print $1,$2, "VegC"} else {print $1,$2, $(NF-1)}}' lu_cmass_agb_tot_1993-2012_joyned.txt > lu_cmass_agb_1993-2012_tot.txt_Liu.txt
+awk '{print $1,$2, $NF}' lu_cmass_agb_tot_1993-2012_joyned.txt > cpool1993-2012_joyned_VegC.txt
+delta cpool1993-2012_joyned_VegC.txt lu_cmass_agb_1993-2012_tot.txt_Liu.txt -i Lon Lat -o delta_cpool1993-2012_joyned_jackson.txt
+gmap delta_cpool1993-2012_joyned_jackson.txt -i VegC -lon 1 -lat 2 -portrait -s -20 2 20  -o delta_cpool1993-2012_joyned_jackson.png -t "VegC LPJ-GUESS - Liu kg(C)/m2" -c BLUE RED
 describe_image delta_cpool1993-2012_joyned_jackson.png "Modelled minus Liu et al. Above ground biomass. Units: kg m-2."
     
-awk '(FNR>1){print $(NF-1),$(NF-2)}' lu_cmass_agb_tot_1993-2012_joyned.dat > scat_cpool2.dat
-scatter_plot "Above ground biomass (AGB)" "Liu et al. " "LPJ-GUESS" scat_cpool2.dat agb.png
+awk '(FNR>1){print $(NF-1),$(NF-2)}' lu_cmass_agb_tot_1993-2012_joyned.txt > scat_cpool2.txt
+scatter_plot "Above ground biomass (AGB)" "Liu et al. " "LPJ-GUESS" scat_cpool2.txt agb.png
 describe_image agb.png "LPJ-GUESS modelled AGB compared to Liu et al. data. Units: kg m-2." embed
-rm -f  cpool1993-2012.dat cpool1993-2012_joyned.dat cpool1993-2012_joyned_Liu.dat delta_cpool1993-2012_joyned.dat cpool1993-2012_joyned_VegC.dat 
+rm -f  cpool1993-2012.txt cpool1993-2012_joyned.txt cpool1993-2012_joyned_Liu.txt delta_cpool1993-2012_joyned.txt cpool1993-2012_joyned_VegC.txt 
 
 . pan_regional_biomass.sh
 
 # Fire-related benchmarks
 
 gfed40_data=${DATAPATH}/fire/gfed40_c-emissions_1997-2016.dat
-tslice cflux.out -f 1997 -t 2016 -o cflux1997-2016.dat
-joyn cflux1997-2016.dat $gfed40_data -i Lon Lat -fast -o cflux1997-2016_joyned.dat
+tslice cflux.out -f 1997 -t 2016 -o cflux1997-2016.txt
+joyn cflux1997-2016.txt $gfed40_data -i Lon Lat -fast -o cflux1997-2016_joyned.txt
 
-gmap cflux1997-2016_joyned.dat -i Fire -lon 1 -lat 2 -portrait -o cflux1997-2016_blaze.png \
+gmap cflux1997-2016_joyned.txt -i Fire -lon 1 -lat 2 -portrait -o cflux1997-2016_blaze.png \
     -legend common/legend_fire_emis.txt -t "BLAZE mean annual C-emissions [kg(C)/m2a]"
 describe_image  cflux1997-2016_blaze.png "BLAZE Mean annual C-emissions 1997-2016 [kg(C)/m2a]"
 	
-awk '{print $1,$2, $6}' cflux1997-2016_joyned.dat > cflux1997-2016_joyned_Fire.dat
-awk '{if(FNR==1){print $1,$2, $6} else {print $1,$2, $13}}' cflux1997-2016_joyned.dat > cflux1997-2016_joyned_gfed.dat
-delta  cflux1997-2016_joyned_Fire.dat cflux1997-2016_joyned_gfed.dat -i Lon Lat -o delta_cflux1997-2016_joyned.dat
-gmap delta_cflux1997-2016_joyned.dat -i Fire -lon 1 -lat 2 -portrait \
+awk '{print $1,$2, $6}' cflux1997-2016_joyned.txt > cflux1997-2016_joyned_Fire.txt
+awk '{if(FNR==1){print $1,$2, $6} else {print $1,$2, $13}}' cflux1997-2016_joyned.txt > cflux1997-2016_joyned_gfed.txt
+delta  cflux1997-2016_joyned_Fire.txt cflux1997-2016_joyned_gfed.txt -i Lon Lat -o delta_cflux1997-2016_joyned.txt
+gmap delta_cflux1997-2016_joyned.txt -i Fire -lon 1 -lat 2 -portrait \
     -legend common/legend_delta_fire_emis.txt -o delta_cflux1997-2016_joyned.png \
     -t "Fire C flux LPJ-GUESS - Gfed kg(C)/m2/a" -c BLUE RED -vert
 describe_image delta_cflux1997-2016_joyned.png "Modelled minus GFED 4.0 data. Units: kg(C)/m2a."
@@ -166,26 +165,26 @@ tot_gfed=0.
 for ((x=1; x<=14; x++)); do
     ((xx=$x-1))
     creg=${GFEDreg[${xx}]} 
-    awk -v reg=$x '(FNR==1 || $3==reg){print $0}' ${DATAPATH}/fire/gfed_regions0.5.dat > reg.dat
-    joyn cflux1997-2016_joyned.dat reg.dat -i Lon Lat -fast -o cflux_reg_${x}_joyned.dat  
-    aslice cflux_reg_${x}_joyned.dat -n -lon Lon -lat Lat  -sum "kg/m2->Pg" -o tot_cflux_reg_${x}.dat
+    awk -v reg=$x '(FNR==1 || $3==reg){print $0}' ${DATAPATH}/fire/gfed_regions0.5.dat > reg.txt
+    joyn cflux1997-2016_joyned.txt reg.txt -i Lon Lat -fast -o cflux_reg_${x}_joyned.txt  
+    aslice cflux_reg_${x}_joyned.txt -n -lon Lon -lat Lat  -sum "kg/m2->Pg" -o tot_cflux_reg_${x}.txt
     if [ $x -eq 1 ]; then
-	echo "Region LPJ-GUESS GFED 4.0 "	> tot_cflux_reg.dat
+	echo "Region LPJ-GUESS GFED 4.0 "	> tot_cflux_reg.txt
     fi
 
     long_desc=$(head -n $x ${DATAPATH}/fire/gfed_region_description.txt | tail -n 1)
     awk -v reg=$creg '{ORS=" "; if(FNR==2){printf "%s      %6.2f   %6.2f    ",reg,$4*1000,$11*1000}}' \
-	tot_cflux_reg_${x}.dat >> tot_cflux_reg.dat
-    echo $long_desc >> tot_cflux_reg.dat
+	tot_cflux_reg_${x}.txt >> tot_cflux_reg.txt
+    echo $long_desc >> tot_cflux_reg.txt
 
-    rm -f tot_cflux_reg_${x}.dat cflux_reg_${x}_joyned.dat reg.dat
+    rm -f tot_cflux_reg_${x}.txt cflux_reg_${x}_joyned.txt reg.txt
 done
-tot_lpjg=$(awk '(FNR>1){sum+=$2} END {print sum}' tot_cflux_reg.dat)
-tot_gfed=$(awk '(FNR>1){sum+=$3} END {print sum}' tot_cflux_reg.dat)
-printf "Total    %6.2f  %6.2f\n" $tot_lpjg $tot_gfed >> tot_cflux_reg.dat
-describe_textfile tot_cflux_reg.dat "Fire C-emissions per GFED - region [Pg/a]"
-rm -f cflux1997-2016.dat cflux1997-2016_joyned.dat cflux1997-2016_joyned_Fire.dat cflux1997-2016_joyned_gfed.dat \
-   delta_cflux1997-2016_joyned.dat scat_fire_cflux.dat 
+tot_lpjg=$(awk '(FNR>1){sum+=$2} END {print sum}' tot_cflux_reg.txt)
+tot_gfed=$(awk '(FNR>1){sum+=$3} END {print sum}' tot_cflux_reg.txt)
+printf "Total    %6.2f  %6.2f\n" $tot_lpjg $tot_gfed >> tot_cflux_reg.txt
+describe_textfile tot_cflux_reg.txt "Fire C-emissions per GFED - region [Pg/a]"
+rm -f cflux1997-2016.txt cflux1997-2016_joyned.txt cflux1997-2016_joyned_Fire.txt cflux1997-2016_joyned_gfed.txt \
+   delta_cflux1997-2016_joyned.txt scat_fire_cflux.txt 
 
 # N2O benchmark
 
